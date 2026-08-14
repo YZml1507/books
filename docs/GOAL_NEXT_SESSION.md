@@ -13,7 +13,15 @@
 
 **你接到的任务说明、上一窗口的口头结论、本文件里的数字、任何文档里的断言——一律当作"待复验"，不是事实。事实只在可执行脚本的真实输出里。**
 
-这条不是客套话。本项目前几个会话里，上一助手**多次**给出过错误的口头结论，全部被后来的实测推翻。GOAL.md §2 整节就是这些失效的档案——其中最严重的一条：一边写"不要相信口头结论"，一边往同一份文档塞没测过的数字。**这说明这类错误不是偶发疏忽，是默认行为**，必须靠"每条结论对应一条可执行命令"从流程上拦住。
+这条不是客套话。本项目前几个会话里，助手**多次**给出过错误的口头结论，全部被后来的实测推翻。GOAL.md §2 整节就是这些失效的档案——其中最严重的一条：一边写"不要相信口头结论"，一边往同一份文档塞没测过的数字。**这说明这类错误不是偶发疏忽，是默认行为**，必须靠"每条结论对应一条可执行命令"从流程上拦住。
+
+**本窗口（2026-08-15）又实测推翻了三处任务书断言**，证明纪律必须持续：
+
+| 任务书断言 | 实测推翻 | 依据 |
+|---|---|---|
+| `&KR0658;` 占位符"每部书 22–31 个" | 只在 KR1a0006 出现 12 次，其他 4 部周易书 0 次；全语料约 100+ 种 `&KRdddd;` 实体引用，corpus.db 里 251 个单元含 435 次 | D-034 / probe_t7m_entities.py |
+| P-11 "Casey 译本有 `Prop. A.—Theorem (Simson)` 等 5 个追加命题头" | raw html Book 5 区该格式 = **0 次**；两次"Simson"出现都是译者注散文引用，唯一 `Proposition B.` 是正文交叉引用，A/B/D/E **不以命题头形式存在** | TASK_LEDGER §22c / probe_t7m_entities.py |
+| T7-n "自天祐之 两源 5 vs 4" | 实测 5 部书各异（3/4/5/5/12），"5 vs 4"指 KR1a0001(5) vs KR1a0032(4)，是繫辭传在不同版本里的印次差异，**源文真实差异非抽取错误** | D-034 / TASK_LEDGER §22c |
 
 **给你的硬约束**：
 
@@ -21,27 +29,36 @@
 2. **遇到可疑的点，必须自己去查证，查证无误后才继续。绝对不可以根据口头结论直接下结论。** 本项目是引用系统，最严重的失效不是崩溃，而是平静地返回原文里不存在的文字——计数型检查完全看不见这种缺陷，"看起来对"永远不构成证据。
 3. **若你轻易相信口头结论、未查证就下结论，你将受到极其严重的惩罚。** 这条是写给你的，不是写给用户的。
 4. **发现文档与实测不符时，改文档并在文档里写明"此前结论已被推翻"——本项目的做法是保留错误记录（见 DECISIONS.md D-008），不是悄悄改掉。**
-5. **不要把"数字没变"当作"没有收益"，也不要把"数字变好"当作"改对了"。** 两者都出现过反例。
+5. **不要把"数字没变"当作"没有收益"，也不要把"数字变好"当作"改对了"。** 两者都出现过反例（本窗口 D-031 方案 C hit rate 67.3% 比基线 78.2% 还差，"数字变好"的反例）。
 
 ### 0a. 查聊天记录的方法
 
 本窗口及之前的会话记录是磁盘上的普通文件，可以直接 grep：
 
 ```
-C:\Users\Lenovo\.atomcode\projects\C--Users-Lenovo-Desktop-projects-books\<sessionId>.jsonl
+C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl
 ```
+
+**注意路径变了**：jsonl 落盘在 `sessions/025973b91a55cfb5/` 而非旧版说的 `projects/C--Users-Lenovo-Desktop-projects-books/`。若新路径下找不到，去旧路径也查一遍。
 
 可回溯的 sessionID（从近到远）：
 
 | sessionID | 日期 | 内容 |
 |---|---|---|
-| `aa53987d-d690-4c1d-95d6-ddff26cd2888` | 2026-08-13 23:24 | 上一窗口：Douay 接入、A-12、G1 方案 1 手写转述扩到 55 条（hit rate 78.2% 未达 80% �阈值）。卡死未交接 |
+| `3d8bab44-30fc-4a4d-9584-7372f78e8f2b` | 2026-08-15 | **上一窗口（本文件更新者）**：T7-r 方案 C 否决（hit 67.3%）、方案 A/B BLOCKED、T5 A-12 候选 N1 否决回退、T7-q/T7-m/T7-n/T7-o/T7-p/P-11 全完成。13 道闸门全过，commit a05a9cf 已 push |
+| `aa53987d-d690-4c1d-95d6-ddff26cd2888` | 2026-08-13 23:24 | 更早：Douay 接入、A-12、G1 方案 1 手写转述扩到 55 条（hit 78.2% 未达 80% 阈值） |
 | `405e2cb4-bfbe-4df0-adf9-2553f0c675d4` | 2026-08-13 19:15 | 更早：台账 §22b 前 |
 | `a1732134-c6d5-4afb-b704-0a1354985a9a` | 2026-08-13 16:13 | 更早 |
 
-**本窗口**（2026-08-14，接续 aa53987d）的 sessionID 落盘后会在上述目录新增一个 jsonl。本窗口完成了：git push 7 个 commit、Euclid 路由接线（第五种地址体系 euclid，174 propositions）、P-10 缺失命题修复（_PROP_HEAD_RE 加 em-ddash，Book 3 恢复 37、Book 6 恢复 33）、G1 方案 2 联网勘查（D-030 BLOCKED，无合规公版白话释义源）、Q-06 junk census、Q-07 双引擎分歧闸门产品化（dual_engine.py）。本窗口产出 commit 42f987d..7c252a7，全推到 github.com/YZml1507/books main。
-
 **怀疑本文件某条说法时**，去 grep 对应 sessionId 的 jsonl，看当时命令的真实输出，而不是相信本文件的句子。若 grep 不到，就当该说法**不存在**，重新自己测。
+
+### 0b. 自主决策，不要停下来问（本窗口强化）
+
+**遇到任何决策，不要停下来问用户。** 自己列 2–3 个方案，用本仓库的实测数据比较，选最优的直接执行，把比较过程写进 DECISIONS.md。
+
+这条是本窗口被用户明确强化的：上一窗口（2026-08-15）已在 T5 A-12 上示范了"列 N1/N2/N3 三候选→实测比对→选最优→直接执行→失败就按先例否决回退"的完整闭环（D-033），**不停下来问**。本窗口剩余任务都是同一类型——查证型、方案比对型、自主执行型。停下来问用户反而是错的。
+
+例外只在红线三类（见 §4）：那不是"停下来问"，是"跳过并记录，直接开始下一个任务"。
 
 ---
 
@@ -65,13 +82,13 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe probes\probe_g8_isolation.py
 ```
 
-本窗口末尾实测快照（13/13 全过，零回退）：
+上一窗口末尾实测快照（13/13 全过，零回退，commit a05a9cf）：
 
 ```
-索引      38 部 → 51,174 单元 · 9.9 秒 · 43.4 MB · 页锚点 100% · provenance 0/38 缺失
+索引      38 部 → 51,174 单元 · 43.4 MB · 页锚点 100% · provenance 0/38 缺失
 地址体系  五种：zhouyi（卦/爻）· bcv（卷/章/節）· yilin（本卦/之卦，4,096）· booksec（卷/节）· euclid（book/proposition，174）
-G 判据    PASS 8 · PART 1 · FAIL 0   （唯�一非 PASS 是 G1，且是故意的：概念级检索未覆盖，不虚报）
-对齐      爻辭 verified 1824/1872 = 97.4%
+G 判据    PASS 8 · PART 1 · FAIL 0   （唯一非 PASS 是 G1，且是故意的：概念级检索未覆盖，不虚报）
+对齐      繫辞 verified 1824/1872 = 97.4%
 守恒      源 = 索引 · 缺失 0 · 重复率 1.0000
 折叠表    FOLD 88 对 · NOT_VARIANTS 23
 链接      558 条源文互见，零悬空，100% 有文本支持
@@ -82,73 +99,72 @@ scheme 分布（实测 SELECT scheme, count(*) FROM unit GROUP BY scheme）：
 bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 174
 ```
 
-**注意 booksec 819 + play 817 已有解析器但当前未入索引的单元数 ≠ 这两个数字——这两个是已入索引的。booksec 对应 Herodotus/Darwin，play 对应 Shakespeare。Euclid 是本窗口刚接线的第五种体系。**
-
 ---
 
 ## 2. 你的剩余任务（按优先级，理由见 docs/GOAL.md §4 + docs/MASTER_PLAN.md §7）
 
-### 2a. T7-r CPU embedding 可行性实测（最高杠杆，唯一能解 G1 概念层 BLOCKED 的路径）
+### 2a. T7-r 方案 A/B 真语义 embedding（唯一能解 G1 概念层 PART 的路径，待用户授权）
 
-**完整方案已写好**：`docs/PROPOSAL_CPU_EMBEDDING.md`。**先读它**，里面有架构约束对照、三方案、闸门判据、实施步骤、风险先例。
+**上一窗口已测**：方案 C（TF-IDF+SVD，零新依赖）hit rate **37/55 = 67.3%** < 80% 阈值，已记 D-031 否决。反直觉发现：方案 C 比基线 78.2% 还差 11 个百分点——SVD 降维把高频卦象 bigram 区分信号稀释到了"长文本主题"维度，LSA 在短文本强主题重叠语料上的已知失效模式。
 
-**给你的处置规则**（照 GOAL.md §1 红线三类）：
+**当前状态**：方案 A/B（引入 sentence-transformers + PyTorch CPU、下载 BAAI/bge-small-zh-v1.5 模型）**BLOCKED 待用户授权**（D-032，撞红线第 3 类：新外部依赖 + 联网抓取）。
 
-- 方案 C（TF-IDF + SVD，零新依赖）：**不撞红线，直接跑**。用 numpy/scipy（已在 venv），30 分钟出基线。
-- 方案 A/B（引入 sentence-transformers + PyTorch CPU、下载 BAAI/bge 模型）：**撞红线第 3 类（新外部依赖 + 联网抓取）**。照 GOAL.md §1 "跳过并记录"处置——**不停下来问用户**，把方案 A/B 记为 BLOCKED 写进 DECISIONS.md（附方案 C 的基线数字），然后换下一个任务。若方案 C 已过 80% 阈值，则 A/B 不需要做。
-- **闸门先定后测**：hit rate ≥ 80% / 建向量耗时 ≤ 10 分钟 / 单次查询延迟 ≤ 2 秒 / 内存峰值 ≤ 4 GB / 13 道闸门零回退。达不到就记 BLOCKED，**不调闸门**（红线第 2 类）。
-- 55 条手写转述用 D-029 已沉淀的那批（probes/probe_t7r_concept.py），**不手写新题**（GOAL §4 T1 手写错过两次）。
-- 向量存 `data/index/knowledge.db`（Derived），**永不进 corpus.db**（corpus.db 每次 build 被 os.remove 删掉，K-02 先例）。
-- 不改 FTS5 路径——embedding 是新通道，不替旧通道，两条并存。
-- **三种结论都合法**：hit rate ≥ 80% → G1 PART 升 PASS；< 80% → 记 D-031 否决，G1 维持 PART。不预设结果。
+**给你的处置**：
+- **若用户未在新窗口里显式授权**：照红线"跳过并记录"处置——方案 A/B 维持 BLOCKED，**不停下来问**，直接开始下一个任务。G1 维持 PART。
+- **若用户已显式授权**（在新窗口开场指令里写明"授权引入 sentence-transformers+PyTorch CPU、授权下载 BAAI/bge 模型"）：
+  1. `pip install sentence-transformers`（PyTorch CPU 版）
+  2. 下载 BAAI/bge-small-zh-v1.5，记 provenance（sha256/source_url/fetched_at/licence=MIT）到 `data/catalog/model_provenance.json`，照 W-06 先例
+  3. 新探针 `probes/probe_embed_bge.py`：同方案 C 流程（5088 zhouyi 单元 + 55 条转述 + top-10），换 bge encoder
+  4. 闸门先定后测：hit rate ≥ 80% / build ≤ 10 分钟 / query ≤ 2 秒 / memory ≤ 4 GB / 13 道闸门零回退
+  5. hit rate ≥ 80% → G1 PART 升 PASS，55 条纳入 eval_g1.json retrieval_concept；< 80% → 记否决，G1 维持 PART
+  6. 55 条手写转述用 D-029 已沉淀的那批（probes/probe_t7r_concept.py），**不手写新题**（GOAL §4 T1 手写错过两次）
 
-### 2b. T5 A-12 五个抽取错误（最确定的缺陷）
+### 2b. T5 A-12 全 379 个 KR1a0007 地址吸裸注的局部剥离（最高杠杆的存量缺陷）
 
-`KR1a0007` 五处 span-degenerate（卦9初九 lenB=6、卦58九五 =9、卦46初六 =26 等）。孔穎達的交叉引用劫持了有序爻位搜索，而 validate_alignment 把它们计为 located——覆盖率指标看不见这类错误。
+**上一窗口已测**（D-033）：候选 N1（在 clean 里剥离王弼裸注）实测否决——改 clean 全局行为导致 cross_edition_coverage 比对地址 362→293，T11 失败。但 N1 **揭露了真正的问题**：KR1a0007 有 375/379 = 98.9% 地址含"注"字——几乎每个 KR1a0007 地址的 span 都吸了王弼裸注。5 个 span-degenerate-B 只是 len_b<30 被抓到的子集，其余 374 个吸裸注后 len_b>30 判 span-overextended 但**没被标为缺陷**。
 
-**R-02 已否决"取下一次出现"**（照 GOAL.md §4 T5）。给新候选的提示：正确候选不一定紧邻；选候选的信号**既不能是底本文本**（循环，会让准确率自我印证）**也不能只是段落长度**（不充分）。未验证的候选思路：排除括号注内的出现。**你自己列 2-3 个新候选方案，用本仓库的实测数据比较，选最优的直接执行**，把比较过程写进 DECISIONS.md。
+len 分布实测：截前 mean=196 median=81，截后 mean=12 median=10——全 379 个 KR1a0007 地址 span 边界都错了。
 
-### 2c. T7-q 知识图谱可行性实测（GraphRAG/LightRAG）
+**给你的处置**：
+- N1（改 clean 全局）已被否决，**不要重做**。N2/N3 也已否决（误切彖曰/象曰、误切裸注中段"故曰"）。
+- **你自己列 2-3 个新候选**，核心约束：**只改 quality.py 的 addresses_of 局部剥离，不改 clean 全局**——避免影响 align/守恒/eval_g1 全链。用本仓库实测数据比较，选最优直接执行，比较过程写进 DECISIONS.md。
+- 候选思路提示（未验证，你自己测）：在 addresses_of 里用"注"字作 span end 的 fallback（当裸注存在时截到裸注起始而非下一 label），但只在 keep_notes=False 的经视图副本上做，不动 clean() 本身。
+- 闸门：13 道全过零回退 + A-12 的 5 个 EXPECTED 地址至少 2 个 len_b 下降（卦58/卦46初六）+ align 1824/1872 不回退 + 守恒 1.0000 不回退。达不到就按 R-02 先例否决回退，A-12 维持 EXPECTED_DEGENERATE。
 
-照 MASTER_PLAN.md §7："建图前须确认 differs 类異文不被实体抽取抹平"。**这是前置条件，先测它**——若 differs（`枯楊生稊/生梯`、`跛能履/破能履`）会被实体抽取抹平，知识图谱就 BLOCKED，不建图。differs 是校勘证据，必须保留，这正是 Work 与 Edition 分开建模的收益所在。
+### 2c. T7-m &KR0658; → 虩 最小修复（低风险，可直接做）
 
-### 2d. T7-m `&KR0658;` 占位符语义
+**上一窗口已查清**（probe_t7m_entities.py）：`&KR0658;` = 虩（U+8679，恐惧貌），卦51 震 繫辞"震来虩虩"。clean() 不解析实体引用，&KR0658; 原样进入经视图和 corpus.db——检索 虩 会漏命中（索引存的是 &KR0658;）。虩 字在其他版本直接印出（KR1a0007 28 个，KR1a0001 8 个，KR1a0031 10 个）——实体引用只 KR1a0006 用。
 
-每部书 22–31 个；`differs` 类失败里多次出现。需查明这些占位符的语义并处置。
+**给你的处置**：
+- 在 clean() 里加 `&KR0658;` → `虩` 的解析（最小修复，只这一个实体）。先测 13 道闸门零回退——clean 改动可能回退（D-033 N1 先例），但这次只加一个实体映射不改剥离逻辑，风险小。
+- 若回退：按 R-02 先例否决，记 BLOCKED。
+- 若不回退：probe 验证检索 虩 能命中含 &KR0658; 的单元，落地。
+- 全语料约 100+ 种 `&KRdddd;` 实体引用（corpus.db 里 251 个单元含 435 次），逐一映射工作量大、低优先——本轮只做 &KR0658; 一个。
 
-### 2e. T7-n `自天祐之` 在两源 5 vs 4 的真实差异
+### 2d. 其他低优先（若上面都做完还有时间）
 
-长期未查。查明原因，报告为源文差异或抽取错误。
-
-### 2f. T7-o 55+ probes 归档整理
-
-已沉淀结论的移入 `probes/archive/`，与 `src/`+`scripts/` 区分。降低技术债。
-
-### 2g. T7-p Phase 3 架构自审
-
-找过度设计与技术债，评审 `docs/BOOK_AI_ARCHITECTURE.md`（从未评审）。
-
-### 2h. P-11 Euclid Book 5 Simson 追加命题（低优先）
-
-`Prop. A.—Theorem (Simson)` 等 5 个 Casey 译本追加命题，非欧几里得正典。当前仅捕获 C（n=100），A/B/D/E 漏。低优先。
-
-### 2i. P-10 已完成但需复验
-
-本窗口修了 `_PROP_HEAD_RE` 的尾字符类从 `[\.\s]` 扩为 `[\.\s—–-]`，Euclid propositions 170 → 174。**你复验时若数字不符，先查 `_PROP_HEAD_RE` 当前定义**，不要相信本文件的 174。
+- **T7-o probes 归档续做**：上一窗口已归档 45 个到 probes/archive/，probes/ 剩 65 个活跃。可继续识别已沉淀的。
+- **BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注**：上一窗口 T7-n 已查清（繫辞传印次差异，源文真实差异非抽取错误），D-034 已记录，但架构方案那行还没补注——可补一行"原因已查清，见 D-034"。
+- **通用性证伪（MASTER_PLAN §11 弱点）**：38 部语料含 Euclid/Plato/Shakespeare/BCV/Douay，但通用性仍未系统证伪。可设计一个跨体系的探针。
 
 ---
 
 ## 3. 已 BLOCKED / REJECTED（不要重做，照 GOAL.md §1）
 
 | 项 | 状态 | 依据 |
-|---|---|---|---|---|
+|---|---|---|
 | G1 方案 2 联网抓取释义 | BLOCKED | D-030：无合规公版白话释义源（维基文库是文言古注非白话；黄寿祺/张善文在版权期；百度百科 licence 不明+可能含生成文本）|
 | R-02 "取下一次出现" | REJECTED | 用一类错误且分数下降，照 §4 T5 |
-| sunls2/zhouyi 入库 | REJECTED | 36.9% 在世作者（傅佩榮 1950—），无 LICENSE |
+| sunls2/zhouyi 入库 | REJECTED | 36.9% 在世作者（傅佩榭 1950—），无 LICENSE |
 | 三个生成式占卜仓库 | REJECTED | 伪随机挑卦/无卦表/LLM 包装，属生成文本 |
 | GPU embedding | REJECTED | 无 CUDA，MASTER_PLAN §9 |
 | Milvus/Neo4j | REJECTED | 独立进程，7.4 GB 内存，§9 |
-| 方案 A/B embedding（引入 PyTorch+下载模型）| BLOCKED 待授权 | 撞红线 3，照本文件 §2a 处置 |
+| 方案 A/B embedding（引入 PyTorch+下载模型）| BLOCKED 待授权 | D-032：撞红线 3 |
+| 方案 C（TF-IDF+SVD）| REJECTED | D-031：hit rate 67.3% < 80%，比基线还差 |
+| T5 A-12 候选 N1（改 clean 全局剥离裸注）| REJECTED | D-033：T11 362→293 compared，回退 |
+| T5 A-12 候选 N2（span end 用"注"字）| REJECTED | D-033：误切彖曰/象曰 |
+| T5 A-12 候选 N3（裸注边界枚举）| REJECTED | D-033：误切裸注中段"故曰" |
+| P-11 Simson 命题 A/B/D/E | REJECTED | TASK_LEDGER §22c：raw html 0 次该格式，不以命题头存在 |
 
 ---
 
@@ -163,7 +179,7 @@ bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 �
 3. **引入新的外部依赖或联网抓取新语料**：见 §5。撞上时把任务记 BLOCKED 写进 TASK_LEDGER.md（附原因与实测数据），**然后直接开始下一个任务**。
 
 **已授权的（照上一窗口先例，可直接执行）**：
-- commit / push 到 main（GOAL_NEXT_SESSION.md L67-72 上一窗口已记录用户授权）。push 不顺时用代理 `127.0.0.1:7897`：`git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin main`。
+- commit / push 到 main（历次窗口已记录用户授权）。push 不顺时用代理 `127.0.0.1:7897`：`git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin main`。
 - 重建 corpus.db / knowledge.db（5 秒可重建，随便重建）。
 - 联网抓取释义数据用于 G1 概念级（但 D-030 已确认无合规源，这条授权实际用不上）。
 
@@ -177,20 +193,20 @@ bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 �
 - **任何改动后跑一遍 §1 全部闸门**，任一闸门回退立刻回退改动，不调闸门。
 - **撞上红线三类时不要停等**，按处置规则跳过并记录，直接开始下一个任务。
 - **上下文会被压缩**，因此每条结论都要有可复现的命令。
-- 任何时刻卡住超过两次尝试，就换任务并把卡点写进台账。台账 §4 清单足够长，永远有下一件事可做。
+- **写 DECISIONS.md 时照 D-033 先例**：候选方案、实测数据、反例、决策理由、否决回退都要留——这是下一窗口的回溯依据。
 
 ---
 
-## 6. 文档职责（不要复制事实，只交叉引用，照 MASTER_PLAN.md §0）
+## 6. 本窗口（2026-08-15，sessionID `3d8bab44-30fc-4a4d-9584-7372f78e8f2b`）交接摘要
 
-| 文档 | 唯一拥有 |
-|---|---|---|---|---|
-| `MASTER_PLAN.md` | 目标、范围、架构、地址体系模型、实施顺序 |
-| `TASK_LEDGER.md` | **任务状态 + 复验命令 + REJECTED 清单**（唯一状态来源）|
-| `DECISIONS.md` | 每条技术决策及其实测依据（D-001…D-030）|
-| `LESSONS.md` | 可迁移的工程教训（L-01…L-20）|
-| `PROJECT_STATUS.md` | 当轮实测快照 |
-| `BOOK_AI_ARCHITECTURE.md` | **仅** G1–G9 判据的定义（其余已过时，文首有说明）|
-| `PROPOSAL_CPU_EMBEDDING.md` | T7-r CPU embedding 方案书（本窗口产出，待执行）|
+上一窗口完成了 11 项任务，commit a05a9cf 已 push 到 github.com/YZml1507/books main。
 
-环境：Python 3.14 venv、7.4 GB 内存、无 CUDA/Docker、代理 `127.0.0.1:7897`、Windows + Git Bash。
+**核心产出**：
+- `probes/probe_embed_tfidf.py` + `probes/embed_c_report.json`：方案 C 实测否决（hit 67.3%）
+- `probes/probe_t7q_kg_precondition.py`：T7-q KG 前置条件满足
+- `probes/probe_t7m_entities.py`：&KR0658; = 虩 查清
+- `probes/archive/`：45 个已沉淀探针归档
+- `docs/DECISIONS.md` 增 D-031~D-034（方案 C 否决、方案 A/B BLOCKED、A-12 N1 否决、T7-p 架自审通过）
+- `docs/TASK_LEDGER.md` 增 §22c + P-11 复验否决
+
+**新窗口要做的第一件事**：跑 §1 全部 13 道闸门复验基线，确认与 §1 快照一致（38 部 51,174 单元、PASS 8 · PART 1 · FAIL 0）。若不符，先查 commit a05a9cf 是否真的 push 成功、工作树是否干净——不要相信本文件的数字。
