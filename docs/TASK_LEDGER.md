@@ -217,8 +217,8 @@ G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 | Q-03 | 已知阳性对照强制 | DONE | 检测不到 KR1a0006 卦61 即 exit 1 | `check_quality.py` |
 | Q-04 | 语料 OCR 损坏认定 | DONE | KR1a0006 卦61 `翰青/輪高/届卦/芝絃`；卦19 缺文 335 vs 1804 字 | `quality_report.json` |
 | Q-05 | 卦64 尾部假阳性显式排除 | DONE | 十翼编排不同，31,523 vs 14,402 字 | 同上 |
-| Q-06 | junk 检测器加 `\(cid:\d+\)` 统计 | **TODO** | `(cid:N)` 是 ASCII，纯码位普查会漏 | — |
-| Q-07 | 双引擎分歧闸门产品化 | **TODO** | D-001 已实测，未落地为模块 | — |
+| Q-06 | junk 检测器加 `\(cid:\d+\)` 统计 | **DONE** | `(cid:N)` 是 ASCII，纯码位普查会漏；`junk_census()` 记入 `quality_report.json` | §23 |
+| Q-07 | 双引擎分歧闸门产品化 | **DONE** | `src/guji/dual_engine.py` + `scripts/check_dual_engine.py`；10 EPUB 扫描 0 double-junk | §24 |
 
 ---
 
@@ -941,10 +941,35 @@ bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 �
 
 **13 道闸门实测快照（全过，零回退）**：
 ```
-check_quality PASS · build_index 9.6s 37 部 51,000 单元 42.1 MB · verify_index ALL PASS
+check_quality PASS · build_index 9.9s 38 部 51,174 单元 43.4 MB · verify_index ALL PASS
 validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000
-assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/37 missing
+assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/38 missing
 probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）
 eval_g1 G1 = PASS 225/225 · summarise_diff EXIT=0 · eval_g7 FABRICATIONS 0 G7 = PASS（impossible 4/4）
 eval_g4 G4 = PASS · probe_g8_isolation PASS — separation holds under all attempts
 ```
+
+---
+
+## 24. Q-07 DONE：双引擎分歧闸门产品化
+
+**任务**：GOAL.md §4 T7-i / TASK_LEDGER §6 Q-07。D-001 已实测双引擎分歧（PyMuPDF 主 + markitdown 交叉校验）但未落地为模块。
+
+**实施**：
+1. `src/guji/dual_engine.py` 新模块：`compare(path) -> DualEngineReport`。跑 PyMuPDF（主引擎，揭露页边界）+ markitdown（交叉校验，独立解析链）于同一源。复用 Q-06 `junk_census` 做每引擎 junk 报告。引擎错误记录不抛。**闸门只在 both-junk 失败**（两引擎均 ≥5% junk = OCR 强制态）；分歧本身是信息不是失败。
+2. `scripts/check_dual_engine.py` 闸门 CLI：无参则扫 `data/raw_ext/generality` 下所有 PDF/EPUB。exit 0 除非 double-junk。
+
+**取代**：分散在 `probes/probe_markitdown.py`、`probes/probe_cid_verify.py`、`probes/probe_crosssource.py` 的探针级逻辑（Q-07 产品化）。
+
+**实测**（2026-08-14）：
+- 10 个 EPUB 目标扫描（pg100/pg1497/pg2199/pg2707/pg6130/pg21076 等），0 double-junk，全部 "engines agree"
+- markitdown 对所有 EPUB 产出 0 page-marks（flat string，无页分界）——印证 D-001 "markitdown 不能作引用唯一解析器"的结论
+- CSS syntax error 是 MuPDF 对 PG EPUB CSS 的无害警告，不影响提取
+
+**验收**：13 道闸门全过零回退。复验：
+- `./.venv/Scripts/python.exe scripts/check_dual_engine.py` → PASS: 10 target(s) scanned, 0 double-junk
+- `./.venv/Scripts/python.exe scripts/check_quality.py` → PASS
+- `./.venv/Scripts/python.exe scripts/verify_index.py` → ALL PASS
+- `./.venv/Scripts/python.exe scripts/assess_goals.py` → PASS 8 · PART 1 · FAIL 0
+
+**Git**：commit 801d0eb，push 到 `github.com/YZml1507/books` main（代理 `127.0.0.1:7897`）。
