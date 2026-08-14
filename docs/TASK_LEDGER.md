@@ -912,6 +912,33 @@ bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 �
 |---|---|---|
 | P-11 | Euclid Book 5 Simson 追加命题 A/B/D/E 未全部捕获（当前仅 C） | `Prop. A.—Theorem (Simson)` 等 5 个 Casey 译本追加命题。非欧几里得正典，低优先 |
 
+---
+
+## 23. Q-06 DONE：junk 检测器加 `(cid:N)` 统计
+
+**任务**：GOAL.md §4 T7-h / TASK_LEDGER §6 Q-06。junk 检测器加 `\(cid:\d+\)` 统计——`(cid:N)` 是 ASCII，纯码位普查会漏。
+
+**实施**：
+1. `src/guji/quality.py` 新增 `JunkReport` dataclass + `junk_census(text, work)` 函数。统计四类 junk：
+   - PUA（U+E000..U+F8FF）：un-mapped subset-font glyphs dumped to PUA
+   - CJK Ext A（U+3400..U+4DBF）：rare in real modern text, common as mis-mapped output
+   - U+FFFD：replacement character, the universal "could not decode" flag
+   - `(cid:N)` markers：ASCII strings emitted by markitdown when it cannot resolve a CID to a Unicode code point（Q-06 核心点——纯码位普查会漏）
+2. `scripts/check_quality.py` 调用 `junk_census` 遍历 28 部 Kanripo 书，打印表格，记入 `quality_report.json` 的 `junk_census` 字段。闸门**不因 junk rate 失败**（无校准阈值），只打印+记录，让抽取质量回退可见。
+3. `scripts/assess_goals.py` L137 修复：`sum(len(v["low"]) for v in q.values())` 改为只对含 `low` key 的 dict 求和——我加的 `junk_census` 字段是 dict（没有 `low` key），破坏了原遍历。
+
+**实测**（2026-08-14）：
+- 27/28 Kanripo 书有 junk（全部是 ExtA，PUA/FFFD/cid=0——Kanripo 纯文本不含 CID 占位符，符合预期）
+- junk rate 范围 0.105%..0.490%，最高 KR3g0035 0.490% / KR3g0041 0.412%
+- `(cid:N)` 标记 = 0（Kanripo 是纯文本，无 CID 字体；`(cid:N)` 只在 markitdown 转换 Identity-H subset 字体 PDF 时出现，见 D-001）
+
+**验收**：13 道闸门全过零回退。复验：
+- `./.venv/Scripts/python.exe scripts/check_quality.py` → PASS（含 Q-06 junk census 表）
+- `./.venv/Scripts/python.exe scripts/assess_goals.py` → PASS 8 · PART 1 · FAIL 0
+- 全 13 道闸门见 §22b/§22c 快照
+
+**Git**：commit 874e3bf，push 到 `github.com/YZml1507/books` main（代理 `127.0.0.1:7897`）。
+
 **13 道闸门实测快照（全过，零回退）**：
 ```
 check_quality PASS · build_index 9.6s 37 部 51,000 单元 42.1 MB · verify_index ALL PASS
