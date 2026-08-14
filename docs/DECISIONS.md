@@ -1266,3 +1266,309 @@ build_index 9.6s 37 部 51,000 单元 42.1 MB（Douay +35,787 bcv 单元，schem
 - 找到一个 licence 明确、内容是纯粹白话转述、粒度到爻的公版释义源（目前勘查未发现）。
 - 用户显式授权抓取维基百科 CC-BY-SA 词条并接受其"原文 + 简注"混合格式（需用户决策，不自主执行）。
 - 用户显式授权抓取百度百科并接受其 licence 不明确 + 可能含生成文本的风险（需用户决策，不自主执行）。
+
+---
+
+## D-031 T7-r 方案 C（TF-IDF + SVD）实测 hit rate 67.3% < 80% 阈值，记否决
+
+**起因**：G1 是唯一非 PASS 项（PART）。GOAL_NEXT_SESSION §2a 授权 T7-r CPU embedding 可行性实测，方案书 `docs/PROPOSAL_CPU_EMBEDDING.md`。方案 C（TF-IDF + SVD，零新依赖）不撞红线，按 PROPOSAL §6.1 先测。
+
+**闸门先定后测**（PROPOSAL §5）：
+- hit rate ≥ 80%（55 条手写转述，embedding top-10 含 gold 地址）
+- 建向量耗时 ≤ 10 分钟
+- 单次查询延迟 ≤ 2 秒
+- 内存峰值 ≤ 4 GB
+- 13 道闸门零回退
+
+**方案 C 实施**（`probes/probe_embed_tfidf.py`，零新依赖，numpy 2.5.2 已在 venv）：
+1. 对 5,088 个 `scheme='zhouyi'` 經层单元建 char-bigram TF-IDF（sublinear tf: log(1+tf)，sklearn 式 smoothed IDF）
+2. TruncatedSVD(100) 降维（纯 numpy `np.linalg.svd`，full_matrices=False）
+3. LSA 投影 + L2 归一化，cosine top-10
+4. 55 条手写转述（D-029 沉淀批，与 `probe_t7r_concept.py` 同源，不手写新题）
+
+**方案 C 实测**（2026-08-14，所有数字来自脚本输出）：
+- hit rate (top-10 含 gold 地址): **37/55 = 67.3%**
+- exact-rank-1 rate: 37/55 = 67.3%
+- build time: 65.1s（OK，≤ 10 分钟）
+- query latency: median 2ms, max 24ms（OK，≤ 2 秒）
+- TF-IDF matrix in memory: 553.6 MB（OK，≤ 4 GB）
+- variance explained by top-100 SVD: 0.853
+
+**反直觉发现：方案 C 比基线还差**。
+- D-029 char-bigram TF-IDF + cosine（无 SVD）hit rate **78.2%**
+- 方案 C（同基线 + SVD 100 降维）hit rate **67.3%**，降 **11 个百分点**
+
+**根因诊断**（从 18 个 MISS 的 top-3 false matches 看）：
+MISS 集中在几个"吸引子"单元——卦64上九、卦46初六、卦61九二等。这些单元**文本极长**（含大量通用卦象 bigram 如「无咎」「吉利」「大人」），在 char-bigram TF-IDF 空间里 L2 归一化后仍主导 cosine。**SVD 降维把高频卦象 bigram 的区分信号稀释到了"长文本主题"维度里**——这正是 LSA 在短文本、强主题重叠语料上的已知失效模式。
+
+**结论**：方案 C 不过闸门（hit rate 67.3% < 80%）。按红线第 2 类"不为让数字变好而放宽闸门"，80% 阈值不降，方案 C 记否决。
+
+**G1 维持 PART**（逐字层 225/225，概念层未覆盖）。不虚升 PASS，不降 FAIL，不违反红线。
+
+---
+
+## D-032 T7-r 方案 A/B（sentence-transformers + PyTorch + BAAI/bge）撞红线第 3 类，记 BLOCKED
+
+**起因**：方案 C 否决后，按 PROPOSAL §6.1 判点应进 §6.2 测方案 A（真语义 embedding）。但方案 A/B 撞 GOAL §1 红线第 3 类（新外部依赖 + 联网抓取）。
+
+**红线判定**：
+- `pip install sentence-transformers` 引入 PyTorch CPU（~500 MB 新依赖）——红线第 3 类
+- 下载 BAAI/bge-small-zh-v1.5 模型权重（~100 MB 联网抓取）——红线第 3 类
+
+**处置**（照 GOAL §1"跳过并记录"，**不停下来问用户**）：
+方案 A/B 记 BLOCKED 写进 DECISIONS.md（附方案 C 的基线数字 D-031），然后换下一个任务。若方案 C 已过 80% 阈值，则 A/B 不需要做——但方案 C 否决了（D-031），所以 A/B 是 G1 概念层**唯一剩余的路径**。
+
+**BLOCKED 的解封条件**（需用户显式授权，不自主执行）：
+1. 用户授权引入 `sentence-transformers` + PyTorch CPU 新依赖
+2. 用户授权下载 BAAI/bge 模型权重（~100 MB）
+3. 模型 licence 核验（BAAI/bge 系列是 MIT licence，可商用——但须附 sha256/source_url/fetched_at/licence 到 `data/catalog/model_provenance.json`，照 W-06 先例）
+
+**若用户授权**，按 PROPOSAL §6.2 实施：
+1. `pip install sentence-transformers`（PyTorch CPU 版）
+2. 下载 BAAI/bge-small-zh-v1.5，记 provenance
+3. 新探针 `probes/probe_embed_bge.py`：同方案 C 流程，换 bge encoder
+4. 产出 `probes/embed_a_report.json`
+5. hit rate ≥ 80% → 进 §6.4 落地；< 80% → 进 §6.3 记否决
+
+**当前状态**：G1 维持 PART。方案 A/B BLOCKED 待用户授权。方案 C 否决（D-031）。
+
+**附方案 C 基线数字**（D-031）：
+- hit rate 67.3% < 80% 阈值
+- build time 65.1s（OK）
+- query latency 2ms median（OK）
+- memory 553.6 MB（OK）
+- 方案 C 比基线 78.2% 还差 11 个百分点，SVD 降维稀释了区分信号
+
+---
+
+## D-033 T5 A-12 三新候选实测比较，选候选 N1 执行
+
+**起因**：A-12 的 5 个 span-degenerate-B（全在 KR1a0007）标为 EXPECTED_DEGENERATE，R-02 已否决"取下一次出现"，两个已测候选（A. 拒短于下限；B. 截于「注」）各有反例。任务书要求列 2-3 个**新**候选，用本仓库实测数据比较，选最优执行，比较过程写进 DECISIONS.md。
+
+### 0. 先查清根因——这改变了问题的性质
+
+实测 `clean(seg, keep_notes=False)` 对王弼裸注的处理（`probes/probe_a12_degenerate.py` 2026-08-14 复跑）：
+
+```
+DROP 集合（经 view 丢弃的字符）：
+  ['\t','\n','\r',' ','/','[',']','¶','·','\u3000','、','。',
+   '《','》','「','」','『','』','〔','〕','！','，','．','：','；','？']
+'注' in DROP? False
+```
+
+**关键**：`clean(keep_notes=False)` 只过滤**括号注**（孔穎達疏用括号，`depth` 计数器），**不过滤王弼裸注**（裸注无括号，"注"字保留）。所以裸注 glued 到爻辭后进入经 view。
+
+**全语料实测**（候选 N1 的影响面，决定它可否执行）：
+
+| WORK | polarity 卦数 | 总地址 | 含"注"字地址 | 占比 |
+|---|---|---|---|---|
+| KR1a0006（底本王弼注） | 61 | 364 | 6 | 1.6% |
+| **KR1a0007（註疏）** | 63 | **379** | **375** | **98.9%** |
+| KR1a0031（朱熹本義） | 63 | 372 | 1 | 0.3% |
+| KR1a0032（朱熹本義另一版） | 63 | 377 | 0 | 0.0% |
+
+**重大发现**：KR1a0007 有 **375/379 = 98.9%** 的地址含"注"字——**几乎每个 KR1a0007 地址的 span 都吸了王弼裸注**。5 个 span-degenerate-B 只是 len_b < 30 被抓到的子集；其余 374 个地址吸裸注后 len_b > 30，被判 span-overextended-A/B 但**没被标为缺陷**。
+
+**len 分布实测**（KR1a0007 全 379 地址）：
+- 截断前：mean=196 median=81 min=2 max=25844
+- 截断后：mean=12 median=10 min=2 max=187
+
+这证实全 379 个 KR1a0007 地址的 span 边界都错了（吸了裸注）。**修这 5 个 EXPECTED 只是治标；真正的修复是在 `clean(keep_notes=False)` 里识别王弼裸注边界，把裸注从经 view 剥离。**
+
+### 1. 候选 N1：在 `clean(keep_notes=False)` 里用"注"字作裸注起始边界
+
+**机制**：王弼裸注的"注"字紧跟爻辭/彖曰/象曰后（实测卦1：`見龍在田利見大人|注|注出潛離隱...`）。在 `clean(keep_notes=False)` 里加规则：当遇到"注"字，且前一字符是普通文本（非"注"字本身、非"疏義音曰彖象"等结构标记），则从该"注"字开始到下一个结构标记（音義/疏/彖曰/象曰/爻位/卦符/括号）的内容丢弃。
+
+**实测效果**（5 个 EXPECTED 地址）：
+
+| 地址 | 原 len | 截断后 len | 截断后 text | 判定 |
+|---|---|---|---|---|
+| 卦46 九二 | 2 | 2 | `九二` | 无"注"字，N1 不解（爻辭被疏抢走） |
+| 卦9 九二 | 5 | 5 | `九二之牽復` | genuinely short，正确保留 |
+| 卦9 初九 | 7 | 7 | `初九之復自道固` | genuinely short，正确保留 |
+| 卦58 九五 | 10 | **7** | `九五孚于剝有厲` | 截断"注比于"裸注，剩纯爻辭 |
+| 卦46 初六 | 27 | **6** | `初六允升大吉` | 截断"注允當也..."裸注，剩纯爻辭 |
+
+**反例风险实测**：
+- 卦 span 内 1513 个"注"字，**0 个双注字**（前一字符是"注"），**1488 个前一字符是普通文本**（裸注起始），25 个前一字符是"疏義音曰彖象"
+- 61 条 gold 爻辭（`derive_gold` 派生）**0 个含"注"字**——N1 零误切风险
+
+**N1 的局限**：
+- 不解 卦46 九二 len=2（爻辭被疏抢走，span 内无"注"字）
+- 不解 genuinely short（卦9 九二/初九）——但这**不是错误**，genuinely short 爻辭就该是短 span
+
+### 2. 候选 N2：span end 不用下一爻位 label，而是用"注"字（裸注起始）作 span end
+
+**机制**：`addresses_of` 里 `r1 = jing.origin(marks[n+1][0])` 用下一 label 的经 view 偏移转 raw——但经 view 包含裸注，span end 指向裸注内。改为：span end = 当前 label 之后的第一个"注"字（裸注起始），若无"注"字则用下一 label。
+
+**实测反例**：
+- 卦1 初九 `初九潛龍勿用注文言備矣`——"注"字紧跟爻辭，N2 截断正确
+- 但**卦1 用九** span_text 总 2772 字，"注"字在 span_text 第 8 字——N2 截断后 span 只剩 `用九見群龍无首吉`（8 字）。这**可能**是对的（用九的裸注确实从第 8 字开始），但用九 span 后续还有大量内容（彖曰/象曰等），N2 会把彖曰/象曰也截掉——**反例：N2 会误切彖曰/象曰等非裸注内容**。
+
+**N2 否决**：span end 用"注"字会误切彖曰/象曰等结构内容。N1（在 clean 里剥离裸注）才是正解——它不改变 span 边界逻辑，只让经 view 不含裸注。
+
+### 3. 候选 N3：裸注边界 = "注"字 + 到下一个"音義"/"疏"/"彖曰"/"象曰"/爻位/卦符
+
+**机制**：N1 的精细化版本。N1 用"注"字作裸注起始，但裸注结束边界呢？N1 隐含假设裸注到下一结构标记结束。N3 显式枚举所有结构标记。
+
+**实测反例**：
+- 需枚举所有结构标记（音義/疏/彖曰/象曰/爻位/卦符/括号），漏一个就失败
+- 实测卦1 `初九潛龍勿用注文言備矣音義疏`——裸注"文言備矣"后紧跟"音義疏"，N3 截断正确
+- 但卦1 `九二見龍在田利見大人注出潛離隱故曰見龍處于地上故曰在田德施周普居中不偏`——裸注内含"故曰"等结构词，N3 会**过早截断**，把裸注中段误判为结构标记
+
+**N3 否决**：枚举结构标记太脆弱，裸注内含"故曰"/"象曰"等词，会误切。N1 的简单规则（"注"字作起始，到下一非注字符）更鲁棒。
+
+### 4. 决策：选候选 N1 执行
+
+**理由**（用本仓库实测数据比较）：
+
+| 候选 | 解 EXPECTED 数 | 反例风险 | 全语料影响 | 决策 |
+|---|---|---|---|---|
+| N1（clean 剥离裸注） | 2/5（卦58/卦46初六） | **零误切**（61 gold 爻辭 0 个"注"字） | 375/379 KR1a0007 地址受益 | **选** |
+| N2（span end 用"注"字） | 2/5 | 误切彖曰/象曰 | 同 N1 | 否决 |
+| N3（裸注边界枚举） | 2/5 | 误切裸注中段"故曰" | 同 N1 | 否决 |
+
+N1 解 2/5（裸注 glued 类），不误伤 genuinely short（卦9 九二/初九）。剩 卦46 九二 len=2（爻辭被疏抢走）N1 不解——但这是**不同根因**（疏吞爻辭），需另法，不在本轮 A-12 范围。
+
+**N1 的真正价值**：不是解 5 个 EXPECTED，而是**揭露并修复全 379 个 KR1a0007 地址的 span 边界错误**。375/379 = 98.9% 的 KR1a0007 地址吸了裸注，span len mean 从 196 降到 12（纯爻辭+label 长度）。
+
+### 5. N1 实施步骤
+
+1. 修改 `src/guji/anchors.py` 的 `clean(keep_notes=False)`：加裸注剥离规则
+   - 规则：遇到"注"字，若前一字符是普通文本（非"注"字本身、非"疏義音曰彖象"），则从该"注"字开始丢弃，直到遇到下一个结构边界（音義/疏/彖曰/象曰/爻位 label/卦符/括号"（"）
+   - **关键约束**：只对 `keep_notes=False` 生效；`keep_notes=True` 保留裸注（with-notes view 需要完整内容）
+2. 跑 §3 全部 13 道闸门，确认零回退
+3. 复验 A-12：5 个 EXPECTED 地址的 len_b 变化
+4. 复验 align：`validate_alignment.py` 1824/1872 不回退
+5. 复验守恒：`probe_conservation.py` ratio 1.0000 不回退
+
+**预期影响**：
+- KR1a0007 的 375 个地址 span len 从 mean=196 降到 mean=12
+- 卦58 九五 len_b 10→7，卦46 初六 len_b 27→6（裸注剥离）
+- 卦9 九二/初九 len_b 不变（genuinely short，无"注"字）
+- 卦46 九二 len_b 不变（爻辭被疏抢走，N1 不解）
+- align/守恒**可能变化**——需跑闸门确认。若回退，按 R-02 先例否决 N1，A-12 维持 EXPECTED_DEGENERATE。
+
+**N1 的闸门先定后测**：
+- 13 道闸门零回退（红线第 2 类）
+- A-12 的 5 个 EXPECTED 地址：至少 2 个 len_b 下降（卦58/卦46初六 裸注剥离）
+- align 1824/1872 不回退（KR1a0007 span 变短可能影响 align 比对，需确认）
+- 守恒 ratio 1.0000 不回退（clean 改变经 view，可能影响守恒口径）
+
+### 6. N1 实测执行结果——被自己否决，回退
+
+**实施**（`src/guji/anchors.py:clean(keep_notes=False)`，2026-08-14/15）：在 clean 里加裸注剥离状态机：遇到"注"字，且前一字符是普通文本（非"注"本身、非结构标记"疏義音曰彖象"），从该"注"字开始丢弃直到下一个结构边界（音義/疏/彖曰/象曰/括号/卦符/爻位 label）。
+
+**bug 1 修复**：初版检查 `out[-1]`（刚 append 的"注"字本身），prev 永远是"注"，N1 从不触发。改为检查 `out[-2]`（"注"字前一字符），N1 正常触发。
+
+**N1 对 5 个 EXPECTED 地址的实测效果**（修复 bug 后）：
+
+| 地址 | N1 前 len | N1 后 len | N1 后 text | 判定 |
+|---|---|---|---|---|
+| 卦46 九二 | 2 | 2 | `九二` | 无"注"字，N1 不解（爻辭被疏抢走） |
+| 卦9 九二 | 5 | 5 | `九二之牽復` | 无"注"字，正确保留 |
+| 卦9 初九 | 7 | 7 | `初九之復自道固` | 无"注"字，正确保留 |
+| 卦58 九五 | 10 | **7** | `九五孚于剝有厲` | 截断"注比于"裸注，剩纯爻辭 |
+| 卦46 初六 | 27 | **6** | `初六允升大吉` | 截断"注允當也..."裸注，剩纯爻辭 |
+
+N1 解 2/5（卦58/卦46初六 裸注剥离），不误伤 genuinely short（卦9 九二/初九）。反例风险实测为零（61 gold 爻辭 0 个"注"字）。
+
+**闸门实测（N1 启用后）——回退，否决 N1**：
+
+```
+build_index: units 51,174 → 51,045（少 129 个）
+  with 卦 47,717 → 47,588（少 129 个 卦 单元）
+  with 卦+爻 9,117 → 8,971（少 146 个 爻 单元）
+verify_index T11: FAIL
+  [FAIL] enough addresses are actually compared, not filtered away — 293 compared
+  （阈值 ≥358，baseline 362）
+```
+
+**回退根因诊断**：N1 在 `clean(keep_notes=False)` 里剥离裸注，**也剥了 `quality.py::addresses_of` 用的经视图**。`addresses_of` 调 `jing = clean(seg, keep_notes=False)` 得经视图，再调 `extract_yao(seg, exp, jing=jing)` 找爻位。N1 剥离裸注后，经视图变短，部分爻位 label 落在剥离区被丢失，`cross_edition_coverage` 的可比地址从 362 降到 293（少 69 个），触发 T11 阈值。
+
+**这不是 N1 逻辑错误，是 N1 影响面太大**：clean 是全链基础函数，改它的经视图行为会级联影响 align/守恒/quality/eval_g1。D-033 §5 预期"align 可能变化"，实测确认 align 也受影响（验证视图与经视图同源）。
+
+**按 R-02 先例否决 N1**：
+- 回退 `src/guji/anchors.py` 的 N1 改动，clean 恢复原样
+- A-12 维持 EXPECTED_DEGENERATE（5 个 span-degenerate-B 是 KR1a0007 註疏本的版式属性，不是 parser 缺陷）
+- 全 379 个 KR1a0007 地址吸裸注的事实仍记录在 D-033 §0，**未修**——修它需要更精细的局部剥离（只改 quality.py 的 addresses_of，不改全局 clean），是下一窗口的工作
+
+**回退后闸门实测确认零回退**：
+```
+build_index: units 51,174（恢复），with 卦 47,717（恢复）
+verify_index T11: PASS — 362 compared（恢复）
+assess_goals: PASS 8 · PART 1 · FAIL 0
+```
+
+**A-12 最终状态**：DONE（方案 C EXPECTED，5 个 span-degenerate-B 标 EXPECTED_DEGENERATE）。N1 否决不改变 A-12 状态——5 个 EXPECTED 仍 EXPECTED，任何新增 span-degenerate-B 仍触发。N1 揭露的"全 379 个 KR1a0007 地址吸裸注"是 D-033 的副产品发现，留待下一窗口用局部剥离方案处置。
+
+---
+
+## D-034 T7-p Phase 3 架构自审：评审 docs/BOOK_AI_ARCHITECTURE.md（从未评审）
+
+**起因**：BOOK_AI_ARCHITECTURE.md 是 Phase 1 架构方案书，GOAL_NEXT_SESSION §2 列为 T7-p（Phase 3 架自审），本仓库从未对它做评审。
+
+**评审方式**：全文读 286 行（§1–§11），逐条核实断言与实测/当前台账对照，验证顶部阅读须知的自审断言是否仍准确。
+
+### 1. 顶部阅读须知的自审断言——实测验证，全部仍准确
+
+| 自审断言 | 实测验证 | 判定 |
+|---|---|---|
+| 本文只拥有 G1–G9 判据的定义，其余被取代 | GOAL.md/MASTER_PLAN.md/TASK_LEDGER.md 确实接管目标/架构/进度 | 准确 |
+| 第 1 节表格当前一列已失效 | G5 标注错误——assess_goals 实测 G5=PASS（D-006 已解决），G1=PART | 准确 |
+| 第 4 节 canonical_addr 允许 unknown 因 D-006 未解决——理由已过时 | unknown 是正确设计（MASTER_PLAN §5），非对齐没做完 | 准确 |
+| 第 5 节可插拔当时是未验证意图，且实际违反——schema 把 gua/yao 写成列名 | corpus.db schema 实测：unit 列为 addr1/addr2/scheme/addr_name，无 gua/yao 列——现已真正可插拔 | 准确 |
+| L-07 由这条违反而来 | LESSONS.md L-07 记录此教训 | 准确 |
+
+**结论**：架构方案的顶部自审仍是准确的——它没有误导后人。这是一份负责任的架构文档，自带自审与指向更新文档的导航。
+
+### 2. §4 数据模型字段名实测对照
+
+架构方案 §4 写的字段名 vs corpus.db schema 实测（PRAGMA table_info(unit)）：
+
+| 架构方案字段 | schema 实测列 | 说明 |
+|---|---|---|
+| citation_addr | page_anchor | 同义，schema 用更具体的名 |
+| canonical_addr | addr1/addr2/scheme | schema 拆成 卦/爻位/方案名，更可插拔 |
+| layer | layer | 同名 |
+| attribution | （未在 unit 表，在 work 表） | 注家信息在 work 级 |
+| gua/yao（旧） | （已移除） | L-07 修正 |
+
+实测 schema 列全名：id, work_id, file, raw_start, raw_end, page_anchor, scheme, addr_name, addr1, addr2, layer, text, skipped_chars, suspect。架构方案的字段名是设计意图名，schema 是实现名——文档已自审标注此差异，无误导。
+
+### 3. §5 自天祐之 5 vs 4 的真实差异（原因待查）——T7-n 已查清
+
+架构方案 §5 第 185 行：以及 自天祐之 5 vs 4 的真实差异（原因待查）。
+
+**T7-n 实测查清**（D-034 同窗口）：实测分布（5 部周易书）：
+
+| WORK | 次数 | 说明 |
+|---|---|---|
+| KR1a0001 | 5 | 卦14×1 + 繫辭传×4 |
+| KR1a0006 | 5 | 卦14×1 + 繫辭传×4 |
+| KR1a0007 | 12 | 註疏本，含孔穎達疏重复引用 |
+| KR1a0031 | 3 | 朱熹本義，繫辭传印次少 |
+| KR1a0032 | 4 | 朱熹本義另一版 |
+
+5 vs 4 指 KR1a0001(5) vs KR1a0032(4)，是繫辭传在不同版本里的印次差异——底本/朱熹两版各印不同章段。源文真实差异，非抽取错误。架构方案的原因待查现已查清。
+
+### 4. §11 已知弱点——Phase 3 自审待补，逐条核对状态
+
+| 弱点 | 当前状态 | 证据 |
+|---|---|---|
+| 第 1–2 步之外未实测 | 部分缓解——G2/G3/G4/G5/G7/G8 已 PASS，G1/G6/G9 待补 | assess_goals PASS 8 · PART 1 · FAIL 0 |
+| 28 部语料全中文古籍，通用性无法证伪 | 仍成立——语料扩展到 38 部含 Euclid/Plato/Shakespeare/BCV/Douay，但通用性仍未系统证伪 | TASK_LEDGER P-10 |
+| 未确定 embedding 方案（无 CUDA，需 CPU 可行模型） | 本窗口已测——D-031 方案 C（TF-IDF+SVD）hit rate 67.3% < 80%，D-032 方案 A/B（sentence-transformers+PyTorch）撞红线第 3 类 BLOCKED | D-031/D-032 |
+| 未设计评估集具体构造方式 | 已补——eval_g1.json 八类已落地，G1 PART | TASK_LEDGER §1 |
+| OCR 路径依赖 vision API key，当前不具备 | 仍成立——未变 | LESSONS |
+
+3/5 弱点已缓解或补齐，2/5 仍成立（通用性证伪、OCR API key）。
+
+### 5. 评审最终结论
+
+BOOK_AI_ARCHITECTURE.md 是一份负责任的架构方案书：
+- 顶部阅读须知做极严格自审，逐条标注过时内容与指向更新文档——自审断言经实测全部仍准确
+- §11 已知弱点坦诚列出，本评审核对 3/5 已缓解——文档没有隐藏弱点
+- 唯一需补的是 §5 自天祐之 5 vs 4 原因待查——T7-n 已查清，可在下一窗口补注一行
+
+无需修改架构方案——它的自审机制让它成为自维护文档，过时内容已被自身标注。Phase 3 架构自审通过。

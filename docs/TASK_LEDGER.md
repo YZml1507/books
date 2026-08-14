@@ -910,7 +910,7 @@ bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 �
 
 | ID | 待办 | 依据 |
 |---|---|---|
-| P-11 | Euclid Book 5 Simson 追加命题 A/B/D/E 未全部捕获（当前仅 C） | `Prop. A.—Theorem (Simson)` 等 5 个 Casey 译本追加命题。非欧几里得正典，低优先 |
+| P-11 | Euclid Book 5 Simson 追加命题 A/B/D/E 未全部捕获（当前仅 C） | **2026-08-15 复验否决**：实测 raw html（`data/raw_ext/generality/euclid-elements/pg21076.html`）Book 5 区内 `Prop. A.—Theorem (Simson)` 格式命题头 = **0 次**——任务书断言被推翻。Book 5 区两次 "Simson" 出现都是译者注的散文引用（`"...order of Euclid, as given by Simson, Lardner..."`、`"...altered the last clause from that given in Simson's Euclid..."`），非命题头；唯一 `Proposition B.` 是正文交叉引用（`"...follows at once from 1 by Proposition B."`），也非命题头。**A/B/D/E 不以命题头形式存在，无法捕获**。当前 ingest 仅捕获 C（n=100）是正确的，无需修复。P-11 关闭——非欧几里得正典，Casey 译本的 Simson 补充只存在于译者注散文，不是可索引的命题单元 |
 
 ---
 
@@ -973,3 +973,85 @@ eval_g4 G4 = PASS · probe_g8_isolation PASS — separation holds under all atte
 - `./.venv/Scripts/python.exe scripts/assess_goals.py` → PASS 8 · PART 1 · FAIL 0
 
 **Git**：commit 801d0eb，push 到 `github.com/YZml1507/books` main（代理 `127.0.0.1:7897`）。
+
+---
+
+## 22c. 本窗口（2026-08-15，sessionID 接续 aa53987d）实测记录
+
+接续 aa53987d 窗口。开局基线复验：13 道闸门全过，PASS 8 · PART 1 · FAIL 0，与 §22b 一致。
+
+### 完成的任务（11 项）
+
+**2a. T7-r CPU embedding 方案 C（TF-IDF + SVD）实测否决 → D-031**
+- `probes/probe_embed_tfidf.py`（零新依赖，numpy 2.5.2 已在 venv）：对 5,088 个 zhouyi 經层单元建 char-bigram TF-IDF（sublinear tf: log(1+tf)，sklearn 式 smoothed IDF）+ TruncatedSVD(100) + LSA 投影 + cosine top-10
+- 55 条手写转述（D-029 沉淀批，与 probe_t7r_concept.py 同源）实测：hit rate **37/55 = 67.3%** < 80% 阈值
+- build time 65.1s（OK），query latency 2ms median（OK），memory 553.6 MB（OK），variance explained 0.853
+- **反直觉**：方案 C 比基线 78.2% 还差 11 个百分点——SVD 降维把高频卦象 bigram 区分信号稀释到了"长文本主题"维度，LSA 在短文本强主题重叠语料上的已知失效模式
+- 闸门判定：方案 C 不过闸门，记 D-031 否决，G1 维持 PART
+
+**2a. T7-r 方案 A/B（sentence-transformers + PyTorch + BAAI/bge）撞红线第 3 类 BLOCKED → D-032**
+- `pip install sentence-transformers` 引入 PyTorch CPU（~500 MB 新依赖）——红线第 3 类
+- 下载 BAAI/bge-small-zh-v1.5 模型权重（~100 MB 联网抓取）——红线第 3 类
+- 按 GOAL §1"跳过并记录"处置，记 BLOCKED 写进 DECISIONS.md（附方案 C 基线数字），不停下来问
+- 解本条件：用户显式授权引入新依赖 + 联网下载模型权重 + 模型 licence 核验（BAAI/bge 是 MIT，但须附 sha256/source_url/fetched_at/licence 到 model_provenance.json，照 W-06 先例）
+
+**2b. T5 A-12 候选 N1（clean 剥离王弼裸注）实测否决 → D-033**
+- 先查清根因（这改变了问题的性质）：实测 clean(keep_notes=False) 的 DROP 集合不含"注"字，王弼裸注（无括号）原样进入经 view
+- **重大发现**：KR1a0007 有 375/379 = 98.9% 地址含"注"字——几乎每个 KR1a0007 地址的 span 都吸了裸注。5 个 span-degenerate-B 只是 len_b<30 被抓到的子集，其余 374 个吸裸注后 len_b>30 判 span-overextended 但没标缺陷
+- len 分布实测：截前 mean=196 median=81，截后 mean=12 median=10——全 379 个 KR1a0007 地址 span 边界都错了
+- 列 2-3 个新候选（不是已测的 A/B，不是不适用的"排除括号注内出现"）：
+  - N1（clean 剥离裸注）：解 2/5 裸注 glued，零误切风险（61 gold 爻辭 0 个"注"字）
+  - N2（span end 用"注"字）：误切彖曰/象曰，否决
+  - N3（裸注边界枚举）：误切裸注中段"故曰"，否决
+- 选 N1 执行：改 src/guji/anchors.py:clean(keep_notes=False) 加裸注剥离状态机
+- bug 1 修复：初版检查 out[-1]（刚 append 的"注"字本身），prev 永远是"注"，N1 从不触发。改为检查 out[-2]
+- **闸门实测否决 N1**：build units 51,174→51,045（少 129），verify_index T11 FAIL（293 compared，阈值≥358）。根因：N1 剥了 quality.py::addresses_of 用的经视图，cross_edition_coverage 比对地址 362→293
+- 按 R-02 先例回退，A-12 维持 EXPECTED_DEGENERATE。N1 嘉露的"全 379 个 KR1a0007 地址吸裸注"留待下一窗口用局部剥离方案处置
+
+**2c. T7-q 知识图谱前置条件实测 → 满足**
+- `probes/probe_t7q_kg_precondition.py`：模拟三类常见实体抽取策略（字符级 NER、关键词级抽取、折叠表归一化），测 differs 異文（枯楊生稊/生梯、跛能履/破能履）是否被抹平
+- 实测：三类策略都保留 稊/梯、跛/破 区别，differs 異文不被实体抽取抹平
+- FOLD 表不含 稊/梯、跛/破 映射，NOT_VARIANTS 显式排除——折叠表不归一 differs 異文
+- 知识图谱前置条件之一满足。建图本身是另一项工作
+
+**T7-m &KR0658; 占位符语义 → 查清**
+- `probes/probe_t7m_entities.py`：实测 &KR0658; = 虩（U+8679，恐惧貌），卦51 震 爻辭"震來虩虩"
+- 任务书"每部书 22-31 个"断言被实测推翻：&KR0658; 只在 KR1a0006 出现 12 次，其他 4 部周易书 0 次
+- clean() 不解析实体引用，&KR0658; 原样进入经视图和 corpus.db——检索 虩 会漏命中（索引存的是 &KR0658;）
+- 虩 字在其他版本直接印出（KR1a0007 28 个，KR1a0001 8 个，KR1a0031 10 个）——实体引用只 KR1a0006 用
+- 处置建议（下一窗口）：在 clean() 里加 &KR0658; → 虩 解析（最小修复），但 clean 改动可能回退闸门（D-033 N1 先例）
+
+**T7-n 自天祐之 5 vs 4 → 查清为源文真实差异**
+- 实测分布：KR1a0001 5次 / KR1a0006 5次 / KR1a0007 12次 / KR1a0031 3次 / KR1a0032 4次——5 部周易书各异，非"两源 5 vs 4"
+- "自天祐之"出现在两类文本：卦14 大有 上九 绻辭（每部书 1 次）+ 卦64 繫辭传多次引用（各版印次不同）
+- "5 vs 4"指 KR1a0001(5) vs KR1a0032(4)，是繫辭传在不同版本里的印次差异——底本/朱熹两版各印不同章段。源文真实差异，非抽取错误
+
+**T7-o probes 归档整理 → 45 个归档**
+- 已沉淀结论的迭代探针移入 probes/archive/：kr31 系列 15 个、text/structure/round 系列 7 个、euclidean/western_recon/align/bcv/verify 系列 11 个、tier23/douay/play/shakespeare/iliad/plato 系列 10 个
+- probes/archive/ 共 45 个归档，probes/ 剩 65 个活跃探针
+
+**T7-p Phase 3 架自审 → 通过 → D-034**
+- 全文读 BOOK_AI_ARCHITECTURE.md 286 行（§1–§11），逐条核实断言与实测/当前台账对照
+- 顶部阅读须知的自审断言经实测全部仍准确——负责任的架构文档，自带自审与指向更新文档的导航
+- §4 字段名实测对照：架构方案字段名是设计意图名，schema（addr1/addr2/scheme/addr_name）是实现名，文档已自审标注此差异
+- §5"自天祐之 5 vs 4 原因待查"现已查清（T7-n）
+- §11 已知弱点 5 条：3/5 已缓解或补齐（embedding 方案本窗口已测、评估集已补、G2-G8 已 PASS），2/5 仍成立（通用性证伪、OCR API key）
+- 无需修改架构方案——它的自审机制让它成为"自维护文档"，过时内容已被自身标注。Phase 3 架自审通过
+
+**2h. P-11 Euclid Simson 命题 → 复验否决**
+- 实测 raw html（data/raw_ext/generality/euclid-elements/pg21076.html）Book 5 区内 `Prop. A.—Theorem (Simson)` 格式命题头 = **0 次**——任务书断言被推翻
+- Book 5 区两次"Simson"出现都是译者注的散文引用，非命题头；唯一 `Proposition B.` 是正文交叉引用，也非命题头
+- **A/B/D/E 不以命题头形式存在，无法捕获**。当前 ingest 仅捕获 C（n=100）是正确的，无需修复。P-11 关闭
+
+### 13 道闸门实测快照（本窗口末，全过零回退）
+
+```
+build_index 38 部 51,174 单元 43.4 MB · verify_index ALL PASS · validate_alignment verified
+assess_goals PASS 8 · PART 1 · FAIL 0 · check_provenance 0/38 missing
+probe_bcv PASS · eval_g1 PASS 225/225 · eval_g7 FABRICATIONS 0 G7 PASS
+eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
+```
+
+### Git
+
+本窗口改动：probes/ 新增 3 个（probe_embed_tfidf.py, probe_t7q_kg_precondition.py, probe_t7m_entities.py）+ embed_c_report.json；probes/archive/ 归档 45 个；DECISIONS.md 增 D-031~D-034；TASK_LEDGER.md 增 §22c + P-11 复验否决；GOAL_NEXT_SESSION.md 未变。
