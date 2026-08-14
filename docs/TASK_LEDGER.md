@@ -159,7 +159,7 @@ G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 | A-09 | 源文爻位误标检测 | DONE | KR1a0031 三处、KR1a0006 四处 | `detect_mislabelled_yao` |
 | A-10 | **爻辭对齐总分** | DONE | **1824/1872 = 97.4%** | — |
 | A-11 | KR1a0031 单独查 | **PART** | 93.6% → **94.4%**，**决定不再追 95%** | 见 D-013 |
-| A-12 | 5 个抽取错误（交叉引用劫持有序搜索） | **TODO** | 卦9初九 lenB=6 / 卦58九五 =9 / 卦46初六 =26 | 见 §4 R-02 |
+| A-12 | 5 个抽取错误（交叉引用劫持有序搜索） | **DONE**（本窗口，方案 C EXPECTED） | 实测 5 个全在 KR1a0007：**卦9初九 lenB=7** / **卦58九五 lenB=10** / **卦46初六 lenB=27** / 卦9九二 lenB=5 / 卦46九二 lenB=2（**此前数字"卦9初九 lenB=6 / 卦58九五=9 / 卦46初六=26"已被实测推翻**，实测来自 quality_report.json）| 见 D-029 · `probes/probe_a12_degenerate.py` · `quality.py:EXPECTED_DEGENERATE` |
 
 **A-11 为何停在 94.4%**：8 个折叠候选只通过 3 个。刷到 95% 需接受 `極→拯`（2,821 次，含
 **太極**）这类全局重写，那是用语料正确性换指标。剩余失败已逐条定性为源文误刻/真实異文/爻位误标。
@@ -803,3 +803,31 @@ eval_g1.py          G1 = PASS 225/225 (100.0%) overall, EXIT=0
 ```
 
 **P-06 复勘的重要发现**：子 agent 1 在截断输出里警告"Plato 走 booksec.book_spans 会因 BOOK_RE 列 0 匹配 10 个 ANALYSIS headings 而非 10 个 dialogue body headings"——**此警告被主线实测推翻**。实测 Plato 10 单元的 text 字段确实以 "BOOK X." 开头且是正文（如 id=14387 start=38267 text='BOOK I. The Republic opens with a truly Greek scene...'），证明 booksec.book_spans 正确匹配了 dialogue body headings 而非 analysis。子 agent 1 的警告是基于静态 grep 推测，未实测索引内容；主线实测索引内容后推翻该警告。**这正是 GOAL.md §2 纪律的价值：子 agent 的勘查结论一律当"待复验"，主线必须自己实测确认。**
+
+## 本窗口收尾记录（2026-08-14，commit d10b46a）
+
+**完成的三项任务**：
+- **U-06 DONE**：Douay-Rheims 接入 35,787 单元 scheme='bcv'，13 道闸门零回退。接入过程推翻两个勘查结论（"VERSE_RE 应能匹配 Douay"实测不匹配、"75 个不同书名"实测 73 个），发现并修复真实缺陷 `search.at_address` schema 污染（Douay bcv addr1=chapter 与 卦号冲突，`at_address(99)` 误当 卦99 返回 Psalms 99，eval_g7 impossible 4/4→3/4；修复加 `AND u.scheme='zhouyi'`，恢复 4/4=100%）。9 个 Vulgate 编号同-(C:V) 重复显式记录于 `probe_bcv.py:DOUAY_EXPECTED_CONFLICTS`。详见 D-028。
+- **A-12 DONE**（方案 C EXPECTED）：5 个 span-degenerate-B 全在 KR1a0007，根因是 王弼 裸注紧贴 爻辭 无分节（extract_yao 把注吸进 經 view）。任务书提示的候选思路"排除括号注内的出现"实测**不适用**——错在 王弼 裸注（无括号），非 孔穎達 括号疏。两个备选修复（长度阈值/截断于「注」）各有反例。标 `EXPECTED_DEGENERATE` 不强行修复，任何新增 span-degenerate-B 仍触发。详见 D-029。
+- **G1 概念层**（方案 1 实测不达阈值，不纳入 eval_g1.json）：data/raw 内无现代白话释义（只有古注 義曰/解曰）。手写转述从 10 条扩到 55 条，hit rate 从 80.0%（10 条样本过小）降到 78.2%（55 条更可信），**低于 80% 阈值**。照红线第 2 类"不为让数字变好而放宽闸门"，阈值不降，概念层不纳入 eval_g1.json。G1 维持 PART（逐字层 225/225，概念层未覆盖，不虚升 PASS，不降 FAIL）。方案 2 联网抓取释义已授权但需先勘查可用源 + licence（无 licence 或生成文本不得入库，记 BLOCKED 留下一窗口）。详见 D-029。
+
+**实测推翻的文档结论（已改文档并标"此前结论已被推翻"，非悄悄改掉）**：
+- GOAL_NEXT_SESSION.md L34 "75 个不同书名" → 实测 73 个
+- GOAL_NEXT_SESSION.md L112-115 / TASK_LEDGER.md U-06 勘查行 "bcv.VERSE_RE 应能匹配 Douay" → 实测不匹配（`.` 非 `\s`）
+- TASK_LEDGER.md L67 "Euclid 6 BOOK 170 proposition 已入索引" → 实测 0 单元，路由未接线（ingest.py:665 要求 .txt，euclid-elements/ 只有 .html/.epub）
+- TASK_LEDGER.md A-12 行 "卦9初九 lenB=6 / 卦58九五 =9 / 卦46初六 =26" → 实测 卦9初九 lenB=7 / 卦58九五 lenB=10 / 卦46初六 lenB=27
+
+**BLOCKED**：
+- **git push**：commit d10b46a 已落本地，但 `git push` 属红线第 1 类（破坏性不可逆），照纪律不停下询问，记 BLOCKED 跳过。push 需用户下一窗口显式授权。
+- **Euclid 路由接线**：ingest.py:740 的 `elif slug == "euclid-elements"` 分支存在且解析器能产出 170 proposition，但被 ingest.py:665 的 `.txt` 前置条件拦死（euclid-elements/ 只有 .html/.epub）。非本窗口任务范围（Douay/G1/A-12），记 BLOCKED 留下一窗口。
+- **G1 方案 2 联网抓取释义**：已授权但需先勘查可用源（百度百科/维基文库/公版注疏白话译本）+ licence。无明确 licence 或属生成文本不得入库（GOAL §5），记 BLOCKED 留下一窗口。
+
+**13 道闸门实测快照（全过，零回退）**：
+```
+check_quality PASS · build_index 9.6s 37 部 51,000 单元 42.1 MB · verify_index ALL PASS
+validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000
+assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/37 missing
+probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）
+eval_g1 G1 = PASS 225/225 · summarise_diff EXIT=0 · eval_g7 FABRICATIONS 0 G7 = PASS（impossible 4/4）
+eval_g4 G4 = PASS · probe_g8_isolation PASS — separation holds under all attempts
+```
