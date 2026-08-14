@@ -90,6 +90,7 @@ NO_PAGINATION: set[str] = {
     "shakespeare",      # Gutenberg txt: 0 <pb:> markers — play/act/scene structure only
     "homer-iliad-but",  # Butler prose txt: 0 <pb:> markers, 0 line numbers — BOOK I-XXIV only
     "homer-iliad-pope", # Pope verse txt: 0 <pb:> markers, 10 sparse right-margin numbers — BOOK I-XXIV only
+    "bible-douay",      # Gutenberg txt: 0 <pb:> markers — book/chapter/verse (bcv) addressing only
 }
 
 r = c.db.execute("SELECT count(*) n FROM unit WHERE file IS NULL OR file = ''").fetchone()

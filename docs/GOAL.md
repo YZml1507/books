@@ -233,7 +233,7 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 | 编号 | 任务 | 现状实测 |
 |---|---|---|
 | T7-a | 引文互见提取器：把逐字引用建成 Source↔Source 链接 | 6 部书 31 处;标记 易云 48 · 易曰 81 |
-| T7-b | Douay-Rheims 段内经文号解析器 | 行首标记仅 **3** 个，行内 **35,905** 个是互见 |
+| T7-b | Douay-Rheims 段内经文号解析器 | **DONE**（本窗口）：35,787 单元接入 `scheme='bcv'`，73 个 Vulgate 书名映射到 bcv.BOOKS。此前勘查结论"bcv.VERSE_RE 应能匹配 Douay"已被实测推翻（VERSE_RE 在 group2 后要求 `\s+`，Douay 是 `1:1.` 点紧跟非空白），故走独立模块 `src/guji/douay.py`。9 个 Vulgate 编号同-(C:V) 重复（Psalms 113 合并、Proverbs 12:12 重印）显式记录于 `probe_bcv.py` 的 `DOUAY_EXPECTED_CONFLICTS`。 |
 | T7-c | Plato `stephanus` scheme | 已落盘未索引 |
 | T7-d | Shakespeare `play` scheme（剧/幕/场） | 已落盘未索引 |
 | T7-e | Euclid `book/proposition` scheme | 已落盘未索引（无 txt，只有 epub/html） |

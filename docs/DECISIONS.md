@@ -1176,3 +1176,58 @@ darwin-origin     (unchanged)     page anchors only, 14 chapters
 - `probes/probe_t7r_concept.py`（T7-r 零依赖下界测试）
 - `probes/probe_tier23_deep.py`（五书深度勘查）
 - `probes/probe_play_test.py` / `probe_euclid_test.py` / `probe_check_anchors.py`（解析器与锚点测试）
+
+## D-028 U-06 Douay-Rheims 接入：单独解析路径 + at_address scheme 过滤（本窗口）
+
+**起因**：任务书把 U-06 列为下一窗口首要任务，并附勘查结论"bcv.VERSE_RE 应能匹配 Douay"、"75 个不同书名"。照 GOAL §2 纪律先实测复验。
+
+**实测推翻的两个勘查结论**：
+
+1. `bcv.VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$` 在 group2 后要求 `\s+`，但 Douay 是 `1:1.`（点紧跟，非空白），`VERSE_RE.match('1:1. In the beginning')` 返回 None，`bcv.parse_verses` 对 Douay 返回 0 节。勘查结论"应能匹配 Douay"**被实测推翻**。
+2. `^(\S.+) Chapter (\d+)\s*$` 全量匹配实测 **73 个** distinct 书名（1334 个章标题）。勘查结论"75 个不同书名"**被实测推翻**。
+
+**决策：Douay 单独解析路径，不并入 bcv.parse_verses**
+
+理由：三种圣经格式实测不同（KJV `1:1 In`、WEB `001:001 In`、Douay `1:1. In`），但 KJV/WEB 共享 bcv.VERSE_RE（`\s+` 匹配空格），Douay 不匹配。把 VERSE_RE 改成 `(\d{1,3}):(\d{1,3})[.\s]+` 能覆盖三种，但会引入歧义：KJV 的 `1:1 In` 与 Douay 的 `1:1. In` 在同一正则下无区分，且 KJV/WEB 的经文号后必跟空格、Douay 必跟点号——这是译本的硬性格式约定，不应当成可选。**结论**：Douay 走独立模块 `src/guji/douay.py`，bcv.VERSE_RE 不改。
+
+**实测的 Vulgate 编号特性（已显式记录于 probe_bcv.py，不静默放宽闸门）**：
+
+- Psalms 113：Vulgate 把 Protestant 诗篇 114+115 合并为一章，章内经文号 1-8 重置一次（8 个同-(C:V) 重复）。
+- Proverbs 12:12：同一节号 12:12 印两次，文本不同（1 个同-(C:V) 重复）。
+- 合计 9 个同-(C:V) 重复，全部是源版本特性而非解析器 bug。`probe_bcv.py` 把这 9 个标为 `DOUAY_EXPECTED_CONFLICTS`，任何新增冲突都会变 FAIL。
+
+**接入过程发现的真实缺陷（已修复）**：
+
+`search.at_address(gua, ...)` 原先只过滤 `WHERE u.addr1 = ?`，不带 `scheme` 过滤。Douay 接入后 `bcv` 单元的 `addr1=chapter` 与 卦号冲突：`at_address(99, None)` 把 Douay Psalms 99（bcv, addr1=99）误当"卦99"返回 5 段经文，导致 `eval_g7` 的 impossible-address 测试从 4/4 退到 3/4，G7 = FAIL。
+
+**决策：at_address 加 `AND u.scheme = 'zhouyi'` 过滤**
+
+理由（先定判据后看数据）：`at_address` 的语义是"每个见证在 卦N·爻 读什么"，卦地址 IS zhouyi scheme。不加 scheme 过滤会让任何 bcv chapter=卦号 的译本污染查询。修复后 eval_g7 恢复 impossible 4/4=100%，G7 = PASS。这是 U-08 教训的回响——"同地址持有不同文本"是静默失败，必须显式断言。
+
+**Euclid 路由未接线（实测发现，记 BLOCKED）**：
+
+`ingest.py:740` 的 `elif slug == "euclid-elements":` 分支存在且 `euclid.parse_propositions` 能产出 170 proposition，但 `ingest.py:665` 的 `if not txt_files: continue` 前置条件要求 `.txt`，而 `euclid-elements/` 只有 `pg21076.html` 和 `pg21076.epub`，所以该分支从未执行。台账此前结论"Euclid 6 BOOK 170 proposition 已入索引"**被实测推翻**——实测 `SELECT count(*) FROM unit WHERE work_id='euclid-elements'` = 0，`work` 表 0 行。本窗口任务范围是 Douay/G1/A-12，Euclid 接线记 BLOCKED。
+
+**13 道闸门实测快照（全过）**：
+
+build_index 9.6s 37 部 51,000 单元 42.1 MB（Douay +35,787 bcv 单元，scheme 分布 zhouyi 5088 / yilin 5032 / bcv 35787 / None 3457 / booksec 819 / play 817）· verify_index ALL PASS · validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000 · assess_goals PASS 8 · PART 1 · FAIL 0 · eval_g1 G1 = PASS 225/225 · eval_g7 G7 = PASS（修复后 impossible 4/4=100%）· probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）· eval_g4 G4 = PASS · probe_g8_isolation PASS · check_provenance 0/37 missing。
+
+## D-029 G1 概念层方案 1（手写转述扩充）实测不达 80% 阈值，不纳入 eval_g1.json
+
+**起因**：G1 是唯一非 PASS 项（PART）。任务书授权方案 2（联网抓取释义），但 GOAL §5 要求优先语料内、不引入新外部依赖。先做方案 1（零风险）。
+
+**实测 1 — data/raw 内无现代白话释义**：grep `白話/白话/譯文/译文/今譯/今译/現代/现代/解曰/释曰/義曰/释义` 全语料，只有古注 `義曰`（KR1a0007 王弼註疏，89 次/文件）和 `解曰`（KR3g0041 等，10 次/文件），**没有现代白话转述**。GOAL §5"验证不需要新书"——语料内确实没有，方案 2 联网抓取是唯一外部来源路径。
+
+**实测 2 — 方案 1 手写转述扩充**：`probes/probe_t7r_concept.py` 的 PARAPHRASES 从 10 条扩到 55 条（覆盖 卦1-64 的代表性爻），跑 char-bigram TF-IDF + cosine：
+- 10 条基线：hit rate 80.0%（8/10），exact-rank-1 80.0%
+- 55 条扩充：hit rate 78.2%（43/55），exact-rank-1 78.2%
+
+**结论**：55 条 hit rate 78.2% **低于 80% 阈值**。12 个 MISS 的根因是 char-bigram TF-IDF 对短转述（无爻辭原字、无卦名）区分度不足——这不是转述质量问题，是方法本身的下界。按红线第 2 类"不为让数字变好而放宽闸门"，80% 阈值不能降。
+
+**决策：方案 1 不达 80% 阈值，不纳入 eval_g1.json**
+
+若强行把概念层纳入 eval_g1.json，G1 会从 PART 降 FAIL——这是"为了让数字变好而放宽"的反面（虚报降级为 FAIL 也是错的），但也不应虚报达标。**正确结论**：方案 1（手写转述 + char-bigram TF-IDF）的下界在 78% 左右，不满足概念层 ≥ 80% 的验收判据。G1 维持 PART。
+
+**方案 2（联网抓取释义）状态**：用户已授权"联网抓取释义数据"。但 GOAL §5 红线：抓取的释义数据无明确 licence 或属生成文本（GOAL §5 五个外部"周易"项目三个是生成的），**不得入库**，记 BLOCKED。需先勘查可用释义源（百度百科、维基文库、公版注疏白话译本）及其 licence 状态。本窗口任务范围是 Douay/G1/A-12，方案 2 勘查留下一窗口。
+
+**G1 状态**：维持 PART（逐字层全覆盖 225/225，概念层未覆盖，FTS5 做不到）。不虚升 PASS，不降 FAIL。复验：`./.venv/Scripts/python.exe scripts/eval_g1.py` → G1 = PASS 225/225；`./.venv/Scripts/python.exe scripts/assess_goals.py` → PASS 8 · PART 1 · FAIL 0。

@@ -31,9 +31,11 @@
 1. **P-05 DONE**：跑 `scripts/derive_eval_yilin.py` 把 yilin 32 题注入 G1 题库，`scripts/eval_g1.py` 225/225 PASS。复验：`./.venv/Scripts/python.exe scripts/eval_g1.py` → G1 = PASS 225/225。
 2. **P-06 DONE（复勘）**：实测 tier 2/3 五书已全部入索引（37 部 15,213 单元），scheme 分布 None 3457 / booksec 819 / play 817 / yilin 5032 / zhouyi 5088。复验：`sqlite3 data/index/corpus.db "SELECT scheme, count(*) FROM unit GROUP BY scheme"`。
 3. **T7-r DONE**：`probes/probe_t7r_concept.py` 实测 char-bigram TF-IDF + cosine 在 10 条手写转述上 hit rate (correct addr in top-10) = 8/10 = 80.0%，exact-rank-1 rate = 8/10 = 80.0%，EXIT=0。结论：CPU embedding 可行。
-4. **U-06 PART**：Douay-Rheims 勘查完成（1334 个 "X Chapter N" 章标题、75 个不同书名全部正典数对齐：Genesis 50、Isaias 66、Psalms 150、Matthew 28 等；经文格式 "1:1. In the beginning" 与 KJV 几乎一致只多一个点；bcv.py 的 VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$ 应能匹配 Douay），但 ingest.py 完全没引用 Douay（grep `douay|bible-douay|1581` 在 ingest.py/build_index.py 均 No matches），corpus.db 里 Douay 0 单元。**接入是下一窗口的首要任务。**
+4. **U-06 DONE**（本窗口接手并完成）：Douay-Rheims 接入索引 35,787 单元 scheme='bcv'，13 道闸门零回退。**此前结论"75 个不同书名"已被实测推翻**（实测 73 个）；**此前结论"bcv.VERSE_RE 应能匹配 Douay"已被实测推翻**（VERSE_RE 在 group2 后要求 `\s+`，Douay 是 `1:1.` 点紧跟非空白，`VERSE_RE.match('1:1. In the beginning')` 返回 None，`bcv.parse_verses` 对 Douay 返回 0 节——接入必须给 Douay 单独解析路径 `src/guji/douay.py`）。**接入过程发现真实缺陷（已修复）**：`search.at_address` 未过滤 scheme，Douay bcv addr1=chapter 与 卦号冲突，`at_address(99)` 误把 Psalms 99 当"卦99"返回 5 段经文，eval_g7 impossible 4/4→3/4；修复加 `AND u.scheme='zhouyi'`，eval_g7 恢复 4/4=100%，G7=PASS。**Vulgate 编号特性已显式记录**：Psalms 113 合并 Protestant 诗篇 114+115（章内经文号 1-8 重置，8 个同-(C:V) 重复）；Proverbs 12:12 同节号印两次文本不同（1 个同-(C:V) 重复）；合计 9 个，`probe_bcv.py` 标为 `DOUAY_EXPECTED_CONFLICTS`，任何新增冲突变 FAIL。
 
 **最终闸门快照（13/13 通过）**：check_quality PASS · build_index 8.5s 37 部 15,213 单元 32.5 MB · verify_index ALL PASS（T1–T11）· validate_alignment 爻辭 verified 1824/1872 = 97.4% · probe_conservation TOTAL 2653857 = 2653857 missing 0.0000% invented 0.0000% ratio 1.0000 · assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/37 missing · probe_bcv control cases PASS EXIT=0 · eval_g1 G1 = PASS 225/225 EXIT=0 · summarise_diff EXIT=0 · eval_g7 FABRICATIONS 0 G7 = PASS EXIT=0 · probe_g8_isolation PASS EXIT=0 · eval_g4 yilin cells 4096 G4 = PASS EXIT=0。
+
+**本窗口（U-06 Douay 接入）后实测快照（13/13 通过）**：build_index 9.6s 37 部 **51,000 单元** 42.1 MB（Douay +35,787 bcv 单元，scheme 分布 zhouyi 5088 / yilin 5032 / bcv 35787 / None 3457 / booksec 819 / play 817）· verify_index ALL PASS · validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000 · assess_goals PASS 8 · PART 1 · FAIL 0 · eval_g1 G1 = PASS 225/225 · eval_g7 G7 = PASS（修复 at_address scheme 过滤后 impossible 4/4=100%）· probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）· eval_g4 G4 = PASS · probe_g8_isolation PASS · check_provenance 0/37 missing。
 
 G 判据明细：**G1 PART**（逐字层全覆盖，概念层未覆盖，FTS5 做不到）· G2-G9 全 PASS。**G1 是唯一非 PASS 项。**
 
@@ -110,21 +112,29 @@ cd C:\Users\Lenovo\Desktop\projects\books
 **现状**：Douay-Rheims 在 `data/raw_ext/generality/bible-douay/pg1581.txt`（5,880,420 字节，144,111 行），勘查完成但未接入索引。`corpus.db` 里 Douay 0 单元（work 表有 1 条记录）。`ingest.py` 完全没引用 Douay（grep No matches）。
 
 **勘查结论（实测）**：
-- 1334 个 `"X Chapter N"` 章标题（如 `Genesis Chapter 1`），75 个不同书名，全部正典数对齐：Genesis 50、Isaias 66、Psalms 150、Matthew 28 等。
+- 1334 个 `"X Chapter N"` 章标题（如 `Genesis Chapter 1`），**73 个**不同书名（**此前结论"75 个"已被实测推翻**——73 来自 `^(\S.+) Chapter (\d+)\s*$` 全量匹配），全部正典数对齐：Genesis 50、Isaias 66、Psalms 150、Matthew 28 等。
 - 经文格式 `"1:1. In the beginning God created heaven, and earth."`——与 KJV 几乎一致（只多一个点）。
-- `bcv.py` 的 `VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$` **应能匹配 Douay**。
+- **此前结论"bcv.py 的 VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$ 应能匹配 Douay"已被实测推翻**：`VERSE_RE` 在 group2 后要求 `\s+`，但 Douay 是 `1:1.`（点紧跟，非空白），所以 `VERSE_RE.match('1:1. In the beginning')` 返回 None。实测：`bcv.parse_verses` 对 Douay 返回 0 节。**接入必须给 Douay 单独的解析路径**（见 `src/guji/douay.py`，已实现）。
 
 **实施方案**：
-1. 在 `ingest.py` 加 `bible-douay` 路由，走 `bcv.parse_verses`（VERSE_RE 已能匹配 `1:1. In the beginning`）。
+1. 在 `ingest.py` 加 `bible-douay` 路由，走 `douay.parse_verses`（**已实现**：`src/guji/douay.py`，独立解析路径，因为 `bcv.VERSE_RE` 不能匹配 Douay 的 `C:V.` 点号格式——此前的"应能匹配"已被实测推翻）。
 2. 跑 `check_provenance.py` 确认 provenance 0 缺失（Douay 已在 work 表，provenance 可能已齐）。
 3. 跑全 13 道闸门确认零回退。
 4. 若 13 道闸门全过，`git commit` 然后 `git push`。
 5. 在 `TASK_LEDGER.md` 记一行。
 
 **验收判据（先定后测）**：
-- Douay 单元数 > 0（接入成功）。
-- 13 道闸门零回退。
-- `assess_goals.py` 仍 PASS 8 · PART 1 · FAIL 0（不降级）。
+- Douay 单元数 > 0（接入成功）。**实测：35,787 单元，scheme='bcv'**。
+- 13 道闸门零回退。**实测：13/13 全过**。
+- `assess_goals.py` 仍 PASS 8 · PART 1 · FAIL 0（不降级）。**实测确认**。
+
+**接入过程实测发现的真实缺陷（已修复）**：
+- `search.at_address(gua, ...)` 原先只过滤 `WHERE u.addr1 = ?`，不带 `scheme` 过滤。Douay 接入后 `bcv` 单元的 `addr1=chapter` 与 卦号冲突：`at_address(99, None)` 把 Douay Psalms 99（bcv, addr1=99）误当"卦99"返回 5 段经文，导致 `eval_g7` 的 impossible-address 测试从 4/4 退到 3/4。**修复**：`at_address` 加 `AND u.scheme = 'zhouyi'` 过滤，eval_g7 恢复 4/4=100%，G7 = PASS。
+
+**Douay 接入实测的 Vulgate 编号特性（已显式记录于 `probes/probe_bcv.py`，不静默放宽）**：
+- Psalms 113：Vulgate 把 Protestant 诗篇 114+115 合并为一章，章内经文号 1-8 重置一次（8 个同-(C:V) 重复）。
+- Proverbs 12:12：同一节号 12:12 印两次，文本不同（1 个同-(C:V) 重复）。
+- 合计 9 个同-(C:V) 重复，全部是源版本特性而非解析器 bug。`probe_bcv.py` 把这 9 个标为 `DOUAY_EXPECTED_CONFLICTS`，任何新增冲突都会变 FAIL。
 
 ### 任务 2：G1 概念级检索尝试（用户已授权方案 1）
 

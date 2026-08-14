@@ -14,6 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from guji.bcv import book_spans, parse_verses  # noqa: E402
+from guji.douay import parse_verses as douay_parse_verses  # noqa: E402
 
 EXT = os.path.join(ROOT, "data", "raw_ext", "generality")
 IDS = {"bible-kjv": 10, "bible-web": 8294, "bible-douay": 1581}
@@ -29,25 +30,51 @@ EXPECT = {
     ("Isaiah", 23, 1): ("Tarshish",),
 }
 
+# Douay-Rheims needles, translation-specific (measured from pg1581.txt).
+# These differ from KJV/WEB because Douay is a Latin Vulgate translation, not a
+# Greek/Hebrew one. The address is the same; the wording is the edition's own.
+#
+# - Psalms 23:1 in Douay is Vulgate Psalm 23 (= "Dominus regit me" / "The earth is
+#   the Lord's"), which is KJV Psalm 24. The KJV Psalm 23 ("The LORD is my
+#   shepherd") is Vulgate Psalm 22 in Douay. This is the Vulgate psalm numbering
+#   offset, documented here rather than silently absorbed.
+# - Isaiah 23:1: Douay reads "ships of the sea" where KJV/WEB read "ships of
+#   Tarshish" — a translation choice, not a parser error. The address is correct.
+EXPECT_DOUAY = {
+    ("Psalms", 23, 1): ("the earth is the", "earth is the Lord"),
+    ("John", 3, 16): ("loved the world",),
+    ("Genesis", 1, 1): ("beginning",),
+    ("Revelation", 3, 16): ("lukewarm",),
+    ("Isaiah", 23, 1): ("ships of the sea", "burden of Tyre"),
+}
+
 parsed = {}
 raws: dict[str, list] = {}
 for slug, gid in IDS.items():
     raw = open(os.path.join(EXT, slug, f"pg{gid}.txt"),
                encoding="utf-8", errors="replace").read()
-    lines = raw.splitlines()
-    spans = book_spans(lines)
-    vs = parse_verses(raw)
+    # Douay uses its own parser (Vulgate numbering, "C:V." verse format) — see
+    # src/guji/douay.py. bcv.VERSE_RE does NOT match Douay's dotted form.
+    if slug == "bible-douay":
+        vs = [(v.bcv_book, v.chapter, v.verse, v.text)
+              for v in douay_parse_verses(raw)]
+        spans = []  # Douay chapter headings are not bcv.book_spans
+    else:
+        lines = raw.splitlines()
+        spans = book_spans(lines)
+        vs = parse_verses(raw)
     raws[slug] = vs                      # keep the ROWS, not just the deduped dict
     parsed[slug] = {(b, c, v): t for b, c, v, t in vs}
     books = Counter(b for b, _, _, _ in vs)
     print(f"{slug:14} {len(spans):3} book spans, {len(vs):>7,} verses, "
           f"{len(books):3} books with verses")
-    chain = " ".join(s.name for s in spans[:6])
-    print(f"               chain starts: {chain}")
+    if spans:
+        chain = " ".join(s.name for s in spans[:6])
+        print(f"               chain starts: {chain}")
 
 print(f"\n=== control cases (the naive parser answered the first two WRONG) ===")
 fails = []
-SUPPORTED = ("bible-kjv", "bible-web")   # Douay numbers verses inline; not yet parsed
+SUPPORTED = ("bible-kjv", "bible-web", "bible-douay")
 for (book, ch, v), needles in EXPECT.items():
     print(f"\n  {book} {ch}:{v}   expect to contain one of {needles}")
     for slug in IDS:
@@ -57,7 +84,10 @@ for (book, ch, v), needles in EXPECT.items():
             if slug in SUPPORTED:
                 fails.append((slug, book, ch, v, "not located"))
             continue
-        ok = any(n.lower() in t.lower() for n in needles)
+        # Douay uses translation-specific needles (Vulgate psalm offset, "ships
+        # of the sea" vs "Tarshish"). Same address, different wording.
+        active_needles = EXPECT_DOUAY.get((book, ch, v), needles) if slug == "bible-douay" else needles
+        ok = any(n.lower() in t.lower() for n in active_needles)
         print(f"    {slug:14} [{'OK ' if ok else 'BAD'}] {t[:78]}")
         if not ok and slug in SUPPORTED:
             fails.append((slug, book, ch, v, "wrong text"))
@@ -86,6 +116,15 @@ print("\n=== CONTROL: no address may hold two different texts ===")
 #
 # Asserting rows == distinct keys is what makes that class of defect impossible to ship
 # quietly: a collapsed address means two passages claim one citation.
+#
+# KNOWN Vulgate numbering anomalies in Douay-Rheims (measured from pg1581.txt, documented
+# in src/guji/douay.py). These are properties of the source edition, not parser bugs:
+#   - Psalms 113: Vulgate merges Protestant Psalms 114+115, so verses 1-8 repeat with
+#     different text (8 collisions).
+#   - Proverbs 12:12: printed twice with two different texts (1 collision).
+# The 9 collisions are the full set; any NEW collision is a real defect.
+DOUAY_EXPECTED_CONFLICTS = 9
+
 for slug in IDS:
     vs = raws.get(slug)
     if vs is None:
@@ -99,9 +138,16 @@ for slug in IDS:
             if (b, ch, v) in dup:
                 seen.setdefault((b, ch, v), set()).add(t)
         conflict = sum(1 for ts in seen.values() if len(ts) > 1)
-    ok = conflict == 0
-    print(f"  [{'PASS' if ok else 'FAIL'}] {slug:14} rows={len(vs):,} "
-          f"distinct={len(keys):,} addresses holding conflicting text={conflict}")
+    # Douay has a known, documented set of conflicts from Vulgate numbering.
+    if slug == "bible-douay":
+        ok = conflict == DOUAY_EXPECTED_CONFLICTS
+        print(f"  [{'PASS' if ok else 'FAIL'}] {slug:14} rows={len(vs):,} "
+              f"distinct={len(keys):,} conflicts={conflict} "
+              f"(expected {DOUAY_EXPECTED_CONFLICTS} from Vulgate Psalms 113 + Prov 12:12)")
+    else:
+        ok = conflict == 0
+        print(f"  [{'PASS' if ok else 'FAIL'}] {slug:14} rows={len(vs):,} "
+              f"distinct={len(keys):,} addresses holding conflicting text={conflict}")
     if not ok:
         fails.append(f"{slug}:{conflict} conflicting addresses")
 

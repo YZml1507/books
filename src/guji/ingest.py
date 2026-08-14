@@ -30,7 +30,7 @@ import re
 import sqlite3
 from dataclasses import dataclass
 
-from . import booksec, euclid, play, yilin
+from . import booksec, douay, euclid, play, yilin
 from .anchors import HEX_RE, classify_offchain, clean, extract_yao, gua_number, gua_spans, yao_names
 from .variants import fold, segment_cjk
 from .zhouyi import derive_gold, derive_polarity, work_body
@@ -752,6 +752,20 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                               (uid, segment_cjk(fold(prop.text))))
                 stats.units += len(props)
                 stats.addressed += len(props)
+            elif slug == "bible-douay":
+                scheme = "bcv"
+                verses = douay.parse_verses(raw)
+                for v in verses:
+                    uid += 1
+                    db.execute(
+                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (uid, slug, txt_files[0], v.raw_start, v.raw_end, None,
+                         "bcv", v.bcv_book, v.chapter, str(v.verse), "正文",
+                         v.text, 0, None))
+                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                              (uid, segment_cjk(fold(v.text))))
+                stats.units += len(verses)
+                stats.addressed += len(verses)
             else:
                 # Darwin and others: page anchors only, no canonical address
                 # Split on page breaks or chapters as units

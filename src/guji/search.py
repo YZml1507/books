@@ -155,8 +155,17 @@ class Corpus:
     def at_address(self, gua: int, yao: str | None = None,
                    layer: str | None = None, limit: int = 50) -> list[Hit]:
         """Every edition's text at one canonical address — no query string involved.
-        This is the operation that page anchors cannot do (D-005)."""
-        sql = _SELECT + " WHERE u.addr1 = ?"
+        This is the operation that page anchors cannot do (D-005).
+
+        Restricted to scheme='zhouyi': this method answers 「what does each
+        witness read at 卦N·爻」, and 卦 addressing IS the zhouyi scheme. Without
+        the filter, a Bible chapter number could collide with a 卦 number
+        (Psalms 99 == 卦99), which would make the impossible-address gate
+        (eval_g7 卦99) return Psalms text instead of refusing. The collision is
+        real, not hypothetical: measured after Douay was ingested with
+        scheme='bcv', addr1=chapter.
+        """
+        sql = _SELECT + " WHERE u.addr1 = ? AND u.scheme = 'zhouyi'"
         args: list = [gua]
         if yao:
             sql += " AND u.addr2 = ?"

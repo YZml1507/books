@@ -10,7 +10,7 @@
     "contiguity": 1.0,
     "len_a": 52,
     "len_b": 2,
-    "verdict": "span-degenerate-B",
+    "verdict": "span-degenerate-B (EXPECTED)",
     "text_a": "九二孚乃利用禴无咎與五為應往必見任體夫剛德進不求寵閑邪存誠志在大業故乃利用納約于神明矣象曰九二之孚有喜也",
     "text_b": "九二"
    },
@@ -32,7 +32,7 @@
     "contiguity": 0.4,
     "len_a": 50,
     "len_b": 5,
-    "verdict": "span-degenerate-B",
+    "verdict": "span-degenerate-B (EXPECTED)",
     "text_a": "九二牽復吉處乾之中以升巽五五非畜極非固巳者也雖不能若陰之不違可牽以獲復是以吉也象曰牽復在中亦不自失也",
     "text_b": "九二之牽復"
    },
@@ -43,7 +43,7 @@
     "contiguity": 0.4286,
     "len_a": 55,
     "len_b": 7,
-    "verdict": "span-degenerate-B",
+    "verdict": "span-degenerate-B (EXPECTED)",
     "text_a": "初九復自道何其咎吉處乾之始以升巽初四為巳應不距巳者也以陽升陰復自其道順而无違何所犯咎得義之吉象曰復自道其義吉也",
     "text_b": "初九之復自道固"
    },
@@ -54,7 +54,7 @@
     "contiguity": 0.7,
     "len_a": 74,
     "len_b": 10,
-    "verdict": "span-degenerate-B",
+    "verdict": "span-degenerate-B (EXPECTED)",
     "text_a": "九五孚于剝有厲比于上六而與相得處尊正之位不說信乎陽而說信乎陰孚于剝之義也剝之為義小人道長之謂象曰孚于剝位正當也以正當之位信于小人而䟽君子故曰位正當也",
     "text_b": "九五孚于剝有厲注比于"
    },
@@ -76,7 +76,7 @@
     "contiguity": 0.7407,
     "len_a": 57,
     "len_b": 27,
-    "verdict": "span-degenerate-B",
+    "verdict": "span-degenerate-B (EXPECTED)",
     "text_a": "初六允升大吉允當也巽卦三爻皆升者也雖无其應處升之初與九二九三合志俱升當升之時升必大得是以大吉也象曰允升大吉上合志也",
     "text_b": "初六允升大吉注允當也巽卦三爻皆升者也雖无其應處升之初與"
    },

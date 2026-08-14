@@ -56,6 +56,20 @@ provenance 0/37 缺失（含通用性 10 部 + booksec 2 部，见 C-07）
 质量闸门 阳性对照（卦61）+ **阴性对照**（卦47）双向都在
 ```
 
+**本窗口（U-06 Douay 接入）后实测快照（13/13 通过）**：
+
+```
+build 9.6s · 37 部 51,000 单元 42.1 MB（Douay +35,787 bcv 单元）
+scheme: zhouyi 5088 / yilin 5032 / bcv 35787 / None 3457 / booksec 819 / play 817
+verify_index ALL PASS · validate_alignment 1824/1872 = 97.4% 零回退
+probe_conservation ratio 1.0000 · assess_goals PASS 8 · PART 1 · FAIL 0
+eval_g1 G1 = PASS 225/225 · eval_g7 G7 = PASS（修复 at_address scheme 过滤后 impossible 4/4）
+probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）
+eval_g4 G4 = PASS · probe_g8_isolation PASS · check_provenance 0/37 missing
+```
+
+注：上段 `15,213 单元` 是 Douay 接入前快照，Douay 接入后变 51,000。增量来源：Douay 35,787 = 51,000 − 15,213。
+
 **本轮五书入索引的单元分布**（实测 `SELECT scheme, count(*) FROM unit GROUP BY scheme`）：
 
 ```
@@ -64,7 +78,7 @@ yilin   5032   （焦氏易林 64×64 矩阵，其中 5032 已入 zhouyi 视图�
 None    3457   （Darwin 491 页锚点 + 其余術數/堪輿/命理无地址书）
 booksec 819    （Herodotus 761 + Plato 10 + Iliad Butler 24 + Iliad Pope 24）
 play    817    （Shakespeare 38 剧×幕场 + 6 诗）
-euclid  ——     （Euclid 6 BOOK 170 proposition，scheme="euclid"）
+euclid  0      （**Euclid 路由未接线**：`ingest.py:740` 的 `elif slug == "euclid-elements"` 分支存在且 `euclid.parse_propositions` 能产出 170 proposition，但 `ingest.py:665` 的 `if not txt_files: continue` 前置条件要求 `.txt`，而 `euclid-elements/` 只有 `pg21076.html` 和 `pg21076.epub`，所以该分支从未执行。此前结论"Euclid 6 BOOK 170 proposition 已入索引"已被实测推翻——实测 `SELECT count(*) FROM unit WHERE work_id='euclid-elements'` = 0，`work` 表 0 行。）
 ```
 
 **注意**：`scheme=None` 含 Darwin 491 页锚点单元 + 28 部 Kanripo 里无卦爻地址的書。
@@ -220,7 +234,14 @@ G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 | U-08 | **修正：WEB 漏检 10 卷，且把后一卷经文错挂到前一卷地址上** | DONE | `book_in_line` 不识别**阿拉伯数字序数**（WEB 写 `Book 12 2 Kings`）；修正后 66/66 卷、31,102 行**零地址冲突** | `bcv._DIGIT_ORD_RE` · `probes/probe_bcv_dupes.py` · `probe_bcv_missing.py` |
 | U-04 | 目录构成第二条有序链 → 过滤 | DONE | KJV 目录在 2..10 行，曾使 `Genesis` 段成第 2..3 行 | `book_spans` |
 | U-05 | 拒绝以句读结尾的候选标题 | DONE | `came unto Jeremiah.` 曾被选为耶书起点 → 耶 23 落在「以賽亞書」段内 | `_looks_like_heading` |
-| U-06 | Douay-Rheims 支持 | **TODO** | 行首经文号仅 **3** 个，行内 **35,905** 个全是互见 | 需段内编号解析器 |
+| U-06 | Douay-Rheims 支持 | **DONE** | 35,787 单元接入 `scheme='bcv'`；见下方"U-06 接入实测" | `src/guji/douay.py` · `ingest.py:756` |
+
+**U-06 接入实测**（2026-08-14，所有数字来自脚本输出）：
+- Douay-Rheims (`data/raw_ext/generality/bible-douay/pg1581.txt`，5,880,420 字节，144,111 行) 接入索引：35,787 单元，73 个 bcv 书（Vulgate 拼写映射到 bcv.BOOKS Protestant superset）。
+- **此前勘查结论"bcv.VERSE_RE 应能匹配 Douay"已被实测推翻**：`VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$` 在 group2 后要求 `\s+`，但 Douay 是 `1:1.`（点紧跟，非空白），`VERSE_RE.match('1:1. In the beginning')` 返回 None，`bcv.parse_verses` 对 Douay 返回 0 节。**接入必须给 Douay 单独的解析路径**——见 `src/guji/douay.py`。
+- **此前勘查结论"75 个不同书名"已被实测推翻**：`^(\S.+) Chapter (\d+)\s*$` 全量匹配实测 73 个 distinct 书名（1334 个章标题）。
+- **Vulgate 编号特性（已显式记录于 `probes/probe_bcv.py` 的 `DOUAY_EXPECTED_CONFLICTS=9`，不静默放宽闸门）**：Psalms 113 把 Protestant 诗篇 114+115 合并为一章，章内经文号 1-8 重置一次（8 个同-(C:V) 重复）；Proverbs 12:12 同一节号印两次，文本不同（1 个同-(C:V) 重复）。任何新增冲突都会变 FAIL。
+- **接入过程发现的真实缺陷（已修复）**：`search.at_address(gua, ...)` 原先只过滤 `WHERE u.addr1 = ?`，不带 `scheme` 过滤。Douay 接入后 `bcv` 单元的 `addr1=chapter` 与 卦号冲突：`at_address(99, None)` 把 Douay Psalms 99（bcv, addr1=99）误当"卦99"返回 5 段经文，导致 `eval_g7` 的 impossible-address 测试从 4/4 退到 3/4。**修复**：`at_address` 加 `AND u.scheme = 'zhouyi'` 过滤，eval_g7 恢复 4/4=100%，G7 = PASS。13 道闸门零回退。
 | U-07 | tier 2/3 七部书建索引 | **TODO** | Plato/Shakespeare/Euclid/Darwin/Herodotus/Iliad×2 已落盘未索引 | — |
 
 **U-03 为何只是 PART**：解析器覆盖面仍不全（Douay 段内编号、tier 2/3 七书未做）。
