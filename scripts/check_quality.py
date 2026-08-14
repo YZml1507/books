@@ -13,7 +13,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji.quality import cross_edition_coverage  # noqa: E402
+from guji.quality import cross_edition_coverage, junk_census  # noqa: E402
 from guji.zhouyi import derive_polarity, work_body  # noqa: E402
 
 RAW = os.path.join(ROOT, "data", "raw")
@@ -91,6 +91,34 @@ else:
               f"the OCR signature is what must be absent)")
         if not ok:
             fails.append("known-negative 卦47")
+
+# --------------------------------------------------------------------------------------
+# Q-06: junk census (PUA, CJK-Ext-A, U+FFFD, (cid:N) markers)
+# --------------------------------------------------------------------------------------
+# Reports a single junk rate per work.  (cid:N) markers are ASCII, so a pure
+# code-point census misses them — this is why Q-06 calls them out explicitly.
+# The gate does NOT fail on junk rate (no calibrated threshold exists yet);
+# it only prints and records, so a regression in extraction quality is visible.
+print(f"\n{'='*78}\n=== Q-06 junk census (per work) ===")
+print(f"  {'work':12} {'chars':>9} {'PUA':>6} {'ExtA':>6} {'FFFD':>6} {'cid':>6} "
+      f"{'junk%':>7}")
+junk_report = {}
+import glob as _glob  # noqa: E402
+for w in sorted(_d for _d in os.listdir(RAW)
+                if os.path.isdir(os.path.join(RAW, _d))):
+    body = work_body(RAW, w)
+    if not body:
+        continue
+    jr = junk_census(body, w)
+    print(f"  {w:12} {jr.n_chars:9} {jr.pua:6} {jr.ext_a:6} {jr.repl:6} {jr.cid:6} "
+          f"{100*jr.junk_rate:6.3f}%")
+    if jr.junk:
+        junk_report[w] = {
+            "n_chars": jr.n_chars, "pua": jr.pua, "ext_a": jr.ext_a,
+            "fffd": jr.repl, "cid": jr.cid, "junk_rate": jr.junk_rate,
+        }
+report["junk_census"] = junk_report
+print(f"  works with any junk: {len(junk_report)}")
 
 with open(os.path.join(CAT, "quality_report.json"), "w", encoding="utf-8") as f:
     json.dump(report, f, ensure_ascii=False, indent=1)

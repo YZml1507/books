@@ -134,7 +134,7 @@ n_low = 0
 if have_q:
     import json
     q = json.load(open(qr, encoding="utf-8"))
-    n_low = sum(len(v["low"]) for v in q.values())
+    n_low = sum(len(v["low"]) for v in q.values() if isinstance(v, dict) and "low" in v)
 say("G3", "能区分版本", "PASS" if have_q else "FAIL",
     f"cross_edition_coverage() enumerates per-address divergence for edition pairs.\n"
     f"KR1a0031 vs KR1a0032 are modelled as one Work, two Editions.\n"

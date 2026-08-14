@@ -269,3 +269,58 @@ def cross_edition_coverage(raw_a: str, raw_b: str,
                                a, b, longest, subs))
     out.sort(key=lambda d: d.coverage)
     return out
+
+
+# --------------------------------------------------------------------------------------
+# Detector 3 — junk census (PUA, CJK-Ext-A, U+FFFD, (cid:N) markers)
+# --------------------------------------------------------------------------------------
+# Q-06: a junk census must count `(cid:N)` markers, which are ASCII and therefore
+# invisible to a pure code-point scan.  These markers are the loud-failure mode of
+# markitdown on Identity-H subset fonts (D-001), the same failure mode that
+# `probe_crosssource.py` already prints ad hoc.  Productised here so the quality
+# gate can report a single junk rate per work rather than relying on a probe.
+
+_CID_RE = re.compile(r"\(cid:\d+\)")
+
+
+@dataclass
+class JunkReport:
+    work: str
+    n_chars: int            # non-space chars scanned
+    pua: int                # Private Use Area (U+E000..U+F8FF)
+    ext_a: int              # CJK Extension A (U+3400..U+4DBF)
+    repl: int               # U+FFFD replacement character
+    cid: int                # count of (cid:N) markers
+    junk_rate: float        # (pua + ext_a + repl + cid) / n_chars
+
+    @property
+    def junk(self) -> int:
+        return self.pua + self.ext_a + self.repl + self.cid
+
+
+def junk_census(text: str, work: str = "") -> JunkReport:
+    """Count junk markers in `text`.
+
+    Junk is defined as characters that cannot be legitimate Classical Chinese
+    text but are common OCR/extraction artefacts:
+
+      * PUA (U+E000..U+F8FF): un-mapped subset-font glyphs dumped to PUA.
+      * CJK Ext A (U+3400..U+4DBF): rare in real modern text, common as
+        mis-mapped output from Identity-H fonts.
+      * U+FFFD: replacement character, the universal "could not decode" flag.
+      * `(cid:N)` markers: ASCII strings emitted by markitdown when it cannot
+        resolve a CID to a Unicode code point (Q-06).  These are invisible to
+        a pure code-point census, which is exactly why they must be counted
+        explicitly.
+    """
+    ns = [c for c in text if not c.isspace()]
+    n = len(ns)
+    pua = sum(1 for c in ns if 0xE000 <= ord(c) <= 0xF8FF)
+    ext_a = sum(1 for c in ns if 0x3400 <= ord(c) <= 0x4DBF)
+    repl = sum(1 for c in ns if ord(c) == 0xFFFD)
+    cid = len(_CID_RE.findall(text))
+    total = pua + ext_a + repl + cid
+    return JunkReport(
+        work=work, n_chars=n, pua=pua, ext_a=ext_a, repl=repl, cid=cid,
+        junk_rate=(total / n) if n else 0.0,
+    )
