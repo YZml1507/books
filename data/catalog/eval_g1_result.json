@@ -374,7 +374,7 @@
    "id": "RX-19-六五",
    "category": "retrieval_cross",
    "status": "PASS",
-   "detail": "rank 1/8, incl. KR1a0031 (7 units carry the text)",
+   "detail": "rank 1/8, incl. KR1a0007 (7 units carry the text)",
    "witness": "present in KR1a0006 (folded_jing)"
   },
   {
@@ -1370,6 +1370,230 @@
    "status": "PASS",
    "detail": "7/9 hits carry the variant 羣",
    "witness": "present in KR1a0006 (unfolded_notes)"
+  },
+  {
+   "id": "YL-R-18-坤",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-08-夬",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-41-恆",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-45-旅",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-57-履",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-10-師",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-24-遯",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-24-豫",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-11-革",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-36-旅",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-06-蹇",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-R-45-頤",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/1",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-C-23-頤",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "3 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-18-坤",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-08-夬",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-41-恆",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-45-旅",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-57-履",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-10-師",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-C-24-遯",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "1 units across 1 works all resolve",
+   "witness": "present in KR3g0029 (folded_jing)"
+  },
+  {
+   "id": "YL-GP-18-坤",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GP-08-夬",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GP-10-師",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GP-24-遯",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GP-11-革",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GP-36-旅",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR3g0029 (folded_notes)"
+  },
+  {
+   "id": "YL-GN-23-頤",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "YL-GN-18-坤",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "YL-GN-08-夬",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "YL-GN-41-恆",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "YL-GN-45-旅",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "YL-GN-57-履",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
   }
  ]
 }

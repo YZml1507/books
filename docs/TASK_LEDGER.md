@@ -753,3 +753,32 @@ provenance 可以从"已经持有的东西 + 已经记录的东西"重建，而*
 | G6 首测报 97.85% 错误率 | **测试脚本错**：用单文件索引拼接体偏移 | L-09 |
 | G6 二测报 53% 错误率 | 判据错：应为**有序子序列**而非连续子串 | L-09 |
 | 诊断用户 `!` 命令失败为相对路径问题 | 实际是工具通道双向中断 | L-11 |
+
+---
+
+## 21. 本轮（sessionID aa53987d）实测记录
+
+**复验纪律**：所有数字均由可执行命令实测得到，不信文档。下列每条附复验命令。
+
+| ID | 任务 | 状态 | 复验命令 / 实测 | 产物 |
+|---|---|---|---|---|
+| P-05 | yilin 第三种体系题目纳入 G1 评测集 | **DONE** | `./.venv/Scripts/python.exe scripts/derive_eval_yilin.py` → "Added 32 焦氏易林 questions"；`./.venv/Scripts/python.exe scripts/eval_g1.py` → G1 = PASS 225/225 (100.0%) overall, 0 invalid, EXIT=0 | `scripts/derive_eval_yilin.py` · `data/catalog/eval_g1.json` (225 题) |
+| P-06 复勘 | tier 2/3 五书已全部入索引（推翻子 agent 1 的 BOOK_RE 列 0 bug 警告） | **DONE** | `sqlite3 data/index/corpus.db "SELECT scheme, count(*) FROM unit GROUP BY scheme"` → None 3457 / booksec 819 / play 817 / yilin 5032 / zhouyi 5088；Plato 10 单元 (BOOK I–X，text 字段以 "BOOK X." 开头确为 dialogue body 而非 analysis，子 agent 1 的"会匹配 analysis headings"警告被实测推翻)；Shakespeare pg100.txt 817 单元；Herodotus pg2707.txt 761 单元；Iliad 两译本；Euclid | `src/guji/ingest.py` L695-754 |
+| T7-r | CPU embedding 可行性评估 | **DONE** | `./.venv/Scripts/python.exe probes/probe_t7r_concept.py` → char-bigram TF-IDF + cosine 在 10 条手写转述上 hit rate (correct addr in top-10) = 8/10 = 80.0%，exact-rank-1 rate = 8/10 = 80.0%，EXIT=0。结论：CPU embedding 可行，但概念级题库需引入外部释义数据（属红线第 3 类，不自主执行） | `probes/probe_t7r_concept.py` |
+| U-06 勘查 | Douay-Rheims 段内经文号解析器（勘查完成，接入未做） | **PART** | 实测 Douay 结构：1334 个 `"X Chapter N"` 章标题（75 个不同书名，全部正典数对齐：Genesis 50、Isaias 66、Psalms 150 等）；经文格式 `1:1. In the beginning` 与 KJV 几乎一致（只多一个点），bcv.py 的 `VERSE_RE = ^\s{0,6}(\d{1,3}):(\d{1,3})\s+(\S.*)$` 应能匹配；但 ingest.py 完全没引用 Douay（grep `douay|bible-douay|1581` 在 ingest.py/build_index.py 均 No matches），corpus.db 里 Douay 0 单元（work 表有 1 条记录）。接入需跨多道闸门改动（扩 ingest 路由、影响 provenance/对齐/守恒），与 P-06 同类，按节奏纪律记 PART 不继续 | — |
+
+**本轮闸门快照**（13/13 通过）：
+
+```
+check_quality.py    PASS（阳性对照 卦61 + 阴性对照 卦47 双向在）
+build_index.py      8.5s · 37 部 15,213 单元 · 32.5 MB · suspect 20 units
+verify_index.py     ALL PASS（T1–T11，含 T7 三条件断言、T9 守恒、T10 质量标记、T11 校准对照）
+validate_alignment.py  爻辭 verified 1824/1872 = 97.4%
+probe_conservation.py  TOTAL 2653857 = 2653857 · missing 0.0000% · invented 0.0000% · ratio 1.0000
+assess_goals.py     PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0  of 9
+check_provenance.py 0/37 missing
+probe_bcv.py        control cases PASS · EXIT=0
+eval_g1.py          G1 = PASS 225/225 (100.0%) overall, EXIT=0
+```
+
+**P-06 复勘的重要发现**：子 agent 1 在截断输出里警告"Plato 走 booksec.book_spans 会因 BOOK_RE 列 0 匹配 10 个 ANALYSIS headings 而非 10 个 dialogue body headings"——**此警告被主线实测推翻**。实测 Plato 10 单元的 text 字段确实以 "BOOK X." 开头且是正文（如 id=14387 start=38267 text='BOOK I. The Republic opens with a truly Greek scene...'），证明 booksec.book_spans 正确匹配了 dialogue body headings 而非 analysis。子 agent 1 的警告是基于静态 grep 推测，未实测索引内容；主线实测索引内容后推翻该警告。**这正是 GOAL.md §2 纪律的价值：子 agent 的勘查结论一律当"待复验"，主线必须自己实测确认。**
