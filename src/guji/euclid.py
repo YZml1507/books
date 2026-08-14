@@ -154,8 +154,12 @@ def _int_to_roman(n: int) -> str:
 
 _BOOK_RE = re.compile(r"(?:^|\s)BOOK\s+([IVX]+)[\.\s]", re.M)
 # Proposition headings: 'PROPOSITION 1' or 'PROPOSITION I' or 'PROP. 1'
+# The trailing [\.\s—–-] accepts a dot, whitespace, em-dash (U+2014), en-dash
+# (U+2013) or hyphen. Books 3 and 6 use 'PROP. XXIII—Theorem' (em-dash directly
+# after the numeral, no dot), which the original [\.\s] rejected — that dropped
+# Book 3 prop 23 and Book 6 props 22, 27 (P-10).
 _PROP_HEAD_RE = re.compile(
-    r"(?:PROPOSITION|PROP\.?)\s+([IVXLC]+|\d+)[\.\s]", re.I)
+    r"(?:PROPOSITION|PROP\.?)\s+([IVXLC]+|\d+)[\.\s—–-]", re.I)
 
 
 def find_books(text: str) -> list[tuple[int, int, int]]:

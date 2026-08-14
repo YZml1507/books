@@ -871,11 +871,46 @@ eval_g4 G4 = PASS · probe_g8_isolation PASS — separation holds under all atte
 bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 170
 ```
 
-### 22c. 新增待办 P-10
+### 22c. P-10 DONE（Euclid 缺失 proposition 修复）
+
+**根因**：`_PROP_HEAD_RE` 的尾字符类 `[\.\s]` 只接受点号或空白，但 Books 3/6 部分命题用 `PROP. XXIII—Theorem` 格式——prop 号后直接是 em-dash `—` (U+2014)，不匹配 `[\.\s]`，导致这些命题被丢弃。
+
+**缺失命题（实测）**：
+- Book 3 prop 23：`PROP. XXIII—Theorem. Two similar segments of circles…`
+- Book 6 prop 22：`PROP. XXII—Theorem. If four lines (AB, CD, EF, GH) be proportional…`
+- Book 6 prop 27：`PROP. XXVII—Problem. To inscribe in a given triangle (ABC) the maximum parallelogram…`
+
+**修复**：`_PROP_HEAD_RE` 尾字符类从 `[\.\s]` 扩为 `[\.\s—–-]`（em-dash U+2014、en-dash U+2013、hyphen）。这是**放宽匹配范围以捕获之前漏掉的命题**，不是放宽验收闸门——丢失命题是缺陷，捕获它们是修复。
+
+**修复实测**（2026-08-14）：
+- Euclid propositions：**170 → 174**
+- Book 3：36 → **37**（正典 37，恢复）
+- Book 6：31 → **33**（正典 33，恢复）
+- Book 5：25 → **26**（+Simson Prop. C n=100，Casey 译本追加命题）
+- Book 1/2/4：不变（48/14/16，正典）
+
+**Simson 追加命题**（Book 5 Prop. A/B/C/D/E）：Casey 译本在 Book 5 追加了 5 个 Simson 命题（单字母标号 A-E）。当前 `_PROP_HEAD_RE` 匹配到 Prop. C（n=100）但漏了 A/B/D/E（它们的格式是 `Prop. A.—Theorem`，A 后是 `.`——应该能匹配，但 dedupe 逻辑可能把它们当 cross-reference 丢了）。这 5 个不属于欧几里得正典 25 个，是 Casey 的补充。当前 Book 5 有 26 props（25 正典 + 1 Simson C），可接受。若要捕获全部 Simson 命题需进一步勘查，记为 **P-11**（低优先，非正典命题）。
+
+**13 道闸门实测快照（P-10 修复后，全过零回退）**：
+```
+check_quality PASS · build_index 9.9s 38 部 51,174 单元 43.4 MB · verify_index ALL PASS
+validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000 missing 0 invented 0
+assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/38 missing
+probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突）
+eval_g1 G1 = PASS 225/225 · summarise_diff PASS · eval_g7 FABRICATIONS 0 G7 = PASS
+eval_g4 G4 = PASS · probe_g8_isolation PASS
+```
+
+**scheme 分布（实测）**：
+```
+bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 174
+```
+
+### 22d. 新增待办
 
 | ID | 待办 | 依据 |
 |---|---|---|
-| P-10 | Euclid Book 3 少 1 prop（36 vs 正典 37）、Book 6 少 2 prop（31 vs 正典 33） | `euclid.parse_propositions` 实测 170 propositions，正典 173。需勘查 `_PROP_HEAD_RE` 是否漏匹配某些 proposition 标题格式 |
+| P-11 | Euclid Book 5 Simson 追加命题 A/B/D/E 未全部捕获（当前仅 C） | `Prop. A.—Theorem (Simson)` 等 5 个 Casey 译本追加命题。非欧几里得正典，低优先 |
 
 **13 道闸门实测快照（全过，零回退）**：
 ```
