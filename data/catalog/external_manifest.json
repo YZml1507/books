@@ -1,0 +1,121 @@
+[
+ {
+  "repo": "lyyxqg-lyy/suanle-me",
+  "fetched": true,
+  "branch": "main",
+  "zip_sha256": "29a375044e7d6df5c46290eba60e1b2576e0bb002a8fb833258283a22b3f4385",
+  "zip_bytes": 99900,
+  "top_dir": "suanle-me-main",
+  "n_entries": 75,
+  "licence_files": [
+   "LICENSE"
+  ],
+  "licence_status": "present",
+  "candidate_data_files": [
+   "components.json",
+   "package.json",
+   "pnpm-lock.yaml",
+   "src/lib/divination.ts",
+   "tsconfig.json"
+  ],
+  "source_url": "https://github.com/lyyxqg-lyy/suanle-me",
+  "fetched_at": "2026-08-13T20:59:46+0800"
+ },
+ {
+  "repo": "starloom/starloom",
+  "fetched": true,
+  "branch": "main",
+  "zip_sha256": "31bf39329397070256d7e2eae57cdc294e95aa6a5adeae6a0ddb945270ab47f3",
+  "zip_bytes": 6843443,
+  "top_dir": "starloom-main",
+  "n_entries": 181,
+  "licence_files": [],
+  "licence_status": "none-stated",
+  "candidate_data_files": [
+   "frontend/package-lock.json",
+   "frontend/package.json",
+   "frontend/src/assets/images/imgUpdata.svg",
+   "frontend/src/page/AskDivination.vue"
+  ],
+  "source_url": "https://github.com/starloom/starloom",
+  "fetched_at": "2026-08-13T20:59:49+0800"
+ },
+ {
+  "repo": "dreamhunter2333/chatgpt-tarot-divination",
+  "fetched": true,
+  "branch": "main",
+  "zip_sha256": "817ba84ae5d31d5583fb41cdd419c128ce846f84f1da5d99af6dea6f66f98cd6",
+  "zip_bytes": 719605,
+  "top_dir": "chatgpt-tarot-divination-main",
+  "n_entries": 129,
+  "licence_files": [],
+  "licence_status": "none-stated",
+  "candidate_data_files": [
+   ".github/workflows/codeql.yml",
+   ".github/workflows/docker-image.yml",
+   "docker-compose.yaml",
+   "frontend/.vscode/extensions.json",
+   "frontend/components.json",
+   "frontend/package.json",
+   "frontend/pnpm-lock.yaml",
+   "frontend/src/components/DivinationCardHeader.tsx",
+   "frontend/src/hooks/useDivination.ts",
+   "frontend/src/pages/divination/BirthdayPage.tsx",
+   "frontend/src/pages/divination/DreamPage.tsx",
+   "frontend/src/pages/divination/FatePage.tsx",
+   "frontend/src/pages/divination/NamePage.tsx",
+   "frontend/src/pages/divination/NewNamePage.tsx",
+   "frontend/src/pages/divination/PlumFlowerPage.tsx",
+   "frontend/src/pages/divination/TarotPage.tsx",
+   "frontend/src/utils/divinationHistory.ts",
+   "frontend/tsconfig.json",
+   "frontend/tsconfig.node.json",
+   "src-tauri/capabilities/default.json",
+   "src-tauri/tauri.conf.json",
+   "src/divination/__init__.py",
+   "src/divination/base.py",
+   "src/divination/birthday.py",
+   "src/divination/dream.py",
+   "src/divination/fate.py",
+   "src/divination/name.py",
+   "src/divination/new_name.py",
+   "src/divination/plum_flower.py",
+   "src/divination/tarot.py",
+   "vercel.json"
+  ],
+  "source_url": "https://github.com/dreamhunter2333/chatgpt-tarot-divination",
+  "fetched_at": "2026-08-13T20:59:50+0800"
+ },
+ {
+  "repo": "sunls2/zhouyi",
+  "fetched": true,
+  "branch": "main",
+  "zip_sha256": "d70fb4f39543fd00c264a0e8886be6a8dd99a0a586c4d4a9c5991c1899511cd1",
+  "zip_bytes": 8370054,
+  "top_dir": "zhouyi-main",
+  "n_entries": 897,
+  "licence_files": [],
+  "licence_status": "none-stated",
+  "candidate_data_files": [
+   "mkdocs.yml"
+  ],
+  "source_url": "https://github.com/sunls2/zhouyi",
+  "fetched_at": "2026-08-13T20:59:55+0800"
+ },
+ {
+  "repo": "Ovilia/biangua",
+  "fetched": true,
+  "branch": "master",
+  "zip_sha256": "499d0a09f40677d5bb96a85ae9305b93d201f1325a014a3c01efcdceddec5799",
+  "zip_bytes": 63322,
+  "top_dir": "biangua-master",
+  "n_entries": 10,
+  "licence_files": [],
+  "licence_status": "none-stated",
+  "candidate_data_files": [
+   "gua.json"
+  ],
+  "source_url": "https://github.com/Ovilia/biangua",
+  "fetched_at": "2026-08-13T21:00:05+0800"
+ }
+]

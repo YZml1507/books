@@ -1,0 +1,386 @@
+{
+ "verdict": "PASS",
+ "target": 0.95,
+ "must_refuse": [
+  30,
+  30
+ ],
+ "must_answer": [
+  25,
+  25
+ ],
+ "impossible": [
+  4,
+  4
+ ],
+ "damaged_rule": true,
+ "fabrications": [],
+ "results": [
+  {
+   "id": "GN-x07",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「有能乾九乾」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-36-上六",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「不明晦初登天于後入于」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-35-上九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「晉其角維用邑伐厲吉无」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-38-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「見輿曳其牛其掣人天且」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-11-九二",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「包荒用馮河遐不遺朋亡」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-03-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「即鹿无虞惟于入林中君」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-41-初九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「已事遄往咎无酌損之」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-23-上九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「碩果不食君得子輿小人」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-12-初六",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「拔茅茹以彙其貞吉亨」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-43-九四",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「臀无膚其行且次牽羊悔」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-17-初九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「官有渝貞吉門出交有功」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-06-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「食舊德貞厲吉終或從王」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-42-上九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「莫益之或擊立之心勿恆」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-14-九二",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「大車以載攸有往无咎」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-20-六四",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「觀國之光用利賓于王」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-30-上九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「王用出征有折嘉首獲匪」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-27-初九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「舍爾靈龜我觀朵頤凶」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-29-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「來之坎坎險枕且入于坎」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-49-上六",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「君子豹變小革人面征凶」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-41-六四",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「損其疾使有遄喜无咎」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-14-初九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「无交害匪艱咎則无咎」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-50-九四",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「鼎折足覆公其餗形渥凶」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-23-六五",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「貫魚以宮寵人无不利」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-04-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「勿用取女見夫金不有躬」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-24-上六",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「迷復凶有災用眚行師終」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-45-六三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「萃如嗟如无利攸往无咎」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-61-九二",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「鳴鶴在陰其和子之我有」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-38-上九",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「睽孤見豕負載塗鬼一車」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-10-九二",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「履道坦坦人幽貞吉」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GN-30-九三",
+   "half": "must_refuse",
+   "status": "PASS",
+   "reason": "检索「日昃之離不缶鼓而歌則」在 28 部语料中无命中，不推测。"
+  },
+  {
+   "id": "GP-36-上六",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-35-上九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-38-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-11-九二",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-03-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-23-上九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-43-九四",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-17-初九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-06-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-30-上九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-29-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-49-上六",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-04-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-24-上六",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-45-六三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-38-上九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-30-九三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-56-九三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-29-六四",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-55-初九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-47-九四",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-57-九二",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-41-上九",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-07-六五",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "GP-49-九三",
+   "half": "must_answer",
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "IMP-65-初九",
+   "half": "impossible",
+   "status": "PASS",
+   "reason": "地址 卦65·初九 在索引中无任何单元；未编址不等于原文不存在，但本系统不据此推测。"
+  },
+  {
+   "id": "IMP-1-六二",
+   "half": "impossible",
+   "status": "PASS",
+   "reason": "地址 卦1·六二 在索引中无任何单元；未编址不等于原文不存在，但本系统不据此推测。"
+  },
+  {
+   "id": "IMP-2-九五",
+   "half": "impossible",
+   "status": "PASS",
+   "reason": "地址 卦2·九五 在索引中无任何单元；未编址不等于原文不存在，但本系统不据此推测。"
+  },
+  {
+   "id": "IMP-99-None",
+   "half": "impossible",
+   "status": "PASS",
+   "reason": "地址 卦99 在索引中无任何单元；未编址不等于原文不存在，但本系统不据此推测。"
+  },
+  {
+   "id": "DMG-61",
+   "half": "damaged",
+   "status": "PASS",
+   "reason": "仅在已被质量闸门标记的区域命中（text-damage），该处文本可能为 OCR 损坏，不作为证据。如需查看请用 allow_damaged=True。"
+  },
+  {
+   "id": "DMG-61-mirror",
+   "half": "damaged",
+   "status": "PASS",
+   "reason": ""
+  }
+ ]
+}

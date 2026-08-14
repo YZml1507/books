@@ -1,0 +1,440 @@
+[
+ {
+  "gutenberg_id": 10,
+  "slug": "bible-kjv",
+  "tier": 1,
+  "expected_address_scheme": "book/chapter/verse",
+  "title": "The King James Version of the Bible",
+  "authors": [],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.epub",
+    "bytes": 1716732,
+    "sha256": "53b56843d674c0807006d8b1228446ee590fcdc1e26dd9ae70a386d21d1df418",
+    "url": "https://www.gutenberg.org/ebooks/10.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.html",
+    "bytes": 4687529,
+    "sha256": "6f04e274b7f54e1691e4c4e18f0f9a6f0c25d81f6d3836f15831094b64d8bff9",
+    "url": "https://www.gutenberg.org/ebooks/10.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.txt",
+    "bytes": 4436268,
+    "sha256": "0f1a83cbcdc1d3fae6bcc3daaa496d4fa723fcce9526e84e20df12ae33fda986",
+    "url": "https://www.gutenberg.org/files/10/10-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:55:02+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/10",
+  "file_sha256": {
+   "pg10.epub": "53b56843d674c0807006d8b1228446ee590fcdc1e26dd9ae70a386d21d1df418",
+   "pg10.html": "6f04e274b7f54e1691e4c4e18f0f9a6f0c25d81f6d3836f15831094b64d8bff9",
+   "pg10.txt": "0f1a83cbcdc1d3fae6bcc3daaa496d4fa723fcce9526e84e20df12ae33fda986"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 8294,
+  "slug": "bible-web",
+  "tier": 1,
+  "expected_address_scheme": "book/chapter/verse",
+  "title": "The World English Bible (WEB), Complete",
+  "authors": [
+   "Anonymous"
+  ],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\bible-web\\pg8294.epub",
+    "bytes": 1745049,
+    "sha256": "a22c1f0a4050fb35232a9612b867282b0b1bc0dd624aec134686f3810e68f21e",
+    "url": "https://www.gutenberg.org/ebooks/8294.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\bible-web\\pg8294.html",
+    "bytes": 5898332,
+    "sha256": "908569971d9d34a70ca1ce1eb6fc4fd80e4e6fb0eb95d114a86ae172a103d8b7",
+    "url": "https://www.gutenberg.org/ebooks/8294.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\bible-web\\pg8294.txt",
+    "bytes": 4791993,
+    "sha256": "2d6927faacf7390876525bd9e1ca19ef6fb5dfef9a5b3452f57a1acc49831142",
+    "url": "https://www.gutenberg.org/files/8294/8294.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:55:30+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/8294",
+  "file_sha256": {
+   "pg8294.epub": "a22c1f0a4050fb35232a9612b867282b0b1bc0dd624aec134686f3810e68f21e",
+   "pg8294.html": "908569971d9d34a70ca1ce1eb6fc4fd80e4e6fb0eb95d114a86ae172a103d8b7",
+   "pg8294.txt": "2d6927faacf7390876525bd9e1ca19ef6fb5dfef9a5b3452f57a1acc49831142"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 1581,
+  "slug": "bible-douay",
+  "tier": 1,
+  "expected_address_scheme": "book/chapter/verse",
+  "title": "The Bible, Douay-Rheims, Complete",
+  "authors": [],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.epub",
+    "bytes": 3255405,
+    "sha256": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
+    "url": "https://www.gutenberg.org/ebooks/1581.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.html",
+    "bytes": 6228530,
+    "sha256": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
+    "url": "https://www.gutenberg.org/ebooks/1581.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.txt",
+    "bytes": 5880420,
+    "sha256": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41",
+    "url": "https://www.gutenberg.org/files/1581/1581-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:55:59+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/1581",
+  "file_sha256": {
+   "pg1581.epub": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
+   "pg1581.html": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
+   "pg1581.txt": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 1497,
+  "slug": "plato-republic",
+  "tier": 2,
+  "expected_address_scheme": "stephanus/book",
+  "title": "The Republic",
+  "authors": [
+   "Plato"
+  ],
+  "translators": [
+   "Jowett, Benjamin"
+  ],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.epub",
+    "bytes": 516692,
+    "sha256": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
+    "url": "https://www.gutenberg.org/ebooks/1497.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.html",
+    "bytes": 1302892,
+    "sha256": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
+    "url": "https://www.gutenberg.org/ebooks/1497.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.txt",
+    "bytes": 1244164,
+    "sha256": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528",
+    "url": "https://www.gutenberg.org/ebooks/1497.txt.utf-8"
+   }
+  },
+  "fetched_at": "2026-08-13T19:56:22+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/1497",
+  "file_sha256": {
+   "pg1497.epub": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
+   "pg1497.html": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
+   "pg1497.txt": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 100,
+  "slug": "shakespeare",
+  "tier": 2,
+  "expected_address_scheme": "play/act/scene",
+  "title": "The Complete Works of William Shakespeare",
+  "authors": [
+   "Shakespeare, William"
+  ],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\shakespeare\\pg100.epub",
+    "bytes": 2883403,
+    "sha256": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
+    "url": "https://www.gutenberg.org/ebooks/100.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\shakespeare\\pg100.html",
+    "bytes": 7322493,
+    "sha256": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
+    "url": "https://www.gutenberg.org/ebooks/100.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\shakespeare\\pg100.txt",
+    "bytes": 5422721,
+    "sha256": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb",
+    "url": "https://www.gutenberg.org/files/100/100-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:56:53+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/100",
+  "file_sha256": {
+   "pg100.epub": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
+   "pg100.html": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
+   "pg100.txt": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 21076,
+  "slug": "euclid-elements",
+  "tier": 2,
+  "expected_address_scheme": "book/proposition",
+  "title": "The First Six Books of the Elements of Euclid",
+  "authors": [
+   "Euclid",
+   "Casey, John"
+  ],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.epub",
+    "bytes": 1330699,
+    "sha256": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
+    "url": "https://www.gutenberg.org/ebooks/21076.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.html",
+    "bytes": 1842702,
+    "sha256": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5",
+    "url": "https://www.gutenberg.org/ebooks/21076.html.images"
+   }
+  },
+  "fetched_at": "2026-08-13T19:57:09+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/21076",
+  "file_sha256": {
+   "pg21076.epub": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
+   "pg21076.html": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 2199,
+  "slug": "homer-iliad-but",
+  "tier": 1,
+  "expected_address_scheme": "book/line",
+  "title": "The Iliad",
+  "authors": [
+   "Homer"
+  ],
+  "translators": [
+   "Butler, Samuel"
+  ],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.epub",
+    "bytes": 549348,
+    "sha256": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
+    "url": "https://www.gutenberg.org/ebooks/2199.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.html",
+    "bytes": 944360,
+    "sha256": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
+    "url": "https://www.gutenberg.org/ebooks/2199.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.txt",
+    "bytes": 929005,
+    "sha256": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774",
+    "url": "https://www.gutenberg.org/files/2199/2199-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:57:33+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/2199",
+  "file_sha256": {
+   "pg2199.epub": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
+   "pg2199.html": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
+   "pg2199.txt": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 6130,
+  "slug": "homer-iliad-pope",
+  "tier": 1,
+  "expected_address_scheme": "book/line",
+  "title": "The Iliad",
+  "authors": [
+   "Homer"
+  ],
+  "translators": [
+   "Pope, Alexander"
+  ],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.epub",
+    "bytes": 2292062,
+    "sha256": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
+    "url": "https://www.gutenberg.org/ebooks/6130.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.html",
+    "bytes": 1333163,
+    "sha256": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
+    "url": "https://www.gutenberg.org/ebooks/6130.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.txt",
+    "bytes": 1161373,
+    "sha256": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b",
+    "url": "https://www.gutenberg.org/ebooks/6130.txt.utf-8"
+   }
+  },
+  "fetched_at": "2026-08-13T19:57:53+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/6130",
+  "file_sha256": {
+   "pg6130.epub": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
+   "pg6130.html": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
+   "pg6130.txt": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 1228,
+  "slug": "darwin-origin",
+  "tier": 3,
+  "expected_address_scheme": "chapter",
+  "title": "On the Origin of Species By Means of Natural Selection: Or, the Preservation of Favoured Races in the Struggle for Life",
+  "authors": [
+   "Darwin, Charles"
+  ],
+  "translators": [],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.epub",
+    "bytes": 440800,
+    "sha256": "56ddf4f0856da81f3662cf6034479f60ccdfe36b0fdd4357f2bfe6b77ecc0272",
+    "url": "https://www.gutenberg.org/ebooks/1228.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.html",
+    "bytes": 1045107,
+    "sha256": "8d1fd99e57adfed7918b31232fbe3fc168f3d89914adf698138e87f7ef1b6b52",
+    "url": "https://www.gutenberg.org/ebooks/1228.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.txt",
+    "bytes": 950788,
+    "sha256": "a9dcfe9aefea962475eea2973c4da80db1adce73437d3a8f671f49bccc394f1b",
+    "url": "https://www.gutenberg.org/files/1228/1228-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:58:18+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/1228",
+  "file_sha256": {
+   "pg1228.epub": "56ddf4f0856da81f3662cf6034479f60ccdfe36b0fdd4357f2bfe6b77ecc0272",
+   "pg1228.html": "8d1fd99e57adfed7918b31232fbe3fc168f3d89914adf698138e87f7ef1b6b52",
+   "pg1228.txt": "a9dcfe9aefea962475eea2973c4da80db1adce73437d3a8f671f49bccc394f1b"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ },
+ {
+  "gutenberg_id": 2707,
+  "slug": "herodotus",
+  "tier": 3,
+  "expected_address_scheme": "book/section",
+  "title": "The History of Herodotus — Volume 1",
+  "authors": [
+   "Herodotus"
+  ],
+  "translators": [
+   "Macaulay, G. C. (George Campbell)"
+  ],
+  "languages": [
+   "en"
+  ],
+  "copyright": false,
+  "files": {
+   "epub": {
+    "path": "data\\raw_ext\\generality\\herodotus\\pg2707.epub",
+    "bytes": 435733,
+    "sha256": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
+    "url": "https://www.gutenberg.org/ebooks/2707.epub3.images"
+   },
+   "html": {
+    "path": "data\\raw_ext\\generality\\herodotus\\pg2707.html",
+    "bytes": 1193232,
+    "sha256": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
+    "url": "https://www.gutenberg.org/ebooks/2707.html.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\generality\\herodotus\\pg2707.txt",
+    "bytes": 896008,
+    "sha256": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6",
+    "url": "https://www.gutenberg.org/files/2707/2707-0.txt"
+   }
+  },
+  "fetched_at": "2026-08-13T19:58:42+0800",
+  "source_url": "https://www.gutenberg.org/ebooks/2707",
+  "file_sha256": {
+   "pg2707.epub": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
+   "pg2707.html": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
+   "pg2707.txt": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6"
+  },
+  "licence": "public-domain (Project Gutenberg)",
+  "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched"
+ }
+]

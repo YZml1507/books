@@ -1,0 +1,34 @@
+{
+  "name": "算了么",
+  "short_name": "算了么",
+  "description": "免费开源东方命理工具箱",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0B0B",
+  "theme_color": "#0B0B0B",
+  "categories": ["utilities", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "工具",
+      "short_name": "工具",
+      "url": "/tools",
+      "description": "打开东方命理工具箱"
+    },
+    {
+      "name": "每日运势",
+      "short_name": "运势",
+      "url": "/tools/daily-fortune",
+      "description": "查看今日民俗运势"
+    }
+  ]
+}

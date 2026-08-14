@@ -1,0 +1,503 @@
+你现在需要独立负责设计并实现一个长期可扩展的 通用 AI 读书 / 书籍研究系统（AI Book Research System）。
+注意：《周易》《易经》只是我拿来验证系统能力的第一批书，绝对不是这个系统的设计边界。
+这个系统未来应该能够处理尽可能广泛的书籍类型，例如：
+中国古籍：《周易》《道德经》《论语》《庄子》《孙子兵法》《史记》等
+哲学著作
+历史著作
+文学作品
+科学/技术书籍
+教材
+学术专著
+现代非虚构书籍
+英文及其他语言书籍
+多卷本著作
+同一本书的不同版本、译本、注本
+一本原著对应多个作者/学者/注家的情况
+最终目标不是“把 PDF 做成向量数据库然后问答”。
+我要的是一个真正能够让 AI 研究、阅读、理解、引用、比较和推理书籍的基础设施。
+一、你首先不要写代码
+在开始任何实际开发之前，你必须自己完成一次完整的技术调研。
+你可以自由使用：
+Web 搜索
+GitHub
+官方文档
+arXiv / 学术论文
+开源项目
+MCP
+Agent / Skill
+RAG 框架
+GraphRAG
+LightRAG
+LlamaIndex
+LangChain
+RAGFlow
+Docling
+MinerU
+Calibre
+calibre MCP
+各种电子书 API
+公版书籍数据库
+图书馆开放 API
+Open Library
+Internet Archive
+其他合法、稳定的书籍来源
+不要局限于我上面列出的项目。
+你必须主动搜索 2026 年目前仍然活跃、可用、值得采用的项目。
+重点研究以下几个问题：
+如何获取合法、稳定的电子书/书籍元数据？
+如何管理 EPUB/PDF/TXT/HTML/扫描古籍？
+如何高质量解析一本书？
+如何保留章节、卷、节、页码、脚注、注释、引用等结构？
+如何处理 OCR？
+如何处理古籍？
+如何处理现代书籍？
+如何处理不同语言？
+如何处理一本书的多个版本？
+如何处理原著 + 注释 + 译本？
+如何让 AI 不只是进行简单的 chunk retrieval？
+如何建立书籍内部的概念关系？
+是否应该使用 GraphRAG / LightRAG / Knowledge Graph？
+如何进行 hybrid retrieval？
+如何进行 reranking？
+如何让 Agent 主动搜索、阅读更多章节，而不是只拿几个 chunk 就回答？
+如何让 AI 回到原文进行证据验证？
+如何准确引用书籍来源、章节、页码？
+如何避免模型把自己的知识和书中原文混在一起？
+如何让 AI 比较不同作者、译者、注家和版本？
+如何让 AI 对整本书进行长期研究，而不是一次性问答？
+如何构建书籍级、章节级、概念级、实体级、关系级知识？
+如何让系统未来支持几百、几千甚至更多书籍？
+如何降低整个系统的运行成本？
+哪些东西应该本地运行，哪些可以使用 API？
+哪些组件值得自己实现，哪些应该直接采用成熟开源项目？
+二、你必须先形成技术方案
+完成调研后，不要马上实施。
+先在项目目录中建立一份完整的设计文档，例如：
+docs/BOOK_AI_ARCHITECTURE.md
+里面至少回答：
+1. 系统最终目标
+明确什么叫“AI 真正读过一本书”。
+不要用模糊描述。
+应该给出可验证的标准。
+例如：
+能找到原文
+能定位章节
+能跨章节关联
+能理解概念
+能比较不同解释
+能引用证据
+能指出证据不足
+能进行多跳检索
+能进行跨书比较
+能形成长期阅读记忆
+2. 总体架构
+设计完整的数据流：
+书籍来源 → 下载/导入 → 文件管理 → 文档解析 → OCR → 结构恢复 → 章节识别 → 元数据 → 文本分块 → Embedding → Keyword Search → Vector Search → Reranking → Entity Extraction → Knowledge Graph → Book-level Knowledge → Agent → Research → Citation → Answer
+但是不要照抄这个架构。
+你需要根据实际调研结果重新设计。
+三、重点研究“书籍解析层”
+这是整个系统非常重要的一层。
+不能简单：
+PDF → TXT → chunk → embedding
+你必须考虑：
+EPUB
+保留：
+book
+chapter
+section
+paragraph
+heading
+metadata
+PDF
+尽量保留：
+page
+heading
+paragraph
+footnote
+table
+figure
+reading order
+扫描书
+考虑：
+OCR
+layout analysis
+page image
+OCR confidence
+原图和 OCR 文本对应关系
+古籍
+特别考虑：
+竖排
+繁体
+异体字
+标点缺失
+注疏混排
+页码
+卷
+篇
+经文
+传
+注
+疏
+不要假设现代 PDF 和古籍 PDF 的解析方式完全一样。
+四、重点研究“书籍知识模型”
+你必须设计一个通用 Book Knowledge Model。
+至少应该考虑：
+Book
+Edition
+Author
+Translator
+Commentator
+Chapter
+Section
+Paragraph
+Page
+Quote
+Concept
+Entity
+Person
+Place
+Event
+Work
+Claim
+Interpretation
+Citation
+Relationship
+等等。
+但不要为了复杂而复杂。
+你需要研究成熟项目之后确定真正需要哪些实体。
+五、重点研究“多版本 / 多解释体系”
+这是系统必须支持的核心能力之一。
+例如：
+《周易》 ├── 原文 ├── 王弼注 ├── 孔颖达疏 ├── 程颐《伊川易传》 ├── 朱熹《周易本义》 └── 现代研究
+未来还可能是：
+《理想国》 ├── 希腊文原文 ├── 英译本 A ├── 英译本 B ├── 中文译本 A └── 中文译本 B
+或者：
+《资本论》 ├── 德文原文 ├── 中文译本 A ├── 中文译本 B └── 学者研究
+系统必须能够知道：
+这些文本是在讨论同一个作品，但它们不是同一份文本。
+六、重点研究“AI 阅读 Agent”
+这是整个项目最核心的部分。
+不要设计成：
+用户问题 → vector search → LLM → 答案
+而应该研究 Agentic Retrieval / Agentic RAG / Retrieval as Reasoning。
+理想流程类似：
+用户提出问题
+↓
+Agent 判断问题类型
+↓
+确定需要哪些书
+↓
+确定需要哪些章节
+↓
+搜索
+↓
+阅读原文
+↓
+发现新的概念 / 实体
+↓
+继续搜索
+↓
+阅读关联章节
+↓
+必要时查看注释、译本、其他研究资料
+↓
+建立证据集合
+↓
+交叉验证
+↓
+生成答案
+↓
+附带精确引用
+↓
+如果证据不足，明确告诉用户证据不足
+七、必须设计“研究模式”
+系统不能只有聊天模式。
+至少考虑：
+Quick Answer
+快速回答简单问题。
+Deep Research
+针对复杂问题进行多轮检索和阅读。
+Book Study
+系统性学习整本书。
+Chapter Study
+深入研究某一章节。
+Comparative Study
+比较：
+两本书
+两个作者
+两个译本
+两个注家
+两个思想体系
+Cross-book Research
+跨多本书寻找共同概念、冲突和演变。
+Book Summary
+生成整本书的结构化知识。
+Concept Research
+研究一个概念在一本书或多本书中的变化。
+你可以根据调研结果重新调整这些模式。
+八、必须设计“书籍长期记忆”
+如果 AI 第一次读完《周易》，以后用户再问：
+“你还记得之前我们讨论的乾卦吗？”
+系统应该能够恢复：
+哪本书
+哪个版本
+哪些章节
+哪些原文
+之前形成了什么结论
+哪些结论有证据
+哪些只是 AI 推测
+但必须区分：
+Source Knowledge
+来自书籍原文。
+Derived Knowledge
+AI 根据多个来源推导出来的内容。
+Conversation Memory
+用户和 AI 之前讨论过的内容。
+这三种信息绝对不能混为一谈。
+九、必须考虑“引用与可验证性”
+任何重要结论最好都能追溯：
+Book → Edition → Chapter → Section → Page / Location → Paragraph → Original Text
+例如最终回答应该能够告诉用户：
+来源：《周易》某版本
+卷/篇：XXX
+章节：XXX
+页码：XXX
+原文：XXX
+如果来源是 EPUB，没有页码，就使用 EPUB location / chapter / paragraph 等稳定定位方式。
+不要让 AI 自己编造页码。
+十、数据来源必须合法、稳定、可替换
+不要把整个系统绑定到一个网站。
+设计：
+Source Adapter
+例如：
+Open Library Adapter
+Internet Archive Adapter
+Local File Adapter
+Calibre Adapter
+Public Domain Adapter
+以后可以继续增加其他来源。
+每个来源都应该是可替换的。
+同时必须考虑：
+API rate limit
+下载失败
+重试
+缓存
+checksum
+metadata
+license / copyright
+duplicate detection
+不要为了“能下载”而忽略版权和稳定性。
+十一、MCP 和 Skill 都要考虑
+我希望你研究：
+MCP
+让 Claude / 其他 Agent 能够：
+搜索书籍
+搜索章节
+搜索全文
+获取原文
+获取 metadata
+查询知识图谱
+查询引用
+查询研究记录
+Skill
+设计一个通用：
+Book Research Skill
+它应该规定 AI 如何：
+确认来源
+确认版本
+搜索
+阅读
+扩展检索
+建立证据
+比较
+验证
+引用
+判断证据不足
+输出研究结果
+但不要为了 MCP/Skill 而 MCP/Skill。
+如果现有成熟项目能够直接解决问题，就优先采用成熟方案。
+十二、技术选型必须经过实际调研
+重点评估：
+Calibre
+calibre MCP
+Docling
+MinerU
+LlamaIndex
+LangChain
+RAGFlow
+Microsoft GraphRAG
+LightRAG
+Neo4j
+Qdrant
+pgvector
+Milvus
+Elasticsearch / OpenSearch
+reranker
+embedding models
+OCR
+ebook parser
+MCP
+Agent framework
+但不要默认这些都要使用。
+最后必须形成：
+“采用”
+“备用”
+“暂不采用”
+三类结论。
+解释每个选择的理由。
+十三、然后才开始实施
+方案完成后，再进入 Implementation Phase。
+你需要：
+初始化项目结构
+创建配置系统
+创建数据库
+创建书籍导入模块
+创建 metadata 模块
+创建 EPUB/PDF parser
+接入 Docling/MinerU（如果最终选用）
+建立 Book Knowledge Model
+建立全文搜索
+建立向量搜索
+建立 reranking
+建立知识图谱/GraphRAG/LightRAG（根据最终方案）
+创建 Book Research Agent
+创建 MCP Server
+创建 Book Research Skill
+创建 CLI
+创建测试
+创建日志和 observability
+创建评估数据集
+做真实书籍测试
+十四、第一批测试数据
+第一阶段不要只测试《周易》。
+至少建立一组具有不同结构的测试书籍：
+古籍
+《周易》
+哲学
+《道德经》或《理想国》
+文学
+选择一本版权明确或公版的文学作品。
+历史
+选择一本结构复杂的历史著作。
+科学/技术
+选择一本公开许可的技术书籍。
+多版本
+选择一本存在多个译本/版本的作品。
+这样才能验证系统是不是“通用”。
+十五、建立 Evaluation System
+不能只说：
+“我问了几个问题，感觉还不错。”
+必须建立测试集。
+至少测试：
+Retrieval
+能不能找到正确章节？
+Citation
+引用是否正确？
+Groundedness
+回答是否真的来自书？
+Multi-hop
+能不能跨章节寻找答案？
+Cross-book
+能不能跨书比较？
+Version awareness
+能不能区分不同版本？
+Long-context
+面对整本书能不能正确工作？
+Contradiction
+不同作者观点冲突时能不能识别？
+Hallucination
+找不到证据时会不会老编？
+Research depth
+复杂问题能不能主动继续研究？
+十六、特别注意一个原则
+不要为了追求“AI 理解书籍”而把所有内容一次性塞进 Context。
+这不是我要的系统。
+我要的是：
+AI 能够在需要的时候主动找到正确的信息，并知道自己为什么找到这些信息。
+也就是说：
+Retrieval 本身应该成为 Reasoning 的一部分。
+十七、最终用户体验
+未来我希望可以这样使用：
+例如：
+“研究一下《周易》中‘变’的概念。”
+系统自动：
+搜索 → 阅读 → 建立证据 → 找相关章节 → 分析 → 引用。
+或者：
+“比较王弼和朱熹对乾卦的理解。”
+系统自动：
+《周易》原文 + 王弼 + 朱熹 → 对齐 → 比较 → 输出差异 → 引用原文。
+或者：
+“把《道德经》和《庄子》中关于‘无为’的思想进行比较。”
+系统自动跨书研究。
+十八、最终目标
+我要的不是：
+“一个能聊天的 PDF 阅读器。”
+也不是：
+“一个普通 RAG 知识库。”
+而是：
+一个可以不断加入书籍，并让 AI 对这些书进行长期、结构化、可验证研究的个人 Book Research Infrastructure。
+未来我可以不断添加：
+books/
+├── 中国古籍/
+├── 哲学/
+├── 历史/
+├── 文学/
+├── 科学/
+├── 技术/
+├── 经济/
+├── 心理学/
+└── 其他/
+系统自动：
+导入 → 解析 → 建立结构 → 建立索引 → 建立知识 → 建立关系 → 可被 Agent 研究。
+十九、你的工作方式
+你现在作为这个项目的：
+Technical Architect + Research Engineer + Implementation Agent
+自主完成整个过程。
+严格遵循：
+Phase 0：环境侦察
+先检查当前项目目录、已有代码、环境、数据库、Docker、Python/Node 等。
+不要破坏已有项目。
+Phase 1：Research
+大量搜索和比较现有项目。
+Phase 2：Architecture
+形成完整架构方案。
+Phase 3：Review
+主动找出自己方案里的风险、过度设计和技术债。
+Phase 4：Implementation
+开始真正写代码。
+Phase 5：Integration
+接入真实书籍来源和真实书籍。
+Phase 6：Evaluation
+建立测试集并进行实际评估。
+Phase 7：Optimization
+根据测试结果优化。
+二十、重要要求
+不要因为任务很大就问我：
+“要不要使用 X？”
+如果你可以通过研究自行判断，就自行判断。
+只有遇到真正需要我做决定的事情才询问我。
+每完成一个阶段，都更新：
+docs/PROJECT_STATUS.md
+记录：
+已完成
+当前状态
+技术选择
+为什么这样选择
+已知问题
+下一步
+TODO
+所有关键技术选择写入：
+docs/DECISIONS.md
+现在开始。
+第一步不要写代码。
+先完整检查当前环境和项目，然后进行互联网/GitHub/论文/官方文档调研。
+调研完成后，写出完整的：
+docs/BOOK_AI_ARCHITECTURE.md
+然后重新审查这份方案，找出至少一轮可以改进的地方。
+确认架构合理之后，再进入真正的实现阶段。
+你需要尽可能自主完成整个项目，而不是只给我一个方案。
+最终目标是让我在这个项目里不断加入各种书籍，然后拥有一个真正能够：
+搜索 → 阅读 → 理解 → 关联 → 比较 → 研究 → 引用 → 长期记忆
+这些书籍的 AI Book Research System。
+再次强调：
+《周易》只是第一批测试数据，不要围绕《周易》做专用系统。必须从第一天就按照“通用书籍研究基础设施”的方向设计。

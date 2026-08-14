@@ -1,0 +1,32 @@
+[
+ {
+  "gutenberg_id": 25501,
+  "title": "易經",
+  "languages": [
+   "zh"
+  ],
+  "rights": false,
+  "role": "independent digitisation of the same work as KR1a0001",
+  "files": {
+   "html": {
+    "path": "data\\raw_ext\\gutenberg\\25501\\pg25501.html",
+    "bytes": 149162,
+    "sha256": "d18d662dffd4e0aa36bc29fc97dca8bf04c987eef768ec0057c61f138aefb14b",
+    "url": "https://www.gutenberg.org/ebooks/25501.html.images"
+   },
+   "epub": {
+    "path": "data\\raw_ext\\gutenberg\\25501\\pg25501.epub",
+    "bytes": 101241,
+    "sha256": "3980d3be8bdbd707d194c361b65d1d3af0121a1c4b2bcef2de28d72dd9b5ed89",
+    "url": "https://www.gutenberg.org/ebooks/25501.epub3.images"
+   },
+   "txt": {
+    "path": "data\\raw_ext\\gutenberg\\25501\\pg25501.txt",
+    "bytes": 113609,
+    "sha256": "5f5e0c3fcfdd9af3fe61c1e9357fab0431477f49ed5e207dcace080e655006f5",
+    "url": "https://www.gutenberg.org/ebooks/25501.txt.utf-8"
+   }
+  },
+  "fetched_at": "2026-08-13T17:01:57+0800"
+ }
+]

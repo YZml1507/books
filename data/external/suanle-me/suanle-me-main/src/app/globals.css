@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+
+:root {
+  color-scheme: dark;
+  --background: #0b0b0b;
+  --foreground: #f5f1e8;
+  --card: rgba(245, 241, 232, 0.08);
+  --card-foreground: #f5f1e8;
+  --primary: #c9a86a;
+  --primary-foreground: #0b0b0b;
+  --secondary: rgba(245, 241, 232, 0.08);
+  --secondary-foreground: #f5f1e8;
+  --muted: rgba(245, 241, 232, 0.12);
+  --muted-foreground: rgba(245, 241, 232, 0.68);
+  --border: rgba(245, 241, 232, 0.13);
+  --ring: rgba(201, 168, 106, 0.55);
+}
+
+.light {
+  color-scheme: light;
+  --background: #f5f1e8;
+  --foreground: #111827;
+  --card: rgba(255, 255, 255, 0.62);
+  --card-foreground: #111827;
+  --primary: #8f6a2b;
+  --primary-foreground: #fffaf0;
+  --secondary: rgba(17, 24, 39, 0.07);
+  --secondary-foreground: #111827;
+  --muted: rgba(17, 24, 39, 0.08);
+  --muted-foreground: rgba(17, 24, 39, 0.68);
+  --border: rgba(17, 24, 39, 0.12);
+  --ring: rgba(143, 106, 43, 0.48);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(201, 168, 106, 0.12), transparent 34rem),
+    linear-gradient(135deg, #0b0b0b 0%, #111827 52%, #0b0b0b 100%);
+  color: var(--foreground);
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    sans-serif;
+  letter-spacing: 0;
+}
+
+.light body {
+  background:
+    radial-gradient(circle at 50% -12%, rgba(201, 168, 106, 0.16), transparent 34rem),
+    linear-gradient(135deg, #f5f1e8 0%, #fffaf0 52%, #ece4d5 100%);
+}
+
+::selection {
+  background: rgba(201, 168, 106, 0.35);
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.glass-card {
+  background:
+    linear-gradient(145deg, rgba(245, 241, 232, 0.12), rgba(245, 241, 232, 0.04)),
+    rgba(11, 11, 11, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.light .glass-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.48)),
+    rgba(245, 241, 232, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 24px 80px rgba(17, 24, 39, 0.1);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+.bagua-mark {
+  position: absolute;
+  inset: auto auto 8% 50%;
+  width: min(52vw, 560px);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border: 1px solid rgba(201, 168, 106, 0.12);
+  border-radius: 999px;
+  color: rgba(201, 168, 106, 0.18);
+  animation: slow-spin 72s linear infinite;
+  pointer-events: none;
+}
+
+.bagua-mark span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: "Songti SC", STSong, serif;
+  font-size: clamp(1.25rem, 3vw, 2.4rem);
+  transform: rotate(var(--angle)) translateY(calc(-1 * min(24vw, 250px))) rotate(calc(-1 * var(--angle))) translateX(-50%);
+}
+
+.bagua-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(4rem, 14vw, 9rem);
+  opacity: 0.34;
+}
+
+@keyframes slow-spin {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

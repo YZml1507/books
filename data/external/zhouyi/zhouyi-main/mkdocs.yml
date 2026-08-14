@@ -1,0 +1,109 @@
+site_name: 周易 64 卦详解
+site_description: 周易-易经 64 卦详解，包含卦象解析、爻辞注释、易理阐释，帮助理解中国传统文化的博大精深
+dev_addr: "127.0.0.1:8080"
+repo_url: https://github.com/sunls2/zhouyi/
+repo_name: sunls2/zhouyi
+
+nav:
+  - 首页: index.md
+  - 知命阁: https://divination.sunls.de
+  # - 01.乾为天: 01.乾为天/index.md
+  # - 02.坤为地: 02.坤为地/index.md
+  # - 03.水雷屯: 03.水雷屯/index.md
+  # - 04.山水蒙: 04.山水蒙/index.md
+  # - 05.水天需: 05.水天需/index.md
+  # - 06.天水讼: 06.天水讼/index.md
+  # - 07.地水师: 07.地水师/index.md
+  # - 08.水地比: 08.水地比/index.md
+  # - 09.风天小畜: 09.风天小畜/index.md
+  # - 10.天泽履: 10.天泽履/index.md
+  # - 11.地天泰: 11.地天泰/index.md
+  # - 12.天地否: 12.天地否/index.md
+  # - 13.天火同人: 13.天火同人/index.md
+  # - 14.火天大有: 14.火天大有/index.md
+  # - 15.地山谦: 15.地山谦/index.md
+  # - 16.雷地豫: 16.雷地豫/index.md
+  # - 17.泽雷随: 17.泽雷随/index.md
+  # - 18.山风蛊: 18.山风蛊/index.md
+  # - 19.地泽临: 19.地泽临/index.md
+  # - 20.风地观: 20.风地观/index.md
+  # - 21.火雷噬嗑: 21.火雷噬嗑/index.md
+  # - 22.山火贲: 22.山火贲/index.md
+  # - 23.山地剥: 23.山地剥/index.md
+  # - 24.地雷复: 24.地雷复/index.md
+  # - 25.天雷无妄: 25.天雷无妄/index.md
+  # - 26.山天大畜: 26.山天大畜/index.md
+  # - 27.山雷颐: 27.山雷颐/index.md
+  # - 28.泽风大过: 28.泽风大过/index.md
+  # - 29.坎为水: 29.坎为水/index.md
+  # - 30.离为火: 30.离为火/index.md
+  # - 31.泽山咸: 31.泽山咸/index.md
+  # - 32.雷风恒: 32.雷风恒/index.md
+  # - 33.天山遁: 33.天山遁/index.md
+  # - 34.雷天大壮: 34.雷天大壮/index.md
+  # - 35.火地晋: 35.火地晋/index.md
+  # - 36.地火明夷: 36.地火明夷/index.md
+  # - 37.风火家人: 37.风火家人/index.md
+  # - 38.火泽睽: 38.火泽睽/index.md
+  # - 39.水山蹇: 39.水山蹇/index.md
+  # - 40.雷水解: 40.雷水解/index.md
+  # - 41.山泽损: 41.山泽损/index.md
+  # - 42.风雷益: 42.风雷益/index.md
+  # - 43.泽天夬: 43.泽天夬/index.md
+  # - 44.天风姤: 44.天风姤/index.md
+  # - 45.泽地萃: 45.泽地萃/index.md
+  # - 46.地风升: 46.地风升/index.md
+  # - 47.泽水困: 47.泽水困/index.md
+  # - 48.水风井: 48.水风井/index.md
+  # - 49.泽火革: 49.泽火革/index.md
+  # - 50.火风鼎: 50.火风鼎/index.md
+  # - 51.震为雷: 51.震为雷/index.md
+  # - 52.艮为山: 52.艮为山/index.md
+  # - 53.风山渐: 53.风山渐/index.md
+  # - 54.雷泽归妹: 54.雷泽归妹/index.md
+  # - 55.雷火丰: 55.雷火丰/index.md
+  # - 56.火山旅: 56.火山旅/index.md
+  # - 57.巽为风: 57.巽为风/index.md
+  # - 58.兑为泽: 58.兑为泽/index.md
+  # - 59.风水涣: 59.风水涣/index.md
+  # - 60.水泽节: 60.水泽节/index.md
+  # - 61.风泽中孚: 61.风泽中孚/index.md
+  # - 62.雷山小过: 62.雷山小过/index.md
+  # - 63.水火既济: 63.水火既济/index.md
+  # - 64.火水未济: 64.火水未济/index.md
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-]'
+  - minify:
+      minify_html: true
+extra:
+  generator: false
+extra_css:
+  - assets/css/ui.css
+  - https://gw.alipayobjects.com/os/k/font/lxgwwenkaiscreenr.css
+theme:
+  name: material
+  language: zh
+  favicon: assets/images/favicon.ico
+  icon:
+    logo: material/yin-yang
+  features:
+    - navigation.footer
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.top
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      toggle:
+        icon: material/brightness-7
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      toggle:
+        icon: material/brightness-4

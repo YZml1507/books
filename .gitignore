@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Vendor / zipped deps (not source we own)
+vendor/
+Agent-Reach-main/
+Agent-Reach-main.zip
+markitdown-main/
+markitdown-main.zip
+
+# Build / cache artifacts
+*.db-journal
+*.log
+
+# OS junk
+Thumbs.db
+desktop.ini
+
+# Temp probes (scratch files, not deliverables)
+temp_*.py
+
+# IDE
+.vscode/
+.idea/

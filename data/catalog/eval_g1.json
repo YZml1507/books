@@ -1,0 +1,3675 @@
+{
+ "derived_by": "scripts/derive_eval_g1.py",
+ "derived_from": "data/raw/ only — never the index (D-019)",
+ "seed": 11,
+ "top_k": 10,
+ "counts": {
+  "retrieval": 40,
+  "retrieval_cross": 24,
+  "retrieval_hard": 24,
+  "citation": 30,
+  "grounded_pos": 25,
+  "grounded_neg": 30,
+  "version": 20
+ },
+ "questions": [
+  {
+   "id": "R-36-上六",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "不明晦初",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "不明晦初",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 不明晦初登于天後入于地  corpus occurrences=5"
+  },
+  {
+   "id": "R-35-上九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "晉其角維",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 35,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "晉其角維",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 晉其角維用伐邑厲吉无咎貞吝  corpus occurrences=6"
+  },
+  {
+   "id": "R-28-上六",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "過涉滅頂",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "過涉滅頂",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 過涉滅頂凶无咎  corpus occurrences=8"
+  },
+  {
+   "id": "R-38-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "見輿曳其",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見輿曳其",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 見輿曳其牛掣其人天且劓无初有終  corpus occurrences=8"
+  },
+  {
+   "id": "R-11-九二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "包荒用馮",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 11,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "包荒用馮",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 包荒用馮河不遐遺朋亡得尚于中行  corpus occurrences=8"
+  },
+  {
+   "id": "R-03-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "鹿无虞惟",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "鹿无虞惟",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 即鹿无虞惟入于林中君子幾不如舍往吝  corpus occurrences=8"
+  },
+  {
+   "id": "R-41-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "事遄往无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "事遄往无",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 已事遄往无咎酌損之  corpus occurrences=8"
+  },
+  {
+   "id": "R-23-上九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "碩果不食",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "碩果不食",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 碩果不食君子得輿小人剝廬  corpus occurrences=12"
+  },
+  {
+   "id": "R-12-初六",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "以其彙貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "初六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "以其彙貞",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 拔茅茹以其彙貞吉亨  corpus occurrences=5"
+  },
+  {
+   "id": "R-37-九五",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "假有家勿",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 37,
+    "addr2": "九五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "假有家勿",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 王假有家勿恤吉  corpus occurrences=6"
+  },
+  {
+   "id": "R-19-六五",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "知臨大君",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 19,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "知臨大君",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 知臨大君之宜吉  corpus occurrences=9"
+  },
+  {
+   "id": "R-43-九四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "行次且牽",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 43,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "行次且牽",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 臀无膚其行次且牽羊悔亡聞言不信  corpus occurrences=6"
+  },
+  {
+   "id": "R-17-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "官有渝貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "官有渝貞",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 官有渝貞吉出門交有功  corpus occurrences=8"
+  },
+  {
+   "id": "R-06-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "食舊德貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 6,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "食舊德貞",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 食舊德貞厲終吉或從王事无成  corpus occurrences=6"
+  },
+  {
+   "id": "R-14-九二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "車以載有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 14,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "車以載有",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 大車以載有攸往无咎  corpus occurrences=4"
+  },
+  {
+   "id": "R-23-六二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "床以辨蔑",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "床以辨蔑",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 剝床以辨蔑貞凶  corpus occurrences=7"
+  },
+  {
+   "id": "R-20-六四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "國之光利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "國之光利",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 觀國之光利用賓于王  corpus occurrences=10"
+  },
+  {
+   "id": "R-30-上九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "用出征有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "用出征有",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 王用出征有嘉折首獲匪其醜无咎  corpus occurrences=6"
+  },
+  {
+   "id": "R-27-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "舍爾靈龜",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 27,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "舍爾靈龜",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 舍爾靈龜觀我朵頤凶  corpus occurrences=6"
+  },
+  {
+   "id": "R-29-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "之坎坎險",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "之坎坎險",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 來之坎坎險且枕入于坎窞勿用  corpus occurrences=6"
+  },
+  {
+   "id": "R-13-九四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "乘其墉弗",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 13,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "乘其墉弗",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 乘其墉弗克攻吉  corpus occurrences=6"
+  },
+  {
+   "id": "R-61-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "虞吉有它",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 61,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "虞吉有它",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 虞吉有它不燕  corpus occurrences=4"
+  },
+  {
+   "id": "R-01-用九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "見群龍无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "用九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見群龍无",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 見群龍无首吉  corpus occurrences=14"
+  },
+  {
+   "id": "R-49-上六",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "子豹變小",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "子豹變小",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 君子豹變小人革面征凶居貞吉  corpus occurrences=7"
+  },
+  {
+   "id": "R-41-六四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "損其疾使",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "損其疾使",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 損其疾使遄有喜无咎  corpus occurrences=7"
+  },
+  {
+   "id": "R-14-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "无交害匪",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 14,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "无交害匪",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 无交害匪咎艱則无咎  corpus occurrences=7"
+  },
+  {
+   "id": "R-23-六五",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "貫魚以宮",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "貫魚以宮",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 貫魚以宮人寵无不利  corpus occurrences=8"
+  },
+  {
+   "id": "R-04-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "用取女見",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 4,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "用取女見",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 勿用取女見金夫不有躬无攸利  corpus occurrences=6"
+  },
+  {
+   "id": "R-24-上六",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "迷復凶有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 24,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "迷復凶有",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 迷復凶有災眚用行師終有大敗以其國君凶至于  corpus occurrences=6"
+  },
+  {
+   "id": "R-45-六三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "萃如嗟如",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 45,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "萃如嗟如",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 萃如嗟如无攸利往无咎小吝  corpus occurrences=9"
+  },
+  {
+   "id": "R-38-上九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "睽孤見豕",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "睽孤見豕",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 睽孤見豕負塗載鬼一車先張之弧後說之弧匪寇  corpus occurrences=6"
+  },
+  {
+   "id": "R-10-九二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "履道坦坦",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 10,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "履道坦坦",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 履道坦坦幽人貞吉  corpus occurrences=11"
+  },
+  {
+   "id": "R-30-九三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "昃之離不",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "昃之離不",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 日昃之離不鼓缶而歌則大耋之嗟凶  corpus occurrences=4"
+  },
+  {
+   "id": "R-05-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "需于郊利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 5,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "需于郊利",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 需于郊利用恆无咎  corpus occurrences=6"
+  },
+  {
+   "id": "R-56-九三",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "焚其次喪",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 56,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "焚其次喪",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 旅焚其次喪其童僕貞厲  corpus occurrences=7"
+  },
+  {
+   "id": "R-12-九四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "命无咎疇",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "命无咎疇",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 有命无咎疇離祉  corpus occurrences=6"
+  },
+  {
+   "id": "R-17-六二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "係小子失",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "係小子失",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 係小子失丈夫  corpus occurrences=11"
+  },
+  {
+   "id": "R-29-六四",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "酒簋貳用",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "酒簋貳用",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 樽酒簋貳用缶納約自牖終无咎  corpus occurrences=7"
+  },
+  {
+   "id": "R-31-六二",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "咸其腓凶",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 31,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "咸其腓凶",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 咸其腓凶居吉  corpus occurrences=8"
+  },
+  {
+   "id": "R-55-初九",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "遇其配主",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "遇其配主",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in the 底本"
+   },
+   "note": "底本 爻辭 遇其配主雖旬无咎往有尚  corpus occurrences=9"
+  },
+  {
+   "id": "RX-36-上六",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "不明晦初",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "上六",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "不明晦初",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦36上六 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-35-上九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "晉其角維",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 35,
+    "addr2": "上九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "晉其角維",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦35上九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-28-上六",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "過涉滅頂",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "上六",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "過涉滅頂",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦28上六 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-38-六三",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "見輿曳其",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "六三",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "見輿曳其",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦38六三 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-11-九二",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "包荒用馮",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 11,
+    "addr2": "九二",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "包荒用馮",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦11九二 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-03-六三",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "鹿无虞惟",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "六三",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "鹿无虞惟",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦3六三 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-41-初九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "事遄往无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "初九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "事遄往无",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦41初九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-23-上九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "碩果不食",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "上九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "碩果不食",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦23上九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-12-初六",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "以其彙貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "初六",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "以其彙貞",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦12初六 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-37-九五",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "假有家勿",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 37,
+    "addr2": "九五",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "假有家勿",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦37九五 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-19-六五",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "知臨大君",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 19,
+    "addr2": "六五",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "知臨大君",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦19六五 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-43-九四",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "行次且牽",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 43,
+    "addr2": "九四",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "行次且牽",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦43九四 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-17-初九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "官有渝貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "初九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "官有渝貞",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦17初九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-06-六三",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "食舊德貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 6,
+    "addr2": "六三",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "食舊德貞",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦6六三 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-14-九二",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "車以載有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 14,
+    "addr2": "九二",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "車以載有",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦14九二 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-23-六二",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "床以辨蔑",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "六二",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "床以辨蔑",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦23六二 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-20-六四",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "國之光利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六四",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "國之光利",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦20六四 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-30-上九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "用出征有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "上九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "用出征有",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦30上九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-27-初九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "舍爾靈龜",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 27,
+    "addr2": "初九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "舍爾靈龜",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦27初九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-29-六三",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "之坎坎險",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六三",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "之坎坎險",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦29六三 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-13-九四",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "乘其墉弗",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 13,
+    "addr2": "九四",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "乘其墉弗",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦13九四 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-61-初九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "虞吉有它",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 61,
+    "addr2": "初九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0031"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "虞吉有它",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦61初九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-01-用九",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "見群龍无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "用九",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "見群龍无",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦1用九 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RX-49-上六",
+   "category": "retrieval_cross",
+   "kind": "cross_work",
+   "query": "子豹變小",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "上六",
+    "top_k": 10,
+    "must_include_work_other_than": "KR1a0001",
+    "attested_in": [
+     "KR1a0006",
+     "KR1a0007",
+     "KR1a0016",
+     "KR1a0031",
+     "KR1a0032"
+    ]
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "子豹變小",
+    "space": "folded_jing",
+    "why": "the same fragment is attested at 卦49上六 in KR1a0006 in data/raw/, so a retrieval that only reaches the 底本 is incomplete"
+   }
+  },
+  {
+   "id": "RH-36-上六",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "不明晦",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "不明晦",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-28-上六",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "過涉滅",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "過涉滅",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-38-六三",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "輿曳其",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "輿曳其",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-11-九二",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "包荒用",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 11,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "包荒用",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-03-六三",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "无虞惟",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "无虞惟",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-41-初九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "遄往无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "遄往无",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-23-上九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "碩果不",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "碩果不",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 12 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=12"
+  },
+  {
+   "id": "RH-19-六五",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "知臨大",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 19,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "知臨大",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 9 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=9"
+  },
+  {
+   "id": "RH-17-初九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "有渝貞",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "有渝貞",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-20-六四",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "之光利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "之光利",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 10 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=10"
+  },
+  {
+   "id": "RH-01-用九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "見群龍",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "用九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見群龍",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 19 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=19"
+  },
+  {
+   "id": "RH-23-六五",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "貫魚以",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "貫魚以",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-24-上六",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "迷復凶",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 24,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "迷復凶",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 10 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=10"
+  },
+  {
+   "id": "RH-45-六三",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "萃如嗟",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 45,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "萃如嗟",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 9 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=9"
+  },
+  {
+   "id": "RH-10-九二",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "履道坦",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 10,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "履道坦",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 11 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=11"
+  },
+  {
+   "id": "RH-17-六二",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "小子失",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "小子失",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 13 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=13"
+  },
+  {
+   "id": "RH-31-六二",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "咸其腓",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 31,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "咸其腓",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-55-初九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "遇其配",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "遇其配",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 9 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=9"
+  },
+  {
+   "id": "RH-50-上九",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "鼎玉鉉",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 50,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "鼎玉鉉",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-39-上六",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "來碩吉",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 39,
+    "addr2": "上六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "來碩吉",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-33-初六",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "遯尾厲",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 33,
+    "addr2": "初六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "遯尾厲",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "RH-49-六二",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "日乃革",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "日乃革",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 11 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=11"
+  },
+  {
+   "id": "RH-31-九三",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "其股執",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 31,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "其股執",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 9 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=9"
+  },
+  {
+   "id": "RH-47-九四",
+   "category": "retrieval_hard",
+   "kind": "competitive",
+   "query": "徐徐困",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 47,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "徐徐困",
+    "space": "folded_notes",
+    "why": "unique in the 底本 but occurs 8 times corpus-wide; the gold address must still rank in the top 10"
+   },
+   "note": "corpus occurrences=8"
+  },
+  {
+   "id": "C-36-上六",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "上六",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "不明晦初登于天後",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-46-初六",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 46,
+    "addr2": "初六",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "允升大吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-35-上九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 35,
+    "addr2": "上九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "晉其角維用伐邑厲",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-28-上六",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "上六",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "過涉滅頂凶无咎",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-38-六三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "六三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見輿曳其牛掣其人",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-11-九二",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 11,
+    "addr2": "九二",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "包荒用馮河不遐遺",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-28-九三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "九三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "棟橈凶",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-03-六三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "六三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "即鹿无虞惟入于林",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-41-初九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "初九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "已事遄往无咎酌損",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-30-六二",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "六二",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "黃離元吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-23-上九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "上九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "碩果不食君子得輿",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-12-初六",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "初六",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "拔茅茹以其彙貞吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-31-初六",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 31,
+    "addr2": "初六",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "咸其拇",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-37-九五",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 37,
+    "addr2": "九五",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "王假有家勿恤吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-19-六五",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 19,
+    "addr2": "六五",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "知臨大君之宜吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-43-九四",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 43,
+    "addr2": "九四",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "臀无膚其行次且牽",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-17-初九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "初九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "官有渝貞吉出門交",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-06-六三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 6,
+    "addr2": "六三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "食舊德貞厲終吉或",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-42-上九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 42,
+    "addr2": "上九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "莫益之或擊之立心",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-14-九二",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 14,
+    "addr2": "九二",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "大車以載有攸往无",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-23-六二",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "六二",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "剝床以辨蔑貞凶",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-20-六四",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六四",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "觀國之光利用賓于",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-30-上九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "上九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "王用出征有嘉折首",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-27-初九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 27,
+    "addr2": "初九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "舍爾靈龜觀我朵頤",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-29-六三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "來之坎坎險且枕入",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-13-九四",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 13,
+    "addr2": "九四",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "乘其墉弗克攻吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-20-六三",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六三",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "觀我生進退",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-37-初九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 37,
+    "addr2": "初九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "閑有家悔亡",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-61-初九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 61,
+    "addr2": "初九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "虞吉有它不燕",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "C-01-用九",
+   "category": "citation",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "用九",
+    "min_works": 2,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見群龍无首吉",
+    "space": "folded_jing",
+    "why": "address is attested in >=2 works in data/raw/"
+   }
+  },
+  {
+   "id": "GP-36-上六",
+   "category": "grounded_pos",
+   "query": "不明晦初登于天後入于",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "上六",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "不明晦初登于天後入于",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-35-上九",
+   "category": "grounded_pos",
+   "query": "晉其角維用伐邑厲吉无",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 35,
+    "addr2": "上九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "晉其角維用伐邑厲吉无",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-38-六三",
+   "category": "grounded_pos",
+   "query": "見輿曳其牛掣其人天且",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "見輿曳其牛掣其人天且",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-11-九二",
+   "category": "grounded_pos",
+   "query": "包荒用馮河不遐遺朋亡",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 11,
+    "addr2": "九二",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "包荒用馮河不遐遺朋亡",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-03-六三",
+   "category": "grounded_pos",
+   "query": "即鹿无虞惟入于林中君",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "即鹿无虞惟入于林中君",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-23-上九",
+   "category": "grounded_pos",
+   "query": "碩果不食君子得輿小人",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 23,
+    "addr2": "上九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "碩果不食君子得輿小人",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-43-九四",
+   "category": "grounded_pos",
+   "query": "臀无膚其行次且牽羊悔",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 43,
+    "addr2": "九四",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "臀无膚其行次且牽羊悔",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-17-初九",
+   "category": "grounded_pos",
+   "query": "官有渝貞吉出門交有功",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "初九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "官有渝貞吉出門交有功",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-06-六三",
+   "category": "grounded_pos",
+   "query": "食舊德貞厲終吉或從王",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 6,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "食舊德貞厲終吉或從王",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-30-上九",
+   "category": "grounded_pos",
+   "query": "王用出征有嘉折首獲匪",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "上九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "王用出征有嘉折首獲匪",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-29-六三",
+   "category": "grounded_pos",
+   "query": "來之坎坎險且枕入于坎",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "來之坎坎險且枕入于坎",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-49-上六",
+   "category": "grounded_pos",
+   "query": "君子豹變小人革面征凶",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "上六",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "君子豹變小人革面征凶",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-04-六三",
+   "category": "grounded_pos",
+   "query": "勿用取女見金夫不有躬",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 4,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "勿用取女見金夫不有躬",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-24-上六",
+   "category": "grounded_pos",
+   "query": "迷復凶有災眚用行師終",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 24,
+    "addr2": "上六",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "迷復凶有災眚用行師終",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-45-六三",
+   "category": "grounded_pos",
+   "query": "萃如嗟如无攸利往无咎",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 45,
+    "addr2": "六三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "萃如嗟如无攸利往无咎",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-38-上九",
+   "category": "grounded_pos",
+   "query": "睽孤見豕負塗載鬼一車",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 38,
+    "addr2": "上九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "睽孤見豕負塗載鬼一車",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-30-九三",
+   "category": "grounded_pos",
+   "query": "日昃之離不鼓缶而歌則",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "九三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "日昃之離不鼓缶而歌則",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-56-九三",
+   "category": "grounded_pos",
+   "query": "旅焚其次喪其童僕貞厲",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 56,
+    "addr2": "九三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "旅焚其次喪其童僕貞厲",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-29-六四",
+   "category": "grounded_pos",
+   "query": "樽酒簋貳用缶納約自牖",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "六四",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "樽酒簋貳用缶納約自牖",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-55-初九",
+   "category": "grounded_pos",
+   "query": "遇其配主雖旬无咎往有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "初九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "遇其配主雖旬无咎往有",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-47-九四",
+   "category": "grounded_pos",
+   "query": "來徐徐困于金車吝有終",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 47,
+    "addr2": "九四",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "來徐徐困于金車吝有終",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-57-九二",
+   "category": "grounded_pos",
+   "query": "巽在床下用史巫紛若吉",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 57,
+    "addr2": "九二",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "巽在床下用史巫紛若吉",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-41-上九",
+   "category": "grounded_pos",
+   "query": "弗損益之无咎貞吉利有",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 41,
+    "addr2": "上九",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "弗損益之无咎貞吉利有",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-07-六五",
+   "category": "grounded_pos",
+   "query": "田有禽利執言无咎長子",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 7,
+    "addr2": "六五",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "田有禽利執言无咎長子",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GP-49-九三",
+   "category": "grounded_pos",
+   "query": "征凶貞厲革言三就有孚",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "九三",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "征凶貞厲革言三就有孚",
+    "space": "folded_notes",
+    "why": "10-char head of the 底本 爻辭, unique in the 底本"
+   }
+  },
+  {
+   "id": "GN-x07",
+   "category": "grounded_neg",
+   "query": "有能乾九乾",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "有能乾九乾",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "X-07: index once emitted this; source reads 有能乾乾",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-36-上六",
+   "category": "grounded_neg",
+   "query": "不明晦初登天于後入于",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "不明晦初登天于後入于",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-35-上九",
+   "category": "grounded_neg",
+   "query": "晉其角維用邑伐厲吉无",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "晉其角維用邑伐厲吉无",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-38-六三",
+   "category": "grounded_neg",
+   "query": "見輿曳其牛其掣人天且",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "見輿曳其牛其掣人天且",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-11-九二",
+   "category": "grounded_neg",
+   "query": "包荒用馮河遐不遺朋亡",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "包荒用馮河遐不遺朋亡",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-03-六三",
+   "category": "grounded_neg",
+   "query": "即鹿无虞惟于入林中君",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "即鹿无虞惟于入林中君",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-41-初九",
+   "category": "grounded_neg",
+   "query": "已事遄往咎无酌損之",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "已事遄往咎无酌損之",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-23-上九",
+   "category": "grounded_neg",
+   "query": "碩果不食君得子輿小人",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "碩果不食君得子輿小人",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-12-初六",
+   "category": "grounded_neg",
+   "query": "拔茅茹以彙其貞吉亨",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "拔茅茹以彙其貞吉亨",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-43-九四",
+   "category": "grounded_neg",
+   "query": "臀无膚其行且次牽羊悔",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "臀无膚其行且次牽羊悔",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-17-初九",
+   "category": "grounded_neg",
+   "query": "官有渝貞吉門出交有功",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "官有渝貞吉門出交有功",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-06-六三",
+   "category": "grounded_neg",
+   "query": "食舊德貞厲吉終或從王",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "食舊德貞厲吉終或從王",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-42-上九",
+   "category": "grounded_neg",
+   "query": "莫益之或擊立之心勿恆",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "莫益之或擊立之心勿恆",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-14-九二",
+   "category": "grounded_neg",
+   "query": "大車以載攸有往无咎",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "大車以載攸有往无咎",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-20-六四",
+   "category": "grounded_neg",
+   "query": "觀國之光用利賓于王",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "觀國之光用利賓于王",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-30-上九",
+   "category": "grounded_neg",
+   "query": "王用出征有折嘉首獲匪",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "王用出征有折嘉首獲匪",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-27-初九",
+   "category": "grounded_neg",
+   "query": "舍爾靈龜我觀朵頤凶",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "舍爾靈龜我觀朵頤凶",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-29-六三",
+   "category": "grounded_neg",
+   "query": "來之坎坎險枕且入于坎",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "來之坎坎險枕且入于坎",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-49-上六",
+   "category": "grounded_neg",
+   "query": "君子豹變小革人面征凶",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "君子豹變小革人面征凶",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-41-六四",
+   "category": "grounded_neg",
+   "query": "損其疾使有遄喜无咎",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "損其疾使有遄喜无咎",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-14-初九",
+   "category": "grounded_neg",
+   "query": "无交害匪艱咎則无咎",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "无交害匪艱咎則无咎",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-50-九四",
+   "category": "grounded_neg",
+   "query": "鼎折足覆公其餗形渥凶",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "鼎折足覆公其餗形渥凶",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-23-六五",
+   "category": "grounded_neg",
+   "query": "貫魚以宮寵人无不利",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "貫魚以宮寵人无不利",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-04-六三",
+   "category": "grounded_neg",
+   "query": "勿用取女見夫金不有躬",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "勿用取女見夫金不有躬",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-24-上六",
+   "category": "grounded_neg",
+   "query": "迷復凶有災用眚行師終",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "迷復凶有災用眚行師終",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-45-六三",
+   "category": "grounded_neg",
+   "query": "萃如嗟如无利攸往无咎",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "萃如嗟如无利攸往无咎",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-61-九二",
+   "category": "grounded_neg",
+   "query": "鳴鶴在陰其和子之我有",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "鳴鶴在陰其和子之我有",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-38-上九",
+   "category": "grounded_neg",
+   "query": "睽孤見豕負載塗鬼一車",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "睽孤見豕負載塗鬼一車",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-10-九二",
+   "category": "grounded_neg",
+   "query": "履道坦坦人幽貞吉",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "履道坦坦人幽貞吉",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "GN-30-九三",
+   "category": "grounded_neg",
+   "query": "日昃之離不缶鼓而歌則",
+   "expect": {
+    "hits": 0
+   },
+   "gold_witness": {
+    "work": "*",
+    "text": "日昃之離不缶鼓而歌則",
+    "absent": true,
+    "space": "folded_notes+folded_jing",
+    "why": "adjacent transposition of a real 爻辭; multiset identical, so only an order-aware check sees it",
+    "occurs_in": []
+   }
+  },
+  {
+   "id": "VD-55-初九",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "初九",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "其配主雖旬尤咎往有尚",
+    "b_contains": "其配主雖旬无咎往有尚象"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "其配主雖旬尤咎往有尚",
+    "text_b": "其配主雖旬无咎往有尚象",
+    "first_diff_at": 6,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 6); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-30-九三",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "九三",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "日昊之離不鼓缶",
+    "b_contains": "日昃之離不鼓缶"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "日昊之離不鼓缶",
+    "text_b": "日昃之離不鼓缶",
+    "first_diff_at": 1,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 1); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-49-六二",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "六二",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "已日乃革之征",
+    "b_contains": "己日乃革之征"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "已日乃革之征",
+    "text_b": "己日乃革之征",
+    "first_diff_at": 0,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 0); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-27-六三",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 27,
+    "addr2": "六三",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "凶十年勿用元攸利",
+    "b_contains": "凶十年勿用无攸利象曰十"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "凶十年勿用元攸利",
+    "text_b": "凶十年勿用无攸利象曰十",
+    "first_diff_at": 8,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 8); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-32-初六",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 32,
+    "addr2": "初六",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "浚怕貞凶无攸利",
+    "b_contains": "浚恆貞凶无攸利"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "浚怕貞凶无攸利",
+    "text_b": "浚恆貞凶无攸利",
+    "first_diff_at": 1,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 1); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-54-六五",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 54,
+    "addr2": "六五",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "歸妹其君之𬒮不如其娣之",
+    "b_contains": "歸妹其君之袂不如其娣之"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "歸妹其君之𬒮不如其娣之",
+    "text_b": "歸妹其君之袂不如其娣之",
+    "first_diff_at": 7,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 7); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-05-初九",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 5,
+    "addr2": "初九",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "需于郊利用怕",
+    "b_contains": "需于郊利用恆无咎象曰需"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "需于郊利用怕",
+    "text_b": "需于郊利用恆无咎象曰需",
+    "first_diff_at": 5,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 5); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-61-初九",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 61,
+    "addr2": "初九",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "虞吉有它不燕九三鳴",
+    "b_contains": "虞吉有他不燕象曰初"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "虞吉有它不燕九三鳴",
+    "text_b": "虞吉有他不燕象曰初",
+    "first_diff_at": 3,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 3); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-28-九二",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "九二",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "枯楊生稊老夫得其女",
+    "b_contains": "枯楊生梯老夫得其女"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "枯楊生稊老夫得其女",
+    "text_b": "枯楊生梯老夫得其女",
+    "first_diff_at": 3,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 3); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-55-六二",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "六二",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "得疑疾有孚發若吉",
+    "b_contains": "得疑疾有孚𤼵若吉象曰有"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "得疑疾有孚發若吉",
+    "text_b": "得疑疾有孚𤼵若吉象曰有",
+    "first_diff_at": 13,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 13); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-63-六四",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 63,
+    "addr2": "六四",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "繻其衣袽終日戒",
+    "b_contains": "繻有衣袽終日戒"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "繻其衣袽終日戒",
+    "text_b": "繻有衣袽終日戒",
+    "first_diff_at": 1,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 1); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VD-12-初六",
+   "category": "version",
+   "kind": "divergent",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "初六",
+    "work_a": "KR1a0031",
+    "work_b": "KR1a0032",
+    "a_contains": "茅茹以其彙征吉亨",
+    "b_contains": "茅茹以其彙貞吉亨象曰拔"
+   },
+   "gold_witness": {
+    "work": "KR1a0031+KR1a0032",
+    "space": "folded_jing",
+    "text": "茅茹以其彙征吉亨",
+    "text_b": "茅茹以其彙貞吉亨象曰拔",
+    "first_diff_at": 6,
+    "why": "the two editions read differently INSIDE the 爻辭 (first difference at char 6); 校勘 evidence that must not be flattened"
+   }
+  },
+  {
+   "id": "VU-傳",
+   "category": "version",
+   "kind": "unified",
+   "query": "儒者傳授或",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "𫝊"
+   },
+   "gold_witness": {
+    "work": "KR1a0007",
+    "text": "儒者𫝊授或",
+    "space": "unfolded_notes",
+    "variant": "𫝊",
+    "canon": "傳",
+    "why": "𫝊 occurs in KR1a0007; searching the canonical 傳 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-說",
+   "category": "version",
+   "kind": "unified",
+   "query": "而衆說皆廢",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "説"
+   },
+   "gold_witness": {
+    "work": "KR1a0007",
+    "text": "而衆説皆廢",
+    "space": "unfolded_notes",
+    "variant": "説",
+    "canon": "說",
+    "why": "説 occurs in KR1a0007; searching the canonical 說 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-玄",
+   "category": "version",
+   "kind": "unified",
+   "query": "少府玄菟太",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "𤣥"
+   },
+   "gold_witness": {
+    "work": "KR1a0007",
+    "text": "少府𤣥菟太",
+    "space": "unfolded_notes",
+    "variant": "𤣥",
+    "canon": "玄",
+    "why": "𤣥 occurs in KR1a0007; searching the canonical 玄 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-黃",
+   "category": "version",
+   "kind": "unified",
+   "query": "錯玄黃相雜",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "黄"
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "錯玄黄相雜",
+    "space": "unfolded_notes",
+    "variant": "黄",
+    "canon": "黃",
+    "why": "黄 occurs in KR1a0006; searching the canonical 黃 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-潛",
+   "category": "version",
+   "kind": "unified",
+   "query": "初九潛龍勿",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "濳"
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "初九濳龍勿",
+    "space": "unfolded_notes",
+    "variant": "濳",
+    "canon": "潛",
+    "why": "濳 occurs in KR1a0006; searching the canonical 潛 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-于",
+   "category": "version",
+   "kind": "unified",
+   "query": "而況于人乎",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "於"
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "而況於人乎",
+    "space": "unfolded_notes",
+    "variant": "於",
+    "canon": "于",
+    "why": "於 occurs in KR1a0001; searching the canonical 于 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-无",
+   "category": "version",
+   "kind": "unified",
+   "query": "地道无成而",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "無"
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "地道無成而",
+    "space": "unfolded_notes",
+    "variant": "無",
+    "canon": "无",
+    "why": "無 occurs in KR1a0001; searching the canonical 无 must still reach it (fold applied both sides)"
+   }
+  },
+  {
+   "id": "VU-群",
+   "category": "version",
+   "kind": "unified",
+   "query": "九見群龍无",
+   "expect": {
+    "min_hits": 1,
+    "hit_contains_variant": "羣"
+   },
+   "gold_witness": {
+    "work": "KR1a0006",
+    "text": "九見羣龍无",
+    "space": "unfolded_notes",
+    "variant": "羣",
+    "canon": "群",
+    "why": "羣 occurs in KR1a0006; searching the canonical 群 must still reach it (fold applied both sides)"
+   }
+  }
+ ]
+}

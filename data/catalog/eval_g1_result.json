@@ -1,0 +1,1375 @@
+{
+ "verdicts": {
+  "retrieval": "PASS",
+  "retrieval_cross": "PASS",
+  "retrieval_hard": "PASS",
+  "citation": "PASS",
+  "grounded_pos": "PASS",
+  "grounded_neg": "PASS",
+  "version": "PASS"
+ },
+ "overall": "PASS",
+ "targets": {
+  "retrieval": 0.95,
+  "retrieval_cross": 0.9,
+  "retrieval_hard": 0.8,
+  "citation": 1.0,
+  "grounded_pos": 0.95,
+  "grounded_neg": 1.0,
+  "version": 0.95
+ },
+ "invalid": [],
+ "results": [
+  {
+   "id": "R-36-上六",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/5",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-35-上九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-28-上六",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-38-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-11-九二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-03-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-41-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-23-上九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-12-初六",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/5",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-37-九五",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-19-六五",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-43-九四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-17-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-06-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-14-九二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/5",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-23-六二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-20-六四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-30-上九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-27-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-29-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-13-九四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-61-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/4",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-01-用九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-49-上六",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-41-六四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-14-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-23-六五",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 2/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-04-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-24-上六",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-45-六三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-38-上九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-10-九二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/9",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-30-九三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/4",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-05-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-56-九三",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-12-九四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/6",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-17-六二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-29-六四",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-31-六二",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "R-55-初九",
+   "category": "retrieval",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RX-36-上六",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/5, incl. KR1a0006 (4 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-35-上九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-28-上六",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (7 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-38-六三",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-11-九二",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-03-六三",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/8, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-41-初九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-23-上九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/10, incl. KR1a0031 (7 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-12-初六",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/5, incl. KR1a0006 (4 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-37-九五",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-19-六五",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/8, incl. KR1a0031 (7 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-43-九四",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-17-初九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-06-六三",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-14-九二",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/5, incl. KR1a0031 (4 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-23-六二",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-20-六四",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/10, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-30-上九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-27-初九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-29-六三",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-13-九四",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/6, incl. KR1a0031 (5 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-61-初九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/4, incl. KR1a0006 (3 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-01-用九",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/10, incl. KR1a0031 (7 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RX-49-上六",
+   "category": "retrieval_cross",
+   "status": "PASS",
+   "detail": "rank 1/7, incl. KR1a0031 (6 units carry the text)",
+   "witness": "present in KR1a0006 (folded_jing)"
+  },
+  {
+   "id": "RH-36-上六",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-28-上六",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-38-六三",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-11-九二",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-03-六三",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-41-初九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-23-上九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-19-六五",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-17-初九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-20-六四",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-01-用九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-23-六五",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 2/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-24-上六",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-45-六三",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-10-九二",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/9",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-17-六二",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/10",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-31-六二",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-55-初九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-50-上九",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-39-上六",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-33-初六",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-49-六二",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-31-九三",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/8",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "RH-47-九四",
+   "category": "retrieval_hard",
+   "status": "PASS",
+   "detail": "rank 1/7",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "C-36-上六",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "11 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-46-初六",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "9 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-35-上九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "11 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-28-上六",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "11 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-38-六三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-11-九二",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-28-九三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-03-六三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-41-初九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-30-六二",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-23-上九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "11 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-12-初六",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-31-初六",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "9 units across 5 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-37-九五",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-19-六五",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-43-九四",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-17-初九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-06-六三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-42-上九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "12 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-14-九二",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-23-六二",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-20-六四",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-30-上九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "23 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-27-初九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-29-六三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-13-九四",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-20-六三",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-37-初九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-61-初九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "10 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "C-01-用九",
+   "category": "citation",
+   "status": "PASS",
+   "detail": "43 units across 6 works all resolve",
+   "witness": "present in KR1a0001 (folded_jing)"
+  },
+  {
+   "id": "GP-36-上六",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-35-上九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-38-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-11-九二",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-03-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-23-上九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-43-九四",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-17-初九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-06-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-30-上九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-29-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-49-上六",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-04-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-24-上六",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-45-六三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-38-上九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-30-九三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-56-九三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-29-六四",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-55-初九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-47-九四",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-57-九二",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-41-上九",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-07-六五",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GP-49-九三",
+   "category": "grounded_pos",
+   "status": "PASS",
+   "detail": "found in a single unit at the address",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "GN-x07",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-36-上六",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-35-上九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-38-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-11-九二",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-03-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-41-初九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-23-上九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-12-初六",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-43-九四",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-17-初九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-06-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-42-上九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-14-九二",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-20-六四",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-30-上九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-27-初九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-29-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-49-上六",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-41-六四",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-14-初九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-50-九四",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-23-六五",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-04-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-24-上六",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-45-六三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-61-九二",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-38-上九",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-10-九二",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "GN-30-九三",
+   "category": "grounded_neg",
+   "status": "PASS",
+   "detail": "0 hits, as required",
+   "witness": "confirmed absent from all 28 works"
+  },
+  {
+   "id": "VD-55-初九",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (其配主雖旬尤咎往有尚 / 其配主雖旬无咎往有尚象)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-30-九三",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (日昊之離不鼓缶 / 日昃之離不鼓缶)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-49-六二",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (已日乃革之征 / 己日乃革之征)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-27-六三",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (凶十年勿用元攸利 / 凶十年勿用无攸利象曰十)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-32-初六",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (浚怕貞凶无攸利 / 浚恆貞凶无攸利)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-54-六五",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (歸妹其君之𬒮不如其娣之 / 歸妹其君之袂不如其娣之)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-05-初九",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (需于郊利用怕 / 需于郊利用恆无咎象曰需)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-61-初九",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (虞吉有它不燕九三鳴 / 虞吉有他不燕象曰初)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-28-九二",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (枯楊生稊老夫得其女 / 枯楊生梯老夫得其女)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-55-六二",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (得疑疾有孚發若吉 / 得疑疾有孚𤼵若吉象曰有)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-63-六四",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (繻其衣袽終日戒 / 繻有衣袽終日戒)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VD-12-初六",
+   "category": "version",
+   "status": "PASS",
+   "detail": "both readings present and distinct (茅茹以其彙征吉亨 / 茅茹以其彙貞吉亨象曰拔)",
+   "witness": "both readings present in their own source and differ (folded_jing)"
+  },
+  {
+   "id": "VU-傳",
+   "category": "version",
+   "status": "PASS",
+   "detail": "1/1 hits carry the variant 𫝊",
+   "witness": "present in KR1a0007 (unfolded_notes)"
+  },
+  {
+   "id": "VU-說",
+   "category": "version",
+   "status": "PASS",
+   "detail": "1/1 hits carry the variant 説",
+   "witness": "present in KR1a0007 (unfolded_notes)"
+  },
+  {
+   "id": "VU-玄",
+   "category": "version",
+   "status": "PASS",
+   "detail": "1/1 hits carry the variant 𤣥",
+   "witness": "present in KR1a0007 (unfolded_notes)"
+  },
+  {
+   "id": "VU-黃",
+   "category": "version",
+   "status": "PASS",
+   "detail": "2/2 hits carry the variant 黄",
+   "witness": "present in KR1a0006 (unfolded_notes)"
+  },
+  {
+   "id": "VU-潛",
+   "category": "version",
+   "status": "PASS",
+   "detail": "2/11 hits carry the variant 濳",
+   "witness": "present in KR1a0006 (unfolded_notes)"
+  },
+  {
+   "id": "VU-于",
+   "category": "version",
+   "status": "PASS",
+   "detail": "7/7 hits carry the variant 於",
+   "witness": "present in KR1a0001 (unfolded_notes)"
+  },
+  {
+   "id": "VU-无",
+   "category": "version",
+   "status": "PASS",
+   "detail": "1/7 hits carry the variant 無",
+   "witness": "present in KR1a0001 (unfolded_notes)"
+  },
+  {
+   "id": "VU-群",
+   "category": "version",
+   "status": "PASS",
+   "detail": "7/9 hits carry the variant 羣",
+   "witness": "present in KR1a0006 (unfolded_notes)"
+  }
+ ]
+}
