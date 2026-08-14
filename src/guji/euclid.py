@@ -51,7 +51,7 @@ class Proposition:
     text: str
 
 
-def _strip_tags(html: str) -> str:
+def _strip_tags(html: str) -> tuple[str, list[int]]:
     """Strip HTML tags, preserve text content. Handles entities.
 
     CRITICAL: small-caps spans must be removed with the EMPTY string, not a
@@ -60,14 +60,75 @@ def _strip_tags(html: str) -> str:
     so a naive `<[^>]+>` → ' ' replacement turns 'Problem' into 'P r o b l e m'.
     Removing the small-caps span tags (but keeping their letter content) lets
     the letters rejoin into a word.
+
+    Returns (stripped_text, html_offsets) where html_offsets[i] is the html
+    offset of the character stripped_text[i]. This lets callers map stripped
+    offsets back to html offsets, so unit.raw_start/raw_end can point into the
+    html file and unit.text can be the stripped (readable) version of that span.
     """
-    # First, neutralise small-caps spans: drop the tags, keep the inner letter.
-    t = re.sub(r'<span class="small-caps">([^<]*)</span>', r'\1', html)
-    # Then strip all remaining tags with a space (block-level boundaries).
-    t = re.sub(r"<[^>]+>", " ", t)
-    t = re.sub(r"&[a-zA-Z#0-9]+;", " ", t)
-    t = re.sub(r"\s+", " ", t).strip()
-    return t
+    # Walk the ORIGINAL html (not a pre-substituted copy), so html_offsets are
+    # offsets into the original html. Recognise small-caps spans explicitly and
+    # keep their inner letter; strip every other tag with a space; drop entities.
+    SMALL_CAPS_OPEN = '<span class="small-caps">'
+    out_chars: list[str] = []
+    out_html: list[int] = []
+    i = 0
+    n = len(html)
+    while i < n:
+        ch = html[i]
+        # Small-caps span: <span class="small-caps">X</span> -> keep X (the letter)
+        if html.startswith(SMALL_CAPS_OPEN, i):
+            inner_start = i + len(SMALL_CAPS_OPEN)
+            close = html.find('</span>', inner_start)
+            if close != -1:
+                inner = html[inner_start:close]
+                for off, c in enumerate(inner):
+                    out_chars.append(c)
+                    out_html.append(inner_start + off)
+                i = close + len('</span>')
+                continue
+        if ch == '<':
+            j = html.find('>', i)
+            if j == -1:
+                # malformed: treat literally
+                out_chars.append(ch)
+                out_html.append(i)
+                i += 1
+                continue
+            i = j + 1
+            continue
+        if ch == '&':
+            j = html.find(';', i)
+            if j != -1 and j - i <= 12:
+                i = j + 1
+                continue
+        out_chars.append(ch)
+        out_html.append(i)
+        i += 1
+    stripped = ''.join(out_chars)
+    # Collapse \s+ on the stripped text, keeping the html offset of the FIRST
+    # surviving character of each run. This preserves 1:1 mapping between
+    # collapsed-stripped chars and html offsets.
+    collapsed_chars: list[str] = []
+    collapsed_html: list[int] = []
+    prev_ws = False
+    for idx, ch in enumerate(stripped):
+        if ch.isspace():
+            if prev_ws:
+                continue
+            prev_ws = True
+            collapsed_chars.append(' ')
+            collapsed_html.append(out_html[idx])
+        else:
+            prev_ws = False
+            collapsed_chars.append(ch)
+            collapsed_html.append(out_html[idx])
+    # Drop leading whitespace
+    while collapsed_chars and collapsed_chars[0].isspace():
+        collapsed_chars.pop(0)
+        collapsed_html.pop(0)
+    result = ''.join(collapsed_chars)
+    return result, collapsed_html
 
 
 def _roman_to_int(s: str) -> int:
@@ -129,9 +190,16 @@ def parse_propositions(html: str) -> list[Proposition]:
     """Parse Euclid's Elements html into propositions.
 
     Returns a list of Proposition objects with book (1-6), number (arabic),
-    roman (roman numeral string), start/end offsets in stripped text, and text.
+    roman (roman numeral string), start/end offsets in the STRIPPED text, and
+    text (the stripped, readable version of that span).
+
+    The stripped-text space is what raw_body() returns for euclid-elements
+    (see evalset.raw_body), so unit.raw_start/raw_end and raw_body() agree —
+    the same invariant every other scheme has. The html_offsets returned by
+    _strip_tags are not used here; they exist for callers that need to map
+    back to the html source.
     """
-    text = _strip_tags(html)
+    text, _html_offsets = _strip_tags(html)
     books = find_books(text)
 
     props = []
@@ -160,8 +228,6 @@ def parse_propositions(html: str) -> list[Proposition]:
         sorted_nums = sorted(seen_nums.keys())
         for i, num in enumerate(sorted_nums):
             h = seen_nums[num]
-            rom = _int_to_roman(num) if not h.group(1).isdigit() and not h.group(1).isalpha() else (h.group(1) if h.group(1).isalpha() else _int_to_roman(num))
-            # Simplify: use the roman form we computed
             rom = _int_to_roman(num)
             prop_start = h.start()
             # End: next proposition heading, or end of book region
@@ -170,12 +236,15 @@ def parse_propositions(html: str) -> list[Proposition]:
             else:
                 prop_end = len(region)
             prop_text = region[prop_start:prop_end].strip()
+            # Stripped-text offsets (same space as raw_body for euclid).
+            s = book_start + prop_start
+            e = book_start + prop_end
             props.append(Proposition(
                 book=book_num,
                 number=num,
                 roman=rom,
-                start=book_start + prop_start,
-                end=book_start + prop_end,
+                start=s,
+                end=e,
                 text=prop_text,
             ))
 

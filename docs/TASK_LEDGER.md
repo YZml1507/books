@@ -818,9 +818,64 @@ eval_g1.py          G1 = PASS 225/225 (100.0%) overall, EXIT=0
 - TASK_LEDGER.md A-12 行 "卦9初九 lenB=6 / 卦58九五 =9 / 卦46初六 =26" → 实测 卦9初九 lenB=7 / 卦58九五 lenB=10 / 卦46初六 lenB=27
 
 **BLOCKED**：
-- **git push**：commit d10b46a 已落本地，但 `git push` 属红线第 1 类（破坏性不可逆），照纪律不停下询问，记 BLOCKED 跳过。push 需用户下一窗口显式授权。
-- **Euclid 路由接线**：ingest.py:740 的 `elif slug == "euclid-elements"` 分支存在且解析器能产出 170 proposition，但被 ingest.py:665 的 `.txt` 前置条件拦死（euclid-elements/ 只有 .html/.epub）。非本窗口任务范围（Douay/G1/A-12），记 BLOCKED 留下一窗口。
 - **G1 方案 2 联网抓取释义**：已授权但需先勘查可用源（百度百科/维基文库/公版注疏白话译本）+ licence。无明确 licence 或属生成文本不得入库（GOAL §5），记 BLOCKED 留下一窗口。
+
+---
+
+## 22. 本窗口（sessionID 接续 aa53987d）实测记录
+
+**复验纪律**：所有数字均由可执行命令实测得到，不信文档。
+
+### 22a. git push DONE（修正上窗口误判）
+
+上一窗口把 `git push` 当红线第 1 类 BLOCKED 跳过。实测 `GOAL_NEXT_SESSION.md` L67-72 明确写"用户已授权 commit/push，push 到 main 不属于红线"。本窗口把 7 个本地 commit（83d7604..1e69f3c）推到 `github.com/YZml1507/books` main。
+
+### 22b. Euclid 路由接线 DONE（第五种地址体系 euclid）
+
+**根因**：`ingest.py` 旧 Euclid 分支（约 L740）读 `.html`，但被 L665 的 `.txt` 前置条件 `if not txt_files: continue` 拦死（euclid-elements/ 只有 .html/.epub）。Euclid 0 单元入索引。
+
+**修复**：在 `ingest.py` 的 `.txt` 前置条件**之前**插入 Euclid 专用分支（读 .html，调 `euclid.parse_propositions`，存 `scheme='euclid'`），删除旧的死分支。`verify_index.py` 的 `NO_PAGINATION` 集合加 `euclid-elements`（0 `<pb:>` 标记，book/proposition 地址体系）。
+
+**空间一致性问题（实测发现并修复）**：Euclid 的 `unit.text` 是 stripped（去 html 标签）版，`unit.raw_start/raw_end` 最初设为 html 偏移——与 `raw_body()` 返回的 html 不同空间，导致 `verify_index.py` T9（`skipped_chars=0 really is contiguous`）失败 1/600。
+
+修复方案（三空间一致）：
+1. `euclid.parse_propositions` 返回 **stripped text 偏移**（不是 html 偏移），`prop.text` 是 stripped text 切片。
+2. `evalset.raw_body()` 对 Euclid 返回 **stripped text**（调 `euclid._strip_tags`），与 `unit.raw_start/raw_end` 和 `unit.text` 同空间。
+3. `euclid._strip_tags` 升级为返回 `(stripped_text, html_offsets)`——walk 原始 html 识别 `<span class="small-caps">X</span>` 保留 X、strip 其它标签、drop entities，同时记录每个 stripped 字符的 html 偏移。
+
+**接入实测**（2026-08-14，所有数字来自脚本输出）：
+- `build_index.py` → works **38** · units **51,170**（+170 Euclid propositions）· db 43.4 MB
+- Euclid book 分布：Book 1: 48 · Book 2: 14 · Book 3: 36 · Book 4: 16 · Book 5: 25 · Book 6: 31 = 170 propositions
+- `verify_index.py` → **ALL PASS**（含 T9 `skipped_chars=0 really is contiguous` 0/600）
+- `check_provenance.py` → **0/38 missing**（Euclid provenance 齐全：sha256/url/licence=public-domain (Project Gutenberg)/fetched_at）
+
+**与正典的差异**（Euclid Elements I-VI 正典 173 propositions）：
+- Book 3: 36 vs 正典 37（少 1）
+- Book 6: 31 vs 正典 33（少 2）
+- 总计 170 vs 正典 173（少 3）
+
+这 3 个缺失的 proposition 需要进一步勘查（可能是 `_PROP_HEAD_RE` 漏匹配某些 proposition 标题格式，或正典数本身有争议）。记为 **P-10**，留待后续勘查。但 170 propositions 已全部正确入索引，地址体系 `euclid` 工作正常。
+
+**13 道闸门实测快照（全过，零回退）**：
+```
+check_quality PASS · build_index 9.8s 38 部 51,170 单元 43.4 MB · verify_index ALL PASS
+validate_alignment 爻辭 verified 1824/1872 = 97.4% 零回退 · probe_conservation ratio 1.0000
+assess_goals PASS 8 · PART 1 · FAIL 0 · NOT-MEASURABLE 0 of 9 · check_provenance 0/38 missing
+probe_bcv control cases PASS（Douay 35,787 verses，9 个已知 Vulgate 冲突显式记录）
+eval_g1 G1 = PASS 225/225 · summarise_diff EXIT=0 · eval_g7 FABRICATIONS 0 G7 = PASS（impossible 4/4）
+eval_g4 G4 = PASS · probe_g8_isolation PASS — separation holds under all attempts
+```
+
+**scheme 分布（实测 `SELECT scheme, count(*) FROM unit GROUP BY scheme`）**：
+```
+bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 170
+```
+
+### 22c. 新增待办 P-10
+
+| ID | 待办 | 依据 |
+|---|---|---|
+| P-10 | Euclid Book 3 少 1 prop（36 vs 正典 37）、Book 6 少 2 prop（31 vs 正典 33） | `euclid.parse_propositions` 实测 170 propositions，正典 173。需勘查 `_PROP_HEAD_RE` 是否漏匹配某些 proposition 标题格式 |
 
 **13 道闸门实测快照（全过，零回退）**：
 ```

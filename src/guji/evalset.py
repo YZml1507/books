@@ -99,6 +99,16 @@ def raw_body(raw_dir: str, work: str) -> str:
             matches = glob.glob(os.path.join(ext_dir, "pg*.txt"))
             if matches:
                 return open(matches[0], encoding="utf-8").read()
+            # Euclid ships only as .html (no .txt); return the STRIPPED text
+            # (same space euclid.parse_propositions uses for prop.start/end and
+            # prop.text), so unit.raw_start/raw_end and raw_body() agree — the
+            # same invariant every other scheme has.
+            matches = glob.glob(os.path.join(ext_dir, "pg*.html"))
+            if matches:
+                from guji.euclid import _strip_tags  # local import: avoid cycle at module load
+                html = open(matches[0], encoding="utf-8").read()
+                stripped, _ = _strip_tags(html)
+                return stripped
         return ""
 
 

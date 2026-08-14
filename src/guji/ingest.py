@@ -662,6 +662,36 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
             slug_dir = os.path.join(ext_dir, slug)
             if not os.path.isdir(slug_dir):
                 continue
+
+            # Euclid ships only as .html/.epub (no .txt), so handle it before
+            # the .txt precondition that would otherwise `continue` past it.
+            if slug == "euclid-elements":
+                html_files = [f for f in os.listdir(slug_dir) if f.endswith(".html")]
+                if not html_files:
+                    continue
+                html_path = os.path.join(slug_dir, html_files[0])
+                html = open(html_path, encoding="utf-8").read()
+                props = euclid.parse_propositions(html)
+                for prop in props:
+                    uid += 1
+                    db.execute(
+                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (uid, slug, os.path.basename(html_path), prop.start, prop.end, None,
+                         "euclid", f"Book {prop.book}", prop.book, prop.roman, "正文", prop.text, 0, None))
+                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                              (uid, segment_cjk(fold(prop.text))))
+                stats.units += len(props)
+                stats.addressed += len(props)
+                m = ext_meta.get(slug, {})
+                db.execute(
+                    "INSERT INTO work VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (slug, m.get("title", slug), m.get("genre"), m.get("edition"), None,
+                     len(html_files), len(html), m.get("source_url"),
+                     m.get("file_sha256", {}).get(html_files[0]),
+                     m.get("licence"), m.get("fetched_at")))
+                stats.works += 1
+                continue
+
             txt_files = [f for f in os.listdir(slug_dir) if f.endswith(".txt")]
             if not txt_files:
                 continue
@@ -737,21 +767,6 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                                           (uid, segment_cjk(fold(text))))
                                 stats.units += 1
                                 stats.addressed += 1
-            elif slug == "euclid-elements":
-                scheme = "euclid"
-                html_path = os.path.join(slug_dir, [f for f in os.listdir(slug_dir) if f.endswith(".html")][0])
-                html = open(html_path, encoding="utf-8").read()
-                props = euclid.parse_propositions(html)
-                for prop in props:
-                    uid += 1
-                    db.execute(
-                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        (uid, slug, os.path.basename(html_path), prop.start, prop.end, None,
-                         "euclid", f"Book {prop.book}", prop.book, prop.roman, "正文", prop.text, 0, None))
-                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
-                              (uid, segment_cjk(fold(prop.text))))
-                stats.units += len(props)
-                stats.addressed += len(props)
             elif slug == "bible-douay":
                 scheme = "bcv"
                 verses = douay.parse_verses(raw)
