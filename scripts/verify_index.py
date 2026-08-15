@@ -92,6 +92,16 @@ NO_PAGINATION: set[str] = {
     "homer-iliad-pope", # Pope verse txt: 0 <pb:> markers, 10 sparse right-margin numbers — BOOK I-XXIV only
     "bible-douay",      # Gutenberg txt: 0 <pb:> markers — book/chapter/verse (bcv) addressing only
     "euclid-elements",  # Gutenberg html: 0 <pb:> markers — book/proposition addressing only
+    # 7 部命理书（P2 语料扩充候选）：txt 单文件，按【书名·篇名】分篇，无 <pb:> 页锚点
+    # 落盘于 data/raw/{slug}/{slug}_001.txt，ingest.py 按 raw 文件扫描入索引
+    # 已过三道判定第一步（文献 vs 生成物：均为古籍原文），完整接入 bazi_lookup 见 P2
+    "lantai-miaoxuan",
+    "mingli-tanyuan",
+    "mingli-yueyan",
+    "sanming-tonghui",
+    "wuxing-dayi",
+    "wuxing-jingji",
+    "ziping-zhenquan",
 }
 
 r = c.db.execute("SELECT count(*) n FROM unit WHERE file IS NULL OR file = ''").fetchone()

@@ -186,6 +186,26 @@ class Corpus:
                 out[h.work_id].append(h)
         return out
 
+    def at_scheme(self, scheme: str, addr_name: str | None = None,
+                  addr1: int | None = None, addr2: str | None = None,
+                  layer: str | None = None, limit: int = 50) -> list[Hit]:
+        """Generic address lookup for ANY scheme — 卦/爻 for zhouyi, 卷:章 for bcv,
+        幕:場 for play, BOOK:proposition for euclid, etc. `at_address` stays the
+        zhouyi-only convenience (D-005: Psalms 99 == 卦99 collision); this is the
+        scheme-scoped form used by the web addr view, where the caller declares the
+        scheme explicitly so no cross-scheme collision can occur.
+        """
+        sql = _SELECT + " WHERE u.scheme = ?"
+        args: list = [scheme]
+        for col, val in (("u.addr_name", addr_name), ("u.addr1", addr1),
+                         ("u.addr2", addr2), ("u.layer", layer)):
+            if val is not None:
+                sql += f" AND {col} = ?"
+                args.append(val)
+        sql += " ORDER BY u.work_id, u.raw_start LIMIT ?"
+        args.append(limit)
+        return [self._hit(r, score=0.0) for r in self.db.execute(sql, args)]
+
     @staticmethod
     def _hit(r: sqlite3.Row, score: float | None = None) -> Hit:
         # Explicit field names: positional construction silently misassigns if the

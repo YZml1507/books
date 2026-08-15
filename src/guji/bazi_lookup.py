@@ -176,9 +176,12 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
     for idx in order:
         m = meta[idx]
         r = conn.execute("SELECT text FROM unit WHERE id=?", (m["id"],)).fetchone()
+        w = conn.execute("SELECT title FROM work WHERE id=?", (m["work_id"],)).fetchone()
         out.append({
             "query": " / ".join(queries), "why": "语义检索",
-            "work_id": m["work_id"], "title": None, "layer": m["layer"],
+            "work_id": m["work_id"],
+            "title": w["title"] if w else None,   # 语义路径补书名（原硬编码 None）
+            "layer": m["layer"],
             "page_anchor": m["page_anchor"], "file": m["file"],
             "text": r["text"] if r else "", "score": float(best[idx]),
         })

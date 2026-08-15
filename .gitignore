@@ -11,10 +11,17 @@ Agent-Reach-main/
 Agent-Reach-main.zip
 markitdown-main/
 markitdown-main.zip
+browser-use-main/
+browser-use-main.zip
 
 # Build / cache artifacts
 *.db-journal
 *.log
+
+# logs/ — runtime logs, screenshots, scratch probes (not deliverables)
+logs/
+# P2 scratch: downloaded git repos (82MB), not source we own
+logs/p2_tmp/
 
 # Local secrets — never commit the filled-in LLM config
 llm_config.json

@@ -1,0 +1,178 @@
+"""web_launcher.py — 桌面入口：无弹窗启动 + 自动开浏览器 + 浏览器关闭后自动关服务。
+
+用户需求（2026-08-15）：
+  1. 点桌面图标不弹任何黑窗口/控制台弹窗；
+  2. 启动后自动打开浏览器；
+  3. 关闭浏览器后，服务自动关闭（不用手动去杀进程）。
+
+实现（纯标准库，零新依赖）：
+  * 由 pythonw.exe 运行本脚本（无控制台窗口）；子进程 uvicorn 用
+    CREATE_NO_WINDOW 启动，同样不弹窗。
+  * 启动前杀占用 8123 的旧实例（uvicorn 无热重载，避免旧代码残留）。
+  * 端口就绪后用 webbrowser.open 打开浏览器。
+  * 监控：记录曾与 8123 建立连接的浏览器进程 PID；当浏览器进程全部
+    退出且端口无活跃连接持续 SHUTDOWN_GRACE 秒，判定"浏览器已关闭"，
+    优雅终止 uvicorn 后退出。
+
+日志写入 logs/web_launcher.log（pythonw 无 stdout，便于排查）。
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+import webbrowser
+
+ROOT = os.path.dirname(os.path.abspath(__file__))   # 本文件在项目根，一层即可
+PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+PORT = 8123
+URL = f"http://127.0.0.1:{PORT}"
+CREATE_NO_WINDOW = 0x08000000
+SHUTDOWN_GRACE = 60          # 浏览器退出后，无连接持续多久（秒）判定关闭
+POLL_INTERVAL = 5            # 轮询间隔（秒）
+LOG = os.path.join(ROOT, "logs", "web_launcher.log")
+
+
+def log(msg: str) -> None:
+    try:
+        os.makedirs(os.path.dirname(LOG), exist_ok=True)
+        with open(LOG, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except OSError:
+        pass
+
+
+def _run(args: list[str]) -> str:
+    """无窗口运行命令，返回 stdout（GBK 解码容错）。"""
+    try:
+        out = subprocess.run(args, capture_output=True, timeout=15,
+                             creationflags=CREATE_NO_WINDOW)
+        return out.stdout.decode("gbk", "replace")
+    except Exception:
+        return ""
+
+
+def kill_stale() -> None:
+    """杀掉占用 PORT 的旧进程（含上次残留的 uvicorn）。"""
+    for line in _run(["netstat", "-ano"]).splitlines():
+        if f":{PORT}" in line and "LISTENING" in line:
+            pid = line.strip().split()[-1]
+            if pid.isdigit():
+                _run(["taskkill", "/f", "/pid", pid])
+                log(f"killed stale pid {pid} on :{PORT}")
+
+
+def port_ready(timeout: int = 30) -> bool:
+    import socket
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        try:
+            with socket.create_connection(("127.0.0.1", PORT), timeout=1):
+                return True
+        except OSError:
+            time.sleep(1)
+    return False
+
+
+def active_conns() -> set[str]:
+    """与 PORT 建立过/保持着 ESTABLISHED 连接的进程 PID 集合（不含监听者）。"""
+    pids: set[str] = set()
+    for line in _run(["netstat", "-ano"]).splitlines():
+        if f":{PORT}" in line and "ESTABLISHED" in line:
+            parts = line.strip().split()
+            if parts and parts[-1].isdigit():
+                pids.add(parts[-1])
+    return pids
+
+
+def pid_alive(pid: str) -> bool:
+    out = _run(["tasklist", "/FI", f"PID eq {pid}"])
+    return pid in out
+
+
+# 常见浏览器进程名（用于识别"浏览器还开着"→ 不关服务）
+BROWSER_NAMES = {"chrome", "msedge", "firefox", "iexplore", "opera",
+                 "brave", "360se", "qqbrowser", "sogouexplorer"}
+
+
+def _pid_image(pid: str) -> str:
+    """进程映像名（小写，去 .exe）。查不到返回 ''。"""
+    for line in _run(["tasklist", "/FI", f"PID eq {pid}"]).splitlines():
+        parts = line.split()
+        if parts and parts[0].lower().endswith(".exe") and parts[1] == pid:
+            return parts[0].lower()[:-4]
+    return ""
+
+
+def _is_browser_pid(pid: str) -> bool:
+    img = _pid_image(pid)
+    return img in BROWSER_NAMES
+
+
+def _monitor(server: subprocess.Popen) -> int:
+    """监控循环：浏览器关闭判定（可单测——server/active_conns/pid_alive 可注入）。
+
+    规则：曾见过浏览器连接（PID）。只有当「所有曾连接过的浏览器进程都已
+    退出」且「无浏览器连接持续 GRACE 秒」才判定浏览器已关闭，随后终止
+    server 并返回 0。非浏览器连接（健康检查/探测脚本）不参与判定、不重置
+    计时——否则一个残留探测连接会让服务永不关闭。
+    """
+    seen_browsers: set[str] = set()
+    last_active = time.time()
+    while True:
+        if server.poll() is not None:
+            log(f"uvicorn exited (code={server.returncode}); launcher exit")
+            return server.returncode or 0
+        conns = active_conns()
+        browsers = {p for p in conns if _is_browser_pid(p)}
+        if browsers:
+            seen_browsers |= browsers
+            last_active = time.time()
+            log(f"browser conns={sorted(browsers)} seen={sorted(seen_browsers)}")
+        elif seen_browsers:
+            alive = [p for p in seen_browsers if pid_alive(p)]
+            idle = time.time() - last_active
+            log(f"no browser conns; browsers_alive={alive} idle={idle:.0f}s")
+            if not alive and idle >= SHUTDOWN_GRACE:
+                log(f"browser closed (no conns {SHUTDOWN_GRACE}s, seen={seen_browsers})")
+                break
+        time.sleep(POLL_INTERVAL)
+    server.terminate()
+    try:
+        server.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        server.kill()
+    return 0
+
+
+def main() -> int:
+    log("=== launcher start ===")
+    kill_stale()
+    time.sleep(1)
+
+    server = subprocess.Popen(
+        [PY, "-m", "uvicorn", "web.app:app",
+         "--host", "127.0.0.1", "--port", str(PORT)],
+        cwd=ROOT,
+        creationflags=CREATE_NO_WINDOW,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    log(f"uvicorn pid={server.pid}")
+
+    if not port_ready():
+        log("server failed to become ready; shutting down")
+        server.terminate()
+        return 1
+    log("port ready; opening browser")
+    try:
+        webbrowser.open(URL)
+    except Exception as exc:  # noqa: BLE001 — 浏览器打开失败不影响服务可用
+        log(f"webbrowser.open failed: {exc}")
+
+    return _monitor(server)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1722,3 +1722,84 @@ build 51,174 单元 43.6 MB · verify_index ALL PASS · assess_goals **PASS 9 ·
 
 ### 3. 待办
 - PyInstaller 打包单文件（用户选定部署形态，后续做）。
+
+## D-041 网页端 v2：运算层 + 大白话回答 + 历史记录库（用户授权）
+
+用户实测反馈两大问题（2026-08-15）：① LLM 解读以"所依据的原文引文"开头、说"无法计算"，没有先给大白话结论；② 需要历史记录库（问了什么 + 回复了什么），前端可回看。方案照 WEB_PLAN_v2.md，本决策记录关键授权与实现。
+
+### 1. 红线变更（用户显式授权）
+- **LLM 输出落库**：原红线"LLM 解读不落库"针对 corpus.db/knowledge.db（生成文本不进语料、不污染检索）。用户要求"建立记录库记录我都问了什么，以及项目回复了什么"——授权把每次查询完整往返（含 LLM 输出）写入**独立历史库 data/history.db**，与语料/知识库物理隔离，不参与检索，13 道闸门不受影响。存储即产品功能（历史记录），非缓存；LLM 输出仍标注生成来源。
+- 红线其余不变：运算层 = 纯坐标计算（summary 模板拼接可核验）；引文与生成分离；KEY 只留服务端。
+
+### 2. 回答质量根因与修复（D-041a）
+- **根因**：旧 SYSTEM_PROMPT 要求"输出分两段：先列所依据的原文引文，再给解读"——LLM 按此以引文开头、引文未涉及就说"无法计算"。且旧 interpret 未把运算事实传给 LLM。
+- **修复**（llm_reader.py）：新 prompt 规则 1「第一段必须是结论，1-3 句大白话直接回答运势问题」；规则 2「绝对禁止以'所依据的原文引文'开头、以'无法计算/引文未涉及'为主体回答」；规则 3「运算事实是系统已算好的坐标，必须先转化为回答而不是否定它」；interpret 新增 calc_data 参数，把排盘+运算事实+引文+问题组装给 LLM。
+- **实测**（真实 LLM，1990-05-15 男 · 问事 2026-08-15 14:41 上海 · "计算今天的运气如何"）：回复以"今天整体是**偏稳中有动，宜收敛锋芒、少争强**"开头直接回答，再给"判断依据"（劫财/辰酉合/乙未正财/亥巳冲逐条）与"古籍参照"（带出处），结尾生成标注。结论优先达标。
+
+### 3. 运算层（src/guji/bazi_calc.py，WEB_PLAN_v2 §3）
+- 十神（日主 vs 四干+藏干主气）、五行权重（天干1.0+藏干本气/中气/余气，浮点 round(2)）、地支六冲/六合/三合半合/相刑/自刑/相害、流日流时（复用 bazi.day_ganzhi/hour_ganzhi）与命局比对、summary 模板拼接。纯标准库零依赖。
+- **实测抓到的 bug**：六冲表 CHONG 初版单向映射（子→午 但 午→子 缺），反向组合检测不到——已修为双向。测试断言三处修正（XING 无序对用 frozenset、summary 偏旺连接符、十神名不全进 summary）。
+
+### 4. 历史库（src/guji/history.py + API + 前端）
+- `data/history.db` 表 bazi_history：id / created_at(UTC+8) / question / input_json / paipan_json / calc_json / evidence_json / llm_json。`executescript` 建表（execute 一次只能一条语句）、`contextlib.closing` 关连接（自检抓出）。
+- API：POST /api/bazi 每次查询自动入库（写入失败不阻断主流程）；GET /api/history（轻量列表，limit 1-200）；GET /api/history/{id}（完整往返）；DELETE /api/history/{id}（404 中文报错）。
+- 前端：结果区右侧 320px 历史面板（sticky，900px 以下单列）；列表项 = 时间+问题+排盘摘要+LLM 徽标+查看/删除；查看回填四段式结果并带"历史记录 #id"横幅；新查询后自动刷新；页面加载即拉取。
+
+### 5. 验证（全可复现）
+- 运算层单测：十神 12 项（庚见甲=偏财…全过）、生克表循环自洽、冲合刑害双向对称、真实庚辰日（2023-01-22，流日乙丑=正财）案例、summary 数值与字段逐项一致。
+- TestClient：POST 200（calc 含 6 键）· 边界 400 · 首页含 renderMD/历史面板元素 · 历史列表/详情/删除/404 全通。
+- 真实服务启动（Python 驱动脚本子进程启动 uvicorn → HTTP 实测）：排盘 庚午丁亥庚辰辛巳 · 流日辛酉 · LLM 26.3s 返回结论优先回复 · 历史库落 2 条（llm_ok=True）。
+- 13 道闸门零回退：build_index 43.6MB · verify_index ALL PASS · validate_alignment · check_quality PASS · conservation 1.0000 · assess_goals G1..G9 PASS · provenance 0/38 · probe_bcv PASS · eval_g1 100% · eval_g4 PASS · eval_g7 PASS · probe_g8 PASS。
+
+## D-042 外部资讯通道（P5）+ browser-use 实验 + 本窗口收尾（会话 3cc12478 接续）
+
+**起因**：上个窗口任务 #7（验证交付）in_progress 处中断，用户追问"Agent-Reach / browser-use 到底有没有融入项目"。实测结论：**没有代码集成**（只解压查看 + 写入路线图 P5 规划），本窗口补完并落地。
+
+### 1. P0 验证方式决策：确定性注入替代 e2e 竞态脚本
+- e2e_launcher_test.py 在 Windows 反复超时，根因是脚本自身竞态（netstat/tasklist 热循环 + 测试 socket 探测污染 `_monitor` 的浏览器判定），**不是 launcher 缺陷**（上个会话日志已证启动链路全通）。
+- 决策：不修 e2e 脚本（它只剩单次验证价值），改用全注入确定性验证（`subprocess.Popen`/`port_ready`/`webbrowser.open`/`active_conns`/`_is_browser_pid`/`pid_alive` 脚本化，2.7s 纯内存）→ **PASS**。验证脚本不落盘 scripts/（避免污染闸门目录）。
+
+### 2. 闸门零回退（实测）
+- check_quality PASS · build_index 43.6MB · verify_index ALL PASS（T11 362 compared，卦61 阳 / 卦47 阴对照）· assess_goals PASS 9 · PART 0 · FAIL 0。
+
+### 3. P5 外部资讯通道设计决策（新模块 src/guji/external.py + API + 前端）
+- **按源模式**：`mode="proxy"` 走 127.0.0.1:7897（海外源，实测 BBC 中文正常）；`mode="direct"` 直连（国内可达源，实测 Solidot 正常，走代理反而慢/不稳）。这是实测比出来的，不是偏好。
+- **实测否决**（照 REJECTED 先例，留负结果）：
+  - `github.com/*.atom` 本网络代理与直连均 SSL UNEXPECTED_EOF → 不预置 github commit feed；
+  - `api.github.com` 直连可用但共享 IP 易 403 rate limit → 不预置，留用户自定义；
+  - `gov.cn` 官方 RSS 404 → 剔除。
+- **红线遵守**：只抓公开 RSS；结果只在进程内返回，**不落库、不写 history.db**（"最新消息"是即时信息，与古籍语料 Source 层严格隔离）；单源失败降级不阻塞；无 KEY 涉入。
+- 新依赖：feedparser 6.0.14（红线第 3 类授权依据：用户已授权"走 7897，需要什么直接拉取"；且仅抓取解析用，不参与语料/检索）。
+
+### 4. browser-use 实验结论（P5）
+- `browser-use-main.zip` 已解压 `vendor/browser-use-main/`（597 文件）。完整 Agent 化需 browser-use-core 全家桶 + 多个 LLM SDK + LLM key，**本窗口不装**（大依赖 + 授权边界）。
+- 最小链路实测：`pip install playwright`（7897 代理下载中断 → **换清华镜像成功**）→ `chromium.launch(channel="msedge")` 用本机 Edge 免下载内核 → 打开本地 8123 → 标题/h1/news 面板齐全 → 截图 logs/playwright_local_sample.png → **PASS**。
+- 结论：真实浏览器控制层在 Windows + Edge 可用；browser-use 完整 Agent（LLM 驱动搜网/操作页面）列为后续可选，需 LLM key 与安装授权。
+
+### 5. 收尾清单
+- TASK_LEDGER.md §25 本窗口记录已写；PROJECT_ROADMAP P0 标记实机确认待办、P5 标记已落地；前端「最新消息」面板与 /api/external/news 已端到端实测。
+
+## D-043 P1 读书网页化：API 编排层 + at_scheme 增量方法 + 双 tab 前端（2026-08-15 晚）
+
+**起因**：PROJECT_ROADMAP P1 最高优先——读书能力只有 CLI，无 web 入口。
+
+### 1. API 层决策：只编排不复制逻辑
+- 新路由全部调既有 `src/guji` 函数（Corpus.search / at_address / compare_address / coverage / stats / KnowledgeBase.resume），响应序列化只做 `_hit_dict` 字段映射（citation()/disclosure() 是既有展示串，不再二次加工）。CLI 与 web 因此共享同一内核，一致性由抽查脚本实证而非推断。
+
+### 2. 通用地址定位：新增 `Corpus.at_scheme`（src/guji/search.py）
+- 需求：addr 视图要支持 zhouyi/bcv/yilin/booksec/play/euclid 五种地址体系，而 `at_address` 是 zhouyi-only（D-005：Psalms-99 == 卦99 碰撞）。
+- 方案比较：
+  - A. web 层自己拼 SQL 查 unit 表 —— 复制逻辑，否决；
+  - B. `at_scheme(scheme, addr_name, addr1, addr2, layer, limit)` 作为 Corpus 的通用查询方法（与 at_address 同构，只把 scheme 从常量变成参数）—— 选中。scheme 由调用方显式声明，碰撞由调用契约排除。
+- 纯增量：不触碰 at_address/search 既有行为，闸门零回退实测。
+
+### 3. 前端决策：并入 index.html 双 tab，而非独立 read.html
+- 路线图给了「read.html 或并入 index 多 tab」两个选项。实测现有 index.html 已是三段式单页（排盘/历史/消息），并入方案零新增页面路由、复用既有 .card/.ev-item 样式与 esc() XSS 防线、打包单文件时仍是单 HTML——选中。
+- 读书面板五个子视图（检索/定位/比对/书目/线程）全走新 API，前端不复制任何检索逻辑。
+
+### 4. 验证方式：抽查脚本放 logs/ 不落 scripts/
+- e2e_launcher_test.py 先例：Windows 竞态脚本污染闸门目录。CLI-vs-web 一致性抽查（logs/probe_cli_web_consistency.py）同理只放 logs/（未跟踪），10 例 top-5 citation 逐条一致 + addr/compare 各 1 例，全 PASS。
+
+### 5. 实测
+- CLI 与 web 抽查 10/10 一致（君子終日乾乾 等 10 查询）；addr zhouyi gua=1 一致；compare 卦28·九二 addr/reference/witnesses/counts 全等。
+- 13 道闸门零回退：assess_goals PASS 9 · PART 0 · FAIL 0；build 43.6MB；verify_index ALL PASS。

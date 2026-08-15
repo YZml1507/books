@@ -26,7 +26,9 @@
     font-family:var(--font-sans); font-size:16px; line-height:1.5;
     min-height:100vh;
   }
-  .wrap{max-width:760px; margin:0 auto; padding:32px 20px 64px;}
+  .wrap{max-width:1140px; margin:0 auto; padding:32px 20px 64px;}
+  .layout{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:24px; align-items:start;}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} }
   header h1{
     font-family:var(--font-serif); font-size:28px; font-weight:600;
     color:var(--primary); letter-spacing:.02em;
@@ -39,7 +41,7 @@
   label{display:block; font-size:14px; color:var(--primary); margin:14px 0 6px; font-weight:500;}
   .row{display:flex; gap:12px; flex-wrap:wrap;}
   .field{flex:1; min-width:96px;}
-  input[type=number], input[type=text], select{
+  input[type=number], input[type=text], input[type=date], select{
     width:100%; padding:10px 12px; font-size:16px;
     border:1px solid var(--border); border-radius:6px;
     background:var(--card); color:var(--foreground);
@@ -69,6 +71,26 @@
   .paipan-line{font-family:var(--font-serif); font-size:20px; color:var(--primary);}
   .nayin{color:var(--muted-fg); font-size:14px; margin-top:8px;}
   .warn{color:var(--accent); font-size:14px; margin-top:8px; font-weight:500;}
+
+  /* 运算结论卡片 */
+  .calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:560px){ .calc-grid{grid-template-columns:1fr;} }
+  .calc-block{
+    background:var(--background); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px;
+  }
+  .calc-block h3{font-size:14px; color:var(--secondary); margin-bottom:8px;}
+  .calc-block ul{list-style:none;}
+  .calc-block li{font-size:14px; padding:3px 0; border-bottom:1px dashed var(--border);}
+  .calc-block li:last-child{border-bottom:none;}
+  .calc-block .basis{color:var(--muted-fg); font-size:12px;}
+  .calc-summary{
+    margin-top:12px; padding:12px 14px; border-left:3px solid var(--accent);
+    background:#FFFBEB; border-radius:0 8px 8px 0; font-size:14px; line-height:1.7;
+  }
+  .pillar-tag{display:inline-block; font-size:12px; color:var(--on-secondary);
+    background:var(--secondary); border-radius:4px; padding:1px 6px; margin-right:6px;}
+
   .ev-item{
     padding:12px 0; border-bottom:1px solid var(--border);
   }
@@ -84,9 +106,129 @@
     display:inline-block; font-size:12px; color:var(--on-accent); background:var(--accent);
     padding:2px 10px; border-radius:999px; margin-left:8px; vertical-align:middle;
   }
-  .llm-text{white-space:pre-wrap; font-size:15px; margin-top:12px; line-height:1.7;}
+  .llm-text{font-size:15px; margin-top:12px; line-height:1.7;}
+  .llm-text h3, .llm-text h4{font-family:var(--font-serif); color:var(--primary); margin:14px 0 6px;}
+  .llm-text h3{font-size:17px;} .llm-text h4{font-size:15px;}
+  .llm-text p{margin:6px 0;}
+  .llm-text ul, .llm-text ol{margin:6px 0 6px 22px;}
+  .llm-text li{margin:3px 0;}
+  .llm-text blockquote{
+    border-left:3px solid var(--accent); padding:4px 12px; margin:8px 0;
+    color:var(--muted-fg); background:#FFFBEB; border-radius:0 6px 6px 0;
+  }
+  .llm-text code{
+    background:var(--muted); padding:1px 6px; border-radius:4px;
+    font-family:Consolas,monospace; font-size:13px;
+  }
+  .llm-text strong{color:var(--primary);}
   .llm-model{font-size:12px; color:var(--muted-fg); margin-top:10px;}
   .footnote{color:var(--muted-fg); font-size:12px; margin-top:24px;}
+
+  /* 历史记录面板 */
+  .hist-panel{position:sticky; top:24px; max-height:calc(100vh - 48px); overflow:auto;}
+  @media (max-width:900px){ .hist-panel{position:static; max-height:none;} }
+  .hist-item{padding:10px 0; border-bottom:1px solid var(--border);}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-time{font-size:12px; color:var(--muted-fg); font-family:monospace;}
+  .hist-q{font-size:14px; color:var(--foreground); margin-top:4px; font-weight:500;}
+  .hist-p{font-size:13px; color:var(--muted-fg); margin-top:4px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hist-actions{display:flex; gap:8px; margin-top:6px;}
+  .hist-actions button{
+    margin:0; padding:4px 12px; font-size:12px; width:auto; border-radius:5px;
+  }
+  .hist-del{background:var(--destructive) !important;}
+  .hist-view{background:var(--secondary) !important;}
+  .hist-banner{
+    font-size:13px; color:var(--on-accent); background:var(--accent);
+    padding:8px 14px; border-radius:6px; margin-bottom:4px;
+  }
+
+  /* 最新消息面板（外部资讯通道 P5） */
+  .news-panel{margin-top:24px;}
+  .news-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .news-refresh{
+    margin:0; padding:4px 14px; font-size:12px; width:auto; border-radius:5px;
+    background:var(--secondary);
+  }
+  .news-src{
+    font-size:13px; color:var(--primary); font-weight:600;
+    margin-top:14px; padding-bottom:4px; border-bottom:1px solid var(--border);
+  }
+  .news-item{padding:8px 0; border-bottom:1px dashed var(--border);}
+  .news-item:last-child{border-bottom:none;}
+  .news-item a{color:var(--foreground); text-decoration:none; font-size:14px;}
+  .news-item a:hover{color:var(--accent); text-decoration:underline;}
+  .news-time{display:block; font-size:11px; color:var(--muted-fg); margin-top:3px;
+    font-family:Consolas,monospace;}
+  .news-meta{font-size:12px; color:var(--muted-fg); margin-top:10px; font-family:Consolas,monospace;}
+  .news-err{font-size:13px; color:var(--destructive); margin-top:8px;}
+
+  /* 顶部视图切换（八字排盘 / 古籍读书） */
+  .tabs{display:flex; gap:8px; margin-top:20px; border-bottom:2px solid var(--border);}
+  .tab{
+    margin:0; padding:10px 22px; font-size:15px; width:auto; border-radius:8px 8px 0 0;
+    background:transparent; color:var(--muted-fg); border:1px solid transparent;
+    border-bottom:none;
+  }
+  .tab:hover{background:var(--muted); color:var(--primary);}
+  .tab.active{background:var(--card); color:var(--primary); font-weight:600;
+    border-color:var(--border); margin-bottom:-2px; border-bottom:2px solid var(--card);}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* 读书面板内部子 tab */
+  .rtabs{display:flex; gap:6px; margin:16px 0 4px; flex-wrap:wrap;}
+  .rtab{
+    margin:0; padding:6px 14px; font-size:13px; width:auto; border-radius:999px;
+    background:var(--muted); color:var(--muted-fg);
+  }
+  .rtab:hover{background:var(--border); color:var(--primary);}
+  .rtab.active{background:var(--secondary); color:var(--on-secondary); font-weight:500;}
+  .rsec{display:none;}
+  .rsec.active{display:block;}
+  .rsec .card{margin-top:12px;}
+
+  /* 读书：检索/定位结果 */
+  .hit-cite{font-size:12px; color:var(--secondary); font-family:monospace; word-break:break-all;}
+  .hit-disc{font-size:12px; color:var(--accent); margin-top:4px;}
+  .hit-score{font-size:11px; color:var(--muted-fg); font-family:monospace; margin-left:8px;}
+
+  /* 读书：比对 */
+  .cmp-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:900px){ .cmp-grid{grid-template-columns:1fr;} }
+  .cmp-wit{background:var(--background); border:1px solid var(--border); border-radius:8px; padding:10px 12px;}
+  .cmp-wit h3{font-size:13px; color:var(--secondary); margin-bottom:6px; word-break:break-all;}
+  .cmp-wit p{font-size:14px; font-family:var(--font-serif); line-height:1.7;}
+  .finding{
+    padding:8px 10px; border-left:3px solid var(--accent); background:#FFFBEB;
+    border-radius:0 6px 6px 0; font-size:13px; margin-top:8px; font-family:monospace;
+    word-break:break-all;
+  }
+
+  /* 读书：书目/线程 */
+  table.works{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px;}
+  table.works th, table.works td{
+    text-align:left; padding:6px 8px; border-bottom:1px solid var(--border);
+  }
+  table.works th{color:var(--secondary); font-weight:600; white-space:nowrap;}
+  table.works td.num{text-align:right; font-family:Consolas,monospace;}
+  .thread-item{padding:10px 0; border-bottom:1px solid var(--border);}
+  .thread-item:last-child{border-bottom:none;}
+  .thread-topic{font-size:15px; font-weight:500; color:var(--primary);}
+  .thread-meta{font-size:12px; color:var(--muted-fg); margin-top:4px; font-family:Consolas,monospace;}
+  .thread-actions{display:flex; gap:8px; margin-top:6px;}
+  .thread-actions button{margin:0; padding:4px 12px; font-size:12px; width:auto; border-radius:5px;}
+  .thread-view{background:var(--secondary) !important;}
+  .turn-user{font-size:13px; color:var(--primary); background:var(--muted);
+    padding:8px 12px; border-radius:6px; margin:8px 0;}
+  .turn-assistant{font-size:13px; color:var(--foreground); padding:8px 12px; margin:8px 0;}
+  .claim-box{border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin:8px 0;}
+  .claim-kind{display:inline-block; font-size:11px; color:var(--on-secondary);
+    background:var(--secondary); border-radius:4px; padding:1px 8px; margin-right:6px;}
+  .claim-conf{font-size:11px; color:var(--muted-fg); margin-left:6px;}
+  .claim-ev{font-size:12px; color:var(--muted-fg); margin-top:6px; font-family:monospace;}
+
   @media (max-width:480px){ .field{min-width:44%;} header h1{font-size:24px;} }
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{transition:none !important; animation:none !important;}
@@ -96,37 +238,167 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>八字命理检索</h1>
-    <p>排盘 · 命理古籍原文证据 · 可选的 LLM 白话解读（生成文本，非古籍原文）</p>
+    <h1>古籍智慧助手</h1>
+    <p>读书（检索 / 定位 / 比对 / 研究线程）· 算命（排盘 / 大运 / 古籍依据 / LLM 解读）· 最新消息</p>
   </header>
 
+  <nav class="tabs">
+    <button class="tab active" data-view="bazi" type="button">八字排盘</button>
+    <button class="tab" data-view="read" type="button">古籍读书</button>
+  </nav>
+
+  <div class="view active" id="view-bazi">
   <form class="card" id="form">
     <div class="row">
-      <div class="field"><label for="year">公历年份</label>
+      <div class="field"><label for="calendar_type">历法</label>
+        <select id="calendar_type"><option value="solar">公历（阳历）</option><option value="lunar">农历（阴历）</option></select></div>
+      <div class="field" id="f_scope"><label for="scope">推算范围</label>
+        <select id="scope"><option value="day">单日（今天/指定日）</option><option value="range">一段日期</option><option value="life">一生（大运流年）</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field" id="f_year"><label for="year">公历年份</label>
         <input id="year" type="number" min="1900" max="2100" value="1990" required></div>
-      <div class="field"><label for="month">月</label>
+      <div class="field" id="f_month"><label for="month">月</label>
         <input id="month" type="number" min="1" max="12" value="5" required></div>
-      <div class="field"><label for="day">日</label>
+      <div class="field" id="f_day"><label for="day">日</label>
         <input id="day" type="number" min="1" max="31" value="15" required></div>
+      <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap">闰月</label>
+        <input id="lunar_leap" type="checkbox"></div>
       <div class="field"><label for="hour">时（0–23）</label>
         <input id="hour" type="number" min="0" max="23" value="10" required></div>
       <div class="field"><label for="gender">性别</label>
         <select id="gender"><option>男</option><option>女</option></select></div>
     </div>
-    <label for="question">想了解什么？（可选）</label>
-    <input id="question" type="text" placeholder="例如：事业运如何？">
+    <div class="row" style="margin-top:6px;" id="ask_row">
+      <div class="field"><label for="ask_date">问事日期</label>
+        <input id="ask_date" type="date"></div>
+      <div class="field"><label for="ask_hour">问事时辰（0–23，可选）</label>
+        <input id="ask_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+      <div class="field"><label for="location">地点（可选）</label>
+        <input id="location" type="text" placeholder="例如：北京"></div>
+    </div>
+    <div class="row" style="margin-top:6px;" id="range_row" hidden>
+      <div class="field"><label for="range_start">起（YYYY-MM-DD）</label>
+        <input id="range_start" type="date"></div>
+      <div class="field"><label for="range_end">止（YYYY-MM-DD）</label>
+        <input id="range_end" type="date"></div>
+      <div class="field"><label for="range_hour">统一时辰（0–23，可选）</label>
+        <input id="range_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+    </div>
+    <label for="question">想了解什么？（可选，默认"今天运势如何？"）</label>
+    <input id="question" type="text" placeholder="例如：今天运势如何？事业运如何？这一生财运如何？">
     <div class="check">
       <input id="use_llm" type="checkbox">
-      <label for="use_llm" style="margin:0; font-weight:400;">LLM 白话解读（需服务端已配置）</label>
+      <label for="use_llm" style="margin:0; font-weight:400;">LLM 大白话解读（需服务端已配置）</label>
     </div>
-    <button id="submit" type="submit">排 盘</button>
+    <button id="submit" type="submit">排 盘 推 算</button>
     <div class="error" id="error" hidden></div>
     <div class="status" id="status" hidden></div>
   </form>
 
-  <div class="result" id="result" hidden></div>
-  <p class="footnote">古籍原文证据带出处（书名 / 层 / 页锚点 / 文件），可核验；
-    LLM 解读为生成文本，标注模型来源，不构成现实决策依据。</p>
+  <div class="layout">
+    <div>
+      <div class="result" id="result" hidden></div>
+      <p class="footnote">运算结论为系统按命理规则计算的坐标事实（可核验）；古籍原文证据带出处
+        （书名 / 层 / 页锚点 / 文件）；LLM 解读为生成文本，标注模型来源，不构成现实决策依据。</p>
+      <section class="card news-panel">
+        <div class="news-head">
+          <h2>最新消息 <span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">外部资讯</span></h2>
+          <button class="news-refresh" id="newsRefresh" type="button">刷新</button>
+        </div>
+        <div id="newsList"><div class="no-evidence">加载中…</div></div>
+        <div class="news-meta" id="newsMeta"></div>
+      </section>
+    </div>
+    <aside class="card hist-panel">
+      <h2>历史记录</h2>
+      <div id="histList"><div class="no-evidence">加载中…</div></div>
+    </aside>
+  </div>
+  </div><!-- /view-bazi -->
+
+  <div class="view" id="view-read">
+    <div class="rtabs">
+      <button class="rtab active" data-rsec="rsec-search" type="button">检索</button>
+      <button class="rtab" data-rsec="rsec-addr" type="button">定位</button>
+      <button class="rtab" data-rsec="rsec-compare" type="button">比对</button>
+      <button class="rtab" data-rsec="rsec-works" type="button">书目</button>
+      <button class="rtab" data-rsec="rsec-threads" type="button">研究线程</button>
+    </div>
+
+    <!-- 检索 -->
+    <section class="card rsec active" id="rsec-search">
+      <h2>全文检索<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">与 CLI 同内核</span></h2>
+      <div class="row">
+        <div class="field" style="flex:3;"><label for="rq">查询词（原文片段）</label>
+          <input id="rq" type="text" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
+        <div class="field"><label for="rlayer">层过滤</label>
+          <select id="rlayer"><option value="">全部层</option><option>經</option><option>注</option><option>十翼</option><option>正文</option><option>圖</option><option>傳</option></select></div>
+        <div class="field" style="flex:0.6;"><label for="rlimit">条数</label>
+          <input id="rlimit" type="number" value="10" min="1" max="50"></div>
+      </div>
+      <button id="rsearchBtn" type="button">检 索</button>
+      <div class="error" id="rserr" hidden></div>
+      <div id="rsearchOut"><div class="no-evidence">输入原文片段后点「检索」。结果逐条带出处（书名 / 层 / 页锚点 / 文件），可展开全文。</div></div>
+    </section>
+
+    <!-- 定位 -->
+    <section class="card rsec" id="rsec-addr">
+      <h2>地址定位<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">五种地址体系</span></h2>
+      <div class="row">
+        <div class="field"><label for="ascheme">体系</label>
+          <select id="ascheme">
+            <option value="zhouyi">zhouyi（周易·卦爻）</option>
+            <option value="bcv">bcv（圣经·卷章節）</option>
+            <option value="yilin">yilin（焦氏易林）</option>
+            <option value="booksec">booksec（BOOK·節）</option>
+            <option value="play">play（幕·場）</option>
+            <option value="euclid">euclid（BOOK·命题）</option>
+          </select></div>
+        <div class="field"><label for="agua">gua（zhouyi 卦號 1-64）</label>
+          <input id="agua" type="number" min="1" max="64" placeholder="如 1"></div>
+        <div class="field"><label for="ayao">yao（爻位，可选）</label>
+          <input id="ayao" type="text" placeholder="如 九三"></div>
+        <div class="field"><label for="aaddr1">addr1（其他体系序号）</label>
+          <input id="aaddr1" type="number" placeholder="如 bcv 卷 1"></div>
+        <div class="field"><label for="aaddr2">addr2（其他体系标签）</label>
+          <input id="aaddr2" type="text" placeholder="如 幕/場/命题"></div>
+        <div class="field"><label for="aaddrname">addr_name（卷名，可选）</label>
+          <input id="aaddrname" type="text" placeholder="如 Genesis"></div>
+      </div>
+      <button id="raddrBtn" type="button">定 位</button>
+      <div class="error" id="raddrerr" hidden></div>
+      <div id="raddrOut"><div class="no-evidence">zhouyi 用 gua/yao；其余体系用 addr1/addr2（可加卷名 addr_name）。</div></div>
+    </section>
+
+    <!-- 比对 -->
+    <section class="card rsec" id="rsec-compare">
+      <h2>跨版本比对<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">G5 注家比较</span></h2>
+      <div class="row">
+        <div class="field"><label for="cgua">卦號（1-64）</label>
+          <input id="cgua" type="number" min="1" max="64" value="28"></div>
+        <div class="field"><label for="cyao">爻位</label>
+          <input id="cyao" type="text" value="九二"></div>
+        <div class="field"><label for="clayer">层</label>
+          <select id="clayer"><option>經</option><option>注</option><option>十翼</option><option>正文</option></select></div>
+      </div>
+      <button id="rcompareBtn" type="button">比 对</button>
+      <div class="error" id="rcompareerr" hidden></div>
+      <div id="rcompareOut"><div class="no-evidence">同一地址的多个版本并列 + 差异摘要（校勘分类，稊/梯 类異文显式保留不折叠）。</div></div>
+    </section>
+
+    <!-- 书目 -->
+    <section class="card rsec" id="rsec-works">
+      <h2>语料书目<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">38 部</span></h2>
+      <div id="rworksOut"><div class="no-evidence">加载中…</div></div>
+    </section>
+
+    <!-- 研究线程 -->
+    <section class="card rsec" id="rsec-threads">
+      <h2>研究线程<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">G9 跨会话恢复</span></h2>
+      <div id="rthreadsOut"><div class="no-evidence">加载中…</div></div>
+    </section>
+  </div><!-- /view-read -->
 </div>
 
 <script>
@@ -135,9 +407,123 @@ const result = $('#result');
 
 function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-function render(j){
+/* 迷你 markdown 渲染器（零依赖，案 A）：先 esc() 再结构化，杜绝 XSS。
+   支持：## / ### 标题、**加粗**、`code`、- 无序列表、1. 有序列表、> 引用、空行分段 */
+function renderMD(text){
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+  const out = [];
+  let inList = null, inQuote = false;
+  const closeList = () => { if (inList){ out.push(`</${inList}>`); inList = null; } };
+  const inline = s => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  for (const raw of lines){
+    const line = raw.trim();
+    if (!line){ closeList(); inQuote = false; out.push('<p></p>'); continue; }
+    if (line.startsWith('### ')){
+      closeList(); out.push(`<h4>${inline(line.slice(4))}</h4>`); continue;
+    }
+    if (line.startsWith('## ')){
+      closeList(); out.push(`<h3>${inline(line.slice(3))}</h3>`); continue;
+    }
+    if (line.startsWith('# ')){
+      closeList(); out.push(`<h3>${inline(line.slice(2))}</h3>`); continue;
+    }
+    if (line.startsWith('> ')){
+      closeList(); inQuote = true; out.push(`<blockquote>${inline(line.slice(2))}</blockquote>`);
+      continue;
+    }
+    if (/^[-*] /.test(line)){
+      if (inList !== 'ul'){ closeList(); out.push('<ul>'); inList = 'ul'; }
+      out.push(`<li>${inline(line.slice(2))}</li>`); continue;
+    }
+    if (/^\d+[.、] /.test(line)){
+      if (inList !== 'ol'){ closeList(); out.push('<ol>'); inList = 'ol'; }
+      out.push(`<li>${inline(line.replace(/^\d+[.、] /, ''))}</li>`); continue;
+    }
+    closeList(); out.push(`<p>${inline(line)}</p>`);
+  }
+  closeList();
+  return out.join('\n');
+}
+
+/* 运算结论卡片渲染（兼容三种 scope：day / range / life） */
+function renderCalc(c){
+  if (!c) return '';
+  const scope = c.scope || 'day';
+
+  // --- range：逐日流日关系 ---
+  if (scope === 'range' && (c.days||[]).length){
+    const rows = c.days.map(d => {
+      let t = `<strong>${esc(d.date)}</strong>（${esc(d.day_ganzhi)}）${esc(d.day_master_rel||'')}`;
+      (d.day_branch_rels||[]).forEach(r => { t += ` · ${esc(r.note)}`; });
+      if (d.hour_ganzhi){
+        t += ` ｜ 流时 ${esc(d.hour_ganzhi)}：${esc(d.hour_master_rel||'')}`;
+        (d.hour_branch_rels||[]).forEach(r => { t += ` · ${esc(r.note)}`; });
+      }
+      return `<li>${t}</li>`;
+    }).join('');
+    return `<section class="card"><h2>运算结论（日期范围）<span class="llm-badge">坐标计算</span></h2>
+      <div class="calc-block"><h3>${esc(c.start||'')} ~ ${esc(c.end||'')} · 共 ${(c.days||[]).length} 天</h3>
+      <ul>${rows}</ul></div>
+      <div class="calc-summary">${esc(c.summary||'')}</div>
+    </section>`;
+  }
+
+  // --- life：大运表 ---
+  if (scope === 'life' && (c.dayun||[]).length){
+    const rows = c.dayun.map(d =>
+      `<li>${esc(d.pillar)}（${esc(String(d.start_age))}~${esc(String(d.end_age))}岁 · 约${esc(String(d.year_start))}年起）→ 日主之<strong>${esc(d.gan_rel)}</strong></li>`).join('');
+    return `<section class="card"><h2>运算结论（生平大运）<span class="llm-badge">坐标计算</span></h2>
+      <div class="calc-block"><h3>${c.qi_yun_age ? '约 ' + esc(String(c.qi_yun_age)) + ' 岁起运' : '起运岁未知'}</h3>
+      <ul>${rows}</ul></div>
+      <div class="calc-summary">${esc(c.summary||'')}</div>
+    </section>`;
+  }
+
+  // --- day：单日（默认） ---
+  const fe = c.five_elements || {};
+  const dist = fe.counts ? Object.entries(fe.counts)
+    .map(([e,v]) => `${e}${v}`).join(' · ') : '';
+  const miss = (fe.missing||[]).length ? `缺 ${fe.missing.join('')}` : '五行俱全';
+  const strong = (fe.strong||[]).length ? `偏旺：${fe.strong.join('、')}` : '';
+  const tgs = (c.ten_gods||[]).map(t =>
+    `<li><span class="pillar-tag">${esc(t.pos)}</span>${esc(t.gan)} → <strong>${esc(t.god)}</strong>
+     <div class="basis">${esc(t.basis)}</div></li>`).join('');
+  const rels = (c.relations||[]).map(r =>
+    `<li>${esc(r.type)}：${esc(r.note)}</li>`).join('');
+  const dl = c.day_luck || {};
+  let dlHtml = '';
+  if (dl.day_ganzhi){
+    dlHtml += `<li>流日 <strong>${esc(dl.day_ganzhi)}</strong>：${esc(dl.day_master_rel||'')}</li>`;
+    (dl.day_branch_rels||[]).forEach(r => {
+      dlHtml += `<li>${esc(r.pos)} ${esc(r.type)}（${esc(r.note)}）</li>`;
+    });
+  }
+  if (dl.hour_ganzhi){
+    dlHtml += `<li>流时 <strong>${esc(dl.hour_ganzhi)}</strong>：${esc(dl.hour_master_rel||'')}</li>`;
+    (dl.hour_branch_rels||[]).forEach(r => {
+      dlHtml += `<li>${esc(r.pos)} ${esc(r.type)}（${esc(r.note)}）</li>`;
+    });
+  }
+  return `<section class="card"><h2>运算结论<span class="llm-badge">坐标计算</span></h2>
+    <div class="calc-grid">
+      <div class="calc-block"><h3>十神关系（日主 ${esc(c.ten_gods && c.ten_gods[3] ? c.ten_gods[3].gan : '')}）</h3><ul>${tgs}</ul></div>
+      <div class="calc-block"><h3>五行分布</h3><ul>
+        <li>${esc(dist)}</li>
+        <li>${esc(miss)}</li>
+        ${strong ? `<li>${esc(strong)}</li>` : ''}
+      </ul></div>
+      ${rels ? `<div class="calc-block"><h3>命局地支关系</h3><ul>${rels}</ul></div>` : ''}
+      ${dlHtml ? `<div class="calc-block"><h3>流日 / 流时</h3><ul>${dlHtml}</ul></div>` : ''}
+    </div>
+    <div class="calc-summary">${esc(c.summary||'')}</div>
+  </section>`;
+}
+
+function render(j, banner){
   const p = j.paipan;
-  let html = '';
+  let html = banner ? `<div class="hist-banner">${banner}</div>` : '';
   // 1) 排盘卡片
   html += `<section class="card"><h2>排盘</h2>
     <div class="paipan-line">${esc(p.render)}</div>
@@ -145,15 +531,22 @@ function render(j){
     ${(p.warn||[]).map(w=>`<div class="warn">⚠ ${esc(w)}</div>`).join('')}
   </section>`;
 
-  // 2) 古籍原文证据
+  // 2) 运算结论卡片（结构化坐标，非 LLM）
+  html += renderCalc(j.calc);
+
+  // 3) 古籍原文证据
   let ev = '<section class="card"><h2>古籍原文证据</h2>';
   if (!j.evidence || !j.evidence.length){
     ev += '<div class="no-evidence">证据不足：命理书未检索到与本坐标匹配的原文（G7）。</div>';
   } else {
     j.evidence.forEach((e,i)=>{
-      const page = e.page_anchor ? `@${e.page_anchor}` : '@?';
+      // 页锚/文件名剥掉 KR3g 编号前缀，只留可读页码（WYG_002-8b / 002.txt）
+      const wid = e.work_id || '';
+      const page = e.page_anchor ? '@' + String(e.page_anchor).replace(wid+'_','') : '@?';
+      const file = String(e.file||'').replace(wid+'_','');
+      const book = e.title || wid || '佚名';
       ev += `<div class="ev-item" id="ev-${i}">
-        <div class="ev-meta">[${esc(e.work_id)} · ${esc(e.layer||'')} ${esc(page)} (${esc(e.file||'')})] ${esc(e.why||'')}</div>
+        <div class="ev-meta">[${esc(book)} ${esc(e.layer||'')} ${esc(page)} (${esc(file)})] ${esc(e.why||'')}</div>
         <div class="ev-text">${esc(e.text)}</div>
         <span class="ev-toggle" onclick="toggleEv(${i})">展开全文</span>
       </div>`;
@@ -161,10 +554,10 @@ function render(j){
   }
   ev += '</section>';
 
-  // 3) LLM 解读（标注生成来源）
+  // 4) LLM 大白话解读（markdown 渲染 + 生成标注）
   if (j.llm && (j.llm.text || j.llm.ok)){
-    html += `<section class="card"><h2>LLM 白话解读<span class="llm-badge">生成文本</span></h2>
-      <div class="llm-text">${esc(j.llm.text||'')}</div>
+    html += `<section class="card"><h2>LLM 大白话解读<span class="llm-badge">生成文本</span></h2>
+      <div class="llm-text">${renderMD(j.llm.text||'')}</div>
       ${j.llm.model ? `<div class="llm-model">模型：${esc(j.llm.model)}</div>` : ''}
     </section>`;
   }
@@ -180,17 +573,113 @@ function toggleEv(i){
   item.querySelector('.ev-toggle').textContent = expanded ? '收起' : '展开全文';
 }
 
+/* ---------- 历史记录面板 ---------- */
+async function loadHistory(){
+  const box = $('#histList');
+  try{
+    const r = await fetch('/api/history?limit=50');
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    const recs = j.records || [];
+    if (!recs.length){
+      box.innerHTML = '<div class="no-evidence">暂无历史记录</div>';
+      return;
+    }
+    box.innerHTML = recs.map(rec => {
+      const time = esc(rec.created_at || '');
+      const q = esc(rec.question || '（未填问题）');
+      const p = esc(rec.paipan_render || '');
+      const badge = rec.llm_ok ? '<span class="llm-badge">LLM</span> ' : '';
+      return `<div class="hist-item">
+        <div class="hist-time">${time}</div>
+        <div class="hist-q">${badge}${q}</div>
+        <div class="hist-p">${p}</div>
+        <div class="hist-actions">
+          <button class="hist-view" data-id="${rec.id}" onclick="viewHistory(${rec.id})">查看</button>
+          <button class="hist-del" data-id="${rec.id}" onclick="delHistory(${rec.id})">删除</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(ex){
+    box.innerHTML = '<div class="no-evidence">历史记录加载失败</div>';
+  }
+}
+
+async function viewHistory(id){
+  try{
+    const r = await fetch('/api/history/' + id);
+    if (!r.ok){ alert('历史记录不存在或已删除'); return; }
+    const rec = await r.json();
+    render({
+      paipan: rec.paipan,
+      calc: rec.calc,
+      evidence: rec.evidence,
+      llm: rec.llm,
+    }, `历史记录 #${rec.id} · ${esc(rec.created_at||'')}${rec.question ? ' · ' + esc(rec.question) : ''}`);
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }catch(ex){
+    alert('加载历史记录失败：' + ex.message);
+  }
+}
+
+async function delHistory(id){
+  if (!confirm('删除这条历史记录？')) return;
+  try{
+    const r = await fetch('/api/history/' + id, {method:'DELETE'});
+    if (!r.ok){ alert('删除失败'); return; }
+    loadHistory();
+  }catch(ex){
+    alert('删除失败：' + ex.message);
+  }
+}
+
+/* ---------- 表单联动：历法 / 范围切换 ---------- */
+function syncForm(){
+  const cal = $('#calendar_type').value;      // solar | lunar
+  const scope = $('#scope').value;            // day | range | life
+  // 农历：年份/月/日标签切换，显示闰月勾选
+  $('#f_year label').textContent = cal === 'lunar' ? '农历年份' : '公历年份';
+  $('#f_month label').textContent = cal === 'lunar' ? '农历月' : '月';
+  $('#f_day label').textContent = cal === 'lunar' ? '农历日' : '日';
+  $('#f_lunar_leap').hidden = cal !== 'lunar';
+  // 范围模式：隐藏单日问事行，显示 range 行
+  $('#ask_row').hidden = scope === 'range' || scope === 'life';
+  $('#range_row').hidden = scope !== 'range';
+  // 单日/范围可带地点；生平不带问事
+  $('#location').closest('.field').parentElement.hidden = scope === 'life';
+  if (scope === 'life') $('#location').value = '';
+}
+$('#calendar_type').addEventListener('change', syncForm);
+$('#scope').addEventListener('change', syncForm);
+syncForm();
+
 $('#form').addEventListener('submit', async e => {
   e.preventDefault();
   const err = $('#error'), st = $('#status'), btn = $('#submit');
-  err.hidden = true; st.hidden = false; st.textContent = '排盘中…';
+  err.hidden = true; st.hidden = false; st.textContent = '排盘推算中…';
   btn.disabled = true;
+  const cal = $('#calendar_type').value;
+  const scope = $('#scope').value;
   const body = {
     year: +$('#year').value, month: +$('#month').value,
     day: +$('#day').value, hour: +$('#hour').value,
     gender: $('#gender').value,
     use_llm: $('#use_llm').checked,
     question: $('#question').value.trim() || null,
+    calendar_type: cal,
+    scope: scope,
+    lunar_year: cal === 'lunar' ? +$('#year').value : null,
+    lunar_month: cal === 'lunar' ? +$('#month').value : null,
+    lunar_day: cal === 'lunar' ? +$('#day').value : null,
+    lunar_leap: cal === 'lunar' && $('#lunar_leap').checked,
+    range_start: scope === 'range' ? $('#range_start').value || null : null,
+    range_end: scope === 'range' ? $('#range_end').value || null : null,
+    ask_date: scope === 'day' ? ($('#ask_date').value || null) : null,
+    ask_hour: scope === 'day'
+      ? ($('#ask_hour').value === '' ? null : +$('#ask_hour').value)
+      : (scope === 'range' && $('#range_hour').value !== ''
+          ? +$('#range_hour').value : null),
+    location: scope === 'life' ? null : ($('#location').value.trim() || null),
   };
   try{
     const r = await fetch('/api/bazi', {
@@ -200,12 +689,230 @@ $('#form').addEventListener('submit', async e => {
     const j = await r.json();
     if (!r.ok){ err.textContent = j.detail || ('请求失败：'+r.status); err.hidden = false; return; }
     render(j);
+    loadHistory();
   }catch(ex){
     err.textContent = '网络错误：'+ex.message; err.hidden = false;
   }finally{
     st.hidden = true; btn.disabled = false;
   }
 });
+/* ---------- 最新消息面板（外部资讯通道 P5） ---------- */
+async function loadNews(){
+  const box = $('#newsList'), meta = $('#newsMeta');
+  meta.textContent = '';
+  try{
+    const r = await fetch('/api/external/news');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (j.error){ box.innerHTML = '<div class="no-evidence">资讯通道异常</div>'; meta.textContent = j.error; return; }
+    const srcs = j.sources || [];
+    if (!srcs.length){
+      box.innerHTML = '<div class="no-evidence">暂无可用资讯源</div>';
+      meta.textContent = '代理：' + (j.proxy || '');
+      return;
+    }
+    box.innerHTML = srcs.map(s => {
+      const head = `<div class="news-src">${esc(s.title)}` +
+        (s.ok ? ` <span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">${s.items.length} 条</span>`
+              : ` <span class="llm-badge" style="background:var(--destructive);">失败</span>`) + '</div>';
+      if (!s.ok) return head + `<div class="news-err">${esc(s.error || '抓取失败')}</div>`;
+      const items = (s.items || []).map(it =>
+        `<div class="news-item"><a href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>` +
+        (it.published ? `<span class="news-time">${esc(it.published)}</span>` : '') + '</div>'
+      ).join('');
+      return head + items;
+    }).join('');
+    meta.textContent = '抓取时间 ' + (j.fetched_at || '') + ' · 代理 ' + (j.proxy || '');
+  }catch(ex){
+    box.innerHTML = '<div class="no-evidence">最新消息加载失败</div>';
+    meta.textContent = ex.message;
+  }
+}
+$('#newsRefresh').addEventListener('click', () => {
+  const btn = $('#newsRefresh');
+  btn.disabled = true;
+  loadNews().finally(() => { btn.disabled = false; });
+});
+
+loadHistory();
+loadNews();
+
+/* ========== 读书面板（P1）：与 CLI 同内核，只调 /api/* 编排层 ========== */
+
+/* 顶部视图切换（排盘 / 读书） */
+function switchView(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+
+/* 读书面板内部子 tab */
+function switchRsec(name){
+  document.querySelectorAll('.rtab').forEach(t => t.classList.toggle('active', t.dataset.rsec === name));
+  document.querySelectorAll('.rsec').forEach(s => s.classList.toggle('active', s.id === name));
+}
+document.querySelectorAll('.rtab').forEach(t => t.addEventListener('click', () => switchRsec(t.dataset.rsec)));
+
+/* 结果条目渲染（与排盘证据卡片同一套 .ev-item 样式，可展开全文） */
+function renderHits(list, box, emptyMsg){
+  if (!list || !list.length){ box.innerHTML = `<div class="no-evidence">${esc(emptyMsg || '0 命中')}</div>`; return; }
+  box.innerHTML = list.map((h, i) => {
+    const disc = h.disclosure ? `<div class="hit-disc">${esc(h.disclosure)}</div>` : '';
+    const score = h.score != null ? `<span class="hit-score">score ${Number(h.score).toFixed(2)}</span>` : '';
+    return `<div class="ev-item" id="rh-${i}">
+      <div class="hit-cite">${esc(h.citation)}${score}</div>
+      <div class="ev-text">${esc(h.text)}</div>
+      ${disc}
+      <span class="ev-toggle" onclick="toggleHit(${i})">展开全文</span>
+    </div>`;
+  }).join('');
+}
+function toggleHit(i){
+  const item = document.getElementById('rh-' + i);
+  if (!item) return;
+  const expanded = item.classList.toggle('expanded');
+  item.querySelector('.ev-toggle').textContent = expanded ? '收起' : '展开全文';
+}
+
+/* ---- 检索 ---- */
+$('#rsearchBtn').addEventListener('click', async () => {
+  const q = $('#rq').value.trim();
+  const err = $('#rserr'), out = $('#rsearchOut');
+  err.hidden = true;
+  if (!q){ err.textContent = '请输入查询词'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">检索中…</div>';
+  try{
+    const p = new URLSearchParams({q, limit: $('#rlimit').value || '10'});
+    if ($('#rlayer').value) p.set('layer', $('#rlayer').value);
+    const r = await fetch('/api/search?' + p.toString());
+    const j = await r.json();
+    if (!r.ok){ err.textContent = j.detail || ('请求失败：' + r.status); err.hidden = false; return; }
+    out.innerHTML = `<div class="no-evidence">「${esc(q)}」命中 ${j.count} 条</div>`;
+    renderHits(j.hits, out, '0 命中');
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+});
+
+/* ---- 定位 ---- */
+$('#raddrBtn').addEventListener('click', async () => {
+  const scheme = $('#ascheme').value;
+  const err = $('#raddrerr'), out = $('#raddrOut');
+  err.hidden = true;
+  out.innerHTML = '<div class="no-evidence">定位中…</div>';
+  const p = new URLSearchParams({scheme});
+  if (scheme === 'zhouyi'){
+    const g = $('#agua').value.trim();
+    if (!g){ err.textContent = 'zhouyi 定位需提供 gua（1-64）'; err.hidden = false; return; }
+    p.set('gua', g);
+    if ($('#ayao').value.trim()) p.set('yao', $('#ayao').value.trim());
+  } else {
+    if ($('#aaddr1').value.trim()) p.set('addr1', $('#aaddr1').value.trim());
+    if ($('#aaddr2').value.trim()) p.set('addr2', $('#aaddr2').value.trim());
+    if ($('#aaddrname').value.trim()) p.set('addr_name', $('#aaddrname').value.trim());
+  }
+  try{
+    const r = await fetch('/api/addr?' + p.toString());
+    const j = await r.json();
+    if (!r.ok){ err.textContent = j.detail || ('请求失败：' + r.status); err.hidden = false; return; }
+    out.innerHTML = `<div class="no-evidence">scheme=${esc(scheme)} · ${j.count} 单元</div>`;
+    renderHits(j.hits, out, '该地址无单元');
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+});
+
+/* ---- 比对 ---- */
+$('#rcompareBtn').addEventListener('click', async () => {
+  const err = $('#rcompareerr'), out = $('#rcompareOut');
+  err.hidden = true;
+  const g = $('#cgua').value.trim();
+  if (!g){ err.textContent = '请输入卦號'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">比对中…</div>';
+  try{
+    const p = new URLSearchParams({gua: g, yao: $('#cyao').value.trim() || '九三',
+                                   layer: $('#clayer').value || '經'});
+    const r = await fetch('/api/compare?' + p.toString());
+    const j = await r.json();
+    if (!r.ok){ err.textContent = j.detail || ('请求失败：' + r.status); err.hidden = false; return; }
+    let html = `<div class="no-evidence">${esc(j.addr)} · 底本 ${esc(j.reference)} · ` +
+      (j.agree ? '各版本一致' : '存在校勘差异') +
+      (Object.keys(j.counts||{}).length ? ` · 差异分类 ${esc(JSON.stringify(j.counts))}` : '') + '</div>';
+    // 并排见证
+    const wits = Object.entries(j.witnesses || {});
+    if (wits.length){
+      html += '<div class="cmp-grid">' + wits.map(([wid, txt]) =>
+        `<div class="cmp-wit"><h3>${esc(j.citations[wid] || wid)}</h3><p>${esc(txt)}</p></div>`).join('') + '</div>';
+    }
+    // 差异摘要
+    (j.findings || []).forEach(f => { html += `<div class="finding">${esc(f.line)}</div>`; });
+    if (!wits.length && !(j.findings||[]).length) html += '<div class="no-evidence">该地址无见证可比较</div>';
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+});
+
+/* ---- 书目 ---- */
+async function loadWorks(){
+  const box = $('#rworksOut');
+  try{
+    const r = await fetch('/api/works');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j.works || !j.works.length){ box.innerHTML = '<div class="no-evidence">无语料</div>'; return; }
+    box.innerHTML = `<div class="no-evidence">共 ${j.works.length} 部（含 unit 表有单元的书；无单元的 work 未列）</div>
+      <table class="works"><tr><th>id</th><th>书名</th><th>genre</th><th>单元</th><th>有卦址</th><th>有爻址</th><th>有页锚</th></tr>` +
+      j.works.map(w => `<tr><td>${esc(w.id)}</td><td>${esc(w.title||'')}</td><td>${esc(w.genre||'')}</td>
+        <td class="num">${w.units||0}</td><td class="num">${w.addressed||0}</td>
+        <td class="num">${w.yao_addressed||0}</td><td class="num">${w.anchored||0}</td></tr>`).join('') + '</table>';
+  }catch(ex){ box.innerHTML = `<div class="no-evidence">书目加载失败：${esc(ex.message)}</div>`; }
+}
+
+/* ---- 研究线程（G9）---- */
+async function loadThreads(){
+  const box = $('#rthreadsOut');
+  try{
+    const r = await fetch('/api/threads');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const rows = j.threads || [];
+    if (!rows.length){
+      box.innerHTML = '<div class="no-evidence">暂无研究线程（G9 跨会话恢复：新会话可从 CLI `research_thread.py demo` 建示例）</div>';
+      return;
+    }
+    box.innerHTML = rows.map(t => `<div class="thread-item">
+      <div class="thread-topic">${esc(t.topic)}</div>
+      <div class="thread-meta">#${t.id} · 更新 ${esc(t.updated_at||t.opened_at||'')} · ${t.turns} 轮对话 · ${t.claims} 条结论</div>
+      <div class="thread-actions"><button class="thread-view" onclick="viewThread(${t.id})">查看</button></div>
+    </div>`).join('') +
+    `<div class="thread-meta" style="margin-top:8px;">存储统计：${esc(JSON.stringify(j.stats||{}))}</div>`;
+  }catch(ex){ box.innerHTML = `<div class="no-evidence">线程加载失败：${esc(ex.message)}</div>`; }
+}
+
+async function viewThread(tid){
+  const box = $('#rthreadsOut');
+  box.innerHTML = '<div class="no-evidence">加载中…</div>';
+  try{
+    const r = await fetch('/api/threads/' + tid);
+    if (!r.ok){ box.innerHTML = `<div class="no-evidence">线程 ${tid} 不存在或已删除</div>`; return; }
+    const j = await r.json();
+    let html = `<h3 style="margin:6px 0;">线程 #${tid}</h3>`;
+    html += (j.turns || []).map(t =>
+      `<div class="${t.role === 'assistant' ? 'turn-assistant' : 'turn-user'}"><strong>${esc(t.role)}</strong>：${esc(t.text)}</div>`).join('') || '<div class="no-evidence">无对话</div>';
+    html += '<h3 style="margin:12px 0 4px;">结论与证据</h3>';
+    (j.claims || []).forEach(c => {
+      html += `<div class="claim-box"><span class="claim-kind">${esc(c.kind)}</span>${esc(c.claim)}
+        <span class="claim-conf">${esc(c.confidence||'')}</span>
+        <div class="hit-cite">${esc(c.method||'')} · ${esc(c.created_at||'')}</div>`;
+      (c.evidence || []).forEach(e => {
+        html += `<div class="claim-ev">${esc(e.role||'')} ${esc(e.work_id||'')} @${esc(e.page_anchor||'')} (${esc(e.file||'')})：${esc(e.quote||'')}</div>`;
+      });
+      html += '</div>';
+    });
+    if (!(j.claims||[]).length) html += '<div class="no-evidence">本线程尚无记录结论</div>';
+    html += `<div class="thread-meta" style="margin-top:10px;">证据回查：ok=${esc(String(j.verify && j.verify.ok))} stale=${esc(String(j.verify && j.verify.stale))}</div>
+      <div class="thread-actions"><button class="thread-view" onclick="loadThreads()">返回列表</button></div>`;
+    box.innerHTML = html;
+  }catch(ex){ box.innerHTML = `<div class="no-evidence">加载失败：${esc(ex.message)}</div>`; }
+}
+
+loadWorks();
+loadThreads();
 </script>
 </body>
 </html>

@@ -228,6 +228,45 @@ def _jie_before(dt: datetime, year: int) -> tuple[str, int] | None:
     return name, zhi
 
 
+def _jie_time(dt: datetime, year: int, after: bool) -> datetime | None:
+    """dt 之前(after=False)/之后(after=True)最近的"节"时刻（东八区）。
+
+    大运起运用：顺排取出生后最近节，逆排取出生前最近节。
+    """
+    jies = ["立春", "惊蛰", "清明", "立夏", "芒种", "小暑",
+            "立秋", "白露", "寒露", "立冬", "大雪", "小寒"]
+    cands = []
+    for y in (year - 1, year, year + 1):
+        for name in jies:
+            cands.append(term_time(y, name) + timedelta(hours=8))
+    cands.sort()
+    if after:
+        for t in cands:
+            if t >= dt:
+                return t
+        return None
+    prev = None
+    for t in cands:
+        if t < dt:
+            prev = t
+        else:
+            break
+    return prev
+
+
+def _dayun_pillars(month_pillar: str, direction: str, count: int = 8) -> list[str]:
+    """大运干支序列：月柱起，顺排 +1 / 逆排 -1（六十甲子），每运 10 年。
+
+    例：月柱 丁丑 顺排 → 戊寅 己卯 庚辰…；逆排 → 丙子 乙亥 甲戌…
+    """
+    g, z = GAN.index(month_pillar[0]), ZHI.index(month_pillar[1])
+    step = 1 if direction == "顺" else -1
+    out = []
+    for k in range(1, count + 1):
+        out.append(GAN[(g + step * k) % 10] + ZHI[(z + step * k) % 12])
+    return out
+
+
 def compute(year: int, month: int, day: int, hour: int,
             gender: str = "男") -> Bazi:
     """主入口：公历生日（hour 为 0..23 整数）-> Bazi。"""
@@ -267,6 +306,18 @@ def compute(year: int, month: int, day: int, hour: int,
     dayun_dir = "顺" if (yang_year and gender == "男") or (not yang_year and gender == "女") \
         else "逆"
 
+    # 起运岁数：出生到最近"节"的天数 ÷ 3 = 岁（3 天起 1 岁）。
+    # 顺排取出生后最近节，逆排取出生前最近节（通行规则）。
+    if dayun_dir == "顺":
+        ref_jie = _jie_time(dt, year, after=True)
+    else:
+        ref_jie = _jie_time(dt, year, after=False)
+    qi_yun_age = None
+    if ref_jie is not None:
+        qi_yun_age = abs((ref_jie - dt).total_seconds()) / 86400 / 3.0  # 岁
+    # 大运干支：月柱起逐运 ±1，每运 10 年（从起运岁开始）
+    dayun_pillars = _dayun_pillars(month_pillar, dayun_dir)
+
     warns = []
     if warn0:
         warns.append(warn0)
@@ -289,7 +340,10 @@ def compute(year: int, month: int, day: int, hour: int,
         warn=warns,
         meta={"gindex_year": y_idx[0] * 12 + y_idx[1],
               "jie": jie[0] if jie else None,
-              "jdn": jdn(year, month, day)},
+              "jdn": jdn(year, month, day),
+              "qi_yun_age": qi_yun_age,        # 起运岁数（约，3天=1岁）
+              "dayun_pillars": dayun_pillars,  # 大运干支（每运10年）
+              },
     )
 
 

@@ -1137,3 +1137,64 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 - 实测：TestClient 全过；独立进程 GET / 200、POST 200（12 证据）、use_llm=true 真实 LLM 成功；13 道闸门零回退；浏览器已打开实测。
 - 启动：`python -m uvicorn web.app:app --host 127.0.0.1 --port 8123`
 - 待办：PyInstaller 打包单文件（用户选定形态）。
+
+## 25. 本窗口（2026-08-15 晚，接续会话 3cc12478 中断点）实测记录
+
+**承接**：上个窗口任务 #7（验证交付）在 in_progress 处中断；Agent-Reach / browser-use 只做了解压查看和路线图 P5 规划，**代码零集成**。本窗口补完全部收尾。
+
+### 25a. P0 启动链路确定性验证（DONE）
+- e2e_launcher_test.py 在 Windows 上有已知竞态（netstat/tasklist 热循环 + 测试自身 socket 探测污染监控判定），180s 超时非 launcher 缺陷。
+- 改用**全注入确定性验证**（`subprocess.Popen`/`port_ready`/`webbrowser.open`/`active_conns`/`_is_browser_pid`/`pid_alive` 全部脚本化注入，纯内存循环 2.7s）：kill_stale → uvicorn(web.app:app:8123) → port_ready → open browser → 浏览器退出 → GRACE 后 terminate → exit 0，**PASS**。
+- 复验命令：见会话记录（脚本化注入版，未落盘到 scripts/ 以免污染闸门目录）。
+
+### 25b. 闸门零回退确认（DONE）
+- `check_quality.py` PASS · `build_index.py` 43.6MB · `verify_index.py` **ALL PASS**（T11 362 compared / 卦61 阳性 + 卦47 阴性对照）· `assess_goals.py` **PASS 9 · PART 0 · FAIL 0**（G1–G9 全 PASS）。
+
+### 25c. P5 外部资讯通道落地（DONE，新增 `src/guji/external.py`）
+- 依赖：feedparser 6.0.14（已装入 .venv，走 7897 代理）；`web/app.py` 新增 `GET /api/external/news`；前端 index.html 新增「最新消息」面板（来源列表 + 条目链接 + 刷新按钮 + 抓取时间/代理元信息）。
+- 按源模式：`mode="proxy"` 走 7897（BBC 中文实测 8 条 OK）；`mode="direct"` 直连（Solidot 实测 8 条 OK）。
+- 实测记录（含否决）：`github.com/*.atom` 本网络代理/直连均 SSL UNEXPECTED_EOF → 不预置；`api.github.com` 直连可用但共享 IP 易 403 rate limit → 不预置；`gov.cn` RSS 404 → 剔除。
+- 端到端实测：uvicorn 起服务后 `curl /api/external/news` → BBC 8 条 + Solidot 8 条。
+- 红线遵守：只抓公开 RSS 不落库（与语料 Source 层隔离）、KEY 不涉、单源失败降级不阻塞。
+
+### 25d. P5 browser-use 实验（DONE，样例跑通）
+- `browser-use-main.zip` 已解压到 `vendor/browser-use-main/`（597 文件，依赖 browser-use-core 全家桶 + LLM SDK，完整 Agent 需 LLM key，暂不装）。
+- 本机验证「真实浏览器控制」最小链路：`pip install playwright`（7897 代理下载中断 → 换清华镜像成功）→ `chromium.launch(channel="msedge")`（用本机已装 Edge，免下载内核）→ 打开 `http://127.0.0.1:8123/` → 标题「八字命理检索」/ h1 / news panel 均在 → 截图 `logs/playwright_local_sample.png` → **PASS**。
+- 结论：浏览器控制层在 Windows + Edge 本机可用；browser-use 完整 Agent 化（LLM 驱动）列为后续可选，需 LLM key + 大依赖安装授权。
+
+### 25e. 待办（继承）
+- PyInstaller 打包单文件（用户选定形态）；P1 读书网页化 / P2 命理语料扩充 / P3 六爻黄历 / P4 起名（照 PROJECT_ROADMAP 实施顺序）。
+
+## 26. P1 读书网页化 DONE（2026-08-15 晚，会话接续 3cc12478 的下一窗口）
+
+**任务**：把 CLI 读书能力搬进现有 web（检索/地址定位/跨版本比对/研究线程），复用 src/guji 只编排不复制逻辑。
+
+### 26a. 交付
+- **web/app.py** 新增编排层 API（复用 src/guji，零业务逻辑复制）：
+  - `GET /api/search?q=&layer=&work=&genre=&scheme=&limit=` → 调 `Corpus.search`（与 CLI `ask.py search` 同内核）
+  - `GET /api/addr?scheme=&gua=&yao=&layer=&addr_name=&addr1=&addr2=&limit=` → zhouyi 走 `at_address`（D-005 防 Psalms-99 碰撞），其余 scheme 走**新增** `Corpus.at_scheme`（src/guji/search.py 新方法，通用地址定位，纯增量零行为改动）
+  - `GET /api/compare?gua=&yao=&layer=` → 调 `compare_address`（与 CLI `ask.py compare` 同内核，含差异分类摘要）
+  - `GET /api/works` / `GET /api/stats` → `Corpus.coverage` / `stats`+layer 分布+build_meta
+  - `GET /api/threads` / `GET /api/threads/{tid}` → `KnowledgeBase.resume` / transcript+claims+证据回查（G9）
+- **web/static/index.html**：顶部「八字排盘 / 古籍读书」双 tab；读书面板五个子视图（检索/定位/比对/书目/研究线程），结果条目复用排盘证据卡片样式（可展开全文、披露标记），书目表格、线程列表+详情；页面标题升级为「古籍智慧助手」。
+- **logs/probe_cli_web_consistency.py**：CLI-vs-web 一致性实测脚本（只读，不落 scripts/ 不污染闸门目录）。
+
+### 26b. 实测验证（全部真跑，非口头）
+- **CLI 与 web 同函数抽查 10 例全一致**：君子終日乾乾/潛龍勿用/亢龍有悔/見群龍无首/履霜堅冰至/直方大/含章可貞/或躍在淵/飛龍在天/黃裳元吉 → 每例 top-5 citation 逐条一致（`logs/probe_cli_web_consistency.py`，CONSISTENCY: ALL PASS，exit 0）
+- addr 抽查：`/api/addr?scheme=zhouyi&gua=1` vs `Corpus.at_address(1)` top-5 一致 PASS；compare 抽查：`/api/compare?gua=28&yao=九二` 的 addr/reference/witnesses/counts 与 `compare_address` 全等 PASS
+- API 边界：`q` 空 → 400 中文报错；非法 scheme → 400
+- **13 道闸门零回退**（改动 src/guji/search.py + web/app.py 后全跑）：
+```
+check_quality PASS（exit 0）· build_index 43.6MB · verify_index ALL PASS
+validate_alignment exit 0 · probe_conservation exit 0 · check_provenance exit 0
+probe_bcv exit 0 · assess_goals PASS 9 PART 0 FAIL 0 · eval_g1/g4/g7 exit 0
+probe_g8_isolation exit 0 · summarise_diff exit 0 · probe_booksec exit 0
+```
+
+### 26c. 复验命令
+```
+.\.venv\Scripts\python.exe logs\probe_cli_web_consistency.py   # 10 例一致 → ALL PASS
+.\.venv\Scripts\python.exe scripts\check_quality.py && build_index.py && verify_index.py
+.\.venv\Scripts\python.exe scripts\assess_goals.py             # PASS 9 PART 0 FAIL 0
+```
+- 决策记录：DECISIONS.md D-043（at_scheme 增量方法、API 边界、双 tab 前端取舍）。
