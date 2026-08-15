@@ -25,6 +25,9 @@ import time
 import webbrowser
 
 ROOT = os.path.dirname(os.path.abspath(__file__))   # 本文件在项目根，一层即可
+# PyInstaller 单文件模式：exe 同目录才是项目根（data/、logs/ 都在那里）
+if getattr(sys, "frozen", False):
+    ROOT = os.path.dirname(sys.executable)
 PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
 PORT = 8123
 URL = f"http://127.0.0.1:{PORT}"
@@ -110,20 +113,44 @@ def _is_browser_pid(pid: str) -> bool:
     return img in BROWSER_NAMES
 
 
-def _monitor(server: subprocess.Popen) -> int:
-    """监控循环：浏览器关闭判定（可单测——server/active_conns/pid_alive 可注入）。
+def _server_alive(server) -> bool:
+    """server 是否还在运行。兼容 subprocess.Popen（.poll()）和 uvicorn.Server（.should_exit）。"""
+    if hasattr(server, "poll"):
+        return server.poll() is None
+    return not getattr(server, "should_exit", False)
+
+
+def _server_stop(server) -> None:
+    """优雅停止 server。兼容 subprocess.Popen（.terminate/.wait/.kill）和 uvicorn.Server（.should_exit=True）。"""
+    if hasattr(server, "should_exit"):
+        server.should_exit = True
+        return
+    server.terminate()
+    try:
+        server.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        server.kill()
+
+
+def _monitor(server, alive_fn=_server_alive, stop_fn=_server_stop) -> int:
+    """监控循环：浏览器关闭判定（可单测——server/alive_fn/stop_fn/active_conns/pid_alive 可注入）。
 
     规则：曾见过浏览器连接（PID）。只有当「所有曾连接过的浏览器进程都已
     退出」且「无浏览器连接持续 GRACE 秒」才判定浏览器已关闭，随后终止
     server 并返回 0。非浏览器连接（健康检查/探测脚本）不参与判定、不重置
     计时——否则一个残留探测连接会让服务永不关闭。
+
+    server 兼容两种类型：
+      * subprocess.Popen（非 frozen 模式：子进程 uvicorn）
+      * uvicorn.Server（frozen/PyInstaller 模式：in-process 线程）
+    两种类型都通过 alive_fn/stop_fn 抽象，避免在监控循环里做类型分支。
     """
     seen_browsers: set[str] = set()
     last_active = time.time()
     while True:
-        if server.poll() is not None:
-            log(f"uvicorn exited (code={server.returncode}); launcher exit")
-            return server.returncode or 0
+        if not alive_fn(server):
+            log("server exited; launcher exit")
+            return 0
         conns = active_conns()
         browsers = {p for p in conns if _is_browser_pid(p)}
         if browsers:
@@ -138,11 +165,7 @@ def _monitor(server: subprocess.Popen) -> int:
                 log(f"browser closed (no conns {SHUTDOWN_GRACE}s, seen={seen_browsers})")
                 break
         time.sleep(POLL_INTERVAL)
-    server.terminate()
-    try:
-        server.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        server.kill()
+    stop_fn(server)
     return 0
 
 
@@ -167,20 +190,15 @@ def main() -> int:
         # 等端口就绪
         if not port_ready():
             log("server failed to become ready; shutting down")
+            server_obj.should_exit = True
             return 1
         log("port ready; opening browser")
         try:
             webbrowser.open(URL)
         except Exception as exc:
             log(f"webbrowser.open failed: {exc}")
-        # in-process 模式：没有子进程可监控，直接等浏览器关闭信号
-        # 简化：运行直到 server.should_exit 被外部设置或进程被杀
-        try:
-            while not server_obj.should_exit:
-                time.sleep(POLL_INTERVAL)
-        except KeyboardInterrupt:
-            pass
-        return 0
+        # frozen 模式同样走 _monitor：监控浏览器连接，关闭后设 should_exit 退出
+        return _monitor(server_obj)
 
     server = subprocess.Popen(
         [PY, "-m", "uvicorn", "web.app:app",

@@ -41,6 +41,9 @@ a = Analysis(
         'uvicorn.protocols.websockets.auto',
         'uvicorn.lifespan',
         'uvicorn.lifespan.on',
+        # web.app 自身（uvicorn 字符串导入 "web.app:app"）
+        'web',
+        'web.app',
         # guji 子模块（确保被打包）
         'guji.bazi',
         'guji.bazi_calc',
@@ -61,15 +64,21 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # 排除大型不需要的包
-        'matplotlib',
+        # 排除大型不需要的包（torch 496MB 是 exe 217MB 主因）
+        'torch', 'torchvision', 'torchaudio',
+        'sentence_transformers',
+        'transformers', 'tokenizers', 'huggingface_hub', 'safetensors',
+        'sklearn', 'scipy', 'scipy.libs',
         'pandas',
-        'scipy',
-        'sklearn',
-        'PIL',
-        'fitz',
-        'pymupdf',
+        'matplotlib',
+        'PIL', 'pillow',
+        'fitz', 'pymupdf',
         'markitdown',
+        'playwright', 'pyee',
+        'sympy', 'mpmath',
+        'onnxruntime',
+        'skimage',
+        'pyarrow',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
