@@ -141,26 +141,34 @@ def term_time(year: int, name: str) -> datetime:
     def lon_deg(dt: datetime) -> float:
         return _sun_longitude(jde_from_dt(dt))
 
-    # 找目标角度在区间内的一次穿越（处理 0° 附近绕行）
+    # 找目标角度在区间内的一次穿越。gap 用最短角距离归一化到 (-180,180]，
+    # 让 360°/0° 边界连续（绕行不再产生虚假符号跳变）。
     def gap(dt: datetime) -> float:
-        v = lon_deg(dt) - target
-        return v if v > -180 else v + 360
+        v = (lon_deg(dt) - target + 180.0) % 360.0 - 180.0
+        return v
 
     lo_g, hi_g = gap(lo), gap(hi)
     if lo_g * hi_g > 0:
-        # 未跨越：可能目标在区间外（不可能，太阳黄经 365 天转一圈），兜底全区间扫描
+        # 未跨越：兜底全区间扫描找真穿越点。
+        # gap 归一化后，180° 附近仍有绕行跳变（+177→-178，score≈356），
+        # 与 0° 附近的真穿越（score≈4）混在一起。所以记录所有穿越点，
+        # 按 score（两端 |gap| 之和）选最小的——真穿越 score 小。
         step = timedelta(days=8)
+        candidates: list[tuple[datetime, datetime, float, float, float]] = []
         prev, prev_g = lo, lo_g
         cur = lo + step
         while cur < hi:
             cg = gap(cur)
             if prev_g * cg < 0:
-                lo, hi, lo_g = prev, cur, prev_g
-                break
+                candidates.append((prev, cur, prev_g, cg, abs(prev_g) + abs(cg)))
             prev, prev_g = cur, cg
             cur += step
-        else:
+        if not candidates:
             return lo
+        # 选 score 最小的穿越点作为二分区间（真穿越点，绕行跳变 score≈356）
+        prev, cur, lo_g, _, _ = min(candidates, key=lambda c: c[4])
+        hi = cur
+        hi_g = gap(hi)
     for _ in range(60):
         mid = lo + (hi - lo) / 2
         mg = gap(mid)
