@@ -501,13 +501,22 @@ def api_liuyao(req: LiuyaoRequest):
     elif req.method == "time":
         if not all(v is not None for v in (req.year, req.month, req.day, req.hour)):
             raise HTTPException(400, "时间起卦需 year/month/day/hour")
+        if not (YEAR_LO <= req.year <= YEAR_HI):
+            raise HTTPException(400, f"year 须在 {YEAR_LO}-{YEAR_HI}，收到 {req.year}")
+        if not (1 <= req.month <= 12):
+            raise HTTPException(400, f"month 须在 1-12，收到 {req.month}")
+        if not (1 <= req.day <= 31):
+            raise HTTPException(400, f"day 须在 1-31，收到 {req.day}")
+        if not (0 <= req.hour <= 23):
+            raise HTTPException(400, f"hour 须在 0-23，收到 {req.hour}")
         # 公历 → 农历（lunar.py）
         try:
-            ly, lm, ld, _ = lunar.solar_to_lunar(req.year, req.month, req.day)
-        except Exception as exc:
+            lm_info = lunar.solar_to_lunar(req.year, req.month, req.day)
+        except ValueError as exc:
             raise HTTPException(400, f"公历转农历失败：{exc}")
+        ly, lm, ld = lm_info["year"], lm_info["month"], lm_info["day"]
         hour_zhi = (req.hour + 1) // 2 % 12 + 1   # 0-23 → 子=1..亥=12
-        ben = liuyao_mod.cast_time(req.year, lm, ld, hour_zhi)
+        ben = liuyao_mod.cast_time(ly, lm, ld, hour_zhi)
     else:
         raise HTTPException(400, f"method 须为 coins|time，收到 {req.method}")
 
@@ -568,15 +577,20 @@ def api_huangli(date: str | None = None, affair: str | None = None,
     if date:
         try:
             y, m, d = (int(x) for x in date.split("-"))
-            dt = datetime(y, m, d)
         except Exception:
             raise HTTPException(400, f"date 格式应为 YYYY-MM-DD，收到 {date}")
+        if not (YEAR_LO <= y <= YEAR_HI):
+            raise HTTPException(400, f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {y}")
+        if not (1 <= m <= 12):
+            raise HTTPException(400, f"month 须在 1-12，收到 {m}")
+        if not (1 <= d <= 31):
+            raise HTTPException(400, f"day 须在 1-31，收到 {d}")
+        try:
+            dt = datetime(y, m, d)
+        except ValueError:
+            raise HTTPException(400, f"非法日期 y={y} m={m} d={d}")
     else:
         dt = datetime.now()
-
-    if YEAR_LO <= dt.year <= YEAR_HI is False:
-        if not (YEAR_LO <= dt.year <= YEAR_HI):
-            raise HTTPException(400, f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {dt.year}")
 
     if affair:
         end = dt + timedelta(days=max(days, 1) - 1)
