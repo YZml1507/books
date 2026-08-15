@@ -19,7 +19,8 @@
        LLM_BASE_URL   可选，默认 https://api.openai.com/v1（DeepSeek/通义等
                       兼容服务填各自 base，如 https://api.deepseek.com/v1）。
        LLM_MODEL      可选，默认 gpt-4o-mini（按服务可用模型改）。
-       LLM_TIMEOUT    可选，秒，默认 60。
+       LLM_TIMEOUT    可选，秒，默认 300。注意：实测该兼容服务推理较慢
+                      （最小请求 50 tokens 约 29s），完整解读请给足超时。
 
 依赖 httpx（已在 venv，sentence-transformers 的传递依赖），不新增。
 """
@@ -66,7 +67,7 @@ def _cfg() -> dict:
         "model": (file_cfg.get("model") or os.environ.get("LLM_MODEL")
                   or DEFAULT_MODEL).strip() or DEFAULT_MODEL,
         "timeout": float(file_cfg.get("timeout_seconds")
-                         or os.environ.get("LLM_TIMEOUT", "60")),
+                         or os.environ.get("LLM_TIMEOUT", "300")),
     }
 
 
