@@ -276,3 +276,409 @@ def render_hexagram(h: Hexagram, label: str = "本卦") -> dict:
         "moving_lines": h.moving_lines,
         "binary": h.binary(),
     }
+
+
+# ======================================================================================
+# 六爻运算层：纳甲 / 六亲 / 世应 / 六神 / 综合排盘
+# ======================================================================================
+# 规则来源（多源交叉核实）：天机爻 Wiki、卜筮正宗、纳甲歌、Dao Oracle、OldBird。
+# 本层只做坐标换算（干支/五行/六亲配位），不产生解卦文本。
+#
+# 文王序说明：本表用文王序（1=乾..64=未济），与 GUA_NAMES_64 对齐。
+# GUA_NAMES_64[0]='乾'=文王序1。
+
+# --------------------------------------------------------------------------------------
+# 八宫归属表
+# --------------------------------------------------------------------------------------
+# 64卦分八宫，每宫8卦。宫序：乾震坎艮（阳宫，前4），坤巽离兑（阴宫，后4）。
+# 每宫内顺序：本宫(八纯)/一世/二世/三世/四世/五世/游魂/归魂。
+#
+# 文王序 -> 宫名（已核实，见上方各宫列表）
+# 注意：乾宫一世为姤（文王序44），非43；43夬属坤宫五世。此为核实校正点。
+GUA_TO_GONG: dict[int, str] = {
+    # 乾宫（金）
+    1: "乾", 44: "乾", 33: "乾", 12: "乾",
+    20: "乾", 23: "乾", 35: "乾", 14: "乾",
+    # 震宫（木）
+    51: "震", 16: "震", 40: "震", 32: "震",
+    46: "震", 48: "震", 28: "震", 17: "震",
+    # 坎宫（水）
+    29: "坎", 60: "坎", 3: "坎", 63: "坎",
+    49: "坎", 55: "坎", 36: "坎", 7: "坎",
+    # 艮宫（土）
+    52: "艮", 22: "艮", 26: "艮", 41: "艮",
+    38: "艮", 10: "艮", 61: "艮", 53: "艮",
+    # 坤宫（土）
+    2: "坤", 24: "坤", 19: "坤", 11: "坤",
+    34: "坤", 43: "坤", 5: "坤", 8: "坤",
+    # 巽宫（木）
+    57: "巽", 9: "巽", 37: "巽", 42: "巽",
+    25: "巽", 21: "巽", 27: "巽", 18: "巽",
+    # 离宫（火）
+    30: "离", 56: "离", 50: "离", 64: "离",
+    4: "离", 59: "离", 6: "离", 13: "离",
+    # 兑宫（金）
+    58: "兑", 47: "兑", 45: "兑", 31: "兑",
+    39: "兑", 15: "兑", 62: "兑", 54: "兑",
+}
+
+# 宫名 -> 宫五行
+GONG_WUXING: dict[str, str] = {
+    "乾": "金", "兑": "金", "离": "火", "震": "木",
+    "巽": "木", "坎": "水", "艮": "土", "坤": "土",
+}
+
+# 文王序 -> 宫内位置（'本宫'/'一世'/.../'归魂'）
+# 每宫内顺序固定：本宫(0)/一世(1)/二世(2)/三世(3)/四世(4)/五世(5)/游魂(6)/归魂(7)
+# 按核实表显式构建（每宫内顺序：本宫/一世/二世/三世/四世/五世/游魂/归魂）
+GUA_GONG_POSITION: dict[int, str] = {}
+_GUA_GONG_POS_BUILD: list[tuple[int, str]] = [
+    # 乾宫
+    (1, "本宫"), (44, "一世"), (33, "二世"), (12, "三世"),
+    (20, "四世"), (23, "五世"), (35, "游魂"), (14, "归魂"),
+    # 震宫
+    (51, "本宫"), (16, "一世"), (40, "二世"), (32, "三世"),
+    (46, "四世"), (48, "五世"), (28, "游魂"), (17, "归魂"),
+    # 坎宫
+    (29, "本宫"), (60, "一世"), (3, "二世"), (63, "三世"),
+    (49, "四世"), (55, "五世"), (36, "游魂"), (7, "归魂"),
+    # 艮宫
+    (52, "本宫"), (22, "一世"), (26, "二世"), (41, "三世"),
+    (38, "四世"), (10, "五世"), (61, "游魂"), (53, "归魂"),
+    # 坤宫
+    (2, "本宫"), (24, "一世"), (19, "二世"), (11, "三世"),
+    (34, "四世"), (43, "五世"), (5, "游魂"), (8, "归魂"),
+    # 巽宫
+    (57, "本宫"), (9, "一世"), (37, "二世"), (42, "三世"),
+    (25, "四世"), (21, "五世"), (27, "游魂"), (18, "归魂"),
+    # 离宫
+    (30, "本宫"), (56, "一世"), (50, "二世"), (64, "三世"),
+    (4, "四世"), (59, "五世"), (6, "游魂"), (13, "归魂"),
+    # 兑宫
+    (58, "本宫"), (47, "一世"), (45, "二世"), (31, "三世"),
+    (39, "四世"), (15, "五世"), (62, "游魂"), (54, "归魂"),
+]
+for _num, _pos in _GUA_GONG_POS_BUILD:
+    GUA_GONG_POSITION[_num] = _pos
+# 纳甲：天干地支配六爻
+# --------------------------------------------------------------------------------------
+# 纳干规则：按该爻所属经卦的内/外卦配天干
+# 内卦=下卦=初爻/二爻/三爻；外卦=上卦=四爻/五爻/上爻
+# 乾：内甲外壬；坤：内乙外癸；震庚；巽辛；坎戊；离己；艮丙；兑丁
+_NAJIA_STEM: dict[str, tuple[str, str]] = {
+    # (内卦干, 外卦干)
+    "乾": ("甲", "壬"),
+    "坤": ("乙", "癸"),
+    "震": ("庚", "庚"),
+    "巽": ("辛", "辛"),
+    "坎": ("戊", "戊"),
+    "离": ("己", "己"),
+    "艮": ("丙", "丙"),
+    "兑": ("丁", "丁"),
+}
+
+# 纳支规则：按该爻所属经卦的纳支顺序，自下而上（初爻→上爻）
+# 乾：子寅辰午申戌（初爻子..上爻戌）
+# 震：子寅辰午申戌
+# 坎：寅辰午申戌子
+# 艮：辰午申戌子寅
+# 坤：未巳卯丑亥酉
+# 巽：丑亥酉未巳卯
+# 离：卯丑亥酉未巳
+# 兑：巳卯丑亥酉未
+_NAJIA_BRANCH: dict[str, list[str]] = {
+    "乾": ["子", "寅", "辰", "午", "申", "戌"],
+    "震": ["子", "寅", "辰", "午", "申", "戌"],
+    "坎": ["寅", "辰", "午", "申", "戌", "子"],
+    "艮": ["辰", "午", "申", "戌", "子", "寅"],
+    "坤": ["未", "巳", "卯", "丑", "亥", "酉"],
+    "巽": ["丑", "亥", "酉", "未", "巳", "卯"],
+    "离": ["卯", "丑", "亥", "酉", "未", "巳"],
+    "兑": ["巳", "卯", "丑", "亥", "酉", "未"],
+}
+
+
+def najia(h: Hexagram) -> list[dict]:
+    """纳甲：为六爻配天干地支。
+
+    规则（已核实）：
+      - 初爻/二爻/三爻用下卦（内卦）的纳干纳支
+      - 四爻/五爻/上爻用上卦（外卦）的纳干纳支
+      - 纳支自下而上按经卦纳支顺序排
+
+    返回 6 个 dict（自下而上，position 1..6），每个含：
+      position, heavenly_stem, earthly_branch
+    """
+    upper_name, lower_name = _wengwang_upper_lower(h.gua_number)
+    lower_stem = _NAJIA_STEM[lower_name][0]   # 内卦干
+    upper_stem = _NAJIA_STEM[upper_name][1]   # 外卦干
+    lower_branches = _NAJIA_BRANCH[lower_name]  # 下卦6支
+    upper_branches = _NAJIA_BRANCH[upper_name]  # 上卦6支
+
+    result: list[dict] = []
+    for pos in range(1, 7):
+        if pos <= 3:
+            # 内卦：初爻取下卦纳支[0]，二爻[1]，三爻[2]
+            stem = lower_stem
+            branch = lower_branches[pos - 1]
+        else:
+            # 外卦：四爻取上卦纳支[3]，五爻[4]，上爻[5]
+            stem = upper_stem
+            branch = upper_branches[pos - 1]
+        result.append({
+            "position": pos,
+            "heavenly_stem": stem,
+            "earthly_branch": branch,
+        })
+    return result
+
+
+# --------------------------------------------------------------------------------------
+# 六亲：按宫五行与爻五行的生克关系定六亲
+# --------------------------------------------------------------------------------------
+# 地支五行表
+# 亥子=水，寅卯=木，巳午=火，申酉=金，辰戌丑未=土
+_ZHI_WUXING: dict[str, str] = {
+    "亥": "水", "子": "水",
+    "寅": "木", "卯": "木",
+    "巳": "火", "午": "火",
+    "申": "金", "酉": "金",
+    "辰": "土", "戌": "土", "丑": "土", "未": "土",
+}
+
+# 五行生克
+# 生：水生木，木生火，火生土，土生金，金生水
+# 克：水克火，火克金，金克木，木克土，土克水
+_WUXING_SHENG: dict[str, str] = {
+    "水": "木", "木": "火", "火": "土", "土": "金", "金": "水",
+}
+_WUXING_KE: dict[str, str] = {
+    "水": "火", "火": "金", "金": "木", "木": "土", "土": "水",
+}
+
+
+def _liuqin_relation(gong_wx: str, yao_wx: str) -> str:
+    """按宫五行与爻五行的生克关系定六亲。
+
+    - 同我（五行相同）= 兄弟
+    - 生我（爻五行生宫五行）= 父母
+    - 我生（宫五行生爻五行）= 子孙
+    - 我克（宫五行克爻五行）= 妻财
+    - 克我（爻五行克宫五行）= 官鬼
+    """
+    if gong_wx == yao_wx:
+        return "兄弟"
+    if _WUXING_SHENG[yao_wx] == gong_wx:   # 爻生宫 = 生我 = 父母
+        return "父母"
+    if _WUXING_SHENG[gong_wx] == yao_wx:   # 宫生爻 = 我生 = 子孙
+        return "子孙"
+    if _WUXING_KE[gong_wx] == yao_wx:      # 宫克爻 = 我克 = 妻财
+        return "妻财"
+    if _WUXING_KE[yao_wx] == gong_wx:      # 爻克宫 = 克我 = 官鬼
+        return "官鬼"
+    raise ValueError(f"无法定六亲：宫五行={gong_wx} 爻五行={yao_wx}")
+
+
+def liuqin(h: Hexagram) -> list[dict]:
+    """六亲：为六爻配六亲。
+
+    规则（已核实）：
+      1. 取本卦 gua_number，查 GUA_TO_GONG 得宫名
+      2. 查 GONG_WUXING 得宫五行
+      3. 对每爻，取该爻纳支的地支，查地支五行
+      4. 按宫五行与爻五行的生克关系定六亲
+
+    返回 6 个 dict（自下而上，position 1..6），每个含：
+      position, liuqin, wuxing
+    """
+    gong = GUA_TO_GONG[h.gua_number]
+    gong_wx = GONG_WUXING[gong]
+    najia_result = najia(h)
+
+    result: list[dict] = []
+    for item in najia_result:
+        branch = item["earthly_branch"]
+        yao_wx = _ZHI_WUXING[branch]
+        relation = _liuqin_relation(gong_wx, yao_wx)
+        result.append({
+            "position": item["position"],
+            "liuqin": relation,
+            "wuxing": yao_wx,
+        })
+    return result
+
+
+# --------------------------------------------------------------------------------------
+# 世应：定世爻/应爻位置
+# --------------------------------------------------------------------------------------
+# 按宫内位置定世爻位（1=初爻..6=上爻）
+_GONG_POSITION_TO_SHI: dict[str, int] = {
+    "本宫": 6,
+    "一世": 1,
+    "二世": 2,
+    "三世": 3,
+    "四世": 4,
+    "五世": 5,
+    "游魂": 4,
+    "归魂": 3,
+}
+
+
+def shiying(h: Hexagram) -> dict:
+    """世应：定世爻/应爻位置。
+
+    规则（已核实）：
+      1. 取本卦 gua_number，查 GUA_GONG_POSITION 得宫内位置
+      2. 按宫内位置定世爻位
+      3. 应爻位 = (世爻位 + 2) % 6，若为0则取6（隔二位）
+
+    返回 dict：{shi, ying, gong, gong_position, gong_wuxing}
+    """
+    gong = GUA_TO_GONG[h.gua_number]
+    gong_pos = GUA_GONG_POSITION[h.gua_number]
+    gong_wx = GONG_WUXING[gong]
+
+    shi = _GONG_POSITION_TO_SHI[gong_pos]
+    # 应爻隔世爻两位（中间隔两爻），即世+3 位取模6
+    ying = (shi + 3) % 6
+    if ying == 0:
+        ying = 6
+
+    return {
+        "shi": shi,
+        "ying": ying,
+        "gong": gong,
+        "gong_position": gong_pos,
+        "gong_wuxing": gong_wx,
+    }
+
+
+# --------------------------------------------------------------------------------------
+# 六神：按日干起六神
+# --------------------------------------------------------------------------------------
+# 日干 -> 初爻六神
+_DAY_GAN_TO_INIT_SHEN: dict[str, str] = {
+    "甲": "青龙", "乙": "青龙",
+    "丙": "朱雀", "丁": "朱雀",
+    "戊": "勾陈",
+    "己": "螣蛇",
+    "庚": "白虎", "辛": "白虎",
+    "壬": "玄武", "癸": "玄武",
+}
+
+# 六神顺序（自初爻向上排6个）：青龙→朱雀→勾陈→螣蛇→白虎→玄武
+_SHEN_ORDER = ["青龙", "朱雀", "勾陈", "螣蛇", "白虎", "玄武"]
+
+
+def liushen(day_gan: str) -> list[dict]:
+    """六神：按日干起六神，自初爻至上爻排。
+
+    规则（已核实）：
+      - 甲乙日初爻青龙，丙丁朱雀，戊勾陈，己螣蛇，庚辛白虎，壬癸玄武
+      - 六神顺序自下而上：青龙→朱雀→勾陈→螣蛇→白虎→玄武
+
+    输入 day_gan 是天干字符串（如 '甲'/'乙'/'丙'...）
+
+    返回 6 个 dict（自下而上，position 1..6）：{position, shen}
+    """
+    init_shen = _DAY_GAN_TO_INIT_SHEN[day_gan]
+    init_idx = _SHEN_ORDER.index(init_shen)
+
+    result: list[dict] = []
+    for pos in range(1, 7):
+        shen = _SHEN_ORDER[(init_idx + pos - 1) % 6]
+        result.append({"position": pos, "shen": shen})
+    return result
+
+
+# --------------------------------------------------------------------------------------
+# 综合排盘：合并纳甲/六亲/世应/六神
+# --------------------------------------------------------------------------------------
+def _build_gua_lines(h: Hexagram, shi_ying: dict | None,
+                     shen_list: list[dict] | None) -> list[dict]:
+    """构建一卦的六爻明细（自上而下，position 6..1）。
+
+    合并：卦爻阴阳/动爻 + 纳甲 + 六亲 + 世应标记 + 六神
+    六神仅本卦排（变卦不排）。
+    """
+    najia_result = najia(h)
+    liuqin_result = liuqin(h)
+    najia_by_pos = {n["position"]: n for n in najia_result}
+    liuqin_by_pos = {l["position"]: l for l in liuqin_result}
+    shen_by_pos = {s["position"]: s for s in shen_list} if shen_list else {}
+
+    shi = shi_ying["shi"] if shi_ying else None
+    ying = shi_ying["ying"] if shi_ying else None
+
+    lines: list[dict] = []
+    for pos in range(6, 0, -1):  # 自上而下
+        yao = h.lines[pos - 1]
+        n = najia_by_pos[pos]
+        l = liuqin_by_pos[pos]
+        line = {
+            "position": pos,
+            "yang": yao.yang,
+            "moving": yao.moving,
+            "stem": n["heavenly_stem"],
+            "branch": n["earthly_branch"],
+            "wuxing": l["wuxing"],
+            "liuqin": l["liuqin"],
+        }
+        if shi_ying is not None:
+            line["is_shi"] = (pos == shi)
+            line["is_ying"] = (pos == ying)
+        if shen_list is not None:
+            line["shen"] = shen_by_pos[pos]["shen"]
+        lines.append(line)
+    return lines
+
+
+def paipan(h: Hexagram, day_gan: str) -> dict:
+    """综合排盘：合并纳甲/六亲/世应/六神。
+
+    返回结构：
+      {
+        'ben_gua': {  # 本卦
+          'gua_number', 'gua_name', 'gong', 'gong_wuxing', 'gong_position',
+          'shi', 'ying', 'lines': [6 爻明细，自上而下]
+        },
+        'bian_gua': {  # 变卦（无世应/六神，但算纳甲/六亲）
+          'gua_number', 'gua_name', 'gong', 'gong_wuxing', 'gong_position',
+          'lines': [6 爻明细，自上而下]
+        },
+        'moving_lines': [动爻位]
+      }
+    """
+    # 本卦
+    sy = shiying(h)
+    shen_list = liushen(day_gan)
+    ben_lines = _build_gua_lines(h, sy, shen_list)
+    ben_gua = {
+        "gua_number": h.gua_number,
+        "gua_name": h.gua_name,
+        "gong": sy["gong"],
+        "gong_wuxing": sy["gong_wuxing"],
+        "gong_position": sy["gong_position"],
+        "shi": sy["shi"],
+        "ying": sy["ying"],
+        "lines": ben_lines,
+    }
+
+    # 变卦
+    bian = changing_hexagram(h)
+    sy_bian = shiying(bian)
+    bian_lines = _build_gua_lines(bian, None, None)
+    bian_gua = {
+        "gua_number": bian.gua_number,
+        "gua_name": bian.gua_name,
+        "gong": sy_bian["gong"],
+        "gong_wuxing": sy_bian["gong_wuxing"],
+        "gong_position": sy_bian["gong_position"],
+        "lines": bian_lines,
+    }
+
+    return {
+        "ben_gua": ben_gua,
+        "bian_gua": bian_gua,
+        "moving_lines": h.moving_lines,
+    }
