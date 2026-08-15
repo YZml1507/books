@@ -175,12 +175,208 @@ PENGZU_ZHI: dict[str, str] = {
 
 def pengzu_baiji(dt: datetime) -> dict[str, str]:
     """dt 这天的彭祖百忌（天干 + 地支）。"""
-    jd = jdn(dt.year, dt.month, dt.day)
-    gz = (jd + 49) % 60
-    gan = GAN[gz % 10]
-    zhi = ZHI[gz % 12]
+    gan, zhi = day_ganzhi(dt)
     return {"gan": gan, "zhi": zhi,
             "gan_text": PENGZU_GAN[gan], "zhi_text": PENGZU_ZHI[zhi]}
+
+
+# --------------------------------------------------------------------------------------
+# 神煞层
+# --------------------------------------------------------------------------------------
+# 天德起例（正月起丁，含二月申/八月寅/十一月巳三个地支位）
+TIAND = ["丁", "申", "壬", "辛", "亥", "甲", "癸", "寅", "丙", "乙", "巳", "庚"]
+# 月厌起例（正月起戌，逆行十二地支）
+YUEYAN = ["戌", "酉", "申", "未", "午", "巳", "辰", "卯", "寅", "丑", "子", "亥"]
+
+# 三合局共享映射（申子辰/亥卯未/寅午戌/巳酉丑），劫煞/灾煞/月煞/驿马均引用
+SANHE_JIESHA = {           # 劫煞起例（三合局→劫煞地支）
+    "申子辰": "巳", "亥卯未": "申", "寅午戌": "亥", "巳酉丑": "寅",
+}
+SANHE_ZAISHA = {           # 灾煞起例（劫煞下一支）
+    "申子辰": "午", "亥卯未": "酉", "寅午戌": "子", "巳酉丑": "卯",
+}
+SANHE_YUESHA = {           # 月煞起例
+    "申子辰": "未", "亥卯未": "戌", "寅午戌": "丑", "巳酉丑": "辰",
+}
+SANHE_YIMA = {             # 驿马起例（与劫煞同支）
+    "申子辰": "寅", "亥卯未": "巳", "寅午戌": "申", "巳酉丑": "亥",
+}
+SANHE_YUEDE = {            # 月德起例（三合局→天干）
+    "寅午戌": "丙", "申子辰": "壬", "亥卯未": "甲", "巳酉丑": "庚",
+}
+
+# 月支索引 → 三合局名（0=子..11=亥）
+_ZHI_TO_SANHE: dict[int, str] = {}
+for _name in ("申子辰", "亥卯未", "寅午戌", "巳酉丑"):
+    for _c in _name:
+        _ZHI_TO_SANHE[ZHI.index(_c)] = _name
+
+# 天赦日（按季节）：春戊寅、夏甲午、秋戊申、冬甲子
+# 季节按月支：寅卯辰=春，巳午未=夏，申酉戌=秋，亥子丑=冬
+_TIANSHA_MAP: dict[int, str] = {
+    2: "戊寅", 3: "戊寅", 4: "戊寅",    # 春
+    5: "甲午", 6: "甲午", 7: "甲午",    # 夏
+    8: "戊申", 9: "戊申", 10: "戊申",   # 秋
+    11: "甲子", 0: "甲子", 1: "甲子",    # 冬
+}
+
+# 天乙贵人起例（日干→贵人地支列表）
+GUIREN: dict[str, list[str]] = {
+    "甲": ["丑", "未"], "戊": ["丑", "未"], "庚": ["丑", "未"],
+    "乙": ["子", "申"], "己": ["子", "申"],
+    "丙": ["酉", "亥"], "丁": ["酉", "亥"],
+    "壬": ["卯", "巳"], "癸": ["卯", "巳"],
+    "辛": ["寅", "午"],
+}
+
+# 神煞对宜忌的影响（写死可核验）
+_TIAND_YIJI: tuple[list[str], list[str]] = (
+    ["祭祀", "祈福", "嫁娶"], ["诉讼"])
+_YUEDE_YIJI: tuple[list[str], list[str]] = (
+    ["祭祀", "祈福", "嫁娶"], ["诉讼"])
+_TIANSHA_YIJI: tuple[list[str], list[str]] = (
+    ["祭祀", "祈福", "求嗣", "出行"], ["诉讼"])
+_GUIREN_YIJI: tuple[list[str], list[str]] = (
+    ["谒贵", "上任", "嫁娶"], [])
+_YIMA_YIJI: tuple[list[str], list[str]] = (
+    ["出行", "移徙", "上任"], [])
+_JIESHA_YIJI: tuple[list[str], list[str]] = (
+    [], ["嫁娶", "移徙", "安葬", "出行"])
+_ZAISHA_YIJI: tuple[list[str], list[str]] = (
+    [], ["嫁娶", "移徙", "安葬", "出行"])
+_YUESHA_YIJI: tuple[list[str], list[str]] = (
+    [], ["嫁娶", "移徙", "安葬"])
+_YUEYAN_YIJI: tuple[list[str], list[str]] = (
+    [], ["嫁娶", "远行", "移徙", "归家"])
+
+
+def day_ganzhi(dt: datetime) -> tuple[str, str]:
+    """dt 这天的日柱天干地支。儒略日 → 六十甲子，锚点 (jd+49)%60。"""
+    jd = jdn(dt.year, dt.month, dt.day)
+    gz = (jd + 49) % 60
+    return GAN[gz % 10], ZHI[gz % 12]
+
+
+def tiande(dt: datetime) -> str:
+    """天德（正月起丁）。返回天干或地支。"""
+    # 月支索引 → 农历月序（寅月=正月=0）
+    mzi = _month_zhi_index(dt)
+    # 寅(2)→0, 卯(3)→1 ... 丑(1)→11
+    lunar_month = (mzi - 2) % 12
+    return TIAND[lunar_month]
+
+
+def yuede(dt: datetime) -> str:
+    """月德（三合局→天干）。"""
+    mzi = _month_zhi_index(dt)
+    sanhe = _ZHI_TO_SANHE[mzi]
+    return SANHE_YUEDE[sanhe]
+
+
+def tianshe(dt: datetime) -> bool:
+    """天赦日判定：季节对应天赦干支 == 该日干支。"""
+    mzi = _month_zhi_index(dt)
+    target = _TIANSHA_MAP[mzi]
+    gan, zhi = day_ganzhi(dt)
+    return (gan + zhi) == target
+
+
+def jiesha(dt: datetime) -> str:
+    """劫煞（三合局→地支）。"""
+    mzi = _month_zhi_index(dt)
+    return SANHE_JIESHA[_ZHI_TO_SANHE[mzi]]
+
+
+def zaisha(dt: datetime) -> str:
+    """灾煞（劫煞下一支）。"""
+    mzi = _month_zhi_index(dt)
+    return SANHE_ZAISHA[_ZHI_TO_SANHE[mzi]]
+
+
+def yuesha(dt: datetime) -> str:
+    """月煞（三合局→地支）。"""
+    mzi = _month_zhi_index(dt)
+    return SANHE_YUESHA[_ZHI_TO_SANHE[mzi]]
+
+
+def yueyan(dt: datetime) -> str:
+    """月厌（正月起戌，逆行）。"""
+    mzi = _month_zhi_index(dt)
+    lunar_month = (mzi - 2) % 12
+    return YUEYAN[lunar_month]
+
+
+def yima(dt: datetime) -> str:
+    """驿马（三合局→地支，与劫煞同支）。"""
+    mzi = _month_zhi_index(dt)
+    return SANHE_YIMA[_ZHI_TO_SANHE[mzi]]
+
+
+def guiren(dt: datetime) -> list[str]:
+    """天乙贵人（日干→贵人地支列表，2 个）。"""
+    gan, _ = day_ganzhi(dt)
+    return list(GUIREN[gan])
+
+
+def shensha(dt: datetime) -> dict:
+    """dt 这天所有神煞的 dict（纯坐标计算）。"""
+    gan, zhi = day_ganzhi(dt)
+    mzi = _month_zhi_index(dt)
+    return {
+        "tiande": tiande(dt),
+        "yuede": yuede(dt),
+        "tianshe": tianshe(dt),
+        "jiesha": jiesha(dt),
+        "zaisha": zaisha(dt),
+        "yuesha": yuesha(dt),
+        "yueyan": yueyan(dt),
+        "yima": yima(dt),
+        "guiren": guiren(dt),
+        "day_gan": gan,
+        "day_zhi": zhi,
+        "month_zhi": ZHI[mzi],
+    }
+
+
+def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
+    """神煞对宜忌的影响（基于"临日"判定：日支是否等于神煞值）。
+
+    返回 (宜列表, 忌列表)，去重。
+    """
+    gan, zhi = day_ganzhi(dt)
+    yi: list[str] = []
+    ji: list[str] = []
+
+    # 天赦日
+    if tianshe(dt):
+        yi += _TIANSHA_YIJI[0]; ji += _TIANSHA_YIJI[1]
+    # 天德临日（日支==天德值）
+    td = tiande(dt)
+    if td == zhi:
+        yi += _TIAND_YIJI[0]; ji += _TIAND_YIJI[1]
+    # 月德临日
+    if yuede(dt) == zhi:
+        yi += _YUEDE_YIJI[0]; ji += _YUEDE_YIJI[1]
+    # 劫煞临日
+    if jiesha(dt) == zhi:
+        ji += _JIESHA_YIJI[1]
+    # 灾煞临日
+    if zaisha(dt) == zhi:
+        ji += _ZAISHA_YIJI[1]
+    # 月煞临日
+    if yuesha(dt) == zhi:
+        ji += _YUESHA_YIJI[1]
+    # 月厌临日
+    if yueyan(dt) == zhi:
+        ji += _YUEYAN_YIJI[1]
+    # 驿马临日
+    if yima(dt) == zhi:
+        yi += _YIMA_YIJI[0]
+    # 贵人临日（日支 in guiren）
+    if zhi in guiren(dt):
+        yi += _GUIREN_YIJI[0]
+
+    return sorted(set(yi)), sorted(set(ji))
 
 
 # --------------------------------------------------------------------------------------
@@ -211,6 +407,7 @@ def day_query(dt: datetime) -> dict:
         "pengzu": pz,
         "yi": sorted(yi),
         "ji": sorted(ji),
+        "shensha": shensha(dt),
     }
 
 
