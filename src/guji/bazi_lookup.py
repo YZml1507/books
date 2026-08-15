@@ -38,6 +38,14 @@ MINGLI_WORKS = [
     "KR3g0050",  # 御定星歷考原
     "KR3g0047",  # 太乙金鏡式經
     "KR3g0048",  # 遁甲演義
+    # P2 子平经典语料扩充（2026-08-15 落盘，过三道判定第一步：古籍原文）
+    "ziping-zhenquan",  # 子平真诠
+    "sanming-tonghui",  # 三命通会
+    "wuxing-dayi",      # 五行大义
+    "wuxing-jingji",    # 五行精纪
+    "mingli-tanyuan",   # 命理探原
+    "mingli-yueyan",    # 命理约言
+    "lantai-miaoxuan",  # 兰台妙选
 ]
 
 MODEL_DIR = os.path.join(ROOT, "data", "external", "bge-small-zh-v1.5")

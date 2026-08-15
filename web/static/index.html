@@ -245,6 +245,9 @@
   <nav class="tabs">
     <button class="tab active" data-view="bazi" type="button">八字排盘</button>
     <button class="tab" data-view="read" type="button">古籍读书</button>
+    <button class="tab" data-view="liuyao" type="button">六爻占卜</button>
+    <button class="tab" data-view="huangli" type="button">黄历择日</button>
+    <button class="tab" data-view="qiming" type="button">五行起名</button>
   </nav>
 
   <div class="view active" id="view-bazi">
@@ -399,6 +402,82 @@
       <div id="rthreadsOut"><div class="no-evidence">加载中…</div></div>
     </section>
   </div><!-- /view-read -->
+
+  <div class="view" id="view-liuyao">
+    <form class="card" id="lyForm">
+      <div class="row">
+        <div class="field"><label for="lyMethod">起卦法</label>
+          <select id="lyMethod"><option value="coins">铜钱法（三枚六摇）</option><option value="time">时间起卦（梅花易数）</option></select></div>
+        <div class="field" id="lySeedField"><label for="lySeed">随机种子（可空，复验用）</label>
+          <input id="lySeed" type="number" placeholder="留空=真随机"></div>
+      </div>
+      <div class="row" id="lyTimeRow" hidden>
+        <div class="field"><label for="lyYear">公历年</label><input id="lyYear" type="number" value="2026"></div>
+        <div class="field"><label for="lyMonth">月</label><input id="lyMonth" type="number" value="8" min="1" max="12"></div>
+        <div class="field"><label for="lyDay">日</label><input id="lyDay" type="number" value="16" min="1" max="31"></div>
+        <div class="field"><label for="lyHour">时（0-23）</label><input id="lyHour" type="number" value="10" min="0" max="23"></div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:2"><label for="lyQuestion">问事（可空，传给 LLM 解卦）</label>
+          <input id="lyQuestion" type="text" placeholder="如：事业可成否？"></div>
+        <div class="field"><label for="lyLlm"><input id="lyLlm" type="checkbox"> 用 LLM 解卦</label></div>
+      </div>
+      <button type="submit" class="primary">起卦</button>
+    </form>
+    <div class="result" id="lyResult" hidden></div>
+    <p class="footnote">卦象坐标由本地代码按铜钱法/梅花易数算出（可核验）；卦辞/爻辞从已入库的周易语料取出（G2 引用可核验）；LLM 解读为生成文本，标注模型来源。</p>
+  </div><!-- /view-liuyao -->
+
+  <div class="view" id="view-huangli">
+    <form class="card" id="hlForm">
+      <div class="row">
+        <div class="field"><label for="hlDate">日期（YYYY-MM-DD，空=今天）</label>
+          <input id="hlDate" type="text" placeholder="2026-08-16"></div>
+        <div class="field"><label for="hlAffair">择何事（空=只查单日宜忌）</label>
+          <select id="hlAffair">
+            <option value="">— 单日宜忌 —</option>
+            <option value="婚嫁">婚嫁</option>
+            <option value="出行">出行</option>
+            <option value="动土">动土</option>
+            <option value="搬家">搬家</option>
+            <option value="安葬">安葬</option>
+            <option value="祭祀">祭祀</option>
+            <option value="祈福">祈福</option>
+            <option value="上任">上任</option>
+            <option value="入学">入学</option>
+            <option value="纳财">纳财</option>
+            <option value="开市">开市</option>
+          </select></div>
+        <div class="field" id="hlDaysField"><label for="hlDays">查几天（择日时）</label>
+          <input id="hlDays" type="number" value="30" min="1" max="365"></div>
+      </div>
+      <button type="submit" class="primary">查询</button>
+    </form>
+    <div class="result" id="hlResult" hidden></div>
+    <p class="footnote">黄历宜忌坐标由本地代码按建除十二值/二十八宿/彭祖百忌规则表算出（写死可核验），不产生"新文本"。</p>
+  </div><!-- /view-huangli -->
+
+  <div class="view" id="view-qiming">
+    <form class="card" id="qmForm">
+      <div class="row">
+        <div class="field"><label for="qmSurname">姓氏（单字）</label>
+          <input id="qmSurname" type="text" value="张" maxlength="1" required></div>
+        <div class="field"><label for="qmGender">性别</label>
+          <select id="qmGender"><option value="男">男</option><option value="女">女</option></select></div>
+        <div class="field"><label for="qmTopN">候选字数</label>
+          <input id="qmTopN" type="number" value="20" min="5" max="100"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="qmYear">公历年</label><input id="qmYear" type="number" value="1990" min="1900" max="2100" required></div>
+        <div class="field"><label for="qmMonth">月</label><input id="qmMonth" type="number" value="5" min="1" max="12" required></div>
+        <div class="field"><label for="qmDay">日</label><input id="qmDay" type="number" value="15" min="1" max="31" required></div>
+        <div class="field"><label for="qmHour">时（0-23）</label><input id="qmHour" type="number" value="10" min="0" max="23" required></div>
+      </div>
+      <button type="submit" class="primary">起名</button>
+    </form>
+    <div class="result" id="qmResult" hidden></div>
+    <p class="footnote">五行缺行由 bazi_calc 算出（可核验）；候选字按部首五行规则表筛选（写死可核验）；寓意坐标只给"五行-简明寓意"，不作吉凶断言。</p>
+  </div><!-- /view-qiming -->
 </div>
 
 <script>
@@ -913,6 +992,178 @@ async function viewThread(tid){
 
 loadWorks();
 loadThreads();
+
+/* ==================== P3 六爻占卜 ==================== */
+$('#lyMethod').addEventListener('change', e => {
+  const time = (e.target.value === 'time');
+  $('#lyTimeRow').hidden = !time;
+  $('#lySeedField').hidden = time;
+});
+$('#lyForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#lyResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">起卦中…</div>';
+  const body = {
+    method: $('#lyMethod').value,
+    use_llm: $('#lyLlm').checked,
+    question: $('#lyQuestion').value || null,
+  };
+  if (body.method === 'coins'){
+    const s = $('#lySeed').value;
+    if (s) body.seed = parseInt(s, 10);
+  } else {
+    body.year = parseInt($('#lyYear').value, 10);
+    body.month = parseInt($('#lyMonth').value, 10);
+    body.day = parseInt($('#lyDay').value, 10);
+    body.hour = parseInt($('#lyHour').value, 10);
+  }
+  try{
+    const resp = await fetch('/api/liuyao', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'起卦失败')}</div>`; return; }
+    let html = '<div class="card"><h2>卦象</h2>';
+    const renderGua = (g, label) => {
+      const linesHtml = (g.lines||[]).map(l => {
+        const sym = l.yang ? (l.moving ? '⚊○' : '⚊') : (l.moving ? '⚋×' : '⚋');
+        const pos = ['','初','二','三','四','五','上'][l.position];
+        const mv = l.moving ? ' <span class="llm-badge" style="background:var(--destructive);color:#fff">动</span>' : '';
+        return `<div style="font-family:monospace;font-size:18px;">${pos} ${esc(sym)}${mv}</div>`;
+      }).join('');
+      return `<div style="display:inline-block;vertical-align:top;margin-right:24px;">
+        <h3 style="margin:4px 0;">${esc(label)} ${esc(g.gua_name)}（卦${g.gua_number}）</h3>
+        ${linesHtml}</div>`;
+    };
+    html += renderGua(j.ben, '本卦') + renderGua(j.bian, '变卦');
+    if (j.ben.moving_lines && j.ben.moving_lines.length){
+      html += `<p class="footnote">动爻：${esc(j.ben.moving_lines.join(', '))}</p>`;
+    } else {
+      html += `<p class="footnote">无动爻（本卦=变卦）</p>`;
+    }
+    html += '</div>';
+    // 卦辞/爻辞引用
+    const ev = (j.ben_jing||[]).concat(j.bian_jing||[]);
+    if (ev.length){
+      html += '<div class="card"><h2>古籍引文（周易卦辞/爻辞）</h2>';
+      html += ev.map((h,i) => `<div class="ev-item" id="ly-${i}">
+        <div class="hit-cite">${esc(h.citation||'')}</div>
+        <div class="ev-text">${esc(h.text||'')}</div>
+        <span class="ev-toggle" onclick="toggleLy(${i})">展开全文</span></div>`).join('');
+      html += '</div>';
+    }
+    // LLM 解读
+    if (j.llm && j.llm.text){
+      html += `<div class="card"><h2>LLM 解卦 <span class="llm-badge">生成文本</span></h2>`;
+      html += `<div class="llm-box">${esc(j.llm.text)}</div></div>`;
+    }
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">起卦失败：${esc(ex.message)}</div>`; }
+});
+function toggleLy(i){
+  const item = document.getElementById('ly-' + i);
+  if (!item) return;
+  item.classList.toggle('expanded');
+}
+
+/* ==================== P3 黄历择日 ==================== */
+$('#hlForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#hlResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">查询中…</div>';
+  const date = $('#hlDate').value || '';
+  const affair = $('#hlAffair').value;
+  const days = $('#hlDays').value || '30';
+  let url = '/api/huangli?';
+  if (date) url += `date=${encodeURIComponent(date)}&`;
+  if (affair){
+    url += `affair=${encodeURIComponent(affair)}&days=${encodeURIComponent(days)}`;
+  }
+  try{
+    const resp = await fetch(url);
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'查询失败')}</div>`; return; }
+    let html = '';
+    if (affair){
+      // 择日结果
+      html = `<div class="card"><h2>宜「${esc(affair)}」日（${esc(j.start)} 起 ${j.days} 天，命中 ${j.count} 天）</h2>`;
+      if (j.good_days && j.good_days.length){
+        html += '<table class="works"><tr><th>日期</th><th>建除</th><th>二十八宿</th><th>宜</th><th>忌</th></tr>';
+        j.good_days.forEach(d => {
+          html += `<tr><td>${esc(d.date)}</td><td>${esc(d.jianchu)}</td><td>${esc(d.xiu)}</td>
+            <td>${esc((d.yi||[]).join('、'))}</td><td>${esc((d.ji||[]).join('、'))}</td></tr>`;
+        });
+        html += '</table>';
+      } else {
+        html += '<div class="no-evidence">该区间内无宜此事项的日子</div>';
+      }
+      html += '</div>';
+    } else {
+      // 单日宜忌
+      html = `<div class="card"><h2>${esc(j.date)} 黄历</h2>`;
+      html += `<table class="works"><tbody>`;
+      html += `<tr><th>建除十二值</th><td>${esc(j.jianchu)}</td></tr>`;
+      html += `<tr><th>二十八宿</th><td>${esc(j.xiu)}</td></tr>`;
+      if (j.pengzu){
+        html += `<tr><th>彭祖百忌（干）</th><td>${esc(j.pengzu.gan)}：${esc(j.pengzu.gan_text)}</td></tr>`;
+        html += `<tr><th>彭祖百忌（支）</th><td>${esc(j.pengzu.zhi)}：${esc(j.pengzu.zhi_text)}</td></tr>`;
+      }
+      html += `<tr><th>宜</th><td>${esc((j.yi||[]).join('、'))}</td></tr>`;
+      html += `<tr><th>忌</th><td>${esc((j.ji||[]).join('、'))}</td></tr>`;
+      html += '</tbody></table></div>';
+    }
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">查询失败：${esc(ex.message)}</div>`; }
+});
+
+/* ==================== P4 五行起名 ==================== */
+$('#qmForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#qmResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">起名计算中…</div>';
+  const body = {
+    surname: $('#qmSurname').value,
+    year: parseInt($('#qmYear').value, 10),
+    month: parseInt($('#qmMonth').value, 10),
+    day: parseInt($('#qmDay').value, 10),
+    hour: parseInt($('#qmHour').value, 10),
+    gender: $('#qmGender').value,
+    top_n: parseInt($('#qmTopN').value, 10) || 20,
+  };
+  try{
+    const resp = await fetch('/api/qiming', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'起名失败')}</div>`; return; }
+    let html = `<div class="card"><h2>${esc(j.surname)} - 五行起名</h2>`;
+    html += `<table class="works"><tbody>`;
+    const b = j.bazi;
+    html += `<tr><th>八字</th><td>${esc(b.year)} ${esc(b.month)} ${esc(b.day)} ${esc(b.hour)}（日主${esc(b.day_master)}）</td></tr>`;
+    const fe = j.five_elements;
+    const dist = Object.entries(fe.counts||{}).map(([k,v]) => `${k}${v}`).join('、');
+    html += `<tr><th>五行分布</th><td>${esc(dist)}</td></tr>`;
+    const miss = (fe.missing||[]).join('');
+    html += `<tr><th>缺行</th><td>${miss ? '缺' + esc(miss) : '五行俱全（取最弱补）'}</td></tr>`;
+    html += '</tbody></table></div>';
+    // 候选字表
+    html += '<div class="card"><h2>候选字（按五行缺行优先）</h2>';
+    if (j.candidates && j.candidates.length){
+      html += '<table class="works"><thead><tr><th>字</th><th>五行</th><th>部首</th><th>寓意坐标</th></tr></thead><tbody>';
+      j.candidates.forEach(c => {
+        html += `<tr><td style="font-size:18px;font-weight:600;">${esc(c.char)}</td>
+          <td>${esc(c.element)}</td><td>${esc(c.radical)}</td><td>${esc(c.meaning)}</td></tr>`;
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<div class="no-evidence">无候选字</div>';
+    }
+    html += '</div>';
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">起名失败：${esc(ex.message)}</div>`; }
+});
 </script>
 </body>
 </html>

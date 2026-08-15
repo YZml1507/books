@@ -151,6 +151,37 @@ def main() -> int:
     kill_stale()
     time.sleep(1)
 
+    frozen = getattr(sys, "frozen", False)
+    if frozen:
+        # PyInstaller 单文件模式：没有独立 python.exe，用线程 in-process 跑 uvicorn。
+        import threading
+        import uvicorn
+        config = uvicorn.Config(
+            "web.app:app", host="127.0.0.1", port=PORT,
+            log_level="error", access_log=False,
+        )
+        server_obj = uvicorn.Server(config)
+        t = threading.Thread(target=server_obj.run, daemon=True)
+        t.start()
+        log("uvicorn in-process thread started")
+        # 等端口就绪
+        if not port_ready():
+            log("server failed to become ready; shutting down")
+            return 1
+        log("port ready; opening browser")
+        try:
+            webbrowser.open(URL)
+        except Exception as exc:
+            log(f"webbrowser.open failed: {exc}")
+        # in-process 模式：没有子进程可监控，直接等浏览器关闭信号
+        # 简化：运行直到 server.should_exit 被外部设置或进程被杀
+        try:
+            while not server_obj.should_exit:
+                time.sleep(POLL_INTERVAL)
+        except KeyboardInterrupt:
+            pass
+        return 0
+
     server = subprocess.Popen(
         [PY, "-m", "uvicorn", "web.app:app",
          "--host", "127.0.0.1", "--port", str(PORT)],

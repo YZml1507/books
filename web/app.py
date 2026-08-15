@@ -29,10 +29,16 @@ import sys
 from datetime import date, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# PyInstaller 单文件模式：资源在 exe 同目录，__file__ 在 _MEIPASS 临时解压目录
+if getattr(sys, "frozen", False):
+    ROOT = os.path.dirname(sys.executable)
 for _p in (ROOT, os.path.join(ROOT, "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from guji import liuyao as liuyao_mod  # noqa: E402
+from guji import huangli as huangli_mod  # noqa: E402
+from guji import qiming as qiming_mod  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
@@ -462,6 +468,161 @@ def api_thread_detail(tid: int):
         return {"turns": turns, "claims": claims, "verify": v}
     finally:
         kb.close()
+
+
+# ---------------------------------------------------------------------------
+# P3 六爻占卜 + 黄历择日（本地纯计算，复用 zhouyi 语料查卦辞/爻辞）
+# ---------------------------------------------------------------------------
+
+class LiuyaoRequest(BaseModel):
+    method: str = "coins"        # coins | time
+    # coins 法：可选 seed（复验用），不传则真随机
+    seed: int | None = None
+    # time 法：公历年/月/日/时 → 用 lunar.py 转农历后起卦
+    year: int | None = None
+    month: int | None = None
+    day: int | None = None
+    hour: int | None = None
+    use_llm: bool = False
+    question: str | None = None
+
+
+@app.post("/api/liuyao")
+def api_liuyao(req: LiuyaoRequest):
+    """六爻起卦（本地计算）+ 卦辞/爻辞引用（复用 zhouyi 语料）。
+
+    红线：起卦坐标由本地代码算出（可核验），卦辞/爻辞从已入库的
+    周易语料取出（G2 引用可核验），LLM 解读另字段返回（标注生成）。
+    """
+    import random as _rng
+    if req.method == "coins":
+        rng = _rng.Random(req.seed) if req.seed is not None else _rng.Random()
+        ben = liuyao_mod.cast_coins(rng)
+    elif req.method == "time":
+        if not all(v is not None for v in (req.year, req.month, req.day, req.hour)):
+            raise HTTPException(400, "时间起卦需 year/month/day/hour")
+        # 公历 → 农历（lunar.py）
+        try:
+            ly, lm, ld, _ = lunar.solar_to_lunar(req.year, req.month, req.day)
+        except Exception as exc:
+            raise HTTPException(400, f"公历转农历失败：{exc}")
+        hour_zhi = (req.hour + 1) // 2 % 12 + 1   # 0-23 → 子=1..亥=12
+        ben = liuyao_mod.cast_time(req.year, lm, ld, hour_zhi)
+    else:
+        raise HTTPException(400, f"method 须为 coins|time，收到 {req.method}")
+
+    bian = liuyao_mod.changing_hexagram(ben)
+    # 卦辞/爻辞引用：从 zhouyi 语料取本卦+变卦的经文
+    c = Corpus(CORPUS_DB)
+    try:
+        ben_jing = [_hit_dict(h) for h in c.at_address(ben.gua_number, layer="經", limit=10)]
+        bian_jing = [_hit_dict(h) for h in c.at_address(bian.gua_number, layer="經", limit=10)]
+    finally:
+        c.close()
+
+    llm_out = {"ok": False, "text": None, "model": None}
+    if req.use_llm:
+        if not llm_reader.available():
+            llm_out["text"] = ("未配置 LLM：请复制 llm_config.example.json 为 "
+                               "llm_config.json 并填写 base_url/api_key。")
+        else:
+            try:
+                # 运算事实 = 卦象坐标；引文 = 卦辞/爻辞
+                calc_dict = {
+                    "scope": "liuyao",
+                    "ben": liuyao_mod.render_hexagram(ben, "本卦"),
+                    "bian": liuyao_mod.render_hexagram(bian, "变卦"),
+                    "moving_lines": ben.moving_lines,
+                }
+                ev = ben_jing + bian_jing
+                # evidence 字段精简（仅 work_id/title/text/citation）
+                ev_slim = [{"work_id": e["work_id"], "title": e["title"],
+                            "text": e["text"], "citation": e["citation"]}
+                           for e in ev[:6]]
+                text = llm_reader.interpret(
+                    f"本卦{ben.gua_name}(卦{ben.gua_number}) 变卦{bian.gua_name}(卦{bian.gua_number})",
+                    ev_slim, req.question, calc_dict)
+                llm_out = {"ok": True, "text": text,
+                           "model": os.environ.get("LLM_MODEL", "llm_config.json")}
+            except Exception as exc:
+                llm_out["text"] = f"LLM 调用失败：{exc}"
+
+    return {
+        "ben": liuyao_mod.render_hexagram(ben, "本卦"),
+        "bian": liuyao_mod.render_hexagram(bian, "变卦"),
+        "ben_jing": ben_jing,
+        "bian_jing": bian_jing,
+        "llm": llm_out,
+    }
+
+
+@app.get("/api/huangli")
+def api_huangli(date: str | None = None, affair: str | None = None,
+                days: int = 1):
+    """黄历择日（本地纯计算）。
+
+    - date=YYYY-MM-DD：查单日宜忌坐标（建除/二十八宿/彭祖百忌）
+    - affair=婚嫁&days=30：在 [date, date+days) 内找宜该事项的日子
+    """
+    dt: datetime
+    if date:
+        try:
+            y, m, d = (int(x) for x in date.split("-"))
+            dt = datetime(y, m, d)
+        except Exception:
+            raise HTTPException(400, f"date 格式应为 YYYY-MM-DD，收到 {date}")
+    else:
+        dt = datetime.now()
+
+    if YEAR_LO <= dt.year <= YEAR_HI is False:
+        if not (YEAR_LO <= dt.year <= YEAR_HI):
+            raise HTTPException(400, f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {dt.year}")
+
+    if affair:
+        end = dt + timedelta(days=max(days, 1) - 1)
+        good = huangli_mod.find_good_days(dt, end, affair)
+        return {"affair": affair, "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
+                "days": days, "good_days": good,
+                "count": len(good)}
+
+    q = huangli_mod.day_query(dt)
+    return {"date": q["date"], "jianchu": q["jianchu"], "xiu": q["xiu"],
+            "pengzu": q["pengzu"], "yi": q["yi"], "ji": q["ji"]}
+
+
+# ---------------------------------------------------------------------------
+# P4 五行起名（本地纯计算，复用 bazi_calc 五行缺行）
+# ---------------------------------------------------------------------------
+
+class QimingRequest(BaseModel):
+    surname: str = Field(..., description="姓氏（单字）")
+    year: int = Field(..., description="公历年")
+    month: int = Field(..., description="月 1-12")
+    day: int = Field(..., description="日 1-31")
+    hour: int = Field(..., description="时 0-23")
+    gender: str = "男"
+    top_n: int = 20
+
+
+@app.post("/api/qiming")
+def api_qiming(req: QimingRequest):
+    """五行起名：八字 → 五行缺行 → 候选字库筛选补缺字。
+
+    纯计算：选字基于部首五行规则表（写死可核验），寓意坐标只给
+    "五行-简明寓意"，不作吉凶断言，不生成"新命理文本"。
+    """
+    if not (YEAR_LO <= req.year <= YEAR_HI):
+        raise HTTPException(400, f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {req.year}")
+    if not req.surname or len(req.surname) != 1:
+        raise HTTPException(400, "surname 须为单字姓氏")
+    try:
+        result = qiming_mod.name_candidates(
+            surname=req.surname, year=req.year, month=req.month,
+            day=req.day, hour=req.hour, gender=req.gender,
+            top_n=min(max(req.top_n, 1), 100))
+    except Exception as exc:
+        raise HTTPException(400, f"起名计算失败：{exc}")
+    return result
 
 
 if __name__ == "__main__":
