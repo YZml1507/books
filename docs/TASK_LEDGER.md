@@ -1198,3 +1198,60 @@ probe_g8_isolation exit 0 · summarise_diff exit 0 · probe_booksec exit 0
 .\.venv\Scripts\python.exe scripts\assess_goals.py             # PASS 9 PART 0 FAIL 0
 ```
 - 决策记录：DECISIONS.md D-043（at_scheme 增量方法、API 边界、双 tab 前端取舍）。
+
+## 27. 阶段2-R1 审查-修复轮（2026-08-16，PROJECT_GOAL_20260816 §4 五缺口闭环后首审查）
+
+**纪律重申**：本轮严格遵循"文档断言非事实，事实只在脚本实跑输出里"。亲自复验推翻任务书多处断言：命理书 27 部夸大（实测 MINGLI_WORKS 17→18 部）、works 45 部是旧快照（实测 47）、units 51,636 是旧快照（实测 51,723）、wuxing-dayi 仅 1 单元入库失败（任务书未提）、bible-kjv/web/darwin-origin 在 work 表但 0 单元。
+
+### 27a. 五缺口闭环（任务书 §4）
+| 缺口 | 内容 | 实测结果 | commit |
+| --- | --- | --- | --- |
+| 1 | 命理语料补滴天髓/穷通宝鉴 | ditiansui 72 单元(max 8589)·qiongtongbaojian 15 单元(max 5090)·MINGLI_WORKS 18 部·T7 PASS | bee0496 |
+| 2 | exe 瘦身 | 218MB→26.6MB(降 87.8%)·excludes 排 torch 496MB 主因·hiddenimports 加 web/web.app | cd6eef5 |
+| 3 | exe 端到端实机验证 | frozen ROOT 修复(日志写 dist/logs/)·_monitor 兼容 uvicorn.Server·端口就绪+浏览器连接 PID 6776=msedge | cd6eef5 |
+| 4 | 六爻纳甲运算层 | najia/liuqin/shiying/liushen/paipan·7 探针全 PASS·八宫表校正 43姤→44姤·世应公式 (世+3)%6 | bcfa38e |
+| 5 | 黄历神煞层 | 9 神煞+三合局共享映射+shensha_yiji·12 探针全 PASS·day_query 集成 | 3de3352 |
+
+### 27b. 审查发现并修复的红线级缺陷（本轮重点）
+1. **term_time 节气求解绕行缺陷**（commit f81f18d）— 红线级，影响八字大运+黄历月支
+   - 根因：gap() 用 `v if v > -180 else v+360` 归一化只对 >-180 生效，太阳黄经接近 360° 时 gap 从 +305° 跳到 -43°（虚假符号变化），兜底扫描 step=8 命中 3 月底虚假穿越点，返回春分而非立夏/芒种/小暑/立秋等
+   - 影响范围：2020-2026 多年份核实全错；立夏/芒种/小暑/立秋/白露/寒露/立冬/大雪 全返回春分或小寒时刻；八字大运起运岁数+黄历建除/神煞+夏季之后所有日期月支计算错误
+   - 修复：(1) gap() 改用最短角距离 `(v+180)%360-180` 让 360°/0° 边界连续；(2) 兜底扫描记录所有符号变化点按 score=|prev_g|+|cur_g| 选最小——真穿越 score≈4，绕行跳变 score≈356
+   - 验证：2026 全 12 节气 CST+8 对照 USNO 全对；2020/2023/2024/2025 多年份抽查全对；13 闸门无回退
+
+2. **liuyao time 正常输入报 400**（commit 5369b8f）— 边界探活意外触发的既有 bug
+   - 根因：solar_to_lunar 返回 dict（非 tuple），`ly, lm, ld, _ = solar_to_lunar(...)` 解包报 "too many values to unpack (expected 4, got 8)"，正常 time 起卦返 400
+   - 修复：改 `lm_info = solar_to_lunar(...); ly,lm,ld = lm_info["year"/"month"/"day"]`；cast_time 第一参数原误传公历 req.year 改为农历年 ly
+   - 验证：liuyao time 正常输入返 200
+
+3. **边界输入验证缺失**（commit 5369b8f）— 红线⑤
+   - huangli：补 month(1-12)/day(1-31) 校验+datetime 越界兜 400（原 y=1899/m=13/d=32/m=0 全返 200）
+   - liuyao time：补 year(1900-2100)/month/day/hour(0-23) 校验（原越界返 200）
+   - 验证：huangli 越界全 400，liuyao time 越界全 400，search 超长无回归
+
+### 27c. 13 道闸门（缺口闭环+缺陷修复后全跑，零回退）
+```
+check_quality PASS · build_index works=47 units=51,723 47.5MB · verify_index ALL PASS
+validate_alignment exit 0 · probe_conservation 7253 units 0 越界 exit 0
+assess_goals PASS 9 PART 0 FAIL 0 · eval_g1/g4/g7 exit 0 · probe_bcv exit 0
+probe_g8_isolation exit 0 · probe_booksec exit 0 · check_provenance exit 0
+```
+
+### 27d. web 6 tab 探活（正确 schema 下全 200）
+| 端点 | 方法 | schema 要点 | 状态 |
+| --- | --- | --- | --- |
+| /api/bazi | POST | year/month/day/hour/minute/gender=男\|女/scope | 200 keys=paipan/calc/evidence/llm |
+| /api/search | GET | q 非空 | 200；q 空→400 |
+| /api/works,/api/stats,/api/threads | GET | — | 200 |
+| /api/liuyao | POST | method=coins\|time；time 需 year/month/day/hour | 200 keys=ben/bian/ben_jing/bian_jing/llm |
+| /api/huangli | GET | date=YYYY-MM-DD | 200；越界→400 |
+| /api/qiming | POST | surname 单字/year/month/day/hour/gender | 200 |
+
+### 27e. 复验命令
+```
+.\.venv\Scripts\python.exe probes\probe_liuyao_najia.py          # 7 PASS exit 0
+.\.venv\Scripts\python.exe probes\probe_huangli_shensha.py      # 12 PASS exit 0
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.bazi import term_time;print(term_time(2026,'立夏'))"  # 2026-05-05
+.\.venv\Scripts\python.exe scripts\assess_goals.py              # PASS 9 PART 0 FAIL 0
+```
+- 决策记录：DECISIONS.md D-047（term_time 绕行修复+边界验证+liuyao time 解包）、D-044/D-045/D-046（五缺口各一）
