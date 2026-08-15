@@ -821,12 +821,12 @@
       "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
       "edition": null,
       "n_files": 1,
-      "n_chars": 20156,
-      "local_content_sha256": "ce373bd399de86fad122ca568047f0e101cc0268be9516c3c294d7604eafc5df",
+      "n_chars": 19516,
+      "local_content_sha256": "e9498f886226b7b0e4016fd16af609217399be44eff57a328ffc4bbabe728ccc",
       "source_url": "",
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【兰台妙选·篇名】段间 ¶ 分段（颗粒度修复）"
     },
     {
       "id": "mingli-tanyuan",
@@ -835,12 +835,12 @@
       "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
       "edition": null,
       "n_files": 1,
-      "n_chars": 57594,
-      "local_content_sha256": "4ea26403049c87e572d03a2c58972c2d0715a924c73c262dab279e4df039ea34",
+      "n_chars": 54751,
+      "local_content_sha256": "cbe67a140670e9c0e1c3c02f452981fb98be986a45e6032b75c594b4d6c36ca9",
       "source_url": "",
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理探原·篇名】段间 ¶ 分段（颗粒度修复）"
     },
     {
       "id": "mingli-yueyan",
@@ -849,12 +849,12 @@
       "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
       "edition": null,
       "n_files": 1,
-      "n_chars": 58693,
-      "local_content_sha256": "b5723edde7f6de39083c64aed4b53d578d60b3986e10a5d3d90facae73d278e1",
+      "n_chars": 58160,
+      "local_content_sha256": "a2345a0d49ac77c133237f7f218e4a7b07744eff4ded0d63318371249186fc32",
       "source_url": "",
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理约言·篇名】段间 ¶ 分段（颗粒度修复）"
     },
     {
       "id": "sanming-tonghui",
@@ -863,12 +863,12 @@
       "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
       "edition": null,
       "n_files": 1,
-      "n_chars": 340243,
-      "local_content_sha256": "0b2fd29977025dd3a4e6600b4c790107394eb7167714fb5f25bd87635dbb354c",
+      "n_chars": 326827,
+      "local_content_sha256": "694e7c64861c500282d88ff6c11e4bee79f653a4668ea6bd7cdf94c573f5455c",
       "source_url": "",
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【三命通会·篇名】段间 ¶ 分段（颗粒度修复）"
     },
     {
       "id": "wuxing-dayi",
