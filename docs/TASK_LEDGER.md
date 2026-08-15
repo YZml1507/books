@@ -1109,3 +1109,16 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
   - **body_off 偏移修复**：find_plays 内部 strip 掉 Gutenberg header（48 字节）后返回的 pos 是 body-relative，ingest 用 raw 直接切片 → 所有 play 单元 raw_start 偏左 48 字节，这是探针第二版 224/811 假阳性的真相。修：Play.start/end 加 body_off 转 raw-relative
   - **验证**：38/38 剧 5 幕、6 诗 no-act（HAMLET 5/2/4/7/2、HENRY VI-1 6/5/4/7/5、MIDSUMMER 2/2/2/2/1、PERICLES 4/5/4/4/3 各剧 scene 分布合理）；**play locativity 探针 623 → 0**（768 单元全部最近前驱 body-ACT == 声明 ACT，not falsified）
   - 探针 addendum 的 body-ACT 判据同步改为与 play.py 相同的"角色表分界"口径，避免审计者与 parser 判据不一致
+
+## 23. 新增 bazi 排盘 + 命理书引用检索（用户需求："生辰八字 → 书本知识答复"）
+
+**需求分层实测**（D-038）：引用型检索可做（给证据不生成），生成式解读撞 GOAL §5 红线；用户选择"接 LLM，我会提供 API KEY"（授权生成式解读层，边界：不落库/与引用分离/标注 LLM 来源）。
+
+**交付**：
+- `src/guji/bazi.py`：纯标准库排盘（零新依赖）。公历 → 四柱/日主/纳音/大运方向。节气用 Meeus 低精度太阳黄经 + 二分（实测立春 2024 差 5 分钟、小寒 2000 差 3 分钟）。**3 组权威基准全对齐**：2000-01-01 己卯丙子戊午 / 1984-02-02 癸亥乙丑丙寅 / 2024-02-10 甲辰丙寅甲辰（日柱 (JDN+49)%60、纳音 (6g-5z)%60 CRT、月柱 (jie_zhi-2)%12 月序——初版月柱/纳音公式有 bug，用权威数据实测推翻后修正）。出生时刻距节 ≤30min 置 warn。
+- `src/guji/bazi_lookup.py`：FTS（坐标词 ≥2 字，9 部命理书精确检索）+ bge（命理书单元向量缓存 data/catalog/bge_mingli_docvecs.npy，ids+结构双校验）双路径，全部带 文件+页锚点 引用。
+- `scripts/ask_bazi.py`：`python scripts/ask_bazi.py 1990 5 15 10 男 [--sem]` → 排盘 + 命理书原文证据；查不到输出"证据不足"（G7）。输出标注"非系统生成的解读"。
+
+**验证**：5 个八字样例（1949-10-01/1984-02-02/2000-01-01/1995-07-07/2020-02-04）排盘+命中正常；1990-05-15 → FTS 19 条 + bge 8 条。13 道闸门全过零回退（新增只读模块）。
+
+**待办（已授权）**：LLM 解读层 `src/guji/llm_reader.py`——用户提供 API KEY（环境变量，不进对话），坐标+原文作 context，生成白话解读；不落库、与引用分离、标注 LLM 来源。
