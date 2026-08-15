@@ -1128,3 +1128,12 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 - 配置：复制 `llm_config.example.json` 为 `llm_config.json` 填写 base_url/api_key/model（.gitignore 已排除，KEY 永不提交）；环境变量 LLM_API_KEY/LLM_BASE_URL/LLM_MODEL 兜底。
 - `scripts/ask_bazi.py --llm [--question ...]`：引用证据后追加 LLM 解读；未配置时提示配置文件路径，引用仍完整输出。
 - 实测：无配置 available()=False 降级正常、配置解析通过；真实 API 调用待用户填 KEY 后验证（本窗口无 KEY 不假装调通）。
+
+## 24. 网页端（FastAPI + 单页前端）已落地（D-040 / WEB_PLAN.md）
+
+用户需求：搭建网页端；提供 ui-ux-pro-max skill（解压至 vendor/，不入库）。决策：FastAPI（建议自主执行）+ 打包单文件（后续）。
+
+- `docs/WEB_PLAN.md` 方案；`web/app.py` 后端（校验/编排/LLM 失败不掩盖引用）；`web/static/index.html` 单页前端（三段式，按 skill 设计规范：瑞士极简/藏青+金/Noto TC/离线可用）。
+- 实测：TestClient 全过；独立进程 GET / 200、POST 200（12 证据）、use_llm=true 真实 LLM 成功；13 道闸门零回退；浏览器已打开实测。
+- 启动：`python -m uvicorn web.app:app --host 127.0.0.1 --port 8123`
+- 待办：PyInstaller 打包单文件（用户选定形态）。

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>八字命理检索</title>
+<style>
+  /* UI/UX Pro Max 设计规范：Minimalism & Swiss Style
+     Primary #0F172A · Accent #A16207 · Background #F8FAFC · Card #FFFFFF
+     字体栈离线可用（不引外部 CDN，保证打包单文件后仍可用） */
+  :root{
+    --primary:#0F172A; --on-primary:#FFFFFF;
+    --secondary:#1E3A8A; --on-secondary:#FFFFFF;
+    --accent:#A16207; --on-accent:#FFFFFF;
+    --background:#F8FAFC; --foreground:#020617;
+    --card:#FFFFFF; --card-fg:#020617;
+    --muted:#E8ECF1; --muted-fg:#475569;
+    --border:#E2E8F0; --destructive:#DC2626;
+    --ring:#0F172A;
+    --font-serif:"Noto Serif TC","Songti SC","SimSun",serif;
+    --font-sans:"Noto Sans TC","Microsoft YaHei","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--background); color:var(--foreground);
+    font-family:var(--font-sans); font-size:16px; line-height:1.5;
+    min-height:100vh;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:32px 20px 64px;}
+  header h1{
+    font-family:var(--font-serif); font-size:28px; font-weight:600;
+    color:var(--primary); letter-spacing:.02em;
+  }
+  header p{color:var(--muted-fg); margin-top:4px; font-size:14px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:24px; margin-top:24px; box-shadow:0 1px 3px rgba(15,23,42,.06);
+  }
+  label{display:block; font-size:14px; color:var(--primary); margin:14px 0 6px; font-weight:500;}
+  .row{display:flex; gap:12px; flex-wrap:wrap;}
+  .field{flex:1; min-width:96px;}
+  input[type=number], input[type=text], select{
+    width:100%; padding:10px 12px; font-size:16px;
+    border:1px solid var(--border); border-radius:6px;
+    background:var(--card); color:var(--foreground);
+    transition:border-color .2s, box-shadow .2s;
+  }
+  input:focus, select:focus{
+    outline:none; border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(15,23,42,.12);
+  }
+  .check{display:flex; align-items:center; gap:8px; margin-top:14px;}
+  .check input{width:18px; height:18px; accent-color:var(--primary);}
+  button{
+    margin-top:20px; width:100%; padding:12px 16px; font-size:16px;
+    background:var(--primary); color:var(--on-primary);
+    border:none; border-radius:6px; cursor:pointer;
+    transition:background .2s;
+  }
+  button:hover{background:var(--secondary);}
+  button:disabled{background:var(--muted-fg); cursor:not-allowed;}
+  .error{color:var(--destructive); margin-top:16px; font-size:14px;}
+  .status{color:var(--muted-fg); margin-top:16px; font-size:14px;}
+  .result{margin-top:8px;}
+  h2{
+    font-family:var(--font-serif); font-size:20px; color:var(--primary);
+    padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:16px;
+  }
+  .paipan-line{font-family:var(--font-serif); font-size:20px; color:var(--primary);}
+  .nayin{color:var(--muted-fg); font-size:14px; margin-top:8px;}
+  .warn{color:var(--accent); font-size:14px; margin-top:8px; font-weight:500;}
+  .ev-item{
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .ev-item:last-child{border-bottom:none;}
+  .ev-meta{font-size:12px; color:var(--muted-fg); font-family:monospace;}
+  .ev-text{font-family:var(--font-serif); font-size:15px; margin-top:6px;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+  .ev-item.expanded .ev-text{-webkit-line-clamp:unset; overflow:visible;}
+  .ev-toggle{font-size:13px; color:var(--secondary); cursor:pointer; margin-top:6px; display:inline-block;}
+  .ev-toggle:hover{text-decoration:underline;}
+  .no-evidence{color:var(--muted-fg); font-size:14px;}
+  .llm-badge{
+    display:inline-block; font-size:12px; color:var(--on-accent); background:var(--accent);
+    padding:2px 10px; border-radius:999px; margin-left:8px; vertical-align:middle;
+  }
+  .llm-text{white-space:pre-wrap; font-size:15px; margin-top:12px; line-height:1.7;}
+  .llm-model{font-size:12px; color:var(--muted-fg); margin-top:10px;}
+  .footnote{color:var(--muted-fg); font-size:12px; margin-top:24px;}
+  @media (max-width:480px){ .field{min-width:44%;} header h1{font-size:24px;} }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{transition:none !important; animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>八字命理检索</h1>
+    <p>排盘 · 命理古籍原文证据 · 可选的 LLM 白话解读（生成文本，非古籍原文）</p>
+  </header>
+
+  <form class="card" id="form">
+    <div class="row">
+      <div class="field"><label for="year">公历年份</label>
+        <input id="year" type="number" min="1900" max="2100" value="1990" required></div>
+      <div class="field"><label for="month">月</label>
+        <input id="month" type="number" min="1" max="12" value="5" required></div>
+      <div class="field"><label for="day">日</label>
+        <input id="day" type="number" min="1" max="31" value="15" required></div>
+      <div class="field"><label for="hour">时（0–23）</label>
+        <input id="hour" type="number" min="0" max="23" value="10" required></div>
+      <div class="field"><label for="gender">性别</label>
+        <select id="gender"><option>男</option><option>女</option></select></div>
+    </div>
+    <label for="question">想了解什么？（可选）</label>
+    <input id="question" type="text" placeholder="例如：事业运如何？">
+    <div class="check">
+      <input id="use_llm" type="checkbox">
+      <label for="use_llm" style="margin:0; font-weight:400;">LLM 白话解读（需服务端已配置）</label>
+    </div>
+    <button id="submit" type="submit">排 盘</button>
+    <div class="error" id="error" hidden></div>
+    <div class="status" id="status" hidden></div>
+  </form>
+
+  <div class="result" id="result" hidden></div>
+  <p class="footnote">古籍原文证据带出处（书名 / 层 / 页锚点 / 文件），可核验；
+    LLM 解读为生成文本，标注模型来源，不构成现实决策依据。</p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const result = $('#result');
+
+function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function render(j){
+  const p = j.paipan;
+  let html = '';
+  // 1) 排盘卡片
+  html += `<section class="card"><h2>排盘</h2>
+    <div class="paipan-line">${esc(p.render)}</div>
+    <div class="nayin">四柱纳音：年 ${esc(p.nayin[0])} · 月 ${esc(p.nayin[1])} · 日 ${esc(p.nayin[2])} · 时 ${esc(p.nayin[3])}</div>
+    ${(p.warn||[]).map(w=>`<div class="warn">⚠ ${esc(w)}</div>`).join('')}
+  </section>`;
+
+  // 2) 古籍原文证据
+  let ev = '<section class="card"><h2>古籍原文证据</h2>';
+  if (!j.evidence || !j.evidence.length){
+    ev += '<div class="no-evidence">证据不足：命理书未检索到与本坐标匹配的原文（G7）。</div>';
+  } else {
+    j.evidence.forEach((e,i)=>{
+      const page = e.page_anchor ? `@${e.page_anchor}` : '@?';
+      ev += `<div class="ev-item" id="ev-${i}">
+        <div class="ev-meta">[${esc(e.work_id)} · ${esc(e.layer||'')} ${esc(page)} (${esc(e.file||'')})] ${esc(e.why||'')}</div>
+        <div class="ev-text">${esc(e.text)}</div>
+        <span class="ev-toggle" onclick="toggleEv(${i})">展开全文</span>
+      </div>`;
+    });
+  }
+  ev += '</section>';
+
+  // 3) LLM 解读（标注生成来源）
+  if (j.llm && (j.llm.text || j.llm.ok)){
+    html += `<section class="card"><h2>LLM 白话解读<span class="llm-badge">生成文本</span></h2>
+      <div class="llm-text">${esc(j.llm.text||'')}</div>
+      ${j.llm.model ? `<div class="llm-model">模型：${esc(j.llm.model)}</div>` : ''}
+    </section>`;
+  }
+
+  result.innerHTML = html;
+  result.hidden = false;
+}
+
+function toggleEv(i){
+  const item = document.getElementById('ev-'+i);
+  if (!item) return;
+  const expanded = item.classList.toggle('expanded');
+  item.querySelector('.ev-toggle').textContent = expanded ? '收起' : '展开全文';
+}
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('#error'), st = $('#status'), btn = $('#submit');
+  err.hidden = true; st.hidden = false; st.textContent = '排盘中…';
+  btn.disabled = true;
+  const body = {
+    year: +$('#year').value, month: +$('#month').value,
+    day: +$('#day').value, hour: +$('#hour').value,
+    gender: $('#gender').value,
+    use_llm: $('#use_llm').checked,
+    question: $('#question').value.trim() || null,
+  };
+  try{
+    const r = await fetch('/api/bazi', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok){ err.textContent = j.detail || ('请求失败：'+r.status); err.hidden = false; return; }
+    render(j);
+  }catch(ex){
+    err.textContent = '网络错误：'+ex.message; err.hidden = false;
+  }finally{
+    st.hidden = true; btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

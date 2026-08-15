@@ -1703,3 +1703,22 @@ build 51,174 单元 43.6 MB · verify_index ALL PASS · assess_goals **PASS 9 ·
 - 配置（配置文件优先，环境变量兜底）：`llm_config.json`（复制 `llm_config.example.json` 填写 base_url/api_key/model）；`.gitignore` 已排除 `llm_config.json`，KEY 永不提交。环境变量：LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_TIMEOUT。
 - `scripts/ask_bazi.py --llm [--question ...]`：排盘 + 引用证据输出后追加 LLM 白话解读；未配置时给出配置文件路径提示，引用证据仍完整输出（LLM 失败不掩盖引用）。
 - 实测：无配置时 `available()=False` 降级正常；配置解析（base/model/timeout）验证通过。真实 API 调用留待用户填 KEY 后自行验证（本窗口无 KEY，不假装调通）。
+
+## D-040 网页端落地（FastAPI + 单页前端，方案照 WEB_PLAN.md；UI 照用户提供的 ui-ux-pro-max skill）
+
+用户要求搭建网页端，提供 ui-ux-pro-max-skill-main.zip（Claude plugin 格式的 UI/UX 设计智能库，解压至 vendor/ui-ux-pro-max，gitignore 的 vendor/ 不入库）。用户决策：技术栈按建议自主执行（FastAPI）、部署形态选打包单文件（PyInstaller，后续）。
+
+### 1. 交付
+- `docs/WEB_PLAN.md`：架构（复用 bazi/bazi_lookup/llm_reader，web 层只编排）、技术栈对比（FastAPI 推荐）、API 契约、页面设计、红线遵守、实施步骤与验收。
+- `web/app.py`（FastAPI 0.141 + uvicorn 0.52）：GET /（静态页）+ GET /api/health + POST /api/bazi（Pydantic 校验 1900-2100/1-12/1-31/0-23/男|女；编排 compute→retrieve_fast→(use_llm)llm_reader；证据去重限 12 条；LLM 失败不掩盖引用）。
+- `web/static/index.html`：单页（内联 CSS/JS，零外部 CDN，离线可用）；三段式（排盘卡片 / 古籍原文证据列表带出处·可展开 / LLM 解读段标注"生成文本"+模型名）；按 skill 设计系统查询结果：瑞士极简、Primary #0F172A 藏青 + Accent #A16207 金、Noto Serif/Sans TC 字体栈、focus 可见、prefers-reduced-motion 尊重、375/768/1024/1440 响应式。
+- 依赖新增：fastapi+uvicorn（用户"搭建网页端"显式授权；红线第 3 类由此豁免）。
+
+### 2. 实测（全可复现）
+- TestClient：health 200 · 非法 year/month/hour → 400 中文 · 合法 use_llm=false → 200（12 条证据）· use_llm=true 未配置 → 提示不崩。
+- 独立进程启动（PowerShell Start-Process 防随 bash 会话被杀）：GET / 200 · POST 合法 200（paipan 庚午年丁亥月庚辰日辛巳时，evidence 12）· POST use_llm=true 200（**真实 LLM 调用成功**，llm.ok=True，返回"所依据的原文引文"+解读）。
+- 13 道闸门全过零回退（web/ 新增目录不触碰 build/verify/eval 链）。
+- 浏览器已打开 http://127.0.0.1:8123 供用户实测。
+
+### 3. 待办
+- PyInstaller 打包单文件（用户选定部署形态，后续做）。
