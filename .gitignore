@@ -16,6 +16,9 @@ markitdown-main.zip
 *.db-journal
 *.log
 
+# Local secrets — never commit the filled-in LLM config
+llm_config.json
+
 # OS junk
 Thumbs.db
 desktop.ini

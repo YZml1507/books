@@ -1,0 +1,9 @@
+{
+  "_说明": "LLM 辅助解读层配置。把本文件复制为 llm_config.json 后填写（llm_config.json 已被 .gitignore，不会提交）。",
+  "base_url": "https://api.openai.com/v1",
+  "_base_url_示例": "DeepSeek: https://api.deepseek.com/v1  通义: https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "api_key": "",
+  "model": "gpt-4o-mini",
+  "_model_示例": "DeepSeek: deepseek-chat  通义: qwen-plus",
+  "timeout_seconds": 60
+}

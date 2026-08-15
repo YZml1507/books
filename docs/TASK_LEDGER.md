@@ -1122,3 +1122,9 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 **验证**：5 个八字样例（1949-10-01/1984-02-02/2000-01-01/1995-07-07/2020-02-04）排盘+命中正常；1990-05-15 → FTS 19 条 + bge 8 条。13 道闸门全过零回退（新增只读模块）。
 
 **待办（已授权）**：LLM 解读层 `src/guji/llm_reader.py`——用户提供 API KEY（环境变量，不进对话），坐标+原文作 context，生成白话解读；不落库、与引用分离、标注 LLM 来源。
+
+**LLM 解读层落地（用户授权 + 配置文件方式，D-039）**：
+- `src/guji/llm_reader.py`：OpenAI 兼容 chat/completions（httpx，零新依赖）。边界照授权：不落库、与引用分离（原文引文 / LLM 解读两段）、KEY 不进对话/命令行/日志。
+- 配置：复制 `llm_config.example.json` 为 `llm_config.json` 填写 base_url/api_key/model（.gitignore 已排除，KEY 永不提交）；环境变量 LLM_API_KEY/LLM_BASE_URL/LLM_MODEL 兜底。
+- `scripts/ask_bazi.py --llm [--question ...]`：引用证据后追加 LLM 解读；未配置时提示配置文件路径，引用仍完整输出。
+- 实测：无配置 available()=False 降级正常、配置解析通过；真实 API 调用待用户填 KEY 后验证（本窗口无 KEY 不假装调通）。

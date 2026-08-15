@@ -1694,3 +1694,12 @@ build 51,174 单元 43.6 MB · verify_index ALL PASS · assess_goals **PASS 9 ·
 
 ### 4. 闸门
 13 道全过零回退（新增模块只读，不触碰索引/评估链）。
+
+## D-039 LLM 解读层落地（用户授权 + 配置文件方式填 KEY）
+
+用户选择"接 LLM，我会提供 API KEY"，并要求"写一个脚本出来，告诉我路径，我直接去填写 url 和 api key"。落地：
+
+- `src/guji/llm_reader.py`：OpenAI 兼容 chat/completions 调用（httpx，已在 venv，零新依赖）。硬边界照授权约定：**不落库**（进程内字符串，不写 corpus/knowledge.db、不缓存磁盘）、**与引用分离**（输出分「原文引文」与「LLM 解读」两段，解读须基于给定引文、无则明说"引文未涉及"）、**KEY 不进对话/命令行/日志**（只读本地文件或环境变量）。
+- 配置（配置文件优先，环境变量兜底）：`llm_config.json`（复制 `llm_config.example.json` 填写 base_url/api_key/model）；`.gitignore` 已排除 `llm_config.json`，KEY 永不提交。环境变量：LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_TIMEOUT。
+- `scripts/ask_bazi.py --llm [--question ...]`：排盘 + 引用证据输出后追加 LLM 白话解读；未配置时给出配置文件路径提示，引用证据仍完整输出（LLM 失败不掩盖引用）。
+- 实测：无配置时 `available()=False` 降级正常；配置解析（base/model/timeout）验证通过。真实 API 调用留待用户填 KEY 后自行验证（本窗口无 KEY，不假装调通）。
