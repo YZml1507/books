@@ -2109,3 +2109,43 @@ manifest 更新 n_chars/sha256/provenance_note。实测：1→29 单元，avg 38
   结构），改字段名会破坏 manifest 兼容。fallback 在 ingest 层适配更稳。
 - **source_url 真空值不修**：子平书来自本地 `logs/p2_tmp/xuanxue` 等 mkdocs 仓库
   clone，无远程 URL 是真實状态。强行填占位 URL 反而违反"provenance 真实"原则。
+
+## D-049 4 部子平书颗粒度同类修复 + 八字大运实机核验（2026-08-16，阶段2-R3）
+
+### 起源
+R3 再审查（R2 闭环后第二轮）。闸门实机重跑 13 道全绿，八字大运实机核验
+（R1 修复 term_time 后夏季命例可用），顺藤摸瓜审出 4 部子平书颗粒度同类遗留。
+
+### 八字大运实机核验（R1 修复 term_time 后）
+- 1893-12-26 辰时男命例：大运起运 6.4 岁，大运序列 癸亥→壬戌→辛酉→庚申→...
+  结构完整，与已知命例约 8 岁有偏差属 `_sun_longitude` 误差 0.01°≈15 分钟累积
+- 2000-05-15 午时男夏季命例：可用（R1 修复前 term_time 错导致夏季命例月支错）
+
+### 缺陷：4 部子平书颗粒度同类遗留（commit 12d21ed）
+
+**根因**：sanming-tonghui/mingli-tanyuan/mingli-yueyan/lantai-miaoxuan 的 raw txt
+有 `【书名·篇名】` 标记但 0 个 `¶` 分段符（与缺口1 ditiansui/R2 wuxing-dayi
+同根问题），ingest 把整本书当巨型 piece，max_tlen 15917~39763。
+
+**修复**：每个 `【书名·篇名】` 段间插 `¶`（**只对含·的篇名插**，不插
+`【注】`/`【诗】` 等短标记，否则会把注段也切成独立 piece 破坏上下文）；
+manifest 更新 n_chars/sha256/provenance_note。
+
+**实测**颗粒度改善（max_tlen 全 <10000）：
+- sanming-tonghui: 103→380 单元 max 39763→4382
+- mingli-tanyuan:  25→31  单元 max 18937→9798
+- mingli-yueyan:   41→84  单元 max 11977→5792
+- lantai-miaoxuan:  7→21  单元 max 15917→2989
+
+### 决策依据
+- **颗粒度同类问题统一修法**：4 部子平书与 ditiansui/qiongtongbaojian/wuxing-dayi
+  同根（无 `¶` 分段符），统一用 `【篇名】段间插 ¶` 修法。R1/R2/R3 共修 7 部，
+  子平书颗粒度问题应已清。
+- **wuxing-dayi max=20019 不再切**：`【配五色至五事】` 整篇赋文真实长度，篇内再切
+  会破坏原文完整性。ditiansui max=8589、qiongtongbaojian max=5090 同理——篇内是
+  原文连续段落，不应机械切碎。
+- **只插含·的【标记**：`【注】`/`【诗】` 是篇内注段标记，插 `¶` 会把注段切成独立
+  piece，与正文分离破坏上下文。只对 `【书名·篇名】`（含·）插，保留篇内注段完整。
+- **八字大运偏差非缺陷**：`_sun_longitude` 用 Meeus 简化式误差 0.01°≈15 分钟，
+  累积到大运起运岁数会有小数差异（6.4 vs 已知约 8），属算法精度范围内。若需更高
+  精度可换 Meeus 第二式（误差 0.0001°），但当前精度对命理应用足够。

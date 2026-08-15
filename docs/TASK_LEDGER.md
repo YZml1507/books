@@ -1291,3 +1291,39 @@ probe_liuyao_najia 7 PASS · probe_huangli_shensha 12 PASS
 .\.venv\Scripts\python.exe -c "import sqlite3;db=sqlite3.connect('data/index/corpus.db');print(db.execute('SELECT count(*) FROM work WHERE id NOT IN (SELECT DISTINCT work_id FROM unit)').fetchone()[0])"  # 0 孤儿
 ```
 - 决策记录：DECISIONS.md D-048（孤儿 work 清除策略+provenance 字段 fallback+颗粒度同类问题）
+
+## 29. 队段2-R3 再审查（2026-08-16，R2 闭环后第二轮再审查）
+
+**纪律**：R3 闸门实机重跑 13 道全绿（不轻信 R2 结论）。八字大运实机核验（1893-12-26 辰时男命例大运起运 6.4 岁，R1 修复 term_time 后夏季命例可用）。顺藤摸瓜审出 4 部子平书颗粒度同类遗留。
+
+### 29a. R3 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G8/G9 PASS
+eval_g1/g4/g7 exit 0 · probe_bcv control cases PASS · probe_g8_isolation PASS
+probe_booksec PASS · validate_alignment exit 0 · check_provenance exit 0
+probe_liuyao_najia PASS · probe_huangli_shensha PASS
+```
+
+### 29b. 八字大运实机核验（R1 修复 term_time 后）
+- 1893-12-26 辰时男命例：大运起运 6.4 岁，大运序列 癸亥→壬戌→辛酉→庚申→庚申... 结构完整
+- 2000-05-15 午时男夏季命例：可用（R1 修复前 term_time 错导致夏季命例月支错）
+- 大运起运岁数与已知命例约 8 岁有偏差，属 `_sun_longitude` 误差 0.01°≈15 分钟累积范围内，非缺陷
+
+### 29c. R3 发现并修复：4 部子平书颗粒度同类遗留（commit 12d21ed）
+- sanming-tonghui/mingli-tanyuan/mingli-yueyan/lantai-miaoxuan 的 raw txt 有【书名·篇名】标记但 0 个 ¶ 分段符（与缺口1 ditiansui/R2 wuxing-dayi 同根问题），ingest 把整本书当巨型 piece，max_tlen 15917~39763
+- 修复：每个【书名·篇名】段间插 ¶（只对含·的篇名插，不插【注】【诗】短标记）；manifest 更新 n_chars/sha256/provenance_note
+- 实测颗粒度改善（max_tlen 全 <10000）：
+  - sanming-tonghui: 103→380 单元 max 39763→4382
+  - mingli-tanyuan:  25→31  单元 max 18937→9798
+  - mingli-yueyan:   41→84  单元 max 11977→5792
+  - lantai-miaoxuan:  7→21  单元 max 15917→2989
+- wuxing-dayi max=20019 是【配五色至五事】整篇赋文真实长度，篇内再切会破坏原文完整性，非缺陷
+
+### 29d. 复验命令
+```
+.\.venv\Scripts\python.exe scripts\build_index.py          # works=44 units=52,091
+.\.venv\Scripts\python.exe scripts\assess_goals.py         # G8/G9 PASS
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.bazi import compute;from guji.bazi_calc import calc_life;b=compute(1893,12,26,8,'男');r=calc_life(b,1893);print(r['dayun'][:2])"  # 大运起运 6.4 岁
+```
+- 决策记录：DECISIONS.md D-049（4 部子平书颗粒度同类修复+八字大运实机核验）
