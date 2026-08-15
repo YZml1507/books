@@ -46,6 +46,9 @@ MINGLI_WORKS = [
     "mingli-tanyuan",   # 命理探原
     "mingli-yueyan",    # 命理约言
     "lantai-miaoxuan",  # 兰台妙选
+    # P2 缺口1 补登（2026-08-16，过三道判定，见 DECISIONS.md D-044）
+    "ditiansui",          # 滴天髓（任铁樵阐微）
+    "qiongtongbaojian",   # 穷通宝鉴
 ]
 
 MODEL_DIR = os.path.join(ROOT, "data", "external", "bge-small-zh-v1.5")

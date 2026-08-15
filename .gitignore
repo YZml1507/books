@@ -36,3 +36,8 @@ temp_*.py
 # IDE
 .vscode/
 .idea/
+
+# PyInstaller build output (217MB exe, not source)
+dist/
+build/
+*.spec.bak

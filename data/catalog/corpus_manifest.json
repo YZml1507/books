@@ -1044,6 +1044,34 @@
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
       "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+    },
+    {
+      "id": "ditiansui",
+      "title": "滴天髓（任铁樵阐微）",
+      "genre": "命理",
+      "rationale": "子平经典核心语料（P2 缺口1），原文+任铁樵疏，过三道判定",
+      "edition": null,
+      "n_files": 1,
+      "n_chars": 138767,
+      "local_content_sha256": "cc20f48da5f8311d72da96da16066fb85067f13de8bafc850d3f816edaceb673",
+      "source_url": "",
+      "licence": "none-stated",
+      "fetched_at": "2026-08-16T00:00:00+0800",
+      "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），63 篇阐微 + 原文，加【滴天髓·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
+    },
+    {
+      "id": "qiongtongbaojian",
+      "title": "穷通宝鉴",
+      "genre": "命理",
+      "rationale": "子平经典调候用神依据（P2 缺口1），原文，过三道判定",
+      "edition": null,
+      "n_files": 1,
+      "n_chars": 40597,
+      "local_content_sha256": "ac19f24f18d12eb4e29a871b1f0e596ef652dba6ab552f7a0c6eda541f0504c6",
+      "source_url": "",
+      "licence": "none-stated",
+      "fetched_at": "2026-08-16T00:00:00+0800",
+      "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），11 篇，加【穷通宝鉴·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
     }
   ],
   "errors": []

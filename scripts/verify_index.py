@@ -102,6 +102,8 @@ NO_PAGINATION: set[str] = {
     "wuxing-dayi",
     "wuxing-jingji",
     "ziping-zhenquan",
+    "ditiansui",        # P2 缺口1：滴天髓（任铁樵阐微），【滴天髓·篇名】分段，无 <pb:>
+    "qiongtongbaojian", # P2 缺口1：穷通宝鉴，【穷通宝鉴·篇名】分段，无 <pb:>
 }
 
 r = c.db.execute("SELECT count(*) n FROM unit WHERE file IS NULL OR file = ''").fetchone()

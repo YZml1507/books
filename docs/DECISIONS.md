@@ -1803,3 +1803,30 @@ build 51,174 单元 43.6 MB · verify_index ALL PASS · assess_goals **PASS 9 ·
 ### 5. 实测
 - CLI 与 web 抽查 10/10 一致（君子終日乾乾 等 10 查询）；addr zhouyi gua=1 一致；compare 卦28·九二 addr/reference/witnesses/counts 全等。
 - 13 道闸门零回退：assess_goals PASS 9 · PART 0 · FAIL 0；build 43.6MB；verify_index ALL PASS。
+
+## D-044 P2 缺口1 补登：滴天髓（任铁樵阐微）+ 穷通宝鉴 入库（2026-08-16）
+
+**起因**：bazi_lookup 命理检索语料有 7 部 P2 子平书（mingli-yueyan 等），但缺滴天髓、穷通宝鉴两部核心典籍——滴天髓是子平"用神"理论的源头，穷通宝鉴是"调候用神"的依据。本任务把这两部书从 logs/p2_tmp/xuanxue（mkdocs 玄学库，本地 git clone，无需联网）入库。
+
+### 素材来源
+- 滴天髓：logs/p2_tmp/xuanxue/docs/滴天髓阐微/ 下 63 个 .md（000-062，每篇一赋）+ logs/p2_tmp/xuanxue/docs/滴天髓-原文/000滴天髓原文.md（纯赋文层）。
+- 穷通宝鉴：logs/p2_tmp/xuanxue/docs/穷通宝鉴/ 下 11 个 .md（000-010，五行总论 + 论十干）。
+- xuanxue 仓库是 mkdocs 玄学库，原文层是公版古籍。
+
+### 三道判定结论
+1. **文献 vs 生成物**：滴天髓（京图撰/刘伯温注/任铁樵疏）和穷通宝鉴（余春台）都是传统命理古籍，非 LLM 生成。判定：**通过**。
+2. **版权分层**：只取原文层。滴天髓赋文是京图撰（明代，公版），原注是刘伯温（明代，公版），疏是任铁樵（清代，公版）；穷通宝鉴原文是清余春台（公版）。xuanxue/docs 下的 md 文件混有现代整理者的标点/分段——这属于编辑性整理，不产生新文本，可入。**注意**：不引入任何「现代白话翻译」或「现代解读」。判定：**通过**（只取公版原文层 + 编辑性标点）。
+3. **白话与经文分离**：滴天髓阐微的 md 里，开头「《滴天髓》为中国传统命理学中最重要的典籍，相传其原文为宋之京图撰...」这类现代导语段被剥离；保留赋文（「通神论」「一、天道」这种标题 + 正文）+ 原注 + 任氏曰疏。穷通宝鉴无现代导语，保留原文。判定：**通过**。
+
+### 落盘与剥离
+- 滴天髓：合并 滴天髓-原文（纯赋文层，1 篇）+ 63 篇阐微 → data/raw/ditiansui/ditiansui_001.txt。每篇之间用空行分隔。剥离滴天髓阐微 file 000 开头的现代导语段（检测关键词：「中国传统命理学中最重要的典籍」「相传其原文为宋之京图撰」「任铁樵再为《滴天髓》作疏」「明代刘伯温为之注释」——只此 1 文件含现代导语）。保留：赋文 + 原注 + 任注。
+- 穷通宝鉴：合并 11 篇 md → data/raw/qiongtongbaojian/qiongtongbaojian_001.txt。11 篇均无现代导语，全保留原文。
+- 验证：两 txt 存在；ditiansui chars=138825 lines=3705；qiongtongbaojian chars=40072 lines=2605。古典内容抽查全 PASS（赋文/原注/任注/六亲论/穷通宝鉴十干论均在）。现代导语段剥离后「中国传统命理学中最重要的典籍」不再出现。
+
+### manifest 与 lookup 追加
+- corpus_manifest.json 追加 2 条（ditiansui、qiongtongbaojian），n_files=1，n_chars 实测（CRLF 保留的二进制解码字符数，与 mingli-yueyan 同口径），local_content_sha256 实测，fetched_at=2026-08-16T00:00:00+0800，provenance_note 指向本 D-044。
+- src/guji/bazi_lookup.py MINGLI_WORKS 末尾追加 "ditiansui"、"qiongtongbaojian"。
+
+### 闸门验证（见下方实测）
+- check_quality PASS · build_index 重建 · verify_index ALL PASS · assess_goals PASS 9 · conservation 1.0000。
+- DB 检索测试：滴天髓/穷通/调候/用神 在 unit 表 LIKE 命中数全 > 0。
