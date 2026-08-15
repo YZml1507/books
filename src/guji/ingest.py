@@ -599,13 +599,22 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
             continue
         m = meta.get(w, {})
         zy = ZHOUYI_WORKS.get(w)
+        # zip_sha256 fallback 到 local_content_sha256（子平书 manifest 用后者）；
+        # licence fallback：licence_file_in_repo=False→'none-stated'，否则取 m['licence']
+        # （子平书直接存 'none-stated' 字符串），都没有则 None。
+        _sha = m.get("zip_sha256") or m.get("local_content_sha256")
+        if m.get("licence_file_in_repo") is False:
+            _lic = "none-stated"
+        elif m.get("licence"):
+            _lic = m["licence"]
+        else:
+            _lic = None
+        _src = m.get("source_url") or ""
         db.execute(
             "INSERT INTO work VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (w, m.get("title") or (zy[0] if zy else w), m.get("genre") or
              ("易類" if zy else None), m.get("edition"), zy[3] if zy else None,
-             m.get("n_files"), m.get("n_chars"), m.get("source_url"),
-             m.get("zip_sha256"),
-             "none-stated" if m.get("licence_file_in_repo") is False else None,
+             m.get("n_files"), m.get("n_chars"), _src, _sha, _lic,
              m.get("fetched_at")))
         # 焦氏易林 has its own scheme: a 64x64 matrix addressed (本卦, 之卦). Handled on a
         # separate path because its units are not ¶-pieces merged by address — each matrix
@@ -702,6 +711,7 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
             txt_path = os.path.join(slug_dir, txt_files[0])
             raw = open(txt_path, encoding="utf-8").read()
             m = ext_meta.get(slug, {})
+            _local_units = 0   # 本 slug 的单元计数（用于 work INSERT 判断）
 
             # Determine scheme per slug.
             # - herodotus: booksec (book/section, 763 sections across Books I-IV)
@@ -789,6 +799,7 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                 # Darwin and others: page anchors only, no canonical address
                 # Split on page breaks or chapters as units
                 pb_marks = list(re.finditer(r"\[Pg \d+\]|\[Page \d+\]", raw))
+                _local_units = 0
                 if pb_marks:
                     for i, m in enumerate(pb_marks):
                         uid += 1
@@ -805,15 +816,29 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                                   (uid, segment_cjk(fold(text))))
                         stats.units += 1
                         stats.anchored += 1
+                        _local_units += 1
 
-            # Insert work record
-            db.execute(
-                "INSERT INTO work VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (slug, m.get("title", slug), m.get("genre"), m.get("edition"), None,
-                 len(txt_files), len(raw), m.get("source_url"),
-                 m.get("file_sha256", {}).get(txt_files[0]),
-                 m.get("licence"), m.get("fetched_at")))
-            stats.works += 1
+            # Insert work record — 仅在该 slug 实际产出 ≥1 单元时建，
+            # 否则跳过（bible-kjv/web/darwin-origin 是 P3 通用性对照组，
+            # 无 [Pg N] 标记也不在主线解析分支，建 work 会成孤儿污染统计）。
+            # 用 _local_units（本 slug 计数）而非 stats.units（全局计数，会
+            # 被前面 bible-douay 的 35787 污染）。主线解析分支（herodotus 等）
+            # 始终建 work。
+            if _local_units > 0 or slug in ("herodotus", "plato-republic",
+                                            "homer-iliad-but", "homer-iliad-pope",
+                                            "shakespeare", "euclid-elements", "bible-douay"):
+                # file_sha256 fallback 到 local_content_sha256（子平书 manifest 用后者），
+                # licence fallback 到 'none-stated'（子平书 manifest 直接存字符串）。
+                _sha = m.get("file_sha256", {}).get(txt_files[0])
+                if not _sha and m.get("local_content_sha256"):
+                    _sha = m["local_content_sha256"]
+                _lic = m.get("licence") or "none-stated"
+                _src = m.get("source_url") or ""
+                db.execute(
+                    "INSERT INTO work VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (slug, m.get("title", slug), m.get("genre"), m.get("edition"), None,
+                     len(txt_files), len(raw), _src, _sha, _lic, m.get("fetched_at")))
+                stats.works += 1
 
     db.commit()
     db.close()

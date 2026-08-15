@@ -500,94 +500,6 @@
       "fetched_at": "2026-08-13T16:42:25+0800"
     },
     {
-      "gutenberg_id": 10,
-      "slug": "bible-kjv",
-      "tier": 1,
-      "expected_address_scheme": "book/chapter/verse",
-      "title": "The King James Version of the Bible",
-      "authors": [],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.epub",
-          "bytes": 1716732,
-          "sha256": "53b56843d674c0807006d8b1228446ee590fcdc1e26dd9ae70a386d21d1df418",
-          "url": "https://www.gutenberg.org/ebooks/10.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.html",
-          "bytes": 4687529,
-          "sha256": "6f04e274b7f54e1691e4c4e18f0f9a6f0c25d81f6d3836f15831094b64d8bff9",
-          "url": "https://www.gutenberg.org/ebooks/10.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\bible-kjv\\pg10.txt",
-          "bytes": 4436268,
-          "sha256": "0f1a83cbcdc1d3fae6bcc3daaa496d4fa723fcce9526e84e20df12ae33fda986",
-          "url": "https://www.gutenberg.org/files/10/10-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:55:02+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/10",
-      "file_sha256": {
-        "pg10.epub": "53b56843d674c0807006d8b1228446ee590fcdc1e26dd9ae70a386d21d1df418",
-        "pg10.html": "6f04e274b7f54e1691e4c4e18f0f9a6f0c25d81f6d3836f15831094b64d8bff9",
-        "pg10.txt": "0f1a83cbcdc1d3fae6bcc3daaa496d4fa723fcce9526e84e20df12ae33fda986"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "bible-kjv"
-    },
-    {
-      "gutenberg_id": 8294,
-      "slug": "bible-web",
-      "tier": 1,
-      "expected_address_scheme": "book/chapter/verse",
-      "title": "The World English Bible (WEB), Complete",
-      "authors": [
-        "Anonymous"
-      ],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\bible-web\\pg8294.epub",
-          "bytes": 1745049,
-          "sha256": "a22c1f0a4050fb35232a9612b867282b0b1bc0dd624aec134686f3810e68f21e",
-          "url": "https://www.gutenberg.org/ebooks/8294.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\bible-web\\pg8294.html",
-          "bytes": 5898332,
-          "sha256": "908569971d9d34a70ca1ce1eb6fc4fd80e4e6fb0eb95d114a86ae172a103d8b7",
-          "url": "https://www.gutenberg.org/ebooks/8294.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\bible-web\\pg8294.txt",
-          "bytes": 4791993,
-          "sha256": "2d6927faacf7390876525bd9e1ca19ef6fb5dfef9a5b3452f57a1acc49831142",
-          "url": "https://www.gutenberg.org/files/8294/8294.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:55:30+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/8294",
-      "file_sha256": {
-        "pg8294.epub": "a22c1f0a4050fb35232a9612b867282b0b1bc0dd624aec134686f3810e68f21e",
-        "pg8294.html": "908569971d9d34a70ca1ce1eb6fc4fd80e4e6fb0eb95d114a86ae172a103d8b7",
-        "pg8294.txt": "2d6927faacf7390876525bd9e1ca19ef6fb5dfef9a5b3452f57a1acc49831142"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "bible-web"
-    },
-    {
       "gutenberg_id": 1581,
       "slug": "bible-douay",
       "tier": 1,
@@ -856,51 +768,6 @@
       "id": "homer-iliad-pope"
     },
     {
-      "gutenberg_id": 1228,
-      "slug": "darwin-origin",
-      "tier": 3,
-      "expected_address_scheme": "chapter",
-      "title": "On the Origin of Species By Means of Natural Selection: Or, the Preservation of Favoured Races in the Struggle for Life",
-      "authors": [
-        "Darwin, Charles"
-      ],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.epub",
-          "bytes": 440800,
-          "sha256": "56ddf4f0856da81f3662cf6034479f60ccdfe36b0fdd4357f2bfe6b77ecc0272",
-          "url": "https://www.gutenberg.org/ebooks/1228.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.html",
-          "bytes": 1045107,
-          "sha256": "8d1fd99e57adfed7918b31232fbe3fc168f3d89914adf698138e87f7ef1b6b52",
-          "url": "https://www.gutenberg.org/ebooks/1228.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\darwin-origin\\pg1228.txt",
-          "bytes": 950788,
-          "sha256": "a9dcfe9aefea962475eea2973c4da80db1adce73437d3a8f671f49bccc394f1b",
-          "url": "https://www.gutenberg.org/files/1228/1228-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:58:18+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/1228",
-      "file_sha256": {
-        "pg1228.epub": "56ddf4f0856da81f3662cf6034479f60ccdfe36b0fdd4357f2bfe6b77ecc0272",
-        "pg1228.html": "8d1fd99e57adfed7918b31232fbe3fc168f3d89914adf698138e87f7ef1b6b52",
-        "pg1228.txt": "a9dcfe9aefea962475eea2973c4da80db1adce73437d3a8f671f49bccc394f1b"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "darwin-origin"
-    },
-    {
       "gutenberg_id": 2707,
       "slug": "herodotus",
       "tier": 3,
@@ -1010,12 +877,12 @@
       "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
       "edition": null,
       "n_files": 1,
-      "n_chars": 144669,
-      "local_content_sha256": "afb4f5ee58c468e4ef5737ba26b2e914ff57e157451f478639d28ef2e591a746",
+      "n_chars": 144753,
+      "local_content_sha256": "b33ccf3a37bd49ec31d113136326772d992a0389d358d4b0954559adab939009",
       "source_url": "",
       "licence": "none-stated",
       "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+      "provenance_note": "落盘于上个窗口，R2 加【五行大义·篇名】段间 ¶ 分段（颗粒度修复），三道判定见 DECISIONS"
     },
     {
       "id": "wuxing-jingji",
