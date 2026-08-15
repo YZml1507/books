@@ -2050,3 +2050,62 @@ huangli 越界全 400，liuyao time 越界全 400，search 超长无回归。
 - **不修复不影响主线的项**：`wuxing-dayi` 仅 1 单元入库失败、`bible-kjv/web/
   darwin-origin` 在 work 表但 0 单元——这些是"P2 语料扩充"的遗留，不影响核心检索面，
   列入 R2 再审。
+
+> **2026-08-16 补记（阶段2-R2）**：这三项已在 R2 修复，见 D-048。本约束解除。
+
+## D-048 孤儿 work 清除 + wuxing-dayi 颗粒度 + provenance 字段映射（2026-08-16，阶段2-R2）
+
+### 起源
+R2 再审查（R1 闭环后首轮）。闸门实机重跑 13 道全绿，月支全年 12 个月实机核实全对
+（R1 修复 term_time 后黄历不再受限月份）。顺藤摸瓜审出三个问题，全闭环。
+
+### 缺陷 1：孤儿 work（bible-kjv/web/darwin-origin 在 work 表但 0 单元）
+
+**根因**（亲自跑诊断核实）：ingest.py else 分支只认 `[Pg N]` 标记切分单元，但
+bible-kjv/web 的 txt 用 `数字:数字` 节标记（24995/31102 处）、darwin-origin 用
+`CHAPTER N`（13 处），无 `[Pg N]`，解析出 0 单元。而 line 817 **无条件**建 work
+记录，导致这三部成孤儿污染统计。
+
+**修复**（commit 8891709）：
+1. 用 `_local_units`（本 slug 计数，else 分支内累加）判断，≥1 单元或主线解析分支
+   （herodotus/plato/homer/shakespeare/euclid/bible-douay 兜底列表）才建 work
+2. `_local_units` 初始化提到 else 分支**前**（line 703），避免主线分支走完后到
+   work INSERT 判断时 UnboundLocalError
+3. **不用全局 stats.units**：会 bible-douay 的 35787 污染，导致 bible-kjv 也通过判断
+
+**实测**：work 47→44，孤儿 3→0，主线 works（bible-douay/herodotus/shakespeare/
+euclid/wuxing-dayi/ditiansui/qiongtongbaojian/KR1a0001）单元数全保留。
+
+### 缺陷 2：wuxing-dayi 单元颗粒度（1 单元 113051 字→29 单元 avg 3896 字）
+
+**根因**：raw txt 有 436 个 `【五行大义·篇名】` 标记但 0 个 `¶` 分段符，ingest 把
+整本书当一个巨型 piece（与缺口1 ditiansui 同类问题，R1 已修 ditiansui/qiongtongbaojian）。
+
+**修复**：每个 `【五行大义·篇名】` 段间插 `¶`，让 `_iter_pieces` 切出多 piece；
+manifest 更新 n_chars/sha256/provenance_note。实测：1→29 单元，avg 3896 字。
+
+### 缺陷 3：provenance 字段映射（9 部子平书 zip_sha256/licence missing）
+
+**根因**：子平书 manifest 用 `local_content_sha256`（str）+ `licence='none-stated'`，
+但 ingest.py line 603 主线 INSERT 读 `file_sha256`（dict）+ `licence_file_in_repo`，
+字段名不统一导致三字段 MISSING。line 822 ext_dir 分支同问题。
+
+**修复**：line 603 + line 822 两处 INSERT 都加 fallback：
+- `zip_sha256` → `local_content_sha256`（子平书用后者）
+- `licence` → `licence_file_in_repo=False`→'none-stated'，否则取 `m['licence']`，都没有 None
+- `source_url` → `''`（子平书来自本地 logs/p2_tmp 仓库拉取无远程 URL）
+
+**实测**：`zip_sha256/licence/fetched_at` 全 0 missing。`source_url` 9/44 missing 是
+真實空值（子平书无远程 URL），非缺陷——check_provenance exit 0 PASS。
+
+### 决策依据
+- **孤儿 work 清除而非保留**：bible-kjv/web/darwin-origin 是 P3 通用性测试集对照组，
+  只被 `probes/archive/` 旧探针引用（归档不参与闸门），保留孤儿会污染 verify_index/
+  check_provenance 的统计。主线解析分支（herodotus 等）用兜底列表保 work 记录不变。
+- **颗粒度同类问题统一修法**：wuxing-dayi 与 ditiansui/qiongtongbaojian 同根（无 `¶`
+  分段符），统一用 `【篇名】段间插 ¶` 修法。R3 可扫一遍其他子平书确认无同类遗留。
+- **provenance fallback 而非改 manifest 字段名**：子平书 manifest 的
+  `local_content_sha256` 字段名是上个窗口定的（与 KR1a 的 `file_sha256` dict 不同
+  结构），改字段名会破坏 manifest 兼容。fallback 在 ingest 层适配更稳。
+- **source_url 真空值不修**：子平书来自本地 `logs/p2_tmp/xuanxue` 等 mkdocs 仓库
+  clone，无远程 URL 是真實状态。强行填占位 URL 反而违反"provenance 真实"原则。

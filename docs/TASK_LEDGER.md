@@ -1255,3 +1255,39 @@ probe_g8_isolation exit 0 · probe_booksec exit 0 · check_provenance exit 0
 .\.venv\Scripts\python.exe scripts\assess_goals.py              # PASS 9 PART 0 FAIL 0
 ```
 - 决策记录：DECISIONS.md D-047（term_time 绕行修复+边界验证+liuyao time 解包）、D-044/D-045/D-046（五缺口各一）
+
+## 28. 队段2-R2 再审查（2026-08-16，R1 闭环后首轮再审查）
+
+**纪律**：R2 闸门实机重跑 13 道全绿（不轻信 R1 结论），月支全年 12 个月实机核实全对（R1 修复 term_time 后黄历不再受限月份）。顺藤摸瓜审出三问题。
+
+### 28a. R2 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=51,751 · verify_index ALL PASS
+probe_conservation 7281 units 0 越界 · assess_goals G8/G9 PASS
+eval_g1/g4/g7 exit 0 · probe_bcv control cases PASS · probe_g8_isolation PASS
+probe_booksec PASS · validate_alignment exit 0 · check_provenance exit 0
+probe_liuyao_najia 7 PASS · probe_huangli_shensha 12 PASS
+```
+
+### 28b. R2 发现并修复的三问题（commit 8891709）
+1. **孤儿 work 清除**（bible-kjv/web/darwin-origin 在 work 表但 0 单元）
+   - 根因：ingest.py else 分支只认 `[Pg N]` 标记，这三部 txt 用 Chapter/数字:数字 节标记无 [Pg N]，解析出 0 单元；但 line 817 无条件建 work 记录成孤儿
+   - 修复：用 `_local_units`（本 slug 计数）判断，≥1 单元或主线解析分支才建 work；_local_units 初始化提到 else 分支前避免 UnboundLocalError
+   - 实测：work 47→44，孤儿 3→0，主线 works 单元数全保留
+
+2. **wuxing-dayi 单元颗粒度**（1 单元 113051 字→29 单元 avg 3896 字）
+   - 根因：raw txt 有 436 个【五行大义·篇名】标记但 0 个 ¶ 分段符，ingest 把整本书当一个巨型 piece（与缺口1 ditiansui 同类问题）
+   - 修复：每个【五行大义·篇名】段间插 ¶，让 _iter_pieces 切出多 piece；manifest 更新 n_chars/sha256
+
+3. **provenance 字段映射**（9 部子平书 source_url/zip_sha256/licence missing）
+   - 根因：子平书 manifest 用 local_content_sha256（str）+ licence='none-stated'，但 ingest.py line 603 读 file_sha256（dict）+ licence_file_in_repo，字段名不统一
+   - 修复：line 603 主线 + line 822 ext_dir 两处 INSERT 都加 fallback：zip_sha256→local_content_sha256，licence→'none-stated'，source_url→''
+   - 实测：zip_sha256/licence/fetched_at 全 0 missing（source_url 9/44 missing 是真實空值——子平书来自本地 logs/p2_tmp 仓库拉取无远程 URL，非缺陷）
+
+### 28c. 复验命令
+```
+.\.venv\Scripts\python.exe scripts\build_index.py          # works=44 units=51,751
+.\.venv\Scripts\python.exe scripts\check_provenance.py     # exit 0，zip_sha256/licence 0 missing
+.\.venv\Scripts\python.exe -c "import sqlite3;db=sqlite3.connect('data/index/corpus.db');print(db.execute('SELECT count(*) FROM work WHERE id NOT IN (SELECT DISTINCT work_id FROM unit)').fetchone()[0])"  # 0 孤儿
+```
+- 决策记录：DECISIONS.md D-048（孤儿 work 清除策略+provenance 字段 fallback+颗粒度同类问题）
