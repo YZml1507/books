@@ -1,0 +1,38 @@
+{
+  "scheme": "A/B",
+  "method": "sentence-transformers + BAAI/bge-small-zh-v1.5 (CPU) + cosine",
+  "model_dir": "data/external/bge-small-zh-v1.5",
+  "provenance": "data/catalog/model_provenance.json",
+  "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+  "n_units": 2489,
+  "n_paraphrases": 55,
+  "hit_rate_top10": 0.9636363636363636,
+  "hit_rate_top10_count": "53/55",
+  "build_time_s": 50.45424199104309,
+  "query_latency_median_ms": 16.777992248535156,
+  "query_latency_max_ms": 19.34957504272461,
+  "doc_vectors_mb": 5.097472,
+  "gate_pass": true,
+  "miss_details": [
+    {
+      "query": "像紮緊口袋一樣 沒有過錯也沒有讚譽",
+      "exp": "卦2六四",
+      "top3": [
+        "卦6九二",
+        "卦28上六",
+        "卦44九二"
+      ],
+      "top_score": 0.5665936470031738
+    },
+    {
+      "query": "以誠信使人喜悅 吉利 悔亡",
+      "exp": "卦58九二",
+      "top3": [
+        "卦64九四",
+        "卦64九四",
+        "卦49九四"
+      ],
+      "top_score": 0.638166069984436
+    }
+  ]
+}

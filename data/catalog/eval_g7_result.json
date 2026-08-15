@@ -2,12 +2,12 @@
  "verdict": "PASS",
  "target": 0.95,
  "must_refuse": [
-  36,
-  36
+  30,
+  30
  ],
  "must_answer": [
-  31,
-  31
+  25,
+  25
  ],
  "impossible": [
   4,
@@ -197,42 +197,6 @@
    "reason": "检索「日昃之離不缶鼓而歌則」在 28 部语料中无命中，不推测。"
   },
   {
-   "id": "YL-GN-23-頤",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「頤危坐至暮求請不得膏」在 28 部语料中无命中，不推测。"
-  },
-  {
-   "id": "YL-GN-18-坤",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「坤軥軥&K0R008」在 28 部语料中无命中，不推测。"
-  },
-  {
-   "id": "YL-GN-08-夬",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「夬玉鋭鐡頭庫倉空虛賈」在 28 部语料中无命中，不推测。"
-  },
-  {
-   "id": "YL-GN-41-恆",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「恒良夫伯姬理負登臺昆」在 28 部语料中无命中，不推测。"
-  },
-  {
-   "id": "YL-GN-45-旅",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「旅三日不飲水逺無酒晝」在 28 部语料中无命中，不推测。"
-  },
-  {
-   "id": "YL-GN-57-履",
-   "half": "must_refuse",
-   "status": "PASS",
-   "reason": "检索「履霧露早霜暗日不明隂」在 28 部语料中无命中，不推测。"
-  },
-  {
    "id": "GP-36-上六",
    "half": "must_answer",
    "status": "PASS",
@@ -378,42 +342,6 @@
   },
   {
    "id": "GP-49-九三",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-18-坤",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-08-夬",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-10-師",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-24-遯",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-11-革",
-   "half": "must_answer",
-   "status": "PASS",
-   "reason": ""
-  },
-  {
-   "id": "YL-GP-36-旅",
    "half": "must_answer",
    "status": "PASS",
    "reason": ""

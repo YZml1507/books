@@ -42,6 +42,8 @@ import os
 import re
 import sys
 
+import numpy as np
+
 sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -54,13 +56,20 @@ RAW = os.path.join(ROOT, "data", "raw")
 BANK = os.path.join(ROOT, "data", "catalog", "eval_g1.json")
 OUT = os.path.join(ROOT, "data", "catalog", "eval_g1_result.json")
 
+# retrieval_concept is scored by the bge encoder, not FTS5 (2a, user-authorized 2026-08-15).
+MODEL_DIR = os.path.join(ROOT, "data", "external", "bge-small-zh-v1.5")
+QUERY_PREFIX = "为这个句子生成表示以用于检索相关文章："
+DOCVECS = os.path.join(ROOT, "data", "catalog", "bge_docvecs.npy")
+DOCMETA = os.path.join(ROOT, "data", "catalog", "bge_docmeta.json")
+
 # Separate targets per tier ON PURPOSE. Folding the three retrieval tiers into one
 # category would let 40 easy verbatim questions carry a failing ranking tier — an average
 # is exactly the wrong summary when the tiers differ in difficulty by construction.
 TARGETS = {"retrieval": 0.95, "retrieval_cross": 0.90, "retrieval_hard": 0.80,
-           "citation": 1.0, "grounded_pos": 0.95, "grounded_neg": 1.0, "version": 0.95}
+           "citation": 1.0, "grounded_pos": 0.95, "grounded_neg": 1.0, "version": 0.95,
+           "retrieval_concept": 0.80}
 CATS = ("retrieval", "retrieval_cross", "retrieval_hard", "citation",
-        "grounded_pos", "grounded_neg", "version")
+        "grounded_pos", "grounded_neg", "version", "retrieval_concept")
 
 
 def unit_text_at(c: Corpus, addr1: int, addr2: str, work: str | None = None,
@@ -251,10 +260,84 @@ def score_version(c: Corpus, q: dict) -> tuple[bool, str]:
     return True, f"{len(with_var)}/{len(hits)} hits carry the variant {var}"
 
 
+_bge_model = None
+_doc_cache: tuple | None = None
+
+
+def _load_bge():
+    """Lazy model load: eval_g1 is a gate run on every change, so do not pay the import
+    cost unless a retrieval_concept question is actually in the bank."""
+    global _bge_model
+    if _bge_model is None:
+        from sentence_transformers import SentenceTransformer
+        _bge_model = SentenceTransformer(MODEL_DIR)
+    return _bge_model
+
+
+def _doc_vecs_and_addr(c: Corpus) -> tuple:
+    """(N, D) float32 doc vectors + parallel [(addr1, addr2), ...] for the same unit set
+    probes/probe_embed_bge.py embeds. Reuses the persisted cache when it is fresh (the id
+    list matches the current corpus); otherwise re-encodes and overwrites it."""
+    global _doc_cache
+    if _doc_cache is not None:
+        return _doc_cache
+    ids_now = [r["id"] for r in c.db.execute(
+        "SELECT unit.id FROM unit JOIN work ON work.id = unit.work_id "
+        "WHERE unit.layer='經' AND unit.addr1 IS NOT NULL AND unit.addr2 IS NOT NULL "
+        "ORDER BY unit.id")]
+    addrs_now = [tuple(r) for r in c.db.execute(
+        "SELECT unit.addr1, unit.addr2 FROM unit JOIN work ON work.id = unit.work_id "
+        "WHERE unit.layer='經' AND unit.addr1 IS NOT NULL AND unit.addr2 IS NOT NULL "
+        "ORDER BY unit.id")]
+    if os.path.exists(DOCVECS) and os.path.exists(DOCMETA):
+        meta = json.load(open(DOCMETA, encoding="utf-8"))
+        if meta.get("ids") == ids_now:
+            vecs = np.load(DOCVECS)
+            assert vecs.shape[0] == len(ids_now), "cached vector count != unit count"
+            _doc_cache = (vecs, [tuple(a) for a in meta["addrs"]])
+            return _doc_cache
+    model = _load_bge()
+    texts = [r["text"] for r in c.db.execute(
+        "SELECT unit.text FROM unit JOIN work ON work.id = unit.work_id "
+        "WHERE unit.layer='經' AND unit.addr1 IS NOT NULL AND unit.addr2 IS NOT NULL "
+        "ORDER BY unit.id")]
+    vecs = np.asarray(model.encode(texts, batch_size=64, show_progress_bar=False,
+                                   normalize_embeddings=True), dtype=np.float32)
+    json.dump({"ids": ids_now, "addrs": [list(a) for a in addrs_now]},
+              open(DOCMETA, "w", encoding="utf-8"))
+    np.save(DOCVECS, vecs)
+    _doc_cache = (vecs, addrs_now)
+    return _doc_cache
+
+
+def score_concept(c: Corpus, q: dict) -> tuple[bool, str]:
+    """Concept/paraphrase retrieval: the query is a 白话转述 that does NOT occur verbatim
+    in the corpus, so FTS5 cannot answer it. Encode the query with bge (query-side prefix,
+    per the model card) and check the gold address appears in the top-K by cosine."""
+    e = q["expect"]
+    model = _load_bge()
+    vecs, addrs = _doc_vecs_and_addr(c)
+    qv = np.asarray(model.encode([QUERY_PREFIX + q["query"]],
+                                 normalize_embeddings=True),
+                    dtype=np.float32).ravel()
+    sims = vecs @ qv
+    order = np.argsort(-sims)
+    want = (e["addr1"], e["addr2"])
+    top = order[:e["top_k"]]
+    for rank, idx in enumerate(top, 1):
+        if addrs[idx] == want:
+            RANKS.setdefault(q["category"], []).append(rank)
+            return True, f"rank {rank}/{len(top)} (bge cosine)"
+    RANKS.setdefault(q["category"], []).append(0)
+    got = [addrs[i] for i in top[:4]]
+    return False, (f"gold 卦{want[0]}{want[1]} absent from bge top-{e['top_k']}; "
+                   f"top: {got}")
+
+
 SCORERS = {"retrieval": score_retrieval, "retrieval_cross": score_retrieval,
            "retrieval_hard": score_retrieval, "citation": score_citation,
            "grounded_pos": score_grounded_pos, "grounded_neg": score_grounded_neg,
-           "version": score_version}
+           "version": score_version, "retrieval_concept": score_concept}
 
 
 def main() -> int:

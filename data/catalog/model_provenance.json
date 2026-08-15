@@ -1,0 +1,20 @@
+{
+  "model": "BAAI/bge-small-zh-v1.5",
+  "files": [
+    "model.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "vocab.txt",
+    "modules.json",
+    "1_Pooling",
+    "README.md"
+  ],
+  "source_url": "https://huggingface.co/BAAI/bge-small-zh-v1.5",
+  "licence": "MIT",
+  "sha256_model_safetensors": "354763b9b1357bc9c44f62c6be2276321081ed2567773608c0d0785b61d5a026",
+  "sha256_pytorch_model_bin": "7c5fe667bbed05dc10e246e229b701ad266fe4d95ab946e9e5aa402056611b88",
+  "size_bytes": 95827648,
+  "fetched_at": "2026-08-15T10:15:34.077686+08:00",
+  "purpose": "G1 concept/paraphrase retrieval (2a scheme A/B, D-032 unblocked by user authorization 2026-08-15)",
+  "note": "CPU-only usage; local copy under data/external/bge-small-zh-v1.5"
+}

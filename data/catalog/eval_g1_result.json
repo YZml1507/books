@@ -6,7 +6,8 @@
   "citation": "PASS",
   "grounded_pos": "PASS",
   "grounded_neg": "PASS",
-  "version": "PASS"
+  "version": "PASS",
+  "retrieval_concept": "PASS"
  },
  "overall": "PASS",
  "targets": {
@@ -16,7 +17,8 @@
   "citation": 1.0,
   "grounded_pos": 0.95,
   "grounded_neg": 1.0,
-  "version": 0.95
+  "version": 0.95,
+  "retrieval_concept": 0.8
  },
  "invalid": [],
  "results": [
@@ -1372,228 +1374,389 @@
    "witness": "present in KR1a0006 (unfolded_notes)"
   },
   {
-   "id": "YL-R-18-坤",
-   "category": "retrieval",
+   "id": "CP-00-01-九二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-08-夬",
-   "category": "retrieval",
+   "id": "CP-01-01-上九",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 7/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-41-恆",
-   "category": "retrieval",
-   "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "id": "CP-02-02-六四",
+   "category": "retrieval_concept",
+   "status": "FAIL",
+   "detail": "gold 卦2六四 absent from bge top-10; top: [(6, '九二'), (28, '上六'), (44, '九二'), (44, '九三')]",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-45-旅",
-   "category": "retrieval",
+   "id": "CP-03-03-初九",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-57-履",
-   "category": "retrieval",
+   "id": "CP-04-04-初六",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-10-師",
-   "category": "retrieval",
+   "id": "CP-05-07-九二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 5/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-24-遯",
-   "category": "retrieval",
+   "id": "CP-06-08-九五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-24-豫",
-   "category": "retrieval",
+   "id": "CP-07-11-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-11-革",
-   "category": "retrieval",
+   "id": "CP-08-12-九五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-36-旅",
-   "category": "retrieval",
+   "id": "CP-09-15-九三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-06-蹇",
-   "category": "retrieval",
+   "id": "CP-10-16-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 5/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-R-45-頤",
-   "category": "retrieval",
+   "id": "CP-11-17-六二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "rank 1/1",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-23-頤",
-   "category": "citation",
+   "id": "CP-12-18-初六",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "3 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-18-坤",
-   "category": "citation",
+   "id": "CP-13-19-六三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-08-夬",
-   "category": "citation",
+   "id": "CP-14-20-六四",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-41-恆",
-   "category": "citation",
+   "id": "CP-15-22-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-45-旅",
-   "category": "citation",
+   "id": "CP-16-24-六四",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-57-履",
-   "category": "citation",
+   "id": "CP-17-25-六三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-10-師",
-   "category": "citation",
+   "id": "CP-18-26-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-C-24-遯",
-   "category": "citation",
+   "id": "CP-19-27-六四",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "1 units across 1 works all resolve",
-   "witness": "present in KR3g0029 (folded_jing)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-18-坤",
-   "category": "grounded_pos",
+   "id": "CP-20-28-九二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-08-夬",
-   "category": "grounded_pos",
+   "id": "CP-21-29-九五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-10-師",
-   "category": "grounded_pos",
+   "id": "CP-22-30-九四",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-24-遯",
-   "category": "grounded_pos",
+   "id": "CP-23-32-九三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-11-革",
-   "category": "grounded_pos",
+   "id": "CP-24-33-六二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 2/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GP-36-旅",
-   "category": "grounded_pos",
+   "id": "CP-25-34-九三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "found in a single unit at the address",
-   "witness": "present in KR3g0029 (folded_notes)"
+   "detail": "rank 4/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-23-頤",
-   "category": "grounded_neg",
+   "id": "CP-26-35-六二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-18-坤",
-   "category": "grounded_neg",
+   "id": "CP-27-36-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-08-夬",
-   "category": "grounded_neg",
+   "id": "CP-28-37-九三",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-41-恆",
-   "category": "grounded_neg",
+   "id": "CP-29-39-六二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-45-旅",
-   "category": "grounded_neg",
+   "id": "CP-30-40-九二",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   },
   {
-   "id": "YL-GN-57-履",
-   "category": "grounded_neg",
+   "id": "CP-31-41-六五",
+   "category": "retrieval_concept",
    "status": "PASS",
-   "detail": "0 hits, as required",
-   "witness": "confirmed absent from all 28 works"
+   "detail": "rank 3/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-32-42-九五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-33-43-九四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-34-44-初六",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-35-45-六三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-36-46-九三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-37-47-九五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-38-48-九五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-39-49-六二",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-40-50-九四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-41-51-六三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-42-52-六五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-43-53-九三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-44-54-九四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-45-55-九三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-46-56-九四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-47-57-九五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-48-58-九二",
+   "category": "retrieval_concept",
+   "status": "FAIL",
+   "detail": "gold 卦58九二 absent from bge top-10; top: [(64, '九四'), (64, '九四'), (49, '九四'), (35, '六五')]",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-49-59-九五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-50-60-六三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-51-61-六四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-52-62-六五",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-53-63-九三",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
+  },
+  {
+   "id": "CP-54-64-九四",
+   "category": "retrieval_concept",
+   "status": "PASS",
+   "detail": "rank 1/10 (bge cosine)",
+   "witness": "present in KR1a0001 (folded_notes)"
   }
  ]
 }

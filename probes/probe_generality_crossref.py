@@ -225,10 +225,17 @@ _SCENE_LINE = re.compile(r"(?m)^\s*SCENE\s+([IVXL]+)\.?")
 
 raw_path = os.path.join(ROOT, "data", "raw_ext", "generality", "shakespeare", "pg100.txt")
 raw = open(raw_path, encoding="utf-8", errors="replace").read()
-body_acts = []  # (offset, roman) — ACT header whose next non-blank line is uppercase SCENE
+# Body-ACT detection must use the SAME criterion play.py now uses (D-036 fix): an ACT
+# header counts as a real body act iff an uppercase "SCENE n." occurs somewhere between it
+# and the NEXT ACT header — NOT merely within a 200-char window. The narrower window
+# misfires on plays whose act opens with a Chorus ("Enter Gower.") before its first SCENE
+# (Pericles measured), producing false positives. Aligning the probe with the parser keeps
+# the check honest about the parser it is auditing.
+all_acts = sorted(m.start() for m in _ACT_LINE.finditer(raw))
+body_acts = []  # (offset, roman)
 for m in _ACT_LINE.finditer(raw):
-    nxt = raw[m.end():m.end() + 200]
-    if _SCENE_LINE.search(nxt):
+    nxt = min((a for a in all_acts if a > m.start()), default=len(raw))
+    if _SCENE_LINE.search(raw[m.start():nxt]):
         body_acts.append((m.start(), m.group(1)))
 
 import bisect  # noqa: E402

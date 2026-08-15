@@ -50,6 +50,12 @@ TOP_K = 10
 CAPS = {"retrieval": 40, "retrieval_cross": 24, "retrieval_hard": 24,
         "citation": 30, "grounded_pos": 25, "grounded_neg": 30, "version": 24}
 
+# 55 条概念级（白话转述）题：D-029 沉淀批，不手写新题（GOAL §4 T1 手写错过两次）。
+# 查询是转述，不逐字存在于语料——gold 是地址，witness 是该地址的 經 文本（在 raw 里）。
+sys.path.insert(0, os.path.join(ROOT, "probes"))
+from probe_t7r_concept import PARAPHRASES  # noqa: E402
+CAPS["retrieval_concept"] = len(PARAPHRASES)
+
 def shortest_unique(phrase: str, hay: str, lo: int = 4, hi: int = 12) -> str | None:
     """Shortest window of `phrase` occurring exactly once in `hay`.
 
@@ -358,6 +364,24 @@ def main() -> int:
                              "variant": var, "canon": canon,
                              "why": f"{var} occurs in {w}; searching the canonical "
                                     f"{canon} must still reach it (fold applied both sides)"},
+        })
+
+    # ---- retrieval tier 4: concept / paraphrase (D-029 batch, scored by bge) ----------
+    # The query is a 白话转述 that does NOT occur verbatim anywhere in the corpus — that is
+    # the entire point of the tier. The gold is the ADDRESS; the witness is the 爻辭 at that
+    # address in the 底本, verified in data/raw/ exactly like every other gold (D-019: never
+    # the index). Scoring is by the bge encoder (probes/probe_embed_bge.py), not FTS5.
+    for i, (query, g, y, why) in enumerate(PARAPHRASES):
+        if g not in gold or y not in gold[g]:
+            continue
+        qs.append({
+            "id": f"CP-{i:02d}-{g:02d}-{y}", "category": "retrieval_concept",
+            "kind": "paraphrase",
+            "query": query,
+            "expect": {"scheme": "zhouyi", "addr1": g, "addr2": y, "top_k": TOP_K},
+            "gold_witness": {"work": BASE, "text": gold[g][y], "space": "folded_notes",
+                             "why": why},
+            "note": f"概念转述题（D-029 批）：{why}",
         })
 
     bank = {

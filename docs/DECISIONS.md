@@ -1637,3 +1637,35 @@ Gutenberg pg100.txt 每剧标题后紧跟 `Contents` 块（紧凑列出 `ACT I\n
 - 本窗口只验证不修（2d 扩展 scope 外），修法已写明：ACT_RE 需跳过 Contents 块——判据是 ACT 头后非空行：大写 `SCENE` 即正文 ACT，混合大小写 `Scene` 即 Contents。
 - 探针 `probes/probe_generality_crossref.py` 留作负结果与缺陷记录（照 rarity_scores / probe_a12_local.py 先例）。
 - 修 play.py 列为下一窗口候选任务（T5 类）；13 道闸门与该缺陷无关（play 地址不参与 T1-T11 断言），闸门复验全过。
+
+## D-037 2a 授权落地：bge 概念检索 96.4% 达标，G1 PART 升 PASS；play.py 缺陷修复闭环
+
+**起因**：用户开场指令"授权，你去进行后续所有修复" = 对 D-032 BLOCKED 的 2a 方案 A/B（sentence-transformers + PyTorch CPU + BAAI/bge-small-zh-v1.5）的显式授权，同时授权修 D-036 发现的 play 地址缺陷。红线第 3 类（新外部依赖 + 联网抓取）由用户显式解除。
+
+### 1. 2a 六步执行（照 GOAL_NEXT_SESSION §2a）
+
+| 步 | 实测 |
+|---|---|
+| 1. pip install | torch-2.13.0+cpu（官方 CPU index，避开 pypi CUDA 大包）+ sentence-transformers 5.7.0 + transformers 5.15.0，Python 3.14.7 兼容 |
+| 2. 下载模型 | 13 文件到 data/external/bge-small-zh-v1.5/（safetensors 95.8MB），provenance 记 data/catalog/model_provenance.json（sha256 354763b9… / licence MIT / fetched_at 2026-08-15T10:15:34+08:00） |
+| 3. 新探针 | probes/probe_embed_bge.py（5088 经层 zhouyi 单元 + 55 条 D-029 转述 + top-10 余弦，query 加 bge 前缀），文档向量持久化供 eval_g1 复用 |
+| 4. 闸门先定后测 | **hit 53/55 = 96.4% ≥ 80%** · build 50.5s ≤ 10min · query 中位 17ms ≤ 2s · 内存 5.1MB ≤ 4GB |
+| 5. G1 判定 | 55 条转述入 eval_g1.json retrieval_concept（witness=地址爻辭，raw 可验）；eval_g1.py 加 score_concept；assess_goals G1 条件改为 retrieval_concept PASS 且 overall PASS → **实测 PASS 9 · PART 0 · FAIL 0** |
+| 6. 转述来源 | D-029 沉淀批 probe_t7r_concept.PARAPHRASES，未手写新题（GOAL §4 T1） |
+
+**决策**：hit ≥ 80% → **G1 PART 升 PASS 落地**（不是改判虚报：概念层由 bge 实测 96.4%，且 55 条 witness 逐条 raw 复验）。eval_g1 两次 MISS（卦2六四、卦58九二）如实记录，不掩盖。
+
+### 2. play.py 修复（D-036 缺陷闭环，探针 623 → 0）
+
+**Contents 过滤判据三连演进**（每版都被实测推翻，最终钉死）：
+1. "ACT 头后非空行大写 SCENE" → 被 **Pericles** 推翻：正文 ACT 后是 Chorus "Enter Gower." 非 SCENE
+2. "到下一 ACT 头区间内有大写 SCENE" → 被 **Henry VI-1** 推翻：其 Contents 块 ACT II-V 用大写 SCENE（只有 ACT I 用混合大小写 Scene）
+3. **最终判据 = 角色表分界**：`_DRAMATIS_RE`（Dramatis Personæ / PERSONS REPRESENTED，re.I）——实测 **38/38 部剧恰好 5 个 Contents ACT 在其前、5 个正文 ACT 在其后**。中间还踩两个坑：`\b` 边界（Personæ 的 æ 是字母，`PERSON\b` 不匹配）与 `THE ACTORS` 分支误匹配正文对话（Hamlet "The actors are come"）
+
+**body_off 偏移修复**：find_plays strip Gutenberg header（48 字节）后返回 body-relative 偏移，ingest 却用 raw 直接切片 → 全部 play 单元 raw_start 偏左 48 字节（探针第二版 224/811 假阳性的真相，也是真集成缺陷）。修：Play.start/end 加 body_off。
+
+**验证**：38/38 剧 5 幕、6 诗 no-act；play locativity 探针 **623 → 0**（768 单元全部正确定位，not falsified）。探针 addendum 判据同步改为角色表分界口径，保证审计者与 parser 判据一致。
+
+### 3. 终态实测（13/13 闸门全过）
+
+build 51,174 单元 43.6 MB · verify_index ALL PASS · assess_goals **PASS 9 · PART 0 · FAIL 0**（G1 已升 PASS）· eval_g1 246/248 · 守恒 1.0000 · provenance 0/38 · eval_g4/g7 PASS · probe_g8 PASS · play locativity 0 错位。commit d794338 后新增改动已提交。

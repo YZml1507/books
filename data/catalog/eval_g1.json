@@ -4,13 +4,14 @@
  "seed": 11,
  "top_k": 10,
  "counts": {
-  "retrieval": 52,
+  "retrieval": 40,
   "retrieval_cross": 24,
   "retrieval_hard": 24,
-  "citation": 38,
-  "grounded_pos": 31,
-  "grounded_neg": 36,
-  "version": 20
+  "citation": 30,
+  "grounded_pos": 25,
+  "grounded_neg": 30,
+  "version": 20,
+  "retrieval_concept": 55
  },
  "questions": [
   {
@@ -3672,566 +3673,1049 @@
    }
   },
   {
-   "id": "YL-R-18-坤",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "坤軥軥&",
+   "id": "CP-00-01-九二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "龍出現在田野中 利於出現偉大的人物",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 18,
-    "addr2": "坤",
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "九二",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "坤軥軥&",
+    "work": "KR1a0001",
+    "text": "見龍在田利見大人",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述乾卦九二爻辭"
    },
-   "note": "林辭 坤軥軥&KR0008;&KR0008;歲"
+   "note": "概念转述题（D-029 批）：轉述乾卦九二爻辭"
   },
   {
-   "id": "YL-R-08-夬",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "夬玉鋭鐡",
+   "id": "CP-01-01-上九",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "飛得太高的龍會有悔恨",
    "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
+    "addr1": 1,
+    "addr2": "上九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "亢龍有悔",
+    "space": "folded_notes",
+    "why": "轉述乾卦上九爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述乾卦上九爻辭"
+  },
+  {
+   "id": "CP-02-02-六四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "像紮緊口袋一樣 沒有過錯也沒有讚譽",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 2,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "括囊无咎无譽",
+    "space": "folded_notes",
+    "why": "轉述坤卦六四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述坤卦六四爻辭"
+  },
+  {
+   "id": "CP-03-03-初九",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "徘徊不前 利於堅守正道 利於建立諸侯",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 3,
+    "addr2": "初九",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "磐桓利居貞利建侯",
+    "space": "folded_notes",
+    "why": "轉述屯卦初九爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述屯卦初九爻辭"
+  },
+  {
+   "id": "CP-04-04-初六",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "啟發蒙昧 利於用刑罰之人 解除枷鎖",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 4,
+    "addr2": "初六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "發蒙利用刑人用說桎梏以往吝",
+    "space": "folded_notes",
+    "why": "轉述蒙卦初六爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述蒙卦初六爻辭"
+  },
+  {
+   "id": "CP-05-07-九二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "在軍隊中居中吉利沒有過錯 君王三次賜予命令",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 7,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "在師中吉无咎王三錫命",
+    "space": "folded_notes",
+    "why": "轉述師卦九二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述師卦九二爻辭"
+  },
+  {
+   "id": "CP-06-08-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "光明親比 君王用三面驅趕 失去前面的禽鳥",
+   "expect": {
+    "scheme": "zhouyi",
     "addr1": 8,
-    "addr2": "夬",
+    "addr2": "九五",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "夬玉鋭鐡",
+    "work": "KR1a0001",
+    "text": "顯比王用三驅失前禽邑人不誡吉",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述比卦九五爻辭"
    },
-   "note": "林辭 夬玉鋭鐡頭倉庫空虛賈市滿盈與利為仇"
+   "note": "概念转述题（D-029 批）：轉述比卦九五爻辭"
   },
   {
-   "id": "YL-R-41-恆",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "良夫伯姬",
+   "id": "CP-07-11-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "帝乙嫁妹妹 因此得福 大吉",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 41,
-    "addr2": "恆",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "良夫伯姬",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 恒良夫伯姬負理登臺昆季不扶衛輒走逃"
-  },
-  {
-   "id": "YL-R-45-旅",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "旅三日不",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 45,
-    "addr2": "旅",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "旅三日不",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 旅三日不飲逺水無酒晝夜焦喉使我為咎"
-  },
-  {
-   "id": "YL-R-57-履",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "履霧露早",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 57,
-    "addr2": "履",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "履霧露早",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 履霧露早霜日暗不明隂陽孽疾年榖大傷"
-  },
-  {
-   "id": "YL-R-10-師",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "師羊腸九",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 10,
-    "addr2": "師",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "師羊腸九",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 師羊腸九縈相推併前止須王孫乃能上天"
-  },
-  {
-   "id": "YL-R-24-遯",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "遯仲冬兼",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 24,
-    "addr2": "遯",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "遯仲冬兼",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 遯仲冬兼秋鳥散飲憂困於米食數驚鸇鵰"
-  },
-  {
-   "id": "YL-R-24-豫",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "豫卵與石",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 24,
-    "addr2": "豫",
-    "top_k": 10
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "豫卵與石",
-    "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
-   },
-   "note": "林辭 豫卵與石鬭糜碎無處挈瓶之使不為憂懼"
-  },
-  {
-   "id": "YL-R-11-革",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "革履踐危",
-   "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
     "addr1": 11,
-    "addr2": "革",
+    "addr2": "六五",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "革履踐危",
+    "work": "KR1a0001",
+    "text": "帝乙歸妹以祉元吉",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述泰卦六五爻辭"
    },
-   "note": "林辭 革履踐危難脱執去患入福喜門見誨大君"
+   "note": "概念转述题（D-029 批）：轉述泰卦六五爻辭"
   },
   {
-   "id": "YL-R-36-旅",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "旅管仲遇",
+   "id": "CP-08-12-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "停止否塞 大人吉利 危險啊危險 繫在苞桑之上",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 36,
-    "addr2": "旅",
+    "scheme": "zhouyi",
+    "addr1": 12,
+    "addr2": "九五",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "旅管仲遇",
+    "work": "KR1a0001",
+    "text": "休否大人吉其亡其亡繫于包桑",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述否卦九五爻辭"
    },
-   "note": "林辭 旅管仲遇桓得其願歡膠日殺糾振冠無憂笑喜不"
+   "note": "概念转述题（D-029 批）：轉述否卦九五爻辭"
   },
   {
-   "id": "YL-R-06-蹇",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "蹇兩羝三",
+   "id": "CP-09-15-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "勤勞而謙虛的君子 有好結果 吉利",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 6,
-    "addr2": "蹇",
+    "scheme": "zhouyi",
+    "addr1": 15,
+    "addr2": "九三",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "蹇兩羝三",
+    "work": "KR1a0001",
+    "text": "勞謙君子有終吉",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述謙卦九三爻辭"
    },
-   "note": "林辭 蹇兩羝三羊俱之我鄉留連多難損其食糧"
+   "note": "概念转述题（D-029 批）：轉述謙卦九三爻辭"
   },
   {
-   "id": "YL-R-45-頤",
-   "category": "retrieval",
-   "kind": "verbatim",
-   "query": "頤陽伏在",
+   "id": "CP-10-16-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "堅守正道雖有疾病 長久不死",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 45,
-    "addr2": "頤",
+    "scheme": "zhouyi",
+    "addr1": 16,
+    "addr2": "六五",
     "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "頤陽伏在",
+    "work": "KR1a0001",
+    "text": "貞疾恆不死",
     "space": "folded_notes",
-    "why": "fragment occurs exactly once in 焦氏易林"
+    "why": "轉述豫卦六五爻辭"
    },
-   "note": "林辭 頤陽伏在下隂制祐福生不逢時潛龍隠處"
+   "note": "概念转述题（D-029 批）：轉述豫卦六五爻辭"
   },
   {
-   "id": "YL-C-23-頤",
-   "category": "citation",
+   "id": "CP-11-17-六二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "繫念小人 失去丈夫",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 23,
-    "addr2": "頤",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "scheme": "zhouyi",
+    "addr1": 17,
+    "addr2": "六二",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "頤危坐至暮請求不",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
+    "work": "KR1a0001",
+    "text": "係小子失丈夫",
+    "space": "folded_notes",
+    "why": "轉述隨卦六二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述隨卦六二爻辭"
   },
   {
-   "id": "YL-C-18-坤",
-   "category": "citation",
+   "id": "CP-12-18-初六",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "整治父親的積弊 有這樣的兒子 父親無過錯",
    "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
     "addr1": 18,
-    "addr2": "坤",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "addr2": "初六",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "坤軥軥&KR00",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
+    "work": "KR1a0001",
+    "text": "幹父之蠱有子考无咎厲終吉",
+    "space": "folded_notes",
+    "why": "轉述蠱卦初六爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述蠱卦初六爻辭"
   },
   {
-   "id": "YL-C-08-夬",
-   "category": "citation",
+   "id": "CP-13-19-六三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "甘心居高臨下 沒有好處 既已憂懼 則無過錯",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 8,
-    "addr2": "夬",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "scheme": "zhouyi",
+    "addr1": 19,
+    "addr2": "六三",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "夬玉鋭鐡頭倉庫空",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
+    "work": "KR1a0001",
+    "text": "甘臨无攸利既憂之无咎",
+    "space": "folded_notes",
+    "why": "轉述臨卦六三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述臨卦六三爻辭"
   },
   {
-   "id": "YL-C-41-恆",
-   "category": "citation",
+   "id": "CP-14-20-六四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "觀看國家的風光 利於做君王的賓客",
    "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
+    "addr1": 20,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "觀國之光利用賓于王",
+    "space": "folded_notes",
+    "why": "轉述觀卦六四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述觀卦六四爻辭"
+  },
+  {
+   "id": "CP-15-22-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "裝飾山丘園圃 一束束絲帛微薄 雖有吝嗇 終獲吉利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 22,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "賁于丘園束帛戔戔吝終吉",
+    "space": "folded_notes",
+    "why": "轉述賁卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述賁卦六五爻辭"
+  },
+  {
+   "id": "CP-16-24-六四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "走在行列中間 獨自返回正道",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 24,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "中行獨復",
+    "space": "folded_notes",
+    "why": "轉述復卦六四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述復卦六四爻辭"
+  },
+  {
+   "id": "CP-17-25-六三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "不妄為卻遭災禍 有人拴著牛 過路人得了 邑人卻遭殃",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 25,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "无妄之災或繫之牛行人之得邑人之災",
+    "space": "folded_notes",
+    "why": "轉述无妄卦六三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述无妄卦六三爻辭"
+  },
+  {
+   "id": "CP-18-26-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "閹割公豬的牙齒 吉利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 26,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "豶豕之牙吉",
+    "space": "folded_notes",
+    "why": "轉述大畜卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述大畜卦六五爻辭"
+  },
+  {
+   "id": "CP-19-27-六四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "顛倒頤養 吉利 虎視眈眈 欲望追逐 卻無過錯",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 27,
+    "addr2": "六四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "顛頤吉虎視眈眈其欲逐逐无咎",
+    "space": "folded_notes",
+    "why": "轉述頤卦六四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述頤卦六四爻辭"
+  },
+  {
+   "id": "CP-20-28-九二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "枯楊長出新嫩芽 老夫娶得年輕妻子 無不利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 28,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "枯楊生稊老夫得其女妻无不利",
+    "space": "folded_notes",
+    "why": "轉述大過卦九二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述大過卦九二爻辭"
+  },
+  {
+   "id": "CP-21-29-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "坎陷未盈滿 恭敬則平 無過錯",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 29,
+    "addr2": "九五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "坎不盈衹既平无咎",
+    "space": "folded_notes",
+    "why": "轉述坎卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述坎卦九五爻辭"
+  },
+  {
+   "id": "CP-22-30-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "突如其來 焚燒般 死亡般 棄絕般",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 30,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "突如其來如焚如死如棄如",
+    "space": "folded_notes",
+    "why": "轉述離卦九四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述離卦九四爻辭"
+  },
+  {
+   "id": "CP-23-32-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "不能恆守其德 或許承受羞辱 堅守正道亦有吝難",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 32,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "不恆其德或承之羞貞吝",
+    "space": "folded_notes",
+    "why": "轉述恆卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述恆卦九三爻辭"
+  },
+  {
+   "id": "CP-24-33-六二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "用黃牛皮繩牢牢執繫 沒有人能解開",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 33,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "執之用黃牛之革莫之勝說",
+    "space": "folded_notes",
+    "why": "轉述遯卦六二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述遯卦六二爻辭"
+  },
+  {
+   "id": "CP-25-34-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "公羊觸撞籬笆 角被纏住",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 34,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "小人用壯君子用罔貞厲羝羊觸藩羸其角",
+    "space": "folded_notes",
+    "why": "轉述大壯卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述大壯卦九三爻辭"
+  },
+  {
+   "id": "CP-26-35-六二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "前進卻滿懷愁苦 堅守正道吉利 從王母那裡接受大福",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 35,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "晉如愁如貞吉受茲介福于其王母",
+    "space": "folded_notes",
+    "why": "轉述晉卦六二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述晉卦六二爻辭"
+  },
+  {
+   "id": "CP-27-36-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "箕子的明夷之傷 利於堅守正道",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 36,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "箕子之明夷利貞",
+    "space": "folded_notes",
+    "why": "轉述明夷卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述明夷卦六五爻辭"
+  },
+  {
+   "id": "CP-28-37-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "家人嚴厲管教 有悔有危卻終吉利 婦孺嘻嘻笑 終有吝難",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 37,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "家人嗃嗃悔厲吉婦子嘻嘻終吝",
+    "space": "folded_notes",
+    "why": "轉述家人卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述家人卦九三爻辭"
+  },
+  {
+   "id": "CP-29-39-六二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "君王的臣子蹇蹇難行 不是為自身緣故",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 39,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "王臣蹇蹇匪躬之故",
+    "space": "folded_notes",
+    "why": "轉述蹇卦六二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述蹇卦六二爻辭"
+  },
+  {
+   "id": "CP-30-40-九二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "田獵捕獲三隻狐 得到黃銅箭矢 堅守正道吉利",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 40,
+    "addr2": "九二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "田獲三狐得黃矢貞吉",
+    "space": "folded_notes",
+    "why": "轉述解卦九二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述解卦九二爻辭"
+  },
+  {
+   "id": "CP-31-41-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "有人贈予價值十朋的靈龜 不能推辭 大吉",
+   "expect": {
+    "scheme": "zhouyi",
     "addr1": 41,
-    "addr2": "恆",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "addr2": "六五",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "恒良夫伯姬負理登",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
+    "work": "KR1a0001",
+    "text": "或益之十朋之龜弗克違元吉",
+    "space": "folded_notes",
+    "why": "轉述損卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述損卦六五爻辭"
   },
   {
-   "id": "YL-C-45-旅",
-   "category": "citation",
+   "id": "CP-32-42-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "有誠信施惠之心 不必占問 大吉 別人以誠信惠我之德回報",
    "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
+    "addr1": 42,
+    "addr2": "九五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "有孚惠心勿問元吉有孚惠我德",
+    "space": "folded_notes",
+    "why": "轉述益卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述益卦九五爻辭"
+  },
+  {
+   "id": "CP-33-43-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "臀部無膚 行路躊躇 牽羊則悔亡 聽信人言卻不信從",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 43,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "臀无膚其行次且牽羊悔亡聞言不信",
+    "space": "folded_notes",
+    "why": "轉述夬卦九四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述夬卦九四爻辭"
+  },
+  {
+   "id": "CP-34-44-初六",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "繫在金屬車閘上 堅守吉利 有所前往見凶 瘦豬確實踟躕不安",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 44,
+    "addr2": "初六",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "繫于金柅貞吉有攸往見凶羸豕孚蹢躅",
+    "space": "folded_notes",
+    "why": "轉述姤卦初六爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述姤卦初六爻辭"
+  },
+  {
+   "id": "CP-35-45-六三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "聚集卻又嘆息 沒有好處 前往無過錯 略有吝難",
+   "expect": {
+    "scheme": "zhouyi",
     "addr1": 45,
-    "addr2": "旅",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "addr2": "六三",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "旅三日不飲逺水無",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
+    "work": "KR1a0001",
+    "text": "萃如嗟如无攸利往无咎小吝",
+    "space": "folded_notes",
+    "why": "轉述萃卦六三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述萃卦六三爻辭"
   },
   {
-   "id": "YL-C-57-履",
-   "category": "citation",
+   "id": "CP-36-46-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "升進到空虛的城邑",
    "expect": {
-    "scheme": "yilin",
+    "scheme": "zhouyi",
+    "addr1": 46,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "升虛邑",
+    "space": "folded_notes",
+    "why": "轉述升卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述升卦九三爻辭"
+  },
+  {
+   "id": "CP-37-47-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "受劓刑刖刑 困於赤紱 乃漸漸有脫困之機 利於祭祀",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 47,
+    "addr2": "九五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "劓刖困于赤紱乃徐有說利用祭祀",
+    "space": "folded_notes",
+    "why": "轉述困卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述困卦九五爻辭"
+  },
+  {
+   "id": "CP-38-48-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "井水清冽 寒泉可食",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 48,
+    "addr2": "九五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "井洌寒泉食",
+    "space": "folded_notes",
+    "why": "轉述井卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述井卦九五爻辭"
+  },
+  {
+   "id": "CP-39-49-六二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "到了己日才變革 征行吉利 無過錯",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 49,
+    "addr2": "六二",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "巳日乃革之征吉无咎",
+    "space": "folded_notes",
+    "why": "轉述革卦六二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述革卦六二爻辭"
+  },
+  {
+   "id": "CP-40-50-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "鼎足折斷 傾覆公侯的美食 其狀濕濡 凶",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 50,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "鼎折足覆公餗其形渥凶",
+    "space": "folded_notes",
+    "why": "轉述鼎卦九四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述鼎卦九四爻辭"
+  },
+  {
+   "id": "CP-41-51-六三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "震動蘇蘇恐懼 震懼前行則無災眚",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 51,
+    "addr2": "六三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "震蘇蘇震行无眚",
+    "space": "folded_notes",
+    "why": "轉述震卦六三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述震卦六三爻辭"
+  },
+  {
+   "id": "CP-42-52-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "止於其輔頰 說話有條理 悔恨消失",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 52,
+    "addr2": "六五",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "艮其輔言有序悔亡",
+    "space": "folded_notes",
+    "why": "轉述艮卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述艮卦六五爻辭"
+  },
+  {
+   "id": "CP-43-53-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "鴻雁漸進到高地 丈夫出征不歸 婦人懷孕不育 凶 利於抵禦盜寇",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 53,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "鴻漸于陸夫征不復婦孕不育凶利禦寇",
+    "space": "folded_notes",
+    "why": "轉述漸卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述漸卦九三爻辭"
+  },
+  {
+   "id": "CP-44-54-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "嫁妹延誤婚期 遲嫁自有其時",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 54,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "歸妹愆期遲歸有時",
+    "space": "folded_notes",
+    "why": "轉述歸妹卦九四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述歸妹卦九四爻辭"
+  },
+  {
+   "id": "CP-45-55-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "豐大被幡幕遮蔽 日中看見小星 折斷右臂 無過錯",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 55,
+    "addr2": "九三",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "豐其沛日中見沬折其右肱无咎",
+    "space": "folded_notes",
+    "why": "轉述豐卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述豐卦九三爻辭"
+  },
+  {
+   "id": "CP-46-56-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "旅途停宿之處 得到資財斧斤 我心卻不快樂",
+   "expect": {
+    "scheme": "zhouyi",
+    "addr1": 56,
+    "addr2": "九四",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR1a0001",
+    "text": "旅于處得其資斧我心不快",
+    "space": "folded_notes",
+    "why": "轉述旅卦九四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述旅卦九四爻辭"
+  },
+  {
+   "id": "CP-47-57-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "堅守吉利悔恨消失 無不利 無初卻有終 先庚三日後庚三日 吉",
+   "expect": {
+    "scheme": "zhouyi",
     "addr1": 57,
-    "addr2": "履",
-    "min_works": 1,
-    "all_citations_resolve": true
+    "addr2": "九五",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "履霧露早霜日暗不",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
-  },
-  {
-   "id": "YL-C-10-師",
-   "category": "citation",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 10,
-    "addr2": "師",
-    "min_works": 1,
-    "all_citations_resolve": true
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "師羊腸九縈相推併",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
-  },
-  {
-   "id": "YL-C-24-遯",
-   "category": "citation",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 24,
-    "addr2": "遯",
-    "min_works": 1,
-    "all_citations_resolve": true
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "遯仲冬兼秋鳥散飲",
-    "space": "folded_jing",
-    "why": "address is attested in data/raw/"
-   }
-  },
-  {
-   "id": "YL-GP-18-坤",
-   "category": "grounded_pos",
-   "query": "坤軥軥&KR0008",
-   "expect": {
-    "scheme": "yilin",
-    "addr1": 18,
-    "addr2": "坤",
-    "text_present_at_address": true
-   },
-   "gold_witness": {
-    "work": "KR3g0029",
-    "text": "坤軥軥&KR0008",
+    "work": "KR1a0001",
+    "text": "貞吉悔亡无不利无初有終先庚三日後庚三日吉",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述巽卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述巽卦九五爻辭"
   },
   {
-   "id": "YL-GP-08-夬",
-   "category": "grounded_pos",
-   "query": "夬玉鋭鐡頭倉庫空虛賈",
+   "id": "CP-48-58-九二",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "以誠信使人喜悅 吉利 悔亡",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 8,
-    "addr2": "夬",
-    "text_present_at_address": true
+    "scheme": "zhouyi",
+    "addr1": 58,
+    "addr2": "九二",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "夬玉鋭鐡頭倉庫空虛賈",
+    "work": "KR1a0001",
+    "text": "孚兌吉悔亡",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述兌卦九二爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述兌卦九二爻辭"
   },
   {
-   "id": "YL-GP-10-師",
-   "category": "grounded_pos",
-   "query": "師羊腸九縈相推併前止",
+   "id": "CP-49-59-九五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "渙散如汗其大號令 渙散王之居所 無過錯",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 10,
-    "addr2": "師",
-    "text_present_at_address": true
+    "scheme": "zhouyi",
+    "addr1": 59,
+    "addr2": "九五",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "師羊腸九縈相推併前止",
+    "work": "KR1a0001",
+    "text": "渙汗其大號渙王居无咎",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述渙卦九五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述渙卦九五爻辭"
   },
   {
-   "id": "YL-GP-24-遯",
-   "category": "grounded_pos",
-   "query": "遯仲冬兼秋鳥散飲憂困",
+   "id": "CP-50-60-六三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "不能節制 則嘆息嗟怨 無過錯",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 24,
-    "addr2": "遯",
-    "text_present_at_address": true
+    "scheme": "zhouyi",
+    "addr1": 60,
+    "addr2": "六三",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "遯仲冬兼秋鳥散飲憂困",
+    "work": "KR1a0001",
+    "text": "不節若則嗟若无咎",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述節卦六三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述節卦六三爻辭"
   },
   {
-   "id": "YL-GP-11-革",
-   "category": "grounded_pos",
-   "query": "革履踐危難脱執去患入",
+   "id": "CP-51-61-六四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "月亮將近圓滿 馬匹走失 無過錯",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 11,
-    "addr2": "革",
-    "text_present_at_address": true
+    "scheme": "zhouyi",
+    "addr1": 61,
+    "addr2": "六四",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "革履踐危難脱執去患入",
+    "work": "KR1a0001",
+    "text": "月幾望馬匹亡无咎",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述中孚卦六四爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述中孚卦六四爻辭"
   },
   {
-   "id": "YL-GP-36-旅",
-   "category": "grounded_pos",
-   "query": "旅管仲遇桓得其願歡膠",
+   "id": "CP-52-62-六五",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "密雲不雨 從我西郊而起 公侯射取穴中之物",
    "expect": {
-    "scheme": "yilin",
-    "addr1": 36,
-    "addr2": "旅",
-    "text_present_at_address": true
+    "scheme": "zhouyi",
+    "addr1": 62,
+    "addr2": "六五",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "KR3g0029",
-    "text": "旅管仲遇桓得其願歡膠",
+    "work": "KR1a0001",
+    "text": "密雲不雨自我西郊公弋取彼在穴",
     "space": "folded_notes",
-    "why": "10-char head of the 林辭, unique in the work"
-   }
+    "why": "轉述小過卦六五爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述小過卦六五爻辭"
   },
   {
-   "id": "YL-GN-23-頤",
-   "category": "grounded_neg",
-   "query": "頤危坐至暮求請不得膏",
+   "id": "CP-53-63-九三",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "殷高宗征伐鬼方 三年才征服 小人不可用",
    "expect": {
-    "hits": 0
+    "scheme": "zhouyi",
+    "addr1": 63,
+    "addr2": "九三",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "*",
-    "text": "頤危坐至暮求請不得膏",
-    "absent": true,
+    "work": "KR1a0001",
+    "text": "高宗伐鬼方三年克之小人勿用",
     "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
+    "why": "轉述既濟卦九三爻辭"
+   },
+   "note": "概念转述题（D-029 批）：轉述既濟卦九三爻辭"
   },
   {
-   "id": "YL-GN-18-坤",
-   "category": "grounded_neg",
-   "query": "坤軥軥&K0R008",
+   "id": "CP-54-64-九四",
+   "category": "retrieval_concept",
+   "kind": "paraphrase",
+   "query": "堅守吉利悔亡 震動用以征伐鬼方 三年有賞於大國",
    "expect": {
-    "hits": 0
+    "scheme": "zhouyi",
+    "addr1": 64,
+    "addr2": "九四",
+    "top_k": 10
    },
    "gold_witness": {
-    "work": "*",
-    "text": "坤軥軥&K0R008",
-    "absent": true,
+    "work": "KR1a0001",
+    "text": "貞吉悔亡震用伐鬼方三年有賞于大國",
     "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
-  },
-  {
-   "id": "YL-GN-08-夬",
-   "category": "grounded_neg",
-   "query": "夬玉鋭鐡頭庫倉空虛賈",
-   "expect": {
-    "hits": 0
+    "why": "轉述未濟卦九四爻辭"
    },
-   "gold_witness": {
-    "work": "*",
-    "text": "夬玉鋭鐡頭庫倉空虛賈",
-    "absent": true,
-    "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
-  },
-  {
-   "id": "YL-GN-41-恆",
-   "category": "grounded_neg",
-   "query": "恒良夫伯姬理負登臺昆",
-   "expect": {
-    "hits": 0
-   },
-   "gold_witness": {
-    "work": "*",
-    "text": "恒良夫伯姬理負登臺昆",
-    "absent": true,
-    "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
-  },
-  {
-   "id": "YL-GN-45-旅",
-   "category": "grounded_neg",
-   "query": "旅三日不飲水逺無酒晝",
-   "expect": {
-    "hits": 0
-   },
-   "gold_witness": {
-    "work": "*",
-    "text": "旅三日不飲水逺無酒晝",
-    "absent": true,
-    "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
-  },
-  {
-   "id": "YL-GN-57-履",
-   "category": "grounded_neg",
-   "query": "履霧露早霜暗日不明隂",
-   "expect": {
-    "hits": 0
-   },
-   "gold_witness": {
-    "work": "*",
-    "text": "履霧露早霜暗日不明隂",
-    "absent": true,
-    "space": "folded_notes",
-    "why": "adjacent transposition of a real 林辭",
-    "occurs_in": []
-   }
+   "note": "概念转述题（D-029 批）：轉述未濟卦九四爻辭"
   }
  ]
 }

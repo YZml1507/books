@@ -1066,6 +1066,14 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 - 照 GOAL §1 第 3 类红线处置：不重做、不停下问，记 BLOCKED 后直接进入下一任务（2c &KR0658; 最小修复）
 - G1 维持 PART。解本条件不变（见 §22c 2a 条）：用户显式授权 + 模型 licence 核验入 model_provenance.json
 - **接续窗口（本窗口，2026-08-15 第二轮）复验**：开场指令仍未含"授权引入 sentence-transformers+PyTorch CPU / 授权下载 BAAI/bge 模型"字样 → 2a 维持 BLOCKED，跳过并记录，G1 维持 PART，转入 2d 扩展
+- **✅ 2a 已授权并落地（接续窗口第三轮）**：用户开场指令"授权，你去进行后续所有修复" = 显式授权引入 sentence-transformers+PyTorch CPU、授权下载 BAAI/bge 模型。六步全执行：
+  1. `pip install sentence-transformers`（torch-2.13.0+cpu，官方 CPU index 装的，避开 pypi CUDA 大包）成功
+  2. 下载 BAAI/bge-small-zh-v1.5（13 文件，model.safetensors 95.8MB）到 `data/external/bge-small-zh-v1.5/`，provenance 已记 `data/catalog/model_provenance.json`（sha256=354763b9… / source_url=huggingface / fetched_at=2026-08-15T10:15:34+08:00 / licence=MIT）
+  3. 新探针 `probes/probe_embed_bge.py`：同方案 C 流程（5088 经层 zhouyi 单元 + 55 条 D-029 转述 + top-10 余弦），query 端加 bge 检索指令前缀
+  4. 闸门先定后测全达标：**hit 53/55 = 96.4% ≥ 80%** · build 50.5s ≤ 10min · query 中位 17ms ≤ 2s · 内存 5.1MB ≤ 4GB
+  5. **hit ≥ 80% → G1 PART 升 PASS**：55 条转述已纳入 `eval_g1.json` 的 `retrieval_concept` 类别（derive_eval_g1.py 生成，witness=该地址爻辭在 raw 里可验，D-019 不违背）；eval_g1.py 新增 `score_concept`（bge 编码 + 文档向量缓存 data/catalog/bge_docvecs.npy 复用，ids 匹配才用）；assess_goals.py G1 判定改为"retrieval_concept PASS 且 overall PASS → G1 PASS"。**实测 assess_goals PASS 9 · PART 0 · FAIL 0**（G1 从 PART 升 PASS，全 9 项全绿）
+  6. 55 条转述用 D-029 沉淀批（probe_t7r_concept.PARAPHRASES），未手写新题
+  - eval_g1 两次 MISS（卦2六四、卦58九二）与方案 C 不同位——bge 语义理解与字面 bigram 的差异，属真实检索行为，不掩盖
 
 **2c. T7-m &KR0658; → 虩 最小修复 → 落地（13 道闸门零回退）**
 - **任务书"在 clean() 里加 &KR0658;→虩 解析"的位置被实测推翻**：clean() 不参与 unit.text/FTS 生成链（parse_units 直接切 raw 切片，ingest.py:631 `fts.append((uid, segment_cjk(fold(text))))`），改 clean() 对检索无效。这是又一处"任务书断言 vs 实测不符"活教材（§0 纪律第 4 条：发现不符改文档留记录）
@@ -1096,3 +1104,8 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
   - **三链一致性**：link 目标卦名印在 src cell 文本：**0/558 缺失**（比 eval_g4 只抽 400 条更强，全量）；link dst 自身地址 round-trip：0 失败；抽样 30 条 link src 的 FTS 短语检索：**0 漏检**
 - **⚠ 重大证伪：play（Shakespeare）地址不定位其内容**——623/811 单元的最接近前驱 body-ACT ≠ 声明 ACT。根因实测钉死：Gutenberg pg100.txt 每剧标题后都有 `Contents` 块（紧凑列出 `ACT I\nScene I.\n<setting>`…ACT V），play.py 的 ACT_RE 先匹配到 Contents 的 ACT 头（offset 39/135/206/269/338，相距 ~100 字符），正文真实 ACT 头（数千字符后）被 dedup 丢掉 → 每幕 act 区坍缩到 Contents 偏移，正文所有 SCENE 都挂到 `ACT V SCENE n` 标签下（e.g. unit 50359 addr2='ACT V SCENE I' 但 raw 处实为 All's Well 正文 ACT I 前）。38/44 部作品带 Contents 块 → 全中招。**round-trip 探针 25/25 通过是假绿**：它只查"地址→自身单元 id"稳定，不查"地址命名了它覆盖的内容"——这正是 GOAL §0"计数型检查看不见文字错位"的又一实例
 - **处置（照 D-033/D-035 先例）**：缺陷已实测记录，probe 留作负结果；修 play.py（ACT_RE 需跳过 Contents 块，判据：头后非空行是 `SCENE` 大写即正文 ACT、`Scene` 混合大小写即 Contents）列为候选任务，本窗口只验证不修（scope 外）。13 道闸门与该缺陷无关（play 地址不参与 T1-T11 断言），闸门复验全过
+- **✅ play.py 已修复（接续窗口第三轮）**：用户授权"进行后续所有修复"后落地。修复三连 + 一次探针判据修正：
+  - **Contents 过滤判据演进**：初版"ACT 头后非空行大写 SCENE"被 Pericles 推翻（正文 ACT 后是 Chorus "Enter Gower." 非 SCENE）；二版"到下一 ACT 头区间内有大写 SCENE"被 Henry VI 推翻（其 Contents ACT II-V 用大写 SCENE）；**最终判据 = 角色表分界**：`_DRAMATIS_RE`（Dramatis Personæ / PERSONS REPRESENTED，re.I，实测 38/38 部剧恰好 5 个 Contents ACT 在其前、5 个正文 ACT 在其后）——过程中还踩了 `\b` 边界坑（Personæ 的 æ 是字母，`PERSON\b` 不匹配）与 `THE ACTORS` 误匹配正文对话（Hamlet "The actors are come"）
+  - **body_off 偏移修复**：find_plays 内部 strip 掉 Gutenberg header（48 字节）后返回的 pos 是 body-relative，ingest 用 raw 直接切片 → 所有 play 单元 raw_start 偏左 48 字节，这是探针第二版 224/811 假阳性的真相。修：Play.start/end 加 body_off 转 raw-relative
+  - **验证**：38/38 剧 5 幕、6 诗 no-act（HAMLET 5/2/4/7/2、HENRY VI-1 6/5/4/7/5、MIDSUMMER 2/2/2/2/1、PERICLES 4/5/4/4/3 各剧 scene 分布合理）；**play locativity 探针 623 → 0**（768 单元全部最近前驱 body-ACT == 声明 ACT，not falsified）
+  - 探针 addendum 的 body-ACT 判据同步改为与 play.py 相同的"角色表分界"口径，避免审计者与 parser 判据不一致

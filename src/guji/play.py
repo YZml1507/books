@@ -64,6 +64,12 @@ ACT_RE = re.compile(r"(?m)^\s*ACT\s+([IVXL]+)\.?\s*$")
 # A SCENE heading. "SCENE I. Rossillon. A room in the Countess's palace."
 # We want the roman numeral and the setting text.
 SCENE_RE = re.compile(r"(?m)^\s*SCENE\s+([IVXL]+)\.?\s*(.*?)\s*$")
+# The cast list that separates the per-play "Contents" block from the body. Every play
+# prints "Contents" (ACT I..V / Scene n. list) then a cast list then the body ACTs, so the
+# first cast-list marker after the title is the structural boundary between the two sets of
+# ACT headers (D-036; measured 38/38 plays: exactly 5 ACTs on each side).
+_DRAMATIS_RE = re.compile(
+    r"(?m)^\s*(?:DRAMATIS\s+PERSON[Ææae]*|PERSONS?\s+REPRESENTED)\b", re.I)
 # Play titles are ALL CAPS lines, but so are character names and stage directions.
 # We identify a play title as an ALL-CAPS line that is followed (within a few lines) by
 # either "ACT I" or "DRAMATIS PERSONAE" or "PERSONS REPRESENTED" or "PROLOGUE".
@@ -221,7 +227,19 @@ def find_plays(raw: str) -> list[Play]:
         region = body[pos:end]
 
         # Find ACT headers in this region
-        act_matches = list(ACT_RE.finditer(region))
+        act_matches_all = list(ACT_RE.finditer(region))
+        # Gutenberg prints a per-play "Contents" block (a compact "ACT I..V / Scene n."
+        # list) right after the title, before the body. Its ACT entries must be skipped,
+        # or every act region collapses onto the Contents offsets and no address locates
+        # its content (D-036). A textual discriminator (uppercase SCENE vs mixed-case
+        # Scene) is NOT reliable — Henry VI's Contents ACT II-V print uppercase "SCENE"
+        # just like the body. The robust boundary is structural: the body ACT headers
+        # always come AFTER the cast list, the Contents ACTs always before it.
+        # Measured 38/38 plays: exactly 5 ACT headers on each side.
+        dramatis = _DRAMATIS_RE.search(region)
+        act_matches = ([am for am in act_matches_all
+                        if dramatis and am.start() > dramatis.start()]
+                       if dramatis else act_matches_all)
         # Deduplicate acts: keep first occurrence of each roman numeral
         seen_acts = {}
         for am in act_matches:
@@ -266,8 +284,8 @@ def find_plays(raw: str) -> list[Play]:
         plays.append(Play(
             ordinal=i + 1,
             title=title,
-            start=pos,
-            end=end,
+            start=pos + body_off,
+            end=end + body_off,
             acts=acts,
             is_poem=is_poem,
         ))

@@ -67,12 +67,11 @@ print("=" * 78)
 # Now measurable: scripts/eval_g1.py scores a question bank derived from data/raw/ and
 # re-verifies every gold witness against data/raw/ before scoring (D-019).
 #
-# Reported PART, not PASS, and the reason is a limit of the BANK rather than of the score.
-# G1's wording is 「给定概念」. Every question in the bank keys on text that occurs verbatim
-# somewhere in the corpus, so what is proven is verbatim + structural retrieval, citation
-# integrity, groundedness and version awareness. Concept-level retrieval (paraphrase, topic)
-# is NOT covered and cannot be with FTS5 alone. Claiming PASS here would be the same kind of
-# overclaim as the vacuous G8 "separation" this script already refuses to credit.
+# Was reported PART because concept-level retrieval (paraphrase, topic) was not covered by
+# FTS5 alone. 2a (user-authorized 2026-08-15) added the retrieval_concept tier scored by the
+# bge encoder (probes/probe_embed_bge.py), so when that tier ALSO passes, G1 is reported
+# PASS. Claiming PASS without the concept tier would be the same kind of overclaim as the
+# vacuous G8 "separation" this script already refuses to credit.
 g1p = os.path.join(ROOT, "data", "catalog", "eval_g1_result.json")
 if os.path.exists(g1p):
     import json as _json
@@ -90,11 +89,12 @@ if os.path.exists(g1p):
                      f"   (target {g1['targets'][cat]:.0%})")
     lines.append("COVERED: verbatim retrieval, cross-witness retrieval, ranking under")
     lines.append("competition, citation integrity, groundedness incl. 30 adversarial")
-    lines.append("fabrications that must return zero hits, and version awareness.")
-    lines.append("NOT COVERED: concept/paraphrase retrieval, which is what G1 literally")
-    lines.append("asks for. That needs semantics, not FTS5 — so G1 stays PART.")
-    say("G1", "能找到原文", "PART" if g1["overall"] == "PASS" else "FAIL",
-        "\n".join(lines))
+    lines.append("fabrications that must return zero hits, version awareness, AND")
+    lines.append("concept/paraphrase retrieval via bge embeddings (2a).")
+    concept_ok = g1["verdicts"].get("retrieval_concept") == "PASS"
+    verdict = "PASS" if g1["overall"] == "PASS" and concept_ok else (
+        "PART" if g1["overall"] == "PASS" else "FAIL")
+    say("G1", "能找到原文", verdict, "\n".join(lines))
 else:
     say("G1", "能找到原文", "N/A",
         "No eval result on disk. Run scripts/derive_eval_g1.py then scripts/eval_g1.py.")
