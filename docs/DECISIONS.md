@@ -1572,3 +1572,41 @@ BOOK_AI_ARCHITECTURE.md 是一份负责任的架构方案书：
 - 唯一需补的是 §5 自天祐之 5 vs 4 原因待查——T7-n 已查清，可在下一窗口补注一行
 
 无需修改架构方案——它的自审机制让它成为自维护文档，过时内容已被自身标注。Phase 3 架构自审通过。
+
+---
+
+## D-035 T5 A-12 quality.py addresses_of 局部剥离五候选实测，全部否决（结构性冲突）
+
+**起因**：D-033 否决 N1（改 clean 全局剥离裸注，T11 362→293）后，任务书 2b 要求列 2-3 个**只改 quality.py::addresses_of 局部**的新候选，不动 clean 全局，避免影响 align/守恒/eval_g1 全链。闸门：13 道全过零回退 + A-12 5 个 EXPECTED 至少 2 个 len_b 下降（卦58/卦46初六）+ align 1824/1872 不回退 + 守恒 1.0000 不回退。
+
+### 0. 现状（`probes/probe_a12_local.py` 2026-08-15 实测）
+
+cross_edition_coverage(KR1a0006, KR1a0007)：compared=362，median coverage=0.991。
+A（KR1a0006 底本王弼注）注是**括号注**（卦58 实测 18 对括号、0 个"注"字）；B（KR1a0007 註疏）王弼注是**裸注**（"注"字开头，卦58 实测 `九五孚于剝有厲注比於上六...`）。
+
+5 个 EXPECTED len_b（baseline）：卦46九二=2 · 卦9九二=5 · 卦9初九=7 · 卦58九五=10 · 卦46初六=27。
+
+### 1. 候选与实测结果（`probes/probe_a12_local.py` 内存模拟，未改任何源文件）
+
+| 候选 | 机制 | compared | median_cov | len_b(58/46初六) | 判定 |
+|---|---|---|---|---|---|
+| BASELINE | 不改 | 362 | 0.991 | 10 / 27 | — |
+| P1 | 只对 B 每个地址截到第一个「注」 | 362 | **0.132** | 7 / 6 ✓ | T11 coverage 崩，否决 |
+| P2 | P1 但「注」前有彖/象不截 | 362 | **0.132** | 7 / 6 ✓ | 同上，否决 |
+| P3 | P1 但 head 无彖曰/象曰才截 | 362 | **0.132** | 7 / 6 ✓ | 同上，否决 |
+| P4 | A、B 都用经-only 视图切片（对称） | **218** | 1.000 | ? | compared<358，T11 崩，否决 |
+| P5 | P4 + B 再截裸注 | **218** | 0.500 | ? | compared<358，T11 崩，否决 |
+
+### 2. 两难根因（实测钉死）
+
+- **只动 B（P1/P2/P3）**：A 是 with-notes 全文（含括号注），B 截裸注后只剩爻辭，A 的注文在 B 里找不到 → median coverage 0.991→0.132。**T11 的比对语义就是"A 的 with-notes 全文在 B 里可恢复的比例"**，裸注正是 B 嵌入 A 的主体，剥掉必崩。
+- **对称经-only（P4/P5）**：A 经-only 后 370 地址中 **149 个 len<20**（with-notes 时仅 2 个）被 cross_edition_coverage 的 min_len=20 过滤 → compared 362→218，跌破 T11 阈值 ≥358。经文本本身短，剥离注后 A 地址普遍短于 20 字，min_len 过滤是闸门固有行为。
+
+**结论**：这不是实现细节问题，是结构性冲突——T11 依赖 with-notes 全文比对，而 A-12 要剥 B 裸注，二者在 addresses_of 同一输出上不可兼得。局部改 addresses_of 无法同时满足"13 道零回退"与"len_b 下降"。
+
+### 3. 决策
+
+- 照任务书 2b"达不到就按 R-02 先例否决回退，A-12 维持 EXPECTED_DEGENERATE"：**P1-P5 全部否决**，不落地任何剥离，src/guji/quality.py 未改（零 diff）。
+- A-12 维持 EXPECTED_DEGENERATE（5 个 span-degenerate-B 是 KR1a0007 註疏本版式属性，非 parser 缺陷，任何新增仍触发）。
+- 新探针 `probes/probe_a12_local.py` 保留为负结果记录（照 rarity_scores 先例：失败方案留在代码库，不是删掉）。
+- 任务书 2b 由此关闭：N1（clean 全局）+ N2/N3（已否决）+ P1-P5（本窗口，局部）全部实测否决，"吸裸注"是 KR1a0007 註疏本的**来源版式特征**，与 T11 的 with-notes 比对语义天然共存，非缺陷可修。

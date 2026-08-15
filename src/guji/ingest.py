@@ -628,7 +628,11 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                          scheme if gua else None,
                          names.get(gua) if gua else None, gua, yao, lay, text,
                          skipped, suspect.get((w, gua, yao))))
-            fts.append((uid, segment_cjk(fold(text))))
+            # &KR0658; is Kanripo's entity ref for 虩 (U+8679), used only by KR1a0006.
+            # clean() never sees unit text (parse_units works on raw slices), so the
+            # decode must happen here on the FTS feed. unit.text stays faithful to the
+            # raw entity, keeping probe_conservation's CJK multiset unchanged.
+            fts.append((uid, segment_cjk(fold(text.replace("&KR0658;", "虩")))))
             stats.units += 1
             if gua:
                 stats.addressed += 1

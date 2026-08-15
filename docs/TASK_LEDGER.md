@@ -1055,3 +1055,34 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 ### Git
 
 本窗口改动：probes/ 新增 3 个（probe_embed_tfidf.py, probe_t7q_kg_precondition.py, probe_t7m_entities.py）+ embed_c_report.json；probes/archive/ 归档 45 个；DECISIONS.md 增 D-031~D-034；TASK_LEDGER.md 增 §22c + P-11 复验否决；GOAL_NEXT_SESSION.md 未变。
+
+## 22d. 本窗口（2026-08-15 接续，sessionID 3d8bab44 之后的下一窗口）实测记录
+
+开局基线复验（13 道闸门全跑，无一跳过）：build_index 43.4 MB · verify_index ALL PASS · validate_alignment verified 1824/1872 = 97.4%（located 1872/1882）· check_quality PASS · probe_conservation missing 0 ratio 1.0000 · assess_goals **PASS 8 · PART 1 · FAIL 0**（唯一 PART 是 G1，故意）· check_provenance 0/38 缺失 · probe_bcv PASS · eval_g1 全 PASS · eval_g4 PASS · eval_g7 FABRICATIONS 0 · probe_g8 PASS。
+- unit 表实测：51,174 行、35 个 work_id 有单元；work 表 38 行（bible-kjv/bible-web/darwin-origin 3 部在 work 表但 unit 表 0 行——probe_bcv 的 31,102 行计数来自 raw_ext/generality 原始文件，不来自 unit 表，无矛盾）。周易系 28 部锚点覆盖 28/28。scheme 分布与快照一致（bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 174）。
+
+**2a. T7-r 方案 A/B（sentence-transformers + PyTorch + BAAI/bge）本窗口未获用户显式授权 → 维持 BLOCKED，照红线"跳过并记录"**
+- 本窗口开场指令未含"授权引入 sentence-transformers+PyTorch CPU / 授权下载 BAAI/bge 模型"字样
+- 照 GOAL §1 第 3 类红线处置：不重做、不停下问，记 BLOCKED 后直接进入下一任务（2c &KR0658; 最小修复）
+- G1 维持 PART。解本条件不变（见 §22c 2a 条）：用户显式授权 + 模型 licence 核验入 model_provenance.json
+
+**2c. T7-m &KR0658; → 虩 最小修复 → 落地（13 道闸门零回退）**
+- **任务书"在 clean() 里加 &KR0658;→虩 解析"的位置被实测推翻**：clean() 不参与 unit.text/FTS 生成链（parse_units 直接切 raw 切片，ingest.py:631 `fts.append((uid, segment_cjk(fold(text))))`），改 clean() 对检索无效。这是又一处"任务书断言 vs 实测不符"活教材（§0 纪律第 4 条：发现不符改文档留记录）
+- 修复层实测选定：**build() 的 zhouyi FTS 喂入点（ingest.py:631）**——`text.replace("&KR0658;", "虩")` 后再 segment_cjk(fold())，unit.text 保持忠实于 raw 实体，probe_conservation 的 CJK 多重集不变（&KR0658; 是 ASCII 不进 CJK 计数，若改 unit.text 会 invent 12 个虩 → 回退）
+- 实测验证：改动前 search('虩') 命中 10 条全是直接印"虩"字的版本（KR1a0001/0031/0032/0007/0016），KR1a0006 0 条漏命中；改动后 KR1a0006 命中 2 条（卦51 震 初九 + 卦辭，unit 1237/1238）
+- **13 道闸门全过零回退**：build 51,174 单元 43.4 MB · verify_index ALL PASS（T11 362 compared）· validate_alignment 1824/1872 = 97.4% · check_quality PASS · probe_conservation ratio 1.0000 · assess_goals PASS 8·PART 1·FAIL 0 · check_provenance 0/38 · probe_bcv PASS · eval_g1 全 PASS · eval_g4 PASS · eval_g7 PASS FABRICATIONS 0 · probe_g8 PASS
+- 落地改动：src/guji/ingest.py 一行（FTS 喂入点 decode）+ 注释说明
+
+**2b. T5 A-12 quality.py addresses_of 局部剥离 → 五候选（P1-P5）全部实测否决 → D-035，A-12 维持 EXPECTED_DEGENERATE**
+- 新探针 `probes/probe_a12_local.py`（内存模拟，未改任何源文件，quality.py 零 diff）
+- 实测两难（结构性冲突，不是实现细节）：
+  - P1/P2/P3（只对 B 截裸注）：len_b 达标（卦58 九五 10→7、卦46 初六 27→6）但 **T11 median coverage 0.991→0.132 崩盘**——A（KR1a0006）注是括号注、B（KR1a0007）是裸注，T11 比对语义就是"A 的 with-notes 全文在 B 里可恢复比例"，剥裸注必崩
+  - P4/P5（A、B 对称经-only）：A 经-only 后 370 地址 149 个 len<20 被 min_len 过滤（with-notes 时仅 2 个）→ compared 362→**218** < 358 阈值
+- 结论：T11 依赖 with-notes 全文比对，A-12 要剥 B 裸注，二者在 addresses_of 同一输出上不可兼得。局部剥离无法同时满足"13 道零回退"+"len_b 下降"
+- 照任务书 2b"达不到就 R-02 否决"：P1-P5 全否决，A-12 维持 EXPECTED_DEGENERATE，probe 留作负结果记录（照 rarity_scores 先例）
+- 闸门确认：T11 362 compared / median 0.991 PASS，align 1824/1872 = 97.4% 不回退（quality.py 未改）
+
+**2d. 低优先三项 → 两项完成，通用性证伪另做**
+- **T7-o probes 归档续做**：再归档 12 个已沉淀探针（probe_legge/parens/glyphs/corrupt/boundary/crossedition_diff/gua47/jiaoshi_layout/addresses_fix/kr31/skew/sunls2_audit，均 0 引用、非闸门）→ probes/archive/ 45→57 个，probes/ 活跃 66→54
+- **架构补注**：BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注一行——原因已查清（D-034/T7-n：KR1a0001(5) vs KR1a0032(4) 繫辭传印次差异，源文真实差异，非抽取错误，不入折叠表）
+- **通用性证伪（MASTER_PLAN §11 弱点）**：新探针 `probes/probe_generality_roundtrip.py`——对 6 种地址体系（bcv/booksec/euclid/play/yilin/zhouyi）各随机抽 25 个有地址单元，用 citation/retrieval 层同一查询（scheme+addr1+addr2+id）反查，**6/6 体系 25/25 = 100% round-trip，未被证伪**——地址是 locative 不是 decorative，插件模型在 Euclid/Plato/Shakespeare/BCV/Douay 上也成立。10,520 个 (scheme,addr1,addr2) 组合无碰撞（Psalms-99==卦99 类冲突已由 scheme 隔离，D-005）

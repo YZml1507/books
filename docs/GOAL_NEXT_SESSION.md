@@ -210,3 +210,21 @@ len 分布实测：截前 mean=196 median=81，截后 mean=12 median=10——全
 - `docs/TASK_LEDGER.md` 增 §22c + P-11 复验否决
 
 **新窗口要做的第一件事**：跑 §1 全部 13 道闸门复验基线，确认与 §1 快照一致（38 部 51,174 单元、PASS 8 · PART 1 · FAIL 0）。若不符，先查 commit a05a9cf 是否真的 push 成功、工作树是否干净——不要相信本文件的数字。
+
+---
+
+## 7. 下一窗口（2026-08-15 接续）交接摘要
+
+本窗口完成 4 项任务 + 低优先 3 项，commit 已 push 到 main。
+
+**核心产出**：
+- **2c &KR0658;→虩 落地**：任务书"在 clean() 里加解析"位置被实测推翻（clean() 不参与 unit.text/FTS 生成链）——改为在 ingest.py:631 FTS 喂入点 decode。13 道闸门零回退，search('虩') 命中 KR1a0006 从 0→2 条
+- **2b A-12 局部剥离 P1-P5 全否决（D-035）**：结构性冲突——T11 依赖 with-notes 全文比对（A 括号注/B 裸注），剥 B 裸注 coverage 0.991→0.132 崩；对称经-only compared 362→218 破 358 阈值。quality.py 零 diff，A-12 维持 EXPECTED_DEGENERATE
+- **2a 方案 A/B**：未获显式授权，维持 BLOCKED（照红线跳过并记录），G1 维持 PART
+- **2d 低优先**：probes 归档 12 个（archive 57、活跃 54）、架构 §5 补注、通用性证伪探针 probe_generality_roundtrip.py（6 体系 25/25 100% round-trip 未被证伪）
+
+**新探针**：probes/probe_a12_local.py（负结果记录，照 rarity_scores 先例）、probes/probe_generality_roundtrip.py（通用性证伪）
+
+**13 道闸门末态**：build 51,174 单元 43.4 MB · verify_index ALL PASS（T11 362 compared）· validate_alignment 1824/1872 = 97.4% · check_quality PASS · probe_conservation ratio 1.0000 · assess_goals PASS 8 · PART 1 · FAIL 0 · check_provenance 0/38 · probe_bcv PASS · eval_g1 PASS · eval_g4 PASS · eval_g7 PASS FABRICATIONS 0 · probe_g8 PASS
+
+**剩余任务（照 §2 优先级不变）**：2a 方案 A/B 待用户显式授权（授权条件见 §2a 六步）；2b 已闭环（P1-P5 否决，不再重做）；2d 通用性证伪已做一轮，可扩展（如跨体系交叉引用、地址别名）。
