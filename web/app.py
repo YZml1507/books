@@ -29,9 +29,18 @@ import sys
 from datetime import date, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# PyInstaller 单文件模式：资源在 exe 同目录，__file__ 在 _MEIPASS 临时解压目录
+# PyInstaller 单文件模式：__file__ 在 _MEIPASS 临时解压目录，exe 在 dist/。
+# data/ 在项目根（dist/ 的父目录），不是 exe 同目录——开发期 ROOT 是项目根，
+# frozen 期 ROOT 指向 exe 所在 dist/，需向上一级找含 data/ 的项目根。
 if getattr(sys, "frozen", False):
-    ROOT = os.path.dirname(sys.executable)
+    exe_dir = os.path.dirname(sys.executable)
+    # exe 在 <项目根>/dist/books_app.exe，data/ 在 <项目根>/data/
+    parent = os.path.dirname(exe_dir)
+    if os.path.isdir(os.path.join(parent, "data", "index")):
+        ROOT = parent
+    else:
+        # exe 被拷到别处（无项目根），退回 exe 同目录——用户需自带 data/
+        ROOT = exe_dir
 for _p in (ROOT, os.path.join(ROOT, "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
