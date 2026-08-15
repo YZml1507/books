@@ -1610,3 +1610,30 @@ A（KR1a0006 底本王弼注）注是**括号注**（卦58 实测 18 对括号�
 - A-12 维持 EXPECTED_DEGENERATE（5 个 span-degenerate-B 是 KR1a0007 註疏本版式属性，非 parser 缺陷，任何新增仍触发）。
 - 新探针 `probes/probe_a12_local.py` 保留为负结果记录（照 rarity_scores 先例：失败方案留在代码库，不是删掉）。
 - 任务书 2b 由此关闭：N1（clean 全局）+ N2/N3（已否决）+ P1-P5（本窗口，局部）全部实测否决，"吸裸注"是 KR1a0007 註疏本的**来源版式特征**，与 T11 的 with-notes 比对语义天然共存，非缺陷可修。
+
+## D-036 2d 扩展实测：play（Shakespeare）地址体系被证伪——地址不定位其内容（Contents 块锚定缺陷）
+
+**起因**：GOAL_NEXT_SESSION §2d 扩展——跨体系交叉引用（link 表 558 条跨 scheme 分布）、地址别名、检索-引用-寻址三链一致性。新探针 `probes/probe_generality_crossref.py`（2026-08-15 接续窗口）。
+
+### 1. 实测结果（全部可复现，探针输出为准）
+
+| 检查 | 结果 |
+|---|---|
+| link 表 558 条 src_scheme×dst_scheme | **558/558 全 yilin→yilin，0 跨 scheme**（Source 存储无跨体系交叉引用，负结果） |
+| 跨 scheme 地址别名 (addr1,addr2) ≥2 scheme | **373 个**；at_address API（hard-code scheme='zhouyi'）实测 64 个 zhouyi-别名地址 **0 泄漏**——D-005 scheme 隔离 airtight |
+| 同 work 同 FULL 地址+layer 多单元 | 593 组：bcv 9（已知 Vulgate 冲突）+ play 182 + yilin 181 + zhouyi 221 |
+| 三链一致性 | link 目标卦名印在 src 文本 **0/558 缺失**（全量，强于 eval_g4 抽 400）；dst 地址 round-trip 0 失败；FTS 短语 30 抽样 0 漏检 |
+| **play 地址定位内容** | **623/811 单元最近前驱 body-ACT ≠ 声明 ACT —— 证伪** |
+
+### 2. play 证伪的根因（实测钉死）
+
+Gutenberg pg100.txt 每剧标题后紧跟 `Contents` 块（紧凑列出 `ACT I\nScene I.\n<setting>` … `ACT V`，offset 39/135/206/269/338，相距 ~100 字符）。play.py 的 `ACT_RE` 先匹配到 Contents 的 ACT 头，正文真实 ACT 头（数千字符后）被 `seen_acts` dedup 丢掉 → 每幕 act 区坍缩到 Contents 偏移 → 正文全部 SCENE 挂到 `ACT V SCENE n` 标签。实测：unit 50359 addr2='ACT V SCENE I' 但 raw_start=101624 实为 All's Well 正文 ACT I 之前；38/44 部带 Contents 块的作品全中招。
+
+**round-trip 探针 25/25 是假绿**：它只查"地址→自身单元 id 稳定"，不查"地址命名了它覆盖的内容"。这正是 GOAL §0 第 2 条说的最严重失效——"平静地返回原文里不存在的文字"在计数型检查下不可见。本证伪靠的是"span 内容对照声明 ACT"的语义检查，不是计数。
+
+### 3. 决策
+
+- **play 地址缺陷 = 真缺陷，非 parser 设计属性**（与 A-12 的"来源版式特征"不同，这是可修的解析缺陷）。
+- 本窗口只验证不修（2d 扩展 scope 外），修法已写明：ACT_RE 需跳过 Contents 块——判据是 ACT 头后非空行：大写 `SCENE` 即正文 ACT，混合大小写 `Scene` 即 Contents。
+- 探针 `probes/probe_generality_crossref.py` 留作负结果与缺陷记录（照 rarity_scores / probe_a12_local.py 先例）。
+- 修 play.py 列为下一窗口候选任务（T5 类）；13 道闸门与该缺陷无关（play 地址不参与 T1-T11 断言），闸门复验全过。

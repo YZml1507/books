@@ -1065,6 +1065,7 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 - 本窗口开场指令未含"授权引入 sentence-transformers+PyTorch CPU / 授权下载 BAAI/bge 模型"字样
 - 照 GOAL §1 第 3 类红线处置：不重做、不停下问，记 BLOCKED 后直接进入下一任务（2c &KR0658; 最小修复）
 - G1 维持 PART。解本条件不变（见 §22c 2a 条）：用户显式授权 + 模型 licence 核验入 model_provenance.json
+- **接续窗口（本窗口，2026-08-15 第二轮）复验**：开场指令仍未含"授权引入 sentence-transformers+PyTorch CPU / 授权下载 BAAI/bge 模型"字样 → 2a 维持 BLOCKED，跳过并记录，G1 维持 PART，转入 2d 扩展
 
 **2c. T7-m &KR0658; → 虩 最小修复 → 落地（13 道闸门零回退）**
 - **任务书"在 clean() 里加 &KR0658;→虩 解析"的位置被实测推翻**：clean() 不参与 unit.text/FTS 生成链（parse_units 直接切 raw 切片，ingest.py:631 `fts.append((uid, segment_cjk(fold(text))))`），改 clean() 对检索无效。这是又一处"任务书断言 vs 实测不符"活教材（§0 纪律第 4 条：发现不符改文档留记录）
@@ -1086,3 +1087,12 @@ eval_g4 G4 PASS · probe_g8_isolation PASS · probe_conservation ratio 1.0000
 - **T7-o probes 归档续做**：再归档 12 个已沉淀探针（probe_legge/parens/glyphs/corrupt/boundary/crossedition_diff/gua47/jiaoshi_layout/addresses_fix/kr31/skew/sunls2_audit，均 0 引用、非闸门）→ probes/archive/ 45→57 个，probes/ 活跃 66→54
 - **架构补注**：BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注一行——原因已查清（D-034/T7-n：KR1a0001(5) vs KR1a0032(4) 繫辭传印次差异，源文真实差异，非抽取错误，不入折叠表）
 - **通用性证伪（MASTER_PLAN §11 弱点）**：新探针 `probes/probe_generality_roundtrip.py`——对 6 种地址体系（bcv/booksec/euclid/play/yilin/zhouyi）各随机抽 25 个有地址单元，用 citation/retrieval 层同一查询（scheme+addr1+addr2+id）反查，**6/6 体系 25/25 = 100% round-trip，未被证伪**——地址是 locative 不是 decorative，插件模型在 Euclid/Plato/Shakespeare/BCV/Douay 上也成立。10,520 个 (scheme,addr1,addr2) 组合无碰撞（Psalms-99==卦99 类冲突已由 scheme 隔离，D-005）
+
+**2d 扩展（接续窗口补做，probes/probe_generality_crossref.py）——三链/别名/跨 scheme 交叉引用实测，play 方案被证伪**
+- **新探针** `probes/probe_generality_crossref.py`：round-trip 探针只证明"地址能找到自身单元"，看不到"地址与内容是否相符"。本探针补三查：
+  - **跨 scheme 交叉引用**：link 表 558 条 src_scheme×dst_scheme 分布 = **558/558 全部 yilin→yilin，0 条跨 scheme**——Source 存储里不存在跨体系交叉引用（负结果，非缺陷：互见注只在焦氏易林出现）
+  - **跨 scheme 地址别名**：(addr1,addr2) 出现在 ≥2 个 scheme 的有 **373 个**（如 addr1=1 addr2=None 同时出现在 booksec/play/yilin/zhouyi；bcv/booksec 的 1:1..1:17 章節）。API 层实测（at_address，hard-code scheme='zhouyi'）：64 个 zhouyi-别名地址 **0 泄漏**——scheme 过滤是 airtight 的，Psalms-99==卦99 类（D-005）隔离成立
+  - **同 work 同 FULL 地址+layer 多单元（真别名）**：593 组 = bcv 9（=probe_bcv 已知 Vulgate Psalms-113/Prov-12:12 冲突，预期）+ **play 182** + yilin 181 + zhouyi 221。逐类查证：yilin 181 与 zhouyi 注层多为同地址注文两片（木刻行断 split，benign）；zhouyi 另有 64 个 `** 《X第N》` 节尾单元继承了前卦最后爻地址（次要 mislabel）；**play 182 是真缺陷（见下）**
+  - **三链一致性**：link 目标卦名印在 src cell 文本：**0/558 缺失**（比 eval_g4 只抽 400 条更强，全量）；link dst 自身地址 round-trip：0 失败；抽样 30 条 link src 的 FTS 短语检索：**0 漏检**
+- **⚠ 重大证伪：play（Shakespeare）地址不定位其内容**——623/811 单元的最接近前驱 body-ACT ≠ 声明 ACT。根因实测钉死：Gutenberg pg100.txt 每剧标题后都有 `Contents` 块（紧凑列出 `ACT I\nScene I.\n<setting>`…ACT V），play.py 的 ACT_RE 先匹配到 Contents 的 ACT 头（offset 39/135/206/269/338，相距 ~100 字符），正文真实 ACT 头（数千字符后）被 dedup 丢掉 → 每幕 act 区坍缩到 Contents 偏移，正文所有 SCENE 都挂到 `ACT V SCENE n` 标签下（e.g. unit 50359 addr2='ACT V SCENE I' 但 raw 处实为 All's Well 正文 ACT I 前）。38/44 部作品带 Contents 块 → 全中招。**round-trip 探针 25/25 通过是假绿**：它只查"地址→自身单元 id"稳定，不查"地址命名了它覆盖的内容"——这正是 GOAL §0"计数型检查看不见文字错位"的又一实例
+- **处置（照 D-033/D-035 先例）**：缺陷已实测记录，probe 留作负结果；修 play.py（ACT_RE 需跳过 Contents 块，判据：头后非空行是 `SCENE` 大写即正文 ACT、`Scene` 混合大小写即 Contents）列为候选任务，本窗口只验证不修（scope 外）。13 道闸门与该缺陷无关（play 地址不参与 T1-T11 断言），闸门复验全过
