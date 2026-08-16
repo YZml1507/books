@@ -2557,3 +2557,36 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 无语料改动）。
 
 - 决策记录：DECISIONS.md D-076b。
+
+## 58. [优化轨] R31b：Local File Adapter——本地书入库（2026-08-16，双窗口并行第二轨）
+
+### 58a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 58b. Local File Adapter（愿景 §10/§18：不断加书的基础设施）
+
+- **缺口核实**：`src/guji/sources.py`（142 行）只有 Kanripo 一个 adapter
+  （fetch_zip/extract/add_work 全依赖网络 GitHub zip）；本地公版 txt 书
+  导入路径完全缺失——用户自有语料无法进库，只能等 Kanripo 有对应 repo。
+- **新增** `add_local_work(wid, genre, rationale, txt_dir)`：
+  - 只导入 `{wid}(_\w+)?\.txt` 命名匹配的文件（与 zip 抽取同一名字白名单，
+    杂散文件到不了 data/raw）；utf-8 errors="replace" 永不硬失败；
+  - title/edition 从 `#+TITLE:` / `#+PROPERTY: BASEEDITION` 头读取（与
+    Kanripo 同一约定）；文件**拷贝**不移动源目录；
+  - manifest 增量 upsert 复用 add_work 语义（其余作品保留、同 id 替换不
+    重复）；条目记 source="local" + source_dir + added_at。
+- **CLI**：`python -m guji.sources add_local KRx1234 道家 理由 D:\path\to\txt`
+  （导入后跑 build_index 入库）。零网络、零新依赖，不触红线第 3 类。
+- **自测**（`--selftest`，临时目录 + 临时 manifest，不碰真实语料）：
+  导入 2 文件断言 n_files/title/edition、非 txt 文件不入库、既有作品
+  KEEPME 保留、同 id 重导替换不重复、缺文件 RuntimeError。
+
+### 58c. 验证
+
+sources 自测 PASS（add_local_work 全链路）；bookstudy 11/11、research 7/7、
+MCP 协议自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 ·
+PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰（临时路径隔离）。
+
+- 决策记录：DECISIONS.md D-077b。

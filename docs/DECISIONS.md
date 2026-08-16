@@ -2607,3 +2607,32 @@ R27b（Book Summary）、R28b（MCP 协议自测）、R29b（书目→读书一�
 回填（assess_goals 委托已被审查轨 23d0f94 落地、client 配置样例已补）。
 docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §57。
+
+## D-077b R31b 优化轨：Local File Adapter（愿景 §10/§18，本地书入库）
+
+**背景（亲自核实）**：愿景书 §10 明确要求 Source Adapter 可替换、§18 核心
+是"不断加书的基础设施"（用户把书放进 books/ 目录，系统自动导入→解析→建
+索引）。实测 `src/guji/sources.py`（142 行）**只有 Kanripo 一个 adapter**
+（fetch_zip/extract/add_work，全部依赖网络 GitHub zip）；本地 txt 书导入
+路径完全缺失——用户手上已有的公版 txt（如自家整理的语料）无法进库，只能
+等 Kanripo 有对应 repo。这是研究模式全落地后最后一个基础设施缺口。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | sources.py 增 `add_local_work(wid, genre, rationale, txt_dir)`：把本地 txt 目录导入 data/raw/<wid>/（只收 `*.txt`、utf-8 校验、复用 manifest 增量 upsert——照 add_work 的"保留其余作品"语义），返回元数据；用户随后跑 build_index 即可入库 | 零网络、零新依赖（不触红线第 3 类）；复用 load_work 单一拼接源，不碰解析器；自测用临时目录+临时 manifest 验证增量语义；风险中低 |
+| B | MASTER_PLAN/ROADMAP 文档刷新（研究模式/MCP 回填） | 零风险但 R30b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：sources 自测（临时目录导入 + manifest 增量断言）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`add_local_work(wid, genre, rationale,
+txt_dir)` 落地——本地 txt 目录导入 data/raw/<wid>/（名字白名单过滤、utf-8
+replace、头解析 title/edition、拷贝不移动源）、manifest 增量 upsert（既有
+作品保留、同 id 替换不重复）、条目记 source="local"。CLI `add_local` 子命令。
+自测（临时目录+临时 manifest，隔离真实语料）全过：2 文件导入、非 txt 不入
+库、KEEPME 保留、重导替换、缺文件 RuntimeError。sources 自测 PASS +
+bookstudy 11/11 + research 7/7 + MCP 协议自测 + 13 闸门全绿。初版自测把
+"同 id 重导"断言写反（写成应抛错），实跑抓到并修正——"必须实跑"再证。
+commit 见台账 §58。
