@@ -3195,3 +3195,58 @@ R47b 记录审查轨 R25a 撤回 R24a 越界指控（与 R44b 反驳一致），
   diff 实证为空。
 
 - 决策记录：DECISIONS.md D-092a。
+
+## 74. [审查轨] R28a 优化轨 R53b 交叉复审 + rebase（2026-08-17）
+
+接续 R27a（§73）。fetch origin 发现优化轨推进 main 两个新提交
+（d5e95b4 + d8fca3c，均标 R53b）。d8fca3c 含代码逻辑（web/app.py +12 行，
+selftest 12→16 checks），按协议第 4 步启动新一轮审查轨循环。
+
+### 74a. rebase origin/main
+
+`git rebase origin/main` 在历史 commit 354e708（R22a rebase merge）处冲突
+（docs/DECISIONS.md + docs/TASK_LEDGER.md append-only 冲突）。按用户指令
+"冲突取 --theirs"执行：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，审查轨全部历史
+commit 基于 origin/main 重新嫁接。rebase 后 HEAD=01dfe51（R27a）。
+
+### 74b. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复 8c1242c，
+  历史遗留，合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 74c. R53b 逐行复审
+
+- **d8fca3c**（web/app.py selftest 扩展 12→16 checks）：
+  新增 4 个 `check()` 调用覆盖 bazi/liuyao/huangli/qiming 端点。全部确定性
+  输入（固定生辰 1990-01-01 12:00 男 / seed=42 / 固定日期 2026-08-17 / 固定
+  姓名李 1990-01-01 12:00 男 top_n=5）。断言键存在（`paipan`+`calc`、
+  `ben.gua_number==22`、`date`+`jianchu`、`candidates`）。纯本地计算无外部
+  依赖、无新写入面、无 XSS/注入面。**纪律良好**。
+- **d5e95b4**（ledger 补记全量复验）：纯文档，记录 13 闸门 + 五层自测全
+  exit 0（47 works, 62,109 units, G1-G9 PASS），与代码现状一致。
+
+### 74d. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成，30 works with any junk）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66+9 conflicts /
+  huangli_shensha / liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（2-hop traversal 3 hops, cycle 不挂死）。
+- eval_g7 PASS（must_refuse 30/30, must_answer 25/25, FABRICATIONS 0）。
+
+### 74e. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R53b 两提交**纪律良好**——selftest 扩展全确定性
+  输入+断言键存在+纯本地计算，无新写入面/注入面。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-093a。

@@ -2993,3 +2993,22 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   diff 实证为空。
 - 本轮无代码变更，13 闸门状态延续 R26a 全绿基线（suspect=10 units/5 地址），
   未重跑（协议第 3 步纯文档轮不触发新循环）。
+
+## D-093a R28a 审查轨：优化轨 R53b 交叉复审 + rebase 无红线（2026-08-17）
+
+- **接续 R27a**：fetch 发现优化轨推进 main 两提交（d5e95b4 + d8fca3c，均
+  R53b）。d8fca3c 含代码逻辑（web/app.py +12 行，selftest 12→16 checks），
+  按协议第 4 步启动新一轮审查轨循环。
+- **rebase**：`git rebase origin/main` 在历史 commit 354e708（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，审查轨全部历史
+  commit 基于 origin/main 重新嫁接。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- **R53b 复审**：d8fca3c web/app.py selftest 扩展 12→16 checks，新增 4 个
+  `check()` 覆盖 bazi/liuyao/huangli/qiming 端点，全部确定性输入+断言键
+  存在+纯本地计算无新写入面/注入面，**纪律良好**；d5e95b4 纯文档补记
+  全量复验，与代码现状一致。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
