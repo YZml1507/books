@@ -2636,3 +2636,30 @@ replace、头解析 title/edition、拷贝不移动源）、manifest 增量 upse
 bookstudy 11/11 + research 7/7 + MCP 协议自测 + 13 闸门全绿。初版自测把
 "同 id 重导"断言写反（写成应抛错），实跑抓到并修正——"必须实跑"再证。
 commit 见台账 §58。
+
+## D-078b R32b 优化轨：MCP 暴露 add_local_work——Agent 侧"加书"闭环（愿景 §18）
+
+**背景（亲自核实）**：R31b 落地 `add_local_work`（本地书入库）但**只有 CLI**——
+web（web/app.py 无 sources 引用）与 MCP（mcp_server.py 无 sources 引用）
+均未暴露。愿景 §18 的完整循环是"导入 → 解析 → 建索引 → 可被 Agent 研究"；
+MCP 是本地 stdio server（客户端=本机可信 Agent），把"加本地书"暴露成工具，
+外部 Agent 就能在自己主导的工作流里把书带进语料，而不是只能研究已有 47 部。
+零网络（只处理本地路径），不触红线第 3 类。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MCP 增 `add_local_work_tool(work_id, genre, rationale, txt_dir)`：校验 txt_dir 存在 + `{wid}(_\w+)?\.txt` 有命中（复用 add_local_work 自身校验，错误转成清晰文本返回），成功后返回条目摘要 + 提示"运行 build_index 后生效"；协议自测补 1 例（临时目录导入，断言返回含 work_id） | 零新依赖、只读内核复用；MCP 本地 stdio 信任边界内暴露本地路径参数安全；风险低 |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：MCP 协议自测 PASS（11 工具 + add_local_work_tool 1 例）、
+sources/bookstudy/research 自测、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：MCP 增 `add_local_work_tool(work_id, genre,
+rationale, txt_dir)`——复用 add_local_work 校验，RuntimeError 转 error:
+文本，成功返回条目摘要 + build_index 提示；MCP 现 11 工具。协议自测
+tools/list 断言 11 工具全名，新工具用错误路径用例（不存在目录）验证 error:
+返回（真实导入会写活语料，自测不触碰）。MCP 协议自测 PASS + sources/
+bookstudy/research 自测 + 13 闸门全绿。commit 见台账 §59。

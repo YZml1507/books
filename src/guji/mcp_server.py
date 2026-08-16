@@ -33,6 +33,7 @@ from .bookstudy import chapter as book_chapter  # noqa: E402
 from .bookstudy import structure as book_structure  # noqa: E402
 from .knowledge import KnowledgeBase
 from .research import compare_works, concept_census, research
+from .sources import add_local_work
 from .search import Corpus
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -212,6 +213,24 @@ def book_summary_tool(work_id: str) -> str:
 
 
 @mcp.tool()
+def add_local_work_tool(work_id: str, genre: str, rationale: str,
+                        txt_dir: str) -> str:
+    """Add a LOCAL directory of utf-8 txt files as a new work (R31b, 愿景
+    §10/§18: 不断加书). Only `{work_id}(_\\w+)?\\.txt` files are imported into
+    data/raw/<work_id>/; title/edition read from #+TITLE / BASEEDITION headers
+    when present; the manifest is upserted additively (other works kept).
+    Zero network. IMPORTANT: run `python -m guji.sources` — actually
+    `scripts/build_index.py` — afterwards for the work to enter the index."""
+    try:
+        e = add_local_work(work_id, genre, rationale, txt_dir)
+    except RuntimeError as exc:
+        return f"error: {exc}"
+    return (f"added {e['id']} 《{e['title']}》 genre={e['genre']} "
+            f"{e['n_files']} files {e['n_chars']:,} chars (local). "
+            f"运行 scripts/build_index.py 后入库生效。")
+
+
+@mcp.tool()
 def bookstudy_structure(work_id: str, sample_chars: int = 60) -> str:
     """Book Study (R23b): one work's structural map — sections in source order,
     sizes, 經/注/疏 layers, and a first-line sample with a REAL citation per
@@ -325,7 +344,8 @@ if __name__ == "__main__":
         assert resp["id"] == 2, resp
         expected = {"search", "addr", "compare", "concept", "research_tool",
                     "threads", "bookstudy_structure", "bookstudy_chapter",
-                    "compare_works_tool", "book_summary_tool"}
+                    "compare_works_tool", "book_summary_tool",
+                    "add_local_work_tool"}
         assert set(tools) == expected, f"tools mismatch: {sorted(set(tools) ^ expected)}"
         print(f"[selftest] tools/list -> {len(tools)} tools OK")
 
@@ -336,6 +356,10 @@ if __name__ == "__main__":
             ("compare_works_tool", {"work_a": "KR5c0057", "work_b": "KR5c0126",
                                     "concept": "無爲"}),
             ("book_summary_tool", {"work_id": "KR1a0001"}),
+            # error path only — a real import would write the live corpus
+            ("add_local_work_tool", {"work_id": "T1x9999", "genre": "测试",
+                                     "rationale": "协议自测错误路径",
+                                     "txt_dir": "C:/definitely/not/here"}),
         ]
         for i, (name, args) in enumerate(calls, start=3):
             send({"jsonrpc": "2.0", "id": i, "method": "tools/call",
@@ -343,7 +367,11 @@ if __name__ == "__main__":
             resp = recv()
             assert resp["id"] == i and "result" in resp, (name, resp)
             content = "".join(c.get("text", "") for c in resp["result"].get("content", []))
-            assert content and "error" not in content.lower(), (name, content)
+            assert content, (name, content)
+            if name == "add_local_work_tool":
+                assert content.startswith("error:"), (name, content)
+            else:
+                assert "error" not in content.lower(), (name, content)
             print(f"[selftest] tools/call {name} -> {len(content)} chars OK")
         proc.stdin.close()
         proc.wait(timeout=15)

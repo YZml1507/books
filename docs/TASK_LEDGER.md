@@ -2590,3 +2590,32 @@ MCP 协议自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 �
 PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰（临时路径隔离）。
 
 - 决策记录：DECISIONS.md D-077b。
+
+## 59. [优化轨] R32b：MCP 暴露 add_local_work——Agent 侧"加书"闭环（2026-08-16，双窗口并行第二轨）
+
+### 59a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 59b. MCP add_local_work_tool（愿景 §18 完整循环：导入→解析→建索引→可被 Agent 研究）
+
+- **缺口核实**：R31b 落地 add_local_work 但只有 CLI——web（web/app.py 无
+  sources 引用）与 MCP（mcp_server.py 无 sources 引用）均未暴露。MCP 是
+  本地 stdio server（客户端=本机可信 Agent），把"加本地书"暴露成工具即完成
+  Agent 侧加书闭环；零网络（只处理本地路径），不触红线第 3 类。
+- **新增** `add_local_work_tool(work_id, genre, rationale, txt_dir)`：
+  复用 add_local_work 自身校验（txt_dir 存在 + 名字白名单命中），RuntimeError
+  转清晰 error: 文本；成功返回条目摘要 + "运行 scripts/build_index.py 后
+  入库生效"提示。MCP 现共 **11 工具**。
+- **协议自测**：tools/list 断言 11 工具全名；add_local_work_tool 用**错误路径
+  用例**（不存在的 txt_dir）验证 error: 返回——真实导入会写活语料，自测不
+  触碰（与 sources --selftest 的临时路径隔离设计一致）。
+
+### 59c. 验证
+
+MCP 协议自测 PASS（11 工具 + 新工具错误路径断言）；sources/bookstudy/
+research 自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 ·
+PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰。
+
+- 决策记录：DECISIONS.md D-078b。
