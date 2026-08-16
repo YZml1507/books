@@ -3418,3 +3418,40 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与 alignment_score.json
   实测一致）。
 - 决策记录：DECISIONS.md D-104b。
+
+## 86. [优化轨] R59b：MASTER_PLAN §4 yilin 行单元数错误修复（2026-08-17，双窗口并行第二轨）
+
+### 86a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R58b（64c577d）已确认在 origin/main。
+
+### 86b. 摸底（逐项亲自核实）
+
+- **suspect 单元/地址**：实测 10 单元 / 5 地址（KR1a0006 卦47上六、卦61
+  上九；KR1a0007 卦51初九；KR1a0031 卦23六四、卦61初九），与文档一致——
+  非缺口。
+- **链接数**：实测 558，与文档一致——非缺口。
+- **corpus.db 大小 / 页锚点 / 有地址**：55.7 MB / 13,954 / 57,315（92.3%），
+  与快照一致——非缺口。
+- **quality_report 低覆盖**：实测 10 个判定，与文档一致——非缺口。
+- **eval_g7**：verdict PASS、damaged_rule True——非缺口。
+- **真实缺口（本轮选定）**：`docs/MASTER_PLAN.md` §4 地址体系表 yilin 行
+  写 `已实现（焦氏易林，4,096 单元）`，实测（`SELECT count(*) FROM unit
+  WHERE scheme='yilin'`）为 **5,032 单元（全在 KR3g0029）**、去重地址
+  4,095——**4,096 是 64×64 矩阵可编址 cells 数**（eval_g4 实测 "yilin
+  cells 4,096"），文档误标成"单元"。同表 booksec 4,247 / play 6,512 /
+  euclid 649 / bcv 35,787 均为单元数，yilin 行口径与全表不一致（L-23
+  教训同族）。
+
+### 86c. 改动与验证
+
+- **改动**（docs/MASTER_PLAN.md，纯文档）：§4 yilin 行更新为
+  `已实现（焦氏易林，5,032 单元 = 64×64 矩阵 4,096 cells；R59b 修正
+  单元/cells 口径）`——单元数与实测一致、cells 数出处标注，口径与全表
+  统一。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（yilin 5,032 单元与
+  corpus.db 实测一致，4,096 cells 与 eval_g4 一致）。
+- 决策记录：DECISIONS.md D-105b。

@@ -3401,3 +3401,31 @@ KR1a0006 364/374、KR1a0007 372/380、KR1a0016 358/368、KR1a0031
 KR1a0016 358/368 · KR1a0031 356/380 · KR1a0032 374/380 汇总，出处
 validate_alignment）。docs-only 抽跑 verify_index + check_quality 全
 exit 0，基线未动。commit 见台账 §85。
+
+## D-105b R59b 优化轨：MASTER_PLAN §4 yilin 行单元数错误修复（文档对齐）
+
+**背景（亲自核实）**：`docs/MASTER_PLAN.md` §4 地址体系表 yilin 行写
+`已实现（焦氏易林，4,096 单元）`，但实测（`SELECT count(*) FROM unit
+WHERE scheme='yilin'`）为 **5,032 单元（全在 KR3g0029）**，去重
+(work,addr1,addr2) 地址 4,095。**4,096 是焦氏易林 64×64 矩阵的可编址
+cells 数**（eval_g4 实测 "yilin cells 4,096"、GOAL_NEXT_SESSION §1 也
+用 4,096 指 cells），文档把它误标成"单元"——同表其他行（booksec 4,247 /
+play 6,512 / euclid 649 / bcv 35,787）都是单元数，yilin 行口径与全表
+不一致（L-23 教训同族：可被命令断言的事实硬编码且口径混乱）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MASTER_PLAN §4 yilin 行改为 `已实现（焦氏易林，5,032 单元 = 64×64 矩阵 4,096 cells）`，单元格数与全表口径统一且注明 cells 数出处 | 纯文档、零代码/零风险；数字与 corpus.db 实测一致（yilin 5,032 单元 / 4,096 cells 均可复验） |
+| B | 只改数字不改口径说明（写"4,096→5,032 单元"） | 数字对但口径混（cells vs 单元）仍易再错 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 22 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：MASTER_PLAN.md §4 yilin 行更新为
+`已实现（焦氏易林，5,032 单元 = 64×64 矩阵 4,096 cells）`——单元数与
+实测一致（SELECT scheme='yilin' → 5,032）、cells 数 4,096 出处标注
+（eval_g4 cells 4,096），口径与全表统一。docs-only 抽跑 verify_index
++ check_quality 全 exit 0，基线未动。commit 见台账 §86。
