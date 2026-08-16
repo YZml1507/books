@@ -3012,3 +3012,31 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   存在+纯本地计算无新写入面/注入面，**纪律良好**；d5e95b4 纯文档补记
   全量复验，与代码现状一致。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-094a R29a 审查轨：优化轨 R53b follow-up + R54b-R58b 交叉复审无红线（2026-08-17）
+
+- **接续 R28a**：fetch 发现优化轨推进 main 六提交（6c11228 R53b follow-up、
+  0b5be29 R54b、709779b R55b、83c02c8 R56b、280ba1b R57b、64c577d R58b）。
+  两个含代码逻辑（6c11228 web/app.py+8、0b5be29 web/app.py+15），四个纯
+  文档（R55b-R58b）。
+- **rebase**：`git rebase origin/main` 在历史 commit 4fab4d3（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，审查轨全部历史
+  commit 基于 origin/main 重新嫁接。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- **R53b follow-up + R54b 复审**：
+  - 6c11228 bazi selftest 清理 history.db：调 bazi 前记录 max_id_before，
+    调用后删除 id > max_id_before 的新增记录。模式与 threads POST cleanup
+    同（L-22 教训保持）。**纪律良好**。
+  - 0b5be29 R54b standing coverage 16→22 checks：新增 6 个 check() 覆盖
+    research/ask/history/history.detail/threads.detail/health 端点。全部
+    确定性、只读或非持久化。external/news 明确排除（网络/代理依赖破坏
+    standing-test 确定性，D-100b）。**纪律良好**。
+  - R55b-R58b 纯文档：PROJECT_STATUS 快照、PROJECT_ROADMAP corpus scheme
+    distribution 刷新、GOAL_NEXT_SESSION snapshot label + close stale §2b
+    item、PROJECT_ROADMAP 繫辞 alignment numbers 修正。全部文档对齐实测
+    数据，与代码现状一致。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。

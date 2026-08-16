@@ -3250,3 +3250,72 @@ rebase 后亲跑 13 闸门确认无回归：
   输入+断言键存在+纯本地计算，无新写入面/注入面。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-093a。
+
+## 75. [审查轨] R29a 优化轨 R53b follow-up + R54b-R58b 交叉复审 + rebase（2026-08-17）
+
+接续 R28a（§74）。fetch origin 发现优化轨推进 main 六个新提交
+（6c11228 R53b follow-up、0b5be29 R54b、709779b R55b、83c02c8 R56b、
+280ba1b R57b、64c577d R58b）。其中两个含代码逻辑（6c11228 web/app.py+8、
+0b5be29 web/app.py+15），四个纯文档（R55b-R58b）。按协议第 4 步启动
+新一轮审查轨循环。
+
+### 75a. rebase origin/main
+
+`git rebase origin/main` 在历史 commit 4fab4d3（R22a rebase merge）处
+append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，审查轨全部历史
+commit 基于 origin/main 重新嫁接。rebase 后 HEAD=ddfe9b4（R28a）。
+
+### 75b. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 75c. R53b follow-up + R54b 逐行复审
+
+- **6c11228**（R53b follow-up，bazi selftest 清理 history.db）：
+  问题：bazi 端点（D-039 授权）写入真实 history.db，首次运行污染
+  id 30-32。修复：调 bazi 前记录 `max_id_before`，调用后删除
+  id > max_id_before 的新增记录。引用 `from guji import history as
+  history_db`（优化轨领土，审查轨只复审+记录移交）。模式与 threads
+  POST cleanup 同（L-22 教训保持）。**纪律良好**：自测不污染真实库、
+  清理逻辑完整、无新写入面/XSS/注入。
+- **0b5be29**（R54b，standing coverage 16→22 checks）：
+  新增 6 个 `check()` 覆盖 research/ask/history/history.detail/threads.
+  detail/health 端点。全部确定性、只读或非持久化（ask 不落库不缓存、
+  history/threads 只读）。external/news 明确排除（依赖网络/代理会破坏
+  standing-test 确定性，D-100b）。history.detail 用 `history_db.count()`
+  取 id，threads.detail 用 `/api/threads/1`。**纪律良好**：纯只读断言、
+  无新写入面/注入面、网络依赖端点正确排除。
+- **R55b-R58b**（纯文档）：PROJECT_STATUS 快照、PROJECT_ROADMAP corpus
+  scheme distribution 刷新、GOAL_NEXT_SESSION snapshot label + close
+  stale §2b item、PROJECT_ROADMAP 繫辞 alignment numbers 修正。全部
+  文档对齐实测数据，与代码现状一致。
+
+### 75d. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成，30 works with any junk）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66+9 conflicts /
+  huangli_shensha / liuyao_najia）全 PASS。
+- eval_g1 全 PASS（246/248 = 99.2%，retrieval/citation/grounded/
+  version/concept 八项）。
+- eval_g4 PASS（2-hop traversal 3 hops, cycle 不挂死, yilin 520/490）。
+- eval_g7 PASS（must_refuse 30/30, must_answer 25/25, FABRICATIONS 0）。
+
+### 75e. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R53b follow-up + R54b-R58b 六提交**纪律良好**——
+  bazi selftest 清理真实库污染、R54b standing coverage 16→22 全只读/
+  非持久化、网络依赖端点正确排除。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-094a。
