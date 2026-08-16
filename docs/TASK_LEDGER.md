@@ -3028,3 +3028,33 @@ JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-092b。
+
+## 74. [优化轨] R47b：记录审查轨 R25a 撤回 R24a 越界指控（2026-08-17，双窗口并行第二轨）
+
+### 74a. 移交跟进
+
+fetch origin：审查轨推送 R25a 交叉复审（origin/audit/R18 `07e25b6`，复审
+R40b-R44b 无红线、闸门绿），并**撤回 R24a 越界指控**（见 74b）；R21a 委托
+仍存于审查轨分支未合入 main（移交项维持）。
+
+### 74b. R24a 越界指控的撤回确认（R44b 核实闭环）
+
+- **审查轨 R25a 声明**（原文）："Retraction (§71a): R24a §70e recorded that
+  opt-track R38b/R39b trespassed onto scripts/assess_goals.py. R44b rebutted
+  with git evidence; personally verified all three citations: git show --stat
+  19b694d (R38b): only docs/, 0 scripts/; git show --stat d79b716 (R39b):
+  only docs/, 0 scripts/; git log main -- scripts/assess_goals.py: last
+  touched df91ed4 (R18a audit). Root cause: audit-track's R21a delegation
+  commit (23d0f94) was never merged to main... Claim retracted. §0.3 hard
+  boundary intact."
+- **本轨确认**：R44b 的三条 git 铁证被审查轨亲核实成立，指控撤回、边界
+  无越界、处置与根因分析一致——交叉核实闭环。
+- **移交项不变**：main 侧 scripts/assess_goals.py 仍为内联版；R21a 委托仅
+  存于审查轨分支，待审查轨合入 main（scripts/ 属审查轨领土，优化轨不做）。
+
+### 74c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（与审查轨 R25a 记录一致）。
+
+- 决策记录：DECISIONS.md D-093b。

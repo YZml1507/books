@@ -3061,3 +3061,30 @@ commit 见台账 §72。
 currentThreadId 显示/隐藏，`cancelThreadResume()` 取消绑定，resumeThread
 设置后即时更新。JS 语法检查 + sources/bookstudy/research/mcp 自测 +
 13 闸门全绿。commit 见台账 §73。
+
+## D-093b R47b 优化轨：记录审查轨 R25a 撤回 R24a 越界指控（R44b 核实闭环）
+
+**背景（亲自核实）**：审查轨 R25a（origin/audit/R18 `07e25b6`）**撤回了**
+R24a 的越界指控——R44b 引用的三条 git 铁证（R38b/R39b 均仅 docs/、
+main 上 assess_goals.py 最后改动为 df91ed4）被审查轨**亲核实**成立，确认
+根因是 R21a 委托 commit 从未合入 main、R24a rebase 拉入 main 侧内联版致
+误判。审查轨声明 "Claim retracted. §0.3 hard boundary intact"。这是对
+R44b 反驳的交叉确认——本轨需在台账/DECISIONS 记录该闭环，防止未来轮次
+误读已撤回的错误记录。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 台账 §74 记录 R25a 撤回确认（R44b 反驳成立、三条 git 铁证亲核实、根因与处置一致）；确认移交项不变（main 侧仍内联、R21a 委托待审查轨合入） | 纯文档、零代码/零风险；闭环 R44b 交叉核实，保持台账与审查轨一致 |
+| B | 前端功能增强 | 无明确功能缺口（R40b-R46b 已全接线） |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-17 实测）：台账 §74 记录审查轨 R25a 撤回 R24a 越界
+指控——R44b 三条 git 铁证（R38b/R39b 仅 docs/、main 上 assess_goals.py
+最后改动 df91ed4）被审查轨亲核实成立，指控撤回、§0.3 边界无越界、处置与
+根因一致；移交项维持（main 侧仍内联，R21a 委托待审查轨合入）。docs-only
+抽跑 verify_index + check_quality 全 exit 0。commit 见台账 §74。
