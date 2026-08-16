@@ -2619,3 +2619,32 @@ research 自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 ·
 PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰。
 
 - 决策记录：DECISIONS.md D-078b。
+
+## 60. [优化轨] R33b：MCP_CLIENT_CONFIG.md 对齐 11 工具（2026-08-16，双窗口并行第二轨）
+
+### 60a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 60b. 文档失效修正（愿景 §19 合规延续）
+
+- **缺口核实**：`docs/MCP_CLIENT_CONFIG.md`（R23b 写）仍写"六工具"与
+  "`tools/list` 应返回 6 个工具"；实测 `mcp_server.py` 现为 **11 个
+  `@mcp.tool()`**（R26b +3、R27b +1、R32b +1）。外部读者按文档核对
+  tools/list 会得到 11≠6 矛盾——同 O1 文档失效模式，文档在 docs/ 领土内。
+- **改动**（纯文档）：
+  1. 工具表补 5 个新工具行（bookstudy_structure/bookstudy_chapter/
+     compare_works_tool/book_summary_tool/add_local_work_tool，各注功能与
+     对应内核）；
+  2. 纪律段补 add_local_work_tool 安全边界（仅本地 stdio 信任边界、只处理
+     本地路径、不联网——web 层不暴露此类写操作）；
+  3. 验证节改"tools/list 应返回 11 个工具" + 指向服务端协议自测
+     （`python -m guji.mcp_server --selftest`）供外部客户端复验。
+
+### 60c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（工具数与 `grep -c "@mcp.tool()"` 实测 11 一致）。
+
+- 决策记录：DECISIONS.md D-079b。

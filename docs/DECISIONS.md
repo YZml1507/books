@@ -2663,3 +2663,31 @@ rationale, txt_dir)`——复用 add_local_work 校验，RuntimeError 转 error:
 tools/list 断言 11 工具全名，新工具用错误路径用例（不存在目录）验证 error:
 返回（真实导入会写活语料，自测不触碰）。MCP 协议自测 PASS + sources/
 bookstudy/research 自测 + 13 闸门全绿。commit 见台账 §59。
+
+## D-079b R33b 优化轨：MCP_CLIENT_CONFIG.md 对齐 11 工具（文档失效修正）
+
+**背景（亲自核实）**：`docs/MCP_CLIENT_CONFIG.md`（R23b 写）仍写"六工具"
+（第 22 行）与"`tools/list` 应返回 6 个工具"（第 71 行）；实测 `mcp_server.py`
+现为 **11 个 `@mcp.tool()`**（R26b +3：bookstudy_structure/bookstudy_chapter/
+compare_works_tool；R27b +1：book_summary_tool；R32b +1：add_local_work_tool）。
+外部读者按文档核对 tools/list 会得到 11≠6 的矛盾——同 O1 文档失效模式。
+文档在 docs/ 领土内（本轨），可直接修。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 `docs/MCP_CLIENT_CONFIG.md`：标题"六工具"→"十一工具"；工具表补齐 5 个新工具（bookstudy_structure/bookstudy_chapter/compare_works_tool/book_summary_tool/add_local_work_tool，各注功能与对应内核）；验证节改"tools/list 应返回 11 个工具"；补 add_local_work_tool 的本地路径参数说明与安全边界（仅本地 stdio 信任边界） | 纯文档对齐，零代码/零风险，直接消除 11≠6 矛盾；数字以 grep `@mcp.tool()` 实测为准 |
+| B | 继续做功能（如 web 暴露 add_local_work） | web 暴露本地路径写入不安全（任意路径写 data/raw），不应做；文档矛盾继续累积 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MCP_CLIENT_CONFIG.md 工具表补 5 个新工具
+行（bookstudy_structure/bookstudy_chapter/compare_works_tool/
+book_summary_tool/add_local_work_tool 各注功能与内核）、纪律段补
+add_local_work_tool 安全边界（仅本地 stdio 信任边界、不联网）、验证节改
+"11 个工具"并指向服务端 `--selftest` 复验。工具数（grep 实测 11）与文档
+一致。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §60。
