@@ -3543,3 +3543,38 @@ R61b 改代码时未同步这两处文档（L-23 教训：可被一条命令断�
 GOAL_NEXT_SESSION §1 复验注释的 web 自测数 22→23，补 R61b home 端点
 说明。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §90。
+
+## D-110b R64b 优化轨：G9 SCOPE 声明过时 → 记录移交项（双窗口边界内取证）
+
+**背景（亲自核实）**：`scripts/assess_goals.py` G9 段落末尾 SCOPE 声明
+（line 372-374）写 `no component writes to this store during ordinary
+operation yet — scripts/research_thread.py is the only writer`，但实测
+**web 与 MCP 早已写 knowledge.db**：
+- 铁证 1：`web/app.py` line 655 `kb = KnowledgeBase(KNOWLEDGE_DB)` +
+  `kb.record(...)`（R34b 起 web POST /api/threads 写线程）；
+- 铁证 2：`src/guji/mcp_server.py` line 233 `did = kb.record(...)`（R36b
+  起 MCP record_claim_tool 写线程）；
+- 铁证 3：knowledge.db 实测 `derived=2, evidence=6`（非空，含 web/mcp
+  自测写入痕迹）。
+该 SCOPE 声明的真实意图是"无**自动**捕获（automatic capture of an
+enquiry as it happens is not built）"——web/MCP 写入口都是**用户主动
+选择记录**，与"会话必须主动选择记录"的语义一致，但"no component writes"
+与"only writer"两处措辞**与事实不符**，会误导新会话以为知识库无写入面。
+**scripts/ 属审查轨领土**（双窗口边界：优化轨=src/guji/web/docs，
+审查轨=scripts/probes），本轨不改 assess_goals.py，处置=记录移交项。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §2a 移交项清单追加"G9 SCOPE 声明过时（assess_goals.py:372-374 措辞与事实不符，web R34b / MCP R36b 均已写 knowledge.db）——待审查轨修正措辞"；台账 §91 记录取证过程 | 纯文档、零代码/零风险；不越界（scripts/ 归审查轨），铁证已取（web/app.py:655、mcp_server.py:233、knowledge.db 非空） |
+| B | 直接改 scripts/assess_goals.py 修正措辞 | 越界（scripts/ 属审查轨领土），违反双窗口边界——否决 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（照 R21a 移交先例：跨轨发现记录移交，不越界实施）。落地后：
+docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：GOAL_NEXT_SESSION §2a 移交项清单追加
+"G9 SCOPE 声明过时"条目（含铁证位置与建议修正方向），台账 §91 记录
+取证。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §91。

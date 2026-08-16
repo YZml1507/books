@@ -129,6 +129,14 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
 - **愿景 §15 评估缺口**（跨书/版本意识/研究深度正式 eval）：scripts/ 属审查
   轨领土（O8 移交）；本轨已用各层 standing 自测（sources/bookstudy/research/
   mcp/web）覆盖能力级回归。
+- **G9 SCOPE 声明过时**（R64b 发现，待审查轨修正措辞）：`scripts/
+  assess_goals.py` line 372-374 写"no component writes to this store
+  during ordinary operation yet — research_thread.py is the only writer"，
+  与事实不符——web POST /api/threads（R34b，web/app.py:655）与 MCP
+  record_claim_tool（R36b，mcp_server.py:233）均写 knowledge.db（实测
+  derived=2, evidence=6）。真实意图是"无**自动**捕获"，措辞应改为
+  "无自动捕获，写入口均需用户主动选择记录"。scripts/ 属审查轨领土，
+  优化轨只记录不移交实施。
 
 ### 2b. 其他低优先（若优化循环外还有余力）
 

@@ -3593,3 +3593,36 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（23 checks 与
   `python -m app --selftest` 实测一致）。
 - 决策记录：DECISIONS.md D-109b。
+
+## 91. [优化轨] R64b：G9 SCOPE 声明过时 → 记录移交项（2026-08-17，双窗口并行第二轨）
+
+### 91a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R63b（9386342）已确认在 origin/main。
+
+### 91b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R63b / GOAL_NEXT_SESSION R61b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **ROADMAP P2-P5 标记**：P0-P4 全有完成标记，P5 已有"已落地"——非缺口。
+- **G9 SCOPE 声明取证（本轮选定）**：`scripts/assess_goals.py` line 372-374
+  G9 段末尾写 `no component writes to this store during ordinary operation
+  yet — scripts/research_thread.py is the only writer`，但实测 web 与 MCP
+  早已写 knowledge.db——铁证：web/app.py:655 `kb.record`（R34b web POST
+  /api/threads）、mcp_server.py:233 `kb.record`（R36b record_claim_tool）、
+  knowledge.db 实测 derived=2 evidence=6 非空。真实意图是"无**自动**捕获"
+  （automatic capture not built），措辞"no component writes"与"only
+  writer"与事实不符。**scripts/ 属审查轨领土，本轨只记录不移交实施**
+  （照 R21a 移交先例）。
+
+### 91c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§2a 移交项清单追加
+  "G9 SCOPE 声明过时"条目（含铁证位置 web/app.py:655、mcp_server.py:233、
+  实测 derived=2 evidence=6，及建议修正措辞"无自动捕获，写入口均需用户
+  主动选择记录"），待审查轨修正。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（移交项铁证与代码实测一致）。
+- 决策记录：DECISIONS.md D-110b。
