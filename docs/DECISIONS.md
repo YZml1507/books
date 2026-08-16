@@ -3345,3 +3345,31 @@ None 4,794 · booksec 4,247 · euclid 649，TOTAL 62,109**——booksec
 4,247 · play 6,512 · euclid 649 · None 4,794 = 62,109），并补"以实测
 为准"声明（照 MASTER_PLAN §4 R39b 先例）。docs-only 抽跑 verify_index
 + check_quality 全 exit 0，基线未动。commit 见台账 §83。
+
+## D-103b R57b 优化轨：GOAL_NEXT_SESSION §1 快照标签刷新 + §2b 过时条目清理（接续文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL_NEXT_SESSION.md` 是下一窗口任务书入口
+（接续文档，误导代价最高——D-097b 同族）。R51b 刷新后两处滞后：
+1. **§1 快照标签仍写"当前（R50b 终态，13/13 全过 + 五层自测全齐）"**
+   ——R53b/R54b 已把 web standing 自测扩到 22 checks，§1 复验命令注释
+   仍写"R49b 起全齐"，未反映 22 checks；
+2. **§2b 低优先项"架构文档可补注"已过时**——`BOOK_AI_ARCHITECTURE.md`
+   §185-186 已于 2026-08-15 补注（D-034/T7-n 原因已写明），该条仍列
+   "可补注"，新会话照它执行会做无用功。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §1 快照标签 → R54b 终态（注明 web 自测 22 checks、R53b/R54b 扩展），复验命令注释同步；§2b 架构补注条目删除或标注"已完成（2026-08-15 已补注）" | 纯文档、零代码/零风险；数字与本窗口全量实测一致（22 checks、47 部 62,109 单元、G1-G9 全 PASS）；防新会话做无用功 |
+| B | 只刷 §1 标签，不动 §2b | 留一半滞后，§2b 仍误导 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 22 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：GOAL_NEXT_SESSION §1 快照标签刷新到
+R54b 终态（快照块补"web 自测 22 checks，R53b/R54b 扩展"），复验命令
+注释同步；§2b 架构补注条目标注"已完成（2026-08-15 已补注，见
+BOOK_AI_ARCHITECTURE.md §5）"。docs-only 抽跑 verify_index +
+check_quality 全 exit 0，基线未动。commit 见台账 §84。

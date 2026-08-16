@@ -82,7 +82,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\eval_g4.py
 .\.venv\Scripts\python.exe probes\probe_booksec.py
 .\.venv\Scripts\python.exe scripts\assess_goals.py
-# 各层 standing 自测（R49b 起全齐）：
+# 各层 standing 自测（R49b 起全齐；web 22 checks 为 R53b/R54b 扩展后实测数）：
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research
@@ -90,7 +90,7 @@ PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
 cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-**当前（R50b 终态，13/13 全过 + 五层自测全齐）**：
+**当前（R54b 终态，13/13 全过 + 五层自测全齐；web 自测 22 checks，R53b/R54b 扩展）**：
 
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
@@ -132,8 +132,9 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
 
 ### 2b. 其他低优先（若优化循环外还有余力）
 
-- **BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注**：原因早已
-  查清（繫辞传印次差异，D-034），架构文档那行可补注。
+- ~~**BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注**~~ **已完成**
+  （2026-08-15 已补注，见 `BOOK_AI_ARCHITECTURE.md` §5 行内补注：原因查清，
+  繫辞传印次差异，D-034/T7-n；R57b 核实后本条关闭，新会话勿再做）。
 
 ---
 

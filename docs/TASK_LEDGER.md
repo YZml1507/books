@@ -3350,3 +3350,37 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与 corpus.db 实测、
   GOAL_NEXT_SESSION §1 快照一致）。
 - 决策记录：DECISIONS.md D-102b。
+
+## 84. [优化轨] R57b：GOAL_NEXT_SESSION §1 快照标签刷新 + §2b 过时条目清理（2026-08-17，双窗口并行第二轨）
+
+### 84a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R56b（83c02c8）已确认在 origin/main。
+
+### 84b. 摸底（逐项亲自核实）
+
+- **MCP_CLIENT_CONFIG 工具数**：12 与实测一致（`mcp_server --selftest`
+  tools/list -> 12 tools OK），且有"以自测为唯一权威"防漂移声明（L-23
+  治本已生效）——非缺口。
+- **其余文档过时数字**：PROJECT_STATUS 历史存档段（28 部等）已标注"仅作
+  演进对照"；GOAL_NEXT_SESSION §7 历史段已标注——均非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL_NEXT_SESSION.md`（下一窗口任务书
+  入口，误导代价最高——D-097b 同族）两处滞后：
+  1. §1 快照标签仍写"当前（R50b 终态，13/13 全过 + 五层自测全齐）"，
+     复验命令注释仍写"R49b 起全齐"——R53b/R54b 已把 web standing 自测
+     扩到 22 checks；
+  2. §2b 低优先项"BOOK_AI_ARCHITECTURE.md §5 可补注"已过时——架构文档
+     §185-186 已于 2026-08-15 补注（D-034/T7-n 原因已写明），该条仍列
+     "可补注"，新会话照它执行会做无用功。
+
+### 84c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§1 快照标签 → R54b 终态
+  （注明 web 自测 22 checks、R53b/R54b 扩展）；复验命令注释同步；§2b 架构
+  补注条目删除线标注"已完成（2026-08-15 已补注，见架构 §5）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（22 checks 与 web --selftest
+  实测一致）。
+- 决策记录：DECISIONS.md D-103b。
