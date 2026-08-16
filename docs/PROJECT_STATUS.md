@@ -4,7 +4,7 @@
 > **任务状态的唯一来源是 `TASK_LEDGER.md`**（含 REJECTED 清单，防止重做已否决方案），
 > 工程教训见 `LESSONS.md`。
 
-**更新时间**：2026-08-16（R18b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
+**更新时间**：2026-08-16（R23b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
 **当前阶段**：Phase 7（Optimization）——审查-修复循环 R5-R17 闭环后进入双窗口并行
 （审查轨 `books-audit` worktree 审 scripts/probes/打包链；优化轨=本仓做差距分析+能力优化，
 方案见 `OPTIMIZE_20260816_R18.md`）。
@@ -14,7 +14,7 @@
 ## 当前实测快照（2026-08-16，复验命令 = TASK_LEDGER 开头 13 闸门，全部亲自实跑）
 
 ```
-索引      44 部 → 61,732 单元 · 55.2 MB · 页锚点 13,577 · 有地址 57,315（92.8%）
+索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
 G 判据    PASS 9 · PART 0 · FAIL 0（assess_goals.py 实测，含 G4 多跳/G8 三类知识隔离/G9 跨会话）
 闸门      13 道全绿：verify_index T1-T13 ALL PASS · check_quality PASS（阴阳双对照）
           · 4 probes PASS · eval_g1 / eval_g4 / eval_g7 PASS
@@ -33,8 +33,8 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 - `unit.suspect` 列已存在（X-11），且 R17 修正了 6/10 地址误归责（span-*-B 误标在
   A 作品导致健康文本被 answer 层扣留——L-20 危害类）。
 - G1 概念级检索已覆盖（eval_g1 retrieval_concept PASS）；G4/G8/G9 从未实现变为 PASS。
-- 语料 28→44 部（+术数 8 部：三命通會等；+generality：plato/shakespeare/euclid/
-  herodotus/iliad×2/douay）。
+- 语料 28→47 部（+术数 8 部：三命通會等；+generality：plato/shakespeare/euclid/
+  herodotus/iliad×2/douay；+道家 3 部：老子/莊子/莊子注，R20b）。
 - 审查-修复循环 R5-R17 共 19 个 fix commit（6 红线级含 huangli 宿锚/ingest 巨型单元/
   douay 丢行/web XSS escAttr/llm_reader AttributeError/evalset 编码）。
 

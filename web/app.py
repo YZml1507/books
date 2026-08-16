@@ -64,6 +64,8 @@ from guji.compare import compare_address  # noqa: E402
 from guji.knowledge import KnowledgeBase  # noqa: E402
 from guji.research import concept_census, research  # noqa: E402
 from guji.search import Corpus  # noqa: E402
+from guji.bookstudy import structure as book_structure  # noqa: E402
+from guji.bookstudy import chapter as book_chapter  # noqa: E402
 
 app = FastAPI(title="古籍智慧助手（读书 + 八字）", version="0.5.0")
 
@@ -577,6 +579,45 @@ def api_thread_detail(tid: int):
         return {"turns": turns, "claims": claims, "verify": v}
     finally:
         kb.close()
+
+
+# ---------------------------------------------------------------------------
+# Book Study (R23b): structured reading map + chapter view
+# ---------------------------------------------------------------------------
+
+@app.get("/api/bookstudy/structure")
+def api_book_structure(work_id: str, sample_chars: int = 60):
+    """Works structural map: sections in source order, sizes, layers, samples."""
+    work_id = (work_id or "").strip()
+    if not work_id:
+        raise HTTPException(400, "work_id 不能为空")
+    sample_chars = min(max(sample_chars, 20), 200)
+    c = Corpus(CORPUS_DB)
+    try:
+        return book_structure(c, work_id, sample_chars=sample_chars)
+    finally:
+        c.close()
+
+
+@app.get("/api/bookstudy/chapter")
+def api_book_chapter(work_id: str, scheme: str,
+                     addr_name: str | None = None,
+                     addr1: int | None = None,
+                     limit: int = 60):
+    """One section's reading view: every unit in source order with citations."""
+    work_id = (work_id or "").strip()
+    scheme = (scheme or "").strip()
+    if not work_id:
+        raise HTTPException(400, "work_id 不能为空")
+    if not scheme:
+        raise HTTPException(400, "scheme 不能为空")
+    limit = min(max(limit, 1), 200)
+    c = Corpus(CORPUS_DB)
+    try:
+        return book_chapter(c, work_id, scheme,
+                            addr_name=addr_name, addr1=addr1, limit=limit)
+    finally:
+        c.close()
 
 
 # ---------------------------------------------------------------------------

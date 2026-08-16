@@ -2294,3 +2294,41 @@ fetch origin：审查轨仍无新提交（§47b assess_goals.py 委托移交保�
 + research 自测 6/6 + TestClient 冒烟 + MCP 协议实测。
 
 - 决策记录：DECISIONS.md D-068b。
+
+## 50. [优化轨] R23b：Book Study 读书模式（2026-08-16，双窗口并行第二轨）
+
+### 50a. 移交跟进
+
+fetch origin：审查轨仍无新提交（§47b assess_goals.py 委托移交保持开放）。
+无 rebase 需求，基线即 R22b 全绿树（0c85157）。
+
+### 50b. Book Study（愿景 §7 读书模式）：src/guji/bookstudy.py + web 端点
+
+- **structure()**：整部书的结构地图——按地址键分组（zhouyi 每卦 / bcv 每卷 /
+  yilin 每本卦 / booksec/play/euclid 每顶层 / NULL-scheme 每文件），每行携带
+  n_units / chars / layers / 首行样本 + **真实引文**（地图本身是证据：每个
+  数字都是对索引的 COUNT，逐调用重算，不是生成的摘要）。
+- **chapter()**：单节完整阅读视图——經/注按原书顺序交错、损坏区 `?` /
+  非连续 `!` 披露、引用服务器端渲染，与 web 端同纪律。
+- **修复记录**（均在中断后补齐验证）：
+  1. 主 scheme 推导：KR1a0001 首行是 NULL-scheme 标题行（`** 《乾第一》`），
+     `rows[0]["scheme"]` 拿到 None → 改用非 NULL **众数** scheme。
+  2. **chapter() 先 LIMIT 后过滤缺陷**：unit 按 raw_start 全工作全局排序，前
+     `limit` 行全是第一节——非首节（卦40、douay 35,787 节的 Exodus）误报
+     "not found"。修复：节过滤下推 SQL WHERE（LIMIT **之前**），自测补
+     [6]（卦40）[7]（Exodus）回归例锁定。
+- **web/app.py**：+ `/api/bookstudy/structure`、`/api/bookstudy/chapter` 两端点
+  （api_thread_detail 之后），复用 bookstudy 内核，边界校验
+  （sample_chars 20–200 / limit 1–200，空 work_id/scheme 400）。
+- **PROJECT_STATUS.md** 快照更新：47 部 → 62,109 单元 · 55.7 MB ·
+  页锚点 13,954 · 有地址 57,315（92.3%）（build_index 实测，db size 口径
+  与旧快照一致，非 sum(length(text))）。
+
+### 50c. 验证
+
+- bookstudy 自测 7/7 PASS（含卦40、douay Exodus 回归例）。
+- web 端点冒烟 PASS（structure 65 节 / chapter 卦1、卦40、Exodus）。
+- 13 闸门复跑全绿（bookstudy 改动后按序重跑 check_quality→build_index→
+  …→assess_goals 共 14 命令全 exit 0；G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-069b。
