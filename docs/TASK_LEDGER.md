@@ -3164,3 +3164,34 @@ R47b 记录审查轨 R25a 撤回 R24a 越界指控（与 R44b 反驳一致），
   输入拼接、json.load 兜底、esc() 防注入、默认值正确。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-091a。
+
+## 73. [审查轨] R27a 优化轨 R50b-R52b 纯文档轮监控（2026-08-17）
+
+接续 R26a（§72）。fetch origin 发现优化轨推进 main 三个新提交
+（R50b/R51b/R52b）。亲核实三提交 --stat **全部 docs/*.md only**：
+- 42c05af（R50b）：PROJECT_STATUS 快照刷新 + DECISIONS/TASK_LEDGER append。
+- 7243cd6（R51b）：GOAL_NEXT_SESSION 刷新 + DECISIONS/TASK_LEDGER append。
+- edbf03a（R52b）：LESSONS L-22..L-26 记录 + DECISIONS/TASK_LEDGER append。
+
+`git log HEAD..origin/main -- ':!docs/'` 返回空，确认**零代码逻辑变化**，
+未启动新审查轨循环，不 rebase（无代码需并入）。
+
+### 73a. scripts/assess_goals.py diff 假警排除
+
+`git diff HEAD..origin/main` 报 `scripts/assess_goals.py | 18 +-`，初看似
+优化轨越界审查轨领土。亲核实：
+1. `git log HEAD..origin/main -- scripts/assess_goals.py` 返回**空**——本轮
+   三提交无一触及该文件。
+2. main 侧 assess_goals.py 最后被 df91ed4（R18a 审查轨）动；audit 侧最后被
+   00419b4（R21a 委托修复）动。18 行 diff 是 R21a 委托修复（commit 23d0f94）
+   **从未 merge 到 main** 的历史遗留差异（§71a 已确认此客观事实），非本轮
+   新增，非越界。
+
+### 73b. 验证
+
+- 本轮无代码变更，13 闸门状态延续 R26a 全绿基线（suspect=10 units/5 地址），
+  未重跑（协议第 3 步纯文档轮不触发新循环）。
+- **领土零越界**：本轮三提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+
+- 决策记录：DECISIONS.md D-092a。

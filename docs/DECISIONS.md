@@ -2977,3 +2977,19 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   默认值正确、前端 `esc()` 防注入、local badge 区分本地导入与内置。愿景 §10 落地。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。
+
+## D-092a R27a 审查轨：优化轨 R50b-R52b 纯文档轮监控（2026-08-17）
+
+- **接续 R26a**：fetch 发现优化轨推进 main 三提交（R50b/R51b/R52b）。亲核实
+  三提交 --stat **全部 docs/*.md only**：R50b PROJECT_STATUS 快照刷新、
+  R51b GOAL_NEXT_SESSION 刷新、R52b LESSONS L-22..L-26 记录。
+- `git log HEAD..origin/main -- ':!docs/'` 返回空，**零代码逻辑变化**，
+  未启动新审查轨循环，不 rebase（无代码需并入）。
+- **scripts/assess_goals.py diff 假警排除**：`git diff HEAD..origin/main`
+  报该文件 18 行 diff，但 `git log HEAD..origin/main -- scripts/assess_goals.py`
+  返回空——本轮三提交无一触及。18 行 diff 是 R21a 委托修复（23d0f94）从未
+  merge 到 main 的历史遗留差异（§71a 已确认），非本轮新增，非越界。
+- **领土零越界**：本轮三提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+- 本轮无代码变更，13 闸门状态延续 R26a 全绿基线（suspect=10 units/5 地址），
+  未重跑（协议第 3 步纯文档轮不触发新循环）。
