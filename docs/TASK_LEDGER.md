@@ -1688,3 +1688,52 @@ check_quality PASS · verify_index ALL PASS · probe_conservation/bcv/huangli/li
 - 剩余未审：anchors/answer/bazi_lookup/bcv/compare/dual_engine/evalset/external/history/llm_reader/play/variants/yilin/zhouyi/euclid/booksec
 
 - 决策记录：DECISIONS.md D-057（R11 审查：search/knowledge/quality 全假阳性无红线，已审模块覆盖核心层）
+
+## 38. 队段2-R12 再审查（2026-08-16，R11 闭环后第十轮再审查）
+
+**纪律**：R12 派 3 个 explore 子 agent 并行审查 answer/history/external，子 agent 结论一律当"待复验"，亲自跑命令核实。
+
+### 38a. R12 闸门实机重跑（零回退）
+```
+check_quality PASS · verify_index ALL PASS · 13 闸门全绿
+```
+
+### 38b. R12 子 agent 审查结论复验
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `answer.py` 空q穿透 FTS5 `MATCH '""'` 崩溃 | **假阳性**：实测 0 hits 不崩（R11 已核实 search.py 同款）；answer_text 0 hits 优雅返回 refused=True | 不修，记录假阳性 |
+| `answer.py` raw_start/raw_end 缺失（溯源精度受损） | **低优先级**：Hit 未选取 raw偏移，但 verify() 按引用文本子序列复核不依赖偏移 | 待修，下轮 |
+| `history.py` 并发安全/SQL注入 | **已核验正确**：全参数化，thread/turn 表结构合理 | 不修 |
+| `external.py` XSS 属性逃逸（href 双引号逃逸 + javascript: scheme） | **确认红线**：实测 esc() 不转义双引号，href=\"\${esc(it.link)}\" 原样透传 | 修复（见 38c） |
+| `external.py` SSRF（file:///内网/元数据） | **中优先级潜伏**：当前无用户输入路径，自定义源功能上线即红线 | 待修，下轮 |
+| `external.py` 响应无大小上限（DoS） | **中优先级**：resp.read() 无上限 | 待修，下轮 |
+| `external.py` 无缓存/限流 | **中优先级**：每次刷新重抓6源 | 待修，下轮 |
+
+### 38c. R12 修复：XSS 属性逃逸红线（commit 2837e6b）
+
+**缺陷**：
+- external.py:85 返回 feed 原始 link，不做转义（转义委托前端）
+- 前端 esc() 用 textContent→innerHTML，不转义双引号
+- href=\"\${esc(it.link)}\" 原样透传 link，含 \" 的 link 可逃逸 href 属性注入事件属性
+- javascript:/data:/file: scheme 链接原样放进 href 可执行
+
+**攻击向量**（实测复现）：
+- '\" onmouseover=alert(1) x=' → 逃逸 href 属性注入
+- 'javascript:alert(document.cookie)' → 点击即执行
+- 'data:text/html,<script>alert(1)</script>' → data: scheme
+- 'file:///etc/passwd' → file: scheme
+
+**修复**（web/static/index.html）：
+- 新增 escAttr()：转义双引号+单引号+&<>，拒绝 javascript:/data:/file: scheme（仅 http/https/mailto/tel）
+- href=\"\${esc(it.link)}\" → href=\"\${escAttr(it.link)}\"
+
+**验证**（Python 模拟 escAttr 逻辑）：
+- '\" onmouseover=alert(1) x=' → '&quot; onmouseover=alert(1) x='（双引号转义✓）
+- 'javascript:alert(...)' → '#'（拒绝✓）
+- 'data:text/html,...' → '#'（拒绝✓）
+- 'file:///...' → '#'（拒绝✓）
+- 'http://example.com/safe' → 保留✓
+13 闸门全绿：verify_index ALL PASS · check_quality PASS
+
+- 决策记录：DECISIONS.md D-058（R12 审查：answer/history 假阳性/已核验，external XSS 属性逃逸红线修复 escAttr）
