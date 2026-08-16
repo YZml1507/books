@@ -2262,3 +2262,35 @@ fetch origin：审查轨暂无新提交，assess_goals.py 第四份拼接的一�
 - 13 闸门全绿。
 
 - 决策记录：DECISIONS.md D-067b。
+
+## 49. [优化轨] R22b：O6 MCP server 落地（2026-08-16，双窗口并行第二轨）
+
+### 49a. 移交跟进
+
+fetch origin：审查轨仍无新提交（§47b assess_goals.py 委托移交保持开放）。
+无 rebase 需求，基线即 R21b 全绿树（110304f）。
+
+### 49b. MCP server（愿景 §11 最后一块）：src/guji/mcp_server.py
+
+- **选型**：官方 `mcp` 包 2.0.0（经 7897 代理 pip 安装成功）。注意 2.0 版
+  API 迁移：`mcp.server.fastmcp.FastMCP` 已不存在，高层类是
+  `mcp.server.mcpserver.MCPServer`（`@server.tool()` 装饰器 + `run('stdio')`）。
+- **六工具**全部复用既有内核（零新能力，只再发布）：search（FTS 短语+引文）、
+  addr（六地址体系，D-005 显式 scheme）、compare（G5 差异摘要）、concept
+  （跨书普查）、research_tool（确定性深研循环，步骤链返回，无证据拒绝 G7）、
+  threads（G9 研究线程列表/转录）。instructions 里写明"不要绕过拒绝"。
+  引用一律服务器端从 Hit 渲染（G2 防伪页码）；损坏区带标记披露（X-11）。
+- **实测两级**：①工具直调 7 例全过（含 bcv Genesis 1:1、卦28 稊/梯
+  preserved-variant、無爲 21 部、research 拒绝路径、G9 线程转录）；
+  ②协议级 stdio JSON-RPC 子进程实测：initialize 握手 → tools/list（6 工具）
+  → tools/call search 返回真实可核验引文。
+- **依赖**：venv 新增 mcp 及其传递依赖（项目无 requirements 清单，依赖在
+  模块 docstring 记录）；装包后 web 冒烟 + 13 闸门复跑全绿（httpx2 共存
+  无冲突）。
+
+### 49c. 验证
+
+13 闸门全绿（verify/quality/eval_g1/assess/4 probes/eval_g4/eval_g7 全 exit 0）
++ research 自测 6/6 + TestClient 冒烟 + MCP 协议实测。
+
+- 决策记录：DECISIONS.md D-068b。

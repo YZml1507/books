@@ -2383,3 +2383,14 @@ O6 MCP server（§11）、O7 道德经/庄子语料（§17.3）、新端点 gate
 - **位置用真实偏移而非字符串包含判断**：重叠窗不必然嵌套（與莊子中/子中如何），
   containment 会漏判；_subphrases 因此带 start 输出。判定逻辑跟着数据形态走，
   不跟着方便走。
+
+## D-068b R22b 优化轨：MCP server 选型与纪律（2026-08-16）
+
+- **官方 mcp 包而非手写 stdio JSON-RPC**：代理可用、安装一次成功；协议合规
+  由上游维护。代价是 2.0 版 API 与多数文档（fastmcp）不符——以 venv 实测
+  的 `MCPServer` API 为准，教训同"正则结论不可信"：库文档也会过时，以
+  import 实测为准。
+- **MCP 工具零新能力**：六工具全部是既有内核（search/addr/compare/research/
+  concept/threads）的再发布。外部 Agent 经 MCP 得到的每条引文与 web 端
+  同源同纪律——引用服务器渲染、损坏区披露、拒绝不绕过写进 instructions。
+  基础设施层的价值恰在于不另立标准。
