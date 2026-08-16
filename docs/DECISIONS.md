@@ -3190,3 +3190,27 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-103a R93a 审查轨：优化轨 R69b-R70b 交叉复审 + rebase 无红线（2026-08-17）
+
+- **接续 R92a**：fetch 发现优化轨推进 main 两提交（ae5f930 R69b、
+  5acee07 R70b）。R69b 含代码逻辑（web/app.py +17/-3，add bazi.semantic
+  standing check + fix R68b attribution），R70b 纯文档（sync web selftest
+  23→24 checks in three doc locations）。
+- **R69b 复审**：bazi.semantic standing check——固定 Bazi 输入 →
+  retrieve_semantic 命中非空 + 含 P2 子平书（实测 ziping-zhenquan）。
+  retrieve_semantic 只在 CLI（scripts/ask_bazi.py）调用，web /api/bazi
+  不经过它，13 闸门与五层自测此前均不覆盖——R67b 重建 bge_mingli 缓存
+  后受益者仍无自测（R48b 教训同族）。R68b 注释归因修正诚实（evidence
+  来自 retrieve_fast FTS 路径非 retrieve_semantic）。引用 `from guji.bazi
+  import compute` + `from guji.bazi_lookup import retrieve_semantic`（优化
+  轨领土，审查轨只复审+记录移交）。**纪律良好**。
+- **rebase**：`git rebase origin/main` 在历史 commit df5f0f0（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R69b/R70b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。

@@ -3673,3 +3673,73 @@ rebase 后亲跑 13 闸门确认无回归：
   evidence 非空 + 含 P2 子平书，抓 R48b-family 静默失效。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-102a。
+
+## 84. [审查轨] R93a 优化轨 R69b-R70b 交叉复审 + rebase（2026-08-17）
+
+接续 R92a（§83）。fetch origin 发现优化轨推进 main 两个新提交
+（ae5f930 R69b、5acee07 R70b）。R69b 含代码逻辑（web/app.py +17/-3，
+add bazi.semantic standing check + fix R68b attribution），R70b 纯文档
+（sync web selftest 23→24 checks in three doc locations）。按协议第 4
+步启动新一轮审查轨循环。
+
+### 84a. R69b 逐行复审
+
+- **改动**（web/app.py +17/-3）：
+  - R68b bazi check 注释修正：evidence 来自 retrieve_fast（FTS 路径
+    app.py:225）非 retrieve_semantic，原 R68b 注释误称"语义路径"，
+    修正为"FTS 路径"。
+  - 新增 bazi.semantic check：固定 Bazi 输入（1990-01-01 12:00 男）
+    → retrieve_semantic 命中非空 + 含 P2 子平书（实测 ziping-zhenquan）。
+- **关键设计**：retrieve_semantic 只在 CLI（scripts/ask_bazi.py）调用，
+  web /api/bazi 不经过它，13 闸门与五层自测此前均不覆盖——R67b 重建
+  bge_mingli 缓存后受益者仍无自测（R48b 教训同族）。
+- **断言链**：`sem` 非空 + `any(e["work_id"] in _ZI_PING_WORKS for e
+  in sem)` + 错误信息含诊断。
+- 引用 `from guji.bazi import compute` + `from guji.bazi_lookup import
+  retrieve_semantic`（优化轨领土，审查轨只复审+记录移交）。
+- **审查确认**：抓语义路径静默失效、确定性输入、纯测试代码加强、
+  无新写入面/注入面、归因修正诚实。**纪律良好**。
+
+### 84b. R70b 复审（纯文档）
+
+sync web selftest 23→24 checks in three doc locations（PROJECT_STATUS +
+GOAL_NEXT_SESSION + TASK_LEDGER），与 R69b 代码现状一致。
+
+### 84c. rebase origin/main
+
+`git rebase origin/main` 在历史 commit df5f0f0（R22a rebase merge）处
+append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R69b/R70b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+### 84d. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 84e. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（yilin 520/490）。
+- eval_g7 PASS（FABRICATIONS 0）。
+
+### 84f. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R69b-R70b 两提交**纪律良好**——bazi.semantic
+  standing check 抓语义路径静默失效、R68b 归因修正诚实、纯测试代码
+  加强无业务风险。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-103a。
