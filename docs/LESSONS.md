@@ -432,3 +432,70 @@ span-degenerate 5→3    但   text-damage 1→2    verified 1824→1823
 
 **教训**：验收判据要在**看数据之前**定下，否则会事后合理化。
 本项目后来把这条写成了硬约束：任何修复必须同时不使**两个**闸门回退。
+
+---
+
+## L-22 写端点的自测不得用伪造引文写真实知识库（R34b）
+
+TestClient 冒烟 `POST /api/threads` 时用了**伪造引文**写进真实
+`data/index/knowledge.db`，13 闸门的 assess_goals 当场 FAIL——G9 verify
+回查 data/raw/ 发现 `stale=1`（库里存了与原文不符的引文，正是本项目最忌
+讳的失效）。清理还踩了 contentless fts5 的坑：**derived_fts 不能用
+`DELETE`，必须用特殊命令 `INSERT INTO derived_fts(derived_fts,rowid,seg)
+VALUES('delete',?,?)`**。
+
+**教训**：写端点的冒烟测试要么用真实原文引文、要么用临时 knowledge.db
+隔离；自测若写入真实库，必须内置清理（MCP 协议自测与 web --selftest 均
+把清理写成自测的一部分，见 R36b/R42b/R49b）。
+
+---
+
+## L-23 文档数字去硬编码——可执行自测才是唯一权威（R38b）
+
+`docs/MCP_CLIENT_CONFIG.md` 的工具数**两次漂移**（R33b 修 6→11，R36b 加
+工具后又变 12）——根因不是"忘了改"，而是**文档把数字硬编码成了权威**，
+而真正权威是 `python -m guji.mcp_server --selftest`（它断言全工具集）。
+修法治本：标题改"以 --selftest tools/list 为唯一权威"，文档数字降级为
+索引。
+
+**教训**：凡是能被一条命令断言的事实（工具数、单元数、方案状态），文档
+只写"以命令为准"并给出命令，不写裸数字。同族先例：MASTER_PLAN §4 地址
+体系表（R39b）补"单元数为实测、以实测为准"声明。
+
+---
+
+## L-24 子 agent 的作用域按工作目录解析，不是项目根（R26b）
+
+R26b 派两个 worker 子 agent 并行（MCP 补工具 + 前端 tab），声明 scope
+`src/guji/mcp_server.py` / `web/static/index.html`——工具按**工作目录
+`C:/Users/Lenovo`** 解析成不存在的路径，全部 scope-blocked，worker 零改动
+退回，改由主会话实施（教训写入台账 §53b）。
+
+**教训**：派子 agent 前确认工作目录；scope 要么给完整相对路径
+（`Desktop/projects/books/...`），要么在 prompt 里显式声明工作目录。
+
+---
+
+## L-25 越界/矛盾指控必须用 git 铁证亲自核实（R44b）
+
+审查轨 R24a 记录"优化轨 R38b/R39b 越界改了 scripts/assess_goals.py"。
+优化轨没有口头认账，而是 `git show --stat` 逐 commit 复核：R38b/R39b 均
+仅 docs/ 三文件（scripts/ 改动数 0）、main 上该文件最后改动是 df91ed4
+（R18a 审查）——指控不成立，根因是审查轨 R21a 委托 commit 从未合入 main、
+R24a rebase 拉入 main 侧内联版致误判。审查轨 R25a 亲核实后**撤回**指控。
+
+**教训**：任何跨轨指控/矛盾先查 git 历史（文件改动、commit 范围），以铁证
+定论再落记录——错误记录会污染台账的 REJECTED/越界清单，误导后续轮次
+（L-21 同族：断言必须有可复验依据）。
+
+---
+
+## L-26 "必须实跑"是默认行为，不是口号（R31b/R48b 等多轮再证）
+
+每轮"必须实跑"都抓到过真实错误：R31b 自测把"同 id 重导应替换"断言写反
+（写成应抛错）、R48b `api_works` 用 `json.load` 但缺 `import json`
+（NameError）、R32b `nonlocal sent` 在模块级 if 块无绑定、R28b 缺
+`import sys`——全部是实跑当场抓到、修复后全过。
+
+**教训**：新代码无论多简单，先跑对应的冒烟/自测/闸门再宣称完成；"看起来
+对"从来不是证据（GOAL.md §0 纪律在优化循环里的持续印证）。

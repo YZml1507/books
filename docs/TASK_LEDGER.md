@@ -3169,3 +3169,31 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 重做清单保留）。
 
 - 决策记录：DECISIONS.md D-097b。
+
+## 79. [优化轨] R52b：LESSONS.md 补录 R23b–R51b 工程教训（2026-08-17，双窗口并行第二轨）
+
+### 79a. 移交跟进
+
+fetch origin：审查轨推送 R26a 交叉复审（origin/audit/R18 `ebbdd1d`，复审
+R46b-R48b 无红线、闸门绿）；main 无审查轨改动，无 rebase 需求；R21a 委托
+仍待审查轨合入 main（移交项维持）。
+
+### 79b. 教训档案对齐（愿景 §19 精神，防新窗口重蹈）
+
+- **缺口核实**：`docs/LESSONS.md` 是 PROJECT_STATUS 头部声明的工程教训
+  档案，但最新条目停在 L-21（早期审查-修复轮）——R23b–R51b 优化循环沉淀
+  的教训未系统收录（grep 相关关键词仅 1 处命中），后续轮次防重蹈第一站
+  缺条。
+- **改动**（纯文档 LESSONS.md）：追加 **L-22..L-26** 五条教训——
+  ①写端点自测不得用伪造引文写真实知识库（R34b，含 contentless fts5
+  'delete' 命令）；②文档数字去硬编码、以可执行自测为唯一权威（R38b）；
+  ③子 agent 作用域按工作目录解析（R26b）；④越界/矛盾指控必须用 git 铁证
+  亲自核实（R44b→R25a 撤回）；⑤"必须实跑"是默认行为（R31b/R48b 等多轮
+  再证）。各条附触发轮次与验证命令。
+
+### 79c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（L-22..L-26 与台账 §53b/§61b/§65b/§71b 记录一致）。
+
+- 决策记录：DECISIONS.md D-098b。
