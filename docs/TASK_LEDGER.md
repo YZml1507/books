@@ -2803,3 +2803,28 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 表内 12 行齐全）。
 
 - 决策记录：DECISIONS.md D-084b。
+
+## 66. [优化轨] R39b：MASTER_PLAN §4 地址体系表修正（2026-08-16，双窗口并行第二轨）
+
+### 66a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 66b. 架构文档地址体系表对齐（愿景 §19 合规延续）
+
+- **缺口核实**（亲自实测 `data/index/corpus.db` `GROUP BY scheme`）：MASTER_PLAN
+  §4 地址体系表把 `play` 标 "未实现"（实测 **6,512 单元**，Shakespeare 幕/场
+  R8 已入索引，与代码矛盾）；且 `yilin`（4,096）、`booksec`（4,247）、
+  `euclid`（649）三个已实现体系整行缺失；`stephanus` 标 "未实现" 属实
+  （实测 0 单元，Plato 走 booksec）。
+- **改动**（纯文档）：play → "已实现（Shakespeare，6,512 单元）"；补
+  yilin/booksec/euclid 三行（各注实测单元数）；stephanus 保留未实现并注明
+  实测依据；表尾加"单元数为实测、以实测为准"声明（防再漂）。
+
+### 66c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（表中单元数与 `GROUP BY scheme` 实测逐行一致）。
+
+- 决策记录：DECISIONS.md D-085b。

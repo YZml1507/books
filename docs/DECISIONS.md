@@ -2833,3 +2833,33 @@ diff 审阅。
 声明；工具表补 record_claim_tool 行；验证节同步去硬编码。根因修复：工具数
 唯一权威是可执行自测，文档数字不再承担权威角色——同类漂移不再复现。
 docs-only 抽跑 verify_index + check_quality 全 exit 0。commit 见台账 §65。
+
+## D-085b R39b 优化轨：MASTER_PLAN §4 地址体系表修正（文档失效，同 O2 模式）
+
+**背景（亲自核实）**：MASTER_PLAN §4 的地址体系表（第 143-149 行）已过时
+且有缺失——
+1. `play` 标 "未实现"，但实测 `scheme='play'` 有 **6,512 单元**（Shakespeare
+   幕/场，R8 tier 2/3 已入索引）——与代码直接矛盾（同 O1/O2 文档失效模式）；
+2. `yilin`（4,096 单元）、`booksec`（4,247 单元）、`euclid`（649 单元）三个
+   **已实现**的体系在表中**整行缺失**；
+3. `stephanus` 标 "未实现" 属实（实测 0 单元，Plato 走 booksec）——此条保留
+   但补核实依据。
+读者按此表会以为 play 不可用、yilin/booksec/euclid 不存在——架构文档的
+地址体系表是理解系统的入口，必须与实测一致。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 修正表：play → "已实现（Shakespeare 幕/场，R8，6,512 单元）"；补 yilin/booksec/euclid 三行（各注实测单元数）；stephanus 保持未实现并注明"实测 0 单元" | 纯文档对齐，零代码/零风险；数字以实测为准 |
+| B | 只改 play 一行状态 | 缺失的三行仍误导读者，治标不治本 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MASTER_PLAN §4 地址体系表修正——play 改
+"已实现（Shakespeare，6,512 单元）"、补 yilin/booksec/euclid 三行（各注
+实测单元数）、stephanus 保留未实现并注明"实测 0 单元；Plato 现走 booksec"、
+表尾加"单元数为实测、以实测为准"防漂声明。docs-only 抽跑 verify_index +
+check_quality 全 exit 0，基线未动。commit 见台账 §66。

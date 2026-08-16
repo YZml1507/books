@@ -143,10 +143,16 @@ addr2       TEXT     -- 标签层：爻位 / 節 / 場
 | scheme | addr_name | addr1 | addr2 | 状态 |
 |---|---|---|---|---|
 | `zhouyi` | 卦名 乾 | 卦號 1..64 | 爻位 九三 / 用九 | 已实现 |
-| `bcv` | 卷名 Genesis | 章 | 節 | 已实现（KJV/WEB） |
-| `play` | 剧名 | 幕 | 場 | 未实现 |
-| `stephanus` | 篇名 | Stephanus 页 | 分节 | 未实现 |
+| `bcv` | 卷名 Genesis | 章 | 節 | 已实现（KJV/WEB，35,787 单元） |
+| `yilin` | 之卦名 | 本卦號 1..64 | 之卦名 | 已实现（焦氏易林，4,096 单元） |
+| `booksec` | 书名（BOOK） | 节序 | 节 | 已实现（Herodotus/Darwin/Plato 等，4,247 单元） |
+| `play` | 剧名 | 幕 | 場 | 已实现（Shakespeare，6,512 单元） |
+| `euclid` | 书名（BOOK） | 命题序 | 命题 | 已实现（欧几里得，649 单元） |
+| `stephanus` | 篇名 | Stephanus 页 | 分节 | 未实现（实测 0 单元；Plato 现走 booksec） |
 | `NULL` | — | — | — | 无正典地址，只有页锚点 |
+
+> 单元数为 2026-08-16 对 `data/index/corpus.db` 的 `GROUP BY scheme` 实测，
+> 以实测为准（本表状态曾把 play 误标"未实现"，R39b 修正）。
 
 **`addr2` 必须是 TEXT**：周易的 `用九`/`用六` 是真实可寻址单元但**没有序号**。这比圣经的
 章节号更苛刻，正好用来检验列型选择是否真的通用。
