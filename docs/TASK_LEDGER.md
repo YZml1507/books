@@ -3626,3 +3626,37 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
 - **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（移交项铁证与代码实测一致）。
 - 决策记录：DECISIONS.md D-110b。
+
+## 92. [优化轨] R65b：eval_g1 retrieval_concept 53/55 已知失败留档（2026-08-17，双窗口并行第二轨）
+
+### 92a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R64b（3550744）已确认在 origin/main。
+
+### 92b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R63b / GOAL_NEXT_SESSION R64b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **前端端点覆盖**：grep fetch 全路由对照 app.py，huangli 走动态 URL
+  （'/api/huangli?'）、research 走 /api/ask（R54b 已覆盖）——非缺口。
+- **bge 覆盖核实**：bge_docmeta 2,489 条 = zhouyi '經' 层且 addr1/addr2
+  均非空（爻位单元）；420 个卦辞单元（addr2=None）不在 bge 语义路径——
+  设计使然（卦辞走 FTS，实测"元亨利貞/利涉大川"含卦辞命中），非缺口。
+- **真实缺口（本轮选定）**：eval_g1 retrieval_concept **53/55 = 96.4%
+  PASS**（目标 80%），2 条稳定失败（CP-02-02-六四：gold 卦2六四 absent
+  from bge top-10 等）为 bge top-K 边界案例，非检索缺陷——但所有文档只
+  写"retrieval_concept PASS"，**失败条目无留档**。照 D-031（方案 C 否决
+  留档）与 D-008（保留错误记录）纪律，已知失败不记录=未来窗口误判为缺陷
+  去"修复"或误以为已满分。
+
+### 92c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：关键变化段 G1 行补注
+  retrieval_concept 53/55 = 96.4%（2 条失败 id、bge top-10 边界案例
+  说明、>80% 阈值 PASS 不修）；bge 覆盖范围说明（爻位单元 2,489，卦辞
+  走 FTS）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（53/55 与 eval_g1 实测一致）。
+- 决策记录：DECISIONS.md D-111b。

@@ -49,7 +49,10 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
   iliad 双译本（R8 giant-unit 二次切分后 max 全部达标）。
 - `unit.suspect` 列已存在（X-11），且 R17 修正了 6/10 地址误归责（span-*-B 误标在
   A 作品导致健康文本被 answer 层扣留——L-20 危害类）。
-- G1 概念级检索已覆盖（eval_g1 retrieval_concept PASS）；G4/G8/G9 从未实现变为 PASS。
+- G1 概念级检索已覆盖（eval_g1 retrieval_concept **53/55 = 96.4% PASS**，
+  目标 80%——2 条稳定失败 CP-02-02-六四 等为 bge top-10 边界案例，非检索
+  缺陷，不修，照 D-031 留档防误修；bge 向量覆盖爻位单元 2,489，卦辞走
+  FTS，R65b 记录）；G4/G8/G9 从未实现变为 PASS。
 - 语料 28→47 部（+术数 8 部：三命通會等；+generality：plato/shakespeare/euclid/
   herodotus/iliad×2/douay；+道家 3 部：老子/莊子/莊子注，R20b）。
 - 审查-修复循环 R5-R17 共 19 个 fix commit（6 红线级含 huangli 宿锚/ingest 巨型单元/

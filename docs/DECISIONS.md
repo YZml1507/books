@@ -3578,3 +3578,36 @@ docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审
 "G9 SCOPE 声明过时"条目（含铁证位置与建议修正方向），台账 §91 记录
 取证。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §91。
+
+## D-111b R65b 优化轨：eval_g1 retrieval_concept 53/55 已知失败留档（防误修）
+
+**背景（亲自核实）**：`scripts/eval_g1.py` 的 retrieval_concept 实测
+**53/55 = 96.4% PASS**（目标 80%），2 条失败稳定复现——CP-02-02-六四
+（gold 卦2六四 absent from bge top-10，top 命中是卦6九二/卦28上六/卦44
+九二/卦44九三 等）、另一条同族（转述题在 bge top-10 之外）。这是 bge
+top-K 边界案例（转述式问法与 4,000+ 爻位单元余弦排序的固有噪声），**非
+检索缺陷**——FTS 精确命中仍可达卦辞（实测"元亨利貞/利涉大川"含卦辞
+yao=None 命中），概念层 96.4% 远超 80% 阈值。但**所有文档（PROJECT_
+STATUS/GOAL_NEXT_SESSION）只写"retrieval_concept PASS"，无失败留档**
+——照 D-031 先例（方案 C hit 67.3% 否决留档）与"保留错误记录"纪律
+（D-008），已知失败不记录=未来窗口会误判为缺陷去"修复"（白耗轮次）或
+误以为已满分。bge 覆盖核实：bge_docmeta 2,489 条 = zhouyi '經' 层且
+addr1/addr2 均非空（爻位单元），卦辞单元（420 个 addr2=None）不在 bge
+语义路径——这是设计（概念检索只向量化爻位，卦辞走 FTS），非缺口。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | PROJECT_STATUS 关键变化段 G1 行补注：retrieval_concept 53/55 = 96.4%（2 条 bge top-10 边界失败 CP-02-02-六四 等，>80% 阈值 PASS，不修——照 D-031 留档防误修）；bge 覆盖范围说明（爻位单元 2,489，卦辞走 FTS） | 纯文档、零代码/零风险；失败条目留档=防未来误修（D-008/D-031 先例），数字与 eval_g1 实测一致 |
+| B | 补卦辞题进 eval_g1.json 或扩展 bge 覆盖到卦辞 | eval_g1.json 属 scripts 评估集（审查轨领土）且需重编码 bge（动向量文件），越界+低收益（53/55 已 PASS）——否决 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS 关键变化段 G1 行补注
+retrieval_concept 53/55 = 96.4%（含 2 条失败 id CP-02-02-六四 等、bge
+top-10 边界案例说明、>80% 阈值 PASS 不修）；bge 覆盖范围说明（爻位
+2,489，卦辞走 FTS）。docs-only 抽跑 verify_index + check_quality 全
+exit 0，基线未动。commit 见台账 §92。
