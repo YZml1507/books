@@ -908,5 +908,77 @@ def api_qiming(req: QimingRequest):
 
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    import sys as _sys
+
+    if "--selftest" in _sys.argv:
+        # Web-layer standing self-test (R49b): TestClient against the live
+        # endpoints, asserting response shapes so a silent endpoint break
+        # (e.g. R48b's missing `import json`) is caught by a reproducible
+        # command, not by an ad-hoc smoke. Run:
+        #   cd web && PYTHONPATH=src:. python -m app --selftest
+        from fastapi.testclient import TestClient
+
+        client = TestClient(app)
+        ok = []
+
+        def check(name, resp, pred):
+            assert resp.status_code == 200, (name, resp.status_code, resp.text[:200])
+            body = resp.json()
+            assert pred(body), (name, body)
+            ok.append(name)
+
+        check("search", client.get("/api/search", params={"q": "潛龍勿用"}), lambda j: j.get("hits"))
+        check("addr", client.get("/api/addr", params={"scheme": "zhouyi", "gua": 1}), lambda j: j.get("hits"))
+        check("compare", client.get("/api/compare", params={"gua": 28, "yao": "九二"}), lambda j: "findings" in j)
+        check("works", client.get("/api/works"), lambda j: j.get("works") and all("source" in w for w in j["works"]))
+        check("stats", client.get("/api/stats"), lambda j: j.get("stats") and j.get("layers"))
+        check("bookstudy.structure", client.get("/api/bookstudy/structure", params={"work_id": "KR1a0001"}),
+              lambda j: j.get("sections") and j.get("scheme") == "zhouyi")
+        check("bookstudy.chapter", client.get("/api/bookstudy/chapter",
+              params={"work_id": "KR1a0001", "scheme": "zhouyi", "addr1": 1}),
+              lambda j: j.get("units") and all(u.get("citation") for u in j["units"]))
+        check("bookstudy.summary", client.get("/api/bookstudy/summary", params={"work_id": "KR1a0001"}),
+              lambda j: j.get("n_units") and j.get("layers"))
+        check("compare_works", client.get("/api/compare_works",
+              params={"work_a": "KR5c0057", "work_b": "KR5c0126", "q": "無爲"}),
+              lambda j: j.get("works") and len(j["works"]) == 2)
+        check("concept", client.get("/api/concept", params={"q": "無爲"}), lambda j: j.get("census"))
+        check("threads.list", client.get("/api/threads"), lambda j: "threads" in j)
+
+        # threads POST: write a bound claim with a REAL quote -> readback ->
+        # cleanup (R34b lesson: never leave test rows in the live store)
+        from guji.knowledge import KnowledgeBase
+        from guji.variants import fold, segment_cjk
+
+        post = client.post("/api/threads", json={
+            "kind": "summary",
+            "claim": "web selftest: 無爲在老子中的可核验引文",
+            "method": "app-selftest", "thread_id": 1,
+            "evidence": [{"work_id": "KR5c0057", "file": "KR5c0057_043.txt",
+                          "quote": "第四十三章 天下之至柔",
+                          "page_anchor": "KR5c0057_tls_043-1a"}]})
+        assert post.status_code == 200, post.text
+        did = post.json()["derived_id"]
+        assert post.json()["thread_id"] == 1
+        # readback
+        detail = client.get("/api/threads/1").json()
+        assert any(c["id"] == did and "無爲在老子中的可核验引文" in c["claim"]
+                   for c in detail["claims"]), "thread readback must contain the bound claim"
+        # cleanup
+        kb = KnowledgeBase(KNOWLEDGE_DB)
+        try:
+            row = kb.db.execute("SELECT claim FROM derived WHERE id=?", (did,)).fetchone()
+            if row is not None:
+                seg = segment_cjk(fold(row["claim"]))
+                kb.db.execute("INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                              "VALUES('delete',?,?)", (did, seg))
+                kb.db.execute("DELETE FROM evidence WHERE derived_id=?", (did,))
+                kb.db.execute("DELETE FROM derived WHERE id=?", (did,))
+                kb.db.commit()
+        finally:
+            kb.close()
+        ok.append("threads.post+readback+cleanup")
+        print(f"web self-test PASS ({len(ok)} checks): {', '.join(ok)}")
+    else:
+        import uvicorn
+        uvicorn.run(app, host="127.0.0.1", port=8000)

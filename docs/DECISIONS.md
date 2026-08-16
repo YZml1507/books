@@ -3117,3 +3117,28 @@ JS 语法检查、13 闸门全绿。
 JS 语法检查 + sources/bookstudy/research/mcp 自测 + 13 闸门全绿。踩坑：
 `import json` 缺失被冒烟当场抓到 NameError，修正后全过——"必须实跑"再证。
 commit 见台账 §75。
+
+## D-095b R49b 优化轨：web 层 standing 自测——`python -m app --selftest`（愿景 §15 回归）
+
+**背景（亲自核实）**：sources（`--selftest`）、mcp_server（协议级
+`--selftest`）有 standing 自测；bookstudy/research 有 `__main__` 自测块。
+但 **web/app.py 无任何 standing 自测**（`grep "__main__\|selftest"` 只有
+第 910 行的启动入口）——24 个端点每轮只靠临时 TestClient 冒烟，不可复现、
+无回归防线：任何未来改动静默破坏某个端点形状（如 R48b 的 `import json`
+NameError 就是冒烟才抓到的）都不会被 13 闸门发现（闸门不覆盖 web 层）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py `__main__` 加 `--selftest`：TestClient 直调关键端点断言返回形状（search/addr/compare/works/stats/bookstudy structure+chapter+summary/compare_works/concept/threads GET；threads POST 用真实引文写→读回→清理，R34b 教训内置）；子进程隔离或同进程 + 自测后恢复 knowledge.db 基线 | 纯测试代码、零产品语义改动，风险低；补上 24 端点回归防线（愿景 §15 评估系统精神） |
+| B | PROJECT_STATUS 刷新 | R43b 刚刷过，杠杆低 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：`python -m app --selftest` 全过（脚本从 web/ 目录、PYTHONPATH=src:web）、13 闸门全绿。
+
+**落地结果**（2026-08-17 实测）：web/app.py `__main__` 加 `--selftest` 分支
+——TestClient 直调 11 个 GET 端点断言形状 + threads POST 写→读回→清理
+（R34b 教训内置）。`cd web && PYTHONPATH=src:. python -m app --selftest`
+PASS（12 checks）。sources/bookstudy/research/mcp 自测 + 13 闸门全绿。
+commit 见台账 §76。

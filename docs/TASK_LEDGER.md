@@ -3085,3 +3085,32 @@ JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-094b。
+
+## 76. [优化轨] R49b：web 层 standing 自测——`python -m app --selftest`（2026-08-17，双窗口并行第二轨）
+
+### 76a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `07e25b6` R25a 复审 +
+撤回），main 无审查轨改动，无 rebase 需求。
+
+### 76b. web 端点回归防线（愿景 §15 评估系统精神）
+
+- **缺口核实**：sources/mcp_server 有 `--selftest`、bookstudy/research 有
+  `__main__` 自测块，但 **web/app.py 无任何 standing 自测**——24 个端点每轮
+  只靠临时 TestClient 冒烟，不可复现、无回归防线（R48b 的 `import json`
+  NameError 就是冒烟才抓到的；13 闸门不覆盖 web 层）。
+- **改动**（web/app.py `__main__` 加 `--selftest` 分支）：
+  - TestClient 直调 11 个 GET 端点断言返回形状（search/addr/compare/works
+    （含 source 字段）/stats/bookstudy structure+chapter+summary/
+    compare_works/concept/threads.list）；
+  - threads POST 用真实引文写 thread 1 → 读回断言 → 清理（R34b 教训内置）；
+  - 运行：`cd web && PYTHONPATH=src:. python -m app --selftest`。
+
+### 76c. 验证
+
+web self-test PASS（12 checks：search/addr/compare/works/stats/bookstudy×3/
+compare_works/concept/threads.list/threads.post+readback+cleanup）；
+sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿（14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-095b。
