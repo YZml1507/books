@@ -2466,3 +2466,35 @@ bookstudy 自测 11/11 PASS（新增 [9][10][11]：KR1a0001 65 节/528 单元/
 7,842 字）；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-073b。
+
+## 55. [优化轨] R28b：MCP 协议级自测 + 前端陈旧数字修正（2026-08-16，双窗口并行第二轨）
+
+### 55a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 55b. MCP 协议级自测（`mcp_server.py --selftest`）
+
+- **缺口核实**：R22b 的 stdio JSON-RPC 协议实测只覆盖 6 工具时期；R26b/R27b
+  增工具后（现 10 工具）只做了函数直调冒烟，从未在协议层（外部 Agent 真实
+  入口）验证——注册/序列化问题直调看不出来。
+- **新增** `python -m guji.mcp_server --selftest`：subprocess 起真实 stdio
+  子进程 → initialize 握手 → tools/list 断言 10 工具全名 → tools/call 四个
+  新工具各 1 例（bookstudy_structure 老子 / bookstudy_chapter 卦40 /
+  compare_works_tool 無爲 / book_summary_tool KR1a0001），断言返回非空且
+  无 error；子进程 exit 0 才算 PASS。
+- **修复记录**：初版两处运行时错误（`nonlocal sent` 在模块级 if 块无绑定、
+  缺 `import sys`），自测实跑当场抓到并修正——再次验证"必须实跑"纪律。
+- **前端数字修正**：书目 tab badge "38 部"→"47 部"（实测 47 部，R20b 起
+  过时）。
+- 愿景 §15 评估缺口（跨书/版本意识/研究深度 eval）：scripts/ 属审查轨
+  领土，维持移交记录，不在本轨实施。
+
+### 55c. 验证
+
+MCP 协议自测 PASS（tools/list 10 工具 + 4 新工具 call 全过，子进程 exit 0）；
+bookstudy 自测 11/11、research 自测 7/7 PASS；13 闸门全绿（14 命令全
+exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-074b。

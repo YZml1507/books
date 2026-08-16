@@ -2524,3 +2524,33 @@ web 冒烟、MCP 直调冒烟、13 闸门全绿。
 冒烟 PASS、13 闸门全绿。踩坑：首次 import 误写函数名 summary（应为
 book_summary），冒烟当场抓到 ImportError 修正——"必须实跑"再证一次。
 commit 见台账 §54。
+
+## D-074b R28b 优化轨：MCP 协议级自测 + 前端陈旧数字修正
+
+**背景（亲自核实）**：三处缺口——
+1. **MCP 协议级验证缺失**：R22b 的 stdio JSON-RPC 协议实测（initialize →
+   tools/list → tools/call）只覆盖 6 工具时期；R26b 增 3 工具、R27b 增 1 工具
+   后（现 10 工具），只做了**函数直调**冒烟，从未在协议层（外部 Agent 的真实
+   入口）验证过——若注册/序列化有问题，直调看不出来，外部 Agent 就调不了；
+2. **前端陈旧数字**：`web/static/index.html` 书目 tab badge 仍写 "38 部"
+   （实测 47 部，R20b 起已过时）；
+3. 愿景 §15 评估缺口（跨书/版本意识/研究深度 eval）：scripts/ 属审查轨
+   领土，本轨记录移交，不实施。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | mcp_server.py `__main__` 增协议级自测：subprocess 起 stdio 子进程 → initialize 握手 → tools/list 断言 10 工具 → tools/call 各新工具 1 例（bookstudy_structure/chapter/compare_works_tool/book_summary_tool）断言返回真实可核验引文；同时修前端 badge "38 部"→"47 部" | 纯验证 + 一行文案；自测在 src/guji 领土内可复现；零产品语义改动；风险低 |
+| B | 仅修前端陈旧数字 | 零风险但缺口 1 仍开放 |
+| C | 评估扩展（O8） | scripts/ 审查轨领土，跳过并记录 |
+
+选 A。落地后：mcp_server 协议自测 PASS（tools/list 10 + 4 新工具 call）、
+bookstudy 11/11、research 7/7、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`python -m guji.mcp_server --selftest`
+subprocess 起真实 stdio 子进程 → initialize → tools/list（断言 10 工具全名）
+→ tools/call 四新工具各 1 例全过，子进程 exit 0。初版两处运行时错误
+（nonlocal 绑定、缺 import sys）自测实跑当场抓到并修正。前端书目 badge
+38→47 部。bookstudy 11/11、research 7/7、13 闸门全绿。愿景 §15 评估缺口
+维持审查轨移交。commit 见台账 §55。

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 
 from mcp.server.mcpserver import MCPServer
 
@@ -287,4 +288,66 @@ def compare_works_tool(work_a: str, work_b: str, concept: str,
 
 
 if __name__ == "__main__":
-    mcp.run()
+    if "--selftest" in sys.argv:
+        # Protocol-level self-test (R28b): drive a real stdio MCP subprocess over
+        # newline-delimited JSON-RPC, exactly as an external client would.
+        # Run: PYTHONPATH=src python -m guji.mcp_server --selftest
+        import subprocess
+
+        env = dict(os.environ)
+        env["PYTHONPATH"] = os.path.join(ROOT, "src") + os.pathsep + env.get("PYTHONPATH", "")
+        proc = subprocess.Popen(
+            [sys.executable, "-u", "-m", "guji.mcp_server"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, env=env, cwd=ROOT,
+            text=True, encoding="utf-8", bufsize=1)
+
+        def send(obj):
+            proc.stdin.write(json.dumps(obj) + "\n")
+            proc.stdin.flush()
+
+        def recv():
+            line = proc.stdout.readline()
+            if not line:
+                raise AssertionError("MCP subprocess closed stdout")
+            return json.loads(line)
+
+        send({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+              "params": {"protocolVersion": "2024-11-05",
+                         "capabilities": {},
+                         "clientInfo": {"name": "guji-selftest", "version": "0"}}})
+        resp = recv()
+        assert resp["id"] == 1 and "result" in resp, resp
+        send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        send({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+        resp = recv()
+        tools = [t["name"] for t in resp["result"]["tools"]]
+        assert resp["id"] == 2, resp
+        expected = {"search", "addr", "compare", "concept", "research_tool",
+                    "threads", "bookstudy_structure", "bookstudy_chapter",
+                    "compare_works_tool", "book_summary_tool"}
+        assert set(tools) == expected, f"tools mismatch: {sorted(set(tools) ^ expected)}"
+        print(f"[selftest] tools/list -> {len(tools)} tools OK")
+
+        calls = [
+            ("bookstudy_structure", {"work_id": "KR5c0057"}),
+            ("bookstudy_chapter", {"work_id": "KR1a0001", "scheme": "zhouyi",
+                                   "addr1": 40}),
+            ("compare_works_tool", {"work_a": "KR5c0057", "work_b": "KR5c0126",
+                                    "concept": "無爲"}),
+            ("book_summary_tool", {"work_id": "KR1a0001"}),
+        ]
+        for i, (name, args) in enumerate(calls, start=3):
+            send({"jsonrpc": "2.0", "id": i, "method": "tools/call",
+                  "params": {"name": name, "arguments": args}})
+            resp = recv()
+            assert resp["id"] == i and "result" in resp, (name, resp)
+            content = "".join(c.get("text", "") for c in resp["result"].get("content", []))
+            assert content and "error" not in content.lower(), (name, content)
+            print(f"[selftest] tools/call {name} -> {len(content)} chars OK")
+        proc.stdin.close()
+        proc.wait(timeout=15)
+        assert proc.returncode == 0, f"subprocess exit {proc.returncode}"
+        print("MCP protocol self-test PASS")
+    else:
+        mcp.run()
