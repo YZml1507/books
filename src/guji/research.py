@@ -58,26 +58,30 @@ def _key(h: Hit):
     return (h.work_id, h.gua, h.yao, h.layer, h.page_anchor, h.text[:60])
 
 
-def _subphrases(q: str, max_tries: int = 150) -> list[str]:
-    """Longest-first candidate phrases when the full question is not a corpus phrase.
+def _subphrases(q: str, max_tries: int = 150) -> list[tuple[str, int]]:
+    """Longest-first candidate phrases (with raw start offsets) when the full
+    question is not a corpus phrase.
 
     A natural-language question (「亢龍有悔是什麼意思」) is not a contiguous string in a
     classical corpus; its quoted classical core (「亢龍有悔」) is. Deterministic
     extraction only — punctuation-split runs, then sliding windows longest-first —
-    so what the loop searched remains visible and reproducible.
+    so what the loop searched remains visible and reproducible. Offsets let callers
+    pick position-DISJOINT seeds (containment alone misses 「與莊子中」 vs 「子中如何」,
+    which overlap without nesting).
 
     The cap must be generous: a 13-char vernacular question needs ~44 windows before
     its 4-char classical core is reached, and the core can sit anywhere in the run.
     Each try is one FTS MATCH over 61k units (~ms), so 150 tries is well under a
     second and far cheaper than a wrong refusal.
     """
-    runs = [r for r in re.split(r"[，。？！,. !？;；、\s]+", q) if len(r) >= 2]
-    out: list[str] = []
-    for run in sorted(runs, key=len, reverse=True):
+    runs = [(m.group(0), m.start()) for m in re.finditer(r"[^，。？！,. !？;；、\s]+", q)
+            if len(m.group(0)) >= 2]
+    out: list[tuple[str, int]] = []
+    for run, rs in sorted(runs, key=lambda t: -len(t[0])):
         n = len(run)
         for size in range(n, 1, -1):
             for i in range(0, n - size + 1):
-                out.append(run[i:i + size])
+                out.append((run[i:i + size], rs + i))
                 if len(out) >= max_tries:
                     return out
     return out
@@ -111,14 +115,38 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
     s1 = Step("search", question, len(hits), 0,
               "folded FTS phrase match（異體字折叠，整词相邻匹配）")
     if not hits:
-        # A natural-language question is not a corpus phrase; retry its longest
-        # classical sub-phrase (deterministic, and the retry is itself a step).
-        for cand in _subphrases(question):
-            hits = corpus.search(cand, limit=12)
-            if hits:
-                s1 = Step("search-fallback", cand, len(hits), 0,
-                          f"整句「{question}」无命中，改用最长命中子短语（可见可复现）")
-                break
+        # A natural-language question is not a corpus phrase. Retry with up to three
+        # POSITION-DISJOINT hitting sub-phrases as seeds: the first-hitting longest
+        # window is often a connective fragment (「與莊子」), while the question's
+        # conceptual core (「無爲」, 2 chars, tried last by length) is a separate
+        # seed that must not be crowded out. Each retry is itself a step: what was
+        # searched stays visible and repeatable.
+        seeds: list[tuple[str, list[Hit]]] = []
+        seed_spans: list[tuple[int, int]] = []
+        for cand, cs in _subphrases(question):
+            ce = cs + len(cand)
+            if any(cs < se and s < ce for s, se in seed_spans):
+                continue    # overlaps an existing seed's span in the question
+            found = corpus.search(cand, limit=12)
+            if found:
+                seeds.append((cand, found))
+                seed_spans.append((cs, ce))
+                if len(seeds) >= 3:
+                    break
+        if seeds:
+            merged: list[Hit] = []
+            seen_r1: set = set()
+            for _, found in seeds:
+                for h in found:
+                    k = _key(h)
+                    if k not in seen_r1:
+                        seen_r1.add(k)
+                        merged.append(h)
+            hits = merged[:18]
+            s1 = Step("search-fallback", "；".join(s for s, _ in seeds),
+                      sum(len(f) for _, f in seeds), 0,
+                      f"整句「{question}」无命中，改用 {len(seeds)} 个互不重叠的"
+                      f"命中子短语作种子（可见可复现）")
     keep(hits, s1)
     if not hits:
         res.refused = True
@@ -270,5 +298,16 @@ if __name__ == "__main__":
     assert cc["shared_addresses"], "multiple works carry it at a shared address"
     print(f"[5] concept 潛龍勿用 -> {cc['works_with_hits']} works, "
           f"shared at {[x['addr'] for x in cc['shared_addresses'][:3]]}")
+
+    # A vernacular question whose 2-char conceptual core must survive as a seed
+    # alongside the longer connective windows that hit first (R20b finding).
+    r6 = research(c, "無爲在老子與莊子中如何表述")
+    assert not r6.refused, r6.reason
+    fb = next((s for s in r6.steps if s.action == "search-fallback"), None)
+    assert fb and "無爲" in fb.query.split("；"), f"seeds were {fb and fb.query}"
+    dao = [h for h in r6.evidence if h.work_id.startswith("KR5c")]
+    assert dao, "Daoist works must be reachable from the 無爲 seed"
+    print(f"[6] 無爲 multi-seed -> seeds「{fb.query}」, "
+          f"{len(dao)} Daoist evidence of {len(r6.evidence)}")
     print("self-test PASS")
     c.close()
