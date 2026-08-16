@@ -1806,3 +1806,41 @@ liuyao/huangli/qiming/bazi/bazi_calc/lunar/ingest/web/douay/search/knowledge/qua
 剩余未审：anchors/bazi_lookup/bcv/compare/dual_engine/evalset/llm_reader/play/variants/yilin/zhouyi/euclid/booksec
 
 - 决策记录：DECISIONS.md D-059（R13 整体复验零回退，R5-R12 共修复 14 commit，红线级缺陷全部消除）
+
+## 40. 队段2-R14 再审查（2026-08-16，R13 闭环后第十一轮再审查）
+
+**纪律**：R14 派 3 个 explore 子 agent 并行审查 llm_reader/variants/zhouyi，子 agent 结论一律当"待复验"，亲自跑命令核实。
+
+### 40a. R14 闸门实机重跑（零回退）
+```
+check_quality PASS · verify_index ALL PASS · 13 闸门全绿
+```
+
+### 40b. R14 子 agent 审查结论复验
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `llm_reader.py:42` content=None 抛 AttributeError 不被捕获 | **确认红线**：except (KeyError, IndexError, TypeError) 不含 AttributeError，None.strip() 漏到 web | 修复（见 40c） |
+| `web/static/index.html:500` renderMD 不转义 HTML，存储型 XSS | **确认红线**：renderMD 不调 esc()，LLM 输出 `<img onerror>` 原样透传 innerHTML；docstring 声称"先 esc() 再结构化"但实际未调 | 修复（见 40c） |
+| `zhouyi.py` parse() 入口不存在 | **假阳性**：zhouyi 用 gua_spans/work_body 解析，ingest.py 调用正确，无需 parse | 不修，记录假阳性 |
+| `variants.py` fold/segment_cjk/clean | **已核验正确**：异体字归一、FTS5 seg 生成、标点清理均正确 | 不修 |
+| `llm_reader.py` prompt 注入防护 | **低优先级**：无 system prompt 边界，但当前 LLM 配置已含 system 段 | 待修，下轮 |
+
+### 40c. R14 修复（commit 58e85d8）
+
+1. **llm_reader.py: interpret() AttributeError 漏捕**
+   - LLM 拒答时返回 content: None → None.strip() 抛 AttributeError 漏到 web 层
+   - 修复：补 AttributeError 捕获 + content 非 string 时抛 RuntimeError（拒答场景）
+   - 验证：except 现含 AttributeError ✓ isinstance(content, str) 防护 ✓
+
+2. **web/static/index.html: renderMD 存储型 XSS**
+   - LLM 输出 `<img src=x onerror=alert(1)>` 原样透传 innerHTML → 点击即执行
+   - docstring 声称"先 esc() 再结构化"但实际未调 esc() — 代码与文档矛盾
+   - 修复：inline 先 escapeHtml() 转义 <>&"'，再走 markdown 语法
+   - 验证：`<img onerror>`/`<script>` 被转义为文本字面 ✓ `**加粗**`/`## 标题` 保留 ✓
+
+### 40d. R14 复验命令
+```
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');import inspect,re;from guji import llm_reader as L;src=inspect.getsource(L.interpret);print('AttributeError 捕获:', 'AttributeError' in re.search(r'except\s*\([^)]+\)', src).group(0))"
+```
+- 决策记录：DECISIONS.md D-060（R14 审查：llm_reader AttributeError 漏捕+renderMD 存储型 XSS 修复，zhouyi.parse 假阳性）
