@@ -64,8 +64,9 @@ from guji.compare import compare_address  # noqa: E402
 from guji.knowledge import KnowledgeBase  # noqa: E402
 from guji.research import concept_census, compare_works, research  # noqa: E402
 from guji.search import Corpus  # noqa: E402
-from guji.bookstudy import structure as book_structure  # noqa: E402
+from guji.bookstudy import book_summary  # noqa: E402
 from guji.bookstudy import chapter as book_chapter  # noqa: E402
+from guji.bookstudy import structure as book_structure  # noqa: E402
 
 app = FastAPI(title="古籍智慧助手（读书 + 八字）", version="0.5.0")
 
@@ -618,6 +619,20 @@ def api_book_structure(work_id: str, sample_chars: int = 60):
     c = Corpus(CORPUS_DB)
     try:
         return book_structure(c, work_id, sample_chars=sample_chars)
+    finally:
+        c.close()
+
+
+@app.get("/api/bookstudy/summary")
+def api_book_summary(work_id: str):
+    """Book Summary (R27b): 整本书结构化知识卡——节数/单元/总字数/层分布/
+    损坏披露/未编址/体量极端节。纯只读聚合。"""
+    work_id = (work_id or "").strip()
+    if not work_id:
+        raise HTTPException(400, "work_id 不能为空")
+    c = Corpus(CORPUS_DB)
+    try:
+        return book_summary(c, work_id)
     finally:
         c.close()
 

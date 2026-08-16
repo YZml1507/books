@@ -432,9 +432,11 @@
           <select id="bswork"></select></div>
         <div class="field"><label>&nbsp;</label>
           <button id="bsStructureBtn" type="button">查看结构</button></div>
+        <div class="field"><label>&nbsp;</label>
+          <button id="bsSummaryBtn" type="button">全书概览</button></div>
       </div>
       <div class="error" id="bserr" hidden></div>
-      <div id="bsOut"><div class="no-evidence">选择作品后点「查看结构」：得到全书骨架（节序 / 体量 / 經注层次 / 首行样本 + 真实引文），点某节进入阅读视图。</div></div>
+      <div id="bsOut"><div class="no-evidence">选择作品后点「查看结构」：得到全书骨架（节序 / 体量 / 經注层次 / 首行样本 + 真实引文），点某节进入阅读视图；「全书概览」给出整本书的结构化知识卡（层分布 / 损坏披露 / 体量极端节）。</div></div>
     </section>
 
     <!-- 两书对照（R24b compare_works）：指定两书 + 概念 -->
@@ -1114,6 +1116,30 @@ async function openChapter(idx){
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 }
 
+/* 全书概览（R27b Book Summary）：整本书结构化知识卡 */
+async function runBookSummary(){
+  const out = $('#bsOut'), err = $('#bserr');
+  err.hidden = true;
+  const wid = $('#bswork').value;
+  if (!wid){ err.textContent = '请先选择作品'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">加载中…</div>';
+  try{
+    const r = await fetch('/api/bookstudy/summary?work_id=' + encodeURIComponent(wid));
+    if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
+    const j = await r.json();
+    if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
+    const layerRows = Object.entries(j.layers || {}).map(([lv, v]) =>
+      `<tr><td>${esc(lv)}</td><td class="num">${v.units}</td><td class="num">${v.chars}</td></tr>`).join('');
+    let html = `<div class="no-evidence"><strong>${esc(j.title)}</strong> · ${j.n_sections} 节 · ${j.n_units} 单元 · ${j.total_chars} 字
+      · scheme ${esc(j.scheme || '—')} · 未编址 ${j.unaddressed_units} · 损坏区 ${j.suspect_units} · 非连续 ${j.skipped_chars_units}</div>`;
+    if (j.largest_section){
+      html += `<div class="no-evidence">最大节：${esc(j.largest_section.label)}（${j.largest_section.chars} 字） · 最小节：${esc(j.smallest_section.label)}（${j.smallest_section.chars} 字）</div>`;
+    }
+    html += `<table class="works"><tr><th>层</th><th>单元</th><th>字数</th></tr>${layerRows}</table>`;
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+}
+
 /* ---- 两书对照（R24b compare_works）：指定两书 + 概念 ---- */
 async function runCompareWorks(){
   const out = $('#cwOut'), err = $('#cwerr');
@@ -1145,6 +1171,7 @@ async function runCompareWorks(){
 }
 
 $('#bsStructureBtn').addEventListener('click', runBookStructure);
+$('#bsSummaryBtn').addEventListener('click', runBookSummary);
 $('#cwBtn').addEventListener('click', runCompareWorks);
 
 /* ---- 概念研究（R18b concept census）：跨全部语料普查 ---- */

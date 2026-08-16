@@ -2436,3 +2436,33 @@ web 冒烟 PASS（api_concept 21 部命中 7 同址 / api_compare_works 9 vs 24�
 13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-072b。
+
+## 54. [优化轨] R27b：Book Summary——整本书结构化知识卡（2026-08-16，双窗口并行第二轨）
+
+### 54a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 54b. Book Summary（愿景 §7 唯一剩余模式）：bookstudy.book_summary + 三处发布
+
+- **缺口核实**：愿景 §7 研究模式清单逐项对照，Book Summary（"生成整本书的
+  结构化知识"）是唯一未落地模式——R25b/R26b 已接读书/两书对照/概念研究，
+  "整本书概览"无处可点。
+- `book_summary(corpus, work_id)`（`src/guji/bookstudy.py`，纯只读聚合）：
+  节数/单元/总字数、层分布（每层单元数+字数）、未编址单元、损坏区/非连续
+  披露、体量最大/最小节（阅读注意点）。不变量断言：层单元数 + 未编址 =
+  总单元数。
+- **发布**：web `/api/bookstudy/summary`（空 work_id 400）；前端读书 tab
+  「全书概览」按钮（知识卡渲染）；MCP `book_summary_tool`（10 个工具）。
+- 教训记录：首次 import 写错函数名（`summary` vs `book_summary`），web/mcp
+  冒烟当场抓到 ImportError，修正后全过——再次验证"必须实跑"纪律。
+
+### 54c. 验证
+
+bookstudy 自测 11/11 PASS（新增 [9][10][11]：KR1a0001 65 节/528 单元/
+31,572 字、老子 81 节、缺书拒绝）；research 自测 7/7 PASS；web 冒烟 PASS
+（summary 数字 + 不变量 + 空参 400）；MCP 直调冒烟 PASS（老子 81 节/83 单元/
+7,842 字）；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-073b。

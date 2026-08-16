@@ -2494,3 +2494,33 @@ bookstudy 8/8、research 7/7 自测 PASS；13 闸门全绿。实施方式：初�
 worker 子 agent 并行因作用域（按工作目录解析，目标在 books 项目下）无法
 落盘，零改动，改由本会话直接落地——子 agent 作用域须含完整相对路径。
 commit 见台账 §53。
+
+## D-073b R27b 优化轨：Book Summary（愿景 §7 唯一剩余模式）
+
+**背景（亲自核实）**：愿景书 §7 研究模式清单逐项对照：Quick Answer（search/
+addr）✓、Deep Research（R18b）✓、Book Study（R23b）✓、Chapter Study
+（bookstudy.chapter 阅读视图）✓、Comparative Study（compare + compare_works
+R24b）✓、Cross-book Research（concept_census）✓、Concept Research ✓、
+**Book Summary（"生成整本书的结构化知识"）✗——唯一未落地模式**。
+R25b 前端已接读书/两书对照、R26b 已接概念研究 + MCP 三工具，但"整本书
+概览"仍无处可点。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | `bookstudy.py` 增 `book_summary(corpus, work_id)`：聚合 structure() 的节信息——全书节数/单元数/总字数、层分布（經/注/疏 每层单元数+字数）、损坏单元总数（suspect 披露）、未编址区节数、最大/最小节（体量极端处 = 阅读注意点）、前几节样本；web `/api/bookstudy/summary`；前端读书 tab 顶部加「全书概览」按钮；MCP 加 `book_summary` 工具 | 零新依赖、纯只读聚合、复用 structure() 已实测字段；风险低 |
+| B | Chapter Study 深度模式（单章分析） | 与 bookstudy.chapter 阅读视图重叠度高，需 LLM 或新检索，杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，需协商，非本轨范围 |
+
+选 A。落地后：bookstudy 自测补 [9]（老子/douay/KR1a0001 各断言数字可复算）、
+web 冒烟、MCP 直调冒烟、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`book_summary()` 纯只读聚合（节数/单元/
+总字数/层分布/未编址/损坏披露/体量极端节），含"层单元+未编址=总单元"不变
+量断言；web /api/bookstudy/summary + 前端「全书概览」按钮 + MCP
+`book_summary_tool`（10 工具）三处发布。bookstudy 自测 11/11（KR1a0001
+65 节 528 单元 31,572 字、老子 81 节、缺书拒绝）、research 7/7、web/MCP
+冒烟 PASS、13 闸门全绿。踩坑：首次 import 误写函数名 summary（应为
+book_summary），冒烟当场抓到 ImportError 修正——"必须实跑"再证一次。
+commit 见台账 §54。

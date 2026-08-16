@@ -152,6 +152,58 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
             "section": file or addr_name or addr1, "n_units": len(units), "units": units}
 
 
+def book_summary(corpus: Corpus, work_id: str) -> dict:
+    """One work's structured knowledge card (愿景 §7 Book Summary): aggregated
+    counts and layer distribution over the WHOLE book, plus the reading
+    attention points (largest/smallest sections, damaged units disclosed).
+
+    Pure read-only aggregation over the index — every number is a COUNT
+    recomputed on call, exactly like structure().
+    """
+    w = corpus.db.execute(
+        "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
+        (work_id,)).fetchone()
+    if w is None:
+        return {"error": f"work {work_id} not found"}
+    rows = corpus.db.execute(
+        "SELECT scheme, layer, text, suspect, skipped_chars FROM unit "
+        "WHERE work_id = ?", (work_id,)).fetchall()
+    if not rows:
+        return {"error": f"work {work_id} has no units"}
+    n_units = len(rows)
+    total_chars = sum(len(r["text"]) for r in rows)
+    layers: dict[str, dict] = {}
+    suspect = skipped = unaddressed = 0
+    for r in rows:
+        if r["scheme"]:
+            lv = layers.setdefault(r["layer"], {"units": 0, "chars": 0})
+            lv["units"] += 1
+            lv["chars"] += len(r["text"])
+        else:
+            unaddressed += 1
+        if r["suspect"]:
+            suspect += 1
+        if r["skipped_chars"]:
+            skipped += 1
+    st = structure(corpus, work_id, sample_chars=60)
+    sections = st.get("sections", [])
+    if sections:
+        largest = max(sections, key=lambda s: s["chars"])
+        smallest = min(sections, key=lambda s: s["chars"])
+        largest = {"label": largest["label"], "chars": largest["chars"]}
+        smallest = {"label": smallest["label"], "chars": smallest["chars"]}
+    else:
+        largest = smallest = None
+    return {
+        "work_id": work_id, "title": w["title"], "attribution": w["attribution"],
+        "edition": w["edition"], "genre": w["genre"], "scheme": st.get("scheme"),
+        "n_sections": len(sections), "n_units": n_units, "total_chars": total_chars,
+        "layers": layers, "unaddressed_units": unaddressed,
+        "suspect_units": suspect, "skipped_chars_units": skipped,
+        "largest_section": largest, "smallest_section": smallest,
+    }
+
+
 if __name__ == "__main__":
     # Self-test (R23b). Run: PYTHONPATH=src python -m guji.bookstudy
     import os
@@ -207,5 +259,22 @@ if __name__ == "__main__":
         all(u["citation"] for u in ch_file["units"])
     print(f"[8] chapter 老子 file 001 -> {ch_file['n_units']} units "
           f"(NULL-scheme file section readable)")
+
+    sm = book_summary(c, "KR1a0001")
+    assert "error" not in sm and sm["n_sections"] == 65 and sm["n_units"] > 0
+    assert sm["total_chars"] > 0 and sm["layers"]["經"]["units"] > 0
+    assert sm["largest_section"] and sm["smallest_section"]
+    assert sm["n_units"] == sum(sv["units"] for sv in sm["layers"].values()) \
+        + sm["unaddressed_units"], "layer units + unaddressed must equal n_units"
+    print(f"[9] book_summary KR1a0001 -> {sm['n_sections']} 节 {sm['n_units']} "
+          f"单元 {sm['total_chars']} 字 layers={sorted(sm['layers'])} "
+          f"largest={sm['largest_section']['label']}")
+    sm2 = book_summary(c, "KR5c0057")
+    assert "error" not in sm2 and sm2["n_sections"] >= 70
+    print(f"[10] book_summary 老子 -> {sm2['n_sections']} 节 "
+          f"{sm2['total_chars']} 字 unaddressed={sm2['unaddressed_units']}")
+    sm404 = book_summary(c, "NO_SUCH_WORK")
+    assert "error" in sm404
+    print(f"[11] book_summary missing -> refused: {sm404['error']}")
     print("self-test PASS")
     c.close()

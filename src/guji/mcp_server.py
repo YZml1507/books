@@ -27,6 +27,7 @@ import os
 
 from mcp.server.mcpserver import MCPServer
 
+from .bookstudy import book_summary  # noqa: E402
 from .bookstudy import chapter as book_chapter  # noqa: E402
 from .bookstudy import structure as book_structure  # noqa: E402
 from .knowledge import KnowledgeBase
@@ -178,6 +179,35 @@ def threads(tid: int | None = None) -> str:
         return "\n".join(f"{t['role']}: {t['text'][:400]}" for t in turns)
     finally:
         kb.close()
+
+
+@mcp.tool()
+def book_summary_tool(work_id: str) -> str:
+    """Book Summary (R27b): one work's structured knowledge card — sections,
+    units, total chars, 經/注/疏 layer distribution, damaged-unit disclosure,
+    unaddressed count, and the largest/smallest sections (reading attention
+    points). Pure read-only aggregation over the index."""
+    c = Corpus(CORPUS_DB)
+    try:
+        r = book_summary(c, work_id)
+        if "error" in r:
+            return r["error"]
+        out = [f"{r['title']} · {r['n_sections']} 节 · {r['n_units']} 单元 · "
+               f"{r['total_chars']} 字 · scheme {r['scheme'] or '（无）'}"]
+        if r["layers"]:
+            out.append("层分布: " + "、".join(
+                f"{lv}={v['units']}单元/{v['chars']}字"
+                for lv, v in r["layers"].items()))
+        out.append(f"未编址 {r['unaddressed_units']} 单元 · 损坏区 {r['suspect_units']} · "
+                   f"非连续 {r['skipped_chars_units']}")
+        if r["largest_section"]:
+            out.append(f"最大节: {r['largest_section']['label']} "
+                       f"({r['largest_section']['chars']} 字) · 最小节: "
+                       f"{r['smallest_section']['label']} "
+                       f"({r['smallest_section']['chars']} 字)")
+        return "\n".join(out)
+    finally:
+        c.close()
 
 
 @mcp.tool()
