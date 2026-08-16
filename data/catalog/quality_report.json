@@ -339,12 +339,12 @@
    "junk_rate": 0.00159001064869517
   },
   "sanming-tonghui": {
-   "n_chars": 311286,
+   "n_chars": 311665,
    "pua": 18,
    "ext_a": 1,
    "fffd": 0,
    "cid": 0,
-   "junk_rate": 6.103711699209088e-05
+   "junk_rate": 6.096289284969438e-05
   }
  }
 }
