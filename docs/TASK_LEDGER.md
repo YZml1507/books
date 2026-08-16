@@ -3120,3 +3120,47 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   内核+协议自测往返+测试行清理、前端 esc() 防注入。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-090a。
+
+## 72. [审查轨] R26a 优化轨 R46b-R48b 交叉复审（2026-08-17）
+
+接续 R25a（§71）。fetch origin 发现优化轨推进 main 三个新提交
+（R46b-R48b），rebase 到 1f6442d 后逐行复审。基线亲跑复核
+suspect=10 units/5 地址一致、13 闸门全绿，无回退。
+
+### 72a. R46b 交叉复审（前端 thread-resume binding 可见可取消）
+
+- **改动**（纯前端 `web/static/index.html`）：深度研究 tab 增 `#dthreadBadge`
+  容器（hidden by default）；`updateThreadBadge()` 当 `currentThreadId` 设定时
+  显示「🔗 续接线程 #N」+「取消续接」按钮，否则隐藏；`cancelThreadResume()`
+  nulls 绑定 + 隐藏徽标；`resumeThread()` 切换后立即更新徽标。
+- **审查确认**：innerHTML 拼接仅用 `currentThreadId`（number，无用户输入面），
+  无 XSS；`cancelThreadResume` 路径完整（null + hide + alert）；node --check PASS。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+
+### 72b. R47b 交叉复审（台账——纯文档）
+
+R47b 记录审查轨 R25a 撤回 R24a 越界指控（与 R44b 反驳一致），纯文档改动，
+  无代码逻辑变化。**审查确认**：文档对齐 git 证据实测、与代码现状一致。
+
+### 72c. R48b 交叉复审（web/app.py /api/works merges manifest source + 前端来源列）
+
+- **改动**（`web/app.py` + `web/static/index.html`）：`/api/works` 读
+  `corpus_manifest.json` 合并 `source` 字段（local → "local"，缺失 manifest 条目
+  → "kanripo/内置"）；前端书目表增「来源」列（local 渲染「本地导入」badge）。
+- **审查确认**：
+  1. `json.load` try/except 兜底（OSError/ValueError → 空 dict，缺失 manifest 不崩）。
+  2. `src.get(r["id"]) or "kanripo/内置"` 默认值正确（None/falsy 均兜底）。
+  3. 前端 `esc()` 转义防 XSS（w.source 非 local 路径走 esc，local 路径走固定 badge）。
+  4. 愿景 §10「sources must be identifiable and replaceable」落地——本地导入与
+     内置语料可区分。
+- **领土零越界**：同 72a。
+
+### 72d. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R46b-R48b 三提交**纪律良好**——前端 innerHTML 无用户
+  输入拼接、json.load 兜底、esc() 防注入、默认值正确。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-091a。

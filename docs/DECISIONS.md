@@ -2964,3 +2964,16 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   R43b PROJECT_STATUS 快照（纯文档）、R44b 台账反驳（纯文档，git 证据亲核实成立）。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。
+
+## D-091a R26a 审查轨：优化轨 R46b-R48b 交叉复审无红线（2026-08-17）
+
+- **接续 R25a**：fetch 发现优化轨推进 main 三提交（R46b-R48b），rebase 到
+  1f6442d 后逐行复审。基线亲跑 suspect=10 units/5 地址一致、13 闸门全绿。
+- **R46b**（前端 thread-resume binding）：纯前端 `#dthreadBadge` 徽标可见可取消，
+  innerHTML 拼接仅 `currentThreadId`(number 无用户输入面) 无 XSS，node --check PASS。
+- **R47b**（台账纯文档）：记录审查轨 R25a 撤回 R24a 越界指控，与 R44b 反驳一致。
+- **R48b**（/api/works merges manifest source）：`json.load` try/except 兜底
+  （OSError/ValueError → 空 dict，缺失 manifest 不崩）、`src.get(id) or "kanripo/内置"`
+  默认值正确、前端 `esc()` 防注入、local badge 区分本地导入与内置。愿景 §10 落地。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+- 13 闸门复跑全绿（rebase 后 confirm 无回归）。
