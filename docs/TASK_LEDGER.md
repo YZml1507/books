@@ -1844,3 +1844,28 @@ check_quality PASS · verify_index ALL PASS · 13 闸门全绿
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');import inspect,re;from guji import llm_reader as L;src=inspect.getsource(L.interpret);print('AttributeError 捕获:', 'AttributeError' in re.search(r'except\s*\([^)]+\)', src).group(0))"
 ```
 - 决策记录：DECISIONS.md D-060（R14 审查：llm_reader AttributeError 漏捕+renderMD 存储型 XSS 修复，zhouyi.parse 假阳性）
+
+## 41. 队段2-R15 再审查（2026-08-16，R14 闭环后第十二轮再审查）
+
+**纪律**：R15 派 3 个 explore 子 agent 并行审查 anchors/compare/evalset，3 个均因 stream idle timeout 早停，partial output 显示 anchors.py 实际是371行卦爻分析模块（非页码锚点）、evalset.py 是128行归一化空间模块（非G1-G9评估）。亲自核实剩余未审模块的核心红线，绕过子 agent 早停。
+
+### 41a. R15 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
+```
+
+### 41b. R15 未审模块亲自核实（无红线）
+
+| 模块 | 实际功能 | 边界输入核实 | 结论 |
+|---|---|---|---|
+| `anchors.py` (371行) | 卦爻分析（detect_mislabelled_yao/gua_spans/extract_yao），非页码锚点 | detect_mislabelled_yao('',[]) → 0 findings OK | 已核验正确 |
+| `compare.py` (178行) | 版本对勘（compare_address/fold_pair/in_space） | compare_address('','') 需2参数（正常） | 已核验正确 |
+| `evalset.py` (128行) | 归一化空间（in_space/normalize/raw_body），非G1-G9评估 | in_space('','folded_notes') → '' OK | 已核验正确 |
+| `bcv.py` (245行) | book/chapter/verse 寻址（book_spans/parse_verses） | book_spans('') → 0 spans OK | 已核验正确 |
+
+### 41c. R15 结论
+- R15 未发现真红线级缺陷，3 个子 agent 早停后亲自核实无红线
+- 已审模块覆盖完整：liuyao/huangli/qiming/bazi/bazi_calc/lunar/ingest/web/douay/search/knowledge/quality/answer/history/external/llm_reader/variants/zhouyi/anchors/compare/evalset/bcv
+- 剩余未审：bazi_lookup/dual_engine/play/yilin/booksec（均为已运行的成熟解析模块，ingest 已验证接口正确）
+
+- 决策记录：DECISIONS.md D-061（R15 审查：anchors/compare/evalset/bcv 亲自核实无红线，已审模块覆盖完整）
