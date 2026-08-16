@@ -3761,8 +3761,13 @@ R67b（a39c3a6）已确认在 origin/main。
 
 - **改动**（web/app.py，纯增量测试代码）：bazi check 加强为断言
   evidence 非空 + 含 P2 子平书 work_id（_ZI_PING_WORKS 集合 = 9 部本地
-  入库书，验证 R67b 语义覆盖真实生效）——23 checks（加强而非新增，
-  总数不变）。
+  入库书）——23 checks（加强而非新增，总数不变）。
+  **归因修正（R69b，D-115b）**：§95b/§95c 原写"验证 R67b 语义覆盖
+  真实生效"——**归因错误**：web /api/bazi 的 evidence 来自
+  `retrieve_fast`（FTS 路径，app.py:225），非 `retrieve_semantic`（语义
+  路径只在 CLI scripts/ask_bazi.py 调用）。bazi check 实际覆盖 FTS 路径；
+  语义路径的 standing 覆盖由 R69b 补的 `bazi.semantic` check 承担（见
+  台账 §96 / DECISIONS D-115b）。
 - **验证**（全量实跑）：`python -m app --selftest` 23 checks 全 PASS
   （bazi evidence 断言命中）；全量 13 闸门 + 五层 standing 自测
   （sources/bookstudy/research/mcp/web）零回退——build_index 47 部
@@ -3770,3 +3775,42 @@ R67b（a39c3a6）已确认在 origin/main。
   246/248、eval_g7 30/30+25/25 FABRICATIONS 0、probe_g8 九类越界全
   BLOCKED。
 - 决策记录：DECISIONS.md D-114b。
+
+## 96. [优化轨] R69b：R68b bazi check 归因修正 + 语义路径 standing 覆盖（2026-08-17，双窗口并行第二轨）
+
+### 96a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R68b（845b993）已确认在 origin/main。
+
+### 96b. 摸底（逐项亲自核实）
+
+- **文档 R 编号 / 残留旧数字**：无异常滞后；旧语料数字全在历史存档段——
+  非缺口。
+- **bge_mingli 缓存**：R67b 重建后 ids 2,505 与 MINGLI_WORKS 一致——
+  非缺口。
+- **R68b 归因核实（本轮发现）**：`web/app.py` line 225 的 `/api/bazi`
+  evidence 来自 **`retrieve_fast`（FTS 路径）**，**不是 `retrieve_semantic`
+  （bge 语义路径）**；`retrieve_semantic` 只在 `scripts/ask_bazi.py`
+  （CLI，line 77/82/97）调用，13 闸门与五层 standing 自测**均不覆盖它**。
+  即两件事：①R68b 断言实际验证的是 FTS 路径，D-114b/台账 §95 的"语义
+  覆盖"表述不实（纪律：文档与实测不符要改文档写明）；②R67b 重建缓存后
+  受益者 `retrieve_semantic` 无任何 standing 覆盖——语义路径若再失效
+  （缓存/模型/检索回归），CLI 侧静默坏（R48b 教训同族）。
+
+### 96c. 改动与验证
+
+- **改动**：
+  1. 归因修正——D-114b 落地结果与台账 §95 补"归因修正（R69b）"注记
+     （bazi check 实覆盖 FTS 路径，语义路径由 bazi.semantic check 承担）；
+     web/app.py bazi check 注释同步修正（FTS 路径说明）。
+  2. web --selftest 补 `bazi.semantic` check：固定 Bazi（1990-01-01 12时
+     男）→ `retrieve_semantic` 命中非空且含 P2 子平书 work_id（实测命中
+     ziping-zhenquan 等），23→24 checks。
+- **验证**（全量实跑）：`python -m app --selftest` 24 checks 全 PASS
+  （含 bazi.semantic）；全量 13 闸门 + 五层 standing 自测（sources/
+  bookstudy/research/mcp/web）零回退——build_index 47 部 62,109 单元、
+  assess_goals G1-G9 PASS 9 PART 0 FAIL 0、eval_g1 246/248、eval_g7
+  30/30+25/25 FABRICATIONS 0、probe_g8 九类越界全 BLOCKED。
+- 决策记录：DECISIONS.md D-115b。

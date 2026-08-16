@@ -3699,3 +3699,41 @@ evidence 非空 + 含 P2 子平书 work_id（实测命中 qiongtongbaojian 等�
 `python -m app --selftest` 23 checks 全 PASS（bazi 为加强断言，非新增
 check，总数不变）；全量 13 闸门 + 五层自测零回退（基线 47 部 62,109
 单元、G1-G9 全 PASS）。commit 见台账 §95。
+**归因修正（2026-08-17 R69b，D-115b）**：本条目原文写"验证 R67b 语义
+覆盖真实生效"——**归因错误**：web /api/bazi 的 evidence 来自
+`retrieve_fast`（FTS 路径，app.py:225），非 `retrieve_semantic`（语义
+路径只在 CLI scripts/ask_bazi.py 调用）。bazi check 实际验证的是 FTS
+路径；语义路径的 standing 覆盖由 R69b 补的 `bazi.semantic` check 承担
+（见 D-115b）。
+
+## D-115b R69b 优化轨：R68b bazi check 归因修正 + 语义路径 standing 覆盖缺口
+
+**背景（亲自核实）**：R68b 给 bazi check 补 evidence 断言时写"验证 R67b
+语义覆盖真实生效"，但**归因错误**——`web/app.py` line 225 的 `/api/bazi`
+evidence 来自 **`retrieve_fast`（FTS 路径）**，**不是 `retrieve_semantic`
+（bge 语义路径）**；`retrieve_semantic` 只在 `scripts/ask_bazi.py`（CLI，
+line 77/82/97）调用，**13 闸门与五层 standing 自测均不覆盖它**。即：
+1. R68b 断言实际验证的是 FTS 路径（P2 子平书经 FTS 命中），D-114b/
+   台账 §95 的"语义覆盖"表述不实（纪律：文档与实测不符要改文档写明）；
+2. 真实缺口：R67b 重建 bge_mingli 缓存（2,505 单元）后，**受益者
+   `retrieve_semantic` 无任何 standing 覆盖**——语义路径若再失效
+   （缓存/模型/检索回归），CLI 侧静默坏（R48b 教训同族）。实测
+   `retrieve_semantic` 需要 Bazi 对象（bazi.compute 构造）+ bge 编码
+   查询（秒级），可确定性断言。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ①修正 D-114b/台账 §95 归因（bazi check 覆盖 FTS 路径，非语义）；②web --selftest 补 `retrieve_semantic` 冒烟：构造固定 Bazi（1990-01-01 12时 男）→ 断言语义命中非空且含 P2 子平书 work_id | ①纯文档归因修正（纪律要求）；②语义路径 standing 覆盖落地（23→24 checks，确定性：固定输入 + 重建后固定缓存）；直接抓 retrieve_semantic 静默失效 |
+| B | 只修正归因，不补语义覆盖 | 归因诚实但缺口仍在，语义路径继续无自测 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（归因修正 + 补真正缺口）。落地后：全量 13 闸门 + 五层 standing
+自测验证零回退。
+
+**落地结果**（2026-08-17 实测）：D-114b/台账 §95 归因修正（bazi check
+实覆盖 FTS 路径）；web --selftest 补 `retrieve_semantic` check（固定
+Bazi 1990-01-01 12时 男 → 语义命中非空 + 含 P2 子平书），23→24 checks
+全 PASS；全量 13 闸门 + 五层自测零回退（基线 47 部 62,109 单元、G1-G9
+全 PASS）。commit 见台账 §96。

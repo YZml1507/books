@@ -959,15 +959,26 @@ if __name__ == "__main__":
         check("bazi", client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
               "hour": 12, "gender": "男"}),
               lambda j: (j.get("paipan") and j.get("calc")
-                         # R68b：evidence 语义路径 standing 覆盖（R67b 重建 bge_mingli
-                         # 缓存后实测 12 条含 P2 子平书，此处断言非空 + 含子平书，
-                         # 抓 retrieve_semantic 静默失效——R48b 教训同族）
+                         # R68b 归因修正（R69b，D-115b）：web /api/bazi 的
+                         # evidence 来自 retrieve_fast（FTS 路径，app.py:225），
+                         # 此处断言 FTS 命中非空 + 含 P2 子平书——抓 FTS 检索
+                         # 静默失效，与语义路径无关（语义路径见下方 semantic check）
                          and j.get("evidence")
                          and any(e.get("work_id") in _ZI_PING_WORKS
                                  for e in j.get("evidence", []))))
         for rec in history_db.list_records(limit=5):
             if rec["id"] > max_id_before:
                 history_db.delete_record(rec["id"])
+        # R69b（D-115b）：retrieve_semantic（bge 语义路径）standing 覆盖——
+        # 该路径只在 CLI（scripts/ask_bazi.py）调用，web /api/bazi 不经过它，
+        # 13 闸门与五层自测此前均不覆盖（R67b 重建 bge_mingli 缓存后受益者
+        # 仍无自测）。固定 Bazi 输入（与 bazi check 同款）→ 语义命中非空 +
+        # 含 P2 子平书（实测命中 ziping-zhenquan 等），抓语义路径静默失效。
+        from guji.bazi import compute as _bazi_compute
+        from guji.bazi_lookup import retrieve_semantic as _retrieve_semantic
+        sem = _retrieve_semantic(_bazi_compute(1990, 1, 1, 12, "男"), top_k=8)
+        assert sem and any(e["work_id"] in _ZI_PING_WORKS for e in sem), "semantic retrieval must hit P2 books"
+        ok.append("bazi.semantic")
         check("liuyao", client.post("/api/liuyao", json={"method": "coins", "seed": 42}),
               lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
         check("huangli", client.get("/api/huangli", params={"date": "2026-08-17", "days": 1}),
