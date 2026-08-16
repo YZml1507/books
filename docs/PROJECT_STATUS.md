@@ -4,7 +4,7 @@
 > **任务状态的唯一来源是 `TASK_LEDGER.md`**（含 REJECTED 清单，防止重做已否决方案），
 > 工程教训见 `LESSONS.md`。
 
-**更新时间**：2026-08-17（R49b，优化轨；前一次快照 2026-08-17 R42b，见文末历史节）
+**更新时间**：2026-08-17（R54b，优化轨；前一次快照 2026-08-17 R49b，见文末历史节）
 **当前阶段**：Phase 7（Optimization）——审查-修复循环 R5-R17 闭环后进入双窗口并行
 （审查轨 `books-audit` worktree 审 scripts/probes/打包链；优化轨=本仓做差距分析+能力优化，
 方案见 `OPTIMIZE_20260816_R18.md`）。
@@ -38,7 +38,8 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 治理      双窗口边界：R44b 反驳审查轨 R24a 越界指控（git 铁证）→ R25a 亲核实
           后撤回（R47b 记录闭环）；R21a 委托待审查轨合入 main（移交项）
 自测      各层 standing 自测全齐：sources/bookstudy/research/mcp `--selftest`
-          + web `python -m app --selftest`（12 checks，R49b）
+          + web `python -m app --selftest`（22 checks，R54b——R49b 12 checks
+          起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点）
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：
@@ -67,6 +68,12 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
   深度研究 tab 徽标可取消，R45b/R46b）；书目来源可见化（/api/works 合并
   manifest source + 前端来源列，R48b）；web 层 standing 自测
   （`python -m app --selftest` 12 checks，R49b——各层自测至此全齐）。
+- R50b-R54b：接续文档防误导（GOAL_NEXT_SESSION 刷新到当前状态 R51b；
+  LESSONS 补录 R23b-R51b 教训 L-22..L-26，R52b）；web standing 自测扩展
+  至 22 checks（R53b 补 4 个数术端点 bazi/liuyao/huangli/qiming、R54b 补
+  研究/历史/线程/健康端点 research/ask/history/threads/health；external/
+  news 联网端点明确排除，D-100b）；R53b 自纠 bazi check 污染 history.db
+  （L-22 同族，改为调用后清理新增记录）。
 
 ---
 

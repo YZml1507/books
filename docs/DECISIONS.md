@@ -3288,3 +3288,30 @@ history 200 含 records、history/{rid} 200 含 paipan、threads/1 200
 （research/ask/history/history-detail/threads-detail/health），
 `python -m app --selftest` 16→22 checks 全 PASS；全量 13 闸门 + 五层
 自测零回退（基线 47 部 62,109 单元、G1-G9 全 PASS）。commit 见台账 §81。
+
+## D-101b R55b 优化轨：PROJECT_STATUS 快照刷新到 R54b 终态（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_STATUS.md` 是"当轮实测快照"，但
+**更新时间停在 R49b**——R50b（PROJECT_STATUS 自身刷新到 R49b）之后的
+R51b（GOAL_NEXT_SESSION 刷新）、R52b（LESSONS 补录 L-22..L-26）、
+R53b（web selftest 12→16 checks 数术端点）、R54b（web selftest 16→22
+checks 研究/历史/线程/健康端点）**五轮产出均未入快照**。当前快照自测行
+仍写"web `python -m app --selftest`（12 checks，R49b）"，关键变化段停在
+R44b-R49b——接续文档滞后，新会话照它执行会拿到过时自测数字（同
+O1/GOAL_NEXT_SESSION 文档失效模式，D-097b 同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | PROJECT_STATUS.md 刷新到 R54b：更新时间 → R54b；快照块自测行 12→22 checks；关键变化补 R50b-R54b 条目（GOAL_NEXT_SESSION/LESSONS 接续文档防误导、web standing 自测扩展至 22 checks） | 纯文档对齐、零代码/零风险；数字已在本窗口全量实测（22 checks、47 部 62,109 单元、G1-G9 全 PASS） |
+| B | 前端功能增强 | 9 tab + 记忆闭环 + 来源列 + 22 checks 已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS.md 更新时间刷新到 R54b；
+快照块自测行补 web 22 checks（R53b/R54b 数术+研究端点）；关键变化补
+R50b-R54b 条目。docs-only 抽跑 verify_index + check_quality 全 exit 0，
+基线未动。commit 见台账 §82。

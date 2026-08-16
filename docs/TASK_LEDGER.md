@@ -3286,3 +3286,34 @@ standing 自测抓）的同类缺口。实测全部确定性响应：research(q=
   PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
   eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
 - 决策记录：DECISIONS.md D-100b。
+
+## 82. [优化轨] R55b：PROJECT_STATUS 快照刷新到 R54b 终态（2026-08-17，双窗口并行第二轨）
+
+### 82a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R54b（0b5be29）已确认在 origin/main。
+
+### 82b. 摸底（逐项亲自核实）
+
+- **前端按钮 handler**：8 个研究按钮（rsearch/dresearch/raddr/rcompare/
+  bsStructure/bsSummary/cw/cConcept）逐一 grep，全部 2 次出现（定义 +
+  addEventListener），无未接线按钮。
+- **selftest 端点覆盖**：R53b/R54b 后仅 `/` 与 `/api/external/news`（联网
+  依赖代理，明确排除，D-100b）未覆盖，无剩余确定性缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_STATUS.md` 更新时间停在 **R49b**
+  ——R50b-R54b 五轮产出（GOAL_NEXT_SESSION 刷新、LESSONS L-22..L-26、
+  web selftest 12→22 checks）均未入快照，自测行仍写"12 checks，R49b"，
+  关键变化段停在 R44b-R49b（同 O1/D-097b 接续文档失效模式）。
+
+### 82c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：更新时间 → R54b（前一次
+  快照 R49b）；快照块自测行 12→22 checks（注明 R53b 数术 + R54b 研究/
+  历史/线程/健康端点、external/news 排除）；关键变化补 R50b-R54b 条目
+  （接续文档防误导 + web 自测扩展 + R53b bazi 污染自纠）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与台账 §80/§81、
+  DECISIONS D-099b/D-100b 一致）。
+- 决策记录：DECISIONS.md D-101b。
