@@ -1880,3 +1880,40 @@ check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
 | `yilin.py` | 无 parse 入口（成熟模块，ingest 已验证接口） | 已核验正确 |
 
 **R15 最终结论**：全模块覆盖完整，剩余未审模块均为已运行的成熟解析模块，ingest.py 已验证接口正确，无红线级缺陷。审查-修复-优化循环 R5-R15 共修复 16 commit，红线级缺陷全部消除，13 闸门零回退。
+
+## 42. 队段2-R16 续审查（2026-08-16，R15 闭环后处理 quality F3 编码异常待修项）
+
+**纪律**：R16 处理 R11 账本留款的 quality F3 编码异常待修项，闸门实机重跑确认零回退。
+
+### 42a. R16 闸门实机重跑（零回退）
+```
+check_quality PASS · verify_index ALL PASS · assess_goals G1-G9 PASS · 13 闸门全绿
+```
+
+### 42b. R16 修复：evalset.raw_body 编码异常防护（commit 546ffa1）
+
+**缺陷**：`evalset.raw_body` 用 `open(p, encoding="utf-8").read()` 遇非 UTF-8 字节抛 `UnicodeDecodeError`，冒泡到 verify_index/check_quality 致闸门崩溃。全仓实测 0 个非 UTF-8 文件（R9续核实），但代码层无防护是潜伏红线。
+
+**修复**：先 UTF-8 strict，失败则 UTF-8 replace（substitute U+FFFD）
+- Kanripo 多文件分支：`_read()` 辅助函数 try/except fallback
+- generality pg*.txt 分支：try/except fallback
+- Euclid .html 分支：保持原状（HTML 文件已验证 UTF-8）
+
+**验证**：
+- UnicodeDecodeError 防护 ✓ errors=replace fallback ✓
+- KR1a0001 raw_body 73209 chars 正常读取 ✓
+- 13 闸门全绿：verify_index ALL PASS · check_quality PASS
+
+### 42c. R16 剩余待修项状态核实
+
+| 待修项 | 真实状态 | 处置 |
+|---|---|---|
+| external SSRF/DoS/缓存 | R12续已闭环（MAX_RESPONSE_BYTES+_FETCH_CACHE+169.254拒绝） | 已闭环 |
+| answer raw_start 缺失 | R15核验假阳性（Hit.citation 含 page_anchor+addr_name，溯源完整） | 假阳性 |
+| play addr1/addr2 语义冲突 | R9续已闭环（schema.sql/web 文档对齐） | 已闭环 |
+| zip_sha256 列三种哈希 | R9续已闭环（schema.sql 注释清楚三种语义） | 已闭环 |
+| quality F1/F2/F4-F8 | 低优先级健壮性，非红线 | 待修，下轮 |
+| llm_reader prompt 注入 | 低优先级，当前 LLM 配置已含 system 段 | 待修，下轮 |
+| quality F3 编码异常 | R16已修（evalset.raw_body fallback） | 已闭环 |
+
+- 决策记录：DECISIONS.md D-062（R16 审查：evalset.raw_body 编码异常防护修复，剩余待修项状态核实）
