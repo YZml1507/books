@@ -41,12 +41,15 @@ CREATE TABLE unit (
     --   scheme     addr_name      addr1            addr2
     --   zhouyi     卦名 乾         卦號 1..64        爻位 九三 / 用九
     --   bcv        book Genesis   chapter          verse
-    --   play       play name      act              scene
+    --   play       play name      play ordinal 1..44   "ACT <roman> SCENE <roman>"
     --
     -- addr1 is INTEGER because ordering and range queries are needed; addr2 is TEXT
     -- because 周易's 爻位 are labels, not ordinals -- 用九 and 用六 are real addressable
     -- units with no numeric position. That constraint is stricter than the Bible's, so
-    -- picking TEXT here is what keeps the general shape honest.
+    -- picking TEXT here is what keeps the general shape honest. For the `play` scheme
+    -- addr1 is the play's ordinal within the work (1=poems, 2..44=tragedies/comedies
+    -- as listed in the First Folio), NOT the act; the act+scene live together in addr2
+    -- as "ACT <roman> SCENE <roman>" (e.g. "ACT IV SCENE XI"). Poems have addr2=NULL.
     scheme        TEXT,
     addr_name     TEXT,
     addr1         INTEGER,

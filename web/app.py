@@ -301,7 +301,7 @@ SCHEME_LABELS = {
     "bcv": "卷:章:節（圣经系，addr_name=卷名）",
     "yilin": "卦·林（焦氏易林，addr1=本卦，addr2=之卦）",
     "booksec": "BOOK:節（Herodotus/Plato/Iliad，addr1=卷）",
-    "play": "幕:場（Shakespeare，addr1=幕，addr2=場）",
+    "play": "剧目:幕場（Shakespeare，addr1=剧目序号 1-44，addr2='ACT <roman> SCENE <roman>'）",
     "euclid": "BOOK:proposition（几何原本，addr1=卷，addr2=命题）",
     "None": "无正典地址（页锚点）",
 }
