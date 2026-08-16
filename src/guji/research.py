@@ -234,7 +234,14 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
             "work_id": w["id"], "title": w["title"], "attribution": w["attribution"],
             "n_hits": len(hits), "layers": layers,
             "top": [{"citation": h.citation(), "text": h.text[:200],
-                     "disclosure": h.disclosure()} for h in hits[:per_work]],
+                     "disclosure": h.disclosure(),
+                     # R35b: carry the raw provenance fields so a client can
+                     # record these hits as G9 evidence (file/anchor/scheme/
+                     # gua/yao) — without them the evidence would be unverifiable.
+                     "work_id": h.work_id, "file": h.file,
+                     "page_anchor": h.page_anchor, "scheme": h.scheme,
+                     "gua": h.gua, "yao": h.yao}
+                    for h in hits[:per_work]],
         })
     census.sort(key=lambda c: -c["n_hits"])
     # Honest census: n_hits is capped by scan_limit per work; say so instead of

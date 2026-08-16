@@ -1180,6 +1180,10 @@ async function recordThread(kind, method){
     claim = $('#cwq').value.trim() || '';
     ev = ((lastCW && lastCW.works) || []).flatMap(w =>
       (w.top || []).map(hitToEvidence));
+  } else if (method === 'concept'){
+    claim = (lastConcept && lastConcept.concept) || $('#cq').value.trim() || '';
+    ev = ((lastConcept && lastConcept.census) || []).flatMap(w =>
+      (w.top || []).map(hitToEvidence));
   }
   if (!claim){ alert('缺少结论文本（请先执行一次研究）'); return; }
   if (!ev.length){ alert('该结果无可核验证据，无法记入（G8 纪律：断言必须带证据）'); return; }
@@ -1232,6 +1236,7 @@ $('#bsSummaryBtn').addEventListener('click', runBookSummary);
 $('#cwBtn').addEventListener('click', runCompareWorks);
 
 /* ---- 概念研究（R18b concept census）：跨全部语料普查 ---- */
+let lastConcept = null;   // R35b 记入线程：最近一次概念研究结果
 async function runConceptResearch(){
   const out = $('#cpOut'), err = $('#cperr');
   err.hidden = true;
@@ -1242,6 +1247,7 @@ async function runConceptResearch(){
     const r = await fetch('/api/concept?q=' + encodeURIComponent(q) + '&per_work=3');
     if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
     const j = await r.json();
+    lastConcept = j;
     if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
     let html = `<div class="no-evidence">「${esc(j.concept)}」· ${j.works_with_hits} 部命中` +
       (j.truncated ? `（scan_limit ${j.scan_limit} 截断）` : '') + '</div>';
@@ -1255,6 +1261,11 @@ async function runConceptResearch(){
         <td class="num">${w.n_hits}</td><td>${esc(JSON.stringify(w.layers))}</td>
         <td class="hit-cite">${(w.top || []).map(h => `${esc(h.citation)}：${esc(h.text)}`).join('<br>')}</td></tr>`).join('');
     html += '</table>';
+    // 记入线程（R35b）：概念普查结论持久化，G9 跨会话恢复
+    if ((j.census || []).some(w => (w.top || []).length)){
+      html += '<div class="thread-actions"><button class="thread-view" ' +
+        `onclick="recordThread('summary', 'concept')">记入线程</button></div>`;
+    }
     out.innerHTML = html;
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 }

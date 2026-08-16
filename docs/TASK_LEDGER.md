@@ -2686,3 +2686,32 @@ research/mcp 自测 PASS；13 闸门全绿（清理污染后重跑，14 命令�
 G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-080b。
+
+## 62. [优化轨] R35b：概念研究 tab 补「记入线程」——记忆闭环覆盖第三模式（2026-08-16，双窗口并行第二轨）
+
+### 62a. 移交跟进
+
+fetch origin：审查轨已推送 **R23a 交叉复审**（origin/audit/R18 `ec38d2b`，
+复审 R25b-R29b 无红线、闸门绿）+ 台账合并重编号（`b3f5f2b`）；main 无审查
+轨改动，无 rebase 需求。
+
+### 62b. 概念研究「记入线程」（愿景 §8/§9 记忆闭环补全）
+
+- **缺口核实**：R34b 给深度研究/两书对照加了「记入线程」按钮
+  （recordThread 分支 research/compare_works），但概念研究 tab（R26b 接线）
+  没有——三个交互研究模式里记忆闭环只覆盖了两个。
+- **后端**（research.py）：`concept_census` 的 top 条目补真实溯源字段
+  （work_id/file/page_anchor/scheme/gua/yao）——否则概念证据无真实锚点，
+  G9 verify 回查必 stale（R34b 教训）。字段向后兼容（新增键，原渲染不变）。
+- **前端**（index.html）：`recordThread` 增 method='concept' 分支（claim=概念
+  词、evidence=census 各书 top 经 hitToEvidence 映射）；runConceptResearch
+  存 lastConcept + 结果区加「记入线程」按钮（有 top 引文才显示）。
+
+### 62c. 验证
+
+research 自测 7/7 PASS（concept_census 新字段向后兼容）；web 冒烟 PASS
+（concept top 含 6 个溯源字段、file+page_anchor 非空——可作 G9 证据）；
+JS 语法检查（node --check）PASS；sources/bookstudy/mcp 自测 PASS；13 闸门
+全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-081b。

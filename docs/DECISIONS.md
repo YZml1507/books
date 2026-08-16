@@ -2720,3 +2720,30 @@ commit 见台账 §60。
 引文写了真实 knowledge.db，assess_goals G8/G9 当场 FAIL（G9 verify 发现
 stale=1）——13 闸门抓到，已清理（contentless fts5 用 'delete' 命令）并恢复
 基线，重跑全绿。写端点冒烟不得用伪造引文写真实库。commit 见台账 §61。
+
+## D-081b R35b 优化轨：概念研究 tab 补「记入线程」——记忆闭环覆盖第三模式（愿景 §8/§9）
+
+**背景（亲自核实）**：R34b 给深度研究、两书对照两个结果区加了「记入线程」
+按钮（recordThread 分支 method='research' / 'compare_works'），但**概念研究
+tab（runConceptResearch，R26b 接线）没有**——`grep "method ===" index.html`
+只有 research/compare_works 两个分支。概念研究的输出（每书命中/层分布/top
+引文 + 同址地图）同样是可核验的研究结论，用户做完后同样无法记入 G9 线程。
+记忆闭环（研究 → 记录 → 跨会话恢复）在三个交互模式里只覆盖了两个。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端 rsec-concept 结果区加「记入线程」按钮；`recordThread` 增 method='concept' 分支（claim=概念词、evidence=各书 top 引文经 hitToEvidence 映射）；后端 POST /api/threads 已通用，零后端改动 | 纯前端、对称 R34b 模式，风险低；复用既有 G8 纪律（无证据拒绝） |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：JS 语法检查（node --check）+ 冒烟（recordThread 概念分支
+evidence 组装）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：concept_census 的 top 条目补真实溯源字段
+（work_id/file/page_anchor/scheme/gua/yao，向后兼容），前端 recordThread 增
+method='concept' 分支 + runConceptResearch 存 lastConcept + 结果区加
+「记入线程」按钮（有 top 引文才显示）。research 自测 7/7、web 冒烟
+（concept top 6 溯源字段非空）、JS 语法检查 PASS；13 闸门全绿。commit 见
+台账 §62。
