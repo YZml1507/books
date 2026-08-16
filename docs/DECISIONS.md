@@ -2149,3 +2149,142 @@ manifest 更新 n_chars/sha256/provenance_note。
 - **八字大运偏差非缺陷**：`_sun_longitude` 用 Meeus 简化式误差 0.01°≈15 分钟，
   累积到大运起运岁数会有小数差异（6.4 vs 已知约 8），属算法精度范围内。若需更高
   精度可换 Meeus 第二式（误差 0.0001°），但当前精度对命理应用足够。
+
+## D-050 R5 审查：huangli 二十八宿锚点错30天+天德月德临日死代码（2026-08-16，阶段2-R5）
+
+**补记说明**：D-050..D-062 原窗口只记入 TASK_LEDGER §30-§42，未同步写入本文件，
+R17 发现后按台账原文补记（内容以台账为准）。
+
+- 二十八宿锚点用节气偏移推算错 30 天（月建切换点错位），改为按月支直接映射修正；
+  天德/月德"临日"分支因查表键永远不命中成为死代码，修复键值生成。
+- 子 agent 标的 3 条 P0 中 2 条假阳性（亲自实跑复验），1 条真红线（上述锚点）。
+- 修复 commit 04e6f2d；详见台账 §31。
+
+## D-051 R6 审查：qiming 部首表缺口+web 输入校验（2026-08-16，阶段2-R6）
+
+- qiming 部首表缺常用部首致部分汉字查不到五行/笔画，补全部首映射。
+- web /api/qiming 输入未校验（空串/超长/非法字符直入库查询），加输入校验。
+- term_time 精度边界与 gregorian 逆变换死代码一并记录（后者 R7 修）。
+- 修复 commit 9be509b；详见台账 §32。
+
+## D-052 R7 审查：gregorian 逆变换修复+qiming 寓意替换（2026-08-16，阶段2-R7）
+
+- bazi gregorian 逆变换分支为死代码（从未被调用且实现错误），修正实现。
+- qiming 8 处负面寓意字注释替换为中性表述。
+- 修复 commit 2b74e29；详见台账 §33。
+
+## D-053 R8 审查：ingest giant-unit 二次切分（2026-08-16，阶段2-R8）
+
+- play/poem/euclid/booksec 4 分支把整本书/整幕/整首诗当一个 unit，绕过 merge_units
+  的 900 字上限（plato max 33738）。经 3 轮修复（第 1 轮破坏 T9 106/600 失败撤销，
+  第 3 轮终成功），play/poem max 全 ≤900，euclid/booksec 按原生结构切分。
+- lunar/bazi_calc 本轮已核验正确。
+- 修复 commit ffdb40a；详见台账 §34。
+
+## D-054 R9 审查：douay 续行整行丢失+raw_end 偏移（2026-08-16，阶段2-R9）
+
+- douay（圣经英译）ingest 续行（continuation line）被整行丢弃而非累加（docstring
+  声称"续行累加"与代码矛盾，以代码为准修代码），raw_end 偏移同步修正。
+- APPENDICES 巨型 verse（234655 字）二次切分至 max 2562。
+- 修复 commit 693acfd + c579910；详见台账 §35。
+
+## D-055 R9续：_has_cjk 漏检+剩余待修项核验（2026-08-16，阶段2-R9续）
+
+- _has_cjk 漏检 U+3007（〇）/CJK 兼容区/全角字符，修复字符范围。
+- 剩余待修项核验：3 假阳性 / 1 已修 / 1 中优先级 / 1 待核实。
+- 修复 commit 2b1ba35；另 a5ab4d5（addr1/addr2 语义文档）、497d456（zip_sha256
+  三种哈希语义注释）为文档对齐 commit；详见台账 §35。
+
+## D-056 R10 整体复验零回退（2026-08-16，阶段2-R10）
+
+- R5-R9 共 9 commit 后整体复验：13 闸门全绿，红线级缺陷全部消除。
+- 无新修复，纯复验轮。详见台账 §36。
+
+## D-057 R11 审查：search/knowledge/quality 全假阳性（2026-08-16，阶段2-R11）
+
+- search FTS5 空串查询：正则初筛标 P0，实测 0 hits 不崩，假阳性。
+- knowledge SQL 注入：正则误判 4 处"非参数化"，逐行核实全参数化，假阳性
+  （教训：正则只作初筛，必须亲自看代码）。
+- quality F1/F2/F4-F8 记录为低优先级待修。详见台账 §37。
+
+## D-058 R12 审查：external XSS 属性逃逸红线（2026-08-16，阶段2-R12）
+
+- external.py feed link 原样透传 + 前端 esc() 不转义双引号 → 属性逃逸 XSS 红线。
+  修复：escAttr 转义双引号 + 拒绝 javascript: scheme（commit 2837e6b）。
+- answer/history 假阳性已核验。R12续：SSRF 防护（169.254 拒绝+4MB 上限，9ba73ec）、
+  5 分钟 TTL 缓存+10 秒限流（d1f55ec）。详见台账 §38-§39。
+
+## D-059 R13 整体复验零回退（2026-08-16，阶段2-R13）
+
+- R5-R12 共 14 commit 后整体复验：13 闸门全绿，红线级缺陷全部消除。详见台账 §39。
+
+## D-060 R14 审查：llm_reader AttributeError+renderMD XSS（2026-08-16，阶段2-R14）
+
+- llm_reader LLM 拒答返回 content=None 时 strip() 抛 AttributeError 漏出 except
+  范围冒泡到 web 层 → 修复 isinstance 判断。
+- renderMD docstring 声称"先 esc() 再结构化"但实际未调 esc() → 存储型 XSS 红线，
+  修代码对齐 docstring。
+- zhouyi.parse 假阳性。修复 commit 58e85d8；详见台账 §40。
+
+## D-061 R15 审查：anchors/compare/evalset/bcv 无红线（2026-08-16，阶段2-R15）
+
+- anchors/compare/evalset/bcv 四模块逐行亲自核实无红线，已审模块覆盖核心层完整。
+- 剩余未深查仅 scripts/ 下多数脚本（抽样核实无 SQL 注入/subprocess/eval 风险）。
+- 详见台账 §41。
+
+## D-062 R16 审查：evalset.raw_body 编码异常防护（2026-08-16，阶段2-R16）
+
+- evalset.raw_body open(...).read() 遇非 UTF-8 抛 UnicodeDecodeError 冒泡致闸门崩溃
+  （全仓实测 0 个非 UTF-8 文件，属潜伏红线）→ 加 errors=replace fallback。
+- 修复 commit 546ffa1；剩余待修项状态核实表见台账 §42c。详见台账 §42。
+
+## D-063 R17 审查：F1 suspect 误归责红线修复+PAT 移除+决策补记（2026-08-16，阶段2-R17）
+
+### 起源
+新窗口（session d0d7089e 续作交接 HANDOVER_20260816_R16）阶段A核实：13 闸门基线
+全绿后逐项核 §3 待修项，F1 深核确认为真缺陷且危害升级。
+
+### F1：load_suspect 6/10 地址误归责（X-11 数据正确性，实为红线级）
+
+**亲自核实**：quality_report.json 10 个 low 地址中，5 个 span-degenerate-B (EXPECTED)
++ 1 个 span-overextended-B 的判定说的是 B 作品（KR1a0007）的 span 问题，但
+ingest.load_suspect 只按 `pair.split("|")[0]` 全部归给 A（KR1a0006/KR1a0031）。
+answer.py:72 `clean = [h for h in hits if not h.suspect]` 会把 suspect 命中从证据
+剔除 → KR1a0006 卦9初九/九二、卦46九二/初六、卦58九五、卦51初九 的健康文本被
+错误扣留（正是 L-20 危害类：扣留健康文本且无人发现）。
+
+**修复**（ingest.load_suspect）：
+1. verdict 后缀归责：span-*-B → work B；span-*-A/text-damage → work A
+   （text-damage 按 D-012 校准语义：A 是被 OCR 损坏方，B 是见证）。
+2. `(EXPECTED)` verdict 是 quality.EXPECTED_DEGENERATE 记录的版本源特性非缺陷，
+   不再入 suspect（否则会扣留 KR1a0007 健康文本，同 L-20 类）。
+
+**实测**：修复后 suspect 10 units / 5 地址（KR1a0006×2、KR1a0007×1、KR1a0031×2，
+各归其主）；answer_address(9, 初九) KR1a0006 經/注重新入证据（修复前被剔除）；
+13 闸门全绿（T10 的 卦61上九 text-damage 控制项不受影响，T10 断言 >0 非硬编码 20）。
+
+### git remote 明文 PAT 移除
+
+`git remote get-url origin` 含明文 ghp_ token（交接 §3.2 隐患）。核实 Windows
+credential manager 已存同 token（git credential fill 有 password=ghp_...）后，
+`git remote set-url origin https://github.com/YZml1507/books.git`，push 实测正常。
+明文 token 从 git config 移除，凭据走 credential helper。
+
+### llm_config.json API key 核实
+
+交接 §3.1 要求核实：llm_config.json 含真实 sk- key，但 .gitignore:27 已排除且
+`git log --all -- llm_config.json` 确认从未进版本史，无泄露。llm_reader messages
+确含 system 段（llm_reader.py:202），prompt 注入降级为低优先级（用户问题只影响
+其自己的查询结果，system prompt 非机密且输出经 renderMD esc）。
+
+### 决策依据
+- **F1 从"低优先级"升级为红线级修复**：原台账判"低优先级"只看了 verdict 分布
+  合理性，没追 suspect 消费链（answer 剔除证据）。数据正确性问题在 X-11 语义下
+  直接导致答案层扣留健康文本，与 L-20 同级。
+- **EXPECTED 不入 suspect**：gate 输出 low 列表给"人"看（披露回归）与给"索引"
+  吃（扣证据）是两个语义；load_suspect 是后者，必须滤掉已文档化的非缺陷。
+- **text-damage 归 A**：cross_edition_coverage 的模型是"B 嵌入 A"（KR1a0007 註疏
+  嵌 KR1a0006 王弼注），校准案例 卦61上九 损坏在 A。保持与 D-012 一致。
+- **DECISIONS 补记**：台账 §30-§42 引用 D-050..D-062 但 DECISIONS.md 实际止于
+  D-049（上窗口漏写），以台账为准补记——发现文档矛盾以内容源（台账）为准纠正
+  引用目标（DECISIONS），保持"唯一状态来源"纪律。

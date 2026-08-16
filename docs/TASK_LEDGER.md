@@ -1917,3 +1917,43 @@ check_quality PASS · verify_index ALL PASS · assess_goals G1-G9 PASS · 13 闸
 | quality F3 编码异常 | R16已修（evalset.raw_body fallback） | 已闭环 |
 
 - 决策记录：DECISIONS.md D-062（R16 审查：evalset.raw_body 编码异常防护修复，剩余待修项状态核实）
+
+## 43. 阶段2-R17 审查（2026-08-16，新窗口续作 HANDOVER_20260816_R16）
+
+### 43a. 阶段A 核实结果
+
+- **13 闸门基线**：亲自全跑，ALL PASS（works=44 units=61,732 suspect=20 → 修复后 10）。
+- **红线修复抽样**：R5/R8/R12/R16 commit 均真实存在且 diff 在代码里；R14 修复
+  亲见 llm_reader.py:220-221。
+- **交接矛盾纠正 1**：交接文档与台账引用 DECISIONS.md D-050..D-062，但该文件实际
+  止于 D-049（上窗口漏写）。以台账内容为准补记 D-050..D-062 入 DECISIONS.md。
+- **交接矛盾纠正 2（§3.2 PAT 隐患）**：git credential fill 证实 credential manager
+  已存 token，`git remote set-url` 移除明文 PAT，push 实测正常（commit a5d39ff）。
+- **llm_config.json 核实**：真实 sk- key 在文件里但 .gitignore:27 排除、从未进
+  版本史（git log --all 为空），无泄露。llm_reader messages 含 system 段（:202）。
+
+### 43b. R17 修复：F1 load_suspect 6/10 地址误归责（升级为红线级，见 DECISIONS D-063）
+
+**核实过程**：quality_report.json 10 low 地址 → load_suspect 全归 pair 的 A 作品 →
+6 个 B 侧 verdict（5 个 span-degenerate-B (EXPECTED) + 1 个 span-overextended-B）
+误标在 KR1a0006 → answer.py:72 剔除 suspect 命中 → KR1a0006 卦9初九/九二、卦46、
+卦58、卦51 共 6 地址健康文本被扣留出证据（L-20 危害类）。
+
+**修复**（ingest.load_suspect）：verdict 后缀归责（-B→B 作品，其余→A）；
+(EXPECTED) 非缺陷不入 suspect。实测 suspect 10 units/5 地址各归其主；
+answer_address(9,初九) KR1a0006 重新入证据；13 闸门全绿。
+
+### 43c. R17 剩余 F 项处置结论
+
+| 项 | 核实结论 | 处置 |
+|---|---|---|
+| F1 误归责 | 真缺陷（红线级，43b 已修） | 已闭环 |
+| F2 乱码不进 suspect | 属实但设计使然：junk 无校准阈值（Q-06），全作品进 suspect 会扣留整部书 | 记录 D-063，不改 |
+| F4 verdict 顺序 | if/elif 链顺序合理（短文本先判 span，避免短文本 subs 噪声触发 text-damage） | 不改 |
+| F5 min_len 盲区 | threshold 权衡已在 quality.py docstring 记录（166-171 行两个反例） | 不改 |
+| F6 报告陈旧性 | X-11b mtime 已入 build_meta 可检测；verify_index T10 已断言 provenance | 不改 |
+| F7 循环内 import | quality.py:233 import bisect 属风格问题 | 低，随手修 |
+| F8 CJK 范围不一致 | quality.CJK_RE（比较归一化）与 ingest._has_cjk（检测）用途不同 | 不改 |
+| llm prompt 注入 | system 段存在；注入只影响用户自己的查询；输出经 renderMD esc | 低，不改 |
+
+- 决策记录：DECISIONS.md D-063（R17 审查：F1 suspect 误归责红线修复+PAT 移除+决策补记）
