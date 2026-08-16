@@ -2077,3 +2077,16 @@ fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op
 4. probes/archive/ 60 个历史归档未审。
 5. 双轨并行：优化轨随时可能推进 main；下轮（R19a）先 fetch+rebase+重跑闸门
    再复审优化轨新代码（src/guji、web 进入复审视野——交叉制衡）。
+
+## 45. [审查轨] R19a 档案筛盘 + 交叉复审空转记录（2026-08-16）
+- **probes/archive/ 筛盘（残留风险#4 关闭）**：实际 57 文件（子 agent 初报 60，
+  以 `ls | wc -l` 为准）。危险类全量扫描：7 个含网络代码
+  （round2/round3/legge/text/text2/text3/structure），全部为经 127.0.0.1:7897
+  代理的 urllib 历史取数 probe；零 subprocess/eval/密钥/令牌。
+  台账/DECISIONS/scripts/活跃 probes 无一处引用 archive → 归档物无证据链
+  依赖，不需处置。
+- **优化轨交叉复审（阶段D）**：fetch 后 origin/main 仍停在审查轨自己的
+  c18a6d6——优化轨尚无新代码进 main，本轮无物可复审。下轮（R20a）先
+  `git fetch && git rebase origin/main` 再查 src/guji、web 新提交。
+- 本轮无代码改动（docs-only），闸门以 verify_index + check_quality 抽跑确认
+  基线未动；13 闸门全绿状态承袭 R18a 终态（c18a6d6 上 10 命令 exit 0 实测）。
