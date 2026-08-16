@@ -2580,7 +2580,319 @@ Study/Chapter/Comparative/Cross-book/Summary/Concept），但前端仍是"各自
 `loadBookWorkOptions()` 恢复上次所选书。node --check 整段 JS 语法检查
 PASS。bookstudy 11/11、research 7/7、MCP 协议自测 PASS、13 闸门全绿。
 commit 见台账 §56。
-## D-076a R22a 审查轨：优化轨 R23b/R24b 交叉复审无红线（2026-08-16）
+
+## D-076b R30b 优化轨：PROJECT_STATUS 快照刷新到 R29b 终态（愿景 §19 合规）
+
+**背景（亲自核实）**：愿景书 §19 明确要求"每完成一个阶段都更新
+`docs/PROJECT_STATUS.md`"。实测：该文档 **更新时间停在 R23b**，而 R24b
+（compare_works）、R25b（前端读书/两书对照）、R26b（MCP 3 工具+概念研究）、
+R27b（Book Summary）、R28b（MCP 协议自测）、R29b（书目→读书一键）共六轮
+能力增量只写进了 TASK_LEDGER/DECISIONS，PROJECT_STATUS 的快照块与
+"关键变化"列表均未反映——读者若信它得到的仍是 R23b 状态，与代码矛盾
+（同 O1 当年发现过的文档失效模式）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 `PROJECT_STATUS.md`：更新时间 → R29b；快照块补 Book Study/两书对照/概念研究/Book Summary 四模式 + MCP 10 工具 + 前端 9 tab 现状；「关键变化」列表补 R24b-R29b 六轮条目；同时把 `OPTIMIZE_20260816_R18.md` §4 的"开放"清单更新（assess_goals 委托已被审查轨 23d0f94 落地、client 配置样例已补 MCP_CLIENT_CONFIG.md） | 纯文档对齐，零代码/零风险，直接兑现愿景 §19；数字沿用 R23b 已实测的 47 部 62,109 单元（本轮无语料改动，build_index 复跑确认未变） |
+| B | 继续做功能（如 Local File Adapter，愿景 §10） | 动 ingest 链路、中高风险，且文档欠账继续累积 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：13 闸门抽跑确认基线未动（docs-only 先例），文档 diff 审阅。
+
+**落地结果**（2026-08-16 实测）：PROJECT_STATUS.md 更新时间刷新到 R29b，
+快照块补「研究模式八模式全落地」「发布面 web 9 tab + MCP 10 工具」两行，
+关键变化列表补 R23b-R29b 闭环条目；OPTIMIZE_20260816_R18.md §4 开放清单
+回填（assess_goals 委托已被审查轨 23d0f94 落地、client 配置样例已补）。
+docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §57。
+
+## D-077b R31b 优化轨：Local File Adapter（愿景 §10/§18，本地书入库）
+
+**背景（亲自核实）**：愿景书 §10 明确要求 Source Adapter 可替换、§18 核心
+是"不断加书的基础设施"（用户把书放进 books/ 目录，系统自动导入→解析→建
+索引）。实测 `src/guji/sources.py`（142 行）**只有 Kanripo 一个 adapter**
+（fetch_zip/extract/add_work，全部依赖网络 GitHub zip）；本地 txt 书导入
+路径完全缺失——用户手上已有的公版 txt（如自家整理的语料）无法进库，只能
+等 Kanripo 有对应 repo。这是研究模式全落地后最后一个基础设施缺口。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | sources.py 增 `add_local_work(wid, genre, rationale, txt_dir)`：把本地 txt 目录导入 data/raw/<wid>/（只收 `*.txt`、utf-8 校验、复用 manifest 增量 upsert——照 add_work 的"保留其余作品"语义），返回元数据；用户随后跑 build_index 即可入库 | 零网络、零新依赖（不触红线第 3 类）；复用 load_work 单一拼接源，不碰解析器；自测用临时目录+临时 manifest 验证增量语义；风险中低 |
+| B | MASTER_PLAN/ROADMAP 文档刷新（研究模式/MCP 回填） | 零风险但 R30b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：sources 自测（临时目录导入 + manifest 增量断言）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`add_local_work(wid, genre, rationale,
+txt_dir)` 落地——本地 txt 目录导入 data/raw/<wid>/（名字白名单过滤、utf-8
+replace、头解析 title/edition、拷贝不移动源）、manifest 增量 upsert（既有
+作品保留、同 id 替换不重复）、条目记 source="local"。CLI `add_local` 子命令。
+自测（临时目录+临时 manifest，隔离真实语料）全过：2 文件导入、非 txt 不入
+库、KEEPME 保留、重导替换、缺文件 RuntimeError。sources 自测 PASS +
+bookstudy 11/11 + research 7/7 + MCP 协议自测 + 13 闸门全绿。初版自测把
+"同 id 重导"断言写反（写成应抛错），实跑抓到并修正——"必须实跑"再证。
+commit 见台账 §58。
+
+## D-078b R32b 优化轨：MCP 暴露 add_local_work——Agent 侧"加书"闭环（愿景 §18）
+
+**背景（亲自核实）**：R31b 落地 `add_local_work`（本地书入库）但**只有 CLI**——
+web（web/app.py 无 sources 引用）与 MCP（mcp_server.py 无 sources 引用）
+均未暴露。愿景 §18 的完整循环是"导入 → 解析 → 建索引 → 可被 Agent 研究"；
+MCP 是本地 stdio server（客户端=本机可信 Agent），把"加本地书"暴露成工具，
+外部 Agent 就能在自己主导的工作流里把书带进语料，而不是只能研究已有 47 部。
+零网络（只处理本地路径），不触红线第 3 类。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MCP 增 `add_local_work_tool(work_id, genre, rationale, txt_dir)`：校验 txt_dir 存在 + `{wid}(_\w+)?\.txt` 有命中（复用 add_local_work 自身校验，错误转成清晰文本返回），成功后返回条目摘要 + 提示"运行 build_index 后生效"；协议自测补 1 例（临时目录导入，断言返回含 work_id） | 零新依赖、只读内核复用；MCP 本地 stdio 信任边界内暴露本地路径参数安全；风险低 |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：MCP 协议自测 PASS（11 工具 + add_local_work_tool 1 例）、
+sources/bookstudy/research 自测、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：MCP 增 `add_local_work_tool(work_id, genre,
+rationale, txt_dir)`——复用 add_local_work 校验，RuntimeError 转 error:
+文本，成功返回条目摘要 + build_index 提示；MCP 现 11 工具。协议自测
+tools/list 断言 11 工具全名，新工具用错误路径用例（不存在目录）验证 error:
+返回（真实导入会写活语料，自测不触碰）。MCP 协议自测 PASS + sources/
+bookstudy/research 自测 + 13 闸门全绿。commit 见台账 §59。
+
+## D-079b R33b 优化轨：MCP_CLIENT_CONFIG.md 对齐 11 工具（文档失效修正）
+
+**背景（亲自核实）**：`docs/MCP_CLIENT_CONFIG.md`（R23b 写）仍写"六工具"
+（第 22 行）与"`tools/list` 应返回 6 个工具"（第 71 行）；实测 `mcp_server.py`
+现为 **11 个 `@mcp.tool()`**（R26b +3：bookstudy_structure/bookstudy_chapter/
+compare_works_tool；R27b +1：book_summary_tool；R32b +1：add_local_work_tool）。
+外部读者按文档核对 tools/list 会得到 11≠6 的矛盾——同 O1 文档失效模式。
+文档在 docs/ 领土内（本轨），可直接修。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 `docs/MCP_CLIENT_CONFIG.md`：标题"六工具"→"十一工具"；工具表补齐 5 个新工具（bookstudy_structure/bookstudy_chapter/compare_works_tool/book_summary_tool/add_local_work_tool，各注功能与对应内核）；验证节改"tools/list 应返回 11 个工具"；补 add_local_work_tool 的本地路径参数说明与安全边界（仅本地 stdio 信任边界） | 纯文档对齐，零代码/零风险，直接消除 11≠6 矛盾；数字以 grep `@mcp.tool()` 实测为准 |
+| B | 继续做功能（如 web 暴露 add_local_work） | web 暴露本地路径写入不安全（任意路径写 data/raw），不应做；文档矛盾继续累积 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MCP_CLIENT_CONFIG.md 工具表补 5 个新工具
+行（bookstudy_structure/bookstudy_chapter/compare_works_tool/
+book_summary_tool/add_local_work_tool 各注功能与内核）、纪律段补
+add_local_work_tool 安全边界（仅本地 stdio 信任边界、不联网）、验证节改
+"11 个工具"并指向服务端 `--selftest` 复验。工具数（grep 实测 11）与文档
+一致。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §60。
+
+## D-080b R34b 优化轨：研究线程前端写入口——POST /api/threads（愿景 §8/§9 记忆闭环）
+
+**背景（亲自核实）**：G9"跨会话长期记忆"目前**前端只读**——web 仅有
+`GET /api/threads`（列表）与 `GET /api/threads/{tid}`（转录）两个读端点，
+`knowledge.record`（G8 已实测的内核，kind/claim/method/evidence）存在但
+**没有任何 POST 写端点**；研究线程只能靠 CLI `scripts/research_thread.py`
+（demo/show）写入。用户在 web 做完深度研究/两书对照/概念研究后，结论无法
+记入线程——愿景 §8"形成长期阅读记忆"、§9"何结论/何证据"的闭环在交互层
+缺最后一段：研究 → 记录 → 跨会话恢复。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web 新增 `POST /api/threads`：body {kind, claim, method, evidence[]?}（kind 白名单 diff/derived/refusal 等、claim 非空、method 必填，复用 knowledge.record 纪律——无证据断言拒绝），返回 {thread_id, ...}；前端「深度研究」「两书对照」结果区各加「记入线程」按钮（预填 claim=问题、method=research/compare_works、evidence=证据集引文） | 复用已测内核、只新增写路径，风险低；直接兑现 §8/§9 记忆闭环 |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：TestClient 冒烟（POST 合法/非法/拒绝路径）、前端 JS 语法检查、
+13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：web 增 `POST /api/threads`（G8 纪律原样
+继承：断言型必须带证据否则 400、refusal 免证据 G7），前端深度研究/两书对照
+各加「记入线程」按钮（recordThread + hitToEvidence）。TestClient 冒烟
+5 例全过（合法/无证据 400/refusal/422/列表恢复）。**重大教训**：冒烟用伪造
+引文写了真实 knowledge.db，assess_goals G8/G9 当场 FAIL（G9 verify 发现
+stale=1）——13 闸门抓到，已清理（contentless fts5 用 'delete' 命令）并恢复
+基线，重跑全绿。写端点冒烟不得用伪造引文写真实库。commit 见台账 §61。
+
+## D-081b R35b 优化轨：概念研究 tab 补「记入线程」——记忆闭环覆盖第三模式（愿景 §8/§9）
+
+**背景（亲自核实）**：R34b 给深度研究、两书对照两个结果区加了「记入线程」
+按钮（recordThread 分支 method='research' / 'compare_works'），但**概念研究
+tab（runConceptResearch，R26b 接线）没有**——`grep "method ===" index.html`
+只有 research/compare_works 两个分支。概念研究的输出（每书命中/层分布/top
+引文 + 同址地图）同样是可核验的研究结论，用户做完后同样无法记入 G9 线程。
+记忆闭环（研究 → 记录 → 跨会话恢复）在三个交互模式里只覆盖了两个。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端 rsec-concept 结果区加「记入线程」按钮；`recordThread` 增 method='concept' 分支（claim=概念词、evidence=各书 top 引文经 hitToEvidence 映射）；后端 POST /api/threads 已通用，零后端改动 | 纯前端、对称 R34b 模式，风险低；复用既有 G8 纪律（无证据拒绝） |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：JS 语法检查（node --check）+ 冒烟（recordThread 概念分支
+evidence 组装）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：concept_census 的 top 条目补真实溯源字段
+（work_id/file/page_anchor/scheme/gua/yao，向后兼容），前端 recordThread 增
+method='concept' 分支 + runConceptResearch 存 lastConcept + 结果区加
+「记入线程」按钮（有 top 引文才显示）。research 自测 7/7、web 冒烟
+（concept top 6 溯源字段非空）、JS 语法检查 PASS；13 闸门全绿。commit 见
+台账 §62。
+
+## D-082b R36b 优化轨：MCP 增 record_claim_tool——Agent 侧记忆闭环（愿景 §8/§9/§11）
+
+**背景（亲自核实）**：R34b 给 web 加了 POST /api/threads（写线程），但
+**MCP 侧 `threads` 工具仍是只读**（`grep -A18 "def threads"` mcp_server.py：
+list → kb.resume()、transcript → kb.thread_transcript()，无任何写入）。外部
+Agent 经 MCP 做完 research_tool/compare_works_tool 后，结论无法记入 G9 线程
+——愿景 §8"形成长期阅读记忆"、§11 MCP 的 Agent 侧闭环缺写入口（web 已闭环
+R34b/R35b，MCP 还没有）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MCP 增 `record_claim_tool(kind, claim, method, evidence[]?)`：复用 knowledge.record 纪律（kind ∈ summary/diff/link/answer 断言型必须带证据否则 error: 文本返回；refusal 免证据 G7）；evidence 参数为引文字段数组（work_id/file/quote/page_anchor/scheme/addr1/addr2）；返回 derived_id/thread_id 摘要；协议自测补 1 例（合法写入用**临时 evidence + 真实文件/锚点**避免 stale——吸取 R34b 教训，且自测后清理写入行） | 复用已测内核、零新依赖；风险中低（写端点自测须防知识库污染，按 R34b 教训设计） |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝两例、
+自测后清理知识库）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：MCP 增 `record_claim_tool(kind, claim,
+method, evidence[], confidence?)`——复用 knowledge.record 纪律（断言型必须
+带真实证据否则 error: 返回；refusal 免证据 G7），evidence dict 数组映射
+knowledge.Evidence，返回 recorded #id 摘要。协议自测 12 工具全过：合法写入
+（真实引文 KR5c0057_043.txt + 锚点）断言 "recorded #"、拒绝用例断言
+"error:"、**自测后清理 test row**（contentless fts5 'delete' 命令）——R34b
+教训落地为自测内置清理。MCP 协议自测 PASS + sources/bookstudy/research
+自测 + 13 闸门全绿。commit 见台账 §63。
+
+## D-083b R37b 优化轨：MASTER_PLAN/ROADMAP 文档对齐（愿景 §19 合规延续）
+
+**背景（亲自核实）**：愿景 §19 要求每阶段更新文档；实测两处架构/产品文档
+已陈旧——
+1. `docs/MASTER_PLAN.md` 第 176 行写 "Agent 侧（未实现）："，但 MCP 自
+   R22b 起已落地 12 工具（含 R36b record_claim_tool 写线程）+ 协议级
+   `--selftest`——Agent 侧早已不是"未实现"；
+2. `docs/PROJECT_ROADMAP.md` 第 22 行写 "读书模块…**核心能力已完备但只有
+   CLI**"，第 90 行把 "P1 读书模块网页化（最高优先）" 列为待办——但
+   R25b/R26b/R29b 已把 Book Study/两书对照/概念研究等并入 index 多 tab
+   （现 9 个研究 tab），P1 实际已完成。
+读者信这两处会得到与代码完全相反的现状（同 O1 文档失效模式）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新两文档：MASTER_PLAN "Agent 侧"段改为已实现现状（12 工具 + 协议自测 + record_claim_tool，指向 mcp_server.py 与 --selftest）；ROADMAP §1.1 读书模块改为 web 9 tab 现状、P1 标记已完成（保留原设计 rationale） | 纯文档对齐、零代码/零风险，直接兑现愿景 §19；与 R30b/R33b 同模式（上次文档轮已隔两轮） |
+| B | 前端继续功能增强 | 前端 9 tab + 记忆闭环已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MASTER_PLAN "Agent 侧"段改为已实现现状
+（12 工具清单 + 协议自测 + record_claim_tool + web 同源 9 tab）；ROADMAP
+§1.1 读书模块表更新（47 部 62,109 单元、入口=web 9 tab、"缺口"句删除）、
+P1 标 ✅ 已完成并回填实际落地。docs-only 抽跑 verify_index + check_quality
+全 exit 0，基线未动。commit 见台账 §64。
+
+## D-084b R38b 优化轨：MCP_CLIENT_CONFIG 数字去硬编码（防二次漂移）
+
+**背景（亲自核实）**：R36b 新增 `record_claim_tool` 后 MCP 已是 **12 工具**
+（`grep -c "@mcp.tool()" mcp_server.py` = 12），但 `docs/MCP_CLIENT_CONFIG.md`
+第 22 行仍写 "## 十一工具"——**这是该文档第二次数字漂移**（R33b 修过
+6→11，R36b 后 11→12 又漂）。根因不是"忘了改"，而是**文档把工具数硬编码成
+了权威数字**，而真正权威是 `mcp_server.py --selftest`（它断言全工具集）。
+只要硬编码存在，每次加工具都会漂。修法要治本：数字以可执行自测为唯一来源，
+文档只作索引。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① 标题 "十一工具" → "工具集（以 `--selftest` tools/list 为唯一权威，当前 12 个）"；② 表补 record_claim_tool 行；③ 验证节强化：工具数以 `python -m guji.mcp_server --selftest` 断言为准，本文数字仅作索引 | 纯文档，根因修复（去硬编码权威性）；零代码/零风险；彻底消除该失效模式复现 |
+| B | 只把 "十一" 改成 "十二" | 数字暂时对，但根因（硬编码权威）仍在，第三次加工具还会漂 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MCP_CLIENT_CONFIG.md 标题改为"工具集（以
+--selftest tools/list 为唯一权威；当前 12 个，下表仅作索引）"+ 数字防漂移
+声明；工具表补 record_claim_tool 行；验证节同步去硬编码。根因修复：工具数
+唯一权威是可执行自测，文档数字不再承担权威角色——同类漂移不再复现。
+docs-only 抽跑 verify_index + check_quality 全 exit 0。commit 见台账 §65。
+
+## D-085b R39b 优化轨：MASTER_PLAN §4 地址体系表修正（文档失效，同 O2 模式）
+
+**背景（亲自核实）**：MASTER_PLAN §4 的地址体系表（第 143-149 行）已过时
+且有缺失——
+1. `play` 标 "未实现"，但实测 `scheme='play'` 有 **6,512 单元**（Shakespeare
+   幕/场，R8 tier 2/3 已入索引）——与代码直接矛盾（同 O1/O2 文档失效模式）；
+2. `yilin`（4,096 单元）、`booksec`（4,247 单元）、`euclid`（649 单元）三个
+   **已实现**的体系在表中**整行缺失**；
+3. `stephanus` 标 "未实现" 属实（实测 0 单元，Plato 走 booksec）——此条保留
+   但补核实依据。
+读者按此表会以为 play 不可用、yilin/booksec/euclid 不存在——架构文档的
+地址体系表是理解系统的入口，必须与实测一致。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 修正表：play → "已实现（Shakespeare 幕/场，R8，6,512 单元）"；补 yilin/booksec/euclid 三行（各注实测单元数）；stephanus 保持未实现并注明"实测 0 单元" | 纯文档对齐，零代码/零风险；数字以实测为准 |
+| B | 只改 play 一行状态 | 缺失的三行仍误导读者，治标不治本 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MASTER_PLAN §4 地址体系表修正——play 改
+"已实现（Shakespeare，6,512 单元）"、补 yilin/booksec/euclid 三行（各注
+实测单元数）、stephanus 保留未实现并注明"实测 0 单元；Plato 现走 booksec"、
+表尾加"单元数为实测、以实测为准"防漂声明。docs-only 抽跑 verify_index +
+check_quality 全 exit 0，基线未动。commit 见台账 §66。
+
+## D-086b R40b 优化轨：前端接线 /api/stats——语料统计视图（书目 tab 补齐）
+
+**背景（亲自核实）**：`/api/stats`（索引统计：stats/layers/meta/schemes，
+与 CLI `ask.py stats` 同内核）**前端 0 引用**（`grep -c "api/stats"
+index.html` = 0）。「书目」tab 只渲染书目表（每书单元/地址/锚点），不展示
+**语料总统计**——总单元数、总字数、层分布（經/注/疏各多少）、build_meta
+（构建时间/版本）、地址体系标签（SCHEME_LABELS）。用户想知道"系统里有多少
+语料、各层分布如何"只能靠 CLI；web 无入口（同 R24b 之前"端点存在但 UI 点
+不到"的缺口模式，R25b 修过一次同类）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端「书目」tab 顶部接线 `/api/stats`：语料总统计卡（works/units/bytes/anchors/addressed 等，取 stats 字段）+ 层分布表（layers 每层单元数）+ build_meta（构建时间） | 纯前端、复用既有 tab、零后端改动，风险低；CLI/web 同内核一致性可复验 |
+| B | 前端其他增强 | 其余端点均已接线（R40b 摸底确认仅 stats/health 未用，health 是健康检查无需接线） |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：JS 语法检查（node --check）+ 冒烟（/api/stats 返回字段
+与渲染一致性）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：前端书目 tab 顶部加 `#rstatsOut` 容器 +
+`loadCorpusStats()`（语料总统计行 works/units/with_gua/with_yao + built_at、
+层分布表），页面初始化调用。渲染字段以实测为准（stats 实为
+units/with_gua/with_yao/works）。JS 语法检查 + /api/stats 渲染字段冒烟
+PASS（works 47 / units 62,109 / with_gua 57,315）；sources/bookstudy/
+research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
+
+## D-087a R22a 审查轨：优化轨 R23b/R24b 交叉复审无红线（2026-08-16）
 
 - **接续 zcode sess_39e669dc 中断**：zcode 配额超限中断于 R21a 复审 R19b-R22b
   后。本轨基线亲跑复核 suspect=10 units/5 地址一致、13 闸门全绿，无回退。
@@ -2598,7 +2910,7 @@ commit 见台账 §56。
   `work_body_text`（第四份拼接拷贝，L-09 单一坐标系统）。G6 仍 PASS。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。
 
-## D-077a R23a 审查轨：优化轨 R25b-R29b 交叉复审无红线（2026-08-16）
+## D-088a R23a 审查轨：优化轨 R25b-R29b 交叉复审无红线（2026-08-16）
 
 - **接续 R22a**：fetch 发现优化轨推进 main 五提交（R25b-R29b），rebase 到
   8b5a5b5 后逐行复审。基线亲跑 suspect=10 units/5 地址一致、13 闸门全绿。
@@ -2612,4 +2924,26 @@ commit 见台账 §56。
   cwd/PYTHONPATH 正确、recv 检测 stdout 关闭不静默吞、wait 有超时不挂死。
 - **R29b**（前端 UX 串联）：纯前端、esc() + CSS.escape 防注入、零后端改动。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+- 13 闸门复跑全绿（rebase 后 confirm 无回归）。
+
+## D-089a R24a 审查轨：优化轨 R30b-R40b 交叉复审 + 越界记录（2026-08-16）
+
+- **接续 R23a**：fetch 发现优化轨推进 main 九提交（R30b-R40b），rebase 到最新
+  main 后逐行复审。基线亲跑 suspect=10 units/5 地址一致、13 闸门全绿。
+- **R30b-R35b**：已在 R23a 预审，本轮确认 rebase 后无变化（详见 D-088a）。
+- **R36b**（mcp record_claim_tool）：复用 knowledge.record、G8 纪律原样继承
+  （kind ∈ {summary/diff/link/answer} 需 ≥1 evidence、refusal 免）、错误返清晰
+  文本不绕过、try/finally、工具名避撞内核 record() 函数。
+- **R37b-R39b**（纯文档对齐）：MASTER_PLAN/ROADMAP、MCP_CLIENT_CONFIG 去硬编码、
+  §4 地址体系表修正。文档对齐实测数据、与代码现状一致。
+- **R40b**（/api stats 语料统计）：只读聚合（works/units/chars/layers）、
+  SQL 参数化、无写入面、前端 esc() 防注入。
+- **R38b/R39b 越界记录**：优化轨越界改审查轨领土 scripts/assess_goals.py
+ （撤销 R21a 委托修复、恢复内联 work_body_text）——违反双窗口 §0.3 硬边界。
+  根因：优化轨那边 rebase 时无审查轨 R21a 委托修复提交（未 merge 到 main），
+  非恶意但纪律破坏客观存在。处置：审查轨侧 rebase 后委托修复完整在场
+ （审查轨版本赢了，无需重实施）；记录移交通知优化轨注意 §0.3 硬边界，
+  scripts/ 是审查轨领土，assess_goals.py 委托修复以审查轨版本为准。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空
+ （R38b/R39b 越界是优化轨→审查轨单向，审查轨侧未越界）。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。

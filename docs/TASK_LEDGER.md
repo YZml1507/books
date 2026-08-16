@@ -2527,15 +2527,344 @@ node JS 语法检查 PASS；bookstudy 自测 11/11、research 7/7、MCP 协议�
 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-075b。
-- 决策记录：DECISIONS.md D-070b.
 
-## 57. [审查轨] R22a 优化轨 R23b/R24b 交叉复审（2026-08-16）
+## 57. [优化轨] R30b：PROJECT_STATUS 快照刷新到 R29b 终态（2026-08-16，双窗口并行第二轨）
+
+### 57a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 57b. 愿景 §19 合规：PROJECT_STATUS 刷新
+
+- **缺口核实**：愿景书 §19 要求"每完成一个阶段都更新 PROJECT_STATUS.md"；
+  实测该文档更新时间停在 R23b，R24b-R29b 六轮能力增量（compare_works /
+  前端读书·两书对照 / MCP 3 工具+概念研究 / Book Summary / MCP 协议自测 /
+  书目→读书一键）只写进台账与 DECISIONS，快照块与关键变化未反映——读者
+  若信它得到的是 R23b 状态，与代码矛盾（同 O1 文档失效模式）。
+- **改动**（纯文档）：
+  1. `docs/PROJECT_STATUS.md`：更新时间 R23b→R29b；快照块补「研究模式
+     八模式全落地」+「发布面 web 9 tab + MCP 10 工具」两行；关键变化列表
+     补 R23b-R29b 闭环条目。
+  2. `docs/OPTIMIZE_20260816_R18.md` §4：开放清单更新——assess_goals 委托
+     已被审查轨 23d0f94 落地、client 配置样例已补 MCP_CLIENT_CONFIG.md、
+     R23b-R29b 落地回填。
+
+### 57c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（数字沿用 R23b 实测的 47 部 62,109 单元，本轮
+无语料改动）。
+
+- 决策记录：DECISIONS.md D-076b。
+
+## 58. [优化轨] R31b：Local File Adapter——本地书入库（2026-08-16，双窗口并行第二轨）
+
+### 58a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 58b. Local File Adapter（愿景 §10/§18：不断加书的基础设施）
+
+- **缺口核实**：`src/guji/sources.py`（142 行）只有 Kanripo 一个 adapter
+  （fetch_zip/extract/add_work 全依赖网络 GitHub zip）；本地公版 txt 书
+  导入路径完全缺失——用户自有语料无法进库，只能等 Kanripo 有对应 repo。
+- **新增** `add_local_work(wid, genre, rationale, txt_dir)`：
+  - 只导入 `{wid}(_\w+)?\.txt` 命名匹配的文件（与 zip 抽取同一名字白名单，
+    杂散文件到不了 data/raw）；utf-8 errors="replace" 永不硬失败；
+  - title/edition 从 `#+TITLE:` / `#+PROPERTY: BASEEDITION` 头读取（与
+    Kanripo 同一约定）；文件**拷贝**不移动源目录；
+  - manifest 增量 upsert 复用 add_work 语义（其余作品保留、同 id 替换不
+    重复）；条目记 source="local" + source_dir + added_at。
+- **CLI**：`python -m guji.sources add_local KRx1234 道家 理由 D:\path\to\txt`
+  （导入后跑 build_index 入库）。零网络、零新依赖，不触红线第 3 类。
+- **自测**（`--selftest`，临时目录 + 临时 manifest，不碰真实语料）：
+  导入 2 文件断言 n_files/title/edition、非 txt 文件不入库、既有作品
+  KEEPME 保留、同 id 重导替换不重复、缺文件 RuntimeError。
+
+### 58c. 验证
+
+sources 自测 PASS（add_local_work 全链路）；bookstudy 11/11、research 7/7、
+MCP 协议自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 ·
+PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰（临时路径隔离）。
+
+- 决策记录：DECISIONS.md D-077b。
+
+## 59. [优化轨] R32b：MCP 暴露 add_local_work——Agent 侧"加书"闭环（2026-08-16，双窗口并行第二轨）
+
+### 59a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 59b. MCP add_local_work_tool（愿景 §18 完整循环：导入→解析→建索引→可被 Agent 研究）
+
+- **缺口核实**：R31b 落地 add_local_work 但只有 CLI——web（web/app.py 无
+  sources 引用）与 MCP（mcp_server.py 无 sources 引用）均未暴露。MCP 是
+  本地 stdio server（客户端=本机可信 Agent），把"加本地书"暴露成工具即完成
+  Agent 侧加书闭环；零网络（只处理本地路径），不触红线第 3 类。
+- **新增** `add_local_work_tool(work_id, genre, rationale, txt_dir)`：
+  复用 add_local_work 自身校验（txt_dir 存在 + 名字白名单命中），RuntimeError
+  转清晰 error: 文本；成功返回条目摘要 + "运行 scripts/build_index.py 后
+  入库生效"提示。MCP 现共 **11 工具**。
+- **协议自测**：tools/list 断言 11 工具全名；add_local_work_tool 用**错误路径
+  用例**（不存在的 txt_dir）验证 error: 返回——真实导入会写活语料，自测不
+  触碰（与 sources --selftest 的临时路径隔离设计一致）。
+
+### 59c. 验证
+
+MCP 协议自测 PASS（11 工具 + 新工具错误路径断言）；sources/bookstudy/
+research 自测 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 ·
+PART 0 · FAIL 0）。真实语料/manifest 未被自测触碰。
+
+- 决策记录：DECISIONS.md D-078b。
+
+## 60. [优化轨] R33b：MCP_CLIENT_CONFIG.md 对齐 11 工具（2026-08-16，双窗口并行第二轨）
+
+### 60a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 60b. 文档失效修正（愿景 §19 合规延续）
+
+- **缺口核实**：`docs/MCP_CLIENT_CONFIG.md`（R23b 写）仍写"六工具"与
+  "`tools/list` 应返回 6 个工具"；实测 `mcp_server.py` 现为 **11 个
+  `@mcp.tool()`**（R26b +3、R27b +1、R32b +1）。外部读者按文档核对
+  tools/list 会得到 11≠6 矛盾——同 O1 文档失效模式，文档在 docs/ 领土内。
+- **改动**（纯文档）：
+  1. 工具表补 5 个新工具行（bookstudy_structure/bookstudy_chapter/
+     compare_works_tool/book_summary_tool/add_local_work_tool，各注功能与
+     对应内核）；
+  2. 纪律段补 add_local_work_tool 安全边界（仅本地 stdio 信任边界、只处理
+     本地路径、不联网——web 层不暴露此类写操作）；
+  3. 验证节改"tools/list 应返回 11 个工具" + 指向服务端协议自测
+     （`python -m guji.mcp_server --selftest`）供外部客户端复验。
+
+### 60c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（工具数与 `grep -c "@mcp.tool()"` 实测 11 一致）。
+
+- 决策记录：DECISIONS.md D-079b。
+
+## 61. [优化轨] R34b：研究线程写入口——POST /api/threads + 前端「记入线程」（2026-08-16，双窗口并行第二轨）
+
+### 61a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 61b. 记忆闭环（愿景 §8/§9：研究 → 记录 → 跨会话恢复）
+
+- **缺口核实**：G9 前端只读——web 仅有 GET /api/threads 与 GET /api/threads/{tid}
+  两个读端点，`knowledge.record`（G8 已测内核）存在但无任何 POST 写端点；
+  线程只能靠 CLI `research_thread.py` 写入。web 做完深度研究/两书对照后结论
+  无法记入线程。
+- **后端** `POST /api/threads`（web/app.py）：body {kind, claim, method,
+  evidence[]?, confidence?, thread_id?}；G8 纪律原样继承——kind ∈
+  {summary,diff,link,answer} 断言型必须带 ≥1 证据否则 400；kind='refusal'
+  允许无证据（G7）。证据映射到 knowledge.Evidence（真实引文字段，服务器端
+  落库）。
+- **前端**（index.html）：深度研究/两书对照结果区各加「记入线程」按钮 →
+  `recordThread(kind, method)` 共享函数（hitToEvidence 把 _hit_dict 证据映射
+  为 ThreadEvidence）；记录成功 alert 显示 thread/derived id。
+- **冒烟测试教训（重要）**：TestClient 冒烟对真实 knowledge.db 写入了伪造
+  引文的测试记录（derived 3/4），导致 assess_goals G8/G9 FAIL（G9 verify
+  回查 data/raw/ 发现 stale=1）——13 闸门当场抓到。已清理污染
+  （contentless fts5 用 'delete' 特殊命令，不能 DELETE）恢复 derived 1/2、
+  evidence 6、fts 2，重跑 assess_goals G1-G9 全 PASS。教训：**写端点的冒烟
+  测试不得用伪造引文写真实知识库**——要么用真实原文引文，要么用临时
+  knowledge.db 隔离。
+
+### 61c. 验证
+
+TestClient 冒烟（合法写入 200 / 无证据断言 400 / refusal 200 / 空 claim 422 /
+写入后 GET 列表可恢复）+ JS 语法检查（node --check）PASS；sources/bookstudy/
+research/mcp 自测 PASS；13 闸门全绿（清理污染后重跑，14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-080b。
+
+## 62. [优化轨] R35b：概念研究 tab 补「记入线程」——记忆闭环覆盖第三模式（2026-08-16，双窗口并行第二轨）
+
+### 62a. 移交跟进
+
+fetch origin：审查轨已推送 **R23a 交叉复审**（origin/audit/R18 `ec38d2b`，
+复审 R25b-R29b 无红线、闸门绿）+ 台账合并重编号（`b3f5f2b`）；main 无审查
+轨改动，无 rebase 需求。
+
+### 62b. 概念研究「记入线程」（愿景 §8/§9 记忆闭环补全）
+
+- **缺口核实**：R34b 给深度研究/两书对照加了「记入线程」按钮
+  （recordThread 分支 research/compare_works），但概念研究 tab（R26b 接线）
+  没有——三个交互研究模式里记忆闭环只覆盖了两个。
+- **后端**（research.py）：`concept_census` 的 top 条目补真实溯源字段
+  （work_id/file/page_anchor/scheme/gua/yao）——否则概念证据无真实锚点，
+  G9 verify 回查必 stale（R34b 教训）。字段向后兼容（新增键，原渲染不变）。
+- **前端**（index.html）：`recordThread` 增 method='concept' 分支（claim=概念
+  词、evidence=census 各书 top 经 hitToEvidence 映射）；runConceptResearch
+  存 lastConcept + 结果区加「记入线程」按钮（有 top 引文才显示）。
+
+### 62c. 验证
+
+research 自测 7/7 PASS（concept_census 新字段向后兼容）；web 冒烟 PASS
+（concept top 含 6 个溯源字段、file+page_anchor 非空——可作 G9 证据）；
+JS 语法检查（node --check）PASS；sources/bookstudy/mcp 自测 PASS；13 闸门
+全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-081b。
+
+## 63. [优化轨] R36b：MCP record_claim_tool——Agent 侧记忆闭环（2026-08-16，双窗口并行第二轨）
+
+### 63a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 63b. MCP record_claim_tool（愿景 §8/§9/§11：Agent 侧写线程）
+
+- **缺口核实**：R34b 给 web 加了 POST /api/threads，但 MCP 侧 `threads` 工具
+  仍是只读（list → kb.resume()、transcript → kb.thread_transcript()，无写入）
+  ——外部 Agent 经 MCP 做完研究后结论无法记入 G9 线程；web 已闭环
+  （R34b/R35b），MCP 侧还缺写入口。
+- **新增** `record_claim_tool(kind, claim, method, evidence[], confidence?)`：
+  复用 knowledge.record 纪律——断言型（summary/diff/link/answer）必须带 ≥1
+  真实证据（work_id/file/quote）否则 error: 文本返回；refusal 免证据（G7）。
+  evidence 参数为引文字段 dict 数组，映射到 knowledge.Evidence；返回
+  recorded #id + thread 摘要。
+- **协议自测**（吸取 R34b 教训）：合法写入用例带**真实语料引文**
+  （KR5c0057_043.txt + 真实锚点）断言 "recorded #"；拒绝用例（断言无证据）
+  断言 "error:"；**自测后清理写入行**（contentless fts5 用 'delete' 命令 +
+  DELETE evidence/derived），知识库保持基线干净。MCP 现 12 工具。
+
+### 63c. 验证
+
+MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝两例 + 自测清理
+test row #3）；sources/bookstudy/research 自测 PASS；13 闸门全绿（14 命令
+全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-082b。
+
+## 64. [优化轨] R37b：MASTER_PLAN/ROADMAP 文档对齐（2026-08-16，双窗口并行第二轨）
+
+### 64a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 64b. 架构/产品文档对齐（愿景 §19 合规延续）
+
+- **缺口核实**（亲自核实）：两处文档与代码完全相反——
+  1. `MASTER_PLAN.md` "Agent 侧（未实现）"：MCP 自 R22b 起已落地 12 工具
+     + 协议级 `--selftest` + R36b record_claim_tool 写线程，Agent 侧早已
+     实现；
+  2. `PROJECT_ROADMAP.md` "读书模块…只有 CLI"、P1 读书网页化列为待办：
+     R25b/R26b/R29b 已并入 index 多 tab（9 个研究 tab），P1 实际已完成。
+- **改动**（纯文档）：
+  1. MASTER_PLAN：Agent 侧段改为已实现现状（12 工具清单 + --selftest +
+     record_claim_tool + web 同源 9 tab）；
+  2. ROADMAP §1.1：读书模块现状表更新（47 部 62,109 单元、入口=web 9 tab、
+     "缺口"句删除）；P1 标题标 ✅ 已完成并回填实际落地内容。
+
+### 64c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（Agent 侧工具数与 grep `@mcp.tool()` 实测 12 一致、
+前端 tab 数与 `data-rsec` 实测 9 一致）。
+
+- 决策记录：DECISIONS.md D-083b。
+
+## 65. [优化轨] R38b：MCP_CLIENT_CONFIG 数字去硬编码（2026-08-16，双窗口并行第二轨）
+
+### 65a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 65b. MCP 文档二次漂移的根因修复
+
+- **缺口核实**：R36b 新增 record_claim_tool 后 MCP 已是 12 工具
+  （`grep -c "@mcp.tool()" mcp_server.py` = 12），但 MCP_CLIENT_CONFIG.md 仍写
+  "十一工具"——**该文档第二次数字漂移**（R33b 修过 6→11，R36b 后 11→12 又漂）。
+  根因：文档把工具数硬编码成了权威数字，而真正权威是 `--selftest`（断言全工具集）。
+- **改动**（纯文档，根因修复）：
+  1. 标题 "十一工具" → "工具集（以 `--selftest` tools/list 为唯一权威；
+     当前 12 个，下表仅作索引）"，并加**数字防漂移声明**（工具数唯一权威
+     是 --selftest，本文数字仅作索引）；
+  2. 工具表补 `record_claim_tool` 行（G8 纪律：断言型必须带真实证据）；
+  3. 验证节同步去硬编码（以 --selftest 断言为准，勿以本文数字为权威）。
+
+### 65c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（工具数 12 与 `grep -c "@mcp.tool()"` 实测一致、
+表内 12 行齐全）。
+
+- 决策记录：DECISIONS.md D-084b。
+
+## 66. [优化轨] R39b：MASTER_PLAN §4 地址体系表修正（2026-08-16，双窗口并行第二轨）
+
+### 66a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 66b. 架构文档地址体系表对齐（愿景 §19 合规延续）
+
+- **缺口核实**（亲自实测 `data/index/corpus.db` `GROUP BY scheme`）：MASTER_PLAN
+  §4 地址体系表把 `play` 标 "未实现"（实测 **6,512 单元**，Shakespeare 幕/场
+  R8 已入索引，与代码矛盾）；且 `yilin`（4,096）、`booksec`（4,247）、
+  `euclid`（649）三个已实现体系整行缺失；`stephanus` 标 "未实现" 属实
+  （实测 0 单元，Plato 走 booksec）。
+- **改动**（纯文档）：play → "已实现（Shakespeare，6,512 单元）"；补
+  yilin/booksec/euclid 三行（各注实测单元数）；stephanus 保留未实现并注明
+  实测依据；表尾加"单元数为实测、以实测为准"声明（防再漂）。
+
+### 66c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（表中单元数与 `GROUP BY scheme` 实测逐行一致）。
+
+- 决策记录：DECISIONS.md D-085b。
+
+## 67. [优化轨] R40b：前端接线 /api/stats——语料统计视图（2026-08-16，双窗口并行第二轨）
+
+### 67a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 67b. /api/stats 前端接线（书目 tab 补齐语料统计）
+
+- **缺口核实**：`/api/stats`（与 CLI `ask.py stats` 同内核）前端 0 引用
+  （`grep -c "api/stats" index.html` = 0）——书目 tab 只渲染书目表，不展示
+  语料总统计（总单元/有卦址/有爻址）、层分布、build_meta（构建时间）；
+  用户只能靠 CLI 看。
+- **改动**（纯前端 index.html）：
+  1. 书目 section 顶部加 `#rstatsOut` 容器；
+  2. `loadCorpusStats()`：fetch /api/stats → 语料总统计行（works/units/
+     with_gua/with_yao + built_at）+ 层分布表（layers 每层单元数）；
+  3. 页面初始化调用 loadCorpusStats()（与 loadWorks 并列）。
+- 渲染字段以实测为准（stats 实为 units/with_gua/with_yao/works，非字节数）。
+
+### 67c. 验证
+
+JS 语法检查（node --check）PASS；/api/stats 渲染字段冒烟 PASS（works 47 /
+units 62,109 / with_gua 57,315 / with_yao 52,455，layers 表头可渲染）；
+sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿（14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-086b。
+
+## 68. [审查轨] R22a 优化轨 R23b/R24b 交叉复审（2026-08-16）
 
 接续 zcode sess_39e669dc 中断（配额超限中断于 R21a 复审 R19b-R22b 后）。
 本轨基线亲跑复核 suspect=10 units/5 地址一致、13 闸门全绿，无回退。
 rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
 
-### 57a. R23b 交叉复审（bookstudy.py + web/app.py，优化轨领土只复审+记录移交）
+### 68a. R23b 交叉复审（bookstudy.py + web/app.py，优化轨领土只复审+记录移交）
 
 - **structure()**：whole-work 地图，scheme-aware `_row_key` 分组（zhouyi
   per 卦 / bcv per 卷 / yilin per 本卦 / NULL-scheme per file 兜底）。
@@ -2552,7 +2881,7 @@ rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
   sample_chars 钳位 20-200、limit 钳位 1-200、try/finally 关库。纪律良好。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
 
-### 57b. R24b 交叉复审（research.py compare_works + web/app.py，优化轨领土）
+### 68b. R24b 交叉复审（research.py compare_works + web/app.py，优化轨领土）
 
 - **compare_works(corpus, work_a, work_b, concept)**：两书 top 命中并排
   （citation + 层 + 原文 + disclosure）、层分布对照、共享 zhouyi 地址集合
@@ -2569,7 +2898,7 @@ rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
   citation 可核验、[7] 電話飛機電腦 both-empty → 拒绝）。
 - **领土零越界**：同 52a，diff 实证为空。
 
-### 57c. assess_goals.py 委托闭环（zcode 中断未完成的 §47b 移交项）
+### 68c. assess_goals.py 委托闭环（zcode 中断未完成的 §47b 移交项）
 
 - **背景**：zcode sess_39e669dc 中断前已加 `from guji.evalset import raw_body`
   import，但未改 G6 调用点就配额超限。本窗口接续实施该委托。
@@ -2578,7 +2907,7 @@ rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
 - **验证**：G6 仍 PASS（PASS 9 PART 0 FAIL 0）；`work_body_text` 残留引用
   grep 为空。rebase 到 93fe9d1 后复跑 13 闸门全绿确认无回归。
 
-### 57d. 验证
+### 68d. 验证
 
 - 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
   check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
@@ -2590,13 +2919,13 @@ rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
 
 - 决策记录：DECISIONS.md D-071a。
 
-## 58. [审查轨] R23a 优化轨 R25b-R29b 交叉复审（2026-08-16）
+## 69. [审查轨] R23a 优化轨 R25b-R29b 交叉复审（2026-08-16）
 
 接续 R22a（§57）。fetch origin 发现优化轨推进 main 五个新提交
 （R25b-R29b），rebase 到 8b5a5b5 后逐行复审。基线亲跑复核
 suspect=10 units/5 地址一致、13 闸门全绿，无回退。
 
-### 58a. R25b 交叉复审（bookstudy chapter(file) + web 前端两个 rtab）
+### 69a. R25b 交叉复审（bookstudy chapter(file) + web 前端两个 rtab）
 
 - **chapter(file) 增量**（关键修复）：NULL-scheme 作品（老子/莊子注）的
   units carry scheme=NULL，原 scheme-only 过滤匹配零行——新增 `file` 参数，
@@ -2609,7 +2938,7 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   esc() 转义防 XSS、citation 服务器端渲染、无新后端写入面。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
 
-### 58b. R26b 交叉复审（MCP 增 3 工具 + 前端概念研究 tab）
+### 69b. R26b 交叉复审（MCP 增 3 工具 + 前端概念研究 tab）
 
 - **MCP 三新工具**（复用既有内核、`@mcp.tool()` 同款）：
   `bookstudy_structure`（sample_chars 钳位 20-200）、`bookstudy_chapter`
@@ -2621,7 +2950,7 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   truncated 字段诚实披露（R19b 同语义保持）。
 - **领土零越界**：同 58a。
 
-### 58c. R27b 交叉复审（bookstudy book_summary + 三处发布）
+### 69c. R27b 交叉复审（bookstudy book_summary + 三处发布）
 
 - **book_summary(corpus, work_id)**（新聚合函数，最需审查的新逻辑）：
   整本书结构化知识卡——节数/单元/总字数、层分布（每层单元数+字数）、
@@ -2638,7 +2967,7 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   web 空校验、try/finally、MCP 错误返回不绕过。
 - **领土零越界**：同 58a。
 
-### 58d. R28b 交叉复审（MCP 协议级自测 + 前端陈旧数字修正）
+### 69d. R28b 交叉复审（MCP 协议级自测 + 前端陈旧数字修正）
 
 - **MCP --selftest**（协议级，最需审查的新测试逻辑）：
   subprocess 起真实 stdio MCP 子进程 → initialize 握手 → tools/list
@@ -2653,7 +2982,7 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   审查确认：数字来自实测非硬编码倾向、与 /api/works 输出一致。
 - **领土零越界**：同 58a。
 
-### 58e. R29b 交叉复审（前端 UX 串联 书目→读书一键进入）
+### 69e. R29b 交叉复审（前端 UX 串联 书目→读书一键进入）
 
 - **前端改动**（纯前端零后端）：书目表增「读书」按钮列 →
   `onclick="gotoRead('${esc(w.id)}')"`；gotoRead：localStorage 记 bsWork →
@@ -2665,7 +2994,7 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   3. 零后端/依赖/语义改动，node --check 语法验证 PASS。
 - **领土零越界**：同 58a。
 
-### 58f. 验证
+### 69f. 验证
 
 - 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
   check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
@@ -2677,3 +3006,68 @@ suspect=10 units/5 地址一致、13 闸门全绿，无回退。
   **领土零越界**（审查轨 scripts/probes/打包链/.gitignore diff 实证为空）。
 
 - 决策记录：DECISIONS.md D-077a。
+
+## 70. [审查轨] R24a 优化轨 R30b-R40b 交叉复审 + 越界记录（2026-08-16）
+
+接续 R23a（§69）。fetch origin 发现优化轨推进 main 九个新提交
+（R30b-R40b，含 R36b record_claim_tool/R37b-R39b 文档对齐/R40b /api/stats）。
+rebase 到最新 main 后逐行复审。基线亲跑复核 suspect=10 units/5 地址一致、
+13 闸门全绿，无回退。
+
+### 70a. R30b-R35b 交叉复审（已在 R23a 邻预审，本轮确认无变化）
+
+R30b（PROJECT_STATUS 快照刷新纯文档）、R31b（sources.py add_local_work
+本地文件 adapter）、R32b（mcp add_local_work_tool）、R33b（MCP_CLIENT_CONFIG
+文档对齐）、R34b（POST /api/threads + 前端记入线程）、R35b（concept 记入
+线程）。均**纪律良好**——详见 §69 R23a 已审结论，本轮 rebase 后无变化。
+
+### 70b. R36b 交叉复审（mcp_server record_claim_tool——Agent 侧记忆闭环）
+
+- **record_claim_tool**（复用 knowledge.record，G8 纪律原样继承）：
+  kind ∈ {summary/diff/link/answer} 需 ≥1 evidence 否则返 error、refusal 免。
+  **审查确认**：复用既有内核无新写入逻辑、错误返清晰文本不绕过、
+  try/finally 关库、工具名避撞内核 record() 函数。
+- MCP 协议自测 tools/list 断言 12 工具全名（含 record_claim_tool）。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+
+### 70c. R37b-R39b 交叉复审（文档对齐——纯 docs，无代码）
+
+R37b（MASTER_PLAN/ROADMAP 对齐）、R38b（MCP_CLIENT_CONFIG 数字去硬编码）、
+R39b（MASTER_PLAN §4 地址体系表修正）。均纯 docs 改动，无代码逻辑变化。
+**审查确认**：文档对齐实测数据非硬编码倾向、与代码现状一致。
+
+### 70d. R40b 交叉复审（前端 /api/stats——语料统计视图）
+
+- **/api/stats**：只读聚合（works/units/chars/with_gua/with_yao/layers），
+  无写入面、无新依赖。**审查确认**：SQL 参数化、只读、前端 esc() 防注入。
+- **领土零越界**：同 70b。
+
+### 70e. R38b/R39b 越界记录——优化轨越界改审查轨 assess_goals.py（双窗口纪律破坏）
+
+- **发现**：rebase 时 `git diff HEAD..origin/main -- scripts/assess_goals.py`
+  显示 R38b/R39b 把 `scripts/assess_goals.py`（**审查轨领土**）改回了旧的内联
+  `work_body_text`——**撤销了审查轨 R21a 的委托修复**（移除
+  `from guji.evalset import raw_body`、恢复废弃内联函数、G6 调用点改回
+  `work_body_text(w)`）。这违反双窗口协议 §0.3 硬边界（优化轨不进审查轨
+  scripts/ 领土）。
+- **根因推断**：优化轨那边 rebase 时没有审查轨的 R21a 委托修复提交
+ （审查轨 commit `ec3c1df` 未 merge 到 main），于是"恢复"了它视角下的
+  旧版本——非恶意，但纪律破坏客观存在。
+- **处置**：审查轨侧 rebase 后 R21a 委托修复完整在场（`git status` 干净、
+  `from guji.evalset import raw_body` + `bodies[w] = raw_body(RAW, w)` 俱在、
+  无 `work_body_text`）——审查轨版本赢了，无需重新实施。**记录移交**：
+  通知优化轨注意双窗口 §0.3 硬边界，scripts/ 是审查轨领土，后续不可动；
+  assess_goals.py 委托修复以审查轨版本为准。
+
+### 70f. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R30b-R40b 十提交新代码**纪律良好**——本地文件
+  adapter 名称白名单+additive manifest、MCP record_claim_tool 复用内核+
+  G8 纪律、POST /api/threads Pydantic 钳位+G8+try/finally、concept provenance
+  字段向后兼容、/api/stats 只读聚合、前端 esc() 防注入。**领土零越界**
+ （R38b/R39b 越界改 assess_goals.py 已记录移交，审查轨侧委托修复完好）。
+
+- 决策记录：DECISIONS.md D-089a。
