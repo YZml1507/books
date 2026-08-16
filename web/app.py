@@ -67,7 +67,17 @@ from guji.search import Corpus  # noqa: E402
 
 app = FastAPI(title="古籍智慧助手（读书 + 八字）", version="0.5.0")
 
-INDEX = os.path.join(ROOT, "web", "static", "index.html")
+# 静态前端路径：frozen 时 spec 把 web/static 内嵌进 _MEIPASS 临时解压目录，
+# 必须优先用它——按"exe + data/ 单独分发"模型，exe 旁没有 web/ 目录，
+# 若从 ROOT 找首页会 404/500（bundled 副本不可达）。开发期 _MEIPASS 不存在，
+# 走项目根（审查轨 R18a 44d-1 移交，修复属优化轨 web/ 领土）。
+# 注意 _MEIPASS 缺省不能给 ""：join("", ...) 得到相对路径，恰好被 cwd 命中。
+_MEIPASS = getattr(sys, "_MEIPASS", None)
+_STATIC_CANDIDATES = (
+    [os.path.join(_MEIPASS, "web", "static", "index.html")] if _MEIPASS else []
+) + [os.path.join(ROOT, "web", "static", "index.html")]
+INDEX = next((p for p in _STATIC_CANDIDATES if os.path.exists(p)),
+             _STATIC_CANDIDATES[-1])
 CORPUS_DB = os.path.join(ROOT, "data", "index", "corpus.db")
 KNOWLEDGE_DB = os.path.join(ROOT, "data", "index", "knowledge.db")
 
@@ -430,6 +440,8 @@ def api_research(q: str = "", max_addresses: int = 3, allow_damaged: bool = Fals
     q = (q or "").strip()
     if not q:
         raise HTTPException(400, "q 不能为空")
+    if len(q) > 200:
+        raise HTTPException(400, "q 过长（≤200 字符）")
     if not (1 <= max_addresses <= 6):
         raise HTTPException(400, "max_addresses 需在 1-6")
     c = Corpus(CORPUS_DB)
@@ -452,6 +464,8 @@ def api_concept(q: str = "", per_work: int = 3):
     q = (q or "").strip()
     if not q:
         raise HTTPException(400, "q 不能为空")
+    if len(q) > 200:
+        raise HTTPException(400, "q 过长（≤200 字符）")
     per_work = min(max(per_work, 1), 10)
     c = Corpus(CORPUS_DB)
     try:

@@ -209,12 +209,15 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
                      "disclosure": h.disclosure()} for h in hits[:per_work]],
         })
     census.sort(key=lambda c: -c["n_hits"])
-    # yao may be None (卦-level hit) alongside str labels; sort must not compare them.
+    # Honest census: n_hits is capped by scan_limit per work; say so instead of
+    # silently under-reporting a very frequent concept (audit-track R20a note 2).
+    truncated = any(c["n_hits"] >= scan_limit for c in census)
     cross = [{"addr": f"卦{g}" + (f"·{y}" if y else ""), "works": sorted(set(ws))}
              for (g, y), ws in sorted(shared.items(),
                                       key=lambda kv: (kv[0][0], kv[0][1] or ""))
              if len(set(ws)) >= 2]
     return {"concept": concept, "works_with_hits": len(census),
+            "scan_limit": scan_limit, "truncated": truncated,
             "census": census, "shared_addresses": cross[:30]}
 
 

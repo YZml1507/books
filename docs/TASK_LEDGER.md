@@ -2134,6 +2134,41 @@ fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op
 - 本轮无代码改动（docs-only），闸门以 verify_index + check_quality 抽跑确认
   基线未动；13 闸门全绿状态承袭 R18a 终态（c18a6d6 上 10 命令 exit 0 实测）。
 
+## 46. [优化轨] R19b：审查轨移交项处置（2026-08-16，双窗口并行第二轨）
+
+### 46a. 移交项#2 frozen 路径修复（44d-1 → 本轨 web/ 领土）
+
+web/app.py 静态首页路径：frozen 时优先 `sys._MEIPASS/web/static`（spec 内嵌副本），
+开发期回落项目根。审查轨指出的"exe+data/ 单独分发模型下首页 500"消除。
+实测：开发期 INDEX 绝对路径正确；模拟 `sys._MEIPASS` 注入后 reload 解析到内嵌
+副本。修复途中自测抓到第一个版本的 bug（_MEIPASS 缺省 "" 时 join 出相对路径
+恰好被 cwd 命中）——改为仅 _MEIPASS 真实存在才进候选。
+
+### 46b. 移交项#1 主仓未追踪文件盘点处置（44a 矛盾纠正的收尾）
+
+- **8 个 temp_*.py**：全部为一次性检查脚本（eval_g1 结果统计/herodotus source_url
+  查询/卦名推导抽验/schema/yilin 检查等），grep 全仓零引用，结论均已在台账/
+  DECISIONS——**已删除**（可按台账记录复现）。
+- **3 个 zip + build/ + dist/ + logs/ + web_server*.log**：核实均已被 .gitignore
+  正确覆盖（8-44 行，ui-ux zip 出库系审查轨 R18a 44c-6 处置）。磁盘保留（用户
+  文件/构建产物），状态：忽略即正确，无需进一步动作。
+- 审查轨残留风险 #1/#2 至此关闭；#3（dist/ 陈旧性）随下次构建自然更新。
+
+### 46c. 闸门
+
+verify_index exit 0（修复后实跑）；13 闸门全绿状态承袭 R18b 终态（286e6aa 上
+10 命令 exit 0 实测，本轮改动仅 web/app.py 静态路径解析，不触索引/语料）。
+
+### 46d. R20a 交叉复审移交项处置（审查轨 → 本轨，同轮跟进）
+
+1. GET /api/research、/api/concept 的 q 无长度上限（/api/ask 有 max_length=200）
+   → 统一加 200 上限（超长 400）。
+2. concept_census n_hits 受 scan_limit 截断且未披露 → 返回值加 scan_limit 与
+   truncated 标记（任一作品命中数触顶即 true），普查语义诚实化。
+3. frozen 路径（44d-1）：本轮 46a 已修，R20a 移交单系时序交叉。
+
+- 决策记录：DECISIONS.md D-065b。
+
 ## 46. [审查轨] R20a 优化轨 R18b 交叉复审（2026-08-16）
 - **优化轨已推进 main**：87afd68（O1-O5：src/guji/research.py 新 268 行、
   llm_reader.interpret_research、Corpus.units_by_id、web /api/research /

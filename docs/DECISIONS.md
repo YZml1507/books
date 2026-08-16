@@ -2347,3 +2347,14 @@ O1/O2 文档对齐；O3 research.py+units_by_id+/api/research；O4 concept_censu
 
 ### 遗留（下轮）
 O6 MCP server（§11）、O7 道德经/庄子语料（§17.3）、新端点 gate 接线与审查轨协商。
+
+## D-065b R19b 优化轨：审查轨移交项处置（frozen 路径 + 主仓未追踪盘点）（2026-08-16）
+
+- **frozen 静态路径修复**：INDEX 候选链 [_MEIPASS/web/static, ROOT/web/static]，
+  存在性择先。第一版把 `_MEIPASS` 缺省当 ""，join 出相对路径被 cwd 命中——
+  自测（dev 断言绝对路径）当场暴露，改为 `_MEIPASS` 真实存在才进候选。教训
+  再证：缺省值参与路径拼接必须先验证形态，不能只验证存在性。
+- **temp_*.py 删除而非归档**：8 个脚本零引用、结论已入账、可按台账复现——
+  归档只会延续根目录杂项（审查轨 R18a 把它列为风险正是因为未盘点）。
+  zip/build/dist/logs 磁盘保留：已被 .gitignore 正确覆盖，是用户文件与构建
+  产物，忽略即终态。
