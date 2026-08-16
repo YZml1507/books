@@ -1413,3 +1413,52 @@ probe_liuyao_najia 7 PASS · probe_huangli_shensha PASS
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.huangli import shensha_yiji;from datetime import datetime;print(shensha_yiji(datetime(2026,8,16)))"  # 月德临日触发
 ```
 - 决策记录：DECISIONS.md D-050（二十八宿锚点修复+天德月德临日死代码修复+子 agent 假阳性2条）
+
+## 32. 阶段2-R6 再审查（2026-08-16，R5 闭环后第五轮再审查）
+
+**纪律**：R6 闸门实机重跑 13 道全绿（不轻信 R5 结论）。派 3 个 explore 子 agent 并行审查 bazi/qiming/liuyao，子 agent 结论一律当"待复验"，亲自跑命令核实。
+
+### 32a. R6 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
+```
+
+### 32b. R6 子 agent 审查结论复验
+
+子 agent 标记多条缺陷，亲自复验后分类处置：
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `bazi.py:93` `gregorian()` 逆变换错（年偏高4799） | **确认但死代码**：全仓库无调用方，是 jdn() 文档声称的逆函数地雷 | 标记待修，暂不影响用户 |
+| `bazi.py:113` `term_time()` 精度 ±43min 不达标 | **部分假阳性**：实测 2024 立春偏差 5.5min，在 ±15min 文档声称范围内；1900/2100 边界确实降级但 warn 阈值 30min 兜底 | 不修，记录精度边界 |
+| `qiming.py:34` '艹' 键重复 | **确认**：dict 后值覆盖，无实际差异但代码不洁 | 修复：删除重复艹 |
+| `qiming.py` 彬(彳)/佳(亻)/嘉(口) 声明部首不在 RADICAL_ELEMENT | **确认红线级**：get_element_by_radical 查表会漏这三字 | 修复：补彳=火/亻=土/口=金 |
+| `web/app.py` /api/qiming 无 month/day/hour 校验 | **确认红线级**：month=13 直接 ValueError 泄露内部异常 | 修复：补 month(1-12)/day(1-31)/hour(0-23)/gender(男/女) 校验，返回中文 400 |
+| `qiming.py` 烽火连天/锋芒毕露/熙熙攘攘等负面寓意 | **确认低优先级**：8 处负面或生造寓意 | 待修，优先级低 |
+
+### 32c. R6 发现并修复（commit 9be509b）
+
+1. **qiming.py RADICAL_ELEMENT 部首五行表缺口**
+   - '艹' 键重复（line 34）
+   - 彬(彳)/佳(亻)/嘉(口) 三字声明部首不在 RADICAL_ELEMENT 表
+   - 修复：删除重复艹；补彳=火/亻=土/口=金（按人=土走=土言=金本气）
+   - 验证：艹 次数=1✓ 亻彳口 在表=True✓ 起名正常✓
+
+2. **web/app.py /api/qiming 输入校验缺口（红线级）**
+   - 子 agent 标记：month=13 直接 ValueError 泄露内部异常给前端
+   - 实测复现：name_candidates('王',2024,13,1,12) → ValueError: month must be in 1..12
+   - 修复：补 month(1-12)/day(1-31)/hour(0-23)/gender(男/女) 校验，返回中文 400
+   - 验证：month=13 → 400 'month 须在 1-12，收到 13'✓ 正常请求 200✓
+
+### 32d. R6 复验命令
+```
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.qiming import RADICAL_ELEMENT;print('艹次数:',sum(1 for k in RADICAL_ELEMENT if k=='艹'));print('彳亻口:',all(k in RADICAL_ELEMENT for k in ['彳','亻','口'])))"
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from fastapi.testclient import TestClient;import web.app as w;c=TestClient(w.app);r=c.post('/api/qiming',json={'surname':'王','year':2024,'month':13,'day':1,'hour':12,'gender':'男'});print(r.status_code,r.json())"
+```
+- 决策记录：DECISIONS.md D-051（qiming 部首表缺口+web 输入校验+term_time 精度边界+gregorian 死代码）
+
+### 32e. R6 待修项（下轮处理）
+- bazi.py `gregorian()` 逆变换错（死代码，待修或删）
+- qiming.py 8 处负面/生造寓意（烽火连天/锋芒毕露/熙熙攘攘/炎炎光明/煦暖和煦/三金鼎立/三水淼淼/兰简化字不含艹）
