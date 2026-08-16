@@ -3196,4 +3196,13 @@ R46b-R48b 无红线、闸门绿）；main 无审查轨改动，无 rebase 需求
 docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
 未动；文档 diff 审阅通过（L-22..L-26 与台账 §53b/§61b/§65b/§71b 记录一致）。
 
+**补记（2026-08-17 R53b 窗口，全量复验）**：接续窗口按 GOAL_NEXT_SESSION
+§1 跑完全量 13 闸门 + 五层 standing 自测，**全 exit 0**——build_index 47 部
+62,109 单元、verify_index ALL PASS（T11 362 compared）、validate_alignment
+1824/1872、conservation ratio 1.0000、eval_g1 246/248（retrieval_concept
+53/55）、eval_g7 30/30+25/25+FABRICATIONS 0、eval_g4 558 links 0 dangling、
+probe_g8 九类越界全 BLOCKED、assess_goals G1–G9 PASS 9 PART 0 FAIL 0、
+五层自测（sources/bookstudy/research/mcp 12 tools/web 12 checks）全 PASS。
+基线未动，R52b 文档改动无回退。
+
 - 决策记录：DECISIONS.md D-098b。
