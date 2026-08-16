@@ -3348,3 +3348,48 @@ main 的历史遗留（§71a 已确认），非本轮新增，非越界。
   diff 实证为空。
 
 - 决策记录：DECISIONS.md D-095a。
+
+## 77. [审查轨] R31a R30a pending 清理 + rebase 纳入 R59b-R60b（2026-08-17）
+
+接续 R30a（§76）。fetch origin 发现 HEAD..origin/main 仍显示 R59b/R60b
+两提交 pending。根因：R30a 处理纯文档轮时选择"不 rebase"，导致 R59b/R60b
+虽已台账记录（§76）但未纳入 audit 分支 history，仍 pending 在 origin/main。
+
+### 77a. 修正：rebase origin/main 纳入 R59b-R60b
+
+本轮执行 `git rebase origin/main`，在历史 commit e189795（R22a rebase
+merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R59b/R60b 纳入
+audit 分支 history。rebase 后 HEAD=66d91c6（R30a），HEAD..origin/main
+清空（rebase absorbed all）。
+
+### 77b. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 77c. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（yilin 520/490）。
+- eval_g7 PASS（FABRICATIONS 0）。
+
+### 77d. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 本轮修正 R30a"不 rebase"导致的 pending 状态，rebase 把 R59b/R60b 纳入
+  audit 分支 history。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-096a。
