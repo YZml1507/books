@@ -3800,3 +3800,31 @@ exit 0，基线未动。commit 见台账 §97。
 **落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md R2 节改为"已完成
 （R71b 核实）"，待查清单逐项标注处置状态与台账出处。docs-only 抽跑
 verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §98。
+
+## D-118b R72b 优化轨：PROJECT_ROADMAP bazi_lookup 行"9 部命理书"→18 部（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` §1.2 bazi_lookup 行写
+`9 部命理书 FTS+bge 检索（书名显示已修）`，但实测 `bazi_lookup.py`
+MINGLI_WORKS = **18 部**（KR3g 术数书 9 部：KR3g0033/0035/0041/0042/
+0044/0045/0047/0048/0050 + P2 本地入库 9 部：ziping-zhenquan/
+sanming-tonghui/wuxing-dayi/wuxing-jingji/mingli-tanyuan/mingli-yueyan/
+lantai-miaoxuan/ditiansui/qiongtongbaojian）——"9 部"是 R20b 前的旧
+数字（P2 子平经典入库后翻倍），同文档 §51"缺口：命理语料仅 9 部，无
+子平经典"也早已被 R20b 落地推翻（P2 行已标 ✅ 完成但 §1.2 表格行漏改）。
+L-23 教训同族：可被命令断言的事实（`len(MINGLI_WORKS)`）硬编码且漏同步。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP §1.2 bazi_lookup 行"9 部命理书"→"18 部命理书（KR3g 9 + P2 子平 9，R20b 扩充）"；§51 缺口行补"（已由 R20b 落地，见 P2 节）" | 纯文档、零代码/零风险；数字与 `len(MINGLI_WORKS)=18` 实测一致，防新会话误判语料缺口 |
+| B | 只改 §1.2 行不动 §51 缺口行 | §51 仍误导（"无子平经典"与 P2 ✅ 矛盾） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md §1.2 bazi_lookup 行
+"9 部命理书"→"18 部命理书（KR3g 9 + P2 子平 9，R20b 扩充）"；§51 缺口
+行补"已由 R20b 落地（见 P2 节 ✅）"。docs-only 抽跑 verify_index +
+check_quality 全 exit 0，基线未动。commit 见台账 §99。

@@ -3888,3 +3888,35 @@ R70b（5acee07）已确认在 origin/main。
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（处置证据与台账
   §1062/§1273/§1278 一致）。
 - 决策记录：DECISIONS.md D-117b。
+
+## 99. [优化轨] R72b：PROJECT_ROADMAP bazi_lookup 行"9 部命理书"→18 部（2026-08-17，双窗口并行第二轨）
+
+### 99a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R71b（9359a99）已确认在 origin/main。
+
+### 99b. 摸底（逐项亲自核实）
+
+- **文档 R 编号 / checks 数 / 快照数字 / MCP 工具数 / bge 缓存**：均与
+  实测一致——非缺口。
+- **前端按钮 handler**：8 个研究按钮全部 2 次出现（定义 + handler）——
+  非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` §1.2 bazi_lookup
+  行写 `9 部命理书 FTS+bge 检索`，但实测 `bazi_lookup.py` MINGLI_WORKS
+  = **18 部**（KR3g 术数书 9 + P2 本地入库 9，R20b 子平经典入库后翻倍）
+  ——"9 部"是 R20b 前旧数字；同文档 §51"缺口：命理语料仅 9 部，无子平
+  经典"也早已被 R20b 落地推翻（P2 行已标 ✅ 完成，§1.2 表格行漏改）。
+  L-23 教训同族：可被命令断言的事实（`len(MINGLI_WORKS)`）硬编码且
+  漏同步。
+
+### 99c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：§1.2 bazi_lookup 行
+  "9 部命理书"→"18 部命理书（KR3g 9 + P2 子平 9，R20b 扩充）"；§51
+  缺口行补"已由 R20b 落地（见 P2 节 ✅），本行 R72b 标注防误读"。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（18 部与
+  `len(MINGLI_WORKS)` 实测一致）。
+- 决策记录：DECISIONS.md D-118b。
