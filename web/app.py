@@ -62,7 +62,7 @@ from guji.bazi_calc import calc_life, calc_range  # noqa: E402
 from guji.bazi_lookup import retrieve_fast, retrieve_semantic  # noqa: E402
 from guji.compare import compare_address  # noqa: E402
 from guji.knowledge import KnowledgeBase  # noqa: E402
-from guji.research import concept_census, research  # noqa: E402
+from guji.research import concept_census, compare_works, research  # noqa: E402
 from guji.search import Corpus  # noqa: E402
 from guji.bookstudy import structure as book_structure  # noqa: E402
 from guji.bookstudy import chapter as book_chapter  # noqa: E402
@@ -472,6 +472,29 @@ def api_concept(q: str = "", per_work: int = 3):
     c = Corpus(CORPUS_DB)
     try:
         return concept_census(c, q, per_work=per_work)
+    finally:
+        c.close()
+
+
+@app.get("/api/compare_works")
+def api_compare_works(work_a: str = "", work_b: str = "", q: str = "",
+                      per_work: int = 3):
+    """两书对照研究（R24b，愿景 §7 Comparative Study）：指定两本书 + 一个概念，
+    返回两书各自的 top 证据（citation+层+原文）并排、层分布对照、以及两书
+    同址命中的 zhouyi 地址——共享地址正是版本/注家分歧开始之处。"""
+    work_a = (work_a or "").strip()
+    work_b = (work_b or "").strip()
+    q = (q or "").strip()
+    if not work_a or not work_b:
+        raise HTTPException(400, "work_a / work_b 不能为空")
+    if not q:
+        raise HTTPException(400, "q 不能为空")
+    if len(q) > 200:
+        raise HTTPException(400, "q 过长（≤200 字符）")
+    per_work = min(max(per_work, 1), 10)
+    c = Corpus(CORPUS_DB)
+    try:
+        return compare_works(c, work_a, work_b, q, per_work=per_work)
     finally:
         c.close()
 

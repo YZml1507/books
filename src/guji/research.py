@@ -249,6 +249,62 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
             "census": census, "shared_addresses": cross[:30]}
 
 
+def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
+                  per_work: int = 3, scan_limit: int = 200) -> dict:
+    """Two-work side-by-side comparison at one concept (愿景 §7 Comparative Study).
+
+    The founding brief's third UX scenario verbatim — 「把《道德经》和《庄子》
+    中关于'无为'的思想进行比较」: pick TWO works and ONE concept, and see each
+    work's own evidence (citation + layer + text) side by side, its layer
+    distribution, and any zhouyi address where BOTH works meet the concept —
+    because a shared 卦/爻 address is where 版本/注家 divergence begins.
+
+    Honest by construction: a work with zero hits is shown as 0, not dropped —
+    the asymmetry IS the comparison. Only a fully empty result (both sides 0)
+    is refused.
+    """
+    concept = (concept or "").strip()
+    if not concept:
+        return {"error": "concept 不能为空"}
+
+    def _side(wid: str) -> dict | None:
+        w = corpus.db.execute(
+            "SELECT id, title, attribution FROM work WHERE id = ?", (wid,)).fetchone()
+        if w is None:
+            return None
+        hits = corpus.search(concept, limit=scan_limit, work_id=wid)
+        layers: dict[str, int] = {}
+        for h in hits:
+            layers[h.layer] = layers.get(h.layer, 0) + 1
+        return {
+            "work_id": w["id"], "title": w["title"], "attribution": w["attribution"],
+            "n_hits": len(hits), "layers": layers,
+            "truncated": len(hits) >= scan_limit,
+            "top": [{"citation": h.citation(), "layer": h.layer,
+                     "text": h.text[:200], "disclosure": h.disclosure()}
+                    for h in hits[:per_work]],
+            "_hits": hits,
+        }
+
+    sa = _side(work_a)
+    sb = _side(work_b)
+    if sa is None or sb is None:
+        return {"error": f"work not found: {work_a if sa is None else work_b}"}
+    if sa["n_hits"] == 0 and sb["n_hits"] == 0:
+        return {"error": f"「{concept}」在两书均无命中"}
+    # shared zhouyi addresses where BOTH works meet the concept
+    za = {(h.gua, h.yao) for h in sa["_hits"]
+          if h.scheme == "zhouyi" and h.gua is not None}
+    zb = {(h.gua, h.yao) for h in sb["_hits"]
+          if h.scheme == "zhouyi" and h.gua is not None}
+    shared = [{"addr": f"卦{g}" + (f"·{y}" if y else "")}
+              for (g, y) in sorted(za & zb, key=lambda kv: (kv[0], kv[1] or ""))]
+    for s in (sa, sb):
+        s.pop("_hits", None)
+    return {"concept": concept, "scan_limit": scan_limit,
+            "works": [sa, sb], "shared_addresses": shared}
+
+
 if __name__ == "__main__":
     # Self-test (R18b). Run: PYTHONPATH=src python -m guji.research
     # (top-level relative imports mean this file is not a script).
@@ -298,6 +354,20 @@ if __name__ == "__main__":
     assert cc["shared_addresses"], "multiple works carry it at a shared address"
     print(f"[5] concept 潛龍勿用 -> {cc['works_with_hits']} works, "
           f"shared at {[x['addr'] for x in cc['shared_addresses'][:3]]}")
+
+    cw = compare_works(c, "KR5c0057", "KR5c0126", "無爲", per_work=2)
+    assert "error" not in cw, cw
+    wa, wb = cw["works"]
+    assert wa["work_id"] == "KR5c0057" and wb["work_id"] == "KR5c0126"
+    assert wa["n_hits"] > 0 and wb["n_hits"] > 0, \
+        "無爲 must hit both 老子 and 莊子"
+    assert all(h["citation"] for h in wa["top"] + wb["top"]), \
+        "every compared hit carries a verifiable citation"
+    print(f"[6] compare_works 無爲 老子({wa['n_hits']}) vs 莊子({wb['n_hits']}), "
+          f"shared={[x['addr'] for x in cw['shared_addresses']]}")
+    cw404 = compare_works(c, "KR5c0057", "KR5c0126", "電話飛機電腦")
+    assert "error" in cw404
+    print(f"[7] compare_works no-hit -> refused: {cw404['error']}")
 
     # A vernacular question whose 2-char conceptual core must survive as a seed
     # alongside the longer connective windows that hit first (R20b finding).

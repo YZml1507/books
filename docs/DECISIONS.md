@@ -2412,3 +2412,27 @@ O6 MCP server（§11）、O7 道德经/庄子语料（§17.3）、新端点 gate
   MB 是 build_index 输出的 db size（含 FTS 索引），不是 sum(length(text))
   （实测仅 17.4 MB）。更新快照前用同一命令复跑取数，避免混口径——"数字
   看着像"不足以跨命令引用。
+
+## D-070b R24b 优化轨：两书对照比较（愿景 §7 Comparative Study / §17.3 场景三）
+
+**背景**：愿景书 §7 研究模式清单里，"Comparative Study（比较两本书/两作者/
+两译本/两注家）"是唯一没有独立形态的项。现状（亲自核实）：compare_address
+（G5）是同址多版本对照；concept_census 是全库普查（每书命中数）。两者都回答
+不了 §17.3 场景三的原话——「把《道德经》和《庄子》中关于'无为'的思想进行
+比较」：用户指定**两本书 + 一个概念**，要的是两书证据并排、可见差异。
+
+**候选方案**（实测数据：KR5c0057 老子 / KR5c0126 莊子 均有 無爲 命中，
+引文 `@KR5c0057_tls_043-1a (KR5c0057_043.txt)` 等可核验）：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | research.py 新增 `compare_works(corpus, work_a, work_b, q)`：两书各自 top 命中并排（citation+层+原文）、层分布对照、共享 zhouyi 地址（若命中同卦爻）；web + `/api/compare_works`；自测补例 | 零新依赖、只读、复用 search 内核，与 R23b bookstudy 同型；风险低 |
+| B | Book Summary（整本书结构化摘要） | 与 R23b structure() 重叠度高，且需 LLM 或聚合逻辑，杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，需协商，非本轨范围 |
+
+选 A。落地后 13 闸门全绿 + 自测断言 無爲 两书对照含双方 citation。
+
+**落地结果**（2026-08-16 实测）：`compare_works` 两书 top 命中并排 +
+层分布 + 共享 zhouyi 地址，零命中一侧如实显示 0、两侧全 0 才拒绝（G7）。
+research 自测 7/7 PASS（[6] 無爲 老子 9 vs 莊子 24、[7] 全无命中拒绝）；
+web /api/compare_works 冒烟 PASS；13 闸门全绿。commit 见台账 §51。

@@ -2341,3 +2341,33 @@ fetch origin：审查轨仍无新提交（§47b assess_goals.py 委托移交保�
   通用 stdio 客户端三要素、验证冒烟方法。
 - docs-only，不改代码/索引；闸门按 docs-only 先例抽跑 verify_index +
   check_quality 确认基线未动。
+
+## 51. [优化轨] R24b：两书对照比较（2026-08-16，双窗口并行第二轨）
+
+### 51a. 移交跟进
+
+fetch origin：审查轨已落地 §47b 委托修复（origin/audit/R18 `23d0f94`，
+assess_goals.py 委托 evalset.raw_body），本地 worktree 干净；main 无审查轨
+新提交，无 rebase 需求。
+
+### 51b. 两书对照（愿景 §7 Comparative Study / §17.3 场景三）：research.compare_works + /api/compare_works
+
+- **缺口核实**：compare_address 是同址多版本对照（G5），concept_census 是
+  全库普查——都没有"指定两本书 + 一个概念 → 证据并排"的形态，而这是
+  §17.3 场景三原话「把《道德经》和《庄子》中关于'无为'的思想进行比较」。
+- `compare_works(corpus, work_a, work_b, concept, per_work, scan_limit)`：
+  两书各自 top 命中并排（citation+层+原文+disclosure）、层分布对照、两书
+  同址命中的 zhouyi 地址（版本/注家分歧起点）；零命中一侧如实显示 0，
+  两侧全 0 才拒绝（G7 纪律）。零新依赖、只读、复用 search 内核。
+- web `/api/compare_works`：work_a/work_b/q 必填（400）、q ≤ 200、
+  per_work 1–10。
+- 自测新增 [6][7]（無爲 老子 9 vs 莊子 24 双方 citation 可核验；
+  電話飛機電腦 双书全 0 → 拒绝），research 自测 7/7 PASS。
+
+### 51c. 验证
+
+web 冒烟 PASS（老子 9 / 莊子 24 命中，空参 400 正常）；13 闸门全绿
+（check_quality→build_index→…→assess_goals 共 14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-070b。
