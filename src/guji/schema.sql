@@ -15,7 +15,16 @@ CREATE TABLE work (
     n_files       INTEGER,
     n_chars       INTEGER,
     source_url    TEXT,
-    zip_sha256    TEXT,
+    zip_sha256    TEXT,               -- content hash for provenance; SEMANTIC IS NOT
+                                     -- UNIFORM ACROSS WORKS. Three kinds co-exist
+                                     -- (R9 审查核实，因列名保留向后兼容):
+                                     --   KR1a*: the GitHub zip blob's sha256
+                                     --   ext/*.txt (bible-douay/plato/...): the raw
+                                     --        source file's sha256 (file_sha256)
+                                     --   ext manifest-only (子平书): local_content_sha256
+                                     -- A future schema bump should split this into
+                                     -- provenance_kind + provenance_hash, but that migration
+                                     -- would break every existing reference; deferred.
     licence       TEXT,               -- 'none-stated' for every Kanripo repo: measured
     fetched_at    TEXT
 );
