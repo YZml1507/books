@@ -3613,3 +3613,63 @@ rebase 后亲跑 13 闸门确认无回归：
   **领土零越界**。
 
 - 决策记录：DECISIONS.md D-101a。
+
+## 83. [审查轨] R92a 优化轨 R68b 交叉复审 + rebase（2026-08-17）
+
+接续 R91a（§82）。fetch origin 发现优化轨推进 main 一个新提交
+（845b993 R68b），含代码逻辑（web/app.py +13 行，bazi check 加强断言
+23 checks strengthened not added）。按协议第 4 步启动新一轮审查轨循环。
+
+### 83a. R68b 逐行复审
+
+- **改动**（web/app.py，纯测试代码加强）：bazi check 从仅断言
+  `paipan`+`calc` 加强为还断言 `evidence` 非空 + 含 P2 子平书 work_id
+  （+13 行，含 `_ZI_PING_WORKS` 集合定义）。
+- **关键设计**：R67b 重建 bge_mingli 缓存后，/api/bazi 返回 12 evidence
+  rows 含 P2 子平书（qiongtongbaojian, wuxing-dayi）。原 check 只断言
+  paipan+calc，retrieve_semantic 静默失效会留下 evidence 空而 standing
+  tests 全绿（R67b-family, R48b lesson）。
+- **加强断言链**：`paipan`+`calc` + `evidence` 非空 +
+  `any(e.work_id in _ZI_PING_WORKS)`。
+- `_ZI_PING_WORKS` 集合定义在 selftest 块内（`if __name__ ==
+  "__main__"`），不污染运行时。
+- **审查确认**：纯测试代码加强、确定性输入、抓 R48b-family 静默失效、
+  无新写入面/注入面。**纪律良好**。
+
+### 83b. rebase origin/main
+
+`git rebase origin/main` 在历史 commit 7febfd1（R22a rebase merge）处
+append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R68b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+### 83c. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 83d. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（yilin 520/490）。
+- eval_g7 PASS（FABRICATIONS 0）。
+
+### 83e. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R68b 一提交**纪律良好**——bazi check 加强断言
+  evidence 非空 + 含 P2 子平书，抓 R48b-family 静默失效。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-102a。

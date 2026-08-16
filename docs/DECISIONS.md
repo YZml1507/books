@@ -3167,3 +3167,26 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-102a R92a 审查轨：优化轨 R68b 交叉复审 + rebase 无红线（2026-08-17）
+
+- **接续 R91a**：fetch 发现优化轨推进 main 一提交（845b993 R68b），含
+  代码逻辑（web/app.py +13 行，bazi check 加强断言 23 checks strengthened
+  not added）。按协议第 4 步启动新一轮审查轨循环。
+- **R68b 复审**：bazi check 从仅断言 `paipan`+`calc` 加强为还断言
+  `evidence` 非空 + 含 P2 子平书 work_id（`_ZI_PING_WORKS` 集合）。R67b
+  重建 bge_mingli 缓存后 /api/bazi 返回 12 evidence rows 含 P2 子平书
+  （qiongtongbaojian, wuxing-dayi）。原 check 只断言 paipan+calc，
+  retrieve_semantic 零默失效会留下 evidence 空而 standing tests 全绿
+  （R67b-family, R48b lesson）。加强断言链完整、`_ZI_PING_WORKS` 集合
+  定义在 selftest 块内不污染运行时、纯测试代码加强、确定性输入、
+  无新写入面/注入面。**纪律良好**。
+- **rebase**：`git rebase origin/main` 在历史 commit 7febfd1（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R68b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
