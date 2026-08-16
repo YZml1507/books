@@ -2747,3 +2747,32 @@ method='concept' 分支 + runConceptResearch 存 lastConcept + 结果区加
 「记入线程」按钮（有 top 引文才显示）。research 自测 7/7、web 冒烟
 （concept top 6 溯源字段非空）、JS 语法检查 PASS；13 闸门全绿。commit 见
 台账 §62。
+
+## D-082b R36b 优化轨：MCP 增 record_claim_tool——Agent 侧记忆闭环（愿景 §8/§9/§11）
+
+**背景（亲自核实）**：R34b 给 web 加了 POST /api/threads（写线程），但
+**MCP 侧 `threads` 工具仍是只读**（`grep -A18 "def threads"` mcp_server.py：
+list → kb.resume()、transcript → kb.thread_transcript()，无任何写入）。外部
+Agent 经 MCP 做完 research_tool/compare_works_tool 后，结论无法记入 G9 线程
+——愿景 §8"形成长期阅读记忆"、§11 MCP 的 Agent 侧闭环缺写入口（web 已闭环
+R34b/R35b，MCP 还没有）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MCP 增 `record_claim_tool(kind, claim, method, evidence[]?)`：复用 knowledge.record 纪律（kind ∈ summary/diff/link/answer 断言型必须带证据否则 error: 文本返回；refusal 免证据 G7）；evidence 参数为引文字段数组（work_id/file/quote/page_anchor/scheme/addr1/addr2）；返回 derived_id/thread_id 摘要；协议自测补 1 例（合法写入用**临时 evidence + 真实文件/锚点**避免 stale——吸取 R34b 教训，且自测后清理写入行） | 复用已测内核、零新依赖；风险中低（写端点自测须防知识库污染，按 R34b 教训设计） |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝两例、
+自测后清理知识库）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：MCP 增 `record_claim_tool(kind, claim,
+method, evidence[], confidence?)`——复用 knowledge.record 纪律（断言型必须
+带真实证据否则 error: 返回；refusal 免证据 G7），evidence dict 数组映射
+knowledge.Evidence，返回 recorded #id 摘要。协议自测 12 工具全过：合法写入
+（真实引文 KR5c0057_043.txt + 锚点）断言 "recorded #"、拒绝用例断言
+"error:"、**自测后清理 test row**（contentless fts5 'delete' 命令）——R34b
+教训落地为自测内置清理。MCP 协议自测 PASS + sources/bookstudy/research
+自测 + 13 闸门全绿。commit 见台账 §63。

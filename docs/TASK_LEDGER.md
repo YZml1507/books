@@ -2715,3 +2715,34 @@ JS 语法检查（node --check）PASS；sources/bookstudy/mcp 自测 PASS；13 �
 全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-081b。
+
+## 63. [优化轨] R36b：MCP record_claim_tool——Agent 侧记忆闭环（2026-08-16，双窗口并行第二轨）
+
+### 63a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 63b. MCP record_claim_tool（愿景 §8/§9/§11：Agent 侧写线程）
+
+- **缺口核实**：R34b 给 web 加了 POST /api/threads，但 MCP 侧 `threads` 工具
+  仍是只读（list → kb.resume()、transcript → kb.thread_transcript()，无写入）
+  ——外部 Agent 经 MCP 做完研究后结论无法记入 G9 线程；web 已闭环
+  （R34b/R35b），MCP 侧还缺写入口。
+- **新增** `record_claim_tool(kind, claim, method, evidence[], confidence?)`：
+  复用 knowledge.record 纪律——断言型（summary/diff/link/answer）必须带 ≥1
+  真实证据（work_id/file/quote）否则 error: 文本返回；refusal 免证据（G7）。
+  evidence 参数为引文字段 dict 数组，映射到 knowledge.Evidence；返回
+  recorded #id + thread 摘要。
+- **协议自测**（吸取 R34b 教训）：合法写入用例带**真实语料引文**
+  （KR5c0057_043.txt + 真实锚点）断言 "recorded #"；拒绝用例（断言无证据）
+  断言 "error:"；**自测后清理写入行**（contentless fts5 用 'delete' 命令 +
+  DELETE evidence/derived），知识库保持基线干净。MCP 现 12 工具。
+
+### 63c. 验证
+
+MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝两例 + 自测清理
+test row #3）；sources/bookstudy/research 自测 PASS；13 闸门全绿（14 命令
+全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-082b。

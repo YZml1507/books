@@ -184,6 +184,43 @@ def threads(tid: int | None = None) -> str:
 
 
 @mcp.tool()
+def record_claim_tool(kind: str, claim: str, method: str,
+                      evidence: list[dict] | None = None,
+                      confidence: str | None = None) -> str:
+    """G9 record a derived claim into a research thread (R36b, 愿景 §8/§9).
+    G8 discipline verbatim from knowledge.record: asserting kinds
+    (summary/diff/link/answer) REQUIRE at least one evidence entry with a real
+    work_id/file/quote — a claim without provenance is refused; kind='refusal'
+    is exempt (G7: 「证据不足」 is itself a valid finding). Each evidence dict:
+    {work_id, file, quote, page_anchor?, scheme?, addr1?, addr2?, role?}.
+    Returns the derived_id / thread_id summary, or an error: text."""
+    from .knowledge import Evidence  # noqa: E402
+
+    kb = KnowledgeBase(KNOWLEDGE_DB)
+    try:
+        ev = []
+        for e in (evidence or []):
+            ev.append(Evidence(
+                work_id=str(e.get("work_id") or ""), file=str(e.get("file") or ""),
+                raw_start=int(e.get("raw_start") or -1),
+                raw_end=int(e.get("raw_end") or -1),
+                quote=str(e.get("quote") or ""),
+                page_anchor=e.get("page_anchor"), scheme=e.get("scheme"),
+                addr1=e.get("addr1"), addr2=e.get("addr2"),
+                role=str(e.get("role") or "supports")))
+        try:
+            did = kb.record(kind, claim, method, ev, confidence=confidence)
+        except ValueError as exc:
+            return f"error: {exc}"
+        row = kb.db.execute(
+            "SELECT thread_id FROM derived WHERE id = ?", (did,)).fetchone()
+        return (f"recorded #{did} kind={kind} thread={row['thread_id'] if row else None} "
+                f"evidence={len(ev)}. 跨会话可用 threads 工具恢复。")
+    finally:
+        kb.close()
+
+
+@mcp.tool()
 def book_summary_tool(work_id: str) -> str:
     """Book Summary (R27b): one work's structured knowledge card — sections,
     units, total chars, 經/注/疏 layer distribution, damaged-unit disclosure,
@@ -345,7 +382,7 @@ if __name__ == "__main__":
         expected = {"search", "addr", "compare", "concept", "research_tool",
                     "threads", "bookstudy_structure", "bookstudy_chapter",
                     "compare_works_tool", "book_summary_tool",
-                    "add_local_work_tool"}
+                    "add_local_work_tool", "record_claim_tool"}
         assert set(tools) == expected, f"tools mismatch: {sorted(set(tools) ^ expected)}"
         print(f"[selftest] tools/list -> {len(tools)} tools OK")
 
@@ -360,7 +397,19 @@ if __name__ == "__main__":
             ("add_local_work_tool", {"work_id": "T1x9999", "genre": "测试",
                                      "rationale": "协议自测错误路径",
                                      "txt_dir": "C:/definitely/not/here"}),
+            # record_claim_tool: legal write with a REAL corpus quote, then the
+            # no-evidence refusal path (G8) — the written row is cleaned below
+            ("record_claim_tool", {"kind": "summary",
+                                   "claim": "协议自测：無爲在老子中可核验的引文",
+                                   "method": "mcp-selftest",
+                                   "evidence": [{"work_id": "KR5c0057",
+                                                 "file": "KR5c0057_043.txt",
+                                                 "quote": "第四十三章 天下之至柔",
+                                                 "page_anchor": "KR5c0057_tls_043-1a"}]}),
+            ("record_claim_tool", {"kind": "summary", "claim": "无证据断言",
+                                   "method": "mcp-selftest", "evidence": []}),
         ]
+        record_did = None
         for i, (name, args) in enumerate(calls, start=3):
             send({"jsonrpc": "2.0", "id": i, "method": "tools/call",
                   "params": {"name": name, "arguments": args}})
@@ -370,12 +419,39 @@ if __name__ == "__main__":
             assert content, (name, content)
             if name == "add_local_work_tool":
                 assert content.startswith("error:"), (name, content)
+            elif name == "record_claim_tool" and not args.get("evidence"):
+                assert content.startswith("error:"), (name, content)
+            elif name == "record_claim_tool":
+                assert content.startswith("recorded #"), (name, content)
+                record_did = int(content.split("#")[1].split()[0])
             else:
                 assert "error" not in content.lower(), (name, content)
             print(f"[selftest] tools/call {name} -> {len(content)} chars OK")
         proc.stdin.close()
         proc.wait(timeout=15)
         assert proc.returncode == 0, f"subprocess exit {proc.returncode}"
+        # R34b lesson: the legal record_claim_tool write touched the LIVE
+        # knowledge.db — clean that row up so the store stays baseline-clean
+        if record_did is not None:
+            from .knowledge import KnowledgeBase  # noqa: E402
+            from .variants import fold, segment_cjk  # noqa: E402
+
+            kb = KnowledgeBase(KNOWLEDGE_DB)
+            try:
+                row = kb.db.execute(
+                    "SELECT claim FROM derived WHERE id=?", (record_did,)).fetchone()
+                if row is not None:
+                    seg = segment_cjk(fold(row["claim"]))
+                    kb.db.execute(
+                        "INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                        "VALUES('delete',?,?)", (record_did, seg))
+                    kb.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                                  (record_did,))
+                    kb.db.execute("DELETE FROM derived WHERE id=?", (record_did,))
+                    kb.db.commit()
+                    print(f"[selftest] record_claim_tool test row #{record_did} cleaned")
+            finally:
+                kb.close()
         print("MCP protocol self-test PASS")
     else:
         mcp.run()
