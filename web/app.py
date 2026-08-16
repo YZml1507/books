@@ -952,8 +952,19 @@ if __name__ == "__main__":
         from guji import history as history_db
         rows_before = history_db.list_records(limit=1)
         max_id_before = rows_before[0]["id"] if rows_before else 0
+        # R68b：P2 子平书集合（bazi_lookup.MINGLI_WORKS 中的 9 部本地入库书）
+        _ZI_PING_WORKS = {"ditiansui", "lantai-miaoxuan", "mingli-tanyuan",
+                          "mingli-yueyan", "qiongtongbaojian", "sanming-tonghui",
+                          "wuxing-dayi", "wuxing-jingji", "ziping-zhenquan"}
         check("bazi", client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
-              "hour": 12, "gender": "男"}), lambda j: j.get("paipan") and j.get("calc"))
+              "hour": 12, "gender": "男"}),
+              lambda j: (j.get("paipan") and j.get("calc")
+                         # R68b：evidence 语义路径 standing 覆盖（R67b 重建 bge_mingli
+                         # 缓存后实测 12 条含 P2 子平书，此处断言非空 + 含子平书，
+                         # 抓 retrieve_semantic 静默失效——R48b 教训同族）
+                         and j.get("evidence")
+                         and any(e.get("work_id") in _ZI_PING_WORKS
+                                 for e in j.get("evidence", []))))
         for rec in history_db.list_records(limit=5):
             if rec["id"] > max_id_before:
                 history_db.delete_record(rec["id"])

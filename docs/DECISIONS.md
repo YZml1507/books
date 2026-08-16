@@ -3672,3 +3672,30 @@ verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §93�
 MINGLI_WORKS（2,505 单元），docmeta/doccvecs 与 corpus 实测一致；
 `retrieve_semantic` 冒烟确认 P2 子平书可命中；全量 13 闸门 + 五层自测
 零回退。commit 见台账 §94。
+
+## D-114b R68b 优化轨：web --selftest bazi check 补 evidence 断言（语义路径 standing 覆盖）
+
+**背景（亲自核实）**：R67b 重建 bge_mingli 缓存后，`/api/bazi` 实测返回
+**evidence 12 条**（含 P2 子平书 qiongtongbaojian/wuxing-dayi——语义检索
+路径已覆盖 18 部 MINGLI_WORKS），但 web selftest 的 **bazi check 只断言
+`j.get("paipan") and j.get("calc")`，不覆盖 evidence 字段**。后果：
+若 `retrieve_semantic` 再次失效（缓存陈旧、模型损坏、坐标词检索回归），
+bazi 响应的 evidence 会空/错，而 standing 自测全绿——R67b 同族静默
+失效（R48b 教训：未被 standing 自测覆盖的路径坏掉无人知）。实测 evidence
+结构稳定（list of {work_id/title/page_anchor/...}，12 条含子平书）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | bazi check 补 evidence 断言：`j.get("evidence")` 非空且含 work_id；再断言 P2 子平书在 evidence 中（work_id ∈ 子平书集合，验证 R67b 语义覆盖真实生效） | 纯增量测试代码，零业务风险；23→24 checks，确定性（固定输入 + 固定向量缓存）；抓语义路径静默失效 |
+| B | 只断言 evidence 非空 | 覆盖弱，P2 子平书缺失检测不到 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：全量 13 闸门 + 五层 standing 自测验证零回退。
+
+**落地结果**（2026-08-17 实测）：web/app.py bazi check 加强为断言
+evidence 非空 + 含 P2 子平书 work_id（实测命中 qiongtongbaojian 等），
+`python -m app --selftest` 23 checks 全 PASS（bazi 为加强断言，非新增
+check，总数不变）；全量 13 闸门 + 五层自测零回退（基线 47 部 62,109
+单元、G1-G9 全 PASS）。commit 见台账 §95。

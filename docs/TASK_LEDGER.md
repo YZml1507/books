@@ -3732,3 +3732,41 @@ R66b（7de30c5）已确认在 origin/main。
   retrieval_concept 53/55 不变）、eval_g7 30/30+25/25、probe_g8 九类
   越界全 BLOCKED。
 - 决策记录：DECISIONS.md D-113b。
+
+## 95. [优化轨] R68b：web --selftest bazi check 补 evidence 断言（2026-08-17，双窗口并行第二轨）
+
+### 95a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R67b（a39c3a6）已确认在 origin/main。
+
+### 95b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R65b / GOAL_NEXT_SESSION R64b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **bge_mingli 缓存**：R67b 重建后缓存 ids 2,505 与当前 MINGLI_WORKS
+  单元数一致（set 相等）——非缺口。
+- **快照数字 / MCP 工具数**：62,109 / 55.7 MB / 13,954 / 57,315(92.3%) /
+  12 tools 均与实测一致——非缺口。
+- **前端 9 tab**：实测 9 个 data-rsec，与"9 tab"一致——非缺口。
+- **真实缺口（本轮选定）**：R67b 重建 bge_mingli 缓存后 `/api/bazi`
+  实测返回 evidence 12 条（含 P2 子平书 qiongtongbaojian/wuxing-dayi），
+  但 web selftest 的 **bazi check 只断言 paipan+calc，不覆盖 evidence
+  字段**——若 `retrieve_semantic` 再次失效（缓存陈旧/模型损坏/坐标词
+  检索回归），evidence 会空/错而 standing 自测全绿（R67b 同族静默失效，
+  R48b 教训）。
+
+### 95c. 改动与验证
+
+- **改动**（web/app.py，纯增量测试代码）：bazi check 加强为断言
+  evidence 非空 + 含 P2 子平书 work_id（_ZI_PING_WORKS 集合 = 9 部本地
+  入库书，验证 R67b 语义覆盖真实生效）——23 checks（加强而非新增，
+  总数不变）。
+- **验证**（全量实跑）：`python -m app --selftest` 23 checks 全 PASS
+  （bazi evidence 断言命中）；全量 13 闸门 + 五层 standing 自测
+  （sources/bookstudy/research/mcp/web）零回退——build_index 47 部
+  62,109 单元、assess_goals G1-G9 PASS 9 PART 0 FAIL 0、eval_g1
+  246/248、eval_g7 30/30+25/25 FABRICATIONS 0、probe_g8 九类越界全
+  BLOCKED。
+- 决策记录：DECISIONS.md D-114b。
