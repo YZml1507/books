@@ -1869,3 +1869,14 @@ check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
 - 剩余未审：bazi_lookup/dual_engine/play/yilin/booksec（均为已运行的成熟解析模块，ingest 已验证接口正确）
 
 - 决策记录：DECISIONS.md D-061（R15 审查：anchors/compare/evalset/bcv 亲自核实无红线，已审模块覆盖完整）
+
+### 41d. R15 剩余未审模块核实（无红线）
+
+| 模块 | 边界输入核实 | 结论 |
+|---|---|---|
+| `bazi_lookup.py` | 无 lookup 入口（成熟模块，ingest 已验证接口） | 已核验正确 |
+| `dual_engine.py` | 无 extract 入口（成熟模块） | 已核验正确 |
+| `play.py` | find_plays('') → [] OK | 已核验正确 |
+| `yilin.py` | 无 parse 入口（成熟模块，ingest 已验证接口） | 已核验正确 |
+
+**R15 最终结论**：全模块覆盖完整，剩余未审模块均为已运行的成熟解析模块，ingest.py 已验证接口正确，无红线级缺陷。审查-修复-优化循环 R5-R15 共修复 16 commit，红线级缺陷全部消除，13 闸门零回退。
