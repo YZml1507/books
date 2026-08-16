@@ -1629,3 +1629,36 @@ probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
 | 焦氏易林 unit=0 | **语料缺口**：原文路径不存在，非代码红线 | 待语料补全 |
 
 - 决策记录：DECISIONS.md D-055（_has_cjk 漏检修复+剩余待修项核验：3 假阳性/1 已修/1 中优先级/1 待核实）
+
+## 36. 阶段2-R10 整体复验（2026-08-16，R9 闭环后确认零回退）
+
+**纪律**：R5-R9 共修复 6 轮缺陷后，R10 整体复验 13 闸门确认零回退。
+
+### 36a. R10 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
+probe_conservation 8989 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
+```
+
+### 36b. R5-R9 修复成果汇总
+
+| 轮次 | commit | 修复内容 | 类型 |
+|---|---|---|---|
+| R5 | 04e6f2d | huangli 二十八宿锚点错30天 + 天德/月德临日死代码 | 红线 |
+| R6 | 9be509b | qiming 部首表缺口 + web /api/qiming 输入校验 | 红线 |
+| R7 | 2b74e29 | bazi gregorian 逆变换死代码 + qiming 8处负面寓意 | 中/低 |
+| R8 | ffdb40a | ingest giant-unit 二次切分（play/poem/euclid/booksec） | 红线 |
+| R9 | 693acfd | douay 续行整行丢失 + raw_end 偏移修正 | 红线 |
+| R9续 | c579910 | douay APPENDICES 巨型 verse 修复（234,655→2,562） | 红线 |
+| R9续 | 2b1ba35 | _has_cjk 漏检 U+3007/兼容区/全角字符 | 低 |
+| R9续 | a5ab4d5 | play addr1/addr2 语义文档与实测对齐 | 文档 |
+| R9续 | 497d456 | zip_sha256 列三种语义注释清楚 | 文档 |
+
+### 36c. R10 基线变化
+- units: 52,091 → 61,732（+9,641，giant-unit 切分+douay 续行累加）
+- db: 47.7 MB → 55.2 MB（+7.5 MB，更多 unit/fts 索引）
+- suspect: 20 units（quality_report 基线，非回退）
+- 13 闸门零回退，所有 R5-R9 修复均闭环
+
+- 决策记录：DECISIONS.md D-056（R10 整体复验零回退，R5-R9 共修复 9 commit，红线级缺陷全部消除）
