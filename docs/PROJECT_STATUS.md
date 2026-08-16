@@ -317,9 +317,9 @@ Iliad 两译本。已落盘 + manifest（`data/catalog/generality_manifest.json`
 
 ## TODO（较小项）
 
-- [ ] junk 检测器加入 `\(cid:\d+\)` 统计
-- [ ] `自天祐之` 在两源 5 vs 4 的真实差异，查明原因
-- [ ] `&KR0658;` 形式的无码位字形，设计占位符语义（`differs` 类失败里多次出现）
-- [ ] 55 个 probes 已沉淀结论的可归档，避免与 `src/`+`scripts/` 混淆
-- [ ] Phase 3 Review：架构文档自审，找过度设计与技术债
-- [ ] 知识图谱：建图前须确认 `differs` 類異文不会被实体抽取抹平
+- [x] junk 检测器加入 `\(cid:\d+\)` 统计（**已实现**：src/guji/quality.py:283 `_CID_RE` + Detector 3 junk census，Q-06 已含 cid 列；R74b 核实）
+- [x] `自天祐之` 在两源 5 vs 4 的真实差异，查明原因（**已查清**：D-034/T7-n 繫辞传印次差异 KR1a0001(5) vs KR1a0032(4)；R74b 核实）
+- [x] `&KR0658;` 形式的无码位字形，设计占位符语义（`differs` 类失败里多次出现）（**已查清**：T7-m = 虩 U+8679，台账 §1017 probe_t7m_entities.py；R74b 核实）
+- [x] 55 个 probes 已沉淀结论的可归档，避免与 `src/`+`scripts/` 混淆（**已做**：R51b 归档 57 个、活跃 54；R74b 核实）
+- [x] Phase 3 Review：架构文档自审，找过度设计与技术债（**已完成**：D-034 即 Phase 3 架构自审，评审 BOOK_AI_ARCHITECTURE.md；R74b 核实）
+- [ ] 知识图谱：建图前须确认 `differs` 類異文不会被实体抽取抹平（**未处置，开放**；R74b 标注）

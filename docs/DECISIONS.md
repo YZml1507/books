@@ -3856,3 +3856,39 @@ R65b 补 G1 失败留档、R72b 改 ROADMAP 等，历轮都改了快照块内容
 R70b（与快照块 24 checks R70b 内容一致），"前一次快照 R49b"保留。
 docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §100。
+
+## D-120b R74b 优化轨：PROJECT_STATUS TODO 段过时清理（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_STATUS.md` 文末 **TODO（较小项）段
+6 项中至少 4 项已被后续轮次处置但未划掉**：
+1. `junk 检测器加入 (cid:\d+) 统计`——**已实现**：src/guji/quality.py:283
+   `_CID_RE = re.compile(r"\(cid:\d+\)")` + Detector 3 junk census
+   （check_quality 输出 Q-06 已含 cid 列）；
+2. `自天祐之 5 vs 4 查明原因`——**已查清**：D-034/T7-n（繫辞传印次
+   差异，KR1a0001(5) vs KR1a0032(4)），GOAL_NEXT_SESSION §2b 已由 R57b
+   关闭；
+3. `&KR0658; 占位符语义`——**已查清**：T7-m（= 虩 U+8679），台账
+   §1017 probe_t7m_entities.py 实测；
+4. `Phase 3 Review 架构自审`——**已完成**：D-034 就是 Phase 3 架构自审
+   （BOOK_AI_ARCHITECTURE.md 评审）。
+其余 2 项（probes 归档、知识图谱 differs 确认）需核实：probes 归档
+R51b 已做（archive 57、活跃 54）；知识图谱项未知（可能仍开放）。
+TODO 段未随处置更新，新会话照它执行会重复已完成的排查（O1 文档失效
+模式，L-23 状态标记同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | TODO 段逐项标注：4 项划掉并注明处置出处（D-034/T7-m/quality.py Detector 3/D-034）；probes 归档项标注"R51b 已归档 57 个"；知识图谱项保留并注明"未处置，开放" | 纯文档、零代码/零风险；处置证据与台账/DECISIONS/代码实测一致，防新会话重复排查 |
+| B | 只删已处置 4 项 | 不留处置出处，新会话无法回溯；probes/知识图谱 2 项状态不明仍留 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（逐项标注而非删行：照 D-008 保留记录惯例，处置出处可回溯）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS TODO 段 6 项逐项标注
+（4 项划掉 + 处置出处；probes 归档标注 R51b 已做；知识图谱标注未处置
+开放）。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线
+未动。commit 见台账 §101。

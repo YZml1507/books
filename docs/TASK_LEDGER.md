@@ -3952,3 +3952,40 @@ R72b（b99d046）已确认在 origin/main。
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（R70b 与快照块自测行
   一致）。
 - 决策记录：DECISIONS.md D-119b。
+
+## 101. [优化轨] R74b：PROJECT_STATUS TODO 段过时清理（2026-08-17，双窗口并行第二轨）
+
+### 101a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R73b（547aa14）已确认在 origin/main。
+
+### 101b. 摸底（逐项亲自核实）
+
+- **文档 R 编号 / 残留旧数字 / 快照数字 / MCP 工具数 / bge 缓存**：均与
+  实测一致——非缺口。
+- **前端按钮 handler / 移交项清单**：8 按钮全接线；§2a 三条移交项维持——
+  非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_STATUS.md` 文末 **TODO（较小
+  项）段 6 项中至少 4 项已被后续轮次处置但未划掉**：
+  1. junk `(cid:\d+)` 统计——已实现（quality.py:283 `_CID_RE` + Detector
+     3 junk census，Q-06 含 cid 列）；
+  2. 自天祐之 5 vs 4——已查清（D-034/T7-n 繫辞传印次差异，R57b 已关闭
+     §2b）；
+  3. `&KR0658;` 占位符语义——已查清（T7-m = 虩 U+8679，台账 §1017）；
+  4. Phase 3 架构自审——已完成（D-034 即自审）。
+  另 2 项：probes 归档 R51b 已做（archive 57、活跃 54）；知识图谱
+  differs 确认项未处置（开放）。TODO 段未随处置更新，新会话会重复
+  排查（O1 文档失效模式，L-23 状态标记同族）。
+
+### 101c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：TODO 段 6 项逐项标注——
+  5 项划掉并注明处置出处（quality.py:283 / D-034 / T7-m 台账 §1017 /
+  R51b 归档 / D-034），知识图谱项保留并标注"未处置，开放"（照 D-008
+  保留记录惯例，处置出处可回溯）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（处置出处与台账/DECISIONS/
+  代码实测一致）。
+- 决策记录：DECISIONS.md D-120b。
