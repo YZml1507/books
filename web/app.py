@@ -979,6 +979,13 @@ if __name__ == "__main__":
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)
         check("health", client.get("/api/health"), lambda j: j.get("ok") is True)
+        # 首页 `/`（R61b）：单页前端入口，返回 HTML 非 JSON——不走 check()
+        # 闭包（它断言 resp.json()），单独断言状态码 + content-type + 关键标记。
+        home = client.get("/")
+        assert home.status_code == 200, ("home", home.status_code, home.text[:200])
+        assert "text/html" in (home.headers.get("content-type") or ""), "home must be HTML"
+        assert "<html" in home.text.lower(), "home must contain <html>"
+        ok.append("home")
 
         # threads POST: write a bound claim with a REAL quote -> readback ->
         # cleanup (R34b lesson: never leave test rows in the live store)

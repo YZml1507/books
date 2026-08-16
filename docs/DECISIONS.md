@@ -3459,3 +3459,28 @@ D-103b 接续文档失效模式）。
 2026-08-13，数字已过时——当前快照见 GOAL_NEXT_SESSION §1 与
 PROJECT_STATUS，勿引用本节数字）"。docs-only 抽跑 verify_index +
 check_quality 全 exit 0，基线未动。commit 见台账 §87。
+
+## D-107b R61b 优化轨：web --selftest 补首页 `/` 端点 standing 覆盖
+
+**背景（亲自核实）**：`web/app.py` selftest 已 22 checks（R53b/R54b 扩展），
+但**全部是 API JSON 端点**；`/` 首页（单页前端入口）零 standing 覆盖。
+`/` 若损坏（静态文件缺失、路由回归），前端整体不可用而 22 checks 全绿
+——R48b 教训（web 端点静默损坏靠 standing 自测抓）的最后一块。实测
+`GET /` 返回 200、content-type=text/html、含 `<html>` 与 `tabs`（nav）
+——可确定性断言。现有 `check()` 断言 `resp.json()`，对 HTML 响应会抛
+异常，需单独写断言（不走 check 闭包）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | selftest 补首页断言：`GET /` → status 200 + content-type text/html + 含 `<html>`（不走 JSON check，单独 assert） | 纯增量测试代码，零业务风险；22→23 checks，确定性（本地静态页）；补上 API 之外唯一入口 |
+| B | 连 /api/external/news 一起补（含降级路径） | external 依赖 7897 代理与网络，standing 自测会变 flaky——否决（D-100b 同因） |
+| C | 只做文档轮 | R55b-R60b 已连续六轮文档，本轮有明确代码面缺口（首页零覆盖） |
+
+选 A。落地后：全量 13 闸门 + 五层 standing 自测验证零回退。
+
+**落地结果**（2026-08-17 实测）：web/app.py selftest 补首页断言
+（`GET /` → 200 + text/html + 含 `<html>`），`python -m app --selftest`
+22→23 checks 全 PASS；全量 13 闸门 + 五层自测零回退（基线 47 部
+62,109 单元、G1-G9 全 PASS）。commit 见台账 §88。

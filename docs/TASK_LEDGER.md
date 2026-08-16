@@ -3486,3 +3486,38 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
 - **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（标注与 D-106b 一致）。
 - 决策记录：DECISIONS.md D-106b。
+
+## 88. [优化轨] R61b：web --selftest 补首页 `/` 端点 standing 覆盖（2026-08-17，双窗口并行第二轨）
+
+### 88a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R60b（f51a3dd）已确认在 origin/main。
+
+### 88b. 摸底（逐项亲自核实）
+
+- **eval_g1.json 题量**：R60b 已核实八类合计 248 与实测一致——非缺口。
+- **OPTIMIZE/PROPOSAL/HANDOFF 文档**：均为历史方案/交接文档（头部已标注
+  日期），非活跃入口——非缺口。
+- **MASTER_PLAN §4 地址表**：bcv 35,787 / yilin 5,032 / booksec 4,247 /
+  play 6,512 / euclid 649 均与实测一致（R59b 修 yilin 后口径统一）——
+  非缺口。
+- **真实缺口（本轮选定）**：`web/app.py` selftest 22 checks **全部是 API
+  JSON 端点**，`/` 首页（单页前端入口）零 standing 覆盖——`/` 若损坏
+  （静态文件缺失、路由回归）前端整体不可用而 22 checks 全绿（R48b 教训
+  最后一块）。实测 `GET /` 200、content-type=text/html、含 `<html>` 与
+  tabs（nav），可确定性断言；现有 check() 闭包断言 resp.json()，对 HTML
+  会抛异常，需单独写断言。
+
+### 88c. 改动与验证
+
+- **改动**（web/app.py，纯增量测试代码）：selftest 补首页断言——`GET /`
+  → status 200 + content-type 含 text/html + 文本含 `<html>`（不走 JSON
+  check 闭包，单独 assert + ok.append("home")）。
+- **验证**（全量实跑）：`python -m app --selftest` 22→23 checks 全 PASS；
+  全量 13 闸门 + 五层 standing 自测（sources/bookstudy/research/mcp/web）
+  零回退——build_index 47 部 62,109 单元、assess_goals G1-G9 PASS 9
+  PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
+  eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
+- 决策记录：DECISIONS.md D-107b。
