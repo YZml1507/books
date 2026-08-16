@@ -3092,3 +3092,16 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-098a R83a 审查轨：优化轨 R62b-R63b 纯文档轮监控（2026-08-17）
+
+- **接续 R82a**：fetch 发现优化轨推进 main 两提交（689a260 R62b、
+  9386342 R63b）。亲核实两提交 --stat **全部 docs/*.md only**：
+  R62b PROJECT_ROADMAP 标记 P2/P3/P4 为 done with landing evidence；
+  R63b PROJECT_STATUS + GOAL_NEXT_SESSION 同步 web selftest 22→23 checks。
+- `git log HEAD..origin/main -- ':!docs/'` 返回空，**零代码逻辑变化**，
+  未启动新审查轨循环，不 rebase（无代码需并入）。
+- **领土零越界**：本轮两提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+- 本轮无代码变更，13 闸门状态延续 R82a 全绿基线（suspect=10 units/5 地址），
+  未重跑（协议第 3 步纯文档轮不触发新循环）。
