@@ -38,8 +38,8 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 治理      双窗口边界：R44b 反驳审查轨 R24a 越界指控（git 铁证）→ R25a 亲核实
           后撤回（R47b 记录闭环）；R21a 委托待审查轨合入 main（移交项）
 自测      各层 standing 自测全齐：sources/bookstudy/research/mcp `--selftest`
-          + web `python -m app --selftest`（22 checks，R54b——R49b 12 checks
-          起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点）
+          + web `python -m app --selftest`（23 checks，R63b——R49b 12 checks
+          起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点、R61b 补首页 /）
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：

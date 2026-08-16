@@ -3514,3 +3514,32 @@ candidates）。同文档 P5 已标"已落地"而 P2-P4 漏标，新会话照 RO
 MINGLI_WORKS；P3：liuyao/huangli tab 接线 + R53b 端点自测；P4：qiming
 tab 接线 + R53b 端点自测）。docs-only 抽跑 verify_index + check_quality
 全 exit 0，基线未动。commit 见台账 §89。
+
+## D-109b R63b 优化轨：web --selftest 22→23 checks 文档数字同步（文档对齐）
+
+**背景（亲自核实）**：R61b 已把 web standing 自测扩到 **23 checks**
+（补首页 `/` 端点，实测 `python -m app --selftest` 23 checks 全 PASS），
+但两处文档仍写 22 checks：
+1. `docs/PROJECT_STATUS.md` 快照块自测行：`web ...（22 checks，R54b——
+   R49b 12 checks 起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点）`
+   ——漏 R61b 的 home 端点；
+2. `docs/GOAL_NEXT_SESSION.md` §1 复验命令注释：`web 22 checks 为
+   R53b/R54b 扩展后实测数`——同样滞后。
+R61b 改代码时未同步这两处文档（L-23 教训：可被一条命令断言的事实写成
+硬编码数字；本窗口 R53b-R62b 每轮都同步了文档，唯 R61b 漏同步）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | PROJECT_STATUS 自测行与 GOAL_NEXT_SESSION 复验注释的 22→23，补 R61b home 端点说明（"R61b 补首页 /"） | 纯文档、零代码/零风险；数字与 `python -m app --selftest` 实测一致（23 checks） |
+| B | 只改 PROJECT_STATUS 不动 GOAL_NEXT_SESSION | 不完整，接续文档仍滞后 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS 快照块自测行与
+GOAL_NEXT_SESSION §1 复验注释的 web 自测数 22→23，补 R61b home 端点
+说明。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §90。

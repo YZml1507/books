@@ -82,7 +82,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\eval_g4.py
 .\.venv\Scripts\python.exe probes\probe_booksec.py
 .\.venv\Scripts\python.exe scripts\assess_goals.py
-# 各层 standing 自测（R49b 起全齐；web 22 checks 为 R53b/R54b 扩展后实测数）：
+# 各层 standing 自测（R49b 起全齐；web 23 checks 为 R53b/R54b/R61b 扩展后实测数）：
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research

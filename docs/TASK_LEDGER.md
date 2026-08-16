@@ -3561,3 +3561,35 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（状态标记与实测一致——
   corpus 9 部术数书、web 端点 R53b 已实测）。
 - 决策记录：DECISIONS.md D-108b。
+
+## 90. [优化轨] R63b：web --selftest 22→23 checks 文档数字同步（2026-08-17，双窗口并行第二轨）
+
+### 90a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R62b（689a260）已确认在 origin/main。
+
+### 90b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R54b / GOAL_NEXT_SESSION R57b /
+  ROADMAP R58b / MASTER_PLAN R59b / MCP_CLIENT_CONFIG R22b——无异常滞后。
+- **残留旧计数**：grep "12 checks" 仅命中 PROJECT_STATUS 关键变化段
+  R49b 历史条目（写"12 checks，R49b"是当时事实，保留正确）——非缺口。
+- **corpus 规模**：units=62,109、size=55.7 MB，与快照一致——非缺口。
+- **真实缺口（本轮选定）**：R61b 已把 web standing 自测扩到 **23 checks**
+  （补首页 `/` 端点），但两处文档仍写 22 checks——`docs/PROJECT_STATUS.md`
+  快照块自测行（漏 R61b home 端点）与 `docs/GOAL_NEXT_SESSION.md` §1 复验
+  命令注释（"22 checks 为 R53b/R54b 扩展后"）。R61b 改代码时未同步文档
+  （L-23 教训：可被命令断言的事实硬编码；本窗口每轮都同步文档，唯 R61b
+  漏同步）。
+
+### 90c. 改动与验证
+
+- **改动**（纯文档两处）：PROJECT_STATUS 快照块自测行 22→23 checks（补
+  "R61b 补首页 /"）；GOAL_NEXT_SESSION §1 复验命令注释 22→23 checks
+  （"R53b/R54b/R61b 扩展后实测数"）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（23 checks 与
+  `python -m app --selftest` 实测一致）。
+- 决策记录：DECISIONS.md D-109b。
