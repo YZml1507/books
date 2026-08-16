@@ -3319,3 +3319,32 @@ rebase 后亲跑 13 闸门确认无回归：
   非持久化、网络依赖端点正确排除。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-094a。
+
+## 76. [审查轨] R30a 优化轨 R59b-R60b 纯文档轮监控（2026-08-17）
+
+接续 R29a（§75）。fetch origin 发现优化轨推进 main 两个新提交
+（68be78f R59b、f51a3dd R60b）。亲核实两提交 --stat **全部 docs/*.md
+only**：
+- 68be78f（R59b）：MASTER_PLAN 修正 yilin row unit/cells mixup in
+  address-scheme table + DECISIONS/TASK_LEDGER append。
+- f51a3dd（R60b）：GOAL.md §7 measured-state snapshot 标记为 historical
+  archive + DECISIONS/TASK_LEDGER append。
+
+`git log HEAD..origin/main -- ':!docs/'` 返回空，确认**零代码逻辑变化**，
+未启动新审查轨循环，不 rebase（无代码需并入）。
+
+### 76a. scripts/assess_goals.py diff 假警排除（同 §73a）
+
+`git diff HEAD..origin/main` 报 `scripts/assess_goals.py` 差异，亲核实：
+`git log HEAD..origin/main -- scripts/assess_goals.py` 返回**空**——本轮
+两提交无一触及。差异是 R21a 委托修复（commit 23d0f94）从未 merge 到
+main 的历史遗留（§71a 已确认），非本轮新增，非越界。
+
+### 76b. 验证
+
+- 本轮无代码变更，13 闸门状态延续 R29a 全绿基线（suspect=10 units/5
+  地址），未重跑（协议第 3 步纯文档轮不触发新循环）。
+- **领土零越界**：本轮两提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+
+- 决策记录：DECISIONS.md D-095a。

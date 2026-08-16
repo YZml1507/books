@@ -3040,3 +3040,20 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
     item、PROJECT_ROADMAP 繫辞 alignment numbers 修正。全部文档对齐实测
     数据，与代码现状一致。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-095a R30a 审查轨：优化轨 R59b-R60b 纯文档轮监控（2026-08-17）
+
+- **接续 R29a**：fetch 发现优化轨推进 main 两提交（68be78f R59b、
+  f51a3dd R60b）。亲核实两提交 --stat **全部 docs/*.md only**：
+  R59b MASTER_PLAN 修正 yilin row unit/cells mixup in address-scheme
+  table；R60b GOAL.md §7 measured-state snapshot 标记为 historical archive。
+- `git log HEAD..origin/main -- ':!docs/'` 返回空，**零代码逻辑变化**，
+  未启动新审查轨循环，不 rebase（无代码需并入）。
+- **scripts/assess_goals.py diff 假警排除（同 §73a/§76a）**：`git log
+  HEAD..origin/main -- scripts/assess_goals.py` 返回空——本轮两提交无一
+  触及。差异是 R21a 委托修复（23d0f94）从未 merge 到 main 的历史遗留
+  （§71a 已确认），非本轮新增，非越界。
+- **领土零越界**：本轮两提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+- 本轮无代码变更，13 闸门状态延续 R29a 全绿基线（suspect=10 units/5 地址），
+  未重跑（协议第 3 步纯文档轮不触发新循环）。
