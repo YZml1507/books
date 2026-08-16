@@ -27,7 +27,7 @@
 | 检索 | FTS5 + bge 双路径（`src/guji/search.py`/`bazi_lookup.py`） | eval_g1 100% 命中 |
 | 引用 | 每结果带 文件+页锚点，G2 字符串可核验 | verify_index ALL PASS |
 | 回答 | `answer.py` G7：有据才答，无据拒答 | eval_g7 PASS（FABRICATIONS 0） |
-| 比对 | `compare` 跨版本同址比对 + 两书对照 compare_works | 繫辞 1824/1872 = 97.4% |
+| 比对 | `compare` 跨版本同址比对 + 两书对照 compare_works | 繫辞 1824/1882 = 96.9%（5 部書实测汇总，以 `scripts/validate_alignment.py` 为准；R58b 刷新） |
 | 研究线程 | `research_thread.py` G9 跨会话恢复 + web POST/GET | 已落地，web 可记可读 |
 | 入口 | **web 古籍读书面板 9 个研究 tab**（检索/深度研究/定位/比对/书目/线程/读书/两书对照/概念研究）+ CLI 同源 | R25b/R26b/R29b 已接线 |
 

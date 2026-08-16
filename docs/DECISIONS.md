@@ -3373,3 +3373,31 @@ R54b 终态（快照块补"web 自测 22 checks，R53b/R54b 扩展"），复验�
 注释同步；§2b 架构补注条目标注"已完成（2026-08-15 已补注，见
 BOOK_AI_ARCHITECTURE.md §5）"。docs-only 抽跑 verify_index +
 check_quality 全 exit 0，基线未动。commit 见台账 §84。
+
+## D-104b R58b 优化轨：PROJECT_ROADMAP 比对行繫辞比对数字过时修复（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` §1.1 比对行写
+`繫辞 1824/1872 = 97.4%`，但实测（`scripts/validate_alignment.py` →
+`data/catalog/alignment_score.json` 汇总）为 **expected=1882 verified=
+1824 = 96.9%**——verified 1824 与文档一致，但**分母 1872 ≠ 实测 1882、
+比率 97.4% ≠ 96.9%**。根因：R56b 刷新语料行时漏掉同文档 §1.1 比对行
+（L-23 教训同族：可被命令断言的事实写成硬编码数字）。5 部書明细：
+KR1a0006 364/374、KR1a0007 372/380、KR1a0016 358/368、KR1a0031
+356/380、KR1a0032 374/380，TOTAL 1824/1882 = 96.92%。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP §1.1 比对行更新为实测值：`繫辞 1824/1882 = 96.9%`（5 部書实测汇总，validate_alignment 输出），行尾照语料行先例补"以 validate_alignment 实测为准" | 纯文档、零代码/零风险；数字与 alignment_score.json 实测一致 |
+| B | 前端功能增强 | 9 tab + 记忆闭环 + 22 checks 已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md §1.1 比对行更新为
+`繫辞 1824/1882 = 96.9%`（KR1a0006 364/374 · KR1a0007 372/380 ·
+KR1a0016 358/368 · KR1a0031 356/380 · KR1a0032 374/380 汇总，出处
+validate_alignment）。docs-only 抽跑 verify_index + check_quality 全
+exit 0，基线未动。commit 见台账 §85。

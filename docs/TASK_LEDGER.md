@@ -3384,3 +3384,37 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（22 checks 与 web --selftest
   实测一致）。
 - 决策记录：DECISIONS.md D-103b。
+
+## 85. [优化轨] R58b：PROJECT_ROADMAP 比对行繫辞比对数字过时修复（2026-08-17，双窗口并行第二轨）
+
+### 85a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R57b（280ba1b）已确认在 origin/main。
+
+### 85b. 摸底（逐项亲自核实）
+
+- **GOAL_NEXT_SESSION §1 快照数字**：实测 total=62,109、addressed=57,315
+  （92.3%）、anchors=13,954——与快照一致，非缺口。
+- **MCP 工具数**：12 与实测一致（tools/list -> 12 tools OK），防漂移声明
+  已生效——非缺口。
+- **eval_g1 命中率**：retrieval 40/40=100%（ROADMAP"100% 命中"准确）——
+  非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` §1.1 比对行写
+  `繫辞 1824/1872 = 97.4%`，实测（validate_alignment →
+  alignment_score.json 汇总）为 **expected=1882 verified=1824 = 96.9%**
+  ——verified 1824 与文档一致，但分母 1872 ≠ 1882、比率 97.4% ≠ 96.9%。
+  R56b 刷新语料行时漏掉同文档比对行（L-23 教训同族）。5 部書明细：
+  KR1a0006 364/374、KR1a0007 372/380、KR1a0016 358/368、KR1a0031
+  356/380、KR1a0032 374/380，TOTAL 1824/1882 = 96.92%。
+
+### 85c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：§1.1 比对行更新为
+  `繫辞 1824/1882 = 96.9%`（5 部書实测汇总），行尾补"以
+  `scripts/validate_alignment.py` 为准"声明（照 R56b 语料行先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与 alignment_score.json
+  实测一致）。
+- 决策记录：DECISIONS.md D-104b。
