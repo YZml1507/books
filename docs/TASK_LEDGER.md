@@ -3455,3 +3455,34 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（yilin 5,032 单元与
   corpus.db 实测一致，4,096 cells 与 eval_g4 一致）。
 - 决策记录：DECISIONS.md D-105b。
+
+## 87. [优化轨] R60b：GOAL.md §7 过时实测快照标注为历史存档（2026-08-17，双窗口并行第二轨）
+
+### 87a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R59b（68be78f）已确认在 origin/main。
+
+### 87b. 摸底（逐项亲自核实）
+
+- **eval_g1.json 题量**：counts 八类 = retrieval 40 / retrieval_cross 24 /
+  retrieval_hard 24 / citation 30 / grounded_pos 25 / grounded_neg 30 /
+  version 20 / retrieval_concept 55，合计 248——与 eval_g1 实测 246/248
+  一致——非缺口。
+- **其余文档过时数字**：HANDOFF_20260815.md 是历史交接书（38 部 51,131
+  单元），其头部即"2026-08-15 晚"存档，非活跃入口——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §7"当前实测状态"停在
+  2026-08-13（28 部 8,611 单元、PASS 3 PART 1 FAIL 4、1824/1872、
+  地址体系仅 zhouyi/bcv），而 GOAL.md 是 GOAL_NEXT_SESSION 明示的必读
+  主红线文档——§7 无"历史存档"标注、无指向当前快照指引，新会话会被
+  旧数字误导（同 O1/D-097b/D-103b 接续文档失效模式）。
+
+### 87c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§7 标题下补"历史存档（2026-08-13，
+  数字已过时）"引用块，指引到 GOAL_NEXT_SESSION §1 与 PROJECT_STATUS，
+  保留原表作演进对照（照 D-008 保留记录惯例，标注而非改写）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（标注与 D-106b 一致）。
+- 决策记录：DECISIONS.md D-106b。

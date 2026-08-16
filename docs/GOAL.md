@@ -299,6 +299,10 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 ---
 
 ## 7. 当前实测状态（**请自行复验，不要相信这张表**）
+> **历史存档（2026-08-13，数字已过时）**——当前实测快照见
+> `docs/GOAL_NEXT_SESSION.md` §1 与 `docs/PROJECT_STATUS.md`，
+> 本节数字勿引用（R60b 标注；§7 与 §2 同属防误导纪律，快照职责归
+> PROJECT_STATUS）。
 
 ```
 索引     28 部 → 8,611 单元 · 4.9 秒 · 17.8 MB · 页锚点 100% · provenance 0/28 缺失

@@ -3429,3 +3429,33 @@ play 6,512 / euclid 649 / bcv 35,787）都是单元数，yilin 行口径与全�
 实测一致（SELECT scheme='yilin' → 5,032）、cells 数 4,096 出处标注
 （eval_g4 cells 4,096），口径与全表统一。docs-only 抽跑 verify_index
 + check_quality 全 exit 0，基线未动。commit 见台账 §86。
+
+## D-106b R60b 优化轨：GOAL.md §7 过时实测快照标注为历史存档（接续文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` 是 GOAL_NEXT_SESSION 明示的
+**必读主红线文档**（"先读本文件，再读 docs/GOAL.md（主红线）"），但
+**§7"当前实测状态"停在 2026-08-13**：索引 28 部 8,611 单元（实测 47 部
+62,109 单元）、G 判据 PASS 3 PART 1 FAIL 4 N/A 1（实测 PASS 9 PART 0
+FAIL 0）、对齐 1824/1872 = 97.4%（实测 1824/1882 = 96.9%，R58b 已证
+明 1872 分母过时）、地址体系只有 zhouyi/bcv 两行（实测六类）。
+§7 虽带"请自行复验，不要相信这张表"防误导声明，但**无"历史存档"标注、
+无指向当前快照（GOAL_NEXT_SESSION §1 / PROJECT_STATUS）的指引**——
+新会话读到主红线文档里的"当前实测状态"会被旧数字误导（同 O1/D-097b/
+D-103b 接续文档失效模式）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §7 补"历史存档（2026-08-13，数字已过时）"标注 + 指引到当前快照（GOAL_NEXT_SESSION §1 / PROJECT_STATUS 实测），保留原表作演进对照 | 纯文档、零代码/零风险；不删历史（D-008 保留错误记录惯例），只标注防误导 |
+| B | 直接更新 §7 数字为当前实测 | 与 §7 表头"请自行复验"和 §2"文档数字会过时"的设计冲突，且 GOAL.md 非状态文档（状态唯一来源是 TASK_LEDGER/PROJECT_STATUS） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 22 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（标注而非改写：GOAL.md 是红线/纪律文档，快照职责归 PROJECT_STATUS；
+照 D-097b/D-103b 先例只做防误导标注）。落地后：docs-only 先例闸门抽跑
+（verify_index + check_quality），文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：GOAL.md §7 标题补"（历史存档
+2026-08-13，数字已过时——当前快照见 GOAL_NEXT_SESSION §1 与
+PROJECT_STATUS，勿引用本节数字）"。docs-only 抽跑 verify_index +
+check_quality 全 exit 0，基线未动。commit 见台账 §87。
