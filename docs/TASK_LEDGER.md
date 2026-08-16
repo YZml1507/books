@@ -2133,3 +2133,25 @@ fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op
   `git fetch && git rebase origin/main` 再查 src/guji、web 新提交。
 - 本轮无代码改动（docs-only），闸门以 verify_index + check_quality 抽跑确认
   基线未动；13 闸门全绿状态承袭 R18a 终态（c18a6d6 上 10 命令 exit 0 实测）。
+
+## 46. [审查轨] R20a 优化轨 R18b 交叉复审（2026-08-16）
+- **优化轨已推进 main**：87afd68（O1-O5：src/guji/research.py 新 268 行、
+  llm_reader.interpret_research、Corpus.units_by_id、web /api/research /
+  /api/concept / /api/ask、前端深度研究页）+ 286e6aa（自测不可能用例改为
+  验证缺失短语 電話飛機電腦）。**领土零越界**：scripts/probes/打包链/.gitignore
+  无任何改动（diff 实证为空）。
+- **rebase 后 13 闸门亲自重跑全绿**（10 命令逐一 exit=0，不轻信其声称）；
+  research 自测 5/5 亲跑 PASS（含 拒答路径/稊梯控制/link-hop/概念普查）。
+- **交叉复审结论（新代码逐行亲审）**：纪律良好——SQL 全参数化
+  （units_by_id 占位符 IN + int 强转）、web 输入校验（q 非空、max_addresses
+  1-6、per_work 钳位）、try/finally 关库、拒答不调 LLM、引用服务端渲染、
+  前端用户数据全 esc()、LLM 块经 renderMD（R14 转义修复代码级复验属实）、
+  concept_census 混合 None/str 排序有防护。
+- **移交优化轨（低优先，只记录）**：
+  1. GET /api/research 与 /api/concept 的 q 无长度上限（POST /api/ask 有
+     max_length=200）——不一致，超长 q 直接进 FTS MATCH。
+  2. concept_census 的 n_hits 受 scan_limit=200 截断，超高频概念会低估且
+     输出字段未披露截断。
+  3. R18a 移交项仍开放：web/app.py frozen 模式 web/static 路径（44d-1）。
+- 台账分区合规：优化轨按 §44[优化轨] R18b 续编、append-only、未改写审查轨
+  条目。
