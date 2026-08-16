@@ -2058,3 +2058,22 @@ worktree `books-audit` @ 分支 `audit/R18`（基线 ebb6212）。Python 用主�
 check_quality PASS、assess_goals 9/9 PASS、4 probes PASS、eval_g1/g4/g7 PASS。
 产物漂移仅 probes/embed_bge_report.json 与 embed_c_report.json（计时字段 +
 gate_criteria 新字段，语义见 44c-5）。
+
+### 44f. R18a 审查轨总结（阶段D：覆盖清单 + 残留风险）
+**覆盖**：scripts/ 24 脚本逐行亲读（退出码/网络/subprocess/SQL/路径/编码/写
+路径全类别）；probes/ 4 闸门 probe 亲读 + 其余 55 文件子 agent 初筛后关键结论
+逐项亲验（假闸门/路径/网络/删除面）；打包链 books_app.spec/web_launcher.py/
+start_web.bat/.gitignore 亲审（web/app.py 只读核实 frozen 路径，问题移交）；
+根目录追踪物盘点。修复 12 项（44b 红线 2 + 44c 10），记录不改 6 类（44d）。
+**合并方式说明**：main 分支被主仓 worktree 占用，审查轨 worktree 无法
+`git checkout main`；隔离协议禁入主仓 → 以 `git push origin audit/R18:main`
+fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op，闸门
+在该精确树上全绿后推送）。
+**残留风险**：
+1. 主仓未追踪文件（8 个 temp_*.py、3 zip、build/、dist/、logs/、
+   web_server*.log）在隔离协议下审查轨不可达——移交优化轨/专门盘点。
+2. web/app.py frozen 模式 web/static 路径（44d-1）待优化轨修复。
+3. dist/ 产物陈旧性无法从 worktree 核实（不在 worktree）。
+4. probes/archive/ 60 个历史归档未审。
+5. 双轨并行：优化轨随时可能推进 main；下轮（R19a）先 fetch+rebase+重跑闸门
+   再复审优化轨新代码（src/guji、web 进入复审视野——交叉制衡）。
