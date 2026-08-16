@@ -1519,32 +1519,41 @@ probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
 
 ### 34c. R8 修复尝试：giant-unit 二次切分（失败，已撤销）
 
-**尝试**：在 ingest.py 的 play/poem/euclid/booksec(plato/homer) 分支添加 `split_long_text(raw, start, end, max_chars=900)` 二次切分，按段落/换行边界把超长 unit 切成 ≤900 字的子 unit。
+**第一轮尝试**（已撤销）：在 ingest.py 的 play/poem/euclid/booksec(plato/homer) 分支添加 `split_long_text(raw, start, end, max_chars=900)` 二次切分，按段落/换行边界把超长 unit 切成 ≤900 字的子 unit。
 
 **实测结果**：
 - units 从 52,091 → 61,758（+9,667），巨型 unit 消除（max 从 864,870 → 20,019）
 - **但 verify_index.py T9 失败**：106/600 sample 声称 skipped_chars=0 但实际非连续
 - 根因：split 后 sub_text = raw[sub_start:sub_end]（不 strip），但 T9 用 `clean(raw[start:end])` 检查——clean() 过滤空白换行后，sub_text 与 clean(raw) 不匹配，产生非连续
 
-**撤销**：`git checkout src/guji/ingest.py`，回到已知良好基线（52,091 units, ALL PASS）
+**第二轮尝试**（已撤销）：改 sub_text 不 strip + 重算 skipped_chars（用 clean() gap 计算同 merge_units）。
+- T9 zero 从 106 降到 0，但剩 5 个 pos 失败（skipped>0 但 contig=True）
+- 根因：`_emit_chunk` 用 `clean(raw[sub_start:sub_end])` 算 skipped，但 euclid 分支传的是 html（含标签）而非 stripped text，偏移空间不一致；且累积偏移 `cur_off` 在 \\n\\n 分割后算错
 
-**正确修复需**：
-1. 重算每个子 unit 的 skipped_chars（用 merge_units 同款 clean() gap 计算）
-2. 或：split 时保留 clean() 归一化后的子串，而非原文切片
-3. 或：split 只在 ¶ 边界切（与主路径一致），不在 \n\n 边界切
+### 34d. R8 修复成功：giant-unit 二次切分（commit ffdb40a）
 
-**待修项（下轮 R9 处理）**：
-- `ingest.py` giant-unit 二次切分（需 T9 兼容设计）
-- `douay.py:141-161` 圣经换行续行整行丢失（docstring 与代码矛盾）
-- `ingest.py:753-783` play 场景/诗整段一个 unit（绕开 900 字上限）
-- `ingest.py:39,256-270` `（` 无配对但后文有 `）` 时整段被吞成注（子平书实测）
-- `ingest.py:779 / schema.sql:41-45 / web/app.py:304` play 的 addr1=剧目序号、addr2="ACT X SCENE Y"，与 schema/UI 文档冲突
-- `ingest.py:613-618 vs 827-829` 主语料分支无条件建 work，缺 ext 分支的 0 单元守卫
-- `schema.sql:18 + ingest L605/703/832` 一个 zip_sha256 列存三种哈希，provenance 种类丢失
-- `euclid.py:206-207, ingest.py:686-705` euclid 偏移是 stripped 文本空间，按 .html 文件切片不可验证
-- `ingest.py:341-393` max_chars=900 只限合并，单 run 超长不拆分（子平书段落可达数千字）
-- `ingest.py:100/686/712` 非 UTF-8 文件无错误处理，直接 UnicodeDecodeError
-- `ingest.py:248-249` `_has_cjk` 漏 U+3007/兼容区/全角
-- `ingest.py:660` `fold.__globals__["FOLD"]` 脆弱引用
+**第三轮设计**（成功）：
+- `split_long_text(raw, start, end, max_chars=900)` 跟绝对 raw 偏移，不累积相对偏移
+- sub_text 始终 = raw[sub_start:sub_end]（不 strip），T9 兼容
+- skipped=0（因 text==raw 切片），保持 4-tuple 与 merge_units 对称
+- euclid 分支传 stripped text（`euclid._strip_tags(html)`）而非 html，与 raw_body() 偏移空间一致
 
-- 决策记录：DECISIONS.md D-053（R8 审查：lunar/bazi_calc 已核验正确，ingest giant-unit 修复尝试失败撤销）
+**4 个分支应用**：
+1. `plato-republic / homer-iliad-but / homer-iliad-pope`（booksec）：按 \\n\\n 切分整本书
+2. `shakespeare poem`（sonnets 等）：按 \\n\\n 切分整首诗
+3. `shakespeare scene`：按 \\n\\n 切分整幕
+4. `euclid-elements`：按 \\n\\n 切分单 proposition（传 stripped text）
+
+**验证**：
+- units 52,091 → 61,732（+9,641）
+- 巨型 unit 消除：plato max 864,870→977, shakespeare 98,328→900, euclid 120,424→900
+- 13 闸门全绿：check_quality PASS · build_index works=44 units=61,732
+  verify_index ALL PASS · assess_goals G1-G9 PASS · eval_g1/g4/g7 PASS
+  probe_conservation 8989 units 0 越界 · probe_huangli_shensha/liuyao_najia PASS
+
+### 34e. R8 复验命令
+```
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');import sqlite3;db=sqlite3.connect('data/index/corpus.db');print(db.execute('SELECT max(length(text)) FROM unit').fetchone()[0])"  # 应 <900 或中文单段
+.\.venv\Scripts\python.exe scripts/verify_index.py  # ALL PASS
+```
+- 决策记录：DECISIONS.md D-053（R8 审查：lunar/bazi_calc 已核验正确，ingest giant-unit 修复经 3 轮终成功）
