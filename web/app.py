@@ -947,8 +947,16 @@ if __name__ == "__main__":
 
         # 数术主 tab 端点（R53b）：bazi/liuyao/huangli/qiming 确定性 standing 覆盖。
         # 实测 seed=42 起卦结果固定（本卦 22 賁），固定输入可复验；全部纯本地计算。
+        # bazi 端点会把查询写入真实 history.db（D-039 用户授权）——自测须清理
+        # 本次新增记录（L-22 教训：写端点自测不得污染真实库，threads 同款）。
+        from guji import history as history_db
+        rows_before = history_db.list_records(limit=1)
+        max_id_before = rows_before[0]["id"] if rows_before else 0
         check("bazi", client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
               "hour": 12, "gender": "男"}), lambda j: j.get("paipan") and j.get("calc"))
+        for rec in history_db.list_records(limit=5):
+            if rec["id"] > max_id_before:
+                history_db.delete_record(rec["id"])
         check("liuyao", client.post("/api/liuyao", json={"method": "coins", "seed": 42}),
               lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
         check("huangli", client.get("/api/huangli", params={"date": "2026-08-17", "days": 1}),

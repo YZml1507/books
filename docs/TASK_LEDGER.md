@@ -3243,4 +3243,12 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   零回退——build_index 47 部 62,109 单元、assess_goals G1-G9 PASS 9
   PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
   eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
+
+**补记（L-22 同族自纠）**：bazi check 首次落地时往真实 history.db 写了
+测试记录（id 30-32，本窗口 3 次自测各 1 条）——已实测发现并修复：bazi
+check 前记录 max_id，调用后删除新增记录（与 threads POST 同款清理），
+重跑自测 16 checks 全 PASS 且 count 前后均 27 零新增；已污染 3 条已删除。
+corpus.db/knowledge.db 照 R48b/R49b 先例随提交；history.db 是用户运行期
+数据（HEAD 为空库、历次窗口均不提交），保持工作树状态不提交。
+
 - 决策记录：DECISIONS.md D-099b。
