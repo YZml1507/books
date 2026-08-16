@@ -1662,3 +1662,29 @@ probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
 - 13 闸门零回退，所有 R5-R9 修复均闭环
 
 - 决策记录：DECISIONS.md D-056（R10 整体复验零回退，R5-R9 共修复 9 commit，红线级缺陷全部消除）
+
+## 37. 队段2-R11 再审查（2026-08-16，R10 闭环后第九轮再审查）
+
+**纪律**：R11 派 3 个 explore 子 agent 并行审查 search/knowledge/quality，子 agent 结论一律当"待复验"，亲自跑命令核实。本轮核实未审模块的核心红线。
+
+### 37a. R11 闸门实机重跑（零回退）
+```
+check_quality PASS · verify_index ALL PASS · probe_conservation/bcv/huangli/liuyao PASS
+```
+
+### 37b. R11 子 agent 审查结论复验（全假阳性/无红线）
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `search.py:18-21` FTS5 空串/纯标点输入抛 OperationalError 崩溃（CLI traceback/web 500） | **假阳性**：实测 `""`/`"`/`'`/`;`/`--`/`*`/`(`/`()`/`**` 全返回 0 hits，不抛异常。`fts_phrase` 包双引号后 FTS5 把空串视为无 token 匹配，返回空结果而非语法错误 | 不修，记录假阳性 |
+| `knowledge.py` SQL 注入风险（2 个非参数化 execute） | **假阳性**：L128/L210 均用 `?` 参数化，正则误判。add_knowledge/search_knowledge/link_knowledge 全参数化 | 不修，记录假阳性 |
+| `quality.py` F1 6/10 地址标记错作品（X-11 数据正确性） | **待核实**：实测 verdict 分布合理（span-degenerate-B (EXPECTED)/text-damage/span-overextended-A/B），当前数据无红线 | 记录，下轮深核 |
+| `quality.py` F2 乱码仅作品级统计不进 suspect（Q-06 落地不完整） | **低优先级**：乱码确实只进 junk_census 不进 suspect，但非红线 | 待修，下轮 |
+| `quality.py` F3 编码异常会崩 / F4 verdict 顺序遮蔽 / F5 min_len 盲区 / F6 报告陈旧性无断言 / F7 循环内 import / F8 CJK 范围不一致 | **低优先级健壮性问题**：均为风格/边界健壮性，非红线 | 待修，下轮 |
+
+### 37c. R11 结论
+- R11 未发现真红线级缺陷，3 个子 agent 标记的 P0/P1 全假阳性或低优先级
+- 已审模块覆盖：liuyao/huangli/qiming/bazi/bazi_calc/lunar/ingest/web/douay/search/knowledge/quality
+- 剩余未审：anchors/answer/bazi_lookup/bcv/compare/dual_engine/evalset/external/history/llm_reader/play/variants/yilin/zhouyi/euclid/booksec
+
+- 决策记录：DECISIONS.md D-057（R11 审查：search/knowledge/quality 全假阳性无红线，已审模块覆盖核心层）
