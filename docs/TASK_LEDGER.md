@@ -2332,3 +2332,12 @@ fetch origin：审查轨仍无新提交（§47b assess_goals.py 委托移交保�
   …→assess_goals 共 14 命令全 exit 0；G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-069b。
+
+### 50d. MCP 客户端配置文档（R22b §49 遗留待办落地）
+
+- 新增 `docs/MCP_CLIENT_CONFIG.md`：guji-books（stdio MCP server）的客户端接入
+  配置样例——服务端启动命令（PYTHONPATH=src + venv python）、六工具清单、
+  Claude Desktop（claude_desktop_config.json）/ Claude Code（claude mcp add）/
+  通用 stdio 客户端三要素、验证冒烟方法。
+- docs-only，不改代码/索引；闸门按 docs-only 先例抽跑 verify_index +
+  check_quality 确认基线未动。
