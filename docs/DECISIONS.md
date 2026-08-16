@@ -3737,3 +3737,35 @@ line 77/82/97）调用，**13 闸门与五层 standing 自测均不覆盖它**�
 Bazi 1990-01-01 12时 男 → 语义命中非空 + 含 P2 子平书），23→24 checks
 全 PASS；全量 13 闸门 + 五层自测零回退（基线 47 部 62,109 单元、G1-G9
 全 PASS）。commit 见台账 §96。
+
+## D-116b R70b 优化轨：web --selftest 23→24 checks 文档同步（R69b 漏同步）
+
+**背景（亲自核实）**：R69b 给 web standing 自测补 `bazi.semantic`
+check（语义路径 standing 覆盖），实测 `python -m app --selftest`
+**23→24 checks 全 PASS**，但**三处文档仍写 23 checks**（R69b 改代码未
+同步文档）：
+1. `docs/GOAL_NEXT_SESSION.md` §1 快照标签行："web 自测 23 checks，
+   R53b/R54b 补端点、R61b 补首页 /"——漏 R69b bazi.semantic；
+2. 同文档 §1 复验命令注释："web 23 checks 为 R53b/R54b/R61b 扩展后
+   实测数"——同样滞后；
+3. `docs/PROJECT_STATUS.md` 快照块自测行："23 checks，R63b——R49b 12
+   checks 起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点、R61b
+   补首页 /"——漏 R69b。
+L-23 教训同族（R63b/R66b 同模式：代码扩 checks 后文档漏同步，且
+GOAL_NEXT_SESSION 同文档两行重复）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 三处文档 23→24 checks，补 R69b bazi.semantic 说明（GOAL_NEXT_SESSION 快照标签 + 复验注释 + PROJECT_STATUS 自测行） | 纯文档、零代码/零风险；数字与 `python -m app --selftest` 实测一致（24 checks） |
+| B | 只改 PROJECT_STATUS 不动 GOAL_NEXT_SESSION | 不完整，接续文档（GOAL_NEXT_SESSION 快照标签 + 复验注释）仍滞后 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：GOAL_NEXT_SESSION §1 快照标签行 +
+复验命令注释 + PROJECT_STATUS 快照块自测行三处 23→24 checks，补 R69b
+bazi.semantic 说明。docs-only 抽跑 verify_index + check_quality 全
+exit 0，基线未动。commit 见台账 §97。

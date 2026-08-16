@@ -3814,3 +3814,38 @@ R68b（845b993）已确认在 origin/main。
   assess_goals G1-G9 PASS 9 PART 0 FAIL 0、eval_g1 246/248、eval_g7
   30/30+25/25 FABRICATIONS 0、probe_g8 九类越界全 BLOCKED。
 - 决策记录：DECISIONS.md D-115b。
+
+## 97. [优化轨] R70b：web --selftest 23→24 checks 文档同步（2026-08-17，双窗口并行第二轨）
+
+### 97a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R69b（ae5f930）已确认在 origin/main。
+
+### 97b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R65b / GOAL_NEXT_SESSION R64b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **GOAL_NEXT_SESSION §2a 移交项**：R21a 委托 / 愿景 §15 / G9 SCOPE 三条
+  维持——无异常。
+- **bge 缓存一致性**：bge_docmeta（eval_g1 概念检索）2,489 = 当前爻位
+  单元 2,489（一致）；bge_mingli（R67b 重建后）2,505 = MINGLI_WORKS
+  单元（一致）——非缺口。
+- **快照数字 / concept 题分布**：62,109 / 13,954 / 55.7 MB 一致；
+  concept 55 题卦辞题 0（R65b 已记录）——非缺口。
+- **真实缺口（本轮选定）**：R69b 把 web standing 自测扩到 **24 checks**
+  （补 `bazi.semantic` 语义路径 check），但**三处文档仍写 23 checks**
+  ——GOAL_NEXT_SESSION §1 快照标签行、同文档复验命令注释、PROJECT_STATUS
+  快照块自测行。R69b 改代码未同步文档（L-23 教训同族，R63b/R66b 同
+  模式；GOAL_NEXT_SESSION 同文档两行重复数字）。
+
+### 97c. 改动与验证
+
+- **改动**（纯文档三处）：GOAL_NEXT_SESSION §1 快照标签行 23→24 checks
+  （R69b 补 bazi.semantic）；同文档复验命令注释 23→24；PROJECT_STATUS
+  快照块自测行 23→24（R70b 刷新，注明 R69b 补语义路径）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（24 checks 与
+  `python -m app --selftest` 实测一致）。
+- 决策记录：DECISIONS.md D-116b。

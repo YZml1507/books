@@ -82,7 +82,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\eval_g4.py
 .\.venv\Scripts\python.exe probes\probe_booksec.py
 .\.venv\Scripts\python.exe scripts\assess_goals.py
-# 各层 standing 自测（R49b 起全齐；web 23 checks 为 R53b/R54b/R61b 扩展后实测数）：
+# 各层 standing 自测（R49b 起全齐；web 24 checks 为 R53b/R54b/R61b/R69b 扩展后实测数）：
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research
@@ -90,7 +90,7 @@ PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
 cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-**当前（R61b 终态，13/13 全过 + 五层自测全齐；web 自测 23 checks，R53b/R54b 补端点、R61b 补首页 /）**：
+**当前（R69b 终态，13/13 全过 + 五层自测全齐；web 自测 24 checks，R53b/R54b 补端点、R61b 补首页 /、R69b 补 bazi.semantic）**：
 
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
