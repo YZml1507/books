@@ -1589,3 +1589,17 @@ probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji import douay;t=open('data/raw_ext/generality/bible-douay/pg1581.txt',encoding='utf-8').read();v=douay.parse_verses(t);print(v[1].text)"  # 应含 "of the deep"
 ```
 - 决策记录：DECISIONS.md D-054（douay 续行累加+raw_end 偏移修正）
+
+### 35d. R9 续修：douay APPENDICES 巨型 verse 修复（commit c579910）
+
+**缺陷**：R9 续行累加引入新缺陷——Revelation 22:21 后是 APPENDICES 附录区（0 verse 标记），续行累加把整个 234,655 字符附录吞为 22:21 续行。
+
+**修复**：续行累加时检测连续空行段（≥2 空行），触发 flush 终止当前 verse
+- APPENDICES 前是 `\n\n\n\n\n`（5 换行=4 空行），触发 flush
+- 正文区经文间空行是 `\n\n`（1 空行），不触发 flush，续行累加正常
+- `buf_lines_blank_run` 辅助函数改为 `blank_run` 计数器直接跟踪
+
+**验证**：
+- Revelation 22:21 len 234,655→2,562（不再吞附录）✓
+- Genesis 1:2 续行仍正确累加 len=121✓
+- 13 闸门全绿：check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS · assess_goals G1-G9 PASS · probe_bcv PASS
