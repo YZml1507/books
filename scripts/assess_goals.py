@@ -19,6 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from guji import Corpus  # noqa: E402
+from guji.evalset import raw_body  # noqa: E402
 from guji.variants import DROP  # noqa: E402
 
 RAW = os.path.join(ROOT, "data", "raw")
@@ -44,19 +45,8 @@ def file_text(work, fname):
     return re.sub(r"^#.*$", "", open(p, encoding="utf-8").read(), flags=re.M)
 
 
-def work_body_text(work):
-    """CONCATENATED work body, which is the coordinate system raw_start/raw_end live in.
-
-    Getting this wrong is what made the first run of this script report a 97.85% citation
-    error rate: it indexed a single FILE with a concatenated-body offset. schema.sql states
-    the coordinate system explicitly ("offset into the concatenated work body") and
-    probe_conservation.py had already found 0 failures over 4,985 units using the correct
-    body, so two measurements disagreed and the new one was wrong. Kept as a comment
-    because "the index is broken" was the more exciting conclusion and it was false.
-    """
-    return "".join(
-        re.sub(r"^#.*$", "", open(p, encoding="utf-8").read(), flags=re.M)
-        for p in sorted(glob.glob(os.path.join(RAW, work, "*.txt"))))
+# G6 委托到唯一的拼接实现 evalset.raw_body（L-09 单一坐标系统），
+# 不再保留第四份内联拷贝——R20b 优化轨移交、R21a 审查轨实施。
 
 
 print("=" * 78)
@@ -215,7 +205,7 @@ bodies = {}
 for r in sample:
     w = r["work_id"]
     if w not in bodies:
-        bodies[w] = work_body_text(w)
+        bodies[w] = raw_body(RAW, w)
     body = bodies[w]
     if body is None:
         bad += 1
