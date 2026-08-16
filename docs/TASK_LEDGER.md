@@ -1755,3 +1755,14 @@ check_quality PASS · verify_index ALL PASS · 13 闸门全绿
 - 169.254.169.254 → 拒绝（元数据）✓
 - 127.0.0.1/localhost/192.168/10.0/172.16 → 全拒绝 ✓
 - 13 闸门全绿：verify_index ALL PASS · check_quality PASS
+
+### 38e. R12 续修：external 5分钟TTL缓存+10秒限流（commit d1f55ec）
+
+**缺陷**：`fetch_sources` 无缓存机制，每次刷新重抓6源（最长12秒），打上游 rate limit（api.github.com/BBC/Solidot 共享IP触发403）。
+
+**修复**：
+- 进程内 `_FETCH_CACHE` + `_FETCH_LAST_AT` 状态变量
+- 5分钟TTL缓存命中直接返回上次结果
+- 10秒限流（10秒内最多1次抓取，命中缓存不算）
+
+**验证**：`_FETCH_CACHE`/`_FETCH_LAST_AT` 初始化正常 · external import ok · 13 闸门全绿
