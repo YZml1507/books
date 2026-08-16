@@ -3521,3 +3521,43 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
   eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
 - 决策记录：DECISIONS.md D-107b。
+
+## 89. [优化轨] R62b：PROJECT_ROADMAP P2/P3/P4 状态标记补全（2026-08-17，双窗口并行第二轨）
+
+### 89a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R61b（94b2af8）已确认在 origin/main。
+
+### 89b. 摸底（逐项亲自核实）
+
+- **前端接线**：dresearchBtn 走 /api/ask（R54b 已覆盖）；8 个研究按钮全有
+  handler；news 面板（/api/external/news + newsRefresh）已接线——非缺口。
+- **MCP 工具**：12 个 @mcp.tool()（search/addr/compare/concept/
+  research_tool/threads/record_claim_tool/book_summary_tool/
+  add_local_work_tool/bookstudy_structure/bookstudy_chapter/
+  compare_works_tool），与 MCP_CLIENT_CONFIG 工具表一致——非缺口。
+- **eval_g1_result**：八类 verdicts 全 PASS、overall PASS、invalid []——
+  非缺口。
+- **MASTER_PLAN §4 地址表**：bcv/yilin/booksec/play/euclid 数字均与实测
+  一致（R59b 修 yilin 后）——非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` 分阶段方案节 P0/P1/
+  P5 均有完成标记，但 **P2（命理语料扩充）、P3（六爻+黄历）、P4（五行
+  起名）仍是无标记的"开放计划"表述**——实测三者早已落地：P2 九部术数书
+  已在 corpus（滴天髓/兰台妙选/命理探原/命理约言/穷通宝鉴/三命通会/
+  五行大义/五行精纪/子平真诠，bazi_lookup MINGLI_WORKS 引用）；P3
+  liuyao/huangli tab 接线（R53b 实测 200）；P4 qiming tab 接线（R53b
+  实测 200 含 candidates）。同文档 P5 已标"已落地"而 P2-P4 漏标，新会话
+  照 ROADMAP 会误判能力未实现（O1 文档失效模式，L-23 状态标记同族）。
+
+### 89c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：P2/P3/P4 节首行补
+  "✅ 已完成"标记 + 落地轮次/证据（P2：R20b 语料 9 部入库 + bazi_lookup
+  MINGLI_WORKS；P3：liuyao/huangli tab 接线 + R53b 端点自测；P4：qiming
+  tab 接线 + R53b 端点自测）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（状态标记与实测一致——
+  corpus 9 部术数书、web 端点 R53b 已实测）。
+- 决策记录：DECISIONS.md D-108b。

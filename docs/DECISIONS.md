@@ -3484,3 +3484,33 @@ check_quality 全 exit 0，基线未动。commit 见台账 §87。
 （`GET /` → 200 + text/html + 含 `<html>`），`python -m app --selftest`
 22→23 checks 全 PASS；全量 13 闸门 + 五层自测零回退（基线 47 部
 62,109 单元、G1-G9 全 PASS）。commit 见台账 §88。
+
+## D-108b R62b 优化轨：PROJECT_ROADMAP P2/P3/P4 状态标记补全（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` 分阶段方案节中 P0/P1/P5
+均有完成标记（P0 "已完成"、P1 "✅ 已完成（R25b/R26b/R29b）"、P5
+"状态：已落地（2026-08-15 晚，D-042）"），但 **P2（命理语料扩充）、P3
+（六爻+黄历）、P4（五行起名）仍是无标记的"开放计划"表述**——实测三者
+早已落地：P2 九部术数书（滴天髓/兰台妙选/命理探原/命理约言/穷通宝鉴/
+三命通会/五行大义/五行精纪/子平真诠）已在 corpus 且 bazi_lookup
+MINGLI_WORKS 引用；P3 liuyao/huangli 端点与前端 tab 全接线（R53b 实测
+200 确定性响应）；P4 qiming 端点与 tab 全接线（R53b 实测 200 含
+candidates）。同文档 P5 已标"已落地"而 P2-P4 漏标，新会话照 ROADMAP
+会误以为这些能力未实现（O1 文档失效模式，L-23 状态标记同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | P2/P3/P4 节首行补"✅ 已完成"标记 + 落地轮次/证据（P2：R20b 语料 9 部入库 + bazi_lookup MINGLI_WORKS；P3：liuyao/huangli tab 接线，R53b 端点自测覆盖；P4：qiming tab 接线，R53b 端点自测覆盖） | 纯文档、零代码/零风险；状态与实测一致（corpus 9 部书 + web 端点 200 均已实测），防新会话误判未实现 |
+| B | 只改 P2 不动 P3/P4 | 不完整，P3/P4 仍误标 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md P2/P3/P4 节首行补
+"✅ 已完成"标记 + 落地轮次与证据（P2：R20b 语料 9 部入库、bazi_lookup
+MINGLI_WORKS；P3：liuyao/huangli tab 接线 + R53b 端点自测；P4：qiming
+tab 接线 + R53b 端点自测）。docs-only 抽跑 verify_index + check_quality
+全 exit 0，基线未动。commit 见台账 §89。
