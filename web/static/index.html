@@ -1062,7 +1062,22 @@ async function loadBookWorkOptions(){
     box.innerHTML = opts || '<option value="">（无语料）</option>';
     $('#cwa').innerHTML = opts;
     $('#cwb').innerHTML = opts;
+    // R29b：记住上次所选书，进入读书面板即自动加载结构
+    const last = localStorage.getItem('bsWork');
+    if (last && box.querySelector(`option[value="${CSS.escape(last)}"]`)){
+      box.value = last;
+    }
   }catch(ex){ box.innerHTML = `<option value="">加载失败</option>`; }
+}
+
+/* R29b：从书目一键进入读书面板并加载该书结构 */
+function gotoRead(wid){
+  localStorage.setItem('bsWork', wid);
+  switchView('read');
+  switchRsec('rsec-bookstudy');
+  const box = $('#bswork');
+  if (box.querySelector(`option[value="${CSS.escape(wid)}"]`)) box.value = wid;
+  runBookStructure();
 }
 
 async function runBookStructure(){
@@ -1213,10 +1228,11 @@ async function loadWorks(){
     const j = await r.json();
     if (!j.works || !j.works.length){ box.innerHTML = '<div class="no-evidence">无语料</div>'; return; }
     box.innerHTML = `<div class="no-evidence">共 ${j.works.length} 部（含 unit 表有单元的书；无单元的 work 未列）</div>
-      <table class="works"><tr><th>id</th><th>书名</th><th>genre</th><th>单元</th><th>有卦址</th><th>有爻址</th><th>有页锚</th></tr>` +
+      <table class="works"><tr><th>id</th><th>书名</th><th>genre</th><th>单元</th><th>有卦址</th><th>有爻址</th><th>有页锚</th><th></th></tr>` +
       j.works.map(w => `<tr><td>${esc(w.id)}</td><td>${esc(w.title||'')}</td><td>${esc(w.genre||'')}</td>
         <td class="num">${w.units||0}</td><td class="num">${w.addressed||0}</td>
-        <td class="num">${w.yao_addressed||0}</td><td class="num">${w.anchored||0}</td></tr>`).join('') + '</table>';
+        <td class="num">${w.yao_addressed||0}</td><td class="num">${w.anchored||0}</td>
+        <td><button class="thread-view" onclick="gotoRead('${esc(w.id)}')">读书</button></td></tr>`).join('') + '</table>';
   }catch(ex){ box.innerHTML = `<div class="no-evidence">书目加载失败：${esc(ex.message)}</div>`; }
 }
 

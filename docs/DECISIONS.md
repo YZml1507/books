@@ -2554,3 +2554,29 @@ subprocess 起真实 stdio 子进程 → initialize → tools/list（断言 10 �
 （nonlocal 绑定、缺 import sys）自测实跑当场抓到并修正。前端书目 badge
 38→47 部。bookstudy 11/11、research 7/7、13 闸门全绿。愿景 §15 评估缺口
 维持审查轨移交。commit 见台账 §55。
+
+## D-075b R29b 优化轨：前端 UX 串联——书目→读书一键进入（愿景 §17）
+
+**背景（亲自核实）**：愿景 §7 八种研究模式已全部落地（Quick/Deep/Book
+Study/Chapter/Comparative/Cross-book/Summary/Concept），但前端仍是"各自
+为战"：书目 tab 的表格行（`loadWorks` 渲染的 `table.works`）**没有点击联动**
+（`grep -n "onclick" index.html` 无 works 行处理）；读书 tab 的 `#bswork`
+下拉需手动逐项选择。用户从书目看到某本书后，无法一键跳去读它——§17 的
+"选书→读"体验缺最后一段串联。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端 UX 串联：①书目表每行加「读书」按钮（onclick → switchView('read') + switchRsec('rsec-bookstudy') + 设 #bswork 值 + 自动 runBookStructure()）；②读书 tab 用 localStorage 记住上次所选书，进入面板即自动加载结构 | 纯前端 index.html，零后端/零依赖/零语义改动，风险低；直接兑现 §17 "选书→读" |
+| B | Local File Adapter（本地 txt 书导入，愿景 §10） | 动 ingest 链路、涉及新语料入库，中高风险且可能触红线，独立成轮 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：前端冒烟（TestClient 不可测 UI，改测 js 函数存在性 +
+手工验证脚本）、bookstudy 11/11、research 7/7、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：书目表加「读书」按钮列 → `gotoRead(wid)`
+（localStorage 记 bsWork + 切视图/切面板 + 设下拉 + 自动加载结构）；
+`loadBookWorkOptions()` 恢复上次所选书。node --check 整段 JS 语法检查
+PASS。bookstudy 11/11、research 7/7、MCP 协议自测 PASS、13 闸门全绿。
+commit 见台账 §56。

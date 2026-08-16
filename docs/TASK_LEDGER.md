@@ -2498,3 +2498,32 @@ bookstudy 自测 11/11、research 自测 7/7 PASS；13 闸门全绿（14 命令�
 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-074b。
+
+## 56. [优化轨] R29b：前端 UX 串联——书目→读书一键进入（2026-08-16，双窗口并行第二轨）
+
+### 56a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 56b. 前端 UX 串联（愿景 §17 "选书→读" 闭环）
+
+- **缺口核实**：愿景 §7 八种研究模式已全部落地，但前端各自为战——书目 tab
+  表格行无点击联动（`grep "onclick" index.html` 无 works 行处理），读书 tab
+  的 `#bswork` 下拉需手动逐项选择；从书目看到某书后无法一键去读它。
+- **改动**（`web/static/index.html`，纯前端）：
+  1. 书目表新增「读书」按钮列：`onclick="gotoRead('<work_id>')"`；
+  2. `gotoRead(wid)`：localStorage 记录 bsWork → switchView('read') →
+     switchRsec('rsec-bookstudy') → 设 #bswork → 自动 runBookStructure()；
+  3. `loadBookWorkOptions()` 读 localStorage 恢复上次所选书（进入读书面板
+     即自动可加载结构）。
+- 验证方式：node --check 对抽取的整段 JS 语法检查 PASS（491 对花括号、
+  274 反引号配平；新函数 gotoRead/runBookSummary/runConceptResearch/
+  runCompareWorks 全部存在）。纯前端零后端改动。
+
+### 56c. 验证
+
+node JS 语法检查 PASS；bookstudy 自测 11/11、research 7/7、MCP 协议自测
+PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-075b。
