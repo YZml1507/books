@@ -2580,3 +2580,30 @@ Study/Chapter/Comparative/Cross-book/Summary/Concept），但前端仍是"各自
 `loadBookWorkOptions()` 恢复上次所选书。node --check 整段 JS 语法检查
 PASS。bookstudy 11/11、research 7/7、MCP 协议自测 PASS、13 闸门全绿。
 commit 见台账 §56。
+
+## D-076b R30b 优化轨：PROJECT_STATUS 快照刷新到 R29b 终态（愿景 §19 合规）
+
+**背景（亲自核实）**：愿景书 §19 明确要求"每完成一个阶段都更新
+`docs/PROJECT_STATUS.md`"。实测：该文档 **更新时间停在 R23b**，而 R24b
+（compare_works）、R25b（前端读书/两书对照）、R26b（MCP 3 工具+概念研究）、
+R27b（Book Summary）、R28b（MCP 协议自测）、R29b（书目→读书一键）共六轮
+能力增量只写进了 TASK_LEDGER/DECISIONS，PROJECT_STATUS 的快照块与
+"关键变化"列表均未反映——读者若信它得到的仍是 R23b 状态，与代码矛盾
+（同 O1 当年发现过的文档失效模式）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 `PROJECT_STATUS.md`：更新时间 → R29b；快照块补 Book Study/两书对照/概念研究/Book Summary 四模式 + MCP 10 工具 + 前端 9 tab 现状；「关键变化」列表补 R24b-R29b 六轮条目；同时把 `OPTIMIZE_20260816_R18.md` §4 的"开放"清单更新（assess_goals 委托已被审查轨 23d0f94 落地、client 配置样例已补 MCP_CLIENT_CONFIG.md） | 纯文档对齐，零代码/零风险，直接兑现愿景 §19；数字沿用 R23b 已实测的 47 部 62,109 单元（本轮无语料改动，build_index 复跑确认未变） |
+| B | 继续做功能（如 Local File Adapter，愿景 §10） | 动 ingest 链路、中高风险，且文档欠账继续累积 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：13 闸门抽跑确认基线未动（docs-only 先例），文档 diff 审阅。
+
+**落地结果**（2026-08-16 实测）：PROJECT_STATUS.md 更新时间刷新到 R29b，
+快照块补「研究模式八模式全落地」「发布面 web 9 tab + MCP 10 工具」两行，
+关键变化列表补 R23b-R29b 闭环条目；OPTIMIZE_20260816_R18.md §4 开放清单
+回填（assess_goals 委托已被审查轨 23d0f94 落地、client 配置样例已补）。
+docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
+commit 见台账 §57。

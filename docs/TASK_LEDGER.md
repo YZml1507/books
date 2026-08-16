@@ -2527,3 +2527,33 @@ node JS 语法检查 PASS；bookstudy 自测 11/11、research 7/7、MCP 协议�
 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-075b。
+
+## 57. [优化轨] R30b：PROJECT_STATUS 快照刷新到 R29b 终态（2026-08-16，双窗口并行第二轨）
+
+### 57a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 57b. 愿景 §19 合规：PROJECT_STATUS 刷新
+
+- **缺口核实**：愿景书 §19 要求"每完成一个阶段都更新 PROJECT_STATUS.md"；
+  实测该文档更新时间停在 R23b，R24b-R29b 六轮能力增量（compare_works /
+  前端读书·两书对照 / MCP 3 工具+概念研究 / Book Summary / MCP 协议自测 /
+  书目→读书一键）只写进台账与 DECISIONS，快照块与关键变化未反映——读者
+  若信它得到的是 R23b 状态，与代码矛盾（同 O1 文档失效模式）。
+- **改动**（纯文档）：
+  1. `docs/PROJECT_STATUS.md`：更新时间 R23b→R29b；快照块补「研究模式
+     八模式全落地」+「发布面 web 9 tab + MCP 10 工具」两行；关键变化列表
+     补 R23b-R29b 闭环条目。
+  2. `docs/OPTIMIZE_20260816_R18.md` §4：开放清单更新——assess_goals 委托
+     已被审查轨 23d0f94 落地、client 配置样例已补 MCP_CLIENT_CONFIG.md、
+     R23b-R29b 落地回填。
+
+### 57c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（数字沿用 R23b 实测的 47 部 62,109 单元，本轮
+无语料改动）。
+
+- 决策记录：DECISIONS.md D-076b。

@@ -4,7 +4,7 @@
 > **任务状态的唯一来源是 `TASK_LEDGER.md`**（含 REJECTED 清单，防止重做已否决方案），
 > 工程教训见 `LESSONS.md`。
 
-**更新时间**：2026-08-16（R23b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
+**更新时间**：2026-08-16（R29b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
 **当前阶段**：Phase 7（Optimization）——审查-修复循环 R5-R17 闭环后进入双窗口并行
 （审查轨 `books-audit` worktree 审 scripts/probes/打包链；优化轨=本仓做差距分析+能力优化，
 方案见 `OPTIMIZE_20260816_R18.md`）。
@@ -23,6 +23,11 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 链接      源文印出互见 link 表零悬空，2-hop 可组合（G4）
 质量      quality_report 10 个低覆盖地址全部分类归责；OCR 损坏控制项 卦61上九 持续检出（T11）
 安全      web 层 XSS/SSRF/编码红线 R5-R16 修复 17 commit；remote URL 已无明文 PAT（R17）
+研究模式  八模式全落地（R18b-R27b）：Quick/Deep/Book Study/Chapter/Comparative
+          （两书对照 compare_works）/Cross-book/Book Summary/Concept
+发布面    web 9 研究 tab 全接线（检索/深度研究/定位/比对/书目/线程/读书/两书对照/
+          概念研究，R25b/R26b/R29b）+ 书目→读书一键；MCP 10 工具 stdio 同源发布
+          （R22b-R28b，含协议级 --selftest 自测）
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：
@@ -37,6 +42,10 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
   herodotus/iliad×2/douay；+道家 3 部：老子/莊子/莊子注，R20b）。
 - 审查-修复循环 R5-R17 共 19 个 fix commit（6 红线级含 huangli 宿锚/ingest 巨型单元/
   douay 丢行/web XSS escAttr/llm_reader AttributeError/evalset 编码）。
+- R23b-R29b 研究模式闭环：Book Study（structure/chapter，含 NULL-scheme file 节）、
+  两书对照 compare_works、Book Summary 结构化知识卡、概念研究 tab；MCP 10 工具
+  （含协议级 stdio `--selftest`）；前端 9 tab 全接线 + 书目→读书一键（localStorage
+  记忆）。13 闸门每轮全绿（G1-G9 PASS 9 · PART 0 · FAIL 0）。
 
 ---
 
