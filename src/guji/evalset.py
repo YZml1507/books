@@ -81,25 +81,16 @@ def in_space(raw: str, space: str) -> str:
 def raw_body(raw_dir: str, work: str) -> str:
     """Concatenated work body with Org-mode header lines removed.
 
-    Same coordinate system as zhouyi.work_body and ingest.load_work: offsets are into the
-    CONCATENATION, never into one file (L-09).
-
-    Handles both data/raw (Kanripo works in subdirs) and data/raw_ext/generality (pg*.txt files).
+    Kanripo dir works delegate to ingest.load_work — the ONLY concatenation — so
+    "same coordinate system" (L-09) is enforced by construction, not by promise:
+    three independent implementations once drifted and T9 caught the disagreement.
+    Encoding fallback (R16) lives there too. Generality works (pg*.txt/.html in
+    data/raw_ext) keep their own single-file reads.
     """
     work_dir = os.path.join(raw_dir, work)
     if os.path.isdir(work_dir):
-        # Kanripo: multiple .txt files in work/
-        # encoding fallback (R16 审查): 罕见 Kanripo 文件可能含非 UTF-8 字节，
-        # 直接 encoding="utf-8" 会抛 UnicodeDecodeError 冒泡到 verify_index。
-        # 先 UTF-8 strict，失败则 UTF-8 replace（ substituting U+FFFD）。
-        def _read(p: str) -> str:
-            try:
-                return open(p, encoding="utf-8").read()
-            except UnicodeDecodeError:
-                return open(p, encoding="utf-8", errors="replace").read()
-        return "".join(
-            re.sub(r"^#.*$", "", _read(p), flags=re.M)
-            for p in sorted(glob.glob(os.path.join(work_dir, "*.txt"))))
+        from .ingest import load_work  # lazy: knowledge.py imports this module
+        return load_work(raw_dir, work)[0]
     else:
         # generality works: look for pg*.txt in raw_dir/../raw_ext/generality/work/
         ext_dir = os.path.join(os.path.dirname(raw_dir), "raw_ext", "generality", work)

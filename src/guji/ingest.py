@@ -92,12 +92,31 @@ def derive_gua_names(base_raw: str) -> dict[int, str]:
 def load_work(raw_dir: str, work: str) -> tuple[str, list[tuple[int, str]]]:
     """Concatenated body plus (offset, filename) boundaries, so every unit can name
     the file it came from — a citation that cannot be traced to a file is not a citation.
+
+    THE ONLY concatenation: zhouyi.work_body and evalset.raw_body delegate here.
+    There used to be three independent implementations whose "same coordinate
+    system" was an unenforced docstring promise — they drifted and T9 caught the
+    disagreement. (scripts/assess_goals.py still carries a fourth inline copy;
+    scripts/ is audit-track territory — handover recorded in the ledger.)
+
+    NOTE the raw string itself must stay byte-identical to a plain concatenation:
+    appending a "¶" separator here once shifted every downstream offset and broke
+    G6. The file-boundary discipline is enforced in _iter_pieces instead, which
+    closes a piece at file boundaries WITHOUT altering the string.
     """
+    def _read(p: str) -> str:
+        # R16: rare Kanripo files carry non-UTF-8 bytes; strict read would bubble
+        # UnicodeDecodeError into the gates. Substitute U+FFFD instead.
+        try:
+            return open(p, encoding="utf-8").read()
+        except UnicodeDecodeError:
+            return open(p, encoding="utf-8", errors="replace").read()
+
     parts: list[str] = []
     bounds: list[tuple[int, str]] = []
     at = 0
     for path in sorted(glob.glob(os.path.join(raw_dir, work, "*.txt"))):
-        body = re.sub(r"^#.*$", "", open(path, encoding="utf-8").read(), flags=re.M)
+        body = re.sub(r"^#.*$", "", _read(path), flags=re.M)
         bounds.append((at, os.path.basename(path)))
         parts.append(body)
         at += len(body)
@@ -207,7 +226,7 @@ def parse_units(raw: str, bounds: list[tuple[int, str]], addr: AddrIndex,
         k = bisect.bisect_right(file_starts, pos) - 1
         return bounds[max(k, 0)][1] if bounds else ""
 
-    for piece in _iter_pieces(raw):
+    for piece in _iter_pieces(raw, file_starts):
         p_lo, p_hi = piece.offsets[0], piece.offsets[-1] + 1
         # Cut at address boundaries so no fragment is filed under the preceding 爻.
         # The cut index is resolved through the piece's offset map, never by subtracting
@@ -314,33 +333,55 @@ class Piece:
 _SKIP_EDGE = " \t\r\n　"
 
 
-def _iter_pieces(raw: str):
+def _iter_pieces(raw: str, file_starts: list[int] | None = None):
     """Walk the body in ¶-delimited pieces, tracking the page anchor and the raw offset
-    of every retained character."""
+    of every retained character.
+
+    Pieces also close at FILE boundaries (`file_starts`, when given): a file whose
+    last line has no ¶ (老子 tls KR5c0057_023) would otherwise glue its final
+    paragraph onto the next file's <pb:> tag, and that unit would inherit the NEXT
+    file's page anchor — not string-matchable in its own file, exactly what G2
+    exists to catch. The split happens on the RAW segment BEFORE anchor extraction,
+    because the next file's <pb:> tag must not re-anchor the previous file's tail.
+    Closing here keeps the raw string byte-identical to the plain concatenation,
+    so every downstream offset stays put.
+    """
     anchor = None
     pos = 0
+    boundaries = sorted(set(file_starts or []))
+
     for piece in raw.split("¶"):
         start = pos
         pos += len(piece) + 1
-        for m in PB_RE.finditer(piece):
-            anchor = m.group(1)
-        spans = []          # (text_char, raw_offset), pb tags removed
-        i, n = 0, len(piece)
-        while i < n:
-            if piece.startswith("<pb:", i):
-                j = piece.find(">", i)
-                i = n if j == -1 else j + 1
-                continue
-            spans.append((piece[i], start + i))
-            i += 1
-        lo, hi = 0, len(spans)
-        while lo < hi and spans[lo][0] in _SKIP_EDGE:
-            lo += 1
-        while hi > lo and spans[hi - 1][0] in _SKIP_EDGE:
-            hi -= 1
-        if hi > lo:
-            kept = spans[lo:hi]
-            yield Piece("".join(c for c, _ in kept), [o for _, o in kept], anchor)
+        # Sub-piece ranges: the piece's [start, start+len) cut at file boundaries,
+        # so a <pb:> from file N+1 can only anchor file N+1's own sub-piece.
+        cuts = [0, len(piece)]
+        for b in boundaries:
+            if start < b < start + len(piece):
+                cuts.append(b - start)
+        sub_cuts = sorted(set(cuts))
+        for a, b2 in zip(sub_cuts, sub_cuts[1:]):
+            seg = piece[a:b2]
+            for m in PB_RE.finditer(seg):
+                anchor = m.group(1)
+            spans = []      # (text_char, raw_offset), pb tags removed
+            i, n = 0, len(seg)
+            while i < n:
+                if seg.startswith("<pb:", i):
+                    j = seg.find(">", i)
+                    i = n if j == -1 else j + 1
+                    continue
+                spans.append((seg[i], start + a + i))
+                i += 1
+            lo, hi = 0, len(spans)
+            while lo < hi and spans[lo][0] in _SKIP_EDGE:
+                lo += 1
+            while hi > lo and spans[hi - 1][0] in _SKIP_EDGE:
+                hi -= 1
+            if hi > lo:
+                kept = spans[lo:hi]
+                yield Piece("".join(c for c, _ in kept), [o for _, o in kept], anchor)
+
 
 
 def merge_units(units: list[tuple], raw: str, max_chars: int = 900,

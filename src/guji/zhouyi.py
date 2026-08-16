@@ -29,11 +29,11 @@ GUA_NAMES = {1: "乾", 2: "坤", 3: "屯"}
 
 
 def work_body(raw_dir: str, work: str) -> str:
-    """Concatenate a work's files with Org-mode header lines removed."""
-    return "".join(
-        re.sub(r"^#.*$", "", open(p, encoding="utf-8").read(), flags=re.M)
-        for p in sorted(glob.glob(os.path.join(raw_dir, work, "*.txt")))
-    )
+    """Concatenated work body — delegates to ingest.load_work, the ONLY concatenation
+    (file separator, encoding fallback and offset coordinates live there; three
+    independent implementations once drifted and T9 caught it)."""
+    from .ingest import load_work  # lazy: ingest imports this module at top level
+    return load_work(raw_dir, work)[0]
 
 
 def cut_gold(text: str) -> str:

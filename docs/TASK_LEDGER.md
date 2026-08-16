@@ -2190,3 +2190,46 @@ verify_index exit 0（修复后实跑）；13 闸门全绿状态承袭 R18b 终�
   3. R18a 移交项仍开放：web/app.py frozen 模式 web/static 路径（44d-1）。
 - 台账分区合规：优化轨按 §44[优化轨] R18b 续编、append-only、未改写审查轨
   条目。
+
+## 47. [优化轨] R20b：O7 道家语料入库 + 跨文件锚点红线修复（2026-08-16，双窗口并行第二轨）
+
+### 47a. Source Adapter（愿景 §10 首个落地）：src/guji/sources.py
+
+KanripoAdapter：fetch_zip（代理 7897/GUJI_PROXY 可覆写、重试、sha256）+ extract
+（zip-slip 由名字白名单保证）+ add_work（**增量** manifest upsert——历史 fetcher
+整体重写 manifest，加一本书会丢掉其余全部）。CLI：`python -m guji.sources add
+KR5c0057 道家 理由`。入库：KR5c0057 老子（81 files 35,892 字）/ KR5c0126 莊子
+（33 files 309,910 字）/ KR5c0138 莊子注·郭象（11 files 188,365 字），均无
+license 文件（照实记录，provenance 齐）。
+
+### 47b. 新语料触发的真红线：跨文件段落吞下一文件的页锚点（G2 拦截）
+
+**现象**：重建后 G2 掉 PART——老子 KR5c0057_023.txt 尾行 `信不足，¶焉有不信（焉）。`
+无尾 ¶，load_work 直接拼接 → 末段 piece 吞进 _024 的 `<pb:...024-1a>` → 该单元
+（file=_023, text=焉）带着 024 锚点，不在自己文件里可匹配。旧 44 部文件均以 ¶
+结尾故从未触发。
+
+**修复过程中的弯路（记录防重蹈）**：第一版在 load_work 每文件后补 `¶` 分隔——
+坐标全移，T9 抓到 evalset.raw_body 与 load_work 漂移；统一三处委托后 T9 过、
+G6 却 96.65% 崩——发现 scripts/assess_goals.py 内联还有**第四份**拼接
+（work_body_text，其 docstring 记载过 97% 假错历史，教训重演）。scripts/ 属
+审查轨领土不可改 → 弃分隔方案。
+
+**最终修法（零坐标扰动）**：raw 字符串保持与旧拼接**逐字节一致**；
+`_iter_pieces(raw, file_starts)` 在文件边界处切分原始段，且**先切分再提取
+`<pb:>` 锚点**（下一文件的标签只能锚下一文件的段）。实测：边界单元（焉）
+锚点 023-1a 文件内可匹配，新语料 377 锚点 0 不可匹配。
+**四份拼接统一**：ingest.load_work 为唯一实现（吸收 R16 编码 fallback），
+zhouyi.work_body / evalset.raw_body 委托之；第四份在 assess_goals.py 内联，
+**移交审查轨**：建议改为 `from guji.ingest import load_work` 委托（一行）。
+
+### 47c. 验证
+
+- 47 部 62,109 单元（+3 部 +377 单元）；13 闸门全绿（verify ALL PASS /
+  quality PASS / G1-G9 全 PASS——G2 恢复 100% / 4 probes / eval_g1/g4/g7）。
+- 跨书概念研究实测（愿景 §17.3）：/api/concept?q=無爲 → 21 部命中
+  （莊子注 64 / 周易註疏 28 / 莊子 24 / 老子 9 …）。
+- 已知改进项（下轮）：/api/ask 白话回退对 2 字概念核心（無爲）弱于更长
+  命中窗（與莊子），多候选种子检索可解；记录不改。
+
+- 决策记录：DECISIONS.md D-066b。

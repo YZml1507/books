@@ -1,945 +1,999 @@
 {
-  "works": [
-    {
-      "id": "KR1a0001",
-      "title": "周易正文",
-      "genre": "易類",
-      "rationale": "周易(正文) — 底本，gold set 来源",
-      "edition": null,
-      "n_files": 69,
-      "n_chars": 86627,
-      "source_url": "https://codeload.github.com/kanripo/KR1a0001/zip/refs/heads/master",
-      "zip_sha256": "6507bccdbf8d3f67275bac70e5268e18e47baf290456ff451014e36a864a2786",
-      "local_content_sha256": "10c26efe454d4e1561677c2fe064fb49270681625d4e1e8a3ba8d95e1f0487f7",
-      "upstream_content_sha256": "10c26efe454d4e1561677c2fe064fb49270681625d4e1e8a3ba8d95e1f0487f7",
-      "upstream_verified": true,
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T21:46:59+0800",
-      "provenance_note": "backfilled: ingested before the manifest pipeline existed"
+ "works": [
+  {
+   "gutenberg_id": 1581,
+   "slug": "bible-douay",
+   "tier": 1,
+   "expected_address_scheme": "book/chapter/verse",
+   "title": "The Bible, Douay-Rheims, Complete",
+   "authors": [],
+   "translators": [],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.epub",
+     "bytes": 3255405,
+     "sha256": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
+     "url": "https://www.gutenberg.org/ebooks/1581.epub3.images"
     },
-    {
-      "id": "KR1a0003",
-      "title": "周易鄭康成注",
-      "genre": "易類",
-      "rationale": "周易鄭康成註 漢 鄭玄 — earliest layer",
-      "edition": "SBCK",
-      "n_files": 2,
-      "n_chars": 12606,
-      "juan_sample": [
-        "0",
-        "1"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR1a0003/zip/refs/heads/master",
-      "zip_sha256": "01155eff08226551ace6b79dc5ad081f436806d0dcec0768ca4648ccd5bc018d",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:27+0800"
+    "html": {
+     "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.html",
+     "bytes": 6228530,
+     "sha256": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
+     "url": "https://www.gutenberg.org/ebooks/1581.html.images"
     },
-    {
-      "id": "KR1a0006",
-      "title": "周易註",
-      "genre": "易類",
-      "rationale": "王弼註",
-      "edition": null,
-      "n_files": 11,
-      "n_chars": 87021,
-      "source_url": "https://codeload.github.com/kanripo/KR1a0006/zip/refs/heads/master",
-      "zip_sha256": "e2c2c36465b8060dd0916a56fe5622bada4eee860e8f1c62b28644ac5f2df41b",
-      "local_content_sha256": "0d69ced7c2a5ec2db4cf69df2eb049f4100dccc336ea6a832c54f8f6ba9d7a01",
-      "upstream_content_sha256": "0d69ced7c2a5ec2db4cf69df2eb049f4100dccc336ea6a832c54f8f6ba9d7a01",
-      "upstream_verified": true,
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T21:47:00+0800",
-      "provenance_note": "backfilled: ingested before the manifest pipeline existed"
-    },
-    {
-      "id": "KR1a0007",
-      "title": "周易註疏",
-      "genre": "易類",
-      "rationale": "王弼註 + 孔穎達疏",
-      "edition": null,
-      "n_files": 43,
-      "n_chars": 349360,
-      "source_url": "https://codeload.github.com/kanripo/KR1a0007/zip/refs/heads/master",
-      "zip_sha256": "c69f2a9fb5299c5651b60db7fcde4442926bd8ab733b02166fc9b8c9745f92e5",
-      "local_content_sha256": "077eeffb8a92c432d994a4ddb2172b272a8346265d17a9f9b662599138140d52",
-      "upstream_content_sha256": "077eeffb8a92c432d994a4ddb2172b272a8346265d17a9f9b662599138140d52",
-      "upstream_verified": true,
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T21:47:01+0800",
-      "provenance_note": "backfilled: ingested before the manifest pipeline existed"
-    },
-    {
-      "id": "KR1a0016",
-      "title": "伊川易傳",
-      "genre": "易類",
-      "rationale": "伊川易傳 程頤 — third commentator on the same base text",
-      "edition": "WYG",
-      "n_files": 5,
-      "n_chars": 180292,
-      "juan_sample": [
-        "御製題宋版周易程傳",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR1a0016/zip/refs/heads/master",
-      "zip_sha256": "0456a983f95c677d6e49cc92861e0a76b284ad9f4570a8ba6bac86a356e343b2",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:27+0800"
-    },
-    {
-      "id": "KR1a0030",
-      "title": "周易古占法",
-      "genre": "易類",
-      "rationale": "周易古占法 宋 程迥 — 占法 applied to 周易",
-      "edition": "WYG",
-      "n_files": 3,
-      "n_chars": 17537,
-      "juan_sample": [
-        "0",
-        "周易古占法",
-        "周易章句外編"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR1a0030/zip/refs/heads/master",
-      "zip_sha256": "7d612f28b8e110c3733e76ed1b3e987adb70c5b22ac6cac2f3beaa7f2b7eca60",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:27+0800"
-    },
-    {
-      "id": "KR1a0031",
-      "title": "原本周易本義",
-      "genre": "易類",
-      "rationale": "原本周易本義 朱熹 — closes the 王弼-vs-朱熹 comparison gap",
-      "edition": "WYG",
-      "n_files": 15,
-      "n_chars": 85427,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR1a0031/zip/refs/heads/master",
-      "zip_sha256": "cda7067447bb6b85809c9186f65d30f6b6b4e75b30049960d8e6ccbb26a4343a",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:26+0800"
-    },
-    {
-      "id": "KR1a0032",
-      "title": "周易本義",
-      "genre": "易類",
-      "rationale": "別本周易本義 朱熹 — SAME work, different edition",
-      "edition": "WYG",
-      "n_files": 5,
-      "n_chars": 88238,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR1a0032/zip/refs/heads/master",
-      "zip_sha256": "0a55747503419e0a5d1cb4520d75c23f82549e7d15083a9b5071be89881c0377",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:27+0800"
-    },
-    {
-      "id": "KR3g0001",
-      "title": "太玄經",
-      "genre": "擬易",
-      "rationale": "太玄經 漢 揚雄 — 81 首 instead of 64 卦",
-      "edition": "SBCK",
-      "n_files": 11,
-      "n_chars": 108492,
-      "juan_sample": [
-        "0",
-        "1",
-        "2"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0001/zip/refs/heads/master",
-      "zip_sha256": "a6a6a3f352a8a24be03d610156088c0242b43fa5a819cbda23e72281c7553db8",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:26+0800"
-    },
-    {
-      "id": "KR3g0015",
-      "title": "易象圖說",
-      "genre": "擬易",
-      "rationale": "易象圖說 元",
-      "edition": "WYG",
-      "n_files": 6,
-      "n_chars": 43076,
-      "juan_sample": [
-        "提要",
-        "内篇卷上",
-        "内篇卷中"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0015/zip/refs/heads/master",
-      "zip_sha256": "88675523a6e4bef90857b2b8388aef34c2a2748859d2c782c5cc162aa03d4eba",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:26+0800"
-    },
-    {
-      "id": "KR3g0018",
-      "title": "唐開元占經",
-      "genre": "占候",
-      "rationale": "唐開元占經 唐 — large astral omen classic",
-      "edition": "WYG",
-      "n_files": 121,
-      "n_chars": 691550,
-      "juan_sample": [
-        "目錄",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0018/zip/refs/heads/master",
-      "zip_sha256": "ef933f68d289862b5d3f4790db2916360c979997d307725fe0d458512b2bdfc1",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:26+0800"
-    },
-    {
-      "id": "KR3g0019",
-      "title": "宅經",
-      "genre": "堪輿",
-      "rationale": "宅經 — 陽宅",
-      "edition": "WYG",
-      "n_files": 3,
-      "n_chars": 7863,
-      "juan_sample": [
-        "提要",
-        "卷上",
-        "卷下"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0019/zip/refs/heads/master",
-      "zip_sha256": "13c80d15d18fd129e76114d14c164ece8388a1751f1ed5edae37d01fdeb02f9f",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:25+0800"
-    },
-    {
-      "id": "KR3g0020",
-      "title": "葬書",
-      "genre": "堪輿",
-      "rationale": "葬書 晉 郭璞 — root text of 風水",
-      "edition": "WYG",
-      "n_files": 2,
-      "n_chars": 18787,
-      "juan_sample": [
-        "提要",
-        "葬書"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0020/zip/refs/heads/master",
-      "zip_sha256": "a3ee4896f1a148ab913f354704c66978295078b67e78c527c808d1788a007f07",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:24+0800"
-    },
-    {
-      "id": "KR3g0025",
-      "title": "靈城精義",
-      "genre": "堪輿",
-      "rationale": "靈城精義 南唐",
-      "edition": "WYG",
-      "n_files": 3,
-      "n_chars": 32238,
-      "juan_sample": [
-        "提要",
-        "卷上",
-        "卷下"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0025/zip/refs/heads/master",
-      "zip_sha256": "93009d6a351961c0e89d4ad8f29d829c27253f6fbcd7273330d040d6fa49de43",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:24+0800"
-    },
-    {
-      "id": "KR3g0028",
-      "title": "靈棋經",
-      "genre": "卜筮",
-      "rationale": "靈棋經 漢 — lot-casting manual",
-      "edition": "WYG",
-      "n_files": 4,
-      "n_chars": 53416,
-      "juan_sample": [
-        "提要",
-        "卷上",
-        "卷下"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0028/zip/refs/heads/master",
-      "zip_sha256": "19cd2f002b0feaedec37b097574a432a83bede1816cce1f888bb76431908ed19",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:20+0800"
-    },
-    {
-      "id": "KR3g0029",
-      "title": "焦氏易林",
-      "genre": "卜筮",
-      "rationale": "焦氏易林 漢 — 4096 林辭, structurally unlike any commentary",
-      "edition": "WYG",
-      "n_files": 5,
-      "n_chars": 119403,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0029/zip/refs/heads/master",
-      "zip_sha256": "6a9da1437b8383222ae0b9aa3dbb974e00c4fa075b7dd539c6e3fa6c8d062fa2",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:21+0800"
-    },
-    {
-      "id": "KR3g0030",
-      "title": "京氏易傳",
-      "genre": "卜筮",
-      "rationale": "京氏易傳 漢 — 納甲 system, basis of later 卦氣 divination",
-      "edition": "SBCK",
-      "n_files": 4,
-      "n_chars": 29838,
-      "juan_sample": [
-        "0",
-        "1",
-        "2"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0030/zip/refs/heads/master",
-      "zip_sha256": "9c2fe04df2632da58ebf6299672a61bfaa04ebf0442b67eac134d9a82de9839e",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:20+0800"
-    },
-    {
-      "id": "KR3g0031",
-      "title": "六壬大全",
-      "genre": "三式",
-      "rationale": "六壬大全 清 — 六壬",
-      "edition": "WYG",
-      "n_files": 13,
-      "n_chars": 289789,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0031/zip/refs/heads/master",
-      "zip_sha256": "f8c5a00fe59f4f3ec8fc5c73c93cb2fb76f0137ba0f5e480f34822ea0490e46f",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:22+0800"
-    },
-    {
-      "id": "KR3g0032",
-      "title": "卜法詳考",
-      "genre": "卜筮",
-      "rationale": "卜法詳考 清 — survey of divination procedures",
-      "edition": "WYG",
-      "n_files": 9,
-      "n_chars": 88960,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0032/zip/refs/heads/master",
-      "zip_sha256": "07419d2e19c430870a59cb61bbd0e9f6e81202533029268e0b68e05390b6609c",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:20+0800"
-    },
-    {
-      "id": "KR3g0033",
-      "title": "李虛中命書",
-      "genre": "命理",
-      "rationale": "李虛中命書 — early 命理, short",
-      "edition": "WYG",
-      "n_files": 4,
-      "n_chars": 29519,
-      "juan_sample": [
-        "提要",
-        "卷上",
-        "卷中"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0033/zip/refs/heads/master",
-      "zip_sha256": "ab76e2b4cc762f2dd1f03c34e0f3ead4affdcb7db33f32de27853b59dc77ef57",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:22+0800"
-    },
-    {
-      "id": "KR3g0035",
-      "title": "星命溯源",
-      "genre": "命理",
-      "rationale": "星命溯源",
-      "edition": "WYG",
-      "n_files": 6,
-      "n_chars": 43634,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0035/zip/refs/heads/master",
-      "zip_sha256": "5a21216278e93f37bd9a83145617efebd1d7ac0d8167ee09f7b9f7e04ab4b008",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:23+0800"
-    },
-    {
-      "id": "KR3g0041",
-      "title": "星學大成",
-      "genre": "命理",
-      "rationale": "星學大成 明 — 星命 compendium",
-      "edition": "WYG",
-      "n_files": 31,
-      "n_chars": 472894,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0041/zip/refs/heads/master",
-      "zip_sha256": "5624ae82073079665027e91ce3ed3ec32dd744ceeffcbaa6afa6d9ac468cfac7",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:23+0800"
-    },
-    {
-      "id": "KR3g0042",
-      "title": "三命通會",
-      "genre": "命理",
-      "rationale": "三命通會 明 — the major 八字 compendium",
-      "edition": "WYG",
-      "n_files": 13,
-      "n_chars": 596751,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0042/zip/refs/heads/master",
-      "zip_sha256": "6b25e93f7aa60f3cf28066f0e10aacc2f19001631405093ecd2163e5cf0471bd",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:22+0800"
-    },
-    {
-      "id": "KR3g0044",
-      "title": "玉管照神局",
-      "genre": "相術",
-      "rationale": "玉管照神局 南唐",
-      "edition": "WYG",
-      "n_files": 4,
-      "n_chars": 34385,
-      "juan_sample": [
-        "提要",
-        "卷上",
-        "卷中"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0044/zip/refs/heads/master",
-      "zip_sha256": "275c8a68fe6613d20aa22ff9fecca43c7f7f48cafd32404eb0573927e038f8f7",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:23+0800"
-    },
-    {
-      "id": "KR3g0045",
-      "title": "太清神鑑",
-      "genre": "相術",
-      "rationale": "太清神鑑 後周 — 相法",
-      "edition": "WYG",
-      "n_files": 7,
-      "n_chars": 50010,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0045/zip/refs/heads/master",
-      "zip_sha256": "a0f0bcf7b04814cb7f3224ea427d45293e2d98310824be1e90927957c76bacce",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:23+0800"
-    },
-    {
-      "id": "KR3g0047",
-      "title": "太乙金鏡式經",
-      "genre": "三式",
-      "rationale": "太乙金鏡式經 唐 — 太乙",
-      "edition": "WYG",
-      "n_files": 11,
-      "n_chars": 48608,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0047/zip/refs/heads/master",
-      "zip_sha256": "cce309dceb26415ca2e1ce18898c994f38fae1ab9d528457774363d6cb2cffb1",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:21+0800"
-    },
-    {
-      "id": "KR3g0048",
-      "title": "遁甲演義",
-      "genre": "三式",
-      "rationale": "遁甲演義 明 — 奇門遁甲",
-      "edition": "WYG",
-      "n_files": 5,
-      "n_chars": 48972,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0048/zip/refs/heads/master",
-      "zip_sha256": "9286fe313a5c1a84cfca3ec5f3ad523d0f5c9857609d7be894796bc422cd6bcb",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:21+0800"
-    },
-    {
-      "id": "KR3g0050",
-      "title": "御定星歷考原",
-      "genre": "占候",
-      "rationale": "御定星歷考原 清",
-      "edition": "WYG",
-      "n_files": 7,
-      "n_chars": 77433,
-      "juan_sample": [
-        "提要",
-        "卷一",
-        "卷二"
-      ],
-      "source_url": "https://codeload.github.com/kanripo/KR3g0050/zip/refs/heads/master",
-      "zip_sha256": "c3b7f5bf03e654c9ade14aa48f97bbc6a801a07bd6b7f85c956493c324ca7b0a",
-      "licence_file_in_repo": false,
-      "fetched_at": "2026-08-13T16:42:25+0800"
-    },
-    {
-      "gutenberg_id": 1581,
-      "slug": "bible-douay",
-      "tier": 1,
-      "expected_address_scheme": "book/chapter/verse",
-      "title": "The Bible, Douay-Rheims, Complete",
-      "authors": [],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.epub",
-          "bytes": 3255405,
-          "sha256": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
-          "url": "https://www.gutenberg.org/ebooks/1581.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.html",
-          "bytes": 6228530,
-          "sha256": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
-          "url": "https://www.gutenberg.org/ebooks/1581.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.txt",
-          "bytes": 5880420,
-          "sha256": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41",
-          "url": "https://www.gutenberg.org/files/1581/1581-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:55:59+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/1581",
-      "file_sha256": {
-        "pg1581.epub": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
-        "pg1581.html": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
-        "pg1581.txt": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "bible-douay"
-    },
-    {
-      "gutenberg_id": 1497,
-      "slug": "plato-republic",
-      "tier": 2,
-      "expected_address_scheme": "stephanus/book",
-      "title": "The Republic",
-      "authors": [
-        "Plato"
-      ],
-      "translators": [
-        "Jowett, Benjamin"
-      ],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.epub",
-          "bytes": 516692,
-          "sha256": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
-          "url": "https://www.gutenberg.org/ebooks/1497.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.html",
-          "bytes": 1302892,
-          "sha256": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
-          "url": "https://www.gutenberg.org/ebooks/1497.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.txt",
-          "bytes": 1244164,
-          "sha256": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528",
-          "url": "https://www.gutenberg.org/ebooks/1497.txt.utf-8"
-        }
-      },
-      "fetched_at": "2026-08-13T19:56:22+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/1497",
-      "file_sha256": {
-        "pg1497.epub": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
-        "pg1497.html": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
-        "pg1497.txt": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "plato-republic"
-    },
-    {
-      "gutenberg_id": 100,
-      "slug": "shakespeare",
-      "tier": 2,
-      "expected_address_scheme": "play/act/scene",
-      "title": "The Complete Works of William Shakespeare",
-      "authors": [
-        "Shakespeare, William"
-      ],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\shakespeare\\pg100.epub",
-          "bytes": 2883403,
-          "sha256": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
-          "url": "https://www.gutenberg.org/ebooks/100.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\shakespeare\\pg100.html",
-          "bytes": 7322493,
-          "sha256": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
-          "url": "https://www.gutenberg.org/ebooks/100.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\shakespeare\\pg100.txt",
-          "bytes": 5422721,
-          "sha256": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb",
-          "url": "https://www.gutenberg.org/files/100/100-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:56:53+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/100",
-      "file_sha256": {
-        "pg100.epub": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
-        "pg100.html": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
-        "pg100.txt": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "shakespeare"
-    },
-    {
-      "gutenberg_id": 21076,
-      "slug": "euclid-elements",
-      "tier": 2,
-      "expected_address_scheme": "book/proposition",
-      "title": "The First Six Books of the Elements of Euclid",
-      "authors": [
-        "Euclid",
-        "Casey, John"
-      ],
-      "translators": [],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.epub",
-          "bytes": 1330699,
-          "sha256": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
-          "url": "https://www.gutenberg.org/ebooks/21076.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.html",
-          "bytes": 1842702,
-          "sha256": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5",
-          "url": "https://www.gutenberg.org/ebooks/21076.html.images"
-        }
-      },
-      "fetched_at": "2026-08-13T19:57:09+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/21076",
-      "file_sha256": {
-        "pg21076.epub": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
-        "pg21076.html": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "euclid-elements"
-    },
-    {
-      "gutenberg_id": 2199,
-      "slug": "homer-iliad-but",
-      "tier": 1,
-      "expected_address_scheme": "book/line",
-      "title": "The Iliad",
-      "authors": [
-        "Homer"
-      ],
-      "translators": [
-        "Butler, Samuel"
-      ],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.epub",
-          "bytes": 549348,
-          "sha256": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
-          "url": "https://www.gutenberg.org/ebooks/2199.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.html",
-          "bytes": 944360,
-          "sha256": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
-          "url": "https://www.gutenberg.org/ebooks/2199.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.txt",
-          "bytes": 929005,
-          "sha256": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774",
-          "url": "https://www.gutenberg.org/files/2199/2199-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:57:33+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/2199",
-      "file_sha256": {
-        "pg2199.epub": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
-        "pg2199.html": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
-        "pg2199.txt": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "homer-iliad-but"
-    },
-    {
-      "gutenberg_id": 6130,
-      "slug": "homer-iliad-pope",
-      "tier": 1,
-      "expected_address_scheme": "book/line",
-      "title": "The Iliad",
-      "authors": [
-        "Homer"
-      ],
-      "translators": [
-        "Pope, Alexander"
-      ],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.epub",
-          "bytes": 2292062,
-          "sha256": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
-          "url": "https://www.gutenberg.org/ebooks/6130.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.html",
-          "bytes": 1333163,
-          "sha256": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
-          "url": "https://www.gutenberg.org/ebooks/6130.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.txt",
-          "bytes": 1161373,
-          "sha256": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b",
-          "url": "https://www.gutenberg.org/ebooks/6130.txt.utf-8"
-        }
-      },
-      "fetched_at": "2026-08-13T19:57:53+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/6130",
-      "file_sha256": {
-        "pg6130.epub": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
-        "pg6130.html": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
-        "pg6130.txt": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "homer-iliad-pope"
-    },
-    {
-      "gutenberg_id": 2707,
-      "slug": "herodotus",
-      "tier": 3,
-      "expected_address_scheme": "book/section",
-      "title": "The History of Herodotus — Volume 1",
-      "authors": [
-        "Herodotus"
-      ],
-      "translators": [
-        "Macaulay, G. C. (George Campbell)"
-      ],
-      "languages": [
-        "en"
-      ],
-      "copyright": false,
-      "files": {
-        "epub": {
-          "path": "data\\raw_ext\\generality\\herodotus\\pg2707.epub",
-          "bytes": 435733,
-          "sha256": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
-          "url": "https://www.gutenberg.org/ebooks/2707.epub3.images"
-        },
-        "html": {
-          "path": "data\\raw_ext\\generality\\herodotus\\pg2707.html",
-          "bytes": 1193232,
-          "sha256": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
-          "url": "https://www.gutenberg.org/ebooks/2707.html.images"
-        },
-        "txt": {
-          "path": "data\\raw_ext\\generality\\herodotus\\pg2707.txt",
-          "bytes": 896008,
-          "sha256": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6",
-          "url": "https://www.gutenberg.org/files/2707/2707-0.txt"
-        }
-      },
-      "fetched_at": "2026-08-13T19:58:42+0800",
-      "source_url": "https://www.gutenberg.org/ebooks/2707",
-      "file_sha256": {
-        "pg2707.epub": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
-        "pg2707.html": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
-        "pg2707.txt": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6"
-      },
-      "licence": "public-domain (Project Gutenberg)",
-      "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
-      "id": "herodotus"
-    },
-    {
-      "id": "lantai-miaoxuan",
-      "title": "兰台妙选",
-      "genre": "命理",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 19516,
-      "local_content_sha256": "e9498f886226b7b0e4016fd16af609217399be44eff57a328ffc4bbabe728ccc",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【兰台妙选·篇名】段间 ¶ 分段（颗粒度修复）"
-    },
-    {
-      "id": "mingli-tanyuan",
-      "title": "命理探原",
-      "genre": "命理",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 54751,
-      "local_content_sha256": "cbe67a140670e9c0e1c3c02f452981fb98be986a45e6032b75c594b4d6c36ca9",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理探原·篇名】段间 ¶ 分段（颗粒度修复）"
-    },
-    {
-      "id": "mingli-yueyan",
-      "title": "命理约言",
-      "genre": "命理",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 58160,
-      "local_content_sha256": "a2345a0d49ac77c133237f7f218e4a7b07744eff4ded0d63318371249186fc32",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理约言·篇名】段间 ¶ 分段（颗粒度修复）"
-    },
-    {
-      "id": "sanming-tonghui",
-      "title": "三命通会",
-      "genre": "命理",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 326827,
-      "local_content_sha256": "694e7c64861c500282d88ff6c11e4bee79f653a4668ea6bd7cdf94c573f5455c",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【三命通会·篇名】段间 ¶ 分段（颗粒度修复）"
-    },
-    {
-      "id": "wuxing-dayi",
-      "title": "五行大义",
-      "genre": "五行",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 144753,
-      "local_content_sha256": "b33ccf3a37bd49ec31d113136326772d992a0389d358d4b0954559adab939009",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，R2 加【五行大义·篇名】段间 ¶ 分段（颗粒度修复），三道判定见 DECISIONS"
-    },
-    {
-      "id": "wuxing-jingji",
-      "title": "五行精纪",
-      "genre": "五行",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 110747,
-      "local_content_sha256": "6613840e9f1288bc119778671854d47365cee74056da999fbc8e47ae95260a5b",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
-    },
-    {
-      "id": "ziping-zhenquan",
-      "title": "子平真诠",
-      "genre": "命理",
-      "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 98777,
-      "local_content_sha256": "345e6f5a3557f2954a258107b0e0d80ad049bb9c28d5fbbf129119d6aa5cd999",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-15T00:00:00+0800",
-      "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
-    },
-    {
-      "id": "ditiansui",
-      "title": "滴天髓（任铁樵阐微）",
-      "genre": "命理",
-      "rationale": "子平经典核心语料（P2 缺口1），原文+任铁樵疏，过三道判定",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 138767,
-      "local_content_sha256": "cc20f48da5f8311d72da96da16066fb85067f13de8bafc850d3f816edaceb673",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-16T00:00:00+0800",
-      "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），63 篇阐微 + 原文，加【滴天髓·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
-    },
-    {
-      "id": "qiongtongbaojian",
-      "title": "穷通宝鉴",
-      "genre": "命理",
-      "rationale": "子平经典调候用神依据（P2 缺口1），原文，过三道判定",
-      "edition": null,
-      "n_files": 1,
-      "n_chars": 40597,
-      "local_content_sha256": "ac19f24f18d12eb4e29a871b1f0e596ef652dba6ab552f7a0c6eda541f0504c6",
-      "source_url": "",
-      "licence": "none-stated",
-      "fetched_at": "2026-08-16T00:00:00+0800",
-      "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），11 篇，加【穷通宝鉴·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
+    "txt": {
+     "path": "data\\raw_ext\\generality\\bible-douay\\pg1581.txt",
+     "bytes": 5880420,
+     "sha256": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41",
+     "url": "https://www.gutenberg.org/files/1581/1581-0.txt"
     }
-  ],
-  "errors": []
+   },
+   "fetched_at": "2026-08-13T19:55:59+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/1581",
+   "file_sha256": {
+    "pg1581.epub": "09bdc79c0444a013469a642d39946ae9ed0735c0034663a7313b3d5373215872",
+    "pg1581.html": "593030251c2d78edbb442ecc35c406517b574495d2b20bb38016e6abeaf08368",
+    "pg1581.txt": "83ba2f7c2ef5ba8ca5076dce685569d1bd26e816a313793263f4364811d41e41"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "bible-douay"
+  },
+  {
+   "gutenberg_id": 21076,
+   "slug": "euclid-elements",
+   "tier": 2,
+   "expected_address_scheme": "book/proposition",
+   "title": "The First Six Books of the Elements of Euclid",
+   "authors": [
+    "Euclid",
+    "Casey, John"
+   ],
+   "translators": [],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.epub",
+     "bytes": 1330699,
+     "sha256": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
+     "url": "https://www.gutenberg.org/ebooks/21076.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\euclid-elements\\pg21076.html",
+     "bytes": 1842702,
+     "sha256": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5",
+     "url": "https://www.gutenberg.org/ebooks/21076.html.images"
+    }
+   },
+   "fetched_at": "2026-08-13T19:57:09+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/21076",
+   "file_sha256": {
+    "pg21076.epub": "8bc2452a06192e98da82a9880811f6e2a2ddebcec9e70c1678677833c05f1d70",
+    "pg21076.html": "f8606c1ca2b70e37c41d3c7743d0547c433b67dd0cbdac962b40f8bef14257a5"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "euclid-elements"
+  },
+  {
+   "gutenberg_id": 2707,
+   "slug": "herodotus",
+   "tier": 3,
+   "expected_address_scheme": "book/section",
+   "title": "The History of Herodotus — Volume 1",
+   "authors": [
+    "Herodotus"
+   ],
+   "translators": [
+    "Macaulay, G. C. (George Campbell)"
+   ],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\herodotus\\pg2707.epub",
+     "bytes": 435733,
+     "sha256": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
+     "url": "https://www.gutenberg.org/ebooks/2707.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\herodotus\\pg2707.html",
+     "bytes": 1193232,
+     "sha256": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
+     "url": "https://www.gutenberg.org/ebooks/2707.html.images"
+    },
+    "txt": {
+     "path": "data\\raw_ext\\generality\\herodotus\\pg2707.txt",
+     "bytes": 896008,
+     "sha256": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6",
+     "url": "https://www.gutenberg.org/files/2707/2707-0.txt"
+    }
+   },
+   "fetched_at": "2026-08-13T19:58:42+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/2707",
+   "file_sha256": {
+    "pg2707.epub": "141a5aee78999c33a64f91f5dce2be94ec957ed30fda2427952c06cd6c53e3f3",
+    "pg2707.html": "ca5829c92c5341a9defa2682179ab5ef2c96b59da7f86f3c87c4cd70b2198ff6",
+    "pg2707.txt": "58a5b0e154f69cf17404a353328f34eb0c1a8241d275e0e68d4eb34c7b8bd4a6"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "herodotus"
+  },
+  {
+   "gutenberg_id": 2199,
+   "slug": "homer-iliad-but",
+   "tier": 1,
+   "expected_address_scheme": "book/line",
+   "title": "The Iliad",
+   "authors": [
+    "Homer"
+   ],
+   "translators": [
+    "Butler, Samuel"
+   ],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.epub",
+     "bytes": 549348,
+     "sha256": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
+     "url": "https://www.gutenberg.org/ebooks/2199.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.html",
+     "bytes": 944360,
+     "sha256": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
+     "url": "https://www.gutenberg.org/ebooks/2199.html.images"
+    },
+    "txt": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-but\\pg2199.txt",
+     "bytes": 929005,
+     "sha256": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774",
+     "url": "https://www.gutenberg.org/files/2199/2199-0.txt"
+    }
+   },
+   "fetched_at": "2026-08-13T19:57:33+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/2199",
+   "file_sha256": {
+    "pg2199.epub": "34898ba0334b69b6c099e87e65f7fcf8e2c0489e6b06541fcfae51369a8414c9",
+    "pg2199.html": "23eea8f8371d9c5dff0b828c017d5bf9fc6b372f19b3381ad94bed2a74fff5b4",
+    "pg2199.txt": "a7a39e3467305472fcd5ee0e42fc93d069449171cf1758f2a42cfae8b2da2774"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "homer-iliad-but"
+  },
+  {
+   "gutenberg_id": 6130,
+   "slug": "homer-iliad-pope",
+   "tier": 1,
+   "expected_address_scheme": "book/line",
+   "title": "The Iliad",
+   "authors": [
+    "Homer"
+   ],
+   "translators": [
+    "Pope, Alexander"
+   ],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.epub",
+     "bytes": 2292062,
+     "sha256": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
+     "url": "https://www.gutenberg.org/ebooks/6130.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.html",
+     "bytes": 1333163,
+     "sha256": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
+     "url": "https://www.gutenberg.org/ebooks/6130.html.images"
+    },
+    "txt": {
+     "path": "data\\raw_ext\\generality\\homer-iliad-pope\\pg6130.txt",
+     "bytes": 1161373,
+     "sha256": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b",
+     "url": "https://www.gutenberg.org/ebooks/6130.txt.utf-8"
+    }
+   },
+   "fetched_at": "2026-08-13T19:57:53+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/6130",
+   "file_sha256": {
+    "pg6130.epub": "093435833f8984b77525966a73aa844f44edc58e2f38694d275d76dacb891dd8",
+    "pg6130.html": "75c355aa1562ca914c8489b9f3ffd293d4fd28d6ae1debfb6156dd520a01186e",
+    "pg6130.txt": "ca4f23115b384b0219427ef208e875f0351820b8f80f28259272997ea581c36b"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "homer-iliad-pope"
+  },
+  {
+   "gutenberg_id": 1497,
+   "slug": "plato-republic",
+   "tier": 2,
+   "expected_address_scheme": "stephanus/book",
+   "title": "The Republic",
+   "authors": [
+    "Plato"
+   ],
+   "translators": [
+    "Jowett, Benjamin"
+   ],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.epub",
+     "bytes": 516692,
+     "sha256": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
+     "url": "https://www.gutenberg.org/ebooks/1497.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.html",
+     "bytes": 1302892,
+     "sha256": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
+     "url": "https://www.gutenberg.org/ebooks/1497.html.images"
+    },
+    "txt": {
+     "path": "data\\raw_ext\\generality\\plato-republic\\pg1497.txt",
+     "bytes": 1244164,
+     "sha256": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528",
+     "url": "https://www.gutenberg.org/ebooks/1497.txt.utf-8"
+    }
+   },
+   "fetched_at": "2026-08-13T19:56:22+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/1497",
+   "file_sha256": {
+    "pg1497.epub": "7c5a0a8257847dfc20bdcbfb50a2552aea29ca0773a41633fb602043c6e50da7",
+    "pg1497.html": "8dbcdba9b0fabbb920a23447295249617ccdb0fe1a5d69f2f7aa02fe78a483aa",
+    "pg1497.txt": "917c1cb469e1a8eba6083808764d7131da8d79140b575b4214c9d02a73ec4528"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "plato-republic"
+  },
+  {
+   "gutenberg_id": 100,
+   "slug": "shakespeare",
+   "tier": 2,
+   "expected_address_scheme": "play/act/scene",
+   "title": "The Complete Works of William Shakespeare",
+   "authors": [
+    "Shakespeare, William"
+   ],
+   "translators": [],
+   "languages": [
+    "en"
+   ],
+   "copyright": false,
+   "files": {
+    "epub": {
+     "path": "data\\raw_ext\\generality\\shakespeare\\pg100.epub",
+     "bytes": 2883403,
+     "sha256": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
+     "url": "https://www.gutenberg.org/ebooks/100.epub3.images"
+    },
+    "html": {
+     "path": "data\\raw_ext\\generality\\shakespeare\\pg100.html",
+     "bytes": 7322493,
+     "sha256": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
+     "url": "https://www.gutenberg.org/ebooks/100.html.images"
+    },
+    "txt": {
+     "path": "data\\raw_ext\\generality\\shakespeare\\pg100.txt",
+     "bytes": 5422721,
+     "sha256": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb",
+     "url": "https://www.gutenberg.org/files/100/100-0.txt"
+    }
+   },
+   "fetched_at": "2026-08-13T19:56:53+0800",
+   "source_url": "https://www.gutenberg.org/ebooks/100",
+   "file_sha256": {
+    "pg100.epub": "96448e7243cadb4bdf6c70687cb39bb0b54f1da9dd3da36c2ddc391a4bf2ef69",
+    "pg100.html": "7a7de2ed4b7805104c55824541397a2036ec21b2f7f003f7b6af4fa261181452",
+    "pg100.txt": "a023115c2d4e2ee12221bdd780fdf2ac5a864fe225948656f51f8be462c7fffb"
+   },
+   "licence": "public-domain (Project Gutenberg)",
+   "provenance_note": "hashes computed from local bytes; url derived from the recorded gutenberg_id; nothing re-fetched",
+   "id": "shakespeare"
+  },
+  {
+   "id": "KR3g0031",
+   "title": "六壬大全",
+   "genre": "三式",
+   "rationale": "六壬大全 清 — 六壬",
+   "edition": "WYG",
+   "n_files": 13,
+   "n_chars": 289789,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0031/zip/refs/heads/master",
+   "zip_sha256": "f8c5a00fe59f4f3ec8fc5c73c93cb2fb76f0137ba0f5e480f34822ea0490e46f",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:22+0800"
+  },
+  {
+   "id": "KR3g0047",
+   "title": "太乙金鏡式經",
+   "genre": "三式",
+   "rationale": "太乙金鏡式經 唐 — 太乙",
+   "edition": "WYG",
+   "n_files": 11,
+   "n_chars": 48608,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0047/zip/refs/heads/master",
+   "zip_sha256": "cce309dceb26415ca2e1ce18898c994f38fae1ab9d528457774363d6cb2cffb1",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:21+0800"
+  },
+  {
+   "id": "KR3g0048",
+   "title": "遁甲演義",
+   "genre": "三式",
+   "rationale": "遁甲演義 明 — 奇門遁甲",
+   "edition": "WYG",
+   "n_files": 5,
+   "n_chars": 48972,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0048/zip/refs/heads/master",
+   "zip_sha256": "9286fe313a5c1a84cfca3ec5f3ad523d0f5c9857609d7be894796bc422cd6bcb",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:21+0800"
+  },
+  {
+   "id": "wuxing-dayi",
+   "title": "五行大义",
+   "genre": "五行",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 144753,
+   "local_content_sha256": "b33ccf3a37bd49ec31d113136326772d992a0389d358d4b0954559adab939009",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，R2 加【五行大义·篇名】段间 ¶ 分段（颗粒度修复），三道判定见 DECISIONS"
+  },
+  {
+   "id": "wuxing-jingji",
+   "title": "五行精纪",
+   "genre": "五行",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 110747,
+   "local_content_sha256": "6613840e9f1288bc119778671854d47365cee74056da999fbc8e47ae95260a5b",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+  },
+  {
+   "id": "KR3g0028",
+   "title": "靈棋經",
+   "genre": "卜筮",
+   "rationale": "靈棋經 漢 — lot-casting manual",
+   "edition": "WYG",
+   "n_files": 4,
+   "n_chars": 53416,
+   "juan_sample": [
+    "提要",
+    "卷上",
+    "卷下"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0028/zip/refs/heads/master",
+   "zip_sha256": "19cd2f002b0feaedec37b097574a432a83bede1816cce1f888bb76431908ed19",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:20+0800"
+  },
+  {
+   "id": "KR3g0029",
+   "title": "焦氏易林",
+   "genre": "卜筮",
+   "rationale": "焦氏易林 漢 — 4096 林辭, structurally unlike any commentary",
+   "edition": "WYG",
+   "n_files": 5,
+   "n_chars": 119403,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0029/zip/refs/heads/master",
+   "zip_sha256": "6a9da1437b8383222ae0b9aa3dbb974e00c4fa075b7dd539c6e3fa6c8d062fa2",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:21+0800"
+  },
+  {
+   "id": "KR3g0030",
+   "title": "京氏易傳",
+   "genre": "卜筮",
+   "rationale": "京氏易傳 漢 — 納甲 system, basis of later 卦氣 divination",
+   "edition": "SBCK",
+   "n_files": 4,
+   "n_chars": 29838,
+   "juan_sample": [
+    "0",
+    "1",
+    "2"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0030/zip/refs/heads/master",
+   "zip_sha256": "9c2fe04df2632da58ebf6299672a61bfaa04ebf0442b67eac134d9a82de9839e",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:20+0800"
+  },
+  {
+   "id": "KR3g0032",
+   "title": "卜法詳考",
+   "genre": "卜筮",
+   "rationale": "卜法詳考 清 — survey of divination procedures",
+   "edition": "WYG",
+   "n_files": 9,
+   "n_chars": 88960,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0032/zip/refs/heads/master",
+   "zip_sha256": "07419d2e19c430870a59cb61bbd0e9f6e81202533029268e0b68e05390b6609c",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:20+0800"
+  },
+  {
+   "id": "KR3g0018",
+   "title": "唐開元占經",
+   "genre": "占候",
+   "rationale": "唐開元占經 唐 — large astral omen classic",
+   "edition": "WYG",
+   "n_files": 121,
+   "n_chars": 691550,
+   "juan_sample": [
+    "目錄",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0018/zip/refs/heads/master",
+   "zip_sha256": "ef933f68d289862b5d3f4790db2916360c979997d307725fe0d458512b2bdfc1",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:26+0800"
+  },
+  {
+   "id": "KR3g0050",
+   "title": "御定星歷考原",
+   "genre": "占候",
+   "rationale": "御定星歷考原 清",
+   "edition": "WYG",
+   "n_files": 7,
+   "n_chars": 77433,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0050/zip/refs/heads/master",
+   "zip_sha256": "c3b7f5bf03e654c9ade14aa48f97bbc6a801a07bd6b7f85c956493c324ca7b0a",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:25+0800"
+  },
+  {
+   "id": "KR3g0033",
+   "title": "李虛中命書",
+   "genre": "命理",
+   "rationale": "李虛中命書 — early 命理, short",
+   "edition": "WYG",
+   "n_files": 4,
+   "n_chars": 29519,
+   "juan_sample": [
+    "提要",
+    "卷上",
+    "卷中"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0033/zip/refs/heads/master",
+   "zip_sha256": "ab76e2b4cc762f2dd1f03c34e0f3ead4affdcb7db33f32de27853b59dc77ef57",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:22+0800"
+  },
+  {
+   "id": "KR3g0035",
+   "title": "星命溯源",
+   "genre": "命理",
+   "rationale": "星命溯源",
+   "edition": "WYG",
+   "n_files": 6,
+   "n_chars": 43634,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0035/zip/refs/heads/master",
+   "zip_sha256": "5a21216278e93f37bd9a83145617efebd1d7ac0d8167ee09f7b9f7e04ab4b008",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:23+0800"
+  },
+  {
+   "id": "KR3g0041",
+   "title": "星學大成",
+   "genre": "命理",
+   "rationale": "星學大成 明 — 星命 compendium",
+   "edition": "WYG",
+   "n_files": 31,
+   "n_chars": 472894,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0041/zip/refs/heads/master",
+   "zip_sha256": "5624ae82073079665027e91ce3ed3ec32dd744ceeffcbaa6afa6d9ac468cfac7",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:23+0800"
+  },
+  {
+   "id": "KR3g0042",
+   "title": "三命通會",
+   "genre": "命理",
+   "rationale": "三命通會 明 — the major 八字 compendium",
+   "edition": "WYG",
+   "n_files": 13,
+   "n_chars": 596751,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0042/zip/refs/heads/master",
+   "zip_sha256": "6b25e93f7aa60f3cf28066f0e10aacc2f19001631405093ecd2163e5cf0471bd",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:22+0800"
+  },
+  {
+   "id": "ditiansui",
+   "title": "滴天髓（任铁樵阐微）",
+   "genre": "命理",
+   "rationale": "子平经典核心语料（P2 缺口1），原文+任铁樵疏，过三道判定",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 138767,
+   "local_content_sha256": "cc20f48da5f8311d72da96da16066fb85067f13de8bafc850d3f816edaceb673",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-16T00:00:00+0800",
+   "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），63 篇阐微 + 原文，加【滴天髓·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
+  },
+  {
+   "id": "lantai-miaoxuan",
+   "title": "兰台妙选",
+   "genre": "命理",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 19516,
+   "local_content_sha256": "e9498f886226b7b0e4016fd16af609217399be44eff57a328ffc4bbabe728ccc",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【兰台妙选·篇名】段间 ¶ 分段（颗粒度修复）"
+  },
+  {
+   "id": "mingli-tanyuan",
+   "title": "命理探原",
+   "genre": "命理",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 54751,
+   "local_content_sha256": "cbe67a140670e9c0e1c3c02f452981fb98be986a45e6032b75c594b4d6c36ca9",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理探原·篇名】段间 ¶ 分段（颗粒度修复）"
+  },
+  {
+   "id": "mingli-yueyan",
+   "title": "命理约言",
+   "genre": "命理",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 58160,
+   "local_content_sha256": "a2345a0d49ac77c133237f7f218e4a7b07744eff4ded0d63318371249186fc32",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【命理约言·篇名】段间 ¶ 分段（颗粒度修复）"
+  },
+  {
+   "id": "qiongtongbaojian",
+   "title": "穷通宝鉴",
+   "genre": "命理",
+   "rationale": "子平经典调候用神依据（P2 缺口1），原文，过三道判定",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 40597,
+   "local_content_sha256": "ac19f24f18d12eb4e29a871b1f0e596ef652dba6ab552f7a0c6eda541f0504c6",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-16T00:00:00+0800",
+   "provenance_note": "素材来源 logs/p2_tmp/xuanxue（mkdocs 玄学库），11 篇，加【穷通宝鉴·篇名】篇章标记 + ¶ 分段，三道判定见 DECISIONS.md D-044"
+  },
+  {
+   "id": "sanming-tonghui",
+   "title": "三命通会",
+   "genre": "命理",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 326827,
+   "local_content_sha256": "694e7c64861c500282d88ff6c11e4bee79f653a4668ea6bd7cdf94c573f5455c",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登；R3 加【三命通会·篇名】段间 ¶ 分段（颗粒度修复）"
+  },
+  {
+   "id": "ziping-zhenquan",
+   "title": "子平真诠",
+   "genre": "命理",
+   "rationale": "子平经典语料扩充（P2），古籍原文，过三道判定第一步",
+   "edition": null,
+   "n_files": 1,
+   "n_chars": 98777,
+   "local_content_sha256": "345e6f5a3557f2954a258107b0e0d80ad049bb9c28d5fbbf129119d6aa5cd999",
+   "source_url": "",
+   "licence": "none-stated",
+   "fetched_at": "2026-08-15T00:00:00+0800",
+   "provenance_note": "落盘于上个窗口，sha256/fetched_at 本任务补登"
+  },
+  {
+   "id": "KR3g0019",
+   "title": "宅經",
+   "genre": "堪輿",
+   "rationale": "宅經 — 陽宅",
+   "edition": "WYG",
+   "n_files": 3,
+   "n_chars": 7863,
+   "juan_sample": [
+    "提要",
+    "卷上",
+    "卷下"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0019/zip/refs/heads/master",
+   "zip_sha256": "13c80d15d18fd129e76114d14c164ece8388a1751f1ed5edae37d01fdeb02f9f",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:25+0800"
+  },
+  {
+   "id": "KR3g0020",
+   "title": "葬書",
+   "genre": "堪輿",
+   "rationale": "葬書 晉 郭璞 — root text of 風水",
+   "edition": "WYG",
+   "n_files": 2,
+   "n_chars": 18787,
+   "juan_sample": [
+    "提要",
+    "葬書"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0020/zip/refs/heads/master",
+   "zip_sha256": "a3ee4896f1a148ab913f354704c66978295078b67e78c527c808d1788a007f07",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:24+0800"
+  },
+  {
+   "id": "KR3g0025",
+   "title": "靈城精義",
+   "genre": "堪輿",
+   "rationale": "靈城精義 南唐",
+   "edition": "WYG",
+   "n_files": 3,
+   "n_chars": 32238,
+   "juan_sample": [
+    "提要",
+    "卷上",
+    "卷下"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0025/zip/refs/heads/master",
+   "zip_sha256": "93009d6a351961c0e89d4ad8f29d829c27253f6fbcd7273330d040d6fa49de43",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:24+0800"
+  },
+  {
+   "id": "KR3g0001",
+   "title": "太玄經",
+   "genre": "擬易",
+   "rationale": "太玄經 漢 揚雄 — 81 首 instead of 64 卦",
+   "edition": "SBCK",
+   "n_files": 11,
+   "n_chars": 108492,
+   "juan_sample": [
+    "0",
+    "1",
+    "2"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0001/zip/refs/heads/master",
+   "zip_sha256": "a6a6a3f352a8a24be03d610156088c0242b43fa5a819cbda23e72281c7553db8",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:26+0800"
+  },
+  {
+   "id": "KR3g0015",
+   "title": "易象圖說",
+   "genre": "擬易",
+   "rationale": "易象圖說 元",
+   "edition": "WYG",
+   "n_files": 6,
+   "n_chars": 43076,
+   "juan_sample": [
+    "提要",
+    "内篇卷上",
+    "内篇卷中"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0015/zip/refs/heads/master",
+   "zip_sha256": "88675523a6e4bef90857b2b8388aef34c2a2748859d2c782c5cc162aa03d4eba",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:26+0800"
+  },
+  {
+   "id": "KR1a0001",
+   "title": "周易正文",
+   "genre": "易類",
+   "rationale": "周易(正文) — 底本，gold set 来源",
+   "edition": null,
+   "n_files": 69,
+   "n_chars": 86627,
+   "source_url": "https://codeload.github.com/kanripo/KR1a0001/zip/refs/heads/master",
+   "zip_sha256": "6507bccdbf8d3f67275bac70e5268e18e47baf290456ff451014e36a864a2786",
+   "local_content_sha256": "10c26efe454d4e1561677c2fe064fb49270681625d4e1e8a3ba8d95e1f0487f7",
+   "upstream_content_sha256": "10c26efe454d4e1561677c2fe064fb49270681625d4e1e8a3ba8d95e1f0487f7",
+   "upstream_verified": true,
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T21:46:59+0800",
+   "provenance_note": "backfilled: ingested before the manifest pipeline existed"
+  },
+  {
+   "id": "KR1a0003",
+   "title": "周易鄭康成注",
+   "genre": "易類",
+   "rationale": "周易鄭康成註 漢 鄭玄 — earliest layer",
+   "edition": "SBCK",
+   "n_files": 2,
+   "n_chars": 12606,
+   "juan_sample": [
+    "0",
+    "1"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR1a0003/zip/refs/heads/master",
+   "zip_sha256": "01155eff08226551ace6b79dc5ad081f436806d0dcec0768ca4648ccd5bc018d",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:27+0800"
+  },
+  {
+   "id": "KR1a0006",
+   "title": "周易註",
+   "genre": "易類",
+   "rationale": "王弼註",
+   "edition": null,
+   "n_files": 11,
+   "n_chars": 87021,
+   "source_url": "https://codeload.github.com/kanripo/KR1a0006/zip/refs/heads/master",
+   "zip_sha256": "e2c2c36465b8060dd0916a56fe5622bada4eee860e8f1c62b28644ac5f2df41b",
+   "local_content_sha256": "0d69ced7c2a5ec2db4cf69df2eb049f4100dccc336ea6a832c54f8f6ba9d7a01",
+   "upstream_content_sha256": "0d69ced7c2a5ec2db4cf69df2eb049f4100dccc336ea6a832c54f8f6ba9d7a01",
+   "upstream_verified": true,
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T21:47:00+0800",
+   "provenance_note": "backfilled: ingested before the manifest pipeline existed"
+  },
+  {
+   "id": "KR1a0007",
+   "title": "周易註疏",
+   "genre": "易類",
+   "rationale": "王弼註 + 孔穎達疏",
+   "edition": null,
+   "n_files": 43,
+   "n_chars": 349360,
+   "source_url": "https://codeload.github.com/kanripo/KR1a0007/zip/refs/heads/master",
+   "zip_sha256": "c69f2a9fb5299c5651b60db7fcde4442926bd8ab733b02166fc9b8c9745f92e5",
+   "local_content_sha256": "077eeffb8a92c432d994a4ddb2172b272a8346265d17a9f9b662599138140d52",
+   "upstream_content_sha256": "077eeffb8a92c432d994a4ddb2172b272a8346265d17a9f9b662599138140d52",
+   "upstream_verified": true,
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T21:47:01+0800",
+   "provenance_note": "backfilled: ingested before the manifest pipeline existed"
+  },
+  {
+   "id": "KR1a0016",
+   "title": "伊川易傳",
+   "genre": "易類",
+   "rationale": "伊川易傳 程頤 — third commentator on the same base text",
+   "edition": "WYG",
+   "n_files": 5,
+   "n_chars": 180292,
+   "juan_sample": [
+    "御製題宋版周易程傳",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR1a0016/zip/refs/heads/master",
+   "zip_sha256": "0456a983f95c677d6e49cc92861e0a76b284ad9f4570a8ba6bac86a356e343b2",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:27+0800"
+  },
+  {
+   "id": "KR1a0030",
+   "title": "周易古占法",
+   "genre": "易類",
+   "rationale": "周易古占法 宋 程迥 — 占法 applied to 周易",
+   "edition": "WYG",
+   "n_files": 3,
+   "n_chars": 17537,
+   "juan_sample": [
+    "0",
+    "周易古占法",
+    "周易章句外編"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR1a0030/zip/refs/heads/master",
+   "zip_sha256": "7d612f28b8e110c3733e76ed1b3e987adb70c5b22ac6cac2f3beaa7f2b7eca60",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:27+0800"
+  },
+  {
+   "id": "KR1a0031",
+   "title": "原本周易本義",
+   "genre": "易類",
+   "rationale": "原本周易本義 朱熹 — closes the 王弼-vs-朱熹 comparison gap",
+   "edition": "WYG",
+   "n_files": 15,
+   "n_chars": 85427,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR1a0031/zip/refs/heads/master",
+   "zip_sha256": "cda7067447bb6b85809c9186f65d30f6b6b4e75b30049960d8e6ccbb26a4343a",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:26+0800"
+  },
+  {
+   "id": "KR1a0032",
+   "title": "周易本義",
+   "genre": "易類",
+   "rationale": "別本周易本義 朱熹 — SAME work, different edition",
+   "edition": "WYG",
+   "n_files": 5,
+   "n_chars": 88238,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR1a0032/zip/refs/heads/master",
+   "zip_sha256": "0a55747503419e0a5d1cb4520d75c23f82549e7d15083a9b5071be89881c0377",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:27+0800"
+  },
+  {
+   "id": "KR3g0044",
+   "title": "玉管照神局",
+   "genre": "相術",
+   "rationale": "玉管照神局 南唐",
+   "edition": "WYG",
+   "n_files": 4,
+   "n_chars": 34385,
+   "juan_sample": [
+    "提要",
+    "卷上",
+    "卷中"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0044/zip/refs/heads/master",
+   "zip_sha256": "275c8a68fe6613d20aa22ff9fecca43c7f7f48cafd32404eb0573927e038f8f7",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:23+0800"
+  },
+  {
+   "id": "KR3g0045",
+   "title": "太清神鑑",
+   "genre": "相術",
+   "rationale": "太清神鑑 後周 — 相法",
+   "edition": "WYG",
+   "n_files": 7,
+   "n_chars": 50010,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR3g0045/zip/refs/heads/master",
+   "zip_sha256": "a0f0bcf7b04814cb7f3224ea427d45293e2d98310824be1e90927957c76bacce",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-13T16:42:23+0800"
+  },
+  {
+   "id": "KR5c0057",
+   "title": "老子",
+   "genre": "道家",
+   "rationale": "老子——跨書思想比較語料（願景§17.3 無為）",
+   "edition": "tls",
+   "n_files": 81,
+   "n_chars": 35892,
+   "juan_sample": [
+    "0",
+    "1",
+    "2"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR5c0057/zip/refs/heads/master",
+   "zip_sha256": "da174cf67786959ed4c9c11b1cdb25c2fd9df6bfcb427e8830d2a625d060afe8",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-16T17:48:42+0800"
+  },
+  {
+   "id": "KR5c0126",
+   "title": "莊子",
+   "genre": "道家",
+   "rationale": "莊子——跨書思想比較語料（願景§17.3 無為）",
+   "edition": "CHANT",
+   "n_files": 33,
+   "n_chars": 309910,
+   "juan_sample": [
+    "0",
+    "1",
+    "2"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR5c0126/zip/refs/heads/master",
+   "zip_sha256": "b0d0e07d84ec3798b8ce021a541b6f731d15145fcd1e25576892d01501e41adf",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-16T17:48:44+0800"
+  },
+  {
+   "id": "KR5c0138",
+   "title": "莊子注",
+   "genre": "道家",
+   "rationale": "莊子注（郭象）——注家層樣本",
+   "edition": "WYG",
+   "n_files": 11,
+   "n_chars": 188365,
+   "juan_sample": [
+    "提要",
+    "卷一",
+    "卷二"
+   ],
+   "source_url": "https://codeload.github.com/kanripo/KR5c0138/zip/refs/heads/master",
+   "zip_sha256": "7a7684482911fda9f0b853c70d7c940cee8ca1030f78da9922d2cf83efa8e8b8",
+   "licence_file_in_repo": false,
+   "fetched_at": "2026-08-16T17:48:46+0800"
+  }
+ ],
+ "errors": []
 }
