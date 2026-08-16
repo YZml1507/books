@@ -89,8 +89,16 @@ def raw_body(raw_dir: str, work: str) -> str:
     work_dir = os.path.join(raw_dir, work)
     if os.path.isdir(work_dir):
         # Kanripo: multiple .txt files in work/
+        # encoding fallback (R16 审查): 罕见 Kanripo 文件可能含非 UTF-8 字节，
+        # 直接 encoding="utf-8" 会抛 UnicodeDecodeError 冒泡到 verify_index。
+        # 先 UTF-8 strict，失败则 UTF-8 replace（ substituting U+FFFD）。
+        def _read(p: str) -> str:
+            try:
+                return open(p, encoding="utf-8").read()
+            except UnicodeDecodeError:
+                return open(p, encoding="utf-8", errors="replace").read()
         return "".join(
-            re.sub(r"^#.*$", "", open(p, encoding="utf-8").read(), flags=re.M)
+            re.sub(r"^#.*$", "", _read(p), flags=re.M)
             for p in sorted(glob.glob(os.path.join(work_dir, "*.txt"))))
     else:
         # generality works: look for pg*.txt in raw_dir/../raw_ext/generality/work/
@@ -98,7 +106,10 @@ def raw_body(raw_dir: str, work: str) -> str:
         if os.path.isdir(ext_dir):
             matches = glob.glob(os.path.join(ext_dir, "pg*.txt"))
             if matches:
-                return open(matches[0], encoding="utf-8").read()
+                try:
+                    return open(matches[0], encoding="utf-8").read()
+                except UnicodeDecodeError:
+                    return open(matches[0], encoding="utf-8", errors="replace").read()
             # Euclid ships only as .html (no .txt); return the STRIPPED text
             # (same space euclid.parse_propositions uses for prop.start/end and
             # prop.text), so unit.raw_start/raw_end and raw_body() agree — the
