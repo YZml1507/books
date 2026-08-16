@@ -498,11 +498,15 @@ function escAttr(s){
 /* 迷你 markdown 渲染器（零依赖，案 A）：先 esc() 再结构化，杜绝 XSS。
    支持：## / ### 标题、**加粗**、`code`、- 无序列表、1. 有序列表、> 引用、空行分段 */
 function renderMD(text){
+  // R14 审查：LLM 输出含 <img src=x onerror=alert(1)> 时原样透传到 innerHTML = 存储型 XSS。
+  // 修复：先转义 HTML 特殊字符（<>&"），再走 markdown 语法。markdown 的 **/##/>/` 不含
+  // 这些字符，转义不影响渲染；LLM 注入的 <script>/<img onerror> 被转为文本字面。
+  const escapeHtml = s => String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
   const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
   const out = [];
   let inList = null, inQuote = false;
   const closeList = () => { if (inList){ out.push(`</${inList}>`); inList = null; } };
-  const inline = s => s
+  const inline = s => escapeHtml(s)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   for (const raw of lines){

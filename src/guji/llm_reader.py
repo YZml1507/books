@@ -214,8 +214,13 @@ def interpret(render_line: str, evidence: list[dict], question: str | None = Non
     resp.raise_for_status()
     data = resp.json()
     try:
-        return data["choices"][0]["message"]["content"].strip()
-    except (KeyError, IndexError, TypeError) as exc:
+        content = data["choices"][0]["message"]["content"]
+        # LLM 拒答时可能返回 content: None → strip() 抛 AttributeError
+        # 不在原 except 范围内，会漏到 web 层。R14 审查修复。
+        if not isinstance(content, str):
+            raise RuntimeError("LLM 返回 content 非 string（可能拒答）")
+        return content.strip()
+    except (KeyError, IndexError, TypeError, AttributeError) as exc:
         raise RuntimeError(f"LLM 响应格式异常：{exc}") from exc
 
 
