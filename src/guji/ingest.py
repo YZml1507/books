@@ -393,6 +393,90 @@ def merge_units(units: list[tuple], raw: str, max_chars: int = 900,
     return out
 
 
+def split_long_text(raw: str, raw_start: int, raw_end: int,
+                    max_chars: int = 900) -> list[tuple[str, int, int, int]]:
+    """Split a too-long passage into ≤max_chars chunks on paragraph/newline boundaries.
+
+    Returns a list of (sub_text, sub_raw_start, sub_raw_end, skipped) tuples.
+    sub_text is raw[sub_raw_start:sub_raw_end] (NOT stripped), so verify_index.py
+    T9 contiguity (`clean(text) in clean(raw[start:end]))`) holds. `skipped` is
+    the content-character count of any gap inside the chunk's range but outside
+    its text — computed the same way merge_units does, via clean().
+
+    R8 审查发现 plato-republic 单 unit 864,870 字符、shakespeare SONNETS 单 unit
+    98,332 字符，全部绕过 merge_units 的 900 字上限。本函数在那些分支里做二次切分。
+    """
+    text = raw[raw_start:raw_end]
+    if len(text) <= max_chars:
+        return [(text, raw_start, raw_end, 0)]
+
+    # Pick a separator: \n\n if every part fits, else \n, else hard char cut.
+    parts: list[str] = [text]
+    for sep in (r"\n\n+", r"\n"):
+        if all(len(p) <= max_chars for p in re.split(sep, text) if p):
+            parts = re.split(sep, text)
+            break
+    else:
+        parts = [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+
+    # Walk parts, accumulating into chunks ≤ max_chars. We track absolute raw
+    # offsets directly, so sub_text is always an exact raw slice — T9 contiguity
+    # (clean(text) in clean(raw[start:end])) holds for every chunk. skipped=0
+    # because text == raw[start:end] for each chunk; we keep the 4-tuple shape
+    # for symmetry with merge_units.
+    chunks: list[tuple[str, int, int, int]] = []
+    cur_start = raw_start
+    cur_len = 0
+    next_off = raw_start
+    for part in parts:
+        plen = len(part)
+        if plen == 0:
+            continue
+        if plen > max_chars:
+            if cur_len:
+                chunks.append((raw[cur_start:next_off], cur_start, next_off, 0))
+                cur_len = 0
+            i = 0
+            while i < plen:
+                s = next_off + i
+                e = min(s + max_chars, next_off + plen)
+                chunks.append((raw[s:e], s, e, 0))
+                i += max_chars
+            next_off += plen
+            cur_start = next_off
+            continue
+        if cur_len + plen <= max_chars:
+            if cur_len == 0:
+                cur_start = next_off
+            cur_len += plen
+            next_off += plen
+        else:
+            if cur_len:
+                chunks.append((raw[cur_start:next_off], cur_start, next_off, 0))
+            cur_start = next_off
+            cur_len = plen
+            next_off += plen
+    if cur_len:
+        chunks.append((raw[cur_start:next_off], cur_start, next_off, 0))
+    return chunks or [(text, raw_start, raw_end, 0)]
+
+
+def _emit_chunk(raw: str, raw_start: int, off_lo: int, off_hi: int,
+                text: str) -> tuple[str, int, int, int]:
+    """Build one chunk tuple: (text, sub_raw_start, sub_raw_end, skipped).
+
+    sub_text = raw[sub_start:sub_end] (NOT stripped); skipped counts content chars
+    in the range but outside the text, the same way merge_units does.
+    """
+    sub_start = raw_start + off_lo
+    sub_end = raw_start + off_hi
+    # The chunk text is the raw slice; skipped = |clean(raw[start:end])| - |clean(text)|
+    range_clean = clean(raw[sub_start:sub_end], keep_notes=True).text
+    text_clean = clean(text, keep_notes=True).text
+    skipped = max(0, len(range_clean) - len(text_clean))
+    return (raw[sub_start:sub_end], sub_start, sub_end, skipped)
+
+
 def _ingest_yilin(db, work: str, raw: str, bounds: list[tuple[int, str]],
                   gua_names: dict[int, str], uid: int, stats) -> tuple[int, int]:
     """Index 焦氏易林 as 4,096 (本卦, 之卦) cells, then link the printed cross-references.
@@ -684,17 +768,21 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                     continue
                 html_path = os.path.join(slug_dir, html_files[0])
                 html = open(html_path, encoding="utf-8").read()
+                # parse_propositions 在 stripped text 空间工作，与 raw_body() 一致。
+                # split_long_text 也必须传 stripped text，否则偏移空间不一致导致 T9 失败。
+                euclid_text, _ = euclid._strip_tags(html)
                 props = euclid.parse_propositions(html)
                 for prop in props:
-                    uid += 1
-                    db.execute(
-                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        (uid, slug, os.path.basename(html_path), prop.start, prop.end, None,
-                         "euclid", f"Book {prop.book}", prop.book, prop.roman, "正文", prop.text, 0, None))
-                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
-                              (uid, segment_cjk(fold(prop.text))))
-                stats.units += len(props)
-                stats.addressed += len(props)
+                    for sub_text, sub_start, sub_end, skipped in split_long_text(euclid_text, prop.start, prop.end):
+                        uid += 1
+                        db.execute(
+                            "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            (uid, slug, os.path.basename(html_path), sub_start, sub_end, None,
+                             "euclid", f"Book {prop.book}", prop.book, prop.roman, "正文", sub_text, skipped, None))
+                        db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                                  (uid, segment_cjk(fold(sub_text))))
+                        stats.units += 1
+                        stats.addressed += 1
                 m = ext_meta.get(slug, {})
                 db.execute(
                     "INSERT INTO work VALUES (?,?,?,?,?,?,?,?,?,?,?)",
@@ -740,47 +828,47 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                 scheme = "booksec"
                 spans = booksec.book_spans(raw)
                 for sp in spans:
-                    uid += 1
-                    text = raw[sp.start:sp.text_end].strip()
-                    db.execute(
-                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        (uid, slug, txt_files[0], sp.start, sp.text_end, None,
-                         "booksec", None, sp.number, None, "正文", text, 0, None))
-                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
-                              (uid, segment_cjk(fold(text))))
-                stats.units += len(spans)
-                stats.addressed += len(spans)
+                    for sub_text, sub_start, sub_end, skipped in split_long_text(raw, sp.start, sp.text_end):
+                        uid += 1
+                        db.execute(
+                            "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            (uid, slug, txt_files[0], sub_start, sub_end, None,
+                             "booksec", None, sp.number, None, "正文", sub_text, skipped, None))
+                        db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                                  (uid, segment_cjk(fold(sub_text))))
+                        stats.units += 1
+                        stats.addressed += 1
             elif slug == "shakespeare":
                 scheme = "play"
                 plays = play.find_plays(raw)
                 for p in plays:
                     if p.is_poem or not p.acts:
-                        uid += 1
-                        text = raw[p.start:p.end].strip()
-                        db.execute(
-                            "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            (uid, slug, txt_files[0], p.start, p.end, None,
-                             "play", p.title, p.ordinal, None, "正文", text, 0, None))
-                        db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
-                                  (uid, segment_cjk(fold(text))))
-                        stats.units += 1
-                        stats.addressed += 1
+                        for sub_text, sub_start, sub_end, skipped in split_long_text(raw, p.start, p.end):
+                            uid += 1
+                            db.execute(
+                                "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                (uid, slug, txt_files[0], sub_start, sub_end, None,
+                                 "play", p.title, p.ordinal, None, "正文", sub_text, skipped, None))
+                            db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                                      (uid, segment_cjk(fold(sub_text))))
+                            stats.units += 1
+                            stats.addressed += 1
                     else:
                         for act in p.acts:
                             for scene in act["scenes"]:
-                                uid += 1
                                 s_start = p.start + scene["start"]
                                 s_end = p.start + scene["end"]
-                                text = raw[s_start:s_end].strip()
                                 addr2 = f"ACT {act['roman']} SCENE {scene['roman']}"
-                                db.execute(
-                                    "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                                    (uid, slug, txt_files[0], s_start, s_end, None,
-                                     "play", p.title, p.ordinal, addr2, "正文", text, 0, None))
-                                db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
-                                          (uid, segment_cjk(fold(text))))
-                                stats.units += 1
-                                stats.addressed += 1
+                                for sub_text, sub_start, sub_end, skipped in split_long_text(raw, s_start, s_end):
+                                    uid += 1
+                                    db.execute(
+                                        "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                        (uid, slug, txt_files[0], sub_start, sub_end, None,
+                                         "play", p.title, p.ordinal, addr2, "正文", sub_text, skipped, None))
+                                    db.execute("INSERT INTO unit_fts(rowid, seg) VALUES (?,?)",
+                                              (uid, segment_cjk(fold(sub_text))))
+                                    stats.units += 1
+                                    stats.addressed += 1
             elif slug == "bible-douay":
                 scheme = "bcv"
                 verses = douay.parse_verses(raw)
