@@ -2436,3 +2436,30 @@ O6 MCP server（§11）、O7 道德经/庄子语料（§17.3）、新端点 gate
 层分布 + 共享 zhouyi 地址，零命中一侧如实显示 0、两侧全 0 才拒绝（G7）。
 research 自测 7/7 PASS（[6] 無爲 老子 9 vs 莊子 24、[7] 全无命中拒绝）；
 web /api/compare_works 冒烟 PASS；13 闸门全绿。commit 见台账 §51。
+
+## D-071b R25b 优化轨：前端接线——Book Study / 两书对照 落地 UI（愿景 §7/§17）
+
+**背景（亲自核实）**：R23b（/api/bookstudy/structure、/api/bookstudy/chapter）
+与 R24b（/api/compare_works）都是**后端能力**，前端 `web/static/index.html`
+（1246 行）的「古籍读书」面板只有 检索/深度研究/定位/比对/书目/研究线程
+6 个 rtab，`grep -c "bookstudy\|compare_works" index.html = 0`——两个新研究
+模式用户**在 UI 上点不到**。愿景 §17 用户体验（Book Study 读整本书、
+Comparative Study 比较两书）缺最后一段。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端加两个 rtab：①「读书」= work 选择器 → structure 结构地图 → 点节 → chapter 阅读视图；②「两书对照」= work_a/work_b/q → compare_works 并排证据。纯前端 HTML/JS 增量，tab 切换机制（switchRsec）现成 | 零后端语义改动、低风险；连带修 chapter() 对 NULL-scheme 作品（老子）file 节打不开的缺口 |
+| B | Book Summary（整本书结构化摘要） | 与 R23b structure() 重叠度高，需 LLM 或聚合逻辑，杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，需协商，非本轨范围 |
+
+选 A。连带修复：`chapter()` 增加 file 参数支持 NULL-scheme 作品的文件级阅读
+（structure 已把老子这类作品按 file 分组，chapter 却按 scheme 过滤必空），
+自测补 [8]。落地后 13 闸门全绿 + 前端冒烟（TestClient 直调两个新 tab 的 API）。
+
+**落地结果**（2026-08-16 实测）：前端新增「读书」（structure 地图 → 章节
+阅读，可点行下钻）与「两书对照」（并排证据 + 同址披露）两个 rtab，work 下拉
+复用 /api/works；`chapter()` file 参数修复 NULL-scheme 作品阅读缺口。
+bookstudy 自测 8/8 PASS（新增 [8] 老子 file 节）、research 7/7 PASS、
+web 冒烟 PASS、13 闸门全绿。commit 见台账 §52。

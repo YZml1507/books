@@ -105,34 +105,42 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
 
 def chapter(corpus: Corpus, work_id: str, scheme: str,
             addr_name: str | None = None, addr1: int | None = None,
-            limit: int = 60) -> dict:
+            file: str | None = None, limit: int = 60) -> dict:
     """One section's reading view: every unit in source order with citations —
     經/注 interleaved as printed, damaged units disclosed, not silently dropped."""
     # The section filter must live in SQL, BEFORE the LIMIT: raw_start order is
     # work-global, so the first `limit` rows of a big work (bible-douay 35,787
     # verses, zhouyi 527 units) are all the EARLIEST section — filtering after
     # the LIMIT would report every later section (卦40, Exodus) as "not found".
-    where = "u.work_id = ? AND u.scheme = ?"
-    params: list = [work_id, scheme]
-    if scheme == "zhouyi":
-        if addr1 is None:
-            return {"error": f"section needs addr1 (卦號) for {work_id}"}
-        where += " AND u.addr1 = ?"
-        params.append(addr1)
+    if scheme == "file":
+        # NULL-scheme works (老子/莊子注…) group by FILE in structure() and
+        # their units carry scheme=NULL — the section filter must be u.file.
+        if file is None:
+            return {"error": f"section needs file for {work_id}"}
+        where = "u.work_id = ? AND u.file = ?"
+        params: list = [work_id, file]
     else:
-        if addr_name is not None:
-            where += " AND u.addr_name = ?"
-            params.append(addr_name)
-        if addr1 is not None:
+        where = "u.work_id = ? AND u.scheme = ?"
+        params = [work_id, scheme]
+        if scheme == "zhouyi":
+            if addr1 is None:
+                return {"error": f"section needs addr1 (卦號) for {work_id}"}
             where += " AND u.addr1 = ?"
             params.append(addr1)
+        else:
+            if addr_name is not None:
+                where += " AND u.addr_name = ?"
+                params.append(addr_name)
+            if addr1 is not None:
+                where += " AND u.addr1 = ?"
+                params.append(addr1)
     rows = corpus.db.execute(
         "SELECT u.scheme, u.addr_name, u.addr1, u.addr2, u.layer, u.text, "
         "u.file, u.page_anchor, u.suspect, u.skipped_chars FROM unit u "
         f"WHERE {where} ORDER BY u.raw_start LIMIT ?",
         params + [limit]).fetchall()
     if not rows:
-        return {"error": f"section {addr_name or addr1} not found in {work_id}"}
+        return {"error": f"section {file or addr_name or addr1} not found in {work_id}"}
     units = [{
         "addr2": r["addr2"], "layer": r["layer"], "text": r["text"],
         "citation": (f"@{r['page_anchor'] or '?'} ({r['file']})"
@@ -141,7 +149,7 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         "suspect": r["suspect"],
     } for r in rows]
     return {"work_id": work_id, "scheme": scheme,
-            "section": addr_name or addr1, "n_units": len(units), "units": units}
+            "section": file or addr_name or addr1, "n_units": len(units), "units": units}
 
 
 if __name__ == "__main__":
@@ -191,5 +199,13 @@ if __name__ == "__main__":
     assert "error" not in ch_ex and ch_ex["n_units"] > 0 and \
         all(u["citation"] for u in ch_ex["units"])
     print(f"[7] chapter douay Exodus -> {ch_ex['n_units']} verses in source order")
+
+    # NULL-scheme works (老子) group by FILE in structure(); chapter must open
+    # that file section via the file param (scheme-filter alone would match 0)
+    ch_file = chapter(c, "KR5c0057", "file", file="KR5c0057_001.txt")
+    assert "error" not in ch_file and ch_file["n_units"] > 0 and \
+        all(u["citation"] for u in ch_file["units"])
+    print(f"[8] chapter 老子 file 001 -> {ch_file['n_units']} units "
+          f"(NULL-scheme file section readable)")
     print("self-test PASS")
     c.close()

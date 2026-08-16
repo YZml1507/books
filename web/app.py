@@ -626,6 +626,7 @@ def api_book_structure(work_id: str, sample_chars: int = 60):
 def api_book_chapter(work_id: str, scheme: str,
                      addr_name: str | None = None,
                      addr1: int | None = None,
+                     file: str | None = None,
                      limit: int = 60):
     """One section's reading view: every unit in source order with citations."""
     work_id = (work_id or "").strip()
@@ -638,7 +639,8 @@ def api_book_chapter(work_id: str, scheme: str,
     c = Corpus(CORPUS_DB)
     try:
         return book_chapter(c, work_id, scheme,
-                            addr_name=addr_name, addr1=addr1, limit=limit)
+                            addr_name=addr_name, addr1=addr1,
+                            file=file, limit=limit)
     finally:
         c.close()
 

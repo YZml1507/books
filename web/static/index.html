@@ -328,6 +328,8 @@
       <button class="rtab" data-rsec="rsec-compare" type="button">比对</button>
       <button class="rtab" data-rsec="rsec-works" type="button">书目</button>
       <button class="rtab" data-rsec="rsec-threads" type="button">研究线程</button>
+      <button class="rtab" data-rsec="rsec-bookstudy" type="button">读书</button>
+      <button class="rtab" data-rsec="rsec-cw" type="button">两书对照</button>
     </div>
 
     <!-- 检索 -->
@@ -419,6 +421,34 @@
     <section class="card rsec" id="rsec-threads">
       <h2>研究线程<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">G9 跨会话恢复</span></h2>
       <div id="rthreadsOut"><div class="no-evidence">加载中…</div></div>
+    </section>
+
+    <!-- 读书（R23b Book Study）：结构地图 → 章节阅读 -->
+    <section class="card rsec" id="rsec-bookstudy">
+      <h2>读书<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">Book Study · R23b</span></h2>
+      <div class="row">
+        <div class="field" style="flex:3;"><label for="bswork">作品</label>
+          <select id="bswork"></select></div>
+        <div class="field"><label>&nbsp;</label>
+          <button id="bsStructureBtn" type="button">查看结构</button></div>
+      </div>
+      <div class="error" id="bserr" hidden></div>
+      <div id="bsOut"><div class="no-evidence">选择作品后点「查看结构」：得到全书骨架（节序 / 体量 / 經注层次 / 首行样本 + 真实引文），点某节进入阅读视图。</div></div>
+    </section>
+
+    <!-- 两书对照（R24b compare_works）：指定两书 + 概念 -->
+    <section class="card rsec" id="rsec-cw">
+      <h2>两书对照<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">Comparative Study · R24b</span></h2>
+      <div class="row">
+        <div class="field" style="flex:2;"><label for="cwa">书 A</label><select id="cwa"></select></div>
+        <div class="field" style="flex:2;"><label for="cwb">书 B</label><select id="cwb"></select></div>
+        <div class="field" style="flex:3;"><label for="cwq">概念</label>
+          <input id="cwq" type="text" placeholder="如：無爲"></div>
+        <div class="field" style="flex:0.6;"><label>&nbsp;</label>
+          <button id="cwBtn" type="button">对 照</button></div>
+      </div>
+      <div class="error" id="cwerr" hidden></div>
+      <div id="cwOut"><div class="no-evidence">选两本书 + 一个概念：两书证据并排（citation + 层 + 原文），并列出两书同址命中的 zhouyi 地址（版本/注家分歧起点）。</div></div>
     </section>
   </div><!-- /view-read -->
 
@@ -1003,6 +1033,106 @@ $('#rcompareBtn').addEventListener('click', async () => {
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 });
 
+/* ---- 读书（R23b Book Study）：结构地图 → 章节阅读 ---- */
+let bsLast = null;   // last /api/bookstudy/structure response, for section clicks
+async function loadBookWorkOptions(){
+  const box = $('#bswork');
+  try{
+    const r = await fetch('/api/works');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const opts = (j.works || []).map(w =>
+      `<option value="${esc(w.id)}">${esc(w.id)} ${esc(w.title || '')}</option>`).join('');
+    box.innerHTML = opts || '<option value="">（无语料）</option>';
+    $('#cwa').innerHTML = opts;
+    $('#cwb').innerHTML = opts;
+  }catch(ex){ box.innerHTML = `<option value="">加载失败</option>`; }
+}
+
+async function runBookStructure(){
+  const out = $('#bsOut'), err = $('#bserr');
+  err.hidden = true;
+  const wid = $('#bswork').value;
+  if (!wid){ err.textContent = '请先选择作品'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">加载中…</div>';
+  try{
+    const r = await fetch('/api/bookstudy/structure?work_id=' + encodeURIComponent(wid));
+    if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
+    const j = await r.json();
+    if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
+    bsLast = j;
+    let html = `<div class="no-evidence">${esc(j.title)} · ${j.n_sections} 节 · ${j.n_units} 单元 · scheme ${esc(j.scheme || '—')}</div>
+      <table class="works"><tr><th>节</th><th>单元</th><th>字数</th><th>层</th><th>样本（引文）</th></tr>`;
+    html += j.sections.map((s, i) =>
+      `<tr style="cursor:pointer" onclick="openChapter(${i})">
+        <td>${esc(s.label)}</td><td class="num">${s.n_units}</td><td class="num">${s.chars}</td>
+        <td>${esc(Object.keys(s.layers).join('/'))}</td>
+        <td class="hit-cite">${esc(s.sample || '')} — ${esc(s.sample_citation || '')}</td></tr>`).join('');
+    html += '</table>';
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+}
+
+async function openChapter(idx){
+  const out = $('#bsOut'), err = $('#bserr');
+  err.hidden = true;
+  if (!bsLast || !bsLast.sections[idx]) return;
+  const s = bsLast.sections[idx];
+  // key: zhouyi=["zhouyi",addr1] · bcv 等=["scheme",addr_name,addr1] · NULL=["file",file]
+  const k = s.key || [];
+  let p = 'work_id=' + encodeURIComponent(bsLast.work_id);
+  if (k[0] === 'file'){ p += '&scheme=file&file=' + encodeURIComponent(k[1] || ''); }
+  else {
+    p += '&scheme=' + encodeURIComponent(k[0] || '');
+    if (k[1] != null) p += '&addr_name=' + encodeURIComponent(k[1]);
+    if (k[2] != null) p += '&addr1=' + encodeURIComponent(k[2]);
+  }
+  out.innerHTML = '<div class="no-evidence">加载中…</div>';
+  try{
+    const r = await fetch('/api/bookstudy/chapter?' + p);
+    if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
+    const j = await r.json();
+    if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
+    let html = `<div class="no-evidence">${esc(j.section)} · ${j.n_units} 单元（原书顺序）<button class="thread-view" onclick="runBookStructure()">返回结构</button></div>`;
+    html += (j.units || []).map(u =>
+      `<div class="ev-item"><div class="hit-cite">${esc(u.layer || '')} ${esc(u.citation)}</div><div class="ev-text">${esc(u.text)}</div></div>`).join('');
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+}
+
+/* ---- 两书对照（R24b compare_works）：指定两书 + 概念 ---- */
+async function runCompareWorks(){
+  const out = $('#cwOut'), err = $('#cwerr');
+  err.hidden = true;
+  const wa = $('#cwa').value, wb = $('#cwb').value;
+  const q = $('#cwq').value.trim();
+  if (!wa || !wb){ err.textContent = '请选择书 A 与书 B'; err.hidden = false; return; }
+  if (!q){ err.textContent = '请输入概念词'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">对照中…</div>';
+  try{
+    const r = await fetch('/api/compare_works?work_a=' + encodeURIComponent(wa) +
+      '&work_b=' + encodeURIComponent(wb) + '&q=' + encodeURIComponent(q) + '&per_work=3');
+    if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
+    const j = await r.json();
+    if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
+    const [a, b] = j.works;
+    const side = w => (w.top || []).map(h =>
+      `<div class="ev-item"><div class="hit-cite">${esc(h.layer || '')} ${esc(h.citation)}</div><div class="ev-text">${esc(h.text)}</div></div>`).join('')
+      || `<div class="no-evidence">0 命中</div>`;
+    let html = `<div class="no-evidence">「${esc(j.concept)}」· ${esc(a.title)} ${a.n_hits} 命中 vs ${esc(b.title)} ${b.n_hits} 命中
+      （层：${esc(JSON.stringify(a.layers))} / ${esc(JSON.stringify(b.layers))}）</div>`;
+    if (j.shared_addresses && j.shared_addresses.length){
+      html += `<div class="no-evidence">同址命中（版本/注家分歧起点）：${j.shared_addresses.map(x => esc(x.addr)).join('、')}</div>`;
+    }
+    html += `<div class="row"><div class="field" style="flex:1;">${esc(a.title)}<br>${side(a)}</div>
+      <div class="field" style="flex:1;">${esc(b.title)}<br>${side(b)}</div></div>`;
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+}
+
+$('#bsStructureBtn').addEventListener('click', runBookStructure);
+$('#cwBtn').addEventListener('click', runCompareWorks);
+
 /* ---- 书目 ---- */
 async function loadWorks(){
   const box = $('#rworksOut');
@@ -1069,6 +1199,7 @@ async function viewThread(tid){
 
 loadWorks();
 loadThreads();
+loadBookWorkOptions();
 
 /* ==================== P3 六爻占卜 ==================== */
 $('#lyMethod').addEventListener('change', e => {

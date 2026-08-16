@@ -2371,3 +2371,34 @@ web 冒烟 PASS（老子 9 / 莊子 24 命中，空参 400 正常）；13 闸门
 G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-070b。
+
+## 52. [优化轨] R25b：前端接线——Book Study / 两书对照 落地 UI（2026-08-16，双窗口并行第二轨）
+
+### 52a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `23d0f94`），main 无
+审查轨改动，无 rebase 需求。
+
+### 52b. 前端接线（愿景 §7/§17 最后一段）
+
+- **缺口核实**：R23b/R24b 都是后端能力，`web/static/index.html` 的「古籍
+  读书」面板只有 6 个 rtab（检索/深度研究/定位/比对/书目/研究线程），
+  新研究模式 UI 上点不到（`grep -c "bookstudy\|compare_works" index.html = 0`）。
+- **新增两个 rtab + 两个 section**：
+  1. **读书**（rsec-bookstudy）：work 下拉（复用 /api/works）→ structure
+     结构地图（节序/体量/层/样本+引文，可点行）→ chapter 阅读视图
+     （原书顺序、层+引文，可返回结构）。
+  2. **两书对照**（rsec-cw）：work_a/work_b/q → compare_works 并排证据
+     （层分布对照 + 同址命中地址披露）。
+- **连带修复**：`chapter()` 增加 `file` 参数支持 NULL-scheme 作品（老子）
+  的文件级阅读——structure 已按 file 分组，chapter 原先按 scheme 过滤必空。
+  自测补 [8]；web 端点 `/api/bookstudy/chapter` 透传 file。
+
+### 52c. 验证
+
+bookstudy 自测 8/8 PASS（新增 [8] 老子 file 节可读）；research 自测 7/7
+PASS；web 冒烟 PASS（structure 老子 81 节 / chapter file 001 / 卦40 /
+compare_works 老子 9 vs 莊子 24）；13 闸门全绿（14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-071b。
