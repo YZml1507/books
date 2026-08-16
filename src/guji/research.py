@@ -247,7 +247,10 @@ if __name__ == "__main__":
     print(f"[2] 枯楊生稊 -> comparisons at {[cmp['addr'] for cmp in r2.comparisons]}, "
           f"kinds={sorted(kinds)}")
 
-    r3 = research(c, "青龍白虎朱雀玄武靈龜騰蛇測試不存在")
+    # A question whose FULL text and EVERY sub-phrase miss the corpus must refuse.
+    # (Modern words only — 青龍白虎-style strings DO hit via the sub-phrase fallback,
+    # which is the fallback working as designed, not a refusal-path failure.)
+    r3 = research(c, "電話飛機電腦")
     assert r3.refused, "no-hit question must refuse (G7)"
     print(f"[3] impossible -> refused: {r3.reason[:40]}…")
 
