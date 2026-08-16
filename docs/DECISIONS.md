@@ -2943,3 +2943,30 @@ Agent 经 MCP 记入一条 claim 后，无法经 MCP 读回该 claim 及其证�
 合法写入绑定 thread 1 → `threads(1)` 读回含该 claim → 测试行清理。
 MCP 协议自测 PASS + sources/bookstudy/research 自测 + 13 闸门全绿。
 commit 见台账 §69。
+
+## D-089b R43b 优化轨：PROJECT_STATUS 快照刷新到 R42b 终态（愿景 §19 合规，R30b 后第 13 轮）
+
+**背景（亲自核实）**：`docs/PROJECT_STATUS.md` 更新时间仍停在 **R29b**
+（R30b 刷新），而 R30b–R42b 又落地 13 轮改动（MCP record_claim_tool/
+threads 读回、Local File Adapter、前端 /api/stats 接线、研究线程写入口、
+九 tab 全接线、MASTER_PLAN/ROADMAP/客户端配置文档对齐等），快照块与
+"关键变化"均未反映——读者信它得到的是 R29b 状态，与代码矛盾（同 O1 文档
+失效模式，愿景 §19 每阶段更新要求）。MASTER_PLAN/MCP_CLIENT_CONFIG 本轮
+复查无新漂移（R37b-R39b 已修），仅 PROJECT_STATUS 欠账。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 PROJECT_STATUS.md：更新时间 → R42b；快照块补 R30b-R42b 能力（MCP 写/读回线程、Local File Adapter、/api/stats 接线、记忆闭环）；「关键变化」补 R30b-R42b 条目 | 纯文档对齐、零代码/零风险，直接兑现愿景 §19；数字沿用已实测的 47 部 62,109 单元（无语料改动） |
+| B | 前端功能增强 | 9 tab + 记忆闭环已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS.md 更新时间刷新到 R42b；
+快照块发布面更新（web 9 tab + /api/stats + MCP 12 工具 + 协议自测）、新增
+「记忆闭环」行（web POST /api/threads + 三 tab 记入 + 自动刷新；MCP
+record_claim_tool 写 + threads 读回）；关键变化补 R30b-R42b 条目。docs-only
+抽跑 verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §70。

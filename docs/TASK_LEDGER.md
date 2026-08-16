@@ -2911,3 +2911,32 @@ MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝 + threads(1)
 全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-088b。
+
+## 70. [优化轨] R43b：PROJECT_STATUS 快照刷新到 R42b 终态（2026-08-17，双窗口并行第二轨）
+
+### 70a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 70b. 愿景 §19 合规：PROJECT_STATUS 刷新（R30b 后第 13 轮）
+
+- **缺口核实**：`docs/PROJECT_STATUS.md` 更新时间停在 R29b（R30b 刷新），
+  而 R30b–R42b 又落地 13 轮改动（MCP record_claim_tool/threads 读回、Local
+  File Adapter、前端 /api/stats 接线、研究线程写入口、九 tab 全接线、文档
+  对齐等）——快照块与关键变化均未反映，读者得到 R29b 状态（同 O1 失效模式）。
+  MASTER_PLAN/MCP_CLIENT_CONFIG 本轮复查无新漂移。
+- **改动**（纯文档 PROJECT_STATUS.md）：
+  1. 更新时间 R29b → R42b；
+  2. 快照块发布面更新（web 9 tab + 语料统计 + MCP 12 工具 + 协议自测）、
+     新增「记忆闭环」行（web POST /api/threads + 三 tab 记入 + 列表自动刷新；
+     MCP record_claim_tool 写 + threads 读回）；
+  3. 关键变化补 R30b-R42b 条目（Local File Adapter/研究线程写入口/语料统计
+     视图/文档对齐去硬编码）。
+
+### 70c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（工具数 12 与 grep `@mcp.tool()` 实测一致）。
+
+- 决策记录：DECISIONS.md D-089b。

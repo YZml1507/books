@@ -4,7 +4,7 @@
 > **任务状态的唯一来源是 `TASK_LEDGER.md`**（含 REJECTED 清单，防止重做已否决方案），
 > 工程教训见 `LESSONS.md`。
 
-**更新时间**：2026-08-16（R29b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
+**更新时间**：2026-08-17（R42b，优化轨；前一次快照 2026-08-16 R29b，见文末历史节）
 **当前阶段**：Phase 7（Optimization）——审查-修复循环 R5-R17 闭环后进入双窗口并行
 （审查轨 `books-audit` worktree 审 scripts/probes/打包链；优化轨=本仓做差距分析+能力优化，
 方案见 `OPTIMIZE_20260816_R18.md`）。
@@ -26,8 +26,13 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 研究模式  八模式全落地（R18b-R27b）：Quick/Deep/Book Study/Chapter/Comparative
           （两书对照 compare_works）/Cross-book/Book Summary/Concept
 发布面    web 9 研究 tab 全接线（检索/深度研究/定位/比对/书目/线程/读书/两书对照/
-          概念研究，R25b/R26b/R29b）+ 书目→读书一键；MCP 10 工具 stdio 同源发布
-          （R22b-R28b，含协议级 --selftest 自测）
+          概念研究，R25b/R26b/R29b）+ 书目→读书一键 + 语料统计（/api/stats，
+          R40b）；MCP 12 工具 stdio 同源发布（R22b-R38b：含协议级 --selftest
+          自测、add_local_work_tool 本地加书、record_claim_tool 写线程 +
+          threads 读回 claims/evidence，记忆闭环 web/MCP 双端齐）
+记忆闭环  研究→记录→跨会话恢复（愿景 §8/§9）：web POST /api/threads + 三个
+          研究 tab「记入线程」+ 记入后列表自动刷新（R34b/R35b/R41b）；MCP
+          record_claim_tool 写 + threads(tid) 读回（R36b/R42b）
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：
@@ -46,6 +51,11 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
   两书对照 compare_works、Book Summary 结构化知识卡、概念研究 tab；MCP 10 工具
   （含协议级 stdio `--selftest`）；前端 9 tab 全接线 + 书目→读书一键（localStorage
   记忆）。13 闸门每轮全绿（G1-G9 PASS 9 · PART 0 · FAIL 0）。
+- R30b-R42b：Local File Adapter（本地 txt 书入库，CLI + MCP add_local_work_tool，
+  愿景 §10/§18）；研究线程写入口（web POST /api/threads + 三研究 tab「记入
+  线程」+ 列表自动刷新；MCP record_claim_tool + threads 读回 claims/evidence）；
+  前端语料统计视图（/api/stats 接线）；MASTER_PLAN/ROADMAP/MCP_CLIENT_CONFIG
+  文档对齐（数字去硬编码，以可执行自测为唯一权威）。MCP 12 工具。
 
 ---
 
