@@ -638,6 +638,14 @@ def api_qiming(req: QimingRequest):
         raise HTTPException(400, f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {req.year}")
     if not req.surname or len(req.surname) != 1:
         raise HTTPException(400, "surname 须为单字姓氏")
+    if not (1 <= req.month <= 12):
+        raise HTTPException(400, f"month 须在 1-12，收到 {req.month}")
+    if not (1 <= req.day <= 31):
+        raise HTTPException(400, f"day 须在 1-31，收到 {req.day}")
+    if not (0 <= req.hour <= 23):
+        raise HTTPException(400, f"hour 须在 0-23，收到 {req.hour}")
+    if req.gender not in ("男", "女"):
+        raise HTTPException(400, f"gender 须为 男/女，收到 {req.gender}")
     try:
         result = qiming_mod.name_candidates(
             surname=req.surname, year=req.year, month=req.month,
