@@ -132,8 +132,15 @@ def parse_verses(text: str) -> list[Verse]:
         nonlocal cur_c, cur_v, buf_lines, buf_start
         if cur_bcv is not None and cur_c is not None and buf_lines:
             joined = "".join(buf_lines).rstrip()
+            # raw_end is the true end of the verse's raw range — the end of the
+            # LAST buffered line (incl. its newline), not the stripped text length.
+            # T9 contiguity checks `clean(text) in clean(raw[start:end])`, so raw_end
+            # must bound the full text the verse claims (incl. wrapped continuation
+            # lines). Using `buf_start + len(joined)` would fall short whenever any
+            # trailing newline or wrapped line was rstripped.
+            raw_end = end_offset
             out.append(Verse(cur_bcv, cur_c, cur_v,
-                             joined, buf_start, buf_start + len(joined)))
+                             joined, buf_start, raw_end))
         cur_c = cur_v = None
         buf_lines = []
         buf_start = end_offset
@@ -154,9 +161,19 @@ def parse_verses(text: str) -> list[Verse]:
             cur_c, cur_v = int(vm.group(1)), int(vm.group(2))
             buf_lines = [vm.group(3)]
             buf_start = offset + line.index(vm.group(3))
-        # Non-verse, non-chapter line: ignore (summary lines, annotations, TOC).
-        # The TOC at lines 47-145 does NOT use "X Chapter N" form, so the chapter
-        # regex naturally skips it.
+        else:
+            # Continuation line (wrapped verse text) or noise line.
+            stripped = line.rstrip("\r\n")
+            if cur_c is not None and stripped and not stripped.startswith(" "):
+                # A wrapped continuation of the current verse: accumulate it.
+                # Lines with leading whitespace (TOC entries, annotations) are noise
+                # and are ignored, matching the prior behavior for the TOC at lines
+                # 47-145 which does NOT use "X Chapter N" form.
+                buf_lines.append(line)
+            # Empty lines and leading-whitespace noise lines: ignore.
+            # This fixes the R9 defect where 64,332 wrapped continuation lines
+            # (e.g. Genesis 1:2's "of the deep; and the spirit of God moved over
+            # the waters.") were dropped despite the docstring promising accumulation.
 
         offset += line_len
 
