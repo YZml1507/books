@@ -1603,3 +1603,29 @@ probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
 - Revelation 22:21 len 234,655→2,562（不再吞附录）✓
 - Genesis 1:2 续行仍正确累加 len=121✓
 - 13 闸门全绿：check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS · assess_goals G1-G9 PASS · probe_bcv PASS
+
+### 35e. R9 续审：_has_cjk 漏检 U+3007/兼容区/全角字符修复（commit 2b1ba35）
+
+**缺陷**：`_has_cjk` 原仅检 `"一" <= c <= "鿿" or ord(c) > 0xFFFF`，漏检：
+- U+3007 〇（康熙数码，古籍频繁）
+- U+F900..U+FAFF 兼容汉字区
+- U+FF00..U+FFEF 全角字符（Ａ１）
+- 实测 `_has_cjk('〇')=False`、`_has_cjk('Ａ')=False`
+
+**修复**：补 `c == "〇"` 单字符、U+F900..U+FAFF 兼容区、U+FF00..U+FFEF 全角区
+**验证**：〇/Ａ/１ 现均 True✓ a 仍 False✓ 13 闸门全绿
+**影响范围**：仅焦氏易林分支用守判，且原文不含〇——影响极小但代码正确性提升
+
+### 35f. R9 续审：剩余待修项核验结论
+
+| 待修项 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `ingest.py:39,256-270` `（` 无配对整段被吞 | **假阳性**：`_iter_pieces` 按 ¶ 边界切分正常，实测"前文（无配对¶后文）配对"3 段全保留 | 不修，记录假阳性 |
+| `ingest.py:100/686/712` 非 UTF-8 文件 UnicodeDecodeError | **假阳性**：全仓 0 个非 UTF-8 txt 文件 | 不修，记录假阳性 |
+| `ingest.py:248-249` `_has_cjk` 漏检 | **确认红线**：见 35e，已修复 | commit 2b1ba35 |
+| `schema.sql:18` zip_sha256 列存三种哈希 | **确认中优先级**：主语料赋 zip sha、ext 分支赋文件 sha，provenance 种类丢失 | 待修，非红线 |
+| `ingest.py:660` `fold.__globals__["FOLD"]` 脔弱引用 | **假阳性**：实测 fold 引用正常 | 不修，记录假阳性 |
+| `ingest.py:779 / schema.sql:41-45` play addr1/addr2 语义冲突 | **待核实**：play addr1=剧目序号、addr2="ACT X SCENE Y" | 待修，下轮 |
+| 焦氏易林 unit=0 | **语料缺口**：原文路径不存在，非代码红线 | 待语料补全 |
+
+- 决策记录：DECISIONS.md D-055（_has_cjk 漏检修复+剩余待修项核验：3 假阳性/1 已修/1 中优先级/1 待核实）
