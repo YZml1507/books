@@ -2589,3 +2589,91 @@ rebase 到新 main(93fe9d1) 后复审优化轨 R23b/R24b 新代码。
   q ≤ 200、limit/per_work 钳位、try/finally 关库、G7 拒绝。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-071a。
+
+## 58. [审查轨] R23a 优化轨 R25b-R29b 交叉复审（2026-08-16）
+
+接续 R22a（§57）。fetch origin 发现优化轨推进 main 五个新提交
+（R25b-R29b），rebase 到 8b5a5b5 后逐行复审。基线亲跑复核
+suspect=10 units/5 地址一致、13 闸门全绿，无回退。
+
+### 58a. R25b 交叉复审（bookstudy chapter(file) + web 前端两个 rtab）
+
+- **chapter(file) 增量**（关键修复）：NULL-scheme 作品（老子/莊子注）的
+  units carry scheme=NULL，原 scheme-only 过滤匹配零行——新增 `file` 参数，
+  scheme=='file' 时 WHERE 改为 `u.file = ?`。**审查确认**：分支结构正确
+ （file 路径 vs 旧 zhouyi/bcv/yilin 路径互斥）、SQL 全参数化、section
+  过滤仍在 LIMIT 前（R23b 修复保持）、损坏/非连续披露不变。自测补 [8]
+  老子 file 001 可读。
+- **前端两个 rtab**（读书 + 两书对照）：work 下拉复用 /api/works、
+  structure→chapter 导航、compare_works 并排证据。**审查确认**：前端
+  esc() 转义防 XSS、citation 服务器端渲染、无新后端写入面。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+
+### 58b. R26b 交叉复审（MCP 增 3 工具 + 前端概念研究 tab）
+
+- **MCP 三新工具**（复用既有内核、`@mcp.tool()` 同款）：
+  `bookstudy_structure`（sample_chars 钳位 20-200）、`bookstudy_chapter`
+ （limit 钳位 1-200、file 透传）、`compare_works_tool`（per_work 钳位、
+  both-empty 拒绝 G7）。**审查确认**：工具名避开与内核函数重名、
+  try/finally 关库、错误返回 `r["error"]` 不绕过、零新依赖。
+- **前端概念研究 rtab**：q → /api/concept → 每书命中/层分布/top 引文 +
+  同址多见证地图 + scan_limit 截断披露。**审查确认**：esc() 转义、
+  truncated 字段诚实披露（R19b 同语义保持）。
+- **领土零越界**：同 58a。
+
+### 58c. R27b 交叉复审（bookstudy book_summary + 三处发布）
+
+- **book_summary(corpus, work_id)**（新聚合函数，最需审查的新逻辑）：
+  整本书结构化知识卡——节数/单元/总字数、层分布（每层单元数+字数）、
+  未编址单元、损坏(suspect)/非连续(skipped) 披露、体量最大/最小节。
+  **审查确认**：
+  1. SQL 全参数化（`WHERE id = ?` / `WHERE work_id = ?`）。
+  2. 纯只读聚合——每个数字是 COUNT 重算，与 structure() 同型。
+  3. 不变量断言：`n_units == sum(layers.units) + unaddressed_units`
+     （自测 [9] 实证 KR1a0001 65 节/528 单元/31,572 字）。
+  4. largest/smallest 只返回 label+chars，不泄漏内部 section 对象。
+  5. work not found / no units 均拒绝（自测 [11]）。
+- **三处发布**：web /api/bookstudy/summary（空 work_id 400）、前端读书 tab
+  「全书概览」按钮、MCP book_summary_tool（现 10 工具）。**审查确认**：
+  web 空校验、try/finally、MCP 错误返回不绕过。
+- **领土零越界**：同 58a。
+
+### 58d. R28b 交叉复审（MCP 协议级自测 + 前端陈旧数字修正）
+
+- **MCP --selftest**（协议级，最需审查的新测试逻辑）：
+  subprocess 起真实 stdio MCP 子进程 → initialize 握手 → tools/list
+  断言 10 工具全名（set 比对，expected 含 4 新工具）→ tools/call 四新
+  工具各 1 例断言非空且无 error → 子进程 exit 0 才 PASS。**审查确认**：
+  1. subprocess.Popen 用 sys.executable（不拼 shell 命令，无注入面）。
+  2. cwd=ROOT、PYTHONPATH 注入 src（子进程能 import guji）。
+  3. recv() 检测 stdout 关闭抛 AssertionError（不静默吞）。
+  4. proc.wait(timeout=15) 有超时，不挂死。
+  5. stderr=DEVNULL（自测噪音不污染，但生产 stderr 不吞）。
+- **前端数字修正**：书目 badge "38 部"→"47 部"（实测 47，R20b 起过时）。
+  审查确认：数字来自实测非硬编码倾向、与 /api/works 输出一致。
+- **领土零越界**：同 58a。
+
+### 58e. R29b 交叉复审（前端 UX 串联 书目→读书一键进入）
+
+- **前端改动**（纯前端零后端）：书目表增「读书」按钮列 →
+  `onclick="gotoRead('${esc(w.id)}')"`；gotoRead：localStorage 记 bsWork →
+  switchView('read') + switchRsec('rsec-bookstudy') + 设 #bswork →
+  auto runBookStructure()；loadBookWorkOptions 读 localStorage 恢复上次所选。
+  **审查确认**：
+  1. esc() 转义 wid 防 XSS（按钮 onclick 内字符串安全）。
+  2. `CSS.escape(last)` 防 selector 注入（localStorage 值进 querySelector）。
+  3. 零后端/依赖/语义改动，node --check 语法验证 PASS。
+- **领土零越界**：同 58a。
+
+### 58f. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R25b-R29b 五提交新代码**纪律良好**——SQL 全参数化、
+  section 过滤在 LIMIT 前、损坏/非连续单元披露、引用服务器端渲染、
+  q ≤ 200、limit/per_work/sample_chars 钳位、try/finally 关库、G7 拒绝不绕过、
+  MCP 工具名避撞、subprocess 无注入面、前端 esc()/CSS.escape 防注入。
+  **领土零越界**（审查轨 scripts/probes/打包链/.gitignore diff 实证为空）。
+
+- 决策记录：DECISIONS.md D-077a。

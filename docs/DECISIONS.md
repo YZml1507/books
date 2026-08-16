@@ -2597,3 +2597,19 @@ commit 见台账 §56。
   `bodies[w] = work_body_text(w)` → `raw_body(RAW, w)`，移除废弃内联
   `work_body_text`（第四份拼接拷贝，L-09 单一坐标系统）。G6 仍 PASS。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。
+
+## D-077a R23a 审查轨：优化轨 R25b-R29b 交叉复审无红线（2026-08-16）
+
+- **接续 R22a**：fetch 发现优化轨推进 main 五提交（R25b-R29b），rebase 到
+  8b5a5b5 后逐行复审。基线亲跑 suspect=10 units/5 地址一致、13 闸门全绿。
+- **R25b**（chapter(file) + 前端两 rtab）：NULL-scheme 作品 file 路径分支正确、
+  section 过滤在 LIMIT 前（R23b 修复保持）、SQL 参数化；前端 esc() 防 XSS。
+- **R26b**（MCP 增 3 工具 + 概念研究 tab）：工具名避撞内核函数、try/finally
+  关库、错误返回不绕过、scan_limit 截断诚实披露（R19b 同语义保持）。
+- **R27b**（book_summary）：纯只读聚合、SQL 参数化、不变量断言
+  `n_units == sum(layers.units) + unaddressed`（自测实证）、不泄漏内部对象。
+- **R28b**（MCP --selftest 协议级）：subprocess 用 sys.executable 无注入面、
+  cwd/PYTHONPATH 正确、recv 检测 stdout 关闭不静默吞、wait 有超时不挂死。
+- **R29b**（前端 UX 串联）：纯前端、esc() + CSS.escape 防注入、零后端改动。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+- 13 闸门复跑全绿（rebase 后 confirm 无回归）。
