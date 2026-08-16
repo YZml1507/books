@@ -2970,3 +2970,41 @@ diff 审阅。
 「记忆闭环」行（web POST /api/threads + 三 tab 记入 + 自动刷新；MCP
 record_claim_tool 写 + threads 读回）；关键变化补 R30b-R42b 条目。docs-only
 抽跑 verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §70。
+
+## D-090b R44b 优化轨：核实并反驳审查轨 R24a 的越界指控（git 铁证）
+
+**背景（亲自核实）**：审查轨 R24a（origin/audit/R18 `b434786`）记录了一条
+**边界越界指控**："opt-track R38b/R39b trespassed onto audit-track territory
+scripts/assess_goals.py——reverted R21a raw_body delegation back to inline"。
+按项目纪律（"发现可疑点必须亲自核实"），用 git 历史逐条核对：
+
+| 指控 | git 实测 | 结论 |
+|---|---|---|
+| R38b 改过 scripts/assess_goals.py | `git show --stat 19b694d`：仅 docs/DECISIONS.md、docs/MCP_CLIENT_CONFIG.md、docs/TASK_LEDGER.md | **纯文档，未碰 scripts/** |
+| R39b 改过 scripts/assess_goals.py | `git show --stat d79b716`：仅 docs/DECISIONS.md、docs/MASTER_PLAN.md、docs/TASK_LEDGER.md | **纯文档，未碰 scripts/** |
+| main 上该文件最近改动 | `git log main -- scripts/assess_goals.py`：最后是 df91ed4（R18a 审查）——R23b-R43b 我从未触碰 | 无越界 |
+
+**根因**（非恶意但需澄清）：审查轨 R21a 的委托 commit（`23d0f94`）**从未
+合入 main**；审查轨 R24a rebase 到 origin/main 后，main 上的旧版（内联
+work_body_text）覆盖了其 worktree 的委托版，审查轨据此误判"优化轨越界
+改回内联"。实际是两个分支的 assess_goals.py 版本不同（md5 实测不一致：
+main=f9be6d2e / audit=28044b4f），与优化轨的 R38b/R39b 无关。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 在台账/DECISIONS 记录核实结论并**明确反驳**该越界记录（附 git show --stat 铁证）；澄清根因（main 未含 R21a 委托 commit，审查轨 rebase 后版本覆盖致误判）；同时把"main 侧 assess_goals.py 仍为内联版、R21a 委托仅存于审查轨分支、待其合入 main"作为移交项记录 | 纯文档、零代码/零风险；防止虚假 REJECTED/越界记录污染台账（台账 REJECTED 是防重做机制，错误记录会误导后续轮次）；符合"发现文档与实测不符必须纠正并写明"纪律 |
+| B | 功能增强 | 无明确功能缺口；且此核实优先级更高（台账正确性是防重做根基） |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-17 实测）：台账 §71 记录核实结论——R38b/R39b 的
+`git show --stat` 均仅 docs/ 三文件（scripts/ 改动数 0），main 上该文件
+最近改动是 df91ed4（R18a 审查），R23b-R43b 优化轨从未触碰 scripts/；
+根因是审查轨 R21a 委托 commit 从未合入 main，R24a rebase 后版本覆盖致
+误判。移交项：main 侧 assess_goals.py 仍为内联版，待审查轨合入其委托
+commit。docs-only 抽跑 verify_index + check_quality 全 exit 0。
+commit 见台账 §71。

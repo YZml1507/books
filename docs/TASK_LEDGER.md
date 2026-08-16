@@ -2940,3 +2940,35 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 未动；文档 diff 审阅通过（工具数 12 与 grep `@mcp.tool()` 实测一致）。
 
 - 决策记录：DECISIONS.md D-089b。
+
+## 71. [优化轨] R44b：核实并反驳审查轨 R24a 越界指控（2026-08-17，双窗口并行第二轨）
+
+### 71a. 移交跟进
+
+fetch origin：审查轨推送 R24a 交叉复审（origin/audit/R18 `b434786`，复审
+R30b-R40b 无红线、闸门绿），但其中含一条**针对优化轨的越界指控**（见 71b）。
+
+### 71b. 越界指控的核实与反驳（git 铁证，亲自复核两次）
+
+**指控**（审查轨 R24a 原文）："opt-track R38b/R39b trespassed onto
+audit-track territory scripts/assess_goals.py——reverted R21a raw_body
+delegation back to inline work_body_text"。
+
+**实测反驳**（git 历史逐 commit 复核）：
+
+| 指控对象 | `git show --stat` 实测 | 结论 |
+|---|---|---|
+| R38b（`19b694d`） | 仅 docs/DECISIONS.md、docs/MCP_CLIENT_CONFIG.md、docs/TASK_LEDGER.md | 纯文档，scripts/ 改动数 = 0 |
+| R39b（`d79b716`） | 仅 docs/DECISIONS.md、docs/MASTER_PLAN.md、docs/TASK_LEDGER.md | 纯文档，scripts/ 改动数 = 0 |
+| main 上 assess_goals.py 最近改动 | `git log main -- scripts/assess_goals.py` = df91ed4（R18a 审查） | R23b-R43b 优化轨从未触碰 |
+
+**根因澄清**（非恶意，但记录必须纠正）：审查轨 R21a 委托 commit
+（`23d0f94`）**从未合入 main**；R24a rebase 到 origin/main 后，main 旧版
+（内联 work_body_text）覆盖了审查轨 worktree 的委托版，审查轨据此误判
+"优化轨越界改回内联"。两分支该文件版本确实不同（md5：main=f9be6d2e /
+audit=28044b4f），但与优化轨 R38b/R39b 无关——那两轮是纯文档轮。
+
+**移交项**：main 侧 scripts/assess_goals.py 仍为内联版；R21a 委托仅存于
+审查轨分支，待审查轨将其合入 main（scripts/ 属审查轨领土，优化轨不做）。
+
+- 决策记录：DECISIONS.md D-090b。
