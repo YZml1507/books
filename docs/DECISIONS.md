@@ -3037,3 +3037,27 @@ thread_id 绑定既有线程断言）、13 闸门全绿。
 GET /api/threads/1 读回含绑定 claim、测试行清理（R34b 教训内置）。
 JS 语法检查 + sources/bookstudy/research/mcp 自测 + 13 闸门全绿。
 commit 见台账 §72。
+
+## D-092b R46b 优化轨：续接绑定 UX 可见化——深度研究 tab 徽标 + 可取消（R45b 尾巴）
+
+**背景（亲自核实）**：R45b 的 `resumeThread(tid)` 只 `alert` 一次并设置
+`currentThreadId`（index.html 第 1371 行），之后**深度研究 tab 没有任何
+持久指示**——用户做过几轮研究后无从得知"接下来的记入线程会写入哪个线程"，
+也无法取消绑定（只能刷新页面重置）。绑定状态不可见、不可控，是 R45b
+长期研究续接的 UX 缺口。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 深度研究 tab 加持久徽标：`#dthreadBadge` 显示「续接线程 #N」+「取消」按钮（置 currentThreadId=null）；resumeThread 设置后即时更新徽标；初始化隐藏 | 纯前端、零后端改动，风险低；让 R45b 绑定可见可控 |
+| B | 文档轮 | R43b 刚刷过 PROJECT_STATUS，无明确欠账 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：JS 语法检查（node --check）、13 闸门全绿。
+
+**落地结果**（2026-08-17 实测）：深度研究 tab 加 `#dthreadBadge` 徽标
+（「🔗 续接线程 #N」+「取消续接」按钮），`updateThreadBadge()` 按
+currentThreadId 显示/隐藏，`cancelThreadResume()` 取消绑定，resumeThread
+设置后即时更新。JS 语法检查 + sources/bookstudy/research/mcp 自测 +
+13 闸门全绿。commit 见台账 §73。

@@ -363,6 +363,7 @@
             <input id="dallow_damaged" type="checkbox" style="width:auto;"> 查看损坏区</label></div>
       </div>
       <button id="dresearchBtn" type="button">研 究</button>
+      <div id="dthreadBadge" class="no-evidence" style="display:none; margin-top:8px; padding:6px 10px;"></div>
       <div class="error" id="drerr" hidden></div>
       <div id="dresearchOut"><div class="no-evidence">输入问题后点「研究」。系统会：检索原文 → 重读命中地址的全部见证 → 比对版本差异 → 跟随原文互见扩展，每一步都展示；证据不足会明确拒绝（G7）。</div></div>
     </section>
@@ -1371,7 +1372,22 @@ function resumeThread(tid){
   currentThreadId = tid;
   switchRsec('rsec-research');
   $('#dq').focus();
+  updateThreadBadge();
   alert(`已切换到深度研究，接下来的「记入线程」将写入线程 #${tid}（长期研究续接）`);
+}
+
+/* R46b：深度研究 tab 的续接徽标——绑定可见、可取消 */
+function updateThreadBadge(){
+  const badge = $('#dthreadBadge');
+  if (currentThreadId == null){ badge.style.display = 'none'; badge.innerHTML = ''; return; }
+  badge.style.display = '';
+  badge.innerHTML = `🔗 续接线程 #${currentThreadId}：接下来的「记入线程」将写入该线程
+    <button class="thread-view" onclick="cancelThreadResume()">取消续接</button>`;
+}
+function cancelThreadResume(){
+  currentThreadId = null;
+  updateThreadBadge();
+  alert('已取消续接，接下来的「记入线程」将新建线程');
 }
 
 loadWorks();

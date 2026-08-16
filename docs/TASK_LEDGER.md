@@ -3002,3 +3002,29 @@ R34b 教训内置清理）；sources/bookstudy/research/mcp 自测 PASS；13 闸
 （14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-091b。
+
+## 73. [优化轨] R46b：续接绑定 UX 可见化——深度研究 tab 徽标 + 可取消（2026-08-17，双窗口并行第二轨）
+
+### 73a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b434786` R24a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 73b. R45b 尾巴：绑定状态可见可控（愿景 §8/§9 长期研究续接）
+
+- **缺口核实**：R45b 的 `resumeThread(tid)` 只 alert 一次并设置
+  `currentThreadId`，深度研究 tab 无持久指示——用户几轮研究后无从得知
+  "接下来的记入线程写哪个线程"，也无法取消绑定（只能刷新页面）。
+- **改动**（纯前端 index.html）：
+  1. 深度研究 tab 加 `#dthreadBadge` 容器（默认隐藏）；
+  2. `updateThreadBadge()`：currentThreadId 有值显示「🔗 续接线程 #N」+
+     「取消续接」按钮，否则隐藏；
+  3. `cancelThreadResume()`：置 null + 隐藏徽标 + 提示；
+  4. `resumeThread` 设置后调用 updateThreadBadge 即时更新。
+
+### 73c. 验证
+
+JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
+PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-092b。
