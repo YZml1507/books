@@ -17,11 +17,16 @@ The paraphrases are hand-written for FEASIBILITY ASSESSMENT ONLY,
 not for the eval bank. The eval bank must be auto-derived (GOAL §4 T1).
 """
 
+import os
 import sqlite3
 import numpy as np
 from collections import Counter
 
-DB = "data/index/corpus.db"
+# Absolute path (R18a): this module is imported by scripts/derive_eval_g1.py for
+# PARAPHRASES, and a CWD-relative DB would break direct runs from anywhere but
+# the repo root.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB = os.path.join(ROOT, "data", "index", "corpus.db")
 
 # Hand-written paraphrase queries for feasibility probing.
 # Each: (query, expected 卦, expected 爻, why)

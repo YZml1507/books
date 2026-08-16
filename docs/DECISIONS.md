@@ -2288,3 +2288,33 @@ credential manager 已存同 token（git credential fill 有 password=ghp_...）
 - **DECISIONS 补记**：台账 §30-§42 引用 D-050..D-062 但 DECISIONS.md 实际止于
   D-049（上窗口漏写），以台账为准补记——发现文档矛盾以内容源（台账）为准纠正
   引用目标（DECISIONS），保持"唯一状态来源"纪律。
+
+## D-064a R18a 审查轨：闸门退出码红线 + 预注册判据必须被代码强制（2026-08-16，双窗口第一轨）
+
+### 起源
+审查轨 R18a（HANDOVER_20260816_R18_AUDIT，worktree books-audit@audit/R18）阶段B：
+逐行亲读 scripts/ 全部 24 脚本 + 4 闸门 probe，子 agent 初筛其余 55 probes 后
+逐项亲验。
+
+### 决策
+1. **print-PASS 不算闸门（红线）**：13 闸门命令必须以退出码承载判定。
+   probe_conservation.py 只 print 不断言（probe_bcv 已修同类并写明教训，本文件
+   漏修）；assess_goals.py 无退出码。两处补齐并做负路径实测（注入伪字符/移走
+   评测产物 → exit 1；恢复 → exit 0）。链式/自动化调用从此可信。
+2. **预注册判据要么被代码强制、要么改口**：probe_embed_bge/tfidf docstring
+   预注册 4 判据而 exit 只测 hit → 四判据全部入闸（bge 全 PASS；tfidf 历史
+   FAIL 不变，负结果保留）。probe_t7q 综合判定硬编码 False、计算值弃用 →
+   改为实测计算，结论不变但由数据得出。
+3. **入账数字必须可复算**：probe_t7m"251 单元/435 次"字面量（亲查库证实当时
+   准确）→ 改运行时查库，防语料变更后静默过时。
+4. **违反既有决策的追踪物以决策为准纠正**：ui-ux-pro-max-skill-main.zip 被
+   追踪违反 D-040"不入库"→ 出库 + gitignore（主仓磁盘文件保留未追踪）。
+5. **双窗口盲区显式入账**：主仓未追踪文件（temp_*.py、3 zip、build/dist/logs）
+   在 worktree 不可达且隔离协议禁入主仓 → 移交记录，不假装已审。
+
+### 未采纳方案（记录）
+- probe_conservation 断言放宽为"阈值内"：否——docstring 明言"Any CJK char in
+  the source must appear in some unit"，基线实测 0/0，阈值化只会给回归留缝。
+- 冻结 embed 报告避免产物漂移：否——报告本就是运行产物，计时漂移是真实测量
+  噪声，gate_criteria 新字段比冻结更有信息量。
+- 顺手修 web/app.py frozen 路径：越界（优化轨领土），只记录移交。

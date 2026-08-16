@@ -1,4 +1,10 @@
-"""Fetch Kanripo repos as tarballs via codeload (raw.githubusercontent is blocked here)."""
+"""Fetch Kanripo repos as tarballs via codeload (raw.githubusercontent is blocked here).
+
+Superseded by probes/fetch_kanripo_corpus.py (which writes the canonical data/raw/ with
+manifest provenance). Kept as the original one-shot fetcher; note its OUT is a SCRATCH
+dir under probes/ (single dirname), deliberately NOT the repo data/raw, so a re-run
+cannot clobber the canonical corpus. R18a audit note.
+"""
 import io
 import os
 import sys
@@ -6,6 +12,7 @@ import tarfile
 import urllib.request
 
 UA = {"User-Agent": "book-probe/0.1"}
+# scratch dir under probes/ — NOT the repo data/raw (see docstring)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
 
 REPOS = {

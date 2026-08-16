@@ -33,7 +33,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 RAW = os.path.join(ROOT, "data", "raw")
-DL = r"C:\Users\Lenovo\Downloads\data-pull"
+# user-supplied download dir (R18a: hardcoded personal path -> argv-overridable)
+DL = sys.argv[1] if len(sys.argv) > 1 else r"C:\Users\Lenovo\Downloads\data-pull"
+if not os.path.isdir(DL):
+    sys.exit(f"download dir not found: {DL} — pass it as argv[1]")
 YU2, YU1 = "\u65bc", "\u4e8e"          # 於 , 于
 
 print("=" * 78)

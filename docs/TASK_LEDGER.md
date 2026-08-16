@@ -1957,3 +1957,104 @@ answer_address(9,初九) KR1a0006 重新入证据；13 闸门全绿。
 | llm prompt 注入 | system 段存在；注入只影响用户自己的查询；输出经 renderMD esc | 低，不改 |
 
 - 决策记录：DECISIONS.md D-063（R17 审查：F1 suspect 误归责红线修复+PAT 移除+决策补记）
+
+## 44. [审查轨] R18a 双窗口第一轨审查（2026-08-16，HANDOVER_20260816_R18_AUDIT）
+
+worktree `books-audit` @ 分支 `audit/R18`（基线 ebb6212）。Python 用主仓 venv 绝对路径。
+决策记录：DECISIONS.md **D-064a**。
+
+### 44a. 阶段A 核实
+- **13 闸门亲自全跑全绿**；suspect=10 units/5 地址与任务书 §2 基线一致；重跑后
+  data/catalog 闸门产物与 git 版本零漂移（重建确定性良好）。
+- **交接矛盾纠正 1（§3.4 范围 vs worktree 现实）**：任务书点名的 8 个 `temp_*.py`、
+  4 个散落 zip 中的 3 个（Agent-Reach/browser-use/markitdown）、`build/`、`dist/`、
+  `logs/`、`web_server*.log` 均为主仓**未追踪**文件，worktree（只含追踪文件）里
+  不存在；§0.1 隔离协议禁止进主仓跑任何命令 → 本轨不可达，**移交**优化轨或有
+  授权的专门盘点。可达部分已处置：ui-ux zip（44c-6）、chatgpt给的建议.txt
+  （用户原始需求文档，项目缘起，保留追踪）。
+- **网络面核实**：全部网络代码（backfill_provenance.py、fetch_*.py、
+  probe_catalog*.py、survey_gutendex.py、probe_gutendex.py、fetch_external_zhouyi.py）
+  统一走 `http://127.0.0.1:7897`；例外两处直连（probe_fetch_kanripo.py /
+  probe_sources.py，历史 probe，44d 记录）。全仓 scripts/+probes/ 无
+  subprocess(shell=True)/os.system/eval/exec/tempfile；SQL 逐行核过全部参数化
+  （grep 初筛零命中 + 亲读全部 24 个 scripts）。
+
+### 44b. 红线：13 闸门里两处"假闸门"（退出码不承载判定，见 D-064a）
+1. **probe_conservation.py**（闸门之一）：只 print 不断言、无 sys.exit——
+   字符丢失/凭空发明/越界检测任何失败都 exit 0。probe_bcv.py:162-166 已修过
+   同类缺陷并写明教训（"listed as red-line command while always exiting 0"），
+   本文件漏修。**修复**：tot_missing/tot_extra/越界 bad 三项入 fails，
+   `sys.exit(1 if fails else 0)`。**负路径实测**：备份 corpus.db 后 UPDATE 一个
+   unit 追加"龘"→ exit 1 + `FAILURES: ['1 CJK chars invented by the index',
+   '1 units not inside their own raw range']`；恢复备份 → exit 0 PASS，
+   git status 确认 corpus.db 字节还原。
+2. **scripts/assess_goals.py**（闸门之一）：结尾只打印 G1-G9 verdict，无退出码
+   ——任何 FAIL/PART/N-A 都 exit 0。**修复**：非全 PASS 即 exit 1。
+   **负路径实测**：移走 eval_g1_result.json → G1 N/A → exit 1；恢复 → 9/9 PASS
+   exit 0。
+
+### 44c. R18a 修复清单（均已实测）
+3. **probe_t7q_kg_precondition.py 假闸门**：综合判定 s1/s2/s3_merge 硬编码
+   `False`（原 179-183 行），167-171 行算出的 merge 从未被消费——docstring
+   "先定后测"实为预写结论、退出码预定。**修复**：三策略抹平标志全部改为实测
+   （_ctx_entity 实体串对比 / 关键词串恒等 / FOLD 目标集交集）。实测结论不变
+   （三策略都不抹平 differs 異文，exit 0），但现在由数据得出。
+4. **probe_t7m_entities.py 字面量冒充实测**："corpus.db 里 251 个单元含 435 次"
+   为硬编码（脚本从未查库）。亲查库证实 251 units/435 次/126 种（当时数字准确），
+   **修复**改为运行时查库计算；docstring 补口径（第 1/2 节只测 5 部周易书，
+   db 级统计才是全语料）。
+5. **probe_embed_bge.py / probe_embed_tfidf.py 部分闸门**：docstring 预注册 4 条
+   判据（hit≥80%/建向量≤10min/延迟≤2s/内存<4GB），exit 与 gate_pass 只测 hit。
+   **修复**：四判据全部入闸与报告（gate_criteria 字段）。实测 bge 96.4%/50s/
+   16.8ms/5.1MB 全 PASS exit 0；tfidf hit 67.3% 历史 FAIL 状态不变 exit 仍 1
+   （该负结果正是弃 tfidf 用 bge 的依据，未被翻转）。两报告产物刷新。
+6. **ui-ux-pro-max-skill-main.zip 出库**：8.4MB zip 被 git 追踪，违反 D-040
+   "解压至 vendor/，不入库"决策，且同类 3 个 zip 均已 gitignore。处置：
+   `git rm --cached` + .gitignore 补 `ui-ux-pro-max-skill-main(.zip)` 条目
+   （主仓磁盘文件保留为未追踪）。
+7. **start_web.bat 硬编码个人路径**：`C:\Users\Lenovo\Desktop\projects\books` →
+   改 `%~dp0` 自定位（可移植）。
+8. **books_app.spec 注释失真**：①"依赖打包 sentence-transformers"实为 excludes
+   排除（bge 在 exe 不可用；bazi_lookup 函数内懒加载 → 降级 FTS-only 不崩溃，
+   已核 159/178 行）；②"约 40-60MB"与"217MB"自相矛盾（dist 不在 worktree 无法
+   实测，删具体体积声称）；③补记 frozen 模式 web/static 路径问题（44d-1）。
+9. **assess_coverage.py 过时硬编码清单**：open_items 声称"无 suspect 列、G5 差异
+   摘要缺失、53% 未披露"——三者均已实现且有闸门（X-11/guji.compare/T10）。
+   **修复**：改为从 quality_report.json 实时推导 + 记录真实未决项（Q-06 无校准
+   阈值、损坏读法本身未修复、卦64 尾段约定排除）。
+10. **derive_eval_yilin.py 非幂等**：SEED 固定 + 无去重，重跑把同 id 题目重复
+    追加进 eval_g1.json 虚增题库。**修复**：按 id 去重跳过（与 research_thread
+    demo 幂等纪律一致）。
+11. **probe_herodotus.py**："761 sections"硬编码标签改动态合计（实跑 761 不变）。
+12. **路径类四件**：probe_variants.py/probe_zhu.py BASE 单层 dirname 指向不存在
+    的 probes/data/raw → 改指真实 data/raw（实跑恢复出数）；probe_t7r_concept.py
+    CWD 相对 DB → `__file__` 绝对路径（该文件被 derive_eval_g1.py 导入）；
+    probe_yu_and_verify.py 硬编码 Downloads 路径 → argv 可覆盖 + 存在性守卫
+    （实测 bogus 路径 exit 1 带提示）；fetch_external_zhouyi.py `extractall` 无
+    成员防护 → 加 zip-slip 守卫（离线测：`../` 成员被拒、良性成员与目录条目通过）。
+
+### 44d. 记录不动手（移交 / 不改）
+1. 【**移交优化轨**】web/app.py:31-46,69,157-161 frozen 路径：spec 把 web/static
+   内嵌 _MEIPASS，但 app.py 在 frozen 时从 exe 旁（或其父目录）找
+   web/static/index.html → 按 spec 声称的"exe + data/ 单独分发"模型首页 500
+   （bundled 副本不可达；开发机布局 exe 在 dist/ 内恰好可用）。修复属 web/
+   领土：frozen 时优先 `sys._MEIPASS/web/static`。本轨已在 spec 注释标注。
+2. probe_fetch_kanripo.py 直连不走代理 + OUT 为 probes/ 下 scratch（单层
+   dirname）：历史一次性 fetcher，已被 fetch_kanripo_corpus.py（canonical
+   data/raw + manifest）取代；补 docstring 注明 superseded/scratch，**不改行为**
+   （避免重跑覆盖 canonical 语料）。
+3. probe_cid_verify.py / probe_markitdown.py 只读 ~/Downloads PDF（历史诊断）；
+   probe_markitdown docstring"只用非个人文档"与其 CASES 含具名作者学位论文
+   略有出入——记录不改。
+4. probes/archive/ 60 文件为历史归档，未审（记录）。
+5. 低优先不改：ask_bazi.py `retrieve_semantic` 在 --sem 且 fast 空时重复计算
+   一次（CLI 工具）；check_provenance.py docstring"28 works vs 25"为历史时点
+   描述，脚本输出实时数字。
+6. 子 agent 初筛 55 个 probes 的全局结论（无 subprocess/eval/密钥、SQL 全
+   参数化、probe_booksec/probe_g8_isolation 断言真实）关键项已抽验属实。
+
+### 44e. 闸门复验（修复后）
+10 条闸门命令全 exit 0：verify_index ALL PASS（suspect 10 units/5 地址不变）、
+check_quality PASS、assess_goals 9/9 PASS、4 probes PASS、eval_g1/g4/g7 PASS。
+产物漂移仅 probes/embed_bge_report.json 与 embed_c_report.json（计时字段 +
+gate_criteria 新字段，语义见 44c-5）。

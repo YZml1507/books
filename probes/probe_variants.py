@@ -5,7 +5,9 @@ import re
 import unicodedata
 from collections import Counter
 
-BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
+# canonical corpus (R18a: was a single-dirname probes/data/raw path that
+# matched no existing directory — the historical scratch fetcher output)
+BASE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "raw")
 
 
 def whole(repo):

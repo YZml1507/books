@@ -9,12 +9,18 @@
   "hit_rate_top10": 0.6727272727272727,
   "hit_rate_top10_count": "37/55",
   "exact_rank1_rate": 0.6727272727272727,
-  "build_time_s": 65.07575106620789,
-  "svd_time_s": 63.680824756622314,
-  "query_latency_median_ms": 1.650094985961914,
-  "query_latency_max_ms": 24.466753005981445,
+  "build_time_s": 130.0464367866516,
+  "svd_time_s": 128.17951464653015,
+  "query_latency_median_ms": 1.5475749969482422,
+  "query_latency_max_ms": 36.812782287597656,
   "tfidf_matrix_mb": 553.633248,
   "gate_pass": false,
+  "gate_criteria": {
+    "hit>=80%": false,
+    "build<=10min": true,
+    "median_latency<=2s": true,
+    "memory<4GB": true
+  },
   "miss_details": [
     {
       "query": "像紮緊口袋一樣 沒有過錯也沒有讚譽",

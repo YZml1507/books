@@ -6,6 +6,9 @@
 实测（2026-08-15）推翻任务书"每部书 22-31 个"断言：
   - &KR0658; 只在 KR1a0006 出现 12 次，其他 4 部周易书 0 次
   - 全语料约 100+ 种 &KRdddd; 实体引用，corpus.db 里 251 个单元含 435 次
+    （2026-08-16 R18a 复核：此三数已改为运行时查库计算，当时实查一致：
+     251 单元 / 435 次 / 126 种；本文件第 1、2 节的分布实测只覆盖 5 部
+     周易书，corpus.db 级统计才是全语料口径）
 
 &KR0658; 语义：= 虩（U+8679，恐惧貌），出现在卦51 震 卦辭"震來虩虩，笑言啞啞"。
 KR1a0006（底本王弼注）用实体引用代替生僻字 虩。
@@ -107,10 +110,26 @@ def main():
     # 处置优先级：KR1a0006 的 &KR0658; → 虩，让检索能命中
     # 但全语料 100+ 种实体引用，逐一映射工作量大
     # 且 clean 改动可能回退闸门（D-033 N1 先例）
+    # corpus.db 的单元级统计是查库算出来的（R18a：此前是字面量，语料变更后会
+    # 静默过时；2026-08-16 实查 251 单元 / 435 次 / 126 种，与原记录一致）
+    import sqlite3
+    conn = sqlite3.connect(os.path.join(ROOT, "data", "index", "corpus.db"))
+    units_hit = 0
+    occ = 0
+    kinds_count = {}
+    for (text,) in conn.execute("SELECT text FROM unit"):
+        found = ENT_RE.findall(text)
+        if found:
+            units_hit += 1
+            occ += len(found)
+            for e in found:
+                kinds_count[e] = kinds_count.get(e, 0) + 1
+    conn.close()
     print("  &KR0658;（12次）处置：clean 里 &KR0658; → 虩")
-    print("  全语料 100+ 种实体引用，逐一映射工作量大")
+    print("  全语料实体引用逐一映射（工作量大，低优先）")
     print("  clean 改动可能回退闸门（D-033 N1 先例）")
-    print("  当前 corpus.db 有 251 个单元含 435 次实体引用")
+    print(f"  当前 corpus.db 有 {units_hit} 个单元含 {occ} 次实体引用"
+          f"（{len(kinds_count)} 种）")
 
     # 6. 最终判定
     print("\n" + "=" * 70)

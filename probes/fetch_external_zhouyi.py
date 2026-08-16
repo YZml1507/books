@@ -77,6 +77,15 @@ for owner, repo in REPOS:
 
     with zipfile.ZipFile(io.BytesIO(blob)) as z:
         names = z.namelist()
+        # zip-slip guard (R18a): these are third-party GitHub repos. Codeload zips
+        # are generator-built and should not carry traversal members, but extraction
+        # is unconditional — reject any member escaping DEST rather than trusting the
+        # source. Same defence-in-depth as fetch_kanripo_corpus's basename filtering.
+        dest_root = os.path.abspath(d)
+        for member in names:
+            target = os.path.abspath(os.path.join(d, member))
+            if not target.startswith(dest_root + os.sep):
+                raise RuntimeError(f"zip member escapes destination: {member!r}")
         z.extractall(d)
     # strip the single top-level dir GitHub adds
     top = names[0].split("/")[0] if names else ""

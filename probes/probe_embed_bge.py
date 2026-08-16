@@ -145,7 +145,17 @@ def main():
           f"({'OK' if build_time <= 600 else 'OVER 10min'})")
     print(f"doc vectors in memory: {doc_vecs.nbytes / 1e6:.1f} MB "
           f"({'OK' if doc_vecs.nbytes < 4e9 else 'OVER 4GB'})")
-    print(f"gate: {'PASS (hit>=80%)' if hit_rate >= 0.80 else 'FAIL (hit<80%)'}")
+    # All four pre-registered criteria gate the exit (R18a): the docstring lists
+    # hit/build/latency/memory as 闸门, but the exit used to test hit_rate only —
+    # a partial gate wearing a full gate's docstring.
+    gates = {
+        "hit>=80%": hit_rate >= 0.80,
+        "build<=10min": build_time <= 600,
+        "median_latency<=2s": median_lat <= 2.0,
+        "memory<4GB": doc_vecs.nbytes < 4e9,
+    }
+    gate_ok = all(gates.values())
+    print("gate: " + "  ".join(f"[{'PASS' if v else 'FAIL'}] {k}" for k, v in gates.items()))
 
     if miss_details:
         print(f"\n=== {len(miss_details)} MISS details (top-3 false matches) ===")
@@ -167,7 +177,8 @@ def main():
         "query_latency_median_ms": median_lat * 1000,
         "query_latency_max_ms": max_lat * 1000,
         "doc_vectors_mb": float(doc_vecs.nbytes / 1e6),
-        "gate_pass": bool(hit_rate >= 0.80),
+        "gate_pass": gate_ok,
+        "gate_criteria": {k: bool(v) for k, v in gates.items()},
         "miss_details": miss_details,
     }
     Path(REPORT).write_text(json.dumps(report, ensure_ascii=False, indent=2),
@@ -176,7 +187,7 @@ def main():
 
     conn.close()
     import sys
-    sys.exit(0 if hit_rate >= 0.80 else 1)
+    sys.exit(0 if gate_ok else 1)
 
 
 if __name__ == "__main__":

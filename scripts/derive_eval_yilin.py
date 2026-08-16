@@ -179,7 +179,12 @@ def main() -> int:
                              "occurs_in": []},
         })
 
-    # Append to existing bank
+    # Append to existing bank. Idempotent: a re-run with the same SEED derives the same
+    # ids, and appending them again would double-count every question (R18a). Skip ids
+    # already present instead — the same discipline research_thread.py's demo follows.
+    already = {q["id"] for q in existing}
+    dupes = sum(1 for q in qs if q["id"] in already)
+    qs = [q for q in qs if q["id"] not in already]
     existing.extend(qs)
     bank["questions"] = existing
 
@@ -190,7 +195,8 @@ def main() -> int:
     with open(BANK, "w", encoding="utf-8") as f:
         json.dump(bank, f, ensure_ascii=False, indent=1)
 
-    print(f"Added {len(qs)} 焦氏易林 questions to {BANK}")
+    print(f"Added {len(qs)} 焦氏易林 questions to {BANK}"
+          + (f" ({dupes} already present, skipped)" if dupes else ""))
     for cat in ["retrieval", "citation", "grounded_pos", "grounded_neg"]:
         print(f"  {cat:16s} {n_of(cat)}")
     print(f"Total bank now {len(existing)} questions")

@@ -384,3 +384,8 @@ print("=" * 78)
 for g, v in verdicts.items():
     print(f"  {g} {v}")
 c.close()
+# Exit status: this is one of the 13 gates ("G1-G9 PASS" is the closure criterion), so any
+# verdict other than PASS must fail the run. A FAIL/PART/N-A that is printed but swallowed
+# at the exit-code level is a gate that chained/automated runs cannot trust — the same
+# discipline verify_index.py, check_quality.py and eval_g*.py already follow.
+sys.exit(0 if all(v == "PASS" for v in verdicts.values()) else 1)

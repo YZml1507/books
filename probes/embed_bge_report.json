@@ -8,11 +8,17 @@
   "n_paraphrases": 55,
   "hit_rate_top10": 0.9636363636363636,
   "hit_rate_top10_count": "53/55",
-  "build_time_s": 50.45424199104309,
-  "query_latency_median_ms": 16.777992248535156,
-  "query_latency_max_ms": 19.34957504272461,
+  "build_time_s": 68.70728898048401,
+  "query_latency_median_ms": 19.99688148498535,
+  "query_latency_max_ms": 26.648759841918945,
   "doc_vectors_mb": 5.097472,
   "gate_pass": true,
+  "gate_criteria": {
+    "hit>=80%": true,
+    "build<=10min": true,
+    "median_latency<=2s": true,
+    "memory<4GB": true
+  },
   "miss_details": [
     {
       "query": "像紮緊口袋一樣 沒有過錯也沒有讚譽",

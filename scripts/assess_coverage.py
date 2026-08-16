@@ -97,12 +97,21 @@ if os.path.exists(gm):
         print(f"  tier {t}: {len(s)}  {', '.join(s)}")
 
 print(f"\n=== 周易 depth: what is still open on the best-covered work ===")
+# Live status, not a stale snapshot: an earlier hardcoded list here claimed the `suspect`
+# column and the G5 差异摘要 did not exist — both had already shipped (X-11, guji.compare)
+# and the printed "still open" list was misleading (R18a). What follows is derived from the
+# artifacts on disk plus the calibration gaps documented in the gate scripts themselves.
+qr_low = 0
+if os.path.exists(p):
+    qr_low = sum(len(v["low"]) for v in json.load(open(p, encoding="utf-8")).values()
+                 if isinstance(v, dict) and "low" in v)
 open_items = [
-    ("5 span-degenerate extractions (KR1a0007)", "cross-refs hijack ordered search"),
-    ("KR1a0031 at 94.4%", "remaining failures are source misprints / real variants"),
-    ("damaged regions unflagged", "no `suspect` column; reader gets no warning"),
-    ("53% citations layer-filtered", "undisclosed to the reader"),
-    ("G5 差异摘要 missing", "the headline capability: compare 王弼 vs 朱熹"),
+    (f"{qr_low} divergent addresses flagged by the quality gate",
+     "suspect reaches the citation (X-11), but the damaged readings are unrepaired source damage"),
+    ("junk census has no calibrated threshold (Q-06)",
+     "check_quality.py prints and records junk rate but never fails on it"),
+    ("卦64 tail span differs per edition by convention",
+     "excluded from low-coverage counting; exactly one known address"),
 ]
 for a, b in open_items:
     print(f"  - {a:42} {b}")

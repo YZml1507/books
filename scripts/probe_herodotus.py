@@ -21,7 +21,8 @@ per_book = db.execute("""
     ORDER BY addr1
 """).fetchall()
 
-print(f"Herodotus: {books} books, 761 sections")
+total_secs = sum(n for _, n in per_book)
+print(f"Herodotus: {books} books, {total_secs} sections")
 for book, n in per_book:
     print(f"  Book {book}: {n} sections")
 

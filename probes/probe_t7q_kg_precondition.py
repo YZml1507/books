@@ -85,6 +85,17 @@ def strategy_fold_normalize(text):
     return "".join(out)
 
 
+def _ctx_entity(text, phrase):
+    """The continuous-CJK entity string around the first occurrence of phrase
+    (the same extraction strategy 1 prints). None if phrase absent."""
+    at = text.find(phrase)
+    if at < 0:
+        return None
+    ctx = text[max(0, at - 5):at + 15]
+    m = re.search(r"[\u3400-\u9fff\uff00-\uffef]+", ctx)
+    return m.group() if m else ctx
+
+
 def main():
     print("=" * 70)
     print("T7-q 知识图谱前置条件实测：differs 異文是否被实体抽取抹平")
@@ -170,17 +181,34 @@ def main():
         print(f"    {a} vs {b}: 首字 {a[0]!r}→{a_targets} vs {b[0]!r}→{b_targets}, "
               f"折叠后归一? {merge}")
 
-    # 综合判定
+# ---------------------------------------------------------------------------
+# 综合判定 — MEASURED, not asserted (R18a). An earlier version hardcoded
+# s1/s2/s3_merge = False with explanatory comments, which made the pre-registered
+# "先定后测" verdict and the exit code predetermined regardless of the corpus.
+# Each strategy's merge flag is now computed from the same machinery printed above.
+# ---------------------------------------------------------------------------
     print("\n" + "=" * 70)
     print("综合判定")
     print("=" * 70)
 
-    # 策略 1（字符级 NER）：稊/梯 是不同字符，不会被归一
-    s1_merge = False  # 字符级 NER 保留字符区别
-    # 策略 2（关键词级）：枯楊生稊 vs 枯楊生梯 是不同实体（不同字符串）
-    s2_merge = False  # 关键词级保留字符串区别
-    # 策略 3（折叠表归一化）：FOLD 不含 稊/梯、跛/破 映射，NOT_VARIANTS 显式排除
-    s3_merge = False  # 折叠表不归一 differs 異文
+    # 策略 1：字符级 NER——两異文落在同一实体串上才算抹平
+    s1_merge = False
+    for a, b, _ in DIFFERS_CASES:
+        for w in works:
+            ea, eb = _ctx_entity(texts[w], a), _ctx_entity(texts[w], b)
+            if ea and eb and ea == eb:
+                s1_merge = True
+
+    # 策略 2：关键词级抽取——实体是完整关键词串（无归一化）；抹平当且仅当两異文是同一串
+    s2_merge = any(a == b for a, b, _ in DIFFERS_CASES)
+
+    # 策略 3：折叠表归一化——FOLD 把两異文的首字映到同一目标即抹平（上面逐对算过）
+    s3_merge = False
+    for a, b, _ in DIFFERS_CASES:
+        a_targets = {v for k, v in FOLD.items() if k == a[0]}
+        b_targets = {v for k, v in FOLD.items() if k == b[0]}
+        if a_targets & b_targets:
+            s3_merge = True
 
     print(f"  策略 1（字符级 NER）抹平 differs? {s1_merge}")
     print(f"  策略 2（关键词级抽取）抹平 differs? {s2_merge}")

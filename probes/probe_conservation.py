@@ -34,6 +34,7 @@ works = [r[0] for r in db.execute("SELECT id FROM work ORDER BY id")]
 
 print(f"{'work':10} {'src_cjk':>9} {'idx_cjk':>9} {'delta':>8} {'missing':>8} {'extra':>7}")
 print("-" * 56)
+fails = []
 tot_src = tot_idx = tot_missing = tot_extra = 0
 worst = []
 for w in works:
@@ -79,3 +80,16 @@ for w in works:
             bad += 1
 print(f"  {checked} units checked, {bad} whose text is not inside its own raw range")
 db.close()
+
+# Exit status, so this can be used as a gate rather than read by eye. It was one of the 13
+# gate commands while always exiting 0 — the same defect probe_bcv.py documents (it was
+# fixed there but missed here). The invariant asserted is the one the docstring above
+# states: no CJK char lost, none invented, no unit outside its own raw range.
+if tot_missing:
+    fails.append(f"{tot_missing} CJK chars missing from the index")
+if tot_extra:
+    fails.append(f"{tot_extra} CJK chars invented by the index")
+if bad:
+    fails.append(f"{bad} units not inside their own raw range")
+print(f"\n{'FAILURES: ' + str(fails) if fails else 'conservation PASS'}")
+sys.exit(1 if fails else 0)
