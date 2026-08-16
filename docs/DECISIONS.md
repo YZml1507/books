@@ -3088,3 +3088,32 @@ diff 审阅。
 最后改动 df91ed4）被审查轨亲核实成立，指控撤回、§0.3 边界无越界、处置与
 根因一致；移交项维持（main 侧仍内联，R21a 委托待审查轨合入）。docs-only
 抽跑 verify_index + check_quality 全 exit 0。commit 见台账 §74。
+
+## D-094b R48b 优化轨：书目来源可见化——/api/works 合并 source + 前端来源列（愿景 §10）
+
+**背景（亲自核实）**：R31b 的 `add_local_work` 会把 `source:"local"` 写进
+manifest（sources.py 第 178 行），但 `/api/works`（`Corpus.coverage()`，
+search.py 第 116-123 行）只返回 id/title/genre/units/addressed/yao/
+anchored——**不暴露来源**；前端书目 tab 也没有来源列。当前实测 manifest
+中 0 部本地书（R31b 自测用临时路径，未真实入库），但一旦用户经 CLI/MCP
+导入本地书，书目 tab 无法区分"本地导入"与"内置语料"——愿景 §10"数据来源
+合法、稳定、可替换"要求来源可辨识（用户该知道哪些书是自己加的、哪些是
+系统内置）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① `/api/works` 读 corpus_manifest.json 合并 `source` 字段（local → "local"，否则 "kanripo/内置"，缺 manifest 条目的 work 记 "unknown"）；② 前端书目 tab 加「来源」列（local 标「本地导入」徽标） | 纯只读、零风险；为将来 add_local_work 导入的书提供来源辨识（愿景 §10 可见性）；当前 0 本地书不影响现有渲染 |
+| B | 文档轮 | R43b/R47b 刚刷过，无明确欠账 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：web 冒烟（/api/works 含 source 字段、前端渲染字段存在）、
+JS 语法检查、13 闸门全绿。
+
+**落地结果**（2026-08-17 实测）：`/api/works` 合并 manifest source 字段
+（local → "local"、缺条目 → "kanripo/内置"），前端书目表加「来源」列
+（local 显示「本地导入」徽标）。web 冒烟 PASS（47 部全含 source 字段）；
+JS 语法检查 + sources/bookstudy/research/mcp 自测 + 13 闸门全绿。踩坑：
+`import json` 缺失被冒烟当场抓到 NameError，修正后全过——"必须实跑"再证。
+commit 见台账 §75。

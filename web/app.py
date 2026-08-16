@@ -24,6 +24,7 @@ calendar_type：solar（公历，默认）| lunar（农历，lunar_year/month/da
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from datetime import date, datetime
@@ -567,6 +568,19 @@ def api_works():
     c = Corpus(CORPUS_DB)
     try:
         rows = [dict(r) for r in c.coverage()]
+        # R48b: merge the manifest source marker so local-imported works
+        # (add_local_work, R31b) are distinguishable from built-in corpus.
+        src = {}
+        try:
+            man = json.load(open(os.path.join(ROOT, "data", "catalog",
+                                              "corpus_manifest.json"),
+                                 encoding="utf-8"))
+            src = {w.get("id"): w.get("source") for w in man.get("works", [])
+                   if w.get("id")}
+        except (OSError, ValueError):
+            src = {}
+        for r in rows:
+            r["source"] = src.get(r["id"]) or "kanripo/内置"
         return {"works": rows, "total": len(rows)}
     finally:
         c.close()

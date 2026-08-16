@@ -1309,8 +1309,10 @@ async function loadWorks(){
     const j = await r.json();
     if (!j.works || !j.works.length){ box.innerHTML = '<div class="no-evidence">无语料</div>'; return; }
     box.innerHTML = `<div class="no-evidence">共 ${j.works.length} 部（含 unit 表有单元的书；无单元的 work 未列）</div>
-      <table class="works"><tr><th>id</th><th>书名</th><th>genre</th><th>单元</th><th>有卦址</th><th>有爻址</th><th>有页锚</th><th></th></tr>` +
-      j.works.map(w => `<tr><td>${esc(w.id)}</td><td>${esc(w.title||'')}</td><td>${esc(w.genre||'')}</td>
+      <table class="works"><tr><th>id</th><th>书名</th><th>来源</th><th>genre</th><th>单元</th><th>有卦址</th><th>有爻址</th><th>有页锚</th><th></th></tr>` +
+      j.works.map(w => `<tr><td>${esc(w.id)}</td><td>${esc(w.title||'')}</td>
+        <td>${w.source === 'local' ? '<span class="llm-badge" style="background:var(--primary); color:var(--on-primary);">本地导入</span>' : esc(w.source || 'kanripo/内置')}</td>
+        <td>${esc(w.genre||'')}</td>
         <td class="num">${w.units||0}</td><td class="num">${w.addressed||0}</td>
         <td class="num">${w.yao_addressed||0}</td><td class="num">${w.anchored||0}</td>
         <td><button class="thread-view" onclick="gotoRead('${esc(w.id)}')">读书</button></td></tr>`).join('') + '</table>';

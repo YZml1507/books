@@ -3058,3 +3058,30 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 未动；文档 diff 审阅通过（与审查轨 R25a 记录一致）。
 
 - 决策记录：DECISIONS.md D-093b。
+
+## 75. [优化轨] R48b：书目来源可见化——/api/works 合并 source + 前端来源列（2026-08-17，双窗口并行第二轨）
+
+### 75a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `07e25b6` R25a 复审 +
+撤回），main 无审查轨改动，无 rebase 需求。
+
+### 75b. 书目来源可见化（愿景 §10 来源可替换的辨识度）
+
+- **缺口核实**：R31b 的 `add_local_work` 把 `source:"local"` 写进 manifest
+  （sources.py 第 178 行），但 `/api/works`（Corpus.coverage()）不暴露来源，
+  前端书目 tab 无来源列——本地导入书与内置语料不可区分（当前 0 部本地书，
+  一旦用户导入即无辨识）。
+- **改动**：
+  1. web/app.py：`/api/works` 读 corpus_manifest.json 合并 `source` 字段
+     （local → "local"，缺 manifest 条目 → "kanripo/内置"）；`import json`
+     补漏（冒烟当场抓到 NameError，修正——"必须实跑"再证）；
+  2. web/static/index.html：书目表加「来源」列（local 显示「本地导入」徽标）。
+
+### 75c. 验证
+
+web 冒烟 PASS（47 部全部含 source 字段，值集合 ['kanripo/内置']）；
+JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
+PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-094b。
