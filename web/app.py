@@ -965,6 +965,21 @@ if __name__ == "__main__":
               "month": 1, "day": 1, "hour": 12, "gender": "男", "top_n": 5}),
               lambda j: j.get("candidates"))
 
+        # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
+        # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
+        # 代理与网络，明确不进 standing 自测（D-100b）。
+        check("research", client.get("/api/research", params={"q": "潛龍勿用", "max_addresses": 2}),
+              lambda j: j.get("evidence") and j.get("steps"))
+        check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
+              lambda j: j.get("evidence_citations"))
+        check("history", client.get("/api/history", params={"limit": 3}),
+              lambda j: "records" in j and isinstance(j["records"], list))
+        check("history.detail", client.get(f"/api/history/{history_db.count()}"),
+              lambda j: j is None or "paipan" in j)  # 可能无该 id，但必须结构正确
+        check("threads.detail", client.get("/api/threads/1"),
+              lambda j: "claims" in j and "turns" in j)
+        check("health", client.get("/api/health"), lambda j: j.get("ok") is True)
+
         # threads POST: write a bound claim with a REAL quote -> readback ->
         # cleanup (R34b lesson: never leave test rows in the live store)
         from guji.knowledge import KnowledgeBase

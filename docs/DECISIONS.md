@@ -3259,3 +3259,32 @@ liuyao seed=42 起卦固定为本卦 22 賁，两次调用结果全等；huangli
 liuyao/huangli/qiming），`python -m app --selftest` 12→16 checks 全 PASS；
 全量 13 闸门 + 五层自测零回退（基线 47 部 62,109 单元、G1-G9 全 PASS）。
 commit 见台账 §80。
+
+## D-100b R54b 优化轨：web --selftest 补核心研究/历史/线程端点 standing 覆盖
+
+**背景（亲自核实）**：R53b 补了 4 个数术端点后，`web/app.py` selftest
+16 checks 仍未覆盖 8 个端点：`/`、`/api/ask`、`/api/external/news`、
+`/api/health`、`/api/history`、`/api/history/{rid}`、`/api/research`、
+`/api/threads/{tid}`。其中 **/api/research（深度研究，R18b 核心能力）与
+/api/ask（研究问答）是古籍读书 tab 的主干端点却零 standing 覆盖**——
+R48b 教训（web 端点静默损坏靠 standing 自测抓）的同类缺口。实测全部
+确定性响应：research(q=潛龍勿用) 200 含 evidence/steps、ask POST 200
+含 evidence_citations（代码注释确认"不落库不缓存"，无写副作用）、
+history 200 含 records、history/{rid} 200 含 paipan、threads/1 200
+含 claims/turns/verify、health 200 {ok:true}。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | selftest 补 6 个确定性端点 check：research（断言 evidence+steps）、ask（断言 evidence_citations）、history（断言 records）、history/{rid}（断言 paipan）、threads/{tid}（断言 claims）、health（断言 ok） | 纯增量测试代码，零业务风险；16→22 checks，全部无写副作用（ask 不落库、history/threads 只读）；补上古籍读书主干端点覆盖 |
+| B | 连 /api/external/news 一起补（含降级路径断言） | external 依赖 7897 代理与网络，standing 自测会变 flaky（代理未开时仅能断言错误结构），确定性被破坏——否决 |
+| C | 只补 /api/research 与 /api/ask 两个核心端点 | 覆盖主干但不完整，history/threads/health 仍无 standing 覆盖 |
+
+选 A（external/news 明确排除：联网端点不进 standing 自测，与 R49b 确定性
+精神一致）。落地后：全量 13 闸门 + 五层 standing 自测验证零回退。
+
+**落地结果**（2026-08-17 实测）：web/app.py selftest 补 6 个 check
+（research/ask/history/history-detail/threads-detail/health），
+`python -m app --selftest` 16→22 checks 全 PASS；全量 13 闸门 + 五层
+自测零回退（基线 47 部 62,109 单元、G1-G9 全 PASS）。commit 见台账 §81。

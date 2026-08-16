@@ -3252,3 +3252,37 @@ corpus.db/knowledge.db 照 R48b/R49b 先例随提交；history.db 是用户运�
 数据（HEAD 为空库、历次窗口均不提交），保持工作树状态不提交。
 
 - 决策记录：DECISIONS.md D-099b。
+
+## 81. [优化轨] R54b：web --selftest 补核心研究/历史/线程/健康端点 standing 覆盖（2026-08-17，双窗口并行第二轨）
+
+### 81a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R53b（d8fca3c + 6c11228）已确认在 origin/main。
+
+### 81b. 摸底（逐项亲自核实）
+
+R53b 补 4 个数术端点后，selftest 16 checks 仍未覆盖 8 个端点：`/`、
+`/api/ask`、`/api/external/news`、`/api/health`、`/api/history`、
+`/api/history/{rid}`、`/api/research`、`/api/threads/{tid}`。其中
+**/api/research（深度研究，R18b 核心能力）与 /api/ask（研究问答）是古籍
+读书 tab 的主干端点却零 standing 覆盖**——R48b 教训（web 端点静默损坏靠
+standing 自测抓）的同类缺口。实测全部确定性响应：research(q=潛龍勿用)
+200 含 evidence/steps；ask POST 200 含 evidence_citations（代码注释确认
+"不落库不缓存"，无写副作用）；history 200 含 records；history/{rid} 200
+含 paipan；threads/1 200 含 claims/turns/verify；health 200 {ok:true}。
+
+### 81c. 改动与验证
+
+- **改动**（web/app.py，纯增量测试代码）：--selftest 补 6 个 check——
+  research（断言 evidence+steps）、ask（断言 evidence_citations）、
+  history（断言 records 为 list）、history.detail（断言 paipan 或 None）、
+  threads.detail（断言 claims+turns）、health（断言 ok）。external/news
+  明确排除：联网端点依赖 7897 代理，进 standing 自测会破坏确定性（D-100b）。
+- **验证**（全量实跑）：`python -m app --selftest` 16→22 checks 全 PASS；
+  全量 13 闸门 + 五层 standing 自测（sources/bookstudy/research/mcp/web）
+  零回退——build_index 47 部 62,109 单元、assess_goals G1-G9 PASS 9
+  PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
+  eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
+- 决策记录：DECISIONS.md D-100b。
