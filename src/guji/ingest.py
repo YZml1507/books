@@ -246,7 +246,12 @@ def parse_units(raw: str, bounds: list[tuple[int, str]], addr: AddrIndex,
 
 
 def _has_cjk(s: str) -> bool:
-    return any("一" <= c <= "鿿" or ord(c) > 0xFFFF for c in s)
+    # U+4E00..U+9FFF 基本汉字 + U+3007 〇(康熙数码) + U+F900..U+FAFF 兼容汉字
+    # + U+FF00..U+FFEF 全角字符（Ａ１） + U+20000.. supplementary
+    return any(("一" <= c <= "鿿") or c == "〇"
+               or (0xF900 <= ord(c) <= 0xFAFF)
+               or (0xFF00 <= ord(c) <= 0xFFEF)
+               or ord(c) > 0xFFFF for c in s)
 
 
 def anchor_of(piece: "Piece") -> str | None:
