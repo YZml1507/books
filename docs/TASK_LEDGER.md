@@ -1557,3 +1557,35 @@ probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
 .\.venv\Scripts\python.exe scripts/verify_index.py  # ALL PASS
 ```
 - 决策记录：DECISIONS.md D-053（R8 审查：lunar/bazi_calc 已核验正确，ingest giant-unit 修复经 3 轮终成功）
+
+## 35. 阶段2-R9 再审查（2026-08-16，R8 闭环后第八轮再审查）
+
+**纪律**：R9 处理 R8 调查留款的待修项，闸门实机重跑 13 哓全绿。
+
+### 35a. R9 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
+probe_conservation 8989 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
+```
+
+### 35b. R9 修复：douay 续行整行丢失 + raw_end 偏移修正（commit 693acfd）
+
+**缺陷**：douay.parse_verses 的 docstring 声称 "continuation lines are accumulated into text"，但代码在非 verse/chapter 行分支直接 ignore，丢弃续行。实测 Genesis 1:2 的续行 "of the deep; and the spirit of God moved over the waters."（L170）被吞，verse text 仅含 L169 的 47 字符而非完整 121 字符。全文 64,332 个续行被吞。
+
+**修复 1**（续行累加）：
+- else 分支：续行（非空、非标记、无前导空格）累加到 buf_lines
+- 噪声行（前导空格的 TOC/注释、空行）继续忽略，与 TOC L47-145 处理一致
+- 验证：Genesis 1:2 text len 47→121，含 "of the deep..." 续行✓
+
+**修复 2**（raw_end 偏移）：
+- flush 用 buf_start+len(joined) 算 raw_end，但 joined=rstrip() 掉尾换行
+- 致 raw_end < 续行结束真实偏移，T9 contig 失败 317/600
+- 修：raw_end = end_offset（续行结束真实偏移）
+- 验证：T9 ALL PASS✓
+
+### 35c. R9 复验命令
+```
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji import douay;t=open('data/raw_ext/generality/bible-douay/pg1581.txt',encoding='utf-8').read();v=douay.parse_verses(t);print(v[1].text)"  # 应含 "of the deep"
+```
+- 决策记录：DECISIONS.md D-054（douay 续行累加+raw_end 偏移修正）
