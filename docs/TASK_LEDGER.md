@@ -1462,3 +1462,35 @@ probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
 ### 32e. R6 待修项（下轮处理）
 - bazi.py `gregorian()` 逆变换错（死代码，待修或删）
 - qiming.py 8 处负面/生造寓意（烽火连天/锋芒毕露/熙熙攘攘/炎炎光明/煦暖和煦/三金鼎立/三水淼淼/兰简化字不含艹）
+
+## 33. 阶段2-R7 再审查（2026-08-16，R6 闭环后第六轮再审查）
+
+**纪律**：R7 处理 R6 留下的待修项，闸门实机重跑 13 道全绿。
+
+### 33a. R7 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
+```
+
+### 33b. R7 修复（commit 2b74e29）
+
+1. **bazi.py:93 `gregorian()` 逆变换死代码**
+   - 原实现返回 F-V 公式三月年坐标系中间量（年偏高4799、月偏9-11）
+   - 修复：补 `year = y - 4800 + m // 10` / `month = m + 3 - 12 * (m // 10)` 换算回真实公历
+   - 验证：6 个测试点 `gregorian(jdn(y,m,d))==(y,m,d)` 全正确✓
+     - 2000-01-01 / 2000-02-29 / 2026-08-16 / 1900-01-31 / 1999-12-31 / 2024-02-04
+
+2. **qiming.py 8 处负面/生造寓意替换为正面坐标**
+   - 烽火连天→烽火传捷  锋芒毕露→锐不可当  熙熙攘攘→熙和安康
+   - 炎炎光明→日光赫赫  煦暖和煦→春风和煦  三金鼎立→金玉满堂
+   - 三水淼淼→水润丰盈
+   - 验证：7 处新寓意无残留负面✓ 起名正常✓
+
+### 33c. R7 复验命令
+```
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.bazi import jdn,gregorian;print(all(gregorian(jdn(y,m,d))==(y,m,d) for y,m,d in [(2000,1,1),(2026,8,16),(1900,1,31)]))"
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.qiming import CANDIDATE_CHARS;neg=['烽火连天','锋芒毕露','熙熙攘攘','炎炎光明','煦暖和煦','三金鼎立','三水淼淼'];print('残留:',[m for cs in CANDIDATE_CHARS.values() for c,r,m in cs if any(n in m for n in neg)])"
+```
+- 决策记录：DECISIONS.md D-052（gregorian 逆变换修复+qiming 8处寓意替换）
