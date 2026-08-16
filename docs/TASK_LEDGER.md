@@ -1327,3 +1327,42 @@ probe_liuyao_najia PASS · probe_huangli_shensha PASS
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.bazi import compute;from guji.bazi_calc import calc_life;b=compute(1893,12,26,8,'男');r=calc_life(b,1893);print(r['dayun'][:2])"  # 大运起运 6.4 岁
 ```
 - 决策记录：DECISIONS.md D-049（4 部子平书颗粒度同类修复+八字大运实机核验）
+
+## 30. 阶段2-R4 再审查（2026-08-16，R3 闭环后第三轮再审查，sessionID c5be6459）
+
+**纪律**：本窗口（c5be6459）接续 R3 后做 R4 审查。R4 闸门实机重跑 13 道全绿（不轻信 R3 结论）。审查发现 liuyao TRIGRAM_BITS 红线级缺陷，R15 深查修复后入此条目。
+
+### 30a. R4 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G1-G9 全 PASS
+eval_g1/g4/g7 exit 0 · probe_bcv control cases PASS · probe_g8_isolation PASS
+probe_booksec PASS · validate_alignment exit 0 · check_provenance exit 0
+probe_liuyao_najia 7 PASS · probe_huangli_shensha PASS
+```
+
+### 30b. R15 深查发现并修复：liuyao TRIGRAM_BITS/_WENWANG_UPPER_LOWER 卦序反了红线级缺陷（commit ef0b68e）
+
+**缺陷**：TRIGRAM_BITS/BAGUA_NAME 的兑/震/巽/艮 4 卦二进制与伏羲先天八卦反了；_WENWANG_UPPER_LOWER 的 23剝/24復/49革/62小過 4 卦上下卦反了。导致 changing_hexagram/cast_coins/cast_time/_binary_to_gua_number 全错（乾初九变实测返回履(10)，正确应姤(44)；全64 binary 有4个未命中正确文王序）。
+
+**根因核实**（亲自从 KR1a0001 本地语料提取权威值，不信口头结论）：
+- KR1a0001 用「震下坎上《屯》」「巽下乾上《姤》」「兌下離上《睽》」「離下兌上《革》」格式
+- 实测 _WENWANG_UPPER_LOWER 与 KR1a0001 全符，但 TRIGRAM_BITS 反序导致 _binary_to_gua_number 把伏巽(110)错解读成实测兑(6)
+- 23剝=下坤上艮、24復=下震上坤、49革=下离上兑、62小過=下艮上震（KR1a0001 核实）
+
+**修复**：
+- TRIGRAM_BITS/BAGUA_NAME：兑011/震001/巽110/艮100（伏羲先天正确序，bit0=初爻=下爻）
+- _WENWANG_UPPER_LOWER：23=上艮下坤、24=上坤下震、49=上兑下离、62=上震下艮
+
+**验证**：
+- changing_hexagram(乾初九变) 正确返回姤(44) ✓
+- 乾卦六爻变全验：初九姤44/九二同人13/九三履10/九四小畜9/九五大有14/上九夬43 ✓
+- 全64 binary 命中 64/64，0 未命中 ✓
+- paipan bian_gua 纳甲：姤卦初爻辛丑二爻辛亥三爻辛酉四爻壬午五爻壬申上爻壬戌 ✓
+- probe_liuyao_najia 7 PASS · check_quality/verify_index/eval_g1/g4/g7 全 PASS
+
+### 30c. R15 复验命令
+```
+.\.venv\Scripts\python.exe probes\probe_liuyao_najia.py     # 7 PASS
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.liuyao import changing_hexagram;print(changing_hexagram(1,1,1,1,1,0))"  # 应输出 44（姤）
+```
