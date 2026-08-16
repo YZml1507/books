@@ -3695,3 +3695,40 @@ R65b（ba77911）已确认在 origin/main。
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（23 checks 与
   `python -m app --selftest` 实测一致）。
 - 决策记录：DECISIONS.md D-112b。
+
+## 94. [优化轨] R67b：bge_mingli 语义向量缓存陈旧修复（2026-08-17，双窗口并行第二轨）
+
+### 94a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R66b（7de30c5）已确认在 origin/main。
+
+### 94b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R65b / GOAL_NEXT_SESSION R64b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **残留旧数字**：PROJECT_STATUS:86/150/154/262 与 GOAL_NEXT_SESSION:225
+  的旧语料数字全在历史存档段（R51b 标注）——非缺口。
+- **页锚点**：实测 13,954 与快照一致——非缺口。
+- **MINGLI_WORKS vs corpus**：18 部全在 corpus，零缺失——非缺口。
+- **真实缺口（本轮选定）**：`src/guji/bazi_lookup.py` 语义检索缓存
+  **陈旧**——`bge_mingli_docmeta.json` 只有 1,545 ids 覆盖 9 部 KR3g
+  术数书，而 `MINGLI_WORKS` 已扩到 18 部（P2 子平书 9 部），当前 corpus
+  中这些书共 2,505 单元。后果：①`_sem_vecs` 的 ids 校验必然失败，每次新
+  进程首次语义检索都重编码 2,505 单元（分钟级）；②13 闸门与五层自测都
+  不调用 `retrieve_semantic`（web bazi check 只断言 paipan+calc），缓存
+  陈旧从未被闸门表面化——静默失效（R48b 教训同族）。
+
+### 94c. 改动与验证
+
+- **改动**（data/catalog/bge_mingli_docmeta.json + docvecs.npy，重建）：
+  触发 `_sem_vecs` 一次（ids 不匹配自动重编码），缓存覆盖全部 18 部
+  MINGLI_WORKS、2,505 单元（实测耗时 214s）；`retrieve_semantic` 冒烟
+  确认 P2 子平书在 meta 中可命中。
+- **验证**（全量实跑）：全量 13 闸门 + 五层 standing 自测（sources/
+  bookstudy/research/mcp/web）零回退——build_index 47 部 62,109 单元、
+  assess_goals G1-G9 PASS 9 PART 0 FAIL 0、eval_g1 246/248（含
+  retrieval_concept 53/55 不变）、eval_g7 30/30+25/25、probe_g8 九类
+  越界全 BLOCKED。
+- 决策记录：DECISIONS.md D-113b。

@@ -3637,3 +3637,38 @@ web 自测 22 checks，R53b/R54b 扩展）`**——同文档两处数字，R63b 
 **落地结果**（2026-08-17 实测）：GOAL_NEXT_SESSION §1 快照标签行
 22→23 checks（注明 R61b 补首页 /），与复验命令注释一致。docs-only 抽跑
 verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §93。
+
+## D-113b R67b 优化轨：bge_mingli 语义向量缓存陈旧修复（缓存与 MINGLI_WORKS 对齐）
+
+**背景（亲自核实）**：`src/guji/bazi_lookup.py` 的命理书语义检索
+（`retrieve_semantic` → `_sem_vecs`）用 `data/catalog/bge_mingli_docvecs.npy`
++ `bge_mingli_docmeta.json` 缓存向量，但实测缓存**陈旧**：
+- 缓存：`bge_mingli_docmeta.json` 只有 **1,545 个 ids，覆盖 9 部 KR3g
+  术数书**（KR3g0033/0035/0041/0042/0044/0045/0047/0048/0050）；
+- 当前：`MINGLI_WORKS` 已扩到 **18 部**（P2 子平书 9 部：ditiansui/
+  lantai-miaoxuan/mingli-tanyuan/mingli-yueyan/qiongtongbaojian/
+  sanming-tonghui/wuxing-dayi/wuxing-jingji/ziping-zhenquan），当前
+  corpus 中这些书的单元共 **2,505 个**；
+- 后果 1：`_sem_vecs` 的 `old["ids"] == ids_now` 校验必然失败，**每次新
+  进程首次调用语义检索都会用 bge 重编码 2,505 个单元**（CPU 上分钟级，
+  缓存从未命中）；
+- 后果 2：**13 道闸门与五层 standing 自测都不调用 `retrieve_semantic`**
+  （web selftest 的 bazi check 只断言 paipan+calc），缓存陈旧从未被任何
+  闸门表面化——静默失效（R48b 教训同族：未被 standing 自测覆盖的路径
+  坏掉无人知）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 重建 bge_mingli 缓存：触发 `_sem_vecs` 一次（ids 不匹配自动重编码 2,505 单元），使 docmeta/doccvecs 覆盖全部 18 部；随提交入库 | 消除首调重编码延迟 + 缓存与 MINGLI_WORKS 对齐；bge 模型已授权（R18b），非新依赖；实测编码耗时受控 |
+| B | 只记录不改 | 缓存仍陈旧，静默重编码延迟持续，文档数字（1,545 vs 2,505）不齐 |
+| C | 加 standing 检查 retrieve_semantic 后再重建 | 自测代码属 src/guji（本轨领土）可做，但先重建缓存才有意义；本轮先 A，自测覆盖可留后续轮 |
+
+选 A（重建缓存对齐，消除静默失效；13 闸门 + 五层自测零回退验证）。
+落地后：全量闸门抽跑 + bazi 语义检索冒烟确认 18 部可命中。
+
+**落地结果**（2026-08-17 实测）：重建 bge_mingli 缓存覆盖全部 18 部
+MINGLI_WORKS（2,505 单元），docmeta/doccvecs 与 corpus 实测一致；
+`retrieve_semantic` 冒烟确认 P2 子平书可命中；全量 13 闸门 + 五层自测
+零回退。commit 见台账 §94。
