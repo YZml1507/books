@@ -19,19 +19,22 @@
 
 ## 1. 现状盘点（全部实测，非口头）
 
-### 1.1 读书模块（项目原始目标，核心能力已完备但只有 CLI）
+### 1.1 读书模块（项目原始目标，已网页化——2026-08-16 R25b/R26b/R29b 落地）
 
 | 能力 | 实现 | 实测状态 |
 |---|---|---|
-| 语料 | 38 部书 / 51,131 单元 | bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec 819 · play 774 · euclid 174 |
+| 语料 | 47 部书 / 62,109 单元（R20b 加道家 3 部） | bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec 819 · play 774 · euclid 174 |
 | 检索 | FTS5 + bge 双路径（`src/guji/search.py`/`bazi_lookup.py`） | eval_g1 100% 命中 |
 | 引用 | 每结果带 文件+页锚点，G2 字符串可核验 | verify_index ALL PASS |
 | 回答 | `answer.py` G7：有据才答，无据拒答 | eval_g7 PASS（FABRICATIONS 0） |
-| 比对 | `compare` 跨版本同址比对 | 繫辞 1824/1872 = 97.4% |
-| 研究线程 | `research_thread.py` G9 跨会话恢复 | 已落地 |
-| 入口 | **仅 CLI**：`ask.py search/compare/addr/works/stats` | 无 web UI |
+| 比对 | `compare` 跨版本同址比对 + 两书对照 compare_works | 繫辞 1824/1872 = 97.4% |
+| 研究线程 | `research_thread.py` G9 跨会话恢复 + web POST/GET | 已落地，web 可记可读 |
+| 入口 | **web 古籍读书面板 9 个研究 tab**（检索/深度研究/定位/比对/书目/线程/读书/两书对照/概念研究）+ CLI 同源 | R25b/R26b/R29b 已接线 |
 
-**缺口：读书能力没有网页端入口**——这是"帮我读书"最该有但最缺的一块。
+**读书能力已网页化**（2026-08-16 核实）：Book Study 结构地图/章节阅读、
+两书对照、概念研究、Book Summary、记入线程（POST /api/threads）全部在
+`web/static/index.html` 可用；MCP 侧 12 工具同源发布（见 MASTER_PLAN
+Agent 侧段）。
 
 ### 1.2 算命 / 算八字模块（2026-08-15 建成）
 
@@ -87,16 +90,20 @@
 - ✅ 临时测试文件 e2e_launcher_test.py 已删除（其 Windows 竞态由确定性注入验证替代）
 - ⏳ 唯一待办：用户双击图标实机确认"无弹窗 + 自动开 + 自动关"
 
-### P1 读书模块网页化（最高优先——回归"帮我读书"）
+### P1 读书模块网页化（最高优先——回归"帮我读书"）✅ 已完成（2026-08-16 R25b/R26b/R29b）
+
 **目标**：把 CLI 的读书能力搬进现有 web（与算命同一入口）。
-- 新增 `web/static/read.html`（或并入 index 多 tab）：
+- 已落地（并入 `web/static/index.html` 多 tab，非独立 read.html）：
   - 全文检索框（`ask.py search` 同内核 search.py）→ 结果列表带书名/层/页锚点/可展开原文
   - 地址定位 `addr`（卦/爻/卷章，支持 zhouyi/bcv/yilin/booksec/euclid 五种地址体系）
   - 跨版本比对 `compare` 视图（同址多版本并排）
-  - 研究线程 `research_thread` 视图（G9 线索列表/新建/续接）
-- `web/app.py` 新增路由：`GET /api/search?q=&layer=&work=`、`GET /api/addr?...`、
-  `GET /api/compare?...`、`GET /api/threads...`（复用 src/guji，只编排不复制逻辑）
-- **验证**：CLI 与 web 调同一检索函数，抽查 10 个查询结果一致；13 道闸门零回退。
+  - 研究线程 `research_thread` 视图（G9 线索列表/查看，POST /api/threads 写入）
+  - 后续轮次追加：读书（structure/chapter）、两书对照、概念研究、Book Summary
+- `web/app.py` 路由：`GET /api/search`、`GET /api/addr`、`GET /api/compare`、
+  `GET /api/threads`、`POST /api/threads`、`/api/bookstudy/*`、
+  `/api/compare_works`、`/api/concept`、`/api/bookstudy/summary`（复用
+  src/guji，只编排不复制逻辑）
+- **验证**：CLI 与 web 调同一检索函数，抽查一致；13 道闸门零回退（每轮全绿）。
 
 ### P2 命理语料扩充（子平经典入库，走 7897 代理）
 **目标**：补齐"大运/格局/用神"的古籍佐证（现有语料 0 命中）。

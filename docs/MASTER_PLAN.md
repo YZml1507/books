@@ -173,8 +173,15 @@ Work            抽象著作（"周易"、"Bible"）
          ├─ canonical_addr (scheme, addr_name, addr1, addr2)，跨版本，可为 NULL
          ├─ layer          經 / 傳 / 注 / 疏 / 圖 / 十翼 / 正文
          └─ attribution    注家 / 译者 / 编者
-Agent 侧（未实现）：
+Agent 侧（已实现，2026-08-16 R22b-R36b）：
 Concept · Entity · Claim · Interpretation · Evidence
+实现载体：`src/guji/mcp_server.py`（MCP stdio server，12 工具：search/addr/
+compare/concept/research_tool/threads/bookstudy_structure/bookstudy_chapter/
+compare_works_tool/book_summary_tool/add_local_work_tool/record_claim_tool）
++ 协议级自测 `python -m guji.mcp_server --selftest`；Agent 可检索、读整书、
+两书对照、做 Book Summary、加本地书、并把结论写入 G9 线程
+（record_claim_tool，G8 纪律——断言必须带真实证据）。web 侧同源能力见
+`web/app.py` 与 `web/static/index.html`（古籍读书面板 9 个研究 tab）。
 ```
 
 **Work 与 Edition 必须分开**：实测证明"同一部书"不是单一文本——原本/別本周易本義 是同著作

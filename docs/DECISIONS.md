@@ -2776,3 +2776,33 @@ knowledge.Evidence，返回 recorded #id 摘要。协议自测 12 工具全过�
 "error:"、**自测后清理 test row**（contentless fts5 'delete' 命令）——R34b
 教训落地为自测内置清理。MCP 协议自测 PASS + sources/bookstudy/research
 自测 + 13 闸门全绿。commit 见台账 §63。
+
+## D-083b R37b 优化轨：MASTER_PLAN/ROADMAP 文档对齐（愿景 §19 合规延续）
+
+**背景（亲自核实）**：愿景 §19 要求每阶段更新文档；实测两处架构/产品文档
+已陈旧——
+1. `docs/MASTER_PLAN.md` 第 176 行写 "Agent 侧（未实现）："，但 MCP 自
+   R22b 起已落地 12 工具（含 R36b record_claim_tool 写线程）+ 协议级
+   `--selftest`——Agent 侧早已不是"未实现"；
+2. `docs/PROJECT_ROADMAP.md` 第 22 行写 "读书模块…**核心能力已完备但只有
+   CLI**"，第 90 行把 "P1 读书模块网页化（最高优先）" 列为待办——但
+   R25b/R26b/R29b 已把 Book Study/两书对照/概念研究等并入 index 多 tab
+   （现 9 个研究 tab），P1 实际已完成。
+读者信这两处会得到与代码完全相反的现状（同 O1 文档失效模式）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新两文档：MASTER_PLAN "Agent 侧"段改为已实现现状（12 工具 + 协议自测 + record_claim_tool，指向 mcp_server.py 与 --selftest）；ROADMAP §1.1 读书模块改为 web 9 tab 现状、P1 标记已完成（保留原设计 rationale） | 纯文档对齐、零代码/零风险，直接兑现愿景 §19；与 R30b/R33b 同模式（上次文档轮已隔两轮） |
+| B | 前端继续功能增强 | 前端 9 tab + 记忆闭环已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MASTER_PLAN "Agent 侧"段改为已实现现状
+（12 工具清单 + 协议自测 + record_claim_tool + web 同源 9 tab）；ROADMAP
+§1.1 读书模块表更新（47 部 62,109 单元、入口=web 9 tab、"缺口"句删除）、
+P1 标 ✅ 已完成并回填实际落地。docs-only 抽跑 verify_index + check_quality
+全 exit 0，基线未动。commit 见台账 §64。

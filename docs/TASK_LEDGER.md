@@ -2746,3 +2746,32 @@ test row #3）；sources/bookstudy/research 自测 PASS；13 闸门全绿（14 �
 全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-082b。
+
+## 64. [优化轨] R37b：MASTER_PLAN/ROADMAP 文档对齐（2026-08-16，双窗口并行第二轨）
+
+### 64a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 64b. 架构/产品文档对齐（愿景 §19 合规延续）
+
+- **缺口核实**（亲自核实）：两处文档与代码完全相反——
+  1. `MASTER_PLAN.md` "Agent 侧（未实现）"：MCP 自 R22b 起已落地 12 工具
+     + 协议级 `--selftest` + R36b record_claim_tool 写线程，Agent 侧早已
+     实现；
+  2. `PROJECT_ROADMAP.md` "读书模块…只有 CLI"、P1 读书网页化列为待办：
+     R25b/R26b/R29b 已并入 index 多 tab（9 个研究 tab），P1 实际已完成。
+- **改动**（纯文档）：
+  1. MASTER_PLAN：Agent 侧段改为已实现现状（12 工具清单 + --selftest +
+     record_claim_tool + web 同源 9 tab）；
+  2. ROADMAP §1.1：读书模块现状表更新（47 部 62,109 单元、入口=web 9 tab、
+     "缺口"句删除）；P1 标题标 ✅ 已完成并回填实际落地内容。
+
+### 64c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（Agent 侧工具数与 grep `@mcp.tool()` 实测 12 一致、
+前端 tab 数与 `data-rsec` 实测 9 一致）。
+
+- 决策记录：DECISIONS.md D-083b。
