@@ -64,88 +64,76 @@ C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl
 
 ## 1. 当前实测状态（先自己复验，不要相信这张表）
 
-复验命令（照 GOAL.md §3，任一改动后必须全过）：
+复验命令（照 GOAL.md §3，任一改动后必须全过；顺序重要：check_quality 在 build_index 前）：
 
 ```powershell
 cd C:\Users\Lenovo\Desktop\projects\books
+.\.venv\Scripts\python.exe scripts\check_quality.py
 .\.venv\Scripts\python.exe scripts\build_index.py
 .\.venv\Scripts\python.exe scripts\verify_index.py
 .\.venv\Scripts\python.exe scripts\validate_alignment.py
-.\.venv\Scripts\python.exe scripts\check_quality.py
 .\.venv\Scripts\python.exe probes\probe_conservation.py
-.\.venv\Scripts\python.exe scripts\assess_goals.py
 .\.venv\Scripts\python.exe scripts\check_provenance.py
 .\.venv\Scripts\python.exe probes\probe_bcv.py
 .\.venv\Scripts\python.exe scripts\eval_g1.py
-.\.venv\Scripts\python.exe scripts\eval_g4.py
+.\.venv\Scripts\python.exe scripts\summarise_diff.py
 .\.venv\Scripts\python.exe scripts\eval_g7.py
 .\.venv\Scripts\python.exe probes\probe_g8_isolation.py
+.\.venv\Scripts\python.exe scripts\eval_g4.py
+.\.venv\Scripts\python.exe probes\probe_booksec.py
+.\.venv\Scripts\python.exe scripts\assess_goals.py
+# 各层 standing 自测（R49b 起全齐）：
+PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
+PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
+PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research
+PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
+cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-上一窗口末尾实测快照（13/13 全过，零回退，commit a05a9cf）：
+**当前（R50b 终态，13/13 全过 + 五层自测全齐）**：
 
 ```
-索引      38 部 → 51,174 单元 · 43.4 MB · 页锚点 100% · provenance 0/38 缺失
-地址体系  五种：zhouyi（卦/爻）· bcv（卷/章/節）· yilin（本卦/之卦，4,096）· booksec（卷/节）· euclid（book/proposition，174）
-G 判据    PASS 8 · PART 1 · FAIL 0   （唯一非 PASS 是 G1，且是故意的：概念级检索未覆盖，不虚报）
-对齐      繫辞 verified 1824/1872 = 97.4%
-守恒      源 = 索引 · 缺失 0 · 重复率 1.0000
-折叠表    FOLD 88 对 · NOT_VARIANTS 23
-链接      558 条源文互见，零悬空，100% 有文本支持
+索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
+G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 跨会话）
+地址体系  六类：zhouyi · bcv · yilin · booksec · play（幕/场）· euclid（卷/命题）
+研究模式  八模式全落地（R18b-R27b）：Quick/Deep/Book Study/Chapter/Comparative/
+          Cross-book/Book Summary/Concept；web 9 tab + MCP 12 工具同源
+记忆闭环  研究→记录→跨会话恢复：web POST /api/threads + 三 tab 记入 + 列表自动
+          刷新 + 长期研究续接（R34b-R46b）；MCP record_claim_tool + threads 读回
 ```
 
-scheme 分布（实测 SELECT scheme, count(*) FROM unit GROUP BY scheme）：
-```
-bcv 35787 · zhouyi 5088 · yilin 5032 · None 3457 · booksec 819 · play 817 · euclid 174
-```
+> 本文件 §2 旧任务清单（T7-r/T5 A-12/T7-m 等）已被 R18b–R50b 优化循环取代——
+> 见 §2 顶部指引。REJECTED/BLOCKED 防重做清单在 §3 保留。
 
 ---
 
 ## 2. 你的剩余任务（按优先级，理由见 docs/GOAL.md §4 + docs/MASTER_PLAN.md §7）
 
-### 2a. T7-r 方案 A/B 真语义 embedding（唯一能解 G1 概念层 PART 的路径，待用户授权）
+> **⚠ 重要更新（R51b）**：本节原任务清单（T7-r embedding 方案 A/B、T5 A-12
+> 吸裸注剥离、T7-m &KR0658; 实体映射等）**全部已被 R18b–R50b 优化循环取代**：
+> - T7-r 方案 A/B：G1 概念级检索已在 R18b 前经 bge（用户授权）落地为 PASS，
+>   方案 C 仍 REJECTED（D-031）；本条不再开放。
+> - T5 A-12：KR1a0007 吸裸注问题早已在质量归责链（quality.py）处置，N1/N2/N3
+>   仍 REJECTED（D-033），不重做。
+> - T7-m：&KR0658; 等实体引用已在后续 ingest 轮次处理；本条不再开放。
+> **当前本轨的活状态是"优化循环"**：每轮 fetch → 摸底 → 列 2-3 方案写
+> DECISIONS → 选最优实施 → 自测+13 闸门 → 台账 § + DECISIONS → commit+push，
+> 直到用户叫停。接续轮次从 `docs/TASK_LEDGER.md` 末条编号 +1 开始，
+> DECISIONS 从末条 D- 编号 +1 开始。
 
-**上一窗口已测**：方案 C（TF-IDF+SVD，零新依赖）hit rate **37/55 = 67.3%** < 80% 阈值，已记 D-031 否决。反直觉发现：方案 C 比基线 78.2% 还差 11 个百分点——SVD 降维把高频卦象 bigram 区分信号稀释到了"长文本主题"维度，LSA 在短文本强主题重叠语料上的已知失效模式。
+### 2a. 当前移交项（开放，非本轨领土）
 
-**当前状态**：方案 A/B（引入 sentence-transformers + PyTorch CPU、下载 BAAI/bge-small-zh-v1.5 模型）**BLOCKED 待用户授权**（D-032，撞红线第 3 类：新外部依赖 + 联网抓取）。
+- **R21a 委托合入 main**：`scripts/assess_goals.py` 的 raw_body 委托（审查轨
+  `23d0f94`）仍在审查轨分支，main 侧保持内联——待审查轨合入（scripts/ 属
+  审查轨领土，优化轨不做）。
+- **愿景 §15 评估缺口**（跨书/版本意识/研究深度正式 eval）：scripts/ 属审查
+  轨领土（O8 移交）；本轨已用各层 standing 自测（sources/bookstudy/research/
+  mcp/web）覆盖能力级回归。
 
-**给你的处置**：
-- **若用户未在新窗口里显式授权**：照红线"跳过并记录"处置——方案 A/B 维持 BLOCKED，**不停下来问**，直接开始下一个任务。G1 维持 PART。
-- **若用户已显式授权**（在新窗口开场指令里写明"授权引入 sentence-transformers+PyTorch CPU、授权下载 BAAI/bge 模型"）：
-  1. `pip install sentence-transformers`（PyTorch CPU 版）
-  2. 下载 BAAI/bge-small-zh-v1.5，记 provenance（sha256/source_url/fetched_at/licence=MIT）到 `data/catalog/model_provenance.json`，照 W-06 先例
-  3. 新探针 `probes/probe_embed_bge.py`：同方案 C 流程（5088 zhouyi 单元 + 55 条转述 + top-10），换 bge encoder
-  4. 闸门先定后测：hit rate ≥ 80% / build ≤ 10 分钟 / query ≤ 2 秒 / memory ≤ 4 GB / 13 道闸门零回退
-  5. hit rate ≥ 80% → G1 PART 升 PASS，55 条纳入 eval_g1.json retrieval_concept；< 80% → 记否决，G1 维持 PART
-  6. 55 条手写转述用 D-029 已沉淀的那批（probes/probe_t7r_concept.py），**不手写新题**（GOAL §4 T1 手写错过两次）
+### 2b. 其他低优先（若优化循环外还有余力）
 
-### 2b. T5 A-12 全 379 个 KR1a0007 地址吸裸注的局部剥离（最高杠杆的存量缺陷）
-
-**上一窗口已测**（D-033）：候选 N1（在 clean 里剥离王弼裸注）实测否决——改 clean 全局行为导致 cross_edition_coverage 比对地址 362→293，T11 失败。但 N1 **揭露了真正的问题**：KR1a0007 有 375/379 = 98.9% 地址含"注"字——几乎每个 KR1a0007 地址的 span 都吸了王弼裸注。5 个 span-degenerate-B 只是 len_b<30 被抓到的子集，其余 374 个吸裸注后 len_b>30 判 span-overextended 但**没被标为缺陷**。
-
-len 分布实测：截前 mean=196 median=81，截后 mean=12 median=10——全 379 个 KR1a0007 地址 span 边界都错了。
-
-**给你的处置**：
-- N1（改 clean 全局）已被否决，**不要重做**。N2/N3 也已否决（误切彖曰/象曰、误切裸注中段"故曰"）。
-- **你自己列 2-3 个新候选**，核心约束：**只改 quality.py 的 addresses_of 局部剥离，不改 clean 全局**——避免影响 align/守恒/eval_g1 全链。用本仓库实测数据比较，选最优直接执行，比较过程写进 DECISIONS.md。
-- 候选思路提示（未验证，你自己测）：在 addresses_of 里用"注"字作 span end 的 fallback（当裸注存在时截到裸注起始而非下一 label），但只在 keep_notes=False 的经视图副本上做，不动 clean() 本身。
-- 闸门：13 道全过零回退 + A-12 的 5 个 EXPECTED 地址至少 2 个 len_b 下降（卦58/卦46初六）+ align 1824/1872 不回退 + 守恒 1.0000 不回退。达不到就按 R-02 先例否决回退，A-12 维持 EXPECTED_DEGENERATE。
-
-### 2c. T7-m &KR0658; → 虩 最小修复（低风险，可直接做）
-
-**上一窗口已查清**（probe_t7m_entities.py）：`&KR0658;` = 虩（U+8679，恐惧貌），卦51 震 繫辞"震来虩虩"。clean() 不解析实体引用，&KR0658; 原样进入经视图和 corpus.db——检索 虩 会漏命中（索引存的是 &KR0658;）。虩 字在其他版本直接印出（KR1a0007 28 个，KR1a0001 8 个，KR1a0031 10 个）——实体引用只 KR1a0006 用。
-
-**给你的处置**：
-- 在 clean() 里加 `&KR0658;` → `虩` 的解析（最小修复，只这一个实体）。先测 13 道闸门零回退——clean 改动可能回退（D-033 N1 先例），但这次只加一个实体映射不改剥离逻辑，风险小。
-- 若回退：按 R-02 先例否决，记 BLOCKED。
-- 若不回退：probe 验证检索 虩 能命中含 &KR0658; 的单元，落地。
-- 全语料约 100+ 种 `&KRdddd;` 实体引用（corpus.db 里 251 个单元含 435 次），逐一映射工作量大、低优先——本轮只做 &KR0658; 一个。
-
-### 2d. 其他低优先（若上面都做完还有时间）
-
-- **T7-o probes 归档续做**：上一窗口已归档 45 个到 probes/archive/，probes/ 剩 65 个活跃。可继续识别已沉淀的。
-- **BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注**：上一窗口 T7-n 已查清（繫辞传印次差异，源文真实差异非抽取错误），D-034 已记录，但架构方案那行还没补注——可补一行"原因已查清，见 D-034"。
-- **通用性证伪（MASTER_PLAN §11 弱点）**：38 部语料含 Euclid/Plato/Shakespeare/BCV/Douay，但通用性仍未系统证伪。可设计一个跨体系的探针。
+- **BOOK_AI_ARCHITECTURE.md §5 "自天祐之 5 vs 4 原因待查"补注**：原因早已
+  查清（繫辞传印次差异，D-034），架构文档那行可补注。
 
 ---
 
@@ -209,7 +197,7 @@ len 分布实测：截前 mean=196 median=81，截后 mean=12 median=10——全
 - `docs/DECISIONS.md` 增 D-031~D-034（方案 C 否决、方案 A/B BLOCKED、A-12 N1 否决、T7-p 架自审通过）
 - `docs/TASK_LEDGER.md` 增 §22c + P-11 复验否决
 
-**新窗口要做的第一件事**：跑 §1 全部 13 道闸门复验基线，确认与 §1 快照一致（38 部 51,174 单元、PASS 8 · PART 1 · FAIL 0）。若不符，先查 commit a05a9cf 是否真的 push 成功、工作树是否干净——不要相信本文件的数字。
+**新窗口要做的第一件事**：跑 §1 全部 13 道闸门 + 五层 standing 自测复验基线，确认与 §1 快照一致（R50b 终态：47 部 62,109 单元、G1–G9 全 PASS）。若不符，先查最近 commit 是否真的 push 成功、工作树是否干净——不要相信本文件的数字（本段以下是 2026-08-15 历史窗口交接存档，数字已过时，仅作演进对照）。
 
 ---
 
