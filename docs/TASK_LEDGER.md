@@ -1494,3 +1494,57 @@ probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.qiming import CANDIDATE_CHARS;neg=['烽火连天','锋芒毕露','熙熙攘攘','炎炎光明','煦暖和煦','三金鼎立','三水淼淼'];print('残留:',[m for cs in CANDIDATE_CHARS.values() for c,r,m in cs if any(n in m for n in neg)])"
 ```
 - 决策记录：DECISIONS.md D-052（gregorian 逆变换修复+qiming 8处寓意替换）
+
+## 34. 阶段2-R8 再审查（2026-08-16，R7 闭环后第七轮再审查）
+
+**纪律**：R8 闸门实机重跑 13 道全绿（不轻信 R7 结论）。派 3 个 explore 子 agent 并行审查 lunar/bazi_calc/ingest，子 agent 结论一律当"待复验"，亲自跑命令核实。
+
+### 34a. R8 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_huangli_shensha PASS · probe_liuyao_najia 7 PASS
+```
+
+### 34b. R8 子 agent 审查结论复验
+
+子 agent 标记多条缺陷，亲自复验后分类处置：
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `lunar.py` `solar_to_lunar`/`lunar_to_solar` 公历农历转换 | **已核验正确**：闰月处理、1900-2100 范围守卫、自检 110 抽样往返一致 | 不修 |
+| `lunar.py:128/153` `lunar_to_solar(2100,12,29)` 返回 2101 年 | **边界提示**：输出侧无 1900-2100 校验，web 层已拦截 | 记录，非缺陷 |
+| `bazi.py:113` `term_time()` 精度 ±43min 不达标 | **部分假阳性**：实测 2024 立春偏差 5.5min，在 ±15min 文档声称范围内；1900/2100 边界降级但 warn 阈值 30min 兜底 | 不修，记录精度边界 |
+| `ingest.py` `play`/`plato`/`euclid` 巨型 unit（plato 单 unit 864,870 字符） | **确认红线级**：实测 plato-republic max=864,870、shakespeare max=98,328、euclid max=120,424，全部绕过 merge_units 的 900 字上限 | **修复尝试失败**，记为待修项（见 34c） |
+
+### 34c. R8 修复尝试：giant-unit 二次切分（失败，已撤销）
+
+**尝试**：在 ingest.py 的 play/poem/euclid/booksec(plato/homer) 分支添加 `split_long_text(raw, start, end, max_chars=900)` 二次切分，按段落/换行边界把超长 unit 切成 ≤900 字的子 unit。
+
+**实测结果**：
+- units 从 52,091 → 61,758（+9,667），巨型 unit 消除（max 从 864,870 → 20,019）
+- **但 verify_index.py T9 失败**：106/600 sample 声称 skipped_chars=0 但实际非连续
+- 根因：split 后 sub_text = raw[sub_start:sub_end]（不 strip），但 T9 用 `clean(raw[start:end])` 检查——clean() 过滤空白换行后，sub_text 与 clean(raw) 不匹配，产生非连续
+
+**撤销**：`git checkout src/guji/ingest.py`，回到已知良好基线（52,091 units, ALL PASS）
+
+**正确修复需**：
+1. 重算每个子 unit 的 skipped_chars（用 merge_units 同款 clean() gap 计算）
+2. 或：split 时保留 clean() 归一化后的子串，而非原文切片
+3. 或：split 只在 ¶ 边界切（与主路径一致），不在 \n\n 边界切
+
+**待修项（下轮 R9 处理）**：
+- `ingest.py` giant-unit 二次切分（需 T9 兼容设计）
+- `douay.py:141-161` 圣经换行续行整行丢失（docstring 与代码矛盾）
+- `ingest.py:753-783` play 场景/诗整段一个 unit（绕开 900 字上限）
+- `ingest.py:39,256-270` `（` 无配对但后文有 `）` 时整段被吞成注（子平书实测）
+- `ingest.py:779 / schema.sql:41-45 / web/app.py:304` play 的 addr1=剧目序号、addr2="ACT X SCENE Y"，与 schema/UI 文档冲突
+- `ingest.py:613-618 vs 827-829` 主语料分支无条件建 work，缺 ext 分支的 0 单元守卫
+- `schema.sql:18 + ingest L605/703/832` 一个 zip_sha256 列存三种哈希，provenance 种类丢失
+- `euclid.py:206-207, ingest.py:686-705` euclid 偏移是 stripped 文本空间，按 .html 文件切片不可验证
+- `ingest.py:341-393` max_chars=900 只限合并，单 run 超长不拆分（子平书段落可达数千字）
+- `ingest.py:100/686/712` 非 UTF-8 文件无错误处理，直接 UnicodeDecodeError
+- `ingest.py:248-249` `_has_cjk` 漏 U+3007/兼容区/全角
+- `ingest.py:660` `fold.__globals__["FOLD"]` 脆弱引用
+
+- 决策记录：DECISIONS.md D-053（R8 审查：lunar/bazi_calc 已核验正确，ingest giant-unit 修复尝试失败撤销）
