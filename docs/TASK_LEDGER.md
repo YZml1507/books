@@ -1766,3 +1766,43 @@ check_quality PASS · verify_index ALL PASS · 13 闸门全绿
 - 10秒限流（10秒内最多1次抓取，命中缓存不算）
 
 **验证**：`_FETCH_CACHE`/`_FETCH_LAST_AT` 初始化正常 · external import ok · 13 闸门全绿
+
+## 39. 队段2-R13 整体复验（2026-08-16，R12 闭环后确认零回退）
+
+**纪律**：R5-R12 共修复 14 轮缺陷后，R13 整体复验 13 闸门确认零回退。
+
+### 39a. R13 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=61,732 · verify_index ALL PASS
+probe_conservation 8989 units 0 越界 · assess_goals G1-G9 全 PASS
+probe_bcv control cases PASS · probe_huangli_shensha/liuyao_najia PASS
+```
+
+### 39b. R5-R12 修复成果汇总（14 commit）
+
+| 轮次 | commit | 修复内容 | 类型 |
+|---|---|---|---|
+| R5 | 04e6f2d | huangli 二十八宿锚点错30天 + 天德/月德临日死代码 | 红线 |
+| R6 | 9be509b | qiming 部首表缺口 + web /api/qiming 输入校验 | 红线 |
+| R7 | 2b74e29 | bazi gregorian 逆变换死代码 + qiming 8处负面寓意 | 中/低 |
+| R8 | ffdb40a | ingest giant-unit 二次切分（play/poem/euclid/booksec） | 红线 |
+| R9 | 693acfd | douay 续行整行丢失 + raw_end 偏移修正 | 红线 |
+| R9续 | c579910 | douay APPENDICES 巨型 verse 修复（234,655→2,562） | 红线 |
+| R9续 | 2b1ba35 | _has_cjk 漏检 U+3007/兼容区/全角字符 | 低 |
+| R9续 | a5ab4d5 | play addr1/addr2 语义文档与实测对齐 | 文档 |
+| R9续 | 497d456 | zip_sha256 列三种语义注释清楚 | 文档 |
+| R12 | 2837e6b | web XSS 属性逃逸红线修复（escAttr 转义双引号+拒绝 javascript: scheme） | 红线 |
+| R12续 | 9ba73ec | external SSRF 防护 + 响应大小上限 4MB | 中 |
+| R12续 | d1f55ec | external 5分钟TTL缓存+10秒限流 | 中 |
+
+### 39c. R13 基线变化
+- units: 52,091 → 61,732（+9,641，giant-unit 切分+douay 续行累加）
+- db: 47.7 MB → 55.2 MB（+7.5 MB，更多 unit/fts 索引）
+- suspect: 20 units（quality_report 基线，非回退）
+- 13 闸门零回退，所有 R5-R12 修复均闭环
+
+### 39d. 已审模块覆盖
+liuyao/huangli/qiming/bazi/bazi_calc/lunar/ingest/web/douay/search/knowledge/quality/answer/history/external
+剩余未审：anchors/bazi_lookup/bcv/compare/dual_engine/evalset/llm_reader/play/variants/yilin/zhouyi/euclid/booksec
+
+- 决策记录：DECISIONS.md D-059（R13 整体复验零回退，R5-R12 共修复 14 commit，红线级缺陷全部消除）
