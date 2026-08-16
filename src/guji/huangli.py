@@ -127,10 +127,13 @@ XIUXIU_YIJI: dict[str, dict[str, list[str]]] = {
     "軫": {"yi": ["祭祀", "祈福", "出行"], "ji": ["嫁娶", "开市"]},
 }
 
-# 二十八宿起算锚点：1900-01-31（农历正月初一）= 角宿
-# 儒略日数 mod 28 得宿序，锚点 JDN(1900,1,31)=2415081
-_XIU_ANCHOR_JDN = 2415081
-_XIU_ANCHOR_OFFSET = 0  # 角=0
+# 二十八宿起算锚点：1900-01-31（农历庚子年正月初一）= 室宿
+# 权威核实：wnl.cc 万年历 1900-01-31 "星宿：室宿（室火猪）"。
+# JDN(1900,1,31)=2415051；XIUXIU[12]=室，故 offset=12。
+# 此前注释写"1900-01-31=角宿"+JDN=2415081，两处皆错（差 30 天、错 2 宿位），
+# 已 R5 审查推翻并修复（DECISIONS.md D-050）。
+_XIU_ANCHOR_JDN = 2415051
+_XIU_ANCHOR_OFFSET = 12  # 室=12
 
 
 def xiu_value(dt: datetime) -> str:
@@ -350,12 +353,12 @@ def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
     # 天赦日
     if tianshe(dt):
         yi += _TIANSHA_YIJI[0]; ji += _TIANSHA_YIJI[1]
-    # 天德临日（日支==天德值）
+    # 天德临日：天德值混排干/支，日干==天德干 或 日支==天德支
     td = tiande(dt)
-    if td == zhi:
+    if gan == td or zhi == td:
         yi += _TIAND_YIJI[0]; ji += _TIAND_YIJI[1]
-    # 月德临日
-    if yuede(dt) == zhi:
+    # 月德临日：月德是纯天干神煞，日干==月德干
+    if gan == yuede(dt):
         yi += _YUEDE_YIJI[0]; ji += _YUEDE_YIJI[1]
     # 劫煞临日
     if jiesha(dt) == zhi:
