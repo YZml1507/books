@@ -108,6 +108,22 @@ class Verse:
         self.raw_end = raw_end
 
 
+def buf_lines_blank_run(buf_lines: list[str]) -> int:
+    """Count the trailing run of blank lines (empty or whitespace-only) in buf_lines.
+
+    Used by parse_verses to detect when a continuation block has hit a ≥2-blank-line
+    boundary (e.g. the APPENDICES after Revelation 22:21) and should flush rather
+    than absorb the rest of the file.
+    """
+    run = 0
+    for line in reversed(buf_lines):
+        if line.rstrip("\r\n") == "":
+            run += 1
+        else:
+            break
+    return run
+
+
 def parse_verses(text: str) -> list[Verse]:
     """Parse the full Douay-Rheims plain text into Verse records.
 
@@ -127,6 +143,7 @@ def parse_verses(text: str) -> list[Verse]:
     cur_v: int | None = None
     buf_lines: list[str] = []
     buf_start: int = 0
+    blank_run: int = 0   # consecutive blank-line count (flush at ≥2)
 
     def flush(end_offset: int) -> None:
         nonlocal cur_c, cur_v, buf_lines, buf_start
@@ -164,13 +181,25 @@ def parse_verses(text: str) -> list[Verse]:
         else:
             # Continuation line (wrapped verse text) or noise line.
             stripped = line.rstrip("\r\n")
-            if cur_c is not None and stripped and not stripped.startswith(" "):
-                # A wrapped continuation of the current verse: accumulate it.
-                # Lines with leading whitespace (TOC entries, annotations) are noise
-                # and are ignored, matching the prior behavior for the TOC at lines
-                # 47-145 which does NOT use "X Chapter N" form.
-                buf_lines.append(line)
-            # Empty lines and leading-whitespace noise lines: ignore.
+            # A run of ≥2 consecutive blank lines signals the end of the verse's
+            # continuation block — e.g. the APPENDICES after Revelation 22:21
+            # begins with "\n\n\n\n\nAPPENDICES" and has no further verse markers,
+            # so without this flush the whole 234,655-char appendix would be
+            # absorbed into 22:21. Plain inter-verse blank lines are "\n\n" (1
+            # blank line) which does NOT trigger this flush.
+            if stripped == "":
+                blank_run += 1
+                if cur_c is not None and blank_run >= 2:
+                    flush(offset)
+                    buf_start = offset
+            else:
+                blank_run = 0
+                if cur_c is not None and not stripped.startswith(" "):
+                    # A wrapped continuation of the current verse: accumulate it.
+                    # Lines with leading whitespace (TOC entries, annotations) are noise
+                    # and are ignored, matching the prior behavior for the TOC at lines
+                    # 47-145 which does NOT use "X Chapter N" form.
+                    buf_lines.append(line)
             # This fixes the R9 defect where 64,332 wrapped continuation lines
             # (e.g. Genesis 1:2's "of the deep; and the spirit of God moved over
             # the waters.") were dropped despite the docstring promising accumulation.
