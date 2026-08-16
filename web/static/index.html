@@ -330,6 +330,7 @@
       <button class="rtab" data-rsec="rsec-threads" type="button">研究线程</button>
       <button class="rtab" data-rsec="rsec-bookstudy" type="button">读书</button>
       <button class="rtab" data-rsec="rsec-cw" type="button">两书对照</button>
+      <button class="rtab" data-rsec="rsec-concept" type="button">概念研究</button>
     </div>
 
     <!-- 检索 -->
@@ -449,6 +450,19 @@
       </div>
       <div class="error" id="cwerr" hidden></div>
       <div id="cwOut"><div class="no-evidence">选两本书 + 一个概念：两书证据并排（citation + 层 + 原文），并列出两书同址命中的 zhouyi 地址（版本/注家分歧起点）。</div></div>
+    </section>
+
+    <!-- 概念研究（R18b concept census）：跨全部语料普查 -->
+    <section class="card rsec" id="rsec-concept">
+      <h2>概念研究<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">Concept Research · R18b</span></h2>
+      <div class="row">
+        <div class="field" style="flex:3;"><label for="cq">概念词</label>
+          <input id="cq" type="text" placeholder="如：變 / 無爲"></div>
+        <div class="field" style="flex:0.6;"><label>&nbsp;</label>
+          <button id="cConceptBtn" type="button">研 究</button></div>
+      </div>
+      <div class="error" id="cperr" hidden></div>
+      <div id="cpOut"><div class="no-evidence">输入概念词：一个概念跨全部语料的普查——每书命中数/层分布/top 引文 + 同址多见证地图。</div></div>
     </section>
   </div><!-- /view-read -->
 
@@ -1132,6 +1146,36 @@ async function runCompareWorks(){
 
 $('#bsStructureBtn').addEventListener('click', runBookStructure);
 $('#cwBtn').addEventListener('click', runCompareWorks);
+
+/* ---- 概念研究（R18b concept census）：跨全部语料普查 ---- */
+async function runConceptResearch(){
+  const out = $('#cpOut'), err = $('#cperr');
+  err.hidden = true;
+  const q = $('#cq').value.trim();
+  if (!q){ err.textContent = '请输入概念词'; err.hidden = false; return; }
+  out.innerHTML = '<div class="no-evidence">普查中…</div>';
+  try{
+    const r = await fetch('/api/concept?q=' + encodeURIComponent(q) + '&per_work=3');
+    if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
+    const j = await r.json();
+    if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
+    let html = `<div class="no-evidence">「${esc(j.concept)}」· ${j.works_with_hits} 部命中` +
+      (j.truncated ? `（scan_limit ${j.scan_limit} 截断）` : '') + '</div>';
+    if (j.shared_addresses && j.shared_addresses.length){
+      html += `<div class="no-evidence">同址命中（版本/注家分歧起点）：` +
+        j.shared_addresses.map(x => `${esc(x.addr)}(${esc(x.works.join('、'))})`).join('；') + '</div>';
+    }
+    html += `<table class="works"><tr><th>id</th><th>书名</th><th>命中</th><th>层分布</th><th>top 引文</th></tr>`;
+    html += (j.census || []).map(w =>
+      `<tr><td>${esc(w.work_id)}</td><td>${esc(w.title || '')}</td>
+        <td class="num">${w.n_hits}</td><td>${esc(JSON.stringify(w.layers))}</td>
+        <td class="hit-cite">${(w.top || []).map(h => `${esc(h.citation)}：${esc(h.text)}`).join('<br>')}</td></tr>`).join('');
+    html += '</table>';
+    out.innerHTML = html;
+  }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
+}
+
+$('#cConceptBtn').addEventListener('click', runConceptResearch);
 
 /* ---- 书目 ---- */
 async function loadWorks(){

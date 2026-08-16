@@ -27,8 +27,10 @@ import os
 
 from mcp.server.mcpserver import MCPServer
 
+from .bookstudy import chapter as book_chapter  # noqa: E402
+from .bookstudy import structure as book_structure  # noqa: E402
 from .knowledge import KnowledgeBase
-from .research import concept_census, research
+from .research import compare_works, concept_census, research
 from .search import Corpus
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -176,6 +178,82 @@ def threads(tid: int | None = None) -> str:
         return "\n".join(f"{t['role']}: {t['text'][:400]}" for t in turns)
     finally:
         kb.close()
+
+
+@mcp.tool()
+def bookstudy_structure(work_id: str, sample_chars: int = 60) -> str:
+    """Book Study (R23b): one work's structural map — sections in source order,
+    sizes, 經/注/疏 layers, and a first-line sample with a REAL citation per
+    section. Every number is a COUNT over the index, recomputed on call."""
+    c = Corpus(CORPUS_DB)
+    try:
+        r = book_structure(c, work_id, sample_chars=min(max(sample_chars, 20), 200))
+        if "error" in r:
+            return r["error"]
+        out = [f"{r['title']} · {r['n_sections']} 节 · {r['n_units']} 单元 "
+               f"· scheme {r['scheme'] or '（无）'}"]
+        for s in r["sections"]:
+            out.append(f"- {s['label']} [{s['scheme'] or 'file'}] "
+                       f"{s['n_units']} 单元 {s['chars']} 字 "
+                       f"layers={json.dumps(s['layers'], ensure_ascii=False)}")
+            if s["sample"]:
+                out.append(f"    {s['sample']} — {s['sample_citation']}")
+        return "\n".join(out)
+    finally:
+        c.close()
+
+
+@mcp.tool()
+def bookstudy_chapter(work_id: str, scheme: str,
+                      addr_name: str | None = None, addr1: int | None = None,
+                      file: str | None = None, limit: int = 60) -> str:
+    """Book Study (R23b): one section's full reading view — every unit in source
+    order with server-rendered citations; damaged (?) and non-contiguous (!)
+    units disclosed. NULL-scheme works (老子) take scheme='file' + file=."""
+    c = Corpus(CORPUS_DB)
+    try:
+        r = book_chapter(c, work_id, scheme, addr_name=addr_name, addr1=addr1,
+                         file=file, limit=min(max(limit, 1), 200))
+        if "error" in r:
+            return r["error"]
+        out = [f"{r['section']} · {r['n_units']} 单元（原书顺序）"]
+        out.extend(f"- [{u['layer'] or '?'}] {u['citation']}: {u['text'][:200]}"
+                   for u in r["units"])
+        return "\n".join(out)
+    finally:
+        c.close()
+
+
+@mcp.tool()
+def compare_works_tool(work_a: str, work_b: str, concept: str,
+                       per_work: int = 3) -> str:
+    """Comparative Study (R24b): one concept in TWO works side by side — each
+    work's top evidence (citation + layer + text), layer distribution, and any
+    zhouyi address where both works meet the concept (版本/注家分歧起点).
+    A side with zero hits is shown as 0; both-empty refuses (G7)."""
+    c = Corpus(CORPUS_DB)
+    try:
+        r = compare_works(c, work_a, work_b, concept,
+                          per_work=min(max(per_work, 1), 10))
+        if "error" in r:
+            return r["error"]
+        a, b = r["works"]
+        out = [f"「{r['concept']}」{a['title']} {a['n_hits']} vs "
+               f"{b['title']} {b['n_hits']} "
+               f"(layers {json.dumps(a['layers'], ensure_ascii=False)} / "
+               f"{json.dumps(b['layers'], ensure_ascii=False)})"]
+        if r["shared_addresses"]:
+            out.append("同址命中: " + "、".join(x["addr"] for x in r["shared_addresses"]))
+        for tag, w in (("A", a), ("B", b)):
+            out.append(f"{tag}. {w['title']}:")
+            if not w["top"]:
+                out.append("    (0 命中)")
+            for h in w["top"]:
+                out.append(f"    [{h['layer'] or '?'}] {h['citation']}: "
+                           f"{h['text'][:200]}")
+        return "\n".join(out)
+    finally:
+        c.close()
 
 
 if __name__ == "__main__":

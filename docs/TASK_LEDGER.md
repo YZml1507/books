@@ -2402,3 +2402,37 @@ compare_works 老子 9 vs 莊子 24）；13 闸门全绿（14 命令全 exit 0�
 G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-071b。
+
+## 53. [优化轨] R26b：新能力对外发布——MCP 补工具 + 前端概念研究 tab（2026-08-16，双窗口并行第二轨）
+
+### 53a. 移交跟进
+
+fetch origin：审查轨已推送 R22a 交叉复审（origin/audit/R18 `08509ff`，复审
+R23b/R24b 无红线、闸门绿）；main 无审查轨改动，无 rebase 需求。
+
+### 53b. 发布面补齐（愿景 §7 Concept Research / §11 MCP / §17.1）
+
+- **缺口核实**：R23b（bookstudy）、R24b（compare_works）落地后两处发布面未跟上
+  ——MCP server（R22b 六工具）无新能力（`grep -c "bookstudy\|compare_works"
+  mcp_server.py = 0`）；前端无「概念研究」tab（`grep -c "api/concept"
+  index.html = 0`，愿景 §17.1 场景一 UI 不可达）。
+- **MCP 增 3 工具**（`src/guji/mcp_server.py`，复用既有内核、`@mcp.tool()` 同款）：
+  `bookstudy_structure`（整书结构地图：节序/体量/层/样本+真实引文）、
+  `bookstudy_chapter`（单节阅读视图，支持 NULL-scheme 作品的 scheme='file' +
+  file= 参数）、`compare_works_tool`（两书对照：并排证据 + 层分布 + 同址披露，
+  双 0 拒绝 G7）。工具名避开与内核函数重名。
+- **前端增「概念研究」tab**（`web/static/index.html`，rsec-concept）：
+  q → /api/concept → 每书命中/层分布/top 引文 + 同址多见证地图 + scan_limit
+  截断披露。
+- 注：本项曾派 2 个 worker 子 agent 并行，因工具作用域按工作目录解析、目标在
+  books 项目下而无法落盘（worker 零改动），改由本会话直接实施——教训：
+  子 agent 作用域须含完整相对路径或确认工作目录。
+
+### 53c. 验证
+
+MCP 三工具直调冒烟 PASS（老子 structure 81 节 / 卦40 chapter / 無爲
+compare_works 9 vs 24）；bookstudy 自测 8/8、research 自测 7/7 PASS；
+web 冒烟 PASS（api_concept 21 部命中 7 同址 / api_compare_works 9 vs 24）；
+13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-072b。

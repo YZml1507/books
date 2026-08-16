@@ -2463,3 +2463,34 @@ Comparative Study 比较两书）缺最后一段。
 复用 /api/works；`chapter()` file 参数修复 NULL-scheme 作品阅读缺口。
 bookstudy 自测 8/8 PASS（新增 [8] 老子 file 节）、research 7/7 PASS、
 web 冒烟 PASS、13 闸门全绿。commit 见台账 §52。
+
+## D-072b R26b 优化轨：新能力对外发布——MCP 补工具 + 前端概念研究 tab（愿景 §7/§11/§17）
+
+**背景（亲自核实）**：R23b（bookstudy structure/chapter）、R24b（compare_works）
+落地后，两处"发布面"未跟上：
+1. **MCP server（R22b 六工具）未含新能力**——`grep -c "bookstudy\|compare_works"
+   mcp_server.py = 0`，外部 Agent 经 MCP 只能搜索/定位/比对/普查/深研/线程，
+   不能读整书结构、不能看章节、不能两书对照；
+2. **前端无「概念研究」tab**——/api/concept（R18b）已存在且被测，但
+   `grep -c "api/concept" index.html = 0`，愿景 §17.1 场景一「研究一下
+   《周易》中'变'的概念」在 UI 上不可达（R25b 只接了读书/两书对照）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **C（选定）** | A+B 并行：MCP 增 3 工具（bookstudy structure/chapter、compare_works，复用既有内核，`@mcp.tool()` 同款）；前端增「概念研究」tab（q → /api/concept → 每书命中/层分布/top 引文 + 同址地图） | 两处文件不重叠（mcp_server.py vs index.html），可派子 agent 并行；零新依赖、只读；风险低 |
+| A | 仅 MCP 补 3 工具 | 外部 Agent 可用，但 UI 场景一仍缺 |
+| B | 仅前端概念 tab | UI 补齐，但外部 Agent 仍读不了新能力 |
+
+选 C（两者都做）。落地后：MCP 协议级冒烟（tools/list 9 工具 + 新工具直调）、
+前端冒烟、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：MCP 增 `bookstudy_structure` /
+`bookstudy_chapter` / `compare_works_tool` 三工具（复用内核，工具名避开与
+内核函数重名），直调冒烟全过（老子 81 节 / 卦40 / 無爲 9 vs 24）；前端新增
+「概念研究」tab（/api/concept 接线，21 部命中、7 同址，截断披露）。
+bookstudy 8/8、research 7/7 自测 PASS；13 闸门全绿。实施方式：初派 2 个
+worker 子 agent 并行因作用域（按工作目录解析，目标在 books 项目下）无法
+落盘，零改动，改由本会话直接落地——子 agent 作用域须含完整相对路径。
+commit 见台账 §53。
