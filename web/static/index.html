@@ -485,6 +485,15 @@ const $ = s => document.querySelector(s);
 const result = $('#result');
 
 function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+/* 属性上下文转义：esc() 用 textContent→innerHTML 不转义双引号，
+   href="${esc(it.link)}" 会被 feed 中含 " 的 link 逃逸属性注入事件属性。
+   escAttr() 转义双引号+单引号+&<>，并拒绝 javascript:/data:/file: scheme。 */
+function escAttr(s){
+  const safe = String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const m = /^([a-z]+):/i.exec(safe);
+  if (m && !['http','https','mailto','tel'].includes(m[1].toLowerCase())) return '#';
+  return safe;
+}
 
 /* 迷你 markdown 渲染器（零依赖，案 A）：先 esc() 再结构化，杜绝 XSS。
    支持：## / ### 标题、**加粗**、`code`、- 无序列表、1. 有序列表、> 引用、空行分段 */
@@ -796,7 +805,7 @@ async function loadNews(){
               : ` <span class="llm-badge" style="background:var(--destructive);">失败</span>`) + '</div>';
       if (!s.ok) return head + `<div class="news-err">${esc(s.error || '抓取失败')}</div>`;
       const items = (s.items || []).map(it =>
-        `<div class="news-item"><a href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>` +
+        `<div class="news-item"><a href="${escAttr(it.link)}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>` +
         (it.published ? `<span class="news-time">${esc(it.published)}</span>` : '') + '</div>'
       ).join('');
       return head + items;
