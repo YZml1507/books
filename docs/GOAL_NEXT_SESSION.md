@@ -90,7 +90,7 @@ PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
 cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-**当前（R54b 终态，13/13 全过 + 五层自测全齐；web 自测 22 checks，R53b/R54b 扩展）**：
+**当前（R61b 终态，13/13 全过 + 五层自测全齐；web 自测 23 checks，R53b/R54b 补端点、R61b 补首页 /）**：
 
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）

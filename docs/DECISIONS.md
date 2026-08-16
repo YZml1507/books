@@ -3611,3 +3611,29 @@ retrieval_concept 53/55 = 96.4%（含 2 条失败 id CP-02-02-六四 等、bge
 top-10 边界案例说明、>80% 阈值 PASS 不修）；bge 覆盖范围说明（爻位
 2,489，卦辞走 FTS）。docs-only 抽跑 verify_index + check_quality 全
 exit 0，基线未动。commit 见台账 §92。
+
+## D-112b R66b 优化轨：GOAL_NEXT_SESSION §1 快照标签 22→23 checks（R63b 漏同步）
+
+**背景（亲自核实）**：R61b 把 web standing 自测扩到 **23 checks**（补
+首页 `/` 端点），R63b 已同步 PROJECT_STATUS 快照块自测行与 GOAL_NEXT_
+SESSION **复验命令注释**（22→23），但 **GOAL_NEXT_SESSION §1 快照块
+标签行（line 93）仍写 `当前（R54b 终态，13/13 全过 + 五层自测全齐；
+web 自测 22 checks，R53b/R54b 扩展）`**——同文档两处数字，R63b 只改
+了一处（L-23 教训：可被命令断言的事实写成硬编码数字，且同文档多行
+重复时漏改）。实测 `python -m app --selftest` 23 checks 全 PASS
+（R61b home check 在内）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §1 快照标签行 22→23 checks（补 R61b 说明），与复验命令注释一致 | 纯文档、零代码/零风险；数字与 `python -m app --selftest` 实测一致 |
+| B | 只改 PROJECT_STATUS 不动 GOAL_NEXT_SESSION | 错误方向——PROJECT_STATUS 已由 R63b 同步，滞后的是 GOAL_NEXT_SESSION 标签行 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 23 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：GOAL_NEXT_SESSION §1 快照标签行
+22→23 checks（注明 R61b 补首页 /），与复验命令注释一致。docs-only 抽跑
+verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §93。

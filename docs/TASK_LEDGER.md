@@ -3660,3 +3660,38 @@ R64b（3550744）已确认在 origin/main。
 - **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（53/55 与 eval_g1 实测一致）。
 - 决策记录：DECISIONS.md D-111b。
+
+## 93. [优化轨] R66b：GOAL_NEXT_SESSION §1 快照标签 22→23 checks（2026-08-17，双窗口并行第二轨）
+
+### 93a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R65b（ba77911）已确认在 origin/main。
+
+### 93b. 摸底（逐项亲自核实）
+
+- **文档 R 编号**：PROJECT_STATUS R65b / GOAL_NEXT_SESSION R64b / ROADMAP
+  R58b / MASTER_PLAN R59b——无异常滞后。
+- **web selftest 覆盖**：路由对照仅剩 /api/external/news（联网依赖代理，
+  明确排除，D-100b）未覆盖；history/{rid} 与 threads/{tid} 已由 R54b 用
+  动态拼接 check 覆盖（正则误报，grep 确认 history.detail/threads.detail
+  存在）——非缺口。
+- **data/catalog 元数据**：eval_g1（derived_by=derive_eval_g1.py、
+  derived_from=data/raw only、seed=11、top_k=10）、model_provenance
+  （bge MIT 齐全）——非缺口。
+- **无 temp/孤儿文件**：temp_*.py 0 个、git untracked 0 个——非缺口。
+- **真实缺口（本轮选定）**：R61b 扩 web 自测到 23 checks 后，R63b 同步了
+  PROJECT_STATUS 快照块自测行与 GOAL_NEXT_SESSION **复验命令注释**，但
+  **GOAL_NEXT_SESSION §1 快照块标签行（line 93）仍写"web 自测 22 checks，
+  R53b/R54b 扩展"**——同文档两处数字漏改一处（L-23 教训：可被命令断言
+  的事实硬编码，多行重复时漏改）。
+
+### 93c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§1 快照标签行 22→23
+  checks，注明"R53b/R54b 补端点、R61b 补首页 /"，与复验命令注释一致。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（23 checks 与
+  `python -m app --selftest` 实测一致）。
+- 决策记录：DECISIONS.md D-112b。
