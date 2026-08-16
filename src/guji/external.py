@@ -19,11 +19,13 @@ import os
 import ssl
 import time
 import urllib.request
+import urllib.parse
 from dataclasses import dataclass, field
 
 PROXY = os.environ.get("GUJI_PROXY", "http://127.0.0.1:7897")
 FETCH_TIMEOUT = 12          # 单源抓取超时（秒）
 MAX_ITEMS_PER_SOURCE = 8    # 每源最多返回条目数
+MAX_RESPONSE_BYTES = 4 * 1024 * 1024  # 响应大小上限 4 MB（DoS 防护）
 
 # 预置零 key 源（title 用于前端展示）。
 # mode: "proxy" 经 7897 代理抓取（海外源，实测 BBC 走代理正常）；
@@ -54,7 +56,25 @@ def _fetch_bytes(url: str, mode: str = "proxy") -> bytes:
     """抓取字节（超时 + 忽略证书问题，兼容部分源）。
 
     mode="proxy" 经 7897 代理（海外源）；mode="direct" 直连（国内可达源）。
+
+    安全（R12 审查）：URL scheme 白名单 + 响应大小上限（防 SSRF/DoS）。
     """
+    # SSRF 防护：拒绝 file://、非 http(s) scheme、内网/元数据地址
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme.lower() not in ("http", "https"):
+        raise ValueError(f"非法 scheme: {parsed.scheme}")
+    host = (parsed.hostname or "").lower()
+    if host in ("localhost", "") or host.startswith("127.") or host.startswith("10.") \
+       or host.startswith("192.168.") or host == "169.254.169.254" or host == "0.0.0.0":
+        raise ValueError(f"拒绝内网/元数据地址: {host}")
+    # 172.16/12 私网段检查
+    if host.startswith("172."):
+        try:
+            if 16 <= int(host.split(".")[1]) <= 31:
+                raise ValueError(f"拒绝私网地址: {host}")
+        except (IndexError, ValueError):
+            pass
+
     handlers: list = []
     if mode == "direct":
         pass  # 直连：不加代理处理器
@@ -72,7 +92,8 @@ def _fetch_bytes(url: str, mode: str = "proxy") -> bytes:
         "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
     })
     with opener.open(req, timeout=FETCH_TIMEOUT) as resp:
-        return resp.read()
+        # DoS 防护：响应大小上限 4 MB（feed 正常 <100 KB，恶意超大源不致耗尽内存）
+        return resp.read(MAX_RESPONSE_BYTES)
 
 
 def parse_feed_bytes(data: bytes) -> list[dict]:
