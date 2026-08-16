@@ -2828,3 +2828,32 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 未动；文档 diff 审阅通过（表中单元数与 `GROUP BY scheme` 实测逐行一致）。
 
 - 决策记录：DECISIONS.md D-085b。
+
+## 67. [优化轨] R40b：前端接线 /api/stats——语料统计视图（2026-08-16，双窗口并行第二轨）
+
+### 67a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 67b. /api/stats 前端接线（书目 tab 补齐语料统计）
+
+- **缺口核实**：`/api/stats`（与 CLI `ask.py stats` 同内核）前端 0 引用
+  （`grep -c "api/stats" index.html` = 0）——书目 tab 只渲染书目表，不展示
+  语料总统计（总单元/有卦址/有爻址）、层分布、build_meta（构建时间）；
+  用户只能靠 CLI 看。
+- **改动**（纯前端 index.html）：
+  1. 书目 section 顶部加 `#rstatsOut` 容器；
+  2. `loadCorpusStats()`：fetch /api/stats → 语料总统计行（works/units/
+     with_gua/with_yao + built_at）+ 层分布表（layers 每层单元数）；
+  3. 页面初始化调用 loadCorpusStats()（与 loadWorks 并列）。
+- 渲染字段以实测为准（stats 实为 units/with_gua/with_yao/works，非字节数）。
+
+### 67c. 验证
+
+JS 语法检查（node --check）PASS；/api/stats 渲染字段冒烟 PASS（works 47 /
+units 62,109 / with_gua 57,315 / with_yao 52,455，layers 表头可渲染）；
+sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿（14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-086b。

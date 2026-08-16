@@ -415,6 +415,7 @@
     <!-- 书目 -->
     <section class="card rsec" id="rsec-works">
       <h2>语料书目<span class="llm-badge" style="background:var(--secondary); color:var(--foreground);">47 部</span></h2>
+      <div id="rstatsOut"><div class="no-evidence">加载统计中…</div></div>
       <div id="rworksOut"><div class="no-evidence">加载中…</div></div>
     </section>
 
@@ -1272,6 +1273,27 @@ async function runConceptResearch(){
 
 $('#cConceptBtn').addEventListener('click', runConceptResearch);
 
+/* ---- 语料统计（R40b）：/api/stats 接线到书目 tab 顶部 ---- */
+async function loadCorpusStats(){
+  const box = $('#rstatsOut');
+  try{
+    const r = await fetch('/api/stats');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const s = j.stats || {};
+    const meta = {};
+    (j.meta || []).forEach(m => { meta[m.key] = m.value; });
+    let html = `<div class="no-evidence">语料总统计：${s.works ?? '?'} 部 · ${s.units ?? '?'} 单元` +
+      ` · 有卦址 ${s.with_gua ?? '?'} · 有爻址 ${s.with_yao ?? '?'}` +
+      (meta.built_at ? ` · 构建 ${esc(meta.built_at)}` : '') + '</div>';
+    if (j.layers && j.layers.length){
+      html += `<table class="works"><tr><th>层</th><th>单元数</th></tr>` +
+        j.layers.map(l => `<tr><td>${esc(l.layer)}</td><td class="num">${l.n}</td></tr>`).join('') + '</table>';
+    }
+    box.innerHTML = html;
+  }catch(ex){ box.innerHTML = `<div class="no-evidence">统计加载失败：${esc(ex.message)}</div>`; }
+}
+
 /* ---- 书目 ---- */
 async function loadWorks(){
   const box = $('#rworksOut');
@@ -1340,6 +1362,7 @@ async function viewThread(tid){
 loadWorks();
 loadThreads();
 loadBookWorkOptions();
+loadCorpusStats();
 
 /* ==================== P3 六爻占卜 ==================== */
 $('#lyMethod').addEventListener('change', e => {

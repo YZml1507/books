@@ -2863,3 +2863,31 @@ diff 审阅。
 实测单元数）、stephanus 保留未实现并注明"实测 0 单元；Plato 现走 booksec"、
 表尾加"单元数为实测、以实测为准"防漂声明。docs-only 抽跑 verify_index +
 check_quality 全 exit 0，基线未动。commit 见台账 §66。
+
+## D-086b R40b 优化轨：前端接线 /api/stats——语料统计视图（书目 tab 补齐）
+
+**背景（亲自核实）**：`/api/stats`（索引统计：stats/layers/meta/schemes，
+与 CLI `ask.py stats` 同内核）**前端 0 引用**（`grep -c "api/stats"
+index.html` = 0）。「书目」tab 只渲染书目表（每书单元/地址/锚点），不展示
+**语料总统计**——总单元数、总字数、层分布（經/注/疏各多少）、build_meta
+（构建时间/版本）、地址体系标签（SCHEME_LABELS）。用户想知道"系统里有多少
+语料、各层分布如何"只能靠 CLI；web 无入口（同 R24b 之前"端点存在但 UI 点
+不到"的缺口模式，R25b 修过一次同类）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 前端「书目」tab 顶部接线 `/api/stats`：语料总统计卡（works/units/bytes/anchors/addressed 等，取 stats 字段）+ 层分布表（layers 每层单元数）+ build_meta（构建时间） | 纯前端、复用既有 tab、零后端改动，风险低；CLI/web 同内核一致性可复验 |
+| B | 前端其他增强 | 其余端点均已接线（R40b 摸底确认仅 stats/health 未用，health 是健康检查无需接线） |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：JS 语法检查（node --check）+ 冒烟（/api/stats 返回字段
+与渲染一致性）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：前端书目 tab 顶部加 `#rstatsOut` 容器 +
+`loadCorpusStats()`（语料总统计行 works/units/with_gua/with_yao + built_at、
+层分布表），页面初始化调用。渲染字段以实测为准（stats 实为
+units/with_gua/with_yao/works）。JS 语法检查 + /api/stats 渲染字段冒烟
+PASS（works 47 / units 62,109 / with_gua 57,315）；sources/bookstudy/
+research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
