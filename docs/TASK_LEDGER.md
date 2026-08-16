@@ -3473,3 +3473,43 @@ only**：
   diff 实证为空。
 
 - 决策记录：DECISIONS.md D-098a。
+
+## 80. [审查轨] R84a 优化轨 R62b-R64b 纯文档轮 + rebase 纳入（2026-08-17）
+
+接续 R83a（§79）。fetch origin 发现优化轨推进 main 三个新提交
+（689a260 R62b、9386342 R63b、3550744 R64b）。亲核实三提交 --stat
+**全部 docs/*.md only**：
+- 689a260（R62b）：PROJECT_ROADMAP 标记 P2/P3/P4 为 done with landing
+  evidence + DECISIONS/TASK_LEDGER append。
+- 9386342（R63b）：PROJECT_STATUS + GOAL_NEXT_SESSION 同步 web selftest
+  22→23 checks + DECISIONS/TASK_LEDGER append。
+- 3550744（R64b）：GOAL_NEXT_SESSION 记录 stale G9 SCOPE claim as handoff
+  for audit track + DECISIONS/TASK_LEDGER append。
+
+`git log HEAD..origin/main -- ':!docs/'` 返回空，确认**零代码逻辑变化**，
+未启动新审查轨循环。
+
+### 80a. rebase origin/main 纳入 R62b-R64b
+
+本轮执行 `git rebase origin/main`，在历史 commit 9000cfd（R22a rebase
+merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R62b/R63b/R64b
+纳入 audit 分支 history，HEAD..origin/main 清空。
+
+### 80b. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 80c. 验证
+
+- 本轮无代码变更，13 闸门状态延续 R82a 全绿基线（suspect=10 units/5
+  地址），未重跑（协议第 3 步纯文档轮不触发新循环）。
+- **领土零越界**：本轮三提交全 docs/，scripts/probes/打包链/.gitignore
+  diff 实证为空。
+
+- 决策记录：DECISIONS.md D-099a。
