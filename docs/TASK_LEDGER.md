@@ -3206,3 +3206,41 @@ probe_g8 九类越界全 BLOCKED、assess_goals G1–G9 PASS 9 PART 0 FAIL 0、
 基线未动，R52b 文档改动无回退。
 
 - 决策记录：DECISIONS.md D-098b。
+
+## 80. [优化轨] R53b：web --selftest 补 4 个数术主 tab 端点 standing 覆盖（2026-08-17，双窗口并行第二轨）
+
+### 80a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R52b（edbf03a）已确认在 origin/main，工作树干净。
+
+### 80b. 摸底（逐项亲自核实）
+
+- **source_url 9/47 缺失疑点**：核实为**已知非缺陷**（台账 §1282-1285 已
+  记录：9 部子平书来自本地 logs/p2_tmp 仓库拉取、无远程 URL，真实空值）。
+  check_provenance verdict 只统计 orphans（0 个）故说"0 works 无 url"，
+  与字段级 census 不矛盾——非缺口，不处理。
+- **GOAL_NEXT_SESSION §2b 架构补注项**：核实 `BOOK_AI_ARCHITECTURE.md`
+  §185-186 已于 2026-08-15 补注（D-034/T7-n 原因已写明）——§2b 该条
+  "可补注"已过时，纯文档项不再有价值。
+- **真实缺口（本轮选定）**：`web/app.py` standing 自测（R49b，12 checks）
+  全落在古籍读书 tab 的 9 个子 tab 端点上；**4 个数术主 tab 端点
+  （/api/bazi、/api/liuyao、/api/huangli、/api/qiming）零 standing 覆盖**；
+  src/guji 的 liuyao.py/huangli.py/qiming.py 无 `__main__` 自测钩子
+  （bazi.py 有）。13 道闸门仅 ask_bazi.py 碰到 bazi——其余数术端点无任何
+  闸门可抓静默损坏（R48b 教训同类缺口）。实测 4 端点均确定性响应：
+  bazi 固定生日 200、liuyao seed=42 起卦固定本卦 22 賁（两次全等）、
+  huangli 固定日期 200 含 date/jianchu、qiming 固定输入 200 含 candidates。
+
+### 80c. 改动与验证
+
+- **改动**（web/app.py，纯增量测试代码）：--selftest 补 4 个 check——
+  bazi（固定生日断言 paipan+calc）、liuyao（seed=42 断言本卦 22）、
+  huangli（固定日期断言 date+jianchu）、qiming（固定输入断言 candidates）。
+- **验证**（全量实跑）：`python -m app --selftest` 12→16 checks 全 PASS；
+  全量 13 闸门 + 五层 standing 自测（sources/bookstudy/research/mcp/web）
+  零回退——build_index 47 部 62,109 单元、assess_goals G1-G9 PASS 9
+  PART 0 FAIL 0、eval_g1 246/248、eval_g7 30/30+25/25 FABRICATIONS 0、
+  eval_g4 558 links 0 dangling、probe_g8 九类越界全 BLOCKED。
+- 决策记录：DECISIONS.md D-099b。

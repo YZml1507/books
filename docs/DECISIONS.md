@@ -3231,3 +3231,31 @@ diff 审阅。
 （R26b）、越界指控 git 铁证核实（R44b→R25a 撤回）、"必须实跑"多轮再证。
 docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §79。
+
+## D-099b R53b 优化轨：web --selftest 补 4 个数术主 tab 端点 standing 覆盖
+
+**背景（亲自核实）**：`web/app.py` 的 standing 自测（R49b 建立，12 checks）
+全部落在古籍读书 tab 的 9 个子 tab 端点上（search/addr/compare/works/
+stats/bookstudy.*/compare_works/concept/threads），而 **4 个数术主 tab 的
+端点（/api/bazi、/api/liuyao、/api/huangli、/api/qiming）零 standing 覆盖**；
+且 src/guji 的 liuyao.py / huangli.py / qiming.py 三模块**没有 `__main__`
+自测钩子**（bazi.py 有，line 367）。13 道闸门也只有 ask_bazi.py 碰到 bazi，
+其余数术端点无任何闸门可抓静默损坏——正是 R48b（web 端点缺 `import json`
+致 NameError）教训的同类缺口。实测 4 端点均确定性响应（bazi 固定生日 200；
+liuyao seed=42 起卦固定为本卦 22 賁，两次调用结果全等；huangli 固定日期 200
+含 date/jianchu；qiming 固定姓氏生日 200 含 candidates），可做确定性断言。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web --selftest 补 4 个 check：bazi（固定生日断言 paipan+calc）、liuyao（seed=42 断言本卦 22）、huangli（固定日期断言 date+jianchu）、qiming（固定输入断言 candidates） | 纯增量测试代码，零业务风险；12→16 checks，确定性可复验（seed 固定）；立即可抓 4 个主 tab 端点静默损坏 |
+| B | 给 liuyao/huangli/qiming 三模块加 `__main__` selftest 钩子（照 bazi.py 先例） | 模块层自测，但 13 闸门与五层自测均不调用这三模块的 `__main__`，收益不落地 |
+| C | 纯文档（GOAL_NEXT_SESSION §2b 过时条目清理：架构补注已存在） | 价值最低，且架构补注已在 R51b 前落地，无功能收益 |
+
+选 A。落地后：全量 13 闸门 + 五层 standing 自测验证零回退，文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：web/app.py selftest 补 4 个 check（bazi/
+liuyao/huangli/qiming），`python -m app --selftest` 12→16 checks 全 PASS；
+全量 13 闸门 + 五层自测零回退（基线 47 部 62,109 单元、G1-G9 全 PASS）。
+commit 见台账 §80。

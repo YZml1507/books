@@ -945,6 +945,18 @@ if __name__ == "__main__":
         check("concept", client.get("/api/concept", params={"q": "無爲"}), lambda j: j.get("census"))
         check("threads.list", client.get("/api/threads"), lambda j: "threads" in j)
 
+        # 数术主 tab 端点（R53b）：bazi/liuyao/huangli/qiming 确定性 standing 覆盖。
+        # 实测 seed=42 起卦结果固定（本卦 22 賁），固定输入可复验；全部纯本地计算。
+        check("bazi", client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
+              "hour": 12, "gender": "男"}), lambda j: j.get("paipan") and j.get("calc"))
+        check("liuyao", client.post("/api/liuyao", json={"method": "coins", "seed": 42}),
+              lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
+        check("huangli", client.get("/api/huangli", params={"date": "2026-08-17", "days": 1}),
+              lambda j: j.get("date") and j.get("jianchu"))
+        check("qiming", client.post("/api/qiming", json={"surname": "李", "year": 1990,
+              "month": 1, "day": 1, "hour": 12, "gender": "男", "top_n": 5}),
+              lambda j: j.get("candidates"))
+
         # threads POST: write a bound claim with a REAL quote -> readback ->
         # cleanup (R34b lesson: never leave test rows in the live store)
         from guji.knowledge import KnowledgeBase
