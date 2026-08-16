@@ -2691,3 +2691,32 @@ add_local_work_tool 安全边界（仅本地 stdio 信任边界、不联网）�
 "11 个工具"并指向服务端 `--selftest` 复验。工具数（grep 实测 11）与文档
 一致。docs-only 抽跑 verify_index + check_quality 全 exit 0，基线未动。
 commit 见台账 §60。
+
+## D-080b R34b 优化轨：研究线程前端写入口——POST /api/threads（愿景 §8/§9 记忆闭环）
+
+**背景（亲自核实）**：G9"跨会话长期记忆"目前**前端只读**——web 仅有
+`GET /api/threads`（列表）与 `GET /api/threads/{tid}`（转录）两个读端点，
+`knowledge.record`（G8 已实测的内核，kind/claim/method/evidence）存在但
+**没有任何 POST 写端点**；研究线程只能靠 CLI `scripts/research_thread.py`
+（demo/show）写入。用户在 web 做完深度研究/两书对照/概念研究后，结论无法
+记入线程——愿景 §8"形成长期阅读记忆"、§9"何结论/何证据"的闭环在交互层
+缺最后一段：研究 → 记录 → 跨会话恢复。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web 新增 `POST /api/threads`：body {kind, claim, method, evidence[]?}（kind 白名单 diff/derived/refusal 等、claim 非空、method 必填，复用 knowledge.record 纪律——无证据断言拒绝），返回 {thread_id, ...}；前端「深度研究」「两书对照」结果区各加「记入线程」按钮（预填 claim=问题、method=research/compare_works、evidence=证据集引文） | 复用已测内核、只新增写路径，风险低；直接兑现 §8/§9 记忆闭环 |
+| B | MASTER_PLAN/ROADMAP 文档刷新 | 零风险但 R30b/R33b 刚做过文档轮，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：TestClient 冒烟（POST 合法/非法/拒绝路径）、前端 JS 语法检查、
+13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：web 增 `POST /api/threads`（G8 纪律原样
+继承：断言型必须带证据否则 400、refusal 免证据 G7），前端深度研究/两书对照
+各加「记入线程」按钮（recordThread + hitToEvidence）。TestClient 冒烟
+5 例全过（合法/无证据 400/refusal/422/列表恢复）。**重大教训**：冒烟用伪造
+引文写了真实 knowledge.db，assess_goals G8/G9 当场 FAIL（G9 verify 发现
+stale=1）——13 闸门抓到，已清理（contentless fts5 用 'delete' 命令）并恢复
+基线，重跑全绿。写端点冒烟不得用伪造引文写真实库。commit 见台账 §61。

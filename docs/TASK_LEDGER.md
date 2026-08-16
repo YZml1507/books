@@ -2648,3 +2648,41 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 未动；文档 diff 审阅通过（工具数与 `grep -c "@mcp.tool()"` 实测 11 一致）。
 
 - 决策记录：DECISIONS.md D-079b。
+
+## 61. [优化轨] R34b：研究线程写入口——POST /api/threads + 前端「记入线程」（2026-08-16，双窗口并行第二轨）
+
+### 61a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `08509ff` R22a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 61b. 记忆闭环（愿景 §8/§9：研究 → 记录 → 跨会话恢复）
+
+- **缺口核实**：G9 前端只读——web 仅有 GET /api/threads 与 GET /api/threads/{tid}
+  两个读端点，`knowledge.record`（G8 已测内核）存在但无任何 POST 写端点；
+  线程只能靠 CLI `research_thread.py` 写入。web 做完深度研究/两书对照后结论
+  无法记入线程。
+- **后端** `POST /api/threads`（web/app.py）：body {kind, claim, method,
+  evidence[]?, confidence?, thread_id?}；G8 纪律原样继承——kind ∈
+  {summary,diff,link,answer} 断言型必须带 ≥1 证据否则 400；kind='refusal'
+  允许无证据（G7）。证据映射到 knowledge.Evidence（真实引文字段，服务器端
+  落库）。
+- **前端**（index.html）：深度研究/两书对照结果区各加「记入线程」按钮 →
+  `recordThread(kind, method)` 共享函数（hitToEvidence 把 _hit_dict 证据映射
+  为 ThreadEvidence）；记录成功 alert 显示 thread/derived id。
+- **冒烟测试教训（重要）**：TestClient 冒烟对真实 knowledge.db 写入了伪造
+  引文的测试记录（derived 3/4），导致 assess_goals G8/G9 FAIL（G9 verify
+  回查 data/raw/ 发现 stale=1）——13 闸门当场抓到。已清理污染
+  （contentless fts5 用 'delete' 特殊命令，不能 DELETE）恢复 derived 1/2、
+  evidence 6、fts 2，重跑 assess_goals G1-G9 全 PASS。教训：**写端点的冒烟
+  测试不得用伪造引文写真实知识库**——要么用真实原文引文，要么用临时
+  knowledge.db 隔离。
+
+### 61c. 验证
+
+TestClient 冒烟（合法写入 200 / 无证据断言 400 / refusal 200 / 空 claim 422 /
+写入后 GET 列表可恢复）+ JS 语法检查（node --check）PASS；sources/bookstudy/
+research/mcp 自测 PASS；13 闸门全绿（清理污染后重跑，14 命令全 exit 0，
+G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-080b。

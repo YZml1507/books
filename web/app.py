@@ -433,6 +433,29 @@ class AskRequest(BaseModel):
     max_addresses: int = Field(3, ge=1, le=6)
 
 
+class ThreadEvidence(BaseModel):
+    work_id: str = ""
+    file: str = ""
+    quote: str = ""
+    raw_start: int | None = None
+    raw_end: int | None = None
+    page_anchor: str | None = None
+    scheme: str | None = None
+    addr1: int | None = None
+    addr2: str | None = None
+    role: str = "supports"
+
+
+class ThreadRecordRequest(BaseModel):
+    """研究线程写入（R34b）：一条 derived claim + 可选证据（G8 纪律）。"""
+    kind: str = Field(..., description="summary | diff | link | answer | refusal")
+    claim: str = Field(..., min_length=1, max_length=2000)
+    method: str = Field(..., min_length=1, max_length=100)
+    evidence: list[ThreadEvidence] = Field(default_factory=list)
+    confidence: str | None = None
+    thread_id: int | None = None
+
+
 @app.get("/api/research")
 def api_research(q: str = "", max_addresses: int = 3, allow_damaged: bool = False):
     """深度研究（R18b）：检索→读地址→扩展的多轮循环，返回证据集 + 步骤链 + 差异摘要。
@@ -601,6 +624,39 @@ def api_thread_detail(tid: int):
             })
         v = kb.verify(os.path.join(ROOT, "data", "raw"))
         return {"turns": turns, "claims": claims, "verify": v}
+    finally:
+        kb.close()
+
+
+@app.post("/api/threads")
+def api_thread_record(req: ThreadRecordRequest):
+    """研究线程写入（R34b）：把一条研究结论记入 G9 线程，跨会话可恢复。
+
+    G8 纪律原样继承自 knowledge.record：kind ∈ {summary, diff, link, answer}
+    是断言型，必须带至少一条证据，否则 400；kind='refusal' 允许无证据（G7：
+    「证据不足」本身是合法研究输出）。证据只收真实引文字段，服务器端落库。
+    """
+    from guji.knowledge import Evidence  # noqa: E402
+
+    kb = KnowledgeBase(KNOWLEDGE_DB)
+    try:
+        ev = [Evidence(work_id=e.work_id, file=e.file,
+                       raw_start=e.raw_start if e.raw_start is not None else -1,
+                       raw_end=e.raw_end if e.raw_end is not None else -1,
+                       quote=e.quote, page_anchor=e.page_anchor,
+                       scheme=e.scheme, addr1=e.addr1, addr2=e.addr2,
+                       role=e.role)
+              for e in req.evidence]
+        try:
+            did = kb.record(req.kind, req.claim, req.method, ev,
+                            confidence=req.confidence, thread_id=req.thread_id)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        row = kb.db.execute(
+            "SELECT thread_id FROM derived WHERE id = ?", (did,)).fetchone()
+        return {"derived_id": did, "thread_id": row["thread_id"] if row else None,
+                "kind": req.kind, "claim": req.claim[:120],
+                "n_evidence": len(ev)}
     finally:
         kb.close()
 

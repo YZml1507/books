@@ -952,6 +952,7 @@ $('#rsearchBtn').addEventListener('click', async () => {
 /* ---- 深度研究（R18b）---- */
 $('#dresearchBtn').addEventListener('click', async () => {
   const q = $('#dq').value.trim();
+  lastQ = q;
   const err = $('#drerr'), out = $('#dresearchOut');
   err.hidden = true;
   if (!q){ err.textContent = '请输入研究问题'; err.hidden = false; return; }
@@ -962,6 +963,7 @@ $('#dresearchBtn').addEventListener('click', async () => {
       body: JSON.stringify({q, use_llm: $('#duse_llm').checked,
                             allow_damaged: $('#dallow_damaged').checked})});
     const j = await r.json();
+    lastResearch = j;
     if (!r.ok){ err.textContent = j.detail || ('请求失败：' + r.status); err.hidden = false; return; }
     if (j.refused){
       out.innerHTML = `<div class="no-evidence">⚠ 拒绝回答：${esc(j.reason || '证据不足')}</div>`;
@@ -990,6 +992,12 @@ $('#dresearchBtn').addEventListener('click', async () => {
     } else if (j.llm_error){
       out.insertAdjacentHTML('beforeend',
         `<div class="no-evidence">LLM 未生成：${esc(j.llm_error)}</div>`);
+    }
+    // 记入线程（R34b）：研究结论持久化，G9 跨会话恢复
+    if ((j.evidence || []).length){
+      out.insertAdjacentHTML('beforeend',
+        '<div class="thread-actions"><button class="thread-view" ' +
+        'onclick="recordThread(\'summary\', \'research\')">记入线程</button></div>');
     }
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 });
@@ -1051,6 +1059,7 @@ $('#rcompareBtn').addEventListener('click', async () => {
 
 /* ---- 读书（R23b Book Study）：结构地图 → 章节阅读 ---- */
 let bsLast = null;   // last /api/bookstudy/structure response, for section clicks
+let lastResearch = null, lastQ = '';   // R34b 记入线程：最近一次深度研究结果/问题
 async function loadBookWorkOptions(){
   const box = $('#bswork');
   try{
@@ -1155,7 +1164,37 @@ async function runBookSummary(){
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 }
 
+/* 记入线程（R34b）：把最近一次研究结论写入 G9 线程（POST /api/threads） */
+function hitToEvidence(h){
+  return {work_id: h.work_id || '', file: h.file || '', quote: h.text || '',
+          page_anchor: h.page_anchor || null, scheme: h.scheme || null,
+          addr1: h.gua != null ? h.gua : null, addr2: h.yao || null,
+          role: 'supports'};
+}
+async function recordThread(kind, method){
+  let claim = '', ev = [];
+  if (method === 'research'){
+    claim = lastQ || '';
+    ev = (lastResearch && lastResearch.evidence || []).map(hitToEvidence);
+  } else if (method === 'compare_works'){
+    claim = $('#cwq').value.trim() || '';
+    ev = ((lastCW && lastCW.works) || []).flatMap(w =>
+      (w.top || []).map(hitToEvidence));
+  }
+  if (!claim){ alert('缺少结论文本（请先执行一次研究）'); return; }
+  if (!ev.length){ alert('该结果无可核验证据，无法记入（G8 纪律：断言必须带证据）'); return; }
+  try{
+    const r = await fetch('/api/threads', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({kind, claim, method, evidence: ev})});
+    const j = await r.json();
+    if (!r.ok){ alert('记入线程失败：' + (j.detail || r.status)); return; }
+    alert(`已记入线程 #${j.thread_id ?? '（新）'}（derived #${j.derived_id}，${j.n_evidence} 条证据）`);
+  }catch(ex){ alert('网络错误：' + ex.message); }
+}
+
 /* ---- 两书对照（R24b compare_works）：指定两书 + 概念 ---- */
+let lastCW = null;   // R34b 记入线程：最近一次两书对照结果
 async function runCompareWorks(){
   const out = $('#cwOut'), err = $('#cwerr');
   err.hidden = true;
@@ -1169,6 +1208,7 @@ async function runCompareWorks(){
       '&work_b=' + encodeURIComponent(wb) + '&q=' + encodeURIComponent(q) + '&per_work=3');
     if (!r.ok){ err.textContent = 'HTTP ' + r.status; err.hidden = false; return; }
     const j = await r.json();
+    lastCW = j;
     if (j.error){ out.innerHTML = `<div class="no-evidence">${esc(j.error)}</div>`; return; }
     const [a, b] = j.works;
     const side = w => (w.top || []).map(h =>
@@ -1181,6 +1221,8 @@ async function runCompareWorks(){
     }
     html += `<div class="row"><div class="field" style="flex:1;">${esc(a.title)}<br>${side(a)}</div>
       <div class="field" style="flex:1;">${esc(b.title)}<br>${side(b)}</div></div>`;
+    html += '<div class="thread-actions"><button class="thread-view" ' +
+      `onclick="recordThread('summary', 'compare_works')">记入线程</button></div>`;
     out.innerHTML = html;
   }catch(ex){ err.textContent = '网络错误：' + ex.message; err.hidden = false; }
 }
