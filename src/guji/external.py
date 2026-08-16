@@ -128,8 +128,23 @@ def fetch_source(src: dict) -> dict:
 
 
 def fetch_sources(sources: list[dict] | None = None, max_sources: int = 6) -> dict:
-    """并发抓取多个源（线程池），聚合返回。sources 为空时用预置源。"""
+    """并发抓取多个源（线程池），聚合返回。sources 为空时用预置源。
+
+    缓存/限流（R12 审查）：进程内 5 分钟 TTL 缓存，避免每次刷新重抓6源
+    打上游 rate limit；10 秒内最多 1 次抓取（限流）。
+    """
     import concurrent.futures
+    global _FETCH_CACHE, _FETCH_LAST_AT
+
+    now = time.time()
+    # 限流：10 秒内最多 1 次抓取（命中缓存不算）
+    if now - _FETCH_LAST_AT < 10:
+        if _FETCH_CACHE:
+            return _FETCH_CACHE
+    # 缓存命中：5 分钟内返回上次结果
+    if _FETCH_CACHE and (now - _FETCH_LAST_AT) < 300:
+        return _FETCH_CACHE
+
     srcs = sources if sources else DEFAULT_SOURCES
     srcs = srcs[:max_sources]
     results: list[dict] = []
@@ -145,11 +160,19 @@ def fetch_sources(sources: list[dict] | None = None, max_sources: int = 6) -> di
     # 按预置顺序稳定返回（as_completed 无序）
     order = {s["id"]: i for i, s in enumerate(srcs)}
     results.sort(key=lambda r: order.get(r["id"], 999))
-    return {
+    out = {
         "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "proxy": PROXY,
         "sources": results,
     }
+    _FETCH_CACHE = out
+    _FETCH_LAST_AT = now
+    return out
+
+
+# 缓存状态（R12 审查：避免重复抓取打上游 rate limit）
+_FETCH_CACHE: dict | None = None
+_FETCH_LAST_AT: float = 0.0
 
 
 if __name__ == "__main__":
