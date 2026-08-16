@@ -3769,3 +3769,34 @@ GOAL_NEXT_SESSION 同文档两行重复）。
 复验命令注释 + PROJECT_STATUS 快照块自测行三处 23→24 checks，补 R69b
 bazi.semantic 说明。docs-only 抽跑 verify_index + check_quality 全
 exit 0，基线未动。commit 见台账 §97。
+
+## D-117b R71b 优化轨：PROJECT_ROADMAP R2 再审查"待查"清单过时修正（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` §8 "阶段2 审查-修复-
+优化无限循环"下 **R2 再审查（进行中）节仍列"待查"清单**：`wuxing-dayi
+仅 1 单元入库失败·bible-kjv/web/darwin-origin 0 单元遗留·其他边界输入·
+文档与实测一致性全面核对`。但实测与台账均已处置/澄清：
+- **wuxing-dayi 1 单元 → 29 单元**：台账 §1278 颗粒度修复（1 单元
+  113,051 字 → 29 单元 avg 3,896 字），实测 count(*)=29；
+- **bible-kjv/web/darwin-origin 0 单元**：台账 §1062 明确"在 work 表但
+  unit 表 0 行——probe_bcv 的 31,102 行计数来自 raw_ext/generality 原始
+  文件，不来自 unit 表，**无矛盾**"；§1273 孤儿 work 清除已处置；
+- **文档与实测一致性核对**：R55b-R70b 连续十六轮已逐项核对（快照数字、
+  工具数、缓存、checks 数均与实测一致）。
+该节仍标"（进行中）"且"待查"清单未划掉，新会话照 ROADMAP 会误判这些
+项未完成、重新去查（白耗轮次）——O1/接续文档失效模式（D-097b 同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP R2 节改为"已完成（R71b 核实）"：待查清单逐项标注处置状态（wuxing-dayi→29 单元 §1278、bible/darwin→0 单元系 raw_ext 非 unit 表无矛盾 §1062、文档一致性→R55b-R70b 已逐项核对），并注明"审查循环已演进为优化循环（见 GOAL_NEXT_SESSION §2）" | 纯文档、零代码/零风险；处置证据与台账 §1062/§1273/§1278 一致，防新会话重复排查 |
+| B | 只删"（进行中）"不改清单 | 清单仍误导（项未划掉=仍待查） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md R2 节改为"已完成
+（R71b 核实）"，待查清单逐项标注处置状态与台账出处。docs-only 抽跑
+verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §98。

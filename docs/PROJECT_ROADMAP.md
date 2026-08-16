@@ -227,5 +227,14 @@ Agent 侧段）。
 - **13 闸门零回退**，web 6 tab 正确 schema 下全 200（TASK_LEDGER §27c/§27d）
 - 决策记录：DECISIONS.md D-044（滴天髓穷通宝鉴三道判定）·D-045（六爻运算层）·D-046（神煞层）·D-047（term_time+边界+解包）
 
-### R2 再审查（进行中）
-- 待查：wuxing-dayi 仅 1 单元入库失败·bible-kjv/web/darwin-origin 0 单元遗留·其他边界输入·文档与实测一致性全面核对
+### R2 再审查（已完成，R71b 核实——审查循环已演进为优化循环，见 GOAL_NEXT_SESSION §2）
+- ~~待查：wuxing-dayi 仅 1 单元入库失败~~ → **已修复**：颗粒度修复
+  （1 单元 113,051 字 → 29 单元 avg 3,896 字，台账 §1278；实测 29 单元）。
+- ~~bible-kjv/web/darwin-origin 0 单元遗留~~ → **非缺陷**：在 work 表但
+  unit 表 0 行系设计——probe_bcv 的 31,102 行计数来自 raw_ext/generality
+  原始文件，不来自 unit 表，无矛盾（台账 §1062）；孤儿 work 清除已处置
+  （§1273）。
+- ~~其他边界输入~~ → **已处置**：term_time 节气求解绕行/liuyao 解包/web
+  边界输入验证（R1 首审查 §27b）。
+- ~~文档与实测一致性全面核对~~ → **已完成**：R55b-R70b 十六轮逐项核对
+  （快照数字/工具数/缓存/checks 数与实测一致）。

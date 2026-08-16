@@ -3849,3 +3849,42 @@ R69b（ae5f930）已确认在 origin/main。
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（24 checks 与
   `python -m app --selftest` 实测一致）。
 - 决策记录：DECISIONS.md D-116b。
+
+## 98. [优化轨] R71b：PROJECT_ROADMAP R2 再审查"待查"清单过时修正（2026-08-17，双窗口并行第二轨）
+
+### 98a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R70b（5acee07）已确认在 origin/main。
+
+### 98b. 摸底（逐项亲自核实）
+
+- **文档 R 编号 / 残留 checks 数**：无异常滞后；24 checks 三处已由 R70b
+  同步——非缺口。
+- **快照数字 / MCP 工具数 / bge 缓存**：62,109 / 57,315(92.3%) / 13,954 /
+  55.7 MB / 12 tools / bge_docmeta 一致——非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` §8 **R2 再审查
+  （进行中）节仍列"待查"清单**（wuxing-dayi 仅 1 单元入库失败、
+  bible-kjv/web/darwin-origin 0 单元遗留、其他边界输入、文档与实测一致
+  性核对），但实测与台账均已处置/澄清：
+  - wuxing-dayi：台账 §1278 颗粒度修复（1 单元 113,051 字 → 29 单元），
+    实测 count(*)=29；
+  - bible-kjv/web/darwin-origin：台账 §1062 明确"unit 表 0 行系设计，
+    probe_bcv 31,102 计数来自 raw_ext/generality 原始文件，无矛盾"；
+    §1273 孤儿 work 清除已处置；
+  - 边界输入：R1 首审查 §27b 已处置；
+  - 文档一致性：R55b-R70b 十六轮逐项核对完成。
+  该节仍标"（进行中）"且清单未划掉，新会话会误判未完成重新去查（O1/
+  接续文档失效模式，D-097b 同族）。
+
+### 98c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：R2 节改为"已完成（R71b
+  核实——审查循环已演进为优化循环，见 GOAL_NEXT_SESSION §2）"，待查
+  清单逐项划掉并标注处置状态与台账出处（§1278 / §1062 / §1273 / §27b /
+  R55b-R70b）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（处置证据与台账
+  §1062/§1273/§1278 一致）。
+- 决策记录：DECISIONS.md D-117b。
