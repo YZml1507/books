@@ -3142,3 +3142,28 @@ NameError 就是冒烟才抓到的）都不会被 13 闸门发现（闸门不覆
 （R34b 教训内置）。`cd web && PYTHONPATH=src:. python -m app --selftest`
 PASS（12 checks）。sources/bookstudy/research/mcp 自测 + 13 闸门全绿。
 commit 见台账 §76。
+
+## D-096b R50b 优化轨：PROJECT_STATUS 快照刷新到 R49b（愿景 §19 合规，R43b 后第 7 轮）
+
+**背景（亲自核实）**：`docs/PROJECT_STATUS.md` 更新时间停在 **R42b**（R43b
+刷新），而 R44b–R49b 又落地 6 轮：R44b 越界指控反驳、R45b 长期研究续接、
+R46b 续接徽标、R47b 撤回确认记录、R48b 书目来源列、R49b web 层自测——快照
+块与关键变化均未反映（同 O1 文档失效模式，愿景 §19 每阶段更新要求）。
+各层 standing 自测已全齐（sources/bookstudy/research/mcp/web），愿景 §15
+评估缺口属审查轨领土（O8 移交，本轨不做）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 刷新 PROJECT_STATUS.md：更新时间 → R49b；快照块补 R44b-R49b 能力（越界核实闭环、长期研究续接+徽标、书目来源列、web 自测）；「关键变化」补 R44b-R49b 条目 | 纯文档对齐、零代码/零风险，直接兑现愿景 §19；数字沿用已实测的 47 部 62,109 单元（无语料改动） |
+| B | 前端功能增强 | 9 tab + 记忆闭环 + 来源列已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_STATUS.md 更新时间刷新到 R49b；
+快照块补「记忆闭环-长期研究续接」「治理-双窗口边界闭环」「自测-各层 standing
+自测全齐（含 web --selftest）」三行；关键变化补 R44b-R49b 条目。docs-only
+抽跑 verify_index + check_quality 全 exit 0，基线未动。commit 见台账 §77。

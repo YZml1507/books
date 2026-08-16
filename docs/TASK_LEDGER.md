@@ -3114,3 +3114,29 @@ sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿（14 命令全 exit
 G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-095b。
+
+## 77. [优化轨] R50b：PROJECT_STATUS 快照刷新到 R49b（2026-08-17，双窗口并行第二轨）
+
+### 77a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `07e25b6` R25a 复审 +
+撤回），main 无审查轨改动，无 rebase 需求。
+
+### 77b. 愿景 §19 合规：PROJECT_STATUS 刷新（R43b 后第 7 轮）
+
+- **缺口核实**：`docs/PROJECT_STATUS.md` 更新时间停在 R42b（R43b 刷新），
+  R44b–R49b 又落地 6 轮（越界反驳、长期研究续接+徽标、书目来源列、web 自测、
+  撤回确认记录）——快照块与关键变化均未反映（同 O1 文档失效模式）。
+- **改动**（纯文档 PROJECT_STATUS.md）：
+  1. 更新时间 R42b → R49b；
+  2. 快照块补「记忆闭环-长期研究续接（R45b/R46b）」「治理-双窗口边界闭环
+     （R44b 反驳→R25a 撤回，R47b 记录）」「自测-各层 standing 自测全齐
+     （含 web `python -m app --selftest`，R49b）」三行；
+  3. 关键变化补 R44b-R49b 条目。
+
+### 77c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（与台账 §71-§76、审查轨 R25a 记录一致）。
+
+- 决策记录：DECISIONS.md D-096b。
