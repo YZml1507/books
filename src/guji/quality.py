@@ -29,6 +29,7 @@ calibrated against the 卦61 case and the calibration is asserted in scripts/ver
 """
 from __future__ import annotations
 
+import bisect
 import collections
 import difflib
 import re
@@ -230,7 +231,6 @@ def addresses_of(raw: str, polarity: dict[int, tuple[int, ...]]) -> dict[tuple, 
             if r0 < 0:
                 continue
             r1 = jing.origin(marks[n + 1][0]) if n + 1 < len(marks) else s.end
-            import bisect
             v0 = bisect.bisect_left(view.offsets, r0)
             v1 = bisect.bisect_left(view.offsets, r1) if r1 >= 0 else len(view.text)
             out[(s.number, label)] = view.text[v0:v1]

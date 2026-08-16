@@ -626,6 +626,13 @@ def load_suspect(report_path: str) -> tuple[dict[tuple[str, int, str], str], dic
     addresses. So the file's mtime and size are returned and written into build_meta, making
     staleness detectable instead of invisible — the same reason build_meta exists at all.
     Absent report -> no flags, and the build says so rather than failing.
+
+    The verdict, not the pair key, says WHICH work is affected: `span-*-B` names B,
+    everything else (span-*-A, text-damage) names A. Attribution used to ignore this and
+    flag work A for all 10 addresses — 6 of which were B-side verdicts, so sound KR1a0006
+    text was flagged (and withheld from answers, the exact L-20 harm) for span problems
+    that live in KR1a0007. `(EXPECTED)` verdicts are documented source properties, not
+    defects (see quality.EXPECTED_DEGENERATE), and flag nothing.
     """
     if not os.path.exists(report_path):
         return {}, {"suspect_source": "MISSING — no flags applied"}
@@ -633,9 +640,15 @@ def load_suspect(report_path: str) -> tuple[dict[tuple[str, int, str], str], dic
     data = json.load(open(report_path, encoding="utf-8"))
     out: dict[tuple[str, int, str], str] = {}
     for pair, d in data.items():
-        work_a = pair.split("|")[0]
+        if not isinstance(d, dict) or "low" not in d:   # skip junk_census etc.
+            continue
+        work_a, work_b = pair.split("|", 1)
         for low in d.get("low", []):
-            out[(work_a, low["gua"], low["yao"])] = low["verdict"]
+            verdict = low["verdict"]
+            if verdict.endswith("(EXPECTED)"):
+                continue
+            work = work_b if verdict.endswith("-B") else work_a
+            out[(work, low["gua"], low["yao"])] = verdict
     import time as _t
     return out, {
         "suspect_source": os.path.basename(report_path),
