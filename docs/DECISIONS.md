@@ -2891,3 +2891,27 @@ index.html` = 0）。「书目」tab 只渲染书目表（每书单元/地址/�
 units/with_gua/with_yao/works）。JS 语法检查 + /api/stats 渲染字段冒烟
 PASS（works 47 / units 62,109 / with_gua 57,315）；sources/bookstudy/
 research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
+
+## D-087b R41b 优化轨：记入线程后列表自动刷新（R34b/R35b 记忆闭环收尾）
+
+**背景（亲自核实）**：`loadThreads()` 只在页面加载时调用一次（index.html
+第 1363 行 `loadThreads();`）和"返回列表"按钮时调用（第 1357 行）；`recordThread`
+成功分支只 `alert(...)` **不刷新列表**（第 1197 行）；`switchRsec` 切到
+「研究线程」tab 也不触发重新加载。结果：用户在深度研究/两书对照/概念研究
+里点「记入线程」成功后，切到研究线程 tab 看到的是**旧列表**（不含刚记的
+claim），要手动刷新整页才能看到——R34b/R35b 的记忆闭环缺最后的 UX 收尾。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | `recordThread` 成功分支追加 `loadThreads()`——记入后立即重取列表（loadThreads 幂等、只读、fetch 列表，无副作用） | 最小改动、纯前端、零风险；直接消除"记了看不到" |
+| B | `switchRsec` 钩子：切到 rsec-threads 时每次 reload | 每次切 tab 多一次请求；改通用切换函数影响面大 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：JS 语法检查（node --check）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`recordThread` 成功分支追加 `loadThreads()`
+——记入线程后立即重取研究线程列表（幂等、只读），消除"记了切 tab 看不到"
+的 UX 缺口（R34b/R35b 记忆闭环收尾）。JS 语法检查 + sources/bookstudy/
+research/mcp 自测 + 13 闸门全绿。commit 见台账 §68。

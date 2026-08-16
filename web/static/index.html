@@ -1195,6 +1195,7 @@ async function recordThread(kind, method){
     const j = await r.json();
     if (!r.ok){ alert('记入线程失败：' + (j.detail || r.status)); return; }
     alert(`已记入线程 #${j.thread_id ?? '（新）'}（derived #${j.derived_id}，${j.n_evidence} 条证据）`);
+    loadThreads();   // R41b：记入后立即刷新研究线程列表（否则切 tab 看到旧列表）
   }catch(ex){ alert('网络错误：' + ex.message); }
 }
 

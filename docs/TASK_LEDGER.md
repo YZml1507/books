@@ -2857,3 +2857,26 @@ sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿（14 命令全 exit
 G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-086b。
+
+## 68. [优化轨] R41b：记入线程后列表自动刷新（2026-08-16，双窗口并行第二轨）
+
+### 68a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 68b. 记忆闭环 UX 收尾（R34b/R35b 的"记了看不到"）
+
+- **缺口核实**：`loadThreads()` 只在页面加载时调用一次（index.html 第 1363
+  行）和"返回列表"按钮时调用（第 1357 行）；`recordThread` 成功分支只
+  alert 不刷新列表（第 1197 行）；`switchRsec` 切到「研究线程」tab 也不
+  触发重新加载——记入成功后切 tab 看到旧列表，需手动刷新整页。
+- **改动**（纯前端）：`recordThread` 成功分支追加 `loadThreads()`（幂等、
+  只读、fetch 列表无副作用），记入后立即重取列表。
+
+### 68c. 验证
+
+JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
+PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-087b。
