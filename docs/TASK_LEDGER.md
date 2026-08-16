@@ -3393,3 +3393,61 @@ rebase 后亲跑 13 闸门确认无回归：
   audit 分支 history。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-096a。
+
+## 78. [审查轨] R82a 优化轨 R61b 交叉复审 + rebase（2026-08-17）
+
+接续 R31a（§77）。fetch origin 发现优化轨推进 main 一个新提交
+（94b2af8 R61b），含代码逻辑（web/app.py +7 行，selftest 22→23 checks
+补首页 `/` 端点 standing 覆盖）。按协议第 4 步启动新一轮审查轨循环。
+
+### 78a. R61b 逐行复审
+
+- **改动**（web/app.py，纯增量测试代码）：selftest 补首页断言——
+  `GET /` → status 200 + content-type 含 text/html + 文本含 `<html>`
+  （+7 行）。关键设计：现有 `check()` 闭包断言 `resp.json()`，对 HTML
+  响应会抛异常，故单独写断言（`assert` + `ok.append("home")`）。
+- **断言链完整**：`home.status_code == 200` → `"text/html" in
+  content-type` → `"<html" in home.text.lower()` → `ok.append("home")`。
+  错误信息含诊断上下文（`("home", home.status_code, home.text[:200])`），
+  便于定位。
+- **审查确认**：纯增量测试代码、确定性（本地静态页）、无新写入面/注入面、
+  补上 API 之外唯一入口（R48b 教训最后一块）。**纪律良好**。
+
+### 78b. rebase origin/main
+
+`git rebase origin/main` 在历史 commit ccaf775（R22a rebase merge）处
+append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R61b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+### 78c. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 78d. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（yilin 520/490）。
+- eval_g7 PASS（FABRICATIONS 0）。
+
+### 78e. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R61b 一提交**纪律良好**——selftest 补首页 `/`
+  端点 standing 覆盖，单独断言（HTML 非 JSON 不走 check 闭包）、诊断
+  上下文完整、纯增量测试代码无业务风险。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-097a。

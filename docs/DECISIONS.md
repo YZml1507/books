@@ -3072,3 +3072,23 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-097a R82a 审查轨：优化轨 R61b 交叉复审 + rebase 无红线（2026-08-17）
+
+- **接续 R31a**：fetch 发现优化轨推进 main 一提交（94b2af8 R61b），含
+  代码逻辑（web/app.py +7 行，selftest 22→23 checks 补首页 `/` 端点
+  standing 覆盖）。按协议第 4 步启动新一轮审查轨循环。
+- **R61b 复审**：selftest 补首页断言——`GET /` → status 200 +
+  content-type 含 text/html + 文本含 `<html>`。关键设计：现有 `check()`
+  闭包断言 `resp.json()`，对 HTML 响应会抛异常，故单独写断言（`assert` +
+  `ok.append("home")`）。断言链完整、错误信息含诊断上下文、纯增量测试
+  代码无业务风险。**纪律良好**。
+- **rebase**：`git rebase origin/main` 在历史 commit ccaf775（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R61b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
