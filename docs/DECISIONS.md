@@ -2947,3 +2947,20 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
 - **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空
  （R38b/R39b 越界是优化轨→审查轨单向，审查轨侧未越界）。
 - 13 闸门复跑全绿（rebase 后 confirm 无回归）。
+
+## D-090a R25a 审查轨：优化轨 R40b-R44b 交叉复审 + 越界指控纠正（2026-08-17）
+
+- **接续 R24a**：fetch 发现优化轨推进 main 五提交（R40b-R44b），rebase 到
+  34652d0 后逐行复审。基线亲跑 suspect=10 units/5 地址一致、13 闸门全绿。
+- **R24a 越界指控纠正（R44b 反驳成立）**：R24a §70e 曾记优化轨 R38b/R39b 越界
+  改 scripts/assess_goals.py。亲核实 R44b 引用的三条 git 证据：R38b/R39b 均仅
+  改 docs/0 scripts/；main 上 assess_goals.py 最后被 R18a(df91ed4) 审查轨动。
+  根因：审查轨 R21a 委托修复 commit(23d0f94)从未 merge 到 main，R24a rebase 拉进
+  main 侧 inline 旧版本（main md5=f9be6d2e / audit md5=28044b4f），误读为越界。
+  撤回越界指控。双窗口 §0.3 硬边界保持完好。
+- **R40b-R44b 复审**：R40b 前端 /api/stats 接线（esc() 防注入）、R41b 前端自动
+  刷新（1 行纯前端）、R42b mcp threads(tid) readback（复用 kb.get 同 web 形状、
+  thread_id 绑定、SQL 参数化、try/finally、协议自测往返+测试行清理）、
+  R43b PROJECT_STATUS 快照（纯文档）、R44b 台账反驳（纯文档，git 证据亲核实成立）。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+- 13 闸门复跑全绿（rebase 后 confirm 无回归）。

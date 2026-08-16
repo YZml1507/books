@@ -3071,3 +3071,52 @@ R39b（MASTER_PLAN §4 地址体系表修正）。均纯 docs 改动，无代码
  （R38b/R39b 越界改 assess_goals.py 已记录移交，审查轨侧委托修复完好）。
 
 - 决策记录：DECISIONS.md D-089a。
+
+## 71. [审查轨] R25a 优化轨 R40b-R44b 交叉复审 + 越界指控纠正（2026-08-17）
+
+接续 R24a（§70）。fetch origin 发现优化轨推进 main 五个新提交
+（R40b-R44b），rebase 到 34652d0 后逐行复审。基线亲跑复核
+suspect=10 units/5 地址一致、13 闸门全绿，无回退。
+
+### 71a. R24a 越界指控纠正（R44b 反驳成立，本轨亲核实）
+
+- **R24a §70e 曾记**：优化轨 R38b/R39b 越界改审查轨领土
+  scripts/assess_goals.py（撤销 R21a 委托修复、恢复内联 work_body_text）。
+- **R44b 反驳**：R38b/R39b 实际只改 docs/，0 scripts/；main 上
+  assess_goals.py 最后被 R18a(df91ed4) 审查轨动，优化轨从未触。
+- **本轨亲核实 R44b 引用的三条 git 证据**：
+  1. `git show --stat 19b694d`(R38b)：仅 DECISIONS/MCP_CLIENT_CONFIG/
+     TASK_LEDGER，0 scripts/。
+  2. `git show --stat d79b716`(R39b)：仅 DECISIONS/MASTER_PLAN/
+     TASK_LEDGER，0 scripts/。
+  3. `git log main -- scripts/assess_goals.py`：最后 df91ed4(R18a 审查轨)。
+- **根因确认（与 R44b 一致）**：审查轨 R21a 委托修复 commit(23d0f94)从未
+  merge 到 main。R24a rebase 到 origin/main 时拉进了 main 侧的 inline 旧版本
+ （main md5=f9be6d2e / audit md5=28044b4f，两条分支确实不同），本轨把
+ "rebase 拉进 main 侧旧版本"误读成"优化轨越界改了 scripts/"。
+- **结论**：R24a §70e 的越界指控**误判**，撤回。优化轨 R38b/R39b 未越界。
+  双窗口 §0.3 硬边界保持完好。两条分支差异是 R21a 委托未 merge 的客观结果，
+  非任何一方越界。main 侧 assess_goals.py 保持 inline；R21a 委托仅存
+  audit 分支直至审查轨 merge（scripts/ 是审查轨领土，优化轨不动）。
+
+### 71b. R40b-R44b 交叉复审
+
+- **R40b**（前端 /api/stats 接线）：纯前端 esc() 防注入、无新后端写入面。
+- **R41b**（前端自动刷新 thread list）：1 行纯前端。
+- **R42b**（mcp threads(tid) returns claims+evidence——memory-loop readback）：
+  复用 kb.get(derived_id) 同 web 端点形状、thread_id 参数绑定匹配 web
+  POST /api/threads、SQL 参数化、try/finally、协议自测含 write→readback
+  往返且测试行清理（R34b 教训保持）。**审查确认**：纪律良好。
+- **R43b**（PROJECT_STATUS 快照刷新）：纯文档。
+- **R44b**（台账反驳）：纯文档，git 证据亲核实成立（见 71a）。
+- **领土零越界**：审查轨 scripts/probes/打包链/.gitignore diff 实证为空。
+
+### 71c. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R40b-R44b 五提交**纪律良好**——mcp readback 复用
+  内核+协议自测往返+测试行清理、前端 esc() 防注入。**领土零越界**。
+
+- 决策记录：DECISIONS.md D-090a。
