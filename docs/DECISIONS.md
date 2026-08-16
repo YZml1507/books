@@ -2806,3 +2806,30 @@ diff 审阅。
 §1.1 读书模块表更新（47 部 62,109 单元、入口=web 9 tab、"缺口"句删除）、
 P1 标 ✅ 已完成并回填实际落地。docs-only 抽跑 verify_index + check_quality
 全 exit 0，基线未动。commit 见台账 §64。
+
+## D-084b R38b 优化轨：MCP_CLIENT_CONFIG 数字去硬编码（防二次漂移）
+
+**背景（亲自核实）**：R36b 新增 `record_claim_tool` 后 MCP 已是 **12 工具**
+（`grep -c "@mcp.tool()" mcp_server.py` = 12），但 `docs/MCP_CLIENT_CONFIG.md`
+第 22 行仍写 "## 十一工具"——**这是该文档第二次数字漂移**（R33b 修过
+6→11，R36b 后 11→12 又漂）。根因不是"忘了改"，而是**文档把工具数硬编码成
+了权威数字**，而真正权威是 `mcp_server.py --selftest`（它断言全工具集）。
+只要硬编码存在，每次加工具都会漂。修法要治本：数字以可执行自测为唯一来源，
+文档只作索引。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① 标题 "十一工具" → "工具集（以 `--selftest` tools/list 为唯一权威，当前 12 个）"；② 表补 record_claim_tool 行；③ 验证节强化：工具数以 `python -m guji.mcp_server --selftest` 断言为准，本文数字仅作索引 | 纯文档，根因修复（去硬编码权威性）；零代码/零风险；彻底消除该失效模式复现 |
+| B | 只把 "十一" 改成 "十二" | 数字暂时对，但根因（硬编码权威）仍在，第三次加工具还会漂 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
+
+**落地结果**（2026-08-16 实测）：MCP_CLIENT_CONFIG.md 标题改为"工具集（以
+--selftest tools/list 为唯一权威；当前 12 个，下表仅作索引）"+ 数字防漂移
+声明；工具表补 record_claim_tool 行；验证节同步去硬编码。根因修复：工具数
+唯一权威是可执行自测，文档数字不再承担权威角色——同类漂移不再复现。
+docs-only 抽跑 verify_index + check_quality 全 exit 0。commit 见台账 §65。

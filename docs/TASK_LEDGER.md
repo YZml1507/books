@@ -2775,3 +2775,31 @@ docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基
 前端 tab 数与 `data-rsec` 实测 9 一致）。
 
 - 决策记录：DECISIONS.md D-083b。
+
+## 65. [优化轨] R38b：MCP_CLIENT_CONFIG 数字去硬编码（2026-08-16，双窗口并行第二轨）
+
+### 65a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 65b. MCP 文档二次漂移的根因修复
+
+- **缺口核实**：R36b 新增 record_claim_tool 后 MCP 已是 12 工具
+  （`grep -c "@mcp.tool()" mcp_server.py` = 12），但 MCP_CLIENT_CONFIG.md 仍写
+  "十一工具"——**该文档第二次数字漂移**（R33b 修过 6→11，R36b 后 11→12 又漂）。
+  根因：文档把工具数硬编码成了权威数字，而真正权威是 `--selftest`（断言全工具集）。
+- **改动**（纯文档，根因修复）：
+  1. 标题 "十一工具" → "工具集（以 `--selftest` tools/list 为唯一权威；
+     当前 12 个，下表仅作索引）"，并加**数字防漂移声明**（工具数唯一权威
+     是 --selftest，本文数字仅作索引）；
+  2. 工具表补 `record_claim_tool` 行（G8 纪律：断言型必须带真实证据）；
+  3. 验证节同步去硬编码（以 --selftest 断言为准，勿以本文数字为权威）。
+
+### 65c. 验证
+
+docs-only 先例（R19b）：verify_index + check_quality 抽跑全 exit 0，基线
+未动；文档 diff 审阅通过（工具数 12 与 `grep -c "@mcp.tool()"` 实测一致、
+表内 12 行齐全）。
+
+- 决策记录：DECISIONS.md D-084b。
