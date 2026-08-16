@@ -2078,6 +2078,49 @@ fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op
 5. 双轨并行：优化轨随时可能推进 main；下轮（R19a）先 fetch+rebase+重跑闸门
    再复审优化轨新代码（src/guji、web 进入复审视野——交叉制衡）。
 
+## 44. [优化轨] R18b：愿景书差距分析 + O1-O5 优化实施（2026-08-16，双窗口并行第二轨）
+
+### 44a. 阶段A 基线核对（优化轨独立执行）
+
+- 13 闸门亲自全跑：ALL PASS；suspect=10 units/5 地址（R17 修复后基线，非回退）。
+- 差距分析：`chatgpt给的建议.txt`（愿景书 20 节）逐项对照代码，结论入
+  `docs/OPTIMIZE_20260816_R18.md` §1——核心九判据 G1-G9 全 PASS，缺口集中在
+  交互层研究深度（§6/§7/§16/§17）与外部接口（§11 MCP）。
+
+### 44b. 文档-代码矛盾纠正（O1/O2）
+
+- PROJECT_STATUS.md 停在第三轮快照，声称 douay 不支持/suspect 列不存在/tier2-3
+  未建索引——全部与代码矛盾（R8/R9/X-11 已实现）。已刷新为 R18b 快照，
+  旧快照降级为历史存档。
+- MASTER_PLAN §6 声称"G8 未实现/空真"——knowledge.py 已实现且 G8 PASS。已改。
+
+### 44c. 新能力：深度研究 + 跨书概念 + LLM 研究问答（O3/O4/O5）
+
+- `src/guji/research.py`：检索→读地址→扩展多轮循环，步骤链 (action/query/
+  found/kept) 全程返回（G4"链路可展示"首次暴露为交互 API）；自然语言问题走
+  最长子短语回退（search-fallback 步骤，确定性可复现）；suspect 命中按 answer.py
+  纪律分离，全标记区即拒绝（G7）。自测 5 例（見群龍无首/枯楊生稊 稊梯控制/
+  不可能问题拒绝/易林 link-hop/概念普查）。
+- `Corpus.units_by_id`：link 表 dst_unit 的读回接口。
+- `/api/research`、`/api/concept`、`/api/ask`（use_llm 可选；检索拒绝不调 LLM；
+  引用由服务器从证据对象渲染，绝不采信 LLM 生成的引用——G2 防伪页码纪律）。
+- `llm_reader.interpret_research` + RESEARCH_SYSTEM_PROMPT（只依据引文/分歧并列
+  不裁决/語料未涉及就明说）。真实 LLM 实测：回答正确声明"語料未進一步說明"。
+- 前端「深度研究」子 tab：步骤链+差异摘要+证据集+LLM 独立成段渲染（renderMD）。
+  浏览器全流程实测通过（潛龍勿用多版本比较，41 条分类差异摘要可见）。
+
+### 44d. 实测暴露并当场修复的缺陷（"必须实跑"教训再证）
+
+1. concept_census 排序 yao=None/str 混合 TypeError（TestClient 实测暴露，读代码看不出）。
+2. 子短语配额 30 不足：13 字白话问题到不了 4 字核心（实测暴露），提至 150。
+
+### 44e. 验证
+
+- 13 闸门全绿（verify ALL PASS / quality PASS / G1-G9 PASS / 4 probes OK /
+  eval_g1 17 PASS / G4 PASS / G7 PASS）。
+- research.py 自测 5 例 PASS；TestClient 端点测试含 400/422 边界。
+- 决策记录：DECISIONS.md D-064b。
+
 ## 45. [审查轨] R19a 档案筛盘 + 交叉复审空转记录（2026-08-16）
 - **probes/archive/ 筛盘（残留风险#4 关闭）**：实际 57 文件（子 agent 初报 60，
   以 `ls | wc -l` 为准）。危险类全量扫描：7 个含网络代码

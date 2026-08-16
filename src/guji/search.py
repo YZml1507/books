@@ -206,6 +206,16 @@ class Corpus:
         args.append(limit)
         return [self._hit(r, score=0.0) for r in self.db.execute(sql, args)]
 
+    def units_by_id(self, unit_ids: list[int], limit: int = 50) -> list[Hit]:
+        """Fetch units by primary key. The link table speaks unit ids (G4), and this is
+        the read-back for a hop: `link.dst_unit` -> the unit it points at."""
+        if not unit_ids:
+            return []
+        ids = [int(i) for i in unit_ids[:limit]]
+        ph = ",".join("?" * len(ids))
+        sql = _SELECT + f" WHERE u.id IN ({ph}) ORDER BY u.work_id, u.raw_start"
+        return [self._hit(r, score=0.0) for r in self.db.execute(sql, ids)]
+
     @staticmethod
     def _hit(r: sqlite3.Row, score: float | None = None) -> Hit:
         # Explicit field names: positional construction silently misassigns if the

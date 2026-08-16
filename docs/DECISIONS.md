@@ -2318,3 +2318,32 @@ credential manager 已存同 token（git credential fill 有 password=ghp_...）
 - 冻结 embed 报告避免产物漂移：否——报告本就是运行产物，计时漂移是真实测量
   噪声，gate_criteria 新字段比冻结更有信息量。
 - 顺手修 web/app.py frozen 路径：越界（优化轨领土），只记录移交。
+
+## D-064b R18b 优化轨：差距分析定调 + 深度研究/概念研究/研究问答三能力（2026-08-16，双窗口并行第二轨）
+
+### 起源
+审查-修复循环 R5-R17 闭环、G1-G9 全 PASS 后，优化轨对愿景书（chatgpt给的建议.txt）
+做逐项差距分析（OPTIMIZE_20260816_R18.md §1）：核心缺口不在闸门而在**交互层研究
+深度**（愿景 §6/§7/§16/§17）与外部接口（§11）。
+
+### 关键决策
+- **Deep Research 用确定性算法而非 LLM agent**：research.py 的多轮循环（检索→读
+  地址见证→compare 差异摘要→易林 link 跳转）每步可复现、零成本、无幻觉面；
+  LLM 只作为可选的综合层（O5），且检索拒绝时不调用（G7 不让模型替语料编造）。
+- **自然语言问题的子短语回退是研究入口的关键**：整句白话不是语料短语，整句
+  零命中即拒会把所有自然语言问题挡在门外。回退=标点分段+滑动窗最长优先，
+  配额 150（实测 30 不够），回退本身作为 search-fallback 步骤返回——检索过程
+  可见可复现，不是黑盒"AI 猜你想问什么"。
+- **引用绝不采信 LLM**：/api/ask 的 evidence_citations 由服务器从 Hit 对象渲染，
+  LLM 输出独立成段。RESEARCH_SYSTEM_PROMPT 只约束行文；防伪页码靠架构不靠提示词。
+- **PROJECT_STATUS.md/MASTER_PLAN 过时声称当"文档红线"处理**：愿景 §19 明确要求
+  每阶段更新 PROJECT_STATUS，它却停在第三轮且三处与代码矛盾——与台账引用不存在
+  的 D-050..D-062（R17 发现）同类：文档会撒谎，代码+闸门不会。
+
+### 实施
+O1/O2 文档对齐；O3 research.py+units_by_id+/api/research；O4 concept_census+
+/api/concept；O5 interpret_research+/api/ask+前端深度研究 tab。两个实测暴露的
+缺陷当场修（排序 TypeError、子短语配额）。13 闸门全绿。详见台账 §44。
+
+### 遗留（下轮）
+O6 MCP server（§11）、O7 道德经/庄子语料（§17.3）、新端点 gate 接线与审查轨协商。

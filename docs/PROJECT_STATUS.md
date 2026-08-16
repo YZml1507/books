@@ -4,15 +4,43 @@
 > **任务状态的唯一来源是 `TASK_LEDGER.md`**（含 REJECTED 清单，防止重做已否决方案），
 > 工程教训见 `LESSONS.md`。
 
-**更新时间**：2026-08-13（第三轮）
-**当前阶段**：Phase 4（Implementation）
-**本轮头号发现**：`bcv` 解析器把 **10 卷经文挂到了别卷的地址上**——`Ruth 1:1` 返回
-1 Samuel 1:1 的文字，1,865 个冲突地址**全部**持有不同文本。而 **5/5 控制用例全程通过**。
-线索只是同一份输出里两个对不上的数（31,102 vs 29,214）。已修，见 U-08 / D-022 / L-19。
+**更新时间**：2026-08-16（R18b，优化轨；前一次快照 2026-08-13 第三轮，见文末历史节）
+**当前阶段**：Phase 7（Optimization）——审查-修复循环 R5-R17 闭环后进入双窗口并行
+（审查轨 `books-audit` worktree 审 scripts/probes/打包链；优化轨=本仓做差距分析+能力优化，
+方案见 `OPTIMIZE_20260816_R18.md`）。
 
 ---
 
-## 第三轮实测快照（复验命令见 `TASK_LEDGER.md` 开头的 11 道闸门）
+## 当前实测快照（2026-08-16，复验命令 = TASK_LEDGER 开头 13 闸门，全部亲自实跑）
+
+```
+索引      44 部 → 61,732 单元 · 55.2 MB · 页锚点 13,577 · 有地址 57,315（92.8%）
+G 判据    PASS 9 · PART 0 · FAIL 0（assess_goals.py 实测，含 G4 多跳/G8 三类知识隔离/G9 跨会话）
+闸门      13 道全绿：verify_index T1-T13 ALL PASS · check_quality PASS（阴阳双对照）
+          · 4 probes PASS · eval_g1 / eval_g4 / eval_g7 PASS
+suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EXPECTED 非缺陷不入列）
+地址体系  zhouyi · bcv · yilin · booksec · play（幕/场）· euclid（卷/命题）等六类已入索引
+链接      源文印出互见 link 表零悬空，2-hop 可组合（G4）
+质量      quality_report 10 个低覆盖地址全部分类归责；OCR 损坏控制项 卦61上九 持续检出（T11）
+安全      web 层 XSS/SSRF/编码红线 R5-R16 修复 17 commit；remote URL 已无明文 PAT（R17）
+```
+
+**相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：
+
+- Douay-Rheims 已支持（douay.py，R9；APPENDICES 巨型 verse 亦已切分）。
+- tier 2/3 已入索引：play（Shakespeare 幕/场）、euclid、booksec（Herodotus/Darwin）、
+  iliad 双译本（R8 giant-unit 二次切分后 max 全部达标）。
+- `unit.suspect` 列已存在（X-11），且 R17 修正了 6/10 地址误归责（span-*-B 误标在
+  A 作品导致健康文本被 answer 层扣留——L-20 危害类）。
+- G1 概念级检索已覆盖（eval_g1 retrieval_concept PASS）；G4/G8/G9 从未实现变为 PASS。
+- 语料 28→44 部（+术数 8 部：三命通會等；+generality：plato/shakespeare/euclid/
+  herodotus/iliad×2/douay）。
+- 审查-修复循环 R5-R17 共 19 个 fix commit（6 红线级含 huangli 宿锚/ingest 巨型单元/
+  douay 丢行/web XSS escAttr/llm_reader AttributeError/evalset 编码）。
+
+---
+
+## 第三轮实测快照（历史存档，2026-08-13——数字已过时，仅作演进对照；本轮头号发现：bcv 把 10 卷经文挂到别卷地址，已修 U-08/D-022/L-19）
 
 ```
 索引      28 部 → 13,577 单元 · 5.5 秒 · 18.4 MB · 页锚点 100% · provenance 0/28 缺失

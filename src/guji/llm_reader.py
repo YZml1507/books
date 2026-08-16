@@ -224,6 +224,68 @@ def interpret(render_line: str, evidence: list[dict], question: str | None = Non
         raise RuntimeError(f"LLM 响应格式异常：{exc}") from exc
 
 
+RESEARCH_SYSTEM_PROMPT = (
+    "你是古籍研究助理。用户会给你：一个研究问题，以及从古籍语料库检索到的"
+    "原文引文（含出处坐标）。规则：\n"
+    "1. 第一段直接回答问题（1-3 句白话结论），再分条给依据。\n"
+    "2. 回答只能依据给定的引文；引文没有的内容不得编造，不确定就明说"
+    "'语料未涉及'。禁止把模型自己的知识冒充书中原文（G7）。\n"
+    "3. 引用要注明书名（如《周易本義》），不要展示内部检索编号（KR 开头代码）。\n"
+    "4. 若多版本/多注家读法有分歧，如实并列各读法并标各自出处，不裁决孰是。\n"
+    "5. 输出用 markdown：'## ' 分节、'**加粗**'标关键、'- '列要点。\n"
+    "6. 结尾单独一段：'以上为 LLM 生成解读，仅供参考；证据以引文为准。'\n"
+    "7. 不给出医疗/投资/法律等现实决策建议。"
+)
+
+
+def interpret_research(question: str, evidence: list[dict],
+                       comparisons: list[dict] | None = None) -> str:
+    """Research question + corpus evidence -> LLM synthesis (no side effects, no store).
+
+    Same discipline as `interpret`: the caller renders citations from the evidence
+    objects server-side and NEVER trusts citation text produced by the model —
+    AI-generated page numbers are the fake-citation class G2 exists to prevent.
+    `evidence` items are Hit dicts (work_id/title/layer/text/citation/...);
+    `comparisons` are research.py comparison dicts, appended as further context.
+    """
+    cfg = _cfg()
+    if not cfg["key"]:
+        raise RuntimeError("LLM_API_KEY 未配置：设 llm_config.json 或环境变量 LLM_API_KEY")
+    lines = []
+    for i, e in enumerate(evidence, 1):
+        book = e.get("title") or e.get("work_id", "")
+        lines.append(f"[{i}] {book}·{e.get('layer', '')}: {e.get('text', '')[:220]}")
+    parts = ["检索到的古籍原文引文：\n" + ("\n".join(lines) if lines else "无")]
+    if comparisons:
+        cl = []
+        for cmp in comparisons:
+            for f in cmp.get("findings", []):
+                cl.append(f"{cmp.get('addr', '')}：{f.get('line', '')}")
+        if cl:
+            parts.append("多版本差异摘要（系统比对，非模型判断）：\n" + "\n".join(cl[:20]))
+    user = "\n\n".join(parts) + f"\n\n研究问题：{question}"
+    resp = httpx.post(
+        f"{cfg['base'].rstrip('/')}/chat/completions",
+        headers={"Authorization": f"Bearer {cfg['key']}"},
+        json={"model": cfg["model"],
+              "messages": [
+                  {"role": "system", "content": RESEARCH_SYSTEM_PROMPT},
+                  {"role": "user", "content": user},
+              ],
+              "temperature": 0.4, "max_tokens": 1200},
+        timeout=cfg["timeout"],
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        content = data["choices"][0]["message"]["content"]
+        if not isinstance(content, str):
+            raise RuntimeError("LLM 返回 content 非 string（可能拒答）")
+        return content.strip()
+    except (KeyError, IndexError, TypeError, AttributeError) as exc:
+        raise RuntimeError(f"LLM 响应格式异常：{exc}") from exc
+
+
 if __name__ == "__main__":
     print("usage: import from guji.llm_reader — via scripts/ask_bazi.py --llm")
     print("configure: setenv LLM_API_KEY (required); LLM_BASE_URL / LLM_MODEL optional")

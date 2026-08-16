@@ -62,6 +62,7 @@ from guji.bazi_calc import calc_life, calc_range  # noqa: E402
 from guji.bazi_lookup import retrieve_fast, retrieve_semantic  # noqa: E402
 from guji.compare import compare_address  # noqa: E402
 from guji.knowledge import KnowledgeBase  # noqa: E402
+from guji.research import concept_census, research  # noqa: E402
 from guji.search import Corpus  # noqa: E402
 
 app = FastAPI(title="古籍智慧助手（读书 + 八字）", version="0.5.0")
@@ -408,6 +409,91 @@ def api_compare(gua: int, yao: str = "九三", layer: str = "經"):
             "commentary": cmp.commentary,
             "findings": findings,
         }
+    finally:
+        c.close()
+
+
+class AskRequest(BaseModel):
+    q: str = Field(..., min_length=1, max_length=200, description="研究问题/检索词")
+    use_llm: bool = False
+    allow_damaged: bool = False
+    max_addresses: int = Field(3, ge=1, le=6)
+
+
+@app.get("/api/research")
+def api_research(q: str = "", max_addresses: int = 3, allow_damaged: bool = False):
+    """深度研究（R18b）：检索→读地址→扩展的多轮循环，返回证据集 + 步骤链 + 差异摘要。
+
+    确定性算法无 LLM——每步 (action/query/found/kept) 都返回，「链路可展示」（G4）。
+    命中全部位于质量闸门标记区时拒绝（G7），allow_damaged=true 可查看。
+    """
+    q = (q or "").strip()
+    if not q:
+        raise HTTPException(400, "q 不能为空")
+    if not (1 <= max_addresses <= 6):
+        raise HTTPException(400, "max_addresses 需在 1-6")
+    c = Corpus(CORPUS_DB)
+    try:
+        r = research(c, q, max_addresses=max_addresses, allow_damaged=allow_damaged)
+        return {
+            "question": r.question, "refused": r.refused, "reason": r.reason,
+            "steps": r.step_dict(),
+            "evidence": [_hit_dict(h) for h in r.evidence],
+            "flagged": [_hit_dict(h) for h in r.flagged],
+            "comparisons": r.comparisons,
+        }
+    finally:
+        c.close()
+
+
+@app.get("/api/concept")
+def api_concept(q: str = "", per_work: int = 3):
+    """跨书概念研究（R18b）：一个概念词在全部语料的作品级普查 + 同址多见证地图。"""
+    q = (q or "").strip()
+    if not q:
+        raise HTTPException(400, "q 不能为空")
+    per_work = min(max(per_work, 1), 10)
+    c = Corpus(CORPUS_DB)
+    try:
+        return concept_census(c, q, per_work=per_work)
+    finally:
+        c.close()
+
+
+@app.post("/api/ask")
+def api_ask(req: AskRequest):
+    """研究问答（R18b）：/api/research 的证据集 + 可选 LLM 白话综合。
+
+    纪律与 /api/bazi 的 llm 层一致：检索拒绝时不调 LLM（G7 不让模型替语料编造）；
+    引文由服务器从证据对象渲染，LLM 输出独立成字段，不落库不缓存。
+    """
+    q = req.q.strip()
+    if not q:
+        raise HTTPException(400, "q 不能为空")
+    c = Corpus(CORPUS_DB)
+    try:
+        r = research(c, q, max_addresses=req.max_addresses,
+                     allow_damaged=req.allow_damaged)
+        ev = [_hit_dict(h) for h in r.evidence[:12]]
+        resp = {
+            "question": r.question, "refused": r.refused, "reason": r.reason,
+            "steps": r.step_dict(),
+            "evidence": ev,
+            "evidence_citations": [h.citation() for h in r.evidence[:12]],
+            "comparisons": r.comparisons,
+            "llm": None, "llm_error": None,
+        }
+        if r.refused or not ev:
+            return resp
+        if req.use_llm:
+            if not llm_reader.available():
+                resp["llm_error"] = "LLM 未配置（llm_config.json / LLM_API_KEY）"
+            else:
+                try:
+                    resp["llm"] = llm_reader.interpret_research(q, ev, r.comparisons)
+                except RuntimeError as exc:
+                    resp["llm_error"] = str(exc)
+        return resp
     finally:
         c.close()
 

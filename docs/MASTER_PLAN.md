@@ -191,7 +191,7 @@ Concept · Entity · Claim · Interpretation · Evidence
 
 ---
 
-## 6. 三类知识物理隔离（G8，未实现）
+## 6. 三类知识物理隔离（G8，已实现）
 
 ```
 Source Knowledge      来自原文，必须有可匹配的 page_anchor，不可修改
@@ -199,8 +199,14 @@ Derived Knowledge     AI 推导，必须记录推导链与所用 Evidence
 Conversation Memory   用户与 AI 的讨论过程
 ```
 
-目前数据库只有 Source，所以"隔离"是**空真**，判据未达成。这是**结构性缺口**：越晚补越贵，
-理由与 §4 那次教训完全相同——等到要加第二类才发现存不进去。
+**实现状态（2026-08-16 核实，早期版本此处曾写"未实现/空真"，已过时）**：
+Source 在 corpus.db（随构建重建）；Derived/Conversation 在 knowledge.db
+（`knowledge_schema.sql`，**不可重建**——这正是必须两个文件的原因）。
+`src/guji/knowledge.py` 是窄 API，把规则做成调用者绕不过去的约束：
+`record` 拒绝无证据断言（refusal 是唯一例外，G7）；evidence 只能从检索 Hit
+构造（自动携带 file+anchor+地址，无法附着非真实段落）；`verify` 重读
+data/raw 复核每条 quote，证据不再匹配的断言标 STALE 拒绝服务。
+实测：assess_goals G8 = PASS；跨会话研究线程见 `scripts/research_thread.py`（G9）。
 
 ---
 
