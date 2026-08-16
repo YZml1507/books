@@ -3315,3 +3315,33 @@ O1/GOAL_NEXT_SESSION 文档失效模式，D-097b 同族）。
 快照块自测行补 web 22 checks（R53b/R54b 数术+研究端点）；关键变化补
 R50b-R54b 条目。docs-only 抽跑 verify_index + check_quality 全 exit 0，
 基线未动。commit 见台账 §82。
+
+## D-102b R56b 优化轨：PROJECT_ROADMAP 语料行 scheme 分布数字去硬编码（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` §1.1 语料行写
+`bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec 819 · play 774 ·
+euclid 174`，但实测（`SELECT scheme, count(*) FROM unit GROUP BY
+scheme`）为 **bcv 35,787 · play 6,512 · zhouyi 5,088 · yilin 5,032 ·
+None 4,794 · booksec 4,247 · euclid 649，TOTAL 62,109**——booksec
+819→4,247（5.2×）、play 774→6,512（8.4×）、euclid 174→649 严重过时，
+且**漏了 None 4,794 行**（未编址单元，GOAL_NEXT_SESSION §1 快照与
+62,109 总数可交叉验证：57,315 有地址 + 4,794 无地址 = 62,109）。
+根因是文档把 scheme 分布当静态数字硬编码（L-23 教训同族：可被一条
+命令断言的事实，文档应写"以命令为准"）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP §1.1 语料行数字更新为实测分布（booksec 4,247 · play 6,512 · euclid 649 · None 4,794），行尾加"scheme 分布以 `SELECT scheme, count(*) FROM unit GROUP BY scheme` 实测为准"声明 | 纯文档、零代码/零风险；数字与 corpus.db 实测一致、可交叉验证（57,315+4,794=62,109） |
+| B | 前端功能增强 | 9 tab + 记忆闭环 + 22 checks 已全接线，本轮无明确功能缺口 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
+
+**落地结果**（2026-08-17 实测）：PROJECT_ROADMAP.md §1.1 语料行 scheme
+分布更新为实测值（bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec
+4,247 · play 6,512 · euclid 649 · None 4,794 = 62,109），并补"以实测
+为准"声明（照 MASTER_PLAN §4 R39b 先例）。docs-only 抽跑 verify_index
++ check_quality 全 exit 0，基线未动。commit 见台账 §83。

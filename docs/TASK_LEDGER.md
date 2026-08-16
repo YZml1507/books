@@ -3317,3 +3317,36 @@ main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 m
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与台账 §80/§81、
   DECISIONS D-099b/D-100b 一致）。
 - 决策记录：DECISIONS.md D-101b。
+
+## 83. [优化轨] R56b：PROJECT_ROADMAP 语料行 scheme 分布数字去硬编码（2026-08-17，双窗口并行第二轨）
+
+### 83a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托仍待审查轨合入 main（移交项
+维持）。R55b（709779b）已确认在 origin/main。
+
+### 83b. 摸底（逐项亲自核实）
+
+- **前端按钮 handler**：R55b 已核实 8 个研究按钮全接线，无新增缺口。
+- **selftest 端点覆盖**：R53b/R54b 后仅 `/` 与 `/api/external/news`（联网
+  依赖代理，明确排除，D-100b）未覆盖，无剩余确定性缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` §1.1 语料行 scheme
+  分布数字严重过时——实测（`SELECT scheme, count(*) FROM unit GROUP BY
+  scheme`）为 bcv 35,787 · play 6,512 · zhouyi 5,088 · yilin 5,032 ·
+  None 4,794 · booksec 4,247 · euclid 649（TOTAL 62,109），文档却写
+  booksec 819 · play 774 · euclid 174 且漏 None 4,794。booksec 819→4,247
+  （5.2×）、play 774→6,512（8.4×）、euclid 174→649；57,315 有地址 +
+  4,794 无地址 = 62,109 可交叉验证。根因是 scheme 分布被硬编码为静态
+  数字（L-23 教训同族）。
+
+### 83c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：§1.1 语料行 scheme 分布
+  更新为实测值（booksec 4,247 · play 6,512 · euclid 649 · None 4,794），
+  行尾补"scheme 分布以 `SELECT scheme, count(*) FROM unit GROUP BY
+  scheme` 实测为准"声明（照 MASTER_PLAN §4 R39b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：verify_index + check_quality
+  抽跑全 exit 0，基线未动；文档 diff 审阅通过（数字与 corpus.db 实测、
+  GOAL_NEXT_SESSION §1 快照一致）。
+- 决策记录：DECISIONS.md D-102b。

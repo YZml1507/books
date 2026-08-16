@@ -23,7 +23,7 @@
 
 | 能力 | 实现 | 实测状态 |
 |---|---|---|
-| 语料 | 47 部书 / 62,109 单元（R20b 加道家 3 部） | bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec 819 · play 774 · euclid 174 |
+| 语料 | 47 部书 / 62,109 单元（R20b 加道家 3 部） | bcv 35,787 · zhouyi 5,088 · yilin 5,032 · booksec 4,247 · play 6,512 · euclid 649 · None 4,794（scheme 分布以 `SELECT scheme, count(*) FROM unit GROUP BY scheme` 实测为准，R56b 刷新） |
 | 检索 | FTS5 + bge 双路径（`src/guji/search.py`/`bazi_lookup.py`） | eval_g1 100% 命中 |
 | 引用 | 每结果带 文件+页锚点，G2 字符串可核验 | verify_index ALL PASS |
 | 回答 | `answer.py` G7：有据才答，无据拒答 | eval_g7 PASS（FABRICATIONS 0） |
