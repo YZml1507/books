@@ -3552,3 +3552,64 @@ rebase 后 `git diff origin/main..HEAD`：
   diff 实证为空。
 
 - 决策记录：DECISIONS.md D-100a。
+
+## 82. [审查轨] R91a 优化轨 R67b 交叉复审 + rebase（2026-08-17）
+
+接续 R85a（§81）。fetch origin 发现优化轨推进 main 一个新提交
+（a39c3a6 R67b），含数据文件改动（data/catalog/bge_mingli_* 重建 +
+corpus.db/knowledge.db 二进制），**无 .py/.html 代码逻辑改动**——纯数据
+缓存重建。按协议第 4 步启动新一轮审查轨循环。
+
+### 82a. R67b 逐行复审
+
+- **改动**（纯数据文件，no code logic）：
+  - `data/catalog/bge_mingli_docmeta.json`：ids 列表更新（1,545→2,505 ids）
+  - `data/catalog/bge_mingli_docvecs.npy`：向量重建（3.16MB→5.13MB）
+  - `data/index/corpus.db` + `knowledge.db`：二进制，size 不变
+- **背景（亲自核实）**：`src/guji/bazi_lookup.py` 的命理书语义检索
+  （`retrieve_semantic` → `_sem_vecs`）用 bge_mingli 缓存向量，但缓存陈旧：
+  只覆盖 9 部 KR3g 书（1,545 ids），而 MINGLI_WORKS 已扩到 18 部
+  （2,505 units）。ids check 失败导致每次重新编码（minutes-long）。
+- **修复**：重建缓存覆盖全部 18 部 / 2,505 units（实测 214s），smoke-
+  confirmed P2 books 可命中。
+- **审查确认**：纯数据修复、无代码逻辑变化、无新写入面/注入面、
+  修复 R48b-family 静默损坏（缓存陈旧 invisible to gates）。**纪律良好**。
+
+### 82b. rebase origin/main
+
+`git rebase origin/main` 在历史 commit 40bee34（R22a rebase merge）处
+append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行：
+`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R67b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+### 82c. 领土零越界核查
+
+rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空 → **领土零越界确认**。
+- `.gitignore`：无改动。
+
+### 82d. 13 闸门亲跑全绿
+
+rebase 后亲跑 13 闸门确认无回归：
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- check_quality PASS（quality_report.json 生成）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 全 PASS（retrieval/citation/grounded/version/concept 八项）。
+- eval_g4 PASS（yilin 520/490）。
+- eval_g7 PASS（FABRICATIONS 0）。
+
+### 82e. 验证
+
+- 13 闸门亲跑全绿：verify_index ALL PASS（T10 suspect=10 units/5 地址）、
+  check_quality PASS、assess_goals G1-G9 全 PASS、4 probes（conservation/
+  bcv/huangli_shensha/liuyao_najia）全 PASS、eval_g1/g4/g7 全 PASS。
+- 交叉复审结论：优化轨 R67b 一提交**纪律良好**——bge_mingli 语义向量
+  缓存重建（纯数据文件），无代码逻辑变化，修复 R48b-family 静默损坏。
+  **领土零越界**。
+
+- 决策记录：DECISIONS.md D-101a。

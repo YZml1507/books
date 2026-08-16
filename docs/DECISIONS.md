@@ -3146,3 +3146,24 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 本轮无代码变更，13 闸门状态延续 R82a 全绿基线（suspect=10 units/5 地址），
   未重跑（协议第 3 步纯文档轮不触发新循环）。
+
+## D-101a R91a 审查轨：优化轨 R67b 交叉复审 + rebase 无红线（2026-08-17）
+
+- **接续 R85a**：fetch 发现优化轨推进 main 一提交（a39c3a6 R67b），含数据
+  文件改动（data/catalog/bge_mingli_* 重建 + corpus.db/knowledge.db 二进制），
+  **无 .py/.html 代码逻辑改动**——纯数据缓存重建。按协议第 4 步启动新一轮
+  审查轨循环。
+- **R67b 复审**：bge_mingli 语义向量缓存陈旧修复——缓存只覆盖 9 部 KR3g
+  书（1,545 ids），而 MINGLI_WORKS 已扩到 18 部（2,505 units）。重建缓存
+  覆盖全部 18 部 / 2,505 units（实测 214s），smoke-confirmed P2 books 可
+  命中。纯数据修复、无代码逻辑变化、无新写入面/注入面、修复 R48b-family
+  静默损坏（缓存陈旧 invisible to gates）。**纪律良好**。
+- **rebase**：`git rebase origin/main` 在历史 commit 40bee34（R22a rebase
+  merge）处 append-only docs/ 冲突。按用户指令"冲突取 --theirs"执行
+  `git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R67b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
