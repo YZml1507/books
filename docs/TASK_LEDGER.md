@@ -1737,3 +1737,21 @@ check_quality PASS · verify_index ALL PASS · 13 闸门全绿
 13 闸门全绿：verify_index ALL PASS · check_quality PASS
 
 - 决策记录：DECISIONS.md D-058（R12 审查：answer/history 假阳性/已核验，external XSS 属性逃逸红线修复 escAttr）
+
+### 38d. R12 续修：external SSRF 防护 + 响应大小上限 4MB（commit 9ba73ec）
+
+**缺陷1（SSRF）**：`_fetch_bytes` 无 URL 校验，file:///、内网/元数据地址可达
+- 攻击向量：file:///etc/passwd、http://169.254.169.254/metadata（云元数据）、http://127.0.0.1/admin、http://localhost/secret、http://192.168.1.1/router、http://10.0.0.1/internal、http://172.16.0.1/private
+
+**修复1**：URL scheme 白名单（仅 http/https）+ 内网/元数据地址拒绝
+- 169.254.169.254（云元数据）、127./10./192.168./172.16-31 私网段、localhost、0.0.0.0 全拒绝
+
+**缺陷2（DoS）**：`resp.read()` 无上限，恶意超大源可耗尽内存
+
+**修复2**：`MAX_RESPONSE_BYTES=4MB`（feed 正常<100KB，恶意源不致耗尽）
+
+**验证**：
+- file:/// → 拒绝（非法 scheme）✓
+- 169.254.169.254 → 拒绝（元数据）✓
+- 127.0.0.1/localhost/192.168/10.0/172.16 → 全拒绝 ✓
+- 13 闸门全绿：verify_index ALL PASS · check_quality PASS
