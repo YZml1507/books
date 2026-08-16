@@ -91,7 +91,12 @@ def jdn(y: int, m: int, d: int) -> int:
 
 
 def gregorian(jd: int) -> tuple[int, int, int]:
-    """儒略日数 -> 公历 (y, m, d)。"""
+    """儒略日数 -> 公历 (y, m, d)。Fliegel–Van Flandern 逆变换。
+
+    R6 审查发现此函数原实现返回 F-V 公式的"三月年坐标系中间量"
+    (年偏高 ~4799、月偏 9-11)，是 jdn() 文档声称的逆函数地雷。
+    修复：采用标准 Fliegel–Van Flandern 逆变换公式。
+    """
     j = jd + 32044
     g = j // 146097
     dg = j % 146097
@@ -104,7 +109,11 @@ def gregorian(jd: int) -> tuple[int, int, int]:
     y = g * 400 + c * 100 + b * 4 + a
     m = (da * 5 + 308) // 153 - 2
     d = da - (m + 4) * 153 // 5 + 122
-    return y, m - 12 * (m > 12), d + 1
+    # F-V 公式的 y/m 是三月年坐标系中间量，需转回真实公历
+    year = y - 4800 + m // 10
+    month = m + 3 - 12 * (m // 10)
+    day = d + 1
+    return year, month, day
 
 
 # --------------------------------------------------------------------------------------
