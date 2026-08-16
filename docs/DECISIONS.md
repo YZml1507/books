@@ -3008,3 +3008,32 @@ diff 审阅。
 误判。移交项：main 侧 assess_goals.py 仍为内联版，待审查轨合入其委托
 commit。docs-only 抽跑 verify_index + check_quality 全 exit 0。
 commit 见台账 §71。
+
+## D-091b R45b 优化轨：web「长期研究」续接——recordThread 绑定线程（愿景 §8/§9）
+
+**背景（亲自核实）**：愿景 §8/§9 的"长期研究"要求同一线程跨会话积累结论
+（"你还记得之前我们讨论的乾卦吗"→恢复哪本书/哪些结论/哪些证据）。实测
+web 侧没实现续接：`recordThread`（index.html 第 1194 行）body 只发
+{kind, claim, method, evidence}——**从不传 thread_id**，所有经 web 记入的
+claim 都是游离的（thread_id=None），只有 CLI demo 线程有绑定 claim
+（derived 1/2 → thread 1）。后端 `POST /api/threads` 自 R34b 起就接受
+thread_id（web/app.py 第 456/652 行），前端没用上——R34b/R35b/R41b 的记忆
+闭环缺"绑定既有线程续接研究"这一段。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ①`viewThread` 结果区加「在此线程续接研究」按钮：记 `currentThreadId` → switchRsec 到深度研究；②`recordThread` 若 currentThreadId 有值则带 `thread_id` 绑定既有线程（否则照旧新建）；③记入成功后 loadThreads 已自动刷新（R41b） | 纯前端、复用既有后端参数（零后端改动），风险低；直接兑现 §8/§9 长期研究续接 |
+| B | 文档轮 | R43b 刚刷过 PROJECT_STATUS，无明确欠账 |
+| C | 评估扩展（O8） | scripts/ 属审查轨领土，跳过 |
+
+选 A。落地后：JS 语法检查（node --check）、冒烟（POST /api/threads 带
+thread_id 绑定既有线程断言）、13 闸门全绿。
+
+**落地结果**（2026-08-17 实测）：前端 `currentThreadId` + viewThread「在此
+线程续接研究」按钮（resumeThread 切到深度研究）+ `recordThread` 带 thread_id
+绑定既有线程。冒烟 PASS：POST /api/threads 带 thread_id=1 → 返回 thread_id=1、
+GET /api/threads/1 读回含绑定 claim、测试行清理（R34b 教训内置）。
+JS 语法检查 + sources/bookstudy/research/mcp 自测 + 13 闸门全绿。
+commit 见台账 §72。

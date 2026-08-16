@@ -1061,6 +1061,7 @@ $('#rcompareBtn').addEventListener('click', async () => {
 /* ---- 读书（R23b Book Study）：结构地图 → 章节阅读 ---- */
 let bsLast = null;   // last /api/bookstudy/structure response, for section clicks
 let lastResearch = null, lastQ = '';   // R34b 记入线程：最近一次深度研究结果/问题
+let currentThreadId = null;   // R45b 长期研究续接：viewThread「在此线程续接研究」设置的绑定目标线程
 async function loadBookWorkOptions(){
   const box = $('#bswork');
   try{
@@ -1189,9 +1190,12 @@ async function recordThread(kind, method){
   if (!claim){ alert('缺少结论文本（请先执行一次研究）'); return; }
   if (!ev.length){ alert('该结果无可核验证据，无法记入（G8 纪律：断言必须带证据）'); return; }
   try{
+    const body = {kind, claim, method, evidence: ev};
+    // R45b：绑定既有线程续接研究（viewThread「在此线程续接研究」设置 currentThreadId）
+    if (currentThreadId != null) body.thread_id = currentThreadId;
     const r = await fetch('/api/threads', {method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({kind, claim, method, evidence: ev})});
+      body: JSON.stringify(body)});
     const j = await r.json();
     if (!r.ok){ alert('记入线程失败：' + (j.detail || r.status)); return; }
     alert(`已记入线程 #${j.thread_id ?? '（新）'}（derived #${j.derived_id}，${j.n_evidence} 条证据）`);
@@ -1355,9 +1359,19 @@ async function viewThread(tid){
     });
     if (!(j.claims||[]).length) html += '<div class="no-evidence">本线程尚无记录结论</div>';
     html += `<div class="thread-meta" style="margin-top:10px;">证据回查：ok=${esc(String(j.verify && j.verify.ok))} stale=${esc(String(j.verify && j.verify.stale))}</div>
-      <div class="thread-actions"><button class="thread-view" onclick="loadThreads()">返回列表</button></div>`;
+      <div class="thread-actions">
+        <button class="thread-view" onclick="resumeThread(${tid})">在此线程续接研究</button>
+        <button class="thread-view" onclick="loadThreads()">返回列表</button></div>`;
     box.innerHTML = html;
   }catch(ex){ box.innerHTML = `<div class="no-evidence">加载失败：${esc(ex.message)}</div>`; }
+}
+
+/* R45b：在既有线程上续接研究——后续「记入线程」绑定到该线程 */
+function resumeThread(tid){
+  currentThreadId = tid;
+  switchRsec('rsec-research');
+  $('#dq').focus();
+  alert(`已切换到深度研究，接下来的「记入线程」将写入线程 #${tid}（长期研究续接）`);
 }
 
 loadWorks();

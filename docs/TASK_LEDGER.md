@@ -2972,3 +2972,33 @@ audit=28044b4f），但与优化轨 R38b/R39b 无关——那两轮是纯文档�
 审查轨分支，待审查轨将其合入 main（scripts/ 属审查轨领土，优化轨不做）。
 
 - 决策记录：DECISIONS.md D-090b。
+
+## 72. [优化轨] R45b：web「长期研究」续接——recordThread 绑定线程（2026-08-17，双窗口并行第二轨）
+
+### 72a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b434786` R24a 复审），
+main 无审查轨改动，无 rebase 需求。
+
+### 72b. 长期研究续接（愿景 §8/§9：同一线程跨会话积累结论）
+
+- **缺口核实**：愿景 §8/§9 要求"你还记得之前我们讨论的乾卦吗"式续接——
+  恢复哪本书/哪些结论/哪些证据。实测 web 侧没实现：`recordThread`（index.html
+  第 1194 行）body 只发 {kind, claim, method, evidence}，**从不传 thread_id**，
+  所有经 web 记入的 claim 都游离（thread_id=None）；后端 POST /api/threads
+  自 R34b 起就接受 thread_id（web/app.py 第 456/652 行），前端没用上。
+- **改动**（纯前端 index.html）：
+  1. `currentThreadId` 全局变量；
+  2. `viewThread` 结果区加「在此线程续接研究」按钮 → `resumeThread(tid)`：
+     记 currentThreadId → switchRsec 到深度研究 → #dq 聚焦；
+  3. `recordThread`：currentThreadId 有值时 body 带 thread_id 绑定既有线程
+     （否则照旧新建）；记入成功后 loadThreads 自动刷新（R41b 已就位）。
+
+### 72c. 验证
+
+JS 语法检查（node --check）PASS；冒烟 PASS（POST /api/threads 带 thread_id=1
+→ 返回 thread_id=1、GET /api/threads/1 读回含绑定 claim #3、测试行清理——
+R34b 教训内置清理）；sources/bookstudy/research/mcp 自测 PASS；13 闸门全绿
+（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-091b。
