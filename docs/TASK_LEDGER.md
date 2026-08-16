@@ -2880,3 +2880,34 @@ JS 语法检查（node --check）PASS；sources/bookstudy/research/mcp 自测
 PASS；13 闸门全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
 
 - 决策记录：DECISIONS.md D-087b。
+
+## 69. [优化轨] R42b：MCP threads 工具补 claims/evidence 读回（2026-08-16，双窗口并行第二轨）
+
+### 69a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ec38d2b` R23a 复审 +
+`b3f5f2b` 台账合并），main 无审查轨改动，无 rebase 需求。
+
+### 69b. Agent 记忆闭环读回侧补齐（愿景 §8/§9/§11）
+
+- **缺口核实**：R36b 给 MCP 加了 record_claim_tool（写），但读回侧仍是旧的
+  ——`threads(tid)` 只返回对话 turns，不返回 derived claims + evidence；而
+  web 的 `GET /api/threads/{tid}` 返回 turns + claims（含 evidence 逐条）+
+  verify。外部 Agent 经 MCP 记入 claim 后无法读回该 claim 及其证据——记忆
+  闭环"写有读无"，比 web 弱一截。
+- **改动**（src/guji/mcp_server.py）：
+  1. `threads(tid)`：turns 后追加 "=== derived claims ===" 段（复用
+     kb.get(derived_id)，与 web 端点同构：kind/claim/method/confidence +
+     每条 evidence 的 role/work_id/page_anchor/file/quote）；
+  2. `record_claim_tool` 增 `thread_id` 参数（绑定既有线程，与 web POST
+     /api/threads 对齐——否则 claim 游离于线程之外，读回不可达）；
+  3. 协议自测补写→读回闭环：合法写入绑定 thread 1 → `threads(1)` 断言
+     读回含该 claim；测试行照例清理（R34b 教训）。
+
+### 69c. 验证
+
+MCP 协议自测 PASS（12 工具 + record_claim_tool 合法/拒绝 + threads(1) 读回
+含新 claim + 测试行清理）；sources/bookstudy/research 自测 PASS；13 闸门
+全绿（14 命令全 exit 0，G1–G9 PASS 9 · PART 0 · FAIL 0）。
+
+- 决策记录：DECISIONS.md D-088b。

@@ -167,7 +167,9 @@ def research_tool(q: str, max_addresses: int = 3,
 @mcp.tool()
 def threads(tid: int | None = None) -> str:
     """G9 research threads: list resumable threads (topic + claims), or when
-    tid is given, the full transcript of that thread."""
+    tid is given, the full transcript of that thread PLUS its derived claims
+    with evidence (R42b — read-back side of the record_claim_tool write,
+    mirroring web GET /api/threads/{tid})."""
     kb = KnowledgeBase(KNOWLEDGE_DB)
     try:
         if tid is None:
@@ -178,7 +180,23 @@ def threads(tid: int | None = None) -> str:
         turns = kb.thread_transcript(tid)
         if not turns:
             return f"(thread {tid} not found or empty)"
-        return "\n".join(f"{t['role']}: {t['text'][:400]}" for t in turns)
+        out = [f"{t['role']}: {t['text'][:400]}" for t in turns]
+        claims = kb.db.execute(
+            "SELECT id FROM derived WHERE thread_id=? ORDER BY id", (tid,))
+        if claims:
+            out.append("=== derived claims ===")
+            for row in claims:
+                d = kb.get(row["id"])
+                if d is None:
+                    continue
+                out.append(f"- [{d.kind}] {d.claim} "
+                           f"(method: {d.method}"
+                           + (f", conf: {d.confidence}" if d.confidence else "")
+                           + ")")
+                for e in d.evidence:
+                    out.append(f"    ev {e.role} {e.work_id} @{e.page_anchor or '?'} "
+                               f"({e.file}): {e.quote[:100]}")
+        return "\n".join(out)
     finally:
         kb.close()
 
@@ -186,13 +204,16 @@ def threads(tid: int | None = None) -> str:
 @mcp.tool()
 def record_claim_tool(kind: str, claim: str, method: str,
                       evidence: list[dict] | None = None,
-                      confidence: str | None = None) -> str:
+                      confidence: str | None = None,
+                      thread_id: int | None = None) -> str:
     """G9 record a derived claim into a research thread (R36b, 愿景 §8/§9).
     G8 discipline verbatim from knowledge.record: asserting kinds
     (summary/diff/link/answer) REQUIRE at least one evidence entry with a real
     work_id/file/quote — a claim without provenance is refused; kind='refusal'
     is exempt (G7: 「证据不足」 is itself a valid finding). Each evidence dict:
     {work_id, file, quote, page_anchor?, scheme?, addr1?, addr2?, role?}.
+    thread_id: bind to an existing thread (see `threads` for the list) so the
+    claim shows up in that thread's readback; omit to leave it standalone.
     Returns the derived_id / thread_id summary, or an error: text."""
     from .knowledge import Evidence  # noqa: E402
 
@@ -209,7 +230,8 @@ def record_claim_tool(kind: str, claim: str, method: str,
                 addr1=e.get("addr1"), addr2=e.get("addr2"),
                 role=str(e.get("role") or "supports")))
         try:
-            did = kb.record(kind, claim, method, ev, confidence=confidence)
+            did = kb.record(kind, claim, method, ev, confidence=confidence,
+                            thread_id=thread_id)
         except ValueError as exc:
             return f"error: {exc}"
         row = kb.db.execute(
@@ -402,6 +424,7 @@ if __name__ == "__main__":
             ("record_claim_tool", {"kind": "summary",
                                    "claim": "协议自测：無爲在老子中可核验的引文",
                                    "method": "mcp-selftest",
+                                   "thread_id": 1,
                                    "evidence": [{"work_id": "KR5c0057",
                                                  "file": "KR5c0057_043.txt",
                                                  "quote": "第四十三章 天下之至柔",
@@ -427,6 +450,16 @@ if __name__ == "__main__":
             else:
                 assert "error" not in content.lower(), (name, content)
             print(f"[selftest] tools/call {name} -> {len(content)} chars OK")
+        # R42b round trip: the claim written above (bound to thread 1) must
+        # show up in threads(1)'s readback
+        send({"jsonrpc": "2.0", "id": 99, "method": "tools/call",
+              "params": {"name": "threads", "arguments": {"tid": 1}}})
+        resp = recv()
+        content = "".join(c.get("text", "") for c in resp["result"].get("content", []))
+        assert "=== derived claims ===" in content, content
+        assert "無爲在老子中可核验的引文" in content, \
+            "threads(tid) readback must include the just-recorded claim"
+        print("[selftest] threads(1) readback -> claims present OK")
         proc.stdin.close()
         proc.wait(timeout=15)
         assert proc.returncode == 0, f"subprocess exit {proc.returncode}"

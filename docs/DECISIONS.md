@@ -2915,3 +2915,31 @@ claim），要手动刷新整页才能看到——R34b/R35b 的记忆闭环缺�
 ——记入线程后立即重取研究线程列表（幂等、只读），消除"记了切 tab 看不到"
 的 UX 缺口（R34b/R35b 记忆闭环收尾）。JS 语法检查 + sources/bookstudy/
 research/mcp 自测 + 13 闸门全绿。commit 见台账 §68。
+
+## D-088b R42b 优化轨：MCP threads 工具补 claims/evidence 读回（Agent 记忆闭环对齐 web）
+
+**背景（亲自核实）**：R36b 给 MCP 加了 `record_claim_tool`（写），但读回侧
+仍是旧的：`threads(tid)` 只返回对话 turns（`thread_transcript`），**不返回
+derived claims + evidence**；而 web 的 `GET /api/threads/{tid}` 返回 turns +
+claims（含 evidence 逐条 role/work_id/file/page_anchor/quote）+ verify（第
+616-624 行）。`knowledge.get(derived_id)`（第 133 行）已存在。结果：外部
+Agent 经 MCP 记入一条 claim 后，无法经 MCP 读回该 claim 及其证据——记忆
+闭环"写有读无"，比 web 弱一截（愿景 §8/§9：跨会话恢复应含"何结论/何证据"）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 扩展 `threads(tid)`：在 turns 后追加 claims 段（复用 kb.get(derived_id)，与 web 端点同构：kind/claim/method/confidence/evidence 列表） | 复用已测内核、纯扩展既有工具、风险低；直接对齐 web 读回能力 |
+| B | 文档轮（如 PROJECT_STATUS 刷新） | R30b/R33b/R37b/R38b/R39b 已多轮文档，连续文档轮杠杆低 |
+| C | 评估扩展（O8 跨书/版本意识 eval） | scripts/ 属审查轨领土，跳过并记录 |
+
+选 A。落地后：MCP 协议自测补 1 例（record_claim_tool 写 → threads(tid)
+读回含 claim）、13 闸门全绿。
+
+**落地结果**（2026-08-16 实测）：`threads(tid)` 追加 "=== derived claims ==="
+段（kb.get 复用，kind/claim/method/confidence + evidence 逐条）；`record_claim_tool`
+增 thread_id 参数（绑定既有线程，与 web 对齐）。协议自测写→读回闭环通过：
+合法写入绑定 thread 1 → `threads(1)` 读回含该 claim → 测试行清理。
+MCP 协议自测 PASS + sources/bookstudy/research 自测 + 13 闸门全绿。
+commit 见台账 §69。
