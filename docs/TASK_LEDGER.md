@@ -1366,3 +1366,50 @@ probe_liuyao_najia 7 PASS · probe_huangli_shensha PASS
 .\.venv\Scripts\python.exe probes\probe_liuyao_najia.py     # 7 PASS
 .\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.liuyao import changing_hexagram;print(changing_hexagram(1,1,1,1,1,0))"  # 应输出 44（姤）
 ```
+
+## 31. 阶段2-R5 再审查（2026-08-16，R4 闭环后第四轮再审查）
+
+**纪律**：R5 闸门实机重跑 13 道全绿（不轻信 R4 结论）。派 3 个 explore 子 agent 并行审查 huangli/bazi_calc/web 三个核心模块，子 agent 结论一律当"待复验"，亲自跑命令核实。
+
+### 31a. R5 闸门实机重跑（零回退）
+```
+check_quality PASS · build_index works=44 units=52,091 · verify_index ALL PASS
+probe_conservation 7621 units 0 越界 · assess_goals G1-G9 全 PASS
+eval_g1/g4/g7 PASS · probe_bcv control cases PASS · probe_g8_isolation PASS
+probe_booksec PASS · validate_alignment exit 0 · check_provenance exit 0
+probe_liuyao_najia 7 PASS · probe_huangli_shensha PASS
+```
+
+### 31b. R5 子 agent 审查结论复验（推翻 2 条 P0 假阳性）
+
+子 agent 标记 3 条 P0 缺陷，亲自复验后**推翻 2 条、确认 1 条**：
+
+| 子 agent 声称 | 亲自复验结论 | 处置 |
+|---|---|---|
+| `web/app.py:29` 缺 `timedelta` import → `/api/huangli` 500 | **假阳性**：line 29 `from datetime import date, datetime, timedelta` 有 import，实测 `end = dt + timedelta(...)` 正常运行 | 不修，记录假阳性 |
+| `/api/search` FTS5 特殊字符（`NOT 乾`/`甲"乙`）→ 500 | **假阳性**：`Corpus.search` 实测 `NOT 乾`→0 hits、`甲"乙`→3 hits，无异常无崩溃 | 不修，记录假阳性 |
+| `huangli.py:130` 二十八宿锚点 `_XIU_ANCHOR_JDN=2415081` 错（差30天） | **确认红线级**：`jdn(1900,1,31)=2415051≠2415081`，注释声称角宿但 wnl.cc 权威=室宿，全部28宿偏移2位 | 修复（见 31c） |
+
+### 31c. R5 发现并修复：huangli 二十八宿锚点错30天 + 天德/月德临日死代码（commit 04e6f2d）
+
+**缺陷1（二十八宿锚点）**：
+- `_XIU_ANCHOR_JDN=2415081`，但 `jdn(1900,1,31)=2415051`，差30天
+- 注释声称 1900-01-31=角宿，权威核实 wnl.cc 万年历=室宿（室火猪）
+- 当前 `xiu_value(1900-01-31)` 返回翼(index 26)，正确应室(index 12)
+- 全部 28 宿偏移 30 mod 28 = 2 个宿位
+- **修复**：`_XIU_ANCHOR_JDN=2415051`, `_XIU_ANCHOR_OFFSET=12`
+- **验证**：1900-01-31=室✓ 1900-02-16=角✓ 逐日轮转正确✓
+
+**缺陷2（天德/月德临日死代码）**：
+- `shensha_yiji` 用 `yuede(dt)==zhi` 拿天干（丙/壬/甲/庚）比日支→永假，月德临日宜忌永不触发
+- 天德混排干/支，代码只比日支→8个月（正/三/四/六/七/九/十/腊月）失效
+- **修复**：月德临日 `gan==yuede(dt)`；天德临日 `gan==td or zhi==td`
+- **验证**：2026-08-16 gan=壬 yuede=壬 月德临日=True✓
+
+### 31d. R5 复验命令
+```
+.\.venv\Scripts\python.exe probes\probe_huangli_shensha.py    # PASS
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.huangli import xiu_value;from datetime import datetime;print(xiu_value(datetime(1900,1,31)))"  # 应输出 室
+.\.venv\Scripts\python.exe -c "import sys;sys.path.insert(0,'src');from guji.huangli import shensha_yiji;from datetime import datetime;print(shensha_yiji(datetime(2026,8,16)))"  # 月德临日触发
+```
+- 决策记录：DECISIONS.md D-050（二十八宿锚点修复+天德月德临日死代码修复+子 agent 假阳性2条）
