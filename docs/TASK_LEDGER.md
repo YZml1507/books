@@ -6119,3 +6119,46 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-170b。
+
+## 152. [优化轨] R125b：文档滞后——web standing checks 数 40→45 未同步（R124b +5 错误路径断言，L-23 同族，与 R116b/R120b/R122b 同族）（2026-08-17）
+
+### 152a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R124b（0c085df）已确认在 origin/main。
+
+### 152b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **45 checks**（R124b 末态，含五条 err.* 错误路径断言）。
+- **文档滞后点（本轮选定）**：R122b 已把 checks 数同步到 40，但 R124b
+  新增错误路径断言组（err.addr.scheme/err.liuyao.method/err.hehun.year/
+  err.bazi.year/err.qiming.surname，40→45），web --selftest 现 45
+  checks；GOAL_NEXT_SESSION.md :52/:90/:98 与 PROJECT_STATUS.md :41
+  仍写 "40 checks"（R122b 标注）——checks 数又滞后（L-23 同族：可被
+  命令断言的事实硬编码且漏同步；与 R116b/R120b/R122b 同族，每轮断言
+  轮后需同步）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）——无明确缺口。
+- **方案比对**：A checks 数 40→45 文档对齐（选定）；B 只改
+  GOAL_NEXT_SESSION 不动 PROJECT_STATUS（数字不一致）；C 前端体验/
+  质量性能层（无缺口）——见 D-171b。
+
+### 152c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：
+  - `docs/GOAL_NEXT_SESSION.md`：:52 会话表、:90 自测注释、:98 快照
+    标签三处 "40 checks" → "45 checks" 并补 "R124b +5（错误路径断言
+    err.*）"。
+  - `docs/PROJECT_STATUS.md`：:41 自测行 "40 checks" → "45 checks"
+    并补 R124b 出处。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 45
+  checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
+  45 checks 及 R124b err.* 断言一致）。
+- 决策记录：DECISIONS.md D-171b。
