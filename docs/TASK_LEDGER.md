@@ -5399,3 +5399,46 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `b57d095`
   审阅通过（Darwin=[] 与 work 表实测及台账 §1062/§1273、GOAL.md T7-f
   一致）。
 - 决策记录：DECISIONS.md D-154b。
+
+## 136. [优化轨] R109b：GOAL.md §4b "三件事"段第 1 条仍按待办引用 T1 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 136a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a：
+吸收优化轨 R106b docs-only rebase；未动 scripts/assess_goals.py 的
+raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞核实：main 与 audit 两侧 assess_goals.py 均未修（§2a 描述准确，
+维持）。R108b（01efd95）已确认在 origin/main，无 rebase 需求。
+
+### 136b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **§4b "三件事"段 T1 逐项核实**（命令实测/台账对照）：T1 评测集 DONE
+  （eval_g1 248 题 PASS 246/248，R101b）；"每类 5 题最小可运行版本"
+  是 R18b 前起步建议，题库已扩至 248 题。
+- **活引用扫描**：R75b-R108b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4b"三件事"段第 1 条
+  "**T1 是设计密度最高的一项，而且排第一。** …先做**最小可运行版本**
+  （每类 5 题，跑通 `eval_g1.py`…）"仍按**待办**引用 T1，但 T1 已
+  完成——R107b 标注了任务量段、R106b 标注了建议节奏段，**"三件事"段
+  第 1 条漏标**，新会话照 §4b 第 1 条会误以为 T1 仍待做最小版起步
+  （O1 文档失效模式，L-23 同族；与 R107b/R106b 同族，中间段漏标）。
+  第 2/3 条是工作纪律（撞红线跳过并记录、及时写台账），非状态断言，
+  无需标注。
+
+### 136c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§4b "三件事"段第 1 条划线并补注
+  "R109b 标注：T1 已 DONE——eval_g1 248 题 PASS 246/248（R101b 标注）；
+  '每类 5 题最小版'为 R18b 前起步建议，勿按'待办'引用"（照
+  D-153b/D-152b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（T1 处置证据与命令实测/台账/R101b 标注一致）。
+- 决策记录：DECISIONS.md D-155b。
