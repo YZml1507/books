@@ -4394,3 +4394,43 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   审阅通过（R78b 与 `git show dfe1052 -- docs/PROJECT_STATUS.md` 实测
   一致）。
 - 决策记录：DECISIONS.md D-130b。
+
+## 112. [优化轨] R85b：GOAL_NEXT_SESSION §1 快照标签轮次语义未随 PROJECT_STATUS R78b 同步 → 补注（2026-08-17，双窗口并行第二轨）
+
+### 112a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R84b（5a6946b）已确认在 origin/main。
+
+### 112b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web 24 checks / MCP 12
+  工具（@mcp.tool 实测 12）一致；suspect 10 单元 / 5 地址与快照块一致；
+  bge_mingli_docmeta ids 2,505 = MINGLI_WORKS 18 部实际单元数 2,505
+  （R67b 缓存一致性复验通过）；sources/bookstudy/research 自测 PASS。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、LESSONS/TASK_LEDGER/
+  PROJECT_STATUS 头部（R82b/R83b/R84b 已修）均无残留；DECISIONS.md
+  残留旧数均为历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R84b 已把 PROJECT_STATUS 头部同步到 R78b，
+  但 `docs/GOAL_NEXT_SESSION.md` §1 快照标签仍写"R69b 终态"且未说明与
+  R78b 的关系——两个接续文档头部轮次落差变大（R69b vs R78b），新会话
+  同时读两份文档会误判 GOAL_NEXT_SESSION 滞后（O1 文档失效模式，L-23
+  同族；R76b 判定该标签非缺口时 PROJECT_STATUS 头部为 R70b 落差小，
+  R84b 后落差扩大）。快照块内容本身仍准确，但标签未标注"R70b–R84b
+  均为 docs-only 对齐轮、功能终态维持 R69b"。
+
+### 112c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§1 快照标签补注
+  "R85b 补注：R70b–R84b 均为 docs-only 对齐轮、功能终态维持 R69b；
+  PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b"——
+  补注而非改标签轮次（功能终态确为 R69b，docs-only 轮不虚构功能改动）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（补注与 PROJECT_STATUS 头部 R78b / D-130b 一致）。
+- 决策记录：DECISIONS.md D-131b。

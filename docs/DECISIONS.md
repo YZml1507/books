@@ -4173,3 +4173,30 @@ D-119b 确立的规则（头部时间戳 = 快照块实际内容最新轮次）�
 选 A（照 D-119b 先例只同步时间戳，标注实际修改轮次，不虚构轮次）。
 落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
 diff 审阅。
+
+## D-131b R85b 优化轨：GOAL_NEXT_SESSION §1 快照标签轮次语义未随 PROJECT_STATUS R78b 同步 → 补注（文档对齐）
+
+**背景（亲自核实）**：R84b 已把 `docs/PROJECT_STATUS.md` 头部时间戳同步
+到 R78b（快照块行 19 由 R78b 修改），但 `docs/GOAL_NEXT_SESSION.md` §1
+快照标签仍写"**当前（R69b 终态，13/13 全过 + 五层自测全齐；web 自测
+24 checks，R53b/R54b 补端点、R61b 补首页 /、R69b 补 bazi.semantic）**"，
+且未说明该标签与 PROJECT_STATUS 头部 R78b 的关系——两个接续文档头部
+轮次落差变大（R69b vs R78b），新会话同时读两份文档时会误判
+GOAL_NEXT_SESSION 滞后（O1 文档失效模式，L-23 同族；R76b 曾判定该标签
+非缺口，当时 PROJECT_STATUS 头部为 R70b 落差小，R84b 后落差扩大）。
+实测快照块内容本身仍准确（24 checks / 62,109 单元 / PASS 9 全绿，
+本窗口逐项复验），但"R69b 终态"标签未标注"R70b–R84b 均为 docs-only
+对齐轮、功能终态维持 R69b"——新会话据此会以为功能停在 R69b 之后未
+维护。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §1 快照标签补注："（R69b 功能终态；R70b–R84b 均为 docs-only 对齐轮，PROJECT_STATUS 头部 R78b 指快照块内容轮次——见 D-119b/D-130b）" | 纯文档、零代码/零风险；与 PROJECT_STATUS 头部 R78b / D-130b 一致，防新会话误判 GOAL_NEXT_SESSION 滞后 |
+| B | 只改 PROJECT_STATUS 不动 GOAL_NEXT_SESSION | 两文档轮次语义落差未说明，误判延续 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（补注而非改标签轮次：功能终态确为 R69b，docs-only 轮不虚构功能
+改动）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
