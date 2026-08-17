@@ -4884,3 +4884,44 @@ R95b（3018e07）已确认在 origin/main，无 rebase 需求。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（目录名与 `ls .atomcode/sessions/` 实测一致）。
 - 决策记录：DECISIONS.md D-142b。
+
+## 124. [优化轨] R97b：GOAL_NEXT_SESSION §0a sessionID 回溯表缺本窗口行 → 补行（2026-08-17，双窗口并行第二轨）
+
+### 124a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `adb3a5f`
+（R97a：吸收优化轨 R94b docs-only rebase，gates green；此前
+`9645666` R96a）。核实未动 scripts/assess_goals.py（R21a 委托与
+R64b G9 SCOPE 移交项维持，待审查轨合入 main，非本轨领土）。
+R96b（04823bb）已确认在 origin/main，无 rebase 需求。
+
+### 124b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **knowledge.db 计数复验**（命令实测）：derived=2 / evidence=6 /
+  thread=1——与 R64b 移交项引用一致，非缺口。
+- **活引用扫描**：R75b-R96b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R96b 补了 GOAL_NEXT_SESSION §0a 的会话
+  jsonl **路径注记**（含本窗口目录 1ae2121e85ce8e84），但 **sessionID
+  回溯表未补本窗口行**——表格最新行仍是 `3d8bab44-30fc-4a4d-9584-
+  7372f78e8f2b`（2026-08-15，上一窗口）；本窗口 sessionID
+  `ab629b12-3cf7-4d09-bedf-3892431f8e60`（2026-08-17，握手信息指明，
+  路径注记已含）未入表。新会话照 §0a 表格回溯（"可回溯的 sessionID
+  从近到远"）会漏掉本窗口——本窗口是最新、最可能被 grep 的记录（O1
+  文档失效模式，L-23 同族：R96b 只处置了路径注记一半，表格行漏补；
+  D-142b 同族残留）。
+
+### 124c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：sessionID 回溯表补
+  本窗口行：`ab629b12-3cf7-4d09-bedf-3892431f8e60` | 2026-08-17 |
+  本窗口（R75b-R97b 优化循环 23 轮 docs-only，基线全绿 47 部 62,109
+  单元 / G1–G9 PASS 9 / 24 checks，最新 commit 见台账 §123），D-142b
+  补完。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（sessionID 与握手信息/路径注记一致）。
+- 决策记录：DECISIONS.md D-143b。
