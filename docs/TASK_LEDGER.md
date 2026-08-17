@@ -1,6 +1,6 @@
 # 任务台账
 
-**更新** 2026-08-17（每轮追加，最新 §109 R82b；R83b 同步头部时间戳）· 唯一的任务状态来源
+**更新** 2026-08-17（每轮追加，最新节见文末；R86b 去除头部轮次钉死——台账每轮必追加，固定轮次引用必滞后）· 唯一的任务状态来源
 
 ---
 
@@ -4434,3 +4434,40 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（补注与 PROJECT_STATUS 头部 R78b / D-130b 一致）。
 - 决策记录：DECISIONS.md D-131b。
+
+## 113. [优化轨] R86b：TASK_LEDGER 头部固定轮次引用再次失效 → 根治去轮次钉死（2026-08-17，双窗口并行第二轨）
+
+### 113a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R85b（dd063c4）已确认在 origin/main。
+
+### 113b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、LESSONS/TASK_LEDGER/
+  PROJECT_STATUS 头部（R82b/R83b/R84b 已修）、GOAL_NEXT_SESSION 快照
+  标签（R85b 已补注）均无残留；DECISIONS.md 残留旧数均为历史决策记录
+  （D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R83b 把 TASK_LEDGER 头部同步为"更新
+  2026-08-17（每轮追加，最新 §109 R82b）"，但**固定轮次引用再次失效**
+  ——R84b/R85b 又追加 §110–§112（`grep -n "^## 11[012]"` 实测最新到
+  §112 R85b），头部仍写"§109 R82b"。根因是**头部钉死了具体轮次**，
+  台账每轮必追加，该引用必然每轮滞后——R83b 只同步时间戳但保留轮次
+  钉死，属半治（O1 文档失效模式，L-23 同族，D-128b/D-129b 先例）。
+
+### 113c. 改动与验证
+
+- **改动**（docs/TASK_LEDGER.md，纯文档）：头部去掉固定轮次引用——
+  "更新 2026-08-17（每轮追加，最新节见文末；R86b 去除头部轮次钉死——
+  台账每轮必追加，固定轮次引用必滞后）"。根治轮次钉死：此后每轮追加
+  不再需要同步头部（R83b 半治方案的补完）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（头部不再含固定轮次引用，最新节以文末为准）。
+- 决策记录：DECISIONS.md D-132b。
