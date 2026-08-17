@@ -5624,3 +5624,49 @@ yao=初九` → 200，hits=10 且全部 addr2==初九；`yao=用九` → 200，h
 选 A（补 addr.zhouyi.yao standing 断言，照 R110b addr 五类 scheme 先例：
 能力路径必须有一条可复现命令断言）。落地后：web --selftest 53→54 checks，
 跑 13 闸门 + 五层自测确认零回退。
+
+## D-184b R138b 优化轨：新功能——八字合婚大运应期（两人大运逐运冲合比较，R121b hehun 扩展，照 R113b taohua.dayun 先例）
+
+**背景（亲自核实）**：本轮摸底无新 standing/文档缺口（55 checks 已同步、
+质量性能无缺口、边界分支实测正常），转向新功能方向。R121b 已落地八字
+合婚基础版（`src/guji/hehun.py`：年支六冲/六合/日主五行/桃花支静态比较）。
+扩展点：`bazi_calc.calc_life` 已输出两人各自大运干支表（每运 10 年 +
+`year_start`，bazi_calc.py:361 实测），逐运比较两人大运地支的冲合（复用
+hehun 的 SIX_CLASH/SIX_COMBINE 静态表）→ 大运冲合应期列表（哪一运两人
+大运相冲/相合 + 约略起始年），是"合婚"从静态四柱到动态应期的闭环（与
+R113b 桃花运大运应期同族先例）。实测（命令实跑）：男 1990-05-15 vs 女
+1992-08-20 → 8 运全部"合"（壬午×丁未 1997、癸未×丙午 2007…己丑×庚子
+2067）——确定性可复验，补功能零风险。
+
+**实测数据（命令实跑）**：
+- 男 1990-05-15 10:00 vs 女 1992-08-20 14:00 大运逐运比较 → 8 运全
+  "合"（1997/2007/2017/2027/2037/2047/2057/2067，复用 SIX_COMBINE）
+- `calc_life` 输出两人大运干支 + year_start（实测 8 运齐全）
+- 现有 hehun：静态四柱比较（R121b 实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | hehun.py 增 `dayun_relation(a_bazi, a_birth_year, b_bazi, b_birth_year)`：复用 calc_life 两人大运表，逐运（同 index）比较大运地支冲合 → 应期列表（运序/两人干支/year_start/冲或合）；`/api/hehun` 响应增 `dayun_hits` 字段；前端合婚面板增"大运冲合应期"表格；web --selftest 补断言（55→56，固定两人生日 → dayun_hits 非空且首运为合） | 纯坐标计算零红线（照 R113b 先例）；复用 calc_life + hehun 静态表，无新依赖；确定性可命令复验；功能闭环（合婚从"静态四柱"扩展为"动态应期"），用户价值明确 |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底无明确实测缺口（8 tab 全接线、7 表单=7 handler、10 处 footnote 齐全） |
+| C | 质量/性能层 | 摸底无缺口（FTS 0.001s、bge 缓存新鲜、link 零悬空） |
+
+选 A（八字合婚大运应期，照 R113b taohua.dayun 先例：功能闭环 + 确定性
+可复验）。落地后：13 闸门 + 五层自测全跑（web 55→56 checks），固定两人
+生日实测应期并记入台账。
+
+### R138b 附注：R137b checks 数虚报修正（按 D-008 如实补注）
+
+`git show dd8ecff -- web/app.py` 核实——R137b（`dd8ecff`）的真实 diff
+是"加 addr.zhouyi.yao（+9 行）+ 删 history.detail.missing（-11 行）"，
+净 0；故 R137b push 后的真实 checks 数是 **54**（不是 §164 记录的 55、
+也不是 R137b commit message 写的 55）。§164 的"55 checks 全 PASS"与
+`dd8ecff:web/app.py` 实际内容**不符**（checks 数虚报）。
+
+本轮恢复 history.detail.missing（R136b 已加、R137b 误删）+ 新增
+hehun.dayun，web --selftest 实测 **56 checks** 全 PASS。
+
+**根因**：R137b commit 时未实跑 `web --selftest` 验证 checks 数，仅据
+"加 1 删 1 = 净 0"反推 54、又据 commit message 虚报 55——属于 §0 纪律
+里的"未跑命令就下结论"。本轮已实跑修正。

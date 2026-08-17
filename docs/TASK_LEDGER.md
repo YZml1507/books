@@ -6700,3 +6700,70 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-183b。
+
+## 165. [优化轨] R138b：新功能——八字合婚大运应期（两人大运逐运冲合比较，R121b hehun 扩展，照 R113b taohua.dayun 先例）；并恢复 R137b 误删的 history.detail.missing 断言（checks 54→56）（2026-08-17）
+
+### 165a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R137b（`dd8ecff`）已确认在 origin/main。
+
+### 165b. 摸底（逐项亲自核实）——发现 R137b 真实 bug
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **R137b checks 数虚报（按 D-008 如实补注，本轮发现并修）**：
+  `git show dd8ecff -- web/app.py` 核实——R137b 的真实 diff 是
+  **"加 addr.zhouyi.yao（+9 行）+ 删 history.detail.missing（-11 行）"**，
+  净 0；故 R137b push 后的真实 checks 数是 **54**（不是 §164 记录的
+  55、也不是 R137b commit message 写的 55）。§164 的"55 checks 全
+  PASS"与 `dd8ecff:web/app.py` 实际内容**不符**（checks 数虚报）。
+  本轮恢复 history.detail.missing（R136b 已加、R137b 误删）——属于
+  "恢复已被误删的正确断言"，非红线三类。
+- **新功能方向（本轮选定）**：本轮摸底无新 standing/文档缺口（质量
+  性能无缺口、边界分支实测正常），转向新功能——八字合婚大运应期
+  （R121b hehun 扩展，照 R113b taohua.dayun 先例）。
+  - R121b 已落地八字合婚基础版（`src/guji/hehun.py`：年支六冲/六合/
+    日主五行/桃花支静态比较）。
+  - 扩展点：`bazi_calc.calc_life` 已输出两人各自大运干支表（每运 10
+    年 + `year_start`，bazi_calc.py:361 实测），逐运比较两人大运地支
+    的冲合（复用 hehun 的 SIX_CLASH/SIX_COMBINE 静态表）→ 大运冲合
+    应期列表（哪一运两人大运相冲/相合 + 约略起始年），是"合婚"从
+    静态四柱到动态应期的闭环（与 R113b 桃花运大运应期同族先例）。
+- **实测**（命令实跑）：男 1990-05-15 10:00 vs 女 1992-08-20 14:00 →
+  `dayun_relation` 输出 8 运全部"合"（壬午×丁未 1997 … 己丑×庚子
+  2067，复用 SIX_COMBINE）——确定性可复验，补功能零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、文档滞后（checks 数 55 已同步但虚报、
+  本轮修正 55→56）——无其他明确缺口。
+- **方案比对**：A hehun.py 增 `dayun_relation` + `/api/hehun` 响应增
+  `dayun_hits` + 前端合婚面板增"大运冲合应期"表格 + web --selftest
+  补 `hehun.dayun` 断言 + 恢复 `history.detail.missing`（选定）；B
+  前端体验（无缺口）；C 质量/性能层（无缺口）——见 D-184b。
+
+### 165c. 改动与验证
+
+- **改动**：
+  - `src/guji/hehun.py`（+32 行）：增 `dayun_relation(b_a, birth_a,
+    b_b, birth_b)`——复用 `bazi_calc.calc_life` 两人大运表，逐运（同
+    index）比较大运地支冲合（复用 SIX_CLASH/SIX_COMBINE 静态表）→
+    应期列表（运序/两人干支/year_start/冲或合）。纯坐标计算零红线
+    （照 R113b 先例）。
+  - `web/app.py`（+26 行）：`/api/hehun` 接入 `dayun_hits`（hehun 端点
+    增 `dayun_relation` 调用 + 响应增字段）；web --selftest 补
+    `hehun.dayun` 断言（固定两人生日 → dayun_hits 非空且首运为合，
+    checks 55→56）；恢复 `history.detail.missing` 断言（R136b 已加、
+    R137b 误删，checks 54→55）——合计 checks 54→56。
+  - `web/static/index.html`（+8 行）：前端合婚面板增"大运冲合应期"
+    表格展示。
+  - `docs/DECISIONS.md`：增 D-184b（新功能决策 + R137b checks 数虚报
+    修正记录）。
+- **验证**（全量）：web --selftest **56 checks** 全 PASS（hehun.dayun
+  + history.detail.missing 双新断言生效）；13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零回退。
+- 决策记录：DECISIONS.md D-184b。

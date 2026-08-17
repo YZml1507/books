@@ -989,6 +989,8 @@ def api_hehun(req: HehunRequest):
         ba = compute(req.a_year, req.a_month, req.a_day, req.a_hour, req.a_gender)
         bb = compute(req.b_year, req.b_month, req.b_day, req.b_hour, req.b_gender)
         h = hehun_mod.compute(ba, bb)
+        # R138b（D-184b）：大运冲合应期（复用 calc_life 两人大运表逐运比较）
+        dayun = hehun_mod.dayun_relation(ba, req.a_year, bb, req.b_year)
     except Exception as exc:
         raise HTTPException(422, f"排盘失败：{exc}") from exc
     return {
@@ -999,6 +1001,7 @@ def api_hehun(req: HehunRequest):
         "day_wx_a": h.day_wx_a, "day_wx_b": h.day_wx_b,
         "day_wx_sheng": h.day_wx_sheng,
         "peach_a": h.peach_a, "peach_b": h.peach_b, "peach_same": h.peach_same,
+        "dayun_hits": dayun,
         "notes": h.notes,
         "render": h.render(),
     }
@@ -1242,6 +1245,17 @@ if __name__ == "__main__":
                          and j.get("day_wx_sheng") is True
                          and j.get("peach_same") is False
                          and j.get("render") and j.get("notes")))
+        # R138b（D-184b）：大运冲合应期 standing 覆盖——固定两人生日 → 8 运
+        # 全"合"（实测 壬午×丁未 1997 … 己丑×庚子 2067），断言 dayun_hits
+        # 非空且首运为合（抓 calc_life 复用/冲合比较静默失效）。
+        check("hehun.dayun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+              "a_day": 15, "a_hour": 10, "a_gender": "男",
+              "b_year": 1992, "b_month": 8, "b_day": 20, "b_hour": 14,
+              "b_gender": "女"}),
+              lambda j: (isinstance(j.get("dayun_hits"), list)
+                         and len(j.get("dayun_hits", [])) == 8
+                         and j.get("dayun_hits", [])[0]["relation"] == "合"
+                         and j["dayun_hits"][0]["year_start"] == 1997))
         # R124b（D-170b）：错误处理路径 standing 覆盖——check() 闭包只断言合法
         # 输入的 200，非法输入（应 400）此前零断言：若某端点把参数校验改回未捕获
         # 异常（400→500），selftest 全绿看不见。以下独立断言 400（不走闭包），
@@ -1301,6 +1315,18 @@ if __name__ == "__main__":
         _latest_rid = history_db.list_records(limit=1)
         check("history.detail", client.get(f"/api/history/{_latest_rid[0]['id'] if _latest_rid else 0}"),
               lambda j: j is None or "paipan" in j)  # 可能无该 id，但必须结构正确
+        # R138b（D-184b）：history.detail 缺失记录拒绝分支 standing 覆盖——
+        # 现有 check 只测命中路径（最新 id 91 → paipan），404 拒绝分支（get_record
+        # 返回 None → HTTPException(404)）零断言（若 None 校验回归为误返回空
+        # dict、或 HTTPException 误变 500，selftest 全绿看不见，与 R134b
+        # bookstudy.summary.missing 同族）。实测 GET /api/history/99999 → 404
+        # + detail 非空（拒绝分支可用）。404 不走 check() 闭包（它断言 200），
+        # 单独断言状态码 + detail 形状。
+        # 背景：R136b（8cd21e3）已加此断言，R137b（dd8ecff）误删——本轮恢复。
+        _miss = client.get("/api/history/99999")
+        assert _miss.status_code == 404, ("history.detail.missing", _miss.status_code, _miss.text[:200])
+        assert _miss.json().get("detail"), ("history.detail.missing", _miss.text[:200])
+        ok.append("history.detail.missing")
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)
         check("health", client.get("/api/health"), lambda j: j.get("ok") is True)

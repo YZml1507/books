@@ -102,3 +102,35 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         day_wx_a=wxa, day_wx_b=wxb, day_wx_sheng=sheng,
         peach_a=pa, peach_b=pb, peach_same=peach_same, notes=notes,
     )
+
+
+def dayun_relation(b_a: Bazi, birth_a: int, b_b: Bazi, birth_b: int) -> list[dict]:
+    """大运冲合应期（R138b，D-184b）：两人大运逐运比较地支冲合。
+
+    复用 `bazi_calc.calc_life` 的两人大运表（每运 10 年 + year_start 约略
+    公历年份段起点），同 index 逐运比较（复用 SIX_CLASH/SIX_COMBINE 静态
+    表）。纯坐标计算，固定两人生日 → 固定应期，可命令复验。
+    实测（命令实跑）：1990-05-15 男 vs 1992-08-20 女 → 8 运全部"合"
+    （壬午×丁未 1997 … 己丑×庚子 2067）。
+    """
+    from .bazi_calc import calc_life
+
+    la = calc_life(b_a, birth_a)["dayun"]
+    lb = calc_life(b_b, birth_b)["dayun"]
+    out: list[dict] = []
+    for da, db in zip(la, lb):
+        za, zb = da["pillar"][1], db["pillar"][1]
+        if SIX_CLASH.get(za) == zb:
+            rel = "冲"
+        elif SIX_COMBINE.get(za) == zb:
+            rel = "合"
+        else:
+            continue
+        out.append({
+            "index": da["index"],
+            "pillar_a": da["pillar"], "pillar_b": db["pillar"],
+            "relation": rel,
+            "year_start": da["year_start"],
+            "start_age_a": da["start_age"], "end_age_a": da["end_age"],
+        })
+    return out

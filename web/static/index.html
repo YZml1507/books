@@ -1748,6 +1748,14 @@ $('#hhForm').addEventListener('submit', async e => {
     html += `<tr><th>日主五行</th><td>${esc(j.day_wx_a)}（甲）· ${esc(j.day_wx_b)}（乙）：${j.day_wx_sheng ? '相生' : '相克'}</td></tr>`;
     html += `<tr><th>桃花支</th><td>${esc(j.peach_a)}/${esc(j.peach_b)}：${j.peach_same ? '重叠' : '不同'}</td></tr>`;
     html += '</tbody></table></div>';
+    if (j.dayun_hits && j.dayun_hits.length){
+      html += '<div class="card"><h2>大运冲合应期（写死可核验）</h2><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th><th>关系</th><th>约略起始年</th></tr></thead><tbody>';
+      j.dayun_hits.forEach(d => {
+        html += `<tr><td>第 ${esc(d.index)} 运</td><td>${esc(d.pillar_a)}</td>
+          <td>${esc(d.pillar_b)}</td><td>${esc(d.relation)}</td><td>${esc(d.year_start)}</td></tr>`;
+      });
+      html += '</tbody></table></div>';
+    }
     if (j.notes && j.notes.length){
       html += '<div class="card"><h2>说明（写死，非生成）</h2><ul>';
       j.notes.forEach(n => { html += `<li>${esc(n)}</li>`; });
