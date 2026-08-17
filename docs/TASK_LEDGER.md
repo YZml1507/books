@@ -4471,3 +4471,43 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（头部不再含固定轮次引用，最新节以文末为准）。
 - 决策记录：DECISIONS.md D-132b。
+
+## 114. [优化轨] R87b：GOAL.md T7-o 行 probes"活跃 54"时点数滞后 → 补注（2026-08-17，双窗口并行第二轨）
+
+### 114a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R86b（2a12904）已确认在 origin/main。
+
+### 114b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、LESSONS/TASK_LEDGER/
+  PROJECT_STATUS 头部（R82b/R83b/R84b 已修）、GOAL_NEXT_SESSION 快照
+  标签（R85b 已补注）、TASK_LEDGER 头部轮次钉死（R86b 已除）均无残留；
+  DECISIONS.md 残留旧数均为历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4 T7 表 T7-o 行（R77b
+  标注）写"**已做**：R51b 归档 57 个、活跃 54 个"，但实测（`ls
+  probes/*.py | wc -l` / `ls probes/archive/*.py | wc -l`）：**活跃
+  59 个**（非 54，R52b–R86b 新增探针如 probe_t7q_kg_precondition /
+  probe_t7m_entities / probe_a12_local / probe_generality_roundtrip
+  等）、**归档 57 个**（与 R51b 一致）。"活跃 54 个"是 R51b 时点数，
+  被 R74b/R77b 引用进活文档（GOAL.md T7-o 行、PROJECT_STATUS TODO 段）
+  但未注明时点——新会话照此会误判当前活跃探针数（O1 文档失效模式，
+  L-23 同族：可被命令断言的事实硬编码且漏同步）。台账 §101/§103 中
+  "archive 57、活跃 54"是历史记录（D-008 保留惯例不回溯改写）。
+
+### 114c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：T7-o 行补注"活跃 54 为 R51b 时点
+  数，R87b 复核现活跃 59——R52b–R86b 新增探针，归档 57 不变"——补注
+  时点数而非改写历史（台账/DECISIONS 历史记录照 D-008 保留）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（59/57 与 `ls probes/*.py` 实测一致）。
+- 决策记录：DECISIONS.md D-133b。

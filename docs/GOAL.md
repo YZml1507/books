@@ -246,7 +246,7 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 | T7-l | G9 跨会话研究线程持久化 | **DONE**：G9 PASS（1 个可恢复线程，五要素齐备，evidence 回查零陈旧；web POST /api/threads + MCP record_claim_tool） |
 | T7-m | `&KR0658;` 无码位字形的占位符语义 | **已查清**：= 虩 U+8679（T7-m，台账 §1017 probe_t7m_entities.py）；旧断言"每部书 22–31 个"已被 D-034 实测推翻（仅 KR1a0006 12 次，其他 4 部 0 次） |
 | T7-n | `自天祐之` 在两源 5 vs 4 的真实差异，查明原因 | **已查清**：繫辞传印次差异 KR1a0001(5) vs KR1a0032(4)（D-034/T7-n，台账 §22c；源文真实差异非抽取错误） |
-| T7-o | 55+ 个 probes 归档整理（已沉淀结论的移入 `probes/archive/`） | **已做**：R51b 归档 57 个、活跃 54 个（probes/archive/） |
+| T7-o | 55+ 个 probes 归档整理（已沉淀结论的移入 `probes/archive/`） | **已做**：R51b 归档 57 个、活跃 54 个（probes/archive/；**活跃 54 为 R51b 时点数，R87b 复核现活跃 59——R52b–R86b 新增探针，归档 57 不变**） |
 | T7-p | Phase 3 架构自审：找过度设计与技术债 | **已完成**：D-034 即 Phase 3 架构自审（评审 BOOK_AI_ARCHITECTURE.md；旧结论"从未评审"已被 R77b 标注） |
 | T7-q | 知识图谱可行性实测（GraphRAG/LightRAG） | **前置已确认**：probe_t7q_kg_precondition.py 实跑 exit 0（differs 異文三类策略均不被实体抽取抹平，前置满足，可建图）；建图本身是另一项工作（红线 3 依赖，R75b 核实） |
 | T7-r | CPU embedding 方案评估（无 CUDA） | **已评估**：方案 C（TF-IDF+SVD）REJECTED（D-031 hit 67.3%）；方案 A/B（PyTorch+模型下载）BLOCKED 待授权（D-032）；G1 概念级检索已经 bge 落地 PASS（R18b 前，用户授权） |

@@ -4223,3 +4223,30 @@ L-23 同族，D-128b/D-129b 先例）。实测台账最新节 = §112（R85b）�
 选 A（去轮次钉死：台账性质是"每轮必追加"的活文档，头部标注追加性质
 即可，具体轮次以文末最新节为准）。落地后：docs-only 先例闸门抽跑
 （verify_index + check_quality），文档 diff 审阅。
+
+## D-133b R87b 优化轨：GOAL.md T7-o 行 probes"活跃 54"时点数滞后 → 补注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §4 T7 表 T7-o 行（R77b 标注）写
+"**已做**：R51b 归档 57 个、活跃 54 个（probes/archive/）"，但实测
+（`ls probes/*.py | wc -l` / `ls probes/archive/*.py | wc -l`）：
+- **活跃 59 个**（非 54）——R52b–R86b 新增探针（probe_t7q_kg_
+  precondition / probe_t7m_entities / probe_a12_local /
+  probe_generality_roundtrip 等）；
+- **归档 57 个**（与 R51b 一致）。
+"活跃 54 个"是 **R51b 时点数**，被 R74b/R77b 引用进活文档（GOAL.md
+T7-o 行、PROJECT_STATUS TODO 段）但未注明时点——新会话照此会误判当前
+活跃探针数（O1 文档失效模式，L-23 同族：可被命令断言的事实硬编码且漏
+同步）。台账 §101/§103 中"archive 57、活跃 54"是历史记录（D-008 保留
+惯例不回溯改写），仅补活文档引用。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md T7-o 行补注"活跃 54 为 R51b 时点数，R87b 复核现活跃 59（R52b–R86b 新增探针）、归档 57" | 纯文档、零代码/零风险；数字与 `ls probes/*.py` 实测（59/57）一致，防新会话误判活跃数 |
+| B | 只改 PROJECT_STATUS TODO 段不动 GOAL.md | GOAL.md T7-o 行仍误导（54 vs 59） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（补注时点数而非改写历史：台账/DECISIONS 历史记录照 D-008 保留）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
