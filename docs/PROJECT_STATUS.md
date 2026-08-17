@@ -322,4 +322,4 @@ Iliad 两译本。已落盘 + manifest（`data/catalog/generality_manifest.json`
 - [x] `&KR0658;` 形式的无码位字形，设计占位符语义（`differs` 类失败里多次出现）（**已查清**：T7-m = 虩 U+8679，台账 §1017 probe_t7m_entities.py；R74b 核实）
 - [x] 55 个 probes 已沉淀结论的可归档，避免与 `src/`+`scripts/` 混淆（**已做**：R51b 归档 57 个、活跃 54；R74b 核实）
 - [x] Phase 3 Review：架构文档自审，找过度设计与技术债（**已完成**：D-034 即 Phase 3 架构自审，评审 BOOK_AI_ARCHITECTURE.md；R74b 核实）
-- [ ] 知识图谱：建图前须确认 `differs` 類異文不会被实体抽取抹平（**未处置，开放**；R74b 标注）
+- [x] 知识图谱：建图前须确认 `differs` 類異文不会被实体抽取抹平（**已处置**：probes/probe_t7q_kg_precondition.py 实跑 exit 0——三类实体抽取策略（字符级 NER/关键词级/折叠表归一化）均保留 稊/梯、跛/破 区别，differs 異文不被抹平，前置条件"满足（可建图）"；台账 §1011-1015 T7-q；建图本身是另一项工作，GOAL.md T7-q 红线 3 依赖；R75b 核实）

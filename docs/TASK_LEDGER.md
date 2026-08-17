@@ -3989,3 +3989,43 @@ R73b（547aa14）已确认在 origin/main。
   抽跑全 exit 0，基线未动；文档 diff 审阅通过（处置出处与台账/DECISIONS/
   代码实测一致）。
 - 决策记录：DECISIONS.md D-120b。
+
+## 102. [优化轨] R75b：PROJECT_STATUS 知识图谱 differs 确认项实际已处置 → 标注修正（2026-08-17，双窗口并行第二轨）
+
+### 102a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R74b（2946a8a）已确认在 origin/main。
+
+### 102b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：`SELECT count(*) FROM unit` = 62,109、
+  works = 47、scheme 非空 = 57,315（92.3%）、page_anchor 非空 = 13,954、
+  corpus.db 55.7 MB——与快照一致，非缺口；`assess_goals.py` PASS 9 ·
+  PART 0 · FAIL 0；web --selftest 24 checks PASS；MCP --selftest PASS。
+- **文档 R 编号 / checks 数 / MCP 工具数**：无异常滞后——非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_STATUS.md` TODO 段最后一项
+  "知识图谱：建图前须确认 differs 類異文不会被实体抽取抹平"被 R74b 标
+  **"未处置，开放"**，但实测该确认**早已完成**：
+  - `probes/probe_t7q_kg_precondition.py` 实跑 exit 0：三类常见实体
+    抽取策略（字符级 NER / 关键词级 / 折叠表归一化）均保留 稊/梯、
+    跛/破 区别，differs 異文不被抹平，前置条件"满足（可建图）"；
+  - 台账 §1011-1015（T7-q 节，2026-08-15）已记录"T7-q 知识图谱前置
+    条件实测 → 满足"——R74b 只查 TODO 段本身，未回溯台账 T7-q 节；
+  - FOLD 表实测 size 88 不含 稊/梯、跛/破 映射，NOT_VARIANTS 显式
+    排除（与台账 §1014 一致）。
+  R74b 的"未处置"标注会误导新会话重复排查（O1 文档失效模式，D-120b
+  同族续——上一轮漏查台账导致的二次标注滞后）。
+
+### 102c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：TODO 段知识图谱项 `[ ]` →
+  `[x]`，标注"已处置"并注明出处：探针 probe_t7q_kg_precondition.py
+  实跑 exit 0（三类策略均保留 differs 異文）+ 台账 §1011-1015 T7-q；
+  保留"建图本身是另一项工作（GOAL.md T7-q 可行性实测，红线 3 依赖）"
+  提示防过度引申。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（处置证据与探针实测/台账 §1011-1015 一致）。
+- 决策记录：DECISIONS.md D-121b。
