@@ -3877,3 +3877,46 @@ R82b 补头部时间戳、R91b 补 R89b 漏扫、R92b 根治 R85b 范围钉死�
 纯文档轮无代码逻辑，无越界，17 提交纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-105a。
+
+### 87. R96a 纯文档轮：rebase 纳入 R93b，清空 pending（2026-08-17）
+
+接续 R95a（5193f76）。fetch origin 首次报 SSL/TLS handshake 夰败（网络
+抖动），但本地已缓存的 origin/main 显示 HEAD..origin/main 推进了 1 提交：
+
+- f42cddf R93b docs(ledger) sync eval_g1 header note "193 题"→248 questions
+
+`git show --name-only` 确认纯 docs/*.md only（DECISIONS + TASK_LEDGER）。
+fetch 重试仍报 SSL 抖动——本地 origin/main ref 已新鲜含 R93b，可直接
+rebase，不阻塞闭环。
+
+**逐行复审 R93b diff**（亲眼过）：TASK_LEDGER 行 35 eval_g1 注释"193 题"→
+"248 题"，实测 `eval_g1.py` 248 questions、G1 PASS 246/248（D-019 时点
+旧数 193，其他文档已 248 R81b，本处漏同步）。归因诚实，补 R91b 同族
+漏同步先例。无越界。纪律良好。纯文档轮不启动审查循环。
+
+**rebase**：`git rebase origin/main` 在历史 e24af8c（R22a merge）处
+append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+--theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R93b 纳入 audit
+分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）；
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，R93b 纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-106a。
