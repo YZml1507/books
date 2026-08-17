@@ -5319,3 +5319,26 @@ scope=range、days=5；`scope=life` → 200，calc scope=life、dayun=8——两
 选 A（补 bazi.range + bazi.life standing 断言，照 R118b/R119b/R124b 先例：
 能力路径必须有一条可复现命令断言）。落地后：web --selftest 45→47 checks，
 跑 13 闸门 + 五层自测确认零回退。
+
+## D-173b R127b 优化轨：文档滞后——web standing checks 数 45→47 未同步（R126b +2 bazi.range/life，L-23 同族，与 R116b/R120b/R122b/R125b 同族）
+
+**背景（亲自核实）**：R125b 已把 checks 数同步到 45。但 R126b 新增
+`bazi.range` 与 `bazi.life` 两条断言（45→47），web --selftest 实测
+**47 checks**；而 `docs/GOAL_NEXT_SESSION.md` :52（会话表）、:90（自测
+注释）、:98（快照标签）与 `docs/PROJECT_STATUS.md` :41（自测行）仍写
+"45 checks"（R125b 标注）——checks 数又滞后（L-23 同族：可被命令断言
+的事实硬编码且漏同步；与 R116b/R120b/R122b/R125b 同族，每轮断言轮后
+需同步）。命令实测：web --selftest 47 checks 全 PASS（含 bazi.range/
+bazi.life，R126b 5e05b14 已确认在 origin/main）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :52/:90/:98 三处 "45 checks" 改 "47 checks" 并补 "R126b +2（bazi.range/bazi.life）"；② PROJECT_STATUS.md :41 自测行改 "47 checks" 并补 R126b 出处 | 纯文档对齐、零代码/零风险；与实测 47 checks 一致，防新会话误判 standing 覆盖数；照 D-008 保留旧表述、R116b/R120b/R122b/R125b 先例 |
+| B | 只改 GOAL_NEXT_SESSION 不动 PROJECT_STATUS | PROJECT_STATUS 仍滞后（数字不一致） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、link 零悬空、bge 缓存新鲜） |
+
+选 A（checks 数 45→47 文档对齐，照 R116b/R120b/R122b/R125b 先例）。落地后：
+docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅
+（数字与命令实测 47 checks 一致）。

@@ -6213,3 +6213,45 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-172b。
+
+## 154. [优化轨] R127b：文档滞后——web standing checks 数 45→47 未同步（R126b +2 bazi.range/life，L-23 同族，与 R116b/R120b/R122b/R125b 同族）（2026-08-17）
+
+### 154a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R126b（5e05b14）已确认在 origin/main。
+
+### 154b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **47 checks**（R126b 末态，含 bazi.range/bazi.life）。
+- **文档滞后点（本轮选定）**：R125b 已把 checks 数同步到 45，但 R126b
+  新增 bazi.range + bazi.life 两条断言（45→47），web --selftest 现
+  47 checks；GOAL_NEXT_SESSION.md :52/:90/:98 与 PROJECT_STATUS.md
+  :41 仍写 "45 checks"（R125b 标注）——checks 数又滞后（L-23 同族：
+  可被命令断言的事实硬编码且漏同步；与 R116b/R120b/R122b/R125b 同族，
+  每轮断言轮后需同步）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）——无明确缺口。
+- **方案比对**：A checks 数 45→47 文档对齐（选定）；B 只改
+  GOAL_NEXT_SESSION 不动 PROJECT_STATUS（数字不一致）；C 前端体验/
+  质量性能层（无缺口）——见 D-173b。
+
+### 154c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：
+  - `docs/GOAL_NEXT_SESSION.md`：:52 会话表、:90 自测注释、:98 快照
+    标签三处 "45 checks" → "47 checks" 并补 "R126b +2（bazi.range/
+    bazi.life）"。
+  - `docs/PROJECT_STATUS.md`：:41 自测行 "45 checks" → "47 checks"
+    并补 R126b 出处。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 47
+  checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
+  47 checks 及 R126b bazi.range/bazi.life 一致）。
+- 决策记录：DECISIONS.md D-173b。
