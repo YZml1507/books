@@ -5827,3 +5827,69 @@ R141b 同族——同端点不同校验维度）。
 选 A（补 err.huangli.date/year/illegal 三条 400 断言，照 R139b
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
 落地后：web --selftest 64→67 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-189b R143b 优化轨：web standing 自测缺口——liuyao time 起卦 day/hour + qiming month/day/hour 五条 400 校验分支零断言（能力层验证，与 R139b-R142b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R142b 已按端点逐个补 err.* 400 断言（bazi
+calendar/scope/gender → qiming gender/year → liuyao time year/month/
+missing → huangli date/year/illegal），但**同端点剩余校验维度**仍零
+断言：liuyao time 起卦的 day（line 776-777）、hour（line 778-779）与
+qiming 的 month（line 894-895）、day（line 896-897）、hour（line
+898-899）五条 400 校验分支——若这些校验回归为 500、或被移除导致非法
+输入进入排盘/起名计算，13 闸门与五层自测都看不见（L-22/L-23 同族；
+与 R139b-R142b 同族——同端点不同校验维度）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/liuyao {"method":"time","year":1990,"month":5,"day":32,
+  "hour":10}` → 400，detail "day 须在 1-31，收到 32"
+- `POST /api/liuyao {"method":"time","year":1990,"month":5,"day":15,
+  "hour":24}` → 400，detail "hour 须在 0-23，收到 24"
+- `POST /api/qiming {"surname":"李","year":1990,"month":13,...}` → 400，
+  detail "month 须在 1-12，收到 13"
+- `POST /api/qiming {"surname":"李","year":1990,"month":5,"day":0,...}`
+  → 400，detail "day 须在 1-31，收到 0"
+- `POST /api/qiming {"surname":"李","year":1990,"month":5,"day":15,
+  "hour":24,...}` → 400，detail "hour 须在 0-23，收到 24"
+- 五条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补五条断言：err.liuyao.time.day（day=32→400）、err.liuyao.time.hour（hour=24→400）、err.qiming.month（month=13→400）、err.qiming.day（day=0→400）、err.qiming.hour（hour=24→400）（67→72 checks） | 纯加自测断言、零功能改动/零数据风险；补上 liuyao/qiming 同端点剩余五个未覆盖的 400 校验分支，抓校验静默失效；与 R139b-R142b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 taohua/tarot 端点校验断言 | taohua/tarot 为概率性/伪随机端点（seed 驱动），参数校验维度少且确定性弱于 A 的参数校验；A 完成后可留作后续 |
+
+选 A（补 err.liuyao.time.day/hour + err.qiming.month/day/hour 五条
+400 断言，照 R139b-R142b 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 67→72 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-189b R143b 优化轨：web standing 自测缺口——taohua 端点 year/gender/calendar 三条 400 校验分支零断言（taohua 继承 BaziRequest.validate_ranges 但 err.* 只覆盖 bazi，独立端点需独立断言）
+
+**背景（亲自核实）**：taohua 端点（web/app.py:918）调用
+`req.validate_ranges()` 继承 BaziRequest 校验（行 116-139），但 err.*
+区块（R139b err.bazi.calendar/scope/gender）只覆盖 bazi 端点，**taohua
+端点的 year/gender/calendar 同名校验分支零 standing 断言**——若 taohua
+误移除 validate_ranges() 调用，selftest 全绿看不见（L-22/L-23 同族；
+独立端点需独立断言）。
+
+**实测数据（命令实跑）**：
+- `POST /api/taohua {"year":1800,...}` → 400，detail
+  "year 需在 1900-2100 之间（节气表适用范围）"
+- `POST /api/taohua {"gender":"中",...}` → 400，detail
+  "gender 只能是 男 或 女"
+- `POST /api/taohua {"calendar_type":"garbage",...}` → 400，detail
+  "calendar_type 只能是 solar 或 lunar"
+- 三条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补三条断言：err.taohua.year（year=1800→400）、err.taohua.gender（gender=中→400）、err.taohua.calendar（calendar_type=garbage→400）（67→70 checks） | 纯加自测断言、零功能改动/零数据风险；补上 taohua 端点三个未覆盖的 400 校验分支，抓 validate_ranges() 调用被移除的静默失效；与 R139b err.bazi.calendar/scope/gender 同族（独立端点需独立断言），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 无显式 400 校验（n 钳制为 200 属设计行为），增量价值弱于 A |
+
+选 A（补 err.taohua.year/gender/calendar 三条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 67→70 checks，跑 13 闸门 + 五层自测确认零回退。

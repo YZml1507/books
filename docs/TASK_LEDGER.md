@@ -6970,3 +6970,53 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
   mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-188b。
+
+## 170. [优化轨] R143b：web standing 自测缺口——taohua 端点 year/gender/calendar 三条 400 校验分支零断言 → 补断言（能力层验证，taohua 继承 BaziRequest.validate_ranges 但 err.* 只覆盖 bazi，独立端点需独立断言）（2026-08-18）
+
+### 170a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R142b（`f69164e`）已确认在 origin/main。
+
+### 170b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **67 checks**（R142b 末态：err.huangli.date/year/illegal）。
+- **真实缺口（本轮选定）**：taohua 端点（web/app.py:918）调用
+  `req.validate_ranges()` 继承 BaziRequest 校验（行 116-139），但
+  err.* 区块（R139b err.bazi.calendar/scope/gender）只覆盖 bazi 端点，
+  **taohua 端点的 year/gender/calendar 同名校验分支零 standing 断言**
+  ——若 taohua 误移除 validate_ranges() 调用，selftest 全绿看不见
+  （L-22/L-23 同族；独立端点需独立断言）。
+- **实测**（命令实跑）：
+  - `POST /api/taohua {"year":1800,...}` → 400 + detail
+    "year 需在 1900-2100 之间（节气表适用范围）"
+  - `POST /api/taohua {"gender":"中",...}` → 400 + detail
+    "gender 只能是 男 或 女"
+  - `POST /api/taohua {"calendar_type":"garbage",...}` → 400 + detail
+    "calendar_type 只能是 solar 或 lunar"
+  - 三条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、MCP 侧 research_tool 深度验证（工作量
+  大、web 侧已覆盖）——无其他明确缺口。
+- **方案比对**：A 补 err.taohua.year/gender/calendar 三条 400 断言
+  （67→70 checks，选定）；B 补 MCP research_tool 深度验证（工作量
+  大、web 侧已覆盖）；C 补 tarot 端点校验断言（tarot 无显式 400
+  校验，n 钳制为 200 属设计行为，本轮先做 taohua）——见 D-189b。
+
+### 170c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.qiming.year 后补
+  三条断言——err.taohua.year（year=1800→400）、err.taohua.gender
+  （gender=中→400）、err.taohua.calendar（calendar_type=garbage→400）
+  （67→70 checks）。
+- **验证**（全量）：web --selftest **70 checks** 全 PASS（三条新
+  taohua 400 断言生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
+  mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-189b。

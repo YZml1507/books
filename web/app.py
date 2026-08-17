@@ -1341,6 +1341,26 @@ if __name__ == "__main__":
                     client.post("/api/qiming", json={"surname": "李", "year": 1800,
                                                      "month": 1, "day": 1,
                                                      "hour": 12, "gender": "男"}))
+        # R143b（D-189b）：taohua 端点 year/gender/calendar 三条 400 校验
+        # 分支 standing 覆盖——taohua（行 918）调用 req.validate_ranges()
+        # 继承 BaziRequest 校验，但 err.* 只覆盖 bazi 端点，taohua 同名
+        # 校验分支零断言（若 taohua 误移除 validate_ranges() 调用则不可见，
+        # 与 R139b err.bazi.calendar/scope/gender 同族——独立端点需独立
+        # 断言）。实测 year=1800/gender=中/calendar=garbage 均正确返回
+        # 400 + detail——补断言零风险。
+        _expect_400("err.taohua.year",
+                    client.post("/api/taohua", json={"year": 1800, "month": 5,
+                                                     "day": 15, "hour": 10,
+                                                     "gender": "男"}))
+        _expect_400("err.taohua.gender",
+                    client.post("/api/taohua", json={"year": 1990, "month": 5,
+                                                     "day": 15, "hour": 10,
+                                                     "gender": "中"}))
+        _expect_400("err.taohua.calendar",
+                    client.post("/api/taohua", json={"year": 1990, "month": 5,
+                                                     "day": 15, "hour": 10,
+                                                     "gender": "男",
+                                                     "calendar_type": "garbage"}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
