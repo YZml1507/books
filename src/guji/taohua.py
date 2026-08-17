@@ -111,3 +111,28 @@ def compute(b: Bazi) -> Taohua:
         hit_pillars=hit, hongluan=hl, hongluan_pillar=hl_hit,
         tianxi=tx, tianxi_pillar=tx_hit, strength=strength, notes=notes,
     )
+
+
+def dayun_hits(b: Bazi, birth_year: int) -> list[dict]:
+    """大运桃花应期（R113b，D-159b）：大运干支地支 == 桃花支 → 应期列表。
+
+    复用 `bazi_calc.calc_life` 的大运表（每运 10 年干支 + year_start 约略
+    公历年份段起点）。纯坐标计算，固定八字 → 固定应期，可命令复验。
+    实测（命令实跑）：1990-05-15 10:00 女命（阳年逆排）大运第 2 运 己卯
+    （2003 起）地支卯 == 桃花支卯 → 命中；男命同生日无命中。
+    """
+    from .bazi_calc import calc_life
+
+    peach = XIANCHI[b.year[1]]
+    life = calc_life(b, birth_year)
+    out: list[dict] = []
+    for d in life["dayun"]:
+        if d["pillar"][1] == peach:
+            out.append({
+                "index": d["index"],
+                "pillar": d["pillar"],
+                "start_age": d["start_age"],
+                "end_age": d["end_age"],
+                "year_start": d["year_start"],
+            })
+    return out

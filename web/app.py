@@ -922,6 +922,7 @@ def api_taohua(req: BaziRequest):
     try:
         b = compute(by, bm, bd, req.hour, req.gender)
         t = taohua_mod.compute(b)
+        dayun = taohua_mod.dayun_hits(b, by)
     except Exception as exc:
         raise HTTPException(422, f"排盘失败：{exc}") from exc
     return {
@@ -935,6 +936,7 @@ def api_taohua(req: BaziRequest):
         "tianxi": t.tianxi,
         "tianxi_pillar": t.tianxi_pillar,
         "strength": t.strength,
+        "dayun_hits": dayun,
         "notes": t.notes,
         "render": t.render(),
     }
@@ -1063,7 +1065,15 @@ if __name__ == "__main__":
               "day": 15, "hour": 10, "gender": "男"}),
               lambda j: (j.get("peach_zhi") and j.get("hongluan")
                          and j.get("tianxi") and j.get("strength")
-                         and j.get("render") and j["bazi"]["year"] == "庚午"))
+                         and j.get("render") and j["bazi"]["year"] == "庚午"
+                         and "dayun_hits" in j))
+        # R113b（D-159b）：大运桃花应期 standing 覆盖——女命阳年逆排，大运第 2 运
+        # 己卯（2003 起）地支卯 == 桃花支卯 → dayun_hits 非空且含己卯（实测稳定）。
+        check("taohua.dayun", client.post("/api/taohua", json={"year": 1990, "month": 5,
+              "day": 15, "hour": 10, "gender": "女"}),
+              lambda j: (isinstance(j.get("dayun_hits"), list)
+                         and any(d.get("pillar") == "己卯" and d.get("year_start") == 2003
+                                 for d in j.get("dayun_hits", []))))
         # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
         # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王），断言 n=3 + 每张牌
         # 有名称/正逆位/关键词（抓端点静默失效）。

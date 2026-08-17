@@ -1637,6 +1637,14 @@ $('#thForm').addEventListener('submit', async e => {
     html += `<tr><th>天喜</th><td>${esc(j.tianxi)}${j.tianxi_pillar.length ? '，临 ' + esc(j.tianxi_pillar.join('、')) : '（未临柱）'}</td></tr>`;
     html += `<tr><th>桃花强度</th><td>${esc(j.strength === 'strong' ? '旺' : j.strength === 'mid' ? '中' : '弱')}</td></tr>`;
     html += '</tbody></table></div>';
+    if (j.dayun_hits && j.dayun_hits.length){
+      html += '<div class="card"><h2>大运桃花应期（写死可核验）</h2><table class="works"><thead><tr><th>大运</th><th>干支</th><th>年龄段</th><th>约略起始年</th></tr></thead><tbody>';
+      j.dayun_hits.forEach(d => {
+        html += `<tr><td>第 ${esc(d.index)} 运</td><td>${esc(d.pillar)}</td>
+          <td>${esc(d.start_age)}~${esc(d.end_age)} 岁</td><td>${esc(d.year_start)}</td></tr>`;
+      });
+      html += '</tbody></table></div>';
+    }
     if (j.notes && j.notes.length){
       html += '<div class="card"><h2>说明（写死，非生成）</h2><ul>';
       j.notes.forEach(n => { html += `<li>${esc(n)}</li>`; });

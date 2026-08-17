@@ -5579,3 +5579,46 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
   PART 0 · FAIL 0）；五层自测全 PASS（web 31 checks）。
 - 决策记录：DECISIONS.md D-158b。
+
+## 140. [优化轨] R113b：桃花运扩展——大运桃花应期（D-159b，用户"继续不同方向优化"）（2026-08-17）
+
+### 140a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R112b（af5fbb3）已确认在 origin/main。
+
+### 140b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **桃花运扩展落点**（实测）：`bazi_calc.calc_life` 已输出大运干支表
+  （每运 10 年 + `year_start` 约略公历年份段起点，bazi_calc.py:361）；
+  大运地支 == 桃花支即应期。实测 1990-05-15 10:00 **女**命（阳年逆排）
+  大运第 2 运 **己卯**（2003 起）地支卯 == 桃花支卯 → 应期命中；男命
+  同生日无命中——确定性可复验。
+- **内容回复方向**（对照实测）：research/ask 已含 G7 无命中拒绝分支
+  （`research refuse test: True` 实测）+ 证据/步骤/引用披露齐全——
+  无可抓静默失效点，本轮不选。
+- **方案比对**：A 大运桃花应期扩展（选定，功能闭环：桃花运从"静态四柱"
+  扩展为"动态应期"）；B 内容回复增强（无缺口）；C 塔罗牌扩展（上轮刚
+  落地基础版，边际收益低于 A）——见 D-159b。
+
+### 140c. 改动与验证
+
+- **改动**：
+  - `src/guji/taohua.py`：新增 `dayun_hits(b, birth_year)`——复用
+    calc_life 大运表，大运地支 == 桃花支 → 应期列表（序号/干支/年龄段/
+    year_start），纯坐标计算。
+  - `web/app.py`：`POST /api/taohua` 响应增 `dayun_hits` 字段；web
+    --selftest 补 `taohua.dayun` check（31→32，固定女命 1990-05-15
+    → dayun_hits 含 己卯/2003）。
+  - `web/static/index.html`：桃花运面板增"大运桃花应期"表格（esc 转义
+    渲染）。
+- **验证**（全量）：女命 1990-05-15 10:00 → dayun_hits=[{index:2,
+  pillar:己卯, year_start:2003}] 实测稳定；男命同生日 → []；13 道闸门
+  全 exit 0（check_quality 先于 build_index，verify_index T1-T11 ALL
+  PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （web 32 checks）。
+- 决策记录：DECISIONS.md D-159b。
