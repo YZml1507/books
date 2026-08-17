@@ -4407,3 +4407,30 @@ R78b/R79b 修 verify_index 项数、R91b 修 check_provenance 注释同族
 
 选 A（台账头部注释同步，照 R91b check_provenance 先例）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-140b R94b 优化轨：台账 §1 判据表 G1 行过时（PART/193 题 vs 实测 PASS/248 题）→ 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/TASK_LEDGER.md` §1（G1–G9 判据表，文档自称
+"唯一的任务状态来源"）G1 行仍写"**PART** | 评测集 193 题，193/193，
+7 类全部达标 | 概念级（转述/语义）检索未覆盖，FTS5 做不到"，但实测：
+- `scripts/assess_goals.py` → **PASS 9 · PART 0 · FAIL 0**（G1 PASS，
+  命令实跑）；
+- `scripts/eval_g1.py` → **248 questions，PASS 246/248 (99.2%)**（命令
+  实跑）；
+- 台账 §1074 已记录"G1 从 PART 升 PASS，全 9 项全绿"（hit ≥80% 条件
+  满足后 bge 概念层纳入 eval_g1.json）；GOAL_NEXT_SESSION §1 快照块也
+  已写"G 判据 PASS 9 · PART 0 · FAIL 0"。
+§1 表是 R18b 前写的早期状态，G1 升级后**从未同步**——这是最严重的一处
+滞后：新会话把台账当唯一状态来源读 §1，会误判 G1 仍是 PART（O1 文档
+失效模式，L-23 同族；"唯一状态来源"自身过时的危害高于普通文档）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 台账 §1 G1 行更新：状态 **PART → PASS**；实测"评测集 193 题，193/193"→"评测集 248 题，PASS 246/248（99.2%）；概念层已由 bge 落地（§1074）"；缺什么"概念级未覆盖"→"—"；段尾"唯一不是 PASS 的是 G1"旧段落补划线标注（照 D-008 保留记录惯例） | 纯文档、零代码/零风险；状态与 `assess_goals.py`（PASS 9）/ `eval_g1.py`（248 题）/ 台账 §1074 实测一致，恢复"唯一状态来源"可信度 |
+| B | 只改头部注释不动 §1 表 | §1 表仍误导（G1 PART），新会话照读误判 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（§1 表 G1 行同步 + 旧结论划线保留，照 D-008）。落地后：docs-only
+先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。

@@ -105,7 +105,7 @@ Euclid 用新 scheme `euclid`（6 BOOK，170 proposition，addr2=roman numeral�
 
 | 判据 | 状态 | 实测 | 缺什么 |
 |---|---|---|---|
-| G1 能找到原文 | **PART** | 评测集 193 题，`193/193`，7 类全部达标；见 §10 | 概念级（转述/语义）检索未覆盖，FTS5 做不到 |
+| G1 能找到原文 | **PASS** | 评测集 248 题，`246/248`（99.2%），7 类全部达标；概念层已由 bge 落地（§1074）；见 §10（R94b 修正旧 PART/193 题） | — |
 | G2 能精确定位 | **DONE** | 抽样 4,000，锚点作字面 `<pb:>` 命中 4,000 / 失败 0 | — |
 | G3 能区分版本 | **DONE** | 逐地址枚举异文并分类，異文刻意不折叠 | — |
 | G4 能跨单元关联 | **DONE** | `link` 表 **558 条**、零悬空、100% 有文本支持；2 跳链路可展示且带引用 | — |
@@ -115,15 +115,18 @@ Euclid 用新 scheme `euclid`（6 BOOK，170 proposition，addr2=roman numeral�
 | G8 能区分知识来源 | **DONE** | Derived/Conversation 独立文件 `knowledge.db`；**9 项越界尝试全部被拦**（`probe_g8_isolation.py`） | — |
 | G9 能长期研究 | **DONE** | 1 个可恢复线程，五要素齐备，6 条证据回查 `data/raw/` 零陈旧 | 自动捕获（现仅脚本写入） |
 
-`DONE 8 · PART 1 · TODO 0`　复验 `python scripts/assess_goals.py`，
-实测 **`PASS 8 · PART 1 · FAIL 0 · N/A 0`**（本轮之前是 `PASS 3 · PART 1 · FAIL 4 · N/A 1`）。
+`DONE 9 · PART 0 · TODO 0`　复验 `python scripts/assess_goals.py`，
+实测 **`PASS 9 · PART 0 · FAIL 0 · N/A 0`**（R94b 修正旧 `DONE 8 · PART 1` / `PASS 8 · PART 1`；本轮之前是 `PASS 3 · PART 1 · FAIL 4 · N/A 1`）。
 
-本轮变动：G1 `不可测 → PART`、G4 `FAIL → PASS`、G5 `PART → PASS`、
+本轮变动：G1 `不可测 → PART → PASS`（概念层 bge 落地，§1074）、G4 `FAIL → PASS`、G5 `PART → PASS`、
 G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 
-**唯一不是 PASS 的是 G1，而且是故意的**：题库每题都锚在语料中逐字存在的文本上，
+~~**唯一不是 PASS 的是 G1，而且是故意的**：题库每题都锚在语料中逐字存在的文本上，
 证明的是逐字与结构层面；G1 字面要求的**概念级**检索未覆盖，FTS5 也做不到。
-按 PASS 上报就是虚报。**不要为了让这张表全绿而改判它。**
+按 PASS 上报就是虚报。**不要为了让这张表全绿而改判它。**~~（**R94b 标注**：
+此结论是 R18b 前状态——G1 概念层已由 bge 落地（hit ≥80% 条件满足后纳入
+eval_g1.json，§1074），实测 assess_goals PASS 9 · PART 0 · FAIL 0；
+原句划线保留照 D-008 记录惯例）
 
 ---
 
@@ -4757,3 +4760,48 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（248 questions / 246 PASS 与 `eval_g1.py` 实测一致）。
 - 决策记录：DECISIONS.md D-139b。
+
+## 121. [优化轨] R94b：台账 §1 判据表 G1 行过时（PART/193 题 vs 实测 PASS/248 题）→ 同步（2026-08-17，双窗口并行第二轨）
+
+### 121a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `5193f76`
+（R95a：吸收优化轨 R76b-R92b docs-only rebase，gates green；此前
+`90565ee` R94a）。核实未动 scripts/assess_goals.py（R21a 委托与
+R64b G9 SCOPE 移交项维持，待审查轨合入 main，非本轨领土）。
+R93b（f42cddf）已确认在 origin/main，无 rebase 需求。
+
+### 121b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals **PASS 9 · PART 0 · FAIL 0**（G1 PASS，命令实跑）。
+- **eval_g1 实测**（命令实跑）：`G1 evaluation — 248 questions`、
+  `G1 = PASS 246/248 (99.2%), 0 invalid`。
+- **活引用扫描**：R75b-R93b 处置项均无残留；LESSONS/MASTER_PLAN/
+  DECISIONS 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定，重大）**：`docs/TASK_LEDGER.md` §1（G1–G9
+  判据表，文档自称"唯一的任务状态来源"）G1 行仍写"**PART** | 评测集
+  193 题，193/193 | 概念级（转述/语义）检索未覆盖，FTS5 做不到"——
+  但实测 assess_goals PASS 9（G1 PASS）、eval_g1 248 题 246/248、
+  台账 §1074 已记录"G1 从 PART 升 PASS（hit ≥80% 条件满足后 bge 概念
+  层纳入 eval_g1.json）"、GOAL_NEXT_SESSION §1 快照块已写"G 判据
+  PASS 9 · PART 0 · FAIL 0"。§1 表是 R18b 前早期状态，G1 升级后**从未
+  同步**——新会话把台账当唯一状态来源读 §1 会误判 G1 仍是 PART（O1
+  文档失效模式，L-23 同族；"唯一状态来源"自身过时危害高于普通文档）。
+
+### 121c. 改动与验证
+
+- **改动**（docs/TASK_LEDGER.md，纯文档）：①§1 表 G1 行状态
+  **PART → PASS**，实测"评测集 193 题，193/193"→"评测集 248 题，
+  246/248（99.2%），7 类全部达标；概念层已由 bge 落地（§1074）"，
+  缺什么"概念级未覆盖"→"—"（R94b 修正标注）；②表下汇总
+  `DONE 8 · PART 1` → `DONE 9 · PART 0`、`PASS 8 · PART 1` →
+  `PASS 9 · PART 0`，本轮变动补"G1 不可测 → PART → PASS"；③段尾
+  "唯一不是 PASS 的是 G1"旧结论划线保留并标注 R94b 处置（照 D-008
+  记录惯例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（PASS 9 / 248 题 246/248 与 assess_goals/eval_g1 实测及
+  台账 §1074 一致）。
+- 决策记录：DECISIONS.md D-140b。
