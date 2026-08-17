@@ -3743,3 +3743,58 @@ rebase 后亲跑 13 闸门确认无回归：
   加强无业务风险。**领土零越界**。
 
 - 决策记录：DECISIONS.md D-103a。
+
+### 85. R94a 纯文档轮：rebase 纳入 R71b-R74b，清空 pending（2026-08-17）
+
+接续 R93a（0eeb6d6）。fetch origin 后 `git log HEAD..origin/main` 显示
+优化轨推进 main 四提交，与交接 pending 名单一致：
+
+- 9359a99 R71b docs(roadmap) close stale R2 re-audit to-check
+- b99d046 R72b docs(roadmap) fix bazi_lookup row "9 部命理书"→18 部
+- 547aa14 R73b docs(status) sync PROJECT_STATUS header update timestamp R54b→R70b
+- 2946a8a R74b docs(status) annotate stale TODO items with disposition
+
+**逐文件核实**（`git show --name-only`）：四提交全部 `docs/*.md only`
+（PROJECT_ROADMAP / PROJECT_STATUS / TASK_LEDGER / DECISIONS），无一触及
+`.py/.html/.spec`。按协议第 3 步走纯文档轮，不启动审查循环。
+
+**逐行复审四提交 diff**（亲眼过）：
+- R71b：PROJECT_ROADMAP §8 R2 再审查节从"（进行中）待查"改为"（已完成，R71b
+  核实）"，逐项标注处置源——wuxing-dayi 颗粒度修复 §1278实测29单元、
+  bible/darwin 0单元系设计（probe_bcv计数来自raw_ext/generality非unit表，
+  §1062）、边界输入R1处置§27b、文档一致性R55b-R70b十六轮核对。归因诚实。
+- R72b：§1.2 bazi_lookup 行"9 部命理书"→18 部（实测 `len(MINGLI_WORKS)=18`，
+  KR3g 9 术数+P2 子平 9，R20b 扩充），§51 缺口行标注"已由 R20b 落地"。L-23
+  硬编码数字漏同步的纠正。
+- R73b：PROJECT_STATUS header 更新时间 R54b→R70b（快照块已刷到 R70b 但
+  header 滞后，O1/D-097b 文档漂移族）。
+- R74b：TODO 节 6 未勾项逐项标注处置源（junk(cid:N)已实现quality.py:283
+  /自天祐之5vs4已查清D-034/&KR0658;已查清T7-m=虩§1017/probes归档R51b
+  /Phase3自审D-034），仅"知识图谱differs异文"保留开放未处置标注。纪律良好。
+
+**rebase**：`git rebase origin/main` 在历史 commit b781a27（R22a rebase
+merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+"冲突取 --theirs"：`git checkout --theirs docs/DECISIONS.md docs/TASK_LEDGER.md`
+→ `git add` → `GIT_EDITOR=true git rebase --continue`。rebase 成功，
+R71b-R74b 纳入 audit 分支 history，`HEAD..origin/main` 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成，works with any junk: 30）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 含 bible-douay expected 9
+  / huangli_shensha / liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，四提交纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-104a。

@@ -3214,3 +3214,29 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
   优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空 → 领土零越界确认。
 - 13 闸门亲跑全绿（rebase 后 confirm 无回归）。
+
+## D-104a R94a 审查轨：纯文档轮 rebase 纳入 R71b-R74b，清空 pending（2026-08-17）
+
+- **接续 R93a**：fetch origin 后 `git log HEAD..origin/main` 显示优化轨推进
+  main 四提交（9359a99 R71b、b99d046 R72b、547aa14 R73b、2946a8a R74b），
+  与交接 pending 名单一致。逐文件核实 `git show --name-only` 全部
+  `docs/*.md only`（PROJECT_ROADMAP/PROJECT_STATUS/TASK_LEDGER/DECISIONS），
+  无一触及 `.py/.html/.spec`。按协议第 3 步走纯文档轮，不启动审查循环。
+- **逐行复审四提交 diff**（亲眼过）：R71b 关闭 stale R2 再审查清单逐项标注
+  处置源（wuxing-dayi 颗粒度/bible-darwin 0单元系设计/边界R1/一致性十六轮）；
+  R72b bazi_lookup 行 9→18 部实测纠错并标注 §51 落地；R73b sync header
+  R54b→R70b；R74b 6 stale TODO 逐项标注处置源仅留知识图谱开放项。均归因诚实，
+  无越界，纪律良好。
+- **rebase**：`git rebase origin/main` 在历史 commit b781a27（R22a rebase
+  merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+  "冲突取 --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R71b-R74b 纲入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→ 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
+  eval_g7 PASS（FABRICATIONS 0）。
