@@ -5010,3 +5010,43 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `d93afdb`
   审阅通过（标注与 GOAL_NEXT_SESSION §4 已授权段及 R75b-R98b 历轮
   push 实测一致）。
 - 决策记录：DECISIONS.md D-145b。
+
+## 127. [优化轨] R100b：GOAL_NEXT_SESSION 会话表本窗口行轮次范围钉死 → 去范围（2026-08-17，双窗口并行第二轨）
+
+### 127a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `eb686ac`
+（R99a：吸收优化轨 R97b docs-only rebase，gates green；此前
+`d93afdb` R98a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R99b（b0c2928）已确认在 origin/main，无 rebase 需求。
+
+### 127b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **快照块一致性**（GOAL_NEXT_SESSION §1 vs PROJECT_STATUS）：索引/
+  G 判据/锚点数字两文档完全一致；web 24 checks 实测——非缺口。
+- **活引用扫描**：R75b-R99b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R97b 给 GOAL_NEXT_SESSION §0a 会话表补的
+  本窗口行写"**本窗口**：R75b-R97b 优化循环 23 轮 docs-only……最新
+  commit 见台账 §123"，但**轮次范围与 commit 引用再次钉死**：`git log
+  --oneline 2946a8a..HEAD | wc -l` 实测 R75b 至今 **25 轮**（R98b/
+  R99b 已追加，本行仍写"R75b-R97b 23 轮"）；台账最新节已到 §126
+  （R99b），本行仍写"最新 commit 见台账 §123"。新会话照会话表读本
+  窗口行会误以为本窗口停在 R97b/§123（O1 文档失效模式，L-23 同族；
+  与 R86b 去 TASK_LEDGER 头部轮次钉死（D-132b）、R92b 去 §1 快照标签
+  范围钉死同族——根因相同：活文档记录固定轮次引用必然滞后）。
+
+### 127c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：会话表本窗口行去轮次
+  钉死——"R75b 起优化循环 docs-only（R100b 复核 25 轮），基线全绿
+  （47 部 62,109 单元、G1–G9 PASS 9、24 checks），最新 commit 见台账
+  文末"，照 D-132b 先例去范围钉死，此后轮次追加不再需要更新该行。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（25 轮与 `git log 2946a8a..HEAD | wc -l` 实测一致）。
+- 决策记录：DECISIONS.md D-146b。
