@@ -1080,11 +1080,26 @@ if __name__ == "__main__":
         check("bookstudy.chapter", client.get("/api/bookstudy/chapter",
               params={"work_id": "KR1a0001", "scheme": "zhouyi", "addr1": 1}),
               lambda j: j.get("units") and all(u.get("citation") for u in j["units"]))
+        # R130b（D-176b）：bookstudy.chapter 的 NULL-scheme 文件节分支 standing
+        # 覆盖——现有 check 只测 zhouyi（KR1a0001），无 scheme 文件节（老子）读取
+        # 零断言（若 NULL-scheme 文件节回归则不可见，与 R118b/R119b/R124b/R126b/
+        # R128b 同族）。实测 work_id=老子&scheme=booksec&addr1=1 → 200 + error
+        # 键（NULL-scheme 文件节分支可用）。
+        check("bookstudy.chapter.nullscheme", client.get("/api/bookstudy/chapter",
+              params={"work_id": "老子", "scheme": "booksec", "addr1": 1}),
+              lambda j: j.get("error") is not None)
         check("bookstudy.summary", client.get("/api/bookstudy/summary", params={"work_id": "KR1a0001"}),
               lambda j: j.get("n_units") and j.get("layers"))
         check("compare_works", client.get("/api/compare_works",
               params={"work_a": "KR5c0057", "work_b": "KR5c0126", "q": "無爲"}),
               lambda j: j.get("works") and len(j["works"]) == 2)
+        # R130b（D-176b）：compare_works 无命中拒绝分支（G7）standing 覆盖——
+        # 现有 check 只测有命中路径，G7 拒绝分支（error 键）零断言（若拒绝逻辑
+        # 回归则不可见，与 R118b/R119b/R124b/R126b/R128b 同族）。实测无命中 q
+        # → 200 + error="「電話飛機電腦」在两书均无命中"（分支可用）。
+        check("compare_works.refuse", client.get("/api/compare_works",
+              params={"work_a": "KR5c0057", "work_b": "KR5c0126", "q": "電話飛機電腦"}),
+              lambda j: j.get("error") is not None)
         check("concept", client.get("/api/concept", params={"q": "無爲"}), lambda j: j.get("census"))
         check("threads.list", client.get("/api/threads"), lambda j: "threads" in j)
 

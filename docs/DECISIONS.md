@@ -5396,3 +5396,38 @@ search.layer/search.work，R128b dee49d0 已确认在 origin/main）。
 选 A（checks 数 47→49 文档对齐，照 R116b/R120b/R122b/R125b/R127b 先例）。
 落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff
 审阅（数字与命令实测 49 checks 一致）。
+
+## D-176b R130b 优化轨：web standing 自测缺口——compare_works 无命中拒绝分支与 bookstudy.chapter NULL-scheme 分支零断言（能力层验证，与 R118b/R119b/R124b/R126b/R128b 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `compare_works` check
+（app.py:1073）只测有命中路径（無爲 两书命中）；`bookstudy.chapter` check
+（app.py:1068）只测 zhouyi scheme（KR1a0001）。两条**已接线分支零 standing
+断言**：① `GET /api/compare_works` 无命中 → G7 拒绝分支（返回 error 键
+"在两书均无命中"）；② `GET /api/bookstudy/chapter` 的 NULL-scheme 文件节
+（老子 无 scheme 文件）分支。若这两分支静默失效（如 G7 拒绝逻辑回归、
+NULL-scheme 文件节读取回归），13 闸门与五层自测都看不见（L-22/L-23 同族；
+与 R118b/R119b/R124b/R126b/R128b 同族——此前补 standing 断言多次当场
+抓到真实 bug，R124b 抓到 timedelta NameError）。实测（命令实跑）：
+`compare_works?q=電話飛機電腦` → 200，error="「電話飛機電腦」在两书均无
+命中"（G7 拒绝分支可用）；`bookstudy/chapter?work_id=老子&scheme=booksec
+&addr1=1` → 200，error 键（NULL-scheme 文件节分支可用）——补断言零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/compare_works {"work_a":"KR5c0057","work_b":"KR5c0126","q":"電話飛機電腦"}`
+  → 200，error 键（G7 拒绝）
+- `GET /api/bookstudy/chapter {"work_id":"老子","scheme":"booksec","addr1":1}`
+  → 200，error 键（NULL-scheme 文件节）
+- 现有 `compare_works` check：無爲 → works + len==2（实测稳定）；现有
+  `bookstudy.chapter` check：KR1a0001 zhouyi → units + citation（实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `compare_works.refuse`（无命中 q → 200 + error 非空，断言 G7 拒绝分支）与 `bookstudy.chapter.nullscheme`（work_id=老子 + scheme=booksec + addr1=1 → 200 + error 非空或 units 结构正确，断言 NULL-scheme 文件节分支）两条断言 | 纯加自测断言、零功能改动/零数据风险；补上两条已接线分支的 standing 覆盖缺口，抓 G7 拒绝/NULL-scheme 文件节静默失效；断言确定性可复验（照 R118b/R119b/R124b/R126b/R128b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 compare_works.refuse + bookstudy.chapter.nullscheme standing 断言，
+照 R118b/R119b/R124b/R126b/R128b 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 49→51 checks，跑 13 闸门 + 五层自测确认零回退。
