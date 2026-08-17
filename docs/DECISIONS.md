@@ -5564,3 +5564,32 @@ origin/main）。
 选 A（checks 数 52→53 文档对齐，照 R116b/R120b/R122b/R125b/R127b/R129b/
 R131b/R133b 先例）。落地后：docs-only 先例闸门抽跑（verify_index +
 check_quality），文档 diff 审阅（数字与命令实测 53 checks 一致）。
+
+## D-182b R136b 优化轨：bazi/liuyao 的 LLM model 标注来源与 ask 不一致（R115b 修复时漏掉的两处同族点，生成文本模型来源纪律）
+
+**背景（亲自核实）**：R115b 已把 `/api/ask` 的 LLM 回复改为结构化
+`{"ok","text","model"}` 且 model 用 `llm_reader.configured_model()`
+（web/app.py:565，文件配置优先、环境变量兜底）。但摸底发现 **bazi 与
+liuyao 两处 LLM model 标注仍用 `os.environ.get("LLM_MODEL",
+"llm_config.json")`**（web/app.py:251 bazi、:823 liuyao）——三处
+model 来源不一致：ask 用 llm_reader 配置（llm_config.json 的 model
+优先），bazi/liuyao 用环境变量硬编码（llm_config.json 文件里配的
+model 会被忽略，标注与实际调用的模型可能不符——llm_reader._cfg()
+:200 调用时用的是 `cfg["model"]`，即文件配置优先）。若 llm_config.json
+配了 model 而环境变量没设 LLM_MODEL，bazi/liuyao 会标注
+"llm_config.json"（字面量）而非真实模型名——模型来源标注失真（GOAL.md
+纪律：生成文本须标注真实模型来源；与 R115b 同族，R115b 只修了 ask）。
+命令实测：`llm_reader.configured_model()` 返回当前生效模型名（文件优先）；
+web/app.py 三处 model 赋值来源不一致（251/823 vs 565）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py :251（bazi）与 :823（liuyao）两处 `os.environ.get("LLM_MODEL", "llm_config.json")` 改为 `llm_reader.configured_model()`（与 :565 ask 一致）；selftest 无需新增 check（bazi/liuyao 的 use_llm 分支已由 err.* 与现有断言覆盖结构，但 model 值来源统一后与 ask 一致） | 纯改两处 model 来源、零功能改动/零数据风险；统一三处模型来源标注（文件配置优先、环境变量兜底），与 llm_reader 实际调用模型一致；照 R115b 先例 |
+| B | 只改 bazi 不动 liuyao | liuyao 仍标注失真（不一致未清） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、bge 缓存新鲜、link 零悬空） |
+
+选 A（bazi/liuyao 两处 LLM model 来源统一为 configured_model()，照
+R115b 先例：生成文本必须标注真实模型来源）。落地后：web --selftest
+53→53 checks（无新增断言，结构不变），跑 13 闸门 + 五层自测确认零回退。

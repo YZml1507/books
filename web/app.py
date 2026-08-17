@@ -248,7 +248,7 @@ def bazi_api(req: BaziRequest):
                 text = llm_reader.interpret(b.render(), evidence, req.question,
                                             calc_out)
                 llm_out = {"ok": True, "text": text,
-                           "model": os.environ.get("LLM_MODEL", "llm_config.json")}
+                           "model": llm_reader.configured_model()}
             except Exception as exc:  # 网络/API 错误：引用证据不受影响
                 llm_out["text"] = f"LLM 调用失败：{exc}"
 
@@ -820,7 +820,7 @@ def api_liuyao(req: LiuyaoRequest):
                     f"本卦{ben.gua_name}(卦{ben.gua_number}) 变卦{bian.gua_name}(卦{bian.gua_number})",
                     ev_slim, req.question, calc_dict)
                 llm_out = {"ok": True, "text": text,
-                           "model": os.environ.get("LLM_MODEL", "llm_config.json")}
+                           "model": llm_reader.configured_model()}
             except Exception as exc:
                 llm_out["text"] = f"LLM 调用失败：{exc}"
 
@@ -1292,6 +1292,17 @@ if __name__ == "__main__":
         _latest_rid = history_db.list_records(limit=1)
         check("history.detail", client.get(f"/api/history/{_latest_rid[0]['id'] if _latest_rid else 0}"),
               lambda j: j is None or "paipan" in j)  # 可能无该 id，但必须结构正确
+        # R136b（D-182b）：history.detail 缺失记录拒绝分支 standing 覆盖——
+        # 现有 check 只测命中路径（最新 id 91 → paipan），404 拒绝分支（get_record
+        # 返回 None → HTTPException(404)）零断言（若 None 校验回归为误返回空
+        # dict、或 HTTPException 误变 500，selftest 全绿看不见，与 R134b
+        # bookstudy.summary.missing 同族）。实测 GET /api/history/99999 → 404
+        # + detail 非空（拒绝分支可用）。404 不走 check() 闭包（它断言 200），
+        # 单独断言状态码 + detail 形状。
+        _miss = client.get("/api/history/99999")
+        assert _miss.status_code == 404, ("history.detail.missing", _miss.status_code, _miss.text[:200])
+        assert _miss.json().get("detail"), ("history.detail.missing", _miss.text[:200])
+        ok.append("history.detail.missing")
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)
         check("health", client.get("/api/health"), lambda j: j.get("ok") is True)

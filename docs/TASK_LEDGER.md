@@ -6602,3 +6602,48 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   53 checks 及 R134b bookstudy.summary.missing 一致）。
 - 决策记录：DECISIONS.md D-181b。
+
+## 163. [优化轨] R136b：bazi/liuyao 的 LLM model 标注来源与 ask 不一致（R115b 修复时漏掉的两处同族点，生成文本模型来源纪律）（2026-08-17）
+
+### 163a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R135b（ce67da9）已确认在 origin/main。
+
+### 163b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：R115b 已把 `/api/ask` 的 LLM model 标注
+  改为 `llm_reader.configured_model()`（web/app.py:565，文件配置优先、
+  环境变量兜底）；但 **bazi（:251）与 liuyao（:823）两处 LLM model
+  标注仍用 `os.environ.get("LLM_MODEL", "llm_config.json")`**——三处
+  model 来源不一致：若 llm_config.json 配了 model 而环境变量没设
+  LLM_MODEL，bazi/liuyao 会标注 "llm_config.json"（字面量）而非真实
+  模型名（llm_reader._cfg() 调用时用 `cfg["model"]` 文件优先）——
+  模型来源标注失真（GOAL.md 纪律：生成文本须标注真实模型来源；与
+  R115b 同族，R115b 只修了 ask）。
+- **实测**（命令实跑）：`llm_reader.configured_model()` 返回当前生效
+  模型名（文件优先）；web/app.py 三处 model 赋值来源不一致
+  （251/823 用 os.environ，565 用 configured_model）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、文档滞后（53 checks 已同步无残留）——
+  无明确缺口。
+- **方案比对**：A bazi/liuyao 两处 model 来源统一为 configured_model()
+  （选定）；B 只改 bazi 不动 liuyao（不一致未清）；C 前端体验/质量
+  性能层（无缺口）——见 D-182b。
+
+### 163c. 改动与验证
+
+- **改动**（web/app.py，仅 model 来源）：:251（bazi）与 :823（liuyao）
+  两处 `os.environ.get("LLM_MODEL", "llm_config.json")` 改为
+  `llm_reader.configured_model()`（与 :565 ask 一致，replace_all 一次
+  改两处）。
+- **验证**（全量）：web --selftest 53 checks 全 PASS（结构不变，零回退）；
+  13 道闸门全 exit 0（check_quality 先于 build_index，verify_index
+  T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测
+  全 PASS（sources/bookstudy/research/mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-182b。
