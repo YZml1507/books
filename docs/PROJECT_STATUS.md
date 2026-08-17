@@ -16,7 +16,7 @@
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
 G 判据    PASS 9 · PART 0 · FAIL 0（assess_goals.py 实测，含 G4 多跳/G8 三类知识隔离/G9 跨会话）
-闸门      13 道全绿：verify_index T1-T13 ALL PASS · check_quality PASS（阴阳双对照）
+闸门      13 道全绿：verify_index T1-T11 ALL PASS · check_quality PASS（阴阳双对照）
           · 4 probes PASS · eval_g1 / eval_g4 / eval_g7 PASS
 suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EXPECTED 非缺陷不入列）
 地址体系  zhouyi · bcv · yilin · booksec · play（幕/场）· euclid（卷/命题）等六类已入索引
@@ -257,7 +257,7 @@ PASS 3   PART 1   FAIL 4   不可测 1
 
 ---
 
-## 当前实测数字
+## 当前实测数字（**历史存档，R17 前快照——28 部 8,611 单元已过时，现为 47 部 62,109 单元；R78b 标注**）
 
 ```
 索引     28 部 → 8,611 单元，4.8 秒，17.8 MB，页锚点覆盖 100%

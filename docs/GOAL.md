@@ -124,7 +124,7 @@ data/index/corpus.db   （build_index.py 会删掉重建）
 ```powershell
 cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\build_index.py         # 重建（约 5 秒）
-.\.venv\Scripts\python.exe scripts\verify_index.py        # 12 项验收，须 ALL PASS
+.\.venv\Scripts\python.exe scripts\verify_index.py        # T1–T11 共 23 断言，须 ALL PASS
 .\.venv\Scripts\python.exe scripts\validate_alignment.py  # 对齐，须 >= 1824/1872
 .\.venv\Scripts\python.exe scripts\check_quality.py       # 质量，须 PASS（含已知阳性对照）
 .\.venv\Scripts\python.exe probes\probe_conservation.py   # 守恒，须 delta 0 / ratio 1.0000

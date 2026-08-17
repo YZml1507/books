@@ -27,7 +27,7 @@
 cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\check_quality.py      # 先跑：产出 quality_report.json
 .\.venv\Scripts\python.exe scripts\build_index.py        # 重建索引（约 5 秒）
-.\.venv\Scripts\python.exe scripts\verify_index.py       # 现为 20 项（新增 T9 披露 / T10 损坏标记）
+.\.venv\Scripts\python.exe scripts\verify_index.py       # 现为 T1–T11 共 23 断言（新增 T9 披露 / T10 损坏标记；R78b 修正旧"20 项"数）
 .\.venv\Scripts\python.exe scripts\validate_alignment.py # 对齐打分，须 >= 1824/1872
 .\.venv\Scripts\python.exe probes\probe_conservation.py  # 文本守恒，delta 0 / ratio 1.0000
 .\.venv\Scripts\python.exe scripts\check_provenance.py   # provenance，须 0/28 缺失
@@ -4110,3 +4110,47 @@ R76b（91a212c）已确认在 origin/main。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（13 行处置证据与命令实测/台账/DECISIONS 一致）。
 - 决策记录：DECISIONS.md D-123b。
+
+## 105. [优化轨] R78b：verify_index 检查项数三处文档与实测不符 → 数字修正（2026-08-17，双窗口并行第二轨）
+
+### 105a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R77b（4466086）已确认在 origin/main。
+
+### 105b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空=57,315
+  （92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照一致，非缺口；
+  assess_goals PASS 9 · PART 0 · FAIL 0。
+- **verify_index 项数实测**（`grep -o "check(" scripts/verify_index.py |
+  wc -l`）：**23 个 check 断言，分 11 段 T1–T11**（T1:2/T2:1/T3:1/T4:1/
+  T5:1/T6:1/T7:3/T8:2/T9:3/T10:4/T11:3）。
+- **真实缺口（本轮选定）**：三处文档的 verify_index 检查项数与实测不符：
+  - `docs/GOAL.md` §3 行 127 注释"# 12 项验收，须 ALL PASS"——实测 11 段
+    23 断言，非 12 项；
+  - `docs/PROJECT_STATUS.md` 行 19 快照块"verify_index T1-T13 ALL PASS"
+    ——实测只有 T1–T11，**T12/T13 不存在**；
+  - `docs/TASK_LEDGER.md` 行 30 头部复验命令注释"现为 20 项（新增 T9 披露
+    / T10 损坏标记）"——"20 项"是 R17 前旧数（新增 T9/T10 后为 23 断言），
+    与行 51"verify_index ALL PASS（T1–T11）"自相矛盾。
+  另有 `docs/PROJECT_STATUS.md` 行 260"## 当前实测数字"段仍写"28 部 →
+  8,611 单元 / verify_index 12 项全过"——28 部 8,611 单元是 R17 前旧快照
+  （现 47 部 62,109 单元），该段未标历史存档（行 84 第三轮快照已标，
+  本段漏标）。可被命令断言的事实硬编码且漏同步——L-23 教训同族、
+  O1 文档失效模式。
+
+### 105c. 改动与验证
+
+- **改动**（纯文档，四处）：①GOAL.md §3 注释"12 项验收"→"T1–T11 共 23
+  断言，须 ALL PASS"；②PROJECT_STATUS 行 19"T1-T13"→"T1-T11"；③
+  TASK_LEDGER 行 30"现为 20 项"→"现为 T1–T11 共 23 断言（新增 T9 披露 /
+  T10 损坏标记；R78b 修正旧'20 项'数）"；④PROJECT_STATUS 行 260 段标题
+  补历史存档标注（"R17 前快照——28 部 8,611 单元已过时，现为 47 部
+  62,109 单元"，照行 84 第三轮快照先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（23 断言与 `grep -o "check(" | wc -l` 实测一致，62,109 与
+  单元数实测一致）。
+- 决策记录：DECISIONS.md D-124b。
