@@ -4680,3 +4680,39 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   审阅通过（zip 0/47、source_url 9/47 与 `check_provenance.py` 实测及
   台账 §1282 一致）。
 - 决策记录：DECISIONS.md D-137b。
+
+## 119. [优化轨] R92b：GOAL_NEXT_SESSION §1 快照标签补注轮次范围钉死 → 去范围（2026-08-17，双窗口并行第二轨）
+
+### 119a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R91b（44324e0）已确认在 origin/main。
+
+### 119b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：R75b-R91b 处置项均无残留；LESSONS/MASTER_PLAN 中旧数
+  （8,611 / 28 部 / 0/28）均为历史教训与否决清单记录（D-008 保留惯例，
+  非活引用）；DECISIONS.md 残留旧数同理——非缺口。
+- **真实缺口（本轮选定）**：R85b 给 GOAL_NEXT_SESSION §1 快照标签补注
+  "R70b–R84b 均为 docs-only 对齐轮、功能终态维持 R69b"，但**范围终点
+  再次钉死**——`git log dd063c4..HEAD` 实测 R86b–R91b 六轮（2a12904 /
+  829e32b / 7e1b150 / b145833 / 545a778 / 44324e0）全部为 docs-only
+  对齐轮，补注仍写"R70b–R84b"，新会话据此会误以为 R85b 之后有功能
+  改动（O1 文档失效模式，L-23 同族；与 R86b 去 TASK_LEDGER 头部轮次
+  钉死同族先例 D-132b——根因相同：docs-only 轮持续追加，固定轮次范围
+  必然滞后）。
+
+### 119c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§1 补注"R70b–R84b"→
+  "R70b 起均为 docs-only 对齐轮（R92b 去范围钉死）、功能终态维持
+  R69b"，照 D-132b 先例去范围钉死，此后 docs-only 轮不再需要补注。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（与 `git log dd063c4..HEAD` 实测六轮 docs-only 一致）。
+- 决策记录：DECISIONS.md D-138b。

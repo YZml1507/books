@@ -90,7 +90,7 @@ PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
 cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-**当前（R69b 功能终态，13/13 全过 + 五层自测全齐；web 自测 24 checks，R53b/R54b 补端点、R61b 补首页 /、R69b 补 bazi.semantic）**（R85b 补注：R70b–R84b 均为 docs-only 对齐轮、功能终态维持 R69b；PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b）：
+**当前（R69b 功能终态，13/13 全过 + 五层自测全齐；web 自测 24 checks，R53b/R54b 补端点、R61b 补首页 /、R69b 补 bazi.semantic）**（R85b 补注、R92b 去范围钉死：R70b 起均为 docs-only 对齐轮、功能终态维持 R69b；PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b）：
 
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）

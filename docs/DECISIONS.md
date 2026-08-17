@@ -4360,3 +4360,25 @@ R89b 补清单时未对照顺序规则，属同族残留）。
 选 A（台账头部注释同步，照 R89b GOAL.md 先例 + §1282 出处）。
 落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
 diff 审阅。
+
+## D-138b R92b 优化轨：GOAL_NEXT_SESSION §1 快照标签补注轮次范围钉死 → 去范围（文档对齐）
+
+**背景（亲自核实）**：R85b 给 `docs/GOAL_NEXT_SESSION.md` §1 快照标签
+补注"R70b–R84b 均为 docs-only 对齐轮、功能终态维持 R69b"，但**范围
+终点再次钉死**——`git log dd063c4..HEAD` 实测 R86b–R91b 六轮（2a12904/
+829e32b/7e1b150/b145833/545a778/44324e0）全部为 docs-only 对齐轮，
+补注仍写"R70b–R84b"，新会话据此会误以为 R85b 之后有功能改动（O1
+文档失效模式，L-23 同族；与 R86b 去 TASK_LEDGER 头部轮次钉死同族
+先例，D-132b——根因相同：docs-only 轮持续追加，固定轮次范围必然
+滞后）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §1 补注"R70b–R84b"→"R70b 起均为 docs-only 对齐轮（至 R92b 复核，含 R86b–R91b 六轮）、功能终态维持 R69b" | 纯文档、零代码/零风险；与 `git log dd063c4..HEAD` 实测（六轮 docs-only）一致，照 D-132b 去范围钉死，此后 docs-only 轮不再需要补注 |
+| B | 只把"R70b–R84b"改成"R70b–R91b" | 下一轮又滞后，治标不治本 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（去范围钉死："R70b 起"，照 D-132b 先例）。落地后：docs-only 先例
+闸门抽跑（verify_index + check_quality），文档 diff 审阅。
