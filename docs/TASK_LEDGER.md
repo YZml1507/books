@@ -5714,3 +5714,51 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-161b。
+
+## 143. [优化轨] R116b：文档滞后对齐——web standing checks 24→35 与 ROADMAP 术数功能标注（R110b-R115b 功能轮后未同步）（2026-08-17）
+
+### 143a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R115b（ecd2dfa）已确认在 origin/main。
+
+### 143b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **35 checks**（R115b 末态）。
+- **文档滞后点（本轮选定）**：R110b-R115b 六轮实为**功能轮**（addr 五类
+  scheme 断言 +5、taohua +1、taohua.dayun +1、tarot +1、tarot.spread/
+  spread5 +2、ask.llm.shape +1，共 +11），web --selftest 现 35 checks；
+  但 GOAL_NEXT_SESSION.md :90/:98/:52 与 PROJECT_STATUS.md :41 仍写
+  "24 checks"（R70b 标注），且 R92b 补注断言"R70b 起均为 docs-only 对齐
+  轮、功能终态维持 R69b"被功能轮推翻；ROADMAP P3 术数功能清单停在
+  "六爻+黄历"（R53b），缺 R111b-R112b 的 桃花运/塔罗 标注（L-23 同族：
+  可被命令断言的事实硬编码且漏同步）。
+- **其他方向**（对照实测）：前端体验（历史面板仅 bazi view 有，跨 tab
+  复用需迁移 history 表）、质量/性能层（FTS 0.001s 正常、bge 缓存 R110b
+  验过新鲜）——无明确缺口。
+- **方案比对**：A 文档滞后对齐（选定）；B 只改 checks 数不动 R92b 断言
+  （仍误导）；C 前端体验/质量性能层（无缺口）——见 D-162b。
+
+### 143c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：
+  - `docs/GOAL_NEXT_SESSION.md`：:90 注释、:98 快照标签、:52 会话表
+    三处 "24 checks" → "35 checks" 并补 R110b-R115b 功能轮出处；
+    :98 R92b 补注修正为 "R70b-R110b docs-only、R111b 起恢复功能轮
+    （桃花运/塔罗/大运应期/牌阵/ask 模型标注）"；§1 快照块新增"术数
+    功能"行（七术数 + tab 数 + MCP 不含术数说明）。
+  - `docs/PROJECT_STATUS.md`：:41 自测行 "24 checks" → "35 checks" 并
+    补 R110b-R115b 出处。
+  - `docs/PROJECT_ROADMAP.md`：P3 标题补注 "R111b 起扩展：桃花运 tab
+    （taohua.py，R111b）+ 塔罗占卜 tab（tarot.py，R112b）+ 大运桃花
+    应期（R113b）+ 塔罗牌阵位置（R114b）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 35
+  checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
+  35 checks 及 R111b-R115b 功能轮一致）。
+- 决策记录：DECISIONS.md D-162b。

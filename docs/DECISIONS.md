@@ -5006,3 +5006,33 @@ ask 路径被漏掉：用户看到"LLM 生成解读"却不知道是哪个模型�
 选 A（ask 路径 LLM 模型来源标注，照 bazi llm_out 先例：生成文本必须标注
 模型来源）。落地后：13 闸门 + 五层自测全跑（web 34→35 checks），ask
 use_llm 实测 llm 结构并记入台账。
+
+## D-162b R116b 优化轨：文档滞后——web standing checks 数 24→35 与 ROADMAP 术数功能标注（R110b-R115b 功能轮后未同步）
+
+**背景（亲自核实）**：R110b-R115b 六轮实为**功能轮**（addr 五类 scheme 断言
++5、taohua +1、taohua.dayun +1、tarot +1、tarot.spread/spread5 +2、
+ask.llm.shape +1，共 +11），web --selftest 实测 **35 checks**；但多处文档
+仍写 **"24 checks"**（R70b 标注），且 ROADMAP 术数功能清单停在 R53b 的
+"六爻+黄历"。逐处核实（命令/grep 实测）：
+
+- `docs/GOAL_NEXT_SESSION.md` :90 "web 24 checks 为 R53b/R54b/R61b/R69b
+  扩展后实测数"、:98 "web 自测 24 checks…功能终态维持 R69b"、:52 会话表
+  "24 checks"——三处过时（现 35，R110b-R115b 功能轮未同步；R92b "R70b 起
+  均为 docs-only 对齐轮、功能终态维持 R69b" 的断言也被 R111b-R115b 功能
+  轮推翻）。
+- `docs/PROJECT_STATUS.md` :41 自测行 "24 checks，R70b"——过时（现 35）。
+- `docs/PROJECT_ROADMAP.md` P3（:128）只写"六爻占卜 + 黄历择日"，缺
+  R111b-R112b 落地的 桃花运/塔罗 新功能标注。
+- 文档职责（GOAL.md §8：不复制事实只交叉引用）：本类数字硬编码滞后正是
+  L-23 同族（可被命令断言的事实硬编码且漏同步）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :90/:98/:52 三处 "24 checks" 改 "35 checks" 并补 "R110b-R115b 功能轮 +11"；:98 R92b 补注扩为 "R70b-R110b 为 docs-only 对齐轮、R111b 起恢复功能轮（桃花运/塔罗/大运应期/牌阵/ask 模型标注）"；② PROJECT_STATUS.md :41 自测行改 "35 checks" 并补 R110b-R115b 出处；③ ROADMAP P3 补注 "桃花运/塔罗占卜 tab（R111b/R112b）"；④ 台账/GOAL_NEXT_SESSION §1 快照块补充术数功能行（可选，防误导） | 纯文档对齐、零代码/零风险；与实测 35 checks 及 R111b-R115b 功能轮一致，防新会话误判功能终态仍为 R69b；照 D-008 保留旧表述惯例 |
+| B | 只改 checks 数不动 R92b "docs-only 维持 R69b" 断言 | 断言仍误导（功能终态已被功能轮推翻） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端历史面板跨 tab 需迁移 history 表、FTS 0.001s 正常、bge 缓存 R110b 验过新鲜） |
+
+选 A（文档滞后对齐，照 D-153b/D-152b 先例）。落地后：docs-only 先例闸门
+抽跑（verify_index + check_quality），文档 diff 审阅（数字与命令实测一致）。

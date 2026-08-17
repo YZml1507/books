@@ -49,7 +49,7 @@ C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl   # 旧窗
 
 | sessionID | 日期 | 内容 |
 |---|---|---|
-| `ab629b12-3cf7-4d09-bedf-3892431f8e60` | 2026-08-17 | **本窗口**：R75b 起优化循环 docs-only，轮数以 `git log 2946a8a..HEAD \| wc -l` 实测为准（R97b 补行、R100b/R104b 去钉死），基线全绿（47 部 62,109 单元、G1–G9 PASS 9、24 checks），最新 commit 见台账文末 |
+| `ab629b12-3cf7-4d09-bedf-3892431f8e60` | 2026-08-17 | **本窗口**：R75b 起优化循环（R70b-R110b docs-only、R111b 起恢复功能轮——桃花运/塔罗/大运应期/牌阵/ask 模型标注，R116b 标注），轮数以 `git log 2946a8a..HEAD \| wc -l` 实测为准（R97b 补行、R100b/R104b 去钉死），基线全绿（47 部 62,109 单元、G1–G9 PASS 9、web 35 checks），最新 commit 见台账文末 |
 | `3d8bab44-30fc-4a4d-9584-7372f78e8f2b` | 2026-08-15 | **上一窗口（本文件更新者）**：T7-r 方案 C 否决（hit 67.3%）、方案 A/B BLOCKED、T5 A-12 候选 N1 否决回退、T7-q/T7-m/T7-n/T7-o/T7-p/P-11 全完成。13 道闸门全过，commit a05a9cf 已 push |
 | `aa53987d-d690-4c1d-95d6-ddff26cd2888` | 2026-08-13 23:24 | 更早：Douay 接入、A-12、G1 方案 1 手写转述扩到 55 条（hit 78.2% 未达 80% 阈值） |
 | `405e2cb4-bfbe-4df0-adf9-2553f0c675d4` | 2026-08-13 19:15 | 更早：台账 §22b 前 |
@@ -87,7 +87,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\eval_g4.py
 .\.venv\Scripts\python.exe probes\probe_booksec.py
 .\.venv\Scripts\python.exe scripts\assess_goals.py
-# 各层 standing 自测（R49b 起全齐；web 24 checks 为 R53b/R54b/R61b/R69b 扩展后实测数）：
+# 各层 standing 自测（R49b 起全齐；web 35 checks 为 R53b/R54b/R61b/R69b 扩展后 + R110b-R115b 功能轮 +11（addr 五类 scheme/taohua/taohua.dayun/tarot/tarot.spread/tarot.spread5/ask.llm.shape）实测数，R116b 同步）：
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research
@@ -95,7 +95,7 @@ PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
 cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
 ```
 
-**当前（R69b 功能终态，13/13 全过 + 五层自测全齐；web 自测 24 checks，R53b/R54b 补端点、R61b 补首页 /、R69b 补 bazi.semantic）**（R85b 补注、R92b 去范围钉死：R70b 起均为 docs-only 对齐轮、功能终态维持 R69b；PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b）：
+**当前（R69b 功能终态，13/13 全过 + 五层自测全齐；web 自测 35 checks，R53b/R54b/R61b/R69b 补端点 + R110b-R115b 功能轮 +11，R116b 同步）**（R85b 补注、R92b 去范围钉死、R116b 修正：R70b-R110b 为 docs-only 对齐轮、功能终态维持 R69b；**R111b 起恢复功能轮**——桃花运/塔罗/大运应期/牌阵/ask 模型标注，web 24→35 checks；PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b）：
 
 ```
 索引      47 部 → 62,109 单元 · 55.7 MB · 页锚点 13,954 · 有地址 57,315（92.3%）
@@ -105,6 +105,9 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
           Cross-book/Book Summary/Concept；web 9 tab + MCP 12 工具同源
 记忆闭环  研究→记录→跨会话恢复：web POST /api/threads + 三 tab 记入 + 列表自动
           刷新 + 长期研究续接（R34b-R46b）；MCP record_claim_tool + threads 读回
+术数功能  八字排盘 · 六爻 · 黄历 · 起名 · 桃花运（R111b）· 塔罗占卜（R112b）
+          · 大运桃花应期（R113b）· 塔罗牌阵位置（R114b）；web 术数 tab 7 个，
+          MCP 12 工具（术数不在 MCP，同源承诺不含术数）
 ```
 
 > 本文件 §2 旧任务清单（T7-r/T5 A-12/T7-m 等）已被 R18b–R50b 优化循环取代——
