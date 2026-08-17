@@ -5455,3 +5455,35 @@ NULL-scheme 文件节读取回归），13 闸门与五层自测都看不见（L-
 选 A（checks 数 49→51 文档对齐，照 R116b/R120b/R122b/R125b/R127b/R129b
 先例）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
 文档 diff 审阅（数字与命令实测 51 checks 一致）。
+
+## D-178b R132b 优化轨：web standing 自测缺口——research 的 allow_damaged 参数分支零断言（能力层验证，与 R118b/R119b/R124b/R126b/R128b/R130b 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `research` check（app.py:1230）
+只测默认 `{"q":"潛龍勿用","max_addresses":2}`（allow_damaged 缺省 False）；
+`GET /api/research` 的 `allow_damaged=True`（放行损坏区 suspect 单元）参数
+分支**零 standing 断言**——若该分支静默失效（如放行逻辑回归为永远拒绝、
+或永远放行），13 闸门与五层自测都看不见（L-22/L-23 同族；与 R118b/R119b/
+R124b/R126b/R128b/R130b 同族——此前补 standing 断言多次当场抓到真实
+bug，R124b 抓到 timedelta NameError）。实测（命令实跑）：`research?q=潛龍勿用
+&max_addresses=2&allow_damaged=True` → 200，refused=False（放行分支可用，
+与默认 False 路径对比可见参数生效）——补断言零风险。另探 compare layer=
+繫辭 → findings=0（该 layer 无比对结果，断言非空会误报，不适合做断言）。
+
+**实测数据（命令实跑）**：
+- `GET /api/research {"q":"潛龍勿用","max_addresses":2,"allow_damaged":true}` → 200，
+  refused=False、evidence 非空（放行分支可用）
+- 现有 `research` check：默认 allow_damaged → 200 + evidence + steps（实测稳定）
+- `GET /api/compare {"gua":1,"yao":"初九","layer":"繫辭"}` → 200，findings=0
+  （空结果，不做断言——避免误报）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `research.allow_damaged` 断言：q=潛龍勿用 + max_addresses=2 + allow_damaged=true → 200 + refused=False + evidence 非空（确定性可复验） | 纯加自测断言、零功能改动/零数据风险；补上 allow_damaged 放行分支的 standing 覆盖缺口，抓放行逻辑静默失效；断言确定性可复验（照 R118b/R119b/R124b/R126b/R128b/R130b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 research.allow_damaged standing 断言，照 R118b/R119b/R124b/R126b/
+R128b/R130b 先例：能力路径必须有一条可复现命令断言）。落地后：web
+--selftest 51→52 checks，跑 13 闸门 + 五层自测确认零回退。

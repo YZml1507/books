@@ -6431,3 +6431,48 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   重跑 PASS 确认稳定）；文档 diff 审阅通过（数字与命令实测 51 checks
   及 R130b 断言一致）。
 - 决策记录：DECISIONS.md D-177b。
+
+## 159. [优化轨] R132b：web standing 自测缺口——research 的 allow_damaged 参数分支零断言 → 补断言（能力层验证，与 R118b/R119b/R124b/R126b/R128b/R130b 同族）（2026-08-17）
+
+### 159a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R131b（b4e035e）已确认在 origin/main。
+
+### 159b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `research` check
+  （app.py:1257）只测默认 `{"q":"潛龍勿用","max_addresses":2}`
+  （allow_damaged 缺省 False）；`GET /api/research` 的 `allow_damaged=
+  True`（放行损坏区 suspect 单元）参数分支**零 standing 断言**——若该
+  分支静默失效（放行逻辑回归为永远拒绝/永远放行），13 闸门与五层自测
+  都看不见（L-22/L-23 同族；与 R118b/R119b/R124b/R126b/R128b/R130b
+  同族——此前补 standing 断言多次当场抓到真实 bug，R124b 抓到
+  timedelta NameError）。
+- **实测**（命令实跑）：`research?q=潛龍勿用&max_addresses=2&
+  allow_damaged=True` → 200，refused=False、evidence 非空（放行分支
+  可用）；`compare?gua=1&yao=初九&layer=繫辭` → 200，findings=0（该
+  layer 无比对结果，断言非空会误报，不做断言）——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、文档滞后（51 checks 已同步无残留）——无
+  明确缺口。
+- **方案比对**：A 补 research.allow_damaged 断言（选定）；B 前端体验
+  （无缺口）；C 质量/性能层（无缺口）——见 D-178b。
+
+### 159c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：`research` check 后补
+  `research.allow_damaged` 断言（q=潛龍勿用 + max_addresses=2 +
+  allow_damaged=true → 200 + refused=False + evidence 非空）
+  （51→52 checks）。
+- **验证**（全量）：web --selftest 52 checks 全 PASS（research.
+  allow_damaged 生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
+  web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-178b。

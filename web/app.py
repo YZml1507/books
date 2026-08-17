@@ -1256,6 +1256,14 @@ if __name__ == "__main__":
         # 代理与网络，明确不进 standing 自测（D-100b）。
         check("research", client.get("/api/research", params={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence") and j.get("steps"))
+        # R132b（D-178b）：research 的 allow_damaged 放行分支 standing 覆盖——
+        # research check 只测默认（allow_damaged 缺省 False），放行损坏区 suspect
+        # 单元的分支零断言（若放行逻辑回归为永远拒绝/永远放行则不可见，与 R118b/
+        # R119b/R124b/R126b/R128b/R130b 同族）。实测 allow_damaged=true → 200 +
+        # refused=False + evidence 非空（放行分支可用）。
+        check("research.allow_damaged", client.get("/api/research", params={"q": "潛龍勿用",
+              "max_addresses": 2, "allow_damaged": True}),
+              lambda j: j.get("refused") is False and bool(j.get("evidence")))
         check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence_citations"))
         # R115b（D-161b）：ask 的 llm 字段结构 standing 覆盖——llm 为 None
