@@ -50,6 +50,7 @@ from guji import liuyao as liuyao_mod  # noqa: E402
 from guji import huangli as huangli_mod  # noqa: E402
 from guji import qiming as qiming_mod  # noqa: E402
 from guji import taohua as taohua_mod  # noqa: E402
+from guji import tarot as tarot_mod  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
@@ -939,6 +940,31 @@ def api_taohua(req: BaziRequest):
     }
 
 
+class TarotRequest(BaseModel):
+    seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
+    n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
+
+
+@app.post("/api/tarot")
+def api_tarot(req: TarotRequest):
+    """塔罗牌占卜（R112b，D-158b）：78 张牌静态表 + seed 确定性抽牌。
+
+    合规：牌意关键词为功能内静态数据（公版象征坐标），不入语料库、不声称
+    古籍出处、不生成解读文本、不作吉凶断言。固定 seed → 固定牌面，可复验。
+    """
+    draws = tarot_mod.draw(seed=req.seed, n=req.n)
+    return {
+        "seed": req.seed,
+        "n": len(draws),
+        "draws": [
+            {"index": d.index, "name": d.name, "upright": d.upright,
+             "upright_kw": d.upright_kw, "reversed_kw": d.reversed_kw,
+             "meaning": d.meaning, "render": d.render()}
+            for d in draws
+        ],
+    }
+
+
 if __name__ == "__main__":
     import sys as _sys
 
@@ -1038,6 +1064,14 @@ if __name__ == "__main__":
               lambda j: (j.get("peach_zhi") and j.get("hongluan")
                          and j.get("tianxi") and j.get("strength")
                          and j.get("render") and j["bazi"]["year"] == "庚午"))
+        # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
+        # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王），断言 n=3 + 每张牌
+        # 有名称/正逆位/关键词（抓端点静默失效）。
+        check("tarot", client.post("/api/tarot", json={"seed": 42, "n": 3}),
+              lambda j: (j.get("n") == 3 and len(j.get("draws")) == 3
+                         and all(d.get("name") and d.get("upright") is not None
+                                 and d.get("render") for d in j["draws"])
+                         and j["draws"][0]["name"] == "节制"))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖

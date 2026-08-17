@@ -249,6 +249,7 @@
     <button class="tab" data-view="huangli" type="button">黄历择日</button>
     <button class="tab" data-view="qiming" type="button">五行起名</button>
     <button class="tab" data-view="taohua" type="button">桃花运</button>
+    <button class="tab" data-view="tarot" type="button">塔罗占卜</button>
   </nav>
 
   <div class="view active" id="view-bazi">
@@ -564,6 +565,25 @@
     <div class="result" id="thResult" hidden></div>
     <p class="footnote">桃花星（咸池）以年支查三合局、红鸾/天喜按传统定式计算（写死可核验，固定生日→固定输出）；只给坐标事实与写死说明，不作吉凶断言、不生成解读文本。</p>
   </div><!-- /view-taohua -->
+
+  <div class="view" id="view-tarot">
+    <form class="card" id="trForm">
+      <div class="row">
+        <div class="field"><label for="trSeed">随机种子（固定可复验）</label>
+          <input id="trSeed" type="number" value="42" min="0"></div>
+        <div class="field"><label for="trN">抽牌张数（1-10）</label>
+          <select id="trN">
+            <option value="1">1 张</option>
+            <option value="3" selected>3 张（过去/现在/未来）</option>
+            <option value="5">5 张</option>
+            <option value="7">7 张</option>
+          </select></div>
+      </div>
+      <button type="submit" class="primary">洗牌抽牌</button>
+    </form>
+    <div class="result" id="trResult" hidden></div>
+    <p class="footnote">78 张牌（22 大阿卡纳 + 56 小阿卡纳）静态牌意表，牌面由随机种子确定性生成（固定 seed→固定牌面，可复验）；只给传统公版象征关键词，不作吉凶断言、不生成解读文本。</p>
+  </div><!-- /view-tarot -->
 </div>
 
 <script>
@@ -1624,6 +1644,40 @@ $('#thForm').addEventListener('submit', async e => {
     }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
+});
+
+/* 塔罗占卜（R112b，D-158b）：POST /api/tarot 固定 seed 确定性抽牌，
+   结果全部来自服务端静态牌意表，前端只渲染（esc 转义）。 */
+$('#trForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#trResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">洗牌中…</div>';
+  const body = {
+    seed: parseInt($('#trSeed').value, 10) || 42,
+    n: parseInt($('#trN').value, 10) || 3,
+  };
+  try{
+    const resp = await fetch('/api/tarot', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'抽牌失败')}</div>`; return; }
+    let html = `<div class="card"><h2>塔罗占卜 · seed ${esc(j.seed)} · ${j.n} 张</h2>`;
+    html += '<div class="rtabs" style="margin:0 0 8px;">';
+    const posNames = ['过去', '现在', '未来'];
+    j.draws.forEach((d, i) => {
+      const label = posNames[i] || `第${i + 1}张`;
+      const orient = d.upright ? '正位' : '逆位';
+      const kw = d.upright ? d.upright_kw : d.reversed_kw;
+      html += `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-weight:600;">${esc(label)} · ${esc(d.name)}（${esc(orient)}）</div>
+        <div style="color:var(--secondary);margin:4px 0;">${esc(kw)}</div>
+        <div style="font-size:13px;">${esc(d.meaning)}</div></div>`;
+    });
+    html += '</div></div>';
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">抽牌失败：${esc(ex.message)}</div>`; }
 });
 </script>
 </body>

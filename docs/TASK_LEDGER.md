@@ -5533,3 +5533,49 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   先于 build_index，verify_index T1-T11 ALL PASS，assess_goals
   PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 30 checks）。
 - 决策记录：DECISIONS.md D-157b。
+
+## 139. [优化轨] R112b：功能增加——塔罗牌占卜落地（D-157b 暂缓项转正，用户点名方向）（2026-08-17）
+
+### 139a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R111b（b3510f2）已确认在 origin/main。
+
+### 139b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **塔罗牌合规性重评估**（GOAL.md §5）：红线"绝对不可入库生成文本"
+  针对**语料/古籍数据**（"当成周易数据入库 = 把无出处生成文本灌进引用
+  系统"）；塔罗牌是**功能占卜工具**——牌意关键词属功能内静态数据，与
+  liuyao 卦辞断语 / huangli 宜忌文本（`_TIAND_YIJI` 写死静态表）同族，
+  **不入库、不声称古籍出处**，不触碰红线。
+- **seed 确定性先例**（实测）：liuyao `cast_coins(random.Random(42))`
+  固定输出（本卦 22 賁，web selftest 断言实测 PASS）——塔罗照此先例，
+  固定 seed → 固定牌面可命令复验。
+- **前端/端点接入面**：R111b 已验证两轮模式（模块 + POST 端点 + 前端
+  tab + selftest check），本轮复用。
+- **方案比对**：A 塔罗牌（选定，用户点名方向，静态牌意表合规、seed
+  确定性可复验、零新依赖）；B 仅牌面无牌意（单薄）；C 桃花运扩展
+  （上轮已做基础版，留后续轮次）——见 D-158b。
+
+### 139c. 改动与验证
+
+- **改动**：
+  - `src/guji/tarot.py`（新增）：78 张牌静态表（22 大阿卡纳 + 56 小
+    阿卡纳：四组×数字 1-10 + 宫廷 4），每张（名称/正位关键词/逆位
+    关键词/传统象征说明）写死静态；`draw(seed, n)` 用
+    `random.Random(seed)` 确定性抽牌（默认 3 张：过去/现在/未来）。
+  - `web/app.py`：import tarot；新增 `TarotRequest` + `POST /api/tarot`
+    （seed/n 参数，返回 draws 列表含正逆位/关键词/render）；web
+    --selftest 补 `tarot` check（30→31）。
+  - `web/static/index.html`：第 7 tab"塔罗占卜" + view-tarot 面板 +
+    JS 调用（esc 转义渲染，结果全来自服务端静态表）。
+- **验证**（全量）：DECK 实测 78 张全唯一（MAJOR 22）；seed=42 抽 3 张
+  两次结果一致（节制/皇后/权杖国王，确定性成立）；seed=7 抽 1 张含
+  逆位牌（圣杯6 逆位）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（web 31 checks）。
+- 决策记录：DECISIONS.md D-158b。
