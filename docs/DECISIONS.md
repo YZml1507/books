@@ -3532,6 +3532,42 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
 - **接续 R105a**（c6c8e0a）：上窗口 push 中断，本地滞留 1 commit。本轮
   先补 push：`git -c http.proxy=socks5://127.0.0.1:7897 push --force-with-lease
   origin audit/R18` → b57d095...c6c8e0a (forced update) 成功。
+
+## D-117a R107a 审查循环：rebase 纳入 R110b（web/app.py self-test 断言加强 24→29），逐行复审 + 13 闸门 + web --selftest 29 checks 全绿（2026-08-17）
+
+- **接续 R106a**（72b8e49，上轮已 push 闭环）。fetch origin 后 ls-remote
+  监控发现优化轨推进 main：origin/main HEAD 从 9449315 变为 4be962f。
+  HEAD..origin/main 显示优化轨推进 1 提交（4be962f R110b）。
+  `git show --name-only` 确认改动文件：docs/DECISIONS.md、
+  docs/TASK_LEDGER.md、web/app.py。**含代码逻辑（web/app.py +13 行，
+  优化轨领土）→ 按 §0.3 协议第 5 步立即启动审查轨循环。**
+- **逐行复审 R110b web/app.py diff**（亲眼过，优化轨领土 src/guji/web
+  只复审+记录移交，不动手）：原第 929 行 `check("addr", ...)` 只测
+  zhouyi（gua=1）；新加 5 个非周易方案（bcv/yilin/booksec/play/euclid）
+  的确定性检查，补 at_scheme 通用路径的 standing 断言——此前若该路径
+  静默失效，13 闸门与五层自测都看不见。闭包捕获
+  `lambda j, s=_params["scheme"]: ...` 用默认参数避免循环闭包晚绑定，
+  写法正确。断言强度：200（check 内部）+ hits 非空 + scheme 回显，合理。
+  固定参数实测可复现：bcv Proverbs 12:12、yilin 61、booksec addr1=10、
+  play THE SONNETS 1、euclid Book 1——亲跑 web --selftest 确认全 PASS。
+  红线检查：无 SQL 注入、无 subprocess、无 eval、无路径拼接风险。
+  改动纯粹是测试断言加强，无生产代码变更。
+- **rebase**：`git rebase origin/main` 在历史 7d35c61（R22a renumbered
+  merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+  "冲突取 --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R110b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
+  eval_g7 PASS（FABRICATIONS 0）。**web --selftest PASS (29 checks)**：
+  含 R110b 新加 addr.bcv/addr.yilin/addr.booksec/addr.play/addr.euclid
+  五项断言。
 - **fetch origin** 后 HEAD..origin/main 显示优化轨推进 1 提交
   （9449315 R109b）。`git show --name-only` 确认纯 docs/*.md only
   （GOAL/DECISIONS/TASK_LEDGER）。按协议第 3 步走纯文档轮，不启动审查循环。

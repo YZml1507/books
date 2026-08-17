@@ -4371,3 +4371,63 @@ merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协
 纯文档轮无代码逻辑，无越界，R109b 纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-116a。
+
+### 98. R107a 审查循环：rebase 纳入 R110b（web/app.py self-test 断言加强 24→29），逐行复审 + 13 闸门 + web --selftest 29 checks 全绿（2026-08-17）
+
+接续 R106a（72b8e49，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 9449315 变为 4be962f。
+HEAD..origin/main 显示优化轨推进 1 提交：
+
+- 4be962f R110b test(web): cover five non-zhouyi schemes in addr
+  standing self-test
+
+`git show --name-only` 确认改动文件：docs/DECISIONS.md、
+docs/TASK_LEDGER.md、web/app.py。**含代码逻辑（web/app.py +13 行，
+优化轨领土）→ 按 §0.3 协议第 5 步立即启动审查轨循环。**
+
+**逐行复审 R110b web/app.py diff**（亲眼过，优化轨领土 src/guji/web
+只复审+记录移交，不动手）：
+- 原第 929 行 `check("addr", client.get("/api/addr", params=
+  {"scheme": "zhouyi", "gua": 1}), lambda j: j.get("hits"))` 只测
+  zhouyi（gua=1）。
+- 新加 5 个非周易方案（bcv/yilin/booksec/play/euclid）的确定性检查，
+  补 at_scheme 通用路径的 standing 断言——此前若该路径静默失效，
+  13 闸门与五层自测都看不见。改动方向正确。
+- 闭包捕获：`lambda j, s=_params["scheme"]: ...` 用默认参数捕获当前
+  scheme 值，避免循环闭包晚绑定问题。写法正确。
+- 断言强度：断言 200（check 内部）+ hits 非空 + scheme 回显。合理。
+- 固定参数实测可复现：bcv Proverbs 12:12、yilin 61、booksec addr1=10、
+  play THE SONNETS 1、euclid Book 1——亲跑 web --selftest 确认全 PASS。
+- 红线检查：无 SQL 注入、无 subprocess、无 eval、无路径拼接风险。
+  改动纯粹是测试断言加强，无生产代码变更。
+
+**rebase**：`git rebase origin/main` 在历史 7d35c61（R22a renumbered
+merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+"冲突取 --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R110b 纳入 audit
+分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (29 checks)**：含 R110b 新加 addr.bcv/
+  addr.yilin/addr.booksec/addr.play/addr.euclid 五项断言。
+
+R110b 是优化轨领土 web/app.py 的 self-test 断言加强（24→29 checks），
+逻辑正确，无红线，领土零越界确认，web --selftest 29 checks 全 PASS。
+pending 清空。
+
+- 决策记录：DECISIONS.md D-117a。
