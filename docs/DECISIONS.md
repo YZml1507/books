@@ -5670,3 +5670,70 @@ hehun.dayun，web --selftest 实测 **56 checks** 全 PASS。
 **根因**：R137b commit 时未实跑 `web --selftest` 验证 checks 数，仅据
 "加 1 删 1 = 净 0"反推 54、又据 commit message 虚报 55——属于 §0 纪律
 里的"未跑命令就下结论"。本轮已实跑修正。
+
+## D-185b R139b 优化轨：web standing 自测缺口——bazi 端点 calendar_type/scope/gender 三条 400 校验分支零断言（能力层验证，与 R124b err.bazi.year 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `err.bazi.year` check
+（R124b 所加）只测年份范围校验；`POST /api/bazi` 的 `calendar_type`
+（非 solar/lunar）、`scope`（非 day/range/life）、`gender`（非 男/女）
+三条**已接线校验分支零 standing 断言**——若这三条校验回归为 500 或被
+移除，13 闸门与五层自测都看不见（L-22/L-23 同族；与 R124b err.bazi.year
+同族——同端点不同校验维度）。本轮摸底发现**工作树已有并行窗口（GLM-5.2）
+留下的 R139b 半成品**：web/app.py 已加 `err.bazi.calendar` /
+`err.bazi.scope` / `err.bazi.gender` 三条 `_expect_400` 断言（注释标
+R139b/D-185b，web --selftest 实测 59 checks 已通过），但 DECISIONS/
+台账/文档 checks 数（56→59）未同步——本窗口核实后承接该半成品：断言
+合理（照 R124b 先例）、实测三条均正确返回 400 + detail，补文档/DECISIONS/
+台账收尾即可，零风险。
+
+**实测数据（命令实跑）**：
+- `POST /api/bazi {"calendar_type":"garbage",...}` → 400 + detail
+  （calendar_type 只能是 solar 或 lunar）
+- `POST /api/bazi {"scope":"garbage",...}` → 400 + detail（scope 校验）
+- `POST /api/bazi {"gender":"中",...}` → 400 + detail（gender 校验）
+- web --selftest 实测 **59 checks 全 PASS**（含三条 err.bazi.* 新断言，
+  R138b 后 56 + R139b 3）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 承接工作树已实现的 err.bazi.calendar/scope/gender 三条断言（照 R124b err.bazi.year 先例，selftest 59 checks 已通过）；补 DECISIONS D-185b（本条目）+ 台账 §166 + GOAL_NEXT_SESSION/PROJECT_STATUS 文档 checks 数 56→59 同步 | 纯收尾半成品：断言已实测通过、零功能改动/零数据风险；补上三条校验分支的 standing 覆盖缺口 + 文档同步（L-23 同族），与命令实测 59 checks 一致 |
+| B | 弃用并行窗口半成品，另选其他方向 | 半成品断言合理且已通过，弃用浪费；其他方向（前端体验/质量性能层）摸底无明确缺口 |
+| C | 前端体验/质量性能层 | 摸底无缺口（FTS 0.001s、bge 缓存新鲜、link 零悬空、8 tab 全接线） |
+
+选 A（承接工作树 R139b 半成品并收尾：DECISIONS D-185b + 台账 §166 +
+文档 checks 56→59 同步，照 R124b 先例）。落地后：web --selftest 59
+checks 全跑 + 13 闸门 + 五层自测确认零回退。
+
+## D-185b R139b 优化轨：web standing 自测缺口——bazi 端点 calendar_type/scope/gender 三条 400 校验分支零断言（能力层验证，与 R124b err.bazi.year 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：bazi 端点（web/app.py:202-280）有大量 400 校验分支
+（calendar_type/scope/gender/lunar_month/lunar_day 等），但 err.* 区块
+（R124b）只覆盖 err.bazi.year（年份范围）一条——calendar_type（非
+solar/lunar，line 118）、scope（非 day/range/life，line 120）、gender
+（非 男/女，line 139）三条 400 校验分支**零 standing 断言**——若这些
+校验回归为 500、或被移除导致非法输入进入排盘，13 闸门与五层自测都
+看不见（L-22/L-23 同族；与 R124b err.bazi.year 同族——同端点不同校验
+维度）。
+
+**实测数据（命令实跑）**：
+- `POST /api/bazi {"calendar_type":"garbage",...}` → 400，detail
+  "calendar_type 只能是 solar 或 lunar"
+- `POST /api/bazi {"scope":"garbage",...}` → 400，detail
+  "scope 只能是 day/range/life"
+- `POST /api/bazi {"gender":"中",...}` → 400，detail
+  "gender 只能是 男 或 女"
+- 三条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补三条断言：err.bazi.calendar（calendar_type=garbage→400）、err.bazi.scope（scope=garbage→400）、err.bazi.gender（gender=中→400）（56→59 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi 端点三个未覆盖的 400 校验分支，抓校验静默失效；与 R124b err.bazi.year 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 hehun 端点 422 排盘失败断言 | hehun 排盘失败需构造非法八字组合（如月日不匹配），确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.calendar/scope/gender 三条 400 断言，照 R124b
+err.bazi.year 先例：能力路径必须有一条可复现命令断言）。落地后：web
+--selftest 56→59 checks，跑 13 闸门 + 五层自测确认零回退。

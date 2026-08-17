@@ -1276,6 +1276,24 @@ if __name__ == "__main__":
         _expect_400("err.bazi.year",
                     client.post("/api/bazi", json={"year": 1800, "month": 5,
                                                    "day": 15, "hour": 10}))
+        # R139b（D-185b）：bazi 端点 calendar_type/scope/gender 三条 400 校验
+        # 分支 standing 覆盖——err.bazi.year 只测年份范围，calendar_type
+        # （非 solar/lunar）、scope（非 day/range/life）、gender（非 男/女）
+        # 三条校验零断言（若校验回归为 500 或被移除则不可见，与 R124b
+        # err.bazi.year 同族——同端点不同校验维度）。实测三条均正确返回
+        # 400 + detail（calendar_type=garbage/scope=garbage/gender=中）。
+        _expect_400("err.bazi.calendar",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "calendar_type": "garbage"}))
+        _expect_400("err.bazi.scope",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "scope": "garbage"}))
+        _expect_400("err.bazi.gender",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "gender": "中"}))
         _expect_400("err.qiming.surname",
                     client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
                                                      "month": 5, "day": 15,

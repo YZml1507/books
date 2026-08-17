@@ -6767,3 +6767,54 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零回退。
 - 决策记录：DECISIONS.md D-184b。
+
+## 166. [优化轨] R139b：web standing 自测缺口——bazi 端点 calendar_type/scope/gender 三条 400 校验分支零断言 → 补断言（能力层验证，与 R124b err.bazi.year 同族——同端点不同校验维度）（2026-08-17）
+
+### 166a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R138b（`8e24d60`）已确认在 origin/main。
+
+### 166b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **56 checks**（R138b 末态：hehun.dayun + history.detail.missing 恢复）。
+- **真实缺口（本轮选定）**：bazi 端点（web/app.py:202-280）有大量 400
+  校验分支——calendar_type（非 solar/lunar，line 118）、scope（非
+  day/range/life，line 120）、gender（非 男/女，line 139）等——但
+  err.* 区块（R124b）只覆盖 err.bazi.year（年份范围）一条，calendar_type/
+  scope/gender 三条 400 校验分支**零 standing 断言**——若这些校验回归
+  为 500、或被移除导致非法输入进入排盘，13 闸门与五层自测都看不见
+  （L-22/L-23 同族；与 R124b err.bazi.year 同族——同端点不同校验维度）。
+- **实测**（命令实跑）：
+  - `POST /api/bazi {"calendar_type":"garbage",...}` → 400 + detail
+    "calendar_type 只能是 solar 或 lunar"
+  - `POST /api/bazi {"scope":"garbage",...}` → 400 + detail
+    "scope 只能是 day/range/life"
+  - `POST /api/bazi {"gender":"中",...}` → 400 + detail
+    "gender 只能是 男 或 女"
+  - 三条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、MCP 侧 research_tool 深度验证（工作量大、
+  web 侧已有 research.allow_damaged 断言）——无其他明确缺口。
+- **方案比对**：A 补 err.bazi.calendar/scope/gender 三条 400 断言
+  （56→59 checks，选定）；B 补 MCP research_tool 深度验证（工作量
+  大、web 侧已覆盖）；C 补 hehun 端点 422 排盘失败断言（确定性弱于
+  A 的参数校验）——见 D-185b。
+
+### 166c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.bazi.year 后补三条
+  断言——err.bazi.calendar（calendar_type=garbage→400）、err.bazi.scope
+  （scope=garbage→400）、err.bazi.gender（gender=中→400）
+  （56→59 checks）。
+- **验证**（全量）：web --selftest **59 checks** 全 PASS（三条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-185b。
