@@ -5984,3 +5984,29 @@ err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命�
 照 R139b err.bazi.calendar/scope/gender 先例：能力路径必须有一条
 可复现命令断言）。落地后：web --selftest 74→76 checks，跑 13 闸门
 + 五层自测确认零回退。
+
+## D-193b R147b 优化轨：web standing 自测缺口——compare 端点 gua 超范围校验零断言（能力层验证，与 R139b/R144b/R146b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：compare 端点（web/app.py:401-405）的 compare
+check（行 1158）只测 gua=28/yao=九二，**gua 超范围校验**（line 405:
+"gua 需在 1-64"）**零 standing 断言**——若该校验回归为 500、或被移除
+导致超范围 gua 进入比对，13 闸门与五层自测都看不见（L-22/L-23 同族；
+与 R139b/R144b/R146b 同族——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/compare {"gua":99,"yao":"九二"}` → 400，detail
+  "gua 需在 1-64"
+- 该分支正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补一条断言：err.compare.gua_range（gua=99→400）（76→77 checks） | 纯加自测断言、零功能改动/零数据风险；补上 compare 端点未覆盖的 gua 超范围 400 校验分支，抓校验静默失效；与 R139b/R144b/R146b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | ask 端点 max_addresses=0 断言 | ask max_addresses=0 为 422（Pydantic ge=1 自动校验），框架保证不易回归，增量价值弱于 A |
+
+选 A（补 err.compare.gua_range 一条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
+断言）。落地后：web --selftest 76→77 checks，跑 13 闸门 + 五层
+自测确认零回退。

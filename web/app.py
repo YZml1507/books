@@ -1397,6 +1397,14 @@ if __name__ == "__main__":
         _expect_400("err.research.too_long",
                     client.get("/api/research", params={"q": "乙" * 201,
                                                          "max_addresses": 2}))
+        # R147b（D-193b）：compare 端点 gua 范围校验 standing 覆盖——
+        # compare check（行 1158）只测 gua=28/yao=九二，gua 超范围校验
+        # （line 405: "gua 需在 1-64"）零断言（若校验回归为 500、或被
+        # 移除导致超范围 gua 进入比对则不可见，与 R139b/R144b/R146b
+        # 同族——同端点不同校验维度）。实测 gua=99 → 400 + detail
+        # "gua 需在 1-64"——补断言零风险。
+        _expect_400("err.compare.gua_range",
+                    client.get("/api/compare", params={"gua": 99, "yao": "九二"}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
