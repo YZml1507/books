@@ -6920,3 +6920,53 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-187b。
+
+## 169. [优化轨] R142b：web standing 自测缺口——huangli 端点 date 格式/year 范围/非法日期三条 400 校验分支零断言 → 补断言（能力层验证，与 R139b/R140b/R141b 同族——同端点不同校验维度）（2026-08-18）
+
+### 169a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R141b（`c08ed9d`）已确认在 origin/main。
+
+### 169b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **64 checks**（R141b 末态：err.liuyao.time.year/month/missing）。
+- **真实缺口（本轮选定）**：huangli 端点（web/app.py:836-859）的
+  huangli check（行 1201）只测合法 date，**date 格式校验**（line 843）、
+  **year 范围校验**（line 851）、**非法日期校验**（line 859）三条 400
+  校验分支**零 standing 断言**——若这些校验回归为 500、或被移除导致
+  非法日期进入黄历计算，13 闸门与五层自测都看不见（L-22/L-23 同族；
+  与 R139b/R140b/R141b 同族——同端点不同校验维度）。
+- **实测**（命令实跑）：
+  - `GET /api/huangli?date=garbage` → 400 + detail
+    "date 格式应为 YYYY-MM-DD，收到 garbage"
+  - `GET /api/huangli?date=1800-01-01` → 400 + detail
+    "年份须在 1900-2100，收到 1800"
+  - `GET /api/huangli?date=2026-02-30` → 400 + detail
+    "非法日期 y=2026 m=2 d=30"
+  - 三条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、MCP 侧 research_tool 深度验证（工作量
+  大、web 侧已覆盖）——无其他明确缺口。
+- **方案比对**：A 补 err.huangli.date/year/illegal 三条 400 断言
+  （64→67 checks，选定）；B 补 MCP research_tool 深度验证（工作量
+  大、web 侧已覆盖）；C 补 taohua/tarot 端点校验断言（本轮先做
+  huangli，taohua/tarot 留下一轮）——见 D-188b。
+
+### 169c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.hehun.year 后补
+  三条断言——err.huangli.date（date=garbage→400）、err.huangli.year
+  （date=1800-01-01→400）、err.huangli.illegal（date=2026-02-30→400）
+  （64→67 checks）。
+- **验证**（全量）：web --selftest **67 checks** 全 PASS（三条新
+  huangli 400 断言生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
+  mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-188b。

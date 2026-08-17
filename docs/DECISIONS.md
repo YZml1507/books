@@ -5797,3 +5797,33 @@ err.bazi.calendar/scope/gender 同族——同端点不同校验维度）。
 选 A（补 err.liuyao.time.year/month/missing 三条 400 断言，照 R139b
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
 落地后：web --selftest 61→64 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-188b R142b 优化轨：web standing 自测缺口——huangli 端点 date 格式/year 范围/非法日期三条 400 校验分支零断言（能力层验证，与 R139b/R140b/R141b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：huangli 端点（web/app.py:836-859）的 huangli
+check（行 1201）只测合法 date，**date 格式校验**（line 843）、**year
+范围校验**（line 851）、**非法日期校验**（line 859）三条 400 校验分支
+**零 standing 断言**——若这些校验回归为 500、或被移除导致非法日期进入
+黄历计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b/R140b/
+R141b 同族——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/huangli?date=garbage` → 400，detail "date 格式应为
+  YYYY-MM-DD，收到 garbage"
+- `GET /api/huangli?date=1800-01-01` → 400，detail
+  "年份须在 1900-2100，收到 1800"
+- `GET /api/huangli?date=2026-02-30` → 400，detail
+  "非法日期 y=2026 m=2 d=30"
+- 三条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补三条断言：err.huangli.date（date=garbage→400）、err.huangli.year（date=1800-01-01→400）、err.huangli.illegal（date=2026-02-30→400）（64→67 checks） | 纯加自测断言、零功能改动/零数据风险；补上 huangli 端点三个未覆盖的 400 校验分支，抓校验静默失效；与 R139b/R140b/R141b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 taohua/tarot 端点校验断言 | 本轮先做 huangli，taohua/tarot 留下一轮 |
+
+选 A（补 err.huangli.date/year/illegal 三条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 64→67 checks，跑 13 闸门 + 五层自测确认零回退。

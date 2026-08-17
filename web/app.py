@@ -1289,6 +1289,19 @@ if __name__ == "__main__":
                                                     "a_day": 15, "a_hour": 10,
                                                     "b_year": 1992, "b_month": 8,
                                                     "b_day": 20, "b_hour": 14}))
+        # R142b（D-188b）：huangli 端点 date 格式/year 范围/非法日期三条 400
+        # 校验分支 standing 覆盖——huangli check（行 1201）只测合法 date，
+        # date 格式校验（line 843）、year 范围校验（line 851）、非法日期
+        # 校验（line 859）三条 400 校验分支零断言（若校验回归为 500、或
+        # 被移除导致非法日期进入黄历计算则不可见，与 R139b/R140b/R141b
+        # 同族——同端点不同校验维度）。实测 date=garbage/1800-01-01/
+        # 2026-02-30 均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.huangli.date",
+                    client.get("/api/huangli", params={"date": "garbage"}))
+        _expect_400("err.huangli.year",
+                    client.get("/api/huangli", params={"date": "1800-01-01"}))
+        _expect_400("err.huangli.illegal",
+                    client.get("/api/huangli", params={"date": "2026-02-30"}))
         _expect_400("err.bazi.year",
                     client.post("/api/bazi", json={"year": 1800, "month": 5,
                                                    "day": 15, "hour": 10}))
