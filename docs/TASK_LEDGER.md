@@ -4983,3 +4983,82 @@ error path，无红线。R125b 纯文档轮。领土零越界确认，13 闸门 
 web --selftest 45 checks 全 PASS。pending 清空。
 
 - 决策记录：DECISIONS.md D-125a。
+
+### 107. R116a 审查循环：rebase 纳入 R126b（bazi range/life scopes standing + 修复 history.detail id-source bug）+ R127b（docs sync 45→47），逐行复审 + 13 闸门 + web --selftest 47 checks 全绿（2026-08-17）
+
+接续 R115a（fa999e0，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 5425550 变为 1a395eb。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- 5e05b14 R126b test(web): cover bazi range/life scopes; fix
+  history.detail id-source bug
+- 1a395eb R127b docs: sync web checks 45->47 after R126b
+  bazi.range/life assertions
+
+`git show --name-only` 确认改动文件：
+- R126b：docs/{DECISIONS,TASK_LEDGER}.md、web/app.py。**含代码逻辑
+  且修复一个真实 bug → 按 §0.3 协议第 5 步立即启动审查轨循环，
+  重点逐行复审 bug 修复。**
+- R127b：docs/{DECISIONS,GOAL_NEXT_SESSION,PROJECT_STATUS,
+  TASK_LEDGER}.md。纯文档轮。
+
+**逐行复审 R126b 优化轨领土文件**（亲眼过，重点：修复 history.detail
+id-source bug）：
+
+- **web/app.py self-test 加 bazi.range standing 断言**（45→47）：
+  固定 1990-05-15 男 scope=range 2026-01-01~05 → days=5。覆盖此前
+  零断言的 `calc_range` 路径（L-22/L-23 同族，R118b/R119b/R124b
+  同模式）。
+- **web/app.py self-test 加 bazi.life standing 断言**：固定
+  1990-05-15 男 scope=life → dayun 长度 8。覆盖此前零断言的
+  `calc_life` 路径。
+- **修复 history.detail id-source bug**：原用
+  `history_db.count()`（行数 31）当 id 查，历史库经删除后 id 不连续
+  （count=31 但 id 31 已删 → 404），与自身"may not exist"注释矛盾。
+  修正为 `list_records(limit=1)[0]["id"]`（取最新记录真实 id，实测
+  91）。这是 L-23 同族缺陷——count 非 id 的硬编码假设，按
+  FIX-DON'T-HIDE 修根因。
+
+**复审结论**：bazi.range/bazi.life 两条 standing 断言正确，固定输入
+确定性可复验。history.detail id-source bug 修复正确：
+`list_records(limit=1)[0]["id"]` 取最新真实 id，避免 count≠id 的
+硬编码假设。无 SQL 注入、无 subprocess、无 eval、无路径拼接风险。
+**这个 bug 此前 13 闸门与五层自测都看不见——R126b 用 standing 断言
+抓出来修复，是优化轨领土的正确修复。**
+
+**逐行复审 R127b 纯文档 diff**（亲眼过）：同步 web checks 45→47、
+GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行。归因诚实，无越界。
+无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+8a440eb（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R126b/R127b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (47 checks)**：含 R126b bazi.range +
+  bazi.life 两条新断言（且 history.detail id-source bug 已修复）。
+
+R126b 是优化轨领土 web/app.py self-test standing 断言加强
+（bazi.range + bazi.life）+ 修复 history.detail id-source bug
+（count≠id 硬编码假设），无红线。R127b 纯文档轮。领土零越界确认，
+13 闸门 + web --selftest 47 checks 全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-126a。
