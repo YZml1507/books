@@ -4646,3 +4646,31 @@ T7 表但**未处理 T1-T6 段**——新会话读 GOAL.md §4 T1 会误以为 G
 
 选 A（T2-T6 逐段补注，照 D-147b/R77b 先例）。落地后：docs-only 先例
 闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-149b R103b 优化轨：GOAL.md §0 会话 jsonl 路径旧位置 → 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §0"上一会话的记录：可以直接读，
+不要靠转述"仍写会话 jsonl 路径为
+`C:\Users\Lenovo\.claude\projects\C--Users-Lenovo-Desktop-projects-books\<sessionId>.jsonl`
+——但实测会话记录位置早已迁移：
+- `ls .atomcode/sessions/`（R96b 实测）确认会话 jsonl 现落盘在
+  `C:\Users\Lenovo\.atomcode\sessions\1ae2121e85ce8e84\`（本窗口）与
+  `025973b91a55cfb5\`（旧窗口回溯）；
+- `docs/GOAL_NEXT_SESSION.md` §0a 已在 R96b 更新路径注记（含本窗口
+  目录），但 **GOAL.md §0 漏改**——新会话照 GOAL.md §0 去
+  `~\.claude\projects\C--Users-...\` 找 jsonl 会找不到（该路径是
+  AtomCode/Claude 早期版本位置；O1 文档失效模式，L-23 同族：可被
+  `ls` 命令断言的事实（目录路径）硬编码且漏同步；R96b 只更新了
+  GOAL_NEXT_SESSION §0a，GOAL.md §0 同族残留）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §0 路径改为 `C:\Users\Lenovo\.atomcode\sessions\1ae2121e85ce8e84\<sessionId>.jsonl`（本窗口），并注"旧窗口回溯 025973b91a55cfb5\；旧 .claude 路径已迁移（R103b 标注）" | 纯文档、零代码/零风险；路径与 `ls .atomcode/sessions/` 实测及 GOAL_NEXT_SESSION §0a（R96b）一致，防新会话照旧路径找不到 jsonl |
+| B | 只改 GOAL_NEXT_SESSION 不动 GOAL.md | GOAL.md §0 仍误导（.claude 旧路径） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（GOAL.md §0 路径同步 + 旧路径注明，照 R96b/§0a 先例 + D-008
+保留旧记录）。落地后：docs-only 先例闸门抽跑（verify_index +
+check_quality），文档 diff 审阅。

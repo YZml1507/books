@@ -5142,3 +5142,48 @@ fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `0413070` R100
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（五项处置证据与命令实测/台账/DECISIONS 一致）。
 - 决策记录：DECISIONS.md D-148b。
+
+## 130. [优化轨] R103b：GOAL.md §0 会话 jsonl 路径旧位置 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 130a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `3f77ed8`
+（R101a：吸收优化轨 R100b docs-only rebase，gates green；此前
+`0413070` R100a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R102b（55d76ed）已确认在 origin/main，无 rebase 需求。
+
+### 130b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **T7 子项数**（命令实测）：18 行 T7-a..T7-r——与 GOAL.md §4b"T7 有
+  18 个独立子项"断言一致，非缺口；KR3g 術數 20 部与 §5"20 部"一致。
+- **活引用扫描**：R75b-R102b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §0"上一会话的记录"仍写会话
+  jsonl 路径为 `C:\Users\Lenovo\.claude\projects\C--Users-Lenovo-Desktop-
+  projects-books\<sessionId>.jsonl`——但实测会话记录位置早已迁移：
+  `ls .atomcode/sessions/`（R96b 实测）确认 jsonl 现落盘在
+  `1ae2121e85ce8e84\`（本窗口）与 `025973b91a55cfb5\`（旧窗口回溯）；
+  GOAL_NEXT_SESSION §0a 已在 R96b 更新路径注记，但 **GOAL.md §0 漏改**
+  ——新会话照 GOAL.md §0 去 `.claude\projects\...` 找 jsonl 会找不到
+  （O1 文档失效模式，L-23 同族：可被 `ls` 命令断言的事实（目录路径）
+  硬编码且漏同步；R96b 只更新了 GOAL_NEXT_SESSION §0a，GOAL.md §0
+  同族残留）。
+
+### 130c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§0 会话 jsonl 路径改为
+  `C:\Users\Lenovo\.atomcode\sessions\1ae2121e85ce8e84\<sessionId>.jsonl`
+  （本窗口）+ `025973b91a55cfb5\`（旧窗口回溯），注明"旧 .claude 路径
+  已迁移（R103b 标注）"，照 R96b/§0a 先例 + D-008 保留旧记录。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（路径与 `ls .atomcode/sessions/` 实测及 GOAL_NEXT_SESSION
+  §0a（R96b）一致）。
+- 决策记录：DECISIONS.md D-149b。

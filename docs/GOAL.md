@@ -16,7 +16,8 @@
 但记录就是磁盘上的普通文件，**可以直接检索**：
 
 ```
-C:\Users\Lenovo\.claude\projects\C--Users-Lenovo-Desktop-projects-books\<sessionId>.jsonl
+C:\Users\Lenovo\.atomcode\sessions\1ae2121e85ce8e84\<sessionId>.jsonl  # 本窗口（R103b 标注：旧 .claude 路径已迁移）
+C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl  # 旧窗口回溯
 ```
 
 实测：本次记录 761 行；`Select-String -Pattern "有能乾" -SimpleMatch` 命中 42 次，
