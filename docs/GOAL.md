@@ -123,10 +123,10 @@ data/index/corpus.db   （build_index.py 会删掉重建）
 
 ```powershell
 cd C:\Users\Lenovo\Desktop\projects\books
+.\.venv\Scripts\python.exe scripts\check_quality.py       # 先跑：产出 quality_report.json（X-11 suspect 列；R90b 修正顺序）
 .\.venv\Scripts\python.exe scripts\build_index.py         # 重建（约 5 秒）
 .\.venv\Scripts\python.exe scripts\verify_index.py        # T1–T11 共 23 断言，须 ALL PASS
 .\.venv\Scripts\python.exe scripts\validate_alignment.py  # 对齐，须 >= 1824/1872
-.\.venv\Scripts\python.exe scripts\check_quality.py       # 质量，须 PASS（含已知阳性对照）
 .\.venv\Scripts\python.exe probes\probe_conservation.py   # 守恒，须 delta 0 / ratio 1.0000
 .\.venv\Scripts\python.exe scripts\check_provenance.py    # provenance，须 0/47 缺失（R89b 修正旧 0/28）
 .\.venv\Scripts\python.exe probes\probe_bcv.py            # 第二地址体系，须 control cases PASS

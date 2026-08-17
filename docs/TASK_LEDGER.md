@@ -4594,3 +4594,50 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   审阅通过（13 条清单与 TASK_LEDGER 头部闸门一致，47 与 work 数实测
   一致）。
 - 决策记录：DECISIONS.md D-135b。
+
+## 117. [优化轨] R90b：GOAL.md §3 命令顺序违反"check_quality 先跑"规则 → 排序修正（2026-08-17，双窗口并行第二轨）
+
+### 117a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R89b（b145833）已确认在 origin/main。
+
+### 117b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **全量闸门链复验**（docs-only 轮次多轮只抽跑 verify_index+check_
+  quality，本轮补跑全链 12/12 全 exit 0）：check_quality / build_index
+  / verify_index / validate_alignment / probe_conservation /
+  check_provenance / probe_bcv / summarise_diff / eval_g7 /
+  probe_g8_isolation / eval_g4 / probe_booksec 全 exit 0（eval_g1 先前
+  已实测 248 题 40/40=100%）——无静默退化。
+- **活引用扫描**：R75b-R89b 处置项均无残留；DECISIONS.md 残留旧数均为
+  历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R89b 把 GOAL.md §3 命令清单补到 13 条但
+  **保留了原文档错误顺序**——GOAL.md §3 命令为 build_index →
+  verify_index → validate_alignment → check_quality → …，而 TASK_LEDGER
+  头部明确规则（行 22-23）："**顺序重要**：`check_quality.py` 必须在
+  `build_index.py` **之前**跑——`suspect` 列由它产出的 quality_report
+  .json 填充（X-11）。报告缺失时构建仍会成功、但不加任何标记并打印
+  警告，随后 `verify_index.py` T10 会因 provenance 断言失败"（实测
+  TASK_LEDGER 头部 check_quality 排第一、GOAL.md §3 排第四）。新会话
+  照 GOAL.md §3 顺序跑会先 build_index 再 check_quality——build 不加
+  suspect 标记，verify_index T10 断言失败（O1 文档失效模式，L-23 同族；
+  R89b 补清单时未对照顺序规则，属同族残留）。
+
+### 117c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§3 命令重排为与 TASK_LEDGER 头部
+  一致：check_quality → build_index → verify_index → validate_alignment
+  → probe_conservation → check_provenance → probe_bcv → eval_g1 →
+  summarise_diff → eval_g7 → probe_g8_isolation → eval_g4 →
+  probe_booksec → assess_goals；check_quality 行补注释"先跑：产出
+  quality_report.json（X-11 suspect 列；R90b 修正顺序）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（顺序与 TASK_LEDGER 规则一致）。
+- 决策记录：DECISIONS.md D-136b。

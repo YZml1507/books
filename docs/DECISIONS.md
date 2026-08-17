@@ -4305,3 +4305,29 @@ docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审
 
 选 A（清单补齐 + 标题/注释同步，与 TASK_LEDGER 13 闸门一致）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-136b R90b 优化轨：GOAL.md §3 命令顺序违反"check_quality 先跑"规则 → 排序修正（文档对齐）
+
+**背景（亲自核实）**：R89b 把 GOAL.md §3 命令清单从 8 条补到 13 条
+（+assess_goals），但**保留了原文档的错误顺序**——GOAL.md §3 命令为
+build_index → verify_index → validate_alignment → check_quality → …，
+而 `docs/TASK_LEDGER.md` 头部明确规则（行 22-23）："**顺序重要**：
+`check_quality.py` 必须在 `build_index.py` **之前**跑——`suspect` 列由
+它产出的 `quality_report.json` 填充（X-11）。报告缺失时构建仍会成功、
+但不加任何标记并打印警告，随后 `verify_index.py` T10 会因 provenance
+断言失败"（实测 TASK_LEDGER 头部命令 check_quality 排第一、GOAL.md §3
+check_quality 排第四）。新会话照 GOAL.md §3 顺序跑会先 build_index 再
+check_quality——build 不加 suspect 标记，verify_index T10 断言失败，
+闸门红（O1 文档失效模式，L-23 同族：可被命令断言的事实硬编码且漏同步；
+R89b 补清单时未对照顺序规则，属同族残留）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §3 命令重排为与 TASK_LEDGER 头部一致：check_quality → build_index → verify_index → validate_alignment → probe_conservation → check_provenance → probe_bcv → eval_g1 → summarise_diff → eval_g7 → probe_g8_isolation → eval_g4 → probe_booksec → assess_goals，并在 check_quality 行补注释"先跑：产出 quality_report.json（X-11）" | 纯文档、零代码/零风险；顺序与 TASK_LEDGER 规则（check_quality 必须先于 build_index）一致，防新会话照错误顺序漏 suspect 标记 |
+| B | 只改注释不动顺序 | 顺序仍错（build_index 先于 check_quality），照跑仍红 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（顺序对齐 TASK_LEDGER + 补 X-11 注释）。落地后：docs-only 先例
+闸门抽跑（verify_index + check_quality），文档 diff 审阅。
