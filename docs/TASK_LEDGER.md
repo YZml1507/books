@@ -4638,3 +4638,86 @@ web/app.py（/api/ask llm 改 dict 标注模型来源）+ web/static/index.html
 零越界确认，13 闸门 + web --selftest 35 checks 全 PASS。pending 清空。
 
 - 决策记录：DECISIONS.md D-120a。
+
+### 102. R111a 审查循环：rebase 纳入 R117b（docs roadmap）+ R118b（修复 huangli affair 两个真实 bug），逐行复审 + 13 闸门 + web --selftest 37 checks 全绿（2026-08-17）
+
+接续 R110a（31809c5，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 2b021af 变为 aef93a7。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- 41b99b5 R117b docs(roadmap): annotate P3 history-extension
+  subitem as not implemented
+- aef93a7 R118b test(web): cover liuyao.time and huangli.affair
+  paths; fix two real bugs
+
+`git show --name-only` 确认改动文件：
+- R117b：docs/{DECISIONS,PROJECT_ROADMAP,TASK_LEDGER}.md。纯文档轮。
+- R118b：docs/{DECISIONS,TASK_LEDGER}.md、src/guji/huangli.py、
+  web/app.py。**含代码逻辑且修复两个真实 bug → 按 §0.3 协议第 5 步
+  立即启动审查轨循环，重点逐行复审 bug 修复。**
+
+**逐行复审 R118b 优化轨领土文件**（亲眼过，重点：修复两个真实 bug）：
+
+**Bug 1：`/api/huangli?affair=...` 抛 NameError（timedelta 未导入，
+app.py:30）**
+- 修复：`web/app.py` 第 30 行 `from datetime import date, datetime`
+  → `from datetime import date, datetime, timedelta`
+- 验证：timedelta 现已导入，`/api/huangli?affair=婚嫁` 不再 NameError
+
+**Bug 2："婚嫁" 永远匹配 0 天（前端选项词"婚嫁" vs 宜列表词"嫁娶"）**
+- 修复：`src/guji/huangli.py` 加 `AFFAIR_ALIASES: dict[str, str] =
+  {"婚嫁": "嫁娶", "开市": "开市"}`
+- `find_good_days` 用 `key = AFFAIR_ALIASES.get(affair, affair)` 归一
+  后再匹配 `if key in q["yi"]`
+- 验证：`/api/huangli?affair=婚嫁&date=2026-08-17&days=30` → good_days
+  非空
+
+**self-test 加强**（35→37 checks）：
+- `check("liuyao.time", ...)`：time 起卦 2026-08-16 10:00 → 萃45
+  （gua_number=45）
+- `check("huangli.affair", ...)`：affair=婚嫁 2026-08-17 起 30 天 →
+  good_days 非空
+
+**复审结论**：Bug 1 修复正确（import 补全），无副作用。Bug 2 修复正确
+（别名归一映射），`AFFAIR_ALIASES` 写死静态，无红线。self-test 加两条
+standing 断言（liuyao.time, huangli.affair），抓端点静默失效。无 SQL
+注入、无 subprocess、无 eval、无路径拼接风险。**这两个 bug 此前 13
+闸门与五层自测都看不见——R118b 用 standing 断言抓出来修复，是优化轨
+领土的正确修复。**
+
+**逐行复审 R117b 纯文档 diff**（亲眼过）：PROJECT_ROADMAP P3
+history-extension subitem 标注 not implemented。归因诚实，无越界。
+无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+d97be44（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R117b/R118b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (37 checks)**：含 R118b liuyao.time +
+  huangli.affair 两条新断言。
+
+R118b 是优化轨领土 src/guji/huangli.py（AFFAIR_ALIASES 别名归一）+
+web/app.py（import timedelta 修 NameError）修复两个真实 bug，无红线。
+R117b 纯文档轮。领土零越界确认，13 闸门 + web --selftest 37 checks
+全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-121a。
