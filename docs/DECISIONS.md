@@ -5373,3 +5373,26 @@ hits=2——两分支当前均可用且过滤生效（work 过滤后 hits 明显
 选 A（补 search.layer + search.work standing 断言，照 R118b/R119b/R124b/
 R126b 先例：能力路径必须有一条可复现命令断言）。落地后：web --selftest
 47→49 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-175b R129b 优化轨：文档滞后——web standing checks 数 47→49 未同步（R128b +2 search.layer/work，L-23 同族，与 R116b/R120b/R122b/R125b/R127b 同族）
+
+**背景（亲自核实）**：R127b 已把 checks 数同步到 47。但 R128b 新增
+`search.layer` 与 `search.work` 两条断言（47→49），web --selftest 实测
+**49 checks**；而 `docs/GOAL_NEXT_SESSION.md` :52（会话表）、:90（自测
+注释）、:98（快照标签）与 `docs/PROJECT_STATUS.md` :41（自测行）仍写
+"47 checks"（R127b 标注）——checks 数又滞后（L-23 同族：可被命令断言
+的事实硬编码且漏同步；与 R116b/R120b/R122b/R125b/R127b 同族，每轮断言
+轮后需同步）。命令实测：web --selftest 49 checks 全 PASS（含
+search.layer/search.work，R128b dee49d0 已确认在 origin/main）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :52/:90/:98 三处 "47 checks" 改 "49 checks" 并补 "R128b +2（search.layer/search.work）"；② PROJECT_STATUS.md :41 自测行改 "49 checks" 并补 R128b 出处 | 纯文档对齐、零代码/零风险；与实测 49 checks 一致，防新会话误判 standing 覆盖数；照 D-008 保留旧表述、R116b/R120b/R122b/R125b/R127b 先例 |
+| B | 只改 GOAL_NEXT_SESSION 不动 PROJECT_STATUS | PROJECT_STATUS 仍滞后（数字不一致） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、link 零悬空、bge 缓存新鲜） |
+
+选 A（checks 数 47→49 文档对齐，照 R116b/R120b/R122b/R125b/R127b 先例）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff
+审阅（数字与命令实测 49 checks 一致）。
