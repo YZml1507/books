@@ -232,24 +232,24 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 
 | 编号 | 任务 | 现状实测 |
 |---|---|---|
-| T7-a | 引文互见提取器：把逐字引用建成 Source↔Source 链接 | 6 部书 31 处;标记 易云 48 · 易曰 81 |
+| T7-a | 引文互见提取器：把逐字引用建成 Source↔Source 链接 | **已落地**：G4 跨单元关联 PASS，link 表 558 条零悬空（assess_goals 实测，台账 §1；旧勘查数字 6 部 31 处/易云 48·易曰 81 为早期统计，R77b 标注勿引用） |
 | T7-b | Douay-Rheims 段内经文号解析器 | **DONE**（本窗口）：35,787 单元接入 `scheme='bcv'`，73 个 Vulgate 书名映射到 bcv.BOOKS。此前勘查结论"bcv.VERSE_RE 应能匹配 Douay"已被实测推翻（VERSE_RE 在 group2 后要求 `\s+`，Douay 是 `1:1.` 点紧跟非空白），故走独立模块 `src/guji/douay.py`。9 个 Vulgate 编号同-(C:V) 重复（Psalms 113 合并、Proverbs 12:12 重印）显式记录于 `probe_bcv.py` 的 `DOUAY_EXPECTED_CONFLICTS`。 |
-| T7-c | Plato `stephanus` scheme | 已落盘未索引 |
-| T7-d | Shakespeare `play` scheme（剧/幕/场） | 已落盘未索引 |
-| T7-e | Euclid `book/proposition` scheme | 已落盘未索引（无 txt，只有 epub/html） |
-| T7-f | Darwin / Herodotus：只有页锚点，无正典地址 | 验证「退化为 NULL scheme」路径正确 |
-| T7-g | Iliad 两译本跨译本对照（tier 1） | 与圣经同类，但地址是 book/line |
-| T7-h | Q-06 junk 检测器加 `\(cid:\d+\)` 统计 | `(cid:N)` 是 ASCII，纯码位普查会漏 |
-| T7-i | Q-07 双引擎分歧闸门产品化 | D-001 已实测，未落地为模块 |
-| T7-j | G4 多跳：实体层 + 链接表 + 链路可展示 | 未开始;**须先有 T1** |
-| T7-k | G7 认输：证据不足时明确输出，对抗性测试 ≥95% | 未开始;**须先有 T1** |
-| T7-l | G9 跨会话研究线程持久化 | `build_meta` 只记构建 |
-| T7-m | `&KR0658;` 无码位字形的占位符语义 | 每部书 22–31 个;`differs` 类失败里多次出现 |
-| T7-n | `自天祐之` 在两源 5 vs 4 的真实差异，查明原因 | 长期未查 |
-| T7-o | 55+ 个 probes 归档整理（已沉淀结论的移入 `probes/archive/`） | 与 `src/`+`scripts/` 混淆 |
-| T7-p | Phase 3 架构自审：找过度设计与技术债 | `BOOK_AI_ARCHITECTURE.md` 从未评审 |
-| T7-q | 知识图谱可行性实测（GraphRAG/LightRAG） | 「未验证假设」;**建图前须确认 `differs` 類異文不被实体抽取抹平** |
-| T7-r | CPU embedding 方案评估（无 CUDA） | 未评估;先测可行性再决定 |
+| T7-c | Plato `stephanus` scheme | **已入索引**（R77b 实测）：plato-republic 1,325 单元（booksec scheme，BOOK-only） |
+| T7-d | Shakespeare `play` scheme（剧/幕/场） | **已入索引**（R77b 实测）：shakespeare 6,512 单元（play scheme，38 剧幕场 + 6 诗） |
+| T7-e | Euclid `book/proposition` scheme | **已入索引**（R77b 实测）：euclid-elements 649 单元（euclid scheme，6 BOOK/170 proposition；台账 §22b 2026-08-14 接线，第五种地址体系） |
+| T7-f | Darwin / Herodotus：只有页锚点，无正典地址 | **已处置**：Herodotus 761 单元已入索引（booksec）；Darwin 无 work 行系设计（台账 §1062/§1273）；退化 NULL scheme 路径已实测 |
+| T7-g | Iliad 两译本跨译本对照（tier 1） | **已入索引**（R77b 实测）：homer-iliad-but + homer-iliad-pope 共 2,161 单元（booksec，BOOK-only） |
+| T7-h | Q-06 junk 检测器加 `\(cid:\d+\)` 统计 | **已实现**：src/guji/quality.py:283 `_CID_RE` + Detector 3 junk census，Q-06 含 cid 列（R74b 核实） |
+| T7-i | Q-07 双引擎分歧闸门产品化 | **已落地**：`src/guji/dual_engine.py`（D-001，PyMuPDF + markitdown 交叉校验；旧结论"未落地为模块"已被 R77b 推翻） |
+| T7-j | G4 多跳：实体层 + 链接表 + 链路可展示 | **DONE**：G4 PASS（link 表 558 条零悬空、2-hop 链路可展示带引用；assess_goals 实测） |
+| T7-k | G7 认输：证据不足时明确输出，对抗性测试 ≥95% | **DONE**：G7 PASS（对抗两半全 100%：伪造 30/30 拒答 · 真文 25/25 作答 · 不可能地址 4/4 拒答） |
+| T7-l | G9 跨会话研究线程持久化 | **DONE**：G9 PASS（1 个可恢复线程，五要素齐备，evidence 回查零陈旧；web POST /api/threads + MCP record_claim_tool） |
+| T7-m | `&KR0658;` 无码位字形的占位符语义 | **已查清**：= 虩 U+8679（T7-m，台账 §1017 probe_t7m_entities.py）；旧断言"每部书 22–31 个"已被 D-034 实测推翻（仅 KR1a0006 12 次，其他 4 部 0 次） |
+| T7-n | `自天祐之` 在两源 5 vs 4 的真实差异，查明原因 | **已查清**：繫辞传印次差异 KR1a0001(5) vs KR1a0032(4)（D-034/T7-n，台账 §22c；源文真实差异非抽取错误） |
+| T7-o | 55+ 个 probes 归档整理（已沉淀结论的移入 `probes/archive/`） | **已做**：R51b 归档 57 个、活跃 54 个（probes/archive/） |
+| T7-p | Phase 3 架构自审：找过度设计与技术债 | **已完成**：D-034 即 Phase 3 架构自审（评审 BOOK_AI_ARCHITECTURE.md；旧结论"从未评审"已被 R77b 标注） |
+| T7-q | 知识图谱可行性实测（GraphRAG/LightRAG） | **前置已确认**：probe_t7q_kg_precondition.py 实跑 exit 0（differs 異文三类策略均不被实体抽取抹平，前置满足，可建图）；建图本身是另一项工作（红线 3 依赖，R75b 核实） |
+| T7-r | CPU embedding 方案评估（无 CUDA） | **已评估**：方案 C（TF-IDF+SVD）REJECTED（D-031 hit 67.3%）；方案 A/B（PyTorch+模型下载）BLOCKED 待授权（D-032）；G1 概念级检索已经 bge 落地 PASS（R18b 前，用户授权） |
 
 ---
 

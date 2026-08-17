@@ -3950,3 +3950,33 @@ sanming-tonghui/mingli-yueyan）。"0 命中"是 R20b 之前的旧结论；R72b
 
 选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
 文档 diff 审阅。
+
+## D-123b R77b 优化轨：GOAL.md §4 T7 表 13 行状态过时 → 逐行补处置标注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §4 T7 表（T7-a..T7-r，18 行）中
+**13 行状态列停在早期结论**，与实测矛盾（T7-b 已自标 DONE 除外）：
+- T7-c/d/e "已落盘未索引"→ 实测已入索引：plato 1,325 / shakespeare
+  6,512 / euclid 649 单元（`SELECT count(*) FROM unit WHERE work_id LIKE`）；
+- T7-i "未落地为模块"→ 已产品化为 `src/guji/dual_engine.py`（Q-07/D-001，
+  文件 docstring 即声明）；
+- T7-j/k/l "未开始"→ G4 多跳 PASS（link 558 条）、G7 认输 PASS（对抗
+  两半 100%）、G9 跨会话 DONE（assess_goals PASS 9 全绿）；
+- T7-m "每部书 22–31 个"→ 已被 D-034 推翻（仅 KR1a0006 12 次，其他
+  4 部 0 次；= 虩 U+8679）；T7-n "长期未查"→ 已查清（D-034/T7-n 繫辞
+  印次差异）；T7-o → R51b 已归档（archive 57、活跃 54）；T7-p → D-034
+  即 Phase 3 架构自审；T7-q → probe_t7q_kg_precondition.py 实跑 exit 0
+  （前置满足，R75b 已核实）；T7-r → 已评估（D-031 方案 C REJECTED /
+  D-032 方案 A/B BLOCKED，G1 概念级经 bge 落地 PASS）。
+T7 表是新会话必读的"任务清单"入口，状态列过时会诱导重复排查/误判
+未完成（O1 文档失效模式，L-23 同族；与 R74b/R75b TODO 段处置同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §4 T7 表逐行补处置标注（划线/加注，照 D-008 保留记录惯例）：T7-c/d/e 附入索引实测数字、T7-i 附 dual_engine.py、T7-j/k/l 附 G4/G7/G9 PASS、T7-m/n/o/p/q/r 附处置出处（D-034/R51b/probe_t7q 等） | 纯文档、零代码/零风险；13 行处置证据全部来自本窗口命令实测/台账/DECISIONS，防新会话重复排查 |
+| B | 只改台账/STATUS 不动 GOAL.md | T7 表仍误导（新会话首读 GOAL.md 即看到过时状态） |
+| C | 删掉过时行 | 违反 D-008 保留记录惯例，丢失演进证据 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。

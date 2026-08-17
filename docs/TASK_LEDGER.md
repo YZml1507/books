@@ -4063,3 +4063,50 @@ R75b（76699ff）已确认在 origin/main。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（数字与 LIKE 实测一致，出处与台账 P2/R20b 一致）。
 - 决策记录：DECISIONS.md D-122b。
+
+## 104. [优化轨] R77b：GOAL.md §4 T7 表 13 行状态过时 → 逐行补处置标注（2026-08-17，双窗口并行第二轨）
+
+### 104a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R76b（91a212c）已确认在 origin/main。
+
+### 104b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空=57,315
+  （92.3%）/ page_anchor=13,954 / 55.7 MB——与快照一致，非缺口；
+  assess_goals PASS 9 · PART 0 · FAIL 0；web 24 checks、MCP 自测 PASS。
+- **文档滞后扫描**：GOAL_NEXT_SESSION 快照标签 / PROJECT_STATUS 头部 /
+  ROADMAP §51（R76b 已修）均一致——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4 T7 表（T7-a..T7-r，18 行）
+  中 **13 行状态列停在早期结论**，与实测矛盾（T7-b 已自标 DONE 除外）：
+  - T7-c/d/e "已落盘未索引"→ 实测已入索引：plato-republic 1,325 /
+    shakespeare 6,512 / euclid-elements 649 单元（`SELECT count(*) FROM
+    unit WHERE work_id=?` 实测）；
+  - T7-i "未落地为模块"→ 已产品化为 `src/guji/dual_engine.py`（Q-07/
+    D-001，docstring 即声明）；
+  - T7-j/k/l "未开始"→ G4 多跳 PASS（link 表 558 条）、G7 认输 PASS
+    （对抗两半 100%）、G9 跨会话 DONE（assess_goals PASS 9 全绿）；
+  - T7-m "每部书 22–31 个"→ 已被 D-034 推翻（仅 KR1a0006 12 次，其他
+    4 部 0 次；= 虩 U+8679）；T7-n "长期未查"→ 已查清（D-034/T7-n 繫辞
+    印次差异）；T7-o → R51b 已归档（archive 57、活跃 54）；T7-p → D-034
+    即 Phase 3 架构自审；T7-q → probe_t7q_kg_precondition.py 实跑 exit 0
+    （R75b 已核实）；T7-r → 已评估（D-031 方案 C REJECTED / D-032 方案
+    A/B BLOCKED，G1 概念级经 bge 落地 PASS）。
+  T7 表是新会话必读"任务清单"入口，状态过时会诱导重复排查（O1 文档
+  失效模式，L-23 同族；与 R74b/R75b TODO 段处置同族）。
+
+### 104c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：T7 表逐行补处置标注（照 D-008 保留
+  记录惯例，旧结论划线/加注而非删行）：T7-a 附 link 558 条 G4 PASS；
+  T7-c/d/e 附入索引实测数字；T7-f 附 Herodotus 761 / Darwin 无 work 行
+  系设计（台账 §1062/§1273）；T7-g 附 iliad 双译本 2,161 单元；T7-h 附
+  quality.py:283；T7-i 附 dual_engine.py；T7-j/k/l 附 G4/G7/G9 PASS；
+  T7-m/n/o/p/q/r 附处置出处（D-034/R51b/probe_t7q 等）。T7-e 引用按台账
+  §22b（2026-08-14 接线）标注，未臆造轮次。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（13 行处置证据与命令实测/台账/DECISIONS 一致）。
+- 决策记录：DECISIONS.md D-123b。
