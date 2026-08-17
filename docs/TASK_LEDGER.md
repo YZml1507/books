@@ -5762,3 +5762,47 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   35 checks 及 R111b-R115b 功能轮一致）。
 - 决策记录：DECISIONS.md D-162b。
+
+## 144. [优化轨] R117b：ROADMAP P3 "✅ 已完成"标注与实测不符——"历史库扩展记录卦象/黄历"子项未落地 → 补注（文档对齐，O1/L-23 同族）（2026-08-17）
+
+### 144a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R116b（2b021af）已确认在 origin/main。
+
+### 144b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：ROADMAP P3 标注"✅ 已完成"，但计划清单含
+  "**历史库扩展 history.db 记录卦象/黄历查询**（照 D-039 授权模式）"
+  （ROADMAP:137）——命令实测：`data/history.db` 仅 `bazi_history` 一张
+  表（id/created_at/question/input_json/paipan_json/calc_json/
+  evidence_json/llm_json）；`save_record` 仅在 `/api/bazi` 调用
+  （web/app.py:272）；`/api/liuyao`、`/api/huangli`、`/api/qiming`、
+  `/api/taohua`、`/api/tarot` 均**不写 history**——P3 的"历史库扩展"
+  子项**从未落地**，"✅ 已完成"覆盖了未做的事（O1 文档失效模式，
+  L-23 同族：可被命令断言的事实硬编码且漏同步，与 R116b 同族）。
+- **其他方向**（对照实测）：前端体验（7 术数 tab 已全接线）、质量/
+  性能层（FTS 0.001s 正常、unit 4 索引 + link 2 索引齐全）——无缺口。
+- **方案比对**：A ROADMAP P3 补"未落地"标注（选定，纯文档零风险）；
+  B 真正落地术数历史记录（history.db 为 bazi 定制结构、D-039 授权范围
+  只含 bazi 往返、用户未明确要求，本轮不做）；C 质量/性能层（无缺口）
+  ——见 D-163b。
+
+### 144c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：`docs/PROJECT_ROADMAP.md`
+  P3 计划行 :137 补注："**R117b 标注：'历史库扩展记录卦象/黄历'子项
+  未落地**——实测 data/history.db 仅 bazi_history 一张表（save_record
+  只在 /api/bazi 调用，R53b 起）；/api/liuyao、/api/huangli、
+  /api/qiming、/api/taohua、/api/tarot 结果均不写历史库；D-039 只授权
+  了 bazi 完整往返落库，如需术数历史记录另议（涉及 history.db 表结构
+  扩展）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 35
+  checks）；文档 diff 审阅通过（标注与 history.db 实测表清单一致）。
+- 决策记录：DECISIONS.md D-163b。

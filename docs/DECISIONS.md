@@ -5036,3 +5036,30 @@ ask.llm.shape +1，共 +11），web --selftest 实测 **35 checks**；但多处�
 
 选 A（文档滞后对齐，照 D-153b/D-152b 先例）。落地后：docs-only 先例闸门
 抽跑（verify_index + check_quality），文档 diff 审阅（数字与命令实测一致）。
+
+## D-163b R117b 优化轨：ROADMAP P3 "✅ 已完成" 标注与实测不符——"历史库扩展记录卦象/黄历"子项未落地（文档对齐，O1/L-23 同族）
+
+**背景（亲自核实）**：摸底发现 `docs/PROJECT_ROADMAP.md` P3 标注
+"✅ 已完成（liuyao/huangli tab 接线，R53b 端点 standing 自测覆盖）"，
+但该节计划清单含"**历史库扩展 `history.db` 记录卦象/黄历查询**（照
+D-039 授权模式）"（ROADMAP:137）——命令实测：`data/history.db` 仅
+`bazi_history` 一张表（id/created_at/question/input_json/paipan_json/
+calc_json/evidence_json/llm_json），`save_record` 仅在 `/api/bazi`
+调用（web/app.py:272）；`/api/liuyao`、`/api/huangli`、`/api/qiming`、
+`/api/taohua`、`/api/tarot` 均**不写 history**。即 P3 的"历史库扩展"
+子项**从未落地**，"✅ 已完成"标注覆盖了未做的事（O1 文档失效模式，
+L-23 同族：可被命令断言的事实——history.db 表清单——硬编码且漏同步；
+与 R116b 同族）。D-039 授权的是 bazi 完整往返落库（用户要求"记录我都
+问了什么"），P3 的卦象/黄历记录是另一回事，当时未实施且无后续决策记录。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP P3 标题/计划行补注："**R117b 标注：'历史库扩展 history.db 记录卦象/黄历查询'子项未落地**——实测 history.db 仅 bazi_history 表（save_record 只在 /api/bazi 调用，R53b 起）；六爻/黄历/起名/桃花/塔罗结果不写历史库；如需该功能另议（涉及 history.db 表结构扩展，D-039 只授权了 bazi 往返落库）" | 纯文档对齐、零代码/零风险；防新会话照"✅ 已完成"误判卦象/黄历已有历史记录；照 D-008 保留原标注、R116b D-162b 先例 |
+| B | 真正落地历史记录扩展：给 liuyao/huangli/qiming/taohua/tarot 加 history 记录（新表或泛化表） | 改动面大：history.db 结构为 bazi 定制（bazi_history 字段全 bazi 专用），跨 tab 复用需新表/迁移；D-039 授权范围只含 bazi 往返；用户未明确要求；本轮价值低于 A（先让文档说实话，功能需求另议） |
+| C | 质量/性能层 | 摸底无缺口：FTS 0.001s 正常、unit 4 索引（idx_unit_addr/name/work/layer）+ link 2 索引（src/dst）齐全 |
+
+选 A（ROADMAP P3 历史库扩展子项补"未落地"标注，照 R116b D-162b 先例）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff
+审阅（标注与 history.db 实测表清单一致）。

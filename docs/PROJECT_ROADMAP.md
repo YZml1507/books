@@ -134,7 +134,7 @@ P2 节）——"0 命中"是 R20b 前旧结论，大运已有古籍佐证；运�
   - 参考（联网核实）：`0xfnzero/YiSphere`（计算+LLM 架构）、`wouhao/lunar-calendar-service`
     （基于 lunar-python 的万年历，公农历/节气/宜忌/吉日）、`baranwang/mcp-tung-shing`（黄历 MCP）。
   - 本仓库已自实现农历表（lunar.py），可独立完成公农历/节气；宜忌规则表需新写（纯数据，写死可核验）。
-- 前端：新增"占卜"与"择日" tab；历史库扩展 `history.db` 记录卦象/黄历查询（照 D-039 授权模式）。
+- 前端：新增"占卜"与"择日" tab；历史库扩展 `history.db` 记录卦象/黄历查询（照 D-039 授权模式）。**R117b 标注：'历史库扩展记录卦象/黄历'子项未落地**——实测 `data/history.db` 仅 `bazi_history` 一张表（`save_record` 只在 `/api/bazi` 调用，R53b 起）；`/api/liuyao`、`/api/huangli`、`/api/qiming`、`/api/taohua`、`/api/tarot` 结果均不写历史库；D-039 只授权了 bazi 完整往返落库，如需术数历史记录另议（涉及 history.db 表结构扩展）。
 - **验证**：起卦坐标与标准表对照（64 卦全对）；择日规则与权威黄历抽查 10 日一致；闸门零回退。
 
 ### P4 五行起名（可选，依赖 P2 语料）✅ 已完成（qiming tab 接线，R53b 端点 standing 自测覆盖）
