@@ -3550,6 +3550,44 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   R112b、c0a3dde R113b）。`git show --name-only` 确认改动文件：
   docs/DECISIONS.md、docs/TASK_LEDGER.md、src/guji/taohua.py（新）、
   src/guji/tarot.py（新）、web/app.py、web/static/index.html。
+
+## D-119a R109a 审查循环：rebase 纳入 R114b（tarot 牌阵位置 SPREADS 静态表），逐行复审 + 13 闸门 + web --selftest 34 checks 全绿（2026-08-17）
+
+- **接续 R108a**（b46039f，上轮已 push 闭环）。fetch origin 后 ls-remote
+  监控发现优化轨推进 main：origin/main HEAD 从 c0a3dde 变为 fd98167。
+  HEAD..origin/main 显示优化轨推进 1 提交（fd98167 R114b）。
+  `git show --name-only` 确认改动文件：docs/DECISIONS.md、
+  docs/TASK_LEDGER.md、src/guji/tarot.py、web/app.py、
+  web/static/index.html。**含代码逻辑（优化轨领土 src/guji/tarot.py +
+  web 前端）→ 按 §0.3 协议第 5 步立即启动审查轨循环。**
+- **逐行复审 R114b 优化轨领土文件**（亲眼过，优化轨领土 src/guji/web
+  只复审+记录移交，不动手）：
+  - **src/guji/tarot.py**：加静态 `SPREADS` 表（n=3 过去/现在/未来、
+    n=5 现状/助力/阻碍/过去/结果、n=7 第1~7日，写死静态非生成文本）；
+    `Draw` 加 `position` 字段（默认空串）；`draw()` 用 `enumerate` 给
+    每张牌位置名（slot < len(spread) 取表内，否则 fallback `第N张`）；
+    `render()` 加 position head。无红线。
+  - **web/app.py**：`/api/tarot` 返回加 `position` 字段；self-test 加
+    `tarot.spread`（n=3 → 过去/现在/未来）+ `tarot.spread5`（n=5 →
+    现状/助力/阻碍/过去/结果）standing 断言。无红线。
+  - **web/static/index.html**：删除前端硬编码 `posNames`，改用服务端
+    `d.position`（R114b 位置名来自服务端牌阵表）。无红线。
+- **rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+  f7d69ba（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
+  + TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+  docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+  rebase 成功，R114b 纳入 audit 分支 history，HEAD..origin/main 清空。
+  stash pop 恢复数据库产物。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin
+  520/490）、eval_g7 PASS（FABRICATIONS 0）。**web --selftest PASS
+  (34 checks)**：含 R114b tarot.spread + tarot.spread5 两项新断言。
   **含代码逻辑（优化轨领土 src/guji 新模块 + web 前端）→ 按 §0.3 协议
   第 5 步立即启动审查轨循环。**
 - **逐行复审 R111b/R112b/R113b 优化轨领土文件**（亲眼过，优化轨领土
