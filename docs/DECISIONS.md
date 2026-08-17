@@ -5184,3 +5184,25 @@ taohua 桃花支），固定输入 → 固定输出可命令复验，是 R111b"�
 选 A（八字合婚，照 R111b/R112b 桃花运/塔罗落地模式：模块 + POST 端点 +
 前端 tab + selftest check）。落地后：13 闸门 + 五层自测全跑（web 39→40
 checks），固定两人生日实测合婚输出并记入台账。
+
+## D-168b R122b 优化轨：文档滞后——web standing checks 数 39→40 未同步（R121b +1 hehun，L-23 同族，与 R116b/R120b 同族）
+
+**背景（亲自核实）**：R120b 已把 checks 数同步到 39（R118b/R119b 各 +2）。
+但 R121b 新增八字合婚 `hehun` check（39→40），web --selftest 实测
+**40 checks**；而 `docs/GOAL_NEXT_SESSION.md` :52（会话表）、:90（自测
+注释）、:98（快照标签）与 `docs/PROJECT_STATUS.md` :41（自测行）仍写
+"39 checks"（R120b 标注）——checks 数又滞后（L-23 同族：可被命令断言
+的事实硬编码且漏同步；与 R116b/R120b 同族，每轮功能轮/断言轮后需同步）。
+命令实测：web --selftest 40 checks 全 PASS（含 hehun check，app.py:1181）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :52/:90/:98 三处 "39 checks" 改 "40 checks" 并补 "R121b +1（hehun）"；② PROJECT_STATUS.md :41 自测行改 "40 checks" 并补 R121b 出处 | 纯文档对齐、零代码/零风险；与实测 40 checks 一致，防新会话误判 standing 覆盖数；照 D-008 保留旧表述、R116b/R120b 先例 |
+| B | 只改 GOAL_NEXT_SESSION 不动 PROJECT_STATUS | PROJECT_STATUS 仍滞后（数字不一致） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、索引齐全、link 零悬空） |
+
+选 A（checks 数 39→40 文档对齐，照 R116b/R120b 先例）。落地后：docs-only
+先例闸门抽跑（verify_index + check_quality），文档 diff 审阅（数字与命令
+实测 40 checks 一致）。
