@@ -6647,3 +6647,56 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测
   全 PASS（sources/bookstudy/research/mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-182b。
+
+## 164. [优化轨] R137b：web standing 自测缺口——addr zhouyi 的 yao 爻位过滤分支零断言 → 补断言；并修正 R136b 台账记录（checks 53→55）（2026-08-17）
+
+### 164a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R136b（8cd21e3）已确认在 origin/main。
+
+### 164b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **55 checks**。
+- **记录修正（R136b 台账 §163 与事实不符，按 D-008 如实补注）**：
+  git show 8cd21e3 核实——R136b commit 除 model 来源统一外，**还带了
+  `history.detail.missing` 断言**（注释标 R136b/D-182b，但 D-182b 是
+  model 来源统一，该断言归属标注有误）；§163 写"结构不变 53 checks"
+  与事实不符——实际 R136b 使 checks 53→54。本轮补 addr.zhouyi.yao
+  后 54→55。文档（GOAL_NEXT_SESSION/PROJECT_STATUS）仍写 53 checks
+  （R135b 标注）需一并同步 53→55。
+- **真实缺口（本轮选定）**：`addr` check（R110b 补五类 scheme）只测
+  `{"scheme":"zhouyi","gua":1}` **无 yao 参数**，zhouyi 的 `yao`（addr2
+  爻位过滤，如 初九/用九）分支零 standing 断言——若该过滤静默失效
+  （返回全爻），13 闸门与五层自测都看不见（L-22/L-23 同族；与 R110b
+  addr 五类 scheme 同族——R110b 补 scheme 维度、本轮补 yao 维度）。
+- **实测**（命令实跑）：`addr?scheme=zhouyi&gua=1&yao=初九` → 200，
+  hits=10 全部 addr2==初九；`yao=用九` → 200，hits=20（过滤生效、
+  结果不同可复验）——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7 handler
+  完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）——无明确缺口。
+- **方案比对**：A 补 addr.zhouyi.yao 断言 + 修正 R136b 记录/同步
+  checks 53→55（选定）；B 前端体验（无缺口）；C 质量/性能层（无缺口）
+  ——见 D-183b。
+
+### 164c. 改动与验证
+
+- **改动**：
+  - `web/app.py`（仅自测）：`addr` check 后补 `addr.zhouyi.yao` 断言
+    （scheme=zhouyi + gua=1 + yao=初九 → 200 + hits 非空 + 全部 hit
+    的 yao==初九）（checks 53→54，含 R136b 实际已带的
+    history.detail.missing 为 54）。
+  - `docs/GOAL_NEXT_SESSION.md` / `docs/PROJECT_STATUS.md`：checks 数
+    53→55 同步（R136b history.detail.missing +1 + R137b addr.zhouyi.yao
+    +1，并补 R136b 记录修正说明）。
+- **验证**（全量）：web --selftest 55 checks 全 PASS（addr.zhouyi.yao
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-183b。

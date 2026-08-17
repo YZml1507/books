@@ -5593,3 +5593,34 @@ web/app.py 三处 model 赋值来源不一致（251/823 vs 565）。
 选 A（bazi/liuyao 两处 LLM model 来源统一为 configured_model()，照
 R115b 先例：生成文本必须标注真实模型来源）。落地后：web --selftest
 53→53 checks（无新增断言，结构不变），跑 13 闸门 + 五层自测确认零回退。
+
+## D-183b R137b 优化轨：web standing 自测缺口——addr zhouyi 的 yao 爻位过滤分支零断言（能力层验证，与 R110b addr 五类 scheme 同族残留分支）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `addr` check 在 R110b 已补
+五类 scheme 断言，但 zhouyi 分支只测 `{"scheme":"zhouyi","gua":1}`（无
+`yao` 参数）；`GET /api/addr` 的 zhouyi `yao`（addr2 爻位过滤，如 初九/
+用九）参数分支**零 standing 断言**——若该过滤逻辑静默失效（如 yao 过滤
+被忽略、返回全爻），13 闸门与五层自测都看不见（L-22/L-23 同族；与 R110b
+addr 五类 scheme 同族——R110b 补了 scheme 维度、本轮补 yao 维度，addr
+端点两条过滤路径全覆盖）。实测（命令实跑）：`addr?scheme=zhouyi&gua=1&
+yao=初九` → 200，hits=10 且全部 addr2==初九；`yao=用九` → 200，hits=20
+（过滤生效、结果不同可复验）——补断言零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/addr {"scheme":"zhouyi","gua":1,"yao":"初九"}` → 200，hits=10，
+  all addr2==初九
+- `GET /api/addr {"scheme":"zhouyi","gua":1,"yao":"用九"}` → 200，hits=20
+  （与初九结果不同，过滤生效）
+- 现有 `addr` check：zhouyi gua=1（无 yao）→ hits 非空（实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `addr.zhouyi.yao` 断言：scheme=zhouyi + gua=1 + yao=初九 → 200 + hits 非空 + 全部 hit 的 yao==初九（确定性可复验） | 纯加自测断言、零功能改动/零数据风险；补上 zhouyi yao 爻位过滤分支的 standing 覆盖缺口，抓 yao 过滤静默失效；断言确定性可复验（照 R110b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 addr.zhouyi.yao standing 断言，照 R110b addr 五类 scheme 先例：
+能力路径必须有一条可复现命令断言）。落地后：web --selftest 53→54 checks，
+跑 13 闸门 + 五层自测确认零回退。

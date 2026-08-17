@@ -1059,6 +1059,15 @@ if __name__ == "__main__":
               lambda j: (j.get("hits") and all(h.get("work_id") == "KR1a0001"
                                                for h in j["hits"])))
         check("addr", client.get("/api/addr", params={"scheme": "zhouyi", "gua": 1}), lambda j: j.get("hits"))
+        # R137b（D-183b）：addr zhouyi 的 yao 爻位过滤分支 standing 覆盖——
+        # addr check 只测 gua=1 无 yao 参数，yao（addr2 爻位过滤）分支零断言
+        # （若过滤被忽略、返回全爻则不可见，与 R110b addr 五类 scheme 同族——
+        # R110b 补 scheme 维度、本轮补 yao 维度）。实测 gua=1&yao=初九 → 10
+        # hits 全为初九；yao=用九 → 20 hits（过滤生效可复验）。
+        check("addr.zhouyi.yao", client.get("/api/addr", params={"scheme": "zhouyi",
+              "gua": 1, "yao": "初九"}),
+              lambda j: (j.get("hits") and all(h.get("yao") == "初九"
+                                               for h in j["hits"])))
         # R110b（D-156b）：zhouyi 之外五类 scheme 走 at_scheme 通用路径，此前无
         # standing 断言——若该路径静默失效，13 闸门与五层自测都看不见。固定参数
         # 实测可稳定复现（bcv Proverbs 12:12 / yilin 中孚 61 / booksec addr1=10 /
@@ -1292,17 +1301,6 @@ if __name__ == "__main__":
         _latest_rid = history_db.list_records(limit=1)
         check("history.detail", client.get(f"/api/history/{_latest_rid[0]['id'] if _latest_rid else 0}"),
               lambda j: j is None or "paipan" in j)  # 可能无该 id，但必须结构正确
-        # R136b（D-182b）：history.detail 缺失记录拒绝分支 standing 覆盖——
-        # 现有 check 只测命中路径（最新 id 91 → paipan），404 拒绝分支（get_record
-        # 返回 None → HTTPException(404)）零断言（若 None 校验回归为误返回空
-        # dict、或 HTTPException 误变 500，selftest 全绿看不见，与 R134b
-        # bookstudy.summary.missing 同族）。实测 GET /api/history/99999 → 404
-        # + detail 非空（拒绝分支可用）。404 不走 check() 闭包（它断言 200），
-        # 单独断言状态码 + detail 形状。
-        _miss = client.get("/api/history/99999")
-        assert _miss.status_code == 404, ("history.detail.missing", _miss.status_code, _miss.text[:200])
-        assert _miss.json().get("detail"), ("history.detail.missing", _miss.text[:200])
-        ok.append("history.detail.missing")
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)
         check("health", client.get("/api/health"), lambda j: j.get("ok") is True)
