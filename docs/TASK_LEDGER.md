@@ -4050,3 +4050,52 @@ append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突�
 纯文档轮无代码逻辑，无越界，R97b 纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-109a。
+
+### 91. R100a 纯文档轮：rebase 纳入 R98b-R99b，清空 pending（2026-08-17）
+
+接续 R99a（eb686ac）。fetch origin 成功，HEAD..origin/main 显示优化轨
+推进 2 提交：
+
+- a416b18 R98b docs(goal-next) sync §2a R21a delegation commit ref 23d0f94→337aadc
+- b0c2928 R99b docs(goal) annotate git push authorization exception in §1 red-line
+
+`git show --name-only` 确认全 docs/*.md only（GOAL_NEXT_SESSION/GOAL/
+DECISIONS/TASK_LEDGER）。
+
+**逐行复审 2 提交 diff**（亲眼过）：
+- R98b：GOAL_NEXT_SESSION §2a 把 R21a 委托 commit 引用从失效的 23d0f94
+  同步为现行 337aadc（`git merge-base --is-ancestor 23d0f94 origin/audit/R18`
+  实测失败，因审查轨历轮 rebase 重写了哈希），strike 标注失效引用照
+  D-008。归因诚实——与台账/DECISIONS 记录的 R21a 委托修复 8c1242c/337aadc
+  一致。
+- R99b：GOAL §1 红线清单给 git push 补授权例外标注（历次窗口用户已授权
+  push 到 main，见 GOAL_NEXT_SESSION §4），重写历史仍红线。补文档内部矛盾。
+
+无越界，无代码逻辑。纪律良好。纯文档轮不启动审查循环。
+
+**rebase**：`git rebase origin/main` 在历史 f18a48f（R22a merge）处
+append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+--theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R98b/R99b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，2 提交纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-110a。
