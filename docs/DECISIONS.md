@@ -4040,3 +4040,29 @@ R78b 只修了当时扫到的三处，未做全仓复核，属同族残留（O1 
 
 选 A（两处全修）。落地后：docs-only 先例闸门抽跑（verify_index +
 check_quality），文档 diff 审阅。
+
+## D-126b R80b 优化轨：GOAL.md §6 "5/28 部"旧数活引用 → 标注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §6（"为什么是这个顺序"）行 293 写
+"实测的关键数字：**已验证 5/28 部（53.6% 单元），被验收测试点名
+1/28 部**"——"5/28 部（53.6%）"是 **R17 前（28 部时代）旧数**，与当前
+实测矛盾：
+- 现为 **47 部全量入索引**（`SELECT count(*) FROM work` = 47），
+  verify_index T1–T11 共 23 断言 ALL PASS（`grep -o "check(" | wc -l`
+  = 23），assess_goals **PASS 9 · PART 0 · FAIL 0**；
+- 同文档 §7 已由 R60b 标"历史存档（2026-08-13，数字已过时）——当前实测
+  快照见 GOAL_NEXT_SESSION §1 与 PROJECT_STATUS"，但 **§6 漏标**——新
+  会话读 §6 的"5/28 部（53.6%）"会误判验证覆盖度只有 18%（O1 文档失效
+  模式，L-23 同族，与 R60b §7 处置同族）。
+全仓扫描确认该数字仅此一处活引用（`grep -rn "5/28" docs/` 仅行 293）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §6 行 293 划线标注"R17 前旧数（28 部时代）"并附当前实测（47 部全量、verify_index T1–T11 23 断言 ALL PASS、assess_goals PASS 9），照 §7 R60b 历史存档先例（保留原句，标注处置出处） | 纯文档、零代码/零风险；数字与 `SELECT count(*) FROM work`（47）/ `grep -o "check(" | wc -l`（23）/ assess_goals（PASS 9）实测一致，防新会话误判覆盖度 |
+| B | 只改台账/STATUS 不动 GOAL.md | §6 仍误导（"5/28 部"与 47 部实测矛盾） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（照 R60b §7 先例划线标注而非删句）。落地后：docs-only 先例闸门
+抽跑（verify_index + check_quality），文档 diff 审阅。

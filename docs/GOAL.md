@@ -290,7 +290,7 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 
 ## 6. 为什么是这个顺序
 
-实测的关键数字：**已验证 5/28 部（53.6% 单元），被验收测试点名 1/28 部**。
+实测的关键数字：~~**已验证 5/28 部（53.6% 单元），被验收测试点名 1/28 部**~~（**R17 前旧数（28 部时代），R80b 标注**——现为 47 部全量入索引，verify_index T1–T11 共 23 断言 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0；当前实测快照见 GOAL_NEXT_SESSION §1 与 PROJECT_STATUS，照 §7 R60b 先例）。
 
 在这个比例下，**扩语料只会放大问题**。所以先把周易做成**可复制的验证样板**
 （T1 评测集 + T2 摘要能力），再把样板套到其他作品（T4）。

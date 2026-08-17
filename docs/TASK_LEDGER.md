@@ -4200,3 +4200,40 @@ origin/main，无 rebase 需求。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（23 断言与 `grep -o "check(" | wc -l` 实测一致）。
 - 决策记录：DECISIONS.md D-125b。
+
+## 107. [优化轨] R80b：GOAL.md §6 "5/28 部"旧数活引用 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 107a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R79b（b024cb7）已确认在 origin/main。
+
+### 107b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致，非缺口；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **全仓活引用扫描**：verify_index 项数（12 项 / T1-T13 / 20 项）已被
+  R78b/R79b 修正；"5/28 部"仅 GOAL.md 行 293 一处（`grep -rn "5/28"
+  docs/` 实测）——非缺口其余。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §6（"为什么是这个顺序"）
+  行 293 写"实测的关键数字：**已验证 5/28 部（53.6% 单元），被验收
+  测试点名 1/28 部**"——"5/28 部（53.6%）"是 **R17 前（28 部时代）**
+  旧数，与当前实测矛盾：现为 47 部全量入索引（`SELECT count(*) FROM
+  work` = 47），verify_index T1–T11 共 23 断言 ALL PASS，assess_goals
+  PASS 9。同文档 §7 已由 R60b 标历史存档，但 **§6 漏标**——新会话读
+  §6 的"5/28 部（53.6%）"会误判验证覆盖度只有 18%（O1 文档失效模式，
+  L-23 同族，与 R60b §7 处置同族）。
+
+### 107c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§6 行 293 划线标注"R17 前旧数
+  （28 部时代），R80b 标注"，附当前实测（47 部全量、verify_index
+  T1–T11 23 断言 ALL PASS、assess_goals PASS 9），照 §7 R60b 先例
+  （保留原句，标注处置出处）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（47 / 23 / PASS 9 与命令实测一致）。
+- 决策记录：DECISIONS.md D-126b。
