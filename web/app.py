@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # PyInstaller 单文件模式：__file__ 在 _MEIPASS 临时解压目录，exe 在 dist/。
@@ -1060,6 +1060,17 @@ if __name__ == "__main__":
         ok.append("bazi.semantic")
         check("liuyao", client.post("/api/liuyao", json={"method": "coins", "seed": 42}),
               lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
+        # R118b（D-164b）：liuyao time（梅花易数时间起卦）与 huangli affair
+        # （择日查找 find_good_days）两条已接线能力路径此前零 standing 断言——
+        # 实测发现 affair 分支因 timedelta 未导入而 NameError 静默损坏（已修，
+        # app.py:30）。固定参数确定性可复验：time 起卦 2026-08-16 10:00 → 萃45；
+        # affair=婚嫁 2026-08-17 起 30 天 → good_days 非空。
+        check("liuyao.time", client.post("/api/liuyao", json={"method": "time",
+              "year": 2026, "month": 8, "day": 16, "hour": 10}),
+              lambda j: j.get("ben") and j["ben"].get("gua_number") == 45)
+        check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
+              "date": "2026-08-17", "days": 30}),
+              lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
         check("huangli", client.get("/api/huangli", params={"date": "2026-08-17", "days": 1}),
               lambda j: j.get("date") and j.get("jianchu"))
         check("qiming", client.post("/api/qiming", json={"surname": "李", "year": 1990,

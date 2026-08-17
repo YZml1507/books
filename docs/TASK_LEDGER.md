@@ -5806,3 +5806,54 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 35
   checks）；文档 diff 审阅通过（标注与 history.db 实测表清单一致）。
 - 决策记录：DECISIONS.md D-163b。
+
+## 145. [优化轨] R118b：web standing 自测缺口——liuyao.time 与 huangli.affair 零断言 → 补断言并修复两处真实 bug（能力层验证，与 R110b addr 五类 scheme 同族）（2026-08-17）
+
+### 145a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R117b（41b99b5）已确认在 origin/main。
+
+### 145b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `liuyao` check 只测
+  `{"method":"coins","seed":42}`（賁22）；`huangli` check 只测单日宜忌。
+  两条**已接线能力路径**零 standing 断言：① `POST /api/liuyao`
+  `method=time`（梅花易数时间起卦，app.py:768 → cast_time，liuyao.py:193）；
+  ② `GET /api/huangli?affair=...&days=...`（择日 → find_good_days，
+  app.py:862-866）。
+- **实测发现两处真实 bug**（正是零断言导致的静默失效，L-22/L-23 同族）：
+  - `GET /api/huangli?affair=婚嫁` → **`NameError: name 'timedelta' is
+    not defined`**（web/app.py:863 用 timedelta 但 :30 只 import 了
+    date, datetime——affair 择日分支从未能跑通）；
+  - 修复后 `affair=婚嫁` 仍 count=0——前端选项"婚嫁"（index.html:508）
+    与后端宜列表词"嫁娶"（huangli.py:40）不一致，`find_good_days` 精确
+    匹配 `affair in q["yi"]` 永远 0 命中；实测 60 天 yi 词频 嫁娶:18、
+    无"婚嫁"。
+- **其他方向**（对照实测）：前端体验（7 tab 全接线、liuyao 双法/huangli
+  affair 前端均已暴露）、质量/性能层（FTS 0.001s 正常、unit 4 索引 +
+  link 2 索引齐全、link src/dst 零悬空）——无明确缺口。
+- **方案比对**：A 补两条 standing 断言 + 修复两处真实 bug（选定）；
+  B 前端体验（无缺口）；C 质量/性能层（无缺口）——见 D-164b。
+
+### 145c. 改动与验证
+
+- **改动**：
+  - `web/app.py`：:30 import 补 `timedelta`（修复 affair 择日 NameError）；
+    selftest 补 `liuyao.time`（method=time 固定公历 2026-08-16 10:00 →
+    萃45）+ `huangli.affair`（affair=婚嫁 2026-08-17 起 30 天 → count>0
+    且 good_days 非空）两条断言（35→37 checks）。
+  - `src/guji/huangli.py`：新增 `AFFAIR_ALIASES` 别名表（"婚嫁"→"嫁娶"
+    等），`find_good_days` 先归一再匹配（修复前端"婚嫁"永远 0 命中）。
+- **验证**（全量）：修复前 `affair=婚嫁` NameError；修复后 count=9
+  （good_days 含 8-17 平·房），`affair=出行` count=4——路径恢复且
+  确定性可复验；web --selftest 37 checks 全 PASS（liuyao.time/
+  huangli.affair 生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
+  web）。
+- 决策记录：DECISIONS.md D-164b。

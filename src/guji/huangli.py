@@ -414,6 +414,15 @@ def day_query(dt: datetime) -> dict:
     }
 
 
+# 事项别名归一（R118b，D-164b）：find_good_days 用精确匹配 affair in
+# yi，而宜列表词与前端选项/用户口语可能不一致（实测：前端"婚嫁" vs
+# 宜列表"嫁娶"——择日对"婚嫁"永远 0 命中）。别名映射到宜列表的规范词。
+AFFAIR_ALIASES: dict[str, str] = {
+    "婚嫁": "嫁娶",
+    "开市": "开市",
+}
+
+
 def find_good_days(start: datetime, end: datetime,
                    affair: str) -> list[dict]:
     """在 [start, end] 区间内找出适宜某事项的日子。
@@ -421,11 +430,12 @@ def find_good_days(start: datetime, end: datetime,
     affair: 婚嫁/开业/出行/动土/搬家/安葬/祭祀/祈福/求嗣/上任/入学/纳财
     返回 list[day_query result]，只含 affair 在 yi 里的日子。
     """
+    key = AFFAIR_ALIASES.get(affair, affair)   # 别名归一后再匹配
     good: list[dict] = []
     cur = start
     while cur <= end:
         q = day_query(cur)
-        if affair in q["yi"]:
+        if key in q["yi"]:
             good.append(q)
         cur += timedelta(days=1)
     return good

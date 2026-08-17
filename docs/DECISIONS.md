@@ -5063,3 +5063,39 @@ L-23 同族：可被命令断言的事实——history.db 表清单——硬编�
 选 A（ROADMAP P3 历史库扩展子项补"未落地"标注，照 R116b D-162b 先例）。
 落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff
 审阅（标注与 history.db 实测表清单一致）。
+
+## D-164b R118b 优化轨：web standing 自测缺口——liuyao time 起卦法与 huangli affair 择日路径零断言（能力层验证，与 R110b addr 五类 scheme 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `liuyao` check（app.py:1058）
+只测 `{"method": "coins", "seed": 42}` 断言 賁22；`huangli` check
+（app.py:1060）只测 `{"date": "2026-08-17", "days": 1}` 断言单日宜忌。
+但两条**已接线能力路径**无 standing 断言：① `POST /api/liuyao`
+`method=time`（梅花易数时间起卦，app.py:768 分支 → `cast_time`，
+liuyao.py:193）；② `GET /api/huangli?affair=...&days=...`（择日查找 →
+`find_good_days`，app.py:862-866 分支）。若这两条路径静默失效（如
+cast_time 的农历换算、find_good_days 的宜忌表），13 闸门与五层自测都
+看不见（L-22/L-23 同族：可被命令断言的能力缺 standing 覆盖；与 R110b
+addr 五类 scheme 同族）。实测（命令实跑）：`POST /api/liuyao
+{"method":"time","year":2026,"month":8,"day":16,"hour":10}` 返回 200
+且含 ben；`GET /api/huangli?affair=婚嫁&date=2026-08-17&days=30` 返回
+200 且含 good_days——两条路径当前可用，补断言零风险。
+
+**实测数据（命令实跑）**：
+- `POST /api/liuyao {"method":"time","year":2026,"month":8,"day":16,"hour":10}`
+  → 200，ben 卦象存在（time 分支走 cast_time 农历换算）
+- `GET /api/huangli?affair=婚嫁&date=2026-08-17&days=30` → 200，good_days
+  列表非空（find_good_days 命中）
+- 现有 `liuyao` check：coins+seed=42 → 賁22（实测稳定）；`huangli` check：
+  单日宜忌（实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补两条 standing 断言：`liuyao.time`（method=time + 固定公历日期 → 200 + ben 卦象非空 + gua_number 固定可复验）；`huangli.affair`（affair=婚嫁 + date + days=30 → 200 + good_days 非空 + count>0） | 纯加自测断言、零功能改动/零数据风险；补上两条已接线能力路径的 standing 覆盖缺口，抓 cast_time/find_good_days 静默失效；断言确定性可复验（照 R110b 先例） |
+| B | 前端体验（术数结果展示优化） | 摸底 7 tab 全接线、liuyao 双法/huangli affair 前端均已暴露——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、unit 4 索引 + link 2 索引齐全、link src/dst 零悬空——无缺口 |
+
+选 A（补 liuyao.time + huangli.affair 两条 standing 断言，照 R110b
+addr 五类 scheme 先例：能力路径必须有一条可复现命令断言）。落地后：
+web --selftest 35→37 checks，跑 13 闸门 + 五层自测确认零回退。
