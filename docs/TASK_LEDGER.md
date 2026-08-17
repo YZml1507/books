@@ -5226,3 +5226,45 @@ raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（去计数后与 `git log 2946a8a..HEAD` 实测口径一致）。
 - 决策记录：DECISIONS.md D-150b。
+
+## 132. [优化轨] R105b：GOAL.md §1b 并行任务清单 A-F 六组全部已完成未标注 → 补注（2026-08-17，双窗口并行第二轨）
+
+### 132a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `3f77ed8` R101a：
+吸收优化轨 R100b docs-only rebase；未动 scripts/assess_goals.py 的
+raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+移交项维持。R104b（1b941e7）已确认在 origin/main，无 rebase 需求。
+
+### 132b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **§1b A-F 六组逐项核实**（命令实测/台账对照）：A T1 已 DONE（eval_g1
+  248 题 PASS 246/248）；B T4 易林已入索引（yilin 5,032，P-05/§1278）；
+  C Douay 已落地（douay.py，35,787 bcv）；D tier 2/3 已入索引（plato
+  1,325 / shakespeare 6,512 / euclid 649）；E 引文互见已落地（G4 PASS，
+  link 558）；F X-10/X-11 列已落地（unit.suspect + skipped_chars）。
+- **活引用扫描**：R75b-R104b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §1b"派子 agent 并行"的可
+  并行组清单（A-F 六组）仍按"可并行任务"列出，但六组全部已完成——
+  新会话照 §1b 会误以为这些任务仍待并行处理（O1 文档失效模式，L-23
+  同族；与 R101b/R102b 处理 GOAL.md §4 T1-T6 同族，§1b 清单漏标）。
+
+### 132c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§1b 可并行组表格整体补注"A-F 六组
+  任务均已落地"（处置出处：T1 eval_g1 248 题 / T4 yilin 5,032 P-05/
+  §1278 / Douay 35,787 / tier2-3 plato 1,325·shakespeare 6,512·euclid
+  649 / 引文互见 link 558 / X-10/X-11 unit.suspect+skipped_chars），
+  注明"本段为 R18b 前并行工作方式参考，勿按'待办'引用"（照
+  D-147b/D-148b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（六组处置证据与命令实测/台账/§4 标注一致）。
+- 决策记录：DECISIONS.md D-151b。

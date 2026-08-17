@@ -59,6 +59,13 @@ C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl  # 旧窗�
 
 可以并行的任务（互不依赖，适合分给子 agent 同时做）：
 
+> **R105b 标注**：下表 A-F 六组任务**均已落地**——T1 评测集（eval_g1 248 题
+> PASS 246/248，G1 PASS）、T4 易林版式（yilin 5,032 单元入索引，P-05/§1278）、
+> T7 Douay 解析器（douay.py，35,787 bcv 单元）、T7 tier 2/3 西文解析器
+> （plato 1,325 / shakespeare 6,512 / euclid 649，R77b 实测）、T7 引文互见
+> （G4 PASS，link 558 条）、T3 X-10/X-11 列（unit.suspect + skipped_chars）。
+> 本段为 R18b 前并行工作方式参考，勿按"待办"引用（处置出处见 §4 各段）。
+
 | 可并行组 | 任务 |
 |---|---|
 | A | T1 评测集的四类题目（Retrieval / Citation / Groundedness / Version-awareness）各自独立 |
