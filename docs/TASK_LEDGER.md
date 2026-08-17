@@ -4721,3 +4721,70 @@ R117b 纯文档轮。领土零越界确认，13 闸门 + web --selftest 37 check
 全 PASS。pending 清空。
 
 - 决策记录：DECISIONS.md D-121a。
+
+### 103. R112a 审查循环：rebase 纳入 R119b（bazi lunar conversion standing）+ R120b（docs sync 35→39），逐行复审 + 13 闸门 + web --selftest 39 checks 全绿（2026-08-17）
+
+接续 R111a（09c19ce，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 aef93a7 变为 ed687a8。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- 82587f8 R119b test(web): cover bazi lunar-calendar conversion path
+- ed687a8 R120b docs: sync web checks 35->39 after R118b/R119b
+  standing assertions
+
+`git show --name-only` 确认改动文件：
+- R119b：docs/{DECISIONS,TASK_LEDGER}.md、web/app.py。**含代码逻辑
+  （优化轨领土 web/app.py self-test standing 断言加强）→ 按 §0.3 协议
+  第 5 步立即启动审查轨循环。**
+- R120b：docs/{DECISIONS,GOAL_NEXT_SESSION,PROJECT_STATUS,
+  TASK_LEDGER}.md。纯文档轮。
+
+**逐行复审 R119b 优化轨领土文件**（亲眼过，优化轨领土 src/guji/web
+只复审+记录移交，不动手）：
+- **web/app.py**：self-test 加 `check("bazi.lunar", ...)` standing
+  断言：固定农历生日 1990-05-15 男 → 200 + 四柱非空 +
+  `paipan.render.startswith("庚午年 壬午月 癸卯日")`（lunar_to_solar=
+  1990-06-07，与 solar 同日期八字一致可交叉验证）。self-test 加
+  `check("bazi.lunar_leap", ...)` standing 断言：农历闰月 1990-05-15
+  女 → 200 + paipan 非空（断言非 4xx）。覆盖此前零断言的
+  `calendar_type=lunar` → `_resolve_birth` → `lunar.lunar_to_solar`
+  路径（L-22/L-23 同族，R118b 同模式：加断言立即抓出两个真实 bug）。
+  无 SQL 注入、无 subprocess、无 eval、无路径拼接风险。纯 standing
+  断言加强，无生产代码变更。无红线。
+
+**逐行复审 R120b 纯文档 diff**（亲眼过）：同步 web checks 35→39、
+GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行。归因诚实，无越界。
+无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+19a2961（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R119b/R120b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (39 checks)**：含 R119b bazi.lunar +
+  bazi.lunar_leap 两条新断言。
+
+R119b 是优化轨领土 web/app.py self-test standing 断言加强
+（bazi.lunar + bazi.lunar_leap），覆盖此前零断言的 lunar conversion
+路径，无红线。R120b 纯文档轮。领土零越界确认，13 闸门 + web --selftest
+39 checks 全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-122a。
