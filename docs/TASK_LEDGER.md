@@ -3962,3 +3962,49 @@ append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突�
 纯文档轮无代码逻辑，无越界，R94b 纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-107a。
+
+### 89. R98a 纯文档轮：rebase 纳入 R95b-R96b，清空 pending（2026-08-17）
+
+接续 R97a（adb3a5f）。fetch origin 成功，HEAD..origin/main 显示优化轨
+推进 2 提交：
+
+- 3018e07 R95b docs(status) sync snapshot block date label 2026-08-16→2026-08-17 (R78b)
+- 04823bb R96b docs(goal-next) note current-window session dir in §0a jsonl path
+
+`git show --name-only` 确认全 docs/*.md only（PROJECT_STATUS/GOAL_NEXT_SESSION/
+DECISIONS/TASK_LEDGER）。
+
+**逐行复审 2 提交 diff**（亲眼过）：
+- R95b：PROJECT_STATUS 快照块日期标签 2026-08-16→2026-08-17（R78b 改了
+  行 19 但漏改块自身标签，`git log -L 19,19` 实测，D-130b 先例）。归因诚实。
+- R96b：GOAL_NEXT_SESSION §0a 会话 jsonl 路径补本窗口目录
+  `1ae2121e85ce8e84/`（含 71672968…jsonl，与交接话路径一致），旧窗口
+  `025973b91a55cfb5/` 保留回溯。`ls .atomcode/sessions/` 实测两目录都
+  存在。归因诚实。无越界。纪律良好。纯文档轮不启动审查循环。
+
+**rebase**：`git rebase origin/main` 在历史 bcc6cc6（R22a merge）处
+append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+--theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R95b/R96b 纳入
+audit 分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，2 提交纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-108a。
