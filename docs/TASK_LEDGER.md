@@ -5622,3 +5622,47 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （web 32 checks）。
 - 决策记录：DECISIONS.md D-159b。
+
+## 141. [优化轨] R114b：塔罗牌阵位置含义服务端化（R112b 基础版扩展，用户"继续不同方向优化"）（2026-08-17）
+
+### 141a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R113b（c0a3dde）已确认在 origin/main。
+
+### 141b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **塔罗扩展落点**（实测）：前端位置名**硬编码** `posNames =
+  ['过去','现在','未来']`（index.html:1676）只覆盖 n=3；选 5/7 张时
+  fallback "第N张"（index.html:1678）——位置含义缺失；服务端 `draw()`
+  不返回位置字段。`draw(42,5)` 实测 5 张（节制/皇后/权杖国王/权杖10/
+  权杖7）确定性成立。
+- **内容回复方向**（对照实测）：ask 已含引用披露+LLM 降级+steps、
+  research 已含 G7 拒绝分支——无可抓静默失效点。
+- **质量/性能层**（对照实测）：FTS 查询 0.001s 正常、bge 缓存 R110b
+  验过新鲜、web 端点覆盖已全——无缺口。
+- **方案比对**：A 塔罗牌阵位置含义服务端化（选定，补 5/7 张位置含义
+  缺口）；B 内容回复增强（无缺口）；C 质量/性能层（无缺口）——见
+  D-160b。
+
+### 141c. 改动与验证
+
+- **改动**：
+  - `src/guji/tarot.py`：新增静态位置含义表 `SPREADS`（n=3 过去/现在/
+    未来、n=5 现状/助力/阻碍/过去/结果、n=7 第1~7日）；`Draw` 增
+    `position` 字段；`draw()` 按牌阵给位置名（n 不在表内 fallback
+    第N张），render 前缀位置名。
+  - `web/app.py`：`/api/tarot` 响应 draws 增 `position` 字段；web
+    --selftest 补 `tarot.spread` / `tarot.spread5` check（32→34）。
+  - `web/static/index.html`：塔罗面板用 `d.position` 替换硬编码
+    posNames（fallback 保留"第N张"）。
+- **验证**（全量）：seed=42 n=3 → positions 恰为 过去/现在/未来；
+  n=5 → 现状/助力/阻碍/过去/结果；n=7 → 第1~7日；n=2 → fallback
+  第1/2张（命令实测稳定）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（web 34 checks）。
+- 决策记录：DECISIONS.md D-160b。

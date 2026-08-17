@@ -106,6 +106,15 @@ def _reverse_kw(kw: str) -> str:
 
 DECK: list[tuple[str, str, str, str]] = MAJOR_ARCANA + _minor_deck()
 
+# 牌阵位置含义（静态坐标，R114b D-160b）：n 张牌时每张的位置名。
+# n=3 → 过去/现在/未来；n=5 → 五张牌阵；n=7 → 七日牌阵；其余 fallback
+# 到"第N张"。写死静态，非生成文本。
+SPREADS: dict[int, tuple[str, ...]] = {
+    3: ("过去", "现在", "未来"),
+    5: ("现状", "助力", "阻碍", "过去", "结果"),
+    7: ("第1日", "第2日", "第3日", "第4日", "第5日", "第6日", "第7日"),
+}
+
 
 @dataclass
 class Draw:
@@ -115,24 +124,30 @@ class Draw:
     upright_kw: str                 # 正位关键词
     reversed_kw: str                # 逆位关键词
     meaning: str                    # 传统象征说明
+    position: str = ""              # 牌阵位置名（R114b D-160b）
 
     def render(self) -> str:
         pos = "正位" if self.upright else "逆位"
         kw = self.upright_kw if self.upright else self.reversed_kw
-        return f"{self.name}（{pos}）：{kw}——{self.meaning}"
+        head = f"{self.position}·" if self.position else ""
+        return f"{head}{self.name}（{pos}）：{kw}——{self.meaning}"
 
 
 def draw(seed: int, n: int = 3) -> list[Draw]:
     """seed 确定性抽 n 张（默认 3 张，照 liuyao seed=42 先例）。
 
     固定 seed → 固定牌面与正逆位，可命令复验；n 上限 10（超过截断）。
+    每张按牌阵 SPREADS 给位置名（n 不在表内时 fallback 第N张）。
     """
     rng = random.Random(seed)
     picked = rng.sample(range(len(DECK)), min(max(n, 1), 10))
+    spread = SPREADS.get(min(max(n, 1), 10), ())
     out: list[Draw] = []
-    for idx in picked:
+    for slot, idx in enumerate(picked):
         name, up, rev, meaning = DECK[idx]
         upright = rng.random() < 0.5
+        position = spread[slot] if slot < len(spread) else f"第{slot + 1}张"
         out.append(Draw(index=idx, name=name, upright=upright,
-                        upright_kw=up, reversed_kw=rev, meaning=meaning))
+                        upright_kw=up, reversed_kw=rev, meaning=meaning,
+                        position=position))
     return out

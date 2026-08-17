@@ -961,7 +961,8 @@ def api_tarot(req: TarotRequest):
         "draws": [
             {"index": d.index, "name": d.name, "upright": d.upright,
              "upright_kw": d.upright_kw, "reversed_kw": d.reversed_kw,
-             "meaning": d.meaning, "render": d.render()}
+             "meaning": d.meaning, "position": d.position,
+             "render": d.render()}
             for d in draws
         ],
     }
@@ -1082,6 +1083,14 @@ if __name__ == "__main__":
                          and all(d.get("name") and d.get("upright") is not None
                                  and d.get("render") for d in j["draws"])
                          and j["draws"][0]["name"] == "节制"))
+        # R114b（D-160b）：牌阵位置含义 standing 覆盖——seed=42 n=3 位置名恰为
+        # 过去/现在/未来（实测稳定），n=5 为五张牌阵（抓位置表静默失效）。
+        check("tarot.spread", client.post("/api/tarot", json={"seed": 42, "n": 3}),
+              lambda j: [d.get("position") for d in j.get("draws", [])]
+                        == ["过去", "现在", "未来"])
+        check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
+              lambda j: [d.get("position") for d in j.get("draws", [])]
+                        == ["现状", "助力", "阻碍", "过去", "结果"])
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
