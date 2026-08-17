@@ -4010,3 +4010,33 @@ T10 四断言等），但三处文档数字不一致：
 
 选 A（四处全修，一处不漏）。落地后：docs-only 先例闸门抽跑
 （verify_index + check_quality），文档 diff 审阅。
+
+## D-125b R79b 优化轨：R78b 漏修两处同族"12 项"活引用 → 补正（文档对齐）
+
+**背景（亲自核实）**：R78b 修正了 GOAL.md §3 / PROJECT_STATUS 行 19 /
+TASK_LEDGER 头部行 30 三处的 verify_index 检查项数（12 项 / T1-T13 /
+20 项 → T1–T11 共 23 断言），但**全仓扫描发现同族"12 项"活引用仍残留
+两处**（实测 `grep -o "check(" scripts/verify_index.py | wc -l` = 23，
+分 11 段 T1–T11）：
+- `docs/LESSONS.md:117`（L-06 教训段）"本项目 12 项验收断言全部基于
+  返回文本"——12 项是 R17 前旧数，与当前 23 断言不符；
+- `docs/TASK_LEDGER.md:186`（§5 索引与检索复验命令）"复验：`python
+  scripts/verify_index.py`（12 项断言全部基于**返回文本**，非计数）"
+  ——同为旧数，且该行是台账 §1 复验命令族的活引用。
+另外两处 `12 项`（PROJECT_STATUS 行 266、PROPOSAL_CPU_EMBEDDING
+行 187）在已标注历史/提案存档段内，不属活引用；DECISIONS.md:273 是
+D-00x 历史决策记录，照 D-008 保留惯例不回溯改写。
+L-23 教训同族：可被命令断言的事实（check 调用数）硬编码且漏同步——
+R78b 只修了当时扫到的三处，未做全仓复核，属同族残留（O1 文档失效
+模式续）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | LESSONS.md:117"12 项验收断言"→"T1–T11 共 23 断言"；TASK_LEDGER.md:186"（12 项断言…）"→"（T1–T11 共 23 断言…）"，均注明 R79b 修正 | 纯文档、零代码/零风险；数字与 `grep -o "check("` 实测（23）一致，消除同族残留 |
+| B | 只改 LESSONS.md 一处 | TASK_LEDGER §5 复验命令仍误导 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（两处全修）。落地后：docs-only 先例闸门抽跑（verify_index +
+check_quality），文档 diff 审阅。

@@ -183,7 +183,7 @@ G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 
 ## 5. 索引与检索
 
-复验：`python scripts/verify_index.py`（12 项断言全部基于**返回文本**，非计数）
+复验：`python scripts/verify_index.py`（T1–T11 共 23 项断言全部基于**返回文本**，非计数；R79b 修正旧"12 项"数）
 
 | ID | 任务 | 状态 | 复验 / 实测 | 产物 |
 |---|---|---|---|---|
@@ -4154,3 +4154,49 @@ R77b（4466086）已确认在 origin/main。
   审阅通过（23 断言与 `grep -o "check(" | wc -l` 实测一致，62,109 与
   单元数实测一致）。
 - 决策记录：DECISIONS.md D-124b。
+
+## 106. [优化轨] R79b：R78b 漏修两处同族"12 项"活引用 → 补正（2026-08-17，双窗口并行第二轨）
+
+### 106a. 移交跟进
+
+fetch origin：**审查轨有新推进**——origin/audit/R18 已到 `90565ee`
+（R94a：吸收优化轨 R71b-R74b docs-only rebase，gates green；此前停在
+`ebbdd1d` R26a）。核实 audit 分支 ebbdd1d..origin/audit/R18 改动范围：
+docs/DECISIONS、GOAL、GOAL_NEXT_SESSION、LESSONS、MASTER_PLAN、
+ROADMAP、STATUS、TASK_LEDGER + web/app.py +64 + bge_mingli 缓存——
+**未动 scripts/assess_goals.py**（`git diff ebbdd1d origin/audit/R18 --
+scripts/assess_goals.py` 空），R21a 委托与 R64b G9 SCOPE 移交项维持
+（待审查轨合入 main，非本轨领土）。R78b（dfe1052）已确认在
+origin/main，无 rebase 需求。
+
+### 106b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB——与快照一致，非缺口；
+  assess_goals PASS 9 · PART 0 · FAIL 0。
+- **verify_index 项数复验**（`grep -o "check(" scripts/verify_index.py |
+  wc -l`）：23 断言分 11 段 T1–T11（R78b 已修三处文档）。
+- **真实缺口（本轮选定）**：R78b 修了 GOAL.md §3 / PROJECT_STATUS 行
+  19 / TASK_LEDGER 头部行 30，但**全仓扫描发现同族"12 项"活引用残留
+  两处**：
+  - `docs/LESSONS.md:117`（L-06 教训段）"本项目 12 项验收断言全部基于
+    返回文本"——12 项是 R17 前旧数，与当前 23 断言不符；
+  - `docs/TASK_LEDGER.md:186`（§5 索引与检索复验命令）"复验：`python
+    scripts/verify_index.py`（12 项断言全部基于**返回文本**，非计数）"
+    ——同为旧数，且是台账 §1 复验命令族的活引用。
+  另两处 `12 项`（PROJECT_STATUS 行 266、PROPOSAL_CPU_EMBEDDING
+  行 187）在已标注历史/提案存档段内，不属活引用；DECISIONS.md:273 是
+  历史决策记录，照 D-008 保留惯例不回溯改写。R78b 未做全仓复核即收尾，
+  属同族残留（O1 文档失效模式续，L-23 同族）。
+
+### 106c. 改动与验证
+
+- **改动**（纯文档，两处）：①LESSONS.md:117"本项目 12 项验收断言全部
+  基于返回文本"→"本项目 T1–T11 共 23 项验收断言全部基于返回文本
+  （R79b 修正旧'12 项'数）"；②TASK_LEDGER.md:186"（12 项断言全部基于
+  **返回文本**，非计数）"→"（T1–T11 共 23 项断言全部基于**返回文本**，
+  非计数；R79b 修正旧'12 项'数）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（23 断言与 `grep -o "check(" | wc -l` 实测一致）。
+- 决策记录：DECISIONS.md D-125b。
