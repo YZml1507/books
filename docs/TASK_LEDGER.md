@@ -4511,3 +4511,43 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（59/57 与 `ls probes/*.py` 实测一致）。
 - 决策记录：DECISIONS.md D-133b。
+
+## 115. [优化轨] R88b：OPTIMIZE_20260816_R18.md "44 部 61,732 单元"旧数未标历史 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 115a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R87b（829e32b）已确认在 origin/main。
+
+### 115b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、各文档头部时间戳
+  （R82b-R84b 已修）、GOAL_NEXT_SESSION 快照标签（R85b 已补注）、
+  TASK_LEDGER 头部轮次钉死（R86b 已除）、T7-o 活跃数（R87b 已补注）
+  均无残留；DECISIONS.md 残留旧数均为历史决策记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/OPTIMIZE_20260816_R18.md`（R18b 轮
+  优化方案文档，2026-08-16）**未标历史存档**，其中三处 R18b 时点数与
+  当前实测矛盾：行 22"44 部 61,732 单元"（现 47 部 62,109，`SELECT
+  count(*) FROM work/unit` 实测）、行 43"13 闸门、44 部"、行 64"跨全部
+  44 部的普查"——同文档行 118-119 已写"47 部 62,109 单元"（R20b 落地
+  后补注），**文档内部自相矛盾**（O1 文档失效模式，L-23 同族；与 R60b
+  标 GOAL.md §7 历史存档、R78b 标 PROJECT_STATUS 行 260 同族先例）。
+
+### 115c. 改动与验证
+
+- **改动**（docs/OPTIMIZE_20260816_R18.md，纯文档）：①头部补历史存档
+  标注（"本文为 R18b 轮方案存档（2026-08-16 时点），文中数字勿引用——
+  当前实测快照见 PROJECT_STATUS 与 GOAL_NEXT_SESSION §1"）；②行
+  22/43/64 三处"44 部（61,732 单元）"划线并附当前实测（47 部
+  62,109），消除文档内部自相矛盾。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（47 部 62,109 与 `SELECT count(*) FROM work/unit` 实测一致）。
+- 决策记录：DECISIONS.md D-134b。
