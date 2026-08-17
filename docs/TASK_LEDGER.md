@@ -4431,3 +4431,80 @@ R110b 是优化轨领土 web/app.py 的 self-test 断言加强（24→29 checks�
 pending 清空。
 
 - 决策记录：DECISIONS.md D-117a。
+
+### 99. R108a 审查循环：rebase 纳入 R111b/R112b/R113b（taohua 桃花运 + tarot 塔罗 + dayun 应期），逐行复审 + 13 闸门 + web --selftest 32 checks 全绿（2026-08-17）
+
+接续 R107a（323def0，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 4be962f 变为 c0a3dde。
+HEAD..origin/main 显示优化轨推进 3 提交：
+
+- b3510f2 R111b feat(shushu): add bazi peach-blossom luck (taohua)
+  module + web tab
+- af5fbb3 R112b feat(divination): add tarot draw (78-card static deck,
+  seed-deterministic)
+- c0a3dde R113b feat(shushu): add dayun peach-blossom windows to taohua
+
+`git show --name-only` 确认改动文件：docs/DECISIONS.md、
+docs/TASK_LEDGER.md、src/guji/taohua.py（新）、src/guji/tarot.py（新）、
+web/app.py、web/static/index.html。**含代码逻辑（优化轨领土 src/guji
+新模块 + web 前端）→ 按 §0.3 协议第 5 步立即启动审查轨循环。**
+
+**逐行复审 R111b/R112b/R113b 优化轨领土文件**（亲眼过，优化轨领土
+src/guji/web 只复审+记录移交，不动手）：
+
+- **R111b src/guji/taohua.py**（新 113 行）：纯坐标计算——咸池（桃花）
+  年支查三合局（申子辰→酉、寅午戌→卯、巳酉丑→午、亥卯未→子）；红鸾
+  `(3 - 年支idx) mod 12`；天喜红鸾对冲 `+6 mod 12`。桃花落宫查四柱地支
+  == 桃花支。写死说明文字（照 huangli YIJI 静态表先例），无 LLM 生成、
+  无吉凶断言。固定八字 → 固定输出，可命令复验。无红线。
+- **R112b src/guji/tarot.py**（新 138 行）：78 张静态牌表（22 大阿卡纳 +
+  56 小阿卡纳：权杖/圣杯/宝剑/星币 × 14）。`draw(seed, n)` 用
+  `random.Random(seed)` 确定性抽牌（照 liuyao `cast_coins(rng)` 先例），
+  固定 seed → 固定牌面，可命令复验（seed=42 → 节制/皇后/权杖国王）。
+  牌意只给传统公版象征关键词（正/逆位），不生成 LLM 解读、不作吉凶断言。
+  无红线。
+- **R113b src/guji/taohua.py dayun_hits**（+28 行）：复用
+  `bazi_calc.calc_life` 大运表，查大运地支 == 桃花支（咸池）的应期，
+  纯坐标计算，固定八字 → 固定应期（实测 1990-05-15 10:00 女命大运第 2
+  运 己卯 2003 起命中桃花支卯；同生日男命无命中）。无红线。
+- **web/app.py**：R111b 加 `POST /api/taohua`（复用 BaziRequest 含农历
+  换算，排盘后调 `taohua_mod.compute(b)`，输出坐标事实 + 写死说明）；
+  R112b 加 `POST /api/tarot`（TarotRequest 含 seed/n，调
+  `tarot_mod.draw(seed, n)`）；R113b `/api/taohua` 加 dayun_hits 字段。
+  异常处理用 `HTTPException(422, ...)`。self-test 加 taohua/
+  taohua.dayun/tarot standing 断言（29→32 checks）。无红线。
+- **web/static/index.html**：R111b 加 `view-taohua` tab（前端 fetch
+  提交表单，结果用 esc 转义渲染）；R112b 加 `view-tarot` tab；R113b 加
+  "大运桃花应期"表格。前端只渲染，服务端纯坐标计算。无红线。
+
+**rebase**：`git rebase origin/main` 在历史 583b23f（R22a renumbered
+merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+"冲突取 --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R111b/R112b/R113b
+纳入 audit 分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (32 checks)**：含 R110b addr.bcv/addr.yilin/
+  addr.booksec/addr.play/addr.euclid 五项 + R111b taohua + R112b tarot
+  + R113b taohua.dayun 八项新断言。
+
+R111b/R112b/R113b 是优化轨领土 src/guji 新模块（taohua/tarot）+ web
+前端 tab，纯坐标计算/静态牌表，无 LLM 生成、无吉凶断言，无红线，领土
+零越界确认，13 闸门 + web --selftest 32 checks 全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-118a。
