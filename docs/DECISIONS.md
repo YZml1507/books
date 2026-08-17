@@ -4788,3 +4788,31 @@ T1 最小版 → T2 → T3（两项小而确定，用来确认闸门仍绿）→
 
 选 A（§4b 任务量段补注，照 D-152b/D-151b 先例）。落地后：docs-only
 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-154b R108b 优化轨：MASTER_PLAN §6 booksec 行把 Darwin 列为成员，实测无 work 行 → 标注（文档对齐）
+
+**背景（亲自核实）**：`docs/MASTER_PLAN.md` §6 地址体系表 booksec 行写
+"已实现（**Herodotus/Darwin/Plato 等**，4,247 单元）"——把 **Darwin
+列为 booksec 成员**，但实测（命令实跑）：
+- `SELECT id FROM work WHERE id LIKE '%darwin%'` → **[]**（无 work 行）；
+- `SELECT count(*) FROM unit WHERE work_id LIKE '%darwin%'` → **0**；
+- 台账 §1062/§1273 明确"bible-kjv/web/darwin-origin 在 work 表但 0 单元，
+  unit 表 0 行系设计"（孤儿 work 已清除，R20b）；GOAL.md §4 T7-f 行
+  （R77b 标注）已写"Darwin 无 work 行系设计（台账 §1062/§1273）"。
+MASTER_PLAN §6 booksec 行的"Darwin"是 R20b 前旧表述——Darwin 从未以
+work 行入 booksec（Herodotus 761 / Plato 1,325 / Iliad 2,161 才是
+booksec 实际成员，实测一致）。新会话读 MASTER_PLAN §6 会误以为 Darwin
+已入 booksec 索引（O1 文档失效模式，L-23 同族：可被命令断言的事实
+（work 表行）硬编码且漏同步；与 R77b T7-f 标注同族，MASTER_PLAN 漏标）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | MASTER_PLAN §6 booksec 行划线"Darwin"并补注："R108b 标注：Darwin 无 work 行系设计（台账 §1062/§1273），booksec 实际成员 Herodotus/Plato/Iliad（实测 761/1,325/2,161 单元）" | 纯文档、零代码/零风险；与 work 表实测（darwin=[]）及台账 §1062/§1273、GOAL.md T7-f 一致，防新会话误判 Darwin 已入索引 |
+| B | 只改 GOAL.md 不动 MASTER_PLAN | MASTER_PLAN §6 仍误导（Darwin 为 booksec 成员） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（MASTER_PLAN §6 booksec 行补注，照 R77b T7-f 先例 + D-008 保留
+旧表述）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。

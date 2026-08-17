@@ -145,7 +145,7 @@ addr2       TEXT     -- 标签层：爻位 / 節 / 場
 | `zhouyi` | 卦名 乾 | 卦號 1..64 | 爻位 九三 / 用九 | 已实现 |
 | `bcv` | 卷名 Genesis | 章 | 節 | 已实现（KJV/WEB，35,787 单元） |
 | `yilin` | 之卦名 | 本卦號 1..64 | 之卦名 | 已实现（焦氏易林，5,032 单元 = 64×64 矩阵 4,096 cells；R59b 修正单元/cells 口径） |
-| `booksec` | 书名（BOOK） | 节序 | 节 | 已实现（Herodotus/Darwin/Plato 等，4,247 单元） |
+| `booksec` | 书名（BOOK） | 节序 | 节 | 已实现（~~Herodotus/Darwin/Plato 等~~，4,247 单元——**R108b 标注**：Darwin 无 work 行系设计，台账 §1062/§1273；booksec 实际成员 Herodotus 761 / Plato 1,325 / Iliad 2,161，实测一致） |
 | `play` | 剧名 | 幕 | 場 | 已实现（Shakespeare，6,512 单元） |
 | `euclid` | 书名（BOOK） | 命题序 | 命题 | 已实现（欧几里得，649 单元） |
 | `stephanus` | 篇名 | Stephanus 页 | 分节 | 未实现（实测 0 单元；Plato 现走 booksec） |

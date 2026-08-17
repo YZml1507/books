@@ -5353,3 +5353,49 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `99c3574`
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（T1/T7 处置证据与命令实测/台账/§4 标注一致）。
 - 决策记录：DECISIONS.md D-153b。
+
+## 135. [优化轨] R108b：MASTER_PLAN §6 booksec 行把 Darwin 列为成员，实测无 work 行 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 135a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `b57d095`
+（R104a：吸收优化轨 R106b docs-only rebase，gates green；此前
+`99c3574` R103a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R107b（72be5db）已确认在 origin/main，无 rebase 需求。
+
+### 135b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **MASTER_PLAN §6 booksec 行 Darwin 实测**（命令实跑）：`SELECT id
+  FROM work WHERE id LIKE '%darwin%'` → []（无 work 行）；
+  `SELECT count(*) FROM unit WHERE work_id LIKE '%darwin%'` → 0；
+  台账 §1062/§1273 明确"unit 表 0 行系设计"（孤儿 work 已清除 R20b）；
+  GOAL.md §4 T7-f 行（R77b 标注）已写"Darwin 无 work 行系设计"。
+- **活引用扫描**：R75b-R107b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/MASTER_PLAN.md` §6 地址体系表
+  booksec 行写"已实现（**Herodotus/Darwin/Plato 等**，4,247 单元）"
+  ——把 **Darwin 列为 booksec 成员**，但实测 Darwin 无 work 行、单元
+  0（台账 §1062/§1273 系设计，GOAL.md T7-f 已标注）——MASTER_PLAN
+  漏标，新会话读 §6 会误以为 Darwin 已入 booksec 索引（O1 文档失效
+  模式，L-23 同族：可被命令断言的事实（work 表行）硬编码且漏同步；
+  与 R77b T7-f 标注同族）。
+
+### 135c. 改动与验证
+
+- **改动**（docs/MASTER_PLAN.md，纯文档）：§6 booksec 行划线
+  "Herodotus/Darwin/Plato 等"并补注"R108b 标注：Darwin 无 work 行系
+  设计（台账 §1062/§1273）；booksec 实际成员 Herodotus 761 / Plato
+  1,325 / Iliad 2,161，实测一致"（照 R77b T7-f 先例 + D-008 保留旧
+  表述）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（Darwin=[] 与 work 表实测及台账 §1062/§1273、GOAL.md T7-f
+  一致）。
+- 决策记录：DECISIONS.md D-154b。
