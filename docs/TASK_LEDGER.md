@@ -4196,3 +4196,48 @@ R102b-R104b 3 提交纳入 audit 分支 history，HEAD..origin/main 清空。
 纯文档轮无代码逻辑，无越界，3 提交纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-112a。
+
+### 94. R103a 纯文档轮：rebase 纳入 R105b，清空 pending（2026-08-17）
+
+接续 R102a（cd69b54）。fetch origin 成功，HEAD..origin/main 显示优化轨
+推进 1 提交：
+
+- 16c26f6 R105b docs(goal) annotate §1b parallel-task list A-F as all-landed
+
+`git show --name-only` 确认纯 docs/*.md only（GOAL/DECISIONS/TASK_LEDGER）。
+
+**逐行复审 R105b diff**（亲眼过）：GOAL §1b 可并行组表加存档横幅标注
+A-F 六组任务均已落地——实测处置源标注完整：T1 评测集（eval_g1 248 题
+PASS 246/248，G1 PASS）、T4 易林版式（yilin 5,032 单元入索引，P-05/§1278）、
+T7 Douay 解析器（douay.py，35,787 bcv 单元）、T7 tier 2/3 西文解析器
+（plato 1,325 / shakespeare 6,512 / euclid 649，R77b 实测）、T7 引文互见
+（G4 PASS，link 558 条）、T3 X-10/X-11 列（unit.suspect + skipped_chars）。
+照 D-147b/D-148b 先例，保留原表作 R18b 前并行工作方式参考。归因诚实，
+无越界。纪律良好。纯文档轮不启动审查循环。
+
+**rebase**：`git rebase origin/main` 在历史 2589c67（R22a merge）处
+append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+--theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R105b 纳入 audit
+分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，R105b 纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-113a。
