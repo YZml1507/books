@@ -3559,6 +3559,56 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
 
 ## D-122a R112a 审查循环：rebase 纳入 R119b（bazi lunar conversion standing）+ R120b（docs sync 35→39），逐行复审 + 13 闸门 + web --selftest 39 checks 全绿（2026-08-17）
 
+## D-123a R113a 审查循环：rebase 纳入 R121b（八字合婚 hehun 模块 + 第 8 前端 tab），逐行复审 + 13 闸门 + web --selftest 40 checks 全绿（2026-08-17）
+
+- **接续 R112a**（e900806，上轮已 push 闭环）。fetch origin 后 ls-remote
+  监控发现优化轨推进 main：origin/main HEAD 从 ed687a8 变为 6eb8882。
+  HEAD..origin/main 显示优化轨推进 1 提交（6eb8882 R121b）。
+- **R121b 改动文件**：docs/{DECISIONS,TASK_LEDGER}.md、
+  src/guji/hehun.py（新）、web/app.py、web/static/index.html。
+  **含代码逻辑（优化轨领土 src/guji 新模块 + web 前端）→ 按 §0.3 协议
+  第 5 步立即启动审查轨循环。**
+- **逐行复审 R121b 优化轨领土文件**（亲眼过，优化轨领土 src/guji/web
+  只复审+记录移交，不动手）：
+  - **src/guji/hehun.py**（新 104 行）：纯坐标计算——年支六冲
+    `SIX_CLASH`（子午/丑未/寅申/卯酉/辰戌/巳亥）、年支六合
+    `SIX_COMBINE`（子丑/寅亥/卯戌/辰酉/巳申/午未）、天干五行
+    `GAN_ELEMENT`、五行相生 `_SHENG`（木→火→土→金→水→木，传统定式
+    写死可核验）。`compute(b_a, b_b)` 比较两人八字：clash/combine 查表、
+    日主五行相生 `a 生 b 或 b 生 a`、桃花支重叠
+    `ta.peach_zhi == tb.peach_zhi`（复用 taohua R111b）。写死说明文字
+    （`_NOTE_CLASH` 等，照 huangli YIJI 先例），不生成解读文本、不作吉凶
+    断言。固定两人生日 → 固定输出，可命令复验。无红线。
+  - **web/app.py**：加 `HehunRequest` 模型（a/b 两组 year/month/day/
+    hour/gender）+ `POST /api/hehun`（输入校验 YEAR_LO/HI/month 1-12/
+    day 1-31/hour 0-23，用 `compute()` 排两人八字，调
+    `hehun_mod.compute(ba, bb)`，异常 `HTTPException(422, ...)`/
+    `HTTPException(400, ...)`）。self-test 加 `check("hehun", ...)`
+    standing 断言：固定 1990-05-15 男 vs 1992-08-20 女 → clash=False,
+    combine=False, day_wx_sheng=True, peach_same=False（确定性可复验）。
+    无红线。
+  - **web/static/index.html**：加第 8 前端 tab"八字合婚"（`view-hehun`），
+    甲/乙两组 year/month/day/hour/gender 表单，前端 `fetch('/api/hehun')`
+    提交表单，结果用 `esc` 转义渲染（表格展示甲/乙八字、年支关系、日主
+    五行、桃花支；说明列表 `j.notes` 用 `esc` 转义）。前端只渲染，服务端
+    纯坐标计算。无红线（XSS 防护正确）。
+- **rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+  3a64fd4（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
+  + TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+  docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+  rebase 成功，R121b 纳入 audit 分支 history，HEAD..origin/main 清空。
+  stash pop 恢复数据库产物。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin
+  520/490）、eval_g7 PASS（FABRICATIONS 0）。**web --selftest PASS
+  (40 checks)**：含 R121b hehun 一项新断言。
+
 - **接续 R111a**（09c19ce，上轮已 push 闭环）。fetch origin 后 ls-remote
   监控发现优化轨推进 main：origin/main HEAD 从 aef93a7 变为 ed687a8。
   HEAD..origin/main 显示优化轨推进 2 提交（82587f8 R119b、
