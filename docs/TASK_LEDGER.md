@@ -6255,3 +6255,45 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   47 checks 及 R126b bazi.range/bazi.life 一致）。
 - 决策记录：DECISIONS.md D-173b。
+
+## 155. [优化轨] R128b：web standing 自测缺口——search 的 layer/work 过滤参数分支零断言 → 补断言（能力层验证，与 R118b/R119b/R124b/R126b 同族）（2026-08-17）
+
+### 155a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R127b（1a395eb）已确认在 origin/main。
+
+### 155b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `search` check
+  （app.py:1048）只测裸 `{"q": "潛龍勿用"}`；`GET /api/search` 的
+  `layer`（层过滤）与 `work`（作品过滤）两个**已接线参数分支零 standing
+  断言**——若 layer/work 过滤 SQL 静默失效（如过滤条件拼接回归、返回
+  未过滤全集），13 闸门与五层自测都看不见（L-22/L-23 同族；与 R118b/
+  R119b/R124b/R126b 同族——此前补 standing 断言多次当场抓到真实 bug）。
+- **实测**（命令实跑）：`search?q=潛龍勿用&layer=經` → 200，hits=10；
+  `search?q=潛龍勿用&work=KR1a0001` → 200，hits=2（work 过滤收窄生效，
+  与裸 q 的 hits 数不同）——两分支当前均可用且过滤生效，补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、文档滞后（47 checks 已同步无残留）——无
+  明确缺口。
+- **方案比对**：A 补 search.layer + search.work 断言（选定）；B 前端
+  体验（无缺口）；C 质量/性能层（无缺口）——见 D-174b。
+
+### 155c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：`search` check 后补 `search.layer`
+  （q=潛龍勿用 + layer=經 → 200 + hits 非空 + 全部 hit 的 layer==經）
+  与 `search.work`（q=潛龍勿用 + work=KR1a0001 → 200 + hits 非空 +
+  全部 hit 的 work_id==KR1a0001）两条断言（47→49 checks）。
+- **验证**（全量）：web --selftest 49 checks 全 PASS（search.layer/
+  search.work 生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
+  web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-174b。

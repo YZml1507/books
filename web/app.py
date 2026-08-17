@@ -1046,6 +1046,18 @@ if __name__ == "__main__":
             ok.append(name)
 
         check("search", client.get("/api/search", params={"q": "潛龍勿用"}), lambda j: j.get("hits"))
+        # R128b（D-174b）：search 的 layer/work 过滤参数分支 standing 覆盖——
+        # search check 只测裸 q，layer/work 过滤 SQL 零断言（若过滤拼接回归、
+        # 返回未过滤全集则不可见，与 R118b/R119b/R124b/R126b 同族）。固定输入
+        # 实测：layer=經 → hits=10；work=KR1a0001 → hits=2（过滤收窄生效）。
+        check("search.layer", client.get("/api/search", params={"q": "潛龍勿用",
+              "layer": "經"}),
+              lambda j: (j.get("hits") and all(h.get("layer") == "經"
+                                               for h in j["hits"])))
+        check("search.work", client.get("/api/search", params={"q": "潛龍勿用",
+              "work": "KR1a0001"}),
+              lambda j: (j.get("hits") and all(h.get("work_id") == "KR1a0001"
+                                               for h in j["hits"])))
         check("addr", client.get("/api/addr", params={"scheme": "zhouyi", "gua": 1}), lambda j: j.get("hits"))
         # R110b（D-156b）：zhouyi 之外五类 scheme 走 at_scheme 通用路径，此前无
         # standing 断言——若该路径静默失效，13 闸门与五层自测都看不见。固定参数

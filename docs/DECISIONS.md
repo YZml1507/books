@@ -5342,3 +5342,34 @@ bazi.life，R126b 5e05b14 已确认在 origin/main）。
 选 A（checks 数 45→47 文档对齐，照 R116b/R120b/R122b/R125b 先例）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅
 （数字与命令实测 47 checks 一致）。
+
+## D-174b R128b 优化轨：web standing 自测缺口——search 的 layer/work 过滤参数分支零断言（能力层验证，与 R118b/R119b/R124b/R126b 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `search` check（app.py:1048）
+只测裸 `{"q": "潛龍勿用"}`；`GET /api/search` 的 `layer`（层过滤）与
+`work`（作品过滤）两个**已接线参数分支零 standing 断言**——若 layer/work
+过滤 SQL 静默失效（如过滤条件拼接回归、返回未过滤全集），13 闸门与五层
+自测都看不见（L-22/L-23 同族；与 R118b liuyao.time/huangli.affair、
+R119b bazi.lunar、R124b 错误路径、R126b bazi.range/life 同族——此前补
+standing 断言多次当场抓到真实 bug）。实测（命令实跑）：`search?q=潛龍勿用
+&layer=經` → 200，hits=10；`search?q=潛龍勿用&work=KR1a0001` → 200，
+hits=2——两分支当前均可用且过滤生效（work 过滤后 hits 明显收窄），补断言
+零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/search {"q":"潛龍勿用","layer":"經"}` → 200，hits=10
+- `GET /api/search {"q":"潛龍勿用","work":"KR1a0001"}` → 200，hits=2
+  （work 过滤收窄生效，与裸 q 的 hits 数不同）
+- 现有 `search` check：裸 q → hits 非空（实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `search.layer`（q=潛龍勿用 + layer=經 → 200 + hits 非空 + 全部 hit 的 layer==經 或至少 hits 数与裸查询不同）与 `search.work`（q=潛龍勿用 + work=KR1a0001 → 200 + hits 非空 + 全部 hit 的 work_id==KR1a0001）两条断言 | 纯加自测断言、零功能改动/零数据风险；补上过滤参数分支的 standing 覆盖缺口，抓 layer/work 过滤静默失效；断言确定性可复验（照 R118b/R119b/R124b/R126b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 search.layer + search.work standing 断言，照 R118b/R119b/R124b/
+R126b 先例：能力路径必须有一条可复现命令断言）。落地后：web --selftest
+47→49 checks，跑 13 闸门 + 五层自测确认零回退。
