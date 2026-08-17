@@ -4844,3 +4844,43 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（2026-08-17 与头部 R78b 及 `git log -L 19,19` 实测一致）。
 - 决策记录：DECISIONS.md D-141b。
+
+## 123. [优化轨] R96b：GOAL_NEXT_SESSION §0a 会话 jsonl 路径注记未含本窗口目录 → 补注（2026-08-17，双窗口并行第二轨）
+
+### 123a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `9645666`
+（R96a：吸收优化轨 R93b docs-only rebase，gates green；此前
+`5193f76` R95a）。核实未动 scripts/assess_goals.py（R21a 委托与
+R64b G9 SCOPE 移交项维持，待审查轨合入 main，非本轨领土）。
+R95b（3018e07）已确认在 origin/main，无 rebase 需求。
+
+### 123b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **bge 向量覆盖复验**（命令实测）：bge_mingli ids 2,505、bge_docvecs
+  形状 (2489, 512)——与 PROJECT_STATUS"bge 向量覆盖爻位单元 2,489"
+  一致，非缺口。
+- **活引用扫描**：R75b-R95b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL_NEXT_SESSION.md` §0a 会话 jsonl
+  路径注记写"jsonl 落盘在 `sessions/025973b91a55cfb5/`"（上一窗口会话
+  目录），但实测 `ls .atomcode/sessions/`：**两个目录都存在**——
+  `025973b91a55cfb5/`（旧窗口）与 `1ae2121e85ce8e84/`（**本窗口**，
+  含 ab629b12-3cf7-4d09-bedf-3892431f8e60.jsonl，握手信息指明）。§0a
+  路径注记未含本窗口目录——新会话照 §0a 只 grep 旧目录会找不到本窗口
+  的 jsonl（O1 文档失效模式，L-23 同族：可被命令断言的事实（目录名）
+  硬编码且漏同步）。
+
+### 123c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§0a 路径注记补本窗口
+  目录——主路径注明 `sessions/1ae2121e85ce8e84/`（本窗口 2026-08-17，
+  含 ab629b12…jsonl），旧目录 `025973b91a55cfb5/` 保留作历史回溯
+  （照 D-008 保留记录惯例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（目录名与 `ls .atomcode/sessions/` 实测一致）。
+- 决策记录：DECISIONS.md D-142b。

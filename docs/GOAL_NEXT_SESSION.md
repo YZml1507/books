@@ -36,10 +36,14 @@
 本窗口及之前的会话记录是磁盘上的普通文件，可以直接 grep：
 
 ```
-C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl
+C:\Users\Lenovo\.atomcode\sessions\1ae2121e85ce8e84\<sessionId>.jsonl   # 本窗口（2026-08-17，含 ab629b12…jsonl；R96b 补注）
+C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl   # 旧窗口回溯目录（保留）
 ```
 
-**注意路径变了**：jsonl 落盘在 `sessions/025973b91a55cfb5/` 而非旧版说的 `projects/C--Users-Lenovo-Desktop-projects-books/`。若新路径下找不到，去旧路径也查一遍。
+**注意路径变了**：jsonl 落盘在 `sessions/1ae2121e85ce8e84/`（本窗口）与
+`sessions/025973b91a55cfb5/`（旧窗口，可回溯；`ls .atomcode/sessions/`
+实测两目录都存在），而非更早的 `projects/C--Users-Lenovo-Desktop-projects-books/`。
+若新路径下找不到，去旧路径也查一遍。
 
 可回溯的 sessionID（从近到远）：
 

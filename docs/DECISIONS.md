@@ -4461,3 +4461,26 @@ docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审
 
 选 A（块内日期标签同步，照 D-130b 头部同步先例的补完）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-142b R96b 优化轨：GOAL_NEXT_SESSION §0a 会话 jsonl 路径注记未含本窗口目录 → 补注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL_NEXT_SESSION.md` §0a 说"jsonl 落盘在
+`sessions/025973b91a55cfb5/`"（上一窗口会话目录），但实测
+`ls .atomcode/sessions/`：**两个目录都存在**——`025973b91a55cfb5/`
+（旧窗口）与 `1ae2121e85ce8e84/`（**本窗口**，含
+ab629b12-3cf7-4d09-bedf-3892431f8e60.jsonl，握手信息指明）。§0a 路径
+注记停在旧窗口目录，**未含本窗口目录**——新会话照 §0a 只 grep
+`025973b91a55cfb5/` 会找不到本窗口的 jsonl（O1 文档失效模式，L-23
+同族：可被命令断言的事实（目录名）硬编码且漏同步；路径注记应含当前
+窗口目录）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | §0a 路径注记补本窗口目录：注明 jsonl 现落盘在 `sessions/1ae2121e85ce8e84/`（本窗口 2026-08-17，含 ab629b12…jsonl），旧目录 `025973b91a55cfb5/` 保留作历史回溯（照 D-008 保留记录惯例） | 纯文档、零代码/零风险；目录名与 `ls .atomcode/sessions/` 实测一致，防新会话照旧路径查不到本窗口日志 |
+| B | 只把主路径改成 1ae2121e85ce8e84，删掉 025973b91a55cfb5 | 丢失旧窗口回溯路径，违反 D-008 保留惯例 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（补注本窗口目录，保留旧目录作回溯）。落地后：docs-only 先例闸门
+抽跑（verify_index + check_quality），文档 diff 审阅。
