@@ -4382,3 +4382,28 @@ diff 审阅。
 
 选 A（去范围钉死："R70b 起"，照 D-132b 先例）。落地后：docs-only 先例
 闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-139b R93b 优化轨：TASK_LEDGER 行 35 eval_g1 注释"193 题"过时 → 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/TASK_LEDGER.md` 头部行 35 复验命令注释写
+"eval_g1.py  # G1 评测集 193 题（本轮新增）"，但实测 `scripts/eval_g1.py`
+（命令实跑）：
+- `G1 evaluation — 248 questions, bank derived from data/raw/ only`；
+- `G1 = PASS 246/248 questions passed (99.2% overall), 0 invalid`。
+"193 题"是早期评测集规模（D-019 时代），后续轮次扩题至 248；GOAL.md/
+BOOK_AI_ARCHITECTURE/台账 §1015 等处均已写 248（R81b 标注），仅台账
+头部行 35 注释漏改——新会话照头部读题数会误以为 G1 题库停在 193
+（O1 文档失效模式，L-23 同族：可被命令断言的事实硬编码且漏同步；与
+R78b/R79b 修 verify_index 项数、R91b 修 check_provenance 注释同族
+残留）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | TASK_LEDGER 行 35 注释"G1 评测集 193 题（本轮新增）"→"G1 评测集 248 题（R93b 修正旧 193 题）" | 纯文档、零代码/零风险；数字与 `eval_g1.py` 实测（248 questions / 246 PASS）一致，防新会话误读题库规模 |
+| B | 只改 GOAL.md 等处不动台账头部 | 头部仍误导（193 vs 248） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（台账头部注释同步，照 R91b check_provenance 先例）。落地后：
+docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。

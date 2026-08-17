@@ -32,7 +32,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe probes\probe_conservation.py  # 文本守恒，delta 0 / ratio 1.0000
 .\.venv\Scripts\python.exe scripts\check_provenance.py   # provenance，zip_sha256/licence 须 0/47 缺失（source_url 9/47 为子平书本地拉取真实空值，台账 §1282；R91b 修正旧 0/28）
 .\.venv\Scripts\python.exe probes\probe_bcv.py           # 第二种地址体系（**现在会真的 exit 1**）
-.\.venv\Scripts\python.exe scripts\eval_g1.py            # G1 评测集 193 题（本轮新增）
+.\.venv\Scripts\python.exe scripts\eval_g1.py            # G1 评测集 248 题（R93b 修正旧 193 题）
 .\.venv\Scripts\python.exe scripts\summarise_diff.py     # G5 差异摘要对照（本轮新增）
 .\.venv\Scripts\python.exe scripts\eval_g7.py            # G7 对抗拒答（本轮新增）
 .\.venv\Scripts\python.exe probes\probe_g8_isolation.py  # G8 证伪式隔离（本轮新增）
@@ -4716,3 +4716,44 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（与 `git log dd063c4..HEAD` 实测六轮 docs-only 一致）。
 - 决策记录：DECISIONS.md D-138b。
+
+## 120. [优化轨] R93b：TASK_LEDGER 行 35 eval_g1 注释"193 题"过时 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 120a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R92b（b493349）已确认在 origin/main。
+
+### 120b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **web 路由 vs checks 覆盖**：24 条路由中 external/news 明确排除
+  （D-100b 联网端点不进 standing 自测），其余均被 24 checks 覆盖——
+  非缺口。
+- **eval_g1 实测**（命令实跑）：`G1 evaluation — 248 questions`、
+  `G1 = PASS 246/248 (99.2%), 0 invalid`。
+- **活引用扫描**：R75b-R92b 处置项均无残留；LESSONS/MASTER_PLAN/
+  DECISIONS 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/TASK_LEDGER.md` 头部行 35 复验命令
+  注释写"eval_g1.py  # G1 评测集 193 题（本轮新增）"，但实测 eval_g1.py
+  为 **248 questions / PASS 246/248**——"193 题"是 D-019 时代早期规模，
+  后续轮次扩题至 248；GOAL.md / BOOK_AI_ARCHITECTURE / 台账 §1015
+  等处均已写 248（R81b 标注），仅台账头部行 35 注释漏改（O1 文档失效
+  模式，L-23 同族：可被命令断言的事实硬编码且漏同步；与 R78b/R79b 修
+  verify_index 项数、R91b 修 check_provenance 注释同族残留）。
+
+### 120c. 改动与验证
+
+- **改动**（docs/TASK_LEDGER.md，纯文档）：行 35 注释"G1 评测集 193 题
+  （本轮新增）"→"G1 评测集 248 题（R93b 修正旧 193 题）"，照 R91b
+  check_provenance 注释同步先例。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（248 questions / 246 PASS 与 `eval_g1.py` 实测一致）。
+- 决策记录：DECISIONS.md D-139b。
