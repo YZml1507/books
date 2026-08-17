@@ -1,6 +1,6 @@
 # 任务台账
 
-**更新** 2026-08-13 · 唯一的任务状态来源
+**更新** 2026-08-17（每轮追加，最新 §109 R82b；R83b 同步头部时间戳）· 唯一的任务状态来源
 
 ---
 
@@ -4318,3 +4318,40 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   审阅通过（时间戳与 `git log -- docs/LESSONS.md` 实测 R52b/R79b 提交
   一致）。
 - 决策记录：DECISIONS.md D-128b。
+
+## 110. [优化轨] R83b：TASK_LEDGER 头部更新时间戳滞后 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 110a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R82b（712beb0）已确认在 origin/main。
+
+### 110b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致，非缺口；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、LESSONS 头部（R82b
+  已修）均无残留——非缺口。
+- **真实缺口（本轮选定）**：`docs/TASK_LEDGER.md` 头部"**更新**
+  2026-08-13 · 唯一的任务状态来源"停在初始版本日期，但内容是**每轮必
+  追加**的活文档（`git log --oneline -- docs/TASK_LEDGER.md` 实测最近
+  5 次提交全部改它：R78b/R79b/R80b/R81b/R82b，2026-08-17 当日已追加
+  至 §109）。头部时间戳 2026-08-13 与新会话实际读到的内容（已到 §109）
+  矛盾——新会话据此会误以为台账状态陈旧（O1 文档失效模式，L-23 同族；
+  与 R82b 修 LESSONS.md 头部时间戳同族，D-128b/D-119b 先例）。全仓
+  扫描其余文档头部时间戳均无滞后。
+
+### 110c. 改动与验证
+
+- **改动**（docs/TASK_LEDGER.md，纯文档）：头部"更新 2026-08-13"→
+  "更新 2026-08-17（每轮追加，最新 §109 R82b；R83b 同步头部时间戳）"，
+  照 D-128b/D-119b 先例只同步时间戳、标注实际更新状态。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（时间戳与 `git log -- docs/TASK_LEDGER.md` 实测当日连续提交
+  一致）。
+- 决策记录：DECISIONS.md D-129b。
