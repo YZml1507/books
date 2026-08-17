@@ -4967,3 +4967,46 @@ SCOPE 移交项维持。R97b（4ccc129）已确认在 origin/main，无 rebase �
   审阅通过（337aadc 与 `git log origin/audit/R18 -- scripts/assess_goals.py`
   实测一致）。
 - 决策记录：DECISIONS.md D-144b。
+
+## 126. [优化轨] R99b：GOAL.md §1 红线把 git push 列为不可逆操作，与 §4 授权矛盾 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 126a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `d93afdb`
+（R98a：吸收优化轨 R95b-R96b docs-only rebase，gates green；此前
+`adb3a5f` R97a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R98b（a416b18）已确认在 origin/main，无 rebase 需求。
+
+### 126b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **复验命令清单**（GOAL_NEXT_SESSION §1 实测）：14 条 = 13 闸门 +
+  assess_goals，顺序 check_quality 先跑——与 TASK_LEDGER 一致，非缺口。
+- **KR3g 術數作品**（命令实测）：20 部——与 GOAL.md §5"手上 20 部"
+  断言一致，非缺口。
+- **活引用扫描**：R75b-R98b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §1 红线第 1 类"破坏性且
+  不可逆的操作"把 **`git push` 列为不可自主执行的红线**，但
+  `docs/GOAL_NEXT_SESSION.md` §4"已授权的（照上一窗口先例，可直接执行）"
+  明确写"**commit / push 到 main（历次窗口已记录用户授权）**"——两文档
+  对 git push 的处置**直接矛盾**（本窗口实测 R75b-R98b 二十四轮全部
+  commit+push 到 origin/main）。GOAL.md §1 是原任务书，push 授权例外
+  未同步进去——新会话读 GOAL.md §1 会误以为 push 属红线不可自主执行
+  （O1 文档失效模式，L-23 同族：可被 git 命令断言的事实硬编码且漏同步；
+  §4 浓缩自 GOAL.md §1/§3/§5 但把 push 从红线挪到了已授权，两处未对齐）。
+
+### 126c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§1 红线第 1 类补注"R99b 标注：
+  `git push` 到 main 已授权——历次窗口记录用户授权，见 GOAL_NEXT_
+  SESSION.md §4 已授权段；重写历史仍红线"，照 §4 先例 + D-008 保留
+  原句（原"git push、重写历史"表述划线上下文保留，补授权例外）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（标注与 GOAL_NEXT_SESSION §4 已授权段及 R75b-R98b 历轮
+  push 实测一致）。
+- 决策记录：DECISIONS.md D-145b。

@@ -4537,3 +4537,30 @@ OPTIMIZE_20260816_R18.md:127 也写"`23d0f94` 委托 evalset.raw_body"。
 选 A（§2a 补注实际 commit + 失效 hash 说明，照 D-008 保留旧记录）。
 落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
 diff 审阅。
+
+## D-145b R99b 优化轨：GOAL.md §1 红线把 git push 列为不可逆操作，与 §4 授权矛盾 → 标注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §1 红线第 1 类"破坏性且不可逆的
+操作"写"删除 data/raw/ 或 data/external/ 下的原始语料、`git push`、
+重写历史"——把 **git push 列为不可自主执行的红线**；但
+`docs/GOAL_NEXT_SESSION.md` §4"已授权的（照上一窗口先例，可直接执行）"
+明确写"**commit / push 到 main（历次窗口已记录用户授权）**"。两文档对
+git push 的处置**直接矛盾**：
+- 本窗口实测：R75b-R98b 二十四轮全部 commit+push 到 origin/main
+  （历次窗口记录用户授权，GOAL_NEXT_SESSION §4）；
+- GOAL.md §1 是原任务书，push 授权例外未同步进去——新会话读 GOAL.md
+  §1 会误以为 push 属红线不可自主执行（O1 文档失效模式，L-23 同族：
+  可被 git 命令断言的事实——push 已授权——硬编码且漏同步；§4 浓缩自
+  GOAL.md §1/§3/§5 但把 push 从红线挪到了已授权，两处未对齐）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §1 红线第 1 类补注："git push 到 main 已授权（历次窗口记录，见 GOAL_NEXT_SESSION §4 已授权段；重写历史仍红线）" | 纯文档、零代码/零风险；与 §4 已授权段及 R75b-R98b 历轮 push 实测一致，消除两文档矛盾，防新会话误判 push 需停下问 |
+| B | 只改 §4 不动 GOAL.md §1 | GOAL.md §1 仍把 push 列红线，矛盾延续 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（GOAL.md §1 补 push 已授权例外，照 §4 先例 + D-008 保留原句）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
