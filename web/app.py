@@ -1405,6 +1405,23 @@ if __name__ == "__main__":
         # "gua 需在 1-64"——补断言零风险。
         _expect_400("err.compare.gua_range",
                     client.get("/api/compare", params={"gua": 99, "yao": "九二"}))
+        # R148b（D-194b）：addr zhouyi 无 gua / bookstudy structure/chapter
+        # work_id 为空三条 400 校验分支 standing 覆盖——addr check（行
+        # 1073）只测 scheme=zhouyi+gua=1，zhouyi 无 gua 校验（line 390:
+        # "zhouyi 定位需提供 gua（1-64）"）零断言；bookstudy.structure
+        # check（行 1167）只测 KR1a0001，work_id 为空校验（line 695:
+        # "work_id 不能为空"）零断言；bookstudy.chapter check（行 1080）
+        # 只测 KR1a0001，work_id 为空校验（line 728）零断言。若这些校验
+        # 回归为 500、或被移除导致非法输入进入计算则不可见（L-22/L-23
+        # 同族；与 R139b/R144b/R147b 同族——同端点不同校验维度）。实测
+        # 三条均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.addr.zhouyi.no_gua",
+                    client.get("/api/addr", params={"scheme": "zhouyi"}))
+        _expect_400("err.bookstudy.structure.empty",
+                    client.get("/api/bookstudy/structure", params={"work_id": ""}))
+        _expect_400("err.bookstudy.chapter.empty",
+                    client.get("/api/bookstudy/chapter",
+                               params={"work_id": "", "scheme": "zhouyi", "addr1": 1}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖

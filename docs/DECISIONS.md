@@ -6010,3 +6010,41 @@ check（行 1158）只测 gua=28/yao=九二，**gua 超范围校验**（line 405
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
 断言）。落地后：web --selftest 76→77 checks，跑 13 闸门 + 五层
 自测确认零回退。
+
+## D-194b R148b 优化轨：web standing 自测缺口——addr zhouyi 无gua/bookstudy structure/chapter work_id 为空三条 400 校验分支零断言（能力层验证，与 R139b/R144b/R147b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：
+- `/api/addr` 的 zhouyi 无 gua 校验（line 390: "zhouyi 定位需提供
+  gua（1-64）"）零断言——addr check（行 1073）只测 scheme=zhouyi+
+  gua=1。
+- `/api/bookstudy/structure` 的 work_id 为空校验（line 695:
+  "work_id 不能为空"）零断言——bookstudy.structure check（行 1167）
+  只测 KR1a0001。
+- `/api/bookstudy/chapter` 的 work_id 为空校验（line 728）零断言
+  ——bookstudy.chapter check（行 1080）只测 KR1a0001。
+- 若这些校验回归为 500、或被移除导致非法输入进入计算，13 闸门与
+  五层自测都看不见（L-22/L-23 同族；与 R139b/R144b/R147b 同族
+  ——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/addr {"scheme":"zhouyi"}` → 400，detail
+  "zhouyi 定位需提供 gua（1-64）"
+- `GET /api/bookstudy/structure {"work_id":""}` → 400，detail
+  "work_id 不能为空"
+- `GET /api/bookstudy/chapter {"work_id":"","scheme":"zhouyi",
+  "addr1":1}` → 400，detail "work_id 不能为空"
+- 三条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补三条断言：err.addr.zhouyi.no_gua（scheme=zhouyi 无 gua→400）、err.bookstudy.structure.empty（work_id=""→400）、err.bookstudy.chapter.empty（work_id=""→400）（77→80 checks） | 纯加自测断言、零功能改动/零数据风险；补上三个未覆盖的 400 校验分支，抓校验静默失效；与 R139b/R144b/R147b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | hehun 端点 422 排盘失败断言 | hehun 排盘失败需构造非法八字组合（如月日不匹配），确定性弱于 A 的参数校验 |
+
+选 A（补 err.addr.zhouyi.no_gua/err.bookstudy.structure.empty/
+err.bookstudy.chapter.empty 三条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
+断言）。落地后：web --selftest 77→80 checks，跑 13 闸门 + 五层
+自测确认零回退。
