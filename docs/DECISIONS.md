@@ -5737,3 +5737,32 @@ solar/lunar，line 118）、scope（非 day/range/life，line 120）、gender
 选 A（补 err.bazi.calendar/scope/gender 三条 400 断言，照 R124b
 err.bazi.year 先例：能力路径必须有一条可复现命令断言）。落地后：web
 --selftest 56→59 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-186b R140b 优化轨：web standing 自测缺口——qiming 端点 gender/year 两条 400 校验分支零断言（能力层验证，与 R139b err.bazi.calendar/scope/gender 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：qiming 端点（web/app.py:889-915）有 7 条 400 校验
+分支（year/surname/month/day/hour/gender/计算失败），但 err.qiming.
+surname（R124b）只覆盖姓氏一条——gender（非 男/女，line 906）、year
+（年份范围，line 896）两条 400 校验分支**零 standing 断言**——若这些
+校验回归为 500、或被移除导致非法输入进入起名计算，13 闸门与五层自测
+都看不见（L-22/L-23 同族；与 R139b err.bazi.calendar/scope/gender
+同族——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `POST /api/qiming {"gender":"中",...}` → 400，detail
+  "gender 须为 男/女，收到 中"
+- `POST /api/qiming {"year":1800,...}` → 400，detail
+  "年份须在 1900-2100，收到 1800"
+- 两条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补两条断言：err.qiming.gender（gender=中→400）、err.qiming.year（year=1800→400）（59→61 checks） | 纯加自测断言、零功能改动/零数据风险；补上 qiming 端点两个未覆盖的 400 校验分支，抓校验静默失效；与 R139b err.bazi.calendar/scope/gender 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 hehun 端点 422 排盘失败断言 | hehun 排盘失败需构造非法八字组合（如月日不匹配），确定性弱于 A 的参数校验 |
+
+选 A（补 err.qiming.gender/year 两条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 59→61 checks，跑 13 闸门 + 五层自测确认零回退。

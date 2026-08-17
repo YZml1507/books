@@ -1298,6 +1298,20 @@ if __name__ == "__main__":
                     client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
                                                      "month": 5, "day": 15,
                                                      "hour": 10}))
+        # R140b（D-186b）：qiming 端点 gender/year 两条 400 校验分支 standing
+        # 覆盖——err.qiming.surname 只测姓氏，gender（非 男/女，line 906）、
+        # year（年份范围，line 896）零断言（若校验回归为 500 或被移除则不可见，
+        # 与 R139b err.bazi.calendar/scope/gender 同族——同端点不同校验维度）。
+        # 实测 gender=中 → 400 "gender 须为 男/女，收到 中"；year=1800 → 400
+        # "年份须在 1900-2100，收到 1800"——补断言零风险。
+        _expect_400("err.qiming.gender",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1990,
+                                                     "month": 1, "day": 1,
+                                                     "hour": 12, "gender": "中"}))
+        _expect_400("err.qiming.year",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1800,
+                                                     "month": 1, "day": 1,
+                                                     "hour": 12, "gender": "男"}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
