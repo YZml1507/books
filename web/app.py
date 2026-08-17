@@ -1268,6 +1268,22 @@ if __name__ == "__main__":
                     client.get("/api/addr", params={"scheme": "nonsense", "gua": 1}))
         _expect_400("err.liuyao.method",
                     client.post("/api/liuyao", json={"method": "dice", "seed": 42}))
+        # R141b（D-187b）：liuyao time 起卦 year/month/missing 三条 400 校验
+        # 分支 standing 覆盖——err.liuyao.method 只测非法 method，time 起卦
+        # 的 year（line 772-773）、month（line 774-775）、missing（line 770-771）
+        # 三条校验零断言（若校验回归为 500 或被移除则不可见，与 R139b
+        # err.bazi.calendar/scope/gender 同族——同端点不同校验维度）。
+        # 实测 year=1800→400、month=13→400、missing y/m/d→400——补断言零风险。
+        _expect_400("err.liuyao.time.year",
+                    client.post("/api/liuyao", json={"method": "time",
+                                                     "year": 1800, "month": 5,
+                                                     "day": 15, "hour": 10}))
+        _expect_400("err.liuyao.time.month",
+                    client.post("/api/liuyao", json={"method": "time",
+                                                     "year": 1990, "month": 13,
+                                                     "day": 15, "hour": 10}))
+        _expect_400("err.liuyao.time.missing",
+                    client.post("/api/liuyao", json={"method": "time", "hour": 10}))
         _expect_400("err.hehun.year",
                     client.post("/api/hehun", json={"a_year": 1800, "a_month": 5,
                                                     "a_day": 15, "a_hour": 10,
