@@ -119,7 +119,7 @@ data/index/corpus.db   （build_index.py 会删掉重建）
 
 ---
 
-## 3. 红线：八条复验命令，任何改动后都必须全过
+## 3. 红线：13 道复验闸门，任何改动后都必须全过
 
 ```powershell
 cd C:\Users\Lenovo\Desktop\projects\books
@@ -128,9 +128,15 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\validate_alignment.py  # 对齐，须 >= 1824/1872
 .\.venv\Scripts\python.exe scripts\check_quality.py       # 质量，须 PASS（含已知阳性对照）
 .\.venv\Scripts\python.exe probes\probe_conservation.py   # 守恒，须 delta 0 / ratio 1.0000
-.\.venv\Scripts\python.exe scripts\assess_goals.py        # G1–G9
-.\.venv\Scripts\python.exe scripts\check_provenance.py    # provenance，须 0/28 缺失
+.\.venv\Scripts\python.exe scripts\check_provenance.py    # provenance，须 0/47 缺失（R89b 修正旧 0/28）
 .\.venv\Scripts\python.exe probes\probe_bcv.py            # 第二地址体系，须 control cases PASS
+.\.venv\Scripts\python.exe scripts\eval_g1.py             # G1 评测集（R89b 补）
+.\.venv\Scripts\python.exe scripts\summarise_diff.py      # G5 差异摘要对照（R89b 补）
+.\.venv\Scripts\python.exe scripts\eval_g7.py             # G7 对抗拒答（R89b 补）
+.\.venv\Scripts\python.exe probes\probe_g8_isolation.py   # G8 证伪式隔离（R89b 补）
+.\.venv\Scripts\python.exe scripts\eval_g4.py             # G4 多跳链接（R89b 补）
+.\.venv\Scripts\python.exe probes\probe_booksec.py        # 第四种地址体系（R89b 补）
+.\.venv\Scripts\python.exe scripts\assess_goals.py        # G1–G9（汇总，最后跑）
 ```
 
 **规则**：

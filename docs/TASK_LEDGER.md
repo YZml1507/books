@@ -4551,3 +4551,46 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（47 部 62,109 与 `SELECT count(*) FROM work/unit` 实测一致）。
 - 决策记录：DECISIONS.md D-134b。
+
+## 116. [优化轨] R89b：GOAL.md §3 复验命令清单过时（"八条"缺 5 道后续闸门）→ 同步（2026-08-17，双窗口并行第二轨）
+
+### 116a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R88b（7e1b150）已确认在 origin/main。
+
+### 116b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、各文档头部时间戳
+  （R82b-R84b 已修）、GOAL_NEXT_SESSION 快照标签（R85b 已补注）、
+  TASK_LEDGER 头部轮次钉死（R86b 已除）、T7-o 活跃数（R87b 已补注）、
+  OPTIMIZE 文档存档（R88b 已标）均无残留；DECISIONS.md 残留旧数均为
+  历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §3"红线：八条复验命令"
+  的命令清单停在 R17 前（8 条），与当前 13 道闸门清单不符（对照
+  `sed -n '26,42p' docs/TASK_LEDGER.md` 实测）：缺失 5 条后续新增闸门
+  ——summarise_diff.py（G5）、eval_g7.py（G7）、probe_g8_isolation.py
+  （G8）、eval_g4.py（G4）、probe_booksec.py（第四地址体系）；另
+  check_provenance 注释"须 0/28 缺失"的 28 已过时（现 47 部，
+  `SELECT count(*) FROM work` = 47 实测）。新会话照 GOAL.md §3 只跑
+  8 条会漏掉 5 道闸门（O1 文档失效模式，L-23 同族；与 R78b 修
+  verify_index 项数同族，当时只修了项数注释未补清单）。
+
+### 116c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：①§3 标题"八条复验命令"→"13 道
+  复验闸门"；②命令清单补 5 条缺失闸门（summarise_diff/eval_g7/
+  probe_g8_isolation/eval_g4/probe_booksec，标注 R89b 补）；③
+  check_provenance 注释"0/28"→"0/47（R89b 修正旧 0/28）"；④
+  assess_goals 注释补"（汇总，最后跑）"（照 TASK_LEDGER 顺序）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（13 条清单与 TASK_LEDGER 头部闸门一致，47 与 work 数实测
+  一致）。
+- 决策记录：DECISIONS.md D-135b。

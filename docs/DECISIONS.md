@@ -4277,3 +4277,31 @@ R78b 标 PROJECT_STATUS 行 260 同族先例）。
 
 选 A（头部历史存档 + 三处行内划线标注，照 R60b/R78b 先例）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-135b R89b 优化轨：GOAL.md §3 复验命令清单过时（"八条"缺 5 道后续闸门）→ 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §3"红线：八条复验命令，任何改动
+后都必须全过"的命令清单停在 R17 前（8 条），与当前 13 道闸门清单不符
+（`sed -n '26,42p' docs/TASK_LEDGER.md` 对照实测）：
+- GOAL.md §3 现有：build_index / verify_index / validate_alignment /
+  check_quality / probe_conservation / assess_goals / check_provenance /
+  probe_bcv = 8 条；
+- **缺失 5 条**：summarise_diff.py（G5 差异摘要）、eval_g7.py（G7 对抗
+  拒答）、probe_g8_isolation.py（G8 隔离）、eval_g4.py（G4 多跳）、
+  probe_booksec.py（第四种地址体系）——均为后续轮次新增的闸门；
+- 另 check_provenance 注释"须 0/28 缺失"的 **28 已过时**（现 47 部，
+  `SELECT count(*) FROM work` = 47 实测）。
+新会话照 GOAL.md §3 只跑 8 条会漏掉 5 道闸门（O1 文档失效模式，L-23
+同族：可被命令断言的事实硬编码且漏同步；与 R78b 修 verify_index 项数
+同族，当时只修了项数注释未补清单）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §3 标题"八条"→"13 道闸门"；命令清单补 5 条缺失闸门（summarise_diff/eval_g7/probe_g8_isolation/eval_g4/probe_booksec），provenance 注释"0/28"→"0/47" | 纯文档、零代码/零风险；清单与 TASK_LEDGER 13 闸门一致（`grep -o "[a-z_]*\.py"` 对照实测），防新会话漏跑闸门 |
+| B | 只改标题不动清单 | 清单仍缺 5 条，新会话照旧漏跑 |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（清单补齐 + 标题/注释同步，与 TASK_LEDGER 13 闸门一致）。落地后：
+docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
