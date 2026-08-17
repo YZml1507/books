@@ -3240,3 +3240,31 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
   liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
   eval_g7 PASS（FABRICATIONS 0）。
+
+## D-105a R95a 审查轨：纯文档轮 rebase 纳入 R76b-R92b，清空 pending（2026-08-17）
+
+- **接续 R94a**：本轮循环 fetch origin 后 HEAD..origin/main 显示优化轨持续推进
+  main，多轮 fetch 时 pending 梯梯增长（优化轨并行高频提交），逐批吸收共 17 提交
+  （R76b/R77b/R78b/R79b/R80b/R81b/R82b/R85b/R86b/R88b/R89b/R91b/R92b），
+  逐文件核实 `git show --name-only` 全部 `docs/*.md only`（PROJECT_ROADMAP/GOAL/
+  PROJECT_STATUS/TASK_LEDGER/DECISIONS/LESSONS/BOOK_AI_ARCHITECTURE/
+  GOAL_NEXT_SESSION/OPTIMIZE_20260816_R18），无一触及 `.py/.html/.spec/.bat`。
+  按协议第 3 步走纯文档轮，不启动审查循环。
+- **逐行复审 17 提交 diff**（亲眼过）：均归因诚实（标注实测命令/台账/决策来源），
+  无越界，无漏同步（R79b 补 R78b 漏扫的 LESSONS/TASK_LEDGER、R82b 补头部时间戳、
+  R91b 补 R89b 漏扫的 TASK_LEDGER 头部 provenance、R92b 根治 R85b 范围钉死复发）。
+  纪律良好。
+- **rebase**：`git rebase origin/main` 历史必在 R22a rebase merge commit 处遇
+  append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。本轮因优化轨高频推进，
+  rebase 共执行 4 次，每次同 af24af6（R22a merge）冲突，按既定协议"冲突取
+  --theirs"：`git checkout --theirs docs/DECISIONS.md docs/TASK_LEDGER.md`
+  → `git add` → `GIT_EDITOR=true git rebase --continue`。4 次 rebase 成功，
+  R76b-R92b 17 提交纳入 audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c，历史遗留合法）；
+  优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→ 领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
+  eval_g7 PASS（FABRICATIONS 0）。

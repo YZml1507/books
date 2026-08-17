@@ -3798,3 +3798,82 @@ R71b-R74b 纳入 audit 分支 history，`HEAD..origin/main` 清空。
 纯文档轮无代码逻辑，无越界，四提交纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-104a。
+
+### 86. R95a 纯文档轮：rebase 纳入 R76b-R92b，清空 pending（2026-08-17）
+
+接续 R94a。本轮循环 fetch origin 后 HEAD..origin/main 显示优化轨持续推进
+main，多轮 fetch 时 pending 梯梯增长（优化轨并行高频提交），逐批吸收：
+
+**第一批（R76b-R82b，7 提交）**：
+- 91a212c R76b docs(roadmap) annotate stale "大运 0 呝中" → corpus.db 实测
+  大运48/行运120/起运3/交运6 单元（R20b 子平书），strike 推翻 R20b 前旧结论
+- 4466086 R77b docs(goal) annotate stale T7 表 13 行旧结论 → 逐条标注实测处置
+  源（G4/G7/G9 PASS、plato/shakespeare/euclid 已入索引 1325/6512/649、
+  dual_engine.py 已落地、probe_t7q 前置已实测）
+- dfe1052 R78b docs fix verify_index check-count in three docs →
+  GOAL.md"12 项"→"T1–T11 共 23 断言"、PROJECT_STATUS"T1-T13"→"T1-T11"、
+  TASK_LEDGER 夫部"20 项"→实测 23（grep -o "check(" | wc -l = 23）
+- b024cb7 R79b docs fix two missed "12 项" references → LESSONS L-06 +
+  TASK_LEDGER §5 补 R78b 漏扫的全仓 sweep
+- 73a588a R80b docs(goal) annotate stale "5/28 部" coverage §6 → 标为
+  R17 前旧数（28 部时代），现 47 部全量入索引
+- 91f1e81 R81b docs(architecture) annotate §11 weakness items →
+  BOOK_AI_ARCHITECTURE.md §11 旧弱点逐条标注处置（28→47 含 7 部非中文、
+  bge 已落地、eval_g1 题库已建 248 题、Phase 3 自审 D-034 已完成）
+- 712beb0 R82b docs(lessons) sync header update timestamp →
+  LESSONS.md 头部 2026-08-13→2026-08-17（R52b/R79b 内容改动）
+
+**rebase 1**：在历史 af24af6（R22a merge）处 append-only docs/ 冲突，
+取 --theirs 解决，rebase 成功。rebase 后 HEAD..origin/main 又显示
+优化轨推进 2 提交（R85b、R86b）——逐文件核实全 docs/*.md only：
+- dd063c4 R85b docs(goal-next) annotate §1 snapshot label round semantics →
+  补注 R70b–R84b 均为 docs-only 对齐轮、功能终态维持 R69b（防新会话误判staleness）
+- 2a12904 R86b docs(ledger) de-pin round reference in header → 根治
+  头部轮次钉死复发失效（R83b 钉"§109 R82b"但 §110–§112 又追加，去掉固定
+  轮引用改"最新节见文末"，D-128b/D-129b 同族先例）
+
+**rebase 2**：同 af24af6 冲突，取 --theirs 解决。rebase 后又显示
+优化轨推进 2 提交（R88b、R89b）——全 docs/*.md only：
+- 7e1b150 R88b docs(optimize) mark R18b plan doc as archive + fix
+  "44 部 61,732"→47 部 62,109 → OPTIMIZE_20260816_R18.md 加存档横幅，
+  strike 三处旧数（§13/§O2/§O4）
+- b145833 R89b docs(goal) sync §3 gate list 8→13 gates → GOAL §3 红线
+  命令清单从 8 条同步到实测 13 闸门（补 summarise_diff/eval_g7/
+  probe_g8_isolation/eval_g4/probe_booksec），provenance 0/28→0/47
+
+**rebase 3**：同 af24af6 冲突，取 --theirs 解决。rebase 后又显示推进
+2 提交（R91b、R92b）——全 docs/*.md only：
+- 44324e0 R91b docs(ledger) sync check_provenance header note "0/28"→0/47 →
+  补 R89b 漏扫的 TASK_LEDGER 头部 provenance 注释，实测 zip_sha256/licence
+  0/47、source_url 9/47 本地拉取真实空值（台账 §1282）
+- b493349 R92b docs(goal-next) de-pin docs-only round range → R85b 的
+  "R70b–R84b 均为 docs-only"范围钉死改为"R70b 起"根治复发失效（D-132b 先例）
+
+**rebase 4**：同 af24af6 冲突，取 --theirs 解决。rebase 成功，
+HEAD..origin/main 清空。
+
+**逐行复审结论**：17 提交全 docs/*.md only，无一触及 .py/.html/.spec/.bat。
+归因诚实（标注实测命令/台账/决策来源），无越界，无漏同步（R79b 补 R78b 漏扫、
+R82b 补头部时间戳、R91b 补 R89b 漏扫、R92b 根治 R85b 范围钉死复发）。
+纪律良好。纯文档轮不启动审查循环。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成，works with any junk: 30）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 含 bible-douay expected 9
+  / huangli_shensha / liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，17 提交纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-105a。
