@@ -5857,3 +5857,48 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
   web）。
 - 决策记录：DECISIONS.md D-164b。
+
+## 146. [优化轨] R119b：web standing 自测缺口——bazi lunar 农历换算路径零断言 → 补断言（能力层验证，与 R118b liuyao.time/huangli.affair 同族）（2026-08-17）
+
+### 146a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R118b（aef93a7）已确认在 origin/main。
+
+### 146b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `bazi` check
+  （app.py:1038）只测纯 solar 路径（1990-01-01 12 时 男）；
+  `calendar_type="lunar"` 农历换算路径（`_resolve_birth` →
+  `lunar.lunar_to_solar`，app.py:157-171）**零 standing 断言**——若农历
+  换算/闰月/范围校验静默失效，13 闸门与五层自测都看不见（L-22/L-23
+  同族；与 R118b 同族——上轮补断言时当场抓到两处真实 bug，证明此类
+  缺口是真实风险源）。
+- **实测**（命令实跑）：`POST /api/bazi {"calendar_type":"lunar",
+  "lunar_year":1990,"lunar_month":5,"lunar_day":15,"lunar_leap":False,
+  "hour":10,"gender":"男","year":1990,"month":5,"day":15}` → 200，paipan
+  "庚午年 壬午月 癸卯日 丁巳时"（lunar_to_solar=1990-06-07，与 solar
+  同日期八字一致可交叉验证）——lunar 路径当前可用，补断言零风险。
+- **其他方向**（对照实测）：前端体验（7 tab 全接线、历史面板仅 bazi
+  view 已在 D-163b 标注）、质量/性能层（FTS 0.001s 正常、unit 4 索引 +
+  link 2 索引齐全、link 零悬空、地址查询 0.001s）——无明确缺口。
+- **方案比对**：A 补 bazi.lunar + bazi.lunar_leap 两条断言（选定）；
+  B 前端体验（无缺口）；C 质量/性能层（无缺口）——见 D-165b。
+
+### 146c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：`bazi` check 后补 `bazi.lunar`
+  （calendar_type=lunar + 固定农历生日 1990-05-15 男 → 200 + paipan
+  render 以"庚午年 壬午月 癸卯日"开头，确定性可复验）与
+  `bazi.lunar_leap`（lunar_leap=True 女 → 200 + paipan 非空）两条
+  断言（37→39 checks）。
+- **验证**（全量）：web --selftest 39 checks 全 PASS（bazi.lunar/
+  bazi.lunar_leap 生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
+  web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-165b。

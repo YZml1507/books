@@ -5099,3 +5099,36 @@ addr 五类 scheme 同族）。实测（命令实跑）：`POST /api/liuyao
 选 A（补 liuyao.time + huangli.affair 两条 standing 断言，照 R110b
 addr 五类 scheme 先例：能力路径必须有一条可复现命令断言）。落地后：
 web --selftest 35→37 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-165b R119b 优化轨：web standing 自测缺口——bazi lunar 农历换算路径零断言（能力层验证，与 R118b liuyao.time/huangli.affair 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `bazi` check（app.py:959）
+只测 `{"year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男"}`
+（纯 solar 路径）；`calendar_type="lunar"` 农历换算路径（`_resolve_birth`
+→ `lunar.lunar_to_solar`，app.py:157-171）**零 standing 断言**——若农历
+换算/闰月/范围校验静默失效（如 lunar_to_solar 边界、YEAR_LO/HI 校验），
+13 闸门与五层自测都看不见（L-22/L-23 同族；与 R118b 同族——上轮补
+liuyao.time/huangli.affair 时当场抓到两处真实 bug，证明此类缺口是真实
+风险源）。实测（命令实跑）：`POST /api/bazi {"calendar_type":"lunar",
+"lunar_year":1990,"lunar_month":5,"lunar_day":15,"lunar_leap":False,
+"hour":10,"gender":"男","year":1990,"month":5,"day":15}` → 200，paipan
+"庚午年 壬午月 癸卯日 丁巳时"——lunar 路径当前可用，补断言零风险。
+
+**实测数据（命令实跑）**：
+- bazi lunar 1990-05-15（农历）→ 200，paipan 庚午/壬午/癸卯/丁巳，日主癸，
+  大运顺（lunar_to_solar(1990,5,15,False) = 1990-06-07，与 solar 输入
+  1990-06-07 结果一致可交叉验证）
+- 现有 `bazi` check：solar 1990-01-01 → 200（实测稳定）
+- 闰月路径 lunar_leap=True 亦走同一 lunar_to_solar（可另断言非 4xx）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `bazi.lunar` check：`calendar_type=lunar` + 固定农历生日（1990-05-15 男）→ 200 + paipan 四柱非空 + 日主"癸"（确定性可复验，与 solar 1990-06-07 同八字交叉验证）；可再补 lunar_leap=True 断言非 4xx | 纯加自测断言、零功能改动/零数据风险；补上农历换算路径的 standing 覆盖缺口，抓 lunar_to_solar/闰月/范围校验静默失效；确定性可复验（照 R118b 先例） |
+| B | 前端体验（术数结果展示优化） | 摸底 7 tab 全接线、历史面板仅 bazi view 已在 D-163b 标注——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、unit 4 索引 + link 2 索引齐全、link 零悬空、地址查询 0.001s——无缺口 |
+
+选 A（补 bazi.lunar standing 断言，照 R118b liuyao.time/huangli.affair
+先例：能力路径必须有一条可复现命令断言）。落地后：web --selftest
+37→38 checks，跑 13 闸门 + 五层自测确认零回退。

@@ -1045,6 +1045,22 @@ if __name__ == "__main__":
                          and j.get("evidence")
                          and any(e.get("work_id") in _ZI_PING_WORKS
                                  for e in j.get("evidence", []))))
+        # R119b（D-165b）：bazi lunar 农历换算路径 standing 覆盖——bazi check
+        # 只测 solar，calendar_type=lunar 走 _resolve_birth→lunar_to_solar
+        # 零断言（若换算/闰月/范围校验静默失效则不可见）。固定农历生日
+        # 1990-05-15 男 → 200 + 四柱非空 + 日主癸（lunar_to_solar=1990-06-07，
+        # 与 solar 同日期八字一致可交叉验证）；lunar_leap 亦断言非 4xx。
+        check("bazi.lunar", client.post("/api/bazi", json={"calendar_type": "lunar",
+              "lunar_year": 1990, "lunar_month": 5, "lunar_day": 15,
+              "lunar_leap": False, "hour": 10, "gender": "男",
+              "year": 1990, "month": 5, "day": 15}),
+              lambda j: (j.get("paipan") and j["paipan"].get("render")
+                         and j["paipan"]["render"].startswith("庚午年 壬午月 癸卯日")))
+        check("bazi.lunar_leap", client.post("/api/bazi", json={"calendar_type": "lunar",
+              "lunar_year": 1990, "lunar_month": 5, "lunar_day": 15,
+              "lunar_leap": True, "hour": 10, "gender": "女",
+              "year": 1990, "month": 5, "day": 15}),
+              lambda j: j.get("paipan") and j["paipan"].get("render"))
         for rec in history_db.list_records(limit=5):
             if rec["id"] > max_id_before:
                 history_db.delete_record(rec["id"])
