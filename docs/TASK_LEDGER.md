@@ -6162,3 +6162,54 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   45 checks 及 R124b err.* 断言一致）。
 - 决策记录：DECISIONS.md D-171b。
+
+## 153. [优化轨] R126b：web standing 自测缺口——bazi scope=range / scope=life 两分支零断言 → 补断言并修复 history.detail 断言根因（能力层验证，与 R118b/R119b/R124b 同族）（2026-08-17）
+
+### 153a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R125b（5425550）已确认在 origin/main。
+
+### 153b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `bazi` check
+  （app.py:1090）只测默认 `scope=day`；`POST /api/bazi` 的
+  `scope=range`（日期范围，app.py:213 → calc_range）与 `scope=life`
+  （大运流年，app.py:218 → calc_life）两条**已接线分支零 standing 断言**
+  ——若 calc_range/calc_life 静默失效（如大运干支、范围校验回归），
+  13 闸门与五层自测都看不见（L-22/L-23 同族；与 R118b/R119b/R124b
+  同族——此前补 standing 断言多次当场抓到真实 bug）。
+- **实测**（命令实跑）：`scope=range`（2026-01-01~05）→ 200，calc
+  scope=range、days=5；`scope=life` → 200，calc scope=life、dayun=8——
+  两条分支当前均可用，补断言零风险。
+- **补断言时暴露既有断言缺陷（已修）**：`history.detail` check 原用
+  `history_db.count()`（行数）当 id 查询，实测 count=31 但现存 id 为
+  [3..29, 40, 74, 90, 91]（历史删除后不连续），id 31 不存在 → 404；
+  其注释"可能无该 id"与 check 闭包硬断言 200 自相矛盾——count 非 id
+  的硬编码假设是 L-23 同族缺陷，按 FIX-DON'T-HIDE 修根因（改用
+  `list_records(limit=1)[0]["id"]` 最新真实 id，实测 91）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线）、质量/性能层
+  （FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空）——
+  无明确缺口。
+- **方案比对**：A 补 bazi.range + bazi.life 断言 + 修 history.detail
+  根因（选定）；B 前端体验（无缺口）；C 质量/性能层（无缺口）——
+  见 D-172b。
+
+### 153c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：
+  - bazi.lunar_leap check 后补 `bazi.range`（scope=range + 固定日期段
+    → 200 + calc.scope=range + days=5）与 `bazi.life`（scope=life →
+    200 + calc.scope=life + dayun 长度 8）两条断言（45→47）。
+  - `history.detail` check 的 id 来源从 `history_db.count()` 改为
+    `list_records(limit=1)[0]["id"]`（最新真实 id，修 count≠id 根因）。
+- **验证**（全量）：web --selftest 47 checks 全 PASS（bazi.range/
+  bazi.life 生效 + history.detail 修复）；13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-172b。

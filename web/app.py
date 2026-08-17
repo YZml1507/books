@@ -1113,6 +1113,19 @@ if __name__ == "__main__":
               "lunar_leap": True, "hour": 10, "gender": "女",
               "year": 1990, "month": 5, "day": 15}),
               lambda j: j.get("paipan") and j["paipan"].get("render"))
+        # R126b（D-172b）：bazi scope=range / scope=life 两分支 standing 覆盖——
+        # bazi check 只测默认 scope=day，calc_range/calc_life 零断言（若大运
+        # 干支/范围校验回归则不可见，与 R118b/R119b/R124b 同族）。固定输入：
+        # range 2026-01-01~05 → days=5；life → dayun 长度 8（实测稳定）。
+        check("bazi.range", client.post("/api/bazi", json={"year": 1990, "month": 5,
+              "day": 15, "hour": 10, "gender": "男", "scope": "range",
+              "range_start": "2026-01-01", "range_end": "2026-01-05"}),
+              lambda j: (j.get("calc", {}).get("scope") == "range"
+                         and len(j.get("calc", {}).get("days", [])) == 5))
+        check("bazi.life", client.post("/api/bazi", json={"year": 1990, "month": 5,
+              "day": 15, "hour": 10, "gender": "男", "scope": "life"}),
+              lambda j: (j.get("calc", {}).get("scope") == "life"
+                         and len(j.get("calc", {}).get("dayun", [])) == 8))
         for rec in history_db.list_records(limit=5):
             if rec["id"] > max_id_before:
                 history_db.delete_record(rec["id"])
@@ -1229,7 +1242,13 @@ if __name__ == "__main__":
                             and isinstance(j["llm"].get("model"), str)))
         check("history", client.get("/api/history", params={"limit": 3}),
               lambda j: "records" in j and isinstance(j["records"], list))
-        check("history.detail", client.get(f"/api/history/{history_db.count()}"),
+        # R126b（D-172b）：history.detail 断言的 id 来源修正——原用
+        # history_db.count()（行数）当 id 查，历史库经删除后 id 不连续
+        # （实测 count=31 但 id 31 已删 → 404），改为取最新记录真实 id
+        # （list_records(limit=1)[0]["id"]，实测 91）——count 非 id 的
+        # 硬编码假设是 L-23 同族缺陷，按 FIX-DON'T-HIDE 修根因。
+        _latest_rid = history_db.list_records(limit=1)
+        check("history.detail", client.get(f"/api/history/{_latest_rid[0]['id'] if _latest_rid else 0}"),
               lambda j: j is None or "paipan" in j)  # 可能无该 id，但必须结构正确
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)

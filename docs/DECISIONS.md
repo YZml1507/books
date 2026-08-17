@@ -5286,3 +5286,36 @@ err.qiming.surname，40→45），web --selftest 实测 **45 checks**；而
 选 A（checks 数 40→45 文档对齐，照 R116b/R120b/R122b 先例）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅
 （数字与命令实测 45 checks 一致）。
+
+## D-172b R126b 优化轨：web standing 自测缺口——bazi scope=range / scope=life 两分支零断言（能力层验证，与 R118b/R119b/R124b 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `bazi` check（app.py:1090）
+只测默认 `scope=day`；`POST /api/bazi` 的 `scope=range`（日期范围，app.py:
+213 → calc_range）与 `scope=life`（大运流年，app.py:218 → calc_life）两条
+**已接线分支零 standing 断言**——若 calc_range/calc_life 静默失效（如
+大运干支、范围校验回归），13 闸门与五层自测都看不见（L-22/L-23 同族；
+与 R118b liuyao.time/huangli.affair、R119b bazi.lunar、R124b 错误路径
+同族——此前补 standing 断言多次当场抓到真实 bug，R124b 抓到了 timedelta
+NameError）。实测（命令实跑）：`scope=range`（2026-01-01~05）→ 200，calc
+scope=range、days=5；`scope=life` → 200，calc scope=life、dayun=8——两条
+分支当前均可用，补断言零风险。
+
+**实测数据（命令实跑）**：
+- `POST /api/bazi {"year":1990,"month":5,"day":15,"hour":10,"gender":"男",
+  "scope":"range","range_start":"2026-01-01","range_end":"2026-01-05"}` → 200，
+  calc.scope=range、calc.days=5
+- `POST /api/bazi {"year":1990,"month":5,"day":15,"hour":10,"gender":"男",
+  "scope":"life"}` → 200，calc.scope=life、calc.dayun 长度 8
+- 现有 `bazi` check：scope=day 默认（实测稳定）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `bazi.range`（scope=range + 固定日期段 → 200 + calc.scope=range + days=5 确定性断言）与 `bazi.life`（scope=life → 200 + calc.scope=life + dayun 长度 8 确定性断言）两条 | 纯加自测断言、零功能改动/零数据风险；补上两条已接线分支的 standing 覆盖缺口，抓 calc_range/calc_life 静默失效；断言确定性可复验（照 R118b/R119b/R124b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 bazi.range + bazi.life standing 断言，照 R118b/R119b/R124b 先例：
+能力路径必须有一条可复现命令断言）。落地后：web --selftest 45→47 checks，
+跑 13 闸门 + 五层自测确认零回退。
