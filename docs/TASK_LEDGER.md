@@ -4567,3 +4567,74 @@ web 前端，纯静态坐标，无 LLM 生成、无吉凶断言，无红线，�
 确认，13 闸门 + web --selftest 34 checks 全 PASS。pending 清空。
 
 - 决策记录：DECISIONS.md D-119a。
+
+### 101. R110a 审查循环：rebase 纳入 R115b（ask 模型标注 llm dict）+ R116b（docs sync 24→35），逐行复审 + 13 闸门 + web --selftest 35 checks 全绿（2026-08-17）
+
+接续 R109a（131437e，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 fd98167 变为 2b021af。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- ecd2dfa R115b fix(web): label LLM model source on /api/ask —
+  align with bazi llm_out
+- 2b021af R116b docs: sync web checks 24->35 and shushu feature
+  list after R110b-R115b feature rounds
+
+`git show --name-only` 确认改动文件：
+- R115b：docs/DECISIONS.md、docs/TASK_LEDGER.md、src/guji/llm_reader.py、
+  web/app.py、web/static/index.html。**含代码逻辑（优化轨领土
+  src/guji/llm_reader.py + web 前端）→ 按 §0.3 协议第 5 步立即启动审查
+  轨循环。**
+- R116b：docs/{DECISIONS,GOAL_NEXT_SESSION,PROJECT_ROADMAP,
+  PROJECT_STATUS,TASK_LEDGER}.md。纯文档轮（docs/*.md only）。
+
+**逐行复审 R115b 优化轨领土文件**（亲眼过，优化轨领土 src/guji/web
+只复审+记录移交，不动手）：
+- **src/guji/llm_reader.py**：新增 `configured_model()` 方法，返回
+  `_cfg()["model"]`（文件配置优先，环境变量兜底）。纯读函数，无副作用。
+  无红线。
+- **web/app.py**：`/api/ask` 的 `resp["llm"]` 从裸字符串改为
+  `{"ok": True, "text": text, "model": llm_reader.configured_model()}`
+  结构，与 `/api/bazi` 的 `llm_out` 对齐（GOAL.md 纪律：生成文本必须
+  标注模型来源）。self-test 加 `check("ask.llm.shape", ...)` standing
+  断言（llm 为 None 或 dict 且含 text+model，config-independent）。
+  无红线。
+- **web/static/index.html**：ask tab 渲染 LLM 解读时，从
+  `renderMD(j.llm)` 改为 `renderMD(j.llm.text || '')` + 模型来源标注
+  `<div class="llm-model">模型：${esc(j.llm.model)}</div>`。`esc` 转义
+  正确。无红线。
+
+**逐行复审 R116b 纯文档 diff**（亲眼过）：同步 web checks 24→35、术数
+功能列表（taohua/tarot/dayun/spread/ask 模型标注）、ROADMAP P3、
+PROJECT_STATUS。归因诚实，无越界。无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+5c3f47a（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R115b/R116b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (35 checks)**：含 R115b ask.llm.shape 一项新断言。
+
+R115b 是优化轨领土 src/guji/llm_reader.py（configured_model 读函数）+
+web/app.py（/api/ask llm 改 dict 标注模型来源）+ web/static/index.html
+（渲染 text+model），无 LLM 生成新增、无红线。R116b 纯文档轮。领土
+零越界确认，13 闸门 + web --selftest 35 checks 全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-120a。
