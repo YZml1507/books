@@ -4029,3 +4029,37 @@ R74b（2946a8a）已确认在 origin/main。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（处置证据与探针实测/台账 §1011-1015 一致）。
 - 决策记录：DECISIONS.md D-121b。
+
+## 103. [优化轨] R76b：PROJECT_ROADMAP §51 "大运 0 命中"声明过时 → 实测数据标注（2026-08-17，双窗口并行第二轨）
+
+### 103a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `ebbdd1d` R26a 复审），
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项维持。
+R75b（76699ff）已确认在 origin/main。
+
+### 103b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空=57,315
+  （92.3%）/ page_anchor=13,954 / 55.7 MB——与快照一致，非缺口；
+  assess_goals PASS 9 · PART 0 · FAIL 0；web 24 checks、MCP 自测 PASS。
+- **文档滞后扫描**：GOAL_NEXT_SESSION 快照标签 R69b 终态（内容含 24 checks
+  与 R70b 同步，非缺口）；PROJECT_STATUS 头部 R70b 与快照块一致；ROADMAP
+  §51 行 51-52 已由 R72b 修正——均非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_ROADMAP.md` §51 行 53 写"实测
+  '大运/起运/行运/交运'在现有语料 0 命中，大运只能靠运算层自算、缺古籍
+  佐证"——但实测 corpus.db（`LIKE '%大运%'` 等）：大运 48 单元、行运
+  120、起运 3、交运 6，全部来自 R20b 子平经典（ditiansui/mingli-tanyuan/
+  sanming-tonghui/mingli-yueyan，P2 节）。"0 命中"是 R20b 前的旧结论；
+  R72b 修正了同节行 51-52 但漏了行 53——新会话照此会误判"大运缺古籍
+  佐证"重复排查（O1 文档失效模式，D-117b/D-118b 同族）。
+
+### 103c. 改动与验证
+
+- **改动**（docs/PROJECT_ROADMAP.md，纯文档）：§51 行 53 划线并标注
+  "已被 R20b 推翻（本行 R76b 复核）"，附实测数字（大运 48 / 行运 120 /
+  起运 3 / 交运 6，来源 ditiansui 等）；"运算层自算保留"防过度引申。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（数字与 LIKE 实测一致，出处与台账 P2/R20b 一致）。
+- 决策记录：DECISIONS.md D-122b。

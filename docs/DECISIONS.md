@@ -3919,3 +3919,34 @@ R74b 的"未处置"标注会误导新会话重复排查（O1 文档失效模式�
 
 选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
 文档 diff 审阅。
+
+## D-122b R76b 优化轨：PROJECT_ROADMAP §51 "大运 0 命中"声明过时 → 实测数据标注（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_ROADMAP.md` §51 行 53 写"实测
+'大运/起运/行运/交运'在现有语料 0 命中，大运只能靠运算层自算、缺古籍
+佐证"——但实测 `corpus.db`（47 部全量）：
+
+| 关键词 | 含该词单元数 | 来源（work_id） |
+|---|---|---|
+| 大运 | 48 | ditiansui（滴天髓）等 |
+| 行运 | 120 | ditiansui 等 |
+| 起运 | 3 | mingli-tanyuan / sanming-tonghui |
+| 交运 | 6 | ditiansui / mingli-tanyuan / mingli-yueyan |
+
+全部来自 **R20b 子平经典入库**（P2 节，ditiansui/mingli-tanyuan/
+sanming-tonghui/mingli-yueyan）。"0 命中"是 R20b 之前的旧结论；R72b
+修正了同节行 51-52 的"仅 9 部/无子平经典"缺口标注（补"已由 R20b 落地"），
+但**漏了行 53 的"0 命中"声明**——新会话照此会误判"大运缺古籍佐证"，
+重复排查（O1 文档失效模式，D-117b/D-118b 同族，可被命令断言的事实
+漏同步）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ROADMAP §51 行 53 改标：注明"0 命中"已被 R20b 子平经典入库推翻，附实测数字（大运 48 / 行运 120 / 起运 3 / 交运 6 单元，来源 ditiansui 等） | 纯文档、零代码/零风险；数字与 `LIKE '%大运%'` 实测一致，防新会话误判缺古籍佐证 |
+| B | 只改台账/STATUS 不动 ROADMAP | 行 53 仍误导（"0 命中"与语料实测矛盾） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅。
