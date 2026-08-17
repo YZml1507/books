@@ -5311,3 +5311,45 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `cd69b54`
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（T1-T7 处置证据与命令实测/台账/§4 标注一致）。
 - 决策记录：DECISIONS.md D-152b。
+
+## 134. [优化轨] R107b：GOAL.md §4b 任务量段仍按待办工作量描述 T1-T7 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 134a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `99c3574`
+（R103a：吸收优化轨 R105b docs-only rebase，gates green；此前
+`25d2523` R102a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R106b（6eb7d78）已确认在 origin/main，无 rebase 需求。
+
+### 134b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **快照标签"R70b 起 docs-only"实测**（`git log 2946a8a..HEAD
+  --name-only`）：无非 docs/data 文件改动——声明准确，非缺口。
+- **§4b 任务量段 T1/T7 逐项核实**（命令实测/台账对照）：T1 评测集
+  DONE（eval_g1 248 题 PASS 246/248，R101b）；T7 18 个子项全部落地
+  （R77b T7 表，grep -c "^| T7-" GOAL.md 实测 18 行）。
+- **活引用扫描**：R75b-R106b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4b 任务量段"任务量够，
+  远超十小时。T1 一项…数小时量级；T7 有 18 个独立子项"仍按**待办
+  工作量**描述 T1-T7，但全部任务已完成——新会话照 §4b 任务量段会误
+  以为 T1/T7 仍有大量待办工作量（O1 文档失效模式，L-23 同族；R106b
+  只标注了建议节奏段，任务量段漏标）。
+
+### 134c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§4b 任务量段划线并补注"R107b
+  标注：T1-T7 全部任务均已落地（处置出处见 §4 各段、R77b T7 表、
+  R101b-R102b 标注）；本段为 R18b 前工作量预估，勿按'待办'引用"
+  （照 D-152b/D-151b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（T1/T7 处置证据与命令实测/台账/§4 标注一致）。
+- 决策记录：DECISIONS.md D-153b。
