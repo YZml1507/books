@@ -5945,3 +5945,48 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   39 checks 及 R118b/R119b 断言一致）。
 - 决策记录：DECISIONS.md D-166b。
+
+## 148. [优化轨] R121b：新功能——八字合婚（六冲/六合/日主五行/桃花支纯坐标比较，桃花运方向自然延伸）（2026-08-17）
+
+### 148a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R120b（ed687a8）已确认在 origin/main。
+
+### 148b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **候选方向比对**：前端体验（7 tab 全接线、历史面板仅 bazi view 已在
+  D-163b 标注）、质量/性能层（FTS 0.001s 正常、unit 4 索引 + link 2
+  索引齐全、link 零悬空、bge_mingli 缓存新鲜 2505=2505 实测一致）、
+  文档滞后（39 checks 已同步无残留）——均无明确缺口；**新功能候选
+  八字合婚可行**（复用 bazi.compute 四柱 + taohua 桃花支 + bazi_calc
+  五行，纯坐标计算，确定性可复验）。
+- **实测**：男 1990-05-15 10:00（庚午）vs 女 1992-08-20 14:00（壬申）
+  → 年支 午/申 六冲 False、六合 False；日主 庚(金)/戊(土)；桃花支
+  卯/酉 重叠 False——确定性可复验；六合案例 1984 甲子 vs 1985 乙丑 →
+  六合 True 亦验证。
+- **方案比对**：A 八字合婚（选定）；B 前端体验（术数结果记入线程，
+  改动面大且语义不契合）；C 质量/性能层（无缺口）——见 D-167b。
+
+### 148c. 改动与验证
+
+- **改动**：
+  - `src/guji/hehun.py`（新增）：六冲/六合/天干五行/五行相生/桃花支
+    重叠比较（传统定式写死表，照 huangli 神煞先例）；`compute(Bazi,
+    Bazi) -> Hehun` 纯坐标计算，输出坐标事实 + 写死说明文字（非生成）。
+  - `web/app.py`：import hehun；新增 `HehunRequest` + `POST /api/hehun`
+    （两人生日，范围校验 400）；web --selftest 补 `hehun` check
+    （39→40，固定两人生日 → 无冲合/日主相生/桃花不同 确定性断言）。
+  - `web/static/index.html`：第 8 tab"八字合婚" + view-hehun 面板 +
+    JS 调用（esc 转义渲染，结果全来自服务端）。
+- **验证**（全量）：hehun 模块实测（含六合案例）；/api/hehun 固定
+  输入 → 200 + 确定性输出、非法年份 → 400；web --selftest 40 checks
+  全 PASS（hehun 生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
+  web）。零红线（功能静态数据非语料、不生成解读文本、不作吉凶断言）。
+- 决策记录：DECISIONS.md D-167b。

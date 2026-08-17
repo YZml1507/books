@@ -51,6 +51,7 @@ from guji import huangli as huangli_mod  # noqa: E402
 from guji import qiming as qiming_mod  # noqa: E402
 from guji import taohua as taohua_mod  # noqa: E402
 from guji import tarot as tarot_mod  # noqa: E402
+from guji import hehun as hehun_mod  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
@@ -952,6 +953,57 @@ class TarotRequest(BaseModel):
     n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
 
 
+class HehunRequest(BaseModel):
+    """八字合婚（R121b，D-167b）：两人公历生日（同 BaziRequest 的 solar 约定）。"""
+    a_year: int = Field(..., description="甲 公历年")
+    a_month: int = Field(..., description="甲 月 1-12")
+    a_day: int = Field(..., description="甲 日 1-31")
+    a_hour: int = Field(..., description="甲 时 0-23")
+    a_gender: str = "男"
+    b_year: int = Field(..., description="乙 公历年")
+    b_month: int = Field(..., description="乙 月 1-12")
+    b_day: int = Field(..., description="乙 日 1-31")
+    b_hour: int = Field(..., description="乙 时 0-23")
+    b_gender: str = "女"
+
+
+@app.post("/api/hehun")
+def api_hehun(req: HehunRequest):
+    """八字合婚（R121b，D-167b）：六冲/六合/日主五行/桃花支纯坐标比较。
+
+    合规：比较规则为传统定式写死表（照 R111b/R112b 先例），输出为坐标
+    事实 + 写死说明文字，不生成解读文本、不作吉凶断言；固定两人生日 →
+    固定输出，可命令复验。
+    """
+    for tag, y, mo, d, h in (("甲", req.a_year, req.a_month, req.a_day, req.a_hour),
+                             ("乙", req.b_year, req.b_month, req.b_day, req.b_hour)):
+        if not (YEAR_LO <= y <= YEAR_HI):
+            raise HTTPException(400, f"{tag} 年份须在 {YEAR_LO}-{YEAR_HI}，收到 {y}")
+        if not (1 <= mo <= 12):
+            raise HTTPException(400, f"{tag} month 须在 1-12，收到 {mo}")
+        if not (1 <= d <= 31):
+            raise HTTPException(400, f"{tag} day 须在 1-31，收到 {d}")
+        if not (0 <= h <= 23):
+            raise HTTPException(400, f"{tag} hour 须在 0-23，收到 {h}")
+    try:
+        ba = compute(req.a_year, req.a_month, req.a_day, req.a_hour, req.a_gender)
+        bb = compute(req.b_year, req.b_month, req.b_day, req.b_hour, req.b_gender)
+        h = hehun_mod.compute(ba, bb)
+    except Exception as exc:
+        raise HTTPException(422, f"排盘失败：{exc}") from exc
+    return {
+        "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
+        "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
+        "year_zhi_a": h.year_zhi_a, "year_zhi_b": h.year_zhi_b,
+        "clash": h.clash, "combine": h.combine,
+        "day_wx_a": h.day_wx_a, "day_wx_b": h.day_wx_b,
+        "day_wx_sheng": h.day_wx_sheng,
+        "peach_a": h.peach_a, "peach_b": h.peach_b, "peach_same": h.peach_same,
+        "notes": h.notes,
+        "render": h.render(),
+    }
+
+
 @app.post("/api/tarot")
 def api_tarot(req: TarotRequest):
     """塔罗牌占卜（R112b，D-158b）：78 张牌静态表 + seed 确定性抽牌。
@@ -1123,6 +1175,17 @@ if __name__ == "__main__":
         check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
               lambda j: [d.get("position") for d in j.get("draws", [])]
                         == ["现状", "助力", "阻碍", "过去", "结果"])
+        # R121b（D-167b）：八字合婚纯坐标 standing 覆盖——固定两人生日 → 固定
+        # 输出（实测 1990-05-15 男 vs 1992-08-20 女 → 无冲合/日主相生/桃花不同），
+        # 断言字段齐全 + 确定性（抓端点静默失效）。
+        check("hehun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+              "a_day": 15, "a_hour": 10, "a_gender": "男",
+              "b_year": 1992, "b_month": 8, "b_day": 20, "b_hour": 14,
+              "b_gender": "女"}),
+              lambda j: (j.get("clash") is False and j.get("combine") is False
+                         and j.get("day_wx_sheng") is True
+                         and j.get("peach_same") is False
+                         and j.get("render") and j.get("notes")))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖

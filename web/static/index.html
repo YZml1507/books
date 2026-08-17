@@ -250,6 +250,7 @@
     <button class="tab" data-view="qiming" type="button">五行起名</button>
     <button class="tab" data-view="taohua" type="button">桃花运</button>
     <button class="tab" data-view="tarot" type="button">塔罗占卜</button>
+    <button class="tab" data-view="hehun" type="button">八字合婚</button>
   </nav>
 
   <div class="view active" id="view-bazi">
@@ -584,6 +585,30 @@
     <div class="result" id="trResult" hidden></div>
     <p class="footnote">78 张牌（22 大阿卡纳 + 56 小阿卡纳）静态牌意表，牌面由随机种子确定性生成（固定 seed→固定牌面，可复验）；只给传统公版象征关键词，不作吉凶断言、不生成解读文本。</p>
   </div><!-- /view-tarot -->
+
+  <div class="view" id="view-hehun">
+    <form class="card" id="hhForm">
+      <div class="row">
+        <div class="field"><label for="hhAYear">甲 公历年</label><input id="hhAYear" type="number" value="1990" min="1900" max="2100" required></div>
+        <div class="field"><label for="hhAMonth">甲 月</label><input id="hhAMonth" type="number" value="5" min="1" max="12" required></div>
+        <div class="field"><label for="hhADay">甲 日</label><input id="hhADay" type="number" value="15" min="1" max="31" required></div>
+        <div class="field"><label for="hhAHour">甲 时（0-23）</label><input id="hhAHour" type="number" value="10" min="0" max="23" required></div>
+        <div class="field"><label for="hhAGender">甲 性别</label>
+          <select id="hhAGender"><option value="男">男</option><option value="女">女</option></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="hhBYear">乙 公历年</label><input id="hhBYear" type="number" value="1992" min="1900" max="2100" required></div>
+        <div class="field"><label for="hhBMonth">乙 月</label><input id="hhBMonth" type="number" value="8" min="1" max="12" required></div>
+        <div class="field"><label for="hhBDay">乙 日</label><input id="hhBDay" type="number" value="20" min="1" max="31" required></div>
+        <div class="field"><label for="hhBHour">乙 时（0-23）</label><input id="hhBHour" type="number" value="14" min="0" max="23" required></div>
+        <div class="field"><label for="hhBGender">乙 性别</label>
+          <select id="hhBGender"><option value="女">女</option><option value="男">男</option></select></div>
+      </div>
+      <button type="submit" class="primary">合婚</button>
+    </form>
+    <div class="result" id="hhResult" hidden></div>
+    <p class="footnote">六冲/六合/日主五行/桃花支为传统定式纯坐标比较（写死可核验，固定两人生日→固定输出）；只给坐标事实与写死说明，不作吉凶断言、不生成解读文本。</p>
+  </div><!-- /view-hehun -->
 </div>
 
 <script>
@@ -1687,6 +1712,49 @@ $('#trForm').addEventListener('submit', async e => {
     html += '</div></div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">抽牌失败：${esc(ex.message)}</div>`; }
+});
+
+/* 八字合婚（R121b，D-167b）：POST /api/hehun 两人八字纯坐标比较，
+   结果全部来自服务端写死规则表，前端只渲染（esc 转义）。 */
+$('#hhForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#hhResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">计算中…</div>';
+  const body = {
+    a_year: parseInt($('#hhAYear').value, 10),
+    a_month: parseInt($('#hhAMonth').value, 10),
+    a_day: parseInt($('#hhADay').value, 10),
+    a_hour: parseInt($('#hhAHour').value, 10),
+    a_gender: $('#hhAGender').value,
+    b_year: parseInt($('#hhBYear').value, 10),
+    b_month: parseInt($('#hhBMonth').value, 10),
+    b_day: parseInt($('#hhBDay').value, 10),
+    b_hour: parseInt($('#hhBHour').value, 10),
+    b_gender: $('#hhBGender').value,
+  };
+  try{
+    const resp = await fetch('/api/hehun', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
+    const a = j.a_bazi, b = j.b_bazi;
+    let html = `<div class="card"><h2>八字合婚</h2>`;
+    html += `<table class="works"><tbody>`;
+    html += `<tr><th>甲 八字</th><td>${esc(a.year)} 日柱 ${esc(a.day)}（日主${esc(a.day_master)}）</td></tr>`;
+    html += `<tr><th>乙 八字</th><td>${esc(b.year)} 日柱 ${esc(b.day)}（日主${esc(b.day_master)}）</td></tr>`;
+    html += `<tr><th>年支关系</th><td>${esc(j.year_zhi_a)}/${esc(j.year_zhi_b)}：${j.clash ? '六冲' : j.combine ? '六合' : '无冲合'}</td></tr>`;
+    html += `<tr><th>日主五行</th><td>${esc(j.day_wx_a)}（甲）· ${esc(j.day_wx_b)}（乙）：${j.day_wx_sheng ? '相生' : '相克'}</td></tr>`;
+    html += `<tr><th>桃花支</th><td>${esc(j.peach_a)}/${esc(j.peach_b)}：${j.peach_same ? '重叠' : '不同'}</td></tr>`;
+    html += '</tbody></table></div>';
+    if (j.notes && j.notes.length){
+      html += '<div class="card"><h2>说明（写死，非生成）</h2><ul>';
+      j.notes.forEach(n => { html += `<li>${esc(n)}</li>`; });
+      html += '</ul></div>';
+    }
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
 });
 </script>
 </body>
