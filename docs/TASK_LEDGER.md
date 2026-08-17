@@ -5490,3 +5490,46 @@ todo 闭环）。
   PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；sources/bookstudy/
   research/mcp 自测全 PASS。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-156b。
+
+## 138. [优化轨] R111b：功能增加——八字桃花运（咸池/红鸾/天喜）落地，塔罗牌留档暂缓（2026-08-17）
+
+### 138a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R110b（4be962f）已确认在 origin/main。
+
+### 138b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **术数架构盘点**：bazi.py（四柱/纳音/大运，`Bazi` 含四柱干支字符串）、
+  bazi_calc.py（十神/三合/大运流年）、liuyao.py（六爻排盘）、huangli.py
+  （神煞层**写死可核验先例**：`_GUIREN`/`_TIAND_YIJI` 静态表）、qiming.py
+  （部首五行表写死）；web 4 术数端点 + 前端 5 tab + MCP 12 工具（术数
+  不在 MCP，同源承诺不含术数）。
+- **红线检查**（GOAL.md §5）：新增功能不得触碰"生成文本入库"红线、
+  不得引入新依赖/联网抓语料。桃花运为纯坐标计算（咸池三合局定式 +
+  红鸾公式 (3−年支idx) mod 12 + 天喜对冲），输出可命令复验——合规。
+- **用户点名方向评估**：塔罗牌（78 张 × 正逆位 ≈ 156 条牌意表，无命令
+  可核验、与古籍引用定位关联弱）留档暂缓；桃花运选定（见 D-157b）。
+
+### 138c. 改动与验证
+
+- **改动**：
+  - `src/guji/taohua.py`（新增）：咸池（桃花）年支三合局查表 +
+    红鸾/天喜公式 + 四柱落宫判定 + 写死说明文字（照 huangli 先例，
+    非生成文本）；`compute(Bazi) -> Taohua` 纯坐标计算。
+  - `web/app.py`：import taohua；新增 `POST /api/taohua`（复用
+    BaziRequest 含农历换算）；web --selftest 补 `taohua` check
+    （29→30）。
+  - `web/static/index.html`：第 6 tab"桃花运" + view-taohua 面板 +
+    JS 调用（esc 转义渲染，结果全来自服务端）。
+- **验证**（全量）：固定生日 1990-05-15 10:00 男 → 年支午、桃花卯、
+  强度弱、render 输出确定（可复验）；农历路径经 `_resolve_birth` 换算
+  正常（422 为 BaziRequest 必填字段既有行为，与 bazi 端点一致，前端
+  农历模式同样带 year/month/day）；13 道闸门全 exit 0（check_quality
+  先于 build_index，verify_index T1-T11 ALL PASS，assess_goals
+  PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 30 checks）。
+- 决策记录：DECISIONS.md D-157b。

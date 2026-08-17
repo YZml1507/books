@@ -248,6 +248,7 @@
     <button class="tab" data-view="liuyao" type="button">六爻占卜</button>
     <button class="tab" data-view="huangli" type="button">黄历择日</button>
     <button class="tab" data-view="qiming" type="button">五行起名</button>
+    <button class="tab" data-view="taohua" type="button">桃花运</button>
   </nav>
 
   <div class="view active" id="view-bazi">
@@ -545,6 +546,24 @@
     <div class="result" id="qmResult" hidden></div>
     <p class="footnote">五行缺行由 bazi_calc 算出（可核验）；候选字按部首五行规则表筛选（写死可核验）；寓意坐标只给"五行-简明寓意"，不作吉凶断言。</p>
   </div><!-- /view-qiming -->
+
+  <div class="view" id="view-taohua">
+    <form class="card" id="thForm">
+      <div class="row">
+        <div class="field"><label for="thGender">性别</label>
+          <select id="thGender"><option value="男">男</option><option value="女">女</option></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="thYear">公历年</label><input id="thYear" type="number" value="1990" min="1900" max="2100" required></div>
+        <div class="field"><label for="thMonth">月</label><input id="thMonth" type="number" value="5" min="1" max="12" required></div>
+        <div class="field"><label for="thDay">日</label><input id="thDay" type="number" value="15" min="1" max="31" required></div>
+        <div class="field"><label for="thHour">时（0-23）</label><input id="thHour" type="number" value="10" min="0" max="23" required></div>
+      </div>
+      <button type="submit" class="primary">看桃花运</button>
+    </form>
+    <div class="result" id="thResult" hidden></div>
+    <p class="footnote">桃花星（咸池）以年支查三合局、红鸾/天喜按传统定式计算（写死可核验，固定生日→固定输出）；只给坐标事实与写死说明，不作吉凶断言、不生成解读文本。</p>
+  </div><!-- /view-taohua -->
 </div>
 
 <script>
@@ -1567,6 +1586,44 @@ $('#qmForm').addEventListener('submit', async e => {
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">起名失败：${esc(ex.message)}</div>`; }
+});
+
+/* 桃花运（R111b，D-157b）：POST /api/taohua 复用 bazi 排盘，展示坐标事实
+   与写死说明。结果全部来自服务端纯坐标计算，前端只渲染（esc 转义）。 */
+$('#thForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = $('#thResult'); r.hidden = false;
+  r.innerHTML = '<div class="no-evidence">计算中…</div>';
+  const body = {
+    year: parseInt($('#thYear').value, 10),
+    month: parseInt($('#thMonth').value, 10),
+    day: parseInt($('#thDay').value, 10),
+    hour: parseInt($('#thHour').value, 10),
+    gender: $('#thGender').value,
+  };
+  try{
+    const resp = await fetch('/api/taohua', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const j = await resp.json();
+    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
+    const b = j.bazi;
+    let html = `<div class="card"><h2>${esc(b.year)} ${esc(b.month)} ${esc(b.day)} ${esc(b.hour)} · 桃花运</h2>`;
+    html += `<table class="works"><tbody>`;
+    html += `<tr><th>八字</th><td>${esc(b.year)} ${esc(b.month)} ${esc(b.day)} ${esc(b.hour)}（日主${esc(b.day_master)}）</td></tr>`;
+    html += `<tr><th>桃花星（咸池）</th><td>${esc(j.peach_zhi)}${j.hit_pillars.length ? '，临 ' + esc(j.hit_pillars.join('、')) : '，四柱未临'}</td></tr>`;
+    html += `<tr><th>红鸾</th><td>${esc(j.hongluan)}${j.hongluan_pillar.length ? '，临 ' + esc(j.hongluan_pillar.join('、')) : '（未临柱）'}</td></tr>`;
+    html += `<tr><th>天喜</th><td>${esc(j.tianxi)}${j.tianxi_pillar.length ? '，临 ' + esc(j.tianxi_pillar.join('、')) : '（未临柱）'}</td></tr>`;
+    html += `<tr><th>桃花强度</th><td>${esc(j.strength === 'strong' ? '旺' : j.strength === 'mid' ? '中' : '弱')}</td></tr>`;
+    html += '</tbody></table></div>';
+    if (j.notes && j.notes.length){
+      html += '<div class="card"><h2>说明（写死，非生成）</h2><ul>';
+      j.notes.forEach(n => { html += `<li>${esc(n)}</li>`; });
+      html += '</ul></div>';
+    }
+    r.innerHTML = html;
+  }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
 });
 </script>
 </body>

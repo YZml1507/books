@@ -49,6 +49,7 @@ for _p in (ROOT, os.path.join(ROOT, "src")):
 from guji import liuyao as liuyao_mod  # noqa: E402
 from guji import huangli as huangli_mod  # noqa: E402
 from guji import qiming as qiming_mod  # noqa: E402
+from guji import taohua as taohua_mod  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
@@ -907,6 +908,37 @@ def api_qiming(req: QimingRequest):
     return result
 
 
+@app.post("/api/taohua")
+def api_taohua(req: BaziRequest):
+    """八字桃花运（R111b，D-157b）：咸池/红鸾/天喜 纯坐标计算。
+
+    复用 BaziRequest（含农历换算），排盘后按四柱查桃花星落宫。输出为
+    坐标事实 + 写死说明文字（照 huangli 神煞层先例），不生成解读文本、
+    不作吉凶断言；固定生日 → 固定输出，可命令复验。
+    """
+    req.validate_ranges()
+    by, bm, bd = _resolve_birth(req)   # 农历在此换算成公历
+    try:
+        b = compute(by, bm, bd, req.hour, req.gender)
+        t = taohua_mod.compute(b)
+    except Exception as exc:
+        raise HTTPException(422, f"排盘失败：{exc}") from exc
+    return {
+        "bazi": {"year": b.year, "month": b.month, "day": b.day,
+                 "hour": b.hour, "day_master": b.day_master},
+        "year_zhi": t.year_zhi,
+        "peach_zhi": t.peach_zhi,
+        "hit_pillars": t.hit_pillars,
+        "hongluan": t.hongluan,
+        "hongluan_pillar": t.hongluan_pillar,
+        "tianxi": t.tianxi,
+        "tianxi_pillar": t.tianxi_pillar,
+        "strength": t.strength,
+        "notes": t.notes,
+        "render": t.render(),
+    }
+
+
 if __name__ == "__main__":
     import sys as _sys
 
@@ -999,6 +1031,13 @@ if __name__ == "__main__":
         check("qiming", client.post("/api/qiming", json={"surname": "李", "year": 1990,
               "month": 1, "day": 1, "hour": 12, "gender": "男", "top_n": 5}),
               lambda j: j.get("candidates"))
+        # R111b（D-157b）：桃花运纯坐标计算 standing 覆盖——固定生日→固定输出，
+        # 断言咸池/红鸾/天喜字段齐全且 render 含坐标事实（抓端点静默失效）。
+        check("taohua", client.post("/api/taohua", json={"year": 1990, "month": 5,
+              "day": 15, "hour": 10, "gender": "男"}),
+              lambda j: (j.get("peach_zhi") and j.get("hongluan")
+                         and j.get("tianxi") and j.get("strength")
+                         and j.get("render") and j["bazi"]["year"] == "庚午"))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
