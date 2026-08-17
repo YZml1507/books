@@ -5510,3 +5510,33 @@ R132b c639030 已确认在 origin/main）。
 选 A（checks 数 51→52 文档对齐，照 R116b/R120b/R122b/R125b/R127b/R129b/
 R131b 先例）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
 文档 diff 审阅（数字与命令实测 52 checks 一致）。
+
+## D-180b R134b 优化轨：web standing 自测缺口——bookstudy.summary 缺失作品拒绝分支零断言（能力层验证，与 R130b bookstudy.chapter.nullscheme 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `bookstudy.summary` check
+只测命中路径（work_id=KR1a0001 → n_units + layers）；`GET /api/bookstudy/
+summary` 的**缺失作品拒绝分支**（work_id 不存在 → error 键）**零 standing
+断言**——若该分支静默失效（如缺失作品校验回归为 500、或误返回空结构），
+13 闸门与五层自测都看不见（L-22/L-23 同族；与 R130b bookstudy.chapter.
+nullscheme 同族——R130b 补 chapter 分支、本轮补 summary 分支，bookstudy
+家族两条拒绝路径全覆盖）。实测（命令实跑）：`bookstudy/summary?work_id=
+NO_SUCH_WORK` → 200，error 键（缺失作品拒绝分支可用）——补断言零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/bookstudy/summary {"work_id":"NO_SUCH_WORK"}` → 200，error 键
+  （缺失作品拒绝分支可用）
+- 现有 `bookstudy.summary` check：KR1a0001 → n_units + layers（实测稳定）
+- 另探 `concept?q=無爲&per_work=5` → 200 + census（参数分支可用，但断言
+  价值弱于拒绝分支——后者抓缺失校验回归）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 补 `bookstudy.summary.missing` 断言：work_id=NO_SUCH_WORK → 200 + error 非空（确定性可复验） | 纯加自测断言、零功能改动/零数据风险；补上缺失作品拒绝分支的 standing 覆盖缺口，抓缺失校验静默失效；与 R130b nullscheme 同族补全 bookstudy 家族拒绝路径；断言确定性可复验（照 R130b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505、link 零悬空——无缺口 |
+
+选 A（补 bookstudy.summary.missing standing 断言，照 R130b bookstudy.
+chapter.nullscheme 先例：能力路径必须有一条可复现命令断言）。落地后：web
+--selftest 52→53 checks，跑 13 闸门 + 五层自测确认零回退。

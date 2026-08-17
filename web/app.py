@@ -1090,6 +1090,13 @@ if __name__ == "__main__":
               lambda j: j.get("error") is not None)
         check("bookstudy.summary", client.get("/api/bookstudy/summary", params={"work_id": "KR1a0001"}),
               lambda j: j.get("n_units") and j.get("layers"))
+        # R134b（D-180b）：bookstudy.summary 缺失作品拒绝分支 standing 覆盖——
+        # summary check 只测命中路径（KR1a0001），缺失作品（NO_SUCH_WORK）拒绝
+        # 分支零断言（若缺失校验回归为 500 则不可见，与 R130b bookstudy.chapter.
+        # nullscheme 同族）。实测 work_id=NO_SUCH_WORK → 200 + error 键。
+        check("bookstudy.summary.missing", client.get("/api/bookstudy/summary",
+              params={"work_id": "NO_SUCH_WORK"}),
+              lambda j: j.get("error") is not None)
         check("compare_works", client.get("/api/compare_works",
               params={"work_a": "KR5c0057", "work_b": "KR5c0126", "q": "無爲"}),
               lambda j: j.get("works") and len(j["works"]) == 2)

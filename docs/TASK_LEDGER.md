@@ -6518,3 +6518,45 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   52 checks 及 R132b research.allow_damaged 一致）。
 - 决策记录：DECISIONS.md D-179b。
+
+## 161. [优化轨] R134b：web standing 自测缺口——bookstudy.summary 缺失作品拒绝分支零断言 → 补断言（能力层验证，与 R130b bookstudy.chapter.nullscheme 同族）（2026-08-17）
+
+### 161a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R133b（f5f8628）已确认在 origin/main。
+
+### 161b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `bookstudy.summary`
+  check 只测命中路径（work_id=KR1a0001 → n_units + layers）；
+  `GET /api/bookstudy/summary` 的**缺失作品拒绝分支**（work_id 不存在
+  → error 键）**零 standing 断言**——若该分支静默失效（缺失校验回归
+  为 500、或误返回空结构），13 闸门与五层自测都看不见（L-22/L-23 同族；
+  与 R130b bookstudy.chapter.nullscheme 同族——R130b 补 chapter 分支、
+  本轮补 summary 分支，bookstudy 家族两条拒绝路径全覆盖）。
+- **实测**（命令实跑）：`bookstudy/summary?work_id=NO_SUCH_WORK` → 200，
+  error 键（缺失作品拒绝分支可用）；`concept?q=無爲&per_work=5` → 200 +
+  census（参数分支可用，但断言价值弱于拒绝分支）——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）、文档滞后（52 checks 已同步无残留）——无
+  明确缺口。
+- **方案比对**：A 补 bookstudy.summary.missing 断言（选定）；B 前端体验
+  （无缺口）；C 质量/性能层（无缺口）——见 D-180b。
+
+### 161c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：`bookstudy.summary` check 后补
+  `bookstudy.summary.missing` 断言（work_id=NO_SUCH_WORK → 200 + error
+  非空）（52→53 checks）。
+- **验证**（全量）：web --selftest 53 checks 全 PASS（bookstudy.summary.
+  missing 生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-180b。
