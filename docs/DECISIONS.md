@@ -4066,3 +4066,38 @@ check_quality），文档 diff 审阅。
 
 选 A（照 R60b §7 先例划线标注而非删句）。落地后：docs-only 先例闸门
 抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-127b R81b 优化轨：BOOK_AI_ARCHITECTURE §11 已知弱点清单三处与实测矛盾 → 逐条标注（文档对齐）
+
+**背景（亲自核实）**：`docs/BOOK_AI_ARCHITECTURE.md` §11"本方案的已知
+弱点（Phase 3 自审待补）"清单中**三处断言与当前实测矛盾**（实测命令见
+下）：
+1. "28 部语料全为中文古籍，'通用性'目前无法证伪"——实测 work 表
+   47 部中 **7 部非中文语系**（bible-douay / euclid-elements /
+   herodotus / homer-iliad-but / homer-iliad-pope / plato-republic /
+   shakespeare，`SELECT id FROM work` 实测）；且通用性证伪探针
+   `probes/probe_generality_roundtrip.py` 已存在并实跑（6 体系
+   round-trip "not falsified"，25/25 未证伪）；
+2. "未确定 embedding 方案（无 CUDA，需评估 CPU 可行的模型）"——
+   **bge 已落地**：`src/guji/bazi_lookup.py` 含 bge 语义检索，G1
+   概念级检索已在 R18b 前经 bge（用户授权）落地 PASS（台账 §2/
+   GOAL_NEXT_SESSION §2）；
+3. "未设计评估集的具体构造方式（八类）"——**eval_g1.py 题库已建**：
+   实测 `scripts/eval_g1.py` "G1 evaluation — 248 questions"，
+   retrieval 40/40 = 100.0%（target 95%）。
+另：§11 标题"（Phase 3 自审待补）"与 D-034（T7-p Phase 3 架构自审
+已完成，评审全文 §1–§11）矛盾。D-034 只验证了顶部阅读须知的自审断言
+仍准确，**未对 §11 清单逐条标注处置**——新会话照 §11 会误判语料构成
+/embedding/评估集均未定（O1 文档失效模式，L-23 同族，与 R77b T7 表/
+R80b §6 处置同族）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | §11 逐条划线标注处置状态：①"28 部全中文/通用性无法证伪"→ 47 部含 7 部非中文 + probe_generality_roundtrip 已实测；②"embedding 未确定"→ bge 已落地（R18b 前，G1 概念级 PASS）；③"评估集未设计"→ eval_g1 248 题已建；标题"Phase 3 自审待补"→ 已由 D-034 完成。照 D-008 保留记录惯例（保留原句，标注出处） | 纯文档、零代码/零风险；证据全部来自命令实测（work 表 7 部非中文 / eval_g1 248 题 / probe 实跑 / 台账 D-034），防新会话误判三大能力缺口 |
+| B | 只改头部阅读须知不动 §11 | §11 清单仍误导（28 部全中文 / embedding 未定 / 评估集未建） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（逐条划线标注而非删行，照 D-008/D-126b 先例）。落地后：docs-only
+先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。

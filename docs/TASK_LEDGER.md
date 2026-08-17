@@ -4237,3 +4237,47 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（47 / 23 / PASS 9 与命令实测一致）。
 - 决策记录：DECISIONS.md D-126b。
+
+## 108. [优化轨] R81b：BOOK_AI_ARCHITECTURE §11 已知弱点清单三处与实测矛盾 → 逐条标注（2026-08-17，双窗口并行第二轨）
+
+### 108a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R80b（73a588a）已确认在 origin/main。
+
+### 108b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致，非缺口；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）均无残留——非缺口。
+- **真实缺口（本轮选定）**：`docs/BOOK_AI_ARCHITECTURE.md` §11"本方案
+  的已知弱点（Phase 3 自审待补）"清单**三处断言与当前实测矛盾**：
+  1. "28 部语料全为中文古籍，'通用性'目前无法证伪"——实测 work 表
+     47 部中 **7 部非中文语系**（bible-douay / euclid-elements /
+     herodotus / homer-iliad-but / homer-iliad-pope / plato-republic /
+     shakespeare）；通用性证伪探针 `probes/probe_generality_roundtrip.py`
+     已实跑（6 体系 round-trip "not falsified"）；
+  2. "未确定 embedding 方案"——bge 已落地（src/guji/bazi_lookup.py
+     含 bge 语义检索，G1 概念级 R18b 前经 bge 用户授权落地 PASS）；
+  3. "未设计评估集"——eval_g1.py 题库已建（实测 248 questions，
+     retrieval 40/40 = 100.0%，target 95%）。
+  另 §11 标题"（Phase 3 自审待补）"与 D-034（T7-p Phase 3 架构自审
+  已完成）矛盾。D-034 只验证了顶部阅读须知，未对 §11 逐条标注——新
+  会话照 §11 会误判语料构成/embedding/评估集均未定（O1 文档失效模式，
+  L-23 同族，与 R77b T7 表/R80b §6 处置同族）。
+
+### 108c. 改动与验证
+
+- **改动**（docs/BOOK_AI_ARCHITECTURE.md，纯文档）：§11 标题标注
+  "已由 D-034 完成 Phase 3 自审"；三条矛盾断言逐条划线并附处置出处
+  （work 表 7 部非中文实测 / probe_generality_roundtrip 实跑 /
+  bazi_lookup.py bge 落地 / eval_g1 248 题实测），照 D-008 保留记录
+  惯例（保留原句，标注出处）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（7 部非中文 / 248 题 / probe 实跑与命令实测一致）。
+- 决策记录：DECISIONS.md D-127b。

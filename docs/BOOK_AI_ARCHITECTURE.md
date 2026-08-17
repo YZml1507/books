@@ -278,11 +278,19 @@ GitHub core API 配额耗尽（0/60）但 search API 可用，书目已缓存至
 
 ---
 
-## 11. 本方案的已知弱点（Phase 3 自审待补）
+## 11. 本方案的已知弱点（~~Phase 3 自审待补~~ → **已由 D-034 完成 Phase 3 自审；本清单部分条目已被后续落地推翻，逐条标注见下，R81b 复核**）
 
 - 第 1–2 步之外的部分基本未实测，属设计意图而非已验证事实
-- 28 部语料全为中文古籍，"通用性"目前无法证伪
-- 未确定 embedding 方案（无 CUDA，需评估 CPU 可行的模型）
-- 未设计评估集的具体构造方式（Retrieval / Citation / Groundedness / Multi-hop /
-  Cross-book / Version-awareness / Contradiction / Hallucination 八类）
+- ~~28 部语料全为中文古籍，"通用性"目前无法证伪~~（**R81b 标注**：现 47 部
+  含 7 部非中文语系——bible-douay/euclid-elements/herodotus/homer-iliad-but/
+  homer-iliad-pope/plato-republic/shakespeare，`SELECT id FROM work` 实测；
+  通用性证伪探针 `probes/probe_generality_roundtrip.py` 已实跑，6 体系
+  round-trip "not falsified"）
+- ~~未确定 embedding 方案（无 CUDA，需评估 CPU 可行的模型）~~（**R81b
+  标注**：bge 已落地——`src/guji/bazi_lookup.py` 含 bge 语义检索，G1
+  概念级检索已在 R18b 前经 bge（用户授权）落地 PASS）
+- ~~未设计评估集的具体构造方式（Retrieval / Citation / Groundedness / Multi-hop /
+  Cross-book / Version-awareness / Contradiction / Hallucination 八类）~~
+  （**R81b 标注**：eval_g1.py 题库已建——实测 248 questions，retrieval
+  40/40 = 100.0%，target 95%）
 - OCR 路径依赖 vision API key，当前不具备
