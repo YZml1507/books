@@ -4099,3 +4099,46 @@ audit 分支 history，HEAD..origin/main 清空。
 纯文档轮无代码逻辑，无越界，2 提交纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-110a。
+
+### 92. R101a 纯文档轮：rebase �纳入 R100b，清空 pending（2026-08-17）
+
+接续 R100a（0413070）。fetch origin 成功，HEAD..origin/main 显示优化轨
+推进 1 提交：
+
+- 8ada404 R100b docs(goal-next) de-pin round range in §0a session-table current-window row
+
+`git show --name-only` 确认纯 docs/*.md only（GOAL_NEXT_SESSION/DECISIONS/
+TASK_LEDGER）。
+
+**逐行复审 R100b diff**（亲眼过）：GOAL_NEXT_SESSION §0a session 表本窗口
+行把 R97b 钉死的"R75b-R97b 23 轮/台账 §123"改为"R75b 起/台账文末"
+（实测 `git log 2946a8a..HEAD` 25 轮），根治轮次范围钉死复发（D-132b
+先例，与 R92b/R86b 同族）。归因诚实，无越界。纪律良好。纯文档轮不启动
+审查循环。
+
+**rebase**：`git rebase origin/main` 在历史 e293d4b（R22a merge）处
+append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+--theirs"：`git checkout --theirs docs/*.md` → `git add` →
+`GIT_EDITOR=true git rebase --continue`。rebase 成功，R100b 纳入 audit
+分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，R100b 纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-111a。
