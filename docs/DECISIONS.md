@@ -5231,3 +5231,35 @@ hehun.py（R121b）。
 选 A（快照块术数功能行 + ROADMAP P3 补 hehun 标注，照 R116b/R120b/R122b
 先例）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
 文档 diff 审阅（tab 数与命令实测 8 个、hehun.py 存在一致）。
+
+## D-170b R124b 优化轨：web standing 自测缺口——非法输入路径（应 400/422）零断言，400→500 回归不可见（能力层验证，L-22/L-23 同族）
+
+**背景（亲自核实）**：web/app.py --selftest 的 `check` 闭包（app.py:1043）
+只断言合法输入的 `status_code == 200`——**非法输入路径（应返回 400/422）
+零 standing 断言**。若某端点把参数校验从 400 改回未捕获异常（500），或
+新增端点校验遗漏，selftest 全绿看不见（L-22/L-23 同族：可被命令断言
+的错误处理行为缺 standing 覆盖；与 R110b/R118b/R119b 同族——此前补
+standing 断言时多次当场抓到真实 bug）。实测（命令实跑）六个非法输入用例
+当前均正确返回 400：addr 非法 scheme、qiming 双字 surname、liuyao 非法
+method、hehun 非法年份、bazi 非法 year（tarot n=0 钳制为 200 属设计
+行为 `min(max(n,1),10)`，不属错误路径）——补断言零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/addr?scheme=nonsense&gua=1` → 400
+- `POST /api/qiming {"surname":"张伟",...}`（双字）→ 400
+- `POST /api/liuyao {"method":"dice","seed":42}` → 400
+- `POST /api/hehun {"a_year":1800,...}` → 400
+- `POST /api/bazi {"year":1800,...}` → 400
+- `POST /api/tarot {"seed":42,"n":0}` → 200（钳制设计，非错误路径）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 增错误路径断言组：addr 非法 scheme → 400、liuyao 非法 method → 400、hehun 非法年份 → 400、bazi 非法 year → 400、qiming 双字 surname → 400（走独立断言不走 check 闭包——闭包硬断言 200）；自测行 `ok.append` 计数 40→45 | 纯加自测断言、零功能改动/零数据风险；补上错误处理路径的 standing 覆盖缺口，抓 400→500 回归；断言确定性可复验（照 R110b/R118b/R119b 先例） |
+| B | 前端体验（术数 tab 结果展示优化） | 摸底 8 tab 全接线、前端 7 个 submit handler 已接线——无明确缺口 |
+| C | 质量/性能层 | FTS 0.001s 正常、bge_mingli 缓存新鲜 2505=2505 实测一致、link 零悬空——无缺口 |
+
+选 A（补错误路径 standing 断言，照 R110b/R118b/R119b 先例：能力路径必须
+有一条可复现命令断言，错误处理路径亦然）。落地后：web --selftest
+40→45 checks，跑 13 闸门 + 五层自测确认零回退。

@@ -1186,6 +1186,30 @@ if __name__ == "__main__":
                          and j.get("day_wx_sheng") is True
                          and j.get("peach_same") is False
                          and j.get("render") and j.get("notes")))
+        # R124b（D-170b）：错误处理路径 standing 覆盖——check() 闭包只断言合法
+        # 输入的 200，非法输入（应 400）此前零断言：若某端点把参数校验改回未捕获
+        # 异常（400→500），selftest 全绿看不见。以下独立断言 400（不走闭包），
+        # 实测六用例当前均正确返回 400（tarot n=0 钳制为 200 属设计行为）。
+        def _expect_400(name, resp):
+            assert resp.status_code == 400, (name, resp.status_code, resp.text[:200])
+            ok.append(name)
+
+        _expect_400("err.addr.scheme",
+                    client.get("/api/addr", params={"scheme": "nonsense", "gua": 1}))
+        _expect_400("err.liuyao.method",
+                    client.post("/api/liuyao", json={"method": "dice", "seed": 42}))
+        _expect_400("err.hehun.year",
+                    client.post("/api/hehun", json={"a_year": 1800, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.bazi.year",
+                    client.post("/api/bazi", json={"year": 1800, "month": 5,
+                                                   "day": 15, "hour": 10}))
+        _expect_400("err.qiming.surname",
+                    client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
+                                                     "month": 5, "day": 15,
+                                                     "hour": 10}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
