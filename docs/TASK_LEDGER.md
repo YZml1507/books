@@ -5666,3 +5666,51 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
   PART 0 · FAIL 0）；五层自测全 PASS（web 34 checks）。
 - 决策记录：DECISIONS.md D-160b。
+
+## 142. [优化轨] R115b：/api/ask 的 LLM 回复缺模型来源标注 → 结构化对齐 bazi 路径（内容回复方向）（2026-08-17）
+
+### 142a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R114b（fd98167）已确认在 origin/main。
+
+### 142b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **内容回复缺口（本轮选定）**：`/api/ask` 的 LLM 回复是**纯 str**
+  （`llm_reader.interpret_research` 返回 str，app.py:559 直接赋
+  `resp["llm"]`），前端 ask tab 只 `renderMD(j.llm)`（index.html:1032），
+  **不显示模型来源**；而 `/api/bazi` 的 LLM 回复是结构化 `llm_out =
+  {"ok","text","model"}`（app.py:240-252）+ 前端 `模型：` 标注
+  （index.html:759）——两路径不一致，ask 路径漏掉"生成文本须标注模型
+  来源"纪律（GOAL.md）。
+- **实测**：`POST /api/ask {"q":"潛龍勿用","use_llm":true}` → llm 为
+  str（含"以上为 LLM 生成解读"），llm_error=None；bazi 路径 llm 为
+  dict 含 model；前端 815 行 `llm: rec.llm` 仅 bazi 历史消费，ask 的
+  llm 不落库——改字段形状无级联风险。
+- **其他方向**（对照实测）：前端体验（历史面板仅 bazi view 有，
+  跨 tab 复用需迁移 history 表）、质量/性能层（FTS 0.001s 正常、bge
+  缓存 R110b 验过新鲜）——无明确缺口。
+- **方案比对**：A ask 路径 LLM 模型来源标注（选定）；B 前端体验；
+  C 质量/性能层——见 D-161b。
+
+### 142c. 改动与验证
+
+- **改动**：
+  - `src/guji/llm_reader.py`：新增公开 `configured_model()`（文件配置
+    优先、环境变量兜底，返回生效模型名）。
+  - `web/app.py`：`/api/ask` LLM 回复改为结构化 `{"ok": True, "text":
+    ..., "model": llm_reader.configured_model()}`（照 bazi llm_out
+    先例）；web --selftest 补 `ask.llm.shape` check（34→35，断言 llm
+    为 None 或 dict 含 text+model 键，不依赖 LLM 是否配置）。
+  - `web/static/index.html`：ask tab LLM 渲染改用 `j.llm.text` + 新增
+    `模型：` 标注（照 bazi tab index.html:759 模式）。
+- **验证**（全量）：web --selftest 35 checks 全 PASS（ask.llm.shape
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-161b。

@@ -1026,10 +1026,12 @@ $('#dresearchBtn').addEventListener('click', async () => {
     out.appendChild(evBox);
     renderHits(j.evidence || [], evBox, '无证据');
     // LLM 白话综合（独立成段；引用以服务器渲染的证据为准，不采信模型生成的引用）
+    // R115b（D-161b）：llm 为 dict（text/model），渲染文本 + 模型来源标注
     if (j.llm){
       out.insertAdjacentHTML('beforeend',
         '<div class="llm-block"><div class="llm-title">LLM 生成解读（仅供参考；证据以上方引文为准）</div>' +
-        '<div class="llm-text">' + renderMD(j.llm) + '</div></div>');
+        '<div class="llm-text">' + renderMD(j.llm.text || '') + '</div>' +
+        (j.llm.model ? `<div class="llm-model">模型：${esc(j.llm.model)}</div>` : '') + '</div>');
     } else if (j.llm_error){
       out.insertAdjacentHTML('beforeend',
         `<div class="no-evidence">LLM 未生成：${esc(j.llm_error)}</div>`);

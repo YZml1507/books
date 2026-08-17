@@ -4977,3 +4977,32 @@ n=3；选 5/7 张时 fallback 到"第N张"（index.html:1678），位置含义�
 选 A（塔罗牌阵位置含义服务端化，照 R112b 先例：功能补缺 + 确定性可复验）。
 落地后：13 闸门 + 五层自测全跑（web 32→33 checks），固定 seed 实测
 positions 并记入台账。
+
+## D-161b R115b 优化轨：/api/ask 的 LLM 回复缺模型来源标注（内容回复方向，与 bazi 路径对齐）
+
+**背景（亲自核实）**：内容回复方向摸底发现真实缺口——`/api/ask` 的 LLM
+回复是**纯 str**（`llm_reader.interpret_research` 返回 str，web/app.py:559
+直接 `resp["llm"] = ...`），前端 ask tab 只 `renderMD(j.llm)`（index.html:
+1032），**不显示模型来源**。而 `/api/bazi` 路径的 LLM 回复是结构化
+`llm_out = {"ok": True, "text": text, "model": ...}`（app.py:240-252），
+前端 bazi tab 有 `模型：${esc(j.llm.model)}` 标注（index.html:759）——
+两路径不一致。项目纪律（GOAL.md：LLM 解读为生成文本，须标注模型来源）在
+ask 路径被漏掉：用户看到"LLM 生成解读"却不知道是哪个模型生成的。
+
+**实测数据（命令实跑）**：`POST /api/ask {"q":"潛龍勿用","use_llm":true}`
+→ `llm` 为 str（含"以上为 LLM 生成解读"字样），`llm_error: None`；bazi
+路径 `llm` 为 dict 含 model 字段；前端 ask 渲染段 index.html:1029-1032
+无 model 标注；历史记录/threads 不消费 ask 的 llm 字段（无写库），改字段
+形状无级联风险（需确认前端 815 行 `llm: rec.llm` 仅 bazi 历史）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | `/api/ask` LLM 回复改为结构化 `{"ok": True, "text": ..., "model": ...}`（照 bazi `llm_out` 先例，model 取 `LLM_MODEL` 环境变量或 llm_config 的 model）；前端 ask tab 渲染加 `模型：` 标注（照 bazi tab index.html:759 模式）；web --selftest 补断言（34→35，ask use_llm 时 llm 为 dict 且含 model 键——注意未配置 LLM 时 llm=None 走 llm_error 分支，自测须断言 llm 为 None 或 dict 两种形态的结构正确性） | 纯接口对齐 + 前端标注，零红线、零新依赖；补内容回复的模型来源披露缺口，与 bazi 路径一致；结构可命令复验 |
+| B | 前端体验（术数 tab 历史记录联动） | 历史面板仅 bazi view 有（index.html:318）；改动面大、价值不明确，且 history 表结构为 bazi 定制，跨 tab 复用需迁移 |
+| C | 质量/性能层（FTS 索引配置深查） | FTS 查询 0.001s 实测正常、bge 缓存 R110b 验过新鲜——无缺口 |
+
+选 A（ask 路径 LLM 模型来源标注，照 bazi llm_out 先例：生成文本必须标注
+模型来源）。落地后：13 闸门 + 五层自测全跑（web 34→35 checks），ask
+use_llm 实测 llm 结构并记入台账。

@@ -89,6 +89,11 @@ def available() -> bool:
     return bool(_cfg()["key"])
 
 
+def configured_model() -> str:
+    """当前生效的模型名（文件配置优先，环境变量兜底）——供调用方标注模型来源。"""
+    return _cfg()["model"]
+
+
 def _fmt_calc(calc_data: dict | None) -> str:
     """运算事实 -> 文本块（坐标事实直接转述，不生成新文本）。
 

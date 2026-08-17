@@ -556,7 +556,12 @@ def api_ask(req: AskRequest):
                 resp["llm_error"] = "LLM 未配置（llm_config.json / LLM_API_KEY）"
             else:
                 try:
-                    resp["llm"] = llm_reader.interpret_research(q, ev, r.comparisons)
+                    text = llm_reader.interpret_research(q, ev, r.comparisons)
+                    # R115b（D-161b）：与 /api/bazi 的 llm_out 对齐——生成文本
+                    # 必须标注模型来源（GOAL.md 纪律）。llm 为 None 或 dict，
+                    # 前端按 dict.text + dict.model 渲染。
+                    resp["llm"] = {"ok": True, "text": text,
+                                   "model": llm_reader.configured_model()}
                 except RuntimeError as exc:
                     resp["llm_error"] = str(exc)
         return resp
@@ -1099,6 +1104,15 @@ if __name__ == "__main__":
               lambda j: j.get("evidence") and j.get("steps"))
         check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence_citations"))
+        # R115b（D-161b）：ask 的 llm 字段结构 standing 覆盖——llm 为 None
+        # （未配置 LLM）或 dict 且含 text+model 键（配置时须标注模型来源）。
+        # 不依赖 LLM 是否配置，断言两种合法形态（抓字段形状静默漂移）。
+        check("ask.llm.shape", client.post("/api/ask", json={"q": "潛龍勿用",
+              "max_addresses": 2, "use_llm": True}),
+              lambda j: j.get("llm") is None
+                        or (isinstance(j.get("llm"), dict)
+                            and isinstance(j["llm"].get("text"), str)
+                            and isinstance(j["llm"].get("model"), str)))
         check("history", client.get("/api/history", params={"limit": 3}),
               lambda j: "records" in j and isinstance(j["records"], list))
         check("history.detail", client.get(f"/api/history/{history_db.count()}"),
