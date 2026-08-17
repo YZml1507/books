@@ -4142,3 +4142,57 @@ append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突�
 纯文档轮无代码逻辑，无越界，R100b 纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-111a。
+
+### 93. R102a 纯文档轮：rebase 纳入 R102b-R104b，清空 pending（2026-08-17）
+
+接续 R101a（3f77ed8）。fetch origin 成功，HEAD..origin/main 显示优化轨
+推进 2 提交（R102b、R103b）。逐文件核实全 docs/*.md only（GOAL/DECISIONS/
+TASK_LEDGER）。逐行复审后走 rebase，rebase 后 HEAD..origin/main 又现新提交
+R104b——优化轨高频并行，一并吸收本轮闭环。
+
+**逐行复审 3 提交 diff**（亲眼过）：
+- 55d76ed R102b docs(goal) annotate stale §4 T2-T6 claims with measured disposition：
+  GOAL §4 T2-T6 stale 旧结论逐条 strike 标注实测处置源——T2 差异摘要已实现
+  G5 PASS summarise_diff.py exit 0、T3 contiguous/suspect 列已落地（unit 表
+  skipped_chars/suspect 列实测，verify_index T10断言）、T4 焦氏易林已入索引
+  yilin 5032 单元（§1278 颗粒度修复）、T5 A-12 DONE D-029、T6 G8 PASS
+  knowledge.db 三类隔离。归因诚实（实测命令/台账/决策来源），照 D-008 保留
+  原文。
+- 8db1d8e R103b docs(goal) sync §0 session jsonl path from old .claude location：
+  GOAL §0 session jsonl 路径从旧 .claude\projects\ 同步到现行
+  ~\.atomcode\sessions\（本窗口 1ae2121e85ce8e84、旧窗口 025973b91a55cfb5
+  回溯），补 R96b/R97b 同族漏同步（GOAL.md §0 仍指旧 .claude 路径）。
+- 1b941e7 R104b docs(goal-next) de-pin round count in §0a session-table current-window row：
+  GOAL_NEXT_SESSION §0a session 表本窗口行把 R100b 钌死的轮数"25 轮"改为
+  "以 git log 2946a8a..HEAD | wc -l 实测为准"（实测现 29 轮），根治轮数
+  钉死复发（D-146b/D-132b 先例，与 R100b/R92b/R86b 同族）。
+
+均归因诚实，无越界，无代码逻辑。纪律良好。纯文档轮不启动审查循环。
+
+**rebase**：`git rebase origin/main` 历史必在 R22a merge commit 处遇
+append-only docs/ 冲突。本轮因优化轨高频并行提交，rebase 共执行 2 次：
+第 1 次 d84a4f7 冲突、第 2 次 9a4e1a4 冲突，每次按既定协议"冲突取 --theirs"
+（`git checkout --theirs docs/DECISIONS.md docs/TASK_LEDGER.md` → `git add`
+→ `GIT_EDITOR=true git rebase --continue`）。2 次 rebase 成功，
+R102b-R104b 3 提交纳入 audit 分支 history，HEAD..origin/main 清空。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+
+纯文档轮无代码逻辑，无越界，3 提交纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-112a。
