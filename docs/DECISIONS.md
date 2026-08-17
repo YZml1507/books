@@ -3502,3 +3502,27 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
   liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
   eval_g7 PASS（FABRICATIONS 0）。
+
+## D-115a R105a 审查轨：纯文档轮 rebase 纳入 R107b，清空 pending（2026-08-17）
+
+- **接续 R104a**：fetch origin 成功，HEAD..origin/main 显示优化轨推进 1 提交
+  （72be5db R107b）。`git show --name-only` 确认纯 docs/*.md only
+  （GOAL/DECISIONS/TASK_LEDGER）。按协议第 3 步走纯文档轮，不启动审查循环。
+- **逐行复审 R107b diff**（亲眼过）：GOAL §4b 工作量预估段标注 T1-T7 全部
+  已落地——实测处置源标注完整：T1 eval_g1 246/248、T7 18 items landed。
+  照 D-152b/D-151b 先例 strike 保留原文作 R18b 前工作量预估参考，完成
+  §4b 清理。归因诚实，无越界。纪律良好。
+- **rebase**：`git rebase origin/main` 在历史 e1387cc（R22a merge）处
+  append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议"冲突取
+  --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R107b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
+  eval_g7 PASS（FABRICATIONS 0）。
