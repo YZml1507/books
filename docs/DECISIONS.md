@@ -3526,3 +3526,32 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
   assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
   liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
   eval_g7 PASS（FABRICATIONS 0）。
+
+## D-116a R106a 审查轨：纯文档轮 rebase 纳入 R109b，清空 pending（2026-08-17）
+
+- **接续 R105a**（c6c8e0a）：上窗口 push 中断，本地滞留 1 commit。本轮
+  先补 push：`git -c http.proxy=socks5://127.0.0.1:7897 push --force-with-lease
+  origin audit/R18` → b57d095...c6c8e0a (forced update) 成功。
+- **fetch origin** 后 HEAD..origin/main 显示优化轨推进 1 提交
+  （9449315 R109b）。`git show --name-only` 确认纯 docs/*.md only
+  （GOAL/DECISIONS/TASK_LEDGER）。按协议第 3 步走纯文档轮，不启动审查循环。
+- **逐行复审 R109b diff**（亲眼过）：GOAL §4b"三件事"段第 1 条划线并补注
+  "R109b 标注：T1 已 DONE——eval_g1 248 题 PASS 246/248（R101b 标注）；
+  '每类 5 题最小版'为 R18b 前起步建议，勿按'待办'引用"——与 T1 实测完成
+  状态一致。DECISIONS D-155b 候选方案 A 选定理由完整。LEDGER §136 摸底
+  五层 standing 自测、活引用扫描、真实缺口定位均准确。第 2/3 条是工作
+  纪律非状态断言，无需标注——判断正确。归因诚实，无越界。纪律良好。
+- **rebase**：`git rebase origin/main` 在历史 095c491（R22a renumbered
+  merge）处 append-only docs/ 冲突（DECISIONS + TASK_LEDGER）。按既定协议
+  "冲突取 --theirs"：`git checkout --theirs docs/*.md` → `git add` →
+  `GIT_EDITOR=true git rebase --continue`。rebase 成功，R109b 纳入
+  audit 分支 history，HEAD..origin/main 清空。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin 520/490）、
+  eval_g7 PASS（FABRICATIONS 0）。
