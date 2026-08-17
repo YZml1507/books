@@ -5927,3 +5927,30 @@ err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命�
 三条 400 断言，照 R139b err.bazi.calendar/scope/gender 先例：能力路径
 必须有一条可复现命令断言）。落地后：web --selftest 70→73 checks，跑
 13 闸门 + 五层自测确认零回退。
+
+## D-191b R145b 优化轨：web standing 自测缺口——search 端点 q 为空校验零断言（能力层验证，与 R139b/R144b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：search 端点（web/app.py:351-405）的 search
+check（行 1051）只测 q=潛龍勿用，**q 为空校验**（line 361:
+"q 不能为空——检索需要查询词；找某个地址请用 /api/addr"）**零
+standing 断言**——若该校验回归为 500、或被移除导致空查询进入检索，
+13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b/R144b 同族
+——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/search {"q":""}` → 400，detail
+  "q 不能为空——检索需要查询词；找某个地址请用 /api/addr"
+- 该分支正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补一条断言：err.search.empty（q=""→400）（73→74 checks） | 纯加自测断言、零功能改动/零数据风险；补上 search 端点未覆盖的 q 为空 400 校验分支，抓校验静默失效；与 R139b/R144b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | tarot 端点校验断言 | tarot 无显式 400 校验（n 钳制为 200 属设计行为），增量价值弱于 A |
+
+选 A（补 err.search.empty 一条 400 断言，照 R139b
+err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
+断言）。落地后：web --selftest 73→74 checks，跑 13 闸门 + 五层
+自测确认零回退。

@@ -7073,3 +7073,49 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-190b。
+
+## 172. [优化轨] R145b：web standing 自测缺口——search 端点 q 为空校验零断言 → 补断言（能力层验证，与 R139b/R144b 同族——同端点不同校验维度）（2026-08-18）
+
+### 172a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R144b（`1a6bf08`）已确认在 origin/main。
+
+### 172b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **73 checks**（R144b 末态：err.compare_works.missing/concept.empty/
+  research.max_addresses）。
+- **真实缺口（本轮选定）**：search 端点（web/app.py:351-405）的
+  search check（行 1051）只测 q=潛龍勿用，**q 为空校验**（line 361:
+  "q 不能为空——检索需要查询词；找某个地址请用 /api/addr"）**零
+  standing 断言**——若该校验回归为 500、或被移除导致空查询进入检索，
+  13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b/R144b 同族
+  ——同端点不同校验维度）。
+- **实测**（命令实跑）：
+  - `GET /api/search {"q":""}` → 400 + detail
+    "q 不能为空——检索需要查询词；找某个地址请用 /api/addr"
+  - 该分支正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7
+  handler 完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存
+  新鲜 2505=2505、link 零悬空）、MCP 侧 research_tool 深度验证
+  （工作量大、web 侧已覆盖）——无其他明确缺口。
+- **方案比对**：A 补 err.search.empty 一条 400 断言（73→74 checks，
+  选定）；B 补 MCP research_tool 深度验证（工作量大、web 侧已
+  覆盖）；C tarot 端点（无显式 400 校验，n 钳制为 200 属设计行为）
+  ——见 D-191b。
+
+### 172c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.research.
+  max_addresses 后补一条断言——err.search.empty（q=""→400）
+  （73→74 checks）。
+- **验证**（全量）：web --selftest **74 checks** 全 PASS（一条新
+  search 空q 400 断言生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
+  mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-191b。

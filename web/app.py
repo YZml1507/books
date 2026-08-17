@@ -1377,6 +1377,14 @@ if __name__ == "__main__":
         _expect_400("err.research.max_addresses",
                     client.get("/api/research", params={"q": "潛龍勿用",
                                                          "max_addresses": 0}))
+        # R145b（D-191b）：search 端点 q 为空校验 standing 覆盖——search
+        # check（行 1051）只测 q=潛龍勿用，q 为空校验（line 361）零断言
+        # （若校验回归为 500、或被移除导致空查询进入检索则不可见，与
+        # R139b/R144b 同族——同端点不同校验维度）。实测 q=""→400 +
+        # detail "q 不能为空——检索需要查询词；找某个地址请用 /api/addr"
+        # ——补断言零风险。
+        _expect_400("err.search.empty",
+                    client.get("/api/search", params={"q": ""}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
