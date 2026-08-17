@@ -4281,3 +4281,40 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（7 部非中文 / 248 题 / probe 实跑与命令实测一致）。
 - 决策记录：DECISIONS.md D-127b。
+
+## 109. [优化轨] R82b：LESSONS.md 头部更新时间戳滞后 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 109a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R81b（91f1e81）已确认在 origin/main。
+
+### 109b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致，非缺口；assess_goals PASS 9 · PART 0 · FAIL 0；web 自测 24
+  checks PASS。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）均无残留——非缺口。
+- **真实缺口（本轮选定）**：`docs/LESSONS.md` 头部"**更新** 2026-08-13"
+  停在初始版本日期，但内容早已多次更新（`git log --oneline -- docs/
+  LESSONS.md` 实测）：R52b（edbf03a，2026-08-16）补录 L-22..L-26；
+  R79b（b024cb7，2026-08-17）修正 L-06"12 项"→ T1–T11 23 断言。
+  头部时间戳 2026-08-13 与新会话实际读到的内容（含 L-22..L-26、R79b
+  修正）矛盾——新会话据此会误以为 LESSONS 内容停在初始版本（O1 文档
+  失效模式，L-23 同族；与 R73b 修 PROJECT_STATUS 头部时间戳同族先例，
+  D-119b）。
+
+### 109c. 改动与验证
+
+- **改动**（docs/LESSONS.md，纯文档）：头部"更新 2026-08-13"→"更新
+  2026-08-17（R52b 录 L-22..L-26、R79b 修正 L-06；R82b 同步头部
+  时间戳）"，照 D-119b R73b 先例只同步时间戳、标注实际更新轮次。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（时间戳与 `git log -- docs/LESSONS.md` 实测 R52b/R79b 提交
+  一致）。
+- 决策记录：DECISIONS.md D-128b。
