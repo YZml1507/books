@@ -5268,3 +5268,46 @@ raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（六组处置证据与命令实测/台账/§4 标注一致）。
 - 决策记录：DECISIONS.md D-151b。
+
+## 133. [优化轨] R106b：GOAL.md §4b 建议节奏段仍按待办顺序引用已完成任务 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 133a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `cd69b54`
+（R102a：吸收优化轨 R102b-R104b docs-only rebase，gates green；此前
+`3f77ed8` R101a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）。R64b G9 SCOPE 移交项
+维持。R105b（16c26f6）已确认在 origin/main，无 rebase 需求。
+
+### 133b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **§4b 建议节奏 T1-T7 逐项核实**（命令实测/台账对照）：T1 评测集
+  DONE（eval_g1 248 题 PASS 246/248，R101b）；T2 差异摘要 DONE（G5
+  PASS，summarise_diff.py，R102b）；T3 引用披露 DONE（X-10/X-11 列，
+  R102b）；T4 易林编址 DONE（yilin 5,032，P-05/§1278）；T5 A-12 DONE
+  （D-029 方案 C EXPECTED）；T6 G8 隔离 DONE（knowledge.db 三类，
+  probe_g8_isolation 全拦）；T7 各子项落地（R77b T7 表）。
+- **活引用扫描**：R75b-R105b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4b 建议节奏段仍按**待办
+  执行顺序**引用 T1-T7（"T1 最小版 → T2 → T3 → T4 勘查 → T5 → T6 →
+  T7 按表取用"），但全部任务已完成——新会话照 §4b 会误以为 T1-T7 仍
+  待按序执行（O1 文档失效模式，L-23 同族；与 R105b 处理 §1b 并行清单
+  同族，§4b 建议节奏段漏标）。
+
+### 133c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§4b 建议节奏段划线并补注"R106b
+  标注：T1-T7 全部任务均已落地（处置出处见 §4 各段、R77b T7 表、
+  R101b-R102b 标注）；本段为 R18b 前执行节奏参考，勿按'待办'引用"
+  （照 D-151b/D-147b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（T1-T7 处置证据与命令实测/台账/§4 标注一致）。
+- 决策记录：DECISIONS.md D-152b。
