@@ -4805,3 +4805,42 @@ R93b（f42cddf）已确认在 origin/main，无 rebase 需求。
   审阅通过（PASS 9 / 248 题 246/248 与 assess_goals/eval_g1 实测及
   台账 §1074 一致）。
 - 决策记录：DECISIONS.md D-140b。
+
+## 122. [优化轨] R95b：PROJECT_STATUS 快照块日期标签"2026-08-16"与头部 R78b 矛盾 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 122a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `5193f76` R95a：
+吸收优化轨 R76b-R92b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R94b（2da7c2d）已确认在 origin/main。
+
+### 122b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **eval_g1 复验**（命令实跑）：retrieval 40/40、retrieval_concept
+  53/55 = 96.4%（target 80%）、overall 246/248 = 99.2%——与 PROJECT_
+  STATUS 行 53 快照一致，非缺口。
+- **活引用扫描**：R75b-R94b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_STATUS.md` 快照块日期标签
+  （行 14）写"## 当前实测快照（2026-08-16…）"——该日期由 R18b
+  （87afd68）写入，此后快照块内容多次更新但块内日期标签从未同步：
+  头部行 7"更新时间 2026-08-17（R78b…）"（R84b 同步）、`git log
+  -L 19,19` 实测快照块行 19 由 R78b（dfe1052）修改（T1-T13 →
+  T1-T11）。块内日期 2026-08-16 与头部 2026-08-17（R78b）矛盾——新
+  会话读快照块会误以为快照停在 2026-08-16（O1 文档失效模式，L-23
+  同族；与 R84b 同步头部 R70b→R78b 同族，D-130b 先例——当时只同步
+  了头部，漏了块内日期标签）。
+
+### 122c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：快照块日期标签
+  "2026-08-16"→"2026-08-17——R78b 更新快照块行 19 T1-T11，历轮刷新
+  见头部"，照 D-130b 头部同步先例的补完（块内日期标签同步）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（2026-08-17 与头部 R78b 及 `git log -L 19,19` 实测一致）。
+- 决策记录：DECISIONS.md D-141b。
