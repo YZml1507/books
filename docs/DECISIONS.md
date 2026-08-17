@@ -5893,3 +5893,37 @@ qiming 的 month（line 894-895）、day（line 896-897）、hour（line
 选 A（补 err.taohua.year/gender/calendar 三条 400 断言，照 R139b
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令断言）。
 落地后：web --selftest 67→70 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-190b R144b 优化轨：web standing 自测缺口——compare_works 缺 work_a/concept 空q/research max_addresses=0 三条 400 校验分支零断言（能力层验证，与 R139b/R142b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：
+- `/api/compare_works` 的 work_a/work_b 缺失校验（line 517）零断言
+  ——compare_works check（行 1158）只测有命中路径。
+- `/api/concept` 的 q 为空校验（line 496）零断言——concept check
+  （行 1156）只测 q=無為。
+- `/api/research` 的 max_addresses=0 范围校验（line 476）零断言
+  ——research check（行 1368）只测 max_addresses=2。
+- 若这些校验回归为 500、或被移除导致非法输入进入计算，13 闸门与
+  五层自测都看不见（L-22/L-23 同族；与 R139b/R142b 同族——同端点
+  不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/compare_works {"work_b":"KR5c0126","q":"無為"}` → 400，
+  detail "work_a / work_b 不能为空"
+- `GET /api/concept {"q":""}` → 400，detail "q 不能为空"
+- `GET /api/research {"q":"潛龍勿用","max_addresses":0}` → 400，
+  detail "max_addresses 需在 1-6"
+- 三条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补三条断言：err.compare_works.missing（缺 work_a→400）、err.concept.empty（q=""→400）、err.research.max_addresses（max_addresses=0→400）（70→73 checks） | 纯加自测断言、零功能改动/零数据风险；补上三个未覆盖的 400 校验分支，抓校验静默失效；与 R139b/R142b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | tarot 端点校验断言 | tarot 无显式 400 校验（n 钳制为 200 属设计行为），增量价值弱于 A |
+
+选 A（补 err.compare_works.missing/concept.empty/research.max_addresses
+三条 400 断言，照 R139b err.bazi.calendar/scope/gender 先例：能力路径
+必须有一条可复现命令断言）。落地后：web --selftest 70→73 checks，跑
+13 闸门 + 五层自测确认零回退。

@@ -1361,6 +1361,22 @@ if __name__ == "__main__":
                                                      "day": 15, "hour": 10,
                                                      "gender": "男",
                                                      "calendar_type": "garbage"}))
+        # R144b（D-190b）：compare_works/concept/research 三条 400 校验分支
+        # standing 覆盖——compare_works check（行 1158）只测有命中路径，
+        # work_a/work_b 缺失校验（line 517）零断言；concept check（行
+        # 1156）只测 q=無為，q 为空校验（line 496）零断言；research
+        # check（行 1368）只测 max_addresses=2，max_addresses=0 范围校验
+        # （line 476）零断言。若这些校验回归为 500 或被移除则不可见
+        # （L-22/L-23 同族；与 R139b/R142b 同族——同端点不同校验维度）。
+        # 实测三条均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.compare_works.missing",
+                    client.get("/api/compare_works", params={"work_b": "KR5c0126",
+                                                              "q": "無爲"}))
+        _expect_400("err.concept.empty",
+                    client.get("/api/concept", params={"q": ""}))
+        _expect_400("err.research.max_addresses",
+                    client.get("/api/research", params={"q": "潛龍勿用",
+                                                         "max_addresses": 0}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
