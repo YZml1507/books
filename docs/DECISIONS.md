@@ -3561,6 +3561,39 @@ research/mcp 自测 + 13 闸门全绿。commit 见台账 §67。
 
 ## D-123a R113a 审查循环：rebase 纳入 R121b（八字合婚 hehun 模块 + 第 8 前端 tab），逐行复审 + 13 闸门 + web --selftest 40 checks 全绿（2026-08-17）
 
+## D-124a R114a 纯文档轮：rebase 纳入 R122b+R123b（docs sync web checks 39→40 + shushu feature list tab 7→8），清空 pending（2026-08-17）
+
+- **接续 R113a**（6bf4e5d，上轮已 push 闭环）。fetch origin 后 ls-remote
+  监控发现优化轨推进 main：origin/main HEAD 从 6eb8882 变为 6d31768。
+  HEAD..origin/main 显示优化轨推进 2 提交（5ef3143 R122b、
+  6d31768 R123b）。
+- **R122b/R123b 均为纯 docs/*.md only**（DECISIONS/GOAL_NEXT_SESSION/
+  PROJECT_STATUS/PROJECT_ROADMAP/TASK_LEDGER）。无代码逻辑。按协议
+  第 4 步走纯文档轮，不启动审查循环。
+- **逐行复审 R122b/R123b diff**（亲眼过）：R122b 同步 web checks
+  39→40（R121b hehun standing assertion provenance），
+  GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行更新。R123b 同步
+  shushu feature list（tab 7→8，hehun 第 8 tab），
+  GOAL_NEXT_SESSION snapshot 术数功能 row，ROADMAP P3 更新。两个
+  提交都是纯文档同步，归因诚实，无越界。无红线。纯文档轮不启动
+  审查循环。
+- **rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+  5aee5b1（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
+  + TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+  docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+  rebase 成功，R122b/R123b 纳入 audit 分支 history，HEAD..origin/main
+  清空。stash pop 恢复数据库产物。
+- **领土零越界**：rebase 后 `git diff origin/main..HEAD`：审查轨领土
+  `scripts/assess_goals.py` 有改动（R21a 委托修复 8c1242c/337aadc，历史遗留
+  合法）；优化轨领土 `src/guji/**` `web/**` 审查轨 diff 为空（0 字节）→
+  领土零越界确认。
+- 13 闸门亲跑全绿（rebase 后 confirm 无回归）：check_quality PASS、
+  verify_index ALL PASS（T10 suspect=10 units/5 地址、T11 362 compared）、
+  assess_goals G1-G9 全 PASS、4 probes（conservation/bcv/huangli_shensha/
+  liuyao_najia）全 PASS、eval_g1 PASS（246/248）、eval_g4 PASS（yilin
+  520/490）、eval_g7 PASS（FABRICATIONS 0）。**web --selftest PASS
+  (40 checks)**。
+
 - **接续 R112a**（e900806，上轮已 push 闭环）。fetch origin 后 ls-remote
   监控发现优化轨推进 main：origin/main HEAD 从 ed687a8 变为 6eb8882。
   HEAD..origin/main 显示优化轨推进 1 提交（6eb8882 R121b）。

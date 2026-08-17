@@ -4860,3 +4860,56 @@ R121b 是优化轨领土 src/guji/hehun.py（八字合婚纯坐标计算：六�
 pending 清空。
 
 - 决策记录：DECISIONS.md D-123a。
+
+### 105. R114a 纯文档轮：rebase 纳入 R122b+R123b（docs sync web checks 39→40 + shushu feature list tab 7→8），清空 pending（2026-08-17）
+
+接续 R113a（6bf4e5d，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 6eb8882 变为 6d31768。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- 5ef3143 R122b docs: sync web checks 39->40 after R121b hehun
+  standing assertion
+- 6d31768 R123b docs: sync shushu feature list with hehun
+  (tab 7->8) after R121b
+
+`git show --name-only` 确认两个提交均为纯 docs/*.md only
+（DECISIONS/GOAL_NEXT_SESSION/PROJECT_STATUS/PROJECT_ROADMAP/TASK_LEDGER）。
+无代码逻辑。按协议第 4 步走纯文档轮，不启动审查循环。
+
+**逐行复审 R122b/R123b diff**（亲眼过）：
+- R122b：同步 web checks 39→40（R121b hehun standing assertion
+  provenance），GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行更新。
+- R123b：同步 shushu feature list（tab 7→8，hehun 第 8 tab），
+  GOAL_NEXT_SESSION snapshot 术数功能 row，ROADMAP P3 更新。
+
+两个提交都是纯文档同步，归因诚实，无越界。无红线。纯文档轮不启动
+审查循环。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+5aee5b1（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R122b/R123b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (40 checks)**。
+
+R122b/R123b 纯文档轮无代码逻辑，无越界，纪律良好。pending 清空。
+
+- 决策记录：DECISIONS.md D-124a。
