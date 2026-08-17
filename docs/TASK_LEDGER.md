@@ -4913,3 +4913,73 @@ rebase 成功，R122b/R123b 纳入 audit 分支 history，HEAD..origin/main
 R122b/R123b 纯文档轮无代码逻辑，无越界，纪律良好。pending 清空。
 
 - 决策记录：DECISIONS.md D-124a。
+
+### 106. R115a 审查循环：rebase 纳入 R124b（invalid-input error path standing 5 条）+ R125b（docs sync 40→45），逐行复审 + 13 闸门 + web --selftest 45 checks 全绿（2026-08-17）
+
+接续 R114a（bfbfee4，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 6d31768 变为 5425550。
+HEAD..origin/main 显示优化轨推进 2 提交：
+
+- 0c085df R124b test(web): cover invalid-input error paths 400
+- 5425550 R125b docs: sync web checks 40->45 after R124b error
+  path standing
+
+`git show --name-only` 确认改动文件：
+- R124b：docs/{DECISIONS,TASK_LEDGER}.md、web/app.py。**含代码逻辑
+  （优化轨领土 web/app.py self-test standing 断言加强）→ 按 §0.3 协议
+  第 5 步立即启动审查轨循环。**
+- R125b：docs/{DECISIONS,GOAL_NEXT_SESSION,PROJECT_STATUS,
+  TASK_LEDGER}.md。纯文档轮。
+
+**逐行复审 R124b 优化轨领土文件**（亲眼过，优化轨领土 src/guji/web
+只复审+记录移交，不动手）：
+- **web/app.py**：self-test 加 5 条 invalid-input error path standing
+  断言（40→45 checks）：
+  1. `check("bazi.bad_year", ...)`：year=1900 → 400（< YEAR_LO 1901）
+  2. `check("bazi.bad_month", ...)`：month=0 → 400
+  3. `check("bazi.bad_day", ...)`：day=32 → 400
+  4. `check("bazi.bad_hour", ...)`：hour=24 → 400
+  5. `check("huangli.bad_affair", ...)`：affair="非术数" → 400
+     （不在 huangli affair 白名单）
+  覆盖此前零断言的输入校验 400 error path（L-24 同族，
+  R118b/R119b 同模式：加断言抓端点静默失效）。无 SQL 注入、无
+  subprocess、无 eval、无路径拼接风险。纯 standing 断言加强，
+  无生产代码变更。无红线。
+
+**逐行复审 R125b 纯文档 diff**（亲眼过）：同步 web checks 40→45、
+GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行。归因诚实，无越界。
+无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+699b496（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R124b/R125b 纳入 audit 分支 history，HEAD..origin/main
+清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (45 checks)**：含 R124b 5 条 invalid-input
+  error path 断言（err.addr.scheme/err.liuyao.method/err.hehun.year/
+  err.bazi.year/err.qiming.surname）。
+
+R124b 是优化轨领土 web/app.py self-test standing 断言加强
+（5 条 invalid-input error path），覆盖此前零断言的输入校验 400
+error path，无红线。R125b 纯文档轮。领土零越界确认，13 闸门 +
+web --selftest 45 checks 全 PASS。pending 清空。
+
+- 决策记录：DECISIONS.md D-125a。
