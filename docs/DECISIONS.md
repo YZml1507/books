@@ -4331,3 +4331,32 @@ R89b 补清单时未对照顺序规则，属同族残留）。
 
 选 A（顺序对齐 TASK_LEDGER + 补 X-11 注释）。落地后：docs-only 先例
 闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-137b R91b 优化轨：TASK_LEDGER 头部 check_provenance 注释"0/28"过时 → 同步（文档对齐）
+
+**背景（亲自核实）**：R89b 修 GOAL.md §3 check_provenance 注释
+"0/28"→"0/47"，但**台账自己头部的同族注释漏改**：`docs/TASK_LEDGER.md`
+行 33 仍写"provenance，须 0/28 缺失"（对照 GOAL.md 行 131 已改
+"0/47（R89b 修正旧 0/28）"）。实测 `scripts/check_provenance.py`
+（命令实跑）：
+- `index works: 47  manifest works: 47`、works with NO manifest entry =
+  none（unprovenanced 0）；
+- `zip_sha256 missing 0/47`（判据字段，exit 0）；
+- `source_url missing 9/47`（子平书本地 logs/p2_tmp 拉取无远程 URL，
+  真实空值非缺陷，台账 §1282/§1285 已记录）。
+"0/28"是 R17 前旧数（当时 28 部 Kanripo 无缺失），现 47 部口径——
+新会话照台账头部读判据会误以为 provenance 判据停在 28 部时代（O1
+文档失效模式，L-23 同族：可被命令断言的事实硬编码且漏同步；R89b 同族
+残留，与 R90b 顺序问题同批暴露）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | TASK_LEDGER 行 33 注释"0/28"→"0/47（zip_sha256/licence 0 missing；source_url 9/47 为子平书本地拉取真实空值，台账 §1282；R91b 修正旧 0/28）" | 纯文档、零代码/零风险；数字与 `check_provenance.py` 实测（zip 0/47、source_url 9/47）及台账 §1282 一致，防新会话误读判据口径 |
+| B | 只改 GOAL.md 不动台账 | 台账头部仍误导（0/28 vs 47 部） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（台账头部注释同步，照 R89b GOAL.md 先例 + §1282 出处）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。

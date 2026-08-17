@@ -30,7 +30,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\verify_index.py       # 现为 T1–T11 共 23 断言（新增 T9 披露 / T10 损坏标记；R78b 修正旧"20 项"数）
 .\.venv\Scripts\python.exe scripts\validate_alignment.py # 对齐打分，须 >= 1824/1872
 .\.venv\Scripts\python.exe probes\probe_conservation.py  # 文本守恒，delta 0 / ratio 1.0000
-.\.venv\Scripts\python.exe scripts\check_provenance.py   # provenance，须 0/28 缺失
+.\.venv\Scripts\python.exe scripts\check_provenance.py   # provenance，zip_sha256/licence 须 0/47 缺失（source_url 9/47 为子平书本地拉取真实空值，台账 §1282；R91b 修正旧 0/28）
 .\.venv\Scripts\python.exe probes\probe_bcv.py           # 第二种地址体系（**现在会真的 exit 1**）
 .\.venv\Scripts\python.exe scripts\eval_g1.py            # G1 评测集 193 题（本轮新增）
 .\.venv\Scripts\python.exe scripts\summarise_diff.py     # G5 差异摘要对照（本轮新增）
@@ -4641,3 +4641,42 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（顺序与 TASK_LEDGER 规则一致）。
 - 决策记录：DECISIONS.md D-136b。
+
+## 118. [优化轨] R91b：TASK_LEDGER 头部 check_provenance 注释"0/28"过时 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 118a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R90b（545a778）已确认在 origin/main。
+
+### 118b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **check_provenance 实测**（命令实跑）：index works 47 = manifest
+  works 47，unprovenanced none；zip_sha256 missing **0/47**（判据字段，
+  exit 0）；source_url missing **9/47**（子平书本地 logs/p2_tmp 拉取
+  无远程 URL，真实空值非缺陷，台账 §1282/§1285 已记录）。
+- **活引用扫描**：R75b-R90b 处置项均无残留；DECISIONS.md 残留旧数均为
+  历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R89b 修 GOAL.md §3 check_provenance 注释
+  "0/28"→"0/47"，但**台账自己头部的同族注释漏改**——`docs/TASK_LEDGER
+  .md` 行 33 仍写"provenance，须 0/28 缺失"（对照 GOAL.md 行 131 已改
+  "0/47（R89b 修正旧 0/28）"）。"0/28"是 R17 前旧数（当时 28 部 Kanripo
+  无缺失），现 47 部口径——新会话照台账头部读判据会误以为 provenance
+  判据停在 28 部时代（O1 文档失效模式，L-23 同族：可被命令断言的事实
+  硬编码且漏同步；R89b 同族残留，与 R90b 顺序问题同批暴露）。
+
+### 118c. 改动与验证
+
+- **改动**（docs/TASK_LEDGER.md，纯文档）：行 33 注释"0/28"→
+  "zip_sha256/licence 须 0/47 缺失（source_url 9/47 为子平书本地拉取
+  真实空值，台账 §1282；R91b 修正旧 0/28）"。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（zip 0/47、source_url 9/47 与 `check_provenance.py` 实测及
+  台账 §1282 一致）。
+- 决策记录：DECISIONS.md D-137b。
