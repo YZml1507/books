@@ -5096,3 +5096,49 @@ src/guji 主轨文件。R64b G9 SCOPE 移交项维持。R100b（8ada404）已确
   审阅通过（PASS 9 / 248 题与 assess_goals/eval_g1 实测及台账 §1
   （R94b）一致）。
 - 决策记录：DECISIONS.md D-147b。
+
+## 129. [优化轨] R102b：GOAL.md §4 T2-T6 段过时断言未标注 → 逐段补注（2026-08-17，双窗口并行第二轨）
+
+### 129a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `0413070` R100a：
+吸收优化轨 R98b-R99b docs-only rebase；未动 scripts/assess_goals.py
+的 raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+移交项维持。R101b（57f218c）已确认在 origin/main，无 rebase 需求。
+
+### 129b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **T2-T6 断言逐项实测**：T2 差异摘要已实现（summarise_diff.py 实跑
+  exit 0，G5 PASS）；T3 unit 表实测含 suspect + skipped_chars 列
+  （X-10 非连续引文 4,524 已标，X-11 suspect R17 修正归责）；T4 yilin
+  scheme 实测 5,032 单元（P-05 DONE，§1278 颗粒度修复）；T5 A-12 已
+  DONE（D-029 方案 C EXPECTED，台账 §165/§814）；T6 G8 PASS
+  （knowledge.db thread/derived/evidence 三类，probe_g8_isolation
+  9 项全拦）。
+- **活引用扫描**：R75b-R101b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：R77b 处理了 GOAL.md §4 **T7 表**、R101b
+  处理了 **T1 段**，但 **T2-T6 段仍含过时断言**——T2"缺差异摘要"、
+  T3"拟加 contiguous/suspect 列"、T4"焦氏易林结构未查明"、T5"未验证
+  候选思路"、T6"Derived/Conversation 完全不存在/隔离空真"均与实测
+  矛盾（见上）。新会话读 GOAL.md §4 T2-T6 会误以为五项未完成（O1
+  文档失效模式，L-23 同族：可被命令断言的事实硬编码且漏同步；
+  R77b/R101b 同族，T2-T6 段漏标）。
+
+### 129c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§4 T2-T6 段逐段划线/补注处置状态
+  （照 D-008/D-147b 先例）：T2 差异摘要已实现（G5 PASS，
+  summarise_diff.py）；T3 X-10/X-11 已落地（skipped_chars + suspect
+  列，R17）；T4 易林已入索引（yilin 5,032 单元，P-05/§1278）；T5
+  A-12 已 DONE（D-029 方案 C EXPECTED）；T6 G8 PASS（knowledge.db
+  三类隔离，probe_g8_isolation 全拦）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（五项处置证据与命令实测/台账/DECISIONS 一致）。
+- 决策记录：DECISIONS.md D-148b。

@@ -4615,3 +4615,34 @@ T7 表但**未处理 T1-T6 段**——新会话读 GOAL.md §4 T1 会误以为 G
 
 选 A（T1 段划线标注 + 处置出处，照 D-008/R94b 先例）。落地后：docs-only
 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-148b R102b 优化轨：GOAL.md §4 T2-T6 段过时断言未标注 → 逐段补注（文档对齐）
+
+**背景（亲自核实）**：R77b 处理了 GOAL.md §4 **T7 表**、R101b 处理了
+**T1 段**，但 **T2-T6 段仍含过时断言**（命令实跑逐项对照）：
+- **T2**"缺的是**差异摘要**"——但 G5 PASS、`scripts/summarise_diff.py`
+  已存在且 exit 0（差异摘要已实现，台账 §1）；
+- **T3**"拟加 `contiguous` 列 + 渲染标记 / 拟加 `suspect` 列"——但实测
+  unit 表**已含 `suspect` 与 `skipped_chars` 列**（X-10 非连续引文
+  4,524 已标 skipped_chars + `!`，X-11 suspect 已加且 R17 修正归责，
+  见 PROJECT_STATUS 行 51/95）；
+- **T4**"焦氏易林**真实结构尚未查明**"——但 P-05 DONE、yilin scheme
+  已入索引 **5,032 单元**（`SELECT count(*) WHERE scheme='yilin'` 实测；
+  台账 §1278 颗粒度修复 1 单元 113,051 字 → 29 单元）；
+- **T5**"未验证的候选思路：排除括号注内的出现"——但 A-12 已 DONE
+  （方案 C EXPECTED，D-029，台账 §165/§814；任务书提示的候选思路实测
+  不适用——错在王弼裸注无括号，非孔穎達括号疏）。
+新会话读 GOAL.md §4 T2-T6 会误以为差异摘要未做、suspect 未加、易林
+未编址、A-12 未决（O1 文档失效模式，L-23 同族：可被命令断言的事实
+硬编码且漏同步；R77b/R101b 同族，T2-T6 段漏标）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §4 T2-T6 段逐段划线/补注处置状态：T2 差异摘要已实现（G5 PASS，summarise_diff.py）；T3 两列已落地（unit.suspect + skipped_chars，R17）；T4 易林已入索引（yilin 5,032 单元，P-05/§1278）；T5 A-12 已 DONE（D-029，方案 C EXPECTED） | 纯文档、零代码/零风险；处置证据全部来自命令实测（summarise_diff exit 0 / unit 列 / yilin 5,032 / 台账 D-029），防新会话误判四项未完成 |
+| B | 只改 T1 不动 T2-T6 | T2-T6 仍误导（四项未完成假象） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（T2-T6 逐段补注，照 D-147b/R77b 先例）。落地后：docs-only 先例
+闸门抽跑（verify_index + check_quality），文档 diff 审阅。
