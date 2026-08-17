@@ -1385,6 +1385,18 @@ if __name__ == "__main__":
         # ——补断言零风险。
         _expect_400("err.search.empty",
                     client.get("/api/search", params={"q": ""}))
+        # R146b（D-192b）：concept/research 端点 q 过长校验 standing 覆盖
+        # ——concept check（行 1156）只测 q=無為，q 过长校验（line 498:
+        # "q 过长（≤200 字符）"）零断言；research check（行 1392）只测
+        # q=潛龍勿用，q 过长校验（line 474）零断言。若校验回归为 500、
+        # 或被移除导致超长查询进入检索则不可见（L-22/L-23 同族；与
+        # R139b/R144b/R145b 同族——同端点不同校验维度）。实测 q=甲*201
+        # /乙*201 均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.concept.too_long",
+                    client.get("/api/concept", params={"q": "甲" * 201}))
+        _expect_400("err.research.too_long",
+                    client.get("/api/research", params={"q": "乙" * 201,
+                                                         "max_addresses": 2}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖

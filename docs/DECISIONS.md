@@ -5954,3 +5954,33 @@ standing 断言**——若该校验回归为 500、或被移除导致空查询�
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
 断言）。落地后：web --selftest 73→74 checks，跑 13 闸门 + 五层
 自测确认零回退。
+
+## D-192b R146b 优化轨：web standing 自测缺口——concept/research 端点 q 过长校验零断言（能力层验证，与 R139b/R144b/R145b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：
+- `/api/concept` 的 q 过长校验（line 498: "q 过长（≤200 字符）"）
+  零断言——concept check（行 1156）只测 q=無為。
+- `/api/research` 的 q 过长校验（line 474）零断言——research check
+  （行 1392）只测 q=潛龍勿用。
+- 若这些校验回归为 500、或被移除导致超长查询进入检索，13 闸门与
+  五层自测都看不见（L-22/L-23 同族；与 R139b/R144b/R145b 同族
+  ——同端点不同校验维度）。
+
+**实测数据（命令实跑）**：
+- `GET /api/concept {"q":"甲"*201}` → 400，detail "q 过长（≤200 字符）"
+- `GET /api/research {"q":"乙"*201,"max_addresses":2}` → 400，
+  detail "q 过长（≤200 字符）"
+- 两条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补两条断言：err.concept.too_long（q=甲*201→400）、err.research.too_long（q=乙*201→400）（74→76 checks） | 纯加自测断言、零功能改动/零数据风险；补上 concept/research 端点未覆盖的 q 过长 400 校验分支，抓校验静默失效；与 R139b/R144b/R145b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | ask 端点空q 断言 | ask 空 q 为 422（Pydantic min_length 自动校验），框架保证不易回归，增量价值弱于 A |
+
+选 A（补 err.concept.too_long/err.research.too_long 两条 400 断言，
+照 R139b err.bazi.calendar/scope/gender 先例：能力路径必须有一条
+可复现命令断言）。落地后：web --selftest 74→76 checks，跑 13 闸门
++ 五层自测确认零回退。

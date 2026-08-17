@@ -7119,3 +7119,52 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
   mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-191b。
+
+## 173. [优化轨] R146b：web standing 自测缺口——concept/research 端点 q 过长校验零断言 → 补断言（能力层验证，与 R139b/R144b/R145b 同族——同端点不同校验维度）（2026-08-18）
+
+### 173a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R145b（`e4d5553`）已确认在 origin/main。
+
+### 173b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **74 checks**（R145b 末态：err.search.empty）。
+- **真实缺口（本轮选定）**：
+  - `/api/concept` 的 q 过长校验（line 498: "q 过长（≤200 字符）"）
+    零断言——concept check（行 1156）只测 q=無為。
+  - `/api/research` 的 q 过长校验（line 474）零断言——research check
+    （行 1392）只测 q=潛龍勿用。
+  - 若这些校验回归为 500、或被移除导致超长查询进入检索，13 闸门与
+    五层自测都看不见（L-22/L-23 同族；与 R139b/R144b/R145b 同族
+    ——同端点不同校验维度）。
+- **实测**（命令实跑）：
+  - `GET /api/concept {"q":"甲"*201}` → 400 + detail
+    "q 过长（≤200 字符）"
+  - `GET /api/research {"q":"乙"*201,"max_addresses":2}` → 400
+    + detail "q 过长（≤200 字符）"
+  - 两条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 表单=7
+  handler 完整）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存
+  新鲜 2505=2505、link 零悬空）、MCP 侧 research_tool 深度验证
+  （工作量大、web 侧已覆盖）——无其他明确缺口。
+- **方案比对**：A 补 err.concept.too_long/err.research.too_long 两条
+  400 断言（74→76 checks，选定）；B 补 MCP research_tool 深度验证
+  （工作量大、web 侧已覆盖）；C ask 端点空q（422 Pydantic 校验，
+  框架保证不易回归，增量价值弱）——见 D-192b。
+
+### 173c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.search.empty 后
+  补两条断言——err.concept.too_long（q=甲*201→400）、err.research.
+  too_long（q=乙*201→400）（74→76 checks）。
+- **验证**（全量）：web --selftest **76 checks** 全 PASS（两条新
+  q 过长 400 断言生效）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
+  mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-192b。
