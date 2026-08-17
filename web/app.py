@@ -929,6 +929,19 @@ if __name__ == "__main__":
 
         check("search", client.get("/api/search", params={"q": "潛龍勿用"}), lambda j: j.get("hits"))
         check("addr", client.get("/api/addr", params={"scheme": "zhouyi", "gua": 1}), lambda j: j.get("hits"))
+        # R110b（D-156b）：zhouyi 之外五类 scheme 走 at_scheme 通用路径，此前无
+        # standing 断言——若该路径静默失效，13 闸门与五层自测都看不见。固定参数
+        # 实测可稳定复现（bcv Proverbs 12:12 / yilin 中孚 61 / booksec addr1=10 /
+        # play THE SONNETS 1 / euclid Book 1），断言 200 + hits 非空 + scheme 回显。
+        for _sch, _params in (
+            ("addr.bcv", {"scheme": "bcv", "addr_name": "Proverbs", "addr1": 12, "addr2": "12"}),
+            ("addr.yilin", {"scheme": "yilin", "addr1": 61}),
+            ("addr.booksec", {"scheme": "booksec", "addr1": 10}),
+            ("addr.play", {"scheme": "play", "addr_name": "THE SONNETS", "addr1": 1}),
+            ("addr.euclid", {"scheme": "euclid", "addr_name": "Book 1", "addr1": 1}),
+        ):
+            check(_sch, client.get("/api/addr", params=_params),
+                  lambda j, s=_params["scheme"]: j.get("hits") and j.get("scheme") == s)
         check("compare", client.get("/api/compare", params={"gua": 28, "yao": "九二"}), lambda j: "findings" in j)
         check("works", client.get("/api/works"), lambda j: j.get("works") and all("source" in w for w in j["works"]))
         check("stats", client.get("/api/stats"), lambda j: j.get("stats") and j.get("layers"))

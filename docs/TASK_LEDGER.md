@@ -5442,3 +5442,51 @@ raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（T1 处置证据与命令实测/台账/R101b 标注一致）。
 - 决策记录：DECISIONS.md D-155b。
+
+## 137. [优化轨] R110b：web standing 自测 addr check 只覆盖 zhouyi，五类 scheme 通用路径补断言（能力层验证，2026-08-17）
+
+### 137a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a：
+吸收优化轨 R106b docs-only rebase；未动 scripts/assess_goals.py 的
+raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修（main 与 audit 两侧，维持 §2a 描述）。R109b（9449315）
+已确认在 origin/main。本窗口交接话术已交付用户（任务 #3，上一轮
+todo 闭环）。
+
+### 137b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测复验**：sources/bookstudy/research/mcp 自测全
+  PASS，web 24 checks PASS——无静默退化。
+- **bge_mingli 缓存一致性**（实测）：docmeta ids=2505 = 当前语料
+  MINGLI_WORKS 单元 id 列表（cache == current True），缓存新鲜。
+- **web 端点覆盖核对**：24 checks 已覆盖全部路由（含 threads.post
+  +readback+cleanup、bazi.semantic 语义路径；external/news 明确排除
+  D-100b、DELETE /api/history 为破坏性端点不入 standing）——无缺口。
+- **文档滞后扫描**：GOAL.md（R105b/R109b 标注齐全）、PROJECT_STATUS
+  /LESSONS 头部时间戳、MASTER_PLAN §6（R108b）、ROADMAP、GOAL_NEXT_
+  SESSION §0a 会话表与 §2a 移交项——均无新滞后点。
+- **真实缺口（本轮选定）**：web/app.py --selftest 的 `addr` check
+  （app.py:930）只测 `{"scheme":"zhouyi","gua":1}` 一条路径；六类地址
+  体系中 bcv/yilin/booksec/play/euclid 五类走 `Corpus.at_scheme`
+  （search.py:189）通用路径，standing 自测对其**零断言**——若
+  at_scheme 的 SQL/列名/映射静默失效（L-22/L-23 同族：可被命令断言的
+  能力缺 standing 覆盖），13 闸门与五层自测都看不见。实测五类 scheme
+  的 /api/addr 均 200 且 hits 非空、固定参数可稳定复现（bcv Proverbs
+  12:12 / yilin 中孚 61 / booksec addr1=10 / play THE SONNETS 1 /
+  euclid Book 1）。
+
+### 137c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：addr check 后补五条 standing 断言
+  addr.bcv / addr.yilin / addr.booksec / addr.play / addr.euclid，用上
+  述固定参数断言 200 + hits 非空 + scheme 回显正确（照 R69b
+  bazi.semantic 先例：能力路径必须有一条可复现命令断言）。
+- **验证**（全量）：web --selftest 24→29 checks 全 PASS；13 道闸门
+  全 exit 0（check_quality 先于 build_index，verify_index T1-T11 ALL
+  PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；sources/bookstudy/
+  research/mcp 自测全 PASS。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-156b。

@@ -4841,3 +4841,33 @@ L-23 同族；与 R107b/R106b 同族，中间段漏标）。第 2/3 条是工作
 
 选 A（"三件事"段第 1 条补注，照 D-153b/D-152b 先例）。落地后：docs-only
 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-156b R110b 优化轨：web standing 自测 addr check 只覆盖 zhouyi 一种 scheme，其余五类通用路径无断言（能力层验证覆盖缺口）
+
+**背景（亲自核实）**：`web/app.py` --selftest 的 `check("addr", ...)`（app.py:930）
+只测 `{"scheme": "zhouyi", "gua": 1}` 一条路径；而地址体系共六类，其中
+bcv/yilin/booksec/play/euclid 五类走 `Corpus.at_scheme`（search.py:189）通用
+路径，web standing 自测对它们**零断言**——若 at_scheme 的 SQL/列名/映射静默
+失效（L-22/L-23 同族：可被命令断言的能力缺 standing 覆盖），13 闸门与五层
+自测都看不见。实测五类 scheme 的 `/api/addr` 均 200 且 hits 非空、固定参数
+可稳定复现（见下），补断言零风险。
+
+**实测数据（命令实跑）**：
+- `GET /api/addr?scheme=bcv` → 200，hits 含 bible-douay Genesis 1:1…（Douay 35,787 bcv 单元）
+- `GET /api/addr?scheme=yilin` → 200，hits 含 中孚（61）
+- `GET /api/addr?scheme=booksec` → 200，hits 含 Herodotus addr1=10（1,044 条）
+- `GET /api/addr?scheme=play` → 200，hits 含 THE SONNETS 1（154 条）
+- `GET /api/addr?scheme=euclid` → 200，hits 含 Book 1（euclid 649 单元）
+- 固定参数（可复验）：bcv `{"scheme":"bcv","addr_name":"Proverbs","addr1":12,"addr2":"12"}`；yilin `{"scheme":"yilin","addr1":61}`；booksec `{"scheme":"booksec","addr1":10}`；play `{"scheme":"play","addr_name":"THE SONNETS","addr1":1}`；euclid `{"scheme":"euclid","addr_name":"Book 1","addr1":1}`——全有稳定 hits。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 在现有 addr check 后补五条 standing 断言：bcv/yilin/booksec/play/euclid 各一条，用上面固定参数断言 200 + hits 非空 + scheme 回显正确 | 纯加自测断言、零功能改动/零数据风险；补上五类 scheme 通用路径的 standing 覆盖缺口，抓 at_scheme 静默失效；断言确定性可复验 |
+| B | 继续扫文档滞后点 | 本轮已逐项核对 PROJECT_STATUS/GOAL.md/ROADMAP/MASTER_PLAN/LESSONS 头部与活引用，滞后已基本清完，收益递减 |
+| C | 其他能力层验证（research/bookstudy 断言加码） | research/bookstudy 已有较厚断言（含 refuse 分支/compare 404），本轮无明确失败场景，边际收益低于 A |
+
+选 A（web standing 自测补五类 scheme addr 覆盖，照 R69b bazi.semantic 先例：
+能力路径必须有一条可复现命令断言）。落地后：web --selftest 24→29 checks，
+跑 13 闸门 + 五层自测确认零回退。
