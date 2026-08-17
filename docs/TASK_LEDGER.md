@@ -4355,3 +4355,42 @@ main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移�
   审阅通过（时间戳与 `git log -- docs/TASK_LEDGER.md` 实测当日连续提交
   一致）。
 - 决策记录：DECISIONS.md D-129b。
+
+## 111. [优化轨] R84b：PROJECT_STATUS 头部时间戳 R70b 滞后（快照块已由 R78b 修改）→ 同步（2026-08-17，双窗口并行第二轨）
+
+### 111a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `90565ee` R94a：
+吸收 R71b-R74b docs-only rebase；未动 scripts/assess_goals.py）。
+main 无审查轨改动，无 rebase 需求；R21a 委托与 R64b G9 SCOPE 移交项
+维持。R83b（298f7bd）已确认在 origin/main。
+
+### 111b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致，非缺口；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **活引用扫描**：verify_index 项数（R78b/R79b 已修）、"5/28 部"
+  （R80b 已标）、ARCHITECTURE §11（R81b 已标）、LESSONS 头部（R82b
+  已修）、TASK_LEDGER 头部（R83b 已修）均无残留；DECISIONS.md 中残留
+  旧数均为历史决策记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/PROJECT_STATUS.md` 头部"**更新时间**：
+  2026-08-17（R70b，优化轨）"由 R73b 同步到 R70b（当时快照块实际内容
+  最新轮次 = R70b，D-119b），但此后**快照块内容又更新过**——R78b
+  （dfe1052）把快照块行 19"verify_index T1-T13 ALL PASS"改为"T1-T11
+  ALL PASS"（`git show dfe1052 -- docs/PROJECT_STATUS.md` 实测该行在
+  R78b 修改）。头部 R70b 与新会话实际读到的快照块内容（T1-T11，R78b
+  改）矛盾——按 D-119b 确立的规则（头部时间戳 = 快照块实际内容最新
+  轮次），头部应同步到 R78b（O1 文档失效模式，L-23 同族；与 R82b
+  LESSONS/R83b TASK_LEDGER 头部同步同族，D-128b/D-129b 先例）。
+
+### 111c. 改动与验证
+
+- **改动**（docs/PROJECT_STATUS.md，纯文档）：头部"更新时间 R70b"→
+  "R78b（快照块行 19 由 R78b 改为 T1-T11）"，"前一次快照 R49b"保留，
+  照 D-119b 先例只同步时间戳、标注实际修改轮次、不虚构轮次。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（R78b 与 `git show dfe1052 -- docs/PROJECT_STATUS.md` 实测
+  一致）。
+- 决策记录：DECISIONS.md D-130b。

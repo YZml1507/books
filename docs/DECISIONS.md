@@ -4148,3 +4148,28 @@ R70b 与快照块一致）。
 
 选 A（照 D-128b/D-119b 先例只同步时间戳，标注实际更新状态）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-130b R84b 优化轨：PROJECT_STATUS 头部时间戳 R70b 滞后（快照块已由 R78b 修改）→ 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/PROJECT_STATUS.md` 头部"**更新时间**：
+2026-08-17（R70b，优化轨）"由 R73b 同步到 R70b（当时快照块实际内容
+最新轮次 = R70b，D-119b），但此后**快照块内容又更新过**：
+- **R78b**（dfe1052）把快照块行 19"verify_index T1-T13 ALL PASS"改为
+  "T1-T11 ALL PASS"（`git show dfe1052 -- docs/PROJECT_STATUS.md` 实测
+  该行在 R78b 修改）——快照块实际内容最新轮次已是 R78b，头部仍停 R70b。
+头部 R70b 与新会话实际读到的快照块内容（T1-T11，R78b 改）矛盾——按
+D-119b 确立的规则（头部时间戳 = 快照块实际内容最新轮次），头部应同步
+到 R78b（O1 文档失效模式，L-23 同族；与 R82b LESSONS/R83b TASK_LEDGER
+头部时间戳同步同族，D-128b/D-129b 先例）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | PROJECT_STATUS 头部"更新时间 R70b"→"R78b（快照块行 19 由 R78b 修改为 T1-T11）"，"前一次快照 R49b"保留 | 纯文档、零代码/零风险；时间戳与 `git show dfe1052 -- docs/PROJECT_STATUS.md` 实测一致，防新会话误判快照停在 R70b |
+| B | 只改快照块不动头部 | 头部仍误导（R70b vs 内容 R78b 矛盾） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（照 D-119b 先例只同步时间戳，标注实际修改轮次，不虚构轮次）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
