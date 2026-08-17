@@ -163,7 +163,10 @@ cd C:\Users\Lenovo\Desktop\projects\books
 
 ### T1 ⚠ G1 评测集（最高优先，其余一切的验收基础）
 
-现状 G1 **不可测**：没有人工核验评测集，`assess_goals.py` 明确标为 N/A。
+现状 ~~G1 **不可测**：没有人工核验评测集，`assess_goals.py` 明确标为 N/A~~。
+（**R101b 标注**：G1 已落地 PASS——评测集 248 题（eval_g1 PASS 246/248，
+99.2%）、assess_goals PASS 9 · PART 0 · FAIL 0、概念层已由 bge 落地
+（台账 §1074，§1 判据表 R94b 同步）；本条为 R18b 前早期状态，勿引用。）
 没有它，G4/G5/G7 做完也无法判断好坏。
 
 要求：建在周易上（语料最成熟、有 gold set、有跨版本见证）。至少覆盖

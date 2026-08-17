@@ -4588,3 +4588,30 @@ R92b 去 GOAL_NEXT_SESSION §1 快照标签范围钉死同族——根因相同�
 
 选 A（去范围钉死："R75b 起"+ 台账文末，照 D-132b 先例）。落地后：
 docs-only 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。
+
+## D-147b R101b 优化轨：GOAL.md §4 T1 段"G1 不可测"过时 → 标注（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL.md` §4 T1 段（"G1 评测集（最高优先，
+其余一切的验收基础）"）仍写"现状 G1 **不可测**：没有人工核验评测集，
+`assess_goals.py` 明确标为 N/A。没有它，G4/G5/G7 做完也无法判断好坏"——
+但实测（命令实跑）：
+- `scripts/assess_goals.py` → **PASS 9 · PART 0 · FAIL 0**（G1 PASS）；
+- `scripts/eval_g1.py` → **248 questions，PASS 246/248 (99.2%)**；
+- 台账 §1 判据表 G1 行已在 R94b 同步为 **PASS**（248 题，bge 概念层
+  落地，§1074）。
+T1 段的"G1 不可测 / N/A"是 R18b 前早期状态；R77b 处理了 GOAL.md §4
+T7 表但**未处理 T1-T6 段**——新会话读 GOAL.md §4 T1 会误以为 G1 仍
+不可测、G4/G5/G7 无法判断（O1 文档失效模式，L-23 同族：可被命令断言
+的事实硬编码且漏同步；与 R94b 修台账 §1 G1 行同族，当时只同步了台账
+判据表，漏了 GOAL.md T1 段）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL.md §4 T1 段"现状 G1 不可测：assess_goals.py 明确标为 N/A"划线并补注："R101b 标注：G1 已落地 PASS（评测集 248 题、assess_goals PASS 9、bge 概念层 §1074，台账 §1/R94b）；本条为 R18b 前早期状态" | 纯文档、零代码/零风险；与 assess_goals/eval_g1 实测及台账 §1（R94b）一致，防新会话误判 G1 不可测 |
+| B | 只改台账不动 GOAL.md | GOAL.md T1 段仍误导（G1 不可测） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（T1 段划线标注 + 处置出处，照 D-008/R94b 先例）。落地后：docs-only
+先例闸门抽跑（verify_index + check_quality），文档 diff 审阅。

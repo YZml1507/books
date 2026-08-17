@@ -5050,3 +5050,49 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `eb686ac`
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（25 轮与 `git log 2946a8a..HEAD | wc -l` 实测一致）。
 - 决策记录：DECISIONS.md D-146b。
+
+## 128. [优化轨] R101b：GOAL.md §4 T1 段"G1 不可测"过时 → 标注（2026-08-17，双窗口并行第二轨）
+
+### 128a. 移交跟进
+
+fetch origin：审查轨有新推进——origin/audit/R18 已到 `0413070`
+（R100a：吸收优化轨 R98b-R99b docs-only rebase，gates green；此前
+`eb686ac` R99a）。核实未动 scripts/assess_goals.py 的 raw_body 委托
+（仍为 `337aadc`，R21a 委托维持待合入 main）；audit 分支未动 web/
+src/guji 主轨文件。R64b G9 SCOPE 移交项维持。R100b（8ada404）已确认
+在 origin/main，无 rebase 需求。
+
+### 128b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **复验命令清单**（GOAL_NEXT_SESSION §1 实测）：14 条 = 13 闸门 +
+  assess_goals，顺序 check_quality 先跑——与 TASK_LEDGER 一致，非缺口。
+- **活引用扫描**：R75b-R100b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL.md` §4 T1 段（"G1 评测集（最高
+  优先）"）仍写"现状 G1 **不可测**：没有人工核验评测集，`assess_goals.py`
+  明确标为 N/A。没有它，G4/G5/G7 做完也无法判断好坏"——但实测
+  assess_goals **PASS 9 · PART 0 · FAIL 0**（G1 PASS）、eval_g1
+  **248 questions PASS 246/248 (99.2%)**、台账 §1 判据表 G1 行已在
+  R94b 同步为 PASS（248 题，bge 概念层落地，§1074）。T1 段是 R18b 前
+  早期状态；R77b 处理了 GOAL.md §4 T7 表但**未处理 T1-T6 段**——新
+  会话读 GOAL.md §4 T1 会误以为 G1 仍不可测（O1 文档失效模式，L-23
+  同族；与 R94b 修台账 §1 G1 行同族，当时只同步了台账判据表，漏了
+  GOAL.md T1 段）。
+
+### 128c. 改动与验证
+
+- **改动**（docs/GOAL.md，纯文档）：§4 T1 段"现状 G1 不可测：
+  assess_goals.py 明确标为 N/A"划线并补注"R101b 标注：G1 已落地 PASS
+  ——评测集 248 题（eval_g1 PASS 246/248，99.2%）、assess_goals PASS
+  9 · PART 0 · FAIL 0、概念层已由 bge 落地（台账 §1074，§1 判据表
+  R94b 同步）；本条为 R18b 前早期状态，勿引用"（照 D-008/R94b 先例）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（PASS 9 / 248 题与 assess_goals/eval_g1 实测及台账 §1
+  （R94b）一致）。
+- 决策记录：DECISIONS.md D-147b。
