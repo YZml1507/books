@@ -128,9 +128,11 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
 
 ### 2a. 当前移交项（开放，非本轨领土）
 
-- **R21a 委托合入 main**：`scripts/assess_goals.py` 的 raw_body 委托（审查轨
-  `23d0f94`）仍在审查轨分支，main 侧保持内联——待审查轨合入（scripts/ 属
-  审查轨领土，优化轨不做）。
+- **R21a 委托合入 main**：`scripts/assess_goals.py` 的 raw_body 委托已在审查轨
+  实施（`337aadc`"delegate G6 body to evalset.raw_body — R21a 审查轨"；原引用
+  `23d0f94` 在审查轨历轮 rebase 后被重写失效，`git merge-base --is-ancestor
+  23d0f94 origin/audit/R18` 失败，见 DECISIONS.md:2987；R98b 补注）仍在审查轨
+  分支，main 侧保持内联——待审查轨合入（scripts/ 属审查轨领土，优化轨不做）。
 - **愿景 §15 评估缺口**（跨书/版本意识/研究深度正式 eval）：scripts/ 属审查
   轨领土（O8 移交）；本轨已用各层 standing 自测（sources/bookstudy/research/
   mcp/web）覆盖能力级回归。

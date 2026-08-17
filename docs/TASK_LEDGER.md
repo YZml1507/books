@@ -4925,3 +4925,45 @@ R96b（04823bb）已确认在 origin/main，无 rebase 需求。
   + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
   审阅通过（sessionID 与握手信息/路径注记一致）。
 - 决策记录：DECISIONS.md D-143b。
+
+## 125. [优化轨] R98b：GOAL_NEXT_SESSION §2a R21a 移交项引用的审查轨 commit 过时 → 同步（2026-08-17，双窗口并行第二轨）
+
+### 125a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `adb3a5f` R97a：
+吸收优化轨 R94b docs-only rebase）。**R21a 委托状态更新**：`git log
+origin/audit/R18 -- scripts/assess_goals.py` 实测 raw_body 委托由
+`337aadc`（"delegate G6 body to evalset.raw_body — R21a 审查轨"）实施，
+且 `git merge-base --is-ancestor 23d0f94 origin/audit/R18` 失败——原引用
+`23d0f94` 在审查轨历轮 rebase 后失效；R21a 委托仍在 audit 分支待合入
+main（scripts/ 属审查轨领土，优化轨不实施，只更新文档引用）。R64b G9
+SCOPE 移交项维持。R97b（4ccc129）已确认在 origin/main，无 rebase 需求。
+
+### 125b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **活引用扫描**：R75b-R97b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN 中旧数均为历史记录（D-008 保留惯例）——非缺口。
+- **真实缺口（本轮选定）**：`docs/GOAL_NEXT_SESSION.md` §2a 移交项
+  "R21a 委托合入 main"写"（审查轨 `23d0f94`）仍在审查轨分支"，但实测
+  审查轨 raw_body 委托实际由 **`337aadc`** 实施，`git merge-base
+  --is-ancestor 23d0f94 origin/audit/R18` 失败（rebase 后旧 hash 失效）。
+  新会话照 §2a grep `23d0f94` 会查无此 commit（O1 文档失效模式，L-23
+  同族：可被命令断言的事实（commit hash）硬编码且漏同步；同族引用
+  DECISIONS.md:2987 曾澄清"23d0f94 从未被 push 到远程"）。
+
+### 125c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：§2a R21a 移交项补注
+  raw_body 委托审查轨已实施（`337aadc`，R21a；原引用 `23d0f94` 在审查
+  轨历轮 rebase 后被重写失效，见 DECISIONS.md:2987；R98b 补注），仍在
+  audit 分支待合入 main（照 D-008 保留旧记录）。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（337aadc 与 `git log origin/audit/R18 -- scripts/assess_goals.py`
+  实测一致）。
+- 决策记录：DECISIONS.md D-144b。

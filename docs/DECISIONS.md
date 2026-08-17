@@ -4507,3 +4507,33 @@ ab629b12-3cf7-4d09-bedf-3892431f8e60.jsonl，握手信息指明）。§0a 路径
 
 选 A（表格补本窗口行，D-142b 补完）。落地后：docs-only 先例闸门抽跑
 （verify_index + check_quality），文档 diff 审阅。
+
+## D-144b R98b 优化轨：GOAL_NEXT_SESSION §2a R21a 移交项引用的审查轨 commit 过时 → 同步（文档对齐）
+
+**背景（亲自核实）**：`docs/GOAL_NEXT_SESSION.md` §2a 移交项"R21a 委托
+合入 main"写"`scripts/assess_goals.py` 的 raw_body 委托（审查轨
+`23d0f94`）仍在审查轨分支"，但实测审查轨分支（origin/audit/R18）：
+- `git log origin/audit/R18 --oneline -3 -- scripts/assess_goals.py` 显示
+  raw_body 委托实际由 **`337aadc`**（"fix(assess_goals): delegate G6 body
+  to evalset.raw_body — R21a 审查轨"）实施；
+- `git merge-base --is-ancestor 23d0f94 origin/audit/R18` 失败——
+  **`23d0f94` 不在 audit 分支祖先中**（审查轨历轮 rebase 吸收优化轨
+  docs-only 提交后，旧 commit hash 已重写，原 hash 失效）。
+同族引用：DECISIONS.md:2987 曾澄清"R21a 委托 commit `23d0f94` **从未**
+被审查轨 push 到远程"（R47b 记录），与 §2a"仍在审查轨分支"表述并存；
+OPTIMIZE_20260816_R18.md:127 也写"`23d0f94` 委托 evalset.raw_body"。
+新会话照 §2a grep `23d0f94` 会查无此 commit（O1 文档失效模式，L-23
+同族：可被命令断言的事实（commit hash）硬编码且漏同步；审查轨 rebase
+后 hash 失效，属已知先例 D-008 保留记录下的引用更新）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION §2a 补注："raw_body 委托审查轨已实施（`337aadc`，R21a；原引用 `23d0f94` 在审查轨历轮 rebase 后被重写失效，见 DECISIONS.md:2987）仍在 audit 分支待合入 main" | 纯文档、零代码/零风险；commit 与 `git log origin/audit/R18 -- scripts/assess_goals.py` 实测一致，防新会话 grep 失效 hash |
+| B | 只改正文引用不改 §2a | §2a 仍误导（23d0f94 查无此 commit） |
+| C | 前端功能增强 | 9 tab + 记忆闭环 + 24 checks 已全接线，本轮无明确功能缺口 |
+
+选 A（§2a 补注实际 commit + 失效 hash 说明，照 D-008 保留旧记录）。
+落地后：docs-only 先例闸门抽跑（verify_index + check_quality），文档
+diff 审阅。
