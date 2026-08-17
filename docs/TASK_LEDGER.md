@@ -5187,3 +5187,42 @@ fetch origin：审查轨有新推进——origin/audit/R18 已到 `3f77ed8`
   审阅通过（路径与 `ls .atomcode/sessions/` 实测及 GOAL_NEXT_SESSION
   §0a（R96b）一致）。
 - 决策记录：DECISIONS.md D-149b。
+
+## 131. [优化轨] R104b：GOAL_NEXT_SESSION 会话表本窗口行轮次计数再次钉死 → 去计数（2026-08-17，双窗口并行第二轨）
+
+### 131a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `3f77ed8` R101a：
+吸收优化轨 R100b docs-only rebase；未动 scripts/assess_goals.py 的
+raw_body 委托，仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+移交项维持。R103b（8db1d8e）已确认在 origin/main，无 rebase 需求。
+
+### 131b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0。
+- **五层 standing 自测实时复验**：sources/bookstudy/research/mcp 自测
+  全 PASS，web 24 checks PASS——无静默退化。
+- **活引用扫描**：R75b-R103b 处置项均无残留；DECISIONS/LESSONS/
+  MASTER_PLAN/PROJECT_ROADMAP 中旧数均为历史记录（D-008 保留惯例）
+  ——非缺口。
+- **真实缺口（本轮选定）**：R100b 给 GOAL_NEXT_SESSION §0a 会话表
+  本窗口行去范围钉死（"R75b-R97b 23 轮"→"R75b 起"），但**残留了轮次
+  计数**"（R100b 复核 **25 轮**）"——该计数再次钉死：`git log
+  --oneline 2946a8a..HEAD | wc -l` 实测 R75b 至今 **29 轮**（R101b/
+  R102b/R103b 已追加，本行仍写"25 轮"）。R100b 去范围后，轮次计数
+  （25）与范围（R75b 起）是同一根因的两种钉死形式：范围去掉了，计数
+  仍会每轮滞后（O1 文档失效模式，L-23 同族；与 R100b 去范围 D-146b、
+  R86b 去 TASK_LEDGER 头部轮次钉死 D-132b 同族）。
+
+### 131c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md，纯文档）：会话表本窗口行去轮次
+  计数——"（R100b 复核 25 轮）"改为"轮数以 `git log 2946a8a..HEAD |
+  wc -l` 实测为准"，照 D-146b/D-132b 去钉死，此后轮次追加不再需要
+  更新该行。
+- **验证**（docs-only 先例，照 R19b/R50b）：check_quality + build_index
+  + verify_index 全 exit 0（verify_index ALL PASS），基线未动；文档 diff
+  审阅通过（去计数后与 `git log 2946a8a..HEAD` 实测口径一致）。
+- 决策记录：DECISIONS.md D-150b。

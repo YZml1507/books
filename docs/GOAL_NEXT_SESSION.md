@@ -49,7 +49,7 @@ C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl   # 旧窗
 
 | sessionID | 日期 | 内容 |
 |---|---|---|
-| `ab629b12-3cf7-4d09-bedf-3892431f8e60` | 2026-08-17 | **本窗口**：R75b 起优化循环 docs-only（R100b 复核 25 轮），基线全绿（47 部 62,109 单元、G1–G9 PASS 9、24 checks），最新 commit 见台账文末（R97b 补行、R100b 去轮次钉死） |
+| `ab629b12-3cf7-4d09-bedf-3892431f8e60` | 2026-08-17 | **本窗口**：R75b 起优化循环 docs-only，轮数以 `git log 2946a8a..HEAD \| wc -l` 实测为准（R97b 补行、R100b/R104b 去钉死），基线全绿（47 部 62,109 单元、G1–G9 PASS 9、24 checks），最新 commit 见台账文末 |
 | `3d8bab44-30fc-4a4d-9584-7372f78e8f2b` | 2026-08-15 | **上一窗口（本文件更新者）**：T7-r 方案 C 否决（hit 67.3%）、方案 A/B BLOCKED、T5 A-12 候选 N1 否决回退、T7-q/T7-m/T7-n/T7-o/T7-p/P-11 全完成。13 道闸门全过，commit a05a9cf 已 push |
 | `aa53987d-d690-4c1d-95d6-ddff26cd2888` | 2026-08-13 23:24 | 更早：Douay 接入、A-12、G1 方案 1 手写转述扩到 55 条（hit 78.2% 未达 80% 阈值） |
 | `405e2cb4-bfbe-4df0-adf9-2553f0c675d4` | 2026-08-13 19:15 | 更早：台账 §22b 前 |
