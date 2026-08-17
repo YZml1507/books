@@ -6476,3 +6476,45 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/
   web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-178b。
+
+## 160. [优化轨] R133b：文档滞后——web standing checks 数 51→52 未同步（R132b +1 research.allow_damaged，L-23 同族，与 R116b/R120b/R122b/R125b/R127b/R129b/R131b 同族）（2026-08-17）
+
+### 160a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R132b（c639030）已确认在 origin/main。
+
+### 160b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **52 checks**（R132b 末态，含 research.allow_damaged）。
+- **文档滞后点（本轮选定）**：R131b 已把 checks 数同步到 51，但 R132b
+  新增 research.allow_damaged 断言（51→52），web --selftest 现 52
+  checks；GOAL_NEXT_SESSION.md :52/:90/:98 与 PROJECT_STATUS.md :41
+  仍写 "51 checks"（R131b 标注）——checks 数又滞后（L-23 同族：可被
+  命令断言的事实硬编码且漏同步；与 R116b/R120b/R122b/R125b/R127b/
+  R129b/R131b 同族，每轮断言轮后需同步）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线、7 个 submit handler
+  已接线）、质量/性能层（FTS 0.001s 正常、bge_mingli 缓存新鲜
+  2505=2505、link 零悬空）——无明确缺口。
+- **方案比对**：A checks 数 51→52 文档对齐（选定）；B 只改
+  GOAL_NEXT_SESSION 不动 PROJECT_STATUS（数字不一致）；C 前端体验/
+  质量性能层（无缺口）——见 D-179b。
+
+### 160c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：
+  - `docs/GOAL_NEXT_SESSION.md`：:52 会话表、:90 自测注释、:98 快照
+    标签三处 "51 checks" → "52 checks" 并补 "R132b +1
+    （research.allow_damaged）"。
+  - `docs/PROJECT_STATUS.md`：:41 自测行 "51 checks" → "52 checks"
+    并补 R132b 出处。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 52
+  checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
+  52 checks 及 R132b research.allow_damaged 一致）。
+- 决策记录：DECISIONS.md D-179b。

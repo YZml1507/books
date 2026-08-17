@@ -5487,3 +5487,26 @@ bug，R124b 抓到 timedelta NameError）。实测（命令实跑）：`research
 选 A（补 research.allow_damaged standing 断言，照 R118b/R119b/R124b/R126b/
 R128b/R130b 先例：能力路径必须有一条可复现命令断言）。落地后：web
 --selftest 51→52 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-179b R133b 优化轨：文档滞后——web standing checks 数 51→52 未同步（R132b +1 research.allow_damaged，L-23 同族，与 R116b/R120b/R122b/R125b/R127b/R129b/R131b 同族）
+
+**背景（亲自核实）**：R131b 已把 checks 数同步到 51。但 R132b 新增
+`research.allow_damaged` 断言（51→52），web --selftest 实测 **52 checks**；
+而 `docs/GOAL_NEXT_SESSION.md` :52（会话表）、:90（自测注释）、:98（快照
+标签）与 `docs/PROJECT_STATUS.md` :41（自测行）仍写 "51 checks"（R131b
+标注）——checks 数又滞后（L-23 同族：可被命令断言的事实硬编码且漏同步；
+与 R116b/R120b/R122b/R125b/R127b/R129b/R131b 同族，每轮断言轮后需同步）。
+命令实测：web --selftest 52 checks 全 PASS（含 research.allow_damaged，
+R132b c639030 已确认在 origin/main）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :52/:90/:98 三处 "51 checks" 改 "52 checks" 并补 "R132b +1（research.allow_damaged）"；② PROJECT_STATUS.md :41 自测行改 "52 checks" 并补 R132b 出处 | 纯文档对齐、零代码/零风险；与实测 52 checks 一致，防新会话误判 standing 覆盖数；照 D-008 保留旧表述、R116b/R120b/R122b/R125b/R127b/R129b/R131b 先例 |
+| B | 只改 GOAL_NEXT_SESSION 不动 PROJECT_STATUS | PROJECT_STATUS 仍滞后（数字不一致） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、link 零悬空、bge 缓存新鲜） |
+
+选 A（checks 数 51→52 文档对齐，照 R116b/R120b/R122b/R125b/R127b/R129b/
+R131b 先例）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅（数字与命令实测 52 checks 一致）。
