@@ -106,7 +106,8 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
 记忆闭环  研究→记录→跨会话恢复：web POST /api/threads + 三 tab 记入 + 列表自动
           刷新 + 长期研究续接（R34b-R46b）；MCP record_claim_tool + threads 读回
 术数功能  八字排盘 · 六爻 · 黄历 · 起名 · 桃花运（R111b）· 塔罗占卜（R112b）
-          · 大运桃花应期（R113b）· 塔罗牌阵位置（R114b）；web 术数 tab 7 个，
+          · 大运桃花应期（R113b）· 塔罗牌阵位置（R114b）· 八字合婚（R121b，
+          R123b 补）；web 术数 tab 8 个，
           MCP 12 工具（术数不在 MCP，同源承诺不含术数）
 ```
 

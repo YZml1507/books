@@ -6031,3 +6031,48 @@ raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
   checks——与文档新标注一致）；文档 diff 审阅通过（数字与命令实测
   40 checks 及 R121b hehun 一致）。
 - 决策记录：DECISIONS.md D-168b。
+
+## 150. [优化轨] R123b：文档滞后——GOAL_NEXT_SESSION 快照块"术数功能"行缺 R121b hehun 合婚（tab 7→8），ROADMAP P3 同缺（L-23 同族，与 R116b/R120b/R122b 同族）（2026-08-17）
+
+### 150a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095` R104a；
+raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE 措辞
+仍未修。R122b（5ef3143）已确认在 origin/main。
+
+### 150b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **40 checks**（R121b 末态含 hehun）。
+- **文档滞后点（本轮选定）**：R121b 新增八字合婚 tab（web 术数 tab
+  7→8），但 GOAL_NEXT_SESSION.md §1 快照块"术数功能"行（:108-110）仍
+  写 "web 术数 tab 7 个"、术数清单只列到 R114b（塔罗牌阵位置）——缺
+  R121b hehun 合婚；PROJECT_ROADMAP.md P3（R116b 已补注桃花运/塔罗/
+  大运应期/牌阵）也缺 hehun 标注。checks 数（40）已在 R122b 同步，但
+  **术数功能清单与 tab 数**未同步（L-23 同族：可被命令断言的事实——
+  web tab 数、术数模块清单——硬编码且漏同步；与 R116b/R120b/R122b
+  同族，每次新增术数功能后需同步清单）。
+- **实测**：web 前端 `data-view` 共 **8 个**（bazi/read/liuyao/huangli/
+  qiming/taohua/tarot/hehun）；src/guji 含 hehun.py（R121b）。
+- **其他方向**（对照实测）：前端体验（8 tab 全接线）、质量/性能层
+  （FTS 0.001s 正常、unit 4 索引 + link 2 索引齐全、link 零悬空）——
+  无明确缺口。
+- **方案比对**：A 快照块术数功能行 + ROADMAP P3 补 hehun 标注（选定）；
+  B 只改 GOAL_NEXT_SESSION 不动 ROADMAP（仍滞后）；C 前端体验/质量
+  性能层（无缺口）——见 D-169b。
+
+### 150c. 改动与验证
+
+- **改动**（纯文档，照 D-008 保留旧表述）：
+  - `docs/GOAL_NEXT_SESSION.md`：§1 快照块"术数功能"行术数清单补
+    "· 八字合婚（R121b，R123b 补）"、"web 术数 tab 7 个"→"8 个"。
+  - `docs/PROJECT_ROADMAP.md`：P3 标题补注 "八字合婚 tab（hehun.py，
+    R121b），R123b 标注"。
+- **验证**（docs-only 先例，照 R19b/R50b）：13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS（web 40
+  checks）；文档 diff 审阅通过（tab 数与命令实测 8 个、hehun.py 存在
+  一致）。
+- 决策记录：DECISIONS.md D-169b。

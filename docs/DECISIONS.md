@@ -5206,3 +5206,28 @@ checks），固定两人生日实测合婚输出并记入台账。
 选 A（checks 数 39→40 文档对齐，照 R116b/R120b 先例）。落地后：docs-only
 先例闸门抽跑（verify_index + check_quality），文档 diff 审阅（数字与命令
 实测 40 checks 一致）。
+
+## D-169b R123b 优化轨：文档滞后——GOAL_NEXT_SESSION 快照块"术数功能"行缺 R121b hehun 合婚（tab 7→8），ROADMAP P3 同缺（L-23 同族，与 R116b/R120b/R122b 同族）
+
+**背景（亲自核实）**：R121b 新增八字合婚 tab（web 术数 tab 7→8），但
+`docs/GOAL_NEXT_SESSION.md` §1 快照块"术数功能"行（:108-110）仍写
+"web 术数 tab 7 个"、术数清单只列到 R114b（塔罗牌阵位置）——**缺
+R121b hehun 合婚**；`docs/PROJECT_ROADMAP.md` P3（R116b 已补注桃花运/
+塔罗/大运应期/牌阵）也**缺 hehun 标注**。checks 数（40）已在 R122b 同步，
+但**术数功能清单与 tab 数**未同步（L-23 同族：可被命令断言的事实——web
+tab 数、术数模块清单——硬编码且漏同步；与 R116b/R120b/R122b 同族，每次
+新增术数功能后需同步清单）。命令实测：web 前端 `data-view` 共 **8 个**
+（bazi/read/liuyao/huangli/qiming/taohua/tarot/hehun）；src/guji 含
+hehun.py（R121b）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | ① GOAL_NEXT_SESSION.md :108-110 快照块"术数功能"行：术数清单补 "· 八字合婚（R121b）"、tab 数 "7 个"→"8 个"；② ROADMAP P3 补注 "八字合婚 tab（hehun.py，R121b）" | 纯文档对齐、零代码/零风险；与实测 8 tab + hehun.py 一致，防新会话误判术数覆盖；照 D-008 保留旧表述、R116b/R120b/R122b 先例 |
+| B | 只改 GOAL_NEXT_SESSION 不动 ROADMAP | ROADMAP P3 仍滞后（术数清单缺 hehun） |
+| C | 前端体验/质量性能层 | 摸底无明确实测缺口（前端 8 tab 全接线、FTS 0.001s、索引齐全、link 零悬空） |
+
+选 A（快照块术数功能行 + ROADMAP P3 补 hehun 标注，照 R116b/R120b/R122b
+先例）。落地后：docs-only 先例闸门抽跑（verify_index + check_quality），
+文档 diff 审阅（tab 数与命令实测 8 个、hehun.py 存在一致）。
