@@ -7938,3 +7938,48 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   改动。离线降级：CDN 失败/prefers-reduced-motion 时粒子与动画缺失，
   深色渐变纯色底 + 无动画，内容不阻塞。
 - 决策记录：DECISIONS.md D-206b。
+
+## 188. [优化轨] R161b：文档滞后——GOAL_NEXT_SESSION 快照块 "web 术数 tab 8 个" 表述与实测不符（术数 7 个，主 tab 8 个含古籍读书）→ 修正（L-23 同族——可被命令断言的事实硬编码且漏同步）（2026-08-18）
+
+### 188a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R160b（`cde90a8` 前端深度重构）已确认在 origin/main。
+
+### 188b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **109 checks**（R160b 末态：前端重构，能力层断言无增减）。
+- **能力层封顶确认**：R139b-R160b 已补 58 条 err.* 400 断言，59 条
+  HTTPException(400) 分支中 58 条已覆盖，剩余 1 条（line 545 ask q 空）
+  被 Pydantic schema min_length=1 拦截返回 422（R153b 已实测确认，非
+  HTTPException 分支，不可达）——能力层 err.* 断言已基本封顶。
+- **真实滞后点（本轮选定）**：GOAL_NEXT_SESSION.md:110 "web 术数 tab
+  8 个"——实测（命令实跑 `grep -oE '<button class="tab[^"]*" data-view=
+  "[a-z]+"'`）主 tab 共 8 个：bazi/read/liuyao/huangli/qiming/taohua/
+  tarot/hehun，其中**术数 7 个**（bazi/liuyao/huangli/qiming/taohua/
+  tarot/hehun），**read 是"古籍读书"非术数**——表述应为"web 主 tab
+  8 个（术数 7 + 古籍读书）"（L-23 同族：可被命令断言的事实硬编码且
+  漏同步）。
+- **对照其余事实**（实测一致，无滞后）：研究 rtab 9 个（快照块 "web
+  9 tab" ✓）、MCP 工具 12 个（@mcp.tool() 实测 12 ✓）、表单 7 个
+  （R141b 台账 "7 表单=7 handler" ✓）、web checks 109（文档已同步
+  R159b ✓）。
+- **方案比对**：A 修正 GOAL_NEXT_SESSION:110 tab 表述（选定：术数 tab
+  实为 7 个，8 是主 tab 总数含 read，与命令实测一致）；B 补 MCP
+  research_tool 深度验证（工作量大、web 侧已覆盖）；C 补 tarot 端点
+  校验断言（概率性端点参数校验维度少）——见 D-207b。
+
+### 188c. 改动与验证
+
+- **改动**（docs/GOAL_NEXT_SESSION.md:110，纯文档）："web 术数 tab
+  8 个" → "web 主 tab 8 个（术数 7 + 古籍读书 1）"。
+- **验证**（全量）：web --selftest **109 checks** 全 PASS（零回退）；
+  13 道闸门全 exit 0（check_quality 先于 build_index，verify_index
+  T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测
+  全 PASS（sources/bookstudy/research/mcp/web）。零代码改动、零功能
+  改动、零回退。
+- 决策记录：DECISIONS.md D-207b。

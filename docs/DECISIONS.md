@@ -6511,3 +6511,37 @@ tsparticles 粒子背景（links 网络线）+ 本地 animotion 动画 CSS
 跑确认不回退，HTML 结构配对检查 OK。CDN 域名不变（cdn.tailwindcss.com
 · cdn.jsdelivr.net · 本地 /static/animotion/）；离线降级：深色渐变
 纯色底（CSS 内联兜底），粒子/动画缺失不阻塞内容。
+
+## D-207b R161b 优化轨：文档滞后——GOAL_NEXT_SESSION 快照块 "web 术数 tab 8 个" 表述与实测不符（术数 7 个，主 tab 8 个含古籍读书）（L-23 同族——可被命令断言的事实硬编码且漏同步）
+
+**背景（亲自核实，命令实跑）**：R139b-R160b 已按端点逐个补 err.* 400
+断言，本轮摸底比对 59 条 HTTPException(400) 分支：**58 条已覆盖**（含
+R159b 新增 err.threads.kind），剩余 1 条（line 545 ask q 空）被
+Pydantic schema min_length=1 拦截返回 422（R153b 已实测确认，非
+HTTPException 分支，不可达）——**能力层 err.* 断言已基本封顶**。
+
+本轮转向 **L-23 同族文档滞后扫描**（可被命令断言的事实硬编码且漏同步），
+发现一处实测不符：
+
+- **GOAL_NEXT_SESSION.md:110**："web 术数 tab 8 个"——实测（命令实跑，
+  `grep -oE '<button class="tab[^"]*" data-view="[a-z]+"'`）主 tab 共
+  **8 个**：`bazi read liuyao huangli qiming taohua tarot hehun`，其中
+  **术数 7 个**（bazi/liuyao/huangli/qiming/taohua/tarot/hehun），
+  **read 是"古籍读书"非术数**——表述应为"web 主 tab 8 个（术数 7 +
+  古籍读书）"。
+- 对照其余事实（实测一致，无滞后）：研究 rtab 9 个（快照块 "web 9
+  tab" ✓）、MCP 工具 12 个（@mcp.tool() 实测 12 ✓）、表单 7 个
+  （R141b 台账 "7 表单=7 handler" ✓）、web checks 109（文档已同步
+  R159b ✓）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 修正 GOAL_NEXT_SESSION.md:110 "web 术数 tab 8 个" → "web 主 tab 8 个（术数 7 + 古籍读书 1）" | 纯文档修正、零代码/零数据风险；消除 L-23 同族可断言事实的硬编码滞后（术数 tab 实为 7 个，8 是主 tab 总数含 read），与命令实测一致 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged/empty/too_long 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A |
+
+选 A（修正 GOAL_NEXT_SESSION 快照块 tab 表述，照 R135b/R137b 等
+L-23 同族先例：可被命令断言的事实必须与实测一致）。落地后：web
+--selftest 109 checks 全跑 + 13 闸门 + 五层自测确认零回退。
