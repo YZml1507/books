@@ -6863,3 +6863,36 @@ q_too_long，checks 122→121）并把 D-216b/台账 §198/文档一并带上。
 可被命令断言的事实必须与实测一致——checks 121 的由来含 R172b 去重，
 文档必须同步）。落地后：web --selftest 121 checks 全跑 + 13 闸门 +
 五层自测确认零回退。
+
+## D-218b R174b 优化轨：web standing 自测缺口——bazi ask_date 年份越界分支零断言（能力层验证，与 R151b err.bazi.ask_date / R156b err.bazi.lunar_year 同族——同年份范围不同字段；承接并行窗口工作树半成品）
+
+**背景（亲自核实）**：R151b 已补 err.bazi.ask_date（ask_date=garbage →
+400 格式错误），但 **ask_date 年份越界分支**（web/app.py:154-155
+"ask_date 年份需在 1900-2100 之间"）零断言——格式错误断言不构成年份
+越界分支的覆盖（若该年份越界校验回归为 500、或被移除导致越界 ask_date
+进入排盘则不可见，与 R156b err.bazi.lunar_year 同族——同年份范围不同
+字段，L-22/L-23 同族）。并行窗口已在工作树写入 err.bazi.ask_date_year
+半成品（注释标 R174b/D-221b——编号按实际顺序应为 D-218b，避免撞号），
+实测有效，本窗口承接。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {year:1990, month:5, day:15, hour:10,
+  ask_date:"1800-01-01"}` → 400，detail "ask_date 年份需在 1900-2100
+  之间"
+- 对照：ask_date="garbage" → 400（R151b err.bazi.ask_date 格式错误已
+  覆盖）；ask_date="2026-01-01" → 200（正常）
+- 年份越界分支正确返回 400 + detail——补断言零风险（工作树半成品已
+  实测通过，web --selftest 122 checks 全 PASS）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 承接并行窗口半成品：err.bazi.ask_date_year（ask_date=1800-01-01→400）（121→122 checks），补 DECISIONS D-218b（本条目）+ 台账 §200 + 文档 checks 121→122 同步 | 纯加自测断言、零功能改动/零数据风险；补上 bazi ask_date 年份越界未覆盖分支（格式错误断言不构成年份越界分支的覆盖），抓校验静默失效；与 R156b err.bazi.lunar_year 同族（同年份范围不同字段），确定性可复验 |
+| B | 弃用半成品，另选方向 | 半成品断言合理且已实测通过，弃用浪费；其他方向（文档滞后等）R161b/R166b/R173b 已修 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），实测 n=0/101 均 200 无校验分支，确定性弱于 A |
+
+选 A（承接半成品 err.bazi.ask_date_year，照 R156b err.bazi.lunar_year
+先例：能力路径必须有一条可复现命令断言——格式错误断言不构成年份越界
+分支的覆盖）。落地后：web --selftest 121→122 checks，跑 13 闸门 +
+五层自测确认零回退。
