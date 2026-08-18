@@ -7440,3 +7440,59 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-197b。
+
+## 179. [优化轨] R152b：web standing 自测缺口——bazi range 倒序/超31天 + bookstudy chapter scheme 空 + qiming 计算失败四条 400 校验分支零断言 → 补断言（能力层验证，与 R139b-R151b 同族——同端点不同校验维度）（2026-08-18）
+
+### 179a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R151b（`e756e6c`）已确认在 origin/main。
+
+### 179b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **95 checks**（R151b 末态：err.bazi.ask_hour/ask_date/range_missing/
+  range_format）。
+- **真实缺口（本轮选定）**：
+  - bazi range 路径的**运行时值域校验**（calc_range 内 ValueError→400，
+    line 217）：倒序（end 早于 start）、超 31 天——R151b 已补
+    range_missing/range_format（输入形状），这两条值域校验零断言
+    （missing/format 断言不触发 calc_range 内部 ValueError）。
+  - bookstudy chapter 的 scheme 空校验（line 730 "scheme 不能为空"）
+    零断言——err.bookstudy.chapter.empty（R148b）只测 work_id 空。
+  - qiming 的**计算失败**分支（line 914 "起名计算失败：{exc}"）零
+    断言——err.qiming.*（R140b/R149b）只测参数校验。
+  - 四条分支均零 standing 断言（L-22/L-23 同族；与 R139b-R151b 同族
+    ——同端点不同校验维度）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi range 倒序（2026-02-01 → 2026-01-01）→ 400 "end_date 不能
+    早于 start_date"
+  - bazi range 超31天（2026-01-01 → 2026-03-15）→ 400 "日期范围最长
+    31 天（一次查询防爆），请分段查询"
+  - bookstudy chapter scheme 空 → 400 "scheme 不能为空"
+  - qiming month=2/day=30 → 400 "起名计算失败：day 30 must be in
+    range 1..28 for month 2 in year 1990"
+  - 四条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.bazi.range_order/range_span + err.bookstudy.
+  chapter.scheme + err.qiming.calc_fail 四条 400 断言（95→99 checks，
+  选定）；B 补 MCP research_tool 深度验证（工作量大、web 侧已覆盖）；
+  C 补 tarot 端点校验断言（概率性端点，确定性弱于 A）——见 D-198b。
+
+### 179c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块补四条断言——
+  err.bazi.range_order（倒序→400）、err.bazi.range_span（超31天→
+  400）、err.bookstudy.chapter.scheme（scheme 空→400）、
+  err.qiming.calc_fail（month=2/day=30→400）（95→99 checks）。
+- **验证**（全量）：web --selftest **99 checks** 全 PASS（四条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-198b。

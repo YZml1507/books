@@ -1409,6 +1409,26 @@ if __name__ == "__main__":
                                                    "scope": "range",
                                                    "range_start": "garbage",
                                                    "range_end": "2026-01-01"}))
+        # R152b（D-198b）：bazi range 运行时值域校验（calc_range 内
+        # ValueError→400，line 217）两条 400 校验分支 standing 覆盖——
+        # err.bazi.range_missing/range_format（R151b）只测输入形状，倒序
+        # （end 早于 start）、超 31 天两条运行时值域校验零断言（missing/
+        # format 断言不触发 calc_range 内部校验，若倒序/超长回归为 500
+        # 或被移除则不可见，与 R151b err.bazi.range_format 同族——同端点
+        # 不同校验维度）。实测倒序/超31天均正确返回 400 + detail——
+        # 补断言零风险。
+        _expect_400("err.bazi.range_order",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "scope": "range",
+                                                   "range_start": "2026-02-01",
+                                                   "range_end": "2026-01-01"}))
+        _expect_400("err.bazi.range_span",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "scope": "range",
+                                                   "range_start": "2026-01-01",
+                                                   "range_end": "2026-03-15"}))
         _expect_400("err.qiming.surname",
                     client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
                                                      "month": 5, "day": 15,
@@ -1445,6 +1465,17 @@ if __name__ == "__main__":
                     client.post("/api/qiming", json={"surname": "李", "year": 1990,
                                                      "month": 5, "day": 15,
                                                      "hour": 24, "gender": "男"}))
+        # R152b（D-198b）：qiming 计算失败分支（name_candidates 抛异常
+        # →400，line 914）standing 覆盖——err.qiming.*（R140b/R149b）
+        # 只测参数校验，计算失败路径零断言（若计算失败回归为 500 或被
+        # 移除则不可见，与 R149b err.qiming.month 同族——同端点不同校验
+        # 维度）。实测 month=2/day=30（不存在的日期）→ 400 "起名计算
+        # 失败：day 30 must be in range 1..28 for month 2 in year 1990"
+        # ——补断言零风险。
+        _expect_400("err.qiming.calc_fail",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1990,
+                                                     "month": 2, "day": 30,
+                                                     "hour": 12, "gender": "男"}))
         # R143b（D-189b）：taohua 端点 year/gender/calendar 三条 400 校验
         # 分支 standing 覆盖——taohua（行 918）调用 req.validate_ranges()
         # 继承 BaziRequest 校验，但 err.* 只覆盖 bazi 端点，taohua 同名
@@ -1526,6 +1557,15 @@ if __name__ == "__main__":
         _expect_400("err.bookstudy.chapter.empty",
                     client.get("/api/bookstudy/chapter",
                                params={"work_id": "", "scheme": "zhouyi", "addr1": 1}))
+        # R152b（D-198b）：bookstudy chapter 的 scheme 空校验（line 730
+        # "scheme 不能为空"）standing 覆盖——err.bookstudy.chapter.empty
+        # （R148b）只测 work_id 空，scheme 空分支零断言（若校验回归为
+        # 500 或被移除则不可见，与 R148b err.bookstudy.chapter.empty 同族
+        # ——同端点不同校验维度）。实测 work_id=KR1a0001&scheme= → 400
+        # "scheme 不能为空"——补断言零风险。
+        _expect_400("err.bookstudy.chapter.scheme",
+                    client.get("/api/bookstudy/chapter",
+                               params={"work_id": "KR1a0001", "scheme": "", "addr1": 1}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖
