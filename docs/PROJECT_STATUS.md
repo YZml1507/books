@@ -82,7 +82,9 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
           search/addr/compare/concept 五条边界路径协议级断言（承接
           并行窗口 595635d 并入）、
           R170b +2：err.ask.q_empty/q_too_short（并行窗口提交）、
-          R171b +1：err.compare_works.q_too_long）
+          R171b +1：err.compare_works.q_too_long（并行窗口 3dc5dbb 提交，
+          R172b d06ab16 去重修正——compare_works q_empty 与 R153b 重复
+          删除，checks 121））
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：

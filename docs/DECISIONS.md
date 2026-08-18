@@ -6837,3 +6837,29 @@ err.compare_works.q_empty（q="  "→400）+ err.compare_works.q_too_long
 选 A（承接并行窗口半成品并去重：保留 q_too_long 真实缺口、删除与
 R153b 重复的 q_empty）。落地后：web --selftest 120→121 checks，跑 13
 闸门 + 五层自测确认零回退。
+
+## D-217b R173b 优化轨：文档滞后——R172b 轮次（compare_works q_empty 去重修正 + q_too_long 保留，checks 121）未在 GOAL_NEXT_SESSION/PROJECT_STATUS 记录（L-23 同族——轮次/断言覆盖事实硬编码且漏同步）
+
+**背景（亲自核实，命令实跑）**：并行窗口 3dc5dbb（R171b）先提交
+compare_works q_empty+q_too_long（checks 120→122，含与 R153b 重复的
+q_empty），随后 d06ab16（R172b）提交去重修正（删重复 q_empty、留
+q_too_long，checks 122→121）并把 D-216b/台账 §198/文档一并带上。
+但 **R172b 轮次本身在 GOAL_NEXT_SESSION/PROJECT_STATUS 无轮次标注**
+（grep R172b = 0）——文档的 checks 121 已同步（R171b +1 记录存在），
+但 R172b 去重修正这一轮次事实未记录（若后续追溯 checks 121 的由来，
+只能看到 R171b +1，看不到 R172b 去重）。对照其余事实（实测一致，无
+滞后）：能力层 67 条 err.* 断言覆盖 59+3 分支（封顶）、MCP 12 工具
+协议级全覆盖、tab 8/术数 7、表单 7。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION/PROJECT_STATUS 补 R172b 轮次标注（在 R171b +1 后注明 "R172b 去重修正：compare_works q_empty（与 R153b 重复）删除、q_too_long 保留，checks 121"），台账补 §199 记录 R172b 轮次 | 纯文档修正、零代码/零数据风险；消除 L-23 同族轮次事实硬编码滞后（R172b 去重修正轮次缺失），与命令实测一致（web --selftest 121 checks） |
+| B | 能力层继续补断言 | 67 条 err.* 断言已覆盖全部 59+3 分支（封顶），无未覆盖分支可补 |
+| C | MCP 工具深度验证 | MCP 12 工具协议级调用+错误/边界路径已全覆盖，无缺口 |
+
+选 A（补 R172b 轮次标注 + 台账 §199，照 R161b/R166b 文档滞后修正先例：
+可被命令断言的事实必须与实测一致——checks 121 的由来含 R172b 去重，
+文档必须同步）。落地后：web --selftest 121 checks 全跑 + 13 闸门 +
+五层自测确认零回退。
