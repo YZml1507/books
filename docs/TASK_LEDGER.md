@@ -8201,3 +8201,50 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-211b。
+
+## 193. [优化轨] R166b：文档滞后——R165b（MCP research_tool 协议级断言）轮次未在 GOAL_NEXT_SESSION/PROJECT_STATUS 记录 → 补记录（L-23 同族——轮次/断言覆盖事实硬编码且漏同步）（2026-08-18）
+
+### 193a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R165b（`635de01`）已确认在 origin/main。
+
+### 193b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **117 checks**（R165b 末态：MCP research_tool 协议级断言，web checks
+  无增减）。
+- **真实滞后点（本轮选定）**：R165b（`635de01`）已补 MCP research_tool
+  协议级断言（G7 拒绝 + 正常检索两条，mcp_server.py --selftest calls
+  列表），但**文档同步漏了**：GOAL_NEXT_SESSION.md 与 PROJECT_STATUS.md
+  均无 R165b 记录（grep -c R165b = 0）——五层自测的 mcp 层说明
+  （"MCP 12 工具 stdio 同源发布（R22b-R38b：含协议级 --selftest"）
+  仍停留在 R38b 时点，未反映 R165b 的 research_tool 协议级断言扩展
+  （web 侧 research 断言 R144b/R146b 已记录，MCP 侧同内核断言未记录，
+  L-22/L-23 同族）。
+- **对照其余事实**（实测一致，无滞后）：web checks 117 已同步、tab
+  8/术数 7 已修正（R161b）、rtab 9 一致、MCP 12 工具一致、66 条 err.*
+  断言覆盖 59+3 分支（能力层封顶）。
+- **方案比对**：A 补 R165b 记录到 GOAL_NEXT/PROJECT_STATUS（mcp 层说明
+  加 "R165b 补 research_tool 协议级断言——G7 拒绝 + 正常检索，与 web
+  侧 R144b/R146b research 断言同源"）（选定）；B 补 tarot 端点校验
+  断言（概率性端点参数校验维度少，确定性弱于 A 的零风险）；C 质量/
+  性能层（FTS 0.001-0.004s、bge 缓存一致、CDN 可达——摸底无缺口）——
+  见 D-212b。
+
+### 193c. 改动与验证
+
+- **改动**（纯文档）：
+  1. PROJECT_STATUS.md 发布面 MCP 说明补 "；R165b 补 research_tool
+     协议级断言——G7 拒绝 + 正常检索，与 web 侧 R144b/R146b research
+     断言同源"；
+  2. GOAL_NEXT_SESSION.md 快照块 MCP 12 工具行补同款 R165b 记录。
+- **验证**（全量）：web --selftest **117 checks** 全 PASS（零回退）；
+  mcp --selftest 全 PASS（research_tool 断言生效）；13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零代码改动、零回退。
+- 决策记录：DECISIONS.md D-212b。
