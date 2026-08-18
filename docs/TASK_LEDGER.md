@@ -8503,3 +8503,47 @@ web 118→120 checks）已确认在 origin/main。
   PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
   mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-216b。
+
+## 199. [优化轨] R173b：文档滞后——R172b 轮次（compare_works q_empty 去重修正 + q_too_long 保留，checks 121）未在 GOAL_NEXT_SESSION/PROJECT_STATUS 记录 → 补标注 + 台账记录（L-23 同族——轮次/断言覆盖事实硬编码且漏同步）（2026-08-18）
+
+### 199a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R172b（`d06ab16`，并行窗口提交）已确认在 origin/main。
+
+### 199b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **121 checks**（R172b 末态：compare_works q_empty 去重 + q_too_long
+  保留）。
+- **真实滞后点（本轮选定）**：并行窗口 3dc5dbb（R171b）先提交
+  compare_works q_empty+q_too_long（checks 120→122，含与 R153b 重复
+  的 q_empty），随后 d06ab16（R172b）提交去重修正（删重复 q_empty、
+  留 q_too_long，checks 122→121）并把 D-216b/台账 §198/文档一并带上。
+  但 **R172b 轮次本身在 GOAL_NEXT_SESSION/PROJECT_STATUS 无轮次标注**
+  （grep R172b = 0）——文档的 checks 121 已同步（R171b +1 记录存在），
+  但 R172b 去重修正这一轮次事实未记录（若后续追溯 checks 121 的由来，
+  只能看到 R171b +1，看不到 R172b 去重，L-23 同族）。
+- **对照其余事实**（实测一致，无滞后）：能力层 67 条 err.* 断言覆盖
+  59+3 分支（封顶）、MCP 12 工具协议级全覆盖、tab 8/术数 7、表单 7。
+- **方案比对**：A 补 R172b 轮次标注（GOAL_NEXT/PROJECT_STATUS 在
+  R171b +1 后注明 R172b 去重修正，checks 121）+ 台账 §199（选定）；
+  B 能力层继续补断言（67 条已封顶，无未覆盖分支）；C MCP 工具深度
+  验证（12 工具协议级全覆盖）——见 D-217b。
+
+### 199c. 改动与验证
+
+- **改动**（纯文档）：
+  1. GOAL_NEXT_SESSION.md 自测行尾部补 "；R172b 去重修正（compare_works
+     q_empty 与 R153b 重复删除、q_too_long 保留，checks 121，并行窗口
+     d06ab16 提交，见 D-217b）"；
+  2. PROJECT_STATUS.md 尾部增量链 R171b +1 后注明 R172b d06ab16 去重
+     修正（q_empty 与 R153b 重复删除，checks 121）。
+- **验证**（全量）：web --selftest **121 checks** 全 PASS（零回退）；
+  13 道闸门全 exit 0（check_quality 先于 build_index，verify_index
+  T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测
+  全 PASS（sources/bookstudy/research/mcp/web）。零代码改动、零回退。
+- 决策记录：DECISIONS.md D-217b。
