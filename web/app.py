@@ -1807,6 +1807,18 @@ if __name__ == "__main__":
                                                    _ask_too_short.status_code,
                                                    _ask_too_short.text[:200])
         ok.append("err.ask.q_too_short")
+        # R176b（D-223b）：/api/ask q 过长分支 standing 覆盖——err.ask.q_too_short
+        # 已覆盖 q="" 422，但 q 过长（Pydantic max_length=200，line 440
+        # `Field(..., max_length=200)`）422 分支零断言（若该 max_length 校验
+        # 被移除、或回归为 500 则不可见，与 R146b err.research.too_long 同族
+        # ——同内核不同端点 q 过长校验）。实测 q="甲"*201 → 422
+        # "string_too_long"——补断言零风险。
+        _ask_too_long = client.post("/api/ask", json={"q": "甲" * 201,
+                                                       "max_addresses": 2})
+        assert _ask_too_long.status_code == 422, ("err.ask.q_too_long",
+                                                  _ask_too_long.status_code,
+                                                  _ask_too_long.text[:200])
+        ok.append("err.ask.q_too_long")
         check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence_citations"))
         # R115b（D-161b）：ask 的 llm 字段结构 standing 覆盖——llm 为 None

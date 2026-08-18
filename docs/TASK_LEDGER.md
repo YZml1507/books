@@ -8547,3 +8547,52 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测
   全 PASS（sources/bookstudy/research/mcp/web）。零代码改动、零回退。
 - 决策记录：DECISIONS.md D-217b。
+
+## 200. [优化轨] R174b：web standing 自测缺口——bazi ask_date 年份越界分支零断言 → 补断言（能力层验证，与 R151b err.bazi.ask_date / R156b err.bazi.lunar_year 同族——同年份范围不同字段；承接并行窗口工作树半成品）（2026-08-18）
+
+### 200a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R173b（`5cc964f`）已确认在 origin/main。并行窗口工作树
+留有 err.bazi.ask_date_year 半成品（注释标 R174b/D-221b——编号按实际
+顺序应为 D-218b，避免撞号），本窗口承接。
+
+### 200b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **121 checks**（R173b 末态：文档滞后修正，能力层断言无增减）。
+- **真实缺口（本轮选定）**：R151b 已补 err.bazi.ask_date（ask_date=
+  garbage → 400 格式错误），但 **ask_date 年份越界分支**（web/app.py:
+  154-155 "ask_date 年份需在 1900-2100 之间"）零断言——格式错误断言
+  不构成年份越界分支的覆盖（若该年份越界校验回归为 500、或被移除导致
+  越界 ask_date 进入排盘则不可见，与 R156b err.bazi.lunar_year 同族
+  ——同年份范围不同字段，L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi {year:1990, month:5, day:15, hour:10, ask_date:"1800-01-01"}
+    → 400 "ask_date 年份需在 1900-2100 之间"
+  - 对照：ask_date="garbage" → 400（R151b 格式错误已覆盖）；
+    ask_date="2026-01-01" → 200（正常）
+  - 年份越界分支正确返回 400 + detail——补断言零风险（工作树半成品
+    已实测通过，web --selftest 122 checks 全 PASS）。
+- **其他方向**（对照实测）：文档 checks 滞后（GOAL_NEXT/PROJECT_STATUS
+  停在 121，实际 122——本轮一并同步）、tarot（无校验分支）——无其他
+  明确缺口。
+- **方案比对**：A 承接半成品 err.bazi.ask_date_year（ask_date=1800-
+  01-01→400）（121→122 checks，选定）；B 弃用半成品另选方向（半成品
+  合理且已实测通过，弃用浪费）；C tarot 端点校验断言（无校验分支，
+  确定性弱于 A）——见 D-218b。
+
+### 200c. 改动与验证
+
+- **改动**（web/app.py，仅自测，半成品由并行窗口写入本窗口承接核验）：
+  err.* 区块的 err.bazi.ask_date 后补 err.bazi.ask_date_year（ask_date=
+  1800-01-01→400，年份越界分支）（121→122 checks）。
+- **验证**（全量）：web --selftest **122 checks** 全 PASS（新 400 断言
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-218b。
