@@ -1544,6 +1544,17 @@ if __name__ == "__main__":
                     client.post("/api/bazi", json={"year": 1990, "month": 5,
                                                    "day": 15, "hour": 10,
                                                    "ask_date": "garbage"}))
+        # R174b（D-221b）：bazi 端点 ask_date 年份越界分支 standing 覆盖——
+        # err.bazi.ask_date（R151b）只测格式错误（"garbage"），ask_date 年份
+        # 越界（line 154 "ask_date 年份需在 {YEAR_LO}-{YEAR_HI} 之间"）零断言
+        # （若该年份越界校验回归为 500、或被移除导致越界 ask_date 进入排盘
+        # 则不可见，与 R156b err.bazi.lunar_year 同族——同年份范围不同字段）。
+        # 实测 ask_date=1800-01-01 → 400 "ask_date 年份需在 1900-2100 之间"——
+        # 补断言零风险。
+        _expect_400("err.bazi.ask_date_year",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "ask_date": "1800-01-01"}))
         _expect_400("err.bazi.range_missing",
                     client.post("/api/bazi", json={"year": 1990, "month": 5,
                                                    "day": 15, "hour": 10,
