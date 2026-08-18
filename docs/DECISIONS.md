@@ -6582,3 +6582,36 @@ err.huangli.date/year/illegal（date 格式、year 范围、非法日期如
 date 先例：能力路径必须有一条可复现命令断言——同端点未覆盖分支必须
 独立断言，date 格式/年份/非法日期断言不构成 month/day 的覆盖）。
 落地后：web --selftest 109→111 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-209b R163b 优化轨：web standing 自测缺口——bazi 端点 422 排盘失败分支（month=2/day=30 → 422）零断言（能力层验证——422 错误路径与 400 校验分支不同族，R139b-R162b 的 err.* 全为 400 断言，422 排盘失败路径零覆盖）
+
+**背景（亲自核实）**：R139b-R162b 已补 63 条 err.* 断言（全部 `_expect_400`
+校验分支，覆盖 59 条可达 HTTPException(400)），能力层 400 校验封顶。但
+**422 排盘失败分支**（web/app.py:215 `raise HTTPException(422, f"排盘
+失败：{exc}")`，compute 抛异常路径）**零 standing 断言**——所有 err.*
+断言只测 400 参数校验，422 是**排盘计算失败**（合法参数但组合非法，
+如 1990-02-30 不存在），若排盘异常回归为 500、或被移除导致非法组合
+静默排盘则不可见（与 R124b err.* 同族但不同状态码维度，L-22/L-23
+同族）。实测确认可确定性构造。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {year:1990, month:2, day:30, hour:10}` → **422**，
+  detail "排盘失败：day 30 must be in range 1..28 for month 2 in year
+  1990"
+- 对照：year=1990/month=2/day=28 → 200（合法）；year=1990/month=2/
+  day=31 → 400（day 超范围，err.bazi.day R162b 已覆盖）
+- 422 分支正确返回 422 + detail——补断言零风险（新增 `_expect_422`
+  断言辅助函数，与 `_expect_400` 并列）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 新增 `_expect_422` 辅助（断言 status_code==422），补 err.bazi.paipan_fail 断言（month=2/day=30→422）（114→115 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi 端点 422 排盘失败未覆盖的错误路径（400 参数校验断言不构成 422 计算失败的覆盖），抓排盘异常静默回归；与 R124b err.* 同族（同端点不同状态码维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged/empty/too_long 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.paipan_fail 422 断言 + `_expect_422` 辅助，照 R124b
+err.* 先例扩展状态码维度：能力路径必须有一条可复现命令断言——400 参数
+校验断言不构成 422 计算失败路径的覆盖）。落地后：web --selftest
+114→115 checks，跑 13 闸门 + 五层自测确认零回退。

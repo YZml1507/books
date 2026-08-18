@@ -8035,3 +8035,55 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-208b。
+
+## 190. [优化轨] R163b：web standing 自测缺口——bazi 端点 422 排盘失败分支（month=2/day=30 → 422）零断言 → 补断言（能力层验证——422 错误路径与 400 校验分支不同族，R139b-R162b 的 err.* 全为 400 断言，422 排盘失败路径零覆盖）（2026-08-18）
+
+### 190a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R162b（`40a3733`）已确认在 origin/main。
+
+### 190b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **114 checks**（R162b 末态：err.huangli.month/day + err.bazi.month/
+  day/hour 承接并行窗口）。
+- **真实缺口（本轮选定）**：R139b-R162b 已补 63 条 err.* 断言（全部
+  `_expect_400` 校验分支，覆盖 59 条可达 HTTPException(400)），能力层
+  400 校验封顶。但 **422 排盘失败分支**（web/app.py:215 `raise
+  HTTPException(422, f"排盘失败：{exc}")`，compute 抛异常路径）**零
+  standing 断言**——所有 err.* 断言只测 400 参数校验，422 是**排盘
+  计算失败**（合法参数但组合非法，如 1990-02-30 不存在），若排盘异常
+  回归为 500、或被移除导致非法组合静默排盘则不可见（与 R124b err.*
+  同族但不同状态码维度，L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi {year:1990, month:2, day:30, hour:10} → **422** "排盘失败：
+    day 30 must be in range 1..28 for month 2 in year 1990"
+  - 对照：year=1990/month=2/day=28 → 200（合法）；year=1990/month=2/
+    day=31 → 400（day 超范围，err.bazi.day R162b 已覆盖）
+  - 422 分支正确返回 422 + detail——补断言零风险（新增 `_expect_422`
+    断言辅助函数，与 `_expect_400` 并列）。
+- **其他方向**（对照实测）：CDN 可达（tailwind 302 重定向正常、
+  tsparticles 200）、FTS 0.001-0.004s 正常、bge 缓存一致（dict ids
+  2489/2505 = vecs 行数）、MCP research_tool（web 侧已覆盖）、tarot
+  （概率性端点参数校验维度少）——无其他明确缺口。
+- **方案比对**：A 补 err.bazi.paipan_fail 422 断言 + `_expect_422`
+  辅助（114→115 checks，选定）；B 补 MCP research_tool 深度验证（工作
+  量大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性端点，确定性
+  弱于 A）——见 D-209b。
+
+### 190c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 `_expect_400` 后新增
+  `_expect_422` 辅助（断言 status_code==422）；err.bazi.hour 后补一条
+  断言——err.bazi.paipan_fail（year=1990/month=2/day=30→422，compute
+  排盘失败路径）（114→115 checks）。
+- **验证**（全量）：web --selftest **115 checks** 全 PASS（新 422 断言
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-209b。

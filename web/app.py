@@ -1273,6 +1273,13 @@ if __name__ == "__main__":
             assert resp.status_code == 400, (name, resp.status_code, resp.text[:200])
             ok.append(name)
 
+        # R163b（D-209b）：422 排盘失败分支断言辅助——400 参数校验断言不
+        # 构成 422 计算失败路径的覆盖（compute 抛异常→422，如 1990-02-30
+        # 不存在），独立断言状态码。
+        def _expect_422(name, resp):
+            assert resp.status_code == 422, (name, resp.status_code, resp.text[:200])
+            ok.append(name)
+
         _expect_400("err.addr.scheme",
                     client.get("/api/addr", params={"scheme": "nonsense", "gua": 1}))
         _expect_400("err.liuyao.method",
@@ -1422,6 +1429,16 @@ if __name__ == "__main__":
         _expect_400("err.bazi.hour",
                     client.post("/api/bazi", json={"year": 1990, "month": 5,
                                                    "day": 15, "hour": 25}))
+        # R163b（D-209b）：bazi 端点 422 排盘失败分支 standing 覆盖——
+        # err.bazi.*（R139b-R162b）全为 400 参数校验断言，422 是 compute
+        # 抛异常路径（合法参数但组合非法，如 1990-02-30 不存在，line 215
+        # "排盘失败：{exc}"）零断言（若排盘异常回归为 500、或被移除导致
+        # 非法组合静默排盘则不可见，与 R124b err.* 同族但不同状态码维度）。
+        # 实测 year=1990/month=2/day=30 → 422 "排盘失败：day 30 must be
+        # in range 1..28 for month 2 in year 1990"——补断言零风险。
+        _expect_422("err.bazi.paipan_fail",
+                    client.post("/api/bazi", json={"year": 1990, "month": 2,
+                                                   "day": 30, "hour": 10}))
         # R139b（D-185b）：bazi 端点 calendar_type/scope/gender 三条 400 校验
         # 分支 standing 覆盖——err.bazi.year 只测年份范围，calendar_type
         # （非 solar/lunar）、scope（非 day/range/life）、gender（非 男/女）
