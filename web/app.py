@@ -1302,6 +1302,20 @@ if __name__ == "__main__":
                     client.post("/api/liuyao", json={"method": "time",
                                                      "year": 1990, "month": 5,
                                                      "day": 15, "hour": 24}))
+        # R157b（D-203b）：liuyao time 起卦公历转农历失败（solar_to_lunar
+        # ValueError 捕获分支，line 789）400 校验 standing 覆盖——
+        # err.liuyao.time.year/month/missing（R141b）与 day/hour（R149b）
+        # 只覆盖输入形状校验，公历转农历运行时换算失败（如公历日期早于
+        # 农历表起点 1900-01-31）由 lunar.py 抛出、经 line 789 捕获转
+        # 400，这条路径零断言（若换算失败回归为 500、或被移除导致非法
+        # 公历日期进入起卦计算则不可见，与 R141b err.liuyao.time.missing
+        # 同族——同端点不同校验维度）。实测 year=1900-01-01 → 400 "公历
+        # 转农历失败：1900-01-01 早于农历表起点 1900-01-31"——补断言
+        # 零风险。
+        _expect_400("err.liuyao.time.convert_fail",
+                    client.post("/api/liuyao", json={"method": "time",
+                                                     "year": 1900, "month": 1,
+                                                     "day": 1, "hour": 10}))
         _expect_400("err.hehun.year",
                     client.post("/api/hehun", json={"a_year": 1800, "a_month": 5,
                                                     "a_day": 15, "a_hour": 10,

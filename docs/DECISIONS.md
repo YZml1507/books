@@ -6365,3 +6365,36 @@ lunar_to_solar 抛出、经 line 172 捕获转 400——这条路径零 standing
 month 先例：能力路径必须有一条可复现命令断言——lunar 输入形状断言不
 构成 lunar_year 超范围换算失败路径的覆盖）。落地后：web --selftest
 105→106 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-203b R157b 优化轨：web standing 自测缺口——liuyao time 起卦公历转农历失败（solar_to_lunar ValueError 捕获分支）400 校验零断言（能力层验证，与 R141b err.liuyao.time.* 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：liuyao time 起卦（web/app.py:786-789）在
+year/month/day/hour 形状校验通过后调 lunar.solar_to_lunar，**公历转
+农历失败分支**（line 789 捕获 ValueError→400 "公历转农历失败：{exc}"）
+零 standing 断言——R141b 已补 err.liuyao.time.year/month/missing、
+R149b 已补 err.liuyao.time.day/hour（覆盖输入形状校验），但 **solar_to
+_lunar 运行时换算失败**（如公历日期早于农历表起点 1900-01-31）由
+lunar.py 抛出、经 line 789 捕获转 400——这条路径零断言（若换算失败
+回归为 500、或被移除导致非法公历日期进入起卦计算则不可见，与 R141b
+err.liuyao.time.missing 同族——同端点不同校验维度，L-22/L-23 同族）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/liuyao {"method":"time","year":1900,"month":1,"day":1,
+  "hour":10}` → 400，detail "公历转农历失败：1900-01-01 早于农历表
+  起点 1900-01-31"
+- 边界对照：year=1900/month=1/day=31 → 200（农历表起点，合法）；
+  year=2100/month=12/day=31 → 200（合法）
+- year=1900-01-01 分支正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补一条断言：err.liuyao.time.convert_fail（year=1900-01-01→400）（106→107 checks） | 纯加自测断言、零功能改动/零数据风险；补上 liuyao time 起卦公历转农历失败未覆盖的 400 分支（year/month/day/hour/missing 形状断言不构成运行时换算失败路径的覆盖），抓校验静默失效；与 R141b err.liuyao.time.missing 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.liuyao.time.convert_fail 一条 400 断言，照 R141b
+err.liuyao.time.missing 先例：能力路径必须有一条可复现命令断言——
+输入形状断言不构成运行时换算失败路径的覆盖）。落地后：web --selftest
+106→107 checks，跑 13 闸门 + 五层自测确认零回退。

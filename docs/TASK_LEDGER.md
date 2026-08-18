@@ -7710,3 +7710,54 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-202b。
+
+## 184. [优化轨] R157b：web standing 自测缺口——liuyao time 起卦公历转农历失败（solar_to_lunar ValueError 捕获分支）400 校验零断言 → 补断言（能力层验证，与 R141b err.liuyao.time.* 同族——同端点不同校验维度）（2026-08-18）
+
+### 184a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R156b（`17f36de`）已确认在 origin/main。
+
+### 184b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **106 checks**（R156b 末态：err.bazi.lunar_year）。
+- **真实缺口（本轮选定）**：liuyao time 起卦（web/app.py:786-789）在
+  year/month/day/hour 形状校验通过后调 lunar.solar_to_lunar，**公历转
+  农历失败分支**（line 789 捕获 ValueError→400 "公历转农历失败：
+  {exc}"）零 standing 断言——R141b 已补 err.liuyao.time.year/month/
+  missing、R149b 已补 err.liuyao.time.day/hour（覆盖输入形状校验），
+  但 **solar_to_lunar 运行时换算失败**（如公历日期早于农历表起点
+  1900-01-31）由 lunar.py 抛出、经 line 789 捕获转 400——这条路径零
+  断言（若换算失败回归为 500、或被移除导致非法公历日期进入起卦计算
+  则不可见，与 R141b err.liuyao.time.missing 同族——同端点不同校验
+  维度，L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - liuyao {method:"time", year:1900, month:1, day:1, hour:10} → 400
+    "公历转农历失败：1900-01-01 早于农历表起点 1900-01-31"
+  - 边界对照：year=1900/month=1/day=31 → 200（农历表起点，合法）；
+    year=2100/month=12/day=31 → 200（合法）
+  - year=1900-01-01 分支正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.liuyao.time.convert_fail 一条 400 断言
+  （106→107 checks，选定）；B 补 MCP research_tool 深度验证（工作量
+  大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性端点，确定性弱
+  于 A）——见 D-203b。
+
+### 184c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.liuyao.time.hour
+  后补一条断言——err.liuyao.time.convert_fail（year=1900-01-01→400，
+  触发 solar_to_lunar 农历表起点前日期经 line 789 捕获转 400）
+  （106→107 checks）。
+- **验证**（全量）：web --selftest **107 checks** 全 PASS（新 400 断言
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-203b。
