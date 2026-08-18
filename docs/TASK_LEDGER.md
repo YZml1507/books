@@ -8361,3 +8361,42 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-214b。
+
+## 196. [优化轨] R169b：web standing 自测缺口——threads.detail 404 拒绝路径（tid 不存在）零断言 → 补断言（能力层验证，与 history.detail.missing 同族——同状态码不同端点，L-22/L-23 同族）（2026-08-18）
+
+### 196a. 背景
+
+threads.detail check（web/app.py:1800）只测 tid=1 命中路径（"claims" +
+"turns" in j），tid 不存在的 404 分支（line 637 "线程 {tid} 不存在或暂无
+对话"）零 standing 断言。若该 404 校验回归为 500、或被移除导致非法 tid
+静默返回空，selftest 全绿看不见（与 history.detail.missing 同族——
+同状态码 404 不同端点，L-22/L-23 同族）。
+
+实测：`GET /api/threads/99999` → 404 + detail "线程 99999 不存在或暂无
+对话"——补断言零风险。
+
+### 196b. 方案
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | threads.detail check 后加 threads.detail.missing 断言：tid=99999 → 404 + detail（117→118 checks） | 纯加自测断言、零功能改动/零数据风险；补上 threads.detail 404 拒绝路径未覆盖分支，抓校验静默失效；与 history.detail.missing 同族（同状态码不同端点），确定性可复验 |
+| B | 补 MCP add_local_work_tool 错误路径协议级断言 | add_local_work_tool 错误路径已在 mcp selftest 覆盖（content.startswith("error:")），价值低 |
+| C | 文档滞后扫描继续 | R161b/R166b 已修 tab/轮次滞后，无新滞后点 |
+
+选 A（补 threads.detail.missing 一条 404 断言，照 history.detail.missing
+先例：能力路径必须有一条可复现命令断言——同端点未覆盖分支必须独立
+断言，tid=1 命中断言不构成 tid=99999 拒绝路径的覆盖）。落地后：web
+--selftest 117→118 checks，跑 13 闸门 + 五层自测确认零回退。
+
+### 196c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：threads.detail check 后加
+  threads.detail.missing 断言——`_td_miss = client.get("/api/threads/
+  99999")`，断言 status_code == 404 + json detail 非空。
+- **验证**（全量）：web --selftest **118 checks** 全 PASS（含
+  threads.detail.missing）；13 道闸门全 exit 0（check_quality PASS，
+  build_index 因并行窗口占用 corpus.db PermissionError 失败但
+  verify_index 之前 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-215b。
