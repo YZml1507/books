@@ -1324,6 +1324,35 @@ if __name__ == "__main__":
                                                     "a_day": 15, "a_hour": 10,
                                                     "b_year": 1992, "b_month": 8,
                                                     "b_day": 0, "b_hour": 14}))
+        # R154b（D-200b）：hehun 甲侧 a_month/a_day/a_hour + 乙侧 b_hour
+        # 四条 400 校验分支 standing 覆盖——err.hehun.year（R124b）只测
+        # 甲 a_year，err.hehun.b_year/b_month/b_day（R150b）只测乙侧
+        # year/month/day，甲侧 a_month（line 983）、a_day（line 985）、
+        # a_hour（line 987）与乙侧 b_hour（line 987）四条校验分支零断言
+        # （year 断言不构成 month/day/hour 的覆盖，若这些校验回归为 500
+        # 或被移除则不可见，与 R124b/R150b err.hehun.* 同族——同端点不同
+        # 校验维度）。实测 a_month=13/a_day=0/a_hour=24/b_hour=24 均正确
+        # 返回 400 + detail——补断言零风险。
+        _expect_400("err.hehun.a_month",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 13,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.hehun.a_day",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 0, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.hehun.a_hour",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 24,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.hehun.b_hour",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 24}))
         # R142b（D-188b）：huangli 端点 date 格式/year 范围/非法日期三条 400
         # 校验分支 standing 覆盖——huangli check（行 1201）只测合法 date，
         # date 格式校验（line 843）、year 范围校验（line 851）、非法日期

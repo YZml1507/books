@@ -6252,3 +6252,39 @@ ask_date 格式（line 146 "ask_date 需为 YYYY-MM-DD 格式"）、scope=range
 照 R139b-R152b 先例：能力路径必须有一条可复现命令断言——同端点未覆盖
 分支必须独立断言，max_addresses/too_long/missing 断言不构成 q 空的覆盖）。
 落地后：web --selftest 99→101 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-200b R154b 优化轨：web standing 自测缺口——hehun 甲侧 a_month/a_day/a_hour + 乙侧 b_hour 四条 400 校验分支零断言（能力层验证，与 R124b/R150b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：hehun 端点的甲乙两侧校验循环（web/app.py:981-987）
+共 8 条 400 校验分支（甲/乙 × year/month/day/hour），已覆盖 4 条——
+err.hehun.year（R124b，甲 a_year）、err.hehun.b_year/b_month/b_day
+（R150b，乙侧 year/month/day）——但**同端点剩余校验维度**仍零断言：
+甲侧 a_month（line 983）、a_day（line 985）、a_hour（line 987）与
+乙侧 b_hour（line 987）四条——若这些校验回归为 500、或被移除导致非法
+输入进入合婚计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与
+R124b err.hehun.year / R150b err.hehun.b_year 同族——同端点不同校验
+维度）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/hehun {a_hour:24, ...}` → 400，detail "甲 hour 须在
+  0-23，收到 24"
+- `POST /api/hehun {b_hour:24, ...}` → 400，detail "乙 hour 须在
+  0-23，收到 24"
+- `POST /api/hehun {a_day:0, ...}` → 400，detail "甲 day 须在
+  1-31，收到 0"
+- `POST /api/hehun {a_month:13, ...}` → 400，detail "甲 month 须在
+  1-12，收到 13"（同循环分支，R150b 已验证乙侧 month=13 同样 400）
+- 四条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补四条断言：err.hehun.a_month（a_month=13→400）、err.hehun.a_day（a_day=0→400）、err.hehun.a_hour（a_hour=24→400）、err.hehun.b_hour（b_hour=24→400）（101→105 checks） | 纯加自测断言、零功能改动/零数据风险；补上 hehun 甲乙两侧剩余四个未覆盖的 400 校验分支（a_year/b_year/b_month/b_day 断言不构成 a_month/a_day/hour 的覆盖），抓校验静默失效；与 R124b/R150b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.hehun.a_month/a_day/a_hour + err.hehun.b_hour 四条 400
+断言，照 R124b/R150b 先例：能力路径必须有一条可复现命令断言——同端点
+未覆盖分支必须独立断言，year 断言不构成 month/day/hour 的覆盖）。
+落地后：web --selftest 101→105 checks，跑 13 闸门 + 五层自测确认零回退。

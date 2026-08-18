@@ -7547,3 +7547,55 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-199b。
+
+## 181. [优化轨] R154b：web standing 自测缺口——hehun 甲侧 a_month/a_day/a_hour + 乙侧 b_hour 四条 400 校验分支零断言 → 补断言（能力层验证，与 R124b/R150b 同族——同端点不同校验维度）（2026-08-18）
+
+### 181a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R153b（`29444a6`）已确认在 origin/main。
+
+### 181b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **101 checks**（R153b 末态：err.research.empty +
+  err.compare_works.q_empty）。
+- **真实缺口（本轮选定）**：hehun 端点甲乙两侧校验循环（line 981-987）
+  共 8 条 400 校验分支（甲/乙 × year/month/day/hour），已覆盖 4 条
+  （err.hehun.year R124b 甲 a_year；err.hehun.b_year/b_month/b_day
+  R150b 乙侧 year/month/day），但**同端点剩余校验维度**仍零断言：甲侧
+  a_month（line 983）、a_day（line 985）、a_hour（line 987）与乙侧
+  b_hour（line 987）四条——若这些校验回归为 500、或被移除导致非法
+  输入进入合婚计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与
+  R124b err.hehun.year / R150b err.hehun.b_year 同族——同端点不同校验
+  维度）。
+- **实测**（命令实跑，web TestClient）：
+  - hehun a_hour=24 → 400 "甲 hour 须在 0-23，收到 24"
+  - hehun b_hour=24 → 400 "乙 hour 须在 0-23，收到 24"
+  - hehun a_day=0 → 400 "甲 day 须在 1-31，收到 0"
+  - hehun a_month=13 → 400 "甲 month 须在 1-12，收到 13"
+    （同循环分支，R150b 已验证乙侧 month=13 同样 400）
+  - 四条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.hehun.a_month/a_day/a_hour + err.hehun.b_hour
+  四条 400 断言（101→105 checks，选定）；B 补 MCP research_tool 深度
+  验证（工作量大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性
+  端点，确定性弱于 A）——见 D-200b。
+
+### 181c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.hehun.b_day 后补
+  四条断言——err.hehun.a_month（a_month=13→400）、err.hehun.a_day
+  （a_day=0→400）、err.hehun.a_hour（a_hour=24→400）、err.hehun.b_hour
+  （b_hour=24→400）（101→105 checks）。
+- **验证**（全量）：web --selftest **105 checks** 全 PASS（四条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-200b。
