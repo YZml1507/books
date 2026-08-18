@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import sys
 from datetime import date, datetime, timedelta
 
@@ -677,7 +678,10 @@ def api_thread_record(req: ThreadRecordRequest):
         try:
             did = kb.record(req.kind, req.claim, req.method, ev,
                             confidence=req.confidence, thread_id=req.thread_id)
-        except ValueError as exc:
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            # R159b（D-205b）：非法 kind 触发 knowledge.py INSERT 的
+            # sqlite3.IntegrityError（DB CHECK 约束），此前只捕获 ValueError
+            # → 500 崩溃；扩展捕获转 400（与其余端点"非法参数→400"纪律一致）。
             raise HTTPException(400, str(exc)) from exc
         row = kb.db.execute(
             "SELECT thread_id FROM derived WHERE id = ?", (did,)).fetchone()
@@ -1662,6 +1666,18 @@ if __name__ == "__main__":
         _expect_400("err.bookstudy.chapter.scheme",
                     client.get("/api/bookstudy/chapter",
                                params={"work_id": "KR1a0001", "scheme": "", "addr1": 1}))
+        # R159b（D-205b）：/api/threads 非法 kind 400 校验 standing 覆盖——
+        # threads check（行 1732）只测合法 kind=summary 路径，非法 kind
+        # （kind=bogus）此前触发 knowledge.py INSERT 的 sqlite3.IntegrityError
+        # （DB CHECK 约束）未被 except ValueError 捕获 → 500 崩溃（真实 bug，
+        # R159b 摸底实测）。修复（except (ValueError, sqlite3.IntegrityError)
+        # 转 400）后补断言：kind=bogus → 400 + detail 含 "CHECK constraint"
+        # ——若回归为 500 则断言失败（抓 500→400 静默回归，与其余端点
+        # "非法参数→400"纪律一致）。
+        _expect_400("err.threads.kind",
+                    client.post("/api/threads", json={"kind": "bogus",
+                                                      "claim": "测试",
+                                                      "method": "probe"}))
 
         # 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用
         # （ask 不落库不缓存、history/threads 只读）。external/news 依赖

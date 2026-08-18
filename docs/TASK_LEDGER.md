@@ -7814,3 +7814,64 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-204b。
+
+## 186. [优化轨] R159b：web 真实 bug——/api/threads 非法 kind 返回 500 而非 400（sqlite3.IntegrityError 未被 except ValueError 捕获）→ 修复 + 补断言（能力层验证抓到真实 bug，照 R110b-R139b 先例）（2026-08-18）
+
+### 186a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R158b（`06dae38`）已确认在 origin/main。
+
+### 186b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **108 checks**（R158b 末态：err.bazi.lunar_solar_range）。
+- **真实 bug（本轮选定，命令实测）**：R139b-R158b 已补 57 条 err.*
+  400 断言，本轮摸底比对 59 条 HTTPException(400) 分支时，剩余 2 条
+  未覆盖分支中 line 544（ask q 空）实测为 422（Pydantic schema
+  min_length=1 拦截，非 HTTPException 分支，排除）；line 681
+  （/api/threads 的 kb.record ValueError 捕获分支）——实测发现**真实
+  bug**：
+  - `POST /api/threads {"kind":"bogus","claim":"测试","method":"probe"}`
+    → **500 Internal Server Error**（应 400）
+  - 根因：web/app.py:676-681 只 `except ValueError`，但非法 kind 触发
+    的是 knowledge.py:116 INSERT 的 **sqlite3.IntegrityError**（DB
+    CHECK 约束 `kind IN ('summary','diff','link','answer','refusal')`），
+    非 ValueError → 未被捕获 → 500 崩溃。
+  - 对照：合法 kind 但缺 evidence → 400（ValueError 路径正常）；
+    合法 kind+evidence → 200（正常写库）。
+  - 影响面：非法 kind 输入导致 500 而非 400——前端拿到 500 而非参数
+    错误提示；且 standing 自测从未覆盖该分支（threads check 只测合法
+    路径），回归不可见（L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient raise_server_exceptions=False）：
+  - kind=bogus → **500**（bug）
+  - kind=summary 缺 evidence → 400 "kind='summary' asserts a claim…"
+    （ValueError 正常路径）
+  - 合法路径（kind=summary + evidence）→ 200（R54b threads check 已覆盖）
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮已抓到真实 bug，优先修复。
+- **方案比对**：A 修复（except ValueError 扩展为 except (ValueError,
+  sqlite3.IntegrityError) 转 400 + import sqlite3）并补 err.threads.kind
+  断言（108→109 checks，选定）；B 只补断言不修 bug（断言会失败——
+  当前 500，违反"修复根因"纪律）；C 其他方向（tarot 等，本轮优先级
+  让位于真实 bug）——见 D-205b。
+
+### 186c. 改动与验证
+
+- **改动**（web/app.py）：
+  1. import 区加 `import sqlite3`；
+  2. api_thread_record 的 `except ValueError` 扩展为 `except (ValueError,
+     sqlite3.IntegrityError)`（非法 kind 的 DB CHECK 约束错误转 400，
+     与其余端点"非法参数→400"纪律一致）；
+  3. err.* 区块补 err.threads.kind 断言（kind=bogus→400）（108→109
+     checks）。
+- **验证**（全量）：web --selftest **109 checks** 全 PASS（err.threads.
+  kind 断言生效，500→400 修复验证通过）；13 道闸门全 exit 0
+  （check_quality 先于 build_index，verify_index T1-T11 ALL PASS，
+  assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零回退。
+- 决策记录：DECISIONS.md D-205b。

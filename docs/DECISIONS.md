@@ -6433,3 +6433,43 @@ L-22/L-23 同族）。
 err.bazi.lunar_year 先例：能力路径必须有一条可复现命令断言——lunar_to
 _solar 抛异常断言不构成成功换算后越界分支的覆盖）。落地后：web
 --selftest 107→108 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-205b R159b 修复轨：web 真实 bug——/api/threads 非法 kind 返回 500 而非 400（sqlite3.IntegrityError 未被 except ValueError 捕获）→ 修复 + 补断言（能力层验证抓到真实 bug，照 R110b-R139b 先例）
+
+**背景（亲自核实，命令实跑）**：R139b-R158b 已补 57 条 err.* 400 断言，
+本轮摸底比对 59 条 HTTPException(400) 分支时，剩余 2 条未覆盖分支中
+line 544（ask q 空）实测为 422（Pydantic schema min_length=1 拦截，
+非 HTTPException 分支，排除）；line 681（/api/threads 的 kb.record
+ValueError 捕获分支）——实测发现**真实 bug**：
+
+- `POST /api/threads {"kind":"bogus","claim":"测试","method":"probe"}`
+  → **500 Internal Server Error**（应 400）
+- 根因：web/app.py:676-681 只 `except ValueError`，但非法 kind 触发的是
+  knowledge.py:116 INSERT 的 **sqlite3.IntegrityError**（DB CHECK 约束
+  `kind IN ('summary','diff','link','answer','refusal')`），非 ValueError
+  → 未被捕获 → 500 崩溃。
+- 对照：合法 kind 但缺 evidence → 400（ValueError 路径正常）；合法
+  kind+evidence → 200（正常写库）。
+- 影响面：非法 kind 输入导致 500 而非 400——前端拿到 500 而非参数
+  错误提示；**且 standing 自测从未覆盖该分支**（threads check 只测
+  合法路径），回归不可见（L-22/L-23 同族）。
+
+**实测数据（命令实跑，web TestClient raise_server_exceptions=False）**：
+- `POST /api/threads {"kind":"bogus",...}` → **500**（bug）
+- `POST /api/threads {"kind":"summary","claim":"测试","method":"probe"}`
+  → 400 "kind='summary' asserts a claim, so it needs at least one Evidence…"
+  （ValueError 正常路径）
+- 合法路径（kind=summary + evidence）→ 200（R54b threads check 已覆盖）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 修复 web/app.py:676-681：`except ValueError` 扩展为同时捕获 sqlite3.IntegrityError（`except (ValueError, sqlite3.IntegrityError) as exc: raise HTTPException(400, str(exc))`，web/app.py 需 `import sqlite3`）；再补 standing 断言 err.threads.kind（kind=bogus→400） | 修真实 bug（500→400）+ 补断言固化；零数据风险（非法 kind 本就不该入库）；与其余端点"非法参数→400"纪律一致 |
+| B | 只补断言不修 bug | 断言会失败（当前 500）——不修根因只加断言是自欺，违反"修复根因"纪律 |
+| C | 其他方向（tarot 校验等） | 本轮已抓到真实 bug，优先修复 |
+
+选 A（修复 500→400 + 补 err.threads.kind 断言，照 R110b-R139b 先例：
+能力层验证补断言常当场抓到真实 bug——threads 端点非法 kind 回归为 500
+此前不可见）。落地后：web --selftest 108→109 checks，跑 13 闸门 + 五层
+自测确认零回退。
