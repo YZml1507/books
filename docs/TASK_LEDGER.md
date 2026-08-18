@@ -8400,3 +8400,58 @@ threads.detail check（web/app.py:1800）只测 tid=1 命中路径（"claims" +
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-215b。
+
+## 197. [优化轨] R169b 补记：MCP standing 自测缺口——search/addr/compare/concept 四工具边界路径协议级零覆盖 → 补断言（与 R168b bookstudy 错误路径断言同族；D-215b 已由并行窗口随 595635d 并入 R169b 提交，本条目补台账记录）（2026-08-18）
+
+### 197a. 移交跟进
+
+并行窗口 595635d（R169b）已把本窗口工作树的 MCP search/addr/compare/
+concept 五条边界路径断言与 DECISIONS D-215b 一并提交（含 threads.detail
+404 断言，web 117→118 checks），10e129f 台账 §196 只记 threads.detail
+——MCP 边界路径断言缺台账记录，本条目补记（照 D-008 不回溯改写 §196）。
+
+### 197b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **118 checks**（R169b 末态：threads.detail.missing + MCP 边界断言）。
+- **真实缺口（本轮补记）**：R167b 已把 MCP search/addr/compare/concept
+  补上**正常路径**协议级断言，但**错误/边界路径仍零协议级覆盖**：
+  mcp_server.py --selftest 对这四个工具只测有结果的正常路径——**空查询、
+  非法 scheme、无 gua、超范围 gua 的边界行为零断言**（若这些工具的边界
+  处理回归为 500 崩溃、或返回语义改变的文本，mcp 层自测看不见，L-22/
+  L-23 同族；与 R168b bookstudy 错误路径断言同族——同一内核不同发布面，
+  web 侧 err.search.empty（R145b）/err.addr.scheme+no_gua（R148b）/
+  err.compare.gua_range（R147b）/err.concept.empty（R144b）已有同语义
+  断言）。
+- **实测**（命令实跑，直接调 MCP 工具函数）：
+  - search(" ") → "(no hits)"（空查询宽容返回，非 400 非崩溃）
+  - addr("nonsense") → "(no hits)"（非法 scheme 宽容返回）
+  - addr("zhouyi")（无 gua）→ "zhouyi needs gua (1-64)"（与 web 侧
+    R148b 同语义）
+  - compare(99) → "卦99·九三 …"（超范围 gua 宽容返回）
+  - concept(" ") → "「 」in 0 works"（空查询宽容返回）
+  - 五条边界路径均正常返回（非 500 崩溃）——补协议级断言零风险。
+- **方案比对**：A 补五条边界路径协议级断言（search q=" "→no hits、
+  addr nonsense→no hits、addr zhouyi 无 gua→含 "zhouyi needs gua"、
+  compare gua=99→含 "卦99"、concept q=" "→含 "in 0 works"，选定——
+  D-215b 已由并行窗口并入 R169b 提交，本条目补台账记录）；B MCP
+  research_tool max_addresses 钳制断言（同工具已覆盖维度，价值低）；
+  C tarot 端点校验断言（实测 n=0/101 均 200 无校验分支）——见 D-215b。
+
+### 197c. 改动与验证
+
+- **改动**（src/guji/mcp_server.py，仅自测，已由并行窗口随 595635d 提交）：
+  calls 列表加五条边界路径协议级断言 + 循环断言分支（search 空查询
+  →"(no hits)"、addr nonsense→"(no hits)"、addr zhouyi 无 gua→含
+  "zhouyi needs gua"、compare gua=99→含 "卦99"、concept 空查询→含
+  "in 0 works"）。
+- **验证**（全量）：mcp --selftest **全 PASS**（五条边界路径协议级断言
+  生效，search 9 / addr 9 / addr 23 / compare 28 / concept 13 chars）；
+  web --selftest **118 checks** 全 PASS（含并行窗口 threads.detail.
+  missing）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-215b。

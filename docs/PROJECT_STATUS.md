@@ -34,7 +34,9 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
           R144b/R146b research 断言同源；R167b 补 search/addr/compare/
           concept 四条协议级断言——12 工具协议级调用 6→10 个；R168b
           补 book_summary_tool/bookstudy_structure/bookstudy_chapter 三
-          条错误路径协议级断言——work_id 不存在显式返回错误文本）
+          条错误路径协议级断言——work_id 不存在显式返回错误文本；R169b
+          补 search/addr/compare/concept 五条边界路径协议级断言——空
+          查询/非法 scheme/无 gua/超范围 gua 宽容返回）
 记忆闭环  研究→记录→跨会话恢复（愿景 §8/§9）：web POST /api/threads + 三个
           研究 tab「记入线程」+ 记入后列表自动刷新（R34b/R35b/R41b）；MCP
           record_claim_tool 写 + threads(tid) 读回（R36b/R42b）；长期研究
@@ -43,7 +45,7 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 治理      双窗口边界：R44b 反驳审查轨 R24a 越界指控（git 铁证）→ R25a 亲核实
           后撤回（R47b 记录闭环）；R21a 委托待审查轨合入 main（移交项）
 自测      各层 standing 自测全齐：sources/bookstudy/research/mcp `--selftest`
-          + web `python -m app --selftest`（117 checks，R164b 同步——R49b 12
+          + web `python -m app --selftest`（118 checks，R169b 同步——R49b 12
           checks 起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点、R61b
           补首页 /、R69b 补 bazi.semantic 语义路径、R110b-R115b 功能轮 +11、
           R118b/R119b 各 +2：liuyao.time/huangli.affair/bazi.lunar/

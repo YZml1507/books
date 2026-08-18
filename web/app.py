@@ -1764,6 +1764,25 @@ if __name__ == "__main__":
         check("research.allow_damaged", client.get("/api/research", params={"q": "潛龍勿用",
               "max_addresses": 2, "allow_damaged": True}),
               lambda j: j.get("refused") is False and bool(j.get("evidence")))
+        # R170b（D-217b）：/api/ask 端点 q 校验两条分支零 standing 断言——
+        # q="" → 422（Pydantic min_length），q="   " → 400 "q 不能为空"
+        # （strip() 后空）。ask/ask.llm.shape check 只测正常路径，两条 q
+        # 空/空白校验分支零断言（若 Pydantic min_length 被移除、或 strip
+        # 校验回归为 422/500 则不可见，与 err.research.empty 同族——
+        # 同内核不同端点 q 空校验）。实测 q="" → 422，q="   " → 400——
+        # 补断言零风险。
+        _ask_empty = client.post("/api/ask", json={"q": "   ", "max_addresses": 2})
+        assert _ask_empty.status_code == 400, ("err.ask.q_empty",
+                                               _ask_empty.status_code,
+                                               _ask_empty.text[:200])
+        assert _ask_empty.json().get("detail") == "q 不能为空", ("err.ask.q_empty",
+                                                                _ask_empty.text[:200])
+        ok.append("err.ask.q_empty")
+        _ask_too_short = client.post("/api/ask", json={"q": "", "max_addresses": 2})
+        assert _ask_too_short.status_code == 422, ("err.ask.q_too_short",
+                                                   _ask_too_short.status_code,
+                                                   _ask_too_short.text[:200])
+        ok.append("err.ask.q_too_short")
         check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence_citations"))
         # R115b（D-161b）：ask 的 llm 字段结构 standing 覆盖——llm 为 None
