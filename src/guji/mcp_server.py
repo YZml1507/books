@@ -431,6 +431,12 @@ if __name__ == "__main__":
                                                  "page_anchor": "KR5c0057_tls_043-1a"}]}),
             ("record_claim_tool", {"kind": "summary", "claim": "无证据断言",
                                    "method": "mcp-selftest", "evidence": []}),
+            # R165b（D-211b）：research_tool 协议级断言——与 web /api/research
+            # 同内核（web 侧已有 research.allow_damaged/empty/too_long 断言），
+            # MCP 发布面此前零协议级覆盖：G7 拒绝路径（q 空→REFUSED）与正常
+            # 检索路径（q=潛龍勿用→evidence）
+            ("research_tool", {"q": " ", "max_addresses": 2}),
+            ("research_tool", {"q": "潛龍勿用", "max_addresses": 2}),
         ]
         record_did = None
         for i, (name, args) in enumerate(calls, start=3):
@@ -447,6 +453,13 @@ if __name__ == "__main__":
             elif name == "record_claim_tool":
                 assert content.startswith("recorded #"), (name, content)
                 record_did = int(content.split("#")[1].split()[0])
+            elif name == "research_tool" and not (args.get("q") or "").strip():
+                # G7 拒绝路径：空查询必须显式 REFUSED（同 web /api/research
+                # 的 q 空→400 语义——同内核不同发布面）
+                assert "REFUSED" in content and "evidence:" not in content, (name, content)
+            elif name == "research_tool":
+                # 正常检索路径：必须返回 evidence（同 web research check）
+                assert "evidence:" in content, (name, content)
             else:
                 assert "error" not in content.lower(), (name, content)
             print(f"[selftest] tools/call {name} -> {len(content)} chars OK")

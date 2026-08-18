@@ -8142,3 +8142,62 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-210b。
+
+## 192. [优化轨] R165b：MCP standing 自测缺口——research_tool 协议级断言零覆盖 → 补断言（能力层验证，与 R144b/R146b web 侧 research 断言同源——同一内核不同发布面）（2026-08-18）
+
+### 192a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R164b（`3fcd745`）已确认在 origin/main。
+
+### 192b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **117 checks**（R164b 末态：err.taohua.paipan_fail/err.hehun.paipan_fail
+  422）。
+- **真实缺口（本轮选定）**：R139b-R164b 已把 web 层 standing 断言补到
+  117 checks（66 条 err.* 覆盖 59 条 400 + 3 条 422 分支，能力层 web
+  封顶）。但 **MCP 侧 research_tool 协议级断言零覆盖**：mcp_server.py
+  --selftest 的 calls 列表只覆盖 bookstudy_structure/bookstudy_chapter/
+  compare_works_tool/book_summary_tool/add_local_work_tool/
+  record_claim_tool 六个工具——research_tool（与 web /api/research
+  同内核，web 侧已有 research.allow_damaged/empty/too_long 断言）
+  **从未被协议级调用断言**。若 MCP research_tool 的 G7 拒绝路径、
+  正常检索回归（500/行为改变），五层自测中 mcp 层看不见（L-22/L-23
+  同族；与 R144b err.research.max_addresses / R146b err.research.
+  too_long 同源——同一内核不同发布面）。
+- **实测**（命令实跑，直接调 research_tool）：
+  - `research_tool(q=" ")` → 返回 REFUSED（G7 拒绝，steps 0/0，无
+    evidence）
+  - `research_tool(q="甲"*201)` → 正常返回（MCP 侧无 200 字符上限
+    校验，直接进检索——与 web 侧 q 过长→400 不同，是 MCP 设计行为
+    非缺陷）
+  - `research_tool(q="潛龍勿用", max_addresses=0)` → 钳制为 1，正常
+    返回
+  - `research_tool(q="潛龍勿用", max_addresses=2)` → 正常 evidence
+  - 四个行为均可确定性断言——补协议级断言零风险。
+- **其他方向**（对照实测）：文档滞后（R161b 已修 tab 表述、checks 数
+  逐轮同步，无新滞后点）、tarot（概率性端点参数校验维度少）——无
+  其他明确缺口。
+- **方案比对**：A 补 MCP research_tool 协议级断言（calls 列表加两条：
+  q=" "→REFUSED（G7 拒绝）、q=潛龍勿用→evidence（正常路径），选定）；
+  B 补 MCP research_tool max_addresses 钳制断言（并入 A 一并覆盖）；
+  C 文档滞后扫描继续（无新滞后点）——见 D-211b。
+
+### 192c. 改动与验证
+
+- **改动**（src/guji/mcp_server.py，仅自测）：--selftest 的 calls 列表
+  加 research_tool 两条协议级断言——q=" "→断言 REFUSED 且无 evidence
+  （G7 拒绝路径）、q=潛龍勿用→断言含 evidence（正常检索路径），与
+  add_local_work_tool/record_claim_tool 的 error 分支并列（web 侧
+  research.allow_damaged/empty/too_long 断言已覆盖同内核，MCP 发布面
+  补协议级覆盖）。
+- **验证**（全量）：mcp --selftest **全 PASS**（research_tool 两条协议
+  级断言生效）；web --selftest **117 checks** 全 PASS（零回退）；13 道
+  闸门全 exit 0（check_quality 先于 build_index，verify_index T1-T11
+  ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-211b。
