@@ -77,7 +77,10 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
           R162b +5：err.huangli.month/day + err.bazi.month/day/hour
           （承接并行窗口）、
           R163b +1：err.bazi.paipan_fail（422）、
-          R164b +2：err.taohua.paipan_fail/err.hehun.paipan_fail（422））
+          R164b +2：err.taohua.paipan_fail/err.hehun.paipan_fail（422）、
+          R169b +1：err.threads.detail.missing（并行窗口提交）+ MCP
+          search/addr/compare/concept 五条边界路径协议级断言（承接
+          并行窗口 595635d 并入））
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：
