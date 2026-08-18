@@ -6715,3 +6715,38 @@ research_tool 协议级断言（G7 拒绝 + 正常检索两条，mcp_server.py
 必须与实测一致——mcp --selftest 已实测含 research_tool 断言，文档必须
 同步）。落地后：web --selftest 117 checks 全跑 + mcp --selftest +
 13 闸门 + 五层自测确认零回退。
+
+## D-213b R167b 优化轨：MCP standing 自测缺口——search/addr/compare/concept 四个研究工具协议级调用零覆盖（能力层验证，与 R165b research_tool 协议级断言同族——同一内核不同发布面，MCP 12 工具只协议级调用过 6 个）
+
+**背景（亲自核实）**：R165b 已补 research_tool 协议级断言（G7 拒绝 +
+正常检索），但**其余研究类工具的协议级调用仍零覆盖**：mcp_server.py
+--selftest 的 calls 列表只协议级调用 6 个工具（bookstudy_structure /
+bookstudy_chapter / compare_works_tool / book_summary_tool /
+add_local_work_tool / record_claim_tool ×2 + threads 读回），而
+tools/list 断言 12 个工具存在——**search / addr / compare / concept
+四个研究工具从未被协议级调用断言**（与 web 侧 /api/search（R145b）、
+/api/addr（R148b）、/api/compare（R147b）、/api/concept（R144b/R146b）
+同内核，web 侧已有 standing 断言；MCP 发布面零协议级覆盖）。若这四个
+工具的 MCP 行为回归（500/参数语义改变），mcp 层自测看不见（L-22/L-23
+同族；与 R165b err.research_tool 断言同族——同一内核不同发布面）。
+
+**实测数据（命令实跑，直接调 MCP 工具函数）**：
+- `search(q="潛龍勿用")` → 返回 markdown 命中（有结果，非 error）
+- `addr(scheme="zhouyi", gua=1)` → 返回卦辞/爻辞命中
+- `compare(gua=28, yao="九二")` → 返回跨版本比对 + 差异摘要
+- `concept(q="無爲")` → 返回跨书概念普查
+- 四个工具均正常返回——补协议级断言零风险（mcp selftest 已有
+  subprocess 协议框架，加 tools/call 条目即可，断言"error 不在 content"）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | mcp_server.py --selftest 的 calls 列表补四条协议级断言：search（q=潛龍勿用）、addr（scheme=zhouyi+gua=1）、compare（gua=28+yao=九二）、concept（q=無爲）——断言 content 非空且不含 error | 纯加协议级自测断言、零功能改动/零数据风险；补上 MCP 侧 4 个研究工具协议级覆盖（12 工具从协议级调用 6 个→10 个，threads 读回已覆盖），抓 MCP 行为静默回归；与 R165b research_tool 断言同族（同一内核不同发布面），确定性可复验 |
+| B | MCP research_tool max_addresses 钳制断言 | max_addresses=0/99 钳制为 1/6 且正常返回（设计行为），与 A 相比覆盖价值低（A 是零覆盖工具，B 是同工具已覆盖维度） |
+| C | 文档滞后扫描继续 | R161b/R166b 已修 tab/轮次滞后，checks 数逐轮同步，无新滞后点 |
+
+选 A（补 MCP search/addr/compare/concept 四条协议级断言，照 R165b
+research_tool 先例：同一内核的能力路径在每个发布面都必须有一条可复现
+命令断言——web 侧已有、MCP 侧必须补）。落地后：mcp --selftest 全跑 +
+13 闸门 + 五层自测确认零回退。

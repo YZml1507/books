@@ -8248,3 +8248,59 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零代码改动、零回退。
 - 决策记录：DECISIONS.md D-212b。
+
+## 194. [优化轨] R167b：MCP standing 自测缺口——search/addr/compare/concept 四个研究工具协议级调用零覆盖 → 补断言（能力层验证，与 R165b research_tool 协议级断言同族——同一内核不同发布面，12 工具从协议级调用 6 个扩到 10 个）（2026-08-18）
+
+### 194a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R166b（`d3ec4b7`，并行窗口抢先提交 d0970cd + 本窗口补
+台账 §193）已确认在 origin/main。
+
+### 194b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **117 checks**（R166b 末态：文档滞后修正，能力层断言无增减）。
+- **真实缺口（本轮选定）**：R165b 已补 research_tool 协议级断言（G7
+  拒绝 + 正常检索），但**其余研究类工具的协议级调用仍零覆盖**：
+  mcp_server.py --selftest 的 calls 列表只协议级调用 6 个工具
+  （bookstudy_structure/bookstudy_chapter/compare_works_tool/
+  book_summary_tool/add_local_work_tool/record_claim_tool ×2 +
+  threads 读回），而 tools/list 断言 12 个工具存在——**search / addr /
+  compare / concept 四个研究工具从未被协议级调用断言**（与 web 侧
+  /api/search（R145b）、/api/addr（R148b）、/api/compare（R147b）、
+  /api/concept（R144b/R146b）同内核，web 侧已有 standing 断言；MCP
+  发布面零协议级覆盖）。若这四个工具的 MCP 行为回归（500/参数语义
+  改变），mcp 层自测看不见（L-22/L-23 同族；与 R165b research_tool
+  断言同族——同一内核不同发布面）。
+- **实测**（命令实跑，直接调 MCP 工具函数）：
+  - search(q="潛龍勿用") → markdown 命中（有结果，非 error）
+  - addr(scheme="zhouyi", gua=1) → 卦辞/爻辞命中
+  - compare(gua=28, yao="九二") → 跨版本比对 + 差异摘要
+  - concept(q="無爲") → 跨书概念普查
+  - 四个工具均正常返回——补协议级断言零风险。
+- **其他方向**（对照实测）：MCP research_tool max_addresses 钳制断言
+  （max_addresses=0/99 钳制为 1/6 且正常返回，设计行为，与 A 相比覆盖
+  价值低——A 是零覆盖工具）、文档滞后扫描（R161b/R166b 已修 tab/轮次
+  滞后，无新滞后点）——无其他明确缺口。
+- **方案比对**：A 补 MCP search/addr/compare/concept 四条协议级断言
+  （12 工具从协议级调用 6 个→10 个，选定）；B MCP research_tool
+  max_addresses 钳制断言（同工具已覆盖维度，价值低）；C 文档滞后扫描
+  继续（无新滞后点）——见 D-213b。
+
+### 194c. 改动与验证
+
+- **改动**（src/guji/mcp_server.py，仅自测）：--selftest 的 calls 列表
+  加四条协议级断言——search（q=潛龍勿用）、addr（scheme=zhouyi+
+  gua=1）、compare（gua=28+yao=九二）、concept（q=無爲），断言 content
+  非空且不含 error（走循环通用断言分支，与 web 侧同内核断言对应）。
+- **验证**（全量）：mcp --selftest **全 PASS**（四条新协议级断言生效，
+  search 1366 chars / addr 2060 chars / compare 1411 chars / concept
+  7064 chars）；web --selftest **117 checks** 全 PASS（零回退）；13 道
+  闸门全 exit 0（check_quality 先于 build_index，verify_index T1-T11
+  ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-213b。

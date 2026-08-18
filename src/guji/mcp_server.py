@@ -437,6 +437,15 @@ if __name__ == "__main__":
             # 检索路径（q=潛龍勿用→evidence）
             ("research_tool", {"q": " ", "max_addresses": 2}),
             ("research_tool", {"q": "潛龍勿用", "max_addresses": 2}),
+            # R167b（D-213b）：search/addr/compare/concept 四个研究工具协议级
+            # 断言——与 web 侧 /api/search（R145b）、/api/addr（R148b）、
+            # /api/compare（R147b）、/api/concept（R144b/R146b）同内核（web
+            # 侧已有 standing 断言），MCP 发布面此前零协议级覆盖（12 工具只
+            # 协议级调用 6 个）——补四条，断言 content 非空且不含 error
+            ("search", {"q": "潛龍勿用"}),
+            ("addr", {"scheme": "zhouyi", "gua": 1}),
+            ("compare", {"gua": 28, "yao": "九二"}),
+            ("concept", {"q": "無爲"}),
         ]
         record_did = None
         for i, (name, args) in enumerate(calls, start=3):

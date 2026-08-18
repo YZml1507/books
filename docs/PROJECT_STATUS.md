@@ -31,7 +31,8 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
           自测、add_local_work_tool 本地加书、record_claim_tool 写线程 +
           threads 读回 claims/evidence，记忆闭环 web/MCP 双端齐；R165b 补
           research_tool 协议级断言——G7 拒绝 + 正常检索，与 web 侧
-          R144b/R146b research 断言同源）
+          R144b/R146b research 断言同源；R167b 补 search/addr/compare/
+          concept 四条协议级断言——12 工具协议级调用 6→10 个）
 记忆闭环  研究→记录→跨会话恢复（愿景 §8/§9）：web POST /api/threads + 三个
           研究 tab「记入线程」+ 记入后列表自动刷新（R34b/R35b/R41b）；MCP
           record_claim_tool 写 + threads(tid) 读回（R36b/R42b）；长期研究
