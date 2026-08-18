@@ -7983,3 +7983,55 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   全 PASS（sources/bookstudy/research/mcp/web）。零代码改动、零功能
   改动、零回退。
 - 决策记录：DECISIONS.md D-207b。
+
+## 189. [优化轨] R162b：web standing 自测缺口——huangli 端点 month/day 两条 400 校验分支零断言 → 补断言（能力层验证，与 R142b err.huangli.date 同族——同端点不同校验维度；承接并行窗口 err.bazi.month/day/hour 三条）（2026-08-18）
+
+### 189a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R161b（`2466a43` 文档滞后修正）已确认在 origin/main。
+
+### 189b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **109 checks**（R161b 末态：文档滞后修正，能力层断言无增减）。
+- **真实缺口（本轮选定）**：R139b-R161b 已补 58/59 条 HTTPException(400)
+  分支（ask q 空被 Pydantic schema 422 拦截不可达，能力层封顶），但
+  **huangli 同端点剩余校验维度**仍零断言：month（line 853 "month 须在
+  1-12"）、day（line 855 "day 须在 1-31"）两条——R142b 已补
+  err.huangli.date/year/illegal（date 格式、year 范围、非法日期），
+  但 month/day 两条零断言（date 格式/年份/非法日期断言不构成 month/day
+  的覆盖——date=2026-13-01 走 month 校验、date=2026-01-32 走 day 校验，
+  与 R142b 已覆盖的 date=garbage/1800-01-01/2026-02-30 不同分支）。
+- **实测**（命令实跑，web TestClient）：
+  - huangli date=2026-13-01 → 400 "month 须在 1-12，收到 13"
+  - huangli date=2026-01-32 → 400 "day 须在 1-31，收到 32"
+  - 两条分支均正确返回 400 + detail——补断言零风险。
+- **承接并行窗口半成品**（实测核验）：工作树发现并行窗口补写的
+  err.bazi.month/day/hour 三条断言（注释标 R161b/D-207b 但实际未提交，
+  R161b 已提交内容为纯文档修正）——实测 114 checks 全 PASS 核验通过，
+  照 R140b/R150b 先例承接纳入本轮（109→114 checks）。
+- **其他方向**（对照实测）：FTS 0.001-0.004s 正常、bge 缓存一致
+  （dict ids 2489/2505 = vecs 行数）、MCP research_tool（web 侧已覆盖）、
+  tarot（概率性端点参数校验维度少）——无其他明确缺口。
+- **方案比对**：A 补 err.huangli.month/day 两条 400 断言（+承接并行
+  窗口 err.bazi.month/day/hour 三条，109→114 checks，选定）；B 补 MCP
+  research_tool 深度验证（工作量大、web 侧已覆盖）；C 补 tarot 端点
+  校验断言（概率性端点，确定性弱于 A）——见 D-208b。
+
+### 189c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.huangli.illegal 后
+  补两条断言——err.huangli.month（date=2026-13-01→400）、err.huangli.day
+  （date=2026-01-32→400）；承接并行窗口已写入的 err.bazi.month（month=13
+  →400）、err.bazi.day（day=32→400）、err.bazi.hour（hour=25→400）三条
+  （109→114 checks）。
+- **验证**（全量）：web --selftest **114 checks** 全 PASS（五条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-208b。

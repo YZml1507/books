@@ -6545,3 +6545,40 @@ HTTPException 分支，不可达）——**能力层 err.* 断言已基本封顶
 选 A（修正 GOAL_NEXT_SESSION 快照块 tab 表述，照 R135b/R137b 等
 L-23 同族先例：可被命令断言的事实必须与实测一致）。落地后：web
 --selftest 109 checks 全跑 + 13 闸门 + 五层自测确认零回退。
+
+## D-208b R162b 优化轨：web standing 自测缺口——huangli 端点 month/day 两条 400 校验分支零断言（能力层验证，与 R142b err.huangli.date 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R161b 已按端点逐个补 err.* 400 断言（58/59
+条 HTTPException(400) 分支已覆盖，ask q 空被 Pydantic schema 422 拦截
+不可达，能力层封顶），但**同端点剩余校验维度**仍零断言：huangli 端点
+（web/app.py:852-856）的 month（line 853 "month 须在 1-12"）、day
+（line 855 "day 须在 1-31"）两条 400 校验分支——R142b 已补
+err.huangli.date/year/illegal（date 格式、year 范围、非法日期如
+2026-02-30），但 **month/day 两条零断言**（date/year/illegal 断言不
+构成 month/day 的覆盖——如 date=2026-13-01 走 month 校验、date=
+2026-01-32 走 day 校验，与 R142b 已覆盖的 date=garbage（格式）/
+1800-01-01（年份）/2026-02-30（非法日期）不同分支；若这些校验回归为
+500 或被移除则不可见，与 R142b err.huangli.date 同族——同端点不同
+校验维度，L-22/L-23 同族）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `GET /api/huangli?date=2026-13-01` → 400，detail "month 须在 1-12，
+  收到 13"
+- `GET /api/huangli?date=2026-01-32` → 400，detail "day 须在 1-31，
+  收到 32"
+- 对照：date=2026-01-15 → 200（正常）；date=2026-02-30 → 400（R142b
+  err.huangli.illegal 已覆盖）
+- 两条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补两条断言：err.huangli.month（date=2026-13-01→400）、err.huangli.day（date=2026-01-32→400）（109→111 checks） | 纯加自测断言、零功能改动/零数据风险；补上 huangli 端点两个未覆盖的 400 校验分支（date/year/illegal 断言不构成 month/day 的覆盖），抓校验静默失效；与 R142b err.huangli.date 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged/empty/too_long 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.huangli.month/day 两条 400 断言，照 R142b err.huangli.
+date 先例：能力路径必须有一条可复现命令断言——同端点未覆盖分支必须
+独立断言，date 格式/年份/非法日期断言不构成 month/day 的覆盖）。
+落地后：web --selftest 109→111 checks，跑 13 闸门 + 五层自测确认零回退。

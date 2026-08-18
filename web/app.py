@@ -1389,9 +1389,39 @@ if __name__ == "__main__":
                     client.get("/api/huangli", params={"date": "1800-01-01"}))
         _expect_400("err.huangli.illegal",
                     client.get("/api/huangli", params={"date": "2026-02-30"}))
+        # R162b（D-208b）：huangli 端点 month/day 两条 400 校验分支 standing
+        # 覆盖——err.huangli.date/year/illegal（R142b）已覆盖 date 格式、
+        # year 范围、非法日期三条，但 month（line 853 "month 须在 1-12"）、
+        # day（line 855 "day 须在 1-31"）两条零断言（date 格式/年份/非法
+        # 日期断言不构成 month/day 的覆盖——如 date=2026-13-01 走 month
+        # 校验、date=2026-01-32 走 day 校验，与 R142b 已覆盖的 date=
+        # garbage/1800-01-01/2026-02-30 不同分支；若这些校验回归为 500
+        # 或被移除则不可见，与 R142b err.huangli.date 同族——同端点不同
+        # 校验维度）。实测 date=2026-13-01/2026-01-32 均正确返回 400 +
+        # detail——补断言零风险。
+        _expect_400("err.huangli.month",
+                    client.get("/api/huangli", params={"date": "2026-13-01"}))
+        _expect_400("err.huangli.day",
+                    client.get("/api/huangli", params={"date": "2026-01-32"}))
         _expect_400("err.bazi.year",
                     client.post("/api/bazi", json={"year": 1800, "month": 5,
                                                    "day": 15, "hour": 10}))
+        # R161b（D-207b）：bazi 端点 month/day/hour 三条 400 校验分支
+        # standing 覆盖——err.bazi.year（R139b）只测年份范围，month
+        # （line 139: "month 需在 1-12"）、day（line 141: "day 需在
+        # 1-31"）、hour（line 143: "hour 需在 0-23"）三条校验零断言
+        # （若校验回归为 500 或被移除则不可见，与 R139b err.bazi.year
+        # 同族——同端点不同校验维度）。实测 month=13/day=32/hour=25
+        # 均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.bazi.month",
+                    client.post("/api/bazi", json={"year": 1990, "month": 13,
+                                                   "day": 15, "hour": 10}))
+        _expect_400("err.bazi.day",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 32, "hour": 10}))
+        _expect_400("err.bazi.hour",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 25}))
         # R139b（D-185b）：bazi 端点 calendar_type/scope/gender 三条 400 校验
         # 分支 standing 覆盖——err.bazi.year 只测年份范围，calendar_type
         # （非 solar/lunar）、scope（非 day/range/life）、gender（非 男/女）
