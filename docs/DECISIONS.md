@@ -6809,3 +6809,31 @@ no_gua（R148b）/err.compare.gua_range（R147b）/err.concept.empty
 R168b bookstudy 错误路径断言先例：同一内核的能力路径在每个发布面都
 必须有一条可复现命令断言——正常路径断言不构成边界路径的覆盖）。
 落地后：mcp --selftest 全跑 + 13 闸门 + 五层自测确认零回退。
+
+## D-216b R171b 优化轨：web standing 自测缺口——compare_works q 过长分支零断言 + 承接并行窗口半成品并去重（能力层验证，与 R153b err.compare_works.q_empty 同族——同端点不同校验维度；并行窗口半成品含同名重复断言需修正）
+
+**背景（亲自核实，命令实跑）**：R170b（`74e33b6`）末态 web 120 checks。
+本轮摸底发现工作树有并行窗口新增的 R171b 半成品（web/app.py:1666-1681）：
+err.compare_works.q_empty（q="  "→400）+ err.compare_works.q_too_long
+（q=甲*201→400）两条断言，注释标 R171b/D-219b。实测（命令实跑）：
+- `GET /api/compare_works?work_a=KR5c0057&work_b=KR5c0126&q=甲*201` →
+  400 "q 过长（≤200 字符）"——**真实缺口**（compare_works 的 q 过长
+  分支零断言，与 R146b err.research.too_long 同族）
+- `GET /api/compare_works?...&q="  "` → 400 "q 不能为空"——但**该分支
+  已被 R153b 的 err.compare_works.q_empty（q=""）覆盖**，并行窗口的
+  q="  " 与 R153b 的 q="" 是**同一分支（strip 后为空→400）的同名重复
+  断言**——selftest 实测 122 checks 中 q_empty 计了两次（虚增 1）。
+- 结论：R171b = 承接并行窗口半成品并去重——保留 q_too_long（真实
+  缺口，120→121 checks），删除与 R153b 重复的 q_empty（并行窗口版）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 承接并行窗口半成品：保留 err.compare_works.q_too_long（q=甲*201→400，真实缺口），删除并行窗口的 err.compare_works.q_empty（与 R153b 同名同分支重复，selftest 虚增 1）；checks 120→121 | 纯自测断言调整、零功能改动/零数据风险；补上 compare_works q 过长真实缺口 + 消除同名重复断言（每分支一条断言纪律）；与 R153b err.compare_works.q_empty / R146b err.research.too_long 同族，确定性可复验 |
+| B | 保留并行窗口两条断言（含重复 q_empty） | checks 虚增到 122，同名同分支断言两条违背"每分支一条断言"纪律，selftest 计数误导，不选 |
+| C | 其他方向（文档滞后等） | R161b/R166b 已修 tab/轮次滞后，本轮已抓半成品缺陷优先修正 |
+
+选 A（承接并行窗口半成品并去重：保留 q_too_long 真实缺口、删除与
+R153b 重复的 q_empty）。落地后：web --selftest 120→121 checks，跑 13
+闸门 + 五层自测确认零回退。

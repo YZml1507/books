@@ -8455,3 +8455,51 @@ concept 五条边界路径断言与 DECISIONS D-215b 一并提交（含 threads.
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-215b。
+
+## 198. [优化轨] R171b：web standing 自测缺口——compare_works q 过长分支零断言 → 补断言 + 承接并行窗口半成品去重（能力层验证，与 R153b err.compare_works.q_empty / R146b err.research.too_long 同族——同端点不同校验维度）（2026-08-18）
+
+### 198a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R170b（`74e33b6`，并行窗口提交 ask q_empty/q_too_short，
+web 118→120 checks）已确认在 origin/main。
+
+### 198b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **120 checks**（R170b 末态：err.ask.q_empty/q_too_short）。
+- **真实缺口（本轮选定）+ 并行窗口半成品去重**：工作树有并行窗口新增
+  R171b 半成品（web/app.py:1666-1681）：err.compare_works.q_empty
+  （q="  "→400）+ err.compare_works.q_too_long（q=甲*201→400）两条
+  断言。实测（命令实跑）：
+  - compare_works q=甲*201 → 400 "q 过长（≤200 字符）"——**真实缺口**
+    （compare_works 的 q 过长分支零断言，与 R146b err.research.too_long
+    同族）
+  - compare_works q="  " → 400 "q 不能为空"——但**该分支已被 R153b 的
+    err.compare_works.q_empty（q=""）覆盖**，并行窗口的 q="  " 与 R153b
+    的 q="" 是同一分支（strip 后为空→400）的**同名重复断言**——selftest
+    实测 122 checks 中 q_empty 计了两次（虚增 1）。
+  - 结论：R171b = 承接并行窗口半成品并去重——保留 q_too_long（真实
+    缺口），删除与 R153b 重复的 q_empty（120→121 checks）。
+- **其他方向**（对照实测）：文档 checks 滞后（GOAL_NEXT/PROJECT_STATUS
+  停在 118，实际 121——本轮一并同步）、MCP（12 工具协议级全覆盖）、
+  tarot（无校验分支）——无其他明确缺口。
+- **方案比对**：A 承接半成品去重——保留 err.compare_works.q_too_long、
+  删除并行窗口重复的 err.compare_works.q_empty（120→121 checks，
+  选定）；B 保留两条断言（checks 虚增到 122，同名同分支两条违背"每分支
+  一条断言"纪律）；C 其他方向——见 D-216b。
+
+### 198c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：删除并行窗口半成品中与 R153b 重复的
+  err.compare_works.q_empty（q="  "），保留并修正注释的
+  err.compare_works.q_too_long（q=甲*201→400）（120→121 checks）。
+- **验证**（全量）：web --selftest **121 checks** 全 PASS（q_too_long
+  生效、重复 q_empty 已删）；13 道闸门全 exit 0（check_quality 先于
+  build_index，verify_index T1-T11 ALL PASS，assess_goals PASS 9 ·
+  PART 0 · FAIL 0）；五层自测全 PASS（sources/bookstudy/research/
+  mcp/web）。零功能改动、零回退。
+- 决策记录：DECISIONS.md D-216b。
