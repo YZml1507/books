@@ -6688,3 +6688,30 @@ research.allow_damaged/empty/too_long 断言）**从未被协议级调用断言*
 R144b/R146b web 侧 research 断言先例扩展至 MCP 发布面：同一内核的
 能力路径在每个发布面都必须有一条可复现命令断言）。落地后：mcp
 --selftest 全跑 + 13 闸门 + 五层自测确认零回退。
+
+## D-212b R166b 优化轨：文档滞后——R165b（MCP research_tool 协议级断言）轮次未在 GOAL_NEXT_SESSION/PROJECT_STATUS 记录（L-23 同族——轮次/断言覆盖事实硬编码且漏同步）
+
+**背景（亲自核实，命令实跑）**：R165b（`635de01`）已补 MCP
+research_tool 协议级断言（G7 拒绝 + 正常检索两条，mcp_server.py
+--selftest calls 列表），但**文档同步漏了**：
+- `docs/GOAL_NEXT_SESSION.md` 与 `docs/PROJECT_STATUS.md` 均无 R165b
+  记录（grep -c R165b = 0）——五层自测的 mcp 层说明（"MCP 12 工具
+  stdio 同源发布（R22b-R38b：含协议级 --selftest"）仍停留在 R38b 时点，
+  未反映 R165b 的 research_tool 协议级断言扩展（web 侧 research 断言
+  R144b/R146b 已记录，MCP 侧同内核断言未记录）。
+- 对照其余事实（实测一致，无滞后）：web checks 117 已同步、tab 8/
+  术数 7 已修正（R161b）、rtab 9 一致、MCP 12 工具一致、66 条 err.*
+  断言覆盖 59+3 分支（能力层封顶）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | GOAL_NEXT_SESSION/PROJECT_STATUS 补 R165b 记录：mcp 层说明加 "R165b 补 research_tool 协议级断言（G7 拒绝 + 正常检索，与 web 侧 R144b/R146b 同源）" | 纯文档修正、零代码/零数据风险；消除 L-23 同族轮次/断言覆盖事实的硬编码滞后，与命令实测一致（mcp --selftest 实测 PASS 含 research_tool 两条断言） |
+| B | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于文档修正的零风险 |
+| C | 其他方向（质量/性能层） | FTS 0.001-0.004s、bge 缓存一致（dict ids 2489/2505 = vecs）、CDN 可达——摸底无明确缺口 |
+
+选 A（补 R165b 轮次记录，照 R161b 文档滞后修正先例：可被命令断言的事实
+必须与实测一致——mcp --selftest 已实测含 research_tool 断言，文档必须
+同步）。落地后：web --selftest 117 checks 全跑 + mcp --selftest +
+13 闸门 + 五层自测确认零回退。
