@@ -38,7 +38,7 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
 治理      双窗口边界：R44b 反驳审查轨 R24a 越界指控（git 铁证）→ R25a 亲核实
           后撤回（R47b 记录闭环）；R21a 委托待审查轨合入 main（移交项）
 自测      各层 standing 自测全齐：sources/bookstudy/research/mcp `--selftest`
-          + web `python -m app --selftest`（64 checks，R141b 同步——R49b 12
+          + web `python -m app --selftest`（91 checks，R150b 同步——R49b 12
           checks 起，R53b 补数术端点、R54b 补研究/历史/线程/健康端点、R61b
           补首页 /、R69b 补 bazi.semantic 语义路径、R110b-R115b 功能轮 +11、
           R118b/R119b 各 +2：liuyao.time/huangli.affair/bazi.lunar/
@@ -49,7 +49,16 @@ suspect   10 单元 / 5 地址（R17 修正归责：verdict 后缀定作品，EX
           R136b +1：history.detail.missing（R137b 误删 R138b 恢复）、
           R137b +1：addr.zhouyi.yao、R138b +1：hehun.dayun、R139b +3：
           err.bazi.calendar/scope/gender、R140b +2：err.qiming.gender/year、
-          R141b +3：err.liuyao.time.year/month/missing）
+          R141b +3：err.liuyao.time.year/month/missing、R142b +3：
+          err.huangli.date/year/illegal、R143b +3：err.taohua.year/gender/
+          calendar、R144b +3：err.compare_works.missing/err.concept.empty/
+          err.research.max_addresses、R145b +1：err.search.empty、R146b +2：
+          err.concept.too_long/err.research.too_long、R147b +1：
+          err.compare.gua_range、R148b +3：err.addr.zhouyi.no_gua/
+          err.bookstudy.structure.empty/err.bookstudy.chapter.empty、
+          R149b +5：err.liuyao.time.day/hour/err.qiming.month/day/hour、
+          R150b +6：err.bazi.lunar_missing/month/day/err.hehun.b_year/
+          b_month/b_day）
 ```
 
 **相对第三轮快照（文末历史）的关键变化**（均为后续轮次实测落地，勿再引用旧状态）：

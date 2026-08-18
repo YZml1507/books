@@ -1302,6 +1302,28 @@ if __name__ == "__main__":
                                                     "a_day": 15, "a_hour": 10,
                                                     "b_year": 1992, "b_month": 8,
                                                     "b_day": 20, "b_hour": 14}))
+        # R150b（D-196b）：hehun 乙侧 b_year/b_month/b_day 三条 400 校验分支
+        # standing 覆盖——err.hehun.year（R124b）只测甲侧 a_year，乙侧
+        # b_year（line 963-965）、b_month、b_day 三条校验分支零断言（甲侧
+        # 先抛 400 时乙侧代码路径从未执行，若乙侧校验回归为 500 或被移除
+        # 则不可见，与 R124b err.hehun.year 同族——同端点不同校验维度）。
+        # 实测 b_year=1800/b_month=13/b_day=0 均正确返回 400 + detail——
+        # 补断言零风险。
+        _expect_400("err.hehun.b_year",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1800, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.hehun.b_month",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 13,
+                                                    "b_day": 20, "b_hour": 14}))
+        _expect_400("err.hehun.b_day",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                    "a_day": 15, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 0, "b_hour": 14}))
         # R142b（D-188b）：huangli 端点 date 格式/year 范围/非法日期三条 400
         # 校验分支 standing 覆盖——huangli check（行 1201）只测合法 date，
         # date 格式校验（line 843）、year 范围校验（line 851）、非法日期
@@ -1336,6 +1358,31 @@ if __name__ == "__main__":
                     client.post("/api/bazi", json={"year": 1990, "month": 5,
                                                    "day": 15, "hour": 10,
                                                    "gender": "中"}))
+        # R150b（D-196b）：bazi 端点 lunar 三条 400 校验分支 standing 覆盖
+        # ——err.bazi.calendar/scope/gender（R139b）已覆盖三条，但 lunar
+        # 缺失（line 122-123）、lunar_month 超范围（line 124-125）、
+        # lunar_day 超范围（line 126-127）三条零断言（若校验回归为 500
+        # 或被移除则不可见，与 R139b err.bazi.calendar 同族——同端点不
+        # 同校验维度）。实测 lunar 缺失/lunar_month=13/lunar_day=31 均正确
+        # 返回 400 + detail——补断言零风险。
+        _expect_400("err.bazi.lunar_missing",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "calendar_type": "lunar"}))
+        _expect_400("err.bazi.lunar_month",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "calendar_type": "lunar",
+                                                   "lunar_year": 1990,
+                                                   "lunar_month": 13,
+                                                   "lunar_day": 15}))
+        _expect_400("err.bazi.lunar_day",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "calendar_type": "lunar",
+                                                   "lunar_year": 1990,
+                                                   "lunar_month": 5,
+                                                   "lunar_day": 31}))
         _expect_400("err.qiming.surname",
                     client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
                                                      "month": 5, "day": 15,

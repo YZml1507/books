@@ -7326,3 +7326,63 @@ DECISIONS D-189b 方案条目（liuyao/qiming 五条）被并行窗口 R143b
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-195b。
+
+## 177. [优化轨] R150b：web standing 自测缺口——bazi lunar_month/lunar_day + hehun 乙侧 b_year/b_month/b_day 六条 400 校验分支零断言 → 补断言（能力层验证，与 R139b-R149b 同族——同端点不同校验维度）（2026-08-18）
+
+### 177a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R149b（`cb8c788`）已确认在 origin/main。本窗口承接并行
+窗口工作树已写入的 bazi lunar 三条断言（与 D-196b 方案 A 前半一致），
+补 hehun 乙侧三条后统一验证。
+
+### 177b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **85 checks**（R149b 末态：err.liuyao.time.day/hour +
+  err.qiming.month/day/hour）。
+- **真实缺口（本轮选定）**：
+  - bazi lunar 分支（validate_ranges，web/app.py:122-127）：
+    lunar_month 需在 1-12、lunar_day 需在 1-30、lunar 缺失三条 400
+    校验分支零断言——err.bazi.*（R139b）只覆盖 solar 路径，lunar
+    路径三条零断言（solar 断言不触发 lunar 分支）。
+  - hehun 乙侧（web/app.py:963-965）：err.hehun.year（R124b）只测
+    甲侧 a_year，乙侧 b_year/b_month/b_day 三条校验分支零断言——
+    甲侧先抛 400 时乙侧代码路径从未执行。
+  - 六条分支均零 standing 断言（L-22/L-23 同族；与 R139b-R149b
+    同族——同端点不同校验维度）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi {calendar_type:"lunar"（缺 lunar_*）} → 400 "农历输入需提供
+    lunar_year/month/day"
+  - bazi lunar_month=13 → 400 "lunar_month 需在 1-12"
+  - bazi lunar_day=31 → 400 "lunar_day 需在 1-30"
+  - hehun b_year=1800 → 400 "乙 年份须在 1900-2100，收到 1800"
+  - hehun b_month=13 → 400 "乙 month 须在 1-12，收到 13"
+  - hehun b_day=0 → 400 "乙 day 须在 1-31，收到 0"
+  - 六条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、taohua/tarot 校验断言（taohua 已 R143b 覆盖；tarot
+  为概率性端点参数校验维度少）——本轮不再扩展。
+- **方案比对**：A 补 err.bazi.lunar.missing/month/day + err.hehun.
+  b_year/b_month/b_day 六条 400 断言（85→91 checks，选定）；B 只做
+  文档 checks 数同步（纯文档、能力缺口不补）；C 补 tarot 端点校验
+  断言（概率性端点，确定性弱于 A）——见 D-196b。
+
+### 177c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块补六条断言——
+  err.bazi.lunar_missing（lunar 缺 y/m/d→400）、err.bazi.lunar_month
+  （lunar_month=13→400）、err.bazi.lunar_day（lunar_day=31→400）、
+  err.hehun.b_year（b_year=1800→400）、err.hehun.b_month（b_month=13
+  →400）、err.hehun.b_day（b_day=0→400）（85→91 checks）。其中 bazi
+  lunar 三条由并行窗口先写入工作树，本窗口核验后承接；hehun 乙侧
+  三条由本窗口补写。
+- **验证**（全量）：web --selftest **91 checks** 全 PASS（六条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-196b。

@@ -6093,3 +6093,48 @@ D-195b 编号记录实际执行的 R149b。
 选 A（补 err.liuyao.time.day/hour + err.qiming.month/day/hour 五条
 400 断言，照 R139b-R148b 先例：能力路径必须有一条可复现命令断言）。
 落地后：web --selftest 80→85 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-196b R150b 优化轨：web standing 自测缺口——bazi lunar_month/lunar_day + hehun 乙侧 b_year/b_month/b_day 五条 400 校验分支零断言（能力层验证，与 R139b-R149b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R149b 已按端点逐个补 err.* 400 断言，但
+**同端点剩余校验维度**仍零断言：
+- bazi lunar 分支（validate_ranges，web/app.py:122-127）：lunar_month
+  需在 1-12（line 124-125）、lunar_day 需在 1-30（line 126-127）——
+  err.bazi.*（R139b/R149b 前）只覆盖 solar 路径（year/month/day/
+  calendar_type/scope/gender），lunar 路径三条校验（missing/lunar_
+  month/lunar_day）零断言——**err.bazi.year 等 solar 断言不触发 lunar
+  分支**，若 lunar 校验回归为 500 或被移除则不可见。
+- hehun 乙侧（web/app.py:963-965）：err.hehun.year（R124b）只测 a_*
+  （甲）年份，**b_year/b_month/b_day（乙）三条校验分支零断言**——甲
+  侧先抛 400 时乙侧代码路径从未执行，若乙侧校验回归为 500 或被移除
+  同样不可见（L-22/L-23 同族；与 R139b-R149b 同族——同端点不同校验
+  维度）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {calendar_type:"lunar", lunar_month:13, ...}` → 400，
+  detail "lunar_month 需在 1-12"
+- `POST /api/bazi {calendar_type:"lunar", lunar_day:31, ...}` → 400，
+  detail "lunar_day 需在 1-30"
+- `POST /api/bazi {calendar_type:"lunar"（缺 lunar_*）}` → 400，detail
+  "农历输入需提供 lunar_year/month/day"
+- `POST /api/hehun {b_year:1800, ...}` → 400，detail
+  "乙 年份须在 1900-2100，收到 1800"
+- `POST /api/hehun {b_month:13, ...}` → 400，detail
+  "乙 month 须在 1-12，收到 13"
+- `POST /api/hehun {b_day:0, ...}` → 400，detail
+  "乙 day 须在 1-31，收到 0"
+- 六条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补六条断言：err.bazi.lunar.missing（lunar 缺 y/m/d→400）、err.bazi.lunar.month（lunar_month=13→400）、err.bazi.lunar.day（lunar_day=31→400）、err.hehun.b_year（b_year=1800→400）、err.hehun.b_month（b_month=13→400）、err.hehun.b_day（b_day=0→400）（85→91 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi lunar 分支与 hehun 乙侧六个未覆盖的 400 校验分支（甲侧断言不触发乙侧、solar 断言不触发 lunar 路径），抓校验静默失效；与 R139b-R149b 同族（同端点不同校验维度），确定性可复验 |
+| B | 只做文档 checks 数同步（GOAL_NEXT/PROJECT_STATUS 64→91） | 纯文档、零风险，但能力层缺口不补，下轮还要做 |
+| C | 补 taohua/tarot 校验断言 | taohua 已被 R143b 覆盖；tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.lunar.missing/month/day + err.hehun.b_year/b_month/
+b_day 六条 400 断言，照 R139b-R149b 先例：能力路径必须有一条可复现
+命令断言——且同端点未覆盖分支必须独立断言，甲侧/solar 断言不构成乙侧/
+lunar 的覆盖）。落地后：web --selftest 85→91 checks，跑 13 闸门 + 五层
+自测确认零回退。
