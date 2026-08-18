@@ -6218,3 +6218,37 @@ ask_date 格式（line 146 "ask_date 需为 YYYY-MM-DD 格式"）、scope=range
 必须有一条可复现命令断言——同端点未覆盖分支必须独立断言，输入形状
 断言（missing/format）不构成运行时值域校验（倒序/超31天）的覆盖）。
 落地后：web --selftest 95→99 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-199b R153b 优化轨：web standing 自测缺口——research q 空 + compare_works q 空两条 400 校验分支零断言（能力层验证，与 R139b-R152b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R152b 已按端点逐个补 err.* 400 断言，但
+**同端点剩余校验维度**仍零断言：
+- research 端点的 q 空校验（web/app.py:472 "q 不能为空"）零断言——
+  err.research.max_addresses（R144b）、err.research.too_long（R146b）
+  只覆盖参数范围/长度，q 空分支零断言。
+- compare_works 端点的 q 空校验（web/app.py:519 "q 不能为空"）零
+  断言——err.compare_works.missing（R144b）只测 work_a/work_b 空，
+  q 空分支零断言。
+- 两条分支均零 standing 断言（L-22/L-23 同族；与 R139b-R152b 同族
+  ——同端点不同校验维度）。
+- **对照排除**：`POST /api/ask {"q":""}` 返回 422（Pydantic schema
+  层 min_length=1 拦截，非 HTTPException 400 分支——不属本族，不补）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `GET /api/research?q=&max_addresses=2` → 400，detail "q 不能为空"
+- `GET /api/compare_works?work_a=KR1a0001&work_b=KR1a0032&q=` → 400，
+  detail "q 不能为空"
+- 两条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补两条断言：err.research.empty（q 空→400）、err.compare_works.q_empty（q 空→400）（99→101 checks） | 纯加自测断言、零功能改动/零数据风险；补上 research/compare_works 两个未覆盖的 q 空 400 分支，抓校验静默失效；与 R139b-R152b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.research.empty + err.compare_works.q_empty 两条 400 断言，
+照 R139b-R152b 先例：能力路径必须有一条可复现命令断言——同端点未覆盖
+分支必须独立断言，max_addresses/too_long/missing 断言不构成 q 空的覆盖）。
+落地后：web --selftest 99→101 checks，跑 13 闸门 + 五层自测确认零回退。

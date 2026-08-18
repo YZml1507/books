@@ -1532,6 +1532,21 @@ if __name__ == "__main__":
         _expect_400("err.research.too_long",
                     client.get("/api/research", params={"q": "乙" * 201,
                                                          "max_addresses": 2}))
+        # R153b（D-199b）：research/compare_works 端点 q 空校验 standing
+        # 覆盖——err.research.max_addresses/too_long（R144b/R146b）只测
+        # 参数范围/长度，research q 空校验（line 472）零断言；
+        # err.compare_works.missing（R144b）只测 work_a/work_b 空，
+        # compare_works q 空校验（line 519）零断言（若校验回归为 500、
+        # 或被移除导致空查询进入检索/比对则不可见，与 R144b/R146b 同族
+        # ——同端点不同校验维度）。实测 research q="" / compare_works q=""
+        # 均正确返回 400 + detail "q 不能为空"——补断言零风险。
+        _expect_400("err.research.empty",
+                    client.get("/api/research", params={"q": "",
+                                                         "max_addresses": 2}))
+        _expect_400("err.compare_works.q_empty",
+                    client.get("/api/compare_works", params={"work_a": "KR1a0001",
+                                                              "work_b": "KR1a0032",
+                                                              "q": ""}))
         # R147b（D-193b）：compare 端点 gua 范围校验 standing 覆盖——
         # compare check（行 1158）只测 gua=28/yao=九二，gua 超范围校验
         # （line 405: "gua 需在 1-64"）零断言（若校验回归为 500、或被

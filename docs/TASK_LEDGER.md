@@ -7496,3 +7496,54 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-198b。
+
+## 180. [优化轨] R153b：web standing 自测缺口——research q 空 + compare_works q 空两条 400 校验分支零断言 → 补断言（能力层验证，与 R139b-R152b 同族——同端点不同校验维度）（2026-08-18）
+
+### 180a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R152b（`8268c6e`）已确认在 origin/main。
+
+### 180b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **99 checks**（R152b 末态：err.bazi.range_order/range_span +
+  err.bookstudy.chapter.scheme + err.qiming.calc_fail）。
+- **真实缺口（本轮选定）**：
+  - research 端点的 q 空校验（line 472 "q 不能为空"）零断言——
+    err.research.max_addresses（R144b）、err.research.too_long（R146b）
+    只覆盖参数范围/长度，q 空分支零断言。
+  - compare_works 端点的 q 空校验（line 519 "q 不能为空"）零断言——
+    err.compare_works.missing（R144b）只测 work_a/work_b 空，q 空分支
+    零断言。
+  - 两条分支均零 standing 断言（L-22/L-23 同族；与 R139b-R152b 同族
+    ——同端点不同校验维度）。
+  - **对照排除**：`POST /api/ask {"q":""}` 返回 422（Pydantic schema
+    层 min_length=1 拦截，非 HTTPException 400 分支——不属本族，不补）。
+- **实测**（命令实跑，web TestClient）：
+  - `GET /api/research?q=&max_addresses=2` → 400 "q 不能为空"
+  - `GET /api/compare_works?work_a=KR1a0001&work_b=KR1a0032&q=` →
+    400 "q 不能为空"
+  - 两条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.research.empty + err.compare_works.q_empty
+  两条 400 断言（99→101 checks，选定）；B 补 MCP research_tool 深度
+  验证（工作量大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性
+  端点，确定性弱于 A）——见 D-199b。
+
+### 180c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.research.too_long
+  后补两条断言——err.research.empty（q=""→400）、
+  err.compare_works.q_empty（q=""→400）（99→101 checks）。
+- **验证**（全量）：web --selftest **101 checks** 全 PASS（两条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-199b。
