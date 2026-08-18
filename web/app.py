@@ -1819,6 +1819,24 @@ if __name__ == "__main__":
                                                   _ask_too_long.status_code,
                                                   _ask_too_long.text[:200])
         ok.append("err.ask.q_too_long")
+        # R177b（D-225b）：/api/ask max_addresses 边界 standing 覆盖——
+        # Pydantic Field(ge=1, le=6)（AskRequest line 443）两条 422 分支
+        # 零断言：max_addresses=0→422 "greater_than_equal"，max_addresses=7
+        # →422 "less_than_equal"。ask check 只测 max_addresses=2 正常路径
+        # （若 ge/le 约束被移除、或回归为 500 则不可见，与 R144b
+        # err.research.max_addresses 同族——同内核不同端点 max_addresses 边界）。
+        _ask_max_low = client.post("/api/ask", json={"q": "潛龍勿用",
+                                                     "max_addresses": 0})
+        assert _ask_max_low.status_code == 422, ("err.ask.max_addresses_low",
+                                                 _ask_max_low.status_code,
+                                                 _ask_max_low.text[:200])
+        ok.append("err.ask.max_addresses_low")
+        _ask_max_high = client.post("/api/ask", json={"q": "潛龍勿用",
+                                                      "max_addresses": 7})
+        assert _ask_max_high.status_code == 422, ("err.ask.max_addresses_high",
+                                                  _ask_max_high.status_code,
+                                                  _ask_max_high.text[:200])
+        ok.append("err.ask.max_addresses_high")
         check("ask", client.post("/api/ask", json={"q": "潛龍勿用", "max_addresses": 2}),
               lambda j: j.get("evidence_citations"))
         # R115b（D-161b）：ask 的 llm 字段结构 standing 覆盖——llm 为 None

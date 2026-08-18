@@ -6896,3 +6896,37 @@ q_too_long，checks 122→121）并把 D-216b/台账 §198/文档一并带上。
 先例：能力路径必须有一条可复现命令断言——格式错误断言不构成年份越界
 分支的覆盖）。落地后：web --selftest 121→122 checks，跑 13 闸门 +
 五层自测确认零回退。
+
+## D-219b R175b 优化轨：文档滞后——R176b 断言（err.ask.q_too_long，ask q 过长 422 分支）已随 R174b 提交 678aea3 入 HEAD（并行窗口工作树夹带），但 GOAL_NEXT_SESSION/PROJECT_STATUS 的 checks 数未同步 122→123（L-23 同族——可被命令断言的事实硬编码且漏同步）
+
+**背景（亲自核实，命令实跑）**：R174b 提交 678aea3 时夹带了并行窗口
+工作树的 R176b 断言（err.ask.q_too_long：ask q="甲"*201 → 422
+"string_too_long"，Pydantic max_length=200 分支）——该断言随 678aea3
+进入 HEAD，web --selftest 实测 **123 checks**（R174b 文档只同步到
+122）。文档滞后点：
+- **GOAL_NEXT_SESSION.md:52/90/98** 均写 "web 122 checks"（R174b 同步），
+  实际 123（含 R176b 夹带的 err.ask.q_too_long）
+- **PROJECT_STATUS.md:48** "（122 checks，R174b 同步）"，实际 123
+- 台账无 R176b 记录（该断言是并行窗口半成品、被 R174b 提交夹带，
+  无独立轮次记录）
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/ask {"q":"甲"*201, "max_addresses":2}` → 422，
+  "string_too_long"（Pydantic max_length=200 分支，err.ask.q_too_long
+  断言已生效）
+- web --selftest 实测 **123 checks** 全 PASS（R174b 末态应为 122，多出
+  的 1 个是夹带的 err.ask.q_too_long）
+- 对照：q="" → 400（err.ask.q_empty）、q="短" → 200（正常）
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 文档同步：GOAL_NEXT_SESSION/PROJECT_STATUS checks 122→123 + 补 R176b 记录（err.ask.q_too_long 已随 678aea3 入 HEAD，补台账 §201） | 纯文档修正、零代码/零数据风险；消除 L-23 同族 checks 数硬编码滞后（123 已实测），与命令实测一致 |
+| B | 把夹带的 err.ask.q_too_long 从 HEAD 移除（回退） | 断言本身有效（q 过长 422 是真实分支），移除会丢覆盖且改历史，不选 |
+| C | 其他方向（能力层/文档扫描） | 本轮已抓 checks 滞后点，优先修正 |
+
+选 A（文档同步 122→123 + 台账 §201 补 R176b 记录，照 R161b/R166b/
+R173b 文档滞后修正先例：可被命令断言的事实必须与实测一致——web
+--selftest 123 checks 已实测，文档必须同步）。落地后：web --selftest
+123 checks 全跑 + 13 闸门 + 五层自测确认零回退。
