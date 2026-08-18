@@ -1664,6 +1664,21 @@ if __name__ == "__main__":
         _expect_400("err.compare_works.missing",
                     client.get("/api/compare_works", params={"work_b": "KR5c0126",
                                                               "q": "無爲"}))
+        # R171b（D-219b）：/api/compare_works q 校验两条分支零 standing 断言——
+        # err.compare_works.missing（R144b）只测 work_a/work_b 空，q 空
+        # （line 527 "q 不能为空"）+ q 过长（line 529 "q 过长"）零断言
+        # （若校验回归为 500、或被移除则不可见，与 err.concept.empty 同族
+        # ——同内核不同端点 q 空校验）。实测 q="  " → 400 "q 不能为空"，
+        # q="甲"*201 → 400 "q 过长"——补断言零风险。
+        _expect_400("err.compare_works.q_empty",
+                    client.get("/api/compare_works",
+                               params={"work_a": "KR5c0057",
+                                       "work_b": "KR5c0126", "q": "  "}))
+        _expect_400("err.compare_works.q_too_long",
+                    client.get("/api/compare_works",
+                               params={"work_a": "KR5c0057",
+                                       "work_b": "KR5c0126",
+                                       "q": "甲" * 201}))
         _expect_400("err.concept.empty",
                     client.get("/api/concept", params={"q": ""}))
         _expect_400("err.research.max_addresses",
