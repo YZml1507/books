@@ -1383,6 +1383,19 @@ if __name__ == "__main__":
                                                     "a_day": 15, "a_hour": 10,
                                                     "b_year": 1992, "b_month": 8,
                                                     "b_day": 20, "b_hour": 24}))
+        # R164b（D-210b）：hehun 端点 422 排盘失败分支 standing 覆盖——
+        # err.hehun.*（R124b/R150b/R154b）全为 400 参数校验断言，422 是
+        # compute 抛异常路径（合法参数但组合非法，如 a 侧 1990-02-30 不
+        # 存在，line 1004 "排盘失败：{exc}"）零断言（若排盘异常回归为
+        # 500、或被移除导致非法组合静默排盘则不可见，与 R163b
+        # err.bazi.paipan_fail 同族——不同端点同状态码维度）。实测
+        # a 侧 year=1990/month=2/day=30 → 422 "排盘失败：day 30 must be
+        # in range 1..28 for month 2 in year 1990"——补断言零风险。
+        _expect_422("err.hehun.paipan_fail",
+                    client.post("/api/hehun", json={"a_year": 1990, "a_month": 2,
+                                                    "a_day": 30, "a_hour": 10,
+                                                    "b_year": 1992, "b_month": 8,
+                                                    "b_day": 20, "b_hour": 14}))
         # R142b（D-188b）：huangli 端点 date 格式/year 范围/非法日期三条 400
         # 校验分支 standing 覆盖——huangli check（行 1201）只测合法 date，
         # date 格式校验（line 843）、year 范围校验（line 851）、非法日期
@@ -1628,6 +1641,18 @@ if __name__ == "__main__":
                                                      "day": 15, "hour": 10,
                                                      "gender": "男",
                                                      "calendar_type": "garbage"}))
+        # R164b（D-210b）：taohua 端点 422 排盘失败分支 standing 覆盖——
+        # err.taohua.*（R143b）全为 400 参数校验断言，422 是 compute 抛
+        # 异常路径（合法参数但组合非法，如 1990-02-30 不存在，line 942
+        # "排盘失败：{exc}"）零断言（若排盘异常回归为 500、或被移除导致
+        # 非法组合静默排盘则不可见，与 R163b err.bazi.paipan_fail 同族
+        # ——不同端点同状态码维度）。实测 year=1990/month=2/day=30 → 422
+        # "排盘失败：day 30 must be in range 1..28 for month 2 in year
+        # 1990"——补断言零风险。
+        _expect_422("err.taohua.paipan_fail",
+                    client.post("/api/taohua", json={"year": 1990, "month": 2,
+                                                     "day": 30, "hour": 10,
+                                                     "gender": "男"}))
         # R144b（D-190b）：compare_works/concept/research 三条 400 校验分支
         # standing 覆盖——compare_works check（行 1158）只测有命中路径，
         # work_a/work_b 缺失校验（line 517）零断言；concept check（行

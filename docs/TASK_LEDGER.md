@@ -8087,3 +8087,58 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-209b。
+
+## 191. [优化轨] R164b：web standing 自测缺口——taohua/hehun 两处 422 排盘失败分支零断言 → 补断言（能力层验证，与 R163b err.bazi.paipan_fail 同族——422 计算失败路径，不同端点）（2026-08-18）
+
+### 191a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R163b（`54295ed`）已确认在 origin/main。
+
+### 191b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **115 checks**（R163b 末态：err.bazi.paipan_fail 422）。
+- **真实缺口（本轮选定）**：R163b 已补 err.bazi.paipan_fail 422 断言
+  （新增 `_expect_422` 辅助），但同族**其他端点的 422 排盘失败分支**
+  仍零断言：
+  - **taohua**（web/app.py:942 `raise HTTPException(422, f"排盘失败：
+    {exc}")`，api_taohua 调 compute 抛异常路径）
+  - **hehun**（web/app.py:1004 同款 422 分支，api_hehun 排盘失败路径）
+  - 两处均零 standing 断言（R143b err.taohua.* 与 R124b/R150b/R154b
+    err.hehun.* 全为 400 参数校验断言，不构成 422 计算失败路径的覆盖；
+    若这些排盘异常回归为 500、或被移除导致非法组合静默排盘则不可见，
+    与 R163b err.bazi.paipan_fail 同族——同端点不同状态码维度，
+    L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - taohua {year:1990, month:2, day:30, hour:10, gender:"男"} → **422**
+    "排盘失败：day 30 must be in range 1..28 for month 2 in year 1990"
+  - hehun {a_year:1990, a_month:2, a_day:30, a_hour:10, b_year:1992,
+    b_month:8, b_day:20, b_hour:14} → **422**，同款 detail
+  - 对照：taohua/hehun 正常参数 → 200
+  - 两条分支均正确返回 422 + detail——补断言零风险（复用 R163b 的
+    `_expect_422` 辅助）。
+- **其他方向**（对照实测）：CDN 可达（tailwind 302 重定向正常、
+  tsparticles 200）、FTS 0.001-0.004s 正常、bge 缓存一致（dict ids
+  2489/2505 = vecs 行数）、MCP research_tool（web 侧已覆盖）、tarot
+  （概率性端点参数校验维度少）——无其他明确缺口。
+- **方案比对**：A 补 err.taohua.paipan_fail + err.hehun.paipan_fail
+  两条 422 断言（115→117 checks，选定）；B 补 MCP research_tool 深度
+  验证（工作量大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性
+  端点，确定性弱于 A）——见 D-210b。
+
+### 191c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块补两条断言——
+  err.hehun.paipan_fail（a 侧 month=2/day=30→422）、err.taohua.paipan_fail
+  （month=2/day=30→422），复用 R163b 的 `_expect_422` 辅助
+  （115→117 checks）。
+- **验证**（全量）：web --selftest **117 checks** 全 PASS（两条新 422
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-210b。

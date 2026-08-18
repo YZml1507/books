@@ -6615,3 +6615,40 @@ date 先例：能力路径必须有一条可复现命令断言——同端点未
 err.* 先例扩展状态码维度：能力路径必须有一条可复现命令断言——400 参数
 校验断言不构成 422 计算失败路径的覆盖）。落地后：web --selftest
 114→115 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-210b R164b 优化轨：web standing 自测缺口——taohua/hehun 两处 422 排盘失败分支零断言（能力层验证，与 R163b err.bazi.paipan_fail 同族——422 计算失败路径，不同端点）
+
+**背景（亲自核实）**：R163b 已补 err.bazi.paipan_fail 422 断言（新增
+`_expect_422` 辅助），但同族**其他端点的 422 排盘失败分支**仍零断言：
+- **taohua**（web/app.py:942 `raise HTTPException(422, f"排盘失败：
+  {exc}")`，api_taohua 调 compute 抛异常路径）
+- **hehun**（web/app.py:1004 同款 422 分支，api_hehun 排盘失败路径）
+- 两处均零 standing 断言（R143b err.taohua.* 与 R124b/R150b/R154b
+  err.hehun.* 全为 400 参数校验断言，不构成 422 计算失败路径的覆盖；
+  若这些排盘异常回归为 500、或被移除导致非法组合静默排盘则不可见，
+  与 R163b err.bazi.paipan_fail 同族——同端点不同状态码维度，L-22/
+  L-23 同族）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/taohua {year:1990, month:2, day:30, hour:10, gender:"男"}` →
+  **422**，detail "排盘失败：day 30 must be in range 1..28 for month
+  2 in year 1990"
+- `POST /api/hehun {a_year:1990, a_month:2, a_day:30, a_hour:10,
+  b_year:1992, b_month:8, b_day:20, b_hour:14}` → **422**，同款 detail
+- 对照：taohua/hehun 正常参数 → 200
+- 两条分支均正确返回 422 + detail——补断言零风险（复用 R163b 的
+  `_expect_422` 辅助）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补两条断言：err.taohua.paipan_fail（month=2/day=30→422）、err.hehun.paipan_fail（a 侧 month=2/day=30→422）（115→117 checks） | 纯加自测断言、零功能改动/零数据风险；补上 taohua/hehun 两个未覆盖的 422 排盘失败分支（400 参数校验断言不构成 422 计算失败路径的覆盖），抓排盘异常静默回归；与 R163b err.bazi.paipan_fail 同族（同状态码维度不同端点），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged/empty/too_long 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.taohua.paipan_fail + err.hehun.paipan_fail 两条 422 断言，
+照 R163b err.bazi.paipan_fail 先例：能力路径必须有一条可复现命令断言
+——400 参数校验断言不构成 422 计算失败路径的覆盖，同族缺口逐个端点
+补齐）。落地后：web --selftest 115→117 checks，跑 13 闸门 + 五层自测
+确认零回退。
