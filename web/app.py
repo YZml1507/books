@@ -54,6 +54,7 @@ from guji import tarot as tarot_mod  # noqa: E402
 from guji import hehun as hehun_mod  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 from guji import external as external_feed  # noqa: E402
@@ -85,6 +86,10 @@ _STATIC_CANDIDATES = (
 ) + [os.path.join(ROOT, "web", "static", "index.html")]
 INDEX = next((p for p in _STATIC_CANDIDATES if os.path.exists(p)),
              _STATIC_CANDIDATES[-1])
+# R155b（D-201b）：静态目录挂载——/static 指向 index.html 所在目录
+# （开发期 ROOT/web/static；frozen 期 _MEIPASS/web/static，与 INDEX 同源），
+# 供 index.html 引用本地 vendor/animotion CSS（动画样式离线可用）。
+app.mount("/static", StaticFiles(directory=os.path.dirname(INDEX)), name="static")
 CORPUS_DB = os.path.join(ROOT, "data", "index", "corpus.db")
 KNOWLEDGE_DB = os.path.join(ROOT, "data", "index", "knowledge.db")
 

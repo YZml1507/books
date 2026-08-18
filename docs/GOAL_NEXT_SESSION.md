@@ -109,6 +109,9 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
           · 大运桃花应期（R113b）· 塔罗牌阵位置（R114b）· 八字合婚（R121b，
           R123b 补）；web 术数 tab 8 个，
           MCP 12 工具（术数不在 MCP，同源承诺不含术数）
+前端      R155b 重构：布局/风格/动画叠加层（tailwind Play CDN 禁用
+          preflight + tsparticles 粒子背景 CDN + 本地 animotion
+          动画 CSS 745 类离线可用；id/handler/API 零改动，见 D-201b）
 ```
 
 > 本文件 §2 旧任务清单（T7-r/T5 A-12/T7-m 等）已被 R18b–R50b 优化循环取代——

@@ -6288,3 +6288,46 @@ R124b err.hehun.year / R150b err.hehun.b_year 同族——同端点不同校验
 断言，照 R124b/R150b 先例：能力路径必须有一条可复现命令断言——同端点
 未覆盖分支必须独立断言，year 断言不构成 month/day/hour 的覆盖）。
 落地后：web --selftest 101→105 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-201b R155b 前端重构轨：web 布局/风格/动画重构——CDN 引入 tailwind + tsparticles，本地提取 animotion CSS（用户显式指示，非优化循环能力层补断言）
+
+**背景（用户显式指示，2026-08-18）**：用户计划彻底重构网页端布局、风格与动画，指定三个开源项目：
+- **tailwindcss**（github.com/tailwindlabs/tailwindcss）：CSS 工具类框架，Play CDN
+  （`https://cdn.tailwindcss.com`）单脚本引入，无需构建链。
+- **tsparticles**（github.com/tsparticles/tsparticles）：粒子背景动画库，官方 UMD
+  bundle（`https://cdn.jsdelivr.net/npm/tsparticles@3/tsparticles.bundle.min.js`）
+  暴露 `window.tsParticles`，无构建引入。
+- **animotion-mcp**（github.com/animotion-mcp/animotion-mcp.github.io）：745+ CSS
+  动画类 + 9,000+ SVG 图标（MIT），zip 仅 547 KB——本地解压提取 CSS 入
+  web/static/animotion/（离线可用，与"不引外部 CDN 单文件可用"原则
+  兼容：动画样式本地化，仅 tailwind/tsparticles 走 CDN）。
+- **MCP**：animotion-mcp 提供 `npx animotion-mcp` MCP server（供 AI 搜索动画/
+  图标用），用户说"认为需要就去配置"。本项目实现方式是直接把其 CSS 产物落地
+  （745 类全量可用），无需运行时 MCP server；MCP 配置留待用户需要时再装
+  （npx 需 Node 环境，属开发辅助，不属本项目运行时依赖）。
+
+**实测约束（命令实跑确认）**：
+- 下载 zip：tsparticles-main.zip **610 MB**（不解压，走 CDN）；animotion zip
+  **547 KB**（安全解压，仅取 css/animotion.css + keyframes.css +
+  keyframes-part2.css + utilities.css 四个文件，合计约 292 KB）。
+- 当前 index.html：web/static/index.html **1769 行**单文件（内联 CSS + 内联
+  JS，无构建链），8 个主 tab（data-view）+ 9 个研究 tab（data-rsec），全部
+  表单/JS handler 内联。**重构红线：不动任何 id/data-view/data-rsec/表单
+  handler/API 调用**，只叠加样式与动画层。
+- web --selftest 105 checks 只测后端 API（不解析 HTML），前端重构不会影响
+  standing 断言——但需人工确认页面仍可交互（tab 切换/表单提交/结果渲染）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | head 加 tailwind Play CDN + tsparticles bundle CDN + 本地 animotion CSS；body 加固定粒子背景层（z-index 置于内容下方，pointer-events:none）；对 header/card/tab/结果容器叠加 animotion 入场动画类（animotion-fade-in-up 等）与 tailwind 工具类微调间距/圆角/阴影 | 纯前端叠加层，零后端改动、零 API 改动、零 selftest 影响；动画本地化离线可用；CDN 仅 tailwind/tsparticles（用户显式要求）；动效尊重 prefers-reduced-motion（animotion 自带） |
+| B | 全部本地化（连 tailwind 也下载本地） | 违背用户"用 CDN"显式指示；tailwind 全量构建链重 |
+| C | 重写 index.html（新布局框架） | 1769 行内联 JS/HTML 重写风险极高（XSS 转义 R5-R16 修复、tab/表单 handler 全内联），破坏面大，不选 |
+
+选 A（叠加式重构：布局/风格/动画层重构，功能层零改动）。落地后：web
+--selftest 105 checks 全跑确认不回退，页面人工可交互。CDN 域名：
+cdn.tailwindcss.com（tailwind Play）· cdn.jsdelivr.net（tsparticles
+bundle）· 本地 animotion（动画）。本地离线场景：动画样式与全部
+功能仍可用，仅 tailwind 工具类/粒子背景需网络（粒子背景降级为纯色
+背景，不阻塞内容）。

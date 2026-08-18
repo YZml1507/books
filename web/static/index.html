@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>八字命理检索</title>
+<!-- R155b（D-201b）前端重构：CDN 引入 tailwind/tsparticles + 本地 animotion 动画 CSS
+     tailwind 禁用 preflight（不重置现有样式，只叠加工具类）；
+     tsparticles bundle 暴露 window.tsParticles，加载失败则粒子背景降级为纯色；
+     animotion 动画 CSS 本地化（animotion/），离线可用。 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={corePlugins:{preflight:false}};</script>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles@3/tsparticles.bundle.min.js"></script>
+<link rel="stylesheet" href="/static/animotion/animotion.css">
+<link rel="stylesheet" href="/static/animotion/keyframes.css">
+<link rel="stylesheet" href="/static/animotion/keyframes-part2.css">
+<link rel="stylesheet" href="/static/animotion/utilities.css">
 <style>
   /* UI/UX Pro Max 设计规范：Minimalism & Swiss Style
      Primary #0F172A · Accent #A16207 · Background #F8FAFC · Card #FFFFFF
@@ -233,9 +244,31 @@
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{transition:none !important; animation:none !important;}
   }
+
+  /* R155b（D-201b）前端重构叠加层：
+     - #tsparticles-bg 固定粒子背景（内容之下，不挡交互，透明背景）
+     - header/tabs/card 入场动画（animotion 本地 CSS 类，纯叠加不改结构）
+     - tailwind 工具类仅用于间距/圆角/阴影微调（preflight 已禁用） */
+  #tsparticles-bg{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:transparent;
+  }
+  body{background:var(--background);}
+  header h1, header p{animation:animotion-fade-in-down .7s ease-out both;}
+  nav.tabs{animation:animotion-fade-in .8s ease-out .1s both;}
+  .wrap > .view, .wrap > form, .wrap > div:not(.rtabs){
+    animation:animotion-fade-in-up .6s ease-out .15s both;
+  }
+  .card{transition:box-shadow .25s ease, transform .25s ease;}
+  .card:hover{box-shadow:0 8px 24px rgba(15,23,42,.12); transform:translateY(-2px);}
+  .tab, .rtab{transition:background-color .2s ease, color .2s ease, transform .15s ease;}
+  .tab:hover, .rtab:hover{transform:translateY(-1px);}
 </style>
 </head>
 <body>
+<!-- R155b：tsparticles 粒子背景层（固定于内容下方，pointer-events:none 不挡交互；
+     CDN 加载失败时该层为空，页面降级为纯色背景，不阻塞内容） -->
+<div id="tsparticles-bg"></div>
 <div class="wrap">
   <header>
     <h1>古籍智慧助手</h1>
@@ -1764,6 +1797,34 @@ $('#hhForm').addEventListener('submit', async e => {
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
 });
+</script>
+<script>
+  /* R155b：tsparticles 粒子背景初始化。
+     - CDN 加载失败（window.tsParticles 不存在）→ 静默跳过，纯色背景降级；
+     - prefers-reduced-motion → 跳过粒子，尊重用户动效偏好；
+     - 轻量配置：links 网络线 + 少量粒子，透明背景，不挡交互（容器 pointer-events:none）。 */
+  (function initParticles(){
+    try{
+      if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if(!window.tsParticles) return;
+      window.tsParticles.load("tsparticles-bg", {
+        fullScreen:false,
+        background:{color:{value:"transparent"}},
+        fpsLimit:60,
+        particles:{
+          number:{value:55, density:{enable:true, area:1200}},
+          color:{value:["#A16207","#1E3A8A","#0F172A"]},
+          shape:{type:"circle"},
+          opacity:{value:0.25},
+          size:{value:{min:1,max:3}},
+          links:{enable:true, distance:140, color:"#A16207", opacity:0.18, width:1},
+          move:{enable:true, speed:0.6, outModes:{default:"out"}}
+        },
+        interactivity:{events:{onHover:{enable:false}, onClick:{enable:false}}},
+        detectRetina:true
+      });
+    }catch(e){ /* 粒子失败不阻塞页面 */ }
+  })();
 </script>
 </body>
 </html>

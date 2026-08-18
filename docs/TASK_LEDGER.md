@@ -7599,3 +7599,63 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-200b。
+
+## 182. [优化轨] R155b：前端重构轨——布局/风格/动画重构（tailwind CDN + tsparticles CDN + 本地 animotion CSS，用户显式指示，非能力层补断言）（2026-08-18）
+
+### 182a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R154b（`d66abd8`）已确认在 origin/main。
+
+### 182b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **105 checks**（R154b 末态：err.hehun.a_month/a_day/a_hour/b_hour）。
+- **用户显式指示（2026-08-18）**：彻底重构网页端布局/风格/动画，指定
+  三个开源项目（tailwindcss / tsparticles / animotion-mcp），并明确
+  "用 CDN，不要 npm 全量下载，不要解压大 zip（tsparticles-main.zip
+  610 MB）"。下载物：`C:\Users\Lenovo\Downloads\tsparticles-main.zip`
+  （610 MB，不解压，走 CDN）与 `animotion-mcp.github.io-main.zip`
+  （547 KB，安全解压取 CSS）。
+- **当前前端**（实测）：web/static/index.html **1769 行**单文件（内联
+  CSS + 内联 JS，无构建链），8 个主 tab（data-view）+ 9 个研究 tab
+  （data-rsec），全部表单/JS handler 内联，头部注释写明"不引外部 CDN
+  保证单文件可用"。
+- **重构红线**：不动任何 id/data-view/data-rsec/表单 handler/API 调用
+  （XSS 转义 R5-R16 修复全在内联 JS 中）；web --selftest 只测后端 API
+  （不解析 HTML），但页面交互必须保留。
+
+### 182c. 改动与验证
+
+- **改动**：
+  1. **CDN 引入**（index.html head）：tailwind Play CDN
+     （`https://cdn.tailwindcss.com`，**禁用 preflight** 防止重置现有
+     样式）+ tsparticles bundle CDN
+     （`https://cdn.jsdelivr.net/npm/tsparticles@3/tsparticles.bundle.min.js`
+     暴露 window.tsParticles）+ 本地 animotion CSS 四件套
+     （animotion.css / keyframes.css / keyframes-part2.css /
+     utilities.css，约 292 KB）。
+  2. **本地 animotion 落地**：从 547 KB zip 解压 CSS 到
+     `web/static/animotion/`（离线可用，动画样式本地化）。
+  3. **粒子背景层**：body 加 `<div id="tsparticles-bg">`（fixed、
+     z-index:-1、pointer-events:none 不挡交互）+ 初始化脚本（CDN 加载
+     失败静默降级纯色；尊重 prefers-reduced-motion）。
+  4. **动画叠加**：header/tabs/card 入场动画（animotion-fade-in-down/
+     fade-in/fade-in-up）+ card hover 阴影微动效 + tab hover 上浮。
+  5. **静态挂载修复**（web/app.py）：加
+     `app.mount("/static", StaticFiles(directory=os.path.dirname(INDEX)))`
+     ——开发期 ROOT/web/static、frozen 期 _MEIPASS/web/static 同源；
+     index.html 引用改为 `/static/animotion/...` 绝对路径。
+  6. **动画名修正**（实测发现）：animotion.css 类引用驼峰名
+     （animotion-fadeInUp）但 keyframes.css 定义连字符名
+     （animotion-fade-in-up）——叠加样式改用连字符名（已验证
+     keyframes.css 中 13 处连字符 fade 定义存在）。
+- **验证**（全量）：web --selftest **105 checks** 全 PASS（零回退）；
+  `/static/index.html` + 四个 vendor CSS 均 200（text/css）；HTML
+  结构配对检查（div 310/310、form 7/7、table 13/13、select 16/16）
+  全 OK；13 道闸门全 exit 0；五层自测全 PASS（sources/bookstudy/
+  research/mcp/web）。零后端功能改动、零 API 改动。
+- 决策记录：DECISIONS.md D-201b。
