@@ -7875,3 +7875,66 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零回退。
 - 决策记录：DECISIONS.md D-205b。
+
+## 187. [优化轨] R160b：前端深度重构——深色渐变玻璃拟态 + tsparticles 粒子强化 + animotion 动画丰富（用户显式指示，延续 R155b 叠加式重构，保留 id/handler/API）（2026-08-18）
+
+### 187a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R159b（`fd087b4`）已确认在 origin/main。
+
+### 187b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **109 checks**（R159b 末态：err.threads.kind）。
+- **用户显式指示（2026-08-18）**：彻底重构网页端布局/风格/动画/背景，
+  "更好看、更高级、更炫酷、更能吸引眼球"，指定三个开源项目
+  （tsparticles / animotion-mcp / tailwindcss），明确"用 CDN 不要 npm
+  全量下载，不要解压大 zip（tsparticles-main.zip 610 MB）"。
+- **当前前端状态**（实测）：index.html 1847 行单文件，:root 浅色
+  Minimalism & Swiss Style（#F8FAFC 背景 · #0F172A 主色 · #A16207
+  强调），**无 gradient/backdrop-filter**（grep 实测 0 处）——风格偏
+  朴素，未达"高级炫酷"目标。R155b 已落地：tailwind CDN + tsparticles
+  CDN（window.tsParticles）+ 本地 animotion CSS 四件套（animotion.css/
+  keyframes.css/keyframes-part2.css/utilities.css，~292 KB）。
+- **重构红线（延续 R155b）**：不动任何 id/data-view/data-rsec/表单
+  handler/API 调用（XSS 转义 R5-R16 修复全在内联 JS）；只叠加样式与
+  动画层；CDN 加载失败必须降级不阻塞内容。
+- **方案比对**：A 深色渐变玻璃拟态（选定：背景深蓝→墨绿渐变 + 卡片
+  backdrop-filter 毛玻璃 + tsparticles 粒子强化（70 粒、links 连线、
+  hover grab / click push 交互、主题色）+ animotion 动画丰富（header
+  h1 光晕、tab active 发光、card hover 上浮、table th 强调色）+
+  tailwind 微调）；B 浅色玻璃拟态（保守，不达"更炫酷"）；C 重写
+  index.html 布局骨架（1847 行内联 JS/HTML 重写风险极高，不选）——
+  见 D-206b。
+
+### 187c. 改动与验证
+
+- **改动**（web/static/index.html，仅样式/动画层）：
+  1. :root 设计令牌改为深色主题（--background:#0B1020 深蓝墨绿、
+     --accent:#D9A441 琥珀金、--card:rgba(22,30,52,.55) 半透明、
+     --glass-blur:14px）；
+  2. body 深色渐变背景（linear-gradient 160deg 深蓝→墨绿→墨黑，
+     fixed）；
+  3. .card 毛玻璃（backdrop-filter blur + inset 高光 + 深阴影 +
+     border 金色细边）；
+  4. 输入控件深色适配（rgba 深底 + accent 聚焦光圈）、按钮金色渐变
+     （linear-gradient #D9A441→#B97F2E + hover 亮度上浮）；
+  5. 动画叠加层强化：header h1 光晕字影、tab/rtab active 发光阴影、
+     card hover 金色边框上浮、h2/h3 衬线标题、table th 强调色；
+  6. tsparticles 粒子强化：70 粒、主题色（#D9A441/#8B9DC9/#3E6B5A）、
+     links 连线、onHover grab / onClick push 交互。
+- **验证**（全量）：web --selftest **109 checks** 全 PASS（零回退；
+  首次跑 research check 瞬时失败为并行窗口 verify_index 进程 db 锁，
+  复跑 PASS，与前端改动无关）；`/` 200 text/html、/static/animotion/*
+  四个 CSS 均 200；HTML 结构配对检查（div 310/310、form 7/7、table
+  13/13、select 16/16、button 44/44、nav 1/1）全 OK；13 道闸门全
+  exit 0（check_quality 先于 build_index，verify_index T1-T11 ALL
+  PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
+  （sources/bookstudy/research/mcp/web）。零后端功能改动、零 API
+  改动。离线降级：CDN 失败/prefers-reduced-motion 时粒子与动画缺失，
+  深色渐变纯色底 + 无动画，内容不阻塞。
+- 决策记录：DECISIONS.md D-206b。

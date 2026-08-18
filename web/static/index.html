@@ -19,21 +19,27 @@
   /* UI/UX Pro Max 设计规范：Minimalism & Swiss Style
      Primary #0F172A · Accent #A16207 · Background #F8FAFC · Card #FFFFFF
      字体栈离线可用（不引外部 CDN，保证打包单文件后仍可用） */
+  /* R160b（D-206b）：深色渐变玻璃拟态设计令牌（替换浅色 Minimalism）
+     深蓝→墨绿渐变背景 · 琥珀金强调 · 卡片半透明毛玻璃 */
   :root{
-    --primary:#0F172A; --on-primary:#FFFFFF;
-    --secondary:#1E3A8A; --on-secondary:#FFFFFF;
-    --accent:#A16207; --on-accent:#FFFFFF;
-    --background:#F8FAFC; --foreground:#020617;
-    --card:#FFFFFF; --card-fg:#020617;
-    --muted:#E8ECF1; --muted-fg:#475569;
-    --border:#E2E8F0; --destructive:#DC2626;
-    --ring:#0F172A;
+    --primary:#E6E9F2; --on-primary:#0B1020;
+    --secondary:#8B9DC9; --on-secondary:#0B1020;
+    --accent:#D9A441; --on-accent:#0B1020;
+    --background:#0B1020; --foreground:#E6E9F2;
+    --card:rgba(22,30,52,.55); --card-fg:#E6E9F2;
+    --muted:rgba(139,157,201,.18); --muted-fg:#9AA7C7;
+    --border:rgba(217,164,65,.22); --destructive:#E5534B;
+    --ring:#D9A441;
+    --glass-blur:14px;
     --font-serif:"Noto Serif TC","Songti SC","SimSun",serif;
     --font-sans:"Noto Sans TC","Microsoft YaHei","PingFang SC",sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
-    background:var(--background); color:var(--foreground);
+    /* 深色渐变底：深蓝→墨绿→墨黑，粒子层之上的内容可读性由卡片毛玻璃保证 */
+    background:linear-gradient(160deg,#0B1020 0%,#101B33 34%,#0F2A24 68%,#0B1020 100%) fixed;
+    background-color:var(--background);
+    color:var(--foreground);
     font-family:var(--font-sans); font-size:16px; line-height:1.5;
     min-height:100vh;
   }
@@ -46,31 +52,34 @@
   }
   header p{color:var(--muted-fg); margin-top:4px; font-size:14px;}
   .card{
-    background:var(--card); border:1px solid var(--border); border-radius:10px;
-    padding:24px; margin-top:24px; box-shadow:0 1px 3px rgba(15,23,42,.06);
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:24px; margin-top:24px;
+    box-shadow:0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
   }
   label{display:block; font-size:14px; color:var(--primary); margin:14px 0 6px; font-weight:500;}
   .row{display:flex; gap:12px; flex-wrap:wrap;}
   .field{flex:1; min-width:96px;}
   input[type=number], input[type=text], input[type=date], select{
     width:100%; padding:10px 12px; font-size:16px;
-    border:1px solid var(--border); border-radius:6px;
-    background:var(--card); color:var(--foreground);
+    border:1px solid var(--border); border-radius:8px;
+    background:rgba(11,16,32,.55); color:var(--foreground);
     transition:border-color .2s, box-shadow .2s;
   }
   input:focus, select:focus{
-    outline:none; border-color:var(--primary);
-    box-shadow:0 0 0 3px rgba(15,23,42,.12);
+    outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(217,164,65,.18);
   }
   .check{display:flex; align-items:center; gap:8px; margin-top:14px;}
   .check input{width:18px; height:18px; accent-color:var(--primary);}
   button{
     margin-top:20px; width:100%; padding:12px 16px; font-size:16px;
-    background:var(--primary); color:var(--on-primary);
-    border:none; border-radius:6px; cursor:pointer;
-    transition:background .2s;
+    background:linear-gradient(135deg,#D9A441 0%,#B97F2E 100%);
+    color:var(--on-accent);
+    border:none; border-radius:8px; cursor:pointer;
+    transition:filter .2s, transform .15s;
   }
-  button:hover{background:var(--secondary);}
+  button:hover{filter:brightness(1.12); transform:translateY(-1px);}
   button:disabled{background:var(--muted-fg); cursor:not-allowed;}
   .error{color:var(--destructive); margin-top:16px; font-size:14px;}
   .status{color:var(--muted-fg); margin-top:16px; font-size:14px;}
@@ -245,7 +254,7 @@
     *, *::before, *::after{transition:none !important; animation:none !important;}
   }
 
-  /* R155b（D-201b）前端重构叠加层：
+  /* R155b（D-201b）前端重构叠加层 + R160b（D-206b）深色强化：
      - #tsparticles-bg 固定粒子背景（内容之下，不挡交互，透明背景）
      - header/tabs/card 入场动画（animotion 本地 CSS 类，纯叠加不改结构）
      - tailwind 工具类仅用于间距/圆角/阴影微调（preflight 已禁用） */
@@ -254,15 +263,27 @@
     background:transparent;
   }
   body{background:var(--background);}
-  header h1, header p{animation:animotion-fade-in-down .7s ease-out both;}
+  header h1{
+    font-size:30px; letter-spacing:.06em;
+    text-shadow:0 2px 24px rgba(217,164,65,.35);
+    animation:animotion-fade-in-down .7s ease-out both;
+  }
+  header p{animation:animotion-fade-in-down .7s ease-out .08s both;}
   nav.tabs{animation:animotion-fade-in .8s ease-out .1s both;}
   .wrap > .view, .wrap > form, .wrap > div:not(.rtabs){
     animation:animotion-fade-in-up .6s ease-out .15s both;
   }
-  .card{transition:box-shadow .25s ease, transform .25s ease;}
-  .card:hover{box-shadow:0 8px 24px rgba(15,23,42,.12); transform:translateY(-2px);}
-  .tab, .rtab{transition:background-color .2s ease, color .2s ease, transform .15s ease;}
+  .card{transition:box-shadow .25s ease, transform .25s ease, border-color .25s ease;}
+  .card:hover{
+    box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    transform:translateY(-2px); border-color:rgba(217,164,65,.45);
+  }
+  .tab, .rtab{transition:background-color .2s ease, color .2s ease, transform .15s ease, box-shadow .2s ease;}
   .tab:hover, .rtab:hover{transform:translateY(-1px);}
+  .tab.active, .rtab.active{box-shadow:0 4px 18px rgba(217,164,65,.22);}
+  h2, h3{font-family:var(--font-serif); letter-spacing:.03em;}
+  table.works th{color:var(--accent);}
+
 </style>
 </head>
 <body>
@@ -1812,15 +1833,18 @@ $('#hhForm').addEventListener('submit', async e => {
         background:{color:{value:"transparent"}},
         fpsLimit:60,
         particles:{
-          number:{value:55, density:{enable:true, area:1200}},
-          color:{value:["#A16207","#1E3A8A","#0F172A"]},
+          number:{value:70, density:{enable:true, area:1100}},
+          color:{value:["#D9A441","#8B9DC9","#3E6B5A"]},
           shape:{type:"circle"},
-          opacity:{value:0.25},
-          size:{value:{min:1,max:3}},
-          links:{enable:true, distance:140, color:"#A16207", opacity:0.18, width:1},
-          move:{enable:true, speed:0.6, outModes:{default:"out"}}
+          opacity:{value:0.35},
+          size:{value:{min:1,max:3.5}},
+          links:{enable:true, distance:130, color:"#D9A441", opacity:0.2, width:1},
+          move:{enable:true, speed:0.7, outModes:{default:"out"}}
         },
-        interactivity:{events:{onHover:{enable:false}, onClick:{enable:false}}},
+        interactivity:{
+          events:{onHover:{enable:true, mode:"grab"}, onClick:{enable:true, mode:"push"}},
+          modes:{grab:{distance:150, links:{opacity:0.5}}, push:{quantity:3}}
+        },
         detectRetina:true
       });
     }catch(e){ /* 粒子失败不阻塞页面 */ }

@@ -6473,3 +6473,41 @@ ValueError 捕获分支）——实测发现**真实 bug**：
 能力层验证补断言常当场抓到真实 bug——threads 端点非法 kind 回归为 500
 此前不可见）。落地后：web --selftest 108→109 checks，跑 13 闸门 + 五层
 自测确认零回退。
+
+## D-206b R160b 前端重构轨：布局/风格/动画/背景深度升级——深色渐变玻璃拟态 + tsparticles 粒子强化 + animotion 动画丰富（用户显式指示，延续 R155b 叠加式重构，保留 id/handler/API）
+
+**背景（用户显式指示，2026-08-18）**：用户要求"彻底重构网页端布局、风格、
+动画、背景，更好看、更高级、更炫酷、更能吸引眼球"，指定三个开源项目
+（tsparticles / animotion-mcp / tailwindcss），明确"用 CDN 不要 npm
+全量下载，不要解压大 zip（tsparticles-main.zip 610 MB）"。R155b
+（D-201b）已做第一轮叠加：tailwind Play CDN（preflight 禁用）+
+tsparticles 粒子背景（links 网络线）+ 本地 animotion 动画 CSS
+（web/static/animotion/ 745 类离线可用）。
+
+**实测约束（命令实跑确认）**：
+- 当前 index.html：**1847 行**单文件（R155b 后），:root 浅色 Minimalism
+  & Swiss Style（#F8FAFC 背景 · #0F172A 主色 · #A16207 强调），**无
+  gradient/backdrop-filter**（grep 实测 0 处）——风格偏朴素，未达
+  "高级炫酷"目标。
+- 已落地资源：tailwind CDN + tsparticles CDN（window.tsParticles）+
+  本地 animotion CSS 四件套（animotion.css/keyframes.css/keyframes-
+  part2.css/utilities.css，~292 KB）。
+- web --selftest 109 checks 全 PASS（只测后端 API，不解析 HTML）；
+  页面结构配对检查（div/form/table/select 全 OK）已验证可行。
+- **重构红线（延续 R155b）**：不动任何 id/data-view/data-rsec/表单
+  handler/API 调用（XSS 转义 R5-R16 修复全在内联 JS）；只叠加样式与
+  动画层；CDN 加载失败必须降级不阻塞内容。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | 深色渐变玻璃拟态：背景深蓝→墨绿渐变 + 卡片 backdrop-filter 毛玻璃（半透明 + blur + 细边框高光）+ tsparticles 粒子强化（粒子数↑、links 连线、hover 交互聚拢、颜色随主题）+ animotion 动画丰富（tab 切换 view 入场、卡片 stagger、按钮 hover 上浮+涟漪、加载微动效）+ tailwind 工具类微调间距/圆角/阴影 | 纯前端叠加层，零后端改动、零 API 改动、零 selftest 影响；深色渐变+玻璃拟态显著提升"高级炫酷"观感；粒子/动画全部可降级（CDN 失败或 prefers-reduced-motion 时回退纯色背景+无动画，内容不阻塞）；animotion 本地化离线可用 |
+| B | 浅色玻璃拟态风（白底 + 半透明卡片 + 柔光阴影） | 保守升级，观感提升有限，不达"更炫酷"目标 |
+| C | 重写 index.html 布局结构（新 HTML 骨架） | 1847 行内联 JS/HTML 重写风险极高（XSS 转义、tab/表单 handler 全内联），破坏面大，不选 |
+
+选 A（叠加式深度重构：深色渐变玻璃拟态 + 粒子强化 + 动画丰富，布局
+功能层零改动，延续 R155b 先例）。落地后：web --selftest 109 checks 全
+跑确认不回退，HTML 结构配对检查 OK。CDN 域名不变（cdn.tailwindcss.com
+· cdn.jsdelivr.net · 本地 /static/animotion/）；离线降级：深色渐变
+纯色底（CSS 内联兜底），粒子/动画缺失不阻塞内容。
