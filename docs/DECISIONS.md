@@ -6331,3 +6331,37 @@ cdn.tailwindcss.com（tailwind Play）· cdn.jsdelivr.net（tsparticles
 bundle）· 本地 animotion（动画）。本地离线场景：动画样式与全部
 功能仍可用，仅 tailwind 工具类/粒子背景需网络（粒子背景降级为纯色
 背景，不阻塞内容）。
+
+## D-202b R156b 优化轨：web standing 自测缺口——bazi lunar_year 超范围（lunar_to_solar ValueError 捕获分支）400 校验零断言（能力层验证，与 R150b err.bazi.lunar_* 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：bazi lunar 分支（validate_ranges 通过后，_resolve_birth
+调 lunar.lunar_to_solar，web/app.py:172 捕获 ValueError→400 "农历换算失败：
+{exc}"）的 **lunar_year 超范围校验零断言**——R150b 已补 err.bazi.lunar_
+missing/month/day（覆盖 lunar 缺失、lunar_month 超范围、lunar_day 超范围
+三条输入形状校验），但 **lunar_year 超范围**（lunar_to_solar 内部
+`if not (1900 <= ly <= 2100): raise ValueError`，lunar.py:131）由
+lunar_to_solar 抛出、经 line 172 捕获转 400——这条路径零 standing 断言
+（若 lunar_year 校验回归为 500 或被移除导致非法农历年进入换算则不可见，
+与 R150b err.bazi.lunar_month 同族——同端点不同校验维度）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {calendar_type:"lunar", lunar_year:1800, lunar_month:1,
+  lunar_day:1, ...}` → 400，detail "农历换算失败：农历年份需在
+  1900-2100（收到 1800）"
+- 边界对照：lunar_year=1900/lunar_month=1/lunar_day=1 → 200（合法）；
+  lunar_year=2100/lunar_month=12/lunar_day=30 → 400 "农历 2100 年12月
+  没有第 30 天"（lunar_day 超当月天数，另一条内部校验）
+- lunar_year=1800 分支正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补一条断言：err.bazi.lunar_year（lunar_year=1800→400）（105→106 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi lunar 路径 lunar_year 超范围未覆盖的 400 分支（lunar_missing/month/day 断言不构成 lunar_year 的覆盖），抓校验静默失效；与 R150b err.bazi.lunar_month 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.lunar_year 一条 400 断言，照 R150b err.bazi.lunar_
+month 先例：能力路径必须有一条可复现命令断言——lunar 输入形状断言不
+构成 lunar_year 超范围换算失败路径的覆盖）。落地后：web --selftest
+105→106 checks，跑 13 闸门 + 五层自测确认零回退。

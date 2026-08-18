@@ -7659,3 +7659,54 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   全 OK；13 道闸门全 exit 0；五层自测全 PASS（sources/bookstudy/
   research/mcp/web）。零后端功能改动、零 API 改动。
 - 决策记录：DECISIONS.md D-201b。
+
+## 183. [优化轨] R156b：web standing 自测缺口——bazi lunar_year 超范围（lunar_to_solar ValueError 捕获分支）400 校验零断言 → 补断言（能力层验证，与 R150b err.bazi.lunar_* 同族——同端点不同校验维度）（2026-08-18）
+
+### 183a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R155b（`f416519` 前端重构）已确认在 origin/main。
+
+### 183b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **105 checks**（R155b 末态：前端重构，能力层断言无增减）。
+- **真实缺口（本轮选定）**：bazi lunar 分支（_resolve_birth 调
+  lunar.lunar_to_solar，web/app.py:172 捕获 ValueError→400 "农历换算
+  失败：{exc}"）的 **lunar_year 超范围校验零断言**——R150b 已补
+  err.bazi.lunar_missing/month/day（覆盖 lunar 缺失、lunar_month 超
+  范围、lunar_day 超范围三条输入形状校验），但 **lunar_year 超范围**
+  （lunar_to_solar 内部 `if not (1900 <= ly <= 2100): raise ValueError`，
+  lunar.py:131）由 lunar_to_solar 抛出、经 line 172 捕获转 400——这条
+  路径零 standing 断言（若 lunar_year 校验回归为 500 或被移除导致非法
+  农历年进入换算则不可见，与 R150b err.bazi.lunar_month 同族——同端点
+  不同校验维度，L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi {calendar_type:"lunar", lunar_year:1800, lunar_month:1,
+    lunar_day:1} → 400 "农历换算失败：农历年份需在 1900-2100（收到
+    1800）"
+  - 边界对照：lunar_year=1900/1/1 → 200（合法）；lunar_year=2100/
+    12/30 → 400 "农历 2100 年12月没有第 30 天"（lunar_day 超当月天数，
+    另一条内部校验）
+  - lunar_year=1800 分支正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.bazi.lunar_year 一条 400 断言（105→106 checks，
+  选定）；B 补 MCP research_tool 深度验证（工作量大、web 侧已覆盖）；
+  C 补 tarot 端点校验断言（概率性端点，确定性弱于 A）——见 D-202b。
+
+### 183c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.bazi.lunar_day 后
+  补一条断言——err.bazi.lunar_year（lunar_year=1800→400，触发
+  lunar_to_solar 内部年份校验经 line 172 捕获转 400）（105→106 checks）。
+- **验证**（全量）：web --selftest **106 checks** 全 PASS（新 400 断言
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-202b。
