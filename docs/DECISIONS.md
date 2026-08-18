@@ -6048,3 +6048,48 @@ err.bookstudy.chapter.empty 三条 400 断言，照 R139b
 err.bazi.calendar/scope/gender 先例：能力路径必须有一条可复现命令
 断言）。落地后：web --selftest 77→80 checks，跑 13 闸门 + 五层
 自测确认零回退。
+
+## D-195b R149b 优化轨：web standing 自测缺口——liuyao time 起卦 day/hour + qiming month/day/hour 五条 400 校验分支零断言（能力层验证，与 R139b-R142b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R148b 已按端点逐个补 err.* 400 断言（bazi
+calendar/scope/gender → qiming gender/year → liuyao time year/month/
+missing → huangli date/year/illegal → taohua year/gender/calendar →
+compare_works/concept/research → search → concept/research too-long →
+compare gua-range → addr zhouyi no-gua/bookstudy empty-work_id），但
+**同端点剩余校验维度**仍零断言：liuyao time 起卦的 day（line 776-777）、
+hour（line 778-779）与 qiming 的 month（line 894-895）、day（line
+896-897）、hour（line 898-899）五条 400 校验分支——若这些校验回归为
+500、或被移除导致非法输入进入排盘/起名计算，13 闸门与五层自测都看不见
+（L-22/L-23 同族；与 R139b-R142b 同族——同端点不同校验维度）。
+
+**撞号说明（D-008 不回溯改写）**：本窗口在 R143b 摸底时曾追加 D-189b
+方案条目（即本条目内容），但并行窗口抢先提交 R143b（`c6ead18`）时把
+整份 DECISIONS.md 一并提交，使该条目与并行窗口自己的 D-189b（taohua
+三条）**同号共存**于 HEAD（git show HEAD:docs/DECISIONS.md | grep -c
+"^## D-189b" = 2 实测）。照 D-008 保留旧记录不回溯改写，本条目改用
+D-195b 编号记录实际执行的 R149b。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/liuyao {"method":"time","year":1990,"month":5,"day":32,
+  "hour":10}` → 400，detail "day 须在 1-31，收到 32"
+- `POST /api/liuyao {"method":"time","year":1990,"month":5,"day":15,
+  "hour":24}` → 400，detail "hour 须在 0-23，收到 24"
+- `POST /api/qiming {"surname":"李","year":1990,"month":13,...}` → 400，
+  detail "month 须在 1-12，收到 13"
+- `POST /api/qiming {"surname":"李","year":1990,"month":5,"day":0,...}`
+  → 400，detail "day 须在 1-31，收到 0"
+- `POST /api/qiming {"surname":"李","year":1990,"month":5,"day":15,
+  "hour":24,...}` → 400，detail "hour 须在 0-23，收到 24"
+- 五条分支均正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补五条断言：err.liuyao.time.day（day=32→400）、err.liuyao.time.hour（hour=24→400）、err.qiming.month（month=13→400）、err.qiming.day（day=0→400）、err.qiming.hour（hour=24→400）（80→85 checks） | 纯加自测断言、零功能改动/零数据风险；补上 liuyao/qiming 同端点剩余五个未覆盖的 400 校验分支，抓校验静默失效；与 R139b-R142b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少且确定性弱于 A 的参数校验 |
+
+选 A（补 err.liuyao.time.day/hour + err.qiming.month/day/hour 五条
+400 断言，照 R139b-R148b 先例：能力路径必须有一条可复现命令断言）。
+落地后：web --selftest 80→85 checks，跑 13 闸门 + 五层自测确认零回退。

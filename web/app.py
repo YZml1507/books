@@ -1284,6 +1284,19 @@ if __name__ == "__main__":
                                                      "day": 15, "hour": 10}))
         _expect_400("err.liuyao.time.missing",
                     client.post("/api/liuyao", json={"method": "time", "hour": 10}))
+        # R149b（D-195b）：liuyao time 起卦 day/hour 两条 400 校验分支 standing
+        # 覆盖——err.liuyao.time.year/month/missing（R141b）已覆盖三条，但
+        # day（line 776-777）、hour（line 778-779）两条零断言（若校验回归
+        # 为 500 或被移除则不可见，与 R141b err.liuyao.time.year 同族——
+        # 同端点不同校验维度）。实测 day=32→400、hour=24→400——补断言零风险。
+        _expect_400("err.liuyao.time.day",
+                    client.post("/api/liuyao", json={"method": "time",
+                                                     "year": 1990, "month": 5,
+                                                     "day": 32, "hour": 10}))
+        _expect_400("err.liuyao.time.hour",
+                    client.post("/api/liuyao", json={"method": "time",
+                                                     "year": 1990, "month": 5,
+                                                     "day": 15, "hour": 24}))
         _expect_400("err.hehun.year",
                     client.post("/api/hehun", json={"a_year": 1800, "a_month": 5,
                                                     "a_day": 15, "a_hour": 10,
@@ -1341,6 +1354,24 @@ if __name__ == "__main__":
                     client.post("/api/qiming", json={"surname": "李", "year": 1800,
                                                      "month": 1, "day": 1,
                                                      "hour": 12, "gender": "男"}))
+        # R149b（D-195b）：qiming 端点 month/day/hour 三条 400 校验分支
+        # standing 覆盖——err.qiming.surname/gender/year（R140b）已覆盖
+        # 三条，但 month（line 894-895）、day（line 896-897）、hour（line
+        # 898-899）三条零断言（若校验回归为 500 或被移除则不可见，与 R140b
+        # err.qiming.gender 同族——同端点不同校验维度）。实测 month=13→400、
+        # day=0→400、hour=24→400——补断言零风险。
+        _expect_400("err.qiming.month",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1990,
+                                                     "month": 13, "day": 1,
+                                                     "hour": 12, "gender": "男"}))
+        _expect_400("err.qiming.day",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1990,
+                                                     "month": 5, "day": 0,
+                                                     "hour": 12, "gender": "男"}))
+        _expect_400("err.qiming.hour",
+                    client.post("/api/qiming", json={"surname": "李", "year": 1990,
+                                                     "month": 5, "day": 15,
+                                                     "hour": 24, "gender": "男"}))
         # R143b（D-189b）：taohua 端点 year/gender/calendar 三条 400 校验
         # 分支 standing 覆盖——taohua（行 918）调用 req.validate_ranges()
         # 继承 BaziRequest 校验，但 err.* 只覆盖 bazi 端点，taohua 同名

@@ -7269,3 +7269,60 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-194b。
+
+## 176. [优化轨] R149b：web standing 自测缺口——liuyao time 起卦 day/hour + qiming month/day/hour 五条 400 校验分支零断言 → 补断言（能力层验证，与 R139b-R142b 同族——同端点不同校验维度）（2026-08-18）
+
+### 176a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。**并行窗口在本次会话期间连续抢先提交 R143b-R148b**
+（c6ead18 → 8657793，web checks 67→80），本窗口承接时 origin/main
+已到 `8657793`（R148b）。**撞号记录**：本窗口在 R143b 摸底时追加的
+DECISIONS D-189b 方案条目（liuyao/qiming 五条）被并行窗口 R143b
+提交（c6ead18）整文件扫入 HEAD，与并行窗口自己的 D-189b（taohua
+三条）造成**同号双条目**——照 D-008 不回溯改写，故本轮改用 D-195b
+编号并在该条目记录撞号说明。
+
+### 176b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **80 checks**（R148b 末态：err.addr.zhouyi.no_gua +
+  err.bookstudy.structure.empty + err.bookstudy.chapter.empty）。
+- **真实缺口（本轮选定）**：R139b-R148b 已按端点逐个补 err.* 400
+  断言，但**同端点剩余校验维度**仍零断言：liuyao time 起卦的 day
+  （line 776-777）、hour（line 778-779）与 qiming 的 month（line
+  894-895）、day（line 896-897）、hour（line 898-899）五条 400 校验
+  分支——若这些校验回归为 500、或被移除导致非法输入进入排盘/起名
+  计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b-R142b
+  同族——同端点不同校验维度）。
+- **实测**（命令实跑，web TestClient）：
+  - liuyao day=32 → 400 "day 须在 1-31，收到 32"
+  - liuyao hour=24 → 400 "hour 须在 0-23，收到 24"
+  - qiming month=13 → 400 "month 须在 1-12，收到 13"
+  - qiming day=0 → 400 "day 须在 1-31，收到 0"
+  - qiming hour=24 → 400 "hour 须在 0-23，收到 24"
+  - 五条分支均正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、taohua/tarot 校验断言（并行窗口 R143b 已做
+  taohua；tarot 为概率性端点参数校验维度少）——本轮不再扩展。
+- **方案比对**：A 补 err.liuyao.time.day/hour + err.qiming.month/
+  day/hour 五条 400 断言（80→85 checks，选定）；B 补 MCP
+  research_tool 深度验证（工作量大、web 侧已覆盖）；C 补 tarot
+  端点校验断言（概率性端点，确定性弱于 A 的参数校验）——见 D-195b。
+
+### 176c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块补五条断言——
+  err.liuyao.time.day（day=32→400）、err.liuyao.time.hour
+  （hour=24→400）、err.qiming.month（month=13→400）、
+  err.qiming.day（day=0→400）、err.qiming.hour（hour=24→400）
+  （80→85 checks）。
+- **验证**（全量）：web --selftest **85 checks** 全 PASS（五条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-195b。
