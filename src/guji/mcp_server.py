@@ -446,6 +446,14 @@ if __name__ == "__main__":
             ("addr", {"scheme": "zhouyi", "gua": 1}),
             ("compare", {"gua": 28, "yao": "九二"}),
             ("concept", {"q": "無爲"}),
+            # R168b（D-214b）：bookstudy 三工具错误路径协议级断言——work_id
+            # 不存在（NO_SUCH_WORK）的失败路径此前零协议级覆盖（正常路径断言
+            # 不构成失败路径的覆盖），与 web 侧 bookstudy.summary.missing
+            # （R134b）同语义——断言 content 含 "NO_SUCH_WORK" 或 "not found"
+            ("book_summary_tool", {"work_id": "NO_SUCH_WORK"}),
+            ("bookstudy_structure", {"work_id": "NO_SUCH_WORK"}),
+            ("bookstudy_chapter", {"work_id": "NO_SUCH_WORK",
+                                   "scheme": "zhouyi", "addr1": 40}),
         ]
         record_did = None
         for i, (name, args) in enumerate(calls, start=3):
@@ -457,6 +465,11 @@ if __name__ == "__main__":
             assert content, (name, content)
             if name == "add_local_work_tool":
                 assert content.startswith("error:"), (name, content)
+            elif name in ("book_summary_tool", "bookstudy_structure",
+                          "bookstudy_chapter") and args.get("work_id") == "NO_SUCH_WORK":
+                # R168b（D-214b）：work_id 不存在的失败路径必须显式返回
+                # 错误文本（"work NO_SUCH_WORK not found" 或同类），不崩溃
+                assert ("NO_SUCH_WORK" in content or "not found" in content), (name, content)
             elif name == "record_claim_tool" and not args.get("evidence"):
                 assert content.startswith("error:"), (name, content)
             elif name == "record_claim_tool":

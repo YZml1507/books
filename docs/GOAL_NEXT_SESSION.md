@@ -112,7 +112,10 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
           research_tool 协议级断言——G7 拒绝 + 正常检索，与 web 侧
           R144b/R146b research 断言同源；R167b 补 search/addr/compare/
           concept 四条协议级断言——与 web 侧 R145b/R148b/R147b/R144b
-          同源，12 工具协议级调用 6→10 个）
+          同源，12 工具协议级调用 6→10 个；R168b 补 book_summary_tool/
+          bookstudy_structure/bookstudy_chapter 三条错误路径协议级断言
+          ——work_id 不存在显式返回错误文本，与 web 侧 R134b
+          bookstudy.summary.missing 同语义）
 前端      R155b 重构：布局/风格/动画叠加层（tailwind Play CDN 禁用
           preflight + tsparticles 粒子背景 CDN + 本地 animotion
           动画 CSS 745 类离线可用；id/handler/API 零改动，见 D-201b）；

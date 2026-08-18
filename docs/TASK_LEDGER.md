@@ -8304,3 +8304,60 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   ALL PASS，assess_goals PASS 9 · PART 0 · FAIL 0）；五层自测全 PASS
   （sources/bookstudy/research/mcp/web）。零功能改动、零回退。
 - 决策记录：DECISIONS.md D-213b。
+
+## 195. [优化轨] R168b：MCP standing 自测缺口——bookstudy 三工具（book_summary_tool/bookstudy_structure/bookstudy_chapter）错误路径（work_id 不存在）协议级零覆盖 → 补断言（能力层验证，与 R167b search/addr/compare/concept 协议级断言同族——12 工具正常路径已全覆盖，错误路径仍缺）（2026-08-18）
+
+### 195a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R167b（`9e47907`）已确认在 origin/main。
+
+### 195b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **117 checks**（R167b 末态：MCP search/addr/compare/concept 协议级
+  断言，web checks 无增减）。
+- **真实缺口（本轮选定）**：R167b 已把 MCP 12 工具协议级调用补到全
+  覆盖（正常路径），但 **bookstudy 三工具的错误路径仍零协议级覆盖**：
+  mcp_server.py --selftest 的 calls 列表对 book_summary_tool
+  （KR1a0001）、bookstudy_structure（KR5c0057）、bookstudy_chapter
+  （KR1a0001）只测**正常路径**（有结果，content 非空且不含 error）
+  ——**work_id 不存在（如 NO_SUCH_WORK）的失败路径零断言**（若这些
+  工具把"找不到作品"回归为 500 崩溃、或返回语义改变的文本，mcp 层
+  自测看不见，L-22/L-23 同族；与 R167b 协议级断言同族——同一内核
+  不同发布面，web 侧 bookstudy.summary.missing（R134b）已有同语义
+  断言）。
+- **实测**（命令实跑，直接调 MCP 工具函数）：
+  - book_summary_tool("NO_SUCH_WORK") → "work NO_SUCH_WORK not found"
+  - bookstudy_structure("NO_SUCH_WORK") → "work NO_SUCH_WORK not found"
+  - bookstudy_chapter("NO_SUCH_WORK", "zhouyi", 40) → "section needs
+    addr1 (卦號) for NO_SUCH_WORK"
+  - 三个工具均正常返回错误文本（非 500 崩溃）——补协议级断言零风险。
+- **其他方向**（对照实测）：MCP research_tool max_addresses 钳制断言
+  （max_addresses=0/99 钳制为 1/6 且正常返回，设计行为，覆盖价值低）、
+  tarot 端点校验断言（实测 n=0/101 均 200，无校验分支）、文档滞后扫描
+  （R161b/R166b 已修 tab/轮次滞后，无新滞后点）——无其他明确缺口。
+- **方案比对**：A 补 MCP book_summary_tool/bookstudy_structure/
+  bookstudy_chapter 三条错误路径协议级断言（work_id=NO_SUCH_WORK→
+  断言 content 含 "NO_SUCH_WORK" 或 "not found"，选定）；B MCP
+  research_tool max_addresses 钳制断言（同工具已覆盖维度，价值低）；
+  C tarot 端点校验断言（无校验分支）——见 D-214b。
+
+### 195c. 改动与验证
+
+- **改动**（src/guji/mcp_server.py，仅自测）：--selftest 的 calls 列表
+  加三条错误路径协议级断言——book_summary_tool(NO_SUCH_WORK)、
+  bookstudy_structure(NO_SUCH_WORK)、bookstudy_chapter(NO_SUCH_WORK)，
+  循环断言加分支（work_id==NO_SUCH_WORK → 断言 content 含
+  "NO_SUCH_WORK" 或 "not found"，失败路径显式返回错误文本不崩溃）。
+- **验证**（全量）：mcp --selftest **全 PASS**（三条新错误路径协议级
+  断言生效，book_summary_tool 27 chars / bookstudy_structure 27 chars
+  / bookstudy_chapter 36 chars）；web --selftest **117 checks** 全 PASS
+  （零回退）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-214b。

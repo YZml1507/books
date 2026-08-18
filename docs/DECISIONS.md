@@ -6750,3 +6750,26 @@ tools/list 断言 12 个工具存在——**search / addr / compare / concept
 research_tool 先例：同一内核的能力路径在每个发布面都必须有一条可复现
 命令断言——web 侧已有、MCP 侧必须补）。落地后：mcp --selftest 全跑 +
 13 闸门 + 五层自测确认零回退。
+
+## D-214b R168b 优化轨：MCP standing 自测缺口——bookstudy 三工具（book_summary_tool/bookstudy_structure/bookstudy_chapter）错误路径（work_id 不存在）协议级零覆盖（能力层验证，与 R167b search/addr/compare/concept 协议级断言同族——12 工具协议级调用已全覆盖正常路径，错误路径仍缺）
+
+**背景（亲自核实）**：R167b 已把 MCP 12 工具协议级调用补到全覆盖（正常路径），但 **bookstudy 三工具的错误路径仍零协议级覆盖**：mcp_server.py --selftest 的 calls 列表对 book_summary_tool（KR1a0001）、bookstudy_structure（KR5c0057）、bookstudy_chapter（KR1a0001）只测**正常路径**（有结果，content 非空且不含 error）——**work_id 不存在（如 NO_SUCH_WORK）的失败路径零断言**（若这些工具把"找不到作品"回归为 500 崩溃、或返回语义改变的文本，mcp 层自测看不见，L-22/L-23 同族；与 R167b 协议级断言同族——同一内核不同发布面，web 侧 bookstudy.summary.missing（R134b）已有同语义断言）。
+
+**实测数据（命令实跑，直接调 MCP 工具函数）**：
+- `book_summary_tool("NO_SUCH_WORK")` → 返回 "work NO_SUCH_WORK not found"（错误文本，非崩溃）
+- `bookstudy_structure("NO_SUCH_WORK")` → 返回 "work NO_SUCH_WORK not found"
+- `bookstudy_chapter("NO_SUCH_WORK", "zhouyi", 40)` → 返回 "section needs addr1 (卦號) for NO_SUCH_WORK"
+- 三个工具均正常返回错误文本（非 500 崩溃）——补协议级断言零风险（断言 content 含 "not found" 或 "NO_SUCH_WORK"）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | mcp_server.py --selftest 的 calls 列表补三条错误路径协议级断言：book_summary_tool(NO_SUCH_WORK)、bookstudy_structure(NO_SUCH_WORK)、bookstudy_chapter(NO_SUCH_WORK)——断言 content 含 "NO_SUCH_WORK" 或 "not found"（失败路径显式返回错误文本，与 web 侧 bookstudy.summary.missing（R134b）同语义） | 纯加协议级自测断言、零功能改动/零数据风险；补上 bookstudy 三工具失败路径协议级覆盖（正常路径断言不构成失败路径的覆盖），抓 MCP 错误处理静默回归；与 R167b 协议级断言同族，确定性可复验 |
+| B | MCP research_tool max_addresses 钳制断言 | max_addresses=0/99 钳制为 1/6 且正常返回（设计行为），与 A 相比覆盖价值低（A 是失败路径，B 是同工具已覆盖维度的钳制行为） |
+| C | tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少（实测 n=0/101 均 200 无校验分支），确定性弱于 A |
+
+选 A（补 MCP book_summary_tool/bookstudy_structure/bookstudy_chapter
+三条错误路径协议级断言，照 R167b 协议级断言先例：同一内核的能力路径
+在每个发布面都必须有一条可复现命令断言——正常路径断言不构成失败路径
+的覆盖）。落地后：mcp --selftest 全跑 + 13 闸门 + 五层自测确认零回退。
