@@ -6138,3 +6138,40 @@ b_day 六条 400 断言，照 R139b-R149b 先例：能力路径必须有一条�
 命令断言——且同端点未覆盖分支必须独立断言，甲侧/solar 断言不构成乙侧/
 lunar 的覆盖）。落地后：web --selftest 85→91 checks，跑 13 闸门 + 五层
 自测确认零回退。
+
+## D-197b R151b 优化轨：web standing 自测缺口——bazi 端点 ask_hour/ask_date 格式/range 缺失/range 格式四条 400 校验分支零断言（能力层验证，与 R139b-R150b 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：R139b-R150b 已按端点逐个补 err.* 400 断言（bazi
+已覆盖 calendar/scope/gender/year/lunar 六条），但 **bazi 同端点剩余
+校验维度**仍零断言：ask_hour（line 141 "ask_hour 需在 0-23"）、
+ask_date 格式（line 146 "ask_date 需为 YYYY-MM-DD 格式"）、scope=range
+缺 range_start/range_end（line 152）、range 格式（line 157）四条 400
+校验分支——若这些校验回归为 500、或被移除导致非法输入进入排盘/范围
+计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b-R150b
+同族——同端点不同校验维度）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {ask_hour:24, ...}` → 400，detail "ask_hour 需在 0-23"
+- `POST /api/bazi {ask_date:"garbage", ...}` → 400，detail
+  "ask_date 需为 YYYY-MM-DD 格式"
+- `POST /api/bazi {scope:"range"（缺 range_start/end）}` → 400，detail
+  "scope=range 需提供 range_start 和 range_end"
+- `POST /api/bazi {scope:"range", range_start:"garbage", ...}` → 400，
+  detail "range_start/range_end 需为 YYYY-MM-DD 格式"
+- 四条分支均正确返回 400 + detail——补断言零风险。
+- **对照实测排除**：`GET /api/addr?scheme=zhouyi&gua=0` 与 `gua=65`
+  均返回 200（at_address 空命中，非 400 校验分支——设计行为，不补）。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补四条断言：err.bazi.ask_hour（ask_hour=24→400）、err.bazi.ask_date（ask_date=garbage→400）、err.bazi.range_missing（scope=range 缺 range_start/end→400）、err.bazi.range_format（range_start=garbage→400）（91→95 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi 端点剩余四个未覆盖的 400 校验分支，抓校验静默失效；与 R139b-R150b 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.ask_hour/ask_date/range_missing/range_format 四条
+400 断言，照 R139b-R150b 先例：能力路径必须有一条可复现命令断言——
+同端点未覆盖分支必须独立断言，calendar/scope/gender/year/lunar 断言
+不构成 ask_hour/range 的覆盖）。落地后：web --selftest 91→95 checks，
+跑 13 闸门 + 五层自测确认零回退。

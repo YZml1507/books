@@ -1383,6 +1383,32 @@ if __name__ == "__main__":
                                                    "lunar_year": 1990,
                                                    "lunar_month": 5,
                                                    "lunar_day": 31}))
+        # R151b（D-197b）：bazi 端点 ask_hour/ask_date 格式/range 缺失/range
+        # 格式四条 400 校验分支 standing 覆盖——err.bazi.calendar/scope/
+        # gender/year/lunar（R139b/R150b）已覆盖六条，但 ask_hour（line
+        # 141）、ask_date 格式（line 146）、scope=range 缺 range_start/end
+        # （line 152）、range 格式（line 157）四条零断言（若校验回归为 500
+        # 或被移除则不可见，与 R139b err.bazi.calendar 同族——同端点不
+        # 同校验维度）。实测 ask_hour=24/ask_date=garbage/range 缺失/
+        # range_start=garbage 均正确返回 400 + detail——补断言零风险。
+        _expect_400("err.bazi.ask_hour",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "ask_hour": 24}))
+        _expect_400("err.bazi.ask_date",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "ask_date": "garbage"}))
+        _expect_400("err.bazi.range_missing",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "scope": "range"}))
+        _expect_400("err.bazi.range_format",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "scope": "range",
+                                                   "range_start": "garbage",
+                                                   "range_end": "2026-01-01"}))
         _expect_400("err.qiming.surname",
                     client.post("/api/qiming", json={"surname": "张伟", "year": 1990,
                                                      "month": 5, "day": 15,

@@ -7386,3 +7386,57 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-196b。
+
+## 178. [优化轨] R151b：web standing 自测缺口——bazi 端点 ask_hour/ask_date 格式/range 缺失/range 格式四条 400 校验分支零断言 → 补断言（能力层验证，与 R139b-R150b 同族——同端点不同校验维度）（2026-08-18）
+
+### 178a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R150b（`cc98a8f`）已确认在 origin/main。
+
+### 178b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **91 checks**（R150b 末态：err.bazi.lunar_missing/month/day +
+  err.hehun.b_year/b_month/b_day）。
+- **真实缺口（本轮选定）**：bazi 端点已覆盖 calendar/scope/gender/
+  year/lunar 六条（R139b/R150b），但**同端点剩余校验维度**仍零断言：
+  ask_hour（line 141）、ask_date 格式（line 146）、scope=range 缺
+  range_start/range_end（line 152）、range 格式（line 157）四条 400
+  校验分支——若这些校验回归为 500、或被移除导致非法输入进入排盘/范围
+  计算，13 闸门与五层自测都看不见（L-22/L-23 同族；与 R139b-R150b
+  同族——同端点不同校验维度）。
+- **实测**（命令实跑，web TestClient）：
+  - ask_hour=24 → 400 "ask_hour 需在 0-23"
+  - ask_date=garbage → 400 "ask_date 需为 YYYY-MM-DD 格式"
+  - scope=range 缺 range_start/end → 400 "scope=range 需提供
+    range_start 和 range_end"
+  - range_start=garbage → 400 "range_start/range_end 需为
+    YYYY-MM-DD 格式"
+  - 四条分支均正确返回 400 + detail——补断言零风险。
+  - **对照排除**：`GET /api/addr?scheme=zhouyi&gua=0/65` 均返回 200
+    （at_address 空命中，非 400 校验分支——设计行为，不补）。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.bazi.ask_hour/ask_date/range_missing/
+  range_format 四条 400 断言（91→95 checks，选定）；B 补 MCP
+  research_tool 深度验证（工作量大、web 侧已覆盖）；C 补 tarot
+  端点校验断言（概率性端点，确定性弱于 A）——见 D-197b。
+
+### 178c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.bazi.lunar_day 后
+  补四条断言——err.bazi.ask_hour（ask_hour=24→400）、err.bazi.ask_date
+  （ask_date=garbage→400）、err.bazi.range_missing（scope=range 缺
+  range_start/end→400）、err.bazi.range_format（range_start=garbage
+  →400）（91→95 checks）。
+- **验证**（全量）：web --selftest **95 checks** 全 PASS（四条新 400
+  断言生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-197b。
