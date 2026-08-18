@@ -6398,3 +6398,38 @@ err.liuyao.time.missing 同族——同端点不同校验维度，L-22/L-23 同�
 err.liuyao.time.missing 先例：能力路径必须有一条可复现命令断言——
 输入形状断言不构成运行时换算失败路径的覆盖）。落地后：web --selftest
 106→107 checks，跑 13 闸门 + 五层自测确认零回退。
+
+## D-204b R158b 优化轨：web standing 自测缺口——bazi lunar 换算后公历年份范围（line 174 独立校验分支）400 校验零断言（能力层验证，与 R156b err.bazi.lunar_year 同族——同端点不同校验维度）
+
+**背景（亲自核实）**：bazi lunar 分支（_resolve_birth，web/app.py:167-176）
+在 lunar_to_solar 成功后还有一条**独立校验分支**：`if not (YEAR_LO <=
+d.year <= YEAR_HI): raise HTTPException(400, "换算后公历年份需在
+{YEAR_LO}-{YEAR_HI} 之间")`（line 174）——**零 standing 断言**。R156b
+已补 err.bazi.lunar_year（lunar_year=1800 → lunar_to_solar 抛 ValueError
+经 line 172 捕获转 400），但那是 **lunar_to_solar 抛异常**路径；line 174
+是 **lunar_to_solar 成功但换算后公历年份越界**（如农历 2100-12 月换算
+到公历 2101 年）——两条路径不同，err.bazi.lunar_year 断言不构成 line
+174 的覆盖（若该独立校验回归为 500 或被移除导致越界公历年份进入排盘
+则不可见，与 R156b err.bazi.lunar_year 同族——同端点不同校验维度，
+L-22/L-23 同族）。
+
+**实测数据（命令实跑，web TestClient）**：
+- `POST /api/bazi {calendar_type:"lunar", lunar_year:2100, lunar_month:12,
+  lunar_day:15, ...}` → 400，detail "换算后公历年份需在 1900-2100 之间"
+- 边界对照：lunar_year=2100/lunar_month=11/lunar_day=15 → 200（合法，
+  换算后公历仍在 2100 内）；lunar_year=1900/lunar_month=1/lunar_day=1
+  → 200（合法）
+- lunar_year=2100-12-15 分支正确返回 400 + detail——补断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | web/app.py --selftest 的 err.* 区块补一条断言：err.bazi.lunar_solar_range（lunar_year=2100/12/15→400，换算后公历年份越界）（107→108 checks） | 纯加自测断言、零功能改动/零数据风险；补上 bazi lunar 换算后公历年份范围未覆盖的 400 分支（err.bazi.lunar_year 断言只覆盖 lunar_to_solar 抛异常路径，不构成 line 174 成功换算后越界的覆盖），抓校验静默失效；与 R156b err.bazi.lunar_year 同族（同端点不同校验维度），确定性可复验 |
+| B | 补 MCP research_tool 深度验证 | MCP selftest 需协议级 subprocess，工作量大；且 research_tool 与 web /api/research 同源、web 侧已有 research.allow_damaged 断言 |
+| C | 补 tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），参数校验维度少，确定性弱于 A 的参数校验 |
+
+选 A（补 err.bazi.lunar_solar_range 一条 400 断言，照 R156b
+err.bazi.lunar_year 先例：能力路径必须有一条可复现命令断言——lunar_to
+_solar 抛异常断言不构成成功换算后越界分支的覆盖）。落地后：web
+--selftest 107→108 checks，跑 13 闸门 + 五层自测确认零回退。

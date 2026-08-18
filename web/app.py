@@ -1447,6 +1447,23 @@ if __name__ == "__main__":
                                                    "lunar_year": 1800,
                                                    "lunar_month": 1,
                                                    "lunar_day": 1}))
+        # R158b（D-204b）：bazi lunar 换算后公历年份范围（line 174 独立
+        # 校验分支）400 校验 standing 覆盖——err.bazi.lunar_year（R156b）
+        # 只覆盖 lunar_to_solar 抛异常路径（lunar_year=1800 经 line 172
+        # 捕获转 400），line 174 是 lunar_to_solar **成功**但换算后公历
+        # 年份越界（如农历 2100-12 月换算到公历 2101 年）的独立校验——
+        # 两条路径不同，lunar_year 断言不构成 line 174 的覆盖（若该独立
+        # 校验回归为 500 或被移除导致越界公历年份进入排盘则不可见，与
+        # R156b err.bazi.lunar_year 同族——同端点不同校验维度）。实测
+        # lunar_year=2100/12/15 → 400 "换算后公历年份需在 1900-2100 之间"
+        # ——补断言零风险。
+        _expect_400("err.bazi.lunar_solar_range",
+                    client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                                   "day": 15, "hour": 10,
+                                                   "calendar_type": "lunar",
+                                                   "lunar_year": 2100,
+                                                   "lunar_month": 12,
+                                                   "lunar_day": 15}))
         # R151b（D-197b）：bazi 端点 ask_hour/ask_date 格式/range 缺失/range
         # 格式四条 400 校验分支 standing 覆盖——err.bazi.calendar/scope/
         # gender/year/lunar（R139b/R150b）已覆盖六条，但 ask_hour（line

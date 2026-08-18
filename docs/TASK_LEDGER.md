@@ -7761,3 +7761,56 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-203b。
+
+## 185. [优化轨] R158b：web standing 自测缺口——bazi lunar 换算后公历年份范围（line 174 独立校验分支）400 校验零断言 → 补断言（能力层验证，与 R156b err.bazi.lunar_year 同族——同端点不同校验维度）（2026-08-18）
+
+### 185a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R157b（`6a4b714`）已确认在 origin/main。
+
+### 185b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **107 checks**（R157b 末态：err.liuyao.time.convert_fail）。
+- **真实缺口（本轮选定）**：bazi lunar 分支（_resolve_birth，web/
+  app.py:167-176）在 lunar_to_solar 成功后还有一条**独立校验分支**：
+  `if not (YEAR_LO <= d.year <= YEAR_HI): raise HTTPException(400,
+  "换算后公历年份需在 1900-2100 之间")`（line 174）——**零 standing
+  断言**。R156b 已补 err.bazi.lunar_year（lunar_year=1800 → lunar_to_
+  solar 抛 ValueError 经 line 172 捕获转 400），但那是 **lunar_to_solar
+  抛异常**路径；line 174 是 **lunar_to_solar 成功但换算后公历年份越界**
+  （如农历 2100-12 月换算到公历 2101 年）——两条路径不同，lunar_year
+  断言不构成 line 174 的覆盖（若该独立校验回归为 500 或被移除导致越界
+  公历年份进入排盘则不可见，与 R156b err.bazi.lunar_year 同族——同端点
+  不同校验维度，L-22/L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - bazi {calendar_type:"lunar", lunar_year:2100, lunar_month:12,
+    lunar_day:15} → 400 "换算后公历年份需在 1900-2100 之间"
+  - 边界对照：lunar_year=2100/lunar_month=11/lunar_day=15 → 200（合法，
+    换算后公历仍在 2100 内）；lunar_year=1900/lunar_month=1/lunar_day=1
+    → 200（合法）
+  - lunar_year=2100-12-15 分支正确返回 400 + detail——补断言零风险。
+- **其他方向**（对照实测）：MCP research_tool 深度验证（工作量大、
+  web 侧已覆盖）、tarot 端点校验断言（概率性端点参数校验维度少）——
+  本轮不再扩展。
+- **方案比对**：A 补 err.bazi.lunar_solar_range 一条 400 断言
+  （107→108 checks，选定）；B 补 MCP research_tool 深度验证（工作量
+  大、web 侧已覆盖）；C 补 tarot 端点校验断言（概率性端点，确定性弱
+  于 A）——见 D-204b。
+
+### 185c. 改动与验证
+
+- **改动**（web/app.py，仅自测）：err.* 区块的 err.bazi.lunar_year 后
+  补一条断言——err.bazi.lunar_solar_range（lunar_year=2100/12/15→400，
+  lunar_to_solar 成功但换算后公历年份越界经 line 174 独立校验转 400）
+  （107→108 checks）。
+- **验证**（全量）：web --selftest **108 checks** 全 PASS（新 400 断言
+  生效）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零功能改动、零回退。
+- 决策记录：DECISIONS.md D-204b。
