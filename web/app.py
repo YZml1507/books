@@ -1799,6 +1799,20 @@ if __name__ == "__main__":
         ok.append("history.detail.missing")
         check("threads.detail", client.get("/api/threads/1"),
               lambda j: "claims" in j and "turns" in j)
+        # R169b（D-215b）：threads.detail 404 拒绝路径 standing 覆盖——
+        # threads.detail check（上方）只测 tid=1 命中路径，tid 不存在
+        # （line 637 "线程 {tid} 不存在或暂无对话"）零断言（若该 404
+        # 校验回归为 500、或被移除导致非法 tid 静默返回空，
+        # selftest 全绿看不见，与 history.detail.missing 同族——
+        # 同状态码不同端点，L-22/L-23 同族）。实测 tid=99999 → 404 +
+        # detail "线程 99999 不存在或暂无对话"——补断言零风险。
+        _td_miss = client.get("/api/threads/99999")
+        assert _td_miss.status_code == 404, ("threads.detail.missing",
+                                             _td_miss.status_code,
+                                             _td_miss.text[:200])
+        assert _td_miss.json().get("detail"), ("threads.detail.missing",
+                                               _td_miss.text[:200])
+        ok.append("threads.detail.missing")
         check("health", client.get("/api/health"), lambda j: j.get("ok") is True)
         # 首页 `/`（R61b）：单页前端入口，返回 HTML 非 JSON——不走 check()
         # 闭包（它断言 resp.json()），单独断言状态码 + content-type + 关键标记。

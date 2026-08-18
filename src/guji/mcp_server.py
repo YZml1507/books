@@ -446,6 +446,16 @@ if __name__ == "__main__":
             ("addr", {"scheme": "zhouyi", "gua": 1}),
             ("compare", {"gua": 28, "yao": "九二"}),
             ("concept", {"q": "無爲"}),
+            # R169b（D-215b）：search/addr/compare/concept 四工具边界路径
+            # 协议级断言——正常路径断言不构成边界路径的覆盖（空查询/非法
+            # scheme/无 gua/超范围 gua 的宽容返回此前零协议级覆盖，web 侧
+            # R144b/R145b/R147b/R148b 已有同语义断言）——断言 content 非空
+            # 且对应边界文本（非 400/非崩溃，MCP 设计行为）
+            ("search", {"q": " "}),
+            ("addr", {"scheme": "nonsense"}),
+            ("addr", {"scheme": "zhouyi"}),
+            ("compare", {"gua": 99}),
+            ("concept", {"q": " "}),
             # R168b（D-214b）：bookstudy 三工具错误路径协议级断言——work_id
             # 不存在（NO_SUCH_WORK）的失败路径此前零协议级覆盖（正常路径断言
             # 不构成失败路径的覆盖），与 web 侧 bookstudy.summary.missing
@@ -465,6 +475,22 @@ if __name__ == "__main__":
             assert content, (name, content)
             if name == "add_local_work_tool":
                 assert content.startswith("error:"), (name, content)
+            elif name == "search" and not (args.get("q") or "").strip():
+                # R169b（D-215b）：search 空查询宽容返回 "(no hits)"，非崩溃
+                assert "(no hits)" in content, (name, content)
+            elif name == "addr" and args.get("scheme") == "nonsense":
+                # R169b（D-215b）：addr 非法 scheme 宽容返回 "(no hits)"
+                assert "(no hits)" in content, (name, content)
+            elif name == "addr" and args.get("scheme") == "zhouyi" and args.get("gua") is None:
+                # R169b（D-215b）：addr zhouyi 无 gua 显式返回错误文本
+                # （"zhouyi needs gua (1-64)"，与 web 侧 R148b 同语义）
+                assert "zhouyi needs gua" in content, (name, content)
+            elif name == "compare" and args.get("gua") == 99:
+                # R169b（D-215b）：compare 超范围 gua=99 宽容返回（含 "卦99"）
+                assert "卦99" in content, (name, content)
+            elif name == "concept" and not (args.get("q") or "").strip():
+                # R169b（D-215b）：concept 空查询宽容返回（含 "in 0 works"）
+                assert "in 0 works" in content, (name, content)
             elif name in ("book_summary_tool", "bookstudy_structure",
                           "bookstudy_chapter") and args.get("work_id") == "NO_SUCH_WORK":
                 # R168b（D-214b）：work_id 不存在的失败路径必须显式返回

@@ -6773,3 +6773,39 @@ research_tool 先例：同一内核的能力路径在每个发布面都必须有
 三条错误路径协议级断言，照 R167b 协议级断言先例：同一内核的能力路径
 在每个发布面都必须有一条可复现命令断言——正常路径断言不构成失败路径
 的覆盖）。落地后：mcp --selftest 全跑 + 13 闸门 + 五层自测确认零回退。
+
+## D-215b R169b 优化轨：MCP standing 自测缺口——search/addr/compare/concept 四个研究工具错误/边界路径协议级零覆盖（能力层验证，与 R168b bookstudy 错误路径断言同族——正常路径断言不构成错误路径的覆盖，web 侧 R144b/R145b/R147b/R148b 已有同语义断言）
+
+**背景（亲自核实）**：R167b 已把 MCP search/addr/compare/concept 补上
+**正常路径**协议级断言（content 非空且不含 error），但 **错误/边界路径
+仍零协议级覆盖**：mcp_server.py --selftest 对这四个工具只测有结果的
+正常路径——**空查询、非法 scheme、无 gua、超范围 gua 的边界行为零断言**
+（若这些工具的边界处理回归为 500 崩溃、或返回语义改变的文本，mcp 层
+自测看不见，L-22/L-23 同族；与 R168b bookstudy 错误路径断言同族——
+同一内核不同发布面，web 侧 err.search.empty（R145b）/err.addr.scheme+
+no_gua（R148b）/err.compare.gua_range（R147b）/err.concept.empty
+（R144b）已有同语义断言）。
+
+**实测数据（命令实跑，直接调 MCP 工具函数）**：
+- `search(" ")` → "(no hits)"（空查询宽容返回，非 400 非崩溃——MCP
+  设计行为，web 侧 q 空→400）
+- `addr("nonsense")` → "(no hits)"（非法 scheme 宽容返回）
+- `addr("zhouyi")`（无 gua）→ "zhouyi needs gua (1-64)"（显式错误
+  文本，与 web 侧 err.addr.zhouyi.no_gua（R148b）同语义）
+- `compare(99)` → "卦99·九三 · reference  · 存在校勘差异"（超范围 gua
+  宽容返回，MCP 设计行为，web 侧 gua=99→400）
+- `concept(" ")` → "「 」in 0 works"（空查询宽容返回）
+- 五条边界路径均正常返回（非 500 崩溃）——补协议级断言零风险。
+
+**候选方案**：
+
+| 方案 | 内容 | 实测/风险 |
+|---|---|---|
+| **A（选定）** | mcp_server.py --selftest 的 calls 列表补五条边界路径协议级断言：search(q=" ")→"(no hits)"、addr(scheme="nonsense")→"(no hits)"、addr(scheme="zhouyi" 无 gua)→含 "zhouyi needs gua"、compare(gua=99)→含 "卦99"、concept(q=" ")→含 "in 0 works"——断言 content 非空且对应边界文本（宽容返回，非 400/非崩溃） | 纯加协议级自测断言、零功能改动/零数据风险；补上四个研究工具边界路径协议级覆盖（正常路径断言不构成边界路径的覆盖），抓 MCP 边界处理静默回归；与 R168b bookstudy 错误路径断言同族，确定性可复验 |
+| B | MCP research_tool max_addresses 钳制断言 | max_addresses=0/99 钳制为 1/6 且正常返回（设计行为），与 A 相比覆盖价值低（A 是零覆盖边界路径，B 是同工具已覆盖维度） |
+| C | tarot 端点校验断言 | tarot 为概率性端点（seed 驱动），实测 n=0/101 均 200 无校验分支，确定性弱于 A |
+
+选 A（补 MCP search/addr/compare/concept 五条边界路径协议级断言，照
+R168b bookstudy 错误路径断言先例：同一内核的能力路径在每个发布面都
+必须有一条可复现命令断言——正常路径断言不构成边界路径的覆盖）。
+落地后：mcp --selftest 全跑 + 13 闸门 + 五层自测确认零回退。
