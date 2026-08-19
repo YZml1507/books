@@ -456,18 +456,17 @@
     </div>
   </div>
 
-  <!-- 最近解读 -->
+  <!-- 最近解读 + 收藏 -->
   <div class="recent-section">
     <div class="section-title">📖 最近的解读</div>
-    <div class="recent-list" id="recentList">
-      <div class="recent-item"><span class="recent-icon">🔮</span>
-        <div class="recent-info"><div class="recent-title">今日八字排盘</div><div class="recent-date">刚刚</div></div>
-        <span class="recent-arrow">→</span></div>
-      <div class="recent-item"><span class="recent-icon">✨</span>
-        <div class="recent-info"><div class="recent-title">塔罗占卜</div><div class="recent-date">昨天</div></div>
-        <span class="recent-arrow">→</span></div>
-      <div class="recent-item"><span class="recent-icon">📜</span>
-        <div class="recent-info"><div class="recent-title">古籍检索</div><div class="recent-date">3 天前</div></div>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+
+  <div class="recent-section" style="margin-top:28px;">
+    <div class="section-title">❤️ 我的收藏</div>
+    <div class="recent-list" id="favoritesList">
+      <div class="recent-item"><span class="recent-icon">🌟</span>
+        <div class="recent-info"><div class="recent-title">还没有收藏，看到喜欢的解读就点 ❤️ 吧</div><div class="recent-date">去排盘 →</div></div>
         <span class="recent-arrow">→</span></div>
     </div>
   </div>
@@ -926,6 +925,7 @@ $('#form').addEventListener('submit', async e => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
     let html = `<div class="card"><h2>🔮 排盘结果</h2>`;
+    html += `<button class="ghost" style="position:absolute;top:24px;right:24px;margin:0;" onclick="addFavorite('bazi','latest','八字排盘')" title="收藏">❤️ 收藏</button>`;
     html += `<p class="paipan-line">${esc(j.render)}</p>`;
     if (j.nayin) html += `<p class="nayin">${esc(j.nayin)}</p>`;
     if (j.calc) {
@@ -1323,6 +1323,33 @@ async function loadRecent() {
 }
 loadRecent();
 
+// 加载收藏
+async function loadFavorites() {
+  try{
+    const resp = await fetch('/api/user/prefs');
+    const j = await resp.json();
+    const list = $('#favoritesList');
+    const favs = j.favorites || [];
+    if (favs.length) {
+      const icons = {'bazi':'🔮','tarot':'✨','book':'📜','thread':'🧶'};
+      let html = '';
+      favs.forEach(f => {
+        const icon = icons[f.type] || '⭐';
+        html += `<div class="recent-item">
+          <span class="recent-icon">${icon}</span>
+          <div class="recent-info"><div class="recent-title">${esc(f.title||'')}</div><div class="recent-date">${esc((f.created_at||'').slice(0,16))}</div></div>
+          <span class="recent-arrow">→</span></div>`;
+      });
+      list.innerHTML = html;
+    } else {
+      list.innerHTML = '<div class="recent-item"><span class="recent-icon">🌟</span><div class="recent-info"><div class="recent-title">还没有收藏，看到喜欢的解读就点 ❤️ 吧</div><div class="recent-date">去排盘 →</div></div><span class="recent-arrow">→</span></div>';
+    }
+  }catch(e){
+    $('#favoritesList').innerHTML = '<div class="recent-item"><span class="recent-icon">🌟</span><div class="recent-info"><div class="recent-title">收藏加载失败</div></div></div>';
+  }
+}
+loadFavorites();
+
 function loadHistoryDetail(id) {
   window.open(`/api/history/${id}`, '_blank');
 }
@@ -1332,6 +1359,18 @@ async function deleteHistory(id) {
     loadHistory();
     loadRecent();
   }catch(e){}
+}
+
+// 收藏一条结果
+async function addFavorite(type, refId, title) {
+  try{
+    await fetch('/api/favorites', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type, ref_id: refId, title})
+    });
+    loadFavorites();
+    return true;
+  }catch(e){ return false; }
 }
 
 // 新闻刷新
