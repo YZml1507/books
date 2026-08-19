@@ -91,3 +91,89 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 设想：明确「贵人属相」的定义并与算法对齐，或改名为准确的措辞
 - 可测量性：需先定义正确语义，属需求澄清而非纯审美
 - 来源：主动勘查
+
+---
+
+## R118a 轮次新增（2026-08-19，审查轨首轮实测）
+
+以下 7 条均为 MINOR / NIT 降级项，**不进 AUDIT_FINDINGS 的 OPEN 清单、
+不阻塞阶段推进**（PHASE.md：这是本协作模型唯一会死锁的地方）。
+`<py>` = `C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe`。
+
+### B-004 黄历宜忌是数组，被 esc() 渲染成逗号串
+- 类型：视觉
+- 现状：`<py> probes\probe_contract.py`（SOFT 段）实测
+  `index.html:1201 读 j.yi 实测值类型=list 渲染为 逗号拼接
+  ["嫁娶","捕捉","求嗣","狩猎","祭祀"]`；`:1202 读 j.ji` 同理
+  `["安葬","开市","立券"]`。JS `String(["a","b"])` === `"a,b"`——数据都在、
+  可读，只是丢了列表结构
+- 设想：宜/忌各项做成独立标签（pill），一眼看清有几条
+- 可测量性：DOM 断言 `.calc-block` 内子元素数 == 数组长度
+- 来源：R118a probe_contract SOFT 段（**降级理由见 D-130a**：dict 渲染成
+  `[object Object]` 是数据显示错误卡闸门，array 逗号拼接是体验瑕疵不卡）
+
+### B-005 研究线程创建成功后只回一行 id，不显示线程内容
+- 类型：交互
+- 现状：`index.html:1143` 成功分支只渲染
+  `线程已创建：${esc(j.thread_id||j.id||'')}`；`probe_contract` 实测
+  `POST /api/threads` 真实响应键为
+  `['claim','derived_id','kind','n_evidence','thread_id']`——`derived_id`、
+  `kind`、`n_evidence` 三个字段前端一个都没用
+- 设想：创建后展示这条 claim 与证据条数，用户能确认"记下了什么"
+- 可测量性：DOM 断言结果区含 claim 文本与证据计数
+- 来源：R118a 主动勘查
+
+### B-006 /api/compare 的 findings 只渲染 f.text，丢掉 kind/at/note/line
+- 类型：视觉
+- 现状：`<py> probes\probe_contract.py` 实测 `index.html:1092 读 j.findings.text`
+  为 SOFT（有 `||''` 兜底）。真实 findings 元素键为
+  `['at','base','base_id','kind','line','note','others']`——**没有 `text`**，
+  且后端已提供 `line()` 渲染好的整行。即当前比对结果区**每条都渲染成空串**，
+  只剩彩色边框
+- 设想：改用 `f.line`（后端既有渲染），并按 `kind`
+  （divergent / addition / omission / preserved-variant）着色
+- 可测量性：DOM 断言每条 `.finding` 文本非空；`kind` 四类各有独立配色
+- 来源：R118a probe_contract。**注意**：这条渲染出的是空白而非错误数据，
+  且比对功能当前被 R000a-03 挡在不可见面板后，用户根本到不了——
+  故判 MINOR 不卡闸门；R000a-03 修完后若仍空白，应升级重判
+
+### B-007 /api/research 的 steps 步骤链前端完全没展示
+- 类型：功能扩展
+- 现状：真实响应含 `steps`（元素键 `['action','found','kept','note','query']`）
+  与 `comparisons`，`web/app.py:484` 注释明写这是 G4「链路可展示」的实现；
+  前端 `index.html:1034-1042` 只渲染证据条目，`steps` 零引用
+- 设想：把检索→读地址→扩展的每一步显示出来，这是本项目「检索即推理」
+  的差异化卖点
+- 可测量性：DOM 断言步骤数 == 响应 `steps` 长度
+- 来源：R118a 主动勘查
+
+### B-008 works 卡片读 w.work_id 但真实字段是 id
+- 类型：交互
+- 现状：`index.html:1112-1115` 写 `w.work_id||w.id`、`w.units||w.count`、
+  `esc(w.source||'')`。`/api/works` 真实元素键为
+  `['addressed','anchored','genre','id','source','title','units','yao_addressed']`
+  ——`work_id` 不存在，靠 `||w.id` 兜底才没坏
+- 设想：直接读 `id`，并把已有的 `addressed`/`anchored`/`genre` 显示出来
+  （47 部书的可编址率是本项目的核心质量指标）
+- 可测量性：`probe_contract` SOFT 计数下降；DOM 断言卡片含编址率
+- 来源：R118a probe_contract SOFT 段
+
+### B-009 首屏三个列表并发打三次 /api/history（其中两次同一响应）
+- 类型：性能
+- 现状：`loadHistory()`（:1362）与 `loadRecent()`（:1387）各自 `fetch
+  '/api/history'`，`loadFavorites()` 另打 `/api/user/prefs`；
+  `probe_ui_smoke` 的 request 监听实测首屏即发出重复请求
+- 设想：一次取回、两处渲染
+- 可测量性：首屏 `/api/history` 请求数从 2 降到 1（playwright request 计数）
+- 来源：R118a probe_ui_smoke 观测
+
+### B-010 287KB animotion 动画 CSS 仍零接线（承接 B-002 的素材侧）
+- 类型：视觉
+- 现状：`web/static/animotion/` 四个文件共 287KB；
+  `<py> -c "print(open('web/static/index.html',encoding='utf-8').read().count('<link'))"`
+  → **0**。index.html 零外部资源引用，实测确认
+- 设想：OPTIMIZE 阶段的年轻化视觉直接取用这套现成关键帧
+- 可测量性：接线后动画期间无 >50ms 长任务；`prefers-reduced-motion` 下动画
+  全部停用（两条都可自动测量，符合 spec 准入门槛 (a)）
+- 来源：交接窗口勘查 + R118a 复核。**已在仓库内，用它不算引入新外部依赖**
+  （不撞宪法第二条红线第 3 项）

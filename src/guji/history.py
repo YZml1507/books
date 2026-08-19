@@ -25,7 +25,7 @@
                {"ok":bool,"kind":"rule-based","engine":str,"sections":[...],
                 "citations":[...],"text":str,"basis":[...],"disclaimer":str}。
                旧记录仍是 {"ok","text","model"} 形状，读取端两种都要能处理
-               ——不改列名是为了不动已有 771 条历史记录。
+               ——不改列名是为了不动已有历史记录（实测 51 行，max id 826）。
   question     摘要列（便于列表展示，冗余自 input_json）
 
 纯标准库 sqlite3，零新依赖。只读/写独立 db，与语料索引隔离。
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     # 自检：写入 -> 列表 -> 详情 -> 删除 -> 计数
     #
     # R178b 修正（宪法第一条：跑不出来就当它是错的）：原自检最后一行是
-    # `assert count() == 0`，那假设**真实历史库是空的**——库里现有 771 条
+    # `assert count() == 0`，那假设**真实历史库是空的**——库里现有 51 条
     # 用户记录，这条断言从写下起就必然失败，等于这个自检从来没被跑过。
     # 改为断言「写入前后计数守恒」：写 N 条、删 N 条，count 回到基线。
     base_count = count()
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     assert rec and rec["llm"]["ok"] and rec["calc"]["summary"] == "test-summary"
     assert rec["paipan"]["render"].startswith("庚午年")
     assert delete_record(rid) is True
-    # 旧形状（model 键）仍须可读——库里 771 条历史记录是这个形状（R178b）
+    # 旧形状（model 键）仍须可读——库里既有历史记录是这个形状（R178b）
     rid2 = save_record({"question": "旧形状"}, {"render": "x"}, {}, [],
                        {"ok": True, "text": "t", "model": "legacy-model"})
     old = [r for r in list_records() if r["id"] == rid2]

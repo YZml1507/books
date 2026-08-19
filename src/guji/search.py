@@ -21,6 +21,48 @@ def fts_phrase(q: str) -> str:
     return f'"{seg}"'
 
 
+def render_citation(*, work_id: str, title: str | None = None,
+                    attribution: str | None = None, edition: str | None = None,
+                    page_anchor: str | None = None, file: str = "",
+                    scheme: str | None = None, addr_name: str | None = None,
+                    gua: int | None = None, yao: str | None = None,
+                    skipped_chars: int = 0, suspect: str | None = None) -> str:
+    """出处渲染的**唯一实现**（`Hit.citation()` 与 bazi_lookup 共用）。
+
+    为什么抽成模块级函数（R179b，D-231b）：`/api/bazi` 的 evidence 走
+    `bazi_lookup.retrieve_fast()`，它返回裸 dict 而非 `Hit`，于是响应里
+    根本没有 `citation` 键，前端 `esc(ev.citation||'')` 把出处静默渲染成
+    空串——原文有了、出处没了（审查轨 R118a-03 实测）。
+
+    修法上**绝不能在 bazi_lookup 里再拼一遍同样的格式**：同一条渲染规则
+    存在两份拷贝、对同样的字节给出不同结论，正是 LESSONS.md L-01 记录的
+    真实事故（变体折叠表两份拷贝给出相反结论）。故把格式收成本函数，
+    两个调用点都指向它。
+
+    每个组成部分都能在源文件里核验，不做任何推断。披露标记（! 表示引文
+    非连续、? 表示地址被质量闸门标记）是出处的一部分，不是可选附加——
+    隐藏自己省略了什么的出处，是本项目视为最严重的失败模式。
+    """
+    who = f"{title or work_id}"
+    if attribution:
+        who += f"（{attribution}）"
+    addr = ""
+    if gua is not None or addr_name:
+        if scheme == "zhouyi":
+            nm = f"（{addr_name}）" if addr_name else ""
+            addr = f" 卦{gua}{nm}"
+            if yao:
+                addr += f"·{yao}"
+        else:
+            # Generic rendering for any other scheme, e.g. "Genesis 1:1".
+            parts = [p for p in (addr_name, str(gua) if gua else None) if p]
+            addr = " " + " ".join(parts) + (f":{yao}" if yao else "")
+    ed = f" [{edition}]" if edition else ""
+    marks = ("!" if skipped_chars else "") + ("?" if suspect else "")
+    tail = f" {marks}" if marks else ""
+    return f"{who}{ed}{addr} @{page_anchor or '?'} ({file}){tail}"
+
+
 @dataclass
 class Hit:
     work_id: str
@@ -67,27 +109,11 @@ class Hit:
 
     def citation(self) -> str:
         """Every component is verifiable in the source file; nothing is inferred."""
-        who = f"{self.title or self.work_id}"
-        if self.attribution:
-            who += f"（{self.attribution}）"
-        addr = ""
-        if self.gua is not None or self.addr_name:
-            if self.scheme == "zhouyi":
-                nm = f"（{self.addr_name}）" if self.addr_name else ""
-                addr = f" 卦{self.gua}{nm}"
-                if self.yao:
-                    addr += f"·{self.yao}"
-            else:
-                # Generic rendering for any other scheme, e.g. "Genesis 1:1".
-                parts = [p for p in (self.addr_name, str(self.gua) if self.gua else None)
-                         if p]
-                addr = " " + " ".join(parts) + (f":{self.yao}" if self.yao else "")
-        ed = f" [{self.edition}]" if self.edition else ""
-        # Disclosure markers are part of the citation, not an optional extra: a citation
-        # that hides what it omitted is the failure mode this project treats as most severe.
-        marks = ("!" if self.skipped_chars else "") + ("?" if self.suspect else "")
-        tail = f" {marks}" if marks else ""
-        return f"{who}{ed}{addr} @{self.page_anchor or '?'} ({self.file}){tail}"
+        return render_citation(
+            work_id=self.work_id, title=self.title, attribution=self.attribution,
+            edition=self.edition, page_anchor=self.page_anchor, file=self.file,
+            scheme=self.scheme, addr_name=self.addr_name, gua=self.gua,
+            yao=self.yao, skipped_chars=self.skipped_chars, suspect=self.suspect)
 
 
 _SELECT = """

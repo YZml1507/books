@@ -5139,6 +5139,179 @@ R128b/R130b 是优化轨领土 web/app.py self-test standing 断言加强
 
 ---
 
+### 109. R118a 审查循环：建立前端覆盖闸门（probe_ui_smoke + probe_contract），实测 28+11 处前端缺陷，阶段**不翻**（2026-08-19）
+
+**本轮定位**：双轨协作首个审查轨轮次。接手交接窗口移交的 5 条 R000a，
+按宪法第一条**自己重跑每条复现命令**（不凭移交报告签字），并补上项目
+最大的覆盖缺口：现有 130 条 web 自测全是后端 TestClient 断言，对前端零覆盖。
+
+**merge main**：`git merge main` → `Already up to date.`（audit HEAD == main HEAD
+== 6011cc5）。`git status --short` 空。`data/index/` 两个 db 均在
+（corpus.db 58,355,712 B、knowledge.db 94,208 B，与主 worktree 字节数一致），
+未触发交接文档提到的 db 删除情形，无需拷回。
+本轮**无优化轨新提交可复审**——修复轨尚未产出 R<n>b。
+
+**装浏览器内核**（交接文档指出仅内核未装，实测确认）：
+`<py> -m playwright install chromium` → 退出码 0，
+Chrome for Testing 151.0.7922.34 落到
+`C:\Users\Lenovo\AppData\Local\ms-playwright\chromium-1234`。
+**注意这不撞宪法第二条红线第 3 项**：playwright **包**已在 venv 内，
+本操作只下载它自带的浏览器二进制，没有 `pip install`、没有新 Python 依赖、
+没有抓新语料。判据：`pip list` 前后一致。
+
+**新建两个闸门 probe（审查轨独占 probes/）**：
+
+- **`probes/probe_ui_smoke.py`**（真浏览器）：uvicorn 显式 `--port 8199` 起真
+  服务 + chromium 真点每个按钮。32 个用例覆盖 16 个提交按钮、9 个 `.rtab`
+  标签、3 个 `data-rsec2` 子标签、`#dailyMore`、首屏 console、排盘 DOM 结构
+  完整性、375px 视口无横向滚动。
+  **端口纪律**：绝不调 `web_launcher.py` 的 `kill_stale()`（它 taskkill 占用
+  8123 的进程，那是修复窗口正在肉眼查看的页面）；probe 反而在端口被占时
+  主动返回退出码 2 并提示换端口，不抢占。
+- **`probes/probe_contract.py`**（静态提取 + 真实响应比对）：从 index.html
+  切出 21 个含 fetch 的 handler 块，追踪 `await resp.json()` 接收变量及其
+  派生/迭代变量，收集 118 个字段读取点，逐个在真实响应里查存在性。
+  **不靠人工维护字段清单**——这是它能永久防再犯的前提。
+- **`scripts/count_open_findings.py`**：把 PHASE.md 闸门 1 的「人工点数」
+  落成命令（详见下方 D-128a）。
+
+**实测结果（全部附命令，宪法第一条）**：
+
+- `<py> probes\probe_ui_smoke.py` → 退出码 1，`32 个用例，PASS 4 / FAIL 28`。
+  运行时原文：7 个按钮抛 `pageerror: Cannot read properties of undefined
+  (reading 'value')`（那 49 行 / 61 处 `$.xxx` 误用现形）；8 个 `.rsec` 面板
+  点标签后 `仍不可见`；`#dailyMore` `点击后 DOM 无任何变化`；排盘结果区
+  渲染出 `[object Object]` 字面量；`#result` 内 `<strong>` 嵌套深度 **3**、
+  注释节点 **32**（963 行损坏模板的实际 DOM 后果）。
+  完整输出 `logs/probe_ui_smoke_r118a.txt`，失败截图 `logs/ui_smoke/FAIL_*.png`。
+- `<py> probes\probe_contract.py` → 退出码 1，
+  `HARD=10 TYPE=1 SOFT=15 SKIP=0`。确证 R000a-04 三处漂移
+  （`j.llm_out`→`llm`、`j.addresses`→`evidence`、`j.items`→`records`），
+  并新发现 3 处：`/api/bazi` evidence 元素**无 citation 字段**（出处永久为空）、
+  `/api/huangli` `j.pengzu` 是 dict、`/api/bazi` `calc.five_elements` 与
+  `calc.day_luck` 是 dict 却被 `esc()` 整体渲染。
+  完整输出 `logs/probe_contract_r118a.txt`。
+- `<py> web\app.py --selftest` → 退出码 0，`web self-test PASS (130 checks)`。
+- **13 道闸门逐条亲跑，退出码全 0**：check_quality PASS（works with any junk 30）
+  / build_index built in 14.5s（47 works、62,109 units、db 55.7 MB、suspect 10）
+  / verify_index **ALL PASS**（T11 median 0.991 over 362 shared addresses）
+  / validate_alignment（→ data/catalog/alignment_score.json）
+  / probe_conservation PASS（missing 0.0000%、invented 0.0000%、ratio 1.0000、
+  9366 units contiguity 0 违例）/ assess_goals **G1–G9 全 PASS**
+  / check_provenance（0/47 missing sha256/url/time）
+  / probe_bcv PASS（kjv 66/66、web 66/66、douay 9 conflicts 为预期）
+  / eval_g1 PASS（retrieval/citation/grounded/version/concept 8 项全 PASS）
+  / eval_g4 PASS（yilin cells 4,096、outgoing 520、targeted 490）
+  / eval_g7 PASS（must_refuse 30/30、must_answer 25/25、impossible 4/4、
+  **FABRICATIONS 0**）/ probe_g8_isolation PASS / probe_booksec PASS。
+
+**本轮最重要的一条实测事实**：上面「130 条 web 自测 PASS + 13 道闸门全绿」
+与「28 个真浏览器用例 FAIL」**同时成立**。这就是「按钮全坏了自测却全绿」的
+机制性证明，也是本轮新建两个 probe 的全部理由——不是因为想多写测试，
+而是因为现有断言层根本看不见这一整类缺陷。
+
+**写进 `docs/AUDIT_FINDINGS.md`**：OPEN 共 9 条（BLOCKER 4 / MAJOR 5）。
+移交的 5 条 R000a 全部自行复现确认成立并追加实测原文；新增 4 条
+R118a-01..04。MINOR/NIT 一律进 `OPTIMIZE_BACKLOG.md`（本轮 B-004..B-010，
+7 条），**不用来阻塞阶段**。
+
+**阶段闸门（`docs/PHASE.md`，只有审查轨能翻）**：闸门 2、4 = PASS，
+闸门 1、3 = FAIL，附加闸门 5 = FAIL → `CURRENT_PHASE` **保持 REPAIR**。
+已在 PHASE.md 尾部登记「阶段不翻」条目并附四条各自实测输出摘要。
+同时订正 PHASE.md 两处不可复现的闸门定义（人工点数、指向不存在的
+`web/selftest.py`），详见 D-128a / D-129a。
+
+**领土纪律自检**：本轮写入文件全部在审查轨独占范围内——
+`probes/probe_ui_smoke.py`、`probes/probe_contract.py`、
+`scripts/count_open_findings.py`、`logs/**`、`docs/AUDIT_FINDINGS.md`、
+`docs/PHASE.md`、`docs/OPTIMIZE_BACKLOG.md`，以及 `docs/TASK_LEDGER.md` /
+`docs/DECISIONS.md` 的 a 侧 append。
+`src/guji/**` 与 `web/**` **只读零改动**：`git status --short` 中无 `web/` 或
+`src/` 条目。发现的 11 处缺陷全部写成 probe + 报告，**一行业务代码都没自己改**
+（宪法第五条：这个约束保证需求被写成文字而不是被偷偷实现掉）。
+
+**写端点污染纪律（L-22）**：两个 probe 都会写 `history.db`（`/api/bazi`，
+D-039 已授权）与 `knowledge.db`（favorites / derived）。两者均记录基线、
+退出前按 id 删除本轮新增行、并**断言行数回到基线**，删不干净则整体判失败。
+本轮实测 `history 行数 43 -> 43`、`清理: history#795, history#794, history#791`。
+
+- 决策记录：DECISIONS.md D-128a、D-129a、D-130a、D-131a、D-132a。
+
+**本轮自查出的一处自身缺陷（记录而非隐去，宪法第一条）**：`probe_contract`
+第一版把清理写在成功路径上，开发期一次中途异常导致 4 条占位行留在
+`knowledge.db`（derived id=3/4、favorites id=1/2）。**写「自测不得污染真实库」
+的 probe 自己污染了真实库**，且报告最后一行 `history 行数 43 -> 43` 看起来
+清理正常——那行只覆盖 history.db，knowledge.db 两张表当时不在核查视野内。
+已重构为 `try/finally` + 清理失败显式打印，残留行已删净。
+核查命令输出：`derived 2 | probe leftovers 0`、`favorites 0 | probe leftovers 0`、
+`history rows 43`（derived 2 是 2026-08-14 的两条真实研究结论，非残留）。
+详见 DECISIONS.md D-133a。
+
+- 决策记录补充：DECISIONS.md D-133a。
+
+---
+
+### 110. R119a 审查循环：解除级联遮挡拿到完整缺陷清单 + 新建静态 `$.` 闸门，阶段仍不翻（2026-08-19）
+
+**merge main**：`git fetch origin` + `git merge main` → `Already up to date.`
+`git log HEAD..origin/main` 空 —— **修复轨本轮无新提交**，`AUDIT_FINDINGS.md`
+无 `FIXED-R<n>b` 条目可复验。故本轮转做"把缺陷清单补完整"，
+让修复轨一次拿到全部信息而不是分两轮。
+
+**本轮解决的测量盲区**：R118a 有 7 个按钮**根本点不到**——它们在
+R000a-03 导致永不可见的 `.rsec` 面板里，playwright 判 not visible。
+按钮自身好坏当时无法测量，缺陷清单是残缺的。
+
+处理：`probe_ui_smoke` 增加「测试侧强制显示面板」（只在浏览器里改 DOM
+class，**不改 `web/**`**，标签用例仍照原样点击照原样判失败，不掩盖
+R000a-03）。实测拿到剩余按钮的真实结论：
+
+- research / addr / compare → 同族 `pageerror: …reading 'value'`
+- threads → `.no-evidence` 实测 `"创建失败：Cannot read properties of
+  undefined (reading 'value')"`
+- **works → PASS**（容器 1509 字符，47 部书卡片正常渲染）
+- compare_works / concept → **零 console 错误、零 pageerror、零 /api 请求、
+  容器完全不变**（没有 handler 被调用）
+
+**三条本轮才拿到的、对修复直接有用的事实**：
+
+1. `$.xxx` 实测影响 **11 个按钮**，比移交清单描述的范围完整。
+2. `#worksBtn` 是唯一不受影响的提交按钮——它的 handler 不读任何输入框
+   （`:1100-1123` 直接 fetch）。这证明缺陷成因**只是** `$.` 取值写法，
+   handler 的 fetch/渲染逻辑本身是好的，修复面比看起来小。
+3. 「没接线」与「接线了但抛异常」有**可区分的运行时判据**：前者零请求零错误
+   容器不变，后者有 pageerror 或失败文案。两类缺陷需要两种修法，
+   probe 现在能自动区分。
+4. `btn:threads` 的失败发生在 `$.tq.value` 阶段、**请求根本没发出** ——
+   所以 R000a-05 后半那个必然 422 的请求体不匹配当前还被 TypeError 掩盖，
+   修完 `$.` 之后才会露出来。修复轨若只看"点了有反应"会以为修好了。
+
+**新建 `probes/probe_dollar_misuse.py`**（纯静态、零依赖、秒级）：
+输出 `$` 的定义位置 + `$.xxx` 逐行清单 + **按 handler 归属的处数映射**
+（= 修复清单本身）+ 反向列出完全干净的 handler。实测：
+
+    $ 的定义：[(842, 'function $(id) {')]
+    `$.xxx` 误用：49 行 / 61 处
+    完全不含 `$.` 的 handler（3/14）：#form, #worksBtn, #newsRefresh
+    退出码 1
+
+**两条独立证据交叉吻合**：静态扫描说只有 3 个 handler 干净，真浏览器冒烟
+恰好也只有这 3 个通过。静态与动态两侧独立得出同一结论——符合宪法第三条
+偏离 4「质量闸门用独立见证，不用表面统计」。
+
+**闸门复跑**：`probe_ui_smoke` 32 用例 PASS 5 / FAIL 27（works 由 FAIL 转
+PASS，因为它此前是被遮挡而非真坏）；`probe_dollar_misuse` 退出码 1；
+`count_open_findings` 仍 `OPEN BLOCKER 4 / OPEN MAJOR 5`。
+**阶段闸门 1、3 仍 FAIL → `CURRENT_PHASE` 保持 `REPAIR`。**
+13 道闸门本轮未改动任何被测代码（`git diff -- src web` 为空），
+R118a 的全绿结论仍然有效，未重跑。
+
+**领土纪律**：本轮新增 `probes/probe_dollar_misuse.py`，改
+`probes/probe_ui_smoke.py`、`docs/AUDIT_FINDINGS.md`，append
+`docs/TASK_LEDGER.md` / `docs/DECISIONS.md` a 侧。`src/guji/**` 与 `web/**`
+仍零改动。清理实测 `history 行数 43 -> 43`，knowledge.db 零残留。
+
+- 决策记录：DECISIONS.md D-134a、D-135a。
 ## 109. [优化轨] R178b：web 层分层重构 + 移除 LLM + 前端拆分并修掉全部 OPEN BLOCKER/MAJOR（2026-08-20）
 
 **阶段**：REPAIR（`docs/PHASE.md` CURRENT_PHASE=REPAIR，本轨只读该文件，
@@ -5174,7 +5347,7 @@ R128b/R130b 是优化轨领土 web/app.py self-test standing 断言加强
 5. 移除 LLM：`git rm src/guji/llm_reader.py llm_config.example.json`，删本地
    `llm_config.json`（含真实 key，被 .gitignore 从未入版本史）。全部 `use_llm`
    接线改为无条件 `interpretation` 字段（`guji.interpreter` 确定性规则引擎）。
-   `history.py` 的 `llm_json` **列名保留做向后兼容**，只改写入内容——库里 771 条
+   `history.py` 的 `llm_json` **列名保留做向后兼容**，只改写入内容——库里既有
    历史记录是旧形状，`list_records` 现在两种形状都能读（旧读 `model`、新读 `engine`）
 6. 前端拆 `web/static/{app.js,styles.css}`，`index.html` 1485 → 435 行
 
@@ -5197,7 +5370,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
   「console 无新 error」且「结果容器非空且不含『失败/TypeError』」。
   修复前同一脚本在首屏即抛 TypeError。
 - `src/guji/history.py` 自检修了一处**从来没跑过的断言**：末行
-  `assert count() == 0` 假设真实历史库为空（实际 771 条），必然失败。
+  `assert count() == 0` 假设真实历史库为空（实际 51 条），必然失败。
   改为计数守恒（写 2 删 2 回基线）。
 
 ### 4. 对抗性复核（子 agent 独立跑，逐端点 diff 旧 app.py）
@@ -5272,3 +5445,108 @@ median 0.991）。该文件属审查轨领土且与本轮改动零交集（`Sele
 `sys.stdout.reconfigure(encoding="utf-8")` 一次性消除。
 
 - 决策记录：DECISIONS.md D-226b ~ D-230b。
+
+---
+
+## 110. [优化轨] R179b：merge audit 纳入 R118a/R119a，清偿其 4 条新缺陷 + 修复被自身重构打断的对方闸门（2026-08-20）
+
+**merge audit**：`git merge audit` 在三个 append-only 文件冲突
+（AUDIT_FINDINGS / DECISIONS / TASK_LEDGER）。按宪法第五条「两段都保留，
+按轮次号排序」解决：DECISIONS/TASK_LEDGER 审查轨段（R118a/R119a）在前、
+本轨段（R178b）在后；AUDIT_FINDINGS 是审查轨独占写，**完整保留对方的实测
+证据原文**，只把本轨已修条目的状态行改成 FIXED（本轨在该文件唯一被允许的动作）。
+
+### 1. 审查轨 R118a/R119a 的 4 条新缺陷全部清偿（标 FIXED-R179b）
+
+| 条目 | 级别 | 处置 |
+|---|---|---|
+| R118a-01 | MAJOR | `five_elements`/`day_luck` 渲染成 `[object Object]` —— R178b 的 `renderCalc()`+`fmtScalar()` 已递归展开 object，本轮补静态闸门断言 |
+| R118a-02 | MAJOR | 黄历 `pengzu` 同一根因 —— R178b 已按 `gan_text`/`zhi_text` 渲染，本轮补断言 |
+| R118a-03 | MAJOR | **真实未修缺陷**，见下方第 2 节 |
+| R118a-04 | BLOCKER | `#dailyMore` 零 DOM 变化 —— R178b 已接线 `loadDailyDetail()` + `#dailyDetail` 容器 |
+
+三条属 R178b 已修但当时无对方 probe 可验证；R118a-03 是本轮**新修**。
+
+### 2. R118a-03 出处静默丢失（真实缺陷，宪法第三条）
+
+**实测确认**（未凭对方报告签字）：
+
+```powershell
+.\.venv\Scripts\python.exe -c "...POST /api/bazi..."
+# evidence[0] keys = ['file','layer','page_anchor','query','score','text','title','why','work_id']
+# citation present? False
+```
+
+`/api/bazi` 的 evidence 走 `bazi_lookup.retrieve_fast()`，它返回**裸 dict** 而非
+`Hit`，所以没有 `citation` 键；前端 `esc(ev.citation||'')` 把出处渲染成空 div
+——原文照常显示、出处消失。宪法第三条要求原文必带可核验出处，`||''` 兜底不合规。
+
+**修法（关键决策 D-231b）**：把出处格式从 `Hit.citation()` 抽成模块级
+`search.render_citation(**fields)`，`Hit.citation()` 与 `bazi_lookup` 两条路径
+都指向它。**绝不在 bazi_lookup 里再拼一遍同样格式**——同一渲染规则两份拷贝、
+对同样字节给出不同结论，正是 LESSONS.md L-01 记录的真实事故（折叠表两份拷贝）。
+实测 `Hit.citation()` 输出逐字未变：
+`周易 [tls] 卦1·初九 @KR1a0001_tls_001-2a (KR1a0001_001.txt)`。
+
+### 3. 修复被 R178b 打断的审查轨闸门（本轨自己造成，优先级最高）
+
+R178b 把 `web/` 改成 Python 包，两处副作用打断了审查轨的 probe——`probes/` 是
+对方领土，**兼容责任在我这侧**，不能改对方文件来适配我的重构：
+
+- **`web/app.py` 只支持包导入**。对方 `probe_ui_smoke.py:158` 与
+  `probe_contract.py:224` 用 `app:app`（cwd=web/ 顶层模块导入），实测
+  `ImportError: attempted relative import with no known parent package`。
+  修：`app.py` 按 `__package__` 分支，两种导入形态都支持（D-233b）。
+  实测两种方式各 33 条 OpenAPI 路径、live 200。
+- **我擅自改了 `data-rsec2` 的值**（`bs-structure` → 驼峰 `bsStructure`）。
+  对方 `probe_ui_smoke.py:103` 拿这三个字符串当选择器，实测被打成
+  3 个 `TimeoutError: waiting for locator(".rtab[data-rsec2='bs-structure']")`。
+  **那三个值是验收契约不是内部命名**（docs/PHASE.md 闸门 3）。修：HTML 值
+  改回原样，面板映射收进 `app.js` 的 `BSSEC_PANELS`，两处都加注释说明不可改。
+
+### 4. 修正本轨自己一处不可复验的数字（宪法第一条）
+
+R178b 的台账/决策/代码注释共 7 处写「库里 771 条历史记录」。**实测 51 行**
+（`SELECT COUNT(*) FROM bazi_history` = 51，`MAX(id)` = 826）。771 是我从
+勘查脚本输出的 `history.records[0] = id 771` 里读来的**记录 id**，被我当成了
+行数——正是宪法第一条禁止的「把数字当结论」。7 处全部改正。
+
+此前结论已被推翻，保留错误记录不悄悄改掉（DECISIONS.md D-008 先例）。
+
+### 5. 实测（每条附可复现命令）
+
+```powershell
+cd C:\Users\Lenovo\Desktop\projects\books
+$env:PYTHONIOENCODING="utf-8"
+.\.venv\Scripts\python.exe web\selftest.py              # PASS (140 checks)
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py     # PASS 32/32, exit 0
+.\.venv\Scripts\python.exe probes\probe_dollar_misuse.py # PASS 零命中, exit 0
+```
+
+- **审查轨自己的 UI 闸门 32/32 PASS exit 0**（上一轮同一 probe 是
+  25 PASS / 3 FAIL）。含 `dom:bazi.strong-nesting`（嵌套 0、注释节点 0）、
+  `viewport.375.no-hscroll`、`page.load` 零 console.error。
+- **`probe_dollar_misuse` 零命中**（对方 R119a 建的静态闸门，上一轮 49 行/61 处）。
+- web selftest **130 → 140 checks** 全 PASS。R179b 新增 2 条：
+  `bazi.evidence.citation`（每条 evidence 必带含 @页锚点与源文件名的出处）、
+  `frontend.no_object_object`（静态扫 app.js 不得有裸 `esc(v)/esc(item)/esc(iv)`
+  绕过 `fmtScalar`，并断言三个受害字段在真实响应里确实是 dict）。
+- **13 道闸门全绿，13 个 exit code 全 0**（含上轮报 exit 1 的 `verify_index.py`
+  ——加 `PYTHONIOENCODING=utf-8` 后 `ALL PASS`，确认是 GBK 控制台问题）。
+- `src/guji/` 全部 11 个含 `__main__` 的模块实测跑通（子 agent 独立复验）：
+  lunar/bazi/bazi_calc/bazi_lookup/history/interpreter/bookstudy/research/
+  sources/mcp_server/external，11/11 PASS。
+
+### 6. 移交审查轨（新增 1 条，禁改文件）
+
+- **`probes/probe_contract.py:113-117`** `script_region()` 断言 index.html 里
+  存在顶格 `<script>` / `</script>` 行，用它切 handler 块。R178b 把 JS 抽成
+  `/static/app.js` 后该假设不成立，实测 `StopIteration`（导入问题已由我修，
+  这条是剩下的第二个失败点）。建议改为读 `web/static/app.js` 全文；
+  handler 切分逻辑可沿用（`app.js` 的函数同样顶格起始）。
+  **本轨未改该文件。**
+- 上轮两条移交仍未处理：`scripts/ask_bazi.py --llm`（ImportError）、
+  `books_app.spec:62` hiddenimports 仍列已删除的 `guji.llm_reader`
+  且需补 `guji.interpreter`。
+
+- 决策记录：DECISIONS.md D-231b ~ D-233b。

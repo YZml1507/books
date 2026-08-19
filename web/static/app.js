@@ -1354,18 +1354,27 @@ function activateRsec(secId) {
   });
 }
 
-function activateBssec(secId) {
+/* data-rsec2 值 → 面板 id + 加载函数。
+ * 键必须与 index.html 的 data-rsec2 逐字一致，而那三个值又被审查轨的
+ * probes/probe_ui_smoke.py:103 当选择器用（docs/PHASE.md 闸门 3）——
+ * 它们是**验收契约**，不是内部命名，不要改成驼峰。 */
+var BSSEC_PANELS = {
+  'bs-structure': { panel: 'bsStructure', load: doBookStructure },
+  'bs-chapter': { panel: 'bsChapter', load: doBookChapter },
+  'bs-summary': { panel: 'bsSummary', load: doBookSummary }
+};
+
+function activateBssec(key) {
+  var entry = BSSEC_PANELS[key];
+  if (!entry) return;
   document.querySelectorAll('.rtab[data-rsec2]').forEach(function (b) {
-    b.classList.toggle('active', b.dataset.rsec2 === secId);
+    b.classList.toggle('active', b.dataset.rsec2 === key);
   });
   document.querySelectorAll('.bssec').forEach(function (s) {
-    s.classList.toggle('active', s.id === secId);
+    s.classList.toggle('active', s.id === entry.panel);
   });
   // 切到子标签即按当前书 ID 拉数据——标签本身就是"我要看这个"的意思。
-  if (!val('bswork')) return;
-  if (secId === 'bsStructure') doBookStructure();
-  else if (secId === 'bsChapter') doBookChapter();
-  else if (secId === 'bsSummary') doBookSummary();
+  if (val('bswork')) entry.load();
 }
 
 /* ── 初始化 ────────────────────────────────────────────────── */
@@ -1433,6 +1442,7 @@ function initReading() {
       activateBssec(bstab.dataset.rsec2);
       return;
     }
+
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
       searchByWork(workCard.dataset.work);
