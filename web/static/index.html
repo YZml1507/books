@@ -838,6 +838,15 @@
 </div><!-- /wrap -->
 
 <script>
+// ── $() 快捷函数 ──
+function $(id) {
+  if (typeof id === 'string') {
+    if (id.startsWith('#')) return document.getElementById(id.slice(1));
+    return document.querySelector(id);
+  }
+  return id;
+}
+
 // ── 视图切换 ──
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -927,8 +936,9 @@ $('#form').addEventListener('submit', async e => {
     let html = `<div class="card"><h2>🔮 排盘结果</h2>`;
     html += `<button class="ghost" style="position:absolute;top:24px;right:24px;margin:0;" onclick="addFavorite('bazi','latest','八字排盘')" title="收藏">❤️ 收藏</button>`;
     // 四柱彩色 pill
+    const paipan = j.paipan || {};
     html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;">`;
-    const pillars = (j.render||'').split(/\s+/);
+    const pillars = (paipan.render||'').split(/\s+/);
     const pillColors = ['var(--c-bazi)','var(--c-tarot)','var(--c-huangli)','var(--c-book)'];
     pillars.forEach((p, i) => {
       if (p.length >= 2) {
@@ -936,7 +946,7 @@ $('#form').addEventListener('submit', async e => {
       }
     });
     html += `</div>`;
-    if (j.nayin) html += `<p class="nayin" style="margin-top:12px;">${esc(j.nayin)}</p>`;
+    if (paipan.nayin) html += `<p class="nayin" style="margin-top:12px;">${esc(paipan.nayin.join(' · '))}</p>`;
     if (j.calc) {
       const blockColors = ['var(--c-bazi)','var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)'];
       let bi = 0;
@@ -1154,9 +1164,12 @@ $('#lySubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'摇卦失败')}</div>`; return; }
     let html = `<div class="card"><h2>🔮 六爻卦象</h2>`;
-    if (j.hexagram) html += `<p class="paipan-line" style="font-size:28px;color:var(--c-liuyao);">${esc(j.hexagram)}</p>`;
-    if (j.yao_changes) html += `<p style="margin-top:8px;"><span style="background:var(--c-liuyao);color:#fff;padding:2px 10px;border-radius:999px;font-size:13px;">变爻</span> ${esc(j.yao_changes)}</p>`;
-    if (j.interpretation) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.interpretation)}</div>`;
+    const ben = j.ben || {};
+    if (ben.gua_name) html += `<p class="paipan-line" style="font-size:28px;color:var(--c-liuyao);">${esc(ben.gua_name)} ${esc(ben.label||'')}</p>`;
+    if (ben.moving_lines && ben.moving_lines.length) html += `<p style="margin-top:8px;"><span style="background:var(--c-liuyao);color:#fff;padding:2px 10px;border-radius:999px;font-size:13px;">变爻</span> ${esc(ben.moving_lines.map(l=>l.position).join('、'))}</p>`;
+    const bian = j.bian || {};
+    if (bian.gua_name && bian.gua_name !== ben.gua_name) html += `<p style="margin-top:8px;color:var(--secondary);">变卦：${esc(bian.gua_name)} ${esc(bian.label||'')}</p>`;
+    if (j.llm && j.llm.ok) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.llm.text||'')}</div>`;
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">摇卦失败：${esc(ex.message)}</div>`; }
@@ -1175,10 +1188,11 @@ $('#hlSubmit').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'查询失败')}</div>`; return; }
     let html = '<div class="card"><h2>🌙 黄历 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>';
     // 建除 + 神煞：彩色 pill
-    if (j.jian_chu || j.shen_sha) {
+    if (j.jianchu || j.xiu || j.pengzu) {
       html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">';
-      if (j.jian_chu) html += `<span style="background:var(--c-huangli);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;font-weight:600;">${esc(j.jian_chu)}</span>`;
-      if (j.shen_sha) html += `<span style="background:var(--c-tarot);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.shen_sha)}</span>`;
+      if (j.jianchu) html += `<span style="background:var(--c-huangli);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;font-weight:600;">${esc(j.jianchu)}</span>`;
+      if (j.xiu) html += `<span style="background:var(--c-tarot);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.xiu)}</span>`;
+      if (j.pengzu) html += `<span style="background:var(--c-qiming);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.pengzu)}</span>`;
       html += '</div>';
     }
     // 宜忌：彩色卡片
@@ -1212,11 +1226,11 @@ $('#qmSubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'起名失败')}</div>`; return; }
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
-    if (j.names) j.names.forEach((n, i) => {
+    if (j.candidates) j.candidates.forEach((n, i) => {
       const colors = ['var(--c-qiming)','var(--c-tarot)','var(--c-book)','var(--c-huangli)'];
       const c = colors[i % colors.length];
-      html += `<div class="calc-block" style="border-left:3px solid ${c};"><h3 style="color:${c};font-family:var(--font-serif);font-size:22px;">${esc(n.name||'')}</h3>
-        <p style="font-size:14px;color:var(--secondary);">${esc(n.meaning||'')}</p></div>`;
+      html += `<div class="calc-block" style="border-left:3px solid ${c};"><h3 style="color:${c};font-family:var(--font-serif);font-size:22px;">${esc(n.char||'')}</h3>
+        <p style="font-size:13px;color:var(--secondary);">五行：${esc(n.element||'')} · ${esc(n.meaning||'')}</p></div>`;
     });
     html += '</div>';
     r.innerHTML = html;
@@ -1241,8 +1255,9 @@ $('#thSubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'测算失败')}</div>`; return; }
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
-    if (j.peach_branch) html += `<div style="text-align:center;margin:16px 0;"><span style="background:var(--c-taohua);color:#fff;font-size:24px;padding:10px 24px;border-radius:999px;font-family:var(--font-serif);">${esc(j.peach_branch)} 🌹</span></div>`;
-    if (j.summary) html += `<div class="calc-summary" style="margin-top:16px;border-left-color:var(--c-taohua);">${esc(j.summary)}</div>`;
+    if (j.peach_zhi) html += `<div style="text-align:center;margin:16px 0;"><span style="background:var(--c-taohua);color:#fff;font-size:24px;padding:10px 24px;border-radius:999px;font-family:var(--font-serif);">${esc(j.peach_zhi)} 🌹</span></div>`;
+    if (j.render) html += `<div class="calc-summary" style="margin-top:16px;border-left-color:var(--c-taohua);">${esc(j.render)}</div>`;
+    if (j.notes && j.notes.length) html += `<div style="margin-top:12px;font-size:13px;color:var(--secondary);">📝 ${esc(j.notes[0])}</div>`;
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">测算失败：${esc(ex.message)}</div>`; }
