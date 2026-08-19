@@ -213,6 +213,26 @@ def main() -> int:
                 page.click(f".func-card[data-view='{view}']")
                 page.wait_for_selector(f"#view-{view}.active", timeout=5000)
 
+            def force_show_rsec(sec: str) -> bool:
+                """绕过坏掉的标签切换，直接让目标 .rsec 可见。
+
+                为什么需要：`.rtab` 无事件绑定（R000a-03）使 8 个面板永不可见，
+                面板内的按钮 playwright 判定 not visible 而**根本点不到**——
+                那些按钮自身是好是坏就无法测量，缺陷清单会残缺，修复轨得分两
+                轮才能拿到完整信息。本函数只在**测试侧**用 DOM 操作强制显示，
+                **不修改 web/**（宪法第五条：审查轨对 web/ 只读），也不掩盖
+                R000a-03——标签用例照原样点击、照原样判失败。
+                """
+                return page.evaluate(
+                    """(sec) => {
+                        const t = document.getElementById(sec);
+                        if (!t) return false;
+                        document.querySelectorAll('.rsec').forEach(
+                            s => s.classList.remove('active'));
+                        t.classList.add('active');
+                        return true;
+                    }""", sec)
+
             # ── 标签切换用例 ───────────────────────────────────
             goto_view("read")
             for sec in TAB_CASES:
@@ -268,11 +288,17 @@ def main() -> int:
             # ── 按钮用例 ──────────────────────────────────────
             for name, view, tab, btn, res in BUTTON_CASES:
                 errors.clear()
+                forced = False
                 try:
                     goto_view(view)
                     if tab:
                         page.click(f".rtab[data-rsec='{tab}']")
                         page.wait_for_timeout(200)
+                        if not page.is_visible(f"#{tab}"):
+                            # 标签切换坏了（R000a-03）→ 测试侧强制显示，
+                            # 使本按钮自身可测。结论里显式标注，不含糊。
+                            forced = force_show_rsec(tab)
+                            page.wait_for_timeout(150)
                     for sel, val in FILL.get(name, {}).items():
                         page.fill(sel, val)
                     api_calls.clear()
@@ -318,6 +344,9 @@ def main() -> int:
                         detail += " | " + "; ".join(errors[:3])
                 except Exception as exc:
                     ok, detail = False, f"{type(exc).__name__}: {exc}"
+                if forced:
+                    detail = ("[面板由测试侧强制显示——标签切换本身仍是"
+                              "R000a-03 缺陷] " + detail)
                 if not ok:
                     page.screenshot(path=os.path.join(LOGDIR, f"FAIL_{name}.png"),
                                     full_page=False)

@@ -5248,3 +5248,67 @@ D-039 已授权）与 `knowledge.db`（favorites / derived）。两者均记录�
 详见 DECISIONS.md D-133a。
 
 - 决策记录补充：DECISIONS.md D-133a。
+
+---
+
+### 110. R119a 审查循环：解除级联遮挡拿到完整缺陷清单 + 新建静态 `$.` 闸门，阶段仍不翻（2026-08-19）
+
+**merge main**：`git fetch origin` + `git merge main` → `Already up to date.`
+`git log HEAD..origin/main` 空 —— **修复轨本轮无新提交**，`AUDIT_FINDINGS.md`
+无 `FIXED-R<n>b` 条目可复验。故本轮转做"把缺陷清单补完整"，
+让修复轨一次拿到全部信息而不是分两轮。
+
+**本轮解决的测量盲区**：R118a 有 7 个按钮**根本点不到**——它们在
+R000a-03 导致永不可见的 `.rsec` 面板里，playwright 判 not visible。
+按钮自身好坏当时无法测量，缺陷清单是残缺的。
+
+处理：`probe_ui_smoke` 增加「测试侧强制显示面板」（只在浏览器里改 DOM
+class，**不改 `web/**`**，标签用例仍照原样点击照原样判失败，不掩盖
+R000a-03）。实测拿到剩余按钮的真实结论：
+
+- research / addr / compare → 同族 `pageerror: …reading 'value'`
+- threads → `.no-evidence` 实测 `"创建失败：Cannot read properties of
+  undefined (reading 'value')"`
+- **works → PASS**（容器 1509 字符，47 部书卡片正常渲染）
+- compare_works / concept → **零 console 错误、零 pageerror、零 /api 请求、
+  容器完全不变**（没有 handler 被调用）
+
+**三条本轮才拿到的、对修复直接有用的事实**：
+
+1. `$.xxx` 实测影响 **11 个按钮**，比移交清单描述的范围完整。
+2. `#worksBtn` 是唯一不受影响的提交按钮——它的 handler 不读任何输入框
+   （`:1100-1123` 直接 fetch）。这证明缺陷成因**只是** `$.` 取值写法，
+   handler 的 fetch/渲染逻辑本身是好的，修复面比看起来小。
+3. 「没接线」与「接线了但抛异常」有**可区分的运行时判据**：前者零请求零错误
+   容器不变，后者有 pageerror 或失败文案。两类缺陷需要两种修法，
+   probe 现在能自动区分。
+4. `btn:threads` 的失败发生在 `$.tq.value` 阶段、**请求根本没发出** ——
+   所以 R000a-05 后半那个必然 422 的请求体不匹配当前还被 TypeError 掩盖，
+   修完 `$.` 之后才会露出来。修复轨若只看"点了有反应"会以为修好了。
+
+**新建 `probes/probe_dollar_misuse.py`**（纯静态、零依赖、秒级）：
+输出 `$` 的定义位置 + `$.xxx` 逐行清单 + **按 handler 归属的处数映射**
+（= 修复清单本身）+ 反向列出完全干净的 handler。实测：
+
+    $ 的定义：[(842, 'function $(id) {')]
+    `$.xxx` 误用：49 行 / 61 处
+    完全不含 `$.` 的 handler（3/14）：#form, #worksBtn, #newsRefresh
+    退出码 1
+
+**两条独立证据交叉吻合**：静态扫描说只有 3 个 handler 干净，真浏览器冒烟
+恰好也只有这 3 个通过。静态与动态两侧独立得出同一结论——符合宪法第三条
+偏离 4「质量闸门用独立见证，不用表面统计」。
+
+**闸门复跑**：`probe_ui_smoke` 32 用例 PASS 5 / FAIL 27（works 由 FAIL 转
+PASS，因为它此前是被遮挡而非真坏）；`probe_dollar_misuse` 退出码 1；
+`count_open_findings` 仍 `OPEN BLOCKER 4 / OPEN MAJOR 5`。
+**阶段闸门 1、3 仍 FAIL → `CURRENT_PHASE` 保持 `REPAIR`。**
+13 道闸门本轮未改动任何被测代码（`git diff -- src web` 为空），
+R118a 的全绿结论仍然有效，未重跑。
+
+**领土纪律**：本轮新增 `probes/probe_dollar_misuse.py`，改
+`probes/probe_ui_smoke.py`、`docs/AUDIT_FINDINGS.md`，append
+`docs/TASK_LEDGER.md` / `docs/DECISIONS.md` a 侧。`src/guji/**` 与 `web/**`
+仍零改动。清理实测 `history 行数 43 -> 43`，knowledge.db 零残留。
+
+- 决策记录：DECISIONS.md D-134a、D-135a。

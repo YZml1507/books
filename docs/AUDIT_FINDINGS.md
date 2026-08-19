@@ -121,12 +121,52 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
       [FAIL] btn:tarot:   25s 后仍停在占位文案: '抽牌中…'   | 同上 pageerror
       [FAIL] btn:hehun:   25s 后仍停在占位文案: '计算中…'   | 同上 pageerror
 
-  另 6 个按钮（research/addr/compare/works/threads/compare_works/concept）
-  因 R000a-03 标签不切换而**根本点不到**（元素 not visible），属级联不可达，
-  修完 R000a-03 后须重跑本条复验。
-  计数修正：`$.xxx` 匹配 **49 行 / 61 处**（同一行可多处）。命令：
-  `<py> -c "import re;t=open(r'web/static/index.html',encoding='utf-8').read();`
-  `print(len(re.findall(r'\$\.[A-Za-z_]',t)))"` → 61
+  **R119a 补测（解除级联遮挡后的完整清单）**：另 7 个按钮此前因 R000a-03
+  标签不切换而**根本点不到**（playwright 报 not visible），其自身好坏无法测量。
+  probe 增加「测试侧强制显示面板」（只操作 DOM class，**不改 web/**，标签用例
+  仍照原样点击照原样判失败），实测拿到剩余按钮的真实结论：
+
+      [FAIL] btn:research: 25s 后仍停在 '研究中…' | pageerror: …reading 'value'
+      [FAIL] btn:addr:     25s 后仍停在 '定位中…' | pageerror: …reading 'value'
+      [FAIL] btn:compare:  25s 后仍停在 '比对中…' | pageerror: …reading 'value'
+      [FAIL] btn:threads:  .no-evidence 渲染: "创建失败：Cannot read
+             properties of undefined (reading 'value')"
+      [PASS] btn:works:    容器 1509 字符（书目卡片正常渲染 47 部书）
+
+  即 `$.xxx` 误用实测影响 **11 个按钮**（search / research / addr / compare /
+  threads / liuyao / huangli / qiming / taohua / tarot / hehun），
+  比移交清单描述的范围更完整。
+  **`#worksBtn` 是唯一不受影响的按钮**——它的 handler 不读任何输入框
+  （`index.html:1100-1123` 直接 `fetch('/api/works')`），所以没有 `$.xxx`。
+  这条对修复很有用：它证明缺陷成因**只是** `$.` 取值写法，handler 的
+  fetch/渲染逻辑本身是好的。
+  `btn:threads` 的失败文案还额外确证了 R000a-05 的后半：异常发生在
+  `$.tq.value`（读输入框）阶段，**请求根本没发出**，所以那个必然 422 的
+  请求体不匹配当前还被 TypeError 掩盖着——修完 `$.` 之后 422 才会露出来。
+  计数与归属（R119a 新建静态闸门 `<py> probes\probe_dollar_misuse.py`，
+  秒级、零依赖，修复轨改完可先跑它自查再跑完整冒烟）：
+
+      $ 的定义：[(842, 'function $(id) {')]        ← 是函数，不是对象
+      `$.xxx` 误用：49 行 / 61 处
+
+      按归属（= 修复清单）：
+         11 处  #addrBtn handler        4 处  #researchBtn handler
+         10 处  #hhSubmit handler       4 处  #compareBtn handler
+          7 处  #lySubmit handler       3 处  #hlSubmit handler
+          6 处  #searchBtn handler      3 处  #trSubmit handler
+          6 处  #qmSubmit handler       1 处  searchByWork()
+          5 处  #thSubmit handler       1 处  #threadBtn handler
+
+      完全不含 `$.` 的 handler（3/14）：
+      #form handler, #worksBtn handler, #newsRefresh handler
+
+  **两条独立证据交叉吻合**：静态扫描说只有 3 个 handler 干净，真浏览器冒烟
+  也恰好只有这 3 个通过（`btn:bazi` 是 `#form`——它另有 R118a-01 的
+  `[object Object]` 问题但不抛 TypeError；`btn:works`、`btn:news.refresh` 全绿）。
+  静态与动态两侧独立得出同一结论，符合宪法第三条偏离 4「用独立见证，
+  不用表面统计」。
+  另注：`searchByWork()` 那 1 处（`:1127 $.rwork.value = workId`）是**书目卡片
+  点击跳检索**的路径——它不在任何按钮的 handler 里，容易在逐个修按钮时漏掉。
 
 ### R000a-02 两书对照与概念研究按钮完全没有事件处理器
 - 复现：`grep -n 'cwBtn\|conceptBtn' web/static/index.html`（各仅 1 处命中）
@@ -137,13 +177,19 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   （两端点实测均返回 200）
 - 严重级：BLOCKER
 - 状态：OPEN
-- **R118a 自行复现**：`probe_ui_smoke` 用例 `btn:compare_works` / `btn:concept`
-  失败，但**当前失败原因是级联的**——两按钮位于 `rsec-cw` / `rsec-concept`
-  面板内，R000a-03 使面板永不可见，playwright 报
-  `element is not visible`（填 `#cwa` / `#cq` 超时）。
-  即：本条与 R000a-03 需一并修复，缺任一条本条都无法复验。
-  静态确认仍成立：`#cwBtn` / `#conceptBtn` 各仅 1 处命中（按钮自身），
-  JS 区零 `addEventListener`。
+- **R118a/R119a 自行复现**：解除 R000a-03 的级联遮挡后拿到运行时确证：
+
+      [FAIL] btn:compare_works: 结果容器点击后仍为空；
+             且点击后零 /api 请求（handler 在 fetch 之前就抛了）
+      [FAIL] btn:concept:       结果容器点击后仍为空；
+             且点击后零 /api 请求
+
+  注意这两条与 `$.xxx` 那 11 个按钮的**失败特征不同**：它们
+  **零 console 错误、零 pageerror、零 /api 请求、容器完全不变**——
+  因为根本没有 handler 被调用。这正是「按钮没接线」与「按钮接线了但抛异常」
+  的可区分判据，两类缺陷需要两种修法。
+  静态确认：`#cwBtn` / `#conceptBtn` 各仅 1 处命中（按钮自身），
+  JS 区零 `addEventListener`（`<py>` 逐行扫描确认）。
 
 ### R000a-03 读书页九个标签页与三个子标签点击无反应
 - 复现：`grep -n 'rtab\|rsec2' web/static/index.html`

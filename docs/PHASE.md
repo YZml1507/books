@@ -55,15 +55,25 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 `probe_ui_smoke.py` 实测返回 1、`probe_contract.py` 实测返回 1。
 「永远返回 0 的闸门等于没有闸门」。
 
-## 附加闸门（R118a 新建，非翻阶段必需但建议纳入）
+## 附加闸门（R118a / R119a 新建，非翻阶段必需但建议纳入）
 
 | # | 闸门 | 复验命令 |
 |---|---|---|
 | 5 | 前后端字段名契约无漂移 | `<py> probes\probe_contract.py`（退出码 0） |
+| 6 | 零 `$.xxx` 误用（`$()` 是函数不是对象） | `<py> probes\probe_dollar_misuse.py`（退出码 0） |
 
-闸门 5 与闸门 3 分工不重叠：3 抓「点了没反应」（运行时行为），
-5 抓「点了有反应但读错字段」（静态契约）。R000a-04 三处漂移属后者——
-它不抛异常、console 干净、结果区只是永远空白，只有闸门 5 能永久防再犯。
+三个闸门判据互不重叠，一个闸门一个判据：
+
+- **闸门 3**（真浏览器）抓「点了没反应」——运行时行为。
+- **闸门 5**（字段契约）抓「点了有反应但读错字段」。R000a-04 三处漂移属此类：
+  不抛异常、console 干净、结果区只是永远空白，只有闸门 5 能永久防再犯。
+- **闸门 6**（静态 `$.`）秒级、零依赖，供修复轨改完先自查再跑 3 分钟的闸门 3；
+  并覆盖闸门 3 的一处天然盲区——`searchByWork()`（书目卡片点击跳检索）里的
+  那 1 处误用不在任何按钮 handler 内，逐个点按钮永远覆盖不到。
+
+闸门 3 与闸门 6 构成**独立见证**（宪法第三条偏离 4）：R119a 实测两侧交叉吻合
+——静态说只有 3 个 handler 干净（#form / #worksBtn / #newsRefresh），
+真浏览器恰好也只有这 3 个通过。
 
 MINOR / NIT **不构成**闸门条件。它们进 `OPTIMIZE_BACKLOG.md`，
 不得用来阻塞阶段推进——这是本协作模型唯一会死锁的地方。
@@ -110,3 +120,25 @@ MINOR / NIT **不构成**闸门条件。它们进 `OPTIMIZE_BACKLOG.md`，
 **附加闸门 5（本轮新建）= FAIL**。`<py> probes\probe_contract.py` → 退出码 1，
 `118 个字段读取点，HARD=10 TYPE=1 SOFT=15 SKIP=0`。
 完整输出：`logs/probe_contract_r118a.txt`。
+
+### 2026-08-19 阶段**不翻**（保持 REPAIR）by 审查轨 R119a
+
+`git merge main` → `Already up to date.`，修复轨本轮无新提交，
+`AUDIT_FINDINGS.md` 无 `FIXED-R<n>b` 可复验。本轮把缺陷清单补完整。
+
+1. **闸门 1 = FAIL**。`<py> scripts\count_open_findings.py` → 退出码 1，
+   `OPEN BLOCKER 4 / OPEN MAJOR 5 / 合计 9`（与 R118a 一致，无条目被修复）。
+2. **闸门 2 = PASS**。R118a 已实测 `web self-test PASS (130 checks)` 退出码 0；
+   本轮 `git diff -- src web` 为空（被测代码零改动），结论仍有效。
+3. **闸门 3 = FAIL**。`<py> probes\probe_ui_smoke.py` → 退出码 1，
+   `32 个用例，PASS 5 / FAIL 27`。相比 R118a 的 PASS 4：`btn:works` 由 FAIL
+   转 PASS——它此前是被 R000a-03 遮挡**点不到**，不是真坏。这条修正很重要：
+   避免修复轨去"修"一个没坏的按钮。
+4. **闸门 4 = PASS**。R118a 已逐条实测 13 道闸门退出码全 0；本轮
+   `git diff -- src web` 为空，未重跑（无被测代码改动即无回归面）。
+
+附加闸门：**5 = FAIL**（`probe_contract` 退出码 1，
+`HARD=10 TYPE=1 SOFT=15 SKIP=0`）；**6 = FAIL**（本轮新建
+`probe_dollar_misuse` 退出码 1，`49 行 / 61 处`）。
+
+→ 闸门 1、3 不成立，`CURRENT_PHASE` 保持 `REPAIR`。
