@@ -28,6 +28,16 @@ animotion-mcp.github.io-main.zip
 *.db-journal
 *.log
 
+# Runtime databases — regenerable state, not source (双轨协作前置改动)
+#   corpus.db    宪法第二条：5 秒可重建（scripts/build_index.py），随便重建
+#   knowledge.db 研究线程/偏好/收藏，运行期状态
+#   history.db   查询历史，运行期状态
+# 曾被 git 跟踪，导致两条轨道各跑一次测试就双方 working tree 脏、
+# merge 时二进制冲突无法解决。改为忽略；重建命令见 constitution.md §IV。
+data/history.db
+data/index/corpus.db
+data/index/knowledge.db
+
 # logs/ — runtime logs, screenshots, scratch probes (not deliverables)
 logs/
 # P2 scratch: downloaded git repos (82MB), not source we own
