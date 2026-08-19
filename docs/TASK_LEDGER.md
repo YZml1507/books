@@ -8596,3 +8596,54 @@ R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
   FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
   零功能改动、零回退。
 - 决策记录：DECISIONS.md D-218b。
+
+## 201. [优化轨] R175b：文档滞后——R176b 断言（err.ask.q_too_long，ask q 过长 422 分支）已随 R174b 提交 678aea3 入 HEAD（并行窗口工作树夹带），GOAL_NEXT_SESSION/PROJECT_STATUS 的 checks 数未同步 122→123 → 补同步 + 台账记录（L-23 同族——可被命令断言的事实硬编码且漏同步）（2026-08-18）
+
+### 201a. 移交跟进
+
+fetch origin：审查轨无新提交（origin/audit/R18 仍停在 `b57d095`
+R104a；raw_body 委托仍为 `337aadc` R21a 待合入 main）。R64b G9 SCOPE
+措辞仍未修。R174b（`678aea3`）+ R177b（`b8c646d`，并行窗口提交）已确认
+在 origin/main。D-219b 与 GOAL_NEXT/PROJECT_STATUS 文档同步已由并行
+窗口 b8c646d 提交入 HEAD，本条目补台账 §201（台账 §200 后）。
+
+### 201b. 摸底（逐项亲自核实）
+
+- **基线数字复验**（命令实测）：unit=62,109 / works=47 / scheme 非空
+  =57,315（92.3%）/ page_anchor=13,954 / 55.7 MB / link=558——与快照
+  一致；assess_goals PASS 9 · PART 0 · FAIL 0；web --selftest 实测
+  **125 checks**（R177b 末态：ask q_too_long + max_addresses_low/high）。
+- **真实滞后点（本轮选定）**：R174b 提交 678aea3 时夹带了并行窗口工作
+  树的 R176b 断言（err.ask.q_too_long：ask q="甲"*201 → 422
+  "string_too_long"，Pydantic max_length=200 分支）——该断言随 678aea3
+  进入 HEAD，web --selftest 实测 123 checks（R174b 文档只同步到 122）。
+  文档滞后点：GOAL_NEXT_SESSION.md:52/90/98 写 "web 122 checks"
+  （R174b 同步）、PROJECT_STATUS.md:48 "（122 checks，R174b 同步）"、
+  台账无 R176b 记录（该断言是并行窗口半成品、被 R174b 提交夹带，无独立
+  轮次记录，L-23 同族）。
+- **实测**（命令实跑，web TestClient）：
+  - POST /api/ask {"q":"甲"*201, "max_addresses":2} → 422
+    "string_too_long"（Pydantic max_length=200 分支，err.ask.q_too_long
+    断言已生效）
+  - web --selftest 实测 123 checks 全 PASS（R174b 末态应为 122，多出的
+    1 个是夹带的 err.ask.q_too_long）
+- **方案比对**：A 文档同步 122→123 + 台账 §201 补 R176b 记录（选定）；
+  B 把夹带的 err.ask.q_too_long 从 HEAD 移除（回退，断言有效不应丢）；
+  C 其他方向——见 D-219b。
+
+### 201c. 改动与验证
+
+- **改动**（纯文档）：
+  1. GOAL_NEXT_SESSION.md 三处 checks 122→123 + 自测行补 "R176b +1
+     （err.ask.q_too_long，随 R174b 提交 678aea3 夹带入 HEAD）"；
+  2. PROJECT_STATUS.md 头部 checks 122→123（R175b 同步）+ 尾部增量链补
+     "R176b +1：err.ask.q_too_long（随 R174b 提交 678aea3 夹带入 HEAD）"。
+  （注：D-219b 与文档同步已由并行窗口 b8c646d 提交入 HEAD，本条目为
+  台账补记。）
+- **验证**（全量）：web --selftest **125 checks** 全 PASS（R177b 末态，
+  含夹带的 err.ask.q_too_long 与并行窗口 R177b 的 ask max_addresses
+  断言）；13 道闸门全 exit 0（check_quality 先于 build_index，
+  verify_index T1-T11 ALL PASS，assess_goals PASS 9 · PART 0 ·
+  FAIL 0）；五层自测全 PASS（sources/bookstudy/research/mcp/web）。
+  零代码改动、零回退。
+- 决策记录：DECISIONS.md D-219b。
