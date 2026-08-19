@@ -1,0 +1,6 @@
+{
+  "feature_numbering": "sequential",
+  "branch_numbering": "deprecated",
+  "script": "py",
+  "integration": "claude"
+}
