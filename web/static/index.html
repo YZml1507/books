@@ -996,11 +996,16 @@ $('#searchBtn').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'检索失败')}</div>`; return; }
     let html = '';
     if (j.hits && j.hits.length) {
-      j.hits.forEach(h => {
-        html += `<div class="ev-item"><div class="ev-meta">${esc(h.citation||'')}</div>
-          <div class="hit-disc">${esc(h.text||'')}</div></div>`;
+      const layerColors = {'經':'var(--c-book)','傳':'var(--c-tarot)','注':'var(--c-huangli)','疏':'var(--c-qiming)','箋':'var(--c-taohua)','緒':'var(--c-liuyao)','衍':'var(--c-hehun)','評':'var(--c-bazi)','纂':'var(--c-book)','misc':'var(--secondary)'};
+      j.hits.forEach((h, i) => {
+        const lc = layerColors[h.layer] || 'var(--primary)';
+        html += `<div class="ev-item" style="border-left:3px solid ${lc};padding-left:14px;">`;
+        html += `<div class="ev-meta" style="color:${lc};">${esc(h.citation||'')}</div>`;
+        html += `<div class="hit-disc" style="font-family:var(--font-serif);font-size:15px;margin-top:6px;">${esc(h.text||'')}</div>`;
+        if (h.score) html += `<div class="hit-score">相关度：${esc(h.score)}</div>`;
+        html += `</div>`;
       });
-    } else { html = '<div class="no-evidence">无命中</div>'; }
+    } else { html = '<div class="no-evidence">🔍 无命中，换个词试试？</div>'; }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">检索失败：${esc(ex.message)}</div>`; }
 });
@@ -1017,11 +1022,15 @@ $('#researchBtn').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'研究失败')}</div>`; return; }
     let html = '';
     if (j.addresses && j.addresses.length) {
-      j.addresses.forEach(a => {
-        html += `<div class="ev-item"><div class="ev-meta">${esc(a.addr||'')}</div>
-          <div class="ev-text">${esc(a.text||'')}</div></div>`;
+      j.addresses.forEach((a, i) => {
+        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)'];
+        const c = colors[i % colors.length];
+        html += `<div class="ev-item" style="border-left:3px solid ${c};padding-left:14px;">`;
+        html += `<div class="ev-meta" style="color:${c};">${esc(a.addr||'')}</div>`;
+        html += `<div class="ev-text">${esc(a.text||'')}</div>`;
+        html += `</div>`;
       });
-    } else { html = '<div class="no-evidence">无命中</div>'; }
+    } else { html = '<div class="no-evidence">🔍 无命中，换个词试试？</div>'; }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">研究失败：${esc(ex.message)}</div>`; }
 });
@@ -1042,11 +1051,15 @@ $('#addrBtn').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'定位失败')}</div>`; return; }
     let html = '';
     if (j.hits && j.hits.length) {
-      j.hits.forEach(h => {
-        html += `<div class="ev-item"><div class="ev-meta">${esc(h.citation||'')}</div>
-          <div class="ev-text">${esc(h.text||'')}</div></div>`;
+      j.hits.forEach((h, i) => {
+        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)','var(--c-liuyao)'];
+        const c = colors[i % colors.length];
+        html += `<div class="ev-item" style="border-left:3px solid ${c};padding-left:14px;">`;
+        html += `<div class="ev-meta" style="color:${c};">${esc(h.citation||'')}</div>`;
+        html += `<div class="ev-text">${esc(h.text||'')}</div>`;
+        html += `</div>`;
       });
-    } else { html = '<div class="no-evidence">无命中</div>'; }
+    } else { html = '<div class="no-evidence">🔍 无命中，换个定位参数？</div>'; }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">定位失败：${esc(ex.message)}</div>`; }
 });
@@ -1063,10 +1076,12 @@ $('#compareBtn').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'比对失败')}</div>`; return; }
     let html = '';
     if (j.findings && j.findings.length) {
-      j.findings.forEach(f => {
-        html += `<div class="finding">${esc(f.text||'')}</div>`;
+      j.findings.forEach((f, i) => {
+        const colors = ['var(--c-bazi)','var(--c-book)','var(--c-tarot)','var(--c-huangli)'];
+        const c = colors[i % colors.length];
+        html += `<div class="finding" style="border-left-color:${c};background:linear-gradient(90deg,${c}11,#fff);">${esc(f.text||'')}</div>`;
       });
-    } else { html = '<div class="no-evidence">无发现</div>'; }
+    } else { html = '<div class="no-evidence">🔍 无发现，换个卦爻试试？</div>'; }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">比对失败：${esc(ex.message)}</div>`; }
 });
@@ -1077,14 +1092,33 @@ $('#worksBtn').addEventListener('click', async () => {
   try{
     const resp = await fetch('/api/works');
     const j = await resp.json();
-    let html = '<table class="works"><thead><tr><th>书 ID</th><th>标题</th><th>源文件</th><th>单元数</th></tr></thead><tbody>';
-    (j.works||[]).forEach(w => {
-      html += `<tr><td>${esc(w.work_id||w.id)}</td><td>${esc(w.title||'')}</td><td>${esc(w.source||'')}</td><td class="num">${esc(w.units||w.count||'')}</td></tr>`;
-    });
-    html += '</tbody></table>';
+    let html = '';
+    const works = j.works||[];
+    if (works.length) {
+      html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">`;
+      works.forEach((w, i) => {
+        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)','var(--c-liuyao)','var(--c-taohua)','var(--c-hehun)'];
+        const c = colors[i % colors.length];
+        html += `<div class="calc-block" style="border-left:3px solid ${c};cursor:pointer;" onclick="searchByWork('${esc(w.work_id||w.id)}')">
+          <h3 style="color:${c};font-size:14px;">${esc(w.title||w.work_id||'')}</h3>
+          <p style="font-size:12px;color:var(--secondary);margin-top:4px;">${esc(w.work_id||'')} · ${esc(w.source||'')}</p>
+          <p style="font-size:18px;color:${c};font-weight:600;margin-top:6px;">${esc(w.units||w.count||'?')}</p>
+          <p style="font-size:11px;color:var(--secondary);">单元</p>
+        </div>`;
+      });
+      html += `</div>`;
+    } else { html = '<div class="no-evidence">暂无书目</div>'; }
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">加载失败：${esc(ex.message)}</div>`; }
 });
+
+// 书目卡片点击 → 按书名搜索
+function searchByWork(workId) {
+  $.rwork.value = workId;
+  $('#searchBtn').click();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-read').classList.add('active');
+}
 
 // 研究线程
 $('#threadBtn').addEventListener('click', async () => {
