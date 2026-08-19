@@ -204,6 +204,17 @@ def external_news():
         return {"fetched_at": None, "proxy": external_feed.PROXY,
                 "sources": [], "error": f"{type(exc).__name__}: {exc}"}
 
+@app.get("/api/external/fortune")
+def external_fortune():
+    """外部资讯的运势风格包装：把 RSS feed 包装成"今天需要注意什么"。
+    用于每日运势卡片的外部资讯部分。"""
+    try:
+        raw = external_feed.fetch_sources(max_sources=4)
+        return external_feed.fortune_wrap(raw)
+    except Exception as exc:
+        return {"date": None, "ok": False, "items": [],
+                "summary": f"外部资讯暂时 unavailable：{exc}"}
+
 
 @app.post("/api/bazi")
 def bazi_api(req: BaziRequest):
@@ -1063,14 +1074,88 @@ def _today_str() -> str:
     return _date.today().isoformat()
 
 def _fortune_level(calc_out: dict) -> str:
-    """从运算事实推算运势等级（吉/平/凶），不调用 LLM。"""
-    summary = (calc_out.get("summary") or "") if calc_out else ""
-    # 简单规则：看 summary 关键词
-    if any(w in summary for w in ["吉", "利", "顺", "宜"]):
+    """从运算事实推算运势等级（吉/平/凶），不调用 LLM。
+
+    基于 bazi_calc 的结构化数据做判断，不是关键词匹配：
+    - 看五行平衡（偏旺/偏枯）
+    - 看地支关系（冲/害/刑 vs 合/会）
+    - 看日主与日支关系
+    """
+    if not calc_out:
+        return "平"
+
+    score = 0  # 正分吉，负分凶
+
+    # 1. 五行平衡
+    fe = calc_out.get("five_elements", {})
+    strong = fe.get("strong", [])
+    missing = fe.get("missing", [])
+    if len(strong) >= 2:
+        score -= 1  # 两行偏旺，五行失衡
+    if missing:
+        score -= 1  # 缺行
+
+    # 2. 地支关系
+    relations = calc_out.get("relations", [])
+    for r in relations:
+        t = r.get("type", "")
+        if t in ("相害", "相刑", "自刑", "相冲"):
+            score -= 1
+        elif t in ("六合", "三合", "半合", "相生"):
+            score += 1
+
+    # 3. 日运关系
+    dl = calc_out.get("day_luck", {})
+    day_rels = dl.get("day_branch_rels", [])
+    for dr in day_rels:
+        t = dr.get("type", "")
+        if t in ("相害", "相刑", "相冲"):
+            score -= 1
+        elif t in ("六合", "三合", "半合"):
+            score += 1
+
+    # 4. 十神分布
+    tg = calc_out.get("ten_gods", [])
+    gods = [t.get("god", "") for t in tg]
+    if any(g in ("七杀", "伤官") for g in gods):
+        score -= 1  # 七杀/伤官旺，压力大
+    if any(g in ("正印", "偏印", "正官") for g in gods):
+        score += 1  # 印/官旺，有贵人
+
+    if score >= 2:
         return "吉"
-    if any(w in summary for w in ["凶", "忌", "冲", "破"]):
+    if score <= -2:
         return "凶"
     return "平"
+
+def _fortune_summary(calc_out: dict) -> str:
+    """从运算事实生成运势一句话（不调用 LLM，纯坐标转述）。"""
+    if not calc_out:
+        return "今天运势数据暂不可用"
+
+    parts = []
+    fe = calc_out.get("five_elements", {})
+    strong = fe.get("strong", [])
+    if strong:
+        parts.append(f"五行中{'+'.join(strong)}偏旺")
+
+    relations = calc_out.get("relations", [])
+    bad_rels = [r for r in relations if r.get("type") in ("相害", "相刑", "自刑", "相冲")]
+    good_rels = [r for r in relations if r.get("type") in ("六合", "三合", "半合")]
+    if bad_rels:
+        parts.append(f"有{len(bad_rels)}处地支{'/'.join(r['type'] for r in bad_rels[:2])}，宜稳不宜争")
+    if good_rels:
+        parts.append(f"有{len(good_rels)}处地支{'/'.join(r['type'] for r in good_rels[:2])}，有贵人扶助")
+
+    dl = calc_out.get("day_luck", {})
+    day_gz = dl.get("day_ganzhi", "")
+    if day_gz:
+        parts.append(f"今日日运：{day_gz}")
+
+    if not parts:
+        return "今天五行平和，无大冲大合，平平稳稳就是福 ✨"
+
+    return "；".join(parts) + "。"
 
 @app.get("/api/daily")
 async def api_daily(req: DailyRequest = DailyRequest()):
@@ -1078,6 +1163,7 @@ async def api_daily(req: DailyRequest = DailyRequest()):
     命中 daily_cache 表，同一天不重复调用 LLM。"""
     from guji import knowledge as _kb_mod
     from guji import bazi as _bazi_mod
+    from guji import bazi_calc as _calc_mod
     from guji import lunar as _lunar_mod
 
     date_str = req.date or _today_str()
@@ -1094,17 +1180,27 @@ async def api_daily(req: DailyRequest = DailyRequest()):
         from datetime import date as _date, datetime as _dt
         d = _date.fromisoformat(date_str)
         dt = _dt(d.year, d.month, d.day, 12, 0)
-        ba = _bazi_mod.compute(d.year, d.month, d.day, 12)
-        calc = _bazi_mod.calc(ba, scope="day")
+        ba = _bazi_mod.compute(d.year, d.month, d.day, 12, "男")
+        calc = _calc_mod.calc(ba)
         level = _fortune_level(calc)
         noble = _chinese_zodiac(d.year)
+        # 根据运势等级给出宜忌
+        if level == "吉":
+            do_str = "宜合作、宜出行、宜做决定"
+            dont_str = "忌大意、忌拖延"
+        elif level == "凶":
+            do_str = "宜静养、宜守成、宜反思"
+            dont_str = "忌冲动、忌远行、忌争执"
+        else:
+            do_str = "宜合作、宜静养、宜学习"
+            dont_str = "忌冲动、忌远行"
         result = {
             "date": date_str,
             "level": level,
-            "summary": (calc.get("summary") or "")[:80],
+            "summary": _fortune_summary(calc),
             "noble": noble,
-            "do": "宜合作、宜静养、宜学习",
-            "dont": "忌冲动、忌远行、忌争执",
+            "do": do_str,
+            "dont": dont_str,
             "cached": False,
         }
         # 写缓存

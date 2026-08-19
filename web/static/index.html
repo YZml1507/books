@@ -815,7 +815,9 @@ async function loadDaily() {
     const levelEl = document.getElementById('dailyLevel');
     levelEl.textContent = j.level || '平';
     levelEl.className = 'daily-level' + (j.level === '吉' ? ' good' : j.level === '凶' ? ' bad' : '');
-    document.getElementById('dailyStars').textContent = '★★★★☆';
+    // 星级：吉=5星，平=3星，凶=1星
+    const stars = j.level === '吉' ? '★★★★★' : j.level === '平' ? '★★★☆☆' : '★☆☆☆☆';
+    document.getElementById('dailyStars').textContent = stars;
     document.getElementById('dailySummary').textContent = j.summary || '';
     document.getElementById('dailyNoble').textContent = j.noble || '—';
     document.getElementById('dailyDo').textContent = j.do || '—';
@@ -824,7 +826,23 @@ async function loadDaily() {
     document.getElementById('dailySummary').textContent = '运势计算暂时不可用';
   }
 }
-loadDaily();
+
+// 加载外部资讯运势
+async function loadExternalFortune() {
+  try {
+    const resp = await fetch('/api/external/fortune');
+    const j = await resp.json();
+    if (j.ok && j.summary) {
+      const newsList = $('#newsList');
+      newsList.innerHTML = `<div class="llm-text">${esc(j.summary)}</div>`;
+      (j.items||[]).forEach(it => {
+        const newsList2 = $('#newsList');
+        newsList2.innerHTML += `<div class="news-item"><a href="${esc(it.link)}" target="_blank">${esc(it.title||'')}</a><span class="news-time">${esc(it.published||'')}</span></div>`;
+      });
+    }
+  } catch(e) { /* external fortune is best-effort */ }
+}
+loadExternalFortune();
 
 // ── esc 工具 ──
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1225,6 +1243,33 @@ async function loadHistory() {
 }
 loadHistory();
 
+// 加载最近解读（从历史 API 动态填充）
+async function loadRecent() {
+  try{
+    const resp = await fetch('/api/history');
+    const j = await resp.json();
+    const list = $('#recentList');
+    if (j.items && j.items.length) {
+      const icons = {'bazi':'🔮','tarot':'✨','read':'📜','huangli':'🌙','qiming':'🌸','taohua':'🌺','liuyao':'🔮','hehun':'💕'};
+      let html = '';
+      j.items.slice(0, 5).forEach(item => {
+        const icon = icons[item.type] || '📖';
+        const date = (item.created_at || '').slice(0, 16).replace('T', ' ');
+        html += `<div class="recent-item">
+          <span class="recent-icon">${icon}</span>
+          <div class="recent-info"><div class="recent-title">${esc(item.question||item.summary||'解读')}</div><div class="recent-date">${esc(date||'')}</div></div>
+          <span class="recent-arrow">→</span></div>`;
+      });
+      list.innerHTML = html;
+    } else {
+      list.innerHTML = '<div class="recent-item"><span class="recent-icon">🔮</span><div class="recent-info"><div class="recent-title">今日八字排盘</div><div class="recent-date">刚刚</div></div><span class="recent-arrow">→</span></div>';
+    }
+  }catch(e){
+    $('#recentList').innerHTML = '<div class="recent-item"><span class="recent-icon">🔮</span><div class="recent-info"><div class="recent-title">今日八字排盘</div><div class="recent-date">刚刚</div></div><span class="recent-arrow">→</span></div>';
+  }
+}
+loadRecent();
+
 function loadHistoryDetail(id) {
   window.open(`/api/history/${id}`, '_blank');
 }
@@ -1232,6 +1277,7 @@ async function deleteHistory(id) {
   try{
     await fetch('/api/history/' + id, {method:'DELETE'});
     loadHistory();
+    loadRecent();
   }catch(e){}
 }
 
