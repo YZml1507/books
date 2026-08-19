@@ -95,3 +95,35 @@ CREATE TABLE IF NOT EXISTS kb_meta (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+-- ── 知命产品化扩展（2026-08-19，R002） ──────────────────────
+-- 这三张表服务于产品化功能（每日运势、用户偏好、收藏），
+-- 与学术研究语料（derived/evidence/thread）在知识上有边界但不冲突。
+-- 不修改现有表，只追加。
+
+-- 用户偏好：主题、最近使用的功能模块
+CREATE TABLE IF NOT EXISTS user_prefs (
+    key         TEXT PRIMARY KEY,    -- theme | recent_modules | font_size
+    value       TEXT,                -- JSON 编码的偏好值
+    updated_at  TEXT NOT NULL
+);
+
+-- 每日运势缓存：避免同一天重复调用 LLM
+-- 缓存只存当天，第二天自动失效（按 date 字段判断）
+CREATE TABLE IF NOT EXISTS daily_cache (
+    date         TEXT PRIMARY KEY,   -- 'YYYY-MM-DD'
+    bazi_result  TEXT,               -- JSON: {level, summary, noble, do, dont}
+    tarot_result TEXT,               -- JSON: {card, orientation, meaning}
+    created_at   TEXT NOT NULL
+);
+
+-- 收藏：用户收藏的算命结果、读书笔记、塔罗牌阵
+CREATE TABLE IF NOT EXISTS favorites (
+    id          INTEGER PRIMARY KEY,
+    type        TEXT NOT NULL,       -- bazi | tarot | book | thread
+    ref_id      TEXT NOT NULL,       -- 关联的业务 ID
+    title       TEXT NOT NULL,       -- 展示标题
+    created_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type);

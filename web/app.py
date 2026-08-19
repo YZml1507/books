@@ -1037,6 +1037,235 @@ def api_tarot(req: TarotRequest):
     }
 
 
+# ── 知命产品化 API 端点（R002，2026-08-19） ──────────────────────
+
+from pydantic import BaseModel as _BM
+
+class DailyRequest(_BM):
+    date: str | None = None          # YYYY-MM-DD，默认今天
+
+class TarotDrawRequest(_BM):
+    seed: int | None = None
+    n: int = 1
+    question: str | None = None
+
+class ShareRequest(_BM):
+    type: str                        # bazi | tarot | book | thread
+    ref_id: str
+
+class FavoriteAddRequest(_BM):
+    type: str
+    ref_id: str
+    title: str
+
+def _today_str() -> str:
+    from datetime import date as _date
+    return _date.today().isoformat()
+
+def _fortune_level(calc_out: dict) -> str:
+    """从运算事实推算运势等级（吉/平/凶），不调用 LLM。"""
+    summary = (calc_out.get("summary") or "") if calc_out else ""
+    # 简单规则：看 summary 关键词
+    if any(w in summary for w in ["吉", "利", "顺", "宜"]):
+        return "吉"
+    if any(w in summary for w in ["凶", "忌", "冲", "破"]):
+        return "凶"
+    return "平"
+
+@app.get("/api/daily")
+async def api_daily(req: DailyRequest = DailyRequest()):
+    """每日运势卡片：返回运势等级、一句话、贵人属相、宜忌。
+    命中 daily_cache 表，同一天不重复调用 LLM。"""
+    from guji import knowledge as _kb_mod
+    from guji import bazi as _bazi_mod
+    from guji import lunar as _lunar_mod
+
+    date_str = req.date or _today_str()
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+
+    # 查缓存
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        cached = kb.get_daily_cache(date_str)
+        if cached and cached.get("bazi"):
+            return {"date": date_str, **cached["bazi"], "cached": True}
+
+    # 未命中：计算今日运势
+    try:
+        from datetime import date as _date, datetime as _dt
+        d = _date.fromisoformat(date_str)
+        dt = _dt(d.year, d.month, d.day, 12, 0)
+        ba = _bazi_mod.compute(d.year, d.month, d.day, 12)
+        calc = _bazi_mod.calc(ba, scope="day")
+        level = _fortune_level(calc)
+        noble = _chinese_zodiac(d.year)
+        result = {
+            "date": date_str,
+            "level": level,
+            "summary": (calc.get("summary") or "")[:80],
+            "noble": noble,
+            "do": "宜合作、宜静养、宜学习",
+            "dont": "忌冲动、忌远行、忌争执",
+            "cached": False,
+        }
+        # 写缓存
+        with _kb_mod.KnowledgeBase(kb_path) as kb2:
+            kb2.set_daily_cache(date_str, bazi=result)
+        return result
+    except Exception as exc:
+        return {"date": date_str, "level": "平", "summary": f"计算失败：{exc}",
+                "noble": "—", "do": "—", "dont": "—", "cached": False}
+
+def _chinese_zodiac(year: int) -> str:
+    """返回生肖属相。"""
+    animals = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"]
+    return animals[(year - 4) % 12]
+
+@app.get("/api/widget")
+async def api_widget():
+    """首页功能卡片数据：各模块的图标、标题、描述、最近使用。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    prefs = {}
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        recent = kb.get_pref("recent_modules", "[]")
+        try:
+            import json as _json
+            recent = _json.loads(recent)
+        except Exception:
+            recent = []
+
+    modules = [
+        {"id": "bazi",   "icon": "🔮", "title": "八字排盘",   "desc": "排出四柱，看五行、大运、流年", "recent": "八字排盘"},
+        {"id": "book",   "icon": "📜", "title": "古籍读书",   "desc": "检索 47 部古籍，比对注家", "recent": "古籍检索"},
+        {"id": "tarot",  "icon": "✨", "title": "塔罗占卜",   "desc": "抽牌看指引，解答心中疑问", "recent": "塔罗占卜"},
+        {"id": "huangli","icon": "🌙", "title": "黄历择日",   "desc": "看建除、神煞，选吉日", "recent": "黄历查询"},
+        {"id": "qiming", "icon": "🌸", "title": "五行起名",   "desc": "按五行补缺，起一个好名字", "recent": "起名"},
+        {"id": "taohua", "icon": "🌺", "title": "桃花运",     "desc": "看看近期桃花走势", "recent": "桃花"},
+        {"id": "liuyao","icon": "_break", "title": "六爻占卜",   "desc": "摇卦断事，看事情走向", "recent": "六爻"},
+        {"id": "history","icon": "📖", "title": "历史记录",   "desc": "回看过去的占卜结果", "recent": "历史"},
+    ]
+    for m in modules:
+        m["recent_used"] = m["id"] in recent
+    return {"modules": modules, "recent": recent}
+
+@app.post("/api/tarot/draw")
+async def api_tarot_draw(req: TarotDrawRequest):
+    """塔罗抽牌：抽牌 + LLM 博主风格解读。"""
+    from guji import tarot as _tarot_mod
+    from guji import llm_reader as _llm
+
+    draws = _tarot_mod.draw(seed=req.seed, n=req.n)
+    card = draws[0] if draws else None
+    if not card:
+        raise HTTPException(422, "抽牌失败")
+
+    interpretation = ""
+    if _llm.available():
+        try:
+            user_msg = (
+                f"用户问：{req.question or '今天运气如何'}\n"
+                f"抽到的牌：{card.name}（{card.upright}）\n"
+                f"牌意关键词：{card.upright_kw}\n"
+                f"请用博主风格给一句温暖的解读。"
+            )
+            interpretation = _llm.research(user_msg)
+        except Exception:
+            interpretation = ""
+
+    return {
+        "card": {"name": card.name, "upright": card.upright,
+                 "upright_kw": card.upright_kw,
+                 "reversed_kw": card.reversed_kw, "meaning": card.meaning},
+        "interpretation": interpretation,
+        "model": _llm.configured_model() if _llm.available() else None,
+    }
+
+@app.get("/api/share/{share_type}/{share_id}")
+async def api_share(share_type: str, share_id: str):
+    """分享卡片数据：生成可截图分享的结果摘要。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    colors = {"bazi": "#B8860B", "tarot": "#9D4EDD", "book": "#5B8C5A", "thread": "#C43E3E"}
+
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        if share_type == "bazi":
+            d = kb.get(int(share_id))
+            if not d:
+                raise HTTPException(404, "未找到")
+            return {
+                "title": "八字排盘结果",
+                "subtitle": d.claim[:60],
+                "content": d.claim,
+                "image_color": colors.get("bazi", "#B8860B"),
+                "created_at": d.created_at,
+            }
+        elif share_type == "tarot":
+            return {
+                "title": "塔罗占卜结果",
+                "subtitle": share_id,
+                "content": "塔罗牌阵解读",
+                "image_color": colors.get("tarot", "#9D4EDD"),
+                "created_at": _today_str(),
+            }
+        elif share_type == "book":
+            return {
+                "title": "读书笔记",
+                "subtitle": share_id,
+                "content": "古籍研究笔记",
+                "image_color": colors.get("book", "#5B8C5A"),
+                "created_at": _today_str(),
+            }
+        else:
+            raise HTTPException(404, f"不支持的分享类型: {share_type}")
+
+@app.get("/api/user/prefs")
+async def api_user_prefs():
+    """用户偏好：主题、收藏、最近使用。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        theme = kb.get_pref("theme", "cream")
+        recent_raw = kb.get_pref("recent_modules", "[]")
+        try:
+            import json as _json
+            recent = _json.loads(recent_raw)
+        except Exception:
+            recent = []
+        favorites = [dict(r) for r in kb.list_favorites()]
+    return {"theme": theme, "recent": recent, "favorites": favorites}
+
+@app.post("/api/user/prefs")
+async def api_set_prefs(req: dict):
+    """设置用户偏好。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        for k, v in req.items():
+            if isinstance(v, (list, dict)):
+                import json as _json
+                v = _json.dumps(v, ensure_ascii=False)
+            kb.set_pref(k, v)
+    return {"ok": True}
+
+@app.post("/api/favorites")
+async def api_add_favorite(req: FavoriteAddRequest):
+    """收藏一条结果。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        fid = kb.add_favorite(req.type, req.ref_id, req.title)
+    return {"id": fid, "ok": True}
+
+@app.delete("/api/favorites/{fid}")
+async def api_remove_favorite(fid: int):
+    """取消收藏。"""
+    from guji import knowledge as _kb_mod
+    kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
+    with _kb_mod.KnowledgeBase(kb_path) as kb:
+        kb.remove_favorite(fid)
+    return {"ok": True}
+
+
 if __name__ == "__main__":
     import sys as _sys
 
@@ -1928,6 +2157,24 @@ if __name__ == "__main__":
         finally:
             kb.close()
         ok.append("threads.post+readback+cleanup")
+
+        # ── 知命产品化 API 自测（R002，2026-08-19） ──────────────
+        check("daily", client.get("/api/daily"),
+              lambda j: (j.get("level") in ("吉", "平", "凶")
+                         and j.get("date")
+                         and "noble" in j))
+        check("widget", client.get("/api/widget"),
+              lambda j: (isinstance(j.get("modules"), list)
+                         and len(j["modules"]) >= 6
+                         and all(m.get("icon") and m.get("title") for m in j["modules"])))
+        check("tarot.draw", client.post("/api/tarot/draw", json={"n": 1}),
+              lambda j: (j.get("card") and j["card"].get("name")
+                         and j["card"].get("meaning")))
+        check("share.bazi", client.get("/api/share/bazi/1"),
+              lambda j: (j.get("title") and j.get("content")
+                         and j.get("image_color")))
+        check("user.prefs", client.get("/api/user/prefs"),
+              lambda j: (j.get("theme") and isinstance(j.get("favorites"), list)))
         print(f"web self-test PASS ({len(ok)} checks): {', '.join(ok)}")
     else:
         import uvicorn

@@ -175,6 +175,48 @@ _FETCH_CACHE: dict | None = None
 _FETCH_LAST_AT: float = 0.0
 
 
+def fortune_wrap(raw: dict, date_str: str | None = None) -> dict:
+    """把原始 news feed 包装为"每日运势"风格的内容。
+
+    不是返回新闻列表，而是包装成命理博主口吻的"今天需要注意什么"。
+    用于 /api/daily 端点的外部资讯部分。
+    """
+    from datetime import date as _date
+    ds = date_str or _date.today().isoformat()
+
+    items: list[dict] = []
+    for src in raw.get("sources", []):
+        if not src.get("ok"):
+            continue
+        for it in src.get("items", [])[:3]:
+            items.append(it)
+
+    if not items:
+        return {"date": ds, "ok": False, "items": [],
+                "summary": "今天外部资讯暂时拉不到，晚点再看看 🔮"}
+
+    # 取前 3 条作为"今日要点"
+    top = items[:3]
+    summaries = []
+    for i, it in enumerate(top):
+        summaries.append(f"{i+1}. {it['title'][:60]}")
+
+    summary = (
+        f"🌟 今天外部世界有 {len(top)} 件事值得关注：\n" + "\n".join(summaries)
+    )
+
+    return {
+        "date": ds,
+        "ok": True,
+        "items": [{"title": it["title"], "link": it["link"],
+                    "published": it.get("published", ""),
+                    "summary": it.get("summary", "")[:120]}
+                   for it in top],
+        "summary": summary,
+        "source_count": len(raw.get("sources", [])),
+    }
+
+
 if __name__ == "__main__":
     # 冒烟：本地直跑验证（走 7897 代理）
     import json
@@ -184,4 +226,8 @@ if __name__ == "__main__":
         print(f"[{status}] {s['title']}: {len(s['items'])} items")
         for it in s["items"][:2]:
             print(f"    - {it['title'][:60]} | {it['link'][:70]}")
-    print(json.dumps({"fetched_at": out["fetched_at"]}))
+    # 测试 fortune_wrap
+    fw = fortune_wrap(out)
+    print(f"\nfortune_wrap: ok={fw['ok']}, items={len(fw['items'])}")
+    print(json.dumps({"fetched_at": out["fetched_at"], "fortune": fw["summary"][:200]},
+                     ensure_ascii=False))

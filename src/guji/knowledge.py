@@ -226,3 +226,61 @@ class KnowledgeBase:
         r = self.db.execute(q).fetchone()
         return {"derived": r["d"], "evidence": r["e"], "threads": r["t"],
                 "turns": r["u"], "refusals": r["r"]}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    # -- 知命产品化：user_prefs / daily_cache / favorites (R002) ----------------------
+
+    def get_pref(self, key: str, default: str | None = None) -> str | None:
+        r = self.db.execute("SELECT value FROM user_prefs WHERE key=?", (key,)).fetchone()
+        return r["value"] if r else default
+
+    def set_pref(self, key: str, value: str) -> None:
+        self.db.execute(
+            "INSERT OR REPLACE INTO user_prefs (key, value, updated_at) VALUES (?,?,?)",
+            (key, value, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        self.db.commit()
+
+    def get_daily_cache(self, date: str) -> dict | None:
+        r = self.db.execute("SELECT * FROM daily_cache WHERE date=?", (date,)).fetchone()
+        if not r:
+            return None
+        import json
+        return {"date": r["date"],
+                "bazi": json.loads(r["bazi_result"]) if r["bazi_result"] else None,
+                "tarot": json.loads(r["tarot_result"]) if r["tarot_result"] else None}
+
+    def set_daily_cache(self, date: str, bazi: dict | None = None,
+                        tarot: dict | None = None) -> None:
+        import json
+        self.db.execute(
+            "INSERT OR REPLACE INTO daily_cache (date, bazi_result, tarot_result, created_at) "
+            "VALUES (?,?,?,?)",
+            (date,
+             json.dumps(bazi, ensure_ascii=False) if bazi else None,
+             json.dumps(tarot, ensure_ascii=False) if tarot else None,
+             time.strftime("%Y-%m-%dT%H:%M:%S")))
+        self.db.commit()
+
+    def add_favorite(self, ftype: str, ref_id: str, title: str) -> int:
+        cur = self.db.execute(
+            "INSERT INTO favorites (type, ref_id, title, created_at) VALUES (?,?,?,?)",
+            (ftype, ref_id, title, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        self.db.commit()
+        return cur.lastrowid
+
+    def list_favorites(self, ftype: str | None = None) -> list[sqlite3.Row]:
+        if ftype:
+            return self.db.execute(
+                "SELECT * FROM favorites WHERE type=? ORDER BY created_at DESC",
+                (ftype,)).fetchall()
+        return self.db.execute(
+            "SELECT * FROM favorites ORDER BY created_at DESC").fetchall()
+
+    def remove_favorite(self, fid: int) -> None:
+        self.db.execute("DELETE FROM favorites WHERE id=?", (fid,))
+        self.db.commit()
