@@ -58,7 +58,7 @@
   全部按钮点击后正常发请求并渲染结果。（八字排盘用的是正确的 `$('#year')`
   写法，未受影响）
 - 严重级：BLOCKER
-- 状态：OPEN
+- 状态：FIXED-R178b
 
 ### R000a-02 两书对照与概念研究按钮完全没有事件处理器
 - 复现：`grep -n 'cwBtn\|conceptBtn' web/static/index.html`（各仅 1 处命中）
@@ -68,7 +68,7 @@
 - 期望：点击后分别调用 `/api/compare_works`、`/api/concept` 并渲染
   （两端点实测均返回 200）
 - 严重级：BLOCKER
-- 状态：OPEN
+- 状态：FIXED-R178b
 
 ### R000a-03 读书页九个标签页与三个子标签点击无反应
 - 复现：`grep -n 'rtab\|rsec2' web/static/index.html`
@@ -79,7 +79,7 @@
   `:428`（dailyMore）
 - 期望：点击标签切换对应 `.rsec` 面板；`#dailyMore` 有明确行为
 - 严重级：BLOCKER
-- 状态：OPEN
+- 状态：FIXED-R178b
 
 ### R000a-04 三处响应字段名契约漂移导致结果区永远空白
 - 复现：起服务后 `curl http://127.0.0.1:8123/api/history`
@@ -90,7 +90,7 @@
   `:1034`（addresses）；后端 `web/app.py:299` `:307` `:500`
 - 期望：字段名以真实响应为准，或后端显式改契约并同步自测断言
 - 严重级：MAJOR
-- 状态：OPEN
+- 状态：FIXED-R178b
 
 ### R000a-05 排盘结果模板 `</strong>` 拼写损坏 + 研究线程请求体不匹配必然 422
 - 复现：`sed -n '963p' web/static/index.html`；
@@ -104,7 +104,7 @@
   后端 `web/schemas.py` `ThreadRecordRequest`
 - 期望：标签正确闭合；线程创建请求体符合 `ThreadRecordRequest`
 - 严重级：MAJOR
-- 状态：OPEN
+- 状态：FIXED-R178b
 
 ---
 

@@ -5136,3 +5136,139 @@ R128b/R130b 是优化轨领土 web/app.py self-test standing 断言加强
 清空。
 
 - 决策记录：DECISIONS.md D-127a。
+
+---
+
+## 109. [优化轨] R178b：web 层分层重构 + 移除 LLM + 前端拆分并修掉全部 OPEN BLOCKER/MAJOR（2026-08-20）
+
+**阶段**：REPAIR（`docs/PHASE.md` CURRENT_PHASE=REPAIR，本轨只读该文件，
+未改阶段标记——修复方不得自己宣布完工，宪法第一条）。
+
+**领土**：只改 `src/guji/**`、`web/**`。`scripts/`、`probes/`、
+`web_launcher.py`、`books_app.spec`、`docs/{AUDIT_FINDINGS,PHASE,OPTIMIZE_BACKLOG}.md`
+一律未动（两处必需改动已在下方「移交审查轨」登记）。
+
+### 1. 清偿 AUDIT_FINDINGS 的 5 条 OPEN（全部标 FIXED-R178b）
+
+| 条目 | 级别 | 修法 |
+|---|---|---|
+| R000a-01 | BLOCKER | 49 处 `$.rq.value`（把 `$` 函数当对象访问属性）。根因是两套 DOM 取值风格混用，不是笔误——`web/static/app.js` 只留一套 `el()/val()/num()/checked()`，全文无 `$.` 写法 |
+| R000a-02 | BLOCKER | `#cwBtn`→`doCompareWorks()`、`#conceptBtn`→`doConcept()` 接线 |
+| R000a-03 | BLOCKER | `.rtab` 九标签 + `data-rsec2` 三子标签改事件委托；三个 bookstudy 面板加 `.bssec` 互斥类（原本三个 div 永远同时显示）；`#dailyMore` 定义为「就地展开今日完整解读」并补 `#dailyDetail` 容器 |
+| R000a-04 | MAJOR | 字段名全部以 TestClient 实测响应为准：`j.llm_out`→`interpretation`、`j.items`→`records`、`j.addresses`→`evidence` |
+| R000a-05 | MAJOR | `index.html:963` 的 `</${esc(iv)}` 损坏模板 → `renderCalc()` 重写；`#threadBtn` 原发 `{topic}` 必得 422 → 改发符合 `ThreadRecordRequest` 的 `{kind:'refusal',claim,method}`（refusal 是唯一允许无证据的 kind，正好是「开一个空线程」的语义） |
+
+**顺带修掉 3 处同族契约漂移**（前端发的参数后端根本不认，不在缺陷清单里）：
+`/api/huangli` 前端发 `year/month/day` 而后端只认 `date=YYYY-MM-DD`（旧前端
+查任何日期都返回「今天」）；`/api/liuyao` 的 `<option value="dice">` 后端只认
+`coins|time`（必得 400）；`/api/works` 的键是 `id`/`units` 而非 `work_id`/`count`。
+
+### 2. 剩余重构清单 6 项全部完成
+
+1. `web/services.py`（新 869 行）业务编排层，返回纯 dict、**不 import fastapi**
+2. `web/routers/{bazi,reading,divination,product}.py` 按域拆分，只做 HTTP 绑定；
+   `web/errors.py` 统一 `ValidationError→400 / ComputeError→422 / NotFoundError→404`
+   （原 40 余处 `HTTPException` 散落各端点，同一条校验被复制三遍）
+3. `web/app.py` **2277 → 78 行**应用工厂（`create_app()`）
+4. `web/selftest.py` 独立承接原塞在 `__main__` 的 912 行自测，断言逐条保留
+5. 移除 LLM：`git rm src/guji/llm_reader.py llm_config.example.json`，删本地
+   `llm_config.json`（含真实 key，被 .gitignore 从未入版本史）。全部 `use_llm`
+   接线改为无条件 `interpretation` 字段（`guji.interpreter` 确定性规则引擎）。
+   `history.py` 的 `llm_json` **列名保留做向后兼容**，只改写入内容——库里 771 条
+   历史记录是旧形状，`list_records` 现在两种形状都能读（旧读 `model`、新读 `engine`）
+6. 前端拆 `web/static/{app.js,styles.css}`，`index.html` 1485 → 435 行
+
+### 3. 实测（宪法第一条：每条断言附可复现命令）
+
+```powershell
+cd C:\Users\Lenovo\Desktop\projects\books
+.\.venv\Scripts\python.exe web\selftest.py          # PASS (138 checks)
+.\.venv\Scripts\python.exe -m uvicorn web.app:app --port 8123   # 起服务
+.\.venv\Scripts\python.exe temp_ui_smoke.py         # 33/33 PASS, console errors=0
+```
+
+- **web selftest：130 → 138 checks 全 PASS**，无断言丢失。新增 8 条：
+  `bazi.interpretation.deterministic`（同输入两次输出逐字相同——LLM 做不到这条）、
+  `ask.interpretation.shape`、`static.styles.css`、`static.app.js`、
+  `tarot.draw.keys`、`daily.date`、`err.daily.date`、`llm.removed` + `llm.fields.absent`。
+  唯一改名：`ask.llm.shape` → `ask.interpretation.shape`（LLM 字段已不存在）。
+- **UI 冒烟 33/33 PASS，console error 0**：Playwright 无头浏览器逐个点击
+  15 个功能按钮 + 9 个读书标签 + 3 个子标签 + `#dailyMore`，每次点击后断言
+  「console 无新 error」且「结果容器非空且不含『失败/TypeError』」。
+  修复前同一脚本在首屏即抛 TypeError。
+- `src/guji/history.py` 自检修了一处**从来没跑过的断言**：末行
+  `assert count() == 0` 假设真实历史库为空（实际 771 条），必然失败。
+  改为计数守恒（写 2 删 2 回基线）。
+
+### 4. 对抗性复核（子 agent 独立跑，逐端点 diff 旧 app.py）
+
+用 `git show HEAD:web/app.py` 取回重构前原文，在同进程内与新 app 并跑，
+比对 OpenAPI 参数表、响应键集合、嵌套结构、76 个错误用例、41 个默认值/
+钳制边界。结论：参数缺失、默认值/钳制、状态码与 detail 文本、写副作用、
+端点遗漏**五类均无漂移**（含易错三处：qiming 计算失败仍 400 非 422、
+liuyao 转农历失败仍 400、threads 非法 kind 仍 400）。查出 3 条真实漂移，
+本轮已全部修掉并补 standing 断言：
+
+- `/api/tarot/draw` 多返回了未登记的 `draws` 键（与 `/api/tarot` 牌面重复
+  存放）→ 删除，顶层契约钉回 `card`+`interpretation`，补 `tarot.draw.keys` 断言。
+- `/api/daily` 的 `date` 从请求体改查询参数属**未登记行为变更**：旧实现把
+  `date` 声明为 GET 的 body 模型，`?date=…` 被完全忽略（查任何日期都返回今天）
+  ——那是 bug 不是契约，故保留修正，但补边界校验（非法日期 400），否则
+  `?date=garbage` 会往 `daily_cache` 落脏行。补 `daily.date` + `err.daily.date`。
+- `web/schemas.py` 的 `DailyRequest` 随之成为死代码 → 删除。
+
+### 5. 移交审查轨（宪法第五条：本轨禁改，不直接动手）
+
+删除 `src/guji/llm_reader.py` 打断了两个**审查轨领土**的文件，实测确认：
+
+- **`scripts/ask_bazi.py:91`** — `from guji import llm_reader` 硬 import。
+  实测 `--llm` 现报 `ImportError: cannot import name 'llm_reader' from 'guji'`
+  （不带 `--llm` 正常，13 道闸门不受影响——已逐个确认 13 个闸门脚本无一
+  引用 llm_reader/llm_config）。建议改法：`--llm` 参数整体删除，或改调
+  `interpreter.interpret_bazi(paipan, calc, evidence, question)`
+  （注意签名不同，`interpreter` 无 `interpret()`）；`available()` 与
+  `configured_model()` 在 `interpreter` 里有同名兼容实现。
+- **`books_app.spec:62`** — `hiddenimports` 仍列 `'guji.llm_reader'`，模块已
+  不存在会报缺失隐藏导入；同时**需新增 `'guji.interpreter'`**，否则打包后
+  确定性解读层缺失。
+- **`specs/002-product-rebrand/spec.md:114`** — 前置假设 A-001「LLM API key
+  已配置」作废（该文件是 spec，属禁改）。
+
+另建议审查轨把 UI 冒烟固化成 `probes/probe_ui_smoke.py`（`docs/PHASE.md`
+闸门 3 已点名该路径，但文件尚不存在；`probes/` 属审查轨领土，本轨不放）。
+本轮临时脚本已按纪律删除，判定标准记录在此以便重建（约 100 行 Playwright，
+`playwright` 已在共用 .venv 里，不需 pip install，不撞红线第 3 项）：
+
+1. 起服务于 8123，`page.on("console")` 收 `type=="error"`、`page.on("pageerror")`
+   收未捕获异常；**任何一条即 FAIL**（修复前首屏即抛 TypeError）。
+2. 首屏断言：`#dailyLevel` 文本 ∈ {吉,平,凶}（证明 `/api/daily` 接线且字段名对）；
+   `#histList`/`#recentList`/`#favoritesList` 三列表非空且不含「加载失败」
+   （抓 R000a-04 的 `records` vs `items` 漂移）。
+3. 逐个点 9 个 `.rtab[data-rsec]`：断言对应 `.rsec` 变可见且无新 console error。
+4. 填 `#bswork=KR1a0001`、`#bsaddr1=1` 后逐个点 3 个 `.rtab[data-rsec2]`：
+   断言对应面板有内容且不含「失败」（抓子标签无绑定 + 三面板同时显示）。
+5. 点 `#dailyMore`：等 `#dailyDetail .card` 出现，断言内容不含「失败」。
+6. 逐个点 15 个功能按钮（`#submit` `#searchBtn` `#researchBtn` `#addrBtn`
+   `#compareBtn` `#worksBtn` `#threadBtn` `#cwBtn` `#conceptBtn` `#lySubmit`
+   `#hlSubmit` `#qmSubmit` `#thSubmit` `#trSubmit` `#hhSubmit`）：读书类按钮
+   须先激活所属 `.rsec` 并填必需输入；每次点击后 `wait_for_function` 等结果
+   容器非空且不以「…中…」结尾，再断言文本不含
+   {失败, TypeError, undefined is not, Cannot read}。
+7. 本轮实测口径：**33 项判定 33 PASS，console error 总数 0**。
+
+**根目录遗留**：`test_all_apis.py`、`test_all_fix.py`、`test_debug.py`、
+`test_fields.py`、`test_hehun.py` 五个未跟踪调试脚本在本轮**开始前就已存在**
+（首次 `git status` 即为 `??`），非本轮产物。宪法第五条把「根目录 `temp_*.py`」
+划给审查轨，`test_*.py` 未点名归属，且删除他人未跟踪文件属不可逆操作——
+本轨不删、不提交，仅在此登记待裁定。本轮自己产生的 `temp_probe_shapes.py`
+与 `temp_ui_smoke.py` 已删除。
+
+**注**：`scripts\verify_index.py` 在 PowerShell 默认 GBK 控制台下退出码 1，
+报 `UnicodeEncodeError: 'gbk' codec can't encode character '\U0002b74a'`
+——这是**控制台编码**问题不是数据问题：加 `$env:PYTHONIOENCODING="utf-8"`
+后同一命令 `ALL PASS` 退出 0（T10 suspect=10 units/5 地址，T11 362 compared，
+median 0.991）。该文件属审查轨领土且与本轮改动零交集（`Select-String`
+查 `web|llm|interpreter|history` 零命中），本轨未动；建议审查轨在脚本内
+`sys.stdout.reconfigure(encoding="utf-8")` 一次性消除。
+
+- 决策记录：DECISIONS.md D-226b ~ D-230b。

@@ -4,396 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>知命 · 知书知命知天机</title>
-<!-- 知命 R002：奶油金箔风设计令牌 -->
-<style>
-  :root{
-    --bg:        #F5EFE6;       /* 暖奶油底 */
-    --card:      #FFFFFF;       /* 纯白卡片 */
-    --text:      #2A2420;       /* 深棕文字 */
-    --primary:   #B8860B;       /* 金箔金 */
-    --secondary: #9C6B3F;       /* 暖棕 */
-    --accent:    #C43E3E;       /* 干玫瑰红 */
-    --good:      #5B8C5A;       /* 墨绿 */
-    --border:    #E8DCC8;       /* 暖金细线 */
-    --shadow:    0 8px 32px rgba(184,134,11,.15);
-    --shadow-hover: 0 16px 48px rgba(184,134,11,.22);
-
-    /* 多巴胺运势风融合：模块彩色强调 */
-    --c-bazi:    #FF6B6B;       /* 珊瑚红 · 八字 */
-    --c-book:    #4ECDC4;       /* 青绿 · 读书 */
-    --c-tarot:   #A78BFA;       /* 紫罗兰 · 塔罗 */
-    --c-huangli: #FFE66D;       /* 明黄 · 黄历 */
-    --c-qiming:  #FF8E9E;       /* 樱粉 · 起名 */
-    --c-taohua:  #FFB347;       /* 橙 · 桃花 */
-    --c-liuyao:  #7ED957;       /* 嫩绿 · 六爻 */
-    --c-hehun:   #FF6B9D;       /* 玫红 · 合婚 */
-
-    --font-serif:  "Noto Serif TC","Songti SC","SimSun",serif;
-    --font-sans:   "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
-    --font-mono:   "Georgia",serif;
-
-    --radius: 18px;
-    --radius-sm: 12px;
-  }
-
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    background:var(--bg); color:var(--text);
-    font-family:var(--font-sans); font-size:16px; line-height:1.6;
-    min-height:100vh;
-  }
-  .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 80px;}
-
-  /* ── 品牌 ── */
-  .brand{display:flex; align-items:center; gap:14px; margin-bottom:8px;}
-  .brand-mark{
-    width:52px; height:52px; border-radius:18px;
-    background:linear-gradient(135deg,#FF6B6B,#FFE66D,#4ECDC4,#A78BFA);
-    background-size:300% 300%;
-    animation:bgShift 6s ease infinite;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-serif); font-size:28px; font-weight:700;
-    color:#fff; box-shadow:0 6px 24px rgba(184,134,11,.3);
-    flex-shrink:0;
-  }
-  @keyframes bgShift{
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
-  }
-  .brand-title{
-    font-family:var(--font-serif); font-size:38px; font-weight:700;
-    color:var(--text); letter-spacing:.04em; line-height:1.1;
-    background:linear-gradient(135deg,#B8860B,#FF6B6B,#B8860B);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    background-clip:text;
-    background-size:200% 200%;
-    animation:bgShift 8s ease infinite;
-  }
-  .brand-tagline{font-size:14px; color:var(--secondary); margin-top:2px; letter-spacing:.06em;}
-
-  /* ── 每日运势卡片 ── */
-  .daily-card{
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:28px 32px; margin:28px 0 24px;
-    box-shadow:var(--shadow); position:relative; overflow:hidden;
-  }
-  .daily-card::before{
-    content:""; position:absolute; top:0; left:0; right:0; height:5px;
-    background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));
-  }
-  .daily-top{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
-  .daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600;}
-  .daily-date{font-size:14px; color:var(--muted, #8C7B6B); font-family:monospace;}
-  .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
-  .daily-level{
-    width:80px; height:80px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-serif); font-size:36px; font-weight:700;
-    color:#fff; line-height:1; flex-shrink:0;
-    box-shadow:0 6px 24px rgba(0,0,0,.15);
-    transition:transform .3s ease;
-  }
-  .daily-level.good{background:linear-gradient(135deg,#5B8C5A,#7ED957);box-shadow:0 6px 24px rgba(92,140,90,.35);}
-  .daily-level.bad{background:linear-gradient(135deg,#C43E3E,#FF6B6B);box-shadow:0 6px 24px rgba(196,62,62,.35);}
-  .daily-level平{background:linear-gradient(135deg,#B8860B,#FFE66D);box-shadow:0 6px 24px rgba(184,134,11,.35);}
-  .daily-level:hover{transform:scale(1.08) rotate(-3deg);}
-  .daily-stars{font-size:28px; letter-spacing:6px;}
-  .daily-stars .star-good{color:#FFE66D;text-shadow:0 0 8px rgba(255,230,109,.5);}
-  .daily-stars .star-mid{color:#E8DCC8;}
-  .daily-stars .star-bad{color:#FF8E9E;}
-  .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
-  .daily-meta{display:flex; gap:20px; margin-top:18px; flex-wrap:wrap;}
-  .daily-meta-item{
-    display:flex; align-items:center; gap:6px;
-    font-size:14px; color:var(--secondary); background:#FFFCF7;
-    padding:6px 14px; border-radius:999px; border:1px solid var(--border);
-  }
-  .daily-meta-item strong{color:var(--primary); font-weight:600;}
-  .daily-more{
-    margin-top:18px; padding:10px 24px; width:auto; font-size:14px;
-    background:linear-gradient(135deg,#B8860B,#FFE66D); color:#fff;
-    border:none; border-radius:999px; cursor:pointer; font-weight:600;
-    transition:all .2s;
-  }
-  .daily-more:hover{transform:translateY(-2px); box-shadow:0 4px 16px rgba(184,134,11,.3);}
-
-  /* ── 功能卡片网格 ── */
-  .func-grid{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-    gap:16px; margin-bottom:32px;
-  }
-  @media (max-width:560px){ .func-grid{grid-template-columns:repeat(2,1fr);} }
-  .func-card{
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:24px 16px; text-align:center; cursor:pointer;
-    box-shadow:var(--shadow); transition:all .25s ease;
-    position:relative; overflow:hidden;
-  }
-  .func-card::after{
-    content:""; position:absolute; top:0; left:0; right:0; height:4px;
-    background:var(--card-accent, var(--primary));
-  }
-  .func-card:hover{
-    transform:translateY(-5px) rotate(-1deg);
-    box-shadow:var(--shadow-hover);
-    border-color:var(--card-accent, var(--primary));
-  }
-  .func-icon{
-    font-size:36px; margin-bottom:10px; line-height:1;
-    filter:grayscale(0.1);
-  }
-  .func-card:hover .func-icon{filter:grayscale(0);}
-  .func-name{font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;}
-  .func-desc{font-size:12px; color:var(--secondary); line-height:1.4;}
-  /* 多巴胺：每模块一色 */
-  .func-card[data-view="bazi"]   {--card-accent:var(--c-bazi);}
-  .func-card[data-view="read"]   {--card-accent:var(--c-book);}
-  .func-card[data-view="tarot"]  {--card-accent:var(--c-tarot);}
-  .func-card[data-view="huangli"]{--card-accent:var(--c-huangli);}
-  .func-card[data-view="qiming"]  {--card-accent:var(--c-qiming);}
-  .func-card[data-view="taohua"]  {--card-accent:var(--c-taohua);}
-  .func-card[data-view="liuyao"]  {--card-accent:var(--c-liuyao);}
-  .func-card[data-view="hehun"]   {--card-accent:var(--c-hehun);}
-
-  /* ── 最近解读 ── */
-  .recent-section{margin-top:36px;}
-  .section-title{
-    font-family:var(--font-serif); font-size:20px; font-weight:600;
-    color:var(--text); margin-bottom:16px; padding-bottom:10px;
-    border-bottom:1px solid var(--border);
-  }
-  .recent-list{display:flex; flex-direction:column; gap:10px;}
-  .recent-item{
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px 18px; display:flex; align-items:center; gap:14px;
-    box-shadow:0 2px 8px rgba(184,134,11,.06); transition:all .2s;
-  }
-  .recent-item:hover{box-shadow:var(--shadow); border-color:var(--primary);}
-  .recent-icon{font-size:22px; flex-shrink:0;}
-  .recent-info{flex:1; min-width:0;}
-  .recent-title{font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .recent-date{font-size:12px; color:var(--secondary); margin-top:2px;}
-  .recent-arrow{color:var(--primary); font-size:18px; flex-shrink:0;}
-
-  /* ── 视图容器 ── */
-  .view{display:none;}
-  .view.active{display:block; animation:fadeIn .4s ease;}
-  @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
-
-  /* ── 通用卡片 ── */
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:24px; margin-top:20px; box-shadow:var(--shadow);
-  }
-  .card h2{
-    font-family:var(--font-serif); font-size:20px; color:var(--text);
-    padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:16px;
-  }
-  .card h3{font-size:15px; color:var(--secondary); margin-bottom:8px;}
-
-  /* ── 表单 ── */
-  label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; font-weight:500;}
-  .row{display:flex; gap:12px; flex-wrap:wrap;}
-  .field{flex:1; min-width:96px;}
-  input[type=number], input[type=text], input[type=date], select{
-    width:100%; padding:10px 12px; font-size:15px;
-    border:1px solid var(--border); border-radius:var(--radius-sm);
-    background:#fff; color:var(--text);
-    transition:border-color .2s, box-shadow .2s;
-  }
-  input:focus, select:focus{
-    outline:none; border-color:var(--primary);
-    box-shadow:0 0 0 3px rgba(184,134,11,.15);
-  }
-  button{
-    margin-top:20px; padding:12px 28px; font-size:15px; width:auto; cursor:pointer;
-    background:linear-gradient(135deg,#B8860B,#FFE66D); color:#fff;
-    border:none; border-radius:999px; font-weight:600;
-    transition:all .25s cubic-bezier(.4,.2,.2,1); letter-spacing:.04em;
-    box-shadow:0 4px 16px rgba(184,134,11,.25);
-  }
-  button:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 8px 28px rgba(184,134,11,.35);}
-  button:active{transform:translateY(0) scale(.98);}
-  button:disabled{background:var(--border); color:var(--secondary); cursor:not-allowed;}
-  button.ghost{
-    background:transparent; color:var(--primary); border:2px solid var(--primary);
-  }
-  button.ghost:hover{background:var(--primary); color:#fff; transform:translateY(-2px);}
-
-  .error{color:var(--accent); margin-top:16px; font-size:14px;}
-  .status{color:var(--secondary); margin-top:16px; font-size:14px;}
-  .no-evidence{color:var(--secondary); font-size:14px; padding:20px; text-align:center;}
-
-  /* ── 结果展示 ── */
-  .result{margin-top:8px;}
-  .paipan-line{font-family:var(--font-serif); font-size:22px; color:var(--text); letter-spacing:.04em;}
-  .nayin{color:var(--secondary); font-size:14px; margin-top:6px;}
-  .warn{color:var(--accent); font-size:14px; margin-top:8px; font-weight:500;}
-
-  .calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-  @media (max-width:560px){ .calc-grid{grid-template-columns:1fr;} }
-  .calc-block{
-    background:#FFFCF7; border:1px solid var(--border);
-    border-radius:var(--radius-sm); padding:14px;
-  }
-  .calc-block h3{font-size:13px; color:var(--secondary); margin-bottom:8px;}
-  .calc-block ul{list-style:none;}
-  .calc-block li{font-size:14px; padding:3px 0; border-bottom:1px dashed var(--border);}
-  .calc-block li:last-child{border-bottom:none;}
-  .calc-block .basis{color:var(--secondary); font-size:12px;}
-  .calc-summary{
-    margin-top:12px; padding:14px; border-left:3px solid var(--primary);
-    background:#FFFCF7; border-radius:0 var(--radius-sm) var(--radius-sm) 0;
-    font-size:14px; line-height:1.7;
-  }
-
-  .pillar-tag{display:inline-block; font-size:12px; color:#fff;
-    background:var(--primary); border-radius:4px; padding:2px 8px; margin-right:6px;}
-
-  /* ── 引用/证据 ── */
-  .ev-item{padding:12px 0; border-bottom:1px solid var(--border);}
-  .ev-item:last-child{border-bottom:none;}
-  .ev-meta{font-size:12px; color:var(--secondary); font-family:monospace;}
-  .ev-text{font-family:var(--font-serif); font-size:15px; margin-top:6px; line-height:1.8;}
-  .ev-item.expanded .ev-text{display:block;}
-  .ev-toggle{font-size:13px; color:var(--primary); cursor:pointer; margin-top:6px; display:inline-block;}
-
-  .llm-badge{
-    display:inline-block; font-size:12px; color:#fff; background:var(--primary);
-    padding:2px 10px; border-radius:999px; margin-left:8px; vertical-align:middle;
-  }
-  .llm-text{font-size:15px; margin-top:12px; line-height:1.8;}
-  .llm-text h3, .llm-text h4{font-family:var(--font-serif); color:var(--text); margin:14px 0 6px;}
-  .llm-text h3{font-size:17px;} .llm-text h4{font-size:15px;}
-  .llm-text p{margin:6px 0;}
-  .llm-text ul, .llm-text ol{margin:6px 0 6px 22px;}
-  .llm-text li{margin:3px 0;}
-  .llm-text blockquote{
-    border-left:3px solid var(--primary); padding:4px 12px; margin:8px 0;
-    color:var(--secondary); background:#FFFCF7; border-radius:0 6px 6px 0;
-  }
-  .llm-text code{
-    background:var(--border); padding:1px 6px; border-radius:4px;
-    font-family:Consolas,monospace; font-size:13px;
-  }
-  .llm-text strong{color:var(--text);}
-  .llm-model{font-size:12px; color:var(--secondary); margin-top:10px;}
-  .footnote{color:var(--secondary); font-size:12px; margin-top:24px;}
-
-  /* ── 历史记录 ── */
-  .hist-panel{margin-top:24px;}
-  .hist-item{padding:10px 0; border-bottom:1px solid var(--border);}
-  .hist-item:last-child{border-bottom:none;}
-  .hist-time{font-size:12px; color:var(--secondary); font-family:monospace;}
-  .hist-q{font-size:14px; color:var(--text); margin-top:4px; font-weight:500;}
-  .hist-p{font-size:13px; color:var(--secondary); margin-top:4px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .hist-actions{display:flex; gap:8px; margin-top:6px;}
-  .hist-actions button{margin:0; padding:4px 12px; font-size:12px; width:auto; border-radius:5px;}
-  .hist-del{background:var(--accent) !important; color:#fff;}
-  .hist-view{background:var(--primary) !important; color:#fff;}
-  .hist-banner{
-    font-size:13px; color:#fff; background:var(--primary);
-    padding:8px 14px; border-radius:6px; margin-bottom:4px;
-  }
-
-  /* ── 新闻 ── */
-  .news-panel{margin-top:24px;}
-  .news-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-  .news-refresh{margin:0; padding:4px 14px; font-size:12px; width:auto; border-radius:999px;
-    background:transparent; color:var(--primary); border:1px solid var(--border);}
-  .news-src{font-size:13px; color:var(--text); font-weight:600;
-    margin-top:14px; padding-bottom:4px; border-bottom:1px solid var(--border);}
-  .news-item{padding:8px 0; border-bottom:1px dashed var(--border);}
-  .news-item:last-child{border-bottom:none;}
-  .news-item a{color:var(--text); text-decoration:none; font-size:14px;}
-  .news-item a:hover{color:var(--primary);}
-  .news-time{display:block; font-size:11px; color:var(--secondary); margin-top:3px;}
-  .news-meta{font-size:12px; color:var(--secondary); margin-top:10px;}
-  .news-err{font-size:13px; color:var(--accent); margin-top:8px;}
-
-  /* ── 内部 tab ── */
-  .rtabs{display:flex; gap:6px; margin:16px 0 4px; flex-wrap:wrap;}
-  .rtab{
-    margin:0; padding:6px 14px; font-size:13px; width:auto; border-radius:999px;
-    background:var(--border); color:var(--secondary); cursor:pointer;
-    transition:all .2s;
-  }
-  .rtab:hover{background:var(--primary); color:#fff;}
-  .rtab.active{background:var(--primary); color:#fff; font-weight:500;}
-  .rsec{display:none;}
-  .rsec.active{display:block;}
-
-  /* ── 工具类 ── */
-  table.works{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px;}
-  table.works th, table.works td{
-    text-align:left; padding:6px 8px; border-bottom:1px solid var(--border);
-  }
-  table.works th{color:var(--primary); font-weight:600; white-space:nowrap;}
-  table.works td.num{text-align:right; font-family:Consolas,monospace;}
-  .thread-item{padding:10px 0; border-bottom:1px solid var(--border);}
-  .thread-item:last-child{border-bottom:none;}
-  .thread-topic{font-size:15px; font-weight:500; color:var(--text);}
-  .thread-meta{font-size:12px; color:var(--secondary); margin-top:4px; font-family:Consolas,monospace;}
-  .thread-actions{display:flex; gap:8px; margin-top:6px;}
-  .thread-actions button{margin:0; padding:4px 12px; font-size:12px; width:auto; border-radius:5px;}
-  .thread-view{background:var(--primary) !important; color:#fff;}
-  .turn-user{font-size:13px; color:var(--primary); background:var(--border);
-    padding:8px 12px; border-radius:6px; margin:8px 0;}
-  .turn-assistant{font-size:13px; color:var(--text); padding:8px 12px; margin:8px 0; background:#FFFCF7;}
-  .claim-box{border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin:8px 0;}
-  .claim-kind{display:inline-block; font-size:11px; color:#fff;
-    background:var(--primary); border-radius:4px; padding:1px 8px; margin-right:6px;}
-  .claim-conf{font-size:11px; color:var(--secondary); margin-left:6px;}
-  .claim-ev{font-size:12px; color:var(--secondary); margin-top:6px; font-family:monospace;}
-
-  .cmp-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  @media (max-width:900px){ .cmp-grid{grid-template-columns:1fr;} }
-  .cmp-wit{background:#FFFCF7; border:1px solid var(--border); border-radius:8px; padding:10px 12px;}
-  .cmp-wit h3{font-size:13px; color:var(--secondary); margin-bottom:6px; word-break:break-all;}
-  .cmp-wit p{font-size:14px; font-family:var(--font-serif); line-height:1.7;}
-  .finding{
-    padding:8px 10px; border-left:3px solid var(--primary); background:#FFFCF7;
-    border-radius:0 6px 6px 0; font-size:13px; margin-top:8px; font-family:monospace;
-    word-break:break-all;
-  }
-  .hit-cite{font-size:12px; color:var(--secondary); font-family:monospace; word-break:break-all;}
-  .hit-disc{font-size:12px; color:var(--primary); margin-top:4px;}
-  .hit-score{font-size:11px; color:var(--secondary); font-family:monospace; margin-left:8px;}
-
-  @media (max-width:480px){ .field{min-width:44%;} .brand-title{font-size:28px;} }
-  @media (max-width:560px){ .daily-main{flex-direction:column; align-items:flex-start;} }
-
-  @media (prefers-reduced-motion: reduce){
-    *, *::before, *::after{transition:none !important; animation:none !important;}
-  }
-
-  /* ── 塔罗牌卡 ── */
-  .tarot-card-wrap{perspective:1000px; width:140px; height:210px; margin:0 auto;}
-  .tarot-card-inner{
-    position:relative; width:100%; height:100%;
-    transform-style:preserve-3d; transition:transform .8s cubic-bezier(.4,.2,.2,1);
-  }
-  .tarot-card-inner.flipped{transform:rotateY(180deg);}
-  .tarot-card-face{
-    position:absolute; inset:0; border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-serif); font-size:40px; color:#fff;
-    backface-visibility:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15);
-  }
-  .tarot-card-back{
-    background:linear-gradient(135deg,#B8860B,#8B5E2C);
-    border:2px solid #E8C97A;
-  }
-  .tarot-card-front{
-    background:var(--card); border:2px solid var(--border);
-    transform:rotateY(180deg); color:var(--text); font-size:14px; padding:12px;
-    text-align:center; overflow:hidden;
-  }
-  .tarot-card-front .tname{font-size:16px; font-weight:600; margin-bottom:4px;}
-  .tarot-card-front .tmeaning{font-size:12px; color:var(--secondary);}
-</style>
+<!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
+     643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
+<link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
 <div class="wrap">
@@ -425,33 +38,35 @@
       <div class="daily-meta-item">✅ 宜：<strong id="dailyDo">—</strong></div>
       <div class="daily-meta-item">❌ 忌：<strong id="dailyDont">—</strong></div>
     </div>
-    <button class="daily-more" id="dailyMore">🔍 查看完整解读 →</button>
+    <button class="daily-more" id="dailyMore" type="button">🔍 查看完整解读 →</button>
+    <!-- #dailyMore 的落点：原来只有按钮没有处理器也没有容器（R000a-03） -->
+    <div class="daily-detail" id="dailyDetail" hidden></div>
   </div>
 
   <!-- 功能卡片 -->
   <div class="func-grid" id="funcGrid">
-    <div class="func-card" data-view="bazi">
+    <div class="func-card" data-view="bazi" role="button" tabindex="0">
       <div class="func-icon">🔮</div><div class="func-name">八字排盘</div><div class="func-desc">四柱五行 · 大运流年</div>
     </div>
-    <div class="func-card" data-view="read">
+    <div class="func-card" data-view="read" role="button" tabindex="0">
       <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍检索比对</div>
     </div>
-    <div class="func-card" data-view="tarot">
+    <div class="func-card" data-view="tarot" role="button" tabindex="0">
       <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽牌看指引</div>
     </div>
-    <div class="func-card" data-view="huangli">
+    <div class="func-card" data-view="huangli" role="button" tabindex="0">
       <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
     </div>
-    <div class="func-card" data-view="qiming">
+    <div class="func-card" data-view="qiming" role="button" tabindex="0">
       <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
     </div>
-    <div class="func-card" data-view="taohua">
+    <div class="func-card" data-view="taohua" role="button" tabindex="0">
       <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
     </div>
-    <div class="func-card" data-view="liuyao">
+    <div class="func-card" data-view="liuyao" role="button" tabindex="0">
       <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
     </div>
-    <div class="func-card" data-view="hehun">
+    <div class="func-card" data-view="hehun" role="button" tabindex="0">
       <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
     </div>
   </div>
@@ -464,11 +79,7 @@
 
   <div class="recent-section" style="margin-top:28px;">
     <div class="section-title">❤️ 我的收藏</div>
-    <div class="recent-list" id="favoritesList">
-      <div class="recent-item"><span class="recent-icon">🌟</span>
-        <div class="recent-info"><div class="recent-title">还没有收藏，看到喜欢的解读就点 ❤️ 吧</div><div class="recent-date">去排盘 →</div></div>
-        <span class="recent-arrow">→</span></div>
-    </div>
+    <div class="recent-list" id="favoritesList"></div>
   </div>
 
   <!-- 视图容器（功能卡片点击后切换） -->
@@ -514,17 +125,15 @@
         </div>
         <label for="question">想了解什么？（可选）</label>
         <input id="question" type="text" placeholder="例如：今天运势如何？事业运如何？">
-        <div class="check" style="margin-top:12px;">
-          <input id="use_llm" type="checkbox">
-          <label for="use_llm" style="margin:0; font-weight:400;">✨ LLM 博主解读（需服务端已配置）</label>
-        </div>
+        <!-- R178b：原此处有 use_llm 复选框（"✨ LLM 博主解读（需服务端已配置）"）。
+             LLM 层已整体移除，解读改为无条件的确定性规则输出，开关不再存在。 -->
         <button id="submit" type="submit">排 盘 推 算</button>
         <div class="error" id="error" hidden></div>
         <div class="status" id="status" hidden></div>
       </form>
 
       <div class="result" id="result" hidden></div>
-      <p class="footnote">运算结论为系统按命理规则计算的坐标事实（可核验）；古籍原文证据带出处；LLM 解读为生成文本，不构成现实决策依据。</p>
+      <p class="footnote">运算结论为系统按命理规则计算的坐标事实（可核验）；古籍原文证据带出处；解读为系统按写死规则对坐标的转述（非生成文本、同输入必同输出），不构成现实决策依据。</p>
 
       <div class="news-panel card">
         <div class="news-head">
@@ -579,8 +188,8 @@
         <div class="row">
           <div class="field" style="flex:3;"><label for="rq2">查询词</label>
             <input id="rq2" type="text" placeholder="如：無為"></div>
-          <div class="field"><label for="rmax">最大地址数</label>
-            <input id="rmax" type="number" min="1" max="20" value="2"></div>
+          <div class="field"><label for="rmax">最大地址数（1–6）</label>
+            <input id="rmax" type="number" min="1" max="6" value="2"></div>
         </div>
         <button id="researchBtn" type="button">研 究</button>
         <div id="researchResult" style="margin-top:16px;"></div>
@@ -647,7 +256,7 @@
 
       <!-- 读书 -->
       <section class="rsec" id="rsec-bookstudy">
-        <h3>读书（章节/摘要）</h3>
+        <h3>读书（结构/章节/摘要）</h3>
         <div class="row">
           <div class="field"><label for="bswork">书 ID</label>
             <input id="bswork" type="text" placeholder="如：KR1a0001"></div>
@@ -659,19 +268,20 @@
               <option value="booksec">booksec</option>
               <option value="play">play</option>
               <option value="euclid">euclid</option>
-              <option value="">NULL</option>
             </select></div>
           <div class="field"><label for="bsaddr1">地址1</label>
             <input id="bsaddr1" type="number" placeholder="如：1"></div>
         </div>
         <div class="rtabs" style="margin-top:12px;">
-          <button class="rtab active" data-rsec2="bs-structure" type="button">结构</button>
-          <button class="rtab" data-rsec2="bs-chapter" type="button">章节</button>
-          <button class="rtab" data-rsec2="bs-summary" type="button">摘要</button>
+          <button class="rtab active" data-rsec2="bsStructure" type="button">结构</button>
+          <button class="rtab" data-rsec2="bsChapter" type="button">章节</button>
+          <button class="rtab" data-rsec2="bsSummary" type="button">摘要</button>
         </div>
-        <div id="bsStructure" style="margin-top:12px;"></div>
-        <div id="bsChapter" style="margin-top:12px;"></div>
-        <div id="bsSummary" style="margin-top:12px;"></div>
+        <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
+             且三个子标签完全没有事件绑定 —— R000a-03）。 -->
+        <div class="bssec active" id="bsStructure" style="margin-top:12px;"></div>
+        <div class="bssec" id="bsChapter" style="margin-top:12px;"></div>
+        <div class="bssec" id="bsSummary" style="margin-top:12px;"></div>
       </section>
 
       <!-- 两书对照 -->
@@ -679,11 +289,11 @@
         <h3>两书对照</h3>
         <div class="row">
           <div class="field"><label for="cwa">书 A</label>
-            <input id="cwa" type="text" placeholder="如：KR5c0057"></div>
+            <input id="cwa" type="text" value="KR5c0057" placeholder="如：KR5c0057"></div>
           <div class="field"><label for="cwb">书 B</label>
-            <input id="cwb" type="text" placeholder="如：KR5c0126"></div>
+            <input id="cwb" type="text" value="KR5c0126" placeholder="如：KR5c0126"></div>
           <div class="field"><label for="cwq">查询词</label>
-            <input id="cwq" type="text" placeholder="如：無爲"></div>
+            <input id="cwq" type="text" value="無爲" placeholder="如：無爲"></div>
         </div>
         <button id="cwBtn" type="button">对 照</button>
         <div id="cwResult" style="margin-top:16px;"></div>
@@ -694,7 +304,7 @@
         <h3>概念研究</h3>
         <div class="row">
           <div class="field" style="flex:3;"><label for="cq">概念</label>
-            <input id="cq" type="text" placeholder="如：無為"></div>
+            <input id="cq" type="text" placeholder="如：無爲"></div>
         </div>
         <button id="conceptBtn" type="button">研 究</button>
         <div id="conceptResult" style="margin-top:16px;"></div>
@@ -702,13 +312,14 @@
     </div>
   </div>
 
-  <!-- 其余视图（六爻/黄历/起名/桃花/塔罗/合婚） -->
+  <!-- 六爻 -->
   <div class="view" id="view-liuyao">
     <div class="card">
       <h2>🔮 六爻占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">摇卦断事</span></h2>
       <div class="row">
         <div class="field"><label for="ly_method">起卦方式</label>
-          <select id="ly_method"><option value="time">时间起卦</option><option value="dice">铜钱起卦</option></select></div>
+          <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
+          <select id="ly_method"><option value="time">时间起卦</option><option value="coins">铜钱起卦</option></select></div>
         <div class="field"><label for="ly_year">年</label>
           <input id="ly_year" type="number" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="ly_month">月</label>
@@ -729,6 +340,7 @@
     </div>
   </div>
 
+  <!-- 黄历 -->
   <div class="view" id="view-huangli">
     <div class="card">
       <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>
@@ -745,6 +357,7 @@
     </div>
   </div>
 
+  <!-- 起名 -->
   <div class="view" id="view-qiming">
     <div class="card">
       <h2>🌸 五行起名 <span style="font-size:14px;color:var(--secondary);font-weight:400;">补五行 · 起好名</span></h2>
@@ -767,6 +380,7 @@
     </div>
   </div>
 
+  <!-- 桃花 -->
   <div class="view" id="view-taohua">
     <div class="card">
       <h2>🌺 桃花运 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看桃花 · 知缘分</span></h2>
@@ -787,14 +401,15 @@
     </div>
   </div>
 
+  <!-- 塔罗 -->
   <div class="view" id="view-tarot">
     <div class="card">
       <h2>✨ 塔罗占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">抽牌 · 看指引</span></h2>
       <div class="row">
         <div class="field"><label for="tr_seed">Seed</label>
           <input id="tr_seed" type="number" value="42"></div>
-        <div class="field"><label for="tr_n">张数</label>
-          <input id="tr_n" type="number" min="1" max="10" value="1"></div>
+        <div class="field"><label for="tr_n">张数（1–10）</label>
+          <input id="tr_n" type="number" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
           <input id="tr_question" type="text" placeholder="可选，如：今天运势如何？"></div>
       </div>
@@ -803,6 +418,7 @@
     </div>
   </div>
 
+  <!-- 合婚 -->
   <div class="view" id="view-hehun">
     <div class="card">
       <h2>💕 八字合婚 <span style="font-size:14px;color:var(--secondary);font-weight:400;">两人八字 · 缘分深浅</span></h2>
@@ -837,649 +453,6 @@
 
 </div><!-- /wrap -->
 
-<script>
-// ── $() 快捷函数 ──
-function $(id) {
-  if (typeof id === 'string') {
-    if (id.startsWith('#')) return document.getElementById(id.slice(1));
-    return document.querySelector(id);
-  }
-  return id;
-}
-
-// ── 视图切换 ──
-function showView(viewId) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const target = document.getElementById('view-' + viewId);
-  if (target) target.classList.add('active');
-  // 更新功能卡片高亮
-  document.querySelectorAll('.func-card').forEach(c => {
-    c.style.borderColor = c.dataset.view === viewId ? 'var(--primary)' : '';
-  });
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-
-document.querySelectorAll('.func-card').forEach(card => {
-  card.addEventListener('click', () => showView(card.dataset.view));
-});
-
-// ── 每日运势 ──
-async function loadDaily() {
-  try {
-    const resp = await fetch('/api/daily');
-    const j = await resp.json();
-    document.getElementById('dailyDate').textContent = j.date || '今天';
-    const levelEl = document.getElementById('dailyLevel');
-    const level = j.level || '平';
-    levelEl.textContent = level;
-    levelEl.className = 'daily-level ' + (level === '吉' ? 'good' : level === '凶' ? 'bad' : '平');
-    // 多巴胺彩色星级
-    let stars = '';
-    if (level === '吉') stars = '<span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span>';
-    else if (level === '平') stars = '<span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-mid">☆</span><span class="star-mid">☆</span>';
-    else stars = '<span class="star-bad">★</span><span class="star-mid">☆</span><span class="star-mid">☆</span><span class="star-mid">☆</span><span class="star-mid">☆</span>';
-    document.getElementById('dailyStars').innerHTML = stars;
-    document.getElementById('dailySummary').textContent = j.summary || '';
-    document.getElementById('dailyNoble').textContent = j.noble || '—';
-    document.getElementById('dailyDo').textContent = j.do || '—';
-    document.getElementById('dailyDont').textContent = j.dont || '—';
-  } catch(e) {
-    document.getElementById('dailySummary').textContent = '运势计算暂时不可用';
-  }
-}
-
-// 加载外部资讯运势
-async function loadExternalFortune() {
-  try {
-    const resp = await fetch('/api/external/fortune');
-    const j = await resp.json();
-    if (j.ok && j.summary) {
-      const newsList = $('#newsList');
-      newsList.innerHTML = `<div class="llm-text">${esc(j.summary)}</div>`;
-      (j.items||[]).forEach(it => {
-        const newsList2 = $('#newsList');
-        newsList2.innerHTML += `<div class="news-item"><a href="${esc(it.link)}" target="_blank">${esc(it.title||'')}</a><span class="news-time">${esc(it.published||'')}</span></div>`;
-      });
-    }
-  } catch(e) { /* external fortune is best-effort */ }
-}
-loadExternalFortune();
-
-// ── esc 工具 ──
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-// ── 以下为原有功能的 JS 处理器（从原 index.html 迁移） ──
-
-// 八字排盘
-$('#form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const r = $('#result'); r.hidden = false;
-  r.innerHTML = '<div class="no-evidence">计算中…</div>';
-  const body = {
-    year: parseInt($('#year').value, 10),
-    month: parseInt($('#month').value, 10),
-    day: parseInt($('#day').value, 10),
-    hour: parseInt($('#hour').value, 10),
-    gender: $('#gender').value,
-    calendar_type: $('#calendar_type').value,
-    scope: $('#scope').value,
-    question: $('#question').value || undefined,
-    use_llm: $('#use_llm').checked,
-  };
-  try{
-    const resp = await fetch('/api/bazi', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
-    let html = `<div class="card"><h2>🔮 排盘结果</h2>`;
-    html += `<button class="ghost" style="position:absolute;top:24px;right:24px;margin:0;" onclick="addFavorite('bazi','latest','八字排盘')" title="收藏">❤️ 收藏</button>`;
-    // 四柱彩色 pill
-    const paipan = j.paipan || {};
-    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;">`;
-    const pillars = (paipan.render||'').split(/\s+/);
-    const pillColors = ['var(--c-bazi)','var(--c-tarot)','var(--c-huangli)','var(--c-book)'];
-    pillars.forEach((p, i) => {
-      if (p.length >= 2) {
-        html += `<span style="background:${pillColors[i%4]};color:#fff;padding:6px 14px;border-radius:999px;font-family:var(--font-serif);font-size:16px;font-weight:600;">${esc(p)}</span>`;
-      }
-    });
-    html += `</div>`;
-    if (paipan.nayin) html += `<p class="nayin" style="margin-top:12px;">${esc(paipan.nayin.join(' · '))}</p>`;
-    if (j.calc) {
-      const blockColors = ['var(--c-bazi)','var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)'];
-      let bi = 0;
-      html += '<div class="calc-grid">';
-      for (const [k, v] of Object.entries(j.calc)) {
-        if (k === 'summary') continue;
-        const color = blockColors[bi % blockColors.length]; bi++;
-        html += `<div class="calc-block" style="border-left:3px solid ${color};"><h3 style="color:${color};">${esc(k)}</h3>`;
-        if (Array.isArray(v)) {
-          v.forEach(item => {
-            if (typeof item === 'object') {
-              html += '<ul>';
-              for (const [ik, iv] of Object.entries(item)) {
-                html += `<li><strong>${esc(ik)}：</${esc(iv)}`;
-                if (item.basis) html += `<span class="basis"> [${esc(item.basis)}]</span>`;
-                html += '</li>';
-              }
-              html += '</ul>';
-            } else {
-              html += `<li>${esc(item)}</li>`;
-            }
-          });
-        } else {
-          html += `<p>${esc(v)}</p>`;
-        }
-        html += '</div>';
-      }
-      html += '</div>';
-      if (j.calc.summary) html += `<div class="calc-summary">${esc(j.calc.summary)}</div>`;
-    }
-    if (j.evidence && j.evidence.length) {
-      html += `<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>`;
-      j.evidence.forEach((ev, i) => {
-        html += `<div class="ev-item"><div class="ev-meta">${esc(ev.citation||'')}</div>
-          <div class="ev-text">${esc(ev.text||'')}</div></div>`;
-      });
-    }
-    if (j.llm_out) {
-      html += `<h3 style="margin-top:20px;color:var(--c-tarot);">✨ LLM 解读 <span class="llm-badge">${esc(j.llm_out.model||'LLM')}</span></h3>`;
-      html += `<div class="llm-text">${esc(j.llm_out.text||'')}</div>`;
-    }
-    html += '</div>';
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
-});
-
-// 检索
-$('#searchBtn').addEventListener('click', async () => {
-  const r = $('#searchResult'); r.innerHTML = '<div class="no-evidence">检索中…</div>';
-  const params = new URLSearchParams();
-  if ($.rq.value) params.set('q', $.rq.value);
-  if ($.rlayer.value) params.set('layer', $.rlayer.value);
-  if ($.rwork.value) params.set('work', $.rwork.value);
-  try{
-    const resp = await fetch('/api/search?' + params);
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'检索失败')}</div>`; return; }
-    let html = '';
-    if (j.hits && j.hits.length) {
-      const layerColors = {'經':'var(--c-book)','傳':'var(--c-tarot)','注':'var(--c-huangli)','疏':'var(--c-qiming)','箋':'var(--c-taohua)','緒':'var(--c-liuyao)','衍':'var(--c-hehun)','評':'var(--c-bazi)','纂':'var(--c-book)','misc':'var(--secondary)'};
-      j.hits.forEach((h, i) => {
-        const lc = layerColors[h.layer] || 'var(--primary)';
-        html += `<div class="ev-item" style="border-left:3px solid ${lc};padding-left:14px;">`;
-        html += `<div class="ev-meta" style="color:${lc};">${esc(h.citation||'')}</div>`;
-        html += `<div class="hit-disc" style="font-family:var(--font-serif);font-size:15px;margin-top:6px;">${esc(h.text||'')}</div>`;
-        if (h.score) html += `<div class="hit-score">相关度：${esc(h.score)}</div>`;
-        html += `</div>`;
-      });
-    } else { html = '<div class="no-evidence">🔍 无命中，换个词试试？</div>'; }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">检索失败：${esc(ex.message)}</div>`; }
-});
-
-// 深度研究
-$('#researchBtn').addEventListener('click', async () => {
-  const r = $('#researchResult'); r.innerHTML = '<div class="no-evidence">研究中…</div>';
-  const params = new URLSearchParams();
-  if ($.rq2.value) params.set('q', $.rq2.value);
-  if ($.rmax.value) params.set('max_addresses', $.rmax.value);
-  try{
-    const resp = await fetch('/api/research?' + params);
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'研究失败')}</div>`; return; }
-    let html = '';
-    if (j.addresses && j.addresses.length) {
-      j.addresses.forEach((a, i) => {
-        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)'];
-        const c = colors[i % colors.length];
-        html += `<div class="ev-item" style="border-left:3px solid ${c};padding-left:14px;">`;
-        html += `<div class="ev-meta" style="color:${c};">${esc(a.addr||'')}</div>`;
-        html += `<div class="ev-text">${esc(a.text||'')}</div>`;
-        html += `</div>`;
-      });
-    } else { html = '<div class="no-evidence">🔍 无命中，换个词试试？</div>'; }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">研究失败：${esc(ex.message)}</div>`; }
-});
-
-// 定位
-$('#addrBtn').addEventListener('click', async () => {
-  const r = $('#addrResult'); r.innerHTML = '<div class="no-evidence">定位中…</div>';
-  const params = new URLSearchParams();
-  params.set('scheme', $.ascheme.value);
-  if ($.aguan.value) params.set('gua', $.aguan.value);
-  if ($.ayao.value) params.set('yao', $.ayao.value);
-  if ($.aname.value) params.set('addr_name', $.aname.value);
-  if ($.aaddr1.value) params.set('addr1', $.aaddr1.value);
-  if ($.aaddr2.value) params.set('addr2', $.aaddr2.value);
-  try{
-    const resp = await fetch('/api/addr?' + params);
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'定位失败')}</div>`; return; }
-    let html = '';
-    if (j.hits && j.hits.length) {
-      j.hits.forEach((h, i) => {
-        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)','var(--c-liuyao)'];
-        const c = colors[i % colors.length];
-        html += `<div class="ev-item" style="border-left:3px solid ${c};padding-left:14px;">`;
-        html += `<div class="ev-meta" style="color:${c};">${esc(h.citation||'')}</div>`;
-        html += `<div class="ev-text">${esc(h.text||'')}</div>`;
-        html += `</div>`;
-      });
-    } else { html = '<div class="no-evidence">🔍 无命中，换个定位参数？</div>'; }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">定位失败：${esc(ex.message)}</div>`; }
-});
-
-// 比向
-$('#compareBtn').addEventListener('click', async () => {
-  const r = $('#compareResult'); r.innerHTML = '<div class="no-evidence">比对中…</div>';
-  const params = new URLSearchParams();
-  if ($.cgua.value) params.set('gua', $.cgua.value);
-  if ($.cyao.value) params.set('yao', $.cyao.value);
-  try{
-    const resp = await fetch('/api/compare?' + params);
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'比对失败')}</div>`; return; }
-    let html = '';
-    if (j.findings && j.findings.length) {
-      j.findings.forEach((f, i) => {
-        const colors = ['var(--c-bazi)','var(--c-book)','var(--c-tarot)','var(--c-huangli)'];
-        const c = colors[i % colors.length];
-        html += `<div class="finding" style="border-left-color:${c};background:linear-gradient(90deg,${c}11,#fff);">${esc(f.text||'')}</div>`;
-      });
-    } else { html = '<div class="no-evidence">🔍 无发现，换个卦爻试试？</div>'; }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">比对失败：${esc(ex.message)}</div>`; }
-});
-
-// 书目
-$('#worksBtn').addEventListener('click', async () => {
-  const r = $('#worksResult'); r.innerHTML = '<div class="no-evidence">加载中…</div>';
-  try{
-    const resp = await fetch('/api/works');
-    const j = await resp.json();
-    let html = '';
-    const works = j.works||[];
-    if (works.length) {
-      html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">`;
-      works.forEach((w, i) => {
-        const colors = ['var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)','var(--c-bazi)','var(--c-liuyao)','var(--c-taohua)','var(--c-hehun)'];
-        const c = colors[i % colors.length];
-        html += `<div class="calc-block" style="border-left:3px solid ${c};cursor:pointer;" onclick="searchByWork('${esc(w.work_id||w.id)}')">
-          <h3 style="color:${c};font-size:14px;">${esc(w.title||w.work_id||'')}</h3>
-          <p style="font-size:12px;color:var(--secondary);margin-top:4px;">${esc(w.work_id||'')} · ${esc(w.source||'')}</p>
-          <p style="font-size:18px;color:${c};font-weight:600;margin-top:6px;">${esc(w.units||w.count||'?')}</p>
-          <p style="font-size:11px;color:var(--secondary);">单元</p>
-        </div>`;
-      });
-      html += `</div>`;
-    } else { html = '<div class="no-evidence">暂无书目</div>'; }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">加载失败：${esc(ex.message)}</div>`; }
-});
-
-// 书目卡片点击 → 按书名搜索
-function searchByWork(workId) {
-  $.rwork.value = workId;
-  $('#searchBtn').click();
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-read').classList.add('active');
-}
-
-// 研究线程
-$('#threadBtn').addEventListener('click', async () => {
-  const r = $('#threadResult'); r.innerHTML = '<div class="no-evidence">创建中…</div>';
-  try{
-    const resp = await fetch('/api/threads', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({topic: $.tq.value || '新线程'}),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'创建失败')}</div>`; return; }
-    r.innerHTML = `<div class="no-evidence">线程已创建：${esc(j.thread_id||j.id||'')}</div>`;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">创建失败：${esc(ex.message)}</div>`; }
-});
-
-// 六爻
-$('#lySubmit').addEventListener('click', async () => {
-  const r = $('#lyResult'); r.innerHTML = '<div class="no-evidence">摇卦中…</div>';
-  const body = {
-    method: $.ly_method.value,
-    seed: parseInt($.ly_seed.value, 10),
-    year: parseInt($.ly_year.value, 10),
-    month: parseInt($.ly_month.value, 10),
-    day: parseInt($.ly_day.value, 10),
-    hour: parseInt($.ly_hour.value, 10),
-    question: $.ly_question.value || undefined,
-  };
-  try{
-    const resp = await fetch('/api/liuyao', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'摇卦失败')}</div>`; return; }
-    let html = `<div class="card"><h2>🔮 六爻卦象</h2>`;
-    const ben = j.ben || {};
-    if (ben.gua_name) html += `<p class="paipan-line" style="font-size:28px;color:var(--c-liuyao);">${esc(ben.gua_name)} ${esc(ben.label||'')}</p>`;
-    if (ben.moving_lines && ben.moving_lines.length) html += `<p style="margin-top:8px;"><span style="background:var(--c-liuyao);color:#fff;padding:2px 10px;border-radius:999px;font-size:13px;">变爻</span> ${esc(ben.moving_lines.map(l=>l.position).join('、'))}</p>`;
-    const bian = j.bian || {};
-    if (bian.gua_name && bian.gua_name !== ben.gua_name) html += `<p style="margin-top:8px;color:var(--secondary);">变卦：${esc(bian.gua_name)} ${esc(bian.label||'')}</p>`;
-    if (j.llm && j.llm.ok) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.llm.text||'')}</div>`;
-    html += '</div>';
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">摇卦失败：${esc(ex.message)}</div>`; }
-});
-
-// 黄历
-$('#hlSubmit').addEventListener('click', async () => {
-  const r = $('#hlResult'); r.innerHTML = '<div class="no-evidence">查询中…</div>';
-  const params = new URLSearchParams();
-  params.set('year', $.hl_year.value);
-  params.set('month', $.hl_month.value);
-  params.set('day', $.hl_day.value);
-  try{
-    const resp = await fetch('/api/huangli?' + params);
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'查询失败')}</div>`; return; }
-    let html = '<div class="card"><h2>🌙 黄历 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>';
-    // 建除 + 神煞：彩色 pill
-    if (j.jianchu || j.xiu || j.pengzu) {
-      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">';
-      if (j.jianchu) html += `<span style="background:var(--c-huangli);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;font-weight:600;">${esc(j.jianchu)}</span>`;
-      if (j.xiu) html += `<span style="background:var(--c-tarot);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.xiu)}</span>`;
-      if (j.pengzu) html += `<span style="background:var(--c-qiming);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.pengzu)}</span>`;
-      html += '</div>';
-    }
-    // 宜忌：彩色卡片
-    if (j.yi || j.ji) {
-      html += '<div class="calc-grid">';
-      if (j.yi) html += `<div class="calc-block" style="border-left:3px solid var(--c-good);"><h3 style="color:var(--c-good);">✅ 宜</h3><p style="font-size:15px;">${esc(j.yi)}</p></div>`;
-      if (j.ji) html += `<div class="calc-block" style="border-left:3px solid var(--c-bazi);"><h3 style="color:var(--c-bazi);">❌ 忌</h3><p style="font-size:15px;">${esc(j.ji)}</p></div>`;
-      html += '</div>';
-    }
-    html += '</div>';
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">查询失败：${esc(ex.message)}</div>`; }
-});
-
-// 起名
-$('#qmSubmit').addEventListener('click', async () => {
-  const r = $('#qmResult'); r.innerHTML = '<div class="no-evidence">起名中…</div>';
-  const body = {
-    surname: $.qm_surname.value,
-    year: parseInt($.qm_year.value, 10),
-    month: parseInt($.qm_month.value, 10),
-    day: parseInt($.qm_day.value, 10),
-    hour: parseInt($.qm_hour.value, 10),
-    gender: $.qm_gender.value,
-  };
-  try{
-    const resp = await fetch('/api/qiming', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'起名失败')}</div>`; return; }
-    let html = '<div class="card"><h2>🌸 起名推荐</h2>';
-    if (j.candidates) j.candidates.forEach((n, i) => {
-      const colors = ['var(--c-qiming)','var(--c-tarot)','var(--c-book)','var(--c-huangli)'];
-      const c = colors[i % colors.length];
-      html += `<div class="calc-block" style="border-left:3px solid ${c};"><h3 style="color:${c};font-family:var(--font-serif);font-size:22px;">${esc(n.char||'')}</h3>
-        <p style="font-size:13px;color:var(--secondary);">五行：${esc(n.element||'')} · ${esc(n.meaning||'')}</p></div>`;
-    });
-    html += '</div>';
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">起名失败：${esc(ex.message)}</div>`; }
-});
-
-// 桃花
-$('#thSubmit').addEventListener('click', async () => {
-  const r = $('#thResult'); r.innerHTML = '<div class="no-evidence">测算中…</div>';
-  const body = {
-    year: parseInt($.th_year.value, 10),
-    month: parseInt($.th_month.value, 10),
-    day: parseInt($.th_day.value, 10),
-    hour: parseInt($.th_hour.value, 10),
-    gender: $.th_gender.value,
-  };
-  try{
-    const resp = await fetch('/api/taohua', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'测算失败')}</div>`; return; }
-    let html = '<div class="card"><h2>🌺 桃花运</h2>';
-    if (j.peach_zhi) html += `<div style="text-align:center;margin:16px 0;"><span style="background:var(--c-taohua);color:#fff;font-size:24px;padding:10px 24px;border-radius:999px;font-family:var(--font-serif);">${esc(j.peach_zhi)} 🌹</span></div>`;
-    if (j.render) html += `<div class="calc-summary" style="margin-top:16px;border-left-color:var(--c-taohua);">${esc(j.render)}</div>`;
-    if (j.notes && j.notes.length) html += `<div style="margin-top:12px;font-size:13px;color:var(--secondary);">📝 ${esc(j.notes[0])}</div>`;
-    html += '</div>';
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">测算失败：${esc(ex.message)}</div>`; }
-});
-
-// 塔罗
-$('#trSubmit').addEventListener('click', async () => {
-  const r = $('#trResult'); r.innerHTML = '<div class="no-evidence">抽牌中…</div>';
-  const body = {
-    seed: parseInt($.tr_seed.value, 10),
-    n: parseInt($.tr_n.value, 10),
-    question: $.tr_question.value || undefined,
-  };
-  try{
-    const resp = await fetch('/api/tarot/draw', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'抽牌失败')}</div>`; return; }
-    let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
-    if (j.card) {
-      html += `<div class="tarot-card-wrap">
-        <div class="tarot-card-inner" id="tarotCardInner">
-          <div class="tarot-card-face tarot-card-back"></div>
-          <div class="tarot-card-face tarot-card-front">
-            <div class="tname">${esc(j.card.name)}</div>
-            <div class="tmeaning">${esc(j.card.meaning||'')}</div>
-          </div>
-        </div></div>`;
-    }
-    if (j.interpretation) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.interpretation)}</div>`;
-    html += '</div>';
-    r.innerHTML = html;
-    // 翻牌动画：延迟后触发
-    setTimeout(() => {
-      const inner = document.getElementById('tarotCardInner');
-      if (inner) inner.classList.add('flipped');
-    }, 600);
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">抽牌失败：${esc(ex.message)}</div>`; }
-});
-
-// 合婚
-$('#hhSubmit').addEventListener('click', async () => {
-  const r = $('#hhResult'); r.hidden = false;
-  r.innerHTML = '<div class="no-evidence">计算中…</div>';
-  const body = {
-    a_year: parseInt($.hh_a_year.value, 10),
-    a_month: parseInt($.hh_a_month.value, 10),
-    a_day: parseInt($.hh_a_day.value, 10),
-    a_hour: parseInt($.hh_a_hour.value, 10),
-    a_gender: $.hh_a_gender.value,
-    b_year: parseInt($.hh_b_year.value, 10),
-    b_month: parseInt($.hh_b_month.value, 10),
-    b_day: parseInt($.hh_b_day.value, 10),
-    b_hour: parseInt($.hh_b_hour.value, 10),
-    b_gender: $.hh_b_gender.value,
-  };
-  try{
-    const resp = await fetch('/api/hehun', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const j = await resp.json();
-    if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
-    const a = j.a_bazi, b = j.b_bazi;
-    let html = `<div class="card"><h2>💕 八字合婚</h2>`;
-    // 两人八字：双卡片
-    html += `<div class="calc-grid">`;
-    html += `<div class="calc-block" style="border-left:3px solid var(--c-bazi);"><h3 style="color:var(--c-bazi);">甲</h3><p style="font-family:var(--font-serif);font-size:18px;">${esc(a.year)} · ${esc(a.day)}</p><p style="font-size:13px;color:var(--secondary);">日主：${esc(a.day_master)}</p></div>`;
-    html += `<div class="calc-block" style="border-left:3px solid var(--c-hehun);"><h3 style="color:var(--c-hehun);">乙</h3><p style="font-family:var(--font-serif);font-size:18px;">${esc(b.year)} · ${esc(b.day)}</p><p style="font-size:13px;color:var(--secondary);">日主：${esc(b.day_master)}</p></div>`;
-    html += `</div>`;
-    // 关系指标：彩色 pill
-    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">`;
-    const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
-    const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
-    html += `<span style="background:${relColor};color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">年支：${esc(relLabel)}</span>`;
-    const wxLabel = j.day_wx_sheng ? '相生' : '相克';
-    const wxColor = j.day_wx_sheng ? 'var(--c-good)' : 'var(--c-bazi)';
-    html += `<span style="background:${wxColor};color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">日主：${esc(wxLabel)}</span>`;
-    const peachLabel = j.peach_same ? '重叠' : '不同';
-    html += `<span style="background:var(--c-taohua);color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">桃花：${esc(peachLabel)}</span>`;
-    html += `</div>`;
-    if (j.dayun_hits && j.dayun_hits.length){
-      html += '<div class="card"><h2>大运冲合应期</h2><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th><th>关系</th><th>约略起始年</th></tr></thead><tbody>';
-      j.dayun_hits.forEach(d => {
-        html += `<tr><td>第 ${esc(d.index)} 运</td><td>${esc(d.pillar_a)}</td>
-          <td>${esc(d.pillar_b)}</td><td>${esc(d.relation)}</td><td>${esc(d.year_start)}</td></tr>`;
-      });
-      html += '</tbody></table></div>';
-    }
-    if (j.notes && j.notes.length){
-      html += '<div class="card"><h2>说明</h2><ul>';
-      j.notes.forEach(n => { html += `<li>${esc(n)}</li>`; });
-      html += '</ul></div>';
-    }
-    r.innerHTML = html;
-  }catch(ex){ r.innerHTML = `<div class="no-evidence">计算失败：${esc(ex.message)}</div>`; }
-});
-
-// 历史记录
-async function loadHistory() {
-  try{
-    const resp = await fetch('/api/history');
-    const j = await resp.json();
-    const list = $('#histList');
-    if (j.items && j.items.length) {
-      let html = '';
-      j.items.forEach(item => {
-        html += `<div class="hist-item">
-          <div class="hist-time">${esc(item.created_at||'')}</div>
-          <div class="hist-q">${esc(item.question||item.summary||'')}</div>
-          <div class="hist-actions">
-            <button class="hist-view" onclick="loadHistoryDetail(${item.id})">查看</button>
-            <button class="hist-del" onclick="deleteHistory(${item.id})">删除</button>
-          </div></div>`;
-      });
-      list.innerHTML = html;
-    } else {
-      list.innerHTML = '<div class="no-evidence">暂无记录</div>';
-    }
-  }catch(e){ $('#histList').innerHTML = '<div class="no-evidence">加载失败</div>'; }
-}
-loadHistory();
-
-// 加载最近解读（从历史 API 动态填充）
-async function loadRecent() {
-  try{
-    const resp = await fetch('/api/history');
-    const j = await resp.json();
-    const list = $('#recentList');
-    if (j.items && j.items.length) {
-      const icons = {'bazi':'🔮','tarot':'✨','read':'📜','huangli':'🌙','qiming':'🌸','taohua':'🌺','liuyao':'🔮','hehun':'💕'};
-      let html = '';
-      j.items.slice(0, 5).forEach(item => {
-        const icon = icons[item.type] || '📖';
-        const date = (item.created_at || '').slice(0, 16).replace('T', ' ');
-        html += `<div class="recent-item">
-          <span class="recent-icon">${icon}</span>
-          <div class="recent-info"><div class="recent-title">${esc(item.question||item.summary||'解读')}</div><div class="recent-date">${esc(date||'')}</div></div>
-          <span class="recent-arrow">→</span></div>`;
-      });
-      list.innerHTML = html;
-    } else {
-      list.innerHTML = '<div class="recent-item"><span class="recent-icon">🔮</span><div class="recent-info"><div class="recent-title">今日八字排盘</div><div class="recent-date">刚刚</div></div><span class="recent-arrow">→</span></div>';
-    }
-  }catch(e){
-    $('#recentList').innerHTML = '<div class="recent-item"><span class="recent-icon">🔮</span><div class="recent-info"><div class="recent-title">今日八字排盘</div><div class="recent-date">刚刚</div></div><span class="recent-arrow">→</span></div>';
-  }
-}
-loadRecent();
-
-// 加载收藏
-async function loadFavorites() {
-  try{
-    const resp = await fetch('/api/user/prefs');
-    const j = await resp.json();
-    const list = $('#favoritesList');
-    const favs = j.favorites || [];
-    if (favs.length) {
-      const icons = {'bazi':'🔮','tarot':'✨','book':'📜','thread':'🧶'};
-      let html = '';
-      favs.forEach(f => {
-        const icon = icons[f.type] || '⭐';
-        html += `<div class="recent-item">
-          <span class="recent-icon">${icon}</span>
-          <div class="recent-info"><div class="recent-title">${esc(f.title||'')}</div><div class="recent-date">${esc((f.created_at||'').slice(0,16))}</div></div>
-          <span class="recent-arrow">→</span></div>`;
-      });
-      list.innerHTML = html;
-    } else {
-      list.innerHTML = '<div class="recent-item"><span class="recent-icon">🌟</span><div class="recent-info"><div class="recent-title">还没有收藏，看到喜欢的解读就点 ❤️ 吧</div><div class="recent-date">去排盘 →</div></div><span class="recent-arrow">→</span></div>';
-    }
-  }catch(e){
-    $('#favoritesList').innerHTML = '<div class="recent-item"><span class="recent-icon">🌟</span><div class="recent-info"><div class="recent-title">收藏加载失败</div></div></div>';
-  }
-}
-loadFavorites();
-
-function loadHistoryDetail(id) {
-  window.open(`/api/history/${id}`, '_blank');
-}
-async function deleteHistory(id) {
-  try{
-    await fetch('/api/history/' + id, {method:'DELETE'});
-    loadHistory();
-    loadRecent();
-  }catch(e){}
-}
-
-// 收藏一条结果
-async function addFavorite(type, refId, title) {
-  try{
-    await fetch('/api/favorites', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({type, ref_id: refId, title})
-    });
-    loadFavorites();
-    return true;
-  }catch(e){ return false; }
-}
-
-// 新闻刷新
-$('#newsRefresh').addEventListener('click', async () => {
-  const list = $('#newsList');
-  list.innerHTML = '<div class="no-evidence">刷新中…</div>';
-  try{
-    const resp = await fetch('/api/external/news?refresh=1');
-    const j = await resp.json();
-    let html = '';
-    (j.sources||[]).forEach(s => {
-      if (!s.ok) return;
-      html += `<div class="news-src">${esc(s.title)}</div>`;
-      s.items.forEach(it => {
-        html += `<div class="news-item"><a href="${esc(it.link)}" target="_blank">${esc(it.title||'')}</a>
-          <span class="news-time">${esc(it.published||'')}</span></div>`;
-      });
-    });
-    if (!html) html = '<div class="no-evidence">暂无新闻</div>';
-    list.innerHTML = html;
-  }catch(e){ list.innerHTML = '<div class="no-evidence">刷新失败</div>'; }
-});
-</script>
+<script src="/static/app.js"></script>
 </body>
 </html>

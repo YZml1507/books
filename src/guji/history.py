@@ -6,9 +6,11 @@
 红线变更（用户显式授权，见 docs/DECISIONS.md D-039）：
   * 原红线"LLM 解读不落库"针对 corpus.db/knowledge.db 的语料/知识库——
     生成文本不进语料库、不污染检索。本次授权把每次查询的完整往返
-    （含 LLM 输出）写入**独立的历史库 data/history.db**，与语料/知识库
-    物理隔离，不参与检索，13 道闸门不受影响。
-  * 存储即用户要求的产品功能（历史记录），非缓存；LLM 输出仍标注生成来源。
+    写入**独立的历史库 data/history.db**，与语料/知识库物理隔离，
+    不参与检索，13 道闸门不受影响。
+  * 存储即用户要求的产品功能（历史记录），非缓存。
+  * R178b（D-226b）：LLM 层已整体移除，落库内容改为 `guji.interpreter` 的
+    确定性输出（规则转述，非生成文本）。列名不变，见下方表结构注释。
 
 表结构（bazi_history）：
   id           自增主键
@@ -18,7 +20,12 @@
   paipan_json  排盘（render/nayin/warn）
   calc_json    运算事实（ten_gods/five_elements/relations/day_luck/summary）
   evidence_json 古籍引文列表（带出处）
-  llm_json     {"ok":bool,"text":str,"model":str}
+  llm_json     解读输出。**列名保留做向后兼容**（R178b，D-226b）：LLM 生成式
+               解读层已移除，本列现在写 `guji.interpreter` 的确定性输出
+               {"ok":bool,"kind":"rule-based","engine":str,"sections":[...],
+                "citations":[...],"text":str,"basis":[...],"disclaimer":str}。
+               旧记录仍是 {"ok","text","model"} 形状，读取端两种都要能处理
+               ——不改列名是为了不动已有 771 条历史记录。
   question     摘要列（便于列表展示，冗余自 input_json）
 
 纯标准库 sqlite3，零新依赖。只读/写独立 db，与语料索引隔离。
@@ -98,8 +105,13 @@ def list_records(limit: int = 50) -> list[dict]:
             "created_at": r["created_at"],
             "question": r["question"],
             "paipan_render": paipan.get("render", ""),
+            # 列名与键名保留做向后兼容（R178b/D-226b：写入内容已从 LLM 生成
+            # 文本换成 guji.interpreter 确定性输出，`model` 键换成 `engine`）。
+            # 旧记录读 model，新记录读 engine——同一列两种历史内容都能展示。
             "llm_ok": bool(llm.get("ok")),
-            "llm_model": llm.get("model") if llm.get("ok") else None,
+            "llm_model": (llm.get("model") or llm.get("engine")
+                          if llm.get("ok") else None),
+            "engine": llm.get("engine"),
         })
     return out
 
@@ -144,6 +156,12 @@ def count() -> int:
 
 if __name__ == "__main__":
     # 自检：写入 -> 列表 -> 详情 -> 删除 -> 计数
+    #
+    # R178b 修正（宪法第一条：跑不出来就当它是错的）：原自检最后一行是
+    # `assert count() == 0`，那假设**真实历史库是空的**——库里现有 771 条
+    # 用户记录，这条断言从写下起就必然失败，等于这个自检从来没被跑过。
+    # 改为断言「写入前后计数守恒」：写 N 条、删 N 条，count 回到基线。
+    base_count = count()
     rid = save_record(
         {"year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",
          "question": "测试", "ask_date": "2026-08-15", "ask_hour": 14},
@@ -151,14 +169,25 @@ if __name__ == "__main__":
          "nayin": ["路旁土"], "warn": []},
         {"summary": "test-summary", "ten_gods": []},
         [{"work_id": "KR3g0048", "text": "…"}],
-        {"ok": True, "text": "## 结论\n测试", "model": "test-model"},
+        {"ok": True, "kind": "rule-based", "text": "## 排盘坐标\n- 测试",
+         "engine": "guji.interpreter/1.0（确定性规则，无 LLM）"},
     )
     assert rid > 0
     lst = list_records()
     assert lst and lst[0]["id"] == rid and lst[0]["question"] == "测试"
+    # 新形状（engine 键）经 list_records 后落在向后兼容的 llm_model 字段上
+    assert lst[0]["llm_model"] == "guji.interpreter/1.0（确定性规则，无 LLM）"
     rec = get_record(rid)
     assert rec and rec["llm"]["ok"] and rec["calc"]["summary"] == "test-summary"
     assert rec["paipan"]["render"].startswith("庚午年")
     assert delete_record(rid) is True
-    assert count() == 0
-    print("history.py 自检 OK")
+    # 旧形状（model 键）仍须可读——库里 771 条历史记录是这个形状（R178b）
+    rid2 = save_record({"question": "旧形状"}, {"render": "x"}, {}, [],
+                       {"ok": True, "text": "t", "model": "legacy-model"})
+    old = [r for r in list_records() if r["id"] == rid2]
+    assert old and old[0]["llm_model"] == "legacy-model", old
+    assert delete_record(rid2) is True
+    # 计数守恒：本次写 2 条、删 2 条，回到基线（不假设库为空）
+    assert count() == base_count, (count(), base_count)
+    print(f"history.py 自检 OK（新 engine 形状 + 旧 model 形状均可读；"
+          f"计数守恒 {base_count}）")
