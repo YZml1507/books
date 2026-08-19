@@ -16,6 +16,14 @@ browser-use-main.zip
 ui-ux-pro-max-skill-main/
 ui-ux-pro-max-skill-main.zip
 
+# Spec-kit source (not part of the project; .specify/ is the integrated copy)
+spec-kit-main/
+spec-kit-main.zip
+
+# Large downloaded deps (not source we own)
+tsparticles-main.zip
+animotion-mcp.github.io-main.zip
+
 # Build / cache artifacts
 *.db-journal
 *.log
