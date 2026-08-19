@@ -5062,3 +5062,77 @@ R126b 是优化轨领土 web/app.py self-test standing 断言加强
 13 闸门 + web --selftest 47 checks 全 PASS。pending 清空。
 
 - 决策记录：DECISIONS.md D-126a。
+
+### 108. R117a 审查循环：rebase 纳入 R128b（search layer/work standing）+ R129b（docs sync 47→49）+ R130b（compare_works refuse + bookstudy NULL-scheme standing），逐行复审 + 13 闸门 + web --selftest 51 checks 全绿（2026-08-17）
+
+接续 R116a（f71283e，上轮已 push 闭环）。fetch origin 后 ls-remote
+监控发现优化轨推进 main：origin/main HEAD 从 1a395eb 变为 e6d4986。
+HEAD..origin/main 显示优化轨推进 3 提交：
+
+- dee49d0 R128b test(web): cover search layer/work filter branches
+- 8caa474 R129b docs: sync web checks 47->49 after R128b
+  search layer/work assertions
+- e6d4986 R130b test(web): cover compare_works refuse and bookstudy
+  NULL-scheme chapter
+
+`git show --name-only` 确认改动文件：
+- R128b：docs/{DECISIONS,TASK_LEDGER}.md、web/app.py。**含代码逻辑
+  （优化轨领土 web/app.py self-test standing 断言加强）→ 按 §0.3 协议
+  第 5 步立即启动审查轨循环。**
+- R129b：docs/{DECISIONS,GOAL_NEXT_SESSION,PROJECT_STATUS,
+  TASK_LEDGER}.md。纯文档轮。
+- R130b：docs/{DECISIONS,TASK_LEDGER}.md、web/app.py。**含代码逻辑
+  （同 R128b）。**
+
+**逐行复审 R128b/R130b 优化轨领土文件**（亲眼过，优化轨领土
+src/guji/web 只复审+记录移交，不动手）：
+
+- **R128b web/app.py**：self-test 加 search.layer standing 断言
+  （layer=經 → 10 hits，全 layer==經）+ search.work standing 断言
+  （work=KR1a0001 → 2 hits，全 work_id==KR1a0001）。覆盖此前零断言的
+  search layer/work 过滤分支（L-22/L-23 同族，R118b/R119b/R124b/
+  R126b 同模式）。固定输入实测稳定，过滤收窄生效。无红线。
+- **R130b web/app.py**：self-test 加 compare_works.refuse standing
+  断言（無命中 q="電話飛機電腦" → error 键，G7 拒绝分支）+
+  bookstudy.chapter.nullscheme standing 断言（老子 booksec addr1=1
+  → error 键，NULL-scheme 文件节分支）。覆盖此前零断言的拒绝/
+  NULL-scheme 分支。固定输入实测稳定。无红线。
+
+**逐行复审 R129b 纯文档 diff**（亲眼过）：同步 web checks 47→49、
+GOAL_NEXT_SESSION/PROJECT_STATUS self-test 行。归因诚实，无越界。
+无红线。
+
+**rebase**：stash 数据库产物 → `git rebase origin/main` 在历史
+38b641c（R22a renumbered merge）处 append-only docs/ 冲突（DECISIONS
++ TASK_LEDGER）。按既定协议"冲突取 --theirs"：`git checkout --theirs
+docs/*.md` → `git add` → `GIT_EDITOR=true git rebase --continue`。
+rebase 成功，R128b/R129b/R130b 纳入 audit 分支 history，
+HEAD..origin/main 清空。stash pop 恢复数据库产物。
+
+**领土零越界**：rebase 后 `git diff origin/main..HEAD`：
+- 审查轨领土 `scripts/assess_goals.py`：审查轨有改动（R21a 委托修复
+  8c1242c/337aadc，历史遗留合法——scripts/ 是审查轨领土）。
+- 优化轨领土 `src/guji/**` `web/**`：审查轨 diff 为空（0 字节）→ **领土零越界确认**。
+- `.gitignore`：无改动。
+
+**13 闸门亲跑全绿**（rebase 后 confirm 无回归）：
+- check_quality PASS（quality_report.json 生成）。
+- verify_index ALL PASS（T10 suspect=10 units/5 地址，T11 362 compared）。
+- assess_goals G1-G9 全 PASS（PASS 9 PART 0 FAIL 0）。
+- 4 probes（conservation ratio 1.0000 / bcv 66/66 / huangli_shensha /
+  liuyao_najia）全 PASS。
+- eval_g1 PASS（246/248 questions，99.2% overall，0 invalid）。
+- eval_g4 PASS（yilin cells 4096 / outgoing 520 / targeted 490）。
+- eval_g7 PASS（must_refuse 30/30 / must_answer 25/25 / impossible 4/4 /
+  FABRICATIONS 0）。
+- **web --selftest PASS (51 checks)**：含 R128b search.layer +
+  search.work + R130b compare_works.refuse +
+  bookstudy.chapter.nullscheme 四条新断言。
+
+R128b/R130b 是优化轨领土 web/app.py self-test standing 断言加强
+（search layer/work 过滤 + compare_works 拒绝 + bookstudy NULL-scheme），
+覆盖此前零断言的过滤/拒绝/NULL-scheme 分支，无红线。R129b 纯文档轮。
+领土零越界确认，13 闸门 + web --selftest 51 checks 全 PASS。pending
+清空。
+
+- 决策记录：DECISIONS.md D-127a。
