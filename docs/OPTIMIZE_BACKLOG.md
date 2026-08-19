@@ -43,6 +43,19 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 
 ---
 
+## 双轨环境注意事项（交接窗口实测）
+
+- **`.venv` 不在 worktree 里。** `.gitignore` 忽略 `.venv/`，所以
+  `books-audit/` 没有自己的虚拟环境。审查轨直接用主 worktree 的解释器：
+  `C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe`
+  实测确认：它会正确加载 `books-audit/src/guji`（各轨跑各自的源码副本），
+  `TestClient(web.app)` 在 audit 侧返回 200、47 部书可读。
+- **运行期 db 不再随 git 走。** 三个 db 已从索引摘除（见 main 提交 71d2658），
+  两轨各自持有磁盘副本、互不干扰。若 audit 侧 `data/index/` 为空，
+  从主 worktree 拷贝，或按宪法第二条重建 corpus.db（5 秒可重建）。
+- **别把 db 写脏当成缺陷。** `/api/bazi` 会往 `history.db` 写记录
+  （D-039 已授权）。审查轨自测后应清理本轮新增记录（L-22 教训）。
+
 ## 现成素材（交接窗口实测，可直接用）
 
 - **`web/static/animotion/` 有 287KB 动画 CSS 完全没接线。**
