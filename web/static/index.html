@@ -18,12 +18,22 @@
     --shadow:    0 8px 32px rgba(184,134,11,.15);
     --shadow-hover: 0 16px 48px rgba(184,134,11,.22);
 
+    /* 多巴胺运势风融合：模块彩色强调 */
+    --c-bazi:    #FF6B6B;       /* 珊瑚红 · 八字 */
+    --c-book:    #4ECDC4;       /* 青绿 · 读书 */
+    --c-tarot:   #A78BFA;       /* 紫罗兰 · 塔罗 */
+    --c-huangli: #FFE66D;       /* 明黄 · 黄历 */
+    --c-qiming:  #FF8E9E;       /* 樱粉 · 起名 */
+    --c-taohua:  #FFB347;       /* 橙 · 桃花 */
+    --c-liuyao:  #7ED957;       /* 嫩绿 · 六爻 */
+    --c-hehun:   #FF6B9D;       /* 玫红 · 合婚 */
+
     --font-serif:  "Noto Serif TC","Songti SC","SimSun",serif;
     --font-sans:   "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
     --font-mono:   "Georgia",serif;
 
-    --radius: 16px;
-    --radius-sm: 10px;
+    --radius: 18px;
+    --radius-sm: 12px;
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -37,19 +47,28 @@
   /* ── 品牌 ── */
   .brand{display:flex; align-items:center; gap:14px; margin-bottom:8px;}
   .brand-mark{
-    width:48px; height:48px; border-radius:14px;
-    background:linear-gradient(135deg,#B8860B,#E8C97A);
+    width:52px; height:52px; border-radius:18px;
+    background:linear-gradient(135deg,#FF6B6B,#FFE66D,#4ECDC4,#A78BFA);
+    background-size:300% 300%;
+    animation:bgShift 6s ease infinite;
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-serif); font-size:26px; font-weight:700;
-    color:#fff; box-shadow:0 4px 16px rgba(184,134,11,.35);
+    font-family:var(--font-serif); font-size:28px; font-weight:700;
+    color:#fff; box-shadow:0 6px 24px rgba(184,134,11,.3);
     flex-shrink:0;
   }
+  @keyframes bgShift{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
   .brand-title{
-    font-family:var(--font-serif); font-size:36px; font-weight:700;
+    font-family:var(--font-serif); font-size:38px; font-weight:700;
     color:var(--text); letter-spacing:.04em; line-height:1.1;
-    background:linear-gradient(135deg,#B8860B,#8B5E2C);
+    background:linear-gradient(135deg,#B8860B,#FF6B6B,#B8860B);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     background-clip:text;
+    background-size:200% 200%;
+    animation:bgShift 8s ease infinite;
   }
   .brand-tagline{font-size:14px; color:var(--secondary); margin-top:2px; letter-spacing:.06em;}
 
@@ -60,56 +79,82 @@
     box-shadow:var(--shadow); position:relative; overflow:hidden;
   }
   .daily-card::before{
-    content:""; position:absolute; top:0; left:0; right:0; height:4px;
-    background:linear-gradient(90deg,#B8860B,#E8C97A,#B8860B);
+    content:""; position:absolute; top:0; left:0; right:0; height:5px;
+    background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));
   }
   .daily-top{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
-  .daily-label{font-size:13px; color:var(--secondary); letter-spacing:.1em; text-transform:uppercase;}
-  .daily-date{font-size:14px; color:var(--muted, #8C7B6B);}
-  .daily-main{display:flex; align-items:center; gap:20px; margin-top:16px; flex-wrap:wrap;}
+  .daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600;}
+  .daily-date{font-size:14px; color:var(--muted, #8C7B6B); font-family:monospace;}
+  .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
   .daily-level{
-    font-family:var(--font-serif); font-size:48px; font-weight:700;
-    color:var(--primary); line-height:1;
-    text-shadow:0 2px 12px rgba(184,134,11,.25);
+    width:80px; height:80px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-serif); font-size:36px; font-weight:700;
+    color:#fff; line-height:1; flex-shrink:0;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    transition:transform .3s ease;
   }
-  .daily-level.good{color:var(--good);}
-  .daily-level.bad{color:var(--accent);}
-  .daily-stars{font-size:24px; letter-spacing:4px; color:var(--primary);}
-  .daily-summary{font-size:17px; color:var(--text); margin-top:12px; line-height:1.7;}
-  .daily-meta{display:flex; gap:24px; margin-top:16px; flex-wrap:wrap;}
-  .daily-meta-item{font-size:14px; color:var(--secondary);}
+  .daily-level.good{background:linear-gradient(135deg,#5B8C5A,#7ED957);box-shadow:0 6px 24px rgba(92,140,90,.35);}
+  .daily-level.bad{background:linear-gradient(135deg,#C43E3E,#FF6B6B);box-shadow:0 6px 24px rgba(196,62,62,.35);}
+  .daily-level平{background:linear-gradient(135deg,#B8860B,#FFE66D);box-shadow:0 6px 24px rgba(184,134,11,.35);}
+  .daily-level:hover{transform:scale(1.08) rotate(-3deg);}
+  .daily-stars{font-size:28px; letter-spacing:6px;}
+  .daily-stars .star-good{color:#FFE66D;text-shadow:0 0 8px rgba(255,230,109,.5);}
+  .daily-stars .star-mid{color:#E8DCC8;}
+  .daily-stars .star-bad{color:#FF8E9E;}
+  .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
+  .daily-meta{display:flex; gap:20px; margin-top:18px; flex-wrap:wrap;}
+  .daily-meta-item{
+    display:flex; align-items:center; gap:6px;
+    font-size:14px; color:var(--secondary); background:#FFFCF7;
+    padding:6px 14px; border-radius:999px; border:1px solid var(--border);
+  }
   .daily-meta-item strong{color:var(--primary); font-weight:600;}
   .daily-more{
-    margin-top:18px; padding:10px 20px; width:auto; font-size:14px;
-    background:transparent; color:var(--primary); border:1px solid var(--border);
-    border-radius:999px; cursor:pointer; transition:all .2s;
+    margin-top:18px; padding:10px 24px; width:auto; font-size:14px;
+    background:linear-gradient(135deg,#B8860B,#FFE66D); color:#fff;
+    border:none; border-radius:999px; cursor:pointer; font-weight:600;
+    transition:all .2s;
   }
-  .daily-more:hover{background:var(--primary); color:#fff;}
+  .daily-more:hover{transform:translateY(-2px); box-shadow:0 4px 16px rgba(184,134,11,.3);}
 
   /* ── 功能卡片网格 ── */
   .func-grid{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-    gap:14px; margin-bottom:32px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:16px; margin-bottom:32px;
   }
   @media (max-width:560px){ .func-grid{grid-template-columns:repeat(2,1fr);} }
   .func-card{
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:22px 16px; text-align:center; cursor:pointer;
+    padding:24px 16px; text-align:center; cursor:pointer;
     box-shadow:var(--shadow); transition:all .25s ease;
-    position:relative;
+    position:relative; overflow:hidden;
+  }
+  .func-card::after{
+    content:""; position:absolute; top:0; left:0; right:0; height:4px;
+    background:var(--card-accent, var(--primary));
   }
   .func-card:hover{
-    transform:translateY(-4px);
+    transform:translateY(-5px) rotate(-1deg);
     box-shadow:var(--shadow-hover);
-    border-color:var(--primary);
+    border-color:var(--card-accent, var(--primary));
   }
   .func-icon{
-    font-size:32px; margin-bottom:10px; line-height:1;
-    filter:grayscale(0.2);
+    font-size:36px; margin-bottom:10px; line-height:1;
+    filter:grayscale(0.1);
   }
   .func-card:hover .func-icon{filter:grayscale(0);}
-  .func-name{font-size:15px; font-weight:600; color:var(--text); margin-bottom:4px;}
+  .func-name{font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;}
   .func-desc{font-size:12px; color:var(--secondary); line-height:1.4;}
+  /* 多巴胺：每模块一色 */
+  .func-card[data-view="bazi"]   {--card-accent:var(--c-bazi);}
+  .func-card[data-view="read"]   {--card-accent:var(--c-book);}
+  .func-card[data-view="tarot"]  {--card-accent:var(--c-tarot);}
+  .func-card[data-view="huangli"]{--card-accent:var(--c-huangli);}
+  .func-card[data-view="qiming"]  {--card-accent:var(--c-qiming);}
+  .func-card[data-view="taohua"]  {--card-accent:var(--c-taohua);}
+  .func-card[data-view="liuyao"]  {--card-accent:var(--c-liuyao);}
+  .func-card[data-view="hehun"]   {--card-accent:var(--c-hehun);}
 
   /* ── 最近解读 ── */
   .recent-section{margin-top:36px;}
@@ -163,16 +208,18 @@
   }
   button{
     margin-top:20px; padding:12px 28px; font-size:15px; width:auto; cursor:pointer;
-    background:linear-gradient(135deg,#B8860B,#9C6B3F); color:#fff;
-    border:none; border-radius:var(--radius-sm); font-weight:600;
-    transition:all .2s; letter-spacing:.04em;
+    background:linear-gradient(135deg,#B8860B,#FFE66D); color:#fff;
+    border:none; border-radius:999px; font-weight:600;
+    transition:all .25s cubic-bezier(.4,.2,.2,1); letter-spacing:.04em;
+    box-shadow:0 4px 16px rgba(184,134,11,.25);
   }
-  button:hover{filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 6px 20px rgba(184,134,11,.3);}
+  button:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 8px 28px rgba(184,134,11,.35);}
+  button:active{transform:translateY(0) scale(.98);}
   button:disabled{background:var(--border); color:var(--secondary); cursor:not-allowed;}
   button.ghost{
-    background:transparent; color:var(--primary); border:1px solid var(--primary);
+    background:transparent; color:var(--primary); border:2px solid var(--primary);
   }
-  button.ghost:hover{background:var(--primary); color:#fff;}
+  button.ghost:hover{background:var(--primary); color:#fff; transform:translateY(-2px);}
 
   .error{color:var(--accent); margin-top:16px; font-size:14px;}
   .status{color:var(--secondary); margin-top:16px; font-size:14px;}
@@ -368,15 +415,17 @@
     </div>
     <div class="daily-main">
       <div class="daily-level" id="dailyLevel">—</div>
-      <div class="daily-stars" id="dailyStars">—</div>
+      <div>
+        <div class="daily-stars" id="dailyStars">—</div>
+        <div class="daily-summary" id="dailySummary">正在为你推算今日运势…</div>
+      </div>
     </div>
-    <div class="daily-summary" id="dailySummary">正在为你推算今日运势…</div>
     <div class="daily-meta">
-      <div class="daily-meta-item">贵人属相：<strong id="dailyNoble">—</strong></div>
-      <div class="daily-meta-item">宜：<strong id="dailyDo">—</strong></div>
-      <div class="daily-meta-item">忌：<strong id="dailyDont">—</strong></div>
+      <div class="daily-meta-item">🍀 贵人属相：<strong id="dailyNoble">—</strong></div>
+      <div class="daily-meta-item">✅ 宜：<strong id="dailyDo">—</strong></div>
+      <div class="daily-meta-item">❌ 忌：<strong id="dailyDont">—</strong></div>
     </div>
-    <button class="daily-more" id="dailyMore">查看完整解读 →</button>
+    <button class="daily-more" id="dailyMore">🔍 查看完整解读 →</button>
   </div>
 
   <!-- 功能卡片 -->
@@ -400,10 +449,10 @@
       <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
     </div>
     <div class="func-card" data-view="liuyao">
-      <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事</div>
+      <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
     </div>
     <div class="func-card" data-view="hehun">
-      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字合婚</div>
+      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
     </div>
   </div>
 
@@ -426,7 +475,7 @@
   <!-- 视图容器（功能卡片点击后切换） -->
   <div class="view active" id="view-bazi">
     <div class="card">
-      <h2>🔮 八字排盘</h2>
+      <h2>🔮 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
       <form id="form">
         <div class="row">
           <div class="field"><label for="calendar_type">历法</label>
@@ -497,7 +546,7 @@
   <!-- 古籍读书视图 -->
   <div class="view" id="view-read">
     <div class="card">
-      <h2>📜 古籍读书</h2>
+      <h2>📜 古籍读书 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知往圣 · 绝学</span></h2>
       <div class="rtabs">
         <button class="rtab active" data-rsec="rsec-search" type="button">检索</button>
         <button class="rtab" data-rsec="rsec-research" type="button">深度研究</button>
@@ -657,7 +706,7 @@
   <!-- 其余视图（六爻/黄历/起名/桃花/塔罗/合婚） -->
   <div class="view" id="view-liuyao">
     <div class="card">
-      <h2>🔮 六爻占卜</h2>
+      <h2>🔮 六爻占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">摇卦断事</span></h2>
       <div class="row">
         <div class="field"><label for="ly_method">起卦方式</label>
           <select id="ly_method"><option value="time">时间起卦</option><option value="dice">铜钱起卦</option></select></div>
@@ -683,7 +732,7 @@
 
   <div class="view" id="view-huangli">
     <div class="card">
-      <h2>🌙 黄历择日</h2>
+      <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>
       <div class="row">
         <div class="field"><label for="hl_year">年</label>
           <input id="hl_year" type="number" min="1900" max="2100" value="2026"></div>
@@ -699,7 +748,7 @@
 
   <div class="view" id="view-qiming">
     <div class="card">
-      <h2>🌸 五行起名</h2>
+      <h2>🌸 五行起名 <span style="font-size:14px;color:var(--secondary);font-weight:400;">补五行 · 起好名</span></h2>
       <div class="row">
         <div class="field"><label for="qm_surname">姓氏</label>
           <input id="qm_surname" type="text" value="李"></div>
@@ -721,7 +770,7 @@
 
   <div class="view" id="view-taohua">
     <div class="card">
-      <h2>🌺 桃花运</h2>
+      <h2>🌺 桃花运 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看桃花 · 知缘分</span></h2>
       <div class="row">
         <div class="field"><label for="th_year">年</label>
           <input id="th_year" type="number" min="1900" max="2100" value="1990"></div>
@@ -741,7 +790,7 @@
 
   <div class="view" id="view-tarot">
     <div class="card">
-      <h2>✨ 塔罗占卜</h2>
+      <h2>✨ 塔罗占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">抽牌 · 看指引</span></h2>
       <div class="row">
         <div class="field"><label for="tr_seed">Seed</label>
           <input id="tr_seed" type="number" value="42"></div>
@@ -757,7 +806,7 @@
 
   <div class="view" id="view-hehun">
     <div class="card">
-      <h2>💕 八字合婚</h2>
+      <h2>💕 八字合婚 <span style="font-size:14px;color:var(--secondary);font-weight:400;">两人八字 · 缘分深浅</span></h2>
       <div class="row">
         <div class="field"><label for="hh_a_year">甲 年</label>
           <input id="hh_a_year" type="number" min="1900" max="2100" value="1990"></div>
@@ -813,11 +862,15 @@ async function loadDaily() {
     const j = await resp.json();
     document.getElementById('dailyDate').textContent = j.date || '今天';
     const levelEl = document.getElementById('dailyLevel');
-    levelEl.textContent = j.level || '平';
-    levelEl.className = 'daily-level' + (j.level === '吉' ? ' good' : j.level === '凶' ? ' bad' : '');
-    // 星级：吉=5星，平=3星，凶=1星
-    const stars = j.level === '吉' ? '★★★★★' : j.level === '平' ? '★★★☆☆' : '★☆☆☆☆';
-    document.getElementById('dailyStars').textContent = stars;
+    const level = j.level || '平';
+    levelEl.textContent = level;
+    levelEl.className = 'daily-level ' + (level === '吉' ? 'good' : level === '凶' ? 'bad' : '平');
+    // 多巴胺彩色星级
+    let stars = '';
+    if (level === '吉') stars = '<span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span>';
+    else if (level === '平') stars = '<span class="star-good">★</span><span class="star-good">★</span><span class="star-good">★</span><span class="star-mid">☆</span><span class="star-mid">☆</span>';
+    else stars = '<span class="star-bad">★</span><span class="star-mid">☆</span><span class="star-mid">☆</span><span class="star-mid">☆</span><span class="star-mid">☆</span>';
+    document.getElementById('dailyStars').innerHTML = stars;
     document.getElementById('dailySummary').textContent = j.summary || '';
     document.getElementById('dailyNoble').textContent = j.noble || '—';
     document.getElementById('dailyDo').textContent = j.do || '—';

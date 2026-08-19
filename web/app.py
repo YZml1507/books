@@ -1231,14 +1231,14 @@ async def api_widget():
             recent = []
 
     modules = [
-        {"id": "bazi",   "icon": "🔮", "title": "八字排盘",   "desc": "排出四柱，看五行、大运、流年", "recent": "八字排盘"},
-        {"id": "book",   "icon": "📜", "title": "古籍读书",   "desc": "检索 47 部古籍，比对注家", "recent": "古籍检索"},
-        {"id": "tarot",  "icon": "✨", "title": "塔罗占卜",   "desc": "抽牌看指引，解答心中疑问", "recent": "塔罗占卜"},
-        {"id": "huangli","icon": "🌙", "title": "黄历择日",   "desc": "看建除、神煞，选吉日", "recent": "黄历查询"},
-        {"id": "qiming", "icon": "🌸", "title": "五行起名",   "desc": "按五行补缺，起一个好名字", "recent": "起名"},
-        {"id": "taohua", "icon": "🌺", "title": "桃花运",     "desc": "看看近期桃花走势", "recent": "桃花"},
-        {"id": "liuyao","icon": "_break", "title": "六爻占卜",   "desc": "摇卦断事，看事情走向", "recent": "六爻"},
-        {"id": "history","icon": "📖", "title": "历史记录",   "desc": "回看过去的占卜结果", "recent": "历史"},
+        {"id": "bazi",   "icon": "🔮", "title": "八字排盘",   "desc": "排出四柱 · 看五行大运流年", "recent": "八字排盘"},
+        {"id": "book",   "icon": "📜", "title": "古籍读书",   "desc": "检索 47 部古籍 · 比对注家", "recent": "古籍检索"},
+        {"id": "tarot",  "icon": "✨", "title": "塔罗占卜",   "desc": "抽牌看指引 · 解答心中疑问", "recent": "塔罗占卜"},
+        {"id": "huangli","icon": "🌙", "title": "黄历择日",   "desc": "看建除神煞 · 选吉日", "recent": "黄历查询"},
+        {"id": "qiming", "icon": "🌸", "title": "五行起名",   "desc": "按五行补缺 · 起一个好名字", "recent": "起名"},
+        {"id": "taohua", "icon": "🌺", "title": "桃花运",     "desc": "看看近期桃花走势 🌹", "recent": "桃花"},
+        {"id": "liuyao", "icon": "🔮", "title": "六爻占卜",   "desc": "摇卦断事 · 看事情走向", "recent": "六爻"},
+        {"id": "hehun",  "icon": "💕", "title": "八字合婚",   "desc": "两人八字合婚 · 看缘分", "recent": "合婚"},
     ]
     for m in modules:
         m["recent_used"] = m["id"] in recent
