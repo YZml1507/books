@@ -1120,9 +1120,9 @@ $('#lySubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'摇卦失败')}</div>`; return; }
     let html = `<div class="card"><h2>🔮 六爻卦象</h2>`;
-    if (j.hexagram) html += `<p class="paipan-line">${esc(j.hexagram)}</p>`;
-    if (j.yao_changes) html += `<p>变爻：${esc(j.yao_changes)}</p>`;
-    if (j.interpretation) html += `<div class="llm-text">${esc(j.interpretation)}</div>`;
+    if (j.hexagram) html += `<p class="paipan-line" style="font-size:28px;color:var(--c-liuyao);">${esc(j.hexagram)}</p>`;
+    if (j.yao_changes) html += `<p style="margin-top:8px;"><span style="background:var(--c-liuyao);color:#fff;padding:2px 10px;border-radius:999px;font-size:13px;">变爻</span> ${esc(j.yao_changes)}</p>`;
+    if (j.interpretation) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.interpretation)}</div>`;
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">摇卦失败：${esc(ex.message)}</div>`; }
@@ -1139,11 +1139,21 @@ $('#hlSubmit').addEventListener('click', async () => {
     const resp = await fetch('/api/huangli?' + params);
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'查询失败')}</div>`; return; }
-    let html = '<div class="card"><h2>🌙 黄历</h2>';
-    if (j.jian_chu) html += `<p><strong>建除：</strong>${esc(j.jian_chu)}</p>`;
-    if (j.shen_sha) html += `<p><strong>神煞：</strong>${esc(j.shen_sha)}</p>`;
-    if (j.yi) html += `<p><strong>宜：</strong>${esc(j.yi)}</p>`;
-    if (j.ji) html += `<p><strong>忌：</strong>${esc(j.ji)}</p>`;
+    let html = '<div class="card"><h2>🌙 黄历 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>';
+    // 建除 + 神煞：彩色 pill
+    if (j.jian_chu || j.shen_sha) {
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">';
+      if (j.jian_chu) html += `<span style="background:var(--c-huangli);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;font-weight:600;">${esc(j.jian_chu)}</span>`;
+      if (j.shen_sha) html += `<span style="background:var(--c-tarot);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;">${esc(j.shen_sha)}</span>`;
+      html += '</div>';
+    }
+    // 宜忌：彩色卡片
+    if (j.yi || j.ji) {
+      html += '<div class="calc-grid">';
+      if (j.yi) html += `<div class="calc-block" style="border-left:3px solid var(--c-good);"><h3 style="color:var(--c-good);">✅ 宜</h3><p style="font-size:15px;">${esc(j.yi)}</p></div>`;
+      if (j.ji) html += `<div class="calc-block" style="border-left:3px solid var(--c-bazi);"><h3 style="color:var(--c-bazi);">❌ 忌</h3><p style="font-size:15px;">${esc(j.ji)}</p></div>`;
+      html += '</div>';
+    }
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">查询失败：${esc(ex.message)}</div>`; }
@@ -1168,9 +1178,11 @@ $('#qmSubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'起名失败')}</div>`; return; }
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
-    if (j.names) j.names.forEach(n => {
-      html += `<div class="calc-block"><h3>${esc(n.name||'')}</div>
-        <p>${esc(n.meaning||'')}</p></div>`;
+    if (j.names) j.names.forEach((n, i) => {
+      const colors = ['var(--c-qiming)','var(--c-tarot)','var(--c-book)','var(--c-huangli)'];
+      const c = colors[i % colors.length];
+      html += `<div class="calc-block" style="border-left:3px solid ${c};"><h3 style="color:${c};font-family:var(--font-serif);font-size:22px;">${esc(n.name||'')}</h3>
+        <p style="font-size:14px;color:var(--secondary);">${esc(n.meaning||'')}</p></div>`;
     });
     html += '</div>';
     r.innerHTML = html;
@@ -1195,8 +1207,8 @@ $('#thSubmit').addEventListener('click', async () => {
     const j = await resp.json();
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'测算失败')}</div>`; return; }
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
-    if (j.peach_branch) html += `<p><strong>桃花支：</strong>${esc(j.peach_branch)}</p>`;
-    if (j.summary) html += `<div class="calc-summary">${esc(j.summary)}</div>`;
+    if (j.peach_branch) html += `<div style="text-align:center;margin:16px 0;"><span style="background:var(--c-taohua);color:#fff;font-size:24px;padding:10px 24px;border-radius:999px;font-family:var(--font-serif);">${esc(j.peach_branch)} 🌹</span></div>`;
+    if (j.summary) html += `<div class="calc-summary" style="margin-top:16px;border-left-color:var(--c-taohua);">${esc(j.summary)}</div>`;
     html += '</div>';
     r.innerHTML = html;
   }catch(ex){ r.innerHTML = `<div class="no-evidence">测算失败：${esc(ex.message)}</div>`; }
@@ -1264,13 +1276,22 @@ $('#hhSubmit').addEventListener('click', async () => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
     const a = j.a_bazi, b = j.b_bazi;
     let html = `<div class="card"><h2>💕 八字合婚</h2>`;
-    html += `<table class="works"><tbody>`;
-    html += `<tr><th>甲 八字</th><td>${esc(a.year)} 日柱 ${esc(a.day)}（日主${esc(a.day_master)}）</td></tr>`;
-    html += `<tr><th>乙 八字</th><td>${esc(b.year)} 日柱 ${esc(b.day)}（日主${esc(b.day_master)}）</td></tr>`;
-    html += `<tr><th>年支关系</th><td>${esc(j.year_zhi_a)}/${esc(j.year_zhi_b)}：${j.clash ? '六冲' : j.combine ? '六合' : '无冲合'}</td></tr>`;
-    html += `<tr><th>日主五行</th><td>${esc(j.day_wx_a)}（甲）· ${esc(j.day_wx_b)}（乙）：${j.day_wx_sheng ? '相生' : '相克'}</td></tr>`;
-    html += `<tr><th>桃花支</th><td>${esc(j.peach_a)}/${esc(j.peach_b)}：${j.peach_same ? '重叠' : '不同'}</td></tr>`;
-    html += '</tbody></table></div>';
+    // 两人八字：双卡片
+    html += `<div class="calc-grid">`;
+    html += `<div class="calc-block" style="border-left:3px solid var(--c-bazi);"><h3 style="color:var(--c-bazi);">甲</h3><p style="font-family:var(--font-serif);font-size:18px;">${esc(a.year)} · ${esc(a.day)}</p><p style="font-size:13px;color:var(--secondary);">日主：${esc(a.day_master)}</p></div>`;
+    html += `<div class="calc-block" style="border-left:3px solid var(--c-hehun);"><h3 style="color:var(--c-hehun);">乙</h3><p style="font-family:var(--font-serif);font-size:18px;">${esc(b.year)} · ${esc(b.day)}</p><p style="font-size:13px;color:var(--secondary);">日主：${esc(b.day_master)}</p></div>`;
+    html += `</div>`;
+    // 关系指标：彩色 pill
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">`;
+    const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
+    const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
+    html += `<span style="background:${relColor};color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">年支：${esc(relLabel)}</span>`;
+    const wxLabel = j.day_wx_sheng ? '相生' : '相克';
+    const wxColor = j.day_wx_sheng ? 'var(--c-good)' : 'var(--c-bazi)';
+    html += `<span style="background:${wxColor};color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">日主：${esc(wxLabel)}</span>`;
+    const peachLabel = j.peach_same ? '重叠' : '不同';
+    html += `<span style="background:var(--c-taohua);color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;">桃花：${esc(peachLabel)}</span>`;
+    html += `</div>`;
     if (j.dayun_hits && j.dayun_hits.length){
       html += '<div class="card"><h2>大运冲合应期</h2><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th><th>关系</th><th>约略起始年</th></tr></thead><tbody>';
       j.dayun_hits.forEach(d => {
