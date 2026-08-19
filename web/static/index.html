@@ -1220,7 +1220,7 @@ $('#trSubmit').addEventListener('click', async () => {
     let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
     if (j.card) {
       html += `<div class="tarot-card-wrap">
-        <div class="tarot-card-inner">
+        <div class="tarot-card-inner" id="tarotCardInner">
           <div class="tarot-card-face tarot-card-back"></div>
           <div class="tarot-card-face tarot-card-front">
             <div class="tname">${esc(j.card.name)}</div>
@@ -1231,6 +1231,11 @@ $('#trSubmit').addEventListener('click', async () => {
     if (j.interpretation) html += `<div class="llm-text" style="margin-top:16px;">${esc(j.interpretation)}</div>`;
     html += '</div>';
     r.innerHTML = html;
+    // 翻牌动画：延迟后触发
+    setTimeout(() => {
+      const inner = document.getElementById('tarotCardInner');
+      if (inner) inner.classList.add('flipped');
+    }, 600);
   }catch(ex){ r.innerHTML = `<div class="no-evidence">抽牌失败：${esc(ex.message)}</div>`; }
 });
 
