@@ -926,13 +926,25 @@ $('#form').addEventListener('submit', async e => {
     if (!resp.ok){ r.innerHTML = `<div class="no-evidence">${esc(j.detail||'计算失败')}</div>`; return; }
     let html = `<div class="card"><h2>🔮 排盘结果</h2>`;
     html += `<button class="ghost" style="position:absolute;top:24px;right:24px;margin:0;" onclick="addFavorite('bazi','latest','八字排盘')" title="收藏">❤️ 收藏</button>`;
-    html += `<p class="paipan-line">${esc(j.render)}</p>`;
-    if (j.nayin) html += `<p class="nayin">${esc(j.nayin)}</p>`;
+    // 四柱彩色 pill
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;">`;
+    const pillars = (j.render||'').split(/\s+/);
+    const pillColors = ['var(--c-bazi)','var(--c-tarot)','var(--c-huangli)','var(--c-book)'];
+    pillars.forEach((p, i) => {
+      if (p.length >= 2) {
+        html += `<span style="background:${pillColors[i%4]};color:#fff;padding:6px 14px;border-radius:999px;font-family:var(--font-serif);font-size:16px;font-weight:600;">${esc(p)}</span>`;
+      }
+    });
+    html += `</div>`;
+    if (j.nayin) html += `<p class="nayin" style="margin-top:12px;">${esc(j.nayin)}</p>`;
     if (j.calc) {
+      const blockColors = ['var(--c-bazi)','var(--c-book)','var(--c-tarot)','var(--c-huangli)','var(--c-qiming)'];
+      let bi = 0;
       html += '<div class="calc-grid">';
       for (const [k, v] of Object.entries(j.calc)) {
         if (k === 'summary') continue;
-        html += `<div class="calc-block"><h3>${esc(k)}</h3>`;
+        const color = blockColors[bi % blockColors.length]; bi++;
+        html += `<div class="calc-block" style="border-left:3px solid ${color};"><h3 style="color:${color};">${esc(k)}</h3>`;
         if (Array.isArray(v)) {
           v.forEach(item => {
             if (typeof item === 'object') {
@@ -956,14 +968,14 @@ $('#form').addEventListener('submit', async e => {
       if (j.calc.summary) html += `<div class="calc-summary">${esc(j.calc.summary)}</div>`;
     }
     if (j.evidence && j.evidence.length) {
-      html += '<h3 style="margin-top:16px;">古籍依据</h3>';
+      html += `<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>`;
       j.evidence.forEach((ev, i) => {
         html += `<div class="ev-item"><div class="ev-meta">${esc(ev.citation||'')}</div>
           <div class="ev-text">${esc(ev.text||'')}</div></div>`;
       });
     }
     if (j.llm_out) {
-      html += `<h3 style="margin-top:16px;">✨ LLM 解读 <span class="llm-badge">${esc(j.llm_out.model||'LLM')}</span></h3>`;
+      html += `<h3 style="margin-top:20px;color:var(--c-tarot);">✨ LLM 解读 <span class="llm-badge">${esc(j.llm_out.model||'LLM')}</span></h3>`;
       html += `<div class="llm-text">${esc(j.llm_out.text||'')}</div>`;
     }
     html += '</div>';
