@@ -29,10 +29,14 @@ def main() -> int:
     ap.add_argument("--hour", type=int, default=12)
     ap.add_argument("--gender", choices=["男", "女"], default="男")
     ap.add_argument("--sem", action="store_true", help="追加 bge 语义检索")
-    ap.add_argument("--llm", action="store_true",
-                    help="追加 LLM 白话解读（需环境变量 LLM_API_KEY；"
-                         "解读为生成文本，不落库、与引用分离、标注模型来源）")
-    ap.add_argument("--question", default=None, help="附带用户问题（--llm 时）")
+    # R120a：`--llm` 保留为别名（旧命令行不破），但语义已变——LLM 层在 R178b
+    # 被整体移除，现在走 guji.interpreter 确定性规则引擎（零网络、零成本）。
+    ap.add_argument("--interpret", "--llm", dest="interpret",
+                    action="store_true",
+                    help="追加确定性解读（guji.interpreter 规则引擎，"
+                         "零网络、同输入必同输出；--llm 为兼容旧命令的别名）")
+    ap.add_argument("--question", default=None,
+                    help="附带用户问题（--interpret 时聚焦对应小节）")
     ap.add_argument("--limit", type=int, default=6, help="每路径最多展示条数")
     opts = ap.parse_args()
 
@@ -83,24 +87,22 @@ def main() -> int:
         print("  证据不足：命理书未检索到与本坐标匹配的原文。"
               "本系统不据此推测（G7）。")
 
-    if opts.llm:
+    if opts.interpret:
+        # R120a：原 `--llm` 分支 `from guji import llm_reader` 在 R178b 之后
+        # 直接崩——实测退出码 1、`ImportError: cannot import name 'llm_reader'
+        # from 'guji'`。LLM 层已整体移除，改走确定性解读引擎：零网络、零成本、
+        # 同输入必同输出，可命令复验（实测两次运行输出逐字节相同）。
         print()
         print("=" * 70)
-        print("LLM 白话解读（生成文本，非古籍原文；用户已授权接入）")
+        print("确定性解读（guji.interpreter 规则引擎；非古籍原文，亦非 LLM 生成）")
         print("=" * 70)
-        from guji import llm_reader
-        if not llm_reader.available():
-            print("  LLM 未配置。请复制 llm_config.example.json 为 llm_config.json，")
-            print("  填入 base_url 与 api_key 后重跑（可加 --question）。")
-            print("  该文件已被 .gitignore，不会提交；也支持环境变量 LLM_API_KEY。")
-        else:
-            evidence = fast[:8] + (retrieve_semantic(b)[:4] if opts.sem else [])
-            try:
-                out = llm_reader.interpret(b.render(), evidence, opts.question)
-                print(f"  模型：{os.environ.get('LLM_MODEL', 'default')}")
-                print(out)
-            except Exception as exc:  # noqa: BLE001 — 网络/API 错误不掩盖引用结果
-                print(f"  LLM 调用失败（引用证据已在上方输出）：{exc}")
+        from guji import bazi_calc, interpreter
+        evidence = fast[:8] + (retrieve_semantic(b)[:4] if opts.sem else [])
+        paipan = {"render": b.render(), "nayin": b.nayin, "warn": b.warn}
+        out = interpreter.interpret_bazi(paipan, bazi_calc.calc(b),
+                                         evidence, opts.question)
+        print(f"  引擎：{out.get('engine', 'guji.interpreter')}")
+        print(out.get("text", ""))
 
     print()
     print("注：以上全部为古籍原文引文（带出处），非系统生成的解读。"

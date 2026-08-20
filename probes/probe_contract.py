@@ -6,7 +6,8 @@
 `llm` / `records` / `evidence`，前端读另一个名字，结果区永远空白，而自测全绿。
 
 **做法**（静态提取 + 真实响应比对，不靠人工维护清单）：
-  1. 从 `web/static/index.html` 的 <script> 区切出每个 handler 块；
+  1. 从前端 JS 载体切出每个 handler 块（R178b 后是 `web/static/app.js`，
+     重构前是 `index.html` 的 <script> 区，两种布局都支持）；
   2. 块内定位 `await resp.json()` 的接收变量（`j`），追踪它派生的对象变量
      （`const ben = j.ben || {}`）与迭代变量（`j.hits.forEach((h, i) =>`）；
   3. 收集这些变量上的**每一个字段名读取**，记录 文件:行号；
@@ -42,7 +43,11 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _p in (ROOT, os.path.join(ROOT, "src"), os.path.join(ROOT, "web")):
+# 注意不要把 ROOT/web 加进 sys.path：R178b 起 web 是**包**（有 __init__.py），
+# app.py 用 `from . import deps, errors` 相对导入。把 web/ 本身加进 sys.path
+# 会让 `import app` 以顶层模块身份加载 → ImportError: attempted relative
+# import with no known parent package。必须以 `web.app` 形式导入。
+for _p in (ROOT, os.path.join(ROOT, "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -53,7 +58,31 @@ try:
 except Exception:
     pass
 
-INDEX_HTML = os.path.join(ROOT, "web", "static", "index.html")
+STATIC = os.path.join(ROOT, "web", "static")
+# R178b 把内联 JS 拆到 app.js。优先扫 app.js，回落 index.html（兼容重构前后）。
+# 找不到任何前端 JS 时必须报错退出而不是"0 个读取点全部存在"——那是假通过。
+_CANDIDATES = [os.path.join(STATIC, "app.js"),
+               os.path.join(STATIC, "index.html")]
+FRONTEND_JS = next((p for p in _CANDIDATES if os.path.exists(p)), None)
+INDEX_HTML = FRONTEND_JS       # 报告里沿用旧名，值随载体变化
+
+
+def load_app():
+    """导入 FastAPI 应用，兼容 R178b 前后两种布局。
+
+    R178b 后：web 是包，`from web.app import app`（若只暴露工厂则调 create_app）。
+    R178b 前：web/app.py 是顶层脚本，`from app import app`。
+    """
+    try:
+        mod = __import__("web.app", fromlist=["app", "create_app"])
+    except ImportError:
+        sys.path.insert(0, os.path.join(ROOT, "web"))
+        mod = __import__("app", fromlist=["app", "create_app"])
+    if hasattr(mod, "app"):
+        return mod.app
+    if hasattr(mod, "create_app"):
+        return mod.create_app()
+    raise RuntimeError("web.app 既无 app 也无 create_app")
 
 # ---------------------------------------------------------------------------
 # fixtures：端点 -> 一次能产出"非空列表"的固定请求（可命令复验）
@@ -96,10 +125,46 @@ FIXTURES: dict[str, dict] = {
     "/api/threads":           {"method": "POST", "json": {
         "kind": "refusal", "claim": "probe_contract 契约探针占位",
         "method": "probe_contract"}, "cleanup": "derived"},
+    # ── R120a 补齐（R178b 新增/前端新接线的端点）──────────────
+    # 上一轮这 8 个端点无 fixture → 报 SKIP。SKIP 让 probe 返回退出码 2
+    # （不假装通过），但覆盖是残缺的：前端在这些 handler 里读的字段没被验证。
+    "/api/concept":           {"method": "GET", "params": {"q": "無爲"}},
+    "/api/compare_works":     {"method": "GET", "params": {
+        "work_a": "KR5c0057", "work_b": "KR5c0126", "q": "無爲"}},
+    "/api/bookstudy/structure": {"method": "GET", "params": {
+        "work_id": "KR1a0001"}},
+    "/api/bookstudy/chapter": {"method": "GET", "params": {
+        "work_id": "KR1a0001", "scheme": "zhouyi", "addr1": 1}},
+    "/api/bookstudy/summary": {"method": "GET", "params": {
+        "work_id": "KR1a0001"}},
+    "/api/tarot":             {"method": "POST", "json": {"seed": 42, "n": 3}},
+    # 路径参数端点：URL 由 probe 侧动态解析（见 PATH_FIXTURES）
+    "/api/threads/":          {"method": "PATH", "resolve": "thread_id"},
+    "/api/history/":          {"method": "PATH", "resolve": "history_id"},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
 ERROR_BRANCH_FIELDS = {"detail"}
+
+# 「条件存在」字段：只在错误/降级分支出现，成功响应里本就没有，前端用三元或
+# if 做存在性探测。这类读取**不是**契约漂移——判据是它出现在条件判断里而不是
+# 被当数据渲染。实测来源：`/api/external/news` 的 `error` 键只在整通道异常时
+# 才返回（见 services 的 except 分支），成功时缺席是正确设计。
+# 实测确认（`<py> -c` 打真实请求，见 D-137a）：`error` 是**带内拒绝键**——
+# 这些端点在拒绝/未命中时返回 HTTP **200** + `{"error": "..."}`，而不是 4xx。
+# 来源：`src/guji/bookstudy.py:43/49/119/127/143/167/172`、
+# `src/guji/research.py:275/299/301`、`web/services.py:858`。
+# 实测：compare_works 无命中词 → 200 keys=['error']；bookstudy NULL-scheme →
+# 200 keys=['error']。前端 `if (j.error)` 正是**正确**的处理方式，判 HARD 是误报。
+CONDITIONAL_FIELDS = {
+    "/api/external/news": {"error"},
+    "/api/external/fortune": {"error"},
+    "/api/compare_works": {"error"},
+    "/api/concept": {"error"},
+    "/api/bookstudy/structure": {"error"},
+    "/api/bookstudy/chapter": {"error"},
+    "/api/bookstudy/summary": {"error"},
+}
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。
 # 依据宪法第三条「引用与生成分离」——`||''` 让页面不报错，但把出处静默渲染成
@@ -110,19 +175,34 @@ PROVENANCE_FIELDS = {"citation", "disclosure"}
 # ---------------------------------------------------------------------------
 # 1. 静态提取：handler 块 -> 变量绑定 -> 字段读取点
 # ---------------------------------------------------------------------------
-def script_region(text: str) -> tuple[list[str], int]:
+def script_region(text: str, path: str) -> tuple[list[str], int]:
+    """取出前端 JS 正文与其 1-based 行号基准。
+
+    R178b 之前 JS 内联在 index.html 的 <script> 区；之后整体搬到 app.js，
+    此时整个文件就是 JS，无需切分。两种布局都要支持，否则 probe 会在重构后
+    因为找不到 <script> 而崩掉（或更糟：静默扫到 0 个读取点报"全部通过"）。
+    """
     lines = text.splitlines()
+    if path.endswith(".js"):
+        return lines, 1
     start = next(i for i, l in enumerate(lines) if l.strip() == "<script>")
     end = next(i for i, l in enumerate(lines) if l.strip() == "</script>")
     return lines[start + 1:end], start + 2   # 返回 1-based 行号基准
 
 
 def split_blocks(lines: list[str], base: int) -> list[dict]:
-    """按顶格（col 0）起始 / 顶格 `}`|`});` 结束切分 handler 块。"""
+    """按顶格（col 0）起始 / 顶格 `}`|`});` 结束切分 handler 块。
+
+    R178b 后 app.js 的形态是一批顶格 `async function doX() {`，块内调用共享的
+    `api()` / `postJSON()` 包装器；重构前是 `$('#id').addEventListener(...)`
+    内联 `fetch()`。两种都要能切出来——只认 `fetch(` 会在重构后抽到 1 个块、
+    0 个读取点，然后报"全部通过"，那是假通过（实测踩过，见 D-136a）。
+    """
     blocks, i, n = [], 0, len(lines)
     while i < n:
         l = lines[i]
         if l and not l[0].isspace() and not l.lstrip().startswith("//") \
+                and not l.lstrip().startswith("*") \
                 and l.rstrip().endswith("{"):
             j = i + 1
             while j < n and not re.match(r"^\}\)?;?\s*$", lines[j]):
@@ -131,11 +211,24 @@ def split_blocks(lines: list[str], base: int) -> list[dict]:
             i = j + 1
         else:
             i += 1
-    return [b for b in blocks if any("fetch(" in x for x in b["lines"])]
+    def has_call(b):
+        body = "\n".join(b["lines"])
+        return ("fetch(" in body or API_CALL_RE.search(body)
+                or API_PREFIX_RE.search(body))
+    return [b for b in blocks if has_call(b)]
 
 
 FETCH_RE = re.compile(r"fetch\(\s*['\"`](/api/[A-Za-z0-9_/]*)")
-JSON_VAR_RE = re.compile(r"const\s+(\w+)\s*=\s*await\s+\w+\.json\(\)")
+# R178b 起前端统一走 `api(path)` / `postJSON(path, payload)` 包装器，
+# 不再逐处裸调 fetch。两种写法都要认，否则 probe 抽不到任何 URL。
+API_CALL_RE = re.compile(
+    r"(?:api|postJSON)\(\s*['\"`](/api/[A-Za-z0-9_/{}]*)")
+# 变量拼接的 URL：api('/api/history/' + encodeURIComponent(rid))
+API_PREFIX_RE = re.compile(r"(?:api|postJSON)\(\s*['\"`](/api/[A-Za-z0-9_/]*?)/?['\"`]\s*\+")
+# R178b 前：const j = await resp.json()
+# R178b 后：const j = await api('/api/x')  /  const j = await postJSON(...)
+JSON_VAR_RE = re.compile(
+    r"const\s+(\w+)\s*=\s*await\s+(?:\w+\.json\(\)|api\(|postJSON\()")
 # const ben = j.ben || {}   /   const a = j.a_bazi, b = j.b_bazi;
 OBJ_BIND_RE = re.compile(r"(?:const|let|var)\s+(\w+)\s*=\s*(\w+)\.(\w+)"
                          r"(?:\s*\|\|\s*\{\})?")
@@ -151,9 +244,11 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
     reads: list[dict] = []
     urls: list[str] = []
     for off, line in enumerate(block["lines"]):
-        m = FETCH_RE.search(line)
-        if m:
-            urls.append(m.group(1))
+        for rx in (FETCH_RE, API_CALL_RE, API_PREFIX_RE):
+            m = rx.search(line)
+            if m:
+                urls.append(m.group(1))
+                break
         m = JSON_VAR_RE.search(line)
         if m:
             binds[m.group(1)] = ("root", [])
@@ -221,14 +316,26 @@ def resolve(body, kind: str, path: list[str]):
 
 def main() -> int:
     from fastapi.testclient import TestClient
-    from app import app
     from guji import history as history_db
     from guji import knowledge as kb_mod
 
-    client = TestClient(app)
-    text = open(INDEX_HTML, encoding="utf-8").read()
-    lines, base = script_region(text)
+    if FRONTEND_JS is None:
+        print(f"probe_contract FAIL-ENV: 在 {STATIC} 找不到 app.js 或 index.html"
+              f"——前端载体改名了？probe 必须先能找到代码才能判定"
+              f"（0 个读取点 ≠ 通过）")
+        return 2
+
+    client = TestClient(load_app())
+    text = open(FRONTEND_JS, encoding="utf-8").read()
+    lines, base = script_region(text, FRONTEND_JS)
     blocks = split_blocks(lines, base)
+    src_name = os.path.basename(FRONTEND_JS)
+    print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）")
+    if not blocks:
+        print(f"probe_contract FAIL-ENV: 在 {src_name} 里切不出任何含 fetch 的 "
+              f"handler 块。可能是代码风格变了（如改用箭头函数顶层缩进），"
+              f"probe 的块切分需同步更新——静默报 0 是假通过。")
+        return 2
 
     # ── 写端点污染基线（L-22）──────────────────────────────
     # ⚠ 从这里开始到 finally 之间的一切都必须在 try 内：本 probe 开发期实测
@@ -255,6 +362,24 @@ def main() -> int:
         fx = FIXTURES.get(url)
         if fx is None:
             cache[url] = ("nofixture", None)
+            return cache[url]
+        if fx["method"] == "PATH":
+            # 路径参数端点：先取一个真实存在的 id，再打具体 URL。
+            # 取不到 id 就诚实报 SKIP，不编一个假 id 去打 404（那会把
+            # "端点契约"测成"404 错误体契约"，是另一回事）。
+            if fx["resolve"] == "thread_id":
+                lst = client.get("/api/threads").json().get("threads") or []
+                rid = (lst[0].get("id") if lst else None)
+            else:
+                recs = client.get("/api/history").json().get("records") or []
+                rid = (recs[0].get("id") if recs else None)
+            if rid is None:
+                cache[url] = ("http", (0, f"{url} 无可用 id（列表为空），"
+                                          f"无法构造路径参数请求"))
+                return cache[url]
+            r = client.get(f"{url.rstrip('/')}/{rid}")
+            cache[url] = (("ok", r.json()) if r.status_code == 200
+                          else ("http", (r.status_code, r.text[:160])))
             return cache[url]
         if fx["method"] == "GET":
             r = client.get(url, params=fx.get("params"))
@@ -298,7 +423,7 @@ def main() -> int:
                          f"{r['renders_as']}  {r['value_preview']}")
             if r.get("note"):
                 extra += f"  ⚠ {r['note']}"
-            print(f"  index.html:{r['line_no']}  {r.get('url', '-')}  读 {path}"
+            print(f"  {src_name}:{r['line_no']}  {r.get('url', '-')}  读 {path}"
                   f"{extra}\n      源码: {r['src']}")
 
     print(f"probe_contract: {len(blocks)} 个含 fetch 的 handler 块，"
@@ -394,7 +519,10 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads) -> int:
             status, value = resolve(body, rd["kind"], rd["path"])
             rd["url"] = url
             if status == "missing":
-                if rd["field"] in PROVENANCE_FIELDS:
+                if rd["field"] in CONDITIONAL_FIELDS.get(url, set()):
+                    rd["note"] = "条件存在字段（只在错误/降级分支返回），非漂移"
+                    soft.append(rd)
+                elif rd["field"] in PROVENANCE_FIELDS:
                     rd["note"] = "出处字段缺失（宪法第三条）：|| 兜底把出处静默渲染成空串"
                     hard.append(rd)
                 else:

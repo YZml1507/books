@@ -108,7 +108,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   全部按钮点击后正常发请求并渲染结果。（八字排盘用的是正确的 `$('#year')`
   写法，未受影响）
 - 严重级：BLOCKER
-- 状态：FIXED-R178b（优化轨声明已修，待审查轨复验）
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke 用例 btn:search/liuyao/huangli/qiming/taohua/tarot/hehun/research/addr/compare/threads 全部 PASS，零 pageerror；probe_dollar_misuse 58 个函数名 0 处属性误用
 - **R118a 自行复现（不凭移交报告签字）**：
   `<py> probes\probe_ui_smoke.py` 真浏览器点击，6 个按钮拿到**运行时原文**：
 
@@ -176,7 +177,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 - 期望：点击后分别调用 `/api/compare_works`、`/api/concept` 并渲染
   （两端点实测均返回 200）
 - 严重级：BLOCKER
-- 状态：FIXED-R178b（优化轨声明已修，待审查轨复验）
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke btn:compare_works 容器 1217 字符、btn:concept 容器 1421 字符，均真发请求并渲染
 - **R118a/R119a 自行复现**：解除 R000a-03 的级联遮挡后拿到运行时确证：
 
       [FAIL] btn:compare_works: 结果容器点击后仍为空；
@@ -200,7 +202,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   `:428`（dailyMore）
 - 期望：点击标签切换对应 `.rsec` 面板；`#dailyMore` 有明确行为
 - 严重级：BLOCKER
-- 状态：FIXED-R178b（优化轨声明已修，待审查轨复验）
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke 九个 tab 全部『面板可见』、三个 subtab 全部『子标签 active』、btn:dailyMore『点击后 DOM 有变化』
 - **R118a 自行复现**：`probe_ui_smoke` 12 个用例实测原文：
 
       [FAIL] tab:rsec-research:  点击后 #rsec-research 仍不可见
@@ -233,7 +236,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   `:1034`（addresses）；后端 `web/app.py:299` `:307` `:500`
 - 期望：字段名以真实响应为准，或后端显式改契约并同步自测断言
 - 严重级：MAJOR
-- 状态：FIXED-R178b（优化轨声明已修，待审查轨复验）
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_contract 191 个字段读取点 HARD=0 TYPE=0 SKIP=0；前端已改读 interpretation / records / evidence
 - **R118a 自行复现**：`<py> probes\probe_contract.py` 用真实响应逐字段比对，
   三处全部确证，且**位置比移交清单更精确**：
 
@@ -266,7 +270,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   后端 `web/schemas.py` `ThreadRecordRequest`
 - 期望：标签正确闭合；线程创建请求体符合 `ThreadRecordRequest`
 - 严重级：MAJOR
-- 状态：FIXED-R178b（优化轨声明已修，待审查轨复验）
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke dom:bazi.strong-nesting 实测 <strong> 嵌套层数=0、注释节点=0；btn:threads 容器 96 字符『线程已创建』
 - **R118a 自行复现**：两半都确证，且拿到了移交清单没有的**浏览器实际解析后果**。
   行号修正：损坏模板在 **963 行**（移交清单写 963 正确；注意用
   `Get-Content` 读该文件会因解码错位报成别的行，以 Python/read 工具为准）。
@@ -320,8 +325,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 - 期望：object 值按键展开渲染（如五行分布逐项显示），页面任何位置不得出现
   `[object Object]` 字面量；`probe_ui_smoke` 的 `btn:bazi` 用例转 PASS
 - 严重级：MAJOR
-- 状态：OPEN
-
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke btn:bazi 容器 31893 字符，无 [object Object]；probe_contract TYPE=0
 ### R118a-02 黄历「彭祖百忌」渲染成 `[object Object]`
 - 复现：`<py> probes\probe_contract.py`（TYPE 段单条）
 - 实测：
@@ -336,8 +341,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 - 期望：渲染 `gan_text` / `zhi_text` 两句忌语（这是彭祖百忌的实际内容），
   不得出现 `[object Object]`
 - 严重级：MAJOR
-- 状态：OPEN
-
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke btn:huangli 实测渲染『彭祖百忌 乙：乙不栽植，千株不长 / 丑：丑不冠带，主不还乡』，非 [object Object]
 ### R118a-03 排盘「古籍依据」出处永久为空（引用与生成分离被静默破坏）
 - 复现：`<py> probes\probe_contract.py`（HARD 段第 1 条）
 - 实测：
@@ -357,8 +362,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   页面 `.ev-meta` 非空。宪法第三条「引用与生成分离」要求原文必带出处，
   `||''` 兜底不构成合规
 - 严重级：MAJOR
-- 状态：OPEN
-
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_contract 出处字段 citation 不再缺失（HARD=0）；probe_no_generated_in_corpus 阳性对照 6/6 引文可在语料中定位
 ### R118a-04 `#dailyMore`「查看完整解读」点击后 DOM 零变化
 - 复现：`<py> probes\probe_ui_smoke.py`（用例 `btn:dailyMore`）
 - 实测：`[FAIL] btn:dailyMore: 点击后 DOM 无任何变化（无事件处理器）`；
@@ -366,8 +371,8 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 - 位置：`web/static/index.html:428`
 - 期望：点击后有明确行为（跳排盘视图或展开完整运势），DOM 可观测变化
 - 严重级：BLOCKER（按本文件定义：点了完全无反应＝功能完全不可用）
-- 状态：OPEN
-
+- 状态：VERIFIED-R120a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke btn:dailyMore『点击后 DOM 有变化』
 ---
 
 ## 已确认无缺陷（不要"修"没坏的东西）

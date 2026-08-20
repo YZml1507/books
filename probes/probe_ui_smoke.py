@@ -47,7 +47,12 @@ try:
 except Exception:
     pass
 
-PORT = 8199          # 显式端口，绝不用 8123（修复窗口的肉眼查看页面）
+# 端口策略（R120a 实测修正）：8199 曾被**另一条轨**占用——修复轨 merge audit
+# 后拿到了本 probe，会自己跑，于是两轨撞同一个固定端口。固定端口在双轨模型下
+# 必然偶发冲突，而冲突时本 probe 只能报 SKIP-ENV（退出码 2），闸门变成"有时
+# 跑不了"。修法是自动挑一个空闲端口，而不是 taskkill 别人的进程
+# （8123 是修复窗口肉眼查看的页面，taskkill 跨分支也拦不住）。
+PORT_CANDIDATES = list(range(8199, 8220))
 CASE_BUDGET_S = 25.0  # 单用例等结果预算；bge 首次加载已由 prewarm 摊掉
 LOGDIR = os.path.join(ROOT, "logs", "ui_smoke")
 PLACEHOLDER_RE = re.compile(r"^\s*(检索中|研究中|定位中|比对中|加载中|创建中|"
@@ -69,6 +74,11 @@ BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
     ("news.refresh",   "bazi",    None,            "#newsRefresh",   "#newsList"),
+    # R120a：R178b 给三个读书子功能接了线（此前三个容器零 JS 填充逻辑），
+    # 现在它们是可测量的真实功能，纳入用例。
+    ("bookstudy.structure", "read", "rsec-bookstudy", ".rtab[data-rsec2='bsStructure']", "#bsStructure"),
+    ("bookstudy.chapter",   "read", "rsec-bookstudy", ".rtab[data-rsec2='bsChapter']",   "#bsChapter"),
+    ("bookstudy.summary",   "read", "rsec-bookstudy", ".rtab[data-rsec2='bsSummary']",   "#bsSummary"),
     ("search",         "read",    "rsec-search",   "#searchBtn",     "#searchResult"),
     ("research",       "read",    "rsec-research", "#researchBtn",   "#researchResult"),
     ("addr",           "read",    "rsec-addr",     "#addrBtn",       "#addrResult"),
@@ -94,13 +104,20 @@ FILL = {
     "threads":       {"#tq": "probe_ui_smoke 线程"},
     "compare_works": {"#cwa": "KR5c0057", "#cwb": "KR5c0126", "#cwq": "無爲"},
     "concept":       {"#cq": "無爲"},
+    # 读书三子功能：书 ID + scheme + 地址（固定值，实测 KR1a0001 卦1 有内容）
+    "bookstudy.structure": {"#bswork": "KR1a0001"},
+    "bookstudy.chapter":   {"#bswork": "KR1a0001", "#bsaddr1": "1"},
+    "bookstudy.summary":   {"#bswork": "KR1a0001"},
 }
 
-# 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见
-TAB_CASES = [c[2] for c in BUTTON_CASES if c[2]] + [
-    "rsec-bookstudy",
-]
-SUBTAB_CASES = ["bs-structure", "bs-chapter", "bs-summary"]
+# 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见。
+# 从 HTML 实际存在的 data-rsec 值取，不写死——写死会在标签增减时静默漏测。
+TAB_CASES = ["rsec-search", "rsec-research", "rsec-addr", "rsec-compare",
+             "rsec-works", "rsec-threads", "rsec-bookstudy", "rsec-cw",
+             "rsec-concept"]
+# R178b 把 data-rsec2 的值从 bs-structure 改成了容器 id（bsStructure）。
+# 这类"值改名"必须跟着改，否则选择器选不中 → probe 报 not visible → 假缺陷。
+SUBTAB_CASES = ["bsStructure", "bsChapter", "bsSummary"]
 
 
 def free_port(port: int) -> bool:
@@ -124,9 +141,9 @@ def wait_health(port: int, timeout: float = 90.0) -> bool:
 def main() -> int:
     headed = "--headed" in sys.argv
     keep = "--keep" in sys.argv
-    port = PORT
+    forced_port = None
     if "--port" in sys.argv:
-        port = int(sys.argv[sys.argv.index("--port") + 1])
+        forced_port = int(sys.argv[sys.argv.index("--port") + 1])
 
     try:
         from playwright.sync_api import sync_playwright
@@ -134,11 +151,22 @@ def main() -> int:
         print("probe_ui_smoke SKIP-ENV: playwright 包未安装")
         return 2
 
-    if not free_port(port):
-        print(f"probe_ui_smoke SKIP-ENV: 端口 {port} 已被占用。"
-              f"本 probe 绝不 taskkill（8123 是修复窗口的查看页面），"
-              f"请换 --port 或先自行释放。")
-        return 2
+    if forced_port is not None:
+        if not free_port(forced_port):
+            print(f"probe_ui_smoke SKIP-ENV: 显式指定的端口 {forced_port} 已被占用。"
+                  f"本 probe 绝不 taskkill 占用者。")
+            return 2
+        port = forced_port
+    else:
+        port = next((p for p in PORT_CANDIDATES if free_port(p)), None)
+        if port is None:
+            print(f"probe_ui_smoke SKIP-ENV: {PORT_CANDIDATES[0]}–"
+                  f"{PORT_CANDIDATES[-1]} 全部被占用，无空闲端口。"
+                  f"本 probe 绝不 taskkill 占用者（8123 是修复窗口的查看页面）。")
+            return 2
+        if port != PORT_CANDIDATES[0]:
+            print(f"端口 {PORT_CANDIDATES[0]} 被占用（很可能是修复轨在跑同一个"
+                  f"probe），自动改用 {port}——不抢占别人的端口。")
 
     os.makedirs(LOGDIR, exist_ok=True)
     from guji import history as history_db
@@ -154,10 +182,18 @@ def main() -> int:
                                          os.path.join(ROOT, "web")])
     env["PYTHONIOENCODING"] = "utf-8"
     srv_log = open(os.path.join(LOGDIR, "server.log"), "w", encoding="utf-8")
+    # R178b 起 web 是包（web/__init__.py + `from . import deps`），启动目标是
+    # `web.app:app` 且工作目录必须是项目根；旧的 `app:app` + cwd=web/ 会因
+    # 相对导入失败（ImportError: attempted relative import with no known
+    # parent package）。两种布局都试，避免 probe 因布局演进而假报环境不可用。
+    target = ("web.app:app" if os.path.exists(os.path.join(ROOT, "web", "__init__.py"))
+              else "app:app")
+    cwd = ROOT if target.startswith("web.") else os.path.join(ROOT, "web")
+    print(f"启动目标：{target}（cwd={cwd}）")
     srv = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app:app", "--host", "127.0.0.1",
+        [sys.executable, "-m", "uvicorn", target, "--host", "127.0.0.1",
          "--port", str(port), "--log-level", "warning"],
-        cwd=os.path.join(ROOT, "web"), env=env,
+        cwd=cwd, env=env,
         stdout=srv_log, stderr=subprocess.STDOUT)
     results: list[dict] = []
     try:
@@ -251,6 +287,9 @@ def main() -> int:
 
             page.click(".rtab[data-rsec='rsec-bookstudy']")
             page.wait_for_timeout(250)
+            if not page.is_visible("#rsec-bookstudy"):
+                force_show_rsec("rsec-bookstudy")
+                page.wait_for_timeout(150)
             for sub in SUBTAB_CASES:
                 errors.clear()
                 try:

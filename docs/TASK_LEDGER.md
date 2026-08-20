@@ -5445,3 +5445,123 @@ median 0.991）。该文件属审查轨领土且与本轮改动零交集（`Sele
 `sys.stdout.reconfigure(encoding="utf-8")` 一次性消除。
 
 - 决策记录：DECISIONS.md D-226b ~ D-230b。
+
+---
+
+### 111. R120a 审查循环：复审 R178b 重构、9 条缺陷全部 VERIFIED、**阶段翻到 OPTIMIZE**（2026-08-20）
+
+**merge main**：纳入优化轨 95ce343（R178b：web 分层重构 + 移除 LLM +
+前端 index.html 拆成 app.js/styles.css，声明清偿 5 条 BLOCKER/MAJOR）。
+三个 append-only 文档冲突（AUDIT_FINDINGS / DECISIONS / TASK_LEDGER），
+按宪法第五条**两段都保留**：审查轨实测证据 + 优化轨状态标记并存，
+未用 `--theirs` 丢掉任何一侧、未改写对方条目。`git diff --numstat` 确认
+DECISIONS/TASK_LEDGER 纯新增。
+
+**本轮先修 probe 自身，再谈复验**。R178b 改了三处结构，把三个 probe 全打瘸了，
+而**其中两处的表现是「假通过」——比 FAIL 危险得多**：
+
+1. `probe_dollar_misuse` 报「0 行 / 0 处」退出码 0。**这是假通过**：JS 搬到
+   `app.js` 了，probe 还在扫 `index.html`，等于扫了个空文件。
+   正是宪法第四条 U-08 要杜绝的形态。
+2. `probe_contract` 报「1 个 handler 块、0 个字段读取点、PASS」退出码 0。
+   同样是假通过：R178b 改用共享 `api()`/`postJSON()` 包装器，probe 只认裸
+   `fetch(`，抽不到任何 URL。
+3. `probe_ui_smoke` 直接崩：`web` 变成包（`from . import deps`），
+   旧启动目标 `app:app` + `cwd=web/` 报
+   `ImportError: attempted relative import with no known parent package`。
+
+修法一律是**让判据跟着代码走，并在找不到目标时报错而不是报 0**：
+三个 probe 现在都会在「载体不存在 / 扫不到函数定义 / 切不出 handler 块」时
+返回退出码 2（无法判定），而不是静默返回 0。
+
+**闸门 6 从「查一个符号」泛化成「查一类错误」**（D-138a）：R178b 删掉了 `$`，
+改用 `el()`/`val()`/`num()`，「只查 `$.`」的前提消失。现在 probe 自动扫出文件里
+所有 `function name(...)` 定义（实测 58 个），再查是否有任何一处把这些名字当
+对象访问属性。判据随代码自动更新，下次再改辅助函数命名也不会失效。
+
+**四条阶段闸门 + 五条附加闸门全绿，逐条实测见 `docs/PHASE.md` R120a 登记条目。**
+关键数字：`probe_ui_smoke` **35/35 PASS**（R118a 时 4/28）、`probe_contract`
+**191 个读取点 HARD=0 TYPE=0 SKIP=0**（R118a 时 HARD=10 TYPE=1 SKIP=8）、
+`web/selftest.py` **138 checks**、13 道闸门退出码全 0。
+
+**两条红线亲自核查（不凭子 agent 报告，不凭优化轨声明）**：
+
+- **红线「为了让数字变好而放宽闸门」**：断言 130 → 138 看似只增，但必须证明
+  没有暗删。新建 `probe_selftest_regress`（D-139a）逐名比对，实测
+  `130 - 1 + 9 = 138`，唯一消失的 `ask.llm.shape` 由 `ask.interpretation.shape`
+  接管，且**新断言更强**（断言 dict/ok/engine 含「无 LLM」/sections 与
+  citations 非空/两次同输入 text 完全相等）。**结论：不是放宽，是加强。**
+  改名登记进 `probes/selftest_baseline.json` 的 `renames` 字段——
+  以后任何断言消失若无登记，闸门直接红。
+- **红线「生成文本入库」**：`guji.interpreter` 取代 LLM 后，解读文本仍是
+  机器合成叙述（非印本原文），仍属生成文本。新建
+  `probe_no_generated_in_corpus`（D-140a）三角验证：静态（interpreter.py 零
+  网络零数据库 import）+ 计数（corpus.unit 62109、kb.derived 2、kb.evidence 6
+  调用前后一字不差）+ 全文搜索（叙述文本指纹在语料/知识库零命中）。
+  实测解读只落 `history.db`（D-039 授权），**corpus.db / knowledge.db 零污染**。
+
+**本 probe 开发期自己踩的两个坑，都记下来而不是隐去**：
+
+- 第一版拿整段 `interpretation.text` 去语料里搜，报「污染 6 处」——**误报**：
+  解读本来就**该**引古籍原文，那些片段当然搜得到。正确判据是只取叙述部分
+  （sections[].lines），引文部分反而**应该**能找到。
+- 改对之后阳性对照 0/6 命中，暴露第二个坑：我把针 `re.sub(r"\s+","")` 去了
+  空白，而库里存的原文**保留换行**，于是针永远匹配不上干草堆。保留原始空白
+  后 6/6 命中。**这个阳性对照救了整条结论**——没有它，「零命中」会被当成
+  「隔离成立」，而实际上是搜索根本没生效（宪法第三条偏离 4）。
+
+**在审查轨自己领土发现并修掉一处断裂**：`scripts/ask_bazi.py --llm` 因
+R178b 删除 `guji.llm_reader` 而崩（实测退出码 1 + ImportError 原文）。
+已改走 `guji.interpreter`，`--llm` 保留为 `--interpret` 的别名（旧命令不破）；
+实测退出码 0，两次运行输出**逐字节相同**（4297 chars，确定性可复验）。
+这类缺陷 13 道闸门覆盖不到——闸门只跑 `scripts/` 里 9 个脚本，
+`ask.py`/`ask_bazi.py`/`research_thread.py` 无任何覆盖，可以坏很久没人知道。
+故新建 `probe_scripts_importable`（D-141a）永久防再犯：纯静态 AST 扫描
+88 个模块 131 处 guji 引用。
+
+**三个新闸门都做了阳性对照**（宪法第三条偏离 4「没有已知阳性对照的质量闸门
+等于没有闸门」）：闸门 6 注入 `val.rq.value` → 抓到；闸门 9 注入
+`from guji import llm_reader` → 抓到；闸门 8 用引文做对照 → 6/6 命中。
+三者注入后均退出码 1、还原后均退出码 0，且 `git status` 确认被测文件
+逐字节还原。
+
+**阶段翻转**：四条闸门同时成立，`CURRENT_PHASE` 由 `REPAIR` 翻为 `OPTIMIZE`，
+已在 `docs/PHASE.md` 尾部登记并附四条各自实测输出摘要。修复轨不得自行宣布
+完工——本次翻转由审查轨逐条亲跑后签字。
+
+**领土纪律**：本轮写入 `probes/`（3 改 3 新）、`scripts/`（ask_bazi 修复 +
+count_open_findings）、`docs/`（AUDIT_FINDINGS / PHASE + 台账 a 侧 append）、
+`logs/`。`src/guji/**` 与 `web/**` **零改动**——`git diff --stat -- src web`
+为空。阳性对照虽临时改过 `web/static/app.js` 与 `scripts/ask_bazi.py`，
+但均在 finally 中还原并用 `git status` 复验干净。
+9 条缺陷全部只用 probe + 报告驱动，**一行业务代码都没自己改**。
+
+**清理**：所有 probe 的写端点污染均清理并复验（`history 行数 43 -> 43`）。
+另删净 R118a 开发期残留的 4 条占位行后，`derived 2 | probe leftovers 0`、
+`favorites 0 | probe leftovers 0`。
+
+- 决策记录：DECISIONS.md D-136a、D-137a、D-138a、D-139a、D-140a、D-141a。
+
+**本轮第二处自身事故（记录而非隐去，宪法第一条）**：`probe_scripts_importable`
+第一版用 `importlib` + `exec_module` 真导入 88 个模块。模块级代码**会执行**，
+后果不止是超时被杀——它还**改了共享状态**：
+
+    data/catalog/corpus_manifest.json     | 596 ++--------------------
+    data/catalog/external_manifest.json   |  22 +-
+    data/catalog/generality_manifest.json |  99 +-----
+    data/catalog/gutenberg_manifest.json  |   2 +-
+    data/catalog/yao_diagnosis.json       |   7 +-
+    5 files changed, 50 insertions(+), 676 deletions(-)
+
+外加把 KR1a0001/0006/0007 的原始语料拷进了 `probes/data/raw/`（130 个文件），
+并解压了 `data/external/.../chatgpt-tarot-divination.zip`。
+`data/catalog/*.json` 是**两轨共享状态**（宪法第五条列举的同族），
+676 行删除若被提交，等于审查轨悄悄改了语料清单——正是 L-01 事故的形态。
+
+处置：`git checkout --` 还原 5 个 manifest 与 zip、删除 `probes/data/`
+与解压残留；随后**重跑 13 道闸门确认无回归**（退出码全 0）、
+`git status -- data/` 确认干净。probe 改为纯静态 AST 分析（见 D-141a）。
+
+**教训**：审查轨的 probe 本身也是代码，它的副作用同样要受宪法第五条约束。
+「只读的勘查」不是写在注释里就成立的——`exec_module` 那一行就足以让一个
+自称只读的 probe 改掉共享语料清单。
