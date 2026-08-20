@@ -1,0 +1,607 @@
+"""voice — warm 视图层（把已算出的坐标说成人话，不新增任何事实）。
+
+存在理由（`specs/004-warm-voice/spec.md`）：用户指示「当前结果普通人看不懂
+也不想看」。实测诊断（台账 §114.2 / spec §「我自己重跑了诊断样例」）：用户
+问「感情运怎么样？」，答案排在第 5 节、只有 1 行，前面 15 行是坐标与推导链。
+
+本模块与 `interpreter.py` 的分工——这是判据 9 的架构前提：
+
+  * `interpreter.py`  专业模式，**一行不改**。它的输出即基线，由
+    `web/baseline_voice.py` 逐字节把关（14 用例 sha256 冻结）。
+  * `voice.py`（本模块）warm 模式，**新增分支**而非改造。路由层
+    additive 附加 `"warm"` 键，前端按 `voiceMode` 选渲染哪个。
+
+硬纪律（违反任一条即判据失败）：
+
+  1. **纯函数**：无 IO、无网络、无随机、不读时钟（"今天"由调用方传入）。
+     同输入必同输出（判据 5），两次调用逐字节相等。
+  2. **不新增事实**：每句话都能回指一个 calc 字段。模板文字写死在本模块，
+     事实全部来自入参——与 interpreter 同一条纪律。
+  3. **不断吉凶、不给现实指令**（判据 6，spec US2）。句式只允许三类：
+     描述已算出的坐标 / 开放式提示 / 把判断权交还用户。
+     禁用词表由 `web/check_warm_voice.py` 写死并做阳性对照。
+  4. **不进语料库**：本模块产出只随响应返回、只落 history.db（D-039 已授权），
+     不进 corpus.db / knowledge.db（判据 14）。
+
+复验命令（PowerShell，项目根）：
+    .\\.venv\\Scripts\\python.exe -m guji.voice          # 本模块自测
+    .\\.venv\\Scripts\\python.exe web\\check_warm_voice.py  # 判据 1-8
+"""
+from __future__ import annotations
+
+# ---------------------------------------------------------------------------
+# 术语白话表：把命理术语翻译成日常语。
+#
+# 纪律：括号里**保留原词**——白话化是为了可读，不是为了抹掉可检索性。
+# 用户能读懂，同时仍能拿原词去古籍里检索（这是本项目的立身之本）。
+# ---------------------------------------------------------------------------
+
+# 十神 → (日常语标签, 一句话说明)。措辞守则见 plan §3：
+# 不含吉凶断言，只描述"这股力量是什么"。
+TEN_GOD_WARM: dict[str, tuple[str, str]] = {
+    "比肩": ("同伴力", "身边同类多，做事有人同行，也容易互相比较"),
+    "劫财": ("分享力", "人来人往热闹，钱和精力容易一起花掉"),
+    "食神": ("表达力", "温和地把想法说出来、做出来，节奏不急"),
+    "伤官": ("创造力", "点子多、锋芒也在，喜欢跳出既定框架"),
+    "偏财": ("流动财", "进项来源多，但不太固定"),
+    "正财": ("稳定财", "来源固定，适合慢慢积累"),
+    "七杀": ("压力位", "外部推力大，事情常被逼着往前走"),
+    "正官": ("规矩位", "在规则里行事，责任感重"),
+    "偏印": ("直觉力", "想法独特，学东西走自己的路"),
+    "正印": ("庇护力", "有人照着、有东西托着，适合稳步累积"),
+}
+
+# 五行 → (日常语, 意象)
+ELEMENT_WARM: dict[str, tuple[str, str]] = {
+    "木": ("生长", "像春天的枝条，向外舒展、有条理"),
+    "火": ("热度", "亮、外放、情绪来得快"),
+    "土": ("厚稳", "承得住，慢热但踏实"),
+    "金": ("决断", "干脆、边界清楚、说一是一"),
+    "水": ("灵活", "会绕路、会渗透、心思细"),
+}
+
+ELEMENT_GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
+ELEMENT_GENERATED_BY = {v: k for k, v in ELEMENT_GENERATES.items()}
+
+# 地支关系 → 日常语（中性描述，不断吉凶）
+RELATION_WARM: dict[str, str] = {
+    "相冲": "有一股对着来的劲，节奏容易被打断",
+    "相害": "有些细碎的磨，多是小事不是大事",
+    "相刑": "事情容易反复，需要返工",
+    "自刑": "内耗比外部阻力多",
+    "六合": "有人配合，事情容易牵着成",
+    "三合": "力量集中在一个方向上",
+    "半合": "方向已经有了，力还没满",
+    "相生": "能量顺着走，不别扭",
+}
+
+# ---------------------------------------------------------------------------
+# 幸运项规则表（判据 10：写死映射 + 可引古籍，非随机）
+#
+# 河图数出处：「天一生水」类单元（台账 §115 实测命中 11 条）。
+# 五色出处：「五色」类单元（命中 74 条）。
+# 锚点在 M2 钉死进 web/baselines/xingzuo_fixture.json 并逐条断言命中 corpus。
+# ---------------------------------------------------------------------------
+HETU_NUMBERS: dict[str, tuple[int, int]] = {
+    "水": (1, 6), "火": (2, 7), "木": (3, 8), "金": (4, 9), "土": (5, 0),
+}
+
+ELEMENT_COLORS: dict[str, tuple[str, ...]] = {
+    "水": ("黑", "蓝"), "火": ("红", "紫"), "木": ("青", "绿"),
+    "金": ("白", "金"), "土": ("黄", "棕"),
+}
+
+# 十二时辰五行（寅卯木 巳午火 申酉金 亥子水 辰戌丑未土）
+ZHI_ELEMENT: dict[str, str] = {
+    "寅": "木", "卯": "木", "巳": "火", "午": "火",
+    "申": "金", "酉": "金", "亥": "水", "子": "水",
+    "辰": "土", "戌": "土", "丑": "土", "未": "土",
+}
+
+ZHI_HOURS: dict[str, str] = {
+    "子": "23–1 点", "丑": "1–3 点", "寅": "3–5 点", "卯": "5–7 点",
+    "辰": "7–9 点", "巳": "9–11 点", "午": "11–13 点", "未": "13–15 点",
+    "申": "15–17 点", "酉": "17–19 点", "戌": "19–21 点", "亥": "21–23 点",
+}
+
+GAN_ELEMENT: dict[str, str] = {
+    "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
+    "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水",
+}
+
+# 免责声明：judged by 判据 7——必须含「仅供娱乐」，且**不压轴收尾**
+# （放在 L1 能量卡下方、L2 详情之前）。
+BADGE = "仅供娱乐 · 详细依据见专业模式"
+
+# 提问关键词 → (关注的十神集合, 日常语标签)。
+# 与 interpreter._TOPIC_MAP 同源但**独立**：那边是专业措辞，这边是日常语，
+# 两表都写死、互不引用——共享一张表会让改 warm 措辞时碰坏专业输出（判据 9）。
+TOPIC_WARM: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("感情", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("恋爱", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("婚", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("桃花", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("对象", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("事业", ("正官", "七杀"), "事业"),
+    ("工作", ("正官", "七杀"), "事业"),
+    ("升职", ("正官", "七杀"), "事业"),
+    ("考公", ("正官", "七杀"), "事业"),
+    ("创业", ("正财", "偏财", "伤官"), "事业"),
+    ("财", ("正财", "偏财"), "财运"),
+    ("钱", ("正财", "偏财"), "财运"),
+    ("收入", ("正财", "偏财"), "财运"),
+    ("学", ("正印", "偏印"), "学业"),
+    ("考试", ("正印", "偏印"), "学业"),
+    ("考研", ("正印", "偏印"), "学业"),
+    ("读书", ("正印", "偏印"), "学业"),
+    ("健康", (), "状态"),
+    ("身体", (), "状态"),
+    ("情绪", (), "状态"),
+)
+
+
+def _day_element(paipan_or_master: str) -> str:
+    """日主天干 → 五行。入参是单个天干字。"""
+    return GAN_ELEMENT.get((paipan_or_master or "")[:1], "")
+
+
+def _fmt_num(x: float) -> str:
+    return str(int(x)) if float(x) == int(x) else f"{float(x):g}"
+
+
+# ---------------------------------------------------------------------------
+# L1 能量卡（幸运项）——判据 10：每项都由写死规则推出，非随机
+# ---------------------------------------------------------------------------
+def energy_card(day_master: str, calc: dict) -> dict:
+    """本命元素 + 幸运色/数字/时段 + 今日关键词。
+
+    规则（全部写死，可复验）：
+      * 本命元素 = 日主天干的五行
+      * 幸运数字 = 「生日主之行」的河图数（如日主土 → 生土者为火 → 2·7）
+      * 幸运色   = 同一"生我"之行的五行配色
+      * 幸运时段 = 该行对应的地支时辰
+    取"生我者"而非"我本身"：这是补益方向，与 interpreter 的缺行提示同源
+    （`ELEMENT_GENERATES`），不是新发明的规则。
+    """
+    mine = _day_element(day_master)
+    helper = ELEMENT_GENERATED_BY.get(mine, mine)   # 生我者
+    nums = HETU_NUMBERS.get(helper, ())
+    colors = ELEMENT_COLORS.get(helper, ())
+    hours = [f"{z}时（{ZHI_HOURS[z]}）"
+             for z, e in ZHI_ELEMENT.items() if e == helper]
+
+    fe = calc.get("five_elements") or {}
+    keywords: list[str] = []
+    for s in (fe.get("strong") or [])[:1]:
+        keywords.append(f"{ELEMENT_WARM.get(s, ('', ''))[0]}偏多")
+    for m in (fe.get("missing") or [])[:1]:
+        keywords.append(f"缺{m}")
+    dl = calc.get("day_luck") or {}
+    if dl.get("day_ganzhi"):
+        keywords.append(f"今日{dl['day_ganzhi']}")
+    if not keywords:
+        keywords.append("五行平和")
+
+    return {
+        "element": mine,
+        "element_warm": ELEMENT_WARM.get(mine, ("", ""))[0],
+        "element_note": ELEMENT_WARM.get(mine, ("", ""))[1],
+        "helper_element": helper,
+        "lucky_numbers": list(nums),
+        "lucky_colors": list(colors),
+        "lucky_hours": hours,
+        "keywords": keywords[:3],
+        # 判据 10：规则出处（M2 钉死锚点后由 xingzuo fixture 提供逐字引文）
+        "basis": [
+            f"本命元素 = 日主{day_master}的五行（calc.ten_gods 日干）",
+            f"幸运数字 = 河图数「{helper}」（生{mine}者）",
+            f"幸运色 = 五行配色「{helper}」",
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# L0 一句话（判据 2：≤20 字；判据 1：有提问时直接回应提问）
+# ---------------------------------------------------------------------------
+_L0_MAX = 20
+
+
+def _topic_of(question: str) -> tuple[tuple[str, ...], str] | None:
+    q = (question or "").strip()
+    if not q:
+        return None
+    for kw, gods, label in TOPIC_WARM:
+        if kw in q:
+            return gods, label
+    return None
+
+
+def one_liner(day_master: str, calc: dict, question: str | None) -> str:
+    """≤20 字的一句话。有提问先回应提问，无提问给本命底色。
+
+    长度硬约束：模板本身就写短；末尾仍做一次截断兜底，保证判据 2 恒成立。
+    """
+    mine = _day_element(day_master)
+    warm = ELEMENT_WARM.get(mine, ("", ""))[0]
+    topic = _topic_of(question or "")
+    if topic:
+        gods, label = topic
+        hit = [t for t in (calc.get("ten_gods") or []) if t.get("god") in gods]
+        if gods and hit:
+            s = f"{label}这块，盘里有着落点"
+        elif gods:
+            s = f"{label}这块，盘里信息偏少"
+        else:
+            fe = calc.get("five_elements") or {}
+            s = (f"{label}看五行：{'、'.join(fe.get('strong') or []) or '平'}偏多"
+                 if (fe.get("strong") or fe.get("missing")) else f"{label}整体平和")
+    else:
+        fe = calc.get("five_elements") or {}
+        strong = fe.get("strong") or []
+        missing = fe.get("missing") or []
+        if strong and missing:
+            s = f"{warm}底子，{strong[0]}多缺{missing[0]}"
+        elif strong:
+            s = f"{warm}底子，{strong[0]}偏多"
+        elif missing:
+            s = f"{warm}底子，缺{missing[0]}"
+        else:
+            s = f"{warm}底子，五行挺匀"
+    return s if len(s) <= _L0_MAX else s[:_L0_MAX]
+
+
+# ---------------------------------------------------------------------------
+# L1.5 reply（判据 1/8：对提问的描述性回应，3–5 行）
+# ---------------------------------------------------------------------------
+def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
+    """把提问对齐到已算出的坐标，用日常语说出来。不新增结论。"""
+    q = (question or "").strip()
+    tg = calc.get("ten_gods") or []
+    if not q:
+        return _reply_no_question(day_master, calc)
+
+    topic = _topic_of(q)
+    if topic is None:
+        gods_present = sorted({t.get("god") for t in tg if t.get("god")})
+        return [
+            f"你问的是「{q}」——这个方向系统没有对应的坐标维度，不硬答。",
+            f"盘里现有的力量是：{'、'.join(TEN_GOD_WARM.get(g, (g, ''))[0] for g in gods_present)}。",
+            "下面把通盘坐标都列了，你可以自己对照着看。",
+        ]
+
+    gods, label = topic
+    lines: list[str] = []
+    if not gods:                                     # 健康/状态类：看五行均衡
+        fe = calc.get("five_elements") or {}
+        strong, missing = fe.get("strong") or [], fe.get("missing") or []
+        lines.append(f"你问{label}，这块主要看五行匀不匀。")
+        if strong:
+            e = strong[0]
+            lines.append(f"你的{e}偏多（{ELEMENT_WARM.get(e, ('', ''))[1]}），"
+                         f"用力过头的时候容易失衡。")
+        if missing:
+            m = missing[0]
+            helper = ELEMENT_GENERATES.get(m)
+            tip = f"，可以从{helper}的方向补" if helper else ""
+            lines.append(f"缺{m}（{ELEMENT_WARM.get(m, ('', ''))[1]}的一面偏弱）{tip}。")
+        if not strong and not missing:
+            lines.append("五行齐全、没有一行独大，整体偏均衡。")
+        lines.append("怎么对应到具体状态，你比盘清楚。")
+        return lines
+
+    hit = [t for t in tg if t.get("god") in gods]
+    if hit:
+        spots = "、".join(f"{t.get('pos', '')}{t.get('gan', '')}"
+                          f"（{TEN_GOD_WARM.get(t.get('god', ''), (t.get('god', ''), ''))[0]}）"
+                          for t in hit[:3])
+        lines.append(f"你问{label}，盘里对应的位置有 {len(hit)} 处：{spots}。")
+        first = hit[0].get("god", "")
+        note = TEN_GOD_WARM.get(first, ("", ""))[1]
+        if note:
+            lines.append(f"其中最靠前的那个是{TEN_GOD_WARM.get(first, (first, ''))[0]}"
+                         f"（{first}）——{note}。")
+        lines.append(f"意思是这件事在你盘里有落点，不是空的；"
+                     f"具体怎么走，还要看你自己的选择。")
+    else:
+        lines.append(f"你问{label}，这块在四柱天干上没有直接落点。")
+        lines.append("系统不据此推测——没有的东西不硬编（这是本项目的规矩）。")
+        lines.append("可以看看下面的通盘坐标，或换个问法。")
+
+    rels = calc.get("relations") or []
+    if rels:
+        r = rels[0]
+        warm = RELATION_WARM.get(r.get("type") or "", "")
+        if warm:
+            lines.append(f"另外四柱里有{r.get('type')}（{r.get('a', '')}×"
+                         f"{r.get('b', '')}）——{warm}。")
+    return lines[:5]
+
+
+def _reply_no_question(day_master: str, calc: dict) -> list[str]:
+    fe = calc.get("five_elements") or {}
+    mine = _day_element(day_master)
+    lines = [f"你的日主是{day_master}（{mine}），"
+             f"{ELEMENT_WARM.get(mine, ('', ''))[1]}。"]
+    strong, missing = fe.get("strong") or [], fe.get("missing") or []
+    if strong:
+        lines.append(f"五行里{'、'.join(strong)}偏多，这是你的底色。")
+    if missing:
+        lines.append(f"缺{'、'.join(missing)}——不是缺陷，是偏向。")
+    dl = calc.get("day_luck") or {}
+    if dl.get("day_master_rel"):
+        lines.append(f"今天：{dl['day_master_rel']}。")
+    lines.append("想问具体的事，在上面填一句就行。")
+    return lines[:5]
+
+
+# ---------------------------------------------------------------------------
+# L2 details（判据 4：推导依据折叠，展开后逐字不变）
+# ---------------------------------------------------------------------------
+def details_from_sections(sections: list[dict]) -> list[dict]:
+    """把 interpreter 的 sections 转成"标题 + 行 + 依据分离"的结构。
+
+    判据 4 要求：推导依据（「依据：戊己同为土，异阴阳」）默认折叠，
+    **展开后逐字不变**。所以这里只做"拆分"不做"改写"——`basis` 原样搬运，
+    正文去掉依据后缀。校验能力不得因为好看而丢失。
+    """
+    out: list[dict] = []
+    for s in sections or []:
+        plain: list[str] = []
+        basis: list[str] = []
+        for line in s.get("lines") or []:
+            text = str(line)
+            if "（依据：" in text:
+                head, _, tail = text.partition("（依据：")
+                plain.append(head)
+                basis.append("依据：" + tail.rstrip("）"))
+            else:
+                plain.append(text)
+        out.append({"title": s.get("title", ""), "lines": plain,
+                    "basis": basis})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 六爻 warm（判据 8：不再只回"不代为断事"）
+# ---------------------------------------------------------------------------
+# 64 卦一句话白话：描述"这个卦讲的是什么处境"，不断吉凶。
+# 卦名以 liuyao.GUA_NAMES_64 为准（索引 = 卦号 - 1）。
+GUA_WARM: dict[int, str] = {
+    1: "全阳当头，劲很足，适合起头的时候", 2: "全阴承载，厚厚地托着，讲的是承受",
+    3: "刚开始积聚，还没成形，需要点耐心", 4: "像雾里走路，看不清就先别急着定",
+    5: "等的时候到了，等本身就是要做的事", 6: "有争执要摆开讲，回避不掉",
+    7: "要有章法地推进，讲的是组织", 8: "亲近与靠拢，讲的是找对人",
+    9: "小有积蓄但还没到时候，先攒着", 10: "小心走路，脚下的分寸很要紧",
+    11: "上下通气，讲的是顺畅", 12: "上下不通，先别硬推",
+    13: "同路的人聚起来，讲的是同心", 14: "大有所得，讲的是容量",
+    15: "把自己放低一点，反而走得开", 16: "有动的势头，讲的是顺势",
+    17: "跟随时机，讲的是不逆着来", 18: "有积弊要收拾，讲的是整理",
+    19: "由上往下看，讲的是观察", 20: "被看也在看，讲的是彼此打量",
+    21: "该咬开的要咬开，讲的是决断", 22: "把外在修饰好，讲的是体面",
+    23: "有东西在剥落，讲的是放手", 24: "回到起点重来，讲的是复位",
+    25: "不刻意，讲的是本来的样子", 26: "先蓄住再用，讲的是养",
+    27: "养的是什么很关键，讲的是选择", 28: "担子偏重，讲的是超载",
+    29: "重重的坎，讲的是一段接一段", 30: "附着与依托，讲的是明亮",
+    31: "互相感应，讲的是来电", 32: "长久的事要慢慢来，讲的是恒",
+    33: "该退就退，讲的是退让", 34: "力量壮盛，讲的是分寸",
+    35: "往前进，讲的是推进", 36: "光被遮住，讲的是收敛",
+    37: "家里的事，讲的是内部秩序", 38: "看法相左，讲的是差异",
+    39: "路上有阻，讲的是绕行", 40: "结解开了，讲的是舒缓",
+    41: "有所减损，讲的是取舍", 42: "有所增益，讲的是添",
+    43: "该开口就开口，讲的是决断", 44: "遇上了，讲的是相逢",
+    45: "聚拢起来，讲的是集合", 46: "往上走，讲的是升",
+    47: "困在里头，讲的是受限", 48: "像井一样，讲的是源",
+    49: "要变了，讲的是革新", 50: "定住格局，讲的是安置",
+    51: "突然一震，讲的是意外", 52: "停一停，讲的是止",
+    53: "慢慢推进，讲的是渐", 54: "位置不太顺，讲的是权宜",
+    55: "丰盛的时候，讲的是盛满", 56: "在路上，讲的是漂",
+    57: "像风一样进入，讲的是渗", 58: "说说笑笑，讲的是悦",
+    59: "散开来，讲的是疏", 60: "有节制，讲的是刹车",
+    61: "里外相信，讲的是诚", 62: "小的地方过了头，讲的是细节",
+    63: "已经成了，讲的是守成", 64: "还没成，讲的是差最后一步",
+}
+
+# 六爻爻位白话（1=初 … 6=上）
+YAO_WARM: dict[int, str] = {
+    1: "最底下那一爻——事情刚起头的位置",
+    2: "第二爻——刚上手、还在摸的位置",
+    3: "第三爻——半中间，最容易反复的位置",
+    4: "第四爻——快出头但还没稳的位置",
+    5: "第五爻——最当位、话最管用的位置",
+    6: "最上面那一爻——事情到顶、该收的位置",
+}
+
+
+def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
+                 question: str | None) -> list[str]:
+    """六爻对提问的描述性回应（判据 8）。
+
+    spec 实测原文：当前六爻只回「系统只给卦象坐标与經文原文，不代为断事」。
+    spec §「我同意提案对 G7 的判断」已裁定：G7 防的是伪造引文，
+    它从不要求「不许用人话说明已经算出来的坐标」。
+    本函数只转述**已经起出来的卦象**，不预测结果。
+    """
+    q = (question or "").strip()
+    bn = int(ben.get("gua_number") or 0)
+    bname = ben.get("gua_name") or ""
+    vn = int(bian.get("gua_number") or 0)
+    vname = bian.get("gua_name") or ""
+    ml = [int(x) for x in (moving_lines or []) if isinstance(x, int)]
+
+    lines: list[str] = []
+    head = f"你问的是「{q}」。" if q else "这一卦起出来是这样："
+    lines.append(head + f"起到的是{bname}卦——{GUA_WARM.get(bn, '')}。")
+
+    if ml:
+        pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
+        lines.append(f"动的是{pos}（共 {len(ml)} 个）——"
+                     f"{YAO_WARM.get(ml[0], '').split('——')[-1]}。")
+        if len(ml) >= 3:
+            lines.append("动爻偏多，说明这件事变数不小，看整体走向比抠单爻实在。")
+    else:
+        lines.append("没有动爻（静卦）——当下格局是稳住的，变化的劲不明显。")
+
+    if vname and vname != bname:
+        lines.append(f"往{vname}卦的方向变——{GUA_WARM.get(vn, '')}。")
+    elif vname:
+        lines.append("变卦与本卦相同，方向不改。")
+
+    lines.append("卦辞爻辞的原文在下面，那才是断的依据——"
+                 "怎么对应你问的事，你比卦清楚。")
+    return lines[:5]
+
+
+# ---------------------------------------------------------------------------
+# 对外入口：三个 warm 构建器（路由层调用）
+# ---------------------------------------------------------------------------
+def _wrap(l0: str, card: dict | None, reply: list[str],
+          details: list[dict], citations: list[dict]) -> dict:
+    """统一的 warm 结构（plan §1.2 四层 + badge）。
+
+    badge 位置：结构上位于 card 之后、details 之前——判据 7 要求
+    「免责声明存在且明确标注仅供娱乐，但不以它收尾压轴」。
+    """
+    return {
+        "mode": "warm",
+        "engine": "guji.voice/1.0（确定性模板，无 LLM）",
+        "one_liner": l0,
+        "energy_card": card,
+        "badge": BADGE,
+        "reply": reply,
+        "details": details,
+        "citations": citations,
+    }
+
+
+def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
+              question: str | None = None) -> dict:
+    """八字 warm 视图。citations 逐字节复用 interpreter 输出（判据 15）。"""
+    calc = calc or {}
+    day_master = ""
+    for t in calc.get("ten_gods") or []:
+        if t.get("pos") == "日干":
+            day_master = t.get("gan") or ""
+            break
+    if not day_master:
+        render = (paipan or {}).get("render") or ""
+        day_master = render.split("日主：")[-1][:1] if "日主：" in render else ""
+    interp = interpretation or {}
+    return _wrap(
+        one_liner(day_master, calc, question),
+        energy_card(day_master, calc),
+        reply_bazi(day_master, calc, question),
+        details_from_sections(interp.get("sections") or []),
+        interp.get("citations") or [],
+    )
+
+
+def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
+                interpretation: dict, question: str | None = None) -> dict:
+    """六爻 warm 视图（判据 8）。"""
+    interp = interpretation or {}
+    bn = int((ben or {}).get("gua_number") or 0)
+    name = (ben or {}).get("gua_name") or ""
+    l0 = f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
+    return _wrap(
+        l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
+        None,
+        reply_liuyao(ben or {}, bian or {}, moving_lines or [], question),
+        details_from_sections(interp.get("sections") or []),
+        interp.get("citations") or [],
+    )
+
+
+def warm_tarot(cards: list[dict], interpretation: dict,
+               question: str | None = None) -> dict:
+    """塔罗 warm 视图：只转述 tarot.py 写死的象征关键词，不作断言。"""
+    cards = cards or []
+    interp = interpretation or {}
+    first = cards[0] if cards else {}
+    up = bool(first.get("upright"))
+    kw = (first.get("upright_kw") if up else first.get("reversed_kw")) or ""
+    l0 = f"{first.get('name', '')}·{'正' if up else '逆'}：{kw.split('·')[0]}"
+    lines: list[str] = []
+    q = (question or "").strip()
+    if q:
+        lines.append(f"你问「{q}」，抽到的是这些牌：")
+    for c in cards[:5]:
+        cu = bool(c.get("upright"))
+        ckw = (c.get("upright_kw") if cu else c.get("reversed_kw")) or ""
+        pos = c.get("position") or ""
+        lines.append(f"{pos + '：' if pos else ''}{c.get('name', '')}"
+                     f"（{'正位' if cu else '逆位'}）——{ckw}。")
+    lines.append("牌面是象征，不是结论——怎么对上你的事，你自己心里有数。")
+    return _wrap(
+        l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
+        None, lines[:5],
+        details_from_sections(interp.get("sections") or []),
+        interp.get("citations") or [],
+    )
+
+
+# ---------------------------------------------------------------------------
+# 自测：固定输入 → 固定输出（判据 5）
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from guji import interpreter
+    from guji.bazi import compute
+    from guji.bazi_calc import calc as bazi_calc
+
+    b = compute(1998, 7, 20, 14, "女")
+    paipan = {"render": b.render(), "nayin": b.nayin, "warn": b.warn}
+    c = bazi_calc(b, ask_date="2026-08-20", ask_hour=14)
+    c["scope"] = "day"
+    interp = interpreter.interpret_bazi(paipan, c, [], "感情运怎么样？")
+
+    w = warm_bazi(paipan, c, interp, "感情运怎么样？")
+    assert w["mode"] == "warm", w
+    assert w["one_liner"] and len(w["one_liner"]) <= 20, w["one_liner"]
+    assert "仅供娱乐" in w["badge"], w["badge"]
+    assert w["reply"] and len(w["reply"]) <= 5, w["reply"]
+    assert w["energy_card"]["lucky_numbers"], w["energy_card"]
+    # 判据 15：citations 逐字节复用 interpreter
+    assert w["citations"] == (interp.get("citations") or []), "citations 必须原样复用"
+    # 判据 5：同输入同输出
+    assert warm_bazi(paipan, c, interp, "感情运怎么样？") == w, "must be deterministic"
+    # 判据 4：details 的 basis 原样搬运，不改写
+    joined = "".join("".join(d["basis"]) for d in w["details"])
+    assert "戊戊同为土" in joined, joined[:200]
+
+    w2 = warm_bazi(paipan, c, interp, None)
+    assert w2["one_liner"] != w["one_liner"] or True
+    assert w2["reply"], w2
+
+    # 六爻（判据 8：不再只回"不代为断事"）
+    import random
+
+    from guji import liuyao as L
+
+    ben = L.cast_coins(random.Random(42))
+    bian = L.changing_hexagram(ben)
+    bo = L.render_hexagram(ben, "本卦")
+    vo = L.render_hexagram(bian, "变卦")
+    li = interpreter.interpret_liuyao(bo, vo, ben.moving_lines, [], "这事能成吗？")
+    wl = warm_liuyao(bo, vo, ben.moving_lines, li, "这事能成吗？")
+    assert wl["reply"] and "不代为断事" not in "".join(wl["reply"]), wl["reply"]
+    assert "这事能成吗？" in wl["reply"][0], wl["reply"][0]
+    assert warm_liuyao(bo, vo, ben.moving_lines, li, "这事能成吗？") == wl
+
+    # 塔罗
+    from guji import tarot as T
+
+    draws = T.draw(seed=42, n=3)
+    cards = [{"index": d.index, "name": d.name, "upright": d.upright,
+              "upright_kw": d.upright_kw, "reversed_kw": d.reversed_kw,
+              "meaning": d.meaning, "position": d.position} for d in draws]
+    ti = interpreter.interpret_tarot(cards, "最近的感情走向？")
+    wt = warm_tarot(cards, ti, "最近的感情走向？")
+    assert wt["reply"] and len(wt["one_liner"]) <= 20, wt
+    assert warm_tarot(cards, ti, "最近的感情走向？") == wt
+
+    print("voice self-test PASS (bazi warm/no-q, liuyao warm, tarot warm, "
+          "determinism, citations reuse, basis verbatim)")

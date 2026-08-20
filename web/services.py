@@ -38,6 +38,7 @@ from guji import lunar
 from guji import qiming as qiming_mod
 from guji import taohua as taohua_mod
 from guji import tarot as tarot_mod
+from guji import voice
 from guji.bazi import compute as bazi_compute
 from guji.bazi_calc import calc as bazi_calc
 from guji.bazi_calc import calc_life, calc_range
@@ -159,6 +160,9 @@ def bazi(req) -> dict:
     paipan_out = {"render": b.render(), "nayin": b.nayin, "warn": b.warn}
     interpretation = interpreter.interpret_bazi(paipan_out, calc_out,
                                                evidence, req.question)
+    # R182b（004 M1）：warm 视图 **additive** 附加——不动 interpretation 一个
+    # 字节。判据 9 要求专业模式逐字节等于基线，由 web/baseline_voice.py 把关。
+    warm = voice.warm_bazi(paipan_out, calc_out, interpretation, req.question)
 
     input_snapshot = {
         "year": req.year, "month": req.month, "day": req.day, "hour": req.hour,
@@ -182,6 +186,7 @@ def bazi(req) -> dict:
         "calc": calc_out,
         "evidence": evidence,
         "interpretation": interpretation,
+        "warm": warm,
     }
 
 
@@ -540,14 +545,18 @@ def liuyao(req) -> dict:
 
     ben_out = liuyao_mod.render_hexagram(ben, "本卦")
     bian_out = liuyao_mod.render_hexagram(bian, "变卦")
+    interpretation = interpreter.interpret_liuyao(
+        ben_out, bian_out, ben.moving_lines, ben_jing + bian_jing, req.question)
     return {
         "ben": ben_out,
         "bian": bian_out,
         "ben_jing": ben_jing,
         "bian_jing": bian_jing,
-        "interpretation": interpreter.interpret_liuyao(
-            ben_out, bian_out, ben.moving_lines, ben_jing + bian_jing,
-            req.question),
+        "interpretation": interpretation,
+        # 判据 8：六爻原本对提问只回「不代为断事」。warm 分支给出基于**已起出
+        # 的卦象**的描述性回应（不预测结果），专业分支原文不动。
+        "warm": voice.warm_liuyao(ben_out, bian_out, ben.moving_lines,
+                                  interpretation, req.question),
     }
 
 
@@ -600,11 +609,13 @@ def tarot(req) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌（固定 seed → 固定牌面）。"""
     draws = tarot_mod.draw(seed=req.seed, n=req.n)
     cards = _draw_dicts(draws)
+    interpretation = interpreter.interpret_tarot(cards, req.question)
     return {
         "seed": req.seed,
         "n": len(cards),
         "draws": cards,
-        "interpretation": interpreter.interpret_tarot(cards, req.question),
+        "interpretation": interpretation,
+        "warm": voice.warm_tarot(cards, interpretation, req.question),
     }
 
 
@@ -622,12 +633,14 @@ def tarot_draw(req) -> dict:
         raise ComputeError("抽牌失败")
     cards = _draw_dicts(draws)
     card = cards[0]
+    interpretation = interpreter.interpret_tarot(cards, req.question)
     return {
         "card": {"name": card["name"], "upright": card["upright"],
                  "upright_kw": card["upright_kw"],
                  "reversed_kw": card["reversed_kw"],
                  "meaning": card["meaning"]},
-        "interpretation": interpreter.interpret_tarot(cards, req.question),
+        "interpretation": interpretation,
+        "warm": voice.warm_tarot(cards, interpretation, req.question),
     }
 
 

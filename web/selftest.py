@@ -783,11 +783,15 @@ def run() -> list[str]:
                      and j["card"].get("meaning")))
     # R178b（D-228b）：tarot.draw 顶层键集合 standing 断言——重构中该端点
     # 一度多返回一个 `draws` 键（与 /api/tarot 的牌面重复，同一份数据两处
-    # 存放）。此处钉死顶层契约为 card + interpretation 两键，抓未登记的
-    # 响应形状扩张（tarot.draw check 只断言 card 内部字段，看不见多余键）。
+    # 存放）。此处钉死顶层契约，抓**未登记**的响应形状扩张（tarot.draw check
+    # 只断言 card 内部字段，看不见多余键）。
+    # R182b（004 M1）：`warm` 是 spec 004 登记的 additive 新键，加入白名单。
+    # 用白名单而非删掉断言——未登记的键仍会被抓到，这条断言的价值正在于
+    # 「新增顶层键必须先在此登记」，等于强制走一次 review。
     _td = client.post("/api/tarot/draw", json={"seed": 42, "n": 1}).json()
-    assert set(_td) == {"card", "interpretation"}, sorted(_td)
+    assert set(_td) == {"card", "interpretation", "warm"}, sorted(_td)
     assert isinstance(_td["interpretation"], dict), type(_td["interpretation"])
+    assert isinstance(_td["warm"], dict), type(_td["warm"])
     ok.append("tarot.draw.keys")
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
     # 重构前 date 声明为 GET 的请求体模型，`?date=…` 被完全忽略（永远返回
@@ -849,6 +853,59 @@ def run() -> list[str]:
     assert not _bare, ("object-render guard: 发现裸 esc() 未过 fmtScalar", _bare)
     assert "function fmtScalar" in _js, "fmtScalar renderer must exist"
     ok.append("frontend.no_object_object")
+
+    # ── 004 warm 视图（R182b，M1）：判据 1/2/5/6/7/8/15 的 selftest 侧覆盖 ──
+    # 完整判据由 web/check_warm_voice.py 把关（含术语表/禁用词表与阳性对照）；
+    # 这里放**端点契约级**断言：warm 键存在、结构齐、确定性、引文复用。
+    _wb = client.post("/api/bazi", json={"year": 1998, "month": 7, "day": 20,
+                                        "hour": 14, "gender": "女",
+                                        "question": "感情运怎么样？"}).json()
+    _wb2 = client.post("/api/bazi", json={"year": 1998, "month": 7, "day": 20,
+                                         "hour": 14, "gender": "女",
+                                         "question": "感情运怎么样？"}).json()
+    for rec in history_db.list_records(limit=20):
+        if rec["id"] > max_id_before:
+            history_db.delete_record(rec["id"])
+    _w = _wb.get("warm")
+    assert isinstance(_w, dict) and _w.get("mode") == "warm", _w
+    ok.append("warm.bazi.present")
+    # 判据 2：一句话 ≤20 字且非空
+    assert _w["one_liner"] and len(_w["one_liner"]) <= 20, _w["one_liner"]
+    ok.append("warm.one_liner.len")
+    # 判据 1：有提问时 reply 首行须回应该提问（不是坐标/纳音）
+    assert _w["reply"] and "感情" in _w["reply"][0], _w["reply"][:1]
+    ok.append("warm.reply.answers_question")
+    # 判据 7：免责含「仅供娱乐」，且**不是最后一个字段**（badge 在 details 前）
+    assert "仅供娱乐" in _w["badge"], _w["badge"]
+    assert list(_w).index("badge") < list(_w).index("details"), list(_w)
+    ok.append("warm.badge.not_last")
+    # 判据 15：citations 逐字节复用 interpretation，不另生成
+    assert _w["citations"] == (_wb["interpretation"].get("citations") or []), \
+        "warm.citations 必须与 interpretation 逐字节相同"
+    ok.append("warm.citations.reuse")
+    # 判据 5：同输入两次逐字节相等（voice 是纯函数）
+    assert _w == _wb2.get("warm"), "warm must be deterministic"
+    ok.append("warm.deterministic")
+    # 判据 10 前置：幸运项由规则推出且带出处说明（非随机）
+    _ec = _w["energy_card"]
+    assert _ec["lucky_numbers"] and _ec["lucky_colors"] and _ec["basis"], _ec
+    ok.append("warm.energy_card.rules")
+    # 判据 4：依据行被拆进 basis（可折叠），且**逐字未改写**
+    _basis_all = "".join("".join(d["basis"]) for d in _w["details"])
+    assert "依据：" in _basis_all, _basis_all[:120]
+    assert "戊戊同为土" in _basis_all, _basis_all[:200]
+    ok.append("warm.details.basis_verbatim")
+    # 判据 8：六爻 warm 对提问给描述性回应，且专业分支原文仍在
+    _wl = client.post("/api/liuyao", json={"method": "coins", "seed": 42,
+                                          "question": "这事能成吗？"}).json()
+    _wlw = _wl.get("warm")
+    assert isinstance(_wlw, dict) and _wlw["reply"], _wlw
+    assert "这事能成吗？" in _wlw["reply"][0], _wlw["reply"][0]
+    assert "不代为断事" not in "".join(_wlw["reply"]), _wlw["reply"]
+    _pro = " ".join(" ".join(s.get("lines") or [])
+                    for s in _wl["interpretation"].get("sections") or [])
+    assert "不代为断事" in _pro, "专业分支原文必须保持不变（判据 9）"
+    ok.append("warm.liuyao.answers_not_refuse")
     return ok
 
 
