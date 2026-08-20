@@ -5793,3 +5793,40 @@ probe 只断言"有三个子标签且点了能 active"，不关心它们叫什�
 36 个浏览器用例完全覆盖。属宪法第五条列举的根目录临时产物同族。
 
 - 决策记录：DECISIONS.md D-145a。
+
+## 114. [优化轨] R180b：merge audit 至 main + 落方案提案 004（内容温度升级，2026-08-20）
+
+用户指示：main 缺最新 audit 进度，先合并；再按搜索大模型调研（小红书
+18–30 岁女性用户画像 + 10 个开源项目）写「结果内容看不懂也不想看」的改造方案。
+
+### 1. merge audit → main
+
+`git merge audit --no-edit` → fast-forward `cbf2c1b..9cfe767`，无冲突。
+纳入 R120a 翻阶段（REPAIR→OPTIMIZE）、R122a 复验、specs/003-youth-ui-revamp
+（视觉壳 spec，审查轨独占）、5 个新 probe。
+
+### 2. 诊断（实测，非印象）
+
+复验命令（改进前样例，1998-07-20 14 时女命问「感情运怎么样？」）：
+
+```powershell
+.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'src'); from guji.bazi import compute; from guji.bazi_calc import calc; from guji.interpreter import interpret_bazi; b=compute(1998,7,20,14,'女'); c=calc(b,ask_date='2026-08-20',ask_hour=14); c['scope']='day'; print(interpret_bazi({'render':b.render(),'nayin':b.nayin,'warn':b.warn},c,[],'感情运怎么样？')['text'][:1200])"
+```
+
+结论：提问只得到一行坐标（`interpreter.py:266-292`）、推导链直接暴露
+（`:142-144`）、术语前置结论后置、防御性免责压轴（`:68-69`）、六爻直接拒答
+（`:376-378`）。G7 防的是伪造引文，不禁止温柔说话。
+
+### 3. 产物
+
+`docs/PROPOSAL_004_XHS_UPGRADE.md`：P0 文案层双模式（闺蜜/专业，复用 spec 003
+回滚机制）→ P1 能量卡+分享海报（vendor html2canvas，按宪法 §5 记 provenance）
+→ P2 今日运势+星座日运 ⚠新增品类 → P3 MBTI×塔罗 ⚠新增品类 → P4 BYOK AI
+（默认不做，待用户拍板）。幸运色/数字用河图数+五行配色推导——可引古籍，
+与竞品随机数形成本质差异。
+
+### 4. 治理边界
+
+P0/P1 不新增品类，优化轨可直接实施，但应与 specs/003 的 plan.md 同批排期
+（都动结果区 UI）。P2/P3 按 spec 003 Out of Scope 需另立 spec——提案文档即
+specs/004 底稿，待审查轨收编或用户授权直做。本轮零代码改动，闸门不受影响。
