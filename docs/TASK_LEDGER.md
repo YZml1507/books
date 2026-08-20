@@ -5830,3 +5830,105 @@ probe 只断言"有三个子标签且点了能 active"，不关心它们叫什�
 P0/P1 不新增品类，优化轨可直接实施，但应与 specs/003 的 plan.md 同批排期
 （都动结果区 UI）。P2/P3 按 spec 003 Out of Scope 需另立 spec——提案文档即
 specs/004 底稿，待审查轨收编或用户授权直做。本轮零代码改动，闸门不受影响。
+
+---
+
+### 115. R123a 审查循环：复审 R180b 提案，收编为 specs/004，实测推翻其一处定性（2026-08-20）
+
+**merge main** fast-forward `9cfe767..4979c14`（R180b：新增
+`docs/PROPOSAL_004_XHS_UPGRADE.md` + 台账 §114，**零代码改动**，
+`git show --stat` 确认只动 2 个 docs 文件）。闸门抽查：
+`web/selftest.py` exit 0（140 checks）、`probe_selftest_regress` exit 0、
+`count_open_findings` exit 0（OPEN BLOCKER/MAJOR = 0）。
+`probes/selftest_baseline.json` 自动纳入 R179b 新增的 2 条断言，
+这正是"只增不减"机制在正常工作。
+
+**一、自己重跑诊断样例，五个断点全部成立**（不凭提案转述签字，宪法第一条）。
+复现命令：
+
+```powershell
+cd C:\Users\Lenovo\Desktop\projects\books-audit
+C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe -c "
+import sys; sys.path.insert(0,'.'); sys.path.insert(0,'src')
+from fastapi.testclient import TestClient
+from web.app import app
+c=TestClient(app)
+j=c.post('/api/bazi',json={'year':1998,'month':7,'day':20,'hour':14,
+                           'gender':'女','question':'感情运怎么样？'}).json()
+it=j['interpretation']
+for i,s in enumerate(it['sections']): print(i, s['title'], len(s['lines']))
+print(it['text'])"
+# 记得清理 history（本命令会写一条）
+```
+
+实测 sections 顺序：`排盘坐标(2) 五行强弱(3) 十神格局(8) 流日流时(2)`
+`针对「感情运怎么样？」(1) 运算摘要(1)`，citations 12 条。
+**用户的提问排第 5、答案只有 1 行**，前面 15 行是坐标与推导链，
+每行带「（依据：戊己同为土，异阴阳）」——那是给校验者看的。
+六爻实测原文：`系统只给卦象坐标与經文原文，不代为断事——请据下方卦爻辞原文
+对照所问（G7：无证据不推测）`。
+
+**同意提案对 G7 的判断**：G7 的定义是「能承认证据不足」，防的是伪造引文
+（`eval_g7.py` FABRICATIONS 0 守的是这个），它从不要求"不许用人话说明已经
+算出来的坐标"。把 G7 用到拒绝回应提问的程度，是把守则当挡箭牌。
+
+**二、实测推翻提案的一处定性（本轮最重要的发现）**。
+提案 §4 P2 把星座定为"西方占星为娱乐模块，非本项目古籍语料"，要求物理隔离。
+我在 `corpus.db` 检索十二宫名：
+
+    白羊 49（KR3g0041×40）　金牛 52（×47）　巨蟹 39（×36）
+    獅子 45（×35）　天秤 30（×28）　雙魚 50（×42）
+    同一单元内最多同时出现 10 个宫名 → KR3g0041 @KR3g0041_WYG_015-29b
+
+`KR3g0041` = **《星學大成》命理类 31 文件 472,894 字**，kanripo 来源、
+zip_sha256 与 fetched_at 齐备。原文 `@KR3g0041_WYG_001-1a` 十二宫与
+**二十八宿分野**同表并列（角亢秤宫辰屬鄭 / 奎婁白羊魯國戌 / 井鬼巨蟹未秦州…）。
+**十二宫是中国传统星命学的固有内容，不是外来拼贴。** 详见 D-148a。
+
+这把星座从"要隔离的异物"变成**最有说服力的差异化**：竞品只能拍脑袋写文案，
+我们能挂《星學大成》的页锚点引文。故 `specs/004` **不要求**隔离，
+**反而要求**它必须带引文。
+
+复现命令（十二宫 + 河图数 + MBTI 三项一起查）：
+
+```powershell
+C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe -c "
+import sqlite3
+db=sqlite3.connect('data/index/corpus.db')
+for w in ['白羊','金牛','巨蟹','天一生水','天五生土','五色','MBTI','人格类型']:
+    rows=db.execute('SELECT work_id,COUNT(*) FROM unit WHERE text LIKE ? '
+                    'GROUP BY work_id ORDER BY 2 DESC LIMIT 3',(f'%{w}%',)).fetchall()
+    print(w, sum(r[1] for r in rows), rows)"
+```
+
+**三、收编决定**（写成 `specs/004-warm-voice/spec.md`，5 个 User Story +
+19 条判据表）：
+
+| 提案项 | 处置 |
+|---|---|
+| P0 文案层双模式 | 收编 P1 |
+| P1 能量卡 + 海报 | 收编 P2，但新依赖须用户授权（见下） |
+| P2 今日运势 + 十二宫 | 收编 P3，**推翻其隔离定性**（D-148a） |
+| P3 MBTI×塔罗 | **REJECTED**（D-147a）：语料零命中，与立身之本冲突 |
+| P4 BYOK AI | 不收编，**七条约束预先落定**（D-146a） |
+
+**P0/P1 不越界**（优化轨点名问的）：宪法第五条的边界是文件所有权
+（`src/guji/**`、`web/**` 归优化轨），不是"内容层归谁"。做法它定，判据我定。
+
+**四、对 `html2canvas` 的明确立场**：提案承诺"按宪法 §5 记 provenance"。
+**记 provenance 不能代替授权。** 宪法第二条红线第 3 项禁止**自主**引入新外部
+依赖，处置规则是记 BLOCKED 换任务，不是补齐手续后自行引入。已写进
+`specs/004` US5 第 5 条：须用户明确授权，否则改用零依赖方案或记 BLOCKED。
+这不是刁难——正是红线的处置规则要求我这样写，且用户一句话即可解除。
+
+**五、MBTI REJECTED 的理由不是"不受欢迎"**，是机会成本：同一轮刚确认十二宫
+有真实出处，再加一个纯无出处模块会把刚建立的差异化抵消掉——用户会合理推断
+"既然 MBTI 是编的，星座和幸运色大概也是编的"。一个以"有出处"立身的产品，
+最贵的资产是"每一项都有出处"这个整体印象。若用户明确要，应做独立产品。
+
+**领土纪律**：本轮写 `specs/004-warm-voice/spec.md`（审查轨独占）、
+docs a 侧 append。`src/guji/**` 与 `web/**` 零改动，
+`docs/PROPOSAL_004_XHS_UPGRADE.md`（优化轨文件）**只读未改**——
+对它 §4 P2 定性的推翻写在 D-148a，不去改对方的文件。
+
+- 决策记录：DECISIONS.md D-146a、D-147a、D-148a。
