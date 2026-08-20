@@ -270,11 +270,14 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         ]
 
     gods, label = topic
+    # 回声用户原话（判据 1）：只说分类标签（"学业"）会让用户觉得没被听见
+    # ——他问的是"考研能上吗"。原话入引号，标签作为归类跟在后面。
+    quoted = f"「{q}」" if len(q) <= 18 else f"「{q[:18]}…」"
     lines: list[str] = []
     if not gods:                                     # 健康/状态类：看五行均衡
         fe = calc.get("five_elements") or {}
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
-        lines.append(f"你问{label}，这块主要看五行匀不匀。")
+        lines.append(f"你问{quoted}——这属于{label}，主要看五行匀不匀。")
         if strong:
             e = strong[0]
             lines.append(f"你的{e}偏多（{ELEMENT_WARM.get(e, ('', ''))[1]}），"
@@ -294,7 +297,8 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         spots = "、".join(f"{t.get('pos', '')}{t.get('gan', '')}"
                           f"（{TEN_GOD_WARM.get(t.get('god', ''), (t.get('god', ''), ''))[0]}）"
                           for t in hit[:3])
-        lines.append(f"你问{label}，盘里对应的位置有 {len(hit)} 处：{spots}。")
+        lines.append(f"你问{quoted}——这属于{label}，"
+                     f"盘里对应的位置有 {len(hit)} 处：{spots}。")
         first = hit[0].get("god", "")
         note = TEN_GOD_WARM.get(first, ("", ""))[1]
         if note:
@@ -303,7 +307,8 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         lines.append(f"意思是这件事在你盘里有落点，不是空的；"
                      f"具体怎么走，还要看你自己的选择。")
     else:
-        lines.append(f"你问{label}，这块在四柱天干上没有直接落点。")
+        lines.append(f"你问{quoted}——这属于{label}，"
+                     f"但这块在四柱天干上没有直接落点。")
         lines.append("系统不据此推测——没有的东西不硬编（这是本项目的规矩）。")
         lines.append("可以看看下面的通盘坐标，或换个问法。")
 

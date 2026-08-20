@@ -156,8 +156,164 @@ function renderHits(hits, opts) {
   return html;
 }
 
+/* ── 口吻模式（004 US3：一键切回）─────────────────────────────
+ * warm = 温柔口吻（默认，用户指示的正面回应）；pro = 专业模式。
+ * 专业模式渲染路径**完全不变**——warm 是新增分支（判据 9）。
+ * 选择存 localStorage，下次打开保持（US3.4）。 */
+var VOICE_KEY = 'voiceMode';
+
+function voiceMode() {
+  try {
+    var v = localStorage.getItem(VOICE_KEY);
+    return v === 'pro' ? 'pro' : 'warm';
+  } catch (e) {
+    return 'warm';       // 隐私模式下 localStorage 可能抛异常
+  }
+}
+
+function setVoiceMode(mode) {
+  try {
+    localStorage.setItem(VOICE_KEY, mode === 'pro' ? 'pro' : 'warm');
+  } catch (e) { /* 存不了就只在本次会话生效 */ }
+}
+
+/** 模式切换控件。44×44 起（003 判据 1），两态都有可见焦点环。 */
+function renderModeSwitch() {
+  var m = voiceMode();
+  return '<div class="mode-switch" role="group" aria-label="解读口吻">' +
+    '<button type="button" class="mode-btn' + (m === 'warm' ? ' active' : '') +
+    '" data-voice="warm" aria-pressed="' + (m === 'warm') + '">🌸 温柔版</button>' +
+    '<button type="button" class="mode-btn' + (m === 'pro' ? ' active' : '') +
+    '" data-voice="pro" aria-pressed="' + (m === 'pro') + '">📐 专业版</button>' +
+    '</div>';
+}
+
+/** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
+ *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
+ *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
+function renderWarm(warm, interp) {
+  if (!warm) return renderInterpretation(interp, '📖 解读（确定性规则）');
+  var html = '<div class="warm-wrap">';
+  // L0 一句话：首屏第一眼就是它（判据 1/3）
+  html += '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
+  // L1.5 reply：对提问的回应，紧跟 L0
+  if (warm.reply && warm.reply.length) {
+    html += '<div class="warm-reply">';
+    warm.reply.forEach(function (ln) {
+      html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div>';
+  }
+  // L1 能量卡
+  var ec = warm.energy_card;
+  if (ec) {
+    html += '<div class="energy-card">';
+    html += '<div class="energy-head">本命 <strong>' + esc(ec.element || '') +
+      '</strong>（' + esc(ec.element_warm || '') + '）· ' +
+      esc(ec.element_note || '') + '</div>';
+    html += '<div class="energy-grid">';
+    if (ec.lucky_colors && ec.lucky_colors.length) {
+      html += '<div class="energy-item"><span class="energy-k">幸运色</span>' +
+        '<span class="energy-v">' + esc(ec.lucky_colors.join(' · ')) +
+        '</span></div>';
+    }
+    if (ec.lucky_numbers && ec.lucky_numbers.length) {
+      html += '<div class="energy-item"><span class="energy-k">幸运数字</span>' +
+        '<span class="energy-v">' + esc(ec.lucky_numbers.join(' · ')) +
+        '</span></div>';
+    }
+    if (ec.lucky_hours && ec.lucky_hours.length) {
+      html += '<div class="energy-item"><span class="energy-k">幸运时段</span>' +
+        '<span class="energy-v">' + esc(ec.lucky_hours.join('、')) +
+        '</span></div>';
+    }
+    if (ec.keywords && ec.keywords.length) {
+      html += '<div class="energy-item"><span class="energy-k">今日关键词</span>' +
+        '<span class="energy-v">' + esc(ec.keywords.join(' / ')) +
+        '</span></div>';
+    }
+    html += '</div>';
+    // 幸运项的规则出处：判据 10 要求可追溯，不能只给结果
+    if (ec.basis && ec.basis.length) {
+      html += '<details class="warm-basis"><summary>这几项是怎么来的</summary><ul>';
+      ec.basis.forEach(function (b) {
+        html += '<li>' + esc(b) + '</li>';
+      });
+      html += '</ul></details>';
+    }
+    html += '</div>';
+  }
+  // badge：判据 7——存在、含「仅供娱乐」、且不收尾
+  if (warm.badge) {
+    html += '<div class="warm-badge">' + esc(warm.badge) + '</div>';
+  }
+  // L2 details：正文常显，推导依据折叠（判据 4）
+  (warm.details || []).forEach(function (d) {
+    html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
+    (d.lines || []).forEach(function (ln) {
+      html += '<li>' + esc(ln) + '</li>';
+    });
+    html += '</ul>';
+    if (d.basis && d.basis.length) {
+      html += '<details class="warm-basis"><summary>推导依据（' +
+        esc(d.basis.length) + ' 条）</summary><ul>';
+      d.basis.forEach(function (b) {
+        html += '<li>' + esc(b) + '</li>';
+      });
+      html += '</ul></details>';
+    }
+    html += '</div>';
+  });
+  // L3 citations：古籍原文，与 warm 文案视觉可辨（US2.5）
+  var cites = warm.citations || [];
+  if (cites.length) {
+    html += '<div class="interp-sec cite-block"><h4>📜 古籍原文依据</h4>';
+    cites.forEach(function (c) {
+      html += '<div class="ev-item"><div class="ev-meta">' +
+        esc(c.citation || '') + '</div><div class="ev-text">' +
+        esc(c.text || '') + '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/* 上一次响应缓存：切换口吻时就地重画，不重发请求。
+ * 键 = 结果容器 id，值 = {json, proTitle, render}。render 是"用这份 json
+ * 重画整个结果区"的闭包——切换只影响解读段，但结果区是一次性拼出来的
+ * 字符串，所以整块重画最简单也最不容易漏。 */
+var LAST_RESPONSE = {};
+
+/** 按当前模式渲染解读区。warm 数据缺失时自动回落专业分支。 */
+function renderVoice(j, proTitle) {
+  var html = renderModeSwitch();
+  if (voiceMode() === 'warm' && j && j.warm) {
+    html += renderWarm(j.warm, j.interpretation);
+  } else {
+    html += renderInterpretation(j ? j.interpretation : null, proTitle);
+  }
+  return html;
+}
+
+/** 重画所有已渲染过的结果区（切换口吻时调用）。 */
+function rerenderVoice() {
+  Object.keys(LAST_RESPONSE).forEach(function (containerId) {
+    var entry = LAST_RESPONSE[containerId];
+    if (entry && typeof entry.render === 'function') {
+      paint(containerId, entry.render(entry.json));
+    }
+  });
+}
+
+/** 记住这次响应与重画方式，供切换口吻时就地重画。 */
+function rememberVoice(containerId, json, renderFn) {
+  LAST_RESPONSE[containerId] = { json: json, render: renderFn };
+}
+
 /** 确定性解读（guji.interpreter 的输出）。按 sections 结构渲染，不解析
- *  markdown——text 字段只在没有 sections 时兜底展示。 */
+ *  markdown——text 字段只在没有 sections 时兜底展示。
+ *  **这个函数是专业模式的渲染路径，判据 9 要求它不被改写。** */
 function renderInterpretation(interp, title) {
   if (!interp) return '';
   let html = '<h3 style="margin-top:20px;color:var(--c-tarot);">' +
@@ -377,38 +533,45 @@ function baziBody() {
   return body;
 }
 
+/** 排盘结果区的 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
+function buildBaziResult(j) {
+  const paipan = j.paipan || {};
+  let html = '<div class="card"><h2>🔮 排盘结果</h2>';
+  html += '<button class="ghost fav-btn" type="button" id="favBazi" ' +
+    'title="收藏">❤️ 收藏</button>';
+  html += '<div class="pill-row">';
+  String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
+    if (p.length >= 2) {
+      html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
+        esc(p) + '</span>';
+    }
+  });
+  html += '</div>';
+  if (paipan.nayin && paipan.nayin.length) {
+    html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
+  }
+  if (paipan.warn && paipan.warn.length) {
+    html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
+  }
+  html += renderCalc(j.calc);
+  if (j.evidence && j.evidence.length) {
+    html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
+    html += renderHits(j.evidence, { empty: '无引文' });
+  }
+  // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
+  html += renderVoice(j, '📖 解读（确定性规则）');
+  html += '</div>';
+  return html;
+}
+
 async function submitBazi(event) {
   if (event) event.preventDefault();
   busy('result', '计算中…');
   try {
     const j = await postJSON('/api/bazi', baziBody());
     const paipan = j.paipan || {};
-    let html = '<div class="card"><h2>🔮 排盘结果</h2>';
-    html += '<button class="ghost fav-btn" type="button" id="favBazi" ' +
-      'title="收藏">❤️ 收藏</button>';
-    html += '<div class="pill-row">';
-    String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
-      if (p.length >= 2) {
-        html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
-          esc(p) + '</span>';
-      }
-    });
-    html += '</div>';
-    if (paipan.nayin && paipan.nayin.length) {
-      html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
-    }
-    if (paipan.warn && paipan.warn.length) {
-      html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
-    }
-    html += renderCalc(j.calc);
-    if (j.evidence && j.evidence.length) {
-      html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
-      html += renderHits(j.evidence, { empty: '无引文' });
-    }
-    // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
-    html += renderInterpretation(j.interpretation, '📖 解读（确定性规则）');
-    html += '</div>';
-    paint('result', html);
+    paint('result', buildBaziResult(j));
+    rememberVoice('result', j, buildBaziResult);
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
@@ -860,6 +1023,45 @@ async function doBookSummary() {
 
 /* ── 六爻 / 黄历 / 起名 / 桃花 / 塔罗 / 合婚 ───────────────────── */
 
+/** 六爻结果区 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
+function buildLiuyaoResult(j) {
+  const ben = j.ben || {};
+  const bian = j.bian || {};
+  let html = '<div class="card"><h2>🔮 六爻卦象</h2>';
+  html += '<p class="paipan-line" style="color:var(--c-liuyao);">' +
+    esc(ben.gua_name || '') + '（第 ' + esc(ben.gua_number) + ' 卦）</p>';
+  // 实测 lines[] 是 {position,yang,moving,symbol}，moving_lines[] 是数字。
+  if (ben.lines && ben.lines.length) {
+    html += '<div class="pill-row">';
+    ben.lines.forEach(function (ln) {
+      html += '<span class="pill sm" style="background:' +
+        (ln.moving ? 'var(--c-bazi)' : 'var(--secondary)') + ';">' +
+        esc(ln.position) + ' ' + esc(ln.symbol || (ln.yang ? '⚊' : '⚋')) + '</span>';
+    });
+    html += '</div>';
+  }
+  if (ben.moving_lines && ben.moving_lines.length) {
+    html += '<p>动爻：' + esc(ben.moving_lines.join('、')) + '</p>';
+  } else {
+    html += '<p>无动爻（静卦）</p>';
+  }
+  if (bian.gua_name) {
+    html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
+      esc(bian.gua_name) + '（第 ' + esc(bian.gua_number) + ' 卦）</p>';
+  }
+  if (j.ben_jing && j.ben_jing.length) {
+    html += '<h3 style="margin-top:16px;color:var(--c-book);">本卦經文</h3>' +
+      renderHits(j.ben_jing, { empty: '' });
+  }
+  if (j.bian_jing && j.bian_jing.length) {
+    html += '<h3 style="margin-top:16px;color:var(--c-book);">变卦經文</h3>' +
+      renderHits(j.bian_jing, { empty: '' });
+  }
+  html += renderVoice(j, '📖 卦象转述（确定性规则）');
+  html += '</div>';
+  return html;
+}
+
 async function doLiuyao() {
   busy('lyResult', '摇卦中…');
   // 实测后端只认 coins|time（HTML 里原来的 "dice" 会得到 400）。
@@ -878,41 +1080,8 @@ async function doLiuyao() {
   if (q) body.question = q;
   try {
     const j = await postJSON('/api/liuyao', body);
-    const ben = j.ben || {};
-    const bian = j.bian || {};
-    let html = '<div class="card"><h2>🔮 六爻卦象</h2>';
-    html += '<p class="paipan-line" style="color:var(--c-liuyao);">' +
-      esc(ben.gua_name || '') + '（第 ' + esc(ben.gua_number) + ' 卦）</p>';
-    // 实测 lines[] 是 {position,yang,moving,symbol}，moving_lines[] 是数字。
-    if (ben.lines && ben.lines.length) {
-      html += '<div class="pill-row">';
-      ben.lines.forEach(function (ln) {
-        html += '<span class="pill sm" style="background:' +
-          (ln.moving ? 'var(--c-bazi)' : 'var(--secondary)') + ';">' +
-          esc(ln.position) + ' ' + esc(ln.symbol || (ln.yang ? '⚊' : '⚋')) + '</span>';
-      });
-      html += '</div>';
-    }
-    if (ben.moving_lines && ben.moving_lines.length) {
-      html += '<p>动爻：' + esc(ben.moving_lines.join('、')) + '</p>';
-    } else {
-      html += '<p>无动爻（静卦）</p>';
-    }
-    if (bian.gua_name) {
-      html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
-        esc(bian.gua_name) + '（第 ' + esc(bian.gua_number) + ' 卦）</p>';
-    }
-    if (j.ben_jing && j.ben_jing.length) {
-      html += '<h3 style="margin-top:16px;color:var(--c-book);">本卦經文</h3>' +
-        renderHits(j.ben_jing, { empty: '' });
-    }
-    if (j.bian_jing && j.bian_jing.length) {
-      html += '<h3 style="margin-top:16px;color:var(--c-book);">变卦經文</h3>' +
-        renderHits(j.bian_jing, { empty: '' });
-    }
-    html += renderInterpretation(j.interpretation, '📖 卦象转述（确定性规则）');
-    html += '</div>';
-    paint('lyResult', html);
+    paint('lyResult', buildLiuyaoResult(j));
+    rememberVoice('lyResult', j, buildLiuyaoResult);
   } catch (e) {
     fail('lyResult', '摇卦失败：' + e.message);
   }
@@ -1059,6 +1228,29 @@ async function doTaohua() {
   }
 }
 
+/** 塔罗结果区 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
+function buildTarotResult(j) {
+  let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
+  html += '<p class="hit-cite">seed ' + esc(j.seed) + ' · ' + esc(j.n) + ' 张（固定 seed 必得同样牌面，可复验）</p>';
+  html += '<div class="tarot-grid">';
+  (j.draws || []).forEach(function (d, i) {
+    html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
+      '<div class="tarot-card-inner" data-card="' + i + '">' +
+      '<div class="tarot-card-face tarot-card-back">知</div>' +
+      '<div class="tarot-card-face tarot-card-front">' +
+      '<div class="tname">' + esc(d.name) + '</div>' +
+      '<div class="tmeaning">' + esc(d.upright ? '正位' : '逆位') + '<br>' +
+      esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div></div>' +
+      '</div></div>' +
+      '<div class="tarot-pos">' + esc(d.position || ('第' + (i + 1) + '张')) +
+      '</div></div>';
+  });
+  html += '</div>';
+  html += renderVoice(j, '📖 牌面转述（确定性规则）');
+  html += '</div>';
+  return html;
+}
+
 async function doTarot() {
   busy('trResult', '抽牌中…');
   const seed = num('tr_seed');
@@ -1070,25 +1262,8 @@ async function doTarot() {
   try {
     // /api/tarot 支持多张牌阵（含 position）；/api/tarot/draw 只给单张。
     const j = await postJSON('/api/tarot', body);
-    let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
-    html += '<p class="hit-cite">seed ' + esc(j.seed) + ' · ' + esc(j.n) + ' 张（固定 seed 必得同样牌面，可复验）</p>';
-    html += '<div class="tarot-grid">';
-    (j.draws || []).forEach(function (d, i) {
-      html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
-        '<div class="tarot-card-inner" data-card="' + i + '">' +
-        '<div class="tarot-card-face tarot-card-back">知</div>' +
-        '<div class="tarot-card-face tarot-card-front">' +
-        '<div class="tname">' + esc(d.name) + '</div>' +
-        '<div class="tmeaning">' + esc(d.upright ? '正位' : '逆位') + '<br>' +
-        esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div></div>' +
-        '</div></div>' +
-        '<div class="tarot-pos">' + esc(d.position || ('第' + (i + 1) + '张')) +
-        '</div></div>';
-    });
-    html += '</div>';
-    html += renderInterpretation(j.interpretation, '📖 牌面转述（确定性规则）');
-    html += '</div>';
-    paint('trResult', html);
+    paint('trResult', buildTarotResult(j));
+    rememberVoice('trResult', j, buildTarotResult);
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
     (j.draws || []).forEach(function (_d, i) {
       setTimeout(function () {
@@ -1440,6 +1615,15 @@ function initReading() {
     const bstab = e.target.closest('.rtab[data-rsec2]');
     if (bstab) {
       activateBssec(bstab.dataset.rsec2);
+      return;
+    }
+    // 口吻切换（US3）：只重渲染当前结果区，不重发请求——重发会让
+    // /api/bazi 再往 history.db 写一行（用户数据不该被切换动作污染，
+    // US3.3「已有数据不受影响」）。用 LAST_RESPONSE 缓存重画。
+    const vbtn = e.target.closest('[data-voice]');
+    if (vbtn) {
+      setVoiceMode(vbtn.dataset.voice);
+      rerenderVoice();
       return;
     }
 

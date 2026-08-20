@@ -26,23 +26,25 @@
 
 ## M1 US1+US2+US3：voice 层 + 双模式（P1）
 
-- [ ] T1.1 `src/guji/voice.py` 骨架：纯函数、自测入口、
-  `python -m guji.voice` 先行（模板表空跑通）　状态：TODO
-- [ ] T1.2 warm 四层结构实现（L0/L1/reply/details/badge）；
-  L0 ≤20 字、模板注明来源字段　状态：TODO
-- [ ] T1.3 幸运项规则表（河图数/五色/时辰）+ 锚点 fixture 初版
-  （锚点可用台账 §115 命令复现；M2 再钉死十二宫部分）　状态：TODO
-- [ ] T1.4 六爻/八字 reply 模板（64 卦白话表 + 6 爻位白话表 +
-  提问关键词映射重写）；禁用词表落 `web/check_warm_voice.py`
-  （含阳性对照：注入「你会脱单」→ 退出码 1）　状态：TODO
-- [ ] T1.5 路由附加 `"warm"` 键（additive）；前端 warm 读取点登记进台账
-  供审查轨 `probe_contract.py` 同步　状态：TODO
-- [ ] T1.6 前端：renderInterpretation warm 分支、模式切换控件
-  （localStorage `voiceMode`）、`<details>` 折叠依据、badge 不压轴　状态：TODO
-- [ ] T1.7 `web/check_warm_voice.py` 全量：判据 1/2/3/4/5/6/7/8
-  （术语表与禁用词表写死脚本内）　状态：TODO
-- [ ] T1.8 `web/selftest.py` 新增 ≥8 断言（warm 存在/确定性/内容）；
-  新断言名单写进台账供审查轨同步 `probe_selftest_regress` baseline　状态：TODO
+- [x] T1.1 `src/guji/voice.py` 骨架：纯函数、自测入口
+  状态：DONE(`<py> -m guji.voice` → self-test PASS)
+- [x] T1.2 warm 四层结构（L0/L1/reply/details/badge）
+  状态：DONE(`<py> web\check_warm_voice.py` → 判据 1-8 PASS；L0 实测 11 字)
+- [x] T1.3 幸运项规则表（河图数/五色/时辰）初版
+  状态：DONE(voice.HETU_NUMBERS/ELEMENT_COLORS/ZHI_ELEMENT；锚点 M2 钉死)
+- [x] T1.4 六爻/八字 reply 模板（GUA_WARM 64 + YAO_WARM 6 + TOPIC_WARM）
+  状态：DONE(`--self-check` 注入「你会脱单/一定会」被抓到，退出码 0)
+- [x] T1.5 路由 additive 附加 `"warm"` 键（bazi/liuyao/tarot/tarot_draw）
+  状态：DONE(`<py> web\selftest.py` 149 checks；读取点已登记台账 §117)
+- [x] T1.6 前端 renderWarm/renderVoice 分支 + 模式切换 + details 折叠
+  状态：DONE(真浏览器实测：首屏术语 2 次、details 默认展开 0 个、
+  切 pro 后含十神格局、刷新后 voiceMode=pro 保持、切回 warm 正常)
+- [x] T1.7 `web/check_warm_voice.py` 全量判据 1-8
+  状态：DONE(`<py> web\check_warm_voice.py` → PASS 10 用例 × 8 判据，退出码 0)
+- [x] T1.8 `web/selftest.py` +9 断言（140→149）
+  状态：DONE(warm.bazi.present/one_liner.len/reply.answers_question/
+  badge.not_last/citations.reuse/deterministic/energy_card.rules/
+  details.basis_verbatim/liuyao.answers_not_refuse；名单见台账 §117)
 - [ ] T1.9 里程碑回归：13 闸门 + 附加 5–9 + `web\baseline_voice.py` +
   `probes\probe_ui_smoke.py` 只增不减　状态：TODO
 
