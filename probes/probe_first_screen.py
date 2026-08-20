@@ -146,12 +146,21 @@ LOCATE = r"""
     // 取所有「自身含该片段、但没有后代也含它」的元素 = 每次渲染的最内层节点。
     // 这样既不把父容器重复计一次，也**不会漏掉同一段被渲染多次**的情形
     // （R128a-01：j.evidence 全文版与 warm.citations 截断版同时上屏）。
+    //
+    // ⚠ 用 textContent 而非 innerText 定位（R130a 修正，优化轨 D-240b 报出）。
+    //   实测：关闭态 <details> 内元素 innerText 长度 = **0**、textContent = 32。
+    //   若用 innerText，`<details>` 折叠会定位到 **0 段**，判据 4 报「0%」——
+    //   而「真把原文删掉」也是 0 段。两者在探针眼里完全一样，
+    //   **等于无法区分折叠与删除，而那正是宪法第三条要守的唯一一件事。**
+    //   textContent 不受 display/details 影响，两种机制都能定位到，
+    //   再由 isHidden() 判断它是否默认可见 → 得到「定位 12 段 / 折叠 12 段」
+    //   这样的阳性证据。
     const hits = [];
     r.querySelectorAll('*').forEach(e => {
-      if (!norm(e.innerText).includes(h)) return;
+      if (!norm(e.textContent).includes(h)) return;
       let childHas = false;
       for (const c of e.querySelectorAll('*')) {
-        if (norm(c.innerText).includes(h)) { childHas = true; break; }
+        if (norm(c.textContent).includes(h)) { childHas = true; break; }
       }
       if (!childHas) hits.push(e);
     });
@@ -161,7 +170,8 @@ LOCATE = r"""
       gujiN += 1;
       const b = e.getBoundingClientRect();
       if (isHidden(e, b)) { gujiHidden += 1; }
-      else { gujiChars += (e.innerText || '').length; gujiH += b.height; }
+      // 可见块的字数用 textContent（与定位一致）；隐藏块不计入可见占比
+      else { gujiChars += (e.textContent || '').length; gujiH += b.height; }
     });
   });
 
@@ -358,6 +368,25 @@ def main() -> int:
             if not ok:
                 failures.append(f"古籍原文占结果区 {share}% 字数，"
                                 f"要求 ≤{MAX_GUJI_SHARE_PCT}%")
+
+            # 判据 4b：「0% 可见」必须是**折叠**造成的，不能是**删除**造成的。
+            # 这条是宪法第三条的守门人（优化轨 D-240b 指出旧版无法区分二者）。
+            # 判据 4 只看「可见占比低」，低到 0 也算过——但若原文根本不在 DOM 里，
+            # 占比同样是 0。故必须独立断言：定位到的段数 == API 返回的段数。
+            n_api = len(evidence)
+            if g["n_found"] < n_api:
+                failures.append(
+                    f"只在 DOM 中定位到 {g['n_found']} 段引文，"
+                    f"而 API 返回 {n_api} 段——缺失的 {n_api - g['n_found']} 段"
+                    f"是**被删除**而非被折叠。宪法第三条要求引文可追溯，"
+                    f"折叠可以，删除不行。")
+                print(f"  ❌ 折叠 vs 删除：定位 {g['n_found']} / API {n_api} 段"
+                      f"——有段落不在 DOM 里")
+            else:
+                print(f"  ✅ 折叠 vs 删除：定位 {g['n_found']} 段 ≥ API {n_api} 段"
+                      f"（{g['n_hidden']} 段默认折叠，"
+                      f"{g['n_found'] - g['n_hidden']} 段默认可见）"
+                      f"——原文都在 DOM 里，是折叠不是删除")
 
             # 判据 5：可核验性不丢——引文文本必须仍能在页面上取到（展开后逐字一致）
             print("\n=== 可核验性（宪法第三条：折叠 ≠ 删除）===")
