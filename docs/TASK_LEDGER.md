@@ -6231,3 +6231,110 @@ warm 分支也接线了（`:562`），但 `:556` 的 `renderCalc(j.calc)` 在它
 清理复验 `history 行数 43 -> 43`。
 
 - 决策记录：DECISIONS.md D-150a。
+
+---
+
+## 118. [优化轨] R183b：清偿 R124a-01 + 完成 003 判据 1/2/3/12（2026-08-20）
+
+`git merge audit` fast-forward `b6bc78c..3401282`（纳入 R124a 复审 + R125a 盘点）。
+两个提交：`e966df4`（R124a-01）、`5475550`（003 四条判据）。
+
+### 1. R124a-01 内部字段名暴露（唯一 OPEN，卡闸门 1）→ FIXED-R183b
+
+**自行复现**（不凭报告签字）：`probes\probe_ui_smoke.py` → 37 用例
+36 PASS / 1 FAIL，`btn:bazi` 报 warm 模式暴露
+`['ten_gods','five_elements','day_luck','relations','day_ganzhi','day_master_rel']`。
+逐行核对确认审查轨定位准确：`renderVoice`(:289) 与 warm 分支(:562) 都正确，
+问题在 :556 的 `renderCalc(j.calc)` 在其之前**无条件**执行——`renderCalc` 是
+calc 字典的原样转储，键名即后端内部字段名。
+
+修法（只动 warm 分支，专业模式一个字符不改）：三处调用点加
+`voiceMode()==='pro'` 条件——`buildBaziResult`(:556)、`loadDailyDetail`(:485)、
+`showHistoryDetail`(:1384)。信息未丢：`warm.details` 承载**同一批事实**的
+白话版（含「分布：木1.1」这类数字），只是不再用内部键名做小标题。
+
+实测：`probe_ui_smoke` **37/37 PASS 退出码 0**；`baseline_voice` sha256
+b0461df2… 未变（判据 9）；`git diff` 确认 `renderCalc`/`renderInterpretation`
+两个专业渲染函数体零改动。
+
+**顺带查清一处非缺陷**：首跑 `btn:news.refresh` 报「暂无新闻」，追查为**上游
+瞬时抖动**——`/api/external/news` 实测 BBC `ok=true` 8 items、Solidot
+`ok=false`（`URLError SSL UNEXPECTED_EOF`）；且 `git diff` 确认本轮未动
+`loadNews` 任何一行。重跑即 37/37 全绿。不记为缺陷。
+
+### 2. 003 判据 3：对比度 31 → 0（根因是令牌角色冲突，不是挑错颜色）
+
+审查轨实测最差 3.18:1 出现在每日运势的「宜」结论——**用户最想看的一句话
+最难读**。我查全表后定位根因：`--primary #B8860B` 一个令牌承担两种冲突角色，
+既作文字色（需深到压过浅底）又作白字按钮背景（需深到托住白字），两个需求
+都指向"更深"，而原值 3.25:1 两头都不够。
+
+**按角色拆令牌**而非全局调暗：
+
+| 令牌 | 用途 | 值 | 最难背景实测 |
+|---|---|---|---|
+| `--primary` | 仅装饰/边框/阴影 | `#B8860B` 不变 | 非文本，不受判据约束 |
+| `--primary-ink` | 作文字 | `#7F5C08` | 白 6.11 / 页底 5.35 / border 4.51 |
+| `--primary-bg` | 作白字背景 | `#8A6408` | 白字在其上 5.37 |
+| `--secondary` | 文字 | `#815934` | 白 6.15 / border 4.54 |
+| `--muted` | 文字 | `#6C5F52` | 白 6.18 / border 4.56 |
+| `--good` / `--accent` | 文字 + 白字背景 | `#456A44` / `#AE3737` | 6.18 / 6.17 |
+
+令牌值由 WCAG 公式求解（对全部实际背景取交集），**不是肉眼挑的**，
+每个值在 CSS 注释里标注实测比值。
+
+**渐变按钮白字原 1:1**：`linear-gradient` 亮端 `#FFE66D` 上白字仅 1.25:1，
+数学上不可能达标。改深金渐变 `#8A6408→#6E5006` 并补 `background-color`
+实色兜底（白字 6.51:1）。补实色不是为讨好探针——实色兜底是渐变的标准写法
+（渐变不渲染时它就是实际颜色），也让探针/高对比度模式/打印都读到真值。
+探针读 `backgroundColor` 对渐变返回 transparent，这是它的盲区，我补兜底
+同时解决了真实问题与可测量性。
+
+### 3. 003 判据 1/2：固定 UI 点击目标 16 → 0
+
+新增 `--tap:44px` 令牌集中管理（WCAG 2.5.5 与两大移动平台指南的共同下限），
+应用于 `input/select`（原 39–41px，**差 3–5px 也是不达标**）、`.daily-more`、
+`.rtab`、`.news-refresh`、hist/thread 小按钮、`details summary`。
+按审查轨 R125a 的口径订正，只做固定 UI 的 16 个，数据驱动的不进判据。
+
+### 4. 003 判据 12：视觉方案一键回滚
+
+`html[data-theme="legacy"]` 整块覆盖回原令牌 + 品牌区「清晰 / 原版」切换
+（localStorage `uiTheme` 持久化）。**关键设计：只覆盖令牌，不碰任何规则集**
+——回滚路径因此不需要反向修改组件样式，不可能漏。切换控件自己也满足
+判据 1–3（44px + AA），回滚控件不达标是自相矛盾的。
+
+真浏览器实测（375px）：默认 `data-theme=None` 对比度 0 处；点「原版」→
+`data-theme=legacy`、`--primary-ink` 由 `#7F5C08` 变回 `#B8860B`、对比度回到
+**36 处**（正是对照的意义）、排盘仍出 25734 字符；刷新后保持 legacy；
+切回「清晰」→ 对比度回 0。两套主题功能均可用、零 console error。
+
+### 5. 判据实测汇总（`probes\probe_ui_baseline.py`）
+
+| 判据 | 前 | 后 |
+|---|---|---|
+| 1 固定 UI <44px（375px） | 16 | **0** |
+| 2 固定 UI <44px（1280px） | 16 | **0** |
+| 3 对比度 <AA | 31 | **0** |
+| 4 横向溢出 | 0px | 0px |
+| 5 长任务 >50ms | 0 | 0 |
+| 6 reduced-motion 动画 | 0 | 0 |
+| 12 可一键回滚 | 不具备 | **具备，两套各自可用** |
+| 14 暴露内部字段名 | 有 | **无** |
+
+回归全绿：`baseline_voice` 判据 9 逐字节一致、`check_warm_voice` 判据 1–8、
+`selftest` 149 checks、`probe_ui_smoke` 37/37、**19 个闸门退出码全 0**
+（其中 `probe_contract` 164 读取点、`probe_dollar_misuse` 零命中、
+`probe_selftest_regress` 断言只增不减）。
+
+### 6. 尚未做 / 移交
+
+- **判据 7/8（FCP、接口 p95）**：本轮未专门优化。实测 FCP 132ms
+  （基线 128ms，同量级抖动），p95 未单独测——留给下一轮或审查轨复验口径。
+- **数据驱动点击目标**（历史行按钮 20 个、新闻链接若干）：按 R125a 订正的
+  口径不进可数判据，但仍属 US1 场景 3 定性要求，未做。
+- **M3 html2canvas 授权**：仍卡在用户。plan §1.5 已定零依赖 Canvas 方案，
+  不需授权即可做，M3 不因此阻塞。
+- 004 M2/M3 未动，`tasks.md` T2.1 起仍 TODO。
+
+- 决策记录：DECISIONS.md D-237b（令牌按角色拆分 + 实色兜底）。
