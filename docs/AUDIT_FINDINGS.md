@@ -376,6 +376,39 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 
 ---
 
+### R128a-01 同一批古籍原文被渲染两次，21,153 字全文与 2,640 字截断版同时上屏
+- 复现：`<py> probes\probe_first_screen.py`（报 `.ev-item` 24 个而 API 只返回 12 段）；
+  或直接比对两个字段：
+
+      <py> -c "import sys; sys.path.insert(0,'.'); sys.path.insert(0,'src')
+      from fastapi.testclient import TestClient
+      from web.app import app
+      j = TestClient(app).post('/api/bazi', json={'year':1998,'month':7,
+          'day':20,'hour':14,'gender':'女','question':'感情运怎么样？'}).json()
+      ev, ct = j['evidence'], j['warm']['citations']
+      print(len(ev), len(ct))
+      print(sum(len(e['text']) for e in ev), sum(len(x['text']) for x in ct))"
+
+- 实测：
+
+      API evidence 12 段、总 21,153 字（未截断全文）
+      API warm.citations 12 段、总 2,640 字（已截断版）
+      逐条比对：**12/12 条目完全相同**，citations 独有 0、evidence 独有 0
+      页面 .ev-item 元素数 **24**、.ev-text **24**
+
+  即后端**已经做对了截断**（`warm.citations` 只有 2,640 字），前端却把全文版与
+  截断版**同时**渲染。同一段《穷通宝鉴·论庚金》《五行大义·论合》在页面上各出现两次。
+- 位置：`web/static/app.js:610`（渲染 `j.evidence` 全文）
+  与 `:302-307`（渲染 `warm.citations` 截断版），两处并存
+- 期望：warm 模式下同一段古籍**只渲染一次**（`specs/005` 判据 5）。
+  用截断版还是全文版由优化轨定，但不得两者都渲染。
+  ⚠ 折叠/去重**不得删除内容**：页面 `textContent` 中必须仍能取到每段原文与出处
+  （宪法第三条，`specs/005` 判据 6/7/8）。
+- 严重级：MAJOR（数据显示错误：同一内容重复上屏，且是当前 124 屏版面的主要成因）
+- 状态：OPEN
+
+---
+
 ### R124a-01 温柔模式下结果区仍原样打印内部字段名 ten_gods / five_elements / day_luck / relations
 - 复现：真浏览器默认（warm）模式点「排 盘 推 算」，读 `#result` 文本；
   或 `<py> probes\probe_ui_smoke.py` 后看 `logs/probe_ui_smoke_r124a.txt`
