@@ -6653,3 +6653,169 @@ D-154a 刚纠正的错误。改探针：
 `src/guji/**`、`web/**`、对方 plan/tasks **零改动**。清理复验 `history 43 -> 43`。
 
 - 决策记录：DECISIONS.md D-155a。
+
+### 123. [优化轨] R185b：施工 specs/005 M1+M2——古籍折叠树落地，验收闸门退出码 0（2026-08-20）
+
+**merge audit** 纳入 R129a(`8858107`) 与 R130a(`1547f06`) 两轮探针修复。
+对方的修复**推翻了我 plan 初版的三条前提**，本轮先重算选型再施工，
+未按已失效的设计硬做（D-238b~D-241b）。
+
+**唯一验收命令，退出码 0**：
+
+    <py> probes\probe_first_screen.py
+
+    整页 9,035px　结果区 2,619px = 4 屏　共 928 字
+    ✅ 一句话结论 相对视口 353px（文档绝对 y=3,350px）  阈值 0–812px
+    ✅ 结果区 4 屏                                     阈值 ≤4 屏
+    ✅ 默认可见最长文本块 71 字                        阈值 ≤400 字
+    ✅ 古籍原文默认可见 0 字 = 结果区 0%               阈值 ≤40%
+       定位到 12 段，其中默认已折叠 12 段
+    ✅ 折叠 vs 删除：定位 12 段 ≥ API 12 段——原文都在 DOM 里，是折叠不是删除
+    ✅ 抽查 6 段引文原文均可取到　✅ 抽查 6 段引文出处均在页面上
+    probe_first_screen PASS
+
+对比施工前（同一命令）：一句话在视口外 71,094px、结果区 102 屏、
+文本墙 4,123 字、古籍占 92%——**四项未达标全部转绿**。
+
+**实现（三处，全在 `web/` 领土内）**：
+
+1. `renderCiteTree()`：古籍三级折叠树（总入口 → 按书分组 → 每段原文）。
+   机制 `hidden` + `<button aria-expanded>`，事件委托切换。
+   默认只有总入口 44px 可见，古籍区高度**与书数段数无关**（五案恒 44px）。
+2. **去重**（清偿审查轨 R128a-01）：`renderWarm` 的 citations 渲染与
+   `buildBaziResult` 的 `renderHits(j.evidence)` 曾同时上屏（`.ev-item` 24 个
+   而 API 12 段）。现 warm 模式只渲染一次，且用 `j.evidence`**全文版**
+   而非 `warm.citations`（后者是 `interpreter.py:308` 的 220 字截断版，
+   展开它无法满足判据 8 逐字节一致）。
+3. **顺序反转 + 提交后定位**：warm 分支改为「四柱 → 大白话 → 古籍折叠」；
+   `revealResult()` 提交成功后把结果区顶部对齐视口（`behavior:'auto'`）。
+   七个功能视图全部接入（判据 1 场景 5）。
+
+**专业模式一字未动**（判据 9 的实现方式）：顺序反转与折叠**只在 warm 分支**，
+`renderCalc` / `renderHits` / `renderInterpretation` 的 pro 路径保持原样。
+实测切「专业版」后 `.ev-item` 24 个、`.calc-grid` 存在、结果区 82,623px
+——**旧版面完整回来了**，这就是判据 12 的一键切回（复用 `voiceMode`，
+不新增第三个开关，理由见 D-239b/plan §5.2）。
+
+**新建闸门 `web/check_plain_first.py`（五用例 × 判据 1–8）**：
+
+    用例        段 书    高度   余量  L0视口 能量卡 古籍% 最长  定位/折叠 cite_body
+    c7_love    12  7  2,619   629   353   752    0   71   12/12      12
+    c8_love    12  8  2,752   496   353   813    0   84   12/12      12
+    c6_career  12  6  2,980   268   353   880    0   93   12/12      12
+    c6_health  12  6  2,640   608   353   661    0   82   12/12      12
+    c8_noq     12  8  2,441   807   353   637    0   84   12/12      12
+    check_plain_first PASS: 5 个用例 × 判据 1–8 全达标
+
+**阳性对照三注入全部被抓**（宪法第三条偏离 4）：
+
+    注入 delete（真删 2 段原文）→ 判据 4b/5/6 命中 ✅
+    注入 expand（古籍全展开）   → 判据 2/3/4 命中  ✅
+    注入 byte（展开内容改一字） → 判据 8 命中      ✅
+
+**为什么闸门跑五个用例**：我的 L1 方案（按书组头平铺）在 7 书/8 书两案都过，
+第三个用例（6 书）实测 3,288px = 5 屏 FAIL。组头在 375px 下换行（61px 而非
+设计的 44px）+ 那案白话段更长，**高度不随书数单调**——我拿两个点推的趋势是错的
+（D-240b）。闸门另加「余量 ≥200px」断言，防边缘通过。
+
+**回归防线全绿**（我自己逐条跑，退出码 0）：
+
+    13 道宪法闸门          13/13 exit=0（check_quality 在 build_index 之前）
+    web\baseline_voice.py  14 用例逐字节一致 sha256 b0461df2…（判据 9）
+    web\selftest.py        149 checks PASS（判据 14）
+    web\check_warm_voice.py 判据 1-8 全达标（判据 17：004 不退步）
+    probes\probe_ui_smoke.py  PASS（37 用例不减，判据 13）
+    probes\probe_contract.py  164 个字段读取点全部存在，SOFT=11（后端零改动）
+    probes\probe_ui_baseline.py 对比度 0 / 固定点击目标 0 / 长任务 0 /
+                                reduced-motion 归零 / 横向溢出 0px（判据 16/18）
+    probe_no_generated_in_corpus / probe_selftest_regress /
+    probe_dollar_misuse / probe_scripts_importable  全 exit=0
+
+**两个非零退出，均与本轮无关，已核实**：
+
+- `scripts\count_open_findings.py` exit=1：因 `R128a-01` 仍标 OPEN
+  （OPEN MAJOR 1）。该条已由本轮清偿（去重实现 + 判据 5 实测 `.cite-body` 12 段
+  == API 12 段），但 `AUDIT_FINDINGS.md` 是审查轨领土，**状态由对方转**
+  （宪法第五条）。我不改对方条目。
+- `probes\probe_disclosure.py` exit=1：`ValueError` in `probe_disclosure.py:132`。
+  **施工前就是这样**——stash 掉我的前端改动后重跑，同样 exit=1；
+  该文件最后一次改动是 `83d7604`（Initial commit），且不读 `web/` 任何文件，
+  也不在宪法 13 闸门清单里。属既存问题，非本轮引入，登记备查。
+
+**领土纪律**：本轮只改 `web/static/app.js`、`web/static/styles.css`，
+新建 `web/check_plain_first.py` 与 `web/baselines/plain_first_fixture.json`。
+`src/guji/**` **零改动**（判据所需字段响应里全有，改后端会牵动 149 条断言且
+收益为零）；`probes/**` `scripts/**` `data/**` 零改动。
+清理复验 `history 61 -> 61`（五用例 × 多次提交全部清理干净）。
+
+- 决策记录：DECISIONS.md D-238b（折叠机制）、D-239b（滚动而非隐藏首页）、
+  D-240b（单层总折叠，L1 被 6 书用例推翻）、D-241b（判据 8 多重集比对）。
+- 待审查轨：R128a-01 转状态；`probe_first_screen` 目前仍是单用例，
+  对方 D-155a 已自记「同族风险，下轮扩多案例」。
+
+### 124. [优化轨] R185b 附：US5 引文相关性调查完成——提问对检索**零影响**（2026-08-20）
+
+spec US5 要求「不要在没有量化相关性之前改检索逻辑」。本轮做完调查，
+**不改 `src/guji/**`**，把结论作为缺陷条目移交审查轨立项。
+
+**复现命令**（固定生日 1998-07-20 14 时女，只换 `question`）：
+
+    <py> -c "import sys; sys.path.insert(0,'.'); sys.path.insert(0,'src')
+    from fastapi.testclient import TestClient
+    from web.app import app
+    cl = TestClient(app)
+    base = {'year':1998,'month':7,'day':20,'hour':14,'gender':'女'}
+    keys = {}
+    for tag, q in (('感情','感情运怎么样？'), ('事业','事业运怎么样？'),
+                   ('财运','财运怎么样？'), ('健康','健康如何？'),
+                   ('学业','学业运如何？'), ('无提问', None)):
+        b = dict(base)
+        if q: b['question'] = q
+        ev = cl.post('/api/bazi', json=b).json()['evidence']
+        keys[tag] = [(e['work_id'], e['page_anchor'], e['text'][:30]) for e in ev]
+    ref = keys['感情']
+    for tag, k in keys.items(): print(tag, k == ref)"
+
+**实测结果（六种提问，逐位比对）**：
+
+    感情   与基准逐位相同 12/12  完全一致=True
+    事业   与基准逐位相同 12/12  完全一致=True
+    财运   与基准逐位相同 12/12  完全一致=True
+    健康   与基准逐位相同 12/12  完全一致=True
+    学业   与基准逐位相同 12/12  完全一致=True
+    无提问 与基准逐位相同 12/12  完全一致=True   ← 连"有没有提问"都不影响
+
+**即：`question` 对古籍检索没有任何作用。** 12 段引文完全由生日（四柱）决定。
+`warm.one_liner` 会随提问变（「感情这块，盘里有着落点」/「事业这块…」），
+**但那是 voice 层的文案模板在响应提问，检索层从未参与**。
+
+`why` 字段的取值空间实测只有三个：年柱 30 次、日柱 24 次、月柱 18 次（共 72 段）。
+**它表达的是"这段引文对应盘上哪一柱"，不是"它为什么与你的问题有关"。**
+我在 M4/T4.3 已把它上屏（「因『月柱』被选中」），措辞是准确的——
+但用户若理解成"与我的提问相关"，那会是误解。
+
+**词面命中率**（提问主题词是否出现在引文原文里）：感情 7/12(58%)、
+事业 9/12(75%)、财运 9/12(75%)、健康 7/12(58%)、学业 10/12(83%)。
+命中率不低，但这是**巧合**——同一批 12 段对所有提问都是同一批，
+命中率的差异只反映"这些古籍里哪些字更常见"，不反映检索相关性。
+
+**书目分布**（72 段中的出现次数）：穷通宝鉴 18、星命溯源 18、五行大义 12、
+命理探原 6、太清神鑑 6、遁甲演義 6、星學大成 6。
+「遁甲演義」（奇门遁甲）稳定出现在八字排盘结果里，与提问和八字都关联很弱。
+
+**移交审查轨立项（缺陷条目建议）**：
+
+    级别建议：MAJOR（不是版面问题，是检索层功能缺失）
+    现象：/api/bazi 的 question 参数不参与古籍检索，12 段引文完全由四柱决定
+    位置：属计算层（src/guji/search.py 的 retrieve_fast 调用链，
+          web/services.py:159 `_dedup_evidence(retrieve_fast(b, ...))`
+          ——注意这里根本没传 req.question）
+    期望：提问应影响引文选择，或产品明确"引文只依四柱、与提问无关"并在
+          UI 上如实表达（现在的「因『月柱』被选中」已经是如实表达，
+          但用户容易误读）
+    ⚠ 我不自行改：spec US5 明确「若调查确认相关性有问题，应作为独立缺陷条目
+      提出，由优化轨决定修法」，而改检索会动 eval_g1/g7 的评测口径，
+      属需要单独立项的改动，不该塞进 005 的版面轮次。
+
+005 判据表里 US5 的三条验收（why 可读理由 / 无关段落不排前列 / 相关性可自动测量）
+本轮只达成第一条与第三条的**测量方法**，第二条待检索层修好后才有意义。
