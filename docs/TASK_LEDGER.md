@@ -6382,3 +6382,67 @@ b0461df2… 未变（判据 9）；`git diff` 确认 `renderCalc`/`renderInterpr
 - 004 M2/M3 未动，`tasks.md` T2.1 起仍 TODO。
 
 - 决策记录：DECISIONS.md D-237b（令牌按角色拆分 + 实色兜底）。
+
+---
+
+### 119. R127a 审查循环：复审 R183b，003 判据 1/2/3/12/14 全部达成，订正我自己一处矛盾判据（2026-08-20）
+
+**merge main** 纳入 R183b 三个提交（e966df4 修 R124a-01 + 5475550 对比度与
+点击目标 + dd76be8 台账）。两个 append-only 台账冲突，按宪法第五条两段都保留。
+
+**领土核查：一处需要说明，结论是无违规。** `git diff` 显示对方动了两个我独占
+的文件：`docs/AUDIT_FINDINGS.md`（1 行）与 `specs/004-warm-voice/spec.md`（-37 行）。
+逐一核查：
+
+- `AUDIT_FINDINGS.md` 那 1 行是把 R124a-01 状态改成 `FIXED-R183b`——
+  **正是本文件头明确许可的唯一改动**，合规。
+- `spec.md` 那 37 行删除是**陈旧基线所致，非故意改写**。
+  `git merge-base --is-ancestor 27966df e966df4` → **NOT ancestor**，
+  即 R183b 从 `3401282` 分叉，早于我的 R126a(`27966df`)，它**没见过**我的
+  html2canvas REJECTED 决定。merge 于是把我的新文本显示成"被删除"。
+  已用 `git checkout 27966df -- specs/004-warm-voice/spec.md` 恢复我的版本。
+  **不记违规**——这是异步协作的正常时序现象，不是越界。
+
+**三条声明我自己逐条重跑，全部成立**：
+
+| 判据 | R125a 实测 | R127a 实测 | 结果 |
+|---|---|---|---|
+| 3 对比度 <AA | 31 处 | **0 处**（三视口） | 达成 |
+| 1/2 固定 UI 点击目标 <44px | 16 个 | **0 个**（两视口） | 达成 |
+| 14 结果区暴露内部字段名 | 6 个键名 | **零命中** | 达成 |
+
+`probe_ui_smoke` **37 用例 PASS 37 / FAIL 0** 退出码 0（R124a 时 36/1）。
+`btn:bazi` 容器首 260 字实测已从 `…纳音…ten_gods\npos：年干…` 变为
+`…纳音…📜 古籍依据 命理探原 @? (mingli-tanyuan_001.txt)…`。
+
+**回归防线全绿**（我自己跑，退出码全 0）：`web/selftest.py`、`probe_contract`、
+`probe_selftest_regress`、`probe_no_generated_in_corpus`、`probe_dollar_misuse`、
+`probe_scripts_importable`、`count_open_findings`（OPEN BLOCKER/MAJOR = **0**）。
+`web/baseline_voice.py` 14 用例逐字节一致（sha256 `b0461df2…`）——
+**专业模式没被牵连改动**，004 判据 9 保持成立。这一点很重要：
+003 判据 14 与 004 判据 9 是交叉点，改错一侧就会破另一侧，实测两侧都对。
+
+**判据 12（一键回滚）实测可用，但暴露了我自己写的一处矛盾（D-152a）**。
+实测：切换控件是「清晰 / 原版」两个 `.theme-btn`，`data-theme=legacy` 生效。
+
+    新配色（默认）：对比度 <AA **0** 处、固定点击目标 **0** 个
+    旧配色（legacy）：对比度 <AA 29 处、固定点击目标 17 个
+
+判据表第 12 条原写「两套各自满足 1–11」，与 US5 场景 3「**旧样式按其原有水平**」
+**自相矛盾**——回滚的定义就是回到 REPAIR 结束时的视觉，而那个视觉本来就有
+31 处低于 AA。要求回滚目标也达标，等于要求它不再是回滚目标。
+**这是我 R121a 写 spec 时留下的矛盾，不是修复轨的实现问题。**
+已订正：判据 1/2/3 只约束新配色；旧配色只需满足 4/5/9/10/11。
+
+**R124a-01 转 VERIFIED-R127a**（我自己重跑确认，非凭对方报告签字）。
+
+**领土纪律**：本轮改 `specs/003-youth-ui-revamp/spec.md`（订正矛盾）、
+`docs/AUDIT_FINDINGS.md`（转 VERIFIED）、docs a 侧、恢复 `specs/004` 我的版本。
+`src/guji/**` 与 `web/**` 零改动。清理复验 `history 43 -> 43`。
+
+**子 agent 收尾**：R120a 派出的复审子 agent（`6e01d19b`）中途失败未返回，
+本轮已 interrupt 关闭。它不构成信息空缺——当时那两条红线我已亲手查过，
+并落成 `probe_selftest_regress` 与 `probe_no_generated_in_corpus` 两个常驻闸门，
+本轮复跑仍 exit 0。**不拿未返回的子 agent 当依据（宪法第一条）。**
+
+- 决策记录：DECISIONS.md D-152a。

@@ -408,7 +408,15 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   ⚠ **专业模式不要求改动**——`specs/004` 判据 9 要求它逐字节不变。
   这是两条判据的交叉点，修的时候只动 warm 分支。
 - 严重级：MAJOR（数据显示错误：用户看到的是程序变量名，不是人话）
-- 状态：FIXED-R183b
+- 状态：VERIFIED-R127a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：
+  `probes\probe_ui_smoke.py` → **37 用例 PASS 37 / FAIL 0** 退出码 0。
+  `btn:bazi` 容器实测首 260 字已无任何内部键名，改为
+  `🔮 排盘结果 … 纳音：路旁土 · 白蜡金 … 📜 古籍依据 命理探原 @? …`；
+  `INTERNAL_KEYS` 18 个键名（含 `ten_gods` / `five_elements` / `day_luck` /
+  `relations` / `day_ganzhi` / `day_master_rel`）**零命中**。
+  同时 `web\baseline_voice.py` 14 用例逐字节一致（sha256 `b0461df2…`），
+  说明专业模式未被牵连改动，`specs/004` 判据 9 保持成立。
 
 **本条暴露的探针盲区（审查轨自己的问题，已记 D-149a）**：
 `probe_ui_smoke` 的 `btn:bazi` 用例只检查「容器非空 + 无 `[object Object]`
