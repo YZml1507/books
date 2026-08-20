@@ -156,6 +156,129 @@ function renderHits(hits, opts) {
   return html;
 }
 
+/* ── 古籍引文树（005 US2：古籍是可展开的证据，不是默认的正文）────
+ * 三级折叠：总入口 → 按书分组 → 每段。默认只有总入口可见（44px）。
+ *
+ * 为什么是三级而不是平铺（005 plan §2，D-241b）：按书组头直接平铺实测
+ * 在 6 部书那一案是 3,288px = 5 屏（判据 2 要 ≤4 屏）——组头文本在 375px
+ * 下换行，实测 61px 而非设计的 44px，且高度**不随书数单调**。
+ * 单层总入口的高度与书数、段数完全无关，五案实测恒为 44px。
+ *
+ * 为什么用 hidden 而不是 <details>：两者探针都认（R130a 把定位改成
+ * textContent 后）。选 hidden 是因为它能被 CSS 精确控制且不引入
+ * <summary> 的默认样式包袱；button 原生提供键盘可达与 aria-expanded。
+ *
+ * ⚠ 宪法第三条：折叠 ≠ 删除。原文全文进 .cite-body 的 textContent，
+ *   一字不截断（不做 interpreter 的 [:220]）、不 trim、不改标点。
+ *   hidden 不影响 textContent，故折叠态下原文与出处仍可被取到核验。 */
+
+/** 从 citation 串里取书名做分组键。实测 citation 形如
+ *  `穷通宝鉴 @? (qiongtongbaojian_001.txt)` 或
+ *  `星命溯源 @KR3g0035_WYG_004-10b (KR3g0035_004.txt)`——` @` 之前是书名。 */
+function citeBook(citation) {
+  const s = String(citation || '');
+  const i = s.indexOf(' @');
+  return (i > 0 ? s.slice(0, i) : s).trim() || '未标注出处';
+}
+
+var CITE_SEQ = 0;
+
+/** 一个可折叠按钮 + 其内容容器的 id（三级共用）。 */
+function citeToggle(id, label) {
+  return '<button type="button" class="cite-toggle" aria-expanded="false" ' +
+    'aria-controls="' + id + '" data-cite-toggle="' + id + '">' +
+    '<span class="cite-caret" aria-hidden="true">▸</span>' +
+    '<span class="cite-label">' + esc(label) + '</span></button>';
+}
+
+/** 古籍引文树。items 用 API 的原始证据对象（含 citation/text/why/layer）。
+ *  判据 5：同一段只渲染一次——本函数是 warm 模式下古籍的**唯一**渲染点。 */
+function renderCiteTree(items, opts) {
+  const o = opts || {};
+  const list = (items || []).filter(function (h) {
+    return h && (h.text || h.citation);
+  });
+  if (!list.length) {
+    return '<div class="no-evidence">' + esc(o.empty || '无引文') + '</div>';
+  }
+  // 按书分组，保持首次出现顺序（检索相关性顺序，不重排）
+  const order = [];
+  const groups = {};
+  list.forEach(function (h) {
+    const book = citeBook(h.citation);
+    if (!groups[book]) {
+      groups[book] = [];
+      order.push(book);
+    }
+    groups[book].push(h);
+  });
+
+  CITE_SEQ += 1;
+  const topId = 'cite-all-' + CITE_SEQ;
+  const title = o.title || '📜 古籍原文依据';
+  let html = '<div class="cite-wrap"><div class="cite-top">';
+  html += citeToggle(topId, title + ' · ' + list.length + ' 段 / ' +
+    order.length + ' 部书');
+  html += '<div class="cite-top-body" id="' + topId + '" hidden>';
+  order.forEach(function (book, gi) {
+    const gid = 'cite-g-' + CITE_SEQ + '-' + gi;
+    const c = colorAt(gi);
+    html += '<div class="cite-group" style="border-left-color:' + c + ';">';
+    html += citeToggle(gid, '《' + book + '》 ' + groups[book].length + ' 段');
+    html += '<div class="cite-group-body" id="' + gid + '" hidden>';
+    groups[book].forEach(function (h, si) {
+      const bid = 'cite-b-' + CITE_SEQ + '-' + gi + '-' + si;
+      const text = h.text || '';
+      // 摘要行：出处常显 + why（为何被选中）+ 字数。出处与原文在同一级展开，
+      // 不允许只显示其一（005 判据 5）。
+      let label = h.citation || '（无出处）';
+      if (h.layer) label += ' · ' + h.layer;
+      if (h.why) label += ' · 因「' + h.why + '」被选中';
+      if (text) label += ' · ' + text.length + ' 字';
+      html += '<div class="cite-item">';
+      html += citeToggle(bid, label);
+      // 原文：逐字节等于 API（判据 8）。esc() 只做 HTML 转义，不改内容。
+      html += '<div class="cite-body" id="' + bid + '" hidden>' +
+        esc(text) + '</div>';
+      if (h.disclosure) {
+        html += '<div class="ev-disc">' + esc(h.disclosure) + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div></div></div>';
+  return html;
+}
+
+/** 折叠件的点击处理（事件委托，见 initReading 的 document click）。 */
+function toggleCite(btn) {
+  const id = btn.dataset.citeToggle;
+  const body = document.getElementById(id);
+  if (!body) return;
+  const open = body.hidden;
+  body.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  const caret = btn.querySelector('.cite-caret');
+  if (caret) caret.textContent = open ? '▾' : '▸';
+}
+
+/** 结果区定位（005 判据 1）：提交成功后把结果区顶部对齐视口顶部。
+ *
+ *  为什么是滚动而不是隐藏首页各块：判据 1 经 R129a 订正后量的是**相对提交后
+ *  视口**的偏移，不是文档绝对 y。既然如此就不需要藏掉品牌区/今日运势卡/
+ *  功能卡——它们留在文档里，向上滚即见，spec 那条「不得把今日入口永久藏死」
+ *  天然满足。实测显式滚动后一句话结论落在视口 353px。
+ *
+ *  behavior 用 'auto' 不用 'smooth'：prefers-reduced-motion 下不产生动画
+ *  （005 判据 18），也避免测量时取到滚动中间值。 */
+function revealResult(containerId) {
+  const node = el(containerId);
+  if (!node) return;
+  const top = node.getBoundingClientRect().top + window.scrollY;
+  window.scrollTo({ top: Math.max(0, top - 8), behavior: 'auto' });
+}
+
 /* ── 口吻模式（004 US3：一键切回）─────────────────────────────
  * warm = 温柔口吻（默认，用户指示的正面回应）；pro = 专业模式。
  * 专业模式渲染路径**完全不变**——warm 是新增分支（判据 9）。
@@ -223,7 +346,7 @@ function applyTheme(theme) {
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
  *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
  *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
-function renderWarm(warm, interp) {
+function renderWarm(warm, interp, evidence) {
   if (!warm) return renderInterpretation(interp, '📖 解读（确定性规则）');
   var html = '<div class="warm-wrap">';
   // L0 一句话：首屏第一眼就是它（判据 1/3）
@@ -296,16 +419,20 @@ function renderWarm(warm, interp) {
     }
     html += '</div>';
   });
-  // L3 citations：古籍原文，与 warm 文案视觉可辨（US2.5）
-  var cites = warm.citations || [];
+  // L3 citations：古籍原文进三级折叠树，**warm 模式下这是唯一的古籍渲染点**
+  // （005 判据 5，清偿审查轨 R128a-01）。
+  //
+  // 原实现的缺陷：这里渲染 warm.citations，而 buildBaziResult 又用 renderHits
+  // 渲染了 j.evidence——实测两者同源（12/12 条目对应、citation 逐条相等、
+  // citations[i].text === evidence[i].text[:220]），于是同一段《穷通宝鉴》
+  // 在页面上出现两次，`.ev-item` 24 个而 API 只有 12 段。
+  //
+  // 数据源优先 evidence（全文）而非 citations（220 字截断版）：判据 8 要求
+  // 展开后与 API 逐字节一致，截断版做不到。evidence 由调用方经
+  // renderVoice(j, title) 传入；没有时（如历史详情）回落 citations。
+  var cites = (evidence && evidence.length) ? evidence : (warm.citations || []);
   if (cites.length) {
-    html += '<div class="interp-sec cite-block"><h4>📜 古籍原文依据</h4>';
-    cites.forEach(function (c) {
-      html += '<div class="ev-item"><div class="ev-meta">' +
-        esc(c.citation || '') + '</div><div class="ev-text">' +
-        esc(c.text || '') + '</div></div>';
-    });
-    html += '</div>';
+    html += renderCiteTree(cites);
   }
   html += '</div>';
   return html;
@@ -317,11 +444,18 @@ function renderWarm(warm, interp) {
  * 字符串，所以整块重画最简单也最不容易漏。 */
 var LAST_RESPONSE = {};
 
-/** 按当前模式渲染解读区。warm 数据缺失时自动回落专业分支。 */
-function renderVoice(j, proTitle) {
+/** 按当前模式渲染解读区。warm 数据缺失时自动回落专业分支。
+ *  evidenceKeys：本响应里存放**全文**引文的键名（各功能不同：排盘是
+ *  evidence，六爻是 ben_jing/bian_jing）。warm 分支用它们喂 renderCiteTree，
+ *  以满足 005 判据 8（展开原文与 API 逐字节一致）。 */
+function renderVoice(j, proTitle, evidenceKeys) {
   var html = renderModeSwitch();
   if (voiceMode() === 'warm' && j && j.warm) {
-    html += renderWarm(j.warm, j.interpretation);
+    var ev = [];
+    (evidenceKeys || ['evidence']).forEach(function (k) {
+      if (j[k] && j[k].length) ev = ev.concat(j[k]);
+    });
+    html += renderWarm(j.warm, j.interpretation, ev);
   } else {
     html += renderInterpretation(j ? j.interpretation : null, proTitle);
   }
@@ -602,15 +736,27 @@ function buildBaziResult(j) {
   //   * 温柔模式不需要它——warm.details 承载的是**同一批事实**的白话版
   //     （五行强弱/十神格局/地支关系/流日流时，含 分布：木1.1 这类数字），
   //     信息不丢，只是不再用内部键名做小标题。
+  // R185b（005 判据 1/2/5）：**warm 与专业模式的版面顺序不同，这是有意的。**
+  //
+  // 专业模式（下面的 pro 分支）保持 R183b 的顺序一字不动：
+  //   renderCalc → 古籍全文（renderHits）→ renderVoice
+  // 判据 9 与 web/baselines/pro_render_baseline.json 的 h3 顺序数组
+  // （ten_gods/five_elements/relations/day_luck/📜 古籍依据/📖 解读）钉死了它。
+  //
+  // warm 模式改为：renderVoice（大白话）→ 古籍三级折叠（在 renderWarm 内部）。
+  // 原因是实测：古籍全文占结果区 92% 字数、单段最高 12,219px，把它排在
+  // 大白话之前 = 用户要滚 71,094px 才看到那句 11 字的人话（005 §1）。
+  // 古籍不再单独渲染于此——它由 renderWarm 经 renderCiteTree 渲染**一次**
+  // （判据 5，清偿 R128a-01 的重复渲染）。
   if (voiceMode() === 'pro') {
     html += renderCalc(j.calc);
-  }
-  if (j.evidence && j.evidence.length) {
-    html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
-    html += renderHits(j.evidence, { empty: '无引文' });
+    if (j.evidence && j.evidence.length) {
+      html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
+      html += renderHits(j.evidence, { empty: '无引文' });
+    }
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
-  html += renderVoice(j, '📖 解读（确定性规则）');
+  html += renderVoice(j, '📖 解读（确定性规则）', ['evidence']);
   html += '</div>';
   return html;
 }
@@ -623,6 +769,7 @@ async function submitBazi(event) {
     const paipan = j.paipan || {};
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);
+    revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
@@ -1100,15 +1247,19 @@ function buildLiuyaoResult(j) {
     html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
       esc(bian.gua_name) + '（第 ' + esc(bian.gua_number) + ' 卦）</p>';
   }
-  if (j.ben_jing && j.ben_jing.length) {
-    html += '<h3 style="margin-top:16px;color:var(--c-book);">本卦經文</h3>' +
-      renderHits(j.ben_jing, { empty: '' });
+  // 同 buildBaziResult：經文全文只在专业模式平铺；warm 模式由 renderWarm
+  // 经 renderCiteTree 折叠渲染一次（005 判据 2/3/5）。
+  if (voiceMode() === 'pro') {
+    if (j.ben_jing && j.ben_jing.length) {
+      html += '<h3 style="margin-top:16px;color:var(--c-book);">本卦經文</h3>' +
+        renderHits(j.ben_jing, { empty: '' });
+    }
+    if (j.bian_jing && j.bian_jing.length) {
+      html += '<h3 style="margin-top:16px;color:var(--c-book);">变卦經文</h3>' +
+        renderHits(j.bian_jing, { empty: '' });
+    }
   }
-  if (j.bian_jing && j.bian_jing.length) {
-    html += '<h3 style="margin-top:16px;color:var(--c-book);">变卦經文</h3>' +
-      renderHits(j.bian_jing, { empty: '' });
-  }
-  html += renderVoice(j, '📖 卦象转述（确定性规则）');
+  html += renderVoice(j, '📖 卦象转述（确定性规则）', ['ben_jing', 'bian_jing']);
   html += '</div>';
   return html;
 }
@@ -1133,6 +1284,7 @@ async function doLiuyao() {
     const j = await postJSON('/api/liuyao', body);
     paint('lyResult', buildLiuyaoResult(j));
     rememberVoice('lyResult', j, buildLiuyaoResult);
+    revealResult('lyResult');          // 005 判据 1 场景 5：不是只修排盘
   } catch (e) {
     fail('lyResult', '摇卦失败：' + e.message);
   }
@@ -1180,6 +1332,7 @@ async function doHuangli() {
       esc((j.ji || []).join('、') || '—') + '</p></div>';
     html += '</div></div>';
     paint('hlResult', html);
+    revealResult('hlResult');
   } catch (e) {
     fail('hlResult', '查询失败：' + e.message);
   }
@@ -1218,6 +1371,7 @@ async function doQiming() {
     });
     html += '</div></div>';
     paint('qmResult', html);
+    revealResult('qmResult');
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
   }
@@ -1274,6 +1428,7 @@ async function doTaohua() {
     }
     html += '</div>';
     paint('thResult', html);
+    revealResult('thResult');
   } catch (e) {
     fail('thResult', '测算失败：' + e.message);
   }
@@ -1315,6 +1470,7 @@ async function doTarot() {
     const j = await postJSON('/api/tarot', body);
     paint('trResult', buildTarotResult(j));
     rememberVoice('trResult', j, buildTarotResult);
+    revealResult('trResult');
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
     (j.draws || []).forEach(function (_d, i) {
       setTimeout(function () {
@@ -1387,6 +1543,7 @@ async function doHehun() {
     }
     html += '</div>';
     paint('hhResult', html);
+    revealResult('hhResult');
   } catch (e) {
     fail('hhResult', '计算失败：' + e.message);
   }
@@ -1686,6 +1843,13 @@ function initReading() {
     const tbtn = e.target.closest('[data-theme-btn]');
     if (tbtn) {
       applyTheme(tbtn.dataset.themeBtn);
+      return;
+    }
+    // 古籍引文树的三级折叠（005 US2）。事件委托——折叠件是动态生成的，
+    // 且切换口吻会整块重画（rerenderVoice），逐个绑定处理器会漏。
+    const cbtn = e.target.closest('[data-cite-toggle]');
+    if (cbtn) {
+      toggleCite(cbtn);
       return;
     }
 

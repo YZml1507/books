@@ -584,3 +584,45 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
   background:#FAFEFD; border-radius:0 8px 8px 0;
 }
 .cite-block h4{ color:#1F6F68; }
+
+/* ── 古籍引文树（005 US2：证据可展开，不是默认正文）──────────────
+ * 三级折叠：总入口 → 按书分组 → 每段原文。默认只有总入口可见。
+ * 折叠用 hidden 属性（JS 侧切换），此处只管样式：
+ *   - .cite-toggle 是 <button>，44px 下限 + 可见焦点环（003 判据 1/2/3）
+ *   - 无 transition/animation（005 判据 18：reduced-motion 归零）
+ *   - .cite-body 保留 pre-wrap，古籍原文的换行不得被吞（005 判据 8）
+ * ⚠ 这些容器都是普通 div，hidden 属性直接生效（无需 !important）——
+ *   与 .brand{display:flex} 那类作者规则不同，实测 computed display=none。 */
+.cite-wrap{ margin-top:16px; }
+.cite-top{
+  border-left:4px solid var(--c-book); background:#FAFEFD;
+  border-radius:0 8px 8px 0;
+}
+.cite-toggle{
+  display:flex; align-items:center; gap:8px;
+  width:100%; margin:0; padding:10px 12px;
+  min-height:var(--tap); box-sizing:border-box;
+  background:transparent; border:none; box-shadow:none; border-radius:0;
+  font-size:13px; font-weight:500; line-height:1.45;
+  color:var(--text); text-align:left; cursor:pointer;
+  transition:none;
+}
+.cite-toggle:hover{ background:#F3FAF9; transform:none; box-shadow:none; }
+.cite-toggle:focus-visible{ outline:3px solid var(--text); outline-offset:-3px; }
+.cite-top > .cite-toggle{ font-size:14px; font-weight:600; color:#1F6F68; }
+.cite-caret{ flex-shrink:0; color:var(--secondary); font-size:11px; }
+.cite-label{ min-width:0; word-break:break-word; }
+.cite-group{
+  border-left:3px solid var(--primary); margin:0 0 0 10px;
+  border-top:1px solid var(--border);
+}
+.cite-group > .cite-toggle{ font-family:var(--font-serif); font-size:14px; }
+.cite-item{ border-top:1px solid var(--border); margin-left:10px; }
+.cite-item > .cite-toggle{
+  font-family:Consolas,monospace; font-size:12px; color:var(--secondary);
+}
+.cite-body{
+  font-family:var(--font-serif); font-size:15px; line-height:1.9;
+  padding:10px 12px 14px; white-space:pre-wrap; word-break:break-word;
+  background:var(--card); border-top:1px dashed var(--border);
+}
