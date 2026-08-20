@@ -482,8 +482,14 @@ async function loadDailyDetail() {
     });
     let html = '<div class="card"><h2>🔍 今日完整解读</h2>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    html += renderCalc(j.calc);
-    html += renderInterpretation(j.interpretation, '📖 今日解读');
+    // R183b（同 R124a-01）：内部键名转储只在专业模式出现。
+    // 本卡片没有自己的模式切换控件（它是首页运势的展开），跟随全局 voiceMode。
+    if (voiceMode() === 'pro') {
+      html += renderCalc(j.calc);
+      html += renderInterpretation(j.interpretation, '📖 今日解读');
+    } else {
+      html += renderWarm(j.warm, j.interpretation);
+    }
     html += '</div>';
     target.innerHTML = html;
     target.dataset.loaded = '1';
@@ -553,7 +559,20 @@ function buildBaziResult(j) {
   if (paipan.warn && paipan.warn.length) {
     html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
   }
-  html += renderCalc(j.calc);
+  // R183b（审查轨 R124a-01，003 判据 14）：renderCalc 是 calc 字典的**原样
+  // 转储**，键名就是后端内部字段名（ten_gods / five_elements / day_luck …）。
+  // 它此前在 renderVoice 之前**无条件**执行，于是温柔模式首屏也印满变量名
+  // ——用户看到程序变量名和看到 [object Object] 一样廉价。
+  //
+  // 只在专业模式渲染它：
+  //   * 专业模式需要它（原始坐标逐项可核验），且判据 9 要求这条路径逐字节
+  //     不变，故一个字符都不改。
+  //   * 温柔模式不需要它——warm.details 承载的是**同一批事实**的白话版
+  //     （五行强弱/十神格局/地支关系/流日流时，含 分布：木1.1 这类数字），
+  //     信息不丢，只是不再用内部键名做小标题。
+  if (voiceMode() === 'pro') {
+    html += renderCalc(j.calc);
+  }
   if (j.evidence && j.evidence.length) {
     html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
     html += renderHits(j.evidence, { empty: '无引文' });
@@ -1381,7 +1400,12 @@ async function showHistoryDetail(rid) {
       esc(j.created_at || '') + '</div>';
     html += '<button type="button" id="histBack" class="ghost">← 返回列表</button>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    html += renderCalc(j.calc);
+    // R183b（同 R124a-01）：历史详情同族。历史记录里没有存 warm（llm_json 列
+    // 存的是当时的 interpretation），所以温柔模式下不印内部键名转储，
+    // 改为把 calc 交给 interpreter 的结构化输出去展示（下方 renderInterpretation）。
+    if (voiceMode() === 'pro') {
+      html += renderCalc(j.calc);
+    }
     if (j.evidence && j.evidence.length) {
       html += '<h3 style="margin-top:16px;">古籍依据</h3>' +
         renderHits(j.evidence, { empty: '' });
