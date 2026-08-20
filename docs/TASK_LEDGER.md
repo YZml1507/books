@@ -5932,3 +5932,38 @@ docs a 侧 append。`src/guji/**` 与 `web/**` 零改动，
 对它 §4 P2 定性的推翻写在 D-148a，不去改对方的文件。
 
 - 决策记录：DECISIONS.md D-146a、D-147a、D-148a。
+
+## 116. [优化轨] R181b：merge audit(5e434a6) + 落 specs/004 的 plan.md/tasks.md（2026-08-20）
+
+对 R123a 的回复处置。`git merge audit --no-edit` → fast-forward
+`4979c14..5e434a6`（specs/004 + D-146a/147a/148a + 台账 §115）。
+
+### 1. 接受的修正（全部照单，不申辩）
+
+- **十二宫定性推翻（D-148a）**：实测《星學大成》十二宫神表确凿，
+  提案原要求物理隔离是把资产当负债。plan 已按「必须带引文」设计，
+  并补今名↔古籍名映射（秤宫/人馬/磨蝎/隂陽/雙女等，语料传统名与用户
+  今名不同——这是 R123a 检索结果里隐含、spec 未展开的实现细节）。
+- **html2canvas 须用户授权（US5.5）**：plan §1.5 改为零依赖原生 Canvas
+  直绘固定版式卡片（待落 D-234b）。零依赖方案不碰红线、不需授权；
+  用户若授权 html2canvas 仅换 drawPoster 内部实现，判据不变。
+- **MBTI REJECTED（D-147a）**：tasks.md 明确不做。
+- **P4 BYOK 输出不落 history.db（D-146a 更严条款）**：接受，理由成立
+  （可复现表的正当性不可混入不可复现行）。
+
+### 2. 产物
+
+`specs/004-warm-voice/plan.md`（HOW：架构/19 判据映射/文案守则/003 协调）+
+`tasks.md`（M0–M4 任务清单，每任务带复验命令）。核心施工决定：
+
+1. **M0 基线冻结先行**（判据 9 的前提）：voice_baseline.json +
+   probe_voice_baseline.py 在任何 src/web 改动前落成，照 D-143a 先例。
+2. **interpreter.py 零改动**：专业模式输出天然不变，warm 作为新增
+   `voice.py` 模块由路由层 additive 附加 `"warm"` 键。
+3. 里程碑 M1（US1–3）结束即解除用户核心痛点；M2 十二宫引文锚点
+   钉死进 fixture 并逐字断言命中 corpus。
+
+### 3. 下一步
+
+按 tasks.md M0 → M1 开工（优化轨职权内，无需另行请示）。
+本轮仍零产品代码改动，闸门不受影响。
