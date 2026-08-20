@@ -14,9 +14,19 @@
   <!-- 品牌 -->
   <div class="brand">
     <div class="brand-mark">知</div>
-    <div>
+    <div class="brand-text">
       <div class="brand-title">知命</div>
       <div class="brand-tagline">知书 · 知命 · 知天机</div>
+    </div>
+    <!-- 003 US5 / 判据 12：视觉方向一键回滚。默认「清晰」= 无障碍配色
+         （31 处对比度不足已归零）；「原版」= R183b 之前的配色，供对照与
+         否决。切换只改 <html data-theme>，CSS 侧只覆盖令牌、不碰规则集，
+         因此回滚路径不需要反向修改任何组件样式。 -->
+    <div class="theme-switch" role="group" aria-label="配色方案">
+      <button type="button" class="theme-btn" data-theme-btn="aa"
+              aria-pressed="true" title="高对比配色（默认）">清晰</button>
+      <button type="button" class="theme-btn" data-theme-btn="legacy"
+              aria-pressed="false" title="切回原来的配色">原版</button>
     </div>
   </div>
 

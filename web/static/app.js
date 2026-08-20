@@ -188,6 +188,38 @@ function renderModeSwitch() {
     '</div>';
 }
 
+/* ── 视觉主题（003 US5 / 判据 12：审美方向可一键回滚）───────────
+ * aa     = R183b 的无障碍配色（默认；31 处对比度不足已归零）
+ * legacy = R183b 之前的原配色（对照用；**不满足判据 3**，那正是它的意义）
+ * 只切 <html data-theme>，CSS 侧只覆盖令牌不碰规则集——所以回滚路径
+ * 不需要反向修改任何组件样式，不可能漏。 */
+var THEME_KEY = 'uiTheme';
+
+function uiTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'legacy' ? 'legacy' : 'aa';
+  } catch (e) {
+    return 'aa';
+  }
+}
+
+function applyTheme(theme) {
+  var t = theme === 'legacy' ? 'legacy' : 'aa';
+  if (t === 'legacy') {
+    document.documentElement.setAttribute('data-theme', 'legacy');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  try {
+    localStorage.setItem(THEME_KEY, t);
+  } catch (e) { /* 存不了就只在本次会话生效 */ }
+  document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+    var on = b.dataset.themeBtn === t;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
  *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
  *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
@@ -1650,6 +1682,12 @@ function initReading() {
       rerenderVoice();
       return;
     }
+    // 视觉主题一键回滚（003 判据 12）：只切令牌，无需重渲染任何内容
+    const tbtn = e.target.closest('[data-theme-btn]');
+    if (tbtn) {
+      applyTheme(tbtn.dataset.themeBtn);
+      return;
+    }
 
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
@@ -1688,6 +1726,7 @@ function initDivination() {
 }
 
 function init() {
+  applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
   initViews();
   initBazi();
   initReading();
