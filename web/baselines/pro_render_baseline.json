@@ -1,0 +1,42 @@
+{
+ "_note": "专业模式渲染结构指纹（判据 9 辅证）；由 --freeze-dom 生成",
+ "views": {
+  "bazi.result": {
+   "chars": 26358,
+   "comments": 0,
+   "h3": [
+    "ten_gods",
+    "five_elements",
+    "relations",
+    "day_luck",
+    "📜 古籍依据",
+    "📖 解读（确定性规则）guji.interpreter/1.0（确定性规则，无 LLM）"
+   ],
+   "head": "🔮 排盘结果❤️ 收藏戊寅年己未月戊辰日己未时日主：戊大运：逆纳音：城头土 · 天上火 · 大林木 · 天上火ten_godspos：年干　gan：戊　god：比肩 [戊戊同为土，同阴阳]pos：月干　gan：己　god：劫财 [戊己同为土，异阴阳]pos：日干　gan：戊　god：比肩 [戊戊同为土，同阴阳]pos",
+   "nodes": 197,
+   "strong_depth": 1
+  },
+  "liuyao.result": {
+   "chars": 4215,
+   "comments": 0,
+   "h3": [
+    "本卦經文",
+    "变卦經文",
+    "📖 卦象转述（确定性规则）guji.interpreter/1.0（确定性规则，无 LLM）"
+   ],
+   "head": "🔮 六爻卦象师（第 7 卦）6 ⚋5 ⚋4 ⚋3 ⚋2 ⚊○1 ⚋动爻：2变卦：坤（第 2 卦）本卦經文周易正文 卦7（師） @KR1a0001_tls_007-2a (KR1a0001_007.txt) · 經䷆坎下坤上《師》貞丈人吉，无咎。《彖》曰：「師」、眾也，「貞」、正也。能以眾正，可以王矣。剛中而應，行險而",
+   "nodes": 133,
+   "strong_depth": 0
+  },
+  "tarot.result": {
+   "chars": 404,
+   "comments": 0,
+   "h3": [
+    "📖 牌面转述（确定性规则）guji.interpreter/1.0（确定性规则，无 LLM）"
+   ],
+   "head": "✨ 塔罗占卜seed 42 · 3 张（固定 seed 必得同样牌面，可复验）知节制正位调和·适度·耐心过去知皇后正位丰饶·滋养·收获现在知权杖国王正位掌控·成熟·主导未来📖 牌面转述（确定性规则）guji.interpreter/1.0（确定性规则，无 LLM）过去 · 节制正位：调和·适度·耐心象征：象征对立之间",
+   "nodes": 55,
+   "strong_depth": 0
+  }
+ }
+}

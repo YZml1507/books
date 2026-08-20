@@ -12,9 +12,33 @@ D-148a（十二宫=语料内容，推翻隔离定性）。
 ## 0. 总原则：先量尺，后动刀（判据 9 决定的施工顺序）
 
 判据 9 要求专业模式**逐字节等于**本 spec 创建时的输出。因此**第一个任务不是
-写文案，是冻结基线**（照 D-143a 先例：probe + fixture，固定输入集合的
+写文案，是冻结基线**（照 D-143a 先例：验证脚本 + fixture，固定输入集合的
 `interpret_*.text` / `sections` / `citations` 全量快照）。基线 fixture 落库后，
-后续任何改动一旦碰出字节漂移，CI 式探针立即退出码 1。
+后续任何改动一旦碰出字节漂移，CI 式脚本立即退出码 1。
+
+### 0.1 领土更正（D-236b）：验证脚本落 `web/`，不落 `probes/`
+
+本文件与 `tasks.md` 初版把 M0 产物写在 `probes/` 目录下（probe_voice_baseline、
+probe_warm_voice、xingzuo_fixture 等）——**这违反宪法第五条**：`probes/` 是审查轨
+独占写、优化轨禁改（constitution.md:164），且仓库现存全部 probe 均由审查轨
+R118a–R123a 创建。宪法 Governance 段规定「违反的解决方式是改 spec/plan/tasks，
+而不是稀释原则」，故本轮更正如下（左列为初版路径，均在 `probes/` 下）：
+
+| 初版（越界，`probes/…`） | 更正后（优化轨领土内） |
+|---|---|
+| `probe_voice_baseline.py` | `web/baseline_voice.py`（判据 9） |
+| `voice_baseline.json` | `web/baselines/voice_baseline.json` |
+| `probe_warm_voice.py` | `web/check_warm_voice.py`（判据 1–8） |
+| `xingzuo_fixture.json` | `web/baselines/xingzuo_fixture.json` |
+| `probe_xingzuo.py` | `web/check_xingzuo.py`（判据 10/11） |
+| `probe_poster.py` | `web/check_poster.py`（判据 12/13） |
+| 扩展 `probes/probe_no_generated_in_corpus.py`（判据 14） | **移交审查轨**：新文案表路径写进台账，由对方扩展其探针 |
+| 扩展 `probes/probe_ui_smoke.py`（判据 16） | **移交审查轨**：新增用例的行为描述写进台账，由对方扩展 |
+| 扩展 `probes/probe_selftest_regress.py` baseline（判据 17） | **移交审查轨**：`web/selftest.py` 新断言名单写进台账，由对方同步 baseline |
+
+全部脚本仍满足「闸门必须有非零退出码」（PHASE.md 纪律）：失败退出 1、
+成功退出 0、各带阳性对照。审查轨若要把它们纳入自己的闸门清单，
+可直接调用或包一层 `probes/probe_*.py`——接口即命令行退出码，不需要改我的文件。
 
 施工铁律：
 
@@ -69,7 +93,7 @@ badge disclaimer  「仅供娱乐 · 详细依据见专业模式」置于 L1 卡
   二十八宿分野的五行属性 → 写死的文案块选择；幸运色/数字同 §1.4 规则。
 - **每宫必带引文**：分野表句（如白羊→「奎婁白羊魯國戌」@KR3g0041_WYG_001-1a）
   + 当日五行相关的河图/五色引文。实现时用台账 §115 的检索命令钉死每个锚点的
-  work_id + addr + text 进 `probes/xingzuo_fixture.json`，探针断言引文在
+  work_id + addr + text 进 `web/baselines/xingzuo_fixture.json`，探针断言引文在
   corpus 逐字命中（照 `probe_no_generated_in_corpus` 的阳性对照做法）。
 - API：`GET /api/xingzuo?sign=白羊&date=2026-08-20`；12 宫 × 同日全量输出
   逐字节可复现（判据 11）。
@@ -106,23 +130,23 @@ L0 + 能量卡色块 + 幸运色/数字 + 日期 + 站名 +「仅供娱乐」水
 
 | # | 判据 | 实现落点 | 验收命令 |
 |---|---|---|---|
-| 1 | 首节回应提问 | voice L0/reply 置顶；前端 warm 分支首节点 | `probes/probe_warm_voice.py` |
+| 1 | 首节回应提问 | voice L0/reply 置顶；前端 warm 分支首节点 | `web/check_warm_voice.py` |
 | 2 | 一句话 ≤20 字 | voice `one_liner` 生成器带长度截断 + 模板短句 | 同上 |
 | 3 | 首屏术语 ≤3 | warm 首屏只渲染 L0/L1/badge；术语表写死探针 | 同上（浏览器实测首屏 DOM） |
 | 4 | 依据折叠且逐字不变 | `<details>` 包裹 basis 行；文本取自原 sections 未改写 | 同上（展开后与基线 fixture 比对） |
-| 5 | 同输入同输出 | voice 纯函数；两次调用逐字节断言 | `web/selftest.py` + probe_warm_voice |
-| 6 | 禁断言/指令 =0 | 模板写作守则 §3；禁用词表写死探针 | probe_warm_voice（含阳性对照） |
+| 5 | 同输入同输出 | voice 纯函数；两次调用逐字节断言 | `web/selftest.py` + check_warm_voice |
+| 6 | 禁断言/指令 =0 | 模板写作守则 §3；禁用词表写死探针 | check_warm_voice（含阳性对照） |
 | 7 | 免责含「仅供娱乐」不压轴 | badge 置于 L1 下方、L2 之前 | 同上 |
 | 8 | 六爻描述性回应 | voice `reply` 模板（64 卦白话 + 爻位白话表） | 同上 |
-| 9 | 专业模式逐字节等于当前 | M0 冻结 `probes/voice_baseline.json` + `probes/probe_voice_baseline.py` | probe_voice_baseline |
-| 10 | 幸运项 100% 可追溯 | §1.4 规则表 + 锚点 fixture；探针断言引文在 corpus 命中 | `probes/probe_xingzuo.py` |
+| 9 | 专业模式逐字节等于当前 | M0 冻结 `web/baselines/voice_baseline.json` + `web/baseline_voice.py` | baseline_voice |
+| 10 | 幸运项 100% 可追溯 | §1.4 规则表 + 锚点 fixture；探针断言引文在 corpus 命中 | `web/check_xingzuo.py` |
 | 11 | 12 宫×同日逐字节复现 | xingzuo 纯函数 | 同上 |
-| 12 | 分享图非空含娱乐标识 | `drawPoster()` + 下载按钮 | `probes/probe_poster.py`（toDataURL 长度阈值） |
-| 13 | 运行时外链 =0 | 海报零依赖；静态扫描 | probe_poster 内嵌静态检查 |
-| 14 | 新文案不入库 | warm 只随响应返回、落 history.db；扩展隔离探针覆盖 voice/xingzuo 文案表 | `probes/probe_no_generated_in_corpus.py`（扩展） |
-| 15 | 引文逐字节不变 | voice 不触碰 citations；复用 interpreter 输出 | probe_voice_baseline + probe_warm_voice |
-| 16 | UI smoke 只增不减 | 新增用例：模式切换、分享出图、今日运势入口、十二宫 | `probes/probe_ui_smoke.py`（扩展，行为断言按 D-145a） |
-| 17 | selftest 只增不减 | warm 存在性/确定性/内容断言 ≥8 条 | `web/selftest.py` + `probe_selftest_regress` |
+| 12 | 分享图非空含娱乐标识 | `drawPoster()` + 下载按钮 | `web/check_poster.py`（toDataURL 长度阈值） |
+| 13 | 运行时外链 =0 | 海报零依赖；静态扫描 | check_poster 内嵌静态检查 |
+| 14 | 新文案不入库 | warm 只随响应返回、落 history.db；扩展隔离探针覆盖 voice/xingzuo 文案表 | 移交审查轨扩展（台账登记文案表路径） |
+| 15 | 引文逐字节不变 | voice 不触碰 citations；复用 interpreter 输出 | baseline_voice + check_warm_voice |
+| 16 | UI smoke 只增不减 | 新增用例：模式切换、分享出图、今日运势入口、十二宫 | 移交审查轨扩展（台账登记用例行为） |
+| 17 | selftest 只增不减 | warm 存在性/确定性/内容断言 ≥8 条 | `web/selftest.py`（baseline 同步移交审查轨） |
 | 18 | 13 闸门 + 5–9 全绿 | 每里程碑收尾全量跑 | PHASE.md 命令清单 |
 | 19 | 003 的 14 条不退步 | §4 协调点清单 | `probes/probe_ui_baseline.py` 复测 |
 
