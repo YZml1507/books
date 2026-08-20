@@ -335,12 +335,25 @@ def main() -> int:
         print(f"  DOM 节点 {m['dom_nodes']}　横向溢出 {m['h_overflow_px']}px")
         print(f"  DOMContentLoaded {t['dom_content_loaded']}ms　"
               f"load {t['load_event']}ms　FCP {t['first_contentful_paint']}ms")
-        print(f"  点击目标 <44px：{len(m['small_targets'])} 个")
-        for s in m["small_targets"][:6]:
-            print(f"     {s['tag']}#{s['id'] or '-'} {s['text']!r} "
+        # R125a：拆成「固定 UI」与「数据驱动」两类。数据驱动那部分（历史行
+        # 按钮、外部新闻链接）随 history.db 行数与当日新闻条数变化——同一份
+        # 代码今天 56 明天 72，当判据会自己漂移，那不是判据是噪声。
+        # specs/003 判据 1/2 只数固定 UI（见该文件「判据 1/2 的口径订正」）。
+        DATA_CLS = ("hist-view", "hist-del", "fav-del", "news-item")
+        fixed = [s for s in m["small_targets"]
+                 if s["tag"] != "a"
+                 and not any(x in (s.get("cls") or "") for x in DATA_CLS)]
+        driven = [s for s in m["small_targets"] if s not in fixed]
+        m["small_fixed_ui"] = len(fixed)
+        m["small_data_driven"] = len(driven)
+        print(f"  点击目标 <44px：共 {len(m['small_targets'])} 个 = "
+              f"固定 UI {len(fixed)}（← 判据 1/2 数这个）"
+              f" + 数据驱动 {len(driven)}（随数据量变化，不作判据）")
+        for s in fixed[:6]:
+            print(f"     [固定] {s['tag']}#{s['id'] or '-'} {s['text']!r} "
                   f"{s['w']}×{s['h']}")
-        if len(m["small_targets"]) > 6:
-            print(f"     …另 {len(m['small_targets']) - 6} 个")
+        if len(fixed) > 6:
+            print(f"     …另 {len(fixed) - 6} 个固定 UI")
         print(f"  对比度低于 AA：{len(m['low_contrast'])} 个")
         for s in m["low_contrast"][:6]:
             print(f"     {s['tag']}.{s['cls'] or '-'} {s['text']!r} "
