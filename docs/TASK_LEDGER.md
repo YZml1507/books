@@ -5726,3 +5726,70 @@ $env:PYTHONIOENCODING="utf-8"
   且需补 `guji.interpreter`。
 
 - 决策记录：DECISIONS.md D-231b ~ D-233b。
+
+---
+
+### 113. R122a 审查循环：复审 R179b，闸门全绿，修掉一起双轨协调事故（2026-08-20）
+
+**merge main** 纳入 cbf2c1b（R179b：merge audit + 清偿 4 条 + 修复被 R178b
+打断的对方闸门）。三个 append-only 文档冲突，按宪法第五条解决；
+`AUDIT_FINDINGS.md` 9 处冲突**全部保留审查轨的 `VERIFIED-R120a`**——
+优化轨那侧仍是 `FIXED-R178b`，复验已完成的条目不能被降级回"待复验"。
+
+**第一件事：核查领土边界。** R179b 的 `--stat` 显示 `probes/` 有 978 行插入，
+这必须查清是"我的文件经 merge 到达"还是"对方改了我的文件"。
+`git diff 2643541 cbf2c1b -- probes/...` 逐个比对，四个文件全部
+**IDENTICAL**——插入量是 merge 带入我自己的文件，**零修改**。领土边界成立。
+
+**逐条亲自复验 R179b 的声明（不凭其报告签字）**：
+
+- **R118a-03 是真实未修缺陷，且修法正确**。这条我在 R118a 判为 MAJOR，
+  R179b 确认它 R178b 没修到。实测 `/api/bazi` 的 evidence 元素现在有
+  `citation` 键、值 `'命理探原 @? (mingli-tanyuan_001.txt)'`、
+  **全部 12 条 citation 均非空**。更关键的是修法：出处格式抽成
+  `search.py:24 render_citation()` **单一实现**，`bazi_lookup.py:129/209`
+  两路都指向它——没有在第二处复制格式，避开了 L-01 事故形态。这一点我
+  单独查过（`Select-String 'def render_citation'` 只有一处定义）。
+- **web selftest 140 checks 全 PASS** 退出码 0（R120a 时 138，净增 2）。
+- **13 道闸门退出码全 0**。
+- 附加闸门 5/6/7/8/9 退出码全 0（契约 / 函数当对象 / 断言只增不减 /
+  生成文本不入库 / 审查轨工具可用）。
+- **闸门 1 = PASS**，`OPEN BLOCKER 0 / OPEN MAJOR 0`。
+- R179b 自查纠正的「771 条历史记录」→ 实测 51 行，7 处全改。
+  这是它自己发现并推翻自己数字的一次，符合宪法第一条。
+
+**本轮唯一的失败：一起双轨协调事故（非产品缺陷）**。
+`probe_ui_smoke` 首跑 `29 PASS / 6 FAIL`，全部是读书三子标签的
+`TimeoutError`。追查后确认**产品是好的、两轨各自也都是善意的**：
+
+1. R178b 把 `data-rsec2` 的值从 `bs-structure` 改成驼峰 `bsStructure`。
+2. 我在 R120a 跟着把 probe 的选择器改成驼峰（当时实测 35/35 PASS）。
+3. R179b 认为"那三个值是验收契约不是内部命名"，把 HTML **改回 kebab**
+   以迁就我 R119a 的旧 probe，并加了注释叮嘱不要改成驼峰。
+
+两轨从**相反方向**各修一次，结果仍然对不上。产品侧实测完全正确：
+`app.js:1361 BSSEC_PANELS` 以 kebab 为键、事件委托 `activateBssec` 正常工作。
+**错的是我的 probe 把对方的内部命名钉死成了契约。**
+
+修法（D-145a）：子标签的 `data-rsec2` 值改为**运行时从 DOM 发现**，
+probe 只断言"有三个子标签且点了能 active"，不关心它们叫什么；
+按钮用例里用 `@subtab:N` 占位符按序号解析。
+稳定契约改为**面板容器 id**（`#bsStructure` 等，那是渲染目标，不是标签命名）。
+复跑 **36/36 PASS 退出码 0**（多出的一条是新增的 `subtab.discovery` 用例，
+它会在子标签数量变化时直接报出来）。
+
+**R179b 的移交项已无需处理**：它建议 `probe_contract.py` 的 `script_region()`
+改读 `app.js`——我在 R120a 已经改完（现签名 `script_region(text, path)`，
+`.js` 直接整文件当 JS，`.html` 走 `<script>` 切分，两种布局都支持）。
+
+**领土纪律**：本轮只改 `probes/probe_ui_smoke.py` 与 docs a 侧。
+`src/guji/**` 与 `web/**` 零改动。清理复验 `history 行数 43 -> 43`。
+
+**顺带清理**（用户要求）：删除主 worktree 根目录 5 个未跟踪的临时调试脚本
+（`test_all_apis.py` / `test_all_fix.py` / `test_debug.py` / `test_fields.py` /
+`test_hehun.py`，2026-08-19 21:12–21:14 三分钟内手写）。它们硬编码绝对路径
+`os.chdir(r'C:\Users\...')`、只 print 不断言（`test_fields.py` 实测已 exit 1
+而无人知晓）、且测的 7 个端点已被 140 条 selftest 断言 + 191 个字段读取点 +
+36 个浏览器用例完全覆盖。属宪法第五条列举的根目录临时产物同族。
+
+- 决策记录：DECISIONS.md D-145a。

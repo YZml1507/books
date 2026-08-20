@@ -74,11 +74,16 @@ BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
     ("news.refresh",   "bazi",    None,            "#newsRefresh",   "#newsList"),
-    # R120a：R178b 给三个读书子功能接了线（此前三个容器零 JS 填充逻辑），
-    # 现在它们是可测量的真实功能，纳入用例。
-    ("bookstudy.structure", "read", "rsec-bookstudy", ".rtab[data-rsec2='bsStructure']", "#bsStructure"),
-    ("bookstudy.chapter",   "read", "rsec-bookstudy", ".rtab[data-rsec2='bsChapter']",   "#bsChapter"),
-    ("bookstudy.summary",   "read", "rsec-bookstudy", ".rtab[data-rsec2='bsSummary']",   "#bsSummary"),
+    # R122a：三个读书子标签的选择器**不再写死 data-rsec2 的值**，改为运行时
+    # 从 DOM 读（见 discover_subtabs）。原因是 R120a/R179b 撞过一次协调事故：
+    # R178b 把值从 bs-structure 改成驼峰 bsStructure，我在 R120a 跟着改了
+    # probe；R179b 又把 HTML 改回 kebab 以迁就我 R119a 的旧 probe。
+    # 两轨从相反方向各修一次，结果仍然对不上（6 个用例 TimeoutError）。
+    # 教训：**probe 不该把对方的内部命名钉死成契约**——面板容器 id
+    # （#bsStructure 等）才是稳定契约，标签值是实现细节，运行时发现即可。
+    ("bookstudy.structure", "read", "rsec-bookstudy", "@subtab:0", "#bsStructure"),
+    ("bookstudy.chapter",   "read", "rsec-bookstudy", "@subtab:1", "#bsChapter"),
+    ("bookstudy.summary",   "read", "rsec-bookstudy", "@subtab:2", "#bsSummary"),
     ("search",         "read",    "rsec-search",   "#searchBtn",     "#searchResult"),
     ("research",       "read",    "rsec-research", "#researchBtn",   "#researchResult"),
     ("addr",           "read",    "rsec-addr",     "#addrBtn",       "#addrResult"),
@@ -115,9 +120,10 @@ FILL = {
 TAB_CASES = ["rsec-search", "rsec-research", "rsec-addr", "rsec-compare",
              "rsec-works", "rsec-threads", "rsec-bookstudy", "rsec-cw",
              "rsec-concept"]
-# R178b 把 data-rsec2 的值从 bs-structure 改成了容器 id（bsStructure）。
-# 这类"值改名"必须跟着改，否则选择器选不中 → probe 报 not visible → 假缺陷。
-SUBTAB_CASES = ["bsStructure", "bsChapter", "bsSummary"]
+# 子标签的 data-rsec2 值**运行时从 DOM 发现**，不写死（见 BUTTON_CASES 注释）。
+# 写死会让 probe 把对方的内部命名钉成契约，两轨各改一次就对不上——R120a/R179b
+# 实测撞过。这里只断言"有三个子标签且点了能 active"，不关心它们叫什么。
+SUBTAB_EXPECTED_COUNT = 3
 
 
 def free_port(port: int) -> bool:
@@ -290,7 +296,17 @@ def main() -> int:
             if not page.is_visible("#rsec-bookstudy"):
                 force_show_rsec("rsec-bookstudy")
                 page.wait_for_timeout(150)
-            for sub in SUBTAB_CASES:
+            # 运行时发现子标签的 data-rsec2 值（不写死对方的内部命名）
+            subtabs = page.eval_on_selector_all(
+                ".rtab[data-rsec2]",
+                "els => els.map(e => e.dataset.rsec2)")
+            results.append({
+                "name": "subtab.discovery",
+                "ok": len(subtabs) == SUBTAB_EXPECTED_COUNT,
+                "detail": (f"发现 {len(subtabs)} 个子标签 {subtabs}"
+                           f"（期望 {SUBTAB_EXPECTED_COUNT} 个）"),
+            })
+            for sub in subtabs:
                 errors.clear()
                 try:
                     page.click(f".rtab[data-rsec2='{sub}']")
@@ -341,7 +357,17 @@ def main() -> int:
                     for sel, val in FILL.get(name, {}).items():
                         page.fill(sel, val)
                     api_calls.clear()
-                    page.click(btn)
+                    # `@subtab:N` 占位符 → 运行时按序号取真实 data-rsec2 值。
+                    # 见 BUTTON_CASES 注释：不把对方的内部命名写死成契约。
+                    target_sel = btn
+                    if btn.startswith("@subtab:"):
+                        idx = int(btn.split(":", 1)[1])
+                        if idx >= len(subtabs):
+                            raise AssertionError(
+                                f"子标签只发现 {len(subtabs)} 个，取不到第 {idx} 个"
+                                f"（{subtabs}）")
+                        target_sel = f".rtab[data-rsec2='{subtabs[idx]}']"
+                    page.click(target_sel)
                     # 等结果容器出现"非占位"内容。
                     # 早退判据（否则每个坏按钮都要白等满预算，整轮跑不完）：
                     # 点击后 2.5s 内既没发出任何 /api 请求、又已捕获到未捕获异常

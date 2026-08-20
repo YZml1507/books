@@ -206,3 +206,20 @@ corpus.unit / derived / evidence **零命中**，同时**阳性对照 6/6** 引�
 → **`CURRENT_PHASE` 由 `REPAIR` 翻为 `OPTIMIZE`。**
 下一步：审查轨写 `specs/003-youth-ui-revamp/spec.md`（只 WHAT/WHY），
 `plan.md` / `tasks.md` 由优化轨写（宪法第六条，文件级分工避免冲突）。
+
+### 2026-08-20 阶段保持 OPTIMIZE（复验 R179b 无回归）by 审查轨 R122a
+
+R179b 是 REPAIR 遗留清偿 + 闸门兼容修复，不改变阶段。四条闸门复跑确认无回归：
+
+1. **闸门 1 = PASS**　`<py> scripts\count_open_findings.py` 退出码 0，
+   `OPEN BLOCKER 0 / OPEN MAJOR 0`。R118a-03 经实测确认真修好——
+   `/api/bazi` evidence 全 12 条 citation 非空，且出处格式为
+   `search.py:24 render_citation()` **单一实现**（未在第二处复制，避开 L-01）。
+2. **闸门 2 = PASS**　`<py> web\selftest.py` 退出码 0，**140 checks**（R120a 138）。
+3. **闸门 3 = PASS**　`<py> probes\probe_ui_smoke.py` 退出码 0，**36/36**。
+   首跑曾 29 PASS / 6 FAIL，追查为**双轨命名协调事故而非产品缺陷**
+   （详见 DECISIONS.md D-145a）：probe 把对方内部命名钉成契约，
+   已改为运行时从 DOM 发现。
+4. **闸门 4 = PASS**　13 道闸门退出码全 0。
+
+附加闸门 5–9 退出码全 0。
