@@ -6819,3 +6819,75 @@ spec US5 要求「不要在没有量化相关性之前改检索逻辑」。本�
 
 005 判据表里 US5 的三条验收（why 可读理由 / 无关段落不排前列 / 相关性可自动测量）
 本轮只达成第一条与第三条的**测量方法**，第二条待检索层修好后才有意义。
+
+---
+
+### 123. R131a 审查循环：复核 R186b——specs/005 判据 1–8 全绿，R128a-01 转 VERIFIED，新立 R131a-01（提问对检索零影响）（2026-08-20）
+
+**merge main** 纳入 R186b（三级折叠 + 去重 + 顺序反转 + revealResult + 新闸门
+`web/check_plain_first.py` 五案例）。领土核查：`git diff` 确认 `probes/`、
+`scripts/`、`docs/AUDIT_FINDINGS.md`、`docs/PHASE.md`、`specs/005 spec.md`
+**全部零改动**。
+
+**`specs/005` 判据 1–8 我自己重跑，全绿，退出码 0**：
+
+| 判据 | R130a 实测 | R131a 实测 |
+|---|---|---|
+| 1 一句话相对视口 | 71,094px | **353px** |
+| 2 结果区屏数 | 102 屏 | **4 屏** |
+| 3 最长可见块 | 4,123 字 | **71 字** |
+| 4 古籍默认可见占比 | 92% | **0%** |
+| 4b 折叠 vs 删除 | 定位 24 段 | **定位 12 段 ≥ API 12，12 段折叠** |
+| 6/7 可核验性 | ✅✅ | ✅✅（12/12 原文与出处可取） |
+
+**4b 这条最关键**：古籍可见 0% 同时定位到 12 段全在 DOM 里——即
+**「看不见」是折叠造成的，不是删除造成的**。这正是 R130a 新增该判据的用途，
+它现在给出了阳性证据而非「0 段 = 0%」的歧义读数。
+
+**R128a-01（同一批古籍渲染两次）转 VERIFIED-R131a**：24 段 → 12 段，
+且 warm 模式改用 `j.evidence` 全文（非 220 字 `warm.citations`），
+所以展开后逐字节一致。专业模式未受牵连——`baseline_voice.py` 逐字节一致
+（sha256 `b0461df2…`），`specs/004` 判据 9 保持成立，判据 12 的回滚沿用既有
+`voiceMode` 开关而非第三个 toggle。
+
+**回归防线全绿**（我自己跑，退出码全 0）：`web/selftest.py`(149)、
+`baseline_voice.py`、`probe_contract`、`probe_dollar_misuse`、
+`probe_selftest_regress`、`probe_no_generated_in_corpus`、
+`probe_scripts_importable`、`probe_ui_smoke`。
+
+**新立 R131a-01（MAJOR）：提问对检索零影响。** 优化轨 US5 调查的结论我亲验，
+**成立且比"排序问题"严重**。7 个提问变体（含无 question 与空串）× 同一生日：
+
+    引文集合**只有 1 种**，12 段逐字节相同
+    why 取值域 = ['年柱','日柱','月柱']  ← 盘位，非与提问的相关性
+    retrieve_fast 签名 (b, per_query, per_work, top_queries) → **无 question 参数**
+
+对照：`warm.one_liner` 确实随提问变（'感情这块…'/'事业这块…'/'财运这块，
+盘里信息偏少'），但那是**文案模板在响应提问，检索层从未看见提问**。
+宪法第三条架构图的 Agent 层是「检索即推理：判型→选书→读→扩展→验证」，
+当前退化为「按盘取书」——这也解释了 R128a 为何带出「遁甲演義」
+`王璋曰乙竒臨乾驚門…`、「太乙金鏡式經」这类弱关联内容。
+已在条目里写明：**改检索会移动 eval_g1/eval_g7 的门柱，须单独一轮并附前后对照，
+不得为了让相关性变好而放宽那两个闸门（红线第 2 项）**。
+
+优化轨的处置正确：它写进台账 §124 建议我立案，**没有自己动 `src/guji/`**。
+
+**`probe_disclosure` 确认为历史遗留，不算本轮回归。** 亲验：退出码 1、
+`ValueError: not enough values to unpack`（`:132`）、`git log -1` 显示最后改动是
+initial commit 83d7604、不 import web、**不在 13 闸门清单内**（
+`Select-String constitution.md 'probe_disclosure'` 零命中）。
+优化轨 stash 后复跑得同样失败，自证与本轮无关。已记 `OPTIMIZE_BACKLOG.md` B-011。
+
+**认可优化轨自查出的一处闸门自身错误**：它的 `check_plain_first.py` 判据 8
+首跑五案例全 FAIL（「长度 1245 vs 887」），追查后确认**是闸门错了不是代码错了**
+——按书分组会让 DOM 顺序相对 API 重排，而它按下标比对；改多重集比对后，
+截断/标点改动/丢段/重复段仍能抓到。这与我 R129a 的三个 probe bug 同族，
+且它是自己发现的。三种注入（删除/展开/改字节）分别被 4b·5·6 / 2·3·4 / 8 抓到，
+阳性对照到位。
+
+**领土纪律**：本轮改 `docs/AUDIT_FINDINGS.md`（R128a-01 转 VERIFIED + 立
+R131a-01）、`docs/OPTIMIZE_BACKLOG.md`（B-011）、docs a 侧。
+`src/guji/**`、`web/**`、对方 plan/tasks/闸门 **零改动**。
+清理复验 `history 43 -> 43`。
+
+- 决策记录：DECISIONS.md D-156a。

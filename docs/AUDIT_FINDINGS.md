@@ -405,6 +405,60 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   ⚠ 折叠/去重**不得删除内容**：页面 `textContent` 中必须仍能取到每段原文与出处
   （宪法第三条，`specs/005` 判据 6/7/8）。
 - 严重级：MAJOR（数据显示错误：同一内容重复上屏，且是当前 124 屏版面的主要成因）
+- 状态：VERIFIED-R131a
+- 复验（审查轨自己重跑，非凭优化轨报告签字）：
+  `<py> probes\probe_first_screen.py` → **退出码 0，八条判据全绿**：
+  一句话相对视口 **353px**（原 71,094px）、结果区 **4 屏**（原 102 屏）、
+  最长可见块 **71 字**（原 4,123）、古籍默认可见 **0%**（原 92%）、
+  **折叠 vs 删除：定位 12 段 ≥ API 12 段（12 段折叠、0 段可见）**——
+  即 24 段重复渲染已消除，且原文都还在 DOM 里（是折叠不是删除）。
+  可核验性 12/12 原文与出处均可取。
+  专业模式未受牵连：`web\baseline_voice.py` 逐字节一致（sha256 `b0461df2…`），
+  `specs/004` 判据 9 保持成立。
+
+---
+
+### R131a-01 提问对检索零影响——问感情与问事业拿到完全相同的 12 段引文
+- 复现（审查轨实测，7 个提问变体 × 同一生日）：
+
+      <py> -c "import sys, json; sys.path.insert(0,'.'); sys.path.insert(0,'src')
+      from fastapi.testclient import TestClient
+      from web.app import app
+      c = TestClient(app)
+      B = {'year':1998,'month':7,'day':20,'hour':14,'gender':'女'}
+      sigs = {}
+      for q in [None,'','感情运怎么样？','事业运如何？','今年财运好不好？',
+                '健康要注意什么？','适合考研还是工作？']:
+          body = dict(B)
+          if q is not None: body['question'] = q
+          ev = c.post('/api/bazi', json=body).json()['evidence']
+          sig = json.dumps([(e['work_id'], e['text'][:24], e['why']) for e in ev],
+                           ensure_ascii=False)
+          sigs.setdefault(sig, []).append(repr(q))
+      print('不同引文集合数:', len(sigs))"
+      # 记得清理 history（每次调用写一条）
+
+- 实测：
+
+      7 个提问变体（含「无 question 字段」与「空串」）
+      → 引文集合**只有 1 种**，12 段逐字节相同
+      why 字段取值域 = ['年柱', '日柱', '月柱']  ← 盘位，不是与提问的相关性
+      retrieve_fast 签名 = (b, per_query=2, per_work=1, top_queries=3)
+      → **根本不接受 question 参数**
+
+  对照：`warm.one_liner` 确实随提问变化（'感情这块…' / '事业这块…' /
+  '财运这块，盘里信息偏少'），但那是**文案模板在响应提问**，检索层从未看见提问。
+- 位置：`web/services.py:159` 调用 `retrieve_fast(b, per_query=2, per_work=1)`
+  ——只传盘，不传 `question`；`src/guji/bazi_lookup.py` 的 `retrieve_fast`
+  签名无 question 参数
+- 期望：用户问什么，证据应与之相关。宪法第三条架构图的 Agent 层是
+  「**检索即推理**：判型→选书→读→扩展→验证」，当前退化为「按盘取书」——
+  这也解释了 R128a 实测为何会带出「遁甲演義」`王璋曰乙竒臨乾驚門…`、
+  「太乙金鏡式經」这类与八字提问弱关联的内容（`specs/005` US5 已预留此条）。
+  ⚠ **改检索会移动 eval_g1/eval_g7 的门柱**，须单独一轮并附前后对照，
+  不得为了让相关性变好而放宽那两个闸门（红线第 2 项）。
+- 严重级：MAJOR（契约错误：`question` 是 API 入参且前端在收集它，
+  但对证据选取无任何作用——用户合理预期它有作用）
 - 状态：OPEN
 
 ---
