@@ -373,6 +373,48 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
 - 严重级：BLOCKER（按本文件定义：点了完全无反应＝功能完全不可用）
 - 状态：VERIFIED-R120a
 - 复验（审查轨自己重跑，非凭优化轨报告签字）：probe_ui_smoke btn:dailyMore『点击后 DOM 有变化』
+
+---
+
+### R124a-01 温柔模式下结果区仍原样打印内部字段名 ten_gods / five_elements / day_luck / relations
+- 复现：真浏览器默认（warm）模式点「排 盘 推 算」，读 `#result` 文本；
+  或 `<py> probes\probe_ui_smoke.py` 后看 `logs/probe_ui_smoke_r124a.txt`
+  的 `btn:bazi` 用例（该用例仍 PASS——它不检查内部字段名，见下方「探针盲区」）
+- 实测：默认模式（首次打开 `localStorage.voiceMode` 为 `null` → 走 warm 分支）
+  `#result` 共 32514 字符，首 260 字即含裸键名：
+
+      纳音：路旁土 · 白蜡金 · 白蜡金 · 白蜡金
+      ten_gods
+      pos：年干　gan：庚　god：比肩 [庚庚同为金，同阴阳]
+      …
+      five_elements
+      counts：木 0.3、火 1.9、土 1.1、金 4.6、水 0.1
+      missing：—　strong：金
+      relations
+      day_luck
+      day_ganzhi：丙寅
+
+  四个内部键名（`ten_gods` / `five_elements` / `day_luck` / `relations`）
+  与多个子键（`pos`/`gan`/`god`、`counts`/`missing`/`strong`、
+  `day_ganzhi`/`day_master_rel`）全部原样上屏。
+- 位置：`web/static/app.js:364`（`renderCalc` 用 `esc(k)` 把 dict 键当标题）；
+  调用点 `:485`（daily）、`:556`（bazi）、`:1384`（history detail）
+- 成因（已定位到行，不是猜）：`renderVoice`（`:289`）本身正确，warm 分支也
+  确实接线了（`:562`）；但 `:556` 的 `renderCalc(j.calc)` 在它**之前**
+  无条件执行，**两种模式都会打印**。即 warm 视图做对了，
+  旧的 calc 网格没跟着收进折叠层。
+- 期望：`specs/003` 判据 14「结果区暴露内部字段名 → 无」。
+  warm 模式下不出现任何内部键名。
+  ⚠ **专业模式不要求改动**——`specs/004` 判据 9 要求它逐字节不变。
+  这是两条判据的交叉点，修的时候只动 warm 分支。
+- 严重级：MAJOR（数据显示错误：用户看到的是程序变量名，不是人话）
+- 状态：OPEN
+
+**本条暴露的探针盲区（审查轨自己的问题，已记 D-149a）**：
+`probe_ui_smoke` 的 `btn:bazi` 用例只检查「容器非空 + 无 `[object Object]`
++ 无失败文案」，**不检查内部字段名**，所以 36/36 全绿却漏了这条。
+下一轮把「结果区不得出现内部键名」加成 smoke 的断言。
+
 ---
 
 ## 已确认无缺陷（不要"修"没坏的东西）

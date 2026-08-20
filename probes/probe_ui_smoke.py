@@ -64,6 +64,16 @@ PLACEHOLDER_RE = re.compile(r"^\s*(检索中|研究中|定位中|比对中|加�
 FAILURE_RE = re.compile(r"失败|不可用|无命中|无发现|暂无")
 # JS `String({..})` 的字面量。出现即渲染错误：前端把 object 塞进了 esc()。
 OBJECT_LITERAL = "[object Object]"
+# 内部字段名不得上屏（specs/003 判据 14）。
+# **R124a 教训**：本 probe 曾 36/36 全绿，却漏了 `ten_gods` / `five_elements` /
+# `day_luck` / `relations` 四个裸键名直接显示在排盘结果区首屏——因为当时只检查
+# 「容器非空 + 无 [object Object] + 无失败文案」，没检查"内容是不是人话"。
+# 用户看到程序变量名和看到 [object Object] 一样廉价，判据却看不见。
+INTERNAL_KEYS = ["ten_gods", "five_elements", "day_luck", "relations",
+                 "day_ganzhi", "day_master_rel", "peach_zhi", "hit_pillars",
+                 "hongluan_pillar", "tianxi_pillar", "day_wx_sheng",
+                 "peach_same", "dayun_hits", "moving_lines", "gua_number",
+                 "upright_kw", "reversed_kw", "skipped_chars"]
 ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可见，30s×N 跑不完
 
 # ---------------------------------------------------------------------------
@@ -245,6 +255,16 @@ def main() -> int:
 
             page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
             page.wait_for_timeout(1500)          # 首屏自动 fetch（daily/history/prefs）
+            # 当前口吻模式（R124a）：默认走产品自己的默认分支，不预设
+            # localStorage——要测的正是"用户第一次打开看到什么"。
+            voice_mode = page.evaluate(
+                "() => { try { return localStorage.getItem('voiceMode')"
+                " || 'warm'; } catch (e) { return 'warm'; } }")
+            results.append({
+                "name": "voice.default_mode", "ok": True,
+                "detail": f"首次打开的口吻模式 = {voice_mode}"
+                          f"（内部字段名判据只在 warm 下生效）",
+            })
             load_errors = list(errors)
             results.append({
                 "name": "page.load", "ok": not load_errors,
@@ -388,8 +408,13 @@ def main() -> int:
                         or [])
                     fail_hit = FAILURE_RE.search(no_ev)
                     obj_literal = OBJECT_LITERAL in (text or "")
+                    # 内部字段名（R124a）。只在 warm 模式判——专业模式按
+                    # specs/004 判据 9 必须逐字节不变，不能因此报缺陷。
+                    raw_keys = ([k for k in INTERNAL_KEYS if k in (text or "")]
+                                if voice_mode == "warm" else [])
                     ok = (bool(text) and not PLACEHOLDER_RE.match(text or "")
-                          and not fail_hit and not obj_literal and not errors)
+                          and not fail_hit and not obj_literal and not raw_keys
+                          and not errors)
                     detail = f"容器 {len(text)} 字符: {text[:110]!r}"
                     if not text:
                         detail = ("结果容器点击后仍为空"
@@ -405,6 +430,11 @@ def main() -> int:
                         k = text.find(OBJECT_LITERAL)
                         detail = (f"容器渲染出 [object Object] 字面量: "
                                   f"{text[max(0, k - 60):k + 30]!r}")
+                    elif raw_keys:
+                        k = text.find(raw_keys[0])
+                        detail = (f"warm 模式下暴露内部字段名 {raw_keys}"
+                                  f"（specs/003 判据 14）: "
+                                  f"…{text[max(0, k - 45):k + 45]!r}…")
                     if errors:
                         detail += " | " + "; ".join(errors[:3])
                 except Exception as exc:

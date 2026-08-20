@@ -6101,3 +6101,78 @@ M2（US4 幸运项锚点钉死 + `src/guji/xingzuo.py` 十二宫 + 今日运势�
 
 - 决策记录：DECISIONS.md D-236b（领土更正）。D-234b/D-235b 按 tasks.md
   T4.3 在 M4 收尾时落。
+
+---
+
+### 116. R124a 审查循环：复审 R181b/R182b（specs/004 M0+M1），判据 1–9 全绿，新发现 1 条 MAJOR（2026-08-20）
+
+**merge main** 纳入 6 个提交（b280ac5 R181b plan/tasks + 23bf85d 交接书 +
+7c0b1b5 R182b M0 基线冻结 + e1b5cf0 voice.py + 691cd0c 前端 warm 分支 +
+b6bc78c 台账）。工作区干净，非半成品。
+
+**第一件事：核查领土。** 两个提交标题带「领土更正」，涉及我独占的 `probes/`。
+`git diff --stat 5e434a6 b6bc78c -- probes/ scripts/ docs/AUDIT_FINDINGS.md`
+`docs/PHASE.md specs/004-warm-voice/spec.md` → **全部为空，零改动**。
+读 7c0b1b5 提交体确认：R181b 的 plan/tasks 原把 M0–M3 验证脚本全写在
+`probes/` 下，R182b 自己发现违反宪法第五条，把六个脚本迁到 `web/` 下，
+三项需改我文件的扩展改为**移交审查轨**。这是照宪法 Governance
+「违反的解决方式是改 spec/plan/tasks，而不是稀释原则」处理的——记一笔。
+
+**闸门全绿**（我自己跑，退出码全 0）：`web/selftest.py`、`probe_contract`、
+`probe_dollar_misuse`、`probe_selftest_regress`、`probe_no_generated_in_corpus`、
+`probe_scripts_importable`、`count_open_findings`。
+
+**判据 9（专业模式逐字节不变）实测通过，且它的阳性对照有效**：
+
+    <py> web\baseline_voice.py
+    → baseline_voice PASS: 14 个用例逐字节一致 (sha256 b0461df29f5748e6…) exit 0
+    <py> web\baseline_voice.py --self-check
+    → self-check PASS: 篡改一字被抓到（且定位到 text 漂移） exit 0
+
+**判据 1–8 我不跑对方的闸门脚本，自己算**（四个视图各一遍）：
+
+| 判据 | bazi 有提问 | bazi 无提问 | liuyao | tarot |
+|---|---|---|---|---|
+| 2 一句话 ≤20 字 | 11 字 | 9 字 | 8 字 | 7 字 |
+| 3 首屏术语 ≤3 | 2 | 1 | 0 | 0 |
+| 7 badge 含「仅供娱乐」 | ✓ | ✓ | ✓ | ✓ |
+| 4 basis 分离后正文与专业分支 | 一致 | 一致 | 一致 | 一致 |
+
+判据 5 实测 warm 与 interpretation **两次运行均逐字节相等**；
+判据 6 禁用词表（吉凶断言/现实指令/医疗投资法律 16 词）**零命中**；
+判据 15 evidence citation **全非空**。
+
+**判据 8 是本轮最实质的改善**。六爻此前对提问直接拒答（R123a 实测原文
+「不代为断事」），现在实测回应：
+`你问的是「感情运怎么样？」。起到的是離卦——附着与依托，讲的是明亮。`
+既回应了提问，又没有断吉凶。
+
+**判据 10 幸运数字确有出处**：`voice.py:85 HETU_NUMBERS` 为
+`水(1,6) 火(2,7) 木(3,8) 金(4,9) 土(5,0)`，与 R123a 我在语料实测的
+「天一生水」11 条命中同源，注释里也标了台账 §115。日主戊(土) → 生土者为火
+→ 实测输出 `lucky_numbers: [2, 7]`，映射正确。
+
+**新发现 1 条 MAJOR：R124a-01**（详见 `docs/AUDIT_FINDINGS.md`）。
+warm 模式下结果区仍原样打印 `ten_gods` / `five_elements` / `day_luck` /
+`relations` / `day_ganzhi` / `day_master_rel` 六个内部键名，
+违反 `specs/003` 判据 14。成因已定位到行：`app.js:289 renderVoice` 本身正确、
+warm 分支也接线了（`:562`），但 `:556` 的 `renderCalc(j.calc)` 在它**之前**
+无条件执行，两种模式都打印。修时**只动 warm 分支**——专业模式按判据 9
+必须逐字节不变，这是两条判据的交叉点。
+
+**这条同时暴露我自己探针的一处盲区（D-149a）**：`probe_ui_smoke` 首跑
+**36/36 全绿**却漏了它——旧判据只查「容器非空 + 无 `[object Object]` +
+无失败文案」，从不查"内容是不是人话"。已给 smoke 加 `INTERNAL_KEYS` 断言
+（18 个内部键名，只在 warm 模式判，专业模式豁免），复跑
+**37 个用例 PASS 36 / FAIL 1**，退出码 1，实测报出那 6 个键名。
+新增 `voice.default_mode` 用例记录首次打开的模式（实测 warm）。
+
+**阶段**：`CURRENT_PHASE` 保持 `OPTIMIZE`。闸门 1 因 R124a-01 转 FAIL
+（OPEN MAJOR 1），这是 OPTIMIZE 阶段内的常规缺陷流转，**不回退阶段**——
+阶段闸门是 REPAIR→OPTIMIZE 的准入条件，不是 OPTIMIZE 内部的持续约束。
+
+**领土纪律**：本轮只改 `probes/probe_ui_smoke.py` 与 docs a 侧。
+`src/guji/**`、`web/**`、优化轨的 plan/tasks **只读未改**。
+清理复验 `history 行数 43 -> 43`。
+
+- 决策记录：DECISIONS.md D-149a。
