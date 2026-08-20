@@ -81,6 +81,29 @@ LOCATE = r"""
   if (!r) return { error: 'no #result' };
   const norm = (s) => (s || '').replace(/\s+/g, '');
 
+  // 「默认不可见」的判定。
+  // ⚠ 不能只看 offsetParent===null || height===0——实测（R129a 亲验）
+  // `<details>` 关闭态下子元素**仍有完整布局盒**：height=300px、
+  // offsetParent 非 null、display=block（浏览器只是不绘制它）。
+  // 若只用那个判据，任何用 <details> 做折叠的实现都会被判成"没折叠"，
+  // 等于 probe 在强迫对方改用 hidden——**闸门不该规定实现方式**（D-145a）。
+  // 故补上「祖先链上有关闭的 <details>」这一支，让 details / hidden /
+  // display:none / 折叠面板等各种实现都能被正确识别。
+  const isHidden = (el, box) => {
+    if (el.offsetParent === null) return true;
+    if (box && box.height === 0) return true;
+    for (let p = el; p && p !== document.body; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) return true;
+      if (p.hasAttribute && p.hasAttribute('hidden')) {
+        if (getComputedStyle(p).display === 'none') return true;
+      }
+      const st = getComputedStyle(p);
+      if (st.display === 'none' || st.visibility === 'hidden') return true;
+      if (st.contentVisibility === 'hidden') return true;
+    }
+    return false;
+  };
+
   // 1. 一句话结论的位置：找**最深**的那个含 needle 的元素（避免命中整个卡片）
   let onel = null;
   const n = norm(needle);
@@ -90,7 +113,10 @@ LOCATE = r"""
       if (e.children.length === 0 && norm(e.innerText).includes(n)) {
         const b = e.getBoundingClientRect();
         const y = Math.round(b.top + window.scrollY);
-        if (best === null || y < best.y) best = { y, text: e.innerText.trim() };
+        if (best === null || y < best.y) {
+          best = { y, y_viewport: Math.round(b.top),
+                   text: e.innerText.trim() };
+        }
       }
     });
     if (!best) {
@@ -98,29 +124,43 @@ LOCATE = r"""
         if (norm(e.innerText).includes(n) && e.children.length <= 3) {
           const b = e.getBoundingClientRect();
           const y = Math.round(b.top + window.scrollY);
-          if (best === null || y < best.y) best = { y, text: e.innerText.trim() };
+          if (best === null || y < best.y) {
+            best = { y, y_viewport: Math.round(b.top),
+                     text: e.innerText.trim() };
+          }
         }
       });
     }
     onel = best;
   }
 
-  // 2. 古籍原文块：按引文开头片段定位，统计默认可见的字数与高度
+  // 2. 古籍原文块：按引文开头片段定位，统计默认可见的字数与高度。
+  // ⚠ 每段引文**只取最深的那一个**命中元素。否则父容器与子元素会各计一次
+  //   （实测曾报「48 段、占比 188%」——12 段引文 × 嵌套层级，占比超 100%
+  //   本身就说明重复计数）。R129a 修正。
   let gujiChars = 0, gujiH = 0, gujiN = 0, gujiHidden = 0;
-  const seen = new Set();
+  const counted = new Set();
   gujiHeads.forEach(head => {
     const h = norm(head).slice(0, 22);
     if (!h) return;
+    // 取所有「自身含该片段、但没有后代也含它」的元素 = 每次渲染的最内层节点。
+    // 这样既不把父容器重复计一次，也**不会漏掉同一段被渲染多次**的情形
+    // （R128a-01：j.evidence 全文版与 warm.citations 截断版同时上屏）。
+    const hits = [];
     r.querySelectorAll('*').forEach(e => {
-      if (e.children.length > 2) return;
-      const t = norm(e.innerText);
-      if (!t.includes(h) || seen.has(e)) return;
-      seen.add(e);
+      if (!norm(e.innerText).includes(h)) return;
+      let childHas = false;
+      for (const c of e.querySelectorAll('*')) {
+        if (norm(c.innerText).includes(h)) { childHas = true; break; }
+      }
+      if (!childHas) hits.push(e);
+    });
+    hits.forEach(e => {
+      if (counted.has(e)) return;
+      counted.add(e);
       gujiN += 1;
       const b = e.getBoundingClientRect();
-      // offsetParent 为 null 或高度 0 => 默认不可见（已折叠）
-      const hidden = e.offsetParent === null || b.height === 0;
-      if (hidden) { gujiHidden += 1; }
+      if (isHidden(e, b)) { gujiHidden += 1; }
       else { gujiChars += (e.innerText || '').length; gujiH += b.height; }
     });
   });
@@ -129,9 +169,8 @@ LOCATE = r"""
   let worst = { chars: 0, head: '', y: 0 };
   r.querySelectorAll('*').forEach(e => {
     if (e.children.length > 0) return;
-    if (e.offsetParent === null) return;
     const b = e.getBoundingClientRect();
-    if (b.height === 0) return;
+    if (isHidden(e, b)) return;          // 同上：details 关闭态也算隐藏
     const t = (e.innerText || '').trim();
     if (t.length > worst.chars) {
       worst = { chars: t.length, head: t.slice(0, 50).replace(/\n/g, ' '),
@@ -227,6 +266,19 @@ def main() -> int:
                 return 0
             page.click(".func-card[data-view='bazi']")
             page.wait_for_selector("#view-bazi.active", timeout=5000)
+            # ⚠ 必须把 CASE 的每个字段都填进表单。
+            # 本 probe 第一版只填了 #question，其余走 HTML 默认值
+            # （1990-05-15 男），于是**契约侧与浏览器侧跑的是两个不同的人**——
+            # 契约侧拿 1998-07-20 女的引文去 1990-05-15 男的页面里找，
+            # 两案引文交集只有 3/12，probe 于是报出 4 段"原文缺失"的**假阳性**。
+            # 这个 bug 没被 needle 暴露，是因为两案的一句话结论恰好同为
+            # 「感情这块，盘里有着落点」（由提问主题决定，与生日无关）。
+            # 由优化轨 R184b 在模拟目标形态时发现并移交（D-154a）。
+            page.fill("#year", str(CASE["year"]))
+            page.fill("#month", str(CASE["month"]))
+            page.fill("#day", str(CASE["day"]))
+            page.fill("#hour", str(CASE["hour"]))
+            page.select_option("#gender", CASE["gender"])
             page.fill("#question", CASE["question"])
             page.click("#submit")
             # 等结果区出现真实内容
@@ -246,24 +298,32 @@ def main() -> int:
             print(f"  整页 {m['doc_h']:,}px　结果区 {m['result_h']:,}px "
                   f"= {m['result_screens']} 屏　共 {m['result_chars']:,} 字")
 
-            # 判据 1：一句话结论必须在第 1 屏
+            # 判据 1：提交后无需滚动即可看到一句话结论。
+            # ⚠ 口径订正（R129a）：原先量的是**文档绝对 y**，实测不可达——
+            # `#result` 自身绝对 y 就是 3,005px（品牌 55 + 今日卡 577 +
+            # 功能卡 618 + 最近/收藏 600 + 表单 888），即使结果区第一个像素就是
+            # 那句话也是阈值的 3.7 倍。把绝对 y 当判据等于隐含要求前端删掉首页
+            # 各块——那是 probe 在规定实现方式（D-145a 同族错误）。
+            # 现改为量**相对当前视口顶部**的偏移：用户提交后不滚动能否看到。
             onel = m.get("oneliner")
             if not onel:
                 failures.append("DOM 里找不到 warm.one_liner 的文本"
                                 "（渲染分支没输出它？）")
                 print("  ❌ 一句话结论：DOM 中未找到")
             else:
-                y = onel["y"]
-                screen = y // vh + 1
-                ok = y <= MAX_ONELINER_Y
-                print(f"  {'✅' if ok else '❌'} 一句话结论 y={y:,}px "
-                      f"（第 {screen} 屏）　阈值 ≤{MAX_ONELINER_Y}px（第 1 屏）")
+                y_doc = onel["y"]
+                y_vp = onel.get("y_viewport", y_doc)
+                ok = 0 <= y_vp <= MAX_ONELINER_Y
+                print(f"  {'✅' if ok else '❌'} 一句话结论 "
+                      f"相对视口 {y_vp:,}px（文档绝对 y={y_doc:,}px）"
+                      f"　阈值 0–{MAX_ONELINER_Y}px（提交后无需滚动即可见）")
                 print(f"      文本：{onel['text'][:60]!r}")
                 if not ok:
                     failures.append(
-                        f"一句话结论在第 {screen} 屏（y={y:,}px）——"
-                        f"用户要滚 {y - vh:,}px 才看到人话，"
-                        f"要求第 1 屏内（≤{MAX_ONELINER_Y}px）")
+                        f"提交后一句话结论在视口外（相对视口 {y_vp:,}px，"
+                        f"文档绝对 {y_doc:,}px）——用户仍需滚动才看到人话。"
+                        f"实现方式由优化轨定（上浮/滚动定位/独立视图皆可），"
+                        f"但不得把「今日入口」永久藏死")
 
             # 判据 2：结果区总屏数
             ok = m["result_screens"] <= MAX_RESULT_SCREENS
