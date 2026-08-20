@@ -5967,3 +5967,137 @@ docs a 侧 append。`src/guji/**` 与 `web/**` 零改动，
 
 按 tasks.md M0 → M1 开工（优化轨职权内，无需另行请示）。
 本轮仍零产品代码改动，闸门不受影响。
+
+---
+
+## 117. [优化轨] R182b：执行 specs/004 的 M0（基线冻结）+ M1（warm 层 + 双模式）（2026-08-20）
+
+按 `docs/HANDOFF_20260820_R181b.md` 开工。三个提交：
+`7c0b1b5`（M0 + 领土更正）、`e1b5cf0`（voice.py + 路由）、`691cd0c`（前端 + 闸门）。
+
+### 1. 开工第一件事：改掉自己上一轮的越界计划（D-236b）
+
+R181b 的 `plan.md`/`tasks.md`（我自己写的）把 M0–M3 的验证脚本全部安排在
+`probes/` 下。**这违反宪法第五条**——constitution.md:164 的表格明确
+`probes/` 是审查轨独占写、优化轨禁改，且仓库现存全部 probe 均由审查轨
+R118a–R123a 创建。宪法 Governance 段规定「违反的解决方式是改 spec/plan/tasks，
+而不是稀释原则」，故：
+
+| 初版（`probes/…`，越界） | 更正后 |
+|---|---|
+| probe_voice_baseline.py | `web/baseline_voice.py` |
+| voice_baseline.json | `web/baselines/voice_baseline.json` |
+| probe_warm_voice.py | `web/check_warm_voice.py` |
+| probe_xingzuo.py / xingzuo_fixture.json | `web/check_xingzuo.py` / `web/baselines/…` |
+| probe_poster.py | `web/check_poster.py` |
+| 扩展对方三个 probe | **移交审查轨**（见第 5 节） |
+
+新脚本仍满足「闸门必须有非零退出码」并各带阳性对照。审查轨要纳入闸门
+清单直接调用即可，接口就是命令行退出码，不需要改我的文件。
+
+**本轮末尾还抓到一次同类越界**：`probes/selftest_baseline.json` 被对方的
+`probe_selftest_regress.py` 自动写入了 9 个 warm 断言名。已 `git checkout --`
+还原，未纳入我的提交——该文件的更新由审查轨自己做（实测还原后其 probe
+仍 PASS 退出码 0，因为它会自愈 baseline）。
+
+### 2. M0 基线冻结（判据 9 的前提，plan §0「先量尺后动刀」）
+
+- `web/baselines/voice_baseline.json`：14 个固定用例的 interpretation 全量
+  快照（text + sections + citations + evidence[].citation），
+  **sha256 b0461df29f5748e653e42157dc6e2a1534dc95eb1d36024e10579dc8427811e6**。
+  用例覆盖 interpret_bazi（day/life/range × 有提问/无提问/未匹配提问 × 男女）、
+  interpret_liuyao（coins/time × 有无提问）、interpret_tarot（3 张牌阵/单张）、
+  interpret_research（潛龍勿用/無爲）。
+- `web/baseline_voice.py`：逐字节比对 + **漂移定位**（报到 char 偏移与前后
+  30/40 字，不只说"不相等"）+ `--self-check` 阳性对照。
+- `web/baselines/pro_render_baseline.json`：专业分支渲染结构指纹
+  （bazi 26358 chars/197 nodes/strong_depth=1、liuyao、tarot 三视图）。
+
+复验：`<py> web\baseline_voice.py` → 退出码 0，两次运行一致；
+`--self-check` 篡改一字被抓到并定位到 text 漂移。
+
+**M0 铁律已守**：M0 三个任务期间 `git diff -- src/ web/routers web/services.py
+web/app.py web/schemas.py web/static src/guji/interpreter.py` 为空。
+
+### 3. M1：voice 层 + 双模式（US1/US2/US3）
+
+`src/guji/voice.py`（新，纯函数、无 IO/随机/时钟）：四层结构
+L0 one_liner（≤20 字）/ L1 energy_card / L1.5 reply / L2 details / L3 citations
++ badge。GUA_WARM 64 卦白话表 + YAO_WARM 6 爻位表 + TOPEC_WARM 提问映射。
+
+关键设计（三条都写在模块 docstring 里）：
+
+1. **interpreter.py 零改动**——warm 是新增分支不是改造，判据 9 天然成立。
+2. **术语白话化保留原词在括号内**（「压力位（七杀）」）：白话是为可读，
+   不是抹掉可检索性。`check_warm_voice` 的术语计数因此**排除括号内**——
+   否则会把设计当缺陷，逼出错误的修法。
+3. **citations 逐字节复用 interpreter 输出**（判据 15），basis 原样搬运
+   不改写（判据 4：折叠后展开须逐字不变）。
+
+判据 8 实测对比（同一提问「这事能成吗？」）：
+- 专业分支（不变）：`系统只给卦象坐标与經文原文，不代为断事——…`
+- warm 分支（新）：`起到的是賁卦——把外在修饰好，讲的是体面。/ 动的是第二爻、
+  第四爻、第五爻（共 3 个）… / 往乾卦的方向变——全阳当头… / 卦辞爻辞的原文
+  在下面，那才是断的依据——怎么对应你问的事，你比卦清楚。`
+
+前端：`renderWarm`/`renderVoice` 新增分支，`renderInterpretation` **未改一行**；
+模式切换控件 + localStorage `voiceMode`；切换用 `LAST_RESPONSE` 缓存**就地
+重画不重发请求**——重发会让 `/api/bazi` 再往 history.db 写一行，违反 US3.3
+「已有数据不受影响」。
+
+### 4. 本轮抓到的一处真实文案缺陷（闸门抓的，不是肉眼）
+
+提问「考研能上吗？」时 reply 首句是「你问学业，这块…」——只报分类标签、
+丢掉用户原话，用户会觉得没被听见。`check_warm_voice` 判据 1 断言「首段须
+提到提问主题」抓到。已改为回声原话：
+`你问「考研能上吗？」——这属于学业，但这块在四柱天干上没有直接落点。`
+
+### 5. 实测汇总（每条附命令）
+
+```powershell
+<py> web\baseline_voice.py            # PASS 14 用例逐字节一致（判据 9）
+<py> web\baseline_voice.py --self-check  # PASS 阳性对照
+<py> -m guji.voice                    # PASS 模块自测
+<py> web\check_warm_voice.py          # PASS 判据 1-8（10 用例 × 8 判据）
+<py> web\check_warm_voice.py --self-check  # PASS 注入禁用词被抓
+<py> web\selftest.py                  # PASS 149 checks（140 → 149）
+<py> probes\probe_ui_smoke.py         # PASS 36/36
+```
+
+**19 个闸门退出码全 0**（13 道 + 附加 5–9 + count_open_findings）：
+probe_contract 162 读取点全有效（warm 读取点自动纳入）、
+probe_dollar_misuse 零命中、probe_selftest_regress「断言只增不减 141→149」、
+probe_no_generated_in_corpus「解读文本只进 history.db」（判据 14 保持）、
+probe_scripts_importable 89 模块 132 处引用有效。
+
+真浏览器实测（390×844 手机视口，M1 收尾）：
+L0「感情这块，盘里有着落点」11 字（判据 2）；首屏可见术语 **2 次**
+（判据 3 ≤3，修复前首屏全是术语）；details 2 个默认展开 **0** 个、
+展开后「依据：」原文可见（判据 4）；切 pro → 26469 字符含「十神格局」、
+刷新后 `voiceMode=pro` 保持、切回 warm 正常（US3.1/3.4）。
+
+### 6. 移交审查轨（三项探针扩展 + 一份名单，本轨禁改对方文件）
+
+1. **`probes/selftest_baseline.json`**：新增 9 个断言名
+   `warm.bazi.present` / `warm.one_liner.len` / `warm.reply.answers_question` /
+   `warm.badge.not_last` / `warm.citations.reuse` / `warm.deterministic` /
+   `warm.energy_card.rules` / `warm.details.basis_verbatim` /
+   `warm.liuyao.answers_not_refuse`。（对方 probe 会自愈写入，本轨已还原不提交。）
+2. **`probes/probe_no_generated_in_corpus.py`**：建议扩展覆盖新文案表路径
+   `src/guji/voice.py` 的 `TEN_GOD_WARM` / `ELEMENT_WARM` / `RELATION_WARM` /
+   `GUA_WARM` / `YAO_WARM` / `BADGE`（判据 14）。本轨已自测这些文案不入
+   corpus/knowledge（只随响应返回 + 落 history.db），但阳性对照式的隔离
+   断言在对方 probe 里更合适。
+3. **`probes/probe_ui_smoke.py`**：建议新增用例（按 D-145a **只断言行为、
+   不钉内部命名**）：(a) 结果区存在两个口吻切换按钮，点第二个后结果区
+   文本变化且含专业模式特征段；(b) 点回第一个后恢复；(c) 首屏 details
+   默认全部收起。选择器建议用 `[data-voice]` 与 `details`（语义标签），
+   不要钉 `.warm-l0` 这类我方内部类名。
+
+### 7. 下一步
+
+M2（US4 幸运项锚点钉死 + `src/guji/xingzuo.py` 十二宫 + 今日运势聚合）。
+`tasks.md` 状态列 T0.1–T1.9 全 DONE(命令)，T2.1 起 TODO。
+
+- 决策记录：DECISIONS.md D-236b（领土更正）。D-234b/D-235b 按 tasks.md
+  T4.3 在 M4 收尾时落。

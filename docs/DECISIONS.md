@@ -4883,3 +4883,46 @@ source_url 为 kanripo、zip_sha256 与 fetched_at 齐备（provenance 完整）
 **这条同时是一次纪律执行**：宪法第一条要求"发现文档与实测不符时，改文档并写明
 此前结论已被推翻"。提案的定性是善意且谨慎的，但它没查语料就下了结论。
 本条即那份记录，`docs/PROPOSAL_004_XHS_UPGRADE.md` 的 §4 P2 定性以本条为准。
+
+## D-236b R182b 决策：004 的验证脚本落 web/ 而非 probes/（领土更正）
+
+**背景**：R181b（我自己）写的 `specs/004-warm-voice/plan.md` 与 `tasks.md`
+把 M0–M3 的六个验证脚本/fixture 全部安排在 `probes/` 目录下。开工前核查
+领土时发现这违反宪法第五条：`constitution.md:164` 的所有权表明确写
+「优化轨（books main）：独占 `src/guji/**`、`web/**`；**禁改** `scripts/`、
+`probes/`」，且 `git log -- probes/` 确认仓库现存全部 probe 均由审查轨
+R118a–R123a 创建。
+
+**候选方案**
+
+- **A（选中）** 六个脚本/fixture 全部迁到 `web/` 下（`web/baseline_voice.py`、
+  `web/check_warm_voice.py`、`web/baselines/*.json` 等），需要改对方 probe 的
+  三项扩展改为**台账移交**。
+- **B** 照 tasks.md 原样写进 `probes/`，理由是「这些是我自己新建的文件，
+  不是改对方的文件」。
+- **C** 请审查轨代写这六个脚本。
+
+**选中 A 的理由**
+
+1. 宪法 Governance 段写得很直接：「违反的解决方式是**改 spec/plan/tasks**，
+   而不是稀释原则」。我的 tasks.md 与宪法冲突时，改 tasks.md 是唯一正解。
+2. B 的辩解站不住：宪法第五条的粒度是**目录**不是文件。「只在对方目录里
+   新建、不动对方已有文件」仍然是往对方独占目录里写，且会造成
+   `git diff --stat -- probes/` 出现优化轨的插入量——R179b 的台账 §5739 记录了
+   审查轨为此专门核查「是我的文件经 merge 到达还是对方改了我的文件」，
+   那次结论是 IDENTICAL 才放行。制造这种需要人工甄别的噪音本身就是成本。
+3. C 会把 M0 卡在等对方，而 M0 是判据 9 的前提、不能等——GOAL.md §1 的
+   处置规则要求「不要停下来问」。
+
+**否决 B 的额外证据**：本轮末尾实测到 `probes/selftest_baseline.json` 被
+对方的 `probe_selftest_regress.py` 自动写入了我的 9 个 warm 断言名。
+若我按 B 行事，这类"我方改动出现在对方目录"会变成常态，双轨将无法用
+`git diff -- probes/` 快速验证领土边界。已 `git checkout --` 还原该文件，
+实测还原后对方 probe 仍 PASS 退出码 0（它会自愈 baseline）。
+
+**代价与补偿**：新脚本不在 `probes/`，不会被对方的闸门清单自动收录。
+补偿措施：(a) 每个脚本都满足「失败退出 1、成功退出 0、带阳性对照」的闸门
+纪律（PHASE.md 的 U-08 教训），审查轨要纳入只需在自己的清单里加一行调用，
+接口就是命令行退出码，不需要改我的文件；(b) 三项需要改对方 probe 的扩展
+（selftest baseline 名单、隔离探针覆盖新文案表、UI smoke 新用例的行为描述）
+逐条写进台账 §117 第 6 节移交。
