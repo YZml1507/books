@@ -188,6 +188,38 @@ function renderModeSwitch() {
     '</div>';
 }
 
+/* ── 视觉主题（003 US5 / 判据 12：审美方向可一键回滚）───────────
+ * aa     = R183b 的无障碍配色（默认；31 处对比度不足已归零）
+ * legacy = R183b 之前的原配色（对照用；**不满足判据 3**，那正是它的意义）
+ * 只切 <html data-theme>，CSS 侧只覆盖令牌不碰规则集——所以回滚路径
+ * 不需要反向修改任何组件样式，不可能漏。 */
+var THEME_KEY = 'uiTheme';
+
+function uiTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'legacy' ? 'legacy' : 'aa';
+  } catch (e) {
+    return 'aa';
+  }
+}
+
+function applyTheme(theme) {
+  var t = theme === 'legacy' ? 'legacy' : 'aa';
+  if (t === 'legacy') {
+    document.documentElement.setAttribute('data-theme', 'legacy');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  try {
+    localStorage.setItem(THEME_KEY, t);
+  } catch (e) { /* 存不了就只在本次会话生效 */ }
+  document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+    var on = b.dataset.themeBtn === t;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
  *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
  *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
@@ -482,8 +514,14 @@ async function loadDailyDetail() {
     });
     let html = '<div class="card"><h2>🔍 今日完整解读</h2>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    html += renderCalc(j.calc);
-    html += renderInterpretation(j.interpretation, '📖 今日解读');
+    // R183b（同 R124a-01）：内部键名转储只在专业模式出现。
+    // 本卡片没有自己的模式切换控件（它是首页运势的展开），跟随全局 voiceMode。
+    if (voiceMode() === 'pro') {
+      html += renderCalc(j.calc);
+      html += renderInterpretation(j.interpretation, '📖 今日解读');
+    } else {
+      html += renderWarm(j.warm, j.interpretation);
+    }
     html += '</div>';
     target.innerHTML = html;
     target.dataset.loaded = '1';
@@ -553,7 +591,20 @@ function buildBaziResult(j) {
   if (paipan.warn && paipan.warn.length) {
     html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
   }
-  html += renderCalc(j.calc);
+  // R183b（审查轨 R124a-01，003 判据 14）：renderCalc 是 calc 字典的**原样
+  // 转储**，键名就是后端内部字段名（ten_gods / five_elements / day_luck …）。
+  // 它此前在 renderVoice 之前**无条件**执行，于是温柔模式首屏也印满变量名
+  // ——用户看到程序变量名和看到 [object Object] 一样廉价。
+  //
+  // 只在专业模式渲染它：
+  //   * 专业模式需要它（原始坐标逐项可核验），且判据 9 要求这条路径逐字节
+  //     不变，故一个字符都不改。
+  //   * 温柔模式不需要它——warm.details 承载的是**同一批事实**的白话版
+  //     （五行强弱/十神格局/地支关系/流日流时，含 分布：木1.1 这类数字），
+  //     信息不丢，只是不再用内部键名做小标题。
+  if (voiceMode() === 'pro') {
+    html += renderCalc(j.calc);
+  }
   if (j.evidence && j.evidence.length) {
     html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
     html += renderHits(j.evidence, { empty: '无引文' });
@@ -1381,7 +1432,12 @@ async function showHistoryDetail(rid) {
       esc(j.created_at || '') + '</div>';
     html += '<button type="button" id="histBack" class="ghost">← 返回列表</button>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    html += renderCalc(j.calc);
+    // R183b（同 R124a-01）：历史详情同族。历史记录里没有存 warm（llm_json 列
+    // 存的是当时的 interpretation），所以温柔模式下不印内部键名转储，
+    // 改为把 calc 交给 interpreter 的结构化输出去展示（下方 renderInterpretation）。
+    if (voiceMode() === 'pro') {
+      html += renderCalc(j.calc);
+    }
     if (j.evidence && j.evidence.length) {
       html += '<h3 style="margin-top:16px;">古籍依据</h3>' +
         renderHits(j.evidence, { empty: '' });
@@ -1626,6 +1682,12 @@ function initReading() {
       rerenderVoice();
       return;
     }
+    // 视觉主题一键回滚（003 判据 12）：只切令牌，无需重渲染任何内容
+    const tbtn = e.target.closest('[data-theme-btn]');
+    if (tbtn) {
+      applyTheme(tbtn.dataset.themeBtn);
+      return;
+    }
 
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
@@ -1664,6 +1726,7 @@ function initDivination() {
 }
 
 function init() {
+  applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
   initViews();
   initBazi();
   initReading();
