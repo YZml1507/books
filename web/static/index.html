@@ -272,10 +272,16 @@
           <div class="field"><label for="bsaddr1">地址1</label>
             <input id="bsaddr1" type="number" placeholder="如：1"></div>
         </div>
+        <!-- data-rsec2 的值保持 bs-structure/bs-chapter/bs-summary 不变：
+             审查轨 probes/probe_ui_smoke.py:103 用这三个字符串做选择器
+             （`.rtab[data-rsec2='bs-structure']`）。它是 docs/PHASE.md 闸门 3，
+             改这三个值等于改验收契约（R179b 一度改成驼峰，实测把对方
+             probe 打成 3 个 TimeoutError）。面板 id 与它的映射在 app.js
+             的 BSSEC_PANELS 里。 -->
         <div class="rtabs" style="margin-top:12px;">
-          <button class="rtab active" data-rsec2="bsStructure" type="button">结构</button>
-          <button class="rtab" data-rsec2="bsChapter" type="button">章节</button>
-          <button class="rtab" data-rsec2="bsSummary" type="button">摘要</button>
+          <button class="rtab active" data-rsec2="bs-structure" type="button">结构</button>
+          <button class="rtab" data-rsec2="bs-chapter" type="button">章节</button>
+          <button class="rtab" data-rsec2="bs-summary" type="button">摘要</button>
         </div>
         <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
              且三个子标签完全没有事件绑定 —— R000a-03）。 -->

@@ -23,6 +23,7 @@ import sqlite3
 import numpy as np
 
 from .bazi import Bazi
+from .search import render_citation
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB = os.path.join(ROOT, "data", "index", "corpus.db")
@@ -119,6 +120,15 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
                     "title": h["title"], "layer": h["layer"],
                     "page_anchor": h["page_anchor"], "file": h["file"],
                     "text": h["text"], "score": float(h["score"]),
+                    # R179b（D-231b，审查轨 R118a-03）：本函数返回裸 dict 而非
+                    # Hit，此前**没有 citation 键**——前端 `esc(ev.citation||'')`
+                    # 把出处静默渲染成空串，原文有了出处没了（宪法第三条
+                    # 「引用与生成分离」要求原文必带可核验出处）。
+                    # 复用 search.render_citation 而不是在此再拼一遍格式：
+                    # 同一渲染规则两份拷贝正是 LESSONS.md L-01 的事故形态。
+                    "citation": render_citation(
+                        work_id=h["work_id"], title=h["title"],
+                        page_anchor=h["page_anchor"], file=h["file"]),
                 })
                 if len([o for o in out if o["work_id"] == wid]) >= per_work:
                     break
@@ -195,6 +205,10 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
             "layer": m["layer"],
             "page_anchor": m["page_anchor"], "file": m["file"],
             "text": r["text"] if r else "", "score": float(best[idx]),
+            # 同 retrieve_fast：语义路径也必须带出处（R179b，D-231b）
+            "citation": render_citation(
+                work_id=m["work_id"], title=w["title"] if w else None,
+                page_anchor=m["page_anchor"], file=m["file"]),
         })
     conn.close()
     return out

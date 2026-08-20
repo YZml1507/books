@@ -178,6 +178,19 @@ def run() -> list[str]:
     assert _b1["interpretation"]["text"] == _b2["interpretation"]["text"], \
         "interpreter must be deterministic: same input -> same output"
     ok.append("bazi.interpretation.deterministic")
+    # R179b（D-231b，审查轨 R118a-03）：/api/bazi 的 evidence 每条必须带
+    # 可核验出处。该路径走 bazi_lookup.retrieve_fast（返回裸 dict，不经
+    # Hit），此前**没有 citation 键**——前端 `esc(ev.citation||'')` 把出处
+    # 静默渲染成空串：原文有了、出处没了。宪法第三条「引用与生成分离」
+    # 要求原文必带出处，`||''` 兜底不构成合规。断言 citation 存在且非空、
+    # 且含页锚点（@）与源文件名——抓「出处又变空」的静默回归。
+    _ev = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
+                                        "hour": 10, "gender": "男"}).json()["evidence"]
+    assert _ev, "bazi evidence must be non-empty"
+    for _e in _ev:
+        assert _e.get("citation"), ("bazi.evidence.citation", sorted(_e))
+        assert "@" in _e["citation"] and _e["file"] in _e["citation"], _e["citation"]
+    ok.append("bazi.evidence.citation")
     # R119b（D-165b）：bazi lunar 农历换算路径 standing 覆盖——bazi check 只测
     # solar，calendar_type=lunar 走 resolve_birth→lunar_to_solar 零断言。固定
     # 农历生日 1990-05-15 男 → 200 + 日主癸（lunar_to_solar=1990-06-07）。
@@ -808,6 +821,34 @@ def run() -> list[str]:
         if rec["id"] > max_id_before:
             history_db.delete_record(rec["id"])
     ok.append("llm.fields.absent")
+    # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
+    # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
+    # v 是 dict 的情形，JS `String({..})` 恒为 "[object Object]"。受害字段是
+    # /api/bazi 的 five_elements+day_luck 与 /api/huangli 的 pengzu。
+    # 前端已改为 fmtScalar() 递归展开，此处钉死两件事：
+    #   (1) app.js 里不得再出现「把值直接 esc 而不判 object」的写法——用
+    #       fmtScalar 覆盖率代理：所有 esc(v)/esc(item) 形态必须经 fmtScalar；
+    #   (2) 真实响应里这三个字段确实是 dict（否则断言 (1) 就失去意义）。
+    _bz = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
+                                        "hour": 10, "gender": "男"}).json()
+    for rec in history_db.list_records(limit=20):
+        if rec["id"] > max_id_before:
+            history_db.delete_record(rec["id"])
+    assert isinstance(_bz["calc"]["five_elements"], dict), "five_elements must be dict"
+    assert isinstance(_bz["calc"]["day_luck"], dict), "day_luck must be dict"
+    _hl = client.get("/api/huangli", params={"date": "2026-08-19"}).json()
+    assert isinstance(_hl["pengzu"], dict), "pengzu must be dict"
+    import os as _os
+    import re as _re
+
+    _js = open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                             "static", "app.js"), encoding="utf-8").read()
+    # 裸 esc(v) / esc(item) / esc(iv)：这三个变量名在 renderCalc 里承载
+    # 「可能是 dict」的值，必须经 fmtScalar 包一层。
+    _bare = _re.findall(r"esc\((?:v|item|iv)\)", _js)
+    assert not _bare, ("object-render guard: 发现裸 esc() 未过 fmtScalar", _bare)
+    assert "function fmtScalar" in _js, "fmtScalar renderer must exist"
+    ok.append("frontend.no_object_object")
     return ok
 
 

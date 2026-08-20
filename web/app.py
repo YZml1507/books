@@ -29,8 +29,28 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import deps, errors
-from .routers import ROUTERS
+# 双导入形态支持（R179b，D-233b）：本模块必须在两种导入方式下都能工作。
+#   * `web.app:app`   —— 包导入（web/selftest.py、web_launcher.py 用）
+#   * `app:app`       —— 顶层模块导入，cwd=web/（审查轨 probes/ 用：
+#                        probe_ui_smoke.py:158 与 probe_contract.py:224）
+# 后者下 `__package__` 为空，相对导入 `from . import deps` 会抛
+# ImportError: attempted relative import with no known parent package。
+# probes/ 是审查轨领土（宪法第五条），不能改它来适配我这侧的重构——
+# 兼容责任在 web/ 这边。
+if __package__:
+    from . import deps, errors
+    from .routers import ROUTERS
+else:                                    # pragma: no cover - 顶层导入分支
+    import os as _os
+    import sys as _sys
+
+    _here = _os.path.dirname(_os.path.abspath(__file__))
+    _root = _os.path.dirname(_here)
+    for _p in (_root, _os.path.join(_root, "src")):
+        if _p not in _sys.path:
+            _sys.path.insert(0, _p)
+    from web import deps, errors
+    from web.routers import ROUTERS
 
 VERSION = "0.6.0"
 

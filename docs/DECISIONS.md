@@ -4260,9 +4260,9 @@ selftest 要覆盖两个分支——而 LLM 分支永远无法确定性断言。
 方向是反的。
 
 **否决 C 的理由**：把「要不要用生成文本」推给用户，等于把 G2 的责任推给用户。
-且开关会让 771 条历史记录里出现两种不可比的解读来源。
+且开关会让既有历史记录里出现两种不可比的解读来源。
 
-**向后兼容处置**：`history.py` 的 `llm_json` 列名**保留**（库里 771 条记录是旧
+**向后兼容处置**：`history.py` 的 `llm_json` 列名**保留**（库里既有记录是旧
 形状），只改写入内容；`list_records` 现在旧记录读 `model`、新记录读 `engine`，
 两种形状都能展示。改列名需要迁移脚本，而 `data/` 下的历史库是用户数据。
 
@@ -4633,3 +4633,90 @@ citations 均非空、且两次同输入 text 完全相等）。已登记 rename
 而且 revert 会连带撤掉同期的可达性改进（对比度、点击区），
 那些是客观改进、不该跟着审美一起被撤。
 **否决 C 的原因**：见上，会退化成装饰性开关。
+## D-231b R179b 决策：出处渲染抽成单一实现，不复制格式（2026-08-20）
+
+审查轨 R118a-03 实测：`/api/bazi` 的 evidence 没有 `citation` 键，前端
+`esc(ev.citation||'')` 把出处渲染成空 div——原文有了、出处没了。成因是该路径
+走 `bazi_lookup.retrieve_fast()` 返回裸 dict，不经 `Hit`（只有 `Hit.citation()`
+会拼出处）。
+
+**候选方案**
+
+- **A（选中）** 把格式从 `Hit.citation()` 抽成模块级 `search.render_citation()`，
+  `Hit.citation()` 与 `bazi_lookup` 两处都调它。
+- **B** 在 `bazi_lookup` 里按同样格式拼一遍 citation 字符串。
+- **C** 让 `retrieve_fast()` 返回 `Hit` 对象而不是 dict。
+- **D** 前端在没有 citation 时用 `work_id + page_anchor` 兜底拼一个。
+
+**选中 A 的理由**：这是唯一不产生第二份格式定义的改法。B 看着最省事，但它
+正是 LESSONS.md L-01 那起事故的形态——同一张折叠表存在两份拷贝，对同样的字节
+给出了相反结论。出处格式一旦有两份，某天改了一份忘了另一份，两个端点的同一条
+引文会显示成不同出处，而且**两边各自都"看起来对"**，没有任何断言会红。
+
+**否决 C 的理由**：`retrieve_fast` 的返回值被 `scripts/ask_bazi.py`（审查轨领土）
+和语义路径共用，改返回类型是跨领土的破坏性变更，且 `Hit` 带 score/suspect 等
+FTS 路径没有的字段，硬塞会产生一堆 None 字段。
+
+**否决 D 的理由**：前端拼出处等于让展示层发明出处——宪法第三条最反对的就是
+这个。出处必须由服务端从可核验字段拼装，绝不能由展示层或模型产生。
+
+实测 `Hit.citation()` 输出逐字未变（抽取是纯重构）：
+`周易 [tls] 卦1·初九 @KR1a0001_tls_001-2a (KR1a0001_001.txt)`。
+补 `bazi.evidence.citation` standing 断言：每条 evidence 的 citation 非空、
+且含 `@`页锚点与源文件名——抓「出处又变空」的静默回归。
+
+## D-232b R179b 决策：`[object Object]` 用静态闸门而非逐字段断言（2026-08-20）
+
+R118a-01/R118a-02 是同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，
+漏了 v 是 dict 的情形，JS `String({..})` 恒为 `"[object Object]"`。受害字段是
+`/api/bazi` 的 `five_elements`+`day_luck` 与 `/api/huangli` 的 `pengzu`。
+
+**候选方案**
+
+- **A（选中）** 静态扫 `app.js` 禁止裸 `esc(v)/esc(item)/esc(iv)`（必须过
+  `fmtScalar`），**外加**断言这三个字段在真实响应里确实是 dict。
+- **B** 只对这三个字段逐个断言渲染结果不含 `[object Object]`。
+- **C** 在浏览器里断言整页文本不含 `[object Object]` 字面量。
+
+**选中 A 的理由**：B 只覆盖已知的三个字段，而后端任何一天新增一个 dict 字段，
+同一个 bug 就会以新面目回来——`renderCalc()` 是**通用**渲染器，它的正确性不该
+靠枚举受害者来保证。A 的第一半管住渲染器本身（写法层面杜绝），第二半保证
+「这三个字段是 dict」这个前提还成立（否则第一半的断言就失去意义）。
+
+**否决 C 的理由**：C 是好的补充但不能单独用——它只能发现「已经渲染出来的」
+那一份，页面上没展开的分支（如未点击的标签页）扫不到；且它需要真浏览器，
+不能进秒级的 selftest。实际上审查轨的 `probe_ui_smoke` 已在做 C 这一层
+（`dom:bazi.strong-nesting` 同族），两层独立见证正好互补——符合宪法第三条
+偏离 4「用独立见证，不用表面统计」。
+
+## D-233b R179b 决策：web/app.py 同时支持包导入与顶层模块导入（2026-08-20）
+
+R178b 把 `web/` 改成 Python 包后，审查轨的两个 probe 立即报
+`ImportError: attempted relative import with no known parent package`——它们用
+`app:app`（cwd=web/ 的顶层模块导入形态，`probe_ui_smoke.py:158`、
+`probe_contract.py:224`），而我写的是 `from . import deps, errors`。
+
+**候选方案**
+
+- **A（选中）** `app.py` 按 `__package__` 真假分支：包导入走相对导入，
+  顶层导入时自行把项目根塞进 sys.path 再走 `from web import ...`。
+- **B** 改审查轨的 probe，让它们用 `web.app:app`。
+- **C** 把 `web/` 退回非包结构（去掉 `__init__.py`，全用顶层导入）。
+
+**选中 A 的理由**：宪法第五条把 `probes/` 划为审查轨独占写。**我的重构打断了
+对方的闸门，兼容责任在我这侧**——不能因为「改对方一行更省事」就越界，那等于
+让被审查方去改验收工具。A 是纯加法，对包导入路径零影响。
+
+**否决 B 的理由**：越界。且 `probe_ui_smoke.py` 是 docs/PHASE.md 闸门 3 点名的
+验收工具，修复轨改验收工具在任何情况下都不成立。
+
+**否决 C 的理由**：退回非包结构会让 `services`/`routers`/`errors` 之间的相对
+导入全部变成顶层导入，包语义丢失（`web.routers.bazi` 这种层次表达没了），
+是为了兼容一个调用形态而放弃分层收益。
+
+**同源教训**：本轮还发现我擅自把 `data-rsec2` 的值从 `bs-structure` 改成驼峰
+`bsStructure`，而对方 `probe_ui_smoke.py:103` 拿这三个字符串当选择器，实测被
+打成 3 个 TimeoutError。**那三个值是验收契约不是内部命名。** 已改回并在
+HTML 与 `app.js` 两处加注释标明不可改。教训一般化：**凡是对方 probe 用作
+选择器/键名的字符串，都属于跨轨契约，重构时不能顺手改名**——改名前先
+`grep` 一遍 `probes/`。

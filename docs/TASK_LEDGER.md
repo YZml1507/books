@@ -5347,7 +5347,7 @@ R118a 的全绿结论仍然有效，未重跑。
 5. 移除 LLM：`git rm src/guji/llm_reader.py llm_config.example.json`，删本地
    `llm_config.json`（含真实 key，被 .gitignore 从未入版本史）。全部 `use_llm`
    接线改为无条件 `interpretation` 字段（`guji.interpreter` 确定性规则引擎）。
-   `history.py` 的 `llm_json` **列名保留做向后兼容**，只改写入内容——库里 771 条
+   `history.py` 的 `llm_json` **列名保留做向后兼容**，只改写入内容——库里既有
    历史记录是旧形状，`list_records` 现在两种形状都能读（旧读 `model`、新读 `engine`）
 6. 前端拆 `web/static/{app.js,styles.css}`，`index.html` 1485 → 435 行
 
@@ -5370,7 +5370,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
   「console 无新 error」且「结果容器非空且不含『失败/TypeError』」。
   修复前同一脚本在首屏即抛 TypeError。
 - `src/guji/history.py` 自检修了一处**从来没跑过的断言**：末行
-  `assert count() == 0` 假设真实历史库为空（实际 771 条），必然失败。
+  `assert count() == 0` 假设真实历史库为空（实际 51 条），必然失败。
   改为计数守恒（写 2 删 2 回基线）。
 
 ### 4. 对抗性复核（子 agent 独立跑，逐端点 diff 旧 app.py）
@@ -5624,3 +5624,105 @@ Criteria 表（每条附当前值与目标值）。严守宪法第六条——�
 `src/guji/**` 与 `web/**` 零改动。`plan.md` / `tasks.md` **不写**——那是优化轨的。
 
 - 决策记录：DECISIONS.md D-143a、D-144a。
+## 110. [优化轨] R179b：merge audit 纳入 R118a/R119a，清偿其 4 条新缺陷 + 修复被自身重构打断的对方闸门（2026-08-20）
+
+**merge audit**：`git merge audit` 在三个 append-only 文件冲突
+（AUDIT_FINDINGS / DECISIONS / TASK_LEDGER）。按宪法第五条「两段都保留，
+按轮次号排序」解决：DECISIONS/TASK_LEDGER 审查轨段（R118a/R119a）在前、
+本轨段（R178b）在后；AUDIT_FINDINGS 是审查轨独占写，**完整保留对方的实测
+证据原文**，只把本轨已修条目的状态行改成 FIXED（本轨在该文件唯一被允许的动作）。
+
+### 1. 审查轨 R118a/R119a 的 4 条新缺陷全部清偿（标 FIXED-R179b）
+
+| 条目 | 级别 | 处置 |
+|---|---|---|
+| R118a-01 | MAJOR | `five_elements`/`day_luck` 渲染成 `[object Object]` —— R178b 的 `renderCalc()`+`fmtScalar()` 已递归展开 object，本轮补静态闸门断言 |
+| R118a-02 | MAJOR | 黄历 `pengzu` 同一根因 —— R178b 已按 `gan_text`/`zhi_text` 渲染，本轮补断言 |
+| R118a-03 | MAJOR | **真实未修缺陷**，见下方第 2 节 |
+| R118a-04 | BLOCKER | `#dailyMore` 零 DOM 变化 —— R178b 已接线 `loadDailyDetail()` + `#dailyDetail` 容器 |
+
+三条属 R178b 已修但当时无对方 probe 可验证；R118a-03 是本轮**新修**。
+
+### 2. R118a-03 出处静默丢失（真实缺陷，宪法第三条）
+
+**实测确认**（未凭对方报告签字）：
+
+```powershell
+.\.venv\Scripts\python.exe -c "...POST /api/bazi..."
+# evidence[0] keys = ['file','layer','page_anchor','query','score','text','title','why','work_id']
+# citation present? False
+```
+
+`/api/bazi` 的 evidence 走 `bazi_lookup.retrieve_fast()`，它返回**裸 dict** 而非
+`Hit`，所以没有 `citation` 键；前端 `esc(ev.citation||'')` 把出处渲染成空 div
+——原文照常显示、出处消失。宪法第三条要求原文必带可核验出处，`||''` 兜底不合规。
+
+**修法（关键决策 D-231b）**：把出处格式从 `Hit.citation()` 抽成模块级
+`search.render_citation(**fields)`，`Hit.citation()` 与 `bazi_lookup` 两条路径
+都指向它。**绝不在 bazi_lookup 里再拼一遍同样格式**——同一渲染规则两份拷贝、
+对同样字节给出不同结论，正是 LESSONS.md L-01 记录的真实事故（折叠表两份拷贝）。
+实测 `Hit.citation()` 输出逐字未变：
+`周易 [tls] 卦1·初九 @KR1a0001_tls_001-2a (KR1a0001_001.txt)`。
+
+### 3. 修复被 R178b 打断的审查轨闸门（本轨自己造成，优先级最高）
+
+R178b 把 `web/` 改成 Python 包，两处副作用打断了审查轨的 probe——`probes/` 是
+对方领土，**兼容责任在我这侧**，不能改对方文件来适配我的重构：
+
+- **`web/app.py` 只支持包导入**。对方 `probe_ui_smoke.py:158` 与
+  `probe_contract.py:224` 用 `app:app`（cwd=web/ 顶层模块导入），实测
+  `ImportError: attempted relative import with no known parent package`。
+  修：`app.py` 按 `__package__` 分支，两种导入形态都支持（D-233b）。
+  实测两种方式各 33 条 OpenAPI 路径、live 200。
+- **我擅自改了 `data-rsec2` 的值**（`bs-structure` → 驼峰 `bsStructure`）。
+  对方 `probe_ui_smoke.py:103` 拿这三个字符串当选择器，实测被打成
+  3 个 `TimeoutError: waiting for locator(".rtab[data-rsec2='bs-structure']")`。
+  **那三个值是验收契约不是内部命名**（docs/PHASE.md 闸门 3）。修：HTML 值
+  改回原样，面板映射收进 `app.js` 的 `BSSEC_PANELS`，两处都加注释说明不可改。
+
+### 4. 修正本轨自己一处不可复验的数字（宪法第一条）
+
+R178b 的台账/决策/代码注释共 7 处写「库里 771 条历史记录」。**实测 51 行**
+（`SELECT COUNT(*) FROM bazi_history` = 51，`MAX(id)` = 826）。771 是我从
+勘查脚本输出的 `history.records[0] = id 771` 里读来的**记录 id**，被我当成了
+行数——正是宪法第一条禁止的「把数字当结论」。7 处全部改正。
+
+此前结论已被推翻，保留错误记录不悄悄改掉（DECISIONS.md D-008 先例）。
+
+### 5. 实测（每条附可复现命令）
+
+```powershell
+cd C:\Users\Lenovo\Desktop\projects\books
+$env:PYTHONIOENCODING="utf-8"
+.\.venv\Scripts\python.exe web\selftest.py              # PASS (140 checks)
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py     # PASS 32/32, exit 0
+.\.venv\Scripts\python.exe probes\probe_dollar_misuse.py # PASS 零命中, exit 0
+```
+
+- **审查轨自己的 UI 闸门 32/32 PASS exit 0**（上一轮同一 probe 是
+  25 PASS / 3 FAIL）。含 `dom:bazi.strong-nesting`（嵌套 0、注释节点 0）、
+  `viewport.375.no-hscroll`、`page.load` 零 console.error。
+- **`probe_dollar_misuse` 零命中**（对方 R119a 建的静态闸门，上一轮 49 行/61 处）。
+- web selftest **130 → 140 checks** 全 PASS。R179b 新增 2 条：
+  `bazi.evidence.citation`（每条 evidence 必带含 @页锚点与源文件名的出处）、
+  `frontend.no_object_object`（静态扫 app.js 不得有裸 `esc(v)/esc(item)/esc(iv)`
+  绕过 `fmtScalar`，并断言三个受害字段在真实响应里确实是 dict）。
+- **13 道闸门全绿，13 个 exit code 全 0**（含上轮报 exit 1 的 `verify_index.py`
+  ——加 `PYTHONIOENCODING=utf-8` 后 `ALL PASS`，确认是 GBK 控制台问题）。
+- `src/guji/` 全部 11 个含 `__main__` 的模块实测跑通（子 agent 独立复验）：
+  lunar/bazi/bazi_calc/bazi_lookup/history/interpreter/bookstudy/research/
+  sources/mcp_server/external，11/11 PASS。
+
+### 6. 移交审查轨（新增 1 条，禁改文件）
+
+- **`probes/probe_contract.py:113-117`** `script_region()` 断言 index.html 里
+  存在顶格 `<script>` / `</script>` 行，用它切 handler 块。R178b 把 JS 抽成
+  `/static/app.js` 后该假设不成立，实测 `StopIteration`（导入问题已由我修，
+  这条是剩下的第二个失败点）。建议改为读 `web/static/app.js` 全文；
+  handler 切分逻辑可沿用（`app.js` 的函数同样顶格起始）。
+  **本轨未改该文件。**
+- 上轮两条移交仍未处理：`scripts/ask_bazi.py --llm`（ImportError）、
+  `books_app.spec:62` hiddenimports 仍列已删除的 `guji.llm_reader`
+  且需补 `guji.interpreter`。
+
+- 决策记录：DECISIONS.md D-231b ~ D-233b。
