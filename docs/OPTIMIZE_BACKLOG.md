@@ -177,3 +177,16 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   全部停用（两条都可自动测量，符合 spec 准入门槛 (a)）
 - 来源：交接窗口勘查 + R118a 复核。**已在仓库内，用它不算引入新外部依赖**
   （不撞宪法第二条红线第 3 项）
+
+### B-011 probes/probe_disclosure.py 自 initial commit 起即崩（与 web/ 无关）
+- 类型：性能（可维护性）
+- 现状：`<py> probes\probe_disclosure.py` → 退出码 1，
+  `ValueError: not enough values to unpack (expected 2, got 1)`（`:132`
+  `a, b = pair.split("|")`）。`git log -1` 确认最后一次改动是 initial commit
+  83d7604（2026-08-14）；该文件不 import web、不在宪法第四条 13 闸门清单内。
+  优化轨 R186b stash 自身改动后复跑，报同样失败——**与本轮无关，属历史遗留**。
+- 设想：修好或明确标为一次性勘查脚本（与 `probe_coverage.py` /
+  `probe_show.py` 的 BOM 问题同族，那两个已在 `probe_scripts_importable`
+  的 KNOWN_BAD 里排除）
+- 可测量性：退出码 0；或从 probes/ 移出、不再被误当闸门
+- 来源：R131a 复核优化轨移交项（它主动报了这条，且自证与本轮无关）
