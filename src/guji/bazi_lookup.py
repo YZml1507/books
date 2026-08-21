@@ -78,6 +78,47 @@ def queries_from(b: Bazi) -> list[tuple[str, str]]:
     return out
 
 
+# --------------------------------------------------------------------------------------
+# 提问主题 → 追加检索词（R189b，清偿 R131a-01：question 对检索零影响）
+#
+# 规则写死可核验：关键词命中 → 追加对应主题词进 FTS 队尾。主题词是
+# 传统命理的**类目名**（妻财/官鬼/子女/功名等），不是新生成的命理断言——
+# 它们只是把用户提问映射到语料里本来就有的检索入口。
+#
+# 红线遵守：
+#  * question 不改变坐标词（四柱/纳音）的检索与排序——那些是"这个盘"的证据；
+#    主题词只**追加**在队尾且权重最低，保证无提问时输出与旧版逐字节一致。
+#  * eval_g1/g7 直接测 Corpus.search / answer_*，不经本函数；web 层闸门
+#    （baseline_voice 判据 15 引文逐字节、selftest bazi.evidence.citation）
+#    的固定用例均带提问，改动后须复跑对照（台账 §127 附前后数据）。
+# --------------------------------------------------------------------------------------
+TOPIC_QUERIES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("感情", "恋爱", "婚", "桃花", "对象", "姻缘"), ("妻财", "婚姻")),
+    (("事业", "工作", "升职", "考公", "创业"), ("官鬼", "功名")),
+    (("财", "钱", "收入", "财运", "投资"), ("财帛", "妻财")),
+    (("学", "考试", "考研", "读书", "学业"), ("学业", "文昌")),
+    (("健康", "身体", "疾病"), ("疾厄", "寿元")),
+)
+
+
+def topic_queries(question: str | None) -> list[str]:
+    """提问 → 追加检索词列表（去重保序）。无提问/未命中返回空表。"""
+    q = (question or "").strip()
+    if not q:
+        return []
+    out: list[str] = []
+    for keywords, terms in TOPIC_QUERIES:
+        if any(kw in q for kw in keywords):
+            for t in terms:
+                if t not in out:
+                    out.append(t)
+    return out
+
+
+# 提问主题词在结果里的说明标签（why 字段）
+_TOPIC_WHY = "提问主题"
+
+
 def _fts_phrase(q: str) -> str:
     from .variants import fold, segment_cjk
     seg = segment_cjk(fold(q)).replace('"', "")
@@ -88,15 +129,21 @@ def _fts_phrase(q: str) -> str:
 # FTS 路径
 # --------------------------------------------------------------------------------------
 def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
-                  top_queries: int = 3) -> list[dict]:
+                  top_queries: int = 3, question: str | None = None) -> list[dict]:
     """坐标词 FTS 检索命理书，返回带引用的原文证据。
 
     返回 [{query, why, work_id, title, citation, text, layer}...]，
     按 (query 权重, work 广度) 排序去重。
+
+    R189b（清偿 R131a-01）：question 非空时，经 topic_queries() 映射出的
+    主题词**追加**在坐标词队尾参与检索（why="提问主题"）。坐标词的顺序、
+    权重与去重逻辑一字不动——无提问时输出与旧版逐字节一致。
     """
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
-    qs = queries_from(b)[:top_queries]
+    qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
+    for t in topic_queries(question):
+        qs.append((t, _TOPIC_WHY))
     seen: set[tuple] = set()
     out: list[dict] = []
     for q, why in qs:

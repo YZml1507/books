@@ -6932,3 +6932,50 @@ HARD 判定标准一字未动，只是把读点送到正确的端点上验证）
 
 **待办**：B-012 baseline_voice 日期钉死；B-013 海报低端机长任务实测；
 R131a-01 OPEN MAJOR 单独一轮。
+
+### 127. [单轨轮] R189b：清偿 R131a-01——question 进检索（主题词追加式）+ B-012 基线钉日期（2026-08-21）
+
+**R131a-01（OPEN MAJOR）修复**：
+
+- `src/guji/bazi_lookup.py`：新增写死映射 TOPIC_QUERIES（提问关键词 →
+  语料类目词：感情→妻财/婚姻、事业→官鬼/功名、财→财帛/妻财、学业→
+  学业/文昌、健康→疾厄/寿元）+ `topic_queries()` 纯函数；
+  `retrieve_fast()` 加**可选** `question` 参数，主题词追加在坐标词队尾
+  （why="提问主题"），坐标词顺序/权重/去重一字不动。
+- `web/services.py` bazi() 传入 req.question。
+- **量尺先立后动刀**（D-143a 纪律）：
+
+| 指标 | 改动前 | 改动后 |
+|---|---|---|
+| eval_g1 | PASS 246/248 (99.2%) | **PASS 246/248 (99.2%)，逐项分数相同** |
+| eval_g7 | PASS 30/30·25/25·FAB 0 | **PASS 30/30·25/25·FAB 0** |
+| 感情提问词面命中率 | 6/12 | **8/12** |
+| 不同提问引文集合数 | 1 种（7 问全同） | **按提问分化**（主题命中 2–3 条） |
+| 无提问输出 | — | 与旧版逐字节一致（实测断言） |
+
+  两闸门门柱未移动、未放宽（红线第 2 项遵守）；eval_g1/g7 直接测
+  Corpus.search/answer_*，不经 retrieve_fast，故分数不变是结构性事实，
+  已复跑确认。
+
+**基线重冻与订正（如实记录）**：
+
+- `voice_baseline.json` 重冻（sha256 b0461df2… → 97f0681e…）。原因：
+  3 个带提问用例的证据集**合法变化**（主题词命中挤掉低分坐标命中），
+  interpreter 的 citations 随输入逐字节联动。判据 15 的本义「warm 的
+  citations 逐字节复用 interpreter 输出」仍然成立（selftest
+  warm.citations.reuse PASS）；变的是 interpreter 自身的输入证据。
+- B-012 同轮修复：`baseline_voice.py` CASES 全部 day 用例补
+  `ask_date="2026-08-20"`（冻结日），流日/流时不再进比对对象——
+  此前每天必然假漂移（§125 实证 15 处假 FAIL）。修后跨日裸跑 PASS。
+- `plain_first_fixture.json` 重冻：判据 6/7/8 的逐字节 fixture 随证据集
+  合法更新；重跑判据 1–8 全 PASS。
+
+**13 闸门 + 附加闸门全绿**（BOOKS_LLM_DISABLE=1 下实测）：
+check_quality / build_index / verify_index / validate_alignment /
+probe_conservation / assess_goals / check_provenance / probe_bcv /
+eval_g1 / eval_g4 / eval_g7 / probe_g8_isolation / probe_booksec 全 exit 0;
+附加：probe_contract(180) / probe_ui_smoke / selftest(149) /
+check_warm_voice / check_plain_first / check_xingzuo / probe_first_screen /
+probe_no_generated_in_corpus / baseline_voice(+self-check) 全 PASS。
+
+**R131a-01 处置建议**：状态转 FIXED-R189b，待审查轨（或用户）复验后转 VERIFIED。

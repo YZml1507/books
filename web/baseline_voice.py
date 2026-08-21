@@ -50,24 +50,36 @@ DOM_BASELINE = os.path.join(BASELINE_DIR, "pro_render_baseline.json")
 # ---------------------------------------------------------------------------
 BAZI_BASE = {"year": 1998, "month": 7, "day": 20, "hour": 14, "gender": "女"}
 
+# B-012（R189b）：ask_date 钉死。基线冻结于 2026-08-20（流日丙寅）。
+# 此前 day 用例不传 ask_date，services 取 date.today()——流日/流时每天变，
+# 基线每天必然漂移（08-21 实测裸跑 15 处假 FAIL，台账 §125）。钉死后
+# 判据 9 的比对对象与日期无关，才真正量「代码变了没有」。
+BASELINE_ASK_DATE = "2026-08-20"
+
 CASES: tuple[dict, ...] = (
     # 八字 day：spec §「我自己重跑了诊断样例」用的就是这一组，
     # 保持一致以便与 spec 的实测记录交叉核对
     {"id": "bazi.day.q_love", "kind": "bazi",
-     "payload": dict(BAZI_BASE, question="感情运怎么样？")},
+     "payload": dict(BAZI_BASE, ask_date=BASELINE_ASK_DATE,
+                     question="感情运怎么样？")},
     {"id": "bazi.day.q_career", "kind": "bazi",
-     "payload": dict(BAZI_BASE, question="事业运如何？")},
-    {"id": "bazi.day.no_q", "kind": "bazi", "payload": dict(BAZI_BASE)},
+     "payload": dict(BAZI_BASE, ask_date=BASELINE_ASK_DATE,
+                     question="事业运如何？")},
+    {"id": "bazi.day.no_q", "kind": "bazi",
+     "payload": dict(BAZI_BASE, ask_date=BASELINE_ASK_DATE)},
     {"id": "bazi.day.q_unmatched", "kind": "bazi",
-     "payload": dict(BAZI_BASE, question="我该养猫还是养狗？")},
+     "payload": dict(BAZI_BASE, ask_date=BASELINE_ASK_DATE,
+                     question="我该养猫还是养狗？")},
     {"id": "bazi.life", "kind": "bazi",
-     "payload": dict(BAZI_BASE, scope="life", question="一生大运如何？")},
+     "payload": dict(BAZI_BASE, scope="life",
+                     question="一生大运如何？")},
     {"id": "bazi.range", "kind": "bazi",
      "payload": dict(BAZI_BASE, scope="range", range_start="2026-08-19",
                      range_end="2026-08-23", question="这几天顺不顺？")},
     {"id": "bazi.male.day", "kind": "bazi",
      "payload": {"year": 1990, "month": 5, "day": 15, "hour": 10,
-                 "gender": "男", "question": "财运怎么样？"}},
+                 "gender": "男", "ask_date": BASELINE_ASK_DATE,
+                 "question": "财运怎么样？"}},
     # 六爻：判据 8 的当前状态（拒答原文）就冻在这里
     {"id": "liuyao.coins.q", "kind": "liuyao",
      "payload": {"method": "coins", "seed": 42, "question": "这事能成吗？"}},

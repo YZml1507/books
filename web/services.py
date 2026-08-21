@@ -158,7 +158,10 @@ def bazi(req) -> dict:
     if req.location:
         calc_out["location"] = req.location
 
-    evidence = _dedup_evidence(retrieve_fast(b, per_query=2, per_work=1))
+    # R189b（清偿 R131a-01）：question 进检索——主题词追加在坐标词队尾，
+    # 用户问什么，证据与之相关。无提问时检索行为与旧版逐字节一致。
+    evidence = _dedup_evidence(retrieve_fast(b, per_query=2, per_work=1,
+                                             question=req.question))
     paipan_out = {"render": b.render(), "nayin": b.nayin, "warn": b.warn}
     interpretation = interpreter.interpret_bazi(paipan_out, calc_out,
                                                evidence, req.question)
