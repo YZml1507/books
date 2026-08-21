@@ -40,6 +40,7 @@ from guji import qiming as qiming_mod
 from guji import taohua as taohua_mod
 from guji import tarot as tarot_mod
 from guji import voice
+from guji import xingzuo as xingzuo_mod
 from guji.bazi import compute as bazi_compute
 from guji.bazi_calc import calc as bazi_calc
 from guji.bazi_calc import calc_life, calc_range
@@ -296,6 +297,24 @@ def qiming(req) -> dict:
     except Exception:
         ai_polish = None
     out["ai_polish"] = ai_polish
+    return out
+
+
+def xingzuo(date_str: str | None = None) -> dict:
+    """十二宫日运（004 M2 T2.3）：当日日支查宫 + 12 宫一句话 + 语料锚点。
+
+    纯坐标 + 写死文案 + 真实引文锚点（fixture 逐字命中，判据 10/11）。
+    """
+    if date_str is not None:
+        try:
+            date.fromisoformat(date_str)
+        except ValueError:
+            raise ValidationError(
+                f"date 需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+    d = date.fromisoformat(date_str) if date_str else date.today()
+    b = bazi_compute(d.year, d.month, d.day, 12, "男")
+    out = xingzuo_mod.daily_horoscope(b.day)
+    out["date"] = d.isoformat()
     return out
 
 

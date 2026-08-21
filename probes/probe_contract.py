@@ -120,6 +120,7 @@ FIXTURES: dict[str, dict] = {
         "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
         "b_hour": 14, "b_gender": "女"}},
     "/api/tarot/draw":        {"method": "POST", "json": {"seed": 42, "n": 1}},
+    "/api/xingzuo":           {"method": "GET", "params": {"date": "2026-08-20"}},
     # 前端只发 {topic}（实测 422）。契约 probe 用**合法请求体**取真实成功响应，
     # 前端请求体本身的不匹配由 probe_ui_smoke.py 点击后现形，两者分工不重叠。
     "/api/threads":           {"method": "POST", "json": {
@@ -241,6 +242,7 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
     """返回 (变量绑定表, 读取点列表, fetch 到的 url 列表)。
     绑定表值为 ('root'|'obj'|'elem', path)。"""
     binds: dict[str, tuple[str, list[str]]] = {}
+    var_urls: dict[str, str] = {}
     reads: list[dict] = []
     urls: list[str] = []
     for off, line in enumerate(block["lines"]):
@@ -252,6 +254,12 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
         m = JSON_VAR_RE.search(line)
         if m:
             binds[m.group(1)] = ("root", [])
+            # 变量 → 它自己那次 api() 调用的 URL（多 URL 块里各读点归各自端点，
+            # R188b：loadDaily 同块调 /api/daily 与 /api/xingzuo，旧逻辑把
+            # 两个变量的读取全算到 urls[0] 头上，造成假 HARD）
+            mu = API_CALL_RE.search(line) or API_PREFIX_RE.search(line)
+            if mu:
+                var_urls[m.group(1)] = mu.group(1)
     if not urls:
         return binds, reads, urls
     # 迭代 / 派生变量绑定（多趟：派生变量可再派生）
@@ -287,6 +295,8 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
                     "var": var, "kind": kind, "path": path + [field],
                     "field": field, "line_no": block["start"] + off,
                     "src": stripped[:110], "soft": soft, "esc_whole": esc_whole,
+                    # 读点归属：优先变量自己的 URL，回落块内首个 URL（R188b）
+                    "url": var_urls.get(var) or (urls[0] if urls else ""),
                 })
     kept = [r for r in reads if r["field"] not in ERROR_BRANCH_FIELDS]
     return binds, kept, urls
@@ -496,19 +506,27 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads) -> int:
         binds, reads, urls = field_reads(b)
         if not reads:
             continue
-        url = urls[0]
-        state, body = fetch(url)
-        if state == "nofixture":
-            skipped.append({"line_no": b["start"], "src": f"no fixture for {url}",
-                            "path": [], "field": "-"})
-            continue
-        if state == "http":
-            code, snippet = body            # type: ignore[misc]
-            skipped.append({"line_no": b["start"],
-                            "src": f"{url} -> HTTP {code} {snippet}",
-                            "path": [], "field": "-"})
-            continue
+        # 按读点各自的 URL 取响应（R188b：多 URL 块各归各端点）
+        bodies: dict[str, tuple] = {}
+        for url in {r.get("url") for r in reads} | {urls[0]}:
+            state, body = fetch(url)
+            if state != "ok":
+                bodies[url] = (state, body)
+            else:
+                bodies[url] = ("ok", body)
         for rd in reads:
+            url = rd.get("url") or urls[0]
+            state, body = bodies.get(url, ("nofixture", None))
+            if state == "nofixture":
+                skipped.append({"line_no": b["start"], "src": f"no fixture for {url}",
+                                "path": [], "field": "-"})
+                continue
+            if state == "http":
+                code, snippet = body            # type: ignore[misc]
+                skipped.append({"line_no": b["start"],
+                                "src": f"{url} -> HTTP {code} {snippet}",
+                                "path": [], "field": "-"})
+                continue
             # 同一行同一字段可能被同一 handler 内多个变量别名重复命中，去重后
             # 计数才等于"真实读取点数"（数字必须可复验，宪法第一条）
             key = (rd["line_no"], tuple(rd["path"]), rd["soft"], rd["esc_whole"])

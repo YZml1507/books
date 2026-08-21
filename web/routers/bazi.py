@@ -37,6 +37,12 @@ def qiming(req: QimingRequest) -> dict:
     return services.qiming(req)
 
 
+@router.get("/api/xingzuo")
+def xingzuo(date: str | None = None) -> dict:
+    """十二宫日运（004 M2）：当日日支查宫 + 12 宫一句话 + 语料锚点。"""
+    return services.xingzuo(date)
+
+
 @router.get("/api/history")
 def history_list(limit: int = 50) -> dict:
     """历史列表（轻量字段，供前端列表展示）。"""

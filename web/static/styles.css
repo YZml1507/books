@@ -647,3 +647,12 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .ai-polish-text{
   margin:8px 0 0; font-size:15px; line-height:1.8; color:var(--text);
 }
+
+/* 今日值宫（004 M2 T2.4）：十二宫日运聚合入口 */
+.daily-xingzuo{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  margin-top:10px; padding:8px 12px;
+  background:var(--card); border:1px solid var(--border); border-radius:8px;
+}
+.dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
+.dx-note{ font-size:13px; color:var(--secondary); }

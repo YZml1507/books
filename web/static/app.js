@@ -451,6 +451,152 @@ function renderAiPolish(j) {
     '</div>';
 }
 
+/* ── 分享海报（004 M3，D-151a：原生 Canvas 零依赖）──────────────
+ * 固定 1080×1440（3:4 竖版），版式完全受控、不随页面 CSS 变化
+ * （spec US5 判据 6/7）。同输入必同输出：无随机、无时钟入图。
+ * 「仅供娱乐」水印常显（判据 2）；零外部网络请求（判据 3）。 */
+function drawPoster(j) {
+  var warm = (j && j.warm) || {};
+  var paipan = (j && j.paipan) || {};
+  var ec = warm.energy_card || {};
+  var W = 1080, H = 1440;
+  var cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return null;
+
+  // 底色：暖米白渐变（固定值，不读 CSS 变量——版式不受主题影响）
+  var bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#FDF8F0');
+  bg.addColorStop(1, '#F6EDE0');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 标题
+  ctx.fillStyle = '#7A5C2E';
+  ctx.font = '600 64px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🔮 今日命盘', W / 2, 130);
+
+  // 四柱 pills
+  var pillars = String(paipan.render || '').split(/\s+/).filter(function (p) { return p.length >= 2; });
+  ctx.font = '500 44px serif';
+  pillars.slice(0, 4).forEach(function (p, i) {
+    var pw = 220, gap = 24;
+    var x0 = (W - pillars.slice(0, 4).length * pw - (pillars.slice(0, 4).length - 1) * gap) / 2;
+    ctx.fillStyle = i % 2 ? '#EFE3CE' : '#F3E6CF';
+    roundRect(ctx, x0 + i * (pw + gap), 190, pw, 78, 39);
+    ctx.fill();
+    ctx.fillStyle = '#5B4620';
+    ctx.fillText(p, x0 + i * (pw + gap) + pw / 2, 243);
+  });
+
+  // 一句话结论（L0）
+  ctx.fillStyle = '#3E3428';
+  ctx.font = '600 56px sans-serif';
+  var l0 = wrapText(ctx, warm.one_liner || '', W - 200);
+  l0.forEach(function (ln, i) { ctx.fillText(ln, W / 2, 380 + i * 76); });
+
+  // 能量卡区块
+  var cardY = 480;
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, 90, cardY, W - 180, 430, 28);
+  ctx.fill();
+  ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
+  roundRect(ctx, 90, cardY, W - 180, 430, 28);
+  ctx.stroke();
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 40px sans-serif';
+  ctx.fillText('本命 ' + (ec.element || '') + '（' + (ec.element_warm || '') + '）', 140, cardY + 80);
+
+  var rows = [];
+  if (ec.lucky_colors && ec.lucky_colors.length) rows.push(['幸运色', ec.lucky_colors.join(' · ')]);
+  if (ec.lucky_numbers && ec.lucky_numbers.length) rows.push(['幸运数字', ec.lucky_numbers.join(' · ')]);
+  if (ec.lucky_hours && ec.lucky_hours.length) rows.push(['幸运时段', ec.lucky_hours.join('、')]);
+  ctx.font = '400 38px sans-serif';
+  rows.slice(0, 3).forEach(function (r, i) {
+    var y = cardY + 160 + i * 84;
+    // 幸运色色块
+    if (i === 0) {
+      var colors = ['红#C0392B', '紫#8E44AD', '黄#D4AC0D', '棕#8D6E63',
+                    '黑#2C3E50', '蓝#2874A6', '青#148F77', '绿#27AE60',
+                    '白#F2F3F4', '金#B7950B'];
+      var cx = 420;
+      String(r[1]).split(' · ').forEach(function (cname) {
+        for (var k = 0; k < colors.length; k++) {
+          if (colors[k].indexOf(cname) === 0) {
+            ctx.fillStyle = colors[k].split('#')[1];
+            circle(ctx, cx, y - 12, 22); ctx.fill();
+            cx += 60;
+            break;
+          }
+        }
+      });
+    }
+    ctx.fillStyle = '#9A8A6C';
+    ctx.fillText(r[0], 140, y);
+    ctx.fillStyle = '#3E3428';
+    ctx.fillText(r[1], 140, y + 0);
+  });
+
+  // 出处三条（判据 10 可追溯）
+  ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px sans-serif';
+  (ec.basis || []).slice(0, 3).forEach(function (b, i) {
+    ctx.fillText('· ' + b, 140, cardY + 330 + i * 40);
+  });
+
+  // 免责水印（判据 2：仅供娱乐标识，常显不折叠）
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#B7A98A';
+  ctx.font = '400 34px sans-serif';
+  ctx.fillText('知命 · 仅供娱乐', W / 2, H - 90);
+
+  return cv;
+}
+
+function downloadPoster(j) {
+  var cv = drawPoster(j);
+  if (!cv) return;
+  try {
+    cv.toBlob(function (blob) {
+      if (!blob) return;
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'zhiming-poster.png';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+    }, 'image/png');
+  } catch (e) { /* 低端降级：静默，不打断主流程 */ }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function circle(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, maxWidth) {
+  var lines = [], cur = '';
+  String(text || '').split('').forEach(function (ch) {
+    if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch; }
+    else cur += ch;
+  });
+  if (cur) lines.push(cur);
+  return lines.slice(0, 3);
+}
+
 /* 上一次响应缓存：切换口吻时就地重画，不重发请求。
  * 键 = 结果容器 id，值 = {json, proTitle, render}。render 是"用这份 json
  * 重画整个结果区"的闭包——切换只影响解读段，但结果区是一次性拼出来的
@@ -618,6 +764,17 @@ async function loadDaily() {
     setText('dailyNoble', j.noble || '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
+    // 004 M2 T2.4：今日值宫（十二宫日运）。失败静默——入口卡保持 hidden。
+    try {
+      const x = await api('/api/xingzuo?date=' + encodeURIComponent(j.date || ''));
+      const box = el('dailyXingzuo');
+      if (box && x && x.today_sign) {
+        setText('dxLabel', '⭐ 今日值宫：' + x.today_sign + '（' +
+          ((x.signs || []).find(function (s) { return s.is_today; }) || {}).star + '）');
+        setText('dxNote', x.today_note || '');
+        box.hidden = false;
+      }
+    } catch (e2) { /* 十二宫不可用不阻塞今日运势 */ }
   } catch (e) {
     setText('dailySummary', '运势计算暂时不可用：' + e.message);
   }
@@ -725,6 +882,9 @@ function buildBaziResult(j) {
   let html = '<div class="card"><h2>🔮 排盘结果</h2>';
   html += '<button class="ghost fav-btn" type="button" id="favBazi" ' +
     'title="收藏">❤️ 收藏</button>';
+  // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
+  html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
+    'title="生成分享图">📸 分享图</button>';
   html += '<div class="pill-row">';
   String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
     if (p.length >= 2) {
@@ -787,6 +947,7 @@ async function submitBazi(event) {
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
+    on('shareBazi', function () { downloadPoster(j); });
     loadHistory();
     loadRecent();
   } catch (e) {

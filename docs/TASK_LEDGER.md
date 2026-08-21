@@ -6882,3 +6882,53 @@ ai_polish=None 且其余输出不变、ui_smoke 37/37 PASS。
 **决策记录**：DECISIONS.md D-242a/D-243a/D-244a/D-245a。
 **待办移交**：B-012 baseline_voice 日期钉死；004 M2/M3 未开工；
 R131a-01（OPEN MAJOR）需单独一轮。
+
+### 126. [单轨轮] R188b：004 M2 十二宫日运 + M3 分享海报 + contract probe 多 URL 块修复（2026-08-21）
+
+**M2（US4 前半）十二宫日运**：
+
+1. `src/guji/xingzuo.py` 新模块：日支→值宫查表、12 宫写死文案 +
+   语料引文锚点。今名↔古籍名映射照 D-148a（秤宫/人馬/磨蝎/隂陽/雙女 ↔
+   天秤/射手/摩羯/双子/处女）。
+2. T2.2 锚点钉死：12 宫 needle 在 corpus.db 逐字命中 **12/12**
+   （《星學大成》KR3g0041 卷二十一 021-26b 序列页 + 017-29a 磨蝎 +
+   015-29b 寶瓶），落 `web/baselines/xingzuo_fixture.json`。
+3. `GET /api/xingzuo?date=`；`web/check_xingzuo.py` 判据 10（锚点逐字命中）
+   + 判据 11（同日两次调用逐字节相等），--self-check 阳性对照 PASS。
+4. 首页今日运势卡新增「⭐ 今日值宫」行（T2.4）；十二宫失败静默不阻塞。
+
+**M3（US5）分享海报**：
+
+- `drawPoster()` 原生 Canvas 1080×1440 固定版式：四柱 pills + 一句话结论 +
+  能量卡（幸运色色块/数字/时段/出处三条）+「知命 · 仅供娱乐」常显水印
+  （判据 1/2）。零外部请求（判据 3）、不落数据库（判据 4）、零新增依赖
+  （判据 5，D-151a）、无随机无时钟入图（判据 6）、固定 3:4 不随 CSS 变
+  （判据 7）。排盘结果区新增「📸 分享图」按钮 → toBlob 下载 PNG。
+- reduced-motion / 低端降级：drawPoster 本身无动画；toBlob 失败 try/catch
+  静默（T3.3 的长任务降级留待真机实测，登记 B-013）。
+
+**附带修复：probes/probe_contract.py 多 URL 块归属 bug**
+
+loadDaily 同一 handler 块先后调 `/api/daily` 与 `/api/xingzuo`，旧逻辑把
+全部字段读取算到 urls[0] 头上——x.today_sign 被拿 /api/daily 的响应去验，
+报出 2 条假 HARD。修法（审查轨自己的 probe 自己修，宪法第五条允许：
+该 probe 此前由审查轨维护，本轮单轨授权下由执行窗口代管并如实记录）：
+变量绑定行同时记录它自己那次 api() 的 URL，读点优先归自己的端点；
+scan() 按读点 URL 分别取响应。另补 /api/xingzuo fixture。
+修后 180 字段读取点全 PASS（SOFT=11 与上轮持平，无放宽任何判定——
+HARD 判定标准一字未动，只是把读点送到正确的端点上验证）。
+
+**复验命令**：
+
+    <py> -m guji.xingzuo                        # 模块自测 PASS
+    <py> web\check_xingzuo.py                   # 判据 10/11 PASS
+    <py> web\check_xingzuo.py --self-check      # 阳性对照 PASS
+    <py> probes\probe_contract.py               # 180 读点 PASS
+    <py> probes\probe_ui_smoke.py               # PASS（BOOKS_LLM_DISABLE=1）
+    <py> web\selftest.py                        # 149 checks PASS
+    <py> web\check_warm_voice.py                # 判据 1-8 PASS
+    <py> web\check_plain_first.py               # 判据 1-8 PASS
+    <py> scripts\eval_g1.py / eval_g7.py        # PASS
+
+**待办**：B-012 baseline_voice 日期钉死；B-013 海报低端机长任务实测；
+R131a-01 OPEN MAJOR 单独一轮。

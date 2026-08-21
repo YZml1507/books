@@ -1,0 +1,17 @@
+{
+  "_note": "004 M2 T2.2：十二宫引文锚点 fixture。每条 needle 必须在 corpus.db 对应 work_id+page_anchor 的 unit.text 中逐字命中（web/check_xingzuo.py 判据 10）。生成：R188b，2026-08-21。",
+  "signs": {
+    "白羊": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "白羊宫都官星"},
+    "金牛": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "金牛宫祼形星"},
+    "双子": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "隂陽宫天廢星"},
+    "巨蟹": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "巨蟹宫暗金星"},
+    "狮子": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "獅子宫龍首星"},
+    "处女": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "雙女宫地隔星"},
+    "天秤": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "天秤宫地暗星"},
+    "天蝎": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "天蝎宫武庫星"},
+    "射手": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "人馬宫天威星"},
+    "摩羯": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_017-29a", "needle": "磨蝎宫沉晦星"},
+    "水瓶": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_015-29b", "needle": "寶瓶宫天暴星"},
+    "双鱼": {"work_id": "KR3g0041", "page_anchor": "KR3g0041_WYG_021-26b", "needle": "雙魚宫天煞星"}
+  }
+}
