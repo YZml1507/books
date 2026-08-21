@@ -7051,3 +7051,131 @@ check_warm_voice / check_plain_first / check_xingzuo / probe_first_screen /
 probe_no_generated_in_corpus / baseline_voice(+self-check) 全 PASS。
 
 **R131a-01 处置建议**：状态转 FIXED-R189b，待审查轨（或用户）复验后转 VERIFIED。
+
+
+### 128. [对账轮] R190b：双轨分叉对账 + 补三处验收空缺 + 登记 7 条实测缺陷（2026-08-21）
+
+**本轮起因**：用户开两个新窗口（循环优化轨 + 全方位审查轨）前要求先理清项目。
+盘点发现**双轨已分叉且互相卡死**，若直接开窗口，两边第一步就会撞闸门 1。
+
+**分叉实况**（本轮亲验，不采信任何一侧文档）：
+
+| | main 侧 | audit 侧 |
+|---|---|---|
+| HEAD | `eefd28e`（R189b） | `c1324d4`（R131a） |
+| 落后 | — | 落后 main 3 个提交（R187b/R188b/R189b） |
+| R128a-01 | OPEN | VERIFIED-R131a |
+| R131a-01 | **条目不存在** | OPEN |
+| count_open_findings | exit 1（卡 R128a-01） | exit 1（卡 R131a-01） |
+
+两边各拿着**对方已解决的那一条**在 FAIL。真实合并态应为 0 条 OPEN。
+
+**1. merge audit → main（`2530fd7`）**
+
+两处冲突均为 append-only 文档尾部，按宪法第五条「两段都保留」解决：
+- `DECISIONS.md`：audit 的 D-156a 与 main 的 D-242a~D-245a 并存，按编号排序，
+  零改写对方条目。
+- `TASK_LEDGER.md`：两侧各有一个 `### 123.` 且内容不同（main=优化轨 R185b，
+  audit=审查轨 R131a）。audit 那节改编号为 `### 124a. [审查轨] R131a`，
+  标题与正文逐字保留。
+- 自动合并已核对：`AUDIT_FINDINGS.md` 条目 11→12（R128a-01 取 audit 的
+  VERIFIED、R131a-01 条目纳入）；`OPTIMIZE_BACKLOG.md` 纳入 B-011。
+- 内容零丢失实测：D-156a / R131a-01 / B-011 / VERIFIED-R131a 与 main 侧
+  D-242a~245a / R189b / TOPIC_QUERIES 在结果中全部可 grep 到。
+
+**2. 两条缺陷各建常驻闸门，自己跑命令而不是签字（宪法第一条）**
+
+新建 `probes/probe_r131a_relevance.py`（三判据 + 阳性对照）：
+
+    <py> probes\probe_r131a_relevance.py               exit 0
+      判据 A 引文分化：5 个提问 → 5 种引文集合（阈值 5）PASS
+      判据 B 无提问不变：topic_queries(None)=[]、两次调用 sha 相等 PASS
+      判据 C 主题词生效：why 含「提问主题」2/12 段 PASS
+    <py> probes\probe_r131a_relevance.py --self-check  exit 0
+      打桩 topic_queries→[] 后：判据 A 5→1 种、判据 C 0/12，阳性对照抓到
+
+新建 `probes/probe_r128a_no_dup_citations.py`（两判据 + 阳性对照）。**理由**：
+audit 是在 `2cbb1f8` 上签的 VERIFIED，此后 `app.js` 变动 +222 行，签字对象已变。
+
+    <py> probes\probe_r128a_no_dup_citations.py              exit 0
+      判据 A：DOM 引文容器 12（.ev-text 0 + .cite-body 12）vs API 12 段 PASS
+      判据 B：抽查 6 段原文缺 0、出处缺 0 PASS（折叠 ≠ 删除）
+    --self-check exit 0：克隆 .cite-body 注入后判据 A 12→24 FAIL，抓到
+
+门柱未移动实测：`eval_g1` exit 0 `246/248 (99.2%)`、子项 40/40·24/24·24/24·
+30/30·25/25·30/30·20/20·53/55；`eval_g7` exit 0 `must_refuse 30/30`、
+`must_answer 25/25`、`impossible 4/4`、`FABRICATIONS 0`。两脚本本轮零改动。
+
+**R131a-01 状态 → `FIXED-R189b`（不是 VERIFIED）**。理由写进条目：宪法第一条
+「修复方不得自己宣布完工」，本轮同时改代码与文档属修复方，无权自签。
+转 VERIFIED 的条件（新审查轨自跑四条命令）也钉在条目里。
+→ `<py> scripts\count_open_findings.py` **exit 0**，`OPEN BLOCKER 0 / OPEN MAJOR 0`。
+
+**3. 补三处「文档写了但文件不存在」的验收空缺**
+
+| 空缺 | 此前状态 | 本轮 |
+|---|---|---|
+| `web/check_poster.py`（004 判据 12/13） | plan.md:144 指定为唯一验收命令，文件从未存在；台账 §126 已宣称 M3 达成 | 补建。exit 0：PNG 249,688 字节、尺寸 1080×1440、水印「仅供娱乐」在 fillText 记录中命中、静态 0 外链 + 运行时 0 非同源请求。`--self-check` 抹水印+改尺寸 → 判据 12 FAIL 抓到 |
+| `probes/probe_llm_polish.py`（006 判据 1/2） | spec.md:88 指定为唯一验收命令，文件从未存在；LLM 层已上线 | 补建。offline exit 0：判据 2（四种坏响应 + 总开关全降级）/2b（四端点 ai_polish=None 且确定性主体逐字节相等）/3（三库对注入标记与 api_key 零命中）/6（AI 容器独立、标注常显、不复用引文类名）/7（注入文本只作事实拼接、_sanitize 剥书名号页码）/8（149 checks）。`--self-check` 抓到。`--online` 判据 1 四端点 ai_polish 全非空 |
+| `specs/006/tasks.md` | 不存在（违宪法第六条四产物缺一不可） | 补建，逐条附本轮实测；如实标出 T1.5（selftest 无 ai_polish 断言，`grep -c` = 0）与 T2.3（ui_smoke 无 AI 用例）仍 TODO |
+
+**4. 文档-实况对账（宪法第一条：文档撒谎比代码出错更毒）**
+
+- `specs/004/tasks.md`：M2 的 T2.1–T2.6、M3 的 T3.1/T3.2/T3.4 状态列由 `TODO`
+  订正为 `DONE(命令)`，每条附**本轮**实测输出（该文件最后一次改动是 R182b，
+  R188b 交付后没同步）。T3.3 如实保留 TODO → 登记 B-013。
+- `docs/PHASE.md`：第 18 行「REPAIR（当前）」与第 3 行 `CURRENT_PHASE: OPTIMIZE`
+  自相矛盾，订正并保留被推翻记录；闸门 2 命令 `web\app.py --selftest` 已失效
+  （app.py 90 行、`sys.argv` 0 次，跑它是起 8123 服务）→ 改为 `web\selftest.py`，
+  原文与推翻理由一并留档。
+- 基线 sha256 口径：`b0461df2…` → `97f0681e…`（R189b 合法重冻）在 005 的
+  spec/plan/tasks、006 的 spec 共 5 处加订正注，`AUDIT_FINDINGS.md` 的历史
+  复验记录**不改写**、只加「当时值正确」的注（D-008 先例）。
+
+**5. 登记 7 条实测缺陷进 `OPTIMIZE_BACKLOG.md`**（B-012~B-018）
+
+- **B-014 最高优先级**：LLM 开启时四端点同步阻塞 **29.0s / 31.8s**（实测两次）。
+  根因三叠加：`services.py:174` 请求线程内串行调用 + `polish()` 内部重试 3 次 +
+  `timeout_s=30`，最坏 90s。**闸门看不见它，因为闸门统一设
+  `BOOKS_LLM_DISABLE=1`——开关把问题从视野里挡掉了，不是解决了。**
+- **B-015**：起名性别偏好实质失效。`gender="女"` 缺金 → 全部 8 个推荐为
+  林鑫铭/林鑫铮/林鑫锦/林鑫钟/林鑫钦/林鑫钰/林鑫银/林鑫鉴；金字池 20 字中
+  `FEMININE_CHARS` 命中 **0**，且排序键把缺行命中放在性别分之前。
+- **B-016**：`facts_qiming` 不喂性别 → AI 文案称「林**先生**」（入参「女」）。
+- **B-018**：`probe_ui_smoke` 的 news.refresh 把外网可达性当产品判据。
+  三步归因：设代理后仍 FAIL；curl 直连/代理都取不到 BBC/Solidot（000）而
+  同网 HN 200；**`git stash -u` 用干净 HEAD 复跑同样 36/37 同一条 FAIL**，
+  且这三轮对 `probe_ui_smoke.py`/`external.py` 改动数 = 0。故非回归，
+  但闸门 3 在此网络下永远不可能全绿，需拆判据（不得删用例变绿）。
+- B-012（已由 R189b 修，复验闭环）/ B-013（海报长任务判据空缺）/
+  B-017（B-003 复现确认）。
+
+**6. 本轮闸门实测（BOOKS_LLM_DISABLE=1；逐条退出码，日志在 `$LOCALAPPDATA/Temp/gates_r190b/`）**
+
+13 道宪法闸门 **全 0**：check_quality 12s · build_index 14s · verify_index 9s ·
+validate_alignment 0s · probe_conservation 8s · assess_goals 17s ·
+check_provenance 0s · probe_bcv 29s · eval_g1 22s · eval_g4 1s · eval_g7 0s ·
+probe_g8_isolation 1s · probe_booksec 0s。
+
+附加闸门 **全 0**：selftest(149) · probe_contract(180 读点) · probe_dollar_misuse ·
+probe_selftest_regress · probe_no_generated_in_corpus · probe_scripts_importable ·
+probe_first_screen · baseline_voice(+--self-check) · check_warm_voice ·
+check_plain_first · check_xingzuo(+--self-check) · count_open_findings。
+
+本轮新建 **全 0**：check_poster(+self) · probe_llm_polish(+self) ·
+probe_r131a_relevance(+self) · probe_r128a_no_dup_citations(+self)。
+
+**唯一非 0**：`probe_ui_smoke` exit 1（36/37，news.refresh）——见 B-018，
+已用干净 HEAD 对照证明与本轮及前三轮改动无关。**本轮不称「全绿」**：
+准确表述是「13 道宪法闸门 + 12 项附加闸门 + 8 项新建闸门全 0；
+probe_ui_smoke 36/37，唯一失败项是环境判据混入产品闸门（B-018）」。
+
+**领土偏离声明（宪法第五条）**：本轮改了本属审查轨的
+`docs/PHASE.md`、`docs/AUDIT_FINDINGS.md`、`docs/OPTIMIZE_BACKLOG.md`、
+`probes/**`、`specs/*/spec.md`。理由：这些文件的自相矛盾正是**阻塞两个新窗口
+开工**的东西，而审查轨此刻无人在跑（DSH 会话已断）。处置：全部改动以
+「R190b 订正/补记」显式标注、不改写任何既有条目、不删任何记录、不动
+`CURRENT_PHASE` 那一行（仍为 OPTIMIZE，由 R120a 所翻），并在此声明，
+由新审查轨复核有无越界。决策记录 D-250b。
+
+**移交给两个新窗口**：见 D-246b~D-250b 与 `OPTIMIZE_BACKLOG.md` R190b 段。

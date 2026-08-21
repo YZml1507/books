@@ -50,28 +50,58 @@
 
 ## M2 US4：幸运项 + 十二宫 + 今日运势聚合（P3 前半）
 
-- [ ] T2.1 `src/guji/xingzuo.py`：今名↔古籍名映射、日干支×宫规则、
-  12 宫文案块；`python -m guji.xingzuo` 自测　状态：TODO
-- [ ] T2.2 引文锚点钉死：12 宫分野句 + 河图 + 五色 + 时辰五行，
-  逐条断言在 corpus 逐字命中，落 `web/baselines/xingzuo_fixture.json`　状态：TODO
-- [ ] T2.3 `GET /api/xingzuo`；`web/check_xingzuo.py`：
-  判据 10（100% 可追溯）/ 11（12×同日逐字节复现）　状态：TODO
-- [ ] T2.4 首页「今日运势」聚合入口卡（黄历口吻版 + 日运 L0/L1 +
+> **R190b 订正说明（宪法第一条：文档撒谎比代码出错更毒）**：以下 T2.1–T2.6 与
+> T3.1–T3.4 的状态列此前全写 `TODO`，但代码早在 R188b（`fdbac80`）就已交付。
+> 本文件最后一次改动是 `691cd0c R182b`，交付后没同步。R190b 逐条重跑命令确认后
+> 订正状态列，每条附**本轮实测**的命令与输出摘要（不采信 R188b 的台账报告）。
+
+- [x] T2.1 `src/guji/xingzuo.py`：今名↔古籍名映射、日干支×宫规则、
+  12 宫文案块；`python -m guji.xingzuo` 自测
+  状态：DONE(R190b 实测 `PYTHONPATH=src <py> -m guji.xingzuo` → 退出码 0，
+  `xingzuo self-test PASS (12宫/确定性/锚点完整)`)
+- [x] T2.2 引文锚点钉死：12 宫分野句 + 河图 + 五色 + 时辰五行，
+  逐条断言在 corpus 逐字命中，落 `web/baselines/xingzuo_fixture.json`
+  状态：DONE(R190b 实测 `<py> web\check_xingzuo.py` → 退出码 0，
+  `判据 10（12 锚点逐字命中）`；fixture 文件存在)
+- [x] T2.3 `GET /api/xingzuo`；`web/check_xingzuo.py`：
+  判据 10（100% 可追溯）/ 11（12×同日逐字节复现）
+  状态：DONE(R190b 实测同上命令判据 10/11 全达标；
+  `--self-check` → 退出码 0 `假锚点被抓到（1 条）`——阳性对照有效；
+  `GET /api/xingzuo` 200、`signs` 12 宫齐、两次调用一致)
+- [x] T2.4 首页「今日运势」聚合入口卡（黄历口吻版 + 日运 L0/L1 +
   十二宫入口）；新增 UI 用例的**行为描述**写进台账，移交审查轨扩展
-  `probe_ui_smoke`（按 D-145a 只断言行为不钉内部命名）　状态：TODO
-- [ ] T2.5 voice/xingzuo 文案表路径写进台账，移交审查轨扩展
-  `probe_no_generated_in_corpus`（判据 14）；本轨自测先行断言不入库　状态：TODO
-- [ ] T2.6 里程碑回归（同 T1.9 清单）　状态：TODO
+  `probe_ui_smoke`（按 D-145a 只断言行为不钉内部命名）
+  状态：DONE(R190b 实测 `grep -c 今日值宫 web/static/index.html web/static/app.js`
+  → 1 / 2；`<py> probes\probe_ui_smoke.py` 见 T2.6)
+- [x] T2.5 voice/xingzuo 文案表路径写进台账，移交审查轨扩展
+  `probe_no_generated_in_corpus`（判据 14）；本轨自测先行断言不入库
+  状态：DONE(R190b 实测 `<py> probes\probe_no_generated_in_corpus.py` → 退出码 0，
+  `解读文本只进 history.db（D-039 授权），corpus.db / knowledge.db 零污染`)
+- [x] T2.6 里程碑回归（同 T1.9 清单）
+  状态：DONE(R190b 全量实测见台账 §128 的闸门表——13 道宪法闸门退出码全 0、
+  附加闸门全 0；`probe_ui_smoke` 的 news.refresh 一项依赖外部代理，
+  已单列说明不计入产品回归)
 
 ## M3 US5：分享海报（P3 后半）
 
-- [ ] T3.1 `drawPoster()` 原生 Canvas 1080×1440：L0+能量卡+幸运项+
-  日期+站名+「仅供娱乐」水印；`toBlob` 下载　状态：TODO
-- [ ] T3.2 `web/check_poster.py`：判据 12（toDataURL 长度阈值）/
-  13（静态扫描零外链，含阳性对照）　状态：TODO
+- [x] T3.1 `drawPoster()` 原生 Canvas 1080×1440：L0+能量卡+幸运项+
+  日期+站名+「仅供娱乐」水印；`toBlob` 下载
+  状态：DONE(R190b 实测 `<py> web\check_poster.py` → 退出码 0，
+  `PNG 249,688 字节`、`尺寸 1080×1440`、水印「仅供娱乐」在 fillText 记录中命中、
+  海报实绘 17 段文字)
+- [x] T3.2 `web/check_poster.py`：判据 12（toDataURL 长度阈值）/
+  13（静态扫描零外链，含阳性对照）
+  状态：DONE(**本文件由 R190b 补建**——R188b 宣称 M3 达成但该验收脚本
+  从未存在，属「已交付未验收」。实测：主跑退出码 0；
+  `--self-check` 退出码 0，抹水印+改尺寸后判据 12 FAIL 被抓到；
+  判据 13 静态 0 处外链 + 运行时 0 个非同源请求)
 - [ ] T3.3 reduced-motion 下出图无动画；低端降级 750×1000（长任务 >50ms 时）
-  　状态：TODO
-- [ ] T3.4 里程碑回归（同 T1.9 清单）　状态：TODO
+  状态：TODO(R190b 复核仍空缺。已实测 `styles.css:477` 存在
+  `@media (prefers-reduced-motion: reduce)` 块且 drawPoster 本身无动画，
+  但**没有任何判据测量绘制耗时**——已登记 `OPTIMIZE_BACKLOG.md` B-013，
+  由优化轨排期。这是 004 唯一真 TODO 项)
+- [x] T3.4 里程碑回归（同 T1.9 清单）
+  状态：DONE(同 T2.6，见台账 §128)
 
 ## M4 收尾
 

@@ -89,7 +89,7 @@ AI 输出文本在三库中零命中。
 | 2 | enabled=false 或模拟超时：四响应 `ai_polish=null` 且 warm 与基线一致 | `probes/probe_llm_polish.py --case offline`（mock httpx 超时） |
 | 3 | 三库零命中（key + AI 文本） | 扩展 `probes/probe_no_generated_in_corpus.py` |
 | 4 | eval_g1 / eval_g7 与改动前同分（检索层未动，门柱不许移） | `scripts/eval_g1.py` / `scripts/eval_g7.py` 前后对照 |
-| 5 | 专业模式逐字节不变 | `web/baseline_voice.py` sha256 b0461df2… 保持 |
+| 5 | 专业模式逐字节不变 | `web/baseline_voice.py` sha256 b0461df2… 保持 ⚠ **R190b 订正：该值已被 R189b 合法重冻为 `97f0681e…`，见 tasks.md §M3 判据 5 的口径订正；本格保留原值备查（D-008 先例）** |
 | 6 | AI 容器与引文区不同 DOM 容器且有标注 | `probes/probe_ui_smoke.py` 新用例 |
 | 7 | 提示词注入抵抗：输入含「忽略之前指令」类文本不改变输出结构 | probe 抽查 |
 | 8 | selftest 断言只增不减 | `web/selftest.py` ≥149 checks |

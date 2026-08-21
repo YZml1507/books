@@ -190,3 +190,126 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   的 KNOWN_BAD 里排除）
 - 可测量性：退出码 0；或从 probes/ 移出、不再被误当闸门
 - 来源：R131a 复核优化轨移交项（它主动报了这条，且自证与本轮无关）
+
+---
+
+## R190b 轮次新增（2026-08-21，双轨对账轮实测）
+
+以下 6 条全部由 R190b **自己跑命令**发现，不是转述任何一侧的报告。
+`<py>` = `C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe`。
+B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 backlog 都搜不到），
+本轮补登记，其中 B-012 已被 R189b 修掉，登记为已闭环的历史条目。
+
+### B-012 baseline_voice 的 CASES 未钉 ask_date，跨日必然假漂移【已修 R189b】
+- 类型：功能扩展（验收基建）
+- 现状：R187b 实测「15 处漂移」，stash 全部改动后复跑同样 15 处——是流日
+  丙寅→丁卯的日期漂移，不是代码漂移。R189b 已给全部 day 用例补
+  `ask_date="2026-08-20"`。本轮复验：`<py> web\baseline_voice.py` 退出码 0，
+  `14 用例逐字节一致 sha 97f0681e…`
+- 设想：已闭环。保留条目是为了让「基线报 FAIL 先查日期」成为可检索的先例
+- 可测量性：跨日裸跑退出码 0
+- 来源：R187b 发现 → R189b 修 → R190b 复验闭环
+
+### B-013 分享海报的长任务未在真机实测（判据 T3.3 空缺）
+- 类型：性能
+- 现状：`<py> web\check_poster.py`（R190b 新建）证明出图正确——PNG 249,688
+  字节、1080×1440、水印实绘、零外链；但**没有任何判据测量绘制耗时**。
+  spec 准入门槛 (a) 明确把「动画期间无 >50ms 长任务」列为可自动测量项
+- 设想：在 check_poster 里加 `performance.measure` 断言，或用 CDP
+  `Performance.getMetrics` 记录 drawPoster 的同步耗时上限
+- 可测量性：drawPoster 单次同步耗时 <50ms（或明确给出低端机放宽阈值并写理由）
+- 来源：R188b 自报移交 → R190b 确认判据仍空缺
+
+### B-014 LLM 开启时四端点同步阻塞 29–32 秒，用户实际体验是长时间白屏
+- 类型：性能（**本池当前最高优先级**：直接对撞用户原话「治愈、低门槛」）
+- 现状（R190b 实测，未设 BOOKS_LLM_DISABLE）：
+
+      <py> -c "...TestClient(app).post('/api/bazi', json={...})"
+      call0: 29.0s ai=有
+      call1: 31.8s ai=有
+
+  根因三重叠加：`web/services.py:174` 在**请求线程内串行**调 `llm_polish.polish()`；
+  `polish()` 内部 `_attempts=3` 重试；`web/llm_config.json` 的 `timeout_s=30`。
+  最坏情况 3×30=90s。闸门看不见这条，因为闸门统一设 `BOOKS_LLM_DISABLE=1`
+  （D-245a）——**开关把问题从闸门视野里挡掉了，不是解决了**
+- 设想：AI 段落改为二次请求/流式（先出确定性结果，AI 到了再插进 `.ai-polish`
+  容器），或给首个 attempt 设 3–5s 短超时后台续跑。无论哪种，确定性主体
+  必须立刻上屏
+- 可测量性：`/api/bazi` p95 端到端 <2s（LLM 开启时）；AI 段落到达时间单独计量；
+  且 `ai_polish` 的降级语义不变（拿不到就整块不渲染）
+- 来源：R190b 主动实测
+
+### B-015 起名的完整名推荐里性别偏好实质失效，女生缺金只会得到「林鑫铭/林鑫钰/林鑫鉴」
+- 类型：功能扩展（**对撞用户原话**「取名的没给出完整名字」的后半——给了，但不可用）
+- 现状（R190b 实测）：
+
+      <py> -c "from guji import qiming as q; print([f['full_name']
+               for f in q.name_candidates('林',1998,7,20,14,'女')['full_names']])"
+      → ['林鑫铭','林鑫铮','林鑫锦','林鑫钟','林鑫钦','林鑫钰','林鑫银','林鑫鉴']
+      金字池 20 字（鑫锋铭铮锦钟钦镇钰银锐钢鉴钧铂铠镜铜铁锡）中
+      FEMININE_CHARS 命中 **0**；女性向字全在木/火/土/水四行
+
+  两个叠加原因：(a) `_full_name_combos` 排序键是
+  `(-缺行命中数, -性别分, 表序)`——缺行命中优先级**高于**性别分，双字全命中
+  缺行的组合永远排在前面，性别分只在同命中数内起作用；(b) 金行字池本身零
+  女性向字，无论怎么排都出不来女名
+- 设想：金行补女性向候选字（如 锦/铃/钗/鑫 已有，可加 銮/钥/铄/鈺/锶 类
+  柔和字或「金+柔字」组合），或把性别分提到与缺行命中同级/更高，或允许
+  「一字补缺行 + 一字取女性向」的混合形态优先
+- 可测量性：`gender="女"` 时前 8 个 full_names 中含 FEMININE_CHARS 的 ≥5 个；
+  `gender="男"` 时含 MASCULINE_CHARS 的 ≥5 个；确定性与幂等不变
+- 来源：R190b 主动实测
+
+### B-016 AI 起名文案凭空称「林先生」——facts_qiming 没把性别喂给 LLM
+- 类型：功能扩展（AI 层事实完整性）
+- 现状（R190b `--online` 实测，入参 `gender="女"`）：
+
+      <py> probes\probe_llm_polish.py --online
+      判据1 /api/qiming ai_polish 非空
+        「林先生的八字中土行能量丰盈…」   ← 入参是「女」
+
+  根因：`src/guji/llm_polish.py:242 facts_qiming(q)` 只喂
+  姓氏/五行分布/缺行/推荐名四项，**没有性别**；`name_candidates` 的返回
+  dict 里也没回填 gender。模型于是自己猜了「先生」
+- 设想：`facts_qiming` 补一行「性别：女/男」（需 `name_candidates` 回填
+  gender，或 services 层把 req.gender 一并传入）
+- 可测量性：`gender="女"` 时 ai_polish 中「先生」零命中、`gender="男"` 时
+  「女士/小姐」零命中（写进 probe_llm_polish 的 --online 用例）
+- 来源：R190b 用自己新建的 probe 跑 --online 时抓到
+
+### B-018 probe_ui_smoke 的 news.refresh 用例把外网可达性当产品判据，闸门因此永绿不了
+- 类型：功能扩展（闸门设计）
+- 现状（R190b 实测，**含干净 HEAD 对照**）：
+
+      <py> probes\probe_ui_smoke.py            → 退出码 1，37 用例 PASS 36 / FAIL 1
+      [FAIL] btn:news.refresh: '暂无新闻（外部资讯需代理可用）'
+
+      # 归因三步，全部实测：
+      # 1) 设 GUJI_PROXY=http://127.0.0.1:7897 后复跑 → 仍 FAIL（不是没设代理）
+      # 2) curl 直连与走代理都拿不到那两个源：
+      #    curl -m10 https://feeds.bbci.co.uk/zhongwen/simp/rss.xml → 000
+      #    curl -m10 https://www.solidot.org/index.rss              → 000
+      #    （同一网络 curl https://news.ycombinator.com → 200，故非全网不通）
+      # 3) git stash -u 清空本轮改动、用干净 HEAD 复跑 → **同样 36/37 同一条 FAIL**
+      #    且 git log 2cbb1f8..HEAD 对 probe_ui_smoke.py / src/guji/external.py
+      #    的改动数 = 0（这三轮从未碰过 news 路径）
+
+  结论：这是**环境判据混进了产品闸门**。后端行为其实是正确的——取不到源就渲染
+  「暂无新闻（外部资讯需代理可用）」降级文案；probe 却把「命中『暂无』」判为
+  FAIL。于是只要用户网络到不了 BBC/Solidot，宪法第三条闸门（UI 冒烟）
+  **在任何一轮都不可能全绿**，各轮只能反复口头说明「这条不算」——这正是
+  「闸门永远返回非 0 等于没有闸门」的镜像问题
+- 设想：把该用例拆成两条判据——(a) 端点返回 200 且结构合法（可离线）；
+  (b) 外网可达时才断言有条目（用 `--online` 或探测可达性后 skip 并显式打印
+  SKIP 而非 FAIL）。**不得**为了变绿删掉这个用例
+- 可测量性：断网环境下 `probe_ui_smoke` 退出码 0 且打印 1 条 SKIP；
+  联网环境下同一脚本对 news 条目做真实断言
+- 来源：R190b 主动实测 + 干净 HEAD 阳性对照
+
+### B-017 首页「今日运势」卡的贵人属相语义可疑（B-003 的复现确认）
+- 类型：功能扩展
+- 现状：B-003 早已登记，R190b 复核确认代码路径未变：`api_daily` 仍以
+  **当天日期**算生肖，而 UI 文案写「🍀 贵人属相」——用户会理解为「与我相合的
+  属相」。这条与 B-003 同源，此处仅登记「已复核仍在」，不重复开条目
+- 可测量性：需先定义正确语义（属需求澄清），故仍留本池不进 spec
+- 来源：R190b 复核 B-003

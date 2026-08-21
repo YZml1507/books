@@ -86,7 +86,7 @@
   状态：DONE(`<py> web\check_plain_first.py` → 5 用例 PASS；`--self-check` 三注入全被抓)
 - [x] T1.7 里程碑闸门：`<py> probes\probe_first_screen.py`
   （判据 5 转绿，6/7 保持 ✅）+ `<py> web\baseline_voice.py` 退出码 0
-  + 复核「折叠后古籍区 = 44px」（实测目标值）　状态：DONE(probe_first_screen 退出码 0；baseline_voice sha256 b0461df2… 一致)
+  + 复核「折叠后古籍区 = 44px」（实测目标值）　状态：DONE(probe_first_screen 退出码 0；baseline_voice sha256 b0461df2… 一致——R190b 订正：该值已被 R189b 合法重冻为 97f0681e…，本条当时的结论仍有效)
 
 ---
 
@@ -116,7 +116,7 @@
 
 ## M3 回归防线（判据 9 / 13–18）
 
-- [x] T3.1 `<py> web\baseline_voice.py`（判据 9，sha256 `b0461df2…`）　状态：DONE(14 用例逐字节一致，退出码 0)
+- [x] T3.1 `<py> web\baseline_voice.py`（判据 9，sha256 `b0461df2…`——R190b 订正：现值 `97f0681e…`，R189b 合法重冻）　状态：DONE(14 用例逐字节一致，退出码 0；R190b 复跑仍退出码 0)
 - [x] T3.2 `<py> web\selftest.py` ≥149 断言（判据 14）　状态：DONE(149 checks PASS)
 - [x] T3.3 `<py> web\check_warm_voice.py` 判据 1–8 全绿（005 判据 17）　状态：DONE(10 用例 × 8 判据 PASS)
 - [ ] T3.4 `<py> probes\probe_ui_baseline.py` 只读复跑：对比度 0 /

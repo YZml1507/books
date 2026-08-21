@@ -14,13 +14,18 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 
 ## 阶段定义
 
-### REPAIR（当前）
+### REPAIR（已完成，2026-08-20 由 R120a 翻出）
 目标：让它能用。修复轨清偿 `AUDIT_FINDINGS.md` 里 OPEN 的 BLOCKER/MAJOR，
 并完成 web 层分层重构与 LLM 移除。
 
 此阶段**禁止**：美化、动效、配色调整、功能扩展。先能用，再好看。
 
-### OPTIMIZE
+> **R190b 订正**：本行原写「REPAIR（当前）」，与本文件第 3 行
+> `CURRENT_PHASE: OPTIMIZE` 直接矛盾（该行自 R120a 起就是 OPTIMIZE）。
+> 此前结论已被推翻：阶段早在 2026-08-20 翻过，本行是漏改。
+> 保留错误记录而非悄悄改掉（宪法第一条 + DECISIONS D-008 先例）。
+
+### OPTIMIZE（当前）
 目标：性能 + 年轻化视觉 + 功能扩展。
 审查轨写 `specs/003-youth-ui-revamp/spec.md`（只 WHAT/WHY），
 优化轨写同目录 `plan.md` / `tasks.md` 并实现（宪法第六条）。
@@ -33,7 +38,7 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 | # | 闸门 | 复验命令 |
 |---|---|---|
 | 1 | `AUDIT_FINDINGS.md` 中状态 OPEN 且级别 BLOCKER/MAJOR 的条目为 **0** | `<py> scripts\count_open_findings.py`（退出码 0） |
-| 2 | web 层自测全绿 | `<py> web\app.py --selftest`（退出码 0） |
+| 2 | web 层自测全绿 | `<py> web\selftest.py`（退出码 0） |
 | 3 | UI 冒烟全绿（每个按钮点后有内容且 console 无 error） | `<py> probes\probe_ui_smoke.py`（退出码 0） |
 | 4 | 宪法第四条 13 道闸门全绿 | 见 `constitution.md` §IV 命令清单 |
 
@@ -49,6 +54,14 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
    `Get-ChildItem web -Filter *.py` 只有 `app.py`）。web 层自测的真实入口是
    `web\app.py --selftest`。若优化轨完成 web 分层重构、真的拆出
    `web/selftest.py`，届时由审查轨改回并附实测输出。
+
+   > **R190b 订正（上一段的条件已经发生，闸门 2 的命令表已改回）**：
+   > R178b 完成了 web 分层重构，`web/selftest.py` **已存在**，而
+   > `web/app.py` 缩到 90 行且 `sys.argv` 出现 0 次——照原命令跑
+   > `web\app.py --selftest` 会**起一个 8123 端口的服务**并挂住，不是自测。
+   > 实测复现：`grep -c sys.argv web/app.py` → `0`；
+   > `<py> web\selftest.py` → 退出码 0、`web self-test PASS (149 checks)`。
+   > 此前结论（「该文件不存在」）已被推翻，保留原文备查。
 
 **闸门必须有非零退出码**（宪法第四条 U-08 教训：`probe_bcv.py` 曾永远返回 0）。
 本轮新建的三个脚本均已确认：`count_open_findings.py` 实测返回 1、

@@ -415,6 +415,9 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   可核验性 12/12 原文与出处均可取。
   专业模式未受牵连：`web\baseline_voice.py` 逐字节一致（sha256 `b0461df2…`），
   `specs/004` 判据 9 保持成立。
+  （R190b 注：`b0461df2…` 是**当时**的正确值，此处不改写历史记录。该基线已在
+  R189b 因 R131a-01 修复合法重冻为 `97f0681e…`；现值复验命令与理由见
+  `specs/006-llm-polish/tasks.md` §M3 判据 5。）
 
 ---
 
@@ -459,7 +462,68 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   不得为了让相关性变好而放宽那两个闸门（红线第 2 项）。
 - 严重级：MAJOR（契约错误：`question` 是 API 入参且前端在收集它，
   但对证据选取无任何作用——用户合理预期它有作用）
-- 状态：OPEN
+- 状态：FIXED-R189b（待新审查轨复验转 VERIFIED）
+
+**R190b 补记——修复方声明 + 第三方独立复验（此段由 R190b 追加，不改写上方原始条目）**
+
+R189b（优化轨）声称已修：`src/guji/bazi_lookup.py` 新增写死映射 `TOPIC_QUERIES`
+与 `topic_queries()` 纯函数，`retrieve_fast()` 增可选 `question` 参数，主题词
+追加在坐标词队尾（`why="提问主题"`）；`web/services.py` 传入 `req.question`。
+
+**R190b 不采信上述声明，另建独立闸门自行复验**（宪法第一条：跑不出来就当它
+不存在）。新建 `probes/probe_r131a_relevance.py`，三条判据 + 阳性对照：
+
+    <py> probes\probe_r131a_relevance.py              # 退出码 0
+    判据 A 引文分化：5 个提问 → 5 种引文集合　阈值 = 5　PASS
+        b4d2da221006 ← 感情运　ac3249de14e4 ← 事业运　cc5ad0da4d17 ← 学业运
+        a44ddcb39299 ← 财运　  e1c2c97b48a4 ← 健康
+    判据 B 无提问不变：topic_queries(None)=[]　两次调用 sha 相等=True　PASS
+    判据 C 主题词生效：why 含「提问主题」= 2/12 段
+                       why 取值域=['年柱','提问主题','日柱','月柱']　PASS
+
+    <py> probes\probe_r131a_relevance.py --self-check  # 退出码 0
+    把 topic_queries 打桩成恒返回 [] 后：判据 A 5→1 种集合 FAIL、判据 C 0/12
+    FAIL —— 阳性对照被抓到，本探针不是「永远返回 0 的假闸门」（U-08 教训）
+
+**门柱未移动实测**（红线第 2 项）：`<py> scripts\eval_g1.py` → 退出码 0，
+`G1 = PASS 246/248 (99.2%)`，八个子项逐项 100%/96.4% 与 R189b 前记录一致；
+`<py> scripts\eval_g7.py` → 退出码 0，`must_refuse 30/30`、`must_answer 25/25`、
+`impossible 4/4`、`FABRICATIONS 0`。两脚本本轮零改动（`git diff` 空）。
+
+**为什么状态是 FIXED 而不是 VERIFIED**：宪法第一条「修复方不得自己宣布完工」。
+R190b 这一轮同时在改代码与文档，属修复方，无权自签 VERIFIED。转 VERIFIED 的
+条件写在此：新审查轨自己重跑上面两条 probe 命令 + eval_g1/g7，四条都复现，
+才可改本行为 `VERIFIED-R<n>a`；任一不复现则 REOPEN 并附反证命令。
+
+---
+
+**R190b 补记——R128a-01 的签字对象已变，重钉常驻闸门（不改写上方 audit 的复验记录）**
+
+audit 侧 R131a 在 `2cbb1f8` 上签了 `VERIFIED-R131a`。但此后 main 又落了
+R187b/R188b/R189b 三轮，其中 `web/static/app.js` 变动 +222 行（含 `drawPoster`、
+`renderAiPolish`、三级折叠树数据源由 citations 改 evidence）。**签字对象已经不是
+被签的那份代码**，故本轮不沿用旧结论，另建常驻闸门重新钉住：
+
+    <py> probes\probe_r128a_no_dup_citations.py               # 退出码 0
+    浏览器实际请求体：{...,"gender":"女",...,"question":"感情运怎么样？"}
+    判据 A 不重复渲染：DOM 引文容器 12 个（.ev-text 0 + .cite-body 12）
+                       vs API 12 段　PASS
+    判据 B 折叠≠删除：抽查 6 段原文缺 0、出处缺 0　PASS
+
+    <py> probes\probe_r128a_no_dup_citations.py --self-check   # 退出码 0
+    克隆一份 .cite-body 注入 DOM 后：判据 A 12→24 个 FAIL —— 阳性对照被抓到
+
+结论：R128a-01 在当前 HEAD 上仍然成立地「已修好」——`.ev-text` 归零，古籍
+只经三级折叠树渲染一次，与 API 段数 1:1。旧的全文渲染点（`app.js:610` 渲染
+`j.evidence`）已不存在于 warm 路径。
+
+**本轮踩的坑（写进条目防后人再犯）**：首版探针把提问框写成 `#q`（真实 id 是
+`question`）、没设 `<select id="gender">`（默认「男」），于是浏览器那次请求与
+探针自己发的 API 调用参数不同，evidence 集合随之不同，判据 B 假报「2 段原文
+缺失」。**险情**：这个假 FAIL 长得非常像「折叠变成了删除」（宪法第三条红线）。
+正确做法已落进探针：拦截浏览器实际发出的 request body、用同一份参数重放，
+再比对；文本比对前统一去空白（DOM textContent 的空白与 API 原文不同）。
+教训同族于 D-145a（探针不得把内部命名钉成契约）与 L-09（测试脚本自己错了）。
 
 ---
 
