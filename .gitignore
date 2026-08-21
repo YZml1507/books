@@ -24,6 +24,21 @@ spec-kit-main.zip
 tsparticles-main.zip
 animotion-mcp.github.io-main.zip
 
+# 用户提供的 skill 素材包（R190b 登记）：待优化轨提取话术结构与规则口径进
+# LLM 提示词 / warm 文案层（用户原话：「你看情况融入到我们项目当中去吧」）。
+# **保留在磁盘上不要删**，但不入库——它们是第三方 skill 包，不是我们拥有的源码。
+yinyuan-main/
+yinyuan-main.zip
+Numerologist_skills-main/
+Numerologist_skills-main.zip
+
+# 会话记录导出包（R190b 登记）：DSH 审查轨会话的原始 jsonl 打包，是用户需求
+# 原话的唯一一手证据（R190b 的需求还原即取自此处）。保留在磁盘、不入库。
+dsh-session-session-*.zip
+
+# 工具运行时落下的标记文件（非项目产物）
+thinking-effort-loaded.json
+
 # Build / cache artifacts
 *.db-journal
 *.log
