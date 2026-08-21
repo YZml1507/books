@@ -171,6 +171,113 @@ def get_element_by_radical(radical: str) -> str | None:
     return RADICAL_ELEMENT.get(radical)
 
 
+# --------------------------------------------------------------------------------------
+# 性别倾向表（R187b，specs/006 前置：全名组合的软偏好）
+#
+# 从 CANDIDATE_CHARS 字池人工归类；不在两表中的字视为中性。
+# 这是**软偏好**（打分），不是硬排除——女名可以带中性字，男名同理。
+# --------------------------------------------------------------------------------------
+FEMININE_CHARS: frozenset[str] = frozenset({
+    # 木
+    "萱", "芷", "薇", "兰", "芳", "芬",
+    # 火
+    "晴", "暖", "昕", "煦",
+    # 土
+    "珍", "珠", "琳", "琪", "瑶", "佳",
+    # 水
+    "沁", "洁", "湘", "潇",
+})
+MASCULINE_CHARS: frozenset[str] = frozenset({
+    # 木
+    "柏", "栋", "梁", "杰", "松", "楠", "楷", "榕", "荣",
+    # 火
+    "炎", "煜", "炜", "烨", "焕", "烽", "耀", "辉", "旭", "昱",
+    # 土
+    "坤", "培", "坚", "城", "基",
+    # 金
+    "锋", "锐", "钢", "钧", "铠", "铁", "镇",
+    # 水
+    "浩", "渊", "洋", "沛", "深", "波", "澜",
+})
+
+
+def _gender_score(char: str, gender: str) -> int:
+    """性别契合分：契合 +1、相悖 -1、中性 0。确定性纯函数。"""
+    if char in FEMININE_CHARS:
+        return 1 if gender == "女" else -1
+    if char in MASCULINE_CHARS:
+        return 1 if gender == "男" else -1
+    return 0
+
+
+# --------------------------------------------------------------------------------------
+# 全名组合（R187b，用户痛点：「取名的没给出完整名字」）
+#
+# 规则（全部写死可核验）：
+#   * 形态一：姓+单字（缺行字）；形态二：姓+双字（至少一字属缺行）
+#   * 硬过滤：名字内不重复用字、不用姓氏用字
+#   * 排序：缺行命中数 > 性别契合分 > 候选表原顺序（稳定）
+#   * 纯函数：无 random / 无时钟 / 无 IO；固定输入必得固定输出
+# --------------------------------------------------------------------------------------
+FULL_N_DEFAULT = 8
+_MAX_MEANING_REPEAT = 2      # 同一寓意坐标的组合最多出现次数
+
+
+def _full_name_combos(surname: str, missing: list[str], gender: str,
+                      candidates: list[dict],
+                      full_n: int = FULL_N_DEFAULT) -> list[dict]:
+    """候选字 → 完整姓名列表（姓+单字 / 姓+双字），确定性排序。"""
+    pool = [c for c in candidates if c["char"] not in surname]
+    miss_set = set(missing)
+
+    def _entry(given: str, chars: list[dict]) -> dict:
+        return {
+            "full_name": surname + given,
+            "given": given,
+            "elements": [c["element"] for c in chars],
+            "meanings": " · ".join(c["meaning"].split("-", 1)[-1] for c in chars),
+            "form": "single" if len(chars) == 1 else "double",
+        }
+
+    scored: list[tuple[int, int, int, dict]] = []   # (缺行命中数, 性别分, 表序, entry)
+    order = 0
+
+    # 形态一：单字名
+    for c in pool:
+        hit = 1 if c["element"] in miss_set else 0
+        g = _gender_score(c["char"], gender)
+        scored.append((hit, g, order := order + 1, _entry(c["char"], [c])))
+
+    # 形态二：双字名（i<j 组合，去重用字）
+    for i in range(len(pool)):
+        for j in range(i + 1, len(pool)):
+            a, b2 = pool[i], pool[j]
+            if a["char"] == b2["char"]:
+                continue
+            hit = (1 if a["element"] in miss_set else 0) + \
+                  (1 if b2["element"] in miss_set else 0)
+            if hit == 0:
+                continue                      # 双字组合必须至少一字补缺行
+            g = _gender_score(a["char"], gender) + _gender_score(b2["char"], gender)
+            scored.append((hit, g, order := order + 1,
+                           _entry(a["char"] + b2["char"], [a, b2])))
+
+    # 稳定排序：缺行命中降序 → 性别分降序 → 表序升序
+    scored.sort(key=lambda t: (-t[0], -t[1], t[2]))
+
+    out: list[dict] = []
+    meaning_count: dict[str, int] = {}
+    for _, _, _, entry in scored:
+        key = entry["meanings"]
+        if meaning_count.get(key, 0) >= _MAX_MEANING_REPEAT:
+            continue
+        meaning_count[key] = meaning_count.get(key, 0) + 1
+        out.append(entry)
+        if len(out) >= full_n:
+            break
+    return out
+
+
 def get_element_by_char(char: str) -> str | None:
     """字 -> 五行（查候选字表）。不在候选表中返回 None。"""
     for elem, chars in CANDIDATE_CHARS.items():
@@ -236,6 +343,8 @@ def name_candidates(surname: str, year: int, month: int, day: int,
 
     candidates = candidates[:top_n]
 
+    full_names = _full_name_combos(surname, missing, gender, candidates)
+
     # summary：模板拼接（可核验，非 LLM 文本）
     dist = "、".join(f"{e}{v:g}" for e, v in counts.items())
     miss_str = f"缺{''.join(missing)}" if missing else "五行俱全"
@@ -248,6 +357,9 @@ def name_candidates(surname: str, year: int, month: int, day: int,
     if missing:
         comp_chars = "、".join(c["char"] for c in candidates[:5] if c["element"] in missing)
         summary_parts.append(f"补{''.join(missing)}候选字（前5）：{comp_chars}")
+    if full_names:
+        top3 = "、".join(n["full_name"] for n in full_names[:3])
+        summary_parts.append(f"完整名推荐（前3）：{top3}")
 
     return {
         "surname": surname,
@@ -261,5 +373,38 @@ def name_candidates(surname: str, year: int, month: int, day: int,
             "missing": missing,
         },
         "candidates": candidates,
+        "full_names": full_names,
         "summary": "；".join(summary_parts),
     }
+
+
+# --------------------------------------------------------------------------------------
+# 自测：固定输入 → 固定输出（宪法第一条）
+# --------------------------------------------------------------------------------------
+if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    r1 = name_candidates("林", 1998, 7, 20, 14, gender="女")
+    assert r1["full_names"], "full_names 不应为空"
+    for n in r1["full_names"]:
+        fn = n["full_name"]
+        assert fn.startswith(r1["surname"]), fn
+        given = fn[len(r1["surname"]):]
+        assert len(set(given)) == len(given), f"名字内重复用字：{fn}"
+        assert n["form"] in ("single", "double")
+    # 女名前3不应是男性专属高分字开头
+    top3 = "".join(n["given"] for n in r1["full_names"][:3])
+    for m in ("锋", "钢", "铁", "铠"):
+        assert m not in top3[:2], f"女名前2出现男性字 {m}: {top3}"
+    # 确定性：两次调用逐字节相等
+    r1b = name_candidates("林", 1998, 7, 20, 14, gender="女")
+    assert r1 == r1b, "两次调用输出不一致（违反确定性）"
+
+    r2 = name_candidates("王", 1990, 5, 15, 23, gender="男")
+    assert r2["full_names"]
+    print("女（林·缺金）前3全名：",
+          "、".join(n["full_name"] for n in r1["full_names"][:3]))
+    print("男（王）前3全名：",
+          "、".join(n["full_name"] for n in r2["full_names"][:3]))
+    print("qiming self-test PASS (full_names/硬过滤/性别软偏好/确定性)")

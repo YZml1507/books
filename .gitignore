@@ -45,6 +45,7 @@ logs/p2_tmp/
 
 # Local secrets — never commit the filled-in LLM config
 llm_config.json
+web/llm_config.json
 
 # OS junk
 Thumbs.db

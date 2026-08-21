@@ -545,6 +545,103 @@ def warm_tarot(cards: list[dict], interpretation: dict,
 
 
 # ---------------------------------------------------------------------------
+# 桃花 / 合婚 warm 视图（R187b，用户痛点：「测桃花运的也说得云里雾里」）
+#
+# 与 warm_bazi 同一条纪律：纯函数、不新增事实（每句回指入参字段）、
+# 不断吉凶、凶象转提醒。citations 恒为 []——这两个功能没有古籍引文区。
+# ---------------------------------------------------------------------------
+
+_STRENGTH_WARM: dict[str, str] = {
+    "strong": "感情节奏偏快，容易被人注意到",
+    "mid": "感情节奏不急不缓",
+    "weak": "感情节奏偏慢热",
+}
+
+_PILLAR_WARM: dict[str, str] = {
+    "year": "年柱", "month": "月柱", "day": "日柱", "hour": "时柱",
+}
+
+
+def warm_taohua(t: dict) -> dict:
+    """桃花运人话视图。t = taohua.compute 的坐标 dict（web/services.taohua 返回）。"""
+    t = t or {}
+    strength = _STRENGTH_WARM.get(t.get("strength", ""),
+                                  str(t.get("strength", "")))
+    l0 = "慢热缘分" if "慢热" in strength else (
+        "桃花偏旺" if "偏快" in strength else "缘分平稳")
+
+    lines: list[str] = []
+    peach = t.get("peach_zhi") or ""
+    yz = t.get("year_zhi") or ""
+    if peach:
+        lines.append(f"你年支是{yz}，传统上对应的桃花位在「{peach}」——"
+                     f"这是你的魅力方位，不是倒计时。")
+    hits = [_PILLAR_WARM.get(p, p) for p in (t.get("hit_pillars") or [])]
+    if hits:
+        lines.append(f"桃花就落在你自己的盘里（{'、'.join(hits)}）——"
+                     f"自带吸引力的类型，不用刻意表现。")
+    else:
+        lines.append("四柱都没直接临桃花——缘分走的是细水长流路线，"
+                     "熟人圈比陌生场合更容易遇到。")
+    hl_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("hongluan_pillar") or []))
+    tx_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("tianxi_pillar") or []))
+    if hl_p != "未临柱" and hl_p:
+        lines.append(f"红鸾落在{hl_p}——传统上主婚恋缘分的信息在你自己盘里。")
+    if tx_p and tx_p != "未临柱":
+        lines.append(f"天喜落在{tx_p}——喜庆缘分的信息也是有的。")
+    dayun = t.get("dayun_hits") or []
+    if dayun:
+        d0 = dayun[0]
+        lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
+                     f"桃花星当值——那段时间社交面会明显变宽。")
+    lines.append("这些说的是节奏，不是判决——感情这事，你自己舒服最重要。")
+    return _wrap(
+        l0,
+        None,
+        lines[:5],
+        [{"label": "坐标事实", "text": t.get("render", "")}] if t.get("render") else [],
+        [],
+    )
+
+
+def warm_hehun(h: dict) -> dict:
+    """合婚人话视图。h = hehun.compute 的坐标 dict（web/services.hehun 返回）。"""
+    h = h or {}
+    if h.get("clash"):
+        rel = "两年支六冲——传统上叫磨合型：不是不合，是相处需要多一轮理解"
+    elif h.get("combine"):
+        rel = "年支六合——传统上主生肖相合，相处起来比较顺"
+    else:
+        rel = "盘面上没有明显的冲也没有明显的合——关系的样子更多靠你们自己写"
+    l0 = ("磨合型组合" if h.get("clash")
+          else "相合型组合" if h.get("combine")
+          else "平顺型组合")
+
+    lines: list[str] = [f"{rel}。"]
+    if h.get("day_wx_sheng"):
+        lines.append(f"两人日主五行相生（{h.get('day_wx_a', '')}与"
+                     f"{h.get('day_wx_b', '')}）——能量是顺着走的，"
+                     f"一方天然愿意托着另一方。")
+    if h.get("peach_same"):
+        lines.append(f"两人桃花支相同（都是{h.get('peach_a', '')}）——"
+                     f"对感情的期待容易同频。")
+    dayun = h.get("dayun_hits") or []
+    if dayun:
+        d0 = dayun[0]
+        lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+                     f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
+    lines.append("合婚看的是相处倾向，不是合格证——"
+                 "真正合不合，你们俩处出来的才算数。")
+    return _wrap(
+        l0[:_L0_MAX],
+        None,
+        lines[:5],
+        [{"label": "坐标事实", "text": h.get("render", "")}] if h.get("render") else [],
+        [],
+    )
+
+
+# ---------------------------------------------------------------------------
 # 自测：固定输入 → 固定输出（判据 5）
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -608,5 +705,47 @@ if __name__ == "__main__":
     assert wt["reply"] and len(wt["one_liner"]) <= 20, wt
     assert warm_tarot(cards, ti, "最近的感情走向？") == wt
 
+    # 桃花 / 合婚 warm（R187b）
+    from guji import hehun as HH
+    from guji import taohua as TH
+
+    tb = compute(1998, 7, 20, 14, "女")
+    t_out = TH.compute(tb)
+    t_dict = {
+        "bazi": {"year": tb.year, "month": tb.month, "day": tb.day,
+                 "hour": tb.hour, "day_master": tb.day_master},
+        "year_zhi": t_out.year_zhi, "peach_zhi": t_out.peach_zhi,
+        "hit_pillars": list(t_out.hit_pillars), "hongluan": t_out.hongluan,
+        "hongluan_pillar": list(t_out.hongluan_pillar),
+        "tianxi": t_out.tianxi, "tianxi_pillar": list(t_out.tianxi_pillar),
+        "strength": t_out.strength,
+        "dayun_hits": TH.dayun_hits(tb, 1998),
+        "notes": t_out.notes, "render": t_out.render(),
+    }
+    wth = warm_taohua(t_dict)
+    assert wth["one_liner"] and len(wth["one_liner"]) <= 20, wth["one_liner"]
+    assert wth["badge"] and "仅供娱乐" in wth["badge"]
+    assert wth["reply"] and 1 <= len(wth["reply"]) <= 5
+    assert not any(w in "".join(wth["reply"]) for w in ("注定", "孤独", "没戏"))
+    assert warm_taohua(t_dict) == wth, "warm_taohua 必须确定性"
+
+    bb = compute(1995, 3, 8, 10, "男")
+    h_out = HH.compute(tb, bb)
+    h_dict = {
+        "a_bazi": {}, "b_bazi": {},
+        "year_zhi_a": h_out.year_zhi_a, "year_zhi_b": h_out.year_zhi_b,
+        "clash": h_out.clash, "combine": h_out.combine,
+        "day_wx_a": h_out.day_wx_a, "day_wx_b": h_out.day_wx_b,
+        "day_wx_sheng": h_out.day_wx_sheng,
+        "peach_a": h_out.peach_a, "peach_b": h_out.peach_b,
+        "peach_same": h_out.peach_same,
+        "dayun_hits": HH.dayun_relation(tb, 1998, bb, 1995),
+        "notes": h_out.notes, "render": h_out.render(),
+    }
+    whh = warm_hehun(h_dict)
+    assert whh["one_liner"] and whh["reply"] and whh["badge"]
+    assert warm_hehun(h_dict) == whh, "warm_hehun 必须确定性"
+
     print("voice self-test PASS (bazi warm/no-q, liuyao warm, tarot warm, "
+          "taohua warm, hehun warm, "
           "determinism, citations reuse, basis verbatim)")

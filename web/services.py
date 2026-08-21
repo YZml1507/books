@@ -34,6 +34,7 @@ from guji import huangli as huangli_mod
 from guji import hehun as hehun_mod
 from guji import interpreter
 from guji import liuyao as liuyao_mod
+from guji import llm_polish
 from guji import lunar
 from guji import qiming as qiming_mod
 from guji import taohua as taohua_mod
@@ -164,6 +165,16 @@ def bazi(req) -> dict:
     # 字节。判据 9 要求专业模式逐字节等于基线，由 web/baseline_voice.py 把关。
     warm = voice.warm_bazi(paipan_out, calc_out, interpretation, req.question)
 
+    # R187b（specs/006）：AI 润色层，additive 附加。失败/关闭 → None，
+    # 前端整块不渲染；LLM 永远不是承重墙（D-244a）。
+    ai_polish = None
+    try:
+        ai_polish = llm_polish.polish(
+            llm_polish.facts_bazi(paipan_out, warm, req.question),
+            req.question)
+    except Exception:
+        ai_polish = None
+
     input_snapshot = {
         "year": req.year, "month": req.month, "day": req.day, "hour": req.hour,
         "gender": req.gender, "question": req.question,
@@ -187,6 +198,7 @@ def bazi(req) -> dict:
         "evidence": evidence,
         "interpretation": interpretation,
         "warm": warm,
+        "ai_polish": ai_polish,
     }
 
 
@@ -200,20 +212,32 @@ def taohua(req) -> dict:
         dayun = taohua_mod.dayun_hits(b, by)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{exc}") from exc
-    return {
+    t_dict = {
         "bazi": {"year": b.year, "month": b.month, "day": b.day,
                  "hour": b.hour, "day_master": b.day_master},
         "year_zhi": t.year_zhi,
         "peach_zhi": t.peach_zhi,
-        "hit_pillars": t.hit_pillars,
+        "hit_pillars": list(t.hit_pillars),
         "hongluan": t.hongluan,
-        "hongluan_pillar": t.hongluan_pillar,
+        "hongluan_pillar": list(t.hongluan_pillar),
         "tianxi": t.tianxi,
-        "tianxi_pillar": t.tianxi_pillar,
+        "tianxi_pillar": list(t.tianxi_pillar),
         "strength": t.strength,
         "dayun_hits": dayun,
         "notes": t.notes,
         "render": t.render(),
+    }
+    # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
+    warm = voice.warm_taohua(t_dict)
+    ai_polish = None
+    try:
+        ai_polish = llm_polish.polish(llm_polish.facts_taohua(t_dict, warm))
+    except Exception:
+        ai_polish = None
+    return {
+        **t_dict,
+        "warm": warm,
+        "ai_polish": ai_polish,
     }
 
 
@@ -229,7 +253,7 @@ def hehun(req) -> dict:
         dayun = hehun_mod.dayun_relation(ba, req.a_year, bb, req.b_year)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{exc}") from exc
-    return {
+    h_dict = {
         "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
         "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
         "year_zhi_a": h.year_zhi_a, "year_zhi_b": h.year_zhi_b,
@@ -241,18 +265,38 @@ def hehun(req) -> dict:
         "notes": h.notes,
         "render": h.render(),
     }
+    # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
+    warm = voice.warm_hehun(h_dict)
+    ai_polish = None
+    try:
+        ai_polish = llm_polish.polish(llm_polish.facts_hehun(h_dict, warm))
+    except Exception:
+        ai_polish = None
+    return {
+        **h_dict,
+        "warm": warm,
+        "ai_polish": ai_polish,
+    }
 
 
 def qiming(req) -> dict:
-    """五行起名：八字 → 五行缺行 → 候选字（部首五行规则表，写死可核验）。"""
+    """五行起名：八字 → 五行缺行 → 候选字 + 完整名组合（部首五行规则表，写死可核验）。"""
     req.validate_ranges()
     try:
-        return qiming_mod.name_candidates(
+        out = qiming_mod.name_candidates(
             surname=req.surname, year=req.year, month=req.month,
             day=req.day, hour=req.hour, gender=req.gender,
             top_n=min(max(req.top_n, 1), 100))
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{exc}") from exc
+    # R187b（specs/006）：AI 寓意段落，additive
+    ai_polish = None
+    try:
+        ai_polish = llm_polish.polish(llm_polish.facts_qiming(out))
+    except Exception:
+        ai_polish = None
+    out["ai_polish"] = ai_polish
+    return out
 
 
 def history_list(limit: int = 50) -> dict:

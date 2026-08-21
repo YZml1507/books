@@ -6819,3 +6819,66 @@ spec US5 要求「不要在没有量化相关性之前改检索逻辑」。本�
 
 005 判据表里 US5 的三条验收（why 可读理由 / 无关段落不排前列 / 相关性可自动测量）
 本轮只达成第一条与第三条的**测量方法**，第二条待检索层修好后才有意义。
+
+### 125. [单轨轮] R187b：起名全名 + 桃花/合婚人话 + LLM 润色层（specs/006 M1）（2026-08-21）
+
+用户授权本轮暂停双轨制（审查轨 DSH 会话因网络错误中断），由执行窗口
+自写自验、闸门照跑。背景与断点：DSH 审查轨会话 turn 30 死于
+Connection error / 422，用户最后指令（融入两个 skill zip + 接入 LLM）未开始。
+
+**本轮交付**：
+
+1. **起名全名组合**（`src/guji/qiming.py`，additive `full_names` 键）
+   - 形态一姓+单字、形态二姓+双字；双字至少一字补缺行；硬过滤重名/姓氏用字
+   - 性别软偏好表 FEMININE_CHARS/MASCULINE_CHARS（打分不排除）
+   - 确定性排序：缺行命中 > 性别分 > 表序；同寓意组合 ≤2 次；默认 8 个
+   - 自测：`python -m guji.qiming` → 女(林·缺金)=林鑫铭… 男(王)=王柏栋… PASS
+
+2. **桃花/合婚人话视图**（`src/guji/voice.py` 新增 warm_taohua/warm_hehun）
+   - 复用 _wrap 结构；凶象转提醒（六冲→"磨合型"）；禁用词零命中
+   - 自测并入 `python -m guji.voice`（确定性断言过）
+
+3. **LLM 润色层 specs/006 M1**（`src/guji/llm_polish.py` 新模块）
+   - httpx 直连 agnes API（venv 已有 httpx，**零新增 pip 依赖**）
+   - key 存 web/llm_config.json（已 gitignore）；D-146a 六条约束移植生效
+   - 实测钉死：agnes-2.5-flash 是推理模型，max_tokens=200 全被
+     reasoning 吃光返回空正文，须 ≥1000；端点有随机空正文/SSL 断连，
+     polish() 内部重试 3 次
+   - 四端点 additive 附加 ai_polish；失败静默降级 None（前端整块不渲染）
+   - 环境总开关 BOOKS_LLM_DISABLE=1 强制禁用（闸门环境用，D-245a）
+
+4. **前端**：起名页「💐 完整名推荐」卡（单字池折叠收起）；
+   桃花/合婚人话置顶；`.ai-polish` 独立容器（紫调渐变+常显标注
+   「AI 生成 · 仅供娱乐 · 再点一次可能不一样」，与古籍引文区不可混淆）
+
+**复验命令**（PowerShell，项目根；`<py>`=.venv\Scripts\python.exe）：
+
+    <py> -m guji.qiming                    # 全名自测 PASS
+    <py> -m guji.voice                     # warm 五构建器 PASS
+    <py> -m guji.llm_polish                # LLM 层离线自测 PASS
+    <py> web\selftest.py                   # 149 checks PASS exit 0
+    <py> web\check_warm_voice.py           # 判据 1-8 PASS
+    <py> web\check_plain_first.py          # 判据 1-8 PASS
+    <py> probes\probe_ui_smoke.py          # 37 用例 PASS（BOOKS_LLM_DISABLE=1 下跑）
+    <py> probes\probe_contract.py          # 175 字段读取点 PASS
+    <py> probes\probe_no_generated_in_corpus.py  # 三库零污染 PASS
+    <py> scripts\eval_g1.py / eval_g4.py / eval_g7.py   # 全 PASS（检索未动）
+    <py> scripts\count_open_findings.py    # OPEN MAJOR 1（R131a-01，非本轮范围）
+
+**判据 9 说明（重要）**：`baseline_voice.py` 裸跑报 15 处漂移——**系日期漂移
+非代码漂移**。基线冻结于 2026-08-20（流日丙寅），今日 08-21（流日丁卯），
+CASES 的 bazi payload 未传 ask_date，services 取 date.today()。实证：
+(a) stash 本轮全部改动后裸跑同样 FAIL 15 处；(b) mock date.today()=
+2026-08-20 后，带本轮改动 verify() exit 0。这是基线机制的既存缺陷
+（应把 ask_date 钉进 CASES），登记为 B-012 待修，不在本轮擅动（领土纪律 +
+该文件属优化轨 R182b 产物）。--self-check 阳性对照仍 PASS。
+
+**E2E 实测**（TestClient，LLM 开启）：qiming 返回 full_names[0]=林鑫铭 +
+ai_polish「林小姐的命盘中，土的底蕴最为丰沛…」；taohua warm=慢热缘分 +
+ai「你的感情缘分属于细水长流型…」；hehun warm=相合型组合 + ai「你们的年支
+形成了温暖的六合…」。降级路径实测：BOOKS_LLM_DISABLE=1 时四端点
+ai_polish=None 且其余输出不变、ui_smoke 37/37 PASS。
+
+**决策记录**：DECISIONS.md D-242a/D-243a/D-244a/D-245a。
+**待办移交**：B-012 baseline_voice 日期钉死；004 M2/M3 未开工；
+R131a-01（OPEN MAJOR）需单独一轮。

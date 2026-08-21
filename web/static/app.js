@@ -438,6 +438,19 @@ function renderWarm(warm, interp, evidence) {
   return html;
 }
 
+/** AI 润色容器（specs/006）。独立容器 + 显著标注，与古籍引文区视觉不可混淆
+ *  （D-146a 第 3/4 条精神）。j.ai_polish 为 null（关闭/断网/超时）时整块不渲染
+ *  ——LLM 永远不是承重墙（D-244a）。 */
+function renderAiPolish(j) {
+  var ai = j && j.ai_polish;
+  if (!ai) return '';
+  return '<div class="ai-polish" role="note" aria-label="AI 生成解读">' +
+    '<div class="ai-polish-head">✨ AI 解读' +
+    '<span class="ai-polish-badge">AI 生成 · 仅供娱乐 · 再点一次可能不一样</span></div>' +
+    '<p class="ai-polish-text">' + esc(ai) + '</p>' +
+    '</div>';
+}
+
 /* 上一次响应缓存：切换口吻时就地重画，不重发请求。
  * 键 = 结果容器 id，值 = {json, proTitle, render}。render 是"用这份 json
  * 重画整个结果区"的闭包——切换只影响解读段，但结果区是一次性拼出来的
@@ -459,6 +472,7 @@ function renderVoice(j, proTitle, evidenceKeys) {
   } else {
     html += renderInterpretation(j ? j.interpretation : null, proTitle);
   }
+  html += renderAiPolish(j);
   return html;
 }
 
@@ -1358,8 +1372,24 @@ async function doQiming() {
       (fe.missing && fe.missing.length ? '　缺：' + esc(fe.missing.join('、')) : '') +
       '</p>';
     if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
+    // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
+    if (j.full_names && j.full_names.length) {
+      html += '<h3 style="margin-top:16px;">💐 完整名推荐</h3><div class="calc-grid">';
+      j.full_names.forEach(function (n, i) {
+        const c = colorAt(i);
+        html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
+          '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:24px;">' +
+          esc(n.full_name || '') + '</h3>' +
+          '<p style="font-size:13px;color:var(--secondary);">五行：' +
+          esc((n.elements || []).join('·')) +
+          (n.form === 'single' ? '　单字名' : '　双字名') + '</p>' +
+          '<p style="font-size:13px;">' + esc(n.meanings || '') + '</p></div>';
+      });
+      html += '</div>';
+    }
     // 实测 candidates[] 是 {char,element,radical,meaning}。
-    html += '<div class="calc-grid">';
+    html += '<details class="warm-basis" style="margin-top:14px;"><summary>单字候选池（' +
+      ((j.candidates || []).length) + ' 字，展开看五行与部首）</summary><div class="calc-grid">';
     (j.candidates || []).forEach(function (n, i) {
       const c = colorAt(i);
       html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
@@ -1369,6 +1399,8 @@ async function doQiming() {
         esc(n.element || '') + '　部首：' + esc(n.radical || '') + '</p>' +
         '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
     });
+    html += '</div></details>';
+    html += renderAiPolish(j);
     html += '</div></div>';
     paint('qmResult', html);
     revealResult('qmResult');
@@ -1389,6 +1421,17 @@ async function doTaohua() {
     });
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
     const bz = j.bazi || {};
+    // R187b：人话视图置顶（specs/005 US4——先说人话，再看坐标）
+    if (j.warm) {
+      html += '<div class="warm-wrap"><div class="warm-l0">' +
+        esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
+      (j.warm.reply || []).forEach(function (ln) {
+        html += '<p>' + esc(ln) + '</p>';
+      });
+      html += '</div>';
+      if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
+      html += '</div>';
+    }
     html += '<div class="pill-row">';
     ['year', 'month', 'day', 'hour'].forEach(function (k, i) {
       if (bz[k]) {
@@ -1426,6 +1469,7 @@ async function doTaohua() {
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
     }
+    html += renderAiPolish(j);
     html += '</div>';
     paint('thResult', html);
     revealResult('thResult');
@@ -1500,7 +1544,19 @@ async function doHehun() {
     });
     const a = j.a_bazi || {};
     const b = j.b_bazi || {};
-    let html = '<div class="card"><h2>💕 八字合婚</h2><div class="calc-grid">';
+    let html = '<div class="card"><h2>💕 八字合婚</h2>';
+    // R187b：人话视图置顶（specs/005 US4）
+    if (j.warm) {
+      html += '<div class="warm-wrap"><div class="warm-l0">' +
+        esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
+      (j.warm.reply || []).forEach(function (ln) {
+        html += '<p>' + esc(ln) + '</p>';
+      });
+      html += '</div>';
+      if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
+      html += '</div>';
+    }
+    html += '<div class="calc-grid">';
     html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
       '<h3 style="color:var(--c-bazi);">甲</h3>' +
       '<p style="font-family:var(--font-serif);font-size:18px;">' +
@@ -1541,6 +1597,7 @@ async function doHehun() {
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
     }
+    html += renderAiPolish(j);
     html += '</div>';
     paint('hhResult', html);
     revealResult('hhResult');
