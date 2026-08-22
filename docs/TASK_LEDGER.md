@@ -7401,3 +7401,52 @@ probes/selftest_baseline.json 的行尾符噪音经 git diff -w 核实零内容�
 
 **移交存量**：B-013（海报长任务 <50ms 判据空缺）、B-017（贵人属相语义）、
 桃花/合婚/起名分享海报入口、首页 IA——均未开工，留优化轨排期。
+
+### 132. [优化轨] R193b：merge audit(e8faa4a) + B-013 收口（T3.3 尺寸契约）+ 桃花/合婚/起名分享海报入口（2026-08-22）
+
+**前置状态**：main=6a9806c（R192b）、audit=e8faa4a（R133a）。
+count_open_findings.py exit 0（OPEN BLOCKER 0 / OPEN MAJOR 0，闸门 1 PASS）；
+main..audit=1、audit..main=0。
+
+**1. merge audit → main**：fast-forward 至 e8faa4a，零冲突；合后
+rev-list 双向 0。R133a 对 B-014/015/016/019/020 的五项 VERIFIED 结论自此进入 main。
+
+**2. B-013 收口（web/check_poster.py + web/static/app.js）**：
+- 基线复现：<50ms 断言 R132a 已立（当时 30.3ms），本轮主跑实测 23.6ms PASS；
+  真缺口是 specs/004 T3.3 后半「低端降级 750×1000」无任何断言。
+- app.js：drawPoster 改外壳——opts.auto=false 固定口径直绘（验收路径）、
+  opts.low=true 强制 750×1000、默认 auto 先全尺寸计时 >50ms 自动降级重画；
+  绘制本体拆 _paintPoster（逻辑坐标恒 1080×1440，ctx.scale 适配目标像素，
+  版式逐点一致）；新增 warmPoster() 页面空闲预热字体/栅格管线
+  （冷启动首跑实测 51.7ms ≥50ms 阈值，预热后稳态约 25ms，产物即弃零副作用）。
+  downloadPoster 适配新返回 {canvas,w,h}。
+- check_poster.py 补 T3.3 尺寸契约断言：auto→{1080,1440} 或 {750,1000}
+  二者之一、low:true→750×1000；不对 auto 耗时断言（它该降级而非 FAIL），
+  长任务判据仍由 {auto:false} 固定口径承载。--self-check 阳性对照照常被抓。
+- 实测（BOOKS_LLM_DISABLE=1）：check_poster 主跑 PNG 249,688 字节 ·
+  1080×1440 · 水印「仅供娱乐」命中 · 同步耗时 23.6ms · 尺寸契约双 True ·
+  静态/运行时外链 0 → exit 0；poster_self 抓到阳性对照 → exit 0。
+  low 直绘内容验证：750×1000、PNG 155,554 字节、水印命中
+  （fillText 18 段=17+init 预热段，非缺陷）。
+- 三入口端到端（Playwright 真实点击，390×844）：qiming/taohua/hehun 提交 →
+  shareQiming/shareTaohua/shareHehun 出现 → expect_download 各得
+  zhiming-poster.png → PASS（对齐排盘 shareBazi 的 T3.1 同款模式）。
+
+**3. 首页 IA：调研完成、未动工，移交下轮 SDD**。「首页 IA」不在
+OPTIMIZE_BACKLOG 池内（池内为 B 系列），仅存于 §131 移交清单一句话。
+钉住点盘点：probe_first_screen（首屏大白话位置/古籍占比/折叠非删除）、
+probe_ui_smoke BUTTON_CASES 经 .func-card[data-view] 导航进各视图、
+probe_ui_baseline、pro_render_baseline.json 只钉 bazi/liuyao/tarot 结果区
+不钉首页结构。改版属大改：按 skill 三步前置，量尺先写进 spec——
+先例 specs/006 由优化轨自建（402e586），应新建 specs/007-* 走 SDD
+（含产品方向需用户下发），再动 index.html/styles.css。
+
+**4. 闸门口径**：BOOKS_LLM_DISABLE=1 下全量电池单后台串行复跑：
+13 道宪法闸门（check_quality 在 build_index 之前）+ 附加 21 条共 34 条命令，
+命令名集合与 gates_r133a/summary.txt 逐项一致（diff 为空），EXIT 全 0：
+selftest 156 checks PASS · ui_smoke 全 PASS（history 219→219 零残留）·
+probe_contract 184 字段 SOFT=15 · eval_g1/g4/g7 · first_screen PASS。
+日志 $LOCALAPPDATA/Temp/gates_r193b/。
+
+**遗留**：首页 IA（见上，待 SDD+用户方向输入）；B-017 维持「先澄清语义
+再动代码」。两个 skill zip 零融入、10 开源项目参考未闭环仍挂账。

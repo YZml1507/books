@@ -501,23 +501,61 @@ function renderAiPolish(j) {
 /* ── 分享海报（004 M3，D-151a：原生 Canvas 零依赖）──────────────
  * 固定 1080×1440（3:4 竖版），版式完全受控、不随页面 CSS 变化
  * （spec US5 判据 6/7）。同输入必同输出：无随机、无时钟入图。
- * 「仅供娱乐」水印常显（判据 2）；零外部网络请求（判据 3）。 */
-function drawPoster(j) {
+ * 「仅供娱乐」水印常显（判据 2）；零外部网络请求（判据 3）。
+ *
+ * R193b（T3.3/B-013）：drawPoster 变外壳，绘制本体拆到 _paintPoster
+ * （逻辑坐标恒 1080×1440，ctx.scale 适配目标像素）。
+ *   - 默认（opts.auto 非 false）：先全尺寸绘一遍并计时，单次同步耗时
+ *     >50ms（长任务阈值）即按 T3.3「低端降级 750×1000」重画一次返回小图；
+ *   - opts.auto=false：固定尺寸直绘、不降级——check_poster 的既有判据
+ *     （尺寸/字节/水印/耗时）继续按原口径测量；
+ *   - opts.low=true：强制 750×1000（可对降级产物直接断言）；
+ *   - warmPoster() 在页面空闲时预热字体/栅格管线，消除首次点击冷启动
+ *     （main 实测首跑 51.7ms ≥50ms、稳态约 25ms，见台账本轮 §）。 */
+var POSTER_FULL_W = 1080, POSTER_FULL_H = 1440;   /* 判据 7 固定 3:4 */
+var POSTER_LOW_W = 750, POSTER_LOW_H = 1000;      /* T3.3 低端降级尺寸 */
+var POSTER_LONGTASK_MS = 50;                      /* 长任务阈值 */
+
+function drawPoster(j, opts) {
+  var o = opts || {};
+  var perf = (window.performance && performance.now) ?
+    function () { return performance.now(); } : function () { return 0; };
+  var W = o.low ? POSTER_LOW_W : POSTER_FULL_W;
+  var H = o.low ? POSTER_LOW_H : POSTER_FULL_H;
+  if (o.auto === false || o.low) {     /* 验收口径 / 强制低配：固定尺寸直绘 */
+    var __cv = _paintPoster(j, W, H);
+    return __cv ? { canvas: __cv, w: W, h: H } : null;
+  }
+  var __t1 = perf();
+  var cv = _paintPoster(j, POSTER_FULL_W, POSTER_FULL_H);
+  var __dt = perf() - __t1;
+  if (!cv) return null;
+  if (__dt > POSTER_LONGTASK_MS) {     /* T3.3：长任务 → 低端降级重画 */
+    return { canvas: _paintPoster(j, POSTER_LOW_W, POSTER_LOW_H),
+             w: POSTER_LOW_W, h: POSTER_LOW_H };
+  }
+  return { canvas: cv, w: POSTER_FULL_W, h: POSTER_FULL_H };
+}
+
+/** 海报绘制本体：逻辑坐标恒 1080×1440，经 ctx.scale 缩放到目标画布。
+ *  所有几何/字号写死逻辑值——同一输入在任何目标尺寸下版式逐点一致。 */
+function _paintPoster(j, W, H) {
+  var S = W / 1080;
   var warm = (j && j.warm) || {};
   var paipan = (j && j.paipan) || {};
   var ec = warm.energy_card || {};
-  var W = 1080, H = 1440;
   var cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   var ctx = cv.getContext('2d');
   if (!ctx) return null;
+  ctx.setTransform(S, 0, 0, S, 0, 0);
 
   // 底色：暖米白渐变（固定值，不读 CSS 变量——版式不受主题影响）
-  var bg = ctx.createLinearGradient(0, 0, 0, H);
+  var bg = ctx.createLinearGradient(0, 0, 0, 1440);
   bg.addColorStop(0, '#FDF8F0');
   bg.addColorStop(1, '#F6EDE0');
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, 1080, 1440);
 
   // 标题
   ctx.fillStyle = '#7A5C2E';
@@ -597,16 +635,27 @@ function drawPoster(j) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 34px sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', W / 2, H - 90);
+  ctx.fillText('知命 · 仅供娱乐', W / 2, 1440 - 90);
 
   return cv;
 }
 
-function downloadPoster(j) {
-  var cv = drawPoster(j);
-  if (!cv) return;
+/** R193b（T3.3）：空闲时预热海报字体/栅格管线——首跑冷启动实测 51.7ms
+ *  （≥50ms 长任务阈值）、稳态约 25ms；预热把冷启动成本移到页面加载期，
+ *  用户点击「分享图」时走的就是热路径。产物即弃，零副作用。 */
+function warmPoster() {
   try {
-    cv.toBlob(function (blob) {
+    var cv = _paintPoster({}, POSTER_FULL_W, POSTER_FULL_H);
+    if (cv) cv.width = cv.height = 1;   /* 解除大位图引用 */
+  } catch (e) { /* 预热失败不影响任何主流程 */ }
+}
+
+function downloadPoster(j) {
+  /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。 */
+  var r = drawPoster(j);
+  if (!r || !r.canvas) return;
+  try {
+    r.canvas.toBlob(function (blob) {
       if (!blob) return;
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1574,6 +1623,9 @@ async function doQiming() {
       top_n: 20
     });
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
+    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+    html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
+      'title="生成分享图">📸 分享图</button>';
     const bz = j.bazi || {};
     if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
     const fe = j.five_elements || {};
@@ -1614,6 +1666,7 @@ async function doQiming() {
     paint('qmResult', html);
     revealResult('qmResult');
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
+    on('shareQiming', function () { downloadPoster(j); });   // R193b 海报入口
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
   }
@@ -1630,6 +1683,9 @@ async function doTaohua() {
       gender: val('th_gender') || '男'
     });
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
+    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+    html += '<button class="ghost fav-btn" type="button" id="shareTaohua" ' +
+      'title="生成分享图">📸 分享图</button>';
     const bz = j.bazi || {};
     // R187b：人话视图置顶（specs/005 US4——先说人话，再看坐标）
     if (j.warm) {
@@ -1684,6 +1740,7 @@ async function doTaohua() {
     paint('thResult', html);
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
+    on('shareTaohua', function () { downloadPoster(j); });   // R193b 海报入口
   } catch (e) {
     fail('thResult', '测算失败：' + e.message);
   }
@@ -1756,6 +1813,9 @@ async function doHehun() {
     const a = j.a_bazi || {};
     const b = j.b_bazi || {};
     let html = '<div class="card"><h2>💕 八字合婚</h2>';
+    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+    html += '<button class="ghost fav-btn" type="button" id="shareHehun" ' +
+      'title="生成分享图">📸 分享图</button>';
     // R187b：人话视图置顶（specs/005 US4）
     if (j.warm) {
       html += '<div class="warm-wrap"><div class="warm-l0">' +
@@ -1813,6 +1873,7 @@ async function doHehun() {
     paint('hhResult', html);
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
+    on('shareHehun', function () { downloadPoster(j); });   // R193b 海报入口
   } catch (e) {
     fail('hhResult', '计算失败：' + e.message);
   }
@@ -2169,6 +2230,7 @@ function init() {
   loadRecent();
   loadFavorites();
   loadNews();
+  warmPoster();   /* R193b：空闲预热海报管线，消除首点冷启动长任务 */
 }
 
 if (document.readyState === 'loading') {

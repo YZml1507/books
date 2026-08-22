@@ -17,6 +17,11 @@
              记录所有 fillText 调用，检查水印文案在其中）
            - B-013（R132a 补）：`drawPoster` 单次同步耗时 <50ms（长任务阈值，
              specs/004 T3.3）——固定输入下计时，测代码成本而非环境
+           - R193b 补（T3.3 后半）：外壳默认 auto 模式返回尺寸必须是
+             {1080,1440} 或降级 {750,1000} 二者之一；强制 low:true 时
+             返回 750×1000。R193b 起 drawPoster 返回
+             {canvas,w,h}（>50ms 自动按 T3.3 降级重画），验收路径用
+             {auto:false} 固定口径直绘
   判据 13  运行时外链 = 0
            - 静态：`web/static/**` 零 `<link href="http`、零 `<script src="http`、
              零 `html2canvas`、零 `cdn.`
@@ -120,6 +125,7 @@ def main(self_check: bool = False) -> int:
 
         from playwright.sync_api import sync_playwright
         ext_reqs: list[str] = []
+        dims: dict = {}          # R193b：T3.3 尺寸契约（异常时保持空 → 判据 FAIL）
         with sync_playwright() as pw:
             browser = pw.chromium.launch()
             page = browser.new_page(viewport={"width": 390, "height": 844})
@@ -137,12 +143,23 @@ def main(self_check: bool = False) -> int:
                 };
             }""")
             res = page.evaluate("(j) => { const __t0 = performance.now();"
-                               " const cv = drawPoster(j);"
+                               " const __r = drawPoster(j, {auto:false});"
                                " const __dt = performance.now() - __t0;"
-                               " if (!cv) return null; "
+                               " if (!__r || !__r.canvas) return null; "
+                               " const cv = __r.canvas;"
                                " return {w: cv.width, h: cv.height, ms: __dt, "
                                "url: cv.toDataURL('image/png'), "
                                "texts: window.__texts}; }", api)
+            # R193b（T3.3 后半）：外壳 auto 模式与强制低配直绘的尺寸契约。
+            # 不再对 auto 耗时下断言——它 >50ms 时**应该**降级而非 FAIL；
+            # 长任务判据由上面 {auto:false} 固定口径承载。
+            dims = page.evaluate("""(j) => {
+                const a = drawPoster(j);
+                const l = drawPoster(j, {low:true});
+                return {aw: a && a.w, ah: a && a.h,
+                        lw: l && l.w, lh: l && l.h,
+                        lauto: l && l.auto};
+            }""", api)
             browser.close()
     finally:
         proc.terminate()
@@ -165,7 +182,14 @@ def main(self_check: bool = False) -> int:
     # 长任务（specs/004 T3.3 / INP 预算）。固定输入下测的是代码成本，不是环境。
     draw_ms = float(res.get("ms") or 0.0)
     longtask_ok = draw_ms < 50.0
-    ok12 = size_ok and dim_ok and mark_ok and longtask_ok
+    # R193b（T3.3 后半）：外壳尺寸契约——auto 返回全尺寸或降级二选一，
+    # low:true 强制 750×1000（降级产物可断言）。
+    full = {1080, 1440}
+    low = {750, 1000}
+    auto_pair = {dims.get("aw"), dims.get("ah")}
+    auto_ok = auto_pair == full or auto_pair == low
+    low_ok = {dims.get("lw"), dims.get("lh")} == low
+    ok12 = size_ok and dim_ok and mark_ok and longtask_ok and auto_ok and low_ok
     print(f"判据 12 分享图：PNG {len(raw):,} 字节（阈值 >{MIN_BYTES:,}）="
           f"{size_ok}　尺寸 {w}×{h}（须 {EXPECT_W}×{EXPECT_H}）={dim_ok}　"
           f"水印含「{WATERMARK}」={mark_ok}　{'PASS' if ok12 else 'FAIL'}")
@@ -173,6 +197,9 @@ def main(self_check: bool = False) -> int:
           f"{res['texts'][:6]}")
     print(f"B-013 同步绘制耗时：{draw_ms:.1f}ms（长任务阈值 <50ms）　"
           f"{'PASS' if longtask_ok else 'FAIL'}")
+    print(f"T3.3 尺寸契约：auto→{dims.get('aw')}×{dims.get('ah')}"
+          f"（须 1080×1440 或 750×1000）={auto_ok}　"
+          f"low→{dims.get('lw')}×{dims.get('lh')}（须 750×1000）={low_ok}")
 
     ok13 = ok13_static and not ext_reqs
     print(f"判据 13b 运行时外链：{len(ext_reqs)} 个非同源请求　"
