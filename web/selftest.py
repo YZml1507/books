@@ -906,6 +906,77 @@ def run() -> list[str]:
                     for s in _wl["interpretation"].get("sections") or [])
     assert "不代为断事" in _pro, "专业分支原文必须保持不变（判据 9）"
     ok.append("warm.liuyao.answers_not_refuse")
+
+    # ── 006 AI 润色层（R132a，T1.5）：selftest 侧三条契约断言 ─────────────
+    # 完整判据由 probes/probe_llm_polish.py 把关（降级矩阵/三库零命中/注入抵抗）；
+    # 这里放**端点契约级**断言，闸门在 BOOKS_LLM_DISABLE=1 下可复现。
+    from guji import llm_polish as _lp
+    # 判据 key_present：四端点响应**永远带** ai_polish 键（关闭时是 None，
+    # 不是缺键）——前端 renderAiPolish(j) 靠 `j.ai_polish` 取值，键缺失与
+    # None 在语义上等价，但契约上键必须恒在，抓「哪天忘了附加」的静默回归。
+    for _ep, _pl in (("/api/bazi", {"year": 1990, "month": 5, "day": 15,
+                                    "hour": 10, "gender": "男"}),
+                     ("/api/taohua", {"year": 1990, "month": 5, "day": 15,
+                                      "hour": 10, "gender": "男"}),
+                     ("/api/hehun", {"a_year": 1990, "a_month": 5, "a_day": 15,
+                                     "a_hour": 10, "a_gender": "男",
+                                     "b_year": 1992, "b_month": 8, "b_day": 20,
+                                     "b_hour": 14, "b_gender": "女"}),
+                     ("/api/qiming", {"surname": "李", "year": 1990,
+                                      "month": 1, "day": 1, "hour": 12,
+                                      "gender": "男", "top_n": 5})):
+        _aj = client.post(_ep, json=_pl).json()
+        assert "ai_polish" in _aj, (_ep, sorted(_aj))
+    ok.append("ai_polish.key_present")
+    for rec in history_db.list_records(limit=20):
+        if rec["id"] > max_id_before:
+            history_db.delete_record(rec["id"])
+    # 判据 disabled_none：总开关开启时 polish() 必须返回 None 且不抛——
+    # LLM 永远不是承重墙（D-244a），禁用路径必须是一条真实可走的路。
+    os.environ["BOOKS_LLM_DISABLE"] = "1"
+    try:
+        assert _lp.polish(["日主戊"], "感情？",
+                          config={"base_url": "http://127.0.0.1:1",
+                                  "api_key": "x", "model": "m"}) is None
+    finally:
+        os.environ.pop("BOOKS_LLM_DISABLE", None)
+    ok.append("ai_polish.disabled_none")
+    # 判据 additive：四端点顶层键集合 = 「LLM 时代之前」的形状 + ai_polish
+    # 一个键。additive 是 specs/006 的架构承诺：润色层只附加、不改写既有
+    # 字段。钉死键集合 = 未登记的新键/被改掉的旧键都会被抓到（同 D-228b 先例）。
+    _shapes = {
+        "/api/bazi": {"year": 1990, "month": 5, "day": 15, "hour": 10,
+                      "gender": "男"},
+        "/api/taohua": {"year": 1990, "month": 5, "day": 15, "hour": 10,
+                        "gender": "男"},
+        "/api/hehun": {"a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+                       "a_gender": "男", "b_year": 1992, "b_month": 8,
+                       "b_day": 20, "b_hour": 14, "b_gender": "女"},
+        "/api/qiming": {"surname": "李", "year": 1990, "month": 1, "day": 1,
+                        "hour": 12, "gender": "男", "top_n": 5},
+    }
+    _expect_keys = {
+        "/api/bazi": {"paipan", "calc", "evidence", "interpretation",
+                      "warm", "ai_polish"},
+        "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
+                        "tianxi_pillar", "strength", "render", "notes",
+                        "dayun_hits", "hit_pillars", "warm", "bazi",
+                        "year_zhi", "ai_polish"},
+        "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
+                       "day_wx_b", "day_wx_sheng", "peach_a", "peach_b",
+                       "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
+                       "year_zhi_a", "year_zhi_b", "ai_polish"},
+        "/api/qiming": {"surname", "candidates", "summary", "five_elements",
+                        "full_names", "bazi", "ai_polish"},
+    }
+    for _ep, _pl in _shapes.items():
+        _got = set(client.post(_ep, json=_pl).json())
+        assert _got == _expect_keys[_ep], \
+            (_ep, sorted(_got), sorted(_expect_keys[_ep]))
+    ok.append("ai_polish.additive")
+    for rec in history_db.list_records(limit=20):
+        if rec["id"] > max_id_before:
+            history_db.delete_record(rec["id"])
     return ok
 
 

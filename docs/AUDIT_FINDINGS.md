@@ -462,7 +462,7 @@ R118a 已自己重跑复现命令确认全部成立，并在每条下追加实�
   不得为了让相关性变好而放宽那两个闸门（红线第 2 项）。
 - 严重级：MAJOR（契约错误：`question` 是 API 入参且前端在收集它，
   但对证据选取无任何作用——用户合理预期它有作用）
-- 状态：FIXED-R189b（待新审查轨复验转 VERIFIED）
+- 状态：VERIFIED-R132a（新审查轨四条前置命令全部复现，见下方 R132a 复验记录）
 
 **R190b 补记——修复方声明 + 第三方独立复验（此段由 R190b 追加，不改写上方原始条目）**
 
@@ -602,6 +602,150 @@ R187b/R188b/R189b 三轮，其中 `web/static/app.js` 变动 +222 行（含 `dra
 - 唯一"probe 自身无法判定"的情形（SKIP）本轮为 **0**：所有列表型响应都被
   fixture 喂成了非空。这条重要——SKIP 不为 0 时本 probe 会返回退出码 2 而
   不是假装通过。
+
+---
+
+## R132a（2026-08-22，审查轨首轮全量复验 + 四项职权清偿）
+
+**背景**：双轨已对账同步（`git rev-list --count main..audit` / `audit..main` 均 0，
+HEAD=ab9b017）。本轮 = 审 D-250b 越界 + 亲验 R190b 新建 4 闸门 + 复现 R131a-01
+四条前置 + 抽查文档-实况对账 + 清偿移交清单四项。
+
+### R132a-00 对 D-250b 越界的复核结论：约束守住，越界本身追认
+
+逐条核实（命令可复现）：
+
+    git show bfdc58d --stat                       # 改动范围与声明一致，无暗改
+    git show bfdc58d -- docs/AUDIT_FINDINGS.md | grep "^-"
+      # 删除行仅一处："- 状态：OPEN"（R118a-03 → FIXED-R189b 的合法流转）
+    git diff bfdc58d^ bfdc58d -w -- specs/005-plain-first/tasks.md
+      # -w 下实质改动 2 行，均为带「R190b 订正」标注的 sha256 订正注；
+      # 裸 diff 的 362 行是行尾符重写噪音，非内容改写
+    grep -n CURRENT_PHASE docs/PHASE.md           # 第 3 行仍 OPTIMIZE，未动
+
+PHASE.md 的 REPAIR 矛盾订正、specs/005/006 的 sha256 订正注、AUDIT_FINDINGS 的
+两段补记——全部带显式标注、保留原文备查。**追认本次越界**；但注意：这是
+「审查轨无人在跑」这一条件下的例外通道，不构成惯例，下次优先等审查轨或
+在台账挂起。
+
+### R132a-01 R190b 新建 4 闸门亲验：全部为真闸门
+
+主用例 + `--self-check` 各跑一遍（BOOKS_LLM_DISABLE=1），并读源码确认阳性对照
+真实注入坏情况（U-08 防假闸门检查）：
+
+| 探针 | 主用例 | self-check | 被抓明细 |
+|---|---|---|---|
+| probe_r131a_relevance | 0 | 0 | 判据 A 5→1 种集合 FAIL、判据 C 0/12 FAIL |
+| probe_r128a_no_dup_citations | 0 | 0 | DOM 容器 12→24 vs API 12 FAIL |
+| web/check_poster | 0 | 0 | 尺寸 1080→800、水印被抹 → 判据 12 FAIL |
+| probe_llm_polish | 0 | 0 | _sanitize 失效后《穷通宝鉴》漏出被抓 |
+
+打桩有效性核验：r131a 的 stub 打在 `guji.bazi_lookup.topic_queries` 模块属性上，
+`retrieve_fast()` 内部以模块全局名调用（src/guji/bazi_lookup.py:145），stub 生效。
+
+### R132a-02 R131a-01 转 VERIFIED（四条前置全部复现）
+
+    <py> probes\probe_r131a_relevance.py              # 0（5 提问→5 集合、B/C PASS）
+    <py> probes\probe_r131a_relevance.py --self-check # 0（阳性对照被抓）
+    <py> scripts\eval_g1.py   # 0，G1 = PASS 246/248 (99.2%)——门柱未移
+    <py> scripts\eval_g7.py   # 0，30/30·25/25·4/4·FABRICATIONS 0——门柱未移
+
+另 `<py> web\baseline_voice.py` → 0（14 用例逐字节一致，sha256 97f0681e…）。
+基线重冻审计（宪法第三条）：diff eefd28e^..eefd28e 基线文件，155 个叶子变更
+**全部落在 3 个带提问用例**（day.q_career/day.q_love/male.day——male.day 实带
+「财运怎么样？」），7 个无提问用例逐字节 SAME；14 个「有 text 无出处」节点新旧
+同构（interpretation 正文串本身，非本次重冻造成）→ 出处零丢失，重冻合法。
+
+### R132a-03 文档-实况对账抽查：R190b 五处声明全部属实
+
+1. specs/004 tasks M2/M3：T2.1/T2.2/T3.1 重跑输出与状态列一致（xingzuo
+   self-test PASS、check_xingzuo 判据 10/12 锚点达标、PNG 249,688 字节/
+   1080×1440）；T3.3 仍 TODO 未虚报。
+2. PHASE.md 闸门 2 命令：`grep -c sys.argv web/app.py` = 0（旧命令确实失效），
+   `web/selftest.py` 退出码 0。订正属实。
+3. sha256 五处订正注：见 R132a-02 重冻审计。
+4. specs/006 T1.5/T2.3 如实留 TODO：`grep -c ai_polish web/selftest.py
+   probes/probe_ui_smoke.py` 当时均 0。本轮已清偿（见 R132a-04）。
+
+### R132a-04 移交清单四项清偿（审查轨职权内）
+
+> 领土说明（宪法第五条，主动声明）：`web/selftest.py` 与 `specs/006/tasks.md`
+> 严格说是优化轨文件，但开机指令第四件事 a) 把 T1.5 明确列为审查轨移交任务、
+> T2.3 同单；状态列更新沿用 R190b 已被追认的惯例（完成方附命令改状态）。
+> 特此声明，优化轨可复核。
+
+a) **T1.5 selftest 补 ai_polish 三条断言**：key_present（四端点恒带键）/
+   disabled_none（总开关下 polish() 返回 None 不抛）/ additive（四端点顶层键
+   集合钉死 = LLM 前形状 + ai_polish 一个键，D-228b 先例）。149→152 checks 全绿；
+   `probes/selftest_baseline.json` 同步 150→153；probe_selftest_regress PASS。
+   写 history 的断言块自带清理（L-22 惯例）。
+b) **T2.3 probe_ui_smoke 补两条 AI 区块行为用例**（D-145a 只断行为）：
+   ai.block.renders_with_ai（LLM 可用时 .ai-polish 出现且标注「AI 生成」「仅供
+   娱乐」常显）/ ai.block.separate_from_citations（AI 容器与 .cite-body 互不
+   嵌套、类名零复用）。为离线可复现，probe 内置 stdlib mock OpenAI 兼容端点，
+   经 BOOKS_LLM_BASE_URL 注入被测子进程（零外网、零新依赖）；mock 起不来时
+   两用例如实转 SKIP。
+c) **B-018 news.refresh 两层拆分**：见 OPTIMIZE_BACKLOG B-018 处置记录。
+d) **B-013 check_poster 补长任务判据**：见 OPTIMIZE_BACKLOG B-013 处置记录。
+
+### R132a-F1 子进程式探针硬编码 ROOT/.venv，audit worktree 下必然 FileNotFoundError（MAJOR→本轮已修，VERIFIED-R132a）
+
+- 级别：MAJOR（审查轨的验收闸门在审查轨目录跑不起来——「闸门只在自己的
+  目录有效」等于半残）
+- 复现（修复前）：
+
+      cd books-audit && BOOKS_LLM_DISABLE=1 <py> probes\probe_r128a_no_dup_citations.py
+      # FileNotFoundError: [WinError 2]（PY = ROOT\.venv\Scripts\python.exe，
+      # 而 audit worktree 无自己的 .venv——解释器借主 worktree）
+
+- 波及：probe_r128a_no_dup_citations.py、web/check_poster.py、
+  probe_llm_polish.py（三者的 PY 常量）
+- 修复（审查轨领土内：probes/** 与 web/check_*.py 本就归我，直接修而非移交）：
+  三处子进程一律改 `PY = sys.executable`；另给 books-audit 建 `.venv`
+  directory junction 指向主 worktree 作环境兜底（`.venv/` 已 gitignored）
+- 验证：三个探针在 audit worktree 下全部退出码 0（r128a 主+self、
+  poster 主+self、llm_polish 主+self 共 8 条命令实测）
+- 状态：VERIFIED-R132a
+
+### R132a-F2 Windows 系统代理吞掉发往 127.0.0.1 的 httpx 请求（MINOR，登记 backlog）
+
+- 复现（注册表 ProxyEnable=1、ProxyServer=127.0.0.1:7897 的机器上）：
+
+      reg query "HKCU\...\Internet Settings" /v ProxyEnable   # = 0x1
+      <py> -c "import httpx; print(httpx.post('http://127.0.0.1:<port>/v1/chat/completions', ...).status_code)"
+      # → 502（请求根本没到本机 mock 服务；server 收到 0 个请求）
+      # 设 NO_PROXY=127.0.0.1,localhost 后同一请求 → 200，polish() 正常出文
+
+  根因：httpx trust_env 拾取 **Windows 注册表代理**（bash 里 HTTP_PROXY 等
+  环境变量均为空），且不尊重 IE 的 ProxyOverride（其中明明有 127.*）
+- **严重级订正（R132a 自纠）**：初判 MAJOR，实证后降 MINOR——真实用户的
+  LLM 目标是远程 apihub，实测系统代理开着时 `https://apihub.agnes-ai.com` →
+  401（可达未授权，正常路径），HN 同测 200。被代理吞掉的只有 **localhost
+  目标**：影响面 = 本地 mock / 未来本地模型场景 + 本 probe 的注入链路，
+  不影响线上用户。产品层加固仍值得做（llm_polish 对 localhost 豁免代理或
+  trust_env=False），但不是用户当下在流血的洞
+- 本轮处置：probe_ui_smoke 注入 env 显式加 NO_PROXY=127.0.0.1,localhost
+  （只影响被测子进程），mock 链路稳定；登记 OPTIMIZE_BACKLOG B-020
+- 状态：OPEN → B-020
+
+### R132a-F3 probe_r131a_relevance 主用例写 history.db 不自带清理（MINOR）
+
+- 级别：MINOR（进 backlog 不阻塞）
+- 复现：跑一次主用例后 `data/history.db` 多出 8 条「感情运怎么样？」记录，
+  探针内无 delete_record 清理逻辑——违反全仓探针的 L-22 惯例
+- 附带事实：R132a 本轮复验电池因此留下残留，已手工按指纹精确清除
+  （19 行：id 2124–2132、2145–2147、2167–2172、2185，删除前后行数核对）
+- 处置：登记 OPTIMIZE_BACKLOG B-019，修法照抄 probe_ui_smoke.py:518 的
+  baseline+delete+复验三段式
+- 状态：OPEN → B-019
+
+### R132a 闸门结论（措辞遵守 D-250b 后的新口径）
+
+13 道宪法闸门退出码全 0；附加闸门（count_open_findings/selftest/probe_contract/
+probe_dollar/baseline_voice/check_warm_voice/check_plain_first/check_xingzuo/
+no_generated_in_corpus/selftest_regress/probe_first_screen）全 0；
+新建 4 闸门主用例+--self-check 共 8 条全 0。**probe_ui_smoke 40/40 全 PASS、
+退出码 0（B-018 修复后首次真全绿）**。日志 $LOCALAPPDATA/Temp/gates_r132a/。
 
 ---
 

@@ -31,7 +31,9 @@ import urllib.error
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+# R132a（F1）：不用 ROOT/.venv 硬编码——audit worktree 无自己的 .venv（解释器
+# 借主 worktree），子进程一律用 sys.executable，两个 worktree 都能跑。
+PY = sys.executable
 PORT = 8232
 PAYLOAD = {"year": 1998, "month": 7, "day": 20, "hour": 14,
            "gender": "女", "question": "感情运怎么样？", "ask_date": "2026-08-20"}

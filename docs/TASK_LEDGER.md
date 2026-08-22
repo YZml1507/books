@@ -7179,3 +7179,49 @@ probe_ui_smoke 36/37，唯一失败项是环境判据混入产品闸门（B-018�
 由新审查轨复核有无越界。决策记录 D-250b。
 
 **移交给两个新窗口**：见 D-246b~D-250b 与 `OPTIMIZE_BACKLOG.md` R190b 段。
+
+### 129. [审查轨] R132a：D-250b 越界复核 + 亲验 4 新闸门 + R131a-01 转 VERIFIED + 清偿移交四项（2026-08-22）
+
+**前置状态复核**（不采信口头）：HEAD=ab9b017，`git rev-list --count main..audit`
+与 `audit..main` 均 0，`count_open_findings.py` 退出码 0——双轨同步属实。
+
+1. **D-250b 越界复核 → 追认**：`git show bfdc58d` 删除行仅 1 处（R118a-03
+   状态流转）；specs/005 tasks 裸 diff 362 行经 `-w` 验证实质仅 2 行且均为带标注
+   的 sha256 订正注；CURRENT_PHASE 未动；004/006/PHASE 各订正均带显式标注并保留
+   原文。约束四条全守住。声明：此为「审查轨无人在跑」下的例外通道，不成惯例。
+
+2. **4 个新闸门亲验（修复方自建的，宪法第一条不许自签）**：主用例 + --self-check
+   共 8 条命令全 0，且逐一读源码确认阳性对照真实注入坏情况、实跑能看到被抓明细
+   （r131a: 5→1 集合 + C 0/12；r128a: 12→24 容器；poster: 800×1440+抹水印；
+   llm_polish: 《穷通宝鉴》漏出被抓）。打桩有效性核验：stub 打在模块属性上而
+   retrieve_fast 以模块全局名调用（bazi_lookup.py:145），生效路径成立。
+
+3. **R131a-01 → VERIFIED-R132a**：四条前置命令全部复现（probe 主+self 0、
+   eval_g1 246/248、eval_g7 30/30·25/25·4/4·FAB 0）。另做基线重冻审计：
+   eefd28e 的基线 diff 155 个叶子变更全落 3 个带提问用例（male.day 确认带提问），
+   7 个无提问用例逐字节 SAME，出处零丢失——重冻合法（宪法第三条）。
+
+4. **文档-实况对账抽查**：R190b 五处声明（004 M2/M3 状态列、闸门2 命令、sha256
+   五处注、specs/006 T1.5/T2.3 TODO、B-018 归因）逐条重跑，全部属实，零虚报。
+
+5. **移交清单四项清偿**（审查轨职权内直接做）：
+   - T1.5：selftest 补 ai_polish.key_present/disabled_none/additive 三条断言，
+     149→152 全绿；selftest_baseline.json 150→153 同步；regress PASS。
+   - T2.3：probe_ui_smoke 补 ai.block.renders_with_ai /
+     ai.block.separate_from_citations 两用例；内置 stdlib mock OpenAI 兼容端点，
+     经 BOOKS_LLM_BASE_URL 注入子进程，离线可复现。
+   - B-018：news.refresh 拆成 endpoint 层（离线断言）+ content_reachable 层
+     （可达才断言，否则 SKIP 不 FAIL），用例未删。闸门 3 首次真全绿。
+   - B-013：check_poster 补 drawPoster <50ms 同步耗时判据，实测 30.3ms PASS，
+     并入判据 12。
+
+6. **本轮新 FINDING**：F1 子进程探针硬编码 ROOT/.venv 在 audit worktree 必然
+   FileNotFoundError（MAJOR→已修：三处 PY 改 sys.executable + audit 侧建 .venv
+   junction 兜底，VERIFIED-R132a）；F2 httpx trust_env 拾取 Windows 注册表代理吞掉
+   发往 127.0.0.1 的请求（初判 MAJOR，实证 apihub 远程路径不受影响后自纠降 MINOR
+   → B-020；probe 注入 env 加 NO_PROXY 兜底）；F3 probe_r131a 不清理 history.db
+   （MINOR → B-019）。本轮残留 19 行 history 已手工按指纹清除。
+
+7. **闸门口径**：13 道宪法闸门全 0；附加闸门全 0；新建 8 条命令全 0；
+   probe_ui_smoke 40/40 全 PASS 退出码 0（B-018 修复后首次真全绿——这次可以说
+   「全绿」，因为不再有环境判据混在产品闸门里）。日志 $LOCALAPPDATA/Temp/gates_r132a/。

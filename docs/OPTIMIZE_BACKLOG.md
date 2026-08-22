@@ -219,6 +219,12 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
   `Performance.getMetrics` 记录 drawPoster 的同步耗时上限
 - 可测量性：drawPoster 单次同步耗时 <50ms（或明确给出低端机放宽阈值并写理由）
 - 来源：R188b 自报移交 → R190b 确认判据仍空缺
+- 处置：**FIXED-R132a（审查轨自建判据，待优化轨复验）**。判据已补进
+  `web/check_poster.py`：`drawPoster(j)` 前后 `performance.now()` 计时，
+  断言 <50ms，并入判据 12（任一子项 FAIL 即退出码 1）。R132a 实测：
+  主跑 30.3ms PASS、--self-check 27.4ms PASS（阳性对照仍被抓到）。
+  注意这是**固定输入下的代码成本**，不是 B-013 原文的「低端真机」——
+  真机长任务实测仍开放，本条按「可测量性已落地」降级关闭
 
 ### B-014 LLM 开启时四端点同步阻塞 29–32 秒，用户实际体验是长时间白屏
 - 类型：性能（**本池当前最高优先级**：直接对撞用户原话「治愈、低门槛」）
@@ -305,6 +311,13 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
 - 可测量性：断网环境下 `probe_ui_smoke` 退出码 0 且打印 1 条 SKIP；
   联网环境下同一脚本对 news 条目做真实断言
 - 来源：R190b 主动实测 + 干净 HEAD 阳性对照
+- 处置：**FIXED-R132a（审查轨自修，闸门 3 首次真全绿）**。按设想拆成两层：
+  (a) `btn:news.refresh.endpoint`——点击 → 真的请求 `/api/external/news`
+  （playwright 拦截验证）→ 容器出现合法终态（条目**或**设计内「暂无新闻」
+  空态），零 console.error，纯离线可判；(b) `env:news.content_reachable`——
+  空态时打印 SKIP 说明不断言；可达时断言 `.news-item > 0`。用例未删除。
+  R132a 实测：本轮外网恰好可达（走了 8 条目断言分支 PASS）；空态分支由
+  判据 (a) 的 degrade_ok 路径覆盖。probe_ui_smoke 40 用例全 PASS、退出码 0
 
 ### B-017 首页「今日运势」卡的贵人属相语义可疑（B-003 的复现确认）
 - 类型：功能扩展
@@ -313,3 +326,29 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
   属相」。这条与 B-003 同源，此处仅登记「已复核仍在」，不重复开条目
 - 可测量性：需先定义正确语义（属需求澄清），故仍留本池不进 spec
 - 来源：R190b 复核 B-003
+
+### B-019 probe_r131a_relevance 写 history.db 不自带清理（R132a-F3）
+- 类型：测试基建（MINOR，不阻塞任何闸门）
+- 现状（R132a 实测）：主用例 8 次 POST /api/bazi 全部落 history.db，
+  探针内无 delete_record 清理——违反全仓探针的 L-22 惯例；R132a 复验电池
+  因此留下 19 行残留（已手工按指纹清除：id 2124–2132、2145–2147、2167–2172、2185）
+- 设想：照抄 probe_ui_smoke.py:518 的三段式——跑前记 baseline 行数、
+  finally 里删除新增行、退出前复验行数回到 baseline
+- 可测量性：连跑两遍 probe 后 `history_db.count()` 与跑前相同
+- 来源：R132a-F3
+
+### B-020 httpx trust_env 拾取 Windows 注册表代理且无视 ProxyOverride，发往 127.0.0.1 的请求被吞成 502（R132a-F2）
+- 类型：健壮性加固（MINOR：实证不影响线上用户路径）
+- 现状（R132a 实测，注册表 ProxyEnable=1 / ProxyServer=127.0.0.1:7897）：
+  bash 环境 HTTP_PROXY 等全空，但 httpx 仍走系统代理 → 发往
+  `http://127.0.0.1:<port>` 的 polish 请求拿到 502 空响应（mock 服务收到
+  0 个请求），polish() 静默降级 None。设 NO_PROXY=127.0.0.1,localhost 后恢复。
+  远程目标不受影响：`https://apihub.agnes-ai.com/v1/models` 经系统代理 → 401
+  （可达未授权，正常）
+- 影响面：本地 mock / 未来本地模型场景 + 探针注入链路；probe_ui_smoke 已在
+  注入 env 里显式加 NO_PROXY 兜底
+- 设想：llm_polish.polish() 对 localhost/127.0.0.1 目标用 trust_env=False 的
+  httpx.Client（或全局改），让「LLM 指到本地」这条路不被系统代理掐断
+- 可测量性：系统代理开启的机器上，BOOKS_LLM_BASE_URL 指 localhost mock 时
+  四端点 ai_polish 非 None
+- 来源：R132a-F2

@@ -15,6 +15,8 @@
            - 娱乐标识：断言 `drawPoster` 源码里存在「仅供娱乐」水印文案，
              且它被 `fillText` 真的画上去（用 CanvasRenderingContext2D 打桩
              记录所有 fillText 调用，检查水印文案在其中）
+           - B-013（R132a 补）：`drawPoster` 单次同步耗时 <50ms（长任务阈值，
+             specs/004 T3.3）——固定输入下计时，测代码成本而非环境
   判据 13  运行时外链 = 0
            - 静态：`web/static/**` 零 `<link href="http`、零 `<script src="http`、
              零 `html2canvas`、零 `cdn.`
@@ -41,7 +43,9 @@ import time
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+# R132a（F1）：不用 ROOT/.venv 硬编码——audit worktree 无自己的 .venv（解释器
+# 借主 worktree），子进程一律用 sys.executable，两个 worktree 都能跑。
+PY = sys.executable
 PORT = 8236
 STATIC = os.path.join(ROOT, "web", "static")
 MIN_BYTES = 40 * 1024                      # spec §284 阈值
@@ -132,9 +136,11 @@ def main(self_check: bool = False) -> int:
                     return orig.call(this, t, ...a);
                 };
             }""")
-            res = page.evaluate("(j) => { const cv = drawPoster(j); "
-                               "if (!cv) return null; "
-                               "return {w: cv.width, h: cv.height, "
+            res = page.evaluate("(j) => { const __t0 = performance.now();"
+                               " const cv = drawPoster(j);"
+                               " const __dt = performance.now() - __t0;"
+                               " if (!cv) return null; "
+                               " return {w: cv.width, h: cv.height, ms: __dt, "
                                "url: cv.toDataURL('image/png'), "
                                "texts: window.__texts}; }", api)
             browser.close()
@@ -155,12 +161,18 @@ def main(self_check: bool = False) -> int:
     size_ok = len(raw) > MIN_BYTES
     dim_ok = (w == EXPECT_W and h == EXPECT_H)
     mark_ok = any(WATERMARK in t for t in texts)
-    ok12 = size_ok and dim_ok and mark_ok
+    # B-013（R132a 补判据）：drawPoster 是同步绘制，若单次耗时 >50ms 就是一次
+    # 长任务（specs/004 T3.3 / INP 预算）。固定输入下测的是代码成本，不是环境。
+    draw_ms = float(res.get("ms") or 0.0)
+    longtask_ok = draw_ms < 50.0
+    ok12 = size_ok and dim_ok and mark_ok and longtask_ok
     print(f"判据 12 分享图：PNG {len(raw):,} 字节（阈值 >{MIN_BYTES:,}）="
           f"{size_ok}　尺寸 {w}×{h}（须 {EXPECT_W}×{EXPECT_H}）={dim_ok}　"
           f"水印含「{WATERMARK}」={mark_ok}　{'PASS' if ok12 else 'FAIL'}")
     print(f"    海报实绘文字 {len(res['texts'])} 段，首 6 段："
           f"{res['texts'][:6]}")
+    print(f"B-013 同步绘制耗时：{draw_ms:.1f}ms（长任务阈值 <50ms）　"
+          f"{'PASS' if longtask_ok else 'FAIL'}")
 
     ok13 = ok13_static and not ext_reqs
     print(f"判据 13b 运行时外链：{len(ext_reqs)} 个非同源请求　"
