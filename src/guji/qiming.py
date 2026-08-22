@@ -140,6 +140,10 @@ CANDIDATE_CHARS: dict[str, list[tuple[str, str, str]]] = {
         ("铜", "钅", "金-铜墙铁壁"),
         ("铁", "钅", "金-铁骨铮铮"),
         ("锡", "钅", "金-锡泽恩惠"),
+        # R191b（B-015）：金字池原本 20 字里女性向命中 0——女生缺金只能得到
+        # 「林鑫铭」串。补两个钅部首的女性常用字（写死可核验，同表纪律）。
+        ("铃", "钅", "金-铃音清越"),
+        ("钗", "金", "金-金钗之贵"),
     ],
     "水": [
         ("泽", "氵", "水-泽被苍生"),
@@ -186,6 +190,9 @@ FEMININE_CHARS: frozenset[str] = frozenset({
     "珍", "珠", "琳", "琪", "瑶", "佳",
     # 水
     "沁", "洁", "湘", "潇",
+    # 金（R191b，B-015：金字池此前零女性向字——铃/钗为池内新增，
+    # 钰/锦是池内已有字的真实女名高频用法，此前漏归类）
+    "铃", "钗", "钰", "锦",
 })
 MASCULINE_CHARS: frozenset[str] = frozenset({
     # 木
@@ -262,8 +269,12 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
             scored.append((hit, g, order := order + 1,
                            _entry(a["char"] + b2["char"], [a, b2])))
 
-    # 稳定排序：缺行命中降序 → 性别分降序 → 表序升序
-    scored.sort(key=lambda t: (-t[0], -t[1], t[2]))
+    # 稳定排序：性别分降序 → 缺行命中降序 → 表序升序
+    # R191b（B-015）：原键把缺行命中放在性别分之前——双字全命中缺行的
+    # 组合恒排最前，性别分形同虚设；叠加金字池零女性向字，女生缺金只会得到
+    # 林鑫铭/林鑫铮/…（D-252b：性别契合优先于补缺教条，缺行信息仍在
+    # candidates 与 summary 完整展示，专业信息不丢失）。
+    scored.sort(key=lambda t: (-t[1], -t[0], t[2]))
 
     out: list[dict] = []
     meaning_count: dict[str, int] = {}
@@ -397,14 +408,28 @@ if __name__ == "__main__":
     top3 = "".join(n["given"] for n in r1["full_names"][:3])
     for m in ("锋", "钢", "铁", "铠"):
         assert m not in top3[:2], f"女名前2出现男性字 {m}: {top3}"
+    # R191b（B-015 判据，specs/006 同款）：gender=女 时前 8 个 full_names 中
+    # 含 FEMININE_CHARS 的 ≥5 个；gender=男 时含 MASCULINE_CHARS 的 ≥5 个。
+    def _fem_count(res):
+        return sum(1 for n in res["full_names"]
+                   if any(ch in FEMININE_CHARS for ch in n["given"]))
+
+    def _masc_count(res):
+        return sum(1 for n in res["full_names"]
+                   if any(ch in MASCULINE_CHARS for ch in n["given"]))
+
+    assert _fem_count(r1) >= 5, f"女前8女性向不足5：{[n['full_name'] for n in r1['full_names']]}"
+    r2 = name_candidates("王", 1990, 5, 15, 23, gender="男")
+    assert _masc_count(r2) >= 5, f"男前8男性向不足5：{[n['full_name'] for n in r2['full_names']]}"
     # 确定性：两次调用逐字节相等
     r1b = name_candidates("林", 1998, 7, 20, 14, gender="女")
     assert r1 == r1b, "两次调用输出不一致（违反确定性）"
 
-    r2 = name_candidates("王", 1990, 5, 15, 23, gender="男")
     assert r2["full_names"]
     print("女（林·缺金）前3全名：",
           "、".join(n["full_name"] for n in r1["full_names"][:3]))
+    print("女（林·缺金）前8女性向命中：", _fem_count(r1), "/8")
     print("男（王）前3全名：",
           "、".join(n["full_name"] for n in r2["full_names"][:3]))
-    print("qiming self-test PASS (full_names/硬过滤/性别软偏好/确定性)")
+    print("男（王）前8男性向命中：", _masc_count(r2), "/8")
+    print("qiming self-test PASS (full_names/硬过滤/性别软偏好B-015判据/确定性)")

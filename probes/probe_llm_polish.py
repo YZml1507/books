@@ -39,6 +39,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -130,7 +131,13 @@ def check_warm_unchanged() -> bool:
 
 
 def check_no_db_pollution() -> bool:
-    """判据 3：AI 文本与 key 在三库零命中。"""
+    """判据 3：AI 文本与 key 在三库零命中。
+
+    R191b 适配（B-014 异步化）：services 不再同步调 polish——注入改打在
+    polish 上（后台线程运行时才解析模块属性，monkeypatch 依然生效），
+    断言「注入文本进了响应」改为经 /api/ai/{id} 轮询拿到。判据本体
+    （三库零命中）一字未动。
+    """
     os.environ.pop("BOOKS_LLM_DISABLE", None)
     from guji import llm_polish as L
     from fastapi.testclient import TestClient
@@ -143,12 +150,21 @@ def check_no_db_pollution() -> bool:
     try:
         c = TestClient(app)
         j = c.post("/api/bazi", json=BAZI).json()
-        injected = j.get("ai_polish") == MARKER
+        tid = j.get("ai_task_id")
+        injected = False
+        for _ in range(50):                          # 打桩即时返回，轮询只等线程
+            st = c.get(f"/api/ai/{tid}").json()
+            if st["status"] == "done" and st["text"] == MARKER:
+                injected = True
+                break
+            if st["status"] == "failed":
+                break
+            time.sleep(0.1)
     finally:
         L.polish = real
         svc.llm_polish.polish = real                 # type: ignore[attr-defined]
         os.environ["BOOKS_LLM_DISABLE"] = "1"
-    ok = _judge("判据3 前置：注入的 AI 文本确实进了响应", injected)
+    ok = _judge("判据3 前置：注入的 AI 文本确实进了响应（经轮询端点）", injected)
 
     cfg = None
     try:
@@ -250,17 +266,50 @@ def check_selftest_count() -> bool:
 
 
 def check_online() -> bool:
-    """判据 1（不进闸门）：真实调用，四端点 ai_polish 非空。"""
+    """判据 1（不进闸门）：真实调用，四端点 ai_polish 非空。
+
+    R191b 两处适配（显式标注，D-250b 先例）：
+    (a) B-014 异步化——响应带 ai_task_id 时经 /api/ai/{id} 轮询取回文本；
+    (b) B-016 新增称谓断言：gender=女 的响应文本中「先生」零命中、
+        gender=男 的「女士/小姐」零命中。判据本体（四端点非空）未动。
+    """
     os.environ.pop("BOOKS_LLM_DISABLE", None)
     from fastapi.testclient import TestClient
     from web.app import app
     c = TestClient(app)
     ok = True
+
+    def _fetch_ai(j):
+        """同步兼容：旧响应直接带 ai_polish；新契约轮询拿（≤45s）。"""
+        if j.get("ai_polish"):
+            return j["ai_polish"]
+        tid = j.get("ai_task_id")
+        if not tid:
+            return None
+        deadline = time.time() + 45
+        while time.time() < deadline:
+            st = c.get(f"/api/ai/{tid}").json()
+            if st["status"] == "done":
+                return st["text"]
+            if st["status"] == "failed":
+                return None
+            time.sleep(0.5)
+        return None
+
     for path, payload in ENDPOINTS:
         j = c.post(path, json=payload).json()
-        ai = j.get("ai_polish")
+        ai = _fetch_ai(j)
         ok = _judge(f"判据1 {path} ai_polish 非空", bool(ai),
                     (ai or "")[:40]) and ok
+        # R191b（B-016）：性别称谓断言——facts 已喂性别后模型不得再猜错。
+        gender = payload.get("gender")
+        if ai and gender == "女":
+            ok = _judge(f"判据1 {path} gender=女 文本中「先生」零命中",
+                        "先生" not in ai) and ok
+        if ai and gender == "男":
+            bad = ("女士" in ai) or ("小姐" in ai)
+            ok = _judge(f"判据1 {path} gender=男 文本中「女士/小姐」零命中",
+                        not bad) and ok
     return ok
 
 

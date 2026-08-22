@@ -36,15 +36,15 @@
   `--self-check` 退出码 0，注入「超时也返回文本」+「净化失效」后
   判据 2 四条与判据 7 一条被抓到；
   `--online` 判据 1 四端点 ai_polish 全非空)
-- [ ] T1.5 `web/selftest.py` 增补 ai_polish 层断言（只增不减）
-  状态：TODO(R190b 复核：selftest 现有 149 checks 里只有 `llm.removed`
-  与 `llm.fields.absent`（防**旧** LLM 复活），**没有一条针对 ai_polish 层**。
-  `grep -c ai_polish web/selftest.py` → 0。
-  待补断言建议：`ai_polish.key_present`（四端点键存在）、
-  `ai_polish.disabled_none`（DISABLE=1 时为 None）、
-  `ai_polish.additive`（其余键与关闭时逐字节相同）。
-  注意 `probes/probe_selftest_regress.py` 要求断言只增不减，加断言需同步
-  `probes/selftest_baseline.json`)
+- [x] T1.5 `web/selftest.py` 增补 ai_polish 层断言（只增不减）
+  状态：DONE(**R191b 补建**。新增 4 条：`ai.async.disabled.no_task_id`
+  （DISABLE=1 下四端点响应无 ai_task_id 键）、`ai.async.task.roundtrip`
+  （打桩 transport 0.2s → spawn→轮询→done 非空文本，显式 config 绕总开关、
+  零外网）、`ai.async.task.failed.degrade`（transport 恒失败→failed 无文本）、
+  `ai.endpoint.unknown.404`（未知 id 轮询返回 404）。
+  实测 `BOOKS_LLM_DISABLE=1 <py> web\selftest.py` exit 0 **153 checks**；
+  `<py> probes\probe_selftest_regress.py` exit 0「150 → 153，新增 4、
+  消失 0」基线自动过审)
 
 ## M2 前端渲染
 
@@ -75,7 +75,19 @@
 | 5 | 专业模式逐字节不变 | `web\baseline_voice.py` | **PASS**，但**基线值已变更**：spec 写 `b0461df2…`，实际为 `97f0681e…`（R189b 合法重冻，见下方订正） |
 | 6 | AI 容器与引文区不同 DOM 且有标注 | `probes\probe_llm_polish.py` 判据 6 | **PASS** |
 | 7 | 提示词注入抵抗 | 同上 判据 7 | **PASS**（注入文本只作事实拼接；`_sanitize` 剥书名号/页码） |
-| 8 | selftest 断言只增不减 | `web\selftest.py` | **PASS**（149 checks ≥ 149），但 T1.5 的 ai_polish 专项断言仍缺 |
+| 8 | selftest 断言只增不减 | `web\selftest.py` | **PASS（R191b 更新：149 → 153 checks**，新增 ai 异步层四断言；probe_selftest_regress exit 0） |
+| 9 | LLM 开启时端点 p95 <2s（R191b 新增，B-014） | `web\check_async_ai.py` | **PASS**（打桩 0.5s 慢 LLM 零外网：四端点同步返回 0.04–0.29s、p95=0.08s；真实 agnes 实测 POST 0.31s + 轮询 #17 done。`--self-check` 注入同步阻塞 5s 被判据 9 抓到，exit 0） |
+| 10 | AI 到达时间单独计量 + 降级语义不变（R191b 新增） | 同上 | **PASS**（打桩 0.5s 下轮询 ~0.53s 到达 done；LLM 恒失败→终态 failed 无文本=整块不渲染；轮询读取无副作用） |
+| 11 | DISABLE=1 响应与旧版逐字节一致（R191b 新增） | 同上 | **PASS**（无 ai_task_id 键、ai_polish=None、两次调用逐字节相等） |
+
+**R191b 判据 1 复测（--online，真实 agnes，新异步契约下）**：四端点非空全 PASS，
+且 B-016 称谓断言首战告捷——/api/qiming gender=女 文本实测开头「**林小姐**的命盘
+里土元素最为丰盈…」（修复前 R190b 实测为「林先生」），三个女性向端点
+「先生」零命中断言全绿。
+
+**R190b 留档的旧契约 --online 基线**（改动前启动的后台运行）：qiming 文案
+「五行之中土的能量丰盈饱满，赋予了你…」——无称谓（模型这次没猜先生，
+但也没收到任何性别事实，属运气不是修复）。
 
 **判据 5 的口径订正（宪法第一条：文档与实测不符时改文档并写明推翻）**：
 `spec.md:92` 与 `specs/005` 多处把 pro 基线钉为 sha256 `b0461df2…`。该值已被
@@ -88,17 +100,22 @@ R189b **合法重冻**为 `97f0681e…`（原因：R131a-01 修复后 3 个带�
 ## 明确不做（承 plan §明确不做）
 
 - 不让 LLM 参与排盘/检索/引文选取
-- 不做流式/多轮/记忆 —— **注**：R190b 实测发现同步阻塞 29–32 秒
-  （`OPTIMIZE_BACKLOG.md` B-014），修法很可能**必须**引入二次请求或流式。
-  届时属于对本条的合法修订，需走 spec 修订 + DECISIONS 记录，不得默默开工。
+- ~~不做流式/多轮/记忆~~ —— **R191b 修订（B-014，合法修订已走 spec §2/§6 +
+  D-251b）**：「同步等待 LLM」已改为后台任务 + 轮询二次请求（判据 9/10/11，
+  `web/check_async_ai.py`）；仍非流式/SSE/多轮/记忆。R190b 的预言
+  「修法很可能必须引入二次请求或流式」应验，取前者。
 - 不装 openai SDK（httpx 直连）
 - 奇门遁甲（lunar_python 新依赖，红线第 3 项 REJECTED）
 
 ## 移交清单（给审查轨）
 
-1. T1.5 selftest 的 ai_polish 三条断言（需同步 `probes/selftest_baseline.json`）
-2. T2.3 `probe_ui_smoke` 的两条 AI 区块行为用例
-3. B-014（LLM 30 秒阻塞）/ B-016（`facts_qiming` 缺性别导致 AI 称「林先生」）
-   的复验判据，见 `docs/OPTIMIZE_BACKLOG.md`
-4. `probes/probe_llm_polish.py` 本身的独立性审计——它由 R190b（修复方）所建，
-   审查轨应亲自跑 `--self-check` 确认它不是假闸门，而非采信本表
+1. ~~T1.5 selftest 的 ai_polish 三条断言~~ —— **R191b 已清偿**（四条新断言，
+   基线 150→153 自动过审）
+2. T2.3 `probe_ui_smoke` 的两条 AI 区块行为用例（仍 TODO，审查轨领土）
+3. ~~B-014（LLM 30 秒阻塞）/ B-016（`facts_qiming` 缺性别导致 AI 称「林先生」）~~
+   —— **R191b 已修**，复验命令：`web\check_async_ai.py`（B-014，判据 9/10/11 +
+   --self-check）、`probes\probe_llm_polish.py --online`（B-016，称谓断言）。
+   待审查轨复验转 VERIFIED。
+4. `probes/probe_llm_polish.py` 本身的独立性审计——它由 R190b（修复方）所建、
+   R191b（修复方）适配了异步契约与称谓断言（改动处均有「R191b 补记」标注，
+   判据本体未动），审查轨应亲自跑 `--self-check` 确认它不是假闸门，而非采信本表

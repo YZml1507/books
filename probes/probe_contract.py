@@ -165,6 +165,17 @@ CONDITIONAL_FIELDS = {
     "/api/bookstudy/structure": {"error"},
     "/api/bookstudy/chapter": {"error"},
     "/api/bookstudy/summary": {"error"},
+    # R191b 补记（B-014 异步化，D-251b；审查轨领土，按 D-250b 先例显式标注）：
+    # `ai_task_id` 只在 LLM 功能开启（web/llm_config.json enabled 且未设
+    # BOOKS_LLM_DISABLE）时返回；关闭时键缺席是**判据 11 的要求**（响应与
+    # 「LLM 从未存在」逐字节一致）。前端 pollAiPolish 首行 `if (!taskId) return`
+    # 对缺席做了显式保护——缺席即「无 AI 段落」，不是漂移。
+    # 实测：DISABLE=1 下四端点 keys 无 ai_task_id（web/check_async_ai.py 判据 11）；
+    # 开启时键在且 /api/ai/{id} 可轮询（判据 9/10）。
+    "/api/bazi": {"ai_task_id"},
+    "/api/taohua": {"ai_task_id"},
+    "/api/hehun": {"ai_task_id"},
+    "/api/qiming": {"ai_task_id"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

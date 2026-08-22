@@ -102,6 +102,53 @@ function postJSON(path, payload) {
   });
 }
 
+/* ── AI 段落后到（R191b，B-014 / specs/006 判据 9/10、D-251b）──────
+ * 后端不再同步等 LLM（实测开启 LLM 时端点阻塞 35s）。响应带 ai_task_id
+ * 时前端渲染完确定性主体就轮询 /api/ai/{id}；拿到文本就地追加 .ai-polish
+ * 容器。failed / 404 / 超时 → 整块不渲染——降级语义与 D-244a 完全一致，
+ * LLM 永远不是承重墙。RESULT_GEN 是「结果区世代号」：同一容器发起新请求
+ * 会令旧轮询自动作废，防止慢任务回来后污染新一轮结果。 */
+var RESULT_GEN = {};
+var AI_POLL_INTERVAL_MS = 500;
+var AI_POLL_CAP_S = 40;            // 与后端 _POLL_CAP_S 对齐
+
+/** 把 AI 块插进已渲染的结果区末尾；容器不存在/已插过返回 false。 */
+function insertAiPolish(containerId, text) {
+  var node = el(containerId);
+  if (!node || !text) return false;
+  if (node.querySelector('.ai-polish')) return false;
+  var wrap = document.createElement('div');
+  wrap.innerHTML = renderAiPolish({ ai_polish: text });
+  var block = wrap.firstElementChild;
+  if (!block) return false;
+  node.appendChild(block);
+  return true;
+}
+
+/** 轮询 AI 任务直到终态/超时；任何错误静默停止（D-244a：失败不可见）。 */
+function pollAiPolish(containerId, taskId) {
+  if (!taskId) return;
+  RESULT_GEN[containerId] = (RESULT_GEN[containerId] || 0) + 1;
+  var gen = RESULT_GEN[containerId];
+  var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+  var tick = function () {
+    if (RESULT_GEN[containerId] !== gen) return;   // 已被新一轮结果覆盖
+    api('/api/ai/' + encodeURIComponent(taskId)).then(function (st) {
+      if (RESULT_GEN[containerId] !== gen) return;
+      if (st && st.status === 'done' && st.text) {
+        if (insertAiPolish(containerId, st.text)) {
+          var entry = LAST_RESPONSE[containerId];   // 让口吻切换重画也带上 AI 块
+          if (entry && entry.json) entry.json.ai_polish = st.text;
+        }
+        return;                                      // 终态：停止轮询
+      }
+      if (st && st.status === 'failed') return;      // 拿不到 → 整块不渲染
+      if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+    }).catch(function () { /* 404/过期/网络抖动：静默放弃 */ });
+  };
+  setTimeout(tick, AI_POLL_INTERVAL_MS);
+}
+
 /** 绑定点击；元素不存在时不报错（HTML 与 JS 允许分批演进）。 */
 function on(id, handler) {
   const node = el(id);
@@ -944,6 +991,7 @@ async function submitBazi(event) {
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
+    pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
@@ -1565,6 +1613,7 @@ async function doQiming() {
     html += '</div></div>';
     paint('qmResult', html);
     revealResult('qmResult');
+    pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
   }
@@ -1634,6 +1683,7 @@ async function doTaohua() {
     html += '</div>';
     paint('thResult', html);
     revealResult('thResult');
+    pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
   } catch (e) {
     fail('thResult', '测算失败：' + e.message);
   }
@@ -1762,6 +1812,7 @@ async function doHehun() {
     html += '</div>';
     paint('hhResult', html);
     revealResult('hhResult');
+    pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
   } catch (e) {
     fail('hhResult', '计算失败：' + e.message);
   }

@@ -171,13 +171,13 @@ def bazi(req) -> dict:
 
     # R187b（specs/006）：AI 润色层，additive 附加。失败/关闭 → None，
     # 前端整块不渲染；LLM 永远不是承重墙（D-244a）。
+    # R191b（B-014，D-251b）：同步 polish 改后台任务——确定性主体立即返回，
+    # 响应附 ai_task_id 供前端轮询 /api/ai/{id}；DISABLE/关闭时无此键
+    # （响应与旧版逐字节一致，specs/006 判据 11）。
     ai_polish = None
-    try:
-        ai_polish = llm_polish.polish(
-            llm_polish.facts_bazi(paipan_out, warm, req.question),
-            req.question)
-    except Exception:
-        ai_polish = None
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_bazi(paipan_out, warm, req.question),
+        req.question)
 
     input_snapshot = {
         "year": req.year, "month": req.month, "day": req.day, "hour": req.hour,
@@ -203,6 +203,7 @@ def bazi(req) -> dict:
         "interpretation": interpretation,
         "warm": warm,
         "ai_polish": ai_polish,
+        **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
 
@@ -232,16 +233,16 @@ def taohua(req) -> dict:
         "render": t.render(),
     }
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
+    # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     warm = voice.warm_taohua(t_dict)
     ai_polish = None
-    try:
-        ai_polish = llm_polish.polish(llm_polish.facts_taohua(t_dict, warm))
-    except Exception:
-        ai_polish = None
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_taohua(t_dict, warm, gender=req.gender))
     return {
         **t_dict,
         "warm": warm,
         "ai_polish": ai_polish,
+        **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
 
@@ -270,16 +271,17 @@ def hehun(req) -> dict:
         "render": h.render(),
     }
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
+    # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     warm = voice.warm_hehun(h_dict)
     ai_polish = None
-    try:
-        ai_polish = llm_polish.polish(llm_polish.facts_hehun(h_dict, warm))
-    except Exception:
-        ai_polish = None
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_hehun(h_dict, warm,
+                               gender_a=req.a_gender, gender_b=req.b_gender))
     return {
         **h_dict,
         "warm": warm,
         "ai_polish": ai_polish,
+        **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
 
@@ -294,12 +296,12 @@ def qiming(req) -> dict:
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{exc}") from exc
     # R187b（specs/006）：AI 寓意段落，additive
+    # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     ai_polish = None
-    try:
-        ai_polish = llm_polish.polish(llm_polish.facts_qiming(out))
-    except Exception:
-        ai_polish = None
+    ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_qiming(out, req.gender))
     out["ai_polish"] = ai_polish
+    if ai_task_id:
+        out["ai_task_id"] = ai_task_id
     return out
 
 

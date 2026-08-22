@@ -7179,3 +7179,108 @@ probe_ui_smoke 36/37，唯一失败项是环境判据混入产品闸门（B-018�
 由新审查轨复核有无越界。决策记录 D-250b。
 
 **移交给两个新窗口**：见 D-246b~D-250b 与 `OPTIMIZE_BACKLOG.md` R190b 段。
+
+### 129. [优化轨] R191b：清偿 B-014/B-015/B-016——LLM 异步化 + 起名性别偏好 + AI 称谓（2026-08-22）
+
+**开工前三条验证（用户要求不采信 R190b 口头结论）**：
+`git log --oneline -3` 见 ab9b017/bfdc58d/2530fd7/eefd28e；
+`<py> scripts\count_open_findings.py` exit 0、OPEN BLOCKER 0 / OPEN MAJOR 0；
+`git rev-list --count main..audit`=0、`audit..main`=0。三条全部成立。
+
+**1. B-014 LLM 同步阻塞（基线复现 call0=35.3s/call1=0.8s → 修后 POST 0.31s）**
+
+前置三步（红线顺序）：specs/006 spec.md 三处「R191b 修订」显式标注
+（§2 同步调用条目、§4 新增判据 9/10/11、§6 流式移出 Out of Scope），
+原文全部保留；DECISIONS D-251b 记录三候选（同步短超时/SSE/后台+轮询，
+选后者）；然后才动代码。
+
+实现：
+- `src/guji/llm_polish.py` 新增后台任务层：`spawn_ai_task()`（daemon 线程 +
+  进程内存任务表 + TTL 600s GC + `_transport` 测试注入口）、
+  `ai_task_status()`（读取无副作用——首版「读走即焚」会让轮询重试变 404，
+  实测前推翻）。AI 文本永不落库。
+- `web/services.py` 四端点同步 polish 全部改 spawn；响应 additive 附
+  `ai_task_id`（DISABLE/关闭时无此键 = 与旧版逐字节一致）。
+- `web/routers/bazi.py` 新增 `GET /api/ai/{tid}`（未知 id → 404）。
+- `web/static/app.js` `pollAiPolish()`：渲染完确定性主体后 500ms 间隔轮询
+  （上限 40s），拿到文本就地插 `.ai-polish` 容器并回写 LAST_RESPONSE
+  （口吻切换重画不丢 AI 块）；RESULT_GEN 世代号防旧轮询污染新结果；
+  failed/404/超时一律整块不渲染（D-244a 降级语义不变）。四处调用点接线。
+
+验收闸门 `web/check_async_ai.py`（新建，D-248b 纪律自带 --self-check）：
+判据 9 打桩慢 LLM 四端点 p95<2s（实测 p95=0.08s，单端点最高 0.29s）；
+判据 10 轮询 ~0.53s 到达 done + LLM 恒失败→failed 无文本 + 轮询读无副作用；
+判据 11 DISABLE=1 响应无 ai_task_id 且两次逐字节相等。
+--self-check 注入「同步阻塞 5s」（模拟旧世界）被判据 9 抓到 exit 0。
+真实 agnes 复测：POST 0.31s + 第 17 次轮询 done 出文。
+
+**开发中被自家闸门抓到的两个真 bug（闸门有效的实证）**：
+(a) check_async_ai 打桩路径暴露 taohua/hehun/qiming 只传一个位置参数而
+spawn 签名 question 是必需参数——生产路径 DISABLE 无关直接 TypeError 500；
+修法 question 给默认 None。(b) check 的 monkeypatch 首版自引用 RecursionError、
+restore 残留 `_REAL_SPAWN=None` 致第二次 install 误判——均当场修复。
+
+**2. B-015 起名性别偏好（基线复现与登记逐字一致：8 个全名全鑫串零女性向）**
+
+修法 D-252b 双管齐下：金字池补 铃（金-铃音清越）/钗（金-金钗之贵），
+FEMININE_CHARS 补录 池内已有但漏归类的 钰/锦；排序键
+`(-缺行命中,-性别分,序)` → `(-性别分,-缺行命中,序)`（取舍：性别契合优先于
+补缺教条，产品理由写进决策，缺行信息仍在 candidates/summary 展示）。
+实测女（林·缺金）前8 = 林锦钰/林鑫锦/林鑫钰/林铭锦/林铭钰/林铮锦/林铮钰/
+林锦钟，FEMININE 命中 **8/8**（判据 ≥5）；男（王·缺木）前8 王柏栋…王柏荣，
+MASCULINE **8/8**；两次调用逐字节相等。判据写进模块自测：
+`PYTHONPATH=src <py> -m guji.qiming` exit 0（含新增 _fem_count/_masc_count 断言）。
+
+**3. B-016 facts_qiming 不喂性别（基线留档：改动前 --online 该次模型没猜错
+称谓但也没收到任何性别事实——属运气不是修复）**
+
+修法 D-253b 治类不治点：facts_qiming(out, gender) 加「性别：女/男」事实行；
+facts_taohua(…, gender)/facts_hehun(…, gender_a, gender_b) 同型补齐；
+_SYSTEM 提示词加「称谓必须与性别事实一致（女性绝不可称先生，反之亦然）」。
+services 层三处传参。模块自测加两条断言，`<py> -m guji.llm_polish` exit 0。
+
+**领土偏离声明（宪法第五条，D-250b 先例第三次行使）**：本轮改了审查轨领土的
+`probes/probe_llm_polish.py`（判据 3 注入改经轮询端点取回 + 判据 1 加称谓
+断言 + import time；两处均有「R191b 补记/适配」标注，判据本体未动）、
+`probes/probe_contract.py`（CONDITIONAL_FIELDS 增加 ai_task_id 四端点条目，
+含完整理由与实测出处——该键 DISABLE 时缺席是判据 11 的设计要求，前端
+pollAiPolish 有空值保护，非契约漂移；不改则 4 条假 HARD 卡死闸门）。
+处置同前：最小修改、显式标注、零删改既有条目、在此声明一次，
+请新审查轨复核。
+
+**T1.5 清偿（R190b 遗留 TODO）**：web/selftest.py 新增四断言
+ai.async.disabled.no_task_id / ai.async.task.roundtrip /
+ai.async.task.failed.degrade / ai.endpoint.unknown.404（打桩 transport +
+显式 config 绕总开关，零外网）。`BOOKS_LLM_DISABLE=1 <py> web\selftest.py`
+exit 0 **153 checks**；probe_selftest_regress exit 0「150 → 153，新增 4、
+消失 0」自动过审。specs/006/tasks.md T1.5 转 DONE(命令)，移交清单同步更新。
+
+**真实端到端验证（unset BOOKS_LLM_DISABLE）**：
+`--online` 四端点非空全 PASS；B-016 称谓断言首战告捷——
+/api/qiming gender=女 文本实测「**林小姐**的命盘里土元素最为丰盈…」
+（R190b 基线为「林先生」），三个女性向端点「先生」零命中全绿。
+
+**本轮闸门实测（BOOKS_LLM_DISABLE=1，日志 $LOCALAPPDATA/Temp/gates_r191b.log，
+退出码逐条在案）**：13 道宪法闸门全 0（check_quality/build_index/
+verify_index/validate_alignment/probe_conservation/assess_goals/
+check_provenance/probe_bcv/eval_g1/eval_g4/eval_g7/probe_g8_isolation/
+probe_booksec）；附加闸门 check_warm_voice/check_plain_first/baseline_voice/
+check_xingzuo/check_poster/probe_r131a_relevance/probe_r128a_no_dup_citations/
+probe_no_generated_in_corpus/probe_dollar_misuse/check_async_ai(+self-check)/
+probe_llm_polish(+self-check)/selftest(153)/probe_contract(184 读点,
+SOFT=15)/count_open_findings/probe_selftest_regress 全 0。
+**check_async_ai 在跑批中 EXIT=1 一次（已归因并修复）**：跑批脚本全局
+export BOOKS_LLM_DISABLE=1，spawn 走 load_config() 被总开关挡成 None，
+判据 9「带 ai_task_id」四条挂红——是跑法与闸门的交互问题，非产品缺陷。
+修法：check 的打桩注入改传**显式 stub config**（spawn 语义
+`config or load_config()`，显式 config 合法绕过环境开关；同时摆脱对
+gitignored 的 web/llm_config.json 的依赖，books-audit worktree 无该文件
+也能跑）。修后双环境实测：BOOKS_LLM_DISABLE=1 exit 0、unset exit 0、
+--self-check exit 0。断言本体一字未动（门柱未移动）。
+**probe_ui_smoke 本轮 37/37 全 0**——注意：这是 news.refresh 的外网源
+（BBC/Solidot）此刻恰好可达（B-018 已证明它是环境判据），**不是被任何人修好**，
+下一轮仍可能因网络回到 36/37；处置仍按 B-018 设想走拆判据，不得据此关闭条目。
+
+**移交审查轨**：B-014/B-015/B-016 复验（命令见 OPTIMIZE_BACKLOG 各条处置注）、
+R131a-01 的 FIXED-R189b 待转 VERIFIED、本节领土偏离复核、
+check_async_ai 的 --self-check 有效性独立确认。

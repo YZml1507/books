@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from guji import llm_polish
+
 from .. import services
+from ..errors import NotFoundError
 from ..schemas import BaziRequest, HehunRequest, QimingRequest
 
 router = APIRouter(tags=["bazi"])
@@ -35,6 +38,19 @@ def hehun(req: HehunRequest) -> dict:
 def qiming(req: QimingRequest) -> dict:
     """五行起名：八字五行缺行 → 部首五行候选字。"""
     return services.qiming(req)
+
+
+@router.get("/api/ai/{tid}")
+def ai_task(tid: str) -> dict:
+    """AI 润色任务轮询端点（R191b，B-014/D-251b）。
+
+    返回 {status: pending|done|failed, text}；未知/已过 TTL 的 id → 404
+    （前端按失败处理：整块不渲染，D-244a 语义不变）。
+    """
+    st = llm_polish.ai_task_status(tid)
+    if st is None:
+        raise NotFoundError(f"AI 任务不存在或已过期：{tid[:8]}…")
+    return st
 
 
 @router.get("/api/xingzuo")

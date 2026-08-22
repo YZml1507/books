@@ -19,7 +19,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 import sys
+import threading
+import time
 
 # ---------------------------------------------------------------------------
 # 配置加载：web/llm_config.json（gitignored）> 环境变量 > None（功能关闭）
@@ -85,6 +88,7 @@ def load_config() -> dict | None:
 _SYSTEM = (
     "你是一个温柔的中文命理助手，为已经排好的八字盘写解读润色。"
     "规则：1) 只使用【给定事实】里的信息，绝不发明新的命理断言、绝不出示新的术语；"
+    "若事实里有性别/双方性别，称谓与措辞必须与之一致（女性绝不可称先生，反之亦然）；"
     "2) 绝不引用任何书名、页码、原文（引文由系统另行展示）；"
     "3) 语气像善解人意的朋友：温暖、鼓励、不说教、不恐吓、不用宿命式表述"
     "（禁止：注定/孤独/没戏/克/必离）；4) 不给现实决策指令；"
@@ -176,6 +180,87 @@ def _sanitize(text: str | None) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# 后台任务层（R191b，specs/006 判据 9/10/11；B-014 的修法，D-251b）
+#
+# 形态：daemon 线程跑 polish()，结果存**进程内存** dict（重启即失）。
+#   * AI 文本永不落任何库（宪法红线第 4 项：三库零命中判据继续成立）
+#   * DISABLE=1 / 配置关闭时 spawn 根本不发生——响应里没有 ai_task_id 键，
+#     与旧版逐字节一致（闸门环境零扰动，判据 11）
+#   * 拿不到 = failed = 前端整块不渲染（D-244a 降级语义不变）
+#
+# 可测性：spawn_ai_task 接受与 polish 相同的 _transport 注入口，
+# web/check_async_ai.py 用它打桩慢 LLM（零外网、确定性延迟）。
+# ---------------------------------------------------------------------------
+
+_TASK_TTL_S = 600.0          # 任务记录保留 10 分钟：足够前端轮询完，又不积内存
+_POLL_CAP_S = 40.0           # 前端轮询上限（秒）；到点未完成按失败处理（不渲染）
+
+_tasks: dict[str, dict] = {}
+_tasks_lock = threading.Lock()
+
+
+def _gc_tasks() -> None:
+    """清掉超 TTL 的已完成任务记录。调用方必须已持有 _tasks_lock。"""
+    now = time.monotonic()
+    stale = [tid for tid, t in _tasks.items()
+             if now - t["created"] > _TASK_TTL_S]
+    for tid in stale:
+        _tasks.pop(tid, None)
+
+
+def spawn_ai_task(facts: list[str], question: str | None = None,
+                  config: dict | None = None, _transport=None) -> str | None:
+    """后台起一个 polish 任务，立刻返回 task_id；功能关闭返回 None。
+
+    返回 None 时调用方不要往响应里放 ai_task_id 键——这样 DISABLE=1 的
+    响应形状与旧版完全一致。
+    （R191b 实测注：question 必须给默认值——taohua/hehun/qiming 无提问
+    场景只传 facts 一个位置参数，缺默认值会在参数绑定期直接 TypeError，
+    且与总开关无关。）
+    """
+    cfg = config or load_config()
+    if cfg is None:
+        return None
+    facts = [f for f in (facts or []) if f]
+    if not facts:
+        return None
+    tid = secrets.token_urlsafe(16)
+    with _tasks_lock:
+        _gc_tasks()
+        _tasks[tid] = {"status": "pending", "text": None,
+                       "created": time.monotonic()}
+
+    def _run() -> None:
+        try:
+            text = polish(facts, question, cfg, _transport=_transport)
+            status = "done" if text else "failed"
+        except Exception:                     # D-244a：任何异常都降级，不抛
+            status, text = "failed", None
+        with _tasks_lock:
+            rec = _tasks.get(tid)
+            if rec is not None:
+                rec["status"] = status
+                rec["text"] = text
+
+    threading.Thread(target=_run, name="ai-polish-" + tid[:8],
+                     daemon=True).start()
+    return tid
+
+
+def ai_task_status(tid: str) -> dict | None:
+    """查任务状态。未知 id（含已过 TTL）返回 None（HTTP 层转 404）。
+
+    读取**无副作用**：轮询请求若因网络抖动重发，第二次仍能拿到同样结果——
+    不做「读走即焚」。回收完全靠 _gc_tasks 的 TTL。
+    """
+    with _tasks_lock:
+        rec = _tasks.get(tid)
+        if rec is None:
+            return None
+        return {"status": rec["status"], "text": rec["text"]}
+
+
+# ---------------------------------------------------------------------------
 # 各功能的 facts 组装（全部来自已算出的字段，零新事实）
 # ---------------------------------------------------------------------------
 
@@ -200,13 +285,16 @@ def facts_bazi(paipan: dict, warm: dict, question: str | None) -> list[str]:
     return facts
 
 
-def facts_taohua(t: dict, warm: dict | None = None) -> list[str]:
+def facts_taohua(t: dict, warm: dict | None = None,
+                 gender: str | None = None) -> list[str]:
     hits = "、".join(t.get("hit_pillars") or []) or "四柱均未临"
     hl_p = "、".join(t.get("hongluan_pillar") or []) or "未临柱"
     tx_p = "、".join(t.get("tianxi_pillar") or []) or "未临柱"
     strength_warm = {"strong": "旺", "medium": "平", "weak": "慢热"}.get(
         t.get("strength"), t.get("strength", ""))
     facts = [
+        # R191b（B-016 同型补齐）：桃花解读天然依赖性别，必须显式给
+        "性别：{}".format(gender if gender in ("男", "女") else "未填写"),
         "桃花星（咸池）落在{}支：{}".format(t.get("year_zhi", ""), t.get("peach_zhi", "")),
         "本命桃花临柱：{}".format(hits),
         "红鸾在{}（{}），天喜在{}（{}）".format(
@@ -223,9 +311,15 @@ def facts_taohua(t: dict, warm: dict | None = None) -> list[str]:
     return facts
 
 
-def facts_hehun(h: dict, warm: dict | None = None) -> list[str]:
+def facts_hehun(h: dict, warm: dict | None = None,
+                gender_a: str | None = None,
+                gender_b: str | None = None) -> list[str]:
     rel = "六冲" if h.get("clash") else ("六合" if h.get("combine") else "无明显冲合")
     facts = [
+        # R191b（B-016 同型补齐）：合婚是两个人的盘，双方性别都给
+        "双方性别：{} / {}".format(
+            gender_a if gender_a in ("男", "女") else "未填写",
+            gender_b if gender_b in ("男", "女") else "未填写"),
         "两人年支：{}×{}，关系：{}".format(h.get("year_zhi_a", ""),
                                          h.get("year_zhi_b", ""), rel),
         "日主五行：{} 与 {}，相生：{}".format(
@@ -239,13 +333,17 @@ def facts_hehun(h: dict, warm: dict | None = None) -> list[str]:
     return facts
 
 
-def facts_qiming(q: dict) -> list[str]:
+def facts_qiming(q: dict, gender: str | None = None) -> list[str]:
     fe = q.get("five_elements") or {}
     miss = fe.get("missing") or []
     names = [n.get("full_name") for n in (q.get("full_names") or [])[:3]
              if n.get("full_name")]
+    # R191b（B-016）：性别必须显式喂给模型——否则它会自己猜，实测猜出
+    # 「林先生」（入参 gender=女）。称谓是事实，不是模型可选项。
     facts = [
         "姓氏：{}".format(q.get("surname", "")),
+        "性别：{}".format("女" if gender == "女" else
+                          ("男" if gender == "男" else "未填写")),
         "五行分布：{}".format(fe.get("counts", {})),
         "所缺或最弱行：{}".format("、".join(miss) if miss else "无"),
     ]
@@ -317,8 +415,12 @@ if __name__ == "__main__":
                       "peach_same": False})
     assert any("六合" in f for f in fh)
     fq = facts_qiming({"surname": "林", "five_elements": {"counts": {"金": 0},
-                       "missing": ["金"]}, "full_names": [{"full_name": "林锦瑶"}]})
+                       "missing": ["金"]}, "full_names": [{"full_name": "林锦瑶"}]},
+                      gender="女")
     assert any("林锦瑶" in f for f in fq)
-    print("PASS facts 组装器 ×4")
+    assert "性别：女" in fq, fq                      # R191b（B-016）：性别必须喂给模型
+    assert facts_qiming({"surname": "林", "five_elements": {},
+                         "full_names": []})[1] == "性别：未填写"
+    print("PASS facts 组装器 ×4（含 B-016 性别事实）")
 
     print("\n全部自测通过。在线联调命令见 specs/006-llm-polish/spec.md 判据 1。")

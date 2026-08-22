@@ -825,6 +825,61 @@ def run() -> list[str]:
         if rec["id"] > max_id_before:
             history_db.delete_record(rec["id"])
     ok.append("llm.fields.absent")
+    # R191b（T1.5 补建，B-014/D-251b）：AI 润色**异步层** standing 断言。
+    # 闸门环境 DISABLE=1：端点响应必须无 ai_task_id 键（判据 11，与旧版
+    # 逐字节一致）；异步机制本体用显式 config + 打桩 transport 离线验证
+    # （显式 config 绕过总开关，零外网、确定性延迟）。
+    import time as _time
+    from guji import llm_polish as _L
+
+    _max_id2 = max((rec["id"] for rec in history_db.list_records(limit=5)),
+                   default=0)
+    _b = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
+                                        "hour": 10, "gender": "男"}).json()
+    assert "ai_task_id" not in _b and _b.get("ai_polish") is None, sorted(_b)
+    for rec in history_db.list_records(limit=5):
+        if rec["id"] > _max_id2:
+            history_db.delete_record(rec["id"])
+    ok.append("ai.async.disabled.no_task_id")
+
+    def _stub_ok(payload, headers, url, timeout):
+        _time.sleep(0.2)
+        return {"choices": [{"message": {"content":
+                "打桩文本：温柔的离线验收句，用于异步链路自测。"}}]}
+
+    _cfg = dict(_L._DEFAULTS, api_key="k")
+    _tid = _L.spawn_ai_task(["四柱：戊寅"], "感情？", config=_cfg,
+                            _transport=_stub_ok)
+    assert _tid, "spawn_ai_task 应返回任务 id"
+    _st = None
+    _t0 = _time.time()
+    while _time.time() - _t0 < 5:
+        _st = _L.ai_task_status(_tid)
+        assert _st is not None, "任务在 TTL 内不得丢失"
+        if _st["status"] != "pending":
+            break
+        _time.sleep(0.05)
+    assert _st["status"] == "done" and _st["text"], _st
+    ok.append("ai.async.task.roundtrip")
+
+    def _stub_boom(payload, headers, url, timeout):
+        raise OSError("selftest stub down")
+
+    _tid2 = _L.spawn_ai_task(["四柱：戊寅"], config=_cfg,
+                             _transport=_stub_boom)
+    _st2 = None
+    _t0 = _time.time()
+    while _time.time() - _t0 < 5:
+        _st2 = _L.ai_task_status(_tid2)
+        if _st2["status"] != "pending":
+            break
+        _time.sleep(0.05)
+    assert _st2["status"] == "failed" and not _st2["text"], _st2
+    ok.append("ai.async.task.failed.degrade")
+
+    _r404 = client.get("/api/ai/selftest-nonexistent")
+    assert _r404.status_code == 404, _r404.status_code
+    ok.append("ai.endpoint.unknown.404")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
     # v 是 dict 的情形，JS `String({..})` 恒为 "[object Object]"。受害字段是
