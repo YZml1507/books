@@ -790,6 +790,15 @@ def run() -> list[str]:
     check("daily", client.get("/api/daily"),
           lambda j: (j.get("level") in ("吉", "平", "凶")
                      and j.get("date") and "noble" in j))
+    # R195b（B-017）：noble 语义 = 当日日干的天乙贵人（地支列表，1–2 个，
+    # 「/」连接），不再是「今年的生肖」。与黄历 guiren 同算法互验。
+    def _daily_noble_ok(j):
+        from guji import huangli as _hl
+        from datetime import date as _date, datetime as _dt
+        _d = _date.fromisoformat(j["date"])
+        _want = "/".join(_hl.guiren(_dt(_d.year, _d.month, _d.day, 12)))
+        return j.get("noble") == _want and j.get("noble") not in ("", None)
+    check("daily.noble.guiren", client.get("/api/daily"), _daily_noble_ok)
     check("widget", client.get("/api/widget"),
           lambda j: (isinstance(j.get("modules"), list)
                      and len(j["modules"]) >= 6

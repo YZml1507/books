@@ -289,7 +289,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
             lines.append(f"缺{m}（{ELEMENT_WARM.get(m, ('', ''))[1]}的一面偏弱）{tip}。")
         if not strong and not missing:
             lines.append("五行齐全、没有一行独大，整体偏均衡。")
-        lines.append("怎么对应到具体状态，你比盘清楚。")
+        lines.append("具体怎么对应，盘面只是参照，你的感受同样重要。")
         return lines
 
     hit = [t for t in tg if t.get("god") in gods]
@@ -535,7 +535,7 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         pos = c.get("position") or ""
         lines.append(f"{pos + '：' if pos else ''}{c.get('name', '')}"
                      f"（{'正位' if cu else '逆位'}）——{ckw}。")
-    lines.append("牌面是象征，不是结论——怎么对上你的事，你自己心里有数。")
+    lines.append("牌面是象征，不是结论——牌面照见什么，由你慢慢体会。")
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None, lines[:5],
@@ -594,7 +594,7 @@ def warm_taohua(t: dict) -> dict:
         d0 = dayun[0]
         lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
                      f"桃花星当值——那段时间社交面会明显变宽。")
-    lines.append("这些说的是节奏，不是判决——感情这事，你自己舒服最重要。")
+    lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
     return _wrap(
         l0,
         None,

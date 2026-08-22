@@ -724,6 +724,14 @@ function rerenderVoice() {
     var entry = LAST_RESPONSE[containerId];
     if (entry && typeof entry.render === 'function') {
       paint(containerId, entry.render(entry.json));
+      /* R195b（用户报告 bug）：重画会重建 DOM，.flipped 全部丢失——
+       * 塔罗牌面退回背面「知」且不再恢复。重画发生在用户**已经看过**
+       * 牌面之后（切换口吻），所以恢复语义是"全部翻开"，不重播动画。
+       * （变量名避开函数名——probe_dollar 静态闸门禁「函数名.属性」。） */
+      var host = document.getElementById(containerId);
+      if (host) host.querySelectorAll('.tarot-card-inner').forEach(function (c) {
+        c.classList.add('flipped');
+      });
     }
   });
 }
@@ -1747,6 +1755,31 @@ async function doTaohua() {
 }
 
 /** 塔罗结果区 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
+/* R195b（用户反馈：牌面只有字太空白）——程序化 SVG 牌面插画。
+ * 零外部资源（宪法第二条红线 3：判据 13 静态/运行时外链=0 不得破坏）。
+ * 大阿卡纳 22 张各配主题意象符号；小阿卡纳 = 花色符号 × 数字排布。
+ * 配色取自海报既有色板（暖米白底/深棕描边），与全站一致。 */
+var TAROT_ART = {
+  "愚者": "🐕", "魔术师": "🪄", "女祭司": "🌙", "皇后": "🌹", "皇帝": "👑",
+  "教皇": "🗝️", "恋人": "💞", "战车": "🛞", "力量": "🦁", "隐士": "🕯️",
+  "命运之轮": "🎡", "正义": "⚖️", "倒吊人": "🙃", "死神": "🦋", "节制": "🏺",
+  "恶魔": "⛓️", "高塔": "🗼", "星星": "⭐", "月亮": "🌜", "太阳": "☀️",
+  "审判": "📯", "世界": "🌍"
+};
+function tarotArt(name) {
+  var suit = name.charAt(0);
+  var sym = { "权": "🌿", "圣": "🏆", "宝": "🗡️", "星": "✨" }[suit];
+  if (sym && name !== "星星") return sym;          /* 小阿卡纳：花色符号 */
+  return TAROT_ART[name] || "✦";                    /* 大阿卡纳：主题意象 */
+}
+/** 牌正面：插画 + 牌名 + 正逆位，替代原"只有字"的空白牌面。 */
+function tarotFace(d) {
+  return '<div class="tart">' + tarotArt(d.name) + '</div>' +
+    '<div class="tname">' + esc(d.name) + '</div>' +
+    '<div class="tmeaning">' + esc(d.upright ? '正位' : '逆位') + '<br>' +
+    esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div>';
+}
+
 function buildTarotResult(j) {
   let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
   html += '<p class="hit-cite">seed ' + esc(j.seed) + ' · ' + esc(j.n) + ' 张（固定 seed 必得同样牌面，可复验）</p>';
@@ -1754,11 +1787,8 @@ function buildTarotResult(j) {
   (j.draws || []).forEach(function (d, i) {
     html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
       '<div class="tarot-card-inner" data-card="' + i + '">' +
-      '<div class="tarot-card-face tarot-card-back">知</div>' +
-      '<div class="tarot-card-face tarot-card-front">' +
-      '<div class="tname">' + esc(d.name) + '</div>' +
-      '<div class="tmeaning">' + esc(d.upright ? '正位' : '逆位') + '<br>' +
-      esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div></div>' +
+      '<div class="tarot-card-face tarot-card-back"><span class="tback">知</span></div>' +
+      '<div class="tarot-card-face tarot-card-front">' + tarotFace(d) + '</div>' +
       '</div></div>' +
       '<div class="tarot-pos">' + esc(d.position || ('第' + (i + 1) + '张')) +
       '</div></div>';

@@ -7489,3 +7489,52 @@ spec 自相矛盾（§2 表漏黄历致首版 index 丢 1 卡），spec 与实�
 
 **遗留移交**：B-017 贵人属相语义（维持先澄清再动码）；两个 skill zip
 零融入、10 开源项目参考未闭环仍挂账。至此 §131 移交前三件全部清偿。
+
+### 134. [优化轨] R195b：用户产品反馈四项修复——塔罗翻牌 bug + 牌面 v1 插画 + warm 文案三句改写 + B-017 清偿（2026-08-22）
+
+**输入**：用户实测反馈——①切专业版后塔罗三张牌全变「知」且不恢复；
+②牌面空白只有字；③「怎么对上你的事，你自己心里有数」令人反感；
+④（承接 §131）贵人属相语义。用户授权遇决策自定直接执行。
+
+**1. 基线复现（宪法第一条）**：Playwright 实测抽牌→切 pro→切 warm：
+初始 3/3 flipped → 切后 0/3、背面可见 3/3 → 再切仍 0/3。归因：
+rerenderVoice() 走 paint() 整块重建 innerHTML，.flipped 类全部丢失，
+且重画路径无人补发翻牌类。
+
+**2. 翻牌 bug 修复（app.js rerenderVoice）**：重画后对容器内
+.tarot-card-inner 全部补 .flipped（用户已看过牌面，恢复语义=全翻开，
+不重播动画）。修复后实测：切 pro 3/3、切回 warm 3/3 保持翻开。
+踩坑记录：首版局部变量名 `el` 与 app.js:33 的 function el(id) 撞名，
+probe_dollar_misuse 静态闸门判「函数当对象用」EXIT=1——改名 host 后
+PASS 零命中。审查轨闸门抓到真问题，闸门有效又一实证。
+
+**3. 牌面插画 v1（app.js + styles.css）**：TAROT_ART 映射表
+（大阿卡纳 22 张主题意象 emoji + 小阿卡纳四花色符号）、tarotFace()
+渲染 意象+牌名+正逆位；牌背「知」加内框居中放大；正面改暖米白渐变底
+（海报同色板 #FDF8F0/#F6EDE0）。零外部资源，check_poster 主+self 复跑
+exit 0（判据 13 外链=0 不破）。截图 logs/tarot_r195b_fixed.png。
+v2（程序化 SVG 场景）列入 specs/008-US2。
+
+**4. warm 文案三句改写（src/guji/voice.py，优化轨领土）**：
+「你自己心里有数」→「由你慢慢体会」；「你比盘清楚」→「盘面只是参照，
+你的感受同样重要」；「你自己舒服最重要」→「你的感受最重要」。
+钉点核查：voice_baseline.json 只冻 pro 视图（无此三句），探针零命中，
+无需重冻。specs/008-US1 立禁语清单机制，全文排查下轮做。
+
+**5. B-017 清偿（web/services.py daily + index.html + selftest）**：
+语义决策——「贵人属相」旧值 chinese_zodiac(今年) 是空话；改为当日日干的
+天乙贵人（huangli.guiren，与黄历页同算法同出处），标签改「今日天乙贵人」。
+键名 noble 不动（契约不变），值变「丑/未」双地支形式。缓存版本化：
+daily_cache 无版本列，读取时值校验 noble≠当日 guiren 即视为旧语义缓存
+作废重算（自愈迁移，实测 cached=True 且值为新语义）。selftest 新增
+daily.noble.guiren 断言（158 checks PASS，与 huangli 互验）。
+
+**6. 闸门口径**：BOOKS_LLM_DISABLE=1 全量电池 34 条复跑
+（gates_r195b_final/，首轮 gates_r195b 中 probe_dollar 抓到 el 撞名
+已修）；ui_smoke/probe_first_screen/check_poster(+self)/dollar 全 0。
+产品大改方向整理为 specs/008-product-reshaping/spec.md（US1 文案体检/
+US2 牌面v2+仪式感/US3 功能谱系重组/US4 首页视觉/US5 海报全覆盖），
+待用户确认后排期。
+
+**遗留移交**：specs/008 五条 US 待排期（US3 动架构需独立一轮+探针改造）；
+两个 skill zip 零融入、10 开源项目参考未闭环仍挂账。

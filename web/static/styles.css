@@ -503,13 +503,27 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
   background:linear-gradient(135deg,#B8860B,#8B5E2C);
   border:2px solid #E8C97A;
 }
-.tarot-card-front{
-  background:var(--card); border:2px solid var(--border);
-  transform:rotateY(180deg); color:var(--text); font-size:14px; padding:12px;
-  text-align:center; overflow:hidden;
+/* R195b：牌背「知」居中放大 + 内框，替代裸字符 */
+.tarot-card-back .tback{
+  font-size:44px; font-weight:600; line-height:1;
+  width:64px; height:64px; display:flex; align-items:center; justify-content:center;
+  border:2px solid rgba(255,255,255,.55); border-radius:12px;
 }
-.tarot-card-front .tname{font-size:16px; font-weight:600; margin-bottom:4px;}
-.tarot-card-front .tmeaning{font-size:12px; color:var(--secondary);}
+/* R195b：牌正面插画版式——暖米白渐变底（海报同色板）+ 意象符号大图 +
+ * 牌名/关键词分区，替代原"只有字"的空白牌面 */
+.tarot-card-front{
+  background:linear-gradient(170deg,#FDF8F0,#F6EDE0);
+  border:2px solid #D8C6A4;
+  transform:rotateY(180deg); color:#2A2420; font-size:14px; padding:10px 8px;
+  text-align:center; overflow:hidden;
+  flex-direction:column; gap:6px;
+}
+.tarot-card-front .tart{
+  font-size:52px; line-height:1.15; flex:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.tarot-card-front .tname{font-size:16px; font-weight:700; margin-bottom:0;}
+.tarot-card-front .tmeaning{font-size:11.5px; color:#815934; line-height:1.45;}
 .tarot-grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:16px 0;}
 .tarot-cell{text-align:center;}
 .tarot-pos{font-size:13px; color:var(--secondary); margin-top:8px;}

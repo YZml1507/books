@@ -811,20 +811,40 @@ def daily(date_str: str | None = None) -> dict:
     with deps.knowledge() as kb:
         cached = kb.get_daily_cache(date_str)
         if cached and cached.get("bazi"):
-            return {"date": date_str, **cached["bazi"], "cached": True}
+            # R195b（B-017 缓存版本化）：daily_cache 无版本列，改用
+            # 「值校验」识别旧语义缓存——noble 若不等于当日天乙贵人
+            # （B-017 修复前存的是当年生肖），视为过期走下方重算覆盖。
+            _c = cached["bazi"]
+            try:
+                _d0 = date.fromisoformat(date_str)
+                _want = "/".join(huangli_mod.guiren(
+                    datetime(_d0.year, _d0.month, _d0.day, 12)))
+            except Exception:
+                _want = None
+            if not _want or _c.get("noble") == _want:
+                return {"date": date_str, **_c, "cached": True}
     try:
         d = date.fromisoformat(date_str)
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
         calc_out = bazi_calc(b)
         level = fortune_level(calc_out)
         do_str, dont_str = _LEVEL_ADVICE[level]
+        # B-017（R195b 清偿）：旧值 chinese_zodiac(d.year) 是「今年的生肖」，
+        # 与「贵人」无关（B-003 登记的语义缺陷）。改为当日日干的天乙贵人
+        # （huangli.guiren，与黄历页同一算法、同一出处）——
+        # 传统语义里「今日贵人」本就按日干推。键名仍为 noble（契约不变），
+        # 值从单属相变为「丑/未」形式的双地支。
+        try:
+            _gr = huangli_mod.guiren(
+                datetime(d.year, d.month, d.day, 12))
+            noble_str = "/".join(_gr) if _gr else "—"
+        except Exception:
+            noble_str = "—"
         result = {
             "date": date_str,
             "level": level,
             "summary": fortune_summary(calc_out),
-            # B-003（审查轨已登记）：此处生肖取的是**当天年份**的属相，
-            # 语义待澄清，本轮不改行为（REPAIR 阶段不做功能变更）。
-            "noble": chinese_zodiac(d.year),
+            "noble": noble_str,
             "do": do_str,
             "dont": dont_str,
             "cached": False,
