@@ -49,7 +49,13 @@ BANNED_PROFESSIONAL = (
     "治病", "吃药", "服药", "确诊", "包治", "股票代码", "抄底",
     "打官司必", "稳赚", "血本无归",
 )
-BANNED = BANNED_FATE + BANNED_IMPERATIVE + BANNED_PROFESSIONAL
+# R197b（specs/008-US1）：说教式第二人称句式——把判断权塞回用户手里时
+# 带居高临下感（「你自己心里有数」实测令用户反感）。同类句式入库即被抓。
+BANNED_CONDESCENDING = (
+    "你自己心里有数", "你比盘清楚", "你比卦清楚", "你自己舒服最重要",
+)
+BANNED = (BANNED_FATE + BANNED_IMPERATIVE + BANNED_PROFESSIONAL
+          + BANNED_CONDESCENDING)
 
 # 术语表（判据 3）：首屏出现次数 ≤3。这些是**专业模式**的词汇，warm 层
 # 应当已把它们白话化；括号里保留原词不计入（那是刻意保留的可检索性）。

@@ -1755,10 +1755,25 @@ async function doTaohua() {
 }
 
 /** 塔罗结果区 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
-/* R195b（用户反馈：牌面只有字太空白）——程序化 SVG 牌面插画。
- * 零外部资源（宪法第二条红线 3：判据 13 静态/运行时外链=0 不得破坏）。
- * 大阿卡纳 22 张各配主题意象符号；小阿卡纳 = 花色符号 × 数字排布。
- * 配色取自海报既有色板（暖米白底/深棕描边），与全站一致。 */
+/* R197b（specs/008-US2 素材轮）：牌面 v2——RWS 公版真图。
+ * 78 张图已入库 /static/tarot/（CC0，luciellaes 清理包，源自 Wikipedia
+ * 公版扫描；manifest.json 键 = guji.tarot DECK 中文名）。图片走同源
+ * /static 路径，零热链零外链（判据 13 口径不变）。
+ * R195b 的 emoji 插画降级为兜底：manifest 加载失败或键缺失时仍可渲染。 */
+var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
+function tarotImg(name) {
+  if (TAROT_MANIFEST) {
+    var f = TAROT_MANIFEST[name];
+    return f ? '/static/tarot/' + f : null;
+  }
+  return null;
+}
+/* manifest 预取（fire-and-forget；失败静默走 emoji 兜底） */
+fetch('/static/tarot/manifest.json')
+  .then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (j) { TAROT_MANIFEST = j || {}; })
+  .catch(function () { TAROT_MANIFEST = {}; });
+
 var TAROT_ART = {
   "愚者": "🐕", "魔术师": "🪄", "女祭司": "🌙", "皇后": "🌹", "皇帝": "👑",
   "教皇": "🗝️", "恋人": "💞", "战车": "🛞", "力量": "🦁", "隐士": "🕯️",
@@ -1772,12 +1787,17 @@ function tarotArt(name) {
   if (sym && name !== "星星") return sym;          /* 小阿卡纳：花色符号 */
   return TAROT_ART[name] || "✦";                    /* 大阿卡纳：主题意象 */
 }
-/** 牌正面：插画 + 牌名 + 正逆位，替代原"只有字"的空白牌面。 */
+/** 牌正面：RWS 真图（可用时）+ 牌名 + 正逆位；emoji 兜底。 */
 function tarotFace(d) {
-  return '<div class="tart">' + tarotArt(d.name) + '</div>' +
+  var img = tarotImg(d.name);
+  var art = img
+    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"></div>' +
+      '<div class="tinfo">'
+    : '<div class="tart">' + tarotArt(d.name) + '</div><div class="tinfo">';
+  return art +
     '<div class="tname">' + esc(d.name) + '</div>' +
     '<div class="tmeaning">' + esc(d.upright ? '正位' : '逆位') + '<br>' +
-    esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div>';
+    esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div></div>';
 }
 
 function buildTarotResult(j) {
@@ -1787,7 +1807,7 @@ function buildTarotResult(j) {
   (j.draws || []).forEach(function (d, i) {
     html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
       '<div class="tarot-card-inner" data-card="' + i + '">' +
-      '<div class="tarot-card-face tarot-card-back"><span class="tback">知</span></div>' +
+      '<div class="tarot-card-face tarot-card-back"><img class="tbimg" src="/static/tarot/card-back.jpg" alt=""></div>' +
       '<div class="tarot-card-face tarot-card-front">' + tarotFace(d) + '</div>' +
       '</div></div>' +
       '<div class="tarot-pos">' + esc(d.position || ('第' + (i + 1) + '张')) +

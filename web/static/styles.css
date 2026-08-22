@@ -55,8 +55,15 @@
   --c-liuyao:  #7ED957;       /* 嫩绿 · 六爻 */
   --c-hehun:   #FF6B9D;       /* 玫红 · 合婚 */
 
-  --font-serif:  "Noto Serif TC","Songti SC","SimSun",serif;
-  --font-sans:   "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  /* R197b（specs/008-US2 素材轮）：网红风字体三件套——
+   * 文楷（手写楷感正文）→ 得意黑（斜体黑标题/数字）→ 思源黑兜底。
+   * 全部 OFL、本地打包（fonts/lxgw 切片按 unicode-range 按需加载，
+   * smiley-sans 单文件 woff2）；零外链不破判据 13。
+   * legacy 回滚主题下 --font-serif/--font-sans 恢复系统字体（回滚=换栈）。 */
+  --font-wenkai: "LXGW WenKai","Noto Serif TC","Songti SC","SimSun",serif;
+  --font-serif:  var(--font-wenkai);
+  --font-display:"Smiley Sans",var(--font-wenkai);
+  --font-sans:   "LXGW WenKai","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
   --font-mono:   "Georgia",serif;
 
   --radius: 18px;
@@ -81,6 +88,11 @@ html[data-theme="legacy"]{
   --c-good:    #5B8C5A;
   --muted:     #8C7B6B;
   --tap: 0px;                 /* 旧样式没有 44px 下限 */
+  /* R197b：回滚含字体栈——legacy 视觉 = 系统字体（003 判据 12 口径：
+   * 「回到上一阶段结束时的视觉」，当时无 webfont） */
+  --font-serif: "Noto Serif TC","Songti SC","SimSun",serif;
+  --font-wenkai: var(--font-serif);
+  --font-sans: "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
 }
 
 *{box-sizing:border-box; margin:0; padding:0;}
@@ -89,6 +101,19 @@ body{
   font-family:var(--font-sans); font-size:16px; line-height:1.6;
   min-height:100vh;
 }
+
+/* ── R197b：webfont 接入（本地切片，零外链）──────────────────────
+ * lxgw.css 由 lxgw-wenkai-webfont npm 包的 regular 切片裁剪而来：
+ * 只保留产品实际用字（1043 CJK 字符）命中的 40 个 unicode-range 切片
+ * （2.0MB），浏览器按需加载命中的分片。得意黑单文件 woff2 用于标题。 */
+@import url("./fonts/lxgw.css");
+@font-face{
+  font-family:"Smiley Sans";
+  src:url("./fonts/smiley-sans.woff2") format("woff2");
+  font-display:swap;
+}
+h1,.brand-mark,.section-title{font-family:var(--font-serif);}
+.daily-level{font-family:var(--font-display); font-weight:400;}
 .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 80px;}
 
 /* ── 品牌 ── */
@@ -503,6 +528,21 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
   background:linear-gradient(135deg,#B8860B,#8B5E2C);
   border:2px solid #E8C97A;
 }
+/* R197b：牌面 v2——RWS 公版真图（CC0，luciellaes 清理包）+ 中文牌名/关键词。
+ * 图片按 manifest 文件名直引 /static/tarot/（零热链，外链=0 不破）。 */
+.tarot-card-front{padding:0; flex-direction:column;}
+.tarot-card-front .tart{width:100%; height:62%; flex:none;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;}
+.tarot-card-front .tart img{
+  width:100%; height:100%; object-fit:cover; border-radius:8px 8px 0 0;
+}
+.tarot-card-front .tinfo{
+  flex:1; display:flex; flex-direction:column; justify-content:center;
+  padding:4px 6px 2px;
+}
+.tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
+  border-radius:8px;}
+
 /* R195b：牌背「知」居中放大 + 内框，替代裸字符 */
 .tarot-card-back .tback{
   font-size:44px; font-weight:600; line-height:1;

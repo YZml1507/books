@@ -451,8 +451,8 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     elif vname:
         lines.append("变卦与本卦相同，方向不改。")
 
-    lines.append("卦辞爻辞的原文在下面，那才是断的依据——"
-                 "怎么对应你问的事，你比卦清楚。")
+    lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
+                 "慢慢体会，不急。")
     return lines[:5]
 
 

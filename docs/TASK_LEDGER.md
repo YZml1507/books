@@ -7568,3 +7568,50 @@ specs/008-product-reshaping/references.md，逐项目许可裁定+借鉴点映�
 
 **闸门**：本轮纯文档（references.md + 台账），零代码改动，不触发
 电池复跑（宪法第五条领土内 docs/specs 变更）。
+
+### 136. [优化轨] R197b：008 第一轮——素材落地（RWS 真图牌面 + OFL 字体三件套）+ US1 禁语清单扩表（2026-08-22/23）
+
+**输入**：用户三点拍板——字体要网红风不要超正式；卡牌自用/公益不在意
+侵权但仍希望可靠来源；采纳 008 分三轮方案（D-255b）。用户提供本地代理
+127.0.0.1:7897 解决直连超时。
+
+**1. 素材获取（全部联网实测）**：
+- 霞鹜文楷：GitHub 直连 25MB 六次断点均卡死 → 改 npmmirror 的
+  lxgw-wenkai-webfont@1.7.0（30MB tgz 秒下）。切片包结构：97 个 woff2
+  按 unicode-range 切片 + CSS。按产品实际用字（index/app.js/voice.py
+  共 1043 个 CJK 字符）裁剪到 **40 切片 2.0MB**，CSS 重写路径后入库。
+- 得意黑：smiley-sans v2.0.1 zip（代理下 GitHub 恢复正常），单文件
+  woff2 1.15MB 入库。
+- RWS 78 张：sacred-texts 图源残缺（36/78 真图 + 42 张 404 页，重试无果）
+  → 主图源换 luciellaes CC0 包（itch.io，POST /file/{id} 取 R2 签名 URL，
+  首次签名过期失败、二次即时下载成功）。300×527 JPEG 全 78 张 + 牌背。
+
+**2. 入库处理（provenance 见 specs/008/references.md §B2）**：
+78 张压缩 quality=72 progressive（总量 2.9MB ≤4MB 门柱），文件名转
+unicode 码点十六进制（t{hex}.jpg，避免中文文件名跨平台问题）；
+manifest.json 经两轮规范化对齐 guji.tarot DECK 命名（数字中文→阿拉伯、
+侍者→侍从），终版 78 键与 DECK 精确相等（脚本断言）。牌背 card-back.jpg。
+
+**3. 前端接入**：
+- styles.css：--font-wenkai/--font-display 新令牌；--font-serif/--font-sans
+  换文楷栈；legacy 回滚主题同步回退系统字体（判据 12 口径：回到上一阶段
+  视觉=当时无 webfont）；@import lxgw.css + @font-face Smiley Sans；
+  .daily-level 用得意黑。
+- app.js：tarotImg() 走 manifest 同源 /static/tarot/（零热链）；tarotFace
+  真图优先、emoji 兜底（manifest 加载失败静默降级）；牌背用 CC0 CardBacks
+  替代「知」字。
+- 实测（390×844 Playwright）：三张牌面 img 全部 naturalWidth>0、牌背 OK、
+  console 零错误；切 pro 后翻牌 3/3 保持（R195b 不回归）；字体/卡牌/
+  manifest 静态路由全 200。截图 logs/tarot_r197b_rws.png。
+
+**4. US1 禁语清单扩表**：check_warm_voice BANNED_CONDESCENDING 新类目
+（你自己心里有数/你比盘清楚/你比卦清楚/你自己舒服最重要）；全文排查
+新发现并改写「你比卦清楚」→「慢慢体会，不急」（六爻 warm 尾句）。
+check_warm_voice PASS（10 用例 ×8 判据）、check_plain_first PASS。
+
+**5. 闸门抽查先行**：probe_dollar PASS（88 函数零命中）、check_poster
+PASS（外链=0 含新静态目录）、ui_smoke/first_screen PASS。全量电池
+gates_r197b 运行中，结果见 summary。
+
+**遗留**：R198b（US4 时辰感知视觉+US5 海报补齐）、R200b（US3 功能谱系
+重组独占轮）。skill zip 零融入仍挂账。
