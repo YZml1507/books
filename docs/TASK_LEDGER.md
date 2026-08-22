@@ -7615,3 +7615,29 @@ gates_r197b 运行中，结果见 summary。
 
 **遗留**：R198b（US4 时辰感知视觉+US5 海报补齐）、R200b（US3 功能谱系
 重组独占轮）。skill zip 零融入仍挂账。
+
+### 137. [优化轨] R198b：008 第二轮——US4 时辰感知背景 + US5 海报出口补齐（2026-08-23）
+
+**决策（D-256b 待记）**：时辰背景选「JS 设 data-daypart 属性 + CSS 五档
+覆盖」否决 CSS 循环动画（reduced-motion 判据 6 风险）；海报选「统一
+模板族 _paintSharePoster + buildShareData(view,j) 提取器」否决逐端点
+独立渲染（重复代码）。bazi 专属旧版式原样保留（check_poster 判据 12
+口径不变），j.share 存在才走通用模板。
+
+**1. US4 时辰感知背景**：五档（dawn/morning/noon/dusk/night）按本地小时
+映射，CSS 只动 body 背景渐变、全部高亮度暖色域（文字对比度组合不变，
+判据 3 安全）；选择器带 html[data-daypart=…] 前缀——legacy 回滚主题不
+匹配 → 回滚含背景。实测 night 档 linear-gradient 生效。
+
+**2. US5 海报出口补齐**：新增 _paintSharePoster 统一版式（标题/大字结论
+自动缩字号/键值行卡片/三卡片区）+ buildShareData 从 daily/tarot/liuyao/
+qiming 响应提取（数据只取 warm 与确定性字段；塔罗卡图用页面已加载的
+RWS <img> drawImage 直绘，同源零热链）。入口：#shareDaily（今日卡存成图）、
+六爻结果卡尾部注入 #shareLiuyao、shareQiming/shareTaohua/shareHehun
+改走通用模板。七端点海报全覆盖（bazi 走旧专属版式）。
+E2E：daily/tarot/liuyao/qiming 四条下载全出 zhiming-poster.png、console
+零错误、daypart 属性生效。抽查 probe_dollar PASS（92 函数）/check_poster
+PASS/ui_smoke PASS；全量电池 gates_r198b 结果见 summary。
+
+**遗留**：R200b（US3 功能谱系重组独占轮：8→3 入口+探针同步改造+路由
+兼容期）。

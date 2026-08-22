@@ -538,9 +538,14 @@ function drawPoster(j, opts) {
 }
 
 /** 海报绘制本体：逻辑坐标恒 1080×1440，经 ctx.scale 缩放到目标画布。
- *  所有几何/字号写死逻辑值——同一输入在任何目标尺寸下版式逐点一致。 */
+ *  所有几何/字号写死逻辑值——同一输入在任何目标尺寸下版式逐点一致。
+ *  R198b（US5）：新增通用形状 j.share —— {title, subtitle, big, bigSub,
+ *  lines:[{k,v}], cards:[{name,sub,img?}]}，由 buildShareData(view,j)
+ *  从各端点响应提取；j.share 存在时走统一模板（七端点一套版式族），
+ *  不存在时保持 bazi 专属旧版式（check_poster 判据 12 口径不变）。 */
 function _paintPoster(j, W, H) {
   var S = W / 1080;
+  if (j && j.share) return _paintSharePoster(j.share, W, H);
   var warm = (j && j.warm) || {};
   var paipan = (j && j.paipan) || {};
   var ec = warm.energy_card || {};
@@ -640,9 +645,153 @@ function _paintPoster(j, W, H) {
   return cv;
 }
 
+/* ── R198b（US5）：通用分享海报模板族──────────────────────────────
+ * 七端点一套版式：标题区 / 大字结论 / 键值行 / 可选卡片区（塔罗画真图）。
+ * 同源图片 drawImage 直绘（不污染外链判据）。 */
+function _roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function _paintSharePoster(s, W, H) {
+  var cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return null;
+  var S = W / 1080;
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  var bg = ctx.createLinearGradient(0, 0, 0, 1440);
+  bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
+  ctx.textAlign = 'center';
+
+  /* 标题 + 副题 */
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 60px serif';
+  ctx.fillText(s.title || '知命', 540, 128);
+  if (s.subtitle) {
+    ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px sans-serif';
+    ctx.fillText(String(s.subtitle).slice(0, 24), 540, 182);
+  }
+
+  /* 大字结论（最多两行，自动缩字号防溢出） */
+  var big = String(s.big || '');
+  ctx.fillStyle = '#3E3428';
+  var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
+  ctx.font = '600 ' + bigSize + 'px sans-serif';
+  var words = wrapText(ctx, big, 900);
+  words.slice(0, 2).forEach(function (ln, i) { ctx.fillText(ln, 540, 320 + i * (bigSize + 22)); });
+
+  /* 键值行卡片 */
+  var lines = (s.lines || []).slice(0, 4);
+  var cardY = s.cards && s.cards.length ? 500 : 520;
+  if (lines.length) {
+    var lh = Math.min(120, 900 / lines.length);
+    ctx.fillStyle = '#FFFFFF';
+    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.fill();
+    ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
+    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.stroke();
+    ctx.textAlign = 'left';
+    lines.forEach(function (r, i) {
+      var y = cardY + i * lh + 10;
+      ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px sans-serif';
+      ctx.fillText(r.k, 150, y);
+      ctx.fillStyle = '#3E3428'; ctx.font = '500 40px sans-serif';
+      var v = String(r.v || '');
+      ctx.fillText(v.length > 16 ? v.slice(0, 15) + '…' : v, 150, y + 52);
+    });
+    ctx.textAlign = 'center';
+  }
+
+  /* 卡片区（塔罗：RWS 真图直绘；其他：文字卡） */
+  var cards = (s.cards || []).slice(0, 3);
+  if (cards.length) {
+    var cw = 250, ch = 420, gap = (1080 - cards.length * cw) / (cards.length + 1);
+    var cy = 880;
+    cards.forEach(function (c, i) {
+      var cx = gap + i * (cw + gap);
+      ctx.fillStyle = '#FFFFFF';
+      _roundRectPath(ctx, cx, cy, cw, ch, 20); ctx.fill();
+      ctx.strokeStyle = '#D8C6A4'; ctx.lineWidth = 3;
+      _roundRectPath(ctx, cx, cy, cw, ch, 20); ctx.stroke();
+      var iy = cy;
+      if (c.img) {
+        try {
+          ctx.save();
+          _roundRectPath(ctx, cx + 12, cy + 12, cw - 24, ch - 130, 14); ctx.clip();
+          ctx.drawImage(c.img, cx + 12, cy + 12, cw - 24, ch - 130);
+          ctx.restore();
+        } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
+        iy = cy + ch - 118;
+      }
+      ctx.fillStyle = '#3E3428'; ctx.font = '600 38px sans-serif';
+      ctx.fillText(c.name.slice(0, 6), cx + cw / 2, iy + 44);
+      ctx.fillStyle = '#815934'; ctx.font = '400 28px sans-serif';
+      ctx.fillText(String(c.sub || '').slice(0, 8), cx + cw / 2, iy + 88);
+    });
+  }
+
+  /* 水印（判据 2 口径一致） */
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px sans-serif';
+  ctx.fillText('知命 · 仅供娱乐', 540, 1350);
+  return cv;
+}
+
 /** R193b（T3.3）：空闲时预热海报字体/栅格管线——首跑冷启动实测 51.7ms
  *  （≥50ms 长任务阈值）、稳态约 25ms；预热把冷启动成本移到页面加载期，
  *  用户点击「分享图」时走的就是热路径。产物即弃，零副作用。 */
+/** R198b（US5）：从各端点响应提取统一海报形状 j.share。
+ *  数据只取自 warm/确定性字段（不新增事实，宪法第三条口径）；
+ *  塔罗卡图用已加载的 <img> 元素（同源，drawImage 直绘）。 */
+function buildShareData(view, j) {
+  var w = (j && j.warm) || {};
+  var l0 = w.one_liner || '';
+  function base(title, subtitle) {
+    return { title: title, subtitle: subtitle, big: l0 || title, lines: [], cards: [] };
+  }
+  switch (view) {
+    case 'daily':
+      return { title: '今日运势', subtitle: (j && j.date) || '',
+        big: (j && j.summary) ? String(j.summary).slice(0, 18) : '今日份小确幸',
+        lines: [{ k: '运势等级', v: (j && j.level) || '—' },
+                { k: '天乙贵人', v: (j && j.noble) || '—' },
+                { k: '宜', v: (j && j.do) || '—' },
+                { k: '忌', v: (j && j.dont) || '—' }],
+        cards: [] };
+    case 'tarot': {
+      var draws = (j && j.draws) || [];
+      var imgs = document.querySelectorAll('.tarot-card-front img');
+      var s = base('塔罗指引', (w.question_hint || ''));
+      s.big = l0 || '牌面是象征，不是结论';
+      s.cards = draws.slice(0, 3).map(function (d, i) {
+        var el = imgs[i] && imgs[i].complete && imgs[i].naturalWidth > 0 ? imgs[i] : null;
+        return { name: d.name, sub: d.upright ? '正位' : '逆位', img: el };
+      });
+      return s;
+    }
+    case 'liuyao': {
+      var sly = base('六爻占卜', '');
+      sly.lines = ((w.details && w.details.basis) || []).slice(0, 4)
+        .map(function (b) { return { k: '依据', v: b }; });
+      if (!sly.lines.length) sly.lines = [{ k: '结论', v: l0.slice(0, 15) }];
+      return sly;
+    }
+    case 'qiming':
+      return { title: '五行起名', subtitle: '按五行补缺',
+        big: ((j && j.full_names && j.full_names[0] && j.full_names[0].full_name)
+              || l0 || '').slice(0, 12),
+        lines: ((j && j.full_names) || []).slice(0, 4).map(function (n, i) {
+          return { k: '推荐 ' + (i + 1), v: (n && n.full_name) || '' }; }),
+        cards: [] };
+    default:
+      return null;
+  }
+}
+
 function warmPoster() {
   try {
     var cv = _paintPoster({}, POSTER_FULL_W, POSTER_FULL_H);
@@ -650,8 +799,14 @@ function warmPoster() {
   } catch (e) { /* 预热失败不影响任何主流程 */ }
 }
 
-function downloadPoster(j) {
-  /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。 */
+function downloadPoster(j, view) {
+  /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。
+   * R198b（US5）：view 传入时先 buildShareData 注入 j.share（通用模板）；
+   * 不传则保持 bazi 专属旧版式。 */
+  if (view) {
+    var s = buildShareData(view, j);
+    if (s) j = Object.assign({}, j, { share: s });
+  }
   var r = drawPoster(j);
   if (!r || !r.canvas) return;
   try {
@@ -851,6 +1006,7 @@ function fmtScalar(v) {
 async function loadDaily() {
   try {
     const j = await api('/api/daily');
+    window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     const dateEl = el('dailyDate');
     if (dateEl) dateEl.textContent = j.date || '今天';
     const level = j.level || '平';
@@ -1565,6 +1721,17 @@ async function doLiuyao() {
     paint('lyResult', buildLiuyaoResult(j));
     rememberVoice('lyResult', j, buildLiuyaoResult);
     revealResult('lyResult');          // 005 判据 1 场景 5：不是只修排盘
+    /* R198b（US5）：六爻分享图——结果卡尾部注入按钮（对齐 shareBazi 模式） */
+    var lyCard = document.querySelector('#lyResult .card');
+    if (lyCard && !document.getElementById('shareLiuyao')) {
+      var lyBtn = document.createElement('button');
+      lyBtn.className = 'ghost fav-btn'; lyBtn.type = 'button';
+      lyBtn.id = 'shareLiuyao'; lyBtn.title = '生成分享图';
+      lyBtn.textContent = '📸 分享图';
+      lyBtn.style.margin = '10px 0 0';
+      lyCard.appendChild(lyBtn);
+      lyBtn.addEventListener('click', function () { downloadPoster(j, 'liuyao'); });
+    }
   } catch (e) {
     fail('lyResult', '摇卦失败：' + e.message);
   }
@@ -1674,7 +1841,7 @@ async function doQiming() {
     paint('qmResult', html);
     revealResult('qmResult');
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareQiming', function () { downloadPoster(j); });   // R193b 海报入口
+    on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
   }
@@ -1748,7 +1915,7 @@ async function doTaohua() {
     paint('thResult', html);
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareTaohua', function () { downloadPoster(j); });   // R193b 海报入口
+    on('shareTaohua', function () { downloadPoster(j, 'liuyao'); });   /* R198b：桃花复用通用模板（键值行版式） */
   } catch (e) {
     fail('thResult', '测算失败：' + e.message);
   }
@@ -1923,7 +2090,7 @@ async function doHehun() {
     paint('hhResult', html);
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareHehun', function () { downloadPoster(j); });   // R193b 海报入口
+    on('shareHehun', function () { downloadPoster(j, 'liuyao'); });   /* R198b：合婚复用通用模板 */
   } catch (e) {
     fail('hhResult', '计算失败：' + e.message);
   }
@@ -2267,10 +2434,20 @@ function initDivination() {
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
   on('hhSubmit', doHehun);
+  /* R198b（US5）：今日运势分享图（数据来自最近一次 /api/daily 响应） */
+  on('shareDaily', function () {
+    if (window.__lastDaily) downloadPoster(window.__lastDaily, 'daily');
+  });
 }
 
 function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
+  /* R198b（US4）：时辰感知背景——按本地小时设五档 daypart。
+   * 纯属性设置零动画；不读时钟入任何计算结果（voice 硬纪律不受影响）。 */
+  var __h = new Date().getHours();
+  var __dp = (__h < 6) ? 'night' : (__h < 10) ? 'dawn' : (__h < 15) ? 'morning'
+           : (__h < 19) ? 'noon' : (__h < 22) ? 'dusk' : 'night';
+  document.documentElement.setAttribute('data-daypart', __dp);
   initViews();
   initBazi();
   initReading();

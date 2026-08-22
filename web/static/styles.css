@@ -96,6 +96,22 @@ html[data-theme="legacy"]{
 }
 
 *{box-sizing:border-box; margin:0; padding:0;}
+
+/* ── R198b（US4）：时辰感知背景——五档晨昏色调 ─────────────────────
+ * JS 按本地小时设 <html data-daypart>，CSS 只覆盖 --bg 渐变（不动文字色，
+ * 对比度判据 3 的前景/背景组合不变——底色全部保持高亮度暖色域）。
+ * legacy 回滚主题不匹配这些选择器 → 切回旧主题即回到固定旧背景。 */
+html[data-daypart="dawn"] body{
+  background:linear-gradient(175deg,#FFF4E8 0%,#FBEADF 55%,#F6EDE0 100%);}
+html[data-daypart="morning"] body{
+  background:linear-gradient(175deg,#FDFAF2 0%,#F7F0E1 60%,#F5EFE6 100%);}
+html[data-daypart="noon"] body{
+  background:linear-gradient(175deg,#FFFFFF 0%,#FBF6EC 60%,#F5EFE6 100%);}
+html[data-daypart="dusk"] body{
+  background:linear-gradient(175deg,#FBEFE2 0%,#F6E3D5 55%,#F1E4D6 100%);}
+html[data-daypart="night"] body{
+  background:linear-gradient(175deg,#F3E9EF 0%,#EFE6EA 55%,#F0E9E2 100%);}
+
 body{
   background:var(--bg); color:var(--text);
   font-family:var(--font-sans); font-size:16px; line-height:1.6;

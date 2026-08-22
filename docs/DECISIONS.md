@@ -5717,3 +5717,20 @@ commit 回滚；素材已拍板验证零阻塞；US3 的 ui_smoke BUTTON_CASES �
   备用 Wikimedia PDM / sacred-texts。入库压缩 ≤4MB 总量，零热链。
 - 「不在意侵权」仍走合法路径的理由：公益网址传播时 CC0/公版是唯一
   不需要逐张溯源的形态，成本为零为何不用。
+
+## D-256b R198b 决策：时辰背景走「属性+CSS 五档」，海报走「统一模板族」
+
+**候选 A（时辰）**：CSS 全天循环动画——氛围最连续但违反 reduced-motion
+判据 6 风险高（003 判据 6 是「保持 0」红线），且不可测。否决。
+**候选 B（选定）**：JS 按本地小时设 html[data-daypart]（五档），CSS 覆盖
+body 背景渐变。确定性、零动画、可断言属性存在；选择器带前缀使 legacy
+回滚主题天然不受影响——判据 12「一键回滚」完整性保住。
+底色全部高亮度暖色域：文字/背景对比度组合不变，判据 3 不受影响。
+
+**候选 A（海报）**：每端点独立渲染函数——版式最可控但七份重复代码。
+**候选 B（选定）**：_paintSharePoster 统一模板 + buildShareData(view,j)
+提取器；bazi 旧版式原样保留双轨并存（check_poster 判据 12 逐字节口径
+不破坏）。塔罗卡图 drawImage 页面已加载的同源 <img>——不引外部请求。
+
+**实测**：四端点海报 E2E 出图、daypart 属性生效、console 零错误；
+probe_dollar/check_poster/ui_smoke 抽查 PASS。
