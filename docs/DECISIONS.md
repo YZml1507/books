@@ -5692,3 +5692,28 @@ probe_ui_smoke 全部用例经 .func-card 导航）；键盘序=视觉序；
 **实测**：selftest 157 checks PASS（home.ia 断言组新增）；
 375px 渲染双标签可见、对比度 5.38:1 ≥AA、横向溢出 0px；
 ui_smoke / probe_first_screen 全 PASS 不回退。
+
+## D-255b R196b 决策：008 分三轮实施（素材文案→视觉海报→架构重组），卡牌采 RWS 公版扫描、字体走网红风 OFL 三件套
+
+**背景**：用户拍板三点——字体要网红风不要超正式；卡牌图自用/公益不在意
+侵权但仍希望找可靠来源；要求对 008 给出实施方案取舍。
+
+**候选（008 实施）**：A 一轮五条全做（否决：US3 动架构+探针全量改写，
+混批回归不可归因）；C US3 架构先行（否决：感知收益应先到，US3 做完前
+其余轮次在移动地板上施工）；B（选定）三轮——R197b 素材+文案（OFL
+字体三件套+RWS 公版牌面+US1 禁语清单）、R198b 视觉+海报补齐
+（US4+US5）、R200b 功能谱系重组（US3 独占轮+探针同步改造）。
+
+**理由**：感知收益排序（用户核心抱怨是不吸引人）；每轮独立闸门+单
+commit 回滚；素材已拍板验证零阻塞；US3 的 ui_smoke BUTTON_CASES 映射
+全部变化须独占轮消化。
+
+**素材裁定（联网实测）**：
+- 字体：霞鹜文楷 lxgw/LxgwWenKai（OFL 1.1，Klee One 衍生手写楷——奶油感）
+  + 得意黑 atelier-anchor/smiley-sans（OFL 斜体黑标题）+ 思源黑兜底；
+  子集化 ≤300KB/字重本地打包。
+- 卡牌：Rider-Waite-Smith 1909 全球公版（Pamela Colman Smith 卒 1942）；
+  主图源 luciellaes CC0 清理包（itch.io，78 张全，源自 Wikipedia），
+  备用 Wikimedia PDM / sacred-texts。入库压缩 ≤4MB 总量，零热链。
+- 「不在意侵权」仍走合法路径的理由：公益网址传播时 CC0/公版是唯一
+  不需要逐张溯源的形态，成本为零为何不用。
