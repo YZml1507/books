@@ -58,31 +58,42 @@
     <div class="daily-detail" id="dailyDetail" hidden></div>
   </div>
 
-  <!-- 功能卡片 -->
-  <div class="func-grid" id="funcGrid">
+  <!-- 功能卡片（007 首页 IA：三簇语义分组，spec §2；「今日」簇=上方每日运势卡本体） -->
+  <!-- R193b→R194b：卡元素原样搬入重排，data-view/role/tabindex 与点击行为零变化
+       （probe_ui_smoke 经 .func-card[data-view] 导航，容器结构非契约） -->
+  <div class="ia-group" data-group="ask">
+    <div class="ia-label">🔮 测一测</div>
+    <div class="func-grid">
     <div class="func-card" data-view="bazi" role="button" tabindex="0">
       <div class="func-icon">🔮</div><div class="func-name">八字排盘</div><div class="func-desc">四柱五行 · 大运流年</div>
-    </div>
-    <div class="func-card" data-view="read" role="button" tabindex="0">
-      <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍检索比对</div>
-    </div>
-    <div class="func-card" data-view="tarot" role="button" tabindex="0">
-      <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽牌看指引</div>
-    </div>
-    <div class="func-card" data-view="huangli" role="button" tabindex="0">
-      <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
     </div>
     <div class="func-card" data-view="qiming" role="button" tabindex="0">
       <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
     </div>
+    <div class="func-card" data-view="hehun" role="button" tabindex="0">
+      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+    </div>
     <div class="func-card" data-view="taohua" role="button" tabindex="0">
       <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
+    </div>
+    <div class="func-card" data-view="tarot" role="button" tabindex="0">
+      <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽牌看指引</div>
     </div>
     <div class="func-card" data-view="liuyao" role="button" tabindex="0">
       <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
     </div>
-    <div class="func-card" data-view="hehun" role="button" tabindex="0">
-      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+    <div class="func-card" data-view="huangli" role="button" tabindex="0">
+      <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
+    </div>
+    </div>
+  </div>
+
+  <div class="ia-group" data-group="read">
+    <div class="ia-label">📜 读书</div>
+    <div class="func-grid">
+    <div class="func-card" data-view="read" role="button" tabindex="0">
+      <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍检索比对</div>
+    </div>
     </div>
   </div>
 

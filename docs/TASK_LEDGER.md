@@ -7450,3 +7450,42 @@ probe_contract 184 字段 SOFT=15 · eval_g1/g4/g7 · first_screen PASS。
 
 **遗留**：首页 IA（见上，待 SDD+用户方向输入）；B-017 维持「先澄清语义
 再动代码」。两个 skill zip 零融入、10 开源项目参考未闭环仍挂账。
+
+### 133. [优化轨] R194b：specs/007 首页 IA——三簇语义分组（SDD 四件套 + home.ia 断言组）（2026-08-22）
+
+**前置状态**：main=4eb811e（R193b）、工作树仅 specs/007 新建目录与
+web/static 两文件改动。count_open_findings exit 0。
+
+**1. SDD（宪法第六条）**：新建 specs/007-home-ia/{spec,plan,tasks}.md
+（specs/006 先例 402e586：优化轨可自建 spec 目录）。spec 只写 WHAT/WHY，
+判据 9 条全部满足「可自动测量」或「可回滚」（单 commit revert）。
+分组方案取舍记 D-254b（否决纯重排 A、五簇细分 B，选三簇 C：
+今日=每日运势卡本体 / 测一测 7 卡 / 读书 1 卡；簇内序按语义谱系——
+八字族排盘→起名→合婚→桃花相邻、抽问族塔罗→六爻相邻、黄历殿后）。
+本轮一次补齐四件套后动码，顺序未反。
+
+**2. 实现（领土内零越界）**：index.html funcGrid 拆两段 ia-group
+（卡元素原样搬入重排，data-view/role/tabindex 零变化——initViews 的
+querySelectorAll('.func-card') 不依赖容器结构）；styles.css 只增
+.ia-group/.ia-label 两规则；app.js 零改动。探针依赖盘点（§132）成立：
+ui_smoke 经 .func-card 导航全用例不感知容器变化。执行中自查抓到一处
+spec 自相矛盾（§2 表漏黄历致首版 index 丢 1 卡），spec 与实现同步订正，
+订正过程留痕于 git diff。
+
+**3. 实测（BOOKS_LLM_DISABLE=1）**：
+- selftest PASS **157 checks**（156→157：home.ia 断言组——入口数=8、
+  卡序 bazi→qiming→hehun→taohua→tarot→liuyao→huangli|read、合婚桃花相邻、
+  双簇标签存在）；probe_selftest_regress PASS（新增自动入基线）。
+- probe_ui_smoke PASS（经卡片导航，history 235→235 零残留）；
+  probe_first_screen PASS（首屏大白话/古籍占比判据不回退）。
+- 375px 渲染实测：双标签可见、标签对比度 **5.38:1**（≥AA 4.5）、
+  横向溢出 **0px**；截图 logs/ia_007_mobile_375.png 留档。
+- 全量电池 **34 条命令全 EXIT=0**（清单同 gates_r193b 逐项一致），
+  日志 $LOCALAPPDATA/Temp/gates_r194b/。
+
+**4. 判据对账（spec §3）**：判据 1=8 不变 ✓ · 2=2 可见 ✓ ·
+3=序一致 ✓ · 4=相邻 ✓ · 5=first_screen PASS ✓ · 6=0px ✓ ·
+7=长任务 0 ✓ · 8=ui_smoke 全 PASS ✓ · 9=电池全 0 ✓。九条全成立。
+
+**遗留移交**：B-017 贵人属相语义（维持先澄清再动码）；两个 skill zip
+零融入、10 开源项目参考未闭环仍挂账。至此 §131 移交前三件全部清偿。

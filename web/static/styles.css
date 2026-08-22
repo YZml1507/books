@@ -231,6 +231,14 @@ body{
 
 /* ── 最近解读 ── */
 .recent-section{margin-top:36px;}
+
+/* ── 007 首页 IA：语义分组壳（spec §2；只增不改，回滚=git revert） ── */
+.ia-group{margin-top:30px;}
+.ia-label{
+  font-size:15px; font-weight:600; color:var(--secondary);
+  margin:0 0 12px 2px; letter-spacing:.5px;
+}
+@media (max-width:560px){ .ia-label{font-size:14px;} }
 .section-title{
   font-family:var(--font-serif); font-size:20px; font-weight:600;
   color:var(--text); margin-bottom:16px; padding-bottom:10px;

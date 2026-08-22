@@ -735,6 +735,23 @@ def run() -> list[str]:
         assert len(_st.content) > 1000, (f"static.{_name}", len(_st.content))
         ok.append(f"static.{_name}")
 
+    # R194b（specs/007 首页 IA）：功能卡三簇语义分组——入口不减（8 张）、
+    # 簇内序固定（八字族相邻→抽问族→黄历殿后，读书独立成簇）、
+    # 双人意图的合婚与桃花相邻。只增不减：新名字自动入 regress 基线。
+    import re as _re
+    _cards = _re.findall(r'class="func-card" data-view="([a-z]+)"', home.text)
+    assert len(_cards) == 8, ("home.ia.count", len(_cards), _cards)
+    assert _cards == ["bazi", "qiming", "hehun", "taohua",
+                      "tarot", "liuyao", "huangli", "read"], \
+        ("home.ia.order", _cards)
+    assert _cards.index("hehun") + 1 == _cards.index("taohua"), \
+        ("home.ia.pair", _cards)
+    for _grp, _lab in (("ask", "测一测"), ("read", "读书")):
+        assert f'<div class="ia-group" data-group="{_grp}">' in home.text, \
+            ("home.ia.group", _grp)
+        assert _lab in home.text, ("home.ia.label", _lab)
+    ok.append("home.ia")
+
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理
     # （R34b 教训：绝不在真实库里留测试行）
     from guji.knowledge import KnowledgeBase
