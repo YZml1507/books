@@ -7374,3 +7374,30 @@ check_async_ai(DISABLE=1 与 unset 双环境) · check_xingzuo ·
 probe_r128a_no_dup_citations · count_open_findings。
 13 道宪法闸门本轮未全量重跑（merge 只动了文档/探针/selftest 断言，
 src 检索与索引层零改动——eval_g1/g7 的输入字节不变；下一轮全量轮补跑）。
+
+### 131. [审查轨] R133a：R191b/R192b 五项修复复验全过，B-014~B-016/B-019/B-020 全数转 VERIFIED（2026-08-22）
+
+**前置**：audit=6a9806c（R192b），双轨 rev-list 双 0，count_open_findings exit 0
+（闸门 1 PASS）。上轮会话全量电池 35 项退出码全 0（日志
+$LOCALAPPDATA/Temp/gates_r133a/summary.txt）。
+
+**逐项亲验**（完整命令与输出见 AUDIT_FINDINGS.md §R133a）：
+1. **B-014 异步化 VERIFIED**：DISABLE 下四端点 ai_task_id 全缺席；LLM 开启
+   POST /api/qiming 0.21s 返回（修复前基线 35.3s，门柱 <2s），轮询至 done。
+2. **B-015 性别偏好 VERIFIED**：女·林缺金 前8 FEMININE_CHARS 命中 8/8
+   （门柱 ≥5；修复前 0）；男·王 前8 8/8；两次调用逐字节相等；
+   `PYTHONPATH=src <py> -m guji.qiming` exit 0。
+3. **B-016 称谓 VERIFIED**：真实端点 gender=女 终态文本「林姑娘…」开头，
+   「先生」零命中；mock 复验 facts_qiming 性别事实行进请求体。
+4. **B-019 探针清理 VERIFIED**：history.count() 跑前=主跑后=self-check 后
+   =157，探针输出「已清理 8 行，回到 baseline 157」——写了又删非假过。
+5. **B-020 loopback trust_env VERIFIED**：不设 NO_PROXY、系统代理开启下，
+   mock 实收请求数=1（修复前基线 0）、返回非空；_is_loopback 不误判远程。
+
+**附带确认**：web/selftest.py 156 checks PASS；probe_selftest_regress /
+probe_llm_polish offline / check_async_ai 全 0。工作区
+probes/selftest_baseline.json 的行尾符噪音经 git diff -w 核实零内容变更，
+不构成 FINDING。OPEN BLOCKER 0 / OPEN MAJOR 0。
+
+**移交存量**：B-013（海报长任务 <50ms 判据空缺）、B-017（贵人属相语义）、
+桃花/合婚/起名分享海报入口、首页 IA——均未开工，留优化轨排期。

@@ -726,7 +726,7 @@ d) **B-013 check_poster 补长任务判据**：见 OPTIMIZE_BACKLOG B-013 处置
   trust_env=False），但不是用户当下在流血的洞
 - 本轮处置：probe_ui_smoke 注入 env 显式加 NO_PROXY=127.0.0.1,localhost
   （只影响被测子进程），mock 链路稳定；登记 OPTIMIZE_BACKLOG B-020
-- 状态：OPEN → B-020
+- 状态：OPEN → B-020（R192b 修复，R133a-05 复验通过 VERIFIED）
 
 ### R132a-F3 probe_r131a_relevance 主用例写 history.db 不自带清理（MINOR）
 
@@ -737,7 +737,7 @@ d) **B-013 check_poster 补长任务判据**：见 OPTIMIZE_BACKLOG B-013 处置
   （19 行：id 2124–2132、2145–2147、2167–2172、2185，删除前后行数核对）
 - 处置：登记 OPTIMIZE_BACKLOG B-019，修法照抄 probe_ui_smoke.py:518 的
   baseline+delete+复验三段式
-- 状态：OPEN → B-019
+- 状态：OPEN → B-019（R192b 修复，R133a-04 复验通过 VERIFIED）
 
 ### R132a 闸门结论（措辞遵守 D-250b 后的新口径）
 
@@ -746,6 +746,69 @@ probe_dollar/baseline_voice/check_warm_voice/check_plain_first/check_xingzuo/
 no_generated_in_corpus/selftest_regress/probe_first_screen）全 0；
 新建 4 闸门主用例+--self-check 共 8 条全 0。**probe_ui_smoke 40/40 全 PASS、
 退出码 0（B-018 修复后首次真全绿）**。日志 $LOCALAPPDATA/Temp/gates_r132a/。
+
+---
+
+## R133a（2026-08-22，审查轨第二轮：R191b/R192b 五项修复复验全过，全数转 VERIFIED）
+
+**背景**：R132a 后优化轨连交两个里程碑——R191b（3978dc9：B-014 异步化 +
+B-015 性别偏好 + B-016 称谓）与 R192b（6a9806c：merge audit + B-019 探针清理 +
+B-020 loopback trust_env=False）。上轮会话已跑全量电池（35 项全 0，
+日志 $LOCALAPPDATA/Temp/gates_r133a/），本轮逐项亲验后落状态流转。
+
+### 前置状态核验
+
+    git log --oneline -1        # 6a9806c（R192b）
+    git rev-list --count main..audit / audit..main   # 双 0
+    BOOKS_LLM_DISABLE=1 <py> scripts\count_open_findings.py  # exit 0，闸门 1 = PASS
+
+### R133a-01 B-014 LLM 异步化 → VERIFIED-R133a
+
+四端点 DISABLE 下 `ai_task_id` 全缺席（降级语义未变）；LLM 开启
+POST /api/qiming **0.21s 返回**（修复前实测 35.3s；门柱 <2s），响应带
+ai_task_id，轮询至 done。前端 pollAiPolish 四个调用点在位。
+
+### R133a-02 B-015 起名性别偏好 → VERIFIED-R133a
+
+女·林缺金 前 8 = 林锦钰/林鑫锦/林鑫钰/林铭锦/林铭钰/林铮锦/林铮钰/林锦钟，
+FEMININE_CHARS 命中 **8/8**（门柱 ≥5）；男·王 前 8 MASCULINE_CHARS **8/8**；
+两次调用逐字节相等（确定性不变）；`PYTHONPATH=src <py> -m guji.qiming` exit 0。
+对照修复前（R190b 登记）：前 8 全为「林鑫铭」类、金字池女性字命中 0。
+
+### R133a-03 B-016 AI 称谓喂性别 → VERIFIED-R133a
+
+真实端点路径（LLM 开启）：/api/qiming gender=女 轮询终态文本以「林姑娘」开头，
+**「先生」「小姐/女士」零误称**（agnes 非确定性措辞，但性别一致——判据本义即一致性）；
+mock LLM 复验：facts_qiming 输出含性别事实行、polish 收到的请求体里性别在位。
+对照修复前：「林先生的八字中…」（入参「女」）。
+
+### R133a-04 B-019 probe_r131a 三段式 history.db 清理 → VERIFIED-R133a
+
+跑前 `guji.history.count()`=157 → 主跑（输出「history.db 已清理 8 行，回到
+baseline 157」）→ 跑后仍 157；再跑 --self-check（exit 0）→ 仍 157。
+连跑两遍行数不变的门柱达成，探针确实写了又删（非零写入假过）。
+
+### R133a-05 B-020 loopback trust_env=False → VERIFIED-R133a
+
+系统代理开启的本机、**不设 NO_PROXY**：发往 127.0.0.1 mock 的 polish 请求
+被 mock 实收 **1 次**（修复前基线为 0 次被吞成 502）、返回非空文本；
+`_is_loopback` 判定 loopback=True / remote=False 不误判。附带：
+web/selftest.py 156 checks PASS（含 disabled_none pop 副作用修复）、
+probe_selftest_regress / probe_llm_polish offline / check_async_ai 全 exit 0。
+
+### R133a 闸门结论
+
+上轮会话全量电池 35 项退出码全 0（13 宪法 + 附加 + 4 新闸门各主用例与
+--self-check，日志 $LOCALAPPDATA/Temp/gates_r133a/summary.txt）；
+本轮另跑 selftest/selftest_regress/probe_llm_polish/check_async_ai 复确认全 0。
+probe_ui_smoke 40/40（B-018 修复后保持真全绿）。OPEN BLOCKER 0 / OPEN MAJOR 0。
+
+### R133a 移交与备注
+
+- probes/selftest_baseline.json 工作区行尾符噪音（git diff -w 实质差异 0）：
+  属 R192b merge 快照并集的 CRLF 重写，零内容变更，不构成 FINDING。
+- 存量池提醒：B-013（海报长任务判据 <50ms 空缺）、B-017（贵人属相语义）
+  仍在 OPTIMIZE_BACKLOG 待排期；桃花/合婚/起名分享海报入口与首页 IA 未开工。
 
 ---
 
