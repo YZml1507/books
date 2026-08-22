@@ -988,13 +988,22 @@ def run() -> list[str]:
             history_db.delete_record(rec["id"])
     # 判据 disabled_none：总开关开启时 polish() 必须返回 None 且不抛——
     # LLM 永远不是承重墙（D-244a），禁用路径必须是一条真实可走的路。
+    # R192b 修正：finally 里 pop 掉环境变量会把「闸门环境的 DISABLE=1」一并
+    # 抹掉——本进程后续所有端点调用（含下面的 additive 段）会因此拿到
+    # ai_task_id，与 R191b 的 no_task_id 断言和判据 11 冲突（合并后首跑
+    # 实测 AssertionError：/api/bazi 多出 ai_task_id 键）。改为**保存旧值、
+    # 恢复旧值**：环境本来没设就恢复成没设，闸门设了就恢复成设了。
+    _old_disable = os.environ.get("BOOKS_LLM_DISABLE")
     os.environ["BOOKS_LLM_DISABLE"] = "1"
     try:
         assert _lp.polish(["日主戊"], "感情？",
                           config={"base_url": "http://127.0.0.1:1",
                                   "api_key": "x", "model": "m"}) is None
     finally:
-        os.environ.pop("BOOKS_LLM_DISABLE", None)
+        if _old_disable is None:
+            os.environ.pop("BOOKS_LLM_DISABLE", None)
+        else:
+            os.environ["BOOKS_LLM_DISABLE"] = _old_disable
     ok.append("ai_polish.disabled_none")
     # 判据 additive：四端点顶层键集合 = 「LLM 时代之前」的形状 + ai_polish
     # 一个键。additive 是 specs/006 的架构承诺：润色层只附加、不改写既有

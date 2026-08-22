@@ -149,8 +149,18 @@ def polish(facts: list[str], question: str | None = None,
                 data = _transport(payload, headers, url, timeout)
             else:
                 import httpx
-                resp = httpx.post(url, json=payload, headers=headers,
-                                  timeout=timeout)
+                # B-020（R192b，审查轨 R132a-F2）：httpx 默认 trust_env=True，
+                # 会拾取 Windows 注册表代理且无视 ProxyOverride——发往
+                # 127.0.0.1/localhost 的请求被代理吞成 502 空响应（R192b 基线
+                # 复现：mock 收到 0 个请求、polish 静默 None）。回环地址永远
+                # 不该走系统代理，对 loopback 目标显式关掉 trust_env。
+                # 远程目标（agnes 等）行为不变：仍走 trust_env=True 的默认客户端。
+                if _is_loopback(url):
+                    with httpx.Client(trust_env=False, timeout=timeout) as cli:
+                        resp = cli.post(url, json=payload, headers=headers)
+                else:
+                    resp = httpx.post(url, json=payload, headers=headers,
+                                      timeout=timeout)
                 if resp.status_code != 200:
                     continue                          # 可重试：网关类错误
                 data = resp.json()
@@ -165,6 +175,14 @@ def polish(facts: list[str], question: str | None = None,
 
 _LEAK_PAT = re.compile(
     r"《[^》]{1,20}》|第\s*\d+\s*页|page\s*\d+|p\.\s*\d+", re.IGNORECASE)
+
+_LOOPBACK_PAT = re.compile(
+    r"^https?://(127\.0\.0\.1|\[::1?\]|localhost)(:\d+)?(/|$)", re.IGNORECASE)
+
+
+def _is_loopback(url: str) -> bool:
+    """URL 是否指向回环地址（B-020：loopback 不走系统代理）。"""
+    return bool(_LOOPBACK_PAT.match(url or ""))
 
 
 def _sanitize(text: str | None) -> str | None:

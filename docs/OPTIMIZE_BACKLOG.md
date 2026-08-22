@@ -353,6 +353,14 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
 - 来源：R190b 复核 B-003
 
 ### B-019 probe_r131a_relevance 写 history.db 不自带清理（R132a-F3）
+
+> **R192b 处置（2026-08-22）：已修，待审查轨复验。**
+> 三段式照 probe_ui_smoke 惯例落地：跑前记 `history_db.count()` baseline →
+> 判据跑完后 finally 语义删除新增行 → 打印复验结果。实测：主跑清理 8 行、
+> 回到 baseline 201；连跑两遍行数不变；判据 A/B/C 与 --self-check 行为一字未动。
+> 该文件属审查轨领土，优化轨按 D-250b 先例最小修改 + 显式「R192b 补」标注。
+> 复现：`BOOKS_LLM_DISABLE=1 <py> probes\probe_r131a_relevance.py`（输出含
+> 「history.db 已清理 N 行，回到 baseline M」）。
 - 类型：测试基建（MINOR，不阻塞任何闸门）
 - 现状（R132a 实测）：主用例 8 次 POST /api/bazi 全部落 history.db，
   探针内无 delete_record 清理——违反全仓探针的 L-22 惯例；R132a 复验电池
@@ -363,6 +371,15 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
 - 来源：R132a-F3
 
 ### B-020 httpx trust_env 拾取 Windows 注册表代理且无视 ProxyOverride，发往 127.0.0.1 的请求被吞成 502（R132a-F2）
+
+> **R192b 处置（2026-08-22）：已修，待审查轨复验。**
+> 修法照设想第一条：`llm_polish.polish()` 对回环目标（`_is_loopback(url)`：
+> 127.0.0.1 / localhost / [::1]）用 `httpx.Client(trust_env=False)`；远程目标
+> （agnes 等）行为不变仍走默认客户端。基线复现：系统代理开启的本机上
+> loopback mock 收到 **0 个请求**、polish 静默 None；修后同一场景 mock 收到
+> 1 个请求、返回正常文本。`_is_loopback` 判定 3/3（含远程 URL 不误判）。
+> 模块自测 / probe_llm_polish offline / check_async_ai 全部复跑 exit 0。
+> 复现：见台账 §130 R192b 段的 mock 脚本。
 - 类型：健壮性加固（MINOR：实证不影响线上用户路径）
 - 现状（R132a 实测，注册表 ProxyEnable=1 / ProxyServer=127.0.0.1:7897）：
   bash 环境 HTTP_PROXY 等全空，但 httpx 仍走系统代理 → 发往

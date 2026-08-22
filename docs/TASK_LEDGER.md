@@ -7329,3 +7329,48 @@ check_async_ai 的 --self-check 有效性独立确认。
 7. **闸门口径**：13 道宪法闸门全 0；附加闸门全 0；新建 8 条命令全 0；
    probe_ui_smoke 40/40 全 PASS 退出码 0（B-018 修复后首次真全绿——这次可以说
    「全绿」，因为不再有环境判据混在产品闸门里）。日志 $LOCALAPPDATA/Temp/gates_r132a/。
+
+### 130. [优化轨] R192b：merge audit(a869e01) + 清偿 B-019/B-020（2026-08-22）
+
+**前置状态**：main=3978dc9（R191b）、audit=a869e01（R132a，含 B-014/015/016
+复验结论与新立 B-019/B-020）。`count_open_findings.py` exit 0。
+备份分支 backup/main-pre-merge-R192b 已建。
+
+**1. merge audit → main（84dd73c）**：三处冲突全为 append-only 文档/快照，
+按宪法第五条两段都保留——TASK_LEDGER 两个 §129 并存（优化轨 R191b +
+审查轨 R132a）；selftest_baseline.json checks 并集（4+3 新名，157 条无重复）；
+specs/006/tasks.md T1.5 状态改写为「双轨各自清偿、合并后共 7 条」的合并记录，
+两段实测数字都保留。probe_llm_polish / check_poster / probe_ui_smoke /
+web/selftest.py 自动合并成功。审查轨的 R132a 结论（B-014/015/016 复验、
+R131a-01 转 VERIFIED-R132a、D-250b 追认）自此进入 main。
+
+**2. 合并后首跑 selftest 抓到真冲突（闸门有效的又一实证）**：
+`ai_polish.additive`（R132a 钉四端点键集）挂红——/api/bazi 实际键多出
+`ai_task_id`。归因：R132a 的 `disabled_none` 判据 finally 里
+`os.environ.pop("BOOKS_LLM_DISABLE")` 把**闸门环境预设的 DISABLE=1 一并抹掉**，
+本进程后续端点调用全部变成「LLM 开启」路径。R132a 在其自己分支上跑时
+R191b 的异步层不存在，故此副作用当时不可见；两改动合并后互锁。
+修法（最小）：pop 改「保存旧值→恢复旧值」。修后 selftest **156 checks**
+exit 0，probe_selftest_regress PASS（157→156，唯一差异是被核准改名的
+ask.llm.shape，renames 记录在案）。教训写进代码注释：测试内动环境变量必须
+恢复原值而非无条件删除。
+
+**3. B-019 清偿**：probe_r131a_relevance 补三段式清理（baseline count →
+判据后删新增行 → 打印复验），实测清理 8 行回 baseline 201、连跑两遍行数不变；
+判据 A/B/C 与 --self-check 行为一字未动。领土偏离第四次行使（D-250b 先例）：
+该文件属审查轨，最小修改 + 显式「R192b 补」标注。
+
+**4. B-020 清偿**：先复现——系统代理开启的本机上 loopback mock 收到 **0 个
+请求**、polish 静默 None（与 R132a-F2 描述一致）；修法照设想第一条：
+`_is_loopback(url)`（127.0.0.1/localhost/[::1]，正则写死可核验）命中时用
+`httpx.Client(trust_env=False)`，远程目标行为不变。修后同一 mock 场景收到
+1 个请求、返回正常文本；_is_loopback 判定 3/3（含 agnes 远程 URL 不误判）。
+模块自测 / probe_llm_polish offline / check_async_ai 复跑全 0。
+
+**5. 本轮复验命令（BOOKS_LLM_DISABLE=1 下全部 exit 0）**：
+selftest(156) · probe_selftest_regress(157→156 改名已核准) ·
+probe_r131a_relevance(+self-check) · probe_llm_polish(+self-check) ·
+check_async_ai(DISABLE=1 与 unset 双环境) · check_xingzuo ·
+probe_r128a_no_dup_citations · count_open_findings。
+13 道宪法闸门本轮未全量重跑（merge 只动了文档/探针/selftest 断言，
+src 检索与索引层零改动——eval_g1/g7 的输入字节不变；下一轮全量轮补跑）。

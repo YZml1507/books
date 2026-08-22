@@ -54,9 +54,18 @@ def main(self_check: bool = False) -> int:
     from fastapi.testclient import TestClient
     from web.app import app
     from guji import bazi_lookup
+    from guji import history as history_db
 
     if self_check:                                   # 阳性对照：注入回归
         bazi_lookup.topic_queries = lambda q: []     # type: ignore[assignment]
+
+    # ---- B-019（R192b 补，审查轨 R132a-F3 登记）：三段式 history.db 清理 ----
+    # 本探针 8 次 POST /api/bazi 全部落 history.db，此前无清理——违反全仓探针
+    # 的 L-22 惯例（R132a 复验电池因此残留 19 行，被手工按指纹清除）。
+    # 三段式照抄 probe_ui_smoke.py:518 惯例：跑前记 baseline 行数 → finally
+    # 删除新增行 → 退出前复验行数回到 baseline。注意本文件属审查轨领土
+    # （宪法第五条），优化轨按 D-250b 先例最小修改 + 显式标注，判据本体未动。
+    baseline_count = history_db.count()
 
     client = TestClient(app)
     import web.services as _svc                      # noqa: F401  (确保已加载)
@@ -91,6 +100,30 @@ def main(self_check: bool = False) -> int:
           f"why 取值域={sorted(set(whys))}　{'PASS' if c_ok else 'FAIL'}")
 
     ok = a_ok and b_ok and c_ok
+    # ---- B-019 第三段：清理 + 复验（无论判据成败都必须执行） ----------------
+    cleanup_note = ""
+    try:
+        new_ids = [r["id"] for r in history_db.list_records(limit=200)
+                   if r["id"] > 0]
+        # list_records 是倒序轻量列表；逐条删除 id 大于 baseline 时最大 id 的行。
+        # 用「跑前 count」定位：删到 count 回 baseline 即止，不碰他人数据。
+        removed = 0
+        for rid in new_ids:
+            if history_db.count() <= baseline_count:
+                break
+            if history_db.delete_record(rid):
+                removed += 1
+        after = history_db.count()
+        if after != baseline_count:
+            cleanup_note = (f"⚠ history.db 清理后仍差 {after - baseline_count} 行"
+                            f"（可能有并发写入）")
+        else:
+            cleanup_note = f"history.db 已清理 {removed} 行，回到 baseline {baseline_count}"
+    except Exception as exc:                          # 清理失败不算判据失败，
+        cleanup_note = f"⚠ history.db 清理异常：{exc!r}"   # 但必须可见
+    print()
+    print(f"    {cleanup_note}")
+    print()
     print()
     if self_check:
         if ok:
