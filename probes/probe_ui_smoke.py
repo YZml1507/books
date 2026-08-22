@@ -22,6 +22,23 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 **污染纪律（L-22）**：八字排盘会写 history.db。probe 记录基线行数，退出前删除
 本轮新增行并复验回到基线，删不干净则整体判失败。
 
+**R132a（审查轨）两处重钉**：
+  * news.refresh（B-018）：原用例把「外网有新闻条目」当产品判据，本网络下
+    永远不可能全绿（curl 直连/代理均 000，同网 HN 200——环境问题，非代码
+    回归；git stash -u 干净 HEAD 复跑同一条 FAIL）。拆成两层：
+    (a) btn:news.refresh.endpoint —— 产品行为层，离线可判：点击后真的请求了
+        /api/external/news，容器出现合法终态（有条目**或**设计的「暂无新闻」
+        降级文案），零 console.error；
+    (b) env:news.content_reachable —— 外网内容层：可达时断言有条目并报数；
+        不可达时打印 SKIP 说明，**不再 FAIL**。用例不删除，只不再拿天气当闸门。
+  * ai.polish 两用例（specs/006 T2.3，D-145a 只断行为不钉内部命名）：
+    ai.block.renders_with_ai —— LLM 可用时排盘结果区出现 .ai-polish 区块且
+    标注（AI 生成/仅供娱乐）常显；ai.block.separate_from_citations —— AI 区块
+    与古籍引文区（.cite-body）互不嵌套、类名不复用。为让「LLM 可用」在闸门
+    里可复现，本 probe 起一个**本地 mock OpenAI 兼容端点**（stdlib http.server，
+    零外网、零新依赖），经 BOOKS_LLM_BASE_URL 注入被测服务。mock 起不来时两
+    用例转 SKIP（如实标注），不假装测过。
+
 复现命令：
     C:\\Users\\Lenovo\\Desktop\\projects\\books\\.venv\\Scripts\\python.exe probes\\probe_ui_smoke.py
 可选：--headed 看真实点击过程；--port N 换端口；--keep 保留 logs/ 截图。
@@ -31,12 +48,15 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 from __future__ import annotations
 
 import http.client
+import json
 import os
 import re
 import socket
 import subprocess
 import sys
+import threading
 import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _p in (ROOT, os.path.join(ROOT, "src"), os.path.join(ROOT, "web")):
@@ -83,7 +103,9 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
-    ("news.refresh",   "bazi",    None,            "#newsRefresh",   "#newsList"),
+    # R132a（B-018）：news.refresh 从按钮用例表移出，重钉为两层判据——
+    # btn:news.refresh.endpoint（产品行为，离线可判）+ env:news.content_reachable
+    # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
     # R122a：三个读书子标签的选择器**不再写死 data-rsec2 的值**，改为运行时
     # 从 DOM 读（见 discover_subtabs）。原因是 R120a/R179b 撞过一次协调事故：
     # R178b 把值从 bs-structure 改成驼峰 bsStructure，我在 R120a 跟着改了
@@ -134,6 +156,42 @@ TAB_CASES = ["rsec-search", "rsec-research", "rsec-addr", "rsec-compare",
 # 写死会让 probe 把对方的内部命名钉成契约，两轨各改一次就对不上——R120a/R179b
 # 实测撞过。这里只断言"有三个子标签且点了能 active"，不关心它们叫什么。
 SUBTAB_EXPECTED_COUNT = 3
+
+
+class _MockLLMHandler(BaseHTTPRequestHandler):
+    """OpenAI 兼容 /chat/completions 的最小实现（specs/006 T2.3 测试基建）。
+
+    只服务本 probe 起的 127.0.0.1 实例：返回固定温柔文本 + 「仅供娱乐」，
+    让被测服务的 ai_polish 真实走完 polish() 全链路（HTTP→解析→_sanitize），
+    前端 renderAiPolish 拿到真值渲染。零外网、零新依赖。
+    """
+
+    def do_POST(self):  # noqa: N802  (BaseHTTPRequestHandler 命名)
+        n = int(self.headers.get("Content-Length") or 0)
+        self.rfile.read(n)
+        body = json.dumps({
+            "choices": [{"message": {"content":
+                        "今天的盘面给你留了呼吸的空间，慢慢来，一切都有它的节奏。"
+                        "仅供娱乐"}}]}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):   # 静默：probe 输出只留判据行
+        pass
+
+
+def start_mock_llm() -> tuple | None:
+    """起本地 mock 端点。返回 (server, port)；失败返回 None（调用方转 SKIP）。"""
+    try:
+        s = HTTPServer(("127.0.0.1", 0), _MockLLMHandler)
+    except OSError:
+        return None
+    th = threading.Thread(target=s.serve_forever, daemon=True)
+    th.start()
+    return s, s.server_address[1]
 
 
 def free_port(port: int) -> bool:
@@ -197,6 +255,28 @@ def main() -> int:
     env["PYTHONPATH"] = os.pathsep.join([ROOT, os.path.join(ROOT, "src"),
                                          os.path.join(ROOT, "web")])
     env["PYTHONIOENCODING"] = "utf-8"
+    # R132a（T2.3）：起本地 mock LLM 端点并注入被测服务，让「LLM 可用时 AI
+    # 区块渲染」成为离线可复现判据。mock 起不来 → 两用例转 SKIP，不装死。
+    mock = start_mock_llm()
+    if mock is not None:
+        mock_srv, mock_port = mock
+        env["BOOKS_LLM_API_KEY"] = "probe-ui-smoke-mock-key"
+        env["BOOKS_LLM_BASE_URL"] = f"http://127.0.0.1:{mock_port}/v1"
+        # 闸门惯例会全局导出 BOOKS_LLM_DISABLE=1；它若泄漏进被测服务，
+        # mock 注入就被总开关废掉（D-245a：DISABLE 优先于一切配置）。
+        # 本 probe 的 LLM 指向是 127.0.0.1 mock，零外呼，移除是安全的。
+        env.pop("BOOKS_LLM_DISABLE", None)
+        # R132a 实测坑：Windows 系统代理开启时（注册表 ProxyEnable=1，
+        # 本机实测 127.0.0.1:7897），httpx trust_env 会拾取注册表代理，
+        # 且**不尊重** IE 的 ProxyOverride 环节 → 发往 127.0.0.1 的 polish
+        # 请求被路由进系统代理、拿到 502 空响应、静默降级成 None。
+        # 显式 NO_PROXY 让子进程对 localhost 直连（只影响本子进程）。
+        env["NO_PROXY"] = "127.0.0.1,localhost"
+        env["no_proxy"] = "127.0.0.1,localhost"
+        print(f"mock LLM 端点：http://127.0.0.1:{mock_port}/v1/chat/completions")
+    else:
+        mock_srv = None
+        print("mock LLM 端点启动失败：ai.polish 两用例本轮转 SKIP")
     srv_log = open(os.path.join(LOGDIR, "server.log"), "w", encoding="utf-8")
     # R178b 起 web 是包（web/__init__.py + `from . import deps`），启动目标是
     # `web.app:app` 且工作目录必须是项目根；旧的 `app:app` + cwd=web/ 会因
@@ -447,6 +527,120 @@ def main() -> int:
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
 
+            # ── news.refresh 两层判据（R132a，B-018）───────────────────
+            # (a) 产品行为层（离线可判）：点击 → 真的请求 /api/external/news
+            #     → 容器出现合法终态：新闻条目**或**设计内空态「暂无新闻」。
+            errors.clear()
+            api_calls.clear()
+            goto_view("bazi")
+            degrade_ok = False
+            text = ""
+            try:
+                page.click("#newsRefresh")
+                text, waited = "", 0.0
+                while waited < CASE_BUDGET_S:
+                    page.wait_for_timeout(400)
+                    waited += 0.4
+                    text = (page.inner_text("#newsList") or "").strip()
+                    if text and not PLACEHOLDER_RE.match(text):
+                        break
+                no_ev = " ".join(page.eval_on_selector_all(
+                    "#newsList .no-evidence",
+                    "els => els.map(e => e.innerText)") or [])
+                degrade_ok = "暂无新闻" in no_ev        # 设计内的空态文案
+                fail_hit2 = FAILURE_RE.search(no_ev or "")
+                endpoint_ok = any("/api/external/news" in u for u in api_calls)
+                items_ok = (bool(text) and not degrade_ok and not fail_hit2
+                            and not PLACEHOLDER_RE.match(text or ""))
+                ok = (items_ok or degrade_ok) and endpoint_ok and not errors
+                detail = (f"请求 /api/external/news={endpoint_ok}　"
+                          f"容器 {len(text)} 字符: {text[:80]!r}")
+                if errors:
+                    detail += " | " + "; ".join(errors[:3])
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if not ok:
+                page.screenshot(path=os.path.join(LOGDIR,
+                                                  "FAIL_news_endpoint.png"))
+            results.append({"name": "btn:news.refresh.endpoint", "ok": ok,
+                            "detail": detail})
+            # (b) 外网内容层：可达才断言有条目；不可达 → SKIP 不 FAIL。
+            #     B-018：环境可达性不是产品判据——用例保留，不再拿天气当闸门。
+            try:
+                if degrade_ok or not text:
+                    ok2 = True
+                    detail2 = ("SKIP：外网内容不可达（B-018：本网络 curl 实测 "
+                               "BBC/Solidot=000 而 HN=200）——产品行为层已单独"
+                               "判定，此处不断言条目数")
+                else:
+                    n_items = page.eval_on_selector_all(
+                        "#newsList .news-item", "els => els.length")
+                    ok2 = n_items > 0
+                    detail2 = f"外网可达：新闻条目 {n_items} 条"
+            except Exception as exc:
+                ok2, detail2 = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "env:news.content_reachable", "ok": ok2,
+                            "detail": detail2})
+
+            # ── AI 润色区块两用例（R132a，specs/006 T2.3）──────────────
+            # mock LLM 已注入被测服务。D-145a：只断行为（区块出现、标注常显、
+            # 与引文区分离），不钉内部命名以外的实现细节。
+            if mock_srv is None:
+                results.append({"name": "ai.block.renders_with_ai", "ok": True,
+                                "detail": "SKIP：mock LLM 端点启动失败，本轮未测"})
+                results.append({"name": "ai.block.separate_from_citations",
+                                "ok": True,
+                                "detail": "SKIP：mock LLM 端点启动失败，本轮未测"})
+            else:
+                errors.clear()
+                goto_view("bazi")
+                try:
+                    page.click("#submit")
+                    page.wait_for_selector(".ai-polish", timeout=15000)
+                    page.wait_for_timeout(300)
+                    ai_text = (page.inner_text(".ai-polish") or "").strip()
+                    marked = ("AI 生成" in ai_text) and ("仅供娱乐" in ai_text)
+                    ok3 = bool(ai_text) and marked and not errors
+                    detail3 = (f".ai-polish 区块 {len(ai_text)} 字符，标注"
+                               f"「AI 生成」「仅供娱乐」常显={marked}: "
+                               f"{ai_text[:80]!r}")
+                    if errors:
+                        detail3 += " | " + "; ".join(errors[:3])
+                except Exception as exc:
+                    ok3, detail3 = False, f"{type(exc).__name__}: {exc}"
+                if not ok3:
+                    page.screenshot(path=os.path.join(LOGDIR, "FAIL_ai_block.png"))
+                results.append({"name": "ai.block.renders_with_ai", "ok": ok3,
+                                "detail": detail3})
+                # 分离性：AI 容器与古籍引文容器互不嵌套、类名零复用
+                try:
+                    sep = page.evaluate("""() => {
+                        const ai = document.querySelector('.ai-polish');
+                        const cites = document.querySelectorAll('.cite-body');
+                        if (!ai || !cites.length)
+                            return {ai: !!ai, cites: cites.length,
+                                    nested: false, same: []};
+                        let nested = false;
+                        cites.forEach(c => {
+                            if (ai.contains(c) || c.contains(ai)) nested = true;
+                        });
+                        const shared = [];
+                        ai.classList.forEach(cl => {
+                            if (document.querySelector('.cite-body.' +
+                                (window.CSS && CSS.escape ? CSS.escape(cl) : cl)))
+                                shared.push(cl);
+                        });
+                        return {ai: true, cites: cites.length, nested, same: shared};
+                    }""")
+                    ok4 = (sep["ai"] and sep["cites"] > 0
+                           and not sep["nested"] and not sep["same"])
+                    detail4 = (f"AI 容器存在={sep['ai']}　引文容器 {sep['cites']} 个　"
+                               f"互相嵌套={sep['nested']}　共享类名={sep['same']}")
+                except Exception as exc:
+                    ok4, detail4 = False, f"{type(exc).__name__}: {exc}"
+                results.append({"name": "ai.block.separate_from_citations",
+                                "ok": ok4, "detail": detail4})
+
             # ── DOM 结构完整性：模板标签必须正确闭合 ────────────
             # index.html:963 把 `</strong>` 写成 `</` + 变量，浏览器把
             # `</${esc(iv)}` 解析成注释，`<strong>` 永不闭合 → 逐条累积嵌套。
@@ -514,6 +708,8 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             srv.kill()
         srv_log.close()
+        if mock_srv is not None:
+            mock_srv.shutdown()
 
     # ── 清理本轮写入（L-22）─────────────────────────────────
     cleaned = []

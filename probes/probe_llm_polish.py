@@ -44,7 +44,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "src"))
-PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+# R132a：原硬编码 PY = ROOT/.venv/Scripts/python.exe 已删除——audit worktree
+# 没有自己的 .venv（解释器借主 worktree），子进程一律用 sys.executable。
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -256,7 +257,11 @@ def check_injection(sabotage: bool) -> bool:
 def check_selftest_count() -> bool:
     """判据 8：selftest 断言数 ≥149（只增不减）。"""
     env = dict(os.environ, BOOKS_LLM_DISABLE="1", PYTHONIOENCODING="utf-8")
-    r = subprocess.run([PY, os.path.join("web", "selftest.py")], cwd=ROOT,
+    # R132a：用 sys.executable 而非 ROOT/.venv 硬编码——audit worktree 没有
+    # 自己的 .venv（解释器借主 worktree，见开机指令），硬编码会让本探针在
+    # 审查轨目录下 FileNotFoundError（R132a F-1 实测）。
+    r = subprocess.run([sys.executable, os.path.join("web", "selftest.py")],
+                       cwd=ROOT,
                        env=env, capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
     m = re.search(r"PASS \((\d+) checks\)", r.stdout or "")

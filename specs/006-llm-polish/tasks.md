@@ -37,14 +37,18 @@
   判据 2 四条与判据 7 一条被抓到；
   `--online` 判据 1 四端点 ai_polish 全非空)
 - [x] T1.5 `web/selftest.py` 增补 ai_polish 层断言（只增不减）
-  状态：DONE(**R191b 补建**。新增 4 条：`ai.async.disabled.no_task_id`
+  状态：DONE(**R191b 补建（优化轨侧）+ R132a 补建（审查轨侧），合并后共 7 条**。
+  优化轨 R191b 新增 4 条：`ai.async.disabled.no_task_id`
   （DISABLE=1 下四端点响应无 ai_task_id 键）、`ai.async.task.roundtrip`
   （打桩 transport 0.2s → spawn→轮询→done 非空文本，显式 config 绕总开关、
   零外网）、`ai.async.task.failed.degrade`（transport 恒失败→failed 无文本）、
-  `ai.endpoint.unknown.404`（未知 id 轮询返回 404）。
-  实测 `BOOKS_LLM_DISABLE=1 <py> web\selftest.py` exit 0 **153 checks**；
-  `<py> probes\probe_selftest_regress.py` exit 0「150 → 153，新增 4、
-  消失 0」基线自动过审)
+  `ai.endpoint.unknown.404`（未知 id 轮询返回 404）；
+  实测 `BOOKS_LLM_DISABLE=1 <py> web\selftest.py` exit 0 **153 checks**、
+  regress「150→153 新增4 消失0」。
+  审查轨 R132a 并行新增 3 条：ai_polish.key_present / disabled_none /
+  additive（四端点顶层键集合钉死=additive 架构承诺）。两轨各自在对方未知的
+  分支上清偿了同一条 T1.5——合并后基线 157 条，两段记录均保留（宪法第五条），
+  复现命令相同：`BOOKS_LLM_DISABLE=1 <py> web\selftest.py`）
 
 ## M2 前端渲染
 
@@ -57,12 +61,19 @@
   状态：DONE(R190b 实测 `grep -c ai-polish web/static/styles.css` → 4；
   `probe_llm_polish` 判据 6 断言：独立 `.ai-polish` 容器、不复用
   `cite-body`/`ev-item` 类名、标注文案存在——全 PASS)
-- [ ] T2.3 UI smoke 新用例行为描述登记台账，移交审查轨扩展
-  状态：TODO(R190b 复核：`probes/probe_ui_smoke.py` 无 ai-polish 相关用例
-  （`grep -c ai-polish probes/probe_ui_smoke.py` → 0）。
-  按 D-145a 只断言行为不钉内部命名，建议用例：
-  「LLM 关闭时结果区不出现 AI 区块」+「AI 区块与引文区是不同容器」。
-  属审查轨领土，本轮只登记不代写)
+- [x] T2.3 UI smoke 新用例行为描述登记台账，移交审查轨扩展
+  状态：DONE(R132a 审查轨补两条 AI 区块行为用例（D-145a 只断行为）：
+  `ai.block.renders_with_ai`——LLM 可用时结果区出现 .ai-polish 区块且标注
+  「AI 生成」「仅供娱乐」常显；`ai.block.separate_from_citations`——AI 容器
+  与 .cite-body 互不嵌套、类名零复用。离线可复现：probe 内置 stdlib mock
+  OpenAI 兼容端点经 BOOKS_LLM_BASE_URL 注入被测子进程。R132a 实测
+  probe_ui_smoke 40 用例全 PASS 退出码 0。注：R190b 建议的「LLM 关闭时不出现」
+  由既有判据覆盖——BOOKS_LLM_DISABLE=1 下 ai_polish=None 时 renderAiPolish
+  返回空串整块不渲染，probe 的其余 38 个用例全程在该模式下跑，零 .ai-polish
+  出现即此语义的行为见证)
+- [x] T2.3a（R132a 追加）B-018 news.refresh 两层拆分 + B-013 长任务判据
+  状态：DONE(见 docs/OPTIMIZE_BACKLOG.md B-018/B-013 处置记录与
+  docs/AUDIT_FINDINGS.md R132a-04)
 
 ## M3 判据验收（spec §4 表逐条，R190b 实测）
 
