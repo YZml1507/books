@@ -7849,3 +7849,42 @@ probe_contract、probe_dollar_misuse（95 函数零命中）、selftest_regress
 404 为 E2E 清场清空 history.db 所致（测试顺序问题非代码回归），复跑即绿。
 
 **遗留**：zhiming-poster.png（用户桌面产物，未入库）。
+
+### 144. [审查轨] R202b–R205b 四轮整体复核结论（2026-08-23）
+
+复核对象：f1eb715（R202b/§140）、256e73b（R203b/§141）、3b61e19
+（R204b/§142）、0a28edc（R205b/§143）。逐条声明复现，结论：**四轮全部
+通过，无需打回**。
+
+**闸门实测（BOOKS_LLM_DISABLE=1，审查轨亲跑全 EXIT=0）**：
+selftest 159 checks（含 hehun.gan_he_gods）/ probe_ui_smoke 40/40 /
+check_plain_first 5 用例×判据 1-8 / probe_first_screen / check_poster
+判据 12+13 / check_warm_voice 10×8 / probe_contract 190 字段点 /
+probe_dollar_misuse 95 函数零命中 / probe_selftest_regress 160→159
+（daily.noble.guiren、hehun.gan_he_gods、home.ia 三条新增，零删除，
+renames 口径一致）。
+
+**重点三处**：
+1. 「插块误删」类检查（§139 事故后）：git diff 0b83560..HEAD 逐行审
+   styles.css/app.js 删除行——styles.css 仅三处**有意**替换（tarot
+   cover→contain 族）；全局 reset 行 `*{box-sizing:...}` 仍在 :105，
+   check_plain_first 五用例高度与基线逐字节一致（c7_love 2,619）。
+   无同类事故。
+2. R205b scroll anchoring 对策 × probe_first_screen 判据 1：审查轨
+   亲跑 PASS——判据 1 量「提交后 revealResult()」的视口定位，与
+   showView 的 scrollY 恢复逻辑无交集，实测无回归。
+3. R204b hehun 三新键 additive 核验：dataclass 三字段全带默认值
+   （向后兼容）、services 响应纯追加、selftest 键集合登记
+   （selftest.py:1076）与 services.py 三键逐一对齐、
+   probe_selftest_regress 只增不减 PASS。
+
+**越界检查**：0b83560..HEAD 未触碰 probes/（仅 selftest_baseline.json
++3 新名零删除，属只增口径）、specs/*/spec.md、docs/OPTIMIZE_BACKLOG.md、
+audit 分支。三红线无触碰。
+
+**处置记录**：zhiming-poster.png（265KB 本地海报产物）经用户确认流程
+移出仓库目录至 C:\Users\Lenovo\Desktop\，未入库。
+
+**流程备注（第三次）**：R203b–R205b 三笔 commit 均由优化轨自行提交，
+审查轨事后追认。再次申明分工：优化轨完工停在「工作区就绪」，commit/push
+由审查轨执行。
