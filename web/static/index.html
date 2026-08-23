@@ -97,11 +97,17 @@
   </div>
   </div><!-- /home-main -->
 
-  <!-- 最近解读 + 收藏（R200b：移出 home-main，任何视图下都可见） -->
-  <div class="recent-section">
-    <div class="section-title">📖 最近的解读</div>
+  <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
+  <button class="recent-toggle" id="recentToggle" type="button"
+    aria-expanded="false" aria-controls="recentSidebar">📖</button>
+  <aside class="recent-sidebar" id="recentSidebar">
+    <div class="recent-side-head">
+      <div class="section-title">📖 最近的解读</div>
+      <button class="recent-side-close" id="recentClose" type="button"
+        title="收起">✕</button>
+    </div>
     <div class="recent-list" id="recentList"></div>
-  </div>
+  </aside>
 
   <div class="recent-section" style="margin-top:28px;">
     <div class="section-title">❤️ 我的收藏</div>

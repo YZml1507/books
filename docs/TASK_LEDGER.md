@@ -7814,3 +7814,38 @@ probe_dollar / probe_selftest_regress / probe_conservation。
 **遗留**：skill zip 融入至此闭环（签诗新功能留用户拍板）。
 全部挂账清零：产品重塑 ✓ / backlog ✓ / 语义类 ✓ / skill zip ✓。
 待审查轨整体复核。
+
+### 143. [优化轨] R205b：用户反馈四项——最近解读侧边栏化+删除钮+切视图不回顶+塔罗牌面完整显示（2026-08-23）
+
+**来源**：用户口头反馈四条（审查轨复核期间）。
+
+**1. 最近解读改右侧可收缩侧边栏（反馈①）**：原 recent-section 文档流块改
+`<aside class="recent-sidebar">` 固定右侧抽屉（width min(320px,86vw)，
+translateX(105%) 默认收起，.28s transition，prefers-reduced-motion 下无动画）；
+右下角 52px 圆形 📖 浮动开关（aria-expanded/controls）+ 侧栏头 ✕ 收起钮。
+`#recentList` id 与 loadRecent 渲染逻辑零改动。我的收藏仍留文档流。
+
+**2. recent-item 加删除钮（反馈②）**：每条记录加 ✕ 圆钮，复用全局委托既有
+`[data-hist-del]` → deleteHistory 分支（委托顺序 hist-del 先于 hist-view
+return，不会误触发查看）。首版误加 onclick stopPropagation 把委托也挡掉
+（E2E 实测删除不生效），已去掉——委托分支顺序天然防误触。
+
+**3. 切视图不再自动滚回顶部（反馈③）**：实测根因有二——(a) showView 原有
+window.scrollTo(0) 已删；(b) Chrome scroll anchoring：homeMain 移出文档流时
+浏览器自行调 scrollY（打桩实测 2000→516，零 scrollTo 调用）。对策：切换前
+记 scrollY、布局变更后恢复（浏览器钳新最大值，短页面自然落顶）。提交后定位
+仍由 revealResult 负责，probe_first_screen 判据 1 实测不受影响。
+
+**4. 塔罗牌面截断修复（反馈④）**：RWS 原图 300×527 竖版，.tart img
+object-fit:cover 裁进 140×130 区域丢牌面。改 contain + .tart 弹性高
+（flex:1 1 auto）+ tinfo flex:none 自然高。E2E 实测 3 张 img fit=contain。
+
+**实测**：E2E（$LOCALAPPDATA/Temp/r205b_e2e.py，Playwright 真浏览器）四项
+全 PASS、console 零错误。附加闸门 10 项（BOOKS_LLM_DISABLE=1）：ui_smoke
+40/40、first_screen、check_poster、check_plain_first、check_warm_voice、
+probe_contract、probe_dollar_misuse（95 函数零命中）、selftest_regress
+（160→159 只增不减）、count_open_findings、selftest 159 checks 全 exit 0。
+日志 $LOCALAPPDATA/Temp/gates_r205b.log。跑批首过 selftest history.detail
+404 为 E2E 清场清空 history.db 所致（测试顺序问题非代码回归），复跑即绿。
+
+**遗留**：zhiming-poster.png（用户桌面产物，未入库）。

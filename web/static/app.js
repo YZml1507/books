@@ -170,6 +170,14 @@ function showView(viewId) {
    * 功能视图是「叶页」。进叶页时隐藏首页主体（.home-main），显示 44px
    * 返回条；回首页恢复。探针契约：`.func-card[data-view]` 点击后
    * `#view-X.active` 出现——入口卡与子卡都带 data-view，行为一致。 */
+  /* R205b（用户反馈③）：不再自动滚回顶部。实测根因有二：
+   * (a) 本函数原先的 window.scrollTo(0)；已删。
+   * (b) Chrome scroll anchoring——homeMain 从文档流移除时浏览器为稳住
+   *     锚点自行调整 scrollY（实测 2000→516，无任何 scrollTo 调用）。
+   *     对策：切换前记住位置，布局变更后原样恢复（浏览器钳到新最大值，
+   *     短页面自然落顶，不产生「拽回页顶」的观感）。提交后的定位仍由
+   *     revealResult() 负责，probe_first_screen 判据 1 不受影响。 */
+  var _sy = window.scrollY;
   var isHome = (viewId === 'home');
   document.querySelectorAll('.view').forEach(function (v) {
     v.classList.remove('active');
@@ -185,7 +193,11 @@ function showView(viewId) {
   if (home) home.hidden = !isHome && !!target;
   const back = el('viewBack');
   if (back) back.hidden = isHome || !target;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  /* R205b（用户反馈③）：不再自动滚回顶部——用户在长页中段点功能卡，
+   * 被强行拽到页顶很突兀。提交结果后的定位由 revealResult() 负责，
+   * 首屏闸门（probe_first_screen 判据 1）量的是「提交后」的视口偏移，
+   * 与本行无关。 */
+  window.scrollTo({ top: _sy, behavior: 'auto' });
 }
 
 /* ── 通用渲染件 ────────────────────────────────────────────── */
@@ -2239,6 +2251,8 @@ async function loadRecent() {
         '<div class="recent-title">' +
         esc(item.question || item.paipan_render || '八字排盘') + '</div>' +
         '<div class="recent-date">' + esc(date) + '</div></div>' +
+        '<button class="recent-del" type="button" data-hist-del="' +
+        esc(item.id) + '" title="删除这条记录">✕</button>' +
         '<span class="recent-arrow">→</span></div>';
     });
     list.innerHTML = html;
@@ -2377,6 +2391,19 @@ function initViews() {
   /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
   var back = el('viewBack');
   if (back) back.addEventListener('click', function () { showView('home'); });
+  /* R205b（用户反馈①）：最近解读侧边栏 开/收 */
+  var sb = el('recentSidebar');
+  var tgl = el('recentToggle');
+  var cls = el('recentClose');
+  function _setRecent(open) {
+    if (!sb) return;
+    sb.classList.toggle('open', open);
+    if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (tgl) tgl.addEventListener('click', function () {
+    _setRecent(!sb.classList.contains('open'));
+  });
+  if (cls) cls.addEventListener('click', function () { _setRecent(false); });
 }
 
 function initBazi() {

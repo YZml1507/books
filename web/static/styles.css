@@ -306,6 +306,39 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
   border-bottom:1px solid var(--border);
 }
 .recent-list{display:flex; flex-direction:column; gap:10px;}
+/* ── R205b（用户反馈①②）：最近解读右侧可收缩侧边栏 + 单条删除 ── */
+.recent-toggle{
+  position:fixed; right:16px; bottom:20px; z-index:60;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--primary); color:#fff; border:none;
+  font-size:22px; cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.22);
+}
+.recent-sidebar{
+  position:fixed; top:0; right:0; bottom:0; z-index:70;
+  width:min(320px, 86vw);
+  background:var(--card); border-left:1px solid var(--border);
+  box-shadow:-6px 0 24px rgba(0,0,0,.12);
+  padding:18px 16px 24px; overflow-y:auto;
+  transform:translateX(105%); transition:transform .28s ease;
+}
+.recent-sidebar.open{transform:translateX(0);}
+.recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.recent-side-head .section-title{margin-bottom:0;}
+.recent-side-close{
+  flex-shrink:0; width:40px; height:40px; border-radius:50%;
+  background:transparent; color:var(--secondary);
+  border:1px solid var(--border); font-size:15px; cursor:pointer;
+}
+.recent-del{
+  flex-shrink:0; width:32px; height:32px; border-radius:50%;
+  background:transparent; color:var(--secondary);
+  border:1px solid var(--border); font-size:13px; cursor:pointer;
+}
+.recent-del:hover{color:#fff; background:var(--accent); border-color:var(--accent);}
+@media (prefers-reduced-motion: reduce){
+  .recent-sidebar{transition:none;}
+}
 .recent-item{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);
   padding:14px 18px; display:flex; align-items:center; gap:14px;
@@ -579,13 +612,15 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 /* R197b：牌面 v2——RWS 公版真图（CC0，luciellaes 清理包）+ 中文牌名/关键词。
  * 图片按 manifest 文件名直引 /static/tarot/（零热链，外链=0 不破）。 */
 .tarot-card-front{padding:0; flex-direction:column;}
-.tarot-card-front .tart{width:100%; height:62%; flex:none;
+/* R205b（用户反馈④）：原图 300×527 竖版，cover 会把牌面裁掉一截——
+ * 改 contain 完整显示 + 图区弹性占位（tinfo 收缩为自然高）。 */
+.tarot-card-front .tart{width:100%; height:auto; flex:1 1 auto; min-height:0;
   display:flex; align-items:center; justify-content:center; overflow:hidden;}
 .tarot-card-front .tart img{
-  width:100%; height:100%; object-fit:cover; border-radius:8px 8px 0 0;
+  width:100%; height:100%; object-fit:contain; border-radius:8px 8px 0 0;
 }
 .tarot-card-front .tinfo{
-  flex:1; display:flex; flex-direction:column; justify-content:center;
+  flex:none; display:flex; flex-direction:column; justify-content:center;
   padding:4px 6px 2px;
 }
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
