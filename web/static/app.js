@@ -67,6 +67,10 @@ function paint(id, html) {
   if (node) {
     node.hidden = false;
     node.innerHTML = html;
+    /* R207b：聊天入口全局化——任何结果容器渲染出结果卡后，尾部统一挂
+     * 「聊聊这件事」（此前只挂在八字排盘，塔罗/桃花等用户根本看不到）。
+     * 委托点击已在 initBazi 绑 document 级，无需逐处绑事件。 */
+    if (typeof attachChatEntry === 'function') attachChatEntry(node);
   }
 }
 
@@ -165,6 +169,43 @@ function chatSid() {
   } catch (e) { return 'c-anon'; }
 }
 var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
+
+/** R207b：聊天入口全局化——结果容器渲染出 .card 后尾部统一挂入口钮。
+ *  已有则跳过（重绘安全）；无 .card（如空态/错误态）不挂。 */
+function attachChatEntry(container) {
+  if (!container) return;
+  var card = container.querySelector('.card');
+  if (!card || card.querySelector('#chatEntry')) return;
+  var btn = document.createElement('button');
+  btn.className = 'chat-entry';
+  btn.type = 'button';
+  btn.id = 'chatEntry';
+  btn.textContent = '💬 聊聊这件事';
+  card.appendChild(btn);
+}
+
+/** R207b：起名点评轮询——复用 /api/ai/{tid}，done 渲染点评卡。 */
+function pollNameReview(taskId) {
+  var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+  var tick = function () {
+    api('/api/ai/' + encodeURIComponent(taskId)).then(function (st) {
+      const out = el('nameReviewOut');
+      if (!out) return;
+      if (st && st.status === 'done' && st.text) {
+        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 引经点评</h4><p style="white-space:pre-wrap;">' +
+          esc(st.text) + '</p></div>';
+        return;
+      }
+      if (st && st.status === 'failed') {
+        out.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        return;
+      }
+      if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+      else out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>';
+    }).catch(function () {});
+  };
+  setTimeout(tick, AI_POLL_INTERVAL_MS);
+}
 
 function chatOpen() {
   var panel = el('chatPanel');
@@ -515,12 +556,10 @@ function renderWarm(warm, interp, evidence) {
    * （按提问主题选，无提问走通用款），同输入同输出不违反确定性判据。
    * 写死在前端而非 voice.py：voice 输出被 voice_baseline.json 逐字节
    * 钉住，前端追加层 additive 零基线风险。
-   * R206b 补记：共情行与「聊聊」入口合并为一行（check_plain_first 判据 2
-   * 余量门柱 200px 不能放宽——独占两行曾致 c6_career 余量 198px）。 */
+   * R207b：聊天入口已由 paint() 全局统一注入（含塔罗/桃花等所有结果卡），
+   * 此处不再单独渲染。 */
   html += '<div class="warm-empathy"><span>' +
-    esc(warmEmpathy(WARM_LAST_QUESTION)) + '</span>' +
-    '<button class="chat-entry" type="button" id="chatEntry">' +
-    '💬 聊聊这件事</button></div>';
+    esc(warmEmpathy(WARM_LAST_QUESTION)) + '</span></div>';
   // L0 一句话：首屏第一眼就是它（判据 1/3）
   html += '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
   // L1.5 reply：对提问的回应，紧跟 L0
@@ -1980,7 +2019,11 @@ async function doQiming() {
       });
       html += '</div>';
     }
-    // 实测 candidates[] 是 {char,element,radical,meaning}。
+    /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
+    html += '<button class="chat-entry" type="button" id="nameReviewBtn">' +
+      '✨ 让 AI 用古籍典故点评这些名字</button>' +
+      '<div id="nameReviewOut" hidden></div>';
+        // 实测 candidates[] 是 {char,element,radical,meaning}。
     html += '<details class="warm-basis" style="margin-top:14px;"><summary>单字候选池（' +
       ((j.candidates || []).length) + ' 字，展开看五行与部首）</summary><div class="calc-grid">';
     (j.candidates || []).forEach(function (n, i) {
@@ -1996,6 +2039,29 @@ async function doQiming() {
     html += renderAiPolish(j);
     html += '</div></div>';
     paint('qmResult', html);
+    on('nameReviewBtn', function () {
+      const btn = el('nameReviewBtn');
+      if (btn) btn.disabled = true;
+      const names = (j.full_names || []).map(function (n) {
+        return n.full_name || '';
+      }).filter(Boolean).slice(0, 6);
+      postJSON('/api/qiming/review', {
+        names: names,
+        facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无')]
+      }).then(function (rj) {
+        if (!rj.review_task_id) {
+          paint('nameReviewOut', '<div class="no-evidence">AI 点评暂未开启</div>');
+          const o = el('nameReviewOut'); if (o) o.hidden = false;
+          if (btn) btn.disabled = false;
+          return;
+        }
+        const out = el('nameReviewOut');
+        if (out) { out.hidden = false; out.innerHTML = '<div class="no-evidence">AI 正在翻书找典故…</div>'; }
+        pollNameReview(rj.review_task_id);
+      }).catch(function () {
+        if (btn) btn.disabled = false;
+      });
+    });
     revealResult('qmResult');
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
@@ -2138,7 +2204,59 @@ function buildTarotResult(j) {
       '</div></div>';
   });
   html += '</div>';
+  /* R207b：塔罗深读——多牌综合叙事 + 针对用户的具体指引。
+   * 确定性模板层（同输入同输出），写死前端不动 voice 基线。 */
+  html += tarotDeepRead(j.draws || [], j.question);
   html += renderVoice(j, '📖 牌面转述（确定性规则）');
+  html += '</div>';
+  return html;
+}
+
+/** R207b：塔罗深读模板族。三段式：连起来看 → 你该留意 → 现在可以做。
+ *  全部由牌名/正逆位/位置组合生成，零新事实、零吉凶断言。 */
+var TAROT_POS_HINT = {
+  "过去": "它说的是你已经走过的路——现在的感受很多来自那段经历",
+  "现在": "这是你此刻的状态，也是三张里最值得先看清的一张",
+  "未来": "它指向事情的走向，但走向会随你的选择变化",
+  "阻碍": "这张牌说的是挡在路上的东西——往往是心里的某个念头",
+  "环境": "这是你周围的氛围和别人的态度，不全是你能控制的",
+  "建议": "这张牌是牌阵给你的提醒，最值得记住的一张",
+  "结果": "如果一切照旧，事情大概率是这样收场"
+};
+function tarotDeepRead(draws, question) {
+  if (!draws || !draws.length) return '';
+  var q = (question || '').trim();
+  var html = '<div class="tarot-deep">';
+  // 第一段：把牌串成一个故事开头
+  var names = draws.map(function (d) {
+    return d.name + '（' + (d.upright ? '正位' : '逆位') + '）';
+  });
+  html += '<h4>🔮 这几句话想对你说</h4>';
+  if (q) {
+    html += '<p>你问「' + esc(q) + '」。' +
+      esc(names.join('、')) + ' —— 把它们连起来，其实是这样一个过程：</p>';
+  } else {
+    html += '<p>' + esc(names.join('、')) + '。把它们连起来看：</p>';
+  }
+  // 第二段：逐位置含义（有 position 提示的用专属句，没有的按序说）
+  html += '<ul>';
+  draws.forEach(function (d, i) {
+    var pos = d.position || '';
+    var kw = (d.upright ? d.upright_kw : d.reversed_kw) || '';
+    var hint = TAROT_POS_HINT[pos] ||
+      ('这一步说的是「' + pos + '」的位置');
+    html += '<li><strong>' + esc(pos || ('第' + (i + 1) + '张') + '·' +
+      d.name) + '</strong>：' + esc(kw.split('·')[0]) + '。' +
+      esc(hint) + '。</li>';
+  });
+  html += '</ul>';
+  // 第三段：行动建议（按主牌正/逆位给方向感，不给断言）
+  var main = draws[Math.min(1, draws.length - 1)] || draws[0];
+  html += '<p class="tarot-advice">' +
+    (main.upright
+      ? '牌面整体是顺的：你心里想的那个方向可以试着往前走一小步，不用一下子做很大的决定。'
+      : '牌面有些别扭：先别急着推进，这几天多观察少动作，等心里那股拧劲过去了再决定。') +
+    ' 牌只是镜子，怎么走还是你自己说了算。</p>';
   html += '</div>';
   return html;
 }

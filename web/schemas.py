@@ -217,6 +217,22 @@ class ChatRequest(BaseModel):
             raise ValidationError(f"message 超长（≤500 字），收到 {len(msg)} 字")
 
 
+class NameReviewRequest(BaseModel):
+    """AI 起名点评请求（R207b）。names ≤6 个。"""
+    names: list[str] = Field(..., description="候选完整名列表（≤6）")
+    facts: list[str] | None = None
+
+    def validate_ranges(self) -> None:
+        clean = [n for n in (self.names or []) if n.strip()]
+        if not clean:
+            raise ValidationError("names 不能为空")
+        if len(clean) > 6:
+            raise ValidationError(f"names 最多 6 个，收到 {len(clean)} 个")
+        for n in clean:
+            if len(n) > 8:
+                raise ValidationError(f"名字过长：{n[:8]}…")
+
+
 class TarotRequest(BaseModel):
     seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
     n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")

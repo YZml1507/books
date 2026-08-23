@@ -421,6 +421,65 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
     return None
 
 
+_NAME_REVIEW_SYSTEM = (
+    "你是一位精通古典文学的起名顾问。用户会给你几个候选名字和五行背景。"
+    "请为每个名字写一段 40-70 字的推荐语：优先从《诗经》《楚辞》《论语》"
+    "《周易》《道德经》等经典中找与名字用字相关或同源的名句作为出处"
+    "（引原句并注明篇名）；确实找不到出处的字，就从字形、字义、音韵讲它的好处。"
+    "语气温暖有文化感，像一位有学问的长辈在郑重推荐。不要编造不存在的句子；"
+    "不确定出处就直说「字义上」而不是硬引。最后用一句话总结哪个名字最亮眼。"
+)
+
+
+def review_names(names: list[str], facts: list[str] | None = None,
+                 config: dict | None = None, _transport=None) -> str | None:
+    """候选名列表 → 引经据典的推荐语文本。失败返回 None（D-244a）。"""
+    cfg = config or load_config()
+    if cfg is None:
+        return None
+    names = [n for n in (names or []) if n][:6]
+    if not names:
+        return None
+    msgs = [{"role": "system", "content": _NAME_REVIEW_SYSTEM}]
+    user = "候选名字：" + "、".join(names)
+    if facts:
+        user += "\n五行背景：" + "；".join(f for f in facts if f)
+    user += "\n\n请按上面规则为每个名字写推荐语。"
+    msgs.append({"role": "user", "content": user})
+    return _chat_call(msgs, cfg, _transport)
+
+
+def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
+                           config: dict | None = None,
+                           _transport=None) -> str | None:
+    """后台起一个起名点评任务，复用 _tasks/GC/轮询端点。关闭时返回 None。"""
+    cfg = config or load_config()
+    if cfg is None:
+        return None
+    tid = secrets.token_urlsafe(16)
+    with _tasks_lock:
+        _gc_tasks()
+        _tasks[tid] = {"status": "pending", "text": None,
+                       "created": time.monotonic()}
+
+    def _run() -> None:
+        try:
+            text = review_names(names, facts=facts, config=cfg,
+                                _transport=_transport)
+            status = "done" if text else "failed"
+        except Exception:
+            status, text = "failed", None
+        with _tasks_lock:
+            rec = _tasks.get(tid)
+            if rec is not None:
+                rec["status"] = status
+                rec["text"] = text
+
+    threading.Thread(target=_run, name="ai-name-" + tid[:8],
+                     daemon=True).start()
+    return tid
+
+
 def spawn_chat_task(session_id: str, user_msg: str,
                     facts: list[str] | None = None,
                     config: dict | None = None,

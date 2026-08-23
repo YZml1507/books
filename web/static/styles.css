@@ -307,13 +307,20 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 }
 .recent-list{display:flex; flex-direction:column; gap:10px;}
 /* ── R205b（用户反馈①②）：最近解读右侧可收缩侧边栏 + 单条删除 ── */
+/* R207b：圆钮修复——emoji 在 Windows 渲染成黑白文本形，改用 SVG 数据 URI
+ * 时钟图标（同源 data URI 非外链），flex 居中，hover 反馈。 */
 .recent-toggle{
   position:fixed; right:16px; bottom:20px; z-index:60;
   width:52px; height:52px; border-radius:50%;
-  background:var(--primary); color:#fff; border:none;
-  font-size:22px; cursor:pointer;
+  background:var(--primary) center/26px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+  border:none; cursor:pointer; padding:0;
   box-shadow:0 4px 16px rgba(0,0,0,.22);
+  transition:transform .15s ease, box-shadow .15s ease;
 }
+.recent-toggle:hover{transform:scale(1.06); box-shadow:0 6px 20px rgba(0,0,0,.28);}
+.recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
+@media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 .recent-sidebar{
   position:fixed; top:0; right:0; bottom:0; z-index:70;
   width:min(320px, 86vw);
@@ -338,17 +345,19 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 .recent-del:hover{color:#fff; background:var(--accent); border-color:var(--accent);}
 
 /* ── R206b（specs/009 US1）：AI 陪伴聊天抽屉 ───────────────────── */
-/* 入口与共情行合并为一行（判据 2 余量门柱不放宽） */
+/* R207b：入口改回独立块（paint() 全局注入到每张结果卡尾部）；
+ * 共情行恢复纯文本行。check_plain_first 判据 2 余量实测复跑守门。 */
 .warm-empathy{
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  font-size:14px; color:var(--secondary); margin:0 0 8px 2px; line-height:1.6;
+  font-size:14px; color:var(--secondary); margin:0 0 8px 2px;
+  line-height:1.6; display:block;
 }
 .chat-entry{
-  flex-shrink:0; min-height:36px; padding:4px 12px;
+  display:block; width:100%; min-height:40px; margin:6px 0 2px;
   background:linear-gradient(135deg,#FFF4E8,#FDE8E0); color:var(--text);
-  border:1px solid #F0CDB8; border-radius:999px;
-  font-family:var(--font-sans); font-size:13px; cursor:pointer;
+  border:1px solid #F0CDB8; border-radius:12px;
+  font-family:var(--font-sans); font-size:15px; cursor:pointer;
 }
+.chat-entry:hover{border-color:#E8B898;}
 .chat-entry:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
 .chat-panel{
   position:fixed; top:0; right:0; bottom:0; z-index:80;
@@ -484,7 +493,17 @@ button.ghost{
   background:transparent; color:var(--primary-ink); border:2px solid var(--primary);
 }
 button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translateY(-2px);}
+/* R207b：修复双操作钮重叠——fav-btn 原本 absolute 同点位，
+ * ❤️ 收藏与 📸 分享图完全叠在一起（用户报「摄像机和日期排版没弄好」）。
+ * 改为卡片头部右侧横排：第一个贴右缘，第二个在其左侧。 */
 .fav-btn{position:absolute; top:24px; right:24px; margin:0;}
+.fav-btn + .fav-btn,
+button.fav-btn[id="shareBazi"],
+button.fav-btn[id="shareQiming"],
+button.fav-btn[id="shareTaohua"],
+button.fav-btn[id="shareHehun"]{
+  right:150px;
+}
 
 .error{color:var(--accent); margin-top:16px; font-size:14px;}
 .status{color:var(--secondary); margin-top:16px; font-size:14px;}
@@ -721,6 +740,21 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .tarot-grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:16px 0;}
 .tarot-cell{text-align:center;}
 .tarot-pos{font-size:13px; color:var(--secondary); margin-top:8px;}
+
+/* ── R207b：塔罗深读区——三段式综合叙事 ───────────────────────── */
+.tarot-deep{
+  margin:16px 0 4px; padding:14px 16px;
+  background:#FDF9F2; border:1px solid #EFE3CE; border-radius:12px;
+}
+.tarot-deep h4{font-family:var(--font-serif); font-size:15px;
+  color:#7A5C2E; margin-bottom:8px;}
+.tarot-deep p{font-size:14.5px; line-height:1.8; color:var(--text);
+  margin:6px 0;}
+.tarot-deep ul{margin:8px 0 8px 20px;}
+.tarot-deep li{font-size:14px; line-height:1.75; margin:5px 0;
+  color:var(--text);}
+.tarot-advice{border-top:1px dashed #EFE3CE; padding-top:10px;
+  font-weight:500;}
 
 /* ── 004 warm 视图：口吻切换 + 温柔文案层（R182b M1）──────────────
  * 视觉纪律：warm 文案、古籍引文、推导依据三类内容必须可辨（spec US2.5，

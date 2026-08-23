@@ -11,7 +11,8 @@ from guji import llm_polish
 
 from .. import services
 from ..errors import NotFoundError
-from ..schemas import BaziRequest, ChatRequest, HehunRequest, QimingRequest
+from ..schemas import (BaziRequest, ChatRequest, HehunRequest,
+                       NameReviewRequest, QimingRequest)
 
 router = APIRouter(tags=["bazi"])
 
@@ -67,6 +68,20 @@ def chat(req: ChatRequest) -> dict:
         req.session_id, req.message, facts=req.facts or [])
     if tid:
         out["chat_task_id"] = tid
+    return out
+
+
+@router.post("/api/qiming/review")
+def qiming_review(req: NameReviewRequest) -> dict:
+    """AI 起名点评（R207b；D-259b 同族）：引经据典推荐语，additive 键。
+
+    DISABLE=1 / 配置关闭 → 响应无 review_task_id 键（前端隐藏入口）。"""
+    out: dict = {}
+    req.validate_ranges()
+    tid = llm_polish.spawn_name_review_task(
+        req.names, facts=req.facts or [])
+    if tid:
+        out["review_task_id"] = tid
     return out
 
 

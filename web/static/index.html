@@ -26,11 +26,10 @@
          （31 处对比度不足已归零）；「原版」= R183b 之前的配色，供对照与
          否决。切换只改 <html data-theme>，CSS 侧只覆盖令牌、不碰规则集，
          因此回滚路径不需要反向修改任何组件样式。 -->
-    <div class="theme-switch" role="group" aria-label="配色方案">
-      <button type="button" class="theme-btn" data-theme-btn="aa"
-              aria-pressed="true" title="高对比配色（默认）">清晰</button>
-      <button type="button" class="theme-btn" data-theme-btn="legacy"
-              aria-pressed="false" title="切回原来的配色">原版</button>
+    <div class="theme-switch" role="group" aria-label="配色方案" hidden>
+      <!-- R207b：主题合一——「清晰版/原版」双轨让用户困惑，删切换入口，
+           清晰（AA 高对比）为唯一主题。legacy CSS 令牌保留（审查轨基线
+           钉着它，零删除原则）；applyTheme 对未知值回落 aa，行为安全。 -->
     </div>
   </div>
 
@@ -110,7 +109,8 @@
 
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
   <button class="recent-toggle" id="recentToggle" type="button"
-    aria-expanded="false" aria-controls="recentSidebar">📖</button>
+    aria-expanded="false" aria-controls="recentSidebar"
+    aria-label="打开最近的解读"></button>
   <aside class="recent-sidebar" id="recentSidebar">
     <div class="recent-side-head">
       <div class="section-title">📖 最近的解读</div>

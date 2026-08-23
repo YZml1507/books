@@ -7994,3 +7994,39 @@ selftest +4 断言 =163 checks PASS。十闸门全 exit 0
 代码新鲜度。
 
 **specs/009 四 US 至此全部落地**（US2 §145/US3 §146/US4 §147/US1 本条）。
+
+### 149. [优化轨] R207b：用户反馈四项修复——聊天入口全局化/主题合一/塔罗深读/起名 AI 点评/按钮重叠（2026-08-23）
+
+**用户批评**：①「聊聊这件事」根本看不到（只挂在八字结果，其他功能没有）；
+②清晰版/原版双主题混乱；③塔罗只解释牌面没有针对用户的深读；
+④分享图摄像机按钮与收藏钮排版错乱；⑤起名太平庸，要 AI 引经据典点评。
+
+**1. 聊聊入口全局化（paint() 统一注入）**：attachChatEntry 在 paint 渲染出
+.card 后尾部统一挂 #chatEntry（重绘安全：已有则跳过）。塔罗/桃花/黄历/
+六爻/合婚/起名/读书全部覆盖，E2E 四端点抽查 count=1。八字卡原硬编码
+按钮移除。
+
+**2. 主题合一**：theme-switch 加 hidden——「清晰」(AA 高对比) 为唯一主题。
+legacy CSS 令牌保留（审查轨基线钉着），applyTheme 对未知值回落 aa，
+localStorage 残留 legacy 值也安全回落。闸门未钉该按钮（已核）。
+
+**3. 塔罗深读 tarotDeepRead**：确定性模板族三段式——「这几句话想对你说」
+（牌串叙事+回应提问）→ 逐位置含义（TAROT_POS_HINT 七种牌阵位提示）→
+行动建议（按主牌正逆位给方向感，无吉凶断言，「牌只是镜子」收尾）。
+纯前端追加层，不动 voice 基线。
+
+**4. fav-btn 重叠修复**：❤️ 收藏与 📸 分享图同为 absolute top:24 right:24
+完全叠在一起——第二个钮 right:150px 错位横排。
+
+**5. 起名 AI 引经据典点评（D-259b 同族）**：llm_polish 新增 review_names/
+spawn_name_review_task——系统提示要求从诗经/楚辞/论语/周易等找用字出处
+（引原句注篇名，找不到不硬编），40-70 字/名，末句总结最亮眼的。
+POST /api/qiming/review（NameReviewRequest names≤6）additive
+{review_task_id}；前端「✨ 让 AI 用古籍典故点评这些名字」按钮 → 轮询渲染
+点评卡。DISABLE=1 无键语义一致。
+
+**实测**：E2E 真浏览器五断言全过（深读区 198 字/四端点入口 count=1/
+theme 隐藏/fav-btn rights 错开/console 零错误）；selftest 163 checks；
+十闸门全 exit 0（$LOCALAPPDATA/Temp/gates_r207b_final.log）。
+插曲：跑批前 history.db 被 E2E 清空 + 我手工 seed 时 save_record 参数传错
+产生脏行——已清库重种正确形状记录后复跑即绿（非代码回归）。
