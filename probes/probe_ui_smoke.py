@@ -352,7 +352,24 @@ def main() -> int:
             })
 
             def goto_view(view: str):
-                page.click(f".func-card[data-view='{view}']")
+                # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
+                # huangli）；qiming/taohua/hehun 在 view-bazi 底部「相关功能」区。
+                if page.evaluate("() => document.getElementById('homeMain').hidden"):
+                    page.click("#viewBack")
+                    page.wait_for_timeout(150)
+                card = page.locator(f".func-card[data-view='{view}']")
+                if card.count() > 1:
+                    # 同名卡多处（隐藏簇页 + 可见相关功能区）：过滤出可见者
+                    card = page.locator(
+                        f".func-card[data-view='{view}']:visible")
+                if card.count() >= 1 and card.first.is_visible():
+                    card.first.click()
+                else:
+                    page.click(".func-card[data-view='bazi']")
+                    page.wait_for_selector("#view-bazi.active", timeout=5000)
+                    page.locator(
+                        f".func-card[data-view='{view}']:visible"
+                    ).first.click()
                 page.wait_for_selector(f"#view-{view}.active", timeout=5000)
 
             def force_show_rsec(sec: str) -> bool:
@@ -424,7 +441,9 @@ def main() -> int:
                 results.append({"name": f"subtab:{sub}", "ok": ok, "detail": detail})
 
             # ── #dailyMore 用例（有按钮就必须有行为）────────────
-            goto_view("bazi")
+            # R200b（US3）：#dailyMore 在首页今日卡（homeMain）里——先回首页
+            page.evaluate("() => showView('home')")
+            page.wait_for_timeout(200)
             errors.clear()
             before = page.content()
             try:

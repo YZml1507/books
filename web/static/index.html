@@ -10,6 +10,10 @@
 </head>
 <body>
 <div class="wrap">
+  <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
+       固定高度，引文区高度与书数无关）。首页时 hidden。 -->
+  <button class="view-back" id="viewBack" type="button" hidden>← 返回</button>
+  <div class="home-main" id="homeMain">
 
   <!-- 品牌 -->
   <div class="brand">
@@ -61,46 +65,39 @@
     <div class="daily-detail" id="dailyDetail" hidden></div>
   </div>
 
-  <!-- 功能卡片（007 首页 IA：三簇语义分组，spec §2；「今日」簇=上方每日运势卡本体） -->
-  <!-- R193b→R194b：卡元素原样搬入重排，data-view/role/tabindex 与点击行为零变化
-       （probe_ui_smoke 经 .func-card[data-view] 导航，容器结构非契约） -->
+  <!-- 功能卡片（R200b US3 方案①：首页五张直达卡——问一卦三卡 +
+       读书与择日两卡；起名/桃花/合婚收进排盘视图底部「相关功能」区，
+       数据同源八字系）。探针契约不变：
+       .func-card[data-view=X] 点击 → #view-X.active。 -->
   <div class="ia-group" data-group="ask">
-    <div class="ia-label">🔮 测一测</div>
+    <div class="ia-label">🔮 问一卦</div>
     <div class="func-grid">
-    <div class="func-card" data-view="bazi" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0">
       <div class="func-icon">🔮</div><div class="func-name">八字排盘</div><div class="func-desc">四柱五行 · 大运流年</div>
     </div>
-    <div class="func-card" data-view="qiming" role="button" tabindex="0">
-      <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
-    </div>
-    <div class="func-card" data-view="hehun" role="button" tabindex="0">
-      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
-    </div>
-    <div class="func-card" data-view="taohua" role="button" tabindex="0">
-      <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
-    </div>
-    <div class="func-card" data-view="tarot" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0">
       <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽牌看指引</div>
     </div>
-    <div class="func-card" data-view="liuyao" role="button" tabindex="0">
-      <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
-    </div>
-    <div class="func-card" data-view="huangli" role="button" tabindex="0">
-      <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
+    <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0">
+      <div class="func-icon">🧿</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
     </div>
     </div>
   </div>
 
   <div class="ia-group" data-group="read">
-    <div class="ia-label">📜 读书</div>
+    <div class="ia-label">📜 读书与择日</div>
     <div class="func-grid">
-    <div class="func-card" data-view="read" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="read" role="button" tabindex="0">
       <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍检索比对</div>
+    </div>
+    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0">
+      <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
     </div>
     </div>
   </div>
+  </div><!-- /home-main -->
 
-  <!-- 最近解读 + 收藏 -->
+  <!-- 最近解读 + 收藏（R200b：移出 home-main，任何视图下都可见） -->
   <div class="recent-section">
     <div class="section-title">📖 最近的解读</div>
     <div class="recent-list" id="recentList"></div>
@@ -111,7 +108,28 @@
     <div class="recent-list" id="favoritesList"></div>
   </div>
 
-  <!-- 视图容器（功能卡片点击后切换） -->
+  <!-- 视图容器。R200b 方案①：view-divine 不再作为簇页——起名/桃花/合婚
+       三张八字系功能卡收进 view-bazi 底部「相关功能」区（数据同源）。 -->
+  <div class="view" id="view-divine" hidden>
+    <div class="card"><h2>🔮 问一卦</h2>
+      <p style="color:var(--secondary);font-size:14px;">选一个方式，问一件具体的事</p>
+      <div class="func-grid">
+        <div class="func-card" data-view="liuyao" role="button" tabindex="0">
+          <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
+        </div>
+        <div class="func-card" data-view="qiming" role="button" tabindex="0">
+          <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+        </div>
+        <div class="func-card" data-view="taohua" role="button" tabindex="0">
+          <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
+        </div>
+        <div class="func-card" data-view="hehun" role="button" tabindex="0">
+          <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="view active" id="view-bazi">
     <div class="card">
       <h2>🔮 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
@@ -163,6 +181,23 @@
 
       <div class="result" id="result" hidden></div>
       <p class="footnote">运算结论为系统按命理规则计算的坐标事实（可核验）；古籍原文证据带出处；解读为系统按写死规则对坐标的转述（非生成文本、同输入必同输出），不构成现实决策依据。</p>
+
+      <!-- R200b（US3 方案①）：八字系「相关功能」——起名/桃花/合婚与排盘
+           同源四柱，收在排盘视图底部作二级入口；首页不再平铺。 -->
+      <div class="related-funcs">
+        <div class="ia-label">✨ 相关功能（同一张盘）</div>
+        <div class="func-grid">
+          <div class="func-card" data-view="qiming" role="button" tabindex="0">
+            <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+          </div>
+          <div class="func-card" data-view="taohua" role="button" tabindex="0">
+            <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
+          </div>
+          <div class="func-card" data-view="hehun" role="button" tabindex="0">
+            <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+          </div>
+        </div>
+      </div>
 
       <div class="news-panel card">
         <div class="news-head">

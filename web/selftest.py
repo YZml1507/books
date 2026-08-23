@@ -738,15 +738,22 @@ def run() -> list[str]:
     # R194b（specs/007 首页 IA）：功能卡三簇语义分组——入口不减（8 张）、
     # 簇内序固定（八字族相邻→抽问族→黄历殿后，读书独立成簇）、
     # 双人意图的合婚与桃花相邻。只增不减：新名字自动入 regress 基线。
+    # R200b（US3 方案①）：首页五张直达卡 + 排盘视图「相关功能」区三卡。
+    # 断言口径更新：首页卡序 bazi→tarot→liuyao→read→huangli；
+    # 起名/桃花/合婚在 view-bazi 的 related-funcs 区（HTML 中各出现两次：
+    # 隐藏簇页 view-divine 保留一份 + 相关功能区一份）。
     import re as _re
-    _cards = _re.findall(r'class="func-card" data-view="([a-z]+)"', home.text)
-    assert len(_cards) == 8, ("home.ia.count", len(_cards), _cards)
-    assert _cards == ["bazi", "qiming", "hehun", "taohua",
-                      "tarot", "liuyao", "huangli", "read"], \
+    _home_seg = home.text.split('id="view-divine"')[0]
+    _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
+    assert len(_cards) == 5, ("home.ia.count", len(_cards), _cards)
+    assert _cards == ["bazi", "tarot", "liuyao", "read", "huangli"], \
         ("home.ia.order", _cards)
-    assert _cards.index("hehun") + 1 == _cards.index("taohua"), \
-        ("home.ia.pair", _cards)
-    for _grp, _lab in (("ask", "测一测"), ("read", "读书")):
+    # 相关功能区：qiming/taohua/hehun 三卡齐备（在 view-bazi 内）
+    _related = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"',
+                           home.text.split('related-funcs')[1])
+    assert sorted(_related) == ["hehun", "qiming", "taohua"], \
+        ("home.ia.related", _related)
+    for _grp, _lab in (("ask", "问一卦"), ("read", "读书与择日")):
         assert f'<div class="ia-group" data-group="{_grp}">' in home.text, \
             ("home.ia.group", _grp)
         assert _lab in home.text, ("home.ia.label", _lab)

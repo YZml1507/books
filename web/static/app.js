@@ -166,6 +166,11 @@ function colorAt(i) {
 /* ── 视图切换 ──────────────────────────────────────────────── */
 
 function showView(viewId) {
+  /* R200b（US3 谱系重组）：首页三入口（today/divine/study）是「簇页」，
+   * 功能视图是「叶页」。进叶页时隐藏首页主体（.home-main），显示 44px
+   * 返回条；回首页恢复。探针契约：`.func-card[data-view]` 点击后
+   * `#view-X.active` 出现——入口卡与子卡都带 data-view，行为一致。 */
+  var isHome = (viewId === 'home');
   document.querySelectorAll('.view').forEach(function (v) {
     v.classList.remove('active');
   });
@@ -176,6 +181,10 @@ function showView(viewId) {
     c.style.borderColor = isActive ? 'var(--primary)' : '';
     c.setAttribute('aria-current', isActive ? 'true' : 'false');
   });
+  const home = el('homeMain');
+  if (home) home.hidden = !isHome && !!target;
+  const back = el('viewBack');
+  if (back) back.hidden = isHome || !target;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2327,6 +2336,9 @@ function initViews() {
       }
     });
   });
+  /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
+  var back = el('viewBack');
+  if (back) back.addEventListener('click', function () { showView('home'); });
 }
 
 function initBazi() {

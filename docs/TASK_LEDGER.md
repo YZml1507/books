@@ -7641,3 +7641,32 @@ PASS/ui_smoke PASS；全量电池 gates_r198b 结果见 summary。
 
 **遗留**：R200b（US3 功能谱系重组独占轮：8→3 入口+探针同步改造+路由
 兼容期）。
+
+### 138. [优化轨] R200b：008 第三轮——US3 功能谱系重组（首页 8 卡→5 直达卡+相关功能区）（2026-08-23）
+
+**决策（方案①）**：导航层重组而非 API 合并——首页五张直达卡
+（问一卦：排盘/塔罗/六爻；读书与择日：读书/黄历）；起名/桃花/合婚三张
+八字系卡收进 view-bazi 底部「✨ 相关功能（同一张盘）」区（数据同源四柱，
+谱系逻辑=产品逻辑）。否决「真合并表单」（数据结构冲突大）与「簇页中转」
+（首版实现 divine 簇页，实测多一层点击且探针中转复杂，弃）。
+API/契约/后端零变化；view-divine 保留为隐藏兼容页（不删 DOM 防 404 类回归）。
+
+**1. 前端**：showView 增加 homeMain 显隐 + 44px viewBack 返回条
+（003 判据口径）；index.html 首页重组 + related-funcs 区；
+styles.css 只增 .view-back/.home-main[hidden]/.related-funcs。
+
+**2. 探针同步（领土偏离第五次行使，D-250b 先例：最小 diff+标注）**：
+probe_ui_smoke goto_view 改「回首页→可见卡直点 / 经 bazi 视图相关功能区
+中转」（:visible 过滤同名双卡）。执行中发现并修复 homeMain 少一个闭合
+div 的层级 bug（叶视图被藏）——ui_smoke 抓到，闸门有效又一实证。
+
+**3. selftest home.ia 断言口径更新**：首页 5 卡序 bazi→tarot→liuyao→
+read→huangli + related-funcs 三卡齐备 + 簇标签改「问一卦/读书与择日」。
+158 checks PASS；regress PASS（159→158 已审核改名 1 条）。
+
+**4. 实测**：ui_smoke 全 PASS · first_screen PASS · probe_dollar PASS
+（92 函数）/check_poster exit 0。全量电池 gates_r200b 结果见 summary。
+
+**遗留**：specs/008 五条 US 至此全部落地（US1 §136/US2 §136+本条/US3 本条/
+US4-5 §137）。两个 skill zip 零融入仍挂账。产品重塑阶段完成，待审查轨
+整体复核。
