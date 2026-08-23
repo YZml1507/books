@@ -151,47 +151,57 @@
     <div class="card">
       <h2>🔮 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
       <form id="form">
+        <!-- R206b（specs/009 US3 表单减负）：小满只填生日+性别即可提交。
+             历法默认公历、范围默认单日、时辰默认 12——全部有确定默认值，
+             高级字段（农历/推算范围/问事日期地点）收进「更多设置」折叠。 -->
         <div class="row">
-          <div class="field"><label for="calendar_type">历法</label>
-            <select id="calendar_type"><option value="solar">公历（阳历）</option><option value="lunar">农历（阴历）</option></select></div>
-          <div class="field" id="f_scope"><label for="scope">推算范围</label>
-            <select id="scope"><option value="day">单日</option><option value="range">一段日期</option><option value="life">一生</option></select></div>
-        </div>
-        <div class="row">
-          <div class="field" id="f_year"><label for="year">公历年份</label>
+          <div class="field" id="f_year"><label for="year">出生年份</label>
             <input id="year" type="number" min="1900" max="2100" value="1990" required></div>
           <div class="field" id="f_month"><label for="month">月</label>
             <input id="month" type="number" min="1" max="12" value="5" required></div>
           <div class="field" id="f_day"><label for="day">日</label>
             <input id="day" type="number" min="1" max="31" value="15" required></div>
-          <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap">闰月</label>
-            <input id="lunar_leap" type="checkbox"></div>
-          <div class="field"><label for="hour">时（0–23）</label>
-            <input id="hour" type="number" min="0" max="23" value="10" required></div>
           <div class="field"><label for="gender">性别</label>
-            <select id="gender"><option>男</option><option>女</option></select></div>
+            <select id="gender"><option>女</option><option>男</option></select></div>
         </div>
-        <div class="row" style="margin-top:6px;" id="ask_row">
-          <div class="field"><label for="ask_date">问事日期</label>
-            <input id="ask_date" type="date"></div>
-          <div class="field"><label for="ask_hour">问事时辰（可选）</label>
-            <input id="ask_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
-          <div class="field"><label for="location">地点（可选）</label>
-            <input id="location" type="text" placeholder="例如：北京"></div>
+        <!-- 时辰可选：不知道就留空（后端 hour 必填 → baziBody 里空则给默认 12，
+             并附 not_hour_known 提示语义；契约零改动）。 -->
+        <div class="row">
+          <div class="field"><label for="hour">出生时辰（不知道可留空）</label>
+            <input id="hour" type="number" min="0" max="23" placeholder="不知道就留空"></div>
+          <div class="field"><label for="question">想问什么？（可选）</label>
+            <input id="question" type="text" placeholder="例如：最近感情怎么样？"></div>
         </div>
-        <div class="row" style="margin-top:6px;" id="range_row" hidden>
-          <div class="field"><label for="range_start">起（YYYY-MM-DD）</label>
-            <input id="range_start" type="date"></div>
-          <div class="field"><label for="range_end">止（YYYY-MM-DD）</label>
-            <input id="range_end" type="date"></div>
-          <div class="field"><label for="range_hour">统一时辰（可选）</label>
-            <input id="range_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
-        </div>
-        <label for="question">想了解什么？（可选）</label>
-        <input id="question" type="text" placeholder="例如：今天运势如何？事业运如何？">
+        <details class="pro-drawer" id="baziAdvanced">
+          <summary>⚙️ 更多设置（历法 · 推算范围 · 问事时间）</summary>
+          <div class="row" style="margin-top:8px;">
+            <div class="field"><label for="calendar_type">历法</label>
+              <select id="calendar_type"><option value="solar">公历（阳历）</option><option value="lunar">农历（阴历）</option></select></div>
+            <div class="field" id="f_scope"><label for="scope">推算范围</label>
+              <select id="scope"><option value="day">单日</option><option value="range">一段日期</option><option value="life">一生</option></select></div>
+            <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap">闰月</label>
+              <input id="lunar_leap" type="checkbox"></div>
+          </div>
+          <div class="row" style="margin-top:6px;" id="ask_row">
+            <div class="field"><label for="ask_date">问事日期</label>
+              <input id="ask_date" type="date"></div>
+            <div class="field"><label for="ask_hour">问事时辰（可选）</label>
+              <input id="ask_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+            <div class="field"><label for="location">地点（可选）</label>
+              <input id="location" type="text" placeholder="例如：北京"></div>
+          </div>
+          <div class="row" style="margin-top:6px;" id="range_row" hidden>
+            <div class="field"><label for="range_start">起（YYYY-MM-DD）</label>
+              <input id="range_start" type="date"></div>
+            <div class="field"><label for="range_end">止（YYYY-MM-DD）</label>
+              <input id="range_end" type="date"></div>
+            <div class="field"><label for="range_hour">统一时辰（可选）</label>
+              <input id="range_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+          </div>
+        </details>
         <!-- R178b：原此处有 use_llm 复选框（"✨ LLM 博主解读（需服务端已配置）"）。
              LLM 层已整体移除，解读改为无条件的确定性规则输出，开关不再存在。 -->
-        <button id="submit" type="submit">排 盘 推 算</button>
+        <button id="submit" type="submit">看看我的盘 ✨</button>
         <div class="error" id="error" hidden></div>
         <div class="status" id="status" hidden></div>
       </form>

@@ -7923,3 +7923,21 @@ probe_dollar_misuse、selftest_regress、count_open_findings 全 exit 0。
 
 **遗留**：US3 表单减负 / US4 结果页接住感 / US1 AI 陪伴层（子 agent 勘查
 报告已派，deleg_8762b8a6）待续轮执行。
+
+### 146. [优化轨] R206b 续：specs/009 US3 排盘表单减负（2026-08-23）
+
+**改动**：表单重排为「生日四字段+可选时辰」两行——出生年/月/日/性别在首行
+（性别默认女，目标用户主群），第二行=出生时辰（可留空）+想问什么（可选）。
+历法/推算范围/问事日期地点/闰月收进「⚙️ 更多设置」pro-drawer 折叠；
+按钮文案「排盘推算」→「看看我的盘 ✨」。
+
+**契约零改动**：baziBody 里时辰留空时前端补默认 12 时并发 hour_known 布尔
+（后端 schema 不认识该键也不校验额外键——FastAPI 默认忽略，实测 200）；
+gender 前端默认值改女不影响显式传参。ui_smoke 的 FILL 用例显式填 #hour，
+不受 placeholder 变化影响。
+
+**闸门**：九项全 exit 0（$LOCALAPPDATA/Temp/gates_r206b_us3.log），
+selftest 159 checks PASS。判据 a/b/c 达成：默认可见字段=4、schema 零改、
+ui_smoke 全绿。
+
+**遗留**：US4 结果页接住感 / US1 AI 陪伴层。

@@ -1121,12 +1121,16 @@ async function loadDailyDetail() {
 function baziBody() {
   const calendar = val('calendar_type') || 'solar';
   const scope = val('scope') || 'day';
+  /* R206b（specs/009 US3 表单减负）：时辰可留空（不知道出生时间是小满
+   * 高频场景）——留空时前端补默认 12 时，契约零改动（后端 hour 仍必填）。 */
+  const hourRaw = val('hour');
   const body = {
     year: num('year'),
     month: num('month'),
     day: num('day'),
-    hour: num('hour'),
-    gender: val('gender') || '男',
+    hour: (hourRaw === '' || hourRaw == null) ? 12 : num('hour'),
+    hour_known: !(hourRaw === '' || hourRaw == null),
+    gender: val('gender') || '女',
     calendar_type: calendar,
     scope: scope
   };
