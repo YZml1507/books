@@ -92,7 +92,7 @@ html[data-theme="legacy"]{
    * 「回到上一阶段结束时的视觉」，当时无 webfont） */
   --font-serif: "Noto Serif TC","Songti SC","SimSun",serif;
   --font-wenkai: var(--font-serif);
-  --font-sans: "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  --font-sans: "Yuanti SC","YouYuan","幼圆","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
 }
 
 /* ── R201b（B-010）：animotion 接线——只取 web-lite 子集 ────────────
@@ -202,9 +202,14 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 
 /* ── 每日运势卡片 ── */
 .daily-card{
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--card) right -20px top -14px/220px no-repeat
+    url("/static/_candidates/daily-box.png");
+  border:1px solid var(--border); border-radius:var(--radius);
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+@media (max-width:560px){
+  .daily-card{background-size:150px;}
 }
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
@@ -330,6 +335,8 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
   transform:translateX(-105%); transition:transform .28s ease;
 }
 .recent-sidebar.open{transform:translateX(0);}
+/* R209b：collapsed 在任何视口下都强制收起（探针/用户手动收起语义） */
+.recent-sidebar.open.collapsed{transform:translateX(-105%);}
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .recent-side-head .section-title{margin-bottom:0;}
 .recent-side-close{
@@ -344,9 +351,7 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 }
 .recent-del:hover{color:#fff; background:var(--accent); border-color:var(--accent);}
 
-/* ── R206b（specs/009 US1）：AI 陪伴聊天抽屉 ───────────────────── */
-/* R207b：入口改回独立块（paint() 全局注入到每张结果卡尾部）；
- * 共情行恢复纯文本行。check_plain_first 判据 2 余量实测复跑守门。 */
+/* ── R209b：聊天并入左侧统一栏 ───────────────────────────────── */
 .warm-empathy{
   font-size:14px; color:var(--secondary); margin:0 0 8px 2px;
   line-height:1.6; display:block;
@@ -359,50 +364,52 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 }
 .chat-entry:hover{border-color:#E8B898;}
 .chat-entry:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
-.chat-panel{
-  position:fixed; top:0; left:0; bottom:0; z-index:80;
-  width:min(340px, 92vw);
-  background:var(--card); border-right:1px solid var(--border);
-  box-shadow:6px 0 24px rgba(0,0,0,.14);
+
+/* 左侧栏内聊天段 */
+.side-brand{
+  display:flex; align-items:center; gap:10px;
+  font-family:var(--font-serif); font-weight:700; font-size:16px;
+  color:var(--text);
+}
+.chat-avatar-img{border-radius:50%; box-shadow:0 0 0 3px #F6E3C8;}
+.side-chat{
   display:flex; flex-direction:column;
-  transform:translateX(-105%); transition:transform .28s ease;
+  margin:12px -16px 0; padding:12px 16px 0;
+  background:#FDF9F2; border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  max-height:46vh;
 }
-.chat-panel.open{transform:translateX(0);}
-.chat-head{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; border-bottom:1px solid var(--border);
-  font-weight:600;
+.side-chat .chat-flow{flex:1; min-height:120px;}
+.side-chat .chat-input-row{padding:8px 0 4px;}
+.side-hist{margin-top:14px;}
+
+/* AI 回复等待动效：三点跳动 */
+.chat-typing{display:inline-flex; gap:5px; align-items:center;}
+.chat-typing i{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--secondary); opacity:.45;
+  animation:chatBounce 1.1s infinite ease-in-out;
 }
-.chat-close{
-  width:40px; height:40px; border-radius:50%;
-  background:transparent; color:var(--secondary);
-  border:1px solid var(--border); font-size:15px; cursor:pointer;
+.chat-typing i:nth-child(2){animation-delay:.18s;}
+.chat-typing i:nth-child(3){animation-delay:.36s;}
+@keyframes chatBounce{
+  0%,60%,100%{transform:translateY(0); opacity:.45;}
+  30%{transform:translateY(-5px); opacity:1;}
 }
-.chat-flow{flex:1; overflow-y:auto; padding:14px; display:flex;
-  flex-direction:column; gap:10px;}
-.chat-bubble{
-  max-width:82%; padding:10px 14px; border-radius:14px;
-  font-size:14.5px; line-height:1.7; white-space:pre-wrap;
-}
-.chat-me{align-self:flex-end; background:var(--primary); color:#fff;}
-.chat-ai{align-self:flex-start; background:#FBF3EA; color:var(--text);
-  border:1px solid var(--border);}
-.chat-input-row{display:flex; gap:8px; padding:10px 14px;
-  border-top:1px solid var(--border);}
-.chat-input-row input{
-  flex:1; min-height:44px; padding:0 12px;
-  border:1px solid var(--border); border-radius:10px;
-  font-family:var(--font-sans); font-size:14px;
-}
-.chat-input-row button{
-  min-height:44px; padding:0 18px; border:none; border-radius:10px;
-  background:var(--primary); color:#fff; font-size:14px; cursor:pointer;
-}
-.chat-note{font-size:11.5px; color:var(--secondary);
-  text-align:center; padding:0 14px 10px; margin:0;}
 @media (prefers-reduced-motion: reduce){
-  .chat-panel{transition:none;}
+  .chat-typing i{animation:none;}
 }
+
+/* 桌面端侧栏常驻：>767px 默认展开贴左侧，内容区让位 */
+@media (min-width: 768px){
+  .recent-sidebar{transform:translateX(0);}
+  .recent-sidebar.collapsed,
+  .recent-sidebar.open.collapsed{transform:translateX(-105%);}
+  .recent-toggle{display:none;}
+  /* R209b：常驻时页面内容让位（body.side-open 由 JS 维护） */
+  body.side-open{padding-left:336px;}
+}
+
 @media (prefers-reduced-motion: reduce){
   .recent-sidebar{transition:none;}
 }

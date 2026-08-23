@@ -207,20 +207,33 @@ function pollNameReview(taskId) {
   setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
 
+/* R209b：聊天并入左侧统一栏——打开聊天=打开侧栏并滚到聊天段。 */
 function chatOpen() {
-  var panel = el('chatPanel');
-  if (panel) panel.classList.add('open');
+  var sb = el('recentSidebar');
+  if (!sb) return;
+  sb.classList.add('open');
+  var tgl = el('recentToggle');
+  if (tgl) tgl.setAttribute('aria-expanded', 'true');
+  var flow = el('chatFlow');
+  if (flow) setTimeout(function () {
+    flow.scrollTop = flow.scrollHeight;
+    var inp = el('chatInput');
+    if (inp && window.innerWidth > 767) inp.focus();
+  }, 300);
 }
 function chatClose() {
-  var panel = el('chatPanel');
-  if (panel) panel.classList.remove('open');
+  var sb = el('recentSidebar');
+  if (sb) sb.classList.remove('open');
+  var tgl = el('recentToggle');
+  if (tgl) tgl.setAttribute('aria-expanded', 'false');
 }
 function chatBubble(role, text) {
   var flow = el('chatFlow');
   if (!flow) return;
   var div = document.createElement('div');
   div.className = 'chat-bubble chat-' + role;
-  div.textContent = text;
+  if (text.indexOf('chat-typing') !== -1) div.innerHTML = text;  // 动效气泡
+  else div.textContent = text;
   flow.appendChild(div);
   flow.scrollTop = flow.scrollHeight;
 }
@@ -237,7 +250,8 @@ function chatSend() {
       chatBubble('ai', '（聊天功能暂时没开，稍后再来吧）');
       return;
     }
-    chatBubble('ai', '…');
+    chatBubble('ai',
+      '<span class="chat-typing"><i></i><i></i><i></i></span>');
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
@@ -828,9 +842,16 @@ function _paintSharePoster(s, W, H) {
   if (!ctx) return null;
   var S = W / 1080;
   ctx.setTransform(S, 0, 0, S, 0, 0);
-  var bg = ctx.createLinearGradient(0, 0, 0, 1440);
-  bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
+  /* R209b：已批准的候选背景图（同步绘制需预加载——downloadPoster 前
+   * warmPoster 已预热；未加载完成时回落渐变）。 */
+  var bgImg = POSTER_BG.warm;
+  if (bgImg && bgImg.complete && bgImg.naturalWidth) {
+    ctx.drawImage(bgImg, 0, 0, 1080, 1440);
+  } else {
+    var bg = ctx.createLinearGradient(0, 0, 0, 1440);
+    bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
+  }
   ctx.textAlign = 'center';
 
   /* 标题 + 副题 */
@@ -2149,6 +2170,13 @@ async function doTaohua() {
  * 公版扫描；manifest.json 键 = guji.tarot DECK 中文名）。图片走同源
  * /static 路径，零热链零外链（判据 13 口径不变）。
  * R195b 的 emoji 插画降级为兜底：manifest 加载失败或键缺失时仍可渲染。 */
+/* R209b：已批准海报背景预加载（_candidates 目录，同源） */
+var POSTER_BG = {
+  warm: new Image(), night: new Image()
+};
+POSTER_BG.warm.src = '/static/_candidates/share-bg-warm.png';
+POSTER_BG.night.src = '/static/_candidates/share-bg-night.png';
+
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 function tarotImg(name) {
   if (TAROT_MANIFEST) {
@@ -2568,8 +2596,29 @@ function initViews() {
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
   if (tgl) tgl.addEventListener('click', function () {
-    _setRecent(!sb.classList.contains('open'));
+    /* R209b：桌面端侧栏常驻（默认展开），toggle 切 collapsed；
+     * 移动端维持抽屉 open 语义。 */
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      sb.classList.toggle('collapsed');
+    } else {
+      _setRecent(!sb.classList.contains('open'));
+    }
   });
+  /* 桌面端初始：无 collapsed 即展开；body.side-open 让内容让位 */
+  function _syncSideOpen() {
+    var pinned = window.matchMedia('(min-width: 768px)').matches &&
+                 !sb.classList.contains('collapsed');
+    document.body.classList.toggle('side-open', pinned);
+  }
+  if (window.matchMedia('(min-width: 768px)').matches) {
+    sb.classList.add('open');
+    if (tgl) tgl.setAttribute('aria-expanded', 'true');
+  }
+  _syncSideOpen();
+  if (tgl) {
+    var _origToggle = tgl.addEventListener.bind(tgl);
+    tgl.addEventListener('click', _syncSideOpen);
+  }
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
 }
 

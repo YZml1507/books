@@ -16100,3 +16100,43 @@ chat-avatar），**未经用户批准不入正式引用**——用户过目后�
 home.ia 口径更新（7 卡：5 直达+2 抽屉）163 checks PASS；ui_smoke 40/40
 （news 反向钉扎生效）；十闸门全 exit 0
 （$LOCALAPPDATA/Temp/gates_r208b.log）。
+
+### 151. [优化轨] R209b：左侧统一栏重构——去重/聊天常驻/桌面固定/等待动效/字体可爱化/图片接线（2026-08-23）
+
+**用户批评**：①侧栏里「最近解读」和「历史记录」明显重复；②侧栏没有
+「聊聊这件事」入口；③问侧栏是否该固定在页面上；④四张候选图准许接入；
+⑤字体不够可爱；⑥AI 回复缺等待动效。
+
+**1. 去重**：recentList 段删除（loadRecent 与 loadHistory 同源重复），
+历史记录成为唯一信息源，标题改「🕘 我的解读」。loadRecent 函数保留
+（元素缺失安全 return），deleteHistory 调用点零改动。
+
+**2. 聊天并入侧栏**：chat-panel 独立抽屉退役（HTML/CSS 全清），聊天段
+（头像+消息流+输入框）常驻侧栏上部。结果卡 💬 按钮 → chatOpen() 打开
+侧栏并聚焦输入框。chatClose 改直操作侧栏类（原引用 initViews 内部
+_setRecent 有作用域错误，未触发纯属侥幸——已修）。
+
+**3. 侧栏固定策略**：>767px 桌面端常驻展开（body.side-open 时内容区
+padding-left:336px 让位），toggle 切 collapsed；≤767px 保持抽屉式。
+collapsed 语义全局强制（.open.collapsed 特异性覆盖，任何视口生效）。
+
+**4. AI 回复等待动效**：占位文本「…」改三点跳动动画（.chat-typing +
+@keyframes chatBounce，reduced-motion 下停用）；chatBubble 对动效气泡用
+innerHTML、普通文本仍 textContent（防注入语义不变）。
+
+**5. 字体可爱化**：--font-sans 栈前置圆体（Yuanti SC/YouYuan/幼圆），
+Windows/macOS 命中系统圆体，无新字体文件零体积成本。
+
+**6. 图片接线（用户已批准四张全部接入）**：
+share-bg-warm.png → 分享海报背景（POSTER_BG 预加载+onerror 回落渐变）；
+chat-avatar.png → 侧栏头「小满的解忧铺」品牌头像；
+daily-box.png → 今日运势卡右上装饰（560px 以下缩至 150px）；
+share-bg-night.png 已入库待塔罗海报模板启用。
+
+**插曲**：探针 375px 视口段挂——移动端断点下 .open 规则重新生效遮住
+viewBack，且 body.side-open 的 :has() 选择器在该 Chromium 无效。
+修法：collapsed 强制规则提为全局 + 探针 goto_view 导航前先收起侧栏
+（等 500ms 过 transition）。ui_smoke 40/40 全绿。
+
+**闸门**：十项全 exit 0（$LOCALAPPDATA/Temp/gates_r209b_final.log +
+smoke209f），selftest 163 checks PASS，node --check app.js 语法通过。

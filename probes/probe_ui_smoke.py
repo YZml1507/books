@@ -357,6 +357,11 @@ def main() -> int:
                 # R206b（specs/009 US2 二剪）：read/liuyao/qiming 收进首页
                 # 「高级入口」pro-drawer 折叠抽屉——先展开抽屉再点卡；
                 # taohua/hehun 已提回首页直达卡。用例不减只改导航路径。
+                # R209b：桌面端侧栏常驻展开会遮内容——导航前先收起。
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.add('collapsed'); }")
+                page.wait_for_timeout(500)
                 if page.evaluate("() => document.getElementById('homeMain').hidden"):
                     page.click("#viewBack")
                     page.wait_for_timeout(150)

@@ -109,16 +109,32 @@
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
   <button class="recent-toggle" id="recentToggle" type="button"
     aria-expanded="false" aria-controls="recentSidebar"
-    aria-label="打开最近的解读"></button>
+    aria-label="打开我的解读"></button>
+  <!-- R209b：左侧统一栏重构——聊天（头像+消息流+输入框常驻）、
+       我的解读（历史记录单一信息源，删重复的 recentList 段）。 -->
   <aside class="recent-sidebar" id="recentSidebar">
     <div class="recent-side-head">
-      <div class="section-title">📖 最近的解读</div>
+      <div class="side-brand">
+        <img class="chat-avatar-img" src="/static/_candidates/chat-avatar.png"
+          alt="" width="40" height="40">
+        <span>小满的解忧铺</span>
+      </div>
       <button class="recent-side-close" id="recentClose" type="button"
         title="收起">✕</button>
     </div>
-    <div class="recent-list" id="recentList"></div>
+
+    <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见 -->
+    <div class="side-chat">
+      <div class="chat-flow side-chat-flow" id="chatFlow"></div>
+      <div class="chat-input-row">
+        <input id="chatInput" type="text" maxlength="500"
+          placeholder="说说你的心情…">
+        <button id="chatSendBtn" type="button">发</button>
+      </div>
+    </div>
+
     <div class="side-hist">
-      <div class="section-title" style="margin-top:18px;">🕘 历史记录</div>
+      <div class="section-title">🕘 我的解读</div>
       <div id="histList"><div class="no-evidence">加载中…</div></div>
     </div>
   </aside>
@@ -542,22 +558,7 @@
 
 </div><!-- /wrap -->
 
-<!-- R206b（specs/009 US1）：AI 陪伴聊天抽屉——固定右侧，与最近解读侧栏
-     同交互模式。DISABLE=1 时入口按钮不渲染（buildBaziResult 之外由
-     /api/chat 无键语义兜底：发了消息也只得到「暂时没开」）。 -->
-<aside class="chat-panel" id="chatPanel" aria-label="AI 聊天">
-  <div class="chat-head">
-    <span>💬 聊聊这件事</span>
-    <button class="chat-close" id="chatClose" type="button" title="收起">✕</button>
-  </div>
-  <div class="chat-flow" id="chatFlow"></div>
-  <div class="chat-input-row">
-    <input id="chatInput" type="text" maxlength="500"
-      placeholder="说说你的心情…">
-    <button id="chatSendBtn" type="button">发</button>
-  </div>
-  <p class="chat-note">AI 生成的陪伴话语，仅供娱乐，不是专业建议。</p>
-</aside>
+  <!-- R209b：聊天并入左侧统一栏（chat-panel 抽屉退役）。 -->
 
 <script src="/static/app.js"></script>
 </body>
