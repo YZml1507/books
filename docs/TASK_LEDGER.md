@@ -7888,3 +7888,38 @@ audit 分支。三红线无触碰。
 **流程备注（第三次）**：R203b–R205b 三笔 commit 均由优化轨自行提交，
 审查轨事后追认。再次申明分工：优化轨完工停在「工作区就绪」，commit/push
 由审查轨执行。
+
+### 144. [优化轨] R206b：specs/009 立案 + US2 首页信息架构二剪——研究功能退场进「高级抽屉」（2026-08-23）
+
+**背景**：用户产品级批评——读书视图研究型功能（书 ID/编址率/比对/线程）对
+15–25 岁目标用户是纯噪音，「一切以目标群众的实际需求改动」；授权加入
+AI 情绪价值层（agnes 端点，与 web/llm_config.json 一致零新配置）。
+审查轨 §144（R205b-review）已复核通过 R202b–R205b，无在途冲突。
+
+**1. specs/009-audience-focus/spec.md 立案**：钉死用户画像「小满 22 岁」+
+三问裁决标尺；功能三栏裁决表（保留强化/收高级抽屉/新增 AI 陪伴）；
+四条 US 全部带可测判据。D-258b 同步立案（大改三步前置：量尺=§3 判据、
+退路=纯前端入口重排可 revert、动基线声明=ui_smoke 导航+selftest 口径）。
+
+**2. US2 执行**：首页五直达卡改为小满刚需序 tarot→bazi(今日命盘)→taohua→
+hehun→huangli（桃花/合婚从 view-bazi 相关功能区提回首页）；六爻/古籍读书/
+起名收进 `<details class="pro-drawer">`「🔍 老玩家入口」折叠抽屉（默认收起，
+视觉刻意低调 dashed 边框）。**功能零删除**：路由/API/后端/其余闸门全原样，
+只动入口与默认视线。view-bazi 相关功能区保留（隐藏簇页 view-divine 兼容
+不动），探针契约 `.func-card[data-view=X] → #view-X.active` 不变。
+
+**3. 判据落地**：selftest home.ia 断言改口径——8 卡（5 直达+3 抽屉）、
+直达卡序、抽屉默认折叠、home-main 可见区零研究型关键词（检索/比对/书目/
+研究线程/书 ID/编址 计数=0）。159 checks PASS。
+
+**4. 探针同步（越界第六次行使，D-250b 先例最小 diff+标注）**：
+probe_ui_smoke goto_view 增「先展开 proDrawer 再点卡」前置步骤，
+40 用例全 PASS 不减。
+
+**5. 闸门**：BOOKS_LLM_DISABLE=1 九项——ui_smoke 40/40、first_screen、
+check_poster、check_plain_first、check_warm_voice、probe_contract、
+probe_dollar_misuse、selftest_regress、count_open_findings 全 exit 0。
+日志 $LOCALAPPDATA/Temp/gates_r206b.log。
+
+**遗留**：US3 表单减负 / US4 结果页接住感 / US1 AI 陪伴层（子 agent 勘查
+报告已派，deleg_8762b8a6）待续轮执行。

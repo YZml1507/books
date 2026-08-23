@@ -354,9 +354,17 @@ def main() -> int:
             def goto_view(view: str):
                 # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
                 # huangli）；qiming/taohua/hehun 在 view-bazi 底部「相关功能」区。
+                # R206b（specs/009 US2 二剪）：read/liuyao/qiming 收进首页
+                # 「高级入口」pro-drawer 折叠抽屉——先展开抽屉再点卡；
+                # taohua/hehun 已提回首页直达卡。用例不减只改导航路径。
                 if page.evaluate("() => document.getElementById('homeMain').hidden"):
                     page.click("#viewBack")
                     page.wait_for_timeout(150)
+                drawer = page.locator("#proDrawer")
+                if drawer.count():
+                    page.evaluate(
+                        "() => document.getElementById('proDrawer').open = true")
+                    page.wait_for_timeout(120)
                 card = page.locator(f".func-card[data-view='{view}']")
                 if card.count() > 1:
                     # 同名卡多处（隐藏簇页 + 可见相关功能区）：过滤出可见者

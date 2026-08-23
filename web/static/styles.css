@@ -355,6 +355,19 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 /* ── R200b（US3）：排盘视图底部「相关功能」区 ─────────────────── */
 .related-funcs{margin-top:24px; padding-top:8px;}
 
+/* ── R206b（US2）：高级入口抽屉——研究型功能收纳，视觉刻意低调 ── */
+.pro-drawer{
+  margin-top:26px; border:1px dashed var(--border); border-radius:var(--radius-sm);
+  padding:10px 14px; background:transparent;
+}
+.pro-drawer summary{
+  cursor:pointer; font-size:13px; color:var(--secondary);
+  min-height:var(--tap); display:flex; align-items:center;
+}
+.pro-drawer summary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
+.pro-grid{margin-top:12px;}
+.pro-grid .func-card{opacity:.85;}
+
 .view-back{
   display:block; width:100%; min-height:44px; margin:4px 0 12px;
   background:var(--card); color:var(--text); border:1px solid var(--border);

@@ -748,24 +748,26 @@ def run() -> list[str]:
     # 簇内序固定（八字族相邻→抽问族→黄历殿后，读书独立成簇）、
     # 双人意图的合婚与桃花相邻。只增不减：新名字自动入 regress 基线。
     # R200b（US3 方案①）：首页五张直达卡 + 排盘视图「相关功能」区三卡。
-    # 断言口径更新：首页卡序 bazi→tarot→liuyao→read→huangli；
-    # 起名/桃花/合婚在 view-bazi 的 related-funcs 区（HTML 中各出现两次：
-    # 隐藏簇页 view-divine 保留一份 + 相关功能区一份）。
+    # R206b（specs/009 US2 二剪）：首页五卡改小满刚需——tarot→bazi→taohua→
+    # hehun→huangli（桃花/合婚提回首页）；六爻/读书/起名收进「高级入口」
+    # pro-drawer 抽屉（默认折叠，功能零删除）；研究型关键词不得出现在
+    # home-main 可见区（判据 a：检索/比对/书目/线程/书 ID 计数=0）。
     import re as _re
     _home_seg = home.text.split('id="view-divine"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 5, ("home.ia.count", len(_cards), _cards)
-    assert _cards == ["bazi", "tarot", "liuyao", "read", "huangli"], \
+    assert len(_cards) == 8, ("home.ia.count", len(_cards), _cards)  # 5 直达+3 抽屉
+    assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
-    # 相关功能区：qiming/taohua/hehun 三卡齐备（在 view-bazi 内）
-    _related = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"',
-                           home.text.split('related-funcs')[1])
-    assert sorted(_related) == ["hehun", "qiming", "taohua"], \
-        ("home.ia.related", _related)
-    for _grp, _lab in (("ask", "问一卦"), ("read", "读书与择日")):
-        assert f'<div class="ia-group" data-group="{_grp}">' in home.text, \
-            ("home.ia.group", _grp)
-        assert _lab in home.text, ("home.ia.label", _lab)
+    assert _cards[5:] == ["read", "liuyao", "qiming"], \
+        ("home.ia.drawer", _cards)
+    # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
+    _visible = _home_seg.split('id="proDrawer"')[0]
+    for _kw in ("检索", "比对", "书目", "研究线程", "书 ID", "编址"):
+        assert _kw not in _visible, ("home.ia.no-research-kw", _kw)
+    # 高级抽屉存在且默认折叠（无 open 属性）
+    assert '<details class="pro-drawer" id="proDrawer">' in home.text \
+        and 'pro-drawer" id="proDrawer" open' not in home.text, \
+        ("home.ia.drawer-closed",)
     ok.append("home.ia")
 
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理

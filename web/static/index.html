@@ -65,36 +65,47 @@
     <div class="daily-detail" id="dailyDetail" hidden></div>
   </div>
 
-  <!-- 功能卡片（R200b US3 方案①：首页五张直达卡——问一卦三卡 +
-       读书与择日两卡；起名/桃花/合婚收进排盘视图底部「相关功能」区，
-       数据同源八字系）。探针契约不变：
-       .func-card[data-view=X] 点击 → #view-X.active。 -->
+  <!-- 功能卡片（R206b US2 二剪：首页只留小满刚需五卡——
+       塔罗/排盘/桃花/合婚/黄历；六爻/读书/起名收进「高级入口」抽屉，
+       路由/API/探针契约不变：.func-card[data-view=X] 点击 → #view-X.active。
+       桃花/合婚从 view-bazi 相关功能区提回首页（specs/009 §2 裁决）。 -->
   <div class="ia-group" data-group="ask">
-    <div class="ia-label">🔮 问一卦</div>
+    <div class="ia-label">✨ 今天想看点什么</div>
     <div class="func-grid">
-    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0">
-      <div class="func-icon">🔮</div><div class="func-name">八字排盘</div><div class="func-desc">四柱五行 · 大运流年</div>
-    </div>
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0">
-      <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽牌看指引</div>
+      <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
-    <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0">
-      <div class="func-icon">🧿</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
+    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0">
+      <div class="func-icon">🔮</div><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
+    </div>
+    <div class="func-card func-entry" data-view="taohua" role="button" tabindex="0">
+      <div class="func-icon">🌸</div><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
+    </div>
+    <div class="func-card func-entry" data-view="hehun" role="button" tabindex="0">
+      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">和 ta 配不配 · 看缘分</div>
+    </div>
+    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0">
+      <div class="func-icon">🌙</div><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
     </div>
     </div>
   </div>
 
-  <div class="ia-group" data-group="read">
-    <div class="ia-label">📜 读书与择日</div>
-    <div class="func-grid">
-    <div class="func-card func-entry" data-view="read" role="button" tabindex="0">
-      <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍检索比对</div>
+  <!-- R206b US2：高级入口——研究型功能（六爻/古籍读书/起名）收进这里，
+       默认折叠、视觉刻意低调。所有被收功能零删除，路由照旧。 -->
+  <details class="pro-drawer" id="proDrawer">
+    <summary>🔍 老玩家入口（检索·六爻·起名）</summary>
+    <div class="func-grid pro-grid">
+      <div class="func-card func-entry" data-view="read" role="button" tabindex="0">
+        <div class="func-icon">📜</div><div class="func-name">古籍读书</div><div class="func-desc">47 部古籍 · 检索研究</div>
+      </div>
+      <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0">
+        <div class="func-icon">🧿</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
+      </div>
+      <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0">
+        <div class="func-icon">📝</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+      </div>
     </div>
-    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0">
-      <div class="func-icon">🌙</div><div class="func-name">黄历择日</div><div class="func-desc">建除神煞 · 选吉日</div>
-    </div>
-    </div>
-  </div>
+  </details>
   </div><!-- /home-main -->
 
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
