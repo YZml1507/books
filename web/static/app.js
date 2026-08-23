@@ -1384,14 +1384,21 @@ async function doWorks() {
     works.forEach(function (w, i) {
       const c = colorAt(i);
       // 实测键名是 id / units（不是 work_id / count）。
+      // B-008（R201b）：补展示 genre 与编址率 addressed/anchored——
+      // 可编址率是本项目核心质量指标。
+      const rate = w.units ? Math.round((w.addressed || 0) / w.units * 100) : null;
+      const anchoredRate = w.units ? Math.round((w.anchored || 0) / w.units * 100) : null;
       html += '<div class="calc-block work-card" data-work="' + esc(w.id) +
         '" style="border-left:3px solid ' + c + ';">' +
         '<h3 style="color:' + c + ';font-size:14px;">' + esc(w.title || w.id) + '</h3>' +
         '<p style="font-size:12px;color:var(--secondary);">' + esc(w.id) +
+        (w.genre ? ' · ' + esc(w.genre) : '') +
         ' · ' + esc(w.source || '') + '</p>' +
         '<p style="font-size:18px;color:' + c + ';font-weight:600;">' +
         esc(w.units == null ? '?' : w.units) + '</p>' +
-        '<p style="font-size:11px;color:var(--secondary);">单元</p></div>';
+        '<p style="font-size:11px;color:var(--secondary);">单元 · 编址率 ' +
+        esc(rate == null ? '?' : rate + '%') +
+        (anchoredRate == null ? '' : '（锚定 ' + anchoredRate + '%）') + '</p></div>';
     });
     html += '</div>';
     paint('worksResult', html);

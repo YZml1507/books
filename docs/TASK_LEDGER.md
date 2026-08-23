@@ -7721,3 +7721,32 @@ selftest(DISABLE=1)；全量电池 gates_r201b 复跑见 summary。
 
 **遗留**：B-007/B-008（读书视图信息设计）、B-001/B-002（大重构）、
 B-011（审查轨领土）、skill zip 零融入。
+
+### 140. [优化轨] R202b：backlog 尾批清偿——B-007/B-008 复核 + 编址率补展（2026-08-23）
+
+**基线复现（先于动手）**：
+- B-007 登记过期：`web/static/app.js:1283` 早已渲染 steps 检索链路
+  （R178b 前端拆分时随迁），`/api/research?q=亢龍有悔` 实测 4 步
+  （search→witnesses×2→compare）全部上屏。本轮补 E2E 断言收口：
+  DOM `.step-list li` 数==响应 steps 数（4==4）、comparisons 区展示、
+  console 零错误 → PASS（E2E 脚本 $LOCALAPPDATA/Temp/b007_e2e.py）。
+- B-008 部分残留：卡片已读 id/units 不坏，但 addressed/anchored/genre
+  三个键仍零引用——47 部书可编址率未展示。
+- B-001/B-002 登记过期：R178b 已落地——web/app.py 90 行、
+  index.html 528 行（零内联 <style>/<script>）、app.js 2,502 行、
+  styles.css 768 行，均达可测量性门槛。
+
+**1. B-008 补展**：work-card 增加 genre（有则展示）+ 编址率
+  `addressed/units` 百分比 + 锚定率 `anchored/units`（units=0 时显示 ?）。
+  E2E：47 卡全含「编址率」文本、样例
+  「…35787 单元 · 编址率 100%（锚定 0%）」、console 零错误 → PASS
+  （$LOCALAPPDATA/Temp/b008_e2e.py）。
+
+**2. 附加闸门抽查（BOOKS_LLM_DISABLE=1，8 项全 exit 0）**：
+  check_plain_first / probe_ui_smoke / probe_first_screen / check_poster /
+  selftest / probe_contract / probe_dollar / probe_selftest_regress。
+  日志 $LOCALAPPDATA/Temp/gates_r202b。
+
+**遗留**：backlog 体验类至此全部闭环（B-011 审查轨领土不动、
+B-003/B-017 需需求澄清、B-012/13/14/15/16/18/19/20 已修）。
+skill zip 零融入仍挂账。产品重塑 + backlog 双清，待审查轨整体复核。
