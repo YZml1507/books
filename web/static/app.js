@@ -411,12 +411,36 @@ function applyTheme(theme) {
   });
 }
 
+/** R206b（US4）：共情模板族——确定性选择，同输入同输出。 */
+var WARM_EMPATHY = {
+  "感情": "感情的事最怕自己闷着，我们一起看看盘里怎么说。",
+  "事业": "工作上的事悬着心吧？先看看盘里的信号，再说下一步。",
+  "学业": "学习上有点累了吧？盘里有些线索给你参考。",
+  "健康": "身体是自己的，先深呼吸，我们温和地看看盘里的提醒。"
+};
+var WARM_EMPATHY_DEFAULT = "来了就好。不管今天怎么样，先看看盘想对你说什么。";
+/* R206b 补记：首版把提问挂在函数属性上被 probe_dollar_misuse 判
+ * 「函数当对象访问属性」FAIL（本仓铁律），改模块级变量 WARM_LAST_QUESTION。 */
+var WARM_LAST_QUESTION = "";
+function warmEmpathy(question) {
+  var q = question || "";
+  for (var k in WARM_EMPATHY) {
+    if (q.indexOf(k) !== -1) return WARM_EMPATHY[k];
+  }
+  return WARM_EMPATHY_DEFAULT;
+}
+
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
  *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
  *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
 function renderWarm(warm, interp, evidence) {
   if (!warm) return renderInterpretation(interp, '📖 解读（确定性规则）');
   var html = '<div class="warm-wrap">';
+  /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
+   * （按提问主题选，无提问走通用款），同输入同输出不违反确定性判据。
+   * 写死在前端而非 voice.py：voice 输出被 voice_baseline.json 逐字节
+   * 钉住，前端追加层 additive 零基线风险。 */
+  html += '<div class="warm-empathy">' + esc(warmEmpathy(WARM_LAST_QUESTION)) + '</div>';
   // L0 一句话：首屏第一眼就是它（判据 1/3）
   html += '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
   // L1.5 reply：对提问的回应，紧跟 L0
@@ -1224,7 +1248,9 @@ async function submitBazi(event) {
   if (event) event.preventDefault();
   busy('result', '计算中…');
   try {
-    const j = await postJSON('/api/bazi', baziBody());
+    const body = baziBody();
+    WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
+    const j = await postJSON('/api/bazi', body);
     const paipan = j.paipan || {};
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);

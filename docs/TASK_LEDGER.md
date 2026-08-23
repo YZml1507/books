@@ -7941,3 +7941,23 @@ selftest 159 checks PASS。判据 a/b/c 达成：默认可见字段=4、schema �
 ui_smoke 全绿。
 
 **遗留**：US4 结果页接住感 / US1 AI 陪伴层。
+
+### 147. [优化轨] R206b 续：specs/009 US4 结果页「接住感」——共情模板族（2026-08-23）
+
+**改动**：warm 结果区 L0 上方新增 .warm-empathy 共情行——确定性模板族
+（感情/事业/学业/健康四主题 + 默认款），按提交的问题关键词选择，同输入
+同输出不违反确定性判据。写死前端而非 voice.py：voice 输出被
+voice_baseline.json 逐字节钉住，前端追加层 additive 零基线风险。
+样式 14px secondary 弱化于 L0。
+
+**插曲**：首版把提问挂在 renderWarm._question 函数属性上——
+probe_dollar_misuse 判「函数当对象访问属性」FAIL（memory 坑①再验证，
+闸门有效）；改模块级变量 WARM_LAST_QUESTION 后 PASS。连注释里的
+「renderWarm._question」字样都会命中扫描（正则按文本匹配），措辞已避让。
+
+**闸门**：十项全 exit 0（$LOCALAPPDATA/Temp/gates_r206b_us4.log，
+含修复后 probe_dollar_misuse 96 函数零命中、selftest 159 checks）。
+
+**遗留**：US1 AI 陪伴层（勘查报告已到，方案：chat() 复用 polish 管道 +
+spawn_chat_task 复用 _tasks/GC/轮询端点 + 会话仅内存零入库 +
+BANNED_DEPENDENCY/CRISIS 禁语扩容 + 输出侧硬拦截）。

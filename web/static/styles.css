@@ -686,6 +686,10 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .warm-wrap{ margin-top:12px; }
 
 /* L0 一句话：首屏第一眼，字大、无术语（判据 1/2/3） */
+/* R206b（US4）：共情行——L0 上方的接住感一句 */
+.warm-empathy{
+  font-size:14px; color:var(--secondary); margin:0 0 8px 2px; line-height:1.7;
+}
 .warm-l0{
   font-family:var(--font-serif); font-size:24px; line-height:1.5;
   color:var(--text); font-weight:600; letter-spacing:.02em;
