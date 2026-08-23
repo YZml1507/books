@@ -2096,6 +2096,14 @@ async function doHehun() {
     html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
       esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
       esc(j.peach_same ? '重叠' : '不同') + '</span>';
+    // R204b（D-257b）：天干五合 + 十神互见 pill（yinyuan skill 融入）
+    if (j.gan_he) {
+      html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
+    }
+    if (j.god_a_sees_b && j.god_b_sees_a) {
+      html += '<span class="pill sm" style="background:var(--secondary);">十神互见：' +
+        esc(j.god_a_sees_b) + '/' + esc(j.god_b_sees_a) + '</span>';
+    }
     html += '</div>';
     if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
     if (j.dayun_hits && j.dayun_hits.length) {

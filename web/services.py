@@ -266,6 +266,9 @@ def hehun(req) -> dict:
         "day_wx_a": h.day_wx_a, "day_wx_b": h.day_wx_b,
         "day_wx_sheng": h.day_wx_sheng,
         "peach_a": h.peach_a, "peach_b": h.peach_b, "peach_same": h.peach_same,
+        # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
+        "gan_he": h.gan_he,
+        "god_a_sees_b": h.god_a_sees_b, "god_b_sees_a": h.god_b_sees_a,
         "dayun_hits": dayun,
         "notes": h.notes,
         "render": h.render(),

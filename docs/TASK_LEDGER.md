@@ -7776,3 +7776,41 @@ check_plain_first / check_warm_voice / probe_contract / probe_dollar。
 
 **遗留**：skill zip 零融入仍挂账。产品重塑 + backlog 双清 + 语义类复核
 完毕，待审查轨整体复核。
+
+### 142. [优化轨] R204b：skill zip 融入清账——hehun 增天干五合 + 日主十神互见（D-257b）（2026-08-23）
+
+**决策（D-257b）**：解包勘查两个挂账 zip（yinyuan-main 姻缘 skill 489 行
++5 篇 references；Numerologist_skills-main 术数工程化三 skill）后，从
+yinyuan bazi-matching.md 提取两组**传统定式写死表**补进 hehun 坐标计算：
+(a) 天干五合（甲己/乙庚/丙辛/丁壬/戊癸）判两人日干相合；
+(b) 日主十神互见（复用既有 bazi_calc.ten_god，双向互看）。
+否决：①签诗 100 支做新功能（需 spec 准入 + 他人创作文本入库撞红线
+精神，留用户拍板）；②Numerologist 排盘流程全量吸收（其价值在 LLM
+prompt 工作流，与本仓确定性计算+warm 层架构相逆）。
+
+**1. hehun.py**：GAN_HE 写死表 + Hehun 加 gan_he/god_a_sees_b/
+god_b_sees_a 三字段（additive，默认值向后兼容）+ notes 追加两条
+「仅坐标事实」说明 + render 追加。实测：庚辰×戊辰（1990-05-15 男 ×
+1992-08-20 女）→ gan_he=False、偏印/食神；阳性对照 甲午×己丑 →
+gan_he=True。
+
+**2. 下游接线**：services.hehun 响应加三键；facts_hehun 加两条事实行；
+voice.warm_hehun 加人话行（十神日常语复用 TEN_GOD_WARM——「你眼里的
+ta 带直觉力，ta 眼里的你带表达力」，无吉凶断言）；前端 pill 两枚
+（日干五合：天生对味 / 十神互见：偏印/食神）。
+
+**3. 判据**：selftest 新增 hehun.gan_he_gods standing 断言（159 checks
+PASS）+ hehun 顶层键集合扩三键；probe_selftest_regress PASS（159→159
+只增不减）。E2E：Playwright 真实提交合婚表单 → 十神互见 pill 上屏 +
+warm 行含「眼里的」+ console 零错误 → PASS
+（$LOCALAPPDATA/Temp/r204b_e2e.py）。
+
+**4. 附加闸门抽查（BOOKS_LLM_DISABLE=1，11 项全 exit 0）**：
+count_open_findings / selftest / probe_ui_smoke / probe_first_screen /
+check_plain_first / check_warm_voice / check_poster / probe_contract /
+probe_dollar / probe_selftest_regress / probe_conservation。
+日志 $LOCALAPPDATA/Temp/gates_r204b。
+
+**遗留**：skill zip 融入至此闭环（签诗新功能留用户拍板）。
+全部挂账清零：产品重塑 ✓ / backlog ✓ / 语义类 ✓ / skill zip ✓。
+待审查轨整体复核。

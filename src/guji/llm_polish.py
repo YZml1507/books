@@ -346,6 +346,17 @@ def facts_hehun(h: dict, warm: dict | None = None,
         "两人桃花支：{}/{}，{}".format(h.get("peach_a", ""), h.get("peach_b", ""),
                                      "相同" if h.get("peach_same") else "不同"),
     ]
+    # R204b（D-257b）：天干五合 + 十神互见进事实行（yinyuan skill 融入）
+    if h.get("gan_he"):
+        facts.append("日干五合：{}与{}（传统上主互相吸引）".format(
+            h.get("a_bazi", {}).get("day", "")[:1],
+            h.get("b_bazi", {}).get("day", "")[:1]))
+    if h.get("god_a_sees_b"):
+        facts.append("日主十神互见：{}见{}为{}，{}见{}为{}".format(
+            h.get("a_bazi", {}).get("day", "")[:1],
+            h.get("b_bazi", {}).get("day", "")[:1], h.get("god_a_sees_b", ""),
+            h.get("b_bazi", {}).get("day", "")[:1],
+            h.get("a_bazi", {}).get("day", "")[:1], h.get("god_b_sees_a", "")))
     if warm and warm.get("one_liner"):
         facts.append("人话结论：" + warm["one_liner"])
     return facts

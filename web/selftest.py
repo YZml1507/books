@@ -291,6 +291,15 @@ def run() -> list[str]:
                      and j.get("day_wx_sheng") is True
                      and j.get("peach_same") is False
                      and j.get("render") and j.get("notes")))
+    # R204b（D-257b）：天干五合 + 十神互见 standing 覆盖——固定两生日，
+    # 庚辰×戊辰：无五合（gan_he=False）、庚见戊=偏印/戊见庚=食神。
+    check("hehun.gan_he_gods", client.post("/api/hehun", json={"a_year": 1990,
+          "a_month": 5, "a_day": 15, "a_hour": 10, "a_gender": "男",
+          "b_year": 1992, "b_month": 8, "b_day": 20, "b_hour": 14,
+          "b_gender": "女"}),
+          lambda j: (j.get("gan_he") is False
+                     and j.get("god_a_sees_b") == "偏印"
+                     and j.get("god_b_sees_a") == "食神"))
     # R138b（D-184b）：大运冲合应期 standing 覆盖——固定两人生日 → 8 运
     # 全"合"（壬午×丁未 1997 … 己丑×庚子 2067）。
     check("hehun.dayun", client.post("/api/hehun", json={"a_year": 1990,
@@ -1062,7 +1071,9 @@ def run() -> list[str]:
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
                        "day_wx_b", "day_wx_sheng", "peach_a", "peach_b",
                        "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
-                       "year_zhi_a", "year_zhi_b", "ai_polish"},
+                       "year_zhi_a", "year_zhi_b", "ai_polish",
+                       # R204b（D-257b）：天干五合 + 十神互见
+                       "gan_he", "god_a_sees_b", "god_b_sees_a"},
         "/api/qiming": {"surname", "candidates", "summary", "five_elements",
                         "full_names", "bazi", "ai_polish"},
     }

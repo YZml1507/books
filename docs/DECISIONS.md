@@ -5734,3 +5734,31 @@ body 背景渐变。确定性、零动画、可断言属性存在；选择器带
 
 **实测**：四端点海报 E2E 出图、daypart 属性生效、console 零错误；
 probe_dollar/check_poster/ui_smoke 抽查 PASS。
+
+## D-257b R204b 决策：skill zip 融入选「hehun 增天干五合 + 日主十神互见」（否决签诗新功能与全量照搬）
+
+**输入**：挂账「两个 skill zip 零融入」——yinyuan-main（姻缘测算 skill，
+489 行 SKILL.md + 5 篇 references）与 Numerologist_skills-main（术数工程化，
+bazi/qimen/ziwei 三 skill）。用户指令「继续优化，不需要等待审查轨」。
+
+**候选**：
+- ① yinyuan 签诗 100 支做「求签问姻缘」新功能 —— 否决：新功能需 spec
+  准入（宪法第六条），且签诗文本是他人创作内容直接入库撞「生成文本
+  入库」红线的精神（非自写静态表）；留待用户明确拍板再做。
+- ② Numerologist bazi skill 全量吸收排盘流程 —— 否决：其价值在 LLM
+  prompt 工作流，本仓已是确定性计算 + warm 人话层架构，照搬是倒退。
+- ③ **采纳**：从 yinyuan bazi-matching.md 提取两组**传统定式写死表**
+  补进 hehun 坐标计算——(a) 天干五合（甲己化土/乙庚化金/丙辛化水/
+  丁壬化木/戊癸化火）判两人日干相合；(b) 日主十神互见（复用既有
+  `bazi_calc.ten_god`，女日干见男日干之十神 + 男见女）给关系日常语。
+
+**理由**：
+- 与宪法第二条同构：静态表写死可核验、纯坐标、固定输入→固定输出；
+- additive：Hehun dataclass 加字段 + render 追加，既有键零改动
+  （probe_contract 顶层键集合断言只增不减口径）；
+- 十神日常语复用 voice.TEN_GOD_WARM，不新增生成文本；
+- 直接清偿挂账条目且产品价值真实（合婚是核心功能，判据维度+2）。
+
+**可测量性**：`guji.hehun.compute` 固定两生日 → gan_he/god_rel 字段
+确定；模块自测断言 + selftest hehun 键集合扩展；check_warm_voice /
+check_plain_first 复跑守措辞。

@@ -625,6 +625,17 @@ def warm_hehun(h: dict) -> dict:
     if h.get("peach_same"):
         lines.append(f"两人桃花支相同（都是{h.get('peach_a', '')}）——"
                      f"对感情的期待容易同频。")
+    # R204b（D-257b）：天干五合 + 十神互见的人话层（yinyuan skill 融入，
+    # 日常语复用 TEN_GOD_WARM，无吉凶断言）
+    if h.get("gan_he"):
+        lines.append("你们日干五合——传统上把这看作「天生对味」的组合，"
+                     "相处时那种不用解释的默契是有来处的。")
+    god_ab, god_ba = h.get("god_a_sees_b") or "", h.get("god_b_sees_a") or ""
+    if god_ab and god_ba:
+        la = TEN_GOD_WARM.get(god_ab, (god_ab, ""))[0]
+        lb = TEN_GOD_WARM.get(god_ba, (god_ba, ""))[0]
+        lines.append(f"十神互见：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
+                     f"——两种力量互相成全，也偶尔较劲。")
     dayun = h.get("dayun_hits") or []
     if dayun:
         d0 = dayun[0]

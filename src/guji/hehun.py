@@ -9,6 +9,8 @@
 - 年支六合：子丑、寅亥、卯戌、辰酉、巳申、午未
 - 日主五行：男/女日干五行（木火土金水）
 - 桃花支重叠：复用 taohua 咸池（年支三合局查桃花支）
+- 天干五合（R204b，D-257b）：甲己/乙庚/丙辛/丁壬/戊癸——两人日干相合
+- 日主十神互见（R204b）：复用 bazi_calc.ten_god，双向互看
 """
 
 from __future__ import annotations
@@ -39,6 +41,15 @@ GAN_ELEMENT: dict[str, str] = {
 # 五行相生（传统定式）：木→火→土→金→水→木
 _SHENG: dict[str, str] = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
 
+# 天干五合（R204b，D-257b，传统定式写死）：甲己化土/乙庚化金/丙辛化水/
+# 丁壬化木/戊癸化火。两人日干构成五合 → 传统上主「天生有缘、互相吸引」。
+GAN_HE: dict[str, str] = {
+    "甲": "己", "己": "甲", "乙": "庚", "庚": "乙",
+    "丙": "辛", "辛": "丙", "丁": "壬", "壬": "丁", "戊": "癸", "癸": "戊",
+}
+_GAN_HE_NOTE = "日干五合：传统上主两人日主相合，互相吸引（仅坐标事实，不作断言）"
+_GOD_NOTE = "日主十神互见：{}见{}为{}，{}见{}为{}（仅坐标事实，不作断言）"
+
 # 写死说明文字（非生成，照 huangli YIJI 先例）
 _NOTE_CLASH = "年支六冲：传统上主两人生肖冲克，需磨合（仅坐标事实，不作断言）"
 _NOTE_COMBINE = "年支六合：传统上主生肖相合，较有缘分（仅坐标事实，不作断言）"
@@ -61,6 +72,9 @@ class Hehun:
     peach_a: str                     # 男桃花支
     peach_b: str                     # 女桃花支
     peach_same: bool                 # 桃花支重叠
+    gan_he: bool = False             # 日干五合（R204b）
+    god_a_sees_b: str = ""           # 男日干见女日干十神（R204b）
+    god_b_sees_a: str = ""           # 女日干见男日干十神（R204b）
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
@@ -68,6 +82,10 @@ class Hehun:
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
                      ("六冲" if self.clash else ("六合" if self.combine else "无冲合")))
         parts.append(f"日主五行：" + ("相生" if self.day_wx_sheng else "相克"))
+        if self.gan_he:
+            parts.append("日干五合")
+        if self.god_a_sees_b:
+            parts.append(f"十神互见 {self.god_a_sees_b}/{self.god_b_sees_a}")
         parts.append(f"桃花支 {self.peach_a}/{self.peach_b}：" + ("重叠" if self.peach_same else "不同"))
         if self.notes:
             parts.append("；".join(self.notes))
@@ -84,6 +102,10 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     ta, tb = taohua_compute(b_a), taohua_compute(b_b)
     pa, pb = ta.peach_zhi, tb.peach_zhi
     peach_same = pa == pb
+    # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
+    gan_he = GAN_HE.get(b_a.day[0]) == b_b.day[0]
+    god_ab = ten_god(b_a.day[0], b_b.day[0])
+    god_ba = ten_god(b_b.day[0], b_a.day[0])
 
     notes: list[str] = []
     if clash:
@@ -91,6 +113,11 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     if combine:
         notes.append(_NOTE_COMBINE)
     notes.append(_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH)
+    if gan_he:
+        notes.append(_GAN_HE_NOTE)
+    if god_ab and god_ba:
+        notes.append(_GOD_NOTE.format(
+            b_a.day[0], b_b.day[0], god_ab, b_b.day[0], b_a.day[0], god_ba))
     if peach_same:
         notes.append(_NOTE_PEACH)
     if not notes:
@@ -100,7 +127,9 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         year_zhi_a=za, year_zhi_b=zb, clash=clash, combine=combine,
         day_gz_a=b_a.day, day_gz_b=b_b.day,
         day_wx_a=wxa, day_wx_b=wxb, day_wx_sheng=sheng,
-        peach_a=pa, peach_b=pb, peach_same=peach_same, notes=notes,
+        peach_a=pa, peach_b=pb, peach_same=peach_same,
+        gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
+        notes=notes,
     )
 
 
