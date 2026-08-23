@@ -1407,7 +1407,6 @@ async function submitBazi(event) {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
     on('shareBazi', function () { downloadPoster(j); });
-    loadHistory();
     loadRecent();
   } catch (e) {
     fail('result', '计算失败：' + e.message);
@@ -2596,29 +2595,11 @@ function initViews() {
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
   if (tgl) tgl.addEventListener('click', function () {
-    /* R209b：桌面端侧栏常驻（默认展开），toggle 切 collapsed；
-     * 移动端维持抽屉 open 语义。 */
-    if (window.matchMedia('(min-width: 768px)').matches) {
-      sb.classList.toggle('collapsed');
-    } else {
-      _setRecent(!sb.classList.contains('open'));
-    }
+    /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
+     * 一致的 open/closed 抽屉语义（R209b 的 collapsed 常驻方案废除；
+     * collapsed 类仍保留为强制收起兼容探针）。 */
+    _setRecent(!sb.classList.contains('open'));
   });
-  /* 桌面端初始：无 collapsed 即展开；body.side-open 让内容让位 */
-  function _syncSideOpen() {
-    var pinned = window.matchMedia('(min-width: 768px)').matches &&
-                 !sb.classList.contains('collapsed');
-    document.body.classList.toggle('side-open', pinned);
-  }
-  if (window.matchMedia('(min-width: 768px)').matches) {
-    sb.classList.add('open');
-    if (tgl) tgl.setAttribute('aria-expanded', 'true');
-  }
-  _syncSideOpen();
-  if (tgl) {
-    var _origToggle = tgl.addEventListener.bind(tgl);
-    tgl.addEventListener('click', _syncSideOpen);
-  }
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
 }
 
@@ -2730,6 +2711,10 @@ function initReading() {
   });
 }
 
+/* R210b（US6）：deleteHistory/showHistoryDetail 保留定义但调用点已随
+ * 「我的解读」段删除而不可达（histList DOM 已移除，委托选择器永不命中）。
+ * 函数本体保留——零删除原则，后端 API 与未来可能的恢复路径不受影响。 */
+
 function initDivination() {
   on('lySubmit', doLiuyao);
   on('hlSubmit', doHuangli);
@@ -2756,7 +2741,9 @@ function init() {
   initReading();
   initDivination();
   loadDaily();
-  loadHistory();
+  /* R210b（US6）：「我的解读」历史记录段随用户裁决删除——loadHistory
+   * 调用点退役（函数保留为元素缺失安全 no-op）；/api/history 后端、
+   * selftest history 用例、探针清理判据零改动（删入口留后端）。 */
   loadRecent();
   loadFavorites();
   /* R208b：loadNews 随「今日关注」面板移除 */

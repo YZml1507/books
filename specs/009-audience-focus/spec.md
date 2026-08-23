@@ -106,3 +106,55 @@ Q3 它让小满感觉更好还是更焦虑？（更焦虑 → 重写或删）
 US2（信息架构二剪，动探针，重，独立一轮）→ US3（轻）→ US4（轻）→
 US1（AI 陪伴层，依赖子 agent 勘查报告，独立一轮）。
 每轮照旧：判据先行 → 闸门全绿 → 台账 → push。
+
+---
+
+## 6. R210b 修订（2026-08-23，用户五点批评，原文见台账 §152）
+
+> 修订程序：本节为「R210b 修订」显式标注，原文 §0–§5 零改写。
+
+用户原话要点：
+1. 「左侧侧边栏还是做成可以折叠的，不要固定在页面上」（推翻 R209b §151-3
+   桌面常驻方案）；
+2. 「删除『我的解读』的历史记录这个功能」；
+3. 「网页面的背景图没有缩放好」；
+4. 「字体你也没有调整好……去搜索找到开源的可爱的吸引年轻女性用户的字体」；
+5. 「整个网页最好做的比较动态活泼一点，不要死气沉沉的」。
+
+### US5 全宽度可折叠侧栏（R210b 修订）
+- 判据 a：任何视口下 recent-sidebar 均为覆盖式抽屉（transform 出入，
+  无 body.side-open 让位、无 padding-left 占位）——body 元素计算样式
+  padding-left 恒等于原值（375/768/1280 三视口实测）；
+- 判据 b：toggle 在桌面端恢复抽屉 open/closed 语义（collapsed 类保留
+  兼容探针）；≤767px 行为零改动。
+
+### US6 删除「我的解读」历史记录 UI（零删除原则）
+- 判据 a：DOM 无 histList/side-hist 段；loadHistory/showHistoryDetail/
+  deleteHistory 调用链安全退役（元素缺失即 no-op 或移除绑定）；
+- 判据 b：后端 /api/history*、selftest history 用例、ui_smoke history.db
+  清理判据**全部保留**（删入口留后端，D-256b/R208b 同款先例）；
+- 判据 c：侧栏仅剩聊天段（品牌头像+消息流+输入框）。
+
+### US7 背景与图片缩放修复
+- 判据 a：daily-box.png 由固定 background-size 改为按卡片比例自适应
+  （百分比 size + contain 语义），窄视口不裁切主体；
+- 判据 b：页面级背景层（.page-glow 装饰光斑）background-size:cover 且
+  pointer-events:none、z-index 不遮内容；海报背景 drawImage 目标尺寸
+  与画布一致（现状已对，回归钉住即可）。
+
+### US8 可爱字体（ZCOOL KuaiLe）
+- 选型依据（搜索实测）：站酷快乐体 googlefonts 官方仓库
+  （github.com/googlefonts/zcool-kuaile），SIL OFL 1.1，GB2312 简体全量，
+  手写感圆润活泼——目标用户画像（009 §1）匹配度最高的开源项。
+- 判据 a：本地子集化 woff2（97KB，页面用字 996 字符）@font-face 接入，
+  font-display:swap，legacy 回滚主题不含此字体（回滚=系统栈，口径不变）;
+- 判据 b：标题层（h1/.section-title/品牌）命中 ZCOOL KuaiLe；
+  正文保持 LXGW WenKai（可读性优先，快乐体不做正文）。
+
+### US9 全站动效活泼化
+- 方向：卡片 hover 微弹+图标摆动、结果区入场 fadeInUp 扩面、今日卡
+  等级徽章浮动、按钮按压反馈；全部 @media (prefers-reduced-motion:
+  reduce) 停用（既有判据延续）。
+- 判据 a：新增动画规则均带 reduced-motion 停用分支；
+- 判据 b：ui_smoke/selftest/check_plain_first 全绿（动画不产生布局位移，
+  判据 2 的 200px 余量门柱不因入场动画爆线——动画只用 transform/opacity）。

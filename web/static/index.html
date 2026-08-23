@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+  <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
+  <div class="page-glow" aria-hidden="true"></div>
 <div class="wrap">
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
        固定高度，引文区高度与书数无关）。首页时 hidden。 -->
@@ -123,7 +125,9 @@
         title="收起">✕</button>
     </div>
 
-    <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见 -->
+    <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见。
+         R210b（US6）：「我的解读」历史记录段按用户裁决删除，
+         后端 /api/history* 与 selftest 用例零改动（删入口留后端）。 -->
     <div class="side-chat">
       <div class="chat-flow side-chat-flow" id="chatFlow"></div>
       <div class="chat-input-row">
@@ -131,11 +135,6 @@
           placeholder="说说你的心情…">
         <button id="chatSendBtn" type="button">发</button>
       </div>
-    </div>
-
-    <div class="side-hist">
-      <div class="section-title">🕘 我的解读</div>
-      <div id="histList"><div class="no-evidence">加载中…</div></div>
     </div>
   </aside>
 

@@ -5788,3 +5788,29 @@ DISABLE=1 降级路径、禁语清单扩容零命中、E2E 对话 grounding 关�
 退路=高级抽屉纯前端入口重排，git revert 即回 008 形态；
 动基线声明=US2 将更新 ui_smoke 导航路径与 selftest home.ia 口径
 （重冻程序照旧，台账写明）。
+
+## D-260b R210b 决策：侧栏回退抽屉 + 删历史 UI 留后端 + 背景修复 + 快乐体接入 + 动效扩面
+
+**背景**：用户 2026-08-23 五点批评（R209b 交付次日），其中①直接推翻
+D-259b 时代落地的桌面常驻方案。逐项裁决：
+
+1. **侧栏**：方案 A 全宽度抽屉（任何视口 transform 出入，选中）vs
+   B 桌面 overlay 常驻可折叠（即被否的现状）。用户原话「不要固定在页面上」
+   是明确裁决，B 出局。A 同时消灭 body.side-open/:has() 这两个 R209b 探针
+   事故源，复杂度净减。
+2. **删「我的解读」**：走 R208b「我的收藏」先例——UI 段与调用链退役，
+   /api/history* 后端、selftest history 用例、probe 的 history.db 清理判据
+   全保留（零删除原则；selftest 只增不减口径不许动）。
+3. **背景缩放**：daily-box 用百分比 background-size 自适应替代固定像素；
+   页面加纯装饰 .page-glow 光斑层（cover+pointer-events:none）回应
+   「背景没有缩放好」的体感；海报背景经查目标/画布同为 1080×1440 无缺陷，
+   如实记录不虚修。
+4. **字体**：搜索比选三案——A ZCOOL KuaiLe（OFL，GB2312 全量，
+   googlefonts 官方仓库，选中）；B 小可奶酪体（作者声明授权非标准 OFL，
+   字库覆盖窄，否决）；C 悠哉字体（手写感好但偏细，标题层弱，否决）。
+   子集化 97KB woff2 本地打包零外链，只做标题层不做正文（可读性）。
+5. **动效**：只用 transform/opacity（不触发 reflow，check_plain_first
+   判据 2 的 200px 余量门柱安全），全量 reduced-motion 停用分支。
+
+**大改三步前置**：量尺=spec §6 判据 a–d；退路=CSS 令牌与 git revert 单点；
+动基线声明=无基线文件变更（探针只改导航辅助逻辑若必要）。

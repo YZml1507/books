@@ -16140,3 +16140,48 @@ viewBack，且 body.side-open 的 :has() 选择器在该 Chromium 无效。
 
 **闸门**：十项全 exit 0（$LOCALAPPDATA/Temp/gates_r209b_final.log +
 smoke209f），selftest 163 checks PASS，node --check app.js 语法通过。
+
+### 152. [优化轨] R210b：用户五点批评——侧栏回退抽屉/删我的解读/背景缩放修复/快乐体接入/动效活泼化（2026-08-23）
+
+**背景**：用户在上一窗口下发五点批评（原话见 specs/009 spec.md §6 引录），
+该窗口只建了任务清单即中断、五项均未落地；本窗口接手完整执行。
+SDD 前置：spec §6（US5–US9，R210b 修订显式标注）+ DECISIONS D-260b 先行。
+
+**1. US5 侧栏回退可折叠抽屉**：删 >767px 常驻规则与 body.side-open
+让位机制（CSS 媒体块 + JS _syncSideOpen/matchMedia 分支全清）；任何视口
+统一 transform 抽屉语义；collapsed 类保留为强制收起（探针兼容）。
+
+**2. US6 删「我的解读」**：index.html side-hist 段删除；loadHistory 两处
+调用点退役（函数保留元素缺失安全 no-op）；showHistoryDetail/deleteHistory
+保留定义但委托选择器永不再命中。后端 /api/history*、selftest history 用例、
+probe 的 history.db 清理判据零改动（删入口留后端，R208b 先例）。
+
+**3. US7 背景缩放修复**：daily-box 插画 220px 固定 background-size 改
+38%（≤560px 视口 46%）百分比自适应，窄视口不再裁主体；新增 .page-glow
+装饰光斑层（fixed+z-index:-1+pointer-events:none+cover）。海报背景经查
+目标/画布同为 1080×1440 无缺陷，不虚修。
+
+**4. US8 可爱字体**：搜索比选三案（ZCOOL KuaiLe / 小可奶酪体 / 悠哉字体），
+选定站酷快乐体（googlefonts 官方仓库、SIL OFL、GB2312 全量简体）；TTF
+子集化为页面用字 996 字符 woff2（97KB，Temp venv fonttools+brotli，
+项目依赖零污染）；本地打包 fonts/zcool-kuaile-subset.woff2 + OFL 授权文件；
+@font-face 接入标题层（h1/.brand-mark/.section-title/.side-brand），正文
+保持 LXGW WenKai；legacy 回滚主题不含快乐体（回滚=系统栈口径不变）。
+
+**5. US9 动效活泼化**：图标 wiggle、结果区 fadeInUpSoft 入场、今日卡等级
+徽章浮动、按钮按压反馈、toggle 脉冲光晕——全部只动 transform/opacity
+（check_plain_first 判据 2 余量门柱安全），全量 reduced-motion 停用分支。
+
+**插曲**：①selftest 首跑 history.detail 404——history.db 被 E2E 清空后
+未 seed（已知坑⑥），save_record 补 seed 后 163 checks PASS；②G8 首跑
+database is locked（与 build_index 竞争共享库），重试 exit 0，环境性假 FAIL；
+③check_quality 首跑路径误写 web/（实际 scripts/），纠正后按序重跑
+quality→build_index→verify_index 全绿。
+
+**实测**：selftest 163 PASS；ui_smoke 40/40（0 SKIP）；check_plain_first
+5×8 全达标（c8_love 2,784px 等，余量充足）；warm_voice 8 判据 PASS；
+baseline_voice 14 用例逐字节一致（sha256 97f068…）；check_poster 判据 12/13
+PASS；contract/dollar/selftest_regress/first_screen/count_open_findings/
+eval_g1/g4/g7/g8/booksec/check_quality/build_index/verify_index/
+validate_alignment/probe_conservation/assess_goals/probe_provenance/probe_bcv
+全部 exit 0（$LOCALAPPDATA/Temp/gates_r210b.log + r210b_*.log）。

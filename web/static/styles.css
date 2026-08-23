@@ -138,6 +138,18 @@ body{
   min-height:100vh;
 }
 
+/* ── R210b（US9）：页面装饰光斑层——回应「背景图缩放/活泼度」体感。
+ * 纯装饰：cover 缩放自适应任何视口、pointer-events:none、z-index:-1
+ * 不遮内容不挡点击。legacy 回滚主题下 html[data-theme] 不含此规则即消失。 */
+.page-glow{
+  position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(420px 420px at 88% 6%, rgba(255,182,193,.20), transparent 70%),
+    radial-gradient(520px 520px at 4% 92%, rgba(167,139,250,.14), transparent 70%),
+    radial-gradient(360px 360px at 78% 78%, rgba(255,230,150,.16), transparent 70%);
+  background-size:cover;
+}
+
 /* ── R197b：webfont 接入（本地切片，零外链）──────────────────────
  * lxgw.css 由 lxgw-wenkai-webfont npm 包的 regular 切片裁剪而来：
  * 只保留产品实际用字（1043 CJK 字符）命中的 40 个 unicode-range 切片
@@ -148,8 +160,21 @@ body{
   src:url("./fonts/smiley-sans.woff2") format("woff2");
   font-display:swap;
 }
+/* R210b（US8）：站酷快乐体（ZCOOL KuaiLe，SIL OFL，googlefonts 官方仓库）
+ * 本地子集化 woff2——只含页面用字 996 字符（97KB）。标题层专用，
+ * 正文保持 LXGW WenKai 可读性优先；legacy 回滚主题不含此字体。 */
+@font-face{
+  font-family:"ZCOOL KuaiLe";
+  src:url("./fonts/zcool-kuaile-subset.woff2") format("woff2");
+  font-display:swap;
+}
 h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 .daily-level{font-family:var(--font-display); font-weight:400;}
+/* R210b：标题层命中快乐体——serif 栈前置（仅亮色主题；legacy 回滚栈
+ * 在下方 :root 主题块里重定义、不含快乐体，回滚=系统字体口径不变）。 */
+h1,.brand-mark,.section-title,.side-brand{
+  font-family:"ZCOOL KuaiLe",var(--font-serif);
+}
 .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 80px;}
 
 /* ── 品牌 ── */
@@ -202,14 +227,17 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 
 /* ── 每日运势卡片 ── */
 .daily-card{
-  background:var(--card) right -20px top -14px/220px no-repeat
+  /* R210b（US7）：插画改百分比尺寸自适应——原 220px 固定值在窄视口
+   * 裁掉主体（用户点名「背景图没有缩放好」）；40% 宽 + 保持比例，
+   * 560px 以下再放大到 45% 保可视性。 */
+  background:var(--card) right -12px top -10px/38% no-repeat
     url("/static/_candidates/daily-box.png");
   border:1px solid var(--border); border-radius:var(--radius);
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
 @media (max-width:560px){
-  .daily-card{background-size:150px;}
+  .daily-card{background-size:46%;}
 }
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
@@ -381,7 +409,8 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 }
 .side-chat .chat-flow{flex:1; min-height:120px;}
 .side-chat .chat-input-row{padding:8px 0 4px;}
-.side-hist{margin-top:14px;}
+/* R210b（US6）：「我的解读」历史记录段随用户裁决删除——side-hist 保留
+ * 空定义仅防旧引用报错，DOM 中已无该段。 */
 
 /* AI 回复等待动效：三点跳动 */
 .chat-typing{display:inline-flex; gap:5px; align-items:center;}
@@ -400,15 +429,9 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
   .chat-typing i{animation:none;}
 }
 
-/* 桌面端侧栏常驻：>767px 默认展开贴左侧，内容区让位 */
-@media (min-width: 768px){
-  .recent-sidebar{transform:translateX(0);}
-  .recent-sidebar.collapsed,
-  .recent-sidebar.open.collapsed{transform:translateX(-105%);}
-  .recent-toggle{display:none;}
-  /* R209b：常驻时页面内容让位（body.side-open 由 JS 维护） */
-  body.side-open{padding-left:336px;}
-}
+/* R210b（US5 用户裁决）：侧栏回退为全宽度可折叠抽屉——任何视口都是
+ * transform 出入的覆盖层，不再桌面常驻、内容区不让位。
+ * collapsed 类保留为强制收起语义（探针/兼容）。 */
 
 @media (prefers-reduced-motion: reduce){
   .recent-sidebar{transition:none;}
@@ -917,3 +940,38 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 
 /* R208b：历史记录迁入左侧栏 */
 .side-hist{margin-top:10px;}
+
+/* ── R210b（US9）：全站动效活泼化 ─────────────────────────────────
+ * 纪律（D-260b-5）：只动 transform/opacity，零布局位移——check_plain_first
+ * 判据 2 的 200px 余量门柱不因入场动画爆线。全部带 reduced-motion 停用。
+ * legacy 回滚主题（data-theme）下这些选择器命中与否不影响判据——动画层
+ * 是 additive 装饰，回滚=回到 R209b 形态。 */
+.func-card:hover .func-icon{animation:iconWiggle .45s ease-in-out;}
+@keyframes iconWiggle{
+  0%,100%{transform:rotate(0);}
+  25%{transform:rotate(-8deg) scale(1.12);}
+  60%{transform:rotate(7deg) scale(1.08);}
+}
+.result-card,.ev-block,.hist-item{animation:fadeInUpSoft .4s ease-out both;}
+@keyframes fadeInUpSoft{
+  from{opacity:0; transform:translateY(10px);}
+  to{opacity:1; transform:none;}
+}
+.daily-level{animation:badgeFloat 3s ease-in-out infinite;}
+@keyframes badgeFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-5px);}
+}
+.daily-level:hover{animation-play-state:paused; transform:scale(1.12) rotate(-4deg);}
+button:active:not(.theme-btn){transform:scale(.96);}
+.recent-toggle:hover{animation:togglePulse 1s ease-in-out infinite;}
+@keyframes togglePulse{
+  0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  50%{box-shadow:0 4px 22px rgba(255,140,105,.45);}
+}
+@media (prefers-reduced-motion: reduce){
+  .func-card:hover .func-icon,
+  .result-card,.ev-block,.hist-item,
+  .daily-level,.recent-toggle{animation:none !important;}
+  button:active{transform:none;}
+}
