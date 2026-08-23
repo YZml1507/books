@@ -7750,3 +7750,29 @@ B-011（审查轨领土）、skill zip 零融入。
 **遗留**：backlog 体验类至此全部闭环（B-011 审查轨领土不动、
 B-003/B-017 需需求澄清、B-012/13/14/15/16/18/19/20 已修）。
 skill zip 零融入仍挂账。产品重塑 + backlog 双清，待审查轨整体复核。
+
+### 141. [优化轨] R203b：B-003/B-017 复核闭环——贵人属相语义已修，登记过期（2026-08-23）
+
+**基线复现（先于动手）**：
+- `/api/daily` 实测 `noble="子/申"`；独立调 `guji.huangli.guiren(今日12时)`
+  = ['子','申'] 同源一致（当日日干己 → 天乙贵人 子/申，传统起例互验）。
+- 后端 `web/services.py:833` 已是 R195b 修复后的天乙贵人实现（B-017 清偿，
+  台账 §134），并带 daily_cache「值校验」自愈——旧语义缓存（当年生肖）
+  自动识别过期重算。键名 noble 契约不变。
+- 判据已在 standing 自测：`web/selftest.py:808 daily.noble.guiren`
+  （与黄历 guiren 同算法互验），本轮 selftest 复跑 PASS。
+- 前端文案同步无残留：index.html:54 已写「今日天乙贵人」、
+  app.js:770 排盘卡同措辞——B-017 登记的「贵人属相」误导性文案
+  已不存在。
+
+**结论**：B-003/B-017 登记过期，R195b 已修且判据已固化，本轮零代码改动。
+backlog 至此全部条目处置完毕：体验类 §140 闭环、语义类本条闭环、
+B-011 审查轨领土不动、其余 B-012~B-020 均已修有据。
+
+**附加闸门抽查（BOOKS_LLM_DISABLE=1，8 项全 exit 0）**：
+count_open_findings / selftest / probe_ui_smoke / probe_first_screen /
+check_plain_first / check_warm_voice / probe_contract / probe_dollar。
+日志 $LOCALAPPDATA/Temp/gates_r203b。
+
+**遗留**：skill zip 零融入仍挂账。产品重塑 + backlog 双清 + 语义类复核
+完毕，待审查轨整体复核。
