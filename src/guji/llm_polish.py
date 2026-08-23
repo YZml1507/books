@@ -279,6 +279,181 @@ def ai_task_status(tid: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# AI 陪伴层（R206b，specs/009 US1；D-259b）
+#
+# 形态：chat() 同步函数复用 polish 的传输/重试/_sanitize 全套；
+#   spawn_chat_task() 复用同一个 _tasks dict、锁、GC 与 /api/ai/{tid} 轮询
+#   端点——零新轮询端点、零新 GC。会话历史**只在内存**（_CHAT_SESSIONS，
+#   同 TTL GC），绝不入库；发给 LLM 的上下文不含生日等 PII。
+#
+# 安全红线（specs/009 US1 判据 b/c）：
+#   * 输入侧 _CRISIS_PAT 命中自伤/危机关键词 → 不调 LLM，直接给固定转介话术
+#     （LLM 绝不接手心理危机——输出侧兜底由 _CHAT_REFUSAL 双保险）；
+#   * 输出侧 _CHAT_BANNED_PAT 命中指令式说教/现实决策命令 → 该次回复丢弃
+#     降级为固定安全回复（D-244a 语义：拦截 ≠ 报错）；
+#   * 会话轮数上限 _CHAT_MAX_TURNS=6，超限温和收尾（防依赖设计）；
+#   * DISABLE=1 / 配置关闭 → spawn_chat_task 返回 None，前端隐藏入口。
+# ---------------------------------------------------------------------------
+
+_CHAT_MAX_TURNS = 6            # 单会话最大用户轮数；到顶温和收尾
+_CHAT_SESSION_TTL_S = 1800.0   # 会话上下文保留 30 分钟
+
+_CHAT_SYSTEM = (
+    "你是命理小站里的一个温柔朋友，语气像闺蜜聊天，不是大师也不是客服。"
+    "用户刚看过自己的排盘结果，可能会聊到感情、工作、心情。"
+    "规则：1) 只用轻松温暖的口吻回应情绪，可以温和提到盘里给出的信息作为话题，"
+    "但绝不用命理术语吓人，绝不下判断（如「你们不合适」「你会倒霉」）；"
+    "2) 禁止任何指令式建议（「你应该…」「你要…」「别理他」）；"
+    "3) 禁止替用户做现实决定；4) 回复不超过三句话。"
+)
+
+_CHAT_REFUSAL = "这个话题有点重，我不太敢乱说。如果心里很难受，跟信任的朋友或专业人士聊聊会更好——我一直都在，陪你聊聊别的也行。"
+
+_CRISIS_PAT = re.compile(
+    r"不想活|想死|自杀|自残|伤害自己|活着没意思|轻度抑郁|重度抑郁", re.IGNORECASE)
+
+_CHAT_BANNED_PAT = re.compile(
+    r"你应该|你必须|你要记得|建议你|别理他|直接分手|赶紧分|断联|"
+    r"肯定会离|注定要|克夫|克妻|灾劫|大凶", re.IGNORECASE)
+
+_chat_sessions: dict[str, dict] = {}
+_chat_lock = threading.Lock()
+
+
+def _gc_chat_sessions() -> None:
+    now = time.monotonic()
+    stale = [sid for sid, s in _chat_sessions.items()
+             if now - s["updated"] > _CHAT_SESSION_TTL_S]
+    for sid in stale:
+        _chat_sessions.pop(sid, None)
+
+
+def chat(session_id: str, user_msg: str,
+         facts: list[str] | None = None,
+         config: dict | None = None, _transport=None) -> str | None:
+    """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
+
+    危机关键词命中 → 不调 LLM 直接返回固定转介文案（判据 b 硬兜底）。
+    会话超轮数上限 → 返回温和收尾文案（不再消耗 LLM）。任何失败 None。
+    """
+    cfg = config or load_config()
+    if cfg is None:
+        return None
+    msg = (user_msg or "").strip()
+    if not msg or not session_id:
+        return None
+
+    with _chat_lock:
+        _gc_chat_sessions()
+        sess = _chat_sessions.setdefault(
+            session_id, {"messages": [], "updated": time.monotonic()})
+        if len(sess["messages"]) >= _CHAT_MAX_TURNS * 2:
+            return "今天先聊到这里啦～盘一直在，随时回来看。记得好好吃饭。"
+
+        # 危机红线：LLM 绝不接手，固定转介（不入上下文，避免污染后续对话）
+        if _CRISIS_PAT.search(msg):
+            return _CHAT_REFUSAL
+
+        history = list(sess["messages"])
+
+    payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
+    if facts:
+        payload_msgs.append({
+            "role": "system",
+            "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
+                       + "\n- ".join(f for f in facts if f)})
+    payload_msgs.extend(history)
+    payload_msgs.append({"role": "user", "content": msg})
+
+    text = _chat_call(payload_msgs, cfg, _transport)
+    if not text:
+        return None
+
+    with _chat_lock:
+        sess = _chat_sessions.get(session_id)
+        if sess is not None:
+            sess["messages"].append({"role": "user", "content": msg})
+            sess["messages"].append({"role": "assistant", "content": text})
+            sess["updated"] = time.monotonic()
+
+    # 输出侧禁语命中 → 整条丢弃降级为固定安全回复（双保险）
+    if _CHAT_BANNED_PAT.search(text):
+        return ("我可能说得不太对。盘是盘，日子是你自己的——"
+                "按你自己舒服的来就好。")
+    return text
+
+
+def _chat_call(payload_msgs: list[dict], cfg: dict,
+               _transport=None) -> str | None:
+    """单次对话调用：复用 polish 的传输细节与重试语义。失败 None。"""
+    payload = {
+        "model": cfg.get("model") or _DEFAULTS["model"],
+        "messages": payload_msgs,
+        "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
+        "temperature": 0.8,
+    }
+    url = cfg["base_url"].rstrip("/") + "/chat/completions"
+    headers = {"Authorization": "Bearer " + cfg["api_key"],
+               "Content-Type": "application/json"}
+    timeout = float(cfg.get("timeout_s") or _DEFAULTS["timeout_s"])
+
+    for _ in range(3):
+        try:
+            if _transport is not None:
+                data = _transport(payload, headers, url, timeout)
+            else:
+                import httpx
+                if _is_loopback(url):
+                    with httpx.Client(trust_env=False, timeout=timeout) as cli:
+                        resp = cli.post(url, json=payload, headers=headers)
+                else:
+                    resp = httpx.post(url, json=payload, headers=headers,
+                                      timeout=timeout)
+                if resp.status_code != 200:
+                    continue
+                data = resp.json()
+            raw = (data["choices"][0]["message"]["content"] or "").strip()
+        except Exception:
+            continue
+        out = _sanitize(raw)
+        if out:
+            return out
+    return None
+
+
+def spawn_chat_task(session_id: str, user_msg: str,
+                    facts: list[str] | None = None,
+                    config: dict | None = None,
+                    _transport=None) -> str | None:
+    """后台起一个 chat 任务，复用 _tasks/GC/轮询端点。关闭时返回 None。"""
+    cfg = config or load_config()
+    if cfg is None:
+        return None
+    tid = secrets.token_urlsafe(16)
+    with _tasks_lock:
+        _gc_tasks()
+        _tasks[tid] = {"status": "pending", "text": None,
+                       "created": time.monotonic()}
+
+    def _run() -> None:
+        try:
+            text = chat(session_id, user_msg, facts=facts, config=cfg,
+                        _transport=_transport)
+            status = "done" if text else "failed"
+        except Exception:
+            status, text = "failed", None
+        with _tasks_lock:
+            rec = _tasks.get(tid)
+            if rec is not None:
+                rec["status"] = status
+                rec["text"] = text
+
+    threading.Thread(target=_run, name="ai-chat-" + tid[:8],
+                     daemon=True).start()
+    return tid
+
+
+# ---------------------------------------------------------------------------
 # 各功能的 facts 组装（全部来自已算出的字段，零新事实）
 # ---------------------------------------------------------------------------
 

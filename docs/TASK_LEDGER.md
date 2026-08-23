@@ -7961,3 +7961,36 @@ probe_dollar_misuse 判「函数当对象访问属性」FAIL（memory 坑①再�
 **遗留**：US1 AI 陪伴层（勘查报告已到，方案：chat() 复用 polish 管道 +
 spawn_chat_task 复用 _tasks/GC/轮询端点 + 会话仅内存零入库 +
 BANNED_DEPENDENCY/CRISIS 禁语扩容 + 输出侧硬拦截）。
+
+### 148. [优化轨] R206b 终：specs/009 US1 AI 陪伴层「聊聊这件事」（D-259b）（2026-08-23）
+
+**后端**：llm_polish 新增 chat()/spawn_chat_task()——复用 polish 的
+传输/loopback trust_env=False/重试/_sanitize 全套；spawn 复用同一 _tasks
+dict、锁、GC 与 GET /api/ai/{tid} 轮询端点（零新轮询、零新 GC）。
+会话上下文 _chat_sessions 仅内存（30min TTL），绝不入库；
+发给 LLM 的 facts 只含干支五行词（非 PII，无生日）。
+安全红线：_CRISIS_PAT 输入侧命中自伤/危机关键词 → 不调 LLM 直接固定转介
+话术；_CHAT_BANNED_PAT 输出侧命中指令式/现实决策/恐吓词 → 整条丢弃降级
+固定兜底（D-244a）；会话上限 6 轮温和收尾（防依赖）。
+API：POST /api/chat（ChatRequest：session_id≤64/message≤500/facts 可选，
+validate_ranges 400）→ additive {chat_task_id} 键，DISABLE=1 响应无此键。
+
+**前端**：结果卡共情行右侧「💬 聊聊这件事」胶囊钮 → 右侧聊天抽屉
+（与最近解读侧栏同交互模式）；气泡流 + Enter 发送 + sessionStorage 会话 id
+（关标签即失）；轮询复用 AI_POLL_CAP_S 40s 上限，failed/超时给温和文案。
+DISABLE 下发消息得「聊天功能暂时没开」降级提示。
+
+**判据实测**：(a) DISABLE=1 无 chat_task_id 键 ✓（selftest chat.disabled.
+no_task_id）；(b) 危机转介/禁语兜底离线打桩验证 ✓（chat.crisis.refusal/
+chat.banned.fallback）；(c) 会话上限收尾 ✓；(d) E2E 真浏览器四步全过
+（$LOCALAPPDATA/Temp/r206b_e2e.py，console 零错误）。
+selftest +4 断言 =163 checks PASS。十闸门全 exit 0
+（$LOCALAPPDATA/Temp/gates_r206b_us1b.log）。
+
+**插曲二则**：①US4 共情行+独占行聊天按钮曾致 check_plain_first 判据 2
+余量 198px<200px——门柱不放宽，改为共情行与入口合并一行后归位
+（c6_career 余量回升）；②E2E 首跑假 FAIL：8901 残留旧进程占端口无
+/api/chat 路由——换 8902 后全过。教训：E2E 前先确认目标端口进程的
+代码新鲜度。
+
+**specs/009 四 US 至此全部落地**（US2 §145/US3 §146/US4 §147/US1 本条）。

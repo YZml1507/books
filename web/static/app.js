@@ -149,6 +149,81 @@ function pollAiPolish(containerId, taskId) {
   setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
 
+/* ── R206b（specs/009 US1）：AI 陪伴层「问问小满」──────────────
+ * 排盘结果尾部入口 → 聊天抽屉。复用 pollAiPolish 的轮询语义
+ * （/api/ai/{tid}），会话 id 存 sessionStorage（关标签即失，零隐私留存）。
+ * DISABLE=1 时 /api/chat 返回无 chat_task_id 键 → 入口隐藏（D-244a）。 */
+var CHAT_SID_KEY = 'chatSessionId';
+function chatSid() {
+  try {
+    var sid = sessionStorage.getItem(CHAT_SID_KEY);
+    if (!sid) {
+      sid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      sessionStorage.setItem(CHAT_SID_KEY, sid);
+    }
+    return sid;
+  } catch (e) { return 'c-anon'; }
+}
+var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
+
+function chatOpen() {
+  var panel = el('chatPanel');
+  if (panel) panel.classList.add('open');
+}
+function chatClose() {
+  var panel = el('chatPanel');
+  if (panel) panel.classList.remove('open');
+}
+function chatBubble(role, text) {
+  var flow = el('chatFlow');
+  if (!flow) return;
+  var div = document.createElement('div');
+  div.className = 'chat-bubble chat-' + role;
+  div.textContent = text;
+  flow.appendChild(div);
+  flow.scrollTop = flow.scrollHeight;
+}
+function chatSend() {
+  var input = el('chatInput');
+  var msg = (input && input.value || '').trim();
+  if (!msg) return;
+  if (input) input.value = '';
+  chatBubble('me', msg);
+  postJSON('/api/chat', {
+    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
+  }).then(function (j) {
+    if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
+      chatBubble('ai', '（聊天功能暂时没开，稍后再来吧）');
+      return;
+    }
+    chatBubble('ai', '…');
+    var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+    var tick = function () {
+      api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
+        var flow = el('chatFlow');
+        if (st && st.status === 'done' && st.text) {
+          if (flow) flow.lastChild.textContent = st.text;   /* 替换占位 … */
+          return;
+        }
+        if (st && st.status === 'failed') {
+          if (flow) flow.removeChild(flow.lastChild);
+          return;
+        }
+        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+        else if (flow && flow.lastChild) flow.lastChild.textContent = '（网络不太好，再发一次试试？）';
+      }).catch(function () {
+        var flow = el('chatFlow');
+        if (flow && flow.lastChild && flow.lastChild.textContent === '…') {
+          flow.lastChild.textContent = '（网络不太好，再发一次试试？）';
+        }
+      });
+    };
+    setTimeout(tick, AI_POLL_INTERVAL_MS);
+  }).catch(function () {
+    chatBubble('ai', '（网络不太好，再发一次试试？）');
+  });
+}
+
 /** 绑定点击；元素不存在时不报错（HTML 与 JS 允许分批演进）。 */
 function on(id, handler) {
   const node = el(id);
@@ -439,8 +514,13 @@ function renderWarm(warm, interp, evidence) {
   /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
    * （按提问主题选，无提问走通用款），同输入同输出不违反确定性判据。
    * 写死在前端而非 voice.py：voice 输出被 voice_baseline.json 逐字节
-   * 钉住，前端追加层 additive 零基线风险。 */
-  html += '<div class="warm-empathy">' + esc(warmEmpathy(WARM_LAST_QUESTION)) + '</div>';
+   * 钉住，前端追加层 additive 零基线风险。
+   * R206b 补记：共情行与「聊聊」入口合并为一行（check_plain_first 判据 2
+   * 余量门柱 200px 不能放宽——独占两行曾致 c6_career 余量 198px）。 */
+  html += '<div class="warm-empathy"><span>' +
+    esc(warmEmpathy(WARM_LAST_QUESTION)) + '</span>' +
+    '<button class="chat-entry" type="button" id="chatEntry">' +
+    '💬 聊聊这件事</button></div>';
   // L0 一句话：首屏第一眼就是它（判据 1/3）
   html += '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
   // L1.5 reply：对提问的回应，紧跟 L0
@@ -1252,6 +1332,14 @@ async function submitBazi(event) {
     WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
     const j = await postJSON('/api/bazi', body);
     const paipan = j.paipan || {};
+    /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
+    try {
+      const _warmFacts = (j.warm && j.warm.details || [])
+        .map(function (d) { return d.title + '：' + (d.lines || []).slice(0, 2).join('；'); })
+        .slice(0, 3);
+      const _pp = paipan.render || '';
+      CHAT_LAST_FACTS = (_pp ? ['四柱：' + _pp] : []).concat(_warmFacts);
+    } catch (e) { CHAT_LAST_FACTS = []; }
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -2446,6 +2534,17 @@ function initBazi() {
   syncBaziForm();
   on('dailyMore', loadDailyDetail);
   on('newsRefresh', loadNews);
+  /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
+   * 用委托绑到 document。 */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('#chatEntry')) chatOpen();
+  });
+  on('chatClose', chatClose);
+  on('chatSendBtn', chatSend);
+  var ci = el('chatInput');
+  if (ci) ci.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') chatSend();
+  });
 }
 
 function initReading() {

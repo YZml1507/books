@@ -11,7 +11,7 @@ from guji import llm_polish
 
 from .. import services
 from ..errors import NotFoundError
-from ..schemas import BaziRequest, HehunRequest, QimingRequest
+from ..schemas import BaziRequest, ChatRequest, HehunRequest, QimingRequest
 
 router = APIRouter(tags=["bazi"])
 
@@ -51,6 +51,23 @@ def ai_task(tid: str) -> dict:
     if st is None:
         raise NotFoundError(f"AI 任务不存在或已过期：{tid[:8]}…")
     return st
+
+
+@router.post("/api/chat")
+def chat(req: ChatRequest) -> dict:
+    """AI 陪伴层（R206b，specs/009 US1；D-259b）。
+
+    additive 语义与四端点一致：DISABLE=1 / 配置关闭 → 响应无 chat_task_id 键
+    （前端隐藏入口）。回复经既有 GET /api/ai/{tid} 轮询取回——零新轮询端点。
+    会话历史只在内存，绝不入库。
+    """
+    out: dict = {}
+    req.validate_ranges()
+    tid = llm_polish.spawn_chat_task(
+        req.session_id, req.message, facts=req.facts or [])
+    if tid:
+        out["chat_task_id"] = tid
+    return out
 
 
 @router.get("/api/xingzuo")

@@ -924,6 +924,31 @@ def run() -> list[str]:
     _r404 = client.get("/api/ai/selftest-nonexistent")
     assert _r404.status_code == 404, _r404.status_code
     ok.append("ai.endpoint.unknown.404")
+    # R206b（specs/009 US1；D-259b）：AI 陪伴层 standing 断言。
+    # (1) DISABLE=1 下 /api/chat 响应零 chat_task_id 键（additive 判据 a，
+    #     与四端点 no_task_id 同口径）；(2) 校验 400；(3) 危机关键词 →
+    #   固定转介、输出禁语 → 固定兜底（判据 b，显式 config+打桩 transport
+    #   离线验证）；(4) 轮数上限温和收尾（判据 c）。
+    from guji import llm_polish as _LC
+    _rc = client.post("/api/chat", json={"session_id": "st", "message": "最近好累"})
+    assert _rc.status_code == 200 and "chat_task_id" not in _rc.json(), \
+        sorted(_rc.json())
+    ok.append("chat.disabled.no_task_id")
+    _rc2 = client.post("/api/chat", json={"session_id": "", "message": "x"})
+    assert _rc2.status_code == 400, _rc2.status_code
+    _rc3 = client.post("/api/chat", json={"session_id": "st", "message": "x" * 501})
+    assert _rc3.status_code == 400, _rc3.status_code
+    ok.append("chat.validation.400")
+    _ccfg = {"base_url": "http://127.0.0.1:1", "api_key": "x", "model": "m"}
+    _crisis = _LC.chat("st-crisis", "不想活了", config=_ccfg)
+    assert _crisis and "专业人士" in _crisis, _crisis
+    ok.append("chat.crisis.refusal")
+    _banned = _LC.chat(
+        "st-banned", "他为什么不回我消息",
+        _transport=lambda p, h, u, t: {"choices": [{"message": {
+            "content": "你应该直接分手，别理他了"}}]}, config=_ccfg)
+    assert _banned and "你自己舒服" in _banned, _banned
+    ok.append("chat.banned.fallback")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
     # v 是 dict 的情形，JS `String({..})` 恒为 "[object Object]"。受害字段是

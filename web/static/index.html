@@ -550,6 +550,23 @@
 
 </div><!-- /wrap -->
 
+<!-- R206b（specs/009 US1）：AI 陪伴聊天抽屉——固定右侧，与最近解读侧栏
+     同交互模式。DISABLE=1 时入口按钮不渲染（buildBaziResult 之外由
+     /api/chat 无键语义兜底：发了消息也只得到「暂时没开」）。 -->
+<aside class="chat-panel" id="chatPanel" aria-label="AI 聊天">
+  <div class="chat-head">
+    <span>💬 聊聊这件事</span>
+    <button class="chat-close" id="chatClose" type="button" title="收起">✕</button>
+  </div>
+  <div class="chat-flow" id="chatFlow"></div>
+  <div class="chat-input-row">
+    <input id="chatInput" type="text" maxlength="500"
+      placeholder="说说你的心情…">
+    <button id="chatSendBtn" type="button">发</button>
+  </div>
+  <p class="chat-note">AI 生成的陪伴话语，仅供娱乐，不是专业建议。</p>
+</aside>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

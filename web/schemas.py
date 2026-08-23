@@ -198,6 +198,25 @@ class QimingRequest(BaseModel):
             raise ValidationError(f"gender 须为 男/女，收到 {self.gender}")
 
 
+class ChatRequest(BaseModel):
+    """AI 陪伴层请求（R206b，specs/009 US1；D-259b）。
+
+    message 上限 500 字（防滥用）；facts 由前端从已得排盘结果透传
+    （坐标事实字符串，非 PII——不含生日，只有干支五行词）。"""
+    session_id: str = Field(..., description="会话 id（前端生成 UUID）")
+    message: str = Field(..., description="用户消息（≤500 字）")
+    facts: list[str] | None = None
+
+    def validate_ranges(self) -> None:
+        if not self.session_id or len(self.session_id) > 64:
+            raise ValidationError("session_id 须为 1-64 字符")
+        msg = (self.message or "").strip()
+        if not msg:
+            raise ValidationError("message 不能为空")
+        if len(msg) > 500:
+            raise ValidationError(f"message 超长（≤500 字），收到 {len(msg)} 字")
+
+
 class TarotRequest(BaseModel):
     seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
     n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
