@@ -95,7 +95,27 @@ html[data-theme="legacy"]{
   --font-sans: "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
 }
 
+/* ── R201b（B-010）：animotion 接线——只取 web-lite 子集 ────────────
+ * animotion.css 的 740 个类引用驼峰 keyframes，而 keyframes*.css 提供
+ * kebab 名（353/370 可映射但全量接线=284KB）。产品只用 5 个动画，
+ * 自产 web-lite.css（4 个驼峰别名 @keyframes + reduced-motion 尊重层）。
+ * 用法：元素加 class="animotion-respect-motion animotion-fade-in"。
+ * R201b 补记：接线首版误删了下一行全局 reset，导致 check_plain_first
+ * 判据 2 四用例爆线（c6_career 3,444px > 3,248px）——已恢复，实测归位。 */
 *{box-sizing:border-box; margin:0; padding:0;}
+@import url("./animotion/web-lite.css");
+.animotion-respect-motion{animation-duration:.5s;}
+.view.active{animation-name:none;}
+.home-main .ia-group,
+.daily-card,
+.func-grid .func-card{
+  animation:animotion-fadeInUp .45s ease-out both;
+}
+html[data-daypart] .func-grid .func-card:nth-child(2){animation-delay:.06s;}
+html[data-daypart] .func-grid .func-card:nth-child(3){animation-delay:.12s;}
+@media (prefers-reduced-motion: reduce){
+  .home-main .ia-group,.daily-card,.func-grid .func-card{animation:none;}
+}
 
 /* ── R198b（US4）：时辰感知背景——五档晨昏色调 ─────────────────────
  * JS 按本地小时设 <html data-daypart>，CSS 只覆盖 --bg 渐变（不动文字色，

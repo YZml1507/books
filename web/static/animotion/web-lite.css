@@ -1,0 +1,66 @@
+/* web-lite.css — R201b：从 keyframes.css 提取的驼峰别名（B-010 接线）。
+ * 只含产品实际用到的 5 个动画 + stagger + reduced-motion 层。 */
+
+@keyframes animotion-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes animotion-popIn {
+  0% {
+    opacity: 0;
+    transform: scale3d(0, 0, 0);
+  }
+  50% {
+    transform: scale3d(1.15, 1.15, 1.15);
+  }
+  75% {
+    transform: scale3d(0.95, 0.95, 0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes animotion-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes animotion-fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes animotion-fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* reduced-motion 尊重层（B-010 判据：reduce 下全部停用） */
+@media (prefers-reduced-motion: reduce) {
+  .animotion-respect-motion,
+  .animotion-respect-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

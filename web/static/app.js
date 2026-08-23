@@ -1427,7 +1427,13 @@ async function doThread() {
       confidence: 'open'
     });
     let html = '<div class="no-evidence">线程已创建：#' + esc(j.thread_id) +
-      '（claim #' + esc(j.derived_id) + '）</div>';
+      '（claim #' + esc(j.derived_id) + '）</div>' +
+      /* R201b（B-005）：展示 claim 内容与证据数——用户能确认「记下了什么」，
+       * 不再只回一行 id（响应键 claim/n_evidence 原本零引用）。 */
+      '<div class="calc-block" style="margin:10px 0;">' +
+      '<p style="font-size:14px;line-height:1.6;">' + esc(j.claim || '') + '</p>' +
+      (j.n_evidence != null ? '<p style="font-size:12px;color:var(--secondary);">证据 ' +
+        esc(j.n_evidence) + ' 条</p>' : '') + '</div>';
     const list = await api('/api/threads');
     (list.threads || []).forEach(function (t) {
       html += '<div class="thread-item"><div class="thread-topic">' +
@@ -1778,14 +1784,19 @@ async function doHuangli() {
         '<li>' + esc(pz.gan || '') + '：' + esc(pz.gan_text || '') + '</li>' +
         '<li>' + esc(pz.zhi || '') + '：' + esc(pz.zhi_text || '') + '</li></ul></div>';
     }
-    // 实测 yi/ji 是数组（不是字符串）。
+    // 实测 yi/ji 是数组（不是字符串）。R201b（B-004）：各项独立 pill，
+    // 一眼看清条数（原逗号拼接丢失列表结构）。
+    function _pill(text, color) {
+      return '<span class="pill" style="border:1px solid ' + color +
+        ';color:' + color + ';">' + esc(text) + '</span>';
+    }
     html += '<div class="calc-grid">';
-    html += '<div class="calc-block" style="border-left:3px solid var(--c-good);">' +
-      '<h3 style="color:var(--c-good);">✅ 宜</h3><p>' +
-      esc((j.yi || []).join('、') || '—') + '</p></div>';
-    html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
-      '<h3 style="color:var(--c-bazi);">❌ 忌</h3><p>' +
-      esc((j.ji || []).join('、') || '—') + '</p></div>';
+    html += '<div class="calc-block"><h3 style="color:var(--c-good);">✅ 宜</h3><p>' +
+      ((j.yi || []).map(function (t) { return _pill(t, 'var(--c-good)'); }).join(' ') || '—') +
+      '</p></div>';
+    html += '<div class="calc-block"><h3 style="color:var(--accent);">❌ 忌</h3><p>' +
+      ((j.ji || []).map(function (t) { return _pill(t, 'var(--accent)'); }).join(' ') || '—') +
+      '</p></div>';
     html += '</div></div>';
     paint('hlResult', html);
     revealResult('hlResult');
@@ -2112,7 +2123,7 @@ async function loadHistory() {
   const list = el('histList');
   if (!list) return;
   try {
-    const j = await api('/api/history?limit=20');
+    const j = await fetchHistory();   /* R201b（B-009）：共享缓存 */
     const records = j.records || [];
     if (!records.length) {
       list.innerHTML = '<div class="no-evidence">暂无记录</div>';
@@ -2174,11 +2185,23 @@ async function deleteHistory(rid) {
   } catch (e) {
     /* 删除失败不阻断，下次刷新自见 */
   }
+  __histCache.promise = null;   /* R201b（B-009）：删数据后缓存必须失效 */
   loadHistory();
   loadRecent();
 }
 
-/** R000a-04：同上，records 不是 items。 */
+/** R000a-04：同上，records 不是 items。
+ *  R201b（B-009）：loadHistory/loadRecent 各自打一次 /api/history 是重复
+ *  请求——改为共享缓存：fetchHistory() 模块级去重，10s 内复用同一 Promise。 */
+var __histCache = { at: 0, promise: null };
+function fetchHistory() {
+  var now = Date.now();
+  if (__histCache.promise && now - __histCache.at < 10000) return __histCache.promise;
+  __histCache.at = now;
+  __histCache.promise = api('/api/history?limit=20');
+  __histCache.promise.catch(function () { __histCache.promise = null; });
+  return __histCache.promise;
+}
 async function loadRecent() {
   const list = el('recentList');
   if (!list) return;
@@ -2187,8 +2210,8 @@ async function loadRecent() {
     '<div class="recent-date">去排盘 →</div></div>' +
     '<span class="recent-arrow">→</span></div>';
   try {
-    const j = await api('/api/history?limit=5');
-    const records = j.records || [];
+    const j = await fetchHistory();
+    const records = (j.records || []).slice(0, 5);
     if (!records.length) {
       list.innerHTML = fallback;
       return;

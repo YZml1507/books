@@ -7670,3 +7670,54 @@ read→huangli + related-funcs 三卡齐备 + 簇标签改「问一卦/读书与
 **遗留**：specs/008 五条 US 至此全部落地（US1 §136/US2 §136+本条/US3 本条/
 US4-5 §137）。两个 skill zip 零融入仍挂账。产品重塑阶段完成，待审查轨
 整体复核。
+
+### 139. [优化轨] R201b：backlog 体验项批量清偿——B-004/B-005/B-009/B-010（2026-08-23）
+
+**选案**：盘点 OPTIMIZE_BACKLOG 未清偿体验类条目，按「可测量+契合产品
+方向」挑四条一轮做掉。B-011（probe_disclosure 历史遗留崩）属审查轨领土
+不动；B-001/B-002 大重构不混本轮；B-006 compare findings 经实测后端已
+返回 line 且前端已渲染（R178b 已顺带修，登记过期）；B-007 steps 链展示
+与 B-008 works 编址率留待下一批（读书视图信息密度需单独设计）。
+
+**1. B-010 animotion 接线（287KB 零接线 → web-lite 子集）**：勘查发现
+animotion.css 的 740 类引用驼峰 keyframes 名，keyframes*.css 提供 kebab
+名——353/370 可经驼峰↔kebab 映射，但全量接线=284KB 且产品只用少数。
+方案：自产 web-lite.css（fadeIn/popIn/fadeInUp/fadeOut 四个驼峰别名块 +
+reduced-motion 尊重层），styles.css @import 接入；首页 ia-group/daily-card/
+func-card 挂 fadeInUp 入场动画 + 前三卡 stagger 延迟。
+实测：正常视口 animations>0、prefers-reduced-motion 下 =0（B-010 判据）。
+
+**2. B-009 重复请求合并**：loadHistory/loadRecent 各打一次 /api/history
+→ fetchHistory() 共享 Promise（10s 缓存窗），deleteHistory 后缓存失效。
+实测首屏 /api/history 请求数 2→1。
+
+**3. B-004 黄历宜忌 pill 化**：逗号串 → 独立 pill 标签（绿宜/红忌描边），
+复用既有 .pill 组件。实测 10 个 pill 渲染（含建除/星宿信息块）。
+
+**4. B-005 线程创建回显**：只回 id → 展示 claim 全文 + n_evidence 计数
+（响应键原本零引用）。实测创建「开题：B005 验证」卡片含 claim 与证据数。
+
+**5. 修复追记（接手窗口，2026-08-23）——check_plain_first 回归归因与修复**：
+首轮全量电池 gates_r201b 中 `check_plain_first EXIT=1`（其余 33 条全 EXIT=0；
+probe_ui_smoke 40/40、first_screen PASS）。FAIL 四用例全在判据 2（结果区
+≤3,248px 且余量 ≥200px）：c7_love 3,147 / c8_love 3,133 / c6_career 3,444
+（超限）/ c6_health 3,127；对比上轮基线每用例高度 +~500px、L0 视口
+353→421。stash 二分法三次跑批锁定肇事文件 = styles.css：`git checkout --
+web/static/styles.css` 单独还原 → EXIT=0；换回新 CSS → EXIT=1；app.js 改动
+（B-005/B-009）无嫌疑。
+根因：B-010 动画接线块插入时把紧邻的全局 reset 行
+`*{box-sizing:border-box; margin:0; padding:0;}` 整行误删——content-box 盒模型
+回归 + 默认 margin 恢复 → 全页元素变高 ~500px。
+修法：reset 行加回接线块之后（@import 前），CSS 注释内留「R201b 补记」说明
+事故与判据数字。修后 check_plain_first PASS，五用例数字与基线逐字节一致
+（c7_love 2,619 等）；B-010 判据本身（正常视口 animations>0、
+prefers-reduced-motion 下=0）不受影响。
+另记：无 DISABLE 环境裸跑 web/selftest.py 在 `ai.async.disabled.no_task_id`
+假红属环境前提问题（本机 llm_config.json enabled=true），非回归——闸门环境
+BOOKS_LLM_DISABLE=1 下 158 checks PASS、probe_selftest_regress PASS
+（159→158 已审核改名）。修复后附加闸门抽查五项全部 exit 0：
+check_plain_first / probe_ui_smoke / probe_first_screen / check_poster /
+selftest(DISABLE=1)；全量电池 gates_r201b 复跑见 summary。
+
+**遗留**：B-007/B-008（读书视图信息设计）、B-001/B-002（大重构）、
+B-011（审查轨领土）、skill zip 零融入。
