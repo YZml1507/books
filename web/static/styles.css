@@ -310,7 +310,7 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 /* R207b：圆钮修复——emoji 在 Windows 渲染成黑白文本形，改用 SVG 数据 URI
  * 时钟图标（同源 data URI 非外链），flex 居中，hover 反馈。 */
 .recent-toggle{
-  position:fixed; right:16px; bottom:20px; z-index:60;
+  position:fixed; left:16px; bottom:20px; z-index:60;
   width:52px; height:52px; border-radius:50%;
   background:var(--primary) center/26px no-repeat
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
@@ -322,12 +322,12 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 .recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 .recent-sidebar{
-  position:fixed; top:0; right:0; bottom:0; z-index:70;
+  position:fixed; top:0; left:0; bottom:0; z-index:70;
   width:min(320px, 86vw);
   background:var(--card); border-left:1px solid var(--border);
-  box-shadow:-6px 0 24px rgba(0,0,0,.12);
+  box-shadow:6px 0 24px rgba(0,0,0,.12);
   padding:18px 16px 24px; overflow-y:auto;
-  transform:translateX(105%); transition:transform .28s ease;
+  transform:translateX(-105%); transition:transform .28s ease;
 }
 .recent-sidebar.open{transform:translateX(0);}
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -360,12 +360,12 @@ h1,.brand-mark,.section-title{font-family:var(--font-serif);}
 .chat-entry:hover{border-color:#E8B898;}
 .chat-entry:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
 .chat-panel{
-  position:fixed; top:0; right:0; bottom:0; z-index:80;
+  position:fixed; top:0; left:0; bottom:0; z-index:80;
   width:min(340px, 92vw);
-  background:var(--card); border-left:1px solid var(--border);
-  box-shadow:-6px 0 24px rgba(0,0,0,.14);
+  background:var(--card); border-right:1px solid var(--border);
+  box-shadow:6px 0 24px rgba(0,0,0,.14);
   display:flex; flex-direction:column;
-  transform:translateX(105%); transition:transform .28s ease;
+  transform:translateX(-105%); transition:transform .28s ease;
 }
 .chat-panel.open{transform:translateX(0);}
 .chat-head{
@@ -907,3 +907,6 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 }
 .dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
 .dx-note{ font-size:13px; color:var(--secondary); }
+
+/* R208b：历史记录迁入左侧栏 */
+.side-hist{margin-top:10px;}

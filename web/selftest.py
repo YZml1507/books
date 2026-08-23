@@ -755,10 +755,11 @@ def run() -> list[str]:
     import re as _re
     _home_seg = home.text.split('id="view-divine"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 8, ("home.ia.count", len(_cards), _cards)  # 5 直达+3 抽屉
+    assert len(_cards) == 7, ("home.ia.count", len(_cards), _cards)  # 4 直达+3 抽屉
+    # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming
     assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
-    assert _cards[5:] == ["read", "liuyao", "qiming"], \
+    assert _cards[5:] == ["liuyao", "qiming"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
     _visible = _home_seg.split('id="proDrawer"')[0]

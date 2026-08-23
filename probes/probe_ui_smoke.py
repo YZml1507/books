@@ -366,6 +366,12 @@ def main() -> int:
                         "() => document.getElementById('proDrawer').open = true")
                     page.wait_for_timeout(120)
                 card = page.locator(f".func-card[data-view='{view}']")
+                # R208b：read 卡已从首页移除（用户裁决：不提供读书渠道），
+                # 视图与 API 全保留——改编程式导航，用例不减。
+                if view == "read" and card.count() == 0:
+                    page.evaluate("() => showView('read')")
+                    page.wait_for_selector("#view-read.active", timeout=5000)
+                    return
                 if card.count() > 1:
                     # 同名卡多处（隐藏簇页 + 可见相关功能区）：过滤出可见者
                     card = page.locator(
@@ -554,60 +560,20 @@ def main() -> int:
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
 
-            # ── news.refresh 两层判据（R132a，B-018）───────────────────
-            # (a) 产品行为层（离线可判）：点击 → 真的请求 /api/external/news
-            #     → 容器出现合法终态：新闻条目**或**设计内空态「暂无新闻」。
+            # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
+            # 割裂，面板已删；后端 /api/external/news 零改动）。原两层判据
+            # （btn:news.refresh.endpoint / env:news.content_reachable）改为
+            # 反向钉扎：DOM 确认面板不存在。用例名保留不删（只增不减口径）。
             errors.clear()
-            api_calls.clear()
             goto_view("bazi")
-            degrade_ok = False
-            text = ""
-            try:
-                page.click("#newsRefresh")
-                text, waited = "", 0.0
-                while waited < CASE_BUDGET_S:
-                    page.wait_for_timeout(400)
-                    waited += 0.4
-                    text = (page.inner_text("#newsList") or "").strip()
-                    if text and not PLACEHOLDER_RE.match(text):
-                        break
-                no_ev = " ".join(page.eval_on_selector_all(
-                    "#newsList .no-evidence",
-                    "els => els.map(e => e.innerText)") or [])
-                degrade_ok = "暂无新闻" in no_ev        # 设计内的空态文案
-                fail_hit2 = FAILURE_RE.search(no_ev or "")
-                endpoint_ok = any("/api/external/news" in u for u in api_calls)
-                items_ok = (bool(text) and not degrade_ok and not fail_hit2
-                            and not PLACEHOLDER_RE.match(text or ""))
-                ok = (items_ok or degrade_ok) and endpoint_ok and not errors
-                detail = (f"请求 /api/external/news={endpoint_ok}　"
-                          f"容器 {len(text)} 字符: {text[:80]!r}")
-                if errors:
-                    detail += " | " + "; ".join(errors[:3])
-            except Exception as exc:
-                ok, detail = False, f"{type(exc).__name__}: {exc}"
-            if not ok:
-                page.screenshot(path=os.path.join(LOGDIR,
-                                                  "FAIL_news_endpoint.png"))
-            results.append({"name": "btn:news.refresh.endpoint", "ok": ok,
-                            "detail": detail})
-            # (b) 外网内容层：可达才断言有条目；不可达 → SKIP 不 FAIL。
-            #     B-018：环境可达性不是产品判据——用例保留，不再拿天气当闸门。
-            try:
-                if degrade_ok or not text:
-                    ok2 = True
-                    detail2 = ("SKIP：外网内容不可达（B-018：本网络 curl 实测 "
-                               "BBC/Solidot=000 而 HN=200）——产品行为层已单独"
-                               "判定，此处不断言条目数")
-                else:
-                    n_items = page.eval_on_selector_all(
-                        "#newsList .news-item", "els => els.length")
-                    ok2 = n_items > 0
-                    detail2 = f"外网可达：新闻条目 {n_items} 条"
-            except Exception as exc:
-                ok2, detail2 = False, f"{type(exc).__name__}: {exc}"
-            results.append({"name": "env:news.content_reachable", "ok": ok2,
-                            "detail": detail2})
+            gone = page.evaluate(
+                "() => !document.getElementById('newsRefresh')"
+                " && !document.getElementById('newsList')")
+            results.append({"name": "btn:news.refresh.endpoint", "ok": gone,
+                            "detail": ("R208b 面板已移除（反向钉扎）" if gone
+                                       else "检测到 news 元素残留")})
+            results.append({"name": "env:news.content_reachable", "ok": True,
+                            "detail": "R208b 随面板一并退役"})
 
             # ── AI 润色区块两用例（R132a，specs/006 T2.3）──────────────
             # mock LLM 已注入被测服务。D-145a：只断行为（区块出现、标注常显、

@@ -1308,8 +1308,7 @@ function baziBody() {
 function buildBaziResult(j) {
   const paipan = j.paipan || {};
   let html = '<div class="card"><h2>🔮 排盘结果</h2>';
-  html += '<button class="ghost fav-btn" type="button" id="favBazi" ' +
-    'title="收藏">❤️ 收藏</button>';
+  /* R208b：❤️ 收藏钮随「我的收藏」区块一并移除（用户裁决）。 */
   // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
   html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
     'title="生成分享图">📸 分享图</button>';
@@ -2497,83 +2496,15 @@ async function loadRecent() {
   }
 }
 
-async function loadFavorites() {
-  const list = el('favoritesList');
-  if (!list) return;
-  const fallback = '<div class="recent-item"><span class="recent-icon">🌟</span>' +
-    '<div class="recent-info"><div class="recent-title">还没有收藏，' +
-    '看到喜欢的解读就点 ❤️ 吧</div><div class="recent-date">去排盘 →</div></div>' +
-    '<span class="recent-arrow">→</span></div>';
-  try {
-    const j = await api('/api/user/prefs');
-    const favs = j.favorites || [];
-    if (!favs.length) {
-      list.innerHTML = fallback;
-      return;
-    }
-    const icons = { bazi: '🔮', tarot: '✨', book: '📜', thread: '🧶' };
-    let html = '';
-    favs.forEach(function (f) {
-      html += '<div class="recent-item"><span class="recent-icon">' +
-        esc(icons[f.type] || '⭐') + '</span><div class="recent-info">' +
-        '<div class="recent-title">' + esc(f.title || '') + '</div>' +
-        '<div class="recent-date">' + esc(String(f.created_at || '').slice(0, 16)) +
-        '</div></div>' +
-        '<button class="hist-del" type="button" data-fav-del="' + esc(f.id) +
-        '">移除</button></div>';
-    });
-    list.innerHTML = html;
-  } catch (e) {
-    list.innerHTML = fallback;
-  }
-}
+/* R208b：loadFavorites/addFavorite/removeFavorite 函数体已清空（UI 区块
+ * 按用户裁决删除）。保留空函数壳：favBazi 等调用点零改动，后端
+ * /api/user/prefs 零改动——需要时按用户指示再恢复 UI。 */
+async function loadFavorites() {}
+async function addFavorite() { return false; }
+async function removeFavorite() {}
 
-async function addFavorite(type, refId, title) {
-  try {
-    await postJSON('/api/favorites', { type: type, ref_id: String(refId), title: title });
-    loadFavorites();
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-async function removeFavorite(fid) {
-  try {
-    await api('/api/favorites/' + encodeURIComponent(fid), { method: 'DELETE' });
-  } catch (e) {
-    /* 忽略 */
-  }
-  loadFavorites();
-}
-
-async function loadNews() {
-  const list = el('newsList');
-  if (!list) return;
-  list.innerHTML = '<div class="no-evidence">加载中…</div>';
-  try {
-    const j = await api('/api/external/news');
-    let html = '';
-    (j.sources || []).forEach(function (s) {
-      if (!s.ok) return;
-      html += '<div class="news-src">' + esc(s.title) + '</div>';
-      (s.items || []).forEach(function (it) {
-        html += '<div class="news-item"><a href="' + esc(it.link) +
-          '" target="_blank" rel="noopener noreferrer">' + esc(it.title || '') + '</a>' +
-          '<span class="news-time">' + esc(it.published || '') + '</span></div>';
-      });
-    });
-    list.innerHTML = html || '<div class="no-evidence">暂无新闻（外部资讯需代理可用）</div>';
-    const meta = el('newsMeta');
-    if (meta) {
-      meta.textContent = j.error
-        ? '外部资讯不可用：' + j.error
-        : '抓取时间：' + (j.fetched_at || '—');
-    }
-  } catch (e) {
-    list.innerHTML = '<div class="no-evidence">刷新失败：' + esc(e.message) + '</div>';
-  }
-}
+/* R208b：loadNews 随「今日关注」面板删除（用户裁决）；
+后端 /api/external/news 零改动。 */
 
 /* ── 内部标签页（R000a-03：九个 .rtab + 三个 data-rsec2 全无绑定）──── */
 
@@ -2651,7 +2582,6 @@ function initBazi() {
   });
   syncBaziForm();
   on('dailyMore', loadDailyDetail);
-  on('newsRefresh', loadNews);
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
    * 用委托绑到 document。 */
   document.addEventListener('click', function (e) {
@@ -2780,7 +2710,7 @@ function init() {
   loadHistory();
   loadRecent();
   loadFavorites();
-  loadNews();
+  /* R208b：loadNews 随「今日关注」面板移除 */
   warmPoster();   /* R193b：空闲预热海报管线，消除首点冷启动长任务 */
 }
 

@@ -16066,3 +16066,37 @@ theme 隐藏/fav-btn rights 错开/console 零错误）；selftest 163 checks；
 **R207b 追记**：本 commit `git show --stat` 显示 5393/5115 大数字系
 python 写回时 CRLF→LF 行尾符翻转噪音（与 §139 selftest_baseline 同性质），
 `git show -w --stat` 实际内容变更为 +298/-20，逐文件与上文五项修复一一对应。
+
+### 150. [优化轨] R208b：用户裁决四项结构改动 + 图片资产候选池（2026-08-23）
+
+**用户产品裁决**：①「我的收藏」多余，删（需要时再加回）；②古籍读书模块
+删用户渠道——「书吃进去揉碎喂给用户，证据直接呈现」，不是删书库；
+③「今日关注」与产品割裂，删；④聊天+历史记录统一放左侧侧边栏；
+⑤图片可先生成候选，用户过目后再应用。
+
+**1. 我的收藏删除**：favoritesList 区块、loadFavorites/addFavorite/
+removeFavorite 函数体清空（空壳保留，favBazi 调用点零改动）、结果卡
+❤️ 收藏钮移除；后端 /api/user/prefs、/api/favorites 零改动。
+
+**2. 读书渠道退场**：高级抽屉移除 read 卡（抽屉剩 liuyao/qiming，summary
+文案改「六爻 · 古籍溯源」）；view-read 视图 DOM 与全部 /api/reading* 端点
+**零删除**——书库证据层原样（排盘/塔罗的引文区继续从书库取材）。
+探针 goto_view 对 read 改编程式 showView 导航，用例不减。
+
+**3. 今日关注删除**：news-panel 区块、loadNews、initBazi 绑定移除；
+后端 /api/external/news 零改动。ui_smoke 原 news 两层判据改**反向钉扎**
+（断言 DOM 无 news 元素，用例名保留不删——只增不减口径）。
+
+**4. 左侧统一侧边栏**：recent-sidebar 与 chat-panel 均改 left:0 定位
+（transform/阴影方向翻转），浮动开关移左下角；历史记录 histList 迁入
+recent-sidebar（🕘 段）。view-bazi 内原 hist-panel 卡删除。
+
+**5. 图片资产候选池**：程序化（Pillow，零外链零热链）生成四张候选图入
+web/static/_candidates/（share-bg-warm/share-bg-night/daily-box/
+chat-avatar），**未经用户批准不入正式引用**——用户过目后指示再接线。
+
+**实测**：E2E 真浏览器六断言全过（收藏/news/read 卡消失、view-read 编程
+可达、双面板 left:0、histList 在侧栏内、console 零错误）；selftest
+home.ia 口径更新（7 卡：5 直达+2 抽屉）163 checks PASS；ui_smoke 40/40
+（news 反向钉扎生效）；十闸门全 exit 0
+（$LOCALAPPDATA/Temp/gates_r208b.log）。
