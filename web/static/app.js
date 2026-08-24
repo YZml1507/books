@@ -267,7 +267,14 @@ function chatSend() {
     session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
-      chatBubble('ai', '（聊天功能暂时没开，稍后再来吧）');
+      /* R216b 续3（UX 队列 U-008）：原降级文案「（聊天功能暂时没开，
+       * 稍后再来吧）」系统腔零共情——用户刚倾诉疲惫。改为情绪承接 +
+       * 替代引导；DISABLE 态输入框置灰防连发连拒。 */
+      chatBubble('ai', '你的心事小满收到啦，今天解忧铺打烊中～' +
+        '可以先看看上面的牌面指引，明天来找我聊✨');
+      var sendBtn2 = document.getElementById('chatSendBtn');
+      if (input) { input.disabled = true; input.placeholder = '小满休息中，明天再来聊吧'; }
+      if (sendBtn2) sendBtn2.disabled = true;
       return;
     }
     chatBubble('ai',
@@ -570,6 +577,17 @@ var WARM_EMPATHY = {
   "学业": "学习上有点累了吧？盘里有些线索给你参考。",
   "健康": "身体是自己的，先深呼吸，我们温和地看看盘里的提醒。"
 };
+/* R216b 续3（UX 队列 U-012）：开场白从固定单句改 6 句轮换池——
+ * 按「功能视图 + 日期」sha1 确定性抽取（同 copy_bank 纪律：同输入
+ * 同输出，不违反确定性判据），连续用不同功能不再听到同一句。 */
+var WARM_EMPATHY_POOL = [
+  "来了就好。不管今天怎么样，先看看盘想对你说什么。",
+  "别急，我帮你瞧瞧——先看看它想对你说什么。",
+  "乖，抽到什么说什么，我们慢慢看。",
+  "你来了，它也在。一起看看今天的信号。",
+  "这结果挺有意思的，听我慢慢说给你听。",
+  "放心，不吓人——我把它们翻译成人话给你。"
+];
 var WARM_EMPATHY_DEFAULT = "来了就好。不管今天怎么样，先看看盘想对你说什么。";
 /* R206b 补记：首版把提问挂在函数属性上被 probe_dollar_misuse 判
  * 「函数当对象访问属性」FAIL（本仓铁律），改模块级变量 WARM_LAST_QUESTION。 */
@@ -579,7 +597,16 @@ function warmEmpathy(question) {
   for (var k in WARM_EMPATHY) {
     if (q.indexOf(k) !== -1) return WARM_EMPATHY[k];
   }
-  return WARM_EMPATHY_DEFAULT;
+  /* U-012：无主题匹配时从池中确定性抽取（视图名+日期做盐）。 */
+  try {
+    var view = document.querySelector('.view.active') || {};
+    var salt = (view.id || 'x') + '|' + new Date().toISOString().slice(0, 10);
+    var h = 0;
+    for (var i = 0; i < salt.length; i++) h = (h * 31 + salt.charCodeAt(i)) >>> 0;
+    return WARM_EMPATHY_POOL[h % WARM_EMPATHY_POOL.length] || WARM_EMPATHY_DEFAULT;
+  } catch (e2) {
+    return WARM_EMPATHY_DEFAULT;
+  }
 }
 
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
@@ -1307,15 +1334,43 @@ async function loadDaily() {
     const level = j.level || '平';
     const levelEl = el('dailyLevel');
     if (levelEl) {
-      levelEl.textContent = level;
-      // 原实现用 `.daily-level平` 这种含中文的类名，CSS 里同款——已改为
-      // good/mid/bad 三个 ASCII 类（styles.css 同步）。
+      /* R216b 续3（UX 队列 U-009）：凶日不吓人——标签柔化（「稍缓」），
+       * 紧跟一句安抚话术；吉/平保持原样。 */
+      levelEl.textContent = (level === '凶') ? '缓' : level;
       levelEl.className = 'daily-level ' +
-        (level === '吉' ? 'good' : level === '凶' ? 'bad' : 'mid');
+        (level === '吉' ? 'good' : level === '凶' ? 'bad soft' : 'mid');
+      levelEl.title = level === '凶' ? '传统黄历今日标注为「凶」' : '';
     }
     const starsEl = el('dailyStars');
-    if (starsEl) starsEl.innerHTML = renderStars(level);
+    if (starsEl) {
+      starsEl.innerHTML = renderStars(level);
+      /* U-009 附带：星级加图例，一星不再语义不明。 */
+      var legend = document.getElementById('dailyStarsLegend');
+      if (!legend && starsEl.parentElement) {
+        legend = document.createElement('span');
+        legend.id = 'dailyStarsLegend';
+        legend.className = 'stars-legend';
+        starsEl.parentElement.appendChild(legend);
+      }
+      if (legend) legend.textContent =
+        level === '吉' ? '（五星 · 顺）' :
+        level === '凶' ? '（今日能量偏低 · 宜稳宜慢）' : '（三星 · 平稳）';
+    }
     setText('dailySummary', j.summary || '');
+    /* R216b 续3（U-009）：凶日安抚层——summary 下紧跟一句人话安抚。 */
+    var sooth = document.getElementById('dailySoothe');
+    if (!sooth) {
+      sooth = document.createElement('p');
+      sooth.id = 'dailySoothe';
+      sooth.className = 'daily-soothe';
+      var sm2 = el('dailySummary');
+      if (sm2 && sm2.parentElement) sm2.parentElement.insertBefore(sooth, sm2.nextSibling);
+    }
+    if (sooth) {
+      sooth.textContent = (level === '凶') ?
+        '「缓」不是坏日子——只是提醒你今天别硬冲，稳稳的也很好。' : '';
+      sooth.hidden = (level !== '凶');
+    }
     setText('dailyNoble', j.noble || '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
@@ -1325,8 +1380,8 @@ async function loadDaily() {
       const x = await api('/api/xingzuo?date=' + encodeURIComponent(j.date || ''));
       const box = el('dailyXingzuo');
       if (box && x && x.today_sign) {
-        setText('dxLabel', '⭐ 今日值宫：' + x.today_sign + '（' +
-          ((x.signs || []).find(function (s) { return s.is_today; }) || {}).star + '）');
+        /* R216b 续3（U-010）：「值官/龙首星」术语腔 → 人话。 */
+        setText('dxLabel', '⭐ 今日轮值的星座：' + x.today_sign);
         setText('dxNote', x.today_note || '');
         box.hidden = false;
       }

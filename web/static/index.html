@@ -54,9 +54,10 @@
       </div>
     </div>
     <div class="daily-meta">
-      <div class="daily-meta-item">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong></div>
+      <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
+      <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong> <span class="meta-note">（最帮你的人/方位）</span></div>
       <div class="daily-meta-item">✅ 宜：<strong id="dailyDo">—</strong></div>
-      <div class="daily-meta-item">❌ 忌：<strong id="dailyDont">—</strong></div>
+      <div class="daily-meta-item">🙅 别急：<strong id="dailyDont">—</strong></div>
     </div>
     <!-- 004 M2 T2.4：今日值宫（十二宫日运聚合入口） -->
     <div class="daily-xingzuo" id="dailyXingzuo" hidden>
@@ -113,7 +114,7 @@
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
   <button class="recent-toggle" id="recentToggle" type="button"
     aria-expanded="false" aria-controls="recentSidebar"
-    aria-label="打开我的解读"></button>
+    aria-label="打开我的解读与小满聊天"><span class="recent-toggle-txt">💬<br>聊</span></button>
   <!-- R209b：左侧统一栏重构——聊天（头像+消息流+输入框常驻）、
        我的解读（历史记录单一信息源，删重复的 recentList 段）。 -->
   <aside class="recent-sidebar" id="recentSidebar">

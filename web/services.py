@@ -790,22 +790,25 @@ def fortune_summary(calc_out: dict) -> str:
     """从运算事实转述运势一句话（纯坐标转述，不新增结论）。"""
     if not calc_out:
         return "今天运势数据暂不可用"
+    # R216b 续3（UX 队列 U-010）：原版「五行中火土偏旺；有1处地支自刑，
+    # 宜稳不宜争；今日日运：庚午」术语裸抛——每条跟一句人话短注。
     parts = []
     strong = (calc_out.get("five_elements") or {}).get("strong") or []
     if strong:
-        parts.append(f"五行中{'+'.join(strong)}偏旺")
+        parts.append(f"{'+'.join(strong)}气比较足——这方面的特质今天更明显")
     rels = calc_out.get("relations") or []
     bad = [r for r in rels if r.get("type") in _BAD_RELS]
     good = [r for r in rels if r.get("type") in _GOOD_RELS]
     if bad:
-        parts.append(f"有{len(bad)}处地支"
-                     f"{'/'.join(r['type'] for r in bad[:2])}，宜稳不宜争")
+        parts.append(f"有{len(bad)}处别扭的小关系"
+                     f"{'/'.join(r['type'] for r in bad[:2])}——"
+                     f"容易自己跟自己较劲，稳一点就好")
     if good:
-        parts.append(f"有{len(good)}处地支"
-                     f"{'/'.join(r['type'] for r in good[:2])}，有贵人扶助")
+        parts.append(f"也有{len(good)}处顺劲"
+                     f"{'/'.join(r['type'] for r in good[:2])}——有人搭把手，事情好推")
     day_gz = (calc_out.get("day_luck") or {}).get("day_ganzhi", "")
     if day_gz:
-        parts.append(f"今日日运：{day_gz}")
+        parts.append(f"今天的干支是{day_gz}")
     if not parts:
         return "今天五行平和，无大冲大合，平平稳稳就是福 ✨"
     return "；".join(parts) + "。"

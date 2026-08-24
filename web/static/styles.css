@@ -255,7 +255,11 @@ h1,.brand-mark,.section-title,.side-brand{
   transition:transform .3s ease;
 }
 .daily-level.good{background-color:#456A44; background-image:linear-gradient(135deg,#456A44,#3E7A33);box-shadow:0 6px 24px rgba(92,140,90,.35);}
-.daily-level.bad{background-color:#AE3737; background-image:linear-gradient(135deg,#AE3737,#8F3030);box-shadow:0 6px 24px rgba(196,62,62,.35);}
+.daily-level.bad{background-color:#E8833A; background-image:linear-gradient(135deg,#F2A65A,#E8833A);box-shadow:0 6px 24px rgba(232,131,58,.30);}
+/* R216b 续3（U-009）：凶日柔化——暖橙替代深红，字号略收。 */
+.daily-level.bad.soft{background-color:#F2A65A; background-image:linear-gradient(135deg,#F5BC7E,#EE9D4D);box-shadow:0 6px 20px rgba(242,166,90,.28); font-size:.92em;}
+.stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
+.daily-soothe{font-size:13.5px; color:var(--secondary); margin-top:6px;}
 .daily-level.mid{background-color:#7A5807; background-image:linear-gradient(135deg,#8A6408,#6E5006);box-shadow:0 6px 24px rgba(184,134,11,.35);}
 .daily-level:hover{transform:scale(1.08) rotate(-3deg);}
 .daily-stars{font-size:28px; letter-spacing:6px;}
@@ -344,11 +348,15 @@ h1,.brand-mark,.section-title,.side-brand{
 .recent-toggle{
   position:fixed; left:16px; bottom:20px; z-index:60;
   width:52px; height:52px; border-radius:50%;
-  background:var(--primary) center/26px no-repeat
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+  background:var(--primary);
   border:none; cursor:pointer; padding:0;
   box-shadow:0 4px 16px rgba(0,0,0,.22);
   transition:transform .15s ease, box-shadow .15s ease;
+}
+/* R216b 续3（U-013）：悬浮钮加可见文字标识——原仅图形，含义不明。 */
+.recent-toggle-txt{
+  color:#fff; font-size:11px; line-height:1.15; font-weight:600;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
 .recent-toggle:hover{transform:scale(1.06); box-shadow:0 6px 20px rgba(0,0,0,.28);}
 .recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
