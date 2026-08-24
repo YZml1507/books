@@ -29,6 +29,28 @@
 """
 from __future__ import annotations
 
+# R214b：年轻化文案库。纪律例外说明：本模块原为纯函数（无 IO），文案库
+# 以「模块级一次性加载 + 全部回退到旧模板」的方式引入——加载失败时行为与
+# R213b 之前完全一致，确定性（判据 5）不受影响（抽取用 sha1 盐而非随机）。
+import hashlib as _hashlib
+import json as _json
+import os as _os
+_COPY_BANK_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                "copy_bank.json")
+try:
+    with open(_COPY_BANK_PATH, encoding="utf-8") as _f:
+        COPY_BANK: dict = _json.load(_f) or {}
+except Exception:
+    COPY_BANK = {}
+
+
+def _pick(seq, *salt):
+    """从文案池确定性抽一条：sha1(盐) 稳定映射，同输入必同输出。"""
+    if not seq:
+        return ""
+    h = _hashlib.sha1("|".join(str(s) for s in salt).encode("utf-8")).hexdigest()
+    return seq[int(h[:8], 16) % len(seq)]
+
 # ---------------------------------------------------------------------------
 # 术语白话表：把命理术语翻译成日常语。
 #
@@ -491,10 +513,20 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
         render = (paipan or {}).get("render") or ""
         day_master = render.split("日主：")[-1][:1] if "日主：" in render else ""
     interp = interpretation or {}
+    reply = list(reply_bazi(day_master, calc, question))
+    # R214b：日主人设卡——「小太阳」式昵称 + 高光时刻，替代术语开场。
+    # 判据 1 纪律：有提问时首段必须回应提问——人设行追加在末尾而非开头。
+    persona = next((p for p in (COPY_BANK.get("gan_persona") or [])
+                    if p.get("gan") == day_master), None)
+    if persona and not (question or "").strip():
+        reply = [f"你是「{persona['nick']}」——{persona['desc']}。",
+                 f"高光时刻：{persona['hi']}。"] + reply
+    # 有提问时不插人设行：提问优先（判据 1），且避免推高结果区高度
+    # （判据 2 门柱）。人设卡只在无提问的首屏场景出现。
     return _wrap(
         one_liner(day_master, calc, question),
         energy_card(day_master, calc),
-        reply_bazi(day_master, calc, question),
+        reply,
         details_from_sections(interp.get("sections") or []),
         interp.get("citations") or [],
     )
@@ -506,7 +538,10 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
     interp = interpretation or {}
     bn = int((ben or {}).get("gua_number") or 0)
     name = (ben or {}).get("gua_name") or ""
-    l0 = f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
+    _ly = COPY_BANK.get("liuyao_openers") or []
+    opener = _pick(_ly, bn, name) if _ly else ""
+    l0 = f"{opener}——{name}卦" if (opener and len(opener) <= 10) else \
+         f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None,
@@ -569,6 +604,33 @@ def warm_taohua(t: dict) -> dict:
                                   str(t.get("strength", "")))
     l0 = "慢热缘分" if "慢热" in strength else (
         "桃花偏旺" if "偏快" in strength else "缘分平稳")
+    _tb = COPY_BANK.get("taohua") or {}
+    if _tb:
+        # R214b：年轻化口吻——one_liner 走文案库（按年支盐确定性抽取），
+        # 回复模板按强/中/弱档给「可执行小行动」。
+        l0 = _pick(_tb.get("one_liners") or [], t.get("year_zhi"), "ol")
+        _band = ("强" if "偏快" in strength
+                 else "弱" if "慢热" in strength else "中")
+        lines: list[str] = [_pick((_tb.get("replies") or {}).get(_band) or [],
+                                  t.get("year_zhi"), _band)]
+        peach = t.get("peach_zhi") or ""
+        yz = t.get("year_zhi") or ""
+        if peach:
+            lines.append(f"你的魅力方位在「{peach}」——传统说法图个开心，"
+                         f"方位不背锅，行动才管用。")
+        dayun = t.get("dayun_hits") or []
+        if dayun:
+            d0 = dayun[0]
+            lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
+                         f"社交面会明显变宽——那阵子多出门走走。")
+        lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
+        return _wrap(
+            l0,
+            None,
+            lines[:5],
+            [{"label": "坐标事实", "text": t.get("render", "")}] if t.get("render") else [],
+            [],
+        )
 
     lines: list[str] = []
     peach = t.get("peach_zhi") or ""
@@ -616,6 +678,10 @@ def warm_hehun(h: dict) -> dict:
     l0 = ("磨合型组合" if h.get("clash")
           else "相合型组合" if h.get("combine")
           else "平顺型组合")
+    # R214b：one_liner 走年轻化文案库（按双方日支盐确定性抽取）。
+    _hh = COPY_BANK.get("hehun_one_liners") or []
+    if _hh:
+        l0 = _pick(_hh, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
 
     lines: list[str] = [f"{rel}。"]
     if h.get("day_wx_sheng"):

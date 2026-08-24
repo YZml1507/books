@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
@@ -721,6 +722,24 @@ def tarot_draw(req) -> dict:
 
 ZODIAC = ("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
 
+# R214b：年轻化文案库（dots 生成 + 人工审校，确定性抽取——按日期哈希选条，
+# 同一天全站同一句，可复现；无随机、不读时钟以外的 IO）。
+_COPY_BANK_PATH = os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "src", "guji", "copy_bank.json")
+try:
+    with open(_COPY_BANK_PATH, encoding="utf-8") as _f:
+        _COPY_BANK = json.load(_f)
+except Exception:
+    _COPY_BANK = {}
+
+
+def _pick(seq, *salt) -> str:
+    """从文案池确定性抽一条：sha1(盐) 稳定映射，同输入必同输出。"""
+    if not seq:
+        return ""
+    h = hashlib.sha1("|".join(str(s) for s in salt).encode("utf-8")).hexdigest()
+    return seq[int(h[:8], 16) % len(seq)]
+
 _LEVEL_ADVICE = {
     "吉": ("宜合作、宜出行、宜做决定", "忌大意、忌拖延"),
     "凶": ("宜静养、宜守成、宜反思", "忌冲动、忌远行、忌争执"),
@@ -832,6 +851,16 @@ def daily(date_str: str | None = None) -> dict:
         calc_out = bazi_calc(b)
         level = fortune_level(calc_out)
         do_str, dont_str = _LEVEL_ADVICE[level]
+        # R214b：宜忌换年轻化表达（文案库优先，缺失回退旧表）。
+        _db = _COPY_BANK.get("daily") or {}
+        if _db:
+            lvl_key = level if level in _db.get("levels", {}) else (
+                "平" if level == "平" else level)
+            summary = _pick(_db["levels"].get(lvl_key) or [], date_str, "sum")
+            do_str = _pick(_db["yi"], date_str, "y") + "、" + \
+                _pick(_db["yi"], date_str, "y2")
+            dont_str = _pick(_db["ji"], date_str, "j") + "、" + \
+                _pick(_db["ji"], date_str, "j2")
         # B-017（R195b 清偿）：旧值 chinese_zodiac(d.year) 是「今年的生肖」，
         # 与「贵人」无关（B-003 登记的语义缺陷）。改为当日日干的天乙贵人
         # （huangli.guiren，与黄历页同一算法、同一出处）——
@@ -846,7 +875,8 @@ def daily(date_str: str | None = None) -> dict:
         result = {
             "date": date_str,
             "level": level,
-            "summary": fortune_summary(calc_out),
+            "summary": (summary if (_db and level in (_db.get("levels") or {}))
+                        else fortune_summary(calc_out)),
             "noble": noble_str,
             "do": do_str,
             "dont": dont_str,

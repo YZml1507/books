@@ -16289,3 +16289,49 @@ poster/count_open_findings——$LOCALAPPDATA/Temp/gates_r213b.log）。
 
 **备注**：dots 无生图能力已向用户说明（生图仍走 Pollinations 备选池）；
 llm_config.json 为 gitignored 本机文件，key 不入库。
+
+### 156. [优化轨] R214b：内容大改——回复口吻年轻化重写（用户裁决「一切迎合目标群众」）（2026-08-24）
+
+**背景**：用户明确「整个项目仍然差劲、吸引不了目标群众，不能只在意排版，
+要在意回复内容的方式与功能，可以大改」。本轮先审计后动刀：
+
+**调研（联网 + dots 顾问）**：
+1. 审计真实输出：daily「宜静养、宜守成」黄历腔；八字回复出现
+   「庚为日主甲之七杀」裸术语；桃花运是「正确的废话」无可执行行动；
+   互动指令模糊。
+2. 联网：36氪 prompt 占星报道（#deepseek算命 5,608 万浏览）——用户要
+   「记得住来龙去脉的随身占卜闺蜜」而非模板答案；知乎 2026 小红书八大
+   趋势——人设>内容、垂直细分、AI 化；小红书活跃用户报告（女性 72%、
+   18-24 岁 43%）。
+3. dots 毒舌评审：现有文案「爹味说教/术语天书/正确废话」，方向=
+   年轻化、情绪化、互动化、可截图传播。
+
+**实施（src/guji/copy_bank.json 文案库 = dots 生成+人工审校）**：
+1. daily：等级总结按日期盐确定性抽取带梗短句（如凶日=「避雷日」体）；
+   宜忌全量替换为年轻化表达（宜奶茶加料/忌回前任消息）。
+2. 八字 warm：新增「日主人设卡」（甲=大树型人格…癸=温柔治愈师 +
+   高光时刻），无提问时置顶开场、有提问时不插行（判据 1/2 纪律）。
+3. taohua：one_liner 六变体 + 强/中/弱档回复给具体小行动（穿粉色/
+   下午三点去咖啡馆）；合婚 one_liner 六变体（甜度超标组合/锁死这对了）；
+   六爻 opener 六变体。
+4. 小满 system prompt 人设升级：互联网闺蜜、「宝」称呼、软化词、
+   不说教不越界、结尾小反问/小行动。
+5. 前端：品牌改「小满的解忧铺 · 今天也要好好生活呀」；今日卡改
+   「今日玄学搭子」+ 打卡互动（开运蛋/吃瓜运/摸鱼运/水逆退散，
+   localStorage 记忆当日选择，确定性反馈语）。
+
+**纪律说明**：voice.py 引入模块级一次性加载的 copy_bank.json（IO 例外已
+注释声明）；抽取用 sha1 盐非随机，确定性（判据 5）不受影响；professional
+模式零改动（baseline_voice sha256 一致复验）。
+
+**插曲**：①app.js 追加时误将整文件截断为 addon（sandbox 写法 bug）——
+从 HEAD 重建+CRLF 保真恢复，selftest 抓到 fmtScalar 缺失；②services.py
+"、".join(a,b) 两参 bug 致 daily 500——TestClient 实测即抓即修；
+③cpf c6_career 余量 111px FAIL（有提问场景人设行推高高度）——改为有提问
+不插人设行，余量回到 209px PASS，门柱未放宽。
+
+**实测**：selftest 163 PASS；ui_smoke 41/41；warm_voice 判据 1-8 全达标；
+cpf 5×8 全达标（c6 余 209px）；baseline_voice sha256 一致；contract/
+selftest_regress/first_screen/quality/build_index/verify_index/
+conservation/poster/async_ai/count_open_findings 全 exit 0
+（$LOCALAPPDATA/Temp/gates_r214b*.log）。

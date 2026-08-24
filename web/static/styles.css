@@ -1059,3 +1059,22 @@ button:active:not(.theme-btn){transform:scale(.96);}
 /* 空状态睡觉猫插画 */
 .chat-empty-img{width:96px; height:96px; border-radius:50%;
   box-shadow:0 4px 16px rgba(160,120,200,.25); margin-bottom:8px;}
+
+/* ── R214b：「今日玄学搭子」打卡互动 ── */
+.daily-checkin{margin:12px 14px 2px; padding-top:10px;
+  border-top:1px dashed var(--border);}
+.checkin-q{font-size:13.5px; color:var(--secondary); margin-bottom:8px;}
+.checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
+.checkin-opt{
+  padding:7px 14px; border-radius:16px; border:1.5px solid var(--border);
+  background:#fff; font-family:var(--font-sans); font-size:13px;
+  cursor:pointer; transition:transform .15s ease, box-shadow .15s ease,
+  border-color .15s ease, background .15s ease;
+}
+.checkin-opt:hover{border-color:#E8B898; transform:translateY(-1px);}
+.checkin-opt.picked{
+  background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
+  border-color:transparent; box-shadow:0 3px 10px rgba(232,106,138,.35);
+}
+.checkin-fx{min-height:20px; margin-top:8px; font-size:13.5px;
+  color:#D4547E; animation:fxCardIn .4s ease;}

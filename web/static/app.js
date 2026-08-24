@@ -2860,3 +2860,45 @@ if (document.readyState === 'loading') {
   new MutationObserver(function () { watchCards(); }).observe(document.body, { childList: true, subtree: true });
 })();
 
+/* ── R214b：「今日玄学搭子」打卡互动（纯前端，确定性反馈）── */
+const CHECKIN_OPTS = ['开运蛋', '吃瓜运', '摸鱼运', '水逆退散'];
+const CHECKIN_FEEDBACK = {
+  '开运蛋': ['今天这个运简直像开了挂，冲鸭！', '好运来敲门，接住了别撒手！'],
+  '吃瓜运': ['瓜运当头，记得带好小板凳前排围观！', '今天的瓜管够，吃瓜吃到撑～'],
+  '摸鱼运': ['摸鱼运爆棚，快乐一下不过分！', '摸鱼时长建议不超过15分钟哦宝～'],
+  '水逆退散': ['霉运走开，今天就是好运girl！', '水逆退散！诸事皆宜的一天开始了～']
+};
+function renderCheckin(dateKey) {
+  const box = document.getElementById('dailyCheckin');
+  if (!box) return;
+  const saved = (window.localStorage && dateKey) ?
+    window.localStorage.getItem('checkin:' + dateKey) : null;
+  const opts = CHECKIN_OPTS.map(function (o) {
+    return '<button type="button" class="checkin-opt' +
+      (saved === o ? ' picked' : '') + '" data-opt="' + o + '">' + o + '</button>';
+  }).join('');
+  box.innerHTML = '<div class="checkin-q">你今天是什么运？</div>' +
+    '<div class="checkin-opts">' + opts + '</div>' +
+    '<div class="checkin-fx" id="checkinFx">' +
+    (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>';
+  if (!box.dataset.bound) {
+    box.dataset.bound = '1';
+    box.addEventListener('click', function (e) {
+      const btn = e.target.closest('.checkin-opt');
+      if (!btn || !dateKey) return;
+      const opt = btn.dataset.opt;
+      try { window.localStorage.setItem('checkin:' + dateKey, opt); } catch (e2) {}
+      box.querySelectorAll('.checkin-opt').forEach(function (b) {
+        b.classList.toggle('picked', b === btn);
+      });
+      const fx = document.getElementById('checkinFx');
+      if (fx) fx.textContent = pickCheckinFeedback(opt, dateKey);
+    });
+  }
+}
+function pickCheckinFeedback(opt, dateKey) {
+  const pool = CHECKIN_FEEDBACK[opt] || [];
+  let h = 0; const s = String(dateKey) + opt;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return pool[h % Math.max(1, pool.length)] || '';
+}
