@@ -348,6 +348,8 @@ function showView(viewId) {
    * 首屏闸门（probe_first_screen 判据 1）量的是「提交后」的视口偏移，
    * 与本行无关。 */
   window.scrollTo({ top: _sy, behavior: 'auto' });
+  /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
+  if (viewId === 'liuyao') syncLiuyaoToday();
 }
 
 /* ── 通用渲染件 ────────────────────────────────────────────── */
@@ -1189,6 +1191,11 @@ function rememberVoice(containerId, json, renderFn) {
  *  **这个函数是专业模式的渲染路径，判据 9 要求它不被改写。** */
 function renderInterpretation(interp, title) {
   if (!interp) return '';
+  /* R216b 续（U-007）：内部判据编号（G7：无证据不推测 等）不得出现在用户
+   * 界面——显示层剥括注，API/基线字节零改动。 */
+  const _stripInternal = function (t) {
+    return String(t).replace(/（G[0-9]+[：:][^）]*）/g, '').replace(/\(G[0-9]+:[^)]*\)/g, '');
+  };
   let html = '<h3 style="margin-top:20px;color:var(--c-tarot);">' +
     esc(title || '📖 解读') +
     '<span class="interp-badge">' + esc(interp.engine || '确定性规则') + '</span></h3>';
@@ -1197,7 +1204,7 @@ function renderInterpretation(interp, title) {
     secs.forEach(function (s) {
       html += '<div class="interp-sec"><h4>' + esc(s.title || '') + '</h4><ul>';
       (s.lines || []).forEach(function (ln) {
-        html += '<li>' + esc(ln) + '</li>';
+        html += '<li>' + esc(_stripInternal(ln)) + '</li>';
       });
       html += '</ul></div>';
     });
@@ -1996,22 +2003,41 @@ function buildLiuyaoResult(j) {
   const ben = j.ben || {};
   const bian = j.bian || {};
   let html = '<div class="card"><h2>🔮 六爻卦象</h2>';
+  /* R216b 续（UX 队列 U-007）：解读先给人话结论（warm.reply 已是结论式，
+   * 这里把它提到坐标区之前常显），再画卦象。 */
+  const warm = j.warm || {};
+  if (warm.reply && warm.reply.length) {
+    html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
+      esc(warm.one_liner || '') + '</div><div class="warm-reply">';
+    warm.reply.slice(0, 3).forEach(function (ln) {
+      html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div>';
+    if (warm.badge) html += '<div class="warm-badge">' + esc(warm.badge) + '</div>';
+    html += '</div>';
+  }
   html += '<p class="paipan-line" style="color:var(--c-liuyao);">' +
     esc(ben.gua_name || '') + '（第 ' + esc(ben.gua_number) + ' 卦）</p>';
   // 实测 lines[] 是 {position,yang,moving,symbol}，moving_lines[] 是数字。
   if (ben.lines && ben.lines.length) {
-    html += '<div class="pill-row">';
-    ben.lines.forEach(function (ln) {
-      html += '<span class="pill sm" style="background:' +
-        (ln.moving ? 'var(--c-bazi)' : 'var(--secondary)') + ';">' +
-        esc(ln.position) + ' ' + esc(ln.symbol || (ln.yang ? '⚊' : '⚋')) + '</span>';
-    });
+    /* R216b 续（U-007）：爻象图形化——自上而下（上爻→初爻）、每爻带爻位名
+     * 与阴阳符号（⚊阳 ⚋阴），动爻加「○/×」动标并高亮。 */
+    const YAO_NAME = {6:'上爻',5:'五爻',4:'四爻',3:'三爻',2:'二爻',1:'初爻'};
+    html += '<div class="yao-stack">';
+    ben.lines.slice().sort(function (a, b) { return b.position - a.position; })
+      .forEach(function (ln) {
+        const mark = ln.moving ? (ln.yang ? ' ○' : ' ×') : '';
+        html += '<div class="yao-row' + (ln.moving ? ' moving' : '') + '">' +
+          '<span class="yao-name">' + esc(YAO_NAME[ln.position] || ('第' + ln.position + '爻')) +
+          '</span><span class="yao-sym">' +
+          esc((ln.symbol || (ln.yang ? '⚊' : '⚋')) ) + mark + '</span></div>';
+      });
     html += '</div>';
   }
   if (ben.moving_lines && ben.moving_lines.length) {
-    html += '<p>动爻：' + esc(ben.moving_lines.join('、')) + '</p>';
+    html += '<p>动爻：' + esc(ben.moving_lines.join('、')) + ' 爻——变化从这里发生</p>';
   } else {
-    html += '<p>无动爻（静卦）</p>';
+    html += '<p>无动爻（静卦）——当下格局稳住，变化的劲不明显</p>';
   }
   if (bian.gua_name) {
     html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
@@ -2034,14 +2060,25 @@ function buildLiuyaoResult(j) {
   return html;
 }
 
+/* R216b 续（U-007）：时间起卦的年月日默认取「打开页面的当天」——原 HTML
+ * 写死 1990/5/15，用户不看日期直接摇就会用错时间坐标。进视图时同步一次。 */
+function syncLiuyaoToday() {
+  const t = new Date();
+  const setv = function (id, v) { const e2 = document.getElementById(id); if (e2) e2.value = v; };
+  setv('ly_year', t.getFullYear());
+  setv('ly_month', t.getMonth() + 1);
+  setv('ly_day', t.getDate());
+}
+
 async function doLiuyao() {
   busy('lyResult', '摇卦中…');
   // 实测后端只认 coins|time（HTML 里原来的 "dice" 会得到 400）。
   const method = val('ly_method') === 'coins' ? 'coins' : 'time';
   const body = { method: method };
   if (method === 'coins') {
-    const seed = num('ly_seed');
-    if (seed != null) body.seed = seed;
+    /* R216b 续（U-006）：同塔罗——高级折叠里的 Seed 留空即自动生成。 */
+    const seedRaw = val('ly_seed');
+    if (seedRaw !== '' && seedRaw != null) body.seed = num('ly_seed');
   } else {
     body.year = num('ly_year');
     body.month = num('ly_month');
@@ -2407,7 +2444,10 @@ function tarotFace(d) {
 
 function buildTarotResult(j) {
   let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
-  html += '<p class="hit-cite">seed ' + esc(j.seed) + ' · ' + esc(j.n) + ' 张（固定 seed 必得同样牌面，可复验）</p>';
+  /* R216b 续（U-006）：工程口吻复验说明人话化；seed 编号收进 title 悬停
+   * 可见（专业用户仍可复验），不再平铺在正文。 */
+  html += '<p class="hit-cite" title="seed ' + esc(j.seed) + '">' + esc(j.n) +
+    ' 张牌 · 同一天问同一件事，翻到的就是这几张</p>';
   html += '<div class="tarot-grid">';
   (j.draws || []).forEach(function (d, i) {
     html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
@@ -2478,7 +2518,11 @@ function tarotDeepRead(draws, question) {
 
 async function doTarot() {
   busy('trResult', '抽牌中…');
-  const seed = num('tr_seed');
+  /* R216b 续（U-006）：Seed 字段收进高级折叠，留空=用户不关心复验，
+   * 前端自动生成一个编号（仅用于「同牌可复验」说明，不影响体验）。 */
+  const seedRaw = val('tr_seed');
+  const seed = (seedRaw === '' || seedRaw == null) ?
+    (Date.now() % 1000000) : num('tr_seed');
   const n = num('tr_n');
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
   if (seed != null) body.seed = seed;

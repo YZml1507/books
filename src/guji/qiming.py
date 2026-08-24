@@ -228,6 +228,7 @@ def _gender_score(char: str, gender: str) -> int:
 # --------------------------------------------------------------------------------------
 FULL_N_DEFAULT = 8
 _MAX_MEANING_REPEAT = 2      # 同一寓意坐标的组合最多出现次数
+_QIMING_HEAD_REPEAT = 2      # U-005：同一「名字首字」同批最多出现次数
 
 
 def _full_name_combos(surname: str, missing: list[str], gender: str,
@@ -242,7 +243,9 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
             "full_name": surname + given,
             "given": given,
             "elements": [c["element"] for c in chars],
-            "meanings": " · ".join(c["meaning"].split("-", 1)[-1] for c in chars),
+            # U-018：两字寓意坐标相同时去重为一处（原「松柏长青 · 松柏长青」）
+            "meanings": " · ".join(dict.fromkeys(
+                c["meaning"].split("-", 1)[-1] for c in chars)),
             "form": "single" if len(chars) == 1 else "double",
         }
 
@@ -278,14 +281,31 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
 
     out: list[dict] = []
     meaning_count: dict[str, int] = {}
+    # R216b 续（UX 队列 U-005）：同批名字中间字去重——原实现只限寓意重复，
+    # 排序后同首字组合扎堆（实测「李萱芷/李萱薇/李萱兰/…」8 名全带「萱」，
+    # 审查轨巡1 的「李柏X」同源）。规则：每个「名字首字」在同批最多出现
+    # 2 次；池子不够时回填被跳过的次优组合，保证足额 full_n 个。
+    head_count: dict[str, int] = {}
+    skipped: list[dict] = []
     for _, _, _, entry in scored:
-        key = entry["meanings"]
-        if meaning_count.get(key, 0) >= _MAX_MEANING_REPEAT:
-            continue
-        meaning_count[key] = meaning_count.get(key, 0) + 1
-        out.append(entry)
         if len(out) >= full_n:
             break
+        mkey = entry["meanings"]
+        hkey = entry["given"][:1]
+        if meaning_count.get(mkey, 0) >= _MAX_MEANING_REPEAT or \
+           head_count.get(hkey, 0) >= _QIMING_HEAD_REPEAT:
+            skipped.append(entry)
+            continue
+        meaning_count[mkey] = meaning_count.get(mkey, 0) + 1
+        head_count[hkey] = head_count.get(hkey, 0) + 1
+        out.append(entry)
+    for entry in skipped:               # 回填：多样性约束放宽但寓意上限不放宽
+        if len(out) >= full_n:
+            break
+        if meaning_count.get(entry["meanings"], 0) >= _MAX_MEANING_REPEAT:
+            continue
+        meaning_count[entry["meanings"]] = meaning_count.get(entry["meanings"], 0) + 1
+        out.append(entry)
     return out
 
 

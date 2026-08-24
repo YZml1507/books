@@ -16432,3 +16432,15 @@ API 实测荒谬的「1997年…一起做决定」（7岁/5岁）消失。
 **闸门**（gates_r216b2.log，DISABLE=1，7 项全 EXIT=0）：selftest 163 ·
 ui_smoke · baseline_voice 一致 · warm_voice · plain_first · check_poster ·
 guji.voice 自测；huangli/bazi/taohua 回归数字不回退、pageerror 0。
+
+### 161. [优化轨] R216b 续2：U-005/U-006/U-007/U-018（2026-08-25）
+
+U-005（部分）：qiming._full_name_combos 首字≤2 多样性约束+回填；
+女命 head max 5→2，确定性保持。「换一批」/字池扩充留待下轮。
+U-006：Seed 收高级折叠（塔罗+六爻）、留空自动生成、结果行工程腔人话化
+（seed 编号进 title）。
+U-007（部分）：爻象图形化（上→初竖排+爻位名+动爻标记）、warm 结论先行、
+显示层剥 G7 括注（interpreter 被 baseline 冻结，API 字节零改动）、
+时间起卦默认当天。「直答吉凶+时间范围」触 G7 红线不做，须 spec 修订。
+U-018：meanings 双拼去重（dict.fromkeys）。
+闸门 gates_r216b3.log 7 项全 EXIT=0；三页回归 pageerror 0。

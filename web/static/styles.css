@@ -851,6 +851,16 @@ details.warm-pro-fold > summary{
   padding:10px 12px; border:1px dashed var(--border);
   border-radius:var(--radius-sm); background:#FFFCF7;
 }
+/* R216b 续（U-007）：六爻爻象图形化——上爻→初爻竖排，动爻高亮。 */
+.yao-stack{ display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+.yao-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 14px; border-radius:var(--radius-sm);
+  background:#FFFCF7; border:1px solid var(--border);
+}
+.yao-row.moving{ border-color:var(--c-bazi); background:#fff5f5; }
+.yao-name{ font-size:13px; color:var(--secondary); }
+.yao-sym{ font-size:22px; font-family:var(--font-serif); color:var(--text); }
 /* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
 .pro-notice{
   display:flex; align-items:center; justify-content:space-between; gap:8px;

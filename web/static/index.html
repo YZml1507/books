@@ -435,12 +435,18 @@
         <div class="field"><label for="ly_hour">时</label>
           <input id="ly_hour" type="number" min="0" max="23" value="10"></div>
       </div>
+      <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">
-        <div class="field"><label for="ly_seed">Seed（铜钱起卦）</label>
-          <input id="ly_seed" type="number" value="42"></div>
         <div class="field"><label for="ly_question">所问何事</label>
           <input id="ly_question" type="text" placeholder="可选"></div>
       </div>
+      <details class="pro-drawer" style="margin-top:6px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的复验编号）</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label for="ly_seed">Seed</label>
+            <input id="ly_seed" type="number" value="42"></div>
+        </div>
+      </details>
       <button id="lySubmit" type="button">摇 卦</button>
       <div id="lyResult" style="margin-top:16px;"></div>
     </div>
@@ -511,9 +517,17 @@
   <div class="view" id="view-tarot">
     <div class="card">
       <h2>✨ 塔罗占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">抽牌 · 看指引</span></h2>
+      <!-- R216b 续（UX 队列 U-006）：Seed 是复验用的技术参数，收进默认
+           折叠的高级设置——普通用户不该第一眼看到调试字段。id 保持不变，
+           不填时前端自动生成。 -->
+      <details class="pro-drawer" style="margin-bottom:10px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（复验用编号）</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label for="tr_seed">Seed</label>
+            <input id="tr_seed" type="number" value="42"></div>
+        </div>
+      </details>
       <div class="row">
-        <div class="field"><label for="tr_seed">Seed</label>
-          <input id="tr_seed" type="number" value="42"></div>
         <div class="field"><label for="tr_n">张数（1–10）</label>
           <input id="tr_n" type="number" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
