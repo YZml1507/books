@@ -843,6 +843,14 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .mode-btn:focus-visible{ outline:3px solid var(--text); outline-offset:2px; }
 
 .warm-wrap{ margin-top:12px; }
+/* R216b（U-002/003）：温柔模式专业区统一折叠的视觉——弱化为「可选附录」，
+ * 与正文闺蜜语气区分开。 */
+details.warm-pro-fold{ margin-top:16px; }
+details.warm-pro-fold > summary{
+  cursor:pointer; font-size:13.5px; color:var(--secondary);
+  padding:10px 12px; border:1px dashed var(--border);
+  border-radius:var(--radius-sm); background:#FFFCF7;
+}
 
 /* L0 一句话：首屏第一眼，字大、无术语（判据 1/2/3） */
 /* R206b（US4）：共情行样式合并进上方 .chat-entry 区块（一处定义） */

@@ -16385,3 +16385,29 @@ qiming 入口确认——二者在「老玩家入口」proDrawer 内（R206b 设
 first_screen/quality/build_index/verify_index/conservation/poster/
 count_open_findings 全 exit 0（$LOCALAPPDATA/Temp/gates_r215b.log +
 前置四闸门直跑记录）。
+
+### 159. [优化轨] R216b：UX 队列首批修复 U-001/U-002/U-003（含审查轨误回滚事故后的全量重做）（2026-08-24）
+
+**背景**：审查轨 R216a-巡1 提 13 条 UX 问题（docs/UX_REVIEW_QUEUE.md）。
+优化轨认领第一批 MAJOR 三条；首版修复被审查轨复核期间误执行
+`git checkout -- app.js` 回滚（styles.css 幸存），按队列复核段 diff
+描述全量重做，并答复「叠字标签」待复核项=误注（真实八字数据，非 bug）。
+
+**修法（全前端 additive，API 契约与 pro 分支零改动）**：
+1. U-001 黄历：HUANGLI_WARM（宜忌逐条人话）/JIANCHU_NOTE/XIUXIU_NOTE
+   写死映射 + 彭祖百忌收折叠 + 建除一句话今日开场 + 收尾安抚句；
+   V-002 一并处理（捕捉/狩猎人话改都市语境）。
+2. U-002 八字温柔版：renderWarm 内 warm.details 整组收进
+   「📜 想看专业依据？」折叠（判据 4b/6/7 折叠可核验口径不变）。
+3. U-003 桃花：坐标块收进「🔍 想看桃花坐标？」折叠；
+   STRENGTH_CN 映射 weak→偏弱/mid→平稳/strong→偏旺。
+4. styles.css 新增 details.warm-pro-fold 折叠样式 8 行。
+
+**实测**（Playwright :8185、390px、pageerror 0）：
+huangli 100→230 字符、裸文言消失；bazi 温柔版 2879→1579px、
+pro 标记从可见文本清零；taohua 折叠生效、英文 strength 清零。
+
+**闸门**（$LOCALAPPDATA/Temp/gates_r216b.log，DISABLE=1 串行）：
+selftest 163 PASS；probe_ui_smoke 41 用例 PASS；baseline_voice sha256
+一致（97f0681e…）；check_warm_voice 判据 1-8 PASS + --self-check PASS；
+check_plain_first 5×8 全达标。全部 EXIT=0。

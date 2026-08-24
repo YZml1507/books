@@ -648,7 +648,32 @@ function renderWarm(warm, interp, evidence) {
     html += '<div class="warm-badge">' + esc(warm.badge) + '</div>';
   }
   // L2 details：正文常显，推导依据折叠（判据 4）
-  (warm.details || []).forEach(function (d) {
+  /* R216b（UX 队列 U-002）：温柔模式下这批 details 段（排盘坐标/运算摘要等
+   * 标题沿用 interpreter 的内部小节名）在结果下半部裸铺约四成篇幅，
+   * 「上半截闺蜜、下半截论文」。改为整组收进单个折叠「📜 想看专业依据？」
+   * ——事实零删减（DOM 里仍在，判据 4b/6/7 的折叠可核验口径不变），
+   * 只是默认不展开。专业模式路径不经此分支，零改动。 */
+  if (voiceMode() === 'warm' && (warm.details || []).length) {
+    html += '<details class="warm-basis warm-pro-fold"><summary>📜 想看专业依据？（' +
+      warm.details.length + ' 项，展开慢慢看）</summary>';
+    (warm.details || []).forEach(function (d) {
+      html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
+      (d.lines || []).forEach(function (ln) {
+        html += '<li>' + esc(ln) + '</li>';
+      });
+      html += '</ul>';
+      if (d.basis && d.basis.length) {
+        html += '<details class="warm-basis"><summary>推导依据（' +
+          esc(d.basis.length) + ' 条）</summary><ul>';
+        d.basis.forEach(function (b) {
+          html += '<li>' + esc(b) + '</li>';
+        });
+        html += '</ul></details>';
+      }
+      html += '</div>';
+    });
+    html += '</details>';
+  } else (warm.details || []).forEach(function (d) {
     html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
     (d.lines || []).forEach(function (ln) {
       html += '<li>' + esc(ln) + '</li>';
@@ -2028,38 +2053,86 @@ async function doHuangli() {
   const dateStr = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
   try {
     const j = await api('/api/huangli?' + new URLSearchParams({ date: dateStr }).toString());
-    let html = '<div class="card"><h2>🌙 黄历 ' + esc(j.date || dateStr) + '</h2>';
-    html += '<div class="pill-row">';
+    /* R216b（UX 队列 U-001）：黄历结果页原是全站最干瘪的「老黄历工具」——
+     * 建除/二十八宿/彭祖百忌文言裸抛、宜忌标签无解释、仅约 100 字符。
+     * 改造（纯前端 additive，API 契约零改动）：
+     *   1. 宜/忌逐条带场景化人话（HUANGLI_WARM 写死映射，映射不到回落原词）；
+     *   2. 建除/二十八宿给一句话解释（JIANCHU_NOTE / XIUXIU_NOTE）；
+     *   3. 彭祖百忌整块收进折叠（事实零删减，只是默认不展开）；
+     *   4. 补今日一句话 + 收尾安抚句（均按坐标确定性生成，同输入同输出）。
+     */
+    const HUANGLI_WARM = {
+      '嫁娶': '领证、订婚、官宣的好日子', '开市': '开业、上新、发第一单',
+      '出行': '出门、旅行、去远方', '祭祀': '拜一拜、静心的日子',
+      '祈福': '许愿、求个心安', '求嗣': '备孕、求子相关的事',
+      '上任': '入职、履新、接新项目', '入学': '开学、报到、开始学新东西',
+      '立券': '签约、定合同', '纳财': '收款、谈钱、理财动作',
+      '捕捉': '把悬着的小事收个尾', '狩猎': '户外撒欢放放电',
+      '安葬': '丧葬事宜', '破土': '动工破土类事宜', '治病': '看病、调理身体',
+      '解除': '化解矛盾、清理旧事', '谒贵': '拜访贵人、见重要的人',
+      '修造': '装修、修缮', '动土': '开工动土', '平整': '整理归置',
+      '冠笄': '成人礼、形象焕新', '诉讼': '打官司、走程序',
+      '出官': '公务出行', '安床': '安床布置', '移徒': '搬家挪窝',
+      '进人口': '添丁进口', '开仓': '开库出货', '求医': '看医生',
+      '筑堤': '修建堤坝', '塞穴': '封堵修补', '栽植': '种花种树',
+      '经络': '缝纫织补', '苫盖': '搭棚加盖'
+    };
+    const JIANCHU_NOTE = {
+      '建': '万物初生的一天，适合起头、见人', '除': '扫除旧事的一天，适合清理与告别',
+      '满': '饱满的一天，适合庆祝和犒劳自己', '平': '平稳的一天，适合日常推进不折腾',
+      '定': '安定的一天，适合定大事、做承诺', '执': '坚持的一天，认准的事慢慢推进',
+      '破': '破旧立新的一天，大事先缓一缓', '危': '需要小心的一天，稳字当头',
+      '成': '收获的一天，想做的事容易顺', '收': '收纳的一天，适合总结、收尾、存钱',
+      '开': '打开的一天，适合开始新的尝试', '闭': '收拢的一天，适合休息、宅家充电'
+    };
+    const XIUXIU_NOTE = {
+      '角': '龙角星——决策有底气', '亢': '龙颈星——别太较劲', '氐': '龙胸星——根基要稳',
+      '房': '龙腹星——适合休整', '心': '龙心脏星——跟着感觉走', '尾': '龙尾星——事情容易摆动',
+      '箕': '风星——话别太满', '斗': '斗星——忙碌但值得', '牛': '金牛星——踏实做事',
+      '女': '女宿——适合打扮自己', '虚': '虚宿——少熬夜', '危': '危宿——注意安全',
+      '室': '室宿——适合宅家布置', '壁': '壁宿——学习吸收力好', '奎': '奎宿——灵感多',
+      '婁': '娄宿——适合聚会', '胃': '胃宿——好好吃饭', '昴': '昴宿——早睡早起',
+      '畢': '毕宿——收网的时候到了', '觜': '觜宿——说话留三分', '參': '参宿——行动力在线',
+      '井': '井宿——水源充足，资源到位', '鬼': '鬼宿——少想多睡', '柳': '柳宿——心情柔软',
+      '星': '星宿——存在感强的一天', '張': '张宿——适合展示自己', '翼': '翼宿——想飞就飞',
+      '軫': '轸宿——收住节奏'
+    };
+    function _warmWord(t) {
+      const w = HUANGLI_WARM[t];
+      return w ? t + '＝' + w : t;
+    }
+    let html = '<div class="card"><h2>🌙 黄历 · ' + esc(j.date || dateStr) + '</h2>';
+    // 今日一句话：按建除确定性生成（同输入同输出）
     if (j.jianchu) {
-      html += '<span class="pill sm" style="background:var(--c-huangli);color:var(--text);">建除：' +
-        esc(j.jianchu) + '</span>';
+      html += '<div class="warm-l0" style="font-size:18px;">今天是「' + esc(j.jianchu) +
+        '」值日' + (JIANCHU_NOTE[j.jianchu] ? '——' + esc(JIANCHU_NOTE[j.jianchu]) : '') + '。</div>';
     }
-    if (j.xiu) {
-      html += '<span class="pill sm" style="background:var(--c-tarot);">二十八宿：' +
-        esc(j.xiu) + '</span>';
-    }
-    html += '</div>';
-    // 实测 pengzu 是 {gan,zhi,gan_text,zhi_text} 对象（不是字符串）。
+    html += '<p class="nayin" style="margin-top:8px;">' +
+      (j.xiu && XIUXIU_NOTE[j.xiu] ? '值宿「' + esc(j.xiu) + '」：' + esc(XIUXIU_NOTE[j.xiu]) : '') +
+      '</p>';
+    // 彭祖百忌：整块收进折叠（原文逐字保留在 DOM 里）
     const pz = j.pengzu || {};
     if (pz.gan_text || pz.zhi_text) {
-      html += '<div class="calc-block"><h3>彭祖百忌</h3><ul>' +
+      html += '<details class="warm-basis"><summary>📜 彭祖百忌（老话，展开看看）</summary><ul>' +
         '<li>' + esc(pz.gan || '') + '：' + esc(pz.gan_text || '') + '</li>' +
-        '<li>' + esc(pz.zhi || '') + '：' + esc(pz.zhi_text || '') + '</li></ul></div>';
+        '<li>' + esc(pz.zhi || '') + '：' + esc(pz.zhi_text || '') + '</li></ul></details>';
     }
-    // 实测 yi/ji 是数组（不是字符串）。R201b（B-004）：各项独立 pill，
-    // 一眼看清条数（原逗号拼接丢失列表结构）。
+    // 实测 yi/ji 是数组。R201b（B-004）：各项独立 pill；R216b：逐条跟人话。
     function _pill(text, color) {
       return '<span class="pill" style="border:1px solid ' + color +
-        ';color:' + color + ';">' + esc(text) + '</span>';
+        ';color:' + color + ';background:#fff;">' + esc(text) + '</span>';
     }
     html += '<div class="calc-grid">';
-    html += '<div class="calc-block"><h3 style="color:var(--c-good);">✅ 宜</h3><p>' +
-      ((j.yi || []).map(function (t) { return _pill(t, 'var(--c-good)'); }).join(' ') || '—') +
+    html += '<div class="calc-block"><h3 style="color:var(--c-good);">✅ 今天适合</h3><p>' +
+      ((j.yi || []).map(function (t) { return _pill(_warmWord(t), 'var(--c-good)'); }).join(' ') || '—') +
       '</p></div>';
-    html += '<div class="calc-block"><h3 style="color:var(--accent);">❌ 忌</h3><p>' +
-      ((j.ji || []).map(function (t) { return _pill(t, 'var(--accent)'); }).join(' ') || '—') +
+    html += '<div class="calc-block"><h3 style="color:var(--accent);">🙅 今天别急</h3><p>' +
+      ((j.ji || []).map(function (t) { return _pill(_warmWord(t), 'var(--accent)'); }).join(' ') || '—') +
       '</p></div>';
-    html += '</div></div>';
+    html += '</div>';
+    html += '<p class="interp-disclaimer">📝 老黄历说的是节奏参考，日子怎么过还是你说了算～</p>';
+    html += renderAiPolish(j);
+    html += '</div>';
     paint('hlResult', html);
     revealResult('hlResult');
   } catch (e) {
@@ -2182,6 +2255,20 @@ async function doTaohua() {
       if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
       html += '</div>';
     }
+    /* R216b（UX 队列 U-003）：温柔模式下四柱标签 + 8 个裸键值块
+     * （年支/咸池/红鸾/天喜/强弱…）是纯工具感排版，且 badge 声称
+     * 「详细依据见专业模式」却把原始坐标铺在当前页、自相矛盾。
+     * 改为：warm 下整块收进单个折叠「🔍 想看桃花坐标？」；
+     * 强弱值经 STRENGTH_CN 映射（weak→偏弱 等英文不再直出）。
+     * 叠字标签核查结论（R216b 实测 + vision 复核）：审查轨截图里的
+     * 「巳巳」是 1990-05-15 男真实八字数据（月柱辛巳、时柱辛巳各自
+     * 干支同支），非前端拼接 bug，不做去重——去重反而会篡改事实。
+     * 专业模式分支原样保留全部数据。 */
+    const STRENGTH_CN = { strong: '偏旺', mid: '平稳', weak: '偏弱' };
+    function _strengthCn(v) { return STRENGTH_CN[v] || v || '—'; }
+    if (j.warm) {
+      html += '<details class="warm-basis warm-pro-fold"><summary>🔍 想看桃花坐标？（展开看专业数据）</summary>';
+    }
     html += '<div class="pill-row">';
     ['year', 'month', 'day', 'hour'].forEach(function (k, i) {
       if (bz[k]) {
@@ -2196,7 +2283,7 @@ async function doTaohua() {
       ['命中柱', (j.hit_pillars || []).join('、') || '无'],
       ['红鸾', j.hongluan], ['红鸾落柱', (j.hongluan_pillar || []).join('、') || '无'],
       ['天喜', j.tianxi], ['天喜落柱', (j.tianxi_pillar || []).join('、') || '无'],
-      ['强弱', j.strength]
+      ['强弱', _strengthCn(j.strength)]
     ].forEach(function (pair, i) {
       html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +
         ';"><h3>' + esc(pair[0]) + '</h3><p>' + esc(fmtScalar(pair[1])) + '</p></div>';
@@ -2205,6 +2292,9 @@ async function doTaohua() {
     if (j.render) {
       html += '<div class="calc-summary" style="border-left-color:var(--c-taohua);">' +
         esc(j.render) + '</div>';
+    }
+    if (j.warm) {
+      html += '</details>';
     }
     if (j.dayun_hits && j.dayun_hits.length) {
       html += '<h3 style="margin-top:16px;">大运桃花应期</h3>' +
