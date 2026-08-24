@@ -16228,3 +16228,35 @@ warm_voice 8 判据 PASS；baseline_voice exit 0；contract SOFT=9 exit 0；
 selftest_regress/first_screen/dollar/count_open_findings/check_quality/
 build_index/verify_index/probe_conservation/check_poster 全部 exit 0
 （$LOCALAPPDATA/Temp/gates_r211*.log + cpf_final3.log + cpf_sc.log）。
+
+### 154. [优化轨] R212b：侧栏聊天样式裸奔恢复 + 海报大字截断修复（2026-08-24）
+
+**背景**：接续上一窗口未完成的 R212b。用户复检发现两处新缺陷：
+①R209b chat-panel 退役时误删 `.chat-flow/.chat-bubble/.chat-me/.chat-ai/
+.chat-input-row input/button` 全套样式（git show 949a52c 确认），聊天并入
+侧栏后气泡无背景无圆角、输入框按钮错位、空状态大片空白；②分享海报
+`buildShareData('daily')` 用 `summary.slice(0,18)` 把句子拦腰截断成
+「…宜稳不」。
+
+**修复**：
+1. US1' 侧栏聊天样式：恢复全套气泡/输入框样式并按抽屉语境重调——输入行
+   钉底、发送钮渐变并入行内、`.recent-side-head` 淡渐变头部条、
+   `.side-chat` flex:1 撑满；JS 新增 `chatEmptyGuide()`：抽屉打开且
+   chatFlow 为空时插入「我是小满…仅供陪伴」空状态引导，首条消息到达即移除。
+2. US2' 海报截断（两个叠加 bug）：
+   a. big 改 `summary.split(/[；;]/)[0]` 取第一个分号前完整短句；
+   b. 新写 `wrapText3()`：按宽度断行、超 3 行逐档缩字号重排——注意
+      `parseInt(ctx.font,10)` 会把 '600 92px …' 解析成字重 600，
+      必须 `/(\d+)px/.exec` 取 px 前数字（曾致 592px 巨字爆出画布顶）；
+      大字行距随字号自适应，键值卡片 Y 随行数下移防重叠。
+
+**验证**：Playwright 真浏览器截图取证——空状态引导上屏、输入框+发送钮
+钉底正常；selftest 163 PASS；ui_smoke 41 用例 PASS 41 / FAIL 0（含
+ui.font.zcool_applied）；check_plain_first 5×8 全达标（c6_career 余量
+209px）+ warm_voice 8 判据 PASS + baseline_voice sha256 一致 +
+probe_contract/selftest_regress/first_screen/count_open_findings/
+check_quality/build_index/verify_index/probe_conservation/check_poster/
+async_ai 全部 exit 0（$LOCALAPPDATA/Temp/gates_r212b.log）。
+
+**教训**：CSS 重构删段前先 grep JS 动态类名拼接（`'chat-bubble chat-' +
+role` 不出现在 HTML）；改完必须真浏览器截图目视，不能只看 diff 说已修。

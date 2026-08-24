@@ -212,6 +212,7 @@ function chatOpen() {
   var sb = el('recentSidebar');
   if (!sb) return;
   sb.classList.add('open');
+  chatEmptyGuide();   /* R212：空状态引导 */
   var tgl = el('recentToggle');
   if (tgl) tgl.setAttribute('aria-expanded', 'true');
   var flow = el('chatFlow');
@@ -227,9 +228,21 @@ function chatClose() {
   var tgl = el('recentToggle');
   if (tgl) tgl.setAttribute('aria-expanded', 'false');
 }
+function chatEmptyGuide() {
+  /* R212：空状态引导——抽屉打开时不再是一片空白。 */
+  var flow = el('chatFlow');
+  if (!flow || flow.children.length) return;
+  var d = document.createElement('div');
+  d.className = 'chat-empty';
+  d.id = 'chatEmpty';
+  d.textContent = '🌸 我是小满，解忧铺的店员。\n最近有什么心事，都可以跟我说说——\n仅供陪伴，不构成任何建议。';
+  flow.appendChild(d);
+}
 function chatBubble(role, text) {
   var flow = el('chatFlow');
   if (!flow) return;
+  var emp = document.getElementById('chatEmpty');
+  if (emp) emp.remove();
   var div = document.createElement('div');
   div.className = 'chat-bubble chat-' + role;
   if (text.indexOf('chat-typing') !== -1) div.innerHTML = text;  // 动效气泡
@@ -867,12 +880,15 @@ function _paintSharePoster(s, W, H) {
   ctx.fillStyle = '#3E3428';
   var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
   ctx.font = '600 ' + bigSize + 'px sans-serif';
-  var words = wrapText(ctx, big, 900);
-  words.slice(0, 2).forEach(function (ln, i) { ctx.fillText(ln, 540, 320 + i * (bigSize + 22)); });
+  /* R212：三行上限（原两行导致「宜稳不」截断感），行距随字号自适应 */
+  var words = wrapText3(ctx, big, 900);
+  var bigGap = Math.round(bigSize * 1.35);
+  words.forEach(function (ln, i) { ctx.fillText(ln, 540, 300 + i * bigGap); });
 
   /* 键值行卡片 */
   var lines = (s.lines || []).slice(0, 4);
-  var cardY = s.cards && s.cards.length ? 500 : 520;
+  /* R212：随大字行数下移卡片，避免重叠 */
+  var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
   if (lines.length) {
     var lh = Math.min(120, 900 / lines.length);
     ctx.fillStyle = '#FFFFFF';
@@ -941,7 +957,11 @@ function buildShareData(view, j) {
   switch (view) {
     case 'daily':
       return { title: '今日运势', subtitle: (j && j.date) || '',
-        big: (j && j.summary) ? String(j.summary).slice(0, 18) : '今日份小确幸',
+        /* R212：原 slice(0,18) 会把 summary 拦腰截断（「…宜稳不」）——
+         * 改取第一个分号前的完整短句。 */
+        big: (j && j.summary)
+          ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
+          : '今日份小确幸',
         lines: [{ k: '运势等级', v: (j && j.level) || '—' },
                 { k: '天乙贵人', v: (j && j.noble) || '—' },
                 { k: '宜', v: (j && j.do) || '—' },
@@ -1021,6 +1041,25 @@ function circle(ctx, x, y, r) {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.closePath();
+}
+
+/* R212：海报大字用——先按宽度断行，超 3 行则缩字号重排，杜绝截断。 */
+function wrapText3(ctx, text, maxWidth) {
+  /* parseInt(ctx.font) 会把 '600 92px …' 解析成 600（字重前缀）——
+   * 必须取 px 前的数字。 */
+  var mpx = /(\d+)px/.exec(ctx.font);
+  var size = mpx ? parseInt(mpx[1], 10) : 60;
+  for (var trial = 0; trial < 4; trial++) {
+    ctx.font = ctx.font.replace(/\d+px/, (size - trial * 8) + 'px');
+    var lines = [], cur = '';
+    String(text || '').split('').forEach(function (ch) {
+      if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch; }
+      else cur += ch;
+    });
+    if (cur) lines.push(cur);
+    if (lines.length <= 3) return lines;
+  }
+  return lines.slice(0, 3);
 }
 
 function wrapText(ctx, text, maxWidth) {
