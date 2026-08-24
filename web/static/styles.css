@@ -1078,3 +1078,11 @@ button:active:not(.theme-btn){transform:scale(.96);}
 }
 .checkin-fx{min-height:20px; margin-top:8px; font-size:13.5px;
   color:#D4547E; animation:fxCardIn .4s ease;}
+
+/* ── R215b：温柔模式生日线 + 生辰小卡折叠 ── */
+.bazi-birthday{font-size:14px; color:#B0576E; margin:10px 0 4px;
+  font-family:var(--font-sans);}
+.paipan-fold{margin:6px 0 10px;}
+.paipan-fold summary{cursor:pointer; font-size:12.5px;
+  color:var(--secondary); user-select:none;}
+.paipan-fold[open] summary{margin-bottom:8px;}

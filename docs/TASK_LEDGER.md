@@ -16362,3 +16362,26 @@ cpf 5×8 全达标；截图目视人设卡+高光时刻上屏。
 
 **遗留观察（下轮候选）**：顶部四柱标签区「数据堆叠感」仍偏工具（vision
 评分 7.5/10 的主扣分项）；liuyao/qiming 无 `[data-view]` 入口需确认导航路径。
+
+### 158. [优化轨] R215b 续：温柔模式首屏去工具感——四柱标签收进「生辰小卡」折叠（2026-08-24）
+
+**背景**：§157 巡检 vision 评审给结果页 7.5/10，主扣分项=首屏四柱彩色
+标签+纳音行「数据堆叠感」太像排盘工具。本轮处置该问题。
+
+**修法（buildBaziResult 分支化）**：
+- 专业模式：pill-row + 纳音原样保留（判据 9/pro_render 口径零改动）。
+- 温柔模式：首屏只显示一句人话生日线 `baziBirthdayLine(paipan)`
+  （年支→生肖：「你是属马的呀——这张小卡就是你的底色。」），
+  四柱标签+纳音收进 `<details class="paipan-fold">`「看看你的生辰小卡」，
+  事实零删减只是呈现位置后移。
+
+**巡检验证（Playwright 实测）**：生日线上屏、pill-row 收进折叠、专业版
+切换后标签照常可见；vision 复评闺蜜感 8.5/10（上轮 7.5）。补齐 liuyao/
+qiming 入口确认——二者在「老玩家入口」proDrawer 内（R206b 设计如此），
+非缺失。
+
+**实测**：selftest 163 PASS；baseline_voice sha256 一致；warm_voice 判据
+1-8 PASS；contract 190 字段 PASS；ui_smoke 41/41；cpf 5×8 全达标；
+first_screen/quality/build_index/verify_index/conservation/poster/
+count_open_findings 全 exit 0（$LOCALAPPDATA/Temp/gates_r215b.log +
+前置四闸门直跑记录）。

@@ -1380,16 +1380,36 @@ function buildBaziResult(j) {
   // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
   html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
     'title="生成分享图">📸 分享图</button>';
-  html += '<div class="pill-row">';
-  String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
-    if (p.length >= 2) {
-      html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
-        esc(p) + '</span>';
+  if (voiceMode() === 'pro') {
+    /* R215b：专业模式保留原排盘标签（判据 9 口径不动）。 */
+    html += '<div class="pill-row">';
+    String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
+      if (p.length >= 2) {
+        html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
+          esc(p) + '</span>';
+      }
+    });
+    html += '</div>';
+    if (paipan.nayin && paipan.nayin.length) {
+      html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
     }
-  });
-  html += '</div>';
-  if (paipan.nayin && paipan.nayin.length) {
-    html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
+  } else {
+    /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
+     * 首屏只有一句人话生日线。事实零改动，只是呈现位置后移。 */
+    html += '<p class="bazi-birthday">' + esc(baziBirthdayLine(paipan)) + '</p>';
+    html += '<details class="paipan-fold"><summary>看看你的生辰小卡</summary>' +
+      '<div class="pill-row">';
+    String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
+      if (p.length >= 2) {
+        html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
+          esc(p) + '</span>';
+      }
+    });
+    html += '</div>';
+    if (paipan.nayin && paipan.nayin.length) {
+      html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
+    }
+    html += '</details>';
   }
   if (paipan.warn && paipan.warn.length) {
     html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
@@ -2902,4 +2922,16 @@ function pickCheckinFeedback(opt, dateKey) {
   let h = 0; const s = String(dateKey) + opt;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return pool[h % Math.max(1, pool.length)] || '';
+}
+
+/** R215b：温柔模式首屏的生日人话线（年支→生肖）。 */
+function baziBirthdayLine(paipan) {
+  try {
+    const yz = String((paipan && paipan.render) || '').split(/\s+/)[0] || '';
+    const m = yz.match(/^(.)(.)/);
+    const animals = {'子':'鼠','丑':'牛','寅':'虎','卯':'兔','辰':'龙','巳':'蛇',
+                     '午':'马','未':'羊','申':'猴','酉':'鸡','戌':'狗','亥':'猪'};
+    if (m && animals[m[2]]) return '你是属' + animals[m[2]] + '的呀——这张小卡就是你的底色。';
+  } catch (e) { /* 兜底走通用句 */ }
+  return '这是你的生辰底色——展开可以看细节哦。';
 }
