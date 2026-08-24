@@ -16260,3 +16260,32 @@ async_ai 全部 exit 0（$LOCALAPPDATA/Temp/gates_r212b.log）。
 
 **教训**：CSS 重构删段前先 grep JS 动态类名拼接（`'chat-bubble chat-' +
 role` 不出现在 HTML）；改完必须真浏览器截图目视，不能只看 diff 说已修。
+
+### 155. [优化轨] R213b：七图采纳接线 + 微交互特效 + dots 模型三用接入（2026-08-24）
+
+**背景**：用户批准 r212b 七张候选图全采纳；要求加点击特效/滑动拖尾；
+提供 dots（小红书点点）模型 endpoint。实测结论：dots 多模态视觉可用、
+不能生图（自述无图像输出）、无联网（训练数据至 2025-12）、小红书文案
+知识扎实。
+
+**接线**：
+1. 图片：头像→avatar-xiaoman.png；今日卡插画→daily-box-gift.png；
+   海报背景 warm→poster-bg-peach.png / night→poster-bg-night.png；
+   聊天空状态新增 icon-set-moon-cat.png 睡觉猫插画+引导文字。
+2. 特效（只动 transform/opacity，reduced-motion 停用）：点击涟漪+六星
+   迸发（fx-ripple/fx-spark，事件捕获委托）、touchmove 节流星尘拖尾
+  （fx-trail，40ms）、卡片 IntersectionObserver 入场渐浮（.fx-watch/
+   .fx-in，MutationObserver 兜动态插入）。
+3. dots 接入（llm_polish.py）：load_dots_config() 读 llm_config.json
+   "dots" 段（BOOKS_LLM_DISABLE 同样生效）；xhs_copy() 小红书文案生成
+  （实测桃花主题 5 标题产出质量高）；chat() 主 LLM 失败时 dots 备选
+   大脑兜底（同 system+facts 语境，双失败才降级 None）。
+
+**实测**：Playwright 取证 avatar/cat 图加载 true、点击后 fx 元素 7 个、
+9 卡片纳入观察、pageerror 0；selftest 163 PASS；14 道闸门全 exit 0
+（ui_smoke/cpf/warm_voice/baseline_voice/contract/async_ai/selftest_
+regress/first_screen/quality/build_index/verify_index/conservation/
+poster/count_open_findings——$LOCALAPPDATA/Temp/gates_r213b.log）。
+
+**备注**：dots 无生图能力已向用户说明（生图仍走 Pollinations 备选池）；
+llm_config.json 为 gitignored 本机文件，key 不入库。

@@ -367,7 +367,13 @@ def chat(session_id: str, user_msg: str,
 
     text = _chat_call(payload_msgs, cfg, _transport)
     if not text:
-        return None
+        # R213b：主 LLM 失败时 dots 作备选大脑（同 system + facts 语境）。
+        # dots 也失败才真正降级 None——提高聊天可用性而非改变口吻判据。
+        dcfg = load_dots_config()
+        if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
+            text = _chat_call(payload_msgs, dcfg, _transport)
+        if not text:
+            return None
 
     with _chat_lock:
         sess = _chat_sessions.get(session_id)
@@ -420,6 +426,57 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
             return out
     return None
 
+
+
+# ── R213b：dots（小红书点点）模型接入 ──
+# 三用途：①小红书文案生成（海报标题/笔记文案）；②chat 失败时的备选大脑；
+# ③调研顾问（平台知识问答）。配置读 web/llm_config.json 的 "dots" 段；
+# 缺失或 enabled=false → 全部 dots 功能静默关闭（与主 LLM 同一降级纪律）。
+
+def load_dots_config() -> dict | None:
+    """读 dots 配置。None = 关闭。BOOKS_LLM_DISABLE 总开关同样生效。"""
+    _dis = os.getenv(_ENV_DISABLE)
+    if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
+        return None
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(os.path.dirname(here))
+    path = os.path.join(root, "web", "llm_config.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = (json.load(f) or {}).get("dots") or {}
+    except Exception:
+        return None
+    if not d.get("enabled") or not d.get("api_key"):
+        return None
+    d.setdefault("base_url", "https://note3-prev-api.askdiandian.com/v1")
+    d.setdefault("model", "dots3-note-prev")
+    d.setdefault("timeout_s", 60)
+    d.setdefault("max_tokens", 1200)
+    return d
+
+
+_XHS_COPY_SYSTEM = (
+    "你是深谙小红书平台调性的爆款文案写手，服务对象是一款面向 15-25 岁"
+    "年轻女性的八字/塔罗娱乐 Web 应用「小满的解忧铺」。用户会给你一个"
+    "主题和场景，请输出符合小红书风格的标题或笔记文案：口语化、有钩子、"
+    "情绪价值优先，可用适量 emoji；不出现「命理术语堆砌」和绝对化断言；"
+    "结尾可带 2-3 个相关话题标签。只输出文案本身，不要解释。")
+
+def xhs_copy(topic: str, kind: str = "poster_title",
+             config: dict | None = None, _transport=None) -> str | None:
+    """生成小红书文案。kind: poster_title | note_copy。失败 None。"""
+    cfg = config or load_dots_config()
+    if cfg is None:
+        return None
+    topic = (topic or "").strip()[:200]
+    if not topic:
+        return None
+    ask = {"poster_title": f"为主题「{topic}」写 5 个分享海报标题，每行一个。",
+           "note_copy": f"为主题「{topic}」写一篇 150 字内的小红书笔记正文。"}.get(
+              kind, f"围绕「{topic}」写一段小红书风格短文案。")
+    msgs = [{"role": "system", "content": _XHS_COPY_SYSTEM},
+            {"role": "user", "content": ask}]
+    return _chat_call(msgs, cfg, _transport)
 
 _NAME_REVIEW_SYSTEM = (
     "你是一位精通古典文学的起名顾问。用户会给你几个候选名字和五行背景。"

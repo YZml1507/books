@@ -235,7 +235,14 @@ function chatEmptyGuide() {
   var d = document.createElement('div');
   d.className = 'chat-empty';
   d.id = 'chatEmpty';
-  d.textContent = '🌸 我是小满，解忧铺的店员。\n最近有什么心事，都可以跟我说说——\n仅供陪伴，不构成任何建议。';
+  var im = document.createElement('img');
+  im.src = '/static/_candidates/r212b/icon-set-moon-cat.png';
+  im.alt = '';
+  im.className = 'chat-empty-img';
+  d.appendChild(im);
+  var t = document.createElement('p');
+  t.textContent = '我是小满，解忧铺的店员。\n最近有什么心事，都可以跟我说说——\n仅供陪伴，不构成任何建议。';
+  d.appendChild(t);
   flow.appendChild(d);
 }
 function chatBubble(role, text) {
@@ -2212,8 +2219,8 @@ async function doTaohua() {
 var POSTER_BG = {
   warm: new Image(), night: new Image()
 };
-POSTER_BG.warm.src = '/static/_candidates/share-bg-warm.png';
-POSTER_BG.night.src = '/static/_candidates/share-bg-night.png';
+POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
+POSTER_BG.night.src = '/static/_candidates/r212b/poster-bg-night.png';
 
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 function tarotImg(name) {
@@ -2794,3 +2801,62 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+/* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
+ * 纪律：全部只动 transform/opacity（check_plain_first 判据 2 门柱安全）；
+ * prefers-reduced-motion 下整体停用。 */
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  /* 点击涟漪 + 星星迸发 */
+  document.addEventListener('click', function (e) {
+    var host = e.target.closest('.card, .btn, button, .chat-entry');
+    var x = e.clientX, y = e.clientY;
+    var ripple = document.createElement('div');
+    ripple.className = 'fx-ripple';
+    ripple.style.left = x + 'px'; ripple.style.top = y + 'px';
+    (host || document.body).appendChild(ripple);
+    setTimeout(function () { ripple.remove(); }, 650);
+    for (var i = 0; i < 6; i++) {
+      var s = document.createElement('span');
+      s.className = 'fx-spark';
+      s.style.left = x + 'px'; s.style.top = y + 'px';
+      var ang = Math.random() * Math.PI * 2, dist = 24 + Math.random() * 30;
+      s.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+      s.style.setProperty('--dy', Math.sin(ang) * dist - 18 + 'px');
+      s.style.animationDelay = (i * 30) + 'ms';
+      document.body.appendChild(s);
+      setTimeout(function (n) { return function () { n.remove(); }; }(s), 700 + i * 30);
+    }
+  }, true);
+
+  /* 滑动拖尾：touchmove 节流生成渐隐星尘 */
+  var lastTrail = 0;
+  document.addEventListener('touchmove', function (e) {
+    var now = Date.now();
+    if (now - lastTrail < 40) return;
+    lastTrail = now;
+    var t = e.touches[0];
+    var d = document.createElement('span');
+    d.className = 'fx-trail';
+    d.style.left = t.clientX + 'px'; d.style.top = t.clientY + 'px';
+    document.body.appendChild(d);
+    setTimeout(function () { d.remove(); }, 600);
+  }, { passive: true });
+
+  /* 卡片入场：IntersectionObserver 渐入上浮 */
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) {
+    es.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add('fx-in'); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.08 }) : null;
+  function watchCards(root) {
+    (root || document).querySelectorAll('.card:not(.fx-watch)').forEach(function (c) {
+      c.classList.add('fx-watch');
+      if (io) io.observe(c); else c.classList.add('fx-in');
+    });
+  }
+  watchCards();
+  /* 动态插入的结果区也纳入观察 */
+  new MutationObserver(function () { watchCards(); }).observe(document.body, { childList: true, subtree: true });
+})();
+

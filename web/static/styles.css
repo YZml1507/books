@@ -233,7 +233,7 @@ h1,.brand-mark,.section-title,.side-brand{
   /* R211b（US7'）：contain + 正偏移锚定——负偏移+百分比组合在窄视口
    * 仍裁掉右侧花盆主体（375px 截图取证）；contain 保完整呈现。 */
   background:var(--card) right 12px top 12px/contain no-repeat
-    url("/static/_candidates/daily-box.png");
+    url("/static/_candidates/r212b/daily-box-gift.png");
   border:1px solid var(--border); border-radius:var(--radius);
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
@@ -1012,3 +1012,50 @@ button:active:not(.theme-btn){transform:scale(.96);}
   .daily-level,.recent-toggle{animation:none !important;}
   button:active{transform:none;}
 }
+
+/* ── R213b：微交互特效（只动 transform/opacity；reduced-motion 停用）── */
+.fx-ripple{
+  position:fixed; width:14px; height:14px; margin:-7px 0 0 -7px;
+  border-radius:50%; pointer-events:none; z-index:9999;
+  background:radial-gradient(circle,rgba(242,123,108,.45),rgba(232,106,138,.15) 60%,transparent 70%);
+  animation:fxRipple .6s ease-out forwards;
+}
+@keyframes fxRipple{
+  0%{transform:scale(.4); opacity:.9;}
+  100%{transform:scale(5); opacity:0;}
+}
+.fx-spark{
+  position:fixed; width:7px; height:7px; margin:-3px 0 0 -3px;
+  pointer-events:none; z-index:9999; border-radius:50%;
+  background:#FFD9A8; box-shadow:0 0 6px rgba(255,196,140,.9);
+  animation:fxSpark .66s ease-out forwards;
+}
+@keyframes fxSpark{
+  0%{transform:translate(0,0) scale(1); opacity:1;}
+  100%{transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0;}
+}
+.fx-trail{
+  position:fixed; width:10px; height:10px; margin:-5px 0 0 -5px;
+  pointer-events:none; z-index:9998; border-radius:50%;
+  background:radial-gradient(circle,#FBC7E0,#E86A8A);
+  animation:fxTrail .55s ease-out forwards;
+}
+@keyframes fxTrail{
+  0%{transform:scale(1); opacity:.85;}
+  100%{transform:scale(.1) translateY(8px); opacity:0;}
+}
+.card{opacity:1;}
+.card.fx-watch:not(.fx-in){opacity:0; transform:translateY(14px);}
+.card.fx-in{animation:fxCardIn .55s cubic-bezier(.22,.9,.34,1) forwards;}
+@keyframes fxCardIn{
+  from{opacity:0; transform:translateY(14px) scale(.985);}
+  to{opacity:1; transform:none;}
+}
+@media (prefers-reduced-motion: reduce){
+  .fx-ripple,.fx-spark,.fx-trail{display:none;}
+  .card.fx-watch:not(.fx-in){opacity:1; transform:none;}
+  .card.fx-in{animation:none;}
+}
+/* 空状态睡觉猫插画 */
+.chat-empty-img{width:96px; height:96px; border-radius:50%;
+  box-shadow:0 4px 16px rgba(160,120,200,.25); margin-bottom:8px;}
