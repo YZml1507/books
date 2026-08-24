@@ -697,6 +697,29 @@ def main() -> int:
                 "ok": overflow <= 0,
                 "detail": f"横向溢出 {overflow}px（≤0 为通过）",
             })
+            # R211b（spec §7 US8' 判据 a）：快乐体真正上屏——R210b 的规则
+            # 漏掉 .brand-title/h2，页面无 h1 导致全站零命中。此用例钉住
+            # computed font-family 首选 ZCOOL KuaiLe + fonts.check 为 true。
+            zc = page.evaluate(
+                """async () => {
+                    await document.fonts.ready;
+                    const ff = s => { const el = document.querySelector(s);
+                        return el ? getComputedStyle(el).fontFamily : ''; };
+                    return {
+                        brandTitle: ff('.brand-title'),
+                        cardH2: ff('.card h2'),
+                        check: document.fonts.check('20px "ZCOOL KuaiLe"', '知命'),
+                    };
+                }""")
+            zc_ok = (zc["brandTitle"].startswith('"ZCOOL KuaiLe"')
+                     and zc["cardH2"].startswith('"ZCOOL KuaiLe"')
+                     and zc["check"] is True)
+            results.append({
+                "name": "ui.font.zcool_applied",
+                "ok": zc_ok,
+                "detail": ("brand-title/h2 首选字体=ZCOOL KuaiLe 且 fonts.check=true"
+                           if zc_ok else f"快乐体未上屏：{zc}"),
+            })
             ctx.close()
             browser.close()
     finally:

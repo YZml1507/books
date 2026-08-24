@@ -5814,3 +5814,21 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 
 **大改三步前置**：量尺=spec §6 判据 a–d；退路=CSS 令牌与 git revert 单点；
 动基线声明=无基线文件变更（探针只改导航辅助逻辑若必要）。
+
+## D-261b R211b 决策：快乐体命中修正（.brand-title/h2 补接线）+ daily-box contain 防裁切 + 表单卡片化打磨
+
+**背景**：用户复检「字体没变、背景图没修好、整体不好看」。Playwright
+取证证实 R210b 两处修复存在接线缺口：①快乐体规则漏掉 .brand-title 与 h2
+（页面无 h1，实际标题元素全未命中，fonts.check=False）；②daily-box 保留
+负偏移定位仍裁右侧主体。属 US7/US8 判据未真正达成，非用户新需求。
+
+**裁决**：
+1. 字体：把 "ZCOOL KuaiLe" 前置到 .brand-title 与 h2 的既有 font-family
+   声明（.brand-mark/.section-title/.side-brand 已命中不动）；正文零改动。
+2. 背景：daily-box 改 background-size:contain + right/top 正偏移锚定，
+   两档视口截图验证主体完整；不再用百分比+负偏移组合。
+3. 观感：表单区卡片化渐变底 + 输入框圆角 + 次级文字提色（AA），只动 CSS，
+   不动任何判据输出文本（check_plain_first 判据只量高度/字符）。
+
+**大改三步前置**：量尺=spec §7 判据 a–c；退路=git revert 单提交点；
+动基线声明=ui_smoke 新增 ui.font.zcool_applied 用例（只增不减）。

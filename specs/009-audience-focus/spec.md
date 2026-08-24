@@ -158,3 +158,33 @@ US1（AI 陪伴层，依赖子 agent 勘查报告，独立一轮）。
 - 判据 a：新增动画规则均带 reduced-motion 停用分支；
 - 判据 b：ui_smoke/selftest/check_plain_first 全绿（动画不产生布局位移，
   判据 2 的 200px 余量门柱不因入场动画爆线——动画只用 transform/opacity）。
+
+## 7. R211b 修订（2026-08-23，用户复检：字体与背景修复实际未生效）
+
+> 修订程序：本节为「R211b 修订」显式标注，§0–§6 原文零改写。
+
+**实测根因（Playwright 计算样式取证）**：
+- US8 判据 b 实际未达成：R210b 的快乐体规则只命中
+  `h1/.brand-mark/.section-title/.side-brand`——页面无 `<h1>`，
+  大标题「知命」是 `.brand-title`、版块标题全是 `h2`，二者均未命中。
+  浏览器实测 `.brand-title` 计算值仍为 LXGW WenKai 栈，
+  `document.fonts.check('ZCOOL KuaiLe')` = False。用户「字体没变」属实。
+- US7 判据 a 未彻底达成：daily-box 改了百分比 size 但保留
+  `right -12px top -10px` 负偏移定位，移动端右侧花盆仍被裁切
+  （375px 截图取证）。
+
+### US8' 快乐体真正上屏（R211b 修订）
+- 判据 a：`.brand-title`、全部 `h2`、`.section-title`、`.side-brand` 的
+  computed font-family 首选 "ZCOOL KuaiLe"，且 `document.fonts.check`
+  对标题用字返回 true（Playwright 取证，写进 ui_smoke 新用例）；
+- 判据 b：正文/结果区仍为 WenKai 栈；legacy 回滚主题不含快乐体（不变）。
+
+### US7' 插画完整呈现（R211b 修订）
+- 判据 a：daily-box 以 `background-size:contain` + 右侧正偏移锚定，
+  375/1280 两档视口截图目视主体（两盆植物）零裁切；
+- 判据 b：海报背景回归钉住（现状已对，不变）。
+
+### US10 整体观感打磨（R211b 新增，回应「整体不好看」）
+- 判据 a：表单卡片化（.card 内柔和底色渐变+圆角输入框，消除工具感断层）；
+- 判据 b：正文次级文字对比度 ≥ AA（灰字提色）；
+- 判据 c：check_plain_first 5×8 全达标、ui_smoke/selftest 全绿。

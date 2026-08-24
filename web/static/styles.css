@@ -168,7 +168,7 @@ body{
   src:url("./fonts/zcool-kuaile-subset.woff2") format("woff2");
   font-display:swap;
 }
-h1,.brand-mark,.section-title{font-family:var(--font-serif);}
+h1,.brand-mark,.section-title{font-family:"ZCOOL KuaiLe",var(--font-serif);}
 .daily-level{font-family:var(--font-display); font-weight:400;}
 /* R210b：标题层命中快乐体——serif 栈前置（仅亮色主题；legacy 回滚栈
  * 在下方 :root 主题块里重定义、不含快乐体，回滚=系统字体口径不变）。 */
@@ -196,7 +196,7 @@ h1,.brand-mark,.section-title,.side-brand{
   100%{background-position:0% 50%}
 }
 .brand-title{
-  font-family:var(--font-serif); font-size:38px; font-weight:700;
+  font-family:"ZCOOL KuaiLe",var(--font-serif); font-size:38px; font-weight:700;
   color:var(--text); letter-spacing:.04em; line-height:1.1;
   background:linear-gradient(135deg,#B8860B,#FF6B6B,#B8860B);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
@@ -230,14 +230,13 @@ h1,.brand-mark,.section-title,.side-brand{
   /* R210b（US7）：插画改百分比尺寸自适应——原 220px 固定值在窄视口
    * 裁掉主体（用户点名「背景图没有缩放好」）；40% 宽 + 保持比例，
    * 560px 以下再放大到 45% 保可视性。 */
-  background:var(--card) right -12px top -10px/38% no-repeat
+  /* R211b（US7'）：contain + 正偏移锚定——负偏移+百分比组合在窄视口
+   * 仍裁掉右侧花盆主体（375px 截图取证）；contain 保完整呈现。 */
+  background:var(--card) right 12px top 12px/contain no-repeat
     url("/static/_candidates/daily-box.png");
   border:1px solid var(--border); border-radius:var(--radius);
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
-}
-@media (max-width:560px){
-  .daily-card{background-size:46%;}
 }
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
@@ -485,7 +484,7 @@ h1,.brand-mark,.section-title,.side-brand{
   position:relative;
 }
 .card h2{
-  font-family:var(--font-serif); font-size:20px; color:var(--text);
+  font-family:"ZCOOL KuaiLe",var(--font-serif); font-size:20px; color:var(--text);
   padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:16px;
 }
 .card h3{font-size:15px; color:var(--secondary); margin-bottom:8px;}
@@ -495,6 +494,8 @@ label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; 
 .row{display:flex; gap:12px; flex-wrap:wrap;}
 .field{flex:1; min-width:96px;}
 input[type=number], input[type=text], input[type=date], select{
+  /* R211b（US10）：输入控件圆角+柔底，消工具感断层 */
+  border-radius:12px; background:#FFFDF8;
   width:100%; padding:10px 12px; font-size:15px;
   /* 003 判据 1/2：44px 点击目标下限（WCAG 2.5.5）。原 padding 只得
    * 39–41px，差 3–5px——差一点也是不达标。 */

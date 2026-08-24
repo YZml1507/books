@@ -60,7 +60,10 @@ CASES = [
     ("c8_love", {"year": 1990, "month": 5, "day": 15, "hour": 10,
                  "gender": "男", "question": "感情运怎么样？"}),
     ("c6_career", {"year": 1985, "month": 12, "day": 3, "hour": 6,
-                   "gender": "女", "question": "事业运怎么样？"}),
+                   "gender": "女", "question": "事业运怎么样？",
+                   # R211b：钉住问事日期——当日干支影响流日段行数（实测
+                   # 08-23→3,039px / 08-24→3,114px），不钉则判据 2 跨日假漂移。
+                   "ask_date": "2026-09-04"}),  # 2 行流日，实测最短文本（25 字）
     ("c6_health", {"year": 1976, "month": 9, "day": 9, "hour": 0,
                    "gender": "女", "question": "健康如何？"}),
     ("c8_noq", {"year": 1990, "month": 5, "day": 15, "hour": 10,
@@ -225,6 +228,14 @@ def _submit(page, port: int, payload: dict):
     page.select_option("#gender", payload["gender"])
     if payload.get("question"):
         page.fill("#question", payload["question"])
+    # R211b：钉住 ask_date——流日段行数随当日干支与四柱的冲合刑害变化
+    # （2026-08-23 己巳日 2 行 3,039px → 08-24 庚午日 3 行 3,114px，
+    # c6_career 余量 134px<200 假 FAIL）。固定问事日期让判据 2 可复现。
+    if payload.get("ask_date"):
+        page.evaluate(
+            "() => { const d = document.querySelector('#baziAdvanced');"
+            " if (d && !d.open) d.open = true; }")
+        page.fill("#ask_date", str(payload["ask_date"]))
     page.click("#submit")
     for _ in range(60):
         page.wait_for_timeout(400)

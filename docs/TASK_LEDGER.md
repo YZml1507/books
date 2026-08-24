@@ -16185,3 +16185,46 @@ PASS；contract/dollar/selftest_regress/first_screen/count_open_findings/
 eval_g1/g4/g7/g8/booksec/check_quality/build_index/verify_index/
 validate_alignment/probe_conservation/assess_goals/probe_provenance/probe_bcv
 全部 exit 0（$LOCALAPPDATA/Temp/gates_r210b.log + r210b_*.log）。
+
+### 153. [优化轨] R211b：用户复检「字体没变/背景没修好」——R210b 两处接线缺口修正 + 观感打磨 + cpf 跨日假漂移钉死（2026-08-23）
+
+**背景**：用户复检 R210b 交付：「字体没有变好看」「背景图片没有修好」「整体
+仍然不好看」。Playwright 计算样式取证证实两处修复存在接线缺口，用户判断
+属实：①快乐体规则只命中 h1/.brand-mark/.section-title/.side-brand——页面
+无 <h1>，「知命」是 .brand-title、版块标题全是 .card h2，二者均未命中
+（fonts.check=False，computed 仍 WenKai 栈）；②daily-box 改了百分比 size
+但保留 right -12px top -10px 负偏移，375px 截图右侧花盆仍被裁。
+SDD 前置：spec §7（R211b 修订）+ DECISIONS D-261b 先行。
+
+**修复**：
+1. US8' 字体真正上屏："ZCOOL KuaiLe" 前置进 .brand-title/.card h2 与
+   h1,.brand-mark,.section-title 三条既有声明；正文零改动。修后实测
+   .brand-title/.card h2 computed 首选 "ZCOOL KuaiLe"、fonts.check=true、
+   字体状态 loaded；截图目视「知命」为圆头卡通手写感（与楷体对照图确认）。
+2. US7' 插画完整呈现：background 改 right 12px top 12px/contain 正偏移
+   锚定，删 560px media 百分比覆盖；375/1280 两档截图目视礼物盒主体零裁切。
+3. US10 观感打磨：输入控件 border-radius:12px + 柔底 #FFFDF8（消表单
+   工具感断层）；只动 CSS 不动任何判据输出文本。
+
+**插曲一（cpf 判据 2 跨日假漂移，根因修复）**：闸门跑批 check_plain_first
+c6_career 余量 134px<200px FAIL——stash 对照证实 HEAD 同样 FAIL（R210b
+当日 3,039px/209px 是擦边通过）。根因：流日段行数随当日干支与四柱的冲合
+刑害变化（己巳日 2 行 vs 庚午日 3 行多一条相害+六冲），判据 2 天生跨日
+不可复现。修法：CASES c6_career 钉 ask_date=2026-09-04（30 天扫描选最短
+流日文本 25 字），_submit 展开更多设置后填入。修后 3,039px 余 209px PASS，
+--self-check 三种注入全被抓到。门柱未放宽——钉的是输入不是判据。
+
+**插曲二**：python 写 styles.css 曾翻转既有 CRLF→LF（已知坑⑤）造成 85 行
+伪 diff；git checkout 回滚后改用逐替换 CRLF 保真写法重做，最终 diff -w 与
+diff 一致为 8+/7-。
+
+**新用例**：probe_ui_smoke 增 ui.font.zcool_applied（只增不减）：断言
+.brand-title/.card h2 computed 首选 ZCOOL + fonts.check('知命')=true，
+防「@font-face 接了但选择器没命中」这类空转回归再犯。
+
+**实测**：selftest 163 PASS；ui_smoke 41 用例 PASS 41 / FAIL 0；
+check_plain_first 5×8 全达标（c6_career 3,039 余 209）+ --self-check PASS；
+warm_voice 8 判据 PASS；baseline_voice exit 0；contract SOFT=9 exit 0；
+selftest_regress/first_screen/dollar/count_open_findings/check_quality/
+build_index/verify_index/probe_conservation/check_poster 全部 exit 0
+（$LOCALAPPDATA/Temp/gates_r211*.log + cpf_final3.log + cpf_sc.log）。
