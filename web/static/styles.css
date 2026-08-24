@@ -851,6 +851,20 @@ details.warm-pro-fold > summary{
   padding:10px 12px; border:1px dashed var(--border);
   border-radius:var(--radius-sm); background:#FFFCF7;
 }
+/* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
+.pro-notice{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  flex-wrap:wrap; font-size:13px; color:var(--secondary);
+  padding:8px 12px; margin-bottom:10px;
+  border-left:3px solid var(--c-book); background:#F4FBFA;
+  border-radius:var(--radius-sm);
+}
+.pro-back-btn{
+  cursor:pointer; white-space:nowrap;
+  padding:6px 14px; min-height:32px; border-radius:999px;
+  border:1px solid var(--c-bazi); background:#fff0f0; color:var(--text);
+  font-size:13px;
+}
 
 /* L0 一句话：首屏第一眼，字大、无术语（判据 1/2/3） */
 /* R206b（US4）：共情行样式合并进上方 .chat-entry 区块（一处定义） */

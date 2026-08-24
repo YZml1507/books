@@ -204,7 +204,7 @@ selftest 复跑 163 PASS（基线本身未破），但 U-001/002/003 的修复�
 > 覆盖：daily 完整解读、分享海报（真实下载产物）、专业模式切换残留、
 > 农历输入、起名性别分支、合婚应期文案、塔罗 10 张边界、起名 AI 点评降级。
 
-### U-014 🔴 MAJOR｜分享海报信息卡标签与值同坐标叠印，文字完全不可读
+### U-014 ✅ [已修 R216b 续] 🔴 MAJOR｜分享海报信息卡标签与值同坐标叠印，文字完全不可读
 - 复现：八字提交 → 点「📸 分享图」→ 检查下载的 zhiming-poster.png（1080×1440）。
 - 截图：`$LOCALAPPDATA/Temp/tour/round2/poster_download2.png`、`poster_crop_card.png`
 - 现状：drawPoster 信息卡三行（幸运色/幸运数字/幸运时段）`fillText(r[0],140,y)`
@@ -214,7 +214,7 @@ selftest 复跑 163 PASS（基线本身未破），但 U-001/002/003 的修复�
   正是这张图）。另「黄运标」文案疑似截断。
 - 期望：值右移至标签之后（如 x=460）；补一张真实下载产物的像素级验收判据。
 
-### U-015 🔴 MAJOR｜专业模式切换后全局残留：新会话所有功能直出内部键名转储
+### U-015 ✅ [已修 R216b 续] 🔴 MAJOR｜专业模式切换后全局残留：新会话所有功能直出内部键名转储
 - 复现：任一结果卡切「📐 专业版」（写 localStorage.voiceMode='pro'）→ 回首页
   进其他任意功能 → 结果区直接铺 ten_gods/five_ele 等原始字段转储（实测单页
   34,914 字符、页面高 146,954px）。
@@ -236,7 +236,7 @@ selftest 复跑 163 PASS（基线本身未破），但 U-001/002/003 的修复�
 - 期望：四力量词各带一句短注；拒答话术人话化（如「这个话题盘里没有对应的
   位置，小满不瞎编～」）；核心断语配白话副标。
 
-### U-017 🟠 HIGH｜合婚应期文案逻辑荒谬仍在（U-004 未修，附根因定位）
+### U-017 ✅ [已修 R216b 续] 🟠 HIGH｜合婚应期文案逻辑荒谬仍在（U-004 未修，附根因定位）
 - 复现：API 直测 1990男×1992女，warm.reply 第 4 条仍为
   「1997年前后两人的大运有互动（合）——那段时间适合一起做决定」（当时 7 岁/5 岁）。
 - 根因：src/guji/voice.py:715 无条件取 dayun_hits[0]（最早的大运=童年期），
@@ -320,3 +320,38 @@ taohua 折叠 present=true、展开后无英文 strength（weak→偏弱 上屏�
 selftest 163 PASS EXIT=0；probe_ui_smoke PASS 41 用例 EXIT=0；
 baseline_voice sha256 一致 EXIT=0；check_warm_voice 判据 1-8 PASS EXIT=0
 （--self-check 阳性对照 PASS）；check_plain_first 5×8 PASS EXIT=0。
+
+---
+
+## R216b 续修复记录（2026-08-24 · 优化轨 · U-014/U-015/U-017）
+
+**U-014 海报叠印**（app.js _paintPoster）：
+1. 值 x 140→460（原 fillText(r[1],140,y+0) 与标签同点叠印）；
+2. 复验发现出处行 y=cardY+330 与第三信息行 y≈cardY+328 叠印——
+   卡高 430→560、出处下移至 cardY+480 起（行距 44px）、单行 >26 字截断；
+3. 幸运时段三时段一行放不下→拆两行（2+1）；lucky_hours 全量 join 溢出→
+   只取前三个并半角压缩。
+**像素级验收**（Playwright 真实下载产物 + vision 严格评审，
+$LOCALAPPDATA/Temp/tour/r216b2_poster_v5.png）：三行信息完整无叠印、
+时段两行排版完整、出处与信息行分离；v1→v5 共四轮目视迭代
+（v3 曾因白卡重绘顺序盖掉文字——重绘块已删，v4 验证恢复）。
+
+**U-015 专业模式残留**（renderVoice pro 分支头部 additive）：常显提示条
+「📐 当前是专业视角…🌸 回到温柔版」，复用既有 [data-voice] 全局委托
+（点击即 setVoiceMode('warm')+rerenderVoice）。pro 渲染内容零改动。
+实测：localStorage voiceMode='pro' 下提交 bazi → 提示条 present、
+点击返回钮 → voiceMode='warm' 且 L0 人话上屏。
+
+**U-017 合婚应期童年荒谬**（src/guji/voice.py warm_hehun）：按审查轨定位的
+根因修——dayun_hits[0] 无条件取最早运。改为只取 start_age_a≥16 的首个
+成年运给「适合一起做决定」建议；无合格运时降级为中性描述
+「从 XXXX 年起你们进入大运互动期」。dayun_hits 数据零改动
+（selftest hehun.dayun 的 8 运/1997 口径不变——那是坐标层，冻结不动；
+改的是 warm 文案层的选择逻辑）。API 实测 1990男×1992女：reply 从
+「1997年前后…」（7岁/5岁）变为不再含 1997（该对大运仅 2027 一命中，
+37.3 岁成年合格）。
+
+**闸门**（gates_r216b2.log，DISABLE=1 串行全 EXIT=0）：selftest 163 ·
+ui_smoke · baseline_voice sha256 一致 · warm_voice · plain_first ·
+check_poster · guji.voice 自测。回归：huangli/bazi/taohua 三页 pageerror 0、
+前批修复数字不回退（230/415/415 字符）。

@@ -16411,3 +16411,24 @@ pro 标记从可见文本清零；taohua 折叠生效、英文 strength 清零�
 selftest 163 PASS；probe_ui_smoke 41 用例 PASS；baseline_voice sha256
 一致（97f0681e…）；check_warm_voice 判据 1-8 PASS + --self-check PASS；
 check_plain_first 5×8 全达标。全部 EXIT=0。
+
+### 160. [优化轨] R216b 续：U-014 海报叠印 + U-015 专业模式残留 + U-017 合婚应期年龄过滤（2026-08-24）
+
+**U-014（MAJOR）**：_paintPoster 值 x 140→460 解同点叠印；复验 vision 发现
+第二处叠印（出处行 y≈cardY+330 与第三信息行同高）——卡高 430→560、出处
+下移 cardY+480、超 26 字截断；幸运时段拆两行（2+1）。像素级验收走
+Playwright 真实下载产物 + vision 四轮迭代（v3 白卡重绘顺序盖字事故当场
+抓出回滚），v5 全清：三行信息/两行时段/出处分层全部无叠印无截断。
+
+**U-015（MAJOR）**：renderVoice pro 分支头部 additive 常显提示条
+「📐 当前是专业视角…🌸 回到温柔版」，复用 [data-voice] 全局委托。
+pro 渲染内容零改动。实测 pro→点钮→warm L0 上屏全链路 PASS。
+
+**U-017（HIGH）**：voice.warm_hehun 按 start_age_a≥16 过滤应期运；无合格运
+降级中性描述「从 XXXX 年起你们进入大运互动期」。dayun_hits 坐标数据零改动
+（hehun.dayun standing 判据口径不变），只改 warm 文案层选择逻辑。
+API 实测荒谬的「1997年…一起做决定」（7岁/5岁）消失。
+
+**闸门**（gates_r216b2.log，DISABLE=1，7 项全 EXIT=0）：selftest 163 ·
+ui_smoke · baseline_voice 一致 · warm_voice · plain_first · check_poster ·
+guji.voice 自测；huangli/bazi/taohua 回归数字不回退、pageerror 0。

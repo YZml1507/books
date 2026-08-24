@@ -709,10 +709,21 @@ def warm_hehun(h: dict) -> dict:
         lines.append(f"十神互见：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
                      f"——两种力量互相成全，也偶尔较劲。")
     dayun = h.get("dayun_hits") or []
-    if dayun:
-        d0 = dayun[0]
+    # R216b 续（UX 队列 U-017）：原实现无条件取 dayun_hits[0]（最早的大运
+    # =童年期），产出「1997年前后…适合一起做决定」而两人当时 7 岁/5 岁的
+    # 荒谬文案。修法：只取双方均已成年（≥16 岁）的大运；没有合格运就不给
+    # 行为建议，改为中性的「从 XXXX 年起你们进入大运互动期」描述。
+    # dayun_hits 数据本身零改动（selftest hehun.dayun 钉的 8 运口径不变），
+    # 只是 warm 文案层做年龄过滤。
+    _adult = [d for d in dayun if int(d.get("start_age_a", 99)) >= 16]
+    if _adult:
+        d0 = _adult[0]
         lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
                      f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
+    elif dayun:
+        d0 = dayun[0]
+        lines.append(f"从{d0.get('year_start')}年起你们进入大运互动期"
+                     f"（{d0.get('relation', '')}）——节奏上的参考，不是日程表。")
     lines.append("合婚看的是相处倾向，不是合格证——"
                  "真正合不合，你们俩处出来的才算数。")
     return _wrap(

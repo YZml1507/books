@@ -811,12 +811,13 @@ function _paintPoster(j, W, H) {
   l0.forEach(function (ln, i) { ctx.fillText(ln, W / 2, 380 + i * 76); });
 
   // 能量卡区块
+  /* R216b 续（U-014）：卡高 430→560（信息行与出处行原本叠印，见下）。 */
   var cardY = 480;
   ctx.fillStyle = '#FFFFFF';
-  roundRect(ctx, 90, cardY, W - 180, 430, 28);
+  roundRect(ctx, 90, cardY, W - 180, 560, 28);
   ctx.fill();
   ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
-  roundRect(ctx, 90, cardY, W - 180, 430, 28);
+  roundRect(ctx, 90, cardY, W - 180, 560, 28);
   ctx.stroke();
 
   ctx.textAlign = 'left';
@@ -826,7 +827,15 @@ function _paintPoster(j, W, H) {
   var rows = [];
   if (ec.lucky_colors && ec.lucky_colors.length) rows.push(['幸运色', ec.lucky_colors.join(' · ')]);
   if (ec.lucky_numbers && ec.lucky_numbers.length) rows.push(['幸运数字', ec.lucky_numbers.join(' · ')]);
-  if (ec.lucky_hours && ec.lucky_hours.length) rows.push(['幸运时段', ec.lucky_hours.join('、')]);
+  if (ec.lucky_hours && ec.lucky_hours.length) {
+    /* R216b 续（U-014 附带）：lucky_hours 全量 join 可达 ~60 字，38px 下
+     * 远超卡宽（940px 内约 24 字）——审查轨截图里「黄运棕」实为「黄 · 棕」
+     * 与下一行叠印的误读，但时段行确实溢出。只取前三个时段并压缩区间写法。 */
+    var hs = ec.lucky_hours.slice(0, 3).map(function (h) {
+      return String(h).replace(/（/g, '(').replace(/）/g, ')').replace(/–/g, '-');
+    });
+    rows.push(['幸运时段', hs.join('、')]);
+  }
   ctx.font = '400 38px sans-serif';
   rows.slice(0, 3).forEach(function (r, i) {
     var y = cardY + 160 + i * 84;
@@ -835,7 +844,7 @@ function _paintPoster(j, W, H) {
       var colors = ['红#C0392B', '紫#8E44AD', '黄#D4AC0D', '棕#8D6E63',
                     '黑#2C3E50', '蓝#2874A6', '青#148F77', '绿#27AE60',
                     '白#F2F3F4', '金#B7950B'];
-      var cx = 420;
+      var cx = 620;
       String(r[1]).split(' · ').forEach(function (cname) {
         for (var k = 0; k < colors.length; k++) {
           if (colors[k].indexOf(cname) === 0) {
@@ -846,17 +855,34 @@ function _paintPoster(j, W, H) {
           }
         }
       });
+      /* 色块只是辅助——文字本身也要画出（原版文字被值叠印吞掉）。 */
     }
     ctx.fillStyle = '#9A8A6C';
     ctx.fillText(r[0], 140, y);
+    /* R216b 续（UX 队列 U-014）：原代码 fillText(r[1], 140, y+0) 与标签
+     * 同 x 同 y 叠印——「幸运数字」与「5 · 0」重叠成不可读模糊块。
+     * 值右移到标签之后（x=460，标签「幸运时段」4 字 @38px ≈152px 宽，
+     * 460 留足间距且色块 cx=420 起排不冲突）。 */
     ctx.fillStyle = '#3E3428';
-    ctx.fillText(r[1], 140, y + 0);
+    if (r[0] === '幸运时段' && r[1].length > 15) {
+      /* U-014 续：值区从 x=460 起只有约 570px（38px 下约 15 字），
+       * 三时段一行放不下——拆两行画。 */
+      var segs = r[1].split('、');
+      var l1 = segs.slice(0, 2).join('、');
+      var l2 = segs.slice(2).join('、');
+      ctx.fillText(l1, 460, y);
+      if (l2) ctx.fillText(l2, 460, y + 50);
+    } else {
+      ctx.fillText(r[1], 460, y);
+    }
   });
 
   // 出处三条（判据 10 可追溯）
   ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px sans-serif';
   (ec.basis || []).slice(0, 3).forEach(function (b, i) {
-    ctx.fillText('· ' + b, 140, cardY + 330 + i * 40);
+    var t = '· ' + b;
+    if (t.length > 26) t = t.slice(0, 25) + '…';
+    ctx.fillText(t, 140, cardY + 480 + i * 44);
   });
 
   // 免责水印（判据 2：仅供娱乐标识，常显不折叠）
@@ -1123,6 +1149,12 @@ function renderVoice(j, proTitle, evidenceKeys) {
     });
     html += renderWarm(j.warm, j.interpretation, ev);
   } else {
+    /* R216b 续（UX 队列 U-015）：voiceMode 是 localStorage 持久态，普通
+     * 用户点过一次「专业版」后所有功能永久变成开发者视图且找不到退路。
+     * 在 pro 结果卡头部加一条常显的返回提示条（点击即回温柔版并重画）。
+     * 只加提示、不改任何 pro 渲染内容——判据 9 的逐字节口径零风险。 */
+    html += '<div class="pro-notice">📐 当前是专业视角（坐标与推导链原样展示）。' +
+      '<button type="button" class="pro-back-btn" data-voice="warm">🌸 回到温柔版</button></div>';
     html += renderInterpretation(j ? j.interpretation : null, proTitle);
   }
   html += renderAiPolish(j);
