@@ -356,7 +356,13 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         lines.append(f"缺{'、'.join(missing)}——不是缺陷，是偏向。")
     dl = calc.get("day_luck") or {}
     if dl.get("day_master_rel"):
-        lines.append(f"今天：{dl['day_master_rel']}。")
+        # R214b：裸术语（「庚为日主甲之七杀」）翻译成人话——取末段十神名
+        # 映射到日常语标签；映射不到就整句不说，绝不裸抛术语。
+        _rel = str(dl["day_master_rel"])
+        _god = _rel.rsplit("之", 1)[-1]
+        _warm = TEN_GOD_WARM.get(_god)
+        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。"
+                     if _warm else "")
     lines.append("想问具体的事，在上面填一句就行。")
     return lines[:5]
 

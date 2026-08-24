@@ -1255,6 +1255,7 @@ async function loadDaily() {
     setText('dailyNoble', j.noble || '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
+    renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
     // 004 M2 T2.4：今日值宫（十二宫日运）。失败静默——入口卡保持 hidden。
     try {
       const x = await api('/api/xingzuo?date=' + encodeURIComponent(j.date || ''));

@@ -16335,3 +16335,30 @@ cpf 5×8 全达标（c6 余 209px）；baseline_voice sha256 一致；contract/
 selftest_regress/first_screen/quality/build_index/verify_index/
 conservation/poster/async_ai/count_open_findings 全 exit 0
 （$LOCALAPPDATA/Temp/gates_r214b*.log）。
+
+### 157. [优化轨] R215b：浏览器自主巡检落地 + 巡检发现即修（2026-08-24）
+
+**背景**：用户问「怎么才能让你自己操控浏览器、模拟用户点击、挨个查看页面」。
+本轮建立常驻巡检手法并实际走了一遍项目。
+
+**巡检手法（可复用）**：
+1. 后台 uvicorn 常驻（terminal background=true，端口 8182）；
+2. Playwright 脚本逐页点击：`[data-view="…"]` 入口 → 表单填写 → 提交 →
+   `#result` 文本 + 全页截图 → vision_analyze 目视评审；
+3. 发现问题当场修，修完复跑闸门。
+
+**巡检发现与修复**：
+1. **checkin 打卡不渲染**（innerHTML len=0）——R214b 的 app.js 追加时
+   截断事故后从 HEAD 重建，`renderCheckin(j.date)` 调用点丢失。
+   补回后实测 4 选项渲染、点击出反馈「摸鱼运爆棚，快乐一下不过分！」。
+2. **温柔版裸术语**——「今天：庚为日主甲之七杀。」直接吓人（vision
+   评审点名）。修法：末段十神映射 TEN_GOD_WARM 日常语标签
+   （→「今天的气氛偏『压力位』——外部推力大…」），映射不到整句不说。
+3. 移动端 390px 全模块走查：tarot/bazi/taohua/hehun/huangli 视图切换
+   正常、pageerror 0。
+
+**实测**：voice 自测 PASS；warm_voice 判据 1-8 PASS；selftest 163 PASS；
+cpf 5×8 全达标；截图目视人设卡+高光时刻上屏。
+
+**遗留观察（下轮候选）**：顶部四柱标签区「数据堆叠感」仍偏工具（vision
+评分 7.5/10 的主扣分项）；liuyao/qiming 无 `[data-view]` 入口需确认导航路径。
