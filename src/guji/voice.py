@@ -682,13 +682,19 @@ def warm_taohua(t: dict) -> dict:
             if _near:
                 d0 = _near[0]
                 _pillar = d0.get("pillar", "")
-                _zodiac = ZHI_ZODIAC.get(_pillar[:1] if _pillar else "", "")
-                _dir = ZHI_DIR.get(_pillar[:1] if _pillar else "", "")
+                _zodiac = ZHI_ZODIAC.get(_pillar[1:2] if _pillar else "", "")
+                _dir = ZHI_DIR.get(_pillar[1:2] if _pillar else "", "")
                 _extra = f"（{_zodiac}·{_dir}）" if _zodiac and _dir else f"（{_zodiac}）" if _zodiac else ""
                 lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽——那阵子多出门走走。")
             elif dayun:
                 d0 = dayun[0]
-                lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
+                # F-014：当年份远离用户年龄时，删除具体年份，改为中性描述
+                _year = int(d0.get("year_start", 0))
+                _diff = abs(_year - _user_birth_year_approx)
+                if _diff > 15:
+                    lines.append(f"未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
+                else:
+                    lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
         lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
         return _wrap(
             l0,
@@ -782,8 +788,13 @@ def warm_hehun(h: dict) -> dict:
         _now = datetime.date.today()
         _adult.sort(key=lambda d: abs(int(d.get("year_start", 0)) - _now.year))
         d0 = _adult[0]
-        lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
-                     f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
+        # F-015：当年份距今>10年时，降级为"远期参考"
+        if abs(int(d0.get("year_start", 0)) - _now.year) > 10:
+            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+                         f"（{d0.get('relation', '')}）——远期参考，不是日程表。")
+        else:
+            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+                         f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
     elif dayun:
         d0 = dayun[0]
         lines.append(f"从{d0.get('year_start')}年起你们进入大运互动期"
