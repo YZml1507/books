@@ -242,9 +242,9 @@ h1,.brand-mark,.section-title,.side-brand{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
   background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));
 }
-.daily-top{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+.daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600;}
-.daily-date{font-size:14px; color:var(--muted); font-family:monospace;}
+.daily-date{font-size:14px; color:var(--muted); font-family:monospace; flex-shrink:0; min-width:90px; text-align:right;}
 .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
 .daily-level{
   width:80px; height:80px; border-radius:50%;
