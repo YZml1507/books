@@ -479,6 +479,21 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     elif vname:
         lines.append("变卦与本卦相同，方向不改。")
 
+    # R216b 续4（UX 队列 U-023）：直白节奏倾向语——由动爻数与卦变
+    # 确定性推导，只描述节奏不给吉凶承诺（G7 红线内）。
+    n = len(ml)
+    if not ml:
+        trend = "整体偏稳——眼下更适合守着现状，不必急着动。"
+    elif n == 1:
+        trend = "整体偏稳、局部有变化——大方向不变，中间有一个点要留意。"
+    elif n == 2:
+        trend = "整体有起伏——事情在推进中，节奏会有两次小调整。"
+    else:
+        trend = "整体变数偏多——先别求一步到位，分几步走更稳。"
+    if vname and vname != bname and vn in (1, 11, 14, 19, 34, 55):
+        trend += "变卦序号靠前段（阳长之势），劲是往上走的。"
+    lines.insert(min(1, len(lines)), trend)
+
     lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
                  "慢慢体会，不急。")
     return lines[:5]

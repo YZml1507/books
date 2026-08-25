@@ -2059,9 +2059,11 @@ function buildLiuyaoResult(j) {
   const bian = j.bian || {};
   let html = '<div class="card"><h2>🔮 六爻卦象</h2>';
   /* R216b 续（UX 队列 U-007）：解读先给人话结论（warm.reply 已是结论式，
-   * 这里把它提到坐标区之前常显），再画卦象。 */
+   * 这里把它提到坐标区之前常显），再画卦象。
+   * R216b 续4（U-022）：本块仅 warm 模式渲染；warm 模式下页尾
+   * renderVoice 跳过（见下）——否则同一批解读文案与免责 badge 出现两遍。 */
   const warm = j.warm || {};
-  if (warm.reply && warm.reply.length) {
+  if (voiceMode() === 'warm' && warm.reply && warm.reply.length) {
     html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
       esc(warm.one_liner || '') + '</div><div class="warm-reply">';
     warm.reply.slice(0, 3).forEach(function (ln) {
@@ -2110,7 +2112,24 @@ function buildLiuyaoResult(j) {
         renderHits(j.bian_jing, { empty: '' });
     }
   }
-  html += renderVoice(j, '📖 卦象转述（确定性规则）', ['ben_jing', 'bian_jing']);
+  /* R216b 续4（U-022）：warm 模式下解读已在头部常显，页尾不再经
+   * renderWarm 二次渲染同一批 reply 与 badge；pro 模式走原路径
+   * （卦象转述 + 古籍平铺），判据 9 口径零改动。
+   * 注意：warm 跳过时古籍折叠树也不渲染（renderCiteTree 由 renderWarm
+   * 驱动）——但头部块已含 badge，坐标事实完整，无信息丢失。 */
+  if (voiceMode() === 'warm') {
+    /* U-022 配套：warm 跳过 renderWarm 后，經文原文改由独立折叠承载
+     * （事实零删减：展开可核验；不经 renderCiteTree 是因为它会连带
+     * 渲染 reply）。 */
+    const evAll = [].concat(j.ben_jing || [], j.bian_jing || []);
+    if (evAll.length) {
+      html += '<details class="warm-basis"><summary>📜 卦爻辞原文（' +
+        evAll.length + ' 段，展开对照）</summary>' +
+        renderHits(evAll, { empty: '' }) + '</details>';
+    }
+  } else {
+    html += renderVoice(j, '📖 卦象转述（确定性规则）', ['ben_jing', 'bian_jing']);
+  }
   html += '</div>';
   return html;
 }

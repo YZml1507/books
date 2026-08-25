@@ -16455,3 +16455,11 @@ U-013 recentToggle 可见文字标识「💬聊」。
 验证 r216b4_verify.json：六项全过、开场白跨视图多样且同视图确定。
 闸门 gates_r216b4.log 7 项全 EXIT=0。R216a 两轮巡检 21 条全部处置完毕
 （含 V-002 提前处理）；V-001/V-003 观察项留待下轮。
+
+### 163. [优化轨] R216b 续4：U-022 六爻去重渲染 + U-023 倾向语（2026-08-25）
+
+U-022：buildLiuyaoResult 头部块限 warm 态；warm 下页尾 renderVoice 跳过，
+經文改独立折叠承载（零删减）。reply/badge 计数 2→1，pro 态回归完整。
+U-023：reply_liuyao 按动爻数+变卦阳长确定性推导节奏倾向语插 reply[1]，
+G7 红线内只述坐标特征。seed42 实测上屏，判据 8/确定性 PASS。
+闸门 gates_r216b5.log 7 项全 EXIT=0。
