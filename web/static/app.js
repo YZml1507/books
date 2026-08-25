@@ -1463,7 +1463,7 @@ async function loadDailyDetail() {
       month: today.getMonth() + 1,
       day: today.getDate(),
       hour: 12,
-      gender: '男',
+      gender: val('gender') || '女',
       scope: 'day',
       question: '今天运势如何？'
     });
