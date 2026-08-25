@@ -592,6 +592,7 @@ var WARM_EMPATHY_DEFAULT = "来了就好。不管今天怎么样，先看看盘�
 /* R206b 补记：首版把提问挂在函数属性上被 probe_dollar_misuse 判
  * 「函数当对象访问属性」FAIL（本仓铁律），改模块级变量 WARM_LAST_QUESTION。 */
 var WARM_LAST_QUESTION = "";
+var LAST_BAZI_LUNAR = false;   /* R216b 续5（U-021）：本次提交是否农历输入 */
 function warmEmpathy(question) {
   var q = question || "";
   for (var k in WARM_EMPATHY) {
@@ -612,6 +613,29 @@ function warmEmpathy(question) {
 /** warm 视图（guji.voice 的输出）。四层结构，见 plan §1.2。
  *  判据 7：badge 渲染在能量卡之后、details 之前——不压轴收尾。
  *  判据 4：basis 推导链进 <details> 折叠，展开后逐字不变。 */
+/* R216b 续5（UX 队列 U-016）：力量词（TEN_GOD_WARM 日常语标签）首现
+ * 即裸抛——「压力位/规矩位/同伴力」并列无解释。显示层给每个词补短注
+ * （API/基线字节零改动）。 */
+var POWER_NOTES = {
+  '压力位': '外部推力大，事情常被逼着往前走',
+  '规矩位': '在规则里行事，责任感重',
+  '同伴力': '身边同类多，有人同行也容易比较',
+  '表达力': '温和地把想法说出来、做出来',
+  '创造力': '点子多、锋芒也在，喜欢跳出框架',
+  '流动财': '进项来源多，但不太固定',
+  '稳定财': '来源固定，适合慢慢积累',
+  '直觉力': '想法独特，学东西走自己的路',
+  '庇护力': '有人照着、有东西托着，适合稳步累积'
+};
+function annotatePowers(text) {
+  var t = String(text || '');
+  Object.keys(POWER_NOTES).forEach(function (w) {
+    if (t.indexOf(w) !== -1 && t.indexOf(w + '（') === -1) {
+      t = t.replace(w, w + '（' + POWER_NOTES[w] + '）');
+    }
+  });
+  return t;
+}
 function renderWarm(warm, interp, evidence) {
   if (!warm) return renderInterpretation(interp, '📖 解读（确定性规则）');
   var html = '<div class="warm-wrap">';
@@ -688,7 +712,7 @@ function renderWarm(warm, interp, evidence) {
     (warm.details || []).forEach(function (d) {
       html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
       (d.lines || []).forEach(function (ln) {
-        html += '<li>' + esc(ln) + '</li>';
+        html += '<li>' + esc(annotatePowers(ln)) + '</li>';
       });
       html += '</ul>';
       if (d.basis && d.basis.length) {
@@ -1251,7 +1275,13 @@ function renderInterpretation(interp, title) {
     html += '<div class="interp-basis">依据字段：' + esc(interp.basis.join(' / ')) + '</div>';
   }
   if (interp.disclaimer) {
-    html += '<div class="interp-disclaimer">' + esc(interp.disclaimer) + '</div>';
+    /* R216b 续5（V-003）：「非生成文本、同输入必同输出」技术腔——
+     * 显示层换成人话；API/基线字节零改动。 */
+    var _d = String(interp.disclaimer);
+    if (_d.indexOf('非生成文本') !== -1) {
+      _d = '这些解读由固定规则生成：同样的问题，答案不会变来变去～';
+    }
+    html += '<div class="interp-disclaimer interp-disclaimer-soft">' + esc(_d) + '</div>';
   }
   return html;
 }
@@ -1470,6 +1500,9 @@ function baziBody() {
     body.lunar_month = body.month;
     body.lunar_day = body.day;
     body.lunar_leap = checked('lunar_leap');
+    LAST_BAZI_LUNAR = true;   /* R216b 续5（U-021）：结果卡标注「按农历换算」 */
+  } else {
+    LAST_BAZI_LUNAR = false;
   }
   const q = val('question');
   if (q) body.question = q;
@@ -1516,6 +1549,11 @@ function buildBaziResult(j) {
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
      * 首屏只有一句人话生日线。事实零改动，只是呈现位置后移。 */
     html += '<p class="bazi-birthday">' + esc(baziBirthdayLine(paipan)) + '</p>';
+    if (LAST_BAZI_LUNAR) {
+      /* R216b 续5（U-021）：农历输入时告知已换算，用户可核对。 */
+      html += '<p class="nayin">🗓 你输入的是农历生日，四柱按公历换算得出' +
+        '——遇到闰月也可以对照上面的日子核对。</p>';
+    }
     html += '<details class="paipan-fold"><summary>看看你的生辰小卡</summary>' +
       '<div class="pill-row">';
     String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
@@ -2322,7 +2360,11 @@ async function doQiming() {
       html += '</div>';
     }
     /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
-    html += '<button class="chat-entry" type="button" id="nameReviewBtn">' +
+    /* R216b 续5（U-019）：DISABLE/降级态（响应无 ai_task_id）按钮置灰+
+     * 提示语，不再可反复点。 */
+    var _aiOff = !j.ai_task_id;
+    html += '<button class="chat-entry" type="button" id="nameReviewBtn"' +
+      (_aiOff ? ' disabled title="点评的小书童今天休息，明天再来吧"' : '') + '>' +
       '✨ 让 AI 用古籍典故点评这些名字</button>' +
       '<div id="nameReviewOut" hidden></div>';
         // 实测 candidates[] 是 {char,element,radical,meaning}。
@@ -2352,7 +2394,9 @@ async function doQiming() {
         facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无')]
       }).then(function (rj) {
         if (!rj.review_task_id) {
-          paint('nameReviewOut', '<div class="no-evidence">AI 点评暂未开启</div>');
+          /* R216b 续5（U-019）：降级文案带人设+替代引导；按钮保持置灰。 */
+          paint('nameReviewOut', '<div class="no-evidence">点评的小书童今天休息～' +
+            '名字的寓意卡片里都有说明，先看着，明天来听故事版 ✨</div>');
           const o = el('nameReviewOut'); if (o) o.hidden = false;
           if (btn) btn.disabled = false;
           return;
@@ -2567,18 +2611,25 @@ function tarotDeepRead(draws, question) {
   } else {
     html += '<p>' + esc(names.join('、')) + '。把它们连起来看：</p>';
   }
-  // 第二段：逐位置含义（有 position 提示的用专属句，没有的按序说）
-  html += '<ul>';
+  // 第二段：逐位置含义（有 position 提示的用专属句，没有的按序说）。
+  // R216b 续5（U-020）：≥6 张时逐牌解读收进默认折叠——10 张纯文本流
+  // 在 390px 下页面失控（实测 5753px）。首尾两段常显保住叙事。
+  var _items = '';
   draws.forEach(function (d, i) {
     var pos = d.position || '';
     var kw = (d.upright ? d.upright_kw : d.reversed_kw) || '';
     var hint = TAROT_POS_HINT[pos] ||
       ('这一步说的是「' + pos + '」的位置');
-    html += '<li><strong>' + esc(pos || ('第' + (i + 1) + '张') + '·' +
+    _items += '<li><strong>' + esc(pos || ('第' + (i + 1) + '张') + '·' +
       d.name) + '</strong>：' + esc(kw.split('·')[0]) + '。' +
       esc(hint) + '。</li>';
   });
-  html += '</ul>';
+  if (draws.length >= 6) {
+    html += '<details class="warm-basis"><summary>每张牌的详细解读（' +
+      draws.length + ' 张，展开慢慢看）</summary><ul>' + _items + '</ul></details>';
+  } else {
+    html += '<ul>' + _items + '</ul>';
+  }
   // 第三段：行动建议（按主牌正/逆位给方向感，不给断言）
   var main = draws[Math.min(1, draws.length - 1)] || draws[0];
   html += '<p class="tarot-advice">' +
@@ -2688,15 +2739,22 @@ async function doHehun() {
     html += '</div>';
     if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
     if (j.dayun_hits && j.dayun_hits.length) {
-      html += '<h3 style="margin-top:16px;">大运冲合应期</h3>' +
-        '<table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
+      /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
+       * 收进默认折叠（事实零删减）；pro 模式保持平铺。 */
+      var _table = '<table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
         '<th>关系</th><th>约起年</th></tr></thead><tbody>';
       j.dayun_hits.forEach(function (d) {
-        html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
+        _table += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
           '</td><td>' + esc(d.pillar_b) + '</td><td>' + esc(d.relation) +
           '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
       });
-      html += '</tbody></table>';
+      _table += '</tbody></table>';
+      if (voiceMode() === 'warm') {
+        html += '<details class="warm-basis"><summary>📅 大运冲合表（' +
+          j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
+      } else {
+        html += '<h3 style="margin-top:16px;">大运冲合应期</h3>' + _table;
+      }
     }
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';

@@ -16463,3 +16463,12 @@ U-022：buildLiuyaoResult 头部块限 warm 态；warm 下页尾 renderVoice 跳
 U-023：reply_liuyao 按动爻数+变卦阳长确定性推导节奏倾向语插 reply[1]，
 G7 红线内只述坐标特征。seed42 实测上屏，判据 8/确定性 PASS。
 闸门 gates_r216b5.log 7 项全 EXIT=0。
+
+### 164. [优化轨] R216b 续5：U-004/U-016/U-019/U-020/U-021/V-003 收官批（2026-08-25）
+
+U-004 合婚大运表 warm 折叠；U-016 拒答话术人话化（voice.py warm 层）+
+力量词九词显示层短注（annotatePowers）；U-019 AI 点评降级文案带人设+
+无 ai_task_id 即置灰；U-020 塔罗 ≥6 张逐牌解读折叠（页面高 5753→4412px）；
+U-021 农历换算说明进生辰小卡；V-003 disclaimer 显示层软化+缩样式。
+验证 r216b6_verify.json 六项全过、pageerror 0。闸门 gates_r216b6.log
+7 项全 EXIT=0。至此 R216a 两轮巡检全部条目与观察项处置完毕。

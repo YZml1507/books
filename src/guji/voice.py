@@ -286,7 +286,8 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
     if topic is None:
         gods_present = sorted({t.get("god") for t in tg if t.get("god")})
         return [
-            f"你问的是「{q}」——这个方向系统没有对应的坐标维度，不硬答。",
+            # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
+            f"你问的是「{q}」——这个问题盘里没有对应的位置，小满不瞎编～",
             f"盘里现有的力量是：{'、'.join(TEN_GOD_WARM.get(g, (g, ''))[0] for g in gods_present)}。",
             "下面把通盘坐标都列了，你可以自己对照着看。",
         ]
