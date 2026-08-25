@@ -2351,7 +2351,7 @@ async function doQiming() {
       month: num('qm_month'),
       day: num('qm_day'),
       hour: num('qm_hour'),
-      gender: val('qm_gender') || '男',
+      gender: val('qm_gender') || '女',
       top_n: 20
     });
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
@@ -2445,7 +2445,7 @@ async function doTaohua() {
       month: num('th_month'),
       day: num('th_day'),
       hour: num('th_hour'),
-      gender: val('th_gender') || '男'
+      gender: val('th_gender') || '女'
     });
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
     // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
@@ -2700,7 +2700,7 @@ async function doHehun() {
       a_month: num('hh_a_month'),
       a_day: num('hh_a_day'),
       a_hour: num('hh_a_hour'),
-      a_gender: val('hh_a_gender') || '男',
+      a_gender: val('hh_a_gender') || '女',
       b_year: num('hh_b_year'),
       b_month: num('hh_b_month'),
       b_day: num('hh_b_day'),
