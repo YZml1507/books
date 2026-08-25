@@ -290,17 +290,16 @@ def hehun(req) -> dict:
 
 
 def qiming(req) -> dict:
-    """五行起名：八字 → 五行缺行 → 候选字 + 完整名组合（部首五行规则表，写死可核验）。"""
+    """五行起名：八字 → 五行缺行 → 古籍典故取名 + 候选字（R217a 重构）。"""
     req.validate_ranges()
     try:
-        out = qiming_mod.name_candidates(
+        from guji import classical_names
+        out = classical_names.generate_classical_names(
             surname=req.surname, year=req.year, month=req.month,
             day=req.day, hour=req.hour, gender=req.gender,
             top_n=min(max(req.top_n, 1), 100))
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{exc}") from exc
-    # R187b（specs/006）：AI 寓意段落，additive
-    # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_qiming(out, req.gender))
     out["ai_polish"] = ai_polish

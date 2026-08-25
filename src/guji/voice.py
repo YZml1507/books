@@ -369,7 +369,9 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
              f"{ELEMENT_WARM.get(mine, ('', ''))[1]}。"]
     strong, missing = fe.get("strong") or [], fe.get("missing") or []
     if strong:
-        lines.append(f"五行里{'、'.join(strong)}偏多，这是你的底色。")
+        # F-008：术语人话化——"五行里金偏多"→"你自带「决断」的底色"
+        _w = ELEMENT_WARM.get(strong[0], ("", ""))
+        lines.append(f"你自带「{_w[0]}」的底色——{_w[1]}。")
     if missing:
         lines.append(f"缺{'、'.join(missing)}——不是缺陷，是偏向。")
     dl = calc.get("day_luck") or {}

@@ -509,7 +509,15 @@ def review_names(names: list[str], facts: list[str] | None = None,
         user += "\n五行背景：" + "；".join(f for f in facts if f)
     user += "\n\n请按上面规则为每个名字写推荐语。"
     msgs.append({"role": "user", "content": user})
-    return _chat_call(msgs, cfg, _transport)
+    text = _chat_call(msgs, cfg, _transport)
+    if not text:
+        # R217a：主 LLM 失败时 dots 作备选大脑（同 chat 兜底模式）
+        dcfg = load_dots_config()
+        if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
+            text = _chat_call(msgs, dcfg, _transport)
+        if not text:
+            return None
+    return text
 
 
 def spawn_name_review_task(names: list[str], facts: list[str] | None = None,

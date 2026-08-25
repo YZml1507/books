@@ -184,6 +184,38 @@ function attachChatEntry(container) {
   card.appendChild(btn);
 }
 
+/* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
+function autoSendChatContext() {
+  if (!CHAT_LAST_FACTS || !CHAT_LAST_FACTS.length) return;
+  chatBubble('me', '帮我看看这个盘');
+  postJSON('/api/chat', {
+    session_id: chatSid(), message: '帮我看看这个盘', facts: CHAT_LAST_FACTS
+  }).then(function (j) {
+    if (!j.chat_task_id) {
+      chatBubble('ai', '你的心事小满收到啦，今天解忧铺打烊中～' +
+        '可以先看看上面的牌面指引，明天来找我聊✨');
+      return;
+    }
+    chatBubble('ai', '<span class="chat-typing"><i></i><i></i><i></i></span>');
+    var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+    var tick = function () {
+      api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
+        var flow = el('chatFlow');
+        if (st && st.status === 'done' && st.text) {
+          if (flow) flow.lastChild.textContent = st.text;
+          return;
+        }
+        if (st && st.status === 'failed') { if (flow) flow.removeChild(flow.lastChild); return; }
+        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+        else if (flow && flow.lastChild) flow.lastChild.textContent = '（网络不太好，再发一次试试？）';
+      }).catch(function () {});
+    };
+    setTimeout(tick, AI_POLL_INTERVAL_MS);
+  }).catch(function () {
+    chatBubble('ai', '（网络不太好，再发一次试试？）');
+  });
+}
+
 /** R207b：起名点评轮询——复用 /api/ai/{tid}，done 渲染点评卡。 */
 function pollNameReview(taskId) {
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
@@ -2367,7 +2399,7 @@ async function doQiming() {
     if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
     // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
     if (j.full_names && j.full_names.length) {
-      html += '<h3 style="margin-top:16px;">💐 完整名推荐</h3><div class="calc-grid">';
+      html += '<h3 style="margin-top:16px;">💐 古籍典故取名</h3><div class="calc-grid">';
       j.full_names.forEach(function (n, i) {
         const c = colorAt(i);
         html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
@@ -2375,8 +2407,13 @@ async function doQiming() {
           esc(n.full_name || '') + '</h3>' +
           '<p style="font-size:13px;color:var(--secondary);">五行：' +
           esc((n.elements || []).join('·')) +
-          (n.form === 'single' ? '　单字名' : '　双字名') + '</p>' +
-          '<p style="font-size:13px;">' + esc(n.meanings || '') + '</p></div>';
+          (n.form === 'single' ? '　单字名' : '　双字名') + '</p>';
+        if (n.story) {
+          html += '<p style="font-size:13px;margin-top:4px;">📜 ' + esc(n.story) + '</p>';
+        } else if (n.meanings) {
+          html += '<p style="font-size:13px;">' + esc(n.meanings) + '</p>';
+        }
+        html += '</div>';
       });
       html += '</div>';
     }
@@ -3001,7 +3038,10 @@ function initBazi() {
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
    * 用委托绑到 document。 */
   document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('#chatEntry')) chatOpen();
+    if (e.target.closest && e.target.closest('#chatEntry')) {
+      chatOpen();
+      autoSendChatContext();
+    }
   });
   on('chatClose', chatClose);
   on('chatSendBtn', chatSend);

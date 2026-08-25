@@ -232,12 +232,17 @@ h1,.brand-mark,.section-title,.side-brand{
    * 560px 以下再放大到 45% 保可视性。 */
   /* R211b（US7'）：contain + 正偏移锚定——负偏移+百分比组合在窄视口
    * 仍裁掉右侧花盆主体（375px 截图取证）；contain 保完整呈现。 */
-  background:var(--card) right 12px top 12px/contain no-repeat
-    url("/static/_candidates/r212b/daily-box-gift.png");
+  /* R217a：背景图圆角+铺垫——直角改圆角，四周加留白过渡 */
   border:1px solid var(--border); border-radius:var(--radius);
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
+.daily-card-gift{
+  position:absolute; right:20px; top:20px; width:38%; max-width:200px;
+  border-radius:16px; overflow:hidden; opacity:0.9;
+  box-shadow:0 4px 16px rgba(184,134,11,.12);
+}
+.daily-card-gift img{ width:100%; height:auto; display:block; }
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
   background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));

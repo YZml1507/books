@@ -249,7 +249,7 @@ def run() -> list[str]:
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
-          lambda j: j.get("candidates"))
+          lambda j: j.get("full_names") and len(j.get("full_names", [])) >= 3)
     # R111b（D-157b）：桃花运纯坐标计算 standing 覆盖——固定生日→固定输出，
     # 断言咸池/红鸾/天喜字段齐全且 render 含坐标事实。
     check("taohua", client.post("/api/taohua", json={"year": 1990, "month": 5,
@@ -1102,8 +1102,8 @@ def run() -> list[str]:
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
                        "gan_he", "god_a_sees_b", "god_b_sees_a"},
-        "/api/qiming": {"surname", "candidates", "summary", "five_elements",
-                        "full_names", "bazi", "ai_polish"},
+        "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",
+                        "full_names", "ai_polish"},
     }
     for _ep, _pl in _shapes.items():
         _got = set(client.post(_ep, json=_pl).json())
