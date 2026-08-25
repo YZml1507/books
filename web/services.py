@@ -666,8 +666,11 @@ def huangli(date_str: str | None = None, affair: str | None = None,
                 "days": days, "good_days": good, "count": len(good)}
 
     q = huangli_mod.day_query(dt)
+    # R216b 续6（V-001）：透传农历与冲煞（additive，既有键零改动）。
     return {"date": q["date"], "jianchu": q["jianchu"], "xiu": q["xiu"],
-            "pengzu": q["pengzu"], "yi": q["yi"], "ji": q["ji"]}
+            "pengzu": q["pengzu"], "yi": q["yi"], "ji": q["ji"],
+            **({"lunar": q["lunar"]} if q.get("lunar") else {}),
+            **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
 
 
 def _draw_dicts(draws) -> list[dict]:

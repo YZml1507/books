@@ -934,7 +934,16 @@ function _paintPoster(j, W, H) {
   ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px sans-serif';
   (ec.basis || []).slice(0, 3).forEach(function (b, i) {
     var t = '· ' + b;
-    if (t.length > 26) t = t.slice(0, 25) + '…';
+    if (t.length > 26) {
+      /* V-004：截断点避开英文键名中间——优先回退到最近的非字母数字字符。 */
+      var cut = 25;
+      for (var k2 = cut; k2 > 12; k2--) {
+        if (!/[A-Za-z0-9_]/.test(t.charAt(k2)) && !/[A-Za-z0-9_]/.test(t.charAt(k2 - 1))) {
+          cut = k2; break;
+        }
+      }
+      t = t.slice(0, cut) + '…';
+    }
     ctx.fillText(t, 140, cardY + 480 + i * 44);
   });
 
@@ -2248,7 +2257,7 @@ async function doHuangli() {
       '祈福': '许愿、求个心安', '求嗣': '备孕、求子相关的事',
       '上任': '入职、履新、接新项目', '入学': '开学、报到、开始学新东西',
       '立券': '签约、定合同', '纳财': '收款、谈钱、理财动作',
-      '捕捉': '把悬着的小事收个尾', '狩猎': '户外撒欢放放电',
+      '捕捉': '把拖了很久的小事办掉', '狩猎': '来一场说走就走的短途出游',
       '安葬': '丧葬事宜', '破土': '动工破土类事宜', '治病': '看病、调理身体',
       '解除': '化解矛盾、清理旧事', '谒贵': '拜访贵人、见重要的人',
       '修造': '装修、修缮', '动土': '开工动土', '平整': '整理归置',
@@ -2283,6 +2292,17 @@ async function doHuangli() {
       return w ? t + '＝' + w : t;
     }
     let html = '<div class="card"><h2>🌙 黄历 · ' + esc(j.date || dateStr) + '</h2>';
+    /* R216b 续6（V-001）：农历日期与冲煞——传统核心字段补齐上屏。 */
+    if (j.lunar && j.lunar.month_cn) {
+      html += '<p class="nayin">🗓 农历 ' + esc(j.lunar.month_cn) +
+        esc(j.lunar.day_cn || '') + ' · ' + esc(j.lunar.ganzhi_year_cn || '') + '</p>';
+    }
+    if (j.chongsha && j.chongsha.chong) {
+      html += '<p class="nayin">⚔ 今日冲' + esc(j.chongsha.chong) +
+        '(' + esc(j.chongsha.chong_animal || '') + ') · 煞' +
+        esc(j.chongsha.sha_fang || '') +
+        '——属' + esc(j.chongsha.chong_animal || '') + '的朋友今天稳一点，煞方少往那边跑</p>';
+    }
     // 今日一句话：按建除确定性生成（同输入同输出）
     if (j.jianchu) {
       html += '<div class="warm-l0" style="font-size:18px;">今天是「' + esc(j.jianchu) +

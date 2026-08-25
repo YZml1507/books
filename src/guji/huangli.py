@@ -403,6 +403,19 @@ def day_query(dt: datetime) -> dict:
     yi = list(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
     ji = list(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
 
+    # R216b 续6（V-001）：补农历日期与冲煞——传统黄历核心字段，
+    # 纯坐标计算 additive（既有键零改动）。
+    _lunar = {}
+    try:
+        from .lunar import solar_to_lunar
+        _lunar = solar_to_lunar(dt.year, dt.month, dt.day)
+    except Exception:
+        _lunar = {}
+    _gz_gan, _gz_zhi = day_ganzhi(dt)
+    _zhi_idx = ZHI.index(_gz_zhi) if _gz_zhi in ZHI else 0
+    _chong = ZHI[(_zhi_idx + 6) % 12]          # 六冲：对冲支
+    _cs_animal = {"子":"鼠","丑":"牛","寅":"虎","卯":"兔","辰":"龙","巳":"蛇",
+                  "午":"马","未":"羊","申":"猴","酉":"鸡","戌":"狗","亥":"猪"}
     return {
         "date": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
         "jianchu": jc,
@@ -411,7 +424,22 @@ def day_query(dt: datetime) -> dict:
         "yi": sorted(yi),
         "ji": sorted(ji),
         "shensha": shensha(dt),
+        "lunar": {"month_cn": _lunar.get("month_cn", ""),
+                  "day_cn": _lunar.get("day_cn", ""),
+                  "ganzhi_year_cn": _lunar.get("ganzhi_year_cn", "")},
+        "chongsha": {"chong": _chong,
+                     "chong_animal": _cs_animal.get(_chong, ""),
+                     "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
     }
+
+
+# 冲煞方位写死表（日支索引 → 煞方，通行规则：申子辰日煞南，寅午戌日煞北…）
+_SHA_FANG: dict[int, str] = {
+    0: "南", 4: "南", 8: "南",          # 子/辰/申
+    1: "东", 5: "东", 9: "东",          # 丑/巳/酉
+    2: "北", 6: "北", 10: "北",         # 寅/午/戌
+    3: "西", 7: "西", 11: "西",         # 卯/未/亥
+}
 
 
 # 事项别名归一（R118b，D-164b）：find_good_days 用精确匹配 affair in

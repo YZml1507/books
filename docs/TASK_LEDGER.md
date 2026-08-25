@@ -16472,3 +16472,16 @@ U-004 合婚大运表 warm 折叠；U-016 拒答话术人话化（voice.py warm 
 U-021 农历换算说明进生辰小卡；V-003 disclaimer 显示层软化+缩样式。
 验证 r216b6_verify.json 六项全过、pageerror 0。闸门 gates_r216b6.log
 7 项全 EXIT=0。至此 R216a 两轮巡检全部条目与观察项处置完毕。
+
+### 165. [优化轨] R216b 续6：V-001/V-002/U-024/V-004 四条观察项清零（2026-08-25 · 接续坏窗口）
+
+V-001 黄历补农历日期+冲煞（huangli.py day_query additive 新键 lunar/chongsha
++ services.py 透传 + app.js 温柔版上屏「🗓 农历…」「⚔ 今日冲X(属相)·煞方」；
+既有键零改动，probe_contract PASS 201 点 SOFT=14）；V-002 捕捉/狩猎措辞改人话
+（app.js 显示层映射表）；U-024 _topic_of 单字「学」→学业/学习/上学 双字词
+（量子力学不再误命中，实测 None）；V-004 海报出处行截断点回退到非字母数字
+字符边界（node new Function OK）。
+浏览器复测 :8185 warm 态 lunar/chongsha 上屏、旧 V-002 文案消失、pageerror 0。
+闸门 gates_r216b_cont6.log 7 项全 EXIT=0（selftest 163 / ui_smoke /
+baseline_voice sha256 一致 / warm_voice+阳性对照 / plain_first / poster）。
+至此 UX_REVIEW_QUEUE 观察项全部关单，交还审查轨复核。
