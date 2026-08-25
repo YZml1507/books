@@ -68,6 +68,7 @@ class Bazi:
     day_master: str   # 日主（日干）
     nayin: list          # [年, 月, 日, 时] 纳音
     dayun_dir: str       # "顺" / "逆"
+    gender: str = ""     # 性别（F-004 动态标签）
     warn: list = field(default_factory=list)
     meta: dict = field(default_factory=dict)
 
@@ -354,6 +355,7 @@ def compute(year: int, month: int, day: int, hour: int,
         nayin=[nayin_of(year_pillar), nayin_of(month_pillar),
                nayin_of(day_pillar), nayin_of(hour_pillar)],
         dayun_dir=dayun_dir,
+        gender=gender,
         warn=warns,
         meta={"gindex_year": y_idx[0] * 12 + y_idx[1],
               "jie": jie[0] if jie else None,

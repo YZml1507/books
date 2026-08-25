@@ -73,12 +73,16 @@ class Hehun:
     peach_b: str                     # 女桃花支
     peach_same: bool                 # 桃花支重叠
     gan_he: bool = False             # 日干五合（R204b）
-    god_a_sees_b: str = ""           # 男日干见女日干十神（R204b）
-    god_b_sees_a: str = ""           # 女日干见男日干十神（R204b）
+    god_a_sees_b: str = ""           # 甲日干见乙日干十神（R204b）
+    god_b_sees_a: str = ""           # 乙日干见甲日干十神（R204b）
+    gender_a: str = ""               # 甲性别（F-004 动态标签）
+    gender_b: str = ""               # 乙性别（F-004 动态标签）
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
-        parts = [f"男 {self.day_gz_a}（日主{self.day_wx_a}）· 女 {self.day_gz_b}（日主{self.day_wx_b}）"]
+        ga = "女" if self.gender_a == "女" else "男"
+        gb = "女" if self.gender_b == "女" else "男"
+        parts = [f"{ga} {self.day_gz_a}（日主{self.day_wx_a}）· {gb} {self.day_gz_b}（日主{self.day_wx_b}）"]
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
                      ("六冲" if self.clash else ("六合" if self.combine else "无冲合")))
         parts.append(f"日主五行：" + ("相生" if self.day_wx_sheng else "相克"))
@@ -129,6 +133,7 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         day_wx_a=wxa, day_wx_b=wxb, day_wx_sheng=sheng,
         peach_a=pa, peach_b=pb, peach_same=peach_same,
         gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
+        gender_a=getattr(b_a, "gender", ""), gender_b=getattr(b_b, "gender", ""),
         notes=notes,
     )
 

@@ -79,7 +79,19 @@ ELEMENT_WARM: dict[str, tuple[str, str]] = {
     "火": ("热度", "亮、外放、情绪来得快"),
     "土": ("厚稳", "承得住，慢热但踏实"),
     "金": ("决断", "干脆、边界清楚、说一是一"),
-    "水": ("灵活", "会绕路、会渗透、心思细"),
+    "水": ("柔软", "能绕、会找路，适应力强"),
+}
+
+# 地支 → 生肖 + 方位（F-006：干支改生肖+方位注释）
+ZHI_ZODIAC: dict[str, str] = {
+    "子": "鼠", "丑": "牛", "寅": "虎", "卯": "兔",
+    "辰": "龙", "巳": "蛇", "午": "马", "未": "羊",
+    "申": "猴", "酉": "鸡", "戌": "狗", "亥": "猪",
+}
+ZHI_DIR: dict[str, str] = {
+    "子": "北", "丑": "东北", "寅": "东北", "卯": "东",
+    "辰": "东南", "巳": "东南", "午": "南", "未": "西南",
+    "申": "西南", "酉": "西", "戌": "西北", "亥": "西北",
 }
 
 ELEMENT_GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
@@ -144,6 +156,7 @@ TOPIC_WARM: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("婚", ("正财", "偏财", "正官", "七杀"), "感情"),
     ("桃花", ("正财", "偏财", "正官", "七杀"), "感情"),
     ("对象", ("正财", "偏财", "正官", "七杀"), "感情"),
+    ("运势", (), "状态"),
     ("事业", ("正官", "七杀"), "事业"),
     ("工作", ("正官", "七杀"), "事业"),
     ("升职", ("正官", "七杀"), "事业"),
@@ -636,13 +649,19 @@ def warm_taohua(t: dict) -> dict:
     t = t or {}
     strength = _STRENGTH_WARM.get(t.get("strength", ""),
                                   str(t.get("strength", "")))
-    l0 = "慢热缘分" if "慢热" in strength else (
-        "桃花偏旺" if "偏快" in strength else "缘分平稳")
+    # F-003：标题与实际强度动态匹配，避免「缘分信号满格」vs「四柱无桃花」矛盾
     _tb = COPY_BANK.get("taohua") or {}
     if _tb:
-        # R214b：年轻化口吻——one_liner 走文案库（按年支盐确定性抽取），
-        # 回复模板按强/中/弱档给「可执行小行动」。
-        l0 = _pick(_tb.get("one_liners") or [], t.get("year_zhi"), "ol")
+        _band = "强" if "偏快" in strength else "弱" if "慢热" in strength else "中"
+        _pool = (_tb.get("one_liners") or [])
+        # 按强度过滤：强→满格/爆棚类，弱→独美/待激活类，中→平稳类
+        if _band == "强":
+            _filtered = [l for l in _pool if any(k in l for k in ["满格", "爆棚", "外挂", "焦点", "满开"])]
+        elif _band == "弱":
+            _filtered = [l for l in _pool if any(k in l for k in ["独美", "待激活", "慢热", "蓄力", "充电"])]
+        else:
+            _filtered = [l for l in _pool if any(k in l for k in ["平稳", "适中", "刚刚好"])]
+        l0 = _pick(_filtered or _pool, t.get("year_zhi"), "ol")
         _band = ("强" if "偏快" in strength
                  else "弱" if "慢热" in strength else "中")
         lines: list[str] = [_pick((_tb.get("replies") or {}).get(_band) or [],
@@ -654,9 +673,22 @@ def warm_taohua(t: dict) -> dict:
                          f"方位不背锅，行动才管用。")
         dayun = t.get("dayun_hits") or []
         if dayun:
-            d0 = dayun[0]
-            lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
-                         f"社交面会明显变宽——那阵子多出门走走。")
+            # F-005：应期年份动态计算用户年龄（±5 岁内有参考价值）
+            # F-006：干支改生肖+方位注释
+            import datetime
+            _now = datetime.date.today()
+            _user_birth_year_approx = _now.year - 22  # 目标用户 15-25 岁，取中值
+            _near = [d for d in dayun if abs(int(d.get("year_start", 0)) - _user_birth_year_approx) <= 5]
+            if _near:
+                d0 = _near[0]
+                _pillar = d0.get("pillar", "")
+                _zodiac = ZHI_ZODIAC.get(_pillar[:1] if _pillar else "", "")
+                _dir = ZHI_DIR.get(_pillar[:1] if _pillar else "", "")
+                _extra = f"（{_zodiac}·{_dir}）" if _zodiac and _dir else f"（{_zodiac}）" if _zodiac else ""
+                lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽——那阵子多出门走走。")
+            elif dayun:
+                d0 = dayun[0]
+                lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
         lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
         return _wrap(
             l0,
@@ -744,7 +776,11 @@ def warm_hehun(h: dict) -> dict:
     # dayun_hits 数据本身零改动（selftest hehun.dayun 钉的 8 运口径不变），
     # 只是 warm 文案层做年龄过滤。
     _adult = [d for d in dayun if int(d.get("start_age_a", 99)) >= 16]
+    # F-007：按 year_start 距离当前年份排序，优先展示近期应期
     if _adult:
+        import datetime
+        _now = datetime.date.today()
+        _adult.sort(key=lambda d: abs(int(d.get("year_start", 0)) - _now.year))
         d0 = _adult[0]
         lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
                      f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
