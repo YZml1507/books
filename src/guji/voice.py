@@ -590,12 +590,17 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     q = (question or "").strip()
     if q:
         lines.append(f"你问「{q}」，抽到的是这些牌：")
-    for c in cards[:5]:
+    else:
+        lines.append("抽到的是这些牌：")
+    shown = cards[:5]
+    for c in shown:
         cu = bool(c.get("upright"))
         ckw = (c.get("upright_kw") if cu else c.get("reversed_kw")) or ""
         pos = c.get("position") or ""
         lines.append(f"{pos + '：' if pos else ''}{c.get('name', '')}"
                      f"（{'正位' if cu else '逆位'}）——{ckw}。")
+    if len(cards) > 5:
+        lines.append(f"还有 {len(cards) - 5} 张牌，每张都在说同一件事的不同面。")
     lines.append("牌面是象征，不是结论——牌面照见什么，由你慢慢体会。")
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
