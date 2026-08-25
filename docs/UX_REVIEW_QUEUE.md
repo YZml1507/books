@@ -696,9 +696,9 @@ baseline_voice sha256 一致 / check_plain_first / check_poster 均 PASS。
 
 已关单累计 **29 条**：U-001~003、004、005~023 全部主条目 + V-003。
 仍开放仅剩观察项：
-- V-001 🟢 黄历缺农历日期与冲煞信息（需后端 huangli API 增字段，涉及契约）
-- V-002 🟢 HUANGLI_WARM「捕捉＝抓机会」「狩猎＝外出打猎」措辞打磨
-- V-004 🟢 海报出处行截断点落在英文键名中间
+- V-001 ✅ [已验证 R216b续6] 🟢 黄历缺农历日期与冲煞信息（需后端 huangli API 增字段，涉及契约）
+- V-002 ✅ [已验证 R216b续6] 🟢 HUANGLI_WARM「捕捉＝抓机会」「狩猎＝外出打猎」措辞打磨
+- V-004 ✅ [已验证 R216b续6] 🟢 海报出处行截断点落在英文键名中间
 - U-024 🟢（新增）_topic_of 关键词匹配过宽：「量子力学」命中「学」走学业解读
 
 至此 UX_REVIEW_QUEUE 首轮巡检（R216a-巡1）+ 第二轮巡检（巡2）发现的全部
@@ -736,3 +736,41 @@ probe_contract PASS（201 读取点，SOFT=14 与既往一致）。
 1-8 + --self-check 阳性对照 · plain_first · check_poster；pageerror 0。
 
 至此 V-001/V-002/U-024 全部关单，队列无任何开放条目。交还审查轨复核。
+
+---
+
+## R216b 续6 复核（2026-08-25 · 审查轨 · 收官）
+
+优化轨 commit f45bfff（V-001/V-002/U-024/V-004），已 push 且 ls-remote 一致。
+复核方式：diff 逐行审阅 + Playwright :8187 独立复测 + 冲煞独立核算 +
+vision 复评 + contract 探针全量。截图 `$LOCALAPPDATA/Temp/tour/verify7/`
+（v7_huangli / v7_poster_basis.png）。pageerror 全程 0。
+
+- **V-001 黄历农历+冲煞 → [已验证]**：API additive 新键 lunar/chongsha，
+  既有六键完整（legacy_keys_intact=true）；probe_contract 201 读取点 PASS。
+  独立核算三日期：08-25→冲丑(牛)煞西·农历七月十三 ✓、08-19→冲未(羊)煞东
+  ·七月初七 ✓、2026-01-01→冬月十三 ✓，与万年历参照一致；六冲对冲支与
+  煞方写死表自洽。UI 上屏带人话短注「属羊的朋友今天稳一点，煞方少往那边跑」，
+  vision 调性 8.5/10。
+- **V-002 措辞 → [已验证]**：「捕捉＝把拖了很久的小事办掉」「狩猎＝来一场
+  说走就走的短途出游」上屏确认，都市语境不再突兀。
+- **U-024 分词宽度 → [已验证]**：「量子力学怎么解释」改判拒答（不瞎编）；
+  「最近学业压力大」「考试能过吗」仍正确命中学业主题——收窄未误伤正例。
+- **V-004 海报截断 → [已验证]**：真实下载海报出处区 vision 复评：
+  截断点落在「日主庚的五行…」中文语义边界，无英文键名中断。
+
+**闸门抽查全绿**：selftest 163 / probe_ui_smoke / probe_contract(201点) /
+check_warm_voice / baseline_voice sha256 一致 / check_plain_first /
+check_poster 均 PASS。
+
+### ══ UX_REVIEW_QUEUE 收官 ══
+
+R216a-巡1 + 巡2 两轮巡检共发现 **30 条问题**（U-001~024、V-001~004、
+含事故通报与重做），经优化轨 R216b~续6 共 6 个 commit 全部修复，
+审查轨逐条独立复核 **30/30 [已验证] 关单**。全程闸门无回退、
+professional 模式基线逐字节一致、pageerror 零记录。
+
+遗留方向（非缺陷，供后续排期）：
+1. LLM 真实链路质量巡检（本轮 DISABLE 态未能覆盖聊天/点评生成质量）；
+2. 小红书真机用户测试（390px 模拟器 ≠ 真实 iOS/Android 浏览器）；
+3. copy_bank 文案池扩充（开场白池仅 6 句，长期会再显模板感）。
