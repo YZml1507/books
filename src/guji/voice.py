@@ -566,7 +566,7 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
     name = (ben or {}).get("gua_name") or ""
     _ly = COPY_BANK.get("liuyao_openers") or []
     opener = _pick(_ly, bn, name) if _ly else ""
-    l0 = f"{opener}——{name}卦" if (opener and len(opener) <= 10) else \
+    l0 = f"{opener}——{name}卦" if opener else \
          f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
