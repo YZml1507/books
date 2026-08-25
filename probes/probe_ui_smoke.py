@@ -187,7 +187,10 @@ class _MockLLMHandler(BaseHTTPRequestHandler):
 def start_mock_llm() -> tuple | None:
     """起本地 mock 端点。返回 (server, port)；失败返回 None（调用方转 SKIP）。"""
     try:
-        s = HTTPServer(("127.0.0.1", 0), _MockLLMHandler)
+        from socketserver import ThreadingMixIn
+        class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+            daemon_threads = True
+        s = ThreadingHTTPServer(("127.0.0.1", 0), _MockLLMHandler)
     except OSError:
         return None
     th = threading.Thread(target=s.serve_forever, daemon=True)
