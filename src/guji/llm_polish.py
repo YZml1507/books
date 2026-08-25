@@ -186,9 +186,13 @@ def _is_loopback(url: str) -> bool:
 
 
 def _sanitize(text: str | None) -> str | None:
-    """输出净化：去书名号引用外观、裁掉空段。判据 6 的代码侧兜底。"""
+    """输出净化：去书名号引用外观、裁掉空段、剥离推理模型 thinking 泄漏。判据 6 的代码侧兜底。"""
     if not text:
         return None
+    # agnes-2.5-flash 是推理模型：reasoning_content 偶发漏进 content，
+    # 形态为 "...正文...\n</think> 正文..."——只保留最后一段 </think> 之后的正文。
+    if "</think>" in text:
+        text = text.rsplit("</think>", 1)[-1]
     text = _LEAK_PAT.sub("", text)
     text = re.sub(r"\s{2,}", " ", text).strip()
     text = text.strip("\"“”'‘")
