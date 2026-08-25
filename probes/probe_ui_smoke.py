@@ -134,6 +134,7 @@ BUTTON_CASES = [
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）
 FILL = {
+    "bazi":         {"#year": "1990", "#month": "5", "#day": "15"},
     "search":        {"#rq": "潛龍勿用"},
     "research":      {"#rq2": "無爲", "#rmax": "2"},
     "addr":          {"#aguan": "1"},
