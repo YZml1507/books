@@ -1480,6 +1480,7 @@ async function loadDailyDetail() {
     html += '</div>';
     target.innerHTML = html;
     target.dataset.loaded = '1';
+    pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
     target.innerHTML = '<div class="no-evidence">解读失败：' + esc(e.message) + '</div>';
   }
