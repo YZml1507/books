@@ -155,15 +155,15 @@ function pollAiPolish(containerId, taskId) {
 
 /* ── R206b（specs/009 US1）：AI 陪伴层「问问小满」──────────────
  * 排盘结果尾部入口 → 聊天抽屉。复用 pollAiPolish 的轮询语义
- * （/api/ai/{tid}），会话 id 存 sessionStorage（关标签即失，零隐私留存）。
+ * （/api/ai/{tid}），会话 id 存 localStorage（跨标签持久化，零隐私留存）。
  * DISABLE=1 时 /api/chat 返回无 chat_task_id 键 → 入口隐藏（D-244a）。 */
 var CHAT_SID_KEY = 'chatSessionId';
 function chatSid() {
   try {
-    var sid = sessionStorage.getItem(CHAT_SID_KEY);
+    var sid = localStorage.getItem(CHAT_SID_KEY);
     if (!sid) {
       sid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      sessionStorage.setItem(CHAT_SID_KEY, sid);
+      localStorage.setItem(CHAT_SID_KEY, sid);
     }
     return sid;
   } catch (e) { return 'c-anon'; }
