@@ -16769,3 +16769,16 @@ probe_ui_smoke ai.block.renders_with_ai 必现超时：用例前 reload 页面�
 
 selftest163 / check_warm_voice / check_plain_first / baseline_voice /
 verify_r218a(8/8) / check_poster(判据12+13+14) / probe_ui_smoke ×3 PASS
+
+### §171 补遗（同轮追加）：A-b aria 补齐 + E-c 离线兜底——巡4 清单至此全清
+
+- **A-b aria**：index.html aria-label/role 从 17 处补到 21 处+——14 张
+  func-card 全部按 func-name 自动补 aria-label；chatInput/chatSendBtn/
+  recentClose/shareDaily/viewBack 补齐；动态生成的「💬 聊聊这件事」按钮
+  JS 侧 setAttribute('aria-label')。
+- **E-c 离线兜底**：新增 web/static/sw.js（app shell stale-while-revalidate，
+  /api/* 永不缓存），index.html 注册。断网刷新不再白屏，壳由缓存兜住、
+  API 错误走既有 toast/内联文案。CACHE 版本 books-shell-v1，递增即失效。
+
+补验：selftest163 / warm_voice / plain_first / baseline / check_poster /
+probe_ui_smoke 全 PASS；/static/sw.js 服务端 200。

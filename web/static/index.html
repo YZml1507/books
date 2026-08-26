@@ -7,6 +7,14 @@
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
      643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
 <link rel="stylesheet" href="/static/styles.css">
+<!-- R218a-巡4（E-c）：离线兜底——SW 缓存 app shell，断网刷新不再白屏 -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/static/sw.js').catch(function () {});
+  });
+}
+</script>
 </head>
 <body>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
@@ -14,7 +22,7 @@
 <div class="wrap">
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
        固定高度，引文区高度与书数无关）。首页时 hidden。 -->
-  <button class="view-back" id="viewBack" type="button" hidden>← 返回</button>
+  <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
   <div class="home-main" id="homeMain">
 
   <!-- 品牌 -->
@@ -44,7 +52,8 @@
     </div>
     <!-- R198b（US5）：今日运势分享图入口 -->
     <button class="ghost" type="button" id="shareDaily"
-            title="生成今日运势分享图" style="margin:6px 14px 0; flex-shrink:0;">📸 存成图</button>
+            title="生成今日运势分享图" aria-label="把今日运势存成分享图"
+            style="margin:6px 14px 0; flex-shrink:0;">📸 存成图</button>
     <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
     <div class="daily-checkin" id="dailyCheckin"></div>
     <div class="daily-main">
@@ -77,19 +86,19 @@
   <div class="ia-group" data-group="ask">
     <div class="ia-label">✨ 今天想看点什么</div>
     <div class="func-grid">
-    <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
       <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
-    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0" aria-label="今日命盘">
       <div class="func-icon">🔮</div><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
     </div>
-    <div class="func-card func-entry" data-view="taohua" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
       <div class="func-icon">🌸</div><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
     </div>
-    <div class="func-card func-entry" data-view="hehun" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
       <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">和 ta 配不配 · 看缘分</div>
     </div>
-    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0">
+    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0" aria-label="今天适合">
       <div class="func-icon">🌙</div><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
     </div>
     </div>
@@ -102,10 +111,10 @@
     <div class="func-grid pro-grid">
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
            （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
-      <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0">
+      <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
         <div class="func-icon">🧿</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
       </div>
-      <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0">
+      <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
         <div class="func-icon">📝</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
       </div>
     </div>
@@ -128,7 +137,7 @@
         <span>小满的解忧铺</span>
       </div>
       <button class="recent-side-close" id="recentClose" type="button"
-        title="收起">✕</button>
+        title="收起" aria-label="收起侧栏">✕</button>
     </div>
 
     <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见。
@@ -150,10 +159,10 @@
     <div class="side-chat">
       <div class="chat-flow side-chat-flow" id="chatFlow"></div>
       <div class="chat-input-row">
-        <input id="chatInput" type="text" maxlength="500"
-          placeholder="说说你的心情…">
-        <button id="chatSendBtn" type="button">发</button>
-      </div>
+              <input id="chatInput" type="text" maxlength="500"
+                placeholder="说说你的心情…" aria-label="对小满说点什么">
+              <button id="chatSendBtn" type="button" aria-label="发送">发</button>
+            </div>
     </div>
   </aside>
 
@@ -166,16 +175,16 @@
     <div class="card"><h2>🔮 问一卦</h2>
       <p style="color:var(--secondary);font-size:14px;">选一个方式，问一件具体的事</p>
       <div class="func-grid">
-        <div class="func-card" data-view="liuyao" role="button" tabindex="0">
+        <div class="func-card" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
           <div class="func-icon">🔮</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
         </div>
-        <div class="func-card" data-view="qiming" role="button" tabindex="0">
+        <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
           <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
         </div>
-        <div class="func-card" data-view="taohua" role="button" tabindex="0">
+        <div class="func-card" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
           <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
         </div>
-        <div class="func-card" data-view="hehun" role="button" tabindex="0">
+        <div class="func-card" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
           <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
         </div>
       </div>
@@ -249,13 +258,13 @@
       <div class="related-funcs">
         <div class="ia-label">✨ 相关功能（同一张盘）</div>
         <div class="func-grid">
-          <div class="func-card" data-view="qiming" role="button" tabindex="0">
+          <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
             <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
           </div>
-          <div class="func-card" data-view="taohua" role="button" tabindex="0">
+          <div class="func-card" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
             <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
           </div>
-          <div class="func-card" data-view="hehun" role="button" tabindex="0">
+          <div class="func-card" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
             <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
           </div>
         </div>

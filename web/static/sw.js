@@ -1,0 +1,57 @@
+/* R218a-巡4（E-c）：离线兜底——SPA 无 SW 时断网 reload 直接白屏
+ * （ERR_INTERNET_DISCONNECTED）。本 SW 只做两件事：
+ *  1. app shell（/、index.html、app.js、styles.css）stale-while-revalidate：
+ *     断网时用缓存兜住壳，页面可渲染 + 提示「当前离线」；
+ *  2. /api/* 永不缓存（命理数据必须新鲜，离线时让请求自然失败，
+ *     前端既有 toast/内联错误文案接管）。
+ * 版本号递增即失效旧缓存。 */
+var CACHE = 'books-shell-v1';
+var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css'];
+
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return c.addAll(SHELL).catch(function () { /* 单文件失败不阻断安装 */ });
+  }));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+      .map(function (k) { return caches.delete(k); }));
+  }));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', function (e) {
+  var url = new URL(e.request.url);
+  if (e.request.method !== 'GET') return;          // POST 全直连
+  if (url.pathname.indexOf('/api/') === 0) return; // API 永不缓存
+
+  /* 导航请求（刷新）：SWR——先给缓存壳保住白屏，后台再更新 */
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      caches.match('/').then(function (hit) {
+        var net = fetch(e.request).then(function (resp) {
+          caches.open(CACHE).then(function (c) { c.put('/', resp.clone()); });
+          return resp;
+        }).catch(function () { return hit; });
+        return hit || net;
+      })
+    );
+    return;
+  }
+
+  /* 同源静态资源：cache-first，命中即回，后台静默更新 */
+  e.respondWith(
+    caches.match(e.request).then(function (hit) {
+      var net = fetch(e.request).then(function (resp) {
+        if (resp.ok) {
+          caches.open(CACHE).then(function (c) { c.put(e.request, resp.clone()); });
+        }
+        return resp;
+      }).catch(function () { return hit; });
+      return hit || net;
+    })
+  );
+});

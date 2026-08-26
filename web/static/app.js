@@ -234,6 +234,8 @@ function attachChatEntry(container) {
   btn.className = 'chat-entry';
   btn.type = 'button';
   btn.id = 'chatEntry';
+  /* R218a-巡4（A-b）：图标按钮补 aria-label */
+  btn.setAttribute('aria-label', '打开小满聊天，聊聊这件事');
   btn.textContent = '💬 聊聊这件事';
   card.appendChild(btn);
 }
