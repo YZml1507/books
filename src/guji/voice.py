@@ -272,18 +272,22 @@ def one_liner(day_master: str, calc: dict, question: str | None) -> str:
             s = f"{label}这块，盘里信息偏少"
         else:
             fe = calc.get("five_elements") or {}
-            s = (f"{label}看五行：{'、'.join(fe.get('strong') or []) or '平'}偏多"
+            _strong_labels = [ELEMENT_WARM.get(s, ("", ""))[0] for s in (fe.get("strong") or [])]
+            s = (f"{label}看五行：{'、'.join(_strong_labels) or '平'}偏多"
                  if (fe.get("strong") or fe.get("missing")) else f"{label}整体平和")
     else:
         fe = calc.get("five_elements") or {}
         strong = fe.get("strong") or []
         missing = fe.get("missing") or []
+        # F-008：术语人话化——五行名翻译为日常语标签（金→决断、木→生长…）
+        _strong_label = ELEMENT_WARM.get(strong[0], ("", ""))[0] if strong else ""
+        _missing_label = ELEMENT_WARM.get(missing[0], ("", ""))[0] if missing else ""
         if strong and missing:
-            s = f"{warm}底子，{strong[0]}多缺{missing[0]}"
+            s = f"{warm}底子，{_strong_label}多缺{_missing_label}"
         elif strong:
-            s = f"{warm}底子，{strong[0]}偏多"
+            s = f"{warm}底子，{_strong_label}偏多"
         elif missing:
-            s = f"{warm}底子，缺{missing[0]}"
+            s = f"{warm}底子，缺{_missing_label}"
         else:
             s = f"{warm}底子，五行挺匀"
     return s if len(s) <= _L0_MAX else s[:_L0_MAX]
@@ -373,7 +377,9 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         _w = ELEMENT_WARM.get(strong[0], ("", ""))
         lines.append(f"你自带「{_w[0]}」的底色——{_w[1]}。")
     if missing:
-        lines.append(f"缺{'、'.join(missing)}——不是缺陷，是偏向。")
+        # F-008：术语人话化——缺行也用日常语标签
+        _missing_labels = [ELEMENT_WARM.get(m, ('', ''))[0] for m in missing]
+        lines.append(f"缺{'、'.join(_missing_labels)}——不是缺陷，是偏向。")
     dl = calc.get("day_luck") or {}
     if dl.get("day_master_rel"):
         # R214b：裸术语（「庚为日主甲之七杀」）翻译成人话——取末段十神名
@@ -679,8 +685,9 @@ def warm_taohua(t: dict) -> dict:
             # F-006：干支改生肖+方位注释
             import datetime
             _now = datetime.date.today()
-            _user_birth_year_approx = _now.year - 22  # 目标用户 15-25 岁，取中值
-            _near = [d for d in dayun if abs(int(d.get("year_start", 0)) - _user_birth_year_approx) <= 5]
+            _user_birth_year = t.get("birth_year") or (_now.year - 22)
+            _user_age = _now.year - _user_birth_year
+            _near = [d for d in dayun if abs(int(d.get("start_age", 0)) - _user_age) <= 5]
             if _near:
                 d0 = _near[0]
                 _pillar = d0.get("pillar", "")
@@ -692,7 +699,7 @@ def warm_taohua(t: dict) -> dict:
                 d0 = dayun[0]
                 # F-014：当年份远离用户年龄时，删除具体年份，改为中性描述
                 _year = int(d0.get("year_start", 0))
-                _diff = abs(_year - _user_birth_year_approx)
+                _diff = abs(_year - _user_birth_year - _user_age)
                 if _diff > 15:
                     lines.append(f"未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
                 else:

@@ -234,6 +234,7 @@ def taohua(req) -> dict:
         "tianxi_pillar": list(t.tianxi_pillar),
         "strength": t.strength,
         "dayun_hits": dayun,
+        "birth_year": by,
         "notes": t.notes,
         "render": t.render(),
     }
