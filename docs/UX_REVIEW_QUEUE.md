@@ -1334,3 +1334,122 @@ Playwright :8189 独立复测 + API 直测 + 代码逻辑人工追踪。
 
 ### N-11 | iOS 安全区
 - ✅ [已修 R218a-巡2 · index.html meta viewport 加 viewport-fit=cover；styles.css body padding 用 env(safe-area-inset-*)；desktop/Android 不影响]
+
+---
+
+## R218a-巡3（聚焦复测 5 条 · 2026-08-26）
+
+> 范围：5 个最高 ROI 复测点（N-01/N-02/N-04/N-07 + 1 新发现）。每条都自己跑 Playwright 真实交互，**不复用 R218a-巡2 的 ✅ 标记**。
+> 后台：uvicorn :8183（pid 9988，BOOKS_LLM_DISABLE=1，curl `/api/bazi /api/liuyao /api/tarot` 均 200 OK）。
+> 工具：playwright + venv/Scripts/python.exe（uvicorn 复用；strict_readonly 严守 — 仅读 web/，写 docs/UX_REVIEW_QUEUE.md）。
+
+### 复测 N-01 | bazi question 真实生效
+- **结论：✅ 真生效**（修复真实，不是虚标）
+- **后端证据**（curl 直测）：
+  - `POST /api/bazi {year:1995,month:6,day:15,hour:14,gender:"女",question:"最近事业怎么样"}` → 响应 `keys = ['paipan','calc','evidence','interpretation','warm','ai_polish','question']`，`question = '最近事业怎么样'` ✅
+  - `POST /api/liuyao {method:"coins",seed:42,question:"升职能成吗"}` → `question = '升职能成吗'` ✅
+  - `POST /api/tarot {seed:42,n:3,question:"感情走向"}` → `question = '感情走向'` ✅
+- **前端证据**（Playwright UI 真实提交）：
+  - `#year/month/day/hour/gender/question` 全部填好 → 点 `#submit` → 等 3.5s
+  - 抓 `WARM_LAST_QUESTION = '最近事业怎么样'` ✅（empathy 模板选择依据已生效）
+  - 抓结果页 `body.innerText` 找到绑定句原文：
+    > 「**你问「最近事业怎么样」**——这属于事业，盘里对应的位置有 2 处：月干壬（规矩位）、年支藏干壬（规矩位）。其中最靠前的那个是规矩位（正官）——在规则里行事，责任感重。」
+  - vision_analyze 复核：`01_bazi_result.png` 中确认"师傅回复区"开头就是「你问「最近事业怎么样」」
+- **R218a-巡2 修复正确性**：6fc148c commit 在 services.py 的 bazi/liuyao/tarot 3 个返回 dict 都加了 `"question": req.question`，**前端 baziResult 解读段有 `if (j.question)` 钩子**（line 1974 附近的 renderVoice 链）确实读到了。**N-01 完整闭环，无虚标**。
+- 截图：`$LOCALAPPDATA/Temp/tour_R218a-巡3/01_bazi_result.png`（含绑定句 + pill 排盘）
+- 数据：`01_bazi_binding.txt`
+
+### 复测 N-02 | 海报浮层
+- **结论：❌ 仍虚标/broken**（R218a-巡2 修了一半 — modal DOM/CSS/事件全写了，但走不通）
+- **Playwright 真实交互**：填表 → 提交 → 拿到 bazi 结果 → 点 `#shareBazi` → 等 3.5s → 截图
+- **浮层状态**：`document.getElementById('posterModal')` = **null**。`02_after_share.png` vision 复核：「**整个界面里完全没有任何海报浮层——既看不到半透明的深色遮罩背景，也看不到中央弹出的海报图片，更没有关闭按钮**」。
+- **根因（Playwright 抓堆栈，定位到代码行）**：
+  ```
+  ReferenceError: j is not defined
+      at _paintSharePoster (http://127.0.0.1:8183/static/app.js:1247:46)
+      at _paintPoster     (app.js:992:28)
+      at drawPoster       (app.js:974:12)
+      at downloadPoster   (app.js:1416:11)
+      at HTMLButtonElement.<anonymous> (app.js:2009:35)
+  ```
+  → `app.js:1247` 是 `var hook = _posterHookForView(s && s.view, j);` —— `_paintSharePoster(s, W, H)` 的入参只有 `s`，**没有 `j`**。R218a-巡2 加 `buildShareData(view, j)` 注入 `j.share` 后走新 `_paintSharePoster` 路径，但这条线对 `j` 引用是死代码。`drawPoster` 抛错 → `downloadPoster` 中断 → `showPosterModal(r.canvas, view)` 永远到不了。
+- **R218a-巡2 修复正确性**：6fc148c commit 加了 `showPosterModal()` 函数 + CSS `.poster-modal-backdrop/.poster-modal/.poster-modal-img/.poster-modal-close/.poster-modal-tip` + ESC/背景关闭 + 长按保存提示 + 下载仍走 toBlob —— **这些都是对的**，但**画海报那条路根本到不了浮层**。等于「客厅装修好，但厨房门锁着，用户永远走不进来」。
+- **复测成本**：1 行修复 `j` → `s` 即可（也可能 `_posterHookForView` 应改读 `s` 字段）。**预估 < 5 分钟**。
+- 截图：`$LOCALAPPDATA/Temp/tour_R218a-巡3/02_after_share.png`（无浮层，主页原样）
+- 数据：`02_modal_state.json`（含 page error 完整堆栈）
+
+### 复测 N-04 | 海报差异化（bazi/taohua/hehun）
+- **结论：❌ 仍虚标**（同根因：`_paintSharePoster line 1247 j is not defined`）
+- **Playwright 真实调用**：`fetch /api/{bazi|taohua|hehun}` 拿 j → `downloadPoster(j, view)` 拦截 toBlob/anchor.click → 期望从 `#posterModal img.poster-modal-img.src` 拿 dataURL
+- **3 个 view 全部抛 `j is not defined`**：
+  - bazi: `keys=['paipan','calc','evidence','interpretation','warm','ai_polish']` → thrown 'j is not defined'（堆栈同 N-02）
+  - taohua: `keys=['bazi','year_zhi','peach_zhi','hit_pillars','hongluan',...]` → thrown 'j is not defined'
+  - hehun: `keys=['a_bazi','b_bazi','year_zhi_a','year_zhi_b','clash','combine',...]` → thrown 'j is not defined'
+- **字节数对比**：❌ N/A — 3 张海报 0/3 张成功渲染，无法做字节数对比
+- **vision_analyze 对比**：❌ N/A — 无 PNG 产物
+- **R218a-巡2 修复正确性**：6fc148c commit 在 `buildShareData` switch 加了 `bazi/taohua/hehun` 3 case，share*Btn 改传 view —— **这部分对**，但**进入模板后被同一 `j is not defined` bug 卡死**。N-04 与 N-02 是**同一根因的同一修复优先级**（修一个两个都通）。
+- 数据：`04_posters_summary.json`
+
+### 复测 N-07 | history UI 入口（侧栏「📚 我的解读·N」）
+- **结论：✅ 渲染成功**（段存在、可展开、有 items），但显示**count 不准**（详见新发现 N-α）
+- **Playwright 真实交互**：进首页 → 点「聊」toggle → 抓 `.side-history` 段
+- **DOM 证据**：
+  - `seg_class = 'side-history'` ✅
+  - `head_text = '📚 我的解读\n1\n▸'`（折叠态；▸ 表示可展开）✅
+  - 展开后 `item_count = 20`（segment 内 20 条 `.side-history-item`，每条带时间戳 + 问题 + paipan_render + 查看/删除按钮）✅
+  - vision 复核：`07_sidebar_open.png` 中侧栏顶部清楚显示「📚 **我的解读** 1 ▼」，展开后首条「2026-08-26T13:42:42 / 事业 / 乙亥年 壬午月 丁丑日 丁未时 / 查看 删除」完整可读
+- **R218a-巡2 修复正确性**：6fc148c commit 加 `initChat` 注册 toggle + `refreshHistoryCount()` + `app.js:3629-3645` —— **段渲染 100% 通过**。
+- 截图：`$LOCALAPPDATA/Temp/tour_R218a-巡3/07_sidebar.png`（折叠态）、`07_sidebar_open.png`（展开态，20 条 items）
+- 数据：`07_sidebar_state.json`、`07_sidebar_expand.json`
+
+### 新发现 1 条 N-α | history count 严重偏低（count=1 vs 实际 50）
+- **严重级**：🟠 HIGH（数据/信息架构 Bug — 用户被严重误导「只有 1 条历史」，实际 50 条）
+- **复现**（Playwright，3 步）：
+  1. 开首页 → 点「聊」→ 进侧栏 → 头部显示「📚 我的解读 **1** ▼」
+  2. 展开 → DOM 内 20 条 items
+  3. 直接 `fetch('/api/history')` → `records.length = **50**`
+- **实测数据**（json 截自 Playwright）：
+  ```json
+  {
+    "count_display": "1",        // 侧栏头部徽章
+    "count_display_in_head": "📚 我的解读\n1\n▸",
+    "visible_item_count": 20,     // 展开后渲染的 items
+    "api_records_count": 50,     // /api/history 真实总数
+    "api_keys": ["records"]      // 注意：没有 total 字段
+  }
+  ```
+- **现状**：
+  - 用户进侧栏看到「我的解读 **1**」→ 以为只有 1 条历史
+  - 实际数据库里 50 条
+  - 展开后只能看到前 20 条
+  - **30 条记录 UI 完全无法访问**（无分页/无限滚动/加载更多按钮）
+- **根因**（两处都查证）：
+  - 后端 `web/services.py:333` `def history_list(limit: int = 50)` → 只返 `{"records": [...]}`，**没有 `total` 字段**
+  - 前端 `web/static/app.js:3634-3646` `refreshHistoryCount()`：
+    ```js
+    var j = await api('/api/history?limit=1');
+    var n = (j && j.records) ? j.records.length : 0;   // n=1
+    var total = (j && typeof j.total === 'number') ? j.total : n;  // total 兜底 = 1
+    cnt.textContent = total > 0 ? String(total) : '0';  // 显示 "1"
+    ```
+  - `limit=1` 只返 1 条 + 后端没 `total` → 永远显示 1
+- **期望**：
+  1. **必改**：`web/services.py history_list` 加 `total` 字段（用 `COUNT(*)` 或 `len(records)+more` 标记）；前端 `refreshHistoryCount` 优先读 `total` → 显示 **50** 而不是 1
+  2. **应改**：history list 加分页/无限滚动（当前 `.side-history-item` 渲染 20 条就停，后 30 条永远看不到）
+  3. 可选：count 旁加 `+N` 标识「最近 20 / 共 50」
+- **截图证据**：`$LOCALAPPDATA/Temp/tour_R218a-巡3/07_sidebar_open.png`（20 条 items 实际渲染）+ `07_sidebar_expand.json`（实测数据）
+- **下一轮建议**：和 N-02/N-04 打包到 R218a-巡4 优化轨（同一审计窗口 — 修 1 行后端 + 1 段前端 + 加分页即可，估 < 30 分钟）
+
+### 本轮总结
+- **复测通过 2/4**：N-01 ✅ + N-07 渲染 ✅（N-07 的 count 偏低发现放新发现）；N-02 ❌ + N-04 ❌ 同一根因（`_paintSharePoster:1247 j is not defined`）
+- **新发现 1 条**：N-α（🟠 HIGH）侧栏 history count 显示与实际严重不一致（1 vs 50）+ 历史列表无分页（30 条不可达）
+- **截图总数**：6 张（`01_bazi_form/01_bazi_form_filled/01_bazi_result/02_after_share/07_sidebar/07_sidebar_open`），满足 ≥5
+- **console errors**：**0 个 console.error**；1 个 `pageerror: j is not defined`（N-02 触发，是产品 Bug 的副产品，非受控注入）
+- **建议下一轮 R218a-巡4 重点**：
+  1. **N-02 + N-04 一次性修复**（同根因，`_paintSharePoster:1247` 改 `j` → `s` 或 `_posterHookForView` 改读 `s`；估 < 5 分钟，让 R218a-06/13 真正生效）
+  2. **N-α history count + 分页**（后端加 `total` + 前端分页/无限滚动，估 < 30 分钟，让 60+ 历史 db 真正可用）
+  3. 留给 R218a-巡5：横屏/平板/可访问性、错误边界/离线/网络断开、a11y 审计
+- **附录 — 本轮产物路径**：
+  - tour 脚本：`Temp/tour_R218a-巡3/tour.py`（review-only，strict_readonly 内）
+  - 截图/数据：`$LOCALAPPDATA/Temp/tour_R218a-巡3/`（6 PNG + 7 TXT/JSON）
+  - UX_QUEUE 本段追加：第 1338 行起（本段标题 `## R218a-巡3…`）

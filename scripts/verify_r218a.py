@@ -52,16 +52,24 @@ def post(path, payload):
 
 
 def api_bazi():
+    # R218a-巡3 修正：原断言 "bazi"/"voice"/"result" 是猜测的旧契约；
+    # 真实契约（selftest ai_polish.additive 钉死）= paipan/calc/evidence/
+    # interpretation/warm + R218a-巡2 加的 question。
     d = post("/api/bazi", {"year": 1990, "month": 5, "day": 15, "hour": 14, "gender": "女"})
-    assert "bazi" in d or "voice" in d or "result" in d, f"keys={list(d.keys())[:5]}"
-    return f"keys={list(d.keys())[:5]}"
+    for k in ("paipan", "calc", "interpretation", "warm"):
+        assert k in d, f"缺 {k}: keys={sorted(d)}"
+    return f"keys={sorted(d)}"
 check("POST /api/bazi", api_bazi)
 
 
 def api_qiming():
-    d = post("/api/qiming", {"surname": "李", "gender": "女", "style": "诗经"})
-    assert isinstance(d, dict), f"type={type(d).__name__}"
-    return f"keys={list(d.keys())[:5]}"
+    # R218a-巡3 修正：QimingRequest 没有 style 字段（422 的根因），
+    # 改用与 selftest 一致的最小合法 payload。
+    d = post("/api/qiming", {"surname": "李", "year": 1990, "month": 1,
+                             "day": 1, "hour": 12, "gender": "男", "top_n": 5})
+    assert isinstance(d.get("full_names"), list) and d["full_names"], \
+        f"full_names 异常: {sorted(d)}"
+    return f"{len(d['full_names'])} 个推荐名"
 check("POST /api/qiming", api_qiming)
 
 
@@ -109,6 +117,10 @@ def copy_bank_markers():
     data = json.loads(cb.read_text(encoding="utf-8"))
     cf = data.get("chat_fallback_openers")
     assert cf is not None, "chat_fallback_openers 字段缺失"
+    if isinstance(cf, list):
+        # 实际格式是扁平句池（10 句），不是 default+关键词 dict
+        assert len(cf) >= 4, f"降级开场白池 {len(cf)} 句，不足 4 句"
+        return f"扁平池 {len(cf)} 句"
     default = cf.get("default", [])
     kws = [k for k in cf.keys() if k != "default"]
     assert len(default) >= 4, f"default 池 {len(default)} 句，不足 4 句"

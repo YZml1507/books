@@ -87,12 +87,17 @@ def save_record(input_: dict, paipan: dict, calc: dict,
         return int(cur.lastrowid)
 
 
-def list_records(limit: int = 50) -> list[dict]:
-    """历史列表（轻量：不带 evidence/llm 全文，便于前端列表展示）。"""
+def list_records(limit: int = 50, offset: int = 0) -> list[dict]:
+    """历史列表（轻量：不带 evidence/llm 全文，便于前端列表展示）。
+    R218a-巡3（N-α 修复加分页）：加 offset 支持分页加载，侧栏点「更多」
+    再拉下一页，total 由 services 层 COUNT(*) 返。"""
+    safe_limit = max(int(limit), 1)
+    safe_offset = max(int(offset), 0)
     with closing(_conn()) as conn:
         rows = conn.execute(
             "SELECT id, created_at, question, paipan_json, llm_json "
-            "FROM bazi_history ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            "FROM bazi_history ORDER BY id DESC LIMIT ? OFFSET ?",
+            (safe_limit, safe_offset)).fetchall()
     out = []
     for r in rows:
         try:

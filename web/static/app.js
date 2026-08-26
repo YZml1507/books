@@ -989,7 +989,16 @@ function drawPoster(j, opts) {
  *  不存在时保持 bazi 专属旧版式（check_poster 判据 12 口径不变）。 */
 function _paintPoster(j, W, H) {
   var S = W / 1080;
-  if (j && j.share) return _paintSharePoster(j.share, W, H);
+  if (j && j.share) {
+    /* R218a-巡3 修复（N-02+N-04 副作用兜底）：buildShareData 各 case 把 j 的
+     * 关键字段（warm/full_names/peach_zhi/day_wx_a/_b/_sheng）压到 s.lines/
+     * s.cards 供海报内容用，但**没**保留 j.warm/j.full_names/j.peach_zhi 到
+     * s 自身；金句 hook（_posterHookForView）会读这些字段做数据驱动金句
+     * （N-09）。为不丢这个能力，把 j 整体挂到 s._src（additive：纯新增键
+     * 不影响 share schema），让 hook 仍能拿到完整父数据，share 静态字段
+     * 走 s 自身，重复也不冲突。 */
+    return _paintSharePoster(Object.assign({}, j.share, { _src: j }), W, H);
+  }
   var warm = (j && j.warm) || {};
   var paipan = (j && j.paipan) || {};
   var ec = warm.energy_card || {};
@@ -1244,7 +1253,12 @@ function _paintSharePoster(s, W, H) {
   ctx.fillStyle = '#B7A98A'; ctx.font = '400 26px sans-serif';
   ctx.fillText('· 知命知书知天机 ·', 540, 1356);
   /* 金句 hook（按 view 动态 + 数据驱动） */
-  var hook = _posterHookForView(s && s.view, j);
+  /* R218a-巡3 修复（N-02+N-04 同根因）：原 `j` 是父函数 _paintPoster 的形参，
+   * 本函数 _paintSharePoster(s, W, H) 形参只有 s；j 在 share 分支闭包不可见，
+   * 会抛 `j is not defined` → 海报浮层 + 差异化全失效。改用 s。
+   * N-09 数据驱动金句需要父 j 的 warm/full_names/peach_zhi 等字段，_paintPoster
+   * 已把 j 挂到 s._src（line 992 附近），这里优先用 s._src，无则回退 s。 */
+  var hook = _posterHookForView(s && s.view, s._src || s);
   if (hook) {
     ctx.fillStyle = '#815934'; ctx.font = '500 28px sans-serif';
     ctx.fillText(hook, 540, 1400);
@@ -3409,17 +3423,25 @@ async function doHehun() {
 /* ── 历史 / 最近 / 收藏 / 新闻 ────────────────────────────────── */
 
 /** R000a-04：原读 j.items，后端给的是 j.records。 */
-async function loadHistory() {
+async function loadHistory(append) {
   const list = el('histList');
   if (!list) return;
+  /* R218a-巡3（N-α 修复加分页）：分页模块状态——首次展开全量加载后续页时
+   * 增量 append，避免一次性拉满 200 条。简单用模块级变量管理 offset/总
+   * 数；不持久化（关掉侧栏就重置，符合「展开」语义）。 */
+  if (!append) { __histPage = { offset: 0, total: 0, step: 20 }; }
+  const PAGE = (__histPage && __histPage.step) || 20;
+  const off = (__histPage && __histPage.offset) || 0;
   try {
-    const j = await fetchHistory();   /* R201b（B-009）：共享缓存 */
+    const j = await api('/api/history?limit=' + PAGE + '&offset=' + off);
     const records = j.records || [];
-    if (!records.length) {
+    const total = (typeof j.total === 'number') ? j.total : records.length;
+    if (__histPage) { __histPage.total = total; }
+    if (!records.length && !append) {
       list.innerHTML = '<div class="no-evidence">暂无记录</div>';
       return;
     }
-    let html = '';
+    let html = append ? '' : '';
     records.forEach(function (item) {
       html += '<div class="hist-item">' +
         '<div class="hist-time">' + esc(item.created_at || '') + '</div>' +
@@ -3428,14 +3450,32 @@ async function loadHistory() {
         '<div class="hist-actions">' +
         '<button class="hist-view" type="button" data-hist="' + esc(item.id) +
         '">查看</button>' +
-        '<button class="hist-del" type="button" data-hist-del="' + esc(item.id) +
-        '">删除</button></div></div>';
+        '<button class="hist-del" type="button" data-hist-del="' +
+        esc(item.id) + '">删除</button></div></div>';
     });
-    list.innerHTML = html;
+    /* 「加载更多」按钮：还剩数据时追加。 */
+    if (typeof total === 'number' && off + records.length < total) {
+      html += '<button type="button" id="histMore" class="ghost" ' +
+        'style="width:100%;margin-top:8px;">加载更多（已显示 ' +
+        (off + records.length) + ' / 共 ' + total + '）</button>';
+    }
+    if (append) {
+      /* 去掉旧的「加载更多」按钮后再追加新内容，避免重复。 */
+      const oldMore = list.querySelector('#histMore');
+      if (oldMore) oldMore.remove();
+      list.insertAdjacentHTML('beforeend', html);
+    } else {
+      list.innerHTML = html;
+    }
+    if (__histPage) { __histPage.offset = off + records.length; }
   } catch (e) {
-    list.innerHTML = '<div class="no-evidence">加载失败：' + esc(e.message) + '</div>';
+    if (!append) {
+      list.innerHTML = '<div class="no-evidence">加载失败：' + esc(e.message) + '</div>';
+    }
   }
 }
+/* R218a-巡3：分页状态模块级变量——loadHistory 内部用。 */
+var __histPage = null;
 
 async function showHistoryDetail(rid) {
   const list = el('histList');
@@ -3752,6 +3792,12 @@ function initReading() {
     const favDel = e.target.closest('[data-fav-del]');
     if (favDel) {
       removeFavorite(favDel.dataset.favDel);
+    }
+    /* R218a-巡3：分页「加载更多」点击——委托 histList 内 #histMore。 */
+    const more = e.target.closest('#histMore');
+    if (more) {
+      loadHistory(true);
+      return;
     }
   });
 }

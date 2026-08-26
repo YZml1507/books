@@ -92,9 +92,9 @@ def xingzuo(date: str | None = None) -> dict:
 
 
 @router.get("/api/history")
-def history_list(limit: int = 50) -> dict:
+def history_list(limit: int = 50, offset: int = 0) -> dict:
     """历史列表（轻量字段，供前端列表展示）。"""
-    return services.history_list(limit)
+    return services.history_list(limit, offset)
 
 
 @router.get("/api/history/{rid}")

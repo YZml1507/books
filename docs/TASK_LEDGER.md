@@ -16671,3 +16671,56 @@ web/check_poster.py       判据 12+13 PASS（分享图非空含娱乐标识 / �
 - 闸门 5 项全 EXIT=0，无退步
 - 本段已写入台账，待 git add+commit+push
 
+
+---
+
+**【§170 · 2026-08-26 · R218a-巡3 优化轨修复（接手上个窗口）】**
+
+### 本轮修复内容
+
+1. **N-02 海报浮层 + N-04 海报差异化（同根因，一次修复）**
+   - 根因：`app.js:1253` `_paintSharePoster(s, W, H)` 内引用了父函数形参 `j`
+     （`_posterHookForView(s.view, j)`），share 分支下 `j` 不可见 →
+     `ReferenceError: j is not defined` → drawPoster 中断 → showPosterModal
+     永远到不了。R218a-巡2 写的 modal DOM/CSS/事件全部正确但走不进去。
+   - 修复：`_paintPoster` 在 share 分支把父级 `j` 挂到 `s._src`
+     （`Object.assign({}, j.share, {_src: j})`，additive 不破坏 share schema）；
+     `_paintSharePoster` 改读 `s._src || s`。金句 hook 的数据驱动能力保留。
+
+2. **N-α history count 显示 1 实际 50 + 无分页**
+   - 后端：`services.history_list(limit, offset)` 加 `total/limit/offset` 字段；
+     `history_db.list_records` 加 offset 支持；`routers/bazi.py` 透传。
+     向后兼容：records 字段不变，selftest 契约零改动。
+   - 前端：`loadHistory(append)` 分页化（20 条/页），尾部「加载更多
+     （已显示 N / 共 M）」按钮；initReading 委托 #histMore 点击 append 加载。
+
+3. **check_poster.py 新增判据 14（真路径回归）**
+   - 背景：R218a-巡2 的 `j is not defined` 漏检是因为判据 12 只直接调
+     drawPoster，没走前端 share 按钮 → buildShareData → view 路由的完整链。
+   - 判据 14：独立起 uvicorn :8237，Playwright 真实点 shareBazi/shareTaohua/
+     shareHehun，断言 pageerror=0、modal 出现、PNG>40KB。
+   - 阳性对照（--realpath-self / --self-check）：monkey-patch 抹掉 s._src，
+     必须抓到 ReferenceError 才算闸门有效（U-08 无阳性对照=无闸门）。
+
+4. **scripts/verify_r218a.py 三处过时断言修正**（非产品 bug）
+   - bazi 断言旧键名 → 改为现行契约 paipan/calc/interpretation/warm；
+   - qiming 用了不存在的 `style` 字段（422 根因）→ 与 selftest 一致的合法 payload，
+     断言 full_names 非空；
+   - copy_bank.json#chat_fallback_openers 按 dict 读实际是扁平 list → 兼容两种格式。
+
+### 验证（全部真实执行）
+
+- selftest.py：163 checks 全 PASS（BOOKS_LLM_DISABLE=1）
+- check_poster 判据 14：bazi/taohua/hehun PNG 699K/697K/780K、modal=True、
+  pageerror=0 → PASS；--realpath-self 阳性对照被抓到；全量 check_poster PASS
+- check_warm_voice / check_plain_first / baseline_voice（逐字节一致）：PASS
+- verify_r218a.py 修正后 8/8 PASS EXIT=0
+- probe_ui_smoke：40/41 PASS。唯一 FAIL = ai.block.renders_with_ai——
+  已隔离复刻该用例（mock LLM + Playwright 点 #submit 等 .ai-polish）
+  AI 区块正常出现，API 直测 ai_task_id→done 正常 → 判定为 probe 测试基建
+  竞态（btn:bazi/dailyMore/dom:bazi 多用例共用容器+并发 pollAiPolish），
+  非产品回归。留 R218a-巡4 单独隔离复测确认后关单。
+
+### 运维注
+
+- 8183 uvicorn 曾跑旧代码导致 verify 假失败——改 services.py 后必须重启后端再验。

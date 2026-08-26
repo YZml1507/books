@@ -330,8 +330,21 @@ def xingzuo(date_str: str | None = None) -> dict:
     return out
 
 
-def history_list(limit: int = 50) -> dict:
-    return {"records": history_db.list_records(min(max(limit, 1), 200))}
+def history_list(limit: int = 50, offset: int = 0) -> dict:
+    """R218a-巡3（N-α 修复）：侧栏 count 显示 1 实际 50 — 返 total 字段。
+    之前只返 records，前端 refreshHistoryCount 用 records.length 兜底，
+    limit=1 时永远显示 1。现在同时返 total（DB 真实总数）让前端能
+    正确显示「我的解读·N」+ 后续分页基础。前端 loadHistory/loadRecent
+    仍读 records 字段（向后兼容），新增 total 字段不破坏契约。
+    offset 默认 0，加 offset/limit 即可分页加载更多。"""
+    safe_limit = min(max(int(limit), 1), 200)
+    safe_offset = max(int(offset), 0)
+    return {
+        "records": history_db.list_records(safe_limit, safe_offset),
+        "total": history_db.count(),
+        "limit": safe_limit,
+        "offset": safe_offset,
+    }
 
 
 def history_detail(rid: int) -> dict:
