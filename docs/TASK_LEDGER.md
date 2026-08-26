@@ -16724,3 +16724,48 @@ web/check_poster.py       判据 12+13 PASS（分享图非空含娱乐标识 / �
 ### 运维注
 
 - 8183 uvicorn 曾跑旧代码导致 verify 假失败——改 services.py 后必须重启后端再验。
+
+---
+
+**【§171 · 2026-08-26 · R218a-巡4 优化轨修复】**
+
+### P1 修复（4 项）
+
+1. **N4-a taohua hit_pillars 英文柱名裸抛**：app.js 结果页 calc-grid 加
+   `PILLAR_CN/_pillarCn`（year→年柱…，未知值容错原样），hit/hongluan/tianxi
+   三组落柱全部走映射；海报 buildShareData case 'taohua' 同步映射。
+2. **N4-b hehun one_liner 不分桶（回归级）**：voice.warm_hehun 按
+   day_wx_sheng && !clash 分桶——相生盘才允许强 CP 词；中性/相克盘从去强断言
+   词池抽（「细水长流搭子」级）。copy_bank 结构零改动。实测：审查轨的
+   相克组合 2001-06-15×1999-09-08 →「欢喜冤家预定」（原会抽中默契度拉满）；
+   相生对照组合 →「默契度拉满的一对」。确定性抽取语义不变。
+3. **E-a 失败态残留成功期说明文字**：paint() 里 footnote 跟随结果内容显隐；
+   新增 failWithRetry() 失败态先隐藏 footnote 再渲染错误卡。
+4. **E-b 无重试路径**：failWithRetry 内联「🔄 重新测算」ghost 按钮，
+   submitBazi 的 catch 传自身闭包 re-dispatch。
+
+### PROBE-1 工具债修复
+
+probe_ui_smoke ai.block.renders_with_ai 必现超时：用例前 reload 页面拿干净
+状态 + wait 上限 15s→25s。**未删用例**。修后连跑 3 次 41/41 全 PASS，
+按审查轨条件关单。
+
+### P2 打磨（4 项）
+
+- **V-a 横屏**：styles.css 尾部新增 @media (orientation:landscape) and
+  (min-width:700px) 两栏 func-grid + 平板 portrait ≥680px 显式限宽。
+- **Nα-a 历史详情骨架**：showHistoryDetail 先渲染 shimmer 骨架条再加载，
+  prefers-reduced-motion 关动画。
+- **Nα-b 时间戳**：fmtHistTime 把 ISO 格式化成「8月26日 17:29」，列表+
+  详情横幅两处生效，解析失败容错原样。
+- **A-a 对比度**：--secondary #815934→#75522E（实测 bg 上 5.38→6.12，
+  白字上 6.99，过 WCAG AA）。legacy 主题不动（它本来就是对照）。
+
+### 未处理（登记）
+
+- A-b aria 补齐、E-c 离线兜底（service worker）：体量大、影响有限，留后续轮次。
+
+### 闸门验证（全部真实执行，EXIT=0）
+
+selftest163 / check_warm_voice / check_plain_first / baseline_voice /
+verify_r218a(8/8) / check_poster(判据12+13+14) / probe_ui_smoke ×3 PASS

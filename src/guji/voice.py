@@ -753,9 +753,22 @@ def warm_hehun(h: dict) -> dict:
           else "相合型组合" if h.get("combine")
           else "平顺型组合")
     # R214b：one_liner 走年轻化文案库（按双方日支盐确定性抽取）。
-    _hh = COPY_BANK.get("hehun_one_liners") or []
-    if _hh:
-        l0 = _pick(_hh, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
+    # R218a-巡4（N4-b）：原实现从 hehun_one_liners **无条件随机抽取**，
+    # 「甜度超标/天生一对CP/默契度拉满」这类强 CP 断言会砸在相克、无冲无合
+    # 的盘面上（审查轨实测：土↔水相克盘抽出「默契度拉满的一对」）。
+    # 修法：按坐标事实分桶——强 CP 词只进相生桶；中性/相克盘从中性桶抽
+    # （「细水长流搭子」级别），确定性抽取语义不变。copy_bank 结构零改动
+    # （selftest 契约安全），分桶靠词级白名单。
+    _hh_all = COPY_BANK.get("hehun_one_liners") or []
+    if _hh_all:
+        _STRONG_CP = {"甜度超标组合", "天生一对CP", "锁死这对了", "CP感爆棚",
+                      "命中注定的羁绊", "默契度拉满的一对", "互补型神仙搭档",
+                      "甜而不腻的组合"}
+        if h.get("day_wx_sheng") and not h.get("clash"):
+            l0 = _pick(_hh_all, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
+        else:
+            _mid = [t for t in _hh_all if t not in _STRONG_CP] or ["细水长流搭子"]
+            l0 = _pick(_mid, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
 
     lines: list[str] = [f"{rel}。"]
     if h.get("day_wx_sheng"):

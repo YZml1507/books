@@ -67,15 +67,35 @@ function paint(id, html) {
   if (node) {
     node.hidden = false;
     node.innerHTML = html;
-    /* R207b：聊天入口全局化——任何结果容器渲染出结果卡后，尾部统一挂
-     * 「聊聊这件事」（此前只挂在八字排盘，塔罗/桃花等用户根本看不到）。
-     * 委托点击已在 initBazi 绑 document 级，无需逐处绑事件。 */
+    /* R218a-巡4（E-a）：成功态才显示「运算结论为坐标事实…」技术说明。
+     * 结果区有内容时 footnote 跟随显示，空/失败时不显示——失败态整卡
+     * 只留错误信息+重试按钮，不再残留成功期说明文字。 */
+    document.querySelectorAll('.footnote').forEach(function (fn) {
+      fn.hidden = !html;
+    });
     if (typeof attachChatEntry === 'function') attachChatEntry(node);
   }
 }
 
 function busy(id, text) {
   paint(id, '<div class="no-evidence">' + esc(text) + '</div>');
+}
+
+/* R218a-巡4（E-a/E-b）：失败态——清掉成功期说明文字 + 内联「重新测算」
+ * 重试按钮。retry 用闭包记住上次提交动作，点击即原样 re-dispatch。 */
+function failWithRetry(id, text, retryFn) {
+  document.querySelectorAll('.footnote').forEach(function (fn) { fn.hidden = true; });
+  const node = el(id);
+  if (!node) return;
+  node.hidden = false;
+  node.innerHTML =
+    '<div class="no-evidence">' + esc(text) +
+    (typeof retryFn === 'function'
+      ? ' <button type="button" class="ghost" id="retryBtn" ' +
+        'style="margin-left:8px;">🔄 重新测算</button>' : '') +
+    '</div>';
+  const btn = el('retryBtn');
+  if (btn && typeof retryFn === 'function') btn.addEventListener('click', retryFn);
 }
 
 function fail(id, text) {
@@ -1380,7 +1400,7 @@ function buildShareData(view, j) {
       st.big = l0 || '桃花正在加载';
       st.lines = [];
       if (j && j.peach_zhi) st.lines.push({ k: '桃花支', v: String(j.peach_zhi) });
-      if (j && j.hit_pillars && j.hit_pillars.length) st.lines.push({ k: '命中柱', v: j.hit_pillars.join(' · ') });
+      if (j && j.hit_pillars && j.hit_pillars.length) st.lines.push({ k: '命中柱', v: j.hit_pillars.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || p; }).join(' · ') });
       if (j && j.hongluan) st.lines.push({ k: '红鸾', v: String(j.hongluan) });
       if (j && j.tianxi) st.lines.push({ k: '天喜', v: String(j.tianxi) });
       if (j && j.strength) st.lines.push({ k: '桃花强度', v: String(j.strength) });
@@ -2023,7 +2043,8 @@ async function submitBazi(event) {
     on('shareBazi', function () { downloadPoster(j, 'bazi'); });   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     loadRecent();
   } catch (e) {
-    fail('result', '计算失败：' + e.message);
+    /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
+    failWithRetry('result', '计算失败：' + e.message, function () { submitBazi(); });
   }
 }
 
@@ -2982,6 +3003,13 @@ async function doTaohua() {
      * 专业模式分支原样保留全部数据。 */
     const STRENGTH_CN = { strong: '偏旺', mid: '平稳', weak: '偏弱' };
     function _strengthCn(v) { return STRENGTH_CN[v] || v || '—'; }
+    /* R218a-巡4（N4-a）：柱名英文枚举裸抛修复——后端 hit_pillars 等返回
+     * year/month/day/hour，src/guji/taohua.py 有 _PILLAR_CN 映射但前端
+     * 没用，用户看到「命中柱: month」。前端补同一映射（含容错：未知值原样）。 */
+    const PILLAR_CN = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
+    function _pillarCn(list) {
+      return (list || []).map(function (p) { return PILLAR_CN[p] || p; }).join('、') || '无';
+    }
     if (j.warm) {
       html += '<details class="warm-basis warm-pro-fold"><summary>🔍 想看桃花坐标？（展开看专业数据）</summary>';
     }
@@ -2996,9 +3024,9 @@ async function doTaohua() {
     html += '<div class="calc-grid">';
     [
       ['年支', j.year_zhi], ['咸池（桃花）', j.peach_zhi],
-      ['命中柱', (j.hit_pillars || []).join('、') || '无'],
-      ['红鸾', j.hongluan], ['红鸾落柱', (j.hongluan_pillar || []).join('、') || '无'],
-      ['天喜', j.tianxi], ['天喜落柱', (j.tianxi_pillar || []).join('、') || '无'],
+      ['命中柱', _pillarCn(j.hit_pillars)],
+      ['红鸾', j.hongluan], ['红鸾落柱', _pillarCn(j.hongluan_pillar)],
+      ['天喜', j.tianxi], ['天喜落柱', _pillarCn(j.tianxi_pillar)],
       ['强弱', _strengthCn(j.strength)]
     ].forEach(function (pair, i) {
       html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +
@@ -3444,7 +3472,7 @@ async function loadHistory(append) {
     let html = append ? '' : '';
     records.forEach(function (item) {
       html += '<div class="hist-item">' +
-        '<div class="hist-time">' + esc(item.created_at || '') + '</div>' +
+        '<div class="hist-time">' + esc(fmtHistTime(item.created_at)) + '</div>' +
         '<div class="hist-q">' + esc(item.question || '（未填问题）') + '</div>' +
         '<div class="hist-p">' + esc(item.paipan_render || '') + '</div>' +
         '<div class="hist-actions">' +
@@ -3477,13 +3505,30 @@ async function loadHistory(append) {
 /* R218a-巡3：分页状态模块级变量——loadHistory 内部用。 */
 var __histPage = null;
 
+/* R218a-巡4（Nα-b）：ISO 时间戳裸抛修复——「2026-08-26T17:29:08+08:00」
+ * 格式化成「8月26日 17:29」；解析失败原样返回（容错旧数据）。 */
+function fmtHistTime(iso) {
+  const s = String(iso || '');
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return s;
+  return parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日 ' + m[4] + ':' + m[5];
+}
+
 async function showHistoryDetail(rid) {
   const list = el('histList');
   if (!list) return;
+  /* R218a-巡4（Nα-a）：详情加载中先给骨架占位——原来请求期间列表空白，
+   * 390px 下视觉空洞。骨架条与真实卡片同构，加载完无缝替换。 */
+  list.innerHTML =
+    '<div class="hist-banner">历史记录 #' + esc(String(rid)) + '</div>' +
+    '<div class="hist-skeleton"><div class="sk-line" style="width:40%"></div>' +
+    '<div class="sk-line" style="width:90%"></div>' +
+    '<div class="sk-line" style="width:75%"></div>' +
+    '<div class="sk-line" style="width:82%"></div></div>';
   try {
     const j = await api('/api/history/' + encodeURIComponent(rid));
     let html = '<div class="hist-banner">历史记录 #' + esc(rid) + '　' +
-      esc(j.created_at || '') + '</div>';
+      esc(fmtHistTime(j.created_at)) + '</div>';
     html += '<button type="button" id="histBack" class="ghost">← 返回列表</button>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
     // R183b（同 R124a-01）：历史详情同族。历史记录里没有存 warm（llm_json 列

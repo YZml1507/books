@@ -1453,3 +1453,112 @@ Playwright :8189 独立复测 + API 直测 + 代码逻辑人工追踪。
   - tour 脚本：`Temp/tour_R218a-巡3/tour.py`（review-only，strict_readonly 内）
   - 截图/数据：`$LOCALAPPDATA/Temp/tour_R218a-巡3/`（6 PNG + 7 TXT/JSON）
   - UX_QUEUE 本段追加：第 1338 行起（本段标题 `## R218a-巡3…`）
+1|
+2|## R218a-巡4（审查轨，2026-08-26，基线 27bb21b，strict_readonly）
+3|
+4|巡检手法：复用 :8183 常驻 uvicorn（BOOKS_LLM_DISABLE=1）+ Playwright 390px 手机视口
+5|真路径点击 + vision_analyze 目视评审；ai.block 竞态用独立 mock-LLM 复刻脚本隔离验证。
+6|产物：$LOCALAPPDATA/Temp/tour_巡4/（tour1-4.py、repro_*.py、out*.json、9 PNG）。
+7|probe 连跑 6 次（probe3.log×3 + probe_full.log×1 + probe_x2.py×2）全部
+8|40/41，FAIL 恒为 ai.block.renders_with_ai——**不是偶发竞态，是必现**，上轮「隔离复刻
+9|通过判 probe 竞态」的结论被本轮推翻。
+10|
+11|### 一、遗留单复核
+12|
+13|**N-02 海报浮层 —— ✅ 确认修复，关单**
+14|Playwright 真点 #shareBazi → #posterModal 弹出（1080px 海报图），标题「📸 今日命盘」，
+15|提示条「长按图片可保存到相册…」；ESC 关闭 ✅、遮罩点击关闭 ✅。vision 评审 8.5/10。
+16|
+17|**N-04 三视图海报差异化 —— ⚠️ 部分修复：结构差异化达成，内容层 2 个新缺陷**
+18|三视图均弹独立浮层、标题正确（今日命盘/桃花运势/合婚配对）、版式与字段各不相同。
+19|但 vision 逐张评审发现：
+20|- **P1｜N4-a taohua 海报「命中柱」裸抛内部枚举值 `month`**
+21|  buildShareData case 'taohua' 直接 push j.hit_pillars（后端返回英文柱名
+22|  year/month/day/hour，src/guji/taohua.py 有现成 _PILLAR_CN 映射却未在前端使用），
+23|  用户看到的是「命中柱: month」。结果页 calc-grid 同样裸抛（app.js:2999）。修法：
+24|  前端加 {year:'年柱',month:'月柱',day:'日柱',hour:'时柱'} 映射或后端直接返中文。
+25|- **P1｜N4-b hehun one_liner 与坐标事实矛盾（回归级）**
+26|  测试组合 2001-06-15 × 1999-09-08：日主土↔水**相克**、无冲无合、桃花不同支，
+27|  warm.details 也写「没有明显的冲也没有明显的合」，但海报大字抽中 copy_bank 的
+28|  「默契度拉满的一对」。根因：voice.warm_hehun 的 hehun_one_liners 池是**无条件
+29|  随机抽取**，不按 clash/combine/sheng 分池——「甜度超标/天生一对CP」这类强断言
+30|  文案会砸在相克盘面上。修法：one_liner 池按坐标事实分桶（相生桶/中性桶），
+31|  强 CP 词只进相生桶；中性盘至少给「细水长流搭子」级别。
+32|
+33|**N-α history 分页 —— ✅ 确认修复，关单（附 2 个 P2 打磨项）**
+34|API 直测：total=292 真实 COUNT、offset=100000 安全空返回。前端真路径：侧栏 count
+35|启动即显真实总数（288）；折叠展开 → 首屏 20 条 → 点「加载更多」→ 40 条，标签
+36|「已显示 40 / 共 288」，连点 14 次拉满 288 后按钮自动消失。「查看」详情横幅+
+37|返回列表+古籍依据正常渲染。JS 零报错。
+38|- **P2｜Nα-a 详情区视觉空洞**：390px 下历史详情只有横幅+一行排盘+引文开头可见，
+39|  大片空白，vision 打分 3/10——建议详情改全屏抽屉或加骨架占位。
+40|- **P2｜Nα-b 时间戳 ISO 裸抛**：「2026-08-26T17:29:08+08:00」原样展示，应格式化成
+41|  「8月26日 17:29」。
+42|
+43|### 二、① ai.block.renders_with_ai 升级：从「偶发竞态」改为「必现 FAIL，需修 probe」
+44|
+45|独立验证链（全部本轮真实执行）：
+46|1. API 层：mock LLM + 独立 uvicorn（repro_ai.py）→ POST /api/bazi 拿 ai_task_id →
+47|   轮询 /api/ai/{id}，3 次尝试全部 done+text 秒回。后端异步任务链路完全健康。
+48|2. 时序层：repro_timing/repro_probe_seq/repro_full_seq 三档复刻——首次提交后
+49|   .ai-polish 5s 内出现；二次进入 bazi 再提交 0.8-1.8s 出现，mock 收到请求，
+50|   标注常显。前端 pollAiPolish 链路健康。
+51|3. 结论：产品代码无 bug；probe 自身时序问题。probe_ui_smoke 在 ai.block 用例前
+52|   已有十余个 btn:* 用例跑过并各自 spawn 过 AI 任务（共享同一 mock 服务进程），
+53|   加上 goto_view 折叠等待等固定 sleep，ai.block 用例的 15s wait_for_selector
+54|   窗口在实际序列里不够用；而紧随其后的 separate_from_citations 无超时断言、
+55|   只查 DOM 存在性，所以永远 PASS——这正是「同一容器、相邻用例、一败一成」的
+56|   结构性证据。**升级为 P1 工具债（PROBE-1）**：建议优化轨把 ai.block 用例改为
+57|   「提交前清空 #result + 重置 RESULT_GEN 世代号」或用例内显式 reload 页面再提交；
+58|   wait 上限提到 25s（对齐 CASE_BUDGET_S）。修完连跑 3 次确认 41/41 再关单。
+59|   **注意：不得删用例变绿。**
+60|
+61|### 三、③ 新区域开拓发现
+62|
+63|**视口矩阵（tour4.py 实测）**
+64|- 横屏 844x390：零横向溢出、FAB 不出界、零 JS 错误——功能可用；
+65|- **P2｜V-a 横屏空间浪费**：vision 评 2/10，竖屏单列布局直接铺到宽屏，右半屏
+66|  大片留白、纵向滚动极长。建议 @media (orientation: landscape) and (min-width:700px)
+67|  给 func-grid/结果卡做两栏。
+68|- 平板 768x1024：vision 8/10，居中限宽可接受，P2 建议 max-width:680px 显式化。
+69|
+70|**可访问性（DOM/CSS 实测）**
+71|- :focus-visible 规则 11 处、表单控件 label 全覆盖（0 缺失）、tab 序符合视觉序 ✅；
+72|- **P2｜A-a 次级文字对比度 3.41:1**：低于 WCAG AA 正文 4.5:1（.secondary 类），
+73|  小字号下更吃力。建议把 --secondary 提亮一档。
+74|- P2｜A-b aria-label 覆盖偏低（index.html 仅 20 处 role/aria），图标按钮依赖
+75|  innerText 兜底，后续补齐。
+76|
+77|**错误边界 / 离线态（route fulfill 500 + set_offline 实测）**
+78|- 500 注入：红色 toast「服务器开小差了」弹出 ✅（N-05 修复生效）+ 结果区
+79|  「计算失败：…」内联文案 ✅；
+80|- **P1｜E-a 失败态残留成功期说明文字**：500 后结果区下方仍显示成功态才该有的
+81|  「系统运算结论为坐标事实/古籍原文证据带出」长段技术说明——失败时应整卡清空，
+82|  只留错误态。vision 打分 3/10（轻佻文案+无重试按钮+信息混乱）。
+83|- **P1｜E-b 无重试路径**：失败文案不带「重新测算」按钮，用户只能手填重交；
+84|  建议失败态内联一个 ghost 按钮 re-dispatch 上次 body。
+85|- 离线：set_offline 后 reload 直接 ERR_INTERNET_DISCONNECTED 白屏（SPA 无
+86|  service worker/离线兜底）——**P2｜E-c** 登记即可，移动端 WebView 场景影响有限。
+87|
+88|### 四、汇总交优化轨（按优先级）
+89|
+90|| 编号 | 级别 | 一句话 | 关键位置 |
+91||------|------|--------|----------|
+92|| N4-a | P1 | taohua 海报/结果页 hit_pillars 裸抛 month | app.js:1383,2999 |
+93|| N4-b | P1 | hehun one_liner 不分桶，相克盘抽中「默契度拉满」 | copy_bank.json hehun_one_liners + voice.warm_hehun |
+94|| E-a  | P1 | 500 后结果卡残留成功态说明文字 | app.js submitBazi catch/fail 分支 |
+95|| E-b  | P1 | 失败态无重试按钮 | app.js fail() 或各 catch |
+96|| PROBE-1 | P1(工具) | ai.block 必现超时，修 probe 时序非产品 | probes/probe_ui_smoke.py ai.block 用例 |
+97|| V-a  | P2 | 横屏布局适配 | styles.css 新增 media query |
+98|| Nα-a | P2 | history 详情视觉空洞 | showHistoryDetail/styles |
+99|| Nα-b | P2 | ISO 时间戳裸抛 | loadHistory hist-time |
+100|| A-a  | P2 | .secondary 对比度 3.41<4.5 | styles.css --secondary |
+101|| A-b/E-c | P2 | aria 补齐 / 离线兜底登记 | index.html / sw |
+102|
+103|已确认关单：N-02 海报浮层 ✅、N-04 结构差异化 ✅（内容层拆出 N4-a/b 继续）、
+104|N-α history total+分页 ✅。
+105|
+106|### 五、留给 R218a-巡5
+107|chat 解锁连发后的对话流压测、LLM 真实链路（agnes）质量抽查、huangli/tarot/liuyao
+108|深巡、copy_bank 全量口吻一致性扫描。
+109|

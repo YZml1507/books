@@ -36,7 +36,7 @@
   --primary:   #B8860B;       /* 金箔金——仅装饰/边框/阴影 */
   --primary-ink: #7F5C08;     /* 金·文字：白 6.11 / 页底 5.35 / border 4.51 */
   --primary-bg:  #8A6408;     /* 金·背景：白字在其上 5.37 */
-  --secondary: #815934;       /* 暖棕·文字：白 6.15 / border 4.54 */
+  --secondary: #75522E;       /* 暖棕·文字：白 6.99 / bg 6.12（R218a-巡4 A-a：原 #815934 实测 3.41 低于 AA，提亮一档） */
   --accent:    #AE3737;       /* 干玫瑰红：白 6.17；白字在其上 6.17 */
   --good:      #456A44;       /* 墨绿：白 6.18；白字在其上 6.18 */
   --c-good:    #456A44;       /* 别名：JS 内联样式引用的是 --c-good */
@@ -1377,3 +1377,26 @@ button:active:not(.theme-btn){transform:scale(.96);}
   border-radius:50%; background:rgba(255,255,255,.25);
   pointer-events:none;
 }
+
+/* ── R218a-巡4（V-a）横屏空间利用 + （Nα-a）历史详情骨架 ───────────── */
+/* 横屏/宽屏：竖屏单列直接铺到 844px 宽会右半屏留白、纵向滚动极长。
+   ≥700px 且横屏时给首页功能卡与结果卡做两栏，视觉密度对齐平板。 */
+@media (orientation: landscape) and (min-width: 700px){
+  .func-grid{ grid-template-columns:repeat(2,1fr); }
+  .result .card{ max-width:none; }
+}
+/* 平板显式限宽（巡4 P2：768x1024 居中限宽可接受但未显式化） */
+@media (min-width: 680px) and (orientation: portrait){
+  .home-main{ max-width:680px; margin-left:auto; margin-right:auto; }
+}
+
+/* 历史详情骨架占位（Nα-a）：加载中不再是空白一片。 */
+.hist-skeleton{ padding:12px 4px; }
+.sk-line{
+  height:14px; border-radius:7px; margin:10px 0;
+  background:linear-gradient(90deg,#EFE5D6 25%,#F8F1E6 50%,#EFE5D6 75%);
+  background-size:200% 100%;
+  animation:sk-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes sk-shimmer{ from{background-position:200% 0;} to{background-position:-200% 0;} }
+@media (prefers-reduced-motion: reduce){ .sk-line{ animation:none; } }

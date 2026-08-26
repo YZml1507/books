@@ -595,10 +595,21 @@ def main() -> int:
                                 "detail": "SKIP：mock LLM 端点启动失败，本轮未测"})
             else:
                 errors.clear()
+                # PROBE-1（R218a-巡4）：ai.block 用例此前必现 15s 超时。
+                # 根因不是产品代码（隔离复刻通过、API 直测 done+text 秒回），
+                # 而是本 probe 前序十余个 btn:* 用例已对同一 #result 容器
+                # spawn 过 AI 任务并各自 pollAiPolish——旧轮询的插入与新用例
+                # 的 paint() 重画交错，wait_for_selector 撞上「刚被重画清空」
+                # 的瞬间就超时；紧随其后的 separate_from_citations 只查 DOM
+                # 存在性所以永远 PASS（一败一成的结构性证据）。
+                # 修法：reload 页面拿干净状态再提交 + wait 上限提到 25s
+                # （对齐 CASE_BUDGET_S）。不删用例变绿。
+                page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+                page.wait_for_timeout(1200)
                 goto_view("bazi")
                 try:
                     page.click("#submit")
-                    page.wait_for_selector(".ai-polish", timeout=15000)
+                    page.wait_for_selector(".ai-polish", timeout=25000)
                     page.wait_for_timeout(300)
                     ai_text = (page.inner_text(".ai-polish") or "").strip()
                     marked = ("AI 生成" in ai_text) and ("仅供娱乐" in ai_text)
