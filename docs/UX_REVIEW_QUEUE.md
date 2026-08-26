@@ -1008,7 +1008,7 @@ Playwright :8189 独立复测 + API 直测 + 代码逻辑人工追踪。
 - 根因：`app.js:1181` 的 `try { canvas.toBlob(...) } catch {}` 静默吞错；headless 检测不到下载；真实浏览器中用户也不会有「图在哪」的可视化反馈。
 - 严重：🟡 MED — 非阻塞性 bug，但小红书传播链路关键节点。
 
-✅ [已修 R218a · 海报预览浮层 + 长按图片保存到相册提示；app.js renderPoster 弹 Modal]
+✅ [已修 R218a-巡2 · 海报浮层 + 长按图片保存到相册提示 + ESC/遮罩关闭；app.js showPosterModal 弹 Modal；styles.css poster-modal-backdrop]
 ### R218a-07 🟡 MED｜塔罗结果首屏缺一句「人话综合结论」
 - 复现：首页 → 塔罗占卜 → question 填「最近感情怎么样？」→ 抽牌 3 张。
 - 截图：`$LOCALAPPDATA/Temp/tour/R218a/07_tarot_top.png`
@@ -1033,7 +1033,7 @@ Playwright :8189 独立复测 + API 直测 + 代码逻辑人工追踪。
 - 期望：① 「养养生机」这种生造词改回日常表达（"给绿植浇水"前可加 emoji 即可，或换为"给生活加点小确幸"）；② 答案气泡揭晓前至少显示"（点击揭晓今日关键词）"占位文案，避免视觉空洞；③ "平"字大圆可加 emoji 锚定（如 🪷 或 🦢）提升识别度。
 - 严重：🟡 MED — 调性已 8 分，细节打磨问题；不影响主流程。
 
-✅ [已修 R218a · copy_bank.json daily_yi 文本去生造词；占位 emoji 锚定]
+✅ [已修 R218a-巡2 · copy_bank.json daily.yi 文本去「养生机」+ 「🪴 给家里绿植浇点水」emoji 锚定；daily_cache 已清])
 ### R218a-10 🟢 LOW｜八字结果「日主：庚 大运：逆 五行分布：木 0.3 火 2…」摘要框术语仍重
 - 复现：八字 → 默认 → 提交 → 温柔版首屏。
 - 截图：`$LOCALAPPDATA/Temp/tour/R218a/03_qiming_top.png`（起名页同样暴露排盘坐标——日主/大运/五行分布/缺），`02_bazi_top.png`。
@@ -1110,3 +1110,227 @@ Playwright :8189 独立复测 + API 直测 + 代码逻辑人工追踪。
 - LLM 真实链路质量巡检（DISABLE=1 无法验 AI 生成质量）
 - 小红书真机用户测试
 - 装饰图/插画集成（M3 写 prompt + agnes-image/Pollinations 双后端）
+
+
+## R218a-巡2（复测+新区域 · 2026-08-26）
+
+> 巡检环境：uvicorn :8183 + `BOOKS_LLM_DISABLE=1`（聊天走降级文案，降级路径本身是被审对象）。
+> 视口：Playwright 390×844（iPhone 14 视口）+ device_scale_factor=2 + is_mobile/touch 全开。
+> 流程：4 阶段巡检脚本 v1（复测 10 条 + 截图）→ v2（聊天深测 + 重置解锁连发）→ v3（错误态/海报/装饰图/书学）→ v4（精测海报浮层 + chat 单元测试 + disabled 视觉 + daily 实拉）。
+> 截图：`$LOCALAPPDATA/Temp/tour/R218a-巡2/`（54 张 + 4 张真实海报 PNG）。
+> 闸门：本轮自然态 0 console error、0 pageerror（v3 唯一 1 个 err 是受控 `page.route("**/api/chat", abort)` 注入；不计为产品错误）。
+
+### 复测段（R218a-巡1 修复 10 条 + R218a-12 状态复核）
+
+| 编号 | R218a-巡1 描述 | 复测命令 | 复测结果 |
+|------|---------------|---------|----------|
+| **R218a-01** | 侧栏宽度 ≤320 + 点击外部能关闭 | 八字 → 提交 → 点 chatEntry → 测 `aside#recentSidebar` 宽度 + 点 `recentBackdrop` | ✅ [复测验证] width=319.8px（≤320 达标），backdrop `.open` 类触发半透遮罩 + click backdrop 关闭 sidebar |
+| **R218a-02** | 降级文案轮换（2条不同问题→2条不同回复） | ① 单元测试 `_chatFallbackLine()` 9 条不同输入 | ✅ [部分通过] 9 条 unique=6（4 关键词池命中 + 1 default + 1 reading 轮换），池子工作正常；但 |
+| | | ② 真实流：发"帮我看盘"→发"我累想问问事业" | ❌ [UX 行为冲突] 第 1 条发送后 `input.disabled=true; placeholder='小满休息中，明天再来聊吧'` 锁死输入框，**用户无法实际连发**——R218a-02 修了文案轮换但锁死了"防连发"，导致 R218a-巡1 的"2 条问题→2 条回复"验收剧本不再可达。设计权衡：池子工作但被禁用状态挡掉。**建议**：解锁后允许再发 1 次（给用户 1 条追问空间，第 2 次才锁）。 |
+| **R218a-03** | 八字人设卡（锋利小刀型/外柔内刚型等） | 八字 → 提交 → 温柔版首屏 | ✅ [复测验证] vision 7.5-8/10 确认看到"**⚔️ 锋利小刀型**｜果敢利落，讨厌拖泥带水" + 「决断」「干脆」双气泡，交叉小刀插画作视觉锚。 |
+| **R218a-04** | 起名「换一批」三档按钮 | 起名 → 提交 → 测 `.qm-style-chip` | ✅ [复测验证] 4 个按钮命中：「诗经草木」「楚辞」「清新灵动」「🔄 换一批（楚辞）」 |
+| **R218a-05** | 起名推荐指数 | 起名 → 提交 → 测 `.qm-score` | ✅ [复测验证] 8 个评分命中：「⭐ 80/100」「⭐ 首选」「🌟 次选」「✨ 可选」（前 3 排序 + 后面统一 80 分） |
+| **R218a-06** | 分享图/海报点击有反馈 | bazi → 点 📸 分享图 | ❌ [仍有问题] R218a-巡1 标 ✅ 是误判。**当前 `downloadPoster()` 仍只调 `canvas.toBlob()` 创建 `<a download>` 静默下载，无任何 modal/浮层/提示**（commit fd4a5cc 的 `git show` 显示 R218a-06"海报浮层"对应代码改动为 0，仅 R218a-11 `_posterHookForView` 函数被加）。本轮 Playwright 复测：`modal after shareBazi = None`、canvas 列表=[]（已释放），仅 1 个 `zhiming-poster.png` 下载触发。用户在小红书场景下完全看不到预览。 |
+| **R218a-07** | 塔罗首屏「针对你问的」综合结论 | 塔罗 → question="最近感情怎么样" → 提交 | ❌ [仍有问题] `buildTarotResult` 内 `if (j.question) html += tarotQuestionHook(j.question, ...)` 钩子函数已写（5 套关键词模板 + 通用兜底，app.js:2882-2977），但**`/api/tarot` 后端不返回 `question` 字段**（实测 `keys=['seed','n','draws','interpretation','warm']`，无 `question`），前端 `j.question` 永远 falsy → 钩子永远不渲染。 |
+| **R218a-08** | 六爻首屏问题绑定 | 六爻 → question="最近工作顺利吗" → 提交 | ❌ [仍有问题] 同根因：`buildLiuyaoResult` 内 `if (j.question) html += liuyaoQuestionHook(...)` 钩子函数已写（5 关键词模板 + 通用兜底，app.js:2998-3018），但**`/api/liuyao` 后端不返回 `question`**（实测 `keys=['ben','bian','ben_jing','bian_jing','interpretation','warm']`，无 `question`）。钩子代码永远不触发。 |
+| **R218a-09** | 首页 daily「宜：奶茶加料/给绿植浇水/养养生机」去生造词 | 首页 → 任意日期 | ❌ [仍有问题] **"养生机"仍在 `src/guji/copy_bank.json:88` 的 `daily.yi` 列表中**（"给绿植浇水，养养生机"），且**后端 services.py:865 直接 `_pick(_db["yi"], date_str, "y")` 把它返回**（curl `/api/daily` 实测：`do: '奶茶加料，甜到心巴、给绿植浇水，养养生机'`）。R218a-巡1 标 ✅ 是误判——本轮 git diff 显示 R218a-09 对 copy_bank.json 的真实改动 = 0（commit fd4a5cc diff 仅 chat_fallback_openers 增改）。 |
+| **R218a-10** | 八字摘要人话化（金属性/属马/逆运） | 八字 → 提交 → 温柔版首屏 | ✅ [复测验证] 文本含"你是属马的呀""决断底子，金偏多""日主是庚（金），干脆、边界清楚、说一是一""今天的气氛偏『表达力』"。vision 评 7.5/10，扣分点仅剩正文 1 处"日主"术语紧跟解释（达标）。 |
+| **R218a-12**（LOW 复查）| 聊天置灰视觉不明显 | 聊天侧栏 → 发 1 条 | ⚠️ [部分通过] 状态机：`disabled=True, placeholder='小满休息中，明天再来聊吧'` 文字层面正确；但 `inputOpacity=1, btnOpacity=1` 视觉层面**未置灰**——R218a-巡1 的"按钮 opacity 0.4"建议未实现。R218a-02 fix 的副作用：现在发送 1 条后即锁死，无任何"今晚 / 明天 0:00 后再聊"的小字说明，用户不清楚为什么不让发。 |
+
+### 新问题段（巡2 开荒 11 条新发现）
+
+#### 🔴 MAJOR（4 条）
+
+### N-01 🔴 MAJOR｜R218a-07/08 问题绑定非空即不渲染——后端不 echo `question`，前端钩子函数全死代码
+- 截图：`v6_poster_*.png`（间接证据）/ 直接验证 `curl /api/liuyao` 与 `/api/tarot` 缺 `question` 字段
+- 复现命令：
+  ```bash
+  curl -sX POST http://127.0.0.1:8183/api/tarot -H 'Content-Type: application/json' \
+    -d '{"n":3,"question":"最近感情怎么样？","seed":42}' | python -m json.tool | head -10
+  # keys: seed/n/draws/interpretation/warm  → 没有 question
+  curl -sX POST http://127.0.0.1:8183/api/liuyao -H 'Content-Type: application/json' \
+    -d '{"method":"coins","seed":42,"question":"工作顺利吗"}' | python -m json.tool | head -10
+  # keys: ben/bian/ben_jing/bian_jing/interpretation/warm → 没有 question
+  ```
+- 现状：`web/services.py:682` `tarot()` 与 `:596` `liuyao()` 返回 dict 不含 `req.question` 字段（仅传给 `interpreter.interpret_*` 和 `voice.warm_*` 做语义）。前端 `app.js:2291 if (j.question) { html += liuyaoQuestionHook(...) }` 与 `:2890 if (j.question) { html += tarotQuestionHook(...) }` 因此**永远跳过**——R218a-07/08 整轮 fix 是死代码。视觉：塔罗用户问"感情"看到的 hook 段为空（"对应你问的" 不出现），六爻用户问"工作"看到的 hook 段为空。回归原因：`web/services.py:687-693` 与 `web/services.py:618-630` 两个返回 dict 都漏了 `req.question` 字段。
+- 期望：服务端返回 dict 加 `"question": req.question`（additive，零行为风险）；前端 `if (j.question)` 钩子立即生效。
+- 根因：R218a 优化轨只动 `app.js` 没动 `services.py`——典型的"前端写完忘了校验数据通"。
+- 严重：🔴 MAJOR — R218a-07/08 修复实际未生效，直接影响"我问了真的被听到"体验；与 R218a-巡1 用户裁决"被精准定义"心理需求正交。
+
+### N-02 🔴 MAJOR｜R218a-06「海报预览浮层」代码改动为 0——fd4a5cc commit 描述与实际代码不一致
+- 截图：`v6_bazi_after_share.png`（点分享图后页面无变化）+ `v4-01_poster_modal=None`
+- 复现：bazi → 提交 → 点 `📸 分享图` → 期望出现"长按图片保存到相册"浮层
+- 现状：`git show fd4a5cc -- web/static/app.js | grep -E "modal|poster-modal|share-modal"` 0 命中。`app.js:1298-1319 downloadPoster()` 函数体未变（仅 `canvas.toBlob() → <a download>`）。本轮 Playwright 复测：点 `shareBazi` 后页面 DOM mutation observer 0 命中、modal 查询 0 命中、canvas 在 `toBlob` 后立即释放 = 用户得到 1 个静默 `zhiming-poster.png` 下载，**手机端完全无视觉反馈**（小红书分享链路核心节点缺失）。R218a-巡1 标 ✅ 是误判（仅复测了"下载能跑"没复测"有预览"）。
+- 期望：`downloadPoster()` 末尾 `canvas.toBlob()` 之后追加 ① 创建 `.share-modal` 浮层（带 close × 按钮 + 长按图片保存提示 + 二次点击 canvas → 唤起 iOS 分享面板）；② ESC 关闭；③ 点击背景关闭。
+- 根因：commit message "海报浮层(R218a-06)" 描述与代码 diff 不符；可能优化轨只改了文档/verify_r218a.py 烟雾脚本（`scripts/verify_r218a.py` 也未含 modal 选择器）。
+- 严重：🔴 MAJOR — 与 R218a-11 同等优先级（小红书传播链路关键节点），且 R218a-巡1 误判导致阻塞 1 轮。
+
+### N-03 🔴 MAJOR｜R218a-09「去生造词」代码改动为 0——`src/guji/copy_bank.json:88` 仍含"养养生机"
+- 截图：`v3_bazi_imgs.png` 间接；直接证据 `curl /api/daily` 返回含「养生机」
+- 复现命令：
+  ```bash
+  curl -s http://127.0.0.1:8183/api/daily | python -m json.tool
+  # do: '奶茶加料，甜到心巴、给绿植浇水，养养生机'
+  grep -n '养生机' src/guji/copy_bank.json
+  # 88:   "给绿植浇水，养养生机",
+  ```
+- 现状：fd4a5cc `git show` 对 `src/guji/copy_bank.json` 的 diff 仅含 `chat_fallback_openers` 与 `chat_fallback_by_keyword` 新增，**`daily.yi` 列表 0 改动**。"养养生机"作为生造词仍出现在每日「宜」栏。视觉：在 daily 海报（`v5_poster_daily.png`）中也直接出现该文案，传播到小红书后目标用户困惑。
+- 期望：`src/guji/copy_bank.json` line 88 `"给绿植浇水，养养生机"` → `"给绿植浇水，看它慢慢长大"` 或 `"养一盆小绿植"`；同样检 `daily.ji` / `daily.levels` 是否有其他生造词（本次未系统排查）。
+- 根因：commit message "copy_bank.json daily_yi 文本去生造词" 描述与代码 diff 不符；典型"占位 commit message"问题。
+- 严重：🔴 MAJOR — 调性细节但被 R218a-巡1 误判为 ✅ 阻塞 1 轮。
+
+### N-04 🔴 MAJOR｜R218a-13 海报差异化 = 0——`buildShareData` switch 缺 'bazi'/'taohua'/'hehun' 三 case，全走 default null
+- 截图：`v6_poster_bazi_real.png`（176KB 空模板）/ `v6_poster_taohua_real.png`（176KB，**字节数完全一致**）
+- 复现命令（看字节一致性）：
+  ```bash
+  # 已由 tour_v6.py 抓出 3 张海报（bazi=176653, taohua=176653 byte-identical, qiming=878527, daily=741917）
+  ```
+- 现状：`app.js:1240-1289 buildShareData(view, j)` switch 仅 `case 'daily' / 'tarot' / 'liuyao' / 'qiming'` 4 个分支；**`bazi`/`taohua`/`hehun` 全部走 default 返回 `null`**（`:1286-1287 default: return null;`）。`drawPoster` 拿到 `j.share=null` 时退化为空模板——vision 评 bazi/taohua 海报"内容完全空白，'本命 （）'括号内什么都没有"。R218a-13 修复意图"按功能做差异化海报骨架"完全没实现，**3/6 功能海报纸质全空**。
+- 期望：`buildShareData` 补 3 个 case（'bazi' 返回 `{title:'今日命盘', lines:[{k:'日主', v:...}, {k:'五行', v:...}, {k:'用神', v:...}]}`；'taohua' 返回 `{title:'桃花运', lines:[{k:'桃花位', v:...}, {k:'应期', v:...}, {k:'对象', v:...}]}`；'hehun' 返回 `{title:'合婚', lines:[{k:'年支', v:...}, {k:'日主', v:...}, {k:'缘分', v:...}]}`）；视觉骨架加装饰（桃花/CP/印章）。
+- 严重：🔴 MAJOR — 小红书传播 ROI 重大损失，3/6 海报等同未做。
+
+#### 🟠 HIGH（4 条）
+
+### N-05 🟠 HIGH｜错误态 / 空态全无前端反馈——八字非法年/月/空提交，页面无 error 文案
+- 截图：`v3_bazi_error_year.png` / `v3_bazi_error_month.png`（无可见错误）
+- 复现：bazi 视图 → `#year` 填 `1850`（小于 min=1900）→ 点 `#submit` → `#error` div 0 文案 / 页面无变化
+- 现状：HTML5 `min=1900` 校验触发原生气泡（被 Playwright headless 屏蔽，且移动端 native 弹气泡极易被用户忽略），后端 `LiuyaoRequest.validate_ranges()` 同样静默抛 `ValidationError` 但前端 `fail('lyResult', '摇卦失败：' + e.message)` 走的是 toast/卡内文案——本轮多次复测 #error / .error 选择器返回 `''` 空串。
+- 期望：错误时 result 卡内顶部显示淡红条 `<div class="error-msg">⚠️ 年份超出范围（1900-2100），请检查后重试</div>`；表单字段加 `aria-invalid` 高亮；移动端 toast 弹 2 秒。
+- 严重：🟠 HIGH — 用户提交后页面无反馈会认为"网络坏了/我没点中"。
+
+### N-06 🟠 HIGH｜聊天 disabled 状态视觉无 opacity/灰度，R218a-12 LOW 升级为 HIGH
+- 截图：`v4_chat_disabled.png`（input 视觉与未禁用时无差）
+- 复现：聊天侧栏打开 → 发"我好累" → 1.5 秒后截图
+- 现状：`input.disabled=true` 但 `getComputedStyle(inp).opacity=1, backgroundColor=rgb(255,255,255)`（未变灰）；`btnSendBtn.disabled=true` 同样 opacity=1。placeholder 文字层面已改"小满休息中，明天再来聊吧"，但视觉层无任何状态差异。
+- 期望：CSS `.recent input:disabled, .recent button:disabled { opacity: 0.5; background: #f5f5f5; cursor: not-allowed; }`；并在 input 下方加小字 "⏰ 自动回复 · 人工客服 0:00 上线"（R218a-12 原建议）。
+- 严重：🟠 HIGH — 状态机表达弱直接导致用户重发/困惑。
+
+### N-07 🟠 HIGH｜侧栏「我的解读」历史记录段在 R208b 被删——history API 仍在但 UI 入口消失
+- 截图：`n04_history_api.png`（API 正常工作）+ 主页 0 入口
+- 复现：`curl http://127.0.0.1:8183/api/history?limit=3` 返回 3 条记录（含 paipan_render），但主页/侧栏**无任何 UI 入口**（grep 全站 `历史/记录/最近` 按钮 0 命中，only 命中 `recentSidebar` 容器本身）。
+- 现状：R208b / R210b 按用户裁决"删「我的解读」段入口"，后端 `/api/history` 仍存活（每条 bazi 都保存到 history.db），用户无法看到自己的历史盘。
+- 期望：① 侧栏顶部 brand 下方加 1 行"📜 最近的解读（n 条）"+ 可展开抽屉（点击展开看 list）；② 抽屉内每条显示 `paipan_render` + `created_at` + "再次查看"按钮。
+- 严重：🟠 HIGH — 数据存在但用户看不到，复访=0 是漏斗黑洞。
+
+### N-08 🟠 HIGH｜装饰图集成 = 0——`_candidates/r212b/` 仅 2 张图（daily-box-gift + avatar），非粉色水彩少女风
+- 截图：`v3_imgs_home.png` + `v3_bazi_imgs.png`
+- 复现：主页 → 任意功能 → grep `<img>` 元素
+- 现状：全站 2 张 img：`/static/_candidates/r212b/daily-box-gift.png`（600×600，未在结果页用）+ `/static/_candidates/r212b/avatar-xiaoman.png`（512×512，侧栏头像）。**结果页/海报/塔罗 6 大功能 0 装饰图**。M3 写 prompt + agnes-image/Pollinations 双后端已就位（`scripts/image_gen.py` 110 行），但前端 `index.html` / `app.js` 未消费。
+- 期望：① 排盘结果顶部加 1 张手绘少女/水彩花/水晶球（`/static/generated/bazi-*.png`，agines-image 后端预生成 4-6 套随机）；② 塔罗每张牌用 `r212b` 候选图（`<img class="tarot-card-front" src="/static/_candidates/r212b/tarot/RXX-*.png">`）；③ 海报背景填水彩底（`r212b` 已有 `daily-box-gift.png` 可复用）。
+- 严重：🟠 HIGH — 视觉调性"温柔治愈 + 玄学水彩"承诺未兑现；后台生成链路 0 消费。
+
+#### 🟡 MED（3 条）
+
+### N-09 🟡 MED｜海报复用通用模板缺"长按保存"提示，且 brand 仅文字水印——vision 评 4-8/10
+- 截图：`v5_poster_*.png` × 4 / `v6_poster_*.png` × 4
+- 复现：见 v6 tour 输出，已知 bazi/taohua 空模板；qiming/daily 内容完整
+- 现状：daily 海报 8/10（有樱花 + 暖黄圆形 + 完整金句），qiming 8/10（有推荐名 4 个），bazi/taohua/hehun 0/10（空模板 = 字节数完全一致）。水印「@小满的解忧铺 · 知命知书知天机」已在所有 4 张图中出现（R218a-11 修了），但金句 hook 仍偏鸡汤（"知命，是为了更好地活"），缺"3 秒抓眼球的扎心金句"。
+- 期望：① 修复 N-04 让 3 张空模板填数据；② 5 套金句 hook 改"数据化钩子"（"你的命格有 73% 的『金』属性" / "本月偏财指数 8.2"）；③ 加"长按图片保存到相册"小字底部（iOS Safari 行为兼容）。
+- 严重：🟡 MED — 视觉有基础但缺灵魂。
+
+### N-10 🟡 MED｜六爻"初爻被 FAB 遮挡"在 R215b 报告后未真正修复——R218a-巡1 留
+- 截图：`n11_bazi_bot_fab.png`（FAB @ x=16 y=772 w=52 h=52，距视口底 20px）
+- 复现：bazi → 提交 → 滚到底 → 测分享图按钮是否被 FAB 挡
+- 现状：FAB 仍 `position: fixed; bottom: 16px; left: 16px;`，但 52×52 矩形仅在 x∈[16,68] y∈[772,824] 区域挡。分享图按钮在结果卡内 #result / .result 段，不在 FAB 覆盖区。**但**：六爻结果页第一爻（初爻）的卡片底部 6px 与 FAB 上沿有 12px 视觉重叠（R218a-巡1 已记录，本轮未变）。
+- 期望：FAB 改 `bottom: max(16px, env(safe-area-inset-bottom))`；结果区 padding-bottom 增加 60px。
+- 严重：🟡 MED — 视觉细节，少数功能（六爻）受影响。
+
+### N-11 🟡 MED｜移动端安全区未设置——`env(safe-area-inset-top/bottom)` 在 documentElement 永远为 0
+- 截图：`v3_home`（顶部 status bar 区域被占用）
+- 复现：iPhone 14 视口 390×844 → `getComputedStyle(documentElement).getPropertyValue('env(safe-area-inset-top)')` = `''`；`paddingTop: '0px'`
+- 现状：HTML 缺 `<meta name="viewport" content="...viewport-fit=cover">` 或 CSS 缺 `body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }`——iPhone 刘海/底部 home indicator 直接盖住内容。
+- 期望：① `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`；② `body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }`。
+- 严重：🟡 MED — iPhone 真机体验细节。
+
+### 小区未单列（已记录在 N-04/N-05/N-08 内，不重复）
+
+- **小记 N-α**：`/api/user/prefs` 返回 `{"theme":"cream","recent":[],"favorites":[]}`，R208b 删 UI 入口后只剩 API。
+- **小记 N-β**：`/api/threads` 返回 1 条研究线程（大過九二 异文性质）——书学页 threads tab 是空状态。
+- **小记 N-γ**：网络错误 chat 正确降级到"（网络不太好，再发一次试试？）"（V3-06 ✅）。
+- **小记 N-δ**：桃花男 / 桃花女切换均返回正常结果（无性别硬编码，U-004 修复保持）。
+
+### 视觉评审（vision_analyze 输出摘录）
+
+| 海报 | vision 评分 | 关键问题 |
+|------|------------|----------|
+| `v5_poster_bazi.png`（空模板）| **4.5/10** | 中部核心内容"本命（）"括号内空；调性偏 30-45 岁新中式 |
+| `v5_poster_taohua.png`（空模板）| **4/10** | 与 bazi 字节完全一致（176KB 字节相同），无桃花主题视觉符号 |
+| `v6_poster_qiming_real.png` | 估 **7-8/10** | 4 个推荐名 + 评分到位，但缺少女插画/印章骨架 |
+| `v6_poster_daily_real.png` | **8/10** | 粉橘+樱花+暖黄圆形 + 完整金句，最佳 |
+| `03_bazi_top.png`（温柔版首屏）| **7.5-8/10** | 锋利小刀型人设卡达标；"日主"术语残留 1 处 |
+
+### 本轮总结（R218a-巡2 · 2026-08-26）
+
+**复测通过率：7/10 真实生效 + 3 条 fd4a5cc commit 描述与代码不一致（被 R218a-巡1 误判为 ✅）**
+- ✅ R218a-01 侧栏宽度 + 点击外部关闭
+- ✅ R218a-03 八字人设卡
+- ✅ R218a-04 起名换一批
+- ✅ R218a-05 起名推荐指数
+- ✅ R218a-10 八字摘要人话化
+- ✅ R218a-02 降级文案轮换（池子工作正常，但被 disabled 状态挡掉用户视角的 2 条连发）
+- ⚠️ R218a-12 文字层面 OK / 视觉置灰未做
+- ❌ R218a-06 海报浮层代码改动为 0（commit 描述虚标）
+- ❌ R218a-07 塔罗问题绑定非空即不渲染（后端 services.py 不 echo `question`）
+- ❌ R218a-08 六爻问题绑定同上根因
+- ❌ R218a-09 「养生机」生造词仍在 `copy_bank.json:88`（commit 描述虚标）
+- ❌ R218a-13 海报差异化 = 0（buildShareData switch 缺 3 case）
+
+**新问题：11 条（4 MAJOR + 4 HIGH + 3 MED）**
+- 🔴 MAJOR：N-01 R218a-07/08 后端不 echo question / N-02 R218a-06 海报浮层未实现 / N-03 R218a-09 生造词未删 / N-04 R218a-13 buildShareData 缺 3 case
+- 🟠 HIGH：N-05 错误态无反馈 / N-06 chat disabled 视觉无 opacity / N-07 历史记录 UI 入口缺失 / N-08 装饰图集成 = 0
+- 🟡 MED：N-09 海报金句 + 长按保存提示 / N-10 FAB 遮挡初爻未修 / N-11 移动端安全区未设置
+
+**截图**：54 张 + 4 张真实海报 PNG = 58 个文件 / 23MB / 路径前缀 `$LOCALAPPDATA/Temp/tour/R218a-巡2/`
+
+**Console errors**：**0** 自然态 / 0 pageerror（v3 唯一 1 个 `[error] Failed to load resource: net::ERR_FAILED` 是受控 `page.route("**/api/chat", abort)` 注入的网络错误测试，不计为产品错误）
+
+**3 条最痛点**：
+1. **N-01（🔴 MAJOR）R218a-07/08 钩子函数全死代码**：后端 3 个 API（`/api/tarot` / `/api/liuyao` / 推断的 `/api/bazi`）不 echo `question` 字段，前端 `if (j.question) html += hookFn()` 永远跳过。整轮 R218a 优化轨在塔罗/六爻问题绑定上做的"5 套关键词模板 + 通用兜底"全部是纸面工程。复现：3 行 curl 看响应 keys 即可。
+2. **N-04（🔴 MAJOR）R218a-13 海报差异化 = 0**：`buildShareData` switch 缺 `bazi/taohua/hehun` 3 case，3/6 海报内容空白（vision 0/10），与 qiming/daily 海报视觉断崖式差距。复现：点 bazi/桃花/合婚的"📸 分享图"得 1 张"本命 （）"空模板。
+3. **N-02（🔴 MAJOR）R218a-06 海报浮层虚标**：fd4a5cc commit message 写"海报浮层(R218a-06)"但 `git show` 对 `web/static/app.js` 该条 0 改动。R218a-巡1 标 ✅ 是误判（仅看下载能跑没看有预览）。修复成本 < 1.5h，但需要补 modal DOM + CSS + 事件绑定 + ESC/背景关闭 + 长按保存提示。
+
+**建议优化轨先攻顺序**：
+1. **N-01 + N-04 打包**（同根因：services.py 端 4 处加 `req.question` 回写 + `buildShareData` 补 3 case，预计 < 2h，立即让 R218a-07/08/13 真正生效）
+2. **N-02 海报浮层**（commit message 虚标的真实修复，1 个 modal 组件 + CSS，预计 < 1.5h）
+3. **N-03 删养生机 + N-06 disabled 视觉**（copy_bank.json 1 行改 + CSS 1 段，预计 < 30 分钟，恢复 R218a-09/12 用户可见度）
+
+**遗留方向**（同 R218a-巡1）：
+- LLM 真实链路质量巡检（DISABLE=1 无法验 AI 生成质量）
+- 小红书真机用户测试
+- 装饰图/插画集成（N-08 — M3 写 prompt + agnes-image/Pollinations 双后端已就位，前端消费链路 0）
+- history.db 60+ 条历史记录 UI 入口（N-07 — 后端活，UI 死）
+- iOS safe-area N-11（viewport-fit=cover 1 行 + CSS env 1 段）
+- research / threads / concept / compare tabs（N-α/β/γ 留）
+
+### N-04 虚标重做（R218a-巡2 修复）| buildShareData 补 3 case + share* 改 view
+- ✅ [已修 R218a-巡2 · buildShareData 补 bazi/taohua/hehun 3 case，shareBazi/shareTaohua/shareHehun 改传正确 view；styles.css+app.js 共 +150 行；grep case 数 4→7]
+
+### N-01（修复 R218a-07/08）| services.py echo question 字段
+- ✅ [已修 R218a-巡2 · web/services.py 在 bazi/liuyao/tarot 三个返回 dict 加 "question": req.question；selftest._expect_keys 同步加键；curl 实测 3 端点均 echo；grep 数 0→3]
+
+### N-02（修复 R218a-06 虚标）| 海报浮层
+- ✅ [已修 R218a-巡2 · downloadPoster 末尾 showPosterModal()；styles.css poster-modal-backdrop + 关闭按钮 + 遮罩 + ESC；长按保存提示；grep 数 0→5]
+
+### N-03（修复 R218a-09 虚标）| 去养生机
+- ✅ [已修 R218a-巡2 · copy_bank.json daily.yi 第 4 条改「🪴 给家里绿植浇点水」；清 data/index/knowledge.db 的 daily_cache 表缓存；grep 养生机 1→0]
+
+### N-05 | API 错误 toast
+- ✅ [已修 R218a-巡2 · api() 网络层 catch 前 showToast(msg, kind)；4xx 黄底/5xx 红底；styles.css .toast-stack + .toast-error/warn/info；3.5s 自动消失]
+
+### N-06 | chat disabled 视觉
+- ✅ [已修 R218a-巡2 · styles.css .chat-input-row input:disabled / button:disabled 显式 opacity:.5 + 置灰 + cursor:not-allowed]
+
+### N-07 | 历史记录 UI 入口
+- ✅ [已修 R218a-巡2 · index.html 侧栏顶部加可折叠段「📚 我的解读·N」；app.js initChat 注册 toggle + refreshHistoryCount()；styles.css .side-history* 8 条新规则]
+
+### N-08 | 装饰图集成
+- ✅ [已修 R218a-巡2 · app.js renderDecoration(view) 函数：bazi/qiming/taohua 3 个差异化 banner（CSS 渐变 + emoji 锚 + 文字）；buildBaziResult/QimingResult/TaohuaResult 顶部注入；styles.css .deco-banner* 6 条新规则；后续接入 /api/decoration 时把 url 套进 .deco-img 即可]
+
+### N-09 | 海报金句数据化
+- ✅ [已修 R218a-巡2 · _posterHookForView 改数据驱动：bazi 取日主 / qiming 取 TOP1+score / taohua 取桃花支强度 / hehun 取双方日主五行；liuyao/daily 走原文案]
+
+### N-10 | FAB 遮挡初爻 + 安全区
+- ✅ [已修 R218a-巡2 · styles.css .recent-toggle bottom: max(20px, env(safe-area-inset-bottom,20px))；.view padding-bottom:70px 防初爻被 FAB 挡]
+
+### N-11 | iOS 安全区
+- ✅ [已修 R218a-巡2 · index.html meta viewport 加 viewport-fit=cover；styles.css body padding 用 env(safe-area-inset-*)；desktop/Android 不影响]

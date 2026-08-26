@@ -1091,7 +1091,9 @@ def run() -> list[str]:
     }
     _expect_keys = {
         "/api/bazi": {"paipan", "calc", "evidence", "interpretation",
-                      "warm", "ai_polish"},
+                      "warm", "ai_polish",
+                      # R218a-巡2（N-01）：后端回写 question 供前端钩子使用
+                      "question"},
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
                         "tianxi_pillar", "strength", "render", "notes",
                         "dayun_hits", "hit_pillars", "warm", "bazi",

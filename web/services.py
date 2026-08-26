@@ -204,6 +204,10 @@ def bazi(req) -> dict:
         "interpretation": interpretation,
         "warm": warm,
         "ai_polish": ai_polish,
+        # R218a-巡2（N-01）：echo 用户提问供前端 questionHook 使用
+        # ——前端 buildBaziResult/buildLiuyaoResult/buildTarotResult 内
+        # if (j.question) 钩子函数曾因后端不返回该字段而永远不触发。
+        "question": req.question,
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -628,6 +632,8 @@ def liuyao(req) -> dict:
         # 的卦象**的描述性回应（不预测结果），专业分支原文不动。
         "warm": voice.warm_liuyao(ben_out, bian_out, ben.moving_lines,
                                   interpretation, req.question),
+        # R218a-巡2（N-01）：echo question 让前端 liuyaoQuestionHook 真生效
+        "question": req.question,
     }
 
 
@@ -690,6 +696,8 @@ def tarot(req) -> dict:
         "draws": cards,
         "interpretation": interpretation,
         "warm": voice.warm_tarot(cards, interpretation, req.question),
+        # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
+        "question": req.question,
     }
 
 

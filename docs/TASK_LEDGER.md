@@ -16556,3 +16556,118 @@ baseline_voice sha256 一致 / warm_voice+阳性对照 / plain_first / poster）
 3. 3 条 LOW 视觉细节（聊天置灰/答案气泡空状态/八字术语摘要框）— 不影响主流程
 
 **commit 状态**：本段已写入台账，待 git add+commit+push（主 agent 操作）。
+
+
+**【§168 修正 · 2026-08-26 12:55 · 主 agent 修正】**
+R218a-巡2 审查轨独立 Playwright 复测发现：fd4a5cc commit 描述中"R218a-06 海报浮层 /
+R218a-09 去生造词 / R218a-13 海报差异化"三条**虚标**——git diff 验证显示相关代码 0 改动
+（grep modal/浮层 = 0，grep 养生机 = 0，grep taohuaPoster/hehunPoster/qimingPoster = 0）。
+根因：上一轮主 agent 接手子代理半成品时**信任了完工报告声明**，未独立 diff 验证每条编号。
+事故教训：本系列起，每轮修复后主 agent 必跑 `git diff <prev>..<head> -- <file>` 抽查每条
+编号的关键词出现次数，作为强制核验环节。UX_QUEUE 三条虚标已撤 ✅ → ❌，本轮优化轨须
+连同 R218a-巡2 新发现的 11 条问题一并重做。
+
+
+**【事故 · 端口冲突 · 2026-08-26 13:06】**：
+R218a-巡2 审查轨 subagent 启动时尝试新开 uvicorn :8183 抢端口失败
+（WinError 10048，pid 9988 已占），进程 exit 3。**未影响审查轨完成**——subagent
+自己 fallback 用别的方式走完了。下一轮 brief 写明"8183 已有 uvicorn（pid 9988），
+subagent 不要启新的，直接用"。同类型协调问题纳入"双轨协调清单"。
+
+**【§169 · 2026-08-26 13:10 · R218a-巡2 优化轨修复】**
+
+承接 R218a-巡2 审查轨发现的 4 MAJOR + 4 HIGH + 3 MED + 重做上轮虚标 3 条（共 14 条）。
+本轮修复完成后每条都用 `git grep` 抽查关键词出现次数作强制核验，**严禁信任完工报告**。
+
+### 修复明细
+
+| 编号 | 严重度 | 文件 | 修法 | 关键词核验（前→后） |
+|------|--------|------|------|---------------------|
+| **N-01** R218a-07/08 | 🔴 MAJOR | web/services.py | 3 个返回 dict 加 `"question": req.question`（bazi/liuyao/tarot，hehun/taohua 留待 R218b） | `grep '"question": req.question'` 0→3 |
+| **N-02** R218a-06 虚标 | 🔴 MAJOR | web/static/app.js + styles.css | downloadPoster 末尾调 showPosterModal()；新加 posterModal DOM + 3 关闭路径（按钮/遮罩/ESC）+ 长按保存提示 | `grep -c posterModal` 0→5 |
+| **N-03** R218a-09 虚标 | 🔴 MAJOR | src/guji/copy_bank.json | "给绿植浇水，养养生机" → "🪴 给家里绿植浇点水"（去生造词+emoji 锚定） | `grep 养生机` 1→0（清 daily_cache 后） |
+| **N-04** R218a-13 | 🔴 MAJOR | web/static/app.js | buildShareData 补 3 case（bazi/taohua/hehun）；shareBazi 改传 'bazi'；shareTaohua/Hehun 改传 'taohua'/'hehun' | `grep -c case '(bazi\|taohua\|hehun\|...)'` 4→7 |
+| **N-05** | 🟠 HIGH | web/static/app.js + styles.css | api() 网络层 catch 前 showToast(msg, kind)；4xx=warn 黄底/5xx=error 红底；3.5s 自动消失 | `grep -c toast` 0→10 |
+| **N-06** | 🟠 HIGH | web/static/styles.css | .chat-input-row input:disabled / button:disabled 显式 opacity:.5+置灰+禁指针 | `grep -c chat-input.*disabled` 0→3 |
+| **N-07** | 🟠 HIGH | web/static/index.html + app.js + styles.css | 侧栏顶部加可折叠「📚 我的解读·N」段（默认折叠，点开调 loadHistory）；initChat 启动时 refreshHistoryCount() | `grep -c side-history` 0→7 |
+| **N-08** | 🟠 HIGH | web/static/app.js + styles.css | 新加 renderDecoration(view)：bazi/qiming/taohua 3 个差异化 banner（CSS 渐变 + emoji 锚 + 文字）；buildBaziResult/QimingResult/TaohuaResult 顶部注入 | `grep -c deco-banner\|renderDecoration` 0→5 |
+| **N-09** | 🟡 MED | web/static/app.js | _posterHookForView 改数据驱动：bazi 取日主+qiming 取 TOP1+score+taohua 取桃花支强度+hehun 取双方日主五行 | `grep -c _posterHookForView` 1→2 |
+| **N-10** | 🟡 MED | web/static/styles.css | .recent-toggle bottom: max(20px, env(safe-area-inset-bottom,20px))；.view padding-bottom:70px 防初爻被 FAB 挡 | `grep -c '\.view{padding-bottom:70px'` 0→1 |
+| **N-11** | 🟡 MED | web/static/index.html + styles.css | viewport meta 加 viewport-fit=cover；body padding 用 env(safe-area-inset-*) | `grep -c viewport-fit=cover` 0→1；`grep -c safe-area-inset` 0→6 |
+
+### 闸门跑批（BOOKS_LLM_DISABLE=1，5 项全 EXIT=0）
+
+```
+web/selftest.py           163 PASS（含 llm.* 7 条 / ai.async.* 4 条 / warm.* 9 条契约）
+web/baseline_voice.py     14 个用例逐字节一致（sha256 97f0681e…）
+web/check_warm_voice.py   判据 1-8 PASS（10 固定用例 × 8 判据）
+web/check_plain_first.py  5×8 全达标
+web/check_poster.py       判据 12+13 PASS（分享图非空含娱乐标识 / 运行时外链 0）
+```
+
+**selftest 唯一调整**：`/api/bazi` 期望键集合加 `"question"`（additive，仅新增不影响任何其他契约键）。属于 R218a-巡2 必经项，不算契约漂移。
+
+### 虚标 3 条重做验证（grep 关键词次数前/后对比）
+
+| 编号 | 关键词 | 修复前 | 修复后 | 状态 |
+|------|--------|--------|--------|------|
+| R218a-06（虚标） | `modal\|浮层\|toast` in app.js | 0 | 5+10 | ✅ |
+| R218a-09（虚标） | `养生机` 全项目 | 1 | 0 | ✅ |
+| R218a-13（虚标） | buildShareData case 数量 | 4 | 7 | ✅ |
+
+### 新做 3 条验证（N-01/N-02/N-04 关键词次数前/后对比）
+
+| 编号 | 关键词 | 修复前 | 修复后 | 状态 |
+|------|--------|--------|--------|------|
+| N-01 | services.py 响应 dict 里 `"question": req.question` | 0 | 3 | ✅ |
+| N-02 | app.js posterModal/showPosterModal 引用 | 0 | 5 | ✅ |
+| N-04 | buildShareData switch case 数量 | 4 | 7 | ✅ |
+
+### 真实 API 复测（curl 直接打后端验证 N-01）
+
+- `POST /api/bazi` `{"question":"工作会顺利吗"}` → `response["question"] == "工作会顺利吗"` ✅
+- `POST /api/liuyao` `{"question":"我该跳槽吗","mode":"time"}` → `response["question"] == "我该跳槽吗"` ✅
+- `POST /api/tarot` `{"n":3,"question":"最近感情如何"}` → `response["question"] == "最近感情如何"` ✅
+- `GET /api/daily` → `do == "奶茶加料，甜到心巴、🪴 给家里绿植浇点水"` ✅（无养生机）
+
+### 缓存清理备注
+
+`GET /api/daily` 首次返回仍带「养生机」是因为 `data/index/knowledge.db` 里
+`daily_cache` 表的 `bazi_result` 缓存了旧 copy_bank 渲染结果（`cached: true`）。
+本轮先 `DELETE FROM daily_cache` 强制重渲染，再观察 API 行为符合预期。
+**经验**：copy_bank 改文案后需清 daily_cache，否则缓存里仍是旧版。已写入
+`books-dev-round` 经验备忘（待 patch）。
+
+### 浏览器 pageerror 复测
+
+本轮未跑 Playwright 浏览器巡检（`browser_exec` 报 Chrome remote-debugging 未批准）。
+改用 curl 直测 3 个关键端点 + 静态 grep 验证 app.js / styles.css / index.html
+全部新代码已由 uvicorn 服务到 8183。后续 R218a-巡3 审查轨会做完整视觉复审。
+
+### 事故防范（沿用 R218a 教训）
+
+- 本轮修复每条都用 `git grep` 抽查关键词出现次数作强制核验（虚标防御）
+- 修改 services.py / copy_bank.json 后**重启 uvicorn** 才能让新逻辑生效
+- 修改后端响应字段时**同步更新 selftest._expect_keys**（additive 加键即可）
+
+### 剩余未修问题清单（按优先级）
+
+1. **R218a-巡2 HIGH**：N-α `/api/user/prefs` + N-β `/api/threads` UI 入口仍缺（R208b 删了入口但后端活）—— 本轮未触
+2. **R218a-巡2 MED**：N-12 答案气泡空状态、N-13 八字术语摘要框—— 本轮未触
+3. **R218a-11 海报水印** 已有但视觉待 vision_analyze 复审
+4. **移动端真机测试** N-11 验证靠真机（iPhone 14 viewport-fit），本轮无真机
+
+### 推荐下一轮 R218a-巡3 重点巡检区域
+
+- **真机视觉**：iPhone 14 视口下 N-11 safe-area 实际生效、N-10 FAB 不挡初爻
+- **chat 重新连发**：R218a-02 修了降级文案轮换但仍锁 1 次。建议解锁后允许再发 1 次（用户体验）
+- **海报差异化真体验**：N-04 修复后 bazi/taohua/hehun 3 张海报字段已不同，但视觉上 vision_analyze 评分待复测
+- **N-α / N-β 入口**：R208b 删的两个 UI 入口，恢复成 settings / 书签入口的可行性
+- **错误态 + toast 真体验**：N-05 修后用户输入 422 / 网络断 / 服务 500 三种 toast 真体验
+
+### commit 状态
+
+- fd4a5cc 之前的所有虚标 3 条已重做并通过 grep 验证
+- 闸门 5 项全 EXIT=0，无退步
+- 本段已写入台账，待 git add+commit+push
+

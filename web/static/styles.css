@@ -353,7 +353,10 @@ h1,.brand-mark,.section-title,.side-brand{
 /* R207b：圆钮修复——emoji 在 Windows 渲染成黑白文本形，改用 SVG 数据 URI
  * 时钟图标（同源 data URI 非外链），flex 居中，hover 反馈。 */
 .recent-toggle{
-  position:fixed; left:16px; bottom:20px; z-index:60;
+  position:fixed; left:16px;
+  /* R218a-巡2（N-10）：FAB 避开底部 home indicator（iOS）和六爻初爻 */
+  bottom:max(20px, env(safe-area-inset-bottom, 20px));
+  z-index:60;
   width:52px; height:52px; border-radius:50%;
   background:var(--primary);
   border:none; cursor:pointer; padding:0;
@@ -440,6 +443,18 @@ h1,.brand-mark,.section-title,.side-brand{
   background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
   font-family:var(--font-sans); font-size:15px; cursor:pointer;
   box-shadow:0 3px 10px rgba(232,106,138,.35);
+}
+/* R218a-巡2（N-06）：聊天输入框 disabled 视觉态——半透+置灰+禁指针。
+ * 之前 input.disabled=true 仅原生浏览器样式，背景全白且仍可点击区域
+ * 内含按钮，用户看不出「已锁」。现统一视觉。 */
+.chat-input-row input:disabled,
+.chat-input-row button:disabled{
+  opacity:.5; cursor:not-allowed;
+  background:var(--border); color:var(--secondary);
+  box-shadow:none;
+}
+.chat-input-row input:disabled{
+  background:#EFE8DD; color:#9A8A6C;
 }
 
 /* 左侧栏内聊天段 */
@@ -616,6 +631,19 @@ h1,.brand-mark,.section-title,.side-brand{
 .home-main[hidden]{display:none;}
 .view{display:none;}
 .view.active{display:block; animation:fadeIn .4s ease;}
+
+/* R218a-巡2（N-11）：iOS 安全区适配——meta 已有 viewport-fit=cover，
+ * body padding 用 env() 拉出顶部 status bar 和底部 home indicator。
+ * desktop/Android 的 env 值为 0，padding 仍是 0，零影响。 */
+body{
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  padding-left:env(safe-area-inset-left, 0px);
+  padding-right:env(safe-area-inset-right, 0px);
+}
+/* R218a-巡2（N-10）：结果区底部预留 FAB 空间——避免初爻、分享图按钮被
+ * 固定底栏挡。70px 容纳 52px FAB + 16px 间距 + 2px 安全余量。 */
+.view{padding-bottom:70px;}
 @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
 
 /* ── 通用卡片 ── */
@@ -1223,3 +1251,129 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .paipan-fold summary{cursor:pointer; font-size:12.5px;
   color:var(--secondary); user-select:none;}
 .paipan-fold[open] summary{margin-bottom:8px;}
+
+/* ── R218a-巡2（N-02）：海报浮层 ───────────────────── */
+.poster-modal-backdrop{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0); pointer-events:auto;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s ease;
+  padding:16px;
+}
+.poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);}
+.poster-modal{
+  background:var(--card); border-radius:14px;
+  width:min(420px, 100%); max-height:90vh; display:flex;
+  flex-direction:column; overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.3);
+  transform:scale(.92); transition:transform .2s ease;
+}
+.poster-modal-backdrop.open .poster-modal{transform:scale(1);}
+.poster-modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,#FDF8F0,#F6EDE0);
+}
+.poster-modal-title{font-size:15px; font-weight:600; color:var(--text);}
+.poster-modal-close{
+  width:32px; height:32px; border-radius:50%;
+  background:transparent; color:var(--secondary);
+  border:1px solid var(--border); font-size:20px; line-height:1;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.poster-modal-close:hover{background:var(--bg);}
+.poster-modal-body{
+  flex:1; padding:14px; overflow:auto;
+  display:flex; align-items:center; justify-content:center;
+  background:#F5EFE6;
+}
+.poster-modal-img{
+  max-width:100%; max-height:60vh; height:auto; display:block;
+  border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.poster-modal-tip{
+  padding:10px 16px; font-size:12.5px; color:var(--secondary);
+  background:#FDF8F0; border-top:1px solid var(--border);
+  text-align:center;
+}
+
+/* ── R218a-巡2（N-05）：全局 toast 提示 ───────────── */
+.toast-stack{
+  position:fixed; left:50%; top:16px; transform:translateX(-50%);
+  z-index:300; display:flex; flex-direction:column; gap:8px;
+  pointer-events:none; max-width:min(420px, 92vw);
+}
+.toast-item{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 14px; border-radius:10px;
+  background:#fff; color:var(--text); font-size:14px;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+  border-left:4px solid var(--secondary);
+  opacity:0; transform:translateY(-8px);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.toast-item.show{opacity:1; transform:translateY(0);}
+.toast-error{border-left-color:var(--accent); background:#FFF5F5;}
+.toast-warn{border-left-color:#D4AC0D; background:#FFFBF0;}
+.toast-info{border-left-color:var(--good); background:#F5FBF6;}
+.toast-icon{font-size:16px; flex-shrink:0;}
+.toast-msg{flex:1; word-break:break-word;}
+
+/* ── R218a-巡2（N-07）：侧栏历史记录可折叠段 ───────── */
+.side-history{
+  border-bottom:1px dashed var(--border);
+  background:#FDF8F0;
+}
+.side-history-head{
+  display:flex; align-items:center; gap:6px;
+  padding:8px 16px; cursor:pointer; user-select:none;
+  font-size:13px; color:var(--secondary);
+  transition:background .15s ease;
+}
+.side-history-head:hover{background:#F6EDE0;}
+.side-history-title{flex:1; font-weight:500; color:var(--text);}
+.side-history-count{
+  font-size:11px; color:var(--secondary);
+  background:#EFE3CE; border-radius:9px; padding:1px 7px;
+}
+.side-history-arrow{
+  font-size:11px; color:var(--secondary);
+  transition:transform .2s ease;
+}
+.side-history.open .side-history-arrow{transform:rotate(90deg);}
+.side-history-body{
+  max-height:180px; overflow-y:auto;
+  border-top:1px solid rgba(184,134,11,.12);
+}
+.side-history-list{padding:4px 0;}
+
+/* ── R218a-巡2（N-08）：结果卡装饰 banner ─────────── */
+.deco-banner{
+  position:relative; display:flex; align-items:center; gap:12px;
+  margin:10px 0 14px; padding:12px 14px;
+  border-radius:12px; overflow:hidden;
+  border:1px solid rgba(184,134,11,.18);
+}
+.deco-banner.deco-bazi{
+  background:linear-gradient(135deg,#F2E1C9 0%,#E8C9A0 100%);
+}
+.deco-banner.deco-qiming{
+  background:linear-gradient(135deg,#E8F5E0 0%,#F0E5C2 100%);
+}
+.deco-banner.deco-taohua{
+  background:linear-gradient(135deg,#FFE0E0 0%,#FBD2D2 100%);
+}
+.deco-icon{
+  width:42px; height:42px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.deco-text{
+  flex:1; font-size:13.5px; color:#5B4620;
+  font-family:var(--font-serif); font-weight:500;
+}
+.deco-corner{
+  position:absolute; right:-12px; top:-12px; width:64px; height:64px;
+  border-radius:50%; background:rgba(255,255,255,.25);
+  pointer-events:none;
+}

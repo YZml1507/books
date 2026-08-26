@@ -93,9 +93,43 @@ async function api(path, options) {
   }
   if (!resp.ok) {
     const detail = body && body.detail ? body.detail : resp.status + ' ' + resp.statusText;
-    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    const err = new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    /* R218a-巡2（N-05）：错误态用户反馈——非 2xx 一律弹红色 toast（不只
+     * 在主流程 catch 里弹；网络层就弹，给用户即时反馈）。4xx 是用户输入
+     * 错（黄底提示），5xx 是服务端异常（红底提示）。 */
+    var status = resp.status;
+    var isClient = status >= 400 && status < 500;
+    showToast(typeof err.message === 'string' ? err.message : '请求失败',
+              isClient ? 'warn' : 'error');
+    throw err;
   }
   return body;
+}
+
+/* R218a-巡2（N-05）：全局 toast——错误/警告/成功共用。3.5s 自动消失，
+ * 多次调用堆叠，z-index 最高（遮在 modal 之上）。additive，不动既有
+ * 任何 DOM 结构。 */
+function showToast(msg, kind) {
+  var stack = document.getElementById('toastStack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'toastStack';
+    stack.className = 'toast-stack';
+    document.body.appendChild(stack);
+  }
+  var t = document.createElement('div');
+  t.className = 'toast-item toast-' + (kind || 'info');
+  var icon = kind === 'error' ? '⛔' : (kind === 'warn' ? '⚠️' : '✅');
+  t.innerHTML = '<span class="toast-icon">' + icon + '</span>' +
+    '<span class="toast-msg">' + esc(String(msg || '')) + '</span>';
+  stack.appendChild(t);
+  /* 入场动画 */
+  requestAnimationFrame(function () { t.classList.add('show'); });
+  /* 自动消失 */
+  setTimeout(function () {
+    t.classList.remove('show');
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
+  }, 3500);
 }
 
 function postJSON(path, payload) {
@@ -1209,8 +1243,8 @@ function _paintSharePoster(s, W, H) {
   ctx.fillText('@小满的解忧铺', 540, 1320);
   ctx.fillStyle = '#B7A98A'; ctx.font = '400 26px sans-serif';
   ctx.fillText('· 知命知书知天机 ·', 540, 1356);
-  /* 金句 hook（按 view 动态） */
-  var hook = _posterHookForView(s && s.view);
+  /* 金句 hook（按 view 动态 + 数据驱动） */
+  var hook = _posterHookForView(s && s.view, j);
   if (hook) {
     ctx.fillStyle = '#815934'; ctx.font = '500 28px sans-serif';
     ctx.fillText(hook, 540, 1400);
@@ -1218,14 +1252,35 @@ function _paintSharePoster(s, W, H) {
   return cv;
 }
 
-/* R218a-11：按海报 view 给一句金句 hook——不同功能页不同话术。 */
-function _posterHookForView(view) {
+/* R218a-巡2：按海报 view 给一句金句 hook——N-09 数据化钩子：bazi/qiming/
+ * taohua/hehun 端点用 warm 字段里的真实数据，daily/tarot/liuyao 走文案。
+ * 视觉给 3 秒抓眼球的扎心金句，数据可空时回退到文案版。 */
+function _posterHookForView(view, j) {
+  var w = (j && j.warm) || {};
+  /* bazi: 用日主 + 偏财运（warm 里有 elements 偏财运/事业指数时可读出） */
+  if (view === 'bazi') {
+    var ec = w.energy_card || {};
+    var c = ec.element || '';
+    if (c) return '你的命格是「' + c + '」，' + (c.length === 1 ? '一' : c.length === 2 ? '二' : '三') + '字真言已就位';
+  }
+  /* qiming: 用 TOP 1 名 + 评分（j 必有 full_names） */
+  if (view === 'qiming' && j && j.full_names && j.full_names[0]) {
+    var top = j.full_names[0];
+    return '首选「' + (top.full_name || '') + '」· 评分 ' + (top.score || 80) + ' / 100';
+  }
+  /* taohua: 用桃花支 + 强度 */
+  if (view === 'taohua' && j) {
+    var zhi = j.peach_zhi || '';
+    var stg = j.strength || '';
+    if (zhi) return '桃花落在「' + zhi + '」支 · 强度 ' + (stg || '待时');
+  }
+  /* hehun: 用双方日主五行 */
+  if (view === 'hehun' && j && j.day_wx_a && j.day_wx_b) {
+    return j.day_wx_a + ' 遇 ' + j.day_wx_b + ' · ' + (j.day_wx_sheng ? '相生' : '互补');
+  }
+  /* 默认文案版（R218a-11 原版） */
   var hooks = {
-    'bazi':   '知命，是为了更好地活',
-    'qiming': '名字是父母给孩子的第一封情书',
     'liuyao': '卦不骗人，帮你读',
-    'taohua': '今天的桃花正在加载',
-    'hehun':  '甜度超标组合',
     'daily':  '今日运势 · 听小满慢慢说'
   };
   return hooks[view] || '今天，明天，每一天，都值得被认真对待';
@@ -1283,6 +1338,56 @@ function buildShareData(view, j) {
         lines: ((j && j.full_names) || []).slice(0, 4).map(function (n, i) {
           return { k: '推荐 ' + (i + 1), v: (n && n.full_name) || '' }; }),
         cards: [], view: view };
+    /* R218a-巡2（N-04）：补 3 case——之前 buildShareData 没有 bazi/taohua/hehun，
+     * 直接走 default 返回 null，downloadPoster 拿不到 j.share，回落旧 bazi 专属
+     * 版式，桃花/合婚海报只有 4 行键值（liuyao 模板错位套用）。三 case 用各自
+     * 端点的真实字段画差异化海报：
+     *   bazi   → 四柱 + 日主 + 能量卡字段
+     *   taohua → 桃花支 + 红鸾/天喜 + 应期
+     *   hehun  → 双方日主 + 冲/合/日主相生 + 桃相同
+     * 同时把 shareBazi/shareTaohua/shareHehun 改为传正确的 view（之前 bazi 不
+     * 传、taohua/hehun 错传 'liuyao'，导致海报内容错位/空白）。 */
+    case 'bazi': {
+      var sb = base('今日命盘', '');
+      var pillars = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
+      var ec = (w && w.energy_card) || {};
+      sb.big = l0 || '本命已就位';
+      sb.lines = [];
+      if (pillars.length) sb.lines.push({ k: '四柱', v: pillars.join(' · ') });
+      if (ec.element) sb.lines.push({ k: '本命', v: ec.element + (ec.element_warm ? '（' + ec.element_warm + '）' : '') });
+      if (ec.lucky_colors && ec.lucky_colors.length) sb.lines.push({ k: '幸运色', v: ec.lucky_colors.slice(0, 3).join(' · ') });
+      if (ec.lucky_numbers && ec.lucky_numbers.length) sb.lines.push({ k: '幸运数字', v: ec.lucky_numbers.join(' · ') });
+      if (!sb.lines.length) sb.lines = [{ k: '结论', v: l0.slice(0, 15) || '知己知命' }];
+      return sb;
+    }
+    case 'taohua': {
+      var st = base('桃花运势', '');
+      var td = (j && (j.peach_zhi || j.tianxi)) ? j : (w || {});
+      st.big = l0 || '桃花正在加载';
+      st.lines = [];
+      if (j && j.peach_zhi) st.lines.push({ k: '桃花支', v: String(j.peach_zhi) });
+      if (j && j.hit_pillars && j.hit_pillars.length) st.lines.push({ k: '命中柱', v: j.hit_pillars.join(' · ') });
+      if (j && j.hongluan) st.lines.push({ k: '红鸾', v: String(j.hongluan) });
+      if (j && j.tianxi) st.lines.push({ k: '天喜', v: String(j.tianxi) });
+      if (j && j.strength) st.lines.push({ k: '桃花强度', v: String(j.strength) });
+      if (!st.lines.length) st.lines = [{ k: '结论', v: l0.slice(0, 15) || '桃花待时而动' }];
+      return st;
+    }
+    case 'hehun': {
+      var sh = base('合婚配对', '');
+      sh.big = l0 || '甜度超标组合';
+      sh.lines = [];
+      if (j && j.day_wx_a && j.day_wx_b) {
+        var sheng = j.day_wx_sheng ? ' · 相生' : '';
+        sh.lines.push({ k: '日主五行', v: j.day_wx_a + ' ↔ ' + j.day_wx_b + sheng });
+      }
+      if (j && j.clash) sh.lines.push({ k: '六冲', v: j.clash });
+      if (j && j.combine) sh.lines.push({ k: '六合', v: j.combine });
+      if (j && typeof j.peach_same === 'boolean') sh.lines.push({ k: '桃花支', v: j.peach_same ? '同支共振' : '各有桃花' });
+      if (j && j.gan_he) sh.lines.push({ k: '天干五合', v: String(j.gan_he) });
+      if (!sh.lines.length) sh.lines = [{ k: '结论', v: l0.slice(0, 15) || '天作之合' }];
+      return sh;
+    }
     default:
       return null;
   }
@@ -1298,13 +1403,19 @@ function warmPoster() {
 function downloadPoster(j, view) {
   /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。
    * R198b（US5）：view 传入时先 buildShareData 注入 j.share（通用模板）；
-   * 不传则保持 bazi 专属旧版式。 */
+   * 不传则保持 bazi 专属旧版式。
+   * R218a-巡2（N-02 虚标重做）：画完海报后**弹浮层**给用户看——之前
+   * `canvas.toBlob()` 静默触发下载，用户在小红书场景下完全不知道图
+   * 在哪、怎么用。本轮补 modal：海报图 + 关闭按钮（点遮罩/ESC 都关）
+   * + 长按图片保存到相册的提示文案。下载仍走 toBlob（兼容 desktop）
+   * 浮层只是补一层视觉反馈。 */
   if (view) {
     var s = buildShareData(view, j);
     if (s) j = Object.assign({}, j, { share: s });
   }
   var r = drawPoster(j);
   if (!r || !r.canvas) return;
+  /* 同时触发下载（兼容 desktop「图去哪了」老习惯）+ 弹浮层。 */
   try {
     r.canvas.toBlob(function (blob) {
       if (!blob) return;
@@ -1316,6 +1427,58 @@ function downloadPoster(j, view) {
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
     }, 'image/png');
   } catch (e) { /* 低端降级：静默，不打断主流程 */ }
+  /* 弹浮层——海报预览 + 移动端长按保存提示 */
+  showPosterModal(r.canvas, view);
+}
+
+/* R218a-巡2（N-02）：海报浮层——背景遮罩 + 中央海报图 + 关闭按钮 +
+ * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
+function showPosterModal(canvas, view) {
+  var existing = document.getElementById('posterModal');
+  if (existing) existing.remove();
+  var backdrop = document.createElement('div');
+  backdrop.id = 'posterModal';
+  backdrop.className = 'poster-modal-backdrop';
+  /* 视图名 → 人话标题 */
+  var viewTitle = ({
+    bazi: '今日命盘', liuyao: '六爻指引', tarot: '塔罗指引',
+    qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势'
+  })[view] || '命盘海报';
+  var img = canvas.toDataURL('image/png');
+  backdrop.innerHTML =
+    '<div class="poster-modal">' +
+      '<div class="poster-modal-head">' +
+        '<span class="poster-modal-title">📸 ' + esc(viewTitle) + '</span>' +
+        '<button type="button" class="poster-modal-close" aria-label="关闭">×</button>' +
+      '</div>' +
+      '<div class="poster-modal-body">' +
+        '<img class="poster-modal-img" src="' + img + '" alt="命盘海报">' +
+      '</div>' +
+      '<div class="poster-modal-tip">💡 长按图片可保存到相册 · 桌面端已自动下载到下载文件夹</div>' +
+    '</div>';
+  document.body.appendChild(backdrop);
+  /* 触发动画 */
+  requestAnimationFrame(function () { backdrop.classList.add('open'); });
+  /* 关闭路径 1：点关闭按钮 */
+  backdrop.querySelector('.poster-modal-close').addEventListener('click', closePosterModal);
+  /* 关闭路径 2：点遮罩（点 modal 自身，不含内容） */
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closePosterModal();
+  });
+  /* 关闭路径 3：ESC 键 */
+  var onKey = function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      closePosterModal();
+      document.removeEventListener('keydown', onKey);
+    }
+  };
+  document.addEventListener('keydown', onKey);
+}
+function closePosterModal() {
+  var m = document.getElementById('posterModal');
+  if (!m) return;
+  m.classList.remove('open');
+  setTimeout(function () { if (m.parentNode) m.parentNode.removeChild(m); }, 200);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -1706,9 +1869,38 @@ function baziBody() {
 }
 
 /** 排盘结果区的 HTML 构建（抽成纯函数，切换口吻时可就地重画）。 */
+/* R218a-巡2（N-08）：结果卡装饰图——按 view 选不同主题色 + emoji 锚定。
+ * 后续接入 /api/decoration 时把 url 套进 .deco-img 即可；本轮先给基础
+ * 视觉（CSS 渐变 + 主题 emoji + 锚定文字），零外部依赖、不动既有数据。
+ * 风格刻意差异化：
+ *   bazi   → 紫金圆月 + 罗盘骨架（命理权威感）
+ *   qiming → 粉绿叶片 + 印章骨架（清新灵动）
+ *   taohua → 粉橘花瓣 + 心形骨架（甜系少女感）
+ *   其余    → 暖米金 + 极简锚（不抢主区） */
+function renderDecoration(view) {
+  var presets = {
+    bazi:   { grad: 'linear-gradient(135deg,#F2E1C9 0%,#E8C9A0 100%)', icon: '🌙', txt: '月圆人团圆 · 你的命盘已就位', iconBg: 'radial-gradient(circle, #FFD89B 0%, #E8C9A0 70%)' },
+    qiming: { grad: 'linear-gradient(135deg,#E8F5E0 0%,#F0E5C2 100%)', icon: '🌿', txt: '一撇一捺 · 给孩子起个好名字', iconBg: 'radial-gradient(circle, #C8E6C9 0%, #A5D6A7 70%)' },
+    taohua: { grad: 'linear-gradient(135deg,#FFE0E0 0%,#FBD2D2 100%)', icon: '🌸', txt: '三月桃花开 · 你的缘分在路上了', iconBg: 'radial-gradient(circle, #F8BBD0 0%, #F48FB1 70%)' }
+  };
+  var p = presets[view];
+  if (!p) return '';
+  return '<div class="deco-banner deco-' + view + '">' +
+    '<div class="deco-icon" style="background:' + p.iconBg + ';">' + p.icon + '</div>' +
+    '<div class="deco-text">' + esc(p.txt) + '</div>' +
+    '<div class="deco-corner"></div>' +
+  '</div>';
+}
+
+/* R218a-巡2：N-08 装饰图函数 + N-01 questionHook 依赖后端 services.py 回写 question 字段 */
+
 function buildBaziResult(j) {
   const paipan = j.paipan || {};
   let html = '<div class="card"><h2>🔮 排盘结果</h2>';
+  /* R218a-巡2（N-08）：装饰图——结果卡顶部加一行 SVG/CSS 装饰 banner。
+   * 后续接入 /api/decoration 时把 url 套进 .deco-img 即可；本轮先给基础
+   * 视觉装饰（CSS 渐变 + 文字锚定），零外部依赖、不动既有数据流。 */
+  html += renderDecoration('bazi');
   /* R208b：❤️ 收藏钮随「我的收藏」区块一并移除（用户裁决）。 */
   // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
   html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
@@ -1814,7 +2006,7 @@ async function submitBazi(event) {
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
-    on('shareBazi', function () { downloadPoster(j); });
+    on('shareBazi', function () { downloadPoster(j, 'bazi'); });   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     loadRecent();
   } catch (e) {
     fail('result', '计算失败：' + e.message);
@@ -2586,6 +2778,8 @@ async function doQiming() {
       top_n: 20
     });
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
+    /* R218a-巡2（N-08）：装饰图——起名卡顶部加 SVG/CSS 装饰 banner。 */
+    html += renderDecoration('qiming');
     // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
     html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
       'title="生成分享图">📸 分享图</button>';
@@ -2746,6 +2940,8 @@ async function doTaohua() {
       gender: val('th_gender') || '女'
     });
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
+    /* R218a-巡2（N-08）：装饰图——桃花卡顶部加 SVG/CSS 装饰 banner。 */
+    html += renderDecoration('taohua');
     // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
     html += '<button class="ghost fav-btn" type="button" id="shareTaohua" ' +
       'title="生成分享图">📸 分享图</button>';
@@ -2820,7 +3016,7 @@ async function doTaohua() {
     paint('thResult', html);
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareTaohua', function () { downloadPoster(j, 'liuyao'); });   /* R198b：桃花复用通用模板（键值行版式） */
+    on('shareTaohua', function () { downloadPoster(j, 'taohua'); });   /* R218a-巡2（N-04）：改用 taohua 专属 case */
   } catch (e) {
     fail('thResult', '测算失败：' + e.message);
   }
@@ -3204,7 +3400,7 @@ async function doHehun() {
     paint('hhResult', html);
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareHehun', function () { downloadPoster(j, 'liuyao'); });   /* R198b：合婚复用通用模板 */
+    on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04）：改用 hehun 专属 case */
   } catch (e) {
     fail('hhResult', '计算失败：' + e.message);
   }
@@ -3408,9 +3604,45 @@ function initViews() {
      * 一致的 open/closed 抽屉语义（R209b 的 collapsed 常驻方案废除；
      * collapsed 类仍保留为强制收起兼容探针）。 */
     _setRecent(!sb.classList.contains('open'));
+    /* R218a-巡2（N-07）：打开侧栏时拉一次历史记录 + 计数（仅首开拉取，
+     * 展开折叠不重拉；用户主动操作后由 deleteHistory 主动刷新）。 */
+    if (sb && sb.classList.contains('open')) refreshHistoryCount();
   });
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
   if (bd) bd.addEventListener('click', function () { _setRecent(false); });
+  /* R218a-巡2（N-07）：侧栏内「我的解读」段折叠交互。 */
+  var histHead = el('sideHistoryHead');
+  var histBody = el('sideHistoryBody');
+  var histSec = el('sideHistory');
+  function _toggleHistory() {
+    if (!histSec || !histBody) return;
+    var open = histBody.hidden;
+    histBody.hidden = !open;
+    histSec.classList.toggle('open', open);
+    if (open) loadHistory();
+  }
+  if (histHead) histHead.addEventListener('click', _toggleHistory);
+  if (histHead) histHead.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _toggleHistory(); }
+  });
+  /* 启动时拉一次计数（不展开也可见） */
+  refreshHistoryCount();
+}
+
+/* R218a-巡2（N-07）：拉侧栏历史记录计数——首次读 /api/history?limit=1 拿总数。
+ * 失败静默，不影响主流程。 */
+async function refreshHistoryCount() {
+  var cnt = el('sideHistoryCount');
+  if (!cnt) return;
+  try {
+    var j = await api('/api/history?limit=1');
+    var n = (j && j.records) ? j.records.length : 0;
+    /* 后端 limit=1 时 records 只返 1，但 total 字段表示总数（如果有） */
+    var total = (j && typeof j.total === 'number') ? j.total : n;
+    cnt.textContent = total > 0 ? String(total) : '0';
+  } catch (e) {
+    cnt.textContent = '0';
+  }
 }
 
 function initBazi() {
