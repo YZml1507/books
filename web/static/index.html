@@ -116,6 +116,8 @@
   <button class="recent-toggle" id="recentToggle" type="button"
     aria-expanded="false" aria-controls="recentSidebar"
     aria-label="打开我的解读与小满聊天"><span class="recent-toggle-txt">💬<br>聊</span></button>
+  <!-- R218a-01：点侧栏外关闭抽屉的半透遮罩——z-index 在侧栏之下，主区之上 -->
+  <div class="recent-backdrop" id="recentBackdrop" aria-hidden="true"></div>
   <!-- R209b：左侧统一栏重构——聊天（头像+消息流+输入框常驻）、
        我的解读（历史记录单一信息源，删重复的 recentList 段）。 -->
   <aside class="recent-sidebar" id="recentSidebar">

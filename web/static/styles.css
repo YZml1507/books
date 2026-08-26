@@ -370,13 +370,20 @@ h1,.brand-mark,.section-title,.side-brand{
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 .recent-sidebar{
   position:fixed; top:0; left:0; bottom:0; z-index:70;
-  width:min(320px, 86vw);
+  /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
+  width:min(320px, 82vw);
   background:var(--card); border-left:1px solid var(--border);
   box-shadow:6px 0 24px rgba(0,0,0,.12);
   padding:18px 16px 24px; overflow-y:auto;
   transform:translateX(-105%); transition:transform .28s ease;
 }
 .recent-sidebar.open{transform:translateX(0);}
+/* R218a-01：点侧栏外的区域关闭抽屉——半透遮罩，不抢主区颜色信息 */
+.recent-backdrop{
+  position:fixed; inset:0; z-index:65; background:rgba(0,0,0,0);
+  pointer-events:none; transition:background .2s ease;
+}
+.recent-backdrop.open{background:rgba(0,0,0,.18); pointer-events:auto;}
 /* R209b：collapsed 在任何视口下都强制收起（探针/用户手动收起语义） */
 .recent-sidebar.open.collapsed{transform:translateX(-105%);}
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -485,6 +492,89 @@ h1,.brand-mark,.section-title,.side-brand{
 
 @media (prefers-reduced-motion: reduce){
   .recent-sidebar{transition:none;}
+}
+
+/* ── R218a-04+05：起名风格芯片 + 推荐指数徽章 ─────────────────── */
+.qm-style-row{
+  display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;
+}
+.qm-style-chip{
+  flex:1 1 auto; min-width:74px; min-height:34px; padding:4px 10px;
+  border:1px solid var(--border); border-radius:18px;
+  background:#FFF4E8; color:var(--text); font-family:var(--font-sans);
+  font-size:13px; cursor:pointer; transition:all .15s;
+}
+.qm-style-chip:hover{border-color:#E8B898; transform:translateY(-1px);}
+.qm-style-chip.active{
+  background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
+  border-color:transparent; box-shadow:0 2px 8px rgba(232,106,138,.32);
+}
+.qm-style-chip:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
+.qm-style-hint{
+  font-size:11.5px; color:var(--secondary); margin:0 0 6px 2px;
+}
+.qm-score{
+  display:inline-block; font-size:12.5px; color:#B7A98A;
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  padding:2px 8px; margin-bottom:4px; font-weight:600;
+}
+.qm-badge{
+  display:inline-block; font-size:12.5px; color:#fff;
+  padding:2px 8px; border-radius:10px; margin-left:4px;
+  font-weight:600; letter-spacing:.5px;
+}
+.qm-badge.qm-top1{background:linear-gradient(135deg,#F27B6C,#E86A8A);}
+.qm-badge.qm-top2{background:linear-gradient(135deg,#E8B898,#D89A6A);}
+.qm-badge.qm-top3{background:linear-gradient(135deg,#C8B59A,#A8967A);}
+.qm-refresh-row{
+  display:flex; align-items:center; gap:10px; margin-top:14px;
+  flex-wrap:wrap;
+}
+.qm-refresh-hint{font-size:12px; color:var(--secondary);}
+
+/* ── R218a-03：八字温柔版首屏人设卡（视觉锚点） ─────────────── */
+.bazi-persona{
+  display:flex; align-items:center; gap:14px;
+  margin:10px 0 12px; padding:14px 16px;
+  background:linear-gradient(135deg,#FFF8EE,#FDF1E5);
+  border-radius:12px;
+  box-shadow:0 2px 10px rgba(184,134,11,.08);
+}
+.bazi-persona-emoji{
+  font-size:36px; line-height:1; flex-shrink:0;
+  width:54px; height:54px; display:flex;
+  align-items:center; justify-content:center;
+  background:rgba(255,255,255,.6); border-radius:50%;
+  box-shadow:0 0 0 3px #F6E3C8;
+}
+.bazi-persona-body{flex:1; min-width:0;}
+.bazi-persona-nick{
+  font-family:var(--font-serif); font-weight:700; font-size:18px;
+  color:var(--text); margin-bottom:2px;
+}
+.bazi-persona-desc{
+  font-size:13px; color:var(--secondary); line-height:1.6;
+  margin-bottom:6px;
+}
+.bazi-persona-kws{display:flex; gap:6px; flex-wrap:wrap;}
+.bazi-persona-kw{
+  display:inline-block; font-size:12px; color:#7A5C2E;
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  padding:2px 10px; font-weight:500;
+}
+
+/* ── R218a-07/08：塔罗 / 六爻问题绑定首屏 hook ──────────────── */
+.tarot-question-hook{
+  background:linear-gradient(135deg,#FFF4E8,#FDE8E0);
+  border:1px solid #F0CDB8; border-radius:12px;
+  padding:12px 14px; margin:8px 0 12px;
+  font-size:14.5px; line-height:1.7; color:var(--text);
+}
+.tarot-question-hook p{margin:4px 0 0;}
+.tarot-hook-tag{
+  display:inline-block; font-size:11.5px; color:#B7A98A;
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  padding:1px 8px; margin-bottom:4px; font-weight:500;
 }
 .recent-item{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);

@@ -1,0 +1,1 @@
+- 用户机器的 Hermes 在 C:\Users\Lenovo\AppData\Local\hermes（config.yaml + .env），默认模型已配为 GMI Cloud 自定义端点 https://api.gmi-serving.com/v1 的 MiniMaxAI/MiniMax-M3（唯一免费模型，账户其余 GMI 模型无额度，勿调用）

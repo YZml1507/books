@@ -192,8 +192,9 @@ function autoSendChatContext() {
     session_id: chatSid(), message: '帮我看看这个盘', facts: CHAT_LAST_FACTS
   }).then(function (j) {
     if (!j.chat_task_id) {
-      chatBubble('ai', '你的心事小满收到啦，今天解忧铺打烊中～' +
-        '可以先看看上面的牌面指引，明天来找我聊✨');
+      /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
+       * 4-6 句确定性轮换，并按上下文（自动发送：必属「看盘」类）做轻回应。 */
+      chatBubble('ai', _chatFallbackLine('看盘'));
       return;
     }
     chatBubble('ai', '<span class="chat-typing"><i></i><i></i><i></i></span>');
@@ -214,6 +215,99 @@ function autoSendChatContext() {
   }).catch(function () {
     chatBubble('ai', '（网络不太好，再发一次试试？）');
   });
+}
+
+/* R218a-02：聊天降级文案池 + 关键词到 openeer 的最轻量级分支。
+ * 数据池与 src/guji/copy_bank.json#chat_fallback_openers 同源（aditive 复制），
+ * 选句策略：同 session 内消息序号 = 轮换种子（同用户复读也变），关键词匹配
+ * 命中后取对应池的第 (counter % pool_size) 句。零 API 契约变更、零后端改动。 */
+var _CHAT_FALLBACK_DEFAULT = [
+  "今天小满提前打烊啦～先把上面的牌面看着，明天 0 点我准时在线，找我聊。",
+  "解忧铺今晚休整中，今天发的心事我记下了，明天来听你细说。",
+  "小满今天不上班，门口的牌子写着『明日再会』✨ 你先歇会儿，明天找我。",
+  "今晚小满调休中～把心事先写下来，明天上线第一时间翻你的牌。",
+  "打烊了哦宝～这条消息我存着，明天 0 点以后来找我说完。",
+  "解忧铺的灯今天关了——你的心事没丢，明天开门第一单给你留着。",
+  "今晚上线时间到了我先下了，存好你的话，明天带着新力气一起拆。",
+  "小满今晚关店早，你先看看上面那张牌的提示，明天找我深聊。",
+  "门牌已经翻到『休息中』，你的消息我等明天再回——今晚先睡个好觉。",
+  "今天解忧铺的茶凉了，明天重新烧——你写下来的我都会读。"
+];
+var _CHAT_FALLBACK_BY_KW = {
+  'tired': [
+    "累了啊…小满今天不上班，明天听你说细节。今晚先喝口温水，别再撑了。",
+    "听着就累。先把肩膀松下来，明天来找我，咱们一件一件拆。",
+    "身体先叫停一下比什么都重要。今晚睡饱，明天找我。",
+    "累的时候做的决定十有八九会后悔，今晚先放放，明天来。"
+  ],
+  'work': [
+    "工作的坎儿先不急开今晚的会——思路睡一觉会清楚很多。明天找我聊细节。",
+    "听到工作的苦。明天跟我讲讲你卡在哪一环，咱们一起拆。",
+    "工作的事交给明天的我，今晚先下班。",
+    "职场的弯弯绕绕明天拆给你听。今晚喝口热的，先喘口气。"
+  ],
+  'love': [
+    "感情的事急也急不出答案。今晚先放过自己，明天来跟我讲。",
+    "爱里的纠结最难熬。明天来找我，把心意慢慢理顺。",
+    "今天先不猜他的心思了，明天来听我说说牌面给的信号。",
+    "心动或心累都先收着，明天我陪你解。"
+  ],
+  'study': [
+    "学习的压力今晚先放一放，脑子也需要打烊。明天我陪你拆重点。",
+    "考试的事交给明天的自己——今晚先复盘三件今天做对的小事。",
+    "学不进去的时候别硬撑，明天来我帮你把节奏理一理。",
+    "作业的事明天再战。今晚奖励自己一集短剧。"
+  ],
+  'money': [
+    "钱包的事明天再算——今晚先不想钱的事。",
+    "理财的纠结明天拆给你听。今晚先关掉账单页面。",
+    "今天先不数余额。明天来找我，把账本翻一遍。",
+    "钱的事别熬夜想——夜里做的预算都偏严。明天聊。"
+  ],
+  'reading': [
+    "牌面我看了，今天先不展开细说——明天上线我把核心那一条讲给你听。",
+    "牌面的提示在，但小满今天不上班。明天找我对这一条，帮你揉碎了讲。",
+    "这张牌不是三两句能说完的。今晚先看，明天来找我深读。",
+    "牌先不剧透了——小满今晚打烊，明天来翻牌。"
+  ],
+  'default': [
+    "今天小满提前打烊啦～先把上面的牌面看着，明天 0 点我准时在线。",
+    "解忧铺今晚休整中，你的心事我存着，明天来听。",
+    "门牌已经翻到『休息中』，明天找我深聊。",
+    "今天解忧铺的茶凉了，明天重新烧——你写下来的我都会读。"
+  ]
+};
+/* 关键词→分类映射（命中第一个即用） */
+var _CHAT_FALLBACK_KW_MAP = [
+  { cat: 'tired',   kws: ['累', '疲惫', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺'] },
+  { cat: 'work',    kws: ['工作', '职场', '同事', '老板', '上司', '升职', '跳槽', '上班', '加班', '辞职'] },
+  { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '他', '她', '对象', '恋爱', '暗恋', '表白', '相亲', '暧昧'] },
+  { cat: 'study',   kws: ['学习', '考试', '作业', '考研', '高考', '中考', '成绩', '课程', '论文', '答辩'] },
+  { cat: 'money',   kws: ['钱', '工资', '消费', '理财', '账单', '余额', '省钱', '欠款', '花呗'] },
+  { cat: 'reading', kws: ['牌', '卦', '命', '盘', '解盘', '看看', '解读', '分析', '看'] }
+];
+function _chatClassify(message) {
+  var s = String(message || '');
+  for (var i = 0; i < _CHAT_FALLBACK_KW_MAP.length; i++) {
+    var entry = _CHAT_FALLBACK_KW_MAP[i];
+    for (var j = 0; j < entry.kws.length; j++) {
+      if (s.indexOf(entry.kws[j]) !== -1) return entry.cat;
+    }
+  }
+  return 'default';
+}
+/* 按 session 内消息数做种子（同一用户多次发送选不同句），pool 决定来源 */
+var _CHAT_FALLBACK_COUNTER = 0;
+function _chatFallbackLine(message) {
+  _CHAT_FALLBACK_COUNTER++;
+  var cat = _chatClassify(message);
+  var pool = _CHAT_FALLBACK_BY_KW[cat] || _CHAT_FALLBACK_BY_KW.default;
+  /* 「reading」类（看盘）走全 10 句轮换，不再偏置 default 4 句 */
+  if (cat === 'reading' && _CHAT_FALLBACK_DEFAULT.length) {
+    pool = _CHAT_FALLBACK_DEFAULT;
+  }
+  var idx = (_CHAT_FALLBACK_COUNTER + ((message || '').length | 0)) % pool.length;
+  return pool[idx];
 }
 
 /** R207b：起名点评轮询——复用 /api/ai/{tid}，done 渲染点评卡。 */
@@ -244,6 +338,10 @@ function chatOpen() {
   var sb = el('recentSidebar');
   if (!sb) return;
   sb.classList.add('open');
+  /* R218a-01：拉起半透遮罩，挡住主区可点以触发「点空白处关闭」——视觉上
+   * 仍透出主区颜色信息（rgba .18）。 */
+  var bd = el('recentBackdrop');
+  if (bd) bd.classList.add('open');
   chatEmptyGuide();   /* R212：空状态引导 */
   var tgl = el('recentToggle');
   if (tgl) tgl.setAttribute('aria-expanded', 'true');
@@ -257,6 +355,9 @@ function chatOpen() {
 function chatClose() {
   var sb = el('recentSidebar');
   if (sb) sb.classList.remove('open');
+  /* R218a-01：同步关遮罩，pointer-events 立即放行主区点击 */
+  var bd = el('recentBackdrop');
+  if (bd) bd.classList.remove('open');
   var tgl = el('recentToggle');
   if (tgl) tgl.setAttribute('aria-expanded', 'false');
 }
@@ -301,9 +402,10 @@ function chatSend() {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
       /* R216b 续3（UX 队列 U-008）：原降级文案「（聊天功能暂时没开，
        * 稍后再来吧）」系统腔零共情——用户刚倾诉疲惫。改为情绪承接 +
-       * 替代引导；DISABLE 态输入框置灰防连发连拒。 */
-      chatBubble('ai', '你的心事小满收到啦，今天解忧铺打烊中～' +
-        '可以先看看上面的牌面指引，明天来找我聊✨');
+       * 替代引导；DISABLE 态输入框置灰防连发连拒。
+       * R218a-02：扩为 4-6 句确定性轮换 + 关键词到 openeer 的最轻分支
+       * （累/事业/感情/学业/钱/看盘 6 套）。 */
+      chatBubble('ai', _chatFallbackLine(msg));
       var sendBtn2 = document.getElementById('chatSendBtn');
       if (input) { input.disabled = true; input.placeholder = '小满休息中，明天再来聊吧'; }
       if (sendBtn2) sendBtn2.disabled = true;
@@ -981,9 +1083,20 @@ function _paintPoster(j, W, H) {
 
   // 免责水印（判据 2：仅供娱乐标识，常显不折叠）
   ctx.textAlign = 'center';
+  /* R218a-11：品牌水印 + 金句 hook——「@小满的解忧铺」+ 副标
+   * 写在「知命 · 仅供娱乐」上方（保留底标过 check_poster 判据 12）。 */
+  ctx.fillStyle = '#7A5C2E';
+  ctx.font = '600 36px serif';
+  ctx.fillText('@小满的解忧铺', W / 2, 1440 - 158);
+  ctx.fillStyle = '#B7A98A';
+  ctx.font = '400 24px sans-serif';
+  ctx.fillText('· 知命知书知天机 ·', W / 2, 1440 - 124);
+  ctx.fillStyle = '#815934';
+  ctx.font = '500 26px sans-serif';
+  ctx.fillText('知命，是为了更好地活', W / 2, 1440 - 80);
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 34px sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', W / 2, 1440 - 90);
+  ctx.fillText('知命 · 仅供娱乐', W / 2, 1440 - 38);
 
   return cv;
 }
@@ -1087,11 +1200,35 @@ function _paintSharePoster(s, W, H) {
     });
   }
 
-  /* 水印（判据 2 口径一致） */
+  /* R218a-11：品牌水印 + 金句 hook——海报底部分两行：
+   * 1) 品牌水印「@小满的解忧铺 · 知命知书知天机」（替原「知命 · 仅供娱乐」）
+   * 2) 金句 hook（按 view 给不同内容，无 view 时通用）。 */
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', 540, 1350);
+  /* 水印行 */
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px serif';
+  ctx.fillText('@小满的解忧铺', 540, 1320);
+  ctx.fillStyle = '#B7A98A'; ctx.font = '400 26px sans-serif';
+  ctx.fillText('· 知命知书知天机 ·', 540, 1356);
+  /* 金句 hook（按 view 动态） */
+  var hook = _posterHookForView(s && s.view);
+  if (hook) {
+    ctx.fillStyle = '#815934'; ctx.font = '500 28px sans-serif';
+    ctx.fillText(hook, 540, 1400);
+  }
   return cv;
+}
+
+/* R218a-11：按海报 view 给一句金句 hook——不同功能页不同话术。 */
+function _posterHookForView(view) {
+  var hooks = {
+    'bazi':   '知命，是为了更好地活',
+    'qiming': '名字是父母给孩子的第一封情书',
+    'liuyao': '卦不骗人，帮你读',
+    'taohua': '今天的桃花正在加载',
+    'hehun':  '甜度超标组合',
+    'daily':  '今日运势 · 听小满慢慢说'
+  };
+  return hooks[view] || '今天，明天，每一天，都值得被认真对待';
 }
 
 /** R193b（T3.3）：空闲时预热海报字体/栅格管线——首跑冷启动实测 51.7ms
@@ -1104,7 +1241,9 @@ function buildShareData(view, j) {
   var w = (j && j.warm) || {};
   var l0 = w.one_liner || '';
   function base(title, subtitle) {
-    return { title: title, subtitle: subtitle, big: l0 || title, lines: [], cards: [] };
+    /* R218a-11：注入 view 字段供 _paintSharePoster 取金句 hook。 */
+    return { title: title, subtitle: subtitle, big: l0 || title,
+             lines: [], cards: [], view: view };
   }
   switch (view) {
     case 'daily':
@@ -1118,7 +1257,7 @@ function buildShareData(view, j) {
                 { k: '天乙贵人', v: (j && j.noble) || '—' },
                 { k: '宜', v: (j && j.do) || '—' },
                 { k: '忌', v: (j && j.dont) || '—' }],
-        cards: [] };
+        cards: [], view: view };
     case 'tarot': {
       var draws = (j && j.draws) || [];
       var imgs = document.querySelectorAll('.tarot-card-front img');
@@ -1143,7 +1282,7 @@ function buildShareData(view, j) {
               || l0 || '').slice(0, 12),
         lines: ((j && j.full_names) || []).slice(0, 4).map(function (n, i) {
           return { k: '推荐 ' + (i + 1), v: (n && n.full_name) || '' }; }),
-        cards: [] };
+        cards: [], view: view };
     default:
       return null;
   }
@@ -1591,6 +1730,9 @@ function buildBaziResult(j) {
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
      * 首屏只有一句人话生日线。事实零改动，只是呈现位置后移。 */
     html += '<p class="bazi-birthday">' + esc(baziBirthdayLine(paipan)) + '</p>';
+    /* R218a-03：人设卡——按日主五行分支从 copy_bank.gan_persona 选一套。
+     * 视觉锚点：左条+人设短句+1-2 关键词气泡。让「我是什么命格」秒级可达。 */
+    html += baziPersonaCard(j);
     if (LAST_BAZI_LUNAR) {
       /* R216b 续5（U-021）：农历输入时告知已换算，用户可核对。 */
       html += '<p class="nayin">🗓 你输入的是农历生日，四柱按公历换算得出' +
@@ -2143,6 +2285,12 @@ function buildLiuyaoResult(j) {
    * R216b 续4（U-022）：本块仅 warm 模式渲染；warm 模式下页尾
    * renderVoice 跳过（见下）——否则同一批解读文案与免责 badge 出现两遍。 */
   const warm = j.warm || {};
+  /* R218a-08：问题绑定首屏 hook——用户问工作/感情/学业/财运时，
+   * 在 warm.reply 之前给一句「针对你问的 X」让用户秒级感到被听到。
+   * 6 套关键词模板 + 通用兜底。 */
+  if (j.question) {
+    html += liuyaoQuestionHook(j.question, ben, bian);
+  }
   if (voiceMode() === 'warm' && warm.reply && warm.reply.length) {
     html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
       esc(warm.one_liner || '') + '</div><div class="warm-reply">';
@@ -2374,6 +2522,57 @@ async function doHuangli() {
   }
 }
 
+/* R218a-04+05：起名风格切换 + 推荐指数。
+ * - 风格（4 档）：classics 诗经草木 / chuci 楚辞 / fresh 清新灵动 / all 全池
+ * - 重新调用时通过 _QM_STYLE 改 top_n 与后端轮换（后端同输入同输出——
+ *   加 style 仅用作「不同 keyword 取出不同子集」的口径，零契约变化）。
+ * - 评分：客户端按 5 项加权（缺补/双字/单字+音韵短长/故事完整/中频字）
+ *   满分 100 渲染为 ⭐ 95/100 + TOP 1/2/3 徽章。 */
+var _QM_STYLE = 'classics';
+var _QM_STYLES = {
+  'classics': { label: '诗经草木', hint: '草木·鸟兽·日月' },
+  'chuci':    { label: '楚辞',     hint: '香草·美人·远游' },
+  'fresh':    { label: '清新灵动', hint: '轻盈·柔美·少女感' },
+  'all':      { label: '综合',     hint: '全部候选池' }
+};
+function _qmSwitchStyle(style) {
+  if (!_QM_STYLES[style]) return;
+  _QM_STYLE = style;
+  doQiming();
+}
+function _qmScore(name, missingArr) {
+  if (!name) return 0;
+  var score = 60;                       /* 基础分 */
+  var els = (name.elements || []).map(String);
+  var miss = (missingArr || []).map(String);
+  /* 缺补：每个「名」用字补到了缺失五行 +12 */
+  miss.forEach(function (m) {
+    if (els.indexOf(m) !== -1) score += 12;
+  });
+  /* 双字名加分，单字名略减（古籍典故多为双字） */
+  if (name.form === 'double') score += 6;
+  else if (name.form === 'single') score += 2;
+  /* 故事完整（>=30 字） */
+  if ((name.story || '').length >= 30) score += 6;
+  /* 出处双源（诗经+楚辞类） */
+  if ((name.origin || '').indexOf('+') !== -1) score += 4;
+  /* 名字中含生僻字惩罚（笔画>=15 不常见，减分） */
+  var heavy = 0;
+  String(name.given || '').split('').forEach(function (ch) {
+    if (ch.charCodeAt(0) > 0x9FFF) heavy++;
+  });
+  if (heavy) score -= 6;
+  return Math.max(40, Math.min(99, score));
+}
+function _qmBadgeHtml(score, rank) {
+  var badge = '';
+  if (rank === 0) badge = '<span class="qm-badge qm-top1">⭐ 首选</span>';
+  else if (rank === 1) badge = '<span class="qm-badge qm-top2">🌟 次选</span>';
+  else if (rank === 2) badge = '<span class="qm-badge qm-top3">✨ 可选</span>';
+  return '<span class="qm-score" title="契合度评分：缺补权重·音韵·出处完整">⭐ ' +
+    score + '/100</span>' + badge;
+}
+
 async function doQiming() {
   busy('qmResult', '起名中…');
   try {
@@ -2390,6 +2589,18 @@ async function doQiming() {
     // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
     html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
       'title="生成分享图">📸 分享图</button>';
+    /* R218a-04：换一批 + 风格切换 4 档（诗经草木 / 楚辞 / 清新灵动 / 综合） */
+    html += '<div class="qm-style-row" role="tablist" aria-label="起名风格">';
+    Object.keys(_QM_STYLES).forEach(function (k) {
+      var s = _QM_STYLES[k];
+      var active = (k === _QM_STYLE) ? ' active' : '';
+      html += '<button class="qm-style-chip' + active + '" type="button" ' +
+        'data-style="' + esc(k) + '" title="' + esc(s.hint) + '">' +
+        esc(s.label) + '</button>';
+    });
+    html += '</div>';
+    html += '<div class="qm-style-hint" id="qmStyleHint">' +
+      esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') + '</div>';
     const bz = j.bazi || {};
     if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
     const fe = j.five_elements || {};
@@ -2398,11 +2609,33 @@ async function doQiming() {
       '</p>';
     if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
     // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
-    if (j.full_names && j.full_names.length) {
-      html += '<h3 style="margin-top:16px;">💐 古籍典故取名</h3><div class="calc-grid">';
-      j.full_names.forEach(function (n, i) {
-        const c = colorAt(i);
+    // R218a-04+05：按当前 _QM_STYLE 过滤 + 客户端打分排序（缺补+音韵+出处+双字）
+    var _allNames = (j.full_names || []).slice();
+    var _styleShift = ({'classics': 0, 'chuci': 2, 'fresh': 4, 'all': 0})[_QM_STYLE] || 0;
+    var _styleNames = _allNames;
+    if (_QM_STYLE !== 'all' && _allNames.length > 6) {
+      /* 错位切片让不同档的「头条」不同——诗经草木取前 8、楚辞取 8-16、清新灵动取 16-24；
+       * 不足时回到 0 循环。零后端改动，纯前端视觉轮换。 */
+      var _len = _allNames.length;
+      _styleNames = [];
+      for (var _k = 0; _k < 8 && _k < _len; _k++) {
+        _styleNames.push(_allNames[(_styleShift + _k) % _len]);
+      }
+    }
+    var _scored = _styleNames.map(function (n) {
+      return { n: n, s: _qmScore(n, fe.missing) };
+    }).sort(function (a, b) { return b.s - a.s; });
+    if (_scored && _scored.length) {
+      html += '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
+        esc((_QM_STYLES[_QM_STYLE] || {}).label || '') + '</h3>' +
+        '<div class="calc-grid">';
+      _scored.forEach(function (entry, i) {
+        var n = entry.n;
+        var score = entry.s;
+        var c = colorAt(i);
+        /* R218a-05：⭐ 契合度 + TOP 1/2/3 徽章 */
         html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
+          _qmBadgeHtml(score, i) +
           '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:24px;">' +
           esc(n.full_name || '') + '</h3>' +
           '<p style="font-size:13px;color:var(--secondary);">五行：' +
@@ -2416,6 +2649,15 @@ async function doQiming() {
         html += '</div>';
       });
       html += '</div>';
+      /* R218a-04：「换一批」总入口——按当前风格顺位 +1 重新选 8 个 */
+      var _next = ({'classics': 'chuci', 'chuci': 'fresh',
+                    'fresh': 'classics', 'all': 'classics'})[_QM_STYLE] || 'classics';
+      html += '<div class="qm-refresh-row">' +
+        '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
+        'title="按 ' + esc(_QM_STYLES[_next].label) + ' 风格再来 8 个">' +
+        '🔄 换一批（' + esc(_QM_STYLES[_next].label) + '）</button>' +
+        '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
+        '</div>';
     }
     /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
     /* R216b 续5（U-019）：DISABLE/降级态（响应无 ai_task_id）按钮置灰+
@@ -2469,6 +2711,25 @@ async function doQiming() {
     revealResult('qmResult');
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
+    /* R218a-04：风格芯片 + 换一批按钮的事件绑定。芯片是动态渲染的，
+     * 用委托绑到 qmResult 上——避免每次切换重绑漏点。 */
+    const _qmRoot = el('qmResult');
+    if (_qmRoot) {
+      _qmRoot.addEventListener('click', function (ev) {
+        const t = ev.target.closest && ev.target.closest('.qm-style-chip');
+        if (t && t.dataset && t.dataset.style) {
+          _qmSwitchStyle(t.dataset.style);
+        }
+      });
+    }
+    on('qmRefreshBtn', function () {
+      /* 「换一批」= 切换到下一档风格——chip 状态由 _QM_STYLE 决定，
+       * 重新调用 doQiming() 会重算 _scored 与 _next。 */
+      const _seq = ['classics', 'chuci', 'fresh'];
+      var _cur = _seq.indexOf(_QM_STYLE);
+      var _nxt = _seq[(_cur + 1) % _seq.length];
+      _qmSwitchStyle(_nxt);
+    });
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
   }
@@ -2624,6 +2885,11 @@ function buildTarotResult(j) {
    * 可见（专业用户仍可复验），不再平铺在正文。 */
   html += '<p class="hit-cite" title="seed ' + esc(j.seed) + '">' + esc(j.n) +
     ' 张牌 · 同一天问同一件事，翻到的就是这几张</p>';
+  /* R218a-07：综合结论首屏 hook——三张牌翻完前用户先看到一句针对问题的
+   * 直接回答，再下钻逐牌解读。j.question 是用户输入关键词。 */
+  if (j.question) {
+    html += tarotQuestionHook(j.question, j.draws || []);
+  }
   html += '<div class="tarot-grid">';
   (j.draws || []).forEach(function (d, i) {
     html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
@@ -2654,6 +2920,122 @@ var TAROT_POS_HINT = {
   "建议": "这张牌是牌阵给你的提醒，最值得记住的一张",
   "结果": "如果一切照旧，事情大概率是这样收场"
 };
+
+/* R218a-07：塔罗首屏问题绑定——5-6 套问题域关键词（感情/工作/学业/财运/健康/通用），
+ * 按「主牌正逆位 + 关键词」给一句针对问题的直接回答。零新事实：同输入同输出。 */
+var _TAROT_QK = [
+  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','他','她','对象','暗恋','表白','相亲','暧昧','桃花'] },
+  { cat: 'work',   kws: ['工作','职场','同事','老板','上司','升职','跳槽','上班','加班','辞职','事业'] },
+  { cat: 'study',  kws: ['学习','考试','作业','考研','高考','中考','成绩','课程','论文','答辩','读书'] },
+  { cat: 'money',  kws: ['钱','工资','消费','理财','账单','余额','省钱','欠款','花呗','财运'] },
+  { cat: 'health', kws: ['身体','健康','生病','睡眠','失眠','焦虑','压力','心情'] }
+];
+function _tarotClassify(question) {
+  var s = String(question || '');
+  for (var i = 0; i < _TAROT_QK.length; i++) {
+    var kws = _TAROT_QK[i].kws;
+    for (var j = 0; j < kws.length; j++) {
+      if (s.indexOf(kws[j]) !== -1) return _TAROT_QK[i].cat;
+    }
+  }
+  return 'general';
+}
+function tarotQuestionHook(question, draws) {
+  var cat = _tarotClassify(question);
+  var main = (draws && draws.length) ? (draws[Math.min(1, draws.length - 1)] || draws[0]) : null;
+  var upright = main && main.upright;
+  var lines = {
+    love: {
+      true: '**整体是顺的**——你心里想的那个方向可以试着往前走一小步，缘分正在慢慢靠近。',
+      false: '**现在有点拧**——先别急着给关系下结论，等心里那股劲过去再决定。'
+    },
+    work: {
+      true: '**事业方向是稳的**——保持当前节奏，机会会在 1-2 个月内浮出来。',
+      false: '**职场的弯弯绕绕**——近期有调整的机会但建议先稳后动，别一次性求变。'
+    },
+    study: {
+      true: '**学运在上升**——最近 2 周是黄金复盘期，把重点章节重过一遍。',
+      false: '**脑子在打烊**——今晚先放一放，把最难的题留到明天状态好时再做。'
+    },
+    money: {
+      true: '**财运有起色**——非必要支出再压一压，会有一笔进账。',
+      false: '**钱的事先别想**——最近账本有变动，夜里做的预算都偏严，明天再算。'
+    },
+    health: {
+      true: '**状态在回温**——继续保持作息和喝水节奏，一周内会明显感觉轻松。',
+      false: '**身体在喊停**——先停下来休息一天，熬夜的代价明早会还给你。'
+    },
+    general: {
+      true: '**牌面整体是顺的**——你心里想的那个方向可以试着往前走一小步。',
+      false: '**牌面有些别扭**——先别急着推进，这几天多观察少动作。'
+    }
+  };
+  var key = upright ? 'true' : 'false';
+  var line = (lines[cat] && lines[cat][key]) || lines.general[key];
+  return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+    esc(String(question).slice(0, 18)) + '」</span><p>' + line + '</p></div>';
+}
+
+/* R218a-08：六爻问题绑定——同 tarot 思路：6 套关键词 + 通用，按本卦方向
+ * （动爻数 > 0 → 变化趋势，== 0 → 静卦稳定）给一句问题域回应。零新事实。 */
+var _LIUYAO_QK = [
+  { cat: 'work',   kws: ['工作','职场','同事','老板','上司','升职','跳槽','上班','加班','辞职','事业'] },
+  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','他','她','对象','暗恋','表白','相亲','暧昧','桃花','婚姻'] },
+  { cat: 'study',  kws: ['学习','考试','作业','考研','高考','中考','成绩','课程','论文','答辩','读书'] },
+  { cat: 'money',  kws: ['钱','工资','消费','理财','账单','余额','省钱','欠款','花呗','财运','投资'] },
+  { cat: 'health', kws: ['身体','健康','生病','睡眠','失眠','焦虑','压力','心情'] }
+];
+function _liuyaoClassify(question) {
+  var s = String(question || '');
+  for (var i = 0; i < _LIUYAO_QK.length; i++) {
+    var kws = _LIUYAO_QK[i].kws;
+    for (var j = 0; j < kws.length; j++) {
+      if (s.indexOf(kws[j]) !== -1) return _LIUYAO_QK[i].cat;
+    }
+  }
+  return 'general';
+}
+function liuyaoQuestionHook(question, ben, bian) {
+  var cat = _liuyaoClassify(question);
+  var moving = (ben && ben.moving_lines && ben.moving_lines.length) || 0;
+  var changed = !!bian && !!bian.gua_name;
+  var lines = {
+    work: {
+      moving: '**对应你问的工作**：近期有调整的机会，但建议先稳后动——动爻不在当位，基础打牢再考虑主动求变。',
+      quiet: '**对应你问的工作**：当下格局稳住（静卦），不急着推进——把手里这一摊做扎实比换赛道更划算。',
+      changed: '**对应你问的工作**：这件事有变数，先别求一步到位，分几步走更稳。'
+    },
+    love: {
+      moving: '**对应你问的感情**：心里有变化在酝酿——不急着表态，给情绪一段落地的空间。',
+      quiet: '**对应你问的感情**：当下关系是稳的，珍惜眼前比追求新关系更值得。',
+      changed: '**对应你问的感情**：这段关系到了一个转折点——变卦指向什么，你心里其实有数。'
+    },
+    study: {
+      moving: '**对应你问的学习**：方法有调整空间——动爻提示换一种思路比死磕更管用。',
+      quiet: '**对应你问的学习**：节奏是稳的，继续按计划走，重点章节再过一遍。',
+      changed: '**对应你问的学习**：会换一种考法/题型/方向——保持弹性，别押宝单一路径。'
+    },
+    money: {
+      moving: '**对应你问的财运**：有一笔进/出在酝酿——动爻提醒你预算要留余量。',
+      quiet: '**对应你问的财运**：收支平衡，按现有计划存就好——别追新机会。',
+      changed: '**对应你问的财运**：账本会有一笔变化，先别做大决定，等落地再算。'
+    },
+    health: {
+      moving: '**对应你问的身体**：作息该调整了——动爻提示睡眠或饮食有一个可以改善的点。',
+      quiet: '**对应你问的身体**：当下状态稳，保持就好——别熬最深的夜、吃最凉的。',
+      changed: '**对应你问的身体**：会有小波动，先把睡眠和心情稳住。'
+    },
+    general: {
+      moving: '**对应你问的事**：变化在酝酿，先别急——给趋势一段落地的空间。',
+      quiet: '**对应你问的事**：当下是稳的，按现有节奏走最划算。',
+      changed: '**对应你问的事**：这件事有变数，分几步走比一步到位更稳。'
+    }
+  };
+  var key = moving ? 'moving' : (changed ? 'changed' : 'quiet');
+  var line = (lines[cat] && lines[cat][key]) || lines.general[key];
+  return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+    esc(String(question).slice(0, 18)) + '」</span><p>' + line + '</p></div>';
+}
 function tarotDeepRead(draws, question) {
   if (!draws || !draws.length) return '';
   var q = (question || '').trim();
@@ -3012,10 +3394,14 @@ function initViews() {
   var sb = el('recentSidebar');
   var tgl = el('recentToggle');
   var cls = el('recentClose');
+  /* R218a-01：遮罩与侧栏同步——点空白处关闭抽屉，pointer-events: auto 时
+   * 拦截主区点击、松开时触发 chatClose（视觉上仍透出主区颜色）。 */
+  var bd = el('recentBackdrop');
   function _setRecent(open) {
     if (!sb) return;
     sb.classList.toggle('open', open);
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (bd) bd.classList.toggle('open', open);
   }
   if (tgl) tgl.addEventListener('click', function () {
     /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
@@ -3024,6 +3410,7 @@ function initViews() {
     _setRecent(!sb.classList.contains('open'));
   });
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
+  if (bd) bd.addEventListener('click', function () { _setRecent(false); });
 }
 
 function initBazi() {
@@ -3293,4 +3680,56 @@ function baziBirthdayLine(paipan) {
     if (m && animals[m[2]]) return '你是属' + animals[m[2]] + '的呀——这张小卡就是你的底色。';
   } catch (e) { /* 兜底走通用句 */ }
   return '这是你的生辰底色——展开可以看细节哦。';
+}
+
+/* R218a-03：人设卡——10 套日主人设模板（甲乙丙丁戊己庚辛壬癸），数据池
+ * 与 src/guji/copy_bank.json#gan_persona 同源（aditive 复制）。后端 paipan.render
+ * 形如「庚午年 辛巳月 庚辰日 壬午时　日主：庚　大运：逆」——正则取「日主：X」
+ * 的 X 拿来做字典 key。前端纯展示，零后端依赖。 */
+var _BAZI_PERSONAS = {
+  '甲': { nick: '大树型人格', emoji: '🌳', desc: '直球有担当，朋友里的定海神针',
+          kw1: '原则感', kw2: '担当', tone: '#3E8E5A' },
+  '乙': { nick: '柔韧藤蔓系', emoji: '🌿', desc: '以柔克刚，哪里都能活得很好',
+          kw1: '柔韧', kw2: '共情', tone: '#5BA379' },
+  '丙': { nick: '小太阳',     emoji: '☀️', desc: '热情外放，自带打光板',
+          kw1: '热烈', kw2: '感染力', tone: '#E89C42' },
+  '丁': { nick: '氛围感小夜灯', emoji: '🕯️', desc: '细腻温暖，总能看见别人的情绪',
+          kw1: '细腻', kw2: '共情', tone: '#D86A4A' },
+  '戊': { nick: '人间靠山',   emoji: '⛰️', desc: '稳重靠谱，说到做到',
+          kw1: '稳', kw2: '靠谱', tone: '#815934' },
+  '己': { nick: '全能后勤王', emoji: '🌾', desc: '包容能干，默默把一切安排好',
+          kw1: '包容', kw2: '细心', tone: '#A8884A' },
+  '庚': { nick: '锋利小刀型', emoji: '⚔️', desc: '果敢利落，讨厌拖泥带水',
+          kw1: '决断', kw2: '干脆', tone: '#7A5C2E' },
+  '辛': { nick: '精致主义家', emoji: '💎', desc: '讲究细节，审美在线',
+          kw1: '精致', kw2: '审美', tone: '#B8A89A' },
+  '壬': { nick: '机智水流派', emoji: '💧', desc: '脑子活，办法总比困难多',
+          kw1: '灵活', kw2: '机智', tone: '#5A8AB8' },
+  '癸': { nick: '温柔治愈师', emoji: '🌸', desc: '心思细软，共情力满格',
+          kw1: '温柔', kw2: '治愈', tone: '#D89AB8' }
+};
+function baziPersonaCard(j) {
+  try {
+    var p = (j && j.paipan) || {};
+    var renderStr = String(p.render || '');
+    /* render 形如「庚午年 … 日主：庚　大运：逆」——抓日主 */
+    var m = renderStr.match(/日主：\s*([甲乙丙丁戊己庚辛壬癸])/);
+    var master = m ? m[1] : '';
+    var persona = _BAZI_PERSONAS[master];
+    if (!persona) {
+      /* 后端没传日主时回退到甲（最通用），不破坏首屏视觉。 */
+      persona = _BAZI_PERSONAS['甲'];
+    }
+    return '<div class="bazi-persona" style="border-left:4px solid ' +
+      persona.tone + ';">' +
+      '<div class="bazi-persona-emoji">' + persona.emoji + '</div>' +
+      '<div class="bazi-persona-body">' +
+      '<div class="bazi-persona-nick">' + esc(persona.nick) + '</div>' +
+      '<div class="bazi-persona-desc">' + esc(persona.desc) + '</div>' +
+      '<div class="bazi-persona-kws">' +
+      '<span class="bazi-persona-kw">' + esc(persona.kw1) + '</span>' +
+      '<span class="bazi-persona-kw">' + esc(persona.kw2) + '</span>' +
+      '</div>' +
+      '</div></div>';
+  } catch (e) { return ''; }
 }
