@@ -1097,7 +1097,7 @@ def run() -> list[str]:
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
                         "tianxi_pillar", "strength", "render", "notes",
                         "dayun_hits", "hit_pillars", "warm", "bazi",
-                        "year_zhi", "ai_polish"},
+                        "year_zhi", "birth_year", "ai_polish"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
                        "day_wx_b", "day_wx_sheng", "peach_a", "peach_b",
                        "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
