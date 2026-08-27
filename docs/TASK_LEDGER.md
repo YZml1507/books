@@ -17134,4 +17134,13 @@ grep `详细依据见专业模式|仅供参考|你说了算|不是结论|仅坐�
 P1-1 星座日期选择器 / P1-2 星座生图 / P1-3 星座详情分维度加强 /
 交叉引用扩展到桃花·塔罗·黄历。
 
-commit: 待提交
+#### 行尾提醒（本轮踩过）
+
+用 Python 读写整文件改代码会把仓库原有的 **LF** 行尾整体转成 CRLF
+（`core.autocrlf=false`，仓库 blob 是 LF）——首次 commit 显示
+7539+/7604−（等于全文件重写），实际逻辑改动只有 342+/407−。
+**修法**：改完后对被 Python 重写过的文件做 `b.replace(b"\r\n", b"\n")`
+再 `git add` + `--amend`。判断法：`git cat-file -p <base>:<file>` 数 CRLF
+与磁盘文件对比。
+
+commit: `92b8cc7`（已 push main）
