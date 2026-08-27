@@ -286,6 +286,43 @@ def run() -> list[str]:
         assert _rc.status_code == 200, ("cross_ref.http", _ep, _rc.status_code)
         _crm = (_rc.json().get("cross_ref") or {}).get("message", "")
         assert _crm, ("cross_ref.missing", _ep)
+    # R224b（审查轨 R221a 抓到）：_cross_ref_taohua 的分支值原写 high/low，
+    # 而 taohua.py 产出的是 **strong/mid/weak** → 分支永不命中，全掉 else，
+    # "信号叠加"文案从 R220b 起从未生效。cross_ref.message 非空所以判据全绿。
+    # 教训：**枚举分支必须钉住每个分支的实际输出**，只断言"非空"抓不到这类错。
+    # 这里找出真能产出 strong 与 weak 的生日，断言对应文案真的出现。
+    # 样本必须**三档全覆盖**，否则某个分支的文案永远没被验证过（strong 那句
+    # 就是这么当了半轮死代码）。这三组是扫出来的：strength 由咸池命中柱数决定
+    # （taohua.py:91-96，>=2 strong / ==1 mid / 0 weak），所以要带上时辰。
+    _seen_strength: dict[str, str] = {}
+    for _y, _m, _d, _h, _g in ((1985, 6, 24, 2, "女"),    # strong（命中 >=2 柱）
+                               (1985, 1, 1, 18, "女"),    # mid（命中 1 柱）
+                               (1985, 1, 1, 2, "女"),     # weak（0 柱）
+                               (1990, 5, 15, 10, "女"),
+                               (2003, 7, 7, 10, "女"),
+                               (2005, 12, 3, 10, "女")):
+        _rt = client.post("/api/taohua", json={
+            "year": _y, "month": _m, "day": _d, "hour": _h, "gender": _g})
+        assert _rt.status_code == 200, ("taohua.http", _y, _rt.status_code)
+        _tj = _rt.json()
+        _st = _tj.get("strength", "")
+        assert _st in ("strong", "mid", "weak"), ("taohua.strength.enum", _st)
+        _msg = (_tj.get("cross_ref") or {}).get("message", "")
+        assert _msg, ("taohua.cross_ref.missing", _y, _m, _d)
+        _seen_strength.setdefault(_st, _msg)
+        # 分档文案必须与 strength 对应，不能所有档位都是同一句
+        if _st == "strong":
+            assert "叠一起" in _msg, ("taohua.cross_ref.strong", _st, _msg)
+        elif _st == "weak":
+            assert "偏淡" in _msg, ("taohua.cross_ref.weak", _st, _msg)
+        else:
+            assert "建议是" in _msg, ("taohua.cross_ref.mid", _st, _msg)
+    assert set(_seen_strength) == {"strong", "mid", "weak"}, \
+        ("taohua.strength.coverage",
+         "样本只覆盖到 " + str(sorted(_seen_strength))
+         + "——三档必须全覆盖，否则未覆盖分支的文案是没验证过的死代码")
+    print(f"  taohua.cross_ref.strength PASS（覆盖 {sorted(_seen_strength)}，"
+          f"分档文案与 strength 对应）")
     # 黄历是 GET
     _rh2 = client.get("/api/huangli?date=2026-08-28")
     assert _rh2.status_code == 200, ("cross_ref.http", "/api/huangli")
@@ -298,16 +335,45 @@ def run() -> list[str]:
     # （每隔一次几乎全重复）→ 选择性报数。真因是候选池只有 15 字、
     # top_n=8 时 8×2>15 数学上装不下三个互斥批次（兜底只取最弱 1 个元素）。
     # 判据必须覆盖**任意两批**，不能只看相邻——这是本条断言存在的理由。
+    # R224b（审查轨 R221a 抓到本条判据的漏洞）：原来这里只测 top_n=8，
+    # 而**真实前端发的是 top_n=20**（app.js:3003）→ 池 30 字时 30//20=1 段，
+    # 第 2/3 批回到同一段，实测交集 13-14/20，判据却全绿。
+    # 现在 ①前端降到 8 与后端能力对齐 ②这里断言"前端实际用的值"，
+    # 并额外钉一条 `_QM_FRONTEND_TOP_N` 与前端源码一致，防止再次漂移。
+    _QM_FRONTEND_TOP_N = 8
+    _appjs = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "static", "app.js")
+    with open(_appjs, encoding="utf-8") as _f:
+        _appsrc = _f.read()
+    assert f"top_n: {_QM_FRONTEND_TOP_N}," in _appsrc, \
+        ("qiming.frontend_top_n.drift", _QM_FRONTEND_TOP_N,
+         "前端 top_n 与本判据不一致——改前端时必须同步这里，"
+         "否则换一批去重判据测的是不存在的场景")
+    # R224b 之二：**首屏那批也必须在轮次体系内**。前端 _qmSeed 初值原为 null，
+    # 而 seed=None 在后端走「按性别打分排序」分支（不参与洗牌轮次）→ 首屏批
+    # 与 seed=1/2 实测重叠 4 个和 2 个（而 seed1∩seed2=0）。也就是用户点第一次
+    # 「换一批」仍会撞首屏。判据原先只测 seed=1/2/3，正好跳过首屏这个真实场景。
+    assert "var _qmSeed = 1;" in _appsrc, \
+        ("qiming.first_batch.not_seeded",
+         "前端 _qmSeed 初值必须是 1（让首屏成为轮次第 1 批）；"
+         "若为 null，首屏走非洗牌分支，与后续批次必然重叠")
+    # 直接验证 seed=None 与 seed=1 是不同实现路径这件事仍然成立（防后端漂移）
+    _r_none = client.post("/api/qiming", json={
+        "surname": "李", "year": 2000, "month": 5, "day": 15, "hour": 10,
+        "gender": "女", "top_n": _QM_FRONTEND_TOP_N})
+    assert _r_none.status_code == 200, ("qiming.noseed.http",
+                                       _r_none.status_code)
     _qm_batches: dict[int, set] = {}
     for _seed in (1, 2, 3):
         _rq = client.post("/api/qiming", json={
             "surname": "李", "year": 2000, "month": 5, "day": 15,
-            "hour": 10, "gender": "女", "top_n": 8, "seed": _seed})
+            "hour": 10, "gender": "女",
+            "top_n": _QM_FRONTEND_TOP_N, "seed": _seed})
         assert _rq.status_code == 200, ("qiming.seed.http", _seed,
                                        _rq.status_code)
         _qm_batches[_seed] = {n["full_name"]
                               for n in _rq.json().get("full_names", [])}
-        assert len(_qm_batches[_seed]) == 8, \
+        assert len(_qm_batches[_seed]) == _QM_FRONTEND_TOP_N, \
             ("qiming.seed.count", _seed, len(_qm_batches[_seed]))
     for _a in (1, 2, 3):
         for _b in (1, 2, 3):

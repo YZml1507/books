@@ -2878,8 +2878,14 @@ var _QM_STYLES = {
 /* D-004：换一批不重复——候选池 + 已显示集合，循环一轮后才重复 */
 /* D-004：批次偏移——每次换一批 +8，循环一轮后才重复 */
 var _qmBatchOffset = 0;
-/* D-004-fix：换一批种子——每次换一批 +1，传入后端得到不同名字 */
-var _qmSeed = null;
+/* D-004-fix：换一批种子——每次换一批 +1，传入后端得到不同名字。
+ * R224b（审查轨 R221a 连带发现）：初值原为 null，而 seed=null 在后端走的是
+ * 「按性别打分排序取前 8」分支，**不在洗牌轮次体系内** → 首屏那批与
+ * seed=1/2 各有 2-4 个重叠（实测 None∩1=4、None∩2=2，而 1∩2=0）。
+ * 也就是说"连点两次换一批"里，第一次点出来的仍会撞首屏。
+ * 改初值为 1：首屏就是轮次体系的第 1 批，后续 2、3… 段段互斥。
+ * selftest 的 qiming.rebatch.distinct 也因此才真覆盖首屏场景。 */
+var _qmSeed = 1;
 /* D-004：用给定的名字数组重绘起名列表（不重新请求后端） */
 function _qmApplyNames(names) {
   var _scored = names.map(function (n) {
@@ -2946,8 +2952,9 @@ function _qmApplyNames(names) {
   }
   /* 重新绑定换一批按钮 */
   on('qmRefreshBtn', function () {
-    /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
-    _qmSeed = (_qmSeed === null ? 1 : _qmSeed + 1);
+    /* D-004-fix：换一批 = 新种子 + 重新请求后端。
+     * R224b：_qmSeed 初值已改为 1（首屏即第 1 批），这里直接 +1 即可。 */
+    _qmSeed = (_qmSeed || 0) + 1;
     doQiming();
   });
 }
@@ -3000,7 +3007,14 @@ async function doQiming() {
       day: num('qm_day'),
       hour: num('qm_hour'),
       gender: val('qm_gender') || '女',
-      top_n: 20,
+      /* R224b（审查轨 R221a 抓到）：原来这里发 top_n: 20，而「换一批」的
+       * 互斥分段能力取决于 池长//top_n —— 池 30 字时 30//20 = 1 段，
+       * 第 2/3 批必然回到同一段，实测前三批交集 13-14/20（等于原地打转）。
+       * R220b-fix2 的「零重复」只在 top_n=8 成立，我当时没测真实前端值。
+       * 降到 8：① 30//8 = 3 段，连点三次真零重复；② 一屏 8 个名字对目标
+       * 用户刚好，20 个要滑很久且必然塞进生僻字（埙/鹜/苞 正是这么来的）。
+       * 扩池到 40+/元素后可再上调，见台账未修清单。 */
+      top_n: 8,
       seed: _qmSeed || null
     });
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
@@ -3033,7 +3047,12 @@ async function doQiming() {
     var _allNames = (j.full_names || []).slice();
     var _styleShift = ({'classics': 0, 'chuci': 2, 'fresh': 4, 'all': 0})[_QM_STYLE] || 0;
     var _styleNames = _allNames;
-    if (_QM_STYLE !== 'all' && _allNames.length > 6) {
+    /* R224b：下面这段风格错位切片是按 top_n=20 设计的（注释里的"取 8-16 /
+     * 16-24"），本轮 top_n 降到 8 后偏移会绕回同一批，风格档之间不再有区分度。
+     * 用 length > 12 作闸：池够大才做错位，池小（=8）时三档共用同一批名字，
+     * 由 _qmScore 排序体现差异，避免"换风格看到同样的名字还乱序"。
+     * 扩池到 40+/元素并把 top_n 调回 20 后，这里自动恢复错位行为。 */
+    if (_QM_STYLE !== 'all' && _allNames.length > 12) {
       /* 错位切片让不同档的「头条」不同——诗经草木取前 8、楚辞取 8-16、清新灵动取 16-24；
        * 不足时回到 0 循环。零后端改动，纯前端视觉轮换。 */
       var _len = _allNames.length;
@@ -3153,7 +3172,8 @@ async function doQiming() {
     }
     on('qmRefreshBtn', function () {
       /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
-      _qmSeed = (_qmSeed === null ? 1 : _qmSeed + 1);
+      /* R224b：同上——初值已是 1，直接 +1 */
+      _qmSeed = (_qmSeed || 0) + 1;
       doQiming();
     });
   } catch (e) {

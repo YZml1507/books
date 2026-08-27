@@ -1128,11 +1128,15 @@ def _cross_ref_taohua(month: int, day: int, strength: str = "") -> dict:
         if not prof:
             return {}
         sign, love = prof["sign"], prof.get("love", "")
-        if strength == "high":
+        # R224b 修（审查轨 R221a 抓到）：这里原写 `high`/`low`，但 taohua.py:92-96
+        # 产出的实际值是 **strong / mid / weak** → 两个分支永远不命中，
+        # 所有强度都掉进 else，"信号叠加"逻辑从 R220b 起从未生效过。
+        # 教训：分支值必须回源码核对枚举，不能凭语感写。
+        if strength == "strong":
             head = f"{sign}座今天也在桃花档上，两边信号叠一起了"
-        elif strength == "low":
+        elif strength == "weak":
             head = f"八字这边桃花偏淡，但{sign}座的优势还在"
-        else:
+        else:                                  # mid（或未知值）走中性分支
             head = f"{sign}座这边给的建议是"
         return {
             "zodiac_sign": sign,
