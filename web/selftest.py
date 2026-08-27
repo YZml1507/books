@@ -382,6 +382,39 @@ def run() -> list[str]:
                 assert not _inter, \
                     ("qiming.rebatch.overlap", _a, _b, sorted(_inter))
     print("  qiming.rebatch.distinct PASS（连点 3 次换一批，任意两批零重复）")
+    # R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`）：
+    # 女性加分从未触发过 → 给女生起名时排序无性别倾向，候选里冒出
+    # 「鹜(野鸭)/茕(孤独)/苞/埙」。修法是典故库自带 _FEM_LEAN/_AVOID_FEM。
+    # 判据钉三件事：① 排除字**一个都不许**出现在女性结果里；
+    # ② 女性向占比必须达标（否则等于倾向表没接上）；③ 男女结果必须有差异
+    # （防"两性同一套排序"这种静默失效重新出现）。
+    from guji.classical_names import _AVOID_FEM as _AV, _FEM_LEAN as _FL
+    _fem_names, _masc_names = [], []
+    for _seed in (1, 2, 3):
+        _rf = client.post("/api/qiming", json={
+            "surname": "李", "year": 2000, "month": 5, "day": 15, "hour": 10,
+            "gender": "女", "top_n": _QM_FRONTEND_TOP_N, "seed": _seed})
+        assert _rf.status_code == 200, ("qiming.fem.http", _rf.status_code)
+        _got = [n["full_name"] for n in _rf.json().get("full_names", [])]
+        _fem_names += _got
+        _chars = set("".join(n[1:] for n in _got))     # 去掉姓
+        _bad = sorted(_chars & _AV)
+        assert not _bad, ("qiming.female_pool.avoid_char", _seed, _bad,
+                          "语义不佳/生僻字不得进女性结果")
+        _lean = len(_chars & _FL)
+        assert _lean >= max(len(_chars) - 1, 1), \
+            ("qiming.female_pool.lean_ratio", _seed, _lean, len(_chars),
+             "女性向占比过低——性别倾向表可能没接上")
+    _rm = client.post("/api/qiming", json={
+        "surname": "李", "year": 2000, "month": 5, "day": 15, "hour": 10,
+        "gender": "男", "top_n": _QM_FRONTEND_TOP_N, "seed": 1})
+    assert _rm.status_code == 200, ("qiming.masc.http", _rm.status_code)
+    _masc_names = [n["full_name"] for n in _rm.json().get("full_names", [])]
+    assert set(_masc_names) != set(_fem_names[:_QM_FRONTEND_TOP_N]), \
+        ("qiming.gender.no_diff",
+         "男女同 seed 结果完全相同——性别偏好静默失效（R222a 抓到过一次）")
+    print(f"  qiming.female_pool PASS（3 批共 {len(_fem_names)} 名零排除字，"
+          f"男女结果有差异）")
     # R220b（P0 回归）：交叉引用的太阳星座必须按【出生月日】判定。
     # 旧实现拿日支查"今日值宫"当本命星座 → 2005-06-06 生（真实双子）被说成
     # 金牛，且连续四天出生得到四个不同座。这里把"生日→座"逐条钉死，

@@ -51,6 +51,52 @@ def _pick_n(seq, n, *salt):
     return result
 
 
+# ---------------------------------------------------------------------------
+# R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`）：典故库自带的性别
+# 倾向表。`qiming.py` 的 FEMININE_CHARS/MASCULINE_CHARS 服务于它自己那套候选池，
+# 与本模块 R217a 另建的 75 字典故库是两套独立词汇，交集为 0 → 女性加分从未
+# 触发。这里按目标用户（15-25 岁年轻女性）标尺对典故库 75 字逐字归类。
+#
+# 判定标尺：好念、好写、寓意正向、有质感但不做作。
+# ---------------------------------------------------------------------------
+# 女性向：清亮、柔和、有画面感，小红书语感里站得住
+_FEM_LEAN: frozenset[str] = frozenset({
+    # 水
+    "萍", "露", "澜", "柔", "涟", "伊", "缨", "润",
+    "湄", "清", "泓", "淑", "汐",              # R225b 新增
+    "洄", "泛", "渌",                          # R225b 二批
+    # 木
+    "华", "采", "棠", "蓁", "苏", "葭", "猗", "衿", "竹", "乔",
+    "苓", "苹", "菁", "舜", "楚",              # R225b 新增（"谷"归中性）
+    "萧", "蔓", "莞", "茁", "沃", "荷",        # R225b 二批
+    # 火
+    "彤", "皎", "丹", "仪", "照", "流",
+    "昭", "晞", "灿", "阳", "熠",              # R225b 新增
+    "灼", "月", "煌",                          # R225b 二批
+    # 土
+    "悠", "谦", "靖",
+    "瑾", "璧", "琇", "璆", "臧",              # R225b 新增
+    "宁", "景", "秩", "岫", "章",              # R225b 二批（"阜"归中性）
+    # 金
+    "琼", "球", "光", "恒",
+    "锡", "瑟", "珪", "瑰", "瑶",              # R225b 新增
+    "扬", "铃",                                # R225b 二批（"圯"归中性）
+})
+# 男性向：厚重、刚健、器物与秩序意象
+_MASC_LEAN: frozenset[str] = frozenset({
+    "梧", "振", "厚", "敦", "德", "陵", "度", "圭", "衡", "充",
+    "赫", "曜", "临", "鸣", "离", "明", "利", "诚", "鹤", "顺",
+    "觉", "井", "善", "琢", "溯", "潜", "粮",
+})
+# 女性池排除：语义不佳或过于生僻，对年轻女性用户是负分
+#   鹜=野鸭 / 茕=孤独 / 玷=玉的瑕疵 / 暴、牢、烂、炉=意象不佳
+#   埙=古乐器（生僻）/ 苞=未开花苞（易误读）/ 染=有污染联想
+_AVOID_FEM: frozenset[str] = frozenset({
+    "鹜", "茕", "玷", "暴", "牢", "烂", "炉", "埙", "苞", "染",
+    "萋",   # 「萋萋」在诗里多连着荒芜寂寥用，不适合做名字
+})
+
+
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
                               top_n: int = 8, seed: int | None = None) -> dict:
@@ -87,10 +133,26 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
     full_names = []
 
     def _score_entry(entry: dict) -> int:
+        """性别契合打分。
+
+        R225b 修（审查轨 R222a 抓到）：原实现只查 `qiming.FEMININE_CHARS` /
+        `MASCULINE_CHARS`，但那两个字表服务于 qiming.py 自己那套候选池
+        （萱/芷/薇/铃/钗…），与本模块 R217a 另建的 75 字典故库**从未对齐**。
+        实测 `典故库 ∩ FEMININE_CHARS = 0` —— 女性加分**从来没触发过一次**，
+        给女生起名时排序完全无性别倾向；而 `∩ MASCULINE_CHARS = 4`
+        （松/沛/渊/澜）反而让男名有加分。目标用户恰恰是年轻女性。
+        这也是候选池里「鹜/茕/苞/埙」一直冒头的原因：没有任何机制把
+        女性向的字排上来。
+        修法：给典故库自带一层性别倾向表（下面 _FEM_LEAN / _MASC_LEAN /
+        _AVOID_FEM），与原字表并用（原字表保留，命中仍算分）。
+        """
         char = entry.get("字", "")
-        if gender == "女" and char in FEMININE_CHARS:
+        # 明确不适合给女生的字：语义不佳或生僻（鹜=野鸭、茕=孤独、玷=玉瑕）
+        if gender == "女" and char in _AVOID_FEM:
+            return -2
+        if gender == "女" and (char in _FEM_LEAN or char in FEMININE_CHARS):
             return 3
-        if gender == "男" and char in MASCULINE_CHARS:
+        if gender == "男" and (char in _MASC_LEAN or char in MASCULINE_CHARS):
             return 3
         return 1
 
@@ -122,6 +184,11 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                 continue
             if len(set(char)) != len(char):       # 名字内不得重复用字
                 continue
+            # R225b：语义不佳/生僻字**直接不进女性池**。原先只靠 _score_entry
+            # 排序压后，但 seed 分支走的是洗牌+分段、完全不看分数 → 这些字
+            # 照样上屏（「李鹜」「李茕」就是这么来的）。这里做硬过滤。
+            if gender == "女" and char in _AVOID_FEM:
+                continue
             pool.append((elem, entry))
 
     # 同字去重（不同缺行可能命中同一个字，合并后会重复上屏）
@@ -135,15 +202,28 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         _uniq.append((elem, entry))
     pool = _uniq
 
+    # R225b：seed 分支原来纯洗牌、**完全不看性别分**，所以女性结果里混进
+    # 「陵/粮/顺/敦/厚/振」这类明显男性向的字。改为**先按性别把池分成
+    # 契合层 + 中性层，契合层优先**，层内再洗牌分段——既保留"换一批不重复"
+    # 的轮次语义，又让性别倾向真正生效。
+    if pool:
+        _fit = [p for p in pool if _score_entry(p[1]) >= 3]
+        _neutral = [p for p in pool if _score_entry(p[1]) < 3]
+    else:
+        _fit, _neutral = [], []
+
     _step = max(int(top_n), 1)
     if seed is not None and pool:
         import random as _random
-        _segs = max(len(pool) // _step, 1)
+        # 契合层够一批就只在契合层内轮转；不够则契合层打头、中性层补齐
+        _base = _fit if len(_fit) >= _step else (_fit + _neutral)
+        _segs = max(len(_base) // _step, 1)
         _round = (max(int(seed), 1) - 1) // _segs
         _seg = (max(int(seed), 1) - 1) % _segs
-        _random.Random(_round).shuffle(pool)          # 每轮一个新顺序
+        _shuffled = _base[:]
+        _random.Random(_round).shuffle(_shuffled)     # 每轮一个新顺序
         _start = _seg * _step
-        selected_pairs = pool[_start:_start + _step] or pool[:_step]
+        selected_pairs = _shuffled[_start:_start + _step] or _shuffled[:_step]
     else:
         selected_pairs = sorted(
             pool, key=lambda p: _score_entry(p[1]), reverse=True)[:_step]
