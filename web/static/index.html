@@ -149,6 +149,21 @@ if ('serviceWorker' in navigator) {
          侧栏只剩聊天段；前端 loadHistory/showHistoryDetail/deleteHistory/
          refreshHistoryCount 及 /api/history* 端点同批删除。 -->
     <div class="side-chat">
+      <!-- R223b（E-304 P1）：删掉历史记录后侧栏只剩聊天段，chatFlow 为空时
+           整栏 78% 是空白（审查轨实测 flow_h=634 / children=0，vision 打 3/10
+           「像坏了，不像简约」）。补空态：小满打个招呼 + 三个可点话题，
+           让用户知道这里能干什么。有消息进来后由 chatBubble 隐藏它。 -->
+      <div class="chat-empty" id="chatEmpty">
+        <img class="chat-empty-avatar" src="/static/_candidates/r212b/avatar-xiaoman.png"
+          alt="" width="56" height="56">
+        <p class="chat-empty-hi">我是小满 ✨</p>
+        <p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>
+        <div class="chat-empty-chips">
+          <button type="button" class="chat-chip" data-ask="今天运势怎么样？">今天运势怎么样</button>
+          <button type="button" class="chat-chip" data-ask="我最近的感情会有进展吗？">最近感情有进展吗</button>
+          <button type="button" class="chat-chip" data-ask="帮我看看我的八字">帮我看看我的八字</button>
+        </div>
+      </div>
       <div class="chat-flow side-chat-flow" id="chatFlow"></div>
       <div class="chat-input-row">
               <input id="chatInput" type="text" maxlength="500"

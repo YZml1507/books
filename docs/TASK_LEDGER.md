@@ -17462,3 +17462,30 @@ qiming/hehun/tarot/liuyao POST + huangli GET）逐个断言 `cross_ref.message`
 ### R219a 剩余项
 E-303（cross_ref 覆盖）已在 R221b 收口 7/7；E-304（删历史后侧栏 78%空洞、
 vision 3/10）留下轮。
+
+---
+
+**【§177 · 2026-08-28 · R223b：E-304 侧栏空态（审查轨 R219a 最后一条）】**
+
+R219b 删掉「我的解读」后侧栏只剩聊天段，chatFlow 为空时整栏 78% 空白
+（审查轨实测 flow_h=634 / children=0，vision 3/10「像坏了，不像简约」）。
+
+修法：补空态引导——小满头像 + 招呼 + 三个可点话题 chip
+（今天运势怎么样 / 最近感情有进展吗 / 帮我看看我的八字），点 chip 即填入
+并发送。事件委托绑容器（chatEmpty 会被 chatBubble 整块 remove）。
+
+**接现成机制**：`chatBubble()` 里本来就有 `emp.remove()`——chatEmpty 空态
+早先设计过，只是 HTML 元素某轮被删、JS 钩子一直留着。补回 DOM 正好接上。
+
+实测（tour_r223b.py，390px）：空态 274×402px 占住空洞、3 chip 文案正确、
+点击后 me 气泡「今天运势怎么样？」+ 空态消失、0 pageerror。
+
+已知细节（记录不修）：从结果卡 💬 进侧栏时 autoSendChatContext 立刻发第一条，
+空态瞬间被覆盖；只有主动开侧栏（无上下文）才见得到。符合预期。
+
+### 闸门
+9 条全 EXIT=0（warm_voice 含 R222b 判据 6b 正则 + 判据 16 扫前端源码）。
+
+### 审查轨 R219a 五条全部关单
+E-301 ✅R222b / E-302 ✅R222b / E-303 ✅R221b（7/7）/ E-304 ✅本轮 /
+T3 换一批 ✅R220b-fix2

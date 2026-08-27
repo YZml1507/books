@@ -3879,6 +3879,16 @@ function initBazi() {
   });
   on('chatClose', chatClose);
   on('chatSendBtn', chatSend);
+  /* R223b（E-304 P1）：空态话题 chip——点一下把问题填进输入框并直接发送。
+   * 用事件委托绑在容器上（chatEmpty 会被 chatBubble 整块 remove）。 */
+  var _emptyBox = document.getElementById('chatEmpty');
+  if (_emptyBox) _emptyBox.addEventListener('click', function (ev) {
+    var chip = ev.target.closest && ev.target.closest('.chat-chip');
+    if (!chip || !chip.dataset || !chip.dataset.ask) return;
+    var input2 = el('chatInput');
+    if (input2) input2.value = chip.dataset.ask;
+    chatSend();
+  });
   var ci = el('chatInput');
   if (ci) ci.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') chatSend();

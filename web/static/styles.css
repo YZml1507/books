@@ -1140,6 +1140,24 @@ details.warm-pro-fold > summary{
 .dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
 .dx-note{ font-size:13px; color:var(--secondary); }
 
+/* R223b（E-304 P1）：侧栏聊天空态。删掉历史记录后 chatFlow 为空时整栏
+   78% 是空白（审查轨 vision 打 3/10「像坏了，不像简约」）。
+   小满头像 + 招呼 + 三个可点话题，垂直居中占住这块空间。 */
+.chat-empty{ display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; padding:36px 20px; text-align:center; }
+.chat-empty-avatar{ border-radius:50%; margin-bottom:4px; }
+.chat-empty-hi{ margin:0; font-size:16px; font-weight:600;
+  color:var(--primary-ink); }
+.chat-empty-sub{ margin:0 0 14px; font-size:13px; color:var(--secondary);
+  line-height:1.6; }
+.chat-empty-chips{ display:flex; flex-direction:column; gap:8px;
+  width:100%; max-width:240px; }
+.chat-chip{ padding:9px 14px; font-size:13px; text-align:center;
+  border:1px solid var(--border); border-radius:999px;
+  background:var(--card); color:var(--primary-ink); cursor:pointer;
+  transition:background .15s; }
+.chat-chip:hover{ background:var(--bg); }
+
 /* R220b（P1-1）：星座日期条——箭头 + 年月日三 select + 今天/明天快捷。
    替代原生 type="date"（移动端要唤起系统日历，翻一天也得开弹层）。
    触控目标 ≥44px 高，390px 宽下三个 select 平分剩余宽度不溢出。 */
