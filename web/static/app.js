@@ -3070,16 +3070,19 @@ async function doQiming() {
       (_aiOff ? ' disabled title="点评的小书童今天休息，明天再来吧"' : '') + '>' +
       '✨ 让 AI 用古籍典故点评这些名字</button>' +
       '<div id="nameReviewOut" hidden></div>';
-        // 实测 candidates[] 是 {char,element,radical,meaning}。
+    /* candidates[] = {char, element, radical, meaning}。
+     * R221b-fix：这段折叠区从 R217a 起一直是「0 字」空壳（后端写死 []），
+     * 审查轨 vision 目视发现。后端已填真数据，radical 位放的是**典故出处**
+     * （比部首对用户有用），所以标签同步改成「五行与出处」。 */
     html += '<details class="warm-basis" style="margin-top:14px;"><summary>单字候选池（' +
-      ((j.candidates || []).length) + ' 字，展开看五行与部首）</summary><div class="calc-grid">';
+      ((j.candidates || []).length) + ' 字，展开看五行与出处）</summary><div class="calc-grid">';
     (j.candidates || []).forEach(function (n, i) {
       const c = colorAt(i);
       html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
         '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:22px;">' +
         esc(n.char || '') + '</h3>' +
         '<p style="font-size:13px;color:var(--secondary);">五行：' +
-        esc(n.element || '') + '　部首：' + esc(n.radical || '') + '</p>' +
+        esc(n.element || '') + '　出处：' + esc(n.radical || '') + '</p>' +
         '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
     });
     html += '</div></details>';

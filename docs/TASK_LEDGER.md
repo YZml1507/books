@@ -17415,3 +17415,16 @@ qiming/hehun/tarot/liuyao POST + huangli GET）逐个断言 `cross_ref.message`
   的「建议移出女性池」清单作为输入。
 - P1-2 星座 12 宫生图（当前 emoji ♈♉♊）
 - P1-3 星座详情深度（爱情/事业/财运各仅一句写死文案，无周运/月运）
+
+### §175 补记（R221b-fix）：起名「单字候选池（0 字）」空壳修复
+
+审查轨 R221a vision 目视发现折叠区标题「单字候选池（0 字）」。查证 `candidates`
+自 R217a 建模块起写死 `[]`，前端一直渲染该折叠区 → 永远空的空壳。
+**闸门抓不到**：selftest 只断言 full_names，没人查 candidates。这类「字段存在
+但恒为空」的空壳只有目视能发现，是 vision 巡检的直接价值证明。
+
+修法：后端填统一 pool（实测 30 字），键名对齐前端 {char,element,radical,meaning}
+（radical 位放典故出处）；前端标签「部首」→「出处」；selftest 新增
+`qiming.candidates.filled`（≥8 字 + 键名集合完全匹配 + char/element 非空）。
+
+闸门 9 条全 EXIT=0。

@@ -245,6 +245,23 @@ def run() -> list[str]:
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
           lambda j: j.get("full_names") and len(j.get("full_names", [])) >= 3)
+    # R221b-fix（审查轨 R221a vision 目视发现）：/api/qiming 的 candidates
+    # 自 R217a 起写死 []，前端却渲染「单字候选池（0 字）」折叠区 = 永远空的
+    # 空壳。闸门只断言 full_names 所以抓不到——**这类"字段存在但恒为空"的
+    # 空壳只有目视能发现**，故补一条断言钉死它非空且键名齐全。
+    _rc2 = client.post("/api/qiming", json={
+        "surname": "李", "year": 2000, "month": 5, "day": 15,
+        "hour": 10, "gender": "女", "top_n": 8, "seed": 1})
+    assert _rc2.status_code == 200, ("qiming.candidates.http",
+                                    _rc2.status_code)
+    _cands = _rc2.json().get("candidates") or []
+    assert len(_cands) >= 8, ("qiming.candidates.empty", len(_cands))
+    for _c in _cands:
+        # 键名必须与前端 app.js 读的一致，否则渲染出空白格子
+        assert set(_c) == {"char", "element", "radical", "meaning"}, \
+            ("qiming.candidates.keys", sorted(_c))
+        assert _c["char"] and _c["element"], ("qiming.candidates.blank", _c)
+    print(f"  qiming.candidates.filled PASS（候选池 {len(_cands)} 字，键名齐全）")
     # R221b：交叉引用收口 7/7。用户原话「各是各的，各干各的，没有交叉集」，
     # 每个结果页底部都要有「相关维度」。这里钉死**七个端点全覆盖**——
     # 少一个就 FAIL，防止后续改动悄悄漏掉某个端点。

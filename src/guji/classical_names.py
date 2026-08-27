@@ -207,11 +207,29 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             seen.add(n["full_name"])
             unique.append(n)
 
+    # R221b-fix（审查轨 R221a 目视发现）：`candidates` 自 R217a 建模块起就
+    # 写死空列表，前端却一直渲染「单字候选池（0 字）」折叠区 → 一个永远空的
+    # 空壳，闸门（只断言 full_names）抓不到，靠 vision 目视才发现。
+    # 现在填真数据：候选池就是上面那个统一 pool（已按性别打分排序），
+    # 每项给字 + 五行 + 出处，供用户展开挑字。
+    # 键名必须是 {char, element, radical, meaning}——前端 app.js:3076-3083
+    # 读的就是这四个（radical 位显示"部首"，meaning 位显示释义）。
+    # 这里 radical 用出处（典故来源比部首对用户更有用），meaning 用意象。
+    _cand = [
+        {
+            "char": _e.get("字", ""),
+            "element": _el,
+            "radical": _e.get("出处", ""),
+            "meaning": _e.get("意象", ""),
+        }
+        for _el, _e in sorted(pool, key=lambda p: _score_entry(p[1]),
+                              reverse=True)
+    ]
     return {
         "surname": surname,
         "five_elements": {"counts": counts, "missing": missing},
         "full_names": unique[:top_n],
-        "candidates": [],
+        "candidates": _cand,
         "bazi": {"render": b.render()},
         "summary": f"姓氏：{surname}；八字：{b.year} {b.month} {b.day} {b.hour}（日主{b.day_master}）；五行分布：{'、'.join(f'{e}{v:g}' for e, v in counts.items())}；{'缺' + ''.join(missing) if missing else '五行俱全'}",
     }
