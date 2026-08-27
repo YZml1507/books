@@ -475,12 +475,15 @@ if ('serviceWorker' in navigator) {
     <div class="card">
       <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>
       <div class="row">
+        <!-- R222b（E-301 P0）：原来这三个 value 写死 2026/8/19，用户点进黄历
+             看到的是过期日期的「今天适合」（审查轨发现时已差 8 天），聊天首句
+             也带错日期。改为不写 value，进视图时由 hlInitToday() 填今天。 -->
         <div class="field"><label for="hl_year">年</label>
-          <input id="hl_year" type="number" min="1900" max="2100" value="2026"></div>
+          <input id="hl_year" type="number" min="1900" max="2100"></div>
         <div class="field"><label for="hl_month">月</label>
-          <input id="hl_month" type="number" min="1" max="12" value="8"></div>
+          <input id="hl_month" type="number" min="1" max="12"></div>
         <div class="field"><label for="hl_day">日</label>
-          <input id="hl_day" type="number" min="1" max="31" value="19"></div>
+          <input id="hl_day" type="number" min="1" max="31"></div>
       </div>
       <button id="hlSubmit" type="button">查 询</button>
       <div id="hlResult" style="margin-top:16px;"></div>

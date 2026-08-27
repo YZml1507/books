@@ -57,6 +57,29 @@ BANNED_CONDESCENDING = (
 BANNED = (BANNED_FATE + BANNED_IMPERATIVE + BANNED_PROFESSIONAL
           + BANNED_CONDESCENDING)
 
+# ---------------------------------------------------------------------------
+# R222b（E-302 P0，审查轨 R219a 发现）：**免责套话必须用正则，字面量会被变体绕过**。
+#
+# 实录：用户明令禁用「你说了算」，前端 app.js 却渲染着「牌只是镜子，怎么走还是
+# 你**自己**说了算。」——中间多一个「自己」，字面量 grep 与本文件的 BANNED
+# 元组全部漏抓，连续多轮闸门全绿，最后靠审查轨扫渲染后的 innerText 才发现。
+#
+# 规则：免责/推responsibility 类套话按**句式骨架**写正则，允许中间插入任意
+# 0-4 个字符（`.{0,4}`），覆盖「你说了算 / 你自己说了算 / 你自己心里说了算」这类变体。
+# 新增此类禁语时**默认写正则**，不要再往字面量元组里加。
+# ---------------------------------------------------------------------------
+BANNED_DISCLAIMER_RE = (
+    r"你.{0,4}说了算",          # 你说了算 / 你自己说了算 / 你心里说了算
+    r"仅供参考",
+    r"不是结论",
+    r"仅坐标事实",
+    r"详细依据见专业模式",
+    r"牌面?.{0,6}象征.{0,6}不是结论",
+    r"感情这.{0,3}你的?感受最重要",
+    r"说的是节奏.{0,4}不是判决",
+    r"牌只是镜子",              # 同类"把判断权推回去"的免责句
+)
+
 # 术语表（判据 3）：首屏出现次数 ≤3。这些是**专业模式**的词汇，warm 层
 # 应当已把它们白话化；括号里保留原词不计入（那是刻意保留的可检索性）。
 TERMS = (
@@ -202,6 +225,12 @@ def run(inject: str | None = None) -> tuple[int, list[str]]:
         for w in BANNED:
             if w in prose:
                 problems.append(f"[判据 6] {name}: 命中禁用词 {w!r}")
+        # 判据 6b（R222b）：免责套话按正则查，抓字面量漏掉的变体
+        for _pat in BANNED_DISCLAIMER_RE:
+            _m = re.search(_pat, prose)
+            if _m:
+                problems.append(f"[判据 6b] {name}: 命中免责套话正则 "
+                                f"{_pat!r} → {_m.group(0)!r}")
         # 判据 7：免责含「仅供娱乐」且不压轴
         badge = warm.get("badge") or ""
         if "仅供娱乐" not in badge:
@@ -243,6 +272,33 @@ def run(inject: str | None = None) -> tuple[int, list[str]]:
                    for s in (ly.get("interpretation") or {}).get("sections") or [])
     if "不代为断事" not in pro:
         problems.append("[判据 9] 六爻**专业**分支原文被改动（应保持拒答原文）")
+
+    # ------------------------------------------------------------------
+    # 判据 16（R222b，E-302 的根因防线）：**前端源码里的免责套话也要抓**。
+    #
+    # E-302 那句「牌只是镜子，怎么走还是你自己说了算」写死在 app.js 的模板
+    # 字符串里，从不进入任何 API 响应 —— 本文件原先只扫 warm JSON，
+    # 所以连续多轮全绿却漏掉了它，最后靠审查轨扫渲染后 innerText 才发现。
+    # 这里直接对前端源文件跑同一套正则，把这条路堵上。
+    # ------------------------------------------------------------------
+    _here = os.path.dirname(os.path.abspath(__file__))
+    for _fn in ("static/app.js", "static/index.html"):
+        _fp = os.path.join(_here, _fn)
+        if not os.path.exists(_fp):
+            continue
+        with open(_fp, encoding="utf-8") as _f:
+            _src = _f.read()
+        # 去掉注释行再扫：本轮修复留下的「原有 X」说明性注释不算命中
+        _lines = [
+            _ln for _ln in _src.splitlines()
+            if not _ln.lstrip().startswith(("*", "//", "/*", "<!--"))
+        ]
+        _body = "\n".join(_lines)
+        for _pat in BANNED_DISCLAIMER_RE:
+            _m = re.search(_pat, _body)
+            if _m:
+                problems.append(f"[判据 16] {_fn}: 前端活文案命中免责套话 "
+                                f"{_pat!r} → {_m.group(0)!r}")
 
     return (1 if problems else 0), problems
 

@@ -666,6 +666,8 @@ function showView(viewId) {
   window.scrollTo({ top: _sy, behavior: 'auto' });
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
+  /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
+  if (viewId === 'huangli') hlInitToday();
   /* C-002-fix：星座视图进入时自动加载今日运势 */
   if (viewId === 'xingzuo') doXingzuo();
 }
@@ -2734,6 +2736,21 @@ function syncLiuyaoToday() {
   setv('ly_day', t.getDate());
 }
 
+/* R222b（E-301 P0）：黄历默认日期。原 HTML 写死 value="2026/8/19"，
+ * 审查轨发现用户点进黄历看到的是 8 天前的「今天适合」，聊天首句也带错日期。
+ * 同 syncLiuyaoToday 的先例：进视图时填今天，且**只在空值时填**——
+ * 用户手动改过日期后切走再回来不该被重置。 */
+function hlInitToday() {
+  const t = new Date();
+  const setv = function (id, v) {
+    const e2 = document.getElementById(id);
+    if (e2 && !e2.value) e2.value = v;
+  };
+  setv('hl_year', t.getFullYear());
+  setv('hl_month', t.getMonth() + 1);
+  setv('hl_day', t.getDate());
+}
+
 async function doLiuyao() {
   busy('lyResult', '摇卦中…');
   // 实测后端只认 coins|time（HTML 里原来的 "dice" 会得到 400）。
@@ -3506,7 +3523,11 @@ function tarotDeepRead(draws, question) {
     (main.upright
       ? '牌面整体是顺的：你心里想的那个方向可以试着往前走一小步，不用一下子做很大的决定。'
       : '牌面有些别扭：先别急着推进，这几天多观察少动作，等心里那股拧劲过去了再决定。') +
-    ' 牌只是镜子，怎么走还是你自己说了算。</p>';
+    /* R222b（E-302 P0）：此处原有「牌只是镜子，怎么走还是你自己说了算。」
+     * ——多一个「自己」躲过了禁用词 grep（审查轨渲染后扫 innerText 才抓到）。
+     * 前半句刚给了具体建议（往前走一小步 / 先别急着推进），这句免责声明
+     * 正好把建议抵消掉，属用户明令禁用的套话，整句删除不做替换。 */
+    '</p>';
   html += '</div>';
   return html;
 }
