@@ -1152,6 +1152,17 @@ details.warm-pro-fold > summary{
 .xz-name{ font-size:14px; font-weight:600; color:var(--primary-ink); }
 .xz-palace{ font-size:11px; color:var(--secondary); margin-top:2px; }
 .xz-note{ font-size:11px; color:var(--secondary); margin-top:4px; line-height:1.4; }
+/* C-002：星座详情页分维度 */
+.xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:8px; }
+.xz-dim{ display:flex; gap:8px; margin-bottom:6px; }
+.xz-dim:last-child{ margin-bottom:0; }
+.xz-dim-label{ font-size:13px; font-weight:600; color:var(--primary-ink); flex-shrink:0; }
+.xz-dim-text{ font-size:13px; color:var(--secondary); line-height:1.5; }
+.xz-today-note{ font-size:13px; color:var(--secondary); margin-top:8px; line-height:1.5; }
+
+/* C-003：交叉引用样式 */
+.cross-ref{ margin-top:10px; padding:8px 12px; background:#F5F0FF; border-radius:8px; font-size:13px; color:var(--secondary); line-height:1.5; }
+.cross-ref-icon{ margin-right:6px; }
 
 /* R208b：历史记录迁入左侧栏 */
 .side-hist{margin-top:10px;}

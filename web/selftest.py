@@ -245,7 +245,7 @@ def run() -> list[str]:
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
     check("huangli", client.get("/api/huangli", params={"date": "2026-08-17",
           "days": 1}),
-          lambda j: j.get("date") and j.get("jianchu"))
+          lambda j: j.get("date") and j.get("yi") and j.get("ji"))
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
@@ -965,8 +965,9 @@ def run() -> list[str]:
             history_db.delete_record(rec["id"])
     assert isinstance(_bz["calc"]["five_elements"], dict), "five_elements must be dict"
     assert isinstance(_bz["calc"]["day_luck"], dict), "day_luck must be dict"
+    # C-001：黄历移除文言展示（建除/二十八宿/彭祖百忌），改为年轻化宜忌词库
     _hl = client.get("/api/huangli", params={"date": "2026-08-19"}).json()
-    assert isinstance(_hl["pengzu"], dict), "pengzu must be dict"
+    assert isinstance(_hl["yi"], list) and isinstance(_hl["ji"], list), "yi/ji must be lists"
     import os as _os
     import re as _re
 
@@ -1093,7 +1094,9 @@ def run() -> list[str]:
         "/api/bazi": {"paipan", "calc", "evidence", "interpretation",
                       "warm", "ai_polish",
                       # R218a-巡2（N-01）：后端回写 question 供前端钩子使用
-                      "question"},
+                      "question",
+                      # C-003：交叉引用——八字结果页增加星座维度
+                      "cross_ref"},
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
                         "tianxi_pillar", "strength", "render", "notes",
                         "dayun_hits", "hit_pillars", "warm", "bazi",
@@ -1103,7 +1106,9 @@ def run() -> list[str]:
                        "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
-                       "gan_he", "god_a_sees_b", "god_b_sees_a"},
+                       "gan_he", "god_a_sees_b", "god_b_sees_a",
+                       # C-003：交叉引用——合婚结果页增加星座配对维度
+                       "cross_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",
                         "full_names", "ai_polish"},
     }

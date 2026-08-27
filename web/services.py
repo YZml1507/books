@@ -208,6 +208,8 @@ def bazi(req) -> dict:
         # ——前端 buildBaziResult/buildLiuyaoResult/buildTarotResult 内
         # if (j.question) 钩子函数曾因后端不返回该字段而永远不触发。
         "question": req.question,
+        # C-003：交叉引用——八字结果页增加星座维度
+        "cross_ref": _cross_ref_bazi(b, req.gender),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -290,6 +292,8 @@ def hehun(req) -> dict:
         **h_dict,
         "warm": warm,
         "ai_polish": ai_polish,
+        # C-003：交叉引用——合婚结果页增加星座配对维度
+        "cross_ref": _cross_ref_hehun(ba, bb),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -687,8 +691,8 @@ def huangli(date_str: str | None = None, affair: str | None = None,
 
     q = huangli_mod.day_query(dt)
     # R216b 续6（V-001）：透传农历与冲煞（additive，既有键零改动）。
-    return {"date": q["date"], "jianchu": q["jianchu"], "xiu": q["xiu"],
-            "pengzu": q["pengzu"], "yi": q["yi"], "ji": q["ji"],
+    return {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
+            **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
 
@@ -1033,3 +1037,51 @@ def health() -> dict:
     """健康检查：解读引擎恒可用（确定性规则，无 LLM、无网络、无 key）。"""
     return {"ok": True, "engine": interpreter.configured_model(),
             "index": os.path.exists(deps.CORPUS_DB)}
+
+
+# C-003：交叉引用辅助函数
+def _cross_ref_bazi(b, gender: str) -> dict:
+    """八字结果页的星座交叉引用。"""
+    from guji.xingzuo import daily_horoscope
+    try:
+        h = daily_horoscope(b.day)
+        today = h.get("today_sign", "")
+        return {
+            "zodiac_sign": today,
+            "zodiac_note": h.get("today_note", ""),
+            "message": f"你的太阳星座是{today}，今天{h.get('today_note', '')}"
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_hehun(ba, bb) -> dict:
+    """合婚结果页的星座配对引用。"""
+    from guji.xingzuo import daily_horoscope
+    try:
+        ha = daily_horoscope(ba.day)
+        hb = daily_horoscope(bb.day)
+        return {
+            "zodiac_a": ha.get("today_sign", ""),
+            "zodiac_b": hb.get("today_sign", ""),
+            "message": f"你们太阳星座是{ha.get('today_sign', '')}与{hb.get('today_sign', '')}，星座相处建议：{ha.get('today_note', '')}"
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_huangli(date_str: str) -> dict:
+    """黄历结果页的八字个性化引用。"""
+    from guji.xingzuo import daily_horoscope
+    try:
+        from datetime import date as _date
+        d = _date.fromisoformat(date_str) if date_str else _date.today()
+        b = bazi_compute(d.year, d.month, d.day, 12, "男")
+        h = daily_horoscope(b.day)
+        return {
+            "zodiac_sign": h.get("today_sign", ""),
+            "zodiac_note": h.get("today_note", ""),
+            "message": f"今天{h.get('today_sign', '')}当值，{h.get('today_note', '')}"
+        }
+    except Exception:
+        return {}

@@ -1953,6 +1953,10 @@ function renderDecoration(view) {
 function buildBaziResult(j) {
   const paipan = j.paipan || {};
   let html = '<div class="card"><h2>🔮 排盘结果</h2>';
+  /* C-003：交叉引用——八字结果页增加星座维度 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">⭐</span>' + esc(j.cross_ref.message) + '</div>';
+  }
   /* R218a-巡2（N-08）：装饰图——结果卡顶部加一行 SVG/CSS 装饰 banner。
    * 后续接入 /api/decoration 时把 url 套进 .deco-img 即可；本轮先给基础
    * 视觉装饰（CSS 渐变 + 文字锚定），零外部依赖、不动既有数据流。 */
@@ -2682,72 +2686,27 @@ async function doHuangli() {
      *   4. 补今日一句话 + 收尾安抚句（均按坐标确定性生成，同输入同输出）。
      */
     const HUANGLI_WARM = {
-      '嫁娶': '领证、订婚、官宣的好日子', '开市': '开业、上新、发第一单',
-      '出行': '出门、旅行、去远方', '祭祀': '拜一拜、静心的日子',
-      '祈福': '许愿、求个心安', '求嗣': '备孕、求子相关的事',
-      '上任': '入职、履新、接新项目', '入学': '开学、报到、开始学新东西',
+      /* C-001：黄历宜忌年轻化 + 场景化动作 */
+      '嫁娶': '把喜欢说出口，约 ta 出去', '开市': '发第一条小红书，开启新计划',
+      '出行': '去新地方、尝试新路线', '祭祀': '整理心情、给过去的自己写封信',
+      '祈福': '许个愿望、给自己一个小目标', '求嗣': '备孕、迎接新生命',
+      '上任': '入职、接手新项目', '入学': '开学、开始学新东西',
       '立券': '签约、定合同', '纳财': '收款、谈钱、理财动作',
       '捕捉': '把拖了很久的小事办掉', '狩猎': '来一场说走就走的短途出游',
-      '安葬': '丧葬事宜', '破土': '动工破土类事宜', '治病': '看病、调理身体',
+      '安葬': '告别过去、整理旧物', '破土': '动工、开始新工程', '治病': '看病、调理身体',
       '解除': '化解矛盾、清理旧事', '谒贵': '拜访贵人、见重要的人',
       '修造': '装修、修缮', '动土': '开工动土', '平整': '整理归置',
-      '冠笄': '成人礼、形象焕新', '诉讼': '打官司、走程序',
-      '出官': '公务出行', '安床': '安床布置', '移徒': '搬家挪窝',
+      '冠笄': '形象焕新、换个发型', '诉讼': '打官司、走程序',
+      '出官': '公务出行', '安床': '布置房间、换个心情', '移徒': '搬家挪窝',
       '进人口': '添丁进口', '开仓': '开库出货', '求医': '看医生',
       '筑堤': '修建堤坝', '塞穴': '封堵修补', '栽植': '种花种树',
       '经络': '缝纫织补', '苫盖': '搭棚加盖'
-    };
-    const JIANCHU_NOTE = {
-      '建': '万物初生的一天，适合起头、见人', '除': '扫除旧事的一天，适合清理与告别',
-      '满': '饱满的一天，适合庆祝和犒劳自己', '平': '平稳的一天，适合日常推进不折腾',
-      '定': '安定的一天，适合定大事、做承诺', '执': '坚持的一天，认准的事慢慢推进',
-      '破': '破旧立新的一天，大事先缓一缓', '危': '需要小心的一天，稳字当头',
-      '成': '收获的一天，想做的事容易顺', '收': '收纳的一天，适合总结、收尾、存钱',
-      '开': '打开的一天，适合开始新的尝试', '闭': '收拢的一天，适合休息、宅家充电'
-    };
-    const XIUXIU_NOTE = {
-      '角': '龙角星——决策有底气', '亢': '龙颈星——别太较劲', '氐': '龙胸星——根基要稳',
-      '房': '龙腹星——适合休整', '心': '龙心脏星——跟着感觉走', '尾': '龙尾星——事情容易摆动',
-      '箕': '风星——话别太满', '斗': '斗星——忙碌但值得', '牛': '金牛星——踏实做事',
-      '女': '女宿——适合打扮自己', '虚': '虚宿——少熬夜', '危': '危宿——注意安全',
-      '室': '室宿——适合宅家布置', '壁': '壁宿——学习吸收力好', '奎': '奎宿——灵感多',
-      '婁': '娄宿——适合聚会', '胃': '胃宿——好好吃饭', '昴': '昴宿——早睡早起',
-      '畢': '毕宿——收网的时候到了', '觜': '觜宿——说话留三分', '參': '参宿——行动力在线',
-      '井': '井宿——水源充足，资源到位', '鬼': '鬼宿——少想多睡', '柳': '柳宿——心情柔软',
-      '星': '星宿——存在感强的一天', '張': '张宿——适合展示自己', '翼': '翼宿——想飞就飞',
-      '軫': '轸宿——收住节奏'
     };
     function _warmWord(t) {
       const w = HUANGLI_WARM[t];
       return w ? t + '＝' + w : t;
     }
     let html = '<div class="card"><h2>🌙 黄历 · ' + esc(j.date || dateStr) + '</h2>';
-    /* R216b 续6（V-001）：农历日期与冲煞——传统核心字段补齐上屏。 */
-    if (j.lunar && j.lunar.month_cn) {
-      html += '<p class="nayin">🗓 农历 ' + esc(j.lunar.month_cn) +
-        esc(j.lunar.day_cn || '') + ' · ' + esc(j.lunar.ganzhi_year_cn || '') + '</p>';
-    }
-    if (j.chongsha && j.chongsha.chong) {
-      html += '<p class="nayin">⚔ 今日冲' + esc(j.chongsha.chong) +
-        '(' + esc(j.chongsha.chong_animal || '') + ') · 煞' +
-        esc(j.chongsha.sha_fang || '') +
-        '——属' + esc(j.chongsha.chong_animal || '') + '的朋友今天稳一点，煞方少往那边跑</p>';
-    }
-    // 今日一句话：按建除确定性生成（同输入同输出）
-    if (j.jianchu) {
-      html += '<div class="warm-l0" style="font-size:18px;">今天是「' + esc(j.jianchu) +
-        '」值日' + (JIANCHU_NOTE[j.jianchu] ? '——' + esc(JIANCHU_NOTE[j.jianchu]) : '') + '。</div>';
-    }
-    html += '<p class="nayin" style="margin-top:8px;">' +
-      (j.xiu && XIUXIU_NOTE[j.xiu] ? '值宿「' + esc(j.xiu) + '」：' + esc(XIUXIU_NOTE[j.xiu]) : '') +
-      '</p>';
-    // 彭祖百忌：整块收进折叠（原文逐字保留在 DOM 里）
-    const pz = j.pengzu || {};
-    if (pz.gan_text || pz.zhi_text) {
-      html += '<details class="warm-basis"><summary>📜 彭祖百忌（老话，展开看看）</summary><ul>' +
-        '<li>' + esc(pz.gan || '') + '：' + esc(pz.gan_text || '') + '</li>' +
-        '<li>' + esc(pz.zhi || '') + '：' + esc(pz.zhi_text || '') + '</li></ul></details>';
-    }
     // 实测 yi/ji 是数组。R201b（B-004）：各项独立 pill；R216b：逐条跟人话。
     function _pill(text, color) {
       return '<span class="pill" style="border:1px solid ' + color +
@@ -2761,7 +2720,11 @@ async function doHuangli() {
       ((j.ji || []).map(function (t) { return _pill(_warmWord(t), 'var(--accent)'); }).join(' ') || '—') +
       '</p></div>';
     html += '</div>';
-    html += '<p class="interp-disclaimer">📝 老黄历说的是节奏参考，日子怎么过还是你说了算～</p>';
+    /* C-003：交叉引用——黄历结果页增加星座维度 */
+    if (j.cross_ref && j.cross_ref.message) {
+      html += '<div class="cross-ref"><span class="cross-ref-icon">🌙</span>' + esc(j.cross_ref.message) + '</div>';
+    }
+    /* C-001：移除文言展示，只留宜忌结论 + 年轻化词库 */
     html += renderAiPolish(j);
     html += '</div>';
     paint('hlResult', html);
@@ -3534,6 +3497,10 @@ async function doHehun() {
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
     }
+    /* C-003：交叉引用——合婚结果页增加星座配对维度 */
+    if (j.cross_ref && j.cross_ref.message) {
+      html += '<div class="cross-ref"><span class="cross-ref-icon">💕</span>' + esc(j.cross_ref.message) + '</div>';
+    }
     html += renderAiPolish(j);
     html += '</div>';
     paint('hhResult', html);
@@ -3557,15 +3524,24 @@ async function doXingzuo() {
     var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
     var html = '<div class="xz-result">';
     if (j.today_sign) {
-      html += '<div class="xz-today"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span>';
-      if (j.today_note) html += '<span class="xz-today-note">' + esc(j.today_note) + '</span>';
+      html += '<div class="xz-today"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
+      /* C-002：星座详情页——爱情/事业/财运分维度 */
+      var _todayDetail = (j.signs || []).filter(function (s) { return s.is_today; })[0];
+      if (_todayDetail) {
+        html += '<div class="xz-detail">';
+        if (_todayDetail.love) html += '<div class="xz-dim"><span class="xz-dim-label">💕 爱情</span><span class="xz-dim-text">' + esc(_todayDetail.love) + '</span></div>';
+        if (_todayDetail.career) html += '<div class="xz-dim"><span class="xz-dim-label">💼 事业</span><span class="xz-dim-text">' + esc(_todayDetail.career) + '</span></div>';
+        if (_todayDetail.wealth) html += '<div class="xz-dim"><span class="xz-dim-label">💰 财运</span><span class="xz-dim-text">' + esc(_todayDetail.wealth) + '</span></div>';
+        html += '</div>';
+      }
+      if (j.today_note) html += '<p class="xz-today-note">' + esc(j.today_note) + '</p>';
       html += '</div>';
     }
     if (j.signs && j.signs.length) {
       html += '<div class="xz-grid">';
       j.signs.forEach(function (s) {
         var cls = s.is_today ? ' xz-active' : '';
-        html += '<div class="xz-cell' + cls + '"><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-palace">' + esc(s.palace) + '</span><span class="xz-note">' + esc(s.note) + '</span></div>';
+        html += '<div class="xz-cell' + cls + '"><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-note">' + esc(s.note) + '</span></div>';
       });
       html += '</div>';
     }

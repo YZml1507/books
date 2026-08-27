@@ -636,7 +636,8 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     if q:
         tail.append(f"综合来看，{_tarot_combined_guidance(shown, q)}")
     else:
-        tail.append("牌面是象征，不是结论——牌面照见什么，由你慢慢体会。")
+        # C-004：禁用免责套话，改为给具体方向
+        tail.append("牌面整体是顺的，可以试着往前走一小步。")
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None, lines[:5] + tail,
@@ -678,7 +679,8 @@ def _tarot_kw_guidance(kw: str, q: str) -> str:
 def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
     """D-002：综合多张牌给一句方向性指引"""
     if not q:
-        return "牌面是象征，不是结论——牌面照见什么，由你慢慢体会。"
+        # C-004：禁用免责套话，改为给具体方向
+        return "牌面整体是顺的，可以试着往前走一小步。"
     # 根据牌的正逆位比例给综合判断
     upright_count = sum(1 for c in cards if c.get("upright"))
     total = len(cards)

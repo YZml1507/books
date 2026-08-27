@@ -16858,6 +16858,63 @@ commit: 待提交
 
 审查轨「产品决策与巡5批评汇总」交优化轨 6 项决策（D-001~D-006），本轮全部落地。
 
+#### C-001~C-007 深度审查返工（R218a-巡7，2026-08-27，优化轨）
+
+审查轨「R218a-巡6 深度审查」交优化轨 7 项决策（C-001~C-007），本轮全部落地。
+
+##### C-001 黄历宜忌年轻化 + 场景化动作
+- 根因：原 HUANGLI_WARM 映射仍是老黄历词库（嫁娶/开市/祭祀），文言展示（建除/二十八宿/彭祖百忌）未移除
+- 修法：HUANGLI_WARM 改为年轻化词库（嫁娶→把喜欢说出口/约 ta 出去，开市→发第一条小红书/开启新计划）；移除建除/二十八宿/彭祖百忌/彭祖/农历/冲煞展示；移除免责收尾句
+- 位置：`web/static/app.js` `doHuangli()` HUANGLI_WARM + 移除文言展示代码
+
+##### C-002 星座详情页（爱情/事业/财运分维度）
+- 根因：原 `doXingzuo()` 只显示今日值宫 + 12 宫格子，无分维度解读
+- 修法：后端 `xingzuo.py` SIGNS 增加 love/career/wealth 字段；前端 `doXingzuo()` 增加分维度展示（💕爱情/💼事业/💰财运）
+- 位置：`src/guji/xingzuo.py` SIGNS + `web/static/app.js` `doXingzuo()` + `web/static/styles.css`
+
+##### C-003 交叉引用：每个结果页底部加相关维度段
+- 根因：各功能完全独立，八字不提星座、合婚不提星座配对、黄历不提个性化
+- 修法：后端 `services.py` 增加 `_cross_ref_bazi()` / `_cross_ref_hehun()` / `_cross_ref_huangli()` 辅助函数；各端点响应增加 `cross_ref` 字段；前端 `buildBaziResult()` / `doHehun()` / `doHuangli()` 增加 `.cross-ref` 段渲染
+- 位置：`web/services.py` + `web/static/app.js` + `web/static/styles.css`
+
+##### C-004 回复调性两极分化 + 禁用免责套话
+- 根因：`warm_tarot` 收尾句「牌面是象征，不是结论——牌面照见什么，由你慢慢体会」仍是免责套话
+- 修法：改为给具体方向「牌面整体是顺的，可以试着往前走一小步」
+- 位置：`src/guji/voice.py` `warm_tarot()` + `_tarot_combined_guidance()`
+
+##### C-005/C-006/C-007 已合并入 C-003 交叉引用实现
+- C-005 八字+星座交叉 → C-003 buildBaziResult cross_ref
+- C-006 合婚+星座配对 → C-003 doHehun cross_ref
+- C-007 黄历+八字个性化 → C-003 doHuangli cross_ref
+
+##### selftest 基线同步
+- 根因：黄历响应移除 jianchu/xiu/pengzu 键，增加 cross_ref 键；bazi/hehun 增加 cross_ref 键
+- 修法：`web/selftest.py` huangli check 断言改为 yi/ji lists；_expect_keys bazi/hehun 追加 cross_ref
+
+##### 闸门（BOOKS_LLM_DISABLE=1 串行全 EXIT=0）
+
+| 闸门 | 结果 |
+|------|------|
+| selftest.py | PASS 163 checks |
+| baseline_voice.py | PASS sha256 一致 |
+| check_warm_voice.py | PASS 判据 1-8 |
+| check_plain_first.py | PASS 5用例 × 8判据 |
+| check_poster.py | PASS 判据 12/13/14 |
+| check_xingzuo.py | PASS 判据 10/11 |
+
+##### API 端到端（:8183 常驻服务 PID 12944 启动于 16:10，加载最新代码）
+
+| 端点 | 结果 |
+|------|------|
+| `/api/bazi` cross_ref | `{'zodiac_sign': '天秤', 'message': '你的太阳星座是天秤，今天...'}` ✅ |
+| `/api/hehun` cross_ref | `{'zodiac_a': '天秤', 'zodiac_b': '天秤', 'message': '你们太阳星座是天秤与天秤...'}` ✅ |
+| `/api/huangli` cross_ref | `{'zodiac_sign': '双鱼', 'message': '今天双鱼当值...'}` ✅ |
+| `/api/huangli` keys | `['date', 'yi', 'ji', 'cross_ref', 'lunar', 'chongsha']`（无 jianchu/xiu/pengzu） ✅ |
+| badge 检查 | `"仅供娱乐 · 小满的轻松解读"` ✅ |
+| 塔罗收尾 | `"牌面整体是顺的，可以试着往前走一小步。"` ✅ |
+
+commit: 待提交
+
 ##### D-001 「聊聊这件事」交互重做（P0）
 - 根因：原 `autoSendChatContext()` 固定发「帮我看看这个盘」，且依赖 `CHAT_LAST_FACTS`（排盘后才能发）
 - 修法：根据当前视图自动选消息（八字→帮我看这个盘 / 桃花→桃花怎么样 / 塔罗→牌面说什么 / 六爻→卦象怎么看 / 合婚→这两人配吗 / 黄历→今天能做什么 / 起名→这些名字怎么样），不再依赖 `CHAT_LAST_FACTS`
