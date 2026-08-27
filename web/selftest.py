@@ -245,6 +245,30 @@ def run() -> list[str]:
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
           lambda j: j.get("full_names") and len(j.get("full_names", [])) >= 3)
+    # R220b（P0-3 返工回归）：「换一批」连点三次必须零重复。
+    # 历史：D-004-fix 相邻重叠 4/8 → R219b 改环形取段，**只报相邻对**
+    # （1∩2=1、2∩3=1）就宣布通过，审查轨实测 1∩3=7/8、2∩4=7/8
+    # （每隔一次几乎全重复）→ 选择性报数。真因是候选池只有 15 字、
+    # top_n=8 时 8×2>15 数学上装不下三个互斥批次（兜底只取最弱 1 个元素）。
+    # 判据必须覆盖**任意两批**，不能只看相邻——这是本条断言存在的理由。
+    _qm_batches: dict[int, set] = {}
+    for _seed in (1, 2, 3):
+        _rq = client.post("/api/qiming", json={
+            "surname": "李", "year": 2000, "month": 5, "day": 15,
+            "hour": 10, "gender": "女", "top_n": 8, "seed": _seed})
+        assert _rq.status_code == 200, ("qiming.seed.http", _seed,
+                                       _rq.status_code)
+        _qm_batches[_seed] = {n["full_name"]
+                              for n in _rq.json().get("full_names", [])}
+        assert len(_qm_batches[_seed]) == 8, \
+            ("qiming.seed.count", _seed, len(_qm_batches[_seed]))
+    for _a in (1, 2, 3):
+        for _b in (1, 2, 3):
+            if _a < _b:
+                _inter = _qm_batches[_a] & _qm_batches[_b]
+                assert not _inter, \
+                    ("qiming.rebatch.overlap", _a, _b, sorted(_inter))
+    print("  qiming.rebatch.distinct PASS（连点 3 次换一批，任意两批零重复）")
     # R220b（P0 回归）：交叉引用的太阳星座必须按【出生月日】判定。
     # 旧实现拿日支查"今日值宫"当本命星座 → 2005-06-06 生（真实双子）被说成
     # 金牛，且连续四天出生得到四个不同座。这里把"生日→座"逐条钉死，
