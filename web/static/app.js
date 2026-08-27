@@ -567,6 +567,8 @@ function showView(viewId) {
   window.scrollTo({ top: _sy, behavior: 'auto' });
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
+  /* C-002-fix：星座视图进入时自动加载今日运势 */
+  if (viewId === 'xingzuo') doXingzuo();
 }
 
 /* ── 通用渲染件 ────────────────────────────────────────────── */
@@ -3524,7 +3526,9 @@ async function doXingzuo() {
     var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
     var html = '<div class="xz-result">';
     if (j.today_sign) {
-      html += '<div class="xz-today"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
+      /* C-002-fix：星座配图 + 今日值宫 */
+      var _todayIcon = {'白羊':'♈','金牛':'♉','双子':'♊','巨蟹':'♋','狮子':'♌','处女':'♍','天秤':'♎','天蝎':'♏','射手':'♐','摩羯':'♑','水瓶':'♒','双鱼':'♓'}[j.today_sign] || '⭐';
+      html += '<div class="xz-today"><span class="xz-today-icon">' + _todayIcon + '</span><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
       /* C-002：星座详情页——爱情/事业/财运分维度 */
       var _todayDetail = (j.signs || []).filter(function (s) { return s.is_today; })[0];
       if (_todayDetail) {
@@ -3541,7 +3545,9 @@ async function doXingzuo() {
       html += '<div class="xz-grid">';
       j.signs.forEach(function (s) {
         var cls = s.is_today ? ' xz-active' : '';
-        html += '<div class="xz-cell' + cls + '"><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-note">' + esc(s.note) + '</span></div>';
+        /* C-002-fix：星座配图（emoji 图标） */
+        var _icon = {'白羊':'♈','金牛':'♉','双子':'♊','巨蟹':'♋','狮子':'♌','处女':'♍','天秤':'♎','天蝎':'♏','射手':'♐','摩羯':'♑','水瓶':'♒','双鱼':'♓'}[s.sign] || '⭐';
+        html += '<div class="xz-cell' + cls + '"><span class="xz-icon">' + _icon + '</span><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-note">' + esc(s.note) + '</span></div>';
       });
       html += '</div>';
     }

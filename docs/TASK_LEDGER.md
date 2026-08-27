@@ -16858,6 +16858,31 @@ commit: 待提交
 
 审查轨「产品决策与巡5批评汇总」交优化轨 6 项决策（D-001~D-006），本轮全部落地。
 
+#### C-002-fix 星座默认加载+配图（R218a-巡7b，2026-08-27，优化轨）
+
+审查轨 R218a-巡7 复测：C-002 需返工（默认加载+详情页+配图）。
+
+##### C-002-fix：星座默认加载今日+配图
+- 原问题：星座 UI 需手动输入日期+查询，无默认加载，无配图
+- 修法：
+  1. `showView('xingzuo')` 进入时自动调用 `doXingzuo()` 加载今日运势
+  2. 每个星座 cell 增加 emoji 图标（♈♉♊♋♌♍♎♏♐♑♒♓）
+  3. 今日值宫区域增加大图标展示
+- 位置：`web/static/app.js` `showView()` + `doXingzuo()` + `web/static/styles.css`
+
+##### 闸门（BOOKS_LLM_DISABLE=1 串行全 EXIT=0）
+
+| 闸门 | 结果 |
+|------|------|
+| selftest.py | PASS 163 checks |
+| baseline_voice.py | PASS sha256 一致 |
+| check_warm_voice.py | PASS 判据 1-8 |
+| check_plain_first.py | PASS 5用例 × 8判据 |
+| check_poster.py | PASS 判据 12/13/14 |
+| check_xingzuo.py | PASS 判据 10/11 |
+
+commit: 待提交
+
 #### C-001~C-007 深度审查返工（R218a-巡7，2026-08-27，优化轨）
 
 审查轨「R218a-巡6 深度审查」交优化轨 7 项决策（C-001~C-007），本轮全部落地。
