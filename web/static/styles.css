@@ -1140,6 +1140,24 @@ details.warm-pro-fold > summary{
 .dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
 .dx-note{ font-size:13px; color:var(--secondary); }
 
+/* R220b（P1-1）：星座日期条——箭头 + 年月日三 select + 今天/明天快捷。
+   替代原生 type="date"（移动端要唤起系统日历，翻一天也得开弹层）。
+   触控目标 ≥44px 高，390px 宽下三个 select 平分剩余宽度不溢出。 */
+.xz-datebar{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.xz-nav{ flex:0 0 auto; width:44px; height:44px; padding:0; font-size:22px;
+  line-height:1; border:1px solid var(--border); border-radius:10px;
+  background:var(--card); color:var(--primary-ink); cursor:pointer; }
+.xz-nav:hover{ background:var(--bg); }
+.xz-selects{ flex:1 1 auto; display:flex; gap:6px; min-width:0; }
+.xz-selects select{ flex:1 1 0; min-width:0; height:44px; padding:0 6px;
+  font-size:15px; border:1px solid var(--border); border-radius:10px;
+  background:var(--card); color:var(--primary-ink); }
+.xz-quick{ display:flex; gap:8px; margin-bottom:12px; }
+.xz-chip{ padding:7px 16px; font-size:13px; border:1px solid var(--border);
+  border-radius:999px; background:var(--card); color:var(--secondary);
+  cursor:pointer; }
+.xz-chip:hover{ background:var(--bg); color:var(--primary-ink); }
+
 /* D-005：星座视图样式 */
 .xz-result{ margin-top:8px; }
 .xz-today{ display:flex; align-items:center; gap:10px; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; }

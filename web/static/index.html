@@ -593,9 +593,21 @@ if ('serviceWorker' in navigator) {
   <div class="view" id="view-xingzuo">
     <div class="card">
       <h2>⭐ 星座 <span style="font-size:14px;color:var(--secondary);font-weight:400;">十二宫 · 今日运势</span></h2>
-      <div class="row">
-        <div class="field"><label for="xz_date">日期</label>
-          <input id="xz_date" type="date"></div>
+      <!-- R220b（P1-1）：原生 type="date" 在 390px 移动端要唤起系统日历、
+           点选层级深。改成「前一天／后一天 + 年月日三 select」——进页面默认
+           今天，一次点击就能翻天，不必打开任何弹层。 -->
+      <div class="xz-datebar">
+        <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>
+        <div class="xz-selects">
+          <select id="xz_year" aria-label="年"></select>
+          <select id="xz_month" aria-label="月"></select>
+          <select id="xz_day" aria-label="日"></select>
+        </div>
+        <button id="xzNext" type="button" class="xz-nav" aria-label="后一天">›</button>
+      </div>
+      <div class="xz-quick">
+        <button id="xzToday" type="button" class="xz-chip">今天</button>
+        <button id="xzTomorrow" type="button" class="xz-chip">明天</button>
       </div>
       <button id="xzSubmit" type="button">查 询</button>
       <div id="xzResult" style="margin-top:16px;"></div>

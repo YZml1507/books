@@ -17144,3 +17144,105 @@ P1-1 星座日期选择器 / P1-2 星座生图 / P1-3 星座详情分维度加�
 与磁盘文件对比。
 
 commit: `92b8cc7`（已 push main）
+
+---
+
+**【§173 · 2026-08-27 · R220b 优化轨修复（P0 太阳星座算错 / 交叉引用铺开 / P1-1 星座日期选择器）】**
+
+本轮由主 agent 直接执行优化轨（双轨分工调整：主 agent 写码，审查轨派 subagent
+只读复测——理由是优化轨最吃项目上下文，主窗口已有基线/路径/闸门事实，省掉
+子代理每轮 20 分钟的重新摸底）。被审基线 `92b8cc7`。
+
+### P0（本轮自主发现，不在用户下发清单里）：交叉引用的太阳星座是假的
+
+**发现路径**：接手 R220b 时读 `web/services.py:1007 _cross_ref_bazi`，发现它拿
+`daily_horoscope(b.day)["today_sign"]` 当用户的太阳星座。实测确认：
+
+```
+出生 2005-06-06（真实太阳星座=双子）→ 日柱 辛酉 → 声称"你的太阳星座是金牛"
+出生 2005-06-07 → 日柱 壬戌 → 声称 白羊
+出生 2005-06-08 → 日柱 癸亥 → 声称 双鱼
+出生 2005-06-09 → 日柱 甲子 → 声称 水瓶
+```
+
+**根因**：`day_sign()` 是"今天哪一宫当值"的**日支**查表（`_ZHI_SIGN`），
+被误用成"本命星座"。太阳星座由出生**月日**（回归黄道）决定，与干支无关。
+后果：连续四天出生的人得到四个不同座（太阳星座一个月内本应稳定），
+用户是双子却被告知金牛——上线即露馅。
+
+**修法**：
+1. `src/guji/xingzuo.py` 新增 `_SUN_SIGN_BOUNDS`（12 宫民用边界）+
+   `sun_sign(month, day)` + `sun_sign_profile(month, day)`。纯函数，
+   越界月日返回空串不抛。
+2. `web/services.py` 三处 cross_ref 改用 `sun_sign`，并把"今日运势"与
+   "本命星座"在文案里分开说（原文案"你是双子座…今天的整体节奏：节奏放慢
+   一点"两个半句自相矛盾 → 改成"你是双子座（…）今天是金牛宫的日子：…"）。
+3. 八字调用点用 `resolve_birth` 换算后的公历 `bm/bd`——**农历输入下
+   `req.month/req.day` 是农历值**，直拿去查黄道边界会算错座。
+
+**回归测试**（不是"我验过了"，是钉进闸门）：
+- `src/guji/xingzuo.py` 自测：27 条边界用例（每宫前一天/当天/宫内）+
+  一年逐日扫描必须命中且仅命中 12 宫 + 同宫连续 5 天必须同座
+  （旧 bug 的直接反证）+ 越界不抛 + profile 确定性。
+- `web/selftest.py` 新增 `bazi.cross_ref.sun_sign`（6 例生日逐条命中 +
+  断言文案不再含"太阳星座是"这种混淆说法）与 `hehun.cross_ref.sun_sign`
+  （双子 × 金牛）。selftest 161 checks PASS。
+
+### 交叉引用覆盖面（用户长期方向：「各是各的，各干各的」）
+
+原覆盖 3/7（八字、合婚、黄历），本轮补到 5/7：
+- `_cross_ref_taohua(月, 日, strength)`：星座桃花信号 × 八字强度叠加判断
+  （high→"两边信号叠一起了"／low→"八字这边偏淡，但 X 座的优势还在"）
+- `_cross_ref_qiming(月, 日)`：太阳星座气质给挑名字一个参考角度
+- 前端 `app.js` 桃花（🌸）/起名（✨）两处渲染出口
+- `web/selftest.py` 的 `_expect_keys` 同步追加 `cross_ref`
+  （**纪律**：端点响应增删字段必须同步，否则 shape 断言假失败）
+
+未覆盖：塔罗、六爻（下轮）。
+
+### P1-1 星座日期选择器
+
+原生 `type="date"` 在 390px 移动端要唤起系统日历、翻一天也得开弹层。
+改为「‹ 箭头 + 年/月/日三 select + › 箭头」+「今天／明天」快捷 chip：
+- `xzDateStr()` / `xzSetDate()` / `xzShiftDay()` / `xzInitDate()`
+- 日选项按当月天数重建（2 月实测 28 项，闰年正确）
+- 进视图默认今天，改 select 即查，不必点「查询」
+- 触控目标实测 44×44px，390px 下 `.xz-datebar` 无横向溢出
+
+### 验证（真实执行，非声明）
+
+`Temp/verify_r220b.py`——43 条判据全 PASS，含阳性对照：
+太阳星座 8 例生日逐条命中／同月四天同座／合婚双子×金牛／五端点 cross_ref
+全非空／禁用套话零命中／前端选择器结构齐全且 `val('xz_date')` 已消失／
+星座 API 仍按日期变（8-28 白羊、9-01 射手、9-05 狮子）。
+
+`Temp/tour_r220b.py`——Playwright 390px 真路径：
+箭头翻天真实生效（8-27 金牛 → 8-28 白羊 → 回 8-27）、明天快捷生效、
+2 月日选项 28、nav 44×44、无溢出、八字/桃花/起名三处 cross_ref 真实上屏、
+**0 pageerror**。
+
+### 闸门（9 条，BOOKS_LLM_DISABLE=1，全 EXIT=0）
+
+| 闸门 | 结果 |
+|------|------|
+| web/selftest.py | PASS 161 checks（含 2 条新回归断言） |
+| web/baseline_voice.py | PASS 14 用例逐字节一致 sha256 97f0681e… |
+| web/check_warm_voice.py | PASS 判据 1-8 × 10 用例 |
+| web/check_plain_first.py | PASS 5 用例 × 判据 1-8 |
+| web/check_poster.py | PASS 判据 12/13a/13b/14（PNG 275,819 字节） |
+| web/check_xingzuo.py | PASS |
+| scripts/verify_r218a.py | PASS |
+| probes/probe_ui_smoke.py | PASS 41/41 |
+| probes/probe_contract.py | PASS 179 读取点 |
+
+### CRLF 纪律（承 §172 教训）
+
+本轮全程用 `patch` 工具而非 execute_code 重写文件，行尾零漂移：
+`git diff --stat` 368+/31−（真实改动量），未出现 §172 那种 20 倍虚高。
+
+### 未修（登记，交下轮）
+
+- P1-2 星座 12 宫生图（当前是 emoji ♈♉♊，需 image_generate 出插画）
+- P1-3 星座详情深度（爱情/事业/财运各仅一句写死文案，无周运/月运）
+- 交叉引用剩余 2/7：塔罗、六爻
+- 桃花 `cross_ref` 的 strength 分档文案可再分化（当前 high/low/其他三档）

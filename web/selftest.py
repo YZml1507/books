@@ -245,6 +245,35 @@ def run() -> list[str]:
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
           lambda j: j.get("full_names") and len(j.get("full_names", [])) >= 3)
+    # R220b（P0 回归）：交叉引用的太阳星座必须按【出生月日】判定。
+    # 旧实现拿日支查"今日值宫"当本命星座 → 2005-06-06 生（真实双子）被说成
+    # 金牛，且连续四天出生得到四个不同座。这里把"生日→座"逐条钉死，
+    # 并断言相邻两天出生必须同座（旧 bug 的直接反证）。
+    for _y, _m, _d, _want in ((2005, 6, 6, "双子"), (2005, 6, 7, "双子"),
+                              (1990, 5, 15, "金牛"), (1990, 1, 1, "摩羯"),
+                              (2000, 12, 25, "摩羯"), (1999, 3, 21, "白羊")):
+        _r = client.post("/api/bazi", json={
+            "year": _y, "month": _m, "day": _d, "hour": 10, "gender": "女"})
+        assert _r.status_code == 200, ("bazi.sunsign.http", _y, _m, _d,
+                                       _r.status_code)
+        _cr = _r.json().get("cross_ref") or {}
+        assert _cr.get("zodiac_sign") == _want, \
+            ("bazi.cross_ref.sun_sign", _y, _m, _d,
+             _cr.get("zodiac_sign"), _want)
+        # 文案不得再出现"你的太阳星座是<今日值宫>"这种混淆说法
+        assert "太阳星座是" not in _cr.get("message", ""), \
+            ("bazi.cross_ref.message.stale", _cr.get("message"))
+    print("  bazi.cross_ref.sun_sign PASS（6 例生日 → 太阳星座逐条命中）")
+    # 合婚双方星座同样按出生月日
+    _rh = client.post("/api/hehun", json={
+        "a_year": 2005, "a_month": 6, "a_day": 6, "a_hour": 10,
+        "a_gender": "男", "b_year": 1990, "b_month": 5, "b_day": 15,
+        "b_hour": 14, "b_gender": "女"})
+    assert _rh.status_code == 200, ("hehun.sunsign.http", _rh.status_code)
+    _crh = _rh.json().get("cross_ref") or {}
+    assert (_crh.get("zodiac_a"), _crh.get("zodiac_b")) == ("双子", "金牛"), \
+        ("hehun.cross_ref.sun_sign", _crh)
+    print("  hehun.cross_ref.sun_sign PASS（双子 × 金牛）")
     # R111b（D-157b）：桃花运纯坐标计算 standing 覆盖——固定生日→固定输出，
     # 断言咸池/红鸾/天喜字段齐全且 render 含坐标事实。
     check("taohua", client.post("/api/taohua", json={"year": 1990, "month": 5,
@@ -1071,7 +1100,9 @@ def run() -> list[str]:
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
                         "tianxi_pillar", "strength", "render", "notes",
                         "dayun_hits", "hit_pillars", "warm", "bazi",
-                        "year_zhi", "birth_year", "ai_polish"},
+                        "year_zhi", "birth_year", "ai_polish",
+                        # R220b：交叉引用铺到桃花（星座桃花信号 × 八字强度）
+                        "cross_ref"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
                        "day_wx_b", "day_wx_sheng", "peach_a", "peach_b",
                        "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
@@ -1081,7 +1112,9 @@ def run() -> list[str]:
                        # C-003：交叉引用——合婚结果页增加星座配对维度
                        "cross_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",
-                        "full_names", "ai_polish"},
+                        "full_names", "ai_polish",
+                        # R220b：交叉引用铺到起名（太阳星座气质参考）
+                        "cross_ref"},
     }
     for _ep, _pl in _shapes.items():
         _got = set(client.post(_ep, json=_pl).json())

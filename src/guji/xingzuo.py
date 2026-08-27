@@ -175,6 +175,58 @@ def daily_horoscope(day_ganzhi: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# 太阳星座（本命星座）：由出生【月日】决定，与干支无关。
+#
+# R220b 修 P0：`_cross_ref_bazi` 等交叉引用曾用 `day_sign(日支)`（"今日值宫"
+# 的查表键）当用户的太阳星座 —— 那是"今天哪一宫当值"，不是"你是什么座"。
+# 后果：2005-06-06 生（真实双子）被告知"你的太阳星座是金牛"，且连续四天
+# 出生的人得到金牛/白羊/双鱼/水瓶四个不同结果（太阳星座一个月内本应稳定）。
+# 太阳星座按回归黄道的通用民用边界判定（每宫起始月日，下界含当日）。
+# ---------------------------------------------------------------------------
+# (起始月, 起始日, 今名) —— 该日起进入此宫，直到下一宫起始日前一天
+_SUN_SIGN_BOUNDS: tuple[tuple[int, int, str], ...] = (
+    (1, 20, "水瓶"), (2, 19, "双鱼"), (3, 21, "白羊"), (4, 20, "金牛"),
+    (5, 21, "双子"), (6, 22, "巨蟹"), (7, 23, "狮子"), (8, 23, "处女"),
+    (9, 23, "天秤"), (10, 24, "天蝎"), (11, 22, "射手"), (12, 22, "摩羯"),
+)
+
+
+def sun_sign(month: int, day: int) -> str:
+    """出生月日 → 太阳星座今名。1/1-1/19 与 12/22 之后同属摩羯。
+
+    纯函数：固定输入必得固定输出。越界月日返回空串。
+    """
+    try:
+        m, d = int(month), int(day)
+    except (TypeError, ValueError):
+        return ""
+    if not (1 <= m <= 12 and 1 <= d <= 31):
+        return ""
+    # 从后往前找第一个"起始日 <= 生日"的宫；都不满足 = 1 月上旬 → 摩羯
+    for bm, bd, name in reversed(_SUN_SIGN_BOUNDS):
+        if (m, d) >= (bm, bd):
+            return name
+    return "摩羯"
+
+
+def sun_sign_profile(month: int, day: int) -> dict:
+    """太阳星座 + 该宫的分维度文案（爱情/事业/财运）。未知月日返回 {}。"""
+    name = sun_sign(month, day)
+    if not name:
+        return {}
+    s = SIGNS[name]
+    return {
+        "sign": name,
+        "palace": s["palace"],
+        "star": s["star"],
+        "note": s["note"],
+        "love": s.get("love", ""),
+        "career": s.get("career", ""),
+        "wealth": s.get("wealth", ""),
+    }
+
+
 def citation_for(sign: str) -> dict:
     """某宫的引文锚点（判据 10 可追溯性）。sign 用今名。"""
     a = SIGNS.get(sign, {}).get("anchor")
@@ -202,6 +254,36 @@ if __name__ == "__main__":
     # 12 支全覆盖
     for zhi in _ZHI_SIGN:
         assert day_sign(zhi), zhi
+
+    # R220b：太阳星座按出生月日判定（P0 修复回归测试）
+    # 12 宫边界逐条钉死（前一天 / 当天 / 宫内一天）
+    _SUN_CASES = [
+        ((1, 1), "摩羯"), ((1, 19), "摩羯"), ((1, 20), "水瓶"),
+        ((2, 18), "水瓶"), ((2, 19), "双鱼"), ((3, 20), "双鱼"),
+        ((3, 21), "白羊"), ((4, 19), "白羊"), ((4, 20), "金牛"),
+        ((5, 20), "金牛"), ((5, 21), "双子"), ((6, 6), "双子"),
+        ((6, 21), "双子"), ((6, 22), "巨蟹"), ((7, 22), "巨蟹"),
+        ((7, 23), "狮子"), ((8, 22), "狮子"), ((8, 23), "处女"),
+        ((9, 22), "处女"), ((9, 23), "天秤"), ((10, 23), "天秤"),
+        ((10, 24), "天蝎"), ((11, 21), "天蝎"), ((11, 22), "射手"),
+        ((12, 21), "射手"), ((12, 22), "摩羯"), ((12, 31), "摩羯"),
+    ]
+    for (_m, _d), _want in _SUN_CASES:
+        assert sun_sign(_m, _d) == _want, (_m, _d, sun_sign(_m, _d), _want)
+    # 12 宫全覆盖：一年逐日扫描必须命中且仅命中 12 个宫
+    _seen = {sun_sign(_m, _d)
+             for _m in range(1, 13) for _d in range(1, 29)}
+    assert _seen == set(_SIGN_ORDER), _seen
+    # 太阳星座一个月内稳定：同宫内连续 5 天必须同座（旧 bug 是一天一变）
+    assert len({sun_sign(6, _d) for _d in range(6, 11)}) == 1
+    # 越界月日返回空串，不抛
+    assert sun_sign(0, 5) == "" and sun_sign(13, 5) == ""
+    assert sun_sign(None, None) == ""  # type: ignore[arg-type]
+    # profile 分维度齐全 + 确定性
+    _p = sun_sign_profile(6, 6)
+    assert _p["sign"] == "双子" and _p["love"] and _p["career"] and _p["wealth"]
+    assert sun_sign_profile(6, 6) == _p
+    assert sun_sign_profile(0, 0) == {}
     # 锚点表完整
     for name in _SIGN_ORDER:
         a = citation_for(name)

@@ -197,7 +197,10 @@ def bazi(req) -> dict:
         # if (j.question) 钩子函数曾因后端不返回该字段而永远不触发。
         "question": req.question,
         # C-003：交叉引用——八字结果页增加星座维度
-        "cross_ref": _cross_ref_bazi(b, req.gender),
+        # R220b：太阳星座按【出生月日】判定，不再拿日支当本命星座。
+        # 必须用 resolve_birth 换算后的公历 bm/bd——农历输入下 req.month/req.day
+        # 是农历值，直接拿去查黄道边界会算错座。
+        "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -238,6 +241,8 @@ def taohua(req) -> dict:
         **t_dict,
         "warm": warm,
         "ai_polish": ai_polish,
+        # R220b：交叉引用铺到桃花——星座桃花信号 × 八字强度叠加
+        "cross_ref": _cross_ref_taohua(bm, bd, t.strength),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -281,7 +286,10 @@ def hehun(req) -> dict:
         "warm": warm,
         "ai_polish": ai_polish,
         # C-003：交叉引用——合婚结果页增加星座配对维度
-        "cross_ref": _cross_ref_hehun(ba, bb),
+        # R220b：按双方出生月日取真实太阳星座（原来用日支，配对结论是假的）
+        "cross_ref": _cross_ref_hehun(ba, bb,
+                                     (req.a_month, req.a_day),
+                                     (req.b_month, req.b_day)),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
 
@@ -301,6 +309,8 @@ def qiming(req) -> dict:
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_qiming(out, req.gender))
     out["ai_polish"] = ai_polish
+    # R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度
+    out["cross_ref"] = _cross_ref_qiming(req.month, req.day)
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     return out
@@ -1004,48 +1014,143 @@ def health() -> dict:
 
 
 # C-003：交叉引用辅助函数
-def _cross_ref_bazi(b, gender: str) -> dict:
-    """八字结果页的星座交叉引用。"""
+#
+# R220b 修 P0（太阳星座算错）：这几个函数原本用 `daily_horoscope(b.day)` 的
+# `today_sign` 当用户的太阳星座——那是"今天哪一宫当值"（日支查表），不是本命
+# 星座。实测 2005-06-06 生（真实双子）被告知"你的太阳星座是金牛"，且 06-06/07/
+# 08/09 出生的人分别得到金牛/白羊/双鱼/水瓶（太阳星座一个月内本应稳定）。
+# 现改用 `xingzuo.sun_sign(月, 日)` 按出生月日判定，并把"今日运势"与"本命星座"
+# 两件事在文案里分开说，不再混为一谈。
+def _today_horoscope() -> dict:
+    """今天的值宫卡（用于"今日运势"侧）。失败返回 {}。"""
+    from datetime import date as _date
+
     from guji.xingzuo import daily_horoscope
     try:
-        h = daily_horoscope(b.day)
-        today = h.get("today_sign", "")
+        _t = _date.today()
+        b = bazi_compute(_t.year, _t.month, _t.day, 12, "男")
+        return daily_horoscope(b.day)
+    except Exception:
+        return {}
+
+
+def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:
+    """八字结果页 → 你的太阳星座 + 今天的运势侧重。
+
+    month/day 是**出生**月日（太阳星座的唯一依据）。缺省 0 时降级为只给
+    今日值宫，不再瞎猜本命星座。
+    """
+    from guji.xingzuo import sun_sign_profile
+    try:
+        prof = sun_sign_profile(month, day) if month and day else {}
+        today = _today_horoscope()
+        sign = prof.get("sign", "")
+        today_sign = today.get("today_sign", "")
+        note = today.get("today_note", "")
+        # 一句话只说一件事：本命座的长处 + 今天当值宫的节奏。两者撞车时
+        # （旧文案"你是双子座…今天的整体节奏：节奏放慢一点"读起来自相矛盾）
+        # 明确标出"今天是 X 宫的日子"，让用户知道这是两个不同维度。
+        if sign and today_sign and note:
+            if sign == today_sign:
+                msg = f"你是{sign}座，今天正好是{sign}宫当值的日子——{note}"
+            else:
+                msg = f"你是{sign}座（{prof.get('love', '')}）今天是{today_sign}宫的日子：{note}"
+        elif sign:
+            msg = f"你是{sign}座，{prof.get('love', '')}"
+        elif today_sign and note:
+            msg = f"今天是{today_sign}宫的日子：{note}"
+        else:
+            return {}
         return {
-            "zodiac_sign": today,
-            "zodiac_note": h.get("today_note", ""),
-            "message": f"你的太阳星座是{today}，今天{h.get('today_note', '')}"
+            "zodiac_sign": sign,
+            "zodiac_love": prof.get("love", ""),
+            "zodiac_career": prof.get("career", ""),
+            "zodiac_wealth": prof.get("wealth", ""),
+            "today_sign": today.get("today_sign", ""),
+            "today_note": note,
+            "message": msg,
         }
     except Exception:
         return {}
 
 
-def _cross_ref_hehun(ba, bb) -> dict:
-    """合婚结果页的星座配对引用。"""
-    from guji.xingzuo import daily_horoscope
+def _cross_ref_hehun(ba, bb, a_md: tuple = (), b_md: tuple = ()) -> dict:
+    """合婚结果页 → 双方太阳星座配对。a_md/b_md = (出生月, 出生日)。"""
+    from guji.xingzuo import sun_sign
     try:
-        ha = daily_horoscope(ba.day)
-        hb = daily_horoscope(bb.day)
+        sa = sun_sign(*a_md) if len(a_md) == 2 else ""
+        sb = sun_sign(*b_md) if len(b_md) == 2 else ""
+        if not (sa and sb):
+            return {}
+        if sa == sb:
+            tip = f"都是{sa}座，同款脾气——合得来的时候特别合，别较劲就行。"
+        else:
+            tip = f"{sa}座配{sb}座，节奏不一样反而互补，谁先开口谁占便宜。"
         return {
-            "zodiac_a": ha.get("today_sign", ""),
-            "zodiac_b": hb.get("today_sign", ""),
-            "message": f"你们太阳星座是{ha.get('today_sign', '')}与{hb.get('today_sign', '')}，星座相处建议：{ha.get('today_note', '')}"
+            "zodiac_a": sa,
+            "zodiac_b": sb,
+            "message": f"你们是{sa}座和{sb}座。{tip}",
         }
     except Exception:
         return {}
 
 
 def _cross_ref_huangli(date_str: str) -> dict:
-    """黄历结果页的八字个性化引用。"""
+    """黄历结果页 → 今天的星座值宫（这一处本来就该用"今日"，逻辑成立）。"""
     from guji.xingzuo import daily_horoscope
     try:
         from datetime import date as _date
         d = _date.fromisoformat(date_str) if date_str else _date.today()
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
         h = daily_horoscope(b.day)
+        sign = h.get("today_sign", "")
+        note = h.get("today_note", "")
+        if not (sign and note):
+            return {}
         return {
-            "zodiac_sign": h.get("today_sign", ""),
-            "zodiac_note": h.get("today_note", ""),
-            "message": f"今天{h.get('today_sign', '')}当值，{h.get('today_note', '')}"
+            "zodiac_sign": sign,
+            "zodiac_note": note,
+            "message": f"今天{sign}宫当值：{note}",
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_taohua(month: int, day: int, strength: str = "") -> dict:
+    """桃花结果页 → 星座桃花信号，与八字强度叠加判断。"""
+    from guji.xingzuo import sun_sign_profile
+    try:
+        prof = sun_sign_profile(month, day)
+        if not prof:
+            return {}
+        sign, love = prof["sign"], prof.get("love", "")
+        if strength == "high":
+            head = f"{sign}座今天也在桃花档上，两边信号叠一起了"
+        elif strength == "low":
+            head = f"八字这边桃花偏淡，但{sign}座的优势还在"
+        else:
+            head = f"{sign}座这边给的建议是"
+        return {
+            "zodiac_sign": sign,
+            "zodiac_love": love,
+            "message": f"{head}：{love}",
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_qiming(month: int, day: int) -> dict:
+    """起名结果页 → 太阳星座气质，给挑名字的参考角度。"""
+    from guji.xingzuo import sun_sign_profile
+    try:
+        prof = sun_sign_profile(month, day)
+        if not prof:
+            return {}
+        sign = prof["sign"]
+        return {
+            "zodiac_sign": sign,
+            "message": f"{sign}座的气质是「{prof.get('note', '')}」"
+                       f"挑名字时可以往这个感觉上靠。",
         }
     except Exception:
         return {}

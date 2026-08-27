@@ -3077,6 +3077,11 @@ async function doQiming() {
         '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
     });
     html += '</div></details>';
+    /* R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度 */
+    if (j.cross_ref && j.cross_ref.message) {
+      html += '<div class="cross-ref"><span class="cross-ref-icon">✨</span>' +
+        esc(j.cross_ref.message) + '</div>';
+    }
     html += renderAiPolish(j);
     html += '</div></div>';
     paint('qmResult', html);
@@ -3219,6 +3224,11 @@ async function doTaohua() {
     }
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
+    }
+    /* R220b：交叉引用铺到桃花——星座桃花信号 × 八字强度叠加 */
+    if (j.cross_ref && j.cross_ref.message) {
+      html += '<div class="cross-ref"><span class="cross-ref-icon">🌸</span>' +
+        esc(j.cross_ref.message) + '</div>';
     }
     html += renderAiPolish(j);
     html += '</div>';
@@ -3623,13 +3633,66 @@ async function doHehun() {
 }
 
 /* D-005：星座视图——十二宫日运详情 */
+/* ------------------------------------------------------------------ *
+ * R220b（P1-1）星座日期选择：年/月/日三 select + 前后一天箭头。
+ * 原生 type="date" 在移动端要唤起系统日历、翻一天也得开弹层。
+ * ------------------------------------------------------------------ */
+function _xzPad(n) { return String(n).padStart(2, '0'); }
+
+/** 当前选择的日期字符串 YYYY-MM-DD；选择器未就绪时回落到今天。 */
+function xzDateStr() {
+  var y = el('xz_year'), m = el('xz_month'), d = el('xz_day');
+  if (y && m && d && y.value && m.value && d.value) {
+    return y.value + '-' + _xzPad(m.value) + '-' + _xzPad(d.value);
+  }
+  var t = new Date();
+  return t.getFullYear() + '-' + _xzPad(t.getMonth() + 1) + '-' + _xzPad(t.getDate());
+}
+
+/** 把三个 select 设到指定日期；日选项按当月天数重建（闰年也对）。 */
+function xzSetDate(y, m, d) {
+  var ys = el('xz_year'), ms = el('xz_month'), ds = el('xz_day');
+  if (!(ys && ms && ds)) return;
+  var now = new Date();
+  if (!ys.options.length) {
+    for (var yy = now.getFullYear() - 1; yy <= now.getFullYear() + 1; yy++) {
+      ys.add(new Option(yy + ' 年', String(yy)));
+    }
+  }
+  if (!ms.options.length) {
+    for (var mm = 1; mm <= 12; mm++) ms.add(new Option(mm + ' 月', String(mm)));
+  }
+  ys.value = String(y);
+  ms.value = String(m);
+  var days = new Date(y, m, 0).getDate();      // m 为 1-12，0 日 = 上月末 → 当月天数
+  if (ds.options.length !== days) {
+    ds.innerHTML = '';
+    for (var dd = 1; dd <= days; dd++) ds.add(new Option(dd + ' 日', String(dd)));
+  }
+  ds.value = String(Math.min(d, days));
+}
+
+/** 按天平移当前选择（step 可为负）。跨月跨年由 Date 自己处理。 */
+function xzShiftDay(step) {
+  var parts = xzDateStr().split('-');
+  var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  d.setDate(d.getDate() + step);
+  xzSetDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  doXingzuo();
+}
+
+/** 进入星座视图时把选择器初始化到今天（只在未初始化时做，不覆盖用户选择）。 */
+function xzInitDate() {
+  var ys = el('xz_year');
+  if (ys && ys.value) return;                  // 用户已选过，别重置
+  var t = new Date();
+  xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
+}
+
 async function doXingzuo() {
   busy('xzResult', '查询中…');
-  var dateStr = val('xz_date') || '';
-  if (!dateStr) {
-    var t = new Date();
-    dateStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
-  }
+  xzInitDate();
+  var dateStr = xzDateStr();
   try {
     var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
     var html = '<div class="xz-result">';
@@ -3873,6 +3936,30 @@ function initDivination() {
   on('trSubmit', doTarot);
   on('hhSubmit', doHehun);
   on('xzSubmit', doXingzuo);
+  /* R220b（P1-1）：日期导航——箭头翻天、今天/明天快捷、三 select 改即查 */
+  on('xzPrev', function () { xzShiftDay(-1); });
+  on('xzNext', function () { xzShiftDay(1); });
+  on('xzToday', function () {
+    var t = new Date();
+    xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
+    doXingzuo();
+  });
+  on('xzTomorrow', function () {
+    var t = new Date();
+    t.setDate(t.getDate() + 1);
+    xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
+    doXingzuo();
+  });
+  ['xz_year', 'xz_month', 'xz_day'].forEach(function (id) {
+    var node = el(id);
+    if (node) node.addEventListener('change', function () {
+      /* 年/月变化可能让"31 日"越界（如 2 月）——重建日选项后再查 */
+      var y = Number(el('xz_year').value), m = Number(el('xz_month').value),
+        d = Number(el('xz_day').value);
+      xzSetDate(y, m, d);
+      doXingzuo();
+    });
+  });
   /* R198b（US5）：今日运势分享图（数据来自最近一次 /api/daily 响应） */
   on('shareDaily', function () {
     if (window.__lastDaily) downloadPoster(window.__lastDaily, 'daily');
