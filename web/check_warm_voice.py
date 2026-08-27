@@ -144,20 +144,11 @@ def _cases():
     return client, out
 
 
-def _clean_history(max_id_before: int) -> None:
-    from guji import history as history_db
-
-    for rec in history_db.list_records(limit=50):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
+# R219b（P0-4）：_clean_history 随历史记录功能删除（/api/bazi 不再写 history.db）。
 
 
 def run(inject: str | None = None) -> tuple[int, list[str]]:
     """跑判据 1–8。inject 非空时把它塞进 L0（阳性对照用）。"""
-    from guji import history as history_db
-
-    rows = history_db.list_records(limit=1)
-    max_id_before = rows[0]["id"] if rows else 0
     client, cases = _cases()
     problems: list[str] = []
 
@@ -253,7 +244,6 @@ def run(inject: str | None = None) -> tuple[int, list[str]]:
     if "不代为断事" not in pro:
         problems.append("[判据 9] 六爻**专业**分支原文被改动（应保持拒答原文）")
 
-    _clean_history(max_id_before)
     return (1 if problems else 0), problems
 
 

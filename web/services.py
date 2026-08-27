@@ -30,7 +30,8 @@ import sqlite3
 from datetime import date, datetime, timedelta
 
 from guji import external as external_feed
-from guji import history as history_db
+# R219b（P0-4）：`from guji import history as history_db` 随历史记录功能删除
+# ——web 层不再有任何 history_db 调用点（模块文件本体保留，见文件下方注释）。
 from guji import huangli as huangli_mod
 from guji import hehun as hehun_mod
 from guji import interpreter
@@ -180,23 +181,10 @@ def bazi(req) -> dict:
         llm_polish.facts_bazi(paipan_out, warm, req.question),
         req.question)
 
-    input_snapshot = {
-        "year": req.year, "month": req.month, "day": req.day, "hour": req.hour,
-        "gender": req.gender, "question": req.question,
-        "calendar_type": req.calendar_type,
-        "lunar_year": req.lunar_year, "lunar_month": req.lunar_month,
-        "lunar_day": req.lunar_day, "lunar_leap": req.lunar_leap,
-        "scope": req.scope, "range_start": req.range_start,
-        "range_end": req.range_end,
-        "ask_date": ask_date, "ask_hour": req.ask_hour, "location": req.location,
-        "birth_resolved": f"{by}-{bm:02d}-{bd:02d}",
-    }
-    try:
-        history_db.save_record(input_snapshot, paipan_out, calc_out,
-                               evidence, interpretation)
-    except Exception:                            # 历史写入失败不阻断主流程
-        pass
-
+    # R219b（P0-4 用户裁决）：不再把排盘写入 history.db——「我的解读」历史
+    # 记录功能整体删除（用户原话：不记录，浪费内存，后续会建用户隔离数据库）。
+    # 原 input_snapshot + history_db.save_record() 一并移除，/api/bazi 由此
+    # 变成纯读端点（selftest/探针的 history 清理判据因此恒等于零新增）。
     return {
         "paipan": paipan_out,
         "calc": calc_out,
@@ -336,34 +324,10 @@ def xingzuo(date_str: str | None = None) -> dict:
     return out
 
 
-def history_list(limit: int = 50, offset: int = 0) -> dict:
-    """R218a-巡3（N-α 修复）：侧栏 count 显示 1 实际 50 — 返 total 字段。
-    之前只返 records，前端 refreshHistoryCount 用 records.length 兜底，
-    limit=1 时永远显示 1。现在同时返 total（DB 真实总数）让前端能
-    正确显示「我的解读·N」+ 后续分页基础。前端 loadHistory/loadRecent
-    仍读 records 字段（向后兼容），新增 total 字段不破坏契约。
-    offset 默认 0，加 offset/limit 即可分页加载更多。"""
-    safe_limit = min(max(int(limit), 1), 200)
-    safe_offset = max(int(offset), 0)
-    return {
-        "records": history_db.list_records(safe_limit, safe_offset),
-        "total": history_db.count(),
-        "limit": safe_limit,
-        "offset": safe_offset,
-    }
-
-
-def history_detail(rid: int) -> dict:
-    rec = history_db.get_record(rid)
-    if rec is None:
-        raise NotFoundError(f"历史记录 {rid} 不存在")
-    return rec
-
-
-def history_delete(rid: int) -> dict:
-    if not history_db.delete_record(rid):
-        raise NotFoundError(f"历史记录 {rid} 不存在")
-    return {"ok": True, "deleted": rid}
+# R219b（P0-4 用户裁决）：history_list / history_detail / history_delete 三个
+# 服务函数随「我的解读」历史记录功能整体删除。用户原话：不记录，浪费内存，
+# 后续会建用户隔离数据库。guji.history 模块本体保留（未删文件）——闸门脚本
+# 与探针仍 import 它做清理判据，删模块会连带打断审查轨领土的判据本体。
 
 
 # ---------------------------------------------------------------------------

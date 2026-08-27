@@ -25,7 +25,7 @@
 from __future__ import annotations
 
 # 本模块唯一的"事实来源"是入参；下面这些表是**术语解释表**，
-# 不是结论表——它们把命理术语翻译成白话，不改变任何计算结果。
+# 只是翻译表——把命理术语转成白话，不改变任何计算结果。（R219b P1-4：去套话）
 
 # 十神白话（《三命通会》《渊海子平》通行释义的中性转述，不含吉凶断言）
 TEN_GOD_PLAIN = {
@@ -278,7 +278,7 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                         "；".join(filter(None, [
                             ("偏旺 " + "、".join(strong)) if strong else "",
                             ("偏弱/缺 " + "、".join(missing)) if missing else "",
-                        ])) + "——失衡处即需要留意处（仅坐标事实）"]
+                        ])) + "——失衡处就是要留意的地方"]   # R219b（P1-4）：去套话
             return [f"{label}相关：五行分布无明显偏旺或缺行"]
         hit = [t for t in tg if t.get("god") in targets]
         if hit:

@@ -91,19 +91,7 @@ def xingzuo(date: str | None = None) -> dict:
     return services.xingzuo(date)
 
 
-@router.get("/api/history")
-def history_list(limit: int = 50, offset: int = 0) -> dict:
-    """历史列表（轻量字段，供前端列表展示）。"""
-    return services.history_list(limit, offset)
-
-
-@router.get("/api/history/{rid}")
-def history_detail(rid: int) -> dict:
-    """单条完整记录（含排盘/运算/引文/解读全文）。"""
-    return services.history_detail(rid)
-
-
-@router.delete("/api/history/{rid}")
-def history_delete(rid: int) -> dict:
-    """删除一条历史记录。"""
-    return services.history_delete(rid)
+# R219b（P0-4 用户裁决）：/api/history、/api/history/{rid}（GET/DELETE）三个
+# 端点随「我的解读」历史记录功能整体删除——不再记录用户解读（用户原话：
+# 不记录，浪费内存，后续会建用户隔离数据库）。services.history_* 与
+# /api/bazi 内的 history_db.save_record() 同批移除。

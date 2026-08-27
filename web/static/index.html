@@ -144,21 +144,10 @@ if ('serviceWorker' in navigator) {
     </div>
 
     <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见。
-         R210b（US6）：「我的解读」历史记录段按用户裁决删除，
-         后端 /api/history* 与 selftest 用例零改动（删入口留后端）。
-         R218a-巡2（N-07）：恢复历史记录 UI 入口——把「我的解读」做成
-         聊天段上方的可折叠段（默认折叠，节标题「📚 我的解读 ·N」+ 列表），
-         不动聊天主流程，点列表项能看详情。 -->
-    <div class="side-history" id="sideHistory">
-      <div class="side-history-head" id="sideHistoryHead" role="button" tabindex="0">
-        <span class="side-history-title">📚 我的解读</span>
-        <span class="side-history-count" id="sideHistoryCount">0</span>
-        <span class="side-history-arrow" id="sideHistoryArrow">▸</span>
-      </div>
-      <div class="side-history-body" id="sideHistoryBody" hidden>
-        <div class="side-history-list" id="histList"></div>
-      </div>
-    </div>
+         R219b（P0-4 用户裁决）：「我的解读」历史记录功能整体删除——
+         不再记录用户解读（省内存，后续改由带用户隔离的数据库承担）。
+         侧栏只剩聊天段；前端 loadHistory/showHistoryDetail/deleteHistory/
+         refreshHistoryCount 及 /api/history* 端点同批删除。 -->
     <div class="side-chat">
       <div class="chat-flow side-chat-flow" id="chatFlow"></div>
       <div class="chat-input-row">

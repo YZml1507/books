@@ -225,6 +225,102 @@ function chatSid() {
 var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
 var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自动发后允许追问 1 次 */
 
+/* R219b（P0-2）：各视图最近一次 API 响应缓存——「聊聊这件事」要把真实牌面/
+ * 盘面/结果拼进第一句话，AI 才有东西可解。键 = 视图短名（bazi/taohua/
+ * tarot/liuyao/hehun/huangli/qiming/xingzuo），值 = {json, question}。
+ * 只存内存，随刷新丢弃（不落库——历史记录功能已按用户裁决删除）。 */
+var LAST_RESULT = {};
+function rememberResult(viewKey, json, question) {
+  LAST_RESULT[viewKey] = { json: json || {}, question: question || '' };
+}
+
+/* R219b（P0-2）：把缓存的响应拼成「带数据的第一句」+ 结构化 facts。
+ * 返回 {msg, facts}；无缓存时回落到旧的通用句（不阻断交互）。 */
+function buildChatContext(viewKey) {
+  var entry = LAST_RESULT[viewKey];
+  var j = entry ? entry.json : null;
+  var q = entry ? (entry.question || '') : '';
+  var facts = [];
+  var msg = '';
+  if (!j) {
+    var GENERIC = {
+      bazi: '帮我看这个盘', taohua: '桃花怎么样', tarot: '牌面说什么',
+      liuyao: '卦象怎么看', hehun: '这两人配吗', huangli: '今天能做什么',
+      qiming: '这些名字怎么样', xingzuo: '今天运势怎么样'
+    };
+    return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [] };
+  }
+  if (viewKey === 'tarot') {
+    var cards = (j.draws || []).map(function (d) {
+      return d.name + '·' + (d.upright ? '正位' : '逆位') +
+        (d.position ? '（' + d.position + '）' : '');
+    });
+    msg = '我抽了' + (cards.join('、') || '牌') +
+      (q ? '，问题是「' + q + '」' : '') + '，帮我解读';
+    facts = cards.map(function (c) { return '牌：' + c; });
+  } else if (viewKey === 'bazi') {
+    /* paipan.render 实测形如「庚午年 辛巳月 庚辰日 壬午时　日主：庚　大运：逆」
+     * ——用全角空格切出四柱段与日主，避免把「大运：逆」也塞进口语句。 */
+    var pp = (j.paipan || {}).render || '';
+    var _seg = pp.split('　');
+    var pillars = _seg[0] || '';
+    var dm = (j.paipan || {}).day_master ||
+      ((pp.match(/日主[：:]\s*(\S)/) || [])[1] || '');
+    msg = '我的八字是' + (pillars || '（未排出）') + (dm ? '，日主' + dm : '') +
+      (q ? '，我想问「' + q + '」' : '') + '，帮我看看';
+    facts = (pillars ? ['四柱：' + pillars] : []).concat(dm ? ['日主：' + dm] : []);
+  } else if (viewKey === 'taohua') {
+    /* 后端 strength 取值是 strong/mid/weak（src/guji/taohua.py:92-96）——
+     * 白话映射，别把英文枚举裸抛给用户。 */
+    var STR = { strong: '很旺', mid: '中等', weak: '偏淡' };
+    msg = '我的桃花星在「' + (j.peach_zhi || '—') + '」，强度' +
+      (STR[j.strength] || j.strength || '未知') +
+      (j.year_zhi ? '，年支' + j.year_zhi : '') + '，最近桃花怎么样';
+    facts = ['桃花支：' + (j.peach_zhi || '—'),
+             '桃花强度：' + (STR[j.strength] || j.strength || '—')];
+    if (j.hongluan) facts.push('红鸾：' + j.hongluan);
+  } else if (viewKey === 'hehun') {
+    var a = j.a_bazi || {}, b = j.b_bazi || {};
+    msg = '一方日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
+      '），另一方日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
+      '），这两人配吗';
+    facts = ['A 日柱：' + (a.day || '—'), 'B 日柱：' + (b.day || '—')];
+    if (j.day_wx_sheng !== undefined) {
+      facts.push('日主五行：' + (j.day_wx_sheng ? '相生' : '相克'));
+    }
+  } else if (viewKey === 'huangli') {
+    var yi = (j.yi || []).slice(0, 3).join('、');
+    var ji = (j.ji || []).slice(0, 3).join('、');
+    msg = '今天是' + (j.date || '今天') + '，宜' + (yi || '—') + '，忌' +
+      (ji || '—') + '，我今天适合做什么';
+    facts = ['宜：' + yi, '忌：' + ji];
+  } else if (viewKey === 'qiming') {
+    var names = (j.full_names || []).slice(0, 5).map(function (n) {
+      return n.full_name;
+    });
+    var miss = ((j.five_elements || {}).missing || []).join('');
+    msg = '候选名字是' + (names.join(' / ') || '（还没生成）') +
+      (miss ? '，八字缺' + miss : '') + '，哪个更好';
+    facts = names.map(function (n) { return '候选名：' + n; });
+  } else if (viewKey === 'liuyao') {
+    var ben = j.ben || {};
+    var moving = (ben.moving_lines || []).join('、');
+    msg = '我摇到的是' + (ben.gua_name || '—') + '卦（第' +
+      (ben.gua_number || '—') + '卦）' + (moving ? '，动爻在' + moving : '') +
+      (q ? '，问的是「' + q + '」' : '') + '，这卦怎么看';
+    facts = ['本卦：' + (ben.gua_name || '—')];
+    if (moving) facts.push('动爻：' + moving);
+  } else if (viewKey === 'xingzuo') {
+    var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
+    msg = '今天' + (j.date || '') + '值宫是' +
+      ((today && today.sign) || '—') + '，我今天运势怎么样';
+    facts = ['今日值宫：' + ((today && today.sign) || '—')];
+  } else {
+    msg = '帮我看看这个结果';
+  }
+  return { msg: msg, facts: facts.slice(0, 6) };
+}
+
 /** R207b：聊天入口全局化——结果容器渲染出 .card 后尾部统一挂入口钮。
  *  已有则跳过（重绘安全）；无 .card（如空态/错误态）不挂。 */
 function attachChatEntry(container) {
@@ -245,20 +341,23 @@ function attachChatEntry(container) {
 function autoSendChatContext() {
   /* D-001-fix：先确保侧栏打开再发送消息 */
   chatOpen();
-  /* D-001：根据当前视图自动发送对应上下文消息，不再依赖 CHAT_LAST_FACTS */
+  /* R219b（P0-2）：第一句必须带真实数据（牌名/干支/宜忌/候选名），
+   * 由 buildChatContext 从 LAST_RESULT 缓存里拼出；facts 同步带结构化坐标，
+   * 后端 spawn_chat_task 拿到的不再是一句空泛的「帮我看这个盘」。 */
   var view = document.querySelector('.view.active');
   var viewId = view ? view.id : '';
-  var msg = '帮我看看这个盘';
-  if (viewId.indexOf('bazi') !== -1) msg = '帮我看这个盘';
-  else if (viewId.indexOf('taohua') !== -1) msg = '桃花怎么样';
-  else if (viewId.indexOf('tarot') !== -1) msg = '牌面说什么';
-  else if (viewId.indexOf('liuyao') !== -1) msg = '卦象怎么看';
-  else if (viewId.indexOf('hehun') !== -1) msg = '这两人配吗';
-  else if (viewId.indexOf('huangli') !== -1) msg = '今天能做什么';
-  else if (viewId.indexOf('qiming') !== -1) msg = '这些名字怎么样';
+  var viewKey = '';
+  ['taohua', 'tarot', 'liuyao', 'hehun', 'huangli', 'qiming', 'xingzuo',
+   'bazi'].forEach(function (k) {
+    if (!viewKey && viewId.indexOf(k) !== -1) viewKey = k;
+  });
+  var ctx = buildChatContext(viewKey);
+  var msg = ctx.msg;
+  /* facts 优先用本视图的结构化坐标；为空时回落到排盘时存的 CHAT_LAST_FACTS */
+  var facts = (ctx.facts && ctx.facts.length) ? ctx.facts : CHAT_LAST_FACTS;
   chatBubble('me', msg);
   postJSON('/api/chat', {
-    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
+    session_id: chatSid(), message: msg, facts: facts
   }).then(function (j) {
     if (!j.chat_task_id) {
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
@@ -1375,7 +1474,8 @@ function buildShareData(view, j) {
       var draws = (j && j.draws) || [];
       var imgs = document.querySelectorAll('.tarot-card-front img');
       var s = base('塔罗指引', (w.question_hint || ''));
-      s.big = l0 || '牌面是象征，不是结论';
+      /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
+      s.big = l0 || '今天这几张牌，值得你看一眼';
       s.cards = draws.slice(0, 3).map(function (d, i) {
         var el = imgs[i] && imgs[i].complete && imgs[i].naturalWidth > 0 ? imgs[i] : null;
         return { name: d.name, sub: d.upright ? '正位' : '逆位', img: el };
@@ -2063,13 +2163,14 @@ async function submitBazi(event) {
     } catch (e) { CHAT_LAST_FACTS = []; }
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);
+    rememberResult('bazi', j, body.question || '');   /* R219b（P0-2）：聊聊上下文 */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('favBazi', function () {
       addFavorite('bazi', paipan.render || 'latest', '八字排盘 ' + (paipan.render || ''));
     });
     on('shareBazi', function () { downloadPoster(j, 'bazi'); });   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
-    loadRecent();
+    /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
   } catch (e) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
     failWithRetry('result', '计算失败：' + e.message, function () { submitBazi(); });
@@ -2648,6 +2749,7 @@ async function doLiuyao() {
     const j = await postJSON('/api/liuyao', body);
     paint('lyResult', buildLiuyaoResult(j));
     rememberVoice('lyResult', j, buildLiuyaoResult);
+    rememberResult('liuyao', j, val('ly_question') || '');   /* R219b（P0-2） */
     revealResult('lyResult');          // 005 判据 1 场景 5：不是只修排盘
     /* R198b（US5）：六爻分享图——结果卡尾部注入按钮（对齐 shareBazi 模式） */
     var lyCard = document.querySelector('#lyResult .card');
@@ -2730,6 +2832,7 @@ async function doHuangli() {
     html += renderAiPolish(j);
     html += '</div>';
     paint('hlResult', html);
+    rememberResult('huangli', j, '');   /* R219b（P0-2）：宜忌进第一句 */
     revealResult('hlResult');
   } catch (e) {
     fail('hlResult', '查询失败：' + e.message);
@@ -2977,6 +3080,7 @@ async function doQiming() {
     html += renderAiPolish(j);
     html += '</div></div>';
     paint('qmResult', html);
+    rememberResult('qiming', j, '');   /* R219b（P0-2）：候选名进第一句 */
     on('nameReviewBtn', function () {
       const btn = el('nameReviewBtn');
       if (btn) btn.disabled = true;
@@ -3056,7 +3160,8 @@ async function doTaohua() {
     }
     /* R216b（UX 队列 U-003）：温柔模式下四柱标签 + 8 个裸键值块
      * （年支/咸池/红鸾/天喜/强弱…）是纯工具感排版，且 badge 声称
-     * 「详细依据见专业模式」却把原始坐标铺在当前页、自相矛盾。
+     * badge 曾声称「详细依据见专业模式」却把原始坐标铺在当前页、自相矛盾
+     * （该套话已在 R218a-巡6 D-003-badge 从 voice.BADGE 移除）。
      * 改为：warm 下整块收进单个折叠「🔍 想看桃花坐标？」；
      * 强弱值经 STRENGTH_CN 映射（weak→偏弱 等英文不再直出）。
      * 叠字标签核查结论（R216b 实测 + vision 复核）：审查轨截图里的
@@ -3118,6 +3223,7 @@ async function doTaohua() {
     html += renderAiPolish(j);
     html += '</div>';
     paint('thResult', html);
+    rememberResult('taohua', j, '');   /* R219b（P0-2）：桃花支+强度进第一句 */
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareTaohua', function () { downloadPoster(j, 'taohua'); });   /* R218a-巡2（N-04）：改用 taohua 专属 case */
@@ -3398,6 +3504,7 @@ async function doTarot() {
     const j = await postJSON('/api/tarot', body);
     paint('trResult', buildTarotResult(j));
     rememberVoice('trResult', j, buildTarotResult);
+    rememberResult('tarot', j, q || '');   /* R219b（P0-2）：牌名+正逆位进第一句 */
     revealResult('trResult');
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
     (j.draws || []).forEach(function (_d, i) {
@@ -3506,6 +3613,7 @@ async function doHehun() {
     html += renderAiPolish(j);
     html += '</div>';
     paint('hhResult', html);
+    rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04）：改用 hehun 专属 case */
@@ -3553,172 +3661,20 @@ async function doXingzuo() {
     }
     html += '</div>';
     paint('xzResult', html);
+    rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
     revealResult('xzResult');
   } catch (e) {
     fail('xzResult', '查询失败：' + e.message);
   }
 }
 
-/* ── 历史 / 最近 / 收藏 / 新闻 ────────────────────────────────── */
+/* ── 收藏 / 新闻 ──────────────────────────────────────────────── */
 
-/** R000a-04：原读 j.items，后端给的是 j.records。 */
-async function loadHistory(append) {
-  const list = el('histList');
-  if (!list) return;
-  /* R218a-巡3（N-α 修复加分页）：分页模块状态——首次展开全量加载后续页时
-   * 增量 append，避免一次性拉满 200 条。简单用模块级变量管理 offset/总
-   * 数；不持久化（关掉侧栏就重置，符合「展开」语义）。 */
-  if (!append) { __histPage = { offset: 0, total: 0, step: 20 }; }
-  const PAGE = (__histPage && __histPage.step) || 20;
-  const off = (__histPage && __histPage.offset) || 0;
-  try {
-    const j = await api('/api/history?limit=' + PAGE + '&offset=' + off);
-    const records = j.records || [];
-    const total = (typeof j.total === 'number') ? j.total : records.length;
-    if (__histPage) { __histPage.total = total; }
-    if (!records.length && !append) {
-      list.innerHTML = '<div class="no-evidence">暂无记录</div>';
-      return;
-    }
-    let html = append ? '' : '';
-    records.forEach(function (item) {
-      html += '<div class="hist-item">' +
-        '<div class="hist-time">' + esc(fmtHistTime(item.created_at)) + '</div>' +
-        '<div class="hist-q">' + esc(item.question || '（未填问题）') + '</div>' +
-        '<div class="hist-p">' + esc(item.paipan_render || '') + '</div>' +
-        '<div class="hist-actions">' +
-        '<button class="hist-view" type="button" data-hist="' + esc(item.id) +
-        '">查看</button>' +
-        '<button class="hist-del" type="button" data-hist-del="' +
-        esc(item.id) + '">删除</button></div></div>';
-    });
-    /* 「加载更多」按钮：还剩数据时追加。 */
-    if (typeof total === 'number' && off + records.length < total) {
-      html += '<button type="button" id="histMore" class="ghost" ' +
-        'style="width:100%;margin-top:8px;">加载更多（已显示 ' +
-        (off + records.length) + ' / 共 ' + total + '）</button>';
-    }
-    if (append) {
-      /* 去掉旧的「加载更多」按钮后再追加新内容，避免重复。 */
-      const oldMore = list.querySelector('#histMore');
-      if (oldMore) oldMore.remove();
-      list.insertAdjacentHTML('beforeend', html);
-    } else {
-      list.innerHTML = html;
-    }
-    if (__histPage) { __histPage.offset = off + records.length; }
-  } catch (e) {
-    if (!append) {
-      list.innerHTML = '<div class="no-evidence">加载失败：' + esc(e.message) + '</div>';
-    }
-  }
-}
-/* R218a-巡3：分页状态模块级变量——loadHistory 内部用。 */
-var __histPage = null;
-
-/* R218a-巡4（Nα-b）：ISO 时间戳裸抛修复——「2026-08-26T17:29:08+08:00」
- * 格式化成「8月26日 17:29」；解析失败原样返回（容错旧数据）。 */
-function fmtHistTime(iso) {
-  const s = String(iso || '');
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!m) return s;
-  return parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日 ' + m[4] + ':' + m[5];
-}
-
-async function showHistoryDetail(rid) {
-  const list = el('histList');
-  if (!list) return;
-  /* R218a-巡4（Nα-a）：详情加载中先给骨架占位——原来请求期间列表空白，
-   * 390px 下视觉空洞。骨架条与真实卡片同构，加载完无缝替换。 */
-  list.innerHTML =
-    '<div class="hist-banner">历史记录 #' + esc(String(rid)) + '</div>' +
-    '<div class="hist-skeleton"><div class="sk-line" style="width:40%"></div>' +
-    '<div class="sk-line" style="width:90%"></div>' +
-    '<div class="sk-line" style="width:75%"></div>' +
-    '<div class="sk-line" style="width:82%"></div></div>';
-  try {
-    const j = await api('/api/history/' + encodeURIComponent(rid));
-    let html = '<div class="hist-banner">历史记录 #' + esc(rid) + '　' +
-      esc(fmtHistTime(j.created_at)) + '</div>';
-    html += '<button type="button" id="histBack" class="ghost">← 返回列表</button>';
-    html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    // R183b（同 R124a-01）：历史详情同族。历史记录里没有存 warm（llm_json 列
-    // 存的是当时的 interpretation），所以温柔模式下不印内部键名转储，
-    // 改为把 calc 交给 interpreter 的结构化输出去展示（下方 renderInterpretation）。
-    if (voiceMode() === 'pro') {
-      html += renderCalc(j.calc);
-    }
-    if (j.evidence && j.evidence.length) {
-      html += '<h3 style="margin-top:16px;">古籍依据</h3>' +
-        renderHits(j.evidence, { empty: '' });
-    }
-    // llm_json 列名保留做向后兼容（D-226b）：旧记录是 LLM 文本，新记录是
-    // interpreter 的结构化输出——两种都要能显示。
-    const stored = j.llm || {};
-    if (stored.sections || stored.text) {
-      html += renderInterpretation(stored, '📖 当时的解读');
-    }
-    list.innerHTML = html;
-    on('histBack', loadHistory);
-  } catch (e) {
-    list.innerHTML = '<div class="no-evidence">加载失败：' + esc(e.message) + '</div>';
-  }
-}
-
-async function deleteHistory(rid) {
-  try {
-    await api('/api/history/' + encodeURIComponent(rid), { method: 'DELETE' });
-  } catch (e) {
-    /* 删除失败不阻断，下次刷新自见 */
-  }
-  __histCache.promise = null;   /* R201b（B-009）：删数据后缓存必须失效 */
-  loadHistory();
-  loadRecent();
-}
-
-/** R000a-04：同上，records 不是 items。
- *  R201b（B-009）：loadHistory/loadRecent 各自打一次 /api/history 是重复
- *  请求——改为共享缓存：fetchHistory() 模块级去重，10s 内复用同一 Promise。 */
-var __histCache = { at: 0, promise: null };
-function fetchHistory() {
-  var now = Date.now();
-  if (__histCache.promise && now - __histCache.at < 10000) return __histCache.promise;
-  __histCache.at = now;
-  __histCache.promise = api('/api/history?limit=20');
-  __histCache.promise.catch(function () { __histCache.promise = null; });
-  return __histCache.promise;
-}
-async function loadRecent() {
-  const list = el('recentList');
-  if (!list) return;
-  const fallback = '<div class="recent-item"><span class="recent-icon">🔮</span>' +
-    '<div class="recent-info"><div class="recent-title">还没有解读记录</div>' +
-    '<div class="recent-date">去排盘 →</div></div>' +
-    '<span class="recent-arrow">→</span></div>';
-  try {
-    const j = await fetchHistory();
-    const records = (j.records || []).slice(0, 5);
-    if (!records.length) {
-      list.innerHTML = fallback;
-      return;
-    }
-    let html = '';
-    records.forEach(function (item) {
-      const date = String(item.created_at || '').slice(0, 16).replace('T', ' ');
-      html += '<div class="recent-item" data-hist="' + esc(item.id) + '">' +
-        '<span class="recent-icon">🔮</span><div class="recent-info">' +
-        '<div class="recent-title">' +
-        esc(item.question || item.paipan_render || '八字排盘') + '</div>' +
-        '<div class="recent-date">' + esc(date) + '</div></div>' +
-        '<button class="recent-del" type="button" data-hist-del="' +
-        esc(item.id) + '" title="删除这条记录">✕</button>' +
-        '<span class="recent-arrow">→</span></div>';
-    });
-    list.innerHTML = html;
-  } catch (e) {
-    list.innerHTML = fallback;
-  }
-}
+/* R219b（P0-4 用户裁决）：「我的解读」历史记录功能整体删除。
+ * 原 loadHistory / fmtHistTime / showHistoryDetail / deleteHistory /
+ * fetchHistory / loadRecent / __histPage / __histCache 全部移除；
+ * 后端 /api/history* 端点与 history_db.save_record() 调用同批删除。
+ * 用户原话：不记录，浪费内存，后续会建用户隔离数据库。 */
 
 /* R208b：loadFavorites/addFavorite/removeFavorite 函数体已清空（UI 区块
  * 按用户裁决删除）。保留空函数壳：favBazi 等调用点零改动，后端
@@ -3800,45 +3756,10 @@ function initViews() {
      * 一致的 open/closed 抽屉语义（R209b 的 collapsed 常驻方案废除；
      * collapsed 类仍保留为强制收起兼容探针）。 */
     _setRecent(!sb.classList.contains('open'));
-    /* R218a-巡2（N-07）：打开侧栏时拉一次历史记录 + 计数（仅首开拉取，
-     * 展开折叠不重拉；用户主动操作后由 deleteHistory 主动刷新）。 */
-    if (sb && sb.classList.contains('open')) refreshHistoryCount();
   });
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
   if (bd) bd.addEventListener('click', function () { _setRecent(false); });
-  /* R218a-巡2（N-07）：侧栏内「我的解读」段折叠交互。 */
-  var histHead = el('sideHistoryHead');
-  var histBody = el('sideHistoryBody');
-  var histSec = el('sideHistory');
-  function _toggleHistory() {
-    if (!histSec || !histBody) return;
-    var open = histBody.hidden;
-    histBody.hidden = !open;
-    histSec.classList.toggle('open', open);
-    if (open) loadHistory();
-  }
-  if (histHead) histHead.addEventListener('click', _toggleHistory);
-  if (histHead) histHead.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _toggleHistory(); }
-  });
-  /* 启动时拉一次计数（不展开也可见） */
-  refreshHistoryCount();
-}
-
-/* R218a-巡2（N-07）：拉侧栏历史记录计数——首次读 /api/history?limit=1 拿总数。
- * 失败静默，不影响主流程。 */
-async function refreshHistoryCount() {
-  var cnt = el('sideHistoryCount');
-  if (!cnt) return;
-  try {
-    var j = await api('/api/history?limit=1');
-    var n = (j && j.records) ? j.records.length : 0;
-    /* 后端 limit=1 时 records 只返 1，但 total 字段表示总数（如果有） */
-    var total = (j && typeof j.total === 'number') ? j.total : n;
-    cnt.textContent = total > 0 ? String(total) : '0';
-  } catch (e) {
-    cnt.textContent = '0';
-  }
+  /* R219b（P0-4）：侧栏「我的解读」折叠段与计数刷新随历史记录功能删除。 */
 }
 
 function initBazi() {
@@ -3935,32 +3856,14 @@ function initReading() {
       showThread(threadBtn.dataset.thread);
       return;
     }
-    const histDel = e.target.closest('[data-hist-del]');
-    if (histDel) {
-      deleteHistory(histDel.dataset.histDel);
-      return;
-    }
-    const histView = e.target.closest('[data-hist]');
-    if (histView) {
-      showHistoryDetail(histView.dataset.hist);
-      return;
-    }
     const favDel = e.target.closest('[data-fav-del]');
     if (favDel) {
       removeFavorite(favDel.dataset.favDel);
     }
-    /* R218a-巡3：分页「加载更多」点击——委托 histList 内 #histMore。 */
-    const more = e.target.closest('#histMore');
-    if (more) {
-      loadHistory(true);
-      return;
-    }
+    /* R219b（P0-4）：data-hist / data-hist-del / #histMore 三条历史记录
+     * 委托随功能删除（DOM 与后端端点均不复存在）。 */
   });
 }
-
-/* R210b（US6）：deleteHistory/showHistoryDetail 保留定义但调用点已随
- * 「我的解读」段删除而不可达（histList DOM 已移除，委托选择器永不命中）。
- * 函数本体保留——零删除原则，后端 API 与未来可能的恢复路径不受影响。 */
 
 function initDivination() {
   on('lySubmit', doLiuyao);
@@ -3989,10 +3892,7 @@ function init() {
   initReading();
   initDivination();
   loadDaily();
-  /* R210b（US6）：「我的解读」历史记录段随用户裁决删除——loadHistory
-   * 调用点退役（函数保留为元素缺失安全 no-op）；/api/history 后端、
-   * selftest history 用例、探针清理判据零改动（删入口留后端）。 */
-  loadRecent();
+  /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
   /* R208b：loadNews 随「今日关注」面板移除 */
   warmPoster();   /* R193b：空闲预热海报管线，消除首点冷启动长任务 */

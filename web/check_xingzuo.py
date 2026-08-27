@@ -52,7 +52,6 @@ def check_deterministic() -> list[str]:
     """判据 11：同日两次调用逐字节相等；12 宫齐全。"""
     from fastapi.testclient import TestClient
 
-    from guji import history as history_db
     from web.app import app
 
     client = TestClient(app)

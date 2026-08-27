@@ -104,7 +104,8 @@ def compute(b: Bazi) -> Taohua:
     if tx_hit:
         notes.append("天喜临柱，传统上主喜庆缘分信息")
     if not notes:
-        notes.append("四柱无桃花/红鸾/天喜临支，缘分信息平淡（仅坐标事实，不作断言）")
+        # R219b（P1-4）：去掉「仅坐标事实，不作断言」免责套话
+        notes.append("四柱没有桃花/红鸾/天喜临支——这段缘分信号偏安静，适合先把自己过好")
 
     return Taohua(
         year_zhi=year_zhi, peach_zhi=peach,

@@ -11,8 +11,9 @@
 断言纪律（R178b 重构时逐条搬迁，不放宽）：
   * 每条 check/断言的**名字、固定输入、期望值**与重构前逐字一致。
   * `_expect_400` / `_expect_422` 断言状态码，不走 `check()`（它断言 200）。
-  * 写端点（bazi 写 history.db、threads 写 knowledge.db）自测后必须清理
-    本轮新增记录（L-22 教训：写端点自测不得污染真实库）。
+  * 写端点（threads 写 knowledge.db）自测后必须清理本轮新增记录
+    （L-22 教训：写端点自测不得污染真实库）。R219b（P0-4）：/api/bazi
+    不再写 history.db——历史记录功能整体删除，相关清理与断言同批移除。
 
 R178b 契约变更（唯一一处，D-226b）：LLM 生成式解读层已移除，`llm` 字段
 → `interpretation`（`guji.interpreter` 确定性输出）。因此原
@@ -143,12 +144,9 @@ def run() -> list[str]:
     check("threads.list", client.get("/api/threads"), lambda j: "threads" in j)
 
     # ── 数术主 tab 端点（R53b）：bazi/liuyao/huangli/qiming 确定性覆盖 ──
-    # bazi 端点会把查询写入真实 history.db（D-039 用户授权）——自测须清理
-    # 本次新增记录（L-22 教训：写端点自测不得污染真实库）。
-    from guji import history as history_db
-
-    rows_before = history_db.list_records(limit=1)
-    max_id_before = rows_before[0]["id"] if rows_before else 0
+    # R219b（P0-4）：/api/bazi 曾把查询写入 history.db（D-039），历史记录
+    # 功能整体删除后它是纯读端点——原 history_db import + max_id_before
+    # 基线 + 各段清理循环一并移除（写端点污染纪律对本端点不再适用）。
     check("bazi", client.post("/api/bazi", json={"year": 1990, "month": 1,
           "day": 1, "hour": 12, "gender": "男"}),
           lambda j: (j.get("paipan") and j.get("calc")
@@ -217,9 +215,6 @@ def run() -> list[str]:
           "day": 15, "hour": 10, "gender": "男", "scope": "life"}),
           lambda j: (j.get("calc", {}).get("scope") == "life"
                      and len(j.get("calc", {}).get("dayun", [])) == 8))
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     # R69b（D-115b）：retrieve_semantic（bge 语义路径）standing 覆盖——该路径
     # 只在 CLI（scripts/ask_bazi.py）调用，web /api/bazi 不经过它，13 闸门与
     # 五层自测此前均不覆盖。固定 Bazi 输入 → 语义命中非空 + 含 P2 子平书。
@@ -697,22 +692,15 @@ def run() -> list[str]:
     assert _ai["text"] == _a2["interpretation"]["text"], \
         "ask interpretation must be deterministic"
     ok.append("ask.interpretation.shape")
-    check("history", client.get("/api/history", params={"limit": 3}),
-          lambda j: "records" in j and isinstance(j["records"], list))
-    # R126b（D-172b）：history.detail 断言的 id 来源——原用 count()（行数）
-    # 当 id 查，历史库经删除后 id 不连续 → 404。改取最新记录真实 id。
-    _latest = history_db.list_records(limit=1)
-    check("history.detail",
-          client.get(f"/api/history/{_latest[0]['id'] if _latest else 0}"),
-          lambda j: j is None or "paipan" in j)
-    # R138b（D-184b）：history.detail 缺失记录拒绝分支 standing 覆盖——
-    # 现有 check 只测命中路径，404 拒绝分支零断言。实测 99999 → 404 + detail。
-    _miss = client.get("/api/history/99999")
-    assert _miss.status_code == 404, ("history.detail.missing",
-                                      _miss.status_code, _miss.text[:200])
-    assert _miss.json().get("detail"), ("history.detail.missing",
-                                        _miss.text[:200])
-    ok.append("history.detail.missing")
+    # R219b（P0-4 用户裁决）：history / history.detail / history.detail.missing
+    # 三条断言随 /api/history* 端点删除（历史记录功能整体移除）。改为**反向
+    # 断言**：三个端点必须 404（路由已注销），防止端点被悄悄恢复。
+    for _hp, _hm in (("/api/history", "GET"), ("/api/history/1", "GET"),
+                     ("/api/history/1", "DELETE")):
+        _hr = (client.get(_hp) if _hm == "GET" else client.delete(_hp))
+        assert _hr.status_code == 404, ("history.removed", _hm, _hp,
+                                        _hr.status_code)
+    ok.append("history.removed")
     check("threads.detail", client.get("/api/threads/1"),
           lambda j: "claims" in j and "turns" in j)
     # R169b（D-215b）：threads.detail 404 拒绝路径 standing 覆盖。
@@ -866,9 +854,6 @@ def run() -> list[str]:
         assert "llm" not in _body and "llm_out" not in _body, \
             (_path, sorted(_body))
         assert isinstance(_body.get("interpretation"), dict), _path
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     ok.append("llm.fields.absent")
     # R191b（T1.5 补建，B-014/D-251b）：AI 润色**异步层** standing 断言。
     # 闸门环境 DISABLE=1：端点响应必须无 ai_task_id 键（判据 11，与旧版
@@ -877,14 +862,9 @@ def run() -> list[str]:
     import time as _time
     from guji import llm_polish as _L
 
-    _max_id2 = max((rec["id"] for rec in history_db.list_records(limit=5)),
-                   default=0)
     _b = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
                                         "hour": 10, "gender": "男"}).json()
     assert "ai_task_id" not in _b and _b.get("ai_polish") is None, sorted(_b)
-    for rec in history_db.list_records(limit=5):
-        if rec["id"] > _max_id2:
-            history_db.delete_record(rec["id"])
     ok.append("ai.async.disabled.no_task_id")
 
     def _stub_ok(payload, headers, url, timeout):
@@ -960,9 +940,6 @@ def run() -> list[str]:
     #   (2) 真实响应里这三个字段确实是 dict（否则断言 (1) 就失去意义）。
     _bz = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
                                         "hour": 10, "gender": "男"}).json()
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     assert isinstance(_bz["calc"]["five_elements"], dict), "five_elements must be dict"
     assert isinstance(_bz["calc"]["day_luck"], dict), "day_luck must be dict"
     # C-001：黄历移除文言展示（建除/二十八宿/彭祖百忌），改为年轻化宜忌词库
@@ -989,9 +966,6 @@ def run() -> list[str]:
     _wb2 = client.post("/api/bazi", json={"year": 1998, "month": 7, "day": 20,
                                          "hour": 14, "gender": "女",
                                          "question": "感情运怎么样？"}).json()
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     _w = _wb.get("warm")
     assert isinstance(_w, dict) and _w.get("mode") == "warm", _w
     ok.append("warm.bazi.present")
@@ -1054,9 +1028,6 @@ def run() -> list[str]:
         _aj = client.post(_ep, json=_pl).json()
         assert "ai_polish" in _aj, (_ep, sorted(_aj))
     ok.append("ai_polish.key_present")
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     # 判据 disabled_none：总开关开启时 polish() 必须返回 None 且不抛——
     # LLM 永远不是承重墙（D-244a），禁用路径必须是一条真实可走的路。
     # R192b 修正：finally 里 pop 掉环境变量会把「闸门环境的 DISABLE=1」一并
@@ -1117,9 +1088,6 @@ def run() -> list[str]:
         assert _got == _expect_keys[_ep], \
             (_ep, sorted(_got), sorted(_expect_keys[_ep]))
     ok.append("ai_polish.additive")
-    for rec in history_db.list_records(limit=20):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
     return ok
 
 

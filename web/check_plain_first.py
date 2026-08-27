@@ -247,9 +247,9 @@ def _submit(page, port: int, payload: dict):
 def collect(inject_break: str | None = None) -> dict:
     """跑五个用例，返回 {case_id: {api..., dom...}}。"""
     from playwright.sync_api import sync_playwright
-    from guji import history as history_db
 
-    hist0 = history_db.count()
+    # R219b（P0-4）：/api/bazi 不再写 history.db（历史记录功能整体删除），
+    # 原 hist0 基线 + finally 清理段随之移除。
     out: dict = {}
     try:
         with Server() as srv, sync_playwright() as pw:
@@ -287,13 +287,7 @@ def collect(inject_break: str | None = None) -> dict:
                 }
             browser.close()
     finally:
-        try:
-            extra = history_db.count() - hist0
-            for rec in history_db.list_records(200)[:max(0, extra)]:
-                history_db.delete_record(rec["id"])
-            print(f"清理 history：{hist0} -> {history_db.count()}")
-        except Exception as exc:                       # noqa: BLE001
-            print(f"⚠ 清理未完成：{type(exc).__name__}: {exc}")
+        pass                        # R219b（P0-4）：无 history 需要清理
     return out
 
 

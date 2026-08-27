@@ -84,13 +84,23 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         if not classical_entries:
             continue
 
-        # D-004-fix：seed 传入时随机打乱，否则按性别排序
+        # D-004-fix：seed 传入时打乱，否则按性别排序。
+        # R219b（P0-3 换一批去重）：原实现是 random.Random(seed).shuffle(全池)
+        # 再截前 top_n——同一个池反复重抽，连续两次「换一批」实测重叠 4/8 个字
+        # （seed=1 葭棠华萋鹜茕梧松 vs seed=2 竹梧鹜苏棠衿松采）。改成**按批
+        # 轮转**：先用固定种子（0）把池洗成一个稳定顺序，再按 seed 取第 N 段
+        # （offset = (seed-1)*top_n，环形回绕）。连续批次只在池长不足整数倍时
+        # 重叠，且轮完一圈才可能重复——正是用户要的「换一批不重复」。
         if seed is not None:
             import random as _random
-            _rng = _random.Random(seed)
             selected = classical_entries[:]
-            _rng.shuffle(selected)
-            selected = selected[:top_n * 2]
+            _random.Random(0).shuffle(selected)          # 稳定的池内顺序
+            _n = len(selected)
+            _step = max(int(top_n), 1)
+            _off = ((int(seed) - 1) * _step) % _n
+            # 环形取 top_n*2 个（够 top_n 段用，且跨越池尾自动回绕）
+            _take = min(_step * 2, _n)
+            selected = [selected[(_off + i) % _n] for i in range(_take)]
         else:
             def _score_entry(entry):
                 char = entry.get("字", "")

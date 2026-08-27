@@ -101,28 +101,18 @@ CASES: tuple[dict, ...] = (
 )
 
 
-def _clean_history(max_id_before: int) -> None:
-    """/api/bazi 会写 history.db（D-039 授权）——自测须清理本次新增行。
-
-    L-22 教训：写端点自测不得污染真实库。
-    """
-    from guji import history as history_db
-
-    for rec in history_db.list_records(limit=50):
-        if rec["id"] > max_id_before:
-            history_db.delete_record(rec["id"])
+# R219b（P0-4）：_clean_history 随历史记录功能删除——/api/bazi 不再写
+# history.db（web/services.py 的 save_record 调用已移除），本脚本不再产生
+# 需要清理的行（L-22 写端点污染纪律对本端点不再适用）。
 
 
 def collect() -> dict:
     """跑固定输入集，抽出每例的 interpretation 全量快照（纯读，不改产品代码）。"""
     from fastapi.testclient import TestClient
 
-    from guji import history as history_db
     from web.app import app
 
     client = TestClient(app)
-    rows = history_db.list_records(limit=1)
-    max_id_before = rows[0]["id"] if rows else 0
 
     out: dict = {}
     for case in CASES:
@@ -151,7 +141,6 @@ def collect() -> dict:
             "evidence_citations": [e.get("citation")
                                    for e in (body.get("evidence") or [])],
         }
-    _clean_history(max_id_before)
     return out
 
 

@@ -16995,3 +16995,143 @@ commit: 待提交
 | `/api/xingzuo` | `today_sign=金牛`、`signs` 12 宫齐 ✅ |
 
 commit: 待提交
+
+
+---
+
+**【§172 · 2026-08-27 · R219b 优化轨修复（P0-4 / P0-2 / P0-3 / P1-4）】**
+
+用户当轮下发 4 项（严格不扩张）：P0-4 删历史记录 / P0-2 聊聊带上下文 /
+P0-3 换一批去重验证 / P1-4 badge 套话清理。基线 commit `eb7932e`。
+
+#### T1（P0-4）删除「我的解读」历史记录功能
+
+用户原话：不记录，浪费内存，后续会建用户隔离数据库。删除范围与实测行号：
+
+| 文件 | 改动 |
+|------|------|
+| `web/static/index.html:146-151` | 删 `<div class="side-history" id="sideHistory">` 整区块（head/count/arrow/body/histList 共 10 行）→ 换成 R219b 说明注释 |
+| `web/static/app.js:3562-3728` | 删 `loadHistory` / `fmtHistTime` / `showHistoryDetail` / `deleteHistory` / `fetchHistory` / `loadRecent` / `__histPage` / `__histCache`（约 166 行 → 7 行注释） |
+| `web/static/app.js:3647-3652` | 删侧栏折叠交互 `_toggleHistory` + `refreshHistoryCount()` 定义与两个调用点 |
+| `web/static/app.js:3747-3757` | 删 `[data-hist]` / `[data-hist-del]` / `#histMore` 三条事件委托 |
+| `web/static/app.js:2072 / 3786` | 删 `loadRecent()` 两个调用点（submitBazi 尾部 + init） |
+| `web/routers/bazi.py:94-109` | 删 `/api/history`、`GET /api/history/{rid}`、`DELETE /api/history/{rid}` 三个端点 |
+| `web/services.py:33` | 删 `from guji import history as history_db` |
+| `web/services.py:183-198` | 删 `input_snapshot` 字典 + `history_db.save_record()` 调用（`/api/bazi` 由此变纯读端点） |
+| `web/services.py:339-366` | 删 `history_list` / `history_detail` / `history_delete` 三个服务函数 |
+| `web/routers/__init__.py:8` | 域清单去掉 `/api/history` |
+| `web/selftest.py` | 删 history_db import + `max_id_before` 基线 + **4 处**清理循环 + 异步段 `_max_id2` 清理；`history` / `history.detail` / `history.detail.missing` 三条断言 → 改为**反向断言** `history.removed`（三个端点必须 404，防端点被悄悄恢复）。检查数 163 → 161（-3 旧 +1 新） |
+| `web/baseline_voice.py:104-125` | 删 `_clean_history` + `max_id_before` 基线 + 调用点 |
+| `web/check_warm_voice.py:147-247` | 同上 |
+| `web/check_plain_first.py:250-297` | 删 `hist0` 基线 + finally 清理段 |
+| `web/check_xingzuo.py:55` | 删无用 history import |
+
+- `guji.history` 模块本体**保留未删**：`probes/probe_contract.py` 与
+  `probes/probe_ui_smoke.py`（审查轨领土）仍 import 它做 history.db 行数清理
+  判据；删模块会连带打断判据本体。两个探针本轮**零改动**且实测 EXIT=0
+  （`history 行数 378 -> 378` 恒等 —— 因为已经没有端点会写它），
+  因此**不需要**动用 D-250b 越界先例。
+- 全仓残留 grep（`history_db|loadHistory|side-history|/api/history|
+  showHistoryDetail|deleteHistory|refreshHistoryCount|__histPage|histMore|
+  sideHistoryHead|loadRecent|fetchHistory`）→ 剩余命中**全部是本轮写下的
+  「已删除」说明注释**，零可执行引用。
+
+#### T2（P0-2）「聊聊这件事」带真实上下文
+
+- 根因：`app.js:245 autoSendChatContext()` 只按视图 id 发一句固定通用语
+  （「帮我看这个盘」/「桃花怎么样」），牌面/盘面/结果一个字都没传，
+  `facts` 用的是只在 `submitBazi` 里填过的 `CHAT_LAST_FACTS`（其余 6 个视图恒空）。
+- 修法（`web/static/app.js`）：
+  1. 新增 `LAST_RESULT` 全局缓存 + `rememberResult(viewKey, json, question)`
+     （app.js:228-235），8 个 `do*` 渲染成功处各挂一行（bazi/liuyao/tarot/
+     huangli/taohua/hehun/qiming/xingzuo）。只存内存，不落库。
+  2. 新增 `buildChatContext(viewKey)`（app.js:237-320）：按视图从缓存拼
+     **带数据的第一句** + 结构化 `facts`；无缓存回落旧通用句，不阻断交互。
+  3. `autoSendChatContext()` 改为调 `buildChatContext`，`facts` 优先本视图坐标、
+     为空才回落 `CHAT_LAST_FACTS`。
+  4. 顺手修两处裸抛：`strength` 英文枚举（后端实测是 `strong/mid/weak`，
+     不是我最初写的 `high/low`）→ 白话「很旺/中等/偏淡」；`paipan.render`
+     按全角空格切段，避免把「大运：逆」塞进口语句。
+- 验证：`Temp/r219b_chat_ctx.py`（Playwright 390px，起独立端口 uvicorn，
+  逐视图点提交 → 点 `#chatEntry` → 读 chatFlow 第一条 me 气泡），7/7 PASS，
+  实测第一句：
+
+| 视图 | 第一条 me 气泡（真实数据） |
+|------|------|
+| tarot | 我抽了节制·正位（过去）、皇后·正位（现在）、权杖国王·正位（未来），帮我解读 |
+| bazi | 我的八字是庚午年 辛巳月 庚辰日 壬午时，日主庚，帮我看看 |
+| taohua | 我的桃花星在「卯」，强度偏淡，年支午，最近桃花怎么样 |
+| hehun | 一方日柱庚辰（日主庚），另一方日柱戊辰（日主戊），这两人配吗 |
+| huangli | 今天是2026-08-19，宜嫁娶、捕捉、求嗣，忌安葬、开市、立券，我今天适合做什么 |
+| qiming | 候选名字是李华 / 李乔 / 李猗 / 李梧 / 李采，八字缺木，哪个更好 |
+| liuyao | 我摇到的是家人卦（第37卦），动爻在5，这卦怎么看 |
+
+- 断言同时校验 `recentSidebar.classList.contains('open')`（D-001-fix 不回退）。
+
+#### T3（P0-3）「换一批」去重
+
+- 候选池规模实测**已达标**，无需扩池：`src/guji/qiming.py CANDIDATE_CHARS`
+  每五行 20-22 字（木20/火20/土20/金22/水20 = 102）；
+  `src/guji/classical_names.json` 每五行 15 条典故（水/木/火/土/金 各 15，共 75）。
+- 实测断点：`classical_names.py:87-93` 的 `random.Random(seed).shuffle(全池)`
+  再截前 `top_n` —— 每次都从**同一个池重抽**，连续批次大量重叠。
+  修前实测（seed=1/2/3，李 2000-05-15 女 top_n=8，缺木池 15 条）：
+  seed1∩seed2 = 4 个（梧/鹜/茕/棠），seed2∩seed3 = 5 个 → 用户看到「又是这些」。
+- 修法（`src/guji/classical_names.py:87-103`）：改**按批轮转**——固定种子 0
+  先把池洗成稳定顺序，再按 `offset = (seed-1) * top_n` 环形取段。
+  连续批次只在池长非整数倍处重叠，轮完一圈才可能重复。
+- 修后实测（HTTP `POST /api/qiming` 打 :8183，同一 payload 只换 seed）：
+
+| seed | 返回名字（8 个） |
+|------|------|
+| 1 | 李乔 李棠 李竹 李茕 李蓁 李猗 李梧 李衿 |
+| 2 | 李松 李采 李华 李葭 李苏 李鹜 李萋 李乔 |
+| 3 | 李棠 李竹 李茕 李蓁 李猗 李梧 李衿 李松 |
+
+  交集：1∩2 = {李乔}（1 个）、2∩3 = {李松}（1 个），三组集合互不相同 = True。
+  连续两批重叠从 4-5 个降到 1 个（15 条池 ÷ 8 段的必然回绕，非缺陷）。
+- 前端 `_qmSeed` 递增链已确认真实生效：`app.js:2924-2927`
+  `on('qmRefreshBtn')` → `_qmSeed = (_qmSeed === null ? 1 : _qmSeed + 1)` →
+  `doQiming()` → body `seed: _qmSeed` → `services.qiming` → `generate_classical_names(seed=)`。
+
+#### T4（P1-4）badge / 全局套话清理
+
+grep `详细依据见专业模式|仅供参考|你说了算|不是结论|仅坐标事实` 在 `src` + `web`：
+
+| 位置 | 处理 |
+|------|------|
+| `src/guji/hehun.py:50-58,128` | 7 条 note 常量 + 1 条兜底句去掉「（仅坐标事实，不作断言）」，改轻松口吻（如「日主五行相生：能量顺着走，一方天然愿意托着另一方」；兜底句「盘面没有明显的冲，也没有明显的合——关系的样子更多靠你们自己写」） |
+| `src/guji/taohua.py:107` | 「缘分信息平淡（仅坐标事实，不作断言）」→「这段缘分信号偏安静，适合先把自己过好」 |
+| `src/guji/interpreter.py:28,281` | 「不是结论表」注释改写；「——失衡处即需要留意处（仅坐标事实）」→「——失衡处就是要留意的地方」 |
+| `web/static/app.js:1378` | 海报兜底大字「牌面是象征，不是结论」→「今天这几张牌，值得你看一眼」 |
+| `web/static/app.js:3059` | 注释里的「详细依据见专业模式」改为历史说明（该套话已于 R218a-巡6 从 BADGE 移除） |
+| `src/guji/voice.py:149` | `BADGE = "仅供娱乐 · 小满的轻松解读"` —— 已符合要求，本轮零改动 |
+
+改完复 grep：**0 处活文案命中**（剩余 5 处全是本轮写的「已去除 X 套话」说明注释）。
+
+#### 闸门（`export BOOKS_LLM_DISABLE=1`，串行跑批，日志 `%LOCALAPPDATA%\Temp\gates_R219b.log`）
+
+| 闸门 | EXIT | 详情 |
+|------|------|------|
+| `web/selftest.py` | 0 | PASS **161 checks**（163 - 3 history 旧断言 + 1 `history.removed` 反向断言） |
+| `web/baseline_voice.py` | 0 | 14 用例逐字节一致，sha256 `97f0681e674e93ed…`（与基线同值，未重冻） |
+| `web/check_warm_voice.py` | 0 | 判据 1-8，10 用例 × 8 判据 |
+| `web/check_plain_first.py` | 0 | 5 用例 × 判据 1-8 |
+| `web/check_poster.py` | 0 | 判据 12/13a/13b/14；PNG 275,819B、1080×1440、水印含「仅供娱乐」；3 视图真实点 share 0 pageerror |
+| `web/check_xingzuo.py` | 0 | 判据 10（12 锚点逐字命中）+ 11（确定性） |
+| `scripts/verify_r218a.py` | 0 | 8/8 检查通过 |
+| `probes/probe_ui_smoke.py` | 0 | **41 个用例 PASS 41 / FAIL 0**；history 行数 378 → 378 |
+| `probes/probe_contract.py` | 0 | 179 个字段读取点全存在（SOFT=15）；探针**零改动** |
+
+#### 强制自查（防虚标）
+
+`git diff eb7932e -- web/static/app.js web/services.py web/selftest.py src/guji/ | grep -E "^\+|^-" | grep -E "history|autoSendChatContext|seed|BADGE"`
+→ **123 行命中**（history 69 / seed 48 / autoSendChatContext 4 / BADGE 2；
+另 LAST_RESULT 4、rememberResult 9）。非 0 命中，非虚标。
+
+#### 本轮未修（明确留给后续轮次）
+
+P1-1 星座日期选择器 / P1-2 星座生图 / P1-3 星座详情分维度加强 /
+交叉引用扩展到桃花·塔罗·黄历。
+
+commit: 待提交
