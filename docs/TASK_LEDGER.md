@@ -16803,3 +16803,63 @@ probe_ui_smoke 全 PASS；/static/sw.js 服务端 200。
 **闸门**：selftest163 / baseline_voice / check_warm_voice / check_plain_first / check_poster 全 EXIT=0。
 
 commit: ef4d537
+
+#### D-001~D-006 产品决策修复（R218a-巡6，2026-08-27，优化轨）
+
+审查轨「产品决策与巡5批评汇总」交优化轨 6 项决策（D-001~D-006），本轮全部落地。
+
+##### D-001 「聊聊这件事」交互重做（P0）
+- 根因：原 `autoSendChatContext()` 固定发「帮我看看这个盘」，且依赖 `CHAT_LAST_FACTS`（排盘后才能发）
+- 修法：根据当前视图自动选消息（八字→帮我看这个盘 / 桃花→桃花怎么样 / 塔罗→牌面说什么 / 六爻→卦象怎么看 / 合婚→这两人配吗 / 黄历→今天能做什么 / 起名→这些名字怎么样），不再依赖 `CHAT_LAST_FACTS`
+- 位置：`web/static/app.js` `autoSendChatContext()`
+
+##### D-002 塔罗解读重做（P0）
+- 根因：原 `warm_tarot` 给牌义辞典式转述（「节制·正：调和·适度·耐心」），用户问工作得到通用建议
+- 修法：每张牌一句话直接关联用户问题给具体指引（`_TAROT_KW_GUIDANCE` 映射 + `_tarot_combined_guidance` 综合判断），收尾给方向性建议
+- 位置：`src/guji/voice.py` `warm_tarot()` + `_tarot_kw_guidance()` + `_tarot_combined_guidance()`
+
+##### D-003 回复调性两极分化（P0）
+- 根因：全局免责套话「感情这事你的感受最重要」「牌面是象征不是结论」被用户点名批评
+- 修法：删除 `warm_taohua` 和 `warm_tarot` 中的免责套话收尾句，改为给具体可操作建议（D-002 已覆盖塔罗层）
+- 位置：`src/guji/voice.py` 两处 `lines.append("这些说的是节奏，不是判决...")` 注释删除
+
+##### D-004 换一批不重复（P1）
+- 根因：原 `_styleShift` 错位切片（0/2/4 偏移），当 `full_names` 总数不足 8 或风格池有限时取模循环回到相同名字
+- 修法：批次偏移 +8（`_qmBatchOffset`），循环一轮后才重复；直接重绘不重新请求后端（`_qmApplyNames`）
+- 位置：`web/static/app.js` `doQiming()` + `_qmSwitchStyle()` + `_qmApplyNames()`
+
+##### D-005 星座功能新增（P1）
+- 根因：用户要求加入星座功能，原有 `xingzuo.py` 后端 + daily 入口文字，缺独立视图 + 配图
+- 修法：新增 `view-xingzuo` 视图（12 宫网格 + 今日值宫高亮 + 日期选择器），`doXingzuo()` handler，首页功能卡加「星座」入口
+- 位置：`web/static/index.html` / `web/static/app.js` / `web/static/styles.css`
+
+##### D-006 Chat DISABLE 态追问（P2）
+- 根因：原策略「发 1 条就锁」，用户无法追问
+- 修法：引入 `_CHAT_SEND_COUNT` 追踪发送次数，第一条自动发后允许追问 1 次，累计 ≥2 次后才锁；每次打开侧栏重置计数
+- 位置：`web/static/app.js` `chatSend()` + `chatOpen()`
+
+##### selftest 基线同步
+- 根因：首页新增「星座」卡 → `home.ia.count` 从 7 变 8
+- 修法：`web/selftest.py` `home.ia.count` 断言 7→8，`home.ia.order` 追加 `xingzuo`
+
+##### 闸门（BOOKS_LLM_DISABLE=1 串行全 EXIT=0）
+
+| 闸门 | 结果 |
+|------|------|
+| selftest.py | PASS 163 checks |
+| baseline_voice.py | PASS sha256 一致 |
+| check_warm_voice.py | PASS 判据 1-8 |
+| check_plain_first.py | PASS 5用例 × 8判据 |
+| check_poster.py | PASS 判据 12/13/14 |
+| check_xingzuo.py | PASS 判据 10/11 |
+
+##### API 端到端（:8183 常驻服务 PID 17004 启动于 11:58，加载最新代码）
+
+| 端点 | 结果 |
+|------|------|
+| `/api/tarot` 感情问题 | warm.reply[0]="针对你的问题「最近感情怎么样」，每张牌这样说：" ✅ |
+| `/api/taohua` 1990 女 | `birth_year=1990`、warm 中无 "2003" ✅ |
+| `/api/bazi` 1990 男 | `one_liner="决断底子，决断偏多"`、无 "金偏多" ✅ |
+| `/api/xingzuo` | `today_sign=金牛`、`signs` 12 宫齐 ✅ |
+
+commit: 待提交

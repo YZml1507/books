@@ -1140,6 +1140,19 @@ details.warm-pro-fold > summary{
 .dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
 .dx-note{ font-size:13px; color:var(--secondary); }
 
+/* D-005：星座视图样式 */
+.xz-result{ margin-top:8px; }
+.xz-today{ display:flex; align-items:center; gap:10px; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; }
+.xz-today-label{ font-size:13px; color:var(--secondary); }
+.xz-today-sign{ font-size:20px; font-weight:700; color:var(--primary-ink); }
+.xz-today-note{ font-size:13px; color:var(--secondary); }
+.xz-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.xz-cell{ display:flex; flex-direction:column; align-items:center; padding:8px 4px; background:var(--card); border:1px solid var(--border); border-radius:8px; text-align:center; }
+.xz-cell.xz-active{ border-color:var(--primary); background:#FFF5F0; }
+.xz-name{ font-size:14px; font-weight:600; color:var(--primary-ink); }
+.xz-palace{ font-size:11px; color:var(--secondary); margin-top:2px; }
+.xz-note{ font-size:11px; color:var(--secondary); margin-top:4px; line-height:1.4; }
+
 /* R208b：历史记录迁入左侧栏 */
 .side-hist{margin-top:10px;}
 

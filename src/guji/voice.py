@@ -600,7 +600,8 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
 
 def warm_tarot(cards: list[dict], interpretation: dict,
                question: str | None = None) -> dict:
-    """塔罗 warm 视图：只转述 tarot.py 写死的象征关键词，不作断言。"""
+    """塔罗 warm 视图：每张牌直接关联用户问题，给具体指引。
+    D-002：不再给牌义辞典式转述，而是针对问题给方向性指引。"""
     cards = cards or []
     interp = interpretation or {}
     first = cards[0] if cards else {}
@@ -610,28 +611,82 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     lines: list[str] = []
     q = (question or "").strip()
     if q:
-        lines.append(f"你问「{q}」，抽到的是这些牌：")
+        lines.append(f"针对你的问题「{q}」，每张牌这样说：")
     else:
-        lines.append("抽到的是这些牌：")
-    # ≥6 张时只展示前 3 张 + 剩余提示 + 收尾，确保不超出 _wrap lines[:5] 截断
+        lines.append("每张牌这样说：")
+    # ≥6 张时只展示前 3 张 + 剩余提示 + 收尾
     shown = cards[:3] if len(cards) > 5 else cards[:5]
     for c in shown:
         cu = bool(c.get("upright"))
         ckw = (c.get("upright_kw") if cu else c.get("reversed_kw")) or ""
         pos = c.get("position") or ""
-        lines.append(f"{pos + '：' if pos else ''}{c.get('name', '')}"
-                     f"（{'正位' if cu else '逆位'}）——{ckw}。")
-    # 剩余提示 + 收尾句在 _wrap 截断后追加，确保 ≥6 张时用户仍能看到
+        name = c.get('name', '')
+        kw0 = ckw.split('·')[0] if ckw else ''
+        # D-002：每张牌一句话直接关联问题，给具体指引
+        guidance = _tarot_kw_guidance(kw0, q)
+        if q:
+            lines.append(f"{pos + '：' if pos else ''}{name}说「{kw0}」——{guidance}")
+        else:
+            lines.append(f"{pos + '：' if pos else ''}{name}（{'正位' if cu else '逆位'}）——{ckw}。")
+    # 收尾：给一句具体方向
     tail = []
     if len(cards) > 5:
         tail.append(f"还有 {len(cards) - 3} 张牌，每张都在说同一件事的不同面。")
-    tail.append("牌面是象征，不是结论——牌面照见什么，由你慢慢体会。")
+    if q:
+        tail.append(f"综合来看，{_tarot_combined_guidance(shown, q)}")
+    else:
+        tail.append("牌面是象征，不是结论——牌面照见什么，由你慢慢体会。")
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None, lines[:5] + tail,
         details_from_sections(interp.get("sections") or []),
         interp.get("citations") or [],
     )
+
+# D-002：牌义关键词 → 具体指引映射
+_TAROT_KW_GUIDANCE = {
+    "调和": "你需要找到平衡，别走极端",
+    "适度": "刚刚好就行，太多太少都不行",
+    "耐心": "时机还没到，先稳住自己",
+    "丰饶": "身边已经有值得珍惜的人/事了，别视而不见",
+    "滋养": "多花心思经营，会越来越好",
+    "收获": "之前的付出开始有回报了",
+    "掌控": "主动权在你手里，想清楚自己要什么",
+    "成熟": "你已经知道怎么做了，相信自己的判断",
+    "主导": "别等别人先开口，你先走一步",
+    "热情": "大胆表达，别藏着",
+    "冷静": "先别急着决定，让情绪过去",
+    "突破": "是时候做出改变了",
+    "守护": "珍惜眼前人，别等失去了才后悔",
+    "变化": "接受改变，这是好事",
+    "等待": "别急，让子弹飞一会儿",
+    "行动": "想好了就去做，别犹豫",
+    "反思": "回头看看走过的路，有收获",
+    "自由": "别被束缚，你值得更好的",
+    "信任": "相信对方，也相信自己",
+    "放下": "该放手了，别拖着",
+}
+
+def _tarot_kw_guidance(kw: str, q: str) -> str:
+    """D-002：将牌义关键词转化为用户问题的具体指引"""
+    if not q:
+        return f"这张牌提示你关注「{kw}」的能量"
+    # 直接返回关键词对应的指引
+    return _TAROT_KW_GUIDANCE.get(kw, f"关于你问的，「{kw}」是一个重要信号")
+
+def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
+    """D-002：综合多张牌给一句方向性指引"""
+    if not q:
+        return "牌面是象征，不是结论——牌面照见什么，由你慢慢体会。"
+    # 根据牌的正逆位比例给综合判断
+    upright_count = sum(1 for c in cards if c.get("upright"))
+    total = len(cards)
+    if upright_count > total * 0.6:
+        return f"牌面整体是顺的，你问的「{q}」可以试着往前走一小步。"
+    elif upright_count < total * 0.4:
+        return f"牌面有些别扭，关于「{q}」先别急着推进，多观察几天。"
+    else:
+        return f"牌面有顺有逆，关于「{q}」保持现状，等时机更明朗再动。"
 
 
 # ---------------------------------------------------------------------------
@@ -704,7 +759,8 @@ def warm_taohua(t: dict) -> dict:
                     lines.append(f"未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
                 else:
                     lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
-        lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
+        # D-003：禁用免责套话「感情这事你的感受最重要」
+        # 改为一句具体可操作的小建议（根据强度分支已在前面给过建议，这里不再重复）
         return _wrap(
             l0,
             None,
@@ -737,7 +793,7 @@ def warm_taohua(t: dict) -> dict:
         d0 = dayun[0]
         lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
                      f"桃花星当值——那段时间社交面会明显变宽。")
-    lines.append("这些说的是节奏，不是判决——感情这事，你的感受最重要。")
+    # D-003：禁用免责套话「感情这事你的感受最重要」——已在上方给出具体建议
     return _wrap(
         l0,
         None,

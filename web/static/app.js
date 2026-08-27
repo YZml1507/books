@@ -223,6 +223,7 @@ function chatSid() {
   } catch (e) { return 'c-anon'; }
 }
 var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
+var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自动发后允许追问 1 次 */
 
 /** R207b：聊天入口全局化——结果容器渲染出 .card 后尾部统一挂入口钮。
  *  已有则跳过（重绘安全）；无 .card（如空态/错误态）不挂。 */
@@ -242,10 +243,20 @@ function attachChatEntry(container) {
 
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
 function autoSendChatContext() {
-  if (!CHAT_LAST_FACTS || !CHAT_LAST_FACTS.length) return;
-  chatBubble('me', '帮我看看这个盘');
+  /* D-001：根据当前视图自动发送对应上下文消息，不再依赖 CHAT_LAST_FACTS */
+  var view = document.querySelector('.view.active');
+  var viewId = view ? view.id : '';
+  var msg = '帮我看看这个盘';
+  if (viewId.indexOf('bazi') !== -1) msg = '帮我看这个盘';
+  else if (viewId.indexOf('taohua') !== -1) msg = '桃花怎么样';
+  else if (viewId.indexOf('tarot') !== -1) msg = '牌面说什么';
+  else if (viewId.indexOf('liuyao') !== -1) msg = '卦象怎么看';
+  else if (viewId.indexOf('hehun') !== -1) msg = '这两人配吗';
+  else if (viewId.indexOf('huangli') !== -1) msg = '今天能做什么';
+  else if (viewId.indexOf('qiming') !== -1) msg = '这些名字怎么样';
+  chatBubble('me', msg);
   postJSON('/api/chat', {
-    session_id: chatSid(), message: '帮我看看这个盘', facts: CHAT_LAST_FACTS
+    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
   }).then(function (j) {
     if (!j.chat_task_id) {
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
@@ -394,6 +405,8 @@ function chatOpen() {
   var sb = el('recentSidebar');
   if (!sb) return;
   sb.classList.add('open');
+  /* D-006：每次打开侧栏重置发送计数，允许新一轮「自动发+1次追问」 */
+  _CHAT_SEND_COUNT = 0;
   /* R218a-01：拉起半透遮罩，挡住主区可点以触发「点空白处关闭」——视觉上
    * 仍透出主区颜色信息（rgba .18）。 */
   var bd = el('recentBackdrop');
@@ -452,6 +465,8 @@ function chatSend() {
   if (!msg) return;
   if (input) input.value = '';
   chatBubble('me', msg);
+  /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
+  _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   postJSON('/api/chat', {
     session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
   }).then(function (j) {
@@ -463,8 +478,11 @@ function chatSend() {
        * （累/事业/感情/学业/钱/看盘 6 套）。 */
       chatBubble('ai', _chatFallbackLine(msg));
       var sendBtn2 = document.getElementById('chatSendBtn');
-      if (input) { input.disabled = true; input.placeholder = '小满休息中，明天再来聊吧'; }
-      if (sendBtn2) sendBtn2.disabled = true;
+      /* D-006：第一条自动发后允许追问 1 次，累计发送 ≥2 次后才锁 */
+      if (_CHAT_SEND_COUNT >= 2) {
+        if (input) { input.disabled = true; input.placeholder = '小满休息中，明天再来聊吧'; }
+        if (sendBtn2) sendBtn2.disabled = true;
+      }
       return;
     }
     chatBubble('ai',
@@ -2764,9 +2782,95 @@ var _QM_STYLES = {
   'fresh':    { label: '清新灵动', hint: '轻盈·柔美·少女感' },
   'all':      { label: '综合',     hint: '全部候选池' }
 };
+/* D-004：换一批不重复——候选池 + 已显示集合，循环一轮后才重复 */
+/* D-004：批次偏移——每次换一批 +8，循环一轮后才重复 */
+var _qmBatchOffset = 0;
+/* D-004：用给定的名字数组重绘起名列表（不重新请求后端） */
+function _qmApplyNames(names) {
+  var _scored = names.map(function (n) {
+    return { n: n, s: _qmScore(n, (j.five_elements || {}).missing) };
+  }).sort(function (a, b) { return b.s - a.s; });
+  var html = '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
+    esc((_QM_STYLES[_QM_STYLE] || {}).label || '') + '</h3>' +
+    '<div class="calc-grid">';
+  _scored.forEach(function (entry, i) {
+    var n = entry.n;
+    var score = entry.s;
+    var c = colorAt(i);
+    html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
+      _qmBadgeHtml(score, i) +
+      '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:24px;">' +
+      esc(n.full_name || '') + '</h3>' +
+      '<p style="font-size:13px;color:var(--secondary);">五行：' +
+      esc((n.elements || []).join('·')) +
+      (n.form === 'single' ? '　单字名' : '　双字名') + '</p>';
+    if (n.story) {
+      html += '<p style="font-size:13px;margin-top:4px;">📜 ' + esc(n.story) + '</p>';
+    } else if (n.meanings) {
+      html += '<p style="font-size:13px;">' + esc(n.meanings) + '</p>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  var _next = ({'classics': 'chuci', 'chuci': 'fresh',
+                'fresh': 'classics', 'all': 'classics'})[_QM_STYLE] || 'classics';
+  html += '<div class="qm-refresh-row">' +
+    '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
+    'title="按 ' + esc(_QM_STYLES[_next].label) + ' 风格再来 8 个">' +
+    '🔄 换一批（' + esc(_QM_STYLES[_next].label) + '）</button>' +
+    '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
+    '</div>';
+  /* 替换起名列表区域 */
+  var _qmRoot = el('qmResult');
+  if (_qmRoot) {
+    var _h3s = _qmRoot.querySelectorAll('h3');
+    if (_h3s.length) {
+      var _firstH3 = null;
+      for (var _hi = 0; _hi < _h3s.length; _hi++) {
+        if (_h3s[_hi].textContent.indexOf('古籍典故取名') !== -1) {
+          _firstH3 = _h3s[_hi];
+          break;
+        }
+      }
+      if (_firstH3) {
+        var _nodesToRemove = [];
+        var _sibling = _firstH3;
+        while (_sibling) {
+          _nodesToRemove.push(_sibling);
+          _sibling = _sibling.nextSibling;
+        }
+        var _insertBefore = _nodesToRemove[_nodesToRemove.length - 1].nextSibling;
+        _nodesToRemove.forEach(function (n) { n.remove(); });
+        var _tmpDiv = document.createElement('div');
+        _tmpDiv.innerHTML = html;
+        while (_tmpDiv.firstChild) {
+          _qmRoot.insertBefore(_tmpDiv.firstChild, _insertBefore);
+        }
+      }
+    }
+  }
+  /* 重新绑定换一批按钮 */
+  on('qmRefreshBtn', function () {
+    var _all = j.full_names || [];
+    if (_all.length > 8) {
+      _qmBatchOffset = (_qmBatchOffset + 8) % _all.length;
+      var _next8 = [];
+      for (var _i = 0; _i < 8; _i++) {
+        _next8.push(_all[(_qmBatchOffset + _i) % _all.length]);
+      }
+      _qmApplyNames(_next8);
+    } else {
+      const _seq = ['classics', 'chuci', 'fresh'];
+      var _cur = _seq.indexOf(_QM_STYLE);
+      var _nxt = _seq[(_cur + 1) % _seq.length];
+      _qmSwitchStyle(_nxt);
+    }
+  });
+}
 function _qmSwitchStyle(style) {
   if (!_QM_STYLES[style]) return;
   _QM_STYLE = style;
+  _qmBatchOffset = 0;
   doQiming();
 }
 function _qmScore(name, missingArr) {
@@ -2954,12 +3058,21 @@ async function doQiming() {
       });
     }
     on('qmRefreshBtn', function () {
-      /* 「换一批」= 切换到下一档风格——chip 状态由 _QM_STYLE 决定，
-       * 重新调用 doQiming() 会重算 _scored 与 _next。 */
-      const _seq = ['classics', 'chuci', 'fresh'];
-      var _cur = _seq.indexOf(_QM_STYLE);
-      var _nxt = _seq[(_cur + 1) % _seq.length];
-      _qmSwitchStyle(_nxt);
+      /* D-004：批次偏移 +8，循环一轮后才重复 */
+      var _all = j.full_names || [];
+      if (_all.length > 8) {
+        _qmBatchOffset = (_qmBatchOffset + 8) % _all.length;
+        var _next8 = [];
+        for (var _i = 0; _i < 8; _i++) {
+          _next8.push(_all[(_qmBatchOffset + _i) % _all.length]);
+        }
+        _qmApplyNames(_next8);
+      } else {
+        const _seq = ['classics', 'chuci', 'fresh'];
+        var _cur = _seq.indexOf(_QM_STYLE);
+        var _nxt = _seq[(_cur + 1) % _seq.length];
+        _qmSwitchStyle(_nxt);
+      }
     });
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);
@@ -3450,6 +3563,38 @@ async function doHehun() {
   }
 }
 
+/* D-005：星座视图——十二宫日运详情 */
+async function doXingzuo() {
+  busy('xzResult', '查询中…');
+  var dateStr = val('xz_date') || '';
+  if (!dateStr) {
+    var t = new Date();
+    dateStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  }
+  try {
+    var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
+    var html = '<div class="xz-result">';
+    if (j.today_sign) {
+      html += '<div class="xz-today"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span>';
+      if (j.today_note) html += '<span class="xz-today-note">' + esc(j.today_note) + '</span>';
+      html += '</div>';
+    }
+    if (j.signs && j.signs.length) {
+      html += '<div class="xz-grid">';
+      j.signs.forEach(function (s) {
+        var cls = s.is_today ? ' xz-active' : '';
+        html += '<div class="xz-cell' + cls + '"><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-palace">' + esc(s.palace) + '</span><span class="xz-note">' + esc(s.note) + '</span></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    paint('xzResult', html);
+    revealResult('xzResult');
+  } catch (e) {
+    fail('xzResult', '查询失败：' + e.message);
+  }
+}
+
 /* ── 历史 / 最近 / 收藏 / 新闻 ────────────────────────────────── */
 
 /** R000a-04：原读 j.items，后端给的是 j.records。 */
@@ -3860,6 +4005,7 @@ function initDivination() {
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
   on('hhSubmit', doHehun);
+  on('xzSubmit', doXingzuo);
   /* R198b（US5）：今日运势分享图（数据来自最近一次 /api/daily 响应） */
   on('shareDaily', function () {
     if (window.__lastDaily) downloadPoster(window.__lastDaily, 'daily');
