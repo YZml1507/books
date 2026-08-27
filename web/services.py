@@ -627,6 +627,8 @@ def liuyao(req) -> dict:
                                   interpretation, req.question),
         # R218a-巡2（N-01）：echo question 让前端 liuyaoQuestionHook 真生效
         "question": req.question,
+        # R221b：交叉引用收口 7/7——六爻不收生日，只引"今天"的值宫
+        "cross_ref": _cross_ref_liuyao(ben.moving_lines),
     }
 
 
@@ -691,6 +693,8 @@ def tarot(req) -> dict:
         "warm": voice.warm_tarot(cards, interpretation, req.question),
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
         "question": req.question,
+        # R221b：交叉引用收口 7/7——塔罗不收生日，只引"今天"的值宫
+        "cross_ref": _cross_ref_tarot(cards),
     }
 
 
@@ -1134,6 +1138,77 @@ def _cross_ref_taohua(month: int, day: int, strength: str = "") -> dict:
             "zodiac_sign": sign,
             "zodiac_love": love,
             "message": f"{head}：{love}",
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_tarot(cards: list[dict]) -> dict:
+    """塔罗结果页 → 今天的星座值宫 × 牌面正逆方向是否同调。
+
+    塔罗没有出生日期可用（不要求用户填生日），所以这里**只能**引"今天"，
+    不能编造本命星座——这是与八字/桃花/起名那几处的关键区别。
+    """
+    try:
+        today = _today_horoscope()
+        sign = today.get("today_sign", "")
+        note = today.get("today_note", "")
+        if not (sign and note and cards):
+            return {}
+        _up = sum(1 for c in cards if c.get("upright"))
+        _total = len(cards)
+        # 牌面方向与今日值宫是**两个独立信号**，不能硬拼成因果句
+        # （曾出现"牌面偏逆位，今天节奏更适合先稳一稳：今天适合把心里的话
+        # 说出口"——前半句劝稳、后半句劝开口，自相矛盾）。
+        # 改为「今天X宫：<值宫文案> 牌面这边<方向>，<两信号关系>」，
+        # 把值宫原文与牌面判断分开陈述，再显式说明两者是否同调。
+        if _up * 2 > _total:
+            card_side = "多数正位，是往前走的信号"
+            relation = "两边指的是一个方向，可以放心推进"
+        elif _up * 2 < _total:
+            card_side = "偏逆位，提示先别急"
+            relation = "和今天的节奏不完全一致，那就挑一件小事先试"
+        else:
+            card_side = "正逆各半"
+            relation = "牌面本身没给死结论，按今天的节奏走就行"
+        return {
+            "today_sign": sign,
+            "today_note": note,
+            "upright_count": _up,
+            "total": _total,
+            "message": f"今天{sign}宫：{note}牌面这边{card_side}——{relation}。",
+        }
+    except Exception:
+        return {}
+
+
+def _cross_ref_liuyao(moving_lines: list | tuple) -> dict:
+    """六爻结果页 → 今天的星座值宫 × 动爻多寡（变数大小）是否同调。
+
+    同塔罗：六爻不收生日，只能引"今天"。
+    """
+    try:
+        today = _today_horoscope()
+        sign = today.get("today_sign", "")
+        note = today.get("today_note", "")
+        if not (sign and note):
+            return {}
+        _n = len(moving_lines or ())
+        # 同塔罗：动爻多寡与今日值宫是两个独立信号，分开陈述不硬接因果
+        if _n >= 3:
+            gua_side = f"有 {_n} 个动爻，变数不小"
+            relation = "这种时候今天的节奏更值得参考，别自己硬扛"
+        elif _n == 0:
+            gua_side = "一个动爻都没有，局面挺稳"
+            relation = "没什么要急着改的，顺着今天的节奏来"
+        else:
+            gua_side = f"有 {_n} 个动爻，小范围有变化"
+            relation = "变化不大，按今天的节奏推进就行"
+        return {
+            "today_sign": sign,
+            "today_note": note,
+            "moving_count": _n,
+            "message": f"今天{sign}宫：{note}卦里{gua_side}——{relation}。",
         }
     except Exception:
         return {}

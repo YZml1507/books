@@ -2714,6 +2714,12 @@ function buildLiuyaoResult(j) {
   } else {
     html += renderVoice(j, '📖 卦象转述（确定性规则）', ['ben_jing', 'bian_jing']);
   }
+  /* R221b：交叉引用收口 7/7——六爻不收生日，引今天值宫 × 动爻多寡。
+   * 放在 if/else 之外：温柔版与专业版都该看到这段。 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">☯️</span>' +
+      esc(j.cross_ref.message) + '</div>';
+  }
   html += '</div>';
   return html;
 }
@@ -3320,6 +3326,11 @@ function buildTarotResult(j) {
   /* R207b：塔罗深读——多牌综合叙事 + 针对用户的具体指引。
    * 确定性模板层（同输入同输出），写死前端不动 voice 基线。 */
   html += tarotDeepRead(j.draws || [], j.question);
+  /* R221b：交叉引用收口 7/7——塔罗不收生日，引今天值宫 × 牌面正逆同调 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">🔮</span>' +
+      esc(j.cross_ref.message) + '</div>';
+  }
   html += renderVoice(j, '📖 牌面转述（确定性规则）');
   html += '</div>';
   return html;

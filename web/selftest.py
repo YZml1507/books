@@ -245,6 +245,36 @@ def run() -> list[str]:
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
           lambda j: j.get("full_names") and len(j.get("full_names", [])) >= 3)
+    # R221b：交叉引用收口 7/7。用户原话「各是各的，各干各的，没有交叉集」，
+    # 每个结果页底部都要有「相关维度」。这里钉死**七个端点全覆盖**——
+    # 少一个就 FAIL，防止后续改动悄悄漏掉某个端点。
+    # 注意塔罗/六爻**不收生日**，只能引"今天的值宫"，不得编造本命星座
+    # （八字/桃花/起名那三处才有出生月日可用）。
+    _cr_cases = [
+        ("/api/bazi", {"year": 2005, "month": 6, "day": 6, "hour": 10,
+                       "gender": "女"}),
+        ("/api/taohua", {"year": 2005, "month": 6, "day": 6, "hour": 10,
+                         "gender": "女"}),
+        ("/api/qiming", {"surname": "林", "year": 2005, "month": 6, "day": 6,
+                         "hour": 10, "gender": "女", "top_n": 5}),
+        ("/api/hehun", {"a_year": 2005, "a_month": 6, "a_day": 6,
+                        "a_hour": 10, "a_gender": "男",
+                        "b_year": 1990, "b_month": 5, "b_day": 15,
+                        "b_hour": 14, "b_gender": "女"}),
+        ("/api/tarot", {"seed": 42, "n": 3}),
+        ("/api/liuyao", {"method": "coins", "seed": 42}),
+    ]
+    for _ep, _pl in _cr_cases:
+        _rc = client.post(_ep, json=_pl)
+        assert _rc.status_code == 200, ("cross_ref.http", _ep, _rc.status_code)
+        _crm = (_rc.json().get("cross_ref") or {}).get("message", "")
+        assert _crm, ("cross_ref.missing", _ep)
+    # 黄历是 GET
+    _rh2 = client.get("/api/huangli?date=2026-08-28")
+    assert _rh2.status_code == 200, ("cross_ref.http", "/api/huangli")
+    assert (_rh2.json().get("cross_ref") or {}).get("message"), \
+        ("cross_ref.missing", "/api/huangli")
+    print("  cross_ref.coverage PASS（7 端点全有相关维度段）")
     # R220b（P0-3 返工回归）：「换一批」连点三次必须零重复。
     # 历史：D-004-fix 相邻重叠 4/8 → R219b 改环形取段，**只报相邻对**
     # （1∩2=1、2∩3=1）就宣布通过，审查轨实测 1∩3=7/8、2∩4=7/8
