@@ -302,7 +302,8 @@ def qiming(req) -> dict:
         out = classical_names.generate_classical_names(
             surname=req.surname, year=req.year, month=req.month,
             day=req.day, hour=req.hour, gender=req.gender,
-            top_n=min(max(req.top_n, 1), 100))
+            top_n=min(max(req.top_n, 1), 100),
+            seed=req.seed)
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{exc}") from exc
     ai_polish = None

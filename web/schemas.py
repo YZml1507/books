@@ -182,6 +182,7 @@ class QimingRequest(BaseModel):
     hour: int = Field(..., description="时 0-23")
     gender: str = "男"
     top_n: int = 20
+    seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):

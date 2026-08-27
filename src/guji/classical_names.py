@@ -53,7 +53,7 @@ def _pick_n(seq, n, *salt):
 
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
-                              top_n: int = 8) -> dict:
+                              top_n: int = 8, seed: int | None = None) -> dict:
     """古籍典故取名主函数。
 
     流程：
@@ -61,6 +61,8 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
       2. 从古籍典故库中按缺行检索合适的字
       3. 组合成「姓+字」或「姓+双字」完整名字
       4. 每个名字附带原句 + 出处 + 意象说明
+
+    seed: 随机种子，None=默认确定性输出；传入不同值可得到不同名字组合
 
     Returns:
         dict: {full_names: [{full_name, given, elements, origin, story, form}, ...]}
@@ -82,17 +84,22 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         if not classical_entries:
             continue
 
-        # 根据性别筛选：优先选择适合性别的字
-        def _score_entry(entry):
-            char = entry.get("字", "")
-            if gender == "女" and char in FEMININE_CHARS:
-                return 3
-            if gender == "男" and char in MASCULINE_CHARS:
-                return 3
-            return 1
-
-        scored = sorted(classical_entries, key=_score_entry, reverse=True)
-        selected = scored[:top_n * 2]  # 多选一些供组合
+        # D-004-fix：seed 传入时随机打乱，否则按性别排序
+        if seed is not None:
+            import random as _random
+            _rng = _random.Random(seed)
+            selected = classical_entries[:]
+            _rng.shuffle(selected)
+            selected = selected[:top_n * 2]
+        else:
+            def _score_entry(entry):
+                char = entry.get("字", "")
+                if gender == "女" and char in FEMININE_CHARS:
+                    return 3
+                if gender == "男" and char in MASCULINE_CHARS:
+                    return 3
+                return 1
+            selected = sorted(classical_entries, key=_score_entry, reverse=True)[:top_n * 2]
 
         for entry in selected[:top_n]:
             char = entry.get("字", "")

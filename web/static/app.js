@@ -243,6 +243,8 @@ function attachChatEntry(container) {
 
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
 function autoSendChatContext() {
+  /* D-001-fix：先确保侧栏打开再发送消息 */
+  chatOpen();
   /* D-001：根据当前视图自动发送对应上下文消息，不再依赖 CHAT_LAST_FACTS */
   var view = document.querySelector('.view.active');
   var viewId = view ? view.id : '';
@@ -2785,6 +2787,8 @@ var _QM_STYLES = {
 /* D-004：换一批不重复——候选池 + 已显示集合，循环一轮后才重复 */
 /* D-004：批次偏移——每次换一批 +8，循环一轮后才重复 */
 var _qmBatchOffset = 0;
+/* D-004-fix：换一批种子——每次换一批 +1，传入后端得到不同名字 */
+var _qmSeed = null;
 /* D-004：用给定的名字数组重绘起名列表（不重新请求后端） */
 function _qmApplyNames(names) {
   var _scored = names.map(function (n) {
@@ -2851,20 +2855,9 @@ function _qmApplyNames(names) {
   }
   /* 重新绑定换一批按钮 */
   on('qmRefreshBtn', function () {
-    var _all = j.full_names || [];
-    if (_all.length > 8) {
-      _qmBatchOffset = (_qmBatchOffset + 8) % _all.length;
-      var _next8 = [];
-      for (var _i = 0; _i < 8; _i++) {
-        _next8.push(_all[(_qmBatchOffset + _i) % _all.length]);
-      }
-      _qmApplyNames(_next8);
-    } else {
-      const _seq = ['classics', 'chuci', 'fresh'];
-      var _cur = _seq.indexOf(_QM_STYLE);
-      var _nxt = _seq[(_cur + 1) % _seq.length];
-      _qmSwitchStyle(_nxt);
-    }
+    /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
+    _qmSeed = (_qmSeed === null ? 1 : _qmSeed + 1);
+    doQiming();
   });
 }
 function _qmSwitchStyle(style) {
@@ -2916,7 +2909,8 @@ async function doQiming() {
       day: num('qm_day'),
       hour: num('qm_hour'),
       gender: val('qm_gender') || '女',
-      top_n: 20
+      top_n: 20,
+      seed: _qmSeed || null
     });
     let html = '<div class="card"><h2>🌸 起名推荐</h2>';
     /* R218a-巡2（N-08）：装饰图——起名卡顶部加 SVG/CSS 装饰 banner。 */
@@ -3058,21 +3052,9 @@ async function doQiming() {
       });
     }
     on('qmRefreshBtn', function () {
-      /* D-004：批次偏移 +8，循环一轮后才重复 */
-      var _all = j.full_names || [];
-      if (_all.length > 8) {
-        _qmBatchOffset = (_qmBatchOffset + 8) % _all.length;
-        var _next8 = [];
-        for (var _i = 0; _i < 8; _i++) {
-          _next8.push(_all[(_qmBatchOffset + _i) % _all.length]);
-        }
-        _qmApplyNames(_next8);
-      } else {
-        const _seq = ['classics', 'chuci', 'fresh'];
-        var _cur = _seq.indexOf(_QM_STYLE);
-        var _nxt = _seq[(_cur + 1) % _seq.length];
-        _qmSwitchStyle(_nxt);
-      }
+      /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
+      _qmSeed = (_qmSeed === null ? 1 : _qmSeed + 1);
+      doQiming();
     });
   } catch (e) {
     fail('qmResult', '起名失败：' + e.message);

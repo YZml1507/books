@@ -16806,6 +16806,56 @@ commit: ef4d537
 
 #### D-001~D-006 产品决策修复（R218a-巡6，2026-08-27，优化轨）
 
+#### D-001-fix / D-004-fix / D-003-badge（R218a-巡6 复审返工，2026-08-27，优化轨）
+
+审查轨 R218a-巡6 复测：D-001 侧栏未弹出、D-004 换一批相同名字、D-003 badge 仍含「详细依据见专业模式」。
+
+##### D-001-fix：「聊聊这件事」侧栏未自动弹出（P0）
+- 根因：`autoSendChatContext()` 只发消息没打开侧栏
+- 修法：函数开头先调 `chatOpen()` 确保侧栏打开
+- 位置：`web/static/app.js` `autoSendChatContext()`
+
+##### D-004-fix：换一批返回相同名字（P0）
+- 根因：原 `_qmBatchOffset` 错位切片只在前 8 个里循环，后端 deterministic 输出固定
+- 修法：引入 `_qmSeed` 种子参数，每次换一批 +1 传入后端；后端 `classical_names.generate_classical_names(seed=...)` 用 `random.Random(seed).shuffle()` 打乱候选字顺序
+- 位置：`web/static/app.js` `doQiming()` / `web/services.py` `qiming()` / `web/schemas.py` `QimingRequest.seed` / `src/guji/classical_names.py` `generate_classical_names(seed=...)`
+
+##### D-003-badge：badge 仍含「详细依据见专业模式」（P1）
+- 根因：`BADGE = "仅供娱乐 · 详细依据见专业模式"` 常量未改
+- 修法：改为 `"仅供娱乐 · 小满的轻松解读"`
+- 位置：`src/guji/voice.py` `BADGE` 常量
+
+##### selftest 基线同步
+- 根因：首页新增「星座」卡 → `home.ia.count` 从 7 变 8
+- 修法：`web/selftest.py` `home.ia.count` 断言 7→8，`home.ia.order` 追加 `xingzuo`
+
+##### 闸门（BOOKS_LLM_DISABLE=1 串行全 EXIT=0）
+
+| 闸门 | 结果 |
+|------|------|
+| selftest.py | PASS 163 checks |
+| baseline_voice.py | PASS sha256 一致 |
+| check_warm_voice.py | PASS 判据 1-8 |
+| check_plain_first.py | PASS 5用例 × 8判据 |
+| check_poster.py | PASS 判据 12/13/14 |
+| check_xingzuo.py | PASS 判据 10/11 |
+
+##### API 端到端（:8183 常驻服务 PID 15040 启动于 12:05，加载最新代码）
+
+| 端点 | 结果 |
+|------|------|
+| `/api/qiming` seed=None | `['李萍', '李伊', '李缨', '李露', '李沛']` ✅ |
+| `/api/qiming` seed=1 | `['李溯', '李渊', '李萍', '李琢', '李潜']` ✅ |
+| `/api/qiming` seed=2 | `['李柔', '李露', '李潜', '李涟', '李渊']` ✅ |
+| `/api/qiming` seed=3 | `['李涟', '李渊', '李潜', '李明', '李溯']` ✅ |
+| `/api/tarot` 感情问题 | warm.reply[0]="针对你的问题「最近感情怎么样」，每张牌这样说：" ✅ |
+| `/api/taohua` 1990 女 | `birth_year=1990`、warm 中无 "2003" ✅ |
+| `/api/bazi` 1990 男 | `one_liner="决断底子，决断偏多"`、无 "金偏多" ✅ |
+| `/api/xingzuo` | `today_sign=金牛`、`signs` 12 宫齐 ✅ |
+| badge 检查 | `"仅供娱乐 · 小满的轻松解读"` ✅ |
+
+commit: 待提交
+
 审查轨「产品决策与巡5批评汇总」交优化轨 6 项决策（D-001~D-006），本轮全部落地。
 
 ##### D-001 「聊聊这件事」交互重做（P0）
