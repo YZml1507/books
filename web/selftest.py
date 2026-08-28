@@ -262,6 +262,40 @@ def run() -> list[str]:
             ("qiming.candidates.keys", sorted(_c))
         assert _c["char"] and _c["element"], ("qiming.candidates.blank", _c)
     print(f"  qiming.candidates.filled PASS（候选池 {len(_cands)} 字，键名齐全）")
+    # R226b-fix（审查轨 R226a 目视抓到）：典故库每条的**字必须真出现在「句」里**。
+    # 前端把「句」直接展示给用户（"📜 <句> —— <出处>"），字不在句里就是露馅：
+    # 实测曾有 14 条不自洽，如「澜」配"河伯过江海"、「苓」配"蒹葭苍苍"、
+    # 「圯」配"白圭之玷"。这类错误纯数据层、闸门原先完全不查。
+    # 顺带钉住：句/出处/意象都不许为空；倾向表里不许挂库中已不存在的字。
+    import json as _json
+    _dbp = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "src", "guji", "classical_names.json")
+    with open(_dbp, encoding="utf-8") as _f:
+        _db = _json.load(_f)
+    _db_chars, _n_entries = set(), 0
+    for _el, _items in _db.items():
+        if _el == "_meta":
+            continue
+        for _it in _items:
+            _n_entries += 1
+            _ch, _sent = _it.get("字", ""), _it.get("句", "")
+            assert _ch, ("classical_db.empty_char", _el, _it)
+            assert _sent and _it.get("出处") and _it.get("意象"), \
+                ("classical_db.empty_field", _el, _ch, _it)
+            assert _ch in _sent, \
+                ("classical_db.char_not_in_sentence", _el, _ch, _sent,
+                 "前端会把「句」直接展示，字不在句里=露馅")
+            _db_chars.add(_ch)
+    from guji.classical_names import (_AVOID_FEM as _AV2, _FEM_LEAN as _FL2,
+                                     _MASC_LEAN as _ML2)
+    for _tbl_name, _tbl in (("_FEM_LEAN", _FL2), ("_MASC_LEAN", _ML2),
+                            ("_AVOID_FEM", _AV2)):
+        _ghost = sorted(_tbl - _db_chars)
+        assert not _ghost, \
+            ("classical_db.ghost_chars", _tbl_name, _ghost,
+             "倾向表里挂着典故库中已不存在的字——删条目时忘了同步表")
+    print(f"  classical_db.integrity PASS（{_n_entries} 条：字在句中、"
+          f"字段非空、倾向表无幽灵字）")
     # R221b：交叉引用收口 7/7。用户原话「各是各的，各干各的，没有交叉集」，
     # 每个结果页底部都要有「相关维度」。这里钉死**七个端点全覆盖**——
     # 少一个就 FAIL，防止后续改动悄悄漏掉某个端点。
