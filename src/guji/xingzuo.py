@@ -210,6 +210,41 @@ def sun_sign(month: int, day: int) -> str:
     return "摩羯"
 
 
+# ---------------------------------------------------------------------------
+# R226b：每宫今日文案的**行动方向倾向**。
+#
+# 起因（审查轨 R222a 抓到）：`_cross_ref_tarot` / `_cross_ref_liuyao` 声称
+# 输出"两个信号的关系"，但那句 relation 只是牌面正逆/动爻数的纯函数 ——
+# 无论今天是白羊（劝你说出口）还是金牛（劝你放慢），逆位都输出同一句
+# "和今天的节奏不完全一致"。**它从没比较过两个信号**，名不副实。
+#
+# 要真比较，值宫这一侧也必须有方向。这里按每宫 note 的语义归三档：
+#   forward  往前走 / 表达 / 出发
+#   hold     放慢 / 稳住 / 照顾自己
+#   observe  观望 / 相信直觉 / 等答案浮现
+# 归档依据是 SIGNS[x]["note"] 的原文，不是星座刻板印象。
+# ---------------------------------------------------------------------------
+SIGN_DIRECTION: dict[str, str] = {
+    "白羊": "forward",   # 把心里的话说出口
+    "狮子": "forward",   # 发光的日子，藏不住
+    "射手": "forward",   # 想出发就出发
+    "双子": "forward",   # 脑子转得快，把灵感记下来
+    "处女": "forward",   # 细节控的胜利，会被看见
+    "金牛": "hold",      # 节奏放慢一点也没关系
+    "巨蟹": "hold",      # 先给自己倒杯水
+    "摩羯": "hold",      # 默默努力，运气悄悄靠近
+    "天秤": "observe",   # 抛到一半你就知道答案
+    "天蝎": "observe",   # 相信第一感觉
+    "双鱼": "observe",   # 梦是愿望的预告
+    "水瓶": "observe",   # 特立独行是你的签名
+}
+
+
+def sign_direction(sign: str) -> str:
+    """某宫今日文案的行动方向倾向：forward / hold / observe。未知宫返回 ''。"""
+    return SIGN_DIRECTION.get(sign or "", "")
+
+
 def sun_sign_profile(month: int, day: int) -> dict:
     """太阳星座 + 该宫的分维度文案（爱情/事业/财运）。未知月日返回 {}。"""
     name = sun_sign(month, day)
@@ -279,6 +314,15 @@ if __name__ == "__main__":
     # 越界月日返回空串，不抛
     assert sun_sign(0, 5) == "" and sun_sign(13, 5) == ""
     assert sun_sign(None, None) == ""  # type: ignore[arg-type]
+    # R226b：12 宫方向倾向表必须全覆盖且取值合法
+    assert set(SIGN_DIRECTION) == set(_SIGN_ORDER), \
+        ("SIGN_DIRECTION 未覆盖 12 宫", sorted(set(_SIGN_ORDER) - set(SIGN_DIRECTION)))
+    assert set(SIGN_DIRECTION.values()) <= {"forward", "hold", "observe"}
+    # 三档都得有宫（否则 _signal_relation 的某些分支永远走不到）
+    assert len(set(SIGN_DIRECTION.values())) == 3, set(SIGN_DIRECTION.values())
+    for _s in _SIGN_ORDER:
+        assert sign_direction(_s), _s
+    assert sign_direction("") == "" and sign_direction("不存在") == ""
     # profile 分维度齐全 + 确定性
     _p = sun_sign_profile(6, 6)
     assert _p["sign"] == "双子" and _p["love"] and _p["career"] and _p["wealth"]

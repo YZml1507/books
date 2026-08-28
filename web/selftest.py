@@ -329,6 +329,45 @@ def run() -> list[str]:
     assert (_rh2.json().get("cross_ref") or {}).get("message"), \
         ("cross_ref.missing", "/api/huangli")
     print("  cross_ref.coverage PASS（7 端点全有相关维度段）")
+    # R226b（审查轨 R222a 点名）：塔罗/六爻的"两信号关系"原先只是牌面正逆/
+    # 动爻数的纯函数——今天白羊还是金牛，逆位都输出同一句"和今天的节奏不
+    # 完全一致"，**从没比较过两个信号**。修法是给 12 宫标方向倾向
+    # （xingzuo.SIGN_DIRECTION）再做 3×3 真实比对。
+    # 判据的关键：**同一牌面 × 不同值宫方向必须给出不同 relation**——
+    # 这是"真的在比较"与"只是自说自话"的分水岭。只断言 message 非空抓不到。
+    from web import services as _svc
+    _rel_forward = _svc._signal_relation("forward", "forward", "牌面")
+    _rel_hold = _svc._signal_relation("forward", "hold", "牌面")
+    _rel_obs = _svc._signal_relation("forward", "observe", "牌面")
+    assert len({_rel_forward, _rel_hold, _rel_obs}) == 3, \
+        ("cross_ref.relation.not_comparing",
+         "同一牌面方向遇到三种值宫方向却给出重复文案——relation 没在比较两个信号",
+         [_rel_forward, _rel_hold, _rel_obs])
+    # 反向也要成立：同一值宫 × 不同牌面方向
+    _r2 = {_svc._signal_relation(_a, "hold", "牌面")
+           for _a in ("forward", "hold", "mixed")}
+    assert len(_r2) == 3, ("cross_ref.relation.card_side_ignored", sorted(_r2))
+    # 9 种组合两两不同（防某两格文案撞车）
+    _matrix = {(_a, _b): _svc._signal_relation(_a, _b, "牌面")
+               for _a in ("forward", "hold", "mixed")
+               for _b in ("forward", "hold", "observe")}
+    assert len(set(_matrix.values())) == 9, \
+        ("cross_ref.relation.matrix_collision",
+         len(set(_matrix.values())), "9 格应各不相同")
+    # 值宫方向缺失时要有兜底，不能抛
+    assert _svc._signal_relation("forward", "", "牌面")
+    # 端到端：塔罗/六爻响应必须带 today_direction 字段（证明真取了值宫方向）
+    for _ep, _pl, _k in (("/api/tarot", {"seed": 42, "n": 3}, "card_direction"),
+                         ("/api/liuyao", {"method": "coins", "seed": 42},
+                          "gua_direction")):
+        _rr = client.post(_ep, json=_pl).json()
+        _cr = _rr.get("cross_ref") or {}
+        assert _cr.get("today_direction") in ("forward", "hold", "observe"), \
+            (_ep, "today_direction 缺失或非法", _cr.get("today_direction"))
+        assert _cr.get(_k), (_ep, f"{_k} 缺失")
+        # 塔罗/六爻不得出现本命星座字段（不收生日，编造即错）
+        assert "zodiac_sign" not in _cr, (_ep, "不得编造本命星座", _cr)
+    print("  cross_ref.relation PASS（3×3 矩阵 9 格各异，真在比较两个信号）")
     # R220b（P0-3 返工回归）：「换一批」连点三次必须零重复。
     # 历史：D-004-fix 相邻重叠 4/8 → R219b 改环形取段，**只报相邻对**
     # （1∩2=1、2∩3=1）就宣布通过，审查轨实测 1∩3=7/8、2∩4=7/8

@@ -1147,12 +1147,48 @@ def _cross_ref_taohua(month: int, day: int, strength: str = "") -> dict:
         return {}
 
 
+def _signal_relation(a_dir: str, b_dir: str, a_name: str) -> str:
+    """两个信号方向的真实比较 → 一句可操作的关系判断。
+
+    R226b：塔罗/六爻的"两信号关系"原先只看自己那一侧，等于没比较
+    （审查轨 R222a 点名）。这里把 a（牌面/卦象）与 b（今日值宫）的
+    forward/hold/observe/mixed 做真实比对，冲突时给缓冲方案而不是含糊其辞。
+    a_name 用于文案主语（"牌面"／"卦象"）。
+    """
+    if not b_dir:                       # 值宫方向缺失 → 只说自己那一侧
+        return "先按自己的节奏来"
+    if a_dir == "mixed":
+        return {"forward": "牌面没给死结论，那就顺着今天的劲儿往前一点",
+                "hold": "牌面没给死结论，今天本来也适合慢一点",
+                "observe": "两边都没催你做决定，今天可以先放一放"}[b_dir] \
+            if a_name == "牌面" else \
+            {"forward": "卦里没大动静，今天的劲儿可以用一用",
+             "hold": "卦里没大动静，今天本来也适合稳着",
+             "observe": "两边都没催你决定，今天先看看"}[b_dir]
+    # 注意：外层文案已经写了「{a_name}这边{...}」，所以这里**不要再重复
+    # a_name**，也不要再用破折号（否则出现"…—和今天是一个方向，牌面也在
+    # 推你—想做就做"这种三连破折号 + 主语重复）。只回一句短判断。
+    if a_dir == b_dir:                  # 同调：最强的一档，直接鼓励
+        if a_dir == "forward":
+            return "和今天是一个方向，想做就做"
+        return "和今天一样都说慢着来，稳住就对了"
+    if b_dir == "observe":              # 值宫本身偏观望
+        return ("今天更适合先感受再动，"
+                + ("那就把想做的事拆小一点起步" if a_dir == "forward"
+                   else "顺势歇一天也不亏"))
+    # 真冲突（forward × hold）：给缓冲方案，不含糊
+    if a_dir == "forward" and b_dir == "hold":
+        return "跟今天的慢节奏有点拧，挑一件最小的事试试水就好"
+    return "今天倒是能推一把，那就只做有把握的那一步"
+
+
 def _cross_ref_tarot(cards: list[dict]) -> dict:
     """塔罗结果页 → 今天的星座值宫 × 牌面正逆方向是否同调。
 
     塔罗没有出生日期可用（不要求用户填生日），所以这里**只能**引"今天"，
     不能编造本命星座——这是与八字/桃花/起名那几处的关键区别。
     """
+    from guji.xingzuo import sign_direction
     try:
         today = _today_horoscope()
         sign = today.get("today_sign", "")
@@ -1164,20 +1200,23 @@ def _cross_ref_tarot(cards: list[dict]) -> dict:
         # 牌面方向与今日值宫是**两个独立信号**，不能硬拼成因果句
         # （曾出现"牌面偏逆位，今天节奏更适合先稳一稳：今天适合把心里的话
         # 说出口"——前半句劝稳、后半句劝开口，自相矛盾）。
-        # 改为「今天X宫：<值宫文案> 牌面这边<方向>，<两信号关系>」，
-        # 把值宫原文与牌面判断分开陈述，再显式说明两者是否同调。
-        if _up * 2 > _total:
-            card_side = "多数正位，是往前走的信号"
-            relation = "两边指的是一个方向，可以放心推进"
-        elif _up * 2 < _total:
-            card_side = "偏逆位，提示先别急"
-            relation = "和今天的节奏不完全一致，那就挑一件小事先试"
-        else:
-            card_side = "正逆各半"
-            relation = "牌面本身没给死结论，按今天的节奏走就行"
+        #
+        # R226b（审查轨 R222a 抓到）：上一版把两句分开陈述了，但那句
+        # "两信号关系"**只是牌面正逆的纯函数** —— 今天白羊（劝你说出口）
+        # 还是金牛（劝你放慢），逆位都输出同一句"和今天的节奏不完全一致"，
+        # 从没真比较过。现在用 xingzuo.sign_direction() 取值宫的方向倾向，
+        # 与牌面方向做真实的 3×3 比较（同调 / 相反 / 一方中性）。
+        card_dir = ("forward" if _up * 2 > _total
+                    else "hold" if _up * 2 < _total else "mixed")
+        card_side = {"forward": "多数正位，是往前走的信号",
+                     "hold": "偏逆位，提示先别急",
+                     "mixed": "正逆各半"}[card_dir]
+        relation = _signal_relation(card_dir, sign_direction(sign), "牌面")
         return {
             "today_sign": sign,
             "today_note": note,
+            "today_direction": sign_direction(sign),
+            "card_direction": card_dir,
             "upright_count": _up,
             "total": _total,
             "message": f"今天{sign}宫：{note}牌面这边{card_side}——{relation}。",
@@ -1191,6 +1230,7 @@ def _cross_ref_liuyao(moving_lines: list | tuple) -> dict:
 
     同塔罗：六爻不收生日，只能引"今天"。
     """
+    from guji.xingzuo import sign_direction
     try:
         today = _today_horoscope()
         sign = today.get("today_sign", "")
@@ -1198,19 +1238,24 @@ def _cross_ref_liuyao(moving_lines: list | tuple) -> dict:
         if not (sign and note):
             return {}
         _n = len(moving_lines or ())
-        # 同塔罗：动爻多寡与今日值宫是两个独立信号，分开陈述不硬接因果
+        # R226b：同塔罗——原 relation 只看动爻数，与"今天"无关（审查轨点名）。
+        # 动爻多 = 局面在变（宜观望 observe）；无动爻 = 局面稳（宜守 hold）；
+        # 1-2 个动爻 = 小步可动（forward）。再与值宫方向做真实比较。
         if _n >= 3:
             gua_side = f"有 {_n} 个动爻，变数不小"
-            relation = "这种时候今天的节奏更值得参考，别自己硬扛"
+            gua_dir = "observe"
         elif _n == 0:
             gua_side = "一个动爻都没有，局面挺稳"
-            relation = "没什么要急着改的，顺着今天的节奏来"
+            gua_dir = "hold"
         else:
             gua_side = f"有 {_n} 个动爻，小范围有变化"
-            relation = "变化不大，按今天的节奏推进就行"
+            gua_dir = "forward"
+        relation = _signal_relation(gua_dir, sign_direction(sign), "卦象")
         return {
             "today_sign": sign,
             "today_note": note,
+            "today_direction": sign_direction(sign),
+            "gua_direction": gua_dir,
             "moving_count": _n,
             "message": f"今天{sign}宫：{note}卦里{gua_side}——{relation}。",
         }
