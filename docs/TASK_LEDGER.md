@@ -17707,3 +17707,26 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 那一天再写当日主推+引导。实测「明天适合出行吗」→ 9/20 卡
 「明天适合出行 ✅（宜项里有【出行】）」。selftest 新增
 `frontend.hl_ask_dayoffset` 静态钉扎。
+## §182（2026-09-19）R228a/b/c：循环优化迭代 1-3 —— 5向子 agent 审查 + 三批修复
+
+- 模式：dynamic-workflow 派 5 个独立 VM 子 session 并行审查（frontend-ux/
+  backend-correctness/gate-coverage/copy-consistency/a11y-mobile），产出
+  67 条带 evidence+fix_hint 的结构化 findings。
+- R228a：黄历卡 chongsha dict 直 esc() → [object Object] 修复为「冲虎煞南」；
+  probe_contract 抽取正则接入 phFetch 包装器 + /api/paipan/history 两个
+  fixture（原 j.items 误记到 /api/bazi 报假 HARD×2）；paipan_history.db
+  写入行纳入污染清理纪律；doHuangli._* 函数属性态收进 _HL 数据对象 +
+  局部 var base→dt 消顶层撞名（dollar_misuse 28→0，未动判据）。
+- R228b：xingzuo/daily 极值年 400 边界拦截（原 500/误导性 200）；
+  /api/huangli days 钳位 ≤92（原线性 DoS 面）；term_time lru_cache 让
+  chat_huangli_facts 2.7s→0.03s；_today_horoscope 按日 memo；knowledge.db
+  WAL+busy_timeout；paipan_history DDL once+closing 真关连接+写锁串行化。
+- R228c：chatBubble 除 chat-typing 内容嗅探（自注入面）改显式 raw；轮询
+  全部节点引用写回+catch 续排；chatOpen 解锁 DISABLE 死锁；chatEmpty 双份
+  注入消除；hlSubmit 双绑拆除；chip 高亮/抽屉状态泄漏修复；on() 全站在途
+  防重；农历双月；塔罗/六爻 hook ** 走 renderRichText；海报 Esc 监听泄漏；
+  死代码三处；alert→toast；dailyMore aria；问一嘴 Enter+输入保活。
+- 验证：selftest 163 PASS；probe_contract PASS(205读点)；dollar_misuse 0；
+  ui_smoke 40/41（btn:huangli 与基线逐字一致的本环境字体问题）。
+- PR：#3 devin/1789836976-opt-loop-r1（等用户合并）。
+
