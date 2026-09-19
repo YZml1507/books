@@ -54,6 +54,16 @@ function checked(id) {
   return !!(node && node.checked);
 }
 
+/* R228v：全局 JS 错误兜底——此前任何未捕获异常（典型如 ReferenceError）
+ * 静默打断点击处理器，用户看到「点了没反应」无任何线索。统一 toast 提示
+ * 可重试，不打断后续操作。img 资源 onerror 走元素级 is-missing，不进这里。 */
+window.addEventListener('unhandledrejection', function () {
+  showToast('操作没完成，网络或服务可能不稳，再试一次？', 'warn');
+});
+window.addEventListener('error', function (e) {
+  if (e && e.message) showToast('页面出了点小状况，刷新一下试试～', 'warn');
+});
+
 /** HTML 转义——所有动态文本入 innerHTML 前必过这里。 */
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {

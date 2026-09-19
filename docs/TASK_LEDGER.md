@@ -10102,3 +10102,10 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   cream-icon-tarot-full.png 1024 母图缩出，archive 原件未动）+
   apple-touch-icon。SW CACHE 升 v7（旧缓存壳无 manifest 链接）。
 - 判据：/static/manifest.json 200 且 icons 可达；selftest 180 全绿。
+
+## R228v（全局 JS 错误兜底）
+
+- window error + unhandledrejection 全局挂 showToast——此前未捕获
+  异常（如 ReferenceError）静默吃掉点击，用户零线索。资源级
+  onerror 不进此通道（走 is-missing 降级）。
+- 判据：ui_smoke 43 全绿（page.load 零 console.error 保持）。
