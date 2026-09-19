@@ -738,6 +738,28 @@ def _run_inner() -> list[str]:
     _expect_422("err.bazi.paipan_fail",
                 client.post("/api/bazi", json={"year": 1990, "month": 2,
                                                "day": 30, "hour": 10}))
+    # R229c/k：①非法日期的 422 detail 不许漏英文异常原文（人话化钉扎）；
+    # ②question max_length=200 的 pydantic 422 钉扎（bazi/liuyao 各一）。
+    _r = client.post("/api/bazi", json={"year": 1990, "month": 2,
+                                        "day": 30, "hour": 10})
+    assert "这一天不存在" in str(_r.json().get("detail", "")), (
+        "err.bazi.paipan_friendly", _r.status_code, _r.text[:200])
+    ok.append("err.bazi.paipan_friendly")
+    # pydantic 层校验（max_length）的 422 detail 是 FastAPI 约定的 list 形状，
+    # 前端 _humanize422 已人话化——这里只钉状态码与非空 detail，不走
+    # _expect_422（它要求 detail 为业务异常字符串）。
+    for _n, _resp in (
+        ("err.bazi.question_too_long",
+         client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                        "day": 15, "hour": 10,
+                                        "question": "啊" * 300})),
+        ("err.liuyao.question_too_long",
+         client.post("/api/liuyao", json={"method": "coins",
+                                          "question": "啊" * 300})),
+    ):
+        assert _resp.status_code == 422 and _resp.json().get("detail"), (
+            _n, _resp.status_code, _resp.text[:200])
+        ok.append(_n)
     # R139b（D-185b）：bazi calendar_type/scope/gender 三条 400 校验分支
     # standing 覆盖——err.bazi.year 只测年份范围。
     _expect_400("err.bazi.calendar",
