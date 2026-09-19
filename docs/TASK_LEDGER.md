@@ -10151,3 +10151,5 @@ R228z续：入参 fuzz（13 POST × 16 畸形载荷）抓出唯一漏网 5xx—�
 验证：fuzz 全零 5xx；selftest 181 PASS；contract 386 PASS。
 R228z续2：休眠闸门 probe_first_screen 抓真问题——warm 模式 humanCite 把引文出处剥成只剩书名，无锚典籍的锚点/文件名在页面完全取不到（宪法第三条缺口）。修法：折叠体 cite-body 尾部加「出处：完整 citation」行 + ev-meta 悬停 title 放全文。GET 端点另过 1120 条畸形编码查询零 5xx。
 验证：probe_first_screen PASS（出处缺失 6→0）；selftest 181 / ui_smoke 44 / dollar 全绿。
+R228z续3：休眠探针体检批——first_screen 由绿转FAIL的真问题已修（见续2）；disclosure 修 B-011 遗留崩（quality_report 混入非对键）；bcv/booksec/citation_space/conservation/addressable_now 复跑全绿。
+验证：各探针直接运行输出 PASS/正常报告。
