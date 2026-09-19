@@ -10095,3 +10095,10 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   （原无超时，一次挂死=probe 永久挂死）。
 - 判据：env 有/无 key 两种形态各跑一遍，180 checks 全绿；
   regress probe PASS。
+
+## R228t续（PWA manifest + 可安装图标）
+
+- 新增 manifest.json（standalone/主题色/192+512 图标——由
+  cream-icon-tarot-full.png 1024 母图缩出，archive 原件未动）+
+  apple-touch-icon。SW CACHE 升 v7（旧缓存壳无 manifest 链接）。
+- 判据：/static/manifest.json 200 且 icons 可达；selftest 180 全绿。

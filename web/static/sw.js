@@ -5,7 +5,7 @@
  *  2. /api/* 永不缓存（命理数据必须新鲜，离线时让请求自然失败，
  *     前端既有 toast/内联错误文案接管）。
  * 版本号递增即失效旧缓存。 */
-var CACHE = 'books-shell-v6';   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
+var CACHE = 'books-shell-v7';   // R228t: index.html 加 manifest——旧缓存壳没有该链接   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
 var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css'];
 
 self.addEventListener('install', function (e) {
