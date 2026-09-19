@@ -17840,3 +17840,22 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - R228l 收口：xz/deco 双定义逐属性合并完成；五僵尸端点
   改「有意保留」登记（删端点=契约变更留档待裁决）；_candidates
   README 登记 7 张备选资产。round-2 审计 42 条 findings 清零。
+
+
+### R228m+n（本轮）round-3 审计修复批
+
+第三轮五向并行审查（a11y/移动端/闸门盲区/确定性边界/文档漂移）共产 42 条。
+本轮修 P0+P1 主体：
+- 六冲/相冲枚举错位（产出「六冲」消费查「相冲」→六冲永不扣分，实测修复）；
+- retrieve_fast bm25 排序反向（-score 升序=最差在前，[:20] 丢最强命中）；
+- daily ?date 的 level 按今天算且被缓存固化→改 ask_date + cv=2 口径版本；
+- find_good_days 宜∩忌双标日剔除（92 天窗实测 19 天）；
+- _HUANGLI_VOCAB frozenset 迭代序→定序 tuple 跨进程稳定；
+- 移动端：分享钮 right:150px 残留覆写删、xz 日期栏折行、合婚表
+  .table-scroll、button min-height=--tap、hlAsk 行去内联样式；
+- a11y：modal 焦点圈、侧栏开时主区 inert、结果区/chatFlow aria-live、
+  隐藏 h1、hlPickBtn aria-expanded、daily-level.bad/--primary-ink/
+  checkin-fx 对比度达标、scrollIntoView 尊重 reduced-motion。
+闸门：selftest 173 / contract 255 / ui_smoke 41 / dollar 0 全绿。
+遗留：gate-blindspots 的新断言清单（R228o 做）、determinism 余项
+（23 点跨日口径声明、年柱双口径提示、单日黄历丢字段）下轮做。
