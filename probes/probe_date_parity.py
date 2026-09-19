@@ -120,6 +120,35 @@ def main() -> int:
             print(f"\nprobe_date_parity FAIL: {len(diffs)} 条分歧: {diffs}")
             return 1
         print(f"\nprobe_date_parity PASS: {len(CASES)} 条问法前后端偏移一致")
+
+        # ── R229q：事项词别名表前后端同构钉扎 ──────────────────────
+        # 前端 HL_SCENE_ALIAS ↔ 后端 _CHAT_SCENE_TERMS 各存一份，R229q
+        # 前已实测漂移（搬家/种花/许愿 值表不一致 → 同一问题卡面与聊天
+        # 事实给不同判定）。规则：JS 键 ⊆ py 键；同键值集合相等；
+        # py 非自映射键（terms != [k]）必须出现在 JS。
+        from web import services as _sv
+        py_alias = _sv._CHAT_SCENE_TERMS
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+            page.wait_for_timeout(800)
+            js_alias = page.evaluate("() => HL_SCENE_ALIAS")
+            browser.close()
+        bad = []
+        for k, vs in js_alias.items():
+            if k not in py_alias:
+                bad.append(f"JS 独有键 {k}")
+            elif set(vs) != set(py_alias[k]):
+                bad.append(f"{k}: js={vs} py={py_alias[k]}")
+        for k, vs in py_alias.items():
+            if vs != [k] and k not in js_alias:
+                bad.append(f"py 非自映射键缺席 JS：{k}→{vs}")
+        if bad:
+            print("\nprobe_date_parity FAIL: 别名表分歧: "
+                  + "; ".join(bad[:12]))
+            return 1
+        print(f"probe_date_parity alias PASS: {len(js_alias)} 键前后端同构")
         return 0
     finally:
         proc.terminate()
