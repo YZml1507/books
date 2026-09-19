@@ -5,7 +5,7 @@
  *  2. /api/* 永不缓存（命理数据必须新鲜，离线时让请求自然失败，
  *     前端既有 toast/内联错误文案接管）。
  * 版本号递增即失效旧缓存。 */
-var CACHE = 'books-shell-v5-fix2';   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
+var CACHE = 'books-shell-v6';   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
 var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css'];
 
 self.addEventListener('install', function (e) {
@@ -26,6 +26,7 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;          // POST 全直连
+  if (url.origin !== self.location.origin) return; // 跨源不接管（未来外链保险）
   if (url.pathname.indexOf('/api/') === 0) return; // API 永不缓存
 
   /* 导航请求（刷新）：SWR——先给缓存壳保住白屏，后台再更新 */

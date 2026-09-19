@@ -17958,3 +17958,9 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - app.js：visualViewport.resize 监听——聊天输入聚焦时键盘弹出把输入框
   滚回侧栏可视区（fixed 侧栏不随视口收缩；不支持的环境静默跳过）。
 - 判据：ui_smoke 43 全绿。
+
+## R228q续2（SW 跨源接管防御）
+
+- sw.js fetch 拦截补 same-origin 守卫：未来若有外链资源（CDN 字体等）
+  不会被缓存策略误管；CACHE bump v5→v6 失效旧缓存。
+- 判据：selftest 178 全绿（sw.chain 钉住注册链路）。
