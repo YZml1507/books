@@ -17933,3 +17933,13 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 晚子时政策补文档+warn：23:00-24:00 出生不换日柱（取不换日派），
   bazi.py 模块说明 + 排盘 warn 栏明示「另一派会归入次日」。
 - 判据：selftest 176 / contract 381 / ui_smoke 43 全绿。
+
+## R228p续3续4（年柱双口径钉 + 表格横溢清零）
+
+- bazi：正月生且立春前的盘 warn 栏补「正月初一换年派会取上一年」
+  提示；selftest 新增 bazi.year_pillar.caliber_hint 钉（2009-02-01
+  正月初七 → warn 含立春/正月初一字样）。
+- 三处未包 .table-scroll 的表格（concept 命中表/bsStructure 节表/
+  taohua dayun_hits）补齐滚动容器——375px 视口零横溢由
+  viewport.375.no-hscroll 钉住。
+- 判据：selftest 177 / ui_smoke 43 / contract 381 / regress 全绿。

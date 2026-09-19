@@ -2770,7 +2770,7 @@ async function doConcept() {
         '<td class="num">' + esc(row.n_hits) + '</td>' +
         '<td>' + esc(fmtScalar(row.layers)) + '</td></tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     const shared = j.shared_addresses || [];
     if (shared.length) {
       html += '<h3 style="margin-top:16px;">同址多见证地图</h3>';
@@ -2817,7 +2817,7 @@ async function doBookStructure() {
         '<td>' + esc(fmtScalar(s.layers)) + '</td>' +
         '<td>' + esc((s.sample || '').slice(0, 40)) + '</td></tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     paint('bsStructure', html);
   } catch (e) {
     fail('bsStructure', '加载失败：' + e.message);
@@ -3415,7 +3415,7 @@ async function doTaohua() {
         html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
           '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     }
     if (j.notes && j.notes.length) {
       html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
