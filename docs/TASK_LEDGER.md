@@ -17749,3 +17749,14 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 验证：selftest 163 PASS；contract PASS(203)；dollar_misuse 0；
   ui_smoke 41/41（全绿首见——btn:huangli 从误报变真链路）。
 
+## §184（2026-09-19）R228e：文案一致性批（copy-consistency 清单收尾）
+
+- 用户可见报错英文字段名→中文 ~30 处（q→查询词、month→月份、gua→
+  卦号、work_id→书号、scheme→编址类型、method→起卦方式…）；须/需统一
+  「需」；schemas.py 同函数中英文混排消除；selftest 逐字断言同步。
+- 拼接粘连/标点体例/中英夹杂/断言式预测/人格漂移（小书童→小满）/
+  免责五写法→「仅供娱乐，不构成决策依据」/checkin 池口径/降级词表
+  死重复+「他她」单字误伤。copy_bank.json 与 app.js 同源双份同步改。
+- 验证：selftest 163 PASS；contract PASS(203)；dollar_misuse 0。
+- PR：#3 已累积 R228a-e 五批（审查 67 findings 中 50+ 已落地）。
+
