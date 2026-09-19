@@ -10149,3 +10149,5 @@ R228z：probe_contract.py 顶部 os.environ.setdefault(BOOKS_LLM_DISABLE,1)—�
 验证：BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py → PASS 386/386。
 R228z续：入参 fuzz（13 POST × 16 畸形载荷）抓出唯一漏网 5xx——/api/ask 遇 NUL 字节→FTS5 unterminated string→503。fts_phrase 统一剥 C0 控制符；现在 NUL 查询优雅拒答（200 refused）。
 验证：fuzz 全零 5xx；selftest 181 PASS；contract 386 PASS。
+R228z续2：休眠闸门 probe_first_screen 抓真问题——warm 模式 humanCite 把引文出处剥成只剩书名，无锚典籍的锚点/文件名在页面完全取不到（宪法第三条缺口）。修法：折叠体 cite-body 尾部加「出处：完整 citation」行 + ev-meta 悬停 title 放全文。GET 端点另过 1120 条畸形编码查询零 5xx。
+验证：probe_first_screen PASS（出处缺失 6→0）；selftest 181 / ui_smoke 44 / dollar 全绿。
