@@ -17730,3 +17730,22 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   ui_smoke 40/41（btn:huangli 与基线逐字一致的本环境字体问题）。
 - PR：#3 devin/1789836976-opt-loop-r1（等用户合并）。
 
+## §183（2026-09-19）R228d：无障碍+窄屏批（a11y-mobile 审查 18 条全落）
+
+- P0：360px 下礼盒图压住日期——daily-top padding-right + gift
+  pointer-events:none。
+- 对比度：--secondary→#7E6A58(4.85)、--muted→#7F6C57(4.74)、新增
+  --accent-ink #B84A6F 接管 .error/.warn/.ev-disc；qm-score/tarot-hook-tag
+  →secondary；焦点环统一 --text（原 --primary 1.74:1）。
+- tap 下限：9 组控件补 min-height:var(--tap)。
+- 键盘/读屏：侧栏 inert+aria-hidden+visibility+Esc+焦点归还；海报层
+  dialog 语义+焦点进出；work-card 键盘可达；showView 焦点管理；
+  tablist 滥用改 group；rtab/hl-chip/checkin-opt 补 aria-pressed；
+  toast 补 live region；输入框 16px（iOS 缩放）；ph-item 假 cursor 移除。
+- 探针自身修复：ui_smoke 点 #hlSubmit 前先开 #hlPickDrawer（按钮住收
+  起的 details——探针没跟上 v5 改版，btn:huangli 一直误报）→ 41/41。
+- 死样式：.recent-del/.recent-*/.hist-*/.news-*/.ev-toggle/.side-history*/
+  .xz-cell(旧) 删除（双端零引用实证）。
+- 验证：selftest 163 PASS；contract PASS(203)；dollar_misuse 0；
+  ui_smoke 41/41（全绿首见——btn:huangli 从误报变真链路）。
+
