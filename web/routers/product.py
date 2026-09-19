@@ -24,6 +24,9 @@ def daily(date: str | None = None) -> dict:
     return services.daily(date)
 
 
+# R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
+# ——widget 是嵌入部件预留面、share 是分享卡数据面（JS 侧走本地海报渲染）、
+# fortune 是外部资讯预留。selftest 断言钉着契约，不是僵尸端点。
 @router.get("/api/widget")
 def widget() -> dict:
     """首页功能卡片数据：各模块图标/标题/描述 + 最近使用标记。"""

@@ -1127,15 +1127,10 @@ details.warm-pro-fold > summary{
 
 /* D-005：星座视图样式 */
 .xz-result{ margin-top:8px; }
-.xz-today{ display:flex; align-items:center; gap:10px; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; }
 .xz-today-label{ font-size:13px; color:var(--secondary); }
-.xz-today-sign{ font-size:20px; font-weight:700; color:var(--primary-ink); }
 .xz-today-note{ font-size:13px; color:var(--secondary); }
-.xz-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 /* R228d：.xz-cell/.xz-icon/.xz-palace 旧版死样式删除（v2 卡片版在用，.xz-grid 保留） */
-.xz-name{ font-size:14px; font-weight:600; color:var(--primary-ink); }
 
-.xz-note{ font-size:11px; color:var(--secondary); margin-top:4px; line-height:1.4; }
 /* C-002：星座详情页分维度 */
 .xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:8px; }
 .xz-dim{ display:flex; gap:8px; margin-bottom:6px; }
@@ -1330,18 +1325,8 @@ button:active{transform:scale(.96);}
 /* R228d：.side-history* 死样式删除——侧栏历史折叠段已退役，零引用。 */
 
 /* ── R218a-巡2（N-08）：结果卡装饰 banner ─────────── */
-.deco-banner{
-  position:relative; display:flex; align-items:center; gap:12px;
-  margin:10px 0 14px; padding:12px 14px;
-  border-radius:12px; overflow:hidden;
-  border:1px solid rgba(184,134,11,.18);
-}
-/* R228l：.deco-banner.deco-* 死样式删除——app.js 内联 style=background 恒覆盖。 */
-/* R228l：.deco-icon 死样式删除（JS 发 deco-icon-img）。 */
-.deco-text{
-  flex:1; font-size:13.5px; color:#5B4620;
-  font-family:var(--font-serif); font-weight:500;
-}
+/* R228l：.deco-banner/.deco-text 双定义已逐属性合并进 v3 补丁块
+ * （margin-top/position/overflow/border 是 v1 仍在生效的残余）。 */
 .deco-corner{
   position:absolute; right:-12px; top:-12px; width:64px; height:64px;
   border-radius:50%; background:rgba(255,255,255,.25);
@@ -1401,7 +1386,8 @@ button:active{transform:scale(.96);}
 .xz-card-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px;}
 .xz-card .xz-name{font-weight:700;font-size:15px;color:var(--text);}
 .xz-card .xz-note{font-size:12px;color:var(--secondary);line-height:1.5;}
-.xz-today{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-radius:16px;padding:10px 14px;margin-bottom:12px;}
+/* R228l 合并两代 xz-today：v1 仅存的 border 并进 v2（其余属性 v2 全覆盖）。 */
+.xz-today{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border:1px solid var(--border);border-radius:16px;padding:10px 14px;margin-bottom:12px;}
 .xz-today-img{width:64px;height:64px;border-radius:14px;object-fit:cover;box-shadow:0 3px 10px rgba(212,181,255,.35);}
 .xz-today-img.is-missing{display:none;}
 .xz-today-sign{font-weight:800;font-size:18px;color:var(--primary-ink);}
@@ -1419,10 +1405,10 @@ button:active{transform:scale(.96);}
 .qm-part{font-size:11px;color:var(--primary-ink);background:rgba(212,181,255,.18);border-radius:999px;padding:2px 8px;}
 
 /* ── v3 P2/P1 补丁 ── */
-.deco-banner{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 14px;margin-bottom:12px;}
+.deco-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:10px 0 12px;padding:10px 14px;border-radius:14px;border:1px solid rgba(184,134,11,.18);}
 .deco-icon-img{width:44px;height:44px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(255,143,171,.25);flex-shrink:0;}
 .deco-icon-img.is-missing{display:none;}
-.deco-text{font-weight:700;font-size:14px;color:#8B6FC7;}
+.deco-text{flex:1;font-family:var(--font-serif);font-weight:700;font-size:14px;color:#8B6FC7;}
 .rt-list{margin:4px 0 4px 18px;}
 .rt-list li{margin:2px 0;}
 .ai-polish-text code,.chat-bubble code{background:rgba(212,181,255,.16);border-radius:6px;padding:1px 6px;}

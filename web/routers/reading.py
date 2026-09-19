@@ -48,6 +48,8 @@ def research(q: str = "", max_addresses: int = 3,
                                   allow_damaged=allow_damaged)
 
 
+# R228l 登记：/api/ask 与 /api/stats 前端零调用——有意保留给
+# CLI 等价物与第三方集成（selftest 断言仍钉着其契约），不是僵尸。
 @router.post("/api/ask")
 def ask(req: AskRequest) -> dict:
     """研究问答：证据集 + 确定性综合（拒绝时不综合，G7）。"""
@@ -75,7 +77,9 @@ def works() -> dict:
 
 @router.get("/api/stats")
 def stats() -> dict:
-    """索引统计（与 CLI `ask.py stats` 同内核）。"""
+    """索引统计（与 CLI `ask.py stats` 同内核）。
+
+    前端零调用——有意保留（见本文件 /api/ask 上方 R228l 登记）。"""
     return services.stats()
 
 
