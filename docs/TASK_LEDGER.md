@@ -17795,3 +17795,27 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   否则会误算 `renderDecoration('bazi')` 这类词尾）。172→173。
 
 闸门：selftest 173 / contract 267 / dollar_misuse 0 / regress PASS。
+
+
+### R228i+j（本轮）P0/P1 收口批
+
+- P0：ThreadEvidence.work_id 白名单校验（拒 `..`/超长）——verify() 的 os.path.join+glob
+  此前可被当文件存在性 oracle；evalset.raw_body 补 realpath 收容。
+- P0：HehunRequest.validate_ranges 补甲/乙方性别枚举——非法值此前静默算错大运。
+- P0：api() 422 detail 数组→中文字段名映射（_FIELD_CN/_humanize422），不再裸甩
+  `[{"loc":..}]`；sqlite OperationalError→503。
+- P1：paipan_history KEEP_MAX=500 滚动裁剪、req_json 解析护栏、_log 目录自创建；
+  set_daily_cache 改 UPSERT COALESCE；search_derived 引号转义；set_user_prefs 上限。
+- 验证：selftest 173 PASS / contract 256 / dollar 0 / ui_smoke 41。
+
+### R228k（本轮）前端 P1 批
+
+- styles.css 两条 @import 原在规则之后被浏览器整条丢弃——LXGW/animotion 从未加载，
+  是长期「字体没渲染」基线抖动的根因；置顶后 ui.font.zcool_applied 与 btn:huangli
+  首次由基线 FAIL 转 PASS（41/41 全绿）。
+- sw.js 从 /sw.js 下发 + Service-Worker-Allowed:/ ——此前 scope 为 /static/ 管不到
+  `/`，离线壳完全不生效；导航分支补 resp.ok 防 500 页粘缓存。
+- daily/xingzuo 改 Promise.all（原串行瀑布）；POSTER_BG+tarot manifest 移入
+  requestIdleCallback，首屏省 ~95KB；api() 20s 超时+断网人话 toast；AI 轮询 silent。
+- bazi_lookup numpy 惰性加载：web.app 导入 408→342ms（-16%）。
+- 验证：selftest 173 / contract 256 / dollar 0 / ui_smoke 41 PASS。
