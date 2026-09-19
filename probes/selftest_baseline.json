@@ -80,6 +80,7 @@
   "err.bazi.range_span",
   "err.bazi.scope",
   "err.bazi.year",
+  "err.body_too_large",
   "err.bookstudy.chapter.empty",
   "err.bookstudy.chapter.scheme",
   "err.bookstudy.structure.empty",
