@@ -10158,3 +10158,4 @@ R228z续6：browser-gates job 上线——probe_first_screen（首屏抵达成�
 R228z续7：CI selftest job 增 corpus 数据闸门——check_booksec/check_dual_engine/check_provenance/verify_index/assess_goals（G1-G9），本地复跑全 PASS 后入列。
 R229a：补 README.md（项目此前没有）——冷启动步骤按 .devin 蓝图与 CI 工作流同源写（已在 /tmp/books-fresh 全新 clone 实测跑通到 selftest 181 PASS）。
 验证：README 命令序列 = 蓝图 initialize + workflow steps，fresh-clone 实测。
+R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PHASE/GOAL/台账先读）、长期知识、历史快照（明确只读）。
