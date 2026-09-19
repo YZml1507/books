@@ -1266,7 +1266,9 @@ def _run_inner() -> list[str]:
     from web import services as _svc
     from datetime import datetime as _dt
     _hf = _svc.chat_huangli_facts("今天适合出行吗", now=_dt(2026, 9, 19))
-    assert _hf and any("当日黄历" in f for f in _hf), _hf
+    # R228w：事实行带用户原词——「今天（date）的黄历：…」让 LLM 能对上
+    # 「下周三」=9/23 而不是自己换算出错日期。
+    assert _hf and any("的黄历" in f and "2026-09-19" in f for f in _hf), _hf
     assert any("黄历判定" in f for f in _hf), _hf
     _hf2 = _svc.chat_huangli_facts("明天能搬家不", now=_dt(2026, 9, 19))
     assert _hf2 and any("中性" in f or "宜「" in f for f in _hf2), _hf2
@@ -1285,9 +1287,10 @@ def _run_inner() -> list[str]:
                    ("明天做手术行吗", "手术")):
         _hf6 = _svc.chat_huangli_facts(_m, now=_dt(2026, 9, 19))
         assert _hf6 and any(_t in f and "黄历判定" in f for f in _hf6), (_m, _hf6)
-    # ④ 非今日提问的中性卡说「那天」不说「今天」。
+    # ④ R228w：非今日提问的中性卡说「原词（日期）」——「明天（2026-09-20）」
+    # 比「那天」更精确，也让 LLM 能把用户的说法锚到正确日期。
     _hf7 = _svc.chat_huangli_facts("明天适合聚餐吗", now=_dt(2026, 9, 19))
-    assert _hf7 and any("那天" in f for f in _hf7), _hf7
+    assert _hf7 and any("明天（2026-09-20）" in f for f in _hf7), _hf7
     ok.append("chat.facts.dates_vocab")
     # R227b-fix（端到端审查抓到）：问一嘴输入的日期词必须参与判定——
     # 「明天适合出行吗」不许剥掉日期词后拿当前显示日充数答「今天…」。

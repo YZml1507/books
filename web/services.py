@@ -760,24 +760,32 @@ _HUANGLI_VOCAB_ORD: tuple = tuple(
 _WEEKDAY = "一二三四五六日天"
 
 
-def _hl_day_part(msg: str, now: datetime) -> datetime:
+def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     """消息里的相对日（明天/后天/昨天/下周X/周末…），默认今天。
+
+    返回 (目标日期, 用户原词)——原词要写进事实行（「下周三（9/23）的黄历…」），
+    否则 LLM 不知道用户说的「下周三」是哪一天，会自己换算出错误日期
+    （R228w 实测：9/19 说「下周三」，模型答成 9/30）。
 
     R228r（chat-flow 审查）：原先只有明天/后天/大后天三档，昨天/下周X/周末
     静默按今天判——说错日期比不答更伤（用户拿「明天」的答案去安排「下周」）。
     """
     if "大后天" in msg or "大後天" in msg:
-        return now + timedelta(days=3)
+        return now + timedelta(days=3), "大后天"
     if "大前天" in msg:
-        return now - timedelta(days=3)
-    if "后天" in msg or "後天" in msg or "过两天" in msg or "過兩天" in msg:
-        return now + timedelta(days=2)
+        return now - timedelta(days=3), "大前天"
+    if "后天" in msg or "後天" in msg:
+        return now + timedelta(days=2), "后天"
+    if "过两天" in msg or "過兩天" in msg:
+        return now + timedelta(days=2), "过两天"
     if "前天" in msg:
-        return now - timedelta(days=2)
-    if "明天" in msg or "明日" in msg or "明儿" in msg or "明兒" in msg:
-        return now + timedelta(days=1)
+        return now - timedelta(days=2), "前天"
+    if "明天" in msg or "明日" in msg:
+        return now + timedelta(days=1), "明天"
+    if "明儿" in msg or "明兒" in msg:
+        return now + timedelta(days=1), "明儿"
     if "昨天" in msg or "昨日" in msg:
-        return now - timedelta(days=1)
+        return now - timedelta(days=1), "昨天"
     # 下周X / 下礼拜X：以下个周一为基准的 X 曜日
     for anchor in ("下周", "下週", "下礼拜", "下禮拜"):
         if anchor in msg:
@@ -785,14 +793,15 @@ def _hl_day_part(msg: str, now: datetime) -> datetime:
             if idx < len(msg) and msg[idx] in _WEEKDAY:
                 wd = _WEEKDAY.find(msg[idx]) % 7
                 next_mon = now + timedelta(days=(7 - now.weekday()))
-                return next_mon + timedelta(days=wd)
+                _d = next_mon + timedelta(days=wd)
+                return _d, msg[msg.find(anchor):idx + 1]
             # 「下周」没跟曜日——按下个周一算
-            return now + timedelta(days=(7 - now.weekday()))
+            return now + timedelta(days=(7 - now.weekday())), "下周"
     # 周末：下一个周六（今天已是周末则指今天）
     if "周末" in msg or "週末" in msg:
         gap = (5 - now.weekday()) % 7
-        return now + timedelta(days=gap)
-    return now
+        return now + timedelta(days=gap), "周末"
+    return now, "今天"
 
 
 def _hl_next_yi_days(dt: datetime, terms: list[str],
@@ -839,13 +848,13 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     if not scene and not generic:
         return []
 
-    dt = _hl_day_part(msg, now)
+    dt, spoken = _hl_day_part(msg, now)
     q = huangli_mod.day_query(dt)
     yi, ji = q["yi"], q["ji"]
     date_cn = q["date"]
     yi_str = "、".join(yi) or "无"
     ji_str = "、".join(ji) or "无"
-    facts = [f"当日黄历（{date_cn}）：宜【{yi_str}】；忌【{ji_str}】。"]
+    facts = [f"{spoken}（{date_cn}）的黄历：宜【{yi_str}】；忌【{ji_str}】。"]
 
     if generic:
         facts.append("没列入当日宜忌的事项属中性——不是不支持，只是黄历没"
@@ -867,7 +876,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
         verdict = (f"黄历判定：{date_cn} 「{scene}」宜忌都有——宜【{'、'.join(hit_yi)}】"
                    f"也忌【{'、'.join(hit_ji)}】；想做就把节奏放缓，不赶大动作。")
     else:
-        that_day = "今天" if dt.date() == now.date() else "那天"
+        that_day = "今天" if dt.date() == now.date() else f"{spoken}（{date_cn}）"
         verdict = (f"黄历判定：{date_cn} 宜忌都没直接提「{scene}」——中性，"
                    f"不是不支持，只是黄历{that_day}没为它背书，{scene}可照常安排。"
                    f"{good_part}")
