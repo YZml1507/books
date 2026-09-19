@@ -27,6 +27,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import sqlite3
 from datetime import date, datetime, timedelta
 
@@ -785,6 +786,12 @@ _HUANGLI_VOCAB_ORD: tuple = tuple(
 
 _WEEKDAY = "一二三四五六日天"
 
+
+def _wd_idx(ch: str) -> int:
+    """曜日字 → weekday 索引（一=0..日=6；「天」在串尾 index=7，同周日）。"""
+    i = _WEEKDAY.find(ch)
+    return 6 if i > 6 else i
+
 # R229d：繁中问句归一——「明天適合簽約嗎」此前 _CHAT_SCENE_TERMS 全简体
 # 打不中（事实行缺席 → LLM 自由发挥）。只映射问句域常见字，与前端
 # app.js _T2S 同表；未映射字原样通过（宁缺毋滥不错转）。
@@ -833,6 +840,15 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return now + timedelta(days=1), "明天"
     if "明儿" in msg or "明兒" in msg:
         return now + timedelta(days=1), "明儿"
+    # R229h：晚字辈（明晚/后晚/今晚/昨晚）与对应「天」同档——黄历按天判。
+    if "明晚" in msg:
+        return now + timedelta(days=1), "明晚"
+    if "后晚" in msg or "後晚" in msg:
+        return now + timedelta(days=2), "后晚"
+    if "今晚" in msg or "今夜" in msg:
+        return now, "今晚"
+    if "昨晚" in msg:
+        return now - timedelta(days=1), "昨晚"
     if "昨天" in msg or "昨日" in msg:
         return now - timedelta(days=1), "昨天"
     # R229f：「本周X/这周X」此前根本没解析——静默按今天判（R228r 同类：
@@ -841,7 +857,7 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         if anchor in msg:
             idx = msg.find(anchor) + len(anchor)
             if idx < len(msg) and msg[idx] in _WEEKDAY:
-                wd = _WEEKDAY.find(msg[idx]) % 7
+                wd = _wd_idx(msg[idx])
                 return now + timedelta(days=wd - now.weekday()), msg[msg.find(anchor):idx + 1]
             break  # 「本周」无曜日字 → 不落下面 周末/今天 兜底，交给默认今天
     # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
@@ -855,7 +871,7 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         if anchor in msg:
             idx = msg.find(anchor) + len(anchor)
             if idx < len(msg) and msg[idx] in _WEEKDAY:
-                wd = _WEEKDAY.find(msg[idx]) % 7
+                wd = _wd_idx(msg[idx])
                 next_mon = now + timedelta(days=(7 - now.weekday()))
                 _d = next_mon + timedelta(days=wd)
                 return _d, msg[msg.find(anchor):idx + 1]
@@ -865,6 +881,13 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     if "周末" in msg or "週末" in msg:
         gap = (5 - now.weekday()) % 7
         return now + timedelta(days=gap), "周末"
+    # R229h：裸曜日词「周五/礼拜天/星期日」= 最近的那个（今天命中即今天），
+    # 不落在下周/本周之后误判。负向词（下周/本周）已在上面消化，这里只接
+    # 无前缀的写法。
+    m = re.search(r"(周|週|礼拜|禮拜|星期)([一二三四五六日天])", msg)
+    if m:
+        wd = _wd_idx(m.group(2))
+        return now + timedelta(days=(wd - now.weekday()) % 7), m.group(0)
     return now, "今天"
 
 
