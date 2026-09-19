@@ -183,6 +183,7 @@ class QimingRequest(BaseModel):
     gender: str = "男"
     top_n: int = 20
     seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
+    style: str = Field("all", description="v3（P3）风格档：classics=诗经类 / chuci=楚辞类 / fresh=柔美 / all=全部")
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):

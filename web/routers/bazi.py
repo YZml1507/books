@@ -5,9 +5,14 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+import csv
+import io
+from datetime import datetime
 
-from guji import llm_polish
+from fastapi import APIRouter, Query
+from fastapi.responses import Response
+
+from guji import llm_polish, paipan_history
 
 from .. import services
 from ..errors import NotFoundError
@@ -89,6 +94,52 @@ def qiming_review(req: NameReviewRequest) -> dict:
 def xingzuo(date: str | None = None) -> dict:
     """十二宫日运（004 M2）：当日日支查宫 + 12 宫一句话 + 语料锚点。"""
     return services.xingzuo(date)
+
+
+# ---- 排盘历史台账（2026-08-28 新增，命名带 paipan_ 前缀与旧 /api/history* 隔离）----
+
+@router.get("/api/paipan/history")
+def paipan_history_list(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict:
+    """排盘历史分页列表（id 倒序=最新在前）。空库 → {total:0, items:[]}。"""
+    if paipan_history.disabled():
+        return {"total": 0, "items": []}
+    return paipan_history.list_records(limit=limit, offset=offset)
+
+
+@router.get("/api/paipan/history/export")
+def paipan_history_export() -> Response:
+    """CSV 导出（UTF-8 with BOM，Excel 直接打开不乱码）。"""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["id", "ts", "name", "question", "paipan_render"])
+    for row in paipan_history.export_rows():
+        writer.writerow(row)
+    content = "\ufeff" + buf.getvalue()
+    filename = datetime.now().strftime("paipan_history_%Y%m%d.csv")
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/api/paipan/history/{rid}")
+def paipan_history_get(rid: int) -> dict:
+    """单条完整记录（result 为完整排盘响应，前端可复用渲染函数）。"""
+    rec = paipan_history.get_record(rid)
+    if rec is None:
+        raise NotFoundError(f"排盘记录不存在：#{rid}")
+    return rec
+
+
+@router.delete("/api/paipan/history/{rid}")
+def paipan_history_delete(rid: int) -> dict:
+    if not paipan_history.delete_record(rid):
+        raise NotFoundError(f"排盘记录不存在：#{rid}")
+    return {"ok": True}
 
 
 # R219b（P0-4 用户裁决）：/api/history、/api/history/{rid}（GET/DELETE）三个

@@ -1,0 +1,18 @@
+{
+  "A1 web\\static\\index.html": "PASS",
+  "A1 web\\static\\app.js": "PASS",
+  "A1 web\\static\\styles.css": "PASS",
+  "A1 web\\static\\sw.js": "PASS",
+  "A2 cream/cream-hero.jpg": "PASS",
+  "A2 cream/zodiac-leo.jpg": "PASS",
+  "A2 cream/zodiac-pisces.jpg": "PASS",
+  "A2 cream/cream-icon-tarot.jpg": "PASS",
+  "A2 cream/cream-icon-qiming.jpg": "PASS",
+  "B1 sun_sign 边界 28 例": "PASS",
+  "B2 API 2000-02-29": "PASS",
+  "B2 API 1999-12-31": "PASS",
+  "B2 API 2026-01-01": "PASS",
+  "C1 女生组 8 名评分": "[87, 86, 85, 84, 83, 82, 81, 80] distinct=8",
+  "C2 男生组 8 名评分": "[91, 86, 85, 84, 83, 82, 81, 80] distinct=8",
+  "C3 区分度": "spread=11 distinct=9"
+}

@@ -474,9 +474,12 @@ def run() -> list[str]:
         _bad = sorted(_chars & _AV)
         assert not _bad, ("qiming.female_pool.avoid_char", _seed, _bad,
                           "语义不佳/生僻字不得进女性结果")
-        _lean = len(_chars & _FL)
-        assert _lean >= max(len(_chars) - 1, 1), \
-            ("qiming.female_pool.lean_ratio", _seed, _lean, len(_chars),
+        # v3（P3 三字名引入）：双字名的第二字来自互补五行池，允许中性字——
+        # 口径改为「每个名字的首字（主字）必须女性向」；全字表占比不再硬钉。
+        _first_chars = set(n[1] for n in _got if len(n) >= 2)
+        _lean = len(_first_chars & _FL)
+        assert _lean >= max(len(_first_chars) - 1, 1), \
+            ("qiming.female_pool.lean_ratio", _seed, _lean, len(_first_chars),
              "女性向占比过低——性别倾向表可能没接上")
     _rm = client.post("/api/qiming", json={
         "surname": "李", "year": 2000, "month": 5, "day": 15, "hour": 10,
@@ -1015,11 +1018,11 @@ def run() -> list[str]:
     import re as _re
     _home_seg = home.text.split('id="view-divine"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 8, ("home.ia.count", len(_cards), _cards)  # 5 直达+3 抽屉（D-005 星座）
+    assert len(_cards) == 9, ("home.ia.count", len(_cards), _cards)  # 6 直达+3 抽屉（D-005 星座；2026-08-28 水墨改版新增 history 卡）
     # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming
     assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
-    assert _cards[5:] == ["xingzuo", "liuyao", "qiming"], \
+    assert _cards[5:] == ["xingzuo", "history", "liuyao", "qiming"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
     _visible = _home_seg.split('id="proDrawer"')[0]

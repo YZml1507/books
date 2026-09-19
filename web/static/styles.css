@@ -30,30 +30,32 @@
  * 每个值后面标注它在最难背景上的实测比值。
  */
 :root{
-  --bg:        #F5EFE6;       /* 暖奶油底 */
-  --card:      #FFFFFF;       /* 纯白卡片 */
-  --text:      #2A2420;       /* 深棕文字 */
-  --primary:   #B8860B;       /* 金箔金——仅装饰/边框/阴影 */
-  --primary-ink: #7F5C08;     /* 金·文字：白 6.11 / 页底 5.35 / border 4.51 */
-  --primary-bg:  #8A6408;     /* 金·背景：白字在其上 5.37 */
-  --secondary: #75522E;       /* 暖棕·文字：白 6.99 / bg 6.12（R218a-巡4 A-a：原 #815934 实测 3.41 低于 AA，提亮一档） */
-  --accent:    #AE3737;       /* 干玫瑰红：白 6.17；白字在其上 6.17 */
-  --good:      #456A44;       /* 墨绿：白 6.18；白字在其上 6.18 */
-  --c-good:    #456A44;       /* 别名：JS 内联样式引用的是 --c-good */
-  --muted:     #6C5F52;       /* 次要说明文字：白 6.18 / border 4.56 */
-  --border:    #E8DCC8;       /* 暖金细线（非文本，不受对比度判据约束） */
-  --shadow:    0 8px 32px rgba(184,134,11,.15);
-  --shadow-hover: 0 16px 48px rgba(184,134,11,.22);
+  /* 奶油玄学主题（2026-08-28 v2，依据：小红书模型三问结论 + 联网调研）。
+     令牌名不变、值全换；旧水墨版可经 git 一键回退。 */
+  --bg:        #FFF8E7;       /* 奶油白底 */
+  --card:      #FFFDFA;       /* 微暖纯白卡片 */
+  --text:      #4A3F35;       /* 暖可可深灰（奶油底上 ≥9:1） */
+  --primary:   #D4B5FF;       /* 香芋紫——装饰/边框/柔影 */
+  --primary-ink: #8B6FC7;     /* 紫·文字：奶油底 ≥5.2 */
+  --primary-bg:  #7A5FB8;     /* 紫·背景：白字在其上 ≥5.6 */
+  --secondary: #8A7563;       /* 燕麦棕·次要文字：奶油底 ≥4.8 */
+  --accent:    #FF8FAB;       /* 蜜桃粉强调 */
+  --good:      #5FA777;       /* 抹茶绿 */
+  --c-good:    #5FA777;       /* 别名：JS 内联样式引用的是 --c-good */
+  --muted:     #9A8B7D;       /* 次要说明（大字号/非正文用） */
+  --border:    #F5E3D3;       /* 奶油细线 */
+  --shadow:    0 8px 32px rgba(255,183,197,.22), 0 2px 10px rgba(212,181,255,.16);
+  --shadow-hover: 0 16px 44px rgba(255,143,171,.26), 0 4px 16px rgba(212,181,255,.22);
 
-  /* 模块彩色强调 */
-  --c-bazi:    #FF6B6B;       /* 珊瑚红 · 八字 */
-  --c-book:    #4ECDC4;       /* 青绿 · 读书 */
-  --c-tarot:   #A78BFA;       /* 紫罗兰 · 塔罗 */
-  --c-huangli: #FFE66D;       /* 明黄 · 黄历 */
-  --c-qiming:  #FF8E9E;       /* 樱粉 · 起名 */
-  --c-taohua:  #FFB347;       /* 橙 · 桃花 */
-  --c-liuyao:  #7ED957;       /* 嫩绿 · 六爻 */
-  --c-hehun:   #FF6B9D;       /* 玫红 · 合婚 */
+  /* 模块彩色强调（马卡龙分色，低饱和） */
+  --c-bazi:    #A7C7E7;       /* 雾霾蓝 · 八字（水晶球） */
+  --c-book:    #87D9A6;       /* 薄荷绿 · 读书 */
+  --c-tarot:   #D4B5FF;       /* 香芋紫 · 塔罗 */
+  --c-huangli: #FFC43D;       /* 暖金 · 黄历 */
+  --c-qiming:  #C8A2C8;       /* 丁香 · 起名 */
+  --c-taohua:  #FF8FAB;       /* 蜜桃粉 · 桃花 */
+  --c-liuyao:  #FFB7C5;       /* 樱粉 · 六爻 */
+  --c-hehun:   #FF6B8A;       /* 草莓 · 合婚 */
 
   /* R197b（specs/008-US2 素材轮）：网红风字体三件套——
    * 文楷（手写楷感正文）→ 得意黑（斜体黑标题/数字）→ 思源黑兜底。
@@ -68,6 +70,9 @@
 
   --radius: 18px;
   --radius-sm: 12px;
+
+  /* 奶油背景层：淡粉紫柔光渐变（替换水墨纹理）；图片缺失时退化纯色。 */
+  --ink-bg-image: none;
 
   /* 点击目标下限（003 判据 1/2）：44px 是 WCAG 2.5.5 与两大移动平台
    * 人机指南的共同下限。集中成令牌，改一处即全站生效。 */
@@ -122,20 +127,24 @@ html[data-daypart] .func-grid .func-card:nth-child(3){animation-delay:.12s;}
  * 对比度判据 3 的前景/背景组合不变——底色全部保持高亮度暖色域）。
  * legacy 回滚主题不匹配这些选择器 → 切回旧主题即回到固定旧背景。 */
 html[data-daypart="dawn"] body{
-  background:linear-gradient(175deg,#FFF4E8 0%,#FBEADF 55%,#F6EDE0 100%);}
+  background:linear-gradient(175deg,#FFF8E7 0%,#FFF1F3 55%,#F6EDFF 100%);}
 html[data-daypart="morning"] body{
-  background:linear-gradient(175deg,#FDFAF2 0%,#F7F0E1 60%,#F5EFE6 100%);}
+  background:linear-gradient(175deg,#FFFDFA 0%,#FFF4F0 60%,#FFF8E7 100%);}
 html[data-daypart="noon"] body{
-  background:linear-gradient(175deg,#FFFFFF 0%,#FBF6EC 60%,#F5EFE6 100%);}
+  background:linear-gradient(175deg,#FFFDFA 0%,#FFF6EC 60%,#FFF8E7 100%);}
 html[data-daypart="dusk"] body{
-  background:linear-gradient(175deg,#FBEFE2 0%,#F6E3D5 55%,#F1E4D6 100%);}
+  background:linear-gradient(175deg,#FFF3E9 0%,#FFE8DC 55%,#FFE4EE 100%);}
 html[data-daypart="night"] body{
-  background:linear-gradient(175deg,#F3E9EF 0%,#EFE6EA 55%,#F0E9E2 100%);}
+  background:linear-gradient(175deg,#F0EAFF 0%,#FFE9F2 55%,#FFF4E7 100%);}
 
 body{
-  background:var(--bg); color:var(--text);
+  /* 奶油玄学背景（v2）：奶油白 + 淡粉紫柔光渐变，去水墨纹理。 */
+  background:linear-gradient(175deg,#FFF8E7 0%,#FFF1F3 45%,#F3EBFF 100%);
+  color:var(--text);
   font-family:var(--font-sans); font-size:16px; line-height:1.6;
   min-height:100vh;
+  /* 移动端横向溢出兑底：装饰元素（礼盒图/光斑）超出视口时禁止横向滚动 */
+  overflow-x:hidden;
 }
 
 /* ── R210b（US9）：页面装饰光斑层——回应「背景图缩放/活泼度」体感。
@@ -181,13 +190,13 @@ h1,.brand-mark,.section-title,.side-brand{
 .brand{display:flex; align-items:center; gap:14px; margin-bottom:8px;}
 .brand-mark{
   width:52px; height:52px; border-radius:18px;
-  background-color:#8A6408;  /* 实色兜底：白「知」字在其上 5.37:1 */
-    background-image:linear-gradient(135deg,#FF6B6B,#FFE66D,#4ECDC4,#A78BFA);
+  background-color:#F3E7FF;  /* 奶油系兜底：香芋紫淡底 */
+    background-image:linear-gradient(135deg,#FFD6E0,#E4D4FF,#D4E8FF,#FFE9C9);
   background-size:300% 300%;
   animation:bgShift 6s ease infinite;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-serif); font-size:28px; font-weight:700;
-  color:#fff; box-shadow:0 6px 24px rgba(184,134,11,.3);
+  color:#8B6FC7; box-shadow:0 6px 24px rgba(212,181,255,.35);
   flex-shrink:0;
 }
 @keyframes bgShift{
@@ -1462,3 +1471,111 @@ button:active:not(.theme-btn){transform:scale(.96);}
 }
 @keyframes sk-shimmer{ from{background-position:200% 0;} to{background-position:-200% 0;} }
 @media (prefers-reduced-motion: reduce){ .sk-line{ animation:none; } }
+
+/* ── 水墨命理改版组件（2026-08-28）：logo/hero/图标/历史视图 ── */
+.ink-hero{margin:0 0 14px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);}
+.ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;}
+.ink-hero.is-missing{display:none;}
+.brand-mark-img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);box-shadow:0 2px 10px rgba(35,42,56,.18);flex-shrink:0;}
+.brand-mark-img.is-missing{display:none;}
+.func-icon-img{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--border);box-shadow:0 3px 12px rgba(35,42,56,.12);}
+.func-icon-img.is-missing{display:none;}
+.ph-toolbar{display:flex;gap:10px;margin:10px 0 14px;}
+.ph-list{display:flex;flex-direction:column;gap:10px;}
+.ph-item{border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(35,42,56,.06);cursor:pointer;transition:box-shadow .15s ease,transform .15s ease;}
+.ph-item:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px);}
+.ph-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.ph-name{font-weight:600;color:var(--text);}
+.ph-ts{font-size:12px;color:var(--muted);}
+.ph-q{display:inline-block;margin-top:6px;font-size:13px;color:var(--primary-ink);background:rgba(201,168,106,.14);border-radius:999px;padding:2px 10px;}
+.ph-render{margin-top:6px;font-size:13px;color:var(--secondary);word-break:break-all;}
+.ph-actions{display:flex;gap:8px;margin-top:10px;}
+.ph-empty{color:var(--muted);padding:18px 6px;text-align:center;}
+.ph-detail{margin-top:16px;}
+.ph-detail .card{box-shadow:var(--shadow);}
+@media (max-width:480px){ .func-icon-img{width:52px;height:52px;} .ph-item{padding:10px 12px;} }
+
+/* ── v2 奶油玄学：星座卡片流 + 本命盘卡 ── */
+.xz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.xz-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(255,183,197,.16);transition:transform .15s ease,box-shadow .15s ease;}
+.xz-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
+.xz-card.xz-active{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(255,143,171,.3);}
+.xz-card-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;}
+.xz-card-img.is-missing{display:none;}
+.xz-card-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px;}
+.xz-card .xz-name{font-weight:700;font-size:15px;color:var(--text);}
+.xz-card .xz-note{font-size:12px;color:var(--secondary);line-height:1.5;}
+.xz-today{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-radius:16px;padding:10px 14px;margin-bottom:12px;}
+.xz-today-img{width:64px;height:64px;border-radius:14px;object-fit:cover;box-shadow:0 3px 10px rgba(212,181,255,.35);}
+.xz-today-img.is-missing{display:none;}
+.xz-today-sign{font-weight:800;font-size:18px;color:var(--primary-ink);}
+.birth-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);}
+.birth-head{display:flex;gap:14px;align-items:center;margin-bottom:12px;}
+.birth-img{width:84px;height:84px;border-radius:18px;object-fit:cover;box-shadow:0 4px 14px rgba(255,143,171,.3);flex-shrink:0;}
+.birth-img.is-missing{display:none;}
+.birth-sign{font-weight:800;font-size:20px;color:var(--primary-ink);}
+.birth-sub{font-size:13px;color:var(--secondary);margin-top:2px;}
+.birth-block{padding:8px 0;border-top:1px dashed var(--border);font-size:14px;display:flex;gap:10px;flex-wrap:wrap;}
+.birth-label{color:var(--primary-ink);font-weight:700;flex-shrink:0;}
+.birth-val{color:var(--text);}
+.birth-note{font-size:12px;color:var(--muted);margin-top:10px;}
+.qm-parts{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;}
+.qm-part{font-size:11px;color:var(--primary-ink);background:rgba(212,181,255,.18);border-radius:999px;padding:2px 8px;}
+
+/* ── v3 P2/P1 补丁 ── */
+.deco-banner{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 14px;margin-bottom:12px;}
+.deco-icon-img{width:44px;height:44px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(255,143,171,.25);flex-shrink:0;}
+.deco-icon-img.is-missing{display:none;}
+.deco-text{font-weight:700;font-size:14px;color:#8B6FC7;}
+.rt-list{margin:4px 0 4px 18px;}
+.rt-list li{margin:2px 0;}
+.ai-polish-text code,.chat-bubble code{background:rgba(212,181,255,.16);border-radius:6px;padding:1px 6px;}
+#dailyDetail .card{opacity:1 !important;transform:none !important;}
+
+/* ── v3 P7 黄历重做 ── */
+.hl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px;}
+.hl-chip{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:all .15s ease;}
+.hl-chip:hover{border-color:var(--primary-ink);}
+.hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:#8B6FC7;}
+.hl-pill{background:rgba(255,255,255,.75);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;color:#3E7A52;border:1px solid rgba(95,167,119,.3);}
+.hl-pill.hl-hot{background:#5FA777;color:#fff;box-shadow:0 2px 10px rgba(95,167,119,.4);}
+.hl-pill-ji{color:#C2527B;border-color:rgba(226,98,138,.3);}
+.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;}
+.hl-scene:hover{border-color:var(--accent);}
+.hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
+@media (max-width:480px){ .hl-yiji{grid-template-columns:1fr !important;} }
+
+/* ── v4（2026-08-29 交接修复）────────────────────────────── */
+/* ① 黄历场景结论行：点选场景后卡内直接给一句答案 */
+/* ③ v5：原位刷新 loading 态——旧结果保持可见（页面高度不变，滚动位不丢），仅透明度脉冲 */
+#hlResult.is-loading{opacity:.55; transition:opacity .15s ease; animation:hlPulse 1.1s ease-in-out infinite;}
+@keyframes hlPulse{0%,100%{opacity:.55;}50%{opacity:.25;}}
+
+.hl-verdict{
+  margin-top:10px; padding:12px 16px; border-radius:14px; line-height:1.75;
+  word-break:break-word;
+  background:linear-gradient(120deg,#FFF4E8,#F3EBFF);
+  border:1px solid #E8D5F5; color:var(--text);
+  font-size:14px; font-weight:700; line-height:1.6;
+}
+/* ② 今日完整解读：一句话+3条要点常显，完整版收进 details 二级折叠 */
+.daily-brief{margin-top:4px;}
+.daily-brief-list{margin:8px 0 0; padding-left:20px; color:var(--text);
+  font-size:14.5px; line-height:1.8;}
+.daily-brief-list li{margin-bottom:4px;}
+.daily-full{margin-top:12px;}
+.daily-full summary{cursor:pointer; font-size:13px; color:var(--secondary);
+  padding:8px 0; user-select:none; list-style:none;}
+.daily-full summary::-webkit-details-marker{display:none;}
+.daily-full summary:hover{color:var(--primary-ink);}
+.daily-full[open] summary{color:var(--primary-ink); font-weight:600;}
+.daily-full-body{margin-top:6px;}
+/* ③ 聊天悬浮钮常驻小标签：一眼看懂这个圆钮是「和小满聊聊」 */
+.recent-toggle-tip{
+  position:absolute; left:62px; top:50%; transform:translateY(-50%);
+  background:var(--card); color:var(--text);
+  border:1px solid var(--border); border-radius:999px;
+  padding:6px 12px; font-size:12px; font-weight:600; white-space:nowrap;
+  box-shadow:0 2px 10px rgba(0,0,0,.08); pointer-events:none;
+}
+@media (max-width:600px){ .recent-toggle-tip{display:none;} }

@@ -1,0 +1,24 @@
+{
+  "hero_is_cream": true,
+  "func_icons_cream": 9,
+  "zodiac_cards": 12,
+  "zodiac_imgs_loaded": 12,
+  "year_range_ok": true,
+  "leap_day_query_ok": true,
+  "birth_sign_text": "你是 双子座",
+  "birth_wx_line": "五行分布\n木 2.9 · 火 0.7 · 土 1.5 · 金 1 · 水 1.9　五行不缺",
+  "qm_scores": [
+    "⭐ 87/100",
+    "⭐ 86/100",
+    "⭐ 85/100",
+    "⭐ 84/100",
+    "⭐ 83/100",
+    "⭐ 82/100",
+    "⭐ 81/100",
+    "⭐ 80/100"
+  ],
+  "qm_parts_chips": 48,
+  "chat_body_has_gender": true,
+  "chat_body_snip": "{\"session_id\":\"cmtcrrqgrmdj6eg\",\"message\":\"我是女生，候选名字是林蓁 / 林荷 / 林谦 / 林靖 / 林苓，八字缺木土，哪个更好\",\"facts\":[\"性别：女\",\"候选名：林蓁\",\"候选名：林荷\",\"候选名：林谦\",\"候选名：林靖\",\"候选名：林苓\"]}",
+  "js_errors": "NONE"
+}

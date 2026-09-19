@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>知命 · 水墨命理改版总览</title>
+<style>
+:root{--ink:#232A38;--paper:#F4F1EA;--gold:#C9A86A;--gold-ink:#7A5F33;--muted:#6B6F7B;--border:#E3DCCB;--card:#FDFCF8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.7;padding:32px 16px;}
+.wrap{max-width:980px;margin:0 auto;}
+.hero{border-radius:18px;overflow:hidden;box-shadow:0 8px 32px rgba(35,42,56,.12);margin-bottom:24px;border:1px solid var(--border);}
+.hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;}
+h1{font-size:26px;margin:8px 0 4px;}
+.sub{color:var(--muted);margin-bottom:24px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:20px 0;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:0 2px 10px rgba(35,42,56,.06);}
+.card h2{font-size:16px;color:var(--gold-ink);margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--border);}
+.card ul{list-style:none;}
+.card li{padding:5px 0;font-size:14px;border-bottom:1px solid rgba(227,220,203,.5);}
+.card li:last-child{border-bottom:none;}
+.badge{display:inline-block;background:rgba(201,168,106,.16);color:var(--gold-ink);border-radius:999px;font-size:12px;padding:2px 10px;margin-left:6px;vertical-align:middle;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:22px 0;}
+.metric{background:linear-gradient(160deg,#FDFCF8,#F6EFE2);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;}
+.metric .num{font-size:28px;font-weight:700;color:var(--gold-ink);}
+.metric .lbl{font-size:13px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;font-size:14px;box-shadow:0 2px 10px rgba(35,42,56,.06);}
+th{background:rgba(201,168,106,.18);color:var(--ink);text-align:left;padding:10px 12px;}
+td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;}
+.ok{color:#4A6B57;font-weight:700;}
+section{margin:28px 0;}
+section>h2{font-size:19px;margin-bottom:12px;color:var(--ink);}
+.note{background:rgba(158,75,91,.08);border-left:3px solid #9E4B5B;border-radius:8px;padding:10px 14px;font-size:13px;color:#7c3b49;margin:12px 0;}
+footer{margin-top:34px;color:var(--muted);font-size:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><img src="../web/static/ink/ink-banner-hero.jpg" alt="水墨横幅" onerror="this.parentNode.style.display='none'"></div>
+  <h1>知命 · 水墨命理改版总览</h1>
+  <div class="sub">小满的解忧铺 · 2026-08-28 深度改版交付 · 设计锚：Neo Shen 东方光影诗（水墨晕染 / 柔光 / 诗意留白 / 深蓝×暖灰×柔金）</div>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">14</div><div class="lbl">AI 生成水墨资产</div></div>
+    <div class="metric"><div class="num">16</div><div class="lbl">前端补丁全部落地</div></div>
+    <div class="metric"><div class="num">8/8</div><div class="lbl">排盘回归零差异</div></div>
+    <div class="metric"><div class="num">161</div><div class="lbl">自测 checks 全绿</div></div>
+    <div class="metric"><div class="num">5</div><div class="lbl">新增后台端点实测过</div></div>
+  </div>
+
+  <section>
+    <h2>三大模块改动</h2>
+    <div class="grid">
+      <div class="card"><h2>视觉 A <span class="badge">P0 全量换肤</span></h2>
+        <ul>
+          <li>主题令牌全量换水墨色板（深蓝墨 × 柔金 × 宣纸白），令牌名不变、规则集零动，可一键回退</li>
+          <li>首页新增水墨山水 hero 横幅 + 圆形禅圆 logo（onerror 兜底）</li>
+          <li>全局低透明度宣纸晕染背景，AA 对比度不降</li>
+          <li>排盘历史视图、条目卡、按钮全部按同一语言新建</li>
+        </ul>
+      </div>
+      <div class="card"><h2>图标 B <span class="badge">API 生成</span></h2>
+        <ul>
+          <li>agnes-image-2.1-flash 生成 14 张：8 功能图标 + hero + 结果顶图 + logo + 背景 + 小满新头像 + favicon</li>
+          <li>网页版压缩 13-182KB，源图 *-full.png 归档可复用</li>
+          <li>AI vision 审图：禅圆 logo「蓝金对比高级耐看」、桃花图标「新中式水墨+轻奢」</li>
+          <li>引用清单：manifest.json + docs/assets-manifest.md</li>
+        </ul>
+      </div>
+      <div class="card"><h2>后台 C <span class="badge">新台账</span></h2>
+        <ul>
+          <li>排盘历史台账：每次排盘异步落库 SQLite，失败静默、绝不拖慢响应</li>
+          <li>5 个端点：分页 / 单条 / 删除 / CSV 导出 / 关闭开关</li>
+          <li>时辰人话摘要（亥时/巳时…）、提问标签、按时间回查</li>
+          <li>AI 聊天通道实测修复可用（agnes + dots 双配置）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>验收对照（11/11 通过）</h2>
+    <table>
+      <tr><th>验收项</th><th>结论</th><th>关键证据</th></tr>
+      <tr><td>现状盘点</td><td class="ok">✅</td><td>.cluster/audit.md：11 视图 + 后台分层 + 8 缺陷</td></tr>
+      <tr><td>优化方案成文</td><td class="ok">✅</td><td>.cluster/plan.md：A6/B6/C7 条目含风险回退</td></tr>
+      <tr><td>新风格全面落地</td><td class="ok">✅</td><td>桌面/移动截图 vision 走查无破图错位</td></tr>
+      <tr><td>API 图标接入</td><td class="ok">✅</td><td>13 张上页全部渲染，归档 ink/ 目录</td></tr>
+      <tr><td>后台增强可用</td><td class="ok">✅</td><td>5 端点 HTTP + Playwright 实点通过</td></tr>
+      <tr><td>排盘回归一致</td><td class="ok">✅</td><td>8 用例（闰月/子时边界）0 差异</td></tr>
+      <tr><td>记录可追踪</td><td class="ok">✅</td><td>刷新/重启后 50 条仍在；已清测试数据</td></tr>
+      <tr><td>异常有兜底</td><td class="ok">✅</td><td>非法输入/404 中文/图片 onerror/JS 零报错</td></tr>
+      <tr><td>备份可回滚</td><td class="ok">✅</td><td>books_backup_20260828 + git 演练通过</td></tr>
+      <tr><td>交接文档齐全</td><td class="ok">✅</td><td>docs/handover.md 启动/key/目录/FAQ</td></tr>
+      <tr><td>全流程走查</td><td class="ok">✅</td><td>排盘→历史→复看→删除→导出无阻断</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>回滚与安全</h2>
+    <div class="note">完整备份：books_backup_20260828（改版前快照）。回滚三法：整目录复制 / git stash / BOOKS_PAIPAN_HISTORY_DISABLE=1 功能级关闭，详见 docs/rollback.md。用户生辰数据仅存本机 data/，勿对外分享。</div>
+  </section>
+
+  <footer>知命 · 水墨命理改版 · 生成于 2026-08-28 · 启动方式：双击桌面「八字命理检索」</footer>
+</div>
+</body>
+</html>

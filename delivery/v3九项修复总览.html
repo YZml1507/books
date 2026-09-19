@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>九项体验修复 · v3 总览</title>
+<style>
+:root{--ink:#4A3F35;--cream:#FFF8E7;--purple:#D4B5FF;--pink:#FF8FAB;--gold:#FFC43D;--muted:#8A7563;--border:#F5E3D3;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:linear-gradient(175deg,#FFF8E7 0%,#FFF1F3 45%,#F3EBFF 100%);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.75;padding:32px 16px;}
+.wrap{max-width:1020px;margin:0 auto;}
+h1{font-size:26px;margin:8px 0 4px;}
+.sub{color:var(--muted);margin-bottom:24px;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:20px 0;}
+.metric{background:#FFFDFA;border:1px solid var(--border);border-radius:18px;padding:16px;text-align:center;box-shadow:0 3px 12px rgba(255,183,197,.15);}
+.metric .num{font-size:26px;font-weight:800;color:#8B6FC7;}
+.metric .lbl{font-size:13px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;background:#FFFDFA;border-radius:16px;overflow:hidden;font-size:14px;box-shadow:0 4px 16px rgba(255,183,197,.15);margin:16px 0;}
+th{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);color:var(--ink);text-align:left;padding:10px 12px;}
+td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;}
+.ok{color:#5FA777;font-weight:800;}
+.note{background:rgba(255,196,61,.12);border-left:3px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;color:#8a6d3b;margin:12px 0;}
+section{margin:26px 0;}
+section>h2{font-size:19px;margin-bottom:10px;}
+footer{margin-top:32px;color:var(--muted);font-size:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>九项体验修复 · v3 总览</h1>
+  <div class="sub">小满的解忧铺 · 2026-08-28 深夜交付 · 你体验反馈的九个问题逐条复现 → 定位根因 → 修复 → 实测留证</div>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">9/9</div><div class="lbl">问题修复完成</div></div>
+    <div class="metric"><div class="num">161</div><div class="lbl">自测 checks 全绿</div></div>
+    <div class="metric"><div class="num">17</div><div class="lbl">误删函数找回</div></div>
+    <div class="metric"><div class="num">96-80</div><div class="lbl">评分八名全不同</div></div>
+  </div>
+
+  <section>
+    <h2>九项问题 → 修复与实测证据</h2>
+    <table>
+      <tr><th>#</th><th>你反馈的问题</th><th>根因（实测定位）</th><th>结论</th></tr>
+      <tr><td>P1</td><td>点查看完整解读页面空白</td><td>内容其实已渲染（1.2 万字符），是入场动画停在透明态 + 展开后不滚动到详情</td><td class="ok">✅ 强制显示+滚动定位，截图内容完整可见</td></tr>
+      <tr><td>P2</td><td>功能页图标变回原始</td><td>结果页装饰条是另一套 emoji 体系（源码即乱码），从未接入奶油资产</td><td class="ok">✅ 全视图统一走 cream 图标，乱码清零</td></tr>
+      <tr><td>P3a</td><td>取名风格切换名字不变</td><td>风格只在池>12 时前端错位，池=8 恒同一批</td><td class="ok">✅ 后端按 style 过滤，四档实测全不同（classics∩chuci 交集 9→2）</td></tr>
+      <tr><td>P3b</td><td>名字全是两个字（无三字名）</td><td>双字名只在单字不够时才补，典故库恒够 → 永不出现</td><td class="ok">✅ 双字名硬配额（≥top_n/3），实测每批出现「林梧灿/林菁皎/林桢月」等三字名</td></tr>
+      <tr><td>P4</td><td>@KR1a0001_tls_043 内部编码外露</td><td>后端 citation 契约含内部地址（自测钉死），前端直出</td><td class="ok">✅ 前端 humanCite 清洗，全站检索 @KR/.txt 零命中，出处变「穷通宝鉴 · 正文」</td></tr>
+      <tr><td>P5</td><td>AI 回复裸露 ** markdown</td><td>聊天气泡纯文本渲染</td><td class="ok">✅ 白名单渲染：**粗**→加粗、- 列表→圆点，实测气泡内生效、无裸符号</td></tr>
+      <tr><td>P6</td><td>guji.interpreter/1.0 外露</td><td>前端徽章直接显示引擎版本字段</td><td class="ok">✅ 改固定文案「小满解读」，全站检索零命中</td></tr>
+      <tr><td>P7</td><td>黄历模块差</td><td>三个裸数字输入+文字堆砌</td><td class="ok">✅ 模块重做：今天/明天/后天 chip、宜忌双色大卡、场景点选高亮（✓=今日合适）、移动端零溢出</td></tr>
+      <tr><td>P8</td><td>返回总跳回顶部</td><td>三重叠加：view-bazi 写死 active 撑高 944px、记忆值被功能页滚动覆盖、布局帧钳制</td><td class="ok">✅ 三处全修，实测滚到 1069 → 返回仍 1069；摇卦后返回也保持</td></tr>
+      <tr><td>P9</td><td>桌面端名称没改</td><td>title 与快捷方式仍是旧名</td><td class="ok">✅ 标题「小满的解忧铺 · 知命」+ 桌面新建「小满的解忧铺.lnk」（带奶油图标）</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>质量与回退</h2>
+    <div class="note">项目自带自测 161 checks 全绿（BOOKS_LLM_DISABLE=1 闸门环境，female_pool 断言按三字名新事实更新为「主字必须女性向」）。修复中发现 P7 补丁边界误删了 17 个函数（塔罗/合婚/星座家族），已用括号计数法从备份全量找回并逐个核验。改码前快照：books_backup_20260828_v3；回滚三法见 docs/rollback.md。</div>
+  </section>
+
+  <footer>v3 九项修复 · 2026-08-28 · 启动：双击桌面「小满的解忧铺」</footer>
+</div>
+</body>
+</html>

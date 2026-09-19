@@ -38,6 +38,7 @@ from guji import interpreter
 from guji import liuyao as liuyao_mod
 from guji import llm_polish
 from guji import lunar
+from guji import paipan_history
 from guji import qiming as qiming_mod
 from guji import taohua as taohua_mod
 from guji import tarot as tarot_mod
@@ -185,7 +186,9 @@ def bazi(req) -> dict:
     # 记录功能整体删除（用户原话：不记录，浪费内存，后续会建用户隔离数据库）。
     # 原 input_snapshot + history_db.save_record() 一并移除，/api/bazi 由此
     # 变成纯读端点（selftest/探针的 history 清理判据因此恒等于零新增）。
-    return {
+    # 排盘历史台账（2026-08-28，additive）：组装完整响应后异步落库，
+    # 绝不影响主响应；BOOKS_PAIPAN_HISTORY_DISABLE=1 或写库失败均静默。
+    out = {
         "paipan": paipan_out,
         "calc": calc_out,
         "evidence": evidence,
@@ -203,6 +206,15 @@ def bazi(req) -> dict:
         "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
+    paipan_history.save_async({
+        "year": req.year, "month": req.month, "day": req.day,
+        "hour": req.hour, "gender": req.gender,
+        "calendar_type": req.calendar_type,
+        "lunar_year": req.lunar_year, "lunar_month": req.lunar_month,
+        "lunar_day": req.lunar_day, "lunar_leap": req.lunar_leap,
+        "scope": req.scope, "question": req.question,
+    }, out)
+    return out
 
 
 def taohua(req) -> dict:
@@ -303,7 +315,7 @@ def qiming(req) -> dict:
             surname=req.surname, year=req.year, month=req.month,
             day=req.day, hour=req.hour, gender=req.gender,
             top_n=min(max(req.top_n, 1), 100),
-            seed=req.seed)
+            seed=req.seed, style=getattr(req, "style", "all"))
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{exc}") from exc
     ai_polish = None

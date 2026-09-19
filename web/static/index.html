@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>知命 · 知书知命知天机</title>
+<title>小满的解忧铺 · 知命</title>
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
      643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
 <link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <!-- R218a-巡4（E-c）：离线兜底——SW 缓存 app shell，断网刷新不再白屏 -->
 <script>
 if ('serviceWorker' in navigator) {
@@ -25,9 +26,16 @@ if ('serviceWorker' in navigator) {
   <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
   <div class="home-main" id="homeMain">
 
+  <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
+  <div class="ink-hero" aria-hidden="true">
+    <img src="/static/cream/cream-hero.jpg" alt=""
+      onerror="this.closest('.ink-hero').classList.add('is-missing')">
+  </div>
+
+
   <!-- 品牌 -->
   <div class="brand">
-    <div class="brand-mark">知</div>
+    <img class="brand-mark-img" src="/static/cream/cream-icon-tarot.jpg" alt="知命" width="52" height="52" onerror="this.classList.add('is-missing')">
     <div class="brand-text">
       <div class="brand-title">小满的解忧铺</div>
       <div class="brand-tagline">今天也要好好生活呀 ✨</div>
@@ -87,22 +95,25 @@ if ('serviceWorker' in navigator) {
     <div class="ia-label">✨ 今天想看点什么</div>
     <div class="func-grid">
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
-      <div class="func-icon">✨</div><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
+      <img class="func-icon-img" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
     <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0" aria-label="今日命盘">
-      <div class="func-icon">🔮</div><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
+      <img class="func-icon-img" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
     </div>
     <div class="func-card func-entry" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
-      <div class="func-icon">🌸</div><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
+      <img class="func-icon-img" data-view="taohua" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
     </div>
     <div class="func-card func-entry" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
-      <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">和 ta 配不配 · 看缘分</div>
+      <img class="func-icon-img" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 ta 配不配 · 看缘分</div>
     </div>
     <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0" aria-label="今天适合">
-      <div class="func-icon">🌙</div><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
+      <img class="func-icon-img" data-view="huangli" src="/static/cream/cream-icon-huangli.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
     </div>
     <div class="func-card func-entry" data-view="xingzuo" role="button" tabindex="0" aria-label="星座">
-      <div class="func-icon">⭐</div><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
+      <img class="func-icon-img" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
+    </div>
+    <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
+      <img class="func-icon-img" data-view="history" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
     </div>
   </div>
@@ -115,10 +126,10 @@ if ('serviceWorker' in navigator) {
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
            （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
       <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-        <div class="func-icon">🧿</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
+        <img class="func-icon-img" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
       </div>
       <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
-        <div class="func-icon">📝</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+        <img class="func-icon-img" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
       </div>
     </div>
   </details>
@@ -126,8 +137,8 @@ if ('serviceWorker' in navigator) {
 
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
   <button class="recent-toggle" id="recentToggle" type="button"
-    aria-expanded="false" aria-controls="recentSidebar"
-    aria-label="打开我的解读与小满聊天"><span class="recent-toggle-txt">💬<br>聊</span></button>
+    aria-expanded="false" aria-controls="recentSidebar" title="和小满聊聊"
+    aria-label="打开我的解读与小满聊天"><span class="recent-toggle-txt">💬<br>聊</span><span class="recent-toggle-tip" aria-hidden="true">和小满聊聊</span></button>
   <!-- R218a-01：点侧栏外关闭抽屉的半透遮罩——z-index 在侧栏之下，主区之上 -->
   <div class="recent-backdrop" id="recentBackdrop" aria-hidden="true"></div>
   <!-- R209b：左侧统一栏重构——聊天（头像+消息流+输入框常驻）、
@@ -135,7 +146,7 @@ if ('serviceWorker' in navigator) {
   <aside class="recent-sidebar" id="recentSidebar">
     <div class="recent-side-head">
       <div class="side-brand">
-        <img class="chat-avatar-img" src="/static/_candidates/r212b/avatar-xiaoman.png"
+        <img class="chat-avatar-img" src="/static/cream/avatar-xiaoman-cream.jpg"
           alt="" width="40" height="40">
         <span>小满的解忧铺</span>
       </div>
@@ -154,7 +165,7 @@ if ('serviceWorker' in navigator) {
            「像坏了，不像简约」）。补空态：小满打个招呼 + 三个可点话题，
            让用户知道这里能干什么。有消息进来后由 chatBubble 隐藏它。 -->
       <div class="chat-empty" id="chatEmpty">
-        <img class="chat-empty-avatar" src="/static/_candidates/r212b/avatar-xiaoman.png"
+        <img class="chat-empty-avatar" src="/static/cream/avatar-xiaoman-cream.jpg"
           alt="" width="56" height="56">
         <p class="chat-empty-hi">我是小满 ✨</p>
         <p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>
@@ -198,7 +209,7 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 
-  <div class="view active" id="view-bazi">
+  <div class="view" id="view-bazi">
     <div class="card">
       <h2>🔮 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
       <form id="form">
@@ -488,20 +499,28 @@ if ('serviceWorker' in navigator) {
   <!-- 黄历 -->
   <div class="view" id="view-huangli">
     <div class="card">
-      <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">选吉日 · 避凶时</span></h2>
-      <div class="row">
-        <!-- R222b（E-301 P0）：原来这三个 value 写死 2026/8/19，用户点进黄历
-             看到的是过期日期的「今天适合」（审查轨发现时已差 8 天），聊天首句
-             也带错日期。改为不写 value，进视图时由 hlInitToday() 填今天。 -->
-        <div class="field"><label for="hl_year">年</label>
-          <input id="hl_year" type="number" min="1900" max="2100"></div>
-        <div class="field"><label for="hl_month">月</label>
-          <input id="hl_month" type="number" min="1" max="12"></div>
-        <div class="field"><label for="hl_day">日</label>
-          <input id="hl_day" type="number" min="1" max="31"></div>
+      <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">好日子，一目了然</span></h2>
+      <!-- v3（P7）：日期快选 chip，原生输入收进折叠（兼容保留） -->
+      <div class="hl-chips" id="hlChips">
+        <button type="button" class="hl-chip active" data-hloffset="0">今天</button>
+        <button type="button" class="hl-chip" data-hloffset="1">明天</button>
+        <button type="button" class="hl-chip" data-hloffset="2">后天</button>
+        <button type="button" class="hl-chip" data-hloffset="-1">昨天</button>
+        <button type="button" class="hl-chip hl-chip-pick" id="hlPickBtn">选日期 ▾</button>
       </div>
-      <button id="hlSubmit" type="button">查 询</button>
-      <div id="hlResult" style="margin-top:16px;"></div>
+      <details class="pro-drawer" id="hlPickDrawer" style="margin:8px 0;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">自选日期（年 · 月 · 日）</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label for="hl_year">年</label>
+            <input id="hl_year" type="number" min="1900" max="2100"></div>
+          <div class="field"><label for="hl_month">月</label>
+            <input id="hl_month" type="number" min="1" max="12"></div>
+          <div class="field"><label for="hl_day">日</label>
+            <input id="hl_day" type="number" min="1" max="31"></div>
+        </div>
+        <button id="hlSubmit" type="button" style="margin-top:8px;">查这一天</button>
+      </details>
+      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty">选个日子看看宜忌吧</div></div>
     </div>
   </div>
 
@@ -588,7 +607,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="hh_a_hour">甲 时</label>
           <input id="hh_a_hour" type="number" min="0" max="23" value="10"></div>
         <div class="field"><label for="hh_a_gender">甲 性别</label>
-            <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
+            <select id="hh_a_gender"><option>男</option><option>女</option></select></div>
       </div>
       <div class="row">
         <div class="field"><label for="hh_b_year">乙 年</label>
@@ -614,6 +633,24 @@ if ('serviceWorker' in navigator) {
       <!-- R220b（P1-1）：原生 type="date" 在 390px 移动端要唤起系统日历、
            点选层级深。改成「前一天／后一天 + 年月日三 select」——进页面默认
            今天，一次点击就能翻天，不必打开任何弹层。 -->
+      <!-- v2 新增：我的本命盘（生日→太阳星座+四柱+五行+日主解读） -->
+      <details class="pro-drawer" id="birthDrawer" style="margin-bottom:12px;">
+        <summary style="cursor:pointer;font-size:14px;color:var(--primary-ink);">💖 查我的本命盘（输入生日，看专属于你的星座×八字解读）</summary>
+        <div class="row" style="margin-top:10px;" id="birthForm">
+          <div class="field"><label for="b_year">出生年</label>
+            <input id="b_year" type="number" min="1900" max="2100" value="2000"></div>
+          <div class="field"><label for="b_month">月</label>
+            <input id="b_month" type="number" min="1" max="12" value="6"></div>
+          <div class="field"><label for="b_day">日</label>
+            <input id="b_day" type="number" min="1" max="31" value="15"></div>
+          <div class="field"><label for="b_hour">时辰（不知道可留空）</label>
+            <input id="b_hour" type="number" min="0" max="23" placeholder="留空=中午12点"></div>
+          <div class="field"><label for="b_gender">性别</label>
+            <select id="b_gender"><option>女</option><option>男</option></select></div>
+        </div>
+        <button id="birthSubmit" type="button" style="margin-top:10px;">看我的本命解读 ✨</button>
+        <div id="birthResult" style="margin-top:14px;"></div>
+      </details>
       <div class="xz-datebar">
         <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>
         <div class="xz-selects">
@@ -629,6 +666,19 @@ if ('serviceWorker' in navigator) {
       </div>
       <button id="xzSubmit" type="button">查 询</button>
       <div id="xzResult" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- 排盘历史视图（2026-08-28 新增，C2） -->
+  <div class="view" id="view-history">
+    <div class="card">
+      <h2>🕘 排盘历史 <span style="font-size:14px;color:var(--secondary);font-weight:400;">本机记录 · 可回查可导出</span></h2>
+      <div class="ph-toolbar">
+        <button id="historyRefresh" type="button" class="ghost">刷新</button>
+        <button id="historyExport" type="button" class="ghost">导出 CSV</button>
+      </div>
+      <div id="historyList" class="ph-list"><div class="ph-empty">加载中…</div></div>
+      <div id="historyDetail" class="ph-detail" hidden></div>
     </div>
   </div>
 

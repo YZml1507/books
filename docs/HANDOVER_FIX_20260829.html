@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小满的解忧铺 · v4 交接修复报告</title>
+<style>
+  :root{
+    --ink:#2E2A26; --sub:#8A8178; --line:#EAE4DC; --bg:#FDFCFA; --card:#FFFFFF;
+    --accent:#8B6FC7; --accent-soft:#F3EBFF; --ok:#3E7A52; --warn:#C2527B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:72px 28px 96px;}
+  header{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:40px;}
+  .kicker{font-size:12px;letter-spacing:.28em;color:var(--accent);font-weight:700;text-transform:uppercase;margin-bottom:14px;}
+  h1{font-size:30px;font-weight:700;letter-spacing:.01em;margin-bottom:10px;}
+  .meta{color:var(--sub);font-size:13.5px;}
+  .meta b{color:var(--ink);font-weight:600;}
+  h2{font-size:13px;letter-spacing:.22em;color:var(--sub);font-weight:700;
+    text-transform:uppercase;margin:56px 0 20px;display:flex;align-items:center;gap:14px;}
+  h2::after{content:"";flex:1;height:1px;background:var(--line);}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:8px;}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px;}
+  .metric .num{font-size:26px;font-weight:800;letter-spacing:-.01em;}
+  .metric .num em{font-style:normal;color:var(--accent);}
+  .metric .lab{font-size:12px;color:var(--sub);margin-top:4px;letter-spacing:.05em;}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14px;}
+  th{background:#FAF7F2;text-align:left;font-weight:700;font-size:12.5px;
+    letter-spacing:.08em;color:var(--sub);padding:12px 16px;border-bottom:1px solid var(--line);}
+  td{padding:13px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td .pid{display:inline-block;background:var(--accent-soft);color:#6B4FA0;
+    font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 10px;letter-spacing:.04em;white-space:nowrap;}
+  td code, li code{background:#F6F2EC;border-radius:5px;padding:1px 6px;font-size:12.5px;
+    font-family:Consolas,"Courier New",monospace;color:#7A5C2E;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;}
+  .card h3{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .card p{font-size:13.5px;color:#5C554D;}
+  .card .tag{font-size:11.5px;font-weight:700;letter-spacing:.06em;margin-bottom:10px;display:inline-block;}
+  .tag.ok{color:var(--ok);} .tag.warn{color:var(--warn);}
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  figure{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  figure img{width:100%;display:block;}
+  figcaption{padding:10px 16px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--line);}
+  figcaption b{color:var(--ink);font-weight:600;}
+  .steps{list-style:none;}
+  .steps li{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .steps li:last-child{border-bottom:none;}
+  .steps .n{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent-soft);
+    color:#6B4FA0;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .steps .t b{display:block;font-size:14.5px;margin-bottom:2px;}
+  .steps .t span{font-size:13.5px;color:#5C554D;}
+  .note{background:#FFFBF3;border:1px solid #F0E4CC;border-radius:14px;padding:18px 22px;
+    font-size:13.5px;color:#6B5D3F;margin-top:14px;}
+  .note b{color:#4A3F35;}
+  footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
+    color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;}
+  @media (max-width:720px){.metrics,.cards,.shots{grid-template-columns:1fr 1fr;} .metrics{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Xiaoman's Workshop · Handover Fix v4</div>
+  <h1>小满的解忧铺 · 交接修复报告</h1>
+  <div class="meta">修复轮次 <b>v4</b> · 执行时间 <b>2026-08-29 00:00 – 00:40 (GMT+8)</b> · 项目根 <b>C:\Users\Lenovo\Desktop\projects\books</b> · 预览 <b>http://127.0.0.1:8123</b></div>
+</header>
+
+<h2>结果总览</h2>
+<div class="metrics">
+  <div class="metric"><div class="num"><em>6</em>/6</div><div class="lab">待修问题全部关闭</div></div>
+  <div class="metric"><div class="num"><em>161</em>/161</div><div class="lab">selftest 全绿（改前+改后）</div></div>
+  <div class="metric"><div class="num"><em>13</em>/13</div><div class="lab">Playwright 交互断言通过</div></div>
+  <div class="metric"><div class="num"><em>0</em></div><div class="lab">全程控制台 JS 错误</div></div>
+</div>
+
+<h2>六项问题 · 根因与修法</h2>
+<table>
+  <thead><tr><th style="width:24%;">问题</th><th>根因</th><th style="width:38%;">修法与验证</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pid">P1 今日解读太长</span></td>
+      <td>「查看完整解读」把 warm 全量内容（能量卡/专业依据/古籍原文）一次性铺开，约 1.2 万字符。</td>
+      <td>warm 模式默认只渲染 <code>warm.one_liner</code> 一句话 + <code>warm.reply</code> 前 3 条要点；完整版原样收进二级 <code>&lt;details&gt;</code> 折叠，默认收起。pro 专业模式保持全量直出。实测：摘要 3 条、details 默认 closed、展开后完整版 12,721 字符可见。</td>
+    </tr>
+    <tr>
+      <td><span class="pid">P2 今日命盘显示不了</span></td>
+      <td>app.js 语法与 showView 逻辑经 node --check 与逐路径实测均正常；用户端异常来自 Service Worker 旧缓存（CACHE_NAME 未 bump，页面拿旧 app.js）。</td>
+      <td><code>sw.js</code> 缓存版本 <code>books-shell-v3-fix2 → books-shell-v4-fix1</code>，旧缓存整体失效。Playwright 验证首页直进 + 黄历→返回→命盘两条路径均为 <code>view active</code>、视图可见、首页正确隐藏、返回条出现。</td>
+    </tr>
+    <tr>
+      <td><span class="pid">P3 塔罗报错</span></td>
+      <td>上一轮恢复函数时丢了整批常量：<code>TAROT_MANIFEST</code>、<code>TAROT_ART</code>、<code>POSTER_BG</code>、<code>TAROT_POS_HINT</code>、<code>_TAROT_QK</code>、<code>_LIUYAO_QK</code> 共 6 块（不止报错里提到的 1 个）。</td>
+      <td>从 v3 快照按行号字节级提取原块插回（emoji 不经手工转写）。实测：塔罗抽牌 3 张 RWS 真图全部加载、无报错文案；<code>window</code> 上 3 个常量已定义。声明级 diff 复验：v3 有而现行无的引用全部清零。</td>
+    </tr>
+    <tr>
+      <td><span class="pid">P4 引用 @? 残留</span></td>
+      <td><code>humanCite()</code> 正则 <code>\s*@[A-Za-z0-9_\-.]+</code> 不匹配 <code>@?</code>。</td>
+      <td>改为 <code>\s*@(\?|[^\s·]{0,})</code>，@ 后非空白非「·」的尾巴一并清。实测 1996-09-18 21 时排盘结果全文 0 处 <code>@</code> 残留（原样本「穷通宝鉴 @?」「命理探原 @?」消失）。</td>
+    </tr>
+    <tr>
+      <td><span class="pid">P5 黄历两处</span></td>
+      <td>① 全局 <code>button{color:#fff}</code>（金底白字）被 .hl-chip / .hl-scene 继承，叠在米白卡底上白字白底；② 场景 chips 只打 ✓，无结论。</td>
+      <td>① .hl-chip / .hl-scene 显式 <code>color:var(--text)</code>（#4A3F35，米白底 9:1+），active 态同补。② 点选场景后卡内新增 <code>role="status"</code> 结论行：宜命中→「今天适合X ✅」、忌命中→「今天不宜X 🚫（忌项里有相关）」、双中→提示放稳、未提→平常心。实测：「约会」→<b>今天适合约会 ✅</b>、「出行」→<b>今天不宜出行 🚫（忌项里有相关）</b>、「搬家」→黄历未提及分支；取消选择结论行消失。顺手修正错字「胧冲煞」→「冲煞」。</td>
+    </tr>
+    <tr>
+      <td><span class="pid">P6 悬浮钮不识别</span></td>
+      <td>首页左下角圆形「聊」按钮无文字说明。</td>
+      <td>按钮右侧新增常驻小标签「和小满聊聊」（&gt;600px 视口显示，移动端隐藏、保留 title 提示），并补 <code>title="和小满聊聊"</code>。实测标签可见、文案与 title 一致。</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><b>改动范围：</b>仅 <code>web\static\</code> 四个文件 —— <code>app.js</code>（常量恢复 + 3 处渲染逻辑）、<code>index.html</code>（悬浮钮标签）、<code>styles.css</code>（配色修正 + 3 组新样式）、<code>sw.js</code>（缓存版本）。排盘算法与 <code>src/guji</code> 计算层零改动；probes 依赖的 <code>data-rsec2</code> 等选择器全部原样；中文一律 UTF-8 无 BOM。</div>
+
+<h2>验证证据</h2>
+<div class="cards">
+  <div class="card"><span class="tag ok">SELFTEST · PASS</span><h3>161 checks 全绿 × 2 轮</h3><p>改码前基线 <code>logs\selftest_pre_fix_20260828.log</code> 与改码后 <code>logs\selftest_post_fix_20260829.log</code> 均以 <code>BOOKS_LLM_DISABLE=1</code> 跑通，尾部均输出 <b>web self-test PASS (161 checks)</b>，退出码 0。</p></div>
+  <div class="card"><span class="tag ok">PLAYWRIGHT · 13/13</span><h3>逐项交互断言 + 截图</h3><p><code>.cluster\verify_v4.py</code> + <code>verify_v4_extra.py</code>：缓存链路、折叠摘要、两条命盘路径、塔罗真图、@ 残留、chip 配色、场景结论三分支、悬浮钮标签，全部 PASS；<code>js_errors: NONE</code>。结果存 <code>.cluster\shots_v4\verify_v4.json</code>。</p></div>
+  <div class="card"><span class="tag ok">SYNTAX · CLEAN</span><h3>node --check 通过</h3><p>修改后 app.js 语法校验通过；声明级 diff 确认丢失常量全部找回；四个静态文件均无 BOM。</p></div>
+  <div class="card"><span class="tag warn">EVIDENCE</span><h3>截图留档</h3><p>10 张截图落盘 <code>.cluster\shots_v4\</code>（01–10 编号见下方截图墙），verify JSON 与脚本一并归档于同目录、<code>.cluster\</code> 根。</p></div>
+</div>
+
+<h2>截图墙</h2>
+<div class="shots">
+  <figure><img src="../.cluster/shots_v4/03_daily_brief.png" alt="今日解读折叠摘要"><figcaption><b>P1</b> · 今日完整解读：一句话 + 3 条要点，「展开完整解读 ▾」二级折叠默认收起</figcaption></figure>
+  <figure><img src="../.cluster/shots_v4/04_daily_full.png" alt="今日解读完整版展开"><figcaption><b>P1</b> · 二级展开后的完整版（能量卡/专业依据/古籍原文全量）</figcaption></figure>
+  <figure><img src="../.cluster/shots_v4/06_tarot.png" alt="塔罗抽牌修复"><figcaption><b>P3</b> · 塔罗三张 RWS 真图正常渲染，无 TAROT_MANIFEST 报错</figcaption></figure>
+  <figure><img src="../.cluster/shots_v4/08_huangli_verdict.png" alt="黄历场景结论"><figcaption><b>P5</b> · 黄历 chips 可读 + 场景结论行「今天适合约会 ✅」</figcaption></figure>
+  <figure><img src="../.cluster/shots_v4/10_huangli_ji.png" alt="黄历不宜分支"><figcaption><b>P5</b> · 忌项命中分支「今天不宜出行 🚫（忌项里有相关）」</figcaption></figure>
+  <figure><img src="../.cluster/shots_v4/01_home.png" alt="首页与悬浮钮标签"><figcaption><b>P6</b> · 首页悬浮钮常驻标签「和小满聊聊」（左下角）</figcaption></figure>
+</div>
+
+<h2>用户端如何拿到新版（缓存链路）</h2>
+<ol class="steps">
+  <li><div class="n">1</div><div class="t"><b>双击桌面「小满的解忧铺」快捷方式</b><span>launcher 起服务（127.0.0.1:8123）并打开浏览器，此时浏览器还持有旧 SW。</span></div></li>
+  <li><div class="n">2</div><div class="t"><b>后台静默换装</b><span>页面加载会请求 <code>sw.js</code>，发现新版本 <code>books-shell-v4-fix1</code> → install（skipWaiting）→ activate 清空全部旧缓存。</span></div></li>
+  <li><div class="n">3</div><div class="t"><b>刷新一次即可拿到全部新文件</b><span>新缓存初始为空，app.js/styles.css 走网络拉新版；若个别界面仍显旧样，Ctrl+F5 强刷一次一定生效。</span></div></li>
+  <li><div class="n">4</div><div class="t"><b>复核口令</b><span>首页点「今日命盘」能切出排盘表单；塔罗抽牌出真图；黄历点「出行」出「今天不宜出行 🚫」即代表新版已生效。</span></div></li>
+</ol>
+
+<h2>回滚与复核方式</h2>
+<div class="cards">
+  <div class="card"><span class="tag warn">回滚</span><h3>三层回退（已登记 rollback.md）</h3><p>① 文件级：把快照 <code>books_backup_20260828_v4\web\static\</code> 四个文件覆盖回现目录，Ctrl+F5；② 目录级：整目录按 <code>docs\rollback.md</code> 方式一恢复；③ git：<code>git checkout -- web</code>。快照排除 .venv/.git 等重目录，位置已写入 rollback.md v4 段。</p></div>
+  <div class="card"><span class="tag ok">复核</span><h3>改后如何再验一遍</h3><p><code>$env:BOOKS_LLM_DISABLE='1'; .\.venv\Scripts\python.exe web\selftest.py</code> 应 161 checks PASS；前端交互直接重跑 <code>.cluster\verify_v4.py</code>（需服务在跑）。日常双击桌面快捷方式即用。</p></div>
+</div>
+
+<h2>修改指南（后续自己改）</h2>
+<table>
+  <thead><tr><th style="width:34%;">想改什么</th><th>去哪改</th></tr></thead>
+  <tbody>
+    <tr><td>今日解读摘要条数 / 折叠文案</td><td><code>web\static\app.js</code> 内 <code>loadDailyDetail()</code>（搜 <code>daily-brief</code>；摘要条数改 <code>slice(0, 3)</code>）</td></tr>
+    <tr><td>黄历场景清单与结论文案</td><td><code>doHuangli()</code> 内 <code>SCENES</code> 数组与 <code>hl-verdict</code> 生成段（搜 <code>今天适合</code>）</td></tr>
+    <tr><td>场景结论配色</td><td><code>styles.css</code> 末尾 v4 段 <code>.hl-verdict</code></td></tr>
+    <tr><td>悬浮钮标签文字 / 显隐</td><td><code>index.html</code> #recentToggle 内 <code>.recent-toggle-tip</code> + <code>styles.css</code> 同名规则（600px 断点控制移动端隐藏）</td></tr>
+    <tr><td>任何静态资源改动后</td><td>务必 bump <code>sw.js</code> 里 <code>CACHE</code> 版本号，否则用户拿到旧缓存</td></tr>
+  </tbody>
+</table>
+
+<h2>剩余风险与备注</h2>
+<div class="cards">
+  <div class="card"><span class="tag warn">注意</span><h3>用户端首访需一次刷新</h3><p>SW 换装有一步后台动作：极少数情况下第一次打开仍是旧壳，刷新一次即恢复。已在「缓存链路」节给出口令级复核方法。</p></div>
+  <div class="card"><span class="tag ok">记录在案</span><h3>v3 三个无引用常量未恢复</h3><p><code>HUANGLI_WARM</code> / <code>_pill</code> / <code>_warmWord</code> 在当前代码中已无任何引用（黄历暖话由现行 YI_MAP/JI_MAP 方案承担），恢复无意义，特此记录。若后续要从 v3 恢复相关功能，可在快照 <code>app.js</code> 2822–2860 行找到原文。</p></div>
+  <div class="card"><span class="tag ok">预期行为</span><h3>pro 模式今日解读不折叠</h3><p>专业模式（voiceMode=pro）保持排盘运算块 + 完整解读直出，是刻意保留的专业口径；折叠只作用于默认的 warm 模式。</p></div>
+  <div class="card"><span class="tag warn">边界</span><h3>黄历结论依赖后端宜忌词表</h3><p>「搬家」命中依赖宜项词（如「移徒」）与场景词的映射；若某天后端宜忌词表与 SCENES 映射都对不上，会走「黄历没提到」兜底文案——这是预期行为，不是故障。</p></div>
+</div>
+
+<footer>
+  <span>小满的解忧铺 · v4 交接修复报告</span>
+  <span>2026-08-29 · 验证：selftest 161 ✓ · Playwright 13 ✓ · node --check ✓</span>
+</footer>
+
+</div>
+</body>
+</html>

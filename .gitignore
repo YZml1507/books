@@ -77,3 +77,7 @@ temp_*.py
 dist/
 build/
 *.spec.bak
+
+# v2-v5 落库登记：排盘历史运行库 + 会话临时目录（非项目产物，不入库）
+data/paipan_history.db
+Temp/

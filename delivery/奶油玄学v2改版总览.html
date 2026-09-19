@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>奶油玄学 v2 · 改版总览</title>
+<style>
+:root{--ink:#4A3F35;--cream:#FFF8E7;--purple:#D4B5FF;--pink:#FF8FAB;--blue:#A7C7E7;--mint:#87D9A6;--gold:#FFC43D;--muted:#8A7563;--border:#F5E3D3;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:linear-gradient(175deg,#FFF8E7 0%,#FFF1F3 45%,#F3EBFF 100%);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.75;padding:32px 16px;}
+.wrap{max-width:980px;margin:0 auto;}
+.hero{border-radius:20px;overflow:hidden;box-shadow:0 10px 36px rgba(255,143,171,.25);margin-bottom:24px;border:1px solid var(--border);}
+.hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;}
+h1{font-size:26px;margin:8px 0 4px;}
+.sub{color:var(--muted);margin-bottom:24px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin:20px 0;}
+.card{background:#FFFDFA;border:1px solid var(--border);border-radius:18px;padding:18px 20px;box-shadow:0 4px 16px rgba(255,183,197,.18);}
+.card h2{font-size:16px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--border);}
+.purple h2{color:#8B6FC7;} .pink h2{color:#E2628A;} .blue h2{color:#5A8DC8;}
+.card ul{list-style:none;}
+.card li{padding:5px 0;font-size:14px;border-bottom:1px solid rgba(245,227,211,.6);}
+.card li:last-child{border-bottom:none;}
+.badge{display:inline-block;background:rgba(212,181,255,.2);color:#8B6FC7;border-radius:999px;font-size:12px;padding:2px 10px;margin-left:6px;vertical-align:middle;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:22px 0;}
+.metric{background:#FFFDFA;border:1px solid var(--border);border-radius:18px;padding:16px;text-align:center;box-shadow:0 3px 12px rgba(255,183,197,.15);}
+.metric .num{font-size:26px;font-weight:800;color:#8B6FC7;}
+.metric .lbl{font-size:13px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;background:#FFFDFA;border-radius:16px;overflow:hidden;font-size:14px;box-shadow:0 4px 16px rgba(255,183,197,.15);}
+th{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);color:var(--ink);text-align:left;padding:10px 12px;}
+td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;}
+.ok{color:#5FA777;font-weight:800;}
+section{margin:28px 0;}
+section>h2{font-size:19px;margin-bottom:12px;}
+.note{background:rgba(255,196,61,.12);border-left:3px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;color:#8a6d3b;margin:12px 0;}
+footer{margin-top:34px;color:var(--muted);font-size:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><img src="../web/static/cream/cream-hero.jpg" alt="奶油星空横幅" onerror="this.parentNode.style.display='none'"></div>
+  <h1>奶油玄学 v2 · 改版总览</h1>
+  <div class="sub">小满的解忧铺 · 2026-08-28 晚 · 依据你的反馈重做：调研 → 小红书模型三问 → 奶油玄学风全面落地 + 四项功能修复</div>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">21</div><div class="lbl">奶油风新资产</div></div>
+    <div class="metric"><div class="num">12</div><div class="lbl">星座插画卡全接入</div></div>
+    <div class="metric"><div class="num">1900-2100</div><div class="lbl">星座可查年份</div></div>
+    <div class="metric"><div class="num">87-80</div><div class="lbl">评分拉开 8 名全不同</div></div>
+    <div class="metric"><div class="num">161</div><div class="lbl">自测 checks 全绿</div></div>
+  </div>
+
+  <section>
+    <h2>你的四条反馈 → 落地结果</h2>
+    <table>
+      <tr><th>反馈</th><th>结论</th><th>落地与证据</th></tr>
+      <tr><td>水墨风不适合目标用户</td><td class="ok">✅ 已换</td><td>联网调研 + 小红书模型三问 → 奶油玄学风（奶油白#FFF8E7+香芋紫#D4B5FF+马卡龙分色），全站换肤；调研问答记录见交付</td></tr>
+      <tr><td>图标没全换成统一风格</td><td class="ok">✅ 已清零</td><td>8 功能图标+logo+hero 全换奶油 Q 版（cream/ 目录 21 张）；星座 ♈ 符号网格 → 12 张拟人插画卡（AI 审图：贴纸感、一眼可辨、无破图）</td></tr>
+      <tr><td>星座：日期窄/不好看/没解说</td><td class="ok">✅ 三连修</td><td>年份 1900-2100（2000-02-29 闰日实测可查+28 组边界用例全过）；卡片流重做；新增「查我的本命盘」：生日→太阳星座性格+四柱+五行+小满解读（实测 2000-06-15 女生 → 双子座+五行分布）</td></tr>
+      <tr><td>聊聊这件事缺性别</td><td class="ok">✅ 已修</td><td>消息改「我是女生，候选名字是…」+ facts 首条「性别：女」（Playwright 抓包 /api/chat 请求体实锤）</td></tr>
+      <tr><td>名字评分清一色 80</td><td class="ok">✅ 已重写</td><td>可解释口径：五行补缺0/16/30+典籍+5/8+寓意+5/9+音形±+气质契合+2~9；实测一组 8 名 87/86/85/84/83/82/81/80，每名带明细标签</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>验证记录</h2>
+    <div class="grid">
+      <div class="card purple"><h2>自动化</h2><ul>
+        <li>项目自测 161 checks 全绿（闸门环境 BOOKS_LLM_DISABLE=1）</li>
+        <li>静态完整性 4 文件 0 乱码、新标记全命中</li>
+        <li>资源可达：cream 资产 HTTP 200 ×5 抽查</li>
+        <li>边界日期 28 例 + 闰日 API 实测全过</li>
+      </ul></div>
+      <div class="card pink"><h2>真实交互（Playwright）</h2><ul>
+        <li>12 星座卡渲染且图片全部加载</li>
+        <li>本命盘：双子座+五行分布+小满解读</li>
+        <li>起名 8 名评分 87-80+48 个明细 chip</li>
+        <li>聊天消息含性别（抓包证据）</li>
+        <li>JS console 零报错</li>
+      </ul></div>
+      <div class="card blue"><h2>回退保障</h2><ul>
+        <li>改码前快照：books_backup_20260828_v2</li>
+        <li>git 全程可回滚（stash/check-out）</li>
+        <li>旧水墨资产未删（static/ink/），可整体切回</li>
+        <li>docs/handover.md 已更新 v2 说明</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>遗留与后续</h2>
+    <div class="note">① 处女座卡意象稍隐晦（抱麦穗小熊），可后续用更明确符号重生成单张；② 评分是前端启发式「参考分」，页面已标注口径与「参考」字样，不冒充专业五格背书；③ 双字名池当前命中双缺行的组合较少（引擎候选池按单缺行生成），命中 2 行时可得最高档 +30 分，口径已支持。</div>
+  </section>
+
+  <footer>奶油玄学 v2 · 2026-08-28 · 启动：双击桌面「八字命理检索」 · <a href="./最终验收清单.md">v1 验收清单</a></footer>
+</div>
+</body>
+</html>

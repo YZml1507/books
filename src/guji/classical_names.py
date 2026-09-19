@@ -116,9 +116,55 @@ _AVOID_FEM: frozenset[str] = frozenset({
 })
 
 
+def _style_match(name_entry: dict, style: str) -> bool:
+    """v3（P3）：风格过滤——按 origin 书名判断名字归属风格档。
+
+    classics=诗经类（诗经/书经/礼记等非楚辞古籍）、chuci=楚辞类、
+    fresh=柔美字池（字在 _FEM_LEAN 或意象含柔美关键词）、all=不过滤。
+    """
+    if style in ("all", "", None):
+        return True
+    origin = str(name_entry.get("origin", ""))
+    story = str(name_entry.get("story", ""))
+    is_chuci = "楚辞" in origin or "楚辞" in story
+    if style == "chuci":
+        return is_chuci
+    if style == "classics":
+        return (not is_chuci) and bool(origin)
+    if style == "fresh":
+        _soft = ("柔", "清", "婉", "静", "雅", "淑", "月", "云", "风", "花",
+                 "芳", "菲", "芬", "芙", "蓉", "若", "兰", "荷", "薇", "蔓")
+        given = str(name_entry.get("given", ""))
+        return any(ch in given for ch in _soft) or any(w in story for w in ("轻盈", "活泼", "清丽"))
+    return True
+
+
+def _entry_match_style(entry: dict, style: str) -> bool:
+    """v3（P3）：单字候选池的风格过滤——按出处书名/意象关键词。
+
+    chuci=楚辞类；classics=非楚辞典籍；fresh=意象柔美（柔/清/雅/活泼/秀/兰等）；
+    all=不过滤。池子不足时由调用方回退全量，保证有名字。
+    """
+    if style in ("all", "", None):
+        return True
+    origin = str(entry.get("出处", ""))
+    image = str(entry.get("意象", ""))
+    is_chuci = "楚辞" in origin
+    if style == "chuci":
+        return is_chuci
+    if style == "classics":
+        return (not is_chuci) and bool(origin)
+    if style == "fresh":
+        _soft = ("柔", "清", "雅", "活泼", "静", "秀", "丽", "兰", "荷", "芳",
+                 "菲", "温", "婉", "书卷", "轻", "蔓", "苏", "苓", "苹", "菁")
+        return any(w in image for w in _soft)
+    return True
+
+
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
-                              top_n: int = 8, seed: int | None = None) -> dict:
+                              top_n: int = 8, seed: int | None = None,
+                              style: str = "all") -> dict:
     """古籍典故取名主函数。
 
     流程：
@@ -128,6 +174,9 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
       4. 每个名字附带原句 + 出处 + 意象说明
 
     seed: 随机种子，None=默认确定性输出；传入不同值可得到不同名字组合
+    style: v3（P3）新增——classics=诗经类 / chuci=楚辞类 / fresh=柔美字池 /
+           all=全部（默认，向后兼容）。按 origin 书名过滤，前端风格按钮
+           真正切换名字集合。
 
     Returns:
         dict: {full_names: [{full_name, given, elements, origin, story, form}, ...]}
@@ -208,7 +257,23 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             # 照样上屏（「李鹜」「李茕」就是这么来的）。这里做硬过滤。
             if gender == "女" and char in _AVOID_FEM:
                 continue
+            # v3（P3）：风格过滤——池子阶段就按风格筛，保证切风格真正换血。
+            if not _entry_match_style(entry, style):
+                continue
             pool.append((elem, entry))
+
+    # v3：风格过滤后池子不足一批 → 放宽为全量重建（保证用户一定拿到名字）
+    if len(pool) < max(int(top_n), 1) and style not in ("all", "", None):
+        for elem in missing:
+            for entry in _CLASSICAL_DB.get(elem, []):
+                char = entry.get("字", "")
+                if not char or char in surname:
+                    continue
+                if len(set(char)) != len(char):
+                    continue
+                if gender == "女" and char in _AVOID_FEM:
+                    continue
+                pool.append((elem, entry))
 
     # 同字去重（不同缺行可能命中同一个字，合并后会重复上屏）
     _seen_chars: set[str] = set()
@@ -258,7 +323,67 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             "form": "single",
         })
 
-    # 如果单字名不够，尝试双字名
+    # ── v3（P3）：双字名配额——用户反馈「名字都是两个字，没有三个字的」。
+    # 原逻辑只在单字不够 top_n 时才补双字，而典故库池 ≥ top_n 恒成立，
+    # 双字名永远不出场。改为**硬配额**：目标双字数 = max(2, top_n//3)，
+    # 无论单字是否够都生成（姓+双字=三字名）。双字名内部按 seed 轮换，
+    # 保证「换一批/换风格」时也有变化。 ──
+    _double_quota = max(2, int(top_n) // 3)
+    _doubles: list[dict] = []
+    for elem in missing:
+        classical_entries = _CLASSICAL_DB.get(elem, [])
+        if len(classical_entries) < 2:
+            continue
+        for gender_comp in ["木", "火", "土", "金", "水"]:
+            if gender_comp == elem:
+                continue
+            comp_entries = _CLASSICAL_DB.get(gender_comp, [])
+            if not comp_entries:
+                continue
+            for _ai2 in range(6):
+                e1 = _pick(classical_entries, surname, year, month, elem,
+                           seed if seed is not None else "v3",
+                           len(_doubles), _ai2)
+                e2 = _pick(comp_entries, surname, year, month, gender_comp,
+                           seed if seed is not None else "v3",
+                           len(_doubles), _ai2)
+                if not e1 or not e2:
+                    continue
+                c1 = e1.get("字", "")
+                c2 = e2.get("字", "")
+                if not c1 or not c2 or c1 == c2:
+                    continue
+                if c1 in surname or c2 in surname:
+                    continue
+                if gender == "女" and (c1 in _AVOID_FEM or c2 in _AVOID_FEM):
+                    continue
+                given = c1 + c2
+                name = surname + given
+                if len(set(given)) != len(given):
+                    continue
+                _doubles.append({
+                    "full_name": name,
+                    "given": given,
+                    "elements": [elem, gender_comp],
+                    "origin": e1.get("出处", "") + " + " + e2.get("出处", ""),
+                    "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，意象相生。",
+                    "form": "double",
+                })
+                if len(_doubles) >= _double_quota * 3:   # 池子留余量供风格过滤
+                    break
+            if len(_doubles) >= _double_quota * 3:
+                break
+        if len(_doubles) >= _double_quota * 3:
+            break
+    # 双字去重后按配额插入：第 2、5、8 位放双字（均匀分布，视觉不扎堆）
+    _dseen = set()
+    _duniq = [d for d in _doubles if not (d["full_name"] in _dseen or _dseen.add(d["full_name"]))]
+    _style_filtered = [_d for _d in _duniq if _style_match(_d, style)]
+    for _di, _dn in enumerate(_style_filtered[:_double_quota]):
+        _pos = min(1 + _di * 3, len(full_names))
+        full_names.insert(_pos, _dn)
+
+    # 如果单字名不够，尝试双字名（v3 保留原兑底逻辑，正常路径已由上方配额覆盖）
     if len(full_names) < top_n:
         for elem in missing:
             classical_entries = _CLASSICAL_DB.get(elem, [])
