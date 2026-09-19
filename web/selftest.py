@@ -1219,6 +1219,16 @@ def run() -> list[str]:
     _hf3 = _svc.chat_huangli_facts("他为什么不回我消息", now=_dt(2026, 9, 19))
     assert _hf3 == [], _hf3
     ok.append("chat.huangli_facts")
+    # R227b-fix（端到端审查抓到）：问一嘴输入的日期词必须参与判定——
+    # 「明天适合出行吗」不许剥掉日期词后拿当前显示日充数答「今天…」。
+    # 静态钉扎：抽日词函数存在、判定卡收到日词参数（不写死「今天」）。
+    _appsrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "static", "app.js"), encoding="utf-8").read()
+    assert "_hlDayOffset(q)" in _appsrc2 and "doHuangli._dayWord" in _appsrc2, \
+        "问一嘴日期词偏移：_hlDayOffset/doHuangli._dayWord 必须在 app.js 里"
+    assert ", _dayWord)" in _appsrc2, \
+        "_hlVerdictHtml 调用必须带日词参数——否则判定卡写死「今天」"
+    ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
     # v 是 dict 的情形，JS `String({..})` 恒为 "[object Object]"。受害字段是

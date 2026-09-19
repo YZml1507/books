@@ -17693,3 +17693,17 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 `btn:huangli` 在本环境的既有失败（字体/稳定性，非本次改动）；
 `probe_contract` HARD=2（j.items/j.chongsha）与 dollar_misuse 21 处
 函数属性访问均为 HEAD 既有问题，未在本轮范围。
+
+### §181 补记（R227b-fix）：问一嘴日期词真生效
+
+端到端测试抓到：`_hlExtractScene` 把「明天/后天」剥掉只用于抽事项词，
+判定却仍拿当前显示日——9/19 页面上问「明天适合出行吗」答「今天不宜」，
+而 9/20 其实宜出行。
+
+修法：新增 `_hlDayOffset`（今/明/后/大后/昨/前 → -2..+3，与后端
+`_hl_day_part` 同口径）；问一嘴带日期词时 `doHuangli(offset,false)` 真去
+查那一天再判；`_hlVerdictHtml` 收第 6 参 `day`（`_hlDayWord` 映射），
+文案不再写死「今天」；无事项词但有日期词走 `_pendingAskNote`——翻完
+那一天再写当日主推+引导。实测「明天适合出行吗」→ 9/20 卡
+「明天适合出行 ✅（宜项里有【出行】）」。selftest 新增
+`frontend.hl_ask_dayoffset` 静态钉扎。
