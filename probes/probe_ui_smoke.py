@@ -498,6 +498,15 @@ def main() -> int:
                             page.wait_for_timeout(150)
                     for sel, val in FILL.get(name, {}).items():
                         page.fill(sel, val)
+                    # R228d：#hlSubmit 住在 <details id=hlPickDrawer> 内，
+                    # 抽屉默认收起 → 按钮对真人也不可点（v5 自选日期改版后
+                    # 探针没跟上）。先程序化开抽屉——与真人点「选日期 ▾」
+                    # 摘要的路径一致，测试侧不强改 web/。
+                    if btn == "#hlSubmit":
+                        page.evaluate(
+                            "() => { const d = document.getElementById"
+                            "('hlPickDrawer'); if (d) d.open = true; }")
+                        page.wait_for_timeout(150)
                     api_calls.clear()
                     # `@subtab:N` 占位符 → 运行时按序号取真实 data-rsec2 值。
                     # 见 BUTTON_CASES 注释：不把对方的内部命名写死成契约。

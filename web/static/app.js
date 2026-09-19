@@ -139,6 +139,10 @@ function showToast(msg, kind) {
   }
   var t = document.createElement('div');
   t.className = 'toast-item toast-' + (kind || 'info');
+  /* R228d：toast 是全站唯一的错误通道——不补 live region，API 错误对读屏
+   * 完全静默。error 走 alert（打断式），其余 status+polite。 */
+  if (kind === 'error') { t.setAttribute('role', 'alert'); }
+  else { t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); }
   var icon = kind === 'error' ? '⛔' : (kind === 'warn' ? '⚠️' : '✅');
   t.innerHTML = '<span class="toast-icon">' + icon + '</span>' +
     '<span class="toast-msg">' + esc(String(msg || '')) + '</span>';
@@ -533,6 +537,9 @@ function chatOpen() {
   var sb = el('recentSidebar');
   if (!sb) return;
   sb.classList.add('open');
+  /* R228d：chatOpen 与 _setRecent 都能拉开侧栏——inert/aria 同步复位 */
+  sb.inert = false;
+  sb.setAttribute('aria-hidden', 'false');
   /* D-006：每次打开侧栏重置发送计数，允许新一轮「自动发+1次追问」
    * R228c：计数归零但输入框/按钮的 disabled 不复位，重开仍锁死到刷新——
    * 一起解开才对得上「允许新一轮」的语义。 */
@@ -700,6 +707,16 @@ function showView(viewId) {
   if (home) home.hidden = !isHome && !!target;
   const back = el('viewBack');
   if (back) back.hidden = isHome || !target;
+  /* R228d：键盘焦点管理——原实现在 func-card 上按 Enter 后 homeMain 被
+   * hidden，焦点被浏览器甩回 body，Tab 序从头爬。进叶页聚焦返回条；
+   * 回首页把焦点还给原入口卡（initViews 里记录 __lastFuncCard）。
+   * preventScroll：不干扰本函数的滚动位置恢复。 */
+  if (!isHome && back && !back.hidden) {
+    try { back.focus({ preventScroll: true }); } catch (e0) { back.focus(); }
+  } else if (isHome && window.__lastFuncCard) {
+    try { window.__lastFuncCard.focus({ preventScroll: true }); }
+    catch (e0) { try { window.__lastFuncCard.focus(); } catch (e1) {} }
+  }
   /* v3（P8 修复）：记住「离开首页时的位置」，回首页时精确恢复。
    * 实测原实现回首页恒为 0（y2987→0）。进入视图时把当前 scrollY 存入
    * _HOME_SCROLL_MEM；回首页（isHome）时恢复它。功能视图之间切换不拽顶。 */
@@ -1681,8 +1698,12 @@ function showPosterModal(canvas, view) {
     qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势'
   })[view] || '命盘海报';
   var img = canvas.toDataURL('image/png');
+  _posterTrigger = document.activeElement;   /* R228d：关闭时焦点归还 */
   backdrop.innerHTML =
-    '<div class="poster-modal">' +
+    /* R228d：补 dialog 语义——原来纯 div，读屏不知道是模态框，Tab 会走出
+     * 遮罩跑到主区控件。 */
+    '<div class="poster-modal" role="dialog" aria-modal="true" ' +
+      'aria-label="' + esc(viewTitle) + ' 分享图预览">' +
       '<div class="poster-modal-head">' +
         '<span class="poster-modal-title">📸 ' + esc(viewTitle) + '</span>' +
         '<button type="button" class="poster-modal-close" aria-label="关闭">×</button>' +
@@ -1695,6 +1716,9 @@ function showPosterModal(canvas, view) {
   document.body.appendChild(backdrop);
   /* 触发动画 */
   requestAnimationFrame(function () { backdrop.classList.add('open'); });
+  /* R228d：焦点移入弹层（关闭钮），否则键盘 Tab 走主区 */
+  var _pcb = backdrop.querySelector('.poster-modal-close');
+  if (_pcb) _pcb.focus();
   /* 关闭路径 1：点关闭按钮 */
   backdrop.querySelector('.poster-modal-close').addEventListener('click', closePosterModal);
   /* 关闭路径 2：点遮罩（点 modal 自身，不含内容） */
@@ -1710,10 +1734,16 @@ function showPosterModal(canvas, view) {
   document.addEventListener('keydown', _posterOnKey);
 }
 var _posterOnKey = null;
+var _posterTrigger = null;
 function closePosterModal() {
   if (_posterOnKey) {
     document.removeEventListener('keydown', _posterOnKey);
     _posterOnKey = null;
+  }
+  /* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位） */
+  if (_posterTrigger && _posterTrigger.focus) {
+    try { _posterTrigger.focus(); } catch (e) {}
+    _posterTrigger = null;
   }
   var m = document.getElementById('posterModal');
   if (!m) return;
@@ -2466,7 +2496,9 @@ async function doWorks() {
       // 可编址率是本项目核心质量指标。
       const rate = w.units ? Math.round((w.addressed || 0) / w.units * 100) : null;
       const anchoredRate = w.units ? Math.round((w.anchored || 0) / w.units * 100) : null;
-      html += '<div class="calc-block work-card" data-work="' + esc(w.id) +
+      /* R228d：整卡可点但纯 div 时键盘不可达——补 role/tabindex，
+       * Enter/Space 触发在 initReading 的全局 keydown 委托里。 */
+      html += '<div class="calc-block work-card" role="button" tabindex="0" data-work="' + esc(w.id) +
         '" style="border-left:3px solid ' + c + ';">' +
         '<h3 style="color:' + c + ';font-size:14px;">' + esc(w.title || w.id) + '</h3>' +
         '<p style="font-size:12px;color:var(--secondary);">' + esc(w.id) +
@@ -2937,6 +2969,13 @@ function _qmSwitchStyle(style) {
   if (!_QM_STYLES[style]) return;
   _QM_STYLE = style;
   _qmBatchOffset = 0;
+  /* R228d：不等 doQiming 重渲就先把 chip 态同步——点击与读屏反馈即时 */
+  var root = el('qmResult');
+  if (root) root.querySelectorAll('.qm-style-chip').forEach(function (c) {
+    var on = c.dataset && c.dataset.style === style;
+    c.classList.toggle('active', on);
+    c.setAttribute('aria-pressed', String(on));
+  });
   doQiming();
 }
 function _qmScore(name, missingArr) {
@@ -3013,11 +3052,15 @@ async function doQiming() {
     html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
       'title="生成分享图">📸 分享图</button>';
     /* R218a-04：换一批 + 风格切换 4 档（诗经草木 / 楚辞 / 清新灵动 / 综合） */
-    html += '<div class="qm-style-row" role="tablist" aria-label="起名风格">';
+    /* R228d：这是单选过滤钮不是页签——role=tablist 滥用会让读屏报「页签
+     * 列表」但子项不是 tab；改 group + 各 chip aria-pressed（对照
+     * .mode-btn 的既有写法）。 */
+    html += '<div class="qm-style-row" role="group" aria-label="起名风格">';
     Object.keys(_QM_STYLES).forEach(function (k) {
       var s = _QM_STYLES[k];
       var active = (k === _QM_STYLE) ? ' active' : '';
       html += '<button class="qm-style-chip' + active + '" type="button" ' +
+        'aria-pressed="' + (k === _QM_STYLE) + '" ' +
         'data-style="' + esc(k) + '" title="' + esc(s.hint) + '">' +
         esc(s.label) + '</button>';
     });
@@ -3921,8 +3964,9 @@ async function doHuangli(offset, reveal) {
    * chip 的日期（绝对日期/超范围偏移）则全部灭掉。 */
   var _offShown = _abs ? offset : null;
   document.querySelectorAll('#hlChips .hl-chip').forEach(function (c) {
-    c.classList.toggle('active',
-      _offShown != null && Number(c.dataset.hloffset) === _offShown);
+    var on = _offShown != null && Number(c.dataset.hloffset) === _offShown;
+    c.classList.toggle('active', on);
+    c.setAttribute('aria-pressed', String(on));   /* R228d：激活态读屏可知 */
   });
   var _dr = document.getElementById('hlPickDrawer');
   if (_dr && !_abs) _dr.open = false;   /* 自选日期提交后收起抽屉 */
@@ -3971,8 +4015,9 @@ async function doHuangli(offset, reveal) {
     /* 头部：日期 + 农历干支 */
     html += '<div class="hl-head" style="background:linear-gradient(120deg,#FFF8E1,#FFE9C9);border-radius:16px;padding:14px 16px;margin-bottom:12px;">';
     html += '<div style="font-size:20px;font-weight:800;color:#7A5F33;">' + esc(j.date || dateStr) + '</div>';
-    /* R228c：month_cn 本身已带「月」（lunar.py:119 = MONTH_CN[..]+'月'），
-     * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。 */
+    /* R228c：month_cn 本身已带「月」（后端 MONTH_CN 表生成时即带），
+     * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。
+     * 注意：注释里别写「模块.文件」式点号串——probe_contract 会当字段读取。 */
     html += '<div style="font-size:13px;color:var(--secondary);margin-top:2px;">农历 ' +
       esc((lunar.month_cn || '') + (lunar.day_cn || '')) +
       ' · ' + esc(lunar.ganzhi_year_cn || '') + '</div>';
@@ -4190,7 +4235,9 @@ async function removeFavorite() {}
 
 function activateRsec(secId) {
   document.querySelectorAll('.rtab[data-rsec]').forEach(function (b) {
-    b.classList.toggle('active', b.dataset.rsec === secId);
+    var on = b.dataset.rsec === secId;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));   /* R228d：激活态读屏可知 */
   });
   document.querySelectorAll('.rsec').forEach(function (s) {
     s.classList.toggle('active', s.id === secId);
@@ -4211,7 +4258,9 @@ function activateBssec(key) {
   var entry = BSSEC_PANELS[key];
   if (!entry) return;
   document.querySelectorAll('.rtab[data-rsec2]').forEach(function (b) {
-    b.classList.toggle('active', b.dataset.rsec2 === key);
+    var on = b.dataset.rsec2 === key;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));   /* R228d */
   });
   document.querySelectorAll('.bssec').forEach(function (s) {
     s.classList.toggle('active', s.id === entry.panel);
@@ -4225,12 +4274,14 @@ function activateBssec(key) {
 function initViews() {
   document.querySelectorAll('.func-card').forEach(function (card) {
     card.addEventListener('click', function () {
+      window.__lastFuncCard = card;   /* R228d：回首页时焦点归还这里 */
       showView(card.dataset.view);
     });
     // 卡片是可点区域，给键盘用户同等入口
     card.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        window.__lastFuncCard = card;
         showView(card.dataset.view);
       }
     });
@@ -4245,12 +4296,27 @@ function initViews() {
   /* R218a-01：遮罩与侧栏同步——点空白处关闭抽屉，pointer-events: auto 时
    * 拦截主区点击、松开时触发 chatClose（视觉上仍透出主区颜色）。 */
   var bd = el('recentBackdrop');
+  /* R228d：侧栏关态收编——transform 移屏外后 Tab 序与读屏树仍穿 6 个控件
+   *（360px 实测 chatInput 可 focus、焦点矩形 x=-293）。inert 属性为主，
+   * CSS visibility:hidden 兜底；chatOpen 直加 .open 的路径也要复位 inert。 */
+  if (sb) { sb.inert = true; sb.setAttribute('aria-hidden', 'true'); }
   function _setRecent(open) {
     if (!sb) return;
     sb.classList.toggle('open', open);
+    sb.inert = !open;
+    sb.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (bd) bd.classList.toggle('open', open);
+    /* 关闭时若焦点还在侧栏里，还给悬浮入口钮 */
+    if (!open && sb.contains(document.activeElement) && tgl) {
+      try { tgl.focus(); } catch (e) {}
+    }
   }
+  /* R228d：Esc 关侧栏（全站此前只有海报层有 Esc） */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !sb) return;
+    if (sb.classList.contains('open')) _setRecent(false);
+  });
   if (tgl) tgl.addEventListener('click', function () {
     /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
      * 一致的 open/closed 抽屉语义（R209b 的 collapsed 常驻方案废除；
@@ -4371,6 +4437,14 @@ function initReading() {
     }
     /* R219b（P0-4）：data-hist / data-hist-del / #histMore 三条历史记录
      * 委托随功能删除（DOM 与后端端点均不复存在）。 */
+  });
+  /* R228d：work-card 键盘入口——tabindex=0 后 Enter/Space 触发同 click */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var wc = e.target && e.target.closest && e.target.closest('.work-card[data-work]');
+    if (!wc) return;
+    e.preventDefault();
+    searchByWork(wc.dataset.work);
   });
 }
 
@@ -4512,7 +4586,8 @@ function renderCheckin(dateKey) {
     window.localStorage.getItem('checkin:' + dateKey) : null;
   const opts = CHECKIN_OPTS.map(function (o) {
     return '<button type="button" class="checkin-opt' +
-      (saved === o ? ' picked' : '') + '" data-opt="' + o + '">' + o + '</button>';
+      (saved === o ? ' picked' : '') + '" data-opt="' + o + '" ' +
+      'aria-pressed="' + (saved === o) + '">' + o + '</button>';
   }).join('');
   box.innerHTML = '<div class="checkin-q">你今天是什么运？</div>' +
     '<div class="checkin-opts">' + opts + '</div>' +
@@ -4526,7 +4601,9 @@ function renderCheckin(dateKey) {
       const opt = btn.dataset.opt;
       try { window.localStorage.setItem('checkin:' + dateKey, opt); } catch (e2) {}
       box.querySelectorAll('.checkin-opt').forEach(function (b) {
-        b.classList.toggle('picked', b === btn);
+        var on = b === btn;
+        b.classList.toggle('picked', on);
+        b.setAttribute('aria-pressed', String(on));   /* R228d */
       });
       const fx = document.getElementById('checkinFx');
       if (fx) fx.textContent = pickCheckinFeedback(opt, dateKey);

@@ -302,15 +302,15 @@ if ('serviceWorker' in navigator) {
     <div class="card">
       <h2>📜 古籍读书 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知往圣 · 绝学</span></h2>
       <div class="rtabs">
-        <button class="rtab active" data-rsec="rsec-search" type="button">检索</button>
-        <button class="rtab" data-rsec="rsec-research" type="button">深度研究</button>
-        <button class="rtab" data-rsec="rsec-addr" type="button">定位</button>
-        <button class="rtab" data-rsec="rsec-compare" type="button">比对</button>
-        <button class="rtab" data-rsec="rsec-works" type="button">书目</button>
-        <button class="rtab" data-rsec="rsec-threads" type="button">研究线程</button>
-        <button class="rtab" data-rsec="rsec-bookstudy" type="button">读书</button>
-        <button class="rtab" data-rsec="rsec-cw" type="button">两书对照</button>
-        <button class="rtab" data-rsec="rsec-concept" type="button">概念研究</button>
+        <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
+        <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
+        <button class="rtab" data-rsec="rsec-addr" type="button" aria-pressed="false">定位</button>
+        <button class="rtab" data-rsec="rsec-compare" type="button" aria-pressed="false">比对</button>
+        <button class="rtab" data-rsec="rsec-works" type="button" aria-pressed="false">书目</button>
+        <button class="rtab" data-rsec="rsec-threads" type="button" aria-pressed="false">研究线程</button>
+        <button class="rtab" data-rsec="rsec-bookstudy" type="button" aria-pressed="false">读书</button>
+        <button class="rtab" data-rsec="rsec-cw" type="button" aria-pressed="false">两书对照</button>
+        <button class="rtab" data-rsec="rsec-concept" type="button" aria-pressed="false">概念研究</button>
       </div>
 
       <!-- 检索 -->
@@ -425,9 +425,9 @@ if ('serviceWorker' in navigator) {
              probe 打成 3 个 TimeoutError）。面板 id 与它的映射在 app.js
              的 BSSEC_PANELS 里。 -->
         <div class="rtabs" style="margin-top:12px;">
-          <button class="rtab active" data-rsec2="bs-structure" type="button">结构</button>
-          <button class="rtab" data-rsec2="bs-chapter" type="button">章节</button>
-          <button class="rtab" data-rsec2="bs-summary" type="button">摘要</button>
+          <button class="rtab active" data-rsec2="bs-structure" type="button" aria-pressed="true">结构</button>
+          <button class="rtab" data-rsec2="bs-chapter" type="button" aria-pressed="false">章节</button>
+          <button class="rtab" data-rsec2="bs-summary" type="button" aria-pressed="false">摘要</button>
         </div>
         <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
              且三个子标签完全没有事件绑定 —— R000a-03）。 -->
@@ -504,10 +504,10 @@ if ('serviceWorker' in navigator) {
       <h2>🌙 黄历择日 <span style="font-size:14px;color:var(--secondary);font-weight:400;">好日子，一目了然</span></h2>
       <!-- v3（P7）：日期快选 chip，原生输入收进折叠（兼容保留） -->
       <div class="hl-chips" id="hlChips">
-        <button type="button" class="hl-chip active" data-hloffset="0">今天</button>
-        <button type="button" class="hl-chip" data-hloffset="1">明天</button>
-        <button type="button" class="hl-chip" data-hloffset="2">后天</button>
-        <button type="button" class="hl-chip" data-hloffset="-1">昨天</button>
+        <button type="button" class="hl-chip active" data-hloffset="0" aria-pressed="true">今天</button>
+        <button type="button" class="hl-chip" data-hloffset="1" aria-pressed="false">明天</button>
+        <button type="button" class="hl-chip" data-hloffset="2" aria-pressed="false">后天</button>
+        <button type="button" class="hl-chip" data-hloffset="-1" aria-pressed="false">昨天</button>
         <button type="button" class="hl-chip hl-chip-pick" id="hlPickBtn">选日期 ▾</button>
       </div>
       <details class="pro-drawer" id="hlPickDrawer" style="margin:8px 0;">

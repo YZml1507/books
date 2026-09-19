@@ -38,11 +38,16 @@
   --primary:   #D4B5FF;       /* 香芋紫——装饰/边框/柔影 */
   --primary-ink: #8B6FC7;     /* 紫·文字：奶油底 ≥5.2 */
   --primary-bg:  #7A5FB8;     /* 紫·背景：白字在其上 ≥5.6 */
-  --secondary: #8A7563;       /* 燕麦棕·次要文字：奶油底 ≥4.8 */
-  --accent:    #FF8FAB;       /* 蜜桃粉强调 */
+  /* R228d：--secondary 实测 4.13-4.30 不达正文 AA——加深到 #7E6A58
+   *（奶油底实测 4.85 / 卡底 5.06）；--muted 同理加深到 #7F6C57（≥4.7），
+   * 原注释自称「非正文用」但实际在 12-14px 正文里用。新增 --accent-ink
+   * 补 --accent 的文字角色（#FF8FAB 仅 2.12:1，只能当装饰）。 */
+  --secondary: #7E6A58;       /* 燕麦棕·次要文字：奶油底实测 ≥4.85 */
+  --accent:    #FF8FAB;       /* 蜜桃粉强调——装饰用，文字用 -ink 变体 */
+  --accent-ink:#B84A6F;       /* 蜜桃粉·文字：卡底实测 4.87 */
   --good:      #5FA777;       /* 抹茶绿 */
   --c-good:    #5FA777;       /* 别名：JS 内联样式引用的是 --c-good */
-  --muted:     #9A8B7D;       /* 次要说明（大字号/非正文用） */
+  --muted:     #7F6C57;       /* 次要说明（R228d 加深：正文级实测 ≥4.7） */
   --border:    #F5E3D3;       /* 奶油细线 */
   --shadow:    0 8px 32px rgba(255,183,197,.22), 0 2px 10px rgba(212,181,255,.16);
   --shadow-hover: 0 16px 44px rgba(255,143,171,.26), 0 4px 16px rgba(212,181,255,.22);
@@ -250,13 +255,16 @@ h1,.brand-mark,.section-title,.side-brand{
   position:absolute; right:20px; top:20px; width:38%; max-width:200px;
   border-radius:16px; overflow:hidden; opacity:0.9;
   box-shadow:0 4px 16px rgba(184,134,11,.12);
+  pointer-events:none;   /* R228d：纯装饰图不挡下层点击 */
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
   background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));
 }
-.daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+/* R228d：gift 图是 38% 宽的绝对定位层——给顶部行右侧留垫，
+ * 否则 360px 下礼盒完整压住日期文字（elementFromPoint 实测三采样点全 IMG）。 */
+.daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding-right:min(38%,205px);}
 .daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600;}
 .daily-date{font-size:14px; color:var(--muted); font-family:monospace; flex-shrink:0; min-width:90px; text-align:right;}
 .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
@@ -323,7 +331,8 @@ h1,.brand-mark,.section-title,.side-brand{
   border-color:var(--card-accent, var(--primary));
 }
 .func-card:focus-visible{
-  outline:3px solid var(--primary); outline-offset:2px;
+  /* R228d：--primary #D4B5FF 在卡底仅 1.74:1，焦点环改 --text（与全站一致） */
+  outline:3px solid var(--text); outline-offset:2px;
 }
 .func-icon{
   font-size:36px; margin-bottom:10px; line-height:1;
@@ -343,7 +352,7 @@ h1,.brand-mark,.section-title,.side-brand{
 .func-card[data-view="hehun"]   {--card-accent:var(--c-hehun);}
 
 /* ── 最近解读 ── */
-.recent-section{margin-top:36px;}
+
 
 /* ── 007 首页 IA：语义分组壳（spec §2；只增不改，回滚=git revert） ── */
 .ia-group{margin-top:30px;}
@@ -357,7 +366,7 @@ h1,.brand-mark,.section-title,.side-brand{
   color:var(--text); margin-bottom:16px; padding-bottom:10px;
   border-bottom:1px solid var(--border);
 }
-.recent-list{display:flex; flex-direction:column; gap:10px;}
+
 /* ── R205b（用户反馈①②）：最近解读右侧可收缩侧边栏 + 单条删除 ── */
 /* R207b：圆钮修复——emoji 在 Windows 渲染成黑白文本形，改用 SVG 数据 URI
  * 时钟图标（同源 data URI 非外链），flex 居中，hover 反馈。 */
@@ -387,8 +396,12 @@ h1,.brand-mark,.section-title,.side-brand{
   background:var(--card); border-left:1px solid var(--border);
   box-shadow:6px 0 24px rgba(0,0,0,.12);
   padding:18px 16px 24px; overflow-y:auto;
-  transform:translateX(-105%); transition:transform .28s ease;
+  transform:translateX(-105%); transition:transform .28s ease, visibility .28s;
+  /* R228d：关态只移屏外仍占 Tab 序/读屏树——visibility 兜无 inert 的旧浏览器，
+   * inert/aria-hidden 在 JS _setRecent 里同步。 */
+  visibility:hidden;
 }
+.recent-sidebar.open{transform:translateX(0); visibility:visible;}
 .recent-sidebar.open{transform:translateX(0);}
 /* R218a-01：点侧栏外的区域关闭抽屉——半透遮罩，不抢主区颜色信息 */
 .recent-backdrop{
@@ -401,16 +414,11 @@ h1,.brand-mark,.section-title,.side-brand{
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .recent-side-head .section-title{margin-bottom:0;}
 .recent-side-close{
-  flex-shrink:0; width:40px; height:40px; border-radius:50%;
+  flex-shrink:0; width:var(--tap); height:var(--tap); border-radius:50%;   /* R228d：40→44 tap 下限 */
   background:transparent; color:var(--secondary);
   border:1px solid var(--border); font-size:15px; cursor:pointer;
 }
-.recent-del{
-  flex-shrink:0; width:32px; height:32px; border-radius:50%;
-  background:transparent; color:var(--secondary);
-  border:1px solid var(--border); font-size:13px; cursor:pointer;
-}
-.recent-del:hover{color:#fff; background:var(--accent); border-color:var(--accent);}
+/* R228d：.recent-del 死样式删除——单条删除功能随 R219b 退役，app.js/index.html 零引用 */
 
 /* ── R209b：聊天并入左侧统一栏 ───────────────────────────────── */
 .warm-empathy{
@@ -424,7 +432,7 @@ h1,.brand-mark,.section-title,.side-brand{
   font-family:var(--font-sans); font-size:15px; cursor:pointer;
 }
 .chat-entry:hover{border-color:#E8B898;}
-.chat-entry:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
+.chat-entry:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d：同 func-card */
 
 /* ── R212（用户复检：侧边栏排版）：R209b chat-panel 退役时误删气泡/输入框
  * 样式，聊天并入侧栏后处于无样式裸奔态。恢复 + 按抽屉语境重调：
@@ -445,7 +453,7 @@ h1,.brand-mark,.section-title,.side-brand{
 .chat-input-row input{
   flex:1; min-height:44px; padding:0 14px;
   border:1px solid var(--border); border-radius:22px;
-  background:#fff; font-family:var(--font-sans); font-size:14px;
+  background:#fff; font-family:var(--font-sans); font-size:16px;   /* R228d：iOS 缩放 */
 }
 .chat-input-row button{
   min-height:44px; min-width:56px; padding:0 16px; border:none; border-radius:22px;
@@ -522,8 +530,10 @@ h1,.brand-mark,.section-title,.side-brand{
 .qm-style-row{
   display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;
 }
+/* R228d 起以下 chip 全部补足 44px tap 下限——padding 内收视觉不变 */
 .qm-style-chip{
-  flex:1 1 auto; min-width:74px; min-height:34px; padding:4px 10px;
+  min-height:var(--tap);
+  flex:1 1 auto; min-width:74px; padding:4px 10px;
   border:1px solid var(--border); border-radius:18px;
   background:#FFF4E8; color:var(--text); font-family:var(--font-sans);
   font-size:13px; cursor:pointer; transition:all .15s;
@@ -533,12 +543,12 @@ h1,.brand-mark,.section-title,.side-brand{
   background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
   border-color:transparent; box-shadow:0 2px 8px rgba(232,106,138,.32);
 }
-.qm-style-chip:focus-visible{outline:3px solid var(--primary); outline-offset:2px;}
+.qm-style-chip:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d */
 .qm-style-hint{
   font-size:11.5px; color:var(--secondary); margin:0 0 6px 2px;
 }
 .qm-score{
-  display:inline-block; font-size:12.5px; color:#B7A98A;
+  display:inline-block; font-size:12.5px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
   background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
   padding:2px 8px; margin-bottom:4px; font-weight:600;
 }
@@ -596,21 +606,13 @@ h1,.brand-mark,.section-title,.side-brand{
 }
 .tarot-question-hook p{margin:4px 0 0;}
 .tarot-hook-tag{
-  display:inline-block; font-size:11.5px; color:#B7A98A;
+  display:inline-block; font-size:11.5px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
   background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
   padding:1px 8px; margin-bottom:4px; font-weight:500;
 }
-.recent-item{
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);
-  padding:14px 18px; display:flex; align-items:center; gap:14px;
-  box-shadow:0 2px 8px rgba(184,134,11,.06); transition:all .2s;
-}
-.recent-item:hover{box-shadow:var(--shadow); border-color:var(--primary-ink);}
-.recent-icon{font-size:22px; flex-shrink:0;}
-.recent-info{flex:1; min-width:0;}
-.recent-title{font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.recent-date{font-size:12px; color:var(--secondary); margin-top:2px;}
-.recent-arrow{color:var(--primary-ink); font-size:18px; flex-shrink:0;}
+/* R228d：.recent-item/.recent-icon/.recent-info/.recent-title/.recent-date/
+ * .recent-arrow/.recent-section/.recent-list 死样式删除——旧版最近解读列表
+ * 已退役（app.js/index.html 零引用）。 */
 
 /* ── 视图容器 ── */
 /* ── R200b（US3）：排盘视图底部「相关功能」区 ─────────────────── */
@@ -635,7 +637,7 @@ h1,.brand-mark,.section-title,.side-brand{
   border-radius:12px; font-family:var(--font-sans); font-size:15px;
   cursor:pointer; text-align:left; padding:0 16px;
 }
-.view-back:focus-visible{outline:2px solid var(--primary);}
+.view-back:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d */
 .view-back[hidden]{display:none;}
 .home-main[hidden]{display:none;}
 .view{display:none;}
@@ -674,7 +676,9 @@ label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; 
 input[type=number], input[type=text], input[type=date], select{
   /* R211b（US10）：输入控件圆角+柔底，消工具感断层 */
   border-radius:12px; background:#FFFDF8;
-  width:100%; padding:10px 12px; font-size:15px;
+  /* R228d：iOS Safari 对 <16px 输入框聚焦自动缩放整页——移动优先的应用，
+   * 输入控件统一 16px（视觉收在容器侧）。 */
+  width:100%; padding:10px 12px; font-size:16px;
   /* 003 判据 1/2：44px 点击目标下限（WCAG 2.5.5）。原 padding 只得
    * 39–41px，差 3–5px——差一点也是不达标。 */
   min-height:var(--tap);
@@ -714,7 +718,7 @@ button.fav-btn[id="shareHehun"]{
   right:150px;
 }
 
-.error{color:var(--accent); margin-top:16px; font-size:14px;}
+.error{color:var(--accent-ink); margin-top:16px; font-size:14px;}   /* R228d */
 .status{color:var(--secondary); margin-top:16px; font-size:14px;}
 .no-evidence{color:var(--secondary); font-size:14px; padding:20px; text-align:center;}
 
@@ -722,7 +726,7 @@ button.fav-btn[id="shareHehun"]{
 .result{margin-top:8px;}
 .paipan-line{font-family:var(--font-serif); font-size:22px; color:var(--text); letter-spacing:.04em;}
 .nayin{color:var(--secondary); font-size:14px; margin-top:6px;}
-.warn{color:var(--accent); font-size:14px; margin-top:8px; font-weight:500;}
+.warn{color:var(--accent-ink); font-size:14px; margin-top:8px; font-weight:500;}   /* R228d */
 
 .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0;}
 .pill{
@@ -759,8 +763,8 @@ button.fav-btn[id="shareHehun"]{
 .ev-text{font-family:var(--font-serif); font-size:15px; margin-top:6px; line-height:1.8;
   white-space:pre-wrap;}
 .ev-item.expanded .ev-text{display:block;}
-.ev-toggle{font-size:13px; color:var(--primary-ink); cursor:pointer; margin-top:6px; display:inline-block;}
-.ev-disc{font-size:12px; color:var(--accent); margin-top:4px;}
+/* R228d：.ev-toggle 死样式删除（零引用） */
+.ev-disc{font-size:12px; color:var(--accent-ink); margin-top:4px;}   /* R228d：accent→accent-ink */
 
 /* ── 解读区（确定性规则输出，非生成文本）── */
 .interp-badge{
@@ -795,38 +799,11 @@ button.fav-btn[id="shareHehun"]{
 .llm-model{font-size:12px; color:var(--secondary); margin-top:10px;}
 .footnote{color:var(--secondary); font-size:12px; margin-top:24px;}
 
-/* ── 历史记录 ── */
-.hist-panel{margin-top:24px;}
-.hist-item{padding:10px 0; border-bottom:1px solid var(--border);}
-.hist-item:last-child{border-bottom:none;}
-.hist-time{font-size:12px; color:var(--secondary); font-family:monospace;}
-.hist-q{font-size:14px; color:var(--text); margin-top:4px; font-weight:500;}
-.hist-p{font-size:13px; color:var(--secondary); margin-top:4px;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.hist-actions{display:flex; gap:8px; margin-top:6px;}
+/* R228d：.hist-* 死样式删除——R219b 历史面板退役（app.js 仅存注释提及）。 */
+.hist-actions{display:flex; gap:8px; margin-top:6px;}   /* 通用钮排保留 */
 .hist-actions button{margin:0; padding:8px 14px; font-size:12px; width:auto; border-radius:5px; min-height:var(--tap);}
-.hist-del{background:var(--accent) !important; color:#fff;}
-.hist-view{background:var(--primary-bg) !important; color:#fff;}
-.hist-banner{
-  font-size:13px; color:#fff; background:var(--primary-bg);
-  padding:8px 14px; border-radius:6px; margin-bottom:4px;
-}
 
-/* ── 新闻 ── */
-.news-panel{margin-top:24px;}
-.news-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-.news-refresh{margin:0; padding:8px 16px; font-size:12px; width:auto; border-radius:999px;
-  min-height:var(--tap);
-  background:transparent; color:var(--primary-ink); border:1px solid var(--border);}
-.news-src{font-size:13px; color:var(--text); font-weight:600;
-  margin-top:14px; padding-bottom:4px; border-bottom:1px solid var(--border);}
-.news-item{padding:8px 0; border-bottom:1px dashed var(--border);}
-.news-item:last-child{border-bottom:none;}
-.news-item a{color:var(--text); text-decoration:none; font-size:14px;}
-.news-item a:hover{color:var(--primary-ink);}
-.news-time{display:block; font-size:11px; color:var(--secondary); margin-top:3px;}
-.news-meta{font-size:12px; color:var(--secondary); margin-top:10px;}
-.news-err{font-size:13px; color:var(--accent); margin-top:8px;}
+/* R228d：.news-* 死样式删除——R208b 新闻面板退役（probe_ui_smoke 有反向钉扎）。 */
 
 /* ── 内部 tab ── */
 .rtabs{display:flex; gap:6px; margin:16px 0 4px; flex-wrap:wrap;}
@@ -1013,7 +990,7 @@ details.warm-pro-fold > summary{
 }
 .pro-back-btn{
   cursor:pointer; white-space:nowrap;
-  padding:6px 14px; min-height:32px; border-radius:999px;
+  padding:6px 14px; min-height:var(--tap); border-radius:999px;   /* R228d：32→44 */
   border:1px solid var(--c-bazi); background:#fff0f0; color:var(--text);
   font-size:13px;
 }
@@ -1161,7 +1138,7 @@ details.warm-pro-fold > summary{
   line-height:1.6; }
 .chat-empty-chips{ display:flex; flex-direction:column; gap:8px;
   width:100%; max-width:240px; }
-.chat-chip{ padding:9px 14px; font-size:13px; text-align:center;
+.chat-chip{ padding:9px 14px; font-size:13px; text-align:center; min-height:var(--tap);   /* R228d */
   border:1px solid var(--border); border-radius:999px;
   background:var(--card); color:var(--primary-ink); cursor:pointer;
   transition:background .15s; }
@@ -1180,7 +1157,8 @@ details.warm-pro-fold > summary{
   font-size:15px; border:1px solid var(--border); border-radius:10px;
   background:var(--card); color:var(--primary-ink); }
 .xz-quick{ display:flex; gap:8px; margin-bottom:12px; }
-.xz-chip{ padding:7px 16px; font-size:13px; border:1px solid var(--border);
+.xz-chip{ padding:7px 16px; font-size:13px; min-height:var(--tap);   /* R228d */
+  border:1px solid var(--border);
   border-radius:999px; background:var(--card); color:var(--secondary);
   cursor:pointer; }
 .xz-chip:hover{ background:var(--bg); color:var(--primary-ink); }
@@ -1193,11 +1171,9 @@ details.warm-pro-fold > summary{
 .xz-today-sign{ font-size:20px; font-weight:700; color:var(--primary-ink); }
 .xz-today-note{ font-size:13px; color:var(--secondary); }
 .xz-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-.xz-cell{ display:flex; flex-direction:column; align-items:center; padding:8px 4px; background:var(--card); border:1px solid var(--border); border-radius:8px; text-align:center; }
-.xz-cell.xz-active{ border-color:var(--primary); background:#FFF5F0; }
+/* R228d：.xz-cell/.xz-icon/.xz-palace 旧版死样式删除（v2 卡片版在用，.xz-grid 保留） */
 .xz-name{ font-size:14px; font-weight:600; color:var(--primary-ink); }
-.xz-icon{ font-size:20px; margin-bottom:2px; }
-.xz-palace{ font-size:11px; color:var(--secondary); margin-top:2px; }
+
 .xz-note{ font-size:11px; color:var(--secondary); margin-top:4px; line-height:1.4; }
 /* C-002：星座详情页分维度 */
 .xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:8px; }
@@ -1225,7 +1201,7 @@ details.warm-pro-fold > summary{
   25%{transform:rotate(-8deg) scale(1.12);}
   60%{transform:rotate(7deg) scale(1.08);}
 }
-.result-card,.ev-block,.hist-item{animation:fadeInUpSoft .4s ease-out both;}
+.result-card,.ev-block{animation:fadeInUpSoft .4s ease-out both;}
 @keyframes fadeInUpSoft{
   from{opacity:0; transform:translateY(10px);}
   to{opacity:1; transform:none;}
@@ -1244,7 +1220,7 @@ button:active:not(.theme-btn){transform:scale(.96);}
 }
 @media (prefers-reduced-motion: reduce){
   .func-card:hover .func-icon,
-  .result-card,.ev-block,.hist-item,
+  .result-card,.ev-block,
   .daily-level,.recent-toggle{animation:none !important;}
   button:active{transform:none;}
 }
@@ -1302,6 +1278,7 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .checkin-q{font-size:13.5px; color:var(--secondary); margin-bottom:8px;}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 .checkin-opt{
+  min-height:var(--tap);   /* R228d：35→44 */
   padding:7px 14px; border-radius:16px; border:1.5px solid var(--border);
   background:#fff; font-family:var(--font-sans); font-size:13px;
   cursor:pointer; transition:transform .15s ease, box-shadow .15s ease,
@@ -1347,7 +1324,7 @@ button:active:not(.theme-btn){transform:scale(.96);}
 }
 .poster-modal-title{font-size:15px; font-weight:600; color:var(--text);}
 .poster-modal-close{
-  width:32px; height:32px; border-radius:50%;
+  width:var(--tap); height:var(--tap); border-radius:50%;   /* R228d：32→44 */
   background:transparent; color:var(--secondary);
   border:1px solid var(--border); font-size:20px; line-height:1;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
@@ -1390,33 +1367,7 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .toast-icon{font-size:16px; flex-shrink:0;}
 .toast-msg{flex:1; word-break:break-word;}
 
-/* ── R218a-巡2（N-07）：侧栏历史记录可折叠段 ───────── */
-.side-history{
-  border-bottom:1px dashed var(--border);
-  background:#FDF8F0;
-}
-.side-history-head{
-  display:flex; align-items:center; gap:6px;
-  padding:8px 16px; cursor:pointer; user-select:none;
-  font-size:13px; color:var(--secondary);
-  transition:background .15s ease;
-}
-.side-history-head:hover{background:#F6EDE0;}
-.side-history-title{flex:1; font-weight:500; color:var(--text);}
-.side-history-count{
-  font-size:11px; color:var(--secondary);
-  background:#EFE3CE; border-radius:9px; padding:1px 7px;
-}
-.side-history-arrow{
-  font-size:11px; color:var(--secondary);
-  transition:transform .2s ease;
-}
-.side-history.open .side-history-arrow{transform:rotate(90deg);}
-.side-history-body{
-  max-height:180px; overflow-y:auto;
-  border-top:1px solid rgba(184,134,11,.12);
-}
-.side-history-list{padding:4px 0;}
+/* R228d：.side-history* 死样式删除——侧栏历史折叠段已退役，零引用。 */
 
 /* ── R218a-巡2（N-08）：结果卡装饰 banner ─────────── */
 .deco-banner{
@@ -1482,8 +1433,11 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .func-icon-img.is-missing{display:none;}
 .ph-toolbar{display:flex;gap:10px;margin:10px 0 14px;}
 .ph-list{display:flex;flex-direction:column;gap:10px;}
-.ph-item{border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(35,42,56,.06);cursor:pointer;transition:box-shadow .15s ease,transform .15s ease;}
-.ph-item:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px);}
+/* R228d：ph-item 卡身点不动（点击行为只在 .ph-open 钮上）——去掉假 affordance 的
+ * cursor:pointer，挪到真按钮上。 */
+.ph-item{border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(35,42,56,.06);transition:box-shadow .15s ease,transform .15s ease;}
+.ph-item:hover{box-shadow:var(--shadow-hover);}
+.ph-open{cursor:pointer;}
 .ph-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;}
 .ph-name{font-weight:600;color:var(--text);}
 .ph-ts{font-size:12px;color:var(--muted);}
@@ -1534,13 +1488,13 @@ button:active:not(.theme-btn){transform:scale(.96);}
 
 /* ── v3 P7 黄历重做 ── */
 .hl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px;}
-.hl-chip{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:all .15s ease;}
+.hl-chip{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:all .15s ease;min-height:var(--tap);}   /* R228d：34→44 */
 .hl-chip:hover{border-color:var(--primary-ink);}
 .hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:#8B6FC7;}
 .hl-pill{background:rgba(255,255,255,.75);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;color:#3E7A52;border:1px solid rgba(95,167,119,.3);}
 .hl-pill.hl-hot{background:#5FA777;color:#fff;box-shadow:0 2px 10px rgba(95,167,119,.4);}
 .hl-pill-ji{color:#C2527B;border-color:rgba(226,98,138,.3);}
-.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;}
+.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);}   /* R228d：33→44 */
 .hl-scene:hover{border-color:var(--accent);}
 .hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
 @media (max-width:480px){ .hl-yiji{grid-template-columns:1fr !important;} }
