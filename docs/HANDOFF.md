@@ -85,7 +85,9 @@
 4. Git 操作（commit/push 了什么）
 5. 当前闸门状态（`scripts/assess_goals.py` 输出 + web 层闸门：`web/selftest.py`、
    `probes/probe_ui_smoke.py`、`probes/probe_contract.py`、`probes/probe_dollar_misuse.py`、
-   `probes/probe_selftest_regress.py`——全集合见 TASK_LEDGER 开头闸门清单与 PHASE.md 闸门表）
+   `probes/probe_selftest_regress.py`、`probes/probe_first_screen.py`、
+   `probes/probe_date_parity.py`——全集合见 TASK_LEDGER 开头闸门清单与 PHASE.md 闸门表；
+   另 `probes/eval_xiaoman_llm.py` 为需真实 key 的人工复验工具，不进 CI）
 
 ---
 

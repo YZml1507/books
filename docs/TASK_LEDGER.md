@@ -49,9 +49,10 @@ cd C:\Users\Lenovo\Desktop\projects\books
 
 ```powershell
 $env:BOOKS_LLM_DISABLE="1"
-.\.venv\Scripts\python.exe web\selftest.py                    # web 自测（R228s 复验 176 checks）
-.\.venv\Scripts\python.exe probes\probe_ui_smoke.py           # 真浏览器 UI 冒烟（43 用例）
-.\.venv\Scripts\python.exe probes\probe_contract.py          # 前后端契约（382 读点；SKIP>0 判 INCONCLUSIVE）
+.\.venv\Scripts\python.exe web\selftest.py                    # web 自测（R229r 复验 190 checks）
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py           # 真浏览器 UI 冒烟（47 用例）
+.\.venv\Scripts\python.exe probes\probe_contract.py          # 前后端契约（386 读点；SKIP>0 判 INCONCLUSIVE）
+.\.venv\Scripts\python.exe probes\probe_date_parity.py        # 前后端日期词/别名/T2S 同构
 .\.venv\Scripts\python.exe probes\probe_dollar_misuse.py     # 零 $.xxx 误用
 .\.venv\Scripts\python.exe probes\probe_selftest_regress.py  # selftest 断言只增不减
 .\.venv\Scripts\python.exe probes\probe_no_generated_in_corpus.py
