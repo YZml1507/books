@@ -10147,3 +10147,5 @@ R228y续 CI 修复：actions/checkout 加 lfs:true（bge 权重在 LFS，缺它 
 验证：git_pr_checks → selftest ✅ job 105970153690。
 R228z：probe_contract.py 顶部 os.environ.setdefault(BOOKS_LLM_DISABLE,1)——同进程加载 web.app 的探针此前会被宿主 API key 渗成在线。另：GitHub Actions 三闸 CI 已全绿并随 R228y 落地。
 验证：BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py → PASS 386/386。
+R228z续：入参 fuzz（13 POST × 16 畸形载荷）抓出唯一漏网 5xx——/api/ask 遇 NUL 字节→FTS5 unterminated string→503。fts_phrase 统一剥 C0 控制符；现在 NUL 查询优雅拒答（200 refused）。
+验证：fuzz 全零 5xx；selftest 181 PASS；contract 386 PASS。
