@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sqlite3
@@ -45,17 +46,30 @@ def disabled() -> bool:
     return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "") in ("1", "on", "true", "yes")
 
 
+_ddl_done = False
+_ddl_lock = threading.Lock()
+_write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
+
+
 def _conn() -> sqlite3.Connection:
+    global _ddl_done
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=5)
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS records(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ts TEXT NOT NULL,
-            name TEXT,
-            question TEXT,
-            req_json TEXT NOT NULL,
-            result_json TEXT NOT NULL)""")
+    conn.execute("PRAGMA busy_timeout=5000")   # R228b：写锁等待而非秒抛
+    # R228b：DDL 每次连接都跑是无谓开销——模块级 once 即可（IF NOT EXISTS
+    # 本身幂等，并发下用锁保证只执行一次）。
+    if not _ddl_done:
+        with _ddl_lock:
+            if not _ddl_done:
+                conn.execute(
+                    """CREATE TABLE IF NOT EXISTS records(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ts TEXT NOT NULL,
+                        name TEXT,
+                        question TEXT,
+                        req_json TEXT NOT NULL,
+                        result_json TEXT NOT NULL)""")
+                _ddl_done = True
     return conn
 
 
@@ -90,7 +104,9 @@ def save_async(req_dict: dict, result_dict: dict) -> None:
             name = _name_summary(req_dict)
             question = (req_dict.get("question") or None)
             ts = datetime.now().isoformat(timespec="seconds")
-            with _conn() as c:
+            # closing() 只负责关连接，无隐式 commit——写路径用 `with c:`
+            # 保住原 `with _conn()` 的提交语义（R228b 重构注意点）。
+            with _write_lock, contextlib.closing(_conn()) as c, c:
                 c.execute(
                     "INSERT INTO records(ts,name,question,req_json,result_json)"
                     " VALUES(?,?,?,?,?)",
@@ -106,7 +122,7 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
     """分页列表（id 倒序=最新在前）。返回前端契约结构。"""
     limit = max(1, min(int(limit), 100))
     offset = max(0, int(offset))
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c:
         total = c.execute("SELECT COUNT(*) FROM records").fetchone()[0]
         rows = c.execute(
             "SELECT id,ts,name,question,req_json,result_json FROM records"
@@ -133,7 +149,7 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
 
 def get_record(rid: int) -> dict | None:
     """单条完整记录；不存在返回 None（路由层转 404）。"""
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c:
         row = c.execute(
             "SELECT id,ts,name,question,req_json,result_json FROM records"
             " WHERE id=?", (int(rid),)).fetchone()
@@ -147,14 +163,14 @@ def get_record(rid: int) -> dict | None:
 
 def delete_record(rid: int) -> bool:
     """删除单条；返回是否存在。"""
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c, c:
         cur = c.execute("DELETE FROM records WHERE id=?", (int(rid),))
         return cur.rowcount > 0
 
 
 def export_rows() -> list[tuple]:
     """CSV 导出数据行：(id, ts, name, question, paipan_render)。"""
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c:
         rows = c.execute(
             "SELECT id,ts,name,question,result_json FROM records"
             " ORDER BY id DESC").fetchall()

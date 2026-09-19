@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -335,10 +336,15 @@ def xingzuo(date_str: str | None = None) -> dict:
     """
     if date_str is not None:
         try:
-            date.fromisoformat(date_str)
+            _parsed = date.fromisoformat(date_str)
         except ValueError:
             raise ValidationError(
                 f"date 需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+        # R228b：星历表有覆盖区间——极值年份（如 9999）会一路炸进
+        # bazi_compute 报 ValueError → 未映射 500。边界即拒为 400。
+        if not (YEAR_LO <= _parsed.year <= YEAR_HI):
+            raise ValidationError(
+                f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_parsed.year}")
     d = date.fromisoformat(date_str) if date_str else date.today()
     b = bazi_compute(d.year, d.month, d.day, 12, "男")
     out = xingzuo_mod.daily_horoscope(b.day)
@@ -671,7 +677,10 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         dt = datetime.now()
 
     if affair:
-        end = dt + timedelta(days=max(days, 1) - 1)
+        # R228b：days 不设上限时 find_good_days 逐日扫描线性放大
+        # （实测 365 天≈21s）——服务层兜底钳位，与路由 Query(le=92) 同值。
+        days = max(1, min(int(days), 92))
+        end = dt + timedelta(days=days - 1)
         good = huangli_mod.find_good_days(dt, end, affair)
         return {"affair": affair,
                 "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
@@ -970,10 +979,15 @@ def daily(date_str: str | None = None) -> dict:
     """
     if date_str is not None:
         try:
-            date.fromisoformat(date_str)
+            _parsed = date.fromisoformat(date_str)
         except ValueError:
             raise ValidationError(
                 f"date 需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+        # R228b：与 xingzuo/huangli 对齐——极值年份边界即拒，
+        # 不再掉进下面 except 兜底返回带 Python 异常文本的 200。
+        if not (YEAR_LO <= _parsed.year <= YEAR_HI):
+            raise ValidationError(
+                f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_parsed.year}")
     date_str = date_str or date.today().isoformat()
     with deps.knowledge() as kb:
         cached = kb.get_daily_cache(date_str)
@@ -1030,8 +1044,10 @@ def daily(date_str: str | None = None) -> dict:
         with deps.knowledge() as kb:
             kb.set_daily_cache(date_str, bazi=result)
         return result
-    except Exception as exc:                        # 计算失败降级为"平"，不 500
-        return {"date": date_str, "level": "平", "summary": f"计算失败：{exc}",
+    except Exception:                                 # 计算失败降级为"平"，不 500
+        # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文
+        # （"year 10000 is out of range"），给固定中性文案。
+        return {"date": date_str, "level": "平", "summary": "今天的运势卡暂时没算出来，稍后再看看～",
                 "noble": "—", "do": "—", "dont": "—", "cached": False}
 
 
@@ -1160,17 +1176,25 @@ def health() -> dict:
 # 08/09 出生的人分别得到金牛/白羊/双鱼/水瓶（太阳星座一个月内本应稳定）。
 # 现改用 `xingzuo.sun_sign(月, 日)` 按出生月日判定，并把"今日运势"与"本命星座"
 # 两件事在文案里分开说，不再混为一谈。
-def _today_horoscope() -> dict:
-    """今天的值宫卡（用于"今日运势"侧）。失败返回 {}。"""
+@functools.lru_cache(maxsize=4)
+def _today_horoscope_cached(iso_day: str) -> dict:
+    """按日期键缓存的值宫卡——当日结果恒定，跨午夜自动换键失效。"""
     from datetime import date as _date
 
     from guji.xingzuo import daily_horoscope
     try:
-        _t = _date.today()
+        _t = _date.fromisoformat(iso_day)
         b = bazi_compute(_t.year, _t.month, _t.day, 12, "男")
         return daily_horoscope(b.day)
     except Exception:
         return {}
+
+
+def _today_horoscope() -> dict:
+    """今天的值宫卡（用于"今日运势"侧）。失败返回 {}。"""
+    # R228b：原来每请求重算当日八字（~23ms，占 bazi() 三成）——进程内
+    # memo。浅拷贝返回防调用方改写缓存对象。
+    return dict(_today_horoscope_cached(date.today().isoformat()))
 
 
 def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:

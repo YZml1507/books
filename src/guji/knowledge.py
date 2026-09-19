@@ -83,6 +83,10 @@ class KnowledgeBase:
         self.db = sqlite3.connect(path)
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys = ON")
+        # R228b：并发写撞锁实测 5s 后抛 database is locked → 裸 500。
+        # WAL 让读写不互斥；busy_timeout 把短锁等待转化为等待而非秒抛。
+        self.db.execute("PRAGMA journal_mode=WAL")
+        self.db.execute("PRAGMA busy_timeout=8000")
         here = os.path.dirname(os.path.abspath(__file__))
         self.db.executescript(
             open(os.path.join(here, "knowledge_schema.sql"), encoding="utf-8").read())

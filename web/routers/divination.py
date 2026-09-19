@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from .. import services
 from ..schemas import LiuyaoRequest, TarotDrawRequest, TarotRequest
@@ -21,7 +21,8 @@ def liuyao(req: LiuyaoRequest) -> dict:
 
 @router.get("/api/huangli")
 def huangli(date: str | None = None, affair: str | None = None,
-            days: int = 1) -> dict:
+            # R228b：days 无界时逐日 day_query 线性 DoS（实测 365 天≈21s）
+            days: int = Query(1, ge=1, le=92)) -> dict:
     """黄历择日：单日宜忌坐标，或在日期区间内找宜某事项的日子。"""
     return services.huangli(date, affair, days)
 

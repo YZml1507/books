@@ -19,6 +19,7 @@
 """
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -138,8 +139,14 @@ def jde_from_dt(dt: datetime) -> float:
     return jd + (dt.hour + dt.minute / 60 + dt.second / 3600) / 24.0
 
 
+@functools.lru_cache(maxsize=512)
 def term_time(year: int, name: str) -> datetime:
     """该公历年内某节气的 UTC 时刻（二分求解黄经交点）。
+
+    R228b：返回值为纯函数结果（同年同名节气时刻恒定），且
+    shensha→_month_zhi_index 每查一天要调它 8 次×36 候选——此前无缓存，
+    chat 问一句黄历事项扫 45 天要 ~2.7s。进程内缓存后单日成本降到零头。
+    datetime 不可变，跨调用共享安全。
 
     太阳黄经一年单调经过每个目标角度一次，所以单峰二分即可；为稳妥在
     [year-01-01, year+1-01-01) 内求解，返回命中年份的那次。
