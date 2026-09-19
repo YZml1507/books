@@ -175,7 +175,11 @@ async function api(path, options) {
       throw te;
     }
     if (!options.silent) showToast('网络似乎断开了，检查后再试试', 'warn');
-    throw e;
+    /* R229c：裸抛 TypeError('Failed to fetch') 会让结果区内联错误粘英文尾
+       ——toast 是人话，内联也该同口径（R5 审计 P2）。 */
+    var fe = new Error('网络似乎断开了，检查后再试试');
+    fe.cause = e;
+    throw fe;
   } finally { if (_t) clearTimeout(_t); }
   let body = null;
   try {
@@ -1851,19 +1855,20 @@ function showPosterModal(canvas, view) {
 }
 var _posterOnKey = null;
 var _posterTrigger = null;
-function closePosterModal() {
-  if (_posterOnKey) {
-    document.removeEventListener('keydown', _posterOnKey);
-    _posterOnKey = null;
-  }
-  /* R228n：reduced-motion 下的滚动行为——matchMedia 一次判定，
- * 复用 4612 行同款判断口径。 */
+/* R229c：_rmBehavior 提升到模块级——此前嵌套在 closePosterModal 体内，
+ * 函数声明不外溢，app.js:5006 的调用必然 ReferenceError（排盘历史
+ * 「复看」每点必报假错 toast；2254 处同款调用被外层 try 静默吞掉，
+ * 每日详情滚动从未发生）。 */
 function _rmBehavior() {
   return (window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     ? 'auto' : 'smooth';
 }
-
+function closePosterModal() {
+  if (_posterOnKey) {
+    document.removeEventListener('keydown', _posterOnKey);
+    _posterOnKey = null;
+  }
 /* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位） */
   if (_posterTrigger && _posterTrigger.focus) {
     try { _posterTrigger.focus(); } catch (e) {}
@@ -3050,6 +3055,10 @@ function hlInitToday() {
   setv('hl_year', t.getFullYear());
   setv('hl_month', t.getMonth() + 1);
   setv('hl_day', t.getDate());
+  /* R229c（R5 审计 P2）：进页直接查今天——星座页进页即出今日运，
+   * 黄历只见表单口径不一致。仅在结果区为空时触发，切走再回来不重复打。 */
+  var _res = document.getElementById('hlResult');
+  if (_res && !_res.textContent.trim()) doHuangli(0, true);
 }
 
 async function doLiuyao() {
@@ -4383,6 +4392,9 @@ async function doHuangli(offset, reveal) {
        * R227b-fix：日期词真生效——「明天适合出行吗」翻明天的黄历再判，
        * 不再拿当前显示日充数（off=null 才按显示日）。 */
       var sc = hitName || _hlExtractScene(q);
+      /* R229c（R5 审计 P2）：抽出来的是乱码/纯外文（'asdf'）时不原样回显
+       * 进判定卡，回退中性「这件事」——仍给出当日宜忌判定。 */
+      if (sc && !/[一-鿿]/.test(sc)) sc = '这件事';
       var off = _hlDayOffset(q);
       if (!sc) {
         _HL.scene = '';

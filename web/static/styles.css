@@ -976,7 +976,8 @@ details.warm-pro-fold > summary{
 
 /* L1.5 reply：对提问的回应，紧跟 L0 */
 .warm-reply{ margin:12px 0 4px; }
-.warm-reply p{ font-size:16px; line-height:1.9; color:var(--text); margin:6px 0; }
+.warm-reply p{ font-size:16px; line-height:1.9; color:var(--text); margin:6px 0;
+  overflow-wrap:anywhere; }   /* R229c：超长英文/连续字符不再撑破横屏 */
 
 /* L1 能量卡 */
 .energy-card{
@@ -1248,7 +1249,10 @@ button:active{transform:scale(.96);}
 .checkin-opt{
   min-height:var(--tap);   /* R228d：35→44 */
   padding:7px 14px; border-radius:16px; border:1.5px solid var(--border);
-  background:#fff; font-family:var(--font-sans); font-size:13px;
+  /* R229c：只盖背景不盖文字色 = 全局 button{color:#fff} 白字白底——
+     默认态四个选项全空白（R5 审计 P1）。 */
+  background:#fff; color:var(--text);
+  font-family:var(--font-sans); font-size:13px;
   cursor:pointer; transition:transform .15s ease, box-shadow .15s ease,
   border-color .15s ease, background .15s ease;
 }
@@ -1379,7 +1383,8 @@ button:active{transform:scale(.96);}
 .ph-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;}
 .ph-name{font-weight:600;color:var(--text);}
 .ph-ts{font-size:12px;color:var(--muted);}
-.ph-q{display:inline-block;margin-top:6px;font-size:13px;color:var(--primary-ink);background:rgba(201,168,106,.14);border-radius:999px;padding:2px 10px;}
+.ph-q{display:inline-block;margin-top:6px;font-size:13px;color:var(--primary-ink);background:rgba(201,168,106,.14);border-radius:999px;padding:2px 10px;
+  max-width:100%; overflow-wrap:anywhere;}   /* R229c：历史列表提问 pill 同防撑宽 */
 .ph-render{margin-top:6px;font-size:13px;color:var(--secondary);word-break:break-all;}
 .ph-actions{display:flex;gap:8px;margin-top:10px;}
 .ph-empty{color:var(--muted);padding:18px 6px;text-align:center;}

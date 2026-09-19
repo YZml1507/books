@@ -119,7 +119,7 @@ if ('serviceWorker' in navigator) {
       <img class="func-icon-img" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
     </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
-      <img class="func-icon-img" data-view="history" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
+      <img class="func-icon-img" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
     </div>
   </div>
@@ -220,7 +220,10 @@ if ('serviceWorker' in navigator) {
   <div class="view" id="view-bazi">
     <div class="card">
       <h2>🔮 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
-      <form id="form">
+      <!-- R229c（R5 审计 P2）：novalidate 关掉浏览器原生英文气泡
+           （年=1800 → "Value must be ≥1900"），让站内统一中文校验
+           （后端「年份需在 1900-2100」）接管——两条校验路径口径一致。 -->
+      <form id="form" novalidate>
         <!-- R206b（specs/009 US3 表单减负）：小满只填生日+性别即可提交。
              历法默认公历、范围默认单日、时辰默认 12——全部有确定默认值，
              高级字段（农历/推算范围/问事日期地点）收进「更多设置」折叠。 -->
@@ -240,7 +243,7 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="hour">出生时辰（不知道可留空）</label>
             <input id="hour" type="number" min="0" max="23" placeholder="不知道就留空"></div>
           <div class="field"><label for="question">想问什么？（可选）</label>
-            <input id="question" type="text" placeholder="例如：最近感情怎么样？"></div>
+            <input id="question" type="text" maxlength="200" placeholder="例如：最近感情怎么样？"></div>
         </div>
         <details class="pro-drawer" id="baziAdvanced">
           <summary>⚙️ 更多设置（历法 · 推算范围 · 问事时间）</summary>
@@ -490,7 +493,7 @@ if ('serviceWorker' in navigator) {
       <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">
         <div class="field"><label for="ly_question">所问何事</label>
-          <input id="ly_question" type="text" placeholder="可选"></div>
+          <input id="ly_question" type="text" maxlength="200" placeholder="可选"></div>
       </div>
       <details class="pro-drawer" style="margin-top:6px;">
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的复验编号）</summary>
@@ -594,7 +597,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="tr_n">张数（1–10）</label>
           <input id="tr_n" type="number" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
-          <input id="tr_question" type="text" placeholder="可选，如：今天运势如何？"></div>
+          <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
       <button id="trSubmit" type="button">抽 牌</button>
       <div id="trResult" style="margin-top:16px;"></div>

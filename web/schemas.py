@@ -57,7 +57,9 @@ class BaziRequest(BaseModel):
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
     gender: str = "男"
-    question: str | None = None
+    # R229c：自由文本上限 200（TarotRequest 同款）——否则超长串原样回显
+    # 进 warm.reply 撑破横屏（R5 审计 P1，实测 scrollWidth 3105px）。
+    question: str | None = Field(None, max_length=200)
     calendar_type: str = "solar"          # solar | lunar
     lunar_year: int | None = None
     lunar_month: int | None = None
@@ -172,7 +174,7 @@ class LiuyaoRequest(BaseModel):
     month: int | None = None
     day: int | None = None
     hour: int | None = None
-    question: str | None = None
+    question: str | None = Field(None, max_length=200)
 
     def validate_ranges(self) -> None:
         if self.method not in ("coins", "time"):

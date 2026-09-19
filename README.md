@@ -17,7 +17,34 @@ python3 -m venv .venv
 # 语料索引（data/index/corpus.db，gitignored，约 5 分钟可重建）
 .venv/bin/python scripts/check_quality.py
 .venv/bin/python scripts/build_index.py
+
+# knowledge.db 种子：selftest 的 threads.detail/share.bazi 需要线程 id=1
+# 与一条带证据的 derived——首次建库后跑一次（幂等，已有数据则跳过）。
+.venv/bin/python - <<'PY'
+import sys
+sys.path.insert(0, '.'); sys.path.insert(0, 'src')
+from guji.knowledge import KnowledgeBase, Evidence
+kb = KnowledgeBase('data/index/knowledge.db')
+if kb.db.execute("SELECT count(*) c FROM thread").fetchone()["c"] == 0:
+    tid = kb.open_thread('env-seed: 本地环境种子线程')
+    kb.add_turn(tid, 'user', '环境自检种子')
+else:
+    tid = kb.db.execute("SELECT id FROM thread ORDER BY id LIMIT 1").fetchone()["id"]
+if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
+    kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
+              evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
+                                 raw_start=-1, raw_end=-1,
+                                 quote='第四十三章 天下之至柔',
+                                 page_anchor='KR5c0057_tls_043-1a')],
+              thread_id=tid)
+kb.close()
+PY
 ```
+
+> **前置：git lfs**——`data/external/bge-small-zh-v1.5` 的模型权重在 LFS
+> 里。clone 后跑 `git lfs pull`；没拉的话 `bazi.semantic` 闸门与
+> `scripts/ask_bazi.py --sem` 会拿到指针文件直接挂（web 主路径不走语义
+> 检索，不受影响）。
 
 然后：
 

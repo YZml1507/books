@@ -10159,3 +10159,18 @@ R228z续7：CI selftest job 增 corpus 数据闸门——check_booksec/check_dua
 R229a：补 README.md（项目此前没有）——冷启动步骤按 .devin 蓝图与 CI 工作流同源写（已在 /tmp/books-fresh 全新 clone 实测跑通到 selftest 181 PASS）。
 验证：README 命令序列 = 蓝图 initialize + workflow steps，fresh-clone 实测。
 R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PHASE/GOAL/台账先读）、长期知识、历史快照（明确只读）。
+
+### R229c（R5 审计 13 条全清：P0 复看假错 + 5×P1 + 5×P2）
+
+- [P0] 排盘历史「复看」假错：`_rmBehavior()` 从 `closePosterModal` 嵌套体提升为模块级——app.js:5006 的 scrollIntoView 调用此前必抛 ReferenceError（toast「⛔读取失败：_rmBehavior is not defined」），:2259 同款调用被外层 try 静默吞掉（每日详情自动滚动从未发生）。
+- [P1] 首页打卡 chips 白字白底：`.checkin-opt` 只盖 `background:#fff` 不盖文字色，继承全局 `button{color:#fff}` → 补 `color:var(--text)`（picked 态不受影响）。
+- [P1] 非法日期漏英文异常原文：2/31 → `day is out of range for month` 原样上屏 → 新增 `_friendly_calc_err()` 统一翻译已知日期类 ValueError（这一天不存在/月份须在 1-12/年份超范围/时辰不对），bazi/taohua/hehun/qiming 四处包装点接入。
+- [P1] question 无长度上限：`BaziRequest`/`LiuyaoRequest.question` 补 `max_length=200`（TarotRequest 同款）；前端 3 个输入 `maxlength=200`；`.warm-reply p`/`.ph-q` 补 `overflow-wrap:anywhere`（超长串实测撑出 3105px 横滚）。
+- [P1] README 缺冷启动两步：补 knowledge.db 种子 heredoc（threads.detail/share.bazi 无种子必 FAIL）+ git lfs 前置说明（bge 权重是 LFS 指针）。
+- [P2] 黄历页进页不自动加载：`hlInitToday` 结果区为空时自动 `doHuangli(0)`（与星座页进页即出今日运同口径）。
+- [P2] 离线内联错误粘英文尾：`api()` fetch 失败裸抛 TypeError(Failed to fetch) → 改抛中文友好 Error（保留 cause），toast 与内联同口径。
+- [P2] 问一嘴乱码回显：`_hlExtractScene` 抽出纯外文/乱码（asdf）→ 回退中性「这件事」走正常判定卡。
+- [P2] 年份非法走原生英文气泡：`#form` 加 `novalidate`，统一交站内中文校验。
+- [P2] 排盘历史卡图标复用 bazi：新增 `cream-icon-history.jpg`（同 kawaii 贴纸风账本 320×320）。
+- 搁置项（R5-02/13）：研究套件无入口=R208b 用户裁决刻意下架不动；SW register 挂起=环境残留备查。
+- 闸门：selftest 181 / contract 386 / ui_smoke 44 / dollar 0 / first_screen / regress 全 PASS。

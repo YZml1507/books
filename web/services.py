@@ -98,6 +98,24 @@ def _require_q(q: str | None, *, what: str = "查询词不能为空") -> str:
     return q
 
 
+def _friendly_calc_err(exc: Exception) -> str:
+    """把已知的 Python 日期/历法 ValueError 翻成人话（R229c，R5 审计 P1）。
+
+    此前 `排盘失败：{exc}` 把 'day is out of range for month' 这种原文直接
+    上屏——非法日期组合（2 月 31 日）走的是这条路。其它未知异常仍带原文
+    便排查，但包住的是英文时用户看到的是乱码感。"""
+    s = str(exc)
+    if "day is out of range for month" in s or "day is out of range" in s:
+        return "这一天不存在，换个日期试试"
+    if "month must be in" in s:
+        return "月份须在 1-12"
+    if "year is out of range" in s or "date value out of range" in s:
+        return "这个年份超出可算范围了"
+    if "hour" in s.lower() and "range" in s.lower():
+        return "时辰不对，换个时间试试"
+    return s
+
+
 # ---------------------------------------------------------------------------
 # 八字域：排盘 / 桃花 / 合婚 / 起名 / 历史
 # ---------------------------------------------------------------------------
@@ -146,7 +164,7 @@ def bazi(req) -> dict:
     try:
         b = bazi_compute(by, bm, bd, req.hour, req.gender)
     except Exception as exc:                     # 节气表范围外等 → 422
-        raise ComputeError(f"排盘失败：{exc}") from exc
+        raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
 
     ask_date = req.ask_date or date.today().isoformat()
     if req.scope == "range":
@@ -229,7 +247,7 @@ def taohua(req) -> dict:
         t = taohua_mod.compute(b)
         dayun = taohua_mod.dayun_hits(b, by)
     except Exception as exc:
-        raise ComputeError(f"排盘失败：{exc}") from exc
+        raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     t_dict = {
         "bazi": {"year": b.year, "month": b.month, "day": b.day,
                  "hour": b.hour, "day_master": b.day_master},
@@ -273,7 +291,7 @@ def hehun(req) -> dict:
         h = hehun_mod.compute(ba, bb)
         dayun = hehun_mod.dayun_relation(ba, req.a_year, bb, req.b_year)
     except Exception as exc:
-        raise ComputeError(f"排盘失败：{exc}") from exc
+        raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     h_dict = {
         "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
         "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
@@ -320,7 +338,7 @@ def qiming(req) -> dict:
             top_n=min(max(req.top_n, 1), 100),
             seed=req.seed, style=getattr(req, "style", "all"))
     except Exception as exc:
-        raise ValidationError(f"起名计算失败：{exc}") from exc
+        raise ValidationError(f"起名计算失败：{_friendly_calc_err(exc)}") from exc
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_qiming(out, req.gender))
     out["ai_polish"] = ai_polish
