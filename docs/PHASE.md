@@ -79,9 +79,9 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 | 9 | 全部脚本可 import（防改名断裂） | `<py> probes\probe_scripts_importable.py`（退出码 0） |
 
 后续新建检查脚本不再逐行登记本表——**附加闸门以台账最近一轮判据行为准**
-（现另有 `probes\probe_first_screen.py`、`web\baseline_voice.py`、
-`web\check_poster.py`、`web\check_async_ai.py`、`web\check_warm_voice.py`、
-`web\check_xingzuo.py`、`web\check_plain_first.py`）。
+（现另有 `probes\probe_first_screen.py`、`probes\probe_date_parity.py`、
+`web\baseline_voice.py`、`web\check_poster.py`、`web\check_async_ai.py`、
+`web\check_warm_voice.py`、`web\check_xingzuo.py`、`web\check_plain_first.py`）。
 
 三个闸门判据互不重叠，一个闸门一个判据：
 
