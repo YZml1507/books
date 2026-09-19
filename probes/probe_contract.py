@@ -59,6 +59,11 @@ try:
 except Exception:
     pass
 
+# R228z：同进程加载 web.app，宿主的 BOOKS_LLM_API_KEY 会直接渗进来——
+# 探针必须离线（跟 selftest.run() 同一口径），否则契约读点会被 LLM
+# 慢调用拖到超时/挂死。
+os.environ.setdefault("BOOKS_LLM_DISABLE", "1")
+
 STATIC = os.path.join(ROOT, "web", "static")
 # R178b 把内联 JS 拆到 app.js。优先扫 app.js，回落 index.html（兼容重构前后）。
 # 找不到任何前端 JS 时必须报错退出而不是"0 个读取点全部存在"——那是假通过。
