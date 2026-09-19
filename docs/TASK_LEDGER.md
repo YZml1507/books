@@ -10278,3 +10278,5 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 ### R229r（请求体大小护栏）
 
 - FastAPI 默认无 body 上限——超大 POST 在 pydantic 校验前就全量读内存。新增 `_body_size_guard` 中间件：Content-Length >512KB → 413 中文「请求体太大了，精简一下再发」（最长合法路径 ~160KB：claim 2000 + evidence 64×2400）。selftest 新增 err.body_too_large 钉，189→190。
+
+- probe_date_parity 再加 `_T2S` 繁简表同构钉扎（前后端各存一份，同漂风险面）。

@@ -134,7 +134,16 @@ def main() -> int:
             page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
             page.wait_for_timeout(800)
             js_alias = page.evaluate("() => HL_SCENE_ALIAS")
+            js_t2s = page.evaluate("() => _T2S")
             browser.close()
+        # R229q：_T2S 繁简映射表也是前后端各存一份——同一钉扎。
+        t2s_diff = [k for k, v in js_t2s.items()
+                    if _sv._T2S.get(k) != v] + \
+                   [k for k in _sv._T2S if k not in js_t2s]
+        if t2s_diff:
+            print("probe_date_parity FAIL: _T2S 表分歧: "
+                  + ",".join(t2s_diff[:20]))
+            return 1
         bad = []
         for k, vs in js_alias.items():
             if k not in py_alias:
