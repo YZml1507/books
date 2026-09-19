@@ -1224,8 +1224,8 @@ def run() -> list[str]:
     # 静态钉扎：抽日词函数存在、判定卡收到日词参数（不写死「今天」）。
     _appsrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                "static", "app.js"), encoding="utf-8").read()
-    assert "_hlDayOffset(q)" in _appsrc2 and "doHuangli._dayWord" in _appsrc2, \
-        "问一嘴日期词偏移：_hlDayOffset/doHuangli._dayWord 必须在 app.js 里"
+    assert "_hlDayOffset(q)" in _appsrc2 and "_HL.dayWord" in _appsrc2, \
+        "问一嘴日期词偏移：_hlDayOffset/_HL.dayWord 必须在 app.js 里"
     assert ", _dayWord)" in _appsrc2, \
         "_hlVerdictHtml 调用必须带日词参数——否则判定卡写死「今天」"
     ok.append("frontend.hl_ask_dayoffset")

@@ -41,6 +41,7 @@ import json
 import os
 import re
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 注意不要把 ROOT/web 加进 sys.path：R178b 起 web 是**包**（有 __init__.py），
@@ -139,9 +140,13 @@ FIXTURES: dict[str, dict] = {
     "/api/bookstudy/summary": {"method": "GET", "params": {
         "work_id": "KR1a0001"}},
     "/api/tarot":             {"method": "POST", "json": {"seed": 42, "n": 3}},
+    # R228a：排盘历史台账端点（phFetch 包装器原来不在抽取正则会漏判，
+    # j.items 被误记到 /api/bazi 头上报假 HARD——先把端点接进来）
+    "/api/paipan/history":    {"method": "GET", "params": {"limit": 50}},
     # 路径参数端点：URL 由 probe 侧动态解析（见 PATH_FIXTURES）
     "/api/threads/":          {"method": "PATH", "resolve": "thread_id"},
     "/api/history/":          {"method": "PATH", "resolve": "history_id"},
+    "/api/paipan/history/":   {"method": "PATH", "resolve": "paipan_id"},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
@@ -234,13 +239,14 @@ FETCH_RE = re.compile(r"fetch\(\s*['\"`](/api/[A-Za-z0-9_/]*)")
 # R178b 起前端统一走 `api(path)` / `postJSON(path, payload)` 包装器，
 # 不再逐处裸调 fetch。两种写法都要认，否则 probe 抽不到任何 URL。
 API_CALL_RE = re.compile(
-    r"(?:api|postJSON)\(\s*['\"`](/api/[A-Za-z0-9_/{}]*)")
+    r"(?:api|postJSON|phFetch)\(\s*['\"`](/api/[A-Za-z0-9_/{}]*)")
 # 变量拼接的 URL：api('/api/history/' + encodeURIComponent(rid))
-API_PREFIX_RE = re.compile(r"(?:api|postJSON)\(\s*['\"`](/api/[A-Za-z0-9_/]*?)/?['\"`]\s*\+")
+API_PREFIX_RE = re.compile(r"(?:api|postJSON|phFetch)\(\s*['\"`](/api/[A-Za-z0-9_/]*?)/?['\"`]\s*\+")
 # R178b 前：const j = await resp.json()
 # R178b 后：const j = await api('/api/x')  /  const j = await postJSON(...)
+# R228a：phFetch（排盘历史台账包装器）同样产生 JSON 变量绑定
 JSON_VAR_RE = re.compile(
-    r"const\s+(\w+)\s*=\s*await\s+(?:\w+\.json\(\)|api\(|postJSON\()")
+    r"const\s+(\w+)\s*=\s*await\s+(?:\w+\.json\(\)|api\(|postJSON\(|phFetch\()")
 # const ben = j.ben || {}   /   const a = j.a_bazi, b = j.b_bazi;
 OBJ_BIND_RE = re.compile(r"(?:const|let|var)\s+(\w+)\s*=\s*(\w+)\.(\w+)"
                          r"(?:\s*\|\|\s*\{\})?")
@@ -347,6 +353,11 @@ def main() -> int:
         return 2
 
     client = TestClient(load_app())
+    # R228a：排盘历史台账也受写端点污染纪律约束——seed 的 POST /api/bazi
+    # 会 save_async 落一行，退出前必须把增量行删掉，基线在这里先记。
+    from guji import paipan_history as _ph_db
+    _ph_baseline = (0 if _ph_db.disabled()
+                    else _ph_db.list_records(limit=200)["total"])
     text = open(FRONTEND_JS, encoding="utf-8").read()
     lines, base = script_region(text, FRONTEND_JS)
     blocks = split_blocks(lines, base)
@@ -369,6 +380,13 @@ def main() -> int:
     # 让 /api/history 与 /api/user/prefs.favorites 非空，元素字段才可判定
     seed_bazi = client.post("/api/bazi", json=FIXTURES["/api/bazi"]["json"])
     assert seed_bazi.status_code == 200, seed_bazi.text[:200]
+    # save_async 是守护线程：GET /api/paipan/history 要等它落库才有 items，
+    # 短轮询最多 ~3s；等不到就由 resolve 如实报 skip-empty（不假装通过）。
+    for _w in range(30):
+        if client.get("/api/paipan/history", params={"limit": 5}
+                      ).json().get("items"):
+            break
+        time.sleep(0.1)
     fav = client.post("/api/favorites", json={"type": "bazi",
                                               "ref_id": "probe_contract",
                                               "title": "probe_contract 占位收藏"})
@@ -390,6 +408,17 @@ def main() -> int:
             # "端点契约"测成"404 错误体契约"，是另一回事）。
             if fx["resolve"] == "thread_id":
                 lst = client.get("/api/threads").json().get("threads") or []
+                rid = (lst[0].get("id") if lst else None)
+            elif fx["resolve"] == "paipan_id":
+                # save_async 守护线程落行有毫秒级延迟——短轮询等它落库，
+                # 等不到就诚实报「无可用 id」而不是编假 id 打 404
+                lst = []
+                for _w in range(30):
+                    lst = client.get("/api/paipan/history",
+                                     params={"limit": 5}).json().get("items") or []
+                    if lst:
+                        break
+                    time.sleep(0.1)
                 rid = (lst[0].get("id") if lst else None)
             else:
                 recs = client.get("/api/history").json().get("records") or []
@@ -429,8 +458,22 @@ def main() -> int:
     finally:
         cleaned, hist_after = cleanup(history_db, kb_mod, kb_path,
                                      hist_baseline, created_derived, fav_id)
+        # R228a：paipan_history.db 增量清理（独立轻量库，同纪律）
+        _ph_after = _ph_baseline
+        try:
+            if not _ph_db.disabled():
+                _extra = (_ph_db.list_records(limit=200)["total"]
+                          - _ph_baseline)
+                if _extra > 0:
+                    for _r in _ph_db.list_records(limit=200)["items"][:_extra]:
+                        if _ph_db.delete_record(_r["id"]):
+                            cleaned.append(f"paipan_history#{_r['id']}")
+                _ph_after = _ph_db.list_records(limit=200)["total"]
+        except Exception as _exc:                    # noqa: BLE001
+            cleaned.append(f"⚠ paipan_history 清理未完成：{_exc}")
         print(f"清理: {', '.join(cleaned) or '无'}；"
-              f"history 行数 {hist_baseline} -> {hist_after}")
+              f"history 行数 {hist_baseline} -> {hist_after}；"
+              f"paipan_history 行数 {_ph_baseline} -> {_ph_after}")
 
     # ── 报告 ──────────────────────────────────────────────
     def show(tag, items):

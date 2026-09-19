@@ -3917,6 +3917,10 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
   return '<div class="hl-verdict" id="hlVerdict" role="status">' + esc(verdict) + '</div>';
 }
 
+/* 黄历页的跨调用状态（场景/目标日文案/滚动位/问一嘴待写标记）。
+ * R228a：以前挂在 doHuangli 函数对象属性上（doHuangli._scene …）——合法
+ * 但踩中 probe_dollar_misuse「函数当对象用」红线，换成纯数据对象更干净。 */
+var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false};
 async function doHuangli(offset, reveal) {
   /* v3（P7）重写：支持 chip 快选（offset 相对今天的天数）与自选日期。
    * 渲染：大字宜忌双色卡 + 农历干支 + 冲煞 + 场景 chip 高亮。
@@ -3924,9 +3928,9 @@ async function doHuangli(offset, reveal) {
   var _abs = (typeof offset === 'number');
   var y, m, d;
   if (_abs) {
-    var base = new Date();
-    base.setDate(base.getDate() + offset);
-    y = base.getFullYear(); m = base.getMonth() + 1; d = base.getDate();
+    var dt = new Date();   /* R228a：原名 base 与顶层 base() 函数撞名 */
+    dt.setDate(dt.getDate() + offset);
+    y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
   } else {
     y = num('hl_year'); m = num('hl_month'); d = num('hl_day');
     if (y == null || m == null || d == null) {
@@ -3944,13 +3948,13 @@ async function doHuangli(offset, reveal) {
     var _t0 = new Date();
     _dayWord = (y === _t0.getFullYear() && m === _t0.getMonth() + 1 && d === _t0.getDate()) ? '今天' : '那天';
   }
-  doHuangli._dayWord = _dayWord;
+  _HL.dayWord = _dayWord;
   var _keepSy = null;
   var _hlBox = el('hlResult');
   if (reveal === false) {
     /* v5-fix：优先用调用方在关抽屉/页面变形前存下的位置（否则捕到的是已钳位后的值） */
-    _keepSy = (doHuangli._keepSy != null) ? doHuangli._keepSy : window.scrollY;
-    doHuangli._keepSy = undefined;
+    _keepSy = (_HL.keepSy != null) ? _HL.keepSy : window.scrollY;
+    _HL.keepSy = null;
     /* v5-fix（取证 .cluster/debug_scroll_v5.py）：busy 单行占位把长结果页压短，
      * 浏览器钳位直接吃掉滚动位，恢复 scrollTo 落在已塌缩坐标系上必然归零。
      * 根治：原位刷新不换占位——旧结果保持可见只加 loading 态（页面高度
@@ -3998,8 +4002,8 @@ async function doHuangli(offset, reveal) {
     html += '<div style="font-weight:800;color:#3E7A52;margin-bottom:6px;">✅ 宜</div>';
     html += yi.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       yi.map(function (w) {
-        var hot = (typeof doHuangli._scene === 'string' && doHuangli._scene &&
-                   (w.indexOf(doHuangli._scene) !== -1 || (YI_MAP[w] || '').indexOf(doHuangli._scene) !== -1));
+        var hot = (_HL.scene &&
+                   (w.indexOf(_HL.scene) !== -1 || (YI_MAP[w] || '').indexOf(_HL.scene) !== -1));
         return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '" title="' + esc(YI_MAP[w] || '') + '">' + esc(w) + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">' + esc(_dayWord) + '没什么特别适宜的</div>';
     html += '</div>';
@@ -4015,18 +4019,18 @@ async function doHuangli(offset, reveal) {
     html += '<div style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
     html += SCENES.map(function (s) {
       var ok = yi.some(function (w) { return (YI_MAP[w] || '').indexOf(s) !== -1 || w.indexOf(s) !== -1; });
-      return '<button type="button" class="hl-scene' + (doHuangli._scene === s ? ' active' : '') +
+      return '<button type="button" class="hl-scene' + (_HL.scene === s ? ' active' : '') +
         '" data-scene="' + esc(s) + '" title="' + (ok ? _dayWord + '适合' : _dayWord + '不宜') + '">' + esc(s) + (ok ? ' ✓' : '') + '</button>';
     }).join('');
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
-    if (typeof doHuangli._scene === 'string' && doHuangli._scene) {
-      html += _hlVerdictHtml(doHuangli._scene, yi, ji, YI_MAP, JI_MAP, _dayWord);
+    if (_HL.scene) {
+      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord);
     }
     /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
-    if (doHuangli._pendingAskNote) {
-      doHuangli._pendingAskNote = undefined;
+    if (_HL.pendingAskNote) {
+      _HL.pendingAskNote = false;
       html += '<div class="hl-verdict" id="hlVerdict" role="status">' +
         esc(_hlNoSceneNote(yi, ji, _dayWord)) + '</div>';
     }
@@ -4037,8 +4041,15 @@ async function doHuangli(offset, reveal) {
       '<button type="button" id="hlAskBtn" style="flex-shrink:0;padding:9px 18px;border:none;border-radius:999px;font-size:13.5px;font-weight:600;background:linear-gradient(135deg,#8A6408,#6E5006);color:#fff;cursor:pointer;">问</button>' +
       '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看' + esc(_dayWord) + '合不合适（✓ = 宜项里有它）</div></div>';
-    /* 冲煞 */
-    if (j.chongsha) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(j.chongsha) + '</div>';
+    /* 冲煞（R228a TYPE 修复）：后端给的是 {chong, chong_animal, sha_fang}
+     * dict，整个 esc() 会渲染成 [object Object]——拼成「冲虎煞南」人话。 */
+    var _csTxt = '';
+    if (j.chongsha) {
+      _csTxt = (typeof j.chongsha === 'string') ? j.chongsha :
+        ('冲' + (j.chongsha.chong_animal || j.chongsha.chong || '') +
+         (j.chongsha.sha_fang ? '煞' + j.chongsha.sha_fang : ''));
+    }
+    if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(_csTxt) + '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，供参考娱乐，大事还是要相信自己的判断 ✨</div>';
     paint('hlResult', html);
     if (_hlBox) { _hlBox.classList.remove('is-loading'); _hlBox.style.pointerEvents = ''; }   /* v5-fix：释放 loading 态 */
@@ -4071,7 +4082,7 @@ async function doHuangli(offset, reveal) {
     box.addEventListener('click', function (ev) {
       var btn = ev.target.closest('.hl-chip');
       if (!btn || btn.id === 'hlPickBtn') return;
-      doHuangli._keepSy = window.scrollY;   /* v5-fix：关抽屉会压短页面发生钳位，先把滚动位存下来 */
+      _HL.keepSy = window.scrollY;   /* v5-fix：关抽屉会压短页面发生钳位，先把滚动位存下来 */
       box.querySelectorAll('.hl-chip').forEach(function (c) { c.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('hlPickDrawer').open = false;
@@ -4107,16 +4118,16 @@ async function doHuangli(offset, reveal) {
       var sc = hitName || _hlExtractScene(q);
       var off = _hlDayOffset(q);
       if (!sc) {
-        doHuangli._scene = '';
+        _HL.scene = '';
         if (off != null) {
-          doHuangli._pendingAskNote = true;
-          doHuangli._keepSy = window.scrollY;
+          _HL.pendingAskNote = true;
+          _HL.keepSy = window.scrollY;
           doHuangli(off, false);
           return;
         }
         var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
         var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
-          doHuangli._dayWord || '今天');
+          _HL.dayWord || '今天');
         var v2 = document.getElementById('hlVerdict');
         if (v2) { v2.textContent = note; }
         else {
@@ -4131,9 +4142,9 @@ async function doHuangli(offset, reveal) {
         }
         return;
       }
-      doHuangli._scene = sc;
+      _HL.scene = sc;
       if (off != null) {
-        doHuangli._keepSy = window.scrollY;
+        _HL.keepSy = window.scrollY;
         doHuangli(off, false);
         return;
       }
@@ -4150,7 +4161,7 @@ async function doHuangli(offset, reveal) {
     if (scenes) scenes.addEventListener('click', function (ev) {
       var s = ev.target.closest('.hl-scene');
       if (!s) return;
-      doHuangli._scene = (doHuangli._scene === s.dataset.scene) ? '' : s.dataset.scene;
+      _HL.scene = (_HL.scene === s.dataset.scene) ? '' : s.dataset.scene;
       /* 用最后请求的日期重渲染：读 hlResult 头部日期回填 */
       var head = document.querySelector('#hlResult .hl-head div');
       var ds = head ? head.textContent.trim() : '';
