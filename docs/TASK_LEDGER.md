@@ -17771,3 +17771,18 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - selftest_baseline.json：history/history.detail/history.detail.missing 移入 `removed` 区块（R219b 功能退役的历史欠账，probe_selftest_regress 由 FAIL 转 PASS）。
 
 闸门：selftest 172 / contract 203 / ui_smoke 41/41 / dollar_misuse 0 / regress PASS。
+
+## §186（R228g）契约探针四大盲区补齐（203→267 个读点全验证）
+
+- `JSON_VAR_RE` 认 `var|let`：doXingzuo 的 `var j = await api(...)` 原来整段裸奔。
+- `THEN_JSON_RE`：`.then(function (v) {` 回调参数绑为响应根，归属向前扫链上最近 api 调用；
+  无 fixture 的端点不绑（不造假 SKIP）。
+- render 层：`buildX(j)` 实参→callee 形参种子化，callee 体内字段+派生变量读取按 caller
+  的 URL 记账（buildBaziResult 的 j.paipan/cross_ref 等首次被验证）。
+- 绑定行序约束：读点先于绑定行即同名影子（catch(e) 撞 var e = await r.json()），防假 HARD。
+- `RESP_VAR_RE`：`r = await fetch()` 记 URL，`r.json()` 的 JSON 变量归到真实端点。
+- 新 fixture：/api/chat、/api/qiming/review（LLM 关闭实测回 {}），task_id 字段进
+  CONDITIONAL_FIELDS——「降级时必须空对象」变成契约钉扎。死写端点 prefs/favorites
+  前端无调用，注明不造 fixture。
+
+结果：203 → 267 读点 PASS（SOFT 13→9，其中 4 处是归因修正而非新兜底）。

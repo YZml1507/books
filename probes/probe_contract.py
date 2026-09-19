@@ -143,6 +143,18 @@ FIXTURES: dict[str, dict] = {
     # R228a：排盘历史台账端点（phFetch 包装器原来不在抽取正则会漏判，
     # j.items 被误记到 /api/bazi 头上报假 HARD——先把端点接进来）
     "/api/paipan/history":    {"method": "GET", "params": {"limit": 50}},
+    # R228g：`.then(function (v)` 回调变量的归属端点。LLM 关闭时这两个
+    # 端点都回 {}（实测），读到的字段全部按 CONDITIONAL_FIELDS 判级——
+    # 这正好把「降级时响应必须为空对象」变成了契约钉扎。
+    "/api/chat":              {"method": "POST", "json": {
+        "session_id": "probe_contract", "message": "今天适合出行吗",
+        "facts": []}},
+    "/api/qiming/review":     {"method": "POST", "json": {
+        "names": ["李沐阳", "李芷若"], "facts": ["五行缺木"]}},
+    # R228g：/api/user/prefs POST、/api/favorites POST/DELETE 是「有意保留的
+    # 死写端点」——app.js:4233 注明 R219b 撤了 UI 接线但路由零删除，将来
+    # 按需恢复。前端无调用 → 无读点可判定，不造 fixture 假装覆盖。
+
     # 路径参数端点：URL 由 probe 侧动态解析（见 PATH_FIXTURES）
     "/api/threads/":          {"method": "PATH", "resolve": "thread_id"},
     "/api/history/":          {"method": "PATH", "resolve": "history_id"},
@@ -181,6 +193,11 @@ CONDITIONAL_FIELDS = {
     "/api/taohua": {"ai_task_id"},
     "/api/hehun": {"ai_task_id"},
     "/api/qiming": {"ai_task_id"},
+    # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
+    # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
+    # 缺席的正确探测。
+    "/api/chat": {"chat_task_id"},
+    "/api/qiming/review": {"review_task_id"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。
@@ -232,7 +249,9 @@ def split_blocks(lines: list[str], base: int) -> list[dict]:
         body = "\n".join(b["lines"])
         return ("fetch(" in body or API_CALL_RE.search(body)
                 or API_PREFIX_RE.search(body))
-    return [b for b in blocks if has_call(b)]
+    for b in blocks:
+        b["has_call"] = has_call(b)
+    return blocks        # R228g：不再过滤——render 层 callee 也需要本体
 
 
 FETCH_RE = re.compile(r"fetch\(\s*['\"`](/api/[A-Za-z0-9_/]*)")
@@ -245,8 +264,23 @@ API_PREFIX_RE = re.compile(r"(?:api|postJSON|phFetch)\(\s*['\"`](/api/[A-Za-z0-9
 # R178b 前：const j = await resp.json()
 # R178b 后：const j = await api('/api/x')  /  const j = await postJSON(...)
 # R228a：phFetch（排盘历史台账包装器）同样产生 JSON 变量绑定
+# R228g：var|let 声明同样绑定（doXingzuo 用 `var j = await api(...)`，
+# 旧正则只认 const——星座 handler 的 j.* 读取原来整段裸奔）
 JSON_VAR_RE = re.compile(
-    r"const\s+(\w+)\s*=\s*await\s+(?:\w+\.json\(\)|api\(|postJSON\(|phFetch\()")
+    r"(?:const|let|var)\s+(\w+)\s*=\s*await\s+(?:(\w+)\.json\(\)|api\(|postJSON\(|phFetch\()")
+# R228g：`r = await fetch(...)` 的 Response 变量也记 URL——后面的
+# `j = await r.json()` 才能把 JSON 读点归到真实端点而不是块内首个 URL
+RESP_VAR_RE = re.compile(
+    r'(?:const|let|var)\s+(\w+)\s*=\s*await\s+fetch\(\s*[\'"`]([^\'"`]+)')
+# R228g：`.then(function (v) {` 链式回调参数也绑定为响应根；归属 URL 向前
+# 扫同一链式调用上最近的 api()/postJSON()/fetch(（写死的归因规则：没有
+# fixture 的端点不绑——绑了只会造 SKIP，读点维持不可见与旧版同）
+THEN_JSON_RE = re.compile(r"\.then\(\s*function\s*\((\w+)\)\s*\{")
+# R228g：render 层参数传递——`buildX(j)` 把已绑定的响应变量传给
+# `function buildX(p)`，callee 体内 `p.field` 及派生变量读取按 caller 的
+# URL/路径记账。只匹配单参简单调用（保守，不猜实参表达式）。
+FN_DEF_RE = re.compile(r"^\s*(?:async\s+)?function\s+(\w+)\s*\(\s*(\w*)")
+CALLSITE_RE = re.compile(r"(?<![\w.])\b(\w+)\s*\(\s*(\w+)\s*\)")
 # const ben = j.ben || {}   /   const a = j.a_bazi, b = j.b_bazi;
 OBJ_BIND_RE = re.compile(r"(?:const|let|var)\s+(\w+)\s*=\s*(\w+)\.(\w+)"
                          r"(?:\s*\|\|\s*\{\})?")
@@ -255,13 +289,21 @@ ELEM_RE = re.compile(r"\(?\s*(\w+)\.(\w+)\s*(?:\|\|\s*\[\]\s*)?\)?"
                      r"(?:\.\w+\([^)]*\))*\.forEach\(\s*\(?\s*(\w+)")
 
 
-def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
-    """返回 (变量绑定表, 读取点列表, fetch 到的 url 列表)。
-    绑定表值为 ('root'|'obj'|'elem', path)。"""
-    binds: dict[str, tuple[str, list[str]]] = {}
-    var_urls: dict[str, str] = {}
+def field_reads(block: dict,
+                seeds: dict | None = None,
+                seed_urls: dict | None = None
+                ) -> tuple[dict, list[dict], list[str], dict]:
+    """返回 (变量绑定表, 读取点列表, fetch 到的 url 列表, 变量→url 表)。
+    绑定表值为 ('root'|'obj'|'elem', path)。
+
+    seeds/seed_urls（R228g render 层）：调用方把实参绑定注入 callee 形参，
+    callee 块没有自己的 api() 调用（urls 为空）也照常扫描。"""
+    binds: dict[str, tuple] = {k: (v[0], v[1], -1) for k, v in
+                               (seeds or {}).items()}
+    var_urls: dict[str, str] = dict(seed_urls or {})
     reads: list[dict] = []
     urls: list[str] = []
+    resp_urls: dict[str, str] = {}
     for off, line in enumerate(block["lines"]):
         for rx in (FETCH_RE, API_CALL_RE, API_PREFIX_RE):
             m = rx.search(line)
@@ -270,32 +312,63 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
                 break
         m = JSON_VAR_RE.search(line)
         if m:
-            binds[m.group(1)] = ("root", [])
+            binds[m.group(1)] = ("root", [], off)
             # 变量 → 它自己那次 api() 调用的 URL（多 URL 块里各读点归各自端点，
             # R188b：loadDaily 同块调 /api/daily 与 /api/xingzuo，旧逻辑把
             # 两个变量的读取全算到 urls[0] 头上，造成假 HARD）
             mu = API_CALL_RE.search(line) or API_PREFIX_RE.search(line)
             if mu:
                 var_urls[m.group(1)] = mu.group(1)
-    if not urls:
-        return binds, reads, urls
+            elif m.group(2):
+                # `j = await r.json()`：归属 = r 那次 fetch 的 URL
+                u0 = resp_urls.get(m.group(2))
+                if u0:
+                    var_urls[m.group(1)] = u0
+        mr = RESP_VAR_RE.search(line)
+        if mr:
+            resp_urls[mr.group(1)] = mr.group(2)
+        # R228g：`.then(function (v) {` 回调参数 → 响应根
+        for mt in THEN_JSON_RE.finditer(line):
+            v = mt.group(1)
+            if v in binds:
+                continue
+            u = None
+            for k in range(off, -1, -1):
+                mu = (API_CALL_RE.search(block["lines"][k])
+                      or API_PREFIX_RE.search(block["lines"][k])
+                      or FETCH_RE.search(block["lines"][k]))
+                if mu:
+                    u = mu.group(1)
+                    break
+            if u is None or u not in FIXTURES:
+                continue        # 归属不明/无 fixture 的端点不绑，不造 SKIP
+            binds[v] = ("root", [], off)
+            var_urls[v] = u
+    if not urls and not seeds:
+        return binds, reads, urls, var_urls
+    # callee 块没有自己的 api() 调用——读点 URL 回落到种子实参的归属
+    fallback_url = urls[0] if urls else next(iter(var_urls.values()), "")
     # 迭代 / 派生变量绑定（多趟：派生变量可再派生）
     for _ in range(3):
-        for line in block["lines"]:
+        for _ei, line in enumerate(block["lines"]):
             for m in ELEM_RE.finditer(line):
                 parent, field, var = m.groups()
                 if parent in binds and var not in binds:
-                    binds[var] = ("elem", binds[parent][1] + [field])
+                    binds[var] = ("elem", binds[parent][1] + [field], _ei)
             for m in OBJ_BIND_RE.finditer(line):
                 var, parent, field = m.groups()
                 if parent in binds and var not in binds and var != parent:
-                    binds[var] = ("obj", binds[parent][1] + [field])
+                    binds[var] = ("obj", binds[parent][1] + [field], _ei)
     # 字段读取点
     for off, line in enumerate(block["lines"]):
         stripped = line.strip()
         if stripped.startswith("//"):
             continue
-        for var, (kind, path) in binds.items():
+        for var, (kind, path, bind_off) in binds.items():
+            # R228g：读点先于绑定行 = 同名影子变量（catch (e) 里的 e.message
+            # 撞上后面的 var e = await r.json()）——不计数，防假 HARD。
+            if bind_off > off:
+                continue
             for m in re.finditer(r"(?<![\w.])" + re.escape(var) + r"\.(\w+)", line):
                 field = m.group(1)
                 if field in ("forEach", "length", "slice", "map", "join",
@@ -312,11 +385,12 @@ def field_reads(block: dict) -> tuple[dict, list[dict], list[str]]:
                     "var": var, "kind": kind, "path": path + [field],
                     "field": field, "line_no": block["start"] + off,
                     "src": stripped[:110], "soft": soft, "esc_whole": esc_whole,
-                    # 读点归属：优先变量自己的 URL，回落块内首个 URL（R188b）
-                    "url": var_urls.get(var) or (urls[0] if urls else ""),
+                    # 读点归属：优先变量自己的 URL，回落块内首个 URL（R188b），
+                    # callee 块再落到种子实参的归属（R228g）
+                    "url": var_urls.get(var) or fallback_url,
                 })
     kept = [r for r in reads if r["field"] not in ERROR_BRANCH_FIELDS]
-    return binds, kept, urls
+    return binds, kept, urls, var_urls
 
 
 # ---------------------------------------------------------------------------
@@ -360,7 +434,8 @@ def main() -> int:
                     else _ph_db.list_records(limit=200)["total"])
     text = open(FRONTEND_JS, encoding="utf-8").read()
     lines, base = script_region(text, FRONTEND_JS)
-    blocks = split_blocks(lines, base)
+    all_blocks = split_blocks(lines, base)
+    blocks = [b for b in all_blocks if b["has_call"]]
     src_name = os.path.basename(FRONTEND_JS)
     print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）")
     if not blocks:
@@ -454,7 +529,8 @@ def main() -> int:
     seen_reads: set[tuple] = set()
 
     try:
-        checked = scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads)
+        checked = scan(blocks, fetch, hard, type_bad, soft, skipped,
+                       seen_reads, all_blocks=all_blocks)
     finally:
         cleaned, hist_after = cleanup(history_db, kb_mod, kb_path,
                                      hist_baseline, created_derived, fav_id)
@@ -554,10 +630,32 @@ def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived, fav_id)
     return cleaned, history_db.count()
 
 
-def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads) -> int:
+def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
+         all_blocks=None) -> int:
+    # R228g：callee 名→(块, 首形参)。render 层（build*/render* 之类）不含
+    # fetch 调用，只有在 caller 把响应变量传进来时才产生可判定读点。
+    fnmap = {}
+    for cb in (all_blocks or []):
+        fm = FN_DEF_RE.match(cb["lines"][0])
+        if fm and fm.group(2):
+            fnmap[fm.group(1)] = (cb, fm.group(2))
+
     checked = 0
     for b in blocks:
-        binds, reads, urls = field_reads(b)
+        binds, reads, urls, var_urls = field_reads(b)
+        # R228g：render 层——caller 块里 `fn(arg)` 且 arg 已绑定 → 以 arg 的
+        # (kind,path,url) 为种子在 callee 体内重跑 field_reads，callee 内
+        # 派生变量（const paipan = j.paipan）随种子链一并归因。
+        for line in b["lines"]:
+            for cm in CALLSITE_RE.finditer(line):
+                fn, arg = cm.groups()
+                if fn in fnmap and arg in binds and fn != arg:
+                    cal_blk, param = fnmap[fn]
+                    url = var_urls.get(arg) or (urls[0] if urls else "")
+                    _cb, creads, _cu, _cv = field_reads(
+                        cal_blk, seeds={param: binds[arg][:2]},
+                        seed_urls={param: url})
+                    reads += creads
         if not reads:
             continue
         # 按读点各自的 URL 取响应（R188b：多 URL 块各归各端点）
