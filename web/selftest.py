@@ -262,6 +262,7 @@ def run() -> list[str]:
             ("qiming.candidates.keys", sorted(_c))
         assert _c["char"] and _c["element"], ("qiming.candidates.blank", _c)
     print(f"  qiming.candidates.filled PASS（候选池 {len(_cands)} 字，键名齐全）")
+    ok.append("qiming.candidates.filled")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R226b-fix（审查轨 R226a 目视抓到）：典故库每条的**字必须真出现在「句」里**。
     # 前端把「句」直接展示给用户（"📜 <句> —— <出处>"），字不在句里就是露馅：
     # 实测曾有 14 条不自洽，如「澜」配"河伯过江海"、「苓」配"蒹葭苍苍"、
@@ -296,6 +297,7 @@ def run() -> list[str]:
              "倾向表里挂着典故库中已不存在的字——删条目时忘了同步表")
     print(f"  classical_db.integrity PASS（{_n_entries} 条：字在句中、"
           f"字段非空、倾向表无幽灵字）")
+    ok.append("classical_db.integrity")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R221b：交叉引用收口 7/7。用户原话「各是各的，各干各的，没有交叉集」，
     # 每个结果页底部都要有「相关维度」。这里钉死**七个端点全覆盖**——
     # 少一个就 FAIL，防止后续改动悄悄漏掉某个端点。
@@ -357,12 +359,14 @@ def run() -> list[str]:
          + "——三档必须全覆盖，否则未覆盖分支的文案是没验证过的死代码")
     print(f"  taohua.cross_ref.strength PASS（覆盖 {sorted(_seen_strength)}，"
           f"分档文案与 strength 对应）")
+    ok.append("taohua.cross_ref.strength")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # 黄历是 GET
     _rh2 = client.get("/api/huangli?date=2026-08-28")
     assert _rh2.status_code == 200, ("cross_ref.http", "/api/huangli")
     assert (_rh2.json().get("cross_ref") or {}).get("message"), \
         ("cross_ref.missing", "/api/huangli")
     print("  cross_ref.coverage PASS（7 端点全有相关维度段）")
+    ok.append("cross_ref.coverage")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R226b（审查轨 R222a 点名）：塔罗/六爻的"两信号关系"原先只是牌面正逆/
     # 动爻数的纯函数——今天白羊还是金牛，逆位都输出同一句"和今天的节奏不
     # 完全一致"，**从没比较过两个信号**。修法是给 12 宫标方向倾向
@@ -402,6 +406,7 @@ def run() -> list[str]:
         # 塔罗/六爻不得出现本命星座字段（不收生日，编造即错）
         assert "zodiac_sign" not in _cr, (_ep, "不得编造本命星座", _cr)
     print("  cross_ref.relation PASS（3×3 矩阵 9 格各异，真在比较两个信号）")
+    ok.append("cross_ref.relation")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R220b（P0-3 返工回归）：「换一批」连点三次必须零重复。
     # 历史：D-004-fix 相邻重叠 4/8 → R219b 改环形取段，**只报相邻对**
     # （1∩2=1、2∩3=1）就宣布通过，审查轨实测 1∩3=7/8、2∩4=7/8
@@ -455,6 +460,7 @@ def run() -> list[str]:
                 assert not _inter, \
                     ("qiming.rebatch.overlap", _a, _b, sorted(_inter))
     print("  qiming.rebatch.distinct PASS（连点 3 次换一批，任意两批零重复）")
+    ok.append("qiming.rebatch.distinct")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`）：
     # 女性加分从未触发过 → 给女生起名时排序无性别倾向，候选里冒出
     # 「鹜(野鸭)/茕(孤独)/苞/埙」。修法是典故库自带 _FEM_LEAN/_AVOID_FEM。
@@ -491,6 +497,7 @@ def run() -> list[str]:
          "男女同 seed 结果完全相同——性别偏好静默失效（R222a 抓到过一次）")
     print(f"  qiming.female_pool PASS（3 批共 {len(_fem_names)} 名零排除字，"
           f"男女结果有差异）")
+    ok.append("qiming.female_pool")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R220b（P0 回归）：交叉引用的太阳星座必须按【出生月日】判定。
     # 旧实现拿日支查"今日值宫"当本命星座 → 2005-06-06 生（真实双子）被说成
     # 金牛，且连续四天出生得到四个不同座。这里把"生日→座"逐条钉死，
@@ -510,6 +517,7 @@ def run() -> list[str]:
         assert "太阳星座是" not in _cr.get("message", ""), \
             ("bazi.cross_ref.message.stale", _cr.get("message"))
     print("  bazi.cross_ref.sun_sign PASS（6 例生日 → 太阳星座逐条命中）")
+    ok.append("bazi.cross_ref.sun_sign")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # 合婚双方星座同样按出生月日
     _rh = client.post("/api/hehun", json={
         "a_year": 2005, "a_month": 6, "a_day": 6, "a_hour": 10,
@@ -520,6 +528,7 @@ def run() -> list[str]:
     assert (_crh.get("zodiac_a"), _crh.get("zodiac_b")) == ("双子", "金牛"), \
         ("hehun.cross_ref.sun_sign", _crh)
     print("  hehun.cross_ref.sun_sign PASS（双子 × 金牛）")
+    ok.append("hehun.cross_ref.sun_sign")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
     # R111b（D-157b）：桃花运纯坐标计算 standing 覆盖——固定生日→固定输出，
     # 断言咸池/红鸾/天喜字段齐全且 render 含坐标事实。
     check("taohua", client.post("/api/taohua", json={"year": 1990, "month": 5,

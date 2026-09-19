@@ -1447,6 +1447,8 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .ph-empty{color:var(--muted);padding:18px 6px;text-align:center;}
 .ph-detail{margin-top:16px;}
 .ph-detail .card{box-shadow:var(--shadow);}
+/* R228f：两段式删除确认——武装态把按钮翻成红底白字，3 秒后自动复原 */
+.ph-del-armed{background:var(--accent-ink);color:#fff;border-color:var(--accent-ink);}
 @media (max-width:480px){ .func-icon-img{width:52px;height:52px;} .ph-item{padding:10px 12px;} }
 
 /* ── v2 奶油玄学：星座卡片流 + 本命盘卡 ── */

@@ -746,7 +746,7 @@ function showView(viewId) {
   /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
   if (viewId === 'huangli') hlInitToday();
   /* C-002-fix：星座视图进入时自动加载今日运势 */
-  if (viewId === 'xingzuo') doXingzuo();
+  if (viewId === 'xingzuo') doXingzuo(false);   /* R228f：重进同日复用已渲染，不再重拉+跳动 */
 }
 
 /* ── 通用渲染件 ────────────────────────────────────────────── */
@@ -3785,7 +3785,7 @@ function xzShiftDay(step) {
   var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   d.setDate(d.getDate() + step);
   xzSetDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  doXingzuo();
+  doXingzuo(true);
 }
 
 
@@ -3797,10 +3797,16 @@ function xzInitDate() {
 }
 
 
-async function doXingzuo() {
-  busy('xzResult', '查询中…');
+/* R228f：force=false（视图重进）时若同日期结果已在屏则跳过——
+ * 原实现每次进星座页都重发请求并 busy() 占位，造成两次滚动跳变。
+ * 日期变更/主动查询仍传 true 强制刷新。 */
+var _xzLastDate = null;
+async function doXingzuo(force) {
   xzInitDate();
   var dateStr = xzDateStr();
+  var _xzBox = el('xzResult');
+  if (!force && _xzLastDate === dateStr && _xzBox && _xzBox.children.length) return;
+  busy('xzResult', '查询中…');
   try {
     var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
     var html = '<div class="xz-result">';
@@ -3834,6 +3840,7 @@ async function doXingzuo() {
     }
     html += '</div>';
     paint('xzResult', html);
+    _xzLastDate = dateStr;   /* R228f */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
     revealResult('xzResult');
   } catch (e) {
@@ -4455,20 +4462,20 @@ function initDivination() {
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
   on('hhSubmit', doHehun);
-  on('xzSubmit', doXingzuo);
+  on('xzSubmit', function () { doXingzuo(true); });
   /* R220b（P1-1）：日期导航——箭头翻天、今天/明天快捷、三 select 改即查 */
   on('xzPrev', function () { xzShiftDay(-1); });
   on('xzNext', function () { xzShiftDay(1); });
   on('xzToday', function () {
     var t = new Date();
     xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    doXingzuo();
+    doXingzuo(true);
   });
   on('xzTomorrow', function () {
     var t = new Date();
     t.setDate(t.getDate() + 1);
     xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    doXingzuo();
+    doXingzuo(true);
   });
   ['xz_year', 'xz_month', 'xz_day'].forEach(function (id) {
     var node = el(id);
@@ -4725,8 +4732,20 @@ function baziPersonaCard(j) {
     if (!tg || !tg.classList) return;
     const item = tg.closest('.ph-item');
     if (item && tg.classList.contains('ph-del')) {
-      const id = item.getAttribute('data-id');
-      if (!confirm('删除这条排盘记录？删除后不可恢复。')) return;
+      /* R228f：原生 confirm() 与全局 toast 体系不一致——改两段式 inline
+       * 确认：首点把按钮武装成「再点一次确认」，3 秒内再点才真删。 */
+      if (tg.dataset.armed !== '1') {
+        tg.dataset.armed = '1';
+        var _origTxt = tg.textContent;
+        tg.textContent = '再点一次确认删除';
+        tg.classList.add('ph-del-armed');
+        setTimeout(function () {
+          tg.dataset.armed = '';
+          tg.textContent = _origTxt;
+          tg.classList.remove('ph-del-armed');
+        }, 3000);
+        return;
+      }
       try { await phFetch('/api/paipan/history/' + id, { method: 'DELETE' }); loadPaipanHistory(); }
       /* R228c：错误反馈统一走 toast 体系，不用原生 alert */
       catch (e) { showToast('删除失败：' + e.message, 'error'); }

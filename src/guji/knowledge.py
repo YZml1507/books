@@ -170,8 +170,12 @@ class KnowledgeBase:
         """
         ok = 0
         stale = []
+        bodies = {}   # R228f：per-work memo——原实现每条 evidence 都重读整本
         for r in self.db.execute("SELECT * FROM evidence ORDER BY id"):
-            body = body_in(raw_dir, r["work_id"], "folded_notes")
+            if r["work_id"] not in bodies:
+                bodies[r["work_id"]] = body_in(raw_dir, r["work_id"],
+                                               "folded_notes")
+            body = bodies[r["work_id"]]
             # BOTH sides through the same normaliser. An earlier version folded the quote and
             # stripped whitespace by hand, which left punctuation in place: KR1a0001's
             # 「初九、潛龍勿用。」 was reported stale while KR1a0006's unpunctuated 「初九濳龍勿用」

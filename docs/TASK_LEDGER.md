@@ -17760,3 +17760,14 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 验证：selftest 163 PASS；contract PASS(203)；dollar_misuse 0。
 - PR：#3 已累积 R228a-e 五批（审查 67 findings 中 50+ 已落地）。
 
+
+## §185（R228f）审查余量清理：星座缓存/两段式删除/verify 去重/台账基线
+
+- app.js：星座视图重进不再重拉——`doXingzuo(force)`，重进同日期且结果已在屏直接复用；箭头/今天/明天/查运势传 true 强制。修掉审查项「每次再进都全量重拉+两次滚动跳变」。
+- app.js：排盘历史删除按钮弃原生 confirm()，改两段式 inline 武装确认（首点翻成红底「再点一次确认删除」，3 秒复原），配套 styles.css `.ph-del-armed`。
+- index.html：老玩家入口文案「六爻·古籍溯源」→「六爻·五行起名」（古籍读书卡 R208b 已移除，原文案宣称不存在的功能）。
+- knowledge.py `verify()`：per-work memo——原实现每条 evidence 都重新读整本正文。
+- selftest.py：9 处 print-PASS 补 `ok.append`，check 数 163→172；
+- selftest_baseline.json：history/history.detail/history.detail.missing 移入 `removed` 区块（R219b 功能退役的历史欠账，probe_selftest_regress 由 FAIL 转 PASS）。
+
+闸门：selftest 172 / contract 203 / ui_smoke 41/41 / dollar_misuse 0 / regress PASS。
