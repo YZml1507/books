@@ -17836,3 +17836,7 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - R228l 续：set_prefs 批量单事务（逐键 commit→半截状态消除）；
   add_favorite (type,ref_id) 去重返回已有 id；paipan_history._conn 损坏
   自恢复（sqlite_master 探针→坏文件挪 .corrupt-<ts>→开新库，实测通过）。
+
+- R228l 收口：xz/deco 双定义逐属性合并完成；五僵尸端点
+  改「有意保留」登记（删端点=契约变更留档待裁决）；_candidates
+  README 登记 7 张备选资产。round-2 审计 42 条 findings 清零。
