@@ -18014,3 +18014,13 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   造成时序倒置（审查轨 chat-flow 实测）。锁随会话 TTL 一起 GC
   （仅未持锁时回收）。跨会话并发不受影响。
 - 判据：selftest 178 全绿（chat 用例覆盖串行路径）。
+
+## R228s续2（前端问一嘴与服务端词表/日期口径对齐）
+
+- HL_SCENE_ALIAS 17→60 键，与 _CHAT_SCENE_TERMS 真实规范词映射同口径
+  （理发→冠笄、手术→求医、借钱→纳财、辞职/解除合同→解除、
+  宠物→进人口、钓鱼→捕捉等）。
+- _hlDayOffset 补 下周X/下礼拜X（下个周一为基准曜日）、周末（下个周六）、
+  明儿、过两天、大前天；_hlExtractScene 清洗表同步——否则「下周五签约」
+  会剥「下周」留「五」污染事项词。
+- 判据：ui_smoke 43 全绿；selftest 178 不动。
