@@ -338,6 +338,18 @@ _CHAT_BANNED_PAT = re.compile(
 
 _chat_sessions: dict[str, dict] = {}
 _chat_lock = threading.Lock()
+# 每会话一把调用锁：历史快照→LLM 往返→落历史整段串行化。
+# 否则并发同 session 消息按「完成先后」而非「发出先后」落库，
+# 慢请求先到会时序倒置（审查轨 chat-flow）。
+_chat_call_locks: dict[str, threading.Lock] = {}
+
+
+def _session_lock(session_id: str) -> threading.Lock:
+    with _chat_lock:
+        lk = _chat_call_locks.get(session_id)
+        if lk is None:
+            lk = _chat_call_locks[session_id] = threading.Lock()
+        return lk
 
 
 def _gc_chat_sessions() -> None:
@@ -346,6 +358,9 @@ def _gc_chat_sessions() -> None:
              if now - s["updated"] > _CHAT_SESSION_TTL_S]
     for sid in stale:
         _chat_sessions.pop(sid, None)
+        lk = _chat_call_locks.get(sid)
+        if lk is not None and not lk.locked():
+            _chat_call_locks.pop(sid, None)
 
 
 def chat(session_id: str, user_msg: str,
@@ -363,52 +378,55 @@ def chat(session_id: str, user_msg: str,
     if not msg or not session_id:
         return None
 
-    with _chat_lock:
-        _gc_chat_sessions()
-        sess = _chat_sessions.setdefault(
-            session_id, {"messages": [], "updated": time.monotonic()})
-        if len(sess["messages"]) >= _CHAT_MAX_TURNS * 2:
-            return "今天先聊到这里啦～盘一直在，随时回来看。记得好好吃饭。"
+    # 串行化整段「快照→LLM→落历史」：同 session 并发按到达顺序完成，
+    # 而非按 LLM 返回快慢（审查轨 chat-flow 实测时序倒置）。
+    with _session_lock(session_id):
+        with _chat_lock:
+            _gc_chat_sessions()
+            sess = _chat_sessions.setdefault(
+                session_id, {"messages": [], "updated": time.monotonic()})
+            if len(sess["messages"]) >= _CHAT_MAX_TURNS * 2:
+                return "今天先聊到这里啦～盘一直在，随时回来看。记得好好吃饭。"
 
-        # 危机红线：LLM 绝不接手，固定转介（不入上下文，避免污染后续对话）
-        if _CRISIS_PAT.search(msg):
-            return _CHAT_REFUSAL
+            # 危机红线：LLM 绝不接手，固定转介（不入上下文，避免污染后续对话）
+            if _CRISIS_PAT.search(msg):
+                return _CHAT_REFUSAL
 
-        history = list(sess["messages"])
+            history = list(sess["messages"])
 
-    payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
-    if facts:
-        payload_msgs.append({
-            "role": "system",
-            "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
-                       + "\n- ".join(f for f in facts if f)})
-    payload_msgs.extend(history)
-    payload_msgs.append({"role": "user", "content": msg})
+        payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
+        if facts:
+            payload_msgs.append({
+                "role": "system",
+                "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
+                           + "\n- ".join(f for f in facts if f)})
+        payload_msgs.extend(history)
+        payload_msgs.append({"role": "user", "content": msg})
 
-    text = _chat_call(payload_msgs, cfg, _transport)
-    if not text:
-        # R213b：主 LLM 失败时 dots 作备选大脑（同 system + facts 语境）。
-        # dots 也失败才真正降级 None——提高聊天可用性而非改变口吻判据。
-        dcfg = load_dots_config()
-        if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
-            text = _chat_call(payload_msgs, dcfg, _transport)
+        text = _chat_call(payload_msgs, cfg, _transport)
         if not text:
-            return None
+            # R213b：主 LLM 失败时 dots 作备选大脑（同 system + facts 语境）。
+            # dots 也失败才真正降级 None——提高聊天可用性而非改变口吻判据。
+            dcfg = load_dots_config()
+            if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
+                text = _chat_call(payload_msgs, dcfg, _transport)
+            if not text:
+                return None
 
-    # 输出侧禁语命中 → 整条降级为固定安全回复（双保险）。判定在写历史
-    # 之前——此前先把原文 append 进 messages 再查 banned，违规内容会留在
-    # 会话上下文里污染后续轮次（审查轨 chat-flow）。
-    if _CHAT_BANNED_PAT.search(text):
-        text = ("我可能说得不太对。盘是盘，日子是你自己的——"
-                "按你自己舒服的来就好。")
+        # 输出侧禁语命中 → 整条降级为固定安全回复（双保险）。判定在写历史
+        # 之前——此前先把原文 append 进 messages 再查 banned，违规内容会留在
+        # 会话上下文里污染后续轮次（审查轨 chat-flow）。
+        if _CHAT_BANNED_PAT.search(text):
+            text = ("我可能说得不太对。盘是盘，日子是你自己的——"
+                    "按你自己舒服的来就好。")
 
-    with _chat_lock:
-        sess = _chat_sessions.get(session_id)
-        if sess is not None:
-            sess["messages"].append({"role": "user", "content": msg})
-            sess["messages"].append({"role": "assistant", "content": text})
-            sess["updated"] = time.monotonic()
-    return text
+        with _chat_lock:
+            sess = _chat_sessions.get(session_id)
+            if sess is not None:
+                sess["messages"].append({"role": "user", "content": msg})
+                sess["messages"].append({"role": "assistant", "content": text})
+                sess["updated"] = time.monotonic()
+        return text
 
 
 def _chat_call(payload_msgs: list[dict], cfg: dict,

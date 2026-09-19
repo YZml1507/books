@@ -18006,3 +18006,11 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   补显式键 解除合同/毁约/退婚→解除；「说拜拜/拜拜了/再见」→解除
   （散伙口语），单词「拜拜」仍归祭祀。
 - 判据：selftest 178 / contract 382 / ui_smoke 43 全绿。
+
+## R228s续（同 session 聊天并发时序）
+
+- llm_polish.chat：新增每会话调用锁 _session_lock——「历史快照→LLM
+  往返→落历史」整段串行。原先锁外跑 LLM，并发两条按返回快慢落库
+  造成时序倒置（审查轨 chat-flow 实测）。锁随会话 TTL 一起 GC
+  （仅未持锁时回收）。跨会话并发不受影响。
+- 判据：selftest 178 全绿（chat 用例覆盖串行路径）。
