@@ -946,9 +946,20 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
                 break
     generic = not scene and any(
         k in msg_n for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
-                             "择日", "适合做什么", "适合干什么"))
+                             "择日", "适合做什么", "适合干什么",
+                             # R229o：「今天宜做什么」「明天忌什么」裸问法
+                             "宜做什么", "忌做什么", "宜什么", "忌什么",
+                             "做什么好", "干点啥", "能干啥", "能干什么"))
     if not scene and not generic:
-        return []
+        # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
+        # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌
+        # 总表而不是零事实放手让模型瞎答。
+        _probe_sp = _hl_day_part(msg, now)[1]
+        if _probe_sp != "今天" or any(
+                w in msg for w in ("今天", "今日", "今晚", "今夜")):
+            generic = True
+        else:
+            return []
 
     dt, spoken = _hl_day_part(msg, now)
     q = huangli_mod.day_query(dt)
@@ -956,7 +967,11 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     date_cn = q["date"]
     yi_str = "、".join(yi) or "无"
     ji_str = "、".join(ji) or "无"
-    facts = [f"{spoken}（{date_cn}）的黄历：宜【{yi_str}】；忌【{ji_str}】。"]
+    # R229o：「这周五」按本周已过日判（9/19 说这话指向 9/18）——事实行
+    # 提醒这天已经过去，免得模型照着宜忌去「建议」一个回不去的日子。
+    past_note = "（这天已经过去了）" if dt.date() < now.date() else ""
+    facts = [f"{spoken}（{date_cn}）的黄历：宜【{yi_str}】；忌【{ji_str}】。"
+             + past_note]
 
     if generic:
         facts.append("没列入当日宜忌的事项属中性——不是不支持，只是黄历没"
