@@ -13,6 +13,8 @@ err.* 断言逐条依赖这些状态码与消息，改形状即改契约。
 """
 from __future__ import annotations
 
+import sqlite3
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -23,6 +25,9 @@ STATUS_MAP: tuple[tuple[type[Exception], int], ...] = (
     (ValidationError, 400),
     (ComputeError, 422),
     (NotFoundError, 404),
+    # R228j：sqlite 锁/磁盘错此前裸穿 ServerErrorMiddleware → 500 无文案。
+    # busy_timeout 已把短锁变等待，真撞上（坏库/长锁）给 503 + 人话。
+    (sqlite3.OperationalError, 503),
 )
 
 

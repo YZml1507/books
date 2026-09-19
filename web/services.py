@@ -559,7 +559,9 @@ def thread_record(req) -> dict:
         except (ValueError, sqlite3.IntegrityError) as exc:
             # 非法 kind 触发 DB CHECK 约束的 IntegrityError；与其余端点
             # 「非法参数 → 400」纪律一致（R159b/D-205b）。
-            raise ValidationError(str(exc)) from exc
+            # R228j：不把 sqlite 原文（"CHECK constraint failed: ..."）吐给用户，
+            # 内部约束名属实现细节——翻成中文人话。
+            raise ValidationError("记录被拒绝：类型或内容不合规") from exc
         row = kb.db.execute("SELECT thread_id FROM derived WHERE id = ?",
                             (did,)).fetchone()
         return {"derived_id": did,
@@ -1123,10 +1125,19 @@ def user_prefs() -> dict:
 
 
 def set_user_prefs(payload: dict) -> dict:
+    # R228j：自由键值≠无界——键数/键长/值长不设限就是 sqlite 无限写入面。
+    payload = payload or {}
+    if len(payload) > 64:
+        raise ValidationError("偏好键最多 64 个")
     with deps.knowledge() as kb:
-        for k, v in (payload or {}).items():
+        for k, v in payload.items():
+            if not isinstance(k, str) or not k or len(k) > 64:
+                raise ValidationError("偏好键需为 1-64 字符")
             if isinstance(v, (list, dict)):
                 v = json.dumps(v, ensure_ascii=False)
+            v = str(v)
+            if len(v) > 4000:
+                raise ValidationError(f"偏好值过长（≤4000），键 {k}")
             kb.set_pref(k, v)
     return {"ok": True}
 

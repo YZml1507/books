@@ -150,9 +150,12 @@ class KnowledgeBase:
     def search_derived(self, query: str, limit: int = 10) -> list[Derived]:
         """Search DERIVED claims. A separate call against a separate index, so no caller can
         accidentally receive generated text from a source query."""
+        # R228j：query 含 `"` 会顶破外层 phrase 引号 → OperationalError 裸抛。
+        # FTS5 转义法是内层引号翻倍。
+        _q = segment_cjk(fold(query)).replace('"', '""')
         rows = self.db.execute(
             "SELECT rowid FROM derived_fts WHERE derived_fts MATCH ? LIMIT ?",
-            (f'"{segment_cjk(fold(query))}"', limit)).fetchall()
+            (f'"{_q}"', limit)).fetchall()
         return [d for d in (self.get(r["rowid"]) for r in rows) if d]
 
     def orphans(self) -> list[int]:
@@ -265,9 +268,15 @@ class KnowledgeBase:
     def set_daily_cache(self, date: str, bazi: dict | None = None,
                         tarot: dict | None = None) -> None:
         import json
+        # R228j：INSERT OR REPLACE 是整行覆盖——只传 bazi 会把已缓存的
+        # tarot_result 抹成 NULL（反之亦然）。UPSERT + COALESCE 只写传入列。
         self.db.execute(
-            "INSERT OR REPLACE INTO daily_cache (date, bazi_result, tarot_result, created_at) "
-            "VALUES (?,?,?,?)",
+            "INSERT INTO daily_cache (date, bazi_result, tarot_result, created_at) "
+            "VALUES (?,?,?,?) "
+            "ON CONFLICT(date) DO UPDATE SET "
+            "bazi_result=COALESCE(excluded.bazi_result, daily_cache.bazi_result), "
+            "tarot_result=COALESCE(excluded.tarot_result, daily_cache.tarot_result), "
+            "created_at=excluded.created_at",
             (date,
              json.dumps(bazi, ensure_ascii=False) if bazi else None,
              json.dumps(tarot, ensure_ascii=False) if tarot else None,

@@ -13,7 +13,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 
 YEAR_LO, YEAR_HI = 1900, 2100
 SCOPES = ("day", "range", "life")
@@ -125,9 +127,12 @@ class AskRequest(BaseModel):
 
 
 class ThreadEvidence(BaseModel):
-    work_id: str = ""
-    file: str = ""
-    quote: str = ""
+    """R228i：work_id/file 无校验时，verify() 会 os.path.join(raw_dir, work_id)
+    后 glob *.txt 读任意目录——绝对路径与 ../ 都能穿透（实测 oracle 成立）。
+    work_id 只许语料目录名形态；file 只作展示用不碰盘，只限长度。"""
+    work_id: str = Field("", max_length=64)
+    file: str = Field("", max_length=200)
+    quote: str = Field("", max_length=2000)
     raw_start: int | None = None
     raw_end: int | None = None
     page_anchor: str | None = None
@@ -135,6 +140,17 @@ class ThreadEvidence(BaseModel):
     addr1: int | None = None
     addr2: str | None = None
     role: str = "supports"
+
+    @field_validator("work_id")
+    @classmethod
+    def _work_id_safe(cls, v: str) -> str:
+        if not v:
+            return v                    # 空 work_id（纯文字 claim）合法
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", v):
+            raise ValidationError("work_id 只接受语料目录名（字母数字._-）")
+        if ".." in v:
+            raise ValidationError("work_id 不允许含 ..")
+        return v
 
 
 class ThreadRecordRequest(BaseModel):
@@ -181,7 +197,9 @@ class QimingRequest(BaseModel):
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
     gender: str = "男"
-    top_n: int = 20
+    # R228j：top_n 此前无界（文档面只写了建议范围），大值让响应膨胀；
+    # style 无枚举校验——拼错的值静默按 all 出结果，用户以为没生效。
+    top_n: int = Field(20, ge=1, le=50)
     seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
     style: str = Field("all", description="v3（P3）风格档：classics=诗经类 / chuci=楚辞类 / fresh=柔美 / all=全部")
 
@@ -190,6 +208,9 @@ class QimingRequest(BaseModel):
             raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
         if not self.surname or len(self.surname) != 1:
             raise ValidationError("姓氏需为单字")
+        # R228j：style 枚举——非法值不许静默当 all
+        if self.style not in ("all", "classics", "chuci", "fresh"):
+            raise ValidationError("风格只能是 all/classics/chuci/fresh")
         if not (1 <= self.month <= 12):
             raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
@@ -237,14 +258,15 @@ class NameReviewRequest(BaseModel):
 
 class TarotRequest(BaseModel):
     seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
-    n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
-    question: str | None = None
+    # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
+    n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
+    question: str | None = Field(None, max_length=200)
 
 
 class TarotDrawRequest(BaseModel):
     seed: int | None = None
-    n: int = 1
-    question: str | None = None
+    n: int = Field(1, ge=1, le=10)
+    question: str | None = Field(None, max_length=200)
 
 
 class PrefsRequest(BaseModel):
@@ -276,6 +298,12 @@ class HehunRequest(BaseModel):
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
         _check_ymdh("乙", self.b_year, self.b_month, self.b_day, self.b_hour)
+        # R228i：gender 此前零校验——非法值落进 dayun_dir 的 else 分支
+        # 按「逆」静默排大运（bazi.py:324），输出错误结果还打了 200。
+        if self.a_gender not in GENDERS:
+            raise ValidationError("甲方性别需为 男 或 女")
+        if self.b_gender not in GENDERS:
+            raise ValidationError("乙方性别需为 男 或 女")
 
 
 # R178b（D-229b）：原 `DailyRequest` 已删除——`/api/daily` 的 `date` 改为
@@ -284,6 +312,17 @@ class HehunRequest(BaseModel):
 
 
 class FavoriteAddRequest(BaseModel):
-    type: str
-    ref_id: str
-    title: str
+    """R228j：三字段此前零界——type 无白名单、ref_id/title 无长度上限，
+    一次请求可无限写行。favorites 表无上限，参考 KEEP_MAX 语义先卡输入面。"""
+    type: str = Field(..., max_length=32)
+    ref_id: str = Field(..., max_length=64)
+    title: str = Field(..., max_length=200)
+
+    @field_validator("type")
+    @classmethod
+    def _type_whitelist(cls, v: str) -> str:
+        if v not in ("bazi", "taohua", "hehun", "qiming", "liuyao",
+                     "huangli", "xingzuo", "tarot", "daily", "book",
+                     "thread"):
+            raise ValidationError("收藏类型未知")
+        return v

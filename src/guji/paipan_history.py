@@ -34,9 +34,13 @@ def _log(msg: str) -> None:
     """轻量日志（复用 logs/ 目录，失败静默）。"""
     try:
         with _log_lock:
+            log_path = os.path.join(_ROOT, "logs", "paipan_history.log")
+            # R228j：原 makedirs 建的是 data/ 而 open 的是 logs/——fresh clone
+            # 无 logs/ 时 open 抛错被吞，日志从未落盘（打包启动路径的
+            # web_launcher.py 恰好先建了 logs/ 才掩盖此 bug）。
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
             os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-            with open(os.path.join(_ROOT, "logs", "paipan_history.log"),
-                      "a", encoding="utf-8") as f:
+            with open(log_path, "a", encoding="utf-8") as f:
                 f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
     except OSError:
         pass
@@ -49,6 +53,7 @@ def disabled() -> bool:
 _ddl_done = False
 _ddl_lock = threading.Lock()
 _write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
+KEEP_MAX = 500                   # R228j：排盘历史滚动上限
 
 
 def _conn() -> sqlite3.Connection:
@@ -111,6 +116,12 @@ def save_async(req_dict: dict, result_dict: dict) -> None:
                     "INSERT INTO records(ts,name,question,req_json,result_json)"
                     " VALUES(?,?,?,?,?)",
                     (ts, name, question, row_req, row_res))
+                # R228j：滚动裁剪——单行 ~50KB，不裁剪用户每排一次盘就永久
+                # +1 行（实测 31 次→3.7MB），列表/导出全量 fetchall 越滚越慢。
+                c.execute(
+                    "DELETE FROM records WHERE id NOT IN "
+                    "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
+                    (KEEP_MAX,))
         except Exception as exc:  # noqa: BLE001 — 台账绝不拖垮排盘
             _log(f"save failed: {type(exc).__name__}: {exc}")
 
@@ -133,12 +144,18 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
             result = json.loads(res_json)
         except ValueError:
             result = {}
+        # R228j：req_json 护栏——原实现只包 res_json，一行坏 req_json
+        # 就让整页 500 且没有删除该行的前端路径（删行要先列出）。
+        try:
+            req_obj = json.loads(req_json) if req_json else {}
+        except ValueError:
+            req_obj = {}
         paipan = result.get("paipan") or {}
         calc = result.get("calc") or {}
         items.append({
             "id": rid, "ts": ts, "name": name,
             "question": question,
-            "req": json.loads(req_json) if req_json else {},
+            "req": req_obj,
             "result_summary": {
                 "paipan_render": paipan.get("render"),
                 "five_elements": (calc.get("five_elements") or {}).get("counts"),
@@ -156,9 +173,16 @@ def get_record(rid: int) -> dict | None:
     if row is None:
         return None
     rid, ts, name, question, req_json, res_json = row
+    try:
+        req_obj = json.loads(req_json) if req_json else {}
+    except ValueError:
+        req_obj = {}                    # R228j：同 list_records 的护栏
+    try:
+        res_obj = json.loads(res_json) if res_json else {}
+    except ValueError:
+        res_obj = {}
     return {"id": rid, "ts": ts, "name": name, "question": question,
-            "req": json.loads(req_json) if req_json else {},
-            "result": json.loads(res_json) if res_json else {}}
+            "req": req_obj, "result": res_obj}
 
 
 def delete_record(rid: int) -> bool:
