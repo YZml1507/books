@@ -10109,3 +10109,13 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   异常（如 ReferenceError）静默吃掉点击，用户零线索。资源级
   onerror 不进此通道（走 is-missing 降级）。
 - 判据：ui_smoke 43 全绿（page.load 零 console.error 保持）。
+
+## R228w（检索分数格式化 + 聊天事实分层）
+
+- renderHits 的 bm25 score 原值 16 位浮点糊脸 → toFixed(1) + title
+  说明口径（负分越接近 0 越相关）。
+- chat facts 分层：坐标事实保持「话题参考勿逐条念」，含「黄历判定」
+  的事实单独成条标为权威结论必照说——实测真机旧提示下模型有
+  判定仍答「暂时没查到」，拆层后复测正确引判定+报替代日。
+- 判据：selftest 180 全绿；agnes-2.5-flash 实测「下周五签约」→
+  正确说 9/25 不宜+推 9/26-29。

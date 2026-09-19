@@ -861,7 +861,10 @@ function renderHits(hits, opts) {
     html += '<div class="ev-item accent" style="border-left-color:' + c + ';">';
     html += '<div class="ev-meta" style="color:' + c + ';">' + esc(humanCite(h.citation || '')) +
       (h.layer ? ' · ' + esc(h.layer) : '') +
-      (o.score && h.score != null ? '<span class="hit-score">score ' + esc(h.score) + '</span>' : '') +
+      /* R228w：bm25 负分（越接近 0 越好）原值 16 位浮点糊脸，
+       * 留 1 位小数 + title 说明口径。 */
+      (o.score && h.score != null ? '<span class="hit-score" title="BM25 相关度：负分，越接近 0 越相关">score ' +
+        esc(Number(h.score).toFixed(1)) + '</span>' : '') +
       '</div>';
     html += '<div class="ev-text">' + esc(h.text || '') + '</div>';
     if (h.disclosure) html += '<div class="ev-disc">' + esc(h.disclosure) + '</div>';

@@ -396,10 +396,23 @@ def chat(session_id: str, user_msg: str,
 
         payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
         if facts:
-            payload_msgs.append({
-                "role": "system",
-                "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
-                           + "\n- ".join(f for f in facts if f)})
+            # R228w：坐标事实与「黄历判定」分量不同——前者是话题参考
+            # 「不要逐条念」，后者是已算好的权威结论必须照说。实测模型
+            # 对混装事实会自由发挥（有判定仍答「暂时没查到」），拆开写清
+            # 两种事实的使用规则。
+            _verdicts = [f for f in facts if f and "黄历判定" in f]
+            _coords = [f for f in facts if f and "黄历判定" not in f]
+            if _coords:
+                payload_msgs.append({
+                    "role": "system",
+                    "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
+                               + "\n- ".join(_coords)})
+            if _verdicts:
+                payload_msgs.append({
+                    "role": "system",
+                    "content": "以下是系统已算好的黄历判定，是权威结论，"
+                               "用户问到对应事项时必须照它回答、不许说没查到：\n- "
+                               + "\n- ".join(_verdicts)})
         payload_msgs.extend(history)
         payload_msgs.append({"role": "user", "content": msg})
 
