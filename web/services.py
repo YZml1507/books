@@ -835,6 +835,15 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return now + timedelta(days=1), "明儿"
     if "昨天" in msg or "昨日" in msg:
         return now - timedelta(days=1), "昨天"
+    # R229f：「本周X/这周X」此前根本没解析——静默按今天判（R228r 同类：
+    # 说错日期比不答更伤）。本周一=0 基准；结果为负即本周已过的日子。
+    for anchor in ("本周", "这周", "本週", "這週", "这週", "這周"):
+        if anchor in msg:
+            idx = msg.find(anchor) + len(anchor)
+            if idx < len(msg) and msg[idx] in _WEEKDAY:
+                wd = _WEEKDAY.find(msg[idx]) % 7
+                return now + timedelta(days=wd - now.weekday()), msg[msg.find(anchor):idx + 1]
+            break  # 「本周」无曜日字 → 不落下面 周末/今天 兜底，交给默认今天
     # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
     # 落进通用分支被吃成下周一，而用户说的是下周的周六。
     for anchor in ("下周末", "下週末"):

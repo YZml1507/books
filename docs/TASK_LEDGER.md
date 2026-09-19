@@ -10199,3 +10199,10 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 
 - index.html：`apple-mobile-web-app-capable`/`mobile-web-app-capable`/状态栏样式/app-title——iOS「添加到主屏幕」此前仍是带地址栏的网页壳。
 - 9 张功能卡图标 + 打卡礼物图 + 小满头像×2 加 `loading="lazy" decoding="async"`（hero/brand-mark 保持 eager，LCP 不推迟）。
+
+### R229h（本周X 日期词解析 + 混写覆盖）
+
+- 「本周三/这周X」此前完全无解析——`_hl_day_part`/`_hlDayOffset` 返回 null 静默按今天判（R228r 同类病灶，说错日期比不答更伤）；且前端抽取器剥「本周」留「三」污染事项词（「本周三搬家」→事项词「三搬家」）。前后端同修：本周X 映射本周曜日偏移（可负=已过），抽取器曜日版先剥。
+- 混写变体「这週/這周」（繁体键盘半转换常见）两边同补。
+- 实测：本周三搬家→9/16 三、这週五適合面試嗎→9/18 五、下周末出行→9/26 六、本周日→9/20 日。
+- 闸门：selftest 181 PASS。
