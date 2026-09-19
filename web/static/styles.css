@@ -10,6 +10,13 @@
  *   3. `--muted` 只在 `.daily-date` 里以 fallback 形式出现，显式定义。
  */
 
+/* R228k：@import 必须在任何样式规则之前——原来两条放在 :root 与
+ * *{reset} 之后，浏览器按规范整条丢弃，LXGW 文楷与 animotion 入场
+ * 动画从未真正加载（真浏览器实测 styleSheets 仅 styles.css）。
+ * 移到文件最顶。 */
+@import url("./animotion/web-lite.css");
+@import url("./fonts/lxgw.css");
+
 /* ── 003 判据 3/12（R183b）：无障碍配色令牌 + 一键回滚 ──────────────
  *
  * 实测起点：31 处文字对比度低于 WCAG AA，最差 3.18:1 —— 正是每日运势的
@@ -113,7 +120,6 @@ html[data-theme="legacy"]{
  * R201b 补记：接线首版误删了下一行全局 reset，导致 check_plain_first
  * 判据 2 四用例爆线（c6_career 3,444px > 3,248px）——已恢复，实测归位。 */
 *{box-sizing:border-box; margin:0; padding:0;}
-@import url("./animotion/web-lite.css");
 .animotion-respect-motion{animation-duration:.5s;}
 .view.active{animation-name:none;}
 .home-main .ia-group,
@@ -168,7 +174,6 @@ body{
  * lxgw.css 由 lxgw-wenkai-webfont npm 包的 regular 切片裁剪而来：
  * 只保留产品实际用字（1043 CJK 字符）命中的 40 个 unicode-range 切片
  * （2.0MB），浏览器按需加载命中的分片。得意黑单文件 woff2 用于标题。 */
-@import url("./fonts/lxgw.css");
 @font-face{
   font-family:"Smiley Sans";
   src:url("./fonts/smiley-sans.woff2") format("woff2");

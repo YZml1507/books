@@ -12,7 +12,9 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/static/sw.js').catch(function () {});
+    /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'——
+       改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。 */
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
   });
 }
 </script>

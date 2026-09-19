@@ -78,6 +78,17 @@ def create_app() -> FastAPI:
             raise HTTPException(500, "前端文件缺失：web/static/index.html")
         return FileResponse(deps.INDEX)
 
+    # R228k：SW 根作用域——/static/sw.js 默认只管 /static/ 下的请求，
+    # '/' 的导航永远进不了 fetch 分支，「断网不白屏」此前完全不生效。
+    # 改从根路径下发同一文件并显式放行 scope。
+    @application.get("/sw.js", include_in_schema=False)
+    def service_worker():
+        sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
+        if not os.path.exists(sw_path):
+            raise HTTPException(404, "sw.js 缺失")
+        return FileResponse(sw_path, media_type="application/javascript",
+                            headers={"Service-Worker-Allowed": "/"})
+
     return application
 
 

@@ -20,9 +20,22 @@ import json
 import os
 import sqlite3
 
-import numpy as np
-
 from .bazi import Bazi
+
+# R228k：numpy 只在语义检索路径用（_sem_vecs/retrieve_semantic），web 入口
+# 只调 retrieve_fast 纯 sqlite——顶层 import 让每个进程白付 ~66ms
+# （-X importtime 实测，占 web.app 导入的 ~16%）。改成用到才载。
+np = None
+
+
+def _np():
+    global np
+    if np is None:
+        import numpy as _np_mod
+        np = _np_mod
+    return np
+
+
 from .search import render_citation
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -210,15 +223,15 @@ def _sem_vecs(conn) -> tuple:
         # 结构校验：缓存必须含 id 字段（早期缓存缺它会导致回查 KeyError）
         if (old.get("ids") == ids_now and old_meta
                 and all("id" in m for m in old_meta)):
-            vecs = np.load(SEM_DOCVECS)
+            vecs = _np().load(SEM_DOCVECS)
             _sem_cache = (vecs, old_meta)
             return _sem_cache
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer(MODEL_DIR)
-    vecs = np.asarray(model.encode([r["text"] for r in rows], batch_size=64,
-                                   show_progress_bar=False, normalize_embeddings=True),
-                      dtype=np.float32)
-    np.save(SEM_DOCVECS, vecs)
+    vecs = _np().asarray(model.encode([r["text"] for r in rows], batch_size=64,
+                                      show_progress_bar=False, normalize_embeddings=True),
+                         dtype=_np().float32)
+    _np().save(SEM_DOCVECS, vecs)
     json.dump(meta, open(SEM_DOCMETA, "w", encoding="utf-8"))
     _sem_cache = (vecs, meta["meta"])
     return _sem_cache
@@ -235,11 +248,12 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer(MODEL_DIR)
     queries = [q for q, _ in queries_from(b)]
-    qv = np.asarray(model.encode(queries, normalize_embeddings=True), dtype=np.float32)
+    qv = _np().asarray(model.encode(queries, normalize_embeddings=True),
+                       dtype=_np().float32)
     # 取各查询最高分的并集（一个单元被任一坐标词命中即算）
     sims = vecs @ qv.T
     best = sims.max(axis=1)
-    order = np.argsort(-best)[:top_k]
+    order = _np().argsort(-best)[:top_k]
     out = []
     for idx in order:
         m = meta[idx]

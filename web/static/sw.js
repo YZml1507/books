@@ -33,7 +33,10 @@ self.addEventListener('fetch', function (e) {
     e.respondWith(
       caches.match('/').then(function (hit) {
         var net = fetch(e.request).then(function (resp) {
-          caches.open(CACHE).then(function (c) { c.put('/', resp.clone()); });
+          /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
+          if (resp.ok) {
+            caches.open(CACHE).then(function (c) { c.put('/', resp.clone()); });
+          }
           return resp;
         }).catch(function () { return hit; });
         return hit || net;

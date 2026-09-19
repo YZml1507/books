@@ -102,9 +102,59 @@ function fail(id, text) {
   paint(id, '<div class="no-evidence">' + esc(text) + '</div>');
 }
 
-/** fetch + JSON，把 !ok 的 detail 变成 Error，让调用方只写一个 catch。 */
+/** R228i：Pydantic 422 的 detail 是 [{loc:[...,field],msg}] 数组，
+ * 以前 JSON.stringify 原样弹给用户。翻成中文人话。 */
+var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰',
+  gender: '性别', surname: '姓氏', names: '候选名', session_id: '会话标识',
+  message: '消息', q: '查询词', work_id: '书号', seed: '种子数',
+  a_year: '甲方年份', b_year: '乙方年份', a_gender: '甲方性别',
+  b_gender: '乙方性别', calendar_type: '历法', scope: '范围',
+  date: '日期', days: '天数', limit: '条数', style: '风格',
+  topic: '主题', kind: '类型', claim: '论点', method: '方法' };
+function _humanize422(detail) {
+  try {
+    var first = detail[0] || {};
+    var loc = first.loc || [];
+    var field = String(loc[loc.length - 1] || '');
+    var cn = _FIELD_CN[field];
+    var msg = String(first.msg || '');
+    var badType = /valid|missing|required|integer|string|type/i.test(msg);
+    if (cn) return badType ? cn + '填写有误或为空' : cn + '：' + msg;
+    return '请求参数有误，检查输入后再试';
+  } catch (e) { return '请求参数有误，检查输入后再试'; }
+}
+
+/** fetch + JSON，把 !ok 的 detail 变成 Error，让调用方只写一个 catch。
+ * opts.silent=true（R228k）：不弹 toast——轮询类调用（/api/ai/{tid}）的
+ * 失败本来就有「整块不渲染」的降级语义，不该每 500ms 一张 toast 循环 40s。 */
+var API_TIMEOUT_MS = 20000;
 async function api(path, options) {
-  const resp = await fetch(path, options);
+  options = options || {};
+  /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
+   * 只能刷新页面。AbortSignal.timeout 存在就用，否则手工 controller。 */
+  var _ctl = null, _t = null;
+  if (!options.signal) {
+    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+      options.signal = AbortSignal.timeout(API_TIMEOUT_MS);
+    } else if (typeof AbortController !== 'undefined') {
+      _ctl = new AbortController();
+      _t = setTimeout(function () { _ctl.abort(); }, API_TIMEOUT_MS);
+      options.signal = _ctl.signal;
+    }
+  }
+  var resp;
+  try {
+    resp = await fetch(path, options);
+  } catch (e) {
+    if (_t) clearTimeout(_t);
+    if (e && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
+      var te = new Error('网络有点慢，稍后再试试');
+      if (!options.silent) showToast(te.message, 'warn');
+      throw te;
+    }
+    if (!options.silent) showToast('网络似乎断开了，检查后再试试', 'warn');
+    throw e;
+  } finally { if (_t) clearTimeout(_t); }
   let body = null;
   try {
     body = await resp.json();
@@ -113,14 +163,17 @@ async function api(path, options) {
   }
   if (!resp.ok) {
     const detail = body && body.detail ? body.detail : resp.status + ' ' + resp.statusText;
-    const err = new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    const err = new Error(Array.isArray(detail) ? _humanize422(detail)
+      : (typeof detail === 'string' ? detail : JSON.stringify(detail)));
     /* R218a-巡2（N-05）：错误态用户反馈——非 2xx 一律弹红色 toast（不只
      * 在主流程 catch 里弹；网络层就弹，给用户即时反馈）。4xx 是用户输入
      * 错（黄底提示），5xx 是服务端异常（红底提示）。 */
     var status = resp.status;
     var isClient = status >= 400 && status < 500;
-    showToast(typeof err.message === 'string' ? err.message : '请求失败',
-              isClient ? 'warn' : 'error');
+    if (!options.silent) {
+      showToast(typeof err.message === 'string' ? err.message : '请求失败',
+                isClient ? 'warn' : 'error');
+    }
     throw err;
   }
   return body;
@@ -195,7 +248,7 @@ function pollAiPolish(containerId, taskId) {
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
   var tick = function () {
     if (RESULT_GEN[containerId] !== gen) return;   // 已被新一轮结果覆盖
-    api('/api/ai/' + encodeURIComponent(taskId)).then(function (st) {
+    api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       if (RESULT_GEN[containerId] !== gen) return;
       if (st && st.status === 'done' && st.text) {
         if (insertAiPolish(containerId, st.text)) {
@@ -386,7 +439,7 @@ function autoSendChatContext() {
       '<span class="chat-typing"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
-      api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
+      api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
@@ -509,7 +562,7 @@ function _chatFallbackLine(message) {
 function pollNameReview(taskId) {
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
   var tick = function () {
-    api('/api/ai/' + encodeURIComponent(taskId)).then(function (st) {
+    api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       const out = el('nameReviewOut');
       if (!out) return;
       if (st && st.status === 'done' && st.text) {
@@ -641,7 +694,7 @@ function chatSend() {
       '<span class="chat-typing"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
-      api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
+      api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
@@ -1983,7 +2036,12 @@ function fmtScalar(v) {
 
 async function loadDaily() {
   try {
-    const j = await api('/api/daily');
+    /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
+     * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
+    const [j, x] = await Promise.all([
+      api('/api/daily'),
+      api('/api/xingzuo', { silent: true }).catch(function () { return null; })
+    ]);
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     const dateEl = el('dailyDate');
     if (dateEl) dateEl.textContent = j.date || '今天';
@@ -2033,7 +2091,6 @@ async function loadDaily() {
     renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
     // 004 M2 T2.4：今日值宫（十二宫日运）。失败静默——入口卡保持 hidden。
     try {
-      const x = await api('/api/xingzuo?date=' + encodeURIComponent(j.date || ''));
       const box = el('dailyXingzuo');
       if (box && x && x.today_sign) {
         /* R216b 续3（U-010）：「值官/龙首星」术语腔 → 人话。 */
@@ -3349,15 +3406,24 @@ async function doTaohua() {
 var POSTER_BG = {
   warm: new Image(), night: new Image()
 };
-POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
-POSTER_BG.night.src = '/static/_candidates/r212b/poster-bg-night.png';
-
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
-/* manifest 预取（fire-and-forget；失败静默走 emoji 兜底） */
-fetch('/static/tarot/manifest.json')
-  .then(function (r) { return r.ok ? r.json() : null; })
-  .then(function (j) { TAROT_MANIFEST = j || {}; })
-  .catch(function () { TAROT_MANIFEST = {}; });
+
+/* R228k：原来顶层立刻拉三张图（~95KB）——海报背景只在点「存成图」才用，
+ * manifest 只在塔罗视图才用。挪进 requestIdleCallback（无此 API 则
+ * load 后 2s），首屏瀑布不再为低频路径买单。 */
+function _idlePrefetch() {
+  POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
+  POSTER_BG.night.src = '/static/_candidates/r212b/poster-bg-night.png';
+  fetch('/static/tarot/manifest.json')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { TAROT_MANIFEST = j || {}; })
+    .catch(function () { TAROT_MANIFEST = {}; });
+}
+if (typeof requestIdleCallback === 'function') {
+  requestIdleCallback(_idlePrefetch, { timeout: 4000 });
+} else {
+  window.addEventListener('load', function () { setTimeout(_idlePrefetch, 2000); });
+}
 
 var TAROT_ART = {
   "愚者": "🐕", "魔术师": "🪄", "女祭司": "🌙", "皇后": "🌹", "皇帝": "👑",
@@ -4710,6 +4776,13 @@ function baziPersonaCard(j) {
 (function () {
   'use strict';
   async function phFetch(url, opts) {
+    /* R228k：与 api() 同款的 20s 超时——raw fetch 也不能让排盘历史
+     * 的 busy/在途态永远卡住。 */
+    opts = opts || {};
+    if (!opts.signal && typeof AbortSignal !== 'undefined'
+        && AbortSignal.timeout) {
+      opts.signal = AbortSignal.timeout(API_TIMEOUT_MS);
+    }
     const r = await fetch(url, opts);
     if (!r.ok) {
       let m = '请求失败(' + r.status + ')';
@@ -4839,16 +4912,9 @@ function baziPersonaCard(j) {
     out.innerHTML = '<div class="ph-empty">正在排你的本命盘…</div>';
     try {
       var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g };
-      var r = await fetch('/api/bazi', { method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body) });
-      if (!r.ok) {
-        var e = await r.json().catch(function () { return {}; });
-        var msg = (e && typeof e.detail === 'string') ? e.detail : '排盘失败(' + r.status + ')';
-        out.innerHTML = '<div class="ph-empty">' + esc(msg) + '</div>';
-        return;
-      }
-      var j = await r.json();
+      /* R228k：raw fetch → postJSON——白拿 20s 超时、非2xx toast 与
+       * 422 中文人话化（原来手写的 r.ok 分支与 api() 重复且漏超时）。 */
+      var j = await postJSON('/api/bazi', body);
       var sign = sunSign(m, d);
       var fe = ((j.calc || {}).five_elements || {}).counts || {};
       var wxLine = Object.keys(fe).map(function (k) { return k + ' ' + fe[k]; }).join(' · ');
