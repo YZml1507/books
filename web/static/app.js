@@ -382,7 +382,8 @@ function autoSendChatContext() {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
         var flow = el('chatFlow');
         if (st && st.status === 'done' && st.text) {
-          if (flow) flow.lastChild.textContent = st.text;
+          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
+          if (flow) flow.lastChild.innerHTML = renderRichText(st.text);
           return;
         }
         if (st && st.status === 'failed') { if (flow) flow.removeChild(flow.lastChild); return; }
@@ -498,7 +499,7 @@ function pollNameReview(taskId) {
       if (!out) return;
       if (st && st.status === 'done' && st.text) {
         out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 引经点评</h4><p style="white-space:pre-wrap;">' +
-          esc(st.text) + '</p></div>';
+          renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
         return;
       }
       if (st && st.status === 'failed') {
@@ -604,7 +605,8 @@ function chatSend() {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
         var flow = el('chatFlow');
         if (st && st.status === 'done' && st.text) {
-          if (flow) flow.lastChild.textContent = st.text;   /* 替换占位 … */
+          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
+          if (flow) flow.lastChild.innerHTML = renderRichText(st.text);
           return;
         }
         if (st && st.status === 'failed') {
@@ -3844,6 +3846,20 @@ var HL_SCENE_ALIAS = {
   '收款': ['纳财'], '理财': ['纳财'], '看病': ['求医', '治病'], '种花': ['栽植']
 };
 function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
+/* R227b（用户反馈「不能照本宣科」）：问一嘴的自由输入抽事项词——
+ * 词表外的说法（养猫/剪头发/野餐…）也进「没直接提到=中性」判定，
+ * 不再回「我接不住」把用户顶回去。 */
+function _hlExtractScene(q) {
+  var s = String(q || '');
+  s = s.replace(/^(今天|今日|明天|明日|后天|後天|大后天|这两天|这几天|最近|本周|这周|下周)/, '');
+  s = s.replace(/^(我|我们|咱|俺)?\s*(想|想要|打算|准备|计划|要|去|做|搞|弄|干)?/, '');
+  s = s.replace(/(适不适合|可不可以|能不能|行不行|宜不宜|好不好|合不合适|吉利不吉利|适合|可以|能|宜|吉利|合适|稳妥|怎么样|如何|的话|好吗)/g, '');
+  s = s.replace(/[吗呢吧啊呀？?!！!，,。.、~～\s的地得了]/g, '');
+  s = s.replace(/^(去|做|干|搞)+/, '');
+  if (s.length > 6) s = '';
+  if (/^(黄历|老黄历|啥|什么|怎么|怎样|运势|运气|日子|吉日|现在)$/.test(s)) s = '';
+  return s;
+}
 function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP) {
   function _aliasList(name) {
     var arr = [name].concat(_hlSceneAlias(name));
@@ -4041,13 +4057,32 @@ async function doHuangli(offset, reveal) {
       var KNOWN = ['搬家','开业','约会','面试','出行','签约','表白','相亲','结婚','领证','求职','上班','入职','挪窝','装修','开张','合同','旅行','出差','出游','收款','理财','看病','种花'];
       var hitName = '';
       for (var i = 0; i < KNOWN.length; i++) { if (q.indexOf(KNOWN[i]) !== -1) { hitName = KNOWN[i]; break; } }
-      if (!hitName) {
+      /* R227b：词表外的说法也抽事项词，进「没直接提到=中性」判定；
+       * 完全抽不出词（「今天怎么样」）→ 给今日主推 + 引导，不死拒。 */
+      var sc = hitName || _hlExtractScene(q);
+      if (!sc) {
+        var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
+        var _yi = (_lr && _lr.yi) || [];
+        var _ji = (_lr && _lr.ji) || [];
+        var note = '这个黄历没直接管——今天主推【' + (_yi.join('、') || '无') + '】' +
+          (_ji.length ? '，忌【' + _ji.join('、') + '】' : '') +
+          '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。';
         var v2 = document.getElementById('hlVerdict');
-        if (v2) v2.textContent = '这个问题我接不住——黄历词库暂时只有日常事项（搬家/开业/约会/面试/出行/签约这些），换个说法再问一次？';
-        else doHuangli._scene = '';
+        if (v2) { v2.textContent = note; }
+        else {
+          var askRow = document.querySelector('#hlResult .hl-ask');
+          if (askRow && askRow.parentNode) {
+            var nv = document.createElement('div');
+            nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
+            nv.setAttribute('role', 'status');
+            nv.textContent = note;
+            askRow.parentNode.insertBefore(nv, askRow);
+          }
+        }
+        doHuangli._scene = '';
         return;
       }
-      doHuangli._scene = hitName;
+      doHuangli._scene = sc;
       var head2 = document.querySelector('#hlResult .hl-head div');
       var ds2 = head2 ? head2.textContent.trim() : '';
       if (/^\d{4}-\d{2}-\d{2}$/.test(ds2)) {
@@ -4676,6 +4711,8 @@ function baziPersonaCard(j) {
 function renderRichText(raw) {
   var s = esc(String(raw == null ? '' : raw));
   s = s.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
+  /* R227b：没配对的 **（跨行/嵌套/半对）一律吃掉，不许把符号露给用户 */
+  s = s.replace(/\*{2,}/g, '');
   s = s.replace(/(^|[^*])\*([^\n*]+)\*/g, '$1<em>$2</em>');
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   var lines = s.split(/\n/);

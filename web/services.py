@@ -685,6 +685,129 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
 
 
+# ---------------------------------------------------------------------------
+# 小满聊天的黄历上下文（R227b，用户反馈「不能照本宣科」）
+#
+# 用户在「聊聊这件事」里问「今天适合出行吗」时，原先的 facts 只有前端透传的
+# 宜/忌原始列表——事项不在榜上时 LLM 只能照本宣科一句「黄历没提」。
+# 这里在后端把判定**先算出来**再交给小满：命中宜→宜、命中忌→忌、都没列→
+# 中性（不是不支持），并附「近 45 天宜该事的日子」——想要黄历背书有处可去。
+# ---------------------------------------------------------------------------
+
+# 口语事项 → 黄历规范词（与前端 app.js HL_SCENE_ALIAS 同源口径，各存一份：
+# 前端管「问一嘴」即时判定，这里管小满聊天的事实供给）。
+_CHAT_SCENE_TERMS: dict[str, list[str]] = {
+    "面试": ["上任"], "求职": ["上任"], "上班": ["上任"], "入职": ["上任"],
+    "约会": ["嫁娶"], "表白": ["嫁娶"], "相亲": ["嫁娶"], "结婚": ["嫁娶"],
+    "领证": ["嫁娶"],
+    "搬家": ["移徙", "移徒", "入宅", "修造"], "挪窝": ["移徙", "移徒"],
+    "装修": ["修造", "动土"], "动工": ["动土", "破土"],
+    "开业": ["开市", "纳财"], "开张": ["开市"],
+    "签约": ["立券", "纳财"], "合同": ["立券"],
+    "出行": ["出行", "远行"], "旅行": ["出行", "远行"],
+    "旅游": ["出行", "远行"], "出差": ["出行", "远行"], "出游": ["出行", "远行"],
+    "收款": ["纳财"], "理财": ["纳财"], "看病": ["求医", "治病", "求医疗病"],
+    "种花": ["栽植", "栽种"], "许愿": ["祈福", "求嗣"], "拜拜": ["祭祀"],
+    "考试": ["入学"], "上学": ["入学"], "开学": ["入学"],
+    "分手": ["解除"], "和解": ["解除"], "打官司": ["诉讼"], "诉讼": ["诉讼"],
+}
+
+# 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值两张
+# 通行规则表自动汇成（day_query 的 yi/ji 只出自这两张表），不另写死。
+_HUANGLI_VOCAB: frozenset = frozenset(
+    w for d in (*huangli_mod.ZHIRI_YIJI.values(), *huangli_mod.XIUXIU_YIJI.values())
+    for w in (*d["yi"], *d["ji"]))
+
+
+def _hl_day_part(msg: str, now: datetime) -> datetime:
+    """消息里的相对日（明天/后天/大后天），默认今天。"""
+    offset = 0
+    if "大后天" in msg:
+        offset = 3
+    elif "后天" in msg or "後天" in msg:
+        offset = 2
+    elif "明天" in msg or "明日" in msg:
+        offset = 1
+    return now + timedelta(days=offset)
+
+
+def _hl_next_yi_days(dt: datetime, terms: list[str],
+                   span: int = 45, limit: int = 4) -> list[str]:
+    """[dt, dt+span) 内宜任一规范词的日子（并集），返回 "M/D" 列表。"""
+    out: list[str] = []
+    cur = dt
+    for _ in range(span):
+        if any(t in huangli_mod.day_query(cur)["yi"] for t in terms):
+            out.append(f"{cur.month}/{cur.day}")
+            if len(out) >= limit:
+                break
+        cur += timedelta(days=1)
+    return out
+
+
+def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
+    """小满聊天的黄历事实供给：先把「适不适合」算成判定再交给 LLM。
+
+    消息提到黄历事项词（口语词或规范词）→ 当日宜忌 + 判定 + 近期吉日；
+    只泛问黄历（「今天宜做什么」「看看黄历」）→ 当日宜忌 + 中性口径说明；
+    都不沾 → []（调用方原样透传，零扰动）。
+    """
+    msg = (message or "").strip()
+    if not msg:
+        return []
+    now = now or datetime.now()
+
+    scene, terms = "", []
+    for k, vv in _CHAT_SCENE_TERMS.items():
+        if k in msg:
+            scene, terms = k, vv
+            break
+    if not scene:
+        for t in _HUANGLI_VOCAB:
+            if t in msg:
+                scene, terms = t, [t]
+                break
+    generic = not scene and any(
+        k in msg for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
+                           "择日", "适合做什么", "适合干什么"))
+    if not scene and not generic:
+        return []
+
+    dt = _hl_day_part(msg, now)
+    q = huangli_mod.day_query(dt)
+    yi, ji = q["yi"], q["ji"]
+    date_cn = q["date"]
+    yi_str = "、".join(yi) or "无"
+    ji_str = "、".join(ji) or "无"
+    facts = [f"当日黄历（{date_cn}）：宜【{yi_str}】；忌【{ji_str}】。"]
+
+    if generic:
+        facts.append("没列入当日宜忌的事项属中性——不是不支持，只是老黄历没"
+                     "为它背书，可照常安排；想要背书就挑宜它的日子。")
+        return facts
+
+    hit_yi = [t for t in terms if any(t in w or w in t for w in yi)]
+    hit_ji = [t for t in terms if any(t in w or w in t for w in ji)]
+    good = _hl_next_yi_days(dt, terms)
+    good_str = "、".join(good)
+    good_part = (f"近45天宜{scene}的日子：{good_str}——想要黄历背书可挑这几天。"
+                 if good else "")
+    if hit_yi and not hit_ji:
+        verdict = f"黄历判定：{date_cn} 宜「{scene}」（宜项含【{'、'.join(hit_yi)}】）。"
+    elif hit_ji and not hit_yi:
+        verdict = (f"黄历判定：{date_cn} 忌「{scene}」（忌项含【{'、'.join(hit_ji)}】）；"
+                   f"已安排也不必慌，放缓节奏即可。{good_part}")
+    elif hit_yi and hit_ji:
+        verdict = (f"黄历判定：{date_cn} 「{scene}」宜忌都有——宜【{'、'.join(hit_yi)}】"
+                   f"也忌【{'、'.join(hit_ji)}】；想做就把节奏放缓，不赶大动作。")
+    else:
+        verdict = (f"黄历判定：{date_cn} 宜忌都没直接提「{scene}」——中性，"
+                   f"不是不支持，只是老黄历今天没为它背书；{scene}可照常安排。"
+                   f"{good_part}")
+    facts.append(verdict)
+    return facts
+
+
 def _draw_dicts(draws) -> list[dict]:
     return [{"index": d.index, "name": d.name, "upright": d.upright,
              "upright_kw": d.upright_kw, "reversed_kw": d.reversed_kw,

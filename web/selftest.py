@@ -1205,6 +1205,20 @@ def run() -> list[str]:
             "content": "你应该直接分手，别理他了"}}]}, config=_ccfg)
     assert _banned and "你自己舒服" in _banned, _banned
     ok.append("chat.banned.fallback")
+    # R227b（用户反馈「不能照本宣科」）：黄历类提问后端先算「黄历判定」。
+    # 判据：① 事项词命中 → facts 含当日宜忌 + 判定句（含「宜」「忌」或「中性」）；
+    # ② 没列入宜忌的事项须按中性口径回（「不是不支持」），不许只回「没提」；
+    # ③ 非黄历话题 → []（零扰动）。固定 now 保确定性。
+    from web import services as _svc
+    from datetime import datetime as _dt
+    _hf = _svc.chat_huangli_facts("今天适合出行吗", now=_dt(2026, 9, 19))
+    assert _hf and any("当日黄历" in f for f in _hf), _hf
+    assert any("黄历判定" in f for f in _hf), _hf
+    _hf2 = _svc.chat_huangli_facts("明天能搬家不", now=_dt(2026, 9, 19))
+    assert _hf2 and any("中性" in f or "宜「" in f for f in _hf2), _hf2
+    _hf3 = _svc.chat_huangli_facts("他为什么不回我消息", now=_dt(2026, 9, 19))
+    assert _hf3 == [], _hf3
+    ok.append("chat.huangli_facts")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
     # v 是 dict 的情形，JS `String({..})` 恒为 "[object Object]"。受害字段是

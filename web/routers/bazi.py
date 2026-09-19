@@ -69,8 +69,12 @@ def chat(req: ChatRequest) -> dict:
     """
     out: dict = {}
     req.validate_ranges()
+    # R227b：黄历类提问先在后端算成「黄历判定」事实再交给小满——
+    # 事项没列进宜忌 ≠ 不支持（中性 + 近期吉日），杜绝照本宣科式回复。
+    facts = list(req.facts or [])
+    facts += services.chat_huangli_facts(req.message)
     tid = llm_polish.spawn_chat_task(
-        req.session_id, req.message, facts=req.facts or [])
+        req.session_id, req.message, facts=facts)
     if tid:
         out["chat_task_id"] = tid
     return out
