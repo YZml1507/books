@@ -17629,3 +17629,81 @@ relation **只是牌面正逆/动爻数的纯函数**——今天白羊还是金
 
 **教训**：批量补数据时"每条自洽"必须当场机械校验。这两轮补 64 字里 12 条有
 硬伤，靠审查轨目视才发现——判据应与数据同时写，而不是等审查轨来抓。
+硬伤，靠审查轨目视才发现——判据应与数据同时写，而不是等审查轨来抓。
+
+**【§181 · 2026-09-19 · R227b：用户反馈「不许照本宣科 + **不许裸奔」收口】**
+
+用户最后一段任务要求（原话）：黄历没提的事不许只答「没提」——要会算、
+会说安抚人心的话；小满回复里 `**` 不许以未渲染形态露出。
+
+### 残余病灶（接手的 v5 已完成黄历页判定卡，剩三处）
+
+1. **聊天链路无黄历判定**：`/api/chat` 只透传前端 facts，小满被问
+   「今天适合出行吗」时手里没有宜忌数据，只能照本宣科。
+2. **问一嘴词表外死拒**：KNOWN 26 词白名单，命中不了就回
+   「这个问题我接不住」——正是照本宣科。
+3. **两处 `**` 漏渲染**：`chatSend`/`autoSendChatContext` 轮询写回用
+   `textContent`（`chatBubble` 那条路本身走 renderRichText，写回这一步
+   把符号原样贴上屏）；`pollNameReview` 用 `esc(st.text)`。renderRichText
+   也只处理配对的 `**`，跨行/半对的 `**` 仍会漏给用户。
+
+### 修法（全部 additive、LLM 不承重）
+
+- `web/services.py` 新增 `chat_huangli_facts(message, now=None)`：
+  事项词→词表别名映射（面试→上任、搬家→移徙/入宅…），词表自动并
+  `huangli.ZHIRI_YIJI`/`XIUXIU_YIJI` 全部宜忌词条（免手工同步）；抽日期
+  偏移（今天/明天/后天/大后天）；产出「当日黄历 + 黄历判定」两行事实——
+  宜就报凭据、忌就报缓解 + `find_good_days` 算近 45 天宜该事的具体日子、
+  宜忌都没列→中性口径（不是不支持，没为它背书，可照常安排）。
+  只问「看看黄历」→ 通用解释行；非黄历话题 → `[]` 零扰动。
+- `/api/chat` 在 spawn 前把上述事实并入 `facts`（前端 facts 不动）。
+- `_CHAT_SYSTEM` 加两条：照「黄历判定」说人话 + 全程纯文本口语。
+- `app.js`：两处写回改 `innerHTML = renderRichText(st.text)`；
+  `pollNameReview` 同改；renderRichText 末尾 `s.replace(/\*{2,}/g,'')`
+  吃掉一切漏配对的 `**`。新增 `_hlExtractScene` 自由抽事项词，
+  问一嘴词表外说法 → 走既有中性判定卡；完全抽不出词 → 今日主推 +
+  引导（「想问具体的事就带上它」），不死拒。
+
+### 实测（可复验）
+
+- `BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py` → PASS（162 项，
+  新增 `chat.huangli_facts`：出行→忌判定+吉日、搬家→中性/宜、
+  「他为什么不回我消息」→[]）。
+- 真浏览器 + mock LLM 端到端：问一嘴「养猫」（词表外）→
+  「没直接提到养猫——不是不支持，只是老黄历没为它背书（主推【…】）；
+  养猫可照常安排，想要黄历背书可以翻后面几天挑宜养猫的日子」；
+  问一嘴「今天怎么样」→ 今日主推+引导兜底；「出行」→ 忌判定；
+  mock 回含 `**粗体**`+跨行半对 `**` → 气泡渲染 `<strong>` 无 `*` 残留；
+  mock 请求体里确认收到「黄历判定：…近45天宜出行的日子：9/20、10/2、
+  10/8、10/15」。
+- `probe_ui_smoke` 40/41（btn:huangli 在本机为**基线同挂**——环境字体未
+  渲染导致按钮 perpetual unstable，HEAD 上同样失败）；`probe_contract`/
+  `probe_dollar_misuse` 与基线 FAIL 计数逐字一致（HARD=2/13行21处，
+  均为既有问题，本轮零新增）。
+
+### 复验命令
+
+```bash
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py   # 含 chat.huangli_facts
+BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 PASS
+```
+
+### 未修
+
+`btn:huangli` 在本环境的既有失败（字体/稳定性，非本次改动）；
+`probe_contract` HARD=2（j.items/j.chongsha）与 dollar_misuse 21 处
+函数属性访问均为 HEAD 既有问题，未在本轮范围。
+
+### §181 补记（R227b-fix）：问一嘴日期词真生效
+
+端到端测试抓到：`_hlExtractScene` 把「明天/后天」剥掉只用于抽事项词，
+判定却仍拿当前显示日——9/19 页面上问「明天适合出行吗」答「今天不宜」，
+而 9/20 其实宜出行。
+
+修法：新增 `_hlDayOffset`（今/明/后/大后/昨/前 → -2..+3，与后端
+`_hl_day_part` 同口径）；问一嘴带日期词时 `doHuangli(offset,false)` 真去
+查那一天再判；`_hlVerdictHtml` 收第 6 参 `day`（`_hlDayWord` 映射），
+文案不再写死「今天」；无事项词但有日期词走 `_pendingAskNote`——翻完
+那一天再写当日主推+引导。实测「明天适合出行吗」→ 9/20 卡
+「明天适合出行 ✅（宜项里有【出行】）」。selftest 新增
+`frontend.hl_ask_dayoffset` 静态钉扎。

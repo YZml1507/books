@@ -382,7 +382,8 @@ function autoSendChatContext() {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
         var flow = el('chatFlow');
         if (st && st.status === 'done' && st.text) {
-          if (flow) flow.lastChild.textContent = st.text;
+          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
+          if (flow) flow.lastChild.innerHTML = renderRichText(st.text);
           return;
         }
         if (st && st.status === 'failed') { if (flow) flow.removeChild(flow.lastChild); return; }
@@ -498,7 +499,7 @@ function pollNameReview(taskId) {
       if (!out) return;
       if (st && st.status === 'done' && st.text) {
         out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 引经点评</h4><p style="white-space:pre-wrap;">' +
-          esc(st.text) + '</p></div>';
+          renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
         return;
       }
       if (st && st.status === 'failed') {
@@ -604,7 +605,8 @@ function chatSend() {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id)).then(function (st) {
         var flow = el('chatFlow');
         if (st && st.status === 'done' && st.text) {
-          if (flow) flow.lastChild.textContent = st.text;   /* 替换占位 … */
+          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
+          if (flow) flow.lastChild.innerHTML = renderRichText(st.text);
           return;
         }
         if (st && st.status === 'failed') {
@@ -3844,7 +3846,46 @@ var HL_SCENE_ALIAS = {
   '收款': ['纳财'], '理财': ['纳财'], '看病': ['求医', '治病'], '种花': ['栽植']
 };
 function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
-function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP) {
+/* R227b（用户反馈「不能照本宣科」）：问一嘴的自由输入抽事项词——
+ * 词表外的说法（养猫/剪头发/野餐…）也进「没直接提到=中性」判定，
+ * 不再回「我接不住」把用户顶回去。 */
+function _hlExtractScene(q) {
+  var s = String(q || '');
+  s = s.replace(/(大后[天日]|大後天|后[天日]|後天|明[天日]|明日|今[天日]|今日|昨[天日]|前[天日]|这两天|这几天|最近|本周|这周|下周)/g, '');
+  s = s.replace(/^(我|我们|咱|俺)?\s*(想|想要|打算|准备|计划|要|去|做|搞|弄|干)?/, '');
+  s = s.replace(/(适不适合|可不可以|能不能|行不行|宜不宜|好不好|合不合适|吉利不吉利|适合|可以|能|宜|吉利|合适|稳妥|怎么样|如何|的话|好吗)/g, '');
+  s = s.replace(/[吗呢吧啊呀？?!！!，,。.、~～\s的地得了]/g, '');
+  s = s.replace(/^(去|做|干|搞)+/, '');
+  if (s.length > 6) s = '';
+  if (/^(黄历|老黄历|啥|什么|怎么|怎样|运势|运气|日子|吉日|现在)$/.test(s)) s = '';
+  return s;
+}
+/* R227b-fix：问一嘴输入里的日期词必须真生效——「明天适合出行吗」要判
+ * 明天的黄历，不能剥掉日期词后拿当前显示日充数（审查抓到：9/19 页面上
+ * 问「明天」却答「今天不宜」，而 9/20 其实宜）。与 services._hl_day_part
+ * 同口径（+1/+2/+3）；返回 null = 没带日期词，按当前显示日判。 */
+function _hlDayOffset(q) {
+  var s = String(q || '');
+  if (/大(后|後)[天日]/.test(s)) return 3;
+  if (/(后|後)[天日]/.test(s)) return 2;
+  if (/明[天日]|明日/.test(s)) return 1;
+  if (/今[天日]|今日/.test(s)) return 0;
+  if (/昨[天日]|昨日/.test(s)) return -1;
+  if (/前[天日]|前日/.test(s)) return -2;
+  return null;
+}
+/* 判定卡里的日词：偏移/chip/自选日都映射成一个说法，文案不再写死「今天」。 */
+function _hlDayWord(off) {
+  var M = { '-2': '前天', '-1': '昨天', 0: '今天', 1: '明天', 2: '后天', 3: '大后天' };
+  return (off != null && M[String(off)] != null) ? M[String(off)] : '那天';
+}
+function _hlNoSceneNote(yi, ji, day) {
+  return '这个黄历没直接管——' + (day || '今天') + '主推【' + (yi.join('、') || '无') + '】' +
+    (ji.length ? '，忌【' + ji.join('、') + '】' : '') +
+    '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。';
+}
+function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
+  day = day || '今天';
   function _aliasList(name) {
     var arr = [name].concat(_hlSceneAlias(name));
     return arr;
@@ -3859,18 +3900,18 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP) {
   var aliases = _aliasList(sc);
   var hitYi = _hit(yi, aliases, YI_MAP);
   var hitJi = _hit(ji, aliases, JI_MAP);
-  var why = '（今天黄历主推' + (yi.length ? '【' + yi.join('、') + '】' : '的内容不多') +
+  var why = '（' + day + '黄历主推' + (yi.length ? '【' + yi.join('、') + '】' : '的内容不多') +
     (ji.length ? '，忌【' + ji.join('、') + '】' : '') + '）';
   var verdict;
   if (hitYi.length && !hitJi.length) {
-    verdict = '今天适合' + sc + ' ✅ —— 凭据：宜项里有【' + hitYi.join('、') + '】' + why;
+    verdict = day + '适合' + sc + ' ✅ —— 凭据：宜项里有【' + hitYi.join('、') + '】' + why;
   } else if (hitJi.length && !hitYi.length) {
-    verdict = '今天不宜' + sc + ' 🚫 —— 因为忌项里有【' + hitJi.join('、') + '】' + why;
+    verdict = day + '不宜' + sc + ' 🚫 —— 因为忌项里有【' + hitJi.join('、') + '】' + why;
   } else if (hitYi.length && hitJi.length) {
-    verdict = '今天' + sc + '宜忌都有 —— 宜【' + hitYi.join('、') + '】但也忌【' + hitJi.join('、') + '】，想做就把节奏放稳、别赶大动作';
+    verdict = day + sc + '宜忌都有 —— 宜【' + hitYi.join('、') + '】但也忌【' + hitJi.join('、') + '】，想做就把节奏放稳、别赶大动作';
   } else {
-    verdict = '今天黄历的宜忌里没有直接提到' + sc + ' —— 不是不支持，只是老黄历今天没为它背书（' +
-      (yi.length ? '主推【' + yi.join('、') + '】' : '今天宜项不多') +
+    verdict = day + '黄历的宜忌里没有直接提到' + sc + ' —— 不是不支持，只是老黄历' + day + '没为它背书（' +
+      (yi.length ? '主推【' + yi.join('、') + '】' : day + '宜项不多') +
       '）；' + sc + '可照常安排，想要黄历背书可以翻后面几天挑宜' + sc + '的日子';
   }
   return '<div class="hl-verdict" id="hlVerdict" role="status">' + esc(verdict) + '</div>';
@@ -3893,6 +3934,17 @@ async function doHuangli(offset, reveal) {
       return;
     }
   }
+  /* R227b-fix：日词跟着本次查询的日期走——chip 偏移直接映射，自选日期
+   * 与今天比对（同一天=「今天」，否则=「那天」），问一嘴的日期词经
+   * _hlDayOffset 换算后走同一条路，文案不写死「今天」。 */
+  var _dayWord;
+  if (_abs) {
+    _dayWord = _hlDayWord(offset);
+  } else {
+    var _t0 = new Date();
+    _dayWord = (y === _t0.getFullYear() && m === _t0.getMonth() + 1 && d === _t0.getDate()) ? '今天' : '那天';
+  }
+  doHuangli._dayWord = _dayWord;
   var _keepSy = null;
   var _hlBox = el('hlResult');
   if (reveal === false) {
@@ -3949,7 +4001,7 @@ async function doHuangli(offset, reveal) {
         var hot = (typeof doHuangli._scene === 'string' && doHuangli._scene &&
                    (w.indexOf(doHuangli._scene) !== -1 || (YI_MAP[w] || '').indexOf(doHuangli._scene) !== -1));
         return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '" title="' + esc(YI_MAP[w] || '') + '">' + esc(w) + '</span>';
-      }).join('') + '</div>' : '<div class="ph-empty">今天没什么特别适宜的</div>';
+      }).join('') + '</div>' : '<div class="ph-empty">' + esc(_dayWord) + '没什么特别适宜的</div>';
     html += '</div>';
     html += '<div class="hl-ji" style="background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;">';
     html += '<div style="font-weight:800;color:#C2527B;margin-bottom:6px;">🚫 忌</div>';
@@ -3964,12 +4016,19 @@ async function doHuangli(offset, reveal) {
     html += SCENES.map(function (s) {
       var ok = yi.some(function (w) { return (YI_MAP[w] || '').indexOf(s) !== -1 || w.indexOf(s) !== -1; });
       return '<button type="button" class="hl-scene' + (doHuangli._scene === s ? ' active' : '') +
-        '" data-scene="' + esc(s) + '" title="' + (ok ? '今天适合' : '今天不宜') + '">' + esc(s) + (ok ? ' ✓' : '') + '</button>';
+        '" data-scene="' + esc(s) + '" title="' + (ok ? _dayWord + '适合' : _dayWord + '不宜') + '">' + esc(s) + (ok ? ' ✓' : '') + '</button>';
     }).join('');
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
     if (typeof doHuangli._scene === 'string' && doHuangli._scene) {
-      html += _hlVerdictHtml(doHuangli._scene, yi, ji, YI_MAP, JI_MAP);
+      html += _hlVerdictHtml(doHuangli._scene, yi, ji, YI_MAP, JI_MAP, _dayWord);
+    }
+    /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
+     * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
+    if (doHuangli._pendingAskNote) {
+      doHuangli._pendingAskNote = undefined;
+      html += '<div class="hl-verdict" id="hlVerdict" role="status">' +
+        esc(_hlNoSceneNote(yi, ji, _dayWord)) + '</div>';
     }
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */
@@ -3977,7 +4036,7 @@ async function doHuangli(offset, reveal) {
       '<input id="hlAskInput" type="text" maxlength="30" placeholder="问一嘴：今天适不适合面试／搬家…" style="flex:1;min-width:0;padding:9px 14px;border:1px solid var(--border);border-radius:999px;font-size:13.5px;background:var(--card);color:var(--text);outline:none;">' +
       '<button type="button" id="hlAskBtn" style="flex-shrink:0;padding:9px 18px;border:none;border-radius:999px;font-size:13.5px;font-weight:600;background:linear-gradient(135deg,#8A6408,#6E5006);color:#fff;cursor:pointer;">问</button>' +
       '</div>';
-    html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看今天合不合适（✓ = 宜项里有它）</div></div>';
+    html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看' + esc(_dayWord) + '合不合适（✓ = 宜项里有它）</div></div>';
     /* 冲煞 */
     if (j.chongsha) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(j.chongsha) + '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，供参考娱乐，大事还是要相信自己的判断 ✨</div>';
@@ -4041,13 +4100,43 @@ async function doHuangli(offset, reveal) {
       var KNOWN = ['搬家','开业','约会','面试','出行','签约','表白','相亲','结婚','领证','求职','上班','入职','挪窝','装修','开张','合同','旅行','出差','出游','收款','理财','看病','种花'];
       var hitName = '';
       for (var i = 0; i < KNOWN.length; i++) { if (q.indexOf(KNOWN[i]) !== -1) { hitName = KNOWN[i]; break; } }
-      if (!hitName) {
+      /* R227b：词表外的说法也抽事项词，进「没直接提到=中性」判定；
+       * 完全抽不出词（「今天怎么样」）→ 给当日主推 + 引导，不死拒。
+       * R227b-fix：日期词真生效——「明天适合出行吗」翻明天的黄历再判，
+       * 不再拿当前显示日充数（off=null 才按显示日）。 */
+      var sc = hitName || _hlExtractScene(q);
+      var off = _hlDayOffset(q);
+      if (!sc) {
+        doHuangli._scene = '';
+        if (off != null) {
+          doHuangli._pendingAskNote = true;
+          doHuangli._keepSy = window.scrollY;
+          doHuangli(off, false);
+          return;
+        }
+        var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
+        var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
+          doHuangli._dayWord || '今天');
         var v2 = document.getElementById('hlVerdict');
-        if (v2) v2.textContent = '这个问题我接不住——黄历词库暂时只有日常事项（搬家/开业/约会/面试/出行/签约这些），换个说法再问一次？';
-        else doHuangli._scene = '';
+        if (v2) { v2.textContent = note; }
+        else {
+          var askRow = document.querySelector('#hlResult .hl-ask');
+          if (askRow && askRow.parentNode) {
+            var nv = document.createElement('div');
+            nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
+            nv.setAttribute('role', 'status');
+            nv.textContent = note;
+            askRow.parentNode.insertBefore(nv, askRow);
+          }
+        }
         return;
       }
-      doHuangli._scene = hitName;
+      doHuangli._scene = sc;
+      if (off != null) {
+        doHuangli._keepSy = window.scrollY;
+        doHuangli(off, false);
+        return;
+      }
       var head2 = document.querySelector('#hlResult .hl-head div');
       var ds2 = head2 ? head2.textContent.trim() : '';
       if (/^\d{4}-\d{2}-\d{2}$/.test(ds2)) {
@@ -4676,6 +4765,8 @@ function baziPersonaCard(j) {
 function renderRichText(raw) {
   var s = esc(String(raw == null ? '' : raw));
   s = s.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
+  /* R227b：没配对的 **（跨行/嵌套/半对）一律吃掉，不许把符号露给用户 */
+  s = s.replace(/\*{2,}/g, '');
   s = s.replace(/(^|[^*])\*([^\n*]+)\*/g, '$1<em>$2</em>');
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   var lines = s.split(/\n/);
