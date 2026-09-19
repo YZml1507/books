@@ -859,7 +859,10 @@ function renderHits(hits, opts) {
   hits.forEach(function (h, i) {
     const c = colorAt(i);
     html += '<div class="ev-item accent" style="border-left-color:' + c + ';">';
-    html += '<div class="ev-meta" style="color:' + c + ';">' + esc(humanCite(h.citation || '')) +
+    html += '<div class="ev-meta" style="color:' + c + ';"' +
+      /* R228z续2：摘要行剥成书名后，悬停仍须能拿到完整出处（锚点+文件） */
+      (h.citation ? ' title="' + esc(h.citation) + '"' : '') + '>' +
+      esc(humanCite(h.citation || '')) +
       (h.layer ? ' · ' + esc(h.layer) : '') +
       /* R228w：bm25 负分（越接近 0 越好）原值 16 位浮点糊脸，
        * 留 1 位小数 + title 说明口径。 */
@@ -955,8 +958,13 @@ function renderCiteTree(items, opts) {
       html += '<div class="cite-item">';
       html += citeToggle(bid, label);
       // 原文：逐字节等于 API（判据 8）。esc() 只做 HTML 转义，不改内容。
+      // R228z续2：cite-body 尾部带完整原始出处——摘要行 humanCite 把
+      // @锚点/(file) 剥成只剩书名，无锚典籍（三命通会等）的出处此前在
+      // 页面上完全取不到，宪法第三条的可核验性断了一截。
       html += '<div class="cite-body" id="' + bid + '" hidden>' +
-        esc(text) + '</div>';
+        esc(text) +
+        (h.citation ? '<div class="ev-src">出处：' + esc(h.citation) + '</div>' : '') +
+        '</div>';
       if (h.disclosure) {
         html += '<div class="ev-disc">' + esc(h.disclosure) + '</div>';
       }
