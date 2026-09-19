@@ -10153,3 +10153,4 @@ R228z续2：休眠闸门 probe_first_screen 抓真问题——warm 模式 humanC
 验证：probe_first_screen PASS（出处缺失 6→0）；selftest 181 / ui_smoke 44 / dollar 全绿。
 R228z续3：休眠探针体检批——first_screen 由绿转FAIL的真问题已修（见续2）；disclosure 修 B-011 遗留崩（quality_report 混入非对键）；bcv/booksec/citation_space/conservation/addressable_now 复跑全绿。
 验证：各探针直接运行输出 PASS/正常报告。
+R228z续4-5：休眠探针体检续——归档 probe_liuyao（写死:8183一次性）、probe_coverage+probe_pipeline（旧schema弃置spike）；探针运行痕迹文件（external_witness.json/embed_c_report.json）已还原不入账。其余 ~30 个休眠探针复跑：scripts_importable/no_generated_in_corpus/r128a/liuyao_najia/huangli_shensha/variants/four_schemes/yilin_name/zhu/t7r/t7m/check_anchors/generality三件套/internal_witness/eval_version/a12系/catalog/crosssource（需markitdown缺dep）/external_verify/external_witness/t7q/ui_baseline（量尺）/ext_ingest 均正常或按设计退出。
