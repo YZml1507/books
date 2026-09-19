@@ -82,7 +82,9 @@ if ('serviceWorker' in navigator) {
       <span class="dx-label" id="dxLabel">—</span>
       <span class="dx-note" id="dxNote">—</span>
     </div>
-    <button class="daily-more" id="dailyMore" type="button">🔍 查看完整解读 →</button>
+    <!-- R228c：aria-expanded 由 loadDailyDetail 随展开/收起同步 -->
+    <button class="daily-more" id="dailyMore" type="button"
+      aria-expanded="false" aria-controls="dailyDetail">🔍 查看完整解读 →</button>
     <!-- #dailyMore 的落点：原来只有按钮没有处理器也没有容器（R000a-03） -->
     <div class="daily-detail" id="dailyDetail" hidden></div>
   </div>
