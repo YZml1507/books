@@ -17998,3 +17998,11 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 搁置（有意）：knowledge.verify() 子序列匹配——层过滤引文合法跳过
   夹注（注释 X-10/G6），换子串会误伤真引文；同 session 并发时序
   （罕见）；「解除合同→立券」语境误分（需否定语义，投入产出不成比）。
+
+## R228s（事项词歧义消解）
+
+- _CHAT_SCENE_TERMS 匹配改长键优先（sorted by len desc）：
+  「解除合同」原先撞上「合同」被误分到立券（签约方向，意图相反）。
+  补显式键 解除合同/毁约/退婚→解除；「说拜拜/拜拜了/再见」→解除
+  （散伙口语），单词「拜拜」仍归祭祀。
+- 判据：selftest 178 / contract 382 / ui_smoke 43 全绿。
