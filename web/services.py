@@ -727,6 +727,10 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
 _HUANGLI_VOCAB: frozenset = frozenset(
     w for d in (*huangli_mod.ZHIRI_YIJI.values(), *huangli_mod.XIUXIU_YIJI.values())
     for w in (*d["yi"], *d["ji"]))
+# R228m：frozenset 迭代序跨进程不稳定（PYTHONHASHSEED）——候选词表固定为
+# 「长词优先、同长字典序」的 tuple，同一消息在不同进程必选同一事项词。
+_HUANGLI_VOCAB_ORD: tuple = tuple(
+    sorted(_HUANGLI_VOCAB, key=lambda t: (-len(t), t)))
 
 
 def _hl_day_part(msg: str, now: datetime) -> datetime:
@@ -773,7 +777,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
             scene, terms = k, vv
             break
     if not scene:
-        for t in _HUANGLI_VOCAB:
+        for t in _HUANGLI_VOCAB_ORD:
             if t in msg:
                 scene, terms = t, [t]
                 break
@@ -896,7 +900,7 @@ _LEVEL_ADVICE = {
     "平": ("宜合作、宜静养、宜学习", "忌冲动、忌远行"),
 }
 
-_BAD_RELS = ("相害", "相刑", "自刑", "相冲")
+_BAD_RELS = ("相害", "相刑", "自刑", "六冲")   # R228m：产出侧枚举是「六冲」（bazi_calc.py:141）
 _GOOD_RELS = ("六合", "三合", "半合")
 
 
@@ -918,7 +922,7 @@ def fortune_level(calc_out: dict) -> str:
             score += 1
     for dr in (calc_out.get("day_luck") or {}).get("day_branch_rels") or []:
         t = dr.get("type", "")
-        if t in ("相害", "相刑", "相冲"):
+        if t in ("相害", "相刑", "六冲"):
             score -= 1
         elif t in _GOOD_RELS:
             score += 1
@@ -997,12 +1001,17 @@ def daily(date_str: str | None = None) -> dict:
                     datetime(_d0.year, _d0.month, _d0.day, 12)))
             except Exception:
                 _want = None
-            if not _want or _c.get("noble") == _want:
+            # R228m：cv=2 钉住「level 按请求日算」口径——cv 缺/旧（含 noble
+            # 校验时代写的行）一律重算覆盖，杜绝「写入日口径」固化。
+            if _c.get("cv") == 2 and (not _want or _c.get("noble") == _want):
                 return {"date": date_str, **_c, "cached": True}
     try:
         d = date.fromisoformat(date_str)
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
-        calc_out = bazi_calc(b)
+        # R228m：?date=X 的 level 必须按请求日算——原来 bazi_calc(b) 缺省
+        # 回退 date.today()，73/400 天等级被「今天」口径改写且被
+        # daily_cache 固化成「写入日口径」。
+        calc_out = bazi_calc(b, ask_date=date_str)
         level = fortune_level(calc_out)
         do_str, dont_str = _LEVEL_ADVICE[level]
         # R214b：宜忌换年轻化表达（文案库优先，缺失回退旧表）。
@@ -1028,6 +1037,7 @@ def daily(date_str: str | None = None) -> dict:
             noble_str = "—"
         result = {
             "date": date_str,
+            "cv": 2,                     # 缓存口径版本（R228m：level 按请求日）
             "level": level,
             "summary": (summary if (_db and level in (_db.get("levels") or {}))
                         else fortune_summary(calc_out)),

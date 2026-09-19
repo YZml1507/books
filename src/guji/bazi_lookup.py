@@ -193,7 +193,9 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
                 if len([o for o in out if o["work_id"] == wid]) >= per_work:
                     break
     conn.close()
-    out.sort(key=lambda o: (-o["score"], o["work_id"]))
+    # R228m：FTS5 bm25 分数为负、越负越好——`-score` 升序=最差在前，
+    # 叠上 [:20] 截断等于把最强命中整批丢弃。改回 bm25 升序。
+    out.sort(key=lambda o: (o["score"], o["work_id"]))
     return out[: 20]
 
 

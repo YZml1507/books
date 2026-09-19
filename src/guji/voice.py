@@ -99,7 +99,7 @@ ELEMENT_GENERATED_BY = {v: k for k, v in ELEMENT_GENERATES.items()}
 
 # 地支关系 → 日常语（中性描述，不断吉凶）
 RELATION_WARM: dict[str, str] = {
-    "相冲": "有一股对着来的劲，节奏容易被打断",
+    "六冲": "有一股对着来的劲，节奏容易被打断",
     "相害": "有些细碎的磨，多是小事不是大事",
     "相刑": "事情容易反复，需要返工",
     "自刑": "内耗比外部阻力多",

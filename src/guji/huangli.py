@@ -463,7 +463,9 @@ def find_good_days(start: datetime, end: datetime,
     cur = start
     while cur <= end:
         q = day_query(cur)
-        if key in q["yi"]:
+        # R228m：宜∩忌双标日剔除——「宜嫁娶也忌嫁娶」的日子不能当吉日推
+        # （92 天窗口实测 19 天同项冲忌并存）。
+        if key in q["yi"] and key not in q["ji"]:
             good.append(q)
         cur += timedelta(days=1)
     return good
