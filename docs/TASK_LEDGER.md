@@ -18030,3 +18030,14 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 新增 chat.facts.dates_vocab：钉住 下周X 真判该曜日、长键消歧
   （解除合同→解除非立券）、新事项词（理发/养猫/手术）出判定卡、
   非今日中性卡说「那天」。selftest 178→179。
+
+## R228s续4（探针目录归档）
+
+- probes/ 根下 13 个零引用探针（anchor_verify/anchors/batch/bazi/
+  bazi_disable/catalog2/classify/cmap/diagram/kr06_gua19/parse/
+  witness_pairs/yilin_aliases）→ archive/。判定：无 docs/.agents/
+  scripts/ 引用，属早期轮次一次性探查脚本；活跃闸门（contract/
+  ui_smoke/dollar_misuse/selftest_regress/no_generated/
+  scripts_importable/first_screen/bcv/conservation/citation_space/
+  g8_isolation/booksec/disclosure 等）全部保留原位。probes/ 根 73→60。
+- 判据：selftest 179 / contract 382 / ui_smoke 43 全绿。
