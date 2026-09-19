@@ -10129,3 +10129,15 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   拆两条 system 消息（坐标=参考勿念，判定=权威必照说）。
 - 判据：selftest 180 全绿（两处钉扎更新到新措辞）；agnes 实测
   「下周三考试」正确报 9/23 中性+宜考试日 9/28·10/11·10/23。
+
+## R228x（黄历「挑吉日」chip + 口语事项归一）
+
+- 后端 /api/huangli affair 分支走 _CHAT_SCENE_TERMS 归一：口语词
+  （理发/养猫/聚餐…）落到规范词集合逐词找日按日期并集——此前
+  精确匹配恒空。响应加 terms 回显归一结果。
+- 前端 doHuangli 判词卡下方异步拉 affair+days=45 区间查，渲染
+  「近期宜X：9/24 · 10/6 …」chip，点击直接翻到那一天（doHuangli
+  已有任意偏移支持）。silent 拉取，空结果整块不渲染。
+- 契约探针：/api/huangli 双形态（单日/区间）字段列 CONDITIONAL。
+- 判据：selftest 181（+huangli.affair.spoken）/ contract 386 /
+  ui_smoke 43 全绿；实测理发→冠笄 4 天、出行 5 天。

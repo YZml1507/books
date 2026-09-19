@@ -227,6 +227,12 @@ CONDITIONAL_FIELDS = {
     # 缺席的正确探测。
     "/api/chat": {"chat_task_id"},
     "/api/qiming/review": {"review_task_id"},
+    # R228x：/api/huangli 双形态——单日返回 yi/ji/…，带 affair+days 返回
+    # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；
+    # 前端对 good_days 有 Array.isArray 守卫 → 条件存在字段，不算漂移。
+    "/api/huangli": {"good_days", "good_days.date", "good_days.yi",
+                     "good_days.ji", "count", "terms", "affair", "start",
+                     "days"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

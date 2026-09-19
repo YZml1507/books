@@ -260,6 +260,12 @@ def _run_inner() -> list[str]:
     check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
           "date": "2026-08-17", "days": 30}),
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
+    # R228x：口语事项归一——「理发」不在宜忌词表，不归一则 good_days 恒空；
+    # 归一后落到冠笄（实测 2026-09-19 起 45 天内 4 天）。terms 回显供前端
+    # 与用户确认「理发按冠笄查的」。
+    check("huangli.affair.spoken", client.get("/api/huangli", params={
+          "affair": "理发", "date": "2026-09-19", "days": 45}),
+          lambda j: j.get("terms") == ["冠笄"] and j.get("count", 0) > 0)
     check("huangli", client.get("/api/huangli", params={"date": "2026-08-17",
           "days": 1}),
           lambda j: j.get("date") and j.get("yi") and j.get("ji"))

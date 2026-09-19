@@ -682,8 +682,16 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # （实测 365 天≈21s）——服务层兜底钳位，与路由 Query(le=92) 同值。
         days = max(1, min(int(days), 92))
         end = dt + timedelta(days=days - 1)
-        good = huangli_mod.find_good_days(dt, end, affair)
-        return {"affair": affair,
+        # R228x：口语词归一——「理发/养猫」不在宜忌词表里，精确匹配恒空；
+        # 与聊天/问一嘴同走 _CHAT_SCENE_TERMS 拿规范词集合，逐词找日
+        # 后按日期并集（一事项多规范词：搬家→移徙+入宅+修造）。
+        terms = _CHAT_SCENE_TERMS.get(affair) or [affair]
+        by_date: dict[str, dict] = {}
+        for _t in terms:
+            for _q in huangli_mod.find_good_days(dt, end, _t):
+                by_date.setdefault(_q["date"], _q)
+        good = [by_date[k] for k in sorted(by_date)]
+        return {"affair": affair, "terms": terms,
                 "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
                 "days": days, "good_days": good, "count": len(good)}
 

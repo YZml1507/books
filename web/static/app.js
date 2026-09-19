@@ -4265,6 +4265,39 @@ async function doHuangli(offset, reveal) {
     if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(_csTxt) + '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     paint('hlResult', html);
+    /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
+     * （后端 affair+days 区间查，含口语词归一），chip 点击直接翻
+     * 到那一天。silent：查不到不打扰，宜日缺席时整个提示块不渲染。 */
+    if (_HL.scene) {
+      var _gsc = _HL.scene;
+      var _gsrc = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      api('/api/huangli?date=' + _gsrc + '&affair=' + encodeURIComponent(_gsc) +
+          '&days=45', { silent: true }).then(function (gj) {
+        var box = document.getElementById('hlVerdict');
+        if (!box || !gj || _HL.scene !== _gsc ||
+            !Array.isArray(gj.good_days) || !gj.good_days.length) return;
+        var _today0 = new Date(); _today0.setHours(0, 0, 0, 0);
+        var chips = gj.good_days.slice(0, 6).map(function (gd) {
+          var pp = String(gd.date || '').split('-');
+          var t = new Date(+pp[0], (+pp[1]) - 1, +pp[2]);
+          var off = Math.round((t - _today0) / 86400000);
+          var lab = (+pp[1]) + '/' + (+pp[2]);
+          return '<button type="button" class="hl-daychip" data-hldayoff="' + off +
+            '">' + esc(lab) + '</button>';
+        }).join('');
+        var tip = document.createElement('div');
+        tip.className = 'hl-gooddays';
+        tip.innerHTML = '<span class="hl-gooddays-label">近期宜' +
+          esc(_gsc) + '：</span>' + chips;
+        if (box.nextSibling) box.parentNode.insertBefore(tip, box.nextSibling);
+        else box.parentNode.appendChild(tip);
+        tip.querySelectorAll('[data-hldayoff]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            doHuangli(Number(b.dataset.hldayoff), true);
+          });
+        });
+      }).catch(function () { /* 网络抖动：不弹不阻，判词本身已够用 */ });
+    }
     var _ai2 = document.getElementById('hlAskInput');
     if (_ai2 && _askKeep) _ai2.value = _askKeep;   /* R228c：输入框保活回填 */
     if (_hlBox) { _hlBox.classList.remove('is-loading'); _hlBox.style.pointerEvents = ''; }   /* v5-fix：释放 loading 态 */
