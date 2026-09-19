@@ -10180,3 +10180,11 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - `probe_ui_smoke` +2 用例（44→46）：`btn:history.replay` 真人路径走通排盘历史复看（btn:bazi 先写真记录 → 历史视图点「复看」→ 断言 #historyDetail 可见 + 零 ReferenceError/_rmBehavior pageerror）；`css:checkin-opt.readable` 断言未选中 chip computed color ≠ rgb(255,255,255)（白字白底类回归钉扎）。
 - 意义：R5 审计 P0/P1 都是「浏览器侧运行/渲染错误无任何闸门盯」一类——这两条钉住后同类回归会被 UI 冒烟拦下。
 - 闸门：ui_smoke 46/46 PASS（新用例均绿）。
+
+### R229e（繁中问句归一 + 分享卡 meta）
+
+- 繁中输入盲区：`明天適合出行嗎` 此前前端抽出「適合出行嗎」整串当事项词、后端 `_CHAT_SCENE_TERMS` 全简体打不中（事实行缺席→LLM 自由发挥）。前后端各加同一张问句域「繁→简」映射表（`_T2S`/`_t2s`，~70 字，宁缺毋滥）：匹配/抽词前归一，原文留给日期词与展示。
+- 顺修：strip 表补「下周末」（此前「下週末看黃曆」剥出「末看黄历」）、停用表补「看黄历/查黄历/看日子/挑日子/怎么样」、`樣→样` 补字。
+- 实测：明天適合出行嗎→出行／後天能剪頭髮嗎→剪头发／可以簽約嗎→签约／下週末看黃曆→跳周六卡／今天怎麼樣→泛问路径。
+- og:image + twitter card meta（链接分享从此有图）。
+- 闸门：selftest 181 / ui_smoke 46 全 PASS。

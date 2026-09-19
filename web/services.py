@@ -785,6 +785,29 @@ _HUANGLI_VOCAB_ORD: tuple = tuple(
 
 _WEEKDAY = "一二三四五六日天"
 
+# R229d：繁中问句归一——「明天適合簽約嗎」此前 _CHAT_SCENE_TERMS 全简体
+# 打不中（事实行缺席 → LLM 自由发挥）。只映射问句域常见字，与前端
+# app.js _T2S 同表；未映射字原样通过（宁缺毋滥不错转）。
+_T2S = {
+    "適": "适", "嗎": "吗", "麼": "么", "會": "会", "個": "个", "這": "这",
+    "裡": "里", "裏": "里", "對": "对", "說": "说", "話": "话", "問": "问",
+    "聽": "听", "來": "来", "時": "时", "現": "现", "點": "点", "頭": "头",
+    "髮": "发", "換": "换", "簽": "签", "約": "约", "結": "结", "證": "证",
+    "領": "领", "裝": "装", "張": "张", "業": "业", "職": "职", "學": "学",
+    "試": "试", "遠": "远", "遊": "游", "國": "国", "門": "门", "間": "间",
+    "錢": "钱", "財": "财", "買": "买", "賣": "卖", "價": "价", "醫": "医",
+    "藥": "药", "養": "养", "貓": "猫", "魚": "鱼", "鳥": "鸟", "種": "种",
+    "運": "运", "氣": "气", "勢": "势", "曆": "历", "歷": "历", "黃": "黄",
+    "還": "还", "見": "见", "長": "长", "親": "亲", "屬": "属", "喪": "丧",
+    "動": "动", "離": "离", "準": "准", "備": "备", "處": "处", "幾": "几",
+    "緊": "紧", "擇": "择", "幹": "干", "臺": "台", "週": "周", "禮": "礼",
+    "樣": "样",
+}
+
+
+def _t2s(s: str) -> str:
+    return "".join(_T2S.get(ch, ch) for ch in s)
+
 
 def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     """消息里的相对日（明天/后天/昨天/下周X/周末…），默认今天。
@@ -855,22 +878,23 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     if not msg:
         return []
     now = now or datetime.now()
+    msg_n = _t2s(msg)   # R229d：繁中归一后再做事项词/泛问匹配（原文留给日期词）
 
     scene, terms = "", []
     # R228s：长词优先匹配——「解除合同」若先撞上「合同」会被误分到立券
     # （签约方向，与用户意图相反）。先扫长键再扫短键消歧。
     for k in sorted(_CHAT_SCENE_TERMS, key=len, reverse=True):
-        if k in msg:
+        if k in msg_n:
             scene, terms = k, _CHAT_SCENE_TERMS[k]
             break
     if not scene:
         for t in _HUANGLI_VOCAB_ORD:
-            if t in msg:
+            if t in msg_n:
                 scene, terms = t, [t]
                 break
     generic = not scene and any(
-        k in msg for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
-                           "择日", "适合做什么", "适合干什么"))
+        k in msg_n for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
+                             "择日", "适合做什么", "适合干什么"))
     if not scene and not generic:
         return []
 
