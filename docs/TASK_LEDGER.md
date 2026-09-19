@@ -17832,3 +17832,7 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   （ask/stats/widget/share/fortune，删端点=契约变更，待用户裁决）；
   _candidates 孤儿图 7 张（备选资产，下轮登记 README）。
 - 验证：selftest 173 / contract 255 / ui_smoke 41 / dollar 0 全绿。
+
+- R228l 续：set_prefs 批量单事务（逐键 commit→半截状态消除）；
+  add_favorite (type,ref_id) 去重返回已有 id；paipan_history._conn 损坏
+  自恢复（sqlite_master 探针→坏文件挪 .corrupt-<ts>→开新库，实测通过）。
