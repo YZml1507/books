@@ -17819,3 +17819,16 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   requestIdleCallback，首屏省 ~95KB；api() 20s 超时+断网人话 toast；AI 轮询 silent。
 - bazi_lookup numpy 惰性加载：web.app 导入 408→342ms（-16%）。
 - 验证：selftest 173 / contract 256 / dollar 0 / ui_smoke 41 PASS。
+
+
+### R228l（本轮）死代码与资产卫生批
+
+- 删 8 处未用 import/符号（AST 复核），~20 条零引用 CSS 规则，
+  data-theme-btn 死委托+空壳 div（R207b 残留），_todayIcon/_icon/WX_NAME
+  计算未读残留。_qmApplyNames 在本分支已不存在（审计对的是 main）。
+- probe_contract：/api/history fixture+resolver 删（端点 R219b 已删）；
+  history_db 记账升级为「POST /api/bazi 不落 history」行为断言。
+- 未动：xz-*/deco-* 双定义块（需逐属性合并，下轮做）；5 僵尸端点
+  （ask/stats/widget/share/fortune，删端点=契约变更，待用户裁决）；
+  _candidates 孤儿图 7 张（备选资产，下轮登记 README）。
+- 验证：selftest 173 / contract 255 / ui_smoke 41 / dollar 0 全绿。
