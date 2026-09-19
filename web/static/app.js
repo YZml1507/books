@@ -2616,17 +2616,24 @@ async function doThread() {
       '<p style="font-size:14px;line-height:1.6;">' + esc(j.claim || '') + '</p>' +
       (j.n_evidence != null ? '<p style="font-size:12px;color:var(--secondary);">证据 ' +
         esc(j.n_evidence) + ' 条</p>' : '') + '</div>';
-    const list = await api('/api/threads');
-    (list.threads || []).forEach(function (t) {
-      html += '<div class="thread-item"><div class="thread-topic">' +
-        esc(t.topic || '') + '</div>' +
-        '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
-        ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
-        esc(t.updated_at || '') + '</div>' +
-        '<div class="thread-actions">' +
-        '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
-        '">查看</button></div></div>';
-    });
+    /* R228l：创建与拉列表分两段 try——第二步失败时不能报「创建失败」，
+     * 那会误导用户重试造出重复线程。 */
+    try {
+      const list = await api('/api/threads');
+      (list.threads || []).forEach(function (t) {
+        html += '<div class="thread-item"><div class="thread-topic">' +
+          esc(t.topic || '') + '</div>' +
+          '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
+          ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
+          esc(t.updated_at || '') + '</div>' +
+          '<div class="thread-actions">' +
+          '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
+          '">查看</button></div></div>';
+      });
+    } catch (e2) {
+      html += '<div class="no-evidence">线程已创建，列表刷新失败：' +
+        esc(e2.message) + '</div>';
+    }
     paint('threadResult', html);
   } catch (e) {
     fail('threadResult', '创建失败：' + e.message);
