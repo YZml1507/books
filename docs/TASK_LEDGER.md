@@ -10174,3 +10174,9 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - [P2] 排盘历史卡图标复用 bazi：新增 `cream-icon-history.jpg`（同 kawaii 贴纸风账本 320×320）。
 - 搁置项（R5-02/13）：研究套件无入口=R208b 用户裁决刻意下架不动；SW register 挂起=环境残留备查。
 - 闸门：selftest 181 / contract 386 / ui_smoke 44 / dollar 0 / first_screen / regress 全 PASS。
+
+### R229d（闸门补钉：复看链路 + chips 可读性回归用例）
+
+- `probe_ui_smoke` +2 用例（44→46）：`btn:history.replay` 真人路径走通排盘历史复看（btn:bazi 先写真记录 → 历史视图点「复看」→ 断言 #historyDetail 可见 + 零 ReferenceError/_rmBehavior pageerror）；`css:checkin-opt.readable` 断言未选中 chip computed color ≠ rgb(255,255,255)（白字白底类回归钉扎）。
+- 意义：R5 审计 P0/P1 都是「浏览器侧运行/渲染错误无任何闸门盯」一类——这两条钉住后同类回归会被 UI 冒烟拦下。
+- 闸门：ui_smoke 46/46 PASS（新用例均绿）。

@@ -670,6 +670,51 @@ def main() -> int:
             results.append({"name": "btn:huangli.gooddays_chip",
                             "ok": ok, "detail": detail})
 
+            # ── R229c：排盘历史「复看」链路回归钉扎——R5 审计 P0 抓到
+            # `_rmBehavior` 嵌套在 closePosterModal 体内，复看点击必抛
+            # ReferenceError（toast 假错 + scrollIntoView 从未发生）。此类
+            # 浏览器侧运行错误此前无任何闸门盯着：用例走真人路径——btn:bazi
+            # 已写 history.db（D-039），进历史视图点第一条「复看」，断言
+            # #historyDetail 渲染可见且零 console/pageerror。
+            errors.clear()
+            try:
+                goto_view("history")
+                page.wait_for_selector("#historyList .ph-item .ph-open",
+                                       timeout=8000)
+                page.click("#historyList .ph-item .ph-open")
+                page.wait_for_timeout(1200)
+                detail_vis = page.evaluate(
+                    "() => { const d = document.getElementById('historyDetail');"
+                    " return d && !d.hidden && d.textContent.trim().length > 10; }")
+                rel_errs = [e for e in errors
+                            if "_rmBehavior" in e or "ReferenceError" in e]
+                ok = bool(detail_vis) and not rel_errs
+                detail = (f"historyDetail 可见={detail_vis}，"
+                          f"复看路径错误={len(rel_errs)}"
+                          + (": " + "; ".join(rel_errs[:2]) if rel_errs else ""))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "btn:history.replay",
+                            "ok": ok, "detail": detail})
+
+            # ── R229c：打卡 chips 可读性钉扎——R5 审计 P1：`.checkin-opt`
+            # 只盖 background 不盖 color，继承全局 button{color:#fff} =
+            # 白字白底四个选项全空白。computed style 断言非白字（picked 态
+            # 是白字渐变底，只查未选中项）。
+            try:
+                chk = page.evaluate(
+                    "() => { const o = document.querySelector("
+                    "'.checkin-opt:not(.picked)'); if (!o) return null;"
+                    " const c = getComputedStyle(o);"
+                    " return {color: c.color, bg: c.backgroundColor}; }")
+                ok = bool(chk) and chk["color"] != "rgb(255, 255, 255)"
+                detail = (f"未选中 chip 文字色={chk['color']} 底色={chk['bg']}"
+                          if chk else "未找到 .checkin-opt")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "css:checkin-opt.readable",
+                            "ok": ok, "detail": detail})
+
                         # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
             # 割裂，面板已删；后端 /api/external/news 零改动）。原两层判据
             # （btn:news.refresh.endpoint / env:news.content_reachable）改为
