@@ -18,6 +18,9 @@ from .variants import fold, segment_cjk
 def fts_phrase(q: str) -> str:
     """Segmented, folded, and quoted so FTS5 treats it as an adjacent phrase."""
     seg = segment_cjk(fold(q)).replace('"', '')
+    # R228z续：C0 控制字符剥掉——\x00 会让 FTS5 报 "unterminated string"
+    # （内部按 C 串截断），别的控制符也不构成任何检索意义。
+    seg = "".join(ch for ch in seg if ord(ch) >= 0x20)
     return f'"{seg}"'
 
 
