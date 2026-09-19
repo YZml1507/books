@@ -4082,6 +4082,12 @@ function _hlDayOffset(q, base) {
   if (/今[天日]|今日/.test(s)) return 0;
   if (/昨[天日]|昨日/.test(s)) return -1;
   if (/前[天日]|前日/.test(s)) return -2;
+  /* R229e：「下周末/下週末」必须先于「下周」通配——否则被吃成下周一，
+   * 而用户说的是下周的周六。 */
+  if (/下(周|週|礼拜|禮拜)末/.test(s)) {
+    var b0 = base || new Date();
+    return (7 - ((b0.getDay() + 6) % 7)) + 5;   /* 下个周一 +5 = 下周六 */
+  }
   /* 下周X / 下礼拜X：以下个周一为基准的曜日偏移（对齐服务端口径）。 */
   var m = s.match(/下(周|週|礼拜|禮拜)([一二三四五六日天])/);
   if (m) {

@@ -10188,3 +10188,9 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - 实测：明天適合出行嗎→出行／後天能剪頭髮嗎→剪头发／可以簽約嗎→签约／下週末看黃曆→跳周六卡／今天怎麼樣→泛问路径。
 - og:image + twitter card meta（链接分享从此有图）。
 - 闸门：selftest 181 / ui_smoke 46 全 PASS。
+
+### R229f（「下周末」语义修正 + SW v8）
+
+- 「下周末/下週末」此前被「下周」通配吃成下周一（前端 `_hlDayOffset`、后端 `_hl_day_part` 同病——「末」非曜日字落进通用分支）→ 前置显式分支映射到下周的周六（next_mon+5）。实测：下周末→9/26 六（原 9/21 一）、下周一仍 9/21。
+- sw.js CACHE bump v7→v8（index.html/app.js 本批有变更，老客首个导航不再吃到旧壳）。
+- 闸门：selftest 181 PASS（用例未减）。

@@ -835,6 +835,12 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return now + timedelta(days=1), "明儿"
     if "昨天" in msg or "昨日" in msg:
         return now - timedelta(days=1), "昨天"
+    # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
+    # 落进通用分支被吃成下周一，而用户说的是下周的周六。
+    for anchor in ("下周末", "下週末"):
+        if anchor in msg:
+            next_mon = now + timedelta(days=(7 - now.weekday()))
+            return next_mon + timedelta(days=5), "下周末"
     # 下周X / 下礼拜X：以下个周一为基准的 X 曜日
     for anchor in ("下周", "下週", "下礼拜", "下禮拜"):
         if anchor in msg:
