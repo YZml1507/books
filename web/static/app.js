@@ -532,6 +532,18 @@ function pollNameReview(taskId) {
   setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
 
+/* R228h：Safari<15.5 / 旧 Edge 不认识 inert——设上只是 expando，Tab 仍穿透。
+ * 降级：不支持时给栏内可点控件打 tabIndex=-1（开栏恢复）。chatOpen 与
+ * _setRecent 两条开栏路径共用。 */
+var _NO_INERT = !('inert' in HTMLElement.prototype);
+function sbFocusable(sb, enable) {
+  if (!_NO_INERT || !sb) return;
+  sb.querySelectorAll('button, a[href], input, [tabindex]').forEach(function (c) {
+    if (enable) { c.removeAttribute('tabindex'); }
+    else { c.setAttribute('tabindex', '-1'); }
+  });
+}
+
 /* R209b：聊天并入左侧统一栏——打开聊天=打开侧栏并滚到聊天段。 */
 function chatOpen() {
   var sb = el('recentSidebar');
@@ -539,6 +551,7 @@ function chatOpen() {
   sb.classList.add('open');
   /* R228d：chatOpen 与 _setRecent 都能拉开侧栏——inert/aria 同步复位 */
   sb.inert = false;
+  sbFocusable(sb, true);
   sb.setAttribute('aria-hidden', 'false');
   /* D-006：每次打开侧栏重置发送计数，允许新一轮「自动发+1次追问」
    * R228c：计数归零但输入框/按钮的 disabled 不复位，重开仍锁死到刷新——
@@ -4306,11 +4319,14 @@ function initViews() {
   /* R228d：侧栏关态收编——transform 移屏外后 Tab 序与读屏树仍穿 6 个控件
    *（360px 实测 chatInput 可 focus、焦点矩形 x=-293）。inert 属性为主，
    * CSS visibility:hidden 兜底；chatOpen 直加 .open 的路径也要复位 inert。 */
-  if (sb) { sb.inert = true; sb.setAttribute('aria-hidden', 'true'); }
+  /* R228h：Safari<15.5 / 旧 Edge 不认识 inert——设上只是 expando，Tab 仍穿透。
+   * 降级：不支持时给栏内可点控件打 tabIndex=-1（开栏恢复）。 */
+  if (sb) { sb.inert = true; sb.setAttribute('aria-hidden', 'true'); sbFocusable(sb, false); }
   function _setRecent(open) {
     if (!sb) return;
     sb.classList.toggle('open', open);
     sb.inert = !open;
+    sbFocusable(sb, open);
     sb.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (bd) bd.classList.toggle('open', open);
@@ -4589,8 +4605,10 @@ const CHECKIN_FEEDBACK = {
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
   if (!box) return;
-  const saved = (window.localStorage && dateKey) ?
-    window.localStorage.getItem('checkin:' + dateKey) : null;
+  /* R228h：window.localStorage 属性本身在隐私模式下读就抛——整个 getter 进 try */
+  let saved = null;
+  try { saved = dateKey ? window.localStorage.getItem('checkin:' + dateKey) : null; }
+  catch (e0) { saved = null; }
   const opts = CHECKIN_OPTS.map(function (o) {
     return '<button type="button" class="checkin-opt' +
       (saved === o ? ' picked' : '') + '" data-opt="' + o + '" ' +

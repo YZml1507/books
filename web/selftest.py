@@ -1265,6 +1265,19 @@ def run() -> list[str]:
     assert "function fmtScalar" in _js, "fmtScalar renderer must exist"
     ok.append("frontend.no_object_object")
 
+    # R228h：on('id') 静态对表——on() 注册的 id 必须能在 index.html 或
+    # app.js 的动态模板里找到，否则是死绑定（审查轨 ui_smoke BUTTON_CASES
+    # 只能覆盖手列的按钮；这条静态闸把整个 on() 注册面一次兜住）。
+    # 注意 `\bon\(` 词边界：没有它 `renderDecoration('bazi')` 会被误算。
+    _html = open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                               "static", "index.html"), encoding="utf-8").read()
+    _dom_ids = set(_re.findall(r'id="([\w-]+)"', _html)) | \
+        set(_re.findall(r'id="([\w-]+)"', _js))
+    _dead = sorted(set(_re.findall(r"(?<![\w.])on\('(\w+)'", _js)) - _dom_ids)
+    assert not _dead, ("on() 死绑定：id 在 index.html 与 app.js 模板中均不存在",
+                       _dead)
+    ok.append("frontend.on_wiring")
+
     # ── 004 warm 视图（R182b，M1）：判据 1/2/5/6/7/8/15 的 selftest 侧覆盖 ──
     # 完整判据由 web/check_warm_voice.py 把关（含术语表/禁用词表与阳性对照）；
     # 这里放**端点契约级**断言：warm 键存在、结构齐、确定性、引文复用。

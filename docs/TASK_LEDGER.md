@@ -17786,3 +17786,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   前端无调用，注明不造 fixture。
 
 结果：203 → 267 读点 PASS（SOFT 13→9，其中 4 处是归因修正而非新兜底）。
+
+## §187（R228h）健壮性+死绑静态闸
+
+- renderCheckin：`window.localStorage` 属性本身在隐私模式读就抛 SecurityError，getter 进 try。
+- `sbFocusable`：Safari<15.5 无 inert 时给侧栏控件打/消 tabindex=-1，chatOpen/_setRecent 共用。
+- selftest 新增 `frontend.on_wiring`：`on('id')` 静态对表（注意 `\bon\(` 词边界——
+  否则会误算 `renderDecoration('bazi')` 这类词尾）。172→173。
+
+闸门：selftest 173 / contract 267 / dollar_misuse 0 / regress PASS。
