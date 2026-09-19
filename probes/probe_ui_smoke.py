@@ -730,6 +730,33 @@ def main() -> int:
             results.append({"name": "env:news.content_reachable", "ok": True,
                             "detail": "R208b 随面板一并退役"})
 
+            # ── R229n（R6-#3）：422 pydantic 英文原文上屏钉扎——JS 直设
+            # #question 超 maxlength（绕过属性），提交后 toast 必须是
+            # _humanize422 的中文（"问题最多 200 字"），不能漏
+            # 'Input should…'/'String should…' 之类 pydantic 原文。
+            errors.clear()
+            goto_view("bazi")
+            try:
+                page.evaluate(
+                    "() => {"
+                    " const m = {year:'1990',month:'5',day:'15'};"
+                    " for (const k in m) { const e = document.getElementById(k);"
+                    "  if (e) e.value = m[k]; }"
+                    " const q = document.getElementById('question');"
+                    " if (q) q.value = '啊'.repeat(300); }")
+                page.click("#submit")
+                page.wait_for_selector(".toast-item", timeout=8000)
+                tmsg = page.inner_text(".toast-item .toast-msg") or ""
+                en_leak = any(s in tmsg for s in (
+                    "Input should", "String should", "should be",
+                    "characters", "items", "type", "value_error"))
+                ok = bool(tmsg.strip()) and not en_leak
+                detail = f"toast={tmsg!r}"
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "ui:err422.humanized",
+                            "ok": ok, "detail": detail})
+
             # ── AI 润色区块两用例（R132a，specs/006 T2.3）──────────────
             # mock LLM 已注入被测服务。D-145a：只断行为（区块出现、标注常显、
             # 与引文区分离），不钉内部命名以外的实现细节。
