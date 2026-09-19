@@ -5214,3 +5214,14 @@ function humanCite(citation) {
   s = s.replace(/\s{2,}/g, ' ');
   return s.trim();
 }
+
+/* ── R229u：离线感知——SW 兜住壳后用户仍可能不知道断网，操作只会收到
+ * 泛泛的「网络不太好」。offline/online 事件给一条明确状态提示。 */
+(function () {
+  window.addEventListener('offline', function () {
+    showToast('当前离线——数据暂时刷不出来，恢复网络后再试', 'warn');
+  });
+  window.addEventListener('online', function () {
+    showToast('网络回来了～', 'info');
+  });
+})();

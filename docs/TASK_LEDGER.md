@@ -10294,3 +10294,7 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 ### R229t续（AI 任务行总数帽）
 
 - `_MAX_PENDING` 只管在途任务，完成行靠 600s TTL——洪泛可在 TTL 内积成山。新增 `_MAX_TASK_ROWS=256` 总行帽：超帽拒 spawn（功能降级服务不死）。
+
+### R229u（离线感知提示）
+
+- SW 兜住壳后断网状态下用户没有任何「现在离线」的明确信号，只会收到泛泛网络错误。新增 offline/online 事件监听：断网 → 「当前离线——数据暂时刷不出来」warn toast；恢复 → 「网络回来了」info toast。SW CACHE bump v10。
