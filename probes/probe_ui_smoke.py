@@ -254,6 +254,10 @@ def main() -> int:
     with kb_mod.KnowledgeBase(kb_path) as kb:
         derived_baseline = kb.db.execute(
             "SELECT COALESCE(MAX(id),0) AS m FROM derived").fetchone()["m"]
+        # R228x续：后端「新建线程」语义修复后，btn:threads 每跑一轮会真开
+        # 一行 thread+turn——跟 derived 一样按基线回收，别让线程表越堆越脏。
+        thread_baseline = kb.db.execute(
+            "SELECT COALESCE(MAX(id),0) AS m FROM thread").fetchone()["m"]
 
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([ROOT, os.path.join(ROOT, "src"),
@@ -862,6 +866,11 @@ def main() -> int:
             kb.db.execute("DELETE FROM evidence WHERE derived_id=?", (row["id"],))
             kb.db.execute("DELETE FROM derived WHERE id=?", (row["id"],))
             cleaned.append(f"derived#{row['id']}")
+        for trow in kb.db.execute("SELECT id FROM thread WHERE id > ?",
+                                  (thread_baseline,)).fetchall():
+            kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
+            kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
+            cleaned.append(f"thread#{trow['id']}")
         kb.db.commit()
     hist_after = history_db.count()
 
