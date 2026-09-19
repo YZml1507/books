@@ -10290,3 +10290,7 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 
 - `_gc_chat_sessions` 原来只按 TTL（30min）清旧——海量唯一 session_id 可在 TTL 内把 `_chat_sessions`/`_chat_call_locks` 撑爆（每 sid 一格，危机/非法消息也会先建锁）。新增 `_CHAT_MAX_SESSIONS=512`：超帽逐最旧会话（LRU-ish），锁表单独按 2× 帽清未锁定项。
 - selftest +1：`chat.sessions.cap`（灌 552 会话→GC→≤512 且最旧 40 个被逐）。
+
+### R229t续（AI 任务行总数帽）
+
+- `_MAX_PENDING` 只管在途任务，完成行靠 600s TTL——洪泛可在 TTL 内积成山。新增 `_MAX_TASK_ROWS=256` 总行帽：超帽拒 spawn（功能降级服务不死）。

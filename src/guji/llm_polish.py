@@ -217,6 +217,9 @@ def _sanitize(text: str | None) -> str | None:
 _TASK_TTL_S = 600.0          # 任务记录保留 10 分钟：足够前端轮询完，又不积内存
 _MAX_PENDING = 12            # 在途 AI 任务上限——未鉴权端点每请求一线程+最坏
                              # 6 次 LLM 往返，无界时单人会话能拖垮连接池
+_MAX_TASK_ROWS = 256         # R229t：任务行总数帽——_MAX_PENDING 只管在途，
+                             # 完成行靠 600s TTL，洪泛可在此期间积成山；
+                             # 超帽拒 spawn（功能降级但服务不死）。
 _POLL_CAP_S = 40.0           # 前端轮询上限（秒）；到点未完成按失败处理（不渲染）
 
 _tasks: dict[str, dict] = {}
@@ -251,6 +254,8 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()
+        if len(_tasks) >= _MAX_TASK_ROWS:
+            return None
         pending = sum(1 for t in _tasks.values() if t["status"] == "pending")
         if pending >= _MAX_PENDING:
             return None
