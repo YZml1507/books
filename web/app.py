@@ -68,6 +68,18 @@ def create_app() -> FastAPI:
 
     errors.install(application)
 
+    # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
+    # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，
+    # no-referrer 防查询串外泄。CSP 不配：index.html 有内联 <script>/
+    # style=，要配只能 unsafe-inline，形同虚设。
+    @application.middleware("http")
+    async def _security_headers(request, call_next):
+        resp = await call_next(request)
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+        resp.headers.setdefault("Referrer-Policy", "no-referrer")
+        return resp
+
     for router in ROUTERS:
         application.include_router(router)
 

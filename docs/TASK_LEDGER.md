@@ -10073,3 +10073,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 判据：selftest 179 / contract 382 SOFT=8 / ui_smoke 43 / dollar 零命中。
 - 已知残留：ui_smoke 点「创建线程」每次留一行 thread（无清理钩子），
   dev fixture 库可接受；如需可加页面 DOM 解析回收。
+
+## R228t（安全响应头中间件）
+
+- 此前全站零安全头。加 http middleware 统一下发
+  X-Content-Type-Options: nosniff / X-Frame-Options: DENY /
+  Referrer-Policy: no-referrer（setdefault——个别响应已带不覆盖）。
+  CSP 不配：index.html 有内联 <script>+style=，配只能 unsafe-inline
+  形同虚设，已在注释里说明。
+- selftest 新增 sec.headers 钉扎（180 checks）。

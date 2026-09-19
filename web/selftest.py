@@ -1027,7 +1027,13 @@ def run() -> list[str]:
     assert "text/html" in (home.headers.get("content-type") or ""), \
         "home must be HTML"
     assert "<html" in home.text.lower(), "home must contain <html>"
+    # R228t：安全响应头钉扎——中间件丢失会让 nosniff/DENY 静默消失
+    for _h, _v in (("x-content-type-options", "nosniff"),
+                   ("x-frame-options", "DENY"),
+                   ("referrer-policy", "no-referrer")):
+        assert home.headers.get(_h) == _v, f"missing header {_h}"
     ok.append("home")
+    ok.append("sec.headers")
     # R178b（D-227b）：静态资源挂载 standing 覆盖——前端拆出 app.js/styles.css
     # 后，`/static/*` 是首屏必需资源；若 StaticFiles 挂载点丢失或文件被漏拷，
     # 首页仍返回 200 但页面全白（无样式无交互），selftest 全绿看不见。
