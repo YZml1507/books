@@ -360,6 +360,18 @@ def compute(year: int, month: int, day: int, hour: int,
         warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")
     if hour == 23:
         warns.append("23点后属夜子时：本盘按当日排日柱（另一派会归入次日）")
+    # R228p续3：年柱双口径提示——立春前但已过正月初一（正月出生）的盘，
+    # 「正月初一换年」派与本项目的立春换年派会给出不同年柱，warn 明示。
+    try:
+        from .lunar import solar_to_lunar
+        _lx = solar_to_lunar(dt.year, dt.month, dt.day)
+        if _lx.get("month") == 1 and not _lx.get("is_leap"):
+            lichun = term_time(year, "立春") + timedelta(hours=8)
+            if dt < lichun:
+                warns.append("正月出生且在立春前：本盘年柱按立春换年"
+                             "（正月初一换年派会取上一年）")
+    except Exception:
+        pass
 
     return Bazi(
         year=year_pillar, month=month_pillar, day=day_pillar, hour=hour_pillar,

@@ -771,6 +771,13 @@ def run() -> list[str]:
                                          "lunar_day": 15}),
           lambda j: bool((j.get("paipan") or {}).get("render")))
     # R151b（D-197b）：bazi ask_hour / ask_date 格式 / range 缺失 / range 格式
+    # R228p续3：年柱双口径 warn——正月生且立春前的盘须带提示。
+    check("bazi.year_pillar.caliber_hint",
+          client.post("/api/bazi", json={"year": 2009, "month": 2,
+                                         "day": 1, "hour": 12,
+                                         "gender": "男"}),
+          lambda j: any("立春" in w and "正月初一" in w
+                        for w in (j.get("paipan") or {}).get("warn", [])))
     # 四条 400 校验分支 standing 覆盖。
     _expect_400("err.bazi.ask_hour",
                 client.post("/api/bazi", json={"year": 1990, "month": 5,
