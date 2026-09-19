@@ -27,9 +27,12 @@ import hashlib
 import json
 import os
 import random
+import logging
 import re
 import sqlite3
 from datetime import date, datetime, timedelta
+
+_logger = logging.getLogger("books")
 
 from guji import external as external_feed
 # R219b（P0-4）：`from guji import history as history_db` 随历史记录功能删除
@@ -114,7 +117,10 @@ def _friendly_calc_err(exc: Exception) -> str:
         return "这个年份超出可算范围了"
     if "hour" in s.lower() and "range" in s.lower():
         return "时辰不对，换个时间试试"
-    return s
+    # R229n（R6-#12）：未匹配的异常原文不再上屏——用户只见泛化中文，
+    # 原文进日志便排查（异常含堆栈外信息时尤其不能吐）。
+    _logger.warning("calc error not humanized: %s", s)
+    return "这一步没算成，换个日期或输入再试试"
 
 
 # ---------------------------------------------------------------------------
@@ -569,7 +575,15 @@ def thread_record(req) -> dict:
     绑上去——此前不落 thread_id 的 claim 是孤儿行，GET /api/threads 只列
     thread 表，前端「新建线程」按钮创建了永远不出现在列表里的幽灵 claim。
     """
-    from guji.knowledge import Evidence
+    from guji.knowledge import ASSERTING, Evidence
+
+    # R229n（R6-#2）：先校验后开线程——此前 open_thread/add_turn 各自
+    # commit 落库后 record() 才校验 kind 抛 400，留下永不回收的孤儿
+    # thread+turn（selftest kind=bogus 用例实测留行）。
+    if req.kind not in ASSERTING + ("refusal",):
+        raise ValidationError("记录被拒绝：类型或内容不合规")
+    if req.kind in ASSERTING and not req.evidence:
+        raise ValidationError("记录被拒绝：断言型记录需要至少一条证据")
 
     with deps.knowledge() as kb:
         tid = req.thread_id
@@ -1317,8 +1331,9 @@ def external_news() -> dict:
     try:
         return external_feed.fetch_sources(max_sources=6)
     except Exception as exc:
+        # R229n（R6-#13）：异常原文不外泄——与 external_fortune 同纪律。
         return {"fetched_at": None, "proxy": external_feed.PROXY,
-                "sources": [], "error": f"{type(exc).__name__}: {exc}"}
+                "sources": [], "error": "外部资讯暂时取不到"}
 
 
 def external_fortune() -> dict:

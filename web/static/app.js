@@ -140,8 +140,19 @@ function _humanize422(detail) {
     var field = String(loc[loc.length - 1] || '');
     var cn = _FIELD_CN[field];
     var msg = String(first.msg || '');
-    var badType = /valid|missing|required|integer|string|type/i.test(msg);
-    if (cn) return badType ? cn + '填写有误或为空' : cn + '：' + msg;
+    /* R229n（R6-#3）：cn+msg 直通会把 pydantic 英文原文贴上屏
+     * （"张数：Input should be less than or equal to 10"）——
+     * 按 msg 模式翻中文，翻不了的给泛化中文，绝不回吐英文。 */
+    if (cn) {
+      var m;
+      if ((m = /at most (\d+) characters/i.exec(msg))) return cn + '最多 ' + m[1] + ' 字';
+      if ((m = /at least (\d+) characters/i.exec(msg))) return cn + '至少 ' + m[1] + ' 字';
+      if ((m = /less than or equal to ([\d.-]+)/i.exec(msg))) return cn + '不能大于 ' + m[1];
+      if ((m = /greater than or equal to ([\d.-]+)/i.exec(msg))) return cn + '不能小于 ' + m[1];
+      if ((m = /at most (\d+) items?/i.exec(msg))) return cn + '最多 ' + m[1] + ' 项';
+      if ((m = /at least (\d+) items?/i.exec(msg))) return cn + '至少 ' + m[1] + ' 项';
+      return cn + '填写有误或为空';
+    }
     return '这条信息好像没填对，再检查一下～';
   } catch (e) { return '这条信息好像没填对，再检查一下～'; }
 }

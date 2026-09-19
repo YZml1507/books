@@ -147,17 +147,9 @@ class KnowledgeBase:
         return Derived(r["id"], r["kind"], r["claim"], r["method"], r["confidence"],
                        r["created_at"], ev)
 
-    def search_derived(self, query: str, limit: int = 10) -> list[Derived]:
-        """Search DERIVED claims. A separate call against a separate index, so no caller can
-        accidentally receive generated text from a source query."""
-        # R228j：query 含 `"` 会顶破外层 phrase 引号 → OperationalError 裸抛。
-        # FTS5 转义法是内层引号翻倍。
-        _q = segment_cjk(fold(query)).replace('"', '""')
-        rows = self.db.execute(
-            "SELECT rowid FROM derived_fts WHERE derived_fts MATCH ? LIMIT ?",
-            (f'"{_q}"', limit)).fetchall()
-        return [d for d in (self.get(r["rowid"]) for r in rows) if d]
-
+    # R229n（R6-#7）：search_derived 删除——全仓零调用方，且对 C0/NUL
+    # 查询仍抛 OperationalError（search.fts_phrase 修过它没修）；留着
+    # 是给将来接线埋雷。
     def orphans(self) -> list[int]:
         """Asserting claims with no evidence. Must always be empty (assert in the gate)."""
         return [r["id"] for r in self.db.execute(

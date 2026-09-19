@@ -50,6 +50,11 @@ def run() -> list[str]:
     # 闸门语义就是确定性离线；显式 config 的打桩段（ai.async.*）不受此影响。
     _saved_disable = os.environ.get("BOOKS_LLM_DISABLE")
     os.environ["BOOKS_LLM_DISABLE"] = "1"
+    # R229n（R6-#1）：bazi 流程的 save_async 会往真实台账写记录——
+    # 本套件每轮 ~15 个 bazi POST 等于每次全量 +15 行假数据挤占
+    # KEEP_MAX=500。selftest 不测历史功能（那是 ui_smoke 的地盘），禁用。
+    _saved_ph = os.environ.get("BOOKS_PAIPAN_HISTORY_DISABLE")
+    os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
     try:
         return _run_inner()
     finally:
@@ -57,6 +62,10 @@ def run() -> list[str]:
             os.environ.pop("BOOKS_LLM_DISABLE", None)
         else:
             os.environ["BOOKS_LLM_DISABLE"] = _saved_disable
+        if _saved_ph is None:
+            os.environ.pop("BOOKS_PAIPAN_HISTORY_DISABLE", None)
+        else:
+            os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = _saved_ph
 
 
 def _run_inner() -> list[str]:
@@ -979,6 +988,30 @@ def _run_inner() -> list[str]:
                 client.post("/api/threads", json={"kind": "bogus",
                                                   "claim": "测试",
                                                   "method": "probe"}))
+    # R229n（R6-#2）：校验失败不得留孤儿 thread+turn——校验前置后，
+    # kind=bogus 与「断言型无证据」都应在开线程之前被拒。
+    from guji.knowledge import KnowledgeBase as _KBt
+    _kbt = _KBt(KNOWLEDGE_DB)
+    try:
+        _tc0 = _kbt.db.execute("SELECT count(*) c FROM thread").fetchone()["c"]
+        _bad = client.post("/api/threads", json={"kind": "summary",
+                                                 "claim": "无证据断言",
+                                                 "method": "probe"})
+        assert _bad.status_code == 400, ("err.threads.no_evidence",
+                                         _bad.status_code)
+        ok.append("err.threads.no_evidence")
+        _tc1 = _kbt.db.execute("SELECT count(*) c FROM thread").fetchone()["c"]
+    finally:
+        _kbt.close()
+    assert _tc1 == _tc0, ("err.threads.orphan_free", _tc0, _tc1)
+    ok.append("err.threads.orphan_free")
+    # R229n（R6-#4）：evidence ≤64 写放大护栏——100 条须被 pydantic 422 拒。
+    _ev_over = client.post("/api/threads", json={
+        "kind": "refusal", "claim": "x", "method": "probe",
+        "evidence": [{"work_id": "", "quote": "q"}] * 100})
+    assert _ev_over.status_code == 422, ("err.threads.evidence_too_many",
+                                         _ev_over.status_code)
+    ok.append("err.threads.evidence_too_many")
 
     # ── 核心研究/历史/线程/健康端点（R54b）：全部确定性、无写副作用 ──
     # external/news 依赖代理与网络，明确不进 standing 自测（D-100b）。
@@ -1189,8 +1222,28 @@ def _run_inner() -> list[str]:
     # 参数又被吃掉了），非法日期须 400（否则 daily_cache 会落脏行）。
     check("daily.date", client.get("/api/daily", params={"date": "2026-03-03"}),
           lambda j: j.get("date") == "2026-03-03")
+    # R229n（R6-#1）：daily.date 检查往 daily_cache 落了 2026-03-03 测试行
+    # ——与 threads 清理同纪律（写端点自测不得污染真实库）。
+    from guji.knowledge import KnowledgeBase as _KB
+    _kbc = _KB(KNOWLEDGE_DB)
+    try:
+        _kbc.db.execute("DELETE FROM daily_cache WHERE date='2026-03-03'")
+        _kbc.db.commit()
+    finally:
+        _kbc.close()
     _expect_400("err.daily.date",
                 client.get("/api/daily", params={"date": "garbage"}))
+    # R229n（R6-#1/#5）：本套件在 BOOKS_PAIPAN_HISTORY_DISABLE=1 下跑——
+    # 顺手钉死禁用语义：list→空表，get/export/delete→404（此前只查 list）。
+    check("paipan.disabled.list", client.get("/api/paipan/history"),
+          lambda j: j.get("total") == 0 and j.get("items") == [])
+    for _pp in ("/api/paipan/history/1", "/api/paipan/history/export"):
+        _pr = client.get(_pp)
+        assert _pr.status_code == 404, ("paipan.disabled", _pp,
+                                        _pr.status_code)
+    _pd = client.delete("/api/paipan/history/1")
+    assert _pd.status_code == 404, ("paipan.disabled.delete", _pd.status_code)
+    ok.append("paipan.disabled.read")
     check("share.bazi", client.get("/api/share/bazi/1"),
           lambda j: (j.get("title") and j.get("content")
                      and j.get("image_color")))

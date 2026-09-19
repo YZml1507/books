@@ -116,6 +116,10 @@ def paipan_history_list(
 @router.get("/api/paipan/history/export")
 def paipan_history_export() -> Response:
     """CSV 导出（UTF-8 with BOM，Excel 直接打开不乱码）。"""
+    # R229n（R6-#5）：disabled 语义是「不写不查」——此前只查 list，
+    # get/delete/export 在禁用下仍吐完整记录与 CSV。
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(["id", "ts", "name", "question", "paipan_render"])
@@ -133,6 +137,8 @@ def paipan_history_export() -> Response:
 @router.get("/api/paipan/history/{rid}")
 def paipan_history_get(rid: int) -> dict:
     """单条完整记录（result 为完整排盘响应，前端可复用渲染函数）。"""
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
     rec = paipan_history.get_record(rid)
     if rec is None:
         raise NotFoundError(f"排盘记录不存在：#{rid}")
@@ -141,6 +147,8 @@ def paipan_history_get(rid: int) -> dict:
 
 @router.delete("/api/paipan/history/{rid}")
 def paipan_history_delete(rid: int) -> dict:
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
     if not paipan_history.delete_record(rid):
         raise NotFoundError(f"排盘记录不存在：#{rid}")
     return {"ok": True}

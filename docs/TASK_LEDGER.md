@@ -10237,3 +10237,21 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 ### R229m（前后端日期词一致性闸门 + 抓出的真漂移修复）
 
 - 新探针 `probes/probe_date_parity.py`：playwright 真浏览器 evaluate `_hlDayOffset` × 后端 `_hl_day_part`，39 条问法固定基准日比对偏移。首次运行即抓出真实分歧——R229h 晚字辈（今晚/今夜/明晚/后晚/昨晚）只落了后端，前端漏同步；app.js `_hlDayOffset` 已补齐 4 条（39/39 OK）。今后任一侧改日期词解析，probe 当场报警。
+
+### R229n（R6 后端/持久层审计 13 项全清）
+
+子 agent 报告（/home/ubuntu 附件 audit_r6_backend.md）P1×4+P2×9，处置：
+- #1 selftest 污染台账/知识库 → BOOKS_PAIPAN_HISTORY_DISABLE=1 注入 + daily_cache 测试行清即删；并加 `paipan.disabled.*` 钉。
+- #2 /api/threads 校验失败留孤儿 thread+turn → kind/evidence 前置校验（开线程之前拒）；selftest 新增 err.threads.no_evidence + err.threads.orphan_free。
+- #3 422 pydantic 英文 msg 上屏（"张数：Input should be…"）→ `_humanize422` 按 msg 模式翻中文（字数/数值/项数界），翻不了泛化中文，绝不回吐英文。
+- #4 evidence/confidence/topic 无界写放大 → evidence≤64、confidence≤50、topic≤100、location≤100 + ThreadEvidence 内层字段补界；新增 err.threads.evidence_too_many 钉。
+- #5 BOOKS_PAIPAN_HISTORY_DISABLE 只管 list → get/delete/export 同短路 404（「不写不查」兑现）。
+- #6 OperationalError 英文原文 → 503 固定中文「存储暂时不可用」。
+- #7 search_derived 死函数+C0 崩溃面 → 删除。
+- #8 location 无界 echo → max_length=100。
+- #9 CSV formula injection → 单元格以 =+-@/\t/\r 开头前置 '。
+- #10 _log 无轮转 → 超 256KB 截尾留 64KB。
+- #11 data/corpus.db 0 字节流浪文件 → 删。
+- #12 排盘异常兜底英文原文 → 泛化中文+logging 原文（_logger=books）。
+- #13 external/news 英文异常 → 泛化中文「外部资讯暂时取不到」。
+闸门：selftest 184→189、契约 386、ui_smoke 46、date_parity 39、dollar 156、first_screen PASS。另 CI 接入 probe_date_parity。

@@ -40,6 +40,18 @@ def _log(msg: str) -> None:
             # web_launcher.py 恰好先建了 logs/ 才掩盖此 bug）。
             os.makedirs(os.path.dirname(log_path), exist_ok=True)
             os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            # R229n（R6-#10）：追加写无轮转会长成无底洞——超 256KB 只留
+            # 尾部 64KB（低频写路径，简单截断即可，不引 RotatingFileHandler）。
+            try:
+                if (os.path.exists(log_path)
+                        and os.path.getsize(log_path) > 256 * 1024):
+                    with open(log_path, "rb") as fr:
+                        fr.seek(-64 * 1024, os.SEEK_END)
+                        tail = fr.read()
+                    with open(log_path, "wb") as fw:
+                        fw.write(tail)
+            except OSError:
+                pass
             with open(log_path, "a", encoding="utf-8") as f:
                 f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
     except OSError:
@@ -231,5 +243,12 @@ def export_rows() -> list[tuple]:
             render = ((json.loads(res_json) or {}).get("paipan") or {}).get("render") or ""
         except ValueError:
             render = ""
-        out.append((rid, ts, name or "", question or "", render))
+        out.append((rid, ts, _csv_safe(name or ""),
+                    _csv_safe(question or ""), _csv_safe(render)))
     return out
+
+
+def _csv_safe(v: str) -> str:
+    """R229n（R6-#9）：CSV 单元格以 =+-@ / 制表符开头时 Excel/WPS 会按
+    公式执行（question 是用户自由文本）——前置 ' 转义。"""
+    return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v

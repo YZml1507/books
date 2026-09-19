@@ -70,7 +70,10 @@ class BaziRequest(BaseModel):
     range_end: str | None = Field(None, description="范围终点 YYYY-MM-DD")
     ask_date: str | None = Field(None, description="问事日期 YYYY-MM-DD，默认今天")
     ask_hour: int | None = Field(None, description="问事时辰 0-23，默认不比对流时")
-    location: str | None = Field(None, description="问事地点（可选，仅提示用）")
+    # R229n（R6-#8）：location 加界——此前无 max_length，任意长串会被
+    # 原样 echo 进响应与 LLM facts 链（与 question 200 字同纪律）。
+    location: str | None = Field(None, max_length=100,
+                               description="问事地点（可选，仅提示用）")
 
     def validate_ranges(self) -> None:
         """值域校验：非法输入抛 ValidationError（路由层转 400 中文报错）。
@@ -137,11 +140,11 @@ class ThreadEvidence(BaseModel):
     quote: str = Field("", max_length=2000)
     raw_start: int | None = None
     raw_end: int | None = None
-    page_anchor: str | None = None
-    scheme: str | None = None
+    page_anchor: str | None = Field(None, max_length=200)
+    scheme: str | None = Field(None, max_length=32)
     addr1: int | None = None
-    addr2: str | None = None
-    role: str = "supports"
+    addr2: str | None = Field(None, max_length=64)
+    role: str = Field("supports", max_length=32)
 
     @field_validator("work_id")
     @classmethod
@@ -160,11 +163,14 @@ class ThreadRecordRequest(BaseModel):
     kind: str = Field(..., description="summary | diff | link | answer | refusal")
     claim: str = Field(..., min_length=1, max_length=2000)
     method: str = Field(..., min_length=1, max_length=100)
-    evidence: list[ThreadEvidence] = Field(default_factory=list)
-    confidence: str | None = None
+    # R229n（R6-#4）：evidence/confidence/topic 加界——此前无上限，单请求
+    # 可携数千条 evidence 批量写库（写放大）。与 facts ≤20×500 同纪律。
+    evidence: list[ThreadEvidence] = Field(default_factory=list,
+                                           max_length=64)
+    confidence: str | None = Field(None, max_length=50)
     thread_id: int | None = None
     # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
-    topic: str | None = None
+    topic: str | None = Field(None, max_length=100)
 
 
 class LiuyaoRequest(BaseModel):

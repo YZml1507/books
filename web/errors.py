@@ -41,3 +41,11 @@ def install(app: FastAPI) -> None:
 
     for exc_type, status in STATUS_MAP:
         app.add_exception_handler(exc_type, _make(status))
+
+    # R229n（R6-#6）：sqlite 原文（"database is locked" 等）是英文实现
+    # 细节，不能上屏——固定中文，原文只在服务端可见处才有价值。
+    async def _sqlite_handler(_request: Request,
+                              exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=503,
+                            content={"detail": "存储暂时不可用，请稍后再试"})
+    app.add_exception_handler(sqlite3.OperationalError, _sqlite_handler)
