@@ -158,13 +158,19 @@ MEASURE = r"""
 """
 
 # 展开全部折叠层，取每段 .cite-body 的 textContent（判据 8 逐字节比对用）
+# R229x：.cite-body 内现在挂 .ev-src 出处行（R228z续2 补的可核验性），
+# textContent 会把「出处：…」也算进原文——剥掉再比。
 EXPAND_ALL = r"""
 () => {
   const r = document.getElementById('result');
   r.querySelectorAll('[hidden]').forEach(e => { e.hidden = false; });
   r.querySelectorAll('details').forEach(d => { d.open = true; });
   return Array.from(r.querySelectorAll('.cite-body'))
-              .map(e => e.textContent);
+              .map(e => {
+                const c = e.cloneNode(true);
+                c.querySelectorAll('.ev-src').forEach(x => x.remove());
+                return c.textContent;
+              });
 }
 """
 

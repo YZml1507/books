@@ -8,7 +8,7 @@
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install fastapi 'uvicorn[standard]' httpx pydantic numpy
+.venv/bin/pip install fastapi 'uvicorn[standard]' httpx pydantic numpy feedparser   # feedparser：/api/external/* 资讯源（R229x 补声明）
 .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
 .venv/bin/pip install sentence-transformers          # bge 语义检索（命理书证据）
 .venv/bin/pip install playwright                     # 仅浏览器探针需要
@@ -65,7 +65,7 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 ## 闸门（全部须 PASS）
 
 ```bash
-BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门 190 项
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门 191 项
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约 386 读点
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟 47 用例
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_date_parity.py   # 前后端日期词/别名同构

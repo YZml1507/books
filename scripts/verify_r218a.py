@@ -8,6 +8,10 @@ check_plain_first/check_poster 等脚本在当前 scripts/ 目录均不存在（
   3. 主页 HTML 含本次改动的关键标记（chat-fallback / qm-style / .recent-backdrop / R218a-01 CSS）
 
 退出码: 0 全部通过 / 1 任一失败
+
+前置：须先在 8183 起服务（本脚本不自拉起）——
+    BOOKS_LLM_DISABLE=1 .venv/bin/python -m uvicorn web.app:app --port 8183
+（R229x R7#15：无服务时连接拒绝的报错补上这句提示）
 """
 import json, sys, time, urllib.request, urllib.error, re
 from pathlib import Path
@@ -35,7 +39,15 @@ def health():
     r = urllib.request.urlopen(f"{BASE}/", timeout=5)
     assert r.status == 200, f"status={r.status}"
     return "HTTP 200"
-check("GET /", health)
+try:
+    check("GET /", health)
+except SystemExit:
+    raise
+if failures and "Connection refused" in str(failures[-1][1]) or \
+        (failures and "refused" in str(failures[-1][1])):
+    print("\n提示：8183 无服务——先起服再跑：")
+    print("  BOOKS_LLM_DISABLE=1 .venv/bin/python -m uvicorn web.app:app --port 8183")
+    sys.exit(2)
 
 
 # 2. 关键 API

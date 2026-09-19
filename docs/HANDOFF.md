@@ -93,6 +93,12 @@
 
 ## 立即行动
 
+> **R229x 备注**：跑数据闸门（check_quality / assess_goals / eval_* 等）会重写
+> `data/catalog/*.json` 报告文件——它们被 git 追踪，跑完 `git status` 出现
+> 若干 ` M` 属正常。取舍：要么把新报告提交（它就是给交付看的），要么
+> `git checkout` 还原。`.npy` 向量缓存（~10MB）同理在库——刻意决策见
+> R7 审计 #11，不视为问题。
+
 ```powershell
 # 0. 看当前阶段
 #    type docs\PHASE.md 第三行（CURRENT_PHASE）

@@ -35,6 +35,10 @@ a = Analysis(
     datas=[
         # 内嵌前端单页（小，必内嵌）
         ('web/static', 'web/static'),
+        # R229x：起名典故库 + daily/warm 文案库——不进 exe 时
+        # classical_names 静默 0 候选、copy_bank 静默回退旧表。
+        ('src/guji/classical_names.json', 'src/guji'),
+        ('src/guji/copy_bank.json', 'src/guji'),
     ],
     hiddenimports=[
         'uvicorn.logging',

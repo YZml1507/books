@@ -6,7 +6,11 @@
  *     前端既有 toast/内联错误文案接管）。
  * 版本号递增即失效旧缓存。 */
 var CACHE = 'books-shell-v10';   // R229m/n: app.js 变更（晚字辈偏移/_humanize422 中文界）——bump 让老客直接拿新壳   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
-var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css'];
+/* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
+ * 此前只靠运行时懒缓存兜不住。 */
+var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css',
+             '/static/manifest.json', '/static/cream/icon-192.png',
+             '/static/cream/icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {

@@ -337,8 +337,14 @@ def hehun(req) -> dict:
 def qiming(req) -> dict:
     """五行起名：八字 → 五行缺行 → 古籍典故取名 + 候选字（R217a 重构）。"""
     req.validate_ranges()
+    # R229x（R7 审计 #3）：打包漏带 classical_names.json 时典故库静默
+    # 为空、起名返回 0 候选——显式报错让用户知道缺资源，而非空结果。
+    # 注意放 try 外：except Exception 会把 ComputeError 包成「起名计算失败」。
+    from guji import classical_names
+    if not classical_names._CLASSICAL_DB:
+        raise ComputeError("起名典故库文件缺失（classical_names.json），"
+                           "重新下载完整版本试试")
     try:
-        from guji import classical_names
         out = classical_names.generate_classical_names(
             surname=req.surname, year=req.year, month=req.month,
             day=req.day, hour=req.hour, gender=req.gender,
@@ -1363,6 +1369,13 @@ def remove_favorite(fid: int) -> dict:
 def external_news() -> dict:
     """外部资讯通道：抓预置 RSS/Atom 源。不落库、不写 history——"最新消息"
     是即时信息，与古籍语料 Source 层严格隔离。单源失败自动降级。"""
+    # R229x（R7 #14）：这是全应用唯一外呼面——BOOKS_EXTERNAL_DISABLE=1
+    # 给「彻底离线」姿态一个开关（BOOKS_LLM_DISABLE 只管 LLM 层）。
+    if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
+            "1", "on", "true", "yes"):
+        return {"fetched_at": None, "proxy": external_feed.PROXY,
+                "sources": [], "error": "外部资讯已关闭",
+                "disabled": True}
     try:
         return external_feed.fetch_sources(max_sources=6)
     except Exception as exc:
@@ -1373,6 +1386,10 @@ def external_news() -> dict:
 
 def external_fortune() -> dict:
     """外部资讯的运势风格包装（每日运势卡片的外部资讯部分）。"""
+    if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
+            "1", "on", "true", "yes"):
+        return {"date": None, "ok": False, "items": [],
+                "summary": "外部资讯已关闭", "disabled": True}
     try:
         return external_feed.fortune_wrap(external_feed.fetch_sources(max_sources=4))
     except Exception:

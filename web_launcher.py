@@ -33,6 +33,7 @@ PORT = 8123
 URL = f"http://127.0.0.1:{PORT}"
 CREATE_NO_WINDOW = 0x08000000
 SHUTDOWN_GRACE = 60          # 浏览器退出后，无连接持续多久（秒）判定关闭
+NEVER_SEEN_GRACE = 600       # R229x：启动后始终无任何连接的兜底关服时长
 POLL_INTERVAL = 5            # 轮询间隔（秒）
 LOG = os.path.join(ROOT, "logs", "web_launcher.log")
 
@@ -40,6 +41,14 @@ LOG = os.path.join(ROOT, "logs", "web_launcher.log")
 def log(msg: str) -> None:
     try:
         os.makedirs(os.path.dirname(LOG), exist_ok=True)
+        # R229x：监控循环浏览器在线时每 5s 写一行（≈43KB/h）——
+        # 超 256KB 截尾留 64KB，与 paipan_history._log 同规。
+        if os.path.exists(LOG) and os.path.getsize(LOG) > 256 * 1024:
+            with open(LOG, "rb") as rf:
+                rf.seek(-64 * 1024, os.SEEK_END)
+                tail = rf.read()
+            with open(LOG, "wb") as wf:
+                wf.write(tail)
         with open(LOG, "a", encoding="utf-8") as f:
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
     except OSError:
@@ -56,11 +65,21 @@ def _run(args: list[str]) -> str:
         return ""
 
 
+def _local_port(parts: list[str]) -> str:
+    """netstat -ano 行的本地地址端口（精确比对——`:8123` 子串会误伤
+    :81230–81239 的监听者）。"""
+    if len(parts) < 2:
+        return ""
+    return parts[1].rsplit(":", 1)[-1]
+
+
 def kill_stale() -> None:
     """杀掉占用 PORT 的旧进程（含上次残留的 uvicorn）。"""
     for line in _run(["netstat", "-ano"]).splitlines():
-        if f":{PORT}" in line and "LISTENING" in line:
-            pid = line.strip().split()[-1]
+        parts = line.strip().split()
+        if len(parts) >= 4 and "LISTENING" in line and \
+                _local_port(parts) == str(PORT):
+            pid = parts[-1]
             if pid.isdigit():
                 _run(["taskkill", "/f", "/pid", pid])
                 log(f"killed stale pid {pid} on :{PORT}")
@@ -79,12 +98,14 @@ def port_ready(timeout: int = 30) -> bool:
 
 
 def active_conns() -> set[str]:
-    """与 PORT 建立过/保持着 ESTABLISHED 连接的进程 PID 集合（不含监听者）。"""
+    """与 PORT 建立过/保持着 ESTABLISHED 连接的进程 PID 集合（不含监听者）。
+    只数本地地址端口==PORT 的行——对端恰好 :8123 的外网连接不算。"""
     pids: set[str] = set()
     for line in _run(["netstat", "-ano"]).splitlines():
-        if f":{PORT}" in line and "ESTABLISHED" in line:
-            parts = line.strip().split()
-            if parts and parts[-1].isdigit():
+        parts = line.strip().split()
+        if len(parts) >= 4 and "ESTABLISHED" in line and \
+                _local_port(parts) == str(PORT):
+            if parts[-1].isdigit():
                 pids.add(parts[-1])
     return pids
 
@@ -146,23 +167,39 @@ def _monitor(server, alive_fn=_server_alive, stop_fn=_server_stop) -> int:
     两种类型都通过 alive_fn/stop_fn 抽象，避免在监控循环里做类型分支。
     """
     seen_browsers: set[str] = set()
+    saw_any = False                 # R229x：任何连接都算用户在场——
+                                    # 非白名单浏览器（Vivaldi/Arc 等）连上
+                                    # 也计入，断开 GRACE 秒即关服（原实现
+                                    # 名单外恒空 → uvicorn 常驻不回收）。
     last_active = time.time()
+    started = last_active
     while True:
         if not alive_fn(server):
             log("server exited; launcher exit")
             return 0
         conns = active_conns()
         browsers = {p for p in conns if _is_browser_pid(p)}
-        if browsers:
-            seen_browsers |= browsers
+        if conns:
+            saw_any = True
             last_active = time.time()
-            log(f"browser conns={sorted(browsers)} seen={sorted(seen_browsers)}")
-        elif seen_browsers:
-            alive = [p for p in seen_browsers if pid_alive(p)]
+            if browsers:
+                seen_browsers |= browsers
+                log(f"browser conns={sorted(browsers)} seen={sorted(seen_browsers)}")
+        else:
             idle = time.time() - last_active
-            log(f"no browser conns; browsers_alive={alive} idle={idle:.0f}s")
-            if not alive and idle >= SHUTDOWN_GRACE:
-                log(f"browser closed (no conns {SHUTDOWN_GRACE}s, seen={seen_browsers})")
+            if seen_browsers:
+                alive = [p for p in seen_browsers if pid_alive(p)]
+                log(f"no browser conns; browsers_alive={alive} idle={idle:.0f}s")
+                if not alive and idle >= SHUTDOWN_GRACE:
+                    log(f"browser closed (no conns {SHUTDOWN_GRACE}s, seen={seen_browsers})")
+                    break
+            elif saw_any and idle >= SHUTDOWN_GRACE:
+                # 有连接但都不是白名单浏览器——用户大概率已关窗口离开
+                log(f"non-whitelist client gone {SHUTDOWN_GRACE}s; shutting down")
+                break
+            elif not saw_any and time.time() - started >= NEVER_SEEN_GRACE:
+                # 浏览器从未连上（自动打开失败/双击闪退）——别空挂到下次双击
+                log(f"no client ever connected in {NEVER_SEEN_GRACE}s; shutting down")
                 break
         time.sleep(POLL_INTERVAL)
     stop_fn(server)
@@ -200,18 +237,30 @@ def main() -> int:
         # frozen 模式同样走 _monitor：监控浏览器连接，关闭后设 should_exit 退出
         return _monitor(server_obj)
 
-    server = subprocess.Popen(
-        [PY, "-m", "uvicorn", "web.app:app",
-         "--host", "127.0.0.1", "--port", str(PORT)],
-        cwd=ROOT,
-        creationflags=CREATE_NO_WINDOW,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    # R229x：失败路径全部落日志——pythonw 下双击零反馈，log 是唯一的
+    # 排查窗口（原来 .venv 缺失/Popen 抛错时只留一行 start）。
+    if not os.path.exists(PY):
+        log(f"venv python 不存在：{PY}（请先按 README 建 .venv 装依赖）")
+        return 1
+    try:
+        server = subprocess.Popen(
+            [PY, "-m", "uvicorn", "web.app:app",
+             "--host", "127.0.0.1", "--port", str(PORT)],
+            cwd=ROOT,
+            # creationflags 仅 Windows 支持；POSIX 传 0（本脚本目标是
+            # Windows 桌面，但保护一下免得开发机上跑直接崩）
+            creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as exc:
+        log(f"uvicorn 启动失败：{type(exc).__name__}: {exc}")
+        return 1
     log(f"uvicorn pid={server.pid}")
 
     if not port_ready():
-        log("server failed to become ready; shutting down")
+        log(f"server failed to become ready on :{PORT} in 30s; "
+            f"check venv/deps, shutting down")
         server.terminate()
         return 1
     log("port ready; opening browser")

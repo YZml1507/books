@@ -60,12 +60,23 @@ def load_config() -> dict | None:
     # 再上两级即仓库根（web/ 的父目录）
     here = os.path.dirname(os.path.abspath(__file__))     # .../src/guji
     root = os.path.dirname(os.path.dirname(here))         # .../books
-    path = os.path.join(root, "web", "llm_config.json")
-    try:
-        with open(path, encoding="utf-8") as f:
-            cfg.update(json.load(f))
-    except Exception:
-        pass  # 无配置文件不算错——降级路径的一部分
+    # R229x（R7 #13）：frozen/PyInstaller 形态下 __file__ 在 _MEIPASS（Temp
+    # 解包目录），上两级找不到用户放在 exe 旁的 llm_config.json——补查
+    # sys.executable 同目录（exe 旁才是用户实际放文件的位置）。
+    _candidates = [os.path.join(root, "web", "llm_config.json")]
+    if getattr(sys, "frozen", False):
+        _candidates.append(
+            os.path.join(os.path.dirname(sys.executable), "llm_config.json"))
+        _candidates.append(
+            os.path.join(os.path.dirname(sys.executable), "web",
+                         "llm_config.json"))
+    for path in _candidates:
+        try:
+            with open(path, encoding="utf-8") as f:
+                cfg.update(json.load(f))
+            break
+        except Exception:
+            pass  # 无配置文件不算错——降级路径的一部分
     # 环境变量覆盖（部署形态用；key 不落盘的场景）
     if os.getenv(_ENV_KEY):
         cfg["api_key"] = os.environ[_ENV_KEY]

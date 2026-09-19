@@ -10308,3 +10308,18 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 
 - 「出去玩/逛街/购物/买东西/聚餐/请客/聚会/饭局」原自映射（永远走中性卡）——其实语义上就是出行/见人。现映射到真规范词：逛街/购物/买东西→出行，出去玩→出行+远行，聚餐系→出行+谒贵。实测：「下周末出去玩」→ 忌（忌项含出行）+吉日；「星期天逛街」→ 宜。健身/唱歌仍无对应规范词，保留自映射中性口径。
 - probe_date_parity alias PASS: 81 键前后端同构。
+
+### R229x（R7 启动/打包审计 15 条清零）
+
+- **#1 假闸门**：check_dual_engine 双引擎缺装时 PASS 空转 → 改 SKIP-ENV 明示「没真比对」。
+- **#2 基线红**：voice/plain_first 漂移根因=R228m bm25 排序修复属合法演进 → 重冻；判据 8 真 bug：R228z续2 在 .cite-body 内挂了 .ev-src 出处行，textContent 混入出处致多重集比对恒败 → 探针剥除后比。
+- **#3 打包漏数据**：spec datas 补 classical_names.json + copy_bank.json；典故库空时 qiming 显式报缺资源（不再静默 0 候选）。
+- **#4 feedparser 幽灵依赖**：README+requirements-ci 补声明（钉 6.0.12）。
+- **#5/#6/#7/#12 launcher**：Popen 异常落日志+venv 缺失明示+creationflags POSIX 守卫；监控从「白名单浏览器 PID」改「任何 8123 连接算用户在场」+从未连接 600s 兜底关服；netstat 端口改列解析精确比对（:81230 不再误伤）；launcher.log 256KB 截尾轮转。
+- **#8 spec llm_reader 幽灵引用**：R229s 已修。
+- **#9 SW**：v10 + manifest/icon-192/icon-512 进预缓存。
+- **#10**：CI 步骤名去硬编码计数，README 190→191。
+- **#11**：HANDOFF 登记「跑闸门会重写 data/catalog 报告」语义。
+- **#13**：frozen 形态 llm_config.json 补查 exe 同目录。
+- **#14**：external/* 加 BOOKS_EXTERNAL_DISABLE 环境闸（彻底离线姿态可选）。
+- **#15**：verify_r218a docstring 写前置 + 连不上时打印起服命令、exit 2。
