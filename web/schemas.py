@@ -238,6 +238,12 @@ class ChatRequest(BaseModel):
             raise ValidationError("消息不能为空")
         if len(msg) > 500:
             raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
+        # R228r：facts 无界可塞爆 LLM system prompt——限条数+单条长度。
+        for f in (self.facts or []):
+            if not isinstance(f, str) or len(f) > 500:
+                raise ValidationError("facts 单条需为 ≤500 字字符串")
+        if self.facts and len(self.facts) > 20:
+            raise ValidationError("facts 最多 20 条")
 
 
 class NameReviewRequest(BaseModel):

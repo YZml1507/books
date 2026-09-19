@@ -83,7 +83,9 @@ def queries_from(b: Bazi) -> list[tuple[str, str]]:
         (b.day, "日柱"),                       # 如 甲辰
         (b.month, "月柱"),                     # 如 丙寅
         (b.year, "年柱"),                      # 如 甲辰
+        (b.hour, "时柱"),                      # R228r：时柱此前从不参与检索
         (b.nayin[2], "日柱纳音"),              # 如 覆灯火
+        (b.nayin[3], "时柱纳音"),
         (b.nayin[1], "月柱纳音"),
         (b.nayin[0], "年柱纳音"),
         (b.day_master, "日主"),                # 如 甲
@@ -109,14 +111,23 @@ TOPIC_QUERIES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("感情", "恋爱", "婚", "桃花", "对象", "姻缘"), ("妻财", "婚姻")),
     (("事业", "工作", "升职", "考公", "创业"), ("官鬼", "功名")),
     (("财", "钱", "收入", "财运", "投资"), ("财帛", "妻财")),
-    (("学", "考试", "考研", "读书", "学业"), ("学业", "文昌")),
+    (("学习", "考试", "考研", "读书", "学业"), ("学业", "文昌")),
     (("健康", "身体", "疾病"), ("疾厄", "寿元")),
 )
 
 
+# 繁体输入归一：FOLD 只管异体字（説→说），不收繁简对（財→财）。关键词表
+# 全是简体，繁体提问会整批漏配——这里只映射关键词表实际用到的字。
+_TRAD_KEY = str.maketrans("戀緣財運學業讀試錢體醫療歷離職創昇",
+                          "恋缘财运学业读试钱体医疗历离职创升")
+
+
 def topic_queries(question: str | None) -> list[str]:
     """提问 → 追加检索词列表（去重保序）。无提问/未命中返回空表。"""
-    q = (question or "").strip()
+    # R228r：先 fold 归一异体再简繁归一——『財運』『姻緣』这类繁体提问
+    # 此前整批漏配。
+    from .variants import fold
+    q = fold((question or "").strip()).translate(_TRAD_KEY)
     if not q:
         return []
     out: list[str] = []
@@ -133,16 +144,16 @@ _TOPIC_WHY = "提问主题"
 
 
 def _fts_phrase(q: str) -> str:
-    from .variants import fold, segment_cjk
-    seg = segment_cjk(fold(q)).replace('"', "")
-    return f'"{seg}"'
+    # 与 search.fts_phrase 同语义——复用不另存（同规则双份拷贝是 L-01 事故形态）。
+    from .search import fts_phrase
+    return fts_phrase(q)
 
 
 # --------------------------------------------------------------------------------------
 # FTS 路径
 # --------------------------------------------------------------------------------------
 def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
-                  top_queries: int = 3, question: str | None = None) -> list[dict]:
+                  top_queries: int = 5, question: str | None = None) -> list[dict]:
     """坐标词 FTS 检索命理书，返回带引用的原文证据。
 
     返回 [{query, why, work_id, title, citation, text, layer}...]，
@@ -203,6 +214,17 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
 # bge 语义路径（命理书向量缓存，照 eval_g1 的 bge_docvecs 先例）
 # --------------------------------------------------------------------------------------
 _sem_cache: tuple | None = None
+_model_cache = None
+
+
+def _model():
+    """SentenceTransformer 单例——~100MB 权重此前每次检索都重载。
+    惰性加载：web 路径不走语义检索时零成本。"""
+    global _model_cache
+    if _model_cache is None:
+        from sentence_transformers import SentenceTransformer
+        _model_cache = SentenceTransformer(MODEL_DIR)
+    return _model_cache
 
 
 def _sem_vecs(conn) -> tuple:
@@ -228,8 +250,7 @@ def _sem_vecs(conn) -> tuple:
             vecs = _np().load(SEM_DOCVECS)
             _sem_cache = (vecs, old_meta)
             return _sem_cache
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(MODEL_DIR)
+    model = _model()
     vecs = _np().asarray(model.encode([r["text"] for r in rows], batch_size=64,
                                       show_progress_bar=False, normalize_embeddings=True),
                          dtype=_np().float32)
@@ -247,8 +268,7 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     vecs, meta = _sem_vecs(conn)
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(MODEL_DIR)
+    model = _model()
     queries = [q for q, _ in queries_from(b)]
     qv = _np().asarray(model.encode(queries, normalize_embeddings=True),
                        dtype=_np().float32)

@@ -838,7 +838,10 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
             status, value = resolve(body, rd["kind"], rd["path"])
             rd["url"] = url
             if status == "missing":
-                if rd["field"] in CONDITIONAL_FIELDS.get(url, set()):
+                # R228r：CONDITIONAL_FIELDS 以裸 url 为键，而 R228o 起绑定 url
+                # 可能带 "POST " 方法前缀（同 url 的 GET/POST 分键）——查表前剥掉。
+                _ukey = url[5:] if url.startswith("POST ") else url
+                if rd["field"] in CONDITIONAL_FIELDS.get(_ukey, set()):
                     rd["note"] = "条件存在字段（只在错误/降级分支返回），非漂移"
                     soft.append(rd)
                 elif rd["field"] in PROVENANCE_FIELDS:

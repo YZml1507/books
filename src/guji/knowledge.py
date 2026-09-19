@@ -78,7 +78,7 @@ class KnowledgeBase:
 
     def __init__(self, path: str):
         first = not os.path.exists(path)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         self.path = path
         self.db = sqlite3.connect(path)
         self.db.row_factory = sqlite3.Row

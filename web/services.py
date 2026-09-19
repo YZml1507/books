@@ -388,7 +388,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     with deps.corpus() as c:
         if scheme == "zhouyi":
             if gua is None:
-                raise ValidationError("zhouyi 定位需提供卦号（1-64）")
+                raise ValidationError("zhouyi 定位需提供卦号（1–64）")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
         else:
             hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
@@ -400,7 +400,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
 def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
     """跨版本同址比对 + 差异摘要（复用 compare.compare_address）。"""
     if not (1 <= gua <= 64):
-        raise ValidationError("卦号需在 1-64")
+        raise ValidationError("卦号需在 1–64")
     with deps.corpus() as c:
         cmp = compare_address(c, gua, yao, layer=layer)
         return {
@@ -711,9 +711,25 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "出行": ["出行", "远行"], "旅行": ["出行", "远行"],
     "旅游": ["出行", "远行"], "出差": ["出行", "远行"], "出游": ["出行", "远行"],
     "收款": ["纳财"], "理财": ["纳财"], "看病": ["求医", "治病", "求医疗病"],
-    "种花": ["栽植", "栽种"], "许愿": ["祈福", "求嗣"], "拜拜": ["祭祀"],
+    "种花": ["栽植", "栽种"], "种菜": ["栽种"], "许愿": ["祈福", "求嗣"],
+    "拜拜": ["祭祀"],
     "考试": ["入学"], "上学": ["入学"], "开学": ["入学"],
     "分手": ["解除"], "和解": ["解除"], "打官司": ["诉讼"], "诉讼": ["诉讼"],
+    # R228r：词表外口语补齐（审查轨 chat-flow）——词汇里没有对应规范词的，
+    # 映射到自身，落进「没为它背书」的中性卡而不是裸跳 [] 让 LLM 空答。
+    "理发": ["冠笄"], "剪发": ["冠笄"], "剪头": ["冠笄"], "剃头": ["冠笄"],
+    "美发": ["冠笄"], "烫头": ["冠笄"],
+    "手术": ["求医", "治病", "求医疗病"], "开刀": ["求医"],
+    "体检": ["求医"], "洗牙": ["求医"], "拔牙": ["求医"],
+    "医美": ["求医"], "整容": ["求医"],
+    "借钱": ["纳财"], "讨债": ["纳财"], "还钱": ["纳财"], "还贷": ["纳财"],
+    "辞职": ["解除"], "离职": ["解除"], "跳槽": ["解除"], "换工作": ["解除"],
+    "出国": ["出行", "远行"], "出门": ["出行", "远行"],
+    "宠物": ["进人口"], "养猫": ["进人口"], "养狗": ["进人口"],
+    "钓鱼": ["捕捉"], "捕捞": ["捕捉"],
+    "聚餐": ["聚餐"], "请客": ["请客"], "聚会": ["聚会"], "饭局": ["饭局"],
+    "购物": ["购物"], "买东西": ["购物"], "逛街": ["逛街"],
+    "健身": ["健身"], "运动": ["健身"], "唱歌": ["唱歌"], "唱k": ["唱歌"],
 }
 
 # 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值两张
@@ -727,16 +743,42 @@ _HUANGLI_VOCAB_ORD: tuple = tuple(
     sorted(_HUANGLI_VOCAB, key=lambda t: (-len(t), t)))
 
 
+_WEEKDAY = "一二三四五六日天"
+
+
 def _hl_day_part(msg: str, now: datetime) -> datetime:
-    """消息里的相对日（明天/后天/大后天），默认今天。"""
-    offset = 0
-    if "大后天" in msg:
-        offset = 3
-    elif "后天" in msg or "後天" in msg:
-        offset = 2
-    elif "明天" in msg or "明日" in msg:
-        offset = 1
-    return now + timedelta(days=offset)
+    """消息里的相对日（明天/后天/昨天/下周X/周末…），默认今天。
+
+    R228r（chat-flow 审查）：原先只有明天/后天/大后天三档，昨天/下周X/周末
+    静默按今天判——说错日期比不答更伤（用户拿「明天」的答案去安排「下周」）。
+    """
+    if "大后天" in msg or "大後天" in msg:
+        return now + timedelta(days=3)
+    if "大前天" in msg:
+        return now - timedelta(days=3)
+    if "后天" in msg or "後天" in msg or "过两天" in msg or "過兩天" in msg:
+        return now + timedelta(days=2)
+    if "前天" in msg:
+        return now - timedelta(days=2)
+    if "明天" in msg or "明日" in msg or "明儿" in msg or "明兒" in msg:
+        return now + timedelta(days=1)
+    if "昨天" in msg or "昨日" in msg:
+        return now - timedelta(days=1)
+    # 下周X / 下礼拜X：以下个周一为基准的 X 曜日
+    for anchor in ("下周", "下週", "下礼拜", "下禮拜"):
+        if anchor in msg:
+            idx = msg.find(anchor) + len(anchor)
+            if idx < len(msg) and msg[idx] in _WEEKDAY:
+                wd = _WEEKDAY.find(msg[idx]) % 7
+                next_mon = now + timedelta(days=(7 - now.weekday()))
+                return next_mon + timedelta(days=wd)
+            # 「下周」没跟曜日——按下个周一算
+            return now + timedelta(days=(7 - now.weekday()))
+    # 周末：下一个周六（今天已是周末则指今天）
+    if "周末" in msg or "週末" in msg:
+        gap = (5 - now.weekday()) % 7
+        return now + timedelta(days=gap)
+    return now
 
 
 def _hl_next_yi_days(dt: datetime, terms: list[str],
@@ -790,7 +832,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     facts = [f"当日黄历（{date_cn}）：宜【{yi_str}】；忌【{ji_str}】。"]
 
     if generic:
-        facts.append("没列入当日宜忌的事项属中性——不是不支持，只是老黄历没"
+        facts.append("没列入当日宜忌的事项属中性——不是不支持，只是黄历没"
                      "为它背书，可照常安排；想要背书就挑宜它的日子。")
         return facts
 
@@ -809,8 +851,9 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
         verdict = (f"黄历判定：{date_cn} 「{scene}」宜忌都有——宜【{'、'.join(hit_yi)}】"
                    f"也忌【{'、'.join(hit_ji)}】；想做就把节奏放缓，不赶大动作。")
     else:
+        that_day = "今天" if dt.date() == now.date() else "那天"
         verdict = (f"黄历判定：{date_cn} 宜忌都没直接提「{scene}」——中性，"
-                   f"不是不支持，只是黄历今天没为它背书，{scene}可照常安排。"
+                   f"不是不支持，只是黄历{that_day}没为它背书，{scene}可照常安排。"
                    f"{good_part}")
     facts.append(verdict)
     return facts
@@ -1062,10 +1105,14 @@ MODULES = (
 
 
 def _recent_list(kb) -> list:
+    """recent_modules 偏好：写入端是自由键值（可能落进 int/dict/字符串），
+    读端只认 list，其余一律当空——不然 widget() 的 `m['id'] in recent`
+    对非序列类型抛 TypeError → /api/widget 持久 500。"""
     try:
-        return json.loads(kb.get_pref("recent_modules", "[]") or "[]")
+        v = json.loads(kb.get_pref("recent_modules", "[]") or "[]")
     except (ValueError, TypeError):
         return []
+    return v if isinstance(v, list) else []
 
 
 def widget() -> dict:
@@ -1077,7 +1124,7 @@ def widget() -> dict:
 
 
 SHARE_COLORS = {"bazi": "#B8860B", "tarot": "#9D4EDD",
-                "book": "#5B8C5A", "thread": "#C43E3E"}
+                "book": "#5B8C5A"}
 
 
 def share(share_type: str, share_id: str) -> dict:
@@ -1091,17 +1138,24 @@ def share(share_type: str, share_id: str) -> dict:
                 d = None
             if not d:
                 raise NotFoundError("未找到")
-            return {"title": "八字排盘结果", "subtitle": d.claim[:60],
+            # R228r：derived 表存的是研究线程记录（kind 不定为 bazi）——标题
+            # 按实际 kind 出，别一律误标「八字排盘结果」。
+            kind_title = {"thread": "研究笔记", "summary": "古籍研究笔记",
+                          "answer": "研究结论", "link": "关联笔记",
+                          "diff": "比对笔记", "refusal": "存疑记录"}
+            title = kind_title.get(getattr(d, "kind", ""), "八字排盘结果")
+            return {"title": title, "subtitle": d.claim[:60],
                     "content": d.claim, "image_color": SHARE_COLORS["bazi"],
                     "created_at": d.created_at}
-    if share_type == "tarot":
-        return {"title": "塔罗占卜结果", "subtitle": share_id,
-                "content": "塔罗牌阵解读", "image_color": SHARE_COLORS["tarot"],
-                "created_at": today}
-    if share_type == "book":
-        return {"title": "读书笔记", "subtitle": share_id,
-                "content": "古籍研究笔记", "image_color": SHARE_COLORS["book"],
-                "created_at": today}
+    if share_type in ("tarot", "book"):
+        # R228r：这两个分享面无后端存档，share_id 原样回显——限长+拒控制字符
+        # 守住上限，任意长串/HTML 片段不该被当分享标题直接回显。
+        if not share_id or len(share_id) > 80 or not share_id.isprintable():
+            raise NotFoundError("未找到")
+        title, content = (("塔罗占卜结果", "塔罗牌阵解读") if share_type == "tarot"
+                          else ("读书笔记", "古籍研究笔记"))
+        return {"title": title, "subtitle": share_id, "content": content,
+                "image_color": SHARE_COLORS[share_type], "created_at": today}
     raise NotFoundError(f"不支持的分享类型：{share_type}")
 
 

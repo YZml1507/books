@@ -123,12 +123,14 @@ def raw_body(raw_dir: str, work: str) -> str:
         return ""
 
 
-_cache: dict[tuple[str, str], str] = {}
+_cache: dict[tuple[str, str, str], str] = {}
 
 
 def body_in(raw_dir: str, work: str, space: str) -> str:
-    """Cached: a full pass over 28 works in three spaces is ~12M chars of work."""
-    key = (work, space)
+    """Cached: a full pass over 28 works in three spaces is ~12M chars of work.
+    R228r：键须带 raw_dir——同进程换语料目录（测试夹具/多库比对）时
+    旧键 (work, space) 会把别家正文当命中返回。"""
+    key = (raw_dir, work, space)
     if key not in _cache:
         _cache[key] = in_space(raw_body(raw_dir, work), space)
     return _cache[key]

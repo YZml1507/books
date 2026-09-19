@@ -215,6 +215,8 @@ def _sanitize(text: str | None) -> str | None:
 # ---------------------------------------------------------------------------
 
 _TASK_TTL_S = 600.0          # 任务记录保留 10 分钟：足够前端轮询完，又不积内存
+_MAX_PENDING = 12            # 在途 AI 任务上限——未鉴权端点每请求一线程+最坏
+                             # 6 次 LLM 往返，无界时单人会话能拖垮连接池
 _POLL_CAP_S = 40.0           # 前端轮询上限（秒）；到点未完成按失败处理（不渲染）
 
 _tasks: dict[str, dict] = {}
@@ -249,6 +251,9 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()
+        pending = sum(1 for t in _tasks.values() if t["status"] == "pending")
+        if pending >= _MAX_PENDING:
+            return None
         _tasks[tid] = {"status": "pending", "text": None,
                        "created": time.monotonic()}
 
@@ -313,7 +318,7 @@ _CHAT_SYSTEM = (
     # R227b（用户反馈「不能照本宣科」）：黄历类提问照「黄历判定」说人话。
     "如果用户在问某天适不适合做某件事（出行/搬家/面试…），事实里可能带"
     "「黄历判定」——照着说：宜就放心安利，忌就轻轻提醒并把近期宜它的日子"
-    "报出来；没列入宜忌是中性——不是不支持，只是老黄历没为它背书，可照常"
+    "报出来；没列入宜忌是中性——不是不支持，只是黄历没为它背书，可照常"
     "安排；绝不要只回一句「黄历没提」就完事。"
     # R227b（同批）：输出纯文本口语——渲染层支持白名单 markdown，但闲聊
     # 人设不需要加粗/列表/标题。
@@ -390,17 +395,19 @@ def chat(session_id: str, user_msg: str,
         if not text:
             return None
 
+    # 输出侧禁语命中 → 整条降级为固定安全回复（双保险）。判定在写历史
+    # 之前——此前先把原文 append 进 messages 再查 banned，违规内容会留在
+    # 会话上下文里污染后续轮次（审查轨 chat-flow）。
+    if _CHAT_BANNED_PAT.search(text):
+        text = ("我可能说得不太对。盘是盘，日子是你自己的——"
+                "按你自己舒服的来就好。")
+
     with _chat_lock:
         sess = _chat_sessions.get(session_id)
         if sess is not None:
             sess["messages"].append({"role": "user", "content": msg})
             sess["messages"].append({"role": "assistant", "content": text})
             sess["updated"] = time.monotonic()
-
-    # 输出侧禁语命中 → 整条丢弃降级为固定安全回复（双保险）
-    if _CHAT_BANNED_PAT.search(text):
-        return ("我可能说得不太对。盘是盘，日子是你自己的——"
-                "按你自己舒服的来就好。")
     return text
 
 
@@ -571,6 +578,11 @@ def spawn_chat_task(session_id: str, user_msg: str,
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()
+        # R228r：在途任务上限——超限时返回 None（上层按「功能关闭」静默降级，
+        # 前端轮询端点不出现该任务，与 DISABLE 行为一致）
+        pending = sum(1 for t in _tasks.values() if t["status"] == "pending")
+        if pending >= _MAX_PENDING:
+            return None
         _tasks[tid] = {"status": "pending", "text": None,
                        "created": time.monotonic()}
 

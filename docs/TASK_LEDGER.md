@@ -17964,3 +17964,37 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - sw.js fetch 拦截补 same-origin 守卫：未来若有外链资源（CDN 字体等）
   不会被缓存策略误管；CACHE bump v5→v6 失效旧缓存。
 - 判据：selftest 178 全绿（sw.chain 钉住注册链路）。
+
+## R228r（第四轮审查落地批：P0 删除崩 + 聊天供给/分享面加固）
+
+四方向并行审查（copy-tone/knowledge-layer/chat-flow/share-poster）
+37 条清单落地：
+- P0：排盘历史删除按钮 ReferenceError（id 在块外引用）→ 删除必失败
+  且弹英文错。app.js ph-del 分支就地取 data-id。
+- 聊天事实供给：事项词表 26→58（理发/手术/借钱/辞职/宠物等；无规范词
+  可映射的词映射自身走中性卡）；相对日补 昨天/前天/明儿/过两天/下周X/
+  周末，修 大後天 误判 +2；中性卡按目标日说「今天/那天」。
+- 检索质量：topic_queries 繁体归一（_TRAD_KEY 关键词字符级映射）；
+  '学' 单字误伤『同学』→ '学习'；queries_from 补时柱+时纳音、
+  top_queries 3→5（纳音词不再被整批截掉）；_model() 单例去重建；
+  _fts_phrase 复用 search.fts_phrase；evalset._cache 键补 raw_dir；
+  KnowledgeBase 裸文件名 makedirs('') 崩 → '.'。
+- 分享/海报面：share() tarot/book share_id 限长80+拒控制字符；bazi
+  分享标题按 derived.kind 出（原一律误标八字排盘结果）；SHARE_COLORS
+  去 thread 死键；tarot 海报副标题读真字段 j.question（w.question_hint
+  是死字段）；_paintSharePoster 畸形载荷防御；taohua 死变量 td 删。
+- 输入护栏：ChatRequest.facts 限 20 条×500 字；/api/user/prefs 非 list
+  recent_modules 不再把 widget 打成持久 500；AI 任务在途上限 12
+  （未鉴权端点每请求一线程最坏 6 次 LLM 往返）；被禁语命中的 LLM 回复
+  不再写入会话历史（判定移到 append 前）。
+- 文案口径：老黄历→黄历 残留清零（services+llm_polish system）；
+  「请求参数有误」→「这条信息好像没填对」；Seed→复验编号（seed）；
+  存成图→分享图统一；卦（1-64）→（1–64）；aria-label「我的解读」→
+  小满聊天；phFetch 404 英文报错人话化；index.html 补 og/description。
+- pro 模式 evidence 空数组渲染空态（区分没检索/检索没中）。
+- 探针自修：CONDITIONAL_FIELDS 查表剥 "POST " 前缀（R228o 引入分键后
+  12 条条件键误升 HARD——探针误报，不是产品回归）。
+- 判据：selftest 178 / contract 382 / ui_smoke 43 / regress 全绿。
+- 搁置（有意）：knowledge.verify() 子序列匹配——层过滤引文合法跳过
+  夹注（注释 X-10/G6），换子串会误伤真引文；同 session 并发时序
+  （罕见）；「解除合同→立券」语境误分（需否定语义，投入产出不成比）。

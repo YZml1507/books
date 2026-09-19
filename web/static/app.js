@@ -126,8 +126,8 @@ function _humanize422(detail) {
     var msg = String(first.msg || '');
     var badType = /valid|missing|required|integer|string|type/i.test(msg);
     if (cn) return badType ? cn + '填写有误或为空' : cn + '：' + msg;
-    return '请求参数有误，检查输入后再试';
-  } catch (e) { return '请求参数有误，检查输入后再试'; }
+    return '这条信息好像没填对，再检查一下～';
+  } catch (e) { return '这条信息好像没填对，再检查一下～'; }
 }
 
 /** fetch + JSON，把 !ok 的 detail 变成 Error，让调用方只写一个 catch。
@@ -1470,6 +1470,12 @@ function _roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 function _paintSharePoster(s, W, H) {
+  /* R228r：畸形载荷防御——cards/lines 非数组、卡片缺 name 时静默纠正，
+   * 不让分享海报把整段渲染抛死（历史 share 数据/schema 漂移可复现）。 */
+  s = s || {};
+  if (!Array.isArray(s.cards)) s.cards = [];
+  if (!Array.isArray(s.lines)) s.lines = [];
+  s.cards = s.cards.filter(function (c) { return c && c.name; });
   var cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   var ctx = cv.getContext('2d');
@@ -1644,7 +1650,7 @@ function buildShareData(view, j) {
     case 'tarot': {
       var draws = (j && j.draws) || [];
       var imgs = document.querySelectorAll('.tarot-card-front img');
-      var s = base('塔罗指引', (w.question_hint || ''));
+      var s = base('塔罗指引', (j && j.question) || '');
       /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
       s.big = l0 || '今天这几张牌，值得你看一眼';
       s.cards = draws.slice(0, 3).map(function (d, i) {
@@ -1691,7 +1697,6 @@ function buildShareData(view, j) {
     }
     case 'taohua': {
       var st = base('桃花运势', '');
-      var td = (j && (j.peach_zhi || j.tianxi)) ? j : (w || {});
       st.big = l0 || '桃花正在加载';
       st.lines = [];
       if (j && j.peach_zhi) st.lines.push({ k: '桃花支', v: String(j.peach_zhi) });
@@ -2389,9 +2394,13 @@ function buildBaziResult(j) {
   // （判据 5，清偿 R128a-01 的重复渲染）。
   if (voiceMode() === 'pro') {
     html += renderCalc(j.calc);
-    if (j.evidence && j.evidence.length) {
+    if (j.evidence) {
       html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
-      html += renderHits(j.evidence, { empty: '无引文' });
+      /* R228r：空数组此前整块不渲染——用户分不清「没检索」和「检索没中」；
+       * 渲染空态文案说明。 */
+      html += j.evidence.length
+        ? renderHits(j.evidence, { empty: '无引文' })
+        : '<p style="color:var(--secondary);font-size:13px;">这次没检索到可引的古籍原文——坐标还在，解读照常。</p>';
     }
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
@@ -4834,7 +4843,7 @@ function baziPersonaCard(j) {
     }
     const r = await fetch(url, opts);
     if (!r.ok) {
-      let m = '请求失败(' + r.status + ')';
+      let m = '没查到这条记录（' + r.status + '）';
       try { const j = await r.json(); if (j && typeof j.detail === 'string') m = j.detail; } catch (e) {}
       throw new Error(m);
     }
@@ -4872,6 +4881,7 @@ function baziPersonaCard(j) {
     if (!tg || !tg.classList) return;
     const item = tg.closest('.ph-item');
     if (item && tg.classList.contains('ph-del')) {
+      const id = item.getAttribute('data-id');
       /* R228f：原生 confirm() 与全局 toast 体系不一致——改两段式 inline
        * 确认：首点把按钮武装成「再点一次确认」，3 秒内再点才真删。 */
       if (tg.dataset.armed !== '1') {
