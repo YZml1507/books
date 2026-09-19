@@ -62,3 +62,54 @@ jobs:
         run: python probes/probe_contract.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
+
+  # 浏览器闸门：DOM 渲染层回归（selftest 只到 API 层）。独立 job 免得拖慢主闸。
+  browser-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: 依赖（含 playwright + chromium）
+        run: |
+          pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-ci.txt playwright==1.63.0
+          python -m playwright install --with-deps chromium
+      - name: 构建语料索引 + knowledge 种子（与 selftest job 同步骤）
+        run: |
+          python scripts/check_quality.py
+          python scripts/build_index.py
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'src')
+          from guji.knowledge import KnowledgeBase, Evidence
+          kb = KnowledgeBase('data/index/knowledge.db')
+          if kb.db.execute("SELECT count(*) c FROM thread").fetchone()["c"] == 0:
+              tid = kb.open_thread('env-seed: CI 种子线程')
+              kb.add_turn(tid, 'user', 'CI 自检种子')
+          else:
+              tid = kb.db.execute("SELECT id FROM thread ORDER BY id LIMIT 1").fetchone()["id"]
+          if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
+              kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
+                        evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
+                                           raw_start=-1, raw_end=-1,
+                                           quote='第四十三章 天下之至柔',
+                                           page_anchor='KR5c0057_tls_043-1a')],
+                        thread_id=tid)
+          kb.close()
+          PY
+      - name: 首屏闸门 probe_first_screen
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_first_screen.py
+      - name: UI 冒烟 probe_ui_smoke（44 用例）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_ui_smoke.py
