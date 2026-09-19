@@ -65,6 +65,12 @@ function esc(s) {
 function paint(/* v3-fx-guard */id, html) {
   const node = el(id);
   if (node) {
+    /* R228n：结果区无 aria-live 时读屏零播报——polite 注入即读。
+     * role=status 自带 polite，双写兼容老读屏。 */
+    if (!node.hasAttribute('aria-live')) {
+      node.setAttribute('aria-live', 'polite');
+      node.setAttribute('role', 'status');
+    }
     node.hidden = false;
     node.innerHTML = html;
     /* R218a-巡4（E-a）：成功态才显示「运算结论为坐标事实…」技术说明。
@@ -596,6 +602,14 @@ function sbFocusable(sb, enable) {
     else { c.setAttribute('tabindex', '-1'); }
   });
 }
+/* R228n：侧栏打开时主区 inert——原来遮罩只挡鼠标，Tab 能穿透到
+ * 被盖住的控件（in_modal=false 实测落到 .checkin-opt）。 */
+function _mainInert(on) {
+  var w = document.querySelector('.wrap');
+  if (!w) return;
+  w.inert = on;
+  if (_NO_INERT) sbFocusable(w, !on);
+}
 
 /* R209b：聊天并入左侧统一栏——打开聊天=打开侧栏并滚到聊天段。 */
 function chatOpen() {
@@ -606,6 +620,7 @@ function chatOpen() {
   sb.inert = false;
   sbFocusable(sb, true);
   sb.setAttribute('aria-hidden', 'false');
+  _mainInert(true);
   /* D-006：每次打开侧栏重置发送计数，允许新一轮「自动发+1次追问」
    * R228c：计数归零但输入框/按钮的 disabled 不复位，重开仍锁死到刷新——
    * 一起解开才对得上「允许新一轮」的语义。 */
@@ -1791,6 +1806,14 @@ function showPosterModal(canvas, view) {
    * 海报就累加一个 document 级 keydown。 */
   _posterOnKey = function (e) {
     if (e.key === 'Escape' || e.keyCode === 27) closePosterModal();
+    /* R228n：焦点圈——role=dialog 光有语义不够，Tab 还能逃出遮罩
+     * 落进主区（实测 activeElement 跑到 #shareDaily）。modal 内只有
+     * 关闭钮可聚焦，Tab 一律圈回它。 */
+    if (e.key === 'Tab' || e.keyCode === 9) {
+      e.preventDefault();
+      var _c = backdrop.querySelector('.poster-modal-close');
+      if (_c) _c.focus();
+    }
   };
   document.addEventListener('keydown', _posterOnKey);
 }
@@ -1801,7 +1824,15 @@ function closePosterModal() {
     document.removeEventListener('keydown', _posterOnKey);
     _posterOnKey = null;
   }
-  /* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位） */
+  /* R228n：reduced-motion 下的滚动行为——matchMedia 一次判定，
+ * 复用 4612 行同款判断口径。 */
+function _rmBehavior() {
+  return (window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    ? 'auto' : 'smooth';
+}
+
+/* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位） */
   if (_posterTrigger && _posterTrigger.focus) {
     try { _posterTrigger.focus(); } catch (e) {}
     _posterTrigger = null;
@@ -2188,7 +2219,7 @@ async function loadDailyDetail() {
       n.style.opacity = '1';
       n.style.transform = 'none';
     });
-    try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    try { target.scrollIntoView({ behavior: _rmBehavior(), block: 'start' }); } catch (e) {}
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
     target.innerHTML = '<div class="no-evidence">解读失败：' + esc(e.message) + '</div>';
@@ -3789,14 +3820,16 @@ async function doHehun() {
     if (j.dayun_hits && j.dayun_hits.length) {
       /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
        * 收进默认折叠（事实零删减）；pro 模式保持平铺。 */
-      var _table = '<table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
+      /* R228n：五列表 320px 下 min-content 超容器 11px→整页横滚；
+       * 外包 .table-scroll 让表自己滚。 */
+      var _table = '<div class="table-scroll"><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
         '<th>关系</th><th>约起年</th></tr></thead><tbody>';
       j.dayun_hits.forEach(function (d) {
         _table += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
           '</td><td>' + esc(d.pillar_b) + '</td><td>' + esc(d.relation) +
           '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
       });
-      _table += '</tbody></table>';
+      _table += '</tbody></table></div>';
       if (voiceMode() === 'warm') {
         html += '<details class="warm-basis"><summary>📅 大运冲合表（' +
           j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
@@ -4150,8 +4183,8 @@ async function doHuangli(offset, reveal) {
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */
     html += '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
-      '<input id="hlAskInput" type="text" maxlength="30" placeholder="问一嘴：今天适不适合面试／搬家…" style="flex:1;min-width:0;padding:9px 14px;border:1px solid var(--border);border-radius:999px;font-size:13.5px;background:var(--card);color:var(--text);outline:none;">' +
-      '<button type="button" id="hlAskBtn" style="flex-shrink:0;padding:9px 18px;border:none;border-radius:999px;font-size:13.5px;font-weight:600;background:linear-gradient(135deg,#8A6408,#6E5006);color:#fff;cursor:pointer;">问</button>' +
+      '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" placeholder="问一嘴：今天适不适合面试／搬家…">' +
+      '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button>' +
       '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看' + esc(_dayWord) + '合不合适（✓ = 宜项里有它）</div></div>';
     /* 冲煞（R228a TYPE 修复）：后端给的是 {chong, chong_animal, sha_fang}
@@ -4206,7 +4239,11 @@ async function doHuangli(offset, reveal) {
     var pick = document.getElementById('hlPickBtn');
     if (pick) pick.addEventListener('click', function () {
       var dr = document.getElementById('hlPickDrawer');
-      if (dr) dr.open = !dr.open;
+      if (dr) {
+        dr.open = !dr.open;
+        /* R228n：disclosure 钮同步 aria-expanded（读屏知道开/合） */
+        pick.setAttribute('aria-expanded', String(dr.open));
+      }
     });
     /* R228c：#hlSubmit 原在这里和 initDivination 的 on('hlSubmit', …)
      * 双绑定——每次「查这一天」发两遍请求。保留 on() 一处（还会带
@@ -4396,6 +4433,7 @@ function initViews() {
     sb.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (bd) bd.classList.toggle('open', open);
+    _mainInert(open);   /* R228n：Tab 不许穿透到遮罩下的主区 */
     /* 关闭时若焦点还在侧栏里，还给悬浮入口钮 */
     if (!open && sb.contains(document.activeElement) && tgl) {
       try { tgl.focus(); } catch (e) {}
@@ -4844,7 +4882,7 @@ function baziPersonaCard(j) {
         if (detailEl && typeof buildBaziResult === 'function') {
           detailEl.innerHTML = buildBaziResult(rec.result || {});
           detailEl.hidden = false;
-          detailEl.scrollIntoView({ behavior: 'smooth' });
+          detailEl.scrollIntoView({ behavior: _rmBehavior() });
         }
       } catch (e) { showToast('读取失败：' + e.message, 'error'); }
     }

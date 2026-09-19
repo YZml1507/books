@@ -23,6 +23,8 @@ if ('serviceWorker' in navigator) {
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
   <div class="page-glow" aria-hidden="true"></div>
 <div class="wrap">
+  <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
+  <h1 class="visually-hidden">小满的解忧铺——黄历、八字、塔罗、起名</h1>
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
        固定高度，引文区高度与书数无关）。首页时 hidden。 -->
   <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
@@ -505,7 +507,7 @@ if ('serviceWorker' in navigator) {
         <button type="button" class="hl-chip" data-hloffset="1" aria-pressed="false">明天</button>
         <button type="button" class="hl-chip" data-hloffset="2" aria-pressed="false">后天</button>
         <button type="button" class="hl-chip" data-hloffset="-1" aria-pressed="false">昨天</button>
-        <button type="button" class="hl-chip hl-chip-pick" id="hlPickBtn">选日期 ▾</button>
+        <button type="button" class="hl-chip hl-chip-pick" id="hlPickBtn" aria-expanded="false" aria-controls="hlPickDrawer">选日期 ▾</button>
       </div>
       <details class="pro-drawer" id="hlPickDrawer" style="margin:8px 0;">
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">自选日期（年 · 月 · 日）</summary>
