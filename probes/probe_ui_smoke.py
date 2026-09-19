@@ -634,7 +634,39 @@ def main() -> int:
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
 
-            # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
+            # ── R228x：黄历「挑吉日」chip 链路——点场景出判词后应异步长出
+            # 「近期宜X」chip 行；点 chip 翻到那天（hlResult 头部日期变化）。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.evaluate(
+                    "() => { const d = document.getElementById('hlPickDrawer');"
+                    " if (d) d.open = true; }")
+                page.click("#hlSubmit")
+                page.wait_for_selector("#hlResult .hl-scene", timeout=8000)
+                # 出行是当日忌项常客：选一个 忌 或 中性 都行的场景——直接点
+                # 「出行」无论判什么，宜日 chip 都该出（忌/中性都引导挑日）。
+                page.click('.hl-scene[data-scene="出行"]')
+                page.wait_for_selector("#hlVerdict", timeout=6000)
+                page.wait_for_selector(".hl-gooddays .hl-daychip",
+                                       timeout=8000)
+                chips = page.query_selector_all(".hl-gooddays .hl-daychip")
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                chips[0].click()
+                page.wait_for_timeout(1200)
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                jumped = head1 != head0 and head1.strip() != ""
+                ok = len(chips) >= 1 and jumped and not errors
+                detail = (f"chips={len(chips)} 翻页{'成功' if jumped else '未变'}: "
+                          f"{head0.strip()[:20]!r} → {head1.strip()[:20]!r}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:huangli.gooddays_chip",
+                            "ok": ok, "detail": detail})
+
+                        # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
             # 割裂，面板已删；后端 /api/external/news 零改动）。原两层判据
             # （btn:news.refresh.endpoint / env:news.content_reachable）改为
             # 反向钉扎：DOM 确认面板不存在。用例名保留不删（只增不减口径）。
