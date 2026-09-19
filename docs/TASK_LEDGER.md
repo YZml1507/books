@@ -10082,3 +10082,16 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   CSP 不配：index.html 有内联 <script>+style=，配只能 unsafe-inline
   形同虚设，已在注释里说明。
 - selftest 新增 sec.headers 钉扎（180 checks）。
+
+## R228u（selftest 强制离线 + regress 探针超时兜底）
+
+- 真 bug：宿主 env 有 BOOKS_LLM_API_KEY 时（session secret 全局注入），
+  selftest 每个端点 POST 都往外网真打 LLM——轻则 ai.async 断言因
+  pending 撞 _MAX_PENDING 失败（spawn 返回 None），重则挂死在网络
+  等待（regress probe 实测挂 14 分钟零 CPU）。
+- 修：run() 入口处强制 BOOKS_LLM_DISABLE=1（try/finally 恢复）——
+  闸门语义本就是确定性离线；显式 config 的打桩段不受影响。
+  probe_selftest_regress 同步设该 env + subprocess timeout=600
+  （原无超时，一次挂死=probe 永久挂死）。
+- 判据：env 有/无 key 两种形态各跑一遍，180 checks 全绿；
+  regress probe PASS。

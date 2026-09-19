@@ -44,6 +44,22 @@ ZI_PING_WORKS = {"ditiansui", "lantai-miaoxuan", "mingli-tanyuan",
 
 def run() -> list[str]:
     """跑完整 standing 自测，返回通过的检查名列表。失败即 AssertionError。"""
+    # R228u：强制离线——session 环境可能注入 BOOKS_LLM_API_KEY（实测：宿主机
+    # 全局 env 有 key 时，本套件每个端点 POST 都往外网真打 LLM，轻则
+    # pending 撞 _MAX_PENDING 断言失败，重则整轮挂死在网络等待）。
+    # 闸门语义就是确定性离线；显式 config 的打桩段（ai.async.*）不受此影响。
+    _saved_disable = os.environ.get("BOOKS_LLM_DISABLE")
+    os.environ["BOOKS_LLM_DISABLE"] = "1"
+    try:
+        return _run_inner()
+    finally:
+        if _saved_disable is None:
+            os.environ.pop("BOOKS_LLM_DISABLE", None)
+        else:
+            os.environ["BOOKS_LLM_DISABLE"] = _saved_disable
+
+
+def _run_inner() -> list[str]:
     client = TestClient(app)
     ok: list[str] = []
 

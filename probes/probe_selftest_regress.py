@@ -53,8 +53,17 @@ def run_selftest() -> tuple[int, list[str], str]:
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONPATH"] = os.pathsep.join(
             [ROOT, os.path.join(ROOT, "src")])
-        r = subprocess.run(cmd, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", cwd=ROOT, env=env)
+        # R228u：① 强制离线——宿主 env 注入 BOOKS_LLM_API_KEY 时子进程会
+        #   往外网真打 LLM（实测 pending 撞上限+整轮挂死）；② 加超时兜底——
+        #   subprocess.run 无 timeout 会让一次挂死变成 probe 永久挂死。
+        env["BOOKS_LLM_DISABLE"] = "1"
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", cwd=ROOT,
+                               env=env, timeout=600)
+        except subprocess.TimeoutExpired:
+            last = f"{' '.join(cmd)} TIMEOUT(600s)"
+            continue
         out = (r.stdout or "") + (r.stderr or "")
         for line in out.split("\n"):
             m = LINE_RE.search(line)
