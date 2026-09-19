@@ -10194,3 +10194,8 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - 「下周末/下週末」此前被「下周」通配吃成下周一（前端 `_hlDayOffset`、后端 `_hl_day_part` 同病——「末」非曜日字落进通用分支）→ 前置显式分支映射到下周的周六（next_mon+5）。实测：下周末→9/26 六（原 9/21 一）、下周一仍 9/21。
 - sw.js CACHE bump v7→v8（index.html/app.js 本批有变更，老客首个导航不再吃到旧壳）。
 - 闸门：selftest 181 PASS（用例未减）。
+
+### R229g（iOS 主屏 meta + 图片懒加载）
+
+- index.html：`apple-mobile-web-app-capable`/`mobile-web-app-capable`/状态栏样式/app-title——iOS「添加到主屏幕」此前仍是带地址栏的网页壳。
+- 9 张功能卡图标 + 打卡礼物图 + 小满头像×2 加 `loading="lazy" decoding="async"`（hero/brand-mark 保持 eager，LCP 不推迟）。

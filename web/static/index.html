@@ -21,6 +21,12 @@
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/cream/icon-192.png">
+<!-- R229f：iOS「添加到主屏幕」——manifest 之外苹果读自己的 meta，
+     不加则主屏启动仍是带地址栏的网页壳。 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小满的解忧铺">
 <!-- R218a-巡4（E-c）：离线兜底——SW 缓存 app shell，断网刷新不再白屏 -->
 <script>
 if ('serviceWorker' in navigator) {
@@ -63,7 +69,7 @@ if ('serviceWorker' in navigator) {
 
   <!-- 每日运势 -->
   <div class="daily-card" id="dailyCard">
-    <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift.png" alt=""></div>
+    <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift.png" alt="" loading="lazy" decoding="async"></div>
     <div class="daily-top">
       <span class="daily-label">🌟 今日玄学搭子</span>
       <span class="daily-date" id="dailyDate">加载中…</span>
@@ -107,25 +113,25 @@ if ('serviceWorker' in navigator) {
     <div class="ia-label">✨ 今天想看点什么</div>
     <div class="func-grid">
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
-      <img class="func-icon-img" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
     <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0" aria-label="今日命盘">
-      <img class="func-icon-img" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
     </div>
     <div class="func-card func-entry" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
-      <img class="func-icon-img" data-view="taohua" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="taohua" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
     </div>
     <div class="func-card func-entry" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
-      <img class="func-icon-img" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 TA 配不配 · 看缘分</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 TA 配不配 · 看缘分</div>
     </div>
     <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0" aria-label="今天适合">
-      <img class="func-icon-img" data-view="huangli" src="/static/cream/cream-icon-huangli.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="huangli" src="/static/cream/cream-icon-huangli.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
     </div>
     <div class="func-card func-entry" data-view="xingzuo" role="button" tabindex="0" aria-label="星座">
-      <img class="func-icon-img" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
     </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
-      <img class="func-icon-img" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
     </div>
   </div>
@@ -140,10 +146,10 @@ if ('serviceWorker' in navigator) {
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
            （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
       <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-        <img class="func-icon-img" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
+        <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
       </div>
       <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
-        <img class="func-icon-img" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+        <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
       </div>
     </div>
   </details>
@@ -160,7 +166,7 @@ if ('serviceWorker' in navigator) {
   <aside class="recent-sidebar" id="recentSidebar">
     <div class="recent-side-head">
       <div class="side-brand">
-        <img class="chat-avatar-img" src="/static/cream/avatar-xiaoman-cream.jpg"
+        <img class="chat-avatar-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg"
           alt="" width="40" height="40">
         <span>小满的解忧铺</span>
       </div>
@@ -179,7 +185,7 @@ if ('serviceWorker' in navigator) {
            「像坏了，不像简约」）。补空态：小满打个招呼 + 三个可点话题，
            让用户知道这里能干什么。有消息进来后由 chatBubble 隐藏它。 -->
       <div class="chat-empty" id="chatEmpty">
-        <img class="chat-empty-avatar" src="/static/cream/avatar-xiaoman-cream.jpg"
+        <img class="chat-empty-avatar" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg"
           alt="" width="56" height="56">
         <p class="chat-empty-hi">我是小满 ✨</p>
         <p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>
