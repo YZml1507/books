@@ -4492,6 +4492,18 @@ function initBazi() {
   if (ci) ci.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') chatSend();
   });
+  /* R228q：移动键盘弹出会把侧栏输入框顶出可视区（visualViewport 收缩，
+   * 但侧栏是 fixed 布局不跟随）——键盘开合时把输入框滚回视口内。
+   * 只在聊天输入聚焦状态下生效；不支持 visualViewport 的环境静默跳过。 */
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () {
+      var inp = el('chatInput');
+      if (!inp || document.activeElement !== inp) return;
+      setTimeout(function () {
+        inp.scrollIntoView({ block: 'end', inline: 'nearest' });
+      }, 250);
+    });
+  }
 }
 
 function initReading() {

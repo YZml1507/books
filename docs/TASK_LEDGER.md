@@ -17952,3 +17952,9 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   +90min 覆盖整个小时桶，左界 30min 不变；selftest 钉
   bazi.term_warn.hour_bucket（2000-02-04 hour=20 → warn 含立春）。
 - 判据：selftest 178 / contract 381 / ui_smoke 43 全绿。
+
+## R228q续（移动端键盘视口）
+
+- app.js：visualViewport.resize 监听——聊天输入聚焦时键盘弹出把输入框
+  滚回侧栏可视区（fixed 侧栏不随视口收缩；不支持的环境静默跳过）。
+- 判据：ui_smoke 43 全绿。
