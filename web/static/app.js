@@ -2652,7 +2652,8 @@ async function doThread() {
       kind: 'refusal',
       claim: '开题：' + topic + '（尚无证据，待检索后补充）',
       method: 'web-new-thread',
-      confidence: 'open'
+      confidence: 'open',
+      topic: topic   /* R228s：后端用 topic 真开 thread 行，claim 绑定其上 */
     });
     let html = '<div class="no-evidence">线程已创建：#' + esc(j.thread_id) +
       '（claim #' + esc(j.derived_id) + '）</div>' +

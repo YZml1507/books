@@ -10057,3 +10057,19 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   在本机当前数据状态下 FAIL（引文取到三命通会而 fixture/基线记的是
   穷通宝鉴/命理探原，疑为本地 corpus.db 重建后检索序差异）——属代码/
   数据问题，非本文档修正范围，留待审查轨判定。
+
+## R228s续6（线程创建语义修复 + 契约探针证据钉扎）
+
+- 真 bug：「新建线程」POST /api/threads 不带 thread_id 时只写孤儿
+  derived claim（thread_id=NULL），GET /api/threads 只列 thread 表——
+  用户创建的"线程"永远不出现在列表里。现在 thread_id 缺席自动
+  open_thread+add_turn 开真线程，schema 新增可选 topic 作线程题，
+  前端 doThread 传 topic。
+- probe_contract：threads fixture 带真实证据（KR1a0001「潛龍勿用」，
+  folded_notes 子序列可过 verify），PATH resolver 改用 POST 回包
+  thread_id 而非列表首项（排序不可控）；cleanup 同步回收自动开的
+  thread/turn 行。效果：claims.evidence.* 五个读点 SKIP→判定，
+  382 读点全绿。
+- 判据：selftest 179 / contract 382 SOFT=8 / ui_smoke 43 / dollar 零命中。
+- 已知残留：ui_smoke 点「创建线程」每次留一行 thread（无清理钩子），
+  dev fixture 库可接受；如需可加页面 DOM 解析回收。

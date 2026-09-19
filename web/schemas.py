@@ -161,6 +161,8 @@ class ThreadRecordRequest(BaseModel):
     evidence: list[ThreadEvidence] = Field(default_factory=list)
     confidence: str | None = None
     thread_id: int | None = None
+    # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
+    topic: str | None = None
 
 
 class LiuyaoRequest(BaseModel):

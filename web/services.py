@@ -544,10 +544,20 @@ def thread_detail(tid: int) -> dict:
 
 
 def thread_record(req) -> dict:
-    """写入一条 derived claim（G8 纪律：断言型 kind 必须带证据）。"""
+    """写入一条 derived claim（G8 纪律：断言型 kind 必须带证据）。
+
+    R228s（线程创建语义修复）：thread_id 缺席时自动开新线程并把 claim
+    绑上去——此前不落 thread_id 的 claim 是孤儿行，GET /api/threads 只列
+    thread 表，前端「新建线程」按钮创建了永远不出现在列表里的幽灵 claim。
+    """
     from guji.knowledge import Evidence
 
     with deps.knowledge() as kb:
+        tid = req.thread_id
+        if tid is None:
+            topic = (req.topic or req.claim[:50] or "新线程").strip()[:100]
+            tid = kb.open_thread(topic)
+            kb.add_turn(tid, "user", "开题：" + topic)
         ev = [Evidence(work_id=e.work_id, file=e.file,
                        raw_start=e.raw_start if e.raw_start is not None else -1,
                        raw_end=e.raw_end if e.raw_end is not None else -1,
@@ -557,7 +567,7 @@ def thread_record(req) -> dict:
               for e in req.evidence]
         try:
             did = kb.record(req.kind, req.claim, req.method, ev,
-                            confidence=req.confidence, thread_id=req.thread_id)
+                            confidence=req.confidence, thread_id=tid)
         except (ValueError, sqlite3.IntegrityError) as exc:
             # 非法 kind 触发 DB CHECK 约束的 IntegrityError；与其余端点
             # 「非法参数 → 400」纪律一致（R159b/D-205b）。

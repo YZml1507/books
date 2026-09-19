@@ -125,9 +125,19 @@ FIXTURES: dict[str, dict] = {
     "/api/xingzuo":           {"method": "GET", "params": {"date": "2026-08-20"}},
     # 前端只发 {topic}（实测 422）。契约 probe 用**合法请求体**取真实成功响应，
     # 前端请求体本身的不匹配由 probe_ui_smoke.py 点击后现形，两者分工不重叠。
+    # R228s续6：带真实证据（引文须是 KR1a0001 folded_notes 体的子序列，
+    # 否则 verify() 永久报 stale 污染后续闸门）+ topic——R228s 起
+    # thread_id 缺席时后端真开 thread 行，PATH resolver 回读此响应的
+    # thread_id 作路径参数，claims.evidence.* 读点从此可判定（原 SKIP=5）。
     "POST /api/threads":    {"method": "POST", "json": {
         "kind": "refusal", "claim": "probe_contract 契约探针占位",
-        "method": "probe_contract"}, "cleanup": "derived"},
+        "method": "probe_contract", "topic": "probe_contract 契约线程",
+        "evidence": [{"work_id": "KR1a0001",
+                      "file": "KR1a0001_001.txt",
+                      "quote": "潛龍勿用",
+                      "scheme": "zhouyi", "addr1": 1,
+                      "addr2": "初九", "role": "supports"}]},
+        "cleanup": "derived"},
     # R228o：同 URL 按方法分键——postJSON() 绑定的变量归 "POST /api/x"，
     # api() 绑定的归 "/api/x"。/api/threads 两侧都被前端读（POST 创建回包 +
     # GET 列表项），此前列表读点全被拿到 POST 响应上判成假 HARD。
@@ -568,6 +578,7 @@ def main() -> int:
     hist_baseline = history_db.count()
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     created_derived: list[int] = []
+    created_threads: list[int] = []   # R228s续6：fixture 自动开的线程也要回收
     fav_id = None
     seed_bazi = client.post("/api/bazi", json=FIXTURES["POST /api/bazi"]["json"])
     assert seed_bazi.status_code == 200, seed_bazi.text[:200]
@@ -623,8 +634,15 @@ def main() -> int:
             # 取不到 id 就诚实报 SKIP，不编一个假 id 去打 404（那会把
             # "端点契约"测成"404 错误体契约"，是另一回事）。
             if fx["resolve"] == "thread_id":
-                lst = client.get("/api/threads").json().get("threads") or []
-                rid = (lst[0].get("id") if lst else None)
+                # R228s续6：先确保契约线程 fixture 已执行，直接用回包
+                # thread_id——列表排序（updated_at）不保证新建线程在首位。
+                fetch("POST /api/threads")
+                st, body = cache.get("POST /api/threads", (None, None))
+                if st == "ok" and isinstance(body, dict)                         and body.get("thread_id"):
+                    rid = body["thread_id"]
+                else:
+                    lst = client.get("/api/threads").json().get("threads") or []
+                    rid = (lst[0].get("id") if lst else None)
             elif fx["resolve"] == "paipan_id":
                 # save_async 守护线程落行有毫秒级延迟——短轮询等它落库，
                 # 等不到就诚实报「无可用 id」而不是编假 id 打 404
@@ -658,6 +676,9 @@ def main() -> int:
             did = body.get("derived_id")
             if did:
                 created_derived.append(int(did))
+            _tid = body.get("thread_id")
+            if _tid:
+                created_threads.append(int(_tid))
         cache[url] = ("ok", body)
         return cache[url]
 
@@ -673,7 +694,8 @@ def main() -> int:
                        seen_reads, all_blocks=all_blocks)
     finally:
         cleaned, hist_after = cleanup(history_db, kb_mod, kb_path,
-                                     hist_baseline, created_derived, fav_id)
+                                     hist_baseline, created_derived, fav_id,
+                                     created_threads)
         # R228a：paipan_history.db 增量清理（独立轻量库，同纪律）
         _ph_after = _ph_baseline
         try:
@@ -733,7 +755,8 @@ def main() -> int:
     return 0
 
 
-def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived, fav_id):
+def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived,
+            fav_id, created_threads=()):
     """删除本轮写入的行并返回 (清理清单, 清理后 history 行数)。
 
     必须可在异常路径上调用（见 main 的 try/finally）。本身不抛异常——
@@ -764,6 +787,10 @@ def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived, fav_id)
             if fav_id is not None:
                 kb.remove_favorite(int(fav_id))
                 cleaned.append(f"favorite#{fav_id}")
+            for t in created_threads:          # R228s续6
+                kb.db.execute("DELETE FROM turn WHERE thread_id=?", (t,))
+                kb.db.execute("DELETE FROM thread WHERE id=?", (t,))
+                cleaned.append(f"thread#{t}")
             kb.db.commit()
     except Exception as exc:                      # noqa: BLE001
         cleaned.append(f"⚠ 清理未完成：{type(exc).__name__}: {exc}")
