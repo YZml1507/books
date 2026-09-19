@@ -26,7 +26,7 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # 双导入形态支持（R179b，D-233b）：本模块必须在两种导入方式下都能工作。
@@ -79,6 +79,18 @@ def create_app() -> FastAPI:
         resp.headers.setdefault("X-Frame-Options", "DENY")
         resp.headers.setdefault("Referrer-Policy", "no-referrer")
         return resp
+
+    # R229r：请求体大小护栏——FastAPI 默认无上限，超大 POST 在 pydantic
+    # 校验前就全量读进内存（写放大之外的另一颗雷）。已知最长字段是
+    # threads.claim 2000 字 + evidence ≤64×~2400 字 ≈ 160KB，放宽到 512KB。
+    @application.middleware("http")
+    async def _body_size_guard(request, call_next):
+        cl = request.headers.get("content-length")
+        if cl is not None and cl.isdigit() and int(cl) > 512 * 1024:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "请求体太大了，精简一下再发"})
+        return await call_next(request)
 
     for router in ROUTERS:
         application.include_router(router)

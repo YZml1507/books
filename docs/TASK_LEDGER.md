@@ -10274,3 +10274,7 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - 实测漂移：前端 HL_SCENE_ALIAS 与后端 _CHAT_SCENE_TERMS 值表不一致——搬家（前端缺入宅/有平整）、种花（前端别名「栽植」是词表死词，前端永远中性而后端命中栽种）、看病（缺求医疗病）、许愿（缺求嗣）、出行系（缺远行）、手术（缺治病/求医疗病）等；同一问题「问一嘴卡」与「小满聊天事实」会给相反判定。
 - 已把两侧别名并集对齐（74 键逐字同构），后端补「远行→出行」词条。
 - probe_date_parity 新增别名同构段：JS 键 ⊆ py 键、同键值集相等、py 非自映射键必须在 JS —— 39 日期例 + 74 别名键全 PASS，已挂 CI。
+
+### R229r（请求体大小护栏）
+
+- FastAPI 默认无 body 上限——超大 POST 在 pydantic 校验前就全量读内存。新增 `_body_size_guard` 中间件：Content-Length >512KB → 413 中文「请求体太大了，精简一下再发」（最长合法路径 ~160KB：claim 2000 + evidence 64×2400）。selftest 新增 err.body_too_large 钉，189→190。

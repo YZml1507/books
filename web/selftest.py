@@ -1601,6 +1601,13 @@ def _run_inner() -> list[str]:
     assert "sw.js" in _idx and ("serviceWorker" in _idx), \
         "index.html 未见 SW 注册"
     ok.append("sw.chain")
+
+    # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。
+    _big = client.post("/api/bazi", content="x" * (513 * 1024),
+                       headers={"Content-Type": "application/json"})
+    assert _big.status_code == 413 and "太大" in _big.json().get("detail", ""), \
+        ("err.body_too_large", _big.status_code, _big.text[:120])
+    ok.append("err.body_too_large")
     return ok
 
 
