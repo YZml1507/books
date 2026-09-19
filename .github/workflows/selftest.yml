@@ -62,6 +62,13 @@ jobs:
         run: python probes/probe_contract.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
+      - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
+        run: |
+          python scripts/check_booksec.py
+          python scripts/check_dual_engine.py
+          python scripts/check_provenance.py
+          python scripts/verify_index.py
+          python scripts/assess_goals.py
 
   # 浏览器闸门：DOM 渲染层回归（selftest 只到 API 层）。独立 job 免得拖慢主闸。
   browser-gates:
