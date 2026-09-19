@@ -90,12 +90,12 @@ def hit_dict(h) -> dict:
     }
 
 
-def _require_q(q: str | None, *, what: str = "q 不能为空") -> str:
+def _require_q(q: str | None, *, what: str = "查询词不能为空") -> str:
     q = (q or "").strip()
     if not q:
         raise ValidationError(what)
     if len(q) > 200:
-        raise ValidationError("q 过长（≤200 字符）")
+        raise ValidationError("查询词过长（≤200 字符）")
     return q
 
 
@@ -339,7 +339,7 @@ def xingzuo(date_str: str | None = None) -> dict:
             _parsed = date.fromisoformat(date_str)
         except ValueError:
             raise ValidationError(
-                f"date 需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+                f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
         # R228b：星历表有覆盖区间——极值年份（如 9999）会一路炸进
         # bazi_compute 报 ValueError → 未映射 500。边界即拒为 400。
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
@@ -366,7 +366,7 @@ def xingzuo(date_str: str | None = None) -> dict:
 def search(q: str, *, layer: str | None = None, work: str | None = None,
            genre: str | None = None, scheme: str | None = None,
            limit: int = 10) -> dict:
-    q = _require_q(q, what="q 不能为空——检索需要查询词；找某个地址请用 /api/addr")
+    q = _require_q(q, what="查询词不能为空——检索需要查询词；找某个地址请用 /api/addr")
     limit = min(max(limit, 1), 50)
     with deps.corpus() as c:
         hits = c.search(q, limit=limit, layer=layer, work_id=work,
@@ -381,12 +381,12 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
          addr2: str | None = None, limit: int = 20) -> dict:
     """地址定位。scheme 显式声明，杜绝 Psalms-99 == 卦99 类跨体系碰撞（D-005）。"""
     if scheme not in deps.SCHEME_LABELS:
-        raise ValidationError(f"scheme 只能是 {'/'.join(deps.SCHEME_LABELS)}")
+        raise ValidationError(f"编址类型只能是 {'/'.join(deps.SCHEME_LABELS)}")
     limit = min(max(limit, 1), 100)
     with deps.corpus() as c:
         if scheme == "zhouyi":
             if gua is None:
-                raise ValidationError("zhouyi 定位需提供 gua（1-64）")
+                raise ValidationError("zhouyi 定位需提供卦号（1-64）")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
         else:
             hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
@@ -398,7 +398,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
 def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
     """跨版本同址比对 + 差异摘要（复用 compare.compare_address）。"""
     if not (1 <= gua <= 64):
-        raise ValidationError("gua 需在 1-64")
+        raise ValidationError("卦号需在 1-64")
     with deps.corpus() as c:
         cmp = compare_address(c, gua, yao, layer=layer)
         return {
@@ -422,7 +422,7 @@ def deep_research(q: str, *, max_addresses: int = 3,
     """深度研究：检索→读地址→扩展的多轮循环，返回证据集 + 步骤链 + 差异摘要。"""
     q = _require_q(q)
     if not (1 <= max_addresses <= 6):
-        raise ValidationError("max_addresses 需在 1-6")
+        raise ValidationError("地址数需在 1-6")
     with deps.corpus() as c:
         r = research(c, q, max_addresses=max_addresses,
                      allow_damaged=allow_damaged)
@@ -472,7 +472,7 @@ def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
     """两书对照：两书 top 证据并排 + 层分布对照 + 同址命中地址。"""
     work_a, work_b = (work_a or "").strip(), (work_b or "").strip()
     if not work_a or not work_b:
-        raise ValidationError("work_a / work_b 不能为空")
+        raise ValidationError("两本书的书号不能为空")
     q = _require_q(q)
     with deps.corpus() as c:
         return research_compare_works(c, work_a, work_b, q,
@@ -573,7 +573,7 @@ def book_structure(work_id: str, sample_chars: int = 60) -> dict:
 
     work_id = (work_id or "").strip()
     if not work_id:
-        raise ValidationError("work_id 不能为空")
+        raise ValidationError("书号不能为空")
     with deps.corpus() as c:
         return structure(c, work_id, sample_chars=min(max(sample_chars, 20), 200))
 
@@ -583,7 +583,7 @@ def book_summary(work_id: str) -> dict:
 
     work_id = (work_id or "").strip()
     if not work_id:
-        raise ValidationError("work_id 不能为空")
+        raise ValidationError("书号不能为空")
     with deps.corpus() as c:
         return summary(c, work_id)
 
@@ -595,9 +595,9 @@ def book_chapter(work_id: str, scheme: str, *, addr_name: str | None = None,
 
     work_id, scheme = (work_id or "").strip(), (scheme or "").strip()
     if not work_id:
-        raise ValidationError("work_id 不能为空")
+        raise ValidationError("书号不能为空")
     if not scheme:
-        raise ValidationError("scheme 不能为空")
+        raise ValidationError("编址类型不能为空")
     with deps.corpus() as c:
         return chapter(c, work_id, scheme, addr_name=addr_name, addr1=addr1,
                        file=file, limit=min(max(limit, 1), 200))
@@ -662,17 +662,17 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             y, m, d = (int(x) for x in date_str.split("-"))
         except Exception:
             raise ValidationError(
-                f"date 格式应为 YYYY-MM-DD，收到 {date_str}") from None
+                f"日期格式应为 YYYY-MM-DD，收到 {date_str}") from None
         if not (YEAR_LO <= y <= YEAR_HI):
-            raise ValidationError(f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {y}")
+            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {y}")
         if not (1 <= m <= 12):
-            raise ValidationError(f"month 须在 1-12，收到 {m}")
+            raise ValidationError(f"月份需在 1-12，收到 {m}")
         if not (1 <= d <= 31):
-            raise ValidationError(f"day 须在 1-31，收到 {d}")
+            raise ValidationError(f"日需在 1-31，收到 {d}")
         try:
             dt = datetime(y, m, d)
         except ValueError:
-            raise ValidationError(f"非法日期 y={y} m={m} d={d}") from None
+            raise ValidationError(f"非法日期 {y}-{m}-{d}") from None
     else:
         dt = datetime.now()
 
@@ -811,7 +811,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
                    f"也忌【{'、'.join(hit_ji)}】；想做就把节奏放缓，不赶大动作。")
     else:
         verdict = (f"黄历判定：{date_cn} 宜忌都没直接提「{scene}」——中性，"
-                   f"不是不支持，只是老黄历今天没为它背书；{scene}可照常安排。"
+                   f"不是不支持，只是黄历今天没为它背书，{scene}可照常安排。"
                    f"{good_part}")
     facts.append(verdict)
     return facts
@@ -952,11 +952,11 @@ def fortune_summary(calc_out: dict) -> str:
     good = [r for r in rels if r.get("type") in _GOOD_RELS]
     if bad:
         parts.append(f"有{len(bad)}处别扭的小关系"
-                     f"{'/'.join(r['type'] for r in bad[:2])}——"
+                     f"（{'/'.join(r['type'] for r in bad[:2])}）——"
                      f"容易自己跟自己较劲，稳一点就好")
     if good:
         parts.append(f"也有{len(good)}处顺劲"
-                     f"{'/'.join(r['type'] for r in good[:2])}——有人搭把手，事情好推")
+                     f"（{'/'.join(r['type'] for r in good[:2])}）——有人搭把手，事情好推")
     day_gz = (calc_out.get("day_luck") or {}).get("day_ganzhi", "")
     if day_gz:
         parts.append(f"今天的干支是{day_gz}")
@@ -982,7 +982,7 @@ def daily(date_str: str | None = None) -> dict:
             _parsed = date.fromisoformat(date_str)
         except ValueError:
             raise ValidationError(
-                f"date 需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+                f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
         # R228b：与 xingzuo/huangli 对齐——极值年份边界即拒，
         # 不再掉进下面 except 兜底返回带 Python 异常文本的 200。
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
@@ -1112,7 +1112,7 @@ def share(share_type: str, share_id: str) -> dict:
         return {"title": "读书笔记", "subtitle": share_id,
                 "content": "古籍研究笔记", "image_color": SHARE_COLORS["book"],
                 "created_at": today}
-    raise NotFoundError(f"不支持的分享类型: {share_type}")
+    raise NotFoundError(f"不支持的分享类型：{share_type}")
 
 
 def user_prefs() -> dict:
@@ -1157,9 +1157,10 @@ def external_fortune() -> dict:
     """外部资讯的运势风格包装（每日运势卡片的外部资讯部分）。"""
     try:
         return external_feed.fortune_wrap(external_feed.fetch_sources(max_sources=4))
-    except Exception as exc:
+    except Exception:
+        # R228e：异常原文不抛给用户（ConnectionError/timeout 是英文堆栈串）。
         return {"date": None, "ok": False, "items": [],
-                "summary": f"外部资讯暂时 unavailable：{exc}"}
+                "summary": "外部资讯暂时不可用，稍后再看看"}
 
 
 def health() -> dict:

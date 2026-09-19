@@ -852,7 +852,7 @@ def run() -> list[str]:
                 client.get("/api/compare_works",
                            params={"work_b": "KR5c0126", "q": "無爲"}))
     # R171b（D-216b）：/api/compare_works q 过长分支 standing 断言。
-    # 实测 q="甲"*201 → 400 "q 过长（≤200 字符）"。
+    # 实测 q="甲"*201 → 400 "查询词过长（≤200 字符）"。
     _expect_400("err.compare_works.q_too_long",
                 client.get("/api/compare_works",
                            params={"work_a": "KR5c0057", "work_b": "KR5c0126",
@@ -862,7 +862,7 @@ def run() -> list[str]:
                 client.get("/api/research", params={"q": "潛龍勿用",
                                                     "max_addresses": 0}))
     # R145b（D-191b）：search q 为空校验 standing 覆盖。实测 q="" → 400 +
-    # detail "q 不能为空——检索需要查询词；找某个地址请用 /api/addr"。
+    # detail "查询词不能为空——检索需要查询词；找某个地址请用 /api/addr"。
     _expect_400("err.search.empty", client.get("/api/search", params={"q": ""}))
     # R146b（D-192b）：concept/research q 过长校验 standing 覆盖。
     _expect_400("err.concept.too_long",
@@ -915,12 +915,12 @@ def run() -> list[str]:
           params={"q": "潛龍勿用", "max_addresses": 2, "allow_damaged": True}),
           lambda j: j.get("refused") is False and bool(j.get("evidence")))
     # R170b（D-217b）：/api/ask q 校验两条分支——q="" → 422（Pydantic
-    # min_length），q="   " → 400 "q 不能为空"（strip() 后空）。
+    # min_length），q="   " → 400 "查询词不能为空"（strip() 后空）。
     _ask_empty = client.post("/api/ask", json={"q": "   ", "max_addresses": 2})
     assert _ask_empty.status_code == 400, ("err.ask.q_empty",
                                            _ask_empty.status_code,
                                            _ask_empty.text[:200])
-    assert _ask_empty.json().get("detail") == "q 不能为空", \
+    assert _ask_empty.json().get("detail") == "查询词不能为空", \
         ("err.ask.q_empty", _ask_empty.text[:200])
     ok.append("err.ask.q_empty")
     _ask_too_short = client.post("/api/ask", json={"q": "", "max_addresses": 2})
@@ -979,7 +979,7 @@ def run() -> list[str]:
     check("threads.detail", client.get("/api/threads/1"),
           lambda j: "claims" in j and "turns" in j)
     # R169b（D-215b）：threads.detail 404 拒绝路径 standing 覆盖。
-    # 实测 tid=99999 → 404 + detail "线程 99999 不存在或暂无对话"。
+    # 实测 tid=99999 → 404 + detail "线程 99999 不存在或暂无记录"。
     _td_miss = client.get("/api/threads/99999")
     assert _td_miss.status_code == 404, ("threads.detail.missing",
                                          _td_miss.status_code,

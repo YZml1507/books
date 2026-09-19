@@ -40,13 +40,13 @@ class NotFoundError(LookupError):
 def _check_ymdh(tag: str, year: int, month: int, day: int, hour: int) -> None:
     """合婚两侧共用的值域校验（报错文本与重构前逐字一致）。"""
     if not (YEAR_LO <= year <= YEAR_HI):
-        raise ValidationError(f"{tag} 年份须在 {YEAR_LO}-{YEAR_HI}，收到 {year}")
+        raise ValidationError(f"{tag}年份需在 {YEAR_LO}-{YEAR_HI}，收到 {year}")
     if not (1 <= month <= 12):
-        raise ValidationError(f"{tag} month 须在 1-12，收到 {month}")
+        raise ValidationError(f"{tag}月份需在 1-12，收到 {month}")
     if not (1 <= day <= 31):
-        raise ValidationError(f"{tag} day 须在 1-31，收到 {day}")
+        raise ValidationError(f"{tag}日需在 1-31，收到 {day}")
     if not (0 <= hour <= 23):
-        raise ValidationError(f"{tag} hour 须在 0-23，收到 {hour}")
+        raise ValidationError(f"{tag}时辰需在 0-23，收到 {hour}")
 
 
 class BaziRequest(BaseModel):
@@ -75,41 +75,41 @@ class BaziRequest(BaseModel):
         逐条断言这些消息与状态码，改动措辞即改动契约。
         """
         if self.calendar_type not in CALENDARS:
-            raise ValidationError("calendar_type 只能是 solar 或 lunar")
+            raise ValidationError("历法只能是 solar 或 lunar")
         if self.scope not in SCOPES:
-            raise ValidationError(f"scope 只能是 {'/'.join(SCOPES)}")
+            raise ValidationError(f"范围只能是 {'/'.join(SCOPES)}")
         if self.calendar_type == "lunar":
             if not (self.lunar_year and self.lunar_month and self.lunar_day):
-                raise ValidationError("农历输入需提供 lunar_year/month/day")
+                raise ValidationError("农历输入需提供农历年月日")
             if not (1 <= self.lunar_month <= 12):
-                raise ValidationError("lunar_month 需在 1-12")
+                raise ValidationError("农历月需在 1-12")
             if not (1 <= self.lunar_day <= 30):
-                raise ValidationError("lunar_day 需在 1-30")
+                raise ValidationError("农历日需在 1-30")
         else:
             if not (YEAR_LO <= self.year <= YEAR_HI):
                 raise ValidationError(
-                    f"year 需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
+                    f"年份需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
             if not (1 <= self.month <= 12):
-                raise ValidationError("month 需在 1-12")
+                raise ValidationError("月份需在 1-12")
             if not (1 <= self.day <= 31):
-                raise ValidationError("day 需在 1-31")
+                raise ValidationError("日需在 1-31")
         if not (0 <= self.hour <= 23):
-            raise ValidationError("hour 需在 0-23")
+            raise ValidationError("时辰需在 0-23")
         if self.gender not in GENDERS:
-            raise ValidationError("gender 只能是 男 或 女")
+            raise ValidationError("性别只能是 男 或 女")
         if self.ask_hour is not None and not (0 <= self.ask_hour <= 23):
-            raise ValidationError("ask_hour 需在 0-23")
+            raise ValidationError("占卜时辰需在 0-23")
         if self.ask_date is not None:
             try:
                 d = date.fromisoformat(self.ask_date)
             except ValueError:
-                raise ValidationError("ask_date 需为 YYYY-MM-DD 格式") from None
+                raise ValidationError("占卜日期需为 YYYY-MM-DD 格式") from None
             if not (YEAR_LO <= d.year <= YEAR_HI):
                 raise ValidationError(
-                    f"ask_date 年份需在 {YEAR_LO}-{YEAR_HI} 之间")
+                    f"占卜年份需在 {YEAR_LO}-{YEAR_HI} 之间")
         if self.scope == "range":
             if not (self.range_start and self.range_end):
-                raise ValidationError("scope=range 需提供 range_start 和 range_end")
+                raise ValidationError("范围=range 需提供区间起止（range_start 和 range_end）")
             try:
                 date.fromisoformat(self.range_start)
                 date.fromisoformat(self.range_end)
@@ -158,20 +158,20 @@ class LiuyaoRequest(BaseModel):
 
     def validate_ranges(self) -> None:
         if self.method not in ("coins", "time"):
-            raise ValidationError(f"method 须为 coins|time，收到 {self.method}")
+            raise ValidationError(f"起卦方式需为 coins|time，收到 {self.method}")
         if self.method != "time":
             return
         if not all(v is not None for v in (self.year, self.month,
                                            self.day, self.hour)):
-            raise ValidationError("时间起卦需 year/month/day/hour")
+            raise ValidationError("时间起卦需年份、月份、日、时辰")
         if not (YEAR_LO <= self.year <= YEAR_HI):
-            raise ValidationError(f"year 须在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
+            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
         if not (1 <= self.month <= 12):
-            raise ValidationError(f"month 须在 1-12，收到 {self.month}")
+            raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
-            raise ValidationError(f"day 须在 1-31，收到 {self.day}")
+            raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
-            raise ValidationError(f"hour 须在 0-23，收到 {self.hour}")
+            raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
 
 
 class QimingRequest(BaseModel):
@@ -187,17 +187,17 @@ class QimingRequest(BaseModel):
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):
-            raise ValidationError(f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
+            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
         if not self.surname or len(self.surname) != 1:
-            raise ValidationError("surname 须为单字姓氏")
+            raise ValidationError("姓氏需为单字")
         if not (1 <= self.month <= 12):
-            raise ValidationError(f"month 须在 1-12，收到 {self.month}")
+            raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
-            raise ValidationError(f"day 须在 1-31，收到 {self.day}")
+            raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
-            raise ValidationError(f"hour 须在 0-23，收到 {self.hour}")
+            raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
         if self.gender not in GENDERS:
-            raise ValidationError(f"gender 须为 男/女，收到 {self.gender}")
+            raise ValidationError(f"性别需为 男/女，收到 {self.gender}")
 
 
 class ChatRequest(BaseModel):
@@ -211,12 +211,12 @@ class ChatRequest(BaseModel):
 
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:
-            raise ValidationError("session_id 须为 1-64 字符")
+            raise ValidationError("session_id 需为 1-64 字符")
         msg = (self.message or "").strip()
         if not msg:
-            raise ValidationError("message 不能为空")
+            raise ValidationError("消息不能为空")
         if len(msg) > 500:
-            raise ValidationError(f"message 超长（≤500 字），收到 {len(msg)} 字")
+            raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
 
 
 class NameReviewRequest(BaseModel):
@@ -227,9 +227,9 @@ class NameReviewRequest(BaseModel):
     def validate_ranges(self) -> None:
         clean = [n for n in (self.names or []) if n.strip()]
         if not clean:
-            raise ValidationError("names 不能为空")
+            raise ValidationError("候选名不能为空")
         if len(clean) > 6:
-            raise ValidationError(f"names 最多 6 个，收到 {len(clean)} 个")
+            raise ValidationError(f"候选名最多 6 个，收到 {len(clean)} 个")
         for n in clean:
             if len(n) > 8:
                 raise ValidationError(f"名字过长：{n[:8]}…")

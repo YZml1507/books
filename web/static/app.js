@@ -327,7 +327,7 @@ function buildChatContext(viewKey) {
     if (moving) facts.push('动爻：' + moving);
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
-    msg = '今天' + (j.date || '') + '值宫是' +
+    msg = '今天是 ' + (j.date || '') + '，值宫' +
       ((today && today.sign) || '—') + '，我今天运势怎么样';
     facts = ['今日值宫：' + ((today && today.sign) || '—')];
   } else {
@@ -421,7 +421,7 @@ var _CHAT_FALLBACK_DEFAULT = [
   "解忧铺今晚休整中，今天发的心事我记下了，明天来听你细说。",
   "小满今天不上班，门口的牌子写着『明日再会』✨ 你先歇会儿，明天找我。",
   "今晚小满调休中～把心事先写下来，明天上线第一时间翻你的牌。",
-  "打烊了哦宝～这条消息我存着，明天 0 点以后来找我说完。",
+  "打烊了哦～这条消息我存着，明天0点以后来找我说完。",
   "解忧铺的灯今天关了——你的心事没丢，明天开门第一单给你留着。",
   "今晚上线时间到了我先下了，存好你的话，明天带着新力气一起拆。",
   "小满今晚关店早，你先看看上面那张牌的提示，明天找我深聊。",
@@ -454,7 +454,7 @@ var _CHAT_FALLBACK_BY_KW = {
     "作业的事明天再战。今晚奖励自己一集短剧。"
   ],
   'money': [
-    "钱包的事明天再算——今晚先不想钱的事。",
+    "钱包的事明天再算——今晚先不想它了。",
     "理财的纠结明天拆给你听。今晚先关掉账单页面。",
     "今天先不数余额。明天来找我，把账本翻一遍。",
     "钱的事别熬夜想——夜里做的预算都偏严。明天聊。"
@@ -474,9 +474,9 @@ var _CHAT_FALLBACK_BY_KW = {
 };
 /* 关键词→分类映射（命中第一个即用） */
 var _CHAT_FALLBACK_KW_MAP = [
-  { cat: 'tired',   kws: ['累', '疲惫', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺'] },
+  { cat: 'tired',   kws: ['累', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺'] },
   { cat: 'work',    kws: ['工作', '职场', '同事', '老板', '上司', '升职', '跳槽', '上班', '加班', '辞职'] },
-  { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '他', '她', '对象', '恋爱', '暗恋', '表白', '相亲', '暧昧'] },
+  { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '对象', '暗恋', '表白', '相亲', '暧昧'] },
   { cat: 'study',   kws: ['学习', '考试', '作业', '考研', '高考', '中考', '成绩', '课程', '论文', '答辩'] },
   { cat: 'money',   kws: ['钱', '工资', '消费', '理财', '账单', '余额', '省钱', '欠款', '花呗'] },
   { cat: 'reading', kws: ['牌', '卦', '命', '盘', '解盘', '看看', '解读', '分析', '看'] }
@@ -513,7 +513,7 @@ function pollNameReview(taskId) {
       const out = el('nameReviewOut');
       if (!out) return;
       if (st && st.status === 'done' && st.text) {
-        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 引经点评</h4><p style="white-space:pre-wrap;">' +
+        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4><p style="white-space:pre-wrap;">' +
           renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
         return;
       }
@@ -988,7 +988,7 @@ var WARM_EMPATHY = {
 var WARM_EMPATHY_POOL = [
   "来了就好。不管今天怎么样，先看看盘想对你说什么。",
   "别急，我帮你瞧瞧——先看看它想对你说什么。",
-  "乖，抽到什么说什么，我们慢慢看。",
+  "抽到什么说什么，我们慢慢看。",
   "你来了，它也在。一起看看今天的信号。",
   "这结果挺有意思的，听我慢慢说给你听。",
   "放心，不吓人——我把它们翻译成人话给你。"
@@ -3141,7 +3141,7 @@ async function doQiming() {
      * 提示语，不再可反复点。 */
     var _aiOff = !j.ai_task_id;
     html += '<button class="chat-entry" type="button" id="nameReviewBtn"' +
-      (_aiOff ? ' disabled title="点评的小书童今天休息，明天再来吧"' : '') + '>' +
+      (_aiOff ? ' disabled title="小满点评今天休息，明天再来吧"' : '') + '>' +
       '✨ 让 AI 用古籍典故点评这些名字</button>' +
       '<div id="nameReviewOut" hidden></div>';
     /* candidates[] = {char, element, radical, meaning}。
@@ -3181,7 +3181,7 @@ async function doQiming() {
       }).then(function (rj) {
         if (!rj.review_task_id) {
           /* R216b 续5（U-019）：降级文案带人设+替代引导；按钮保持置灰。 */
-          paint('nameReviewOut', '<div class="no-evidence">点评的小书童今天休息～' +
+          paint('nameReviewOut', '<div class="no-evidence">小满点评今天休息～' +
             '名字的寓意卡片里都有说明，先看着，明天来听故事版 ✨</div>');
           const o = el('nameReviewOut'); if (o) o.hidden = false;
           if (btn) btn.disabled = false;
@@ -3223,7 +3223,7 @@ async function doQiming() {
 
 
 async function doTaohua() {
-  busy('thResult', '测算中…');
+  busy('thResult', '计算中…');
   try {
     const j = await postJSON('/api/taohua', {
       year: num('th_year'),
@@ -3435,7 +3435,7 @@ var TAROT_POS_HINT = {
 /* R218a-07：塔罗首屏问题绑定——5-6 套问题域关键词（感情/工作/学业/财运/健康/通用），
  * 按「主牌正逆位 + 关键词」给一句针对问题的直接回答。零新事实：同输入同输出。 */
 var _TAROT_QK = [
-  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','他','她','对象','暗恋','表白','相亲','暧昧','桃花'] },
+  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','对象','暗恋','表白','相亲','暧昧','桃花'] },
   { cat: 'work',   kws: ['工作','职场','同事','老板','上司','升职','跳槽','上班','加班','辞职','事业'] },
   { cat: 'study',  kws: ['学习','考试','作业','考研','高考','中考','成绩','课程','论文','答辩','读书'] },
   { cat: 'money',  kws: ['钱','工资','消费','理财','账单','余额','省钱','欠款','花呗','财运'] },
@@ -3463,7 +3463,7 @@ function tarotQuestionHook(question, draws) {
       false: '**现在有点拧**——先别急着给关系下结论，等心里那股劲过去再决定。'
     },
     work: {
-      true: '**事业方向是稳的**——保持当前节奏，机会会在 1-2 个月内浮出来。',
+      true: '**事业方向是稳的**——保持当前节奏，机会在慢慢冒头，多留意主动递过来的信号。',
       false: '**职场的弯弯绕绕**——近期有调整的机会但建议先稳后动，别一次性求变。'
     },
     study: {
@@ -3471,11 +3471,11 @@ function tarotQuestionHook(question, draws) {
       false: '**脑子在打烊**——今晚先放一放，把最难的题留到明天状态好时再做。'
     },
     money: {
-      true: '**财运有起色**——非必要支出再压一压，会有一笔进账。',
-      false: '**钱的事先别想**——最近账本有变动，夜里做的预算都偏严，明天再算。'
+      true: '**财运有起色**——非必要支出再压一压，留意收入上的小动静。',
+      false: '**钱的事先别想**——夜里做的预算都偏严，明天再看账本更清楚。'
     },
     health: {
-      true: '**状态在回温**——继续保持作息和喝水节奏，一周内会明显感觉轻松。',
+      true: '**状态在回温**——继续保持作息和喝水节奏，会越来越轻快。',
       false: '**身体在喊停**——先停下来休息一天，熬夜的代价明早会还给你。'
     },
     general: {
@@ -3496,7 +3496,7 @@ function tarotQuestionHook(question, draws) {
  * （动爻数 > 0 → 变化趋势，== 0 → 静卦稳定）给一句问题域回应。零新事实。 */
 var _LIUYAO_QK = [
   { cat: 'work',   kws: ['工作','职场','同事','老板','上司','升职','跳槽','上班','加班','辞职','事业'] },
-  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','他','她','对象','暗恋','表白','相亲','暧昧','桃花','婚姻'] },
+  { cat: 'love',   kws: ['感情','恋爱','喜欢','分手','前任','对象','暗恋','表白','相亲','暧昧','桃花','婚姻'] },
   { cat: 'study',  kws: ['学习','考试','作业','考研','高考','中考','成绩','课程','论文','答辩','读书'] },
   { cat: 'money',  kws: ['钱','工资','消费','理财','账单','余额','省钱','欠款','花呗','财运','投资'] },
   { cat: 'health', kws: ['身体','健康','生病','睡眠','失眠','焦虑','压力','心情'] }
@@ -3988,7 +3988,7 @@ async function doHuangli(offset, reveal) {
       _hlBox.style.pointerEvents = 'none';
     }
   } else {
-    busy('hlResult', '翻老黄历…');   /* 首查/显式查询：占位+滚到结果，行为不变 */
+    busy('hlResult', '翻黄历…');   /* 首查/显式查询：占位+滚到结果，行为不变 */
   }
   var dateStr = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
   try {
@@ -4077,7 +4077,7 @@ async function doHuangli(offset, reveal) {
          (j.chongsha.sha_fang ? '煞' + j.chongsha.sha_fang : ''));
     }
     if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(_csTxt) + '</div>';
-    html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，供参考娱乐，大事还是要相信自己的判断 ✨</div>';
+    html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     paint('hlResult', html);
     var _ai2 = document.getElementById('hlAskInput');
     if (_ai2 && _askKeep) _ai2.value = _askKeep;   /* R228c：输入框保活回填 */
@@ -4572,12 +4572,12 @@ if (document.readyState === 'loading') {
 })();
 
 /* ── R214b：「今日玄学搭子」打卡互动（纯前端，确定性反馈）── */
-const CHECKIN_OPTS = ['开运蛋', '吃瓜运', '摸鱼运', '水逆退散'];
+const CHECKIN_OPTS = ['开运蛋', '吃瓜运', '摸鱼运', '破水逆运'];
 const CHECKIN_FEEDBACK = {
   '开运蛋': ['今天这个运简直像开了挂，冲鸭！', '好运来敲门，接住了别撒手！'],
   '吃瓜运': ['瓜运当头，记得带好小板凳前排围观！', '今天的瓜管够，吃瓜吃到撑～'],
-  '摸鱼运': ['摸鱼运爆棚，快乐一下不过分！', '摸鱼时长建议不超过15分钟哦宝～'],
-  '水逆退散': ['霉运走开，今天就是好运girl！', '水逆退散！诸事皆宜的一天开始了～']
+  '摸鱼运': ['摸鱼运爆棚，快乐一下不过分！', '摸鱼时长建议不超过15分钟哦～'],
+  '破水逆运': ['霉运走开，今天就是好运姑娘！', '破水逆运！诸事皆宜的一天开始了～']
 };
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
@@ -4827,7 +4827,7 @@ function baziPersonaCard(j) {
       html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
       html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + '</span></div>';
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
-      html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人结局也不同，运势内容仅供参考和娱乐 ✨</div></div>';
+      html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人解读也会不同。仅供娱乐，不构成决策依据 ✨</div></div>';
       out.innerHTML = html;
       try { rememberResult('bazi', j, '我的本命盘', body); } catch (e) {}
     } catch (err) {
