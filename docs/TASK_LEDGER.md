@@ -10233,3 +10233,7 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 ### R229l（selftest +3 钉：人话化与长度上限回归）
 
 - `err.bazi.paipan_friendly`：非法日期 422 的 detail 必须含「这一天不存在」（钉住英文异常原文人话化）。`err.bazi.question_too_long`/`err.liuyao.question_too_long`：max_length=200 → pydantic 422 + 非空 detail（FastAPI 约定 list 形状，不走 _expect_422 的字符串断言）。181→184 全 PASS。
+
+### R229m（前后端日期词一致性闸门 + 抓出的真漂移修复）
+
+- 新探针 `probes/probe_date_parity.py`：playwright 真浏览器 evaluate `_hlDayOffset` × 后端 `_hl_day_part`，39 条问法固定基准日比对偏移。首次运行即抓出真实分歧——R229h 晚字辈（今晚/今夜/明晚/后晚/昨晚）只落了后端，前端漏同步；app.js `_hlDayOffset` 已补齐 4 条（39/39 OK）。今后任一侧改日期词解析，probe 当场报警。

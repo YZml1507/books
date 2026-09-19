@@ -1,0 +1,133 @@
+"""probes/probe_date_parity.py — 前端 _hlDayOffset ↔ 后端 _hl_day_part
+同口径钉扎（R229m）。
+
+为什么需要这条闸门：日期词解析在 app.js 与 services.py 各实现一份
+（前端翻黄历卡片、后端给小满喂事实），历史漂移已经咬过两次——
+「明天」只被前端剥词没换算日期（R227b-fix）、「下周/本周/下周末/裸曜日/
+晚字辈/『天』误映射成周一」成串漏网（R229e–i）。靠人肉记两边同步必漂。
+
+做法：playwright 打开真实页面，page.evaluate 调浏览器里的 _hlDayOffset
+（固定基准日 2026-09-19 周六）；python 侧直接调 web.services._hl_day_part
+（now 同日），把返回的绝对日换成偏移天数比对。null ↔ 「今天」（off=None
+即按显示日，默认今天=偏移0；后端显式返回今天）对齐口径。
+
+退出码：0=全部一致，1=存在分歧（打印对照表），2=环境缺失。
+"""
+from __future__ import annotations
+
+import datetime
+import os
+import socket
+import subprocess
+import sys
+import time
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(ROOT, "web"))
+os.environ.setdefault("BOOKS_LLM_DISABLE", "1")
+
+BASE = datetime.datetime(2026, 9, 19, 12, 0)   # 周六
+
+# (问法, 期望偏移, 期望口头词前缀或 None)——期望与两端实现无关，人工标注。
+CASES = [
+    ("今天适合出行吗", 0), ("今日", 0), ("今晚约会", 0), ("今夜", 0),
+    ("明天适合出行吗", 1), ("明日搬家", 1), ("明儿签约", 1), ("明晚约会", 1),
+    ("后天能剪头发吗", 2), ("後天", 2), ("过两天出差", 2), ("后晚聚", 2),
+    ("大后天考试", 3), ("大後天", 3),
+    ("昨天干了啥", -1), ("昨晚睡得好", -1), ("前天出门了", -2), ("大前天", -3),
+    ("下周三面试", 4), ("下週三面试", 4), ("下礼拜天搬家", 8), ("下周", 2),
+    ("下周末出行", 7), ("下週末出行", 7),
+    ("本周三搬家", -3), ("这周五约会", -1), ("这週五適合面試嗎", -1),
+    ("本周日出行", 1), ("这周日", 1),
+    ("周末搬家", 0),          # 今天周六 → 本周末=今天
+    ("周日出行", 1), ("周天出行", 1), ("礼拜天签约", 1), ("星期天", 1),
+    ("周五搬家", 6), ("星期一上班", 2), ("星期三看医生", 4),
+    ("明天适合出行吗", 1),
+    ("跟对象吵架了", None),  # 无日期词 → null/今天
+]
+
+# 两实现都钉在同一语义上：返回的是「相对 BASE 的天数偏移」。
+# 前端 _hlDayOffset 返回 null = 无日期词（按显示日走）；
+# 后端无词返回 (today, "今天")。对齐：py null 等价 → 用 weekday 差比对。
+
+
+def _py_off(msg: str):
+    from web import services
+    dt, _spoken = services._hl_day_part(msg, BASE)
+    # 后端无日期词时返回今天——无法区分「显式今天」与「默认今天」，
+    # 这里按词面判断：消息里根本没日期词时按 null 比。
+    return dt, _spoken
+
+
+def main() -> int:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("probe_date_parity SKIP-ENV: playwright 未安装")
+        return 2
+
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "web.app:app",
+         "--host", "127.0.0.1", "--port", str(port)],
+        cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(60):
+            try:
+                socket.create_connection(("127.0.0.1", port), 0.3).close()
+                break
+            except OSError:
+                time.sleep(0.5)
+        else:
+            print("probe_date_parity SKIP-ENV: 服务起不来")
+            return 2
+
+        from web import services  # noqa: F401 — 先确认 import 没问题
+        diffs = []
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+            page.wait_for_timeout(1200)
+            for q, exp in CASES:
+                js = page.evaluate(
+                    "(q) => _hlDayOffset(q, new Date(2026, 8, 19, 12))", q)
+                # python 侧：绝对日期 → 偏移
+                from web import services as _s
+                dt, sp = _s._hl_day_part(q, BASE)
+                py_off = (dt.date() - BASE.date()).days
+                # 对齐口径：JS null = 无词按今天；py 无词返回今天（off=0 且
+                # spoken='今天'）。「无词」判据：spoken 不是任何日期原词。
+                has_word = sp != "今天" or any(
+                    k in q for k in ("今天", "今日", "今晚", "今夜"))
+                py_val = py_off if has_word else None
+                ok = (js == py_val)
+                exp_mark = "" if exp is None or js == exp else f" 期望{exp}"
+                status = "OK " if ok else "DIFF"
+                if not ok:
+                    diffs.append(q)
+                print(f"  [{status}] {q!r:>24}  js={js}  py={py_val}"
+                      f"（{sp} → {dt.date()}）{exp_mark}")
+            browser.close()
+
+        if diffs:
+            print(f"\nprobe_date_parity FAIL: {len(diffs)} 条分歧: {diffs}")
+            return 1
+        print(f"\nprobe_date_parity PASS: {len(CASES)} 条问法前后端偏移一致")
+        return 0
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

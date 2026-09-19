@@ -4092,6 +4092,12 @@ function _hlDayOffset(q, base) {
   if (/今[天日]|今日/.test(s)) return 0;
   if (/昨[天日]|昨日/.test(s)) return -1;
   if (/前[天日]|前日/.test(s)) return -2;
+  /* R229h/m：晚字辈与对应「天」同档（黄历按天判）——services._hl_day_part
+   * 同口径；probe_date_parity 钉扎两侧一致性。 */
+  if (/明晚/.test(s)) return 1;
+  if (/(后|後)晚/.test(s)) return 2;
+  if (/今晚|今夜/.test(s)) return 0;
+  if (/昨晚/.test(s)) return -1;
   /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。 */
   var mw = s.match(/(本周|这周|本週|這週|这週|這周)([一二三四五六日天])/);
   if (mw) {
