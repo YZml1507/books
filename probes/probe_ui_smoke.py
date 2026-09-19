@@ -296,6 +296,62 @@ def main() -> int:
         cwd=cwd, env=env,
         stdout=srv_log, stderr=subprocess.STDOUT)
     results: list[dict] = []
+
+    # ── R228o 静态闸（不占浏览器，服务就绪前先跑）─────────────────
+    # S1) on() 注册面 ⊆ BUTTON_CASES ∪ NO_CASE——新按钮忘了接冒烟用例时
+    #     立刻 FAIL 而不是静默没人点过（gate-blindspots 审查发现：xz* 与
+    #     share* 等 10 个 on() 注册此前零点击验证且无登记）。
+    _js_path = os.path.join(ROOT, "web", "static", "app.js")
+    _js = open(_js_path, encoding="utf-8").read()
+    _on_ids = set(re.findall(r"(?<![\w.])on\(\s*['\"](\w+)['\"]", _js))
+    _covered = {btn.lstrip("#") for _n, _v, _t, btn, _r in BUTTON_CASES}
+    _covered |= {"dailyMore", "submit"}
+    # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
+    NO_CASE = {
+        "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
+                       "冒烟只到按钮可见",
+        "nameReviewBtn": "AI 点评轮询入口——LLM 任务在冒烟环境不产生",
+        "qmRefreshBtn": "改名候选重生按钮——同 qiming 链路",
+        "shareBazi": "分享海报模态（Canvas）——冒烟不测文件生成",
+        "shareQiming": "同上",
+        "shareTaohua": "同上",
+        "shareHehun": "同上",
+        "shareDaily": "同上",
+        "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
+        "xzPrev": "同上", "xzNext": "同上", "xzToday": "同上",
+        "xzTomorrow": "同上",
+    }
+    _miss = sorted(_on_ids - _covered - set(NO_CASE))
+    results.append({"name": "gate:on_coverage",
+                    "ok": not _miss,
+                    "detail": ("on() 注册 28 个全部在用例表或豁免表"
+                               if not _miss else
+                               f"未覆盖且未豁免的 on() 注册: {_miss}")})
+
+    # S2) innerHTML 单行注入 lint：同行结束的 innerHTML 赋值里若出现
+    #     \w+\.\w+ 裸字段读且没有 esc(/fmtScalar(/renderRichText(/renderStars(
+    #     包装 → FAIL（跨行拼接由契约探针+人审兜底，本闸只抓直注）。
+    _raw_hits = []
+    for _i, _ln in enumerate(_js.splitlines(), 1):
+        _m = re.search(r"innerHTML\s*(?:\+?=)\s*(.+;)", _ln)
+        if not _m:
+            continue
+        _rhs = _m.group(1)
+        _fields = re.findall(r"\b(\w+)\.(\w+)", _rhs)
+        if not _fields:
+            continue
+        if re.search(r"esc\(|fmtScalar\(|renderRichText\(|renderStars\(|"
+                     r"buildBaziResult\(|renderDecoration\(|insertAiPolish\(",
+                     _rhs):
+            continue
+        if "// esc-reviewed" in _ln:
+            continue
+        _raw_hits.append(f"{_i}:{_rhs[:60]}")
+    results.append({"name": "gate:innerHTML_esc",
+                    "ok": not _raw_hits,
+                    "detail": ("单行 innerHTML 注入全部经包装"
+                               if not _raw_hits else
+                               f"裸字段注入: {_raw_hits[:4]}")})
     try:
         if not wait_health(port):
             srv_log.flush()

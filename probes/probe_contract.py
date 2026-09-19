@@ -170,6 +170,14 @@ FIXTURES: dict[str, dict] = {
     # 不可见，现在 nofix/SKIP 会把缺 fixture 如实透出）。直接往端点读的同
     # 一份内存 store 里放一条 done 任务，拿真实 200 响应。
     "/api/ai/":               {"method": "AI_TASK"},
+    # R228o 收尾：纯 GET 公开端点补齐——键即 url（前端 app.js 读点全在这
+    # 几张响应上；补上让「路由↔钉扎」覆盖表全绿）。
+    "/api/health":            {"method": "GET"},
+    "/api/stats":             {"method": "GET"},
+    "/api/widget":            {"method": "GET"},
+    # /api/share/{type}/{id}：无列表端点可解 id——spec.url 显式钉一个
+    # selftest 同款真实请求（bazi/1）。
+    "/api/share/":            {"method": "GET", "url": "/api/share/bazi/1"},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
@@ -458,6 +466,19 @@ def field_reads(block: dict,
     return binds, kept, urls, var_urls, nofix
 
 
+# ── 有意不钉扎的路由登记表（R228o route↔fixture 覆盖闸）─────────────
+# 新端点要么进 FIXTURES 要么进这里并写明理由——不入表 = probe FAIL。
+UNPINNED_ROUTES = {
+    ("POST", "/api/ask"):        "R228l 裁决为有意保留僵尸端点（UI 接线已撤，"
+                                 "删除待用户）——不造 fixture 假装覆盖",
+    ("POST", "/api/user/prefs"): "同上：死写端点（R228l 台账）",
+    ("POST", "/api/favorites"):  "同上：收藏写端点 UI 已撤",
+    ("DELETE", "/api/favorites/{fid}"): "同上",
+    ("DELETE", "/api/paipan/history/{rid}"): "删除写端点——探针只读纪律"
+                                 "（写路径由 ui_smoke/selftest 的建删回环覆盖）",
+}
+
+
 # ---------------------------------------------------------------------------
 # 2. 真实响应 + 路径判定
 # ---------------------------------------------------------------------------
@@ -491,7 +512,8 @@ def main() -> int:
               f"（0 个读取点 ≠ 通过）")
         return 2
 
-    client = TestClient(load_app())
+    _app = load_app()
+    client = TestClient(_app)
     # R228a：排盘历史台账也受写端点污染纪律约束——seed 的 POST /api/bazi
     # 会 save_async 落一行，退出前必须把增量行删掉，基线在这里先记。
     from guji import paipan_history as _ph_db
@@ -508,6 +530,36 @@ def main() -> int:
               f"handler 块。可能是代码风格变了（如改用箭头函数顶层缩进），"
               f"probe 的块切分需同步更新——静默报 0 是假通过。")
         return 2
+
+    # ── R228o：路由↔fixture 覆盖闸——新端点不被钉扎时 fail-loud ──
+    _route_tbl = []
+    for _r in _app.routes:
+        _inner = getattr(_r, "original_router", None)
+        _route_tbl += list(_inner.routes if _inner is not None else [_r])
+    _uncov = []
+    _path_keys = [k for k in FIXTURES if k.endswith("/")]
+    for _r in _route_tbl:
+        _p = getattr(_r, "path", "")
+        if not _p.startswith("/api"):
+            continue
+        _ms = sorted((getattr(_r, "methods", None) or set())
+                     - {"HEAD", "OPTIONS"})
+        for _m in _ms:
+            if (_m, _p) in UNPINNED_ROUTES:
+                continue
+            _key = f"{_m} {_p}" if _m in ("POST", "PUT", "DELETE") else _p
+            if _key in FIXTURES or _p in FIXTURES:
+                continue
+            # 路径参数端点：存在以「<前缀>/」为键的 fixture（PATH/AI_TASK）
+            if any(_p.startswith(k) for k in _path_keys):
+                continue
+            _uncov.append(f"{_m} {_p}")
+    if _uncov:
+        print("probe_contract FAIL: 以下路由未钉扎（进 FIXTURES 或 "
+              "UNPINNED_ROUTES 写明理由）：")
+        for _u in sorted(_uncov):
+            print("  -", _u)
+        return 1
 
     # ── 写端点污染基线（L-22）──────────────────────────────
     # ⚠ 从这里开始到 finally 之间的一切都必须在 try 内：本 probe 开发期实测
@@ -550,7 +602,8 @@ def main() -> int:
         if url in cache:
             return cache[url]
         fx = FIXTURES.get(url)
-        url_real = url[5:] if url.startswith("POST ") else url
+        url_real = (fx.get("url") if isinstance(fx, dict) and fx.get("url")
+                    else (url[5:] if url.startswith("POST ") else url))
         if fx is None:
             cache[url] = ("nofixture", None)
             return cache[url]

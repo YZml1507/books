@@ -17881,3 +17881,22 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   app.js 跨行链式 .sort(fn).forEach 拆成命名中间变量 _sortedLines。
 - 判据：probe_contract PASS 381 读点（原 255，新增 126 全命中真实响应）、
   selftest 173、ui_smoke 41/41、dollar_misuse、selftest_regress 全绿。
+
+## R228o收口（gate-blindspots 钉扎批）
+
+- probe_contract：路由↔fixture 覆盖闸——枚举 app 全部 /api/* 路由
+  （解开 _IncludedRouter 包装），每个方法级路由必须有 FIXTURES 键或
+  UNPINNED_ROUTES 登记（僵尸/写端点写明理由），缺登记即 FAIL。
+  补 4 个 GET fixture（health/stats/widget/share 前缀——share 用
+  spec.url 钉 /api/share/bazi/1 真实请求），42 路由全部在册。
+- selftest 新增 3 钉：css.import.position（@import 必须在所有普通规则
+  之前，逐行剥 /* */ 注释块再判）、err.sqlite.op.503（OperationalError
+  处理器注册在位）、sw.chain（/sw.js 200+JS MIME+SWA 头+index.html
+  注册四段齐全）。err.* 断言全体强化：_expect_400/_expect_422 现在还
+  断言 detail 为非空人话字符串（防 {detail:{...}}→[object Object]）。
+- probe_ui_smoke 新增 2 静态闸：gate:on_coverage（app.js 全部 on()
+  注册 ⊆ 按钮用例 ∪ 理由化 NO_CASE——28 个注册全在册）；
+  gate:innerHTML_esc（单行 innerHTML 赋值裸字段读必须过
+  esc/fmtScalar/renderRichText 等包装器）。
+- 判据：selftest 176（+3）、ui_smoke 43（+2）、contract PASS 381 读点、
+  regress 只增不减（174→176）。

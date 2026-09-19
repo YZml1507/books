@@ -58,12 +58,18 @@ def run() -> list[str]:
     # 异常（400→500），selftest 全绿看不见。以下独立断言 400（不走闭包）。
     def _expect_400(name, resp):
         assert resp.status_code == 400, (name, resp.status_code, resp.text[:200])
+        # R228o：状态码对还不够——detail 必须是非空人话字符串，
+        # 否则前端拿到 {detail:{...}} 照样渲染出 [object Object]。
+        _d = resp.json().get("detail")
+        assert isinstance(_d, str) and _d.strip(), (name, _d)
         ok.append(name)
 
     # R163b（D-209b）：422 排盘失败分支断言辅助——400 参数校验断言不构成
     # 422 计算失败路径的覆盖（compute 抛异常→422，如 1990-02-30 不存在）。
     def _expect_422(name, resp):
         assert resp.status_code == 422, (name, resp.status_code, resp.text[:200])
+        _d = resp.json().get("detail")
+        assert isinstance(_d, str) and _d.strip(), (name, _d)
         ok.append(name)
 
     # ── 读书域：检索 / 定位 / 比对 / 书目 / 统计 ──────────────────
@@ -1413,6 +1419,49 @@ def run() -> list[str]:
         assert _got == _expect_keys[_ep], \
             (_ep, sorted(_got), sorted(_expect_keys[_ep]))
     ok.append("ai_polish.additive")
+
+    # ── R228o 闸门盲区钉扎（审查轨 gate-blindspots 批）──────────────
+    # 2a) styles.css：@import 必须位于全部普通规则之前——R228m 实测过
+    #     @import 写在中段会被浏览器静默丢弃（字体/主题 import 失效零报错）。
+    import os as _os
+    import re as _re
+    _css_path = _os.path.join(_os.path.dirname(__file__), "static",
+                            "styles.css")
+    # 逐行剥掉 /* */ 注释块后再判——注释正文行不是规则。
+    _raw = open(_css_path, encoding="utf-8").read()
+    _lines = _re.sub(r"/\*.*?\*/", "", _raw, flags=_re.S).splitlines()
+    _seen_rule = False
+    for _ln in _lines:
+        _t = _ln.strip()
+        if not _t or _t.startswith("//"):
+            continue
+        if _t.startswith("@import") or _t.startswith("@charset"):
+            assert not _seen_rule, "styles.css: @import 出现在普通规则之后"
+            continue
+        _seen_rule = True
+    ok.append("css.import.position")
+
+    # 2b) sqlite3.OperationalError → 503（db 锁/坏页不许变 500 栈；
+    #     errors.py 注册的 handler 必须真实在位）。
+    import sqlite3 as _sq
+    assert _sq.OperationalError in app.exception_handlers, \
+        sorted(str(k) for k in app.exception_handlers)
+    ok.append("err.sqlite.op.503")
+
+    # 2c) SW 链路：/sw.js 200 + JS MIME + index.html 注册 +
+    #     Service-Worker-Allowed 头（根作用域）——三段缺一 SW 就静默失效。
+    _sw = client.get("/sw.js")
+    assert _sw.status_code == 200, _sw.status_code
+    assert "javascript" in _sw.headers.get("content-type", ""), \
+        _sw.headers.get("content-type")
+    assert _sw.headers.get("Service-Worker-Allowed") == "/", \
+        dict(_sw.headers)
+    _idx_path = _os.path.join(_os.path.dirname(__file__), "static",
+                            "index.html")
+    _idx = open(_idx_path, encoding="utf-8").read()
+    assert "sw.js" in _idx and ("serviceWorker" in _idx), \
+        "index.html 未见 SW 注册"
+    ok.append("sw.chain")
     return ok
 
 
