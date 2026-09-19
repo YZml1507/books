@@ -59,7 +59,8 @@ a = Analysis(
         'guji.qiming',
         'guji.external',
         'guji.history',
-        'guji.llm_reader',
+        # R229s：'guji.llm_reader' 已删——模块随 R178b LLM 层移除下线，
+        # spec 残留引用会让 PyInstaller Analysis 直接报 hidden import 缺失。
         'guji.lunar',
         'guji.search',
         'guji.ingest',
