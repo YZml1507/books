@@ -1394,6 +1394,12 @@ def _run_inner() -> list[str]:
     # 比「那天」更精确，也让 LLM 能把用户的说法锚到正确日期。
     _hf7 = _svc.chat_huangli_facts("明天适合聚餐吗", now=_dt(2026, 9, 19))
     assert _hf7 and any("明天（2026-09-20）" in f for f in _hf7), _hf7
+    # ⑤ R229v（真机 eval 抓到）：已过去的日子判定句本体必须带「已过去」
+    # + 复盘指令——只靠宜忌行尾巴的括号模型会漏看（9/18 宜面试被答成
+    # 「周五冲一把」）。
+    _hf8 = _svc.chat_huangli_facts("这周五去面试好不好", now=_dt(2026, 9, 19))
+    assert _hf8 and any("已过去" in f and "黄历判定" in f for f in _hf8), _hf8
+    assert any("复盘" in f for f in _hf8), _hf8
     ok.append("chat.facts.dates_vocab")
     # R227b-fix（端到端审查抓到）：问一嘴输入的日期词必须参与判定——
     # 「明天适合出行吗」不许剥掉日期词后拿当前显示日充数答「今天…」。

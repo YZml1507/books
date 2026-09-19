@@ -979,6 +979,9 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     if generic:
         facts.append("没列入当日宜忌的事项属中性——不是不支持，只是黄历没"
                      "为它背书，可照常安排；想要背书就挑宜它的日子。")
+        if past_note:
+            facts.append("该日期已过去，请温和点出、按复盘口径回应，"
+                         "不要再给择日建议。")
         return facts
 
     hit_yi = [t for t in terms if any(t in w or w in t for w in yi)]
@@ -987,19 +990,28 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     good_str = "、".join(good)
     good_part = (f"近45天宜{scene}的日子：{good_str}——想要黄历背书可挑这几天。"
                  if good else "")
+    # R229v：已过去的日子不能只靠宜忌行尾巴的括号——模型实测会漏看，
+    # 对着 9/18 的「宜面试」说出「周五冲一把」。把标记嵌进判定句本体，
+    # 并要求回复口径改为复盘/温和指出而非择日建议。
+    past_mid = "（这天已经过去）" if past_note else ""
     if hit_yi and not hit_ji:
-        verdict = f"黄历判定：{date_cn} 宜「{scene}」（宜项含【{'、'.join(hit_yi)}】）。"
+        verdict = (f"黄历判定：{date_cn}{past_mid} 宜「{scene}」"
+                   f"（宜项含【{'、'.join(hit_yi)}】）。")
     elif hit_ji and not hit_yi:
-        verdict = (f"黄历判定：{date_cn} 忌「{scene}」（忌项含【{'、'.join(hit_ji)}】）；"
+        verdict = (f"黄历判定：{date_cn}{past_mid} 忌「{scene}」"
+                   f"（忌项含【{'、'.join(hit_ji)}】）；"
                    f"已安排也不必慌，放缓节奏即可。{good_part}")
     elif hit_yi and hit_ji:
-        verdict = (f"黄历判定：{date_cn} 「{scene}」宜忌都有——宜【{'、'.join(hit_yi)}】"
-                   f"也忌【{'、'.join(hit_ji)}】；想做就把节奏放缓，不赶大动作。")
+        verdict = (f"黄历判定：{date_cn}{past_mid} 「{scene}」宜忌都有——"
+                   f"宜【{'、'.join(hit_yi)}】也忌【{'、'.join(hit_ji)}】；"
+                   f"想做就把节奏放缓，不赶大动作。")
     else:
         that_day = "今天" if dt.date() == now.date() else f"{spoken}（{date_cn}）"
-        verdict = (f"黄历判定：{date_cn} 宜忌都没直接提「{scene}」——中性，"
+        verdict = (f"黄历判定：{date_cn}{past_mid} 宜忌都没直接提「{scene}」——中性，"
                    f"不是不支持，只是黄历{that_day}没为它背书，{scene}可照常安排。"
                    f"{good_part}")
+    if past_mid:
+        verdict += "（该日期已过去，请温和点出、按复盘口径回应，不要再给择日建议。）"
     facts.append(verdict)
     return facts
 
