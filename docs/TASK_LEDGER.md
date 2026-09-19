@@ -10145,3 +10145,5 @@ R228y 持续优化批：GitHub Actions CI 上线——.github/workflows/selftest
 验证：fresh clone 全闸门 PASS（selftest 181 / contract 386 / dollar PASS）。
 R228y续 CI 修复：actions/checkout 加 lfs:true（bge 权重在 LFS，缺它 bazi.semantic 挂）；CI 首跑绿（selftest+contract+dollar 三闸全过）。
 验证：git_pr_checks → selftest ✅ job 105970153690。
+R228z：probe_contract.py 顶部 os.environ.setdefault(BOOKS_LLM_DISABLE,1)——同进程加载 web.app 的探针此前会被宿主 API key 渗成在线。另：GitHub Actions 三闸 CI 已全绿并随 R228y 落地。
+验证：BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py → PASS 386/386。
