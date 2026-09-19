@@ -17915,3 +17915,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - huangli.day_ganzhi 去重：委托 bazi.day_ganzhi（算法单源，签名适配）。
 - 判据：selftest 176、contract 381 读点、ui_smoke 43、dollar_misuse、
   regress（177→176，已审核改名 2）全绿。
+
+## R228p续（smiley-sans 子集化）
+
+- web/static/fonts/smiley-sans.woff2 1.15MB 全量字体唯一消费者是
+  .daily-level（单字 吉/平/缓/凶）。pyftsubset 出
+  smiley-sans-subset.woff2（2.1KB，16 字符含 digits 兜底），CSS 接线
+  改指子集件；全量件留作源档案（_candidates/README 登记 + 缺字形
+  自动回落 wenkai 栈）。首屏字体载荷 -1.13MB。
+- 判据：selftest 176 / contract 381 / ui_smoke 43 全绿。

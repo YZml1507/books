@@ -23,5 +23,11 @@
 | r212b/badge-level-star.png | 等级徽章候选 |
 | r212b/poster-bg-dream.png | 海报底第三方案 |
 
-删除任一「未接线」文件前，先确认对应功能没有计划复用——这些是按
+删除任一「未接线」文件前，先确认对应文件没有计划复用——这些是按
 `_candidates` 命名规约存档的落选项，不是垃圾。
+
+## 字体档案（R228p）
+
+| 文件 | 状态 |
+| --- | --- |
+| `../fonts/smiley-sans.woff2` | 得意黑全量字体（1.15MB）——源档案；线上接线的是 `smiley-sans-subset.woff2`（2.1KB，子集：吉/平/缓/凶/digits，.daily-level 唯一消费）。若未来 Smiley Sans 要渲染更多文字，需重新生成子集（pyftsubset）。 |

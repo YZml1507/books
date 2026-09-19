@@ -176,7 +176,10 @@ body{
  * （2.0MB），浏览器按需加载命中的分片。得意黑单文件 woff2 用于标题。 */
 @font-face{
   font-family:"Smiley Sans";
-  src:url("./fonts/smiley-sans.woff2") format("woff2");
+  /* R228p：子集化——.daily-level 是此字体的唯一消费者，只渲染
+   * 吉/平/缓/凶（+digits 兜底）。1.15MB → 2.1KB；原全量件保留在
+   * fonts/smiley-sans.woff2 作源档案（缺字形自动回落 wenkai 栈）。 */
+  src:url("./fonts/smiley-sans-subset.woff2") format("woff2");
   font-display:swap;
 }
 /* R210b（US8）：站酷快乐体（ZCOOL KuaiLe，SIL OFL，googlefonts 官方仓库）
