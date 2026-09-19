@@ -10156,3 +10156,5 @@ R228z续3：休眠探针体检批——first_screen 由绿转FAIL的真问题已
 R228z续4-5：休眠探针体检续——归档 probe_liuyao（写死:8183一次性）、probe_coverage+probe_pipeline（旧schema弃置spike）；探针运行痕迹文件（external_witness.json/embed_c_report.json）已还原不入账。其余 ~30 个休眠探针复跑：scripts_importable/no_generated_in_corpus/r128a/liuyao_najia/huangli_shensha/variants/four_schemes/yilin_name/zhu/t7r/t7m/check_anchors/generality三件套/internal_witness/eval_version/a12系/catalog/crosssource（需markitdown缺dep）/external_verify/external_witness/t7q/ui_baseline（量尺）/ext_ingest 均正常或按设计退出。
 R228z续6：browser-gates job 上线——probe_first_screen（首屏抵达成本+引文可核验）和 probe_ui_smoke（44 用例）进 CI，DOM 渲染层不再是只在本地跑的盲区。
 R228z续7：CI selftest job 增 corpus 数据闸门——check_booksec/check_dual_engine/check_provenance/verify_index/assess_goals（G1-G9），本地复跑全 PASS 后入列。
+R229a：补 README.md（项目此前没有）——冷启动步骤按 .devin 蓝图与 CI 工作流同源写（已在 /tmp/books-fresh 全新 clone 实测跑通到 selftest 181 PASS）。
+验证：README 命令序列 = 蓝图 initialize + workflow steps，fresh-clone 实测。
