@@ -778,6 +778,14 @@ def run() -> list[str]:
                                          "gender": "男"}),
           lambda j: any("立春" in w and "正月初一" in w
                         for w in (j.get("paipan") or {}).get("warn", [])))
+    # R228q：节气落在整点后段（20:36 立春）时，hour=20 输入须带边界
+    # warn——旧 ±30min 判据把 20:31-20:59 的真实跨节出生静默放过。
+    check("bazi.term_warn.hour_bucket",
+          client.post("/api/bazi", json={"year": 2000, "month": 2,
+                                         "day": 4, "hour": 20,
+                                         "gender": "男"}),
+          lambda j: any("立春" in w for w in
+                        (j.get("paipan") or {}).get("warn", [])))
     # 四条 400 校验分支 standing 覆盖。
     _expect_400("err.bazi.ask_hour",
                 client.post("/api/bazi", json={"year": 1990, "month": 5,

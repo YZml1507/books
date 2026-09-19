@@ -17943,3 +17943,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   taohua dayun_hits）补齐滚动容器——375px 视口零横溢由
   viewport.375.no-hscroll 钉住。
 - 判据：selftest 177 / ui_smoke 43 / contract 381 / regress 全绿。
+
+## R228q（节气 warn 整点盲区）
+
+- bazi.compute 边界 warn 判据原为 |dt-t|≤30min，但输入粒度是整点：
+  节气落在 xx:31-:59 时整点距 >30min 不告警，真实出生在后段已跨节
+  （2000-02-04 立春 20:36，hour=20 旧判据静默漏）。右界放宽到
+  +90min 覆盖整个小时桶，左界 30min 不变；selftest 钉
+  bazi.term_warn.hour_bucket（2000-02-04 hour=20 → warn 含立春）。
+- 判据：selftest 178 / contract 381 / ui_smoke 43 全绿。

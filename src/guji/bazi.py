@@ -349,12 +349,16 @@ def compute(year: int, month: int, day: int, hour: int,
     warns = []
     if warn0:
         warns.append(warn0)
-    # 边界警示：dt 距最近节 ≤ 30 分钟
+    # 边界警示：dt 距最近节 ≤ 30 分钟。
+    # R228q：输入粒度是「整点」——节气若落在该小时的 xx:31-:59，整点距
+    # >30min 旧判据不告警，但真实出生在后段已跨节。右界放宽到 +90 分钟
+    # 覆盖整个小时桶（左界 30min 不变：出生在节气前 30 分钟内才需核）。
     near = None
     for y in (year - 1, year, year + 1):
         for name in TERM_LONGITUDE:
             t = term_time(y, name) + timedelta(hours=8)
-            if abs((dt - t).total_seconds()) <= 1800:
+            _d = (t - dt).total_seconds()
+            if -1800 <= _d <= 5400:
                 near = f"{t:%Y-%m-%d %H:%M} {name}"
     if near:
         warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")
