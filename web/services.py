@@ -661,24 +661,11 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     - date=YYYY-MM-DD：单日宜忌坐标（建除/二十八宿/彭祖百忌）
     - affair=婚嫁&days=30：在 [date, date+days) 内找宜该事项的日子
     """
-    if date_str:
-        try:
-            y, m, d = (int(x) for x in date_str.split("-"))
-        except Exception:
-            raise ValidationError(
-                f"日期格式应为 YYYY-MM-DD，收到 {date_str}") from None
-        if not (YEAR_LO <= y <= YEAR_HI):
-            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {y}")
-        if not (1 <= m <= 12):
-            raise ValidationError(f"月份需在 1-12，收到 {m}")
-        if not (1 <= d <= 31):
-            raise ValidationError(f"日需在 1-31，收到 {d}")
-        try:
-            dt = datetime(y, m, d)
-        except ValueError:
-            raise ValidationError(f"非法日期 {y}-{m}-{d}") from None
-    else:
-        dt = datetime.now()
+    # R228p：手写 split('-') 校准器退役——与 xingzuo/daily 同走
+    # _parse_iso_date（fromisoformat 对月日越界天然 400，三段校验不再需要）。
+    dt = (datetime(_d.year, _d.month, _d.day)
+          if (_d := _parse_iso_date(date_str) if date_str else None)
+          else datetime.now())
 
     if affair:
         # R228b：days 不设上限时 find_good_days 逐日扫描线性放大
@@ -984,16 +971,7 @@ def daily(date_str: str | None = None) -> dict:
     没有这个问题，改成查询参数后必须显式挡住）。
     """
     if date_str is not None:
-        try:
-            _parsed = date.fromisoformat(date_str)
-        except ValueError:
-            raise ValidationError(
-                f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
-        # R228b：与 xingzuo/huangli 对齐——极值年份边界即拒，
-        # 不再掉进下面 except 兜底返回带 Python 异常文本的 200。
-        if not (YEAR_LO <= _parsed.year <= YEAR_HI):
-            raise ValidationError(
-                f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_parsed.year}")
+        _parse_iso_date(date_str)   # 边界即拒（R228p 统一解析口径）
     date_str = date_str or date.today().isoformat()
     with deps.knowledge() as kb:
         cached = kb.get_daily_cache(date_str)
@@ -1280,6 +1258,22 @@ def _cross_ref_hehun(ba, bb, a_md: tuple = (), b_md: tuple = ()) -> dict:
         }
     except Exception:
         return {}
+
+
+def _parse_iso_date(date_str: str) -> "date":
+    """YYYY-MM-DD 边界即拒（R228p 统一三处口径）。
+
+    此前 huangli 手写 split('-')、daily/xingzuo 各写一遍
+    fromisoformat+年份界——同一约束三套实现。统一在这里。"""
+    try:
+        parsed = date.fromisoformat(date_str)
+    except ValueError:
+        raise ValidationError(
+            f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+    if not (YEAR_LO <= parsed.year <= YEAR_HI):
+        raise ValidationError(
+            f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {parsed.year}")
+    return parsed
 
 
 def _cross_ref_huangli(date_str: str) -> dict:

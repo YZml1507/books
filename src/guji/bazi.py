@@ -16,6 +16,9 @@
     精度约 ±15 分钟；出生时刻落在节前后 30 分钟内时置 warn（边界出生需人工核对，
     不假装精确）。日柱用儒略日数 mod 60。
   * 时柱按"五鼠遁"（日干推子时干）；月干按"五虎遁"（年干推寅月干）。
+  * 晚子时口径（R228p 补记）：23:00-24:00 出生**不换日柱**（按当日日干推
+    子时，不采用「夜子时日柱归次日」一派）。两派在命理上并存，本项目
+    取不换日一派并在 warn 里提示——用户若按晚子时派自查，会差一个日柱。
 """
 from __future__ import annotations
 
@@ -355,6 +358,8 @@ def compute(year: int, month: int, day: int, hour: int,
                 near = f"{t:%Y-%m-%d %H:%M} {name}"
     if near:
         warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")
+    if hour == 23:
+        warns.append("23点后属夜子时：本盘按当日排日柱（另一派会归入次日）")
 
     return Bazi(
         year=year_pillar, month=month_pillar, day=day_pillar, hour=hour_pillar,

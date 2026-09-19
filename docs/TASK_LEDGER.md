@@ -17924,3 +17924,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   改指子集件；全量件留作源档案（_candidates/README 登记 + 缺字形
   自动回落 wenkai 栈）。首屏字体载荷 -1.13MB。
 - 判据：selftest 176 / contract 381 / ui_smoke 43 全绿。
+
+## R228p续2（解析口径统一 + 晚子时政策透明化）
+
+- 三种日期解析口径合一：huangli 手写 split('-') 三段校验、xingzuo/
+  daily 各抄一遍 fromisoformat+年份界——全部收敛到
+  services._parse_iso_date（fromisoformat 天然挡月日越界）。
+- 晚子时政策补文档+warn：23:00-24:00 出生不换日柱（取不换日派），
+  bazi.py 模块说明 + 排盘 warn 栏明示「另一派会归入次日」。
+- 判据：selftest 176 / contract 381 / ui_smoke 43 全绿。
