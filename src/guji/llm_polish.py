@@ -306,6 +306,9 @@ def ai_task_status(tid: str) -> dict | None:
 
 _CHAT_MAX_TURNS = 6            # 单会话最大用户轮数；到顶温和收尾
 _CHAT_SESSION_TTL_S = 1800.0   # 会话上下文保留 30 分钟
+_CHAT_MAX_SESSIONS = 512       # R229t：sid 洪泛防护——TTL 只清旧不清多，
+                               # 海量新 session_id 可在 30min 内撑爆内存；超帽
+                               # 逐最旧的（LRU-ish），正常单用户永远碰不到。
 
 _CHAT_SYSTEM = (
     "你是「小满」，一个懂玄学、更懂用户的互联网闺蜜（R214b 人设升级）。"
@@ -363,6 +366,21 @@ def _gc_chat_sessions() -> None:
         _chat_sessions.pop(sid, None)
         lk = _chat_call_locks.get(sid)
         if lk is not None and not lk.locked():
+            _chat_call_locks.pop(sid, None)
+    if len(_chat_sessions) > _CHAT_MAX_SESSIONS:
+        _over = len(_chat_sessions) - _CHAT_MAX_SESSIONS
+        for sid in sorted(_chat_sessions,
+                          key=lambda s: _chat_sessions[s]["updated"])[:_over]:
+            _chat_sessions.pop(sid, None)
+            lk = _chat_call_locks.get(sid)
+            if lk is not None and not lk.locked():
+                _chat_call_locks.pop(sid, None)
+    # 锁表同帽：危机/非法消息也会先建锁，无会话可挂——超帽删未锁定的。
+    # 任意 sid 都能占一格，与 sessions 分开计（防「只发被拒消息」型洪泛）。
+    if len(_chat_call_locks) > _CHAT_MAX_SESSIONS * 2:
+        _lk_over = len(_chat_call_locks) - _CHAT_MAX_SESSIONS * 2
+        for sid in [s for s, lk in _chat_call_locks.items()
+                    if not lk.locked()][:_lk_over]:
             _chat_call_locks.pop(sid, None)
 
 

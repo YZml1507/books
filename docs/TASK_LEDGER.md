@@ -10285,3 +10285,8 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 ### R229s（打包 spec 幽灵引用修复）
 
 - books_app.spec hiddenimports 仍引 `guji.llm_reader`——该模块随 R178b LLM 层移除已删（selftest `llm.removed` 钉死），PyInstaller Analysis 会因 hidden import 缺失直接失败，打包链路自那时起就是坏的。已删该行。另核对：guji 模块全部经 services.py 静态导入可传递收集，无需补 hiddenimports。
+
+### R229t（聊天会话表洪泛封顶）
+
+- `_gc_chat_sessions` 原来只按 TTL（30min）清旧——海量唯一 session_id 可在 TTL 内把 `_chat_sessions`/`_chat_call_locks` 撑爆（每 sid 一格，危机/非法消息也会先建锁）。新增 `_CHAT_MAX_SESSIONS=512`：超帽逐最旧会话（LRU-ish），锁表单独按 2× 帽清未锁定项。
+- selftest +1：`chat.sessions.cap`（灌 552 会话→GC→≤512 且最旧 40 个被逐）。

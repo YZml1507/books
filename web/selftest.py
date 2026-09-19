@@ -1340,6 +1340,28 @@ def _run_inner() -> list[str]:
             "content": "你应该直接分手，别理他了"}}]}, config=_ccfg)
     assert _banned and "你自己舒服" in _banned, _banned
     ok.append("chat.banned.fallback")
+    # R229t：sid 洪泛防护——_CHAT_MAX_SESSIONS 封顶后 GC 逐最旧会话，
+    # 海量唯一 session_id 不能撑爆内存。直接灌表测 GC（不走 API，
+    # 否则每个会话要真发请求）。危机词短路返回不产生 LLM 调用。
+    _L._chat_sessions.clear()
+    _L._chat_call_locks.clear()
+    import time as _tm
+    _t0 = _tm.monotonic()
+    try:
+        for _i in range(_L._CHAT_MAX_SESSIONS + 40):
+            # updated 必须新鲜（否则被 TTL 先扫掉）但有序——flood-0 最旧
+            _L._chat_sessions[f"flood-{_i}"] = {
+                "messages": [], "updated": _t0 - 900 + _i * 0.001}
+        _L._gc_chat_sessions()
+        assert len(_L._chat_sessions) <= _L._CHAT_MAX_SESSIONS, \
+            len(_L._chat_sessions)
+        # 最旧 40 个应已被逐出，最新的还在
+        assert "flood-0" not in _L._chat_sessions
+        assert f"flood-{_L._CHAT_MAX_SESSIONS + 39}" in _L._chat_sessions
+    finally:
+        _L._chat_sessions.clear()
+        _L._chat_call_locks.clear()
+    ok.append("chat.sessions.cap")
     # R227b（用户反馈「不能照本宣科」）：黄历类提问后端先算「黄历判定」。
     # 判据：① 事项词命中 → facts 含当日宜忌 + 判定句（含「宜」「忌」或「中性」）；
     # ② 没列入宜忌的事项须按中性口径回（「不是不支持」），不许只回「没提」；
