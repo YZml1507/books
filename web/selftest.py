@@ -1251,6 +1251,22 @@ def run() -> list[str]:
     _hf3 = _svc.chat_huangli_facts("他为什么不回我消息", now=_dt(2026, 9, 19))
     assert _hf3 == [], _hf3
     ok.append("chat.huangli_facts")
+    # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
+    # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
+    _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))
+    assert _hf4 and any("2026-09-25" in f for f in _hf4), _hf4
+    # ② 长键消歧：「解除合同」必须走解除方向，不许被「合同」抢到立券。
+    _hf5 = _svc.chat_huangli_facts("明天要解除合同合适吗", now=_dt(2026, 9, 19))
+    assert _hf5 and any("解除合同" in f and "立券" not in f for f in _hf5), _hf5
+    # ③ 新事项词接住：理发→冠笄、宠物→进人口、手术→求医。
+    for _m, _t in (("周末理发好吗", "理发"), ("我想养猫可以吗", "养猫"),
+                   ("明天做手术行吗", "手术")):
+        _hf6 = _svc.chat_huangli_facts(_m, now=_dt(2026, 9, 19))
+        assert _hf6 and any(_t in f and "黄历判定" in f for f in _hf6), (_m, _hf6)
+    # ④ 非今日提问的中性卡说「那天」不说「今天」。
+    _hf7 = _svc.chat_huangli_facts("明天适合聚餐吗", now=_dt(2026, 9, 19))
+    assert _hf7 and any("那天" in f for f in _hf7), _hf7
+    ok.append("chat.facts.dates_vocab")
     # R227b-fix（端到端审查抓到）：问一嘴输入的日期词必须参与判定——
     # 「明天适合出行吗」不许剥掉日期词后拿当前显示日充数答「今天…」。
     # 静态钉扎：抽日词函数存在、判定卡收到日词参数（不写死「今天」）。

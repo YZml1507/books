@@ -18024,3 +18024,9 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   明儿、过两天、大前天；_hlExtractScene 清洗表同步——否则「下周五签约」
   会剥「下周」留「五」污染事项词。
 - 判据：ui_smoke 43 全绿；selftest 178 不动。
+
+## R228s续3（selftest 钉针补齐）
+
+- 新增 chat.facts.dates_vocab：钉住 下周X 真判该曜日、长键消歧
+  （解除合同→解除非立券）、新事项词（理发/养猫/手术）出判定卡、
+  非今日中性卡说「那天」。selftest 178→179。
