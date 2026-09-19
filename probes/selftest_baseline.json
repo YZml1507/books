@@ -37,6 +37,7 @@
   "chat.banned.fallback",
   "chat.crisis.refusal",
   "chat.disabled.no_task_id",
+  "chat.facts.dates_vocab",
   "chat.huangli_facts",
   "chat.validation.400",
   "classical_db.integrity",
