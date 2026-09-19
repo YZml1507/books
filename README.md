@@ -65,9 +65,10 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 ## 闸门（全部须 PASS）
 
 ```bash
-BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门 181 项
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门 190 项
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约 386 读点
-BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟 44 用例
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟 47 用例
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_date_parity.py   # 前后端日期词/别名同构
 .venv/bin/python probes/probe_dollar_misuse.py                  # 静态探针
 .venv/bin/python probes/probe_selftest_regress.py               # 断言只增不减
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_first_screen.py  # 首屏抵达成本
