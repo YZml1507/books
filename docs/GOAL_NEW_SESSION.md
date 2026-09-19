@@ -36,8 +36,8 @@
 8. 连"看起来显然对"的结论也要测。本项目最严重的失效是平静地返回一段原文里不存在的文字（GOAL.md §2 末段），而这类缺陷在所有计数型检查下都通过——"看起来对"永远不构成证据。只有可执行命令的真实输出构成证据。
 
 ═══ 三条红线（撞上跳过+记 BLOCKED/REJECTED，不停下问） ═══
-1. 破坏性不可逆操作：删除 data/raw/ 或 data/external/ 原始语料、git push、重写历史。（重建 data/index/corpus.db 不属此类，5 秒可重建，随便重建。）
-2. 不为了让数字变好而放宽任何验收闸门（GOAL.md §3 八条复验命令）。
+1. 破坏性不可逆操作：删除 data/raw/ 或 data/external/ 原始语料、git push、重写历史。（重建 data/index/corpus.db 不属此类，十几秒可重建，随便重建。）
+2. 不为了让数字变好而放宽任何验收闸门（GOAL.md §3 全部闸门，含 web 层一套）。
 3. 不引入新外部依赖或联网抓取新语料。
 撞上时：不停下询问，把当前任务记 BLOCKED 或 REJECTED 写进 TASK_LEDGER.md（附原因与实测数据），然后直接开始下一个任务。§4 清单足够长，永远有下一件事可做。
 
@@ -51,7 +51,7 @@ GOAL.md §1b 列了 6 组可并行任务（A–F）。子 agent 负责只读勘�
 Python 3.14 venv 在 .\.venv\Scripts\python.exe。无 CUDA/Docker。AMD Ryzen 5 4600U 6-core 2.1GHz，7.4GB RAM。代理 127.0.0.1:7897。PowerShell——内联 python -c 会被花括号和引号搞坏，写成脚本文件。
 git 已装在 F:\Program Files\Git\cmd\git.exe，用前 set PATH=%PATH%;F:\Program Files\Git\cmd;F:\Program Files\Git\mingw64\bin。仓库已推 github.com/YZml1507/books（私有）。
 
-═══ 八条复验命令（任何改动后必须全过） ═══
+═══ 全部复验命令（任何改动后必须全过） ═══
 见 GOAL.md §3。任一闸门回退→立刻回退你的改动，不要调闸门。验收判据必须在看数据之前定下。
 
 ═══ 节奏建议 ═══

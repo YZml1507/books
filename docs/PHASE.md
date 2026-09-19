@@ -40,7 +40,7 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 | 1 | `AUDIT_FINDINGS.md` 中状态 OPEN 且级别 BLOCKER/MAJOR 的条目为 **0** | `<py> scripts\count_open_findings.py`（退出码 0） |
 | 2 | web 层自测全绿 | `<py> web\selftest.py`（退出码 0） |
 | 3 | UI 冒烟全绿（每个按钮点后有内容且 console 无 error） | `<py> probes\probe_ui_smoke.py`（退出码 0） |
-| 4 | 宪法第四条 13 道闸门全绿 | 见 `constitution.md` §IV 命令清单 |
+| 4 | 宪法第四条 13 道闸门全绿 | 见 `.specify/memory/constitution.md` §IV 命令清单 |
 
 `<py>` = `C:\Users\Lenovo\Desktop\projects\books\.venv\Scripts\python.exe`
 （`.venv` 被 gitignore，不在本 worktree 内，两轨共用主 worktree 的解释器）。
@@ -74,6 +74,14 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
 |---|---|---|
 | 5 | 前后端字段名契约无漂移 | `<py> probes\probe_contract.py`（退出码 0） |
 | 6 | 零 `$.xxx` 误用（`$()` 是函数不是对象） | `<py> probes\probe_dollar_misuse.py`（退出码 0） |
+| 7 | selftest 断言只增不减（钉基线防放水） | `<py> probes\probe_selftest_regress.py`（退出码 0） |
+| 8 | 生成叙述文本不入语料库 | `<py> probes\probe_no_generated_in_corpus.py`（退出码 0） |
+| 9 | 全部脚本可 import（防改名断裂） | `<py> probes\probe_scripts_importable.py`（退出码 0） |
+
+后续新建检查脚本不再逐行登记本表——**附加闸门以台账最近一轮判据行为准**
+（现另有 `probes\probe_first_screen.py`、`web\baseline_voice.py`、
+`web\check_poster.py`、`web\check_async_ai.py`、`web\check_warm_voice.py`、
+`web\check_xingzuo.py`、`web\check_plain_first.py`）。
 
 三个闸门判据互不重叠，一个闸门一个判据：
 

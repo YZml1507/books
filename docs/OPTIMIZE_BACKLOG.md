@@ -52,7 +52,7 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   `TestClient(web.app)` 在 audit 侧返回 200、47 部书可读。
 - **运行期 db 不再随 git 走。** 三个 db 已从索引摘除（见 main 提交 71d2658），
   两轨各自持有磁盘副本、互不干扰。若 audit 侧 `data/index/` 为空，
-  从主 worktree 拷贝，或按宪法第二条重建 corpus.db（5 秒可重建）。
+  从主 worktree 拷贝，或按宪法第二条重建 corpus.db（十几秒可重建，62,109 单元实测 ~14.5s）。
 - **别把 db 写脏当成缺陷。** `/api/bazi` 会往 `history.db` 写记录
   （D-039 已授权）。审查轨自测后应清理本轮新增记录（L-22 教训）。
 
@@ -92,6 +92,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 可测量性：需先定义正确语义，属需求澄清而非纯审美
 - 来源：主动勘查
 
+> **R228s 处置：已修**——`_chinese_zodiac` 已删，`noble` 现按当日日干
+> 天乙贵人计算（`web/services.py:1034-1044`，代码注释自引「B-017 R195b 清偿」）。
+
 ---
 
 ## R118a 轮次新增（2026-08-19，审查轨首轮实测）
@@ -112,6 +115,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 来源：R118a probe_contract SOFT 段（**降级理由见 D-130a**：dict 渲染成
   `[object Object]` 是数据显示错误卡闸门，array 逗号拼接是体验瑕疵不卡）
 
+> **R228s 处置：已修**——宜/忌现渲染为双色大卡 + 逐条 `.hl-pill` chip
+> （`web/static/app.js` 约 4157 行起，ui_smoke 逐项可见）。
+
 ### B-005 研究线程创建成功后只回一行 id，不显示线程内容
 - 类型：交互
 - 现状：`index.html:1143` 成功分支只渲染
@@ -122,6 +128,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 设想：创建后展示这条 claim 与证据条数，用户能确认"记下了什么"
 - 可测量性：DOM 断言结果区含 claim 文本与证据计数
 - 来源：R118a 主动勘查
+
+> **R228s 处置：已修**——创建后刷新列表并渲染 claim+证据数
+> （`web/static/app.js:2651+`；ui_smoke btn:threads 可见「开题：…证据 0 条」）。
 
 ### B-006 /api/compare 的 findings 只渲染 f.text，丢掉 kind/at/note/line
 - 类型：视觉
@@ -137,6 +146,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   且比对功能当前被 R000a-03 挡在不可见面板后，用户根本到不了——
   故判 MINOR 不卡闸门；R000a-03 修完后若仍空白，应升级重判
 
+> **R228s 处置：已修**——findings 改读 `f.line`（`web/static/app.js:2511` 与
+> `:2576`，`f.line || f.note` 兜底）。
+
 ### B-007 /api/research 的 steps 步骤链前端完全没展示
 - 类型：功能扩展
 - 现状：真实响应含 `steps`（元素键 `['action','found','kept','note','query']`）
@@ -146,6 +158,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   的差异化卖点
 - 可测量性：DOM 断言步骤数 == 响应 `steps` 长度
 - 来源：R118a 主动勘查
+
+> **R228s 处置：已修**——步骤链已渲染（`web/static/app.js:2496-2498`，
+> ui_smoke btn:research 可见「检索链路 search…→found/kept」）。
 
 ### B-008 works 卡片读 w.work_id 但真实字段是 id
 - 类型：交互
@@ -158,6 +173,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 可测量性：`probe_contract` SOFT 计数下降；DOM 断言卡片含编址率
 - 来源：R118a probe_contract SOFT 段
 
+> **R228s 处置：已修**——works 卡展示 genre + 编址率 + 锚定率
+> （`web/static/app.js:2600-2607`，注释自引 B-008 R201b）。
+
 ### B-009 首屏三个列表并发打三次 /api/history（其中两次同一响应）
 - 类型：性能
 - 现状：`loadHistory()`（:1362）与 `loadRecent()`（:1387）各自 `fetch
@@ -166,6 +184,10 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
 - 设想：一次取回、两处渲染
 - 可测量性：首屏 `/api/history` 请求数从 2 降到 1（playwright request 计数）
 - 来源：R118a probe_ui_smoke 观测
+
+> **R228s 处置：已关闭（前提消失）**——`/api/history` 端点于 R219b 整批
+> 删除，`loadHistory`/`loadRecent` 不复存在（非修复，是功能退役，见
+> DECISIONS D-260b 订正行）。
 
 ### B-010 287KB animotion 动画 CSS 仍零接线（承接 B-002 的素材侧）
 - 类型：视觉
@@ -177,6 +199,9 @@ REPAIR 阶段只**收集**不实施。翻到 OPTIMIZE 后，本池条目由审�
   全部停用（两条都可自动测量，符合 spec 准入门槛 (a)）
 - 来源：交接窗口勘查 + R118a 复核。**已在仓库内，用它不算引入新外部依赖**
   （不撞宪法第二条红线第 3 项）
+
+> **R228s 处置：已修**——`styles.css:17` `@import "./animotion/web-lite.css"`
+> 子集接线（`:115` 有 R201b 接线注释；R228k 修正 @import 位置后真实生效）。
 
 ### B-011 probes/probe_disclosure.py 自 initial commit 起即崩（与 web/ 无关）
 - 类型：性能（可维护性）
@@ -351,6 +376,9 @@ B-012/B-013 此前只写在 main 台账正文里、从未进本池（两侧 back
   属相」。这条与 B-003 同源，此处仅登记「已复核仍在」，不重复开条目
 - 可测量性：需先定义正确语义（属需求澄清），故仍留本池不进 spec
 - 来源：R190b 复核 B-003
+
+> **R228s 处置：已修**——同 B-003：`_chinese_zodiac` 已删，`noble` 按当日
+> 日干天乙贵人（`web/services.py:1034-1044`）。
 
 ### B-019 probe_r131a_relevance 写 history.db 不自带清理（R132a-F3）
 

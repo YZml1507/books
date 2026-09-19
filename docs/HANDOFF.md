@@ -11,7 +11,11 @@
 
 ## 核心指令
 
-1. **完整读** `docs/GOAL.md`，理解 §1 授权与约束、§4 任务优先级
+0. **先读 `docs/PHASE.md` 的 `CURRENT_PHASE`**（当前 OPTIMIZE）决定自己在哪条轨：
+   审查轨/优化轨双轨制，分工与闸门表见 PHASE.md；优化池见 `docs/OPTIMIZE_BACKLOG.md`，
+   缺陷清单见 `docs/AUDIT_FINDINGS.md`，规范见 `specs/`。
+1. **完整读** `docs/GOAL.md`，理解 §1 授权与约束、§4 任务优先级（§4 的 T1–T7
+   早已全部 DONE，勿按它排队——实际优先级以台账末轮为准）
 2. **完整读** `docs/TASK_LEDGER.md`，找出所有标记为 TODO/PART/未完成的任务
 3. **按 §4 顺序连续执行**，不要停下来问意见
 4. **每完成一小项立刻更新台账**（`TASK_LEDGER.md`）——这是跨压缩唯一状态载体
@@ -46,10 +50,10 @@
 
 ## 已知待办（仅供参考，以你读台账后的判断为准）
 
-前窗口提到但未验证的：
-- **P-05**: 焦氏易林 4,096 单元未纳入 G1 题库
-- **P-06**: tier 2/3 五书解析器部分完成（Euclid/Shakespeare/Plato/Iliad 未动）
-- **W-04**: 京氏易傳编址标记 PART（59/62，3 处符号/内容错配）
+前窗口提到但未验证的（R228s 复核更新）：
+- ~~**P-05**: 焦氏易林 4,096 单元未纳入 G1 题库~~ **DONE**——eval_g1 已含 32 道易林题（现 248 题）
+- ~~**P-06**: tier 2/3 五书解析器部分完成~~ **DONE**——五书全部入索引
+- **W-04**: 京氏易傳编址标记 PART（59/62，3 处符号/内容错配）——仍属实，未清偿
 
 **你自己判断**：
 1. 这些是否真的未完成（读代码、跑命令验证）
@@ -79,15 +83,23 @@
 2. 自主做了哪些决策（附实测依据）
 3. 新发现的问题（已加入台账）
 4. Git 操作（commit/push 了什么）
-5. 当前闸门状态（`scripts/assess_goals.py` 输出）
+5. 当前闸门状态（`scripts/assess_goals.py` 输出 + web 层闸门：`web/selftest.py`、
+   `probes/probe_ui_smoke.py`、`probes/probe_contract.py`、`probes/probe_dollar_misuse.py`、
+   `probes/probe_selftest_regress.py`——全集合见 TASK_LEDGER 开头闸门清单与 PHASE.md 闸门表）
 
 ---
 
 ## 立即行动
 
 ```powershell
-# 1. 看当前状态
+# 0. 看当前阶段
+#    type docs\PHASE.md 第三行（CURRENT_PHASE）
+
+# 1. 看当前状态（语料侧 + web 侧）
 .\.venv\Scripts\python.exe scripts\assess_goals.py
+$env:BOOKS_LLM_DISABLE="1"
+.\.venv\Scripts\python.exe web\selftest.py
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py
 
 # 2. 读任务书
 # docs/GOAL.md（重点 §1 §4）

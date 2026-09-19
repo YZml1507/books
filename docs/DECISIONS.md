@@ -5815,6 +5815,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 **大改三步前置**：量尺=spec §6 判据 a–d；退路=CSS 令牌与 git revert 单点；
 动基线声明=无基线文件变更（探针只改导航辅助逻辑若必要）。
 
+> **R228s 订正（宪法第一条，保留原文）**：上列第 2 点「/api/history* 后端、
+> selftest history 用例、probe 清理判据全保留（零删除原则）」已被推翻——
+> R219b 将 `/api/history*` 端点整批删除（前端调用点清零、
+> `selftest_baseline.json` 的 history 用例移入 `removed` 区块、
+> `probes/probe_contract.py` 反转型钉住「POST /api/bazi 不得向 history.db 落行」）。
+> 见 TASK_LEDGER R219b 段。
+
 ## D-261b R211b 决策：快乐体命中修正（.brand-title/h2 补接线）+ daily-box contain 防裁切 + 表单卡片化打磨
 
 **背景**：用户复检「字体没变、背景图没修好、整体不好看」。Playwright
