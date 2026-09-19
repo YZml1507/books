@@ -2736,9 +2736,11 @@ async function doCompareWorks() {
     const shared = j.shared_addresses || [];
     if (shared.length) {
       html += '<h3 style="margin-top:16px;">两书同址命中（分歧起点）</h3>';
+      // R228o：shared_addresses 项只有 {addr}（research.compare_works），
+      // 两书命中是集合语义本身——旧代码读不存在的 s.works 会渲染出
+      // "undefined"（契约探针实测抓获的真漂移）。
       shared.forEach(function (s) {
-        html += '<div class="finding">' + esc(s.addr || '') + '　' +
-          esc(fmtScalar(s.works)) + '</div>';
+        html += '<div class="finding">' + esc(s.addr || '') + '</div>';
       });
     } else {
       html += '<div class="no-evidence">两书无共享地址命中</div>';
@@ -2926,8 +2928,11 @@ function buildLiuyaoResult(j) {
      * 与阴阳符号（⚊阳 ⚋阴），动爻加「○/×」动标并高亮。 */
     const YAO_NAME = {6:'上爻',5:'五爻',4:'四爻',3:'三爻',2:'二爻',1:'初爻'};
     html += '<div class="yao-stack">';
-    ben.lines.slice().sort(function (a, b) { return b.position - a.position; })
-      .forEach(function (ln) {
+    /* R228o：跨行链式改为命名中间变量——契约探针逐行归因，
+     * 也让「降序取爻位」的意图更直白。 */
+    var _sortedLines = ben.lines.slice()
+      .sort(function (a, b) { return b.position - a.position; });
+    _sortedLines.forEach(function (ln) {
         const mark = ln.moving ? (ln.yang ? ' ○' : ' ×') : '';
         html += '<div class="yao-row' + (ln.moving ? ' moving' : '') + '">' +
           '<span class="yao-name">' + esc(YAO_NAME[ln.position] || ('第' + ln.position + '爻')) +

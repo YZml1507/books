@@ -17859,3 +17859,25 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 闸门：selftest 173 / contract 255 / ui_smoke 41 / dollar 0 全绿。
 遗留：gate-blindspots 的新断言清单（R228o 做）、determinism 余项
 （23 点跨日口径声明、年柱双口径提示、单日黄历丢字段）下轮做。
+
+## R228o（审查轨第3轮·闸门盲区批/契约探针归因重构）
+
+- 触发：gate-blindspots 审查 + ELEM_RE 拓宽（forEach→forEach|map|filter|find）
+  抽出的读点把两处归因缺陷全部逼出水面，逐一根治而不削弱闸门：
+  1) 同名回调变量复用（ln 先迭代 warm.reply 后迭代 lines）——绑定表改行序
+     历史 [(off,kind,path,url)]，读点取「绑定行 ≤ 读点行」的最后一条（真实
+     JS 影子语义），elem/obj/种子同步取调用行生效版本，杜绝后绑定污染。
+  2) 同 URL 双方法混判（/api/threads GET 列表 vs POST 创建）——FIXTURES 键
+     按方法分键（POST 前缀），postJSON/fetch POST 绑定时归 "POST <url>"。
+  3) 单级数组变量迭代（var arr=x.y.slice(); arr.forEach）新正则 ELEM_SOLO_RE。
+  4) .then 回调 url 无 fixture → 诚实 SKIP（nofix 透出），不再静默漏判。
+- fixture 修到能真验：GET /api/threads 列表 fixture（原被 POST 占用）、
+  compare_works 换实测有 shared_addresses 的组合（KR1a0001×KR1a0006/乾）、
+  taohua 生辰换实测有 dayun_hits 的（1995-8-8 男）、/api/ai/{tid} 用
+  AI_TASK 机制向端点读的同一份内存 store 注入 done 任务拿真实 200、
+  paipan_history save_async 轮询等 flush（此前列表读点全是 skip-empty）。
+- 抓真 bug：compare_works 前端读 s.works——shared_addresses 项只有 addr
+  （research.compare_works），渲染出 undefined；改只渲染 addr。
+  app.js 跨行链式 .sort(fn).forEach 拆成命名中间变量 _sortedLines。
+- 判据：probe_contract PASS 381 读点（原 255，新增 126 全命中真实响应）、
+  selftest 173、ui_smoke 41/41、dollar_misuse、selftest_regress 全绿。
