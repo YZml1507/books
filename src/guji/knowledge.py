@@ -256,6 +256,15 @@ class KnowledgeBase:
             (key, value, time.strftime("%Y-%m-%dT%H:%M:%S")))
         self.db.commit()
 
+    def set_prefs(self, items: list[tuple[str, str]]) -> None:
+        """R228l：批量写偏好——一个事务一次 commit，不再逐键 commit
+        （原来 N 键部分成功会留下半截偏好状态）。"""
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.db.executemany(
+            "INSERT OR REPLACE INTO user_prefs (key, value, updated_at) VALUES (?,?,?)",
+            [(k, v, now) for k, v in items])
+        self.db.commit()
+
     def get_daily_cache(self, date: str) -> dict | None:
         r = self.db.execute("SELECT * FROM daily_cache WHERE date=?", (date,)).fetchone()
         if not r:
@@ -284,6 +293,13 @@ class KnowledgeBase:
         self.db.commit()
 
     def add_favorite(self, ftype: str, ref_id: str, title: str) -> int:
+        # R228l：同 (type, ref_id) 去重——重复收藏返回已有 id，
+        # 幂等比连点出 N 条重复行更贴用户预期。
+        r = self.db.execute(
+            "SELECT id FROM favorites WHERE type=? AND ref_id=?",
+            (ftype, ref_id)).fetchone()
+        if r:
+            return r["id"]
         cur = self.db.execute(
             "INSERT INTO favorites (type, ref_id, title, created_at) VALUES (?,?,?,?)",
             (ftype, ref_id, title, time.strftime("%Y-%m-%dT%H:%M:%S")))

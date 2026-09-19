@@ -56,26 +56,53 @@ _write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞�
 KEEP_MAX = 500                   # R228j：排盘历史滚动上限
 
 
+_DDL = """CREATE TABLE IF NOT EXISTS records(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    name TEXT,
+    question TEXT,
+    req_json TEXT NOT NULL,
+    result_json TEXT NOT NULL)"""
+
+
+def _quarantine() -> None:
+    """R228l：db 损坏自恢复——把坏文件挪到 .corrupt-<ts> 留档，
+    下次连接开新库。功能降级为空历史，而不是永久 500。"""
+    if not os.path.exists(DB_PATH):
+        return
+    qua = DB_PATH + ".corrupt-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    os.replace(DB_PATH, qua)
+    _log("WARN paipan_history db 损坏，已挪至 %s" % qua)
+
+
 def _conn() -> sqlite3.Connection:
     global _ddl_done
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=5)
-    conn.execute("PRAGMA busy_timeout=5000")   # R228b：写锁等待而非秒抛
-    # R228b：DDL 每次连接都跑是无谓开销——模块级 once 即可（IF NOT EXISTS
-    # 本身幂等，并发下用锁保证只执行一次）。
-    if not _ddl_done:
-        with _ddl_lock:
+    for attempt in range(2):
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=5)
+            conn.execute("PRAGMA busy_timeout=5000")  # R228b：写锁等待而非秒抛
+            # 轻量完整性探针：connect 成功不代表页可解析，真读一行才暴露损坏
+            conn.execute("SELECT name FROM sqlite_master LIMIT 1").fetchall()
+            # R228b：DDL 每次连接都跑是无谓开销——模块级 once 即可
+            # （IF NOT EXISTS 本身幂等，并发下用锁保证只执行一次）。
             if not _ddl_done:
-                conn.execute(
-                    """CREATE TABLE IF NOT EXISTS records(
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        ts TEXT NOT NULL,
-                        name TEXT,
-                        question TEXT,
-                        req_json TEXT NOT NULL,
-                        result_json TEXT NOT NULL)""")
-                _ddl_done = True
-    return conn
+                with _ddl_lock:
+                    if not _ddl_done:
+                        conn.execute(_DDL)
+                        _ddl_done = True
+            return conn
+        except sqlite3.DatabaseError:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            _ddl_done = False
+            if attempt == 0:
+                _quarantine()   # 损坏文件挪走，第二轮开新库
+            else:
+                raise
+    raise AssertionError("unreachable")
 
 
 def _name_summary(req: dict) -> str:

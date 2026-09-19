@@ -1122,16 +1122,18 @@ def set_user_prefs(payload: dict) -> dict:
     payload = payload or {}
     if len(payload) > 64:
         raise ValidationError("偏好键最多 64 个")
+    items = []
+    for k, v in payload.items():
+        if not isinstance(k, str) or not k or len(k) > 64:
+            raise ValidationError("偏好键需为 1-64 字符")
+        if isinstance(v, (list, dict)):
+            v = json.dumps(v, ensure_ascii=False)
+        v = str(v)
+        if len(v) > 4000:
+            raise ValidationError(f"偏好值过长（≤4000），键 {k}")
+        items.append((k, v))
     with deps.knowledge() as kb:
-        for k, v in payload.items():
-            if not isinstance(k, str) or not k or len(k) > 64:
-                raise ValidationError("偏好键需为 1-64 字符")
-            if isinstance(v, (list, dict)):
-                v = json.dumps(v, ensure_ascii=False)
-            v = str(v)
-            if len(v) > 4000:
-                raise ValidationError(f"偏好值过长（≤4000），键 {k}")
-            kb.set_pref(k, v)
+        kb.set_prefs(items)   # 单事务——全部校验过后才落库
     return {"ok": True}
 
 
