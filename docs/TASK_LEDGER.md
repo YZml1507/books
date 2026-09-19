@@ -18041,3 +18041,12 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   scripts_importable/first_screen/bcv/conservation/citation_space/
   g8_isolation/booksec/disclosure 等）全部保留原位。probes/ 根 73→60。
 - 判据：selftest 179 / contract 382 / ui_smoke 43 全绿。
+
+## R228s续5（422 字段中文化补齐）
+
+- _FIELD_CN 补 hehun 月/日/时辰、range_start/range_end/ask_*/location/
+  question/facts/n/ref_id/title/text/work——此前这些字段的 422 详情
+  直接漏英文 loc 名给用户。全端点垃圾 POST fuzz 复测：13 端点零 5xx。
+- 静态资产完整性扫描：index/app/css/sw 引用 26 处全命中；tarot
+  manifest 78 张逐一对盘。
+- 判据：selftest 179 全绿。

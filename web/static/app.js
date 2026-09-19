@@ -113,10 +113,16 @@ function fail(id, text) {
 var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰',
   gender: '性别', surname: '姓氏', names: '候选名', session_id: '会话标识',
   message: '消息', q: '查询词', work_id: '书号', seed: '种子数',
-  a_year: '甲方年份', b_year: '乙方年份', a_gender: '甲方性别',
-  b_gender: '乙方性别', calendar_type: '历法', scope: '范围',
+  a_year: '甲方年份', a_month: '甲方月份', a_day: '甲方日期',
+  a_hour: '甲方时辰', a_gender: '甲方性别',
+  b_year: '乙方年份', b_month: '乙方月份', b_day: '乙方日期',
+  b_hour: '乙方时辰', b_gender: '乙方性别', calendar_type: '历法',
+  scope: '范围', range_start: '区间起始', range_end: '区间结束',
+  ask_date: '起问日', ask_hour: '起问时', location: '所在地',
+  question: '问题', facts: '事实上下文', n: '张数',
   date: '日期', days: '天数', limit: '条数', style: '风格',
-  topic: '主题', kind: '类型', claim: '论点', method: '方法' };
+  topic: '主题', kind: '类型', claim: '论点', method: '方法',
+  ref_id: '对象', title: '标题', text: '内容', work: '书号' };
 function _humanize422(detail) {
   try {
     var first = detail[0] || {};
