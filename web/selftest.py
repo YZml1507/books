@@ -759,15 +759,17 @@ def run() -> list[str]:
                                                "lunar_year": 1800,
                                                "lunar_month": 1,
                                                "lunar_day": 1}))
-    # R158b（D-204b）：bazi lunar 换算后公历年份范围（独立校验分支）400
-    # standing 覆盖——lunar_to_solar **成功**但换算后公历年份越界。
-    _expect_400("err.bazi.lunar_solar_range",
-                client.post("/api/bazi", json={"year": 1990, "month": 5,
-                                               "day": 15, "hour": 10,
-                                               "calendar_type": "lunar",
-                                               "lunar_year": 2100,
-                                               "lunar_month": 12,
-                                               "lunar_day": 15}))
+    # R228p：农历 2100 腊月换算到公历 2101 曾在此被误拒（旧检查钉的就是
+    # 这个 false rejection）。下游干支/节气是天文算法不受表界限制，现按
+    # YEAR_HI+1 放行——钉正向契约：2100-12-15 → 200 且日柱干支非空。
+    check("bazi.lunar_spillover_2101",
+          client.post("/api/bazi", json={"year": 1990, "month": 5,
+                                         "day": 15, "hour": 10,
+                                         "calendar_type": "lunar",
+                                         "lunar_year": 2100,
+                                         "lunar_month": 12,
+                                         "lunar_day": 15}),
+          lambda j: bool((j.get("paipan") or {}).get("render")))
     # R151b（D-197b）：bazi ask_hour / ask_date 格式 / range 缺失 / range 格式
     # 四条 400 校验分支 standing 覆盖。
     _expect_400("err.bazi.ask_hour",

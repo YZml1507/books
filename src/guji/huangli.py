@@ -254,10 +254,13 @@ _YUEYAN_YIJI: tuple[list[str], list[str]] = (
 
 
 def day_ganzhi(dt: datetime) -> tuple[str, str]:
-    """dt 这天的日柱天干地支。儒略日 → 六十甲子，锚点 (jd+49)%60。"""
-    jd = jdn(dt.year, dt.month, dt.day)
-    gz = (jd + 49) % 60
-    return GAN[gz % 10], ZHI[gz % 12]
+    """dt 这天的日柱天干地支。
+
+    R228p：算法单源化——直接委托 bazi.day_ganzhi（JDN 锚点 (jd+49)%60
+    两边一致），本函数只剩签名适配（gan,zhi）。"""
+    from .bazi import day_ganzhi as _dgz
+    gz, _idx = _dgz(dt)
+    return gz[0], gz[1]
 
 
 def tiande(dt: datetime) -> str:

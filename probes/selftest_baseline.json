@@ -24,6 +24,7 @@
   "bazi.life",
   "bazi.lunar",
   "bazi.lunar_leap",
+  "bazi.lunar_spillover_2101",
   "bazi.range",
   "bazi.semantic",
   "bookstudy.chapter",
@@ -181,7 +182,8 @@
  "provenance": "R178b 重构前的断言名单，来源：审查轨 R118a 在 audit HEAD 6011cc5 实测 `web\\app.py --selftest` 的输出末行（130 checks），记录于 docs/TASK_LEDGER.md §109。不用正则解析旧源码——实测只能解析出 57 个，因为部分 check 名是动态拼的。",
  "purpose": "probe_selftest_regress.py 用它检测断言是否被悄悄删除（宪法第二条红线第 2 项）",
  "renames": {
-  "ask.llm.shape": "ask.interpretation.shape"
+  "ask.llm.shape": "ask.interpretation.shape",
+  "err.bazi.lunar_solar_range": "bazi.lunar_spillover_2101"
  },
  "renames_audit": "R120a 审查轨实测核准：LLM 层移除后 llm 字段改名 interpretation，旧 ask.llm.shape 由 ask.interpretation.shape 接管。核准依据——新断言**更强**：web/selftest.py:671-677 断言 interpretation 是 dict、ok is True、engine 含「无 LLM」、sections 与 citations 均非空、且两次同输入 text 完全相等（确定性）；旧断言只检查 llm 字段形状。不是放宽，是加强。",
  "removed": {

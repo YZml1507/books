@@ -17900,3 +17900,18 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
   esc/fmtScalar/renderRichText 等包装器）。
 - 判据：selftest 176（+3）、ui_smoke 43（+2）、contract PASS 381 读点、
   regress 只增不减（174→176）。
+
+## R228p（积压 P2 清偿批·确定性/口径）
+
+- 单日 /api/huangli 响应补透传 jianchu/xiu/pengzu/shensha——day_query
+  早算好了，服务层此前丢掉（additive，前端未读、契约探针不报）。
+- _cross_ref_huangli：查别天时「今天X宫当值」文案错——按查询日改写
+  「那天」；今天仍说「今天」。
+- resolve_birth：农历 2100 腊月 → 公历 2101 的合法换算结果被
+  YEAR_HI=2100 误拒（下游干支/节气是天文算法不受表界限制）。放宽
+  到 YEAR_HI+1；selftest 把旧负向钉（err.bazi.lunar_solar_range 钉的
+  恰是这个 false rejection）换成正向钉 bazi.lunar_spillover_2101，
+  baseline renames 登记。
+- huangli.day_ganzhi 去重：委托 bazi.day_ganzhi（算法单源，签名适配）。
+- 判据：selftest 176、contract 381 读点、ui_smoke 43、dollar_misuse、
+  regress（177→176，已审核改名 2）全绿。

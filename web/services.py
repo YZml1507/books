@@ -111,9 +111,12 @@ def resolve_birth(req) -> tuple[int, int, int]:
                                      req.lunar_day, req.lunar_leap)
         except ValueError as exc:
             raise ValidationError(f"农历换算失败：{exc}") from exc
-        if not (YEAR_LO <= d.year <= YEAR_HI):
+        # R228p：农历 2100 年腊月换算到公历会溢出到 2101-01/02——
+        # 下游干支/节气走天文算法（不受农历表 2100 界限制），此处按
+        # YEAR_HI+1 放行；农历输入年本身仍由 lunar_to_solar 的表界把守。
+        if not (YEAR_LO <= d.year <= YEAR_HI + 1):
             raise ValidationError(
-                f"换算后公历年份需在 {YEAR_LO}-{YEAR_HI} 之间")
+                f"换算后公历年份需在 {YEAR_LO}-{YEAR_HI + 1} 之间")
         return d.year, d.month, d.day
     return req.year, req.month, req.day
 
@@ -689,7 +692,11 @@ def huangli(date_str: str | None = None, affair: str | None = None,
 
     q = huangli_mod.day_query(dt)
     # R216b 续6（V-001）：透传农历与冲煞（additive，既有键零改动）。
+    # R228p：jianchu/xiu/pengzu/shensha 本来就算好了却被丢掉——单日响应
+    # 补透传（additive）。它们是传统黄历的核心坐标，前端将来可直接取。
     return {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
+            "jianchu": q.get("jianchu"), "xiu": q.get("xiu"),
+            "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
             **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
@@ -1287,10 +1294,12 @@ def _cross_ref_huangli(date_str: str) -> dict:
         note = h.get("today_note", "")
         if not (sign and note):
             return {}
+        # R228p：用户翻的是查询日，不一定是今天——文案跟着说"那天"。
+        _when = "今天" if d == _date.today() else "那天"
         return {
             "zodiac_sign": sign,
             "zodiac_note": note,
-            "message": f"今天{sign}宫当值：{note}",
+            "message": f"{_when}{sign}宫当值：{note}",
         }
     except Exception:
         return {}
