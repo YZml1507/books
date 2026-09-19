@@ -10141,3 +10141,5 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 契约探针：/api/huangli 双形态（单日/区间）字段列 CONDITIONAL。
 - 判据：selftest 181（+huangli.affair.spoken）/ contract 386 /
   ui_smoke 43 全绿；实测理发→冠笄 4 天、出行 5 天。
+R228y 持续优化批：GitHub Actions CI 上线——.github/workflows/selftest.yml + requirements-ci.txt（钉扎版本，torch 走 cpu wheel 索引）。push/PR 自动跑 selftest 181 项+契约 386 读点+dollar 探针；冷启动链路（build_index→knowledge 种子→selftest）已在 /tmp/books-fresh 全新 clone 全程验证通过。另：ui_smoke 增线程回收（探针不再留脏数据）。
+验证：fresh clone 全闸门 PASS（selftest 181 / contract 386 / dollar PASS）。
