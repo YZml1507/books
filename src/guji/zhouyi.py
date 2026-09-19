@@ -12,8 +12,6 @@ hexagram is 震下坎上 and therefore has 九五/上六).
 """
 from __future__ import annotations
 
-import glob
-import os
 import re
 from collections import Counter
 

@@ -42,15 +42,8 @@ if ('serviceWorker' in navigator) {
       <div class="brand-title">小满的解忧铺</div>
       <div class="brand-tagline">今天也要好好生活呀 ✨</div>
     </div>
-    <!-- 003 US5 / 判据 12：视觉方向一键回滚。默认「清晰」= 无障碍配色
-         （31 处对比度不足已归零）；「原版」= R183b 之前的配色，供对照与
-         否决。切换只改 <html data-theme>，CSS 侧只覆盖令牌、不碰规则集，
-         因此回滚路径不需要反向修改任何组件样式。 -->
-    <div class="theme-switch" role="group" aria-label="配色方案" hidden>
-      <!-- R207b：主题合一——「清晰版/原版」双轨让用户困惑，删切换入口，
-           清晰（AA 高对比）为唯一主题。legacy CSS 令牌保留（审查轨基线
-           钉着它，零删除原则）；applyTheme 对未知值回落 aa，行为安全。 -->
-    </div>
+    <!-- R228l：theme-switch 空壳 div 删除——R207b 已去按钮只剩占位；
+         legacy 令牌+applyTheme 保留（localStorage uiTheme=legacy 仍可切回）。 -->
   </div>
 
   <!-- 每日运势 -->

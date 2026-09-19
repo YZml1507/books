@@ -14,7 +14,7 @@ import hashlib as _hashlib
 import json as _json
 import os as _os
 
-from .qiming import CANDIDATE_CHARS, FEMININE_CHARS, MASCULINE_CHARS, _gender_score
+from .qiming import FEMININE_CHARS, MASCULINE_CHARS
 
 # 加载古籍典故库
 _HERE = _os.path.dirname(_os.path.abspath(__file__))

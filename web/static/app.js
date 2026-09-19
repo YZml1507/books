@@ -1034,11 +1034,6 @@ function applyTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, t);
   } catch (e) { /* 存不了就只在本次会话生效 */ }
-  document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
-    var on = b.dataset.themeBtn === t;
-    b.classList.toggle('active', on);
-    b.setAttribute('aria-pressed', String(on));
-  });
 }
 
 /** R206b（US4）：共情模板族——确定性选择，同输入同输出。 */
@@ -3891,7 +3886,6 @@ async function doXingzuo(force) {
     var html = '<div class="xz-result">';
     if (j.today_sign) {
       /* C-002-fix：星座配图 + 今日值宫 */
-      var _todayIcon = {'白羊':'♈','金牛':'♉','双子':'♊','巨蟹':'♋','狮子':'♌','处女':'♍','天秤':'♎','天蝎':'♏','射手':'♐','摩羯':'♑','水瓶':'♒','双鱼':'♓'}[j.today_sign] || '⭐';
       var _tk = ({'白羊':'aries','金牛':'taurus','双子':'gemini','巨蟹':'cancer','狮子':'leo','处女':'virgo','天秤':'libra','天蝎':'scorpio','射手':'sagittarius','摩羯':'capricorn','水瓶':'aquarius','双鱼':'pisces'})[j.today_sign] || 'aries';
       html += '<div class="xz-today"><img class="xz-today-img" src="/static/cream/zodiac-' + _tk + '.jpg" alt="" onerror="this.classList.add(\'is-missing\')"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
       /* C-002：星座详情页——爱情/事业/财运分维度 */
@@ -3910,8 +3904,7 @@ async function doXingzuo(force) {
       html += '<div class="xz-grid">';
       j.signs.forEach(function (s) {
         var cls = s.is_today ? ' xz-active' : '';
-        /* C-002-fix：星座配图（emoji 图标） */
-        var _icon = {'白羊':'♈','金牛':'♉','双子':'♊','巨蟹':'♋','狮子':'♌','处女':'♍','天秤':'♎','天蝎':'♏','射手':'♐','摩羯':'♑','水瓶':'♒','双鱼':'♓'}[s.sign] || '⭐';
+        /* C-002-fix：星座配图 */
         var _zk = ({'白羊':'aries','金牛':'taurus','双子':'gemini','巨蟹':'cancer','狮子':'leo','处女':'virgo','天秤':'libra','天蝎':'scorpio','射手':'sagittarius','摩羯':'capricorn','水瓶':'aquarius','双鱼':'pisces'})[s.sign] || 'aries';
         html += '<div class="xz-card' + cls + '"><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) + '</span><span class="xz-note">' + esc(s.note) + '</span></div></div>';
       });
@@ -4496,12 +4489,6 @@ function initReading() {
       rerenderVoice();
       return;
     }
-    // 视觉主题一键回滚（003 判据 12）：只切令牌，无需重渲染任何内容
-    const tbtn = e.target.closest('[data-theme-btn]');
-    if (tbtn) {
-      applyTheme(tbtn.dataset.themeBtn);
-      return;
-    }
     // 古籍引文树的三级折叠（005 US2）。事件委托——折叠件是动态生成的，
     // 且切换口吻会整块重画（rerenderVoice），逐个绑定处理器会漏。
     const cbtn = e.target.closest('[data-cite-toggle]');
@@ -4896,7 +4883,6 @@ function baziPersonaCard(j) {
     '水瓶': '水瓶座小外星人，脑洞清奇想法多，有趣灵魂本魂。',
     '双鱼': '双鱼的你温柔爱做梦，共情力满格，是朋友们的树洞担当。'
   };
-  var WX_NAME = {'木': '木', '火': '火', '土': '土', '金': '金', '水': '水'};
   async function doBirthReading() {
     var out = document.getElementById('birthResult');
     if (!out) return;

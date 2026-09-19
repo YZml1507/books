@@ -101,7 +101,6 @@ FIXTURES: dict[str, dict] = {
     "/api/compare":           {"method": "GET", "params": {"gua": 28,
                                                            "yao": "九二"}},
     "/api/works":             {"method": "GET"},
-    "/api/history":           {"method": "GET"},
     "/api/user/prefs":        {"method": "GET"},
     "/api/huangli":           {"method": "GET", "params": {"year": 2026,
                                                            "month": 8, "day": 19}},
@@ -157,7 +156,6 @@ FIXTURES: dict[str, dict] = {
 
     # 路径参数端点：URL 由 probe 侧动态解析（见 PATH_FIXTURES）
     "/api/threads/":          {"method": "PATH", "resolve": "thread_id"},
-    "/api/history/":          {"method": "PATH", "resolve": "history_id"},
     "/api/paipan/history/":   {"method": "PATH", "resolve": "paipan_id"},
 }
 
@@ -452,9 +450,12 @@ def main() -> int:
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     created_derived: list[int] = []
     fav_id = None
-    # 让 /api/history 与 /api/user/prefs.favorites 非空，元素字段才可判定
     seed_bazi = client.post("/api/bazi", json=FIXTURES["/api/bazi"]["json"])
     assert seed_bazi.status_code == 200, seed_bazi.text[:200]
+    # R228l：/api/history 端点已删（R219b）——记账升级为行为断言：
+    # POST /api/bazi 不得向 history.db 落行， pinning 删除语义不复活。
+    assert history_db.count() == hist_baseline, (
+        "POST /api/bazi 写入了 history.db——R219b 的删除语义被破坏")
     # save_async 是守护线程：GET /api/paipan/history 要等它落库才有 items，
     # 短轮询最多 ~3s；等不到就由 resolve 如实报 skip-empty（不假装通过）。
     for _w in range(30):
@@ -496,8 +497,7 @@ def main() -> int:
                     time.sleep(0.1)
                 rid = (lst[0].get("id") if lst else None)
             else:
-                recs = client.get("/api/history").json().get("records") or []
-                rid = (recs[0].get("id") if recs else None)
+                rid = None   # 未登记的 resolver：诚实报 SKIP
             if rid is None:
                 cache[url] = ("http", (0, f"{url} 无可用 id（列表为空），"
                                           f"无法构造路径参数请求"))

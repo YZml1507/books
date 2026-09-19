@@ -374,7 +374,6 @@ def compute(year: int, month: int, day: int, hour: int,
 
 
 if __name__ == "__main__":
-    import sys
     print("usage: python -m guji.bazi   (self-test)")
     # 自检：几个已知日柱基准点
     for (y, m, d, h, g) in [(2000, 1, 1, 12, "男"), (1984, 2, 2, 12, "男"),

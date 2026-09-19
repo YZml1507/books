@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # 八卦（经卦）：伏羲先天序数字 ↔ 卦名 ↔ 二进制（阳=1 阴=0，自下而上读）
 # 先天八卦数：乾1 兑2 离3 震4 巽5 坎6 艮7 坤8

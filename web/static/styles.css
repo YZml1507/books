@@ -187,28 +187,18 @@ body{
   src:url("./fonts/zcool-kuaile-subset.woff2") format("woff2");
   font-display:swap;
 }
-h1,.brand-mark,.section-title{font-family:"ZCOOL KuaiLe",var(--font-serif);}
+h1{font-family:"ZCOOL KuaiLe",var(--font-serif);}
 .daily-level{font-family:var(--font-display); font-weight:400;}
 /* R210b：标题层命中快乐体——serif 栈前置（仅亮色主题；legacy 回滚栈
  * 在下方 :root 主题块里重定义、不含快乐体，回滚=系统字体口径不变）。 */
-h1,.brand-mark,.section-title,.side-brand{
+h1,.side-brand{
   font-family:"ZCOOL KuaiLe",var(--font-serif);
 }
 .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 80px;}
 
 /* ── 品牌 ── */
 .brand{display:flex; align-items:center; gap:14px; margin-bottom:8px;}
-.brand-mark{
-  width:52px; height:52px; border-radius:18px;
-  background-color:#F3E7FF;  /* 奶油系兜底：香芋紫淡底 */
-    background-image:linear-gradient(135deg,#FFD6E0,#E4D4FF,#D4E8FF,#FFE9C9);
-  background-size:300% 300%;
-  animation:bgShift 6s ease infinite;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-serif); font-size:28px; font-weight:700;
-  color:#8B6FC7; box-shadow:0 6px 24px rgba(212,181,255,.35);
-  flex-shrink:0;
-}
+/* R228l：.brand-mark 死样式删除（R-212 换 brand-mark-img 后零引用）。 */
 @keyframes bgShift{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
@@ -226,23 +216,8 @@ h1,.brand-mark,.section-title,.side-brand{
 .brand-tagline{font-size:14px; color:var(--secondary); margin-top:2px; letter-spacing:.06em;}
 .brand-text{flex:1; min-width:0;}
 
-/* 配色方案切换（003 US5 / 判据 12）。44px 点击目标 + AA 对比度，
- * 它自己也必须满足判据 1-3——回滚控件不达标是自相矛盾的。 */
-.theme-switch{display:flex; gap:6px; flex-shrink:0;}
-.theme-btn{
-  margin:0; min-height:var(--tap); min-width:var(--tap);
-  padding:8px 14px; font-size:13px; font-weight:600;
-  background:var(--card); color:var(--secondary);
-  border:2px solid var(--border); border-radius:999px;
-  box-shadow:none; cursor:pointer;
-  transition:background .2s, color .2s, border-color .2s;
-}
-.theme-btn:hover{border-color:var(--primary-ink); color:var(--primary-ink); transform:none;}
-.theme-btn.active{background:#FFF8E7; color:#6B4A1F; border-color:var(--primary-ink);}
-.theme-btn:focus-visible{outline:3px solid var(--text); outline-offset:2px;}
-@media (max-width:480px){
-  .theme-btn{padding:8px 10px; font-size:12px;}
-}
+/* R228l：.theme-switch/.theme-btn 死样式删除——R207b 已删切换入口，
+ * DOM 无 data-theme-btn 载体，委托监听与空壳 div 一并清理。 */
 
 /* ── 每日运势卡片 ── */
 .daily-card{
@@ -366,11 +341,7 @@ h1,.brand-mark,.section-title,.side-brand{
   margin:0 0 12px 2px; letter-spacing:.5px;
 }
 @media (max-width:560px){ .ia-label{font-size:14px;} }
-.section-title{
-  font-family:var(--font-serif); font-size:20px; font-weight:600;
-  color:var(--text); margin-bottom:16px; padding-bottom:10px;
-  border-bottom:1px solid var(--border);
-}
+/* R228l：.section-title 死样式删除（零引用）。 */
 
 /* ── R205b（用户反馈①②）：最近解读右侧可收缩侧边栏 + 单条删除 ── */
 /* R207b：圆钮修复——emoji 在 Windows 渲染成黑白文本形，改用 SVG 数据 URI
@@ -417,7 +388,6 @@ h1,.brand-mark,.section-title,.side-brand{
 /* R209b：collapsed 在任何视口下都强制收起（探针/用户手动收起语义） */
 .recent-sidebar.open.collapsed{transform:translateX(-105%);}
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-.recent-side-head .section-title{margin-bottom:0;}
 .recent-side-close{
   flex-shrink:0; width:var(--tap); height:var(--tap); border-radius:50%;   /* R228d：40→44 tap 下限 */
   background:transparent; color:var(--secondary);
@@ -494,8 +464,7 @@ h1,.brand-mark,.section-title,.side-brand{
   border-top:1px solid var(--border);
 }
 .side-chat .chat-flow{flex:1; min-height:120px;}
-.side-chat .chat-note{font-size:11.5px; color:var(--secondary);
-  text-align:center; margin:6px 0 0;}
+/* R228l：.chat-note 死样式删除（零引用）。 */
 
 /* 头部：淡渐变底增强层次 */
 .recent-side-head{
@@ -757,8 +726,7 @@ button.fav-btn[id="shareHehun"]{
   font-size:14px; line-height:1.7;
 }
 
-.pillar-tag{display:inline-block; font-size:12px; color:#fff;
-  background:var(--primary-bg); border-radius:4px; padding:2px 8px; margin-right:6px;}
+/* R228l：.pillar-tag 死样式删除（零引用）。 */
 
 /* ── 引用/证据 ── */
 .ev-item{padding:12px 0; border-bottom:1px solid var(--border);}
@@ -767,7 +735,6 @@ button.fav-btn[id="shareHehun"]{
 .ev-meta{font-size:12px; color:var(--secondary); font-family:monospace; word-break:break-all;}
 .ev-text{font-family:var(--font-serif); font-size:15px; margin-top:6px; line-height:1.8;
   white-space:pre-wrap;}
-.ev-item.expanded .ev-text{display:block;}
 /* R228d：.ev-toggle 死样式删除（零引用） */
 .ev-disc{font-size:12px; color:var(--accent-ink); margin-top:4px;}   /* R228d：accent→accent-ink */
 
@@ -776,10 +743,7 @@ button.fav-btn[id="shareHehun"]{
   display:inline-block; font-size:12px; color:#fff; background:var(--primary-bg);
   padding:2px 10px; border-radius:999px; margin-left:8px; vertical-align:middle;
 }
-.llm-badge{
-  display:inline-block; font-size:12px; color:#fff; background:var(--primary-bg);
-  padding:2px 10px; border-radius:999px; margin-left:8px; vertical-align:middle;
-}
+/* R228l：.llm-badge/.llm-model 死样式删除（LLM 区块 UI 重构后零引用）。 */
 .interp-sec{margin-top:12px;}
 .interp-sec h4{font-family:var(--font-serif); font-size:15px; color:var(--text); margin-bottom:4px;}
 .interp-sec ul{margin:4px 0 4px 20px;}
@@ -801,7 +765,6 @@ button.fav-btn[id="shareHehun"]{
   font-family:Consolas,monospace; font-size:13px;
 }
 .llm-text strong{color:var(--text);}
-.llm-model{font-size:12px; color:var(--secondary); margin-top:10px;}
 .footnote{color:var(--secondary); font-size:12px; margin-top:24px;}
 
 /* R228d：.hist-* 死样式删除——R219b 历史面板退役（app.js 仅存注释提及）。 */
@@ -861,7 +824,6 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
   word-break:break-all;
 }
 .hit-cite{font-size:12px; color:var(--secondary); font-family:monospace; word-break:break-all;}
-.hit-disc{font-size:12px; color:var(--primary-ink); margin-top:4px;}
 .hit-score{font-size:11px; color:var(--secondary); font-family:monospace; margin-left:8px;}
 .step-list{margin:8px 0 8px 20px;}
 .step-list li{font-size:13px; margin:3px 0; font-family:Consolas,monospace;}
@@ -907,12 +869,7 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
   border-radius:8px;}
 
-/* R195b：牌背「知」居中放大 + 内框，替代裸字符 */
-.tarot-card-back .tback{
-  font-size:44px; font-weight:600; line-height:1;
-  width:64px; height:64px; display:flex; align-items:center; justify-content:center;
-  border:2px solid rgba(255,255,255,.55); border-radius:12px;
-}
+/* R228l：.tback 死样式删除——JS 发 .tbimg 图片牌背，无 .tback 载体。 */
 /* R195b：牌正面插画版式——暖米白渐变底（海报同色板）+ 意象符号大图 +
  * 牌名/关键词分区，替代原"只有字"的空白牌面 */
 .tarot-card-front{
@@ -1171,7 +1128,6 @@ details.warm-pro-fold > summary{
 /* D-005：星座视图样式 */
 .xz-result{ margin-top:8px; }
 .xz-today{ display:flex; align-items:center; gap:10px; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; }
-.xz-today-icon{ font-size:28px; }
 .xz-today-label{ font-size:13px; color:var(--secondary); }
 .xz-today-sign{ font-size:20px; font-weight:700; color:var(--primary-ink); }
 .xz-today-note{ font-size:13px; color:var(--secondary); }
@@ -1217,7 +1173,7 @@ details.warm-pro-fold > summary{
   50%{transform:translateY(-5px);}
 }
 .daily-level:hover{animation-play-state:paused; transform:scale(1.12) rotate(-4deg);}
-button:active:not(.theme-btn){transform:scale(.96);}
+button:active{transform:scale(.96);}
 .recent-toggle:hover{animation:togglePulse 1s ease-in-out infinite;}
 @keyframes togglePulse{
   0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.18);}
@@ -1368,7 +1324,6 @@ button:active:not(.theme-btn){transform:scale(.96);}
 .toast-item.show{opacity:1; transform:translateY(0);}
 .toast-error{border-left-color:var(--accent); background:#FFF5F5;}
 .toast-warn{border-left-color:#D4AC0D; background:#FFFBF0;}
-.toast-info{border-left-color:var(--good); background:#F5FBF6;}
 .toast-icon{font-size:16px; flex-shrink:0;}
 .toast-msg{flex:1; word-break:break-word;}
 
@@ -1381,20 +1336,8 @@ button:active:not(.theme-btn){transform:scale(.96);}
   border-radius:12px; overflow:hidden;
   border:1px solid rgba(184,134,11,.18);
 }
-.deco-banner.deco-bazi{
-  background:linear-gradient(135deg,#F2E1C9 0%,#E8C9A0 100%);
-}
-.deco-banner.deco-qiming{
-  background:linear-gradient(135deg,#E8F5E0 0%,#F0E5C2 100%);
-}
-.deco-banner.deco-taohua{
-  background:linear-gradient(135deg,#FFE0E0 0%,#FBD2D2 100%);
-}
-.deco-icon{
-  width:42px; height:42px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
+/* R228l：.deco-banner.deco-* 死样式删除——app.js 内联 style=background 恒覆盖。 */
+/* R228l：.deco-icon 死样式删除（JS 发 deco-icon-img）。 */
 .deco-text{
   flex:1; font-size:13.5px; color:#5B4620;
   font-family:var(--font-serif); font-weight:500;
@@ -1417,16 +1360,8 @@ button:active:not(.theme-btn){transform:scale(.96);}
   .home-main{ max-width:680px; margin-left:auto; margin-right:auto; }
 }
 
-/* 历史详情骨架占位（Nα-a）：加载中不再是空白一片。 */
-.hist-skeleton{ padding:12px 4px; }
-.sk-line{
-  height:14px; border-radius:7px; margin:10px 0;
-  background:linear-gradient(90deg,#EFE5D6 25%,#F8F1E6 50%,#EFE5D6 75%);
-  background-size:200% 100%;
-  animation:sk-shimmer 1.2s ease-in-out infinite;
-}
-@keyframes sk-shimmer{ from{background-position:200% 0;} to{background-position:-200% 0;} }
-@media (prefers-reduced-motion: reduce){ .sk-line{ animation:none; } }
+/* R228l：.hist-skeleton/.sk-line 死样式删除——历史面板 R219b 退役，
+ * 骨架屏随之零引用（sk-shimmer keyframes 一并清）。 */
 
 /* ── 水墨命理改版组件（2026-08-28）：logo/hero/图标/历史视图 ── */
 .ink-hero{margin:0 0 14px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);}

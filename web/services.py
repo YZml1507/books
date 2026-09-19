@@ -40,7 +40,6 @@ from guji import liuyao as liuyao_mod
 from guji import llm_polish
 from guji import lunar
 from guji import paipan_history
-from guji import qiming as qiming_mod
 from guji import taohua as taohua_mod
 from guji import tarot as tarot_mod
 from guji import voice
@@ -873,8 +872,6 @@ def tarot_draw(req) -> dict:
 # 产品域：每日运势 / 功能卡片 / 分享 / 偏好 / 收藏 / 外部资讯
 # ---------------------------------------------------------------------------
 
-ZODIAC = ("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
-
 # R214b：年轻化文案库（dots 生成 + 人工审校，确定性抽取——按日期哈希选条，
 # 同一天全站同一句，可复现；无随机、不读时钟以外的 IO）。
 _COPY_BANK_PATH = os.path.join(os.path.dirname(os.path.dirname(
@@ -901,10 +898,6 @@ _LEVEL_ADVICE = {
 
 _BAD_RELS = ("相害", "相刑", "自刑", "相冲")
 _GOOD_RELS = ("六合", "三合", "半合")
-
-
-def chinese_zodiac(year: int) -> str:
-    return ZODIAC[(year - 4) % 12]
 
 
 def fortune_level(calc_out: dict) -> str:
@@ -1022,7 +1015,7 @@ def daily(date_str: str | None = None) -> dict:
                 _pick(_db["yi"], date_str, "y2")
             dont_str = _pick(_db["ji"], date_str, "j") + "、" + \
                 _pick(_db["ji"], date_str, "j2")
-        # B-017（R195b 清偿）：旧值 chinese_zodiac(d.year) 是「今年的生肖」，
+        # B-017（R195b 清偿）：旧实现按公历年取生肖是「今年的生肖」，
         # 与「贵人」无关（B-003 登记的语义缺陷）。改为当日日干的天乙贵人
         # （huangli.guiren，与黄历页同一算法、同一出处）——
         # 传统语义里「今日贵人」本就按日干推。键名仍为 noble（契约不变），

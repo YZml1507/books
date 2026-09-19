@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # 大阿卡纳（22 张）：(名称, 正位关键词, 逆位关键词, 传统象征说明)
 MAJOR_ARCANA: list[tuple[str, str, str, str]] = [

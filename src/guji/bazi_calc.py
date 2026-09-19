@@ -29,7 +29,6 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .bazi import Bazi, day_ganzhi, hour_ganzhi

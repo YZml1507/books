@@ -31,9 +31,9 @@ import sqlite3
 from dataclasses import dataclass
 
 from . import booksec, douay, euclid, play, yilin
-from .anchors import HEX_RE, classify_offchain, clean, extract_yao, gua_number, gua_spans, yao_names
+from .anchors import classify_offchain, clean, extract_yao, gua_number, gua_spans, yao_names
 from .variants import fold, segment_cjk
-from .zhouyi import derive_gold, derive_polarity, work_body
+from .zhouyi import derive_polarity, work_body
 
 PB_RE = re.compile(r"<pb:([^>]+)>")
 NOTE_RE = re.compile(r"[（(]([^（()）]*)[）)]")

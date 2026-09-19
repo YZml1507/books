@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .bazi import Bazi, GAN
+from .bazi import Bazi
 from .bazi_calc import ten_god
 from .taohua import compute as taohua_compute
 
