@@ -10405,3 +10405,5 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ### R229z续14（节日卡片措辞接原词）
 
 - `doHuangli` 加可选 `spokenWord`——resolve_date 解出的「中秋节/冬至/惊蛰后」直接进判词与引导行（「中秋节适合搬家 ✅」「看看中秋节合不合适」），不再一律泛化成「那天」。实机验证通过。
+
+- `probe_ui_smoke` 新用例 `btn:huangli.holiday_ask`：节日词问一嘴全链路钉扎——resolve_date→翻页→判词写回原词「中秋节」（48 例）。

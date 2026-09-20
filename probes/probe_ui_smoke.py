@@ -670,6 +670,32 @@ def main() -> int:
             results.append({"name": "btn:huangli.gooddays_chip",
                             "ok": ok, "detail": detail})
 
+            # ── R229z续14：节日词问一嘴钉扎——「中秋节搬家合适吗」走
+            # resolve_date 解出真实日期，卡片判词应写回原词「中秋节」
+            # 而非泛化「那天」，且 hlResult 头部日期应翻离今天。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.evaluate("doHuangli(0, true)")
+                page.wait_for_selector("#hlAskInput", timeout=8000)
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                page.fill("#hlAskInput", "中秋节搬家合适吗")
+                page.click("#hlAskBtn")
+                page.wait_for_selector("#hlVerdict", timeout=8000)
+                page.wait_for_timeout(400)
+                vd = page.inner_text("#hlVerdict") or ""
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                ok = ("中秋节" in vd and head1 != head0
+                      and "八月十五" in head1 and not errors)
+                detail = (f"判词={vd.strip()[:30]!r} "
+                          f"翻页={head0.strip()[:14]!r}→{head1.strip()[:14]!r}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:huangli.holiday_ask",
+                            "ok": ok, "detail": detail})
+
             # ── R229c：排盘历史「复看」链路回归钉扎——R5 审计 P0 抓到
             # `_rmBehavior` 嵌套在 closePosterModal 体内，复看点击必抛
             # ReferenceError（toast 假错 + scrollIntoView 从未发生）。此类
