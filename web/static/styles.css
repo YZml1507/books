@@ -737,6 +737,15 @@ button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translate
  * 收藏钮；四枚分享钮回落 right:24，≤375px 不再压住卡标题。 */
 .fav-btn{position:absolute; top:24px; right:24px; margin:0;}
 .fav-btn + .fav-btn{right:84px;}
+/* R231b（R35-P1-6）：分享图提为一级动作——玫瑰渐变与主 CTA 同族，
+ * 其余 fav-btn（如「存这对」）保持 ghost 次要级。 */
+button.fav-btn[id^="share"], .fav-btn.share-cta{
+  background:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
+  border:none; box-shadow:0 4px 14px rgba(194,90,78,.3);
+  font-weight:600;
+}
+button.fav-btn[id^="share"]:hover{transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(194,90,78,.38);}
 
 .error{color:var(--accent-ink); margin-top:16px; font-size:14px;}   /* R228d */
 .status{color:var(--secondary); margin-top:16px; font-size:14px;}
@@ -912,6 +921,8 @@ table.works td.num{text-align:right; font-family:Consolas,monospace;}
 .tarot-card-front .tart img{
   width:100%; height:100%; object-fit:contain; border-radius:8px 8px 0 0;
 }
+/* R231b：逆位牌倒置（与 tmeaning 的「逆位」标注同步）。 */
+.tarot-card-front .tart img.is-reversed{transform:rotate(180deg);}
 .tarot-card-front .tinfo{
   flex:none; display:flex; flex-direction:column; justify-content:center;
   padding:4px 6px 2px;

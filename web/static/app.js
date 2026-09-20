@@ -4421,12 +4421,13 @@ var POSTER_BG = {
   /* R230r（R29-#6）：night 预加载后没有任何绘制方使用——白拉一张图，摘掉。
    * R230w：按视图分底图——塔罗/星座用夜紫云月、桃花/合婚用樱粉，
    * 其余（含 bazi 旧版式）仍暖杏。 */
-  warm: new Image(), sakura: new Image(), lilac: new Image()
+  warm: new Image(), sakura: new Image(), lilac: new Image(),
+  dream: new Image()
 };
 /* R230x（P2-8）：海报角落小满吉祥物贴纸。 */
 var POSTER_MASCOT = new Image();
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
-  taohua: 'sakura', hehun: 'sakura' };
+  taohua: 'sakura', hehun: 'sakura', qiming: 'dream' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 var _HL_YI_MAP = {
   '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
@@ -4455,6 +4456,8 @@ function _idlePrefetch() {
   POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
   POSTER_BG.sakura.src = '/static/_candidates/r212b/poster-bg-sakura.png';
   POSTER_BG.lilac.src = '/static/_candidates/r212b/poster-bg-lilac.png';
+  /* R231b（R36-P3-1）：起名海报换紫云梦底——与塔罗夜紫错开一层。 */
+  POSTER_BG.dream.src = '/static/_candidates/r212b/poster-bg-dream.png';
   POSTER_MASCOT.src = '/static/cream/poster-mascot.png';
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */
@@ -4498,8 +4501,10 @@ function tarotArt(name) {
 
 function tarotFace(d) {
   var img = tarotImg(d.name);
+  /* R231b：逆位牌面倒置显示——与牌名/关键词的「逆位」标注一致。 */
+  var _rev = d.upright ? '' : ' class="is-reversed"';
   var art = img
-    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"></div>' +
+    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"' + _rev + '></div>' +
       '<div class="tinfo">'
     : '<div class="tart">' + tarotArt(d.name) + '</div><div class="tinfo">';
   return art +

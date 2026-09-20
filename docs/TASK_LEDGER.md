@@ -10917,3 +10917,38 @@ selftest 237 / contract 442(SOFT38) / regress / parity 65+35+88 / ui_smoke 55 / 
 
 ### 经验
 - probe_contract 对 app.js 里新 fetch/POST URL 报 SKIP 直至钉 fixture 或 UNPINNED——写端点钉「空写 fixture」是正解（零副作用又真实测到 200+读点），比 UNPINNED 备忘更强。
+
+## R231b —— 塔罗大阿卡纳全套重绘 + 分享 CTA 升级 + 文案池扩编（2026-09-20）
+
+### 塔罗 22 大阿卡纳换新（R35-P1-2 清偿）
+- Agnes `agnes-image-2.1-flash` 逐张生成 22 张奶油 kawaii 牌面（768×1344→380×677 jpg，
+  ~950KB 总量）：与新牌背同一薰衣草+奶油+暖金色系，愚者小熊/隐士企鹅提灯/
+  死神软斗篷小熊（去恐怖化）/恶魔捣蛋小山羊（去惊悚化）——贴小红书受众。
+- manifest.json 22 张大阿卡纳键换到新文件（`major-XX-*.jpg`）；小阿卡纳 56 张暂保
+  RWS 公版扫图（下批再重绘）。原 RWS 大阿卡纳图归档 `_candidates/r231a/tarot-rws-originals/`。
+- 注意：后端牌名是「隐士」（tarot.py），manifest 只认隐士——勿再造「隐者」幻影键。
+- 逆位视觉翻转：`tarotFace` 给逆位 img 加 `.is-reversed`（rotate180°），与文字标注同步。
+
+### 分享图上移一级动作（R35-P1-6）
+- `button.fav-btn[id^="share"]` 升级玫瑰渐变主 CTA（与全局主按钮同族 #C25A4E→#B94A6A），
+  「存这对」等次要 fav-btn 维持 ghost。
+
+### 海报底图补齐（R36-P3-1）
+- `_POSTER_BG_BY_VIEW` 加 `qiming:'dream'`（紫云梦底，与塔罗夜紫错开）；POSTER_BG 增
+  dream 槽位并入 _idlePrefetch——绘制前 decode 等待机制已覆盖新图。
+
+### 文案池扩编（R36-P2-7）
+- daily.levels 各档 4→8、daily.yi/ji 8→12、taohua.replies 各档 3→6、
+  checkin.feedback 各池 4→6、qiming_one_liners 8→12、hehun_one_liners 10→14、
+  liuyao_openers 12→14——全部补同口吻新句（无禁语「命中注定」口径复核过）。
+- 影响面核对：baseline_voice/warm_voice/plain_first 覆盖端点不含 daily/taohua/checkin 文案；
+  selftest taohua 断言的是 cross_ref 分支词非回复池；ui_smoke 实测新句已上桌。
+
+### R34 传输层报告核验
+- R34 报告（24 项）已在 R230v 批全部清零——本轮回读报告逐条对号确认在案，
+  无重复修（#1 防抖/#2 _NR_GEN/#3 sid 捕获/#4 _XZ_GEN/#5 排队感知均在）。
+
+### 闸门
+selftest 237 / contract 442(SOFT38) / regress / parity 65+35+88 / ui_smoke 55 /
+plain_first / dollar / xingzuo / warm_voice / baseline_voice / async_ai / poster 14 /
+no_generated / scripts_importable / llm_polish / ruff 全绿。
