@@ -11231,3 +11231,13 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - `chatSend`/`autoSendChatContext` 各持一份 ~75 行近乎逐字复制的轮询体——抽出共用 `_pollChatReply(tid, ty, sid0)`。
 - **顺带抓出真 bug**：autoSend 版引用了未声明的 `_queueCap`（只在 chatSend 作用域声明）——「聊聊这件事」路径上若回复在服务端排队，`performance.now() < _queueCap` 抛 ReferenceError，typing 气泡永转圈。抽取后两路共用一份定义，结构性消失。
 - 抽取后净 -65 行；`probe_ui_smoke` 59/59 复跑全绿（含 mock LLM 完整轮询路径）。
+
+## R233t —— R51 分享图内容质量批（P0×3 + P1×8 + P2×7 全清）
+
+- **P0-1 合婚海报社死级 bug**：`clash/combine/gan_he` 布尔经 `_pStr` 变 `'false'` 字符串画上图（「六冲 false」），且缘分指数公式全走 truthy 字符串 → 任何配对恒 85。改 `===true` 原始判断 + 中文映射（需磨合/天作之合/天干五合·有）。实测渲染「缘分指数 70」。
+- **P0-2 明细行硬切 4**：daily 的「忌」、checkin-week 第 5-7 天、taohua 强度等被静默丢。按 view 配上限（5~7）+ 行高随剩余空间自适应（1260px 硬顶）。值截断 15→22（四柱残字修复）。
+- **P0-3 checkin-week 分享链接落地「入口不存在」**：`_alias`+`_POSTER_TITLES` 补齐。
+- **P1**：birth 海报补「你是X座」大字（`_birth_sign` 透传）；xingzuo 大字改判词+星座名挪副标；tarot 副标印用户问句原文→`问：` 前缀；huangli 大字孤行→单条宜+「等N件」明细；taohua `strong` 裸枚举→人话。
+- **P2**：checkin 字段名修正+口号 8 条轮换池；liuyao 明细标签位置化；daily 贵人地支→生肖；base() 默认副标 `M月D日·周X`；每 view 独立 hook；hhInvite 无 clipboard 时 execCommand 兜底（此前弹「复制好了」实际没复制）；Web Share files 分支附 text+url；from=share 老用户承接 toast。
+- **遗留**：P1-10 图上回流入口（QR/短链）等正式域名；P1-11 og:image 绝对路径同待域名；P3-24 文本断言闸登记。
+- 闸门：selftest 239 / regress / contract 544 / poster 14判据 / plain_first / dollar / ui_smoke 复跑全绿。
