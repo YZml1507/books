@@ -131,3 +131,8 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type);
+
+-- R230i（R21-P2-1）：(type, ref_id) 唯一约束——SELECT-then-INSERT 非
+-- 原子，跨实例并发实测落重复行。老库已含重复行时此索引建不成，
+-- _ensure 降级路径吞掉（业务层 SELECT 预检仍挡住绝大多数重复）。
+CREATE UNIQUE INDEX IF NOT EXISTS ux_favorites_type_ref ON favorites(type, ref_id);

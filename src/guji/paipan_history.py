@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import contextlib
+import glob
 import json
 import os
 import sqlite3
@@ -62,7 +63,6 @@ def disabled() -> bool:
     return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "") in ("1", "on", "true", "yes")
 
 
-_ddl_done = False
 _ddl_lock = threading.Lock()
 _write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
 KEEP_MAX = 500                   # R228j：排盘历史滚动上限
@@ -79,42 +79,87 @@ _DDL = """CREATE TABLE IF NOT EXISTS records(
 
 def _quarantine() -> None:
     """R228l：db 损坏自恢复——把坏文件挪到 .corrupt-<ts> 留档，
-    下次连接开新库。功能降级为空历史，而不是永久 500。"""
+    下次连接开新库。功能降级为空历史，而不是永久 500。
+
+    R230i（R21-P2-2）：时间戳带毫秒防同秒两次事件互相覆盖；留档
+    只留最新 5 份，不无限攒。"""
     if not os.path.exists(DB_PATH):
         return
-    qua = DB_PATH + ".corrupt-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    qua = (DB_PATH + ".corrupt-" +
+           datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:21])
     os.replace(DB_PATH, qua)
     _log("WARN paipan_history db 损坏，已挪至 %s" % qua)
+    try:
+        olds = sorted(glob.glob(DB_PATH + ".corrupt-*"))
+        for f in olds[:-5]:
+            os.remove(f)
+    except Exception:
+        pass
 
 
 def _conn() -> sqlite3.Connection:
-    global _ddl_done
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     for attempt in range(2):
+        conn = None
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
             conn.execute("PRAGMA busy_timeout=5000")  # R228b：写锁等待而非秒抛
             # 轻量完整性探针：connect 成功不代表页可解析，真读一行才暴露损坏
             conn.execute("SELECT name FROM sqlite_master LIMIT 1").fetchall()
-            # R228b：DDL 每次连接都跑是无谓开销——模块级 once 即可
-            # （IF NOT EXISTS 本身幂等，并发下用锁保证只执行一次）。
-            if not _ddl_done:
+            # R230i（R21-P1-5）：运行中被换成「合法但无 records 的库」
+            # 时 _ddl_done .once 缓存让全端点永久 503——每次连接验表存在，
+            # 缺表当场补建；也顺带吞掉「老库缺列」漂移（ensure 补列）。
+            has = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='records'").fetchone()
+            if not has:
                 with _ddl_lock:
-                    if not _ddl_done:
-                        conn.execute(_DDL)
-                        _ddl_done = True
+                    conn.execute(_DDL)
+                    conn.commit()
+            _ensure_columns(conn)
             return conn
-        except sqlite3.DatabaseError:
+        except sqlite3.OperationalError:
+            # R230i（R21-P0-3）：「database is locked」/只读是
+            # OperationalError 不是损坏——此前被 DatabaseError 粗粒度
+            # 当成坏库把 917KB 真库挪成 .corrupt-*。锁冒成 503 就好，
+            # 不许搬库。
             try:
-                conn.close()
+                if conn is not None:
+                    conn.close()
             except Exception:
                 pass
-            _ddl_done = False
+            raise
+        except sqlite3.DatabaseError:
+            try:
+                if conn is not None:
+                    conn.close()
+            except Exception:
+                pass
             if attempt == 0:
                 _quarantine()   # 损坏文件挪走，第二轮开新库
             else:
                 raise
     raise AssertionError("unreachable")
+
+
+# R230i（R21-P0-1 同款）：老库缺列自愈——pre-git 版本的 records 可能
+# 缺后加的列；PRAGMA table_info 查缺失、ALTER TABLE ADD COLUMN 补上。
+_RECORDS_COLS = {
+    "ts": "TEXT NOT NULL DEFAULT ''",
+    "name": "TEXT",
+    "question": "TEXT",
+    "req_json": "TEXT NOT NULL DEFAULT '{}'",
+    "result_json": "TEXT NOT NULL DEFAULT '{}'",
+}
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    have = {r[1] for r in conn.execute("PRAGMA table_info(records)")}
+    for col, ddl in _RECORDS_COLS.items():
+        if col not in have:
+            conn.execute(
+                f"ALTER TABLE records ADD COLUMN {col} {ddl}")
+    conn.commit()
 
 
 def _name_summary(req: dict) -> str:

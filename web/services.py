@@ -661,10 +661,17 @@ def thread_record(req) -> dict:
     with deps.knowledge() as kb:
         tid = req.thread_id
         created_tid = None   # R230g（R19-P2-2）：本次调用新开的线程，
-        if tid is None:      # record 失败时要连带删掉（ENOSPC 实测留空壳）
+        if tid is None:      # 后续步骤失败时要连带删掉（ENOSPC 实测留空壳）
             topic = (req.topic or req.claim[:50] or "新线程").strip()[:100]
-            tid = created_tid = kb.open_thread(topic)
-            kb.add_turn(tid, "user", "开题：" + topic)
+            try:
+                tid = created_tid = kb.open_thread(topic)
+                kb.add_turn(tid, "user", "开题：" + topic)
+            except Exception:
+                # R230i（R21-P1-7）：add_turn 失败时 open_thread 已
+                # commit——同样补偿删除，不留孤儿 thread 行。
+                if created_tid is not None:
+                    _drop_thread(kb, created_tid)
+                raise
         ev = [Evidence(work_id=e.work_id, file=e.file,
                        raw_start=e.raw_start if e.raw_start is not None else -1,
                        raw_end=e.raw_end if e.raw_end is not None else -1,

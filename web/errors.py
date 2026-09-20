@@ -18,6 +18,7 @@ import sqlite3
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .schemas import ComputeError, NotFoundError, ValidationError
 
@@ -55,6 +56,29 @@ def install(app: FastAPI) -> None:
         return JSONResponse(status_code=503,
                             content={"detail": "存储暂时不可用，请稍后再试"})
     app.add_exception_handler(sqlite3.DatabaseError, _sqlite_handler)
+
+    # R230i（R21-P1-8）：OS 级存储失败（data/ 被普通文件占位的
+    # FileExistsError、ENOSPC、EACCES）此前穿透成裸 500 英文上屏——
+    # 固定中文，不让 str(exc) 的英文 errno 漏出。FileNotFoundError 是
+    # OSError 子类但更具体的处理器先命中，「索引缺失…」人话不受影响。
+    async def _os_handler(_request: Request,
+                          exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=503,
+                            content={"detail": "存储暂时不可用，请稍后再试"})
+    app.add_exception_handler(OSError, _os_handler)
+
+    # R230i（R21-P3）：未知路由/静态文件的 404 是 FastAPI 默认英文
+    # {"detail":"Not Found"}——翻中文；业务端点自己抛的 HTTPException
+    # 已带中文 detail，原样放行不覆盖。
+    async def _http_handler(_request: Request,
+                            exc: StarletteHTTPException) -> JSONResponse:
+        detail = exc.detail
+        if exc.status_code == 404 and detail == "Not Found":
+            detail = "要找的内容不在了"
+        return JSONResponse(status_code=exc.status_code,
+                            content={"detail": detail},
+                            headers=getattr(exc, "headers", None))
+    app.add_exception_handler(StarletteHTTPException, _http_handler)
 
     # R230a-38（R15-P1-2）：int64 溢出（thread_id=1e20 等）在 sqlite 绑定时
     # 抛 OverflowError——非 DatabaseError 子类，此前穿透成 500（≥9 端点）。

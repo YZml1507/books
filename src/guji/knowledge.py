@@ -78,21 +78,90 @@ class KnowledgeBase:
 
     def __init__(self, path: str):
         first = not os.path.exists(path)
+        # R230i（R21-P1-8）：data/ 是普通文件等 OS 级失败时，
+        # makedirs 抛 FileExistsError——让它落到 errors.py 的 OSError→503
+        # 而不是裸 500。
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         self.path = path
         self.db = sqlite3.connect(path)
         self.db.row_factory = sqlite3.Row
+        # R230i（R21-P1-1）：库损坏此前全端点永久 503（文案还暗示暂时性）。
+        # 与 paipan_history 同档自愈：探测 sqlite_master 失败→坏文件挪到
+        # .corrupt-<ts> 留档，开新空库——读路径降级为空数据而不是死。
+        try:
+            self.db.execute(
+                "SELECT name FROM sqlite_master LIMIT 1").fetchall()
+        except sqlite3.DatabaseError:
+            self.db.close()
+            qua = (path + ".corrupt-" +
+                   time.strftime("%Y%m%d-%H%M%S"))
+            try:
+                os.replace(path, qua)
+            except OSError:
+                raise   # 挪不走就维持报错，别强装自愈
+            self.db = sqlite3.connect(path)
+            self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys = ON")
         # R228b：并发写撞锁实测 5s 后抛 database is locked → 裸 500。
         # WAL 让读写不互斥；busy_timeout 把短锁等待转化为等待而非秒抛。
-        self.db.execute("PRAGMA journal_mode=WAL")
+        # R230i（R21-P1-2）：只读文件上 journal_mode=WAL 是写操作会
+        # 整库打不开——降级继续（rollback 模式照样能读，写端点自会 503）。
+        try:
+            self.db.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.DatabaseError:
+            pass
         self.db.execute("PRAGMA busy_timeout=8000")
         here = os.path.dirname(os.path.abspath(__file__))
-        self.db.executescript(
-            open(os.path.join(here, "knowledge_schema.sql"), encoding="utf-8").read())
+        schema = open(os.path.join(here, "knowledge_schema.sql"),
+                      encoding="utf-8").read()
+        try:
+            self.db.executescript(schema)
+        except sqlite3.Error:
+            # R230i（R21-P1-3）：executescript 原子——老库上一处 schema
+            # 漂移（如索引撞缺列）会让所有语句一起失败、全端点 503。
+            # 降级逐条执行，单条失败不连坐（注释行先剥掉再分号切）。
+            for stmt in schema.split(";"):
+                stmt = "\n".join(l for l in stmt.splitlines()
+                                 if not l.strip().startswith("--")).strip()
+                if not stmt:
+                    continue
+                try:
+                    self.db.execute(stmt)
+                except sqlite3.Error:
+                    pass
+        self._ensure_columns()
         if first:
             self.db.execute("INSERT OR REPLACE INTO kb_meta VALUES ('created_at', ?)",
                             (time.strftime("%Y-%m-%dT%H:%M:%S"),))
+        self.db.commit()
+
+    # R230i（R21-P0-1/P0-2）：老库缺列自愈——`SELECT *`+Row 按名取列
+    # 撞旧表缺列直接 IndexError→500。建库后按现行 schema 补缺失列
+    # （ALTER TABLE ADD COLUMN，幂等）。
+    _ENSURE_COLS = {
+        "derived":    {"confidence": "TEXT"},
+        "thread":     {"updated_at": "TEXT"},
+        "turn":       {"seq": "INTEGER NOT NULL DEFAULT 0",
+                       "text": "TEXT NOT NULL DEFAULT ''"},
+        "daily_cache": {"tarot_result": "TEXT"},
+        "favorites":  {"title": "TEXT NOT NULL DEFAULT ''"},
+        "user_prefs": {"updated_at": "TEXT NOT NULL DEFAULT ''"},
+    }
+
+    def _ensure_columns(self) -> None:
+        for table, cols in self._ENSURE_COLS.items():
+            try:
+                have = {r[1] for r in
+                        self.db.execute(f"PRAGMA table_info({table})")}
+            except sqlite3.DatabaseError:
+                continue
+            for col, ddl in cols.items():
+                if col not in have:
+                    try:
+                        self.db.execute(
+                            f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+                    except sqlite3.DatabaseError:
+                        pass
         self.db.commit()
 
     def close(self):
@@ -334,11 +403,21 @@ class KnowledgeBase:
             (ftype, ref_id)).fetchone()
         if r:
             return r["id"]
+        # R230i（R21-P2-1）：SELECT-then-INSERT 非原子——跨实例并发同
+        # (type,ref_id) 实测落重复行。加 UNIQUE 索引后 INSERT OR IGNORE
+        # 兜底；老库有重复行导致索引建不成时退回检查路径（仍能去重
+        # 绝大多数场景）。
         cur = self.db.execute(
-            "INSERT INTO favorites (type, ref_id, title, created_at) VALUES (?,?,?,?)",
+            "INSERT OR IGNORE INTO favorites (type, ref_id, title, created_at) "
+            "VALUES (?,?,?,?)",
             (ftype, ref_id, title, time.strftime("%Y-%m-%dT%H:%M:%S")))
         self.db.commit()
-        return cur.lastrowid
+        if cur.lastrowid:
+            return cur.lastrowid
+        r = self.db.execute(
+            "SELECT id FROM favorites WHERE type=? AND ref_id=?",
+            (ftype, ref_id)).fetchone()
+        return r["id"] if r else cur.lastrowid
 
     def list_favorites(self, ftype: str | None = None) -> list[sqlite3.Row]:
         if ftype:
