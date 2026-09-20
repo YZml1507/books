@@ -64,6 +64,20 @@ _RANK_KW = {
     9: "累积·临近完成",
     10: "顶点·完成·满载",
 }
+# R230a-8（R13-P2-5）：数字位逆位关键词——不再是正位串+「·偏滞」懒式
+# 取反（56 张小牌共享同一尾巴，逆位毫无信息量）。逐位写实。
+_RANK_KW_REV = {
+    1: "暂缓·未启动·时机未到",
+    2: "失衡·两难·拉扯",
+    3: "受挫·返工·方向要调",
+    4: "停滞·倦怠·安不动",
+    5: "内耗·僵局·互相消耗",
+    6: "反复·旧账·进退难",
+    7: "自我怀疑·守不住·耗",
+    8: "阻滞·拖延·事不顺",
+    9: "收尾难·差口气·撑住",
+    10: "过载·扛太满·该卸了",
+}
 _RANK_MEANING = {
     1: "象征事物的种子与初始能量",
     2: "象征两方力量的交汇与权衡",
@@ -92,7 +106,8 @@ def _minor_deck() -> list[tuple[str, str, str, str]]:
     for suit, theme in _MINOR_SUITS:
         for rank, kw in _RANK_KW.items():
             name = f"{suit}{rank}" if rank > 1 else f"{suit}A"
-            rev = _reverse_kw(kw)
+            # R230a-8：逆位查专属表；查不到的走老兜底
+            rev = _RANK_KW_REV.get(rank) or _reverse_kw(kw)
             deck.append((name, kw, rev, f"{theme}。{_RANK_MEANING[rank]}"))
         for title, up, rev, meaning in _COURT:
             deck.append((f"{suit}{title}", up, rev, f"{theme}。{meaning}"))
