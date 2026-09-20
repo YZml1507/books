@@ -183,6 +183,10 @@ def polish(facts: list[str], question: str | None = None,
                     if resp.status_code in (401, 403, 422):
                         _nonretry = True
                         continue
+                    if resp.status_code == 429:
+                        # R230a-9：配额耗尽型 429——立刻重试只会再扣配额，
+                        # 退到下一次调度而不是原地打满 3 次。
+                        break
                     continue                          # 可重试：网关类错误
                 data = resp.json()
             text = (data["choices"][0]["message"]["content"] or "").strip()
@@ -602,6 +606,8 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                 if resp.status_code != 200:
                     if resp.status_code in (401, 403, 422):
                         break                          # R230a-6：不可重试错误
+                    if resp.status_code == 429:
+                        break                          # R230a-9：配额耗尽别原地重试
                     continue
                 data = resp.json()
             raw = (data["choices"][0]["message"]["content"] or "").strip()
