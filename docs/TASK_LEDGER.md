@@ -11569,3 +11569,9 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - **探针**：probe_contract UNPINNED_ROUTES +2 条写端点理由钉扎（542 读点全绿）。
 - 待决：P1-3 海报二维码回流需正式域名（与既有「域名待定」同一决策）；P2-8 emoji 豆腐块只影响无彩色字体的 Linux 桌面（iOS/Android 目标受众无碍）。
 - 闸门：selftest 253 / contract 542 / ui_smoke 75 / ruff clean 全绿。
+
+## R2349c — R64 尾批：词表二波 + 「适合」措辞收口
+
+- 词表二波 +15 键（前后端同构，parity 196 键钉扎）：吃饭/组局/面基/奔现→谒贵+出行，偶遇/自推/运气→祈福，脱单/暧昧/crush/异地恋→嫁娶，出门玩→出行，论文→入学谒贵。
+- 「宜分手/宜解除」类直译措辞改「适合」口径（近期适合X： / 挑适合X的日子），判词模板/吉日条/services facts 三处同改。
+- 闸门全绿（253/542/75/parity 196）。
