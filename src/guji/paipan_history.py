@@ -324,6 +324,77 @@ def export_rows() -> list[tuple]:
     return out
 
 
+# R231a（R36-P3-3）：换设备数据迁移——导出全量行（含 req/result 供
+# 复看回放）+ 导入落库。导入走独立函数而非 save_async：批量、同步返回
+# 计数、跳过禁用闸（用户显式恢复动作——与 export 在禁用下仍可读的
+# 既有口径一致）。
+_VALID_TYPES = {"bazi", "taohua", "hehun", "tarot", "liuyao", "qiming"}
+
+
+def export_all() -> list[dict]:
+    """全量导出：每行含 req/result dict，前端打包成备份 JSON。"""
+    with contextlib.closing(_conn()) as c:
+        rows = c.execute(
+            "SELECT ts,name,question,type,req_json,result_json FROM records"
+            " ORDER BY id").fetchall()
+    out = []
+    for ts, name, question, rtype, req_json, res_json in rows:
+        try:
+            req_obj = json.loads(req_json) if req_json else {}
+        except ValueError:
+            req_obj = {}
+        try:
+            res_obj = json.loads(res_json) if res_json else {}
+        except ValueError:
+            res_obj = {}
+        out.append({"ts": ts, "name": name or "", "question": question or "",
+                    "type": rtype or "bazi",
+                    "req": req_obj, "result": res_obj})
+    return out
+
+
+def import_rows(rows: list[dict]) -> int:
+    """批量落库（追加式，去重靠 ts+name+type 三元组）；返回写入条数。
+
+    防线：条数 ≤ KEEP_MAX、单行序列化 ≤256KB、字段截断到列上限、
+    type 白名单——备份文件是用户可控输入，按不可信数据验。"""
+    if not isinstance(rows, list) or not rows:
+        return 0
+    with _write_lock, contextlib.closing(_conn()) as c, c:
+        written = 0
+        for r in rows[:KEEP_MAX]:
+            if not isinstance(r, dict):
+                continue
+            rtype = r.get("type") if r.get("type") in _VALID_TYPES else "bazi"
+            try:
+                req_s = json.dumps(r.get("req") or {}, ensure_ascii=False)
+                res_s = json.dumps(r.get("result") or {}, ensure_ascii=False)
+            except (TypeError, ValueError):
+                continue
+            if len(req_s) > 262144 or len(res_s) > 262144:
+                continue
+            ts = str(r.get("ts") or "")[:32] or \
+                datetime.now().isoformat(timespec="seconds")
+            name = str(r.get("name") or "")[:200]
+            question = str(r.get("question") or "")[:200] or None
+            # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
+            dup = c.execute(
+                "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
+                (ts, name, rtype)).fetchone()
+            if dup:
+                continue
+            c.execute(
+                "INSERT INTO records(ts,name,question,req_json,result_json,"
+                "type) VALUES(?,?,?,?,?,?)",
+                (ts, name, question, req_s, res_s, rtype))
+            written += 1
+        c.execute(
+            "DELETE FROM records WHERE id NOT IN "
+            "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
+            (KEEP_MAX,))
+    return written
+
+
 def _csv_safe(v: str) -> str:
     """R229n（R6-#9）：CSV 单元格以 =+-@ / 制表符开头时 Excel/WPS 会按
     公式执行（question 是用户自由文本）——前置 ' 转义。"""

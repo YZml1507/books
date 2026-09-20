@@ -6343,6 +6343,19 @@ function init() {
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
   _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
   _qmFavsRender();   /* R230z：心水名单行 */
+  /* R231a（R35-P2-10）：滚动中 FAB 缩小半透明——只动 transform/opacity，
+   * 停滚 260ms 后恢复；reduced-motion 下 transition 已由媒体查询关掉。 */
+  var _fabT = null;
+  window.addEventListener('scroll', function () {
+    var fab = document.querySelector('.recent-toggle');
+    if (!fab || window.scrollY < 40) return;
+    fab.classList.add('is-mini');
+    if (_fabT) clearTimeout(_fabT);
+    _fabT = setTimeout(function () {
+      var f = document.querySelector('.recent-toggle');
+      if (f) f.classList.remove('is-mini');
+    }, 260);
+  }, { passive: true });
   /* R230q（R28-P2-4）：sid 跨刷新存活则气泡也跨刷新恢复——否则
    * 新消息悄悄接进看不见的上一轮上下文。 */
   _chatTsRestore();
@@ -6898,6 +6911,80 @@ function baziPersonaCard(j) {
       _phLast.ex = performance.now();
       window.open('/api/paipan/history/export', '_blank');
     });
+    /* R231a（R36-P3-3）：备份我的数据 = 台账全量 JSON + 浏览器侧键
+     * （打卡/me 双档/问一嘴足迹/主题/口吻）。换设备一键带走。 */
+    var _exj = document.getElementById('historyExportJson');
+    if (_exj) _exj.addEventListener('click', async function () {
+      try {
+        const j = await phFetch('/api/paipan/history/export_json');
+        var local = {};
+        ['checkin:', 'me', 'me:partner', 'hlask'].forEach(function (pref) {
+          try {
+            for (var i = 0; i < window.localStorage.length; i++) {
+              var k = window.localStorage.key(i);
+              if (k && (k === pref || k.indexOf(pref) === 0)) {
+                local[k] = window.localStorage.getItem(k);
+              }
+            }
+          } catch (e) {}
+        });
+        [VOICE_KEY, THEME_KEY].forEach(function (k) {
+          try {
+            var v = window.localStorage.getItem(k);
+            if (v != null) local[k] = v;
+          } catch (e) {}
+        });
+        var bundle = { app: '小满的解忧铺', kind: 'backup', version: 1,
+                       exported_at: j.exported_at || new Date().toISOString(),
+                       browser: local, records: j.records || [] };
+        var blob = new Blob([JSON.stringify(bundle, null, 2)],
+                            { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-我的数据-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+        showToast('备份已下载：' + (j.records || []).length + ' 条记录 + 本机偏好', 'info');
+      } catch (e) {
+        showToast('备份失败：' + e.message, 'error');
+      }
+    });
+    var _imb = document.getElementById('historyImportBtn');
+    var _imf = document.getElementById('historyImportFile');
+    if (_imb && _imf) {
+      _imb.addEventListener('click', function () { _imf.click(); });
+      _imf.addEventListener('change', async function () {
+        var f = _imf.files && _imf.files[0];
+        _imf.value = '';
+        if (!f) return;
+        try {
+          var bundle = JSON.parse(await f.text());
+          if (!bundle || bundle.kind !== 'backup') {
+            showToast('这不是小满的备份文件', 'error');
+            return;
+          }
+          var local = bundle.browser || {};
+          Object.keys(local).forEach(function (k) {
+            /* 只收认识的键——备份文件是用户可控输入，不写任意键 */
+            if (/^(checkin:|me$|me:partner$|hlask$|voiceMode$|uiTheme$)/
+                .test(k) && typeof local[k] === 'string' &&
+                local[k].length < 8192) {
+              try { window.localStorage.setItem(k, local[k]); } catch (e) {}
+            }
+          });
+          var n = 0;
+          if (Array.isArray(bundle.records) && bundle.records.length) {
+            const rj = await postJSON('/api/paipan/history/import',
+                                      { records: bundle.records.slice(0, 500) });
+            n = rj.imported || 0;
+          }
+          showToast('导入完成：台账 +' + n + ' 条，偏好已恢复（刷新生效）', 'info');
+          loadPaipanHistory();
+        } catch (e) {
+          showToast('导入失败：' + e.message, 'error');
+        }
+      });
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', phBind);
   else phBind();

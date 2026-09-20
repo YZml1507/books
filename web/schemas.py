@@ -378,6 +378,12 @@ class TarotDrawRequest(BaseModel):
     question: str | None = Field(None, max_length=200)
 
 
+class PaipanImportRequest(BaseModel):
+    """R231a（R36-P3-3）：备份文件导入——records 上限与台账 KEEP_MAX 对齐，
+    逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。"""
+    records: list[dict] = Field(default_factory=list, max_length=500)
+
+
 class PrefsRequest(BaseModel):
     """用户偏好写入：自由键值（theme / recent_modules / …）。
 

@@ -112,6 +112,14 @@ FIXTURES: dict[str, dict] = {
     # R229z：节日/农历日期解析兜底端点（前端 _hlDayOffset 解不动时调用）。
     "/api/huangli/resolve_date": {"method": "GET",
                                   "params": {"q": "中秋节搬家"}},
+    # R231a：备份导出端点——空库也返回 version/exported_at/records 三键，
+    # 读点可判定（前端只读 j.exported_at / j.records）。
+    "/api/paipan/history/export_json": {"method": "GET"},
+    # R231a：导入回灌——fixture 发空 records 数组（0 写入、无副作用），
+    # 只为让 j.imported 读点可判定；真实写入路径由 import_rows 收敛逻辑
+    # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
+    "POST /api/paipan/history/import": {"method": "POST",
+                                        "json": {"records": []}},
     "POST /api/bazi":    {"method": "POST", "json": {
         "year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",
         "calendar_type": "solar", "scope": "day", "use_llm": False}},
@@ -500,8 +508,11 @@ UNPINNED_ROUTES = {
     ("POST", "/api/ask"):        "R228l 裁决为有意保留僵尸端点（UI 接线已撤，"
                                  "删除待用户）——不造 fixture 假装覆盖",
     ("POST", "/api/user/prefs"): "同上：死写端点（R228l 台账）",
-    ("POST", "/api/favorites"):  "同上：收藏写端点 UI 已撤",
-    ("DELETE", "/api/favorites/{fid}"): "同上",
+    ("POST", "/api/favorites"):  "写端点——R230z 起由起名♡/合婚存这对接线，"
+                                 "探针只读纪律不造写请求（ui_smoke "
+                                 "btn:hehun.savepair 已真点验证）",
+    ("DELETE", "/api/favorites/{fid}"): "同上——写端点；R230z 起由心水名单"
+                                 " × 摘除接线（真机路径同 ui_smoke savepair）",
     ("DELETE", "/api/paipan/history/{rid}"): "删除写端点——探针只读纪律"
                                  "（R230k 起写路径由 ui_smoke btn:history.delete"
                                  " 两段式真删覆盖；此前注释误称已由建删回环"

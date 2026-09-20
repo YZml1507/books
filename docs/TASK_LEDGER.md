@@ -10894,3 +10894,26 @@ R36 审计清单 top 批次落地：
 
 闸门：selftest 237 / contract 438读点 / parity 100键 / ui_smoke 55 /
 plain_first / poster / llm_polish / dollar_misuse / ruff / 其余静态探针。
+
+## R231a —— 数据备份/回灌 + R35/R36 余项清批（2026-09-20）
+
+### 新功能：我的数据备份
+- `GET /api/paipan/history/export_json`：`{version:1, exported_at, records}` 全量导出；
+- `POST /api/paipan/history/import`：`PaipanImportRequest.records≤500`，走 `import_rows()`（type 白名单 bazi/taohua/hehun/tarot/liuyao/qiming、(ts,name,type) 去重、字段≤256KB、name/question≤200、KEEP_MAX 修剪，返回写入数）；
+- 历史工具栏新增「导出备份/导入备份」：导出 JSON 附带浏览器侧 whitelisted localStorage（checkin:/me/me:partner/hlask/voiceMode/uiTheme），文件名 `小满-我的数据-YYYY-MM-DD.json`；导入校验 `kind==='backup'`、仅回灌白名单 string 键 <8192B、再 POST records（≤500），toast 计数。
+- 探针治理：export_json 钉 fixture；import 钉空写 fixture（{records:[]}→{imported:0}，零副作用，守只读纪律）；favorites POST/DELETE 的 UNPINNED 理由更新为「R230z 已接线，写端点不造请求」。
+
+### 体验/视觉余项
+- `fortune_summary` 删掉「今天的干支是X」复述句（对用户无意义——查的日期也未必是今天）；
+- toast 信息色 `var(--secondary)`→`var(--c-bazi)`；
+- `.recent-toggle` 滚动>40px 缩为 `.is-mini`（scale .72 + 半透明，停滚 260ms 还原，passive 监听）；
+- `.daily-meta` 横滑（nowrap + overflow-x auto + 隐藏滚动条）——标签多不再挤爆；
+- bazi related-funcs 三卡 emoji→`func-icon-img` 奶油风图标（死 DOM view-divine 不动）；
+- 每日礼盒图换 `daily-box-gift-v2.png`；
+- Agnes 三资产落位：avatar-xiaoman-cream.jpg（小熊店主+茶，256²）、cream-icon-qiming.jpg（小熊+笔+墨点，320² 无文字）、card-back.jpg（薰衣草紫+月+爪印+星，300×450）；源稿收进 `_candidates/r231a/`。
+
+### 闸门
+selftest 237 / contract 442(SOFT38) / regress / parity 65+35+88 / ui_smoke 55 / plain_first / dollar / xingzuo / warm_voice / baseline_voice / async_ai / poster 14 / no_generated / scripts_importable / llm_polish / ruff 全绿。
+
+### 经验
+- probe_contract 对 app.js 里新 fetch/POST URL 报 SKIP 直至钉 fixture 或 UNPINNED——写端点钉「空写 fixture」是正解（零副作用又真实测到 200+读点），比 UNPINNED 备忘更强。

@@ -17,7 +17,8 @@ from guji import llm_polish, paipan_history
 from .. import services
 from ..errors import NotFoundError
 from ..schemas import (BaziRequest, ChatRequest, HehunRequest,
-                       NameReviewRequest, QimingRequest)
+                       NameReviewRequest, PaipanImportRequest,
+                       QimingRequest)
 
 router = APIRouter(tags=["bazi"])
 
@@ -145,6 +146,25 @@ def paipan_history_export() -> Response:
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/api/paipan/history/export_json")
+def paipan_history_export_json() -> dict:
+    """R231a（R36-P3-3）：全量 JSON 导出（含 req/result，供备份+复看回放）。
+    前端把它与 localStorage 键打包成「我的数据」文件。"""
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
+    return {"version": 1,
+            "exported_at": datetime.now().isoformat(timespec="seconds"),
+            "records": paipan_history.export_all()}
+
+
+@router.post("/api/paipan/history/import")
+def paipan_history_import(req: PaipanImportRequest) -> dict:
+    """R231a（R36-P3-3）：备份文件回灌——追加式去重落库。"""
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
+    return {"imported": paipan_history.import_rows(req.records)}
 
 
 @router.get("/api/paipan/history/{rid}")

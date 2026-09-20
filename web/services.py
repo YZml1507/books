@@ -1925,9 +1925,8 @@ def fortune_summary(calc_out: dict) -> str:
     if good:
         parts.append(f"也有{len(good)}处顺劲"
                      f"（{'/'.join(r['type'] for r in good[:2])}）——有人搭把手，事情好推")
-    day_gz = (calc_out.get("day_luck") or {}).get("day_ganzhi", "")
-    if day_gz:
-        parts.append(f"今天的干支是{day_gz}")
+    # R231a（R36 口播残留）：「今天的干支是丁酉」是纯坐标转述，
+    # 对普通用户无意义且日期词不随查询日漂移——整行删除，不补假锚点。
     if not parts:
         return "今天五行平和，无大冲大合，平平稳稳就是福 ✨"
     return "；".join(parts) + "。"

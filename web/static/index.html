@@ -98,7 +98,7 @@ if ('serviceWorker' in navigator) {
     <div class="daily-top">
       <span class="daily-label">🌟 今日玄学搭子</span>
       <span class="daily-date" id="dailyDate">加载中…</span>
-      <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift.png" alt="" loading="lazy" decoding="async"></div>
+      <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift-v2.png" alt="" loading="lazy" decoding="async"></div>
     </div>
     <!-- R198b（US5）：今日运势分享图入口 -->
     <button class="ghost" type="button" id="shareDaily"
@@ -291,13 +291,13 @@ if ('serviceWorker' in navigator) {
         <div class="ia-label">✨ 相关功能（同一张盘）</div>
         <div class="func-grid">
           <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
-            <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
           </div>
           <div class="func-card" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
-            <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
           </div>
           <div class="func-card" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
-            <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
           </div>
         </div>
       </div>
@@ -702,6 +702,10 @@ if ('serviceWorker' in navigator) {
       <div class="ph-toolbar">
         <button id="historyRefresh" type="button" class="ghost">刷新</button>
         <button id="historyExport" type="button" class="ghost">导出 CSV</button>
+        <!-- R231a（R36-P3-3）：换设备备份——台账全量+浏览器侧偏好打包下载 -->
+        <button id="historyExportJson" type="button" class="ghost">备份我的数据</button>
+        <button id="historyImportBtn" type="button" class="ghost">导入备份</button>
+        <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
       </div>
       <div id="historyList" class="ph-list"><div class="ph-empty">加载中…</div></div>
       <div id="historyDetail" class="ph-detail" aria-live="polite" hidden></div>
