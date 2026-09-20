@@ -4493,9 +4493,14 @@ async function doHuangli(offset, reveal, spokenWord) {
     /* R228c：month_cn 本身已带「月」（后端 MONTH_CN 表生成时即带），
      * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。
      * 注意：注释里别写「模块.文件」式点号串——probe_contract 会当字段读取。 */
-    html += '<div style="font-size:13px;color:var(--secondary);margin-top:2px;">农历 ' +
-      esc((lunar.month_cn || '') + (lunar.day_cn || '')) +
-      ' · ' + esc(lunar.ganzhi_year_cn || '') + '</div>';
+    /* R229z续19：1900-01-31 前农历表无数据（月名/干支全空）——
+     * 「农历  · 」空串残影换成直白说明。 */
+    var _lunarTxt = (lunar.month_cn || '') + (lunar.day_cn || '');
+    html += '<div style="font-size:13px;color:var(--secondary);margin-top:2px;">' +
+      (_lunarTxt
+        ? '农历 ' + esc(_lunarTxt) + ' · ' + esc(lunar.ganzhi_year_cn || '')
+        : '农历：这一天早于历法表起点（1900-01-31），宜忌仍按干支推') +
+      '</div>';
     if (cs && cs.message) html += '<div style="font-size:13px;color:var(--primary-ink);margin-top:6px;">✨ ' + esc(cs.message) + '</div>';
     html += '</div>';
     /* 宜/忌 双色大卡 */

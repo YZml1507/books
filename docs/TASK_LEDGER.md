@@ -10427,3 +10427,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 - `errors.py`：503 兜底从 OperationalError 放宽到 DatabaseError 父类——IntegrityError/坏库读错（非锁错）此前仍裸 500。MRO 解析天然兜住全部子类。
 - selftest `err.sqlite.op.503` 断言同步改查父类注册 + issubclass 验证（193 检）。
+
+### R229z续19（1900年1月农历表界前降级文案）
+
+- 1900-01-31 前 lunar 三字段全空，头部渲染「农历  · 」残影——现显示「农历：这一天早于历法表起点（1900-01-31），宜忌仍按干支推」。
