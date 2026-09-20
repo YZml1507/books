@@ -11388,3 +11388,9 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 新冒烟用例 ui:theme_toggle（点击→存→刷新三步断言）。
 - 真机截图验证：首页/黄历/排盘/聊天抽屉暗色可读无翻车。
 - 闸门：selftest 248 / ui_smoke 60 / contract 542 全绿。
+
+## R2340b R55 尾部 P2
+- CTA 玫瑰渐变浅端 #C25A4E 白字对比 4.32→两端 ≥5.2（色相不动）。
+- 360px 档：daily-meta chips 字号/内距缩一档（溢出 6px）；
+  deco-banner 内收 4px（贴边溢出 12px）。
+- 闸门：ui_smoke 60 全绿。

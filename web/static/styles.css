@@ -57,7 +57,9 @@
   --muted:     #7F6C57;       /* 次要说明（R228d 加深：正文级实测 ≥4.7） */
   --border:    #F5E3D3;       /* 奶油细线 */
   --line:      #E8D5CC;       /* chip 描边（略深于 --border） */
-  --cta-grad:  linear-gradient(135deg,#C25A4E,#B94A6A);  /* 主行动色玫瑰渐变 */
+  /* R2340b（R55-P2）：浅端 #C25A4E 白字仅 4.32——深到 #B04E40
+   * 两端 ≥5.2，视觉仍是玫瑰渐变。 */
+  --cta-grad:  linear-gradient(135deg,#B04E40,#A8435F);  /* 主行动色玫瑰渐变 */
   --shadow:    0 8px 32px rgba(255,183,197,.22), 0 2px 10px rgba(212,181,255,.16);
   --shadow-hover: 0 16px 44px rgba(255,143,171,.26), 0 4px 16px rgba(212,181,255,.22);
 
@@ -2018,4 +2020,10 @@ html[data-theme="dark"] .interp-line, html[data-theme="dark"] .quote-box,
 html[data-theme="dark"] .hint-box{background:#2E282C; border-color:#453C42;}
 html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{
   border-color:#453C42; color:var(--text);
+}
+
+/* R2340b（R55-P2）：360px 档 daily chips 6px 溢出——缩字号/内距止血 */
+@media (max-width:400px){
+  .daily-meta-item{font-size:12px; padding:5px 10px; gap:4px;}
+  .deco-banner{margin:0 4px;}  /* 装饰条贴边溢出 12px */
 }
