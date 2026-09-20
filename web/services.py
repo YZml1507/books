@@ -96,6 +96,11 @@ def hit_dict(h) -> dict:
 
 def _require_q(q: str | None, *, what: str = "查询词不能为空") -> str:
     q = (q or "").strip()
+    # R230r（R30-#10）：纯零宽字符（ZWSP 等）strip() 不掉——读路径
+    # （fts_phrase）会剥，空判定要先剥再判，不然「%E2%80%8B」走到 200+空表
+    # 而不是如实 400。
+    q = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]",
+               "", q).strip()
     if not q:
         raise ValidationError(what)
     if len(q) > 200:
@@ -427,6 +432,15 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
             raise ValidationError(
                 f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
         # 'none' 哨兵原样下传，由 Corpus._search_where 翻成 IS NULL。
+        # R230r（R30-#11）：过滤参数拼错/不存在时如实 400——work=NOSUCH
+        # 此前静默 200 零命中，看起来像「语料里没有这个词」。
+        if work and not c.db.execute(
+                "SELECT 1 FROM work WHERE id=?", (work,)).fetchone():
+            raise ValidationError(f"这本书不在语料里（{work}）——书号先查 /api/works")
+        if layer and not c.db.execute(
+                "SELECT 1 FROM unit WHERE layer=? LIMIT 1",
+                (layer,)).fetchone():
+            raise ValidationError(f"这个层标注不存在（{layer}）——可用层先查 /api/stats")
         kw = dict(layer=layer, work_id=work, genre=genre, scheme=scheme)
         hits = c.search(q, limit=limit, **kw)
         hint = None
@@ -462,11 +476,31 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             if not (1 <= gua <= 64):
                 raise ValidationError("卦号要在 1–64 之间")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
+            # R230r（R30-#6）：披露总量——默认 limit=20 只回前 20 条时，
+            # 此前用户以为该卦只有 20 条材料。
+            _w = "addr1=? AND scheme='zhouyi'"
+            _p: list = [gua]
+            if yao:
+                _w += " AND addr2=?"; _p.append(yao)
+            if layer:
+                _w += " AND layer=?"; _p.append(layer)
+            total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
+                                 _p).fetchone()["n"]
         else:
             hits = c.at_scheme(None if scheme == "none" else scheme,
                                addr_name=addr_name, addr1=addr1,
                                addr2=addr2, layer=layer, limit=limit)
-        return {"scheme": scheme, "count": len(hits),
+            _sn = None if scheme == "none" else scheme
+            _w = "scheme IS NULL" if _sn is None else "scheme = ?"
+            _p = [] if _sn is None else [_sn]
+            for col, val in (("addr_name", addr_name), ("addr1", addr1),
+                             ("addr2", addr2), ("layer", layer)):
+                if val is not None:
+                    _w += f" AND {col} = ?"; _p.append(val)
+            total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
+                                 _p).fetchone()["n"]
+        return {"scheme": scheme, "count": len(hits), "total": total,
+                "truncated": total > len(hits),
                 "hits": [hit_dict(h) for h in hits]}
 
 
@@ -482,6 +516,10 @@ def compare(gua: int, yao: str = "九三", layer: str = "經",
             "addr": cmp.addr,
             "reference": cmp.reference,
             "agree": cmp.agree,
+            # R230r（R30-#7）：无见证时 agree=not evidential() 恒 False，
+            # 前端渲染「存在差异」+「无差异发现」自相矛盾——单开字段披露
+            # 「没找到可比对的材料」这个第三态。
+            "no_witness": not cmp.witnesses,
             "counts": cmp.counts(),
             "witnesses": cmp.witnesses,
             "citations": cmp.citations,
@@ -569,7 +607,17 @@ def works() -> dict:
     try:
         with open(deps.CORPUS_MANIFEST, encoding="utf-8") as f:
             man = json.load(f)
-        src = {w.get("id"): w.get("source") for w in man.get("works", [])
+        # R230r（R30-#4）：manifest 没有 source 键——真实来源字段是
+        # gutenberg_id / source_url；此前 47 部书全部标成 kanripo/内置，
+        # Gutenberg 的 Bible/Euclid/Herodotus 也被误标。
+        def _src_of(w):
+            if w.get("source"):
+                return w["source"]
+            if w.get("gutenberg_id") or "gutenberg.org" in str(
+                    w.get("source_url") or ""):
+                return "gutenberg"
+            return w.get("source_url") or None
+        src = {w.get("id"): _src_of(w) for w in man.get("works", [])
                if w.get("id")}
     except (OSError, ValueError):
         src = {}
@@ -592,9 +640,33 @@ def stats() -> dict:
 
 
 def threads() -> dict:
-    """研究线程列表（G9：可恢复的研究线索）。"""
+    """研究线程列表（G9：可恢复的研究线索）。
+
+    R230r（R30-#8）：resume() LIMIT 50 曾静默截断——超 50 条 open 线程后
+    更老的永久消失。披露 total/limit/truncated，并支持 PATCH 改状态
+    （open/parked/closed，收起的线程不再占列表位）。"""
     with deps.knowledge() as kb:
-        return {"threads": [dict(r) for r in kb.resume()], "stats": kb.stats()}
+        rows = kb.resume()
+        total = kb.db.execute(
+            "SELECT count(*) n FROM thread WHERE status='open'").fetchone()["n"]
+        return {"threads": [dict(r) for r in rows], "stats": kb.stats(),
+                "total": total, "limit": 50, "truncated": total > 50}
+
+
+def thread_set_status(tid: int, status: str) -> dict:
+    """改线程状态（R230r / R30-#8：schema 早有 open/parked/closed CHECK，
+    但没有任何写入路径能到 closed/parked）。"""
+    if status not in ("open", "parked", "closed"):
+        raise ValidationError("线程状态只能是 open / parked / closed")
+    with deps.knowledge() as kb:
+        row = kb.db.execute(
+            "SELECT id FROM thread WHERE id=?", (tid,)).fetchone()
+        if row is None:
+            raise NotFoundError("这条线程没找到——可能还没聊过")
+        kb.db.execute("UPDATE thread SET status=? WHERE id=?",
+                      (status, tid))
+        kb.db.commit()
+        return {"id": tid, "status": status}
 
 
 def thread_detail(tid: int) -> dict:
@@ -694,6 +766,12 @@ def thread_record(req) -> dict:
                 if created_tid is not None:
                     _drop_thread(kb, created_tid)
                 raise
+        else:
+            # R230r（R30-#17）：绑到不存在的线程此前拖到 record() 撞 FK
+            # →「类型或内容不合规」误导文案。存在性检查后如实 404。
+            if not kb.db.execute("SELECT 1 FROM thread WHERE id=?",
+                                 (tid,)).fetchone():
+                raise NotFoundError("这条线程没找到——可能还没聊过")
         ev = [Evidence(work_id=e.work_id, file=e.file,
                        raw_start=e.raw_start if e.raw_start is not None else -1,
                        raw_end=e.raw_end if e.raw_end is not None else -1,

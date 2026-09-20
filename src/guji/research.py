@@ -79,8 +79,36 @@ def _subphrases(q: str, max_tries: int = 150) -> list[tuple[str, int]]:
     out: list[tuple[str, int]] = []
     for run, rs in sorted(runs, key=lambda t: -len(t[0])):
         n = len(run)
-        for size in range(n, 1, -1):
-            for i in range(0, n - size + 1):
+        # R230r（R30-#1）：短种子保底——口语长问的真种子是 2–4 字概念词
+        # （「無為」「老子」「莊子」）。原实现整段最长优先，22 字以上的
+        # run 在 ~11 字窗口处就把 150 次预算耗尽，短种子永远轮不到 →
+        # 真实提问几乎必拒。现在给尺寸 2–4 预留全位置预算（≤60 条，
+        # 不够时按尺寸动态配额等距取样），长窗口只吃剩下的预算。
+        short_sizes = [s for s in (4, 3, 2) if s <= n]
+        short_total = sum(n - s + 1 for s in short_sizes)
+        long_cap = max(0, max_tries - len(out) - min(short_total, 60))
+        big = list(range(n, 4, -1))
+        per = max(2, long_cap // max(len(big), 1))
+        taken = 0
+        for size in big:
+            m = n - size + 1
+            idxs = (range(m) if m <= per else
+                    sorted({round(i * (m - 1) / (per - 1))
+                            for i in range(per)}))
+            for i in idxs:
+                out.append((run[i:i + size], rs + i))
+                taken += 1
+                if taken >= long_cap:
+                    break
+            if taken >= long_cap:
+                break
+        for si, size in enumerate(short_sizes):
+            m = n - size + 1
+            allot = max(2, (max_tries - len(out)) // (len(short_sizes) - si))
+            idxs = (range(m) if m <= allot else
+                    sorted({round(i * (m - 1) / (allot - 1))
+                            for i in range(allot)}))
+            for i in idxs:
                 out.append((run[i:i + size], rs + i))
                 if len(out) >= max_tries:
                     return out
@@ -257,8 +285,15 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
              for (g, y), ws in sorted(shared.items(),
                                       key=lambda kv: (kv[0][0], kv[0][1] or ""))
              if len(set(ws)) >= 2]
+    # R230r（R30-#20/#21）：空结果与截断都要如实披露——shared_addresses
+    # 曾静默 [:30]，works_with_hits=0 时前端只有一张空表无指引。
     return {"concept": concept, "works_with_hits": len(census),
             "scan_limit": scan_limit, "truncated": truncated,
+            "hint": (None if census else
+                     f"「{concept}」在全部 {len(works)} 部书中都没命中"
+                     "——换个写法（或繁体）试试"),
+            "shared_total": len(cross),
+            "shared_truncated": len(cross) > 30,
             "census": census, "shared_addresses": cross[:30]}
 
 
@@ -278,7 +313,7 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
     """
     concept = (concept or "").strip()
     if not concept:
-        return {"error": "concept 不能为空"}
+        return {"error": "对照用的概念不能为空"}
 
     def _side(wid: str) -> dict | None:
         w = corpus.db.execute(
@@ -302,7 +337,8 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
     sa = _side(work_a)
     sb = _side(work_b)
     if sa is None or sb is None:
-        return {"error": f"work not found: {work_a if sa is None else work_b}"}
+        _miss = work_a if sa is None else work_b
+        return {"error": f"这本书没找到（{_miss}）——书号先查 /api/works"}
     if sa["n_hits"] == 0 and sb["n_hits"] == 0:
         return {"error": f"「{concept}」在两书均无命中"}
     # shared zhouyi addresses where BOTH works meet the concept

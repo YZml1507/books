@@ -230,6 +230,15 @@ class ThreadRecordRequest(BaseModel):
             return None
         return _ZW_RE.sub("", "".join(ch for ch in v if ord(ch) >= 0x20))
 
+    @field_validator("claim")
+    @classmethod
+    def _claim_not_blank(cls, v: str) -> str:
+        # R230r（R30-#17）：min_length=1 挡不住「   」——剥洗后空白
+        # 的 claim 会建出 topic 为空的幽灵线程。
+        if not v.strip():
+            raise ValueError("claim 不能是空白")
+        return v
+
 
 class LiuyaoRequest(BaseModel):
     method: str = "coins"        # coins | time

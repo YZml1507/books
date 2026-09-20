@@ -102,6 +102,13 @@ def thread_remove(tid: int) -> dict:
     return services.thread_delete(tid)
 
 
+@router.patch("/api/threads/{tid}")
+def thread_patch(tid: int, status: str) -> dict:
+    """改线程状态（R230r / R30-#8：open/parked/closed——收起的线程不再
+    占 resume 列表位）。"""
+    return services.thread_set_status(tid, status)
+
+
 @router.post("/api/threads")
 def thread_record(req: ThreadRecordRequest) -> dict:
     """写入一条研究结论（G8：断言型 kind 必须带证据，refusal 可无）。"""

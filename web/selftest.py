@@ -137,6 +137,15 @@ def _run_inner() -> list[str]:
               lambda j, s=_params["scheme"]: j.get("hits") and j.get("scheme") == s)
     check("compare", client.get("/api/compare", params={"gua": 28, "yao": "九二"}),
           lambda j: "findings" in j)
+    # R230r（R30-#7）：无见证第三态钉扎——agree=False 不再是「有差异」。
+    check("compare.no_witness", client.get("/api/compare",
+          params={"gua": 28, "yao": "九二", "layer": "BOGUS"}),
+          lambda j: j.get("no_witness") is True and not j.get("witnesses"))
+    # R230r（R30-#6）：/api/addr 披露 total/truncated（前 20 条不代表全部）。
+    check("addr.total", client.get("/api/addr",
+          params={"scheme": "zhouyi", "gua": 1}),
+          lambda j: j.get("total", 0) >= j.get("count", 0)
+          and j.get("truncated") is not None)
     # R230a-48（R14-P0-1 钉扎）：受损 unit（卦47·上六 KR1a0006
     # span-overextended）不上桌当见证——进 flagged 披露位；
     # allow_damaged=1 才放回（显式看受损料）。
@@ -157,6 +166,10 @@ def _run_inner() -> list[str]:
                     and j.get("truncated") is True)
     check("works", client.get("/api/works"),
           lambda j: j.get("works") and all("source" in w for w in j["works"]))
+    # R230r（R30-#4）：来源如实标注——Gutenberg 书不再被误标 kanripo。
+    check("works.source", client.get("/api/works"),
+          lambda j: any(w.get("source") == "gutenberg"
+                        for w in j["works"]))
     check("stats", client.get("/api/stats"),
           lambda j: j.get("stats") and j.get("layers"))
     check("bookstudy.structure", client.get("/api/bookstudy/structure",
@@ -179,6 +192,16 @@ def _run_inner() -> list[str]:
     check("bookstudy.summary.missing", client.get("/api/bookstudy/summary",
           params={"work_id": "NO_SUCH_WORK"}),
           lambda j: j.get("error") is not None)
+    # R230r（R30-#2）：bcv 章号按卷内计——只给 addr1 会把多卷同章号揉成一节。
+    check("bookstudy.chapter.bcv_needs_name",
+          client.get("/api/bookstudy/chapter",
+                     params={"work_id": "bible-douay", "scheme": "bcv",
+                             "addr1": 1}),
+          lambda j: "addr_name" in (j.get("error") or ""))
+    # R230r（R30-#5）：错误文案中文化钉扎。
+    check("bookstudy.err_cn", client.get("/api/bookstudy/summary",
+          params={"work_id": "NO_SUCH_WORK"}),
+          lambda j: "没找到" in (j.get("error") or ""))
     check("compare_works", client.get("/api/compare_works",
           params={"work_a": "KR5c0057", "work_b": "KR5c0126", "q": "無爲"}),
           lambda j: j.get("works") and len(j["works"]) == 2)
@@ -190,7 +213,19 @@ def _run_inner() -> list[str]:
           lambda j: j.get("error") is not None)
     check("concept", client.get("/api/concept", params={"q": "無爲"}),
           lambda j: j.get("census"))
+    # R230r（R30-#20/#21）：空结果给中文指引、shared 截断披露。
+    check("concept.empty_hint", client.get("/api/concept",
+          params={"q": "不存在的词xyz"}),
+          lambda j: j.get("works_with_hits") == 0 and j.get("hint"))
+    check("concept.shared_disclosure", client.get("/api/concept",
+          params={"q": "之"}),
+          lambda j: j.get("shared_total") is not None
+          and j.get("shared_truncated") is not None)
     check("threads.list", client.get("/api/threads"), lambda j: "threads" in j)
+    # R230r（R30-#8）：resume() LIMIT 50 截断披露 + PATCH 状态路径钉扎。
+    check("threads.list.disclosure", client.get("/api/threads"),
+          lambda j: j.get("total") is not None and j.get("limit") == 50
+          and j.get("truncated") is not None)
 
     # ── 数术主 tab 端点（R53b）：bazi/liuyao/huangli/qiming 确定性覆盖 ──
     # R219b（P0-4）：/api/bazi 曾把查询写入 history.db（D-039），历史记录
@@ -1212,6 +1247,11 @@ def _run_inner() -> list[str]:
     check("research", client.get("/api/research", params={"q": "潛龍勿用",
           "max_addresses": 2}),
           lambda j: j.get("evidence") and j.get("steps"))
+    # R230r（R30-#1 钉扎）：自然口语长问此前必拒——2–4 字种子轮不到。
+    check("research.spoken_long", client.get("/api/research",
+          params={"q": "請問無為在老子與莊子裡面到底是怎麼表述的呢",
+                  "max_addresses": 2}),
+          lambda j: not j.get("refused") and j.get("evidence"))
     # R132b（D-178b）：research 的 allow_damaged 放行分支 standing 覆盖。
     # 实测 allow_damaged=true → 200 + refused=False + evidence 非空。
     check("research.allow_damaged", client.get("/api/research",
@@ -1239,6 +1279,16 @@ def _run_inner() -> list[str]:
                                               _ask_too_long.status_code,
                                               _ask_too_long.text[:200])
     ok.append("err.ask.q_too_long")
+    # R230r（R30-#10/#11）：纯零宽查询词 → 400；不存在的 work/layer → 400。
+    _szw = client.get("/api/search", params={"q": "\u200b"})
+    assert _szw.status_code == 400, ("err.search.q_zwsp", _szw.status_code)
+    ok.append("err.search.q_zwsp")
+    _sw = client.get("/api/search", params={"q": "乾", "work": "NOSUCHWORK"})
+    assert _sw.status_code == 400, ("err.search.work_missing", _sw.status_code)
+    ok.append("err.search.work_missing")
+    _sl = client.get("/api/search", params={"q": "乾", "layer": "BOGUS"})
+    assert _sl.status_code == 400, ("err.search.layer_missing", _sl.status_code)
+    ok.append("err.search.layer_missing")
     # R177b（D-225b）：/api/ask max_addresses 边界 standing 覆盖——Pydantic
     # Field(ge=1, le=6) 两条 422 分支。
     _ask_max_low = client.post("/api/ask", json={"q": "潛龍勿用",
@@ -1428,6 +1478,50 @@ def _run_inner() -> list[str]:
     _dr2 = client.delete("/api/threads/99999999")
     assert _dr2.status_code == 404, ("threads.delete", _dr2.status_code)
     ok.append("threads.delete")
+
+    # R230r（R30-#8）：PATCH 状态路径——open→closed 后从 resume 列表消失。
+    _tclose = client.post("/api/threads", json={
+        "kind": "refusal", "claim": "临时线程：状态路径自检",
+        "method": "selftest", "topic": "selftest-status"})
+    assert _tclose.status_code == 200
+    _tc_tid = _tclose.json()["thread_id"]
+    _tc_did = _tclose.json()["derived_id"]
+    _pr = client.patch(f"/api/threads/{_tc_tid}", params={"status": "closed"})
+    assert _pr.status_code == 200 and _pr.json().get("status") == "closed", \
+        ("threads.status", _pr.status_code, _pr.text[:200])
+    _lst = client.get("/api/threads").json()
+    assert all(t["id"] != _tc_tid for t in _lst["threads"]), \
+        ("threads.status", "closed 线程不该再出现在 open 列表")
+    _pr2 = client.patch(f"/api/threads/{_tc_tid}", params={"status": "bogus"})
+    assert _pr2.status_code == 400, ("threads.status", _pr2.status_code)
+    client.delete(f"/api/threads/{_tc_tid}")
+    _kb3 = KnowledgeBase(KNOWLEDGE_DB)
+    try:
+        _c3 = _kb3.db.execute("SELECT claim FROM derived WHERE id=?",
+                              (_tc_did,)).fetchone()
+        if _c3 is not None:
+            _kb3.db.execute(
+                "INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                "VALUES('delete',?,?)", (_tc_did,
+                                        segment_cjk(fold(_c3["claim"]))))
+        _kb3.db.execute("DELETE FROM evidence WHERE derived_id=?", (_tc_did,))
+        _kb3.db.execute("DELETE FROM derived WHERE id=?", (_tc_did,))
+        _kb3.db.commit()
+    finally:
+        _kb3.close()
+    ok.append("threads.status")
+
+    # R230r（R30-#17）：空白 claim → 422；不存在的 thread_id → 404。
+    _tb = client.post("/api/threads", json={"kind": "refusal",
+                                            "claim": "   ", "method": "x"})
+    assert _tb.status_code == 422, ("err.threads.claim_blank", _tb.status_code)
+    ok.append("err.threads.claim_blank")
+    _tfk = client.post("/api/threads", json={"kind": "refusal",
+                                             "claim": "x", "method": "x",
+                                             "thread_id": 99999999})
+    assert _tfk.status_code == 404, ("err.threads.fk_missing",
+                                     _tfk.status_code)
+    ok.append("err.threads.fk_missing")
 
     # ── 知命产品化 API 自测（R002） ────────────────────────────────
     check("daily", client.get("/api/daily"),

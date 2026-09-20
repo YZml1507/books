@@ -158,6 +158,10 @@ var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰'
   question: '问题', facts: '事实上下文', n: '张数',
   date: '日期', days: '天数', limit: '条数', style: '风格',
   topic: '主题', kind: '类型', claim: '论点', method: '方法',
+  /* R230r（R30-#19）：研究面字段补齐——此前 evidence/tid/max_addresses
+   * 走不进中文映射，toast 出英文原文。 */
+  evidence: '证据', tid: '线程号', thread_id: '线程号',
+  max_addresses: '地址数', per_work: '每书条数', addr_name: '节名',
   ref_id: '对象', title: '标题', text: '内容', work: '书号' };
 function _humanize422(detail) {
   try {
@@ -1651,8 +1655,10 @@ function drawPoster(j, opts) {
   var __dt = perf() - __t1;
   if (!cv) return null;
   if (__dt > POSTER_LONGTASK_MS) {     /* T3.3：长任务 → 低端降级重画 */
-    return { canvas: _paintPoster(j, POSTER_LOW_W, POSTER_LOW_H),
-             w: POSTER_LOW_W, h: POSTER_LOW_H };
+    /* R230r（R29-#13）：二次降级仍失败时如实返回 null——原来包一层
+     * {canvas:null, w,h} 外壳，下游字段全非空像成功。 */
+    var _cv2 = _paintPoster(j, POSTER_LOW_W, POSTER_LOW_H);
+    return _cv2 ? { canvas: _cv2, w: POSTER_LOW_W, h: POSTER_LOW_H } : null;
   }
   return { canvas: cv, w: POSTER_FULL_W, h: POSTER_FULL_H };
 }
@@ -1695,14 +1701,16 @@ function _paintPoster(j, W, H) {
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '600 64px serif';
   ctx.textAlign = 'center';
-  ctx.fillText('🔮 今日命盘', W / 2, 130);
+  /* R230r（R29-#3）：legacy 版式混用 W 与 1080 逻辑坐标——750 档下标题/
+   * pills/能量卡/水印集体左移、首 pill 被裁。几何值全部钉回 1080 逻辑系。 */
+  ctx.fillText('🔮 今日命盘', 540, 130);
 
   // 四柱 pills
   var pillars = String(paipan.render || '').split(/\s+/).filter(function (p) { return p.length >= 2; });
   ctx.font = '500 44px serif';
   pillars.slice(0, 4).forEach(function (p, i) {
     var pw = 220, gap = 24;
-    var x0 = (W - pillars.slice(0, 4).length * pw - (pillars.slice(0, 4).length - 1) * gap) / 2;
+    var x0 = (1080 - pillars.slice(0, 4).length * pw - (pillars.slice(0, 4).length - 1) * gap) / 2;
     ctx.fillStyle = i % 2 ? '#EFE3CE' : '#F3E6CF';
     roundRect(ctx, x0 + i * (pw + gap), 190, pw, 78, 39);
     ctx.fill();
@@ -1713,31 +1721,33 @@ function _paintPoster(j, W, H) {
   // 一句话结论（L0）
   ctx.fillStyle = '#3E3428';
   ctx.font = '600 56px sans-serif';
-  var l0 = wrapText(ctx, warm.one_liner || '', W - 200);
-  l0.forEach(function (ln, i) { ctx.fillText(ln, W / 2, 380 + i * 76); });
+  var l0 = wrapText(ctx, _pStr(warm.one_liner), 880);
+  l0.forEach(function (ln, i) { ctx.fillText(ln, 540, 380 + i * 76); });
 
   // 能量卡区块
   /* R216b 续（U-014）：卡高 430→560（信息行与出处行原本叠印，见下）。 */
   var cardY = 480;
   ctx.fillStyle = '#FFFFFF';
-  roundRect(ctx, 90, cardY, W - 180, 560, 28);
+  roundRect(ctx, 90, cardY, 900, 560, 28);
   ctx.fill();
   ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
-  roundRect(ctx, 90, cardY, W - 180, 560, 28);
+  roundRect(ctx, 90, cardY, 900, 560, 28);
   ctx.stroke();
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 40px sans-serif';
-  ctx.fillText('本命 ' + (ec.element || '') + '（' + (ec.element_warm || '') + '）', 140, cardY + 80);
+  ctx.fillText('本命 ' + _pStr(ec.element) + '（' + _pStr(ec.element_warm) + '）', 140, cardY + 80);
 
   var rows = [];
-  if (ec.lucky_colors && ec.lucky_colors.length) rows.push(['幸运色', ec.lucky_colors.join(' · ')]);
-  if (ec.lucky_numbers && ec.lucky_numbers.length) rows.push(['幸运数字', ec.lucky_numbers.join(' · ')]);
-  if (ec.lucky_hours && ec.lucky_hours.length) {
+  var _elc = _pArr(ec.lucky_colors), _eln = _pArr(ec.lucky_numbers),
+      _elh = _pArr(ec.lucky_hours);
+  if (_elc.length) rows.push(['幸运色', _elc.map(_pStr).join(' · ')]);
+  if (_eln.length) rows.push(['幸运数字', _eln.map(_pStr).join(' · ')]);
+  if (_elh.length) {
     /* R216b 续（U-014 附带）：lucky_hours 全量 join 可达 ~60 字，38px 下
      * 远超卡宽（940px 内约 24 字）——审查轨截图里「黄运棕」实为「黄 · 棕」
      * 与下一行叠印的误读，但时段行确实溢出。只取前三个时段并压缩区间写法。 */
-    var hs = ec.lucky_hours.slice(0, 3).map(function (h) {
+    var hs = _elh.slice(0, 3).map(function (h) {
       return String(h).replace(/（/g, '(').replace(/）/g, ')').replace(/–/g, '-');
     });
     rows.push(['幸运时段', hs.join('、')]);
@@ -1785,9 +1795,9 @@ function _paintPoster(j, W, H) {
 
   // 出处三条（判据 10 可追溯）
   ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px sans-serif';
-  (ec.basis || []).slice(0, 3).forEach(function (b, i) {
-    var t = '· ' + b;
-    if (t.length > 26) {
+  _pArr(ec.basis).slice(0, 3).forEach(function (b, i) {
+    var t = '· ' + _pStr(b);
+    if (Array.from(t).length > 26) {
       /* V-004：截断点避开英文键名中间——优先回退到最近的非字母数字字符。 */
       var cut = 25;
       for (var k2 = cut; k2 > 12; k2--) {
@@ -1795,7 +1805,7 @@ function _paintPoster(j, W, H) {
           cut = k2; break;
         }
       }
-      t = t.slice(0, cut) + '…';
+      t = _gSlice(t, cut) + '…';
     }
     ctx.fillText(t, 140, cardY + 480 + i * 44);
   });
@@ -1806,16 +1816,16 @@ function _paintPoster(j, W, H) {
    * 写在「知命 · 仅供娱乐」上方（保留底标过 check_poster 判据 12）。 */
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '600 36px serif';
-  ctx.fillText('@小满的解忧铺', W / 2, 1440 - 158);
+  ctx.fillText('@小满的解忧铺', 540, 1440 - 158);
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 24px sans-serif';
-  ctx.fillText('· 知命知书知天机 ·', W / 2, 1440 - 124);
+  ctx.fillText('· 知命知书知天机 ·', 540, 1440 - 124);
   ctx.fillStyle = '#815934';
   ctx.font = '500 26px sans-serif';
-  ctx.fillText('知命，是为了更好地活', W / 2, 1440 - 80);
+  ctx.fillText('知命，是为了更好地活', 540, 1440 - 80);
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 34px sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', W / 2, 1440 - 38);
+  ctx.fillText('知命 · 仅供娱乐', 540, 1440 - 38);
 
   return cv;
 }
@@ -1838,7 +1848,15 @@ function _paintSharePoster(s, W, H) {
   s = s || {};
   if (!Array.isArray(s.cards)) s.cards = [];
   if (!Array.isArray(s.lines)) s.lines = [];
-  s.cards = s.cards.filter(function (c) { return c && c.name; });
+  /* R230r（R29-#14）：元素级类型防御——数组对了但 name=42 照样崩
+   * （slice is not a function）；统一字符串化。 */
+  s.cards = s.cards.filter(function (c) { return c && c.name != null; })
+    .map(function (c) {
+      c.name = _pStr(c.name); c.sub = _pStr(c.sub); return c;
+    });
+  s.lines = s.lines.map(function (r) {
+    return { k: _pStr(r && r.k), v: _pStr(r && r.v) };
+  });
   var cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   var ctx = cv.getContext('2d');
@@ -1859,14 +1877,14 @@ function _paintSharePoster(s, W, H) {
 
   /* 标题 + 副题 */
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 60px serif';
-  ctx.fillText(s.title || '知命', 540, 128);
+  ctx.fillText(_pStr(s.title) || '知命', 540, 128);
   if (s.subtitle) {
     ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px sans-serif';
-    ctx.fillText(String(s.subtitle).slice(0, 24), 540, 182);
+    ctx.fillText(_gSlice(s.subtitle, 24), 540, 182);
   }
 
   /* 大字结论（最多两行，自动缩字号防溢出） */
-  var big = String(s.big || '');
+  var big = _pStr(s.big);
   ctx.fillStyle = '#3E3428';
   var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
   ctx.font = '600 ' + bigSize + 'px sans-serif';
@@ -1891,8 +1909,9 @@ function _paintSharePoster(s, W, H) {
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px sans-serif';
       ctx.fillText(r.k, 150, y);
       ctx.fillStyle = '#3E3428'; ctx.font = '500 40px sans-serif';
-      var v = String(r.v || '');
-      ctx.fillText(v.length > 16 ? v.slice(0, 15) + '…' : v, 150, y + 52);
+      var v = _pStr(r.v);
+      ctx.fillText(Array.from(v).length > 16 ? _gSlice(v, 15) + '…' : v,
+                   150, y + 52);
     });
     ctx.textAlign = 'center';
   }
@@ -1919,9 +1938,9 @@ function _paintSharePoster(s, W, H) {
         iy = cy + ch - 118;
       }
       ctx.fillStyle = '#3E3428'; ctx.font = '600 38px sans-serif';
-      ctx.fillText(c.name.slice(0, 6), cx + cw / 2, iy + 44);
+      ctx.fillText(_gSlice(c.name, 6), cx + cw / 2, iy + 44);
       ctx.fillStyle = '#815934'; ctx.font = '400 28px sans-serif';
-      ctx.fillText(String(c.sub || '').slice(0, 8), cx + cw / 2, iy + 88);
+      ctx.fillText(_gSlice(c.sub, 8), cx + cw / 2, iy + 88);
     });
   }
 
@@ -1932,7 +1951,11 @@ function _paintSharePoster(s, W, H) {
   /* 水印行 */
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px serif';
   ctx.fillText('@小满的解忧铺', 540, 1320);
-  ctx.fillStyle = '#B7A98A'; ctx.font = '400 26px sans-serif';
+  /* R230r（R29-#11）：免责声明是合规件——花纹底图上浅棕字几乎不可读，
+   * 给文字垫一条半透明米白衬底，任何背景下都可读。 */
+  ctx.fillStyle = 'rgba(253,248,240,0.78)';
+  _roundRectPath(ctx, 540 - 340, 1330, 680, 42, 21); ctx.fill();
+  ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px sans-serif';
   /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
   ctx.fillText('· 知命知书知天机 · 仅供娱乐 ·', 540, 1356);
   /* 金句 hook（按 view 动态 + 数据驱动） */
@@ -1943,7 +1966,16 @@ function _paintSharePoster(s, W, H) {
    * 已把 j 挂到 s._src（line 992 附近），这里优先用 s._src，无则回退 s。 */
   var hook = _posterHookForView(s && s.view, s._src || s);
   if (hook) {
-    ctx.fillStyle = '#815934'; ctx.font = '500 28px sans-serif';
+    /* R230r（R29-#5）：hook 行不测宽会左右出画布（hehun 双方五行灌长串
+     * 实测宽 1372px>1080）——先缩字号再截断兜底。 */
+    hook = _pStr(hook);
+    var _hs = 28;
+    ctx.font = '500 ' + _hs + 'px sans-serif';
+    while (_hs > 16 && ctx.measureText(hook).width > 980) {
+      _hs -= 2; ctx.font = '500 ' + _hs + 'px sans-serif';
+    }
+    if (ctx.measureText(hook).width > 980) hook = _gSlice(hook, 34) + '…';
+    ctx.fillStyle = '#815934';
     ctx.fillText(hook, 540, 1400);
   }
   return cv;
@@ -1957,25 +1989,27 @@ function _posterHookForView(view, j) {
   /* bazi: 用日主 + 偏财运（warm 里有 elements 偏财运/事业指数时可读出） */
   if (view === 'bazi') {
     var ec = w.energy_card || {};
-    var c = ec.element || '';
+    var c = _pStr(ec.element);
     if (c) return '你的命格是「' + c + '」，' + (c.length === 1 ? '一' : c.length === 2 ? '二' : '三') + '字真言已就位';
   }
   /* qiming: 用 TOP 1 名 + 评分（j 必有 full_names）；v2 用新评分口径 */
-  if (view === 'qiming' && j && j.full_names && j.full_names[0]) {
-    var top = j.full_names[0];
+  var _fn = _pArr(j && j.full_names);
+  if (view === 'qiming' && _fn[0] && _fn[0].full_name) {
+    var top = _fn[0];
     var _fe1 = j.five_elements || {};
     var _ts = _qmScore(top, (_fe1.missing && _fe1.missing.length) ? _fe1.missing : (_fe1.weak || []));
-    return '首选「' + (top.full_name || '') + '」· 参考分 ' + (_ts.total || 0) + ' / 100';
+    return '首选「' + _pStr(top.full_name) + '」· 参考分 ' + (_ts.total || 0) + ' / 100';
   }
   /* taohua: 用桃花支 + 强度 */
   if (view === 'taohua' && j) {
-    var zhi = j.peach_zhi || '';
-    var stg = j.strength || '';
+    var zhi = _pStr(j.peach_zhi);
+    var stg = _pStr(j.strength);
     if (zhi) return '桃花落在「' + zhi + '」支 · 强度 ' + (stg || '待时');
   }
-  /* hehun: 用双方日主五行 */
-  if (view === 'hehun' && j && j.day_wx_a && j.day_wx_b) {
-    return j.day_wx_a + ' 遇 ' + j.day_wx_b + ' · ' +
+  /* hehun: 用双方日主五行（R230r：畸形字段先过 _pStr，不画 [object Object]） */
+  var _ha = _pStr(j && j.day_wx_a), _hb = _pStr(j && j.day_wx_b);
+  if (view === 'hehun' && _ha && _hb) {
+    return _ha + ' 遇 ' + _hb + ' · ' +
       (j.day_wx_sheng ? '相生' : (j.day_wx_same ? '同气' : '互补'));
   }
   /* 默认文案版（R218a-11 原版） */
@@ -2001,56 +2035,57 @@ function buildShareData(view, j) {
              lines: [], cards: [], view: view };
   }
   switch (view) {
+    /* R230r（R29-#1/#2）：入图字段一律过 _pArr/_pStr——后端 schema 漂移
+     * 把 yi 传成字符串、clash 传成对象时不再崩分享链或画出 [object Object]。 */
     case 'daily':
-      return { title: '今日运势', subtitle: (j && j.date) || '',
+      return { title: '今日运势', subtitle: _pStr(j && j.date),
         /* R212：原 slice(0,18) 会把 summary 拦腰截断（「…宜稳不」）——
          * 改取第一个分号前的完整短句。 */
         big: (j && j.summary)
           ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
           : '今日份小确幸',
         /* R229z续23（R11-#8）：海报与卡面同口径——凶→缓 */
-        lines: [{ k: '运势等级', v: ((j && j.level) === '凶' ? '缓' : (j && j.level)) || '—' },
-                { k: '天乙贵人', v: (j && j.noble) || '—' },
-                { k: '宜', v: (j && j.do) || '—' },
-                { k: '忌', v: (j && j.dont) || '—' }],
+        lines: [{ k: '运势等级', v: _pStr((j && j.level) === '凶' ? '缓' : (j && j.level)) || '—' },
+                { k: '天乙贵人', v: _pStr(j && j.noble) || '—' },
+                { k: '宜', v: _pStr(j && j.do) || '—' },
+                { k: '忌', v: _pStr(j && j.dont) || '—' }],
         cards: [], view: view };
     case 'tarot': {
-      var draws = (j && j.draws) || [];
+      var draws = _pArr(j && j.draws);
       var imgs = document.querySelectorAll('.tarot-card-front img');
-      var s = base('塔罗指引', (j && j.question) || '');
+      var s = base('塔罗指引', _pStr(j && j.question));
       /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
       s.big = l0 || '今天这几张牌，值得你看一眼';
       s.cards = draws.slice(0, 3).map(function (d, i) {
         var el = imgs[i] && imgs[i].complete && imgs[i].naturalWidth > 0 ? imgs[i] : null;
-        return { name: d.name, sub: d.upright ? '正位' : '逆位', img: el };
+        return { name: _pStr(d && d.name), sub: (d && d.upright) ? '正位' : '逆位', img: el };
       });
       return s;
     }
     /* R230d（R16-P2-2）：星座日运分享图——值宫 + 三维度摘要。 */
     case 'xingzuo': {
-      var sxz = base('星座日运', (j && j.date) || '');
-      var _xzTd = ((j && j.signs) || []).filter(function (s) { return s.is_today; })[0];
-      sxz.big = (j && j.today_sign) || '今日值宫';
+      var sxz = base('星座日运', _pStr(j && j.date));
+      var _xzTd = _pArr(j && j.signs).filter(function (s) { return s && s.is_today; })[0];
+      sxz.big = _pStr(j && j.today_sign) || '今日值宫';
       var _xzl = [];
-      if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: String(_xzTd.love).slice(0, 24) });
-      if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: String(_xzTd.career).slice(0, 24) });
-      if (_xzTd && _xzTd.wealth) _xzl.push({ k: '财运', v: String(_xzTd.wealth).slice(0, 24) });
+      if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: _gSlice(_xzTd.love, 24) });
+      if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: _gSlice(_xzTd.career, 24) });
+      if (_xzTd && _xzTd.wealth) _xzl.push({ k: '财运', v: _gSlice(_xzTd.wealth, 24) });
       sxz.lines = _xzl.slice(0, 3);
       return sxz;
     }
     case 'liuyao': {
       var sly = base('六爻占卜', '');
-      sly.lines = ((w.details && w.details.basis) || []).slice(0, 4)
-        .map(function (b) { return { k: '依据', v: b }; });
-      if (!sly.lines.length) sly.lines = [{ k: '结论', v: l0.slice(0, 15) }];
+      sly.lines = _pArr(w.details && w.details.basis).slice(0, 4)
+        .map(function (b) { return { k: '依据', v: _pStr(b) }; });
+      if (!sly.lines.length) sly.lines = [{ k: '结论', v: _gSlice(l0, 15) }];
       return sly;
     }
     case 'qiming':
       return { title: '五行起名', subtitle: '按五行补缺',
-        big: ((j && j.full_names && j.full_names[0] && j.full_names[0].full_name)
-              || l0 || '').slice(0, 12),
-        lines: ((j && j.full_names) || []).slice(0, 4).map(function (n, i) {
-          return { k: '推荐 ' + (i + 1), v: (n && n.full_name) || '' }; }),
+        big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
+        lines: _pArr(j && j.full_names).slice(0, 4).map(function (n, i) {
+          return { k: '推荐 ' + (i + 1), v: _pStr(n && n.full_name) }; }),
         cards: [], view: view };
     /* R218a-巡2（N-04）：补 3 case——之前 buildShareData 没有 bazi/taohua/hehun，
      * 直接走 default 返回 null，downloadPoster 拿不到 j.share，回落旧 bazi 专属
@@ -2068,37 +2103,42 @@ function buildShareData(view, j) {
       sb.big = l0 || '本命已就位';
       sb.lines = [];
       if (pillars.length) sb.lines.push({ k: '四柱', v: pillars.join(' · ') });
-      if (ec.element) sb.lines.push({ k: '本命', v: ec.element + (ec.element_warm ? '（' + ec.element_warm + '）' : '') });
-      if (ec.lucky_colors && ec.lucky_colors.length) sb.lines.push({ k: '幸运色', v: ec.lucky_colors.slice(0, 3).join(' · ') });
-      if (ec.lucky_numbers && ec.lucky_numbers.length) sb.lines.push({ k: '幸运数字', v: ec.lucky_numbers.join(' · ') });
-      if (!sb.lines.length) sb.lines = [{ k: '结论', v: l0.slice(0, 15) || '知己知命' }];
+      if (ec.element) sb.lines.push({ k: '本命', v: _pStr(ec.element) + (ec.element_warm ? '（' + _pStr(ec.element_warm) + '）' : '') });
+      var _lc = _pArr(ec.lucky_colors), _ln = _pArr(ec.lucky_numbers);
+      if (_lc.length) sb.lines.push({ k: '幸运色', v: _lc.slice(0, 3).map(_pStr).join(' · ') });
+      if (_ln.length) sb.lines.push({ k: '幸运数字', v: _ln.map(_pStr).join(' · ') });
+      if (!sb.lines.length) sb.lines = [{ k: '结论', v: _gSlice(l0, 15) || '知己知命' }];
       return sb;
     }
     case 'taohua': {
       var st = base('桃花运势', '');
       st.big = l0 || '桃花正在加载';
       st.lines = [];
-      if (j && j.peach_zhi) st.lines.push({ k: '桃花支', v: String(j.peach_zhi) });
-      if (j && j.hit_pillars && j.hit_pillars.length) st.lines.push({ k: '命中柱', v: j.hit_pillars.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || p; }).join(' · ') });
-      if (j && j.hongluan) st.lines.push({ k: '红鸾', v: String(j.hongluan) });
-      if (j && j.tianxi) st.lines.push({ k: '天喜', v: String(j.tianxi) });
-      if (j && j.strength) st.lines.push({ k: '桃花强度', v: String(j.strength) });
-      if (!st.lines.length) st.lines = [{ k: '结论', v: l0.slice(0, 15) || '桃花待时而动' }];
+      if (_pStr(j && j.peach_zhi)) st.lines.push({ k: '桃花支', v: _pStr(j.peach_zhi) });
+      var _hp = _pArr(j && j.hit_pillars);
+      if (_hp.length) st.lines.push({ k: '命中柱', v: _hp.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || _pStr(p); }).join(' · ') });
+      if (_pStr(j && j.hongluan)) st.lines.push({ k: '红鸾', v: _pStr(j.hongluan) });
+      if (_pStr(j && j.tianxi)) st.lines.push({ k: '天喜', v: _pStr(j.tianxi) });
+      if (_pStr(j && j.strength)) st.lines.push({ k: '桃花强度', v: _pStr(j.strength) });
+      if (!st.lines.length) st.lines = [{ k: '结论', v: _gSlice(l0, 15) || '桃花待时而动' }];
       return st;
     }
     case 'hehun': {
       var sh = base('合婚配对', '');
       sh.big = l0 || '甜度超标组合';
       sh.lines = [];
-      if (j && j.day_wx_a && j.day_wx_b) {
+      var _wa = _pStr(j && j.day_wx_a), _wb = _pStr(j && j.day_wx_b);
+      if (_wa && _wb) {
         var sheng = j.day_wx_sheng ? ' · 相生' : (j.day_wx_same ? ' · 比和' : '');
-        sh.lines.push({ k: '日主五行', v: j.day_wx_a + ' ↔ ' + j.day_wx_b + sheng });
+        sh.lines.push({ k: '日主五行', v: _wa + ' ↔ ' + _wb + sheng });
       }
-      if (j && j.clash) sh.lines.push({ k: '六冲', v: j.clash });
-      if (j && j.combine) sh.lines.push({ k: '六合', v: j.combine });
+      var _cl = _pStr(j && j.clash), _cb = _pStr(j && j.combine);
+      if (_cl) sh.lines.push({ k: '六冲', v: _cl });
+      if (_cb) sh.lines.push({ k: '六合', v: _cb });
       if (j && typeof j.peach_same === 'boolean') sh.lines.push({ k: '桃花支', v: j.peach_same ? '同支共振' : '各有桃花' });
-      if (j && j.gan_he) sh.lines.push({ k: '天干五合', v: String(j.gan_he) });
-      if (!sh.lines.length) sh.lines = [{ k: '结论', v: l0.slice(0, 15) || '天作之合' }];
+      var _gh = _pStr(j && j.gan_he);
+      if (_gh) sh.lines.push({ k: '天干五合', v: _gh });
+      if (!sh.lines.length) sh.lines = [{ k: '结论', v: _gSlice(l0, 15) || '天作之合' }];
       return sh;
     }
     /* R229z续25：黄历分享图——唯一没海报的核心视图补齐（宜/忌/建除/值宿/
@@ -2109,21 +2149,23 @@ function buildShareData(view, j) {
       var shl = base('今日宜忌',
         (jh.date || '') +
         ((lun.month_cn || lun.day_cn) ? ' · 农历' + (lun.month_cn || '') + (lun.day_cn || '') : ''));
-      var yiL = jh.yi || [], jiL = jh.ji || [];
+      var yiL = _pArr(jh.yi), jiL = _pArr(jh.ji);
       shl.big = yiL.length ? ('宜 ' + yiL.slice(0, 3).join(' · ')) : '今日平稳';
       shl.lines = [];
       if (yiL.length) shl.lines.push({ k: '宜', v: yiL.slice(0, 5).join(' · ') });
       if (jiL.length) shl.lines.push({ k: '忌', v: jiL.slice(0, 5).join(' · ') });
-      if (jh.jianchu) shl.lines.push({ k: '建除', v: String(jh.jianchu) });
-      if (jh.xiu) shl.lines.push({ k: '值宿', v: String(jh.xiu) });
+      if (jh.jianchu) shl.lines.push({ k: '建除', v: _pStr(jh.jianchu) });
+      if (jh.xiu) shl.lines.push({ k: '值宿', v: _pStr(jh.xiu) });
       if (jh.chongsha) {
         var _cs = (typeof jh.chongsha === 'string') ? jh.chongsha :
-          ('冲' + (jh.chongsha.chong_animal || jh.chongsha.chong || '') +
-           (jh.chongsha.sha_fang ? '煞' + jh.chongsha.sha_fang : ''));
+          (typeof jh.chongsha === 'object' && jh.chongsha ?
+            ('冲' + _pStr(jh.chongsha.chong_animal || jh.chongsha.chong) +
+             (jh.chongsha.sha_fang ? '煞' + _pStr(jh.chongsha.sha_fang) : '')) : '');
         if (_cs.replace(/[冲煞]/g, '')) shl.lines.push({ k: '冲煞', v: _cs });
       }
-      if ((jh.conflict || []).length) {
-        shl.lines.push({ k: '注意', v: jh.conflict.slice(0, 3).join('·') + ' 宜忌两边都见' });
+      var _cf = _pArr(jh.conflict);
+      if (_cf.length) {
+        shl.lines.push({ k: '注意', v: _cf.slice(0, 3).map(_pStr).join('·') + ' 宜忌两边都见' });
       }
       return shl;
     }
@@ -2140,7 +2182,7 @@ function warmPoster() {
 }
 
 var _POSTER_LAST = {};   /* view → ts：同视图 4s 内连点只弹浮层不再下载 */
-function downloadPoster(j, view) {
+async function downloadPoster(j, view) {
   /* R230q（R28-P3-13）：连点分享每次都真下载——下载目录堆 N 张同名图
    * 还触发浏览器「多次下载」权限弹窗。4s 内同视图只给预览浮层。 */
   var _vkey = view || 'default';
@@ -2157,8 +2199,25 @@ function downloadPoster(j, view) {
     var s = buildShareData(view, j);
     if (s) j = Object.assign({}, j, { share: s });
   }
+  /* R230r（R29-#6）：背景图 requestIdleCallback 异步加载——点就画会拿到
+   * 渐变底、过会再点拿到真图，同一输入两种产出。绘制前等它加载
+   * （1.5s 超时/失败都回落渐变，保证确定性口径「同一时点同一产出」）。 */
+  var _bg = POSTER_BG.warm;
+  if (_bg && _bg.src && !(_bg.complete && _bg.naturalWidth)) {
+    try {
+      await Promise.race([
+        (_bg.decode ? _bg.decode() : new Promise(function (res, rej) {
+          _bg.onload = res; _bg.onerror = rej;
+        })),
+        new Promise(function (res) { setTimeout(res, 1500); })]);
+    } catch (e) { /* 加载失败走渐变兜底 */ }
+  }
   var r = drawPoster(j);
-  if (!r || !r.canvas) return;
+  /* R230r（R29-#12）：画不出来要有回音——原来静默 return 像没点到。 */
+  if (!r || !r.canvas) {
+    showToast('这张图没画出来，再点一次试试', 'warn');
+    return;
+  }
   /* 同时触发下载（兼容 desktop「图去哪了」老习惯）+ 弹浮层。 */
   try {
     if (_dup) {
@@ -2169,7 +2228,11 @@ function downloadPoster(j, view) {
         if (!blob) return;
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'zhiming-poster.png';
+        /* R230r（R29-#9）：文件名带视图+日期——连存多张不再全是同名。 */
+        var _d = new Date();
+        var _ymd = _d.getFullYear() +
+          ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
+        a.download = 'zhiming-' + _vkey + '-' + _ymd + '.png';
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
@@ -2200,7 +2263,15 @@ function showPosterModal(canvas, view) {
     qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势',
     huangli: '今日宜忌'
   })[view] || '命盘海报';
-  var img = canvas.toDataURL('image/png');
+  /* R230r（R29-#7）：toDataURL 在画布被污染时会抛 SecurityError——
+   * 原来裸调用让「文件已下载、浮层弹不出」成半失败态。 */
+  var img;
+  try {
+    img = canvas.toDataURL('image/png');
+  } catch (e) {
+    showToast('海报预览生成失败，但图片已保存到下载文件夹', 'warn');
+    return;
+  }
   _posterTrigger = document.activeElement;   /* R228d：关闭时焦点归还 */
   backdrop.innerHTML =
     /* R228d：补 dialog 语义——原来纯 div，读屏不知道是模态框，Tab 会走出
@@ -2303,7 +2374,9 @@ function wrapText3(ctx, text, maxWidth) {
     if (cur) lines.push(cur);
     if (lines.length <= 3) return lines;
   }
-  return lines.slice(0, 3);
+  /* R230r（R29-#4）：超 3 行截断带省略号——静默丢尾巴看不出有下文。 */
+  var _t3 = lines.slice(0, 3); _t3[2] += '…';
+  return _t3;
 }
 
 function wrapText(ctx, text, maxWidth) {
@@ -2313,8 +2386,22 @@ function wrapText(ctx, text, maxWidth) {
     else cur += ch;
   });
   if (cur) lines.push(cur);
-  return lines.slice(0, 3);
+  /* R230r（R29-#4）：同 wrapText3——截断显式收尾。 */
+  var _out = lines.slice(0, 3);
+  if (lines.length > 3) _out[_out.length - 1] += '…';
+  return _out;
 }
+
+/* R230r（R29-#1/#2/#8）：海报入图安全工具——
+ * _pArr  数组防御（schema 漂移把数组传成字符串/对象时不崩链）
+ * _pStr  标量化（对象/数组入图前吃掉，杜绝 [object Object] 画上海报）
+ * _gSlice 码点截断（slice() 按 UTF-16 码元切会撕裂 emoji 代理对） */
+function _pArr(v) { return Array.isArray(v) ? v : []; }
+function _pStr(v) {
+  if (v == null || typeof v === 'object') return '';
+  return String(v);
+}
+function _gSlice(v, n) { return Array.from(_pStr(v)).slice(0, n).join(''); }
 
 /* 上一次响应缓存：切换口吻时就地重画，不重发请求。
  * 键 = 结果容器 id，值 = {json, proTitle, render}。render 是"用这份 json
@@ -3988,7 +4075,8 @@ async function doTaohua() {
 /* ── v4 交接修复：上一轮恢复函数时丢失的常量块，自 v3 快照原样找回 ── */
 /* R209b：已批准海报背景预加载（_candidates 目录，同源） */
 var POSTER_BG = {
-  warm: new Image(), night: new Image()
+  /* R230r（R29-#6）：night 预加载后没有任何绘制方使用——白拉一张图，摘掉。 */
+  warm: new Image()
 };
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 
@@ -3997,7 +4085,6 @@ var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
 function _idlePrefetch() {
   POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
-  POSTER_BG.night.src = '/static/_candidates/r212b/poster-bg-night.png';
   fetch('/static/tarot/manifest.json')
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) { TAROT_MANIFEST = j || {}; })

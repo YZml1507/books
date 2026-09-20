@@ -40,13 +40,13 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"work {work_id} not found"}
+        return {"error": f"这本书没找到（{work_id}）——书号先查 /api/works"}
     rows = corpus.db.execute(
         "SELECT scheme, addr_name, addr1, addr2, layer, text, file, page_anchor, "
         "suspect, skipped_chars FROM unit WHERE work_id = ? ORDER BY raw_start",
         (work_id,)).fetchall()
     if not rows:
-        return {"error": f"work {work_id} has no units"}
+        return {"error": f"这本书还没有编入单元（{work_id}）"}
 
     # work's main scheme = mode of non-NULL row schemes (first row may be a
     # NULL-scheme heading/appendix, e.g. KR1a0001 "** 《乾第一》")
@@ -116,7 +116,7 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         # NULL-scheme works (老子/莊子注…) group by FILE in structure() and
         # their units carry scheme=NULL — the section filter must be u.file.
         if file is None:
-            return {"error": f"section needs file for {work_id}"}
+            return {"error": f"这类书要按文件挑节——请给 file 参数（{work_id}）"}
         where = "u.work_id = ? AND u.file = ?"
         params: list = [work_id, file]
     else:
@@ -124,10 +124,16 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         params = [work_id, scheme]
         if scheme == "zhouyi":
             if addr1 is None:
-                return {"error": f"section needs addr1 (卦號) for {work_id}"}
+                return {"error": f"周易要按卦号挑节——请给 addr1（1–64，{work_id}）"}
             where += " AND u.addr1 = ?"
             params.append(addr1)
         else:
+            # R230r（R30-#2）：bcv 的章号在每卷内重新计——只给 addr1=1 会把
+            # Genesis/Exodus/Leviticus 的 ch1 揉成一节还谎称 60 单元。
+            if scheme == "bcv" and addr1 is not None and addr_name is None:
+                return {"error": "bcv 的章号按卷内计——请同时给 addr_name"
+                                 "（卷名，如 Genesis），否则会把多卷的同章号"
+                                 "揉成一节"}
             if addr_name is not None:
                 where += " AND u.addr_name = ?"
                 params.append(addr_name)
@@ -142,9 +148,12 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
     if not rows:
         # R230a-35（R14-P3-11）：三者皆空时返回文本不再出现字面 "None"。
         sec = file or addr_name or addr1
-        return {"error": f"section {sec if sec is not None else '(未指名)'} "
-                         f"not found in {work_id}"}
+        return {"error": f"这一节没找到（{sec if sec is not None else '(未指名)'}"
+                         f" · {work_id}）"}
     units = [{
+        # R230r（R30-#2）：单元带出 addr_name/addr1——下游消费者此前无从
+        # 分辨一节里混进了哪几卷的内容。
+        "addr_name": r["addr_name"], "addr1": r["addr1"],
         "addr2": r["addr2"], "layer": r["layer"], "text": r["text"],
         "citation": (f"@{r['page_anchor'] or '?'} ({r['file']})"
                      + (" ?" if r["suspect"] else "")
@@ -167,12 +176,12 @@ def book_summary(corpus: Corpus, work_id: str) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"work {work_id} not found"}
+        return {"error": f"这本书没找到（{work_id}）——书号先查 /api/works"}
     rows = corpus.db.execute(
         "SELECT scheme, layer, text, suspect, skipped_chars FROM unit "
         "WHERE work_id = ?", (work_id,)).fetchall()
     if not rows:
-        return {"error": f"work {work_id} has no units"}
+        return {"error": f"这本书还没有编入单元（{work_id}）"}
     n_units = len(rows)
     total_chars = sum(len(r["text"]) for r in rows)
     layers: dict[str, dict] = {}
