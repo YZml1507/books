@@ -11043,3 +11043,23 @@ scripts_importable / llm_polish / ruff 全绿。
 
 ### R231i（R38 尾账）
 - legacy 回滚补底色：body 渐变写死奶油色不走 token → legacy 档显式纯色旧底 + 关 page-glow（回滚不再半吊子）
+
+### R232a（R40 字段消费批）
+- **后端补吐**：paipan_out +day_master（前端此前二次推导）；hehun dayun_hits +start_age_b/end_age_b（contract 闸抓出：乙侧岁数从未随响应回，列会恒显 '—'）
+- **消费新增**：塔罗每张牌详情折「牌义」（d.meaning 一直在返回零消费）；排盘历史复看卡头回显「名字·时刻·问句」；起名候选出处 `n.origin` 上卡（换掉死分支 n.meanings）；黄历挑吉日 chip 悬停出当日宜忌 title；黄历卡 +神煞白话条（贵人/驿马/天赦等 临日白话注解）+建除/星宿行；星座卡 +宫位·星语行、卡头 title 载爱情/事业/财运提示；合婚/桃花大运表 +「约几岁」列
+- **storage**：备份白名单+导入正则纳入 me/me:partner/hlask/visits/welcomed/installTipDismissed；启动 GC 扫 90 天前 checkin:/dailyRevealed:；storage 事件挂 me 键跨 tab 重填表单
+- **温暖模式**：scope=life 补「大运节奏」收口行（几岁起运+当前运+下一运约略年）——此前选「一生大运」也只看到单日口径
+
+### R232b（R40-A7/A8 schema 统一）
+- taohua/hehun/liuyao warm.details 从 {label,text} 转统一 {title,lines,basis}——renderWarm 读 title/lines，旧形状进折叠区后明细静默丢失（html 只剩空 h4）
+
+### R232c（R41 真机回归批）
+- **P1-2 ?view=history 死卡**：深链在 defer 期跑 showView 时排盘 IIFE 未注册钩子→列表永卡「加载中」；改 setTimeout(0) 惰性调度
+- **P2-1 昨天接续**：首次进黄历页 hlAskInput 未建→暂存 __pendingHlAsk，doHuangli 渲后自动填+真问
+- **P1-1 inert 时序洞**：封面 inert 从逐控件打标改容器级（children）+MutationObserver 补打异步注入节点（checkin-opt×4/dailyRecall 此前裸奔可被 Tab 摸到）
+- **P2-2 打印**：details.pro-drawer 一刀切把 daily-full 完整解读也吞了→收窄 :not(.daily-full)
+- **P3-1 本周宜忌条跨零点**：_hlWeekDone 会话闸重置+重载
+- **P3-2 隔夜拆信封**：dailyRevealed key 按点击时刻 todayIso 写（原用绑定时的昨天）
+- **P3-3 320px 礼盒余裁**：52px→44px+margin 6px
+- **nit**：?view=bogus toast 后 replaceState 清参（F5 不再复弹）
+- **闸**：selftest 237 / contract 477(SOFT40) / ui_smoke 58 / parity 88 / baseline 14 / ruff 全绿

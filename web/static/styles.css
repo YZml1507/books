@@ -253,7 +253,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 }
 /* R231f（R38-P2-2）：320px 极窄下礼盒右缘被裁 ~50px——收小尺寸 */
 @media (max-width:360px){
-  .daily-card-gift{flex-basis:52px; width:52px;}
+  /* R41-P3-3：52px 仍被裁 ~15px——再收一档并把间距也压掉 */
+  .daily-card-gift{flex-basis:44px; width:44px; margin-left:6px;}
 }
 .daily-card-gift{
   border-radius:14px; overflow:hidden;
@@ -1634,7 +1635,9 @@ button:active{transform:scale(.96);}
   .page-glow, .func-card, .view-back, .func-card-back, .bottom-nav,
   form, button, input, select, textarea, label,
   .hl-chip, .hl-chips, #hlChips, .hl-week, .hl-interactive, .hl-ask,
-  .hlPickDrawer, .birthDrawer, details.pro-drawer,
+  /* R232c（R41-P2-2）：daily-full 也挂 pro-drawer 类——一刀切会把
+   * 用户展开的「完整解读」从纸上吞掉。只藏纯输入抽屉。 */
+  .hlPickDrawer, .birthDrawer, details.pro-drawer:not(.daily-full),
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
   .recent-sidebar, .recent-toggle, .ph-toolbar, .ph-share, .checkin-share,

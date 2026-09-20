@@ -178,5 +178,8 @@ def dayun_relation(b_a: Bazi, birth_a: int, b_b: Bazi, birth_b: int) -> list[dic
             "relation": rel,
             "year_start": da["year_start"],
             "start_age_a": da["start_age"], "end_age_a": da["end_age"],
+            # R232c（contract 闸抓出）：乙侧岁数此前没随响应回吐——
+            # 前端「约几岁」列读不到恒显 '—'。
+            "start_age_b": db["start_age"], "end_age_b": db["end_age"],
         })
     return out

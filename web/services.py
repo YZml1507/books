@@ -200,7 +200,10 @@ def bazi(req) -> dict:
     # 用户问什么，证据与之相关。无提问时检索行为与旧版逐字节一致。
     evidence = _dedup_evidence(retrieve_fast(b, per_query=2, per_work=1,
                                              question=req.question))
-    paipan_out = {"render": b.render(), "nayin": b.nayin, "warn": b.warn}
+    # R232a（R40-B1）：day_master 正名——前端此前靠正则从 render 文本里
+    # 抠日主（格式一改静默丢事实）。显式给字段消掉这个脆弱点。
+    paipan_out = {"render": b.render(), "nayin": b.nayin, "warn": b.warn,
+                  "day_master": b.day[0]}
     interpretation = interpreter.interpret_bazi(paipan_out, calc_out,
                                                evidence, req.question)
     # R182b（004 M1）：warm 视图 **additive** 附加——不动 interpretation 一个

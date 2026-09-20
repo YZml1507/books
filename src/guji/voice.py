@@ -591,6 +591,16 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
 # ---------------------------------------------------------------------------
 # 对外入口：三个 warm 构建器（路由层调用）
 # ---------------------------------------------------------------------------
+def _render_details(render: str) -> list[dict]:
+    """R232b（R40-A7/A8）：盘面明细走统一 details schema（title/lines/
+    basis）——此前 {label,text} 形状进了 renderWarm 后 title 空、
+    lines 缺，明细被静默丢弃。按换行拆行。"""
+    if not render:
+        return []
+    lines = [ln for ln in str(render).split("\n") if ln.strip()]
+    return [{"title": "盘面明细", "lines": lines, "basis": []}]
+
+
 def _wrap(l0: str, card: dict | None, reply: list[str],
           details: list[dict], citations: list[dict]) -> dict:
     """统一的 warm 结构（plan §1.2 四层 + badge）。
@@ -634,6 +644,32 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
                  f"高光时刻：{persona['hi']}。"] + reply
     # 有提问时不插人设行：提问优先（判据 1），且避免推高结果区高度
     # （判据 2 门柱）。人设卡只在无提问的首屏场景出现。
+    # R232b（R40-A5/W2）：scope=life 的大运表此前只进 pro 渲染——温柔
+    # 用户选了「一生大运」也只看到单日口径。补一段人话收口：几岁起运
+    # + 当下走在哪一运 + 下一运什么时候换。
+    if calc.get("scope") == "life":
+        dy = calc.get("dayun") or []
+        if dy:
+            qi = calc.get("qi_yun_age")
+            import datetime
+            _now_y = datetime.date.today().year
+            _cur = next((d for d in dy
+                         if (d.get("year_start") is not None
+                             and d["year_start"] <= _now_y
+                             < d["year_start"] + 10)), None)
+            _nxt = next((d for d in dy
+                         if (d.get("year_start") or 0) > _now_y), None)
+            seg = []
+            if qi is not None:
+                seg.append(f"约 {qi} 岁起运")
+            if _cur:
+                seg.append(f"眼下走在第{_cur['index']}运「{_cur['pillar']}」"
+                           f"（{_cur.get('start_age')}~{_cur.get('end_age')}岁）")
+            if _nxt:
+                seg.append(f"下一运 {_nxt.get('year_start')} 年前后换班"
+                           f"（约 {_nxt.get('start_age')} 岁）")
+            reply = reply + ["大运节奏：" + "；".join(seg) +
+                             "——方向感参考，不是日程表。"]
     return _wrap(
         one_liner(day_master, calc, question, gender=gender),
         energy_card(day_master, calc),
@@ -875,7 +911,7 @@ def warm_taohua(t: dict) -> dict:
             l0,
             None,
             lines[:5],
-            [{"label": "盘面明细", "text": t.get("render", "")}] if t.get("render") else [],
+            _render_details(t.get("render", "")),
             [],
         )
 
@@ -912,7 +948,7 @@ def warm_taohua(t: dict) -> dict:
         l0,
         None,
         lines[:5],
-        [{"label": "盘面明细", "text": t.get("render", "")}] if t.get("render") else [],
+        _render_details(t.get("render", "")),
         [],
     )
 
@@ -1001,7 +1037,7 @@ def warm_hehun(h: dict) -> dict:
         l0[:_L0_MAX],
         None,
         lines[:5],
-        [{"label": "盘面明细", "text": h.get("render", "")}] if h.get("render") else [],
+        _render_details(h.get("render", "")),
         [],
     )
 
