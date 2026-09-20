@@ -26,6 +26,7 @@
   "bazi.interpretation.deterministic",
   "bazi.life",
   "bazi.lunar",
+  "bazi.lunar_1996",
   "bazi.lunar_leap",
   "bazi.lunar_spillover_2101",
   "bazi.range",

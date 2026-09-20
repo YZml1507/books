@@ -304,6 +304,14 @@ def _run_inner() -> list[str]:
                 "lunar_day": 15, "lunar_leap": True, "hour": 10,
                 "gender": "女", "year": 1990, "month": 5, "day": 15}),
           lambda j: j.get("paipan") and j["paipan"].get("render"))
+    # R230f（R18-P0-1）：LUNAR_INFO 1996 项抄表位错（0x055c0→0x05ac0）——
+    # 农历 1996-06-01 应=公历 07-16（原表错成 07-15，全盘日柱错一天）。
+    check("bazi.lunar_1996", client.post("/api/bazi",
+          json={"calendar_type": "lunar", "lunar_year": 1996, "lunar_month": 6,
+                "lunar_day": 1, "lunar_leap": False, "hour": 10,
+                "gender": "男", "year": 1996, "month": 7, "day": 16}),
+          lambda j: j.get("paipan") and "丙子年 乙未月 甲寅日" in
+                    j["paipan"].get("render", ""))
     # R126b（D-172b）：bazi scope=range / scope=life 两分支 standing 覆盖——
     # bazi check 只测默认 scope=day，calc_range/calc_life 零断言。固定输入：
     # range 2026-01-01~05 → days=5；life → dayun 长度 8（实测稳定）。

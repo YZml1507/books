@@ -296,9 +296,14 @@ def _dayun_pillars(month_pillar: str, direction: str, count: int = 8) -> list[st
 
 
 def compute(year: int, month: int, day: int, hour: int,
-            gender: str = "男") -> Bazi:
-    """主入口：公历生日（hour 为 0..23 整数）-> Bazi。"""
-    dt = datetime(year, month, day, hour, 0, 0)
+            gender: str = "男", minute: int = 0) -> Bazi:
+    """主入口：公历生日（hour 为 0..23 整数，minute 可选 0..59）-> Bazi。
+
+    R230f（R18-P1-1）：minute 让节气当小时内的出生不再被截到节前一侧
+    （此前 dt 恒为 xx:00——立春 17:07 时 17:30 出生取错年柱/月柱）。
+    minute 只影响边界判定与起运岁数，时柱仍按整时推（hour_ganzhi 口径不变）。
+    """
+    dt = datetime(year, month, day, hour, minute, 0)
 
     # 年柱：立春为界。立春前仍属上一干支年。
     # 干支纪年：公历 (y-4) % 10 / (y-4) % 12（甲子=0 对应公历 4 的倍数年）。
@@ -353,12 +358,15 @@ def compute(year: int, month: int, day: int, hour: int,
     # R228q：输入粒度是「整点」——节气若落在该小时的 xx:31-:59，整点距
     # >30min 旧判据不告警，但真实出生在后段已跨节。右界放宽到 +90 分钟
     # 覆盖整个小时桶（左界 30min 不变：出生在节气前 30 分钟内才需核）。
+    # R230f：minute 给了精确时刻后，左界告警照旧（±30min 真邻近仍提示），
+    # 右界窗口在用户已给分钟时可收窄到 ±30min（不再需要整桶告警）。
     near = None
+    _right = 1800 if minute else 5400
     for y in (year - 1, year, year + 1):
         for name in TERM_LONGITUDE:
             t = term_time(y, name) + timedelta(hours=8)
             _d = (t - dt).total_seconds()
-            if -1800 <= _d <= 5400:
+            if -1800 <= _d <= _right:
                 near = f"{t:%Y-%m-%d %H:%M} {name}"
     if near:
         warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")

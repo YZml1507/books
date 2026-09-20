@@ -170,7 +170,8 @@ def bazi(req) -> dict:
     req.validate_ranges()
     by, bm, bd = resolve_birth(req)
     try:
-        b = bazi_compute(by, bm, bd, req.hour, req.gender)
+        b = bazi_compute(by, bm, bd, req.hour, req.gender,
+                             minute=(req.minute or 0))
     except Exception as exc:                     # 节气表范围外等 → 422
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
 
@@ -262,7 +263,8 @@ def taohua(req) -> dict:
     req.validate_ranges()
     by, bm, bd = resolve_birth(req)
     try:
-        b = bazi_compute(by, bm, bd, req.hour, req.gender)
+        b = bazi_compute(by, bm, bd, req.hour, req.gender,
+                             minute=(req.minute or 0))
         t = taohua_mod.compute(b)
         dayun = taohua_mod.dayun_hits(b, by)
     except Exception as exc:

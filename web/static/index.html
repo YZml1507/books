@@ -217,6 +217,10 @@ if ('serviceWorker' in navigator) {
         <div class="row">
           <div class="field"><label for="hour">出生时辰（不知道可留空）</label>
             <input id="hour" type="number" min="0" max="23" placeholder="不知道就留空"></div>
+          <!-- R230f（R18-P1-1）：节气当小时内出生会被整点截到节前一侧——
+               可选分钟字段只在需要时填（不填按 :00）。 -->
+          <div class="field"><label for="minute">分钟（可选）</label>
+            <input id="minute" type="number" min="0" max="59" placeholder="如 30"></div>
           <div class="field"><label for="question">想问什么？（可选）</label>
             <input id="question" type="text" maxlength="200" placeholder="例如：最近感情怎么样？"></div>
         </div>

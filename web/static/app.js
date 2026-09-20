@@ -131,6 +131,7 @@ function fail(id, text) {
 /** R228i：Pydantic 422 的 detail 是 [{loc:[...,field],msg}] 数组，
  * 以前 JSON.stringify 原样弹给用户。翻成中文人话。 */
 var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰',
+  minute: '分钟',
   gender: '性别', surname: '姓氏', names: '候选名', session_id: '会话标识',
   message: '消息', q: '查询词', work_id: '书号', seed: '种子数',
   a_year: '甲年', a_month: '甲月', a_day: '甲日',
@@ -2441,6 +2442,10 @@ function baziBody() {
     calendar_type: calendar,
     scope: scope
   };
+  /* R230f（R18-P1-1）：可选分钟——只在填了时辰+分钟时才传（节气当小时
+   * 内出生需分钟级才不被截到节前一侧）。 */
+  var _min = num('minute');
+  if (_min != null) body.minute = _min;
   if (calendar === 'lunar') {
     // 农历输入复用同三个输入框（HTML 只有一组年月日），后端要 lunar_* 键。
     body.lunar_year = body.year;

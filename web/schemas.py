@@ -56,6 +56,10 @@ class BaziRequest(BaseModel):
     month: int = Field(..., description="月 1-12")
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
+    # R230f（R18-P1-1）：节气当小时内出生，整数时辰会被截到节前一侧
+    # （如立春 17:07 时 17:30 出生的盘年柱/月柱全错）。可选分钟字段——
+    # 不给按 :00 算（与旧行为一致），给了走真实时刻。
+    minute: int | None = Field(None, description="分 0-59，可选")
     # R230a-7（R13-P1-3）：时辰留空时前端补 12 并置 False——后端拿到
     # 标志给提示，不再静默按午时排。旧客户端不传此键 → 默认 True 兼容。
     hour_known: bool = True
@@ -105,6 +109,9 @@ class BaziRequest(BaseModel):
                 raise ValidationError("日需在 1-31")
         if not (0 <= self.hour <= 23):
             raise ValidationError("时辰需在 0-23")
+        # R230f：分钟可选但给了就必须合法
+        if self.minute is not None and not (0 <= self.minute <= 59):
+            raise ValidationError("分钟需在 0-59")
         if self.gender not in GENDERS:
             raise ValidationError("性别只能是 男 或 女")
         if self.ask_hour is not None and not (0 <= self.ask_hour <= 23):
