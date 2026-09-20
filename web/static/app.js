@@ -4386,7 +4386,7 @@ function _hlShowNeutral() {
     askRow.parentNode.insertBefore(nv, askRow);
   }
 }
-async function doHuangli(offset, reveal) {
+async function doHuangli(offset, reveal, spokenWord) {
   /* v3（P7）重写：支持 chip 快选（offset 相对今天的天数）与自选日期。
    * 渲染：大字宜忌双色卡 + 农历干支 + 冲煞 + 场景 chip 高亮。
    * API 契约零改动（GET /api/huangli?date=YYYY-MM-DD）。 */
@@ -4408,7 +4408,9 @@ async function doHuangli(offset, reveal) {
    * _hlDayOffset 换算后走同一条路，文案不写死「今天」。 */
   var _dayWord;
   if (_abs) {
-    _dayWord = _hlDayWord(offset);
+    /* R229z续14：resolve_date 解出的原词（中秋节/冬至…）优先于泛化
+     * 「那天」——卡片直接写「中秋节的黄历」。 */
+    _dayWord = spokenWord || _hlDayWord(offset);
   } else {
     var _t0 = new Date();
     _dayWord = (y === _t0.getFullYear() && m === _t0.getMonth() + 1 && d === _t0.getDate()) ? '今天' : '那天';
@@ -4672,7 +4674,7 @@ async function doHuangli(offset, reveal) {
           if (off2 != null) {
             if (!sc) _HL.pendingAskNote = true;
             _HL.keepSy = window.scrollY;
-            doHuangli(off2, false);
+            doHuangli(off2, false, r.spoken || null);
           } else if (!sc) {
             _hlShowNeutral();
           } else {
