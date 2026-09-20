@@ -10668,3 +10668,11 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 §R230m（cross_ref 今日值宫客户端日锚，commit 6ab9e11）
 - 内容：_today_horoscope(iso_day)；bazi 借 ask_date、tarot/liuyao 新 client_date 字段锚定；_check_client_date 共用校验；tarot() 补 validate_ranges。
 - 验证：selftest 215 / contract 415 / ruff 全绿；schema 校验手测（坏值 400、None 放行）。
+
+## §R230n — R25 回访旅程批 + R26 仓库卫生批（2 commits）
+
+**R25 回访（0679cac）**：跨零点自刷新（visibilitychange 回前台+60s 兜底，仅当卡片显示日恰是旧今天才重查，用户自选日不动）；checkin storage 事件跨 tab 同步；chatSid 迁 sessionStorage（B 重置不再污染 A）；SW updatefound→waiting 弹「刷新看新版」toast；og:image 按 base_url 注入绝对路径；SPA 兜底改中间件（catch-all 路由会把未知 DELETE 抬成 405——selftest history.removed 当场抓到）；静态缓存分层（字体/出图 86400、js/css 3600、/ no-cache）；@media print；?view= 白名单深链；checkin 跨日点击先重渲当日再打点（修 dataset 挂靠 detached 按钮）；错误 toast 悬停暂停倒计时；loadDaily 失败也 renderCheckin(本地态)。
+
+**R26 卫生（1907e27）**：根 .gitattributes（* text=auto eol=lf 在前，二进制 -text 在后）+ 19 个大文件转 LFS 指针（zip/epub/npy/ttf）；data/raw_ext/_probe 33MB 移出 tracked（git mv 进 gitignored 目录会保持跟踪——需 git rm --cached）；image_gen.py 多密钥路径（AGNES_API_KEY env→AGNES_KEY_FILE→报错）；paipan_history 冻结 ROOT 与 deps.py 对齐；新增 data/raw/README.md（Kanripo 溯源）、fonts/licenses/README.md（OFL 映射）、ASSETS.md（AI 出图溯源）、requirements-packaging.txt（pyinstaller 6.11.1）。R24 遗留 .git 444MB 历史减肥（filter-repo）仍持用户裁决。
+
+**闸门**：selftest 216 / contract 416(SOFT=30) / regress 只增不减 / parity 65+35+88 / ui_smoke 50 / voice 14 冻结 / llm_polish / xingzuo / warm_voice / async_ai / dollar_misuse / plain_first / poster / ruff——全绿。
