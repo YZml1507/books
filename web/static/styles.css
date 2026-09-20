@@ -422,7 +422,7 @@ h1,.side-brand{
   font-size:14.5px; line-height:1.7; white-space:pre-wrap;
   overflow-wrap:anywhere;   /* R8 P2-3：无空白长串（URL）折行不裁剪 */
 }
-.chat-me{align-self:flex-end; background:linear-gradient(135deg,#F27B6C,#E86A8A);
+.chat-me{align-self:flex-end; background:linear-gradient(135deg,#C25A4E,#B94A6A);
   color:#fff; border-radius:14px 14px 4px 14px;}
 .chat-ai{align-self:flex-start; background:#FBF3EA; color:var(--text);
   border:1px solid #EFDFC9; border-radius:14px 14px 14px 4px;}
@@ -436,7 +436,7 @@ h1,.side-brand{
 }
 .chat-input-row button{
   min-height:44px; min-width:56px; padding:0 16px; border:none; border-radius:22px;
-  background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
+  background:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
   font-family:var(--font-sans); font-size:15px; cursor:pointer;
   box-shadow:0 3px 10px rgba(232,106,138,.35);
 }
@@ -518,7 +518,7 @@ h1,.side-brand{
 }
 .qm-style-chip:hover{border-color:#E8B898; transform:translateY(-1px);}
 .qm-style-chip.active{
-  background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
+  background:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
   border-color:transparent; box-shadow:0 2px 8px rgba(232,106,138,.32);
 }
 .qm-style-chip:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d */
@@ -535,9 +535,9 @@ h1,.side-brand{
   padding:2px 8px; border-radius:10px; margin-left:4px;
   font-weight:600; letter-spacing:.5px;
 }
-.qm-badge.qm-top1{background:linear-gradient(135deg,#F27B6C,#E86A8A);}
-.qm-badge.qm-top2{background:linear-gradient(135deg,#E8B898,#D89A6A);}
-.qm-badge.qm-top3{background:linear-gradient(135deg,#C8B59A,#A8967A);}
+.qm-badge.qm-top1{background:linear-gradient(135deg,#C25A4E,#B94A6A);}
+.qm-badge.qm-top2{background:linear-gradient(135deg,#B07850,#9A5E3E);}
+.qm-badge.qm-top3{background:linear-gradient(135deg,#8A7358,#6E5942);}
 .qm-refresh-row{
   display:flex; align-items:center; gap:10px; margin-top:14px;
   flex-wrap:wrap;
@@ -783,7 +783,7 @@ button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translate
 .rtabs{display:flex; gap:6px; margin:16px 0 4px; flex-wrap:wrap;}
 .rtab{
   margin:0; padding:8px 16px; font-size:13px; width:auto; border-radius:999px;
-  min-height:var(--tap);
+  min-height:var(--tap); min-width:44px;
   background:var(--border); color:var(--secondary); cursor:pointer;
   transition:all .2s; box-shadow:none;
 }
@@ -1259,7 +1259,7 @@ button:active{transform:scale(.96);}
 }
 .checkin-opt:hover{border-color:#E8B898; transform:translateY(-1px);}
 .checkin-opt.picked{
-  background:linear-gradient(135deg,#F27B6C,#E86A8A); color:#fff;
+  background:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
   border-color:transparent; box-shadow:0 3px 10px rgba(232,106,138,.35);
 }
 .checkin-fx{min-height:20px; margin-top:8px; font-size:13.5px; /* R228n：#D4547E→--accent-ink（白底 3.9→4.87） */
@@ -1427,7 +1427,7 @@ button:active{transform:scale(.96);}
 .deco-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:10px 0 12px;padding:10px 14px;border-radius:14px;border:1px solid rgba(184,134,11,.18);}
 .deco-icon-img{width:44px;height:44px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(255,143,171,.25);flex-shrink:0;}
 .deco-icon-img.is-missing{display:none;}
-.deco-text{flex:1;font-family:var(--font-serif);font-weight:700;font-size:14px;color:#8B6FC7;}
+.deco-text{flex:1;font-family:var(--font-serif);font-weight:700;font-size:14px;color:var(--primary-ink);}
 .rt-list{margin:4px 0 4px 18px;}
 .rt-list li{margin:2px 0;}
 .ai-polish-text code,.chat-bubble code{background:rgba(212,181,255,.16);border-radius:6px;padding:1px 6px;}
@@ -1437,11 +1437,11 @@ button:active{transform:scale(.96);}
 .hl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px;}
 .hl-chip{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:all .15s ease;min-height:var(--tap);}   /* R228d：34→44 */
 .hl-chip:hover{border-color:var(--primary-ink);}
-.hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:#8B6FC7;}
+.hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--primary-ink);}
 .hl-pill{background:rgba(255,255,255,.75);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;color:#3E7A52;border:1px solid rgba(95,167,119,.3);}
 .hl-pill.hl-hot{background:#5FA777;color:#fff;box-shadow:0 2px 10px rgba(95,167,119,.4);}
 .hl-pill-ji{color:#C2527B;border-color:rgba(226,98,138,.3);}
-.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);}   /* R228d：33→44 */
+.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;}   /* R228d：33→44；R229z续23：宽也守44 */
 .hl-scene:hover{border-color:var(--accent);}
 .hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
 @media (max-width:480px){ .hl-yiji{grid-template-columns:1fr !important;} }
@@ -1455,7 +1455,7 @@ button:active{transform:scale(.96);}
 /* R228x：判词卡下方「近期宜X」chip 行 */
 .hl-gooddays{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:13px;color:var(--secondary);}
 .hl-gooddays-label{flex-shrink:0;}
-.hl-daychip{border:1px solid var(--accent);background:#FFF;color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:32px;transition:all .15s ease;}
+.hl-daychip{border:1px solid var(--accent);background:#FFF;color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}
 .hl-daychip:hover{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);font-weight:700;}
 
 .hl-verdict{
@@ -1492,7 +1492,7 @@ button:active{transform:scale(.96);}
 .hl-ask-input{flex:1;min-width:0;padding:9px 14px;border:1px solid var(--border);
   border-radius:999px;font-size:16px;background:var(--card);color:var(--text);outline:none;}
 .hl-ask-btn{flex-shrink:0;margin:0;padding:9px 18px;border:none;border-radius:999px;
-  font-size:14px;font-weight:600;min-height:var(--tap);
+  font-size:14px;font-weight:600;min-height:var(--tap);min-width:44px;
   background:linear-gradient(135deg,#8A6408,#6E5006);color:#fff;cursor:pointer;}
 
 /* R228n：窄屏宽表不出页——表本身横向滚动，整页不滚 */

@@ -133,10 +133,10 @@ function fail(id, text) {
 var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰',
   gender: '性别', surname: '姓氏', names: '候选名', session_id: '会话标识',
   message: '消息', q: '查询词', work_id: '书号', seed: '种子数',
-  a_year: '甲方年份', a_month: '甲方月份', a_day: '甲方日期',
-  a_hour: '甲方时辰', a_gender: '甲方性别',
-  b_year: '乙方年份', b_month: '乙方月份', b_day: '乙方日期',
-  b_hour: '乙方时辰', b_gender: '乙方性别', calendar_type: '历法',
+  a_year: '甲年', a_month: '甲月', a_day: '甲日',
+  a_hour: '甲时辰', a_gender: '甲性别',
+  b_year: '乙年', b_month: '乙月', b_day: '乙日',
+  b_hour: '乙时辰', b_gender: '乙性别', calendar_type: '历法',
   scope: '范围', range_start: '区间起始', range_end: '区间结束',
   ask_date: '起问日', ask_hour: '起问时', location: '所在地',
   question: '问题', facts: '事实上下文', n: '张数',
@@ -217,8 +217,15 @@ async function api(path, options) {
       detail = resp.status >= 500 ? '服务开小差了（' + resp.status + '），稍后再试'
         : (resp.status === 404 ? '要找的内容不在了' : '请求被婉拒了（' + resp.status + '）');
     }
+    /* R229z续23（R11-#2）：detail 为对象时 JSON.stringify 会把
+     * {"msg":"field required"} 原文吐进 toast——先取中文可读的子键，
+     * 都没有就走人话兜底。 */
+    if (detail && typeof detail === 'object') {
+      detail = detail.msg || detail.error || detail.message
+        || '请求没走通（' + resp.status + '）';
+    }
     const err = new Error(Array.isArray(detail) ? _humanize422(detail)
-      : (typeof detail === 'string' ? detail : JSON.stringify(detail)));
+      : (typeof detail === 'string' ? detail : '请求没走通（' + resp.status + '）'));
     /* R218a-巡2（N-05）：错误态用户反馈——非 2xx 一律弹红色 toast（不只
      * 在主流程 catch 里弹；网络层就弹，给用户即时反馈）。4xx 是用户输入
      * 错（黄底提示），5xx 是服务端异常（红底提示）。 */
@@ -400,10 +407,11 @@ function buildChatContext(viewKey) {
     if (j.hongluan) facts.push('红鸾：' + j.hongluan);
   } else if (viewKey === 'hehun') {
     var a = j.a_bazi || {}, b = j.b_bazi || {};
-    msg = '一方日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
-      '），另一方日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
+    /* R229z续23（R11-#10）：A/B → 甲/乙，与表单/422 口径统一 */
+    msg = '甲方日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
+      '），乙方日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
       '），这两人配吗';
-    facts = ['A 日柱：' + (a.day || '—'), 'B 日柱：' + (b.day || '—')];
+    facts = ['甲方日柱：' + (a.day || '—'), '乙方日柱：' + (b.day || '—')];
     if (j.day_wx_sheng !== undefined) {
       facts.push('日主五行：' + (j.day_wx_sheng ? '相生' : '相克'));
     }
@@ -436,9 +444,10 @@ function buildChatContext(viewKey) {
     if (moving) facts.push('动爻：' + moving);
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
-    msg = '今天是 ' + (j.date || '') + '，值宫' +
-      ((today && today.sign) || '—') + '，我今天运势怎么样';
-    facts = ['今日值宫：' + ((today && today.sign) || '—')];
+    /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
+    msg = '今天是' + (j.date || '') + '，'
+      + ((today && today.sign) || '—') + '当值，我今天运势怎么样';
+    facts = ['今日当值宫：' + ((today && today.sign) || '—')];
   } else {
     msg = '帮我看看这个结果';
   }
@@ -492,7 +501,7 @@ function autoSendChatContext() {
     /* R228c：raw 仅内部动效用；保存气泡节点引用——轮询写回不再赌
      * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。 */
     var _ty = chatBubble('ai',
-      '<span class="chat-typing"><i></i><i></i><i></i></span>', {raw: true});
+      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
@@ -764,7 +773,7 @@ function chatSend() {
     }
     /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。 */
     var _ty = chatBubble('ai',
-      '<span class="chat-typing"><i></i><i></i><i></i></span>', {raw: true});
+      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
@@ -1644,7 +1653,8 @@ function _paintSharePoster(s, W, H) {
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px serif';
   ctx.fillText('@小满的解忧铺', 540, 1320);
   ctx.fillStyle = '#B7A98A'; ctx.font = '400 26px sans-serif';
-  ctx.fillText('· 知命知书知天机 ·', 540, 1356);
+  /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
+  ctx.fillText('· 知命知书知天机 · 仅供娱乐 ·', 540, 1356);
   /* 金句 hook（按 view 动态 + 数据驱动） */
   /* R218a-巡3 修复（N-02+N-04 同根因）：原 `j` 是父函数 _paintPoster 的形参，
    * 本函数 _paintSharePoster(s, W, H) 形参只有 s；j 在 share 分支闭包不可见，
@@ -1716,7 +1726,8 @@ function buildShareData(view, j) {
         big: (j && j.summary)
           ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
           : '今日份小确幸',
-        lines: [{ k: '运势等级', v: (j && j.level) || '—' },
+        /* R229z续23（R11-#8）：海报与卡面同口径——凶→缓 */
+        lines: [{ k: '运势等级', v: ((j && j.level) === '凶' ? '缓' : (j && j.level)) || '—' },
                 { k: '天乙贵人', v: (j && j.noble) || '—' },
                 { k: '宜', v: (j && j.do) || '—' },
                 { k: '忌', v: (j && j.dont) || '—' }],
@@ -2164,6 +2175,9 @@ async function loadDaily() {
     const starsEl = el('dailyStars');
     if (starsEl) {
       starsEl.innerHTML = renderStars(level);
+      /* R229z续23（R10-#16）：读屏播报「吉·五星」而非逐个星符 */
+      starsEl.setAttribute('aria-label', '今日运势：' +
+        (level === '吉' ? '吉，五星' : level === '凶' ? '缓，一星' : '平，三星'));
       /* U-009 附带：星级加图例，一星不再语义不明。 */
       var legend = document.getElementById('dailyStarsLegend');
       if (!legend && starsEl.parentElement) {
@@ -2200,7 +2214,7 @@ async function loadDaily() {
       const box = el('dailyXingzuo');
       if (box && x && x.today_sign) {
         /* R216b 续3（U-010）：「值官/龙首星」术语腔 → 人话。 */
-        setText('dxLabel', '⭐ 今日轮值的星座：' + x.today_sign);
+        setText('dxLabel', '⭐ 今天轮到' + (x.today_sign || '—') + '座当班');
         setText('dxNote', x.today_note || '');
         box.hidden = false;
       }
@@ -2628,7 +2642,7 @@ async function doCompare() {
   busy('compareResult', '比对中…');
   const gua = num('cgua');
   if (gua == null) {
-    fail('compareResult', '请输入卦号（1-64）');
+    fail('compareResult', '卦号要填 1–64 之间的数字');
     return;
   }
   const params = new URLSearchParams({ gua: String(gua) });
@@ -3368,6 +3382,8 @@ async function doQiming() {
         esc(j.cross_ref.message) + '</div>';
     }
     html += renderAiPolish(j);
+    /* R229z续23（R11-#4）：起名卡此前全程无免责徽标 */
+    html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">名字综合古籍意象与五行给的参考，仅供娱乐——孩子的名字还是家里人说了算 ✨</div>';
     html += '</div></div>';
     paint('qmResult', html);
     rememberResult('qiming', j, '', { gender: val('qm_gender') });   /* v2：补性别（用户反馈 bug F3） */
@@ -3599,7 +3615,7 @@ function buildTarotResult(j) {
   let html = '<div class="card"><h2>✨ 塔罗占卜</h2>';
   /* R216b 续（U-006）：工程口吻复验说明人话化；seed 编号收进 title 悬停
    * 可见（专业用户仍可复验），不再平铺在正文。 */
-  html += '<p class="hit-cite" title="seed ' + esc(j.seed) + '">' + esc(j.n) +
+  html += '<p class="hit-cite" title="复验编号 ' + esc(j.seed) + '">' + esc(j.n) +
     ' 张牌 · 同一天问同一件事，翻到的就是这几张</p>';
   /* R218a-07：综合结论首屏 hook——三张牌翻完前用户先看到一句针对问题的
    * 直接回答，再下钻逐牌解读。j.question 是用户输入关键词。 */
@@ -4049,6 +4065,8 @@ async function doXingzuo(force) {
       });
       html += '</div>';
     }
+    /* R229z续23（R11-#5）：星座结果卡补免责 */
+    html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">星座日运看个开心，不构成任何建议 ✨</div>';
     html += '</div>';
     paint('xzResult', html);
     _xzLastDate = dateStr;   /* R228f */
@@ -4372,7 +4390,7 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
       (yi.length ? '主推【' + yi.join('、') + '】' : day + '宜项不多') +
       '）；' + sc + '可照常安排，想要黄历背书可以翻后面几天挑宜' + sc + '的日子';
   }
-  return '<div class="hl-verdict" id="hlVerdict" role="status">' + esc(verdict) + '</div>';
+  return '<div class="hl-verdict" id="hlVerdict">' + esc(verdict) + '</div>';
 }
 
 /* 黄历页的跨调用状态（场景/目标日文案/滚动位/问一嘴待写标记）。
@@ -4399,7 +4417,8 @@ function _hlShowNeutral() {
   if (askRow && askRow.parentNode) {
     var nv = document.createElement('div');
     nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
-    nv.setAttribute('role', 'status');
+    /* R229z续23（R10-#13）：父级 #hlResult 已是 polite 区——子节点不再叠
+     * role=status（双播报）。 */
     nv.textContent = note;
     askRow.parentNode.insertBefore(nv, askRow);
   }
@@ -4539,8 +4558,14 @@ async function doHuangli(offset, reveal, spokenWord) {
     html += '<div style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
     html += SCENES.map(function (s) {
       var ok = yi.some(function (w) { return (YI_MAP[w] || '').indexOf(s) !== -1 || w.indexOf(s) !== -1; });
-      return '<button type="button" class="hl-scene' + (_HL.scene === s ? ' active' : '') +
-        '" data-scene="' + esc(s) + '" title="' + (ok ? _dayWord + '适合' : _dayWord + '不宜') + '">' + esc(s) + (ok ? ' ✓' : '') + '</button>';
+      /* R229z续23（R10-#9）：选中态同步 aria-pressed——读屏能知道选了哪个
+       * 场景；判定文案同时并进 aria-label（title 悬停键盘/读屏不可达，#21） */
+      var _on = _HL.scene === s;
+      var _hint = ok ? _dayWord + '适合' : _dayWord + '不宜';
+      return '<button type="button" class="hl-scene' + (_on ? ' active' : '') +
+        '" data-scene="' + esc(s) + '" aria-pressed="' + _on +
+        '" aria-label="' + esc(s + '，' + _hint) + '" title="' + _hint + '">' +
+        esc(s) + (ok ? ' ✓' : '') + '</button>';
     }).join('');
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
@@ -4551,13 +4576,13 @@ async function doHuangli(offset, reveal, spokenWord) {
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
     if (_HL.pendingAskNote) {
       _HL.pendingAskNote = false;
-      html += '<div class="hl-verdict" id="hlVerdict" role="status">' +
+      html += '<div class="hl-verdict" id="hlVerdict">' +
         esc(_hlNoSceneNote(yi, ji, _dayWord)) + '</div>';
     }
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */
     html += '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
-      '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" placeholder="问一嘴：今天适不适合面试／搬家…">' +
+      '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" aria-label="问一嘴：今天适不适合某事" placeholder="问一嘴：今天适不适合面试/搬家…">' +
       '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button>' +
       '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看' + esc(_dayWord) + '合不合适（✓ = 宜项里有它）</div></div>';
@@ -5030,6 +5055,23 @@ function initDivination() {
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
   on('hhSubmit', doHehun);
+  /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
+   * 视图级委托：任意 input 按 Enter = 点本视图主提交钮（原生 form 语义）。 */
+  var _ENTER_SUBMIT = {
+    'view-liuyao': 'lySubmit', 'view-tarot': 'trSubmit',
+    'view-qiming': 'qmSubmit', 'view-taohua': 'thSubmit',
+    'view-hehun': 'hhSubmit'
+    /* view-bazi 是真 <form>，Enter 原生已提交；view-huangli 的输入框
+     * 是动态注入的（hlAskInput 已有自己的 Enter 绑定）。 */
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || !e.target || e.target.tagName !== 'INPUT') return;
+    var v = e.target.closest('.view');
+    if (!v || !_ENTER_SUBMIT[v.id]) return;
+    if (e.target.id === 'hlAskInput' || e.target.id === 'chatInput') return;
+    var b = el(_ENTER_SUBMIT[v.id]);
+    if (b && !b.disabled) { e.preventDefault(); b.click(); }
+  });
   on('xzSubmit', function () { doXingzuo(true); });
   /* R220b（P1-1）：日期导航——箭头翻天、今天/明天快捷、三 select 改即查 */
   on('xzPrev', function () { xzShiftDay(-1); });
@@ -5152,7 +5194,7 @@ const CHECKIN_FEEDBACK = {
   '开运蛋': ['今天这个运简直像开了挂，冲鸭！', '好运来敲门，接住了别撒手！'],
   '吃瓜运': ['瓜运当头，记得带好小板凳前排围观！', '今天的瓜管够，吃瓜吃到撑～'],
   '摸鱼运': ['摸鱼运爆棚，快乐一下不过分！', '摸鱼时长建议不超过15分钟哦～'],
-  '破水逆运': ['霉运走开，今天就是好运姑娘！', '破水逆运！诸事皆宜的一天开始了～']
+  '破水逆运': ['霉运走开，今天就是好运本运！', '破水逆运！诸事皆宜的一天开始了～']
 };
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
@@ -5166,9 +5208,11 @@ function renderCheckin(dateKey) {
       (saved === o ? ' picked' : '') + '" data-opt="' + o + '" ' +
       'aria-pressed="' + (saved === o) + '">' + o + '</button>';
   }).join('');
-  box.innerHTML = '<div class="checkin-q">你今天是什么运？</div>' +
-    '<div class="checkin-opts">' + opts + '</div>' +
-    '<div class="checkin-fx" id="checkinFx">' +
+  /* R229z续23（R10-#17）：选项组补 role=group + 问题文本锚点，
+   * 反馈区 aria-live——选完有朗读回执。 */
+  box.innerHTML = '<div class="checkin-q" id="checkinQ">挑一个今天的好运搭子：</div>' +
+    '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
+    '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>';
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
@@ -5301,7 +5345,7 @@ function baziPersonaCard(j) {
           '<button type="button" class="ghost ph-del">删除</button></div></div>';
       }).join('');
     } catch (e) {
-      listEl.innerHTML = '<div class="ph-empty">加载失败：' + esc(_humanizeErr(e.message)) + '（可点上方「刷新」重试）</div>';
+      listEl.innerHTML = '<div class="ph-empty">加载失败：' + esc(_humanizeErr(e.message)) + '（可点上方『刷新』重试）</div>';
     }
   }
   document.addEventListener('click', async function (ev) {

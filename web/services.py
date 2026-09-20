@@ -134,8 +134,8 @@ def resolve_birth(req) -> tuple[int, int, int]:
         try:
             d = lunar.lunar_to_solar(req.lunar_year, req.lunar_month,
                                      req.lunar_day, req.lunar_leap)
-        except ValueError as exc:
-            raise ValidationError(f"农历换算失败：{exc}") from exc
+        except ValueError:
+            raise ValidationError("农历日期没换算成——查查是不是填错了月日") from None
         # R228p：农历 2100 年腊月换算到公历会溢出到 2101-01/02——
         # 下游干支/节气走天文算法（不受农历表 2100 界限制），此处按
         # YEAR_HI+1 放行；农历输入年本身仍由 lunar_to_solar 的表界把守。
@@ -372,12 +372,12 @@ def xingzuo(date_str: str | None = None) -> dict:
             _parsed = date.fromisoformat(date_str)
         except ValueError:
             raise ValidationError(
-                f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+                "日期没看懂——照着 2026-01-01 这样填试试") from None
         # R228b：星历表有覆盖区间——极值年份（如 9999）会一路炸进
         # bazi_compute 报 ValueError → 未映射 500。边界即拒为 400。
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
             raise ValidationError(
-                f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_parsed.year}")
+                f"年份要在 {YEAR_LO}–{YEAR_HI} 之间")
     d = date.fromisoformat(date_str) if date_str else date.today()
     b = bazi_compute(d.year, d.month, d.day, 12, "男")
     out = xingzuo_mod.daily_horoscope(b.day)
@@ -414,12 +414,13 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
          addr2: str | None = None, limit: int = 20) -> dict:
     """地址定位。scheme 显式声明，杜绝 Psalms-99 == 卦99 类跨体系碰撞（D-005）。"""
     if scheme not in deps.SCHEME_LABELS:
-        raise ValidationError(f"编址类型只能是 {'/'.join(deps.SCHEME_LABELS)}")
+        raise ValidationError(
+            f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
     limit = min(max(limit, 1), 100)
     with deps.corpus() as c:
         if scheme == "zhouyi":
             if gua is None:
-                raise ValidationError("zhouyi 定位需提供卦号（1–64）")
+                raise ValidationError("用周易定位得给个卦号（1–64）")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
         else:
             hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
@@ -431,7 +432,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
 def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
     """跨版本同址比对 + 差异摘要（复用 compare.compare_address）。"""
     if not (1 <= gua <= 64):
-        raise ValidationError("卦号需在 1–64")
+        raise ValidationError("卦号要在 1–64 之间")
     with deps.corpus() as c:
         cmp = compare_address(c, gua, yao, layer=layer)
         return {
@@ -553,7 +554,7 @@ def thread_detail(tid: int) -> dict:
     with deps.knowledge() as kb:
         turns = [dict(r) for r in kb.thread_transcript(tid)]
         if not turns:
-            raise NotFoundError(f"线程 {tid} 不存在或暂无对话")
+            raise NotFoundError("这条线程没找到——可能还没聊过")
         claims = []
         _claim_ids: list[int] = []
         for row in kb.db.execute(
@@ -590,9 +591,9 @@ def thread_record(req) -> dict:
     # commit 落库后 record() 才校验 kind 抛 400，留下永不回收的孤儿
     # thread+turn（selftest kind=bogus 用例实测留行）。
     if req.kind not in ASSERTING + ("refusal",):
-        raise ValidationError("记录被拒绝：类型或内容不合规")
+        raise ValidationError("这条记录没存上：内容不在支持的范围里")
     if req.kind in ASSERTING and not req.evidence:
-        raise ValidationError("记录被拒绝：断言型记录需要至少一条证据")
+        raise ValidationError("这条记录没存上：断言型记录得带至少一条证据")
 
     with deps.knowledge() as kb:
         tid = req.thread_id
@@ -673,8 +674,9 @@ def liuyao(req) -> dict:
     else:
         try:
             lm = lunar.solar_to_lunar(req.year, req.month, req.day)
-        except ValueError as exc:
-            raise ValidationError(f"公历转农历失败：{exc}") from exc
+        except ValueError:
+            # R229z续23（R11-#22）：底层异常原文不透给前端
+            raise ValidationError("这个日期没换成农历——可能超出历法表范围") from None
         hour_zhi = (req.hour + 1) // 2 % 12 + 1      # 0-23 → 子=1..亥=12
         ben = liuyao_mod.cast_time(lm["year"], lm["month"], lm["day"], hour_zhi)
 
@@ -1710,18 +1712,20 @@ def daily(date_str: str | None = None) -> dict:
 
 MODULES = (
     {"id": "bazi", "icon": "🔮", "title": "八字排盘",
-     "desc": "排出四柱 · 看五行大运流年", "recent": "八字排盘"},
+     # R229z续23（R11-#14）：widget 描述去术语，与首页卡口径对齐
+     "desc": "生日一排 · 大白话解读", "recent": "八字排盘"},
     {"id": "book", "icon": "📜", "title": "古籍读书",
      "desc": "检索 47 部古籍 · 比对注家", "recent": "古籍检索"},
     {"id": "tarot", "icon": "✨", "title": "塔罗占卜",
      "desc": "抽牌看指引 · 解答心中疑问", "recent": "塔罗占卜"},
     {"id": "huangli", "icon": "🌙", "title": "黄历择日",
-     "desc": "看建除神煞 · 选吉日", "recent": "黄历查询"},
+     "desc": "宜忌一览 · 轻决策", "recent": "黄历查询"},
     {"id": "qiming", "icon": "🌸", "title": "五行起名",
      "desc": "按五行补缺 · 起一个好名字", "recent": "起名"},
     {"id": "taohua", "icon": "🌺", "title": "桃花运",
      "desc": "看看近期桃花走势 🌹", "recent": "桃花"},
-    {"id": "liuyao", "icon": "🔮", "title": "六爻占卜",
+    # R229z续23（R11-#9）：🔮 与八字撞图标，六爻用钱币
+    {"id": "liuyao", "icon": "🪙", "title": "六爻占卜",
      "desc": "摇卦断事 · 看事情走向", "recent": "六爻"},
     {"id": "hehun", "icon": "💕", "title": "八字合婚",
      "desc": "两人八字合婚 · 看缘分", "recent": "合婚"},
@@ -1780,7 +1784,7 @@ def share(share_type: str, share_id: str) -> dict:
                           else ("读书笔记", "古籍研究笔记"))
         return {"title": title, "subtitle": share_id, "content": content,
                 "image_color": SHARE_COLORS[share_type], "created_at": today}
-    raise NotFoundError(f"不支持的分享类型：{share_type}")
+    raise NotFoundError(f"这个分享类型不认识：{share_type}")
 
 
 def user_prefs() -> dict:
@@ -1907,13 +1911,14 @@ def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:
         # 明确标出"今天是 X 宫的日子"，让用户知道这是两个不同维度。
         if sign and today_sign and note:
             if sign == today_sign:
-                msg = f"你是{sign}座，今天正好是{sign}宫当值的日子——{note}"
+                msg = f"你是{sign}座，今天正好轮到你当班——{note}"
             else:
-                msg = f"你是{sign}座（{prof.get('love', '')}）今天是{today_sign}宫的日子：{note}"
+                # R229z续23（R11-#36）：「X宫的日子」术语 → 当班
+                msg = f"你是{sign}座（{prof.get('love', '')}）今天是{today_sign}座当班的日子：{note}"
         elif sign:
             msg = f"你是{sign}座，{prof.get('love', '')}"
         elif today_sign and note:
-            msg = f"今天是{today_sign}宫的日子：{note}"
+            msg = f"今天是{today_sign}座当班的日子：{note}"
         else:
             return {}
         return {

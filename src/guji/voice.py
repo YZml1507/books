@@ -311,7 +311,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
             # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
             f"你问的是「{q}」——这个问题盘里没有对应的位置，小满不瞎编～",
             f"盘里现有的力量是：{'、'.join(TEN_GOD_WARM.get(g, (g, ''))[0] for g in gods_present)}。",
-            "下面把通盘坐标都列了，你可以自己对照着看。",
+            "下面把盘面明细都列了，你可以自己对照着看。",
         ]
 
     gods, label = topic
@@ -354,8 +354,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
                      f"但这块在四柱天干上没有直接落点。")
-        lines.append("系统不据此推测——没有的东西不硬编（这是本项目的规矩）。")
-        lines.append("可以看看下面的通盘坐标，或换个问法。")
+        # R229z续23（R11-#17/#18）：去内部腔——「本项目的规矩」「通盘坐标」
+        lines.append("小满不瞎编——没有的东西不硬凑。")
+        lines.append("可以看看下面的盘面明细，或换个问法。")
 
     rels = calc.get("relations") or []
     if rels:
@@ -768,7 +769,7 @@ def warm_taohua(t: dict) -> dict:
             l0,
             None,
             lines[:5],
-            [{"label": "坐标事实", "text": t.get("render", "")}] if t.get("render") else [],
+            [{"label": "盘面明细", "text": t.get("render", "")}] if t.get("render") else [],
             [],
         )
 
@@ -801,7 +802,7 @@ def warm_taohua(t: dict) -> dict:
         l0,
         None,
         lines[:5],
-        [{"label": "坐标事实", "text": t.get("render", "")}] if t.get("render") else [],
+        [{"label": "盘面明细", "text": t.get("render", "")}] if t.get("render") else [],
         [],
     )
 
@@ -886,7 +887,7 @@ def warm_hehun(h: dict) -> dict:
         l0[:_L0_MAX],
         None,
         lines[:5],
-        [{"label": "坐标事实", "text": h.get("render", "")}] if h.get("render") else [],
+        [{"label": "盘面明细", "text": h.get("render", "")}] if h.get("render") else [],
         [],
     )
 
