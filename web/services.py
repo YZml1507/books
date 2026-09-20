@@ -1083,7 +1083,10 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {}),
-            **({"day_flags": q["day_flags"]} if q.get("day_flags") else {})}
+            **({"day_flags": q["day_flags"]} if q.get("day_flags") else {}),
+            # R233w（R52-P3-9）：交节日透明化——「今日交节 XX，交在 HH:MM」
+            **({"term_today": q["term_today"]}
+               if q.get("term_today") else {})}
 
 
 # ---------------------------------------------------------------------------
@@ -1260,7 +1263,11 @@ def _lunar_md(mtxt: str, dtxt: str):
         if dtxt[1:] == "十":
             d = 10
     elif dtxt.startswith("廿"):                    # 廿一..廿九
-        d = 20 + _CN_DIGIT.get(dtxt[1:], 0)
+        # R233w（R52-P3-10）：裸「廿」「廿十」此前静默落成 20——
+        # 「廿」是前缀不是数字，尾部必须是中文数字。
+        if len(dtxt) != 2 or dtxt[1:] not in _CN_DIGIT:
+            return None
+        d = 20 + _CN_DIGIT[dtxt[1:]]
     elif dtxt == "二十":
         d = 20
     elif dtxt == "三十":

@@ -861,6 +861,22 @@ def _run_inner() -> list[str]:
     assert "月破" in (_fl.get("day_flags") or []), \
         ("huangli.day_flags", _fl.get("day_flags"))
     ok.append("huangli.day_flags")
+    # R233w（R52-P1-2）：临日名单后端单点——2026-09-01 驿马、09-10 贵人
+    # 临日（365 天逐日对老口径复算过），响应 shensha.linri 必须命中。
+    _ss1 = client.get("/api/huangli", params={"date": "2026-09-01"}).json()
+    _lr1 = ((_ss1.get("shensha") or {}).get("linri") or {})
+    assert "驿马" in (_lr1.get("good") or []), ("huangli.linri", _lr1)
+    _ss2 = client.get("/api/huangli", params={"date": "2026-09-10"}).json()
+    _lr2 = ((_ss2.get("shensha") or {}).get("linri") or {})
+    assert "贵人" in (_lr2.get("good") or []), ("huangli.linri2", _lr2)
+    ok.append("huangli.linri")
+    # R233w（R52-P3-9）：交节透明化——秋分日 term_today 带 CST 时刻。
+    _ttj = client.get("/api/huangli", params={"date": "2026-09-23"}).json()
+    assert (_ttj.get("term_today") or {}).get("name") == "秋分", \
+        ("huangli.term_today", _ttj.get("term_today"))
+    _ttn = client.get("/api/huangli", params={"date": "2026-09-19"}).json()
+    assert not _ttn.get("term_today"), "非交节日不应有 term_today"
+    ok.append("huangli.term_today")
     # R233v（R52-P2-7）：前端宜忌白话注表覆盖全词集且零死键——
     # 词集 = 建除 + 星宿 + 神煞三表并集。
     import re as _re_hm

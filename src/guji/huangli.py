@@ -369,7 +369,33 @@ def shensha(dt: datetime) -> dict:
         "day_gan": gan,
         "day_zhi": zhi,
         "month_zhi": ZHI[mzi],
+        # R233w（R52-P1-2）：「临日」判定收成单点真相——前端此前自己复现
+        # 了一份（日支==神煞值 的逐项比较），两份逻辑迟早漂。这里直接
+        # 回吐命中的神煞名，前端只做 名字→文案 的展示映射。
+        "linri": _linri(gan, zhi, dt),
     }
+
+
+def _linri(gan: str, zhi: str, dt: datetime) -> dict:
+    """临日命中名单：吉神/凶煞各一列，名字是神煞键。"""
+    good, bad = [], []
+    if zhi in guiren(dt):
+        good.append("贵人")
+    if yima(dt) == zhi:
+        good.append("驿马")
+    if tianshe(dt):
+        good.append("天赦")
+    _td = tiande(dt)
+    if _td and (_td == gan or _td == zhi):
+        good.append("天德")
+    _yd = yuede(dt)
+    if _yd and _yd == gan:
+        good.append("月德")
+    for fn, name in ((jiesha, "劫煞"), (zaisha, "灾煞"),
+                     (yuesha, "月煞"), (yueyan, "月厌")):
+        if fn(dt) == zhi:
+            bad.append(name)
+    return {"good": good, "bad": bad}
 
 
 def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
@@ -474,6 +500,19 @@ def day_query(dt: datetime) -> dict:
         pass
     if _lunar and (_lunar.get("month"), _lunar.get("day")) in _YANGGONG:
         _flags.append("杨公忌")
+    # R233w（R52-P3-9）：交节时刻 ±15min 精度对日粒度的残余风险——
+    # 与其藏着，把「今日交节 + CST 时刻」透明化回吐；用户看到
+    # 「交在 23:5X」自然明白日粒度边界，这也是黄历卡本该有的信息。
+    _term_today = None
+    try:
+        from .bazi import TERM_LONGITUDE
+        for _tn in TERM_LONGITUDE:
+            _t = term_time(dt.year, _tn) + timedelta(hours=8)
+            if _t.date() == dt.date():
+                _term_today = {"name": _tn, "time": _t.strftime("%H:%M")}
+                break
+    except Exception:
+        pass
     _chong = ZHI[(_zhi_idx + 6) % 12]          # 六冲：对冲支
     _cs_animal = {"子":"鼠","丑":"牛","寅":"虎","卯":"兔","辰":"龙","巳":"蛇",
                   "午":"马","未":"羊","申":"猴","酉":"鸡","戌":"狗","亥":"猪"}
@@ -496,6 +535,7 @@ def day_query(dt: datetime) -> dict:
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
         "day_flags": _flags,
+        **({"term_today": _term_today} if _term_today else {}),
     }
 
 

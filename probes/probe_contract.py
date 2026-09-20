@@ -258,7 +258,11 @@ CONDITIONAL_FIELDS = {
                      # R229z续21（R9 审计修复）：conflict（宜忌相冲词）只在
                      # 非空时返回；year_note 只在干支年双口径错位日返回——
                      # 前端 Array.isArray/if 守卫即正确探测。
-                     "conflict", "year_note"},
+                     "conflict", "year_note",
+                     # R233w：term_today 只在交节日返回（day_flags 同理，
+                     # 空时不回）；shensha.linri 恒在（dict 子键，守卫读法）。
+                     "day_flags", "term_today", "term_today.name",
+                     "term_today.time"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

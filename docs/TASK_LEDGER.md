@@ -11291,3 +11291,14 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 闸门：selftest 244 / contract 548 / regress PASS / warm_voice /
   plain_first / baseline_voice / llm_polish / ui_smoke / poster /
   parity / ruff 全绿。
+
+## R233w 续（R52 尾巴清零）
+- **P1-2**：临日判定收成后端单点——`huangli.shensha()` 新增 `linri`
+  {good,bad} 命中名单，前端不再复现「日支==神煞值」逐项比较，
+  只做 名字→文案 映射；365 天逐日对老口径复算零偏差。
+- **P3-9**：节气 ±15min 精度边界透明化——day_query 交节日回吐
+  `term_today{name,time(CST)}`，黄历卡显示「交节：秋分 08:09」。
+- **P3-10**：`_lunar_md` 裸「廿」「廿十」不再静默落 20——前缀尾部
+  必须是中文数字否则 None。
+- contract CONDITIONAL_FIELDS += term_today/day_flags 条件键；
+  selftest += huangli.linri、huangli.term_today（246 条）。

@@ -6554,25 +6554,19 @@ async function _doHuangli(offset, reveal, spokenWord) {
       esc(_csPlain || ('冲煞：' + _csTxt)) + '</div>';
     /* R232b（R40-A1/W1+W8）：神煞白话条——贵人/驿马临日是这张卡的
      * 灵魂（求人帮忙、出行走动），后端算了 12 键神煞前端零读点。
-     * 前端按「临日」判定（日支==神煞值）复现后端 shensha_yiji 口径；
-     * 建除/星宿同样只活在海报上，卡面补一行小字。 */
+     * R233w（R52-P1-2）：临日判定收成后端单点（shensha.linri）——
+     * 前端不再复现「日支==神煞值」判定，只做 名字→文案 的展示映射。 */
     var _ss = j.shensha || {};
-    var _lucky = [], _unlucky = [];
-    if (_ss.day_zhi) {
-      if (Array.isArray(_ss.guiren) && _ss.guiren.indexOf(_ss.day_zhi) >= 0) {
-        _lucky.push('贵人临日 · 宜求人帮忙');
-      }
-      if (_ss.yima === _ss.day_zhi) _lucky.push('驿马临日 · 利出行走动');
-      if (_ss.tianshe) _lucky.push('天赦日 · 宜解开心结');
-      if (_ss.tiande && (_ss.day_gan === _ss.tiande || _ss.day_zhi === _ss.tiande)) {
-        _lucky.push('天德临日 · 和气生财');
-      }
-      if (_ss.yuede && _ss.day_gan === _ss.yuede) _lucky.push('月德临日 · 诸事有缓');
-      [['jiesha', '劫煞临日'], ['zaisha', '灾煞临日'],
-       ['yuesha', '月煞临日'], ['yueyan', '月厌临日']].forEach(function (p) {
-        if (_ss[p[0]] === _ss.day_zhi) _unlucky.push(p[1]);
-      });
-    }
+    var _lr = _ss.linri || {};
+    var _SS_GOOD = {'贵人': '贵人临日 · 宜求人帮忙',
+                    '驿马': '驿马临日 · 利出行走动',
+                    '天赦': '天赦日 · 宜解开心结',
+                    '天德': '天德临日 · 和气生财',
+                    '月德': '月德临日 · 诸事有缓'};
+    var _lucky = (_lr.good || []).map(function (n) {
+      return _SS_GOOD[n] || (n + '临日'); });
+    var _unlucky = (_lr.bad || []).map(function (n) {
+      return n + '临日'; });
     if (_lucky.length || _unlucky.length) {
       html += '<div class="hl-shensha">';
       if (_lucky.length) {
@@ -6593,6 +6587,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (j.jianchu) _jx.push('建除：' + j.jianchu +
       (_JC[j.jianchu] ? '（' + _JC[j.jianchu] + '）' : ''));
     if (j.xiu) _jx.push('星宿：' + j.xiu);
+    /* R233w（R52-P3-9）：交节当日透明化——±15min 精度边界直接亮给用户。 */
+    if (j.term_today) _jx.push('交节：' + j.term_today.name + ' ' +
+      j.term_today.time);
     if (_jx.length) {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">' +
         esc(_jx.join(' · ')) + '</div>';
