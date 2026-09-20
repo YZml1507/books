@@ -10492,3 +10492,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-11（2026-09-20）：黄历 cross_ref 上屏
 - doHuangli 渲染 j.cross_ref（此前后端算好但前端丢弃）。
+
+## R230a-13（2026-09-20）：断言回归闸进 CI
+- probe_selftest_regress 加入 selftest job（此前仅本地/审查轨用）；baseline 193→197。
