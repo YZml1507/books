@@ -220,8 +220,11 @@ async function api(path, options) {
     }
     /* R229z续23（R11-#2）：detail 为对象时 JSON.stringify 会把
      * {"msg":"field required"} 原文吐进 toast——先取中文可读的子键，
-     * 都没有就走人话兜底。 */
-    if (detail && typeof detail === 'object') {
+     * 都没有就走人话兜底。
+     * R230f续2（R16-P2-4）：typeof []==='object'——pydantic 422 的 detail
+     * 数组在这里先被换成裸「请求没走通（422）」，_humanize422 根本拿
+     * 不到（实测填空年份/超长问题只出裸码）。数组要留给人话化。 */
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
       detail = detail.msg || detail.error || detail.message
         || '请求没走通（' + resp.status + '）';
     }
@@ -4903,7 +4906,13 @@ async function _doHuangli(offset, reveal, spokenWord) {
       if (!ev.target.closest('#hlAskBtn')) return;
       var inp = document.getElementById('hlAskInput');
       var q = inp ? inp.value.trim() : '';
-      if (!q) { if (inp) inp.placeholder = '先输入想问的事，比如：今天适不适合面试'; return; }
+      if (!q) {
+        if (inp) inp.placeholder = '先输入想问的事，比如：今天适不适合面试';
+        /* R230f续2（R16-P2-4）：placeholder 若已是这段文字则界面纹丝不动，
+         * 加一张 toast 让空提交有可感反馈。 */
+        showToast('先写一句想问的事再问我哦', 'info');
+        return;
+      }
       var KNOWN = ['搬家','开业','约会','面试','出行','签约','表白','相亲','结婚','领证','求职','上班','入职','挪窝','装修','开张','合同','旅行','出差','出游','收款','理财','看病','种花'];
       var qn = _t2s(q);   /* R229d：繁中归一后再匹配词表/抽词（原文保留给日期词与展示） */
       var hitName = '';
