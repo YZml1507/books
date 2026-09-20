@@ -385,6 +385,18 @@ def _run_inner() -> list[str]:
     assert "weak" in _fe2 and isinstance(_fe2["weak"], list), \
         ("qiming.five_elements.weak", sorted(_fe2))
     ok.append("qiming.five_elements.weak")
+    # R230a-23（R13 钉扎）：双字名相克五行须说「相济」而非硬套「相生」
+    # ——李/男/1988-01-03/10时/top8 产出含 相克对（如 李绩柯 土木）。
+    _qj = client.post("/api/qiming", json={
+        "surname": "李", "year": 1988, "month": 1, "day": 3,
+        "hour": 10, "gender": "男", "top_n": 8}).json()
+    _pairs = [(n.get("given"), n.get("story") or "")
+              for n in _qj.get("full_names", [])
+              if len(n.get("elements") or []) == 2
+              and n["elements"][0] != n["elements"][1]]
+    assert any("相济" in s for _, s in _pairs), \
+        ("qiming.xiangji", _pairs[:4])
+    ok.append("qiming.xiangji")
     # R226b-fix（审查轨 R226a 目视抓到）：典故库每条的**字必须真出现在「句」里**。
     # 前端把「句」直接展示给用户（"📜 <句> —— <出处>"），字不在句里就是露馅：
     # 实测曾有 14 条不自洽，如「澜」配"河伯过江海"、「苓」配"蒹葭苍苍"、
