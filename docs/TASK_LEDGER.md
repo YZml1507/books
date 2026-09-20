@@ -11575,3 +11575,10 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 词表二波 +15 键（前后端同构，parity 196 键钉扎）：吃饭/组局/面基/奔现→谒贵+出行，偶遇/自推/运气→祈福，脱单/暧昧/crush/异地恋→嫁娶，出门玩→出行，论文→入学谒贵。
 - 「宜分手/宜解除」类直译措辞改「适合」口径（近期适合X： / 挑适合X的日子），判词模板/吉日条/services facts 三处同改。
 - 闸门全绿（253/542/75/parity 196）。
+
+## R2349d — 海报底图第 5 变体（薄荷山月）
+
+- Agnes 生成 `poster-bg-mint.jpg`（1080×1440, 53KB），同画风水彩山月；
+  POSTER_BG 加 mint 键，daily/huangli 高频分享视图改走薄荷系，与暖杏/
+  樱粉/夜紫/梦紫错开。
+- check_poster 判据 14 全 9 视图真链路重绘 PASS（新底图实画过）。
