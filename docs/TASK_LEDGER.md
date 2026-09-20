@@ -10534,3 +10534,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-25（2026-09-20）：性别分星钉扎
 - bazi.gender_topic：感情提问 女盘须落官杀位；男盘首句不得见官杀表述。
+
+## R230a-26（2026-09-20）：probe_llm_polish 判据3 修离线崩溃
+- 桩 load_config 假配置（polish 已桩）——判据本体（三库零命中）不变。
