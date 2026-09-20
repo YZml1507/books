@@ -62,6 +62,10 @@ NON-NEGOTIABLE：本项目历史上多次口头结论被后来实测推翻）。
    > 实测复现：`grep -c sys.argv web/app.py` → `0`；
    > `<py> web\selftest.py` → 退出码 0、`web self-test PASS (149 checks)`。
    > 此前结论（「该文件不存在」）已被推翻，保留原文备查。
+   > **R230p 数字更新**：`web/app.py` 后随功能增长到 182 行
+   > （中件层注册、SPA 回退中间件、`_index_response` 助手等）；
+   > 「90 行」是 R178b 重构完成时的读数，`sys.argv` 仍恒为 0，
+   > 结论本身不受行数变化影响。
 
 **闸门必须有非零退出码**（宪法第四条 U-08 教训：`probe_bcv.py` 曾永远返回 0）。
 本轮新建的三个脚本均已确认：`count_open_findings.py` 实测返回 1、
