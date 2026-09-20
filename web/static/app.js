@@ -4079,7 +4079,7 @@ var _T2S = {
   '處':'处','幾':'几','緊':'紧','擇':'择','幹':'干','臺':'台','週':'周','禮':'礼','樣':'样',
   /* R229z：节日/农历问法繁体（与 services._T2S 同表，parity 钉扎） */
   '節':'节','婦':'妇','萬':'万','兒':'儿','誕':'诞','慶':'庆','陽':'阳','舊':'旧',
-  '農':'农','陰':'阴'
+  '農':'农','陰':'阴','號':'号','餘':'余'
 };
 function _t2s(s) {
   return String(s || '').replace(/./g, function (ch) { return _T2S[ch] || ch; });
@@ -4128,7 +4128,14 @@ function _hlDayOffset(q, base) {
    * （当年/当月未过取当年；已过无语标顺下一档；语标「那天/过了…」落已过）。
    * 节日与农历（中秋/春节/农历八月十五…）本地解不动——提交路径识别后走
    * /api/huangli/resolve_date 端点（单点真相在后端）。 */
-  var _past = /(那天|过了|已经|当时|去了)/.test(s);
+  var _s0 = _t2s(s);
+  var _past = /(那天|过了|已经|当时|去了)/.test(_s0);
+  /* 「去年/明年/前年/后年」年前缀约束候选年（与 py yoff 同口径）。 */
+  var _yoff = null;
+  var _ypre = [['前年',-2],['去年',-1],['今年',0],['明年',1],['后年',2]];
+  for (var _yi = 0; _yi < _ypre.length; _yi++) {
+    if (_s0.indexOf(_ypre[_yi][0]) !== -1) { _yoff = _ypre[_yi][1]; break; }
+  }
   /* 越界日期（2/30）回 null，对齐 py 的 ValueError 跳过——JS Date 会
    * 静默进位到 3/2，必须校验。月参数允许 >11（自然跨年/月下月）。 */
   var _mkd = function (y, m, d) {
@@ -4147,23 +4154,29 @@ function _hlDayOffset(q, base) {
     if (_past) return bestPast !== null ? bestPast : best;
     return best !== null ? best : bestPast;
   };
-  var _nxm = s.match(/下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _nxm = _s0.match(/下[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_nxm) {
     var bN = base || new Date();
     return _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, +_nxm[1])]);
   }
-  var _tsm = s.match(/这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _pm = _s0.match(/上[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  if (_pm) {
+    var bP = base || new Date();
+    return _pick([_mkd(bP.getFullYear(), bP.getMonth() - 1, +_pm[1])]);
+  }
+  var _tsm = _s0.match(/这[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_tsm) {
     var bT = base || new Date();
     return _pick([_mkd(bT.getFullYear(), bT.getMonth(), +_tsm[1])]);
   }
-  var _am = s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])/) ||
-            s.match(/(\d{1,2})\s*[\/.-](\d{1,2})/);
+  var _am = _s0.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])/) ||
+            _s0.match(/(\d{1,2})\s*[\/.-](\d{1,2})/);
   if (_am) {
     var bA = base || new Date();
-    return _pick([_mkd(bA.getFullYear(), +_am[1] - 1, +_am[2]),
-                  _mkd(bA.getFullYear() + 1, +_am[1] - 1, +_am[2]),
-                  _mkd(bA.getFullYear() - 1, +_am[1] - 1, +_am[2])]);
+    var _ys = [bA.getFullYear(), bA.getFullYear() + 1, bA.getFullYear() - 1];
+    if (_yoff !== null) _ys = [bA.getFullYear() + _yoff];
+    return _pick(_ys.map(function (y) {
+      return _mkd(y, +_am[1] - 1, +_am[2]); }));
   }
   if (/月底|月末/.test(s)) {
     var bE = base || new Date();

@@ -839,7 +839,7 @@ _T2S = {
     "樣": "样",
     # R229z：节日/农历问法常见繁体（中秋節/國慶/農曆/聖誕/兒童節/重陽/萬聖節/舊曆）
     "節": "节", "婦": "妇", "萬": "万", "兒": "儿", "誕": "诞",
-    "慶": "庆", "陽": "阳", "舊": "旧", "農": "农", "陰": "阴",
+    "慶": "庆", "陽": "阳", "舊": "旧", "農": "农", "陰": "阴", "號": "号", "餘": "余",
 }
 
 
@@ -928,19 +928,30 @@ def _nth_weekday(y: int, m: int, wd: int, n: int) -> date:
     return date(y, m, 1 + (wd - first_wd) % 7 + 7 * (n - 1))
 
 
-def _holiday_candidates(name: str, now: datetime) -> list:
-    """节日词 → 相邻若干年的候选公历 date 列表。"""
+def _holiday_candidates(name: str, now: datetime,
+                        yoff: int | None = None) -> list:
+    """节日词 → 候选公历 date 列表。yoff=None 取相邻三年就近；
+    有年前缀（去年/明年…）时钉死那一年。"""
     from guji import lunar as lunar_mod
     out: list = []
     if name in _HOLIDAY_SOLAR:
         m, d = _HOLIDAY_SOLAR[name]
-        return [date(y, m, d) for y in range(now.year - 1, now.year + 2)]
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        return [date(y, m, d) for y in yrs]
     if name in _HOLIDAY_NTH:
         m, wd, n = _HOLIDAY_NTH[name]
-        return [_nth_weekday(y, m, wd, n)
-                for y in range(now.year - 1, now.year + 2)]
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        return [_nth_weekday(y, m, wd, n) for y in yrs]
     if name == "除夕":
-        for ly in range(now.year - 1, now.year + 2):
+        try:
+            ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
+                                           now.day)["year"]
+        except ValueError:
+            ly0 = now.year
+        lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+        for ly in lys:
             try:
                 out.append(lunar_mod.lunar_to_solar(ly + 1, 1, 1)
                            - timedelta(days=1))
@@ -949,7 +960,9 @@ def _holiday_candidates(name: str, now: datetime) -> list:
         return out
     if name == "清明":
         from guji import bazi as bazi_mod
-        for y in range(now.year - 1, now.year + 2):
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        for y in yrs:
             try:
                 out.append(bazi_mod.term_time(y, "清明").date())
             except Exception:
@@ -962,7 +975,8 @@ def _holiday_candidates(name: str, now: datetime) -> list:
                                            now.day)["year"]
         except ValueError:
             ly0 = now.year
-        for ly in range(ly0 - 1, ly0 + 2):
+        lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+        for ly in lys:
             try:
                 out.append(lunar_mod.lunar_to_solar(ly, lm, ld))
             except ValueError:
@@ -979,6 +993,10 @@ def _abs_or_holiday(msg: str, now: datetime):
     """
     msg_n = _t2s(msg)          # R229z：繁体节日/农历/语标先归一再匹配
     past = any(w in msg_n for w in ("那天", "过了", "已经", "当时", "去了"))
+    # 「去年/明年/前年/后年」年前缀——约束节日与 M月D 的候选年
+    # （「去年国庆」不能再就近到今年）。
+    _ypre = {"前年": -2, "去年": -1, "今年": 0, "明年": 1, "后年": 2}
+    yoff = next((v for w, v in _ypre.items() if w in msg_n), None)
     from guji import lunar as lunar_mod
 
     lm = re.search(
@@ -992,8 +1010,9 @@ def _abs_or_holiday(msg: str, now: datetime):
                                                now.day)["year"]
             except ValueError:
                 ly0 = now.year
+            lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
             cands = []
-            for ly in range(ly0 - 1, ly0 + 2):
+            for ly in lys:
                 try:
                     cands.append(lunar_mod.lunar_to_solar(ly, *md))
                 except ValueError:
@@ -1012,12 +1031,12 @@ def _abs_or_holiday(msg: str, now: datetime):
         if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
             continue                      # 「十一月」之类误命中
         cands = _holiday_candidates("清明" if name == "清明節" else name,
-                                  now)
+                                  now, yoff)
         pick = _nearest_day(cands, now, past)
         if pick:
             return datetime.combine(pick, now.time()), w
 
-    nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg)
+    nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nm:
         d = int(nm.group(1))
         ny, nmth = now.year + (now.month == 12), (now.month % 12) + 1
@@ -1025,7 +1044,7 @@ def _abs_or_holiday(msg: str, now: datetime):
             return datetime(ny, nmth, d), nm.group(0)
         except ValueError:
             pass
-    tm = re.search(r"这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg)
+    tm = re.search(r"这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if tm:
         try:
             return datetime(now.year, now.month, int(tm.group(1))), \
@@ -1033,8 +1052,18 @@ def _abs_or_holiday(msg: str, now: datetime):
         except ValueError:
             pass
 
-    am = (re.search(r"(?<!\d)(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])", msg)
-          or re.search(r"(?<!\d)(\d{1,2})\s*[/\-.](\d{1,2})(?!\d)", msg))
+    pm = re.search(r"上[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
+    if pm:
+        d = int(pm.group(1))
+        py_, pmth = (now.year - 1, 12) if now.month == 1 \
+            else (now.year, now.month - 1)
+        try:
+            return datetime(py_, pmth, d), pm.group(0)
+        except ValueError:
+            pass
+
+    am = (re.search(r"(?<!\d)(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])", msg_n)
+          or re.search(r"(?<!\d)(\d{1,2})\s*[/\-.](\d{1,2})(?!\d)", msg_n))
     if am:
         m, d = int(am.group(1)), int(am.group(2))
         cands = []
@@ -1043,6 +1072,8 @@ def _abs_or_holiday(msg: str, now: datetime):
                 cands.append(date(y, m, d))
             except ValueError:
                 pass
+        if yoff is not None:
+            cands = [dd for dd in cands if dd.year == now.year + yoff]
         pick = _nearest_day(cands, now, past)
         if pick:
             return datetime.combine(pick, now.time()), am.group(0)
@@ -1065,7 +1096,7 @@ def _abs_or_holiday(msg: str, now: datetime):
             return datetime.combine(pick, now.time()), "月初"
 
     # 裸「D号/D日」：防「3号线/25号楼/8号院」误命中——后接线路/楼栋字跳过。
-    bd = re.search(r"(?<![\d月/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])", msg)
+    bd = re.search(r"(?<![\d月/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])", msg_n)
     if bd:
         d = int(bd.group(1))
         cands = []
