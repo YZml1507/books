@@ -2035,6 +2035,8 @@ html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
 }
 html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
 html[data-theme="dark"] .ck-album .ck-cell{background:#2E282C; border-color:#453C42;}
+/* R2345（R62-P2）：深色下凶档星 #B3455A 在深底上对比弱 → 提亮 */
+html[data-theme="dark"] .daily-stars .star-bad{color:#F08CA4;}
 html[data-theme="dark"] .archetype-card, html[data-theme="dark"] .wx-card,
 html[data-theme="dark"] .pillar-card{background:#332C31;}
 html[data-theme="dark"] .bazi-persona{background:#332C31;}
