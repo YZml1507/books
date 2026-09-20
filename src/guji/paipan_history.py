@@ -309,6 +309,30 @@ def delete_record(rid: int) -> bool:
         return cur.rowcount > 0
 
 
+def tarot_collection() -> dict:
+    """R2349l（R73-P1-12）：塔罗图鉴——扫台账 rtype=tarot 行聚合抽过的
+    牌名 → {collected: [名], total: 78}。牌序由调用方给（DECK 在
+    tarot.py，这里不反向 import 防环）。"""
+    seen: set[str] = set()
+    try:
+        with contextlib.closing(_conn()) as c:
+            rows = c.execute(
+                "SELECT result_json FROM records WHERE type='tarot'"
+                " ORDER BY id DESC LIMIT 500").fetchall()
+    except Exception:
+        return {"collected": []}
+    for (res_json,) in rows:
+        try:
+            obj = json.loads(res_json) or {}
+        except ValueError:
+            continue
+        for dr in (obj.get("draws") or []):
+            nm = (dr or {}).get("name")
+            if nm:
+                seen.add(str(nm))
+    return {"collected": sorted(seen)}
+
+
 def clear_all() -> int:
     """清空台账（R2345 / R63-P1-3：「忘掉我的数据」入口的服务端一半）。
     返回删除行数。"""

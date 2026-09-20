@@ -376,6 +376,12 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   padding:6px 14px; border-radius:999px; border:1px solid var(--border);
 }
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
+/* R2349l（R73）：个性行 CTA 与开运意象词 */
+.daily-personal-cta{background:none;border:none;padding:0;margin:0;
+  font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;
+  text-underline-offset:3px;min-height:0;}
+.daily-lucky-word{display:inline-block;margin-left:6px;font-size:11px;
+  color:var(--secondary);}
 .daily-more{
   margin-top:18px; padding:10px 24px; width:auto; font-size:14px;
   min-height:var(--tap);
@@ -2227,3 +2233,30 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 .ph-skel i:nth-child(1){width:62%}
 .ph-skel i:nth-child(2){width:88%}
 .ph-skel i:nth-child(3){width:45%}
+
+/* R2349l（R73-P1-6）：合拍指数 */
+.hh-score{margin:10px 0 4px;font-size:15px;color:var(--secondary);}
+.hh-score strong{font-size:30px;color:var(--accent);font-family:var(--font-serif);
+  letter-spacing:1px;}
+.hh-score-sub{font-size:12px;color:var(--muted);margin-left:2px;}
+
+/* R2349l（R73-P1-1）：解签展开 */
+.sign-peek{margin-left:8px;padding:1px 10px;font-size:11px;border-radius:999px;
+  border:1px solid var(--accent);color:var(--accent);background:transparent;
+  cursor:pointer;min-height:26px;}
+.sign-card{margin-top:8px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;font-size:13px;
+  box-shadow:0 6px 20px rgba(0,0,0,.10);}
+.sign-card strong{display:block;color:var(--primary-ink);margin-bottom:2px;}
+.sign-card span{color:var(--secondary);}
+.hl-daychip.has-flag{opacity:.72; border-style:dashed;}
+
+/* R2349l（R73-P1-12）：塔罗图鉴格 */
+.tarot-album-count{font-size:13px;color:var(--secondary);margin-bottom:8px;}
+.tarot-album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;}
+.tarot-cell{font-size:11px;text-align:center;padding:7px 4px;border-radius:8px;
+  border:1px solid var(--border);color:var(--secondary);opacity:.42;
+  background:var(--card);}
+.tarot-cell.got{opacity:1;border-color:var(--accent);color:var(--primary-ink);
+  background:var(--accent-soft, #fdf2ea);}

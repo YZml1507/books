@@ -632,6 +632,12 @@ if ('serviceWorker' in navigator) {
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
       <button id="trSubmit" type="button">抽一张</button>
+      <!-- R2349l（R73-P1-12）：我的牌册——抽过的牌进收集图鉴，
+           78 格灰显未收，长线回访钩子。 -->
+      <details class="pro-drawer" id="tarotAlbumDrawer" style="margin-top:12px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">🃏 我的牌册（抽过的牌都收在这里）</summary>
+        <div id="tarotAlbum" style="margin-top:10px;"><div class="ph-empty" style="padding:12px;">展开看看收集进度～</div></div>
+      </details>
       <div id="trResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「抽一张」～</div></div>
     </div>
   </div>
@@ -704,6 +710,19 @@ if ('serviceWorker' in navigator) {
         </div>
         <button id="birthSubmit" type="button" style="margin-top:10px;">看我的本命解读 ✨</button>
         <div id="birthResult" style="margin-top:14px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑完生日，看你的本命小卡～</div></div>
+      </details>
+      <!-- R2349l（R73-P1-7）：星座速配——两个星座 → 四象兼容一句判，
+           比合婚门槛低（不用填生辰时辰），结果页再导流合婚。 -->
+      <details class="pro-drawer" id="xzMatchDrawer" style="margin-bottom:12px;">
+        <summary style="cursor:pointer;font-size:14px;color:var(--primary-ink);">💞 星座速配（挑两个星座，看看合不合）</summary>
+        <div class="row" style="margin-top:10px;">
+          <div class="field"><label for="xzm_a">你</label>
+            <select id="xzm_a"></select></div>
+          <div class="field"><label for="xzm_b">TA</label>
+            <select id="xzm_b"></select></div>
+        </div>
+        <button id="xzmSubmit" type="button" style="margin-top:10px;">测测合拍度 💗</button>
+        <div id="xzmResult" style="margin-top:12px;"></div>
       </details>
       <div class="xz-datebar">
         <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>

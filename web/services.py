@@ -52,7 +52,9 @@ from guji import xingzuo as xingzuo_mod
 from guji.bazi import compute as bazi_compute
 from guji.bazi import day_ganzhi as _bazi_day_ganzhi
 from guji.bazi_calc import LIU_HE
+from guji.bazi_calc import GAN_ELEM
 from guji.bazi_calc import calc as bazi_calc
+from guji.bazi_calc import ten_god
 from guji.bazi_calc import calc_life, calc_range
 from guji.bazi_lookup import retrieve_fast
 from guji.compare import compare_address
@@ -322,6 +324,27 @@ def taohua(req) -> dict:
     return out
 
 
+def _hehun_score(h) -> int:
+    """合拍指数（R2349l/R73-P1-6）：写死权重的确定性打分。
+
+    基准 55；日支关系是主轴（±18 档），年支减半；纳音/日主五行/桃花/
+    天干五合/十神互见逐档加；钳 35–99（不给满分也不给零分——留余地
+    本身就是娱乐向口径）。"""
+    _rel = {"合": 18, "半合": 10, "冲": -16, "刑": -8, "害": -8}
+    sc = 55.0
+    sc += _rel.get(h.day_zhi_rel, 0)
+    sc += _rel.get(h.year_zhi_rel, 0) * 0.6
+    sc += {"相生": 10, "比和": 5, "相克": -9}.get(h.nayin_rel, 0)
+    sc += 14 if h.day_wx_sheng else (8 if h.day_wx_same else -11)
+    if h.peach_same:
+        sc += 7
+    if h.gan_he:
+        sc += 9
+    sc += 4 if h.god_a_sees_b else 0
+    sc += 4 if h.god_b_sees_a else 0
+    return int(max(35, min(99, round(sc))))
+
+
 def hehun(req) -> dict:
     """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
     req.validate_ranges()
@@ -355,6 +378,10 @@ def hehun(req) -> dict:
         "dayun_hits": dayun,
         "notes": h.notes,
         "render": h.render(),
+        # R2349l（R73-P1-6）：合拍指数——定性坐标转确定性分数。
+        # 基准 55，日支/年支冲合按权重加减，相生/比和/相克逐级，
+        # 桃花同支、日干五合、十神互见小幅加分；钳 35–99。
+        "match_score": _hehun_score(h),
     }
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
     # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
@@ -1058,10 +1085,15 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # R229z续8（R8 P1-1）：原实现对 terms 逐词跑 find_good_days（5 词×92
         # 天=460 次 day_query）——find_good_days 现直接收词列表，单日循环
         # 一次判定全部词（92 天恒 92 次）。
-        good = [{"date": _q["date"], "yi": _q["yi"], "ji": _q["ji"]}
-                # R8 P2-6：前端只读 date/yi/ji——pengzu/shensha/lunar/
+        good = [{"date": _q["date"], "yi": _q["yi"], "ji": _q["ji"],
+                 # R2349l（R73-P1-5）：硬凶 flag（月破/四离/四绝/杨公忌）
+                 # 透出——吉日榜排序把无凶日排在前面，前端给带凶日 ⚠ 标。
+                 "flags": _q.get("day_flags", [])}
+                # R8 P2-6：前端只读 date/yi/ji/flags——pengzu/shensha/lunar/
                 # chongsha 不随列表回吐（92天×12.9KB→~2KB）。
                 for _q in huangli_mod.find_good_days(dt, end, terms)]
+        # 排序：硬凶少的在前，同级按日期——「本月领证吉日榜」该有的榜感。
+        good.sort(key=lambda g: (len(g["flags"]), g["date"]))
         return {"affair": affair, "terms": terms,
                 "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
                 "days": days, "good_days": good, "count": len(good)}
@@ -1422,6 +1454,53 @@ _FEST_LUNAR = {
 }
 
 
+# R2349l（R73-P1-7）：星座速配——四象分组兼容表，确定性零 LLM。
+_SIGN_ELEM: dict[str, str] = {
+    "白羊": "火", "狮子": "火", "射手": "火",
+    "金牛": "土", "处女": "土", "摩羯": "土",
+    "双子": "风", "天秤": "风", "水瓶": "风",
+    "巨蟹": "水", "天蝎": "水", "双鱼": "水",
+}
+# 相合象组：火借风势、土水相养
+_SIGN_GOOD: frozenset[frozenset[str]] = frozenset(
+    {frozenset({"火", "风"}), frozenset({"土", "水"})})
+# 相冲象组：水火急、风土拧
+_SIGN_HARD: frozenset[frozenset[str]] = frozenset(
+    {frozenset({"火", "水"}), frozenset({"风", "土"})})
+
+
+def xzmatch(sa: str, sb: str) -> dict:
+    """两星座速配：同象 88 / 相合象组 82 / 相冲 61 / 其余 74，附白话一句。
+
+    四象兼容是通行口径（娱乐向，不涉命理断言）。未知星座名 → {}。
+    """
+    ea, eb = _SIGN_ELEM.get(sa or ""), _SIGN_ELEM.get(sb or "")
+    if not (ea and eb):
+        return {}
+    pair = frozenset({ea, eb})
+    if sa == sb:
+        score, label, line = 88, "同款", (
+            f"都是{sa}座——脾气同一个模子刻的，合拍时特别合拍，"
+            "闹别扭时谁也劝不动谁。")
+    elif ea == eb:
+        score, label, line = 88, "同象", \
+            (f"{ea}象自家人——{sa}和{sb}频率天然接近，相处不费劲。")
+    elif pair in _SIGN_GOOD:
+        _w = {"火风": "风一吹火就旺——一个出主意一个敢行动，越处越有劲。",
+              "土水": "水润土养——一个给安全感一个给柔软，慢热但长久。"}
+        score, label, line = 82, "互补", \
+            f"{sa}×{sb}：{_w.get(''.join(sorted([ea, eb])), '互补型组合。')}"
+    elif pair in _SIGN_HARD:
+        score, label, line = 61, "磨合", \
+            (f"{sa}和{sb}节奏差得有点大——不是不合，"
+             "是要多花点心思听懂对方。")
+    else:
+        score, label, line = 74, "随缘", \
+            f"{sa}和{sb}——说不上天生一对，但各有趣味，处着看。"
+    return {"a": sa, "b": sb, "elem_a": ea, "elem_b": eb,
+            "score": score, "label": label, "line": line}
+
+
 def _festival_for(d: date, term_name: str = "") -> list[str]:
     """公历日 d → 当日节日名列表；无节返回 []。term_name 传当日交节名。"""
     out: list[str] = []
@@ -1450,6 +1529,87 @@ def _festival_for(d: date, term_name: str = "") -> list[str]:
     # 节气也当节日行素材（「今天立秋」是值得说的话术）
     if term_name:
         out.append(term_name + "（节气）")
+    return out
+
+
+# R2349l（R73-P2-9）：水逆历表（公开天文历，station 到 station 日粒度，
+# UTC；多源交叉核验 2024–2028）。表外年份静默无状态——不是「永不逆行」。
+_MERCURY_RETRO: tuple[tuple[str, str], ...] = (
+    ("2024-04-01", "2024-04-25"), ("2024-08-05", "2024-08-28"),
+    ("2024-11-25", "2024-12-15"),
+    ("2025-03-15", "2025-04-07"), ("2025-07-18", "2025-08-11"),
+    ("2025-11-09", "2025-11-29"),
+    ("2026-02-26", "2026-03-20"), ("2026-06-29", "2026-07-23"),
+    ("2026-10-24", "2026-11-13"),
+    ("2027-02-09", "2027-03-03"), ("2027-06-10", "2027-07-04"),
+    ("2027-10-07", "2027-10-28"),
+    ("2028-01-24", "2028-02-14"), ("2028-05-21", "2028-06-14"),
+    ("2028-09-19", "2028-10-11"),
+)
+
+
+def _moon_for(d: date) -> dict:
+    """R2349l（R73-P1-8）：农历初一/十五（±1天）→ 新月/满月仪式行。
+
+    不发明天文月相，只认农历日——黄历产品的「新月许愿/满月复盘」
+    本来按农历节律走。非初一十五窗口返回 {}。
+    """
+    try:
+        from guji import lunar as lunar_mod
+        l = lunar_mod.solar_to_lunar(d.year, d.month, d.day)
+        if l.get("is_leap"):
+            return {}
+        ld = l.get("day") or 0
+        if ld == 1:
+            return {"phase": "新月", "label": "新月许愿",
+                    "line": "今天新月——适合把愿望写下来，老话说「月初起念，月末收成」。"}
+        if ld == 2:
+            return {"phase": "新月", "label": "新月次日",
+                    "line": "新月刚过，许愿的劲儿还在——想写愿望现在还来得及。"}
+        if ld == 15:
+            return {"phase": "满月", "label": "满月复盘",
+                    "line": "今天满月——适合回头看看这半个月，上次许的愿望有进展吗？"}
+        if ld == 16:
+            return {"phase": "满月", "label": "满月次日",
+                    "line": "满月刚落，收尾盘点的好日子——没收完的尾巴今天清一清。"}
+    except Exception:
+        pass
+    return {}
+
+
+def _mercury_state(d: date) -> dict:
+    """d 这天的水逆状态：{on, day_no, until} / {on:False, next, days_to}。"""
+    for s, e in _MERCURY_RETRO:
+        ds, de = date.fromisoformat(s), date.fromisoformat(e)
+        if ds <= d <= de:
+            return {"on": True, "day_no": (d - ds).days + 1,
+                    "until": e}
+        if d < ds:
+            return {"on": False, "next": s,
+                    "days_to": (ds - d).days}
+    return {"on": False, "next": "", "days_to": 0}
+
+
+# R2349l（R73-P1-4）：开运色/幸运数——当日日干五行为主轴，确定性可复验。
+_LUCKY_COLOR = {"木": "青绿色", "火": "石榴红", "土": "鹅黄色",
+              "金": "珍珠白", "水": "雾蓝色"}
+_LUCKY_WORD = {"木": "发芽生长", "火": "热乎劲儿", "土": "厚稳托底",
+             "金": "干脆利落", "水": "绕得开找得到"}
+
+
+def _lucky_for(d: date) -> dict:
+    """当日开运三件套：日干五行 → 色/意象词；日干支序号 → 幸运数 1-9。
+    全部确定性派生（同一天同值，可复验）。"""
+    out = {"color": "", "color_word": "", "num": 0}
+    try:
+        _gz, _idx = _bazi_day_ganzhi(
+            datetime(d.year, d.month, d.day, 12))
+        _wx = GAN_ELEM.get(_gz[0], "")
+        out["color"] = _LUCKY_COLOR.get(_wx, "")
+        out["color_word"] = _LUCKY_WORD.get(_wx, "")
+        out["num"] = _idx % 9 + 1
+    except Exception:
+        pass
     return out
 
 
@@ -2411,7 +2571,10 @@ def fortune_summary(calc_out: dict) -> str:
     return "；".join(parts) + "。"
 
 
-def daily(date_str: str | None = None) -> dict:
+def daily(date_str: str | None = None,
+          # R2349l（R73-P1-3）：bday=YYYY-MM-DD 用户生日——
+          # 返回 personal 字段（日主×当日十神），不进缓存。
+          bday: str | None = None) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌，命中 daily_cache 表。
 
     R178b（D-229b）：`date` 现在是**查询参数**。重构前它声明为请求体模型
@@ -2426,6 +2589,27 @@ def daily(date_str: str | None = None) -> dict:
     if date_str is not None:
         _parse_iso_date(date_str)   # 边界即拒（R228p 统一解析口径）
     date_str = date_str or date.today().isoformat()
+    # R2349l（R73-P1-3）：bday=用户生日 → 「我的日主 × 今天日干」十神行。
+    # personal 含用户生辰，绝不进 daily_cache（按日缓存会串用户）。
+    _personal = None
+    if bday:
+        try:
+            _bd = _parse_iso_date(bday)
+            _ub = bazi_compute(_bd.year, _bd.month, _bd.day, 12, "女")
+            _ug = (_ub.day or "")[0]                    # 日主天干
+            _dg, _dzz = huangli_mod.day_ganzhi(
+                datetime(*map(int, date_str.split("-")), 12))
+            _god = ten_god(_ug, _dg) if _ug else ""
+            _lb = voice.TEN_GOD_WARM.get(_god, ("", ""))[0]
+            _personal = {
+                "god": _god, "label": _lb,
+                "line": (f"你的日主 {_ug} × 今天 {_dg} —— "
+                         f"今天是你的「{_lb or _god}」日"),
+            }
+        except ComputeError:
+            _personal = None
+        except Exception:
+            _personal = None
     with deps.knowledge() as kb:
         cached = kb.get_daily_cache(date_str)
         if cached and cached.get("bazi"):
@@ -2446,9 +2630,18 @@ def daily(date_str: str | None = None) -> dict:
             if _c.get("cv") == 4 and (not _want or _c.get("noble") == _want):
                 # R2349k（R72-A2）：festival 是派生字段不入缓存语义——
                 # 现算随包回（旧缓存行也能拿到节日行）。
-                return {"date": date_str, **_c, "cached": True,
-                        "festival": _festival_for(
-                            _d0, _term_name_for(_d0))}
+                _r = {"date": date_str, **_c, "cached": True,
+                      "festival": _festival_for(
+                          _d0, _term_name_for(_d0)),
+                      "moon": _moon_for(_d0),
+                      # R2349l：lucky/mercury 是 per-date 派生键——cv4
+                      # 之前落库的旧缓存行没有它们，现算随包回。
+                      "lucky": _c.get("lucky") or _lucky_for(_d0),
+                      "mercury": (_c.get("mercury")
+                                  or _mercury_state(_d0))}
+                if _personal:
+                    _r["personal"] = _personal
+                return _r
     try:
         d = date.fromisoformat(date_str)
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
@@ -2507,6 +2700,12 @@ def daily(date_str: str | None = None) -> dict:
             "cached": False,
             # R2349k（R72-A2）：节日行与黄历卡同源
             "festival": _festival_for(d, _term_name_for(d)),
+            # R2349l（R73-P1-4/P2-9）：开运三件套+水逆态——全是当日
+            # 干支/历表的确定性派生，随缓存同口径存取。
+            "lucky": _lucky_for(d),
+            "mercury": _mercury_state(d),
+            "moon": _moon_for(d),
+            **({"personal": _personal} if _personal else {}),
         }
         with deps.knowledge() as kb:
             kb.set_daily_cache(date_str, bazi=result)
@@ -2515,7 +2714,9 @@ def daily(date_str: str | None = None) -> dict:
         # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文
         # （"year 10000 is out of range"），给固定中性文案。
         return {"date": date_str, "level": "平", "summary": "今天的运势卡暂时没算出来，稍后再看看～",
-                "noble": "—", "do": "—", "dont": "—", "cached": False}
+                "noble": "—", "do": "—", "dont": "—", "cached": False,
+                # R2349l：降级路径同构常驻键（契约探针）
+                "festival": [], "lucky": {}, "mercury": {}, "moon": {}}
 
 
 MODULES = (

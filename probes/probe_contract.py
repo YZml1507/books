@@ -120,6 +120,10 @@ FIXTURES: dict[str, dict] = {
     # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
     "POST /api/paipan/history/import": {"method": "POST",
                                         "json": {"records": []}},
+    # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴收集端点。
+    "/api/xzmatch":          {"method": "GET",
+                              "params": {"a": "白羊", "b": "射手"}},
+    "/api/paipan/tarot_collection": {"method": "GET"},
     "POST /api/bazi":    {"method": "POST", "json": {
         "year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",
         "calendar_type": "solar", "scope": "day", "use_llm": False}},

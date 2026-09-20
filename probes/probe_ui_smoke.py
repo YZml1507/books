@@ -380,6 +380,15 @@ def main() -> int:
         "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
         "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
                      "发送链路已由 crisis_fe/drawer 用例覆盖",
+        # R2349l（R73）：本批新增的动态/抽屉内控件
+        "dailyPersonalCta": "日卡 meta 行动态生成按钮（档案缺失时才有），"
+                            "点击=showView('xingzuo')+开 birthDrawer——"
+                            "导航链路已由 deep.* 用例覆盖",
+        "signPeekBtn": "解签展开钮——生成在日卡 meta 行内，toggle 本地"
+                       " signCard hidden，零请求零副作用",
+        "tarotPeekBtn": "同上模式：今日牌牌意展开钮",
+        "xzmSubmit": "星座速配——API 层已由 selftest xzmatch/xzmatch.hard/"
+                     "xzmatch.bad 三用例钉死，冒烟只到抽屉可见",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

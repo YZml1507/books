@@ -982,7 +982,10 @@ def _run_inner() -> list[str]:
           lambda j: (j.get("clash") is False and j.get("combine") is False
                      and j.get("day_wx_sheng") is True
                      and j.get("peach_same") is False
-                     and j.get("render") and j.get("notes")))
+                     and j.get("render") and j.get("notes")
+                     # R2349l（R73-P1-1）：合拍指数常驻键，界内整数
+                     and isinstance(j.get("match_score"), int)
+                     and 35 <= j["match_score"] <= 99))
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
@@ -1709,6 +1712,55 @@ def _run_inner() -> list[str]:
     check("daily", client.get("/api/daily"),
           lambda j: (j.get("level") in ("吉", "小吉", "平", "凶")
                      and j.get("date") and "noble" in j))
+    # R2349l（R73）：日卡新派生键常驻——lucky/mercury/moon/festival
+    # 三条返回路径同构（契约探针钉读点，这里钉值形）。
+    def _daily_r73_ok(j):
+        if not (isinstance(j.get("lucky"), dict)
+                and isinstance(j.get("mercury"), dict)
+                and isinstance(j.get("moon"), dict)
+                and isinstance(j.get("festival"), list)):
+            return False
+        # bday → personal 行（十神标签+日主×日干白话）
+        _pb = client.get("/api/daily",
+                         params={"bday": "1995-08-20"}).json()
+        _p = _pb.get("personal") or {}
+        return bool(_p.get("god") and _p.get("line"))
+    check("daily.r73keys", client.get("/api/daily"), _daily_r73_ok)
+    # 新月/满月：农历初一/十五出 phase——找个确定日（2026-10-10 是
+    # 农历九月初一？不猜历表，改为扫窗验证：30 天内至少 1 初一1 十五）。
+    def _moon_scan():
+        _ph = set()
+        for _i in range(30):
+            _ds = f"2026-11-{(_i % 28) + 1:02d}"
+            _m = client.get("/api/daily", params={"date": _ds}).json().get("moon") or {}
+            if _m.get("phase"):
+                _ph.add(_m["phase"])
+        return _ph == {"新月", "满月"}
+    assert _moon_scan(), "moon phases missing in 30d window"
+    ok.append("daily.moon.phase")
+    # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴端点。
+    check("xzmatch", client.get("/api/xzmatch",
+          params={"a": "白羊", "b": "射手"}),
+          lambda j: (j.get("score") == 88 and j.get("label") == "同象"
+                     and j.get("elem_a") == "火"))
+    check("xzmatch.hard", client.get("/api/xzmatch",
+          params={"a": "白羊", "b": "巨蟹"}),
+          lambda j: j.get("score") == 61 and j.get("label") == "磨合")
+    _expect_400("xzmatch.bad", client.get("/api/xzmatch",
+                params={"a": "奥特曼", "b": "巨蟹"}))
+    check("tarot.collection", client.get("/api/paipan/tarot_collection"),
+          lambda j: (j.get("total") == 78
+                     and isinstance(j.get("deck"), list)
+                     and len(j["deck"]) == 78
+                     and isinstance(j.get("collected"), list)))
+    try:
+        from web import deps as _depsm
+        with _depsm.knowledge() as _kbc:
+            _kbc.db.execute(
+                "DELETE FROM daily_cache WHERE date LIKE '2026-11-%'")
+            _kbc.db.commit()
+    except Exception:
+        pass
     # R195b（B-017）：noble 语义 = 当日日干的天乙贵人（地支列表，1–2 个，
     # 「/」连接），不再是「今年的生肖」。与黄历 guiren 同算法互验。
     def _daily_noble_ok(j):
@@ -2274,6 +2326,8 @@ def _run_inner() -> list[str]:
                        # R233u（R53-P1-3）：日支夫妻宫 + 纳音 + 年支半合
                        "day_zhi_a", "day_zhi_b", "day_zhi_rel",
                        "nayin_a", "nayin_b", "nayin_rel", "year_zhi_rel",
+                       # R2349l（R73-P1-1）：合拍指数
+                       "match_score",
                        # C-003：交叉引用——合婚结果页增加星座配对维度
                        "cross_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",

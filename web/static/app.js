@@ -128,6 +128,35 @@ function _signNo(dateStr) {
   for (var i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) >>> 0;
   return h % 64 + 1;
 }
+
+/* R2349l（R73-P1-1）：签号 1–64 ↔ 周易 64 卦——每日一签从此有真签文。
+ * 每项「卦名 · 一句白话签意」（白话是我们写的安抚口径，不冒充卦辞）。 */
+var _SIGN_GUA = ['',
+  '乾为天·拿出干劲的日子', '坤为地·顺势承住就好', '水雷屯·开头难别怕',
+  '山水蒙·不懂就问', '水天需·等一等也在走', '天水讼·别硬碰硬',
+  '地水师·靠章法不靠冲', '水地比·亲近才有力量', '风天小畜·小事收着攒',
+  '天泽履·踩稳每一步', '地天泰·通泰顺气日', '天地否·塞住时养气',
+  '天火同人·找同路人', '火天大有·丰盛别嘚瑟', '地山谦·低一寸路宽一丈',
+  '雷地豫·开心可以预约', '泽雷随·跟对节奏', '山风蛊·旧账翻出来修',
+  '地泽临·好运靠岸', '风地观·先看清楚再动', '火雷噬嗑·卡住就咬碎它',
+  '山火贲·打扮一下有好运', '山地剥·落叶归土也养根', '地雷复·回头是新生',
+  '天雷无妄·别瞎折腾', '山天大畜·攒大能量', '山雷颐·先照顾好自己',
+  '泽风大过·担子重了找帮手', '坎为水·水深处稳住心', '离为火·亮出你的光',
+  '泽山咸·心动有回应', '雷风恒·长久的才算数', '天山遁·退一步也漂亮',
+  '雷天大壮·力气用对地方', '火地晋·太阳升起来了', '地火明夷·光先收一收',
+  '风火家人·家里那盏灯', '火泽睽·不一样也能同行', '水山蹇·山高慢点爬',
+  '雷水解·结打开了', '山泽损·舍一点得更多', '风雷益·加柴的时候',
+  '泽天夬·下决心就干净利落', '天风姤·相遇有缘别贪', '泽地萃·聚起来才是席',
+  '地风升·往上走别回头', '泽水困·困住时先喘口气', '水风井·老井也有新水',
+  '泽火革·换季换新皮', '火风鼎·好饭要慢炖', '震为雷·响一声别慌',
+  '艮为山·站住也是功夫', '风山渐·慢慢来比较快', '雷泽归妹·急嫁不如好嫁',
+  '雷火丰·盛大时记得收', '火山旅·路上也是家', '巽为风·风知道方向',
+  '兑为泽·笑是最好的风水', '风水涣·散开再聚拢', '水泽节·有节有度才自由',
+  '风泽中孚·真心换真心', '雷山小过·小事做到位', '水火既济·成了也留着神',
+  '火水未济·没完就是还有戏'];
+function _signText(dateStr) {
+  return _SIGN_GUA[_signNo(dateStr)] || '';
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -400,6 +429,12 @@ function buildHehunResult(j) {
    * 对方落地自动填好你这边、只需填自己。 */
   html += '<button class="ghost fav-btn" type="button" id="hhInvite" ' +
     'title="复制邀请链接发给 TA">🔗 喊 TA 来对盘</button></div>';
+  /* R2349l（R73-P1-6）：合拍指数——小红书传播形态是数字，
+   * 定性标签没法晒；分数是大字素材。 */
+  if (j.match_score != null) {
+    html += '<div class="hh-score">合拍指数 <strong>' +
+      esc(String(j.match_score)) + '</strong><span class="hh-score-sub">/99</span></div>';
+  }
   // R187b：人话视图置顶（specs/005 US4）
   if (j.warm) {
     html += '<div class="warm-wrap"><div class="warm-l0">' +
@@ -3036,18 +3071,9 @@ function buildShareData(view, j) {
         ' · 第' + _signNo(_dd) + '签';
       /* R2349g（R68-P2）：签诗池 10→20——60 天首撞日从第 11 天推到第
        * 21 天后；「每日一签」感的关键在诗文不重复。 */
-      var _dpoem = _hashPick([
-        '慢慢来，好戏都在后头', '今天的风是甜的',
-        '月亮也在偷偷帮你', '把烦恼折成纸飞机',
-        '你比想象中更有能量', '好事正在路上',
-        '今天值得小庆祝', '温柔的人有月亮罩着',
-        '把今天过成想要的样子', '万事都要全力以赴，包括开心',
-        '风会记得每一朵花香', '宇宙给你留了糖',
-        '心顺了，路就顺了', '小确幸不请自来',
-        '把期待调成接收模式', '好运喜欢敲门两次',
-        '你走的每一步都算数', '今天适合许愿',
-        '星星替你值夜班', '柔软的姑娘有好运'
-      ], 'poem|' + _dd);
+      /* R2349l（R73-P1-1）：签诗换真源——签号对应的卦名+白话签意
+       * （与卡面解签同一签），不再是与签号无关的 20 条鸡汤池。 */
+      var _dpoem = _signText(_dd) || '今天适合许愿';
       var _ds = { title: '今日运势', subtitle: _dsub,
         /* R212：原 slice(0,18) 会把 summary 拦腰截断（「…宜稳不」）——
          * 改取第一个分号前的完整短句。 */
@@ -3906,10 +3932,16 @@ async function loadDaily() {
     /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
      * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
     const _today = todayIso();
+    /* R2349l（R73-P1-3）：档案里有生日 → 带 bday 让日卡出
+     * 「你的日主×今天」个性行；没有就省略（nil 键不进缓存）。 */
+    var _me0 = _meGet('me');
+    var _bday0 = (_me0 && _me0.y && _me0.m && _me0.d)
+      ? ('&bday=' + _me0.y + '-' + String(_me0.m).padStart(2, '0') +
+         '-' + String(_me0.d).padStart(2, '0')) : '';
     const [j, x, tm] = await Promise.all([
       /* R230h（R20-F6）：显式带浏览器日——跨零点时服务器「今天」
        * 与用户本地「今天」可能差一天。 */
-      api('/api/daily?date=' + _today),
+      api('/api/daily?date=' + _today + _bday0),
       api('/api/xingzuo?date=' + _today, { silent: true }).catch(function () { return null; }),
       /* R39-P0-1：明天预告——每日回访的最短钩子，走 daily_cache 幂等
        * 成本≈0。 */
@@ -3994,8 +4026,39 @@ async function loadDaily() {
       var _mrow = document.querySelector('#dailyCard .daily-meta');
       if (_mrow) _mrow.appendChild(_sg);
     }
-    if (_sg) _sg.innerHTML = '📜 今日签号：<strong>第' +
-      _signNo(j.date) + '签</strong>';
+    if (_sg) {
+      /* R2349l（R73-P1-1）：签号可点——展开这签对应的卦名+白话签意
+       * （1–64 映射周易 64 卦，确定性）。签卡挂 .daily-meta 行外——
+       * 横滚容器 overflow+mask 会裁剪内部浮卡。 */
+      _sg.innerHTML = '📜 今日签号：<strong>第' +
+        _signNo(j.date) + '签</strong>' +
+        '<button type="button" class="sign-peek" id="signPeekBtn"' +
+        ' title="看看这签说了啥">解签</button>';
+      var _scl = el('signCard');
+      if (!_scl) {
+        _scl = document.createElement('div');
+        _scl.id = 'signCard'; _scl.className = 'sign-card';
+        _scl.hidden = true;
+        var _mr2 = document.querySelector('#dailyCard .daily-meta');
+        if (_mr2 && _mr2.parentNode) _mr2.parentNode.insertBefore(_scl, _mr2.nextSibling);
+      }
+      if (_scl) {
+        _scl.innerHTML = '<strong>' +
+          esc(_signText(j.date).split('·')[0] || '') + '</strong>' +
+          '<span>' + esc(_signText(j.date).split('·')[1] || '') + '</span>';
+      }
+      var _pk = el('signPeekBtn');
+      if (_pk && !_pk.dataset.bound) {
+        _pk.dataset.bound = '1';
+        _pk.addEventListener('click', function () {
+          var sc = el('signCard');
+          if (sc) {
+            sc.hidden = !sc.hidden;
+            _pk.textContent = sc.hidden ? '解签' : '收起';
+          }
+        });
+      }
+    }
     /* R2349k（R72-A2）：节日行——首页日卡也要说「今天是中秋」。 */
     var _fv = el('dailyFest');
     if (!_fv) {
@@ -4011,6 +4074,143 @@ async function loadDaily() {
         _fv.hidden = false;
       } else { _fv.hidden = true; _fv.innerHTML = ''; }
     }
+    /* R2349l（R73-P1-3/P1-4/P2-9）：个性行 + 开运三件套 + 水逆态——
+     * 三条 meta 行同一个惰性挂载点。 */
+    var _metaRow = document.querySelector('#dailyCard .daily-meta');
+    function _dailyMetaItem(id, html) {
+      var n = el(id);
+      if (!n) {
+        n = document.createElement('div');
+        n.id = id; n.className = 'daily-meta-item';
+        if (_metaRow) _metaRow.appendChild(n);
+      }
+      if (html) { n.innerHTML = html; n.hidden = false; }  // esc-reviewed（各调用点 esc() 字段，文本键原样）
+      else { n.hidden = true; n.innerHTML = ''; }
+    }
+    if (j.personal && j.personal.line) {
+      _dailyMetaItem('dailyPersonal',
+        '🪞 ' + esc(j.personal.line));
+    } else {
+      /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3） */
+      _dailyMetaItem('dailyPersonal',
+        '<button type="button" class="daily-personal-cta" id="dailyPersonalCta">' +
+        '🪞 存个生日，这条运势就是你的了</button>');
+      var _pc = el('dailyPersonalCta');
+      if (_pc && !_pc.dataset.bound) {
+        _pc.dataset.bound = '1';
+        _pc.addEventListener('click', function () {
+          showView('xingzuo');
+          var _bd = el('birthDrawer'); if (_bd) _bd.open = true;
+        });
+      }
+    }
+    if (j.lucky && (j.lucky.color || j.lucky.num)) {
+      _dailyMetaItem('dailyLucky',
+        '🎨 开运色 <strong>' + esc(j.lucky.color || '—') + '</strong>' +
+        ' · 幸运数 <strong>' + esc(j.lucky.num || '—') + '</strong>' +
+        (j.lucky.color_word
+          ? '<span class="daily-lucky-word">' + esc(j.lucky.color_word) + '</span>' : ''));
+    } else { _dailyMetaItem('dailyLucky', ''); }
+    if (j.mercury && j.mercury.on) {
+      _dailyMetaItem('dailyMercury',
+        '💫 水逆中 · 第' + j.mercury.day_no + '天（到 ' +
+        esc(String(j.mercury.until || '').slice(5).replace('-', '月')) + '日）——心放宽，事多检查');
+    } else { _dailyMetaItem('dailyMercury', ''); }
+    /* R2349l（R73-P1-2）：每日一牌——日期哈希做 seed 的确定性单抽
+     * （同一天同一张），点击展开牌意；失败静默不打扰日卡。 */
+    (function () {
+      var _seed = 0, _src = 'tarot|' + _today;
+      for (var i = 0; i < _src.length; i++) {
+        _seed = (_seed * 31 + _src.charCodeAt(i)) >>> 0;
+      }
+      /* 走 /api/tarot/draw（单抽、不写台账）——/api/tarot 每次调用都
+       * save_async，日卡自动抽会把排盘历史灌满日更牌。 */
+      postJSON('/api/tarot/draw', { seed: _seed, n: 1 })
+        .then(function (tj) {
+          var d = (tj && tj.card) || null;
+          if (!d || !d.name) return;
+          _dailyMetaItem('dailyTarot',
+            '🃏 今日牌：<strong>' + esc(d.name) + '</strong>' +
+            ' · ' + (d.upright ? '正位' : '逆位') +
+            '<button type="button" class="sign-peek" id="tarotPeekBtn">牌意</button>');
+          var _tc = el('tarotCard');
+          if (!_tc) {
+            _tc = document.createElement('div');
+            _tc.id = 'tarotCard'; _tc.className = 'sign-card'; _tc.hidden = true;
+            var _mr3 = document.querySelector('#dailyCard .daily-meta');
+            if (_mr3 && _mr3.parentNode) {
+              _mr3.parentNode.insertBefore(_tc, _mr3.nextSibling);
+            }
+          }
+          if (_tc) {
+            _tc.innerHTML = '<strong>' + esc(d.name) +
+              ' · ' + (d.upright ? '正位' : '逆位') + '</strong>' +
+              '<span>' + esc(d.upright ? (d.upright_kw || '') :
+                                       (d.reversed_kw || '')) +
+              (d.meaning ? ' —— ' + esc(d.meaning) : '') + '</span>';
+          }
+          var _tb = el('tarotPeekBtn');
+          if (_tb && !_tb.dataset.bound) {
+            _tb.dataset.bound = '1';
+            _tb.addEventListener('click', function () {
+              var c2 = el('tarotCard');
+              if (c2) {
+                c2.hidden = !c2.hidden;
+                _tb.textContent = c2.hidden ? '牌意' : '收起';
+              }
+            });
+          }
+        })
+        .catch(function () { _dailyMetaItem('dailyTarot', ''); });
+    })();
+    /* R2349l（R73-P1-8）：新月许愿/满月复盘——农历初一十五窗口的
+     * 仪式行（后端 daily 的 moon 派生键）。 */
+    if (j.moon && j.moon.label) {
+      _dailyMetaItem('dailyMoon',
+        (j.moon.phase === '满月' ? '🌕 ' : '🌑 ') +
+        '<strong>' + esc(j.moon.label) + '</strong> —— ' +
+        esc(j.moon.line || ''));
+    } else { _dailyMetaItem('dailyMoon', ''); }
+    /* R2349l（R73-P1-16）：TA 生日倒计时——扫 me/me:partner/测过的 CP
+     * 里的生日，最近一次 ≤30 天的给倒数行。favorites 在服务端，
+     * _favList 在途合并+静默失败，不打扰主渲染。 */
+    _favList().then(function (_favs) {
+      try {
+        var _cands = [];
+        var _pm = _meGet('me:partner');
+        if (_pm && _pm.m && _pm.d) {
+          _cands.push({ n: _pm.n || 'TA', m: +_pm.m, d: +_pm.d });
+        }
+        var _me0b = _meGet('me');
+        if (_me0b && _me0b.m && _me0b.d) {
+          _cands.push({ n: _me0b.n || '你', m: +_me0b.m, d: +_me0b.d });
+        }
+        (_favs || []).forEach(function (f) {
+          var p = String((f && f.ref_id) || '').split('|');
+          if (p.length >= 9 && p[6] && p[7]) {
+            _cands.push({ n: p[11] || 'TA', m: +p[6], d: +p[7] });
+          }
+        });
+        if (!_cands.length) return;
+        var _t0 = new Date(); _t0.setHours(0, 0, 0, 0);
+        var _best = null;
+        _cands.forEach(function (c) {
+          if (!c.m || !c.d || c.m < 1 || c.m > 12 || c.d < 1 || c.d > 31) return;
+          var yy = _t0.getFullYear();
+          var bd = new Date(yy, c.m - 1, c.d);
+          if (bd < _t0) bd = new Date(yy + 1, c.m - 1, c.d);
+          var dd = Math.round((bd - _t0) / 86400000);
+          if (dd > 0 && dd <= 30 && (!_best || dd < _best.dd)) {
+            _best = { dd: dd, n: c.n };
+          }
+        });
+        if (_best) {
+          _dailyMetaItem('dailyBdayCtd',
+            '🎁 ' + esc(_best.n) + '的生日还有 <strong>' +
+            _best.dd + '</strong> 天');
+        }
+      } catch (e) {}
+    }).catch(function () {});
     /* R233n（R47-P2-5）：生日横幅——档案里的生日撞上今天就铺一条
      * 「今天你最大」，顺带把生日盘入口点亮。
      * R2349（R65-P2-5）：抽成函数——daily API 失败的 catch 兜底
@@ -7197,7 +7397,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
               _tt += '　忌：' + _gj.slice(0, 3).join('、');
             }
           }
-          return '<button type="button" class="hl-daychip" data-hldate="' +
+          /* R2349l（R73-P1-5）：带硬凶（月破/四离/杨公忌…）的吉日
+           * 标 ⚠——榜单排序已把无凶日排前面，进榜的凶日得有记号。 */
+          var _fl = gd.flags || [];
+          if (_fl.length) {
+            _tt = (_tt ? _tt + '　' : '') + '逢' + _fl.join('、') +
+              '，能换就换一天';
+            lab += '⚠';
+          }
+          return '<button type="button" class="hl-daychip' +
+            (_fl.length ? ' has-flag' : '') + '" data-hldate="' +
             esc(String(gd.date || '')) + '"' +
             (_tt ? ' title="' + esc(_tt) + '"' : '') + '>' +
             esc(lab) + '</button>';
@@ -7846,6 +8055,31 @@ function initDivination() {
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
+  /* R2349l（R73-P1-12）：我的牌册——展开抽屉时拉收集清单渲染 78 格。 */
+  (function () {
+    var dr = el('tarotAlbumDrawer');
+    if (dr && !dr.dataset.bound) {
+      dr.dataset.bound = '1';
+      dr.addEventListener('toggle', function () {
+        if (!dr.open) return;
+        api('/api/paipan/tarot_collection', { silent: true }).then(function (cj) {
+          var box = el('tarotAlbum');
+          if (!box || !cj || !Array.isArray(cj.deck)) return;
+          var got = {};
+          (cj.collected || []).forEach(function (n) { got[n] = 1; });
+          var cnt = (cj.collected || []).length;
+          box.innerHTML = '<div class="tarot-album-count">已收集 <strong>' +
+            cnt + '</strong> / ' + esc(String(cj.total)) +
+            ' 张——多抽几签，把牌册点亮 ✨</div>' +
+            '<div class="tarot-album-grid">' +
+            cj.deck.map(function (n) {
+              return '<div class="tarot-cell' + (got[n] ? ' got' : '') +
+                '">' + esc(got[n] ? n : '？') + '</div>';
+            }).join('') + '</div>';
+        }).catch(function () {});
+      });
+    }
+  })();
   on('hhSubmit', doHehun);
   /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
    * 视图级委托：任意 input 按 Enter = 点本视图主提交钮（原生 form 语义）。 */
@@ -7873,6 +8107,38 @@ function initDivination() {
    * Promise.resolve(undefined) 下个微任务就释放 on() 的 _busy 锁，
    * 双击实发两遍请求（实测 xzSubmit/xzNext 各发 2 次）。 */
   on('xzSubmit', function () { return doXingzuo(true); });
+  /* R2349l（R73-P1-7）：星座速配——12 星座双 select + 四象兼容判词。 */
+  (function () {
+    var _SIGNS = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女',
+                  '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+    var sa = el('xzm_a'), sb = el('xzm_b');
+    if (sa && !sa.options.length) {
+      _SIGNS.forEach(function (s) {
+        sa.add(new Option(s + '座', s));
+        if (sb) sb.add(new Option(s + '座', s));
+      });
+      if (sb) sb.selectedIndex = 6;   /* 默认你白羊×TA天秤 */
+    }
+  })();
+  on('xzmSubmit', async function () {
+    var sa2 = el('xzm_a'), sb2 = el('xzm_b'), box = el('xzmResult');
+    if (!sa2 || !sb2 || !box) return;
+    try {
+      var mj = await api('/api/xzmatch?a=' + encodeURIComponent(sa2.value) +
+                         '&b=' + encodeURIComponent(sb2.value));
+      box.innerHTML = '<div class="hh-score" style="margin-top:0;">' +
+        esc(mj.a) + '座 × ' + esc(mj.b) + '座 · 合拍指数 <strong>' +
+        esc(String(mj.score)) + '</strong>/99 ' +
+        '<span class="daily-lucky-word">' + esc(mj.label) + '</span></div>' +
+        '<div style="margin-top:8px;color:var(--secondary);font-size:14px;">' +
+        esc(mj.line) + '</div>' +
+        '<div style="margin-top:8px;font-size:12px;color:var(--secondary);">' +
+        '想更准？补个生辰试试八字合婚 →</div>';
+    } catch (e) {
+      box.innerHTML = '<div class="ph-empty" style="padding:12px;">' +
+        esc((e && e.message) || '速配没跑出来，再点一次试试') + '</div>';
+    }
+  });
   /* R220b（P1-1）：日期导航——箭头翻天、今天/明天快捷、三 select 改即查 */
   /* R233k（R45-P1-2）：翻页钮不进在途锁——锁会把连点整个吞掉
    * （实测连点「→」3 次只走 1 天）。乐观先改日期再发请求，

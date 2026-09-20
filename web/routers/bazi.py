@@ -18,7 +18,7 @@ from .. import services
 from ..errors import NotFoundError
 from ..schemas import (BaziRequest, ChatRequest, HehunRequest,
                        NameReviewRequest, PaipanImportRequest,
-                       QimingRequest)
+                       QimingRequest, ValidationError)
 
 router = APIRouter(tags=["bazi"])
 
@@ -114,6 +114,16 @@ def xingzuo(date: str | None = None) -> dict:
     return services.xingzuo(date)
 
 
+@router.get("/api/xzmatch")
+def xzmatch(a: str = Query("", max_length=4),
+            b: str = Query("", max_length=4)) -> dict:
+    """R2349l（R73-P1-7）：星座速配——sa/sb 为星座名（白羊…双鱼）。"""
+    out = services.xzmatch(a, b)
+    if not out:
+        raise ValidationError("没认出星座名——白羊、金牛、双子…双鱼里挑两个")
+    return out
+
+
 # ---- 排盘历史台账（2026-08-28 新增，命名带 paipan_ 前缀与旧 /api/history* 隔离）----
 
 @router.get("/api/paipan/history")
@@ -125,6 +135,15 @@ def paipan_history_list(
     if paipan_history.disabled():
         return {"total": 0, "items": []}
     return paipan_history.list_records(limit=limit, offset=offset)
+
+
+@router.get("/api/paipan/tarot_collection")
+def paipan_tarot_collection() -> dict:
+    """R2349l（R73-P1-12）：塔罗图鉴——台账里抽过的牌 + 全 78 牌名。"""
+    from guji.tarot import DECK
+    got = paipan_history.tarot_collection()
+    return {"collected": got.get("collected", []),
+            "deck": [d[0] for d in DECK], "total": len(DECK)}
 
 
 @router.get("/api/paipan/history/export")

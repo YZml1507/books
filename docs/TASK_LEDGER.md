@@ -11665,3 +11665,32 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - C1 hl-flag「今天逢」→_dayWord；C2 非今日时「今日当班/今日守护星」→「当日」；C3 问一嘴占位「今天」→「哪天」
 - 副判明：「立秋那天搬家」→2027-08-08 是 R64 既定设计（节日词对过去语标免疫，总指下一次）
 - 闸门：selftest 254 / contract 547 全绿 / date_parity 68+41 例+220 键 / ui_smoke 75 / first_screen / voice/poster 批全绿 / ruff 净
+
+## R2349l（2026-09-20）· R73 产品功能缺口批（P1 段）
+
+来源：R73 子审计「产品功能缺口对标」（小红书向）。本批落 P1 全家桶，
+P2 项（接力/流年/周运/obs 细节）转下批。
+
+| # | 项 | 落地 |
+|---|----|------|
+| 1 | 合婚合拍指数 | services._hehun_score：日支关系+纳音+五行+桃花+天干合+十神互见 → 35-99 分；FE 结果页加「合拍指数 N/99」块；selftest hehun 断言钉界内 |
+| 2 | 每日一牌 | 日卡懒调 /api/tarot/draw（不写台账端点）seed=hash('tarot|'+date)→同日同牌；meta 行+「牌意」展开卡 |
+| 3 | 个性化日运 | GET /api/daily?bday= → personal={god,label,line}（日主×当日日干十神，TEN_GOD_WARM 标签）；不进 daily_cache（按日缓存会串用户）；FE 无档时给「存个生日」CTA 跳星座页本命盘 |
+| 4 | 开运三件套 | _lucky_for：日干→五行色+意象词、干支序→幸运数 1-9；日卡 meta 行 |
+| 5 | 挑日子榜 | huangli affair 路径 good_days 增 flags（day_flags 透出）+按硬凶数排序；FE chip ⚠ 标+title「逢X，能换就换一天」 |
+| 7 | 星座速配 | GET /api/xzmatch?a=&b=：四象表（同象88/相合82/相冲61/随缘74）；星座页「💞星座速配」抽屉双 select；selftest 3 用例（同象/相冲/假名400） |
+| 8 | 新月满月 | _moon_for：农历初一/十五 ±1d → phase/label/line；daily 三路径常驻；FE 日卡 meta 行🌑/🌕；selftest 扫窗断言一月内两相俱全 |
+| 9 | 水逆提示 | （随 R2349k 段落补记）_MERCURY_RETRO 2024-2028 站间表+_mercury_state；daily.mercury 常驻 |
+| 12 | 塔罗图鉴 | paipan_history.tarot_collection 聚合台账抽过的牌；GET /api/paipan/tarot_collection → {collected,deck,total:78}；塔罗页「我的牌册」抽屉 78 格灰显 |
+| 16 | TA生日倒计时 | FE 扫 me/me:partner/favorites(hehun) 生日 → 最近 ≤30 天者出「还有 N 天」meta 行（_favList 在途合并，静默） |
+
+顺带：sign 签号升级——_SIGN_GUA 64 卦白话签意表（签号↔卦确定映射）、
+「解签」展开卡、海报签诗换源为卦名+签意（原 20 条无关鸡汤池弃用）；
+daily meta 项渲染抽成 _dailyMetaItem helper；xz 「今日/当日」标签修正。
+
+闸门：selftest 260（+6）/ contract 561 / ui_smoke 75 / parity 220+68+41 /
+poster/plain_first/first_screen/llm_polish/ruff 全绿；sw 哈希已 bump。
+踩坑：①/app.js 改 daily 区时吃掉下行注释头 `/*` → SyntaxError
+`Unexpected token '*'`（4214 行定位法：注入 script + error.lineno）；
+②/services.py tuple 跨行需括号包裹；③/_favList 是服务端收藏非
+localStorage，倒计时改异步链。

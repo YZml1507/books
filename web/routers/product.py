@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from .. import services
 from ..schemas import FavoriteAddRequest, PrefsRequest
@@ -19,9 +19,11 @@ def health() -> dict:
 
 
 @router.get("/api/daily")
-def daily(date: str | None = None) -> dict:
+def daily(date: str | None = None,
+          # R2349l（R73-P1-3）：bday=用户生日 → 出 personal 个性行
+          bday: str = Query("", max_length=10)) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌（命中 daily_cache）。"""
-    return services.daily(date)
+    return services.daily(date, bday or None)
 
 
 # R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
