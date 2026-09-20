@@ -621,6 +621,17 @@ def thread_detail(tid: int) -> dict:
                 "verify": kb.verify(deps.RAW_DIR, derived_ids=_claim_ids)}
 
 
+def _drop_thread(kb, tid: int) -> None:
+    """尽力删除新建空壳线程（R19-P2-2）：ENOSPC 等故障下补偿删除本身
+    也可能失败——吞掉，让原始异常继续走 errors.py 的 503 人话。"""
+    try:
+        kb.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
+        kb.db.execute("DELETE FROM thread WHERE id=?", (tid,))
+        kb.db.commit()
+    except Exception:
+        pass
+
+
 def thread_record(req) -> dict:
     """写入一条 derived claim（G8 纪律：断言型 kind 必须带证据）。
 
@@ -646,9 +657,10 @@ def thread_record(req) -> dict:
 
     with deps.knowledge() as kb:
         tid = req.thread_id
-        if tid is None:
+        created_tid = None   # R230g（R19-P2-2）：本次调用新开的线程，
+        if tid is None:      # record 失败时要连带删掉（ENOSPC 实测留空壳）
             topic = (req.topic or req.claim[:50] or "新线程").strip()[:100]
-            tid = kb.open_thread(topic)
+            tid = created_tid = kb.open_thread(topic)
             kb.add_turn(tid, "user", "开题：" + topic)
         ev = [Evidence(work_id=e.work_id, file=e.file,
                        raw_start=e.raw_start if e.raw_start is not None else -1,
@@ -665,7 +677,15 @@ def thread_record(req) -> dict:
             # 「非法参数 → 400」纪律一致（R159b/D-205b）。
             # R228j：不把 sqlite 原文（"CHECK constraint failed: ..."）吐给用户，
             # 内部约束名属实现细节——翻成中文人话。
+            if created_tid is not None:
+                _drop_thread(kb, created_tid)
             raise ValidationError("记录被拒绝：类型或内容不合规") from exc
+        except Exception:
+            # R230g（R19-P2-2）：盘满/OperationalError 等底层失败同样
+            # 把本调用新开的空壳线程清掉，再把异常交给 errors.py 翻 503。
+            if created_tid is not None:
+                _drop_thread(kb, created_tid)
+            raise
         row = kb.db.execute("SELECT thread_id FROM derived WHERE id = ?",
                             (did,)).fetchone()
         return {"derived_id": did,
@@ -730,11 +750,17 @@ def liuyao(req) -> dict:
         ben = liuyao_mod.cast_time(lm["year"], lm["month"], lm["day"], hour_zhi)
 
     bian = liuyao_mod.changing_hexagram(ben)
-    with deps.corpus() as c:
-        ben_jing = [hit_dict(h) for h in
-                    c.at_address(ben.gua_number, layer="經", limit=10)]
-        bian_jing = [hit_dict(h) for h in
-                     c.at_address(bian.gua_number, layer="經", limit=10)]
+    # R230g（R19-P2-1）：引文是锦上添花，卦象本身不依赖语料——corpus
+    # 缺失/损坏时降级为空引文继续 200（与 tarot/huangli 纯算端点同口径），
+    # 不让一卦被语料库连坐打 503。
+    try:
+        with deps.corpus() as c:
+            ben_jing = [hit_dict(h) for h in
+                        c.at_address(ben.gua_number, layer="經", limit=10)]
+            bian_jing = [hit_dict(h) for h in
+                         c.at_address(bian.gua_number, layer="經", limit=10)]
+    except Exception:
+        ben_jing, bian_jing = [], []
 
     ben_out = liuyao_mod.render_hexagram(ben, "本卦")
     bian_out = liuyao_mod.render_hexagram(bian, "变卦")

@@ -175,6 +175,11 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
     主题词**追加**在坐标词队尾参与检索（why="提问主题"）。坐标词的顺序、
     权重与去重逻辑一字不动——无提问时输出与旧版逐字节一致。
     """
+    # R230g（R19-P3-2）：sqlite3.connect 对缺失路径会顺手建 0B 残库，
+    # 与 Corpus.__init__ 同一道存在性守卫——缺索引报人话而非污染文件。
+    if not os.path.exists(DB) or os.path.getsize(DB) == 0:
+        raise FileNotFoundError(
+            f"索引缺失或为空：{DB}（先跑 scripts/build_index.py）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
@@ -182,6 +187,7 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
         qs.append((t, _TOPIC_WHY))
     seen: set[tuple] = set()
     out: list[dict] = []
+
     for q, why in qs:
         if len(q) < 2:
             continue  # 单字不参与 FTS（噪音）
@@ -277,6 +283,9 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
 
     元数据缓存不含 text（text 大、避免 json 膨胀），命中后按单元 id 回查。
     """
+    if not os.path.exists(DB) or os.path.getsize(DB) == 0:
+        raise FileNotFoundError(
+            f"索引缺失或为空：{DB}（先跑 scripts/build_index.py）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     vecs, meta = _sem_vecs(conn)

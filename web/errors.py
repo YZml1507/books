@@ -82,6 +82,10 @@ def install(app: FastAPI) -> None:
             if "ctx" in e:
                 e["ctx"] = {k: str(v) for k, v in
                             dict(e["ctx"]).items()}
+            # R230g（R19-P3-3）：body 不是合法 JSON 时 Starlette 给英文
+            # msg（"JSON decode error"）——与全站中文 detail 口径统一。
+            if e.get("type") == "json_invalid":
+                e["msg"] = "请求体不是合法的 JSON"
             errs.append(e)
         return JSONResponse(status_code=422, content={"detail": errs})
     app.add_exception_handler(RequestValidationError, _validation_handler)
