@@ -12,7 +12,8 @@
 <meta name="twitter:title" content="小满的解忧铺">
 <meta name="twitter:description" content="黄历择日 · 八字排盘 · 塔罗占卜 · 古籍佐证">
 <meta name="twitter:image" content="/static/cream/cream-hero-v2.jpg">
-<meta name="theme-color" content="#F5EFE0">
+<!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
+<meta name="theme-color" content="#FFF8E7">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>小满的解忧铺 · 知命</title>
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
@@ -66,6 +67,8 @@ if ('serviceWorker' in navigator) {
 <body>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
   <div class="page-glow" aria-hidden="true"></div>
+<!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
+<a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
 <div class="wrap">
   <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
   <h1 class="visually-hidden">小满的解忧铺——黄历、八字、塔罗、起名</h1>
@@ -152,7 +155,7 @@ if ('serviceWorker' in navigator) {
        桃花/合婚从 view-bazi 相关功能区提回首页（specs/009 §2 裁决）。 -->
   <div class="ia-group" data-group="ask">
     <div class="ia-label">✨ 今天想看点什么</div>
-    <div class="func-grid">
+    <div class="func-grid" id="funcGrid" tabindex="-1">
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>

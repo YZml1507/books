@@ -11020,3 +11020,12 @@ scripts_importable / llm_polish / ruff 全绿。
 - **黄历本周条**：`#hlWeek` 7 天一览格（宜/忌/wd/date，并行拉取），点击翻对应日——「翻后面几天」从话术变功能
 - **index.html**：#hlWeek 容器；hehun 性别默认序修正（甲女/男，乙男/女——主流场景异性合婚）；「老玩家入口」→「进阶玩法」、「复验编号」→「固定编号」（用户向措辞）
 - **闸**：selftest 237 / contract 445 / ui_smoke 56 全绿
+
+### R231f（R38 显示面/输入面批）
+- **打印一批**：隐藏清单按真实类名重排（清 10+ 失效选择器，补 .daily-cover/.toast-stack/.welcome-bar/.ink-hero/.daily-checkin/.poster-modal-backdrop/.recent-sidebar/.hl-week 等）；details 不再一刀切隐藏——用户展开的完整解读/专业依据现在能落纸（原规则把最想打印的内容吞掉）；form label 不再留孤儿标签行
+- **键盘**：海报浮层焦点圈改为全可聚焦元素循环（原一律圈回关闭钮，「复制链接/分享」键盘永不可达）；daily-cover 盖着时卡内控件 inert、开封恢复+焦点移交 dailyMore；Esc 在海报开着时不再连坐收抽屉；skip-link 直达 #funcGrid；summary:focus-visible 统一环；input 焦点阴影加深（0.15→0.35）
+- **窄屏**：320px 下礼盒图收 52px（原右缘被裁 ~50px）；.ph-toolbar 允许换行（导入备份钮不再被推出可视区）
+- **横屏**：矮窗（≤480px）海报 modal 96vh+图 44vh，FAB 常驻 mini 避让左缘
+- **daypart**：morning/noon 档差加大（原 ±2% RGB 不可辨）、dawn/night 加重；选择器加 :not([data-theme="legacy"]) 修掉 legacy 仍吃时段渐变的回滚漏；60s tick 同步复算（挂后台跨时段不再停档）
+- **杂项**：theme-color meta 对齐 --bg #FFF8E7；-webkit-text-size-adjust:100%；.xz-card hover 位移假 affordance 移除（留阴影）
+- **闸**：selftest 237 / contract 445 / ui_smoke 56 / ruff 全绿

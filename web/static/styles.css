@@ -137,16 +137,19 @@ html[data-daypart] .func-grid .func-card:nth-child(3){animation-delay:.12s;}
  * JS 按本地小时设 <html data-daypart>，CSS 只覆盖 --bg 渐变（不动文字色，
  * 对比度判据 3 的前景/背景组合不变——底色全部保持高亮度暖色域）。
  * legacy 回滚主题不匹配这些选择器 → 切回旧主题即回到固定旧背景。 */
-html[data-daypart="dawn"] body{
-  background:linear-gradient(175deg,#FFF8E7 0%,#FFF1F3 55%,#F6EDFF 100%);}
-html[data-daypart="morning"] body{
-  background:linear-gradient(175deg,#FFFDFA 0%,#FFF4F0 60%,#FFF8E7 100%);}
-html[data-daypart="noon"] body{
-  background:linear-gradient(175deg,#FFFDFA 0%,#FFF6EC 60%,#FFF8E7 100%);}
-html[data-daypart="dusk"] body{
-  background:linear-gradient(175deg,#FFF3E9 0%,#FFE8DC 55%,#FFE4EE 100%);}
-html[data-daypart="night"] body{
-  background:linear-gradient(175deg,#F0EAFF 0%,#FFE9F2 55%,#FFF4E7 100%);}
+/* R231f（R38-P2-3）：档位差加大（morning/noon 原仅 ±2% RGB 肉眼不可辨）；
+ * 选择器加 :not([data-theme="legacy"])——原注释自称 legacy 不匹配，实际
+ * 选择器没有主题限定，legacy 照样吃时段渐变（回滚不彻底）。 */
+html:not([data-theme="legacy"])[data-daypart="dawn"] body{
+  background:linear-gradient(175deg,#FFF2E2 0%,#FFE9F0 55%,#F0E4FF 100%);}
+html:not([data-theme="legacy"])[data-daypart="morning"] body{
+  background:linear-gradient(175deg,#FFFDFA 0%,#FFF0E8 60%,#FFF6E0 100%);}
+html:not([data-theme="legacy"])[data-daypart="noon"] body{
+  background:linear-gradient(175deg,#FFFEFA 0%,#FFF3DC 60%,#FFEEDD 100%);}
+html:not([data-theme="legacy"])[data-daypart="dusk"] body{
+  background:linear-gradient(175deg,#FFF0E2 0%,#FFE2D2 55%,#FFDCe8 100%);}
+html:not([data-theme="legacy"])[data-daypart="night"] body{
+  background:linear-gradient(175deg,#EAE0FA 0%,#FFDDEB 55%,#FCEBDD 100%);}
 
 body{
   /* 奶油玄学背景（v2）：奶油白 + 淡粉紫柔光渐变，去水墨纹理。 */
@@ -242,6 +245,12 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 375px 下压住日期末位字（审查轨实测差 ~13px）。进流后永不叠字。 */
 .daily-card-gift{
   flex:0 0 72px; width:72px; margin-left:10px;
+}
+/* R231f（R38-P2-2）：320px 极窄下礼盒右缘被裁 ~50px——收小尺寸 */
+@media (max-width:360px){
+  .daily-card-gift{flex-basis:52px; width:52px;}
+}
+.daily-card-gift{
   border-radius:14px; overflow:hidden;
   box-shadow:0 4px 16px rgba(184,134,11,.12);
 }
@@ -725,8 +734,21 @@ input[type=number], input[type=text], input[type=date], select{
 }
 input:focus, select:focus{
   outline:none; border-color:var(--primary-ink);
-  box-shadow:0 0 0 3px rgba(184,134,11,.15);
+  /* R231f（R38-P2-4）：焦点指示加深——原 0.15 透明度擦边 WCAG 2.4.13 */
+  box-shadow:0 0 0 3px rgba(107,79,174,.35);
 }
+/* R231f（R38-P3-3）：summary 焦点环统一——pro-drawer/warm-basis 有显式环，
+ * paipan-fold/daily-full/warm-pro-fold 此前只有 UA 默认环，口径不一。 */
+summary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
+/* R231f（R38-P2-4）：skip-link——Tab 序首站直达功能区，不用爬完
+ * 欢迎条/打卡/封面才到主功能。 */
+.skip-link{
+  position:absolute; left:14px; top:-60px; z-index:400;
+  padding:10px 16px; background:var(--primary-ink); color:#fff;
+  border-radius:0 0 12px 12px; font-size:13px; text-decoration:none;
+  transition:top .15s ease;
+}
+.skip-link:focus{top:0;}
 button{
   /* R228n：实测主提交钮 41-42px，低于本仓库自定 --tap:44px 契约 */
   min-height:var(--tap);
@@ -1461,7 +1483,9 @@ button:active{transform:scale(.96);}
 .brand-mark-img.is-missing{display:none;}
 .func-icon-img{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--border);box-shadow:0 3px 12px rgba(35,42,56,.12);}
 .func-icon-img.is-missing{display:none;}
-.ph-toolbar{display:flex;gap:10px;margin:10px 0 14px;}
+/* R231f（R38-P2-2）：320px 下 4 钮 scrollWidth 溢出把「导入备份」推出
+ * 可视区——允许换行。 */
+.ph-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px;}
 .ph-list{display:flex;flex-direction:column;gap:10px;}
 /* R228d：ph-item 卡身点不动（点击行为只在 .ph-open 钮上）——去掉假 affordance 的
  * cursor:pointer，挪到真按钮上。 */
@@ -1487,7 +1511,9 @@ button:active{transform:scale(.96);}
 /* ── v2 奶油玄学：星座卡片流 + 本命盘卡 ── */
 .xz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
 .xz-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(255,183,197,.16);transition:transform .15s ease,box-shadow .15s ease;}
-.xz-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
+/* R231f（R38-P3-3）：xz-card 不可点，位移 hover 是假 affordance——
+ * 只留阴影变化当悬停反馈，不假装能点。 */
+.xz-card:hover{box-shadow:var(--shadow-hover);}
 .xz-card.xz-active{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(255,143,171,.3);}
 .xz-card-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;}
 .xz-card-img.is-missing{display:none;}
@@ -1596,12 +1622,18 @@ button:active{transform:scale(.96);}
 
 /* R230n（R25-4.1）：打印样式——结果页能干净落纸。
  * 隐去导航/表单/按钮/装饰层，结果卡拉满宽、防截断。 */
+/* R231f（R38-P1/P2-1）：隐藏清单按真实类名重排——新增 UI 件须同步此处。
+ * details 不一刀切：用户展开的「完整解读/专业依据」正是最想打印的内容，
+ * 折叠态 UA 默认即不展开，只额外藏纯输入抽屉 .pro-drawer。 */
 @media print {
-  .page-glow, .func-card, .view-back, .back-bar, .bottom-nav, nav,
-  form, button, input, select, textarea, details,
-  .hl-chip, .hl-chips, #hlChips, .checkin, .toast, .share-btn,
-  .hl-interactive, .hl-ask,
-  .ai-cta, .chat-drawer, .fab, .btn-row, .toolbar,
+  .page-glow, .func-card, .view-back, .func-card-back, .bottom-nav,
+  form, button, input, select, textarea, label,
+  .hl-chip, .hl-chips, #hlChips, .hl-week, .hl-interactive, .hl-ask,
+  .hlPickDrawer, .birthDrawer, details.pro-drawer,
+  .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
+  .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
+  .recent-sidebar, .recent-toggle, .ph-toolbar, .ph-share, .checkin-share,
+  .chat-entry, .share-cta, .poster-modal-actions, .xz-grid,
   [class*="deco"], [class*="glow"] {
     display: none !important;
   }
@@ -1689,4 +1721,14 @@ button:active{transform:scale(.96);}
 /* 结果页「明天见」收口 */
 .tail-hook{
   font-size:12px; color:var(--muted); margin-top:12px; text-align:center;
+}
+
+/* ── R231f（R38）收尾规则 ── */
+html{-webkit-text-size-adjust:100%;}
+/* R38-P2-5：横屏矮窗——海报浮层改紧凑、图片限高；FAB 缩小降透明避让左缘 */
+@media (orientation:landscape) and (max-height:480px){
+  .poster-modal{max-height:96vh; width:min(560px, 96vw);}
+  .poster-modal-img{max-height:44vh;}
+  .recent-toggle{transform:scale(.72); opacity:.55;}
+  .recent-toggle:hover{transform:scale(.8); opacity:.9;}
 }

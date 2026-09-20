@@ -2928,10 +2928,20 @@ function showPosterModal(canvas, view) {
     /* R228n：焦点圈——role=dialog 光有语义不够，Tab 还能逃出遮罩
      * 落进主区（实测 activeElement 跑到 #shareDaily）。modal 内只有
      * 关闭钮可聚焦，Tab 一律圈回它。 */
+    /* R231f（R38-P1-1）：焦点圈在所有可聚焦元素间循环——原来一律圈回
+     * 关闭钮，「复制链接/分享」对键盘用户永远不可达。 */
     if (e.key === 'Tab' || e.keyCode === 9) {
-      e.preventDefault();
-      var _c = backdrop.querySelector('.poster-modal-close');
-      if (_c) _c.focus();
+      var _f = backdrop.querySelectorAll(
+        'button,[href],[tabindex]:not([tabindex="-1"])');
+      if (!_f.length) return;
+      var _first = _f[0], _last = _f[_f.length - 1];
+      if (e.shiftKey && document.activeElement === _first) {
+        e.preventDefault(); _last.focus();
+      } else if (!e.shiftKey && document.activeElement === _last) {
+        e.preventDefault(); _first.focus();
+      } else if (!backdrop.contains(document.activeElement)) {
+        e.preventDefault(); _first.focus();
+      }
     }
   };
   document.addEventListener('keydown', _posterOnKey);
@@ -6169,13 +6179,15 @@ function initViews() {
    * 习惯语义，与 P0-2 的 popstate 体系同方向。 */
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    /* R231f（R38-P3-3）：海报模态开着时 Esc 完全归 _posterOnKey——
+     * 原顺序会先误收开着的抽屉再关海报（连坐）。 */
+    if (document.getElementById('posterModal')) return;
     var closed = false;
     document.querySelectorAll('details[open]').forEach(function (d) {
       d.open = false; closed = true;
     });
     if (sb && sb.classList.contains('open')) { _setRecent(false); closed = true; }
-    /* 海报模态开着时 Esc 归它（_posterOnKey）——别顺手回首页。 */
-    if (!closed && window.__inView && !document.getElementById('posterModal')) {
+    if (!closed && window.__inView) {
       showView('home');
     }
   });
@@ -6560,10 +6572,13 @@ function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
   /* R198b（US4）：时辰感知背景——按本地小时设五档 daypart。
    * 纯属性设置零动画；不读时钟入任何计算结果（voice 硬纪律不受影响）。 */
-  var __h = new Date().getHours();
-  var __dp = (__h < 6) ? 'night' : (__h < 10) ? 'dawn' : (__h < 15) ? 'morning'
-           : (__h < 19) ? 'noon' : (__h < 22) ? 'dusk' : 'night';
-  document.documentElement.setAttribute('data-daypart', __dp);
+  var _applyDaypart = function () {
+    var __h = new Date().getHours();
+    var __dp = (__h < 6) ? 'night' : (__h < 10) ? 'dawn' : (__h < 15) ? 'morning'
+             : (__h < 19) ? 'noon' : (__h < 22) ? 'dusk' : 'night';
+    document.documentElement.setAttribute('data-daypart', __dp);
+  };
+  _applyDaypart();
   initViews();
   initBazi();
   initReading();
@@ -6614,11 +6629,29 @@ function init() {
       var _ct = _cov.querySelector('.daily-cover-txt');
       if (_ct) _ct.textContent = '🎀 小满第 ' + _n + ' 次为你开铺，拆开看看今天的运';
     }
+    /* R231f（R38-P1-2）：封面遮罩只挡鼠标不挡键盘——盖着时把卡内
+     * 其余控件 inert（Tab 不再落到看不见的按钮上），开封即恢复。 */
+    var _card0 = _cov.closest('.daily-card');
+    if (_card0) {
+      Array.prototype.forEach.call(
+        _card0.querySelectorAll('button,[href],input,select,[tabindex]'),
+        function (n) { if (!_cov.contains(n)) n.setAttribute('inert', ''); });
+    }
     var _dk = 'dailyRevealed:' + todayIso();
     var _reveal = function () {
       _cov.classList.add('open');
       try { localStorage.setItem(_dk, '1'); } catch (e) {}
-      setTimeout(function () { if (_cov.parentNode) _cov.remove(); }, 500);
+      setTimeout(function () {
+        if (_card0) {
+          Array.prototype.forEach.call(
+            _card0.querySelectorAll('[inert]'),
+            function (n) { n.removeAttribute('inert'); });
+        }
+        if (_cov.parentNode) _cov.remove();
+        /* R38-P3-3：开封后焦点移交首个内容控件，不再丢回 body 从头爬 */
+        var _dm = el('dailyMore');
+        if (_dm && _dm.focus) { try { _dm.focus(); } catch (e) {} }
+      }, 500);
     };
     _cov.addEventListener('click', _reveal);
     _cov.addEventListener('keydown', function (e) {
@@ -6686,9 +6719,11 @@ function init() {
     }
   };
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) _onDayFlip();
+    if (!document.hidden) { _applyDaypart(); _onDayFlip(); }
   });
-  setInterval(_onDayFlip, 60000);
+  /* R231f（R38-P2-3）：时段档随 60s tick 同步——挂后台跨时段回前台
+   * 时渐变不再停在进页那一档。 */
+  setInterval(function () { _applyDaypart(); _onDayFlip(); }, 60000);
   window.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
     if (e.key.indexOf('checkin:') === 0) {
