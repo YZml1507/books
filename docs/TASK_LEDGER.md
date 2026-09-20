@@ -11196,3 +11196,7 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 打卡卡尾新增「📒 看看我的签册」details：点开懒渲染最近 21 个打卡日的迷你签墙（M/D + 签面），点任意一格 toast 当日反馈句；空册提示「抽一签就开张」。
 - 数据结构复用 checkin:* 存量键（_checkinAll 已收口 90 天）。
 - 闸门：selftest 237 / ruff E9F 全绿（ui_smoke 已由上批覆盖 checkin 渲染路径）。
+
+## R233q（R47-P2 续：周报签运图）
+- 打卡卡尾新增「📅 本周签运」（近 7 天打卡 ≥2 天才出现）；buildShareData 新增 `checkin-week` case：副题 M/D~M/D 日期段，big「本周打卡 N/7 天」，lines 逐日「周X MM/DD · 签面/歇了一天」。
+- 闸门：selftest 237 / ruff E9F 绿。

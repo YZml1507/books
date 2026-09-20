@@ -2898,6 +2898,22 @@ function buildShareData(view, j) {
         { k: '打卡口号', v: '今天也要好好生活呀' }];
       return _ck;
     }
+    /* R233q：周报海报——近 7 天每行 M/D·周X·签面，big 挂打卡率。 */
+    case 'checkin-week': {
+      var _wd = (j && j.days) || [];
+      var _hit = _wd.filter(function (d) { return d && d.opt; }).length;
+      var _wk = base('我的本周签运',
+        (_wd[0] ? String(_wd[0].date).slice(5) : '') + ' ~ ' +
+        (_wd[6] ? String(_wd[6].date).slice(5) : ''));
+      _wk.big = '本周打卡 ' + _hit + '/7 天' +
+        (j && j.streak >= 3 ? ' · 连签 ' + j.streak + ' 天' : '');
+      _wk.lines = _wd.map(function (d) {
+        var dd = String(d.date || '');
+        return { k: _weekdayCn(dd) + ' ' + dd.slice(5).replace('-', '/'),
+                 v: d.opt || '· 歇了一天' };
+      });
+      return _wk;
+    }
     case 'bazi': {
       var sb = base('今日命盘', '');
       var pillars = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
@@ -7786,6 +7802,16 @@ function renderCheckin(dateKey) {
     ((_streak >= 3 || saved) ? '<button type="button" class="checkin-share" id="checkinShare" ' +
       'title="生成分享图">' + (saved ? '📸 晒这张签' : '📸 晒连签') +
       '</button>' : '') +
+    /* R233q（R47-P2 续）：周报海报——近 7 天打卡 ≥2 天才显示 */
+    (function () {
+      var _w = 0;
+      for (var _i = -6; _i <= 0; _i++) {
+        if (_ckAll[_isoShift(dateKey, _i)]) _w++;
+      }
+      return (_w >= 2 ?
+        '<button type="button" class="checkin-share" id="checkinWeek" ' +
+        'title="生成本周签运图">📅 本周签运</button>' : '');
+    })() +
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>' +
     /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
@@ -7809,6 +7835,16 @@ function renderCheckin(dateKey) {
   if (_cks) _cks.addEventListener('click', function () {
     var _p = downloadPoster({ streak: _streak, pick: saved }, 'checkin');
     if (_p && _p.catch) _p.catch(function () {});
+  });
+  var _ckw = box.querySelector('#checkinWeek');
+  if (_ckw) _ckw.addEventListener('click', function () {
+    var _days = [];
+    for (var _i = -6; _i <= 0; _i++) {
+      var _dk = _isoShift(dateKey, _i);
+      _days.push({ date: _dk, opt: _ckAll[_dk] || '' });
+    }
+    var _p2 = downloadPoster({ days: _days, streak: _streak }, 'checkin-week');
+    if (_p2 && _p2.catch) _p2.catch(function () {});
   });
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
