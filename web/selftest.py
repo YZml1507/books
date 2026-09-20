@@ -1390,6 +1390,45 @@ def _run_inner() -> list[str]:
         kb.close()
     ok.append("threads.post+readback+cleanup")
 
+    # R230q（R28-P1-1b）：DELETE /api/threads/{tid}——turns 随删、claims
+    # 解绑保留（thread_id→NULL）、404 拒绝路径。
+    _tdel = client.post("/api/threads", json={
+        "kind": "refusal", "claim": "临时线程：删除路径自检",
+        "method": "selftest", "topic": "selftest-delete"})
+    assert _tdel.status_code == 200, ("threads.delete", _tdel.status_code,
+                                      _tdel.text[:200])
+    _tdel_tid = _tdel.json()["thread_id"]
+    _tdel_did = _tdel.json()["derived_id"]
+    _dr = client.delete(f"/api/threads/{_tdel_tid}")
+    assert _dr.status_code == 200 and _dr.json().get("deleted") == _tdel_tid, \
+        ("threads.delete", _dr.status_code, _dr.text[:200])
+    _dg = client.get(f"/api/threads/{_tdel_tid}")
+    assert _dg.status_code == 404, ("threads.delete", _dg.status_code)
+    # claims 解绑保留：derived 行仍在、thread_id 已置 NULL
+    _kb2 = KnowledgeBase(KNOWLEDGE_DB)
+    try:
+        _drow = _kb2.db.execute(
+            "SELECT thread_id FROM derived WHERE id=?", (_tdel_did,)
+        ).fetchone()
+        assert _drow is not None and _drow["thread_id"] is None, \
+            ("threads.delete", "claim 应解绑保留")
+        # 本次自检产生的解绑 claim 清理（FTS 先删再删主行）
+        _c = _kb2.db.execute("SELECT claim FROM derived WHERE id=?",
+                             (_tdel_did,)).fetchone()
+        if _c is not None:
+            _kb2.db.execute(
+                "INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                "VALUES('delete',?,?)", (_tdel_did,
+                                        segment_cjk(fold(_c["claim"]))))
+        _kb2.db.execute("DELETE FROM evidence WHERE derived_id=?", (_tdel_did,))
+        _kb2.db.execute("DELETE FROM derived WHERE id=?", (_tdel_did,))
+        _kb2.db.commit()
+    finally:
+        _kb2.close()
+    _dr2 = client.delete("/api/threads/99999999")
+    assert _dr2.status_code == 404, ("threads.delete", _dr2.status_code)
+    ok.append("threads.delete")
+
     # ── 知命产品化 API 自测（R002） ────────────────────────────────
     check("daily", client.get("/api/daily"),
           lambda j: (j.get("level") in ("吉", "平", "凶")

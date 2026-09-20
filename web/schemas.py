@@ -24,7 +24,9 @@ GENDERS = ("男", "女")
 
 # R230k（R23-P3-4）：零宽格式符（ZWSP/ZWNJ/ZWJ/BOM）不在 str.strip()
 # 的空白集合里——纯零宽串会过「非空」检查，落成空白气泡/空白排盘问句。
-_ZW_RE = re.compile(r"[\u200b-\u200d\ufeff]")
+# R230q（R28-P3-10）：LRM/RLM 与 bidi 覆盖符（RLO/PDF/LRI…）同属
+# 方向控制——不触发 HTML 注入但能把线程列表排版搅乱（esc() 挡不住）。
+_ZW_RE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]")
 
 
 def strip_zw(s: str | None) -> str | None:
@@ -222,8 +224,11 @@ class ThreadRecordRequest(BaseModel):
         # R230a-36（R14-P2-4 续）：C0 控制字符在写路径剥掉——读路径
         # （fts_phrase）已剥，写路径不剥会让含 \x00 的 claim 永不可被
         # derived_fts 检回（不对称）。
-        return v if v is None else "".join(
-            ch for ch in v if ord(ch) >= 0x20)
+        # R230q（R28-P3-10）：Cf 方向控制符（RLO/bidi 覆盖等）同剥——
+        # 线程题带 RLO 入库会把列表排版搅成乱序。
+        if v is None:
+            return None
+        return _ZW_RE.sub("", "".join(ch for ch in v if ord(ch) >= 0x20))
 
 
 class LiuyaoRequest(BaseModel):

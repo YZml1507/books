@@ -1511,6 +1511,7 @@ button:active{transform:scale(.96);}
   .page-glow, .func-card, .view-back, .back-bar, .bottom-nav, nav,
   form, button, input, select, textarea, details,
   .hl-chip, .hl-chips, #hlChips, .checkin, .toast, .share-btn,
+  .hl-interactive, .hl-ask,
   .ai-cta, .chat-drawer, .fab, .btn-row, .toolbar,
   [class*="deco"], [class*="glow"] {
     display: none !important;

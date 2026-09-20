@@ -637,6 +637,26 @@ def _drop_thread(kb, tid: int) -> None:
         pass
 
 
+def thread_delete(tid: int) -> dict:
+    """删除一条研究线程（R230q / R28-P1-1b：此前没有任何删除入口，
+    连按 Enter 刷出的空壳线程永久堆在列表里）。
+
+    turns 随删；已产生的 derived claims 解绑保留（thread_id→NULL）——
+    claims 是不可再生的研究笔记，线程消失不该连坐；contentless
+    derived_fts 也因此不用碰删除路径。"""
+    with deps.knowledge() as kb:
+        row = kb.db.execute(
+            "SELECT id FROM thread WHERE id=?", (tid,)).fetchone()
+        if row is None:
+            raise NotFoundError("这条线程没找到——可能已经删了")
+        kb.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
+        kb.db.execute(
+            "UPDATE derived SET thread_id=NULL WHERE thread_id=?", (tid,))
+        kb.db.execute("DELETE FROM thread WHERE id=?", (tid,))
+        kb.db.commit()
+        return {"deleted": tid}
+
+
 def thread_record(req) -> dict:
     """写入一条 derived claim（G8 纪律：断言型 kind 必须带证据）。
 

@@ -177,6 +177,15 @@ function _humanize422(detail) {
       if ((m = /greater than or equal to ([\d.-]+)/i.exec(msg))) return cn + '不能小于 ' + m[1];
       if ((m = /at most (\d+) items?/i.exec(msg))) return cn + '最多 ' + m[1] + ' 项';
       if ((m = /at least (\d+) items?/i.exec(msg))) return cn + '至少 ' + m[1] + ' 项';
+      /* R230q（R28-P3-9）：类型错/缺字段的英文原文兜底——
+       * "Input should be a valid integer" / "Field required" 不上屏。 */
+      if (/valid integer|valid number|valid finite|unable to parse|int_parsing|float_parsing/i.test(msg)) {
+        return cn + '要填数字哦';
+      }
+      if (/field required|missing/i.test(msg) || first.type === 'missing') {
+        return cn + '还没填';
+      }
+      if (/valid date|date_parsing|datetime/i.test(msg)) return cn + '不是合法日期';
       return cn + '填写有误或为空';
     }
     return '这条信息好像没填对，再检查一下～';
@@ -272,6 +281,20 @@ function showToast(msg, kind) {
     stack.className = 'toast-stack';
     document.body.appendChild(stack);
   }
+  /* R230q（R28-P2-5）：同文案洪泛去重——离线连点原来叠一屏相同 toast。
+   * 同文案在屏则折叠「×N」；栈上限 3 条，溢出摘最旧。 */
+  var _msgStr = String(msg || '');
+  var _items = stack.querySelectorAll('.toast-item');
+  for (var _i = 0; _i < _items.length; _i++) {
+    var _mEl = _items[_i].querySelector('.toast-msg');
+    if (_mEl && _mEl.dataset.base === _msgStr) {
+      var _n = parseInt(_mEl.dataset.n || '1', 10) + 1;
+      _mEl.dataset.n = String(_n);
+      _mEl.textContent = _msgStr + '（×' + _n + '）';
+      return;
+    }
+  }
+  while (_items.length >= 3) { _items[0].remove(); _items = stack.querySelectorAll('.toast-item'); }
   var t = document.createElement('div');
   t.className = 'toast-item toast-' + (kind || 'info');
   /* R228d：toast 是全站唯一的错误通道——不补 live region，API 错误对读屏
@@ -280,7 +303,8 @@ function showToast(msg, kind) {
   else { t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); }
   var icon = kind === 'error' ? '⛔' : (kind === 'warn' ? '⚠️' : '✅');
   t.innerHTML = '<span class="toast-icon">' + icon + '</span>' +
-    '<span class="toast-msg">' + esc(String(msg || '')) + '</span>';
+    '<span class="toast-msg">' + esc(_msgStr) + '</span>';
+  t.querySelector('.toast-msg').dataset.base = _msgStr;
   stack.appendChild(t);
   /* 入场动画 */
   requestAnimationFrame(function () { t.classList.add('show'); });
@@ -321,6 +345,17 @@ var RESULT_GEN = {};
 var AI_POLL_INTERVAL_MS = 500;
 var AI_POLL_CAP_S = 40;            // 与后端 _POLL_CAP_S 对齐
 
+/* R230q（R28-P3-8）：后台标签页/断网下轮询空转——每 500ms 白打一个
+ * 注定失败的请求（恢复瞬间还会连发）。门控：hidden/offline 时不取数。 */
+function _aiPollGate() {
+  return (typeof document !== 'undefined' && document.hidden === true) ||
+    (typeof navigator !== 'undefined' && navigator.onLine === false);
+}
+
+/* R230q（R28-P2-2）：切视图 bump RESULT_GEN 会作废在跑的 AI 轮询——
+ * 回来后那段「小满想了想」永远不来。pending 登记在案，进视图时恢复。 */
+var AI_PENDING = {};   /* containerId → taskId */
+
 /** 把 AI 块插进已渲染的结果区末尾；容器不存在/已插过返回 false。 */
 function insertAiPolish(containerId, text) {
   var node = el(containerId);
@@ -337,11 +372,19 @@ function insertAiPolish(containerId, text) {
 /** 轮询 AI 任务直到终态/超时；任何错误静默停止（D-244a：失败不可见）。 */
 function pollAiPolish(containerId, taskId) {
   if (!taskId) return;
+  AI_PENDING[containerId] = taskId;   /* R230q：切走再回来可恢复 */
   RESULT_GEN[containerId] = (RESULT_GEN[containerId] || 0) + 1;
   var gen = RESULT_GEN[containerId];
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+  var _done = function () { delete AI_PENDING[containerId]; };
   var tick = function () {
     if (RESULT_GEN[containerId] !== gen) return;   // 已被新一轮结果覆盖
+    /* R230q（R28-P3-8）：后台/断网暂停取数 */
+    if (_aiPollGate()) {
+      if (Date.now() < deadline) setTimeout(tick, 2000);
+      else _done();
+      return;
+    }
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       if (RESULT_GEN[containerId] !== gen) return;
       if (st && st.status === 'done' && st.text) {
@@ -349,11 +392,13 @@ function pollAiPolish(containerId, taskId) {
           var entry = LAST_RESPONSE[containerId];   // 让口吻切换重画也带上 AI 块
           if (entry && entry.json) entry.json.ai_polish = st.text;
         }
+        _done();
         return;                                      // 终态：停止轮询
       }
-      if (st && st.status === 'failed') return;      // 拿不到 → 整块不渲染
+      if (st && st.status === 'failed') { _done(); return; }  // 拿不到 → 整块不渲染
       if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-    }).catch(function () { /* 404/过期/网络抖动：静默放弃 */ });
+      else _done();
+    }).catch(function () { /* 404/过期/网络抖动：静默放弃 */ _done(); });
   };
   setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
@@ -390,6 +435,35 @@ function chatSid() {
 }
 var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
 var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自动发后允许追问 1 次 */
+
+/* R230q（R28-P2-4）：sid 在 sessionStorage 里跨刷新存活，但气泡清空后
+ * 新消息会悄悄接进用户看不见的上一轮上下文。把气泡 transcript 与 sid
+ * 同介质存储，刷新后原样重渲（上限 50 条与 chatBubble 裁剪一致）。 */
+var CHAT_TS_KEY = 'chatTranscript';
+function _chatTsRead() {
+  try {
+    var s = (_chatStore() || localStorage).getItem(CHAT_TS_KEY);
+    var arr = s ? JSON.parse(s) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function _chatTsSave(role, text) {
+  try {
+    var arr = _chatTsRead();
+    arr.push({ r: role === 'me' ? 'me' : 'ai', t: String(text || '').slice(0, 2000) });
+    if (arr.length > 50) arr = arr.slice(-50);
+    (_chatStore() || localStorage).setItem(CHAT_TS_KEY, JSON.stringify(arr));
+  } catch (e) {}
+}
+function _chatTsClear() {
+  try { (_chatStore() || localStorage).removeItem(CHAT_TS_KEY); } catch (e) {}
+}
+function _chatTsRestore() {
+  /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。 */
+  _chatTsRead().forEach(function (m) {
+    chatBubble(m.r === 'me' ? 'me' : 'ai', m.t, { nosave: true });
+  });
+}
 
 /* R219b（P0-2）：各视图最近一次 API 响应缓存——「聊聊这件事」要把真实牌面/
  * 盘面/结果拼进第一句话，AI 才有东西可解。键 = 视图短名（bazi/taohua/
@@ -541,6 +615,9 @@ function _chatClosedHint(bubble) {
   b.addEventListener('click', function () {
     try { (_chatStore() || localStorage).removeItem(CHAT_SID_KEY); } catch (e) {}
     chatSid();   /* 重新生成 sid */
+    _chatTsClear();   /* R230q：新话题起新 transcript——旧气泡重渲会污染新会话 */
+    var _flow = el('chatFlow');
+    if (_flow) _flow.innerHTML = '';
     _CHAT_SEND_COUNT = 0;
     chatBubble('ai', '新话题开张～想聊什么？');
     row.remove();
@@ -586,29 +663,42 @@ function autoSendChatContext() {
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
+      /* R230q（R28-P3-8）：后台标签页/断网时轮询空转烧预算——暂停取数，
+       * 恢复后再探；预算照样走，到点降级行为不变。 */
+      if (_aiPollGate()) {
+        if (Date.now() < deadline) setTimeout(tick, 2000);
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        return;
+      }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
+          _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
           if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
           return;
         }
         if (st && st.status === 'failed') {
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+          _chatTsSave('ai', '（小满这次没接住，再说一遍试试？）');
           return;
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else _ty.textContent = '（网络不太好，再发一次试试？）';
+        else { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
       }).catch(function (e) {
         /* R228c：瞬时抖动原来直接杀死轮询（catch 空转，typing 永转圈）。
          * 截止前继续排，超时才降级文案。R8 P2-9：404 任务不存在早退。 */
         if (e && e.status === 404) {
-          if (_ty) _ty.textContent = '（这次没接住，再发一次试试？）';
+          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）';
+            _chatTsSave('ai', '（这次没接住，再发一次试试？）'); }
           return;
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else if (_ty) _ty.textContent = '（网络不太好，再发一次试试？）';
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
       });
     };
     setTimeout(tick, AI_POLL_INTERVAL_MS);
@@ -714,6 +804,12 @@ function _nameReviewDone() {
 function pollNameReview(taskId) {
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
   var tick = function () {
+    if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
+      if (Date.now() < deadline) setTimeout(tick, 2000);
+      else { var o0 = el('nameReviewOut'); if (o0) o0.innerHTML =
+        '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
+      return;
+    }
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       const out = el('nameReviewOut');
       if (!out) { _nameReviewDone(); return; }
@@ -832,6 +928,9 @@ function chatBubble(role, text, opts) {
   else if (role === 'me') div.textContent = text;
   else div.innerHTML = renderRichText(text);   /* v3 P5：markdown 渲染 */
   flow.appendChild(div);
+  /* R230q（R28-P2-4）：transcript 持久化——raw 占位（打字动效）不存，
+   * nosave 为恢复重渲路径。终态写回处（_ty.innerHTML 直写点）各自补存。 */
+  if (!opts || (!opts.nosave && !opts.raw)) _chatTsSave(role, text);
   /* R230j（R22-P3-3）：气泡无上限 DOM 只涨不裁——保留最近 50 条，
    * 更早的摘掉（与 R228j records 滚动裁剪同一思路）。 */
   while (flow.children.length > 50) flow.removeChild(flow.firstChild);
@@ -875,49 +974,81 @@ function chatSend() {
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = Date.now() + AI_POLL_CAP_S * 1000;
     var tick = function () {
+      if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
+        if (Date.now() < deadline) setTimeout(tick, 2000);
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        return;
+      }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
+          _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
           if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
           return;
         }
         if (st && st.status === 'failed') {
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+          _chatTsSave('ai', '（小满这次没接住，再说一遍试试？）');
           return;
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else _ty.textContent = '（网络不太好，再发一次试试？）';
+        else { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
       }).catch(function (e) {
         /* R8 P2-9：404 = 任务已不在（重启/过期）——别再轮满 40s，直接降级。 */
         if (e && e.status === 404) {
-          if (_ty) _ty.textContent = '（这次没接住，再发一次试试？）';
+          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）';
+            _chatTsSave('ai', '（这次没接住，再发一次试试？）'); }
           return;
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else if (_ty) _ty.textContent = '（网络不太好，再发一次试试？）';
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
+          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
       });
     };
     setTimeout(tick, AI_POLL_INTERVAL_MS);
   }).catch(function () {
+    /* R230q（R28-P3-11）：发送失败把已打文案放回输入框，离线不丢稿 */
+    if (input && !input.disabled) input.value = msg;
+    /* 已贴出的 me 气泡同时从 transcript 与 DOM 回收——重试不再双发同句 */
+    try {
+      var _arr = _chatTsRead();
+      if (_arr.length && _arr[_arr.length - 1].r === 'me' &&
+          _arr[_arr.length - 1].t === msg) {
+        _arr.pop();
+        (_chatStore() || localStorage).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
+        var _bbs = document.querySelectorAll('#chatFlow .chat-me');
+        if (_bbs.length && _bbs[_bbs.length - 1].textContent === msg) {
+          _bbs[_bbs.length - 1].remove();
+        }
+      }
+    } catch (e2) {}
     chatBubble('ai', '（网络不太好，再发一次试试？）');
   });
 }
 
 /** 绑定点击；元素不存在时不报错（HTML 与 JS 允许分批演进）。
  * R228c：统一在途防重——handler 未落地前连点直接忽略。全站提交按钮
- * 走 on() 一处生效，替代逐按钮挂 disabled/flag 的老办法。 */
+ * 走 on() 一处生效，替代逐按钮挂 disabled/flag 的老办法。
+ * R230q（R28-P1-1）：锁改为按 key 共享的注册表——Enter 键路径与按钮
+ * 点击此前各执一把锁（Enter 直接调 handler），连按回车可并发发请求
+ * （#tq 每秒刷出一条永久线程）。现在 Enter/点击共用同 key 同锁。 */
+var _ON_BUSY = {};
+function guardedCall(key, handler, ev) {
+  if (_ON_BUSY[key]) return;
+  _ON_BUSY[key] = true;
+  Promise.resolve(handler(ev)).catch(function (e) {
+    console.warn('[on] handler error', e);
+  }).then(function () { _ON_BUSY[key] = false; });
+}
 function on(id, handler) {
   const node = el(id);
   if (!node) return;
-  var _busy = false;
   node.addEventListener('click', function (ev) {
-    if (_busy) return;
-    _busy = true;
-    Promise.resolve(handler(ev)).catch(function (e) {
-      console.warn('[on] handler error', e);
-    }).then(function () { _busy = false; });
+    guardedCall(id, handler, ev);
   });
 }
 
@@ -992,6 +1123,17 @@ function showView(viewId) {
     window.__homeScrollMem = _sy;
   }
   window.__inView = !isHome;
+  /* R230q（R28-P2-2）：切走即 bump 世代号会把在跑的 AI 轮询作废，
+   * 回来后那段「小满想了想」永远不来。回到视图时对本视图内仍
+   * pending 的容器重新武装轮询（任务在后端还活着，可继续取）。 */
+  if (target && !isHome) {
+    Object.keys(AI_PENDING).forEach(function (cid) {
+      var c = el(cid);
+      if (c && target.contains(c) && !c.querySelector('.ai-polish')) {
+        pollAiPolish(cid, AI_PENDING[cid]);
+      }
+    });
+  }
   /* R230d（R16-P1-2）：叶页→叶页此前抱着旧滚动位落在新页面中段——
    * v5「保持阅读位置」的本意是同一页内的重进，不是跨页。 */
   if (!isHome) window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1000,7 +1142,15 @@ function showView(viewId) {
    * state.view 或首页。 */
   try {
     if (!isHome && target && !window.__suppressPush) {
-      history.pushState({ view: viewId }, '');
+      /* R230q（R28-P2-3）：此前推的是空 URL——地址栏恒为 /，F5 后视图
+       * 全丢回首页，与 ?view= 深链机制自相矛盾。带上 ?view=，刷新由
+       * init 深链回跳原视图，结果页也可整链分享。 */
+      history.pushState({ view: viewId }, '',
+        '?view=' + encodeURIComponent(viewId));
+    } else if (isHome && !window.__suppressPush &&
+        /[?&]view=/.test(location.search)) {
+      /* 回首页清掉 ?view=——否则挂着旧参数的 F5 会被深链拽回上一视图 */
+      history.pushState({ view: 'home' }, '', '/');
     }
   } catch (e) { /* file:// 环境无 history API */ }
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
@@ -1989,7 +2139,12 @@ function warmPoster() {
   } catch (e) { /* 预热失败不影响任何主流程 */ }
 }
 
+var _POSTER_LAST = {};   /* view → ts：同视图 4s 内连点只弹浮层不再下载 */
 function downloadPoster(j, view) {
+  /* R230q（R28-P3-13）：连点分享每次都真下载——下载目录堆 N 张同名图
+   * 还触发浏览器「多次下载」权限弹窗。4s 内同视图只给预览浮层。 */
+  var _vkey = view || 'default';
+  var _dup = (Date.now() - (_POSTER_LAST[_vkey] || 0)) < 4000;
   /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。
    * R198b（US5）：view 传入时先 buildShareData 注入 j.share（通用模板）；
    * 不传则保持 bazi 专属旧版式。
@@ -2006,15 +2161,20 @@ function downloadPoster(j, view) {
   if (!r || !r.canvas) return;
   /* 同时触发下载（兼容 desktop「图去哪了」老习惯）+ 弹浮层。 */
   try {
-    r.canvas.toBlob(function (blob) {
-      if (!blob) return;
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'zhiming-poster.png';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
-    }, 'image/png');
+    if (_dup) {
+      showToast('这张图刚保存过了，长按/右键可直接再存', 'info');
+    } else {
+      _POSTER_LAST[_vkey] = Date.now();
+      r.canvas.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'zhiming-poster.png';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      }, 'image/png');
+    }
   } catch (e) { /* 低端降级：静默，不打断主流程 */ }
   /* 弹浮层——海报预览 + 移动端长按保存提示 */
   showPosterModal(r.canvas, view);
@@ -2694,6 +2854,7 @@ function buildBaziResult(j) {
 }
 
 var _submitBaziBusy = false;   /* R8 P2-2：form submit 不经 on()，自加在途锁 */
+var _submitBaziLast = { key: '', ts: 0 };   /* R230q（R28-P3-14）同参防抖 */
 async function submitBazi(event) {
   if (event) event.preventDefault();
   if (_submitBaziBusy) return;   // 连点/回车连击 → 只发一次，防并发覆盖
@@ -2701,6 +2862,14 @@ async function submitBazi(event) {
   busy('result', '计算中…');
   try {
     const body = baziBody();
+    /* R230q（R28-P3-14）：锁随响应释放后连击仍会各发一遍——同参数
+     * 1.5s 内复用上次结果（历史台账不再被刷出重复行）。 */
+    var _bkey = JSON.stringify(body);
+    if (_bkey === _submitBaziLast.key &&
+        Date.now() - _submitBaziLast.ts < 1500) {
+      paint('result', '<div class="no-evidence">这盘刚算过，结果就是上面那张～</div>');
+      return;
+    }
     /* R230f续4（R16-P2-4b）：与出生抽屉同一套预检——空/越界不走
      * 请求，直接站内中文提示（原来要等一轮 422）。 */
     if (body.year == null || body.month == null || body.day == null
@@ -2711,6 +2880,8 @@ async function submitBazi(event) {
     }
     WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
     const j = await postJSON('/api/bazi', body);
+    /* 只在成功后记账——失败重试（failWithRetry）不该被同参防抖拦 */
+    _submitBaziLast = { key: _bkey, ts: Date.now() };
     const paipan = j.paipan || {};
     /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
     try {
@@ -2967,17 +3138,7 @@ async function doThread() {
     /* R228l：创建与拉列表分两段 try——第二步失败时不能报「创建失败」，
      * 那会误导用户重试造出重复线程。 */
     try {
-      const list = await api('/api/threads');
-      (list.threads || []).forEach(function (t) {
-        html += '<div class="thread-item"><div class="thread-topic">' +
-          esc(t.topic || '') + '</div>' +
-          '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
-          ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
-          esc(t.updated_at || '') + '</div>' +
-          '<div class="thread-actions">' +
-          '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
-          '">查看</button></div></div>';
-      });
+      html += await _threadListHtml();
     } catch (e2) {
       html += '<div class="no-evidence">线程已创建，列表刷新失败：' +
         esc(e2.message) + '</div>';
@@ -2985,6 +3146,39 @@ async function doThread() {
     paint('threadResult', html);
   } catch (e) {
     fail('threadResult', '创建失败：' + e.message);
+  }
+}
+
+/* R230q（R28-P1-1b）：线程列表渲染抽出来——删除后整块重画用同一模板。
+ * 每条补「删」按钮（data-thread-del）：空壳线程此前没有任何清理入口。 */
+async function _threadListHtml() {
+  const list = await api('/api/threads');
+  var html = '';
+  (list.threads || []).forEach(function (t) {
+    html += '<div class="thread-item"><div class="thread-topic">' +
+      esc(t.topic || '') + '</div>' +
+      '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
+      ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
+      esc(t.updated_at || '') + '</div>' +
+      '<div class="thread-actions">' +
+      '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
+      '">查看</button>' +
+      '<button class="thread-del" type="button" data-thread-del="' + esc(t.id) +
+      '" aria-label="删除线程 #' + esc(t.id) + '">删</button></div></div>';
+  });
+  return html;
+}
+
+async function deleteThread(tid) {
+  if (!window.confirm('删掉这条线程？（里面的研究结论会保留为独立记录）')) return;
+  try {
+    await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
+    showToast('线程已删除', 'success');
+    /* 列表与详情共用 threadResult——重拉列表覆盖回列表态 */
+    const html = await _threadListHtml();
+    paint('threadResult', html || '<div class="no-evidence">暂无线程</div>');
+  } catch (e) {
+    showToast('删除失败：' + e.message, 'warn');
   }
 }
 
@@ -4856,9 +5050,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
         esc(_conflict.join('、')) + ' 宜忌两边都见——黄历自己都打架的日子，' +
         '这类事想做就把节奏放缓，不赶大动作</div>';
     }
-    /* 场景 chips：点选高亮匹配宜项 */
+    /* 场景 chips：点选高亮匹配宜项
+     * R230q（R28-P3-12）：打印时整块隐藏——原先只藏 chip 按钮，
+     * 「我打算：」「点一个场景…」两段说明成孤儿文字悬在纸上。 */
     var SCENES = ['搬家', '开业', '约会', '面试', '出行', '签约'];
-    html += '<div style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
+    html += '<div class="hl-interactive" style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
     html += SCENES.map(function (s) {
       var ok = yi.some(function (w) { return (YI_MAP[w] || '').indexOf(s) !== -1 || w.indexOf(s) !== -1; });
       /* R229z续23（R10-#9）：选中态同步 aria-pressed——读屏能知道选了哪个
@@ -5313,7 +5509,8 @@ function initBazi() {
   });
   var ci = el('chatInput');
   if (ci) ci.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') chatSend();
+    /* R230q：与 chatSendBtn 的 on() 点击同锁——连按 Enter 不再并发发消息 */
+    if (e.key === 'Enter') guardedCall('chatSendBtn', chatSend, e);
   });
   /* R228q：移动键盘弹出会把侧栏输入框顶出可视区（visualViewport 收缩，
    * 但侧栏是 fixed 布局不跟随）——键盘开合时把输入框滚回视口内。
@@ -5341,17 +5538,23 @@ function initReading() {
 
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
   /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
-   * 此前按 Enter 无反应，只能伸手去点按钮。 */
-  [['rq', doSearch], ['rq2', doResearch], ['cq', doConcept],
-   ['cwq', doCompareWorks], ['aaddr2', doAddr], ['tq', doThread],
-   ['bswork', doBookStructure], ['aguan', doAddr], ['ayao', doAddr],
-   ['aname', doAddr], ['aaddr1', doAddr]].forEach(function (pair) {
+   * 此前按 Enter 无反应，只能伸手去点按钮。
+   * R230q（R28-P1-1）：pair[1] 是与对应 on() 按钮共用的锁 key——
+   * Enter 连打与连点同防重（bswork 无 on() 按钮，自占一键）。 */
+  [['rq', 'searchBtn', doSearch], ['rq2', 'researchBtn', doResearch],
+   ['cq', 'conceptBtn', doConcept],
+   ['cwq', 'cwBtn', doCompareWorks], ['aaddr2', 'addrBtn', doAddr],
+   ['tq', 'threadBtn', doThread],
+   ['bswork', 'bswork', doBookStructure], ['aguan', 'addrBtn', doAddr],
+   ['ayao', 'addrBtn', doAddr],
+   ['aname', 'addrBtn', doAddr], ['aaddr1', 'addrBtn', doAddr]
+  ].forEach(function (pair) {
     const node = el(pair[0]);
     if (node) {
       node.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
           e.preventDefault();
-          pair[1]();
+          guardedCall(pair[1], pair[2], e);
         }
       });
     }
@@ -5389,6 +5592,13 @@ function initReading() {
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
       searchByWork(workCard.dataset.work);
+      return;
+    }
+    /* R230q（R28-P1-1b）：线程删除入口——先于 data-thread 判（删按钮
+     * 与查看同卡片，避免冒泡误进详情）。 */
+    const threadDel = e.target.closest('[data-thread-del]');
+    if (threadDel) {
+      deleteThread(threadDel.dataset.threadDel);
       return;
     }
     const threadBtn = e.target.closest('[data-thread]');
@@ -5488,6 +5698,9 @@ function init() {
   initBazi();
   initReading();
   initDivination();
+  /* R230q（R28-P2-4）：sid 跨刷新存活则气泡也跨刷新恢复——否则
+   * 新消息悄悄接进看不见的上一轮上下文。 */
+  _chatTsRestore();
   loadDaily();
   /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
@@ -5533,16 +5746,25 @@ function init() {
 
   /* R230n（R25-3.2）：深链——?view=huangli 或 /huangli 路径式皆可，
    * 白名单内直接落到对应功能页。拼错/越名单的静默回首页（不报错）。
-   * （路径式依赖 app.py 的 SPA 兜底回 index.html） */
+   * （路径式依赖 app.py 的 SPA 兜底回 index.html）
+   * R230q（R28-P3-6）：非法 view 静默回首页用户会以为链接坏了——给
+   * 一句 toast；R28-P2-3 起 pushState 带 ?view=，初始化落页不再补推
+   * 一条重复历史（__suppressPush）。 */
   try {
     var _vp = new URLSearchParams(location.search).get('view');
     if (!_vp) {
       var _seg = location.pathname.replace(/^\/+|\/+$/g, '');
       if (_seg && _seg.indexOf('/') < 0) _vp = _seg;
     }
-    if (_vp && document.getElementById('view-' + _vp) &&
-        document.querySelector('.func-card[data-view="' + _vp + '"]')) {
-      showView(_vp);
+    if (_vp) {
+      if (document.getElementById('view-' + _vp) &&
+          document.querySelector('.func-card[data-view="' + _vp + '"]')) {
+        var _hold = window.__suppressPush;
+        window.__suppressPush = true;
+        try { showView(_vp); } finally { window.__suppressPush = _hold; }
+      } else {
+        showToast('这个入口不存在，先带你回首页', 'info');
+      }
     }
   } catch (e) {}
 }
@@ -5668,6 +5890,8 @@ function renderCheckin(dateKey) {
         dateKey = _today;
         renderCheckin(_today);
       }
+      /* R230q（R28-P3-7）：先落盘再标 picked——原先 catch 后仍无条件
+       * 打勾，写失败也显示「已打卡」静默丢数据（隐私模式/quota）。 */
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
         /* R230j（R22-P3-2）：checkin:* 每日一键永不清理——写今日键时
@@ -5679,7 +5903,10 @@ function renderCheckin(dateKey) {
             window.localStorage.removeItem(_ck);
           }
         }
-      } catch (e2) {}
+      } catch (e2) {
+        showToast('这次打卡没存上（存储不可用）', 'warn');
+        return;
+      }
       box.querySelectorAll('.checkin-opt').forEach(function (b) {
         var on = (b.dataset && b.dataset.opt === opt);
         b.classList.toggle('picked', on);

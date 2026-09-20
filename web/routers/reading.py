@@ -96,6 +96,12 @@ def thread_detail(tid: int) -> dict:
     return services.thread_detail(tid)
 
 
+@router.delete("/api/threads/{tid}")
+def thread_remove(tid: int) -> dict:
+    """删除一条研究线程（R230q：turns 随删，derived claims 解绑保留）。"""
+    return services.thread_delete(tid)
+
+
 @router.post("/api/threads")
 def thread_record(req: ThreadRecordRequest) -> dict:
     """写入一条研究结论（G8：断言型 kind 必须带证据，refusal 可无）。"""

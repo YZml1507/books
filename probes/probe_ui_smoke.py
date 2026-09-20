@@ -1042,6 +1042,22 @@ def main() -> int:
             except Exception as _e:
                 results.append({"name": "deep.path_link", "ok": False,
                                 "detail": f"路径式深链未激活：{_e}"})
+            # R230q（R28-P2-3）：站内导航推 ?view=——F5 刷新回跳同视图。
+            dl.goto(f"http://127.0.0.1:{port}/")
+            try:
+                dl.click('.func-card[data-view="bazi"]')
+                dl.wait_for_selector("#view-bazi.active", timeout=5000)
+                _q = dl.evaluate("() => location.search")
+                dl.reload()
+                dl.wait_for_selector("#view-bazi.active", timeout=5000)
+                results.append({
+                    "name": "deep.pushstate_reload",
+                    "ok": "view=bazi" in _q,
+                    "detail": f"点入口卡后地址栏 {_q}；刷新回 view-bazi",
+                })
+            except Exception as _e:
+                results.append({"name": "deep.pushstate_reload", "ok": False,
+                                "detail": f"?view= 写址/刷新恢复失败：{_e}"})
             dl.close()
             ctx.close()
             browser.close()
