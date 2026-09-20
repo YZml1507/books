@@ -10572,3 +10572,4 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **P3-10**：`keep()` 里 suspect 命中也计入 kept——kept 语义是「进证据集」，披露行不算证据，已拆。
 - **R230a-47~50**：新行为钉扎批——`compare.flagged`（受损见证隔离 + opt-in）、`search.s2t_hint`、`search.total`、`err.threads.role/empty_quote`（孤儿零增量复用旧断言窗）、`daily.future_nowrite`、`err.int64_overflow`。selftest 206→214。
 - 顺带：`_validation_handler` 的 `ctx.error` 嵌套 ValidationError 对象让 JSONResponse 炸 500——新断言当场抓到，ctx 值统一 str()。
+- **R230b**：仓库此前零 linter——接入 `ruff check src web --select E9,F`（语法错/未定义名/未用导入最窄口径）进 CI selftest job。存量 18 条全清（16 自动修：未用 import/f-string 前缀；2 手清：douay `cur_chap`、ingest `yilin_cells` 死赋值）。活代码在 F821/E999/B023 等高危规则上零命中——宽规则集留作后续档（958 条多为 BLE001/SIM115 风格项）。
