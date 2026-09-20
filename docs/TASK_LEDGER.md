@@ -10804,3 +10804,11 @@ R30 其余 8 条处置：view-read 前端缺陷 5 条按用户 R208b 决策持�
 voice 14 / xingzuo / warm_voice / async_ai / dollar_misuse / date_parity
 (65+35, 88 alias) / plain_first / no_generated / scripts_importable 全绿；
 ruff E9,F 零命中。
+
+### R230t 续（R32 收尾项）
+- chat payload 重排：verdicts 并进首段 system、coords 并入最新 user——
+  消掉 system↔user↔system 的权重不稳交错（R32-P2-10）。
+- _sanitize：`<think>` 无闭标签 → None（英文思考链不再裸上屏）；
+  空白压缩只压水平空白，段落换行保留（R32-P2-14）。
+- polish/_chat_call 重试加 0.4s 递增退避；polish temperature 0.8→0.5。
+- 删 xhs_copy 死代码；ai-polish badge 改「每次生成可能不一样」。
