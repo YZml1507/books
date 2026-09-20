@@ -99,13 +99,23 @@ function busy(id, text) {
 
 /* R218a-巡4（E-a/E-b）：失败态——清掉成功期说明文字 + 内联「重新测算」
  * 重试按钮。retry 用闭包记住上次提交动作，点击即原样 re-dispatch。 */
+/* R229z续17：JS 运行时错/非 JSON 响应的 message 是英文技术原文
+ * （"Cannot read properties of null"、"Failed to fetch"……），直接贴上屏
+ * 违和且泄漏实现细节。fail/failWithRetry 统一过一遍：把英文技术片段
+ * 换成人话尾巴（前面中文前缀「查询失败：」保留）。 */
+function _humanizeErr(text) {
+  if (typeof text !== 'string') return '出了点小状况，稍后再试';
+  return text.replace(
+    /(?:Failed to fetch|Load failed|Network request failed|Cannot read propert\w+|is not defined|is not a function|out of range|Unexpected token|Script error|AbortError|TimeoutError)[^。；\n]*/gi,
+    '网络或服务出了点小状况');
+}
 function failWithRetry(id, text, retryFn) {
   document.querySelectorAll('.footnote').forEach(function (fn) { fn.hidden = true; });
   const node = el(id);
   if (!node) return;
   node.hidden = false;
   node.innerHTML =
-    '<div class="no-evidence">' + esc(text) +
+    '<div class="no-evidence">' + esc(_humanizeErr(text)) +
     (typeof retryFn === 'function'
       ? ' <button type="button" class="ghost" id="retryBtn" ' +
         'style="margin-left:8px;">🔄 重新测算</button>' : '') +
@@ -115,7 +125,7 @@ function failWithRetry(id, text, retryFn) {
 }
 
 function fail(id, text) {
-  paint(id, '<div class="no-evidence">' + esc(text) + '</div>');
+  paint(id, '<div class="no-evidence">' + esc(_humanizeErr(text)) + '</div>');
 }
 
 /** R228i：Pydantic 422 的 detail 是 [{loc:[...,field],msg}] 数组，

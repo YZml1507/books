@@ -10416,3 +10416,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ### R229z续16（非JSON错误体人话化）
 
 - `api()` 兜底：body 无 detail 时原拼 `status + statusText` 会漏英文（「500 Internal Server Error」）。现按状态码翻：5xx→「服务开小差了（5xx），稍后再试」、404→「要找的内容不在了」、其余4xx→「请求被婉拒了（4xx）」。
+
+### R229z续17（运行时错误文案统一人话化）
+
+- `fail`/`failWithRetry` 统一过 `_humanizeErr`：JS 运行时错（Cannot read/is not defined/out of range/AbortError 等英文片段）换「网络或服务出了点小状况」，中文前缀保留。补 api() 层之外最后一道英文泄漏缝。
