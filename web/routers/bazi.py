@@ -135,7 +135,7 @@ def paipan_history_export() -> Response:
         raise NotFoundError("排盘历史未启用")
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["id", "ts", "name", "question", "paipan_render"])
+    writer.writerow(["id", "ts", "name", "question", "type", "paipan_render"])
     for row in paipan_history.export_rows():
         writer.writerow(row)
     content = "\ufeff" + buf.getvalue()

@@ -131,6 +131,9 @@ BUTTON_CASES = [
     ("taohua",         "taohua",  None,            "#thSubmit",      "#thResult"),
     ("tarot",          "tarot",   None,            "#trSubmit",      "#trResult"),
     ("hehun",          "hehun",   None,            "#hhSubmit",      "#hhResult"),
+    # R230z（R36-P1-2）：存这对钮只有 hehun 出卡后才存在——用例必须排
+    # 在 hehun 之后；点击后 #hhFavRow 浮出「测过的 CP」chips 为断言。
+    ("hehun.savepair",  "hehun",   None,            "#hhSavePair",    "#hhFavRow"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）

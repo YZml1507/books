@@ -206,6 +206,335 @@ function _humanize422(detail) {
  * opts.silent=true（R228k）：不弹 toast——轮询类调用（/api/ai/{tid}）的
  * 失败本来就有「整块不渲染」的降级语义，不该每 500ms 一张 toast 循环 40s。 */
 var API_TIMEOUT_MS = 20000;
+/* R230z（R36-P1-1）：渲染体抽为顶层 builder——历史台账「复看」
+ * 按 rec.type 回放同一渲染；do* 里只剩 paint 一行。 */
+function buildHehunResult(j) {
+  const a = j.a_bazi || {};
+  const b = j.b_bazi || {};
+  /* R230z（R36-P1-2）：昵称对——有昵称就用「小鱼 × 阿哲」当头 */
+  var _hn = (j.a_name || j.b_name || '') ?
+    ((j.a_name || '我') + ' × ' + (j.b_name || 'TA')) : '';
+  let html = '<div class="card"><h2>💕 八字合婚' +
+    (_hn ? ' <small style="font-size:15px;color:var(--primary-ink);">' +
+    esc(_hn) + '</small>' : '') + '</h2>';
+  // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+  html += '<button class="ghost fav-btn" type="button" id="shareHehun" ' +
+    'title="生成分享图">📸 分享图</button>';
+  /* R230z（R36-P1-2/P2-3）：存这对——写入 /api/favorites，下次表单上方
+   * 的「测过的 CP」chips 一键回填。 */
+  html += '<button class="ghost fav-btn" type="button" id="hhSavePair" ' +
+    'title="把这对的生辰存下来，下次一键回填">💝 存这对</button>';
+  // R187b：人话视图置顶（specs/005 US4）
+  if (j.warm) {
+    html += '<div class="warm-wrap"><div class="warm-l0">' +
+      esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
+    (j.warm.reply || []).forEach(function (ln) {
+      html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div>';
+    if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
+    html += '</div>';
+  }
+  html += '<div class="calc-grid">';
+  html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
+    '<h3 style="color:var(--c-bazi);">' + esc(j.a_name || '甲') + '</h3>' +
+    '<p style="font-family:var(--font-serif);font-size:18px;">' +
+    esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
+    '<p style="font-size:13px;color:var(--secondary);">日主：' +
+    esc(a.day_master || '') + '（' + esc(j.day_wx_a || '') + '）</p></div>';
+  html += '<div class="calc-block" style="border-left:3px solid var(--c-hehun);">' +
+    '<h3 style="color:var(--c-hehun);">' + esc(j.b_name || '乙') + '</h3>' +
+    '<p style="font-family:var(--font-serif);font-size:18px;">' +
+    esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
+    '<p style="font-size:13px;color:var(--secondary);">日主：' +
+    esc(b.day_master || '') + '（' + esc(j.day_wx_b || '') + '）</p></div>';
+  html += '</div><div class="pill-row">';
+  const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
+  const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
+  html += '<span class="pill sm" style="background:' + relColor + ';">年支（' +
+    esc(j.year_zhi_a || '') + '×' + esc(j.year_zhi_b || '') + '）：' +
+    esc(relLabel) + '</span>';
+  /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
+  html += '<span class="pill sm" style="background:' +
+    ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';">日主五行：' +
+    esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '非相生')) + '</span>';
+  html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
+    esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
+    esc(j.peach_same ? '重叠' : '不同') + '</span>';
+  // R204b（D-257b）：天干五合 + 十神互见 pill（yinyuan skill 融入）
+  if (j.gan_he) {
+    html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
+  }
+  if (j.god_a_sees_b && j.god_b_sees_a) {
+    html += '<span class="pill sm" style="background:var(--secondary);">十神互见：' +
+      esc(j.god_a_sees_b) + '/' + esc(j.god_b_sees_a) + '</span>';
+  }
+  html += '</div>';
+  if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
+  if (j.dayun_hits && j.dayun_hits.length) {
+    /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
+     * 收进默认折叠（事实零删减）；pro 模式保持平铺。 */
+    /* R228n：五列表 320px 下 min-content 超容器 11px→整页横滚；
+     * 外包 .table-scroll 让表自己滚。 */
+    var _table = '<div class="table-scroll"><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
+      '<th>关系</th><th>约起年</th></tr></thead><tbody>';
+    j.dayun_hits.forEach(function (d) {
+      _table += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
+        '</td><td>' + esc(d.pillar_b) + '</td><td>' + esc(d.relation) +
+        '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
+    });
+    _table += '</tbody></table></div>';
+    if (voiceMode() === 'warm') {
+      html += '<details class="warm-basis"><summary>📅 大运冲合表（' +
+        j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
+    } else {
+      html += '<h3 style="margin-top:16px;">大运冲合应期</h3>' + _table;
+    }
+  }
+  if (j.notes && j.notes.length) {
+    html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
+  }
+  /* C-003：交叉引用——合婚结果页增加星座配对维度 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">💕</span>' + esc(j.cross_ref.message) + '</div>';
+  }
+  html += renderAiPolish(j);
+  html += '</div>';
+  return html;
+}
+
+/* R230z（R36-P1-1）：渲染体抽为顶层 builder——历史台账「复看」
+ * 按 rec.type 回放同一渲染；do* 里只剩 paint 一行。 */
+function buildTaohuaResult(j) {
+  let html = '<div class="card"><h2>🌺 桃花运</h2>';
+  /* R218a-巡2（N-08）：装饰图——桃花卡顶部加 SVG/CSS 装饰 banner。 */
+  html += renderDecoration('taohua');
+  // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+  html += '<button class="ghost fav-btn" type="button" id="shareTaohua" ' +
+    'title="生成分享图">📸 分享图</button>';
+  const bz = j.bazi || {};
+  // R187b：人话视图置顶（specs/005 US4——先说人话，再看坐标）
+  if (j.warm) {
+    html += '<div class="warm-wrap"><div class="warm-l0">' +
+      esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
+    (j.warm.reply || []).forEach(function (ln) {
+      html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div>';
+    if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
+    html += '</div>';
+  }
+  /* R216b（UX 队列 U-003）：温柔模式下四柱标签 + 8 个裸键值块
+   * （年支/咸池/红鸾/天喜/强弱…）是纯工具感排版，且 badge 声称
+   * badge 曾声称「详细依据见专业模式」却把原始坐标铺在当前页、自相矛盾
+   * （该套话已在 R218a-巡6 D-003-badge 从 voice.BADGE 移除）。
+   * 改为：warm 下整块收进单个折叠「🔍 想看桃花坐标？」；
+   * 强弱值经 STRENGTH_CN 映射（weak→偏弱 等英文不再直出）。
+   * 叠字标签核查结论（R216b 实测 + vision 复核）：审查轨截图里的
+   * 「巳巳」是 1990-05-15 男真实八字数据（月柱辛巳、时柱辛巳各自
+   * 干支同支），非前端拼接 bug，不做去重——去重反而会篡改事实。
+   * 专业模式分支原样保留全部数据。 */
+  const STRENGTH_CN = { strong: '偏旺', mid: '平稳', weak: '偏弱' };
+  function _strengthCn(v) { return STRENGTH_CN[v] || v || '—'; }
+  /* R218a-巡4（N4-a）：柱名英文枚举裸抛修复——后端 hit_pillars 等返回
+   * year/month/day/hour，src/guji/taohua.py 有 _PILLAR_CN 映射但前端
+   * 没用，用户看到「命中柱: month」。前端补同一映射（含容错：未知值原样）。 */
+  const PILLAR_CN = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
+  function _pillarCn(list) {
+    return (list || []).map(function (p) { return PILLAR_CN[p] || p; }).join('、') || '无';
+  }
+  if (j.warm) {
+    html += '<details class="warm-basis warm-pro-fold"><summary>🔍 想看桃花坐标？（展开看专业数据）</summary>';
+  }
+  html += '<div class="pill-row">';
+  ['year', 'month', 'day', 'hour'].forEach(function (k, i) {
+    if (bz[k]) {
+      html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
+        esc(bz[k]) + '</span>';
+    }
+  });
+  html += '</div>';
+  html += '<div class="calc-grid">';
+  [
+    ['年支', j.year_zhi], ['咸池（桃花）', j.peach_zhi],
+    ['命中柱', _pillarCn(j.hit_pillars)],
+    ['红鸾', j.hongluan], ['红鸾落柱', _pillarCn(j.hongluan_pillar)],
+    ['天喜', j.tianxi], ['天喜落柱', _pillarCn(j.tianxi_pillar)],
+    ['强弱', _strengthCn(j.strength)]
+  ].forEach(function (pair, i) {
+    html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +
+      ';"><h3>' + esc(pair[0]) + '</h3><p>' + esc(fmtScalar(pair[1])) + '</p></div>';
+  });
+  html += '</div>';
+  if (j.render) {
+    html += '<div class="calc-summary" style="border-left-color:var(--c-taohua);">' +
+      esc(j.render) + '</div>';
+  }
+  if (j.warm) {
+    html += '</details>';
+  }
+  if (j.dayun_hits && j.dayun_hits.length) {
+    html += '<h3 style="margin-top:16px;">大运桃花应期</h3>' +
+      '<table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
+      '</tr></thead><tbody>';
+    j.dayun_hits.forEach(function (d) {
+      html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
+        '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  if (j.notes && j.notes.length) {
+    html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
+  }
+  /* R220b：交叉引用铺到桃花——星座桃花信号 × 八字强度叠加 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">🌸</span>' +
+      esc(j.cross_ref.message) + '</div>';
+  }
+  html += renderAiPolish(j);
+  html += '</div>';
+  return html;
+}
+
+/* R230z（R36-P1-1）：渲染体抽为顶层 builder——历史台账「复看」
+ * 按 rec.type 回放同一渲染；do* 里只剩 paint 一行。 */
+function buildQimingResult(j) {
+  let html = '<div class="card"><h2>🌸 起名推荐</h2>';
+  /* R218a-巡2（N-08）：装饰图——起名卡顶部加 SVG/CSS 装饰 banner。 */
+  html += renderDecoration('qiming');
+  // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
+  html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
+    'title="生成分享图">📸 分享图</button>';
+  /* R218a-04：换一批 + 风格切换 4 档（诗经草木 / 楚辞 / 清新灵动 / 综合） */
+  /* R228d：这是单选过滤钮不是页签——role=tablist 滥用会让读屏报「页签
+   * 列表」但子项不是 tab；改 group + 各 chip aria-pressed（对照
+   * .mode-btn 的既有写法）。 */
+  html += '<div class="qm-style-row" role="group" aria-label="起名风格">';
+  Object.keys(_QM_STYLES).forEach(function (k) {
+    var s = _QM_STYLES[k];
+    var active = (k === _QM_STYLE) ? ' active' : '';
+    html += '<button class="qm-style-chip' + active + '" type="button" ' +
+      'aria-pressed="' + (k === _QM_STYLE) + '" ' +
+      'data-style="' + esc(k) + '" title="' + esc(s.hint) + '">' +
+      esc(s.label) + '</button>';
+  });
+  html += '</div>';
+  html += '<div class="qm-style-hint" id="qmStyleHint">' +
+    esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') + '</div>';
+  const bz = j.bazi || {};
+  if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
+  const fe = j.five_elements || {};
+  /* R230a-7（R13-P1-6）：俱全时写「偏弱」不写「缺」 */
+  html += '<p class="nayin">五行分布：' + esc(fmtScalar(fe.counts)) +
+    (fe.missing && fe.missing.length ? '　缺：' + esc(fe.missing.join('、')) :
+     (fe.weak && fe.weak.length ? '　偏弱：' + esc(fe.weak.join('、')) : '')) +
+    '</p>';
+  if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
+  // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
+  // R218a-04+05：按当前 _QM_STYLE 过滤 + 客户端打分排序（缺补+音韵+出处+双字）
+  var _allNames = (j.full_names || []).slice();
+  var _styleShift = ({'classics': 0, 'chuci': 2, 'fresh': 4, 'all': 0})[_QM_STYLE] || 0;
+  var _styleNames = _allNames;
+  /* R224b：下面这段风格错位切片是按 top_n=20 设计的（注释里的"取 8-16 /
+   * 16-24"），本轮 top_n 降到 8 后偏移会绕回同一批，风格档之间不再有区分度。
+   * 用 length > 12 作闸：池够大才做错位，池小（=8）时三档共用同一批名字，
+   * 由 _qmScore 排序体现差异，避免"换风格看到同样的名字还乱序"。
+   * 扩池到 40+/元素并把 top_n 调回 20 后，这里自动恢复错位行为。 */
+  if (_QM_STYLE !== 'all' && _allNames.length > 12) {
+    /* 错位切片让不同档的「头条」不同——诗经草木取前 8、楚辞取 8-16、清新灵动取 16-24；
+     * 不足时回到 0 循环。零后端改动，纯前端视觉轮换。 */
+    var _len = _allNames.length;
+    _styleNames = [];
+    for (var _k = 0; _k < 8 && _k < _len; _k++) {
+      _styleNames.push(_allNames[(_styleShift + _k) % _len]);
+    }
+  }
+  var _scored = _styleNames.map(function (n, idx) {
+    n._rank = idx;
+    /* R230a-7（R13-P1-6）：俱全时按 weak 打分（选字池用的就是 weak） */
+    return { n: n, s: _qmScore(n,
+      (fe.missing && fe.missing.length) ? fe.missing : (fe.weak || [])) };
+  }).sort(function (a, b) { return b.s.total - a.s.total; });
+  if (_scored && _scored.length) {
+    html += '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
+      esc((_QM_STYLES[_QM_STYLE] || {}).label || '') +
+      '<span style="font-size:12px;color:var(--secondary);font-weight:400;">　评分口径：五行补缺+典籍出处+寓意+音形+气质契合</span></h3>' +
+      '<div class="calc-grid">';
+    _scored.forEach(function (entry, i) {
+      var n = entry.n;
+      var score = entry.s.total;
+      var chips = entry.s.parts.map(function (p) {
+        return '<span class="qm-part">' + esc(p.label) + ' +' + p.pts + '</span>';
+      }).join('');
+      var c = colorAt(i);
+      /* R218a-05：⭐ 契合度 + TOP 1/2/3 徽章 */
+      html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
+        _qmBadgeHtml(score, i) +
+        '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:24px;">' +
+        esc(n.full_name || '') +
+        /* R230z（R36-P2-3）：心水名单——♡ 收名字进 favorites，
+         * 换一批后旧名字不丢。 */
+        '<button type="button" class="qm-fav" data-fav-name="' +
+        esc(n.full_name || '') + '" title="收进心水名单" ' +
+        'aria-label="收藏 ' + esc(n.full_name || '') + '">♡</button></h3>' +
+        '<p style="font-size:13px;color:var(--secondary);">五行：' +
+        esc((n.elements || []).join('·')) +
+        (n.form === 'single' ? '　单字名' : '　双字名') + '</p>' +
+        '<div class="qm-parts">' + chips + '</div>';
+      if (n.story) {
+        html += '<p style="font-size:13px;margin-top:4px;">📜 ' + esc(n.story) + '</p>';
+      } else if (n.meanings) {
+        html += '<p style="font-size:13px;">' + esc(n.meanings) + '</p>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    /* R218a-04：「换一批」总入口——按当前风格顺位 +1 重新选 8 个 */
+    var _next = ({'classics': 'chuci', 'chuci': 'fresh',
+                  'fresh': 'classics', 'all': 'classics'})[_QM_STYLE] || 'classics';
+    html += '<div class="qm-refresh-row">' +
+      '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
+      'title="按 ' + esc(_QM_STYLES[_next].label) + ' 风格再来 8 个">' +
+      '🔄 换一批（' + esc(_QM_STYLES[_next].label) + '）</button>' +
+      '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
+      '</div>';
+  }
+  /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
+  /* R216b 续5（U-019）：DISABLE/降级态（响应无 ai_task_id）按钮置灰+
+   * 提示语，不再可反复点。 */
+  var _aiOff = !j.ai_task_id;
+  html += '<button class="chat-entry" type="button" id="nameReviewBtn"' +
+    (_aiOff ? ' disabled title="小满点评这会儿休息，回头再来吧"' : '') + '>' +
+    '✨ 让 AI 用古籍典故点评这些名字</button>' +
+    '<div id="nameReviewOut" hidden></div>';
+  /* candidates[] = {char, element, radical, meaning}。
+   * R221b-fix：这段折叠区从 R217a 起一直是「0 字」空壳（后端写死 []），
+   * 审查轨 vision 目视发现。后端已填真数据，radical 位放的是**典故出处**
+   * （比部首对用户有用），所以标签同步改成「五行与出处」。 */
+  html += '<details class="warm-basis" style="margin-top:14px;"><summary>单字候选池（' +
+    ((j.candidates || []).length) + ' 字，展开看五行与出处）</summary><div class="calc-grid">';
+  (j.candidates || []).forEach(function (n, i) {
+    const c = colorAt(i);
+    html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
+      '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:22px;">' +
+      esc(n.char || '') + '</h3>' +
+      '<p style="font-size:13px;color:var(--secondary);">五行：' +
+      esc(n.element || '') + '　出处：' + esc(n.radical || '') + '</p>' +
+      '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
+  });
+  html += '</div></details>';
+  /* R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度 */
+  if (j.cross_ref && j.cross_ref.message) {
+    html += '<div class="cross-ref"><span class="cross-ref-icon">✨</span>' +
+      esc(j.cross_ref.message) + '</div>';
+  }
+  html += renderAiPolish(j);
+  /* R229z续23（R11-#4）：起名卡此前全程无免责徽标 */
+  html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">名字综合古籍意象与五行给的参考，仅供娱乐——孩子的名字还是家里人说了算 ✨</div>';
+  html += '</div></div>';
+  return html;
+}
+
 async function api(path, options) {
   options = options || {};
   /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
@@ -2290,7 +2619,11 @@ function buildShareData(view, j) {
       return st;
     }
     case 'hehun': {
-      var sh = base('合婚配对', '');
+      /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比
+       * 「合婚配对」更有分享欲 */
+      var _hhT = (j && (j.a_name || j.b_name)) ?
+        ((j.a_name || '我') + ' × ' + (j.b_name || 'TA')) : '合婚配对';
+      var sh = base(_hhT, '');
       sh.big = l0 || '甜度超标组合';
       sh.lines = [];
       var _wa = _pStr(j && j.day_wx_a), _wb = _pStr(j && j.day_wx_b);
@@ -3992,135 +4325,8 @@ async function doQiming() {
       seed: _qmSeed || null,
       style: _QM_STYLE || 'all'    /* v3（P3）：风格档后端过滤 */
     });
-    let html = '<div class="card"><h2>🌸 起名推荐</h2>';
-    /* R218a-巡2（N-08）：装饰图——起名卡顶部加 SVG/CSS 装饰 banner。 */
-    html += renderDecoration('qiming');
-    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
-    html += '<button class="ghost fav-btn" type="button" id="shareQiming" ' +
-      'title="生成分享图">📸 分享图</button>';
-    /* R218a-04：换一批 + 风格切换 4 档（诗经草木 / 楚辞 / 清新灵动 / 综合） */
-    /* R228d：这是单选过滤钮不是页签——role=tablist 滥用会让读屏报「页签
-     * 列表」但子项不是 tab；改 group + 各 chip aria-pressed（对照
-     * .mode-btn 的既有写法）。 */
-    html += '<div class="qm-style-row" role="group" aria-label="起名风格">';
-    Object.keys(_QM_STYLES).forEach(function (k) {
-      var s = _QM_STYLES[k];
-      var active = (k === _QM_STYLE) ? ' active' : '';
-      html += '<button class="qm-style-chip' + active + '" type="button" ' +
-        'aria-pressed="' + (k === _QM_STYLE) + '" ' +
-        'data-style="' + esc(k) + '" title="' + esc(s.hint) + '">' +
-        esc(s.label) + '</button>';
-    });
-    html += '</div>';
-    html += '<div class="qm-style-hint" id="qmStyleHint">' +
-      esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') + '</div>';
-    const bz = j.bazi || {};
-    if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
-    const fe = j.five_elements || {};
-    /* R230a-7（R13-P1-6）：俱全时写「偏弱」不写「缺」 */
-    html += '<p class="nayin">五行分布：' + esc(fmtScalar(fe.counts)) +
-      (fe.missing && fe.missing.length ? '　缺：' + esc(fe.missing.join('、')) :
-       (fe.weak && fe.weak.length ? '　偏弱：' + esc(fe.weak.join('、')) : '')) +
-      '</p>';
-    if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
-    // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
-    // R218a-04+05：按当前 _QM_STYLE 过滤 + 客户端打分排序（缺补+音韵+出处+双字）
-    var _allNames = (j.full_names || []).slice();
-    var _styleShift = ({'classics': 0, 'chuci': 2, 'fresh': 4, 'all': 0})[_QM_STYLE] || 0;
-    var _styleNames = _allNames;
-    /* R224b：下面这段风格错位切片是按 top_n=20 设计的（注释里的"取 8-16 /
-     * 16-24"），本轮 top_n 降到 8 后偏移会绕回同一批，风格档之间不再有区分度。
-     * 用 length > 12 作闸：池够大才做错位，池小（=8）时三档共用同一批名字，
-     * 由 _qmScore 排序体现差异，避免"换风格看到同样的名字还乱序"。
-     * 扩池到 40+/元素并把 top_n 调回 20 后，这里自动恢复错位行为。 */
-    if (_QM_STYLE !== 'all' && _allNames.length > 12) {
-      /* 错位切片让不同档的「头条」不同——诗经草木取前 8、楚辞取 8-16、清新灵动取 16-24；
-       * 不足时回到 0 循环。零后端改动，纯前端视觉轮换。 */
-      var _len = _allNames.length;
-      _styleNames = [];
-      for (var _k = 0; _k < 8 && _k < _len; _k++) {
-        _styleNames.push(_allNames[(_styleShift + _k) % _len]);
-      }
-    }
-    var _scored = _styleNames.map(function (n, idx) {
-      n._rank = idx;
-      /* R230a-7（R13-P1-6）：俱全时按 weak 打分（选字池用的就是 weak） */
-      return { n: n, s: _qmScore(n,
-        (fe.missing && fe.missing.length) ? fe.missing : (fe.weak || [])) };
-    }).sort(function (a, b) { return b.s.total - a.s.total; });
-    if (_scored && _scored.length) {
-      html += '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
-        esc((_QM_STYLES[_QM_STYLE] || {}).label || '') +
-        '<span style="font-size:12px;color:var(--secondary);font-weight:400;">　评分口径：五行补缺+典籍出处+寓意+音形+气质契合</span></h3>' +
-        '<div class="calc-grid">';
-      _scored.forEach(function (entry, i) {
-        var n = entry.n;
-        var score = entry.s.total;
-        var chips = entry.s.parts.map(function (p) {
-          return '<span class="qm-part">' + esc(p.label) + ' +' + p.pts + '</span>';
-        }).join('');
-        var c = colorAt(i);
-        /* R218a-05：⭐ 契合度 + TOP 1/2/3 徽章 */
-        html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
-          _qmBadgeHtml(score, i) +
-          '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:24px;">' +
-          esc(n.full_name || '') + '</h3>' +
-          '<p style="font-size:13px;color:var(--secondary);">五行：' +
-          esc((n.elements || []).join('·')) +
-          (n.form === 'single' ? '　单字名' : '　双字名') + '</p>' +
-          '<div class="qm-parts">' + chips + '</div>';
-        if (n.story) {
-          html += '<p style="font-size:13px;margin-top:4px;">📜 ' + esc(n.story) + '</p>';
-        } else if (n.meanings) {
-          html += '<p style="font-size:13px;">' + esc(n.meanings) + '</p>';
-        }
-        html += '</div>';
-      });
-      html += '</div>';
-      /* R218a-04：「换一批」总入口——按当前风格顺位 +1 重新选 8 个 */
-      var _next = ({'classics': 'chuci', 'chuci': 'fresh',
-                    'fresh': 'classics', 'all': 'classics'})[_QM_STYLE] || 'classics';
-      html += '<div class="qm-refresh-row">' +
-        '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
-        'title="按 ' + esc(_QM_STYLES[_next].label) + ' 风格再来 8 个">' +
-        '🔄 换一批（' + esc(_QM_STYLES[_next].label) + '）</button>' +
-        '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
-        '</div>';
-    }
-    /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
-    /* R216b 续5（U-019）：DISABLE/降级态（响应无 ai_task_id）按钮置灰+
-     * 提示语，不再可反复点。 */
-    var _aiOff = !j.ai_task_id;
-    html += '<button class="chat-entry" type="button" id="nameReviewBtn"' +
-      (_aiOff ? ' disabled title="小满点评这会儿休息，回头再来吧"' : '') + '>' +
-      '✨ 让 AI 用古籍典故点评这些名字</button>' +
-      '<div id="nameReviewOut" hidden></div>';
-    /* candidates[] = {char, element, radical, meaning}。
-     * R221b-fix：这段折叠区从 R217a 起一直是「0 字」空壳（后端写死 []），
-     * 审查轨 vision 目视发现。后端已填真数据，radical 位放的是**典故出处**
-     * （比部首对用户有用），所以标签同步改成「五行与出处」。 */
-    html += '<details class="warm-basis" style="margin-top:14px;"><summary>单字候选池（' +
-      ((j.candidates || []).length) + ' 字，展开看五行与出处）</summary><div class="calc-grid">';
-    (j.candidates || []).forEach(function (n, i) {
-      const c = colorAt(i);
-      html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
-        '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:22px;">' +
-        esc(n.char || '') + '</h3>' +
-        '<p style="font-size:13px;color:var(--secondary);">五行：' +
-        esc(n.element || '') + '　出处：' + esc(n.radical || '') + '</p>' +
-        '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
-    });
-    html += '</div></details>';
-    /* R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度 */
-    if (j.cross_ref && j.cross_ref.message) {
-      html += '<div class="cross-ref"><span class="cross-ref-icon">✨</span>' +
-        esc(j.cross_ref.message) + '</div>';
-    }
-    html += renderAiPolish(j);
-    /* R229z续23（R11-#4）：起名卡此前全程无免责徽标 */
-    html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">名字综合古籍意象与五行给的参考，仅供娱乐——孩子的名字还是家里人说了算 ✨</div>';
-    html += '</div></div>';
-    paint('qmResult', html);
+    paint('qmResult', buildQimingResult(j));
+    _qmFavsRender();   /* R230z（R36-P2-3）：心水名单行+♡点亮 */
     rememberResult('qiming', j, '', { gender: val('qm_gender') });   /* v2：补性别（用户反馈 bug F3） */
     on('nameReviewBtn', function () {
       const btn = el('nameReviewBtn');
@@ -4197,94 +4403,7 @@ async function doTaohua() {
     _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
       h: num('th_hour'), g: val('th_gender') || '女' });
     _meFillAll();   /* R230y */
-    let html = '<div class="card"><h2>🌺 桃花运</h2>';
-    /* R218a-巡2（N-08）：装饰图——桃花卡顶部加 SVG/CSS 装饰 banner。 */
-    html += renderDecoration('taohua');
-    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
-    html += '<button class="ghost fav-btn" type="button" id="shareTaohua" ' +
-      'title="生成分享图">📸 分享图</button>';
-    const bz = j.bazi || {};
-    // R187b：人话视图置顶（specs/005 US4——先说人话，再看坐标）
-    if (j.warm) {
-      html += '<div class="warm-wrap"><div class="warm-l0">' +
-        esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
-      (j.warm.reply || []).forEach(function (ln) {
-        html += '<p>' + esc(ln) + '</p>';
-      });
-      html += '</div>';
-      if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
-      html += '</div>';
-    }
-    /* R216b（UX 队列 U-003）：温柔模式下四柱标签 + 8 个裸键值块
-     * （年支/咸池/红鸾/天喜/强弱…）是纯工具感排版，且 badge 声称
-     * badge 曾声称「详细依据见专业模式」却把原始坐标铺在当前页、自相矛盾
-     * （该套话已在 R218a-巡6 D-003-badge 从 voice.BADGE 移除）。
-     * 改为：warm 下整块收进单个折叠「🔍 想看桃花坐标？」；
-     * 强弱值经 STRENGTH_CN 映射（weak→偏弱 等英文不再直出）。
-     * 叠字标签核查结论（R216b 实测 + vision 复核）：审查轨截图里的
-     * 「巳巳」是 1990-05-15 男真实八字数据（月柱辛巳、时柱辛巳各自
-     * 干支同支），非前端拼接 bug，不做去重——去重反而会篡改事实。
-     * 专业模式分支原样保留全部数据。 */
-    const STRENGTH_CN = { strong: '偏旺', mid: '平稳', weak: '偏弱' };
-    function _strengthCn(v) { return STRENGTH_CN[v] || v || '—'; }
-    /* R218a-巡4（N4-a）：柱名英文枚举裸抛修复——后端 hit_pillars 等返回
-     * year/month/day/hour，src/guji/taohua.py 有 _PILLAR_CN 映射但前端
-     * 没用，用户看到「命中柱: month」。前端补同一映射（含容错：未知值原样）。 */
-    const PILLAR_CN = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
-    function _pillarCn(list) {
-      return (list || []).map(function (p) { return PILLAR_CN[p] || p; }).join('、') || '无';
-    }
-    if (j.warm) {
-      html += '<details class="warm-basis warm-pro-fold"><summary>🔍 想看桃花坐标？（展开看专业数据）</summary>';
-    }
-    html += '<div class="pill-row">';
-    ['year', 'month', 'day', 'hour'].forEach(function (k, i) {
-      if (bz[k]) {
-        html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
-          esc(bz[k]) + '</span>';
-      }
-    });
-    html += '</div>';
-    html += '<div class="calc-grid">';
-    [
-      ['年支', j.year_zhi], ['咸池（桃花）', j.peach_zhi],
-      ['命中柱', _pillarCn(j.hit_pillars)],
-      ['红鸾', j.hongluan], ['红鸾落柱', _pillarCn(j.hongluan_pillar)],
-      ['天喜', j.tianxi], ['天喜落柱', _pillarCn(j.tianxi_pillar)],
-      ['强弱', _strengthCn(j.strength)]
-    ].forEach(function (pair, i) {
-      html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +
-        ';"><h3>' + esc(pair[0]) + '</h3><p>' + esc(fmtScalar(pair[1])) + '</p></div>';
-    });
-    html += '</div>';
-    if (j.render) {
-      html += '<div class="calc-summary" style="border-left-color:var(--c-taohua);">' +
-        esc(j.render) + '</div>';
-    }
-    if (j.warm) {
-      html += '</details>';
-    }
-    if (j.dayun_hits && j.dayun_hits.length) {
-      html += '<h3 style="margin-top:16px;">大运桃花应期</h3>' +
-        '<table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
-        '</tr></thead><tbody>';
-      j.dayun_hits.forEach(function (d) {
-        html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
-          '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
-      });
-      html += '</tbody></table></div>';
-    }
-    if (j.notes && j.notes.length) {
-      html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
-    }
-    /* R220b：交叉引用铺到桃花——星座桃花信号 × 八字强度叠加 */
-    if (j.cross_ref && j.cross_ref.message) {
-      html += '<div class="cross-ref"><span class="cross-ref-icon">🌸</span>' +
-        esc(j.cross_ref.message) + '</div>';
-    }
-    html += renderAiPolish(j);
-    html += '</div>';
-    paint('thResult', html);
+    paint('thResult', buildTaohuaResult(j));
     rememberResult('taohua', j, '', { gender: val('th_gender') });   /* v2：补性别 */
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
@@ -4703,101 +4822,48 @@ async function doHehun() {
       b_month: num('hh_b_month'),
       b_day: num('hh_b_day'),
       b_hour: num('hh_b_hour'),
-      b_gender: val('hh_b_gender') || '女'
+      b_gender: val('hh_b_gender') || '女',
+      /* R230z（R36-P1-2）：昵称（可空）——后端回显进结果/海报/历史 */
+      a_name: (val('hh_a_name') || '').trim() || null,
+      b_name: (val('hh_b_name') || '').trim() || null
     });
+    /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
+    j.a_name = (val('hh_a_name') || '').trim() || null;
+    j.b_name = (val('hh_b_name') || '').trim() || null;
     /* R230y：A=我，B=TA——两条 profile 分开存 */
     _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
       d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
     _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
       d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
     _meFillAll();
-    const a = j.a_bazi || {};
-    const b = j.b_bazi || {};
-    let html = '<div class="card"><h2>💕 八字合婚</h2>';
-    // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
-    html += '<button class="ghost fav-btn" type="button" id="shareHehun" ' +
-      'title="生成分享图">📸 分享图</button>';
-    // R187b：人话视图置顶（specs/005 US4）
-    if (j.warm) {
-      html += '<div class="warm-wrap"><div class="warm-l0">' +
-        esc(j.warm.one_liner || '') + '</div><div class="warm-reply">';
-      (j.warm.reply || []).forEach(function (ln) {
-        html += '<p>' + esc(ln) + '</p>';
-      });
-      html += '</div>';
-      if (j.warm.badge) html += '<div class="warm-badge">' + esc(j.warm.badge) + '</div>';
-      html += '</div>';
-    }
-    html += '<div class="calc-grid">';
-    html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
-      '<h3 style="color:var(--c-bazi);">甲</h3>' +
-      '<p style="font-family:var(--font-serif);font-size:18px;">' +
-      esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
-      '<p style="font-size:13px;color:var(--secondary);">日主：' +
-      esc(a.day_master || '') + '（' + esc(j.day_wx_a || '') + '）</p></div>';
-    html += '<div class="calc-block" style="border-left:3px solid var(--c-hehun);">' +
-      '<h3 style="color:var(--c-hehun);">乙</h3>' +
-      '<p style="font-family:var(--font-serif);font-size:18px;">' +
-      esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
-      '<p style="font-size:13px;color:var(--secondary);">日主：' +
-      esc(b.day_master || '') + '（' + esc(j.day_wx_b || '') + '）</p></div>';
-    html += '</div><div class="pill-row">';
-    const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
-    const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
-    html += '<span class="pill sm" style="background:' + relColor + ';">年支（' +
-      esc(j.year_zhi_a || '') + '×' + esc(j.year_zhi_b || '') + '）：' +
-      esc(relLabel) + '</span>';
-    /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
-    html += '<span class="pill sm" style="background:' +
-      ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';">日主五行：' +
-      esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '非相生')) + '</span>';
-    html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
-      esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
-      esc(j.peach_same ? '重叠' : '不同') + '</span>';
-    // R204b（D-257b）：天干五合 + 十神互见 pill（yinyuan skill 融入）
-    if (j.gan_he) {
-      html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
-    }
-    if (j.god_a_sees_b && j.god_b_sees_a) {
-      html += '<span class="pill sm" style="background:var(--secondary);">十神互见：' +
-        esc(j.god_a_sees_b) + '/' + esc(j.god_b_sees_a) + '</span>';
-    }
-    html += '</div>';
-    if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
-    if (j.dayun_hits && j.dayun_hits.length) {
-      /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
-       * 收进默认折叠（事实零删减）；pro 模式保持平铺。 */
-      /* R228n：五列表 320px 下 min-content 超容器 11px→整页横滚；
-       * 外包 .table-scroll 让表自己滚。 */
-      var _table = '<div class="table-scroll"><table class="works"><thead><tr><th>大运</th><th>甲干支</th><th>乙干支</th>' +
-        '<th>关系</th><th>约起年</th></tr></thead><tbody>';
-      j.dayun_hits.forEach(function (d) {
-        _table += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
-          '</td><td>' + esc(d.pillar_b) + '</td><td>' + esc(d.relation) +
-          '</td><td class="num">' + esc(d.year_start) + '</td></tr>';
-      });
-      _table += '</tbody></table></div>';
-      if (voiceMode() === 'warm') {
-        html += '<details class="warm-basis"><summary>📅 大运冲合表（' +
-          j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
-      } else {
-        html += '<h3 style="margin-top:16px;">大运冲合应期</h3>' + _table;
-      }
-    }
-    if (j.notes && j.notes.length) {
-      html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
-    }
-    /* C-003：交叉引用——合婚结果页增加星座配对维度 */
-    if (j.cross_ref && j.cross_ref.message) {
-      html += '<div class="cross-ref"><span class="cross-ref-icon">💕</span>' + esc(j.cross_ref.message) + '</div>';
-    }
-    html += renderAiPolish(j);
-    html += '</div>';
-    paint('hhResult', html);
+    paint('hhResult', buildHehunResult(j));
     rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04）：改用 hehun 专属 case */
+    /* R230z（R36-P1-2）：存这对 → /api/favorites，下次一键回填 */
+    on('hhSavePair', async function () {
+      var btn = el('hhSavePair');
+      if (btn) btn.disabled = true;
+      var _an = (val('hh_a_name') || '').trim(), _bn = (val('hh_b_name') || '').trim();
+      var ref = [num('hh_a_year'), num('hh_a_month'), num('hh_a_day'),
+        num('hh_a_hour'), val('hh_a_gender') || '女',
+        num('hh_b_year'), num('hh_b_month'), num('hh_b_day'),
+        num('hh_b_hour'), val('hh_b_gender') || '女',
+        _an.slice(0, 8), _bn.slice(0, 8)].join('|');
+      try {
+        await postJSON('/api/favorites', {
+          type: 'hehun', ref_id: ref.slice(0, 64),
+          title: (_an || '我') + ' × ' + (_bn || 'TA')
+        });
+        showToast('已存下这对～下次直接点上方 chip 回填', 'info');
+        _hhFavsRender();
+      } catch (e) {
+        showToast('没存上：' + e.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
   } catch (e) {
     failWithRetry('hhResult', '计算失败：' + e.message, function () { doHehun(); });
   }
@@ -5461,7 +5527,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
       '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" aria-label="问一嘴：今天适不适合某事" placeholder="问一嘴：今天适不适合面试/搬家…">' +
       '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button>' +
-      '</div>';
+      '</div>' +
+      /* R230z（R36-P2-5）：问一嘴足迹——问过的问题收在这里可复点 */
+      '<div id="hlAskHist" class="fav-row"></div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">点一个场景，看看' + esc(_dayWord) + '合不合适（✓ = 宜项里有它）</div></div>';
     /* 冲煞（R228a TYPE 修复）：后端给的是 {chong, chong_animal, sha_fang}
      * dict，整个 esc() 会渲染成 [object Object]——拼成「冲虎煞南」人话。 */
@@ -5567,6 +5635,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* R229z续25：黄历分享图——与六爻同模式，原位刷新时旧钮随整卡重渲消失，
      * 每次渲后重新挂一个（幂等：旧钮若还在就跳过）。 */
     var hlShareBox = el('hlResult');
+    _hlAskChipsRender();   /* R230z（R36-P2-5）：问一嘴足迹 chips */
     if (hlShareBox && !document.getElementById('shareHuangli')) {
       var hlBtn = document.createElement('button');
       hlBtn.className = 'ghost fav-btn'; hlBtn.type = 'button';
@@ -5657,6 +5726,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
         showToast('先写一句想问的事再问我哦', 'info');
         return;
       }
+      /* R230z（R36-P2-5）：足迹落库——记问题+当前显示日（日期词改写的
+       * 分支会在跳转后由卡面日期自然对上）。 */
+      var _hd0 = document.querySelector('#hlResult .hl-head div');
+      var _ds0 = _hd0 ? _hd0.textContent.trim() : '';
+      _hlAskLog(q, /^\d{4}-\d{2}-\d{2}$/.test(_ds0) ? _ds0 : todayIso());
       var KNOWN = ['搬家','开业','约会','面试','出行','签约','表白','相亲','结婚','领证','求职','上班','入职','挪窝','装修','开张','合同','旅行','出差','出游','收款','理财','看病','种花'];
       var qn = _t2s(q);   /* R229d：繁中归一后再匹配词表/抽词（原文保留给日期词与展示） */
       var hitName = '';
@@ -6106,6 +6180,154 @@ function initDivination() {
   });
 }
 
+/* ── R230z（R36）：favorites 窄面接线 + 历史全品类 + 问一嘴足迹 ─────────
+ * favorites API（/api/favorites + /api/user/prefs.favorites）后端一直在，
+ * 本轮接两个窄入口：合婚「存这对」chips、起名「♡心水名单」——不复活
+ * R208b 删掉的通用收藏面板。 */
+
+async function _favList() {
+  try {
+    const j = await api('/api/user/prefs', { silent: true });
+    return (j && j.favorites) || [];
+  } catch (e) { return []; }
+}
+
+/* 合婚「测过的 CP」chips：ref_id 编码 10 字段+昵称，点 chip 回填表单 */
+async function _hhFavsRender() {
+  var row = el('hhFavRow');
+  if (!row) return;
+  var favs = (await _favList()).filter(function (f) { return f.type === 'hehun'; });
+  row.hidden = !favs.length;
+  if (!favs.length) { row.innerHTML = ''; return; }
+  row.innerHTML = '<span class="fav-row-label">测过的 CP：</span>' +
+    favs.map(function (f) {
+      return '<button type="button" class="fav-chip" data-hh-fav="' +
+        esc(f.ref_id || '') + '">' + esc(f.title || '一对') + '</button>';
+    }).join('');
+}
+
+function _hhFavFill(ref) {
+  var p = String(ref || '').split('|');
+  if (p.length < 10) return;
+  var ids = ['hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_hour', 'hh_a_gender',
+             'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour', 'hh_b_gender'];
+  ids.forEach(function (id, i) {
+    var e = el(id);
+    if (!e || p[i] === '' || p[i] == null) return;
+    e.value = p[i];
+    delete e.dataset.me;   /* chip 回填=用户主动行为，不算 profile 预填 */
+  });
+  var an = el('hh_a_name'), bn = el('hh_b_name');
+  if (an && p[10]) an.value = p[10];
+  if (bn && p[11]) bn.value = p[11];
+  doHehun();
+}
+
+/* 起名心水名单：♡ 点过的名字固定在表单上方，× 可摘 */
+async function _qmFavsRender() {
+  var row = el('qmFavRow');
+  if (!row) return;
+  var favs = (await _favList()).filter(function (f) { return f.type === 'qiming'; });
+  row.hidden = !favs.length;
+  if (!favs.length) { row.innerHTML = ''; return; }
+  row.innerHTML = '<span class="fav-row-label">♥ 心水名单：</span>' +
+    favs.map(function (f) {
+      return '<span class="fav-chip is-static">' + esc(f.title || '') +
+        '<button type="button" class="fav-chip-x" data-qm-fav-del="' +
+        esc(String(f.id)) + '" aria-label="从心水名单移除 ' + esc(f.title || '') +
+        '">×</button></span>';
+    }).join('');
+  _qmFavMark(favs);
+}
+
+/* 结果卡里的 ♡ 按已有心水标记点亮 */
+function _qmFavMark(favs) {
+  var names = {};
+  (favs || []).forEach(function (f) { names[f.title] = 1; });
+  document.querySelectorAll('#qmResult .qm-fav').forEach(function (b) {
+    if (names[b.dataset.favName]) { b.textContent = '♥'; b.classList.add('on'); }
+  });
+}
+
+/* 问一嘴足迹：localStorage 存 {d, q} 最近 12 条，chip 点击回到那天重问 */
+function _hlAskLog(q, dateStr) {
+  try {
+    var list = JSON.parse(window.localStorage.getItem('hlask') || '[]');
+    if (!Array.isArray(list)) list = [];
+    list = list.filter(function (x) { return !(x && x.q === q && x.d === dateStr); });
+    list.unshift({ q: q, d: dateStr });
+    window.localStorage.setItem('hlask', JSON.stringify(list.slice(0, 12)));
+  } catch (e) {}
+}
+
+function _hlAskChipsRender() {
+  var row = document.getElementById('hlAskHist');
+  if (!row) return;
+  var list = [];
+  try { list = JSON.parse(window.localStorage.getItem('hlask') || '[]') || []; }
+  catch (e) {}
+  if (!list.length) { row.innerHTML = ''; return; }
+  row.innerHTML = '<span class="fav-row-label">你问过：</span>' +
+    list.slice(0, 6).map(function (x) {
+      return '<button type="button" class="fav-chip" data-hlask-q="' +
+        esc(x.q || '') + '" data-hlask-d="' + esc(x.d || '') + '">' +
+        esc((x.d || '').slice(5) + ' ' + (x.q || '')) + '</button>';
+    }).join('');
+}
+
+document.addEventListener('click', function (ev) {
+  var t = ev.target;
+  if (!t || !t.closest) return;
+  /* 心水 ♡ */
+  var qf = t.closest('.qm-fav');
+  if (qf) {
+    var nm = qf.dataset.favName;
+    if (!nm || qf.disabled) return;
+    qf.disabled = true;
+    postJSON('/api/favorites', { type: 'qiming', ref_id: nm.slice(0, 64), title: nm })
+      .then(function () {
+        qf.textContent = '♥'; qf.classList.add('on');
+        showToast('收进心水名单啦', 'info');
+        _qmFavsRender();
+      })
+      .catch(function (e) { showToast('没存上：' + e.message, 'error'); })
+      .finally(function () { qf.disabled = false; });
+    return;
+  }
+  var qd = t.closest('[data-qm-fav-del]');
+  if (qd) {
+    fetch('/api/favorites/' + encodeURIComponent(qd.dataset.qmFavDel),
+          { method: 'DELETE' })
+      .then(function () { _qmFavsRender(); })
+      .catch(function () { showToast('摘失败，稍后再试', 'warn'); });
+    return;
+  }
+  /* 测过的 CP chip → 回填表单并直接合婚 */
+  var hc = t.closest('[data-hh-fav]');
+  if (hc) { _hhFavFill(hc.dataset.hhFav); return; }
+  /* 问一嘴足迹 chip → 把问题原样再问一遍（日期词按当下重算，
+   * 比钉死那天更贴近用户意图） */
+  var hq = t.closest('[data-hlask-q]');
+  if (hq) {
+    var inp = document.getElementById('hlAskInput');
+    if (inp) inp.value = hq.dataset.hlaskQ || '';
+    var ab = document.getElementById('hlAskBtn');
+    if (ab) ab.click();
+  }
+});
+
+/* ── R230z（R36-P1-1）：历史台账全品类——列表徽标 + 复看按 type 回放 ── */
+var _PH_BUILDERS = {
+  bazi: function (j) { return buildBaziResult(j); },
+  taohua: function (j) { return buildTaohuaResult(j); },
+  hehun: function (j) { return buildHehunResult(j); },
+  tarot: function (j) { return buildTarotResult(j); },
+  liuyao: function (j) { return buildLiuyaoResult(j); },
+  qiming: function (j) { return buildQimingResult(j); }
+};
+var _PH_TYPE_LABEL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
+                       tarot: '塔罗', liuyao: '六爻', qiming: '起名' };
+
 function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
   /* R198b（US4）：时辰感知背景——按本地小时设五档 daypart。
@@ -6119,6 +6341,8 @@ function init() {
   initReading();
   initDivination();
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
+  _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
+  _qmFavsRender();   /* R230z：心水名单行 */
   /* R230q（R28-P2-4）：sid 跨刷新存活则气泡也跨刷新恢复——否则
    * 新消息悄悄接进看不见的上一轮上下文。 */
   _chatTsRestore();
@@ -6556,17 +6780,21 @@ function baziPersonaCard(j) {
     try {
       const j = await phFetch('/api/paipan/history?limit=50');
       if (!j.items || !j.items.length) {
-        listEl.innerHTML = '<div class="ph-empty">还没有排盘记录，去首页看看你的盘吧 ✨</div>';
+        listEl.innerHTML = '<div class="ph-empty">还没有占卜记录——命盘、桃花、合婚、塔罗、六爻、起名都会收在这里 ✨</div>';
         return;
       }
       listEl.innerHTML = j.items.map(function (it) {
         const ts = (it.ts || '').replace('T', ' ');
         const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
+        /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘 */
+        const tLabel = _PH_TYPE_LABEL[it.type] || it.type || '命盘';
         const render = (it.result_summary && it.result_summary.paipan_render) || '';
         /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
          * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
         return '<div class="ph-item" data-id="' + esc(String(it.id)) + '">' +
-          '<div class="ph-head"><span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
+          '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
+          esc(tLabel) + '</span>' +
+          '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
           '<span class="ph-ts">' + esc(ts) + '</span></div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
           '<div class="ph-actions"><button type="button" class="ghost ph-open">复看</button>' +
@@ -6622,8 +6850,12 @@ function baziPersonaCard(j) {
       try {
         const rec = await phFetch('/api/paipan/history/' + id);
         const detailEl = document.getElementById('historyDetail');
-        if (detailEl && typeof buildBaziResult === 'function') {
-          detailEl.innerHTML = buildBaziResult(rec.result || {});
+        /* R230z（R36-P1-1）：按品类回放对应渲染器 */
+        var _builder = _PH_BUILDERS[rec.type || 'bazi'] || _PH_BUILDERS.bazi;
+        if (detailEl && _builder) {
+          /* 六个 build*Result 渲染器内部全量 esc()，与闸白名单里的
+           * buildBaziResult( 同等信任级——间接调用只为按 type 分发 */
+          detailEl.innerHTML = _builder(rec.result || {});   // esc-reviewed
           detailEl.hidden = false;
           detailEl.scrollIntoView({ behavior: _rmBehavior() });
         }

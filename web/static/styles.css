@@ -274,6 +274,30 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
 .daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:#B3455A;font-size:.92em;}
 .stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
+/* R230z（R36）：品类徽标 + 收藏 chips + 心水 ♡ */
+.ph-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
+  font-weight:700;color:#fff;background:var(--primary-ink);margin-right:8px;
+  vertical-align:1px;letter-spacing:.5px;}
+.ph-t-taohua{background:#D96C8B;}.ph-t-hehun{background:#B94A6A;}
+.ph-t-tarot{background:#7A6BA8;}.ph-t-liuyao{background:#5A4A6A;}
+.ph-t-qiming{background:#C27A4A;}
+.fav-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;}
+.fav-row-label{font-size:12px;color:var(--secondary);}
+.fav-chip{border:1.5px solid var(--line,#E8D5CC);background:#FFF;color:var(--primary-ink);
+  border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;
+  font-family:var(--font-sans);transition:all .15s ease;box-shadow:none;}
+.fav-chip:hover{background:var(--primary-bg,#FFF5F1);border-color:var(--primary,#C25A4E);
+  transform:translateY(-1px);}
+.fav-chip.is-static{cursor:default;padding-right:6px;}
+.fav-chip.is-static:hover{transform:none;}
+.fav-chip-x{border:0;background:none;color:var(--secondary);cursor:pointer;
+  font-size:14px;padding:0 2px 0 6px;line-height:1;}
+.fav-chip-x:hover{color:var(--primary,#C25A4E);}
+.qm-fav{border:0;background:rgba(255,255,255,.55);border-radius:50%;width:30px;height:30px;
+  font-size:16px;color:#C9A9B8;cursor:pointer;margin-left:8px;vertical-align:2px;
+  transition:all .15s ease;line-height:1;}
+.qm-fav:hover{color:#D96C8B;transform:scale(1.15);}
+.qm-fav.on{color:#D96C8B;}
 /* R216b 续5（V-003）：法律声明软化——缩小、降对比。 */
 .interp-disclaimer-soft{font-size:12px; opacity:.75; font-style:normal;}
 .daily-soothe{font-size:13.5px; color:var(--secondary); margin-top:6px;}

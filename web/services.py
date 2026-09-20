@@ -301,7 +301,7 @@ def taohua(req) -> dict:
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_taohua(t_dict, warm, gender=req.gender))
-    return {
+    out = {
         **t_dict,
         "warm": warm,
         "ai_polish": ai_polish,
@@ -309,6 +309,12 @@ def taohua(req) -> dict:
         "cross_ref": _cross_ref_taohua(bm, bd, t.strength),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
+    # R230z（R36-P1-1）：桃花也进排盘历史台账（原来只有 bazi 落库）
+    paipan_history.save_async({
+        "year": req.year, "month": req.month, "day": req.day,
+        "hour": req.hour, "gender": req.gender,
+    }, out, rtype="taohua")
+    return out
 
 
 def hehun(req) -> dict:
@@ -346,10 +352,12 @@ def hehun(req) -> dict:
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_hehun(h_dict, warm,
                                gender_a=req.a_gender, gender_b=req.b_gender))
-    return {
+    out = {
         **h_dict,
         "warm": warm,
         "ai_polish": ai_polish,
+        # R230z（R36-P1-2）：昵称不进响应（selftest 钉死响应键集）——
+        # 前端本地注入；存进台账的 result 副本带昵称供复看。
         # C-003：交叉引用——合婚结果页增加星座配对维度
         # R220b：按双方出生月日取真实太阳星座（原来用日支，配对结论是假的）
         "cross_ref": _cross_ref_hehun(ba, bb,
@@ -357,6 +365,17 @@ def hehun(req) -> dict:
                                      (req.b_month, req.b_day)),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
+    # R230z（R36-P1-1）：合婚进台账；name 用昵称对（缺省 我 × TA）
+    _an, _bn = req.a_name or "我", req.b_name or "TA"
+    paipan_history.save_async({
+        "a_year": req.a_year, "a_month": req.a_month, "a_day": req.a_day,
+        "a_hour": req.a_hour, "a_gender": req.a_gender,
+        "b_year": req.b_year, "b_month": req.b_month, "b_day": req.b_day,
+        "b_hour": req.b_hour, "b_gender": req.b_gender,
+        "a_name": req.a_name, "b_name": req.b_name,
+    }, {**out, "a_name": req.a_name, "b_name": req.b_name},
+       rtype="hehun", name=f"{_an} × {_bn}")
+    return out
 
 
 def qiming(req) -> dict:
@@ -384,6 +403,12 @@ def qiming(req) -> dict:
     out["cross_ref"] = _cross_ref_qiming(req.month, req.day)
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
+    # R230z（R36-P1-1）：起名进台账（原来只有 bazi 落库）
+    paipan_history.save_async({
+        "surname": req.surname, "year": req.year, "month": req.month,
+        "day": req.day, "hour": req.hour, "gender": req.gender,
+        "seed": req.seed, "style": req.style,
+    }, out, rtype="qiming", name=f"起名 · {req.surname}×")
     return out
 
 
@@ -923,7 +948,7 @@ def liuyao(req) -> dict:
     bian_out = liuyao_mod.render_hexagram(bian, "变卦")
     interpretation = interpreter.interpret_liuyao(
         ben_out, bian_out, ben.moving_lines, ben_jing + bian_jing, req.question)
-    return {
+    out = {
         "ben": ben_out,
         "bian": bian_out,
         "ben_jing": ben_jing,
@@ -939,6 +964,14 @@ def liuyao(req) -> dict:
         "cross_ref": _cross_ref_liuyao(ben.moving_lines,
                                         today_iso=getattr(req, "client_date", None)),
     }
+    # R230z（R36-P1-1）：六爻进台账；摘要用问题或本卦名
+    paipan_history.save_async(
+        {"method": req.method, "seed": req.seed, "year": req.year,
+         "month": req.month, "day": req.day, "hour": req.hour,
+         "question": req.question},
+        out, rtype="liuyao",
+        name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
+    return out
 
 
 def huangli(date_str: str | None = None, affair: str | None = None,
@@ -1760,7 +1793,7 @@ def tarot(req) -> dict:
     draws = tarot_mod.draw(seed=req.seed, n=req.n)
     cards = _draw_dicts(draws)
     interpretation = interpreter.interpret_tarot(cards, req.question)
-    return {
+    out = {
         "seed": req.seed,
         "n": len(cards),
         "draws": cards,
@@ -1771,6 +1804,12 @@ def tarot(req) -> dict:
         # R221b：交叉引用收口 7/7——塔罗不收生日，只引"今天"的值宫
         "cross_ref": _cross_ref_tarot(cards, today_iso=req.client_date),
     }
+    # R230z（R36-P1-1）：塔罗进台账；摘要用问题或张数
+    paipan_history.save_async(
+        {"seed": req.seed, "n": req.n, "question": req.question},
+        out, rtype="tarot",
+        name=(req.question or f"{req.n} 张牌阵"))
+    return out
 
 
 def tarot_draw(req) -> dict:

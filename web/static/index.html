@@ -559,6 +559,8 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="qm_gender">性别</label>
             <select id="qm_gender"><option>女</option><option>男</option></select></div>
       </div>
+      <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
+      <div id="qmFavRow" class="fav-row" hidden></div>
       <button id="qmSubmit" type="button">起 名</button>
       <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好姓氏和生日，点「起名」～</div></div>
     </div>
@@ -625,6 +627,9 @@ if ('serviceWorker' in navigator) {
           <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
         <div class="field"><label for="hh_a_gender">甲性别</label>
             <select id="hh_a_gender"><option>男</option><option>女</option></select></div>
+        <!-- R230z（R36-P1-2）：昵称可空——填了结果/海报/存档都叫名字 -->
+        <div class="field"><label for="hh_a_name">甲昵称</label>
+          <input id="hh_a_name" type="text" maxlength="16" placeholder="可空，如：小鱼"></div>
       </div>
       <div class="row">
         <div class="field"><label for="hh_b_year">乙年</label>
@@ -637,7 +642,11 @@ if ('serviceWorker' in navigator) {
           <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" value="14"></div>
         <div class="field"><label for="hh_b_gender">乙性别</label>
           <select id="hh_b_gender"><option>女</option><option>男</option></select></div>
+        <div class="field"><label for="hh_b_name">乙昵称</label>
+          <input id="hh_b_name" type="text" maxlength="16" placeholder="可空，如：阿哲"></div>
       </div>
+      <!-- R230z（R36-P1-2）：测过的 CP——存过的配对一键回填 -->
+      <div id="hhFavRow" class="fav-row" hidden></div>
       <button id="hhSubmit" type="button">合 婚</button>
       <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好两人生日，点「合婚」～</div></div>
     </div>

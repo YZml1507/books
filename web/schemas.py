@@ -403,6 +403,10 @@ class HehunRequest(BaseModel):
     b_day: int = Field(..., description="乙 日 1-31")
     b_hour: int = Field(..., description="乙 时 0-23")
     b_gender: str = "女"
+    # R230z（R36-P1-2）：双方昵称（可空）——结果卡/海报/历史记录/存这对
+    # 全部以「小鱼 × 阿哲」呈现，不再是冷冰冰的甲/乙。
+    a_name: str | None = Field(None, max_length=16, description="甲昵称，可空")
+    b_name: str | None = Field(None, max_length=16, description="乙昵称，可空")
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
@@ -413,6 +417,8 @@ class HehunRequest(BaseModel):
             raise ValidationError("甲方性别需为 男 或 女")
         if self.b_gender not in GENDERS:
             raise ValidationError("乙方性别需为 男 或 女")
+        self.a_name = strip_zw((self.a_name or "").strip() or None)
+        self.b_name = strip_zw((self.b_name or "").strip() or None)
 
 
 # R178b（D-229b）：原 `DailyRequest` 已删除——`/api/daily` 的 `date` 改为

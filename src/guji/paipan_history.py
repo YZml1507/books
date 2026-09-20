@@ -80,7 +80,8 @@ _DDL = """CREATE TABLE IF NOT EXISTS records(
     name TEXT,
     question TEXT,
     req_json TEXT NOT NULL,
-    result_json TEXT NOT NULL)"""
+    result_json TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'bazi')"""
 
 
 def _quarantine() -> None:
@@ -167,6 +168,10 @@ _RECORDS_COLS = {
     "question": "TEXT",
     "req_json": "TEXT NOT NULL DEFAULT '{}'",
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
+    # R230z（R36-P1-1）：品类列——历史台账不再只收八字。桃花/合婚/塔罗/
+    # 六爻/起名同写一张表，老库经 _ensure_columns 补列（默认 'bazi'，存量
+    # 行语义正确，无需回填）。
+    "type": "TEXT NOT NULL DEFAULT 'bazi'",
 }
 
 
@@ -198,8 +203,12 @@ def _name_summary(req: dict) -> str:
     return f"{req.get('year')}-{req.get('month'):02d}-{req.get('day'):02d} {shichen} {gender}{cal}"
 
 
-def save_async(req_dict: dict, result_dict: dict) -> None:
-    """排盘成功后异步落一条记录。永不抛错、永不阻塞调用方。"""
+def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
+               name: str | None = None) -> None:
+    """排盘成功后异步落一条记录。永不抛错、永不阻塞调用方。
+
+    R230z（R36-P1-1）：rtype 标记品类（bazi/taohua/hehun/tarot/liuyao/
+    qiming），name 允许调用方覆盖摘要（合婚双人/塔罗张数等非生辰形）。"""
     if disabled():
         return
 
@@ -207,16 +216,16 @@ def save_async(req_dict: dict, result_dict: dict) -> None:
         try:
             row_req = json.dumps(req_dict, ensure_ascii=False)
             row_res = json.dumps(result_dict, ensure_ascii=False)
-            name = _name_summary(req_dict)
+            row_name = name if name else _name_summary(req_dict)
             question = (req_dict.get("question") or None)
             ts = datetime.now().isoformat(timespec="seconds")
             # closing() 只负责关连接，无隐式 commit——写路径用 `with c:`
             # 保住原 `with _conn()` 的提交语义（R228b 重构注意点）。
             with _write_lock, contextlib.closing(_conn()) as c, c:
                 c.execute(
-                    "INSERT INTO records(ts,name,question,req_json,result_json)"
-                    " VALUES(?,?,?,?,?)",
-                    (ts, name, question, row_req, row_res))
+                    "INSERT INTO records(ts,name,question,req_json,result_json,"
+                    "type) VALUES(?,?,?,?,?,?)",
+                    (ts, row_name, question, row_req, row_res, rtype))
                 # R228j：滚动裁剪——单行 ~50KB，不裁剪用户每排一次盘就永久
                 # +1 行（实测 31 次→3.7MB），列表/导出全量 fetchall 越滚越慢。
                 c.execute(
@@ -240,14 +249,17 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
         # （~50KB/行）搬进 Python 再 json.loads——改 json_extract 在 SQLite
         # 内直取两个摘要字段；req 全字段前端列表零引用（复看走详情接口），
         # 不再回吐。
+        # R230z：多类型共存后 result_summary 只对 bazi 有意义——非八字
+        # 行 render 落空字符串，前端按 type 渲染徽标，摘要区展示 name。
         rows = c.execute(
-            "SELECT id,ts,name,question,"
+            "SELECT id,ts,name,question,type,"
             " json_extract(result_json,'$.paipan.render'),"
-            " json_extract(result_json,'$.calc.five_elements.counts')"
+            " json_extract(result_json,'$.calc.five_elements.counts'),"
+            " json_extract(result_json,'$.render')"
             " FROM records ORDER BY id DESC LIMIT ? OFFSET ?",
             (limit, offset)).fetchall()
     items = []
-    for rid, ts, name, question, render, counts in rows:
+    for rid, ts, name, question, rtype, render, counts, flat_render in rows:
         try:
             counts = json.loads(counts) if counts else None
         except ValueError:
@@ -255,8 +267,9 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
         items.append({
             "id": rid, "ts": ts, "name": name,
             "question": question,
+            "type": rtype or "bazi",
             "result_summary": {
-                "paipan_render": render,
+                "paipan_render": render or flat_render,
                 "five_elements": counts,
             },
         })
@@ -267,11 +280,11 @@ def get_record(rid: int) -> dict | None:
     """单条完整记录；不存在返回 None（路由层转 404）。"""
     with contextlib.closing(_conn()) as c:
         row = c.execute(
-            "SELECT id,ts,name,question,req_json,result_json FROM records"
-            " WHERE id=?", (int(rid),)).fetchone()
+            "SELECT id,ts,name,question,req_json,result_json,type"
+            " FROM records WHERE id=?", (int(rid),)).fetchone()
     if row is None:
         return None
-    rid, ts, name, question, req_json, res_json = row
+    rid, ts, name, question, req_json, res_json, rtype = row
     try:
         req_obj = json.loads(req_json) if req_json else {}
     except ValueError:
@@ -281,7 +294,7 @@ def get_record(rid: int) -> dict | None:
     except ValueError:
         res_obj = {}
     return {"id": rid, "ts": ts, "name": name, "question": question,
-            "req": req_obj, "result": res_obj}
+            "type": rtype or "bazi", "req": req_obj, "result": res_obj}
 
 
 def delete_record(rid: int) -> bool:
@@ -292,19 +305,22 @@ def delete_record(rid: int) -> bool:
 
 
 def export_rows() -> list[tuple]:
-    """CSV 导出数据行：(id, ts, name, question, paipan_render)。"""
+    """CSV 导出数据行：(id, ts, name, question, type, paipan_render)。"""
     with contextlib.closing(_conn()) as c:
         rows = c.execute(
-            "SELECT id,ts,name,question,result_json FROM records"
+            "SELECT id,ts,name,question,type,result_json FROM records"
             " ORDER BY id DESC").fetchall()
     out = []
-    for rid, ts, name, question, res_json in rows:
+    for rid, ts, name, question, rtype, res_json in rows:
         try:
-            render = ((json.loads(res_json) or {}).get("paipan") or {}).get("render") or ""
+            _robj = json.loads(res_json) or {}
+            render = (_robj.get("paipan") or {}).get("render") or \
+                _robj.get("render") or ""
         except ValueError:
             render = ""
         out.append((rid, ts, _csv_safe(name or ""),
-                    _csv_safe(question or ""), _csv_safe(render)))
+                    _csv_safe(question or ""), _csv_safe(rtype or "bazi"),
+                    _csv_safe(render)))
     return out
 
 
