@@ -2888,7 +2888,11 @@ function buildShareData(view, j) {
       /* R233n（R47-Top5-2）：首日也走这张海报——连签 ≥3 标题挂天数，
        * 否则挂「今天的签」，big 主打抽中的签面（晒点更足）。 */
       var _stk = Number(j && j.streak) || 0;
-      var _ck = base(_stk >= 3 ?
+      /* R233q（R47-P2 续）：满月款标记——连签 ≥30 的海报挂限定标，
+       * 给「晒出去」再加一层稀缺感。 */
+      var _ck = base(_stk >= 30 ?
+          '🌕 满月款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
+          _stk >= 3 ?
           '我连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' : '今天的小满签',
         _weekdayCn('') + ' · ' + todayIso());
       _ck.big = '今天抽到「' + (_pStr(j && j.pick) || '好运签') + '」';
