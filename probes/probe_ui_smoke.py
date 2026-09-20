@@ -696,6 +696,32 @@ def main() -> int:
             results.append({"name": "btn:huangli.holiday_ask",
                             "ok": ok, "detail": detail})
 
+            # ── R230d（R16 审计新增件钉扎）：
+            #   a) 黄历结果卡须挂「聊聊这件事」（hlResult 无 .card 宿主，
+            #      paint 自动挂不上——P2-6 手动注入，回归只查存在性）；
+            #   b) 塔罗结果须挂 #shareTarot（btn:tarot 已跑，DOM 还在）；
+            #   c) 星座页 doXingzuo(true) 后须挂 #shareXingzuo（P2-2）。
+            errors.clear()
+            try:
+                hl_chat = page.evaluate(
+                    "() => !!document.querySelector('#hlResult #chatEntry')")
+                tr_share = page.evaluate(
+                    "() => !!document.querySelector('#trResult #shareTarot')")
+                goto_view("xingzuo")
+                page.evaluate("doXingzuo(true)")
+                page.wait_for_selector("#xzResult .xz-result", timeout=8000)
+                xz_share = page.evaluate(
+                    "() => !!document.querySelector('#xzResult #shareXingzuo')")
+                ok = hl_chat and tr_share and xz_share and not errors
+                detail = (f"hl chatEntry={hl_chat} tarot share={tr_share} "
+                          f"xingzuo share={xz_share}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:r16.fixtures",
+                            "ok": ok, "detail": detail})
+
             # ── R229c：排盘历史「复看」链路回归钉扎——R5 审计 P0 抓到
             # `_rmBehavior` 嵌套在 closePosterModal 体内，复看点击必抛
             # ReferenceError（toast 假错 + scrollIntoView 从未发生）。此类
