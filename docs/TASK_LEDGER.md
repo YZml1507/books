@@ -11550,3 +11550,22 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - **P1-7 抽取器再修**：模态词剥壳补「要不要/该不该/想不想」；尾巴剥壳「顺利/冲不冲/行不行/好不好/成不成」。
 - **探针**：parity CASES +2（年底×2）、+SUN×5/MON×3 基线块；selftest 找日问法断言放宽到清单格式。
 - 闸门：selftest 253 / contract 542 / ui_smoke 75 / parity 68+41+8 / ruff clean 全绿。
+
+## R2349b — R65 留存回访链路批（P1×4 + P2×6）
+
+**源头**：audit_r65_retention.md（首日→回访→连签→断签→分享回流全真机跑，0 P0 / 5 P1 / 9 P2）。
+
+- **P1-1 分享图首点误吞**：`_POSTER_LAST` 初始空表 `(now-0)<4000` 恒真——落地 4s 内点分享只弹「刚保存过」toast 什么都没存。改 `(_vkey in _POSTER_LAST) &&` 先验键。
+- **P1-2 「忘掉我的数据」漏清收藏表**：favorites 的 ref_id 编码双方生辰+昵称，wipe 只清本地键+排盘台账。新增 `DELETE /api/favorites`（knowledge.clear_favorites + services + router），wipe 与台账并行调；`checkinCeleb:*` 里程碑键也补进清除清单。
+- **P1-4 iOS 无装桌面引导**：beforeinstallprompt 是 Chromium 专属，主受众 iPhone 反而没提示。检测 iOS UA + 非 standalone → 第二次来访起弹「分享→添加到主屏幕」手动引导。
+- **P1-5 合婚邀请链语义反置（大坑）**：受邀者落地看到的是 A 侧标「我的」却装着发起人的盘、B 侧「TA 的」是出厂默认值看着像已填——受邀者把自己填进 A 覆盖掉对方、留下假 B 直接提交。现在邀请态下标签整体翻转（A→「TA 的」、B→「我的」）+ B 侧出厂值清空；预检文案随 `__hhInviteMode` 翻转。
+- **P2-1 邀请链 F5 预填不丢**：剥参前存 sessionStorage.hhInvite（tab 级，关窗即焚），F5 无参时回灌。
+- **P2-2** welcomeBar 补 `from=invite` 承接变体（此前落通用文案与 toast 打架）。
+- **P2-3 跨 tab 同步补键**：dailyRevealed 同步走 `_bindDailyCover` 抽出的 `__dailyCoverCleanup`（断 MO+摘 inert+摘封面三件事同做）；welcomed/installTipDismissed 同步摘条。
+- **P2-4** `checkinCeleb:*` 进 90 天 GC（尾段日期比对，两处 GC 点同改）。
+- **P2-5** 生日横幅抽 `_renderBirthdayBanner()`，daily API 失败的 catch 兜底路径也调——离线生日不再缺席。
+- **P2-6** `?view=checkin-week` 别名落地加滚动承接（此前落首页顶部）。
+- **P2-7** 海报副题加奶白晕影（shadowBlur）——底图星芒不再压字。
+- **探针**：probe_contract UNPINNED_ROUTES +2 条写端点理由钉扎（542 读点全绿）。
+- 待决：P1-3 海报二维码回流需正式域名（与既有「域名待定」同一决策）；P2-8 emoji 豆腐块只影响无彩色字体的 Linux 桌面（iOS/Android 目标受众无碍）。
+- 闸门：selftest 253 / contract 542 / ui_smoke 75 / ruff clean 全绿。

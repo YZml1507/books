@@ -531,6 +531,10 @@ UNPINNED_ROUTES = {
                                  "btn:hehun.savepair 已真点验证）",
     ("DELETE", "/api/favorites/{fid}"): "同上——写端点；R230z 起由心水名单"
                                  " × 摘除接线（真机路径同 ui_smoke savepair）",
+    ("DELETE", "/api/favorites"): "R2349（R65-P1-2）：「忘掉我的数据」全清"
+                                 "端点——真机路径由 wipe 钮两段式覆盖",
+    ("DELETE", "/api/paipan/history"): "同上——「忘掉我的数据」整表清",
+
     ("DELETE", "/api/paipan/history/{rid}"): "删除写端点——探针只读纪律"
                                  "（R230k 起写路径由 ui_smoke btn:history.delete"
                                  " 两段式真删覆盖；此前注释误称已由建删回环"

@@ -2478,6 +2478,13 @@ def remove_favorite(fid: int) -> dict:
     return {"ok": True}
 
 
+def clear_favorites() -> dict:
+    """R2349（R65-P1-2）：清空收藏表——「忘掉我的数据」收口面。"""
+    with deps.knowledge() as kb:
+        kb.clear_favorites()
+    return {"ok": True}
+
+
 def external_news() -> dict:
     """外部资讯通道：抓预置 RSS/Atom 源。不落库、不写 history——"最新消息"
     是即时信息，与古籍语料 Source 层严格隔离。单源失败自动降级。"""

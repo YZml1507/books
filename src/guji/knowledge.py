@@ -524,3 +524,9 @@ class KnowledgeBase:
     def remove_favorite(self, fid: int) -> None:
         self.db.execute("DELETE FROM favorites WHERE id=?", (fid,))
         self.db.commit()
+
+    def clear_favorites(self) -> None:
+        # R2349（R65-P1-2）：「忘掉我的数据」须覆盖收藏——CP/心水名单
+        # 的 ref_id 编码生辰+昵称，漏清=隐私承诺破洞。
+        self.db.execute("DELETE FROM favorites")
+        self.db.commit()

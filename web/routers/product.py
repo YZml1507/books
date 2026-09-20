@@ -63,6 +63,12 @@ def remove_favorite(fid: int) -> dict:
     return services.remove_favorite(fid)
 
 
+@router.delete("/api/favorites")
+def clear_favorites() -> dict:
+    """R2349（R65-P1-2）：清空全部收藏——「忘掉我的数据」调用面。"""
+    return services.clear_favorites()
+
+
 @router.get("/api/external/news")
 def external_news() -> dict:
     """外部资讯通道：抓预置 RSS/Atom 源。不落库，与语料 Source 层隔离。"""

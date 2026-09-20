@@ -2756,7 +2756,13 @@ function _paintSharePoster(s, W, H) {
   ctx.fillText(_pStr(s.title) || '知命', 540, 128);
   if (s.subtitle) {
     ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+    /* R2349（R65-P2-7）：底图星芒装饰会压副题行——给文字一圈
+     * 奶白晕影（shadowBlur 沿字形外扩），字浮在星上仍可读。 */
+    ctx.save();
+    ctx.shadowColor = 'rgba(253,248,240,0.95)';
+    ctx.shadowBlur = 10;
     ctx.fillText(_gSlice(s.subtitle, 24), 540, 182);
+    ctx.restore();
   }
 
   /* 大字结论（最多两行，自动缩字号防溢出） */
@@ -3307,7 +3313,10 @@ async function _downloadPoster(j, view) {
   /* R230q（R28-P3-13）：连点分享每次都真下载——下载目录堆 N 张同名图
    * 还触发浏览器「多次下载」权限弹窗。4s 内同视图只给预览浮层。 */
   var _vkey = view || 'default';
-  var _dup = (performance.now() - (_POSTER_LAST[_vkey] || 0)) < 4000;
+  /* R2349（R65-P1-1）：键不存在时 (now - 0) < 4000 恒真——落地 4s 内
+   * 首点被误吞「刚保存过」。必须先验键在表。 */
+  var _dup = (_vkey in _POSTER_LAST) &&
+    (performance.now() - _POSTER_LAST[_vkey]) < 4000;
   /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。
    * R198b（US5）：view 传入时先 buildShareData 注入 j.share（通用模板）；
    * 不传则保持 bazi 专属旧版式。
@@ -3909,37 +3918,10 @@ async function loadDaily() {
     if (_sg) _sg.innerHTML = '📜 今日签号：<strong>第' +
       _signNo(j.date) + '签</strong>';
     /* R233n（R47-P2-5）：生日横幅——档案里的生日撞上今天就铺一条
-     * 「今天你最大」，顺带把生日盘入口点亮。 */
-    try {
-      var _bme = _meGet('me'), _bdt = new Date();
-      var _bbar = el('dailyBirthday');
-      if (_bme && _bme.y &&
-          Number(_bme.m) === _bdt.getMonth() + 1 &&
-          Number(_bme.d) === _bdt.getDate()) {
-        if (!_bbar) {
-          _bbar = document.createElement('div');
-          _bbar.id = 'dailyBirthday';
-          _bbar.className = 'daily-birthday';
-          _bbar.setAttribute('role', 'note');
-          var _ckb = el('dailyCheckin');
-          if (_ckb && _ckb.parentNode) _ckb.parentNode.insertBefore(_bbar, _ckb);
-        }
-        _bbar.innerHTML = '🎂 ' +
-          (_bme.n ? esc(_bme.n) + '，' : '') +
-          '今天你生日——全场最大，宜收下所有夸奖 ' +
-          '<button type="button" class="daily-birthday-go">' +
-          '去开生日盘 ✨</button>';
-        var _bgo = _bbar.querySelector('.daily-birthday-go');
-        if (_bgo && !_bgo.dataset.bound) {
-          _bgo.dataset.bound = '1';
-          _bgo.addEventListener('click', function () {
-            showView('xingzuo');
-            var _bd2 = el('birthDrawer');
-            if (_bd2) _bd2.open = true;
-          });
-        }
-      } else if (_bbar) { _bbar.remove(); }
-    } catch (e3) {}
+     * 「今天你最大」，顺带把生日盘入口点亮。
+     * R2349（R65-P2-5）：抽成函数——daily API 失败的 catch 兜底
+     * 路径也调（横幅只依赖本地档案，离线生日不该缺席）。 */
+    _renderBirthdayBanner();
     renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
     /* R39-P0-1：卡尾「明天预告」一行。 */
     var _tmrEl = el('dailyTomorrow');
@@ -4017,7 +3999,44 @@ async function loadDaily() {
     /* R230n（R25-5.2）：打卡是纯 localStorage 功能，daily 失败时不该
      * 连带隐藏——按浏览器今天渲出来，离线也能打。 */
     renderCheckin(todayIso());
+    /* R2349（R65-P2-5）：生日当天离线进首页也要有横幅——横幅只吃
+     * 本地档案，不依赖 daily 响应。 */
+    _renderBirthdayBanner();
   }
+}
+
+/* R233n→R2349 抽函数：生日横幅渲染（loadDaily 成功/失败两路共用）。 */
+function _renderBirthdayBanner() {
+  try {
+    var _bme = _meGet('me'), _bdt = new Date();
+    var _bbar = el('dailyBirthday');
+    if (_bme && _bme.y &&
+        Number(_bme.m) === _bdt.getMonth() + 1 &&
+        Number(_bme.d) === _bdt.getDate()) {
+      if (!_bbar) {
+        _bbar = document.createElement('div');
+        _bbar.id = 'dailyBirthday';
+        _bbar.className = 'daily-birthday';
+        _bbar.setAttribute('role', 'note');
+        var _ckb = el('dailyCheckin');
+        if (_ckb && _ckb.parentNode) _ckb.parentNode.insertBefore(_bbar, _ckb);
+      }
+      _bbar.innerHTML = '🎂 ' +
+        (_bme.n ? esc(_bme.n) + '，' : '') +
+        '今天你生日——全场最大，宜收下所有夸奖 ' +
+        '<button type="button" class="daily-birthday-go">' +
+        '去开生日盘 ✨</button>';
+      var _bgo = _bbar.querySelector('.daily-birthday-go');
+      if (_bgo && !_bgo.dataset.bound) {
+        _bgo.dataset.bound = '1';
+        _bgo.addEventListener('click', function () {
+          showView('xingzuo');
+          var _bd2 = el('birthDrawer');
+          if (_bd2) _bd2.open = true;
+        });
+      }
+    } else if (_bbar) { _bbar.remove(); }
+  } catch (e3) {}
 }
 
 function renderStars(level) {
@@ -5914,9 +5933,13 @@ async function doTarot() {
 
 
 async function doHehun() {
-  /* R233k（R45-§3）：双侧预检——空字段/非法日前端先拦。 */
-  var _hs = [['hh_a_year','hh_a_month','hh_a_day','你的'],
-             ['hh_b_year','hh_b_month','hh_b_day','TA 的']];
+  /* R233k（R45-§3）：双侧预检——空字段/非法日前端先拦。
+   * R2349（R65-P1-5）：邀请态下 A 侧=TA、B 侧=我——措辞随视角翻转。 */
+  var _hs = window.__hhInviteMode
+    ? [['hh_a_year','hh_a_month','hh_a_day','TA 的'],
+       ['hh_b_year','hh_b_month','hh_b_day','你的']]
+    : [['hh_a_year','hh_a_month','hh_a_day','你的'],
+       ['hh_b_year','hh_b_month','hh_b_day','TA 的']];
   for (var _hi = 0; _hi < _hs.length; _hi++) {
     var _hp = _hs[_hi];
     if (num(_hp[0]) == null || num(_hp[1]) == null || num(_hp[2]) == null) {
@@ -7951,6 +7974,19 @@ function init() {
         _mo.observe(_card0, { childList: true });
       }
     }
+    /* R2349（R65-P2-3）：摘封面的 inert/MO 清理抽出来——跨 tab
+     * storage 事件也要走同一条，不能只 remove 封面节点（兄弟节点的
+     * inert 会留下，MO 还会在下次变异时打回去）。 */
+    var _cleanup = function () {
+      if (_mo) { _mo.disconnect(); _mo = null; }
+      if (_card0) {
+        Array.prototype.forEach.call(_card0.children, function (c) {
+          c.removeAttribute('inert');
+        });
+      }
+      if (_cov.parentNode) _cov.remove();
+    };
+    window.__dailyCoverCleanup = _cleanup;
     var _reveal = function () {
       _cov.classList.add('open');
       /* R41-P3-2：隔夜未拆次日再拆——key 按点击时刻的今天写，
@@ -7958,13 +7994,7 @@ function init() {
       try { localStorage.setItem('dailyRevealed:' + todayIso(), '1'); }
       catch (e) {}
       setTimeout(function () {
-        if (_mo) { _mo.disconnect(); _mo = null; }
-        if (_card0) {
-          Array.prototype.forEach.call(_card0.children, function (c) {
-            c.removeAttribute('inert');
-          });
-        }
-        if (_cov.parentNode) _cov.remove();
+        _cleanup();
         /* R38-P3-3：开封后焦点移交首个内容控件，不再丢回 body 从头爬 */
         var _dm = el('dailyMore');
         if (_dm && _dm.focus) { try { _dm.focus(); } catch (e) {} }
@@ -7999,6 +8029,18 @@ function init() {
   })();
   window.__mountDailyCover = _mountDailyCover;
   loadDaily();
+  /* R2349（R65-P1-4）：iOS 不发 beforeinstallprompt——第二次来访
+   * 起主动弹手动装桌面引导（首访不打扰）。延迟到 loadDaily 之后
+   * 避免与拆礼物封面同时出现。 */
+  setTimeout(function () {
+    try {
+      var _ios0 = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (_ios0 && !navigator.standalone && _visitCount() >= 2) {
+        _renderInstallTip();
+      }
+    } catch (eI) {}
+  }, 6000);
   /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
   /* R208b：loadNews 随「今日关注」面板移除 */
@@ -8016,8 +8058,13 @@ function init() {
     var _gc0 = _isoShift(_lastDay, -90);
     for (var _gi = window.localStorage.length - 1; _gi >= 0; _gi--) {
       var _gk = window.localStorage.key(_gi);
+      /* R2349（R65-P2-4）：checkinCeleb:N:YYYY-MM-DD 此前不在 GC——
+       * 里程碑标记虽轻但白攒；按尾段日期同一 90 天口径收。 */
+      var _gkd = _gk && _gk.indexOf('checkinCeleb:') === 0
+        ? _gk.slice(_gk.lastIndexOf(':') + 1) : null;
       if (_gk && ((_gk.indexOf('checkin:') === 0 && _gk.slice(8) < _gc0) ||
-          (_gk.indexOf('dailyRevealed:') === 0 && _gk.slice(14) < _gc0))) {
+          (_gk.indexOf('dailyRevealed:') === 0 && _gk.slice(14) < _gc0) ||
+          (_gkd && _gkd < _gc0))) {
         window.localStorage.removeItem(_gk);
       }
     }
@@ -8078,6 +8125,26 @@ function init() {
       renderCheckin(todayIso());
       return;
     }
+    /* R2349（R65-P2-3）：补其余个人键的跨 tab 同步——A 拆了礼物 B 的
+     * 封面仍盖着、A 打完里程碑 B 又弹一次，都是同一类穿帮。 */
+    if (e.key.indexOf('dailyRevealed:') === 0 && e.newValue) {
+      /* R2349（R65-P2-3）：走 _bindDailyCover 暴露的清理面——断 MO、
+       * 摘 inert、remove 封面三件事同做，否则兄弟节点永远不可点。 */
+      if (window.__dailyCoverCleanup) window.__dailyCoverCleanup();
+      else { var _cv = el('dailyCover'); if (_cv) _cv.remove(); }
+      return;
+    }
+    if (e.key.indexOf('checkinCeleb:') === 0 ||
+        e.key === 'hlask' || e.key === 'visits') { return; /* 下次渲染自然跟上 */ }
+    if (e.key === 'welcomed' && e.newValue) {
+      var _wb = el('welcomeBar'); if (_wb) _wb.remove();
+      try { document.documentElement.classList.add('welcomed'); } catch (e2) {}
+      return;
+    }
+    if (e.key === 'installTipDismissed' && e.newValue) {
+      var _it = el('installTip'); if (_it) _it.remove();
+      return;
+    }
     /* R230t（R31-P2-2）：口吻/皮肤跨 tab 同步——别处改了这里就地
      * 生效，不再要刷新才跟上。 */
     if (e.key === VOICE_KEY) { rerenderVoice(); return; }
@@ -8119,9 +8186,18 @@ function init() {
          document.querySelector('.func-card[data-view="' + _vp + '"]'));
       if (_vpOk) {
         /* R233n（R47-Top5-1）：合婚邀请链落地——?view=hehun&ay&am&ad
-         * &ah&ag&an 把发起人的盘预填进 A 侧，受邀者只需填自己。 */
+         * &ah&ag&an 把发起人的盘预填进 A 侧，受邀者只需填自己。
+         * R2349（R65-P2-1）：剥参后 F5 预填静默丢——值存 sessionStorage
+         *（tab 级，关窗即焚，不进历史/书签），刷新后从这儿回灌。 */
         var _qsAll = new URLSearchParams(location.search);
         var _invA = _qsAll.get('ay');
+        if (_vp === 'hehun' && !_invA) {
+          try {
+            var _sv = sessionStorage.getItem('hhInvite');
+            if (_sv) _qsAll = new URLSearchParams(_sv);
+          } catch (eSS) {}
+          _invA = _qsAll.get('ay');
+        }
         if (_vp === 'hehun' && _invA) {
           [['ay','hh_a_year'],['am','hh_a_month'],['ad','hh_a_day'],
            ['ah','hh_a_hour'],['ag','hh_a_gender'],['an','hh_a_name']
@@ -8142,6 +8218,28 @@ function init() {
            * 否则发起人的生日会顶掉受邀者自己的档案。用户手改 A 侧
            * 任一字段即视同放弃邀请口径，恢复默认归属。 */
           window.__hhInviteMode = true;
+          /* R2349（R65-P1-5）：邀请态下 A 侧装的是发起人的盘，但标签
+           * 写「我的」、B 侧「TA 的」是出厂默认值——受邀者把自己填进
+           * A 覆盖掉对方数据、留下假 B 提交而无提示。翻转标签语义：
+           * A→「TA 的（已填好）」、B→「我的」，并清掉 B 侧出厂值，
+           * 让空着=没填一目了然。 */
+          [['hh_a_year','TA 的出生年'],['hh_a_month','TA 的出生月'],
+           ['hh_a_day','TA 的出生日'],['hh_a_hour','TA 的时辰'],
+           ['hh_a_gender','TA 的性别'],['hh_a_name','TA 的昵称'],
+           ['hh_b_year','我的出生年'],['hh_b_month','我的出生月'],
+           ['hh_b_day','我的出生日'],['hh_b_hour','我的时辰'],
+           ['hh_b_gender','我的性别'],['hh_b_name','我的昵称']
+          ].forEach(function (_lp) {
+            var _lb = document.querySelector('label[for="' + _lp[0] + '"]');
+            if (_lb) _lb.textContent = _lp[1];
+          });
+          /* B 侧出厂值（1992/8/20/14/男）不是受邀者填的——清空，手填
+           * 或档案回填都从这空白态开始；留 placeholder 提示。 */
+          ['hh_b_year','hh_b_month','hh_b_day','hh_b_hour'].forEach(
+            function (_id) {
+              var _be = document.getElementById(_id);
+              if (_be) _be.value = '';
+            });
           /* R2348（R66-P2）：邀请态下 B 侧档案源=me——置位后补跑一次
            * 回填（init 早段的 _meFillAll 还按默认映射填过 hh_b）。 */
           try { _meFillAll(); } catch (eM) {}
@@ -8155,6 +8253,17 @@ function init() {
           /* R2345（R63-P2-6）：邀请链生辰此前驻留 location.search——
            * 浏览器历史/分享面板长存明文生日。落地预填后剥掉参数
            * （深链语义不变，?view=hehun 保留以便刷新仍回本页）。 */
+          /* R2349（R65-P2-1）：剥参前先把邀请参原样存 sessionStorage——
+           * F5 回灌靠它；关 tab 自动焚毁，与「不落历史」同口径。 */
+          try {
+            sessionStorage.setItem('hhInvite',
+              'ay=' + encodeURIComponent(_qsAll.get('ay') || '') +
+              '&am=' + encodeURIComponent(_qsAll.get('am') || '') +
+              '&ad=' + encodeURIComponent(_qsAll.get('ad') || '') +
+              '&ah=' + encodeURIComponent(_qsAll.get('ah') || '') +
+              '&ag=' + encodeURIComponent(_qsAll.get('ag') || '') +
+              '&an=' + encodeURIComponent(_qsAll.get('an') || ''));
+          } catch (eSS2) {}
           try {
             history.replaceState(null, '',
               location.pathname + '?view=hehun');
@@ -8176,7 +8285,10 @@ function init() {
               _vp === 'home' ? '/' : '/?view=' + encodeURIComponent(_vp));
           } catch (eR) {}
           setTimeout(function () {
-            if (_vpRaw === 'daily' || _vpRaw === 'checkin') {
+            /* R2349（R65-P2-6）：checkin-week 别名此前落首页顶部无
+             * 承接——和 daily/checkin 一样滚到日签卡（签运图在那）。 */
+            if (_vpRaw === 'daily' || _vpRaw === 'checkin' ||
+                _vpRaw === 'checkin-week') {
               var _dc = document.getElementById('dailyCard');
               if (_dc) _dc.scrollIntoView({ behavior: _rmBehavior(), block: 'start' });
             } else if (_vpRaw === 'birth') {
@@ -8229,15 +8341,19 @@ if (document.readyState === 'loading') {
       bar.remove();
       return;
     }
-    /* R39-P2-1：受邀回流（?from=share）换一句承接——「朋友在晒她的运势」 */
-    var _fromShare = false;
+    /* R39-P2-1：受邀回流（?from=share）换一句承接——「朋友在晒她的运势」
+     * R2349（R65-P2-2）：from=invite（合婚邀请链）也给专属承接——
+     * 此前落通用文案与「TA 的信息已填好」toast 语义打架。 */
+    var _from = null;
     try {
-      _fromShare = new URLSearchParams(location.search).get('from') === 'share';
+      _from = new URLSearchParams(location.search).get('from');
     } catch (e) {}
-    if (_fromShare) {
-      var _txt = bar.querySelector('.welcome-txt');
-      if (_txt) _txt.textContent =
+    var _txtEl = bar.querySelector('.welcome-txt');
+    if (_txtEl && _from === 'share') {
+      _txtEl.textContent =
         '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨';
+    } else if (_txtEl && _from === 'invite') {
+      _txtEl.textContent = 'TA 约你来合婚——填好你的生日就能对上盘 💕';
     }
     bar.querySelector('.welcome-close').addEventListener('click', function () {
       bar.remove();
@@ -8519,8 +8635,13 @@ function renderCheckin(dateKey) {
           var _ck = window.localStorage.key(_ci);
           /* R39-P3-1：dailyRevealed:* 此前无 GC，每年 365 个废键——
            * 与 checkin:* 同一 90 天收口。 */
+          /* R2349（R65-P2-4）：checkinCeleb 同收（尾段是日期）。 */
+          var _ckd = _ck && _ck.indexOf('checkinCeleb:') === 0
+            ? 'checkinCeleb:' + _ck.slice(_ck.lastIndexOf(':') + 1) : null;
           if (_ck && ((_ck.indexOf('checkin:') === 0 && _ck < _cutoff) ||
-              (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2))) {
+              (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2) ||
+              (_ckd && _ckd < 'checkinCeleb:' +
+                _isoShift(dateKey, -90)))) {
             window.localStorage.removeItem(_ck);
           }
         }
@@ -8789,6 +8910,11 @@ function _renderInstallTip() {
   if (el('installTip')) return;
   if (window.matchMedia &&
       window.matchMedia('(display-mode: standalone)').matches) return;
+  /* R2349（R65-P1-4）：iOS Safari 不发 beforeinstallprompt——主受众
+   * 是 iPhone，恰在最大盘上没引导。检测 iOS UA 给手动步骤提示。 */
+  var _ios = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (navigator.standalone) return;   /* iOS standalone 也不显示 */
   try {
     var ds = localStorage.getItem('installTipDismissed');
     if (ds && Date.now() - Date.parse(ds) < 7 * 864e5) return;
@@ -8797,9 +8923,15 @@ function _renderInstallTip() {
   bar.className = 'install-tip'; bar.id = 'installTip';
   /* R233f（R43-P3-13）：静默出现读屏无感知——role=status 出现即播。 */
   bar.setAttribute('role', 'status');
-  bar.innerHTML = '<span>🏠 把小满放进桌面，明天直接来</span>' +
-    '<button type="button" class="install-tip-go">装好</button>' +
-    '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
+  if (_ios) {
+    bar.innerHTML = '<span>🏠 点底部「分享」→「添加到主屏幕」，明天直接来</span>' +
+      '<button type="button" class="install-tip-go">知道了</button>' +
+      '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
+  } else {
+    bar.innerHTML = '<span>🏠 把小满放进桌面，明天直接来</span>' +
+      '<button type="button" class="install-tip-go">装好</button>' +
+      '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
+  }
   var go = bar.querySelector('.install-tip-go');
   var xx = bar.querySelector('.install-tip-x');
   if (go) go.addEventListener('click', function () {
@@ -9215,9 +9347,12 @@ function baziPersonaCard(j) {
           var _rm = [];
           for (var i = 0; i < localStorage.length; i++) {
             var k = localStorage.key(i);
-            if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript)$/
+            /* R2349（R65-P2-4）：checkinCeleb:*（里程碑已弹标记）此前
+           * 游离在清除清单外——一起收。 */
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript)$/
                 .test(k) || k.indexOf('checkin:') === 0 ||
-                k.indexOf('dailyRevealed:') === 0)) _rm.push(k);
+                k.indexOf('dailyRevealed:') === 0 ||
+                k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
         } catch (e) {}
@@ -9227,8 +9362,12 @@ function baziPersonaCard(j) {
           ? '都忘掉啦——本机档案和台账都空了'
           : '本机档案清了，台账没连上——联网后再点一次', serverOk ? 'info' : 'warn');
       };
-      phFetch('/api/paipan/history', { method: 'DELETE' })
-        .then(function () { _done(true); })
+      /* R2349（R65-P1-2）：收藏表（合婚CP/心水名单）含双方生辰+昵称，
+       * 「忘掉我的数据」承诺必须覆盖——与台账一起清。 */
+      Promise.all([
+        phFetch('/api/paipan/history', { method: 'DELETE' }),
+        phFetch('/api/favorites', { method: 'DELETE' })
+      ]).then(function () { _done(true); })
         .catch(function () { _done(false); });
     });
     var _imb = document.getElementById('historyImportBtn');
