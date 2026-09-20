@@ -498,6 +498,15 @@ _CRISIS_PAT = re.compile(
     r"不想活|想死|自杀|自残|伤害自己|活着没意思|想不开|轻生|跳楼|抑郁|"
     r"suicide|kill\s*myself|end\s*it", re.IGNORECASE)
 
+# R233g（R44-P0-3）：非自伤的生死/重病问法（绝症/活多久/亲人会不会走）
+# 不属于危机自伤，但同样不该交给模型即兴——确定性转介，语气放稳。
+_SENSITIVE_PAT = re.compile(
+    r"还能活|活多久|会不会死|会死吗|绝症|癌症|病危|临终|会不会去世|"
+    r"会去世|存活率|晚期|治得好吗", re.IGNORECASE)
+_SENSITIVE_REPLY = ("这个话题我真接不了——不是不愿意，是它不该靠占卜来定。"
+                    "身体或心里难受的话，医生和信得过的人才是最该找的。"
+                    "想聊点别的，小满都在。")
+
 # R230a-6（R12-P1-4）：chat 替换闸与出站共用禁语表同宽（此前漏
 # 「没戏/必离/注定孤独/他克你」）。
 _CHAT_BANNED_PAT = _BANNED_OUT_PAT
@@ -584,6 +593,10 @@ def chat(session_id: str, user_msg: str,
             # 6 轮后发「我不想活了」会被收尾文案截胡，安全转介失效。
             if _CRISIS_PAT.search(msg):
                 return _CHAT_REFUSAL
+            # R233g：非自伤生死/重病问法——排危机之后（自伤优先走危机
+            # 转介），调 LLM 之前确定性接住。
+            if _SENSITIVE_PAT.search(msg):
+                return _SENSITIVE_REPLY
 
             if len(sess["messages"]) >= _CHAT_MAX_TURNS * 2:
                 # R230a-5：到顶后每句追问同一句收尾略显机械——按追问序轮换

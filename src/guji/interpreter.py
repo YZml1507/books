@@ -24,6 +24,17 @@
 """
 from __future__ import annotations
 
+import re
+
+# R233g（R44-P0-1）：生死/重病类敏感问法——不能走话题兜底（会被当
+# 格式错吐黑话），也不能交给判词背书。确定性转介，语气放稳。
+_SENSITIVE_PAT = re.compile(
+    r"会不会死|会死吗|还能活|活多久|寿命|绝症|癌症|病危|临终|"
+    r"会不会去世|会去世|要死了|病死|存活率|晚期")
+_SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意——"
+                   "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
+                   "小满陪你说点别的也行。")
+
 # 本模块唯一的"事实来源"是入参；下面这些表是**术语解释表**，
 # 只是翻译表——把命理术语转成白话，不改变任何计算结果。（R219b P1-4：去套话）
 
@@ -277,6 +288,9 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
     """把用户问题对齐到已算出的坐标，只做筛选与转述，不新增判断。"""
     tg = calc.get("ten_gods") or []
     gods = [t.get("god") for t in tg]
+    # R233g（R44-P0-1）：敏感问法优先拦截——此前落空吐「坐标维度」黑话。
+    if _SENSITIVE_PAT.search(q):
+        return [_SENSITIVE_LINE]
     for kw, targets, label in _TOPIC_MAP:
         if kw not in q:
             continue
@@ -297,9 +311,9 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                               for t in hit)
                     + f"——{label}现于盘中，相关事项在四柱里有着落点"]
         return [f"{label}未现于四柱天干（{'、'.join(str(g) for g in gods if g)}）"
-                f"——本盘该维度信息偏少，系统不据此推测（G7）"]
-    return ["问题未匹配到系统支持的坐标维度（事业/财运/感情/学业/健康），"
-            "以上通盘坐标已全部列出，请据坐标自行对照。"]
+                f"——本盘这一维线索偏少，不作推测"]
+    return ["这个问题盘面没有对应的维度——感情、工作、学习、财运、"
+            "身体节奏这些能聊，要不换个问法试试？"]
 
 
 def _citations(evidence: list[dict]) -> list[dict]:
@@ -467,11 +481,11 @@ def interpret_research(question: str, evidence: list[dict],
             "kind": "rule-based",
             "engine": "guji.interpreter/1.0（确定性规则，无 LLM）",
             "sections": [{"title": "证据不足", "lines": [
-                f"「{question}」在当前语料未检索到可核验原文——"
-                "系统不据此推测（G7）"]}],
+                f"「{question}」在当前语料没检索到能对上的原文——"
+                "不作推测"]}],
             "citations": [],
-            "text": f"## 证据不足\n- 「{question}」在当前语料未检索到可核验原文，"
-                    f"系统不据此推测（G7）。\n\n{_DISCLAIMER}",
+            "text": f"## 证据不足\n- 「{question}」在当前语料没检索到能对上的原文，"
+                    f"不作推测。\n\n{_DISCLAIMER}",
             "basis": ["evidence 为空"],
             "disclaimer": _DISCLAIMER,
         }

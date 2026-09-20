@@ -153,7 +153,7 @@ class BaziRequest(BaseModel):
                     f"占卜年份需在 {YEAR_LO}-{YEAR_HI} 之间")
         if self.scope == "range":
             if not (self.range_start and self.range_end):
-                raise ValidationError("范围=range 需提供区间起止（range_start 和 range_end）")
+                raise ValidationError("选了「一段日子」的话，开头和结尾两天都要填哦")
             try:
                 date.fromisoformat(self.range_start)
                 date.fromisoformat(self.range_end)

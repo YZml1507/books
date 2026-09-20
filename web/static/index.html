@@ -118,7 +118,7 @@ if ('serviceWorker' in navigator) {
       <div>
         <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
         <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
-        <div class="daily-summary" id="dailySummary">正在为你推算今日运势…</div>
+        <div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div>
       </div>
     </div>
     <!-- R233f（R43-P3-17）：窄屏横滚区需可键盘聚焦，否则 Tab 进不去 -->
@@ -195,7 +195,7 @@ if ('serviceWorker' in navigator) {
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
            （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
       <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-        <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 传统问法</div>
+        <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
       </div>
       <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
         <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
@@ -216,7 +216,7 @@ if ('serviceWorker' in navigator) {
       <p style="color:var(--secondary);font-size:14px;">选一个方式，问一件具体的事</p>
       <div class="func-grid">
         <div class="func-card" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-          <div class="func-icon">🪙</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦断事 · 看事情走向</div>
+          <div class="func-icon">🪙</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 看事情走向</div>
         </div>
         <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
           <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
@@ -233,7 +233,7 @@ if ('serviceWorker' in navigator) {
 
   <div class="view" id="view-bazi">
     <div class="card">
-      <h2><span aria-hidden="true">🔮</span> 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知天命 · 解运势</span></h2>
+      <h2><span aria-hidden="true">🔮</span> 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看看你的五行底色</span></h2>
       <!-- R229c（R5 审计 P2）：novalidate 关掉浏览器原生英文气泡
            （年=1800 → "Value must be ≥1900"），让站内统一中文校验
            （后端「年份需在 1900-2100」）接管——两条校验路径口径一致。 -->
@@ -495,7 +495,7 @@ if ('serviceWorker' in navigator) {
   <!-- 六爻 -->
   <div class="view" id="view-liuyao">
     <div class="card">
-      <h2><span aria-hidden="true">🪙</span> 六爻占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">摇卦断事</span></h2>
+      <h2><span aria-hidden="true">🪙</span> 六爻占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">摇卦问事</span></h2>
       <div class="row">
         <div class="field"><label for="ly_method">起卦方式</label>
           <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->

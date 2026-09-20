@@ -467,11 +467,11 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
         # 此前静默 200 零命中，看起来像「语料里没有这个词」。
         if work and not c.db.execute(
                 "SELECT 1 FROM work WHERE id=?", (work,)).fetchone():
-            raise ValidationError(f"这本书不在语料里（{work}）——书号先查 /api/works")
+            raise ValidationError(f"这本书库里暂时没有（{work}）——先去书目页翻翻")
         if layer and not c.db.execute(
                 "SELECT 1 FROM unit WHERE layer=? LIMIT 1",
                 (layer,)).fetchone():
-            raise ValidationError(f"这个层标注不存在（{layer}）——可用层先查 /api/stats")
+            raise ValidationError(f"这个分类库里没有（{layer}），换一个试试")
         kw = dict(layer=layer, work_id=work, genre=genre, scheme=scheme)
         hits = c.search(q, limit=limit, **kw)
         hint = None
@@ -517,7 +517,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
                 raise ValidationError("用周易定位得给个卦号（1–64）")
             # R230a-33（R14-P3-6）：gua=99 此前 200 空集——与 compare 同判 400。
             if not (1 <= gua <= 64):
-                raise ValidationError("卦号要在 1–64 之间")
+                raise ValidationError("卦号填 1 到 64")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
             # R230r（R30-#6）：披露总量——默认 limit=20 只回前 20 条时，
             # 此前用户以为该卦只有 20 条材料。
@@ -535,7 +535,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             # 全局校验——超界仍回空集（不算差异，算没那个地址）。
             if scheme == "yilin" and addr1 is not None \
                     and not (1 <= addr1 <= 64):
-                raise ValidationError("易林候数要在 1–64 之间")
+                raise ValidationError("候数填 1 到 64")
             hits = c.at_scheme(None if scheme == "none" else scheme,
                                addr_name=addr_name, addr1=addr1,
                                addr2=addr2, layer=layer, limit=limit)
@@ -557,7 +557,7 @@ def compare(gua: int, yao: str = "九三", layer: str = "經",
             allow_damaged: bool = False) -> dict:
     """跨版本同址比对 + 差异摘要（复用 compare.compare_address）。"""
     if not (1 <= gua <= 64):
-        raise ValidationError("卦号要在 1–64 之间")
+        raise ValidationError("卦号填 1 到 64")
     with deps.corpus() as c:
         cmp = compare_address(c, gua, yao, layer=layer,
                               allow_damaged=allow_damaged)
@@ -588,7 +588,7 @@ def deep_research(q: str, *, max_addresses: int = 3,
     """深度研究：检索→读地址→扩展的多轮循环，返回证据集 + 步骤链 + 差异摘要。"""
     q = _require_q(q)
     if not (1 <= max_addresses <= 6):
-        raise ValidationError("地址数需在 1-6")
+        raise ValidationError("最多选 6 条")
     with deps.corpus() as c:
         r = research(c, q, max_addresses=max_addresses,
                      allow_damaged=allow_damaged)
@@ -732,7 +732,7 @@ def thread_set_status(tid: int, status: str) -> dict:
     """改线程状态（R230r / R30-#8：schema 早有 open/parked/closed CHECK，
     但没有任何写入路径能到 closed/parked）。"""
     if status not in ("open", "parked", "closed"):
-        raise ValidationError("线程状态只能是 open / parked / closed")
+        raise ValidationError("这条心事只能「挂着」「收起来」或「打开」")
     with deps.knowledge() as kb:
         row = kb.db.execute(
             "SELECT id FROM thread WHERE id=?", (tid,)).fetchone()
@@ -1779,8 +1779,16 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
                    f"{_good_part()}")
     if past_mid:
         verdict += "（该日期已过去，请温和点出、按复盘口径回应，不要再给择日建议。）"
+    # R233g（R44-P1-7）：医疗类事项（求医/治病/手术/体检等）判词必须带
+    # 「听医生的」口径——不让黄历背书医疗决策。
+    if set(terms) & _MED_SCENE_TERMS:
+        verdict += "（医疗事项：请在回复里带一句「看病以医生为准，黄历不作数」的口径。）"
     facts.append(verdict)
     return facts
+
+
+# R233g：映射到医疗类宜忌词的事项集合（问一嘴/chat 两侧同表）
+_MED_SCENE_TERMS = {"求医", "治病", "求医疗病", "开刀"}
 
 
 def _draw_dicts(draws) -> list[dict]:
@@ -2306,7 +2314,9 @@ def _cross_ref_huangli(date_str: str) -> dict:
         return {
             "zodiac_sign": sign,
             "zodiac_note": note,
-            "message": f"{_when}{sign}宫当值：{note}",
+            # R233g（R44-P2-9）：与前端「X座当班」口径统一——「值宫」
+            # 是生造术语，读屏/年轻用户都读不顺。
+            "message": f"{_when}轮到{sign}座当班：{note}",
         }
     except Exception:
         return {}

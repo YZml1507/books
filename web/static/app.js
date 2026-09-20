@@ -153,14 +153,14 @@ function fail(id, text) {
  * 以前 JSON.stringify 原样弹给用户。翻成中文人话。 */
 var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰',
   minute: '分钟',
-  gender: '性别', surname: '姓氏', names: '候选名', session_id: '会话标识',
-  message: '消息', q: '查询词', work_id: '书号', seed: '种子数',
+  gender: '性别', surname: '姓氏', names: '候选名', session_id: '聊天会话',
+  message: '消息', q: '查询词', work_id: '书名', seed: '随机种子',
   a_year: '甲年', a_month: '甲月', a_day: '甲日',
   a_hour: '甲时辰', a_gender: '甲性别',
   b_year: '乙年', b_month: '乙月', b_day: '乙日',
   b_hour: '乙时辰', b_gender: '乙性别', calendar_type: '历法',
   scope: '范围', range_start: '区间起始', range_end: '区间结束',
-  ask_date: '起问日', ask_hour: '起问时', location: '所在地',
+  ask_date: '哪天问的', ask_hour: '几点问的', location: '所在地',
   question: '问题', facts: '事实上下文', n: '张数',
   date: '日期', days: '天数', limit: '条数', style: '风格',
   topic: '主题', kind: '类型', claim: '论点', method: '方法',
@@ -256,7 +256,8 @@ function buildHehunResult(j) {
     esc(relLabel) + '</span>';
   /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
   html += '<span class="pill sm" style="background:' +
-    ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';">日主五行：' +
+    ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';"' +
+    ' title="两人的日主五行关系">五行底子：' +
     esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '非相生')) + '</span>';
   html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
     esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
@@ -266,8 +267,13 @@ function buildHehunResult(j) {
     html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
   }
   if (j.god_a_sees_b && j.god_b_sees_a) {
-    html += '<span class="pill sm" style="background:var(--secondary);">十神互见：' +
-      esc(j.god_a_sees_b) + '/' + esc(j.god_b_sees_a) + '</span>';
+    /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。 */
+    var _GP = {比肩:'同类',劫财:'对手',食神:'玩伴',伤官:'点子王',偏财:'惊喜',
+               正财:'稳定',七杀:'压力',正官:'靠山',偏印:'直觉',正印:'底气'};
+    html += '<span class="pill sm" style="background:var(--secondary);" ' +
+      'title="十神互见：互相在对方盘里的角色">互看：你眼里TA是「' +
+      esc(_GP[j.god_a_sees_b] || j.god_a_sees_b) + '」· TA眼里你是「' +
+      esc(_GP[j.god_b_sees_a] || j.god_b_sees_a) + '」</span>';
   }
   html += '</div>';
   if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
@@ -290,10 +296,10 @@ function buildHehunResult(j) {
     });
     _table += '</tbody></table></div>';
     if (voiceMode() === 'warm') {
-      html += '<details class="warm-basis"><summary>📅 大运冲合表（' +
+      html += '<details class="warm-basis"><summary>📅 大运合拍表（' +
         j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
     } else {
-      html += '<h3 style="margin-top:16px;">大运冲合应期</h3>' + _table;
+      html += '<h3 style="margin-top:16px;">十年一轮的节奏表</h3>' + _table;
     }
   }
   if (j.notes && j.notes.length) {
@@ -380,7 +386,7 @@ function buildTaohuaResult(j) {
     html += '</details>';
   }
   if (j.dayun_hits && j.dayun_hits.length) {
-    html += '<h3 style="margin-top:16px;">大运桃花应期</h3>' +
+    html += '<h3 style="margin-top:16px;">桃花什么时候旺</h3>' +
       '<table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
       '<th>约几岁</th></tr></thead><tbody>';
     j.dayun_hits.forEach(function (d) {
@@ -606,8 +612,9 @@ async function api(path, options) {
      * 「500 Internal Server Error」这类英文 statusText——翻成人话，
      * 内联 fail() 与 toast 同口径。 */
     if (typeof detail === 'string' && /^[45]\d{2} /.test(detail)) {
-      detail = resp.status >= 500 ? '服务开小差了（' + resp.status + '），稍后再试'
-        : (resp.status === 404 ? '要找的内容不在了' : '请求被婉拒了（' + resp.status + '）');
+      /* R233g（R44-P2-11）：状态码对目标用户是噪音——去码留人话。 */
+      detail = resp.status >= 500 ? '服务打个盹了，稍后再戳我～'
+        : (resp.status === 404 ? '要找的内容不在了' : '小满这次没接住，稍后再试试');
     }
     /* R229z续23（R11-#2）：detail 为对象时 JSON.stringify 会把
      * {"msg":"field required"} 原文吐进 toast——先取中文可读的子键，
@@ -2341,7 +2348,7 @@ function _paintPoster(j, W, H) {
   ctx.fillText('@小满的解忧铺', 540, 1440 - 158);
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 24px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('· 知命知书知天机 ·', 540, 1440 - 124);
+  ctx.fillText('· 知命知趣知自己 ·', 540, 1440 - 124);
   ctx.fillStyle = '#815934';
   ctx.font = '500 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText('知命，是为了更好地活', 540, 1440 - 80);
@@ -2484,7 +2491,7 @@ function _paintSharePoster(s, W, H) {
   _roundRectPath(ctx, 540 - 340, 1330, 680, 42, 21); ctx.fill();
   ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
-  ctx.fillText('· 知命知书知天机 · 仅供娱乐 ·', 540, 1356);
+  ctx.fillText('· 知命知趣知自己 · 仅供娱乐 ·', 540, 1356);
   /* 金句 hook（按 view 动态 + 数据驱动） */
   /* R218a-巡3 修复（N-02+N-04 同根因）：原 `j` 是父函数 _paintPoster 的形参，
    * 本函数 _paintSharePoster(s, W, H) 形参只有 s；j 在 share 分支闭包不可见，
@@ -2534,7 +2541,9 @@ function _posterHookForView(view, j) {
   if (view === 'bazi') {
     var ec = w.energy_card || {};
     var c = _pStr(ec.element);
-    if (c) return '你的命格是「' + c + '」，' + (c.length === 1 ? '一' : c.length === 2 ? '二' : '三') + '字真言已就位';
+    /* R233g（R44-P1-5）：「命格/一字真言」术语 → 用 warm 的白话名。 */
+    var cw = _pStr(ec.element_warm);
+    if (c || cw) return '你的能量底色是「' + (cw || c) + '」';
   }
   /* qiming: 用 TOP 1 名 + 评分（j 必有 full_names）；v2 用新评分口径 */
   var _fn = _pArr(j && j.full_names);
@@ -2548,7 +2557,11 @@ function _posterHookForView(view, j) {
   if (view === 'taohua' && j) {
     var zhi = _pStr(j.peach_zhi);
     var stg = _pStr(j.strength);
-    if (zhi) return '桃花落在「' + zhi + '」支 · 强度 ' + (stg || '待时');
+    /* R233g（R44-P1-5）：海报 hook 去术语——「落在X支·强度待时」
+     * 改人话。 */
+    if (zhi) return '桃花信号' +
+      ({strong: '最近正旺', mid: '在慢慢升温', weak: '还在酝酿'}[stg] || '待时而动') +
+      '，留意「' + zhi + '」这个方向';
   }
   /* hehun: 用双方日主五行（R230r：畸形字段先过 _pStr，不画 [object Object]） */
   var _ha = _pStr(j && j.day_wx_a), _hb = _pStr(j && j.day_wx_b);
@@ -3144,7 +3157,9 @@ function renderInterpretation(interp, title) {
   /* R216b 续（U-007）：内部判据编号（G7：无证据不推测 等）不得出现在用户
    * 界面——显示层剥括注，API/基线字节零改动。 */
   const _stripInternal = function (t) {
-    return String(t).replace(/（G[0-9]+[：:][^）]*）/g, '').replace(/\(G[0-9]+:[^)]*\)/g, '');
+    /* R233g（R44-P0-2）：裸「（G7）」无冒号形态此前漏剥——补上。 */
+    return String(t).replace(/（G[0-9]+[：:][^）]*）/g, '')
+      .replace(/\(G[0-9]+:[^)]*\)/g, '').replace(/（G[0-9]+）/g, '');
   };
   let html = '<h3 style="margin-top:20px;color:var(--c-tarot);">' +
     esc(title || '📖 解读') +
@@ -3282,7 +3297,8 @@ async function loadDaily() {
       levelEl.className = 'daily-level ' +
         (level === '吉' ? 'good' : level === '小吉' ? 'sml' :
          level === '凶' ? 'bad soft' : 'mid');
-      levelEl.title = level === '凶' ? '传统黄历今日标注为「凶」' : '';
+      /* R233g（R44-P2）：tooltip 把吓人的「凶」塞回悬停——改为白话 */
+      levelEl.title = level === '凶' ? '今天能量偏低，宜稳宜慢' : '';
     }
     const starsEl = el('dailyStars');
     if (starsEl) {
@@ -3426,7 +3442,7 @@ async function loadDailyDetail() {
     return;
   }
   target.hidden = false;
-  target.innerHTML = '<div class="no-evidence">正在推算今日完整解读…</div>';
+  target.innerHTML = '<div class="no-evidence">小满正在看今天的盘…</div>';
   const today = new Date();
   try {
     const j = await postJSON('/api/bazi', {
@@ -3563,13 +3579,13 @@ function renderDecoration(view) {
    * 清除乱码 emoji；全视图覆盖，缺失视图安全返回空。 */
   var presets = {
     bazi:    { icon: '/static/cream/cream-icon-bazi.jpg',    txt: '你的命盘已就位', grad: 'linear-gradient(120deg,#FFF1F3,#E4D4FF)' },
-    qiming:  { icon: '/static/cream/cream-icon-qiming.jpg',  txt: '给孩子起个好名字', grad: 'linear-gradient(120deg,#F0FFF4,#E4FFE9)' },
-    taohua:  { icon: '/static/cream/cream-icon-taohua.jpg',  txt: '你的缘分在路上了', grad: 'linear-gradient(120deg,#FFE4E9,#FFD6E0)' },
-    tarot:   { icon: '/static/cream/cream-icon-tarot.jpg',   txt: '静心抽牌，答案就在眼前', grad: 'linear-gradient(120deg,#F3EBFF,#FFE4E9)' },
+    qiming:  { icon: '/static/cream/cream-icon-qiming.jpg',  txt: '好名字，自己也能换', grad: 'linear-gradient(120deg,#F0FFF4,#E4FFE9)' },
+    taohua:  { icon: '/static/cream/cream-icon-taohua.jpg',  txt: '今天的桃花信号帮你看看', grad: 'linear-gradient(120deg,#FFE4E9,#FFD6E0)' },
+    tarot:   { icon: '/static/cream/cream-icon-tarot.jpg',   txt: '静心抽牌，听听牌怎么说', grad: 'linear-gradient(120deg,#F3EBFF,#FFE4E9)' },
     hehun:   { icon: '/static/cream/cream-icon-hehun.jpg',   txt: '缘分配对，一拍即合', grad: 'linear-gradient(120deg,#FFE4E9,#FFF1F3)' },
     huangli: { icon: '/static/cream/cream-icon-huangli.jpg', txt: '择个好日子，事事顺心', grad: 'linear-gradient(120deg,#FFF8E1,#FFE9C9)' },
     xingzuo: { icon: '/static/cream/cream-icon-xingzuo.jpg', txt: '星空为你指路', grad: 'linear-gradient(120deg,#E4F0FF,#E4D4FF)' },
-    liuyao:  { icon: '/static/cream/cream-icon-liuyao.jpg',  txt: '心诚则灵，卦象自明', grad: 'linear-gradient(120deg,#FFF1F3,#F3EBFF)' }
+    liuyao:  { icon: '/static/cream/cream-icon-liuyao.jpg',  txt: '摇出来的卦，读给你听', grad: 'linear-gradient(120deg,#FFF1F3,#F3EBFF)' }
   };
   var p = presets[view];
   if (!p) return '';
@@ -3808,8 +3824,9 @@ async function doResearch() {
     const j = await api('/api/research?' + params.toString());
     let html = '';
     if (j.refused) {
-      html += '<div class="no-evidence">已拒答（G7 证据不足）：' +
-        esc(j.reason || '命中全部位于质量闸门标记区') + '</div>';
+      /* R233g（R44-P0-2）：判据编号不上屏。 */
+      html += '<div class="no-evidence">这个问题库里没对上的材料，不作推测——' +
+        esc(j.reason || '换个说法再问问看') + '</div>';
     }
     if (j.steps && j.steps.length) {
       html += '<h3>检索链路</h3><ol class="step-list">';
@@ -4775,7 +4792,7 @@ var _HL_YI_MAP = {
   '捕捉': '清掉拖了很久的小事', '求医': '看医生', '破土': '动工', '安葬': '告别过去'
 };
 var _HL_JI_MAP = {
-  '出行': '长途奔波容易累', '安葬': '不适合告别式', '祈福': '心诚则灵不必急在今天',
+  '出行': '长途奔波容易累', '安葬': '不适合告别式', '祈福': '求个心安不必赶今天',
   '开市': '大动作先缓缓', '嫁娶': '感情大事另择日', '动土': '工地噪音惹人烦',
   '诉讼': '容易吵起来', '纳财': '破财风险高，钱包看紧点',
   '移徙': '搬家挪窝放一放', '移徒': '搬家挪窝放一放',
@@ -4952,7 +4969,7 @@ function tarotQuestionHook(question, draws) {
     },
     health: {
       true: '**状态在回温**——继续保持作息和喝水节奏，会越来越轻快。',
-      false: '**身体在喊停**——先停下来休息一天，熬夜的代价明早会还给你。'
+      false: '**身体在喊停**——今天先放自己一马，好好睡一觉。身体的事，医生和检查结果最准～'
     },
     general: {
       true: '**牌面整体是顺的**——你心里想的那个方向可以试着往前走一小步。',
@@ -5016,7 +5033,7 @@ function liuyaoQuestionHook(question, ben, bian) {
     },
     health: {
       moving: '**对应你问的身体**：作息该调整了——动爻提示睡眠或饮食有一个可以改善的点。',
-      quiet: '**对应你问的身体**：当下状态稳，保持就好——别熬最深的夜、吃最凉的。',
+      quiet: '**对应你问的身体**：状态稳，保持作息就好——别熬夜别贪凉，拿不准就去查个明白。',
       changed: '**对应你问的身体**：会有小波动，先把睡眠和心情稳住。'
     },
     general: {
@@ -5683,9 +5700,9 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
     (_jiClean.length ? '，忌【' + _jiClean.join('、') + '】' : '') + '）';
   var verdict;
   if (hitYi.length && !hitJi.length) {
-    verdict = day + '适合' + sc + ' ✅ —— 凭据：宜项里有【' + hitYi.join('、') + '】' + why;
+    verdict = day + '适合' + sc + ' ✅ —— 宜项里就有【' + hitYi.join('、') + '】' + why;
   } else if (hitJi.length && !hitYi.length) {
-    verdict = day + '不宜' + sc + ' 🚫 —— 因为忌项里有【' + hitJi.join('、') + '】' + why;
+    verdict = day + '不宜' + sc + ' 🚫 —— 忌项里写着【' + hitJi.join('、') + '】' + why;
   } else if (hitYi.length && hitJi.length) {
     /* R228c：补谓语——「今天搬家宜忌都有」不通，「今天搬家的宜忌都有」
      * 与兄弟分支「今天适合/不宜搬家」同构。 */
@@ -5696,6 +5713,12 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
       (yi.length ? '主推【' + yi.join('、') + '】' : day + '宜项不多') +
       '）；' + sc + '可照常安排，想要黄历背书可以翻后面几天挑宜' + sc + '的日子';
   }
+  /* R233g（R44-P1-7）：医疗类问法（看病/手术/体检/医美→求医治病）
+   * 判词尾部必带「听医生的」口径——黄历不背书医疗决策。 */
+  var _MED = ['求医', '治病', '求医疗病', '开刀'];
+  var _med = _MED.some(function (m) { return sc.indexOf(m) !== -1; }) ||
+    aliases.some(function (a) { return _MED.indexOf(a) !== -1; });
+  if (_med) verdict += '（看病这种事，医生说了算——黄历不作数哦。）';
   return '<div class="hl-verdict" id="hlVerdict">' + esc(verdict) + '</div>';
 }
 
@@ -5913,7 +5936,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
         ('冲' + (j.chongsha.chong_animal || j.chongsha.chong || '') +
          (j.chongsha.sha_fang ? '煞' + j.chongsha.sha_fang : ''));
     }
-    if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(_csTxt) + '</div>';
+    /* R233g（R44-P1）：「冲虎煞南」是黑话——改白话提醒。 */
+    var _csPlain = '';
+    if (j.chongsha && typeof j.chongsha !== 'string' &&
+        (j.chongsha.chong_animal || j.chongsha.chong)) {
+      _csPlain = '属' + (j.chongsha.chong_animal || j.chongsha.chong) +
+        '的宝子' + _dayWord + (j.chongsha.sha_fang ?
+        '往' + j.chongsha.sha_fang + '边' : '出门') + '多留个心眼';
+    }
+    if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">' +
+      esc(_csPlain || ('冲煞：' + _csTxt)) + '</div>';
     /* R232b（R40-A1/W1+W8）：神煞白话条——贵人/驿马临日是这张卡的
      * 灵魂（求人帮忙、出行走动），后端算了 12 键神煞前端零读点。
      * 前端按「临日」判定（日支==神煞值）复现后端 shensha_yiji 口径；
@@ -5941,13 +5973,19 @@ async function _doHuangli(offset, reveal, spokenWord) {
         html += '<span class="hl-ss-good">✨ ' + esc(_lucky.join('；')) + '</span>';
       }
       if (_unlucky.length) {
+        /* R233g（R44-P2-12）：只报忧不指路 → 补半句怎么缓。 */
         html += '<span class="hl-ss-bad">' + esc(_unlucky.join('；')) +
-          '——大事放缓</span>';
+          '——大事缓一缓再定就好</span>';
       }
       html += '</div>';
     }
     var _jx = [];
-    if (j.jianchu) _jx.push('建除：' + j.jianchu);
+    /* R233g（R44-P1）：建除带白话注（星宿 28 位无注表，先只给名）。 */
+    var _JC = {建:'宜起头',除:'宜清理旧事',满:'宜收尾盘点',平:'平平淡淡',
+               定:'宜定下来',执:'宜抓落实',破:'大事慎重',危:'多留个心眼',
+               成:'成事日',收:'宜收纳归拢',开:'宜开局',闭:'宜静不宜动'};
+    if (j.jianchu) _jx.push('建除：' + j.jianchu +
+      (_JC[j.jianchu] ? '（' + _JC[j.jianchu] + '）' : ''));
     if (j.xiu) _jx.push('星宿：' + j.xiu);
     if (_jx.length) {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">' +
@@ -5957,7 +5995,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
      * 小字收在免责前，不抢戏。 */
     var _pz = j.pengzu || {};
     var _pzTxt = (_pz.gan_text || '') + ((_pz.gan_text && _pz.zhi_text) ? ' · ' : '') + (_pz.zhi_text || '');
-    if (_pzTxt) html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">彭祖百忌：' + esc(_pzTxt) + '</div>';
+    /* R233g（R44-P2）：彭祖百忌原文前给「老话讲」引子——裸「百忌」
+     * 读着吓人，其实就两句古老话。 */
+    if (_pzTxt) html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">老话讲：' + esc(_pzTxt) + '</div>';
     /* R230a-11：黄历交叉引用——后端 _cross_ref_huangli 一直返回但卡面
      * 从未露出（星座值宫×当日干支的人话一句）。 */
     if (j.cross_ref && j.cross_ref.message) {
