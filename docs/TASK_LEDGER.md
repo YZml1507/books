@@ -10412,3 +10412,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 - `scripts/bump_sw.py`：CACHE 名改由 app.js 内容哈希派生（`books-shell-<sha256[:12]>`），一行命令同步 sw.js。
 - `selftest` 新闸 `sw.shell_hash`：app.js 变了而 sw.js 未同步时直接红并给修复命令——杜绝老客粘旧壳。实测红路径断言信息正确。
+
+### R229z续16（非JSON错误体人话化）
+
+- `api()` 兜底：body 无 detail 时原拼 `status + statusText` 会漏英文（「500 Internal Server Error」）。现按状态码翻：5xx→「服务开小差了（5xx），稍后再试」、404→「要找的内容不在了」、其余4xx→「请求被婉拒了（4xx）」。

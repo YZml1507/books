@@ -199,7 +199,14 @@ async function api(path, options) {
     body = null;
   }
   if (!resp.ok) {
-    const detail = body && body.detail ? body.detail : resp.status + ' ' + resp.statusText;
+    var detail = body && body.detail ? body.detail : resp.status + ' ' + resp.statusText;
+    /* R229z续16：非 JSON 错误体（代理/网关直吐 HTML）时 detail 只剩
+     * 「500 Internal Server Error」这类英文 statusText——翻成人话，
+     * 内联 fail() 与 toast 同口径。 */
+    if (typeof detail === 'string' && /^[45]\d{2} /.test(detail)) {
+      detail = resp.status >= 500 ? '服务开小差了（' + resp.status + '），稍后再试'
+        : (resp.status === 404 ? '要找的内容不在了' : '请求被婉拒了（' + resp.status + '）');
+    }
     const err = new Error(Array.isArray(detail) ? _humanize422(detail)
       : (typeof detail === 'string' ? detail : JSON.stringify(detail)));
     /* R218a-巡2（N-05）：错误态用户反馈——非 2xx 一律弹红色 toast（不只
