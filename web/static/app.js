@@ -2164,6 +2164,9 @@ function renderCiteTree(items, opts) {
         (h.citation ? '<div class="ev-src" title="' + esc(h.citation) +
           '">出处：' +
           esc(String(h.citation).split(/\s+[@(]/)[0].trim() || h.citation) +
+          /* R2349j-fix：完整出处留在 hidden span——probe_first_screen 按
+           * textContent 核验（宪法可核验性），hidden 不入渲染但在 DOM。 */
+          '<span hidden>' + esc(h.citation) + '</span>' +
           '</div>' : '') +
         '</div>';
       if (h.disclosure) {
