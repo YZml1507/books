@@ -5531,10 +5531,15 @@ function init() {
     }
   });
 
-  /* R230n（R25-3.2）：?view=huangli 深链——白名单内直接落到对应功能页。
-   * 拼错/越名单的静默回首页（不报错）。 */
+  /* R230n（R25-3.2）：深链——?view=huangli 或 /huangli 路径式皆可，
+   * 白名单内直接落到对应功能页。拼错/越名单的静默回首页（不报错）。
+   * （路径式依赖 app.py 的 SPA 兜底回 index.html） */
   try {
     var _vp = new URLSearchParams(location.search).get('view');
+    if (!_vp) {
+      var _seg = location.pathname.replace(/^\/+|\/+$/g, '');
+      if (_seg && _seg.indexOf('/') < 0) _vp = _seg;
+    }
     if (_vp && document.getElementById('view-' + _vp) &&
         document.querySelector('.func-card[data-view="' + _vp + '"]')) {
       showView(_vp);

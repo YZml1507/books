@@ -1033,6 +1033,15 @@ def main() -> int:
                 "ok": bool(still_home),
                 "detail": "?view=nonexist → 静默回首页",
             })
+            # R230n续：路径式深链 /huangli —— SPA 兜底回 index 后按 pathname 激活
+            dl.goto(f"http://127.0.0.1:{port}/huangli")
+            try:
+                dl.wait_for_selector("#view-huangli.active", timeout=5000)
+                results.append({"name": "deep.path_link", "ok": True,
+                                "detail": "/huangli 路径式深链激活"})
+            except Exception as _e:
+                results.append({"name": "deep.path_link", "ok": False,
+                                "detail": f"路径式深链未激活：{_e}"})
             dl.close()
             ctx.close()
             browser.close()
