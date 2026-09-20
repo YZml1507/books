@@ -10545,3 +10545,14 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ## R230a-28（2026-09-20）：禁语实锤 + 三闸进 CI
 - index.html「新的一天还是你说了算」命中判据16禁语模式——改「照常过」；
 - check_warm_voice / check_async_ai / check_poster 进 CI——此前三闸仅本地，漏网即是证明。
+
+## R230a-29~37 — R14 语料检索质量审计修复批（e3567a2）
+
+- **P0-1**：`/api/compare` 受损 unit（suspect）此前与正常见证同桌上比对——伪造版本差异（卦47·上六 KR1a0006 span-overextended 605字渗透卦48、卦61·上九 OCR 残）。compare_address 收 `allow_damaged`（默认 False），受损见证单列 `flagged` 披露不放行；research.py 对齐透传。
+- **P1-1**：简体查询对繁体语料零命中（潜龙勿用 0 vs 潛龍勿用 10）。`_S2T_RETRY` 285 对单义简→繁映射（拒收 云/后/咸/历/征/复？未收 等一对多歧义字），仅零命中时重试一次并回 `hint`。查询侧改动，语料 fold 纪律不动。
+- **P2-1**：`count` 是截断后返回数而非命中总数（乾→10 显示 vs 实际 1140）。新增 `Corpus.search_count`（`_search_where` 抽出共享），回 `total`/`truncated`，UI「命中 X 条（共 Y）」。
+- **P2-3**：`POST /api/threads` evidence.role 非法时 open_thread/add_turn 已 commit 才撞 CHECK 400——孤儿 thread+turn。校验前置。
+- **P2-4**：空 quote 证据绕过证据闸（verify 恒真）。schemas：有 work_id 必填非空 quote；verify()：有出处无引文计 stale；写路径剥 C0（与读路径 fts_phrase 对称）。
+- **P2-2**：本地 corpus.db 重建（gitignored 本地产物），3 个 raw_start>raw_end 幽灵 unit 消失。
+- **P3**：SCHEME_LABELS 字面键 "None"→真值 "none"（at_scheme 支持 IS NULL）；search/addr 参数校验对称化（bogus scheme→400，addr gua 越界→400）；compare_works 同书→400；chapter 错误文本去 "None"；derived_fts 注 contentless 删除语法。
+- 闸门：selftest 206 / contract 409（+6 新字段）/ baseline_voice 冻结一致 / llm_polish / xingzuo / warm_voice / async_ai / dollar 全绿。
