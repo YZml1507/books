@@ -104,7 +104,12 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
             if k in seen:
                 continue
             seen.add(k)
-            (res.flagged if h.suspect and not allow_damaged else res.evidence).append(h)
+            if h.suspect and not allow_damaged:
+                # R230a-46（R14-P3-10）：kept 语义=进证据集——flagged 是披露
+                # 不是证据，不再混进 kept 计数。
+                res.flagged.append(h)
+                continue
+            res.evidence.append(h)
             n += 1
         step.kept = n
         res.steps.append(step)
