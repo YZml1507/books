@@ -1400,6 +1400,9 @@ def _run_inner() -> list[str]:
     _hf8 = _svc.chat_huangli_facts("这周五去面试好不好", now=_dt(2026, 9, 19))
     assert _hf8 and any("已过去" in f and "黄历判定" in f for f in _hf8), _hf8
     assert any("复盘" in f for f in _hf8), _hf8
+    # R229z续2：过去日期的判定不得再带「近45天宜X」——从过去日起扫的全是
+    # 过去日，且与「不要再给择日建议」自相矛盾。
+    assert not any("近45天" in f for f in _hf8), _hf8
     ok.append("chat.facts.dates_vocab")
     # R227b-fix（端到端审查抓到）：问一嘴输入的日期词必须参与判定——
     # 「明天适合出行吗」不许剥掉日期词后拿当前显示日充数答「今天…」。

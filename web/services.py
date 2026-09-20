@@ -1304,7 +1304,9 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
 
     hit_yi = [t for t in terms if any(t in w or w in t for w in yi)]
     hit_ji = [t for t in terms if any(t in w or w in t for w in ji)]
-    good = _hl_next_yi_days(dt, terms)
+    # R229z续2：已过去的日子不给「近45天宜X」——从过去日起扫的全是过去日，
+    # 且与「不要再给择日建议」的复盘指令自相矛盾。
+    good = [] if past_note else _hl_next_yi_days(dt, terms)
     good_str = "、".join(good)
     good_part = (f"近45天宜{scene}的日子：{good_str}——想要黄历背书可挑这几天。"
                  if good else "")
