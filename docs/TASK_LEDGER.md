@@ -10503,3 +10503,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ## R230a-15（2026-09-20）：probe_llm_polish 进 CI
 - specs/006 判据 2/2b/3/6/7/8 的离线验收闸此前未接 CI——LLM 层等于无把关，补上。
 - 复核全 probes 清单：其余 not-CI 项均为一次性研究量尺（非判定闸），处置正确。
+
+## R230a-16（2026-09-20）：新字段钉扎
+- bazi five_elements 断 strong/strong_tied 键型；qiming five_elements 断 weak:list（+1 check=198）。
