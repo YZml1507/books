@@ -10831,3 +10831,11 @@ hold：view-read 死视图缺陷（R208b 已定无入口，跟随死视图去留
 guardedCall、api() signal 合并+极老内核超时兜底、toBlob 失败提示、no-store、
 phFetch 422 语义、tarot 翻牌节点引用、AI_PENDING 回收、facts 缓存键加指纹。
 hold：#18 截断口径 800/2000 系上下文预算设计（记录待议）。
+
+## R230w（视觉批·起）— 2026-09-20
+
+用户要求扩到视觉面（小红书年轻女性受众）。首批：Agnes 生图 agnes-image-2.1-flash
+产出 poster-bg-sakura/poster-bg-lilac（樱粉花瓣、夜紫云月，留白中宫供文字）；
+POSTER_BG 扩三槽 + 视图映射（tarot/xingzuo→lilac，taohua/hehun→sakura），
+downloadPoster 按视图预热，未加载回落 warm→渐变；check_poster 判据14 九视图全绿。
+R35（视觉审计）/R36（功能受众审计）子 agent 在跑，清单到后继续。
