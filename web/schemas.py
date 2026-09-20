@@ -44,7 +44,7 @@ def _check_client_date(v: str | None) -> None:
     try:
         _cd = date.fromisoformat(v)
     except (ValueError, TypeError):
-        raise ValidationError("client_date 需为 YYYY-MM-DD") from None
+        raise ValidationError("client_date 要写成 2026-01-01 这样") from None
     if not (YEAR_LO <= _cd.year <= YEAR_HI):
         raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
 
@@ -115,7 +115,7 @@ class BaziRequest(BaseModel):
         逐条断言这些消息与状态码，改动措辞即改动契约。
         """
         if self.calendar_type not in CALENDARS:
-            raise ValidationError("历法只能是 solar 或 lunar")
+            raise ValidationError("历法只能是公历或农历")
         if self.scope not in SCOPES:
             raise ValidationError(f"范围只能是 {'/'.join(SCOPES)}")
         self.question = strip_zw(self.question)   # R230k
@@ -147,7 +147,7 @@ class BaziRequest(BaseModel):
             try:
                 d = date.fromisoformat(self.ask_date)
             except ValueError:
-                raise ValidationError("占卜日期需为 YYYY-MM-DD 格式") from None
+                raise ValidationError("占卜日期要写成 2026-01-01 这样") from None
             if not (YEAR_LO <= d.year <= YEAR_HI):
                 raise ValidationError(
                     f"占卜年份需在 {YEAR_LO}-{YEAR_HI} 之间")
@@ -159,7 +159,7 @@ class BaziRequest(BaseModel):
                 date.fromisoformat(self.range_end)
             except ValueError:
                 raise ValidationError(
-                    "range_start/range_end 需为 YYYY-MM-DD 格式") from None
+                    "范围起止要写成 2026-01-01 这样") from None
 
 
 class AskRequest(BaseModel):
@@ -255,7 +255,7 @@ class LiuyaoRequest(BaseModel):
     def validate_ranges(self) -> None:
         _check_client_date(self.client_date)
         if self.method not in ("coins", "time"):
-            raise ValidationError(f"起卦方式需为 coins|time，收到 {self.method}")
+            raise ValidationError("起卦方式只认摇钱或报时两种")
         if self.method != "time":
             return
         if not all(v is not None for v in (self.year, self.month,
@@ -291,7 +291,7 @@ class QimingRequest(BaseModel):
             raise ValidationError("姓氏需为单字")
         # R228j：style 枚举——非法值不许静默当 all
         if self.style not in ("all", "classics", "chuci", "fresh"):
-            raise ValidationError("风格只能是 all/classics/chuci/fresh")
+            raise ValidationError("这个风格还没有，换综合/诗经/楚辞/清新试试")
         if not (1 <= self.month <= 12):
             raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
@@ -317,7 +317,7 @@ class ChatRequest(BaseModel):
 
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:
-            raise ValidationError("session_id 需为 1-64 字符")
+            raise ValidationError("会话号格式不对")
         msg = strip_zw(self.message) or ""      # R230k：零宽剥后可为空
         if not msg:
             raise ValidationError("消息不能为空")

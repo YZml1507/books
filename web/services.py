@@ -397,7 +397,7 @@ def qiming(req) -> dict:
     # 注意放 try 外：except Exception 会把 ComputeError 包成「起名计算失败」。
     from guji import classical_names
     if not classical_names._CLASSICAL_DB:
-        raise ComputeError("起名典故库文件缺失（classical_names.json），"
+        raise ComputeError("起名的典故库没装进来，"
                            "重新下载完整版本试试")
     try:
         out = classical_names.generate_classical_names(
@@ -2495,7 +2495,7 @@ def share(share_type: str, share_id: str) -> dict:
                           else ("读书笔记", "古籍研究笔记"))
         return {"title": title, "subtitle": share_id, "content": content,
                 "image_color": SHARE_COLORS[share_type], "created_at": today}
-    raise NotFoundError(f"这个分享类型不认识：{share_type}")
+    raise NotFoundError("这个分享类型不认识")
 
 
 def user_prefs() -> dict:
@@ -2518,7 +2518,7 @@ def set_user_prefs(payload: dict) -> dict:
             v = json.dumps(v, ensure_ascii=False)
         v = str(v)
         if len(v) > 4000:
-            raise ValidationError(f"这条偏好存不下（太长了）：{k}")
+            raise ValidationError("这条偏好存不下（太长了）")
         items.append((k, v))
     with deps.knowledge() as kb:
         kb.set_prefs(items)   # 单事务——全部校验过后才落库
@@ -2685,7 +2685,7 @@ def _parse_iso_date(date_str: str) -> "date":
         # 此前被报成「格式不对」——文案误导。分开说。
         _msg = (f"这一天不存在，收到 {date_str}"
                 if re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", date_str or "")
-                else f"日期需为 YYYY-MM-DD 格式，收到 {date_str}")
+                else "日期格式没看懂——照着 2026-01-01 这样填试试")
         raise ValidationError(_msg) from None
     if not (YEAR_LO <= parsed.year <= YEAR_HI):
         raise ValidationError(

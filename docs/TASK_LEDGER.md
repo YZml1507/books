@@ -11643,3 +11643,9 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - .pill 白字→深字（pastel 底浅深双主题都不过 AA）
 - color-scheme:dark（CSS + applyTheme 同步 meta）——原生控件随主题
 - 真机抽验：375px 深色黄历卡整组可读；ui_smoke 75/75
+
+## R2349j 续（R71 英文/技术腔猎捕清零批）
+- P0×2：end_date/start_date 字段名直出→「结束的日子要排在开始之后哦」；corpus.db 绝对路径泄漏→「古籍索引还没装好」（两处）
+- P1：专业版依据字段键名中文化（依据：五行分布/十神…，原值进 title）；星座本命盘 catch 裸 err.message 过 _humanizeErr；引文可见行去 @锚点/(file.txt) 尾巴、全文进 title；classical_names.json 文件名去屏；phFetch detail 过 _humanizeErr（405 等透传兜底）
+- P2：schemas.py 7 处枚举/字段名消息中文化（历法/起卦方式/风格/session_id/client_date/起止）；interpreter「misc」→「其他」；「导出 CSV」→「导出表格」；「起/止（YYYY-MM-DD）」→「（年-月-日）」；_PH_TYPE_LABEL 未知 type→「记录」；share_type/pref key 不再回显原值
+- 闸门：selftest 254 / contract 542 / ui_smoke 75 / ruff 全绿

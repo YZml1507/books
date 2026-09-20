@@ -179,7 +179,8 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
     # 与 Corpus.__init__ 同一道存在性守卫——缺索引报人话而非污染文件。
     if not os.path.exists(DB) or os.path.getsize(DB) == 0:
         raise FileNotFoundError(
-            f"索引缺失或为空：{DB}（先跑 scripts/build_index.py）")
+            # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
+            "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
@@ -285,7 +286,8 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
     """
     if not os.path.exists(DB) or os.path.getsize(DB) == 0:
         raise FileNotFoundError(
-            f"索引缺失或为空：{DB}（先跑 scripts/build_index.py）")
+            # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
+            "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     vecs, meta = _sem_vecs(conn)

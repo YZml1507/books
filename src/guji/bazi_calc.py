@@ -319,10 +319,10 @@ def calc_range(b: Bazi, start_date: str, end_date: str,
     d0 = datetime.strptime(start_date, "%Y-%m-%d")
     d1 = datetime.strptime(end_date, "%Y-%m-%d")
     if d1 < d0:
-        raise ValueError("end_date 不能早于 start_date")
+        raise ValueError("结束的日子要排在开始之后哦")
     span = (d1 - d0).days
     if span > 31:
-        raise ValueError("日期范围最长 31 天（一次查询防爆），请分段查询")
+        raise ValueError("一次最多看 31 天，分几段查更清楚")
     pillars = [b.year, b.month, b.day, b.hour]
     zhis = [p[1] for p in pillars]
     day_master = b.day_master

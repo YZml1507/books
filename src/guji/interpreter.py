@@ -496,7 +496,8 @@ def interpret_research(question: str, evidence: list[dict],
     for e in evidence:
         key = e.get("title") or e.get("work_id") or "?"
         by_work.setdefault(key, []).append(e)
-        lay = e.get("layer") or "misc"
+        # R2349j（R71-P2）：缺键兜底 misc 是技术词——界面会显示「misc N」。
+        lay = e.get("layer") or "其他"
         by_layer[lay] = by_layer.get(lay, 0) + 1
 
     sections.append({"title": "命中概览", "lines": [

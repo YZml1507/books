@@ -2159,7 +2159,12 @@ function renderCiteTree(items, opts) {
       // 页面上完全取不到，宪法第三条的可核验性断了一截。
       html += '<div class="cite-body" id="' + bid + '" hidden>' +
         esc(text) +
-        (h.citation ? '<div class="ev-src">出处：' + esc(h.citation) + '</div>' : '') +
+        /* R2349j（R71-P1-19）：可见行去掉 @锚点/(file.txt) 技术尾巴，
+         * 完整出处收进 title 悬停（宪法可核验性不丢）。 */
+        (h.citation ? '<div class="ev-src" title="' + esc(h.citation) +
+          '">出处：' +
+          esc(String(h.citation).split(/\s+[@(]/)[0].trim() || h.citation) +
+          '</div>' : '') +
         '</div>';
       if (h.disclosure) {
         html += '<div class="ev-disc">' + esc(h.disclosure) + '</div>';
@@ -3786,7 +3791,22 @@ function renderInterpretation(interp, title) {
     html += '</div>';
   }
   if (interp.basis && interp.basis.length) {
-    html += '<div class="interp-basis">依据字段：' + esc(interp.basis.join(' / ')) + '</div>';
+    /* R2349j（R71-P1-16）：依据字段键名中文化——paipan.render 这类路径
+     * 对受众是乱码；原值收进 title 供核对。 */
+    var _BASIS_CN = {
+      'paipan.render': '命盘四柱', 'paipan.nayin': '纳音',
+      'calc.five_elements': '五行分布', 'calc.ten_gods': '十神',
+      'calc.relations': '地支关系', 'calc.day_luck': '流日',
+      'calc.summary': '总评', 'warm': '温柔版', 'cross_ref': '交叉印证'
+    };
+    var _basisCn = interp.basis.map(function (b) {
+      var _hit = Object.keys(_BASIS_CN).filter(function (k) {
+        return b.indexOf(k) === 0; })[0];
+      return _hit ? _BASIS_CN[_hit] : String(b).split('.').pop();
+    });
+    html += '<div class="interp-basis" title="' +
+      esc(interp.basis.join(' / ')) + '">依据：' +
+      esc(_basisCn.join(' / ')) + '</div>';
   }
   if (interp.disclaimer) {
     /* R216b 续5（V-003）：「非生成文本、同输入必同输出」技术腔——
@@ -9238,11 +9258,14 @@ function baziPersonaCard(j) {
     if (!r.ok) {
       let m = '这条记录找不到了，刷新列表看看';
       /* R230v（R34-#22）：422 的 detail 是 pydantic 数组——取首条 msg，
-       * 不再落进「没查到」的误导文案。 */
+       * 不再落进「没查到」的误导文案。
+       * R2349j（R71-P2）：拿到的串先过人话化（405「Method Not Allowed」
+       * 等透传、英文 msg 兜底都被吃掉）。 */
       try { const j = await r.json();
         if (j && typeof j.detail === 'string') m = j.detail;
         else if (j && Array.isArray(j.detail) && j.detail.length &&
                  j.detail[0] && j.detail[0].msg) m = j.detail[0].msg;
+        m = _humanizeErr(m);
       } catch (e) {}
       throw new Error(m);
     }
@@ -9264,7 +9287,8 @@ function baziPersonaCard(j) {
         const ts = (it.ts || '').replace('T', ' ');
         const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
         /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘 */
-        const tLabel = _PH_TYPE_LABEL[it.type] || it.type || '命盘';
+        /* R2349j（R71-P2）：未知 type 不原值上屏（技术字段名出戏）。 */
+        const tLabel = _PH_TYPE_LABEL[it.type] || '记录';
         const render = (it.result_summary && it.result_summary.paipan_render) || '';
         /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
          * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
@@ -9647,7 +9671,8 @@ function baziPersonaCard(j) {
       });
       try { rememberResult('bazi', j, '我的本命盘', body); } catch (e) {}
     } catch (err) {
-      out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(err.message) + '，稍后再试～</div>';
+      /* R2349j（R71-P1-18）：非 API 异常（TypeError 等）裸英文先过人话化。 */
+      out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(_humanizeErr(err.message)) + '，稍后再试～</div>';
     }
   }
   var _birthBusy = false;   /* R8 P2-2：裸 click 不经 on()，自加在途锁 */
