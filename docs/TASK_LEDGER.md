@@ -11632,3 +11632,6 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - Agnes 生成青瓷山水底图 poster-bg-celadon.jpg（1080×1440, 71KB），六爻分享图专用色系——此前与命盘共用暖杏
 - POSTER_BG.celadon + _POSTER_BG_BY_VIEW.liuyao='celadon' + 预拉；sw bump
 - check_poster 判据12/13/14 全绿，selftest 254 绿
+
+## R2349i 续（og 分享卡）
+- og:image/twitter:image 换 Agnes 生成 1200×630 专用卡（月亮猫+奶油粉底+东方大凯标题字），补 og:image:width/height——原 hero 1440×384 被平台裁剩一条
