@@ -20,7 +20,7 @@
 
 ## 历史快照（只读参考，不看也没关系）
 
-`HANDOFF*.md` / `HANDOVER*.md` / `GOAL_*_SESSION.md` / `PROJECT_*` /
+`HANDOFF_20*.md` / `HANDOVER*.md`（注意：**现行** `HANDOFF.md` 不在此列） / `GOAL_*_SESSION.md` / `PROJECT_*` /
 `PROPOSAL_*` / `OPTIMIZE_20260816_R18.md` / `WEB_PLAN*.md` /
 `UX_REVIEW_QUEUE.md` / `AUDIT_DRIFT_R3.md` / `handover.md` / `rollback.md`
 ——各自时代的交接/方案/评审记录，内容已被台账与现行治理吸收。

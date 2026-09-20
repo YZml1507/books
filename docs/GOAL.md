@@ -207,7 +207,7 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 ### T4 京氏易傳 / 焦氏易林 编址（可行，但**不要照我最初的说法做**）
 
 **这一节本身是 §2 的活教材。** 我最初在本文里写下三个数字，其中两个是**没测就写的**，
-自查后全部推翻（复验：`probes/probe_verify_my_claims.py`）：
+自查后全部推翻（复验：`probes/archive/probe_verify_my_claims.py`）：
 
 | 我最初写的 | 实测 |
 |---|---|

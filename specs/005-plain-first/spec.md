@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-plain-first`
 **Created**: 2026-08-20
-**Status**: Draft
+**Status**: Implemented（CI 闸 check_plain_first）
 **Phase**: OPTIMIZE
 **Author**: 审查轨（本文件由审查轨独占写；同目录 `plan.md` / `tasks.md` 由优化轨写，
 宪法第六条文件级分工）

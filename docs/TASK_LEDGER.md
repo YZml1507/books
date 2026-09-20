@@ -49,9 +49,9 @@ cd C:\Users\Lenovo\Desktop\projects\books
 
 ```powershell
 $env:BOOKS_LLM_DISABLE="1"
-.\.venv\Scripts\python.exe web\selftest.py                    # web 自测（R229r 复验 190 checks）
-.\.venv\Scripts\python.exe probes\probe_ui_smoke.py           # 真浏览器 UI 冒烟（47 用例）
-.\.venv\Scripts\python.exe probes\probe_contract.py          # 前后端契约（386 读点；SKIP>0 判 INCONCLUSIVE）
+.\.venv\Scripts\python.exe web\selftest.py                    # web 自测（217 checks，以末行为准）
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py           # 真浏览器 UI 冒烟（53 用例）
+.\.venv\Scripts\python.exe probes\probe_contract.py          # 前后端契约（416 读点；SKIP>0 判 INCONCLUSIVE）
 .\.venv\Scripts\python.exe probes\probe_date_parity.py        # 前后端日期词/别名/T2S 同构
 .\.venv\Scripts\python.exe probes\probe_dollar_misuse.py     # 零 $.xxx 误用
 .\.venv\Scripts\python.exe probes\probe_selftest_regress.py  # selftest 断言只增不减
@@ -64,7 +64,16 @@ $env:BOOKS_LLM_DISABLE="1"
 .\.venv\Scripts\python.exe web\check_warm_voice.py
 .\.venv\Scripts\python.exe web\check_xingzuo.py
 .\.venv\Scripts\python.exe web\check_plain_first.py
+.\.venv\Scripts\python.exe probes\probe_llm_polish.py    # LLM 层六道判据
+.\.venv\Scripts\ruff.exe check src web scripts probes web_launcher.py --select E9,F
+.\.venv\Scripts\python.exe scripts\check_dual_engine.py   # 引擎在位自检
 ```
+
+> R230n（R27-#7/8）：上方清单与 CI `.github/workflows/selftest.yml` 现已对齐
+> （CI 另跑 build_index/verify_index/assess_goals/check_provenance/check_booksec 等
+> 语料构建闸）。宪法「13 道闸门」中的 G1/G4/G7/bcv/conservation/alignment/
+> booksec/summarise_diff 为**本地合并前手动闸**——部分需 bge 权重或人工判读，
+> 不进 CI；CI 覆盖范围以 workflow steps 为准。
 
 > **历史存档（2026-08-13/14 快照，数字已过时）**——当前实测见台账末轮判据行。
 
@@ -10142,7 +10151,7 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python scripts/count_open_findings.py  # 闸门1 P
 - 契约探针：/api/huangli 双形态（单日/区间）字段列 CONDITIONAL。
 - 判据：selftest 181（+huangli.affair.spoken）/ contract 386 /
   ui_smoke 43 全绿；实测理发→冠笄 4 天、出行 5 天。
-R228y 持续优化批：GitHub Actions CI 上线——.github/workflows/selftest.yml + requirements-ci.txt（钉扎版本，torch 走 cpu wheel 索引）。push/PR 自动跑 selftest 181 项+契约 386 读点+dollar 探针；冷启动链路（build_index→knowledge 种子→selftest）已在 /tmp/books-fresh 全新 clone 全程验证通过。另：ui_smoke 增线程回收（探针不再留脏数据）。
+R228y 持续优化批：GitHub Actions CI 上线——.github/workflows/selftest.yml + requirements-ci.txt（钉扎版本，torch 走 cpu wheel 索引）。push/PR 自动跑 selftest 181 项+契约 416 读点+dollar 探针；冷启动链路（build_index→knowledge 种子→selftest）已在 /tmp/books-fresh 全新 clone 全程验证通过。另：ui_smoke 增线程回收（探针不再留脏数据）。
 验证：fresh clone 全闸门 PASS（selftest 181 / contract 386 / dollar PASS）。
 R228y续 CI 修复：actions/checkout 加 lfs:true（bge 权重在 LFS，缺它 bazi.semantic 挂）；CI 首跑绿（selftest+contract+dollar 三闸全过）。
 验证：git_pr_checks → selftest ✅ job 105970153690。

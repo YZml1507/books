@@ -384,6 +384,27 @@ def main() -> int:
             "note": f"概念转述题（D-029 批）：{why}",
         })
 
+    # R230n（R27-#6）：外部来源题段随重生成保留——ce03c59 重生成时
+    # 26 道焦氏易林题被静默丢光（题库 225→纯 zhouyi），yilin 编址的
+    # 回归保护归零且无人知晓。本脚本只产 zhouyi 题；现存题库里
+    # scheme != zhouyi 的题目一律带下去，并在存在外来题时断言未丢。
+    if os.path.exists(OUT):
+        try:
+            old = json.load(open(OUT, encoding="utf-8"))
+            foreign = [q for q in old.get("questions", [])
+                       if q.get("expect", {}).get("scheme")
+                       and q["expect"]["scheme"] != "zhouyi"]
+            for q in foreign:
+                if not any(n["id"] == q["id"] for n in qs):
+                    qs.append(q)
+            if foreign:
+                still = [q for q in qs
+                         if q.get("expect", {}).get("scheme") != "zhouyi"]
+                assert len(still) >= len(foreign), \
+                    f"外来题段丢失：旧库 {len(foreign)} → 现 {len(still)}"
+        except (OSError, json.JSONDecodeError):
+            pass   # 旧库读不出不挡生成
+
     bank = {
         "derived_by": "scripts/derive_eval_g1.py",
         "derived_from": "data/raw/ only — never the index (D-019)",

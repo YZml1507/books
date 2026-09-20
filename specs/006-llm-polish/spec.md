@@ -2,7 +2,7 @@
 
 **Feature Branch**: `006-llm-polish`
 **Created**: 2026-08-21
-**Status**: Draft
+**Status**: Implemented（CI 闸 probe_llm_polish）
 **Phase**: OPTIMIZE
 **Author**: 单轨轮（用户授权：本轮暂停双轨制，由执行窗口自写自验，闸门照跑）
 **Input**: 用户直接指示——「取名的没给出完整名字，测桃花运的也说得云里雾里，

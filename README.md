@@ -65,9 +65,9 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 ## 闸门（全部须 PASS）
 
 ```bash
-BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门 191 项
-BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约 386 读点
-BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟 47 用例
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门（当前 217 项，以 selftest 末行输出为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约（当前 416 读点，以末行为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟（当前 53 用例，以末行为准）
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_date_parity.py   # 前后端日期词/别名同构
 .venv/bin/python probes/probe_dollar_misuse.py                  # 静态探针
 .venv/bin/python probes/probe_selftest_regress.py               # 断言只增不减
@@ -75,7 +75,7 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_first_screen.py  # 首屏抵�
 ```
 
 CI（`.github/workflows/selftest.yml`）在 push/PR 上自动跑以上全部 + corpus 数据闸门
-（check_booksec / check_dual_engine / check_provenance / verify_index / assess_goals）。
+（check_booksec / check_dual_engine / check_provenance / verify_index / assess_goals） + baseline_voice/probe_llm_polish/check_xingzuo/check_warm_voice/check_async_ai/check_plain_first/check_poster/ruff——完整闸集以 `.github/workflows/selftest.yml` 为准。
 
 ## 结构
 
@@ -85,7 +85,13 @@ CI（`.github/workflows/selftest.yml`）在 push/PR 上自动跑以上全部 + c
 - `scripts/` — 索引构建、质量与数据闸门（13 道）
 - `probes/` — 回归探针；`probes/archive/` 是已完成使命的一次性探针
 - `data/` — 原始语料与外部资源；`data/index/*.db` 均为可重建产物（gitignored）
+- `specs/`、`.specify/` — 功能规格与治理宪法；`delivery/` — 交付物
+- `books_app.spec`、`web_launcher.py`、`start_web.bat` — exe 打包与双击启动
+- `requirements-ci.txt` / `requirements-packaging.txt` — CI 与打包依赖钉扎
 - `docs/` — 架构/决策/台账（`TASK_LEDGER.md` 按 §追加，每行带可复验命令）
+
+> 历史文档/台账里引用的 `probes/*.py` 若报不存在——多数已归档到
+> `probes/archive/`，先查那里（R27-#1）。
 
 ## 红线（改代码前先看）
 

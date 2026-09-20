@@ -86,10 +86,14 @@ jobs:
         run: python web/check_async_ai.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
-      - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入，活代码零存量）
-        # R230e：scripts/+web_launcher 存量清零后纳入同一闸；probes/ 是
-        # 审查脚手架（归档一次性脚本），不在此口径。
+      - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入）
+        # R230o：probes/ 存量清零后一并纳入——归档的一次性脚本也要过。
         run: ruff check src web scripts probes web_launcher.py --select E9,F
+      - name: 生成文本不入库闸 probe_no_generated_in_corpus
+        # R230o（R27-#12）：PHASE「建议纳入」挂起约一月——两条均 <1s，直接收口进 CI。
+        run: python probes/probe_no_generated_in_corpus.py
+      - name: 脚本符号闸 probe_scripts_importable（guji 引用静态校对）
+        run: python probes/probe_scripts_importable.py
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
         run: |
           python scripts/check_booksec.py

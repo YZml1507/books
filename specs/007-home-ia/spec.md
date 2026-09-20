@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-home-ia`
 **Created**: 2026-08-22
-**Status**: Draft
+**Status**: Implemented（CI 闸 ui_smoke/check_poster）
 **Phase**: OPTIMIZE
 **Author**: 优化轨单轨轮（用户 2026-08-22 授权：遇决策点自行权衡后直接执行，
 不再询问；闸门与宪法纪律照常）
