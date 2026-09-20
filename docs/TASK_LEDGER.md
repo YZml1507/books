@@ -10528,3 +10528,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-23（2026-09-20）：相济钉扎
 - qiming.xiangji：相克五行双字名须含「意象相济」表述。
+
+## R230a-24（2026-09-20）：避字钉扎
+- qiming.avoid_chars：双性别 fixture 断 _AVOID/_AVOID_FEM 零命中（离线扫 6912 名零命中佐证）。
