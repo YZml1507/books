@@ -10377,3 +10377,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - **P2-9** `api()` 错误带 `err.status`；聊天/点评轮询对 404（任务不在内存表）早退降级，不再轮满 40s。
 - **P2-1** styles.css 两条 @import 提成 index.html 并行 `<link>`（原串行瀑布）；**P3** `app.js` 加 `defer`。
 - 暂缓：P2-5（paipan_history 摘要列，动 schema 需迁移，下轮）、P2-7（research 截断分页）、P2-8（ink/cream 全量源档案——docs/assets-manifest.md 定为有意存档，动它要用户点头）。
+
+### R229z续9（节气问法接入）
+
+- 「冬至吃饺子/立春后开工/驚蟄那天搬家」——24 节气中的 17 个接入 `_SOLAR_TERMS` 走 `term_time` 天文算法（与清明同口径），年偏/±后缀/过去语标全部继承。排除项是有意的：小满（吉祥物名，「小满觉得我…」是在叫它）、大雪/小雪/大寒/小寒（天气歧义）。_T2S 补驚蟄穀三繁体；`_HL_COMPLEX_DATE`/`_hlExtractScene` 同步接节气词。parity +7 用例（61+31=92 全绿）。

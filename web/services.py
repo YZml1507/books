@@ -852,6 +852,8 @@ _T2S = {
     # R229z：节日/农历问法常见繁体（中秋節/國慶/農曆/聖誕/兒童節/重陽/萬聖節/舊曆）
     "節": "节", "婦": "妇", "萬": "万", "兒": "儿", "誕": "诞",
     "慶": "庆", "陽": "阳", "舊": "旧", "農": "农", "陰": "阴", "號": "号", "餘": "余",
+    # 节气繁体（驚蟄/穀雨——種處已在前面）
+    "驚": "惊", "蟄": "蛰", "穀": "谷",
 }
 
 
@@ -988,6 +990,16 @@ def _holiday_candidates(name: str, now: datetime,
             except Exception:
                 pass
         return out
+    if name in _SOLAR_TERMS:
+        from guji import bazi as bazi_mod
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        for y in yrs:
+            try:
+                out.append(bazi_mod.term_time(y, name).date())
+            except Exception:
+                pass
+        return out
     if name in _HOLIDAY_LUNAR:
         lm, ld = _HOLIDAY_LUNAR[name]
         try:
@@ -1112,7 +1124,7 @@ def _abs_or_holiday(msg: str, now: datetime):
                         msg_n[lme.start():lme.end() + _ln])
 
     for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
-                       | set(_HOLIDAY_NTH)
+                       | set(_HOLIDAY_NTH) | _SOLAR_TERMS
                        | {"除夕", "清明", "清明節"}, key=len, reverse=True):
         w = "清明" if name == "清明節" else name
         if w not in msg_n:
