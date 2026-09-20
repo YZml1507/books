@@ -121,3 +121,17 @@ $env:BOOKS_LLM_DISABLE="1"
 > **R229z续15 纪律**：改了 `web/static/app.js` 必须跑 `python scripts/bump_sw.py`
 > 再提交——SW 的 CACHE 名绑 app.js 内容哈希，selftest 的 `sw.shell_hash`
 > 闸会强制这一步（不改就红），目的是让已装机用户下次打开必拿新壳。
+
+## 出网端点白名单（R230n·R26 审计登记）
+
+运行期允许的外联全清单（全部功能所需，新增请登记在此）：
+
+| 端点 | 用途 | 位置 |
+|---|---|---|
+| `apihub.agnes-ai.com` | 小满 LLM（chat/polish/name-review）+ 分享图出图 | `llm_polish.py`、`image_gen.py` |
+| `note3-prev-api.askdiandian.com` | LLM 备用端点 | `llm_polish.py` |
+| `image.pollinations.ai` | 出图备用端点 | `image_gen.py` |
+| `feeds.bbci.co.uk`、`www.solidot.org` | 资讯 RSS（external/*，可用 BOOKS_EXTERNAL_DISABLE 关停） | `external.py` |
+| `codeload.github.com` | Kanripo 语料下载（仅 scripts，非运行期） | `sources.py`、`backfill_provenance.py` |
+
+其余 `127.0.0.1`/`localhost` 为本机回环。任何新增外联域先自问：是否功能必需 + 登记本表。
