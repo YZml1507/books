@@ -10637,3 +10637,12 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   带浏览器日 todayIso()；F7 判词主推行摘相冲词（conflict 传参）；
   F8 共情日盐 UTC→本地；F9 req_json 补 minute/hour_known；F10 大运
   year_start int→round。selftest 新增静态钉扎（j.conflict+双向包含）。
+
+### R230i — R21 老库兼容/并发批清零（P0-3 实修+P1/P2）
+
+审计：老库兼容/并发（附件 audit_r21_schema）。**P0-3 根因实锤**：paipan `_conn` 粗捕 `sqlite3.DatabaseError` 把 `database is locked`（OperationalError，锁≠腐）误判为腐库→把完好的库挪走。修法：`_conn` 重写——OperationalError 先行 raise（锁循忙等待语义不误搬）、DatabaseError→检疫；每连接重做 records 存在性检查并废除 `_ddl_done` 陈缓存（同一改动顺便杀陈缓存雷）；`_ensure_columns`（_RECORDS_COLS）补齐老库缺列；检疫名毫秒级化+留最新5。
+
+- **knowledge.py 自愈**：`__init__` sqlite_master 探针→腐库 `os.replace` 到 `.corrupt-<ts>`+重连；`journal_mode=WAL` 与 `executescript` 各自 try/except（后者降级逐语句执行，剥 `--` 注释行、按 `;` 切、单句 try）；`_ensure_columns`/`_ENSURE_COLS` 覆盖 derived.confidence / thread.updated_at / turn(seq,text) / daily_cache.tarot_result / favorites.title / user_prefs.updated_at。
+- **并发竞态**：favorites (type,ref_id) 加 UNIQUE 索引 + add_favorite 改 INSERT OR IGNORE（老库含重复行→索引建不成时 schema 降级路径吞掉，SELECT 预检仍挡绝大多数）。`thread_record` 补偿范围扩到 open_thread+add_turn（新增首步失败也删除孤儿线程）。
+- **文案**：Corpus init 区分「缺文件/缺表/腐库/缺列（旧版索引）」四类→各自给「先跑/请跑 scripts/build_index.py」可操作文案（P1-6/P2-3）；errors.py 新增 `_os_handler`（OSError→503「存储暂时不可用」固定中文，不走 _make 漏英文 errno）；`StarletteHTTPException` 404 默认「Not Found」→「要找的内容不在了」（业务抛的中文 detail 原样放行，headers 透传）。
+- 裁注：P2-4 多实例内存态（chatTasks/锁表）维持单实例形态不拆——文档说明即可。闸门：selftest 215 / contract 415 / parity 88 键 / ui_smoke 49 / 其余静态+语料闸全绿。
