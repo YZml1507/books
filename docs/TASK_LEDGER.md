@@ -10739,3 +10739,68 @@ R30 其余 8 条处置：view-read 前端缺陷 5 条按用户 R208b 决策持�
 - `addr`：与所选 scheme 不相干的参数（如 `scheme=bcv&gua=99`）进 `hint` 字段如实披露「已忽略」，不再静默吞。
 - `addr` yilin 候数越界 400，与 zhouyi 同纪律（1–64）；bcv/booksec/play/euclid 的 addr1 上界随卷目而异无法全局校验，超界仍空集。
 - selftest 233→237。闸门全绿。
+
+## R230t — R31（多标签/数据生命周期）+ R32（LLM 成本与真机行为）合并清零批
+
+**审计来源**：R31（1 P1 + 14 P2 + 6 P3）、R32（4 P0 + 5 P1 + ~12 P2）。
+本轮落地全部可执行项；R32 审计内 mock-vs-real 差异按既定纪律留档。
+
+### LLM 层（src/guji/llm_polish.py）
+- **polish()/_chat_call 死重试链清退**（R32-P0 群）：`429/4xx` 原地 `continue`
+  烧满预算、从不退——现 break；`finish_reason=length` 截断文本曾照常渲染——
+  现 break 走降级；sanitize 拦截后追加一条 system 改正提示让模型换说法重答
+  （此前直接放弃当次机会）。`_chat_call` 的 payload 移入重试循环内重建，
+  `msgs` 可变副本承接提示追加。
+- **xhs_copy/review_names 共享轮询预算**：主任务与追问 dots 此前各起独立
+  deadline，合并后最长可控 2 倍预算——现共用 `_dl`。
+- **_safe 协调过滤扩面**：丢含「忘记/指令/instruction」或「system」起头的行。
+- **_sanitize CJK 占比闸**：≥12 字且汉字 <1/3 视为非目标语种输出 → None。
+- **keep_citations 路径先剥《》「」『』再扫禁语**：书名内禁字不再误杀整段。
+- **_RATE 滑动窗限速**：chat 8/min/sid、ai 任务 60/min、review 20/min、
+  全局 120/min、表封顶 4096 键——此前无限速，脚本可线性烧上游配额。
+- **chat() 三项生命周期**：历史窗截 ~4000 字符（此前整段塞回）、assistant
+  存 [:800]、sess["coords"] 只在变化时更新、verdicts 按 verdict_day
+  跨日失效+空判清空。`ai_task_status` 回 boot 标记。
+- 新增 spawn 层限速钩子：spawn_ai_task/spawn_name_review_task/spawn_chat_task。
+
+### web 层
+- `schemas.ChatRequest`：ZWSP 剥除后写回 message（此前只校验不写）。
+- `bazi.py` chat 端点传 `verdict_day=今天（服务器时区）`。
+- `services.chat_huangli_facts` 进程内缓存（消息+日为键，512 满 clear）——
+  同日同句重问不再重算。
+- `stats()` 新增 `index_stale`（data/raw 比 corpus.db 新→true，缺数据→null）。
+- `knowledge.py`：corrupt 留档毫秒戳+只留 5 份（对齐 paipan_history）、
+  `close()` 前 `wal_checkpoint(TRUNCATE)` 防整机搬迁丢尾部写入、
+  executescript 注释订正（先隐式 COMMIT 非原子——注释曾误写「原子」）。
+- `paipan_history.py`：接 `PRAGMA journal_mode=WAL`（只读库降级继续）；
+  `_quarantine` 吞 FileNotFoundError（exists→replace 窗口竞态）。
+
+### 前端（app.js）
+- localStorage 不可用 → `_MEM_STORE` 内存降级（隐私模式不再整场崩）。
+- `_chatBootNote`：ai_task_status.boot 变化 → 插「刚换了新脑子」分隔，
+  重启失忆有宣告不再静默续聊。
+- 轮询批：`performance.now()` 单调钟 + `1.6x` 退避（上限 2.5s）——系统时钟
+  回拨不再冻死/空转轮询；四链路（ai polish / 起名 / 自动聊 / 手聊）统一。
+- 降级文案 `nosave`：「网络不太好/没接住」不落 transcript（刷新后不再
+  冒充小满历史占位）。
+- `autoSendChatContext` 与 `chatSend` 同口径计数 + 双路「拿到任务即解锁」
+  ——DISABLE 恢复后不再被锁到换 sid。
+- `chatSend` catch 分 4xx：消息超长/facts 超限如实报服务端文案，
+  不再一概回收成「被吞了」。
+- checkin 清理 `_ck < 'checkin:'+dateKey`：回写今天不再抹掉未来日键。
+- BroadcastChannel 发后即 `close()`（两处）——发端通道不再常驻。
+- `_POSTER_LAST`/`_submitBaziLast` 换 `performance.now()`。
+- `baziBody` 的 `ask_date` 缺省锚浏览器今天（服务器 UTC 跨零点错位收口）。
+- storage 监听补 voiceMode/uiTheme——口吻/皮肤跨 tab 即时同步。
+
+### 工具/闸门
+- `bump_sw.py` 重写：哈希 SHELL 预缓存全清单拼接内容（文件名单独计入），
+  selftest `sw.shell_hash` 闸同步成同款算法——styles.css/图标改动
+  忘 bump 也会红。
+- 新增 `scripts/export_userdata.py`：三库用户表 → 单 JSON（mode=ro，
+  WAL 已提交页可读），换机迁移闭环。
+
+**闸门**：selftest 237 / contract 420 / ui_smoke 54 / poster 判据 12-14 /
+voice 14 / xingzuo / warm_voice / async_ai / dollar_misuse / date_parity
+(65+35, 88 alias) / plain_first / no_generated / scripts_importable 全绿；
+ruff E9,F 零命中。
