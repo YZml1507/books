@@ -4371,7 +4371,14 @@ async function doHuangli(offset, reveal) {
         if (!box || !gj || _HL.scene !== _gsc ||
             !Array.isArray(gj.good_days) || !gj.good_days.length) return;
         var _today0 = new Date(); _today0.setHours(0, 0, 0, 0);
-        var chips = gj.good_days.slice(0, 6).map(function (gd) {
+        /* R229y：起点日（正在看的这天）若本就宜，chip 列表第一项会是它
+         * 自己——点了原地不动（ui_smoke gooddays_chip 抓到）。过滤掉
+         * 当前显示日再取前 6。 */
+        var _days = gj.good_days.filter(function (gd) {
+          return String(gd.date || '') !== _gsrc;
+        });
+        if (!_days.length) return;
+        var chips = _days.slice(0, 6).map(function (gd) {
           var pp = String(gd.date || '').split('-');
           var t = new Date(+pp[0], (+pp[1]) - 1, +pp[2]);
           var off = Math.round((t - _today0) / 86400000);

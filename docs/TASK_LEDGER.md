@@ -10323,3 +10323,7 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 - **#13**：frozen 形态 llm_config.json 补查 exe 同目录。
 - **#14**：external/* 加 BOOKS_EXTERNAL_DISABLE 环境闸（彻底离线姿态可选）。
 - **#15**：verify_r218a docstring 写前置 + 连不上时打印起服命令、exit 2。
+
+### R229y（挑吉日 chip 含当前显示日）
+
+- ui_smoke `gooddays_chip` 抓到：显示的当天本就宜时，affair 扫描起点含当日 → chip 第一项就是当前日，点击原地不动。过滤 `_gsrc` 后再取前 6；全空则不渲染该行。复测 chips=4 翻页成功。
