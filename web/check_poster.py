@@ -371,12 +371,20 @@ def main(self_check: bool = False) -> int:
                     return orig.call(this, t, ...a);
                 };
             }""")
-            res = page.evaluate("(j) => { const __t0 = performance.now();"
-                               " const __r = drawPoster(j, {auto:false});"
-                               " const __dt = performance.now() - __t0;"
+            res = page.evaluate("(j) => {"
+                               " let __r = null; let __min = 1e9;"
+                               # R230a-45：CI 共享机时序抖动实测 55ms（本地 13ms），
+                               # 50ms 阈值在噪声下会假阳——取 3 次最小值滤调度
+                               # 抖动，真回归（≥2x）仍必然触发。
+                               " for (let __k = 0; __k < 3; __k++) {"
+                               "   const __t0 = performance.now();"
+                               "   __r = drawPoster(j, {auto:false});"
+                               "   const __dt = performance.now() - __t0;"
+                               "   if (__dt < __min) __min = __dt;"
+                               " }"
                                " if (!__r || !__r.canvas) return null; "
                                " const cv = __r.canvas;"
-                               " return {w: cv.width, h: cv.height, ms: __dt, "
+                               " return {w: cv.width, h: cv.height, ms: __min, "
                                "url: cv.toDataURL('image/png'), "
                                "texts: window.__texts}; }", api)
             # R193b（T3.3 后半）：外壳 auto 模式与强制低配直绘的尺寸契约。

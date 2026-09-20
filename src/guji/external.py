@@ -82,9 +82,9 @@ def _fetch_bytes(url: str, mode: str = "proxy") -> bytes:
         handlers.append(urllib.request.ProxyHandler({
             "http": PROXY, "https": PROXY,
         }))
+    # R230a-42（R15-P2-2）：此前关主机名校验+CERT_NONE，出站抓取可被路径
+    # 上中间人换内容。恢复默认校验；证书失败走 fetch_source 单源降级。
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     handlers.append(urllib.request.HTTPSHandler(context=ctx))
     opener = urllib.request.build_opener(*handlers)
     req = urllib.request.Request(url, headers={

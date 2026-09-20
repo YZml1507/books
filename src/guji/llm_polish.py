@@ -514,10 +514,20 @@ def chat(session_id: str, user_msg: str,
             # 对混装事实会自由发挥（有判定仍答「暂时没查到」），拆开写清
             # 两种事实的使用规则。
             if _coords:
-                payload_msgs.append({
-                    "role": "system",
-                    "content": "用户的排盘坐标事实（只作话题参考，不要逐条念）：\n- "
-                               + "\n- ".join(_coords)})
+                # R230a-41（R15-P1-3）：客户端 facts 直进 system 角色是可注入
+                # 通道（"忽略所有先前的指令"/伪造「黄历判定：…」均以 system
+                # 特权送达，mock 日志实锤）。降为 user 角色的上下文块，
+                # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
+                _safe = [f for f in _coords
+                         if "黄历判定" not in f
+                         and "忽略" not in f
+                         and not f.lstrip().lower().startswith("system")]
+                if _safe:
+                    payload_msgs.append({
+                        "role": "user",
+                        "content": "（我的排盘坐标事实，只作话题参考，"
+                                   "不要逐条念）：\n- "
+                                   + "\n- ".join(_safe)})
             if _verdicts:
                 payload_msgs.append({
                     "role": "system",

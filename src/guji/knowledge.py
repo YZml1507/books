@@ -291,6 +291,27 @@ class KnowledgeBase:
     def set_daily_cache(self, date: str, bazi: dict | None = None,
                         tarot: dict | None = None) -> None:
         import json
+        from datetime import date as _d, timedelta as _td
+        # R229z续24（R9-P2-5）：daily_cache 原本无 DELETE 路径——每个被查过
+        # 的日期永久滞留一行。date 主键是 ISO 串，字典序=时间序，90 天前直删。
+        # R230a-43 续：清在写入之前——写被拒（窗外/坏日期）时清理仍要发生，
+        # 否则攻击者灌进表里的 2099-12-31 行永远没人扫。
+        _cutoff = (_d.today() - _td(days=90)).strftime("%Y-%m-%d")
+        _future = (_d.today() + _td(days=31)).strftime("%Y-%m-%d")
+        self.db.execute(
+            "DELETE FROM daily_cache WHERE date < ? OR date > ?",
+            (_cutoff, _future))
+        # R230a-43（R15-P2-3）：GET /api/daily 有写副作用且 purge 只删
+        # 90 天前——脚本扫 1900-2100 全日期可灌 ~7.3 万行且未来行
+        # 永不清理。缓存写入限窗口：过去 400 天 ~ 未来 31 天。
+        try:
+            _d0 = _d.fromisoformat(date)
+        except ValueError:
+            self.db.commit()
+            return
+        if not (_d.today() - _td(days=400) <= _d0 <= _d.today() + _td(days=31)):
+            self.db.commit()
+            return
         # R228j：INSERT OR REPLACE 是整行覆盖——只传 bazi 会把已缓存的
         # tarot_result 抹成 NULL（反之亦然）。UPSERT + COALESCE 只写传入列。
         self.db.execute(
@@ -304,10 +325,6 @@ class KnowledgeBase:
              json.dumps(bazi, ensure_ascii=False) if bazi else None,
              json.dumps(tarot, ensure_ascii=False) if tarot else None,
              time.strftime("%Y-%m-%dT%H:%M:%S")))
-        # R229z续24（R9-P2-5）：daily_cache 原本无 DELETE 路径——每个被查过
-        # 的日期永久滞留一行。date 主键是 ISO 串，字典序=时间序，90 天前直删。
-        _cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
-        self.db.execute("DELETE FROM daily_cache WHERE date < ?", (_cutoff,))
         self.db.commit()
 
     def add_favorite(self, ftype: str, ref_id: str, title: str) -> int:

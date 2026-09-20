@@ -16,6 +16,7 @@ from __future__ import annotations
 import sqlite3
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .schemas import ComputeError, NotFoundError, ValidationError
@@ -51,3 +52,28 @@ def install(app: FastAPI) -> None:
         return JSONResponse(status_code=503,
                             content={"detail": "存储暂时不可用，请稍后再试"})
     app.add_exception_handler(sqlite3.DatabaseError, _sqlite_handler)
+
+    # R230a-38（R15-P1-2）：int64 溢出（thread_id=1e20 等）在 sqlite 绑定时
+    # 抛 OverflowError——非 DatabaseError 子类，此前穿透成 500（≥9 端点）。
+    # 不用 STATUS_MAP：str(exc) 是英文实现细节，会漏上屏。
+    async def _overflow_handler(_request: Request,
+                                exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=400,
+                            content={"detail": "参数超出可接受范围"})
+    app.add_exception_handler(OverflowError, _overflow_handler)
+
+    # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显
+    # 原始输入——孤立代理项（\ud800）让默认序列化炸成 500，超长 input
+    # 又造成 ~2x 响应放大。改成 repr 转义 + 200 字截断。
+    async def _validation_handler(_request: Request,
+                                  exc: RequestValidationError
+                                  ) -> JSONResponse:
+        errs = []
+        for e in exc.errors():
+            e = dict(e)
+            if "input" in e:
+                s = repr(e["input"])
+                e["input"] = s[:200] + ("…" if len(s) > 200 else "")
+            errs.append(e)
+        return JSONResponse(status_code=422, content={"detail": errs})
+    app.add_exception_handler(RequestValidationError, _validation_handler)

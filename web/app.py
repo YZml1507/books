@@ -96,6 +96,13 @@ def create_app() -> FastAPI:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "请求体太大了，精简一下再发"})
+        # R230a-40（R15-P1-1）：chunked 传输天然无 Content-Length，此前整体
+        # 绕过护栏（2MB body 实测走到校验层）。浏览器永远不会发 chunked
+        # 请求体——见到 transfer-encoding 且无长度声明就拒。
+        if cl is None and request.headers.get("transfer-encoding"):
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "请求体太大了，精简一下再发"})
         return await call_next(request)
 
     # R229z续8 续（R8 P1-2 附）：字体/出图资产低变动——一天 Cache-Control，

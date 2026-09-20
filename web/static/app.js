@@ -336,7 +336,15 @@ function chatSid() {
   try {
     var sid = localStorage.getItem(CHAT_SID_KEY);
     if (!sid) {
-      sid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      /* R230a-44（R15-P3）：Math.random sid ~31 位熵可猜——猜到即可往别人
+       * 会话注入上下文。crypto.getRandomValues 给到 ~63 位。 */
+      var rnd = '';
+      try {
+        var buf = new Uint32Array(2);
+        crypto.getRandomValues(buf);
+        rnd = buf[0].toString(36) + buf[1].toString(36);
+      } catch (e2) { rnd = Math.random().toString(36).slice(2, 12); }
+      sid = 'c' + Date.now().toString(36) + rnd;
       localStorage.setItem(CHAT_SID_KEY, sid);
     }
     return sid;
@@ -5402,7 +5410,9 @@ function baziPersonaCard(j) {
         const ts = (it.ts || '').replace('T', ' ');
         const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
         const render = (it.result_summary && it.result_summary.paipan_render) || '';
-        return '<div class="ph-item" data-id="' + it.id + '">' +
+        /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
+         * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
+        return '<div class="ph-item" data-id="' + esc(String(it.id)) + '">' +
           '<div class="ph-head"><span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
           '<span class="ph-ts">' + esc(ts) + '</span></div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
