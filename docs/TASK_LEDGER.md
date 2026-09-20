@@ -10522,3 +10522,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-21（2026-09-20）：补缺方向钉扎
 - bazi.buque.direction：1989-02-24 缺水→断「从金的方向补」。
+
+## R230a-22（2026-09-20）：均势钉扎
+- bazi.strong_tied：水金并列 → strong_tied=[水,金] + 「均势（无一行独大）」。
