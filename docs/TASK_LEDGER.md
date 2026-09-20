@@ -11225,3 +11225,9 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - **小项**：chatInput 一打字即复位 placeholder；`rememberResult` 后顺带刷 chips。
 - **闸门**：selftest 237→239（危机扩词 + 敏感三层 + 意图闸 + 最近词 4 条新钉扎）。
 - 闸门：selftest 239 / regress / contract 552 / baseline_voice / xingzuo / warm_voice / async_ai / dollar / parity / ui_smoke 59 / plain_first / poster / no_generated / scripts_importable / llm_polish 全绿；ruff E9,F 净。
+
+## R233s —— 轮询体抽取 + autoSend 隐性 bug 修复
+
+- `chatSend`/`autoSendChatContext` 各持一份 ~75 行近乎逐字复制的轮询体——抽出共用 `_pollChatReply(tid, ty, sid0)`。
+- **顺带抓出真 bug**：autoSend 版引用了未声明的 `_queueCap`（只在 chatSend 作用域声明）——「聊聊这件事」路径上若回复在服务端排队，`performance.now() < _queueCap` 抛 ReferenceError，typing 气泡永转圈。抽取后两路共用一份定义，结构性消失。
+- 抽取后净 -65 行；`probe_ui_smoke` 59/59 复跑全绿（含 mock LLM 完整轮询路径）。

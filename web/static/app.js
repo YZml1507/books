@@ -1321,59 +1321,64 @@ function autoSendChatContext() {
      * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。 */
     var _ty = chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
-  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
-    var tick = function () {
-      /* R230v（R34-#3）：换过 sid 的旧任务落地即弃（同 chatSend）。 */
-      if (_sid0 !== chatSid()) return;
-      /* R230q（R28-P3-8）：后台标签页/断网时轮询空转烧预算——暂停取数，
-       * 恢复后再探；预算照样走，到点降级行为不变。 */
-      if (_aiPollGate()) {
-        if (performance.now() < deadline) setTimeout(tick, 2000);
-        else if (_ty) { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-        return;
-      }
-      api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
-        if (!_ty || _sid0 !== chatSid()) return;
-        if (st && st.status === 'done' && st.text) {
-          _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
-          _chatFreshNote(st, _ty);     /* R233r：TTL 回收分隔 */
-          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
-          _ty.innerHTML = renderRichText(st.text);
-          _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
-          if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
-          return;
-        }
-        if (st && st.status === 'failed') {
-          /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
-           * 冒充小满历史挤占真对话。 */
-          _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
-          return;
-        }
-        if (st && st.status === 'pending' && st.queued) {
-          /* R230v（R34-#5）：服务端排队中——生成预算从起动起算。 */
-          if (performance.now() < _queueCap) {
-            setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
-          } else { _ty.textContent = '（小满有点忙，再发一次试试？）'; }
-          return;
-        }
-        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-        else { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-      }).catch(function (e) {
-        /* R228c：瞬时抖动原来直接杀死轮询（catch 空转，typing 永转圈）。
-         * 截止前继续排，超时才降级文案。R8 P2-9：404 任务不存在早退。 */
-        if (e && e.status === 404) {
-          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）'; }
-          return;
-        }
-        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-        else if (_ty) { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-      });
-    };
-    setTimeout(tick, AI_POLL_INTERVAL_MS);
+    _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function () {
     chatBubble('ai', '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）', { nosave: true });
   });
+}
+
+/* R233r（R49-P3-3）：两处轮询体抽出共用——chatSend 与
+ * autoSendChatContext 此前逐字各持一份 ~75 行（且 autoSend 版漏声明
+ * _queueCap，排队态引用未定义变量会炸掉整个 tick）。
+ * 约定：tid=任务id；ty=typing气泡节点；sid0=发送时sid。 */
+function _pollChatReply(tid, ty, sid0) {
+  var deadline = performance.now() + AI_POLL_CAP_S * 1000;
+  var _queueCap = performance.now() + 90000;
+  var _wait = AI_POLL_INTERVAL_MS;
+  var _failTxt = function () {
+    return '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）';
+  };
+  var tick = function () {
+    if (sid0 !== chatSid()) return;   /* 换过 sid 的旧任务落地即弃 */
+    if (_aiPollGate()) {              /* 后台/断网暂停取数，预算照走 */
+      if (performance.now() < deadline) setTimeout(tick, 2000);
+      else if (ty) { ty.textContent = _failTxt(); }
+      return;
+    }
+    api('/api/ai/' + encodeURIComponent(tid), { silent: true }).then(function (st) {
+      if (!ty || sid0 !== chatSid()) return;
+      if (st && st.status === 'done' && st.text) {
+        _chatBootNote(st, ty);       /* 重启失忆插分隔 */
+        _chatFreshNote(st, ty);      /* TTL 回收分隔 */
+        ty.innerHTML = renderRichText(st.text);
+        _chatTsSave('ai', st.text);
+        if (st.closed) _chatClosedHint(ty);
+        return;
+      }
+      if (st && st.status === 'failed') {
+        ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+        return;
+      }
+      if (st && st.status === 'pending' && st.queued) {
+        /* 服务端排队中——生成预算从起动起算。 */
+        if (performance.now() < _queueCap) {
+          setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
+        } else { ty.textContent = '（小满有点忙，再发一次试试？）'; }
+        return;
+      }
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+      else { ty.textContent = _failTxt(); }
+    }).catch(function (e) {
+      /* 404 = 任务已不在（重启/过期）——早退不轮满预算。 */
+      if (e && e.status === 404) {
+        if (ty) { ty.textContent = '（这次没接住，再发一次试试？）'; }
+        return;
+      }
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+      else if (ty) { ty.textContent = _failTxt(); }
+    });
+  };
+  setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
 
 /* R218a-02：聊天降级文案池 + 关键词到 openeer 的最轻量级分支。
@@ -1694,57 +1699,7 @@ function chatSend() {
     /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。 */
     var _ty = chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
-    /* R230v（R34-#5）：排队等待不烧生成预算——第二条消息在
-     * _session_lock 里先排 ~30s；排队期另给 90s 总帽。 */
-    var _queueCap = performance.now() + 90000;
-  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
-    var tick = function () {
-      /* R230v（R34-#3）：换过 sid（开新话题）的旧任务落地即弃——
-       * 不写气泡、不存 transcript，否则新话题里冒幻影回复。 */
-      if (_sid0 !== chatSid()) return;
-      if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
-        if (performance.now() < deadline) setTimeout(tick, 2000);
-        else if (_ty) { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-        return;
-      }
-      api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
-        if (!_ty || _sid0 !== chatSid()) return;
-        if (st && st.status === 'done' && st.text) {
-          _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
-          _chatFreshNote(st, _ty);     /* R233r：TTL 回收分隔 */
-          /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
-          _ty.innerHTML = renderRichText(st.text);
-          _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
-          if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
-          return;
-        }
-        if (st && st.status === 'failed') {
-          /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
-           * 冒充小满历史挤占真对话。 */
-          _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
-          return;
-        }
-        if (st && st.status === 'pending' && st.queued) {
-          /* R230v（R34-#5）：服务端排队中——生成预算从起动起算。 */
-          if (performance.now() < _queueCap) {
-            setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
-          } else { _ty.textContent = '（小满有点忙，再发一次试试？）'; }
-          return;
-        }
-        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-        else { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-      }).catch(function (e) {
-        /* R8 P2-9：404 = 任务已不在（重启/过期）——别再轮满 40s，直接降级。 */
-        if (e && e.status === 404) {
-          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）'; }
-          return;
-        }
-        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-        else if (_ty) { _ty.textContent = '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）'; }
-      });
-    };
-    setTimeout(tick, AI_POLL_INTERVAL_MS);
+    _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function (e) {
     /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），
      * 不是网络问题——保留已发气泡、如实报服务端文案，别回收成「被吞了」。 */
