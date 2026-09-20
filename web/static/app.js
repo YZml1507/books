@@ -88,18 +88,33 @@ function esc(s) {
   });
 }
 
+/* R233h（R43-#14）：结果容器不再整区 aria-live——长结果会让读屏
+ * 把整篇重读一遍。改走专用 #srLive 短句播报：「XX结果出来了」。 */
+var _PAINT_LABEL = { result: '排盘', thResult: '桃花', hhResult: '合婚',
+  qmResult: '起名', lyResult: '六爻', xzResult: '星座', hlResult: '黄历',
+  trResult: '塔罗', dailyDetail: '今日解读', historyDetail: '历史详情',
+  researchResult: '研究', searchResult: '搜索', addrResult: '定位',
+  compareResult: '对照', conceptResult: '概念分布', cwResult: '两书对照',
+  worksResult: '书目', threadResult: '心事', bsStructure: '结构',
+  bsChapter: '章节', bsSummary: '知识卡', nameReviewOut: '名字点评' };
+var _paintSilent = false;
+function _srSay(t) {
+  var n = el('srLive');
+  if (!n) return;
+  /* 清空再写——同文本连续两次也要触发播报。 */
+  n.textContent = '';
+  setTimeout(function () { n.textContent = t; }, 30);
+}
+
 /** 把内容写进结果容器；容器不存在时静默返回。 */
 function paint(/* v3-fx-guard */id, html) {
   const node = el(id);
   if (node) {
-    /* R228n：结果区无 aria-live 时读屏零播报——polite 注入即读。
-     * role=status 自带 polite，双写兼容老读屏。 */
-    if (!node.hasAttribute('aria-live')) {
-      node.setAttribute('aria-live', 'polite');
-      node.setAttribute('role', 'status');
-    }
     node.hidden = false;
     node.innerHTML = html;
+    if (!_paintSilent && html) {
+      _srSay((_PAINT_LABEL[id] || '新内容') + '出来了，往下读查看');
+    }
     /* R218a-巡4（E-a）：成功态才显示「运算结论为坐标事实…」技术说明。
      * 结果区有内容时 footnote 跟随显示，空/失败时不显示——失败态整卡
      * 只留错误信息+重试按钮，不再残留成功期说明文字。 */
@@ -111,9 +126,12 @@ function paint(/* v3-fx-guard */id, html) {
 }
 
 function busy(id, text) {
-  /* R230x（P2-7）：加载态带三点跳动效（复用 chat-typing），不再干等文本 */
+  /* R230x（P2-7）：加载态带三点跳动效（复用 chat-typing），不再干等文本。
+   * R233h：加载中转态不播报（播了也只会说「出来了」误导）。 */
+  _paintSilent = true;
   paint(id, '<div class="no-evidence">' + esc(text) +
     ' <span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span></div>');
+  _paintSilent = false;
 }
 
 /* R218a-巡4（E-a/E-b）：失败态——清掉成功期说明文字 + 内联「重新测算」
@@ -146,7 +164,11 @@ function failWithRetry(id, text, retryFn) {
 }
 
 function fail(id, text) {
+  /* R233h：失败态播报说人话，不报「结果出来了」。 */
+  _paintSilent = true;
   paint(id, '<div class="no-evidence">' + esc(_humanizeErr(text)) + '</div>');
+  _paintSilent = false;
+  _srSay('有点小状况——看看页面提示');
 }
 
 /** R228i：Pydantic 422 的 detail 是 [{loc:[...,field],msg}] 数组，
@@ -1716,7 +1738,7 @@ function renderHits(hits, opts) {
       (h.layer ? ' · ' + esc(h.layer) : '') +
       /* R228w：bm25 负分（越接近 0 越好）原值 16 位浮点糊脸，
        * 留 1 位小数 + title 说明口径。 */
-      (o.score && h.score != null ? '<span class="hit-score" title="BM25 相关度：负分，越接近 0 越相关">score ' +
+      (o.score && h.score != null ? '<span class="hit-score" title="BM25 相关度：负分，越接近 0 越相关">相关度 ' +
         esc(Number(h.score).toFixed(1)) + '</span>' : '') +
       '</div>';
     html += '<div class="ev-text">' + esc(h.text || '') + '</div>';
@@ -4609,8 +4631,8 @@ function _qmBadgeHtml(score, rank) {
   if (rank === 0) badge = '<span class="qm-badge qm-top1">⭐ 首选</span>';
   else if (rank === 1) badge = '<span class="qm-badge qm-top2">🌟 次选</span>';
   else if (rank === 2) badge = '<span class="qm-badge qm-top3">✨ 可选</span>';
-  return '<span class="qm-score" title="契合度评分：缺补权重·音韵·出处完整">⭐ ' +
-    score + '/100</span>' + badge;
+  return '<span class="qm-score" title="契合度评分：缺补权重·音韵·出处完整">⭐ 契合度 ' +
+    score + '</span>' + badge;
 }
 
 async function doQiming() {
@@ -5876,14 +5898,22 @@ async function _doHuangli(offset, reveal, spokenWord) {
       yi.map(function (w) {
         var hot = (_HL.scene &&
                    (w.indexOf(_HL.scene) !== -1 || (YI_MAP[w] || '').indexOf(_HL.scene) !== -1));
-        return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '" title="' + esc(YI_MAP[w] || '') + '">' + esc(w) + (_cflSet[w] ? '※' : '') + '</span>';
+        /* R233h（R43-#11）：宜忌白话从 title（触屏根本看不到）挪进
+         * 可视小字行——pill 变两行：词 + 释义。 */
+        var _g = YI_MAP[w] || '';
+        return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '">' + esc(w) +
+          (_cflSet[w] ? '※' : '') +
+          (_g ? '<small class="hl-pill-sub">' + esc(_g) + '</small>' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">' + esc(_dayWord) + '没什么特别适宜的</div>';
     html += '</div>';
     html += '<div class="hl-ji" style="background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;">';
     html += '<div style="font-weight:800;color:#C2527B;margin-bottom:6px;">🚫 忌</div>';
     html += ji.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       ji.map(function (w) {
-        return '<span class="hl-pill hl-pill-ji" title="' + esc(JI_MAP[w] || '') + '">' + esc(w) + (_cflSet[w] ? '※' : '') + '</span>';
+        var _g2 = JI_MAP[w] || '';
+        return '<span class="hl-pill hl-pill-ji">' + esc(w) +
+          (_cflSet[w] ? '※' : '') +
+          (_g2 ? '<small class="hl-pill-sub">' + esc(_g2) + '</small>' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">没有特别要避开的</div>';
     html += '</div></div>';
     if (_conflict.length) {

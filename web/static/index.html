@@ -76,6 +76,9 @@ if ('serviceWorker' in navigator) {
 <main id="main">
   <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
   <h1 class="visually-hidden">小满的解忧铺——黄历、八字、塔罗、起名</h1>
+  <!-- R233h（R43-#14）：读屏播报专用区——结果落盘时只播一句短提示，
+       不再把整个结果容器标 aria-live（长结果整篇重读是灾难）。 -->
+  <div id="srLive" class="visually-hidden" aria-live="polite" role="status"></div>
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
        固定高度，引文区高度与书数无关）。首页时 hidden。 -->
   <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
@@ -143,7 +146,7 @@ if ('serviceWorker' in navigator) {
       aria-expanded="false" aria-controls="dailyDetail">🔍 查看完整解读 →</button>
     <!-- #dailyMore 的落点：原来只有按钮没有处理器也没有容器（R000a-03） -->
     <!-- R229z续23（R10-#22）：异步装入的解读正文要能被朗读 -->
-    <div class="daily-detail" id="dailyDetail" aria-live="polite" hidden></div>
+    <div class="daily-detail" id="dailyDetail" hidden></div>
     <!-- R231c（R36-P3-4）：每日卡「拆礼物」仪式——封面只挡视线不改数据，
          点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
     <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
@@ -728,7 +731,7 @@ if ('serviceWorker' in navigator) {
         <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
-      <div id="historyDetail" class="ph-detail" aria-live="polite" hidden></div>
+      <div id="historyDetail" class="ph-detail" hidden></div>
     </div>
   </div>
 

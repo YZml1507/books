@@ -1014,7 +1014,7 @@ def warm_hehun(h: dict) -> dict:
     if god_ab and god_ba:
         la = TEN_GOD_WARM.get(god_ab, (god_ab, ""))[0]
         lb = TEN_GOD_WARM.get(god_ba, (god_ba, ""))[0]
-        lines.append(f"十神互见：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
+        lines.append(f"互看：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
                      f"——两种力量互相成全，也偶尔较劲。")
     dayun = h.get("dayun_hits") or []
     # R216b 续（UX 队列 U-017）：原实现无条件取 dayun_hits[0]（最早的大运

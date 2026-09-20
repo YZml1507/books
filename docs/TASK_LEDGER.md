@@ -11129,3 +11129,11 @@ scripts_importable / llm_polish / ruff 全绿。
 
 ### 闸门
 selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66+88) / ruff / plain_first / poster(14判据) / xingzuo / warm_voice / async_ai / corpus / importable / ui_smoke 58——全绿。
+
+## R233h（R43 尾账 + R44 尾巴）：live-region 降噪 + title 信息可视
+
+- **R43-#14（M 账清了）**：`paint()` 不再给结果容器整区注 `aria-live`——长结果会让读屏把整篇重读。改为专用 `#srLive`（visually-hidden polite/status）播报短句「排盘结果出来了，往下读查看」，按容器 id 映射名；`busy()` 中转态不播报、`fail()` 播报「有点小状况」。index.html 里 dailyDetail/historyDetail 的静态 aria-live 一并摘除（播报职责统一收归 srLive）。
+- **R43-#11（title-only 信息）**：黄历宜忌 pill 改两行——词 + 可视白话小字（触屏没有 hover，title 等于没有）；`hit-score`「score -12.3」→「相关度 -12.3」；`qm-score`「⭐ 92/100」→「⭐ 契合度 92」。塔罗 seed 复验号维持 title（面向复验人群，非主信息）。
+- **R44 尾巴**：`voice.py` 暖层「十神互见：你眼里的 ta…」→「互看：…」；`hehun._GOD_NOTE`「日主十神互见：甲见乙为七杀…」→「互看：甲眼里的乙带「七杀」的能量…」（暖层白话照旧）。
+
+闸门：selftest 237 / ui_smoke 58 / ruff 全绿（bump_sw 已跑）。

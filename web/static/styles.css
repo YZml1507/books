@@ -1825,3 +1825,7 @@ html{-webkit-text-size-adjust:100%;}
   }
   .checkin-opt.picked::after{content:' ✓';}
 }
+
+/* R233h（R43-#11）：宜忌 pill 两行——词 + 可视白话小字（title 在触屏不可见） */
+.hl-pill{display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.25;}
+.hl-pill-sub{font-size:11px;font-weight:400;opacity:.78;margin-top:1px;max-width:9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
