@@ -662,6 +662,19 @@ def _run_inner() -> list[str]:
     check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
           lambda j: [d.get("position") for d in j.get("draws", [])]
                     == ["现状", "助力", "阻碍", "过去", "结果"])
+    # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
+    # 综合指引不得出现「整体是顺的」——先安抚再看走向。
+    _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,
+                                          "question": "这段感情"})
+    _t4j = _t4.json()
+    assert any(d["name"] in {"死神", "高塔", "恶魔", "月亮", "宝剑三",
+                             "宝剑九", "宝剑十"}
+               for d in _t4j.get("draws", [])), ("tarot.heavy.fixture",
+                                                _t4j.get("draws"))
+    _tw = " ".join((_t4j.get("warm") or {}).get("reply") or [])
+    assert "整体是顺的" not in _tw and "照顾好自己" in _tw, \
+        ("tarot.heavy.no_顺", _tw[:80])
+    ok.append("tarot.heavy.no_顺")
     # R121b（D-167b）：八字合婚纯坐标 standing 覆盖——固定两人生日 → 固定
     # 输出（1990-05-15 男 vs 1992-08-20 女 → 无冲合/日主相生/桃花不同）。
     check("hehun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
