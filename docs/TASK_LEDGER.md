@@ -10516,3 +10516,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-19（2026-09-20）：xingzuo 日运变体钉扎
 - xingzuo.daily_beat.variety：14 连续日 today_note ≥3 种（回归闸住 R13 修复的「每天一字不差」）。
+
+## R230a-20（2026-09-20）：塔罗重牌禁语钉扎
+- tarot.heavy.no_顺：seed=4（死神在场）warm 综合指引禁「整体是顺的」须安抚向。
