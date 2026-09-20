@@ -82,7 +82,9 @@ def run():
     s = shensha(dt)
     expected_keys = {"tiande", "yuede", "tianshe", "jiesha", "zaisha",
                      "yuesha", "yueyan", "yima", "guiren",
-                     "day_gan", "day_zhi", "month_zhi"}
+                     "day_gan", "day_zhi", "month_zhi",
+                     # R233w：临日判定单点真相（good/bad 名单由后端回吐）
+                     "linri"}
     assert set(s.keys()) == expected_keys, f"shensha keys 不符: {set(s.keys())}"
     assert s["day_gan"] == "庚" and s["day_zhi"] == "申" and s["month_zhi"] == "寅"
     assert s["tianshe"] is False

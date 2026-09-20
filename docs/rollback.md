@@ -52,3 +52,12 @@ git status                                     # 确认 web/ src/ 已还原
 ## 回滚后验证
 1. 双击桌面「八字命理检索」→ 浏览器自动打开 http://127.0.0.1:8123
 2. 首页正常渲染、排盘一次出结果即恢复成功。
+
+## 运维坑备忘（R58-P2-4）
+`data/index/*.db`（knowledge.db / paipan_history.db 等 SQLite）被 chmod 只读后，
+SQLite 会连带生成 `-shm`/`-wal` sidecar 且同为只读。**恢复时只 chmod 主文件不够**
+——要三个文件一起恢复或直接删 sidecar 重建：
+```
+chmod 664 data/index/knowledge.db data/index/knowledge.db-shm data/index/knowledge.db-wal
+# 或删掉 -shm/-wal，下次写时自动重建
+```

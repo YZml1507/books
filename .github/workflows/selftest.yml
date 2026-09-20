@@ -101,6 +101,19 @@ jobs:
           python scripts/check_provenance.py
           python scripts/verify_index.py
           python scripts/assess_goals.py
+      - name: R2347 补接线闸门（R60-#18 剩余：计算层+语料层证伪）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          python probes/probe_liuyao_najia.py
+          python probes/probe_huangli_shensha.py
+          python probes/probe_internal_witness.py
+          python probes/probe_generality_crossref.py
+          python probes/probe_disclosure.py
+          python probes/probe_herodotus.py
+          python probes/probe_bcv.py
+          python probes/probe_booksec.py
+          python probes/probe_conservation.py
 
   # 浏览器闸门：DOM 渲染层回归（selftest 只到 API 层）。独立 job 免得拖慢主闸。
   browser-gates:

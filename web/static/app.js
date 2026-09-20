@@ -224,6 +224,12 @@ function _humanizeErr(text) {
   if (/索引缺失|corpus\.db|build_index|sqlite|OperationalError|Permission denied/i.test(text)) {
     return '排盘服务还没睡醒，一会儿再来～';
   }
+  /* R2346（R58-P1-1）：服务端 detail 透传的英文异常原文（
+   * 「RuntimeError: ... at foo.py:123」/Traceback）——5xx 技术串
+   * 不上屏，统一人话。 */
+  if (/\b[A-Za-z_]\w*(?:Error|Exception|Warning)\b|Traceback|:\s*line\s*\d+|\.py["'\s,:]/.test(text)) {
+    return '服务打个盹了，稍后再戳我～';
+  }
   return text.replace(
     /(?:Failed to fetch|Load failed|Network request failed|Cannot read propert\w+|is not defined|is not a function|out of range|Unexpected token|Script error|AbortError|TimeoutError)[^。；\n]*/gi,
     '网络或服务出了点小状况');
