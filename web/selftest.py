@@ -1544,7 +1544,7 @@ def _run_inner() -> list[str]:
 
     # ── 知命产品化 API 自测（R002） ────────────────────────────────
     check("daily", client.get("/api/daily"),
-          lambda j: (j.get("level") in ("吉", "平", "凶")
+          lambda j: (j.get("level") in ("吉", "小吉", "平", "凶")
                      and j.get("date") and "noble" in j))
     # R195b（B-017）：noble 语义 = 当日日干的天乙贵人（地支列表，1–2 个，
     # 「/」连接），不再是「今年的生肖」。与黄历 guiren 同算法互验。

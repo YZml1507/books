@@ -173,6 +173,61 @@ def _daily_beat(day_ganzhi: str, sign_name: str) -> str:
     return _DAILY_BEATS[h % len(_DAILY_BEATS)]
 
 
+# R230y（R36-P2-2）：三维度日变池——原 love/career/wealth 是各宫恒定串，
+# 任何一天打开都逐字节相同，复访即撞墙。照 _DAILY_BEATS 同款确定性
+# 轮换（干支+宫名+维度名取模），宫位底色保留在 sign_* 字段。
+_LOVE_BEATS = (
+    "今天适合主动发消息，等对方先开口就慢了半拍。",
+    "感情运在线，表达欲旺盛——想说的话别攒着。",
+    "今天宜温柔倾听，对方的小情绪值得接住。",
+    "魅力值小幅走高，出门记得打扮一下。",
+    "宜制造小惊喜——一杯奶茶级别的就够。",
+    "今天容易想太多，对方没回消息不等于冷淡。",
+    "宜约饭——面对面比隔着屏幕聊更来电。",
+    "心动信号容易被放大，分清心动和感动。",
+    "宜示弱——偶尔麻烦一下对方反而更亲。",
+    "今天适合把误会聊开，憋着只会发酵。",
+    "独处时光也不错——先把自己哄开心。",
+    "宜回忆杀——翻翻旧照片旧聊天，甜度回血。",
+)
+_CAREER_BEATS = (
+    "推进卡住的事今天有缝隙，试一次。",
+    "宜做规划不写细节——先把骨架搭好。",
+    "今天适合收尾，拖着的尾巴清掉一身轻。",
+    "沟通运顺，难谈的事今天开口成功率高。",
+    "宜请教——问对人比闷头干快三倍。",
+    "注意力容易散，重要的事放在上午做。",
+    "宜小步快跑——今天不求完美求完成。",
+    "灵感在线，记下来再说，别嫌零碎。",
+    "适合整理文档/桌面/待办，秩序感回血。",
+    "今天宜守不宜攻，稳住就是赢。",
+    "适合谈合作——你的方案今天更好卖。",
+    "宜学点新东西，十分钟的那种也算。",
+)
+_WEALTH_BEATS = (
+    "正财稳，工资党安心；偏财一般，别碰运气活。",
+    "宜记账——看看钱到底花在哪儿了。",
+    "小财运有，奶茶钱级别的进账别嫌少。",
+    "宜比价——今天下单前先冷静十分钟。",
+    "适合存钱，定一个小目标（比如这月多存 200）。",
+    "冲动消费警报：今天看直播容易剁手。",
+    "宜谈钱——该要的报销/红包就开口。",
+    "收支平衡日，不大进也不该大出。",
+    "适合研究理财入门，哪怕只看一篇文章。",
+    "今天宜犒劳自己——预算内的小确幸值得。",
+    "副业灵感闪现，记到备忘录里。",
+    "宜断舍离旧物——挂二手说不定有惊喜。",
+)
+_DIM_BEATS = {"love": _LOVE_BEATS, "career": _CAREER_BEATS, "wealth": _WEALTH_BEATS}
+
+
+def _dim_beat(day_ganzhi: str, sign_name: str, dim: str) -> str:
+    """日干支 + 宫名 + 维度 → 确定性日变句（纯函数）。"""
+    pool = _DIM_BEATS.get(dim) or _DAILY_BEATS
+    h = sum(ord(c) for c in (day_ganzhi or "") + (sign_name or "") + dim)
+    return pool[h % len(pool)]
+
+
 def daily_horoscope(day_ganzhi: str) -> dict:
     """当日日干支 → 十二宫聚合卡（今日值宫 + 全 12 宫一句话）。
 
@@ -193,9 +248,13 @@ def daily_horoscope(day_ganzhi: str) -> dict:
                 # note 换日变句；sign_note 保留宫位底色
                 "note": _daily_beat(day_ganzhi, name),
                 "sign_note": SIGNS[name]["note"],
-                "love": SIGNS[name].get("love", ""),
-                "career": SIGNS[name].get("career", ""),
-                "wealth": SIGNS[name].get("wealth", ""),
+                # R230y：三维度日变句；sign_* 保留各宫恒定底色
+                "love": _dim_beat(day_ganzhi, name, "love"),
+                "career": _dim_beat(day_ganzhi, name, "career"),
+                "wealth": _dim_beat(day_ganzhi, name, "wealth"),
+                "sign_love": SIGNS[name].get("love", ""),
+                "sign_career": SIGNS[name].get("career", ""),
+                "sign_wealth": SIGNS[name].get("wealth", ""),
                 "is_today": name == today,
             }
             for name in _SIGN_ORDER

@@ -863,7 +863,10 @@ def warm_taohua(t: dict) -> dict:
                 _year = int(d0.get("year_start", 0))
                 _diff = abs(_year - _user_birth_year - _user_age)
                 if _diff > 15:
-                    lines.append("未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
+                    # R230y（R36-口播）：晚缘不再虚化——「未来某段时间」对用户
+                    # 等于没说（实测 1998 年生应期落在 69+ 岁）。给「慢炖型」
+                    # 定心丸话术，比含糊更准确也更治愈。
+                    lines.append("你的天喜/红鸾应期偏晚——缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
                 else:
                     lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
         # D-003：禁用免责套话「感情这事你的感受最重要」

@@ -1859,6 +1859,10 @@ def fortune_level(calc_out: dict) -> str:
         score += 1                                  # 有贵人
     if score >= 2:
         return "吉"
+    # R230y（R36-P2-7）：score==1 归「小吉」——此前该档从未产出，
+    # copy_bank 里 4 条小吉文案是死池；接上后等级粒度 3→4 档。
+    if score == 1:
+        return "小吉"
     return "凶" if score <= -2 else "平"
 
 

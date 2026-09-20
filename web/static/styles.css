@@ -268,6 +268,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R230x（V-4）：签运圆盘换马卡龙三档——浅底+深字+同色系描边，
  * 替掉「老黄历泥金」实圆；对比度仍按大字 ≥3:1 选色。 */
 .daily-level.good{background-color:#E3F0DD; background-image:linear-gradient(135deg,#EDF6E6,#DCEBD2);color:#3F6C33;border:2px solid #BCD8AC;box-shadow:0 6px 24px rgba(92,140,90,.20);}
+/* R230y（R36-P2-7）：小吉档——蜜桃粉浅底盘，介于吉/平之间 */
+.daily-level.sml{background-color:#FBE8DC; background-image:linear-gradient(135deg,#FCEDE1,#F8DFCF);color:#A5502E;border:2px solid #F0C9AE;box-shadow:0 6px 24px rgba(196,120,80,.20);font-size:.82em;}
 .daily-level.bad{background-color:#F8E1E5; background-image:linear-gradient(135deg,#FAE7EA,#F4D8DE);color:#A43B4E;border:2px solid #EBB9C3;box-shadow:0 6px 24px rgba(180,90,110,.18);}
 /* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
 .daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:#B3455A;font-size:.92em;}
@@ -1266,6 +1268,12 @@ button:active{transform:scale(.96);}
 .daily-checkin{margin:12px 14px 2px; padding-top:10px;
   border-top:1px dashed var(--border);}
 .checkin-q{font-size:13.5px; color:var(--secondary); margin-bottom:8px;}
+/* R230y（R36-P1-3）：连签元信息 + 近 7 天点阵 */
+.checkin-meta{display:block;font-size:12px;color:var(--primary-ink);margin-top:2px;}
+.checkin-dots{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle;}
+.checkin-dots i{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.checkin-dots i.on{background:var(--accent-ink);}
+.checkin-dots i.today{box-shadow:0 0 0 2px rgba(184,74,111,.18);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 .checkin-opt{
   min-height:var(--tap);   /* R228d：35→44 */

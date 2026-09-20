@@ -2196,7 +2196,8 @@ function buildShareData(view, j) {
   var l0 = w.one_liner || '';
   function base(title, subtitle) {
     /* R218a-11：注入 view 字段供 _paintSharePoster 取金句 hook。 */
-    return { title: title, subtitle: subtitle, big: l0 || title,
+    /* R230y（R36-P3-2）：subtitle 空兜当天日期——海报带「今天的签」时效感 */
+    return { title: title, subtitle: subtitle || todayIso(), big: l0 || title,
              lines: [], cards: [], view: view };
   }
   switch (view) {
@@ -2315,10 +2316,14 @@ function buildShareData(view, j) {
         (jh.date || '') +
         ((lun.month_cn || lun.day_cn) ? ' · 农历' + (lun.month_cn || '') + (lun.day_cn || '') : ''));
       var yiL = _pArr(jh.yi), jiL = _pArr(jh.ji);
-      shl.big = yiL.length ? ('宜 ' + yiL.slice(0, 3).join(' · ')) : '今日平稳';
+      /* R230y（R36-P2-4）：海报上印白话——「宜 上任·谒贵」发出去没人懂，
+       * 过映射表转人话，未命中词保留原味。 */
+      var _yiP = yiL.map(function (x) { return _HL_YI_MAP[x] || _pStr(x); });
+      var _jiP = jiL.map(function (x) { return _HL_JI_MAP[x] || _pStr(x); });
+      shl.big = _yiP.length ? ('宜 ' + _yiP.slice(0, 3).join(' · ')) : '今日平稳';
       shl.lines = [];
-      if (yiL.length) shl.lines.push({ k: '宜', v: yiL.slice(0, 5).join(' · ') });
-      if (jiL.length) shl.lines.push({ k: '忌', v: jiL.slice(0, 5).join(' · ') });
+      if (_yiP.length) shl.lines.push({ k: '宜', v: _yiP.slice(0, 5).join(' · ') });
+      if (_jiP.length) shl.lines.push({ k: '忌', v: _jiP.slice(0, 5).join(' · ') });
       if (jh.jianchu) shl.lines.push({ k: '建除', v: _pStr(jh.jianchu) });
       if (jh.xiu) shl.lines.push({ k: '值宿', v: _pStr(jh.xiu) });
       if (jh.chongsha) {
@@ -2424,7 +2429,8 @@ async function downloadPoster(j, view) {
         var _d = new Date();
         var _ymd = _d.getFullYear() +
           ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
-        a.download = 'zhiming-' + _vkey + '-' + _ymd + '.png';
+        /* R230y（R36-P3-2）：文件名对齐品牌「小满」 */
+        a.download = 'xiaoman-' + _vkey + '-' + _ymd + '.png';
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
@@ -2786,8 +2792,10 @@ async function loadDaily() {
       /* R216b 续3（UX 队列 U-009）：凶日不吓人——标签柔化（「稍缓」），
        * 紧跟一句安抚话术；吉/平保持原样。 */
       levelEl.textContent = (level === '凶') ? '缓' : level;
+      /* R230y（R36-P2-7）：小吉档 → 四星蜜桃色盘 */
       levelEl.className = 'daily-level ' +
-        (level === '吉' ? 'good' : level === '凶' ? 'bad soft' : 'mid');
+        (level === '吉' ? 'good' : level === '小吉' ? 'sml' :
+         level === '凶' ? 'bad soft' : 'mid');
       levelEl.title = level === '凶' ? '传统黄历今日标注为「凶」' : '';
     }
     const starsEl = el('dailyStars');
@@ -2795,7 +2803,8 @@ async function loadDaily() {
       starsEl.innerHTML = renderStars(level);
       /* R229z续23（R10-#16）：读屏播报「吉·五星」而非逐个星符 */
       starsEl.setAttribute('aria-label', '今日运势：' +
-        (level === '吉' ? '吉，五星' : level === '凶' ? '缓，一星' : '平，三星'));
+        (level === '吉' ? '吉，五星' : level === '小吉' ? '小吉，四星' :
+         level === '凶' ? '缓，一星' : '平，三星'));
       /* U-009 附带：星级加图例，一星不再语义不明。 */
       var legend = document.getElementById('dailyStarsLegend');
       if (!legend && starsEl.parentElement) {
@@ -2806,6 +2815,7 @@ async function loadDaily() {
       }
       if (legend) legend.textContent =
         level === '吉' ? '（五星 · 顺）' :
+        level === '小吉' ? '（四星 · 小顺）' :
         level === '凶' ? '（今日能量偏低 · 宜稳宜慢）' : '（三星 · 平稳）';
     }
     setText('dailySummary', j.summary || '');
@@ -2853,6 +2863,7 @@ function renderStars(level) {
   const mid = '<span class="star-mid">☆</span>';
   const bad = '<span class="star-bad">★</span>';
   if (level === '吉') return good.repeat(5);
+  if (level === '小吉') return good.repeat(4) + mid;
   if (level === '凶') return bad + mid.repeat(4);
   return good.repeat(3) + mid.repeat(2);
 }
@@ -3164,6 +3175,12 @@ async function submitBazi(event) {
     const j = await postJSON('/api/bazi', body);
     /* 只在成功后记账——失败重试（failWithRetry）不该被同参防抖拦 */
     _submitBaziLast = { key: _bkey0, ts: performance.now() };
+    /* R230y：本人表单成功提交 → 存「我的生日」并代入其余同人表单 */
+    if (body.calendar_type === 'solar') {
+      _meSave('me', { y: body.year, m: body.month, d: body.day,
+        h: body.hour_known ? body.hour : null, g: body.gender });
+      _meFillAll();
+    }
     const paipan = j.paipan || {};
     /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
     try {
@@ -4177,6 +4194,9 @@ async function doTaohua() {
       hour: num('th_hour'),
       gender: val('th_gender') || '女'
     });
+    _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
+      h: num('th_hour'), g: val('th_gender') || '女' });
+    _meFillAll();   /* R230y */
     let html = '<div class="card"><h2>🌺 桃花运</h2>';
     /* R218a-巡2（N-08）：装饰图——桃花卡顶部加 SVG/CSS 装饰 banner。 */
     html += renderDecoration('taohua');
@@ -4288,6 +4308,21 @@ var POSTER_BG = {
 var POSTER_MASCOT = new Image();
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
   taohua: 'sakura', hehun: 'sakura' };
+/* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
+var _HL_YI_MAP = {
+  '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
+  '祭祀': '整理心情', '祈福': '许愿', '求嗣': '备孕', '上任': '入职接项目',
+  '入学': '开学学新东西', '立券': '签合同', '纳财': '收款理财', '修造': '装修修缮',
+  '动土': '开工', '平整': '整理归置', '安床': '布置房间',
+  '冠笄': '形象焕新', '解除': '化解矛盾', '治病': '看病调理', '栽植': '种花种树',
+  '捕捉': '清掉拖了很久的小事', '求医': '看医生', '破土': '动工', '安葬': '告别过去'
+};
+var _HL_JI_MAP = {
+  '出行': '长途奔波容易累', '安葬': '不适合告别式', '祈福': '心诚则灵不必急在今天',
+  '开市': '大动作先缓缓', '嫁娶': '感情大事另择日', '动土': '工地噪音惹人烦',
+  '诉讼': '容易吵起来', '纳财': '破财风险高，钱包看紧点',
+  '移徙': '搬家挪窝放一放', '移徒': '搬家挪窝放一放',
+};
 function _posterBgFor(view) {
   var k = _POSTER_BG_BY_VIEW[view] || 'warm';
   return POSTER_BG[k] || POSTER_BG.warm;
@@ -4573,17 +4608,41 @@ function tarotDeepRead(draws, question) {
      * 正好把建议抵消掉，属用户明令禁用的套话，整句删除不做替换。 */
     '</p>';
   html += '</div>';
+  /* R230y（R36-P2-1）：同日同问 seed 固定——提示文案跟着结果走，
+   * 口吻切换重渲时不丢。 */
+  if (_trNoteDay) {
+    html += '<p class="hit-cite">同一问题今天牌面不变——想再问就换个问题，或明天再来看看～</p>';
+  }
   return html;
 }
 
 
+/* R230y（R36-P2-1）：一事一天一问——同一问题同一天派生同一 seed，
+ * 连点不再出互相矛盾的牌面；换问题/隔天自然换牌。 */
+var _trNoteDay = '';
 async function doTarot() {
   busy('trResult', '抽牌中…');
   /* R216b 续（U-006）：Seed 字段收进高级折叠，留空=用户不关心复验，
    * 前端自动生成一个编号（仅用于「同牌可复验」说明，不影响体验）。 */
   const seedRaw = val('tr_seed');
-  const seed = (seedRaw === '' || seedRaw == null) ?
-    (Date.now() % 1000000) : num('tr_seed');
+  const q0 = val('tr_question');
+  let seed;
+  if (seedRaw === '' || seedRaw == null) {
+    if (q0) {
+      var _qh = 0, _qs = q0 + '|' + todayIso();
+      for (var _qi = 0; _qi < _qs.length; _qi++) {
+        _qh = (_qh * 31 + _qs.charCodeAt(_qi)) >>> 0;
+      }
+      seed = _qh % 1000000;
+      _trNoteDay = todayIso();
+    } else {
+      seed = Date.now() % 1000000;
+      _trNoteDay = '';
+    }
+  } else {
+    seed = num('tr_seed');
+    _trNoteDay = '';
+  }
   const n = num('tr_n');
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
   /* R230d（R16-P2-5）：静默钳位会让用户以为抽了输入的张数——
@@ -4592,7 +4651,7 @@ async function doTarot() {
     showToast('牌数最多 10 张，已按 ' + body.n + ' 张抽', 'info');
   }
   if (seed != null) body.seed = seed;
-  const q = val('tr_question');
+  const q = q0;
   if (q) body.question = q;
   body.client_date = todayIso();   /* R230m：今日值宫锚本地日 */
   try {
@@ -4646,6 +4705,12 @@ async function doHehun() {
       b_hour: num('hh_b_hour'),
       b_gender: val('hh_b_gender') || '女'
     });
+    /* R230y：A=我，B=TA——两条 profile 分开存 */
+    _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
+      d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+    _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
+      d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+    _meFillAll();
     const a = j.a_bazi || {};
     const b = j.b_bazi || {};
     let html = '<div class="card"><h2>💕 八字合婚</h2>';
@@ -5307,20 +5372,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
   var dateStr = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
   try {
     const j = await api('/api/huangli?' + new URLSearchParams({ date: dateStr }).toString());
-    var YI_MAP = {
-      '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
-      '祭祀': '整理心情', '祈福': '许愿', '求嗣': '备孕', '上任': '入职接项目',
-      '入学': '开学学新东西', '立券': '签合同', '纳财': '收款理财', '修造': '装修修缮',
-      '动土': '开工', '平整': '整理归置', '安床': '布置房间',
-      '冠笄': '形象焕新', '解除': '化解矛盾', '治病': '看病调理', '栽植': '种花种树',
-      '捕捉': '清掉拖了很久的小事', '求医': '看医生', '破土': '动工', '安葬': '告别过去'
-    };
-    var JI_MAP = {
-      '出行': '长途奔波容易累', '安葬': '不适合告别式', '祈福': '心诚则灵不必急在今天',
-      '开市': '大动作先缓缓', '嫁娶': '感情大事另择日', '动土': '工地噪音惹人烦',
-      '诉讼': '容易吵起来', '纳财': '破财风险高，钱包看紧点',   /* R228c：原句「破小心的钱包」不通 */
-      '移徙': '搬家挪窝放一放', '移徒': '搬家挪窝放一放',   /* R229z续22：移徒是异体字，词表统一移徙 */
-    };
+    var YI_MAP = _HL_YI_MAP, JI_MAP = _HL_JI_MAP;   /* R230y：映射表提升为模块级常量 */
     var yi = (j.yi || []);
     var ji = (j.ji || []);
     var lunar = j.lunar || {};
@@ -6066,6 +6118,7 @@ function init() {
   initBazi();
   initReading();
   initDivination();
+  _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
   /* R230q（R28-P2-4）：sid 跨刷新存活则气泡也跨刷新恢复——否则
    * 新消息悄悄接进看不见的上一轮上下文。 */
   _chatTsRestore();
@@ -6231,6 +6284,31 @@ const CHECKIN_FEEDBACK = {
   '摸鱼运': ['摸鱼运爆棚，快乐一下不过分！', '摸鱼时长建议不超过15分钟哦～'],
   '破水逆运': ['霉运走开，今天就是好运本运！', '破水逆运！诸事皆宜的一天开始了～']
 };
+/* R230y（R36-P1-3）：打卡沉淀——checkin:* 键保留最近 90 天，
+ * 渲染连续天数 + 近 7 天点阵 + 「昨天你选了X」召回。 */
+function _checkinAll() {
+  var set = {};
+  try {
+    for (var i = 0; i < window.localStorage.length; i++) {
+      var k = window.localStorage.key(i);
+      if (k && k.indexOf('checkin:') === 0) {
+        set[String(k).slice(8)] = window.localStorage.getItem(k);
+      }
+    }
+  } catch (e) {}
+  return set;
+}
+function _isoShift(dateKey, n) {
+  var d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) +
+    '-' + ('0' + d.getDate()).slice(-2);
+}
+function _checkinStreak(set, dateKey) {
+  var n = 0, cur = set[dateKey] ? dateKey : _isoShift(dateKey, -1);
+  while (set[cur]) { n++; cur = _isoShift(cur, -1); }
+  return n;
+}
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
   if (!box) return;
@@ -6238,6 +6316,18 @@ function renderCheckin(dateKey) {
   let saved = null;
   try { saved = dateKey ? window.localStorage.getItem('checkin:' + dateKey) : null; }
   catch (e0) { saved = null; }
+  var _ckAll = _checkinAll();
+  var _streak = dateKey ? _checkinStreak(_ckAll, dateKey) : 0;
+  /* 昨天选了什么（今天还没打时才提示，打了就没必要复读） */
+  var _yKey = dateKey ? _isoShift(dateKey, -1) : '';
+  var _yPick = _yKey ? _ckAll[_yKey] : null;
+  var _dots = '';
+  for (var _di = -6; _di <= 0; _di++) {
+    var _dk = dateKey ? _isoShift(dateKey, _di) : '';
+    _dots += '<i class="' + (_ckAll[_dk] ? 'on' : '') +
+      (_di === 0 ? ' today' : '') + '" title="' + esc(_dk) +
+      (_ckAll[_dk] ? ' ' + esc(_ckAll[_dk]) : '') + '"></i>';
+  }
   const opts = CHECKIN_OPTS.map(function (o) {
     return '<button type="button" class="checkin-opt' +
       (saved === o ? ' picked' : '') + '" data-opt="' + o + '" ' +
@@ -6245,7 +6335,19 @@ function renderCheckin(dateKey) {
   }).join('');
   /* R229z续23（R10-#17）：选项组补 role=group + 问题文本锚点，
    * 反馈区 aria-live——选完有朗读回执。 */
-  box.innerHTML = '<div class="checkin-q" id="checkinQ">挑一个今天的好运搭子：</div>' +
+  var _meta = '';
+  if (_streak >= 2) {
+    _meta += '已连续 ' + _streak + ' 天打卡';
+    if (_streak === 3) _meta += ' · 小满贯开头啦';
+    else if (_streak === 7) _meta += ' · 整一周，仪式感拿捏';
+    else if (_streak >= 30) _meta += ' · 满月级选手';
+    else if (_streak >= 14) _meta += ' · 半月不断';
+  } else if (!saved && _yPick) {
+    _meta += '昨天你选了「' + esc(_yPick) + '」，今天换换？';
+  }
+  box.innerHTML = '<div class="checkin-q" id="checkinQ">挑一个今天的好运搭子：' +
+    '<span class="checkin-dots" aria-hidden="true">' + _dots + '</span>' +
+    (_meta ? '<span class="checkin-meta">' + _meta + '</span>' : '') + '</div>' +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>';
@@ -6268,14 +6370,14 @@ function renderCheckin(dateKey) {
        * 打勾，写失败也显示「已打卡」静默丢数据（隐私模式/quota）。 */
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
-        /* R230j（R22-P3-2）：checkin:* 每日一键永不清理——写今日键时
-         * 顺手清掉更早的旧键（一年 ~365 键的无界增长收口）。
-         * R230t（R31-P3-17）：只清更早的——比今天晚的键（别 tab 已写的
-         * 未来日）不该被这次回写抹掉。 */
+        /* R230j（R22-P3-2）：checkin:* 清理收口。
+         * R230y（R36-P1-3）：连签是留客钩子——不再写今日删昨日，
+         * 改为保留最近 90 天，超过才清。 */
+        var _cutoff = 'checkin:' + _isoShift(dateKey, -90);
         for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
           var _ck = window.localStorage.key(_ci);
           if (_ck && _ck.indexOf('checkin:') === 0 &&
-              _ck < 'checkin:' + dateKey) {
+              _ck < _cutoff) {
             window.localStorage.removeItem(_ck);
           }
         }
@@ -6283,16 +6385,58 @@ function renderCheckin(dateKey) {
         showToast('这次打卡没存上（存储不可用）', 'warn');
         return;
       }
-      box.querySelectorAll('.checkin-opt').forEach(function (b) {
-        var on = (b.dataset && b.dataset.opt === opt);
-        b.classList.toggle('picked', on);
-        b.setAttribute('aria-pressed', String(on));   /* R228d */
-      });
-      const fx = document.getElementById('checkinFx');
-      if (fx) fx.textContent = pickCheckinFeedback(opt, dateKey);
+      /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
+       * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
+      renderCheckin(dateKey);
     });
   }
 }
+/* R230y（R36-P1-4）：「我的生日」本地 profile——任一本人表单提交
+ * 成功后写入 localStorage，其余同人表单的空值/仍带预填标记的字段
+ * 自动代入；用户手动改过的字段（input/change 清 data-me）永不覆盖。
+ * 合婚 B 侧独立存 me:partner；起名是孩子生日，不参与。 */
+function _meGet(key) {
+  try {
+    var j = JSON.parse(window.localStorage.getItem(key) || 'null');
+    return (j && typeof j === 'object') ? j : null;
+  } catch (e) { return null; }
+}
+function _meSave(key, rec) {
+  try { window.localStorage.setItem(key, JSON.stringify(rec)); } catch (e) {}
+}
+/* ids = {y:'th_year', m:'th_month', d:'th_day', h:'th_hour', g:'th_gender'} *
+ * 字段表用字面量不用模块级 var——init() 的调用点在本块之前，var 赋值
+ * 尚未执行，二次加载（localStorage 已有 me）会对 undefined.forEach 抛错
+ * 把 init 整条链炸断（实测：深链/ai-polish/渲染全灭）。 */
+function _meFill(key, ids) {
+  var rec = _meGet(key);
+  if (!rec) return;
+  ['y', 'm', 'd', 'h', 'g'].forEach(function (k) {
+    var e = el(ids[k]);
+    if (!e) return;
+    var v = rec[k];
+    if (v == null || v === '') return;
+    if (e.value === '' || e.dataset.me === '1') {
+      e.value = String(v);
+      e.dataset.me = '1';
+    }
+  });
+}
+function _meFillAll() {
+  _meFill('me', { y: 'year', m: 'month', d: 'day', h: 'hour', g: 'gender' });
+  _meFill('me', { y: 'b_year', m: 'b_month', d: 'b_day', h: 'b_hour', g: 'b_gender' });
+  _meFill('me', { y: 'th_year', m: 'th_month', d: 'th_day', h: 'th_hour', g: 'th_gender' });
+  _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
+  _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+}
+/* 用户手动输入即解除预填标记——下次 _meFill 不再碰这个字段 */
+['input', 'change'].forEach(function (ev) {
+  document.addEventListener(ev, function (e) {
+    if (e.target && e.target.dataset && e.target.dataset.me) {
+      delete e.target.dataset.me;
+    }
+  }, true);
+});
 function pickCheckinFeedback(opt, dateKey) {
   const pool = CHECKIN_FEEDBACK[opt] || [];
   let h = 0; const s = String(dateKey) + opt;
@@ -6571,6 +6715,8 @@ function baziPersonaCard(j) {
     out.innerHTML = '<div class="ph-empty">正在排你的本命盘…</div>';
     try {
       var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g };
+      _meSave('me', { y: y, m: m, d: d, h: (hv === '' ? null : Number(hv)), g: g });
+      _meFillAll();   /* R230y */
       /* R228k：raw fetch → postJSON——白拿 20s 超时、非2xx toast 与
        * 422 中文人话化（原来手写的 r.ok 分支与 api() 重复且漏超时）。 */
       var j = await postJSON('/api/bazi', body);
