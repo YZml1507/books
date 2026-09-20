@@ -11436,3 +11436,12 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - R58-P1：500 的英文 `detail` 原文上屏——无中文 detail 过 `_humanizeErr` 仍无中文则整句换人话；`hlask` 非数组坏 JSON 毒化黄历查询——类型不对当场清键自愈；线程 tab 激活时从不拉列表——ph-empty 占位时自动拉。
 - ui_smoke 修：#scope 在闭合 details 内需先展开（select_option 有可见性要求）；deeplink 用例补 base。
 - 闸门：selftest 252 / contract 542 / ui_smoke 68 / regress PASS。
+
+## R2343b — R58/R59 P2 批清零
+- 聊天发送即有 typing 三点（手发+自动发），不再静默 20s；4xx/断网/降级各分支正确回收该节点。
+- 接续条时态：hlask 距今天 >1 天不再写死「昨天」（前几天/之前）。
+- `_meSave` 后即时刷新聊天空态招呼+档案条（同页 storage 事件不自触发）。
+- 排盘历史离线失败补 toast（对齐「错误必 toast」口径）。
+- 断网首查失败时 hlResult 补问一嘴输入行（文档级点击委托可直接用）。
+- `_hlAskChipsRender` 调用点加 try——渲染辅助异常不再伪装成查询失败。
+- 闸门：selftest 252 / ui_smoke 68 / contract 542 / ruff E9F 全绿。

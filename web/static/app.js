@@ -1329,6 +1329,7 @@ function autoSendChatContext() {
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
 /* R230v（R34-#3）：同 chatSend——捕获 sid 防跨话题幻影写回。 */
   var _sid0 = chatSid();
+  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});   /* R2343 */
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
@@ -1336,6 +1337,7 @@ function autoSendChatContext() {
     client_date: todayIso()
   }).then(function (j) {
     if (!j.chat_task_id) {
+      if (_ty0) { _ty0.remove(); _ty0 = null; }
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
        * 4-6 句确定性轮换，并按上下文（自动发送：必属「看盘」类）做轻回应。 */
       chatBubble('ai', _chatFallbackLine('看盘'), { nosave: true });
@@ -1353,11 +1355,13 @@ function autoSendChatContext() {
     if (_inU && _inU.disabled) { _inU.disabled = false; _inU.placeholder = '说说你的心情…'; }
     if (_sbU && _sbU.disabled) _sbU.disabled = false;
     /* R228c：raw 仅内部动效用；保存气泡节点引用——轮询写回不再赌
-     * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。 */
-    var _ty = chatBubble('ai',
+     * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。
+     * R2343：复用发送时已插的 typing 节点。 */
+    var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function () {
+    if (_ty0) { _ty0.remove(); _ty0 = null; }
     chatBubble('ai', '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）', { nosave: true });
   });
 }
@@ -1717,6 +1721,9 @@ function chatSend() {
   /* R230v（R34-#3）：捕获发送时 sid——在途回复遇上「开个新话题」换 sid
    * 时，旧任务落地不得把回复写进新 transcript（幻影气泡）。 */
   var _sid0 = chatSid();
+  /* R2343（R58-P2-2）：发送即有 typing 三点——此前要等 chat_task_id
+   * 回来才出现，慢服务下静默 20 秒像没发出去。 */
+  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
   postJSON('/api/chat', {
     session_id: _sid0, message: msg,
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
@@ -1724,6 +1731,7 @@ function chatSend() {
     client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
+      if (_ty0) { _ty0.remove(); _ty0 = null; }
       /* R216b 续3（UX 队列 U-008）：原降级文案「（聊天功能暂时没开，
        * 稍后再来吧）」系统腔零共情——用户刚倾诉疲惫。改为情绪承接 +
        * 替代引导；DISABLE 态输入框置灰防连发连拒。
@@ -1742,11 +1750,13 @@ function chatSend() {
      * 「休息中」直到换 sid。 */
     if (input && input.disabled) { input.disabled = false; input.placeholder = '说说你的心情…'; }
     if (sendBtn2 && sendBtn2.disabled) sendBtn2.disabled = false;
-    /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。 */
-    var _ty = chatBubble('ai',
+    /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。
+     * R2343：发送时已插 typing，直接复用不落二次。 */
+    var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function (e) {
+    if (_ty0) { _ty0.remove(); _ty0 = null; }
     /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），
      * 不是网络问题——保留已发气泡、如实报服务端文案，别回收成「被吞了」。 */
     if (e && e.status >= 400 && e.status < 500) {
@@ -3931,7 +3941,7 @@ async function loadDaily() {
       catch (e0) {}
       if (_hl0 && _hl0.q && _hl0.d && _hl0.d < _today) {
         _recEl.innerHTML = '<button type="button" class="daily-recall-btn" ' +
-          'data-hlask-q="' + esc(_hl0.q) + '">💬 昨天你问了「' +
+          'data-hlask-q="' + esc(_hl0.q) + '">💬 ' + _hlAgoWord(_hl0.d) + '你问了「' +
           esc(_gSlice(_hl0.q, 14)) + '」——今天再看看？</button>';
         _recEl.hidden = false;
       } else { _recEl.hidden = true; }
@@ -6864,7 +6874,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* R229z续25：黄历分享图——与六爻同模式，原位刷新时旧钮随整卡重渲消失，
      * 每次渲后重新挂一个（幂等：旧钮若还在就跳过）。 */
     var hlShareBox = el('hlResult');
-    _hlAskChipsRender();   /* R230z（R36-P2-5）：问一嘴足迹 chips */
+    /* R2343（R58-P1-2 防线）：渲染辅助炸了不能伪装成「查询失败」
+     * ——卡已成功渲出，chips 挂掉只当没有足迹行。 */
+    try { _hlAskChipsRender(); } catch (eChips) {}   /* R230z */
     if (hlShareBox && !document.getElementById('shareHuangli')) {
       var hlBtn = document.createElement('button');
       hlBtn.className = 'ghost fav-btn'; hlBtn.type = 'button';
@@ -6895,6 +6907,17 @@ async function _doHuangli(offset, reveal, spokenWord) {
     } else {
       failWithRetry('hlResult', '查询失败：' + e.message,
                     function () { doHuangli(offset, reveal, spokenWord); });
+      /* R2343（R58-P2-1）：问一嘴行渲染在结果卡里——断网首查失败时
+       * 入口随卡消失。错误态也补一行：点击委托是文档级的，网络恢复
+       * 后可直接再试（_hlShowNeutral 在无数据时给中性口径，不崩）。 */
+      var _hr = el('hlResult');
+      if (_hr && !document.getElementById('hlAskInput')) {
+        _hr.insertAdjacentHTML('beforeend',
+          '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
+          '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" ' +
+          'aria-label="问一嘴：今天适不适合某事" placeholder="问一嘴：今天适不适合面试/搬家…">' +
+          '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button></div>');
+      }
     }
   }
 }
@@ -8392,6 +8415,18 @@ function _checkinCelebrate(streak, opt) {
  * 成功后写入 localStorage，其余同人表单的空值/仍带预填标记的字段
  * 自动代入；用户手动改过的字段（input/change 清 data-me）永不覆盖。
  * 合婚 B 侧独立存 me:partner；起名是孩子生日，不参与。 */
+/* R2343（R59-gap5）：接续条时态——_hl0.d 距今天几天→昨天/前几天/之前。 */
+function _hlAgoWord(dstr) {
+  var dd = 1;
+  try {
+    var p = String(dstr || '').split('-');
+    if (p.length === 3) {
+      var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      dd = Math.round((t0 - new Date(+p[0], +p[1] - 1, +p[2])) / 86400000);
+    }
+  } catch (e) { dd = 1; }
+  return dd <= 1 ? '昨天' : (dd < 8 ? '前几天' : '之前');
+}
 function _meGet(key) {
   try {
     var j = JSON.parse(window.localStorage.getItem(key) || 'null');
@@ -8411,6 +8446,9 @@ function _meSave(key, rec) {
     window.localStorage.setItem(key, JSON.stringify(
       Object.assign(old, rec)));
   } catch (e) {}
+  /* R2343（R59-gap4）：同页写入不触发 storage 事件——昵称存完立刻
+   * 刷新空态招呼/档案条，改完不用刷新就看到名字。 */
+  try { _chatChipsPersonalize(); _renderMeStrip(); } catch (e2) {}
 }
 /* ids = {y:'th_year', m:'th_month', d:'th_day', h:'th_hour', g:'th_gender'} *
  * 字段表用字面量不用模块级 var——init() 的调用点在本块之前，var 赋值
@@ -8740,6 +8778,9 @@ function baziPersonaCard(j) {
       }).join('');
     } catch (e) {
       listEl.innerHTML = '<div class="ph-empty">加载失败：' + esc(_humanizeErr(e.message)) + '（可点上方『刷新』重试）</div>';
+      /* R2343（R58-P2-3）：与全站「错误必 toast」口径一致——被动加载
+       * 失败也即时可感。 */
+      try { showToast('历史台账没拉成功：' + _humanizeErr(e.message), 'warn'); } catch (e0) {}
     }
   }
   document.addEventListener('click', async function (ev) {
