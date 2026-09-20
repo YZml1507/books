@@ -936,7 +936,7 @@ def warm_hehun(h: dict) -> dict:
     _hh_all = COPY_BANK.get("hehun_one_liners") or []
     if _hh_all:
         _STRONG_CP = {"甜度超标组合", "天生一对CP", "锁死这对了", "CP感爆棚",
-                      "命中注定的羁绊", "默契度拉满的一对", "互补型神仙搭档",
+                      "越处越合拍的一对", "默契度拉满的一对", "互补型神仙搭档",
                       "甜而不腻的组合"}
         if h.get("day_wx_sheng") and not h.get("clash"):
             l0 = _pick(_hh_all, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
