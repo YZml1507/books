@@ -10664,3 +10664,7 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 §R230l（R24 跨浏览器/LLM边界/时间敏感清零，commit dd36dfd）
 - 内容：client_date 黄历锚（chat+resolve_date）、_sanitize 8k 截断、phFetch AbortController 回退、llm_config 损坏告警+api_key 守卫、inset 冗余、quick_check 预检、删 92MB pickle 冗余、douay r"""。
 - 验证：selftest 215 / contract 415 / parity 65+35+88 / ui_smoke 50 / voice14字节冻 / plain_first / poster / dollar / llm_polish / xingzuo / warm / async_ai / ruff 全绿；client_date 跨年界实测（12/31→1/1 与 1/1→1/2 正确各差一天）。
+
+§R230m（cross_ref 今日值宫客户端日锚，commit 6ab9e11）
+- 内容：_today_horoscope(iso_day)；bazi 借 ask_date、tarot/liuyao 新 client_date 字段锚定；_check_client_date 共用校验；tarot() 补 validate_ranges。
+- 验证：selftest 215 / contract 415 / ruff 全绿；schema 校验手测（坏值 400、None 放行）。
