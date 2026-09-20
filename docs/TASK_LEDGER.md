@@ -10646,3 +10646,13 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **并发竞态**：favorites (type,ref_id) 加 UNIQUE 索引 + add_favorite 改 INSERT OR IGNORE（老库含重复行→索引建不成时 schema 降级路径吞掉，SELECT 预检仍挡绝大多数）。`thread_record` 补偿范围扩到 open_thread+add_turn（新增首步失败也删除孤儿线程）。
 - **文案**：Corpus init 区分「缺文件/缺表/腐库/缺列（旧版索引）」四类→各自给「先跑/请跑 scripts/build_index.py」可操作文案（P1-6/P2-3）；errors.py 新增 `_os_handler`（OSError→503「存储暂时不可用」固定中文，不走 _make 漏英文 errno）；`StarletteHTTPException` 404 默认「Not Found」→「要找的内容不在了」（业务抛的中文 detail 原样放行，headers 透传）。
 - 裁注：P2-4 多实例内存态（chatTasks/锁表）维持单实例形态不拆——文档说明即可。闸门：selftest 215 / contract 415 / parity 88 键 / ui_smoke 49 / 其余静态+语料闸全绿。
+
+### R230j — R22 前端深层质量批清零（1 P1 + 2 P2 + 6 P3）
+
+审计：监听器累积/localStorage/渲染吞吐/Promise（附件 audit_r22_frontend；子 agent Playwright+CDP 实测取证）。
+
+- **P1-1（真缺陷）**：`#qmResult` 是静态持久容器而委托监听挂在 `doQiming` 成功路径里——每提交一次 +1 个委托，chip 点击请求数随提交数翻倍（实测 3 次提交后点 1 次 chip 发 3 个 POST，第 5 次 48 并发）。修法：委托加 `dataset.qmbound` 幂等闸门（对齐 hlChips.v3bound 既有模式），并给 chip→doQiming 链路补 `_qmBusy` 在途锁（chip 路径本不在 on() 锁内）。
+- **P2-1**：revealResult 的 wheel/touchmove/keydown 三 `once` 监听在用户不滚动时永不自回收（55 次提交 +150）——最后一次 _confirm 后主动 removeEventListener。
+- **P2-2**：`resume()` 线程列表无 LIMIT → LIMIT 50（对齐 paipan history 口径）。
+- **P3**：海报浮层重开先走 closePosterModal（否则 keydown 监听永久残留）；checkin:* 写今日键时清非今日；#chatFlow 气泡封顶 50；showView bump 全部 RESULT_GEN 停空转轮询；MutationObserver 只扫 addedNodes 不再全文档扫；chatEntry 重复 id 摘为 .chat-entry 类。
+- 查过干净的轴（审计确认）：localStorage 写满降级、localStorage→innerHTML XSS、在途锁其余覆盖、失败不停 loading、防抖、轮询回收、堆/DOM 持平、sw.js、焦点圈。闸门：selftest 215 / contract 415 / ui_smoke 49 全绿。
