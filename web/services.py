@@ -1508,7 +1508,7 @@ def daily(date_str: str | None = None) -> dict:
                 _want = None
             # R228m：cv=2 钉住「level 按请求日算」口径——cv 缺/旧（含 noble
             # 校验时代写的行）一律重算覆盖，杜绝「写入日口径」固化。
-            if _c.get("cv") == 2 and (not _want or _c.get("noble") == _want):
+            if _c.get("cv") == 3 and (not _want or _c.get("noble") == _want):
                 return {"date": date_str, **_c, "cached": True}
     try:
         d = date.fromisoformat(date_str)
@@ -1525,10 +1525,16 @@ def daily(date_str: str | None = None) -> dict:
             lvl_key = level if level in _db.get("levels", {}) else (
                 "平" if level == "平" else level)
             summary = _pick(_db["levels"].get(lvl_key) or [], date_str, "sum")
-            do_str = _pick(_db["yi"], date_str, "y") + "、" + \
-                _pick(_db["yi"], date_str, "y2")
-            dont_str = _pick(_db["ji"], date_str, "j") + "、" + \
-                _pick(_db["ji"], date_str, "j2")
+            # R229z续4：同池两签会撞（实测"空腹喝冰美式、空腹喝冰美式"）——
+            # 第二签从剔除首签的池子抽；池子只剩一条时允许原样。
+            _y1 = _pick(_db["yi"], date_str, "y")
+            _y2 = _pick([x for x in _db["yi"] if x != _y1] or _db["yi"],
+                        date_str, "y2")
+            do_str = _y1 + "、" + _y2
+            _j1 = _pick(_db["ji"], date_str, "j")
+            _j2 = _pick([x for x in _db["ji"] if x != _j1] or _db["ji"],
+                        date_str, "j2")
+            dont_str = _j1 + "、" + _j2
         # B-017（R195b 清偿）：旧实现按公历年取生肖是「今年的生肖」，
         # 与「贵人」无关（B-003 登记的语义缺陷）。改为当日日干的天乙贵人
         # （huangli.guiren，与黄历页同一算法、同一出处）——
@@ -1542,7 +1548,7 @@ def daily(date_str: str | None = None) -> dict:
             noble_str = "—"
         result = {
             "date": date_str,
-            "cv": 2,                     # 缓存口径版本（R228m：level 按请求日）
+            "cv": 3,                     # 缓存口径版本（R229z续4：去重签）
             "level": level,
             "summary": (summary if (_db and level in (_db.get("levels") or {}))
                         else fortune_summary(calc_out)),

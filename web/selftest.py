@@ -1196,6 +1196,29 @@ def _run_inner() -> list[str]:
         _want = "/".join(_hl.guiren(_dt(_d.year, _d.month, _d.day, 12)))
         return j.get("noble") == _want and j.get("noble") not in ("", None)
     check("daily.noble.guiren", client.get("/api/daily"), _daily_noble_ok)
+    # R229z续4：宜/忌两条建议不许同项撞签（实测"空腹喝冰美式、空腹喝
+    # 冰美式"——同池两签会撞）。连测 30 天。
+    def _daily_no_dup():
+        for _i in range(30):
+            _d = f"2026-04-{(_i % 28) + 1:02d}"
+            _j = client.get("/api/daily", params={"date": _d}).json()
+            for _k in ("do", "dont"):
+                _v = _j.get(_k) or ""
+                _parts = _v.split("、")
+                if len(_parts) != len(set(_parts)):
+                    return False
+        return True
+    check("daily.advice.dedup", client.get("/api/daily"),
+          lambda j: _daily_no_dup())
+    # 清掉上面 30 天循环落的 daily_cache 测试行（同 R229n 口径）。
+    try:
+        from web import deps as _deps4
+        with _deps4.knowledge() as _kbc:
+            _kbc.db.execute(
+                "DELETE FROM daily_cache WHERE date LIKE '2026-04-%'")
+            _kbc.db.commit()
+    except Exception:
+        pass
     check("widget", client.get("/api/widget"),
           lambda j: (isinstance(j.get("modules"), list)
                      and len(j["modules"]) >= 6
