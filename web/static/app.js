@@ -4638,6 +4638,12 @@ async function doHuangli(offset, reveal, spokenWord) {
     var _pz = j.pengzu || {};
     var _pzTxt = (_pz.gan_text || '') + ((_pz.gan_text && _pz.zhi_text) ? ' · ' : '') + (_pz.zhi_text || '');
     if (_pzTxt) html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">彭祖百忌：' + esc(_pzTxt) + '</div>';
+    /* R230a-11：黄历交叉引用——后端 _cross_ref_huangli 一直返回但卡面
+     * 从未露出（星座值宫×当日干支的人话一句）。 */
+    if (j.cross_ref && j.cross_ref.message) {
+      html += '<div class="cross-ref"><span class="cross-ref-icon">⭐</span>' +
+        esc(j.cross_ref.message) + '</div>';
+    }
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     paint('hlResult', html);
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
