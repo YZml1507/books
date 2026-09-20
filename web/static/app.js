@@ -1807,6 +1807,32 @@ function buildShareData(view, j) {
       if (!sh.lines.length) sh.lines = [{ k: '结论', v: l0.slice(0, 15) || '天作之合' }];
       return sh;
     }
+    /* R229z续25：黄历分享图——唯一没海报的核心视图补齐（宜/忌/建除/值宿/
+     * 冲煞/相冲提示全取自确定性字段，离站海报同样带仅供娱乐页脚）。 */
+    case 'huangli': {
+      var jh = j || {};
+      var lun = jh.lunar || {};
+      var shl = base('今日宜忌',
+        (jh.date || '') +
+        ((lun.month_cn || lun.day_cn) ? ' · 农历' + (lun.month_cn || '') + (lun.day_cn || '') : ''));
+      var yiL = jh.yi || [], jiL = jh.ji || [];
+      shl.big = yiL.length ? ('宜 ' + yiL.slice(0, 3).join(' · ')) : '今日平稳';
+      shl.lines = [];
+      if (yiL.length) shl.lines.push({ k: '宜', v: yiL.slice(0, 5).join(' · ') });
+      if (jiL.length) shl.lines.push({ k: '忌', v: jiL.slice(0, 5).join(' · ') });
+      if (jh.jianchu) shl.lines.push({ k: '建除', v: String(jh.jianchu) });
+      if (jh.xiu) shl.lines.push({ k: '值宿', v: String(jh.xiu) });
+      if (jh.chongsha) {
+        var _cs = (typeof jh.chongsha === 'string') ? jh.chongsha :
+          ('冲' + (jh.chongsha.chong_animal || jh.chongsha.chong || '') +
+           (jh.chongsha.sha_fang ? '煞' + jh.chongsha.sha_fang : ''));
+        if (_cs.replace(/[冲煞]/g, '')) shl.lines.push({ k: '冲煞', v: _cs });
+      }
+      if ((jh.conflict || []).length) {
+        shl.lines.push({ k: '注意', v: jh.conflict.slice(0, 3).join('·') + ' 宜忌两边都见' });
+      }
+      return shl;
+    }
     default:
       return null;
   }
@@ -4653,6 +4679,18 @@ async function doHuangli(offset, reveal, spokenWord) {
       setTimeout(_confirm2, 260);
     }
     rememberResult('huangli', j, '');
+    /* R229z续25：黄历分享图——与六爻同模式，原位刷新时旧钮随整卡重渲消失，
+     * 每次渲后重新挂一个（幂等：旧钮若还在就跳过）。 */
+    var hlShareBox = el('hlResult');
+    if (hlShareBox && !document.getElementById('shareHuangli')) {
+      var hlBtn = document.createElement('button');
+      hlBtn.className = 'ghost fav-btn'; hlBtn.type = 'button';
+      hlBtn.id = 'shareHuangli'; hlBtn.title = '生成分享图';
+      hlBtn.textContent = '📸 分享图';
+      hlBtn.style.margin = '10px 0 0';
+      hlShareBox.appendChild(hlBtn);
+      hlBtn.addEventListener('click', function () { downloadPoster(j, 'huangli'); });
+    }
   } catch (e) {
     if (_hlBox) { _hlBox.classList.remove('is-loading'); _hlBox.style.pointerEvents = ''; }
     fail('hlResult', '查询失败：' + e.message);
