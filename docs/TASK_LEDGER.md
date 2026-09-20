@@ -11204,3 +11204,24 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 ## R233n·fix（自审出的两处真 bug）
 - 邀请链预填此前给字段打 data-me=1——该标记的语义是「允许档案覆盖」，受邀者自己的 me 会在下一次 _meFillAll 时盖掉发起人数据；改为不置标记（非空值天然防覆盖）。
 - 受邀者视角下 A=发起人、B=自己——原提交路径固定把 A 存成 me，会把发起人生日写进受邀者档案；新增 __hhInviteMode 翻转（B→me / A→me:partner），用户手改任一 A 字段即恢复默认口径。
+
+## R233r —— R50 回归批 + R49 聊天深度批（合并落地）
+
+**R50 回归清零**（审计 R233j~p 批次）：
+- `_hhFavFill` 在途重入死锁 → 改走 `_ON_QUEUE` 最新意图队列（字段已先填，补跑读到新值）；`_hhPendingFav` 机制删除。
+- `busy()` 二连击丢保留卡——已挂 `.res-loading-tag` 时只更新签文案，不落 paint 整清。
+- `guardedCall` handler 同步 throw 会冒泡出 listener → 锁永真+按钮永灰；改为 `Promise.resolve().then(handler)` 把同步异常并进链。
+- `warm_hehun` 收口盐键 `day_gz_a/day_gz_b` 不存在（恒 None → 所有 CP 同一句）→ 改取 `a_bazi.day/b_bazi.day`。
+- `_dayPickN` 种子内置 todayIso（与 `_dayPick` 契约对齐）；`CHECKIN_FEEDBACK._default` 兜底池接上 `||` 链。
+- 邀请缺省字段：时辰留空时清掉默认 10（「未知」比静默代入诚实）；邀请 toast 带隐私提示；生日横幅补 `role=note`；`data-goto` 死属性删；Esc 处理器 `closed` 死变量删；voice.py 重复 `import datetime` 删；tarot.draw seed 签名改 `int|None`。
+
+**R49 聊天深度批**（P0 危机吞没 + Top5 + P2/P3）：
+- **P0 危机吞没**：`_CRISIS_PAT` 只在任务真起时跑得着——DISABLE/限流/排队满时卖萌降级句把「我不想活了」吞掉。前端镜像 `_CRISIS_FE_PAT`+`_CRISIS_FE_REPLY` 本地先接住（不发请求、不计轮数）；词表补「活不下去/烧炭/割腕/安眠药」等直述；`_CHAT_REFUSAL` 补 12356 全国心理援助热线。
+- **facts 供给链**：`chatSend` facts 空时按当前活跃视图 `_activeViewFacts()` 兜底（首页兜 `daily`）；`rememberResult('daily')` 落进 `loadDailyDetail` 成功路径 + `buildChatContext` 新增 daily 分支；`CHAT_LAST_FACTS` 补能量卡坐标（元素/幸运色/幸运数字）。
+- **敏感词三层同源**：`_SENSITIVE_HARD/_SOFT/_EXCLUDE` 三表 + `_is_sensitive()` 谓词——「多肉会不会死」「拖延症晚期」不再误触重症转介；`interpreter.py` 删本地漂移表改调共享谓词。
+- **意图闸**：分手/辞职/怀孕等已成事实口语（…了/已/刚）且无「哪天/该不该」决策词 → `chat_huangli_facts` 返回 []，不拿宜忌判定搅共情。
+- **二级收口**：主收口池轮换满一轮后换 `_CHAT_CLOSERS_LATE`「明天来打卡」钩子；`session_fresh` 标记透传轮询端点，前端 `_chatFreshNote` 插「隔得有点久」轻分隔。
+- **人设补丁**：`_CHAT_SYSTEM` 去掉「用户刚看过排盘」假设 + 事实诚信条款（没测过的盘不许假装看过）+ 轻指路 + 健康不下诊断；system 注入用户本地「今天」日期。
+- **小项**：chatInput 一打字即复位 placeholder；`rememberResult` 后顺带刷 chips。
+- **闸门**：selftest 237→239（危机扩词 + 敏感三层 + 意图闸 + 最近词 4 条新钉扎）。
+- 闸门：selftest 239 / regress / contract 552 / baseline_voice / xingzuo / warm_voice / async_ai / dollar / parity / ui_smoke 59 / plain_first / poster / no_generated / scripts_importable / llm_polish 全绿；ruff E9,F 净。

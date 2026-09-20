@@ -1054,6 +1054,19 @@ def huangli(date_str: str | None = None, affair: str | None = None,
 
 # 口语事项 → 黄历规范词（与前端 app.js HL_SCENE_ALIAS 同源口径，各存一份：
 # 前端管「问一嘴」即时判定，这里管小满聊天的事实供给）。
+# R233r（R49-P2-2）：已成事实的口语标记（分手了/辞职了/怀孕了…）与
+# 决策意图词表——高敏场景先判「这是倾诉还是问日子」。
+_ALREADY_HAPPENED_PAT = re.compile(
+    r"(分手|辞职|离职|离婚|退婚|毁约|怀孕|分居|复合|领证|再婚|生娃|"
+    r"生子|手术|开刀|搬家|开业|装修|买车|买房|流产|堕胎|解约|被拒|"
+    r"被裁|出轨|劈腿|订婚)了|已(经)?(分手|辞职|离职|离婚|怀孕|订婚)|"
+    r"刚(分手|辞职|离职|离婚|怀孕|被裁|做完手术)")
+_DECIDE_INTENT_PAT = re.compile(
+    r"该不该|要不要|适不适合|适合吗|合适吗|行吗|行不行|好不好|好吗|"
+    r"可以吗|能不能|哪天|何日|哪日|几日|几号|什么时候|何时|怎么办|"
+    r"咋办|咋办呢|选日子|挑日子|择日|吉日|吉利|黄道|宜不宜|后悔吗|"
+    r"还有机会|有救吗|值得吗")
+
 _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "面试": ["上任"], "求职": ["上任"], "上班": ["上任"], "入职": ["上任"],
     "约会": ["嫁娶"], "表白": ["嫁娶"], "相亲": ["嫁娶"], "结婚": ["嫁娶"],
@@ -1630,6 +1643,13 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     if m:
         wd = _wd_idx(m.group(2))
         return now + timedelta(days=(wd - now.weekday()) % 7), m.group(0)
+    # R233r（R49-Top5-5）：「最近/近期/这几天」此前落默认——spoken 被
+    # 写成「今天」，模型不知道用户说的是一段日子。以今天为代表日并把
+    # 原词写进事实行。
+    for w in ("最近", "近期", "这几天", "這幾天", "这段时间", "這段時間",
+              "本周", "这周", "本週", "這週"):
+        if w in msg:
+            return now, w
     return now, "今天"
 
 
@@ -1718,6 +1738,13 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
                              "宜做什么", "忌做什么", "宜什么", "忌什么",
                              "做什么好", "干点啥", "能干啥", "能干什么"))
     dt, spoken = _hl_day_part(msg, now)
+    # R233r（R49-P2-2）：高敏事项（分手/辞职/怀孕/离婚→解除/求嗣/嫁娶）
+    # 已成事实且不带择日/决策意图 → 是倾诉不是问日子，别塞判定句把
+    # 共情话头带歪。「我分手了怎么办」的「怎么办」仍算决策词放行。
+    if (set(terms) & {"解除", "求嗣", "嫁娶"}
+            and _ALREADY_HAPPENED_PAT.search(msg_n)
+            and not _DECIDE_INTENT_PAT.search(msg_n)):
+        return []
     if not scene and not generic:
         # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
         # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌

@@ -402,7 +402,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
             lines.append(f"其中最靠前的那个是{TEN_GOD_WARM.get(first, (first, ''))[0]}"
                          f"（{first}）——{note}。")
         # R233j（R46-P1）：收口升日盐池——同一用户隔天换一句。
-        import datetime as _d2
+        # （_d2 已在 357 行导过——同函数内重复 import 删一行）
         lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
                             "具体怎么走，还要看你自己的选择。",
                             "盘里给这事留了位置——往哪走还是你说了算。",
@@ -1067,7 +1067,8 @@ def warm_hehun(h: dict) -> dict:
                         "盘面说的是相处节奏的提示——日子怎么过，"
                         "是你们俩一起写出来的。",
                         "合的是节奏不是命——这张表当参考，答案在你们手里。"],
-                       "hehun-close", h.get("day_gz_a"), h.get("day_gz_b")))
+                       "hehun-close", (h.get("a_bazi") or {}).get("day"),
+                       (h.get("b_bazi") or {}).get("day")))
     return _wrap(
         l0[:_L0_MAX],
         None,

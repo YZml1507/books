@@ -148,7 +148,7 @@ class Draw:
         return f"{head}{self.name}（{pos}）：{kw}——{self.meaning}"
 
 
-def draw(seed: int, n: int = 3) -> list[Draw]:
+def draw(seed: "int | None", n: int = 3) -> list[Draw]:
     """seed 确定性抽 n 张（默认 3 张，照 liuyao seed=42 先例）。
 
     固定 seed → 固定牌面与正逆位，可命令复验；n 上限 10（超过截断）。

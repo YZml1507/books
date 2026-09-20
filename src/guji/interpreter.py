@@ -24,13 +24,12 @@
 """
 from __future__ import annotations
 
-import re
 
 # R233g（R44-P0-1）：生死/重病类敏感问法——不能走话题兜底（会被当
 # 格式错吐黑话），也不能交给判词背书。确定性转介，语气放稳。
-_SENSITIVE_PAT = re.compile(
-    r"会不会死|会死吗|还能活|活多久|寿命|绝症|癌症|病危|临终|"
-    r"会不会去世|会去世|要死了|病死|存活率|晚期")
+# R233r（R49-Top5-3）：词表与聊天层同源（llm_polish._is_sensitive）——
+# 此前两表漂移：这边多「寿命/要死了/病死」，那边多「存活率/晚期」，
+# 同一个问法过不同闸门宽严不一。软词排除表（多肉会不会死）也一并共享。
 _SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意——"
                    "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
                    "小满陪你说点别的也行。")
@@ -289,7 +288,9 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
     tg = calc.get("ten_gods") or []
     gods = [t.get("god") for t in tg]
     # R233g（R44-P0-1）：敏感问法优先拦截——此前落空吐「坐标维度」黑话。
-    if _SENSITIVE_PAT.search(q):
+    # R233r：与聊天层同一判定（lazy import 与 voice.py:1090 同款）。
+    from guji import llm_polish as _lp
+    if _lp._is_sensitive(q):
         return [_SENSITIVE_LINE]
     for kw, targets, label in _TOPIC_MAP:
         if kw not in q:

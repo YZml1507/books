@@ -99,7 +99,9 @@ function _dayPick(pool, salt) {
 function _dayPickN(pool, n, salt) {
   var arr = (pool || []).slice();
   if (arr.length <= n) return arr;
-  var seed = 0, src = String(salt || '');
+  /* R233r（R50-#6）：salt 之外再拼 todayIso——不带日期盐的调用点
+   * 也能跨天轮换（与 _dayPick 同一契约）。 */
+  var seed = 0, src = String(salt || '') + '|' + todayIso();
   for (var i = 0; i < src.length; i++) seed = (seed * 31 + src.charCodeAt(i)) >>> 0;
   for (var k = arr.length - 1; k > 0; k--) {
     seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -168,6 +170,16 @@ function busy(id, text) {
    * R233k（R45-Top5-5）：容器已有结果时不再整清——原位降饱和+挂
    * 加载签（黄历 .is-loading 模式全站推广），失败时旧卡还在。 */
   var node = el(id);
+  /* R233r（R50-#5）：已挂加载签时再次 busy——只更新签文案，
+   * 不再落 paint 整清（旧卡保留的承诺在连点下也得成立）。 */
+  if (node && node.classList.contains('is-working')) {
+    var _t0 = node.querySelector('.res-loading-tag');
+    if (_t0) {
+      _t0.innerHTML = esc(text) +
+        ' <span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>';
+      return;
+    }
+  }
   if (node && node.innerHTML.trim() &&
       !node.querySelector('.no-evidence:only-child') &&
       !node.querySelector('.res-loading-tag')) {
@@ -903,6 +915,21 @@ function _chatBootNote(st, ty) {
   } catch (e) {}
 }
 
+/* R233r（R49-P2-3）：会话被 TTL 回收重启——同进程 boot 没变但
+ * 上下文已丢。fresh 标记且本屏已有历史气泡时插轻分隔。 */
+function _chatFreshNote(st, ty) {
+  if (!st || !st.fresh || !ty || !ty.parentNode) return;
+  var n = 0, p = ty.previousSibling;
+  while (p) { if (p.classList && p.classList.contains('chat-bubble')) n++; p = p.previousSibling; }
+  if (n < 2) return;   /* 首条自动发/无历史不分隔 */
+  var d = document.createElement('div');
+  d.className = 'chat-bubble chat-ai';
+  d.style.opacity = '.72';
+  d.style.fontSize = '.9em';
+  d.textContent = '（隔得有点久，前面聊的细节小满可能记不全啦）';
+  ty.parentNode.insertBefore(d, ty);
+}
+
 /** 把 AI 块插进已渲染的结果区末尾；容器不存在/已插过返回 false。 */
 function insertAiPolish(containerId, text) {
   var node = el(containerId);
@@ -1054,6 +1081,8 @@ function rememberResult(viewKey, json, question, body) {
     var _js = JSON.stringify(LAST_RESULT[viewKey]);
     if (_js.length < 200000) sessionStorage.setItem('lastResult:' + viewKey, _js);
   } catch (e) {}
+  /* R233r（R49-P3-2）：新结果落地顺带刷新空态 chips 语境。 */
+  try { _chatChipsPersonalize(); } catch (e) {}
 }
 
 /* R219b（P0-2）：把缓存的响应拼成「带数据的第一句」+ 结构化 facts。
@@ -1074,7 +1103,8 @@ function buildChatContext(viewKey) {
     var GENERIC = {
       bazi: '帮我看这个盘', taohua: '桃花怎么样', tarot: '牌面说什么',
       liuyao: '卦象怎么看', hehun: '这两人配吗', huangli: '今天能做什么',
-      qiming: '这些名字怎么样', xingzuo: '今天运势怎么样'
+      qiming: '这些名字怎么样', xingzuo: '今天运势怎么样',
+      daily: '今天运势怎么样'
     };
     return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [] };
   }
@@ -1154,6 +1184,16 @@ function buildChatContext(viewKey) {
       (q ? '，问的是「' + q + '」' : '') + '，这卦怎么看';
     facts = ['本卦：' + (ben.gua_name || '—')];
     if (moving) facts.push('动爻：' + moving);
+  } else if (viewKey === 'daily') {
+    /* R233r（R49-Top5-4）：日签卡链路——展开过「完整解读」后聊天有
+     * 上下文可聊（此前首页聊小满手里空空，纯放飞）。 */
+    var _dpp = (j.paipan || {}).render || '';
+    var _dseg = _dpp.split('　');
+    var _dw = (j.warm && j.warm.one_liner) || '';
+    msg = '今天的日签我看了' + (_dw ? '（' + _dw + '）' : '') +
+      '，帮我详细说说今天';
+    facts = (_dseg[0] ? ['四柱：' + _dseg[0]] : [])
+      .concat(_dw ? ['一句话：' + _dw] : []);
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
     /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
@@ -1297,6 +1337,7 @@ function autoSendChatContext() {
         if (!_ty || _sid0 !== chatSid()) return;
         if (st && st.status === 'done' && st.text) {
           _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
+          _chatFreshNote(st, _ty);     /* R233r：TTL 回收分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
           _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
@@ -1579,6 +1620,31 @@ function chatBubble(role, text, opts) {
   flow.scrollTop = flow.scrollHeight;
   return div;   /* 轮询写回用节点引用，不赌 lastChild */
 }
+/* R233r（R49-P0）：危机词前端镜像——后端 _CRISIS_PAT 只在任务真起
+ * 时才跑得着；DISABLE/限流/排队满时 spawn 返回 None，此前危机会被
+ * _chatFallbackLine 卖萌句吞掉。本地镜像词表+转介文案，不发请求。 */
+var _CRISIS_FE_PAT = new RegExp(
+  '不想活|想死|自杀|自残|伤害自己|活着没意思|想不开|轻生|跳楼|抑郁|' +
+  '活不下去|活着好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|' +
+  'suicide|kill\\s*myself|end\\s*it', 'i');
+var _CRISIS_FE_REPLY = '这个话题有点重，我不太敢乱说。如果心里真的很难受，' +
+  '全国心理援助热线 12356（24 小时，免费）随时能打通，跟信任的朋友聊聊' +
+  '也会好一些——我一直都在，陪你聊聊别的也行。';
+
+/* R233r（R49-Top5-2）：chatSend 兜底 facts——不走排盘直接开聊时
+ * CHAT_LAST_FACTS 恒空；按当前活跃视图从 LAST_RESULT 拼坐标。 */
+function _activeViewFacts() {
+  var v = document.querySelector('.view.active');
+  var vid = v ? v.id : '', key = '';
+  ['taohua', 'tarot', 'liuyao', 'hehun', 'huangli', 'qiming', 'xingzuo',
+   'bazi'].forEach(function (k) {
+    if (!key && vid.indexOf(k) !== -1) key = k;
+  });
+  if (!key) key = 'daily';   /* 首页无 .view 壳——daily 卡上下文兜底 */
+  var c = buildChatContext(key);
+  return (c && c.facts) || [];
+}
+
 function chatSend() {
   var input = el('chatInput');
   var msg = zwClean(input && input.value);   /* R230k：零宽不当非空 */
@@ -1590,13 +1656,20 @@ function chatSend() {
   }
   if (input) input.value = '';
   chatBubble('me', msg);
+  /* R233r（R49-P0）：危机词本地先接住——不计发送数、不发请求。 */
+  if (_CRISIS_FE_PAT.test(msg)) {
+    chatBubble('ai', _CRISIS_FE_REPLY);
+    return;
+  }
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   /* R230v（R34-#3）：捕获发送时 sid——在途回复遇上「开个新话题」换 sid
    * 时，旧任务落地不得把回复写进新 transcript（幻影气泡）。 */
   var _sid0 = chatSid();
   postJSON('/api/chat', {
-    session_id: _sid0, message: msg, facts: CHAT_LAST_FACTS,
+    session_id: _sid0, message: msg,
+    facts: (CHAT_LAST_FACTS && CHAT_LAST_FACTS.length) ? CHAT_LAST_FACTS
+      : _activeViewFacts(),   /* R233r（R49-Top5-2）：无排盘时按视图兜底 */
     client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
@@ -1639,6 +1712,7 @@ function chatSend() {
         if (!_ty || _sid0 !== chatSid()) return;
         if (st && st.status === 'done' && st.text) {
           _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
+          _chatFreshNote(st, _ty);     /* R233r：TTL 回收分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
           _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
@@ -1720,7 +1794,9 @@ function guardedCall(key, handler, ev, queueLatest) {
     _btn.setAttribute('aria-busy', 'true');
     _btn.disabled = true;
   }
-  Promise.resolve(handler(ev)).catch(function (e) {
+  /* R233r（R50-#7）：handler 同步抛异常会冒泡出 click——锁永真、
+   * 按钮永灰。包进 .then 链里把同步异常也接住。 */
+  Promise.resolve().then(function () { return handler(ev); }).catch(function (e) {
     console.warn('[on] handler error', e);
   }).then(function () {
     _ON_BUSY[key] = false;
@@ -3634,14 +3710,15 @@ async function loadDaily() {
           _bbar = document.createElement('div');
           _bbar.id = 'dailyBirthday';
           _bbar.className = 'daily-birthday';
+          _bbar.setAttribute('role', 'note');
           var _ckb = el('dailyCheckin');
           if (_ckb && _ckb.parentNode) _ckb.parentNode.insertBefore(_bbar, _ckb);
         }
         _bbar.innerHTML = '🎂 ' +
           (_bme.n ? esc(_bme.n) + '，' : '') +
           '今天你生日——全场最大，宜收下所有夸奖 ' +
-          '<button type="button" class="daily-birthday-go" ' +
-          'data-goto="xingzuo">去开生日盘 ✨</button>';
+          '<button type="button" class="daily-birthday-go">' +
+          '去开生日盘 ✨</button>';
         var _bgo = _bbar.querySelector('.daily-birthday-go');
         if (_bgo && !_bgo.dataset.bound) {
           _bgo.dataset.bound = '1';
@@ -3807,6 +3884,9 @@ async function loadDailyDetail() {
     html += '</div>';
     target.innerHTML = html;
     target.dataset.loaded = '1';
+    /* R233r（R49-Top5-4）：日签卡接入聊天上下文——首页「聊聊这件事」/
+     * 直接开聊手里都有今天的盘。 */
+    rememberResult('daily', j, '今天运势如何？');
     /* v3（P1 修复）：内容注入后立即滚到详情，并强制显示（fx 入场动画
      * 在此场景会停在 opacity:0，实测用户视角=空白）。 */
     target.querySelectorAll('.fx-watch').forEach(function (n) {
@@ -4075,6 +4155,13 @@ async function submitBazi(event) {
         .slice(0, 3);
       const _pp = paipan.render || '';
       CHAT_LAST_FACTS = (_pp ? ['四柱：' + _pp] : []).concat(_warmFacts);
+      /* R233r（R49-Top5-2）：能量卡坐标补上——元素/幸运色/幸运数字
+       * 是用户聊「我今天穿什么色」类问题的锚。 */
+      var _ec0 = (j.warm && j.warm.energy_card) || {};
+      if (_ec0.element) CHAT_LAST_FACTS.push('本命元素：' + _ec0.element);
+      var _lc0 = _ec0.lucky_colors, _ln0 = _ec0.lucky_numbers;
+      if (_lc0 && _lc0.length) CHAT_LAST_FACTS.push('幸运色：' + _lc0.join('、'));
+      if (_ln0 && _ln0.length) CHAT_LAST_FACTS.push('幸运数字：' + _ln0.join('、'));
     } catch (e) { CHAT_LAST_FACTS = []; }
     paint('result', buildBaziResult(j));
     rememberVoice('result', j, buildBaziResult);
@@ -5636,8 +5723,9 @@ async function doHehun() {
           '&ag=' + encodeURIComponent(val('hh_a_gender') || '') +
           '&an=' + encodeURIComponent(val('hh_a_name') || '');
         var _ok = function () {
-          showToast(_dayPick(['邀请链接复制好了，发给 TA 吧 💌',
-            '链接已备好——TA 打开就能接着测', '复制成功，发给你的另一半/CP 吧'], 'hhinv'));
+          showToast(_dayPick(['邀请链接复制好了（里面有你的生辰，发给信任的人哦）',
+            '链接已备好——TA 打开就能接着测（链接含你的生辰信息）',
+            '复制成功——记得链接里带着你的生日，发给熟人就好'], 'hhinv'));
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(_u).then(_ok, function () {
@@ -6873,13 +6961,13 @@ function initViews() {
     /* R231f（R38-P3-3）：海报模态开着时 Esc 完全归 _posterOnKey——
      * 原顺序会先误收开着的抽屉再关海报（连坐）。 */
     if (document.getElementById('posterModal')) return;
-    var closed = false;
-    document.querySelectorAll('details[open]').forEach(function (d) {
-      d.open = false; closed = true;
-    });
-    if (sb && sb.classList.contains('open')) { _setRecent(false); closed = true; }
     /* R233k（R45-§4）：无可关层时 Esc 不再当「返回首页」——输入法
-     * 面板里按 Esc 想关候选词，结果整页跳走（输入还在但上下文断）。 */
+     * 面板里按 Esc 想关候选词，结果整页跳走（输入还在但上下文断）。
+     * R233r（R50-#10）：closed 死变量删——判断分支已整段移除。 */
+    document.querySelectorAll('details[open]').forEach(function (d) {
+      d.open = false;
+    });
+    if (sb && sb.classList.contains('open')) { _setRecent(false); }
   });
   if (tgl) tgl.addEventListener('click', function () {
     /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
@@ -6930,6 +7018,10 @@ function initBazi() {
     guardedCall('chatSendBtn', chatSend, ev);   /* R230v（R34-#11） */
   });
   var ci = el('chatInput');
+  /* R233r（R49-P3-1）：空发后提示语粘住——用户一开始打字就复位。 */
+  if (ci) ci.addEventListener('input', function () {
+    if (ci.placeholder === '先写点什么再发哦') ci.placeholder = '说说你的心情…';
+  });
   if (ci) ci.addEventListener('keydown', function (e) {
     /* R230q：与 chatSendBtn 的 on() 点击同锁——连按 Enter 不再并发发消息 */
     if (e.key === 'Enter') guardedCall('chatSendBtn', chatSend, e);
@@ -7185,14 +7277,19 @@ function _hhFavFill(ref) {
   /* R233k（R45-P1-5）：原裸调 doHehun() 绕开 _ON_BUSY——连点不同 CP
    * chip 并发请求后到者盖先到者。走同一把锁，在途时记最新一对，
    * 响应落地后自动补跑。 */
-  if (_ON_BUSY['hhSubmit']) { _hhPendingFav = ref; return; }
-  guardedCall('hhSubmit', function () {
-    return Promise.resolve(doHehun()).then(function () {
-      if (_hhPendingFav) { var r = _hhPendingFav; _hhPendingFav = null; _hhFavFill(r); }
-    });
-  });
+  /* R233r（R50-#3）：在途时点下一对 chip——字段已更新到最新值，
+   * 补跑直接排进 _ON_QUEUE（guardedCall 释放时自动重入 doHehun，
+   * 读到的是新字段值）；不再用 _hhPendingFav 重入式（锁未释放时
+   * 重入会又撞 busy 分支，写入后无人消费=死锁）。 */
+  if (_ON_BUSY['hhSubmit']) {
+    _ON_QUEUE['hhSubmit'] = {
+      handler: function () { return Promise.resolve(doHehun()); },
+      ev: null
+    };
+    return;
+  }
+  guardedCall('hhSubmit', function () { return Promise.resolve(doHehun()); });
 }
-var _hhPendingFav = null;
 
 /* 起名心水名单：♡ 点过的名字固定在表单上方，× 可摘 */
 async function _qmFavsRender() {
@@ -7559,8 +7656,11 @@ function init() {
           ].forEach(function (p) {
             var v = _qsAll.get(p[0]), elx = document.getElementById(p[1]);
             /* 不置 data-me——非空值本身就不被 _meFill 覆盖（置 1 反而
-             * 放行：受邀者自己的档案会盖掉发起人数据）。 */
-            if (elx && v != null && v !== '') elx.value = v;
+             * 放行：受邀者自己的档案会盖掉发起人数据）。
+             * R233r（R50-#17）：时辰留空时也要把默认值清成空——
+             * 「未知时辰」比静默按 10 点算诚实。 */
+            if (elx && v != null &&
+                (v !== '' || elx.tagName !== 'SELECT')) elx.value = v;
           });
           /* 受邀者填的是 B 侧=自己——提交时 me/partner 归属要翻转，
            * 否则发起人的生日会顶掉受邀者自己的档案。用户手改 A 侧
@@ -8205,7 +8305,7 @@ function _renderCheckinAlbum(dateKey) {
   host.innerHTML = html + '</div>';
 }
 function pickCheckinFeedback(opt, dateKey) {
-  const pool = CHECKIN_FEEDBACK[opt] || [];
+  const pool = CHECKIN_FEEDBACK[opt] || CHECKIN_FEEDBACK._default || [];
   let h = 0; const s = String(dateKey) + opt;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   /* R39-P0-5：打卡完成的瞬间是植「明天再来」的黄金位——句尾按日轮换

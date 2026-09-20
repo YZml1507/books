@@ -1754,8 +1754,19 @@ def _run_inner() -> list[str]:
     ok.append("client_date.validate")
     _ccfg = {"base_url": "http://127.0.0.1:1", "api_key": "x", "model": "m"}
     _crisis = _LC.chat("st-crisis", "不想活了", config=_ccfg)
-    assert _crisis and "专业人士" in _crisis, _crisis
+    # R233r（R49-Top5-1）：转介文案带 12356 全国心理援助热线。
+    assert _crisis and "12356" in _crisis, _crisis
     ok.append("chat.crisis.refusal")
+    # R233r：新增直述词也要被前端镜像表同一批接住（后端先验一道）。
+    _c2 = _LC.chat("st-crisis2", "感觉活着好累，吃了安眠药", config=_ccfg)
+    assert _c2 and "12356" in _c2, _c2
+    ok.append("chat.crisis.refusal.extended")
+    # R233r（R49-Top5-3）：敏感词三层——宠物/物件/梗语境不误触转介。
+    assert _LC._is_sensitive("我会不会死") and _LC._is_sensitive("癌症晚期怎么办")
+    assert not _LC._is_sensitive("多肉会不会死"), "多肉被误拦"
+    assert not _LC._is_sensitive("手机还能活多久"), "手机被误拦"
+    assert not _LC._is_sensitive("拖延症晚期"), "梗被误拦"
+    ok.append("chat.sensitive.narrow")
     _banned = _LC.chat(
         "st-banned", "他为什么不回我消息",
         _transport=lambda p, h, u, t: {"choices": [{"message": {
@@ -1804,6 +1815,17 @@ def _run_inner() -> list[str]:
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
     _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))
     assert _hf4 and any("2026-09-25" in f for f in _hf4), _hf4
+    # R233r（R49-P2-2）：高敏事项已成事实+无决策意图 → 倾诉不是择日，
+    # 不塞判定；带「哪天/该不该」等意图词才给判定。
+    _hf4b = _svc.chat_huangli_facts("我分手了", now=_dt(2026, 9, 19))
+    assert _hf4b == [], _hf4b
+    _hf4c = _svc.chat_huangli_facts("分手后哪天适合复合", now=_dt(2026, 9, 19))
+    assert _hf4c and any("黄历判定" in f for f in _hf4c), _hf4c
+    _hf4d = _svc.chat_huangli_facts("我怀孕了", now=_dt(2026, 9, 19))
+    assert _hf4d == [], _hf4d
+    # R233r（R49-Top5-5）：「最近」被当日期词接住，spoken 带原词。
+    _hf4e = _svc.chat_huangli_facts("最近适合跳槽吗", now=_dt(2026, 9, 19))
+    assert _hf4e and any("最近" in f for f in _hf4e), _hf4e
     # ② 长键消歧：「解除合同」必须走解除方向，不许被「合同」抢到立券。
     _hf5 = _svc.chat_huangli_facts("明天要解除合同合适吗", now=_dt(2026, 9, 19))
     assert _hf5 and any("解除合同" in f and "立券" not in f for f in _hf5), _hf5

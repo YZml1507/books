@@ -431,6 +431,9 @@ def ai_task_status(tid: str) -> dict | None:
             return None
         return {"status": rec["status"], "text": rec["text"],
                 "closed": bool(rec.get("closed")),
+                # R233r（R49-P2-3）：本轮任务是不是该会话的第一条
+                # （前面聊的已被 TTL 回收/进程换脑）。
+                "fresh": bool(rec.get("fresh")),
                 # R230v（R34-#5）：未起动=在 _session_lock 里排队
                 "queued": "started" not in rec,
                 # R230t（R31-P2-6）：进程启动记号透传——前端据此识别
@@ -465,8 +468,19 @@ _CHAT_SYSTEM = (
     "你是「小满」，一个懂玄学、更懂用户的互联网闺蜜（R214b 人设升级）。"
     "说话像躺在沙发上和朋友聊天：称呼对方「宝」，语气柔和带一点点俏皮，"
     "多用「我觉得」「说不定」这类软化词；可以用轻梗但绝不堆砌网络热梗。"
-    "用户刚看过排盘结果，可能聊感情、工作、心情——可以温和引用盘里信息当"
-    "话题，但绝不用命理术语吓人，绝不下判断（如「你们不合适」「你会倒霉」）。"
+    "用户可能刚测完盘，也可能什么都没测、直接来聊心情感情工作——"
+    "有盘面信息就温和引用当话题，但绝不用命理术语吓人，绝不下判断"
+    "（如「你们不合适」「你会倒霉」）。"
+    # R233r（R49-Top5-5）：事实诚信——没测过的盘不许假装看过，
+    # 用户没提的细节不许替 ta 编具体结论。
+    "事实里没有的东西不许编：没给盘面就别假装看过盘，用户没说的细节"
+    "不要替ta补具体结论。"
+    # R233r（R49-Top5-5）：答完轻轻指路——一句带过，不是每条都指。
+    "聊完可以轻轻指一条路（比如「明天记得来打卡」「去黄历翻翻挑日子」），"
+    "一句带过就行，别每条都指、别变推销。"
+    # R233r（R49-P2-6）：健康/生死不下诊断。
+    "健康、生死、重大疾病类问题不下诊断、不劝人不看医生——温和转给"
+    "专业的人。"
     "禁止指令式建议（「你应该…」「你要…」）、禁止替用户做现实决定、"
     "不说教不越界；对方不想深聊就自然换个开心的话题。"
     # R227b（用户反馈「不能照本宣科」）：黄历类提问照「黄历判定」说人话。
@@ -484,7 +498,10 @@ _CHAT_SYSTEM = (
     "（例：「要不要试试？」）。"
 )
 
-_CHAT_REFUSAL = "这个话题有点重，我不太敢乱说。如果心里很难受，跟信任的朋友或专业人士聊聊会更好——我一直都在，陪你聊聊别的也行。"
+_CHAT_REFUSAL = ("这个话题有点重，我不太敢乱说。如果心里真的很难受，"
+                 "全国心理援助热线 12356（24 小时，免费）随时能打通，"
+                 "跟信任的朋友聊聊也会好一些——我一直都在，陪你聊聊"
+                 "别的也行。")   # R233r（R49-Top5-1）：补 12356 热线
 
 # R230a-5：轮数到顶后的确定性收尾轮换（不换语义，只免机械复读）。
 _CHAT_CLOSERS = [
@@ -493,16 +510,39 @@ _CHAT_CLOSERS = [
     "咱们今天先到这里，不急。盘又不会跑，想我了随时回来。去忙你的吧～",
 ]
 
+# R233r（R49-P2-5）：二级收口——主池转满一轮后换回访钩子。
+_CHAT_CLOSERS_LATE = [
+    "我已经陪你聊到电量见底啦——明天来打个卡/拆新签，好运我先替你留着。",
+    "今天真聊够啦～明天拆新签再来找我，我给你留着位置。",
+]
+
 # R230a-6（R12-P2-5）：补高频口语与英文危机词——漏一个就是一条真实风险。
 _CRISIS_PAT = re.compile(
     r"不想活|想死|自杀|自残|伤害自己|活着没意思|想不开|轻生|跳楼|抑郁|"
+    # R233r（R49-Top5-1）：直述自杀手段/绝望口语此前漏网。
+    r"活不下去|活着好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|"
     r"suicide|kill\s*myself|end\s*it", re.IGNORECASE)
 
 # R233g（R44-P0-3）：非自伤的生死/重病问法（绝症/活多久/亲人会不会走）
 # 不属于危机自伤，但同样不该交给模型即兴——确定性转介，语气放稳。
-_SENSITIVE_PAT = re.compile(
-    r"还能活|活多久|会不会死|会死吗|绝症|癌症|病危|临终|会不会去世|"
-    r"会去世|存活率|晚期|治得好吗", re.IGNORECASE)
+# R233r（R49-Top5-3）：拆硬词/软词/排除词三层——软词（会不会死/
+# 治得好吗/晚期）命中时若语境是宠物/植物/物件/拖延梗，不触发转介。
+_SENSITIVE_HARD_PAT = re.compile(
+    r"绝症|癌症|病危|临终|会不会去世|会去世|存活率|寿命|要死了|病死|"
+    r"癌.{0,4}晚期|晚期.{0,4}癌", re.IGNORECASE)
+_SENSITIVE_SOFT_PAT = re.compile(
+    r"还能活|活多久|会不会死|会死吗|晚期|治得好吗", re.IGNORECASE)
+_SENSITIVE_EXCLUDE_PAT = re.compile(
+    r"多肉|植物|宠物|猫|狗|鸟|鱼|花|虫|乌龟|仓鼠|手机|电池|电脑|游戏|"
+    r"痘|拖延|懒|基金|股票|冰箱|车")
+
+
+def _is_sensitive(msg: str) -> bool:
+    """生死/重病敏感判定——聊天层与问一嘴（interpreter）共用一个口径。"""
+    if _SENSITIVE_HARD_PAT.search(msg):
+        return True
+    return bool(_SENSITIVE_SOFT_PAT.search(msg)
+                and not _SENSITIVE_EXCLUDE_PAT.search(msg))
 _SENSITIVE_REPLY = ("这个话题我真接不了——不是不愿意，是它不该靠占卜来定。"
                     "身体或心里难受的话，医生和信得过的人才是最该找的。"
                     "想聊点别的，小满都在。")
@@ -595,7 +635,7 @@ def chat(session_id: str, user_msg: str,
                 return _CHAT_REFUSAL
             # R233g：非自伤生死/重病问法——排危机之后（自伤优先走危机
             # 转介），调 LLM 之前确定性接住。
-            if _SENSITIVE_PAT.search(msg):
+            if _is_sensitive(msg):
                 return _SENSITIVE_REPLY
 
             if len(sess["messages"]) >= _CHAT_MAX_TURNS * 2:
@@ -608,6 +648,12 @@ def chat(session_id: str, user_msg: str,
                 # 前端据此给「开新话题」引导（此前用户只能对着复读的收尾文案
                 # 干发消息，没有任何出路提示）。
                 sess["closed"] = True
+                # R233r（R49-P2-5）：二级收口——同一收尾池轮换满一轮后
+                # 换「明天来打卡」方向钩子，不再机械转圈。
+                if _over >= len(_CHAT_CLOSERS):
+                    return _CHAT_CLOSERS_LATE[
+                        (_over - len(_CHAT_CLOSERS))
+                        % len(_CHAT_CLOSERS_LATE)]
                 return _CHAT_CLOSERS[_over % len(_CHAT_CLOSERS)]
 
             # R230t（R32-P1-5）：历史总长截断——assistant 单条可到 8K，
@@ -654,6 +700,11 @@ def chat(session_id: str, user_msg: str,
         # 「有宜面试事实仍说没查到」的结构性诱因）。改为：verdicts 并进
         # 首段 system，coords 紧贴最新消息并入同一条 user。
         _sys = _CHAT_SYSTEM
+        # R233r（R49-Top5-5）：把用户本地「今天」写进人设——此前模型
+        # 不知道今天是几号，聊到日期只能瞎猜。
+        if verdict_day:
+            _sys += ("\n今天是 " + verdict_day +
+                     "（用户那边的日子）——说到「今天/明天」都以这天为准。")
         if _verdicts:
             _sys += ("\n\n以下是系统已算好的黄历判定，是权威结论，"
                      "用户问到对应事项时必须照它回答、不许说没查到；"
@@ -968,10 +1019,15 @@ def spawn_chat_task(session_id: str, user_msg: str,
     def _run() -> None:
         # R230v（R34-#5）：标记实际起动时刻——_session_lock 排队期间
         # 前端据此区分「排队中」与「生成中」，轮询预算从起动算而非入队算。
+        # R233r（R49-P2-3）：会话被 TTL 回收/从未见过 → fresh 标记——
+        # 前端据此提示「隔了几天小满可能记不全」。
+        with _chat_lock:
+            _fresh = session_id not in _chat_sessions
         with _tasks_lock:
             rec0 = _tasks.get(tid)
             if rec0 is not None:
                 rec0["started"] = time.monotonic()
+                rec0["fresh"] = _fresh
         try:
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,
