@@ -4505,22 +4505,32 @@ async function doHuangli(offset, reveal, spokenWord) {
     html += '</div>';
     /* 宜/忌 双色大卡 */
     html += '<div class="hl-yiji" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    /* R229z续21（R9-P1-2）：宜∩忌同见的词（黄历自相矛盾项，约 22% 日子）
+     * 标※并在卡下方附说明——不然同一词两头出现像渲染坏了。 */
+    var _conflict = Array.isArray(j.conflict) ? j.conflict : [];
+    var _cflSet = {};
+    _conflict.forEach(function (w) { _cflSet[w] = 1; });
     html += '<div class="hl-yi" style="background:rgba(135,217,166,.16);border:1px solid rgba(95,167,119,.35);border-radius:16px;padding:12px;">';
     html += '<div style="font-weight:800;color:#3E7A52;margin-bottom:6px;">✅ 宜</div>';
     html += yi.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       yi.map(function (w) {
         var hot = (_HL.scene &&
                    (w.indexOf(_HL.scene) !== -1 || (YI_MAP[w] || '').indexOf(_HL.scene) !== -1));
-        return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '" title="' + esc(YI_MAP[w] || '') + '">' + esc(w) + '</span>';
+        return '<span class="hl-pill' + (hot ? ' hl-hot' : '') + '" title="' + esc(YI_MAP[w] || '') + '">' + esc(w) + (_cflSet[w] ? '※' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">' + esc(_dayWord) + '没什么特别适宜的</div>';
     html += '</div>';
     html += '<div class="hl-ji" style="background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;">';
     html += '<div style="font-weight:800;color:#C2527B;margin-bottom:6px;">🚫 忌</div>';
     html += ji.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       ji.map(function (w) {
-        return '<span class="hl-pill hl-pill-ji" title="' + esc(JI_MAP[w] || '') + '">' + esc(w) + '</span>';
+        return '<span class="hl-pill hl-pill-ji" title="' + esc(JI_MAP[w] || '') + '">' + esc(w) + (_cflSet[w] ? '※' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">没有特别要避开的</div>';
     html += '</div></div>';
+    if (_conflict.length) {
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">※ ' +
+        esc(_conflict.join('、')) + ' 宜忌两边都见——黄历自己都打架的日子，' +
+        '这类事想做就把节奏放缓，不赶大动作</div>';
+    }
     /* 场景 chips：点选高亮匹配宜项 */
     var SCENES = ['搬家', '开业', '约会', '面试', '出行', '签约'];
     html += '<div style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';

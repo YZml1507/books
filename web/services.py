@@ -746,6 +746,7 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     return {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
             "jianchu": q.get("jianchu"), "xiu": q.get("xiu"),
             "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
+            **({"conflict": q["conflict"]} if q.get("conflict") else {}),
             **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
@@ -1403,13 +1404,18 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     q = huangli_mod.day_query(dt)
     yi, ji = q["yi"], q["ji"]
     date_cn = q["date"]
-    yi_str = "、".join(yi) or "无"
-    ji_str = "、".join(ji) or "无"
+    # R229z续21（R9-P1-2）：约 22% 日子同词宜忌同见——引用列表里把打架
+    # 词摘出来单独标注，免得小满嘴里念出「宜嫁娶；忌嫁娶」。
+    _cfl = q.get("conflict") or []
+    yi_str = "、".join(w for w in yi if w not in _cfl) or "无"
+    ji_str = "、".join(w for w in ji if w not in _cfl) or "无"
+    _cfl_note = (f"另有宜忌相冲项：{'、'.join(_cfl)}（这些黄历自己都打架，"
+                 "按存疑处理，别当凭据念）。" if _cfl else "")
     # R229o：「这周五」按本周已过日判（9/19 说这话指向 9/18）——事实行
     # 提醒这天已经过去，免得模型照着宜忌去「建议」一个回不去的日子。
     past_note = "（这天已经过去了）" if dt.date() < now.date() else ""
     facts = [f"{spoken}（{date_cn}）的黄历：宜【{yi_str}】；忌【{ji_str}】。"
-             + past_note]
+             + _cfl_note + past_note]
 
     if generic:
         facts.append("没列入当日宜忌的事项属中性——不是不支持，只是黄历没"

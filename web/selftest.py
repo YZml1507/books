@@ -278,6 +278,37 @@ def _run_inner() -> list[str]:
     check("huangli", client.get("/api/huangli", params={"date": "2026-08-17",
           "days": 1}),
           lambda j: j.get("date") and j.get("yi") and j.get("ji"))
+    # R229z续20（R9-P0）：二十八宿锚点曾错 6 位（全定义域错宿）。
+    # 曜日→宿五行组是全定义域硬不变量，全表扫一遍防回归。
+    from guji.huangli import xiu_value, _WEEKDAY_XIU_GROUP
+    from datetime import date as _d0, timedelta as _td0, datetime as _dt6
+    _dd = _d0(1900, 1, 31)
+    _bad = 0
+    while _dd <= _d0(2100, 12, 31):
+        if xiu_value(_dt6(_dd.year, _dd.month, _dd.day)) not in \
+                _WEEKDAY_XIU_GROUP[_dd.weekday()]:
+            _bad += 1
+        _dd += _td0(days=1)
+    assert _bad == 0, ("huangli.xiu.weekday_invariant", _bad)
+    # 外部锚点双钉（万年历公开值）
+    assert xiu_value(_dt6(2000, 1, 1)) == "胃", "2000-01-01 应为胃宿"
+    assert xiu_value(_dt6(2024, 2, 10)) == "氐", "2024-02-10 应为氐宿"
+    ok.append("huangli.xiu.weekday_invariant")
+    # R229z续21b（R9-P1-1）：交节日同日两答钉扎——?date=D（hour=0）与
+    # 同日 now()（交节后）必须同建除/同月支（黄历=日历日粒度产品）。
+    from guji.huangli import day_query as _dq6
+    from guji.bazi import term_time as _tt6
+    # 抽 4 个节气日：交节时刻前后两读必须一致
+    for _tn, _ty in (("立春", 2026), ("立夏", 2025), ("立秋", 2024),
+                     ("立冬", 2027)):
+        _term_dt = _tt6(_ty, _tn)
+        _a = _dq6(_dt6(_term_dt.year, _term_dt.month, _term_dt.day, 0))
+        _b = _dq6(_dt6(_term_dt.year, _term_dt.month, _term_dt.day, 23))
+        assert _a["jianchu"] == _b["jianchu"], \
+            ("huangli.term_day.flip", _tn, _ty, _a["jianchu"], _b["jianchu"])
+        assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
+            ("huangli.term_day.yiji_flip", _tn, _ty)
+    ok.append("huangli.term_day.consistent")
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
