@@ -277,10 +277,13 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .daily-cover{
   position:absolute; inset:0; z-index:3; border-radius:var(--radius);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:14px; cursor:pointer; background:var(--card,#FFFDFB);
+  gap:14px; cursor:pointer;
+  /* R2341（R57-P1-5）：巨型空白卡升级——奶油底+斜纹包装纸感 */
+  background:repeating-linear-gradient(45deg, var(--card,#FFFDFB) 0 26px,
+    var(--bg,#FDF6EC) 26px 52px);
   transition:opacity .45s ease;
 }
-.daily-cover img{width:120px; height:auto; filter:drop-shadow(0 8px 20px rgba(184,134,11,.22));
+.daily-cover img{width:200px; height:auto; filter:drop-shadow(0 8px 20px rgba(184,134,11,.22));
   animation:giftBob 2.4s ease-in-out infinite;}
 .daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
   letter-spacing:.04em; padding:0 24px; text-align:center;}
@@ -1882,7 +1885,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .hh-btns .fav-btn{position:static;}
 .hh-btns .fav-btn + .fav-btn{right:auto;}
 /* R233o：h2 副标题统一类（原 9 处内联 style 重复） */
-h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
+h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:keep-all;}  /* R2341（R57-P2-11）：按词断行 */
 /* 签册：打卡卡尾迷你签墙 */
 .ck-album{margin-top:10px;}
 .ck-album>summary{cursor:pointer;font-size:12.5px;color:var(--secondary);list-style:none;}
@@ -1906,6 +1909,9 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
 /* P0-2：.birth-card/#xzResult 无定位上下文——fav-btn 逃逸到祖先 .card
  * 同点位互叠（shareBirth 被 shareXingzuo 完全盖住点不到）。 */
 .birth-card{position:relative;}
+/* R2341（R57-P1-6）：右上绝对定位分享钮会压住「你是X座」标题——
+ * 头部 flex 行让出按钮宽度。 */
+.birth-card .birth-head{padding-right:110px;}
 #xzResult{position:relative;}
 /* P1：合婚三钮窄屏改静态流（原 absolute 压 h2/判词首行，
  * 360px 挤成竖排圆球）。 */
@@ -2027,3 +2033,13 @@ html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{
   .daily-meta-item{font-size:12px; padding:5px 10px; gap:4px;}
   .deco-banner{margin:0 4px;}  /* 装饰条贴边溢出 12px */
 }
+
+/* R2341（R57-P2-12）：加载态骨架行——「查询中…」纯文本升级 shimmer */
+@keyframes phShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.ph-skel{margin-top:14px}
+.ph-skel i{display:block;height:14px;border-radius:7px;margin:10px 0;
+  background:linear-gradient(90deg,var(--line) 25%,var(--card) 50%,var(--line) 75%);
+  background-size:400px 100%;animation:phShimmer 1.4s infinite;}
+.ph-skel i:nth-child(1){width:62%}
+.ph-skel i:nth-child(2){width:88%}
+.ph-skel i:nth-child(3){width:45%}

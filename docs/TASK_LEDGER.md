@@ -11394,3 +11394,24 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 360px 档：daily-meta chips 字号/内距缩一档（溢出 6px）；
   deco-banner 内收 4px（贴边溢出 12px）。
 - 闸门：ui_smoke 60 全绿。
+
+## R2341 R57 分享图视觉清零 + Agnes 生图资产
+- P0：canvas 字体子集懒加载竞态——`fonts.load` 改带真实海报文案
+  （_posterTextCollect：title/subtitle/big/lines/cards/hook+旧版式
+  四柱/能量卡字段+页脚常量），unicode-range 命中子集全拉起；
+  「酝酿」→「蓄力」规避子集外「酝」字。
+- P1：页脚 hook/CTA 字形互碰+紫底隐身→合并垫米白衬底；
+  tarot 贴纸压第三张牌→有卡片时挪右上、无 lines 时 cards 上提；
+  xingzuo 大字断半句→_clauseCut 子句边界截断；
+  wrapText/wrapText3 加避头尾（行首禁标点/破折号）；
+  birth 分享钮压标题→birth-head 让位 padding。
+- P2：「你是 X」半角空格去掉；海报副题统一「M月D日·周X」
+  （_cnDateSub）；建除/值宿单字行合一；dailyNoble 地支→生肖
+  （_ZHI_ANIMAL/_zhiToAnimal 模块级，海报+DOM 同口径）；
+  card-sub 按词断行；空容器加载态补骨架行（.ph-skel shimmer）；
+  #result/#birthResult 补 ph-empty 空态；字段提示在时 toast 去重；
+  liuyao basis 空时明细改画卦名/动爻不再复读大字。
+- Agnes 生图：四张海报底图重出 864×1152（原 665×886 放大 1.62×
+  发虚→现 1.25× Lanczos 升至 1080×1440）；daily 拆礼物封面
+  小熊抱礼插画 daily-gift-bear.png + 斜纹包装纸底。
+- 闸门：selftest 248 / contract 542 / ui_smoke 60 全绿。

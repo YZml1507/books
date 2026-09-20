@@ -152,7 +152,7 @@ if ('serviceWorker' in navigator) {
          点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
     <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
          aria-label="点开查看今日运势">
-      <img src="/static/shared/daily-box-gift.png" alt=""
+      <img src="/static/cream/daily-gift-bear.png" alt=""
            loading="lazy" decoding="async" onerror="this.parentNode.remove()">
       <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
     </div>
@@ -284,7 +284,7 @@ if ('serviceWorker' in navigator) {
              #result + toast）——删掉；字段级错误提示仍走统一 fail 路径。 -->
       </form>
 
-      <div class="result" id="result" hidden></div>
+      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「排个盘」，你的命盘就出来啦～</div></div>
       <!-- R229z续23（R11-#24）：法条式长注 → 人话版 -->
       <p class="footnote">盘面按命理规则计算、引文标出处、解读是写死的规则转述——不是算命先生在替你拿主意，仅供娱乐。</p>
 
@@ -684,7 +684,7 @@ if ('serviceWorker' in navigator) {
             <input id="b_nick" type="text" maxlength="12" placeholder="比如 小鱼"></div>
         </div>
         <button id="birthSubmit" type="button" style="margin-top:10px;">看我的本命解读 ✨</button>
-        <div id="birthResult" style="margin-top:14px;"></div>
+        <div id="birthResult" style="margin-top:14px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑完生日，看你的本命小卡～</div></div>
       </details>
       <div class="xz-datebar">
         <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>
