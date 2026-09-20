@@ -408,15 +408,61 @@ def xingzuo(date_str: str | None = None) -> dict:
 # ---------------------------------------------------------------------------
 
 
+# R230a-30（R14-P1-1）：简体查询词的保守简→繁重试。只收单义字（一对一映射，
+# 古籍语境不会错）；云/后/余/只/干/几/征/系/台/面/松/咸/曲/谷/卜/丑/于/舍/历/
+# 困/蒙/涂/辟/向/须/御/折/钟/朱/致/脏/伙/签 等一对多或简繁同字易错者一律
+# 不收——宁可不命中也不给错方向。
+_S2T_RETRY = {p[0]: p[1] for p in (  # noqa: E501 — 数据表，逐对显式
+    "潜潛 龙龍 马馬 门門 问問 闻聞 见見 无無 为為 与與 车車 长長 风風 飞飛 鸟鳥 "
+    "鱼魚 龟龜 万萬 书書 乐樂 礼禮 学學 师師 处處 变變 数數 断斷 时時 东東 "
+    "国國 离離 兑兌 阴陰 阳陽 传傳 说說 记記 经經 义義 圣聖 贞貞 来來 跃躍 "
+    "渊淵 饮飲 军軍 众眾 妇婦 户戶 庙廟 泽澤 电電 岁歲 昼晝 进進 动動 穷窮 "
+    "达達 败敗 兴興 乱亂 顺順 应應 当當 据據 敌敵 刚剛 险險 丽麗 战戰 劳勞 "
+    "润潤 热熱 视視 听聽 觉覺 声聲 语語 辞辭 艺藝 医醫 亿億 忆憶 营營 蝇蠅 "
+    "踊踴 忧憂 优優 邮郵 誉譽 园園 员員 圆圓 远遠 愿願 运運 酝醞 杂雜 赃贓 "
+    "凿鑿 枣棗 灶竈 斋齋 毡氈 赵趙 证證 郑鄭 织織 职職 纸紙 挚摯 掷擲 滞滯 "
+    "种種 烛燭 筑築 庄莊 桩樁 妆妝 壮壯 状狀 准準 浊濁 资資 总總 纵縱 丰豐 "
+    "涣渙 节節 济濟 谦謙 随隨 蛊蠱 临臨 观觀 贲賁 剥剝 颐頤 习習 恒恆 晋晉 "
+    "损損 渐漸 归歸 术術 药藥 权權 杀殺 满滿 岗崗 体體 肤膚 灵靈 厉厲 厌厭 "
+    "县縣 备備 伞傘 举舉 乌烏 买買 卖賣 亲親 亵褻 仅僅 从從 仑侖 仓倉 仪儀 "
+    "们們 价價 会會 伟偉 伤傷 伦倫 伪偽 伫佇 剑劍 剂劑 剧劇 劝勸 办辦 务務 "
+    "励勵 劲勁 势勢 勋勳 区區 协協 却卻 参參 双雙 发發 叙敘 号號 叹嘆 吃喫 "
+    "启啟 吴吳 唤喚 嘱囑 团團 围圍 图圖 场場 坏壞 块塊 坚堅 坛壇 坝壩 坟墳 "
+    "坠墜 垒壘 垦墾 垫墊 堑塹 堕墮 墙牆 壳殼 壶壺 头頭 夹夾 夺奪 奋奮 奖獎 "
+    "奥奧 妈媽 妩嫵 妪嫗 姗姍 娄婁 娅婭 娆嬈 娇嬌 娈孌 娱娛 娲媧 娴嫻 婴嬰 "
+    "婵嬋 婶嬸 媪媼 嫒嬡 嫔嬪 嫘嫘 嫠嫠 嫣嫣 嫦嫦 嫩嫩 嬉嬉 嬷嬤 孀孀 孪孿 "
+    "宁寧 宝寶 实實 宠寵 审審 宪憲 宫宮 宽寬 宾賓 寝寢 对對 导導 将將 尔爾 "
+    "尘塵 尝嘗 尧堯 尴尷 层層 屉屜 届屆 属屬 屡屢 屿嶼 岂豈 岖嶇 岘峴 岚嵐 "
+    "岛島 岭嶺 岳嶽 峡峽 峣嶢 峤嶠 峥崢 峦巒 崭嶄 嵘嶸 嶔嶔 巅巔 巋巋 巍巍").split()
+    if len(p) == 2 and p[0] != p[1]}  # len 守卫：手滑拼出三字词即静默丢弃
+
+
 def search(q: str, *, layer: str | None = None, work: str | None = None,
            genre: str | None = None, scheme: str | None = None,
            limit: int = 10) -> dict:
     q = _require_q(q, what="查询词不能为空——检索需要查询词；找某个地址请用 /api/addr")
     limit = min(max(limit, 1), 50)
     with deps.corpus() as c:
-        hits = c.search(q, limit=limit, layer=layer, work_id=work,
-                        genre=genre, scheme=scheme)
-        return {"query": q, "count": len(hits),
+        # R230a-33（R14-P3-6）：scheme 与 addr 同纪律——未知值 400 而非静默零命中。
+        if scheme is not None and scheme not in deps.SCHEME_LABELS:
+            raise ValidationError(
+                f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
+        # 'none' 哨兵原样下传，由 Corpus._search_where 翻成 IS NULL。
+        kw = dict(layer=layer, work_id=work, genre=genre, scheme=scheme)
+        hits = c.search(q, limit=limit, **kw)
+        hint = None
+        if not hits:
+            # R230a-30（R14-P1-1）：语料是繁体，简体问句零命中时用保守映射
+            # 重试一次——「潜龙勿用」→「潛龍勿用」。只对查询词生效，不动语料。
+            q2 = "".join(_S2T_RETRY.get(ch, ch) for ch in q)
+            if q2 != q:
+                hits = c.search(q2, limit=limit, **kw)
+                if hits:
+                    hint = f"已按繁体重试「{q2}」"
+        total = c.search_count(q if hint is None else q2, **kw) \
+            if hits else 0
+        return {"query": q, "count": len(hits), "total": total,
+                "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
 
 
@@ -433,20 +479,26 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
         if scheme == "zhouyi":
             if gua is None:
                 raise ValidationError("用周易定位得给个卦号（1–64）")
+            # R230a-33（R14-P3-6）：gua=99 此前 200 空集——与 compare 同判 400。
+            if not (1 <= gua <= 64):
+                raise ValidationError("卦号要在 1–64 之间")
             hits = c.at_address(gua, yao, layer=layer, limit=limit)
         else:
-            hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
+            hits = c.at_scheme(None if scheme == "none" else scheme,
+                               addr_name=addr_name, addr1=addr1,
                                addr2=addr2, layer=layer, limit=limit)
         return {"scheme": scheme, "count": len(hits),
                 "hits": [hit_dict(h) for h in hits]}
 
 
-def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
+def compare(gua: int, yao: str = "九三", layer: str = "經",
+            allow_damaged: bool = False) -> dict:
     """跨版本同址比对 + 差异摘要（复用 compare.compare_address）。"""
     if not (1 <= gua <= 64):
         raise ValidationError("卦号要在 1–64 之间")
     with deps.corpus() as c:
-        cmp = compare_address(c, gua, yao, layer=layer)
+        cmp = compare_address(c, gua, yao, layer=layer,
+                              allow_damaged=allow_damaged)
         return {
             "addr": cmp.addr,
             "reference": cmp.reference,
@@ -455,6 +507,8 @@ def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
             "witnesses": cmp.witnesses,
             "citations": cmp.citations,
             "commentary": cmp.commentary,
+            # R230a-29（R14-P0-1）：受损见证披露不放行
+            "flagged": cmp.flagged,
             "findings": [{
                 "kind": f.kind, "at": f.at, "base": f.base,
                 "others": f.others, "note": f.note, "base_id": f.base_id,
@@ -519,6 +573,9 @@ def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
     work_a, work_b = (work_a or "").strip(), (work_b or "").strip()
     if not work_a or not work_b:
         raise ValidationError("两本书的书号不能为空")
+    # R230a-34（R14-P3-7）：同书对照无意义——全部行恒等，纯烧 IO。
+    if work_a == work_b:
+        raise ValidationError("对照需要两本不同的书")
     q = _require_q(q)
     with deps.corpus() as c:
         return research_compare_works(c, work_a, work_b, q,
@@ -606,6 +663,12 @@ def thread_record(req) -> dict:
         raise ValidationError("这条记录没存上：内容不在支持的范围里")
     if req.kind in ASSERTING and not req.evidence:
         raise ValidationError("这条记录没存上：断言型记录得带至少一条证据")
+    # R230a-31（R14-P2-3）：role 非法会拖到 record() 撞 CHECK 才 400，此时
+    # open_thread/add_turn 已 commit——孤儿线程先在校验层拦死。
+    for e in req.evidence:
+        if e.role not in ("supports", "contradicts", "context"):
+            raise ValidationError(
+                "证据的角色只能是 supports/contradicts/context")
 
     with deps.knowledge() as kb:
         tid = req.thread_id

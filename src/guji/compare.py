@@ -148,6 +148,9 @@ class Comparison:
     findings: list[Finding] = field(default_factory=list)
     commentary: dict[str, int] = field(default_factory=dict)     # work_id -> 注 chars
     agree: bool = False
+    # R230a-29（R14-P0-1）：被质量闸门标记 suspect 的命中不混进见证——
+    # 单独披露（work_id -> suspect 标记），与 research.flagged 同纪律。
+    flagged: dict[str, str] = field(default_factory=dict)
 
     def counts(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -228,7 +231,7 @@ def _pair_findings(ref: str, other: str, other_id: str
 
 def compare_address(corpus, addr1: int, addr2: str, layer: str | None = "經",
                     scheme: str = "zhouyi", reference: str | None = None,
-                    max_seg: int = 40) -> Comparison:
+                    max_seg: int = 40, allow_damaged: bool = False) -> Comparison:
     """Parallel witnesses at one address plus a classified difference summary.
 
     Reads through Corpus.at_address, so every reading carries the file and page anchor it
@@ -243,8 +246,14 @@ def compare_address(corpus, addr1: int, addr2: str, layer: str | None = "經",
     hits = corpus.at_address(addr1, addr2, layer=layer, limit=400)
     texts: dict[str, str] = {}
     cites: dict[str, str] = {}
+    flagged: dict[str, str] = {}
     for h in hits:
         if h.scheme != scheme:
+            continue
+        # R230a-29（R14-P0-1）：受损 unit 不上桌——rearch 的 flagged 纪律
+        # 对齐到这里；allow_damaged=True 时才放行（披露但参与比对）。
+        if h.suspect and not allow_damaged:
+            flagged[h.work_id] = h.suspect
             continue
         texts[h.work_id] = texts.get(h.work_id, "") + h.text
         cites.setdefault(h.work_id, h.citation())
@@ -294,5 +303,6 @@ def compare_address(corpus, addr1: int, addr2: str, layer: str | None = "經",
                                       "omission": 2, "addition": 3,
                                       "orthographic": 4}.get(f.kind, 9), f.at))
     c = Comparison(label, ref, texts, cites, findings, vols, False)
+    c.flagged = flagged
     c.agree = not c.evidential()
     return c

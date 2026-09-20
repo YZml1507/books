@@ -151,6 +151,30 @@ class Corpus:
             FROM work w LEFT JOIN unit u ON u.work_id = w.id
             GROUP BY w.id ORDER BY w.genre, w.id""").fetchall()
 
+    def _search_where(self, query: str, gua, yao, layer, work_id, genre,
+                      scheme, addr_name, addr1, addr2
+                      ) -> tuple[str, list]:
+        sql = """
+            FROM unit_fts
+            JOIN unit u ON u.id = unit_fts.rowid
+            JOIN work w ON w.id = u.work_id
+            WHERE unit_fts MATCH ?"""
+        args: list = [fts_phrase(query)]
+        # 'none' 哨兵 = scheme IS NULL（页锚点作品）；None = 不过滤。
+        scheme_eq = "none" if scheme is not None and str(scheme).lower() == "none" \
+            else scheme
+        for col, val in (("u.addr1", gua if gua is not None else addr1),
+                         ("u.addr2", yao if yao is not None else addr2),
+                         ("u.scheme", scheme_eq), ("u.addr_name", addr_name),
+                         ("u.layer", layer),
+                         ("u.work_id", work_id), ("w.genre", genre)):
+            if val is not None:
+                sql += (f" AND {col} IS NULL" if val == "none"
+                        else f" AND {col} = ?")
+                if val != "none":
+                    args.append(val)
+        return sql, args
+
     def search(self, query: str, limit: int = 10, gua: int | None = None,
                yao: str | None = None, layer: str | None = None,
                work_id: str | None = None, genre: str | None = None,
@@ -159,27 +183,23 @@ class Corpus:
         """`gua`/`yao` are convenience aliases for `addr1`/`addr2` (D-016). They are kept
         because 卦/爻 is what a 周易 caller means, but they carry no special status in
         storage — a Bible caller passes addr_name/addr1/addr2 through the same path."""
-        sql = """
+        where, args = self._search_where(query, gua, yao, layer, work_id,
+                                         genre, scheme, addr_name, addr1, addr2)
+        sql = ("""
             SELECT u.work_id, w.title, w.attribution, w.edition, u.page_anchor,
                    u.scheme, u.addr_name, u.addr1 AS gua, u.addr2 AS yao,
                    u.layer, u.text, u.file, u.skipped_chars, u.suspect,
-                   bm25(unit_fts) AS score
-            FROM unit_fts
-            JOIN unit u ON u.id = unit_fts.rowid
-            JOIN work w ON w.id = u.work_id
-            WHERE unit_fts MATCH ?"""
-        args: list = [fts_phrase(query)]
-        for col, val in (("u.addr1", gua if gua is not None else addr1),
-                         ("u.addr2", yao if yao is not None else addr2),
-                         ("u.scheme", scheme), ("u.addr_name", addr_name),
-                         ("u.layer", layer),
-                         ("u.work_id", work_id), ("w.genre", genre)):
-            if val is not None:
-                sql += f" AND {col} = ?"
-                args.append(val)
-        sql += " ORDER BY score LIMIT ?"
+                   bm25(unit_fts) AS score """ + where + " ORDER BY score LIMIT ?")
         args.append(limit)
         return [self._hit(r) for r in self.db.execute(sql, args)]
+
+    def search_count(self, query: str, gua=None, yao=None, layer=None,
+                     work_id=None, genre=None, scheme=None, addr_name=None,
+                     addr1=None, addr2=None) -> int:
+        """命中总数（R230a-30：count 原是截断后条数，UI 无法说「共 Y 条」）。"""
+        where, args = self._search_where(query, gua, yao, layer, work_id,
+                                         genre, scheme, addr_name, addr1, addr2)
+        return self.db.execute("SELECT count(*) " + where, args).fetchone()[0]
 
     def at_address(self, gua: int, yao: str | None = None,
                    layer: str | None = None, limit: int = 50) -> list[Hit]:
@@ -215,7 +235,7 @@ class Corpus:
                 out[h.work_id].append(h)
         return out
 
-    def at_scheme(self, scheme: str, addr_name: str | None = None,
+    def at_scheme(self, scheme: str | None, addr_name: str | None = None,
                   addr1: int | None = None, addr2: str | None = None,
                   layer: str | None = None, limit: int = 50) -> list[Hit]:
         """Generic address lookup for ANY scheme — 卦/爻 for zhouyi, 卷:章 for bcv,
@@ -223,9 +243,16 @@ class Corpus:
         zhouyi-only convenience (D-005: Psalms 99 == 卦99 collision); this is the
         scheme-scoped form used by the web addr view, where the caller declares the
         scheme explicitly so no cross-scheme collision can occur.
+
+        scheme=None / 'none' 表示无编址（页锚点）作品——R230a-33 前 SCHEME_LABELS
+        靠字面键 'None' 防呆，传字符串 'None' 会变成查 scheme='None' 恒零命中。
         """
-        sql = _SELECT + " WHERE u.scheme = ?"
-        args: list = [scheme]
+        if scheme is None or str(scheme).lower() == "none":
+            sql = _SELECT + " WHERE u.scheme IS NULL"
+            args: list = []
+        else:
+            sql = _SELECT + " WHERE u.scheme = ?"
+            args = [scheme]
         for col, val in (("u.addr_name", addr_name), ("u.addr1", addr1),
                          ("u.addr2", addr2), ("u.layer", layer)):
             if val is not None:

@@ -59,7 +59,9 @@ SCHEME_LABELS = {
     "booksec": "BOOK:節（Herodotus/Plato/Iliad，addr1=卷）",
     "play": "剧目:幕場（Shakespeare，addr1=剧目序号 1-44，addr2='ACT <roman> SCENE <roman>'）",
     "euclid": "BOOK:proposition（几何原本，addr1=卷，addr2=命题）",
-    "None": "无正典地址（页锚点）",
+    # R230a-33（R14-P3-1）：键用小写真值 'none'（此前字面 'None' 会让
+    # scheme='None' 字符串通过校验后恒零命中）。none = DB 里 scheme IS NULL。
+    "none": "无正典地址（页锚点）",
 }
 
 

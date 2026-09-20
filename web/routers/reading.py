@@ -35,9 +35,10 @@ def addr(scheme: str = "zhouyi", gua: int | None = None,
 
 
 @router.get("/api/compare")
-def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
+def compare(gua: int, yao: str = "九三", layer: str = "經",
+            allow_damaged: bool = False) -> dict:
     """跨版本同址比对 + 差异摘要。"""
-    return services.compare(gua, yao, layer)
+    return services.compare(gua, yao, layer, allow_damaged=allow_damaged)
 
 
 @router.get("/api/research")

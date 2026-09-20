@@ -160,6 +160,15 @@ class ThreadEvidence(BaseModel):
             raise ValidationError("work_id 不允许含 ..")
         return v
 
+    @field_validator("quote")
+    @classmethod
+    def _quote_required_with_source(cls, v: str, info) -> str:
+        # R230a-32（R14-P2-4）：给了出处（work_id）却不给引文，等于声称
+        # 有凭据但不可核验——verify() 对空 quote 是恒真漏洞。
+        if info.data.get("work_id") and not v.strip():
+            raise ValidationError("给了出处就得给引文（quote 不能为空）")
+        return v
+
 
 class ThreadRecordRequest(BaseModel):
     """研究线程写入（R34b）：一条 derived claim + 可选证据（G8 纪律）。"""
@@ -174,6 +183,15 @@ class ThreadRecordRequest(BaseModel):
     thread_id: int | None = None
     # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
     topic: str | None = Field(None, max_length=100)
+
+    @field_validator("claim", "method", "topic", "confidence")
+    @classmethod
+    def _no_c0(cls, v: str | None) -> str | None:
+        # R230a-36（R14-P2-4 续）：C0 控制字符在写路径剥掉——读路径
+        # （fts_phrase）已剥，写路径不剥会让含 \x00 的 claim 永不可被
+        # derived_fts 检回（不对称）。
+        return v if v is None else "".join(
+            ch for ch in v if ord(ch) >= 0x20)
 
 
 class LiuyaoRequest(BaseModel):

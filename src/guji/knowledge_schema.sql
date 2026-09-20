@@ -89,6 +89,10 @@ CREATE INDEX IF NOT EXISTS idx_turn_thread ON turn(thread_id, seq);
 -- searching derived text are different operations against different indexes. corpus.db's
 -- unit_fts contains no derived text and this one contains no source text; probe_g8_isolation
 -- asserts both directions.
+-- contentless 表（R230a-37 / R14-P3-3）：若将来给 derived 加删除路径，
+-- 不能 DELETE FROM derived_fts WHERE rowid=?——要用
+-- INSERT INTO derived_fts(derived_fts, rowid, seg) VALUES('delete', ?, ?)，
+-- 且必须重放原 seg（contentless 表行不可读回）。
 CREATE VIRTUAL TABLE IF NOT EXISTS derived_fts USING fts5(seg, content='');
 
 CREATE TABLE IF NOT EXISTS kb_meta (

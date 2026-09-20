@@ -167,7 +167,8 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
                        "该地址全部见证（各版本/各层）"))
         works = {h.work_id for h in wit if h.scheme == "zhouyi"}
         if len(works) >= 2 and yao:
-            cmp = compare_address(corpus, gua, yao)
+            cmp = compare_address(corpus, gua, yao,
+                                  allow_damaged=allow_damaged)
             ev = cmp.evidential()
             if ev:
                 res.comparisons.append({

@@ -140,7 +140,10 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         f"WHERE {where} ORDER BY u.raw_start LIMIT ?",
         params + [limit]).fetchall()
     if not rows:
-        return {"error": f"section {file or addr_name or addr1} not found in {work_id}"}
+        # R230a-35（R14-P3-11）：三者皆空时返回文本不再出现字面 "None"。
+        sec = file or addr_name or addr1
+        return {"error": f"section {sec if sec is not None else '(未指名)'} "
+                         f"not found in {work_id}"}
     units = [{
         "addr2": r["addr2"], "layer": r["layer"], "text": r["text"],
         "citation": (f"@{r['page_anchor'] or '?'} ({r['file']})"

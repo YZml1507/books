@@ -179,6 +179,14 @@ class KnowledgeBase:
                 f"SELECT * FROM evidence WHERE derived_id IN ({_ph}) ORDER BY id",
                 tuple(derived_ids))
         for r in rows:
+            if not r["work_id"]:
+                continue    # 纯文字 claim：无出处可核验，不算 stale 也不算 ok
+            if not (r["quote"] or "").strip():
+                # R230a-32（R14-P2-4）：有出处无引文——声称可核验实则恒真，
+                # 按 stale 计（不可核验 ≠ 已核验）。
+                stale.append({"evidence_id": r["id"], "derived_id": r["derived_id"],
+                              "work": r["work_id"], "quote": ""})
+                continue
             if r["work_id"] not in bodies:
                 bodies[r["work_id"]] = body_in(raw_dir, r["work_id"],
                                                "folded_notes")

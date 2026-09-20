@@ -2593,8 +2593,12 @@ async function doSearch() {
   if (val('rwork')) params.set('work', val('rwork'));
   try {
     const j = await api('/api/search?' + params.toString());
+    const searchCountLine = (j.truncated && j.total > j.count)
+      ? '命中 ' + esc(j.count) + ' 条（共 ' + esc(j.total) + ' 条，显示前 ' + esc(j.count) + '）'
+      : '命中 ' + esc(j.count) + ' 条';
     paint('searchResult',
-      '<p class="hit-cite">命中 ' + esc(j.count) + ' 条</p>' +
+      (j.hint ? '<p class="hit-cite">' + esc(j.hint) + '</p>' : '') +
+      '<p class="hit-cite">' + searchCountLine + '</p>' +
       renderHits(j.hits, { empty: '🔍 无命中，换个词试试？', score: true }));
   } catch (e) {
     fail('searchResult', '检索失败：' + e.message);
