@@ -10732,3 +10732,10 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 R30 其余 8 条处置：view-read 前端缺陷 5 条按用户 R208b 决策持留（视图无入口）；#14 无关参数提示、#9 负 limit 钳制为边际项暂略。
 
 闸门：selftest 218→233（+15 钉扎断言）、contract 420、parity 65+35/88、poster 判据 12–14（9 视图）、ui_smoke 54、baseline_voice 14 字节冻结、plain_first、xingzuo、warm_voice、async_ai、dollar_misuse、regress 基线已刷新、ruff E9/F 全绿。
+
+## R230s（2026-09-20）：R30 剩余 P3 边界收尾
+
+- `search`/`addr`：`limit<=0` 此前静默钳成 1（`limit=0` 含义不明的请求拿 1 条结果当答复）——如实 400；上限仍钳 50/100 并由 `truncated` 披露。
+- `addr`：与所选 scheme 不相干的参数（如 `scheme=bcv&gua=99`）进 `hint` 字段如实披露「已忽略」，不再静默吞。
+- `addr` yilin 候数越界 400，与 zhouyi 同纪律（1–64）；bcv/booksec/play/euclid 的 addr1 上界随卷目而异无法全局校验，超界仍空集。
+- selftest 233→237。闸门全绿。
