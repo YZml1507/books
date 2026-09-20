@@ -1634,11 +1634,15 @@ def _run_inner() -> list[str]:
         _seen_rule = True
     ok.append("css.import.position")
 
-    # 2b) sqlite3.OperationalError → 503（db 锁/坏页不许变 500 栈；
-    #     errors.py 注册的 handler 必须真实在位）。
+    # 2b) sqlite3.DatabaseError → 503（db 锁/坏页不许变 500 栈；
+    #     errors.py 注册的 handler 必须真实在位）。R229z续18：挂在
+    #     DatabaseError 父类上——OperationalError 走 MRO 继承命中，
+    #     IntegrityError/坏库读错同样兜住。
     import sqlite3 as _sq
-    assert _sq.OperationalError in app.exception_handlers, \
+    assert _sq.DatabaseError in app.exception_handlers, \
         sorted(str(k) for k in app.exception_handlers)
+    assert issubclass(_sq.OperationalError, _sq.DatabaseError), \
+        "OperationalError 应为 DatabaseError 子类（MRO 兜住锁错）"
     ok.append("err.sqlite.op.503")
 
     # 2c) SW 链路：/sw.js 200 + JS MIME + index.html 注册 +

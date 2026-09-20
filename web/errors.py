@@ -27,7 +27,9 @@ STATUS_MAP: tuple[tuple[type[Exception], int], ...] = (
     (NotFoundError, 404),
     # R228j：sqlite 锁/磁盘错此前裸穿 ServerErrorMiddleware → 500 无文案。
     # busy_timeout 已把短锁变等待，真撞上（坏库/长锁）给 503 + 人话。
-    (sqlite3.OperationalError, 503),
+    # R229z续18：放宽到 DatabaseError 父类——IntegrityError/坏库读错
+    # （非 OperationalError 子类）此前仍会 500 无文案。
+    (sqlite3.DatabaseError, 503),
 )
 
 
@@ -48,4 +50,4 @@ def install(app: FastAPI) -> None:
                               exc: Exception) -> JSONResponse:
         return JSONResponse(status_code=503,
                             content={"detail": "存储暂时不可用，请稍后再试"})
-    app.add_exception_handler(sqlite3.OperationalError, _sqlite_handler)
+    app.add_exception_handler(sqlite3.DatabaseError, _sqlite_handler)
