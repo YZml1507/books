@@ -234,7 +234,10 @@ CONDITIONAL_FIELDS = {
     # 对缺席做了显式保护——缺席即「无 AI 段落」，不是漂移。
     # 实测：DISABLE=1 下四端点 keys 无 ai_task_id（web/check_async_ai.py 判据 11）；
     # 开启时键在且 /api/ai/{id} 可轮询（判据 9/10）。
-    "/api/bazi": {"ai_task_id"},
+    "/api/bazi": {"ai_task_id",
+                  # R233c（A9）：hour_known 只在 hour_known===False 时才回
+                  # （时辰留空的盘）；前端 `=== false` 正是对缺席的探测。
+                  "hour_known"},
     "/api/taohua": {"ai_task_id"},
     "/api/hehun": {"ai_task_id"},
     "/api/qiming": {"ai_task_id"},

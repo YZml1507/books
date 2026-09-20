@@ -2032,6 +2032,13 @@ function renderWarm(warm, interp, evidence) {
         '<span class="energy-v">' + esc(ec.keywords.join(' / ')) +
         '</span></div>';
     }
+    /* R233c（R40-W10）：helper_element（生我之行=补餽方向）此前零露出——
+     * 能量卡只说「你是什么」，不说「多沾什么」。 */
+    if (ec.helper_element) {
+      html += '<div class="energy-item"><span class="energy-k">补一补</span>' +
+        '<span class="energy-v">多沾点「' + esc(ec.helper_element) +
+        '」系的能量</span></div>';
+    }
     html += '</div>';
     // 幸运项的规则出处：判据 10 要求可追溯，不能只给结果
     if (ec.basis && ec.basis.length) {
@@ -3557,6 +3564,11 @@ function buildBaziResult(j) {
   /* C-003：交叉引用——八字结果页增加星座维度 */
   if (j.cross_ref && j.cross_ref.message) {
     html += '<div class="cross-ref"><span class="cross-ref-icon">⭐</span>' + esc(j.cross_ref.message) + '</div>';
+  }
+  /* R233c（R40-A9）：时辰未知的盘，后端回 hour_known:false——卡面
+   * 给个小标（温柔行里也写了，但徽标可扫读）。 */
+  if (j.hour_known === false) {
+    html += '<div class="hour-note">⏰ 时辰按午时估算，大方向不变</div>';
   }
   /* R218a-巡2（N-08）：装饰图——结果卡顶部加一行 SVG/CSS 装饰 banner。
    * 后续接入 /api/decoration 时把 url 套进 .deco-img 即可；本轮先给基础

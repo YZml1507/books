@@ -450,6 +450,16 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         # R230a-7（R13-P3-4）：映射不到时此前 append 空串 → 回复出空行。
         if _warm:
             lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。")
+    # R233c（R40-W7）：流日流时里的日支关系（冲合刑害）pro 卡早算好，
+    # 温柔端只吃了十神没吃关系——补一条白话，碰到合/冲说清「和谁、
+    # 什么感觉」。
+    _dbr = dl.get("day_branch_rels") or []
+    if _dbr:
+        _r0 = _dbr[0]
+        _w = RELATION_WARM.get(_r0.get("type") or "", "")
+        if _w:
+            lines.append(f"今天的日子碰到你的{_r0.get('pos', '')}"
+                         f"（{_r0.get('type')}）——{_w}。")
     lines.append("想问具体的事，在上面填一句就行。")
     return lines[:5]
 

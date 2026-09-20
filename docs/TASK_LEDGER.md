@@ -11078,3 +11078,7 @@ scripts_importable / llm_polish / ruff 全绿。
 ### R233b（R40-A2/W3 cross_ref 副键可视化）
 - 塔罗/六爻 cross-ref 块新增方向一致性徽标 `crossDirBadge`：牌面/卦象方向 × 值宫方向 → 同调✓/并行~/相反✗（后端 today_direction/card_direction/gua_direction 副键此前零消费，一致性判定是现成说服力）
 - 闸：selftest 237 / contract 532 / ui_smoke 58 / ruff 全绿
+
+### R233c（R40 尾项：A9/W7/W10）
+- warm.reply 补流日流时日支关系白话行（「今天的日子碰到你的日支巳（六合）——有人配合」）；能量卡补「补一补」行（helper_element 生我之行）；bazi 卡时辰未知加「按午时估算」小标；contract CONDITIONAL_FIELDS 登记 hour_known
+- 闸：selftest 237 / contract 537 / ui_smoke 58 / baseline 14 / warm 判据全绿
