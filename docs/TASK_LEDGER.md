@@ -10812,3 +10812,12 @@ ruff E9,F 零命中。
   空白压缩只压水平空白，段落换行保留（R32-P2-14）。
 - polish/_chat_call 重试加 0.4s 递增退避；polish temperature 0.8→0.5。
 - 删 xhs_copy 死代码；ai-polish badge 改「每次生成可能不一样」。
+
+## R230u（R33-P3 清零批）— 2026-09-20
+
+UX 状态审计剩余项全落。P1/P2 批（R230t 段内）：.chat-entry 类/语义双用拆分（data-chat-entry）、
+submitBazi 防抖前置（不再先擦结果卡）、_XZ_GEN 星座竞态、_hlBusy 黄历四路在途锁、
+ph-del armed+inflight、chat 清空两段式确认、phBind 防抖、failWithRetry data-retry、zwClean 加 ZWSP 族。
+本批（P3）：birthDrawer Enter 接入视图委托、autoSendChatContext 在途窗、qm_surname maxlength 对齐后端、
+五视图结果区空态占位、_parse_iso_date「不存在 vs 格式错」分说；顺带修防抖 _bkey 引用残留（冒烟抓到）。
+hold：view-read 死视图缺陷（R208b 已定无入口，跟随死视图去留决策）、P3-12/14/16/18/20/21 低值记录项。
