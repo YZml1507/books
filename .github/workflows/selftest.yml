@@ -64,6 +64,10 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python probes/probe_selftest_regress.py
+      - name: 专业模式字节冻结闸 baseline_voice（判据 9）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/baseline_voice.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
