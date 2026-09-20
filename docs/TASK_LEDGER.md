@@ -10537,3 +10537,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-26（2026-09-20）：probe_llm_polish 判据3 修离线崩溃
 - 桩 load_config 假配置（polish 已桩）——判据本体（三库零命中）不变。
+
+## R230a-27（2026-09-20）：确定性文案与禁语闸对齐
+- hehun_one_liners「命中注定的羁绊」→「越处越合拍的一对」（copy_bank + voice._STRONG_CP 桶同步）。
+- 全库扫禁语模式：其余命中均为映射表/注释/自查断言，合法。
