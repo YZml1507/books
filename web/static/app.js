@@ -6223,7 +6223,42 @@ var HL_SCENE_ALIAS = {
   '开学': ['入学'],
   /* R230h（R20-F1）：与后端 _CHAT_SCENE_TERMS 同步增键（parity 钉扎）。 */
   '备孕': ['求嗣'], '求子': ['求嗣'], '要孩子': ['求嗣'], '生子': ['求嗣'],
-  '怀孕': ['求嗣']
+  '怀孕': ['求嗣'],
+  /* R2349（R64-P1-5）：真实语料补词——小红书客群高频说法此前全落
+   * 中性卡。与后端 _CHAT_SCENE_TERMS 逐键同构（probe_date_parity 钉扎）。 */
+  '考研': ['入学','祈福'], '期末考': ['入学','祈福'], '期末': ['入学','祈福'],
+  '教资': ['入学','祈福'], '科目二': ['入学','祈福'], '科目三': ['入学','祈福'],
+  '考公': ['入学','祈福'], '考证': ['入学','祈福'], '考级': ['入学','祈福'],
+  '上岸': ['入学','祈福'], '答辩': ['入学','谒贵'], '复试': ['入学','谒贵'],
+  '报班': ['入学','纳财'], '复习': ['入学'], '学习': ['入学'],
+  '交论文': ['入学','谒贵'],
+  '抽卡': ['纳财','祈福'], '抽盲盒': ['纳财','祈福'], '盲盒': ['纳财','祈福'],
+  '彩票': ['纳财'], '谷子': ['纳财'], '买谷子': ['纳财'], '手气': ['祈福'],
+  '开池': ['纳财'], '出金': ['纳财'],
+  '烫发': ['冠笄'], '染发': ['冠笄'], '染头': ['冠笄'], '剪刘海': ['冠笄'],
+  '刘海': ['冠笄'], '美甲': ['冠笄'], '纹眉': ['冠笄'], '美容': ['冠笄'],
+  'do脸': ['求医'], '水光针': ['求医'], '双眼皮': ['求医'], '微整': ['求医'],
+  '见家长': ['谒贵','嫁娶'], '见父母': ['谒贵','嫁娶'], '订婚': ['嫁娶'],
+  '提亲': ['嫁娶'], '彩礼': ['纳财'], '产检': ['求医'], '求婚': ['嫁娶'],
+  '离婚': ['解除'],
+  '抢票': ['纳财'], '开票': ['纳财'], '演唱会': ['出行','谒贵'],
+  '签售会': ['出行','谒贵'], '见爱豆': ['出行','谒贵'], '音乐节': ['出行'],
+  '应援': ['出行'],
+  '接猫': ['进人口'], '领养': ['进人口'], '接新猫': ['进人口'],
+  '接小猫': ['进人口'], '绝育': ['求医'], '打疫苗': ['求医'], '疫苗': ['求医'],
+  '看房': ['出行','入宅'], '搬新窝': ['移徙','入宅'], '续租': ['立券','移徙'],
+  '租房': ['立券','入宅'],
+  '找工作': ['上任','谒贵'], '被裁': ['解除'], '裁员': ['解除'],
+  '海投': ['上任'], '简历': ['上任'], '终面': ['上任','谒贵'],
+  '报到': ['上任'], '谈加薪': ['谒贵','纳财'], '加薪': ['纳财','谒贵'],
+  '复合': ['嫁娶'], '和好': ['嫁娶'], '把话说开': ['解除'], '摊牌': ['解除'],
+  '删好友': ['解除'],
+  '开店': ['开市','纳财'], '副业': ['开市','纳财'], '上新': ['开市'],
+  '摆摊': ['开市','纳财'], '生意': ['开市','纳财'], '网店': ['开市','纳财'],
+  '回家': ['出行'], '团圆': ['出行','谒贵'], '出发': ['出行'],
+  '一日游': ['出行'], '自驾游': ['出行'], '看电影': ['出行'],
+  '要微信': ['嫁娶'], '发消息': ['谒贵'], '见面': ['谒贵'],
+  '上香': ['祭祀'], '拜庙': ['祭祀'], '囤货': ['纳财']
 };
 function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
 /* R227b（用户反馈「不能照本宣科」）：问一嘴的自由输入抽事项词——
@@ -6265,13 +6300,18 @@ function _hlExtractScene(q) {
   s = s.replace(/(前一天|前两天|前三天|头一天|头两天|的后?一?两?三天|的后两天|之后|后一天|后两天|次日|第二天|当天|当日)/g, '');
   s = s.replace(/[前后]$/, '');
   s = s.replace(/^(我|我们|咱|俺)?\s*((想|想要|打算|准备|计划|要|去|做|搞|弄|干|知道|看看|问问|问下|求问|感觉|感到|觉得)+)/, '');
-  s = s.replace(/(适不适合|可不可以|能不能|行不行|宜不宜|好不好|合不合适|吉利不吉利|适合|可以|能|宜|吉利|合适|稳妥|怎么样|怎么办|咋办|行吗|如何|的话|好吗)/g, '');
+  /* R2349（R64-P1-2）：modal 补 要不要/该不该/想不想——「要不要提分手」
+   * 此前剥不掉「要不要」，整串>6 字清空落中性卡。 */
+  s = s.replace(/(适不适合|可不可以|能不能|行不行|宜不宜|好不好|合不合适|吉利不吉利|要不要|该不该|想不想|适合|可以|能|宜|吉利|合适|稳妥|怎么样|怎么办|咋办|行吗|如何|的话|好吗)/g, '');
   /* 「地」不进助词表——「外地/地铁」是真字；连接词单独剥。 */
   s = s.replace(/[吗呢吧啊呀？?!！!，,。.、~～\s的了]/g, '');
   /* 「去/到」不进全局表——「去年→年」「到家→家」是真字伤害；句首/能后的
    * 「去爬山」由上行引导剥离覆盖。 */
   s = s.replace(/(帮|给|跟|和|与|向|让|为|个|只|把|被|在)/g, '');
   s = s.replace(/^(去|做|干|搞)+/, '');
+  /* R2349（R64-P1-2）：口语尾巴字先剥再量长——「去拜拜好/终面成」
+   * 的 好/成/顺 此前顶破 6 字上限整串清空。 */
+  s = s.replace(/(顺利|冲不冲|行不行|好不好|成不成|顺|灵|好|成|过)+$/, '');
   if (s.length > 6) s = '';
   if (/^(黄历|老黄历|看黄历|查黄历|看日子|挑日子|啥|什么|怎么|怎样|怎么样|运势|运气|日子|吉日|现在)$/.test(s)) s = '';
   return s;
@@ -6442,9 +6482,36 @@ function _hlDayOffset(q, base) {
     var b2 = base || new Date();
     return 7 - ((b2.getDay() + 6) % 7);           /* 「下周」→ 下个周一 */
   }
+  /* R2349（R64-P0-A）：周末口径与后端对齐——今天已是周末（六/日）
+   * 就指今天；原式周日算出 +6 整段跳下周六，与小满判出相反日子
+   * （同日两链互斥实测）。 */
   if (/周末|週末/.test(s)) {
     var b3 = base || new Date();
-    return (5 - ((b3.getDay() + 6) % 7) + 7) % 7; /* 下个周六 */
+    var _w3 = (b3.getDay() + 6) % 7;              /* 周一=0 … 周日=6 */
+    return _w3 >= 5 ? 0 : (5 - _w3 + 7) % 7;
+  }
+  /* R2349（R64-P1-4）：「年底/年末/岁尾」→ 当年 12/31 代表日；
+   * 12 月下旬后说「年底」多半指明年收尾，顺下一年（与 py 同口径）。 */
+  if (/年底|年末|岁尾/.test(s)) {
+    var bY = base || new Date();
+    var _ey = bY.getFullYear() +
+      ((bY.getMonth() + 1 > 12 || (bY.getMonth() + 1 === 12 && bY.getDate() > 20)) ? 1 : 0);
+    var _eT = new Date(_ey, 11, 31);
+    return Math.round((_eT - new Date(bY.getFullYear(), bY.getMonth(), bY.getDate())) / 86400000);
+  }
+  /* R2349（R64-P1-4）：「生日」——存过档案就翻下一次生日；没存回 null，
+   * 由提交端明说解不动（静默按今天判是实测 P1）。 */
+  if (/生日|生辰/.test(s)) {
+    var _meR = (typeof _meGet === 'function') ? _meGet('me') : null;
+    if (_meR && _meR.m && _meR.d) {
+      var bB2 = base || new Date();
+      var _bd0 = new Date(bB2.getFullYear(), bB2.getMonth(), bB2.getDate());
+      var _bc = new Date(bB2.getFullYear(), _meR.m - 1, _meR.d);
+      if (_bc < _bd0) _bc = new Date(bB2.getFullYear() + 1, _meR.m - 1, _meR.d);
+      return Math.round((_bc - _bd0) / 86400000);
+    }
+    window.__hlBirthdayNA = true;
+    return null;
   }
   /* R229h：裸曜日「周五/礼拜天/星期日」= 最近的那个（今天命中即今天=0）。
    * 下X/本周X 已在上面消化，这里只剩无前缀写法。 */
@@ -6467,9 +6534,10 @@ function _hlNoSceneNote(yi, ji, day, conflict) {
   var _cfl = {}; (conflict || []).forEach(function (w) { _cfl[w] = 1; });
   var _yi = yi.filter(function (w) { return !_cfl[w]; });
   var _ji = ji.filter(function (w) { return !_cfl[w]; });
-  return '这个黄历没直接提——' + (day || '今天') + '主推【' + (_yi.join('、') || '无') + '】' +
+  return ((_HL.pastDay ? '这天已经过去啦，就当复盘看看——' : '') +
+    '这个黄历没直接提——' + (day || '今天') + '主推【' + (_yi.join('、') || '无') + '】' +
     (_ji.length ? '，忌【' + _ji.join('、') + '】' : '') +
-    '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。';
+    '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。');
 }
 function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
   /* R230h（R20-F7）：宜∩忌相冲词不作主推/凭据——后端同款摘除
@@ -6498,6 +6566,17 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
   var hitJi = _hit(ji, aliases, JI_MAP);
   var why = '（' + day + '黄历主推' + (_yiClean.length ? '【' + _yiClean.join('、') + '】' : '的内容不多') +
     (_jiClean.length ? '，忌【' + _jiClean.join('、') + '】' : '') + '）';
+  /* R2349（R64-P0-B/P1-1）：过去日期的判词要明说「已经过去」——后端
+   * 事实行有同义披露，前端此前没有，「这周五」落到已过的日子也照样
+   * 给「宜表白」不提示。 */
+  var _pastTag = _HL.pastDay ? '（这天已经过去啦，就当复盘看看，挑日子看下面👇）' : '';
+  /* R2349（R64-P1-6）：「哪天/什么时候+事项」找日问法——判词改给
+   * 近 45 天清单引导（chip 列表随后异步注入）。 */
+  if (_HL.findMode) {
+    return '<div class="hl-verdict" id="hlVerdict">' +
+      esc('想挑日子？近 45 天里适合「' + sc + '」的吉日已经列在下面，' +
+          '点 chip 直接翻那天的黄历～' + _pastTag) + '</div>';
+  }
   var verdict;
   if (hitYi.length && !hitJi.length) {
     verdict = day + '适合' + sc + ' ✅ —— 宜项里就有【' + hitYi.join('、') + '】' + why;
@@ -6519,13 +6598,14 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
   var _med = _MED.some(function (m) { return sc.indexOf(m) !== -1; }) ||
     aliases.some(function (a) { return _MED.indexOf(a) !== -1; });
   if (_med) verdict += '（看病这种事，医生说了算——黄历不作数哦。）';
-  return '<div class="hl-verdict" id="hlVerdict">' + esc(verdict) + '</div>';
+  return '<div class="hl-verdict" id="hlVerdict">' + esc(_pastTag + verdict) + '</div>';
 }
 
 /* 黄历页的跨调用状态（场景/目标日文案/滚动位/问一嘴待写标记）。
  * R228a：以前挂在 doHuangli 函数对象属性上（doHuangli._scene …）——合法
  * 但踩中 probe_dollar_misuse「函数当对象用」红线，换成纯数据对象更干净。 */
-var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false};
+var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false,
+           pastDay: false, findMode: false};
 
 /* R229z：本地 _hlDayOffset 解不动、但后端能解的日期词（节日/农历）——
  * 命中时问一嘴提交走 /api/huangli/resolve_date 兜底。与后端
@@ -6601,6 +6681,10 @@ async function _doHuangli(offset, reveal, spokenWord) {
     _dayWord = (y === _t0.getFullYear() && m === _t0.getMonth() + 1 && d === _t0.getDate()) ? '今天' : '那天';
   }
   _HL.dayWord = _dayWord;
+  /* R2349（R64-P0-B/P1-1）：目标日 < 今天 → 判词/中性卡加过期提示
+   * （后端事实行有同义披露，前端此前缺席）。 */
+  var _tp = new Date(); _tp.setHours(0, 0, 0, 0);
+  _HL.pastDay = (new Date(y, m - 1, d) < _tp);
   /* R228c：chip 高亮跟本次实际查的日期走——自选日期/问一嘴跳日路径原来
    * 不动 chip，「今天」常亮但结果显示的是另一天（状态泄漏）。无对应
    * chip 的日期（绝对日期/超范围偏移）则全部灭掉。 */
@@ -7047,7 +7131,17 @@ async function _doHuangli(offset, reveal, spokenWord) {
       var _hd0 = document.querySelector('#hlResult .hl-head div');
       var _ds0 = _hd0 ? _hd0.textContent.trim() : '';
       _hlAskLog(q, /^\d{4}-\d{2}-\d{2}$/.test(_ds0) ? _ds0 : todayIso());
-      var KNOWN = ['搬家','开业','约会','面试','出行','签约','表白','相亲','结婚','领证','求职','上班','入职','挪窝','装修','开张','合同','旅行','出差','出游','收款','理财','看病','种花'];
+      /* R2349（R64-P1-3/P1-5）：事项词识别改「词表子串命中，长词优先」
+       * ——与后端 _CHAT_SCENE_TERMS→_HUANGLI_VOCAB 同序同口径。此前
+       * KNOWN 只有 25 词，chat 端 80+ 键能命中而 UI 落中性卡，同一
+       * 问题两链判定不一致（审计实测 5 条分裂）。 */
+      var KNOWN = Object.keys(HL_SCENE_ALIAS).concat([
+        '上任','乘船','修造','入学','入宅','冠笄','出官','动土','塞穴',
+        '嫁娶','安床','安葬','平整','开仓','开市','捕捉','栽种',
+        '求医疗病','求名','求嗣','治病','狩猎','田猎','畋猎','登山',
+        '破土','破屋坏垣','祈福','祭祀','移徙','立券','筑堤','纳财',
+        '行丧','解除','诉讼','谒贵','进人口'
+      ]).sort(function (a, b) { return b.length - a.length; });
       var qn = _t2s(q);   /* R229d：繁中归一后再匹配词表/抽词（原文保留给日期词与展示） */
       var hitName = '';
       for (var i = 0; i < KNOWN.length; i++) { if (qn.indexOf(KNOWN[i]) !== -1) { hitName = KNOWN[i]; break; } }
@@ -7059,7 +7153,18 @@ async function _doHuangli(offset, reveal, spokenWord) {
       /* R229c（R5 审计 P2）：抽出来的是乱码/纯外文（'asdf'）时不原样回显
        * 进判定卡，回退中性「这件事」——仍给出当日宜忌判定。 */
       if (sc && !/[一-鿿]/.test(sc)) sc = '这件事';
+      /* R2349（R64-P1-6）：找日问法标记——「哪天X好」判词改日子清单口径 */
+      _HL.findMode = /哪天|什么时候|啥时候|几时|几号/.test(qn) && !!sc;
+      window.__hlBirthdayNA = false;
       var off = _hlDayOffset(q);
+      if (window.__hlBirthdayNA) {
+        /* R2349（R64-P1-4）：「生日」无档案——明说解不动+指路档案位；
+         * 不按今天替她判（静默判错天比不答更伤）。 */
+        showToast('你的生日还没存——在首页「我的小档案」填一下，我就能翻那天的黄历', 'info');
+        _HL.scene = '';
+        _hlShowNeutral();
+        return;
+      }
       /* R229z：节日/农历等本地解不动的日期词——_hlDayOffset 返回 null 且
        * 词表命中时走 /api/huangli/resolve_date；解出翻页，解不出回退
        * 显示日（与既有 off=null 路径等价）。 */

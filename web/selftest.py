@@ -2024,8 +2024,10 @@ def _run_inner() -> list[str]:
     # 不塞判定；带「哪天/该不该」等意图词才给判定。
     _hf4b = _svc.chat_huangli_facts("我分手了", now=_dt(2026, 9, 19))
     assert _hf4b == [], _hf4b
+    # R2349（R64-P1-6）：「哪天X好」改走找日清单事实——闸的本意是
+    # 「已成事实+决策意图要给事实」不饿死，判定格式不再唯一。
     _hf4c = _svc.chat_huangli_facts("分手后哪天适合复合", now=_dt(2026, 9, 19))
-    assert _hf4c and any("黄历判定" in f for f in _hf4c), _hf4c
+    assert _hf4c and any("哪天" in f or "黄历判定" in f for f in _hf4c), _hf4c
     _hf4d = _svc.chat_huangli_facts("我怀孕了", now=_dt(2026, 9, 19))
     assert _hf4d == [], _hf4d
     # R233r（R49-Top5-5）：「最近」被当日期词接住，spoken 带原词。
