@@ -703,8 +703,11 @@ def chat(session_id: str, user_msg: str,
                 sess["messages"].append({"role": "user", "content": msg})
                 # R230t（R32-P1-5）：存入历史的副本裁到 800 字——历史只供
                 # 模型参考，超长原文前端已展示，整段回喂纯烧 token。
+                # R230v（R34-#18）：截断处打标记——模型不会把半句话当全文
+                # 引用（「回复到一半没了」的幻觉根因）。
+                _hist = text[:800] + ("…（后略）" if len(text) > 800 else "")
                 sess["messages"].append({"role": "assistant",
-                                         "content": text[:800]})
+                                         "content": _hist})
                 sess["updated"] = time.monotonic()
         return text
 
