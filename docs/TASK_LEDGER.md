@@ -10613,3 +10613,5 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   节气精度 ≤12.6min（代码声明 ±15min 内）。
 - 续：ui_smoke +btn:r16.fixtures（黄历 chatEntry / shareTarot / shareXingzuo
   存在性钉扎），49 用例全绿。
+- 续2：R16 P3-4 Esc 兜底回首页（details→侧栏→海报 modal 优先，零层可关才导航）；
+  P3-6 聊天空消息占位提示（与 hlAskInput 口径一致）。
