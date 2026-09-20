@@ -345,6 +345,12 @@ def _run_inner() -> list[str]:
         assert _c["char"] and _c["element"], ("qiming.candidates.blank", _c)
     print(f"  qiming.candidates.filled PASS（候选池 {len(_cands)} 字，键名齐全）")
     ok.append("qiming.candidates.filled")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R230a-16：qiming five_elements 的 weak 键钉扎（R13 五行俱全时前端
+    # 吃 missing 变空卡的 bug 修字段）——键必须在、类型必须是 list。
+    _fe2 = _rc2.json().get("five_elements") or {}
+    assert "weak" in _fe2 and isinstance(_fe2["weak"], list), \
+        ("qiming.five_elements.weak", sorted(_fe2))
+    ok.append("qiming.five_elements.weak")
     # R226b-fix（审查轨 R226a 目视抓到）：典故库每条的**字必须真出现在「句」里**。
     # 前端把「句」直接展示给用户（"📜 <句> —— <出处>"），字不在句里就是露馅：
     # 实测曾有 14 条不自洽，如「澜」配"河伯过江海"、「苓」配"蒹葭苍苍"、
@@ -1501,6 +1507,11 @@ def _run_inner() -> list[str]:
     _bz = client.post("/api/bazi", json={"year": 1990, "month": 5, "day": 15,
                                         "hour": 10, "gender": "男"}).json()
     assert isinstance(_bz["calc"]["five_elements"], dict), "five_elements must be dict"
+    # R230a-16：strong_tied/weak 结构钉扎（R13 加的并列最高/偏弱字段）
+    _fe = _bz["calc"]["five_elements"]
+    assert "strong" in _fe and "strong_tied" in _fe, \
+        ("five_elements.keys", sorted(_fe))
+    assert isinstance(_fe["strong_tied"], list), "strong_tied must be list"
     assert isinstance(_bz["calc"]["day_luck"], dict), "day_luck must be dict"
     # C-001：黄历移除文言展示（建除/二十八宿/彭祖百忌），改为年轻化宜忌词库
     _hl = client.get("/api/huangli", params={"date": "2026-08-19"}).json()
