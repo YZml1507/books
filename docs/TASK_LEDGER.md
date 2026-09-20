@@ -11163,3 +11163,7 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - P2 落地：busy() 有旧结果时原位 is-working+加载签（不再整清）；fail/failWithRetry 忙态容器错误行置顶+toast、旧卡保留；Esc 无可关层不再跳首页（IME 误触）；fx 涟漪收窄到交互白名单；insertAiPolish 入场动画+「小满又补了一句」toast；downloadPoster 触发钮忙态；ly_method=coins 隐藏时间行；toast × 关闭钮+pointer-events 修复（error hover 暂停计时此前是死代码）；chatInput 接近上限露 n/500；fav 删除改 api()+inflight；两处 scrollIntoView 走 _rmBehavior()；fav-chip-x/qm-fav 触面 44px；hl-week 7 列 minmax(44px) 横滑兜底；work-card 焦点环。
 - 不修备录：chatSend 并发乱序（§8-4）实测无窗口——后端 _session_lock 同 sid 任务串行，回复必有序。
 - 事故记录：R233j 凶日安抚池化时吃掉了三元 `: ''` 分支致全站解析失败——ui_smoke 首撞现形，CDP Runtime.compileScript 定位行号修复；教训：池化替换必须连 `:` 分支一起核对。
+
+### R233l（死视图清理）
+- `view-divine` 簇页删除：零 `data-view="divine"` 入口、零 JS/CSS 引用（R200b 迁移进 view-bazi 相关功能区后残留 DOM）。selftest 分割点改锚 `view-bazi`。
+- R46 备查：塔罗 78 牌面+牌背此前已由 r231a 生图库存完成替换（核实 `web/static/_candidates/r231a/tarot-*-src`），本轮复核无需重生成。

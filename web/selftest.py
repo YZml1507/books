@@ -1407,7 +1407,9 @@ def _run_inner() -> list[str]:
     # pro-drawer 抽屉（默认折叠，功能零删除）；研究型关键词不得出现在
     # home-main 可见区（判据 a：检索/比对/书目/线程/书 ID 计数=0）。
     import re as _re
-    _home_seg = home.text.split('id="view-divine"')[0]
+    # R233l：view-divine 死视图已删——分割点改锚到第一个真视图 view-bazi
+    # （home-main 卡片区与视图容器同分界，计数口径不变）。
+    _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
     assert len(_cards) == 9, ("home.ia.count", len(_cards), _cards)  # 6 直达+3 抽屉（D-005 星座；2026-08-28 水墨改版新增 history 卡）
     # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming

@@ -214,25 +214,8 @@ if ('serviceWorker' in navigator) {
 
   <!-- 视图容器。R200b 方案①：view-divine 不再作为簇页——起名/桃花/合婚
        三张八字系功能卡收进 view-bazi 底部「相关功能」区（数据同源）。 -->
-  <div class="view" id="view-divine" hidden>
-    <div class="card"><h2><span aria-hidden="true">🪙</span> 问一卦</h2>
-      <p style="color:var(--secondary);font-size:14px;">选一个方式，问一件具体的事</p>
-      <div class="func-grid">
-        <div class="func-card" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-          <div class="func-icon">🪙</div><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 看事情走向</div>
-        </div>
-        <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
-          <div class="func-icon">🌸</div><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
-        </div>
-        <div class="func-card" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
-          <div class="func-icon">🌺</div><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
-        </div>
-        <div class="func-card" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
-          <div class="func-icon">💕</div><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- R233l：view-divine 簇页删除——零 data-view 入口、零 JS 引用，
+     抽屉卡已迁移进 view-bazi 相关功能区（R200b）。 -->
 
   <div class="view" id="view-bazi">
     <div class="card">
