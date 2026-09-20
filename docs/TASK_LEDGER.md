@@ -10626,3 +10626,6 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   bazi_lookup 两处直连 sqlite3.connect 补存在性守卫（不再顺手建 0B 残库）；
   P3-3 errors.py json_invalid →「请求体不是合法的 JSON」。
   蓝图补装 feedparser 建议已交用户（initialize+maintenance 两处）。
+- 裁注：/api/bazi 在 corpus 缺失时维持 503 人话（提示跑 build_index）——
+  与六爻不同，八字解读层必须带证据引文，静默降级成零引文解读反而违
+  「引用与生成分离」宪法，故不是连坐。
