@@ -1279,6 +1279,19 @@ def _run_inner() -> list[str]:
         assert _hr.status_code == 404, ("history.removed", _hm, _hp,
                                         _hr.status_code)
     ok.append("history.removed")
+    # R230n（R25-3.3）：SPA 兜底中间件——GET 非 api/static 且下游 404 时
+    # 回 index.html（供 ?view=/路径式深链）；同时必须保住两件事：
+    # ① /api/* 的 404 语义不被吃掉 ② 非 GET 方法不被抬成 405（catch-all
+    # 路由方案的坑——中间件实现就是为了避开它，此处反向钉扎）。
+    _sf = client.get("/huangli")
+    assert _sf.status_code == 200 and "text/html" in \
+        _sf.headers.get("content-type", ""), ("spa.fallback",
+                                              _sf.status_code)
+    assert client.get("/api/__nonexistent__").status_code == 404, \
+        "spa.fallback.api_404"
+    assert client.delete("/some/random/path").status_code == 404, \
+        "spa.fallback.delete_404"
+    ok.append("spa.fallback")
     check("threads.detail", client.get("/api/threads/1"),
           lambda j: "claims" in j and "turns" in j)
     # R169b（D-215b）：threads.detail 404 拒绝路径 standing 覆盖。
