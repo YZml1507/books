@@ -25,20 +25,33 @@
 
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import sys
 
 block_cipher = None
 
+_spec_dir = os.path.dirname(os.path.abspath(SPECPATH))
+# R230n（R26）：guji 子模块从「靠 import 链自动收编」改显式枚举——
+# 未来谁加了插件式/字符串动态导入也不会漏进 exe。
+sys.path.insert(0, os.path.join(_spec_dir, 'src'))
+try:
+    from PyInstaller.utils.hooks import collect_submodules
+    _GUJI_ALL = collect_submodules('guji')
+except Exception:
+    _GUJI_ALL = []
+
 a = Analysis(
-    ['web_launcher.py'],
-    pathex=['src'],
+    [os.path.join(_spec_dir, 'web_launcher.py')],
+    # R230n（R26）：pathex 绝对化——原先 'src' 依赖构建 cwd=仓库根，
+    # 换个目录跑 pyinstaller 就静默解析不到 guji。
+    pathex=[os.path.join(_spec_dir, 'src')],
     binaries=[],
     datas=[
-        # 内嵌前端单页（小，必内嵌）
-        ('web/static', 'web/static'),
+        # 内嵌前端单页（小，必内嵌）。R230n：源路径全绝对化，同 pathex。
+        (os.path.join(_spec_dir, 'web/static'), 'web/static'),
         # R229x：起名典故库 + daily/warm 文案库——不进 exe 时
         # classical_names 静默 0 候选、copy_bank 静默回退旧表。
-        ('src/guji/classical_names.json', 'src/guji'),
-        ('src/guji/copy_bank.json', 'src/guji'),
+        (os.path.join(_spec_dir, 'src/guji/classical_names.json'), 'src/guji'),
+        (os.path.join(_spec_dir, 'src/guji/copy_bank.json'), 'src/guji'),
     ],
     hiddenimports=[
         'uvicorn.logging',
@@ -70,6 +83,8 @@ a = Analysis(
         'guji.ingest',
         'guji.compare',
         'guji.knowledge',
+        # R230n：显式枚举全量 guji 子模块（含上面手列项，去重交给 PyInstaller）
+        *_GUJI_ALL,
     ],
     hookspath=[],
     hooksconfig={},
