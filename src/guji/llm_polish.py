@@ -75,8 +75,14 @@ def load_config() -> dict | None:
             with open(path, encoding="utf-8") as f:
                 cfg.update(json.load(f))
             break
-        except Exception:
-            pass  # 无配置文件不算错——降级路径的一部分
+        except Exception as _cfg_exc:
+            # R230l（R24-P3-3）：文件存在但损坏/BOM/是目录此前静默吞掉——
+            # 运维无法区分「没配」与「配坏了」。存在性失败静默（常态），
+            # 解析性失败打一行 stderr 告警（不含内容）。
+            if os.path.exists(path):
+                print(f"[llm_polish] 配置文件 {path} 读取失败"
+                      f"（{type(_cfg_exc).__name__}），按未配置降级",
+                      file=sys.stderr)
     # 环境变量覆盖（部署形态用；key 不落盘的场景）
     if os.getenv(_ENV_KEY):
         cfg["api_key"] = os.environ[_ENV_KEY]
@@ -87,7 +93,12 @@ def load_config() -> dict | None:
 
     if not cfg.get("enabled"):
         return None
-    if not cfg.get("api_key") or cfg["api_key"].startswith("REPLACE"):
+    # R230l（R24-P2-1）：api_key 非字符串（用户手写配置文件填了
+    # 数字/对象）此前 startswith 炸 AttributeError → 端点 500。
+    # 按未配置处理——与 DISABLE 同路径静默降级。
+    if (not isinstance(cfg.get("api_key"), str)
+            or not cfg["api_key"]
+            or cfg["api_key"].startswith("REPLACE")):
         return None
     return cfg
 
@@ -248,6 +259,11 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # R230a-6（R12-P3-7）：<6 字下限会误杀合法短答（「挺好的。」4 字），放到 3。
     if len(text) < 3:
         return None
+    # R230l（R24-P2-2）：上游回复无长度上限——实测 36MB content 会原样
+    # 进任务行/响应/session history，下一条消息把 36MB 整体再发回上游。
+    # 截到 8000 字（正常解读 200-800 字，10× 余量），截断标记进尾部。
+    if len(text) > 8000:
+        text = text[:8000].rstrip() + "……（内容太长，后面的截掉了）"
     if _BANNED_OUT_PAT.search(text):
         return None
     return text

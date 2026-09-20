@@ -1,4 +1,4 @@
-"""Douay-Rheims Bible parser — the third bcv-family edition.
+r"""Douay-Rheims Bible parser — the third bcv-family edition.
 
 The Douay-Rheims Old Testament (1582/1609-10, Challoner revision 1749-52) follows
 Vulgate numbering and spelling, which differ from the Protestant KJV/WEB that

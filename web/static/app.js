@@ -550,7 +550,10 @@ function autoSendChatContext() {
   var facts = (ctx.facts && ctx.facts.length) ? ctx.facts : CHAT_LAST_FACTS;
   chatBubble('me', msg);
   postJSON('/api/chat', {
-    session_id: chatSid(), message: msg, facts: facts
+    /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
+     * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
+    session_id: chatSid(), message: msg, facts: facts,
+    client_date: todayIso()
   }).then(function (j) {
     if (!j.chat_task_id) {
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
@@ -830,7 +833,8 @@ function chatSend() {
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   postJSON('/api/chat', {
-    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS
+    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS,
+    client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
       /* R216b 续3（UX 队列 U-008）：原降级文案「（聊天功能暂时没开，
@@ -5034,7 +5038,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
        * 词表命中时走 /api/huangli/resolve_date；解出翻页，解不出回退
        * 显示日（与既有 off=null 路径等价）。 */
       if (off == null && _HL_COMPLEX_DATE.test(q)) {
-        api('/api/huangli/resolve_date?q=' + encodeURIComponent(q),
+        api('/api/huangli/resolve_date?q=' + encodeURIComponent(q) +
+            '&base=' + todayIso(),   /* R230l（R24-P3-4） */
             { silent: true }).then(function (r) {
           var off2 = null;
           if (r && r.date) {
@@ -5667,13 +5672,27 @@ function baziPersonaCard(j) {
   'use strict';
   async function phFetch(url, opts) {
     /* R228k：与 api() 同款的 20s 超时——raw fetch 也不能让排盘历史
-     * 的 busy/在途态永远卡住。 */
+     * 的 busy/在途态永远卡住。
+     * R230l（R24-P3-1）：AbortSignal.timeout 需 2022 中后浏览器——
+     * 老 Android WebView/旧 Safari 上此前无任何超时，挂起连接=永卡
+     * busy。补 api() 同款 AbortController+setTimeout 回退。 */
     opts = opts || {};
-    if (!opts.signal && typeof AbortSignal !== 'undefined'
-        && AbortSignal.timeout) {
-      opts.signal = AbortSignal.timeout(API_TIMEOUT_MS);
+    var _ctl = null, _t = null;
+    if (!opts.signal) {
+      if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+        opts.signal = AbortSignal.timeout(API_TIMEOUT_MS);
+      } else if (typeof AbortController !== 'undefined') {
+        _ctl = new AbortController();
+        _t = setTimeout(function () { _ctl.abort(); }, API_TIMEOUT_MS);
+        opts.signal = _ctl.signal;
+      }
     }
-    const r = await fetch(url, opts);
+    var r;
+    try {
+      r = await fetch(url, opts);
+    } finally {
+      if (_t) clearTimeout(_t);
+    }
     if (!r.ok) {
       let m = '没查到这条记录（' + r.status + '）';
       try { const j = await r.json(); if (j && typeof j.detail === 'string') m = j.detail; } catch (e) {}

@@ -279,6 +279,10 @@ class ChatRequest(BaseModel):
     session_id: str = Field(..., description="会话 id（前端生成 UUID）")
     message: str = Field(..., description="用户消息（≤500 字）")
     facts: list[str] | None = None
+    # R230l（R24-P2-3）：黄历事实的「今天」基准。不给按服务器日（旧行为）；
+    # 前端传浏览器本地日，跨零点 ±TZ 窗口不漂移。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:
@@ -286,6 +290,13 @@ class ChatRequest(BaseModel):
         msg = strip_zw(self.message) or ""      # R230k：零宽剥后可为空
         if not msg:
             raise ValidationError("消息不能为空")
+        if self.client_date is not None:
+            try:
+                _cd = date.fromisoformat(self.client_date)
+            except (ValueError, TypeError):
+                raise ValidationError("client_date 需为 YYYY-MM-DD")
+            if not (YEAR_LO <= _cd.year <= YEAR_HI):
+                raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
         if len(msg) > 500:
             raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
         # R228r：facts 无界可塞爆 LLM system prompt——限条数+单条长度。

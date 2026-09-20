@@ -88,9 +88,21 @@ class KnowledgeBase:
         # R230i（R21-P1-1）：库损坏此前全端点永久 503（文案还暗示暂时性）。
         # 与 paipan_history 同档自愈：探测 sqlite_master 失败→坏文件挪到
         # .corrupt-<ts> 留档，开新空库——读路径降级为空数据而不是死。
+        # busy_timeout 必须在探针/quick_check 之前——否则并发写期的短锁
+        # 会以 OperationalError 炸在探针里（R21 P0-3 同款坑：锁≠坏）。
+        self.db.execute("PRAGMA busy_timeout=8000")
         try:
             self.db.execute(
                 "SELECT name FROM sqlite_master LIMIT 1").fetchall()
+            # R230l（R24-P3-9）：sqlite_master 探针只验「文件头可解析」——
+            # 断电写坏中层页时 sqlite_master 完好、首个查询才炸。
+            # knowledge.db 体积小，quick_check 全表扫一遍代价可忽略；
+            # 非 ok 走同一条隔离自愈路径。
+            _qc = self.db.execute("PRAGMA quick_check(1)").fetchone()
+            if not _qc or _qc[0] != "ok":
+                raise sqlite3.DatabaseError("quick_check 未通过")
+        except sqlite3.OperationalError:
+            raise   # OperationalError（锁/忙）不是损坏——透传不隔离
         except sqlite3.DatabaseError:
             self.db.close()
             qua = (path + ".corrupt-" +
@@ -101,6 +113,7 @@ class KnowledgeBase:
                 raise   # 挪不走就维持报错，别强装自愈
             self.db = sqlite3.connect(path)
             self.db.row_factory = sqlite3.Row
+            self.db.execute("PRAGMA busy_timeout=8000")
         self.db.execute("PRAGMA foreign_keys = ON")
         # R228b：并发写撞锁实测 5s 后抛 database is locked → 裸 500。
         # WAL 让读写不互斥；busy_timeout 把短锁等待转化为等待而非秒抛。
@@ -110,7 +123,6 @@ class KnowledgeBase:
             self.db.execute("PRAGMA journal_mode=WAL")
         except sqlite3.DatabaseError:
             pass
-        self.db.execute("PRAGMA busy_timeout=8000")
         here = os.path.dirname(os.path.abspath(__file__))
         schema = open(os.path.join(here, "knowledge_schema.sql"),
                       encoding="utf-8").read()

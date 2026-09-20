@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
@@ -74,9 +74,18 @@ def chat(req: ChatRequest) -> dict:
     facts = list(req.facts or [])
     # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是
     # 话题参考，按子串升格会让伪造判定混入权威位。
+    # R230l（R24-P2-3）：客户端基准日透传——跨零点 ±TZ 窗口里服务器
+    # 日与浏览器「今天」不同，黄历事实按用户日子算。
+    _now = None
+    if req.client_date:
+        try:
+            _now = datetime.combine(
+                date.fromisoformat(req.client_date), datetime.now().time())
+        except (ValueError, TypeError):
+            pass   # validate_ranges 已挡；此处再兜底不炸
     tid = llm_polish.spawn_chat_task(
         req.session_id, req.message, facts=facts,
-        verdict_facts=services.chat_huangli_facts(req.message))
+        verdict_facts=services.chat_huangli_facts(req.message, now=_now))
     if tid:
         out["chat_task_id"] = tid
     return out
