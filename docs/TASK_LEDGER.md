@@ -10381,3 +10381,10 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ### R229z续9（节气问法接入）
 
 - 「冬至吃饺子/立春后开工/驚蟄那天搬家」——24 节气中的 17 个接入 `_SOLAR_TERMS` 走 `term_time` 天文算法（与清明同口径），年偏/±后缀/过去语标全部继承。排除项是有意的：小满（吉祥物名，「小满觉得我…」是在叫它）、大雪/小雪/大寒/小寒（天气歧义）。_T2S 补驚蟄穀三繁体；`_HL_COMPLEX_DATE`/`_hlExtractScene` 同步接节气词。parity +7 用例（61+31=92 全绿）。
+
+### R229z续10（R8 尾批：摘要列/缓存头/截断结论）
+
+- **P2-5** `paipan_history.list_records` 改 `json_extract` SQL 直取 `paipan.render`/`five_elements.counts`——不再把 ~50KB/行的 req_json+result_json 搬进 Python；`req` 全字段前端列表零引用（复看走详情接口）不再回吐。零 schema 迁移。
+- **P1-2 附**：低变动资产（fonts/cream/tarot/animotion）补 `Cache-Control: max-age=86400`——非 SW 会话不再每次逐个 304。
+- **P2-7 结论**：/api/research 349KB 的大头已被 gzip（P1-2）压到 ~60KB；`evidence.text` 是引证原文，截断会损「可核验性」这个立身之本——不截，结项。
+- **P2-8 缓办**：ink/cream 全量源档案是 docs/assets-manifest.md 钦定的有意存档，移出 web/static 要用户拍板（exe 体积问题 real 但与存档纪律冲突）。

@@ -174,30 +174,28 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
     offset = max(0, int(offset))
     with contextlib.closing(_conn()) as c:
         total = c.execute("SELECT COUNT(*) FROM records").fetchone()[0]
+        # R229z续10（R8 P2-5）：原实现为渲染摘要把整行 req_json+result_json
+        # （~50KB/行）搬进 Python 再 json.loads——改 json_extract 在 SQLite
+        # 内直取两个摘要字段；req 全字段前端列表零引用（复看走详情接口），
+        # 不再回吐。
         rows = c.execute(
-            "SELECT id,ts,name,question,req_json,result_json FROM records"
-            " ORDER BY id DESC LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+            "SELECT id,ts,name,question,"
+            " json_extract(result_json,'$.paipan.render'),"
+            " json_extract(result_json,'$.calc.five_elements.counts')"
+            " FROM records ORDER BY id DESC LIMIT ? OFFSET ?",
+            (limit, offset)).fetchall()
     items = []
-    for rid, ts, name, question, req_json, res_json in rows:
+    for rid, ts, name, question, render, counts in rows:
         try:
-            result = json.loads(res_json)
+            counts = json.loads(counts) if counts else None
         except ValueError:
-            result = {}
-        # R228j：req_json 护栏——原实现只包 res_json，一行坏 req_json
-        # 就让整页 500 且没有删除该行的前端路径（删行要先列出）。
-        try:
-            req_obj = json.loads(req_json) if req_json else {}
-        except ValueError:
-            req_obj = {}
-        paipan = result.get("paipan") or {}
-        calc = result.get("calc") or {}
+            counts = None
         items.append({
             "id": rid, "ts": ts, "name": name,
             "question": question,
-            "req": req_obj,
             "result_summary": {
-                "paipan_render": paipan.get("render"),
-                "five_elements": (calc.get("five_elements") or {}).get("counts"),
+                "paipan_render": render,
+                "five_elements": counts,
             },
         })
     return {"total": total, "items": items}

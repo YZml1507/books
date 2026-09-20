@@ -98,6 +98,18 @@ def create_app() -> FastAPI:
                 content={"detail": "请求体太大了，精简一下再发"})
         return await call_next(request)
 
+    # R229z续8 续（R8 P1-2 附）：字体/出图资产低变动——一天 Cache-Control，
+    # 非 SW 会话不必每次逐个 304 回源。
+    @application.middleware("http")
+    async def _static_cache(request, call_next):
+        resp = await call_next(request)
+        p = request.url.path
+        if p.startswith(("/static/fonts/", "/static/cream/",
+                         "/static/tarot/", "/static/animotion/")):
+            resp.headers.setdefault("Cache-Control",
+                                    "public, max-age=86400")
+        return resp
+
     for router in ROUTERS:
         application.include_router(router)
 
