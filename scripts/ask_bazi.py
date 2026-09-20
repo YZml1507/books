@@ -40,8 +40,19 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=6, help="每路径最多展示条数")
     opts = ap.parse_args()
 
+    # R230c（R17-P1-7）：GBK 终端强转 utf-8/replace，与 ask.py 同纪律。
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+
     if len(opts.args) >= 4:
-        y, m, d, h = (int(x) for x in opts.args[:4])
+        # R230c（R17-P1-8）：位置参数 int() 裸转此前直接 traceback。
+        try:
+            y, m, d, h = (int(x) for x in opts.args[:4])
+        except ValueError:
+            print("输入非法：年/月/日/时要给整数")
+            return 2
         g = opts.args[4] if len(opts.args) >= 5 else opts.gender
     elif opts.year and opts.month and opts.day:
         y, m, d, h, g = opts.year, opts.month, opts.day, opts.hour, opts.gender
@@ -49,11 +60,20 @@ def main() -> int:
         ap.print_help()
         return 2
 
-    if not (1 <= m <= 12 and 1 <= d <= 31 and 0 <= h <= 23):
-        print("输入非法：month 1-12，day 1-31，hour 0-23")
+    # R230c（R17-P1-8）：年份此前漏校（year 0/-300 裸 traceback）；
+    # 节气表适用范围与 web 同口径（web/schemas.py YEAR_LO/YEAR_HI）。
+    YEAR_LO, YEAR_HI = 1900, 2100
+    if not (YEAR_LO <= y <= YEAR_HI and 1 <= m <= 12
+            and 1 <= d <= 31 and 0 <= h <= 23):
+        print(f"输入非法：year {YEAR_LO}-{YEAR_HI}，month 1-12，"
+              f"day 1-31，hour 0-23")
         return 2
 
-    b = compute(y, m, d, h, g)
+    try:
+        b = compute(y, m, d, h, g)
+    except Exception as exc:  # noqa: BLE001 — CLI 把人话化处理
+        print(f"排盘失败：{exc}")
+        return 2
     print("=" * 70)
     print("排盘（纯坐标换算，非解读）")
     print("=" * 70)

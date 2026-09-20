@@ -34,7 +34,7 @@ from .bookstudy import structure as book_structure  # noqa: E402
 from .knowledge import KnowledgeBase
 from .research import compare_works, concept_census, research
 from .sources import add_local_work
-from .search import Corpus
+from .search import Corpus, s2t_retry
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CORPUS_DB = os.path.join(ROOT, "data", "index", "corpus.db")
@@ -65,10 +65,27 @@ def search(q: str, layer: str | None = None, work: str | None = None,
            limit: int = 10) -> str:
     """Full-text phrase search over the 古籍 corpus (異體字 folded, adjacency kept).
     Every hit carries a verifiable citation: 书名/层/卦爻地址/页锚点/源文件."""
+    # R230c（R17-P2-1/P3-2）：与 web _require_q 同纪律——空/超长先拒。
+    if not (q or "").strip():
+        return "error: 查询词不能为空"
+    q = q.strip()
+    if len(q) > 200:
+        return "error: 查询词过长（≤200 字符）"
     c = Corpus(CORPUS_DB)
     try:
-        return _hits_md(c.search(q, limit=min(max(limit, 1), 50),
-                                 layer=layer, work_id=work))
+        hits = c.search(q, limit=min(max(limit, 1), 50),
+                        layer=layer, work_id=work)
+        # R230c（R17-P1-3）：与 web 同一条保守简→繁重试——此前 MCP 对简体
+        # 原文系统性假阴性（「潜龙勿用」MCP 0 命中 / web 10 命中）。
+        hint = None
+        if not hits:
+            q2 = s2t_retry(q)
+            if q2 != q:
+                hits = c.search(q2, limit=min(max(limit, 1), 50),
+                                layer=layer, work_id=work)
+                if hits:
+                    hint = f"（已按繁体重试「{q2}」）"
+        return (hint + "\n" if hint else "") + _hits_md(hits)
     finally:
         c.close()
 
@@ -85,6 +102,9 @@ def addr(scheme: str, gua: int | None = None, yao: str | None = None,
         if scheme == "zhouyi":
             if gua is None:
                 return "zhouyi needs gua (1-64)"
+            # R230c（R17-P2-1）：卦号范围与 web 同纪律（web 是 400）。
+            if not 1 <= gua <= 64:
+                return "error: 卦号要在 1–64 之间"
             hits = c.at_address(gua, yao, limit=min(max(limit, 1), 100))
         else:
             hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
@@ -99,16 +119,27 @@ def compare(gua: int, yao: str = "九三", layer: str | None = "經") -> str:
     """Parallel editions at one 卦/爻 plus a classified difference summary
     (校勘-grade; preserved variants are never folded away)."""
     from .compare import compare_address
+    # R230c（R17-P1-1）：gua 越界先拒——此前卦99会给出「存在校勘差异」的
+    # 假结论（零见证时 agree=False）。
+    if not 1 <= gua <= 64:
+        return "error: 卦号要在 1–64 之间"
     c = Corpus(CORPUS_DB)
     try:
         cmp = compare_address(c, gua, yao, layer=layer)
+        if not cmp.witnesses and not cmp.flagged:
+            # 零见证拒绝判定——「存在校勘差异」是 G7 纪律不允许的假结论。
+            return f"{cmp.addr}: 无见证可校，拒绝判定（先确认卦/爻是否真实存在）"
         out = [f"{cmp.addr} · reference {cmp.reference} · "
                + ("各版本一致" if cmp.agree else "存在校勘差异")]
         for w, cite in cmp.citations.items():
             out.append(f"- {cite}: {cmp.witnesses.get(w, '')[:120]}")
         for f in cmp.findings:
             out.append(f"  {f.line()}")
-        return "\n".join(out) if out else "(no witnesses)"
+        # R230c（R17-P1-2）：受损见证披露——此前 flagged 被静默扣下，
+        # 校勘工具恰恰最不该藏这个。
+        for w, why in cmp.flagged.items():
+            out.append(f"  ⚠ {w} 的见证被质量闸门扣下：{why}")
+        return "\n".join(out)
     finally:
         c.close()
 
@@ -118,9 +149,20 @@ def concept(q: str, per_work: int = 3) -> str:
     """Census of one concept across the whole corpus: which works carry it, in
     which layers, how often, top citations, and the addresses where several
     works meet (where 版本/注家 divergence begins)."""
+    # R230c（R17-P2-1）：与 web 同纪律的空/超长校验。
+    if not (q or "").strip():
+        return "error: 查询词不能为空"
+    q = q.strip()
+    if len(q) > 200:
+        return "error: 查询词过长（≤200 字符）"
     c = Corpus(CORPUS_DB)
     try:
         r = concept_census(c, q, per_work=min(max(per_work, 1), 10))
+        # R230c（R17-P1-3）：简体零命中重试与 web/MCP search 同一条。
+        if not r["works_with_hits"]:
+            q2 = s2t_retry(q)
+            if q2 != q:
+                r = concept_census(c, q2, per_work=min(max(per_work, 1), 10))
         head = [f"「{r['concept']}」in {r['works_with_hits']} works"
                 + (" (TRUNCATED at scan_limit)" if r.get("truncated") else "")]
         for e in r["census"]:
@@ -145,10 +187,21 @@ def research_tool(q: str, max_addresses: int = 3,
     Returns the STEP CHAIN (what was searched and kept at every round), the
     evidence set with citations, and classified differences. Refuses when there
     is no clean evidence (G7) — the refusal text says why."""
+    if not (q or "").strip():
+        return "error: 查询词不能为空"
+    q = q.strip()
+    if len(q) > 200:
+        return "error: 查询词过长（≤200 字符）"
     c = Corpus(CORPUS_DB)
     try:
         r = research(c, q, max_addresses=min(max(max_addresses, 1), 6),
                      allow_damaged=allow_damaged)
+        # R230c（R17-P1-3）：简体问句被拒绝时按保守映射重试一次。
+        if r.refused and not r.evidence:
+            q2 = s2t_retry(q)
+            if q2 != q:
+                r = research(c, q2, max_addresses=min(max(max_addresses, 1), 6),
+                             allow_damaged=allow_damaged)
         out = ["steps: " + " | ".join(
             f"{s.action}→「{s.query}」{s.kept}/{s.found}" for s in r.steps)]
         if r.refused:
@@ -229,6 +282,10 @@ def record_claim_tool(kind: str, claim: str, method: str,
                 page_anchor=e.get("page_anchor"), scheme=e.get("scheme"),
                 addr1=e.get("addr1"), addr2=e.get("addr2"),
                 role=str(e.get("role") or "supports")))
+        # R230c（R17-P0-4）：缺 thread_id 时与 web 同纪律——自动开线程绑定，
+        # 不再写「可用 threads 恢复」的假承诺 orphan claim。
+        if thread_id is None:
+            thread_id = kb.open_thread(claim[:40])
         try:
             did = kb.record(kind, claim, method, ev, confidence=confidence,
                             thread_id=thread_id)

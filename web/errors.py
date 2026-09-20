@@ -31,6 +31,9 @@ STATUS_MAP: tuple[tuple[type[Exception], int], ...] = (
     # R229z续18：放宽到 DatabaseError 父类——IntegrityError/坏库读错
     # （非 OperationalError 子类）此前仍会 500 无文案。
     (sqlite3.DatabaseError, 503),
+    # R230c（R17-P2-3）：Corpus 缺索引现在抛 FileNotFoundError（人话）——
+    # 映射 503 与「存储暂时不可用」同档（此前是 OperationalError→503）。
+    (FileNotFoundError, 503),
 )
 
 

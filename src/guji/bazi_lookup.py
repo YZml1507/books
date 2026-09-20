@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import sqlite3
 
 from .bazi import Bazi
@@ -38,7 +39,18 @@ def _np():
 
 from .search import render_citation
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# R230c（R17-P0-3）：frozen 下 __file__ 落在 _MEIPASS，ROOT 推导错位会让
+# DB 指向不存在的 _MEIPASS/data/index/corpus.db → /api/bazi 恒 503。
+# 与 web/deps.py 同口径：frozen 期向 exe 上一级找含 data/index 的项目根，
+# 找不到退回 exe 同目录。
+if getattr(sys, "frozen", False):
+    _exe_dir = os.path.dirname(sys.executable)
+    _parent = os.path.dirname(_exe_dir)
+    ROOT = _parent if os.path.isdir(os.path.join(
+        _parent, "data", "index")) else _exe_dir
+else:
+    ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
 DB = os.path.join(ROOT, "data", "index", "corpus.db")
 
 # 八字命理相关书目（有内容、与排盘坐标直接相关的优先在前）

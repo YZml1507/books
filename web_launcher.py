@@ -28,7 +28,11 @@ ROOT = os.path.dirname(os.path.abspath(__file__))   # 本文件在项目根，�
 # PyInstaller 单文件模式：exe 同目录才是项目根（data/、logs/ 都在那里）
 if getattr(sys, "frozen", False):
     ROOT = os.path.dirname(sys.executable)
-PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+# R230c（R17-P3-1）：POSIX 下 .venv/bin/python——此前固定 Windows 布局，
+# POSIX 上 venv 明明存在却报「venv python 不存在」。
+PY = (os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+      if os.name == "nt"
+      else os.path.join(ROOT, ".venv", "bin", "python"))
 PORT = 8123
 URL = f"http://127.0.0.1:{PORT}"
 CREATE_NO_WINDOW = 0x08000000
@@ -74,24 +78,48 @@ def _local_port(parts: list[str]) -> str:
 
 
 def kill_stale() -> None:
-    """杀掉占用 PORT 的旧进程（含上次残留的 uvicorn）。"""
+    """杀掉占用 PORT 的旧进程（含上次残留的 uvicorn）。
+
+    R230c（R17-P1-9）：taskkill 前校验映像名——不验属主会把碰巧监听 8123
+    的无关服务强杀。非 Windows（无 netstat/taskkill）时空转（同前，属
+    既有平台假设）。"""
     for line in _run(["netstat", "-ano"]).splitlines():
         parts = line.strip().split()
         if len(parts) >= 4 and "LISTENING" in line and \
                 _local_port(parts) == str(PORT):
             pid = parts[-1]
             if pid.isdigit():
-                _run(["taskkill", "/f", "/pid", pid])
-                log(f"killed stale pid {pid} on :{PORT}")
+                img = _run(["tasklist", "/fi", f"PID eq {pid}",
+                            "/fo", "csv"]).lower()
+                if "python" in img or "uvicorn" in img:
+                    _run(["taskkill", "/f", "/pid", pid])
+                    log(f"killed stale pid {pid} on :{PORT}")
+                else:
+                    log(f":{PORT} 被非 python 进程 pid={pid} 占用，不杀——"
+                        f"起服务会失败，请换端口或手动释放")
 
 
 def port_ready(timeout: int = 30) -> bool:
+    """等我们的服务就绪。
+
+    R230c（R17-P1-9）：此前只测 TCP 可连——外来进程占着 8123 时 connect
+    即 True，浏览器被指向别人的服务。加身份探针：GET / 必须回我们的
+    index（含本应用特征标记）。"""
     import socket
     t0 = time.time()
     while time.time() - t0 < timeout:
         try:
-            with socket.create_connection(("127.0.0.1", PORT), timeout=1):
-                return True
+            with socket.create_connection(("127.0.0.1", PORT), timeout=1) as s:
+                s.sendall(b"GET / HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
+                head = s.recv(65536)
+                # 本应用首页/健康端点特征：HTML 里带 小满/古籍 标记或
+                # manifest 链——拿不到就继续等（服务可能还在起）。
+                if (b"\xe5\xb0\x8f\xe6\bb\xa1" in head   # 小满
+                        or b"manifest.json" in head
+                        or b"books" in head.lower()):
+                    return True
+                log(f":{PORT} 有监听但响应不像本应用，继续等")
+                time.sleep(1)
         except OSError:
             time.sleep(1)
     return False

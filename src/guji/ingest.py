@@ -115,11 +115,20 @@ def load_work(raw_dir: str, work: str) -> tuple[str, list[tuple[int, str]]]:
     parts: list[str] = []
     bounds: list[tuple[int, str]] = []
     at = 0
-    for path in sorted(glob.glob(os.path.join(raw_dir, work, "*.txt"))):
+    # R230c（R17-P0-1）：work 名原样进 glob 会把 `br[ac]ket` 解释成字符类——
+    # 内容张冠李戴进错索引。escape 后按字面匹配；命中目录的 fake.txt 跳过。
+    skipped: list[str] = []
+    for path in sorted(glob.glob(os.path.join(raw_dir, glob.escape(work),
+                                              "*.txt"))):
+        if not os.path.isfile(path):
+            skipped.append(os.path.basename(path) + "(是目录)")
+            continue
         body = re.sub(r"^#.*$", "", _read(path), flags=re.M)
         bounds.append((at, os.path.basename(path)))
         parts.append(body)
         at += len(body)
+    for p in skipped:
+        print(f"  [skip] {work}/{p}")
     return "".join(parts), bounds
 
 
@@ -709,20 +718,30 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
     ext_dir: optional path to data/raw_ext/generality/ for booksec-addressed works
     (Herodotus, Darwin). If provided, those works are indexed using booksec.py.
     """
-    if os.path.exists(db_path):
-        os.remove(db_path)
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    db = sqlite3.connect(db_path)
-    here = os.path.dirname(os.path.abspath(__file__))
-    db.executescript(open(os.path.join(here, "schema.sql"), encoding="utf-8").read())
-
-    manifest = json.load(open(manifest_path, encoding="utf-8"))
+    # R230c（R17-P0-2）：输入先全量校验，再碰旧库——此前先 remove 再
+    # json.load，坏 manifest/坏 report/目录撞 *.txt 会把好库换成 schema-only
+    # 残库。现在 manifest/report 解析在前，build 落 .tmp，成功后原子换入。
+    try:
+        manifest = json.load(open(manifest_path, encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SystemExit(f"{manifest_path} 不是合法 JSON：{exc}")
     meta = {w["id"]: w for w in manifest.get("works", [])}
 
     if quality_report is None:
         quality_report = os.path.join(os.path.dirname(os.path.dirname(
             os.path.dirname(os.path.abspath(db_path)))), "catalog", "quality_report.json")
-    suspect, suspect_meta = load_suspect(quality_report)
+    try:
+        suspect, suspect_meta = load_suspect(quality_report)
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SystemExit(f"{quality_report} 不是合法 JSON：{exc}")
+
+    tmp_path = db_path + ".tmp"
+    if os.path.exists(tmp_path):
+        os.remove(tmp_path)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    db = sqlite3.connect(tmp_path)
+    here = os.path.dirname(os.path.abspath(__file__))
+    db.executescript(open(os.path.join(here, "schema.sql"), encoding="utf-8").read())
 
     # 卦 polarity and names are derived from the corpus, never hardcoded (D-006).
     zy_bodies = {w: work_body(raw_dir, w) for w in ZHOUYI_WORKS if
@@ -734,11 +753,18 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
 
     works = sorted(d for d in os.listdir(raw_dir)
                    if os.path.isdir(os.path.join(raw_dir, d)))
+    # R230c（R17-P0-1）：work 目录名带 glob 元字符/怪异字符的——escape 后
+    # 虽不再张冠李戴，但仍拒收（这类目录名多半不是有意命名）。
+    import re as _re
+    _bad_names = [w for w in works if not _re.fullmatch(r"[A-Za-z0-9_.-]+", w)]
+    if _bad_names:
+        raise SystemExit(f"work 目录名非法（限字母数字._-）：{_bad_names}")
     uid = 0
     stats = BuildStats(0, 0, 0, 0, 0)
     for w in works:
         raw, bounds = load_work(raw_dir, w)
         if not raw:
+            print(f"  [skip] {w}: 无 .txt 内容")
             continue
         m = meta.get(w, {})
         zy = ZHOUYI_WORKS.get(w)
@@ -1007,4 +1033,8 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
 
     db.commit()
     db.close()
+    # R230c（R17-P0-2）：build 全程写 .tmp，成功后原子换入——任何中途
+    # 崩溃（坏 JSON 已于入口拦截，目录撞名/空 work 有 skip 日志）都不再
+    # 摧毁旧索引。
+    os.replace(tmp_path, db_path)
     return stats

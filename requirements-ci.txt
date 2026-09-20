@@ -8,3 +8,4 @@ numpy==2.2.6
 sentence-transformers==6.1.0
 feedparser==6.0.12        # R7#4：/api/external/* RSS 解析的既有代码依赖，此前清单漏声明
 ruff==0.16.8             # R230b：lint 闸（E9+F 最小口径，活代码零存量）
+mcp==2.2.0                # R230c（R17-P1-6）：MCP server 依赖此前零声明，干净环境必崩

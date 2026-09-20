@@ -8,10 +8,10 @@
 #   * 内嵌 web/static/（前端单页，60K）
 #   * data/ 不内嵌（392MB 太大）：exe 启动时从同目录 data/ 读，
 #     找不到则降级（仅排盘无检索）。发行时 exe + data/ 一起分发。
-#   * 注意（R18a 审查记录，app.py 修复移交优化轨）：web/app.py 在 frozen
-#     模式下从 exe 同目录（或其父目录）找 web/static/index.html，而非
-#     _MEIPASS 内嵌副本——按"exe + data/ 单独分发"模型发行时须把
-#     web/static/ 一并放在 exe 旁，否则首页返回 500。
+#   * 注意（R230c 勘正——原 R18a 注释与 deps.py 实际行为相反）：frozen
+#     下 _STATIC_CANDIDATES 优先 _MEIPASS 内嵌副本（本 spec datas 已嵌
+#     web/static）——exe 单文件即可渲染首页；exe 旁的 web/static 存在时
+#     会被覆盖使用（便于不打包子迭代前端）。data/ 仍需 exe 旁分发。
 #   * 运行时资源路径：PyInstaller 单文件解压到 sys._MEIPASS；
 #     开发模式用 __file__ 推导的 ROOT。web_launcher.py 已处理两种模式。
 #
