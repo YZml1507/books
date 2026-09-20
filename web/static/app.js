@@ -2011,7 +2011,12 @@ function _paintSharePoster(s, W, H) {
   ctx.setTransform(S, 0, 0, S, 0, 0);
   /* R209b：已批准的候选背景图（同步绘制需预加载——downloadPoster 前
    * warmPoster 已预热；未加载完成时回落渐变）。 */
-  var bgImg = POSTER_BG.warm;
+  /* R230w：视图底图——s.view 由 buildShareData 注入；老海报/未加载
+   * 完成时先回落 warm 再回落渐变（确定性口径不变）。 */
+  var bgImg = _posterBgFor(s && s.view);
+  if (!(bgImg && bgImg.complete && bgImg.naturalWidth)) {
+    bgImg = POSTER_BG.warm;
+  }
   if (bgImg && bgImg.complete && bgImg.naturalWidth) {
     ctx.drawImage(bgImg, 0, 0, 1080, 1440);
   } else {
@@ -2348,7 +2353,8 @@ async function downloadPoster(j, view) {
   /* R230r（R29-#6）：背景图 requestIdleCallback 异步加载——点就画会拿到
    * 渐变底、过会再点拿到真图，同一输入两种产出。绘制前等它加载
    * （1.5s 超时/失败都回落渐变，保证确定性口径「同一时点同一产出」）。 */
-  var _bg = POSTER_BG.warm;
+  /* R230w：预热的是本视图的底图而非固定 warm。 */
+  var _bg = _posterBgFor(view);
   if (_bg && _bg.src && !(_bg.complete && _bg.naturalWidth)) {
     try {
       await Promise.race([
@@ -4231,9 +4237,17 @@ async function doTaohua() {
 /* ── v4 交接修复：上一轮恢复函数时丢失的常量块，自 v3 快照原样找回 ── */
 /* R209b：已批准海报背景预加载（_candidates 目录，同源） */
 var POSTER_BG = {
-  /* R230r（R29-#6）：night 预加载后没有任何绘制方使用——白拉一张图，摘掉。 */
-  warm: new Image()
+  /* R230r（R29-#6）：night 预加载后没有任何绘制方使用——白拉一张图，摘掉。
+   * R230w：按视图分底图——塔罗/星座用夜紫云月、桃花/合婚用樱粉，
+   * 其余（含 bazi 旧版式）仍暖杏。 */
+  warm: new Image(), sakura: new Image(), lilac: new Image()
 };
+var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
+  taohua: 'sakura', hehun: 'sakura' };
+function _posterBgFor(view) {
+  var k = _POSTER_BG_BY_VIEW[view] || 'warm';
+  return POSTER_BG[k] || POSTER_BG.warm;
+}
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 
 /* R228k：原来顶层立刻拉三张图（~95KB）——海报背景只在点「存成图」才用，
@@ -4241,6 +4255,8 @@ var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
 function _idlePrefetch() {
   POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
+  POSTER_BG.sakura.src = '/static/_candidates/r212b/poster-bg-sakura.png';
+  POSTER_BG.lilac.src = '/static/_candidates/r212b/poster-bg-lilac.png';
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */
   var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
