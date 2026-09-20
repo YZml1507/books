@@ -1879,3 +1879,18 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .hh-btns .fav-btn + .fav-btn{right:auto;}
 /* R233o：h2 副标题统一类（原 9 处内联 style 重复） */
 h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
+/* 签册：打卡卡尾迷你签墙 */
+.ck-album{margin-top:10px;}
+.ck-album>summary{cursor:pointer;font-size:12.5px;color:var(--secondary);list-style:none;}
+.ck-album>summary::-webkit-details-marker{display:none;}
+.ck-album>summary::before{content:'▸ ';}
+.ck-album[open]>summary::before{content:'▾ ';}
+.ck-album-body{padding-top:8px;}
+.ck-album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;}
+.ck-album-cell{display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 4px;border:1px solid var(--border);border-radius:var(--radius-sm,12px);
+  background:var(--card);cursor:pointer;min-height:44px;}
+.ck-album-cell i{font-style:normal;font-size:10px;color:var(--muted);}
+.ck-album-cell b{font-size:12px;font-weight:600;color:var(--primary-ink);}
+.ck-album-cell:hover{border-color:#E8B898;}
+.ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}

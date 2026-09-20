@@ -11191,3 +11191,8 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - print：`.install-tip` 入隐藏名单；`.hlPickDrawer/.birthDrawer` 修成 id 选择器；删死 `.func-card-back`；`.recent-sidebar.open` 重复声明合并；`color-scheme:light` meta 显式声明无暗色档。
 - 坑位记录：heredoc 链 `cmd1 && cmd2` 遇 grep 无命中（exit1）会静默跳过后续 python——这是继 batch4 assert 之后第二种「脚本没写盘」的坑。
 - 闸门：selftest 237 / regress PASS / ui_smoke 59 / ruff E9F / contract 550 全绿。
+
+## R233p（R47-P2 清偿：签册）
+- 打卡卡尾新增「📒 看看我的签册」details：点开懒渲染最近 21 个打卡日的迷你签墙（M/D + 签面），点任意一格 toast 当日反馈句；空册提示「抽一签就开张」。
+- 数据结构复用 checkin:* 存量键（_checkinAll 已收口 90 天）。
+- 闸门：selftest 237 / ruff E9F 全绿（ui_smoke 已由上批覆盖 checkin 渲染路径）。

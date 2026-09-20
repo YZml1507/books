@@ -7787,7 +7787,24 @@ function renderCheckin(dateKey) {
       'title="生成分享图">' + (saved ? '📸 晒这张签' : '📸 晒连签') +
       '</button>' : '') +
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
-    (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>';
+    (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>' +
+    /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
+     * （details 懒渲染，点开才算 DOM；集齐感是小红书留存钩子）。 */
+    (Object.keys(_ckAll).length ?
+      '<details class="ck-album"><summary>📒 看看我的签册' +
+      '（' + Object.keys(_ckAll).length + '）</summary>' +
+      '<div class="ck-album-body" id="checkinAlbum"></div></details>' : '');
+  var _alb = box.querySelector('.ck-album');
+  if (_alb && !_alb.dataset.bound) {
+    _alb.dataset.bound = '1';
+    _alb.addEventListener('toggle', function () {
+      if (_alb.open) _renderCheckinAlbum(dateKey);
+    });
+    _alb.addEventListener('click', function (e) {
+      var cell = e.target.closest('.ck-album-cell');
+      if (cell && cell.dataset.fb) showToast(cell.dataset.fb, 'info');
+    });
+  }
   var _cks = box.querySelector('#checkinShare');
   if (_cks) _cks.addEventListener('click', function () {
     var _p = downloadPoster({ streak: _streak, pick: saved }, 'checkin');
@@ -8090,6 +8107,29 @@ function _renderInstallTip() {
     }
   }, true);
 });
+/* R233p：签墙渲染——最近 21 个打卡日倒序，每格 M/D + 签面，
+ * 点击格 toast 当日反馈句。 */
+function _renderCheckinAlbum(dateKey) {
+  var host = document.getElementById('checkinAlbum');
+  if (!host) return;
+  var all = _checkinAll();
+  var days = Object.keys(all).sort().slice(-21).reverse();
+  if (!days.length) {
+    host.innerHTML = '<div class="ck-album-empty">签册还空着——抽一签就开张</div>';
+    return;
+  }
+  var html = '<div class="ck-album-grid" role="list">';
+  days.forEach(function (dk) {
+    var opt = all[dk] || '';
+    var pp = String(dk).split('-');
+    var fb = pickCheckinFeedback(opt, dk);
+    html += '<button type="button" class="ck-album-cell" role="listitem" ' +
+      'data-fb="' + esc(fb) + '" title="' + esc(dk) + '　' + esc(fb) + '">' +
+      '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' +
+      '<b>' + esc(opt) + '</b></button>';
+  });
+  host.innerHTML = html + '</div>';
+}
 function pickCheckinFeedback(opt, dateKey) {
   const pool = CHECKIN_FEEDBACK[opt] || [];
   let h = 0; const s = String(dateKey) + opt;
