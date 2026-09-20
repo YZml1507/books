@@ -163,6 +163,7 @@
   "paipan.disabled.list",
   "paipan.disabled.read",
   "qiming",
+  "qiming.avoid_chars",
   "qiming.candidates.filled",
   "qiming.female_pool",
   "qiming.five_elements.weak",

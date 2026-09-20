@@ -397,6 +397,23 @@ def _run_inner() -> list[str]:
     assert any("相济" in s for _, s in _pairs), \
         ("qiming.xiangji", _pairs[:4])
     ok.append("qiming.xiangji")
+    # R230a-24（R13 钉扎）：避字表——不雅/戾气字不得出现在候选/全名
+    # （鹜茕玷暴牢烂炉埙苞染；萋为女名专属避字另测）。一单 fixture
+    # 两性别各一把，断言全名+候选池都不含。
+    _AVOID = set("鹜茕玷暴牢烂炉埙苞染")
+    _AVOID_FEM = set("萋")
+    for _g in ("男", "女"):
+        _qa = client.post("/api/qiming", json={
+            "surname": "王", "year": 1993, "month": 4, "day": 16,
+            "hour": 10, "gender": _g, "top_n": 8}).json()
+        _chars = set()
+        for _n in _qa.get("full_names", []):
+            _chars.update(_n.get("given", ""))
+        for _c in _qa.get("candidates", []):
+            _chars.add(_c.get("char", ""))
+        _bad = _chars & (_AVOID | (_AVOID_FEM if _g == "女" else set()))
+        assert not _bad, ("qiming.avoid_chars", _g, sorted(_bad))
+    ok.append("qiming.avoid_chars")
     # R226b-fix（审查轨 R226a 目视抓到）：典故库每条的**字必须真出现在「句」里**。
     # 前端把「句」直接展示给用户（"📜 <句> —— <出处>"），字不在句里就是露馅：
     # 实测曾有 14 条不自洽，如「澜」配"河伯过江海"、「苓」配"蒹葭苍苍"、
