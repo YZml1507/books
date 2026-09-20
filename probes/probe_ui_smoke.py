@@ -629,6 +629,56 @@ def main() -> int:
                 results.append({"name": "ui:xznav.next", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # 表单显隐联动：scope=range→range_row 现/ask_row 隐；
+            # calendar_type=lunar→lunar_leap 现（R60-P1-12）
+            try:
+                goto_view('bazi')
+                page.wait_for_selector('#scope', state='attached',
+                                        timeout=8000)
+                # #scope 在闭合的 pro-drawer 里——select_option 有可见性
+                # actionability，先展开抽屉（用户也得先点开）
+                page.evaluate(
+                    "document.getElementById('baziAdvanced').open = true")
+                page.select_option('#scope', 'range')
+                page.wait_for_timeout(300)
+                _r1 = page.evaluate(
+                    "!document.getElementById('range_row').hidden"
+                    " && document.getElementById('ask_row').hidden")
+                page.select_option('#scope', 'day')
+                page.select_option('#calendar_type', 'lunar')
+                page.wait_for_timeout(300)
+                _r2 = page.evaluate(
+                    "!document.getElementById('f_lunar_leap').hidden")
+                page.select_option('#calendar_type', 'solar')
+                results.append({
+                    "name": "ui:form.linkage", "ok": bool(_r1) and bool(_r2),
+                    "detail": f"range行联动={_r1} 闰月联动={_r2}"})
+            except Exception as exc:
+                results.append({"name": "ui:form.linkage", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 合婚邀请深链：?view=hehun&ay/am/ad/ag → A 侧预填+受邀提示
+            # （R60-P1-13：邀请链全系此前零测）
+            try:
+                page.goto(f"http://127.0.0.1:{port}/?view=hehun&ay=1998"
+                          "&am=7&ad=20&ag=%E5%A5%B3")
+                page.wait_for_timeout(2000)
+                _pre = page.evaluate(
+                    "var g=function(i){var e=document.getElementById(i);"
+                    "return e?e.value:''};"
+                    "[g('hh_a_year'),g('hh_a_month'),g('hh_a_day'),"
+                    "g('hh_a_gender')].join('|')")
+                results.append({
+                    "name": "ui:deeplink.hehun_invite",
+                    "ok": _pre == '1998|7|20|女',
+                    "detail": f"A侧预填={_pre!r}"})
+                page.goto(f"http://127.0.0.1:{port}/")
+                page.wait_for_timeout(800)
+            except Exception as exc:
+                results.append({"name": "ui:deeplink.hehun_invite",
+                                "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # localStorage 坏值回放：坏 JSON/错枚举进页不炸
             try:
                 errors.clear()

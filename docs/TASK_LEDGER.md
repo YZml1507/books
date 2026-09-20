@@ -11429,3 +11429,10 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   probe_g8_isolation 加进 selftest job；verify_r218a 起 8183
   常驻服务后跑。
 - 闸门：selftest 252 / ui_smoke 66 / contract 542 全绿。
+
+## R2343 — R58/R59 审计清零（错误恢复 + 留存钩子）
+- R59-BROKEN：`_meFill` 档案代入被表单硬编码 `value=` 默认值挡死从未生效——现以「值仍停在 defaultValue / select 停在首项」判未动过并回填；受邀链回填字段打 `data-invite` 防盖。
+- R59-gap：明天预告胶囊可点（跳黄历页翻到明天）；昵称进 `/api/chat` 事实行（发送时现读 `me.n`，改完下轮生效）。
+- R58-P1：500 的英文 `detail` 原文上屏——无中文 detail 过 `_humanizeErr` 仍无中文则整句换人话；`hlask` 非数组坏 JSON 毒化黄历查询——类型不对当场清键自愈；线程 tab 激活时从不拉列表——ph-empty 占位时自动拉。
+- ui_smoke 修：#scope 在闭合 details 内需先展开（select_option 有可见性要求）；deeplink 用例补 base。
+- 闸门：selftest 252 / contract 542 / ui_smoke 68 / regress PASS。

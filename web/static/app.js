@@ -802,6 +802,17 @@ async function api(path, options) {
         || (resp.status === 404 ? '要找的内容不在了'
             : '刚才那下没成功，再试一次？');
     }
+    /* R2343（R58-P1-1）：字符串 detail 里一个中文字都没有 = 英文实现
+     * 细节（FastAPI 默认错误/上游异常原文）——先过 _humanizeErr，仍无
+     * 中文则整句换掉，不给用户看堆栈味文案。 */
+    if (typeof detail === 'string' && !/[一-龥]/.test(detail)) {
+      detail = _humanizeErr(detail);
+      if (!/[一-龥]/.test(detail)) {
+        detail = resp.status >= 500 ? '服务打个盹了，稍后再戳我～'
+          : (resp.status === 404 ? '要找的内容不在了'
+             : '小满这次没接住，稍后再试试');
+      }
+    }
     const err = new Error(Array.isArray(detail) ? _humanize422(detail)
       : (typeof detail === 'string' ? detail
           : (resp.status === 404 ? '要找的内容不在了'
@@ -1316,12 +1327,12 @@ function autoSendChatContext() {
   /* R230t（R32-P2-16）：自动发与手发同口径计数——此前自动发不计数，
    * 同一会话两套禁用行为并存（「允许追问 1 次」的语义本就该含自动条）。 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
-  /* R230v（R34-#3）：同 chatSend——捕获 sid 防跨话题幻影写回。 */
+/* R230v（R34-#3）：同 chatSend——捕获 sid 防跨话题幻影写回。 */
   var _sid0 = chatSid();
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
-    session_id: _sid0, message: msg, facts: facts,
+    session_id: _sid0, message: msg, facts: _chatFacts(facts),
     client_date: todayIso()
   }).then(function (j) {
     if (!j.chat_task_id) {
@@ -1674,6 +1685,17 @@ function _activeViewFacts() {
   return (c && c.facts) || [];
 }
 
+/* R2343（R59-gap2）：昵称此前不进请求体，小满永远不喊名字——
+ * 发送时现读 me.n（改完昵称下一轮即生效，不等刷新）。 */
+function _chatFacts(facts) {
+  var _f = (facts || []).slice();
+  try {
+    var _me = _meGet('me');
+    if (_me && _me.n) _f.unshift('她叫' + _me.n + '——聊天时自然地喊她名字，别每句都喊');
+  } catch (e) {}
+  return _f;
+}
+
 function chatSend() {
   var input = el('chatInput');
   var msg = zwClean(input && input.value);   /* R230k：零宽不当非空 */
@@ -1697,8 +1719,8 @@ function chatSend() {
   var _sid0 = chatSid();
   postJSON('/api/chat', {
     session_id: _sid0, message: msg,
-    facts: (CHAT_LAST_FACTS && CHAT_LAST_FACTS.length) ? CHAT_LAST_FACTS
-      : _activeViewFacts(),   /* R233r（R49-Top5-2）：无排盘时按视图兜底 */
+    facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
+      ? CHAT_LAST_FACTS : _activeViewFacts()),   /* R233r：无排盘按视图兜底 */
     client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
@@ -3862,6 +3884,15 @@ async function loadDaily() {
       _tmrEl = document.createElement('div');
       _tmrEl.id = 'dailyTomorrow';
       _tmrEl.className = 'daily-tomorrow';
+      /* R2343（R59-gap1）：胶囊样式诱导点击却纯 div 无响应——
+       * 现在点了跳黄历页直接翻到明天。 */
+      _tmrEl.setAttribute('role', 'button');
+      _tmrEl.setAttribute('tabindex', '0');
+      var _tmrGo = function () { showView('huangli'); doHuangli(1, true); };
+      _tmrEl.addEventListener('click', _tmrGo);
+      _tmrEl.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); _tmrGo(); }
+      });
       var _metaBox = document.querySelector('#dailyCard .daily-meta');
       if (_metaBox && _metaBox.parentNode) {
         _metaBox.parentNode.insertBefore(_tmrEl, _metaBox.nextSibling);
@@ -3872,7 +3903,7 @@ async function loadDaily() {
         _tmrEl.textContent = '🌙 明天「' +
           (tm.level === '凶' ? '缓' : (tm.level || '平')) + '」· 宜 ' +
           (tm.do || '平常心') + '——' +
-          _dayPick(['记得来拆明天的礼物', '明天再来找我玩', '明天继续给你留灯'], 'tmr');
+          _dayPick(['点我看明天', '记得来拆明天的礼物', '明天再来找我玩'], 'tmr') + ' →';
         _tmrEl.hidden = false;
       } else { _tmrEl.hidden = true; }
     }
@@ -7064,6 +7095,20 @@ function activateRsec(secId) {
   document.querySelectorAll('.rsec').forEach(function (s) {
     s.classList.toggle('active', s.id === secId);
   });
+  /* R2343（R58-P1-3）：线程 tab 此前激活时从不拉列表——已有线程
+   * 完全隐身，断网失败与「真空」不可区分。ph-empty 占着位才拉，
+   * 正在看详情/刚建好线程的回执不覆盖。 */
+  if (secId === 'rsec-threads') {
+    var _tr = el('threadResult');
+    if (_tr && (_tr.querySelector('.ph-empty') || !_tr.innerHTML.trim())) {
+      guardedCall('threads-load', function () {
+        return _threadListHtml().then(function (h) {
+          paint('threadResult', h ||
+            '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>');
+        });
+      });
+    }
+  }
 }
 
 /* data-rsec2 值 → 面板 id + 加载函数。
@@ -7540,6 +7585,14 @@ function _hlAskChipsRender() {
   var list = [];
   try { list = JSON.parse(window.localStorage.getItem('hlask') || '[]') || []; }
   catch (e) {}
+  /* R2343（R58-P1-2）：合法 JSON 但非数组（'"abc"'）会让 map 炸在
+   * _doHuangli 的 catch 里，黄历查询永久假失败且坏键无自愈机会——
+   * 类型不对当场清键。 */
+  if (!Array.isArray(list)) {
+    try { window.localStorage.removeItem('hlask'); } catch (e0) {}
+    row.innerHTML = ''; return;
+  }
+  list = list.filter(function (x) { return x && typeof x === 'object'; });
   if (!list.length) { row.innerHTML = ''; return; }
   row.innerHTML = '<span class="fav-row-label">你问过：</span>' +
     list.slice(0, 6).map(function (x) {
@@ -7867,7 +7920,11 @@ function init() {
              * R233r（R50-#17）：时辰留空时也要把默认值清成空——
              * 「未知时辰」比静默按 10 点算诚实。 */
             if (elx && v != null &&
-                (v !== '' || elx.tagName !== 'SELECT')) elx.value = v;
+                (v !== '' || elx.tagName !== 'SELECT')) {
+              elx.value = v;
+              /* R2343：邀请值免疫档案回填（meFill 现在会盖默认值） */
+              elx.dataset.invite = '1';
+            }
           });
           /* 受邀者填的是 B 侧=自己——提交时 me/partner 归属要翻转，
            * 否则发起人的生日会顶掉受邀者自己的档案。用户手改 A 侧
@@ -8367,7 +8424,14 @@ function _meFill(key, ids) {
     if (!e) return;
     var v = rec[k];
     if (v == null || v === '') return;
-    if (e.value === '' || e.dataset.me === '1') {
+    /* R2343（R59-BROKEN）：硬编码 value= 默认值让非空判定恒真——
+     * 表单档案代入从未生效过。值还停在出厂默认即视同未动过可回填；
+     * select 无 defaultValue，用「还停在首选项」近似。受邀链回填的
+     * 字段带 data-invite，跳过。 */
+    if (e.dataset.invite === '1') return;
+    var _untouched = (e.tagName === 'SELECT') ? (e.selectedIndex <= 0)
+      : (e.value === '' || e.value === e.defaultValue);
+    if (_untouched || e.dataset.me === '1') {
       e.value = String(v);
       e.dataset.me = '1';
     }
