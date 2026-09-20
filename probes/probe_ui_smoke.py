@@ -424,6 +424,18 @@ def main() -> int:
                 "detail": "; ".join(load_errors[:4]) or "首屏加载零 console.error",
             })
 
+            # R231d（R37-F4/F7）：首访应有新人条；关掉后刷新不再出现。
+            try:
+                wv = page.evaluate(
+                    "() => { const w = document.getElementById('welcomeBar');"
+                    " return !!(w && w.offsetParent !== null); }")
+                results.append({
+                    "name": "ui:welcome_bar", "ok": bool(wv),
+                    "detail": "首访新人条存在=%s" % wv})
+            except Exception as exc:
+                results.append({"name": "ui:welcome_bar", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             def goto_view(view: str):
                 # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
                 # huangli）；qiming/taohua/hehun 在 view-bazi 底部「相关功能」区。
@@ -760,6 +772,25 @@ def main() -> int:
                 detail = (f"historyDetail 可见={detail_vis}，"
                           f"复看路径错误={len(rel_errs)}"
                           + (": " + "; ".join(rel_errs[:2]) if rel_errs else ""))
+                # R231d（R37-F16）：复看卡顶应有一个真分享钮——点开
+                # posterModal 且动作行带「复制链接」。
+                if ok:
+                    try:
+                        share_vis = page.evaluate(
+                            "() => { const b = document.querySelector("
+                            "'#historyDetail #phShareBtn');"
+                            " return !!(b && b.offsetParent !== null); }")
+                        if share_vis:
+                            page.click("#historyDetail #phShareBtn")
+                            page.wait_for_selector(
+                                "#posterModal #posterCopyLink", timeout=8000)
+                            ok, share_msg = True, "复看分享钮→浮层+复制链接 OK"
+                            page.click("#posterModal .poster-modal-close")
+                        else:
+                            ok, share_msg = False, "phShareBtn 不可见"
+                    except Exception as exc:
+                        ok, share_msg = False, f"分享链异常: {exc}"
+                    detail += f"；{share_msg}"
             except Exception as exc:
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             results.append({"name": "btn:history.replay",
