@@ -252,10 +252,15 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
         # R230z：多类型共存后 result_summary 只对 bazi 有意义——非八字
         # 行 render 落空字符串，前端按 type 渲染徽标，摘要区展示 name。
         rows = c.execute(
+            # R233x（R56-P0）：坏 result_json 行让 json_extract 抛
+            # malformed JSON → 整列 503，且列表恰是找坏行的唯一入口。
             "SELECT id,ts,name,question,type,"
-            " json_extract(result_json,'$.paipan.render'),"
-            " json_extract(result_json,'$.calc.five_elements.counts'),"
-            " json_extract(result_json,'$.render')"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.paipan.render') END,"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.calc.five_elements.counts') END,"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.render') END"
             " FROM records ORDER BY id DESC LIMIT ? OFFSET ?",
             (limit, offset)).fetchall()
     items = []

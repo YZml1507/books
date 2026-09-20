@@ -11302,3 +11302,22 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   必须是中文数字否则 None。
 - contract CONDITIONAL_FIELDS += term_today/day_flags 条件键；
   selftest += huangli.linri、huangli.term_today（246 条）。
+
+## R233x（R56 数据生命周期审计清零）
+- **P0-1**：daily_cache 单行坏 JSON → `/api/daily` 对该日期永久 500
+  （裸 json.loads）。现坏行自愈删除、走重算路径。
+- **P0-2**：records 单行坏 result_json → `GET /api/paipan/history`
+  永久 503（json_extract 裸奔，而列表恰是找坏行的唯一入口）。
+  三个 json_extract 全加 json_valid 守卫，坏行照常进列表可删。
+- **P1**：thread/turn/derived/evidence/favorites 五表零行数帽
+  （threads POST ~130KB/请求可无限写）——封顶 200/500/2000/-/500，
+  级联清孤儿（turn/evidence/derived_fts），插后裁保证 ≤cap。
+- **P1**：`add_turn` seq 两段式竞态 → INSERT..SELECT 单语句原子化；
+  单线程轮数帽 500。
+- **P1**：birthSubmit 不传 ask_date → 本命盘流日锚服务器日，
+  跨零点/时区与日签黄历错位——补 `ask_date: todayIso()`。
+- **R53 根治**：`classical_db.canon` 新闸——典故库 18 条典藏覆盖
+  （周易/道德经/庄子），「句」必须在原典语料真实命中；闸门局部
+  t→s 折叠表（reverse(S2T_RETRY)+补字），苹→萍 式自洽诈骗免疫。
+- 闸门：selftest 248 / contract 540 / regress / dollar / warm_voice /
+  baseline_voice / ruff 全绿。

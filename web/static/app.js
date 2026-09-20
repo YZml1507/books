@@ -8804,7 +8804,10 @@ function baziPersonaCard(j) {
     }
     busy('birthResult', '正在排你的本命盘…');
     try {
-      var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g };
+      /* R233x（R56-P1）：本命盘流日此前锚服务器日——跨零点/时区
+       * 边缘与日签/黄历错位；与 dailyDetail 同款 client 日。 */
+      var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g,
+        ask_date: todayIso() };
       _meSave('me', { y: y, m: m, d: d, h: (hv === '' ? null : Number(hv)), g: g,
         n: (document.getElementById('b_nick') || {}).value || '' });
       _meFillAll();   /* R230y */

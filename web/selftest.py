@@ -551,6 +551,54 @@ def _run_inner() -> list[str]:
     print(f"  classical_db.integrity PASS（{_n_entries} 条：字在句中、"
           f"字段非空、倾向表无幽灵字）")
     ok.append("classical_db.integrity")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R233x（R53 根治）：典藏在库的条目（周易/道德经/庄子三部，18 条），
+    # 「句」必须在原典语料中真实命中——苹→萍 式自洽诈骗在此无可遁形。
+    # 语料是繁体，闸门侧做 t→s 折叠比对（reverse(S2T_RETRY) + 闸门局部
+    # 补字），不碰检索路径的保守语义。
+    import glob as _glob
+    import re as _re_cn
+    from guji.search import S2T_RETRY as _S2T
+    _T2S = {}
+    for _sc, _tc in _S2T.items():
+        _T2S.setdefault(_tc, _sc)
+    _T2S.update({"於": "于", "爭": "争", "強": "强", "積": "积",
+                 "鳴": "鸣", "誠": "诚", "鶴": "鹤", "勝": "胜",
+                 "載": "载", "無": "无"})
+    def _fold_s(x):
+        return "".join(_T2S.get(c, c) for c in x)
+    def _cnorm(x):
+        return _re_cn.sub(r"[^一-鿿]", "", _fold_s(x))
+    _rawdir = os.path.join(_ROOT, "data", "raw")
+    _wtexts = {}
+    for _fp in _glob.glob(os.path.join(_rawdir, "KR*", "*.txt")):
+        with open(_fp, encoding="utf-8", errors="ignore") as _fh:
+            _m = _re_cn.search(r"TITLE:\s*(\S+)", _fh.read(600))
+        if _m:
+            _wtexts.setdefault(_m.group(1), []).append(_fp)
+    _wtexts = {
+        _t: _cnorm("".join(open(_f2, encoding="utf-8", errors="ignore").read()
+                           for _f2 in _fs))
+        for _t, _fs in _wtexts.items()}
+    _WALIAS = {"周易": ["周易", "周易註疏", "周易鄭康成注", "周易本義",
+                        "原本周易本義", "伊川易傳", "周易古占法"],
+               "道德经": ["老子"], "庄子": ["莊子", "莊子注"]}
+    _canon_hits = 0
+    for _el, _items in _db.items():
+        if _el == "_meta":
+            continue
+        for _it in _items:
+            _w = _it["出处"].split("·")[0]
+            if _w not in _WALIAS:
+                continue
+            _canon_hits += 1
+            _q = _cnorm(_it["句"])
+            assert any(_q in _wtexts[t] for t in _WALIAS[_w]
+                       if t in _wtexts), \
+                ("classical_db.canon_miss", _it["字"], _it["句"],
+                 _it["出处"], "典藏在库——句必须在原典命中")
+    assert _canon_hits == 18, ("classical_db.canon_cover", _canon_hits)
+    print(f"  classical_db.canon PASS（{_canon_hits} 条原典命中）")
+    ok.append("classical_db.canon")
     # R221b：交叉引用收口 7/7。用户原话「各是各的，各干各的，没有交叉集」，
     # 每个结果页底部都要有「相关维度」。这里钉死**七个端点全覆盖**——
     # 少一个就 FAIL，防止后续改动悄悄漏掉某个端点。
@@ -877,6 +925,28 @@ def _run_inner() -> list[str]:
     _ttn = client.get("/api/huangli", params={"date": "2026-09-19"}).json()
     assert not _ttn.get("term_today"), "非交节日不应有 term_today"
     ok.append("huangli.term_today")
+    # R233x（R56-P0/P1）：持久层坏行自愈 + 行数帽。
+    import tempfile as _tf
+    from guji import knowledge as _kmod
+    _kb = _kmod.KnowledgeBase(os.path.join(_tf.mkdtemp(), "k.db"))
+    _kb.db.execute(
+        "INSERT INTO daily_cache(date,bazi_result,tarot_result,created_at) "
+        "VALUES ('2026-09-19','{bad','{x', 'now')")
+    _kb.db.commit()
+    assert _kb.get_daily_cache("2026-09-19") is None, \
+        "daily_cache 坏行应返回 None（且自愈删除）"
+    assert _kb.db.execute("SELECT count(*) FROM daily_cache").fetchone()[0] == 0
+    for _i in range(_kb._CAP_FAVORITES + 5):
+        _kb.add_favorite("qiming", f"t{_i}", "t")
+    assert _kb.db.execute("SELECT count(*) FROM favorites").fetchone()[0] \
+        <= _kb._CAP_FAVORITES, "favorites 超帽"
+    _tid = _kb.open_thread("t")
+    for _i in range(_kb._CAP_TURN_PER_THREAD + 5):
+        _kb.add_turn(_tid, "user", "m")
+    assert _kb.db.execute(
+        "SELECT count(*) FROM turn WHERE thread_id=?",
+        (_tid,)).fetchone()[0] <= _kb._CAP_TURN_PER_THREAD, "turn 超帽"
+    ok.append("persist.guardrails")
     # R233v（R52-P2-7）：前端宜忌白话注表覆盖全词集且零死键——
     # 词集 = 建除 + 星宿 + 神煞三表并集。
     import re as _re_hm

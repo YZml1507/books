@@ -233,6 +233,7 @@ class KnowledgeBase:
                  e.scheme, e.addr1, e.addr2, e.quote))
         self.db.execute("INSERT INTO derived_fts(rowid, seg) VALUES (?,?)",
                         (did, segment_cjk(fold(claim))))
+        self._gc_derived()
         self.db.commit()
         return did
 
@@ -314,19 +315,65 @@ class KnowledgeBase:
         return {"ok": ok, "stale": len(stale), "details": stale}
 
     # -- Conversation ----------------------------------------------------------------
+    # R233x（R56-P1）：五张用户表此前无行数帽——threads 端点实测
+    # ~130KB/请求可无限写。封顶值按「单机自用十年也用不满」给。
+    _CAP_THREAD = 200
+    _CAP_TURN_PER_THREAD = 500
+    _CAP_DERIVED = 2000
+    _CAP_FAVORITES = 500
+
+    def _gc_threads(self) -> None:
+        """线程超帽：删最旧的（closed 优先，再按 updated_at），
+        级联清 turn/derived/evidence/derived_fts 孤儿行。"""
+        over = self.db.execute(
+            "SELECT id FROM thread ORDER BY "
+            "(status='open') DESC, updated_at DESC "
+            "LIMIT -1 OFFSET ?", (self._CAP_THREAD,)).fetchall()
+        for r in over:
+            tid = r["id"]
+            self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
+            self.db.execute(
+                "DELETE FROM evidence WHERE derived_id IN "
+                "(SELECT id FROM derived WHERE thread_id=?)", (tid,))
+            self.db.execute(
+                "DELETE FROM derived_fts WHERE rowid IN "
+                "(SELECT id FROM derived WHERE thread_id=?)", (tid,))
+            self.db.execute("DELETE FROM derived WHERE thread_id=?", (tid,))
+            self.db.execute("DELETE FROM thread WHERE id=?", (tid,))
+
+    def _gc_derived(self) -> None:
+        over = self.db.execute(
+            "SELECT id FROM derived ORDER BY id DESC LIMIT -1 OFFSET ?",
+            (self._CAP_DERIVED,)).fetchall()
+        for r in over:
+            self.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                            (r["id"],))
+            self.db.execute("DELETE FROM derived_fts WHERE rowid=?",
+                            (r["id"],))
+            self.db.execute("DELETE FROM derived WHERE id=?", (r["id"],))
+
     def open_thread(self, topic: str) -> int:
         cur = self.db.execute(
             "INSERT INTO thread (topic, opened_at) VALUES (?,?)",
             (topic, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        # R233x：插后裁——先 GC 再插会恒超帽一行。
+        self._gc_threads()
         self.db.commit()
         return cur.lastrowid
 
     def add_turn(self, thread_id: int, role: str, text: str) -> int:
-        seq = self.db.execute("SELECT coalesce(max(seq), 0) + 1 n FROM turn "
-                              "WHERE thread_id=?", (thread_id,)).fetchone()["n"]
+        # R233x（R56-P2）：SELECT+INSERT 两段式 seq 有竞态（并发同 seq
+        # 重复）——INSERT..SELECT 单语句原子化，并让单线程轮数有帽。
         cur = self.db.execute(
-            "INSERT INTO turn (thread_id, seq, role, text, created_at) VALUES (?,?,?,?,?)",
-            (thread_id, seq, role, text, time.strftime("%Y-%m-%dT%H:%M:%S")))
+            "INSERT INTO turn (thread_id, seq, role, text, created_at) "
+            "SELECT ?, coalesce(max(seq), 0) + 1, ?, ?, ? FROM turn "
+            "WHERE thread_id=?",
+            (thread_id, role, text, time.strftime("%Y-%m-%dT%H:%M:%S"),
+             thread_id))
+        self.db.execute(
+            "DELETE FROM turn WHERE thread_id=? AND id NOT IN "
+            "(SELECT id FROM turn WHERE thread_id=? ORDER BY seq DESC "
+            "LIMIT ?)", (thread_id, thread_id, self._CAP_TURN_PER_THREAD))
         self.db.execute("UPDATE thread SET updated_at=? WHERE id=?",
                         (time.strftime("%Y-%m-%dT%H:%M:%S"), thread_id))
         self.db.commit()
@@ -388,9 +435,15 @@ class KnowledgeBase:
         if not r:
             return None
         import json
-        return {"date": r["date"],
-                "bazi": json.loads(r["bazi_result"]) if r["bazi_result"] else None,
-                "tarot": json.loads(r["tarot_result"]) if r["tarot_result"] else None}
+        try:
+            return {"date": r["date"],
+                    "bazi": json.loads(r["bazi_result"]) if r["bazi_result"] else None,
+                    "tarot": json.loads(r["tarot_result"]) if r["tarot_result"] else None}
+        except ValueError:
+            # R233x（R56-P0）：坏行让该日期永久 500——删掉让它走重算路径。
+            self.db.execute("DELETE FROM daily_cache WHERE date=?", (date,))
+            self.db.commit()
+            return None
 
     def set_daily_cache(self, date: str, bazi: dict | None = None,
                         tarot: dict | None = None) -> None:
@@ -447,6 +500,11 @@ class KnowledgeBase:
             "INSERT OR IGNORE INTO favorites (type, ref_id, title, created_at) "
             "VALUES (?,?,?,?)",
             (ftype, ref_id, title, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        # R233x：插后裁——先裁再插恒超帽一行。
+        self.db.execute(
+            "DELETE FROM favorites WHERE id NOT IN "
+            "(SELECT id FROM favorites ORDER BY created_at DESC LIMIT ?)",
+            (self._CAP_FAVORITES,))
         self.db.commit()
         if cur.lastrowid:
             return cur.lastrowid
