@@ -21,6 +21,8 @@
 <!-- R8 P2-1：原 styles.css 内 @import 造成 HTML→styles→字体 串行瀑布；
      提成并行 link（顺序保持原 import 语义：这两份先加载）。 -->
 <link rel="stylesheet" href="/static/animotion/web-lite.css">
+<!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
+<link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/lxgw.css">
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
