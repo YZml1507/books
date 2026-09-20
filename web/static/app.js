@@ -1674,7 +1674,9 @@ function renderAiPolish(j) {
   if (!ai) return '';
   return '<div class="ai-polish" role="note" aria-label="AI 生成解读">' +
     '<div class="ai-polish-head">✨ AI 解读' +
-    '<span class="ai-polish-badge">AI 生成 · 仅供娱乐 · 再点一次可能不一样</span></div>' +
+    /* R230t（R32-P2-21）：badge 原写「再点一次可能不一样」——但该处并
+     * 无再生成入口，承诺了一个不存在的交互。改为如实描述。 */
+    '<span class="ai-polish-badge">AI 生成 · 仅供娱乐 · 每次生成可能不一样</span></div>' +
     '<p class="ai-polish-text">' + renderRichText(ai) + '</p>' +
     '</div>';
 }

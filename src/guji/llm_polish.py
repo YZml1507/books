@@ -159,7 +159,9 @@ def polish(facts: list[str], question: str | None = None,
             {"role": "user", "content": _render(facts, question)},
         ],
         "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
-        "temperature": 0.8,
+        # R230t（R32-P2-21）：polish 是「照事实说人话」的活——0.8 采样
+        # 是「没查到」类漂移的温度贡献项，降到 0.5。
+        "temperature": 0.5,
     }
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": "Bearer " + cfg["api_key"],
@@ -171,6 +173,10 @@ def polish(facts: list[str], question: str | None = None,
         _to = min(timeout, max(0.5, _deadline - time.monotonic()))
         if _to <= 0.5 and time.monotonic() >= _deadline:
             break
+        # R230t（R32-P2-21）：重试零退避——抖动期 3 连发瞬时打满。
+        # 0.4s/0.8s 小睡，预算大头来去仍是真请求。
+        if i:
+            time.sleep(min(0.4 * i, 1.2))
         try:
             if _transport is not None:                # 测试注入
                 data = _transport(payload, headers, url, _to)
@@ -259,8 +265,15 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 形态为 "...正文...\n</think> 正文..."——只保留最后一段 </think> 之后的正文。
     if "</think>" in text:
         text = text.rsplit("</think>", 1)[-1]
+    # R230t（R32-P2-14）：只有开标签没有闭标签 = 整段英文思考原文会
+    # 无遮挡上屏——按失败处理（交给调用方重试/降级）。
+    if "<think>" in text:
+        return None
     text = (_LEAK_PAT_KEEP_BOOK if keep_citations else _LEAK_PAT).sub("", text)
-    text = re.sub(r"\s{2,}", " ", text).strip()
+    # R230t（R32-P2-14）：\s{2,} 连换行一起压扁——模型的分段/双换行
+    # 全糊成一行。只压水平空白，保留段落结构（3+ 连换行收到 2）。
+    text = re.sub(r"[^\S\n]{2,}", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
     text = text.strip("\"“”'‘")
     # R230a-6（R12-P3-7）：<6 字下限会误杀合法短答（「挺好的。」4 字），放到 3。
     if len(text) < 3:
@@ -614,40 +627,40 @@ def chat(session_id: str, user_msg: str,
                 sess["coords"] = _coords_new
             _coords_snap = list(sess.get("coords") or [])
 
-        payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
+        # R228w：坐标事实与「黄历判定」分量不同——前者是话题参考
+        # 「不要逐条念」，后者是已算好的权威结论必须照说。
+        # R230t（R32-P2-10）：原顺序是 system(人设)→user(coords)→
+        # system(verdicts)→history→user(msg)——中段 system 权重不稳，
+        # coords 那条 user 没有对应 assistant 回复造成角色交错（实测
+        # 「有宜面试事实仍说没查到」的结构性诱因）。改为：verdicts 并进
+        # 首段 system，coords 紧贴最新消息并入同一条 user。
+        _sys = _CHAT_SYSTEM
+        if _verdicts:
+            _sys += ("\n\n以下是系统已算好的黄历判定，是权威结论，"
+                     "用户问到对应事项时必须照它回答、不许说没查到；"
+                     "日期只能引用判定里出现的，不要自己编日子：\n- "
+                     + "\n- ".join(_verdicts))
+        payload_msgs = [{"role": "system", "content": _sys}]
         _coords = _coords_snap
-        if _coords or _verdicts:
-            # R228w：坐标事实与「黄历判定」分量不同——前者是话题参考
-            # 「不要逐条念」，后者是已算好的权威结论必须照说。实测模型
-            # 对混装事实会自由发挥（有判定仍答「暂时没查到」），拆开写清
-            # 两种事实的使用规则。
-            if _coords:
-                # R230a-41（R15-P1-3）：客户端 facts 直进 system 角色是可注入
-                # 通道（"忽略所有先前的指令"/伪造「黄历判定：…」均以 system
-                # 特权送达，mock 日志实锤）。降为 user 角色的上下文块，
-                # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
-                _safe = [f for f in _coords
-                         if "黄历判定" not in f
-                         and "忽略" not in f
-                         and "忘记" not in f
-                         and "指令" not in f
-                         and "instruction" not in f.lower()
-                         and not f.lstrip().lower().startswith("system")]
-                if _safe:
-                    payload_msgs.append({
-                        "role": "user",
-                        "content": "（我的排盘坐标事实，只作话题参考，"
-                                   "不要逐条念）：\n- "
-                                   + "\n- ".join(_safe)})
-            if _verdicts:
-                payload_msgs.append({
-                    "role": "system",
-                    "content": "以下是系统已算好的黄历判定，是权威结论，"
-                               "用户问到对应事项时必须照它回答、不许说没查到；"
-                               "日期只能引用判定里出现的，不要自己编日子：\n- "
-                               + "\n- ".join(_verdicts)})
+        _user_msg = msg
+        if _coords:
+            # R230a-41（R15-P1-3）：客户端 facts 直进 system 角色是可注入
+            # 通道（"忽略所有先前的指令"/伪造「黄历判定：…」均以 system
+            # 特权送达，mock 日志实锤）。降为 user 角色的上下文块，
+            # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
+            _safe = [f for f in _coords
+                     if "黄历判定" not in f
+                     and "忽略" not in f
+                     and "忘记" not in f
+                     and "指令" not in f
+                     and "instruction" not in f.lower()
+                     and not f.lstrip().lower().startswith("system")]
+            if _safe:
+                _user_msg = ("（我的排盘坐标事实，只作话题参考，"
+                             "不要逐条念）：\n- " + "\n- ".join(_safe)
+                             + "\n\n" + msg)
         payload_msgs.extend(history)
-        payload_msgs.append({"role": "user", "content": msg})
+        payload_msgs.append({"role": "user", "content": _user_msg})
 
         # R230a-6（R12-P2-4）：主模型与 dots 共享同一轮询预算——分段各 34s
         # 会超出前端 40s 上限，慢成功白烧。
@@ -709,10 +722,13 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
     # 的原列表（主/dots 共享调用方 payload_msgs，不能把提示注进下一轮）。
     msgs = list(payload_msgs)
 
-    for _ in range(3):
+    for _i in range(3):
         _to = min(timeout, max(0.5, deadline - time.monotonic()))
         if _to <= 0.5 and time.monotonic() >= deadline:
             break
+        # R230t（R32-P2-21）：与 polish 同款重试小退避。
+        if _i:
+            time.sleep(min(0.4 * _i, 1.2))
         payload = {
             "model": cfg.get("model") or _DEFAULTS["model"],
             "messages": msgs,
@@ -801,33 +817,8 @@ def load_dots_config() -> dict | None:
     return d
 
 
-_XHS_COPY_SYSTEM = (
-    "你是深谙小红书平台调性的爆款文案写手，服务对象是一款面向 15-25 岁"
-    "年轻女性的八字/塔罗娱乐 Web 应用「小满的解忧铺」。用户会给你一个"
-    "主题和场景，请输出符合小红书风格的标题或笔记文案：口语化、有钩子、"
-    "情绪价值优先，可用适量 emoji；不出现「命理术语堆砌」和绝对化断言；"
-    "结尾可带 2-3 个相关话题标签。只输出文案本身，不要解释。")
-
-def xhs_copy(topic: str, kind: str = "poster_title",
-             config: dict | None = None, _transport=None) -> str | None:
-    """生成小红书文案。kind: poster_title | note_copy。失败 None。
-
-    R230a-6（R12-P3-4）：当前无路由无前端调用（未接线能力，随包发布）。
-    保留原因：dots 配置面与调用面已就绪，接线成本低；不是活跃路径。"""
-    cfg = config or load_dots_config()
-    if cfg is None:
-        return None
-    topic = (topic or "").strip()[:200]
-    if not topic:
-        return None
-    ask = {"poster_title": f"为主题「{topic}」写 5 个分享海报标题，每行一个。",
-           "note_copy": f"为主题「{topic}」写一篇 150 字内的小红书笔记正文。"}.get(
-              kind, f"围绕「{topic}」写一段小红书风格短文案。")
-    msgs = [{"role": "system", "content": _XHS_COPY_SYSTEM},
-            {"role": "user", "content": ask}]
-    # R230a-6（R12-P1-3）：文案可能引经典名句，书名号段放行。
-    _dl = time.monotonic() + _POLL_BUDGET_S
-    return _chat_call(msgs, cfg, _transport, keep_citations=True, deadline=_dl)
+# R230t（R32-P2-21）：xhs_copy（小红书文案）连同 _XHS_COPY_SYSTEM 删除——
+# 无路由无前端调用的死代码持有 dots 端点配置路径，需要时从 git 史拿回。
 
 _NAME_REVIEW_SYSTEM = (
     "你是一位精通古典文学的起名顾问。用户会给你几个候选名字和五行背景。"
