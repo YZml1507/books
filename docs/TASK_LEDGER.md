@@ -10861,3 +10861,36 @@ R36 审计清单 top 批次落地：
 - **小吉档激活**（P2-7）：fortune_level score==1 → 小吉（原来死档），copy_bank 4 条小吉文案池接通；前端四星+蜜桃浅底盘+aria「小吉，四星」。
 - **桃花晚缘话术**（口播残留）：应期远离年龄 >15 年时不再说「未来某段时间」（实测 1998 年生落在 69+ 岁），改「慢炖型」定心丸。
 - **自伤修复**：me-profile 用模块级 var 字段表，赋值在 init() 调用点之后——二次加载时 undefined.forEach 炸断 init 全链（plain_first 判据6/8 全灭 + ui_smoke 深链/ai 块 5 连跪），改字面量后全绿。教训：init() 之前的 var 不能在其调用链中被依赖。
+
+## R230z（R36 首批落地：留存面三件套 + 台账全品类）· 2026-09-20
+
+按 R36 功能审计清单落第一批（P1-1/P1-2/P2-3/P2-5）：
+
+- **排盘台账全品类**：records 表加 `type` 列（_DDL + _RECORDS_COLS 自愈，
+  旧库免迁移）；taohua/hehun/qiming/liuyao/tarot 五链路在 services 层统一
+  save_async(rtype=)。列表项带品类徽标（.ph-type 六色）；ph-open 复看按
+  `_PH_BUILDERS` map 分发到对应 build*Result（bazi 兜底）；空态文案改
+  「命盘、桃花、合婚、塔罗、六爻、起名都会收在这里」；CSV 导出加 type 列。
+  list_records 的 result_summary 用 `json_extract(result_json,'$.render')`
+  平铺兜底——非命盘类的 render 嵌套位置不同。
+- **合婚昵称对**：HehunRequest 加 a_name/b_name（≤16字 strip_zw）。
+  关键折衷：**昵称不进 API 响应**——selftest 把 /api/hehun 响应键集钉死，
+  回显会炸 22 键断言；改为前端在 doHehun 拿到 j 后本地注入
+  `j.a_name/j.b_name`（结果卡/海报共用一份），台账存的 result 副本
+  带昵称保证复看时还有名字。
+- **「存这对」chips**：hehun 结果卡 💝 按钮 → POST /api/favorites
+  （type=hehun，ref_id=十字段+昵称 `|` 编码）。表单上方「测过的 CP」
+  chips 点击 `_hhFavFill` 回填+直接重算。
+- **起名心水名单**：候选名卡 h3 旁 ♡ → favorites(type=qiming)；
+  `#qmFavRow` 固定条展示，× 走 DELETE /api/favorites/{id}。注意遵守
+  R208b 裁决：通用收藏面板仍是空壳，这两个窄入口是独立的。
+- **问一嘴足迹**：`localStorage.hlask` 存 {q,d} ≤12 条，`#hlAskHist`
+  chips 复读（日期词按当下重算，比钉死原日期更贴意图）。
+- 事件全部走 document 级委托（结果卡每次重渲，按钮是新的）；
+  ui_smoke 新增 `hehun.savepair` 用例真点链路。
+- **教训**：契约探针把 `j.b_name` 判 HARD 是因为 `a || b` 尾项无兜底
+  ——补 `|| ''` 即过；innerHTML 闸的 `// esc-reviewed` 标记必须与
+  赋值**同行**。
+
+闸门：selftest 237 / contract 438读点 / parity 100键 / ui_smoke 55 /
+plain_first / poster / llm_polish / dollar_misuse / ruff / 其余静态探针。
