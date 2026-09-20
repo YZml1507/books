@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-175d8043c076';   // shell-hash: 175d8043c076
+var CACHE = 'books-shell-662116a696c9';   // shell-hash: 662116a696c9
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。
  * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体
@@ -51,7 +51,10 @@ self.addEventListener('install', function (e) {
               '/static/styles.css'];
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return Promise.allSettled(SHELL.map(function (u) {
-      return c.add(u);
+      /* R2345（R63-P2-3）：c.add 默认走 HTTP 缓存——js/css 有
+       * max-age=3600，部署后 1h 内安装可能把旧字节装进新 CACHE 名。
+       * reload 模式绕开 HTTP 缓存直取网络。 */
+      return c.add(new Request(u, {cache: 'reload'}));
     })).then(function (rs) {
       var coreMiss = [];
       rs.forEach(function (r, i) {
@@ -82,8 +85,11 @@ self.addEventListener('fetch', function (e) {
   if (url.origin !== self.location.origin) return; // 跨源不接管（未来外链保险）
   if (url.pathname.indexOf('/api/') === 0) return; // API 永不缓存
 
-  /* 导航请求（刷新）：SWR——先给缓存壳保住白屏，后台再更新 */
-  if (e.request.mode === 'navigate') {
+  /* 导航请求（刷新）：SWR——先给缓存壳保住白屏，后台再更新。
+   * R2345（R63-P1-1）：/static/* 直链导航此前一律回壳 HTML——直开
+   * 静态图拿到首页。静态路径放行落到下面的 cache-first 分支。 */
+  if (e.request.mode === 'navigate'
+      && url.pathname.indexOf('/static/') !== 0) {
     e.respondWith(
       caches.match('/').then(function (hit) {
         var net = fetch(e.request).then(function (resp) {
@@ -92,7 +98,9 @@ self.addEventListener('fetch', function (e) {
             /* R230d（R16-P0-1）：put 挂 waitUntil——游离 Promise 会在
              * respondWith resolve 后随 SW 回收而丢，运行时缓存恒写不进。 */
             e.waitUntil(caches.open(CACHE).then(function (c) {
-              return c.put('/', resp.clone());
+              /* R2345（R63-P3-7）：配额满 put 会 reject——挂 catch
+               * 不让 waitUntil 变 rejected 拖到 SW 回收。 */
+              return c.put('/', resp.clone()).catch(function () {});
             }));
           }
           return resp;
@@ -110,7 +118,7 @@ self.addEventListener('fetch', function (e) {
         if (resp.ok) {
           /* R230d（R16-P0-1）：同上，运行时缓存回写必须挂 waitUntil。 */
           e.waitUntil(caches.open(CACHE).then(function (c) {
-            return c.put(e.request, resp.clone());
+            return c.put(e.request, resp.clone()).catch(function () {});
           }));
         }
         return resp;

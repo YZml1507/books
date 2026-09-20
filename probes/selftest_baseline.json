@@ -48,6 +48,7 @@
   "chat.crisis.refusal.extended",
   "chat.disabled.no_task_id",
   "chat.facts.dates_vocab",
+  "chat.facts.sanitized",
   "chat.huangli_facts",
   "chat.sensitive.narrow",
   "chat.sessions.cap",

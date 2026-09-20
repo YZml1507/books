@@ -813,6 +813,12 @@ async function api(path, options) {
              : '小满这次没接住，稍后再试试');
       }
     }
+    /* R2345（R61-P1-4）：schema 味的中文 detail（「facts 单条需为
+     * ≤500 字字符串」）也是实现细节——暴露字段名/类型词才换。 */
+    if (typeof detail === 'string' &&
+        /(?:需为|字符串|字段|类型|array|object|bool|float|int\b)/.test(detail)) {
+      detail = '这条消息有点怪——换个说法再发我';
+    }
     const err = new Error(Array.isArray(detail) ? _humanize422(detail)
       : (typeof detail === 'string' ? detail
           : (resp.status === 404 ? '要找的内容不在了'
@@ -1691,11 +1697,21 @@ function _activeViewFacts() {
 
 /* R2343（R59-gap2）：昵称此前不进请求体，小满永远不喊名字——
  * 发送时现读 me.n（改完昵称下一轮即生效，不等刷新）。 */
+/* R2345（R61-P1-1/P1-4）：昵称是「她叫X」事实行的投递通道——
+ * localStorage 直写绕过 maxlength=12，可把指令句/超长文本灌进
+ * LLM 上下文，甚至把 /api/chat 打出 400。收敛为纯称呼：只留
+ * 中英文/数字/·_-，≤12 字。 */
+function _meNickClean(n) {
+  return String(n == null ? '' : n)
+    .replace(/[^\u4e00-\u9fffA-Za-z0-9·_-]/g, '').slice(0, 12);
+}
+
 function _chatFacts(facts) {
   var _f = (facts || []).slice();
   try {
     var _me = _meGet('me');
-    if (_me && _me.n) _f.unshift('她叫' + _me.n + '——聊天时自然地喊她名字，别每句都喊');
+    var _n = _me ? _meNickClean(_me.n) : '';
+    if (_n) _f.unshift('她叫' + _n + '——聊天时自然地喊她名字，别每句都喊');
   } catch (e) {}
   return _f;
 }
@@ -5535,8 +5551,11 @@ function tarotFace(d) {
   var img = tarotImg(d.name);
   /* R231b：逆位牌面倒置显示——与牌名/关键词的「逆位」标注一致。 */
   var _rev = d.upright ? '' : ' class="is-reversed"';
+  /* R2345（R63-P1-2）：牌面图只走运行时缓存——装上即断网时 <img>
+   * 挂掉此前只剩裂图；onerror 落回既有 emoji 意象（tarotArt）。 */
   var art = img
-    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"' + _rev + '></div>' +
+    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"' + _rev +
+      ' onerror="this.outerHTML=\'' + esc(tarotArt(d.name)) + '\'"></div>' +
       '<div class="tinfo">'
     : '<div class="tart">' + tarotArt(d.name) + '</div><div class="tinfo">';
   return art +
@@ -5561,7 +5580,7 @@ function buildTarotResult(j) {
   (j.draws || []).forEach(function (d, i) {
     html += '<div class="tarot-cell"><div class="tarot-card-wrap">' +
       '<div class="tarot-card-inner" data-card="' + i + '">' +
-      '<div class="tarot-card-face tarot-card-back"><img class="tbimg" src="/static/tarot/card-back.jpg" alt=""></div>' +
+      '<div class="tarot-card-face tarot-card-back"><img class="tbimg" src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML=\'🂠\'"></div>' +
       '<div class="tarot-card-face tarot-card-front">' + tarotFace(d) + '</div>' +
       '</div></div>' +
       '<div class="tarot-pos">' + esc(d.position || ('第' + (i + 1) + '张')) +
@@ -7849,6 +7868,17 @@ function init() {
         window.localStorage.removeItem(_gk);
       }
     }
+    /* R2345（R63-P2-5）：c26bdce 时代 chat sid/记录放 localStorage，
+     * R230n 迁到 sessionStorage 后旧键无人清——启动兜底一并收掉。 */
+    ['chatSessionId', 'chatTranscript'].forEach(function (k) {
+      try { window.localStorage.removeItem(k); } catch (e4) {}
+    });
+    /* R2345（R63-P2-7）：申请持久化存储——浏览器在存储压力下可
+     * 逐出 localStorage/CacheStorage（iOS 7 天不活跃策略），
+     * persist() 保住连签/档案/离线壳。拒绝/不支持均静默。 */
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(function () {});
+    }
   } catch (e) {}
   var _onDayFlip = function () {
     var t = todayIso();
@@ -7960,6 +7990,13 @@ function init() {
               window.__hhInviteMode = false;
             }, { once: true });
           });
+          /* R2345（R63-P2-6）：邀请链生辰此前驻留 location.search——
+           * 浏览器历史/分享面板长存明文生日。落地预填后剥掉参数
+           * （深链语义不变，?view=hehun 保留以便刷新仍回本页）。 */
+          try {
+            history.replaceState(null, '',
+              location.pathname + '?view=hehun');
+          } catch (e5) {}
           setTimeout(function () {
             showToast('TA 的信息已经填好啦——轮到你了 💕');
             var _by = document.getElementById('hh_b_year');
@@ -8442,10 +8479,17 @@ function _meSave(key, rec) {
     var _oj = JSON.parse(window.localStorage.getItem(key) || 'null');
     if (_oj && typeof _oj === 'object') old = _oj;
   } catch (e0) {}
+  /* R2345（R61-P1-4）：写库时就净化昵称——脏值不落地，直写
+   * localStorage 绕过本函数的极端路径另有 _chatFacts 处兜底。 */
+  if ('n' in rec) rec = Object.assign({}, rec, {n: _meNickClean(rec.n)});
   try {
     window.localStorage.setItem(key, JSON.stringify(
       Object.assign(old, rec)));
-  } catch (e) {}
+  } catch (e) {
+    /* R2345（R63-P2-4）：checkin 写坏有 toast——me 是同原则更重的
+     * 字段（生辰），写失败不能再静默。 */
+    try { showToast('档案没存上——再试一次看看', 'warn'); } catch (e3) {}
+  }
   /* R2343（R59-gap4）：同页写入不触发 storage 事件——昵称存完立刻
    * 刷新空态招呼/档案条，改完不用刷新就看到名字。 */
   try { _chatChipsPersonalize(); _renderMeStrip(); } catch (e2) {}
@@ -8958,6 +9002,51 @@ function baziPersonaCard(j) {
       } catch (e) {
         showToast('备份失败：' + e.message, 'error');
       }
+    });
+    /* R2345（R63-P1-3）：「忘掉我的数据」——两段式确认后清：
+     * ① localStorage 个人键（me/me:partner/hlask/checkin:前缀/
+     *   dailyRevealed:前缀/visits/welcomed + 孤儿 chatSessionId 等）；
+     * ② 服务端 paipan_history 台账整表。主题/口吻偏好保留。 */
+    var _hw = document.getElementById('historyWipe');
+    if (_hw) _hw.addEventListener('click', function () {
+      if (_hw.dataset.armed !== '1') {
+        _hw.dataset.armed = '1';
+        var _ot = _hw.textContent;
+        _hw.textContent = '再点一次——生辰/昵称/记录全清';
+        _hw.setAttribute('aria-label', '再点一次确认清空我的数据');
+        _hw.classList.add('ph-del-armed');
+        setTimeout(function () {
+          _hw.dataset.armed = '';
+          _hw.textContent = _ot;
+          _hw.removeAttribute('aria-label');
+          _hw.classList.remove('ph-del-armed');
+        }, 4000);
+        return;
+      }
+      _hw.dataset.armed = '';
+      if (_hw.dataset.inflight === '1') return;
+      _hw.dataset.inflight = '1';
+      var _done = function (serverOk) {
+        _hw.dataset.inflight = '';
+        try {
+          var _rm = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript)$/
+                .test(k) || k.indexOf('checkin:') === 0 ||
+                k.indexOf('dailyRevealed:') === 0)) _rm.push(k);
+          }
+          _rm.forEach(function (k) { localStorage.removeItem(k); });
+        } catch (e) {}
+        try { _renderMeStrip(); } catch (e2) {}
+        try { loadPaipanHistory(); } catch (e3) {}
+        showToast(serverOk
+          ? '都忘掉啦——本机档案和台账都空了'
+          : '本机档案清了，台账没连上——联网后再点一次', serverOk ? 'info' : 'warn');
+      };
+      phFetch('/api/paipan/history', { method: 'DELETE' })
+        .then(function () { _done(true); })
+        .catch(function () { _done(false); });
     });
     var _imb = document.getElementById('historyImportBtn');
     var _imf = document.getElementById('historyImportFile');

@@ -156,8 +156,12 @@ def create_app() -> FastAPI:
         sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
         if not os.path.exists(sw_path):
             raise HTTPException(404, "sw.js 缺失")
+        # R2345（R63-P2-1）：sw.js 自身无 Cache-Control 时 Chrome 的
+        # SW 更新检查在 24h 窗口内走启发式缓存——新部署最长 ~24h 才被
+        # 发现。no-cache 强制每次 revalidate（有 ETag，304 仍省流）。
         return FileResponse(sw_path, media_type="application/javascript",
-                            headers={"Service-Worker-Allowed": "/"})
+                            headers={"Service-Worker-Allowed": "/",
+                                     "Cache-Control": "no-cache"})
 
     # R230n（R25-3.3）：SPA 兜底——乱路径此前 404 JSON（无 SW 时）与
     # SW 接管渲染首页（有 SW 时）口径分裂。统一：非 /api//static 的 GET

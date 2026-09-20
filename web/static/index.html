@@ -43,7 +43,7 @@ if ('serviceWorker' in navigator) {
        改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
        R230n（R25-2.4）：新版本 install 完成→置 waiting，提示刷新即换新版
        （老版仍活着，不强制打断）。 */
-    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+    navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
       if (!reg) return;
       var toast = function () {
         if (window.showToast) {
@@ -715,6 +715,9 @@ if ('serviceWorker' in navigator) {
         <button id="historyExportJson" type="button" class="ghost">备份我的数据</button>
         <button id="historyImportBtn" type="button" class="ghost">导入备份</button>
         <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
+        <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
+             两段式确认后清本机键+服务端台账。 -->
+        <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
       <div id="historyDetail" class="ph-detail" hidden></div>

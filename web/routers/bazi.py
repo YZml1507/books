@@ -178,6 +178,14 @@ def paipan_history_get(rid: int) -> dict:
     return rec
 
 
+@router.delete("/api/paipan/history")
+def paipan_history_clear() -> dict:
+    """R2345（R63-P1-3）：「忘掉我的数据」——台账整表清空。"""
+    if paipan_history.disabled():
+        raise NotFoundError("排盘历史未启用")
+    return {"ok": True, "deleted": paipan_history.clear_all()}
+
+
 @router.delete("/api/paipan/history/{rid}")
 def paipan_history_delete(rid: int) -> dict:
     if paipan_history.disabled():

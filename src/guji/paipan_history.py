@@ -309,6 +309,14 @@ def delete_record(rid: int) -> bool:
         return cur.rowcount > 0
 
 
+def clear_all() -> int:
+    """清空台账（R2345 / R63-P1-3：「忘掉我的数据」入口的服务端一半）。
+    返回删除行数。"""
+    with _write_lock, contextlib.closing(_conn()) as c, c:
+        cur = c.execute("DELETE FROM records")
+        return cur.rowcount
+
+
 def export_rows() -> list[tuple]:
     """CSV 导出数据行：(id, ts, name, question, type, paipan_render)。"""
     with contextlib.closing(_conn()) as c:

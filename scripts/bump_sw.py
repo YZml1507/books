@@ -20,6 +20,26 @@ LINE = re.compile(r"var CACHE = '[^']*';\s*// shell-hash: \S+")
 SHELL_LIST = re.compile(r"var SHELL = \[([^\]]*)\]")
 
 
+# R2345（R63-P2-2）：二线资产（牌面/星座卡/海报底图/字体分片）只走
+# 运行时缓存——内容变更不换 CACHE 名 = 老客无限期看旧图。纳入哈希：
+# 改这些文件同样必须 bump，SW 重装后运行时缓存随 CACHE 名一起换新。
+EXTRA_GLOBS = (
+    "tarot/*",
+    "cream/zodiac-*.jpg",
+    "shared/poster-bg-*.jpg",
+    "cream/poster-mascot.png",
+    "cream/icon-512-maskable.png",
+    "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
+)
+
+
+def _extra_paths() -> list[Path]:
+    out: list[Path] = []
+    for g in EXTRA_GLOBS:
+        out.extend(sorted(STATIC.glob(g)))
+    return out
+
+
 def _shell_paths(src: str) -> list[Path]:
     m = SHELL_LIST.search(src)
     if not m:
@@ -36,7 +56,7 @@ def _shell_paths(src: str) -> list[Path]:
 def shell_hash() -> str:
     src = SW.read_text(encoding="utf-8")
     h = hashlib.sha256()
-    for p in _shell_paths(src):
+    for p in _shell_paths(src) + _extra_paths():
         h.update(p.name.encode())
         h.update(b"\0")
         try:

@@ -11462,3 +11462,24 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   ts 改跑时当前值；清理段直连库按名扫「探针导入」残留并补偿
   baseline 计闸。
 - 闸门：ui_smoke 74/74 + 台账清理闸绿。
+
+## R2345 — R61/R63 审计清零（LLM 注入面 + SW/存储生命周期）
+- R61-P1：facts 信道加固——`_fact_is_safe` 闸扩禁词族（黄历/指令/服从/
+  提示词/回答/输出/翻译/英文/system/ignore/prompt…），仿冒判定与
+  指令注入整行剥除；危机/生死词经 facts 混入也剥（堵绕过确定性
+  转介的缝）。昵称全链路净化：`_meNickClean` 只留纯称呼 ≤12 字，
+  `_meSave` 写库时净化 + `_chatFacts` 发送时兜底，堵超长昵称 400。
+- R63-P1：SW navigate 不再劫持 `/static/*` 直链（直开静态图此前回
+  index.html）；塔罗正/背面 `<img>` 补 onerror→emoji 回落（装上即
+  断网不再裂图）；新增「忘掉我的数据」两段式清空：本机个人键 +
+  `DELETE /api/paipan/history` 服务端台账整表清。
+- R63-P2：sw.js 响应带 `Cache-Control: no-cache` + register
+  `updateViaCache:'none'`（更新发现不再被 24h 启发式缓存拖住）；
+  bump_sw.py + selftest 闸哈希面扩到二线资产（tarot/zodiac/海报底图/
+  字体分片——改了不换 CACHE 名会让老客永旧）；预缓存 `cache:'reload'`
+  绕 HTTP 缓存装新字节；`_meSave` 写失败补 toast；启动清孤儿
+  `chatSessionId`/`chatTranscript`；邀请链生辰落地后 `replaceState`
+  剥参数；`navigator.storage.persist()` 申请一次。
+- 探针：selftest +1（chat.facts.sanitized=253）；ui_smoke +1
+  （ui:history.wipe 真清空）+ 台账清理闸改 id 水位判定（wipe 兼容）。
+- 闸门：selftest 253 / contract 542 / ui_smoke 75 / 其余全绿。

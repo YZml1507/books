@@ -264,6 +264,16 @@ def main() -> int:
     from guji import paipan_history as _ph_db
     _ph_baseline = (0 if _ph_db.disabled()
                     else _ph_db.list_records(limit=200)["total"])
+    # R2345：wipe 用例会真删台账——「total−baseline」在其后失真，
+    # 残留判定改按 id 水位：本论新建行 id 必 > 基线 max_id。
+    _ph_max_id0 = 0
+    try:
+        if not _ph_db.disabled():
+            _items0 = _ph_db.list_records(limit=1)["items"]
+            if _items0:
+                _ph_max_id0 = int(_items0[0]["id"])
+    except Exception:
+        pass
     with kb_mod.KnowledgeBase(kb_path) as kb:
         derived_baseline = kb.db.execute(
             "SELECT COALESCE(MAX(id),0) AS m FROM derived").fetchone()["m"]
@@ -313,6 +323,7 @@ def main() -> int:
         cwd=cwd, env=env,
         stdout=srv_log, stderr=subprocess.STDOUT)
     results: list[dict] = []
+    _wipe_delta = [0]   # ui:history.wipe 真删台账行数（清理闸补偿用）
 
     # ── R228o 静态闸（不占浏览器，服务就绪前先跑）─────────────────
     # S1) on() 注册面 ⊆ BUTTON_CASES ∪ NO_CASE——新按钮忘了接冒烟用例时
@@ -336,6 +347,7 @@ def main() -> int:
                  "hlPickBtn", "recentToggle", "recentClose", "themeToggle",
                  "dailyCover", "viewBack", "dailyTomorrow", "historyRefresh",
                  "historyExport", "historyExportJson",
+                 "historyImportFile", "historyWipe",
                  "hlResult", "qmResult"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
@@ -897,6 +909,34 @@ def main() -> int:
                               f" JSON下载={_dlok} 刷新留存={_still}"})
             except Exception as exc:
                 results.append({"name": "ui:history.import", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 「忘掉我的数据」两段式清空（R2345/R63-P1-3）：武装文案→
+            # 二点→本机键清空+服务端台账清空。删行数记下供台账闸补偿。
+            _wipe_delta[0] = 0
+            try:
+                _before = page.evaluate(
+                    "(async()=>{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return j.total||0})()")
+                page.evaluate("localStorage.setItem('me',"
+                              " JSON.stringify({y:1990,m:1,d:1,n:'探针'}))")
+                page.click('#historyWipe')
+                page.wait_for_timeout(300)
+                _armed = '再点一次' in page.inner_text('#historyWipe')
+                page.click('#historyWipe')
+                page.wait_for_timeout(1500)
+                _after = page.evaluate(
+                    "(async()=>{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return j.total||0})()")
+                _me_left = page.evaluate("localStorage.getItem('me')")
+                _wipe_delta[0] = max(0, _before - _after)
+                results.append({
+                    "name": "ui:history.wipe",
+                    "ok": bool(_armed) and _after == 0 and _me_left is None,
+                    "detail": f"武装={_armed} 台账{_before}→{_after}"
+                              f" 本机me清空={_me_left is None}"})
+            except Exception as exc:
+                results.append({"name": "ui:history.wipe", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
             # 书目卡点击→回填书ID走检索（R60-P1-17：work-card 零覆盖）
@@ -1637,30 +1677,33 @@ def main() -> int:
             if history_db.delete_record(rec["id"]):
                 cleaned.append(f"history#{rec['id']}")
     # R230k（R23-P3-5）：paipan_history 增量回收（对齐 contract 清理段）
-    _ph_after = _ph_baseline
+    _ph_leftover = 0
     try:
         if not _ph_db.disabled():
-            _extra = (_ph_db.list_records(limit=200)["total"]
-                      - _ph_baseline)
-            if _extra > 0:
-                for _r in _ph_db.list_records(limit=200)["items"][:_extra]:
-                    if _ph_db.delete_record(_r["id"]):
-                        cleaned.append(f"paipan_history#{_r['id']}")
-            # 被 kill 的上轮可能留下「探针导入」残留——dedup 会让本轮
-            # 导入 imported=0 且旧行沉出 top50 → 用例假红。按名兜底清。
-            _residue = 0
-            # 残留行可能沉在 top200 之外——直连库按名扫全表
+            # 按 id 水位清本论新建行——wipe 清空后 total−baseline 为负
+            # 数不出本论写入，id>基线水位才是真相（id 单调增）。
+            # list_records 有 ≤100 的 cap——直连库全量扫水位。
             import sqlite3 as _sq
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _new_ids = [r[0] for r in _pc.execute(
+                    "SELECT id FROM records WHERE id>?", (_ph_max_id0,))]
+            for _rid in _new_ids:
+                if _ph_db.delete_record(_rid):
+                    cleaned.append(f"paipan_history#{_rid}")
+            # 被 kill 的上轮可能留下「探针导入」残留（id 可能低于水位
+            # 扫不到）——按名扫全表兜底清。
             with _sq.connect(_ph_db.DB_PATH) as _pc:
                 _ids = [r[0] for r in _pc.execute(
                     "SELECT id FROM records WHERE name='探针导入'")]
             for _rid in _ids:
                 if _ph_db.delete_record(_rid):
                     cleaned.append(f"paipan_history#残留{_rid}")
-                    _residue += 1
-            # 残留行在被杀上轮写入、早于本论 baseline——删掉后 total 会
-            # 比 baseline 低 _residue，计闸时把这部分加回去才算干净。
-            _ph_after = _ph_db.list_records(limit=200)["total"] + _residue
+            # 计闸：本论水位以上不得剩行（wipe 删的旧行是测试语义本身，
+            # 不算残留）。
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _ph_leftover = _pc.execute(
+                    "SELECT COUNT(*) FROM records WHERE id>?",
+                    (_ph_max_id0,)).fetchone()[0]
     except Exception as _exc:                    # noqa: BLE001
         cleaned.append(f"\u26a0 paipan_history 清理未完成：{_exc}")
     with kb_mod.KnowledgeBase(kb_path) as kb:
@@ -1691,12 +1734,12 @@ def main() -> int:
         print(f"  [{'PASS' if r['ok'] else 'FAIL'}] {r['name']}: {r['detail']}")
     print(f"\n清理: {', '.join(cleaned) or '无'}；"
           f"history 行数 {hist_baseline} -> {hist_after}；"
-          f"paipan_history 行数 {_ph_baseline} -> {_ph_after}")
+          f"paipan_history 水位以上残留 {_ph_leftover}")
     print(f"截图/服务日志: {LOGDIR}")
-    if hist_after != hist_baseline or _ph_after != _ph_baseline:
+    if hist_after != hist_baseline or _ph_leftover:
         print(f"probe_ui_smoke FAIL: 台账未清理干净 "
               f"(history {hist_baseline} -> {hist_after}, "
-              f"paipan {_ph_baseline} -> {_ph_after})")
+              f"paipan 水位 {_ph_max_id0} 以上剩 {_ph_leftover} 行)")
         return 1
     if failed:
         print(f"probe_ui_smoke FAIL: {len(failed)} 个用例失败 "
