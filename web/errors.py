@@ -74,6 +74,11 @@ def install(app: FastAPI) -> None:
             if "input" in e:
                 s = repr(e["input"])
                 e["input"] = s[:200] + ("…" if len(s) > 200 else "")
+            # ctx 里可能塞着嵌套异常对象（value_error 的 ctx.error 是
+            # ValidationError 实例）——JSONResponse 序列化会炸成 500。
+            if "ctx" in e:
+                e["ctx"] = {k: str(v) for k, v in
+                            dict(e["ctx"]).items()}
             errs.append(e)
         return JSONResponse(status_code=422, content={"detail": errs})
     app.add_exception_handler(RequestValidationError, _validation_handler)

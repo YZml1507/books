@@ -137,6 +137,24 @@ def _run_inner() -> list[str]:
               lambda j, s=_params["scheme"]: j.get("hits") and j.get("scheme") == s)
     check("compare", client.get("/api/compare", params={"gua": 28, "yao": "九二"}),
           lambda j: "findings" in j)
+    # R230a-48（R14-P0-1 钉扎）：受损 unit（卦47·上六 KR1a0006
+    # span-overextended）不上桌当见证——进 flagged 披露位；
+    # allow_damaged=1 才放回（显式看受损料）。
+    check("compare.flagged", client.get("/api/compare",
+          params={"gua": 47, "yao": "上六"}),
+          lambda j: (j.get("flagged", {}).get("KR1a0006")
+                     and "KR1a0006" not in j.get("witnesses", {})))
+    check("compare.flagged.opt_in", client.get("/api/compare",
+          params={"gua": 47, "yao": "上六", "allow_damaged": "true"}),
+          lambda j: "KR1a0006" in j.get("witnesses", {}))
+    # R230a-30（R14-P1-1 钉扎）：简体问句零命中→保守简转繁重试+hint。
+    check("search.s2t_hint", client.get("/api/search",
+          params={"q": "潜龙勿用"}),
+          lambda j: j.get("count", 0) > 0 and j.get("hint"))
+    # R230a-30（R14-P2-1 钉扎）：total 是全量命中数（乾>count 上限）。
+    check("search.total", client.get("/api/search", params={"q": "乾"}),
+          lambda j: j.get("total", 0) > j.get("count", 0)
+                    and j.get("truncated") is True)
     check("works", client.get("/api/works"),
           lambda j: j.get("works") and all("source" in w for w in j["works"]))
     check("stats", client.get("/api/stats"),
@@ -1153,6 +1171,21 @@ def _run_inner() -> list[str]:
         assert _bad.status_code == 400, ("err.threads.no_evidence",
                                          _bad.status_code)
         ok.append("err.threads.no_evidence")
+        # R230a-47（R15/R14 钉扎）：evidence.role 非法 → 400 且同样不得留
+        # 孤儿（此前拖到 record() 撞 CHECK，thread/turn 已 commit）。
+        _bad2 = client.post("/api/threads", json={
+            "kind": "refusal", "claim": "x", "method": "probe",
+            "evidence": [{"work_id": "", "quote": "q", "role": "bogus"}]})
+        assert _bad2.status_code == 400, ("err.threads.role",
+                                          _bad2.status_code)
+        ok.append("err.threads.role")
+        # R230a-32 钉扎：给了 work_id 却空 quote → 422（schemas 层拒）。
+        _bad3 = client.post("/api/threads", json={
+            "kind": "refusal", "claim": "x", "method": "probe",
+            "evidence": [{"work_id": "KR1a0001", "quote": "  "}]})
+        assert _bad3.status_code in (400, 422), ("err.threads.empty_quote",
+                                                 _bad3.status_code)
+        ok.append("err.threads.empty_quote")
         _tc1 = _kbt.db.execute("SELECT count(*) c FROM thread").fetchone()["c"]
     finally:
         _kbt.close()
@@ -1409,6 +1442,22 @@ def _run_inner() -> list[str]:
         _kbc.close()
     _expect_400("err.daily.date",
                 client.get("/api/daily", params={"date": "garbage"}))
+    # R230a-49（R15-P2-3 钉扎）：远未来日期不写 daily_cache
+    # （GET 写副作用灌库洞）。
+    client.get("/api/daily", params={"date": "2099-12-31"})
+    _kbf = _KB(KNOWLEDGE_DB)
+    try:
+        _nf = _kbf.db.execute(
+            "SELECT count(*) c FROM daily_cache WHERE date='2099-12-31'"
+        ).fetchone()["c"]
+    finally:
+        _kbf.close()
+    assert _nf == 0, ("daily.future_nowrite", _nf)
+    ok.append("daily.future_nowrite")
+    # R230a-50（R15-P1-2 钉扎）：int64 溢出参数 → 400 中文，不穿 500。
+    _ovf = client.get("/api/threads/99999999999999999999")
+    assert _ovf.status_code == 400, ("err.int64_overflow", _ovf.status_code)
+    ok.append("err.int64_overflow")
     # R230a-19（R13 钉扎）：xingzuo today_note 逐日 beat——14 天内须出现
     # ≥3 种不同句（R13 之前恒为同一句；确定式 beat 池 12 条按干支+宫名
     # 哈希取模，保守界 ≥3 不会 flake）。
