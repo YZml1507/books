@@ -8678,7 +8678,15 @@ function pickCheckinFeedback(opt, dateKey) {
   /* R39-P0-5：打卡完成的瞬间是植「明天再来」的黄金位——句尾按日轮换
    * 一句收口。 */
   var closers = ['明天再来挑一个～', '连签路上，明天见 🌱', '明天也给自己挑个好运搭子吧'];
-  return (pool[h % Math.max(1, pool.length)] || '') +
+  /* R2345（R59-leftover）：存过昵称就喊名字——打卡是最日常的触点，
+   * 「小鱼，今天这签挑得妙」比无主语更像陪伴。 */
+  var _nick = '';
+  try {
+    var _me = _meGet('me');
+    _nick = (_me && _me.n) ? _meNickClean(_me.n) : '';
+  } catch (e) {}
+  return (_nick ? _nick + '，' : '') +
+    (pool[h % Math.max(1, pool.length)] || '') +
     '　' + closers[h % closers.length];
 }
 
