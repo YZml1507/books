@@ -1007,6 +1007,33 @@ def main() -> int:
                 "detail": ("brand-title/h2 首选字体=ZCOOL KuaiLe 且 fonts.check=true"
                            if zc_ok else f"快乐体未上屏：{zc}"),
             })
+
+            # R230n：?view= 深链——白名单内的视图应直接激活并隐去首页主体
+            dl = ctx.new_page()
+            dl.goto(f"http://127.0.0.1:{port}/?view=huangli")
+            try:
+                dl.wait_for_selector("#view-huangli.active", timeout=5000)
+                hm_hidden = dl.evaluate(
+                    "() => document.getElementById('homeMain').hidden")
+                results.append({
+                    "name": "deep.view_link",
+                    "ok": bool(hm_hidden),
+                    "detail": "?view=huangli → 视图激活且首页主体隐藏",
+                })
+            except Exception as _e:
+                results.append({"name": "deep.view_link", "ok": False,
+                                "detail": f"深链未激活：{_e}"})
+            # 越名单值应回首页不报错
+            dl.goto(f"http://127.0.0.1:{port}/?view=nonexist")
+            dl.wait_for_timeout(400)
+            still_home = dl.evaluate(
+                "() => !document.getElementById('homeMain').hidden")
+            results.append({
+                "name": "deep.view_link.bogus",
+                "ok": bool(still_home),
+                "detail": "?view=nonexist → 静默回首页",
+            })
+            dl.close()
             ctx.close()
             browser.close()
     finally:
