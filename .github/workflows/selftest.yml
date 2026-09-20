@@ -72,6 +72,10 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python probes/probe_llm_polish.py
+      - name: 星座闸门 check_xingzuo（004 判据 10/11：锚点逐字命中+确定性）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_xingzuo.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
@@ -136,3 +140,7 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python probes/probe_date_parity.py
+      - name: 白话优先闸门 check_plain_first（specs/005 判据 1-8×5 用例）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_plain_first.py
