@@ -10615,3 +10615,7 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   存在性钉扎），49 用例全绿。
 - 续2：R16 P3-4 Esc 兜底回首页（details→侧栏→海报 modal 优先，零层可关才导航）；
   P3-6 聊天空消息占位提示（与 hlAskInput 口径一致）。
+- 续3：R16-P2-4 根因实锤——api() 里 `typeof [] === 'object'` 把 pydantic 422
+  detail 数组提前吞成裸「请求没走通（422）」，_humanize422 拿不到（空年份/
+  超长问题）；问一嘴空输入补 toast（原 placeholder 同文重设无可见反馈）。
+  R16 清单至此全清零（P3-1 dead views 留待用户拍板）。
