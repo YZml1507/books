@@ -44,6 +44,11 @@ except Exception:
     COPY_BANK = {}
 
 
+def _d3_today():
+    import datetime as _dd
+    return _dd.date.today().isoformat()
+
+
 def _pick(seq, *salt):
     """从文案池确定性抽一条：sha1(盐) 稳定映射，同输入必同输出。"""
     if not seq:
@@ -349,6 +354,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     # ——他问的是"考研能上吗"。原话入引号，标签作为归类跟在后面。
     quoted = f"「{q}」" if len(q) <= 18 else f"「{q[:18]}…」"
     lines: list[str] = []
+    import datetime as _d2                            # R233j：收口日盐
     if not gods:                                     # 健康/状态类：看五行均衡
         fe = calc.get("five_elements") or {}
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
@@ -395,13 +401,21 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if note:
             lines.append(f"其中最靠前的那个是{TEN_GOD_WARM.get(first, (first, ''))[0]}"
                          f"（{first}）——{note}。")
-        lines.append("意思是这件事在你盘里有落点，不是空的；"
-                     "具体怎么走，还要看你自己的选择。")
+        # R233j（R46-P1）：收口升日盐池——同一用户隔天换一句。
+        import datetime as _d2
+        lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
+                            "具体怎么走，还要看你自己的选择。",
+                            "盘里给这事留了位置——往哪走还是你说了算。",
+                            "这题盘里能接住，方向有了，步子你来定。"],
+                           "bazi-hit", q, _d2.date.today().isoformat()))
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
                      f"但这块在四柱天干上没有直接落点。")
         # R229z续23（R11-#17/#18）：去内部腔——「本项目的规矩」「通盘坐标」
-        lines.append("小满不瞎编——没有的东西不硬凑。")
+        lines.append(_pick(["小满不瞎编——没有的东西不硬凑。",
+                            "盘上没有的我不硬说——这是小满的规矩。",
+                            "这一维盘面没给线索，不猜。"],
+                           "bazi-miss", q, _d2.date.today().isoformat()))
         lines.append("可以看看下面的盘面明细，或换个问法。")
 
     rels = calc.get("relations") or []
@@ -696,7 +710,7 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
     bn = int((ben or {}).get("gua_number") or 0)
     name = (ben or {}).get("gua_name") or ""
     _ly = COPY_BANK.get("liuyao_openers") or []
-    opener = _pick(_ly, bn, name) if _ly else ""
+    opener = (_pick(_ly, bn, name, _d3_today()) if _ly else "")
     l0 = f"{opener}——{name}卦" if opener else \
          f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
     return _wrap(
@@ -862,11 +876,17 @@ def warm_taohua(t: dict) -> dict:
             _filtered = [l for l in _pool if any(k in l for k in ["独美", "待激活", "慢热", "蓄力", "充电"])]
         else:
             _filtered = [l for l in _pool if any(k in l for k in ["平稳", "适中", "刚刚好"])]
-        l0 = _pick(_filtered or _pool, t.get("year_zhi"), "ol")
+        # R233j（R46-P0）：①盐加日期——同一用户逐日换句（tailHook 说
+        # 「每天都在动」不能是空话）；②band 池 <3 条时放宽到全池，
+        # 让 16 条 all reachable（强档此前只剩 2 条可达）。
+        import datetime as _dt
+        _today = _dt.date.today().isoformat()
+        _eff = _filtered if len(_filtered) >= 3 else _pool
+        l0 = _pick(_eff or _pool, t.get("year_zhi"), _today, "ol")
         _band = ("强" if "偏快" in strength
                  else "弱" if "慢热" in strength else "中")
         lines: list[str] = [_pick((_tb.get("replies") or {}).get(_band) or [],
-                                  t.get("year_zhi"), _band)]
+                                  t.get("year_zhi"), _today, _band)]
         peach = t.get("peach_zhi") or ""
         yz = t.get("year_zhi") or ""
         if peach:
@@ -1041,8 +1061,13 @@ def warm_hehun(h: dict) -> dict:
         d0 = dayun[0]
         lines.append(f"从{d0.get('year_start')}年起你们进入大运互动期"
                      f"（{d0.get('relation', '')}）——节奏上的参考，不是日程表。")
-    lines.append("合婚看的是相处倾向，不是合格证——"
-                 "真正合不合，你们俩处出来的才算数。")
+    # R233j（R46-P1）：收口按两人日柱确定性抽池——每对组合不再同句。
+    lines.append(_pick(["合婚看的是相处倾向，不是合格证——"
+                        "真正合不合，你们俩处出来的才算数。",
+                        "盘面说的是相处节奏的提示——日子怎么过，"
+                        "是你们俩一起写出来的。",
+                        "合的是节奏不是命——这张表当参考，答案在你们手里。"],
+                       "hehun-close", h.get("day_gz_a"), h.get("day_gz_b")))
     return _wrap(
         l0[:_L0_MAX],
         None,

@@ -11142,3 +11142,24 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 
 - app.js 三处用户可见「值宫/当值宫」→「当班/今天轮到X座当班」：chat 事实行（1018）、星座大卡兜底（2649）、黄历交叉引用标签（5338）、cross-dir pill「值宫·X」→「今日·X」。services.py 注释域保留术语不动。
 - 闸门：selftest 237 / ui_smoke 58 / warm_voice / xingzuo 全绿。
+
+### R233j（R46 内容新鲜度批，主 agent）
+- 审计：`b339eddb` R46 内容新鲜度/重复度深审，清单 ~40 条（P0×3/P1×多）。
+- 落地 P0+P1：
+  - 塔罗/六爻 seed 输入框 `value="42"` → `placeholder="留空自动"`，TarotRequest.seed 默认 None（同题同日不再是固定答案）；
+  - copy_bank 死池接线：`qiming_one_liners` 12 条 → `/api/qiming` 回 `one_liner`，前端渲染（selftest 键集合 + contract CONDITIONAL_FIELDS 同步钉扎）；`checkin.feedback` 同步 6/项；
+  - 确定性换味：`_dayPick(pool, salt)`（todayIso 盐）前端新助手——WARM_EMPATHY 4 主题×3 句、尾钩 3/view、凶日安抚 3、明日预告尾 3、零点 toast 3、打卡问句 3、离线提示 3、「链接已复制/心水/线程已删除」toast 池化；后端 `_pick` 盐池化：bazi 收尾、桃花 opener/closer、合婚收尾、六爻 opener（`_d3_today()` 新助手）；`.brand-tagline`/`.daily-cover-txt` 日轮换（visits≤1 也生效）；
+  - hehun「互看」行补 `_GOD_NOTE`（你眼里的 ta / ta 眼里的你）。
+- 纪律：全部 sha1/fnv 盐选，同输入同输出、按日轮换，零真随机。
+
+### R233k（R45 交互细节批，主 agent）
+- 审计：`d2164649` R45 交互/微反馈/表单体验深审，48 条（P0×0，P1×5，P2×多）。
+- P1 全清：
+  - `guardedCall` 在途吞点 → 按钮 is-working+disabled+aria-busy 置灰可见，新增 `_ON_QUEUE` queueLatest 参数；
+  - `xzPrev/xzNext` 连点吞操作 → 移出在途锁，乐观改日期由 `_XZ_GEN` 丢过期响应（实测可连翻多天）；
+  - 全站 `_badYmdField`+`_failField`：2/31 类非法日前端就地标红聚焦+toast（submitBazi/doBirthReading/doLiuyao/doQiming/doTaohua/doHehun 六表单接线，doHehun 双侧）；submitBazi 提交钮补忙态；
+  - `syncLiuyaoToday` 每次进视图覆写用户输入 → 只在空值时填（与 hlInitToday/xzInitDate 拉齐）；
+  - `_hhFavFill` 裸调绕锁 → 同锁 + `_hhPendingFav` 最新一对补跑；`searchByWork`/`activateBssec` 进锁+queueLatest；`.ph-open` 复看加 `_PH_OPEN_GEN` 代际号。
+- P2 落地：busy() 有旧结果时原位 is-working+加载签（不再整清）；fail/failWithRetry 忙态容器错误行置顶+toast、旧卡保留；Esc 无可关层不再跳首页（IME 误触）；fx 涟漪收窄到交互白名单；insertAiPolish 入场动画+「小满又补了一句」toast；downloadPoster 触发钮忙态；ly_method=coins 隐藏时间行；toast × 关闭钮+pointer-events 修复（error hover 暂停计时此前是死代码）；chatInput 接近上限露 n/500；fav 删除改 api()+inflight；两处 scrollIntoView 走 _rmBehavior()；fav-chip-x/qm-fav 触面 44px；hl-week 7 列 minmax(44px) 横滑兜底；work-card 焦点环。
+- 不修备录：chatSend 并发乱序（§8-4）实测无窗口——后端 _session_lock 同 sid 任务串行，回复必有序。
+- 事故记录：R233j 凶日安抚池化时吃掉了三元 `: ''` 分支致全站解析失败——ui_smoke 首撞现形，CDP Runtime.compileScript 定位行号修复；教训：池化替换必须连 `:` 分支一起核对。

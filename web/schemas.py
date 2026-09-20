@@ -360,7 +360,7 @@ class NameReviewRequest(BaseModel):
 
 
 class TarotRequest(BaseModel):
-    seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
+    seed: int | None = Field(None, description="随机种子（固定 seed → 固定牌面，可复验；不传则随机）")
     # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
     n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
     question: str | None = Field(None, max_length=200)

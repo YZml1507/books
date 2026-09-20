@@ -1829,3 +1829,24 @@ html{-webkit-text-size-adjust:100%;}
 /* R233h（R43-#11）：宜忌 pill 两行——词 + 可视白话小字（title 在触屏不可见） */
 .hl-pill{display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.25;}
 .hl-pill-sub{font-size:11px;font-weight:400;opacity:.78;margin-top:1px;max-width:9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── R233k（R45 交互细节批）──────────────────────────────────
+ * 忙态可见/保旧卡/触控达标/到校校验标红/AI 到达动画。 */
+button.is-working{opacity:.62;cursor:progress}
+.is-working>*:not(.res-loading-tag):not(.fail-line){opacity:.5;filter:saturate(.75);pointer-events:none}
+.res-loading-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--secondary);padding:5px 12px;margin-bottom:8px;background:#FBF6EE;border:1px solid #EDE2D0;border-radius:999px}
+.fail-line{margin-bottom:8px;padding:8px 12px;border-radius:12px;background:#FDF1EC;color:#A15B3F;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !important;outline-color:#D4735E}
+.func-card:active,.work-card:active,#dailyCover:active{transform:scale(.96)}
+.work-card:focus-visible{outline:2px solid var(--primary-bg,#C25A4E);outline-offset:2px}
+.toast-item{pointer-events:auto}
+.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:2px 4px 2px 8px;cursor:pointer;opacity:.7}
+.toast-x:hover{opacity:1}
+.fav-chip-x{min-width:44px}
+.qm-fav{min-width:44px}
+.hl-week{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hl-week-row{grid-template-columns:repeat(7,minmax(44px,1fr))}
+.ai-arrive{animation:fadeIn .45s ease}
+.chat-input-row{position:relative}
+.char-count{position:absolute;top:-16px;right:4px;font-size:10px;color:var(--secondary);background:#FFFCF8;padding:0 6px;border-radius:8px;box-shadow:0 1px 3px rgba(90,60,40,.12)}
+@media (prefers-reduced-motion:reduce){.ai-arrive{animation:none}}

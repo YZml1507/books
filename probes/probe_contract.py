@@ -240,7 +240,10 @@ CONDITIONAL_FIELDS = {
                   "hour_known"},
     "/api/taohua": {"ai_task_id"},
     "/api/hehun": {"ai_task_id"},
-    "/api/qiming": {"ai_task_id"},
+    "/api/qiming": {"ai_task_id",
+                    # R233j（R46-P1）：one_liner 只在 copy_bank 池非空时回；
+                    # 前端 `if (j.one_liner)` 是对缺席的探测。
+                    "one_liner"},
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
     # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
     # 缺席的正确探测。

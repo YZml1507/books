@@ -2011,6 +2011,8 @@ def _run_inner() -> list[str]:
                        "cross_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",
                         "full_names", "ai_polish",
+                        # R233j（R46-P1）：qiming_one_liners 死池接线
+                        "one_liner",
                         # R220b：交叉引用铺到起名（太阳星座气质参考）
                         "cross_ref"},
     }
