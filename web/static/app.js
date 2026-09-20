@@ -5592,11 +5592,20 @@ async function doHehun() {
     /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
     j.a_name = (val('hh_a_name') || '').trim() || null;
     j.b_name = (val('hh_b_name') || '').trim() || null;
-    /* R230y：A=我，B=TA——两条 profile 分开存 */
-    _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
-      d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
-    _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
-      d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+    /* R230y：A=我，B=TA——两条 profile 分开存
+     * R233n续：邀请链落地时视角相反——受邀者填的 B 才是「自己」，
+     * A（发起人）落到 me:partner。手改过 A 侧则恢复默认。 */
+    if (window.__hhInviteMode) {
+      _meSave('me', { y: num('hh_b_year'), m: num('hh_b_month'),
+        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+      _meSave('me:partner', { y: num('hh_a_year'), m: num('hh_a_month'),
+        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+    } else {
+      _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
+        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+      _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
+        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+    }
     _meFillAll();
     paint('hhResult', buildHehunResult(j));
     rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
@@ -7537,9 +7546,20 @@ function init() {
            ['ah','hh_a_hour'],['ag','hh_a_gender'],['an','hh_a_name']
           ].forEach(function (p) {
             var v = _qsAll.get(p[0]), elx = document.getElementById(p[1]);
-            if (elx && v != null && v !== '') {
-              elx.value = v; elx.dataset.me = '1';   /* 视同已填，防档案覆盖 */
-            }
+            /* 不置 data-me——非空值本身就不被 _meFill 覆盖（置 1 反而
+             * 放行：受邀者自己的档案会盖掉发起人数据）。 */
+            if (elx && v != null && v !== '') elx.value = v;
+          });
+          /* 受邀者填的是 B 侧=自己——提交时 me/partner 归属要翻转，
+           * 否则发起人的生日会顶掉受邀者自己的档案。用户手改 A 侧
+           * 任一字段即视同放弃邀请口径，恢复默认归属。 */
+          window.__hhInviteMode = true;
+          ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour','hh_a_gender',
+           'hh_a_name'].forEach(function (_id) {
+            var _ae = document.getElementById(_id);
+            if (_ae) _ae.addEventListener('input', function () {
+              window.__hhInviteMode = false;
+            }, { once: true });
           });
           setTimeout(function () {
             showToast('TA 的信息已经填好啦——轮到你了 💕');

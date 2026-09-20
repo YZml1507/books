@@ -11200,3 +11200,7 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 ## R233q（R47-P2 续：周报签运图）
 - 打卡卡尾新增「📅 本周签运」（近 7 天打卡 ≥2 天才出现）；buildShareData 新增 `checkin-week` case：副题 M/D~M/D 日期段，big「本周打卡 N/7 天」，lines 逐日「周X MM/DD · 签面/歇了一天」。
 - 闸门：selftest 237 / ruff E9F 绿。
+
+## R233n·fix（自审出的两处真 bug）
+- 邀请链预填此前给字段打 data-me=1——该标记的语义是「允许档案覆盖」，受邀者自己的 me 会在下一次 _meFillAll 时盖掉发起人数据；改为不置标记（非空值天然防覆盖）。
+- 受邀者视角下 A=发起人、B=自己——原提交路径固定把 A 存成 me，会把发起人生日写进受邀者档案；新增 __hhInviteMode 翻转（B→me / A→me:partner），用户手改任一 A 字段即恢复默认口径。
