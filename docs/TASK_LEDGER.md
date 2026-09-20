@@ -10489,3 +10489,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-10（2026-09-20）：429 收尾
 - polish/chat 两处重试环对 429 直接 break（配额耗尽原地重试白烧）。
+
+## R230a-11（2026-09-20）：黄历 cross_ref 上屏
+- doHuangli 渲染 j.cross_ref（此前后端算好但前端丢弃）。
