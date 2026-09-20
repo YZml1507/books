@@ -221,6 +221,24 @@ def _run_inner() -> list[str]:
     assert "均势" in _ttxt and "独大" in _ttxt, \
         ("bazi.strong_tied.text", _ttxt[-120:])
     ok.append("bazi.strong_tied")
+    # R230a-25（R13-P1-2 钉扎）：感情类提问按性别分星——女看官杀
+    # （规矩位/压力位）、男看财。同一盘 1990-05-15：女须有官杀落点，
+    # 男走财路径（该盘财星仅藏干弱位，故落「无直接落点」兜底）。
+    _gf = client.post("/api/bazi", json={
+        "year": 1990, "month": 5, "day": 15, "hour": 10,
+        "gender": "女", "question": "感情运怎么样"}).json()
+    _gre = " ".join((_gf.get("warm") or {}).get("reply") or [])
+    assert ("规矩位" in _gre or "压力位" in _gre), \
+        ("bazi.gender.female", _gre[:100])
+    _gm = client.post("/api/bazi", json={
+        "year": 1990, "month": 5, "day": 15, "hour": 10,
+        "gender": "男", "question": "感情运怎么样"}).json()
+    # 男盘答感情走财路径——首句（答题句）不得出现官杀位表述
+    # （day_luck 行可能独立提规矩位，只看首句）。
+    _grm0 = (((_gm.get("warm") or {}).get("reply") or [""])[0])
+    assert "规矩位" not in _grm0 and "压力位" not in _grm0, \
+        ("bazi.gender.male", _grm0)
+    ok.append("bazi.gender_topic")
     # R178b（D-226b）：确定性解读层 standing 覆盖——原 llm 字段（生成文本，
     # 需 key + 网络、不可复现）替换为 interpretation（guji.interpreter 规则
     # 输出）。断言引擎标识 + sections 非空 + text 以「## 排盘坐标」开头，
