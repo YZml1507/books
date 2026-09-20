@@ -1015,12 +1015,24 @@ function rememberResult(viewKey, json, question, body) {
   /* v2：多存一份 body（含 gender 等），供 buildChatContext 拼性别。 */
   LAST_RESULT[viewKey] = { json: json || {}, question: question || '',
                            body: body || {} };
+  /* R233m（R45-P3）：sessionStorage 续接——刷新后「聊聊这件事」不再
+   * 退化成无上下文泛化句。tab 关闭即焚，不落 localStorage。 */
+  try {
+    var _js = JSON.stringify(LAST_RESULT[viewKey]);
+    if (_js.length < 200000) sessionStorage.setItem('lastResult:' + viewKey, _js);
+  } catch (e) {}
 }
 
 /* R219b（P0-2）：把缓存的响应拼成「带数据的第一句」+ 结构化 facts。
  * 返回 {msg, facts}；无缓存时回落到旧的通用句（不阻断交互）。 */
 function buildChatContext(viewKey) {
   var entry = LAST_RESULT[viewKey];
+  if (!entry && viewKey) {   /* R233m：刷新后从 sessionStorage 恢复 */
+    try {
+      var _s = sessionStorage.getItem('lastResult:' + viewKey);
+      if (_s) { entry = JSON.parse(_s); LAST_RESULT[viewKey] = entry; }
+    } catch (e) {}
+  }
   var j = entry ? entry.json : null;
   var q = entry ? (entry.question || '') : '';
   var facts = [];

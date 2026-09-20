@@ -11167,3 +11167,6 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 ### R233l（死视图清理）
 - `view-divine` 簇页删除：零 `data-view="divine"` 入口、零 JS/CSS 引用（R200b 迁移进 view-bazi 相关功能区后残留 DOM）。selftest 分割点改锚 `view-bazi`。
 - R46 备查：塔罗 78 牌面+牌背此前已由 r231a 生图库存完成替换（核实 `web/static/_candidates/r231a/tarot-*-src`），本轮复核无需重生成。
+
+### R233m（R45-P3 续接）
+- LAST_RESULT 随 sessionStorage 续接：rememberResult 存 `lastResult:<view>`（<200KB 才写，tab 关即焚），buildChatContext 缺缓存时懒恢复——刷新后「聊聊这件事」不再退成泛化句。
