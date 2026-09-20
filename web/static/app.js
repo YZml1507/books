@@ -3610,6 +3610,18 @@ async function loadDaily() {
     setText('dailyNoble', j.noble || '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
+    /* R233q：签号上卡——「今日第 N 签」的求签感是小红书日签标配 */
+    var _sg = el('dailySignNo');
+    if (!_sg) {
+      _sg = document.createElement('div');
+      _sg.id = 'dailySignNo';
+      _sg.className = 'daily-meta-item';
+      _sg.title = '每天一张签，签号跟着日子走';
+      var _mrow = document.querySelector('#dailyCard .daily-meta');
+      if (_mrow) _mrow.appendChild(_sg);
+    }
+    if (_sg) _sg.innerHTML = '📜 今日签号：<strong>第' +
+      _signNo(j.date) + '签</strong>';
     /* R233n（R47-P2-5）：生日横幅——档案里的生日撞上今天就铺一条
      * 「今天你最大」，顺带把生日盘入口点亮。 */
     try {
