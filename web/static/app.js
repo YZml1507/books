@@ -4154,20 +4154,41 @@ function _hlDayOffset(q, base) {
     if (_past) return bestPast !== null ? bestPast : best;
     return best !== null ? best : bestPast;
   };
+  /* 日期词后缀「前一天/后/次日…」→ [偏移, 吃掉字符数]（与 py _day_suffix
+   * 同表）。hit 为匹配对象时取其 end 位置。 */
+  var _suf = function (mEnd) {
+    var tail = _s0.slice(mEnd, mEnd + 6);
+    var rules = [['大前天',-3],['的前三天',-3],['后第三天',3],
+                 ['后的第三天',3],['的后三天',3],['前三天',-3],
+                 ['的前三天',-3],['前两天',-2],['头两天',-2],
+                 ['的前两天',-2],['后第二天',2],['的第二天',2],
+                 ['后两天',2],['前一天',-1],['头一天',-1],['的前一天',-1],
+                 ['之后',1],['次日',1],['第二天',1],['后一天',1],
+                 ['之前',-1]];
+    for (var i = 0; i < rules.length; i++) {
+      if (tail.indexOf(rules[i][0]) === 0) return rules[i][1];
+    }
+    if (/^前/.test(tail)) return -1;
+    if (/^后/.test(tail)) return 1;
+    return 0;
+  };
   var _nxm = _s0.match(/下[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_nxm) {
     var bN = base || new Date();
-    return _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, +_nxm[1])]);
+    var _o1 = _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, +_nxm[1])]);
+    return _o1 === null ? null : _o1 + _suf(_nxm.index + _nxm[0].length);
   }
   var _pm = _s0.match(/上[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_pm) {
     var bP = base || new Date();
-    return _pick([_mkd(bP.getFullYear(), bP.getMonth() - 1, +_pm[1])]);
+    var _o2 = _pick([_mkd(bP.getFullYear(), bP.getMonth() - 1, +_pm[1])]);
+    return _o2 === null ? null : _o2 + _suf(_pm.index + _pm[0].length);
   }
   var _tsm = _s0.match(/这[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_tsm) {
     var bT = base || new Date();
-    return _pick([_mkd(bT.getFullYear(), bT.getMonth(), +_tsm[1])]);
+    var _o3 = _pick([_mkd(bT.getFullYear(), bT.getMonth(), +_tsm[1])]);
+    return _o3 === null ? null : _o3 + _suf(_tsm.index + _tsm[0].length);
   }
   var _am = _s0.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])/) ||
             _s0.match(/(\d{1,2})\s*[\/.-](\d{1,2})/);
@@ -4175,25 +4196,31 @@ function _hlDayOffset(q, base) {
     var bA = base || new Date();
     var _ys = [bA.getFullYear(), bA.getFullYear() + 1, bA.getFullYear() - 1];
     if (_yoff !== null) _ys = [bA.getFullYear() + _yoff];
-    return _pick(_ys.map(function (y) {
+    var _o4 = _pick(_ys.map(function (y) {
       return _mkd(y, +_am[1] - 1, +_am[2]); }));
+    return _o4 === null ? null : _o4 + _suf(_am.index + _am[0].length);
   }
-  if (/月底|月末/.test(s)) {
+  var _me = _s0.match(/月底|月末/);
+  if (_me) {
     var bE = base || new Date();
-    return _pick([new Date(bE.getFullYear(), bE.getMonth() + 1, 0),
-                  new Date(bE.getFullYear(), bE.getMonth() + 2, 0)]);
+    var _o5 = _pick([new Date(bE.getFullYear(), bE.getMonth() + 1, 0),
+                     new Date(bE.getFullYear(), bE.getMonth() + 2, 0)]);
+    return _o5 === null ? null : _o5 + _suf(_me.index + 2);
   }
-  if (/月初/.test(s)) {
+  var _ms = _s0.match(/月初/);
+  if (_ms) {
     var bS = base || new Date();
-    return _pick([new Date(bS.getFullYear(), bS.getMonth() + 1, 1),
-                  new Date(bS.getFullYear(), bS.getMonth(), 1)]);
+    var _o6 = _pick([new Date(bS.getFullYear(), bS.getMonth() + 1, 1),
+                     new Date(bS.getFullYear(), bS.getMonth(), 1)]);
+    return _o6 === null ? null : _o6 + _suf(_ms.index + 2);
   }
   /* 裸「D号」：防「3号线/25号楼/8号院」误命中（与 py 同邻接字表）。 */
-  var _bd = s.match(/(^|[^\d月\/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])/);
+  var _bd = _s0.match(/(^|[^\d月\/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])/);
   if (_bd) {
     var bB = base || new Date();
-    return _pick([_mkd(bB.getFullYear(), bB.getMonth(), +_bd[2]),
-                  _mkd(bB.getFullYear(), bB.getMonth() + 1, +_bd[2])]);
+    var _o7 = _pick([_mkd(bB.getFullYear(), bB.getMonth(), +_bd[2]),
+                     _mkd(bB.getFullYear(), bB.getMonth() + 1, +_bd[2])]);
+    return _o7 === null ? null : _o7 + _suf(_bd.index + _bd[0].length);
   }
   /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。 */
   var mw = s.match(/(本周|这周|本週|這週|这週|這周)([一二三四五六日天])/);

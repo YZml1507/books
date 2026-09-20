@@ -984,6 +984,22 @@ def _holiday_candidates(name: str, now: datetime,
     return out
 
 
+def _day_suffix(msg_n: str, end: int) -> tuple[int, int]:
+    """日期词后紧跟的「前一天/前两天/后/次日…」→ (天数偏移, 吃掉字符数)。"""
+    tail = msg_n[end:end + 6]
+    for pat, d in (("大前天", -3), ("的前三天", -3), ("后第三天", 3),
+                   ("后的第三天", 3), ("的后三天", 3), ("前三天", -3),
+                   ("的前三天", -3), ("前两天", -2), ("头两天", -2),
+                   ("的前两天", -2), ("后第二天", 2), ("的第二天", 2),
+                   ("后两天", 2), ("前一天", -1), ("头一天", -1),
+                   ("的前一天", -1), ("之后", 1), ("次日", 1),
+                   ("第二天", 1), ("后一天", 1), ("之前", -1),
+                   ("前", -1), ("后", 1)):
+        if tail.startswith(pat):
+            return d, len(pat)
+    return 0, 0
+
+
 def _abs_or_holiday(msg: str, now: datetime):
     """绝对日期/节日/农历表达 → (datetime, 用户原词)；解不出返回 None。
 
@@ -1019,7 +1035,10 @@ def _abs_or_holiday(msg: str, now: datetime):
                     pass
             pick = _nearest_day(cands, now, past)
             if pick:
-                return datetime.combine(pick, now.time()), lm.group(0)
+                _dl, _ln = _day_suffix(msg_n, lm.end())
+                return (datetime.combine(pick + timedelta(days=_dl),
+                                         now.time()),
+                        msg_n[lm.start():lm.end() + _ln])
 
     for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
                        | set(_HOLIDAY_NTH)
@@ -1027,28 +1046,39 @@ def _abs_or_holiday(msg: str, now: datetime):
         w = "清明" if name == "清明節" else name
         if w not in msg_n:
             continue
-        idx = msg_n.find(w) + len(w)
+        widx = msg_n.find(w)
+        # 「双十一」误命中「十一」：数字节前一个字是数字/双 时跳过。
+        if widx > 0 and msg_n[widx - 1] in "双十廿一二两三四五六七八九":
+            continue
+        idx = widx + len(w)
         if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
             continue                      # 「十一月」之类误命中
         cands = _holiday_candidates("清明" if name == "清明節" else name,
                                   now, yoff)
         pick = _nearest_day(cands, now, past)
         if pick:
-            return datetime.combine(pick, now.time()), w
+            _dl, _ln = _day_suffix(msg_n, idx)
+            _sp = msg_n[widx:idx + _ln]
+            return (datetime.combine(pick + timedelta(days=_dl),
+                                     now.time()), _sp or w)
 
     nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nm:
         d = int(nm.group(1))
         ny, nmth = now.year + (now.month == 12), (now.month % 12) + 1
         try:
-            return datetime(ny, nmth, d), nm.group(0)
+            _dl, _ln = _day_suffix(msg_n, nm.end())
+            return (datetime(ny, nmth, d) + timedelta(days=_dl),
+                    msg_n[nm.start():nm.end() + _ln])
         except ValueError:
             pass
     tm = re.search(r"这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if tm:
         try:
-            return datetime(now.year, now.month, int(tm.group(1))), \
-                tm.group(0)
+            _dl, _ln = _day_suffix(msg_n, tm.end())
+            return (datetime(now.year, now.month, int(tm.group(1)))
+                    + timedelta(days=_dl),
+                    msg_n[tm.start():tm.end() + _ln])
         except ValueError:
             pass
 
@@ -1058,7 +1088,9 @@ def _abs_or_holiday(msg: str, now: datetime):
         py_, pmth = (now.year - 1, 12) if now.month == 1 \
             else (now.year, now.month - 1)
         try:
-            return datetime(py_, pmth, d), pm.group(0)
+            _dl, _ln = _day_suffix(msg_n, pm.end())
+            return (datetime(py_, pmth, d) + timedelta(days=_dl),
+                    msg_n[pm.start():pm.end() + _ln])
         except ValueError:
             pass
 
@@ -1076,7 +1108,10 @@ def _abs_or_holiday(msg: str, now: datetime):
             cands = [dd for dd in cands if dd.year == now.year + yoff]
         pick = _nearest_day(cands, now, past)
         if pick:
-            return datetime.combine(pick, now.time()), am.group(0)
+            _dl, _ln = _day_suffix(msg_n, am.end())
+            return (datetime.combine(pick + timedelta(days=_dl),
+                                     now.time()),
+                    msg_n[am.start():am.end() + _ln])
 
     if "月底" in msg or "月末" in msg:
         import calendar
@@ -1087,13 +1122,19 @@ def _abs_or_holiday(msg: str, now: datetime):
                       calendar.monthrange(now.year, now.month)[1])]
         pick = _nearest_day(cands, now, past)
         if pick:
-            return datetime.combine(pick, now.time()), "月底"
+            _w0 = msg_n.find("月底") if "月底" in msg_n else msg_n.find("月末")
+            _dl, _ln = _day_suffix(msg_n, _w0 + 2)
+            return (datetime.combine(pick + timedelta(days=_dl), now.time()),
+                    msg_n[_w0:_w0 + 2 + _ln])
     if "月初" in msg:
         cands = [date(now.year + (now.month == 12), (now.month % 12) + 1, 1),
                  date(now.year, now.month, 1)]
         pick = _nearest_day(cands, now, past)
         if pick:
-            return datetime.combine(pick, now.time()), "月初"
+            _w0 = msg_n.find("月初")
+            _dl, _ln = _day_suffix(msg_n, _w0 + 2)
+            return (datetime.combine(pick + timedelta(days=_dl), now.time()),
+                    msg_n[_w0:_w0 + 2 + _ln])
 
     # 裸「D号/D日」：防「3号线/25号楼/8号院」误命中——后接线路/楼栋字跳过。
     bd = re.search(r"(?<![\d月/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])", msg_n)
@@ -1108,7 +1149,10 @@ def _abs_or_holiday(msg: str, now: datetime):
                 pass
         pick = _nearest_day(cands, now, past)
         if pick:
-            return datetime.combine(pick, now.time()), bd.group(0)
+            _dl, _ln = _day_suffix(msg_n, bd.end())
+            return (datetime.combine(pick + timedelta(days=_dl),
+                                     now.time()),
+                    msg_n[bd.start(1):bd.end() + _ln].lstrip())
     return None
 
 
