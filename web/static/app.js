@@ -2627,6 +2627,14 @@ async function submitBazi(event) {
   busy('result', '计算中…');
   try {
     const body = baziBody();
+    /* R230f续4（R16-P2-4b）：与出生抽屉同一套预检——空/越界不走
+     * 请求，直接站内中文提示（原来要等一轮 422）。 */
+    if (body.year == null || body.month == null || body.day == null
+        || body.year < 1900 || body.year > 2100
+        || body.month < 1 || body.month > 12 || body.day < 1 || body.day > 31) {
+      paint('result', '<div class="no-evidence">日期看起来不太对，检查一下年月日再试～</div>');
+      return;
+    }
     WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
     const j = await postJSON('/api/bazi', body);
     const paipan = j.paipan || {};
