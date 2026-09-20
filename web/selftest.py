@@ -1653,8 +1653,11 @@ def _run_inner() -> list[str]:
                                "static", "app.js"), encoding="utf-8").read()
     assert "_hlDayOffset(q)" in _appsrc2 and "_HL.dayWord" in _appsrc2, \
         "问一嘴日期词偏移：_hlDayOffset/_HL.dayWord 必须在 app.js 里"
-    assert ", _dayWord)" in _appsrc2, \
+    assert ", _dayWord" in _appsrc2, \
         "_hlVerdictHtml 调用必须带日词参数——否则判定卡写死「今天」"
+    # R230h（R20-F7）：相冲词不作主推凭据——conflict 必须进调用与函数体。
+    assert "j.conflict)" in _appsrc2 and "a.indexOf(w)" in _appsrc2, \
+        "_hlVerdictHtml 必须收到 conflict 且判定器双向包含（R20-F1/F7）"
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

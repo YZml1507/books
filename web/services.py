@@ -250,6 +250,9 @@ def bazi(req) -> dict:
     paipan_history.save_async({
         "year": req.year, "month": req.month, "day": req.day,
         "hour": req.hour, "gender": req.gender,
+        # R230h（R20-F9）：minute/hour_known 进台账——节气分钟级边界与
+        # 「时辰未知」标记将来做按原参重测/导出分析时不能丢。
+        "minute": req.minute, "hour_known": req.hour_known,
         "calendar_type": req.calendar_type,
         "lunar_year": req.lunar_year, "lunar_month": req.lunar_month,
         "lunar_day": req.lunar_day, "lunar_leap": req.lunar_leap,
@@ -896,6 +899,10 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "购物": ["出行"], "买东西": ["出行"], "逛街": ["出行"],
     "出去玩": ["出行", "远行"],
     "健身": ["健身"], "运动": ["健身"], "唱歌": ["唱歌"], "唱k": ["唱歌"],
+    # R230h（R20-F1）：「备孕/求子」→求嗣——此前前端靠 YI_MAP 描述串
+    # 撞出「宜」、后端中性，同问相反；进词表后两侧同源判定。
+    "备孕": ["求嗣"], "求子": ["求嗣"], "要孩子": ["求嗣"],
+    "生子": ["求嗣"], "怀孕": ["求嗣"],
 }
 
 # 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值两张

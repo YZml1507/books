@@ -95,10 +95,11 @@ if ('serviceWorker' in navigator) {
     <div class="daily-meta">
       <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
       <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong> <span class="meta-note">（最帮你的人/方位）</span></div>
-      <div class="daily-meta-item">✅ 宜：<strong id="dailyDo">—</strong></div>
-      <!-- R229z续23（R11-#7）：「别急」是第三套叫法——数据层统一「忌」，
-           与黄历卡/判定口径对齐 -->
-      <div class="daily-meta-item">🚫 忌：<strong id="dailyDont">—</strong></div>
+      <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
+           老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
+           打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
+      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试：<strong id="dailyDo">—</strong></div>
+      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">🚫 先缓缓：<strong id="dailyDont">—</strong></div>
     </div>
     <!-- R229z续23（R11-每日免责缺口）：首页卡面此前无免责 -->
     <div style="font-size:11px;color:var(--muted);margin-top:6px;">仅供娱乐，新的一天照常过 ✨</div>
@@ -512,7 +513,7 @@ if ('serviceWorker' in navigator) {
         </div>
         <button id="hlSubmit" type="button" style="margin-top:8px;">查这一天</button>
       </details>
-      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty">选个日子看看宜忌吧</div></div>
+      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty" data-ph="1">选个日子看看宜忌吧</div></div>
     </div>
   </div>
 

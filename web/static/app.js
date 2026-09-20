@@ -65,6 +65,14 @@ window.addEventListener('error', function (e) {
 });
 
 /** HTML 转义——所有动态文本入 innerHTML 前必过这里。 */
+/* R230h（R20-F6）：浏览器本地今天 ISO——跨零点窗口里后端
+ * date.today() 与用户看见的「今天」可能不是同一天；凡问「今天」
+ * 的请求都显式带这个日期（daily/xingzuo/ask_date 锚点统一）。 */
+function todayIso() {
+  var t = new Date();
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') +
+    '-' + String(t.getDate()).padStart(2, '0');
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -1236,7 +1244,9 @@ function warmEmpathy(question) {
   /* U-012：无主题匹配时从池中确定性抽取（视图名+日期做盐）。 */
   try {
     var view = document.querySelector('.view.active') || {};
-    var salt = (view.id || 'x') + '|' + new Date().toISOString().slice(0, 10);
+    /* R230h（R20-F8）：日盐换浏览器本地日——toISOString 是 UTC，东八区
+     * 早上 8 点前盐值还停在昨天。 */
+    var salt = (view.id || 'x') + '|' + todayIso();
     var h = 0;
     for (var i = 0; i < salt.length; i++) h = (h * 31 + salt.charCodeAt(i)) >>> 0;
     return WARM_EMPATHY_POOL[h % WARM_EMPATHY_POOL.length] || WARM_EMPATHY_DEFAULT;
@@ -2268,8 +2278,10 @@ async function loadDaily() {
     /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
      * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
     const [j, x] = await Promise.all([
-      api('/api/daily'),
-      api('/api/xingzuo', { silent: true }).catch(function () { return null; })
+      /* R230h（R20-F6）：显式带浏览器日——跨零点时服务器「今天」
+       * 与用户本地「今天」可能差一天。 */
+      api('/api/daily?date=' + todayIso()),
+      api('/api/xingzuo?date=' + todayIso(), { silent: true }).catch(function () { return null; })
     ]);
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     const dateEl = el('dailyDate');
@@ -2382,6 +2394,9 @@ async function loadDailyDetail() {
       hour: 12,
       gender: val('gender') || '女',
       scope: 'day',
+      /* R230h（R20-F6）：流日锚浏览器日——盘按浏览器生辰、流日按
+       * 服务器日，跨零点窗口会一屏混进两个「今天」。 */
+      ask_date: todayIso(),
       question: '今天运势如何？'
     });
     let html = '<div class="card"><h2>🔍 今日完整解读</h2>';
@@ -3251,9 +3266,13 @@ function hlInitToday() {
   setv('hl_month', t.getMonth() + 1);
   setv('hl_day', t.getDate());
   /* R229c（R5 审计 P2）：进页直接查今天——星座页进页即出今日运，
-   * 黄历只见表单口径不一致。仅在结果区为空时触发，切走再回来不重复打。 */
+   * 黄历只见表单口径不一致。仅在结果区为空时触发，切走再回来不重复打。
+   * R230h（R20-F2）：占位文案 textContent 恒非空，原门永远为假——
+   * 改成看「是否只有占位节点」（data-ph 标记）。 */
   var _res = document.getElementById('hlResult');
-  if (_res && !_res.textContent.trim()) doHuangli(0, true);
+  if (_res && (!_res.firstElementChild || _res.querySelector('[data-ph]'))) {
+    doHuangli(0, true);
+  }
 }
 
 async function doLiuyao() {
@@ -4289,7 +4308,10 @@ var HL_SCENE_ALIAS = {
   '聚会': ['出行', '谒贵'], '饭局': ['出行', '谒贵'],
   '运动': ['健身'], '唱k': ['唱歌'],
   '许愿': ['祈福', '求嗣'], '拜拜': ['祭祀'], '祭灶': ['祭祀'], '祭祖': ['祭祀'], '考试': ['入学'], '上学': ['入学'],
-  '开学': ['入学']
+  '开学': ['入学'],
+  /* R230h（R20-F1）：与后端 _CHAT_SCENE_TERMS 同步增键（parity 钉扎）。 */
+  '备孕': ['求嗣'], '求子': ['求嗣'], '要孩子': ['求嗣'], '生子': ['求嗣'],
+  '怀孕': ['求嗣']
 };
 function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
 /* R227b（用户反馈「不能照本宣科」）：问一嘴的自由输入抽事项词——
@@ -4527,13 +4549,22 @@ function _hlDayWord(off) {
   var M = { '-2': '前天', '-1': '昨天', 0: '今天', 1: '明天', 2: '后天', 3: '大后天' };
   return (off != null && M[String(off)] != null) ? M[String(off)] : '那天';
 }
-function _hlNoSceneNote(yi, ji, day) {
-  /* R228c：「没直接管」生硬且与后端口径不齐，统一「没直接提」。 */
-  return '这个黄历没直接提——' + (day || '今天') + '主推【' + (yi.join('、') || '无') + '】' +
-    (ji.length ? '，忌【' + ji.join('、') + '】' : '') +
+function _hlNoSceneNote(yi, ji, day, conflict) {
+  /* R228c：「没直接管」生硬且与后端口径不齐，统一「没直接提」。
+   * R230h（R20-F7）：相冲词摘出主推行（与 _hlVerdictHtml 同款）。 */
+  var _cfl = {}; (conflict || []).forEach(function (w) { _cfl[w] = 1; });
+  var _yi = yi.filter(function (w) { return !_cfl[w]; });
+  var _ji = ji.filter(function (w) { return !_cfl[w]; });
+  return '这个黄历没直接提——' + (day || '今天') + '主推【' + (_yi.join('、') || '无') + '】' +
+    (_ji.length ? '，忌【' + _ji.join('、') + '】' : '') +
     '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。';
 }
-function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
+function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
+  /* R230h（R20-F7）：宜∩忌相冲词不作主推/凭据——后端同款摘除
+   * （services.py:1512「按存疑处理，别当凭据念」），~22% 日子有此类词。 */
+  var _cfl = {}; (conflict || []).forEach(function (w) { _cfl[w] = 1; });
+  var _yiClean = yi.filter(function (w) { return !_cfl[w]; });
+  var _jiClean = ji.filter(function (w) { return !_cfl[w]; });
   day = day || '今天';
   function _aliasList(name) {
     var arr = [name].concat(_hlSceneAlias(name));
@@ -4542,15 +4573,19 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
   function _hit(list, aliases, map) {
     var hits = [];
     list.forEach(function (w) {
-      if (aliases.some(function (a) { return w.indexOf(a) !== -1 || (map[w] || '').indexOf(a) !== -1; })) hits.push(w);
+      /* R230h（R20-F1）：与后端 chat_huangli_facts 判定规则对齐——
+       * 双向包含（宜忌词⊂说法也算命中，如「动土盖房」含忌词「动土」）。
+       * 砍掉 map 描述串通道：拿「整理心情/备孕」这种人话文案当事项词
+       * 表撞是巧合驱动，后端没有这条通道，同问同日出相反判定。 */
+      if (aliases.some(function (a) { return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; })) hits.push(w);
     });
     return hits;
   }
   var aliases = _aliasList(sc);
   var hitYi = _hit(yi, aliases, YI_MAP);
   var hitJi = _hit(ji, aliases, JI_MAP);
-  var why = '（' + day + '黄历主推' + (yi.length ? '【' + yi.join('、') + '】' : '的内容不多') +
-    (ji.length ? '，忌【' + ji.join('、') + '】' : '') + '）';
+  var why = '（' + day + '黄历主推' + (_yiClean.length ? '【' + _yiClean.join('、') + '】' : '的内容不多') +
+    (_jiClean.length ? '，忌【' + _jiClean.join('、') + '】' : '') + '）';
   var verdict;
   if (hitYi.length && !hitJi.length) {
     verdict = day + '适合' + sc + ' ✅ —— 凭据：宜项里有【' + hitYi.join('、') + '】' + why;
@@ -4586,7 +4621,7 @@ var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月
 function _hlShowNeutral() {
   var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
   var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
-    _HL.dayWord || '今天');
+    _HL.dayWord || '今天', (_lr && _lr.conflict) || []);
   var v2 = document.getElementById('hlVerdict');
   if (v2) { v2.textContent = note; return; }
   var askRow = document.querySelector('#hlResult .hl-ask');
@@ -4756,14 +4791,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
     if (_HL.scene) {
-      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord);
+      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord, j.conflict);
     }
     /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
     if (_HL.pendingAskNote) {
       _HL.pendingAskNote = false;
       html += '<div class="hl-verdict" id="hlVerdict">' +
-        esc(_hlNoSceneNote(yi, ji, _dayWord)) + '</div>';
+        esc(_hlNoSceneNote(yi, ji, _dayWord, j.conflict)) + '</div>';
     }
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */
@@ -4810,20 +4845,26 @@ async function _doHuangli(offset, reveal, spokenWord) {
         if (!box || !gj || _HL.scene !== _gsc ||
             !Array.isArray(gj.good_days) || !gj.good_days.length) return;
         var _today0 = new Date(); _today0.setHours(0, 0, 0, 0);
+        var _todayIso = _today0.getFullYear() + '-' +
+          String(_today0.getMonth() + 1).padStart(2, '0') + '-' +
+          String(_today0.getDate()).padStart(2, '0');
         /* R229y：起点日（正在看的这天）若本就宜，chip 列表第一项会是它
          * 自己——点了原地不动（ui_smoke gooddays_chip 抓到）。过滤掉
-         * 当前显示日再取前 6。 */
+         * 当前显示日再取前 6。
+         * R230h（R20-F5）：滤掉 < today 的日子——问过去日的宜忌时，
+         * 45 天区间扫出来的全是过去日，不该当「挑日子」建议推给用户
+         * （聊天侧同款守卫 services.py:1503）。 */
         var _days = gj.good_days.filter(function (gd) {
-          return String(gd.date || '') !== _gsrc;
+          return String(gd.date || '') !== _gsrc && String(gd.date || '') >= _todayIso;
         });
         if (!_days.length) return;
         var chips = _days.slice(0, 6).map(function (gd) {
           var pp = String(gd.date || '').split('-');
-          var t = new Date(+pp[0], (+pp[1]) - 1, +pp[2]);
-          var off = Math.round((t - _today0) / 86400000);
           var lab = (+pp[1]) + '/' + (+pp[2]);
-          return '<button type="button" class="hl-daychip" data-hldayoff="' + off +
-            '">' + esc(lab) + '</button>';
+          /* R230h（R20-F3）：chip 存绝对日期不存偏移——渲染时刻的偏移
+           * 跨零点后点击会整体 +1 天漂移（实测渲染 9/19→点 9/25 落 9/26）。 */
+          return '<button type="button" class="hl-daychip" data-hldate="' +
+            esc(String(gd.date || '')) + '">' + esc(lab) + '</button>';
         }).join('');
         var tip = document.createElement('div');
         tip.className = 'hl-gooddays';
@@ -4831,9 +4872,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
           esc(_gsc) + '：</span>' + chips;
         if (box.nextSibling) box.parentNode.insertBefore(tip, box.nextSibling);
         else box.parentNode.appendChild(tip);
-        tip.querySelectorAll('[data-hldayoff]').forEach(function (b) {
+        tip.querySelectorAll('[data-hldate]').forEach(function (b) {
           b.addEventListener('click', function () {
-            doHuangli(Number(b.dataset.hldayoff), true);
+            /* 点击时刻才换算偏移——跨零点不漂（R20-F3）。 */
+            var pp = String(b.dataset.hldate || '').split('-');
+            if (pp.length !== 3) return;
+            var t = new Date(+pp[0], (+pp[1]) - 1, +pp[2]);
+            var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+            doHuangli(Math.round((t - t0) / 86400000), true);
           });
         });
       }).catch(function () { /* 网络抖动：不弹不阻，判词本身已够用 */ });

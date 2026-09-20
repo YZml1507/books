@@ -385,7 +385,9 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
             "end_age": round(end_age, 1),
             "pillar": p,
             "gan_rel": ten_god(day_master, p[0]),
-            "year_start": birth_year + int(start_age),   # 约略公历年份段起点
+            # R230h（R20-F10）：int() 截断与 start_age 的 round(1) 展示错位
+            # ——「4.9岁起运→1994」读着像 1995；按四舍五入进位贴展示口径。
+            "year_start": birth_year + int(round(start_age)),  # 约略公历年份段起点
         })
     parts = [f"日主{day_master}，大运{'顺' if b.dayun_dir == '顺' else '逆'}排，"
              f"约 {round(qi, 1) if qi is not None else '?'} 岁起运"]
