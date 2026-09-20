@@ -10458,3 +10458,9 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - daily_cache set 时删 90 天前行；env-seed 哨兵偏移→真偏移（README+CI 同修）。
 - lunar_to_solar 越界语义写进 docstring（农历2100腊月→公历2101 为合法输出）。
 - 闸门：selftest 196 绿。剩 P2-1 shensha_yiji 死代码去向（合并/删除）待用户拍板。
+
+## R230a（9/20）：黄历分享图
+- `buildShareData` 新增 `huangli` case：标题「今日宜忌」，副标 公历+农历月日，big=宜前三项，lines=宜/忌/建除/值宿/冲煞/相冲提示，全部确定性字段
+- `doHuangli` 渲后挂 `#shareHuangli` 钮（幂等，原位刷新重挂），点按走 `downloadPoster(j,'huangli')` 通用模板+免责页脚
+- 实机验证：#shareHuangli 存在，buildShareData 返回完整海报结构
+- 闸门：selftest 196 / contract 392 / ui_smoke 48 / parity 61+31+83 全绿
