@@ -148,22 +148,35 @@ def check_no_db_pollution() -> bool:
     real = L.polish
     L.polish = lambda *a, **k: MARKER                # 注入可识别 AI 文本
     svc.llm_polish.polish = L.polish                 # type: ignore[attr-defined]
+    # R230a-26：无 API key 的离线环境（CI）里 load_config()=None → spawn
+    # 直接返回 None，任务链根本不起、本判据会崩在 st["status"]。
+    # polish 已被桩成 MARKER、永不真发请求——再桩一个假配置让异步链
+    # 真正走起来（判的是三库零命中，不是网络）。
+    real_cfg = L.load_config
+    _fake_cfg = {"api_key": "probe-stub", "base_url":
+                 "http://127.0.0.1:9", "model": "stub"}
+    L.load_config = lambda: _fake_cfg
+    svc.llm_polish.load_config = L.load_config       # type: ignore[attr-defined]
     try:
         c = TestClient(app)
         j = c.post("/api/bazi", json=BAZI).json()
         tid = j.get("ai_task_id")
         injected = False
         for _ in range(50):                          # 打桩即时返回，轮询只等线程
+            if not tid:
+                break
             st = c.get(f"/api/ai/{tid}").json()
-            if st["status"] == "done" and st["text"] == MARKER:
+            if st.get("status") == "done" and st.get("text") == MARKER:
                 injected = True
                 break
-            if st["status"] == "failed":
+            if st.get("status") == "failed":
                 break
             time.sleep(0.1)
     finally:
         L.polish = real
         svc.llm_polish.polish = real                 # type: ignore[attr-defined]
+        L.load_config = real_cfg
+        svc.llm_polish.load_config = real_cfg        # type: ignore[attr-defined]
         os.environ["BOOKS_LLM_DISABLE"] = "1"
     ok = _judge("判据3 前置：注入的 AI 文本确实进了响应（经轮询端点）", injected)
 
