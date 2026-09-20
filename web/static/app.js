@@ -4128,6 +4128,22 @@ function _hlDayOffset(q, base) {
     var bw = base || new Date();
     return wdw - ((bw.getDay() + 6) % 7);       /* 可负——本周已过的日子 */
   }
+  /* R229y续：「下下周X/下下周末」——"下下周一"自身含"下周"，会被下面
+   * 通配截胡差整 7 天。先接住：以「再下一个周一」为基准。 */
+  if (/下下(周|週|礼拜|禮拜)末/.test(s)) {
+    var bn0 = base || new Date();
+    return (14 - ((bn0.getDay() + 6) % 7)) + 5; /* 再下周一 +5 */
+  }
+  var mn = s.match(/下下(周|週|礼拜|禮拜)([一二三四五六日天])/);
+  if (mn) {
+    var wdn = _wdIdx(mn[2]);
+    var bn = base || new Date();
+    return (14 - ((bn.getDay() + 6) % 7)) + wdn;
+  }
+  if (/下下(周|週|礼拜|禮拜)/.test(s)) {
+    var bn2 = base || new Date();
+    return 14 - ((bn2.getDay() + 6) % 7);         /* 「下下周」→ 再下周一 */
+  }
   /* R229e：「下周末/下週末」必须先于「下周」通配——否则被吃成下周一，
    * 而用户说的是下周的周六。 */
   if (/下(周|週|礼拜|禮拜)末/.test(s)) {

@@ -888,6 +888,21 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
                 wd = _wd_idx(msg[idx])
                 return now + timedelta(days=wd - now.weekday()), msg[msg.find(anchor):idx + 1]
             break  # 「本周」无曜日字 → 不落下面 周末/今天 兜底，交给默认今天
+    # R229y续：「下下周X/下下周末」——"下下周一"自身含"下周"，会被下面
+    # 的「下周」通配截胡按下周判（差整 7 天）。先接住：以「再下一个周一」
+    # 为基准。
+    for anchor in ("下下周末", "下下週末"):
+        if anchor in msg:
+            nn_mon = now + timedelta(days=(14 - now.weekday()))
+            return nn_mon + timedelta(days=5), "下下周末"
+    for anchor in ("下下周", "下下週", "下下礼拜", "下下禮拜"):
+        if anchor in msg:
+            idx = msg.find(anchor) + len(anchor)
+            nn_mon = now + timedelta(days=(14 - now.weekday()))
+            if idx < len(msg) and msg[idx] in _WEEKDAY:
+                wd = _wd_idx(msg[idx])
+                return nn_mon + timedelta(days=wd), msg[msg.find(anchor):idx + 1]
+            return nn_mon, "下下周"
     # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
     # 落进通用分支被吃成下周一，而用户说的是下周的周六。
     for anchor in ("下周末", "下週末"):
