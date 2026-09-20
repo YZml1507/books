@@ -10531,3 +10531,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-24（2026-09-20）：避字钉扎
 - qiming.avoid_chars：双性别 fixture 断 _AVOID/_AVOID_FEM 零命中（离线扫 6912 名零命中佐证）。
+
+## R230a-25（2026-09-20）：性别分星钉扎
+- bazi.gender_topic：感情提问 女盘须落官杀位；男盘首句不得见官杀表述。
