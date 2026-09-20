@@ -5,7 +5,10 @@
  *  2. /api/* 永不缓存（命理数据必须新鲜，离线时让请求自然失败，
  *     前端既有 toast/内联错误文案接管）。
  * 版本号递增即失效旧缓存。 */
-var CACHE = 'books-shell-v10';   // R229m/n: app.js 变更（晚字辈偏移/_humanize422 中文界）——bump 让老客直接拿新壳   // v5 交接修复：原位刷新不换占位版，再 bump 失效旧缓存
+/* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
+ * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
+ * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
+var CACHE = 'books-shell-cdb0c95b7b5a';   // shell-hash: cdb0c95b7b5a
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。 */
 var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css',

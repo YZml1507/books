@@ -1656,6 +1656,21 @@ def _run_inner() -> list[str]:
         "index.html 未见 SW 注册"
     ok.append("sw.chain")
 
+    # R229z续14++：SW CACHE 名必须绑 app.js 当前哈希——改了 app.js
+    # 忘跑 scripts/bump_sw.py 时老客会粘旧壳，此闸直接红。
+    import hashlib as _hl5, re as _re5
+    _appjs = open(_os.path.join(_os.path.dirname(__file__), "static",
+                              "app.js"), "rb").read()
+    _want = _hl5.sha256(_appjs).hexdigest()[:12]
+    _swsrc = open(_os.path.join(_os.path.dirname(__file__), "static",
+                              "sw.js"), encoding="utf-8").read()
+    _m = _re5.search(r"shell-hash: (\w+)", _swsrc)
+    assert _m and _m.group(1) == _want, \
+        ("sw.shell_hash", "app.js 已变——跑 scripts/bump_sw.py",
+         (_m.group(1) if _m else None), _want)
+    assert f"books-shell-{_want}" in _swsrc, "CACHE 名未绑哈希"
+    ok.append("sw.shell_hash")
+
     # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。
     _big = client.post("/api/bazi", content="x" * (513 * 1024),
                        headers={"Content-Type": "application/json"})

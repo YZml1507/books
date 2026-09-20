@@ -10407,3 +10407,8 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - `doHuangli` 加可选 `spokenWord`——resolve_date 解出的「中秋节/冬至/惊蛰后」直接进判词与引导行（「中秋节适合搬家 ✅」「看看中秋节合不合适」），不再一律泛化成「那天」。实机验证通过。
 
 - `probe_ui_smoke` 新用例 `btn:huangli.holiday_ask`：节日词问一嘴全链路钉扎——resolve_date→翻页→判词写回原词「中秋节」（48 例）。
+
+### R229z续15（SW 缓存号自动化）
+
+- `scripts/bump_sw.py`：CACHE 名改由 app.js 内容哈希派生（`books-shell-<sha256[:12]>`），一行命令同步 sw.js。
+- `selftest` 新闸 `sw.shell_hash`：app.js 变了而 sw.js 未同步时直接红并给修复命令——杜绝老客粘旧壳。实测红路径断言信息正确。
