@@ -1638,6 +1638,10 @@ function showView(viewId) {
   if (viewId === 'huangli') hlInitToday();
   /* C-002-fix：星座视图进入时自动加载今日运势 */
   if (viewId === 'xingzuo') doXingzuo(false);   /* R228f：重进同日复用已渲染，不再重拉+跳动 */
+  /* R231d（R37-F3）：?view=history 深链/F5 落地即死卡——加载此前只在
+   * 首页卡片 click 里触发，进视图就补一次（函数在排盘历史 IIFE 内，
+   * 经 window 钩子暴露）。 */
+  if (viewId === 'history' && window.__loadPaipanHistory) window.__loadPaipanHistory();
 }
 
 /* R230d（R16-P0-2）：系统返回/后退手势 → 回到 state 记的视图（默认首页）。 */
@@ -2460,6 +2464,11 @@ function _paintSharePoster(s, W, H) {
     ctx.fillStyle = '#815934';
     ctx.fillText(hook, 540, 1400);
   }
+  /* R231d（R37-F1/F10）：回流 CTA——海报底部一行邀请语，收到图的人
+   * 知道去哪儿玩同款（部署域名未定时只引品牌名，不画裸 URL）。 */
+  ctx.fillStyle = '#A08B60';
+  ctx.font = '400 24px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('测你的同款 → 搜「小满的解忧铺」', 540, 1426);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
@@ -2591,6 +2600,30 @@ function buildShareData(view, j) {
      *   hehun  → 双方日主 + 冲/合/日主相生 + 桃相同
      * 同时把 shareBazi/shareTaohua/shareHehun 改为传正确的 view（之前 bazi 不
      * 传、taohua/hehun 错传 'liuyao'，导致海报内容错位/空白）。 */
+    case 'birth': {
+      /* R231d（R37-F14）：本命盘卡是全站最强「我也想测」素材——
+       * 复用 bazi 字段画「你是 X 座」海报。 */
+      var _bir = base('我的本命盘', '');
+      var _bp = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
+      var _bec = (w && w.energy_card) || {};
+      _bir.big = l0 || '本命已就位';
+      _bir.lines = [];
+      if (_bp.length) _bir.lines.push({ k: '四柱', v: _bp.join(' · ') });
+      var _bfe = (((j && j.calc) || {}).five_elements || {}).counts || {};
+      var _bfx = Object.keys(_bfe).map(function (k) { return k + ' ' + _bfe[k]; }).join(' · ');
+      if (_bfx) _bir.lines.push({ k: '五行', v: _gSlice(_bfx, 20) });
+      if (_bec.element) _bir.lines.push({ k: '本命', v: _pStr(_bec.element) });
+      if (!_bir.lines.length) _bir.lines = [{ k: '结论', v: '知己知命' }];
+      return _bir;
+    }
+    case 'checkin': {
+      /* R231d（R37-F15）：连签天数海报——title 挂天数（j.streak 由前端塞入）。 */
+      var _ck = base('我连续 ' + _pStr(j && j.streak) + ' 天来小满打卡', '');
+      _ck.big = '好运搭子连签 ' + _pStr(j && j.streak) + ' 天';
+      _ck.lines = [{ k: '今天挑了', v: _pStr(j && j.pick) || '—' },
+                   { k: '打卡口号', v: '今天也要好好生活呀' }];
+      return _ck;
+    }
     case 'bazi': {
       var sb = base('今日命盘', '');
       var pillars = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
@@ -2815,9 +2848,51 @@ function showPosterModal(canvas, view) {
       '<div class="poster-modal-body">' +
         '<img class="poster-modal-img" src="' + img + '" alt="命盘海报">' +
       '</div>' +
-      '<div class="poster-modal-tip">💡 长按图片可保存到相册 · 桌面端已自动下载到下载文件夹</div>' +
+      '<div class="poster-modal-tip">💡 长按图片可保存到相册 · 桌面端已自动下载到下载文件夹 · 发给闺蜜一起测～</div>' +
+      /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
+       * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
+      '<div class="poster-modal-actions">' +
+        '<button type="button" class="poster-act" id="posterCopyLink">🔗 复制链接</button>' +
+        ((typeof navigator !== 'undefined' && navigator.share)
+          ? '<button type="button" class="poster-act" id="posterSysShare">📤 分享给朋友</button>' : '') +
+      '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  /* 复制本视图深链——朋友打开直达同一页 */
+  var _pcl = backdrop.querySelector('#posterCopyLink');
+  if (_pcl) _pcl.addEventListener('click', function () {
+    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home');
+    var ok = function () { showToast('链接已复制，发给 TA 吧', 'ok'); };
+    var bad = function () { showToast('复制没成功，手动复制地址栏里的链接吧', 'warn'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(ok, bad);
+    } else {
+      try {
+        var _ta = document.createElement('textarea');
+        _ta.value = url; _ta.style.position = 'fixed'; _ta.style.opacity = '0';
+        document.body.appendChild(_ta); _ta.select();
+        document.execCommand('copy') ? ok() : bad();
+        _ta.remove();
+      } catch (e) { bad(); }
+    }
+  });
+  /* 系统分享面板——优先分享图文件，不支持文件则退文本+链接 */
+  var _pss = backdrop.querySelector('#posterSysShare');
+  if (_pss) _pss.addEventListener('click', function () {
+    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home');
+    canvas.toBlob(function (blob) {
+      var f = blob && (function () {
+        try { return new File([blob], '小满-' + viewTitle + '.png', { type: 'image/png' }); }
+        catch (e) { return null; }
+      })();
+      if (f && (!navigator.canShare || navigator.canShare({ files: [f] }))) {
+        navigator.share({ files: [f], title: '小满的解忧铺' }).catch(function () {});
+      } else {
+        navigator.share({ title: '小满的解忧铺',
+          text: '测你的同款 → 小满的解忧铺', url: url }).catch(function () {});
+      }
+    }, 'image/png');
+  });
   /* 触发动画 */
   requestAnimationFrame(function () { backdrop.classList.add('open'); });
   /* R228d：焦点移入弹层（关闭钮），否则键盘 Tab 走主区 */
@@ -4429,10 +4504,11 @@ var POSTER_MASCOT = new Image();
 var _POSTER_TITLES = {
   bazi: '今日命盘', liuyao: '六爻指引', tarot: '塔罗指引',
   qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对',
-  daily: '今日运势', huangli: '今日宜忌', xingzuo: '星座日运'
+  daily: '今日运势', huangli: '今日宜忌', xingzuo: '星座日运',
+  birth: '我的本命盘', checkin: '打卡连签'
 };
-var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
-  taohua: 'sakura', hehun: 'sakura', qiming: 'dream' };
+var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
+  taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 var _HL_YI_MAP = {
   '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
@@ -4797,7 +4873,7 @@ async function doTarot() {
       var trBtn = document.createElement('button');
       trBtn.className = 'ghost fav-btn';
       trBtn.id = 'shareTarot'; trBtn.title = '生成分享图';
-      trBtn.textContent = '🔀 分享图';
+      trBtn.textContent = '📸 分享图';   /* R231d（R37-F11）：全站统一 📸 */
       trBtn.style.margin = '10px 0 0';
       trCard.appendChild(trBtn);
       trBtn.addEventListener('click', function () { downloadPoster(j, 'tarot'); });
@@ -4991,7 +5067,7 @@ async function doXingzuo(force) {
       var xzBtn = document.createElement('button');
       xzBtn.className = 'ghost fav-btn';
       xzBtn.id = 'shareXingzuo'; xzBtn.title = '生成分享图';
-      xzBtn.textContent = '🔀 分享图';
+      xzBtn.textContent = '📸 分享图';   /* R231d（R37-F11） */
       xzBtn.style.margin = '10px 0 0';
       xzCard2.appendChild(xzBtn);
       xzBtn.addEventListener('click', function () { downloadPoster(j, 'xingzuo'); });
@@ -6455,7 +6531,7 @@ function init() {
         var _hold = window.__suppressPush;
         window.__suppressPush = true;
         try { showView(_vp); } finally { window.__suppressPush = _hold; }
-      } else {
+      } else if (_vp !== 'home') {
         showToast('这个入口不存在，先带你回首页', 'info');
       }
     }
@@ -6467,6 +6543,33 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+/* ── R231d（R37-F4/F7）：首访/深链落地新人条——之前新客进页零定位
+ * 文案，全靠悟性；可关，关过（localStorage welcomed）不再出现。 */
+(function () {
+  var _seen = false;
+  try { _seen = !!window.localStorage.getItem('welcomed'); } catch (e) { _seen = true; }
+  if (_seen) return;
+  function _mk() {
+    if (document.getElementById('welcomeBar')) return;
+    var bar = document.createElement('div');
+    bar.id = 'welcomeBar';
+    bar.className = 'welcome-bar';
+    bar.setAttribute('role', 'note');
+    bar.innerHTML = '<span class="welcome-txt">第一次来？点一张卡就能测——' +
+      '塔罗 · 桃花 · 合婚 · 黄历都有 ✨</span>' +
+      '<button type="button" class="welcome-close" aria-label="知道了">×</button>';
+    /* 内嵌到页面顶部而不是 fixed——不遮内容不抢焦点 */
+    document.body.insertBefore(bar, document.body.firstChild);
+    bar.querySelector('.welcome-close').addEventListener('click', function () {
+      bar.remove();
+      try { window.localStorage.setItem('welcomed', '1'); } catch (e) {}
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _mk);
+  } else { _mk(); }
+})();
+
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
  * 纪律：全部只动 transform/opacity（check_plain_first 判据 2 门柱安全）；
  * prefers-reduced-motion 下整体停用。 */
@@ -6615,8 +6718,17 @@ function renderCheckin(dateKey) {
     '<span class="checkin-dots" aria-hidden="true">' + _dots + '</span>' +
     (_meta ? '<span class="checkin-meta">' + _meta + '</span>' : '') + '</div>' +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
+    /* R231d（R37-F15）：连签 ≥3 天给「晒连签」出口——里程碑文案不外溢
+     * 就没拉新价值。 */
+    (_streak >= 3 ? '<button type="button" class="checkin-share" id="checkinShare" ' +
+      'title="生成分享图">📸 晒连签</button>' : '') +
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>';
+  var _cks = box.querySelector('#checkinShare');
+  if (_cks) _cks.addEventListener('click', function () {
+    var _p = downloadPoster({ streak: _streak, pick: saved }, 'checkin');
+    if (_p && _p.catch) _p.catch(function () {});
+  });
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
     box.addEventListener('click', function (e) {
@@ -6898,6 +7010,25 @@ function baziPersonaCard(j) {
           /* 六个 build*Result 渲染器内部全量 esc()，与闸白名单里的
            * buildBaziResult( 同等信任级——间接调用只为按 type 分发 */
           detailEl.innerHTML = _builder(rec.result || {});   // esc-reviewed
+          /* R231d（R37-F16）：复看里的分享钮此前是死钮/缺位——原视图
+           * 的 on() 绑定按 id 命中首个元素，复看副本永远点不动；
+           * tarot/liuyao 则根本没钮。统一在复看卡顶部补一个真钮，
+           * 走存档的 rec.result 直接出海报（内嵌死钮由 CSS 隐藏）。 */
+          var _type = rec.type || 'bazi';
+          detailEl.insertAdjacentHTML('afterbegin',
+            '<button class="ghost fav-btn ph-share" type="button" ' +
+            'id="phShareBtn" title="生成分享图">📸 分享这张图</button>');
+          var _psb = detailEl.querySelector('#phShareBtn');
+          if (_psb) _psb.addEventListener('click', function () {
+            try {
+              var _p = downloadPoster(rec.result || {}, _type);
+              if (_p && _p.catch) _p.catch(function (e) {
+                showToast('分享图生成失败：' + (e && e.message || '稍后再试'), 'warn');
+              });
+            } catch (e) {
+              showToast('分享图生成失败：' + (e && e.message || '稍后再试'), 'warn');
+            }
+          });
           detailEl.hidden = false;
           detailEl.scrollIntoView({ behavior: _rmBehavior() });
         }
@@ -7015,6 +7146,9 @@ function baziPersonaCard(j) {
       });
     }
   }
+  /* R231d（R37-F3）：?view=history 深链/F5 补加载——IIFE 内函数经
+   * window 暴露给 showView 的视图钩子。 */
+  window.__loadPaipanHistory = loadPaipanHistory;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', phBind);
   else phBind();
 })();
@@ -7083,9 +7217,17 @@ function baziPersonaCard(j) {
       html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
       html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + '</span></div>';
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
+      html += '<button class="ghost fav-btn" type="button" id="shareBirth" ' +
+        'title="生成分享图">📸 分享图</button>';
       html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人解读也会不同。仅供娱乐，不构成决策依据 ✨</div></div>';
       out.innerHTML = html;
       attachChatEntry(out);   /* R230k（R23-P2-1）：本命盘卡挂聊天入口 */
+      /* R231d（R37-F14）：本命盘挂分享钮——「你是X座」天生海报素材 */
+      var _sbb = out.querySelector('#shareBirth');
+      if (_sbb) _sbb.addEventListener('click', function () {
+        var _p = downloadPoster(j, 'birth');
+        if (_p && _p.catch) _p.catch(function () {});
+      });
       try { rememberResult('bazi', j, '我的本命盘', body); } catch (e) {}
     } catch (err) {
       out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(err.message) + '，稍后再试～</div>';

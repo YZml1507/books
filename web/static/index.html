@@ -182,7 +182,7 @@ if ('serviceWorker' in navigator) {
   <details class="pro-drawer" id="proDrawer">
     <!-- R228e：原文案「古籍溯源」宣称有古籍入口——书库阅读渠道已按
          R208b 用户裁决移除，抽屉里只有六爻和起名两张卡，改实话实说。 -->
-    <summary><span aria-hidden="true">🔍</span> 老玩家入口（六爻 · 五行起名）</summary>
+    <summary><span aria-hidden="true">🔍</span> 进阶玩法（六爻 · 五行起名）</summary>
     <div class="func-grid pro-grid">
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
            （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
@@ -507,9 +507,9 @@ if ('serviceWorker' in navigator) {
           <input id="ly_question" type="text" maxlength="200" placeholder="可选"></div>
       </div>
       <details class="pro-drawer" style="margin-top:6px;">
-        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的复验编号）</summary>
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的固定编号）</summary>
         <div class="row" style="margin-top:8px;">
-          <div class="field"><label for="ly_seed">复验编号</label>
+          <div class="field"><label for="ly_seed">固定编号</label>
             <input id="ly_seed" type="number" inputmode="numeric" value="42"></div>
         </div>
       </details>
@@ -605,7 +605,7 @@ if ('serviceWorker' in navigator) {
       <details class="pro-drawer" style="margin-bottom:10px;">
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（复验用编号）</summary>
         <div class="row" style="margin-top:8px;">
-          <div class="field"><label for="tr_seed">复验编号</label>
+          <div class="field"><label for="tr_seed">固定编号</label>
             <input id="tr_seed" type="number" inputmode="numeric" value="42"></div>
         </div>
       </details>
@@ -634,7 +634,8 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="hh_a_hour">甲时</label>
           <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
         <div class="field"><label for="hh_a_gender">甲性别</label>
-            <select id="hh_a_gender"><option>男</option><option>女</option></select></div>
+            <!-- R231d（R37-F12）：甲侧=我，默认女——与主受众一致 -->
+            <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
         <!-- R230z（R36-P1-2）：昵称可空——填了结果/海报/存档都叫名字 -->
         <div class="field"><label for="hh_a_name">甲昵称</label>
           <input id="hh_a_name" type="text" maxlength="16" placeholder="可空，如：小鱼"></div>
@@ -649,7 +650,8 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="hh_b_hour">乙时</label>
           <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" value="14"></div>
         <div class="field"><label for="hh_b_gender">乙性别</label>
-          <select id="hh_b_gender"><option>女</option><option>男</option></select></div>
+          <!-- R231d（R37-F12）：乙侧=TA，默认男 -->
+          <select id="hh_b_gender"><option>男</option><option>女</option></select></div>
         <div class="field"><label for="hh_b_name">乙昵称</label>
           <input id="hh_b_name" type="text" maxlength="16" placeholder="可空，如：阿哲"></div>
       </div>

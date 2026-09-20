@@ -1616,3 +1616,36 @@ button:active{transform:scale(.96);}
   img { max-width: 60mm !important; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
 }
+
+/* ── R231d（R37 批）：回流闭环与新人承接 ── */
+/* 首访新人条：内嵌页面顶部，不遮内容 */
+.welcome-bar{
+  display:flex; align-items:center; gap:10px;
+  margin:10px 14px 0; padding:10px 14px;
+  background:linear-gradient(135deg,#FFF6EC,#FDEFF4);
+  border:1px solid #F0DCC8; border-radius:14px;
+  font-size:13px; color:var(--secondary);
+}
+.welcome-txt{flex:1;}
+.welcome-close{
+  border:none; background:transparent; font-size:18px; line-height:1;
+  color:var(--secondary); cursor:pointer; padding:2px 6px;
+}
+/* 海报浮层动作行：复制链接 / 系统分享 */
+.poster-modal-actions{display:flex; gap:8px; justify-content:center; padding:0 12px 12px;}
+.poster-act{
+  padding:8px 18px; border-radius:999px; font-size:13px; cursor:pointer;
+  border:1px solid #E3D3B8; background:#FFF9F0; color:var(--primary-ink);
+  font-family:var(--font-sans);
+}
+.poster-act:hover{border-color:#D9B98A; transform:translateY(-1px);}
+/* 复看卡：内嵌的死分享钮隐藏，改用卡顶统一的真钮 */
+#historyDetail button.fav-btn[id^="share"]:not(.ph-share){display:none;}
+.ph-share{margin-bottom:8px;}
+/* 打卡「晒连签」小钮 */
+.checkin-share{
+  margin-top:8px; padding:6px 14px; border-radius:999px; font-size:12px;
+  border:1px solid #F0C9B0; background:#FFF2EA; color:#B5573F;
+  cursor:pointer; font-family:var(--font-sans);
+}
+.checkin-share:hover{background:#FDE7DC; transform:translateY(-1px);}

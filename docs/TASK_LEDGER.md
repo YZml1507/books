@@ -10978,3 +10978,27 @@ scripts_importable / llm_polish / ruff 全绿。
 ### R231c 续：桃花图标去撞脸（R35-P2-2）
 - `cream-icon-taohua.jpg` 换粉兔抱桃花枝贴纸（原小熊+花瓶与头像熊+茶构图几乎一致，
   小满头像失去辨识度）；旧图归档 `_candidates/r231a/cream-icon-taohua-old.jpg`。
+
+### R231d：R37「分享→回流闭环 + 首访体验」清批
+- **F3**：`?view=history` 深链/F5 死卡修复——loadPaipanHistory 经
+  `window.__loadPaipanHistory` 暴露，showView 视图钩子补调用。
+- **F16**：历史复看分享钮死钮/缺位修复——复看卡顶部统一挂 `phShareBtn`
+  （走存档 rec.result 直出海报，全 6 品类），内嵌死钮 CSS 隐藏。
+- **F14**：本命盘卡新增「📸 分享图」+ buildShareData `birth` case
+  （标题「我的本命盘」+ 四柱/五行/本命行，底图 lilac）。
+- **F15**：连签 ≥3 天打卡卡出「📸 晒连签」+ `checkin` case
+  （「我连续 N 天来小满打卡」）。
+- **F1+F10**：9 张分享海报底部统一加回流 CTA「测你的同款 →
+  搜「小满的解忧铺」」（域名未定先引品牌，不画裸 URL）。
+- **F2**：海报浮层新增动作行——「🔗 复制链接」（深链，clipboard API +
+  execCommand 回退）与「📤 分享给朋友」（Web Share，优先分享 PNG 文件，
+  不支持文件则退文本+链接；不支持 Web Share 的环境不显示）。
+- **F4/F7**：首访/深链落地新人条 `welcome-bar`（可关，localStorage
+  `welcomed` 记忆，内嵌页面顶部不遮内容）。
+- **F11**：shareTarot/shareXingzuo 钮 🔀→📸 全站统一。
+- **F12**：合婚表单默认性别对调——甲侧（我）默认女、乙侧（TA）默认男。
+- **F13**：「老玩家入口」→「进阶玩法」；「复验编号」→「固定编号」。
+- **F8**：`?view=home` 手改 URL 不再弹「这个入口不存在」。
+- 闸门：selftest 237 / contract 445 / ui_smoke 55 / parity 88 /
+  baseline_voice / xingzuo / warm_voice / async_ai / plain_first / dollar /
+  poster / no_generated / scripts_importable / llm_polish / ruff 全绿。
