@@ -1,4 +1,4 @@
-﻿import probe_pipeline as P
+import probe_pipeline as P
 db = P.db
 print("=== 卦 attribution coverage per repo ===")
 for repo in ("KR1a0001","KR1a0006","KR1a0007"):
