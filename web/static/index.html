@@ -226,11 +226,11 @@ if ('serviceWorker' in navigator) {
              高级字段（农历/推算范围/问事日期地点）收进「更多设置」折叠。 -->
         <div class="row">
           <div class="field" id="f_year"><label for="year">出生年份</label>
-            <input id="year" type="number" min="1900" max="2100" value="1990" required></div>
+            <input id="year" type="number" inputmode="numeric" min="1900" max="2100" value="1990" required></div>
           <div class="field" id="f_month"><label for="month">月</label>
-            <input id="month" type="number" min="1" max="12" value="5" required></div>
+            <input id="month" type="number" inputmode="numeric" min="1" max="12" value="5" required></div>
           <div class="field" id="f_day"><label for="day">日</label>
-            <input id="day" type="number" min="1" max="31" value="15" required></div>
+            <input id="day" type="number" inputmode="numeric" min="1" max="31" value="15" required></div>
           <div class="field"><label for="gender">性别</label>
             <select id="gender"><option>女</option><option>男</option></select></div>
         </div>
@@ -238,11 +238,11 @@ if ('serviceWorker' in navigator) {
              并附 not_hour_known 提示语义；契约零改动）。 -->
         <div class="row">
           <div class="field"><label for="hour">出生时辰（不知道可留空）</label>
-            <input id="hour" type="number" min="0" max="23" placeholder="不知道就留空"></div>
+            <input id="hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
           <!-- R230f（R18-P1-1）：节气当小时内出生会被整点截到节前一侧——
                可选分钟字段只在需要时填（不填按 :00）。 -->
           <div class="field"><label for="minute">分钟（可选）</label>
-            <input id="minute" type="number" min="0" max="59" placeholder="如 30"></div>
+            <input id="minute" type="number" inputmode="numeric" min="0" max="59" placeholder="如 30"></div>
           <div class="field"><label for="question">想问什么？（可选）</label>
             <input id="question" type="text" maxlength="200" placeholder="例如：最近感情怎么样？"></div>
         </div>
@@ -260,7 +260,7 @@ if ('serviceWorker' in navigator) {
             <div class="field"><label for="ask_date">问事日期</label>
               <input id="ask_date" type="date"></div>
             <div class="field"><label for="ask_hour">问事时辰（可选）</label>
-              <input id="ask_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+              <input id="ask_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
             <div class="field"><label for="location">地点（可选）</label>
               <input id="location" type="text" maxlength="32" placeholder="例如：北京"></div>
           </div>
@@ -270,7 +270,7 @@ if ('serviceWorker' in navigator) {
             <div class="field"><label for="range_end">止（YYYY-MM-DD）</label>
               <input id="range_end" type="date"></div>
             <div class="field"><label for="range_hour">统一时辰（可选）</label>
-              <input id="range_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
+              <input id="range_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
           </div>
         </details>
         <!-- R178b：原此处有 use_llm 复选框（"✨ LLM 博主解读（需服务端已配置）"）。
@@ -346,7 +346,7 @@ if ('serviceWorker' in navigator) {
           <div class="field" style="flex:3;"><label for="rq2">查询词</label>
             <input id="rq2" type="text" maxlength="200" placeholder="如：無為"></div>
           <div class="field"><label for="rmax">最大地址数（1–6）</label>
-            <input id="rmax" type="number" min="1" max="6" value="2"></div>
+            <input id="rmax" type="number" inputmode="numeric" min="1" max="6" value="2"></div>
         </div>
         <button id="researchBtn" type="button">研 究</button>
         <div id="researchResult" style="margin-top:16px;"></div>
@@ -366,13 +366,13 @@ if ('serviceWorker' in navigator) {
               <option value="euclid">欧几里得（书·命题）</option>
             </select></div>
           <div class="field"><label for="aguan">卦（zhouyi）</label>
-            <input id="aguan" type="number" min="1" max="64" placeholder="1–64"></div>
+            <input id="aguan" type="number" inputmode="numeric" min="1" max="64" placeholder="1–64"></div>
           <div class="field"><label for="ayao">爻位</label>
             <input id="ayao" type="text" maxlength="16" placeholder="如：初九"></div>
           <div class="field"><label for="aname">名称</label>
             <input id="aname" type="text" maxlength="64" placeholder="如：Proverbs"></div>
           <div class="field"><label for="aaddr1">地址1</label>
-            <input id="aaddr1" type="number" placeholder="如：12"></div>
+            <input id="aaddr1" type="number" inputmode="numeric" placeholder="如：12"></div>
           <div class="field"><label for="aaddr2">地址2</label>
             <input id="aaddr2" type="text" maxlength="16" placeholder="如：12"></div>
         </div>
@@ -385,7 +385,7 @@ if ('serviceWorker' in navigator) {
         <h3>同址比对</h3>
         <div class="row">
           <div class="field"><label for="cgua">卦（1–64）</label>
-            <input id="cgua" type="number" min="1" max="64" value="28"></div>
+            <input id="cgua" type="number" inputmode="numeric" min="1" max="64" value="28"></div>
           <div class="field"><label for="cyao">爻位</label>
             <input id="cyao" type="text" maxlength="16" value="九二"></div>
         </div>
@@ -427,7 +427,7 @@ if ('serviceWorker' in navigator) {
               <option value="euclid">euclid</option>
             </select></div>
           <div class="field"><label for="bsaddr1">地址1</label>
-            <input id="bsaddr1" type="number" placeholder="如：1"></div>
+            <input id="bsaddr1" type="number" inputmode="numeric" placeholder="如：1"></div>
         </div>
         <!-- data-rsec2 的值保持 bs-structure/bs-chapter/bs-summary 不变：
              审查轨 probes/probe_ui_smoke.py:103 用这三个字符串做选择器
@@ -484,13 +484,13 @@ if ('serviceWorker' in navigator) {
           <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
           <select id="ly_method"><option value="time">时间起卦</option><option value="coins">铜钱起卦</option></select></div>
         <div class="field"><label for="ly_year">年</label>
-          <input id="ly_year" type="number" min="1900" max="2100" value="1990"></div>
+          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="ly_month">月</label>
-          <input id="ly_month" type="number" min="1" max="12" value="5"></div>
+          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
         <div class="field"><label for="ly_day">日</label>
-          <input id="ly_day" type="number" min="1" max="31" value="15"></div>
+          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="ly_hour">时辰</label>
-          <input id="ly_hour" type="number" min="0" max="23" value="10"></div>
+          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
       </div>
       <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">
@@ -501,7 +501,7 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的复验编号）</summary>
         <div class="row" style="margin-top:8px;">
           <div class="field"><label for="ly_seed">复验编号</label>
-            <input id="ly_seed" type="number" value="42"></div>
+            <input id="ly_seed" type="number" inputmode="numeric" value="42"></div>
         </div>
       </details>
       <button id="lySubmit" type="button">摇 卦</button>
@@ -526,11 +526,11 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">自选日期（年 · 月 · 日）</summary>
         <div class="row" style="margin-top:8px;">
           <div class="field"><label for="hl_year">年</label>
-            <input id="hl_year" type="number" min="1900" max="2100"></div>
+            <input id="hl_year" type="number" inputmode="numeric" min="1900" max="2100"></div>
           <div class="field"><label for="hl_month">月</label>
-            <input id="hl_month" type="number" min="1" max="12"></div>
+            <input id="hl_month" type="number" inputmode="numeric" min="1" max="12"></div>
           <div class="field"><label for="hl_day">日</label>
-            <input id="hl_day" type="number" min="1" max="31"></div>
+            <input id="hl_day" type="number" inputmode="numeric" min="1" max="31"></div>
         </div>
         <button id="hlSubmit" type="button" style="margin-top:8px;">查这一天</button>
       </details>
@@ -546,13 +546,13 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="qm_surname">姓氏</label>
           <input id="qm_surname" type="text" maxlength="8" value="李"></div>
         <div class="field"><label for="qm_year">年</label>
-          <input id="qm_year" type="number" min="1900" max="2100" value="1990"></div>
+          <input id="qm_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="qm_month">月</label>
-          <input id="qm_month" type="number" min="1" max="12" value="5"></div>
+          <input id="qm_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
         <div class="field"><label for="qm_day">日</label>
-          <input id="qm_day" type="number" min="1" max="31" value="15"></div>
+          <input id="qm_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="qm_hour">时辰</label>
-          <input id="qm_hour" type="number" min="0" max="23" value="12"></div>
+          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" value="12"></div>
         <div class="field"><label for="qm_gender">性别</label>
             <select id="qm_gender"><option>女</option><option>男</option></select></div>
       </div>
@@ -567,13 +567,13 @@ if ('serviceWorker' in navigator) {
       <h2><span aria-hidden="true">🌺</span> 桃花运 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看桃花 · 知缘分</span></h2>
       <div class="row">
         <div class="field"><label for="th_year">年</label>
-          <input id="th_year" type="number" min="1900" max="2100" value="1990"></div>
+          <input id="th_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="th_month">月</label>
-          <input id="th_month" type="number" min="1" max="12" value="5"></div>
+          <input id="th_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
         <div class="field"><label for="th_day">日</label>
-          <input id="th_day" type="number" min="1" max="31" value="15"></div>
+          <input id="th_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="th_hour">时辰</label>
-          <input id="th_hour" type="number" min="0" max="23" value="10"></div>
+          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
         <div class="field"><label for="th_gender">性别</label>
             <select id="th_gender"><option>女</option><option>男</option></select></div>
       </div>
@@ -593,12 +593,12 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（复验用编号）</summary>
         <div class="row" style="margin-top:8px;">
           <div class="field"><label for="tr_seed">复验编号</label>
-            <input id="tr_seed" type="number" value="42"></div>
+            <input id="tr_seed" type="number" inputmode="numeric" value="42"></div>
         </div>
       </details>
       <div class="row">
         <div class="field"><label for="tr_n">张数（1–10）</label>
-          <input id="tr_n" type="number" min="1" max="10" value="3"></div>
+          <input id="tr_n" type="number" inputmode="numeric" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
@@ -613,25 +613,25 @@ if ('serviceWorker' in navigator) {
       <h2><span aria-hidden="true">💕</span> 八字合婚 <span style="font-size:14px;color:var(--secondary);font-weight:400;">两人八字 · 缘分深浅</span></h2>
       <div class="row">
         <div class="field"><label for="hh_a_year">甲年</label>
-          <input id="hh_a_year" type="number" min="1900" max="2100" value="1990"></div>
+          <input id="hh_a_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="hh_a_month">甲月</label>
-          <input id="hh_a_month" type="number" min="1" max="12" value="5"></div>
+          <input id="hh_a_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
         <div class="field"><label for="hh_a_day">甲日</label>
-          <input id="hh_a_day" type="number" min="1" max="31" value="15"></div>
+          <input id="hh_a_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="hh_a_hour">甲时</label>
-          <input id="hh_a_hour" type="number" min="0" max="23" value="10"></div>
+          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
         <div class="field"><label for="hh_a_gender">甲性别</label>
             <select id="hh_a_gender"><option>男</option><option>女</option></select></div>
       </div>
       <div class="row">
         <div class="field"><label for="hh_b_year">乙年</label>
-          <input id="hh_b_year" type="number" min="1900" max="2100" value="1992"></div>
+          <input id="hh_b_year" type="number" inputmode="numeric" min="1900" max="2100" value="1992"></div>
         <div class="field"><label for="hh_b_month">乙月</label>
-          <input id="hh_b_month" type="number" min="1" max="12" value="8"></div>
+          <input id="hh_b_month" type="number" inputmode="numeric" min="1" max="12" value="8"></div>
         <div class="field"><label for="hh_b_day">乙日</label>
-          <input id="hh_b_day" type="number" min="1" max="31" value="20"></div>
+          <input id="hh_b_day" type="number" inputmode="numeric" min="1" max="31" value="20"></div>
         <div class="field"><label for="hh_b_hour">乙时</label>
-          <input id="hh_b_hour" type="number" min="0" max="23" value="14"></div>
+          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" value="14"></div>
         <div class="field"><label for="hh_b_gender">乙性别</label>
           <select id="hh_b_gender"><option>女</option><option>男</option></select></div>
       </div>
@@ -652,13 +652,13 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:14px;color:var(--primary-ink);">💖 查我的本命盘（输入生日，看专属于你的星座×八字解读）</summary>
         <div class="row" style="margin-top:10px;" id="birthForm">
           <div class="field"><label for="b_year">出生年</label>
-            <input id="b_year" type="number" min="1900" max="2100" value="2000"></div>
+            <input id="b_year" type="number" inputmode="numeric" min="1900" max="2100" value="2000"></div>
           <div class="field"><label for="b_month">月</label>
-            <input id="b_month" type="number" min="1" max="12" value="6"></div>
+            <input id="b_month" type="number" inputmode="numeric" min="1" max="12" value="6"></div>
           <div class="field"><label for="b_day">日</label>
-            <input id="b_day" type="number" min="1" max="31" value="15"></div>
+            <input id="b_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
           <div class="field"><label for="b_hour">时辰（不知道可留空）</label>
-            <input id="b_hour" type="number" min="0" max="23" placeholder="留空=中午12点"></div>
+            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="留空=中午12点"></div>
           <div class="field"><label for="b_gender">性别</label>
             <select id="b_gender"><option>女</option><option>男</option></select></div>
         </div>
