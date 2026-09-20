@@ -1760,7 +1760,14 @@ html.welcomed .welcome-bar{display:none;}
 /* daily 卡「明天预告」 */
 .daily-tomorrow{
   font-size:12px; color:var(--secondary); margin-top:10px;
+  /* R2349h（R69-P2-5/6）：div role=button 不吃 button 全局规则——
+   * 触控高度 31px 提到 40px，补 focus-visible 环。 */
+  min-height:40px; box-sizing:border-box; display:flex; align-items:center;
   padding:6px 10px; border-radius:10px; background:rgba(122,95,184,.06);
+  cursor:pointer;
+}
+.daily-tomorrow:focus-visible{
+  outline:3px solid var(--primary-ink); outline-offset:2px;
 }
 /* 昨天问过的事接续条 */
 .daily-recall{margin-top:8px;}
@@ -1890,7 +1897,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .work-card:focus-visible{outline:2px solid var(--primary-bg,#7A5FB8);outline-offset:2px}
 .toast-item{pointer-events:auto}
 /* R233y（R55-P2）：关闭钮 ~21px 低于触控下限。 */
-.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:32px;min-height:32px;cursor:pointer;opacity:.7}
+.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:40px;min-height:40px;cursor:pointer;opacity:.7}
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
 .qm-fav{min-width:44px}
@@ -1908,7 +1915,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
   border:1px solid #F5D5DC; color:#8A4B5C; font-size:13.5px; line-height:1.7;
 }
 .daily-birthday-go{
-  display:inline-block; margin-left:6px; padding:2px 12px; min-height:30px;
+  display:inline-block; margin-left:6px; padding:6px 14px; min-height:40px;
   border:none; border-radius:999px; cursor:pointer;
   background:var(--cta-grad); color:#fff; font-size:12.5px;
 }
@@ -1980,8 +1987,9 @@ html[data-theme="dark"] input, html[data-theme="dark"] select,
 html[data-theme="dark"] textarea{
   background:#352E33; color:var(--text); border-color:#4E4348;
 }
+/* R2349h（R69-P2-8）：#8E7F70 在深底只有 3.41:1——换 --muted(5.75:1)。 */
 html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder{color:#8E7F70;}
+html[data-theme="dark"] textarea::placeholder{color:var(--muted);}
 html[data-theme="dark"] .checkin-opt{background:#352E33; color:var(--text);}
 html[data-theme="dark"] .toast{background:#3A3237; color:var(--text);
   border-color:#4E4348;}
@@ -2077,6 +2085,29 @@ html[data-theme="dark"] .hint-box{background:#2E282C; border-color:#453C42;}
 html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{
   border-color:#453C42; color:var(--text);
 }
+/* R2349h（R69-P1-1/2/3）：深色漏配的新浮层表面——里程碑卡/分享图
+ * 浮层/install-tip 固定 #fff 底+深底文字色，对比度实测 1.2:1。 */
+html[data-theme="dark"] .celeb-card{background:var(--card); color:var(--text);
+  border:1px solid var(--border);}
+html[data-theme="dark"] .celeb-sub{color:var(--secondary);}
+html[data-theme="dark"] .celeb-share{background:var(--primary-bg); color:#fff;}
+html[data-theme="dark"] .celeb-x{background:#3A3237; color:var(--text);
+  border-color:var(--border);}
+html[data-theme="dark"] .poster-modal-head{background:linear-gradient(180deg,#352E33,#2B2529);}
+html[data-theme="dark"] .poster-modal-title{color:var(--text);}
+html[data-theme="dark"] .poster-modal-close{color:var(--secondary);}
+html[data-theme="dark"] .poster-modal-tip{color:var(--secondary); background:transparent;}
+html[data-theme="dark"] .poster-act{background:#3A3237; color:var(--primary-ink);
+  border-color:var(--border);}
+html[data-theme="dark"] .install-tip{background:var(--card); color:var(--text);
+  border-color:var(--border);}
+html[data-theme="dark"] .install-tip-go{background:var(--primary-bg); color:#fff;}
+html[data-theme="dark"] .install-tip-x{color:var(--secondary);}
+/* R2349h（R69-P2-9）：CTA 渐变起点 #C25A4E 白字 4.32:1 贴线，加深一档。 */
+html[data-theme="dark"]{--cta-grad:linear-gradient(135deg,#B85649,#A8445F);}
+/* R2349h（R69-P3-14）：生日横幅浅色卡在深底上跳色——半透明深底。 */
+html[data-theme="dark"] .daily-birthday{background:rgba(240,140,164,.10);
+  border-color:#5A3A44; color:var(--text);}
 
 /* R2340b（R55-P2）：360px 档 daily chips 6px 溢出——缩字号/内距止血 */
 @media (max-width:400px){

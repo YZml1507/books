@@ -73,14 +73,16 @@ if ('serviceWorker' in navigator) {
 <body>
   <!-- R2348（R67-P1）：新人条静态进 DOM（原 JS DOMContentLoaded 才插，
        把整页下压成 CLS 0.075）。文案默认版；?from=share 变体由 app.js 改。 -->
+  <!-- R2349h（R69-P2-11）：skip-link 挪到 welcomeBar 前——首 Tab 停
+       应是跳转链接而非 ×（WCAG 2.4.1）。 -->
+<!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
+<a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
   <div id="welcomeBar" class="welcome-bar" role="note">
     <span class="welcome-txt">第一次来？点一张卡就能测——塔罗 · 桃花 · 合婚 · 黄历都有，测完还能生成分享图发给闺蜜 ✨</span>
     <button type="button" class="welcome-close" aria-label="知道了">×</button>
   </div>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
   <div class="page-glow" aria-hidden="true"></div>
-<!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
-<a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
 <div class="wrap">
 <!-- R233f（R43-P2-7）：<main> 地标——读屏 landmarks 此前无主内容区 -->
 <main id="main">

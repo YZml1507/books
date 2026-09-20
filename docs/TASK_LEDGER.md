@@ -11618,3 +11618,12 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   双变体（按首牌名选）。
 - **copy_bank 漂移清偿**：checkin json 补齐 4 签+default（原注释谎称
   对齐）；fortune_summary 标注兜底路径注释。
+
+## R2349h（R69 a11y 复扫清零批）
+- 深色补漏：celeb-card/poster-modal/install-tip/placeholder/cta-grad/daily-birthday 深底浅字族全收口；--cta-grad 深版调亮
+- 键盘焦点归还：welcome-close / install-tip(go+x) / toast-x 自毁前 focus→funcGrid(tabindex=-1)；celeb 先 appendChild 再 _mainInert(bd)（原顺序靠未挂载侥幸）
+- 模态 inert 分层：except=模态时侧栏三件套（recentToggle/Backdrop/Sidebar）也入 inert——SR 浏览模式不再能穿到模态下层
+- ck-album-cell 摘除 role=listitem（恢复原生 button 语义，父级 role=list 承载）
+- themeToggle aria-pressed 同步；poster img alt=视图名+分享图（不再恒「命盘海报」）
+- 触控：daily-tomorrow flex 40px+focus-visible、toast-x 40px、daily-birthday-go 40px；skip-link 移到 welcomeBar 之前（Tab 首站）
+- 闸门：selftest 254 / contract 542 / ui_smoke 75 全绿；sw shell hash 已 bump

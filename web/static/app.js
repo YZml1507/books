@@ -891,6 +891,12 @@ function showToast(msg, kind) {
      * pointer-events 在 CSS 侧 re-enable。 */
     '<button type="button" class="toast-x" aria-label="关闭提示">×</button>';
   t.querySelector('.toast-x').addEventListener('click', function () {
+    /* R2349h（R69-P2-7）：焦点若落在 × 上，销毁前归还到功能区，
+     * 否则丢回 body 从头爬。 */
+    if (document.activeElement === this) {
+      var _nx = el('funcGrid');
+      if (_nx && _nx.focus) { try { _nx.focus(); } catch (e) {} }
+    }
     t.classList.remove('show');
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
   });
@@ -1611,7 +1617,10 @@ function _mainInert(on, except) {
   /* R233f（R43-P2-9）：.wrap 之外的 body 级浮件（skip-link/welcomeBar/
    * install-tip）此前侧栏/模态开着仍可 Tab 到且被遮罩盖住。除侧栏
    * 三件套（自己管理 inert）与当前模态（except）外统一打 inert。 */
-  var _keep = { recentToggle: 1, recentBackdrop: 1, recentSidebar: 1 };
+  /* R2349h（R69-P2-10）：except=模态遮罩时（模态在侧栏之上），
+   * 侧栏三件套也要入 inert——否则 SR 浏览模式仍能在模态下层
+   * 导航/点开侧栏入口。仅纯侧栏开合（无 except）才豁免。 */
+  var _keep = except ? {} : { recentToggle: 1, recentBackdrop: 1, recentSidebar: 1 };
   Array.prototype.forEach.call(document.body.children, function (n) {
     if (n === w || n === except || n.nodeType !== 1) return;
     if (n.id && _keep[n.id]) return;
@@ -3473,7 +3482,10 @@ function showPosterModal(canvas, view) {
         '<button type="button" class="poster-modal-close" aria-label="关闭">×</button>' +
       '</div>' +
       '<div class="poster-modal-body">' +
-        '<img class="poster-modal-img" src="' + img + '" alt="命盘海报">' +
+        /* R2349h（R69-P3-13）：alt 写死「命盘海报」——黄历/塔罗图也被
+         * 读成命盘。拼视图名+日期。 */
+        '<img class="poster-modal-img" src="' + img + '" alt="' +
+          esc(viewTitle) + ' 分享图">' +
       '</div>' +
       '<div class="poster-modal-tip">💡 长按图片可保存到相册 · 桌面端已自动下载到下载文件夹 · 发给闺蜜一起测～</div>' +
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
@@ -7522,9 +7534,12 @@ function initBazi() {
   var _tt = el('themeToggle');
   if (_tt) {
     var _ttIcon = function () {
-      _tt.textContent = uiTheme() === 'dark' ? '☀️' : '🌙';
+      var _dk = uiTheme() === 'dark';
+      _tt.textContent = _dk ? '☀️' : '🌙';
       _tt.setAttribute('aria-label',
-        uiTheme() === 'dark' ? '切回浅色模式' : '切换深色模式');
+        _dk ? '切回浅色模式' : '切换深色模式');
+      /* R2349h（R69-P3-12）：状态进可访问树。 */
+      _tt.setAttribute('aria-pressed', String(_dk));
     };
     _ttIcon();
     _tt.addEventListener('click', function () {
@@ -8446,6 +8461,10 @@ if (document.readyState === 'loading') {
       _txtEl.textContent = 'TA 约你来合婚——填好你的生日就能对上盘 💕';
     }
     bar.querySelector('.welcome-close').addEventListener('click', function () {
+      /* R2349h（R69-P2-7）：自毁钮先把焦点还到页内落点，
+       * 否则键盘党焦点丢 body 从头爬。 */
+      var _nx = document.querySelector('.skip-link') || el('funcGrid');
+      if (_nx && _nx.focus) { try { _nx.focus(); } catch (e) {} }
       bar.remove();
       try { window.localStorage.setItem('welcomed', '1'); } catch (e) {}
       try { document.documentElement.classList.add('welcomed'); } catch (e) {}
@@ -8830,8 +8849,10 @@ function _checkinCelebrate(streak, opt) {
     if (p && p.catch) p.catch(function () {});
     _close();
   });
-  _mainInert(true);
+  /* R2349h（R69-P2-10）：先挂节点再 inert 并把 bd 传入 except——
+   * 模态下侧栏三件套也入 inert；原顺序靠「还没挂」侥幸躲坑。 */
   document.body.appendChild(bd);
+  _mainInert(true, bd);
   document.addEventListener('keydown', _celebKey);
   var _fb = bd.querySelector('.celeb-share') || bd.querySelector('.celeb-x');
   if (_fb) { try { _fb.focus(); } catch (e2) {} }
@@ -9032,16 +9053,22 @@ function _renderInstallTip() {
   }
   var go = bar.querySelector('.install-tip-go');
   var xx = bar.querySelector('.install-tip-x');
+  /* R2349h（R69-P2-7）：自毁前先还焦点到功能区落点。 */
+  var _retire = function () {
+    var _nx = el('funcGrid');
+    if (_nx && _nx.focus) { try { _nx.focus(); } catch (e) {} }
+    bar.remove();
+  };
   if (go) go.addEventListener('click', function () {
-    if (!_deferredInstall) { bar.remove(); return; }
+    if (!_deferredInstall) { _retire(); return; }
     var d = _deferredInstall; _deferredInstall = null;
     try { d.prompt(); } catch (e) {}
-    bar.remove();
+    _retire();
   });
   if (xx) xx.addEventListener('click', function () {
     try { localStorage.setItem('installTipDismissed', new Date().toISOString()); }
     catch (e) {}
-    bar.remove();
+    _retire();
   });
   document.body.appendChild(bar);
 }
@@ -9069,7 +9096,9 @@ function _renderCheckinAlbum(dateKey) {
     var opt = all[dk] || '';
     var pp = String(dk).split('-');
     var fb = pickCheckinFeedback(opt, dk);
-    html += '<button type="button" class="ck-album-cell" role="listitem" ' +
+    /* R2349h（R69-P1-4）：role=listitem 会把原生 button 语义吃掉——
+     * SR 只报「列表项」不报可激活。格仍由父级 role=list 承载语义。 */
+    html += '<button type="button" class="ck-album-cell" ' +
       'data-fb="' + esc(fb) + '" title="' + esc(dk) + '　' + esc(fb) + '">' +
       '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' +
       '<b>' + esc(opt) + '</b></button>';
