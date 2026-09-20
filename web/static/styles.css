@@ -448,8 +448,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 }
 .recent-toggle:hover{transform:scale(1.06); box-shadow:0 6px 20px rgba(0,0,0,.28);}
 /* R231a（R35-P2-10）：首页滚动中 FAB 缩小半透明，不再压 daily-meta 文字 */
-.recent-toggle.is-mini{transform:scale(.72); opacity:.55;}
-.recent-toggle.is-mini:hover{transform:scale(.8); opacity:.9;}
+/* R233y（R55-P2）：mini 态 37px 低于 44px 触控下限。 */
+.recent-toggle.is-mini{transform:scale(.85); opacity:.6;}
+.recent-toggle.is-mini:hover{transform:scale(.95); opacity:.9;}
 .recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 .recent-sidebar{
@@ -1850,7 +1851,8 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .func-card:active,.work-card:active,#dailyCover:active{transform:scale(.96)}
 .work-card:focus-visible{outline:2px solid var(--primary-bg,#7A5FB8);outline-offset:2px}
 .toast-item{pointer-events:auto}
-.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:2px 4px 2px 8px;cursor:pointer;opacity:.7}
+/* R233y（R55-P2）：关闭钮 ~21px 低于触控下限。 */
+.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:32px;min-height:32px;cursor:pointer;opacity:.7}
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
 .qm-fav{min-width:44px}
@@ -1898,3 +1900,17 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
 @keyframes ckPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
 .checkin-opt.picked{animation:ckPop .35s ease;}
 @media (prefers-reduced-motion:reduce){.checkin-opt.picked{animation:none;}}
+/* ── R233y（R55 窄屏审计清零）── */
+/* P0-2：.birth-card/#xzResult 无定位上下文——fav-btn 逃逸到祖先 .card
+ * 同点位互叠（shareBirth 被 shareXingzuo 完全盖住点不到）。 */
+.birth-card{position:relative;}
+#xzResult{position:relative;}
+/* P1：合婚三钮窄屏改静态流（原 absolute 压 h2/判词首行，
+ * 360px 挤成竖排圆球）。 */
+@media (max-width:520px){
+  .hh-btns{position:static;justify-content:flex-end;margin:2px 0 8px;flex-wrap:wrap;}
+}
+/* P1：结果卡 fav-btn 骑 h2 盖副标尾字——右上角让位。 */
+.view .card h2{padding-right:92px;}
+/* P1：签册 summary 触控高 20px → ≥40px。 */
+.ck-album>summary{min-height:40px;display:flex;align-items:center;}

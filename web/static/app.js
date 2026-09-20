@@ -133,7 +133,7 @@ var _PAINT_LABEL = { result: '排盘', thResult: '桃花', hhResult: '合婚',
   trResult: '塔罗', dailyDetail: '今日解读', historyDetail: '历史详情',
   researchResult: '研究', searchResult: '搜索', addrResult: '定位',
   compareResult: '对照', conceptResult: '概念分布', cwResult: '两书对照',
-  worksResult: '书目', threadResult: '心事', bsStructure: '结构',
+  worksResult: '书目', threadResult: '研究线程', bsStructure: '结构',
   bsChapter: '章节', bsSummary: '知识卡', nameReviewOut: '名字点评' };
 var _paintSilent = false;
 function _srSay(t) {
@@ -787,10 +787,13 @@ async function api(path, options) {
      * 不到（实测填空年份/超长问题只出裸码）。数组要留给人话化。 */
     if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
       detail = detail.msg || detail.error || detail.message
-        || '请求没走通（' + resp.status + '）';
+        || (resp.status === 404 ? '要找的内容不在了'
+            : '刚才那下没成功，再试一次？');
     }
     const err = new Error(Array.isArray(detail) ? _humanize422(detail)
-      : (typeof detail === 'string' ? detail : '请求没走通（' + resp.status + '）'));
+      : (typeof detail === 'string' ? detail
+          : (resp.status === 404 ? '要找的内容不在了'
+             : '刚才那下没成功，再试一次？')));
     /* R218a-巡2（N-05）：错误态用户反馈——非 2xx 一律弹红色 toast（不只
      * 在主流程 catch 里弹；网络层就弹，给用户即时反馈）。4xx 是用户输入
      * 错（黄底提示），5xx 是服务端异常（红底提示）。 */
@@ -798,7 +801,8 @@ async function api(path, options) {
     var isClient = status >= 400 && status < 500;
     err.status = status;   /* R8 P2-9：让轮询方对 404 早退（任务不存在） */
     if (!options.silent) {
-      showToast(typeof err.message === 'string' ? err.message : '请求失败',
+      showToast(typeof err.message === 'string' ? err.message
+                : '刚才那下没成功，再试一次？',
                 isClient ? 'warn' : 'error');
     }
     throw err;
@@ -1206,7 +1210,7 @@ function buildChatContext(viewKey) {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
     /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
     msg = '今天是' + (j.date || '') + '，'
-      + ((today && today.sign) || '—') + '当值，我今天运势怎么样';
+      + ((today && today.sign) || '—') + '座当班，我今天运势怎么样';
     facts = ['今天轮到' + ((today && today.sign) || '—') + '座当班'];
   } else {
     msg = '帮我看看这个结果';
@@ -2240,7 +2244,7 @@ function annotatePowers(text) {
   return t;
 }
 function renderWarm(warm, interp, evidence) {
-  if (!warm) return renderInterpretation(interp, '📖 解读（确定性规则）');
+  if (!warm) return renderInterpretation(interp, '📖 小满的解读');
   var html = '<div class="warm-wrap">';
   /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
    * （按提问主题选，无提问走通用款），同输入同输出不违反确定性判据。
@@ -4111,7 +4115,7 @@ function buildBaziResult(j) {
     }
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
-  html += renderVoice(j, '📖 解读（确定性规则）', ['evidence']);
+  html += renderVoice(j, '📖 小满的解读', ['evidence']);
   html += tailHook('bazi');
   html += '</div>';
   return html;
@@ -4229,7 +4233,7 @@ async function doSearch() {
   const params = new URLSearchParams();
   const q = val('rq');
   if (!q) {
-    fail('searchResult', '请输入查询词');
+    fail('searchResult', '先写个想查的词，比如「无为」');
     return;
   }
   params.set('q', q);
@@ -4253,7 +4257,7 @@ async function doResearch() {
   busy('researchResult', '研究中…');
   const q = val('rq2');
   if (!q) {
-    fail('researchResult', '请输入查询词');
+    fail('researchResult', '先写个想查的词，比如「无为」');
     return;
   }
   const params = new URLSearchParams({ q: q });
@@ -4365,7 +4369,7 @@ async function doWorks() {
     const j = await api('/api/works');
     const works = j.works || [];
     if (!works.length) {
-      fail('worksResult', '暂无书目');
+      fail('worksResult', '书目还没翻出来——点「列出」试试');
       return;
     }
     let html = '<p class="hit-cite">共 ' + esc(j.total) + ' 部</p><div class="work-grid">';
@@ -4481,10 +4485,10 @@ async function deleteThread(tid) {
   if (!window.confirm('删掉这条线程？（里面的研究结论会保留为独立记录）')) return;
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
-    showToast(_dayPick(['线程已删除','这条心事清掉了','已删除，台账干净了'], 'del'), 'success');
+    showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
     /* 列表与详情共用 threadResult——重拉列表覆盖回列表态 */
     const html = await _threadListHtml();
-    paint('threadResult', html || '<div class="no-evidence">暂无线程</div>');
+    paint('threadResult', html || '<div class="no-evidence">还没有研究线程——上面写个主题就能开一条</div>');
   } catch (e) {
     showToast('删除失败：' + e.message, 'warn');
   }
@@ -4578,7 +4582,7 @@ async function doConcept() {
   busy('conceptResult', '研究中…');
   const q = val('cq');
   if (!q) {
-    fail('conceptResult', '请输入概念词');
+    fail('conceptResult', '先写个概念，比如「无为」');
     return;
   }
   try {
@@ -4631,7 +4635,7 @@ async function doConcept() {
 async function doBookStructure() {
   const workId = val('bswork');
   if (!workId) {
-    fail('bsStructure', '请输入书 ID（如 KR1a0001）');
+    fail('bsStructure', '先填书号（比如 KR1a0001），书目页能找到');
     return;
   }
   busy('bsStructure', '加载结构…');
@@ -4664,11 +4668,11 @@ async function doBookChapter() {
   const workId = val('bswork');
   const scheme = val('bsscheme');
   if (!workId) {
-    fail('bsChapter', '请输入书 ID（如 KR1a0001）');
+    fail('bsChapter', '先填书号（比如 KR1a0001），书目页能找到');
     return;
   }
   if (!scheme) {
-    fail('bsChapter', 'scheme 不能为空（NULL 体系的书请用「结构」页看文件节）');
+    fail('bsChapter', '先选一个编址方式；没有编址的书去「结构」页看');
     return;
   }
   busy('bsChapter', '加载章节…');
@@ -4697,7 +4701,7 @@ async function doBookChapter() {
 async function doBookSummary() {
   const workId = val('bswork');
   if (!workId) {
-    fail('bsSummary', '请输入书 ID（如 KR1a0001）');
+    fail('bsSummary', '先填书号（比如 KR1a0001），书目页能找到');
     return;
   }
   busy('bsSummary', '加载摘要…');
@@ -4821,7 +4825,7 @@ function buildLiuyaoResult(j) {
         renderHits(evAll, { empty: '' }) + '</details>';
     }
   } else {
-    html += renderVoice(j, '📖 卦象转述（确定性规则）', ['ben_jing', 'bian_jing']);
+    html += renderVoice(j, '📖 卦象解读', ['ben_jing', 'bian_jing']);
   }
   /* R221b：交叉引用收口 7/7——六爻不收生日，引今天值宫 × 动爻多寡。
    * 放在 if/else 之外：温柔版与专业版都该看到这段。 */
@@ -5425,7 +5429,7 @@ function buildTarotResult(j) {
       esc(j.cross_ref.message) +
       crossDirBadge(j.cross_ref, 'card_direction', '牌面') + '</div>';
   }
-  html += renderVoice(j, '📖 牌面转述（确定性规则）');
+  html += renderVoice(j, '📖 牌面解读');
   html += tailHook('tarot');
   html += '</div>';
   return html;
@@ -5904,7 +5908,7 @@ async function doXingzuo(force) {
       if (_todayDetail && (_todayDetail.palace || _todayDetail.star)) {
         html += '<div class="xz-palace-line">' +
           esc((_todayDetail.palace || '') +
-              (_todayDetail.star ? ' · 值星「' + _todayDetail.star + '」' : '')) +
+              (_todayDetail.star ? ' · 今日守护星：' + _todayDetail.star : '')) +
           '</div>';
         if (_todayDetail.sign_note) {
           html += '<div class="xz-palace-note">' +
@@ -6448,14 +6452,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
      * 此前与普通日零差别。 */
     var _fl = j.day_flags || [];
     if (_fl.length) {
+      /* R233y（R54-P0-11）：⛔+「诸事谨慎」是恐吓式裸奔——换 🌙 图标
+       * + 白话口径，凶日用「缓一缓就好」收尾（对照 U-009 凶→缓口径）。 */
       var _flTxt = _fl.map(function (f) {
-        return f === '月破' ? '月破日（大事缓一缓）'
-          : f === '四离' ? '四离日（节气前一天，宜收不宜开）'
-          : f === '四绝' ? '四绝日（立季前一天，大事不宜）'
-          : f === '杨公忌' ? '杨公忌日（传统上诸事谨慎）' : f;
+        return f === '月破' ? '月破日——大事缓一缓就好'
+          : f === '四离' ? '四离日——节气前一天，宜收不宜开'
+          : f === '四绝' ? '四绝日——立季前一天，大事留到后天'
+          : f === '杨公忌' ? '杨公忌日——老传统提醒稳着点，小事照常' : f;
       }).join('、');
       html += '<div class="hl-flag" style="font-size:12.5px;color:#a3542a;' +
-        'margin-top:6px;">⛔ 今天逢' + esc(_flTxt) + '</div>';
+        'margin-top:6px;">🌙 今天逢' + esc(_flTxt) + '</div>';
     }
     if (cs && cs.message) html += '<div style="font-size:13px;color:var(--primary-ink);margin-top:6px;">✨ ' + esc(cs.message) + '</div>';
     /* R229z续21c：干支年双口径错位日（春节↔立春窗口）才出现的说明行 */
@@ -7850,7 +7856,10 @@ if (document.readyState === 'loading') {
     var ripple = document.createElement('div');
     ripple.className = 'fx-ripple';
     ripple.style.left = x + 'px'; ripple.style.top = y + 'px';
-    (host || document.body).appendChild(ripple);
+    /* R233y（R55-P1-1）：涟漪挂 body 不挂 host——host 有 transform
+     * 祖先时 fixed 退化为 absolute，右缘点击瞬时撑 scrollWidth
+     * （实测 467-598px）页面横移。body 无 transform，视口坐标稳。 */
+    document.body.appendChild(ripple);
     setTimeout(function () { ripple.remove(); }, 650);
     for (var i = 0; i < 6; i++) {
       var s = document.createElement('span');
@@ -8488,7 +8497,7 @@ function baziPersonaCard(j) {
       if (_t) clearTimeout(_t);
     }
     if (!r.ok) {
-      let m = '没查到这条记录（' + r.status + '）';
+      let m = '这条记录找不到了，刷新列表看看';
       /* R230v（R34-#22）：422 的 detail 是 pydantic 数组——取首条 msg，
        * 不再落进「没查到」的误导文案。 */
       try { const j = await r.json();
@@ -8526,7 +8535,7 @@ function baziPersonaCard(j) {
           '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
           '<span class="ph-ts">' + esc(ts) + '</span></div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
-          '<div class="ph-actions"><button type="button" class="ghost ph-open">复看</button>' +
+          '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
           '<button type="button" class="ghost ph-del">删除</button></div></div>';
       }).join('');
     } catch (e) {

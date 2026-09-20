@@ -561,19 +561,24 @@ YAO_WARM: dict[int, str] = {
 _YAO_POS_CN = {1: "初", 2: "二", 3: "三", 4: "四", 5: "五", 6: "上"}
 
 
+# 六亲 → 温柔版叫法（R233y）：术语只进专业坐标行/details。
+_LIUQIN_WARM = {"官鬼": "事业与忧心", "妻财": "财物", "兄弟": "同辈竞争",
+                "父母": "文书庇护", "子孙": "晚辈与解忧"}
+
+
 _LIUYAO_SCENE: list[tuple[str, str, str]] = [
     ("事业|工作|求职|跳槽|升职|面试|offer|项目|职称|离职", "官鬼",
-     "官鬼主事业与职位"),
+     "代表事业与职位的那一爻"),
     ("感情|恋爱|喜欢|复合|表白|桃花|婚姻|结婚|对象|分手|相亲|异地",
-     "妻财", "感情看官鬼（问男生）/妻财（问女生），没性别先看应爻"),
+     "妻财", "代表感情走向的那一爻"),
     ("财|钱|工资|副业|投资|生意|买卖|理财|债|报销", "妻财",
-     "妻财主财物与所得"),
+     "代表财物与所得的那一爻"),
     ("学业|考试|论文|证书|文书|签证|房子|合同|考研|留学", "父母",
-     "父母爻主文书学业与庇护"),
-    ("健康|身体|生病|病|手术|体检", "官鬼", "官鬼主疾病与健康所忧"),
-    ("子女|孩子|怀孕|求嗣|宠物|下属", "子孙", "子孙主子女与晚辈缘"),
+     "代表文书与学业的那一爻"),
+    ("健康|身体|生病|病|手术|体检", "官鬼", "代表身体状况的那一爻"),
+    ("子女|孩子|怀孕|求嗣|宠物|下属", "子孙", "代表孩子与晚辈的那一爻"),
     ("合作|同事|竞争|朋友|兄弟|姐妹|合伙人", "兄弟",
-     "兄弟主同侪与合作竞争"),
+     "代表同辈与合作竞争的那一爻"),
 ]
 import re as _re_lq
 _SCENE_RE = [( _re_lq.compile(k), v, note) for k, v, note in _LIUYAO_SCENE]
@@ -617,11 +622,16 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         _by_pos = {int(l.get("position", 0)): l for l in _bl}
         _shi_l = _by_pos.get(int(_shi_pos), {})
         _ying_l = _by_pos.get(int(_ying_pos or 0), {})
-        _seg = (f"卦面坐标：你这边（世爻）在{_YAO_POS_CN.get(int(_shi_pos), '第' + str(_shi_pos))}爻"
-                f"临{_shi_l.get('liuqin', '—')}")
+        # R233y（R54-P2-19/20）：六亲黑话不进温柔版正文——世爻/应爻/
+        # 官鬼/妻财/不现 全翻成位置人话（专业坐标在 details 里照给）。
+        _lq_a = _LIUQIN_WARM.get(_shi_l.get("liuqin", ""), "")
+        _lq_b = _LIUQIN_WARM.get(_ying_l.get("liuqin", ""), "")
+        _seg = (f"卦里代表你的那一爻在{_YAO_POS_CN.get(int(_shi_pos), '第' + str(_shi_pos))}爻"
+                + (f"（临{_lq_a}）" if _lq_a else ""))
         if _ying_l:
-            _seg += (f"，事情那头（应爻）在{_YAO_POS_CN.get(int(_ying_pos or 0), '')}爻"
-                     f"临{_ying_l.get('liuqin', '—')}")
+            _seg += (f"，代表事情那头的那一爻在"
+                     f"{_YAO_POS_CN.get(int(_ying_pos or 0), '')}爻"
+                     + (f"（临{_lq_b}）" if _lq_b else ""))
         _ys, _ys_note = _liuyao_scene(q) if q else (None, None)
         if _ys:
             _ys_pos = [int(l.get("position", 0)) for l in _bl
@@ -629,11 +639,11 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             if _ys_pos:
                 _mv = "且是动爻——你问的事正在动的点上" \
                     if _ys_pos[0] in ml else ""
-                _seg += (f"。问这类事传统上先看{_ys}（{_ys_note}）——"
+                _seg += (f"。问这类事传统上先看{_ys_note}——"
                          f"落在{_YAO_POS_CN.get(_ys_pos[0], '第' + str(_ys_pos[0]))}爻{_mv}")
             else:
-                _seg += (f"。问这类事传统上先看{_ys}——它没直接落在这卦里"
-                         f"（叫「不现」），看世应两端更实在")
+                _seg += (f"。问这类事传统上先看{_ys_note}——它没直接落在这卦里，"
+                         f"那就看代表你和事情的两端更实在")
         lines.append(_seg + "。")
 
     if ml:
@@ -1094,7 +1104,7 @@ def warm_taohua(t: dict) -> dict:
     if dayun:
         d0 = dayun[0]
         lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
-                     f"桃花星当值——那段时间社交面会明显变宽。")
+                     f"桃花运当班——那段时间社交面会明显变宽。")
     # D-003：禁用免责套话「感情这事你的感受最重要」——已在上方给出具体建议
     return _wrap(
         l0,

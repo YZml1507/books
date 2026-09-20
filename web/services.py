@@ -2317,11 +2317,12 @@ def share(share_type: str, share_id: str) -> dict:
             except (TypeError, ValueError):
                 d = None
             if not d:
-                raise NotFoundError("未找到")
+                raise NotFoundError("这条没找到——可能被清掉了，刷新看看")
             # R228r：derived 表存的是研究线程记录（kind 不定为 bazi）——标题
             # 按实际 kind 出，别一律误标「八字排盘结果」。
-            kind_title = {"thread": "研究笔记", "summary": "古籍研究笔记",
-                          "answer": "研究结论", "link": "关联笔记",
+            # R233y（R54-P1-44）：六种笔记名收敛成三个口径。
+            kind_title = {"thread": "研究笔记", "summary": "研究笔记",
+                          "answer": "研究笔记", "link": "研究笔记",
                           "diff": "比对笔记", "refusal": "存疑记录"}
             title = kind_title.get(getattr(d, "kind", ""), "八字排盘结果")
             return {"title": title, "subtitle": d.claim[:60],
@@ -2331,7 +2332,7 @@ def share(share_type: str, share_id: str) -> dict:
         # R228r：这两个分享面无后端存档，share_id 原样回显——限长+拒控制字符
         # 守住上限，任意长串/HTML 片段不该被当分享标题直接回显。
         if not share_id or len(share_id) > 80 or not share_id.isprintable():
-            raise NotFoundError("未找到")
+            raise NotFoundError("这条没找到——可能被清掉了，刷新看看")
         title, content = (("塔罗占卜结果", "塔罗牌阵解读") if share_type == "tarot"
                           else ("读书笔记", "古籍研究笔记"))
         return {"title": title, "subtitle": share_id, "content": content,
@@ -2386,14 +2387,14 @@ def external_news() -> dict:
     if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
             "1", "on", "true", "yes"):
         return {"fetched_at": None, "proxy": external_feed.PROXY,
-                "sources": [], "error": "外部资讯已关闭",
+                "sources": [], "error": "外面的资讯今天歇着",
                 "disabled": True}
     try:
         return external_feed.fetch_sources(max_sources=6)
     except Exception:
         # R229n（R6-#13）：异常原文不外泄——与 external_fortune 同纪律。
         return {"fetched_at": None, "proxy": external_feed.PROXY,
-                "sources": [], "error": "外部资讯暂时取不到"}
+                "sources": [], "error": "外面的消息暂时没拿到，稍后再看"}
 
 
 def external_fortune() -> dict:
@@ -2401,13 +2402,13 @@ def external_fortune() -> dict:
     if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
             "1", "on", "true", "yes"):
         return {"date": None, "ok": False, "items": [],
-                "summary": "外部资讯已关闭", "disabled": True}
+                "summary": "外面的资讯今天歇着", "disabled": True}
     try:
         return external_feed.fortune_wrap(external_feed.fetch_sources(max_sources=4))
     except Exception:
         # R228e：异常原文不抛给用户（ConnectionError/timeout 是英文堆栈串）。
         return {"date": None, "ok": False, "items": [],
-                "summary": "外部资讯暂时不可用，稍后再看看"}
+                "summary": "外面的消息暂时没拿到，稍后再看"}
 
 
 def health() -> dict:
@@ -2468,7 +2469,7 @@ def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
                 msg = f"你是{sign}座，今天正好轮到你当班——{note}"
             else:
                 # R229z续23（R11-#36）：「X宫的日子」术语 → 当班
-                msg = f"你是{sign}座（{prof.get('love', '')}）今天是{today_sign}座当班的日子：{note}"
+                msg = f"你是{sign}座（{prof.get('love', '')}）；今天是{today_sign}座当班的日子：{note}"
         elif sign:
             msg = f"你是{sign}座，{prof.get('love', '')}"
         elif today_sign and note:

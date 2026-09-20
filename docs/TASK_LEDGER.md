@@ -11321,3 +11321,38 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   t→s 折叠表（reverse(S2T_RETRY)+补字），苹→萍 式自洽诈骗免疫。
 - 闸门：selftest 248 / contract 540 / regress / dollar / warm_voice /
   baseline_voice / ruff 全绿。
+
+## R233y（R54 文案口吻 P0/P1 + R55 窄屏审计清零）
+- **R54-P0×11 全清**：「请输入」公文腔×6 全翻口语引导；
+  「暂无书目/暂无线程」死文案 → 带下一步的空态；
+  「未找到」裸词 → 「这条没找到——可能被清掉了，刷新看看」；
+  toast 裸状态码（422/404/请求失败）→ 「刚才那下没成功，再试一次？」；
+  「（确定性规则）」内部术语从三个结果标题剔除 →「小满的解读」；
+  ⛔ 凶日恐吓口径 → 🌙 + 「缓一缓就好/稳着点」白话收尾。
+- **R54-P1 批**：六亲黑话（官鬼/妻财/世爻/应爻/不现/卦面坐标）
+  从温柔版正文清零——位置人话「代表你的那一爻在X爻（临财物）」，
+  场景用神句全翻白话；术语只留专业坐标行/details。
+  当值/当班/值星口径分裂 → 全站统一「当班」，星座「值星」→「今日守护星」；
+  「你是X座（…）今天是」断句补分号；合婚甲/乙标签 → 我/TA；
+  分享笔记名六种 → 三个口径；「外部资讯」公文 → 人话；
+  「最大地址数」→「最多深挖几处」；留空提示四种写法归一；
+  复看/查看统一「查看」；threadResult 播报「心事」→「研究线程」。
+- **R54-P1-48**：古籍域 11 个结果容器全部裸空 → 补 ph-empty
+  插画+引导语（与占卜系视图空态对齐）。
+- **按钮口语化（P1-45）**：检 索→搜一下、研 究→帮我研究、
+  定 位→找这段、比 对→比一比、列 出→列一下、新 建→开一条、
+  对 照→对着看、摇 卦→摇一卦、起 名→起一个名、测桃花→测测桃花、
+  抽 牌→抽一张、合 婚→合一下、查 询→查一查（空格撑两字废除）。
+- **R55-P0-2**：shareBirth/shareXingzuo 逃逸互叠——.birth-card 与
+  #xzResult 补 position:relative，分享钮回到自己卡里可点。
+- **R55-P1**：涟漪挂 body（transform 祖先下 fixed 退化 absolute
+  撑 scrollWidth 页面横移）；合婚三钮 ≤520px 改静态流；
+  结果卡 h2 padding-right:92px 给 fav-btn 让位；签册 summary ≥40px。
+- **R55-P2**：mini-FAB 37px→44px；toast-x →32px²；
+  「时辰（不知道可留空）」孤字换行 → 「时辰（可留空）」。
+- **待议（R55-P0-1）**：view-read 整视图无入口是 R208b 既定裁决
+  （「不提供阅读渠道」）——「彻底删除该视图」还是「重开入口」
+  属方向性决定，留用户拍板。
+- 闸门：selftest 248 / contract 540 / ui_smoke 59 / plain_first /
+  xingzuo / parity(66+41+88) / poster(14) / async_ai / llm_polish /
+  importable / baseline_voice / warm_voice / regress / ruff 全绿。

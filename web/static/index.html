@@ -241,7 +241,7 @@ if ('serviceWorker' in navigator) {
         <!-- 时辰可选：不知道就留空（后端 hour 必填 → baziBody 里空则给默认 12，
              并附 not_hour_known 提示语义；契约零改动）。 -->
         <div class="row">
-          <div class="field"><label for="hour">出生时辰（不知道可留空）</label>
+          <div class="field"><label for="hour">出生时辰（可留空）</label>
             <input id="hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
           <!-- R230f（R18-P1-1）：节气当小时内出生会被整点截到节前一侧——
                可选分钟字段只在需要时填（不填按 :00）。 -->
@@ -339,8 +339,8 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="rwork">书过滤</label>
             <input id="rwork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
         </div>
-        <button id="searchBtn" type="button">检 索</button>
-        <div id="searchResult" style="margin-top:16px;"></div>
+        <button id="searchBtn" type="button">搜一下</button>
+        <div id="searchResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个词，比如「无为」，搜全库古籍～</div></div>
       </section>
 
       <!-- 深度研究 -->
@@ -349,11 +349,11 @@ if ('serviceWorker' in navigator) {
         <div class="row">
           <div class="field" style="flex:3;"><label for="rq2">查询词</label>
             <input id="rq2" type="text" maxlength="200" placeholder="如：無為"></div>
-          <div class="field"><label for="rmax">最大地址数（1–6）</label>
+          <div class="field"><label for="rmax">最多深挖几处（1–6）</label>
             <input id="rmax" type="number" inputmode="numeric" min="1" max="6" value="2"></div>
         </div>
-        <button id="researchBtn" type="button">研 究</button>
-        <div id="researchResult" style="margin-top:16px;"></div>
+        <button id="researchBtn" type="button">帮我研究</button>
+        <div id="researchResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个想研究的问题，让小满翻书找证据～</div></div>
       </section>
 
       <!-- 定位 -->
@@ -380,8 +380,8 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="aaddr2">地址2</label>
             <input id="aaddr2" type="text" maxlength="16" placeholder="如：12"></div>
         </div>
-        <button id="addrBtn" type="button">定 位</button>
-        <div id="addrResult" style="margin-top:16px;"></div>
+        <button id="addrBtn" type="button">找这段</button>
+        <div id="addrResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个卦名或章节号，比如「乾卦」～</div></div>
       </section>
 
       <!-- 比对 -->
@@ -393,15 +393,15 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="cyao">爻位</label>
             <input id="cyao" type="text" maxlength="16" value="九二"></div>
         </div>
-        <button id="compareBtn" type="button">比 对</button>
-        <div id="compareResult" style="margin-top:16px;"></div>
+        <button id="compareBtn" type="button">比一比</button>
+        <div id="compareResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个词，看不同书里怎么讲它～</div></div>
       </section>
 
       <!-- 书目 -->
       <section class="rsec" id="rsec-works">
         <h3>书目</h3>
-        <button id="worksBtn" type="button">列 出</button>
-        <div id="worksResult" style="margin-top:16px;"></div>
+        <button id="worksBtn" type="button">列一下</button>
+        <div id="worksResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>点「列一下」，看看库里都有什么书～</div></div>
       </section>
 
       <!-- 研究线程 -->
@@ -411,8 +411,8 @@ if ('serviceWorker' in navigator) {
           <div class="field" style="flex:3;"><label for="tq">新建线程主题</label>
             <input id="tq" type="text" maxlength="64" placeholder="如：无为思想研究"></div>
         </div>
-        <button id="threadBtn" type="button">新 建</button>
-        <div id="threadResult" style="margin-top:16px;"></div>
+        <button id="threadBtn" type="button">开一条</button>
+        <div id="threadResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>还没有研究线程——写个主题开一条～</div></div>
       </section>
 
       <!-- 读书 -->
@@ -446,9 +446,9 @@ if ('serviceWorker' in navigator) {
         </div>
         <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
              且三个子标签完全没有事件绑定 —— R000a-03）。 -->
-        <div class="bssec active" id="bsStructure" style="margin-top:12px;"></div>
-        <div class="bssec" id="bsChapter" style="margin-top:12px;"></div>
-        <div class="bssec" id="bsSummary" style="margin-top:12px;"></div>
+        <div class="bssec active" id="bsStructure" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填个书号，看看这本书的目录～</div></div>
+        <div class="bssec" id="bsChapter" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填书号和章节号，读那一节原文～</div></div>
+        <div class="bssec" id="bsSummary" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填个书号，听小满讲讲这本书～</div></div>
       </section>
 
       <!-- 两书对照 -->
@@ -462,8 +462,8 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="cwq">查询词</label>
             <input id="cwq" type="text" maxlength="200" value="無爲" placeholder="如：無爲"></div>
         </div>
-        <button id="cwBtn" type="button">对 照</button>
-        <div id="cwResult" style="margin-top:16px;"></div>
+        <button id="cwBtn" type="button">对着看</button>
+        <div id="cwResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑两本书，对照同一处内容～</div></div>
       </section>
 
       <!-- 概念研究 -->
@@ -473,8 +473,8 @@ if ('serviceWorker' in navigator) {
           <div class="field" style="flex:3;"><label for="cq">概念</label>
             <input id="cq" type="text" maxlength="200" placeholder="如：無爲"></div>
         </div>
-        <button id="conceptBtn" type="button">研 究</button>
-        <div id="conceptResult" style="margin-top:16px;"></div>
+        <button id="conceptBtn" type="button">研究它</button>
+        <div id="conceptResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个概念，比如「道」「无为」～</div></div>
       </section>
     </div>
   </div>
@@ -505,11 +505,11 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的固定编号）</summary>
         <div class="row" style="margin-top:8px;">
           <div class="field"><label for="ly_seed">固定编号</label>
-            <input id="ly_seed" type="number" inputmode="numeric" placeholder="留空自动"></div>
+            <input id="ly_seed" type="number" inputmode="numeric" placeholder="不知道就留空，自动来"></div>
         </div>
       </details>
-      <button id="lySubmit" type="button">摇 卦</button>
-      <div id="lyResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「摇卦」～</div></div>
+      <button id="lySubmit" type="button">摇一卦</button>
+      <div id="lyResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「摇一卦」～</div></div>
     </div>
   </div>
 
@@ -536,7 +536,7 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="hl_day">日</label>
             <input id="hl_day" type="number" inputmode="numeric" min="1" max="31"></div>
         </div>
-        <button id="hlSubmit" type="button" style="margin-top:8px;">查这一天</button>
+        <button id="hlSubmit" type="button" style="margin-top:8px;">看这一天</button>
       </details>
       <div id="hlResult" style="margin-top:14px;"><div class="ph-empty" data-ph="1"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>选个日子看看宜忌吧</div></div>
       <!-- R231d：未来 7 天宜忌速览——一周计划型查看路径，点格直接翻日 -->
@@ -566,8 +566,8 @@ if ('serviceWorker' in navigator) {
       </div>
       <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
       <div id="qmFavRow" class="fav-row" hidden></div>
-      <button id="qmSubmit" type="button">起 名</button>
-      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好姓氏和生日，点「起名」～</div></div>
+      <button id="qmSubmit" type="button">起一个名</button>
+      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好姓氏和生日，点「起一个名」～</div></div>
     </div>
   </div>
 
@@ -587,8 +587,8 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="th_gender">性别</label>
             <select id="th_gender"><option>女</option><option>男</option></select></div>
       </div>
-      <button id="thSubmit" type="button">测桃花</button>
-      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「测桃花」～</div></div>
+      <button id="thSubmit" type="button">测测桃花</button>
+      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「测测桃花」～</div></div>
     </div>
   </div>
 
@@ -603,7 +603,7 @@ if ('serviceWorker' in navigator) {
         <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（复验用编号）</summary>
         <div class="row" style="margin-top:8px;">
           <div class="field"><label for="tr_seed">固定编号</label>
-            <input id="tr_seed" type="number" inputmode="numeric" placeholder="留空自动"></div>
+            <input id="tr_seed" type="number" inputmode="numeric" placeholder="不知道就留空，自动来"></div>
         </div>
       </details>
       <div class="row">
@@ -612,8 +612,8 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="tr_question">心中所想</label>
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
-      <button id="trSubmit" type="button">抽 牌</button>
-      <div id="trResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「抽牌」～</div></div>
+      <button id="trSubmit" type="button">抽一张</button>
+      <div id="trResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「抽一张」～</div></div>
     </div>
   </div>
 
@@ -622,40 +622,40 @@ if ('serviceWorker' in navigator) {
     <div class="card">
       <h2><span aria-hidden="true">💕</span> 八字合婚 <span class="card-sub">两人八字 · 缘分深浅</span></h2>
       <div class="row">
-        <div class="field"><label for="hh_a_year">甲年</label>
+        <div class="field"><label for="hh_a_year">我的出生年</label>
           <input id="hh_a_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
-        <div class="field"><label for="hh_a_month">甲月</label>
+        <div class="field"><label for="hh_a_month">我的出生月</label>
           <input id="hh_a_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
-        <div class="field"><label for="hh_a_day">甲日</label>
+        <div class="field"><label for="hh_a_day">我的出生日</label>
           <input id="hh_a_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
-        <div class="field"><label for="hh_a_hour">甲时</label>
+        <div class="field"><label for="hh_a_hour">我的时辰</label>
           <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
-        <div class="field"><label for="hh_a_gender">甲性别</label>
+        <div class="field"><label for="hh_a_gender">我的性别</label>
             <!-- R231d（R37-F12）：甲侧=我，默认女——与主受众一致 -->
             <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
         <!-- R230z（R36-P1-2）：昵称可空——填了结果/海报/存档都叫名字 -->
-        <div class="field"><label for="hh_a_name">甲昵称</label>
+        <div class="field"><label for="hh_a_name">我的昵称</label>
           <input id="hh_a_name" type="text" maxlength="16" placeholder="可空，如：小鱼"></div>
       </div>
       <div class="row">
-        <div class="field"><label for="hh_b_year">乙年</label>
+        <div class="field"><label for="hh_b_year">TA 的出生年</label>
           <input id="hh_b_year" type="number" inputmode="numeric" min="1900" max="2100" value="1992"></div>
-        <div class="field"><label for="hh_b_month">乙月</label>
+        <div class="field"><label for="hh_b_month">TA 的出生月</label>
           <input id="hh_b_month" type="number" inputmode="numeric" min="1" max="12" value="8"></div>
-        <div class="field"><label for="hh_b_day">乙日</label>
+        <div class="field"><label for="hh_b_day">TA 的出生日</label>
           <input id="hh_b_day" type="number" inputmode="numeric" min="1" max="31" value="20"></div>
-        <div class="field"><label for="hh_b_hour">乙时</label>
+        <div class="field"><label for="hh_b_hour">TA 的时辰</label>
           <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" value="14"></div>
-        <div class="field"><label for="hh_b_gender">乙性别</label>
+        <div class="field"><label for="hh_b_gender">TA 的性别</label>
           <!-- R231d（R37-F12）：乙侧=TA，默认男 -->
           <select id="hh_b_gender"><option>男</option><option>女</option></select></div>
-        <div class="field"><label for="hh_b_name">乙昵称</label>
+        <div class="field"><label for="hh_b_name">TA 的昵称</label>
           <input id="hh_b_name" type="text" maxlength="16" placeholder="可空，如：阿哲"></div>
       </div>
       <!-- R230z（R36-P1-2）：测过的 CP——存过的配对一键回填 -->
       <div id="hhFavRow" class="fav-row" hidden></div>
-      <button id="hhSubmit" type="button">合 婚</button>
-      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好两人生日，点「合婚」～</div></div>
+      <button id="hhSubmit" type="button">合一下</button>
+      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好你和 TA 的生日，点「合一下」～</div></div>
     </div>
   </div>
 
@@ -676,8 +676,8 @@ if ('serviceWorker' in navigator) {
             <input id="b_month" type="number" inputmode="numeric" min="1" max="12" value="6"></div>
           <div class="field"><label for="b_day">日</label>
             <input id="b_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
-          <div class="field"><label for="b_hour">时辰（不知道可留空）</label>
-            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="留空=中午12点"></div>
+          <div class="field"><label for="b_hour">时辰（可留空）</label>
+            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空（默认按中午算）"></div>
           <div class="field"><label for="b_gender">性别</label>
             <select id="b_gender"><option>女</option><option>男</option></select></div>
           <div class="field"><label for="b_nick">怎么称呼你（选填）</label>
@@ -699,8 +699,8 @@ if ('serviceWorker' in navigator) {
         <button id="xzToday" type="button" class="xz-chip">今天</button>
         <button id="xzTomorrow" type="button" class="xz-chip">明天</button>
       </div>
-      <button id="xzSubmit" type="button">查 询</button>
-      <div id="xzResult" style="margin-top:16px;"></div>
+      <button id="xzSubmit" type="button">查一查</button>
+      <div id="xzResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑个日子，看今天哪个星座当班～</div></div>
     </div>
   </div>
 
