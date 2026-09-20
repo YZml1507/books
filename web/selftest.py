@@ -1329,6 +1329,15 @@ def _run_inner() -> list[str]:
         _kbc.close()
     _expect_400("err.daily.date",
                 client.get("/api/daily", params={"date": "garbage"}))
+    # R230a-19（R13 钉扎）：xingzuo today_note 逐日 beat——14 天内须出现
+    # ≥3 种不同句（R13 之前恒为同一句；确定式 beat 池 12 条按干支+宫名
+    # 哈希取模，保守界 ≥3 不会 flake）。
+    _beats = {client.get("/api/xingzuo",
+                         params={"date": f"2026-09-{d:02d}"}).json()
+              .get("today_note") for d in range(1, 15)}
+    assert len(_beats - {None, ""}) >= 3, ("xingzuo.daily_beat.variety",
+                                           sorted(_beats))
+    ok.append("xingzuo.daily_beat.variety")
     # R229n（R6-#1/#5）：本套件在 BOOKS_PAIPAN_HISTORY_DISABLE=1 下跑——
     # 顺手钉死禁用语义：list→空表，get/export/delete→404（此前只查 list）。
     check("paipan.disabled.list", client.get("/api/paipan/history"),

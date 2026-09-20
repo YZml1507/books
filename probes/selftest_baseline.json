@@ -200,7 +200,8 @@
   "warm.one_liner.len",
   "warm.reply.answers_question",
   "widget",
-  "works"
+  "works",
+  "xingzuo.daily_beat.variety"
  ],
  "provenance": "R178b 重构前的断言名单，来源：审查轨 R118a 在 audit HEAD 6011cc5 实测 `web\\app.py --selftest` 的输出末行（130 checks），记录于 docs/TASK_LEDGER.md §109。不用正则解析旧源码——实测只能解析出 57 个，因为部分 check 名是动态拼的。",
  "purpose": "probe_selftest_regress.py 用它检测断言是否被悄悄删除（宪法第二条红线第 2 项）",
