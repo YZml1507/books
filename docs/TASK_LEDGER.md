@@ -11497,3 +11497,9 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - P1-6 错误裸路径泄露：`_humanizeErr` 先剥绝对路径再对基础设施类错误整条换「排盘服务还没睡醒」。
 - P1-7 海报：两处标题字体换 ZCOOL KuaiLe；hook/CTA pill 680→950px 宽、CTA 完全收进 pill。
 - P2：`.hit-cite` mono 栈尾补文楷；Smiley 子集补「小」（签级圆章双字体混排）；`.daily-meta` 横滚渐隐；`.ink-hero img` object-position:bottom；`.qm-style-chip` flex 0 0 auto；`.res-loading-tag` 加 spinner。
+
+## R2347 — R58/R60 尾批
+- R58-P1-1：`_humanizeErr` 补通用英文异常原文拦截（`\w+Error|Exception|Traceback|services.py:NNN` → 「服务打个盹了」）。
+- R60-#18：9 件未接线证伪探针全部验证通过并接进 selftest job（纳甲/神煞/见证隔离/泛化交叉/披露/希罗多德/BCV/章节/字符守恒）；probe_huangli_shensha 过期键集修复（+linri，R233w 有意新增）。
+- R58-P2-4：只读库恢复备忘进 rollback.md（-shm/-wal sidecar 要一起处理）。
+- R60 残余说明：P0 组（危机镜像/聊天链/打卡/chip 点击/星座导航/历史工具条/mock-LLM 轮询）在 R2342-2345 已陆续补闸，报告基于旧 HEAD e55ed17，按当前基线核对多为已覆盖；P1 组中收藏/分享/深链小项与既有 held 项重叠（view-read 入口、僵尸端点删留）等用户拍板。
