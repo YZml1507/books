@@ -10660,3 +10660,7 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 ### R230k — R23 闸门盲区+深链路批清零（3 P2 + 4 P3）
 
 审计：闸门盲区 meta-audit + 表单全组合（127 例真填）+ 数据生命周期 + 分享图全视图 + SW 实战 + 深链路竞态（附件 audit_r23_gaps）。**P2-1**：「聊聊这件事」三面缺失——星座结果（.xz-result 无 .card）、本命盘抽屉（.birth-card）、首页完整解读（直写 innerHTML 不走 paint）；attachChatEntry 选择器放宽 + 直写路径手动调用，八视图入口齐。**P2-2**：排盘历史启用态全生命周期零闸门——selftest 恒 DISABLE 只测 404，contract 注释还误称已覆盖；ui_smoke 新增 `btn:history.delete`（两段式真删走 API、断言被删行 data-id 消失；50 用例）+ 注释纠正。**P2-3**：CI↔蓝图依赖双漂移（本地 numpy 2.5.3 vs CI 2.2.6、playwright 未钉）→ 蓝图改 `-r requirements-ci.txt` 钉扎 + torch 2.14.0+cpu + playwright 1.63.0（用户已批）；rollback.md 失效 requirements.txt 引用修正。**P3-4**：`zwClean` 统一剥零宽格式符（纯 \u200B 串曾过非空检查发隐形气泡/写空白 question 行；前端 val() 全局生效 + schemas.strip_zw）。**P3-5**：ui_smoke 清理段改清 paipan_history.db（原来清的是 R219b 起无写路径的 history.db 死表）。**P3-6**：跨标签页陈旧历史行——复看撞 404 时顺手摘除该行。**P3-7**：cross_ref 删 zodiac_love/career/wealth/today_sign/today_note 五个零消费者字段（pengzu/shensha 有消费者保留）。闸门：selftest 215 / contract 415 / ui_smoke 50 / 其余全绿。真机 LLM 评测 28/28（本轮顺带复跑：日期锚定、过去日复盘口径、宜忌判定逐条照事实、零裸 *）。
+
+§R230l（R24 跨浏览器/LLM边界/时间敏感清零，commit dd36dfd）
+- 内容：client_date 黄历锚（chat+resolve_date）、_sanitize 8k 截断、phFetch AbortController 回退、llm_config 损坏告警+api_key 守卫、inset 冗余、quick_check 预检、删 92MB pickle 冗余、douay r"""。
+- 验证：selftest 215 / contract 415 / parity 65+35+88 / ui_smoke 50 / voice14字节冻 / plain_first / poster / dollar / llm_polish / xingzuo / warm / async_ai / ruff 全绿；client_date 跨年界实测（12/31→1/1 与 1/1→1/2 正确各差一天）。
