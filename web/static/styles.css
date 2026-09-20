@@ -1649,3 +1649,44 @@ button:active{transform:scale(.96);}
   cursor:pointer; font-family:var(--font-sans);
 }
 .checkin-share:hover{background:#FDE7DC; transform:translateY(-1px);}
+
+/* R231d：未来 7 天宜忌速览 */
+.hl-week{margin-top:14px;}
+.hl-week-title{font-size:13px;color:var(--secondary);margin-bottom:8px;display:flex;align-items:baseline;gap:8px;}
+.hl-week-sub{font-size:11px;color:var(--muted);}
+.hl-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.hl-week-cell{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:8px 2px;border-radius:12px;border:1px solid #F0E2CC;
+  background:#FFFBF4;cursor:pointer;font-family:var(--font-sans);
+  transition:transform .12s ease,border-color .12s ease;
+}
+.hl-week-cell:hover{transform:translateY(-2px);border-color:#E3C79A;}
+.hl-week-cell.active{border-color:var(--primary-bg);background:#F6F0FF;}
+.hl-week-wd{font-size:11px;color:var(--secondary);}
+.hl-week-date{font-size:12px;font-weight:700;color:var(--primary-ink);}
+.hl-week-yi{font-size:10px;color:#6B8E23;line-height:1.2;text-align:center;}
+.hl-week-ji{font-size:10px;color:#B5573F;line-height:1.2;text-align:center;}
+@media (max-width:400px){
+  .hl-week-yi,.hl-week-ji{font-size:9px;}
+  .hl-week-cell{padding:6px 1px;}
+}
+
+/* ── R231d（R39 批）：留存钩子 ── */
+/* daily 卡「明天预告」 */
+.daily-tomorrow{
+  font-size:12px; color:var(--secondary); margin-top:10px;
+  padding:6px 10px; border-radius:10px; background:rgba(122,95,184,.06);
+}
+/* 昨天问过的事接续条 */
+.daily-recall{margin-top:8px;}
+.daily-recall-btn{
+  width:100%; text-align:left; padding:8px 12px; font-size:13px;
+  border:1px dashed #E3C79A; border-radius:12px; background:#FFFBF2;
+  color:var(--primary-ink); cursor:pointer; font-family:var(--font-sans);
+}
+.daily-recall-btn:hover{border-style:solid; background:#FFF4E4;}
+/* 结果页「明天见」收口 */
+.tail-hook{
+  font-size:12px; color:var(--muted); margin-top:12px; text-align:center;
+}

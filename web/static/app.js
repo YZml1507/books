@@ -299,6 +299,7 @@ function buildHehunResult(j) {
     html += '<div class="cross-ref"><span class="cross-ref-icon">💕</span>' + esc(j.cross_ref.message) + '</div>';
   }
   html += renderAiPolish(j);
+  html += tailHook('hehun');
   html += '</div>';
   return html;
 }
@@ -392,6 +393,7 @@ function buildTaohuaResult(j) {
       esc(j.cross_ref.message) + '</div>';
   }
   html += renderAiPolish(j);
+  html += tailHook('taohua');
   html += '</div>';
   return html;
 }
@@ -529,6 +531,7 @@ function buildQimingResult(j) {
       esc(j.cross_ref.message) + '</div>';
   }
   html += renderAiPolish(j);
+  html += tailHook('qiming');
   /* R229z续23（R11-#4）：起名卡此前全程无免责徽标 */
   html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">名字综合古籍意象与五行给的参考，仅供娱乐——孩子的名字还是家里人说了算 ✨</div>';
   html += '</div></div>';
@@ -2873,7 +2876,8 @@ function showPosterModal(canvas, view) {
   /* 复制本视图深链——朋友打开直达同一页 */
   var _pcl = backdrop.querySelector('#posterCopyLink');
   if (_pcl) _pcl.addEventListener('click', function () {
-    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home');
+    /* R231d（R39-P2-1）：带 from=share 便于落地页换承接文案 */
+    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
     var ok = function () { showToast('链接已复制，发给 TA 吧', 'ok'); };
     var bad = function () { showToast('复制没成功，手动复制地址栏里的链接吧', 'warn'); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2891,7 +2895,7 @@ function showPosterModal(canvas, view) {
   /* 系统分享面板——优先分享图文件，不支持文件则退文本+链接 */
   var _pss = backdrop.querySelector('#posterSysShare');
   if (_pss) _pss.addEventListener('click', function () {
-    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home');
+    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
     canvas.toBlob(function (blob) {
       var f = blob && (function () {
         try { return new File([blob], '小满-' + viewTitle + '.png', { type: 'image/png' }); }
@@ -3196,11 +3200,16 @@ async function loadDaily() {
   try {
     /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
      * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
-    const [j, x] = await Promise.all([
+    const _today = todayIso();
+    const [j, x, tm] = await Promise.all([
       /* R230h（R20-F6）：显式带浏览器日——跨零点时服务器「今天」
        * 与用户本地「今天」可能差一天。 */
-      api('/api/daily?date=' + todayIso()),
-      api('/api/xingzuo?date=' + todayIso(), { silent: true }).catch(function () { return null; })
+      api('/api/daily?date=' + _today),
+      api('/api/xingzuo?date=' + _today, { silent: true }).catch(function () { return null; }),
+      /* R39-P0-1：明天预告——每日回访的最短钩子，走 daily_cache 幂等
+       * 成本≈0。 */
+      api('/api/daily?date=' + _isoShift(_today, 1), { silent: true })
+        .catch(function () { return null; })
     ]);
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     const dateEl = el('dailyDate');
@@ -3256,6 +3265,54 @@ async function loadDaily() {
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
     renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
+    /* R39-P0-1：卡尾「明天预告」一行。 */
+    var _tmrEl = el('dailyTomorrow');
+    if (!_tmrEl) {
+      _tmrEl = document.createElement('div');
+      _tmrEl.id = 'dailyTomorrow';
+      _tmrEl.className = 'daily-tomorrow';
+      var _metaBox = document.querySelector('#dailyCard .daily-meta');
+      if (_metaBox && _metaBox.parentNode) {
+        _metaBox.parentNode.insertBefore(_tmrEl, _metaBox.nextSibling);
+      }
+    }
+    if (_tmrEl) {
+      if (tm && (tm.level || tm.do)) {
+        _tmrEl.textContent = '🌙 明天「' +
+          (tm.level === '凶' ? '缓' : (tm.level || '平')) + '」· 宜 ' +
+          (tm.do || '平常心') + '——记得来拆明天的礼物';
+        _tmrEl.hidden = false;
+      } else { _tmrEl.hidden = true; }
+    }
+    /* R39-P1-1：昨天问过的事接续条——hlask 足迹出黄历页，上首页。 */
+    var _recEl = el('dailyRecall');
+    if (!_recEl) {
+      _recEl = document.createElement('div');
+      _recEl.id = 'dailyRecall';
+      _recEl.className = 'daily-recall';
+      /* 点了先跳黄历页，再由全局 data-hlask-q 委托代填+真问 */
+      _recEl.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('[data-hlask-q]')) {
+          showView('huangli');
+        }
+      });
+      if (_tmrEl && _tmrEl.parentNode) _tmrEl.parentNode.insertBefore(_recEl, _tmrEl);
+      else {
+        var _metaBox2 = document.querySelector('#dailyCard .daily-meta');
+        if (_metaBox2 && _metaBox2.parentNode) _metaBox2.parentNode.appendChild(_recEl);
+      }
+    }
+    if (_recEl) {
+      var _hl0 = null;
+      try { _hl0 = (JSON.parse(localStorage.getItem('hlask') || '[]') || [])[0]; }
+      catch (e0) {}
+      if (_hl0 && _hl0.q && _hl0.d && _hl0.d < _today) {
+        _recEl.innerHTML = '<button type="button" class="daily-recall-btn" ' +
+          'data-hlask-q="' + esc(_hl0.q) + '">💬 昨天你问了「' +
+          esc(_gSlice(_hl0.q, 14)) + '」——今天再看看？</button>';
+        _recEl.hidden = false;
+      } else { _recEl.hidden = true; }
+    }
     // 004 M2 T2.4：今日值宫（十二宫日运）。失败静默——入口卡保持 hidden。
     try {
       const box = el('dailyXingzuo');
@@ -3560,6 +3617,7 @@ function buildBaziResult(j) {
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
   html += renderVoice(j, '📖 解读（确定性规则）', ['evidence']);
+  html += tailHook('bazi');
   html += '</div>';
   return html;
 }
@@ -4223,6 +4281,7 @@ function buildLiuyaoResult(j) {
     html += '<div class="cross-ref"><span class="cross-ref-icon">☯️</span>' +
       esc(j.cross_ref.message) + '</div>';
   }
+  html += tailHook('liuyao');
   html += '</div>';
   return html;
 }
@@ -4258,6 +4317,58 @@ function hlInitToday() {
   if (_res && (!_res.firstElementChild || _res.querySelector('[data-ph]'))) {
     doHuangli(0, true);
   }
+  hlLoadWeek();   /* R231d：未来 7 天速览条随进页加载（每会话一次） */
+}
+
+/* R231d：未来 7 天宜忌速览——今天起一排 7 格（星期+日期+首个宜/忌项
+ * 白话映射），点格走既有 doHuangli(offset) 翻页路径，API 零新增。 */
+var _hlWeekDone = false;
+async function hlLoadWeek() {
+  if (_hlWeekDone) return;
+  _hlWeekDone = true;
+  var box = el('hlWeek');
+  if (!box) return;
+  var today = new Date();
+  var days = [];
+  for (var i = 0; i < 7; i++) {
+    var dt = new Date(today); dt.setDate(today.getDate() + i);
+    days.push(dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') +
+      '-' + String(dt.getDate()).padStart(2, '0'));
+  }
+  try {
+    var js = await Promise.all(days.map(function (ds) {
+      return api('/api/huangli?date=' + ds, { silent: true })
+        .catch(function () { return null; });
+    }));
+    var WD = ['日', '一', '二', '三', '四', '五', '六'];
+    var html = '<div class="hl-week-title">📅 未来 7 天宜忌速览' +
+      '<span class="hl-week-sub">点一天直接翻过去</span></div>' +
+      '<div class="hl-week-row">';
+    js.forEach(function (j, i) {
+      var dt = new Date(days[i] + 'T00:00:00');
+      var wd = i === 0 ? '今天' : ('周' + WD[dt.getDay()]);
+      var yi = (j && j.yi && j.yi.length) ? (_HL_YI_MAP[j.yi[0]] || j.yi[0]) : '—';
+      var ji = (j && j.ji && j.ji.length) ? (_HL_JI_MAP[j.ji[0]] || j.ji[0]) : '';
+      html += '<button type="button" class="hl-week-cell" data-hlwk="' + i + '">' +
+        '<span class="hl-week-wd">' + esc(wd) + '</span>' +
+        '<span class="hl-week-date">' + esc((dt.getMonth() + 1) + '/' + dt.getDate()) + '</span>' +
+        '<span class="hl-week-yi">宜 ' + esc(_gSlice(yi, 6)) + '</span>' +
+        (ji ? '<span class="hl-week-ji">忌 ' + esc(_gSlice(ji, 6)) + '</span>' : '') +
+        '</button>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+    box.hidden = false;
+    box.addEventListener('click', function (e) {
+      var c = e.target.closest('.hl-week-cell');
+      if (!c) return;
+      box.querySelectorAll('.hl-week-cell').forEach(function (x) {
+        x.classList.remove('active');
+      });
+      c.classList.add('active');
+      doHuangli(Number(c.dataset.hlwk));
+    });
+  } catch (e) { box.hidden = true; }
 }
 
 async function doLiuyao() {
@@ -4522,6 +4633,22 @@ var _POSTER_TITLES = {
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
+/* R39-P2-2：结果页统一「明天」收口——最后一屏指向明天而不是看完即走。 */
+var _TAIL_HOOK = {
+  bazi: '🌙 明天的盘面会换，记得再来看看',
+  taohua: '🌙 桃花每天都在动，明天再来看看',
+  hehun: '🌙 日子还长，明天再来看看别的日子',
+  qiming: '🌙 想要新的灵感，明天再来翻一翻',
+  liuyao: '🌙 事情在变，明天可以再摇一卦',
+  tarot: '🌙 明天牌面会换，记得再来看看',
+  huangli: '🌙 日子不合适？明天再翻翻',
+  xingzuo: '🌙 明天运势会换，记得来拆明天的礼物'
+};
+function tailHook(view) {
+  return _TAIL_HOOK[view] ?
+    '<div class="tail-hook">' + esc(_TAIL_HOOK[view]) + '</div>' : '';
+}
+
 var _HL_YI_MAP = {
   '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
   '祭祀': '整理心情', '祈福': '许愿', '求嗣': '备孕', '上任': '入职接项目',
@@ -4638,6 +4765,7 @@ function buildTarotResult(j) {
       esc(j.cross_ref.message) + '</div>';
   }
   html += renderVoice(j, '📖 牌面转述（确定性规则）');
+  html += tailHook('tarot');
   html += '</div>';
   return html;
 }
@@ -5069,6 +5197,7 @@ async function doXingzuo(force) {
     /* R229z续23（R11-#5）：星座结果卡补免责 */
     html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">星座日运看个开心，不构成任何建议 ✨</div>';
     html += '</div>';
+    html += tailHook('xingzuo');
     paint('xzResult', html);
     _xzLastDate = dateStr;   /* R228f */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
@@ -5649,6 +5778,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
       html += '<div class="cross-ref"><span class="cross-ref-icon">⭐</span>' +
         esc(j.cross_ref.message) + '</div>';
     }
+    html += tailHook('huangli');
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     /* R230d（R16-P2-6）：黄历卡没有 .card 容器，paint 的自动挂钮
      * 找不到宿主——手动挂「聊聊这件事」（其他五个视图都有）。 */
@@ -6458,14 +6588,33 @@ function init() {
    * 新消息悄悄接进看不见的上一轮上下文。 */
   _chatTsRestore();
   /* R231c（R36-P3-4）：每日卡拆礼物封面——同一天已拆过就直接不盖；
-   * 点/回车拆开，记到 localStorage 按天复位。 */
-  (function () {
-    var _cov = el('dailyCover');
-    if (!_cov) return;
-    var _dk = 'dailyRevealed:' + todayIso();
+   * 点/回车拆开，记到 localStorage 按天复位。
+   * R231d（R39-P0-4）：封面抽成可复挂载——跨零点换日时第二天的
+   * 拆礼物仪式不缺席（原先 cover remove 后隔夜 tab 永久失去封面）。 */
+  var _dailyCoverHtml = null;
+  /* R39-P1-3：第 N 次开铺——来访日集合存 localStorage（cap 400），
+   * 回访者封面文案区别于首访。 */
+  function _visitCount() {
     try {
-      if (localStorage.getItem(_dk)) { _cov.remove(); return; }
-    } catch (e) {}
+      var v = String(localStorage.getItem('visits') || '').split(',')
+        .filter(Boolean);
+      var t = todayIso();
+      if (v.indexOf(t) < 0) {
+        v.push(t);
+        if (v.length > 400) v = v.slice(-400);
+        localStorage.setItem('visits', v.join(','));
+      }
+      return v.length;
+    } catch (e) { return 0; }
+  }
+  function _bindDailyCover(_cov) {
+    if (!_cov) return;
+    var _n = _visitCount();
+    if (_n > 1) {
+      var _ct = _cov.querySelector('.daily-cover-txt');
+      if (_ct) _ct.textContent = '🎀 小满第 ' + _n + ' 次为你开铺，拆开看看今天的运';
+    }
+    var _dk = 'dailyRevealed:' + todayIso();
     var _reveal = function () {
       _cov.classList.add('open');
       try { localStorage.setItem(_dk, '1'); } catch (e) {}
@@ -6475,7 +6624,30 @@ function init() {
     _cov.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _reveal(); }
     });
+  }
+  function _mountDailyCover() {
+    var _card = el('dailyCard');
+    if (!_card) return;
+    var _dk = 'dailyRevealed:' + todayIso();
+    var _revealed = false;
+    try { _revealed = !!localStorage.getItem(_dk); } catch (e) {}
+    var _cov = el('dailyCover');
+    if (_revealed) { if (_cov) _cov.remove(); return; }
+    if (_cov || !_dailyCoverHtml) return;   /* 还盖着或没有模板 */
+    _card.insertAdjacentHTML('beforeend', _dailyCoverHtml);
+    _bindDailyCover(el('dailyCover'));
+  }
+  (function () {
+    var _cov = el('dailyCover');
+    if (!_cov) return;
+    _dailyCoverHtml = _cov.outerHTML;
+    var _dk = 'dailyRevealed:' + todayIso();
+    try {
+      if (localStorage.getItem(_dk)) { _cov.remove(); return; }
+    } catch (e) {}
+    _bindDailyCover(_cov);
   })();
+  window.__mountDailyCover = _mountDailyCover;
   loadDaily();
   /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
@@ -6493,6 +6665,10 @@ function init() {
     if (!t || t === _lastDay) return;
     var prev = _lastDay;
     _lastDay = t;
+    /* R39-P0-4：零点翻面要说出来——此前全程静默换数；且把第二天的
+     * 拆礼物封面重新挂回（隔夜 tab 也能拆今天的礼物）。 */
+    try { showToast('新的一天到啦，运势给你换好了 ✨', 'info'); } catch (e) {}
+    try { _mountDailyCover(); } catch (e) {}
     try { loadDaily(); } catch (e) {}
     var dd = el('dailyDetail');
     if (dd) dd.dataset.loaded = '';   /* 展开缓存按新天失效 */
@@ -6538,11 +6714,31 @@ function init() {
       if (_seg && _seg.indexOf('/') < 0) _vp = _seg;
     }
     if (_vp) {
-      if (document.getElementById('view-' + _vp) &&
-          document.querySelector('.func-card[data-view="' + _vp + '"]')) {
+      /* R231d（R39-P0-2）：海报分享链会带 daily/checkin/birth 三个
+       * 无独立视图的别名——受邀者落地吃「入口不存在」toast 是负承接。
+       * 别名映射 + 落地后滚动/展开承接：daily/checkin→首页 daily 卡、
+       * birth→星座页的本命盘抽屉。 */
+      var _vpRaw = _vp;
+      var _alias = { daily: 'home', checkin: 'home', birth: 'xingzuo' };
+      if (_alias[_vp]) _vp = _alias[_vp];
+      var _vpOk = (_vp === 'home') ||
+        (document.getElementById('view-' + _vp) &&
+         document.querySelector('.func-card[data-view="' + _vp + '"]'));
+      if (_vpOk) {
         var _hold = window.__suppressPush;
         window.__suppressPush = true;
         try { showView(_vp); } finally { window.__suppressPush = _hold; }
+        if (_vpRaw !== _vp) {
+          setTimeout(function () {
+            if (_vpRaw === 'daily' || _vpRaw === 'checkin') {
+              var _dc = document.getElementById('dailyCard');
+              if (_dc) _dc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (_vpRaw === 'birth') {
+              var _bd = document.getElementById('birthDrawer');
+              if (_bd) _bd.open = true;
+            }
+          }, 300);
+        }
       } else if (_vp !== 'home') {
         showToast('这个入口不存在，先带你回首页', 'info');
       }
@@ -6567,8 +6763,16 @@ if (document.readyState === 'loading') {
     bar.id = 'welcomeBar';
     bar.className = 'welcome-bar';
     bar.setAttribute('role', 'note');
-    bar.innerHTML = '<span class="welcome-txt">第一次来？点一张卡就能测——' +
-      '塔罗 · 桃花 · 合婚 · 黄历都有 ✨</span>' +
+    /* R39-P2-1：受邀回流（?from=share）换一句承接——「朋友在晒她的运势」 */
+    var _fromShare = false;
+    try {
+      _fromShare = new URLSearchParams(location.search).get('from') === 'share';
+    } catch (e) {}
+    bar.innerHTML = '<span class="welcome-txt">' +
+      (_fromShare
+        ? '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨'
+        : '第一次来？点一张卡就能测——塔罗 · 桃花 · 合婚 · 黄历都有 ✨') +
+      '</span>' +
       '<button type="button" class="welcome-close" aria-label="知道了">×</button>';
     /* 内嵌到页面顶部而不是 fixed——不遮内容不抢焦点 */
     document.body.insertBefore(bar, document.body.firstChild);
@@ -6723,8 +6927,21 @@ function renderCheckin(dateKey) {
     else if (_streak === 7) _meta += ' · 整一周，仪式感拿捏';
     else if (_streak >= 30) _meta += ' · 满月级选手';
     else if (_streak >= 14) _meta += ' · 半月不断';
+    /* R39-P2-4：里程碑之间补倒计时——4→7、8→14 的空白带不再无目标 */
+    if (!/小满贯|整一周|半月不断|满月级/.test(_meta)) {
+      var _mile = [[3, '小满贯'], [7, '整一周'], [14, '半月不断'], [30, '满月级选手']];
+      for (var _mi = 0; _mi < _mile.length; _mi++) {
+        if (_streak < _mile[_mi][0]) {
+          _meta += ' · 距「' + _mile[_mi][1] + '」还差 ' + (_mile[_mi][0] - _streak) + ' 天';
+          break;
+        }
+      }
+    }
   } else if (!saved && _yPick) {
     _meta += '昨天你选了「' + esc(_yPick) + '」，今天换换？';
+  } else if (!saved && Object.keys(_ckAll).length) {
+    /* R39-P0-3：断签温柔召回——历史打过卡但昨天空 → 接住而不是沉默。 */
+    _meta += '歇了几天也没关系，今天重新开张就算数 🌱';
   }
   box.innerHTML = '<div class="checkin-q" id="checkinQ">挑一个今天的好运搭子：' +
     '<span class="checkin-dots" aria-hidden="true">' + _dots + '</span>' +
@@ -6764,10 +6981,13 @@ function renderCheckin(dateKey) {
          * R230y（R36-P1-3）：连签是留客钩子——不再写今日删昨日，
          * 改为保留最近 90 天，超过才清。 */
         var _cutoff = 'checkin:' + _isoShift(dateKey, -90);
+        var _cutoff2 = 'dailyRevealed:' + _isoShift(dateKey, -90);
         for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
           var _ck = window.localStorage.key(_ci);
-          if (_ck && _ck.indexOf('checkin:') === 0 &&
-              _ck < _cutoff) {
+          /* R39-P3-1：dailyRevealed:* 此前无 GC，每年 365 个废键——
+           * 与 checkin:* 同一 90 天收口。 */
+          if (_ck && ((_ck.indexOf('checkin:') === 0 && _ck < _cutoff) ||
+              (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2))) {
             window.localStorage.removeItem(_ck);
           }
         }
@@ -6831,7 +7051,11 @@ function pickCheckinFeedback(opt, dateKey) {
   const pool = CHECKIN_FEEDBACK[opt] || [];
   let h = 0; const s = String(dateKey) + opt;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return pool[h % Math.max(1, pool.length)] || '';
+  /* R39-P0-5：打卡完成的瞬间是植「明天再来」的黄金位——句尾按日轮换
+   * 一句收口。 */
+  var closers = ['明天再来挑一个～', '连签路上，明天见 🌱', '明天也给自己挑个好运搭子吧'];
+  return (pool[h % Math.max(1, pool.length)] || '') +
+    '　' + closers[h % closers.length];
 }
 
 /** R215b：温柔模式首屏的生日人话线（年支→生肖）。 */
@@ -7090,7 +7314,9 @@ function baziPersonaCard(j) {
       try {
         const j = await phFetch('/api/paipan/history/export_json');
         var local = {};
-        ['checkin:', 'me', 'me:partner', 'hlask'].forEach(function (pref) {
+        /* R39-P3-1：dailyRevealed/visits 收进备份白名单——换机不丢
+         * 连拆记录与「第 N 次开铺」计数。 */
+        ['checkin:', 'dailyRevealed:', 'me', 'me:partner', 'hlask', 'visits'].forEach(function (pref) {
           try {
             for (var i = 0; i < window.localStorage.length; i++) {
               var k = window.localStorage.key(i);
@@ -7138,7 +7364,7 @@ function baziPersonaCard(j) {
           var local = bundle.browser || {};
           Object.keys(local).forEach(function (k) {
             /* 只收认识的键——备份文件是用户可控输入，不写任意键 */
-            if (/^(checkin:|me$|me:partner$|hlask$|voiceMode$|uiTheme$)/
+            if (/^(checkin:|dailyRevealed:|me$|me:partner$|hlask$|visits$|voiceMode$|uiTheme$)/
                 .test(k) && typeof local[k] === 'string' &&
                 local[k].length < 8192) {
               try { window.localStorage.setItem(k, local[k]); } catch (e) {}

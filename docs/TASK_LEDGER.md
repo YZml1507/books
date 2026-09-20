@@ -11008,3 +11008,15 @@ scripts_importable / llm_polish / ruff 全绿。
   首行大字感数字，瞄准 CP 晒图量化晒点。
 - 闸门加强：ui_smoke 56（新增 `ui:welcome_bar` 首访条断言 + replay 用例
   延伸至「phShareBtn→海报浮层+复制链接」全链验证）。
+
+### R231e（R39 留存钩子批 + R38 前置）
+- **P2-2 明天收口**：八个结果卡尾部统一 `tailHook(view)`（🌙 明天…）——看完即走的最后一屏指向明天
+- **R37-F12 明天预告**：daily 卡新增 `#dailyTomorrow`——进页静默预取明天宜忌，「明天『X』·宜Y，记得来拆明天的礼物」
+- **R39-P1-3 昨天接续**：`hlask` 有昨日提问时 daily 卡显示「昨天你问了「X」——今天再看看？」，点击跳黄历自动填+提交
+- **R39-P0-2 回流断链修复**：分享链接 `?view=daily/checkin/birth` 别名承接（daily/checkin→home+滚到 daily 卡；birth→星座+开出生抽屉）；`from=share` 触发「朋友在晒她的运势」welcome 变体
+- **R39-P1-2 打卡钩子**：连签里程碑倒计时（3/7/14/30）、断签召回「歇了几天也没关系」、盖章语尾轮换收口
+- **cover 重挂载**：封面拆封后 DOM 移除——`_onDayFlip` 跨零点重挂封面；`_visitCount` 第 N 次开铺文案（visits key，cap400，进备份白名单）
+- **dailyRevealed 治理**：90 天 GC + 备份白名单（原来跨设备/重装后礼物卡亮着却打不开）
+- **黄历本周条**：`#hlWeek` 7 天一览格（宜/忌/wd/date，并行拉取），点击翻对应日——「翻后面几天」从话术变功能
+- **index.html**：#hlWeek 容器；hehun 性别默认序修正（甲女/男，乙男/女——主流场景异性合婚）；「老玩家入口」→「进阶玩法」、「复验编号」→「固定编号」（用户向措辞）
+- **闸**：selftest 237 / contract 445 / ui_smoke 56 全绿
