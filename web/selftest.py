@@ -2067,17 +2067,32 @@ def _run_inner() -> list[str]:
         "index.html 未见 SW 注册"
     ok.append("sw.chain")
 
-    # R229z续14++：SW CACHE 名必须绑 app.js 当前哈希——改了 app.js
-    # 忘跑 scripts/bump_sw.py 时老客会粘旧壳，此闸直接红。
+    # R229z续14++ / R230t（R31-P2-11）：SW CACHE 名必须绑 SHELL 清单内
+    # 所有壳文件的内容哈希——改 app.js/styles.css/index.html/图标中任何
+    # 一个忘跑 scripts/bump_sw.py 都会让老客粘旧壳，此闸直接红。
     import hashlib as _hl5, re as _re5
-    _appjs = open(_os.path.join(_os.path.dirname(__file__), "static",
-                              "app.js"), "rb").read()
-    _want = _hl5.sha256(_appjs).hexdigest()[:12]
     _swsrc = open(_os.path.join(_os.path.dirname(__file__), "static",
                               "sw.js"), encoding="utf-8").read()
+    _h = _hl5.sha256()
+    _sm = _re5.search(r"var SHELL = \[([^\]]*)\]", _swsrc)
+    assert _sm, "sw.js 里找不到 SHELL 预缓存清单"
+    for _u in _re5.findall(r"'([^']+)'", _sm.group(1)):
+        if _u == "/":
+            _u = "/static/index.html"
+        if not _u.startswith("/static/"):
+            continue
+        _h.update(_os.path.basename(_u).encode())
+        _h.update(b"\0")
+        try:
+            _h.update(open(_os.path.join(_os.path.dirname(__file__),
+                           "static", _u[len("/static/"):]), "rb").read())
+        except OSError:
+            _h.update(b"MISSING")
+        _h.update(b"\0")
+    _want = _h.hexdigest()[:12]
     _m = _re5.search(r"shell-hash: (\w+)", _swsrc)
     assert _m and _m.group(1) == _want, \
-        ("sw.shell_hash", "app.js 已变——跑 scripts/bump_sw.py",
+        ("sw.shell_hash", "壳文件已变——跑 scripts/bump_sw.py",
          (_m.group(1) if _m else None), _want)
     assert f"books-shell-{_want}" in _swsrc, "CACHE 名未绑哈希"
     ok.append("sw.shell_hash")

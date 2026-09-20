@@ -647,6 +647,31 @@ def works() -> dict:
     return {"works": rows, "total": len(rows)}
 
 
+def _corpus_index_stale() -> bool | None:
+    """R230t（R31-P1-1）：corpus.db 比 data/raw 旧 = 索引过期。
+
+    build_meta 记的是构建时刻；raw 文本之后被改动（修订/增量入库）不会
+    回写 meta，唯一能信的对比是文件 mtime。raw 目录缺失/读取失败时
+    返回 None（「不知道」，不谎报）。
+    """
+    try:
+        db_mtime = os.path.getmtime(deps.CORPUS_DB)
+        newest = 0.0
+        for base in (deps.RAW_DIR, deps.RAW_DIR + "_ext"):
+            if not os.path.isdir(base):
+                continue
+            for dirpath, _dirs, files in os.walk(base):
+                for fn in files:
+                    if fn.endswith(".txt"):
+                        newest = max(newest, os.path.getmtime(
+                            os.path.join(dirpath, fn)))
+        if not newest:
+            return None
+        return newest > db_mtime
+    except OSError:
+        return None
+
+
 def stats() -> dict:
     with deps.corpus() as c:
         return {
@@ -657,6 +682,7 @@ def stats() -> dict:
             "meta": [dict(r) for r in c.db.execute(
                 "SELECT key, value FROM build_meta")],
             "schemes": deps.SCHEME_LABELS,
+            "index_stale": _corpus_index_stale(),
         }
 
 
@@ -1595,6 +1621,11 @@ def _hl_next_yi_days(dt: datetime, terms: list[str],
     return out[:limit]
 
 
+# R230t（R32-P1-9）：每条聊天消息都过事项词表+忌/中性时扫 45 天吉日——
+# 结果只随（归一化消息, 当日）变。同日重复问法直接命中缓存。
+_CHAT_FACTS_CACHE: dict = {}
+
+
 def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     """小满聊天的黄历事实供给：先把「适不适合」算成判定再交给 LLM。
 
@@ -1602,6 +1633,19 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     只泛问黄历（「今天宜做什么」「看看黄历」）→ 当日宜忌 + 中性口径说明；
     都不沾 → []（调用方原样透传，零扰动）。
     """
+    now = now or datetime.now()
+    _ck = (_t2s((message or "").strip())[:200], now.date().isoformat())
+    if _ck in _CHAT_FACTS_CACHE:
+        return list(_CHAT_FACTS_CACHE[_ck])
+    facts = _chat_facts_inner(message, now)
+    if len(_CHAT_FACTS_CACHE) >= 512:
+        _CHAT_FACTS_CACHE.clear()   # 键带日期，粗清即够
+    _CHAT_FACTS_CACHE[_ck] = facts
+    return list(facts)
+
+
+def _chat_facts_inner(message: str, now: datetime) -> list[str]:
+    """chat_huangli_facts 的计算主体（缓存键之外的一切都不变）。"""
     msg = (message or "").strip()
     if not msg:
         return []

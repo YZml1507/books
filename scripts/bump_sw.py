@@ -1,22 +1,50 @@
 #!/usr/bin/env python3
-"""把 sw.js 的 CACHE 名与 shell-hash 标记同步到 app.js 当前内容哈希。
+"""把 sw.js 的 CACHE 名与 shell-hash 标记同步到 shell 文件集的当前内容哈希。
 
-用法：改了 web/static/app.js 后跑 `python scripts/bump_sw.py`。
+用法：改了 web/static/ 下任何壳文件后跑 `python scripts/bump_sw.py`。
 selftest 的 sw.shell_hash 闸会强制这一步——不改就直接红。
+
+R230t（R31-P2-11）：此前只哈希 app.js——改 styles.css/index.html/
+图标不 bump，老客仍粘旧壳（缓存名没变，SW 不重装）。现在哈希 SHELL
+预缓存清单里所有文件的拼接内容；清单本身变了也计入。
 """
 import hashlib
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_JS = ROOT / "web" / "static" / "app.js"
-SW = ROOT / "web" / "static" / "sw.js"
+STATIC = ROOT / "web" / "static"
+SW = STATIC / "sw.js"
 
 LINE = re.compile(r"var CACHE = '[^']*';\s*// shell-hash: \S+")
+SHELL_LIST = re.compile(r"var SHELL = \[([^\]]*)\]")
+
+
+def _shell_paths(src: str) -> list[Path]:
+    m = SHELL_LIST.search(src)
+    if not m:
+        raise SystemExit("sw.js 里找不到 SHELL 预缓存清单")
+    out = []
+    for url in re.findall(r"'([^']+)'", m.group(1)):
+        if url == "/":
+            url = "/static/index.html"
+        if url.startswith("/static/"):
+            out.append(STATIC / url[len("/static/"):])
+    return out
 
 
 def shell_hash() -> str:
-    return hashlib.sha256(APP_JS.read_bytes()).hexdigest()[:12]
+    src = SW.read_text(encoding="utf-8")
+    h = hashlib.sha256()
+    for p in _shell_paths(src):
+        h.update(p.name.encode())
+        h.update(b"\0")
+        try:
+            h.update(p.read_bytes())
+        except OSError:
+            h.update(b"MISSING")
+        h.update(b"\0")
+    return h.hexdigest()[:12]
 
 
 def main() -> int:

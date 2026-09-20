@@ -324,6 +324,9 @@ class ChatRequest(BaseModel):
         _check_client_date(self.client_date)
         if len(msg) > 500:
             raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
+        # R230t（R32-P2-12）：校验算出的干净串回写——此前零宽字符原文
+        # 进 prompt 并进会话历史。
+        self.message = msg
         # R228r：facts 无界可塞爆 LLM system prompt——限条数+单条长度。
         for f in (self.facts or []):
             if not isinstance(f, str) or len(f) > 500:

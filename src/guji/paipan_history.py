@@ -93,7 +93,12 @@ def _quarantine() -> None:
         return
     qua = (DB_PATH + ".corrupt-" +
            datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:21])
-    os.replace(DB_PATH, qua)
+    # R230t（R31-P2-8）：exists 之后 replace 之前文件被别处挪走是真实
+    # 竞态——FileNotFoundError 不该冒成 500，直接让第二轮开新库。
+    try:
+        os.replace(DB_PATH, qua)
+    except FileNotFoundError:
+        return
     _log("WARN paipan_history db 损坏，已挪至 %s" % qua)
     try:
         olds = sorted(glob.glob(DB_PATH + ".corrupt-*"))
@@ -110,6 +115,12 @@ def _conn() -> sqlite3.Connection:
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
             conn.execute("PRAGMA busy_timeout=5000")  # R228b：写锁等待而非秒抛
+            # R230t（R31-P2-7）：WAL——排盘页与历史页并发读写不再互斥；
+            # 与 knowledge.db 同纪律。只读文件上写 PRAGMA 会抛——降级继续。
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.DatabaseError:
+                pass
             # 轻量完整性探针：connect 成功不代表页可解析，真读一行才暴露损坏
             conn.execute("SELECT name FROM sqlite_master LIMIT 1").fetchall()
             # R230i（R21-P1-5）：运行中被换成「合法但无 records 的库」

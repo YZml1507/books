@@ -18,9 +18,11 @@ otherwise depend on a caller remembering it:
 """
 from __future__ import annotations
 
+import glob
 import os
 import sqlite3
 import time
+from datetime import datetime
 from dataclasses import dataclass, field
 
 from .evalset import body_in, in_space
@@ -105,12 +107,22 @@ class KnowledgeBase:
             raise   # OperationalError（锁/忙）不是损坏——透传不隔离
         except sqlite3.DatabaseError:
             self.db.close()
+            # R230t（R31-P3-16）：与 paipan_history._quarantine 对齐——
+            # 毫秒戳防同秒覆盖；留档只留最新 5 份。
             qua = (path + ".corrupt-" +
-                   time.strftime("%Y%m%d-%H%M%S"))
+                   datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:21])
             try:
                 os.replace(path, qua)
+            except FileNotFoundError:
+                pass   # 竞态：文件已被别处挪走——直接开新库
             except OSError:
                 raise   # 挪不走就维持报错，别强装自愈
+            else:
+                try:
+                    for _f in sorted(glob.glob(path + ".corrupt-*"))[:-5]:
+                        os.remove(_f)
+                except OSError:
+                    pass
             self.db = sqlite3.connect(path)
             self.db.row_factory = sqlite3.Row
             self.db.execute("PRAGMA busy_timeout=8000")
@@ -129,9 +141,11 @@ class KnowledgeBase:
         try:
             self.db.executescript(schema)
         except sqlite3.Error:
-            # R230i（R21-P1-3）：executescript 原子——老库上一处 schema
-            # 漂移（如索引撞缺列）会让所有语句一起失败、全端点 503。
-            # 降级逐条执行，单条失败不连坐（注释行先剥掉再分号切）。
+            # R230i（R21-P1-3，R230t 订正注释）：executescript 会先隐式
+            # COMMIT 再逐条执行——整体并非事务性原子，中途失败时前面语句
+            # 已落库。老库上 schema 漂移（如索引撞缺列）一处失败仍会让
+            # 全端点 503，所以降级逐条执行，单条失败不连坐（注释行剥掉
+            # 再分号切）。
             for stmt in schema.split(";"):
                 stmt = "\n".join(l for l in stmt.splitlines()
                                  if not l.strip().startswith("--")).strip()
@@ -177,6 +191,13 @@ class KnowledgeBase:
         self.db.commit()
 
     def close(self):
+        # R230t（R31-P2-3）：WAL 侧车文件（-wal）里的已提交页在 close 前
+        # 先 checkpoint 回主库——否则进程中断/冷拷贝目录时，单拿 .db 不含
+        # wal 内容会丢最近的写入。
+        try:
+            self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except sqlite3.DatabaseError:
+            pass
         self.db.close()
 
     # -- Derived ---------------------------------------------------------------------

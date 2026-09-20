@@ -8,7 +8,7 @@
 
 纪律（D-242a/D-243a/D-244a）：
   * httpx 直连 OpenAI 兼容 chat/completions，零新增 pip 依赖
-  * 超时默认 8s；LLM 永远不是承重墙
+  * 超时默认 30s（R230t 校订：docstring 此前写 8s 与 _DEFAULTS 不符）；LLM 永远不是承重墙
   * 提示词禁止模型生成书名/页码/引文（判据：响应内零 citation 结构）
 
 复验命令（PowerShell，项目根）：
@@ -171,7 +171,6 @@ def polish(facts: list[str], question: str | None = None,
         _to = min(timeout, max(0.5, _deadline - time.monotonic()))
         if _to <= 0.5 and time.monotonic() >= _deadline:
             break
-        _nonretry = False
         try:
             if _transport is not None:                # 测试注入
                 data = _transport(payload, headers, url, _to)
@@ -190,24 +189,31 @@ def polish(facts: list[str], question: str | None = None,
                     resp = httpx.post(url, json=payload, headers=headers,
                                       timeout=_to)
                 if resp.status_code != 200:
-                    # R230a-6（R12-P3-10）：鉴权/参数类错误重试无意义，白烧往返
-                    if resp.status_code in (401, 403, 422):
-                        _nonretry = True
-                        continue
-                    if resp.status_code == 429:
-                        # R230a-9：配额耗尽型 429——立刻重试只会再扣配额，
-                        # 退到下一次调度而不是原地打满 3 次。
+                    # R230t（R32-P0-1）：401/403/422 的「免重试」此前是死代码——
+                    # continue 跳过标志位检查点，鉴权错照样打满 3 次。
+                    # 4xx 全是确定性失败（鉴权/参数/找不到/实体过大），连同
+                    # 429 配额耗尽一律一次即停，不再白烧往返。
+                    if resp.status_code == 429 or 400 <= resp.status_code < 500:
                         break
                     continue                          # 可重试：网关类错误
                 data = resp.json()
             text = (data["choices"][0]["message"]["content"] or "").strip()
+            # R230t（R32-P0-2）：finish_reason=length = 推理模型把 max_tokens
+            # 烧在思考里——空 content 或半截正文。同参重试只会再烧一遍预算：
+            # 空判当次即弃，半截按失败降级（此前半截原文直接上屏）。
+            if (data["choices"][0].get("finish_reason") or "") == "length":
+                break
         except Exception:
             continue                                  # D-244a 静默降级 + 重试
-        if _nonretry:
-            break
         out = _sanitize(text)
         if out:
             return out
+        # R230t（R32-P1-6）：输出被拦（禁语/引文/过短）时给重试一句改正线索，
+        # 同参盲烧三轮是三倍 quota。
+        payload["messages"] = payload["messages"] + [{
+            "role": "system",
+            "content": "上一次回复因措辞不合规被拦（禁语/引文/过短），"
+                       "请换一种说法重答，保持纯文本口语。"}]
     return None
 
 
@@ -264,8 +270,21 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 截到 8000 字（正常解读 200-800 字，10× 余量），截断标记进尾部。
     if len(text) > 8000:
         text = text[:8000].rstrip() + "……（内容太长，后面的截掉了）"
+    # R230t（R32-P2-18）：模型漂移成英文/拼音原文此前直通上屏——CJK
+    # 占比过低（<1/3 且超 12 字）按失败降级。短答（「挺好的。」）不受影响。
+    if len(text) >= 12:
+        _cjk = sum(1 for ch in text if "一" <= ch <= "鿿")
+        if _cjk * 3 < len(text):
+            return None
     if _BANNED_OUT_PAT.search(text):
-        return None
+        # R230t（R32-P2-13）：keep_citations 路径引文内的古词（《》/「」里
+        # 的「克明俊德」类）不该撞禁语闸——剥掉引号段再扫。
+        if keep_citations:
+            _unquoted = re.sub(r"《[^》]*》|「[^」]*」|『[^』]*』", "", text)
+            if _BANNED_OUT_PAT.search(_unquoted):
+                return None
+        else:
+            return None
     return text
 
 
@@ -290,8 +309,38 @@ _MAX_TASK_ROWS = 256         # R229t：任务行总数帽——_MAX_PENDING 只�
                              # 超帽拒 spawn（功能降级但服务不死）。
 _POLL_CAP_S = 40.0           # 前端轮询上限（秒）；到点未完成按失败处理（不渲染）
 
+# R230t（R32-P0-4）：未鉴权 LLM 端点滑动窗口限速——_MAX_PENDING 只限
+# 同时在途，串行重发不限速：每条 chat 最坏 6 次外呼，换 sid 即绕轮数帽。
+_RATE: dict[str, list[float]] = {}
+_RATE_WIN_S = 60.0
+_RATE_CHAT_PER_SID = 8      # 每会话每分钟最多 8 个聊天任务
+_RATE_GLOBAL = 120          # 全局任务帽/分钟（跨 sid 洪泛兜底）
+_RATE_MAX_KEYS = 4096       # 键表洪泛帽
+
+# R230t（R31-P2-6）：进程启动记号——前端对照此值能在「服务重启/会话失忆」
+# 时给用户一个提示，而不是让小满对着还在屏上的旧气泡装记得。
+_BOOT_ID = f"{int(time.time())}-{secrets.token_hex(3)}"
+
 _tasks: dict[str, dict] = {}
 _tasks_lock = threading.Lock()
+
+
+def _rate_ok(key: str, limit: int) -> bool:
+    """滑动窗口限速：key 维度 + 全局维度同时查。False = 拒（上层按降级）。"""
+    now = time.monotonic()
+    kl = [t for t in _RATE.get(key, ()) if now - t < _RATE_WIN_S]
+    gl = [t for t in _RATE.get("", ()) if now - t < _RATE_WIN_S]
+    _RATE[key] = kl
+    _RATE[""] = gl
+    if len(_RATE) > _RATE_MAX_KEYS:        # 键表洪泛：清一半旧键
+        for k in list(_RATE)[_RATE_MAX_KEYS // 2:]:
+            if k:
+                _RATE.pop(k, None)
+    if len(kl) >= limit or len(gl) >= _RATE_GLOBAL:
+        return False
+    kl.append(now)
+    gl.append(now)
+    return True
 
 
 def _gc_tasks() -> None:
@@ -320,6 +369,10 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
         return None
     facts = [f for f in (facts or []) if f]
     if not facts:
+        return None
+    # R230t（R32-P0-4）：AI 解读限速——同一盘重进页面重调的场景常见，
+    # 每键一分钟 60 次足够正常使用，洪泛按降级处理。
+    if not _rate_ok("ai", 60):
         return None
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
@@ -360,7 +413,10 @@ def ai_task_status(tid: str) -> dict | None:
         if rec is None:
             return None
         return {"status": rec["status"], "text": rec["text"],
-                "closed": bool(rec.get("closed"))}
+                "closed": bool(rec.get("closed")),
+                # R230t（R31-P2-6）：进程启动记号透传——前端据此识别
+                # 「重启失忆」并在气泡间插分隔提示。
+                "boot": _BOOT_ID}
 
 
 # ---------------------------------------------------------------------------
@@ -478,13 +534,16 @@ def _gc_chat_sessions() -> None:
 def chat(session_id: str, user_msg: str,
          facts: list[str] | None = None,
          verdict_facts: list[str] | None = None,
-         config: dict | None = None, _transport=None) -> str | None:
+         config: dict | None = None, _transport=None,
+         verdict_day: str | None = None) -> str | None:
     """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
 
     facts：前端透传的坐标事实，只作「话题参考」。
     verdict_facts：后端算好的权威判定（黄历判定等）——独立信道，
         客户端永远摸不到（R12-P2-2：此前按「含『黄历判定』子串」升格，
         任客户端可伪造权威事实）。
+    verdict_day：判定所锚定的日子（YYYY-MM-DD，浏览器本地日）——跨日后
+        存檔判定自动作废，昨天算的「明天」不会今天继续注入。
     危机关键词命中 → 不调 LLM 直接返回固定转介文案（判据 b 硬兜底）。
     会话超轮数上限 → 返回温和收尾文案（不再消耗 LLM）。任何失败 None。
     """
@@ -519,16 +578,44 @@ def chat(session_id: str, user_msg: str,
                 sess["closed"] = True
                 return _CHAT_CLOSERS[_over % len(_CHAT_CLOSERS)]
 
+            # R230t（R32-P1-5）：历史总长截断——assistant 单条可到 8K，
+            # 6 轮全量重发最坏 ~51K ≈ 5 万 token/轮。只带最近 ~4K 字符的
+            # 轮次（约 2–3 轮），更远的细节模型记不住也不该烧。
             history = list(sess["messages"])
+            _hb, _hkeep = 0, []
+            for _m in reversed(history):
+                _hb += len(_m.get("content") or "")
+                if _hb > 4000:
+                    break
+                _hkeep.append(_m)
+            history = _hkeep[::-1]
             # R230a-6（R12-P2-7）：判定事实落会话档——第 1 轮的判定在第 2
             # 轮 prompt 会消失（回复还在历史里、依据没了），模型只能自由
-            # 发挥。新一轮判定覆盖旧的；无新判定时重发仍在效期的旧判定。
-            if verdict_facts:
-                sess["verdicts"] = [f for f in verdict_facts if f]
+            # 发挥。新一轮判定覆盖旧的。
+            # R230t（R32-P1-7）：本轮判定为空（没问到黄历事）→ 清档——
+            # 此前话题漂移后旧「后天判定」还挂在 system 里继续注入；
+            # 跨日档也作废（昨天算的「明天」今天已错位）。
+            if verdict_facts is not None:
+                if verdict_facts:
+                    sess["verdicts"] = [f for f in verdict_facts if f]
+                    sess["verdict_day"] = verdict_day
+                else:
+                    sess.pop("verdicts", None)
+                    sess.pop("verdict_day", None)
             _verdicts = list(sess.get("verdicts") or [])
+            if _verdicts and verdict_day and sess.get("verdict_day") \
+                    and sess["verdict_day"] != verdict_day:
+                _verdicts = []
+            # R230t（R32-P1-8）：客户端每条消息都重发坐标 facts——存档为
+            # 会话快照：相同则是重发（省一层抖动），不同（换了新盘）才更新。
+            # 注入用的是快照，整个会话期内坐标都是话题锚。
+            _coords_new = [f for f in (facts or []) if f]
+            if _coords_new and _coords_new != sess.get("coords"):
+                sess["coords"] = _coords_new
+            _coords_snap = list(sess.get("coords") or [])
 
         payload_msgs = [{"role": "system", "content": _CHAT_SYSTEM}]
-        _coords = [f for f in (facts or []) if f]
+        _coords = _coords_snap
         if _coords or _verdicts:
             # R228w：坐标事实与「黄历判定」分量不同——前者是话题参考
             # 「不要逐条念」，后者是已算好的权威结论必须照说。实测模型
@@ -542,6 +629,9 @@ def chat(session_id: str, user_msg: str,
                 _safe = [f for f in _coords
                          if "黄历判定" not in f
                          and "忽略" not in f
+                         and "忘记" not in f
+                         and "指令" not in f
+                         and "instruction" not in f.lower()
                          and not f.lstrip().lower().startswith("system")]
                 if _safe:
                     payload_msgs.append({
@@ -592,7 +682,10 @@ def chat(session_id: str, user_msg: str,
             sess = _chat_sessions.get(session_id)
             if sess is not None:
                 sess["messages"].append({"role": "user", "content": msg})
-                sess["messages"].append({"role": "assistant", "content": text})
+                # R230t（R32-P1-5）：存入历史的副本裁到 800 字——历史只供
+                # 模型参考，超长原文前端已展示，整段回喂纯烧 token。
+                sess["messages"].append({"role": "assistant",
+                                         "content": text[:800]})
                 sess["updated"] = time.monotonic()
         return text
 
@@ -606,23 +699,26 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
     keep_citations=True 时输出保留《书名》引文（起名点评/小红书文案专用）。
     deadline：调用方传入的总预算终点（monotonic），单次尝试按剩余窗口递减
     （R12-P2-4：主模型+dots 链共享同一预算，合计不超过前端轮询上限）。"""
-    payload = {
-        "model": cfg.get("model") or _DEFAULTS["model"],
-        "messages": payload_msgs,
-        "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
-        "temperature": 0.8,
-    }
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": "Bearer " + cfg["api_key"],
                "Content-Type": "application/json"}
     timeout = float(cfg.get("timeout_s") or _DEFAULTS["timeout_s"])
     if deadline is None:
         deadline = time.monotonic() + _POLL_BUDGET_S
+    # R230t（R32-P1-6）：msgs 是可变副本——被拦后追加改正提示不影响调用方
+    # 的原列表（主/dots 共享调用方 payload_msgs，不能把提示注进下一轮）。
+    msgs = list(payload_msgs)
 
     for _ in range(3):
         _to = min(timeout, max(0.5, deadline - time.monotonic()))
         if _to <= 0.5 and time.monotonic() >= deadline:
             break
+        payload = {
+            "model": cfg.get("model") or _DEFAULTS["model"],
+            "messages": msgs,
+            "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
+            "temperature": 0.8,
+        }
         try:
             if _transport is not None:
                 data = _transport(payload, headers, url, _to)
@@ -635,18 +731,29 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                     resp = httpx.post(url, json=payload, headers=headers,
                                       timeout=_to)
                 if resp.status_code != 200:
-                    if resp.status_code in (401, 403, 422):
-                        break                          # R230a-6：不可重试错误
-                    if resp.status_code == 429:
-                        break                          # R230a-9：配额耗尽别原地重试
+                    # R230t（R32-P0-1）：4xx 全是确定性失败——鉴权/参数类重试
+                    # 纯白烧；429 同理立刻停。
+                    if resp.status_code == 429 or 400 <= resp.status_code < 500:
+                        break
                     continue
                 data = resp.json()
             raw = (data["choices"][0]["message"]["content"] or "").strip()
+            # R230t（R32-P0-2）：finish_reason=length = 思考烧光预算——
+            # 空 content 或半截正文一律按失败处理，不重试不同参。
+            if (data["choices"][0].get("finish_reason") or "") == "length":
+                break
         except Exception:
             continue
         # R230a-7：记录「回了但被禁语拦」与「没回/挂了」的区别。
-        if banned_seen is not None and _BANNED_OUT_PAT.search(raw):
-            banned_seen.append(True)
+        if _BANNED_OUT_PAT.search(raw):
+            if banned_seen is not None:
+                banned_seen.append(True)
+            # R230t（R32-P1-6）：共情复读用户原话里的禁词会连环撞闸——
+            # 给下一次重试一句改正线索，不再同参盲烧（banned_seen=None 的
+            # review 路径同样撞闸烧钱，提示也跟上）。
+            msgs = msgs + [{"role": "system", "content":
+                            "上一条回复因措辞过于直白被拦，请换一种更柔和、"
+                            "不下判断的说法重答，保持纯文本口语。"}]
         out = _sanitize(raw, keep_citations=keep_citations)
         if out:
             return out
@@ -719,7 +826,8 @@ def xhs_copy(topic: str, kind: str = "poster_title",
     msgs = [{"role": "system", "content": _XHS_COPY_SYSTEM},
             {"role": "user", "content": ask}]
     # R230a-6（R12-P1-3）：文案可能引经典名句，书名号段放行。
-    return _chat_call(msgs, cfg, _transport, keep_citations=True)
+    _dl = time.monotonic() + _POLL_BUDGET_S
+    return _chat_call(msgs, cfg, _transport, keep_citations=True, deadline=_dl)
 
 _NAME_REVIEW_SYSTEM = (
     "你是一位精通古典文学的起名顾问。用户会给你几个候选名字和五行背景。"
@@ -748,12 +856,16 @@ def review_names(names: list[str], facts: list[str] | None = None,
     msgs.append({"role": "user", "content": user})
     # R230a-6（R12-P1-3）：点评 prompt 明令引《诗经》篇名——净化需放行
     # 书名号段，否则输出被自家 _LEAK_PAT 剥成断头句。
-    text = _chat_call(msgs, cfg, _transport, keep_citations=True)
+    # R230t（R32-P0-3）：主/dots 共享同一轮询预算——此前各自新开 34s
+    # （最坏 ~68s），超过前端 40s 帽的「慢成功」无人读，纯烧 quota。
+    _dl = time.monotonic() + _POLL_BUDGET_S
+    text = _chat_call(msgs, cfg, _transport, keep_citations=True, deadline=_dl)
     if not text:
         # R217a：主 LLM 失败时 dots 作备选大脑（同 chat 兜底模式）
         dcfg = load_dots_config()
         if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
-            text = _chat_call(msgs, dcfg, _transport, keep_citations=True)
+            text = _chat_call(msgs, dcfg, _transport, keep_citations=True,
+                              deadline=_dl)
         if not text:
             return None
     return text
@@ -765,6 +877,8 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
     """后台起一个起名点评任务，复用 _tasks/GC/轮询端点。关闭时返回 None。"""
     cfg = config or load_config()
     if cfg is None:
+        return None
+    if not _rate_ok("review", 20):          # R230t（R32-P0-4）：点评限速
         return None
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
@@ -808,10 +922,17 @@ def spawn_chat_task(session_id: str, user_msg: str,
                     facts: list[str] | None = None,
                     verdict_facts: list[str] | None = None,
                     config: dict | None = None,
-                    _transport=None) -> str | None:
-    """后台起一个 chat 任务，复用 _tasks/GC/轮询端点。关闭时返回 None。"""
+                    _transport=None,
+                    verdict_day: str | None = None) -> str | None:
+    """后台起一个 chat 任务，复用 _tasks/GC/轮询端点。关闭时返回 None。
+
+    verdict_day：判定所锚定的日子（透传 chat() 的跨日作废判断）。"""
     cfg = config or load_config()
     if cfg is None:
+        return None
+    # R230t（R32-P0-4）：每 sid 每分钟 8 任务——正常连聊远低于此；
+    # 换 sid 重试撞全局帽。超限静默降级（与 DISABLE 同路径）。
+    if not _rate_ok("chat:" + (session_id or "anon"), _RATE_CHAT_PER_SID):
         return None
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
@@ -831,7 +952,7 @@ def spawn_chat_task(session_id: str, user_msg: str,
         try:
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,
-                        _transport=_transport)
+                        _transport=_transport, verdict_day=verdict_day)
             status = "done" if text else "failed"
         except Exception:
             status, text = "failed", None

@@ -85,7 +85,9 @@ def chat(req: ChatRequest) -> dict:
             pass   # validate_ranges 已挡；此处再兜底不炸
     tid = llm_polish.spawn_chat_task(
         req.session_id, req.message, facts=facts,
-        verdict_facts=services.chat_huangli_facts(req.message, now=_now))
+        verdict_facts=services.chat_huangli_facts(req.message, now=_now),
+        # R230t（R32-P1-7）：判定锚定日透传——跨日存档判定作废。
+        verdict_day=(_now or datetime.now()).date().isoformat())
     if tid:
         out["chat_task_id"] = tid
     return out

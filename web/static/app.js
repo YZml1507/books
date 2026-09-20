@@ -360,6 +360,29 @@ function _aiPollGate() {
  * 回来后那段「小满想了想」永远不来。pending 登记在案，进视图时恢复。 */
 var AI_PENDING = {};   /* containerId → taskId */
 
+/* R230t（R32-P2-20）：轮询退避——500ms 起逐次 ×1.6 至 2.5s 封顶。
+ * 此前恒 500ms：单任务 40s 最多 80 次 GET，移动端的电量/流量开销可观。 */
+function _aiBackoff(w) { return Math.min(Math.round(w * 1.6), 2500); }
+
+/* R230t（R31-P2-6）：服务端重启/会话 TTL 断档后小满失忆但气泡还在——
+ * boot 记号变了就在新回复前插一条轻分隔（不落 transcript）。 */
+function _chatBootNote(st, ty) {
+  if (!st || !st.boot || !ty) return;
+  try {
+    var s = _chatStore() || _MEM_STORE;
+    var prev = s.getItem('chatBootId');
+    if (prev && prev !== st.boot && ty.parentNode) {
+      var d = document.createElement('div');
+      d.className = 'chat-bubble chat-ai';
+      d.style.opacity = '.72';
+      d.style.fontSize = '.9em';
+      d.textContent = '（小满刚换了新脑子，前面聊的细节可能记不全啦）';
+      ty.parentNode.insertBefore(d, ty);
+    }
+    s.setItem('chatBootId', st.boot);
+  } catch (e) {}
+}
+
 /** 把 AI 块插进已渲染的结果区末尾；容器不存在/已插过返回 false。 */
 function insertAiPolish(containerId, text) {
   var node = el(containerId);
@@ -379,13 +402,14 @@ function pollAiPolish(containerId, taskId) {
   AI_PENDING[containerId] = taskId;   /* R230q：切走再回来可恢复 */
   RESULT_GEN[containerId] = (RESULT_GEN[containerId] || 0) + 1;
   var gen = RESULT_GEN[containerId];
-  var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+  var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var _done = function () { delete AI_PENDING[containerId]; };
   var tick = function () {
     if (RESULT_GEN[containerId] !== gen) return;   // 已被新一轮结果覆盖
     /* R230q（R28-P3-8）：后台/断网暂停取数 */
     if (_aiPollGate()) {
-      if (Date.now() < deadline) setTimeout(tick, 2000);
+      if (performance.now() < deadline) setTimeout(tick, 2000);
       else _done();
       return;
     }
@@ -400,7 +424,7 @@ function pollAiPolish(containerId, taskId) {
         return;                                      // 终态：停止轮询
       }
       if (st && st.status === 'failed') { _done(); return; }  // 拿不到 → 整块不渲染
-      if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
       else _done();
     }).catch(function () { /* 404/过期/网络抖动：静默放弃 */ _done(); });
   };
@@ -415,12 +439,21 @@ function pollAiPolish(containerId, taskId) {
  * 浏览器回到全新会话（原来也是一次性语义，无回归）。
  * DISABLE=1 时 /api/chat 返回无 chat_task_id 键 → 入口隐藏（D-244a）。 */
 var CHAT_SID_KEY = 'chatSessionId';
+/* R230t（R31-P2-15）：sessionStorage 被禁的窗口此前回落 localStorage——
+ * 共享介质会让 B 重置会话污染 A。回落改为页内存 Map（丢跨刷新存活，
+ * 但不串 tab）。 */
+var _MEM_STORE = {
+  _m: {},
+  getItem: function (k) { return Object.prototype.hasOwnProperty.call(this._m, k) ? this._m[k] : null; },
+  setItem: function (k, v) { this._m[k] = String(v); },
+  removeItem: function (k) { delete this._m[k]; }
+};
 function _chatStore() {
   try { return window.sessionStorage; } catch (e) { return null; }
 }
 function chatSid() {
   try {
-    var _st = _chatStore() || localStorage;
+    var _st = _chatStore() || _MEM_STORE;
     var sid = _st.getItem(CHAT_SID_KEY);
     if (!sid) {
       /* R230a-44（R15-P3）：Math.random sid ~31 位熵可猜——猜到即可往别人
@@ -446,7 +479,7 @@ var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自�
 var CHAT_TS_KEY = 'chatTranscript';
 function _chatTsRead() {
   try {
-    var s = (_chatStore() || localStorage).getItem(CHAT_TS_KEY);
+    var s = (_chatStore() || _MEM_STORE).getItem(CHAT_TS_KEY);
     var arr = s ? JSON.parse(s) : [];
     return Array.isArray(arr) ? arr : [];
   } catch (e) { return []; }
@@ -456,11 +489,11 @@ function _chatTsSave(role, text) {
     var arr = _chatTsRead();
     arr.push({ r: role === 'me' ? 'me' : 'ai', t: String(text || '').slice(0, 2000) });
     if (arr.length > 50) arr = arr.slice(-50);
-    (_chatStore() || localStorage).setItem(CHAT_TS_KEY, JSON.stringify(arr));
+    (_chatStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(arr));
   } catch (e) {}
 }
 function _chatTsClear() {
-  try { (_chatStore() || localStorage).removeItem(CHAT_TS_KEY); } catch (e) {}
+  try { (_chatStore() || _MEM_STORE).removeItem(CHAT_TS_KEY); } catch (e) {}
 }
 function _chatTsRestore() {
   /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。 */
@@ -617,7 +650,7 @@ function _chatClosedHint(bubble) {
   b.setAttribute('aria-label', '清空本轮聊天，开个新话题');
   b.textContent = '🌱 聊够啦？开个新话题';
   b.addEventListener('click', function () {
-    try { (_chatStore() || localStorage).removeItem(CHAT_SID_KEY); } catch (e) {}
+    try { (_chatStore() || _MEM_STORE).removeItem(CHAT_SID_KEY); } catch (e) {}
     chatSid();   /* 重新生成 sid */
     _chatTsClear();   /* R230q：新话题起新 transcript——旧气泡重渲会污染新会话 */
     var _flow = el('chatFlow');
@@ -649,6 +682,9 @@ function autoSendChatContext() {
   /* facts 优先用本视图的结构化坐标；为空时回落到排盘时存的 CHAT_LAST_FACTS */
   var facts = (ctx.facts && ctx.facts.length) ? ctx.facts : CHAT_LAST_FACTS;
   chatBubble('me', msg);
+  /* R230t（R32-P2-16）：自动发与手发同口径计数——此前自动发不计数，
+   * 同一会话两套禁用行为并存（「允许追问 1 次」的语义本就该含自动条）。 */
+  _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
@@ -658,26 +694,38 @@ function autoSendChatContext() {
     if (!j.chat_task_id) {
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
        * 4-6 句确定性轮换，并按上下文（自动发送：必属「看盘」类）做轻回应。 */
-      chatBubble('ai', _chatFallbackLine('看盘'));
+      chatBubble('ai', _chatFallbackLine('看盘'), { nosave: true });
+      /* R230t（R32-P2-16）：与 chatSend 同一禁用规则。 */
+      var _inA = el('chatInput'), _sbA = document.getElementById('chatSendBtn');
+      if (_CHAT_SEND_COUNT >= 2) {
+        if (_inA) { _inA.disabled = true; _inA.placeholder = '小满休息中，回头再来聊吧'; }
+        if (_sbA) _sbA.disabled = true;
+      }
       return;
     }
+    /* R230t（R32-P2-16）：拿到任务即解锁——DISABLE 恢复后不再被锁在
+     * 「休息中」直到换 sid。 */
+    var _inU = el('chatInput'), _sbU = document.getElementById('chatSendBtn');
+    if (_inU && _inU.disabled) { _inU.disabled = false; _inU.placeholder = '说说你的心情…'; }
+    if (_sbU && _sbU.disabled) _sbU.disabled = false;
     /* R228c：raw 仅内部动效用；保存气泡节点引用——轮询写回不再赌
      * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。 */
     var _ty = chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+    var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
     var tick = function () {
       /* R230q（R28-P3-8）：后台标签页/断网时轮询空转烧预算——暂停取数，
        * 恢复后再探；预算照样走，到点降级行为不变。 */
       if (_aiPollGate()) {
-        if (Date.now() < deadline) setTimeout(tick, 2000);
-        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) setTimeout(tick, 2000);
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）'; }
         return;
       }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
+          _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
           _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
@@ -685,29 +733,27 @@ function autoSendChatContext() {
           return;
         }
         if (st && st.status === 'failed') {
+          /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
+           * 冒充小满历史挤占真对话。 */
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
-          _chatTsSave('ai', '（小满这次没接住，再说一遍试试？）');
           return;
         }
-        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+        else { _ty.textContent = '（网络不太好，再发一次试试？）'; }
       }).catch(function (e) {
         /* R228c：瞬时抖动原来直接杀死轮询（catch 空转，typing 永转圈）。
          * 截止前继续排，超时才降级文案。R8 P2-9：404 任务不存在早退。 */
         if (e && e.status === 404) {
-          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）';
-            _chatTsSave('ai', '（这次没接住，再发一次试试？）'); }
+          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）'; }
           return;
         }
-        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）'; }
       });
     };
     setTimeout(tick, AI_POLL_INTERVAL_MS);
   }).catch(function () {
-    chatBubble('ai', '（网络不太好，再发一次试试？）');
+    chatBubble('ai', '（网络不太好，再发一次试试？）', { nosave: true });
   });
 }
 
@@ -806,10 +852,11 @@ function _nameReviewDone() {
   if (b) b.disabled = false;
 }
 function pollNameReview(taskId) {
-  var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+  var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var tick = function () {
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
-      if (Date.now() < deadline) setTimeout(tick, 2000);
+      if (performance.now() < deadline) setTimeout(tick, 2000);
       else { var o0 = el('nameReviewOut'); if (o0) o0.innerHTML =
         '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
       return;
@@ -828,7 +875,7 @@ function pollNameReview(taskId) {
         _nameReviewDone();
         return;
       }
-      if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
       else { out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
     }).catch(function (e) {
       /* R228c：同上——瞬时抖动不该杀死轮询。R8 P2-9：404 早退。 */
@@ -838,7 +885,7 @@ function pollNameReview(taskId) {
         _nameReviewDone();
         return;
       }
-      if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
       else { if (out2) out2.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
     });
   };
@@ -964,7 +1011,7 @@ function chatSend() {
        * 替代引导；DISABLE 态输入框置灰防连发连拒。
        * R218a-02：扩为 4-6 句确定性轮换 + 关键词到 openeer 的最轻分支
        * （累/事业/感情/学业/钱/看盘 6 套）。 */
-      chatBubble('ai', _chatFallbackLine(msg));
+      chatBubble('ai', _chatFallbackLine(msg), { nosave: true });
       var sendBtn2 = document.getElementById('chatSendBtn');
       /* D-006：第一条自动发后允许追问 1 次，累计发送 ≥2 次后才锁 */
       if (_CHAT_SEND_COUNT >= 2) {
@@ -973,20 +1020,25 @@ function chatSend() {
       }
       return;
     }
+    /* R230t（R32-P2-16）：拿到任务即解锁——LLM 恢复后不再被锁在
+     * 「休息中」直到换 sid。 */
+    if (input && input.disabled) { input.disabled = false; input.placeholder = '说说你的心情…'; }
+    if (sendBtn2 && sendBtn2.disabled) sendBtn2.disabled = false;
     /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。 */
     var _ty = chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    var deadline = Date.now() + AI_POLL_CAP_S * 1000;
+    var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+  var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
     var tick = function () {
       if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
-        if (Date.now() < deadline) setTimeout(tick, 2000);
-        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) setTimeout(tick, 2000);
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）'; }
         return;
       }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
         if (!_ty) return;
         if (st && st.status === 'done' && st.text) {
+          _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
           _chatTsSave('ai', st.text);            /* R230q：transcript 留档 */
@@ -994,27 +1046,32 @@ function chatSend() {
           return;
         }
         if (st && st.status === 'failed') {
+          /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
+           * 冒充小满历史挤占真对话。 */
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
-          _chatTsSave('ai', '（小满这次没接住，再说一遍试试？）');
           return;
         }
-        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+        else { _ty.textContent = '（网络不太好，再发一次试试？）'; }
       }).catch(function (e) {
         /* R8 P2-9：404 = 任务已不在（重启/过期）——别再轮满 40s，直接降级。 */
         if (e && e.status === 404) {
-          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）';
-            _chatTsSave('ai', '（这次没接住，再发一次试试？）'); }
+          if (_ty) { _ty.textContent = '（这次没接住，再发一次试试？）'; }
           return;
         }
-        if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）';
-          _chatTsSave('ai', '（网络不太好，再发一次试试？）'); }
+        if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+        else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）'; }
       });
     };
     setTimeout(tick, AI_POLL_INTERVAL_MS);
-  }).catch(function () {
+  }).catch(function (e) {
+    /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），
+     * 不是网络问题——保留已发气泡、如实报服务端文案，别回收成「被吞了」。 */
+    if (e && e.status >= 400 && e.status < 500) {
+      chatBubble('ai', '（' + (e.message || '这条没发出去') + '）',
+                 { nosave: true });
+      return;
+    }
     /* R230q（R28-P3-11）：发送失败把已打文案放回输入框，离线不丢稿 */
     if (input && !input.disabled) input.value = msg;
     /* 已贴出的 me 气泡同时从 transcript 与 DOM 回收——重试不再双发同句 */
@@ -1023,14 +1080,14 @@ function chatSend() {
       if (_arr.length && _arr[_arr.length - 1].r === 'me' &&
           _arr[_arr.length - 1].t === msg) {
         _arr.pop();
-        (_chatStore() || localStorage).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
+        (_chatStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
         var _bbs = document.querySelectorAll('#chatFlow .chat-me');
         if (_bbs.length && _bbs[_bbs.length - 1].textContent === msg) {
           _bbs[_bbs.length - 1].remove();
         }
       }
     } catch (e2) {}
-    chatBubble('ai', '（网络不太好，再发一次试试？）');
+    chatBubble('ai', '（网络不太好，再发一次试试？）', { nosave: true });
   });
 }
 
@@ -2186,7 +2243,7 @@ async function downloadPoster(j, view) {
   /* R230q（R28-P3-13）：连点分享每次都真下载——下载目录堆 N 张同名图
    * 还触发浏览器「多次下载」权限弹窗。4s 内同视图只给预览浮层。 */
   var _vkey = view || 'default';
-  var _dup = (Date.now() - (_POSTER_LAST[_vkey] || 0)) < 4000;
+  var _dup = (performance.now() - (_POSTER_LAST[_vkey] || 0)) < 4000;
   /* R193b：外壳返回 {canvas,w,h}；auto 模式 >50ms 自动降级 750×1000。
    * R198b（US5）：view 传入时先 buildShareData 注入 j.share（通用模板）；
    * 不传则保持 bazi 专属旧版式。
@@ -2223,7 +2280,7 @@ async function downloadPoster(j, view) {
     if (_dup) {
       showToast('这张图刚保存过了，长按/右键可直接再存', 'info');
     } else {
-      _POSTER_LAST[_vkey] = Date.now();
+      _POSTER_LAST[_vkey] = performance.now();
       r.canvas.toBlob(function (blob) {
         if (!blob) return;
         var a = document.createElement('a');
@@ -2800,8 +2857,10 @@ function baziBody() {
     const rh = num('range_hour');
     if (rh != null) body.ask_hour = rh;
   } else {
+    /* R230t（R32-P2-5）：留空时锚浏览器今天——后端现在按服务器日兜底，
+     * UTC vs 浏览器时区的跨零点窗口会算出另一天的运势基准。 */
     const ad = val('ask_date');
-    if (ad) body.ask_date = ad;
+    body.ask_date = ad || todayIso();
     const ah = num('ask_hour');
     if (ah != null) body.ask_hour = ah;
   }
@@ -2953,7 +3012,7 @@ async function submitBazi(event) {
      * 1.5s 内复用上次结果（历史台账不再被刷出重复行）。 */
     var _bkey = JSON.stringify(body);
     if (_bkey === _submitBaziLast.key &&
-        Date.now() - _submitBaziLast.ts < 1500) {
+        performance.now() - _submitBaziLast.ts < 1500) {
       paint('result', '<div class="no-evidence">这盘刚算过，结果就是上面那张～</div>');
       return;
     }
@@ -2968,7 +3027,7 @@ async function submitBazi(event) {
     WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
     const j = await postJSON('/api/bazi', body);
     /* 只在成功后记账——失败重试（failWithRetry）不该被同参防抖拦 */
-    _submitBaziLast = { key: _bkey, ts: Date.now() };
+    _submitBaziLast = { key: _bkey, ts: performance.now() };
     const paipan = j.paipan || {};
     /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
     try {
@@ -2985,7 +3044,8 @@ async function submitBazi(event) {
     /* R230n续（R23-P3-6）：排盘成功广播脏标——其他 tab 的历史列表即时失效。 */
     try {
       if (window.BroadcastChannel) {
-        new BroadcastChannel('paipan_history').postMessage('dirty');
+        var _bc = new BroadcastChannel('paipan_history');
+        _bc.postMessage('dirty'); _bc.close();
       }
     } catch (e) {}
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
@@ -5826,9 +5886,15 @@ function init() {
   });
   setInterval(_onDayFlip, 60000);
   window.addEventListener('storage', function (e) {
-    if (e && e.key && e.key.indexOf('checkin:') === 0) {
+    if (!e || !e.key) return;
+    if (e.key.indexOf('checkin:') === 0) {
       renderCheckin(todayIso());
+      return;
     }
+    /* R230t（R31-P2-2）：口吻/皮肤跨 tab 同步——别处改了这里就地
+     * 生效，不再要刷新才跟上。 */
+    if (e.key === VOICE_KEY) { rerenderVoice(); return; }
+    if (e.key === THEME_KEY) { applyTheme(uiTheme()); }
   });
 
   /* R230n（R25-3.2）：深链——?view=huangli 或 /huangli 路径式皆可，
@@ -5982,11 +6048,13 @@ function renderCheckin(dateKey) {
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
         /* R230j（R22-P3-2）：checkin:* 每日一键永不清理——写今日键时
-         * 顺手清掉非今日的旧键（一年 ~365 键的无界增长收口）。 */
+         * 顺手清掉更早的旧键（一年 ~365 键的无界增长收口）。
+         * R230t（R31-P3-17）：只清更早的——比今天晚的键（别 tab 已写的
+         * 未来日）不该被这次回写抹掉。 */
         for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
           var _ck = window.localStorage.key(_ci);
           if (_ck && _ck.indexOf('checkin:') === 0 &&
-              _ck !== 'checkin:' + dateKey) {
+              _ck < 'checkin:' + dateKey) {
             window.localStorage.removeItem(_ck);
           }
         }
@@ -6163,7 +6231,8 @@ function baziPersonaCard(j) {
         /* R230n续（R23-P3-6）：删除成功广播脏标，其他 tab 同步刷新。 */
         try {
           if (window.BroadcastChannel) {
-            new BroadcastChannel('paipan_history').postMessage('dirty');
+            var _bc2 = new BroadcastChannel('paipan_history');
+            _bc2.postMessage('dirty'); _bc2.close();
           }
         } catch (e2) {}
       }
