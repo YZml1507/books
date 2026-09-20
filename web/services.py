@@ -2227,8 +2227,12 @@ def _parse_iso_date(date_str: str) -> "date":
     try:
         parsed = date.fromisoformat(date_str)
     except ValueError:
-        raise ValidationError(
-            f"日期需为 YYYY-MM-DD 格式，收到 {date_str}") from None
+        # R230t（R33-P3-11）：2026-02-31 这种「格式对但日子不存在」
+        # 此前被报成「格式不对」——文案误导。分开说。
+        _msg = (f"这一天不存在，收到 {date_str}"
+                if re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", date_str or "")
+                else f"日期需为 YYYY-MM-DD 格式，收到 {date_str}")
+        raise ValidationError(_msg) from None
     if not (YEAR_LO <= parsed.year <= YEAR_HI):
         raise ValidationError(
             f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {parsed.year}")

@@ -44,7 +44,9 @@ function val(id) {
  * \uFEFF）——只含它们的输入会过非空检查：聊天发出「隐形气泡」、
  * 排盘 question 写入历史成空白行。统一剥。 */
 function zwClean(s) {
-  return String(s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  /* R230t（R33-P3-17）：对齐后端 _ZW_RE——bidi 覆盖符（\u202a-\u202e）
+   * 也剥，粘贴 RTL 文本不再前后端口径不一。 */
+  return String(s || '').replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, '').trim();
 }
 
 /** 取输入框整数值；空或非法返回 null（让调用方决定是否发送该字段）。 */
@@ -132,10 +134,12 @@ function failWithRetry(id, text, retryFn) {
   node.innerHTML =
     '<div class="no-evidence">' + esc(_humanizeErr(text)) +
     (typeof retryFn === 'function'
-      ? ' <button type="button" class="ghost" id="retryBtn" ' +
+      ? ' <button type="button" class="ghost" data-retry ' +
         'style="margin-left:8px;">🔄 重新测算</button>' : '') +
     '</div>';
-  const btn = el('retryBtn');
+  /* R230t（R33-P3-7）：id=retryBtn 两个面板同时失败时重复 id——
+   * el() 只绑第一个，另一个重试钮是死的。改用容器内查询+类名。 */
+  const btn = node.querySelector('[data-retry]');
   if (btn && typeof retryFn === 'function') btn.addEventListener('click', retryFn);
 }
 
@@ -625,10 +629,13 @@ function attachChatEntry(container) {
    * .birth-card——都不含 .card，入口钮一直挂不上（实测这三面计数=0）。
    * 选择器放宽到已知结果壳。 */
   var card = container.querySelector('.card, .xz-result, .birth-card');
-  if (!card || card.querySelector('.chat-entry')) return;
+  /* R230t（R33-P1-1）：判重走 data-chat-entry 而非类名——qmRefreshBtn/
+   * nameReviewBtn 也用 .chat-entry 做样式，此前会误判「已有入口」跳过。 */
+  if (!card || card.querySelector('[data-chat-entry]')) return;
   var btn = document.createElement('button');
   btn.className = 'chat-entry';
   btn.type = 'button';
+  btn.dataset.chatEntry = '';
   /* R230j（R22-P3-6）：id=chatEntry 与黄历内联钮共存时是重复 id
    * （invalid HTML）——委托与判重都走 .chat-entry 类即可，id 摘掉。 */
   /* R218a-巡4（A-b）：图标按钮补 aria-label */
@@ -650,6 +657,16 @@ function _chatClosedHint(bubble) {
   b.setAttribute('aria-label', '清空本轮聊天，开个新话题');
   b.textContent = '🌱 聊够啦？开个新话题';
   b.addEventListener('click', function () {
+    /* R230t（R33-P2-4）：清 transcript+换 sid 此前一点即执行——
+     * 两点确认与排盘删除同款（3s 内再点才真清）。 */
+    if (b.dataset.armed !== '1') {
+      b.dataset.armed = '1';
+      b.textContent = '这轮聊天记录会清空，再点一次确认';
+      setTimeout(function () {
+        if (b.isConnected) { b.dataset.armed = '0'; b.textContent = '🌱 聊够啦？开个新话题'; }
+      }, 3000);
+      return;
+    }
     try { (_chatStore() || _MEM_STORE).removeItem(CHAT_SID_KEY); } catch (e) {}
     chatSid();   /* 重新生成 sid */
     _chatTsClear();   /* R230q：新话题起新 transcript——旧气泡重渲会污染新会话 */
@@ -664,7 +681,12 @@ function _chatClosedHint(bubble) {
 }
 
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
+var _autoSendBusy = false;
 function autoSendChatContext() {
+  /* R230t（R33-P3-10）：.chat-entry 双击理论双发——1.5s 在途窗。 */
+  if (_autoSendBusy) return;
+  _autoSendBusy = true;
+  setTimeout(function () { _autoSendBusy = false; }, 1500);
   /* D-001-fix：先确保侧栏打开再发送消息 */
   chatOpen();
   /* R219b（P0-2）：第一句必须带真实数据（牌名/干支/宜忌/候选名），
@@ -3006,18 +3028,19 @@ var _submitBaziLast = { key: '', ts: 0 };   /* R230q（R28-P3-14）同参防抖 
 async function submitBazi(event) {
   if (event) event.preventDefault();
   if (_submitBaziBusy) return;   // 连点/回车连击 → 只发一次，防并发覆盖
+  /* R230t（R33-P1-2）：同参防抖判定提到 busy() 之前——原先 busy 先清屏
+   * 再 paint 提示，把刚渲染的结果卡整段顶掉（「上面那张」已不存在）。
+   * 现在命中防抖只弹 toast，结果卡原样保留。 */
+  var _bkey0 = JSON.stringify(baziBody());
+  if (_bkey0 === _submitBaziLast.key &&
+      performance.now() - _submitBaziLast.ts < 1500) {
+    showToast('这盘刚算过，结果就是上面那张～', 'info');
+    return;
+  }
   _submitBaziBusy = true;
   busy('result', '计算中…');
   try {
-    const body = baziBody();
-    /* R230q（R28-P3-14）：锁随响应释放后连击仍会各发一遍——同参数
-     * 1.5s 内复用上次结果（历史台账不再被刷出重复行）。 */
-    var _bkey = JSON.stringify(body);
-    if (_bkey === _submitBaziLast.key &&
-        performance.now() - _submitBaziLast.ts < 1500) {
-      paint('result', '<div class="no-evidence">这盘刚算过，结果就是上面那张～</div>');
-      return;
-    }
+    const body = JSON.parse(_bkey0);   /* 复用上面防抖已算出的 body——baziBody 有 toast 副作用，不调两次 */
     /* R230f续4（R16-P2-4b）：与出生抽屉同一套预检——空/越界不走
      * 请求，直接站内中文提示（原来要等一轮 422）。 */
     if (body.year == null || body.month == null || body.day == null
@@ -3029,7 +3052,7 @@ async function submitBazi(event) {
     WARM_LAST_QUESTION = body.question || '';   /* R206b US4：共情模板选择依据 */
     const j = await postJSON('/api/bazi', body);
     /* 只在成功后记账——失败重试（failWithRetry）不该被同参防抖拦 */
-    _submitBaziLast = { key: _bkey, ts: performance.now() };
+    _submitBaziLast = { key: _bkey0, ts: performance.now() };
     const paipan = j.paipan || {};
     /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
     try {
@@ -4635,14 +4658,18 @@ function xzInitDate() {
  * 原实现每次进星座页都重发请求并 busy() 占位，造成两次滚动跳变。
  * 日期变更/主动查询仍传 true 强制刷新。 */
 var _xzLastDate = null;
+var _XZ_GEN = 0;   /* R230t（R33-P2-1）：翻页五个入口锁 key 互不共享，
+                    * 乱序响应会盖掉新结果——代际号丢弃过期响应 */
 async function doXingzuo(force) {
   xzInitDate();
   var dateStr = xzDateStr();
   var _xzBox = el('xzResult');
   if (!force && _xzLastDate === dateStr && _xzBox && _xzBox.children.length) return;
+  var _gen = ++_XZ_GEN;
   busy('xzResult', '查询中…');
   try {
     var j = await api('/api/xingzuo?date=' + encodeURIComponent(dateStr));
+    if (_gen !== _XZ_GEN) return;   /* 更新的请求已接管——本响应丢弃 */
     var html = '<div class="xz-result">';
     if (j.today_sign) {
       /* C-002-fix：星座配图 + 今日值宫 */
@@ -4689,6 +4716,7 @@ async function doXingzuo(force) {
       xzBtn.addEventListener('click', function () { downloadPoster(j, 'xingzuo'); });
     }
   } catch (e) {
+    if (_gen !== _XZ_GEN) return;   /* 过期响应的失败也不盖新结果 */
     failWithRetry('xzResult', '查询失败：' + e.message,
                   function () { doXingzuo(true); });
   }
@@ -5257,7 +5285,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     /* R230d（R16-P2-6）：黄历卡没有 .card 容器，paint 的自动挂钮
      * 找不到宿主——手动挂「聊聊这件事」（其他五个视图都有）。 */
-    html += '<button class="chat-entry" type="button" ' +
+    html += '<button class="chat-entry" type="button" data-chat-entry ' +
       'aria-label="打开小满聊天，聊聊这件事">💬 聊聊这件事</button>';
     paint('hlResult', html);
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
@@ -5301,6 +5329,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
         else box.parentNode.appendChild(tip);
         tip.querySelectorAll('[data-hldate]').forEach(function (b) {
           b.addEventListener('click', function () {
+            /* R230t（R33-P3-9）：busy 静默丢——给反馈。 */
+            if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
             /* 点击时刻才换算偏移——跨零点不漂（R20-F3）。 */
             var pp = String(b.dataset.hldate || '').split('-');
             if (pp.length !== 3) return;
@@ -5356,6 +5386,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     box.addEventListener('click', function (ev) {
       var btn = ev.target.closest('.hl-chip');
       if (!btn || btn.id === 'hlPickBtn') return;
+      /* R230t（R33-P2-2）：在途时点击会被 doHuangli 静默丢弃，但
+       * .active 已置位 → chip 高亮与卡片错位。busy 时给反馈不动态。 */
+      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
       _HL.keepSy = window.scrollY;   /* v5-fix：关抽屉会压短页面发生钳位，先把滚动位存下来 */
       box.querySelectorAll('.hl-chip').forEach(function (c) { c.classList.remove('active'); });
       btn.classList.add('active');
@@ -5390,6 +5423,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     });
     if (scenes) scenes.addEventListener('click', function (ev) {
       if (!ev.target.closest('#hlAskBtn')) return;
+      /* R230t（R33-P2-5）：在途时 Enter/点问都被 doHuangli 静默丢——
+       * 输入已读零反馈比报错更糟，给个提示。 */
+      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
       var inp = document.getElementById('hlAskInput');
       var q = inp ? zwClean(inp.value) : '';   /* R230k */
       if (!q) {
@@ -5481,6 +5517,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (scenes) scenes.addEventListener('click', function (ev) {
       var s = ev.target.closest('.hl-scene');
       if (!s) return;
+      /* R230t（R33-P3-8）：在途丢弃时场景标记已翻转但卡片没重渲——
+       * busy 时先拦下，别翻标记。 */
+      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
       _HL.scene = (_HL.scene === s.dataset.scene) ? '' : s.dataset.scene;
       /* 用最后请求的日期重渲染：读 hlResult 头部日期回填 */
       var head = document.querySelector('#hlResult .hl-head div');
@@ -5640,7 +5679,10 @@ function initBazi() {
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
    * 用委托绑到 document。 */
   document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('.chat-entry')) {
+    /* R230t（R33-P1-1）：.chat-entry 是样式类，换一批/AI点评也在用——
+     * 委托判定改走 data-chat-entry，误伤才停止（实测点「换一批」
+     * 会拉开聊天侧栏还自动发一条上下文消息）。 */
+    if (e.target.closest && e.target.closest('[data-chat-entry]')) {
       chatOpen();
       autoSendChatContext();
     }
@@ -5786,9 +5828,11 @@ function initDivination() {
     'view-qiming': 'qmSubmit', 'view-taohua': 'thSubmit',
     'view-hehun': 'hhSubmit',
     /* R230d（R16-P1-4）：黄历 y/m/d 三个数字框回车=查这一天
-     * （hlAskInput 自带 Enter 绑问一嘴，已被下面的 id 排护栏拦住）。
-     * 抽屉输入 b_* 在 <form> 内、原生可回车，不在此列。 */
-    'view-huangli': 'hlSubmit'
+     * （hlAskInput 自带 Enter 绑问一嘴，已被下面的 id 排护栏拦住）。 */
+    'view-huangli': 'hlSubmit',
+    /* R230t（R33-P3-15）：b_* 其实在 view-xingzuo 的 <details> 里、
+     * 不在任何 <form> 中——此前回车是死键。xz_* 是 select 不吃此委托。 */
+    'view-xingzuo': 'birthSubmit'
     /* view-bazi 是真 <form>，Enter 原生已提交。 */
   };
   document.addEventListener('keydown', function (e) {
@@ -6227,6 +6271,11 @@ function baziPersonaCard(j) {
         }, 3000);
         return;
       }
+      /* R230t（R33-P2-3）：确认后立刻收 armed+在途锁——原先 3s 窗口内
+       * 第三点会再发一个 DELETE 撞 404，误报「删除失败」。 */
+      tg.dataset.armed = '';
+      if (tg.dataset.inflight === '1') return;
+      tg.dataset.inflight = '1';
       try {
         await phFetch('/api/paipan/history/' + id, { method: 'DELETE' });
         loadPaipanHistory();
@@ -6240,6 +6289,7 @@ function baziPersonaCard(j) {
       }
       /* R228c：错误反馈统一走 toast 体系，不用原生 alert */
       catch (e) { showToast('删除失败：' + e.message, 'error'); }
+      finally { tg.dataset.inflight = '0'; }
       return;
     }
     if (item && tg.classList.contains('ph-open')) {
@@ -6277,10 +6327,20 @@ function baziPersonaCard(j) {
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
+    /* R230t（R33-P3-5/6）：刷新/导出无锁——双击各弹一遍。 */
+    var _phLast = { rf: 0, ex: 0 };
     const rf = document.getElementById('historyRefresh');
-    if (rf) rf.addEventListener('click', loadPaipanHistory);
+    if (rf) rf.addEventListener('click', function () {
+      if (performance.now() - _phLast.rf < 800) return;
+      _phLast.rf = performance.now();
+      loadPaipanHistory();
+    });
     const ex = document.getElementById('historyExport');
-    if (ex) ex.addEventListener('click', function () { window.open('/api/paipan/history/export', '_blank'); });
+    if (ex) ex.addEventListener('click', function () {
+      if (performance.now() - _phLast.ex < 1500) return;
+      _phLast.ex = performance.now();
+      window.open('/api/paipan/history/export', '_blank');
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', phBind);
   else phBind();
