@@ -103,8 +103,10 @@ class Hehun:
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
-        ga = "女" if self.gender_a == "女" else "男"
-        gb = "女" if self.gender_b == "女" else "男"
+        # R233w（R53-P3-2）：性别缺省/非二元时不再默认落「男」，
+        # 用坐标名（甲方/乙方）做中性标签。
+        ga = self.gender_a if self.gender_a in ("男", "女") else "甲方"
+        gb = self.gender_b if self.gender_b in ("男", "女") else "乙方"
         parts = [f"{ga} {self.day_gz_a}（日主{self.day_wx_a}）· {gb} {self.day_gz_b}（日主{self.day_wx_b}）"]
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
                      ("六冲" if self.clash else ("六合" if self.combine

@@ -11279,3 +11279,15 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   contract 546、parity 66+41 条 + 88 别名键、ui_smoke 59、poster 14判据、
   baseline_voice 14 字节冻结（yao 定点引文后重冻）、llm_polish 六道、
   ruff E9/F 干净。
+
+## R233w（R53 遗留清零）
+- **P3-3**：起名补 warm 层——`voice.warm_qiming`（姓氏称谓+五行缺口/偏弱/
+  俱全三档+TOP1 出处点名+收口盐池），LLM 不可用时不再只剩裸名单；
+  facts_qiming 收 warm.reply 作「参考口吻」事实喂模型，前端
+  buildQimingResult 渲染 warm-wrap。_expect_keys += warm；
+  selftest 新增 warm.qiming.present（多行+逐字节确定性复打）。
+- **P3-2**：合婚 render() 性别缺省/非二元不再默认落「男」——
+  非法值显「甲方/乙方」中性标签（API 层 男/女 校验不变）。
+- 闸门：selftest 244 / contract 548 / regress PASS / warm_voice /
+  plain_first / baseline_voice / llm_polish / ui_smoke / poster /
+  parity / ruff 全绿。

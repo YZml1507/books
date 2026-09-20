@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-b70caa11c8b7';   // shell-hash: b70caa11c8b7
+var CACHE = 'books-shell-e660ed28d675';   // shell-hash: e660ed28d675
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。
  * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体

@@ -1236,6 +1236,49 @@ def warm_hehun(h: dict) -> dict:
     )
 
 
+def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
+    """起名 warm 层——其余四功能都有多行 warm.reply，起名此前只有
+    一条 one_liner + 后台 AI；LLM 不可用时只剩裸名单（R53-P3-3）。
+
+    out = services.qiming 的返回 dict（five_elements/full_names/bazi）。
+    """
+    out = out or {}
+    fe = out.get("five_elements") or {}
+    names = out.get("full_names") or []
+    miss = [w for w in (fe.get("missing") or []) if w]
+    weak = [w for w in (fe.get("weak") or []) if w]
+    kid = ("小姑娘" if gender == "女" else "小男孩" if gender == "男"
+           else "宝宝")
+    sn = (surname or "").strip() or "这位"
+
+    lines: list[str] = [
+        f"给{sn}家{kid}挑了 {len(names)} 个名字——都从古籍里来，"
+        f"不是凭空造的。"]
+    if miss:
+        lines.append(f"五行里 {'、'.join(miss)} 这一行比较薄——"
+                     f"名字里给它补一补，图个心里踏实。")
+    elif weak:
+        lines.append(f"五行没缺，{'、'.join(weak)} 这一行偏弱——"
+                     f"挑字的时候往这个方向偏了偏。")
+    else:
+        lines.append("五行挺匀的——挑名就只管好听、有出处。")
+    _top = names[0] if names else {}
+    if _top.get("full_name"):
+        _src = _top.get("origin") or "古籍"
+        lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"
+                     f"念起来也顺口。")
+    lines.append(_pick(
+        ["名字是参考，不是定数——家里人念着顺口最重要。",
+         "好名字是祝福，不是枷锁——挑你们全家都喜欢的那个。",
+         "这些名字只是个开头——最后叫哪个，还是你们说了算。"],
+        "qm-close", sn, str(len(names))))
+    return _wrap(
+        (out.get("one_liner") or "古书里挑的名字")[:_L0_MAX],
+        None, lines[:5],
+        _render_details((out.get("bazi") or {}).get("render", "")),
+        [])
+
+
 # ---------------------------------------------------------------------------
 # 自测：固定输入 → 固定输出（判据 5）
 # ---------------------------------------------------------------------------

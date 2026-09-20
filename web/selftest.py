@@ -467,6 +467,20 @@ def _run_inner() -> list[str]:
         assert _c["char"] and _c["element"], ("qiming.candidates.blank", _c)
     print(f"  qiming.candidates.filled PASS（候选池 {len(_cands)} 字，键名齐全）")
     ok.append("qiming.candidates.filled")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R233w（R53-P3-3）：起名 warm 层——确定性多行 reply，LLM 缺席时
+    # 卡面不是裸名单。钉存在性 + 逐字节确定性。
+    _qm3 = client.post("/api/qiming", json={"surname": "王",
+        "gender": "女", "year": 2023, "month": 6, "day": 15,
+        "hour": 9, "top_n": 8, "seed": 7})
+    assert _qm3.status_code == 200
+    _qw = (_qm3.json().get("warm") or {})
+    assert _qw.get("reply") and len(_qw["reply"]) >= 3, \
+        ("warm.qiming.reply", _qw.get("reply"))
+    _qm4 = client.post("/api/qiming", json={"surname": "王",
+        "gender": "女", "year": 2023, "month": 6, "day": 15,
+        "hour": 9, "top_n": 8, "seed": 7})
+    assert _qm4.json().get("warm") == _qw, "warm.qiming.deterministic"
+    ok.append("warm.qiming.present")
     # R230a-16：qiming five_elements 的 weak 键钉扎（R13 五行俱全时前端
     # 吃 missing 变空卡的 bug 修字段）——键必须在、类型必须是 list。
     _fe2 = _rc2.json().get("five_elements") or {}
@@ -2101,6 +2115,8 @@ def _run_inner() -> list[str]:
                         "full_names", "ai_polish",
                         # R233j（R46-P1）：qiming_one_liners 死池接线
                         "one_liner",
+                        # R233w（R53-P3-3）：起名 warm 层
+                        "warm",
                         # R220b：交叉引用铺到起名（太阳星座气质参考）
                         "cross_ref"},
     }

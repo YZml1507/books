@@ -1138,7 +1138,8 @@ def facts_hehun(h: dict, warm: dict | None = None,
     return facts
 
 
-def facts_qiming(q: dict, gender: str | None = None) -> list[str]:
+def facts_qiming(q: dict, gender: str | None = None,
+                 warm: dict | None = None) -> list[str]:
     fe = q.get("five_elements") or {}
     miss = fe.get("missing") or []
     names = [n.get("full_name") for n in (q.get("full_names") or [])[:3]
@@ -1154,6 +1155,9 @@ def facts_qiming(q: dict, gender: str | None = None) -> list[str]:
     ]
     if names:
         facts.append("推荐完整名：" + "、".join(names))
+    # R233w：warm 层文案进事实——模型点评照着确定性口径说，不自由发挥。
+    for _ln in ((warm or {}).get("reply") or []):
+        facts.append("参考口吻：" + _ln)
     return facts
 
 

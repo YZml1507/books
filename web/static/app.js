@@ -600,6 +600,14 @@ function buildQimingResult(j) {
    * 姓氏+日柱确定性出一句暖 hook（同输入同输出）。 */
   if (j.one_liner) html += '<div class="qm-oneliner" style="font-size:13px;' +
     'color:var(--secondary);margin:2px 0 10px;">' + esc(j.one_liner) + '</div>';
+  /* R233w（R53-P3-3）：warm 层——AI 挂了也有多行人话，不是裸名单。 */
+  if (j.warm) {
+    html += '<div class="warm-wrap"><div class="warm-reply">';
+    (j.warm.reply || []).forEach(function (ln) {
+      html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div></div>';
+  }
   // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
   // R218a-04+05：按当前 _QM_STYLE 过滤 + 客户端打分排序（缺补+音韵+出处+双字）
   var _allNames = (j.full_names || []).slice();

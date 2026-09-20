@@ -407,14 +407,18 @@ def qiming(req) -> dict:
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{_friendly_calc_err(exc)}") from exc
     ai_polish = None
-    ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_qiming(out, req.gender))
-    out["ai_polish"] = ai_polish
     # R233j（R46-P1）：copy_bank.qiming_one_liners 死池接线——按
     # 姓氏+日柱确定性抽一条暖句当卡面 hook（同输入同输出）。
     _ql = _COPY_BANK.get("qiming_one_liners") or []
     if _ql:
         out["one_liner"] = _pick(_ql, req.surname,
                                  (out.get("bazi") or {}).get("render", ""), "qm")
+    # R233w（R53-P3-3）：起名补 warm 层——其余功能都有 warm.reply 多行，
+    # 起名 LLM 挂了只剩裸名单。
+    out["warm"] = voice.warm_qiming(out, req.surname, req.gender)
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_qiming(out, req.gender, warm=out["warm"]))
+    out["ai_polish"] = ai_polish
     # R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度
     out["cross_ref"] = _cross_ref_qiming(req.month, req.day)
     if ai_task_id:
