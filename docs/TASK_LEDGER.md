@@ -11036,3 +11036,7 @@ scripts_importable / llm_polish / ruff 全绿。
 - **P2-3 聊天空态个性化**：存过「me」→ chip 换「看看我的本命盘」；存过 partner →「我们俩最近合不合」；有 hlask 足迹 → 首 chip 变「接着上次：X」
 - **闸**：selftest 237 / contract 445 / smoke 56 / parity 88 / ruff 全绿
 - **遗留（需拍板/大工程）**：R39-P2-5 跨日话题总结（涉隐私边界）、P3-2 app badge、P3-3 里程碑仪式页、R38-P3-1 暗色主题（token 化大工程，目前主题切换 UI 已删，uiTheme 属内部回滚档）
+
+### R231h（R39-P3-3 里程碑仪式）
+- 连签 3/7/14/30 当天弹 `.celeb-backdrop` 庆典卡（吉祥物+档级文案+「晒一下」直发生成打卡分享图）；同日同档只弹一次（checkinCeleb: 键）
+- 闸：selftest 237 / ui_smoke 56 全绿

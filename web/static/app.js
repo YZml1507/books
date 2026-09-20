@@ -7034,8 +7034,49 @@ function renderCheckin(dateKey) {
       /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
        * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
       renderCheckin(dateKey);
+      /* R231h（R39-P3-3）：里程碑仪式——连签 3/7/14/30 的当天给一张
+       * 小庆典卡（可直发分享图）；同一天同一档不重复弹。 */
+      try {
+        var _ns = _checkinStreak(_checkinAll(), dateKey);
+        var _mk = 'checkinCeleb:' + _ns + ':' + dateKey;
+        if ([3, 7, 14, 30].indexOf(_ns) >= 0 &&
+            !localStorage.getItem(_mk)) {
+          localStorage.setItem(_mk, '1');
+          _checkinCelebrate(_ns, opt);
+        }
+      } catch (e3) {}
     });
   }
+}
+/* R231h：连签里程碑卡——轻量模态，标题+一句+分享图按钮。 */
+function _checkinCelebrate(streak, opt) {
+  var _MILES = {
+    3: '小满贯开头啦', 7: '整一周，仪式感拿捏',
+    14: '半月不断，稳稳的', 30: '满月级选手，了不起'
+  };
+  var bd = document.createElement('div');
+  bd.className = 'celeb-backdrop';
+  bd.innerHTML =
+    '<div class="celeb-card" role="dialog" aria-label="连签里程碑">' +
+    '<img src="/static/cream/poster-mascot.png" alt="" class="celeb-img">' +
+    '<div class="celeb-title">连续 ' + streak + ' 天打卡达成 🎉</div>' +
+    '<div class="celeb-sub">' + esc(_MILES[streak] || '') +
+    '——记得明天也来</div>' +
+    '<div class="celeb-row">' +
+    '<button type="button" class="celeb-share">📸 晒一下</button>' +
+    '<button type="button" class="celeb-x">收下好运</button>' +
+    '</div></div>';
+  var _close = function () { if (bd.parentNode) bd.remove(); };
+  bd.addEventListener('click', function (e) {
+    if (e.target === bd || e.target.closest('.celeb-x')) _close();
+  });
+  var sh = bd.querySelector('.celeb-share');
+  if (sh) sh.addEventListener('click', function () {
+    var p = downloadPoster({ streak: streak, pick: opt }, 'checkin');
+    if (p && p.catch) p.catch(function () {});
+    _close();
+  });
+  document.body.appendChild(bd);
 }
 /* R230y（R36-P1-4）：「我的生日」本地 profile——任一本人表单提交
  * 成功后写入 localStorage，其余同人表单的空值/仍带预填标记的字段

@@ -1764,3 +1764,30 @@ html{-webkit-text-size-adjust:100%;}
   background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
 }
 @media (max-width:400px){ .install-tip{left:8px; bottom:8px; font-size:12px;} }
+
+/* ── R231h（R39-P3-3）：连签里程碑卡 ── */
+.celeb-backdrop{
+  position:fixed; inset:0; z-index:290; display:flex;
+  align-items:center; justify-content:center;
+  background:rgba(0,0,0,.35); animation:tipIn .25s ease;
+}
+.celeb-card{
+  background:#fff; border-radius:18px; padding:22px 20px 18px;
+  width:min(300px,86vw); text-align:center;
+  box-shadow:0 16px 48px rgba(0,0,0,.25);
+}
+.celeb-img{width:96px; height:96px; object-fit:cover; border-radius:50%;
+  margin:0 auto 8px; display:block;}
+.celeb-title{font-size:17px; font-weight:600; color:var(--text);}
+.celeb-sub{font-size:13px; color:var(--secondary); margin:6px 0 14px;}
+.celeb-row{display:flex; gap:10px; justify-content:center;}
+.celeb-share{
+  padding:8px 16px; border-radius:999px; border:0; cursor:pointer;
+  background:var(--primary-ink); color:#fff; font-size:13px; min-height:36px;
+}
+.celeb-x{
+  padding:8px 16px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--border); background:#fff; color:var(--secondary);
+  font-size:13px; min-height:36px;
+}
+@media print{.celeb-backdrop{display:none !important;}}
