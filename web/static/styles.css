@@ -1115,6 +1115,9 @@ details.warm-pro-fold > summary{
 .warm-reply{ margin:12px 0 4px; }
 .warm-reply p{ font-size:16px; line-height:1.9; color:var(--text); margin:6px 0;
   overflow-wrap:anywhere; }   /* R229c：超长英文/连续字符不再撑破横屏 */
+/* R2345（R62-P2）：长解读纯文本流分节——每两段间虚线呼吸（手账感）。 */
+.warm-reply p:nth-child(even){ border-bottom:1px dashed var(--line);
+  padding-bottom:10px; }
 
 /* L1 能量卡 */
 .energy-card{
