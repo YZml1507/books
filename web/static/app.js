@@ -3554,7 +3554,9 @@ async function loadDaily() {
     ]);
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     const dateEl = el('dailyDate');
-    if (dateEl) dateEl.textContent = j.date || '今天';
+    /* R233q：日期补星期——「2026-09-20 周日」比裸日期更像签 */
+    if (dateEl) dateEl.textContent =
+      (j.date || '今天') + (j.date ? ' ' + _weekdayCn(j.date) : '');
     const level = j.level || '平';
     const levelEl = el('dailyLevel');
     if (levelEl) {

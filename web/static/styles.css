@@ -1894,3 +1894,7 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
 .ck-album-cell b{font-size:12px;font-weight:600;color:var(--primary-ink);}
 .ck-album-cell:hover{border-color:#E8B898;}
 .ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}
+/* 打卡抽中弹出反馈（翻签仪式感轻量版） */
+@keyframes ckPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+.checkin-opt.picked{animation:ckPop .35s ease;}
+@media (prefers-reduced-motion:reduce){.checkin-opt.picked{animation:none;}}
