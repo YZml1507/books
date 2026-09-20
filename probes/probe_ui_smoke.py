@@ -520,6 +520,136 @@ def main() -> int:
                         return true;
                     }""", sec)
 
+            # ── R2342（R60-P0）：覆盖盲区补钉——真实点击路径 ──
+
+            # 打卡真点击：.checkin-opt → localStorage 落键 + picked 态
+            # （daily-cover 会 inert 卡内元素——先点封面拆掉）
+            try:
+                page.wait_for_selector('.checkin-opt', timeout=15000)
+                try:
+                    if page.is_visible('#dailyCover'):
+                        page.click('#dailyCover'); page.wait_for_timeout(700)
+                except Exception:
+                    pass
+                page.click('.checkin-opt >> nth=0')
+                page.wait_for_timeout(400)
+                _picked = page.evaluate(
+                    "!!document.querySelector('.checkin-opt.picked')")
+                _ckkeys = page.evaluate(
+                    "Object.keys(localStorage).filter(k=>k.startsWith('checkin:'))")
+                results.append({
+                    "name": "ui:checkin.click", "ok": _picked and len(_ckkeys) >= 1,
+                    "detail": f"picked={_picked} 落键={_ckkeys}"})
+            except Exception as exc:
+                results.append({"name": "ui:checkin.click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
+            try:
+                page.click('#recentToggle')
+                page.wait_for_timeout(400)
+                _open = page.evaluate(
+                    "document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                page.click('#recentClose')
+                page.wait_for_timeout(300)
+                _closed = page.evaluate(
+                    "!document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                results.append({
+                    "name": "ui:chat.drawer", "ok": bool(_open) and bool(_closed),
+                    "detail": f"开={_open} 合={_closed}"})
+            except Exception as exc:
+                results.append({"name": "ui:chat.drawer", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 危机词前端镜像：发「我不想活了」→ 气泡含 12356 且不走轮询
+            try:
+                page.click('#recentToggle')
+                page.wait_for_timeout(400)
+                page.fill('#chatInput', '我不想活了')
+                page.click('#chatSendBtn')
+                page.wait_for_timeout(1200)
+                _bub = page.evaluate(
+                    "(document.getElementById('chatFlow').innerText||'')"
+                    ".includes('12356')")
+                results.append({
+                    "name": "ui:chat.crisis_fe", "ok": bool(_bub),
+                    "detail": "危机词→12356转介气泡=" + str(_bub)})
+                # 抽屉还开着会 _mainInert 锁住主区——先收
+                try:
+                    page.click('#recentClose'); page.wait_for_timeout(300)
+                except Exception:
+                    pass
+            except Exception as exc:
+                results.append({"name": "ui:chat.crisis_fe", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 黄历 chip 真点击：data-hloffset=1 → 卡片换到明天
+            try:
+                goto_view('huangli')
+                page.wait_for_selector('#hlResult .hl-date, #hlResult', timeout=12000)
+                _b0 = page.inner_text('#hlResult')[:40]
+                page.click('.hl-chip[data-hloffset="1"]')
+                page.wait_for_timeout(1200)
+                _b1 = page.inner_text('#hlResult')[:40]
+                _chip_on = page.evaluate(
+                    "document.querySelector('.hl-chip[data-hloffset=\\\"1\\\"]').classList.contains('active')")
+                results.append({
+                    "name": "ui:hlchip.click",
+                    "ok": bool(_chip_on) and _b0 != _b1,
+                    "detail": f"active={_chip_on} 卡面 {_b0[:12]!r}→{_b1[:12]!r}"})
+            except Exception as exc:
+                results.append({"name": "ui:hlchip.click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 星座导航真点击：xzNext → 日期+1 且结果重渲（R60-P0-5：
+            # 整组 xz 导航此前 NO_CASE）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_selector('#xzResult', timeout=10000)
+                page.wait_for_timeout(1500)
+                _x0 = page.inner_text('#xzResult')[:60]
+                _d0 = page.evaluate(
+                    "[document.getElementById('xz_year').value,"
+                    "document.getElementById('xz_month').value,"
+                    "document.getElementById('xz_day').value].join('-')")
+                page.click('#xzNext')
+                page.wait_for_timeout(1500)
+                _x1 = page.inner_text('#xzResult')[:60]
+                _d1 = page.evaluate(
+                    "[document.getElementById('xz_year').value,"
+                    "document.getElementById('xz_month').value,"
+                    "document.getElementById('xz_day').value].join('-')")
+                results.append({
+                    "name": "ui:xznav.next",
+                    "ok": (_d0 != _d1) or (_x0 != _x1),
+                    "detail": f"日期 {_d0!r}→{_d1!r} 卡面 {_x0[:16]!r}→{_x1[:16]!r}"})
+            except Exception as exc:
+                results.append({"name": "ui:xznav.next", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # localStorage 坏值回放：坏 JSON/错枚举进页不炸
+            try:
+                errors.clear()
+                page.evaluate(
+                    "localStorage.setItem('me','{broken');"
+                    "localStorage.setItem('uiTheme','nope');"
+                    "localStorage.setItem('hlask','[1,2]');"
+                    "localStorage.setItem('visits','x,y');"
+                    "localStorage.setItem('voiceMode','weird')")
+                page.reload(); page.wait_for_timeout(1500)
+                _okp = not errors
+                page.evaluate(
+                    "['me','hlask','visits','voiceMode','uiTheme']"
+                    ".forEach(k=>localStorage.removeItem(k))")
+                results.append({
+                    "name": "ui:storage.bad_values", "ok": _okp,
+                    "detail": "坏值回放 pageerror=" + str(errors[:3])})
+            except Exception as exc:
+                results.append({"name": "ui:storage.bad_values", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # ── 标签切换用例 ───────────────────────────────────
             goto_view("read")
             for sec in TAB_CASES:

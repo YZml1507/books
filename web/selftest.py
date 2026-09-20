@@ -1819,6 +1819,50 @@ def _run_inner() -> list[str]:
                      and j.get("image_color")))
     check("user.prefs", client.get("/api/user/prefs"),
           lambda j: (j.get("theme") and isinstance(j.get("favorites"), list)))
+    # R2342（R60-P1-9/10）：prefs 写路径护栏 + share 三类型/超长 id。
+    # prefs 写会真落 knowledge.db——先记原值，测完复原。
+    _theme0 = client.get("/api/user/prefs").json().get("theme")
+    try:
+        _rp = client.post("/api/user/prefs",
+                          json={f"k{i}": "v" for i in range(67)})
+        assert _rp.status_code in (400, 422), (
+            "prefs.too_many", _rp.status_code)
+        _rp2 = client.post("/api/user/prefs", json={"theme": "aa"})
+        assert _rp2.status_code == 200, ("prefs.write", _rp2.status_code)
+        assert client.get("/api/user/prefs").json().get("theme") == "aa"
+    finally:
+        if _theme0:
+            client.post("/api/user/prefs", json={"theme": _theme0})
+    ok.append("prefs.guardrails")
+    check("share.tarot", client.get("/api/share/tarot/abc123"),
+          lambda j: j.get("title") == "塔罗占卜结果")
+    for _sp, _want in (("/api/share/nope/1", 404),
+                       ("/api/share/tarot/" + "x" * 81, 404),
+                       ("/api/share/bazi/notanum", 404)):
+        _sr = client.get(_sp)
+        assert _sr.status_code == _want, ("share.guard", _sp,
+                                          _sr.status_code)
+    ok.append("share.guardrails")
+    # R2342（R60-P0-6）：import_rows 真实路径——模块层直连（DISABLE 只
+    # 闸路由不闸模块）：合法行写入、重复行去重、非法类型归一、超长跳过。
+    # 测试行事后 delete_record 清掉，不留污染。
+    from guji import paipan_history as _phx
+    _mine = {"type": "bazi", "ts": "probe-selftest-imp",
+             "name": "钉扎自检", "req": {"y": 1}, "result": {"ok": True}}
+    _w1 = _phx.import_rows([dict(_mine)])
+    _w2 = _phx.import_rows([dict(_mine)])
+    _w3 = _phx.import_rows([{"type": "bogus", "ts": "probe-selftest-imp2",
+                            "name": "类型归一", "req": {}, "result": {}}])
+    _w4 = _phx.import_rows([{"type": "bazi", "ts": "probe-selftest-big",
+                             "name": "超长", "req": {"x": "a" * 300000},
+                             "result": {}}])
+    _stale = [r["id"] for r in _phx.list_records(limit=500)["items"]
+              if str(r.get("ts") or "").startswith("probe-selftest")]
+    for _i in _stale:
+        _phx.delete_record(_i)
+    assert _w1 == 1 and _w2 == 0 and _w3 == 1 and _w4 == 0, (
+        "paipan.import_rows", _w1, _w2, _w3, _w4)
+    ok.append("paipan.import_rows")
     # R178b（D-230b）：LLM 层已整体移除——断言它**回不来**。`guji.llm_reader`
     # 必须不可导入，且响应里不得再出现 llm/llm_out/use_llm 字段（若哪轮把
     # 生成式解读悄悄接回来，此处立刻红）。

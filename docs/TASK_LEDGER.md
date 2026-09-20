@@ -11415,3 +11415,17 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   发虚→现 1.25× Lanczos 升至 1080×1440）；daily 拆礼物封面
   小熊抱礼插画 daily-gift-bear.png + 斜纹包装纸底。
 - 闸门：selftest 248 / contract 542 / ui_smoke 60 全绿。
+
+## R2342 R60 覆盖盲区补钉
+- ui_smoke +6 真机用例：checkin-opt 真点击（落键+picked）、
+  聊天抽屉开合（#recentSidebar open/inert）、危机词前端镜像
+  （「我不想活了」→12356 气泡不发请求）、hl-chip 委托真点
+  （offset=1 翻页）、xzNext 日期+1 重渲、localStorage 坏值回放
+  （坏JSON/错枚举不炸）。修真 bug：抽屉未关 _mainInert 锁主区。
+- selftest +4：prefs.guardrails（67键→400/写回读一致）、
+  share.tarot、share.guardrails（未知类型/81字符/bazi非数字→404）、
+  paipan.import_rows（写入/去重/类型归一/超长跳过）。
+- CI 接线 4 件漏接闸门：count_open_findings、probe_r128a、
+  probe_g8_isolation 加进 selftest job；verify_r218a 起 8183
+  常驻服务后跑。
+- 闸门：selftest 252 / ui_smoke 66 / contract 542 全绿。

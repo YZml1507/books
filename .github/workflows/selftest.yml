@@ -144,6 +144,20 @@ jobs:
                         thread_id=tid)
           kb.close()
           PY
+      - name: R2342 补接线闸门（R60-#18：count_open_findings/r128a/g8_isolation）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          python scripts/count_open_findings.py
+          python probes/probe_r128a_no_dup_citations.py
+          python probes/probe_g8_isolation.py
+      - name: R218a 验收 verify_r218a（需常驻服务 8183）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          PYTHONPATH=src:. python -m uvicorn web.app:app --port 8183 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8183/ >/dev/null && break; sleep 1; done
+          python scripts/verify_r218a.py
       - name: 首屏闸门 probe_first_screen
         env:
           BOOKS_LLM_DISABLE: "1"
