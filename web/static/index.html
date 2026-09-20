@@ -7,11 +7,11 @@
 <meta property="og:description" content="黄历择日 · 八字排盘 · 塔罗占卜 · 古籍佐证">
 <meta property="og:type" content="website">
 <!-- R229d：链接分享卡——此前 og 无图，微信/iMessage/Twitter 展开只有文字。 -->
-<meta property="og:image" content="/static/cream/cream-hero.jpg">
+<meta property="og:image" content="/static/cream/cream-hero-v2.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="小满的解忧铺">
 <meta name="twitter:description" content="黄历择日 · 八字排盘 · 塔罗占卜 · 古籍佐证">
-<meta name="twitter:image" content="/static/cream/cream-hero.jpg">
+<meta name="twitter:image" content="/static/cream/cream-hero-v2.jpg">
 <meta name="theme-color" content="#F5EFE0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>小满的解忧铺 · 知命</title>
@@ -76,7 +76,7 @@ if ('serviceWorker' in navigator) {
 
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
   <div class="ink-hero" aria-hidden="true">
-    <img src="/static/cream/cream-hero.jpg" alt=""
+    <img src="/static/cream/cream-hero-v2.jpg" alt=""
       onerror="this.closest('.ink-hero').classList.add('is-missing')">
   </div>
 
@@ -94,10 +94,11 @@ if ('serviceWorker' in navigator) {
 
   <!-- 每日运势 -->
   <div class="daily-card" id="dailyCard">
-    <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift.png" alt="" loading="lazy" decoding="async"></div>
+    <!-- R230x（V-1）：礼盒收进顶行 flex 流，不再绝对定位压日期 -->
     <div class="daily-top">
       <span class="daily-label">🌟 今日玄学搭子</span>
       <span class="daily-date" id="dailyDate">加载中…</span>
+      <div class="daily-card-gift"><img src="/static/_candidates/r212b/daily-box-gift.png" alt="" loading="lazy" decoding="async"></div>
     </div>
     <!-- R198b（US5）：今日运势分享图入口 -->
     <button class="ghost" type="button" id="shareDaily"
@@ -115,7 +116,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="daily-meta">
       <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
-      <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong> <span class="meta-note">（最帮你的人/方位）</span></div>
+      <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong></div>
       <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
            老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
            打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
@@ -505,7 +506,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </details>
       <button id="lySubmit" type="button">摇 卦</button>
-      <div id="lyResult" style="margin-top:16px;"><div class="ph-empty">想好要问的事，点「摇卦」～</div></div>
+      <div id="lyResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「摇卦」～</div></div>
     </div>
   </div>
 
@@ -534,7 +535,7 @@ if ('serviceWorker' in navigator) {
         </div>
         <button id="hlSubmit" type="button" style="margin-top:8px;">查这一天</button>
       </details>
-      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty" data-ph="1">选个日子看看宜忌吧</div></div>
+      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty" data-ph="1"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>选个日子看看宜忌吧</div></div>
     </div>
   </div>
 
@@ -559,7 +560,7 @@ if ('serviceWorker' in navigator) {
             <select id="qm_gender"><option>女</option><option>男</option></select></div>
       </div>
       <button id="qmSubmit" type="button">起 名</button>
-      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty">填好姓氏和生日，点「起名」～</div></div>
+      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好姓氏和生日，点「起名」～</div></div>
     </div>
   </div>
 
@@ -580,7 +581,7 @@ if ('serviceWorker' in navigator) {
             <select id="th_gender"><option>女</option><option>男</option></select></div>
       </div>
       <button id="thSubmit" type="button">测桃花</button>
-      <div id="thResult" style="margin-top:16px;"><div class="ph-empty">填好生日，点「测桃花」～</div></div>
+      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「测桃花」～</div></div>
     </div>
   </div>
 
@@ -605,7 +606,7 @@ if ('serviceWorker' in navigator) {
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
       <button id="trSubmit" type="button">抽 牌</button>
-      <div id="trResult" style="margin-top:16px;"><div class="ph-empty">想好要问的事，点「抽牌」～</div></div>
+      <div id="trResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「抽牌」～</div></div>
     </div>
   </div>
 
@@ -638,7 +639,7 @@ if ('serviceWorker' in navigator) {
           <select id="hh_b_gender"><option>女</option><option>男</option></select></div>
       </div>
       <button id="hhSubmit" type="button">合 婚</button>
-      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty">填好两人生日，点「合婚」～</div></div>
+      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好两人生日，点「合婚」～</div></div>
     </div>
   </div>
 

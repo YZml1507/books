@@ -111,7 +111,9 @@ function paint(/* v3-fx-guard */id, html) {
 }
 
 function busy(id, text) {
-  paint(id, '<div class="no-evidence">' + esc(text) + '</div>');
+  /* R230x（P2-7）：加载态带三点跳动效（复用 chat-typing），不再干等文本 */
+  paint(id, '<div class="no-evidence">' + esc(text) +
+    ' <span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span></div>');
 }
 
 /* R218a-巡4（E-a/E-b）：失败态——清掉成功期说明文字 + 内联「重新测算」
@@ -1845,7 +1847,7 @@ function _paintPoster(j, W, H) {
 
   // 标题
   ctx.fillStyle = '#7A5C2E';
-  ctx.font = '600 64px serif';
+  ctx.font = '600 64px "LXGW WenKai","Noto Serif TC",serif';
   ctx.textAlign = 'center';
   /* R230r（R29-#3）：legacy 版式混用 W 与 1080 逻辑坐标——750 档下标题/
    * pills/能量卡/水印集体左移、首 pill 被裁。几何值全部钉回 1080 逻辑系。 */
@@ -1853,7 +1855,7 @@ function _paintPoster(j, W, H) {
 
   // 四柱 pills
   var pillars = String(paipan.render || '').split(/\s+/).filter(function (p) { return p.length >= 2; });
-  ctx.font = '500 44px serif';
+  ctx.font = '500 44px "LXGW WenKai","Noto Serif TC",serif';
   pillars.slice(0, 4).forEach(function (p, i) {
     var pw = 220, gap = 24;
     var x0 = (1080 - pillars.slice(0, 4).length * pw - (pillars.slice(0, 4).length - 1) * gap) / 2;
@@ -1866,7 +1868,7 @@ function _paintPoster(j, W, H) {
 
   // 一句话结论（L0）
   ctx.fillStyle = '#3E3428';
-  ctx.font = '600 56px sans-serif';
+  ctx.font = '600 56px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   var l0 = wrapText(ctx, _pStr(warm.one_liner), 880);
   l0.forEach(function (ln, i) { ctx.fillText(ln, 540, 380 + i * 76); });
 
@@ -1881,7 +1883,7 @@ function _paintPoster(j, W, H) {
   ctx.stroke();
 
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 40px sans-serif';
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 40px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText('本命 ' + _pStr(ec.element) + '（' + _pStr(ec.element_warm) + '）', 140, cardY + 80);
 
   var rows = [];
@@ -1898,7 +1900,7 @@ function _paintPoster(j, W, H) {
     });
     rows.push(['幸运时段', hs.join('、')]);
   }
-  ctx.font = '400 38px sans-serif';
+  ctx.font = '400 38px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   rows.slice(0, 3).forEach(function (r, i) {
     var y = cardY + 160 + i * 84;
     // 幸运色色块
@@ -1940,7 +1942,7 @@ function _paintPoster(j, W, H) {
   });
 
   // 出处三条（判据 10 可追溯）
-  ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px sans-serif';
+  ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   _pArr(ec.basis).slice(0, 3).forEach(function (b, i) {
     var t = '· ' + _pStr(b);
     if (Array.from(t).length > 26) {
@@ -1961,16 +1963,16 @@ function _paintPoster(j, W, H) {
   /* R218a-11：品牌水印 + 金句 hook——「@小满的解忧铺」+ 副标
    * 写在「知命 · 仅供娱乐」上方（保留底标过 check_poster 判据 12）。 */
   ctx.fillStyle = '#7A5C2E';
-  ctx.font = '600 36px serif';
+  ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
   ctx.fillText('@小满的解忧铺', 540, 1440 - 158);
   ctx.fillStyle = '#B7A98A';
-  ctx.font = '400 24px sans-serif';
+  ctx.font = '400 24px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText('· 知命知书知天机 ·', 540, 1440 - 124);
   ctx.fillStyle = '#815934';
-  ctx.font = '500 26px sans-serif';
+  ctx.font = '500 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText('知命，是为了更好地活', 540, 1440 - 80);
   ctx.fillStyle = '#B7A98A';
-  ctx.font = '400 34px sans-serif';
+  ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText('知命 · 仅供娱乐', 540, 1440 - 38);
 
   return cv;
@@ -2027,10 +2029,10 @@ function _paintSharePoster(s, W, H) {
   ctx.textAlign = 'center';
 
   /* 标题 + 副题 */
-  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 60px serif';
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 60px "LXGW WenKai","Noto Serif TC",serif';
   ctx.fillText(_pStr(s.title) || '知命', 540, 128);
   if (s.subtitle) {
-    ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px sans-serif';
+    ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
     ctx.fillText(_gSlice(s.subtitle, 24), 540, 182);
   }
 
@@ -2038,7 +2040,7 @@ function _paintSharePoster(s, W, H) {
   var big = _pStr(s.big);
   ctx.fillStyle = '#3E3428';
   var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
-  ctx.font = '600 ' + bigSize + 'px sans-serif';
+  ctx.font = '600 ' + bigSize + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R212：三行上限（原两行导致「宜稳不」截断感），行距随字号自适应 */
   var words = wrapText3(ctx, big, 900);
   var bigGap = Math.round(bigSize * 1.35);
@@ -2057,9 +2059,9 @@ function _paintSharePoster(s, W, H) {
     ctx.textAlign = 'left';
     lines.forEach(function (r, i) {
       var y = cardY + i * lh + 10;
-      ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px sans-serif';
+      ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       ctx.fillText(r.k, 150, y);
-      ctx.fillStyle = '#3E3428'; ctx.font = '500 40px sans-serif';
+      ctx.fillStyle = '#3E3428'; ctx.font = '500 40px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var v = _pStr(r.v);
       ctx.fillText(Array.from(v).length > 16 ? _gSlice(v, 15) + '…' : v,
                    150, y + 52);
@@ -2088,9 +2090,9 @@ function _paintSharePoster(s, W, H) {
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
         iy = cy + ch - 118;
       }
-      ctx.fillStyle = '#3E3428'; ctx.font = '600 38px sans-serif';
+      ctx.fillStyle = '#3E3428'; ctx.font = '600 38px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       ctx.fillText(_gSlice(c.name, 6), cx + cw / 2, iy + 44);
-      ctx.fillStyle = '#815934'; ctx.font = '400 28px sans-serif';
+      ctx.fillStyle = '#815934'; ctx.font = '400 28px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       ctx.fillText(_gSlice(c.sub, 8), cx + cw / 2, iy + 88);
     });
   }
@@ -2100,13 +2102,13 @@ function _paintSharePoster(s, W, H) {
    * 2) 金句 hook（按 view 给不同内容，无 view 时通用）。 */
   ctx.textAlign = 'center';
   /* 水印行 */
-  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px serif';
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
   ctx.fillText('@小满的解忧铺', 540, 1320);
   /* R230r（R29-#11）：免责声明是合规件——花纹底图上浅棕字几乎不可读，
    * 给文字垫一条半透明米白衬底，任何背景下都可读。 */
   ctx.fillStyle = 'rgba(253,248,240,0.78)';
   _roundRectPath(ctx, 540 - 340, 1330, 680, 42, 21); ctx.fill();
-  ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px sans-serif';
+  ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
   ctx.fillText('· 知命知书知天机 · 仅供娱乐 ·', 540, 1356);
   /* 金句 hook（按 view 动态 + 数据驱动） */
@@ -2121,13 +2123,25 @@ function _paintSharePoster(s, W, H) {
      * 实测宽 1372px>1080）——先缩字号再截断兜底。 */
     hook = _pStr(hook);
     var _hs = 28;
-    ctx.font = '500 ' + _hs + 'px sans-serif';
+    ctx.font = '500 ' + _hs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
     while (_hs > 16 && ctx.measureText(hook).width > 980) {
-      _hs -= 2; ctx.font = '500 ' + _hs + 'px sans-serif';
+      _hs -= 2; ctx.font = '500 ' + _hs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
     }
     if (ctx.measureText(hook).width > 980) hook = _gSlice(hook, 34) + '…';
     ctx.fillStyle = '#815934';
     ctx.fillText(hook, 540, 1400);
+  }
+  /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
+   * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
+  if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
+    try {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(974, 1278, 62, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(POSTER_MASCOT, 912, 1216, 124, 124);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(974, 1278, 62, 0, Math.PI * 2); ctx.stroke();
+    } catch (e) { /* 画不出就跳过 */ }
   }
   return cv;
 }
@@ -2364,6 +2378,27 @@ async function downloadPoster(j, view) {
         new Promise(function (res) { setTimeout(res, 1500); })]);
     } catch (e) { /* 加载失败走渐变兜底 */ }
   }
+  /* R230x：吉祥物同款等待（同一超时时窗内一起等）。 */
+  if (POSTER_MASCOT.src && !(POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth)) {
+    try {
+      await Promise.race([
+        (POSTER_MASCOT.decode ? POSTER_MASCOT.decode() : Promise.resolve()),
+        new Promise(function (res) { setTimeout(res, 800); })]);
+    } catch (e) { /* 没加载上就不画贴纸 */ }
+  }
+  /* R230x（V-6）：海报字体换 LXGW 文楷链——canvas 不阻塞排版，
+   * 绘制前必须显式 load，否则首画仍回落系统 serif。加载失败
+   * 静默回落（老设备无此字体也能出图）。 */
+  try {
+    if (document.fonts && document.fonts.load) {
+      await Promise.race([
+        Promise.all([
+          document.fonts.load('600 60px "LXGW WenKai"'),
+          document.fonts.load('400 30px "LXGW WenKai"'),
+        ]),
+        new Promise(function (res) { setTimeout(res, 1500); })]);
+    }
+  } catch (e) { /* 字体没加载上也能画——fallback 链兜底 */ }
   var r = drawPoster(j);
   /* R230r（R29-#12）：画不出来要有回音——原来静默 return 像没点到。 */
   if (!r || !r.canvas) {
@@ -3693,10 +3728,17 @@ function buildLiuyaoResult(j) {
       .sort(function (a, b) { return b.position - a.position; });
     _sortedLines.forEach(function (ln) {
         const mark = ln.moving ? (ln.yang ? ' ○' : ' ×') : '';
+        /* R230x（V-5）：爻画真图形——阳=通长实条、阴=断两截，动爻加红点。
+         * 原 ⚊/⚋ 字形在部分机型渲染成小横线、卦感弱；mark 文本保留。 */
+        var _yaoCls = ln.yang ? 'yang' : 'yin';
+        var _yaoBars = ln.yang ? '<i></i>' : '<i></i><i></i>';
         html += '<div class="yao-row' + (ln.moving ? ' moving' : '') + '">' +
           '<span class="yao-name">' + esc(YAO_NAME[ln.position] || ('第' + ln.position + '爻')) +
-          '</span><span class="yao-sym">' +
-          esc((ln.symbol || (ln.yang ? '⚊' : '⚋')) ) + mark + '</span></div>';
+          '</span><span class="yao-sym" role="img" aria-label="' +
+          (ln.yang ? '阳爻' : '阴爻') + (ln.moving ? '，动爻' : '') + '">' +
+          '<span class="yao-bar ' + _yaoCls + '">' + _yaoBars + '</span>' +
+          (ln.moving ? '<span class="yao-dot"></span>' : '') +
+          '<span class="yao-mark">' + esc(mark) + '</span></span></div>';
       });
     html += '</div>';
   }
@@ -4242,6 +4284,8 @@ var POSTER_BG = {
    * 其余（含 bazi 旧版式）仍暖杏。 */
   warm: new Image(), sakura: new Image(), lilac: new Image()
 };
+/* R230x（P2-8）：海报角落小满吉祥物贴纸。 */
+var POSTER_MASCOT = new Image();
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
   taohua: 'sakura', hehun: 'sakura' };
 function _posterBgFor(view) {
@@ -4257,6 +4301,7 @@ function _idlePrefetch() {
   POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
   POSTER_BG.sakura.src = '/static/_candidates/r212b/poster-bg-sakura.png';
   POSTER_BG.lilac.src = '/static/_candidates/r212b/poster-bg-lilac.png';
+  POSTER_MASCOT.src = '/static/cream/poster-mascot.png';
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */
   var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)

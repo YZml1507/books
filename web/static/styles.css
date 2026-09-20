@@ -200,6 +200,10 @@ h1,.side-brand{
 .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 80px;}
 
 /* ── 品牌 ── */
+/* R230x（V-2）：控件字体断层——button/input/select 此前不继承字体，
+ * UA 默认落成系统黑体（实测 computed=Arial），与正文文楷混排。
+ * 全局一行收口：所有表单控件走站字体栈。 */
+button, input, select, textarea{ font-family:var(--font-sans); }
 .brand{display:flex; align-items:center; gap:14px; margin-bottom:8px;}
 /* R228l：.brand-mark 死样式删除（R-212 换 brand-mark-img 后零引用）。 */
 @keyframes bgShift{
@@ -234,22 +238,24 @@ h1,.side-brand{
   padding:28px 32px; margin:28px 0 24px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
+/* R230x（V-1）：礼盒收进顶行做 flex 子项——绝对定位时坐标系算岔，
+ * 375px 下压住日期末位字（审查轨实测差 ~13px）。进流后永不叠字。 */
 .daily-card-gift{
-  position:absolute; right:20px; top:20px; width:38%; max-width:200px;
-  border-radius:16px; overflow:hidden; opacity:0.9;
+  flex:0 0 72px; width:72px; margin-left:10px;
+  border-radius:14px; overflow:hidden;
   box-shadow:0 4px 16px rgba(184,134,11,.12);
-  pointer-events:none;   /* R228d：纯装饰图不挡下层点击 */
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
+/* R230x（P2-9）：四色彩虹顶条收敛为手帐胶带感两色。 */
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;
-  background:linear-gradient(90deg,var(--c-bazi),var(--c-tarot),var(--c-huangli),var(--c-book));
+  background:linear-gradient(90deg,#F5C9D8,var(--c-tarot));
 }
-/* R228d：gift 图是 38% 宽的绝对定位层——给顶部行右侧留垫，
- * 否则 360px 下礼盒完整压住日期文字（elementFromPoint 实测三采样点全 IMG）。 */
-.daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding-right:min(38%,205px);}
-.daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600;}
-.daily-date{font-size:14px; color:var(--muted); font-family:monospace; flex-shrink:0; min-width:90px; text-align:right;}
+/* R230x：礼盒进 flex 流后无需再垫右；label 不许折行，
+ * 日期保留等宽数字但给 CJK 兜底（纯 monospace 无中文字形）。 */
+.daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600; white-space:nowrap;}
+.daily-date{font-size:14px; color:var(--muted); font-family:ui-monospace,var(--font-wenkai),monospace; flex-shrink:0; min-width:90px; text-align:right;}
 .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
 .daily-level{
   width:80px; height:80px; border-radius:50%;
@@ -259,15 +265,17 @@ h1,.side-brand{
   box-shadow:0 6px 24px rgba(0,0,0,.15);
   transition:transform .3s ease;
 }
-.daily-level.good{background-color:#456A44; background-image:linear-gradient(135deg,#456A44,#3E7A33);box-shadow:0 6px 24px rgba(92,140,90,.35);}
-.daily-level.bad{background-color:#9A5416; background-image:linear-gradient(135deg,#B4651F,#9A5416);box-shadow:0 6px 24px rgba(154,84,22,.30);}   /* R228n：白字对比度 2.0→≥3.0（WCAG 大字下限） */
-/* R216b 续3（U-009）：凶日柔化——暖橙替代深红，字号略收。 */
-.daily-level.bad.soft{background-color:#A35B1B; background-image:linear-gradient(135deg,#C07024,#A35B1B);box-shadow:0 6px 20px rgba(163,91,27,.28); font-size:.92em;}   /* R228n：同 */
+/* R230x（V-4）：签运圆盘换马卡龙三档——浅底+深字+同色系描边，
+ * 替掉「老黄历泥金」实圆；对比度仍按大字 ≥3:1 选色。 */
+.daily-level.good{background-color:#E3F0DD; background-image:linear-gradient(135deg,#EDF6E6,#DCEBD2);color:#3F6C33;border:2px solid #BCD8AC;box-shadow:0 6px 24px rgba(92,140,90,.20);}
+.daily-level.bad{background-color:#F8E1E5; background-image:linear-gradient(135deg,#FAE7EA,#F4D8DE);color:#A43B4E;border:2px solid #EBB9C3;box-shadow:0 6px 24px rgba(180,90,110,.18);}
+/* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
+.daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:#B3455A;font-size:.92em;}
 .stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
 /* R216b 续5（V-003）：法律声明软化——缩小、降对比。 */
 .interp-disclaimer-soft{font-size:12px; opacity:.75; font-style:normal;}
 .daily-soothe{font-size:13.5px; color:var(--secondary); margin-top:6px;}
-.daily-level.mid{background-color:#7A5807; background-image:linear-gradient(135deg,#8A6408,#6E5006);box-shadow:0 6px 24px rgba(184,134,11,.35);}
+.daily-level.mid{background-color:#F7ECD2; background-image:linear-gradient(135deg,#F9F0DA,#F3E5C2);color:#7A5807;border:2px solid #E6D3A5;box-shadow:0 6px 24px rgba(184,134,11,.20);}
 .daily-level:hover{transform:scale(1.08) rotate(-3deg);}
 .daily-stars{font-size:28px; letter-spacing:6px;}
 .daily-stars .star-good{color:#A39346;text-shadow:0 0 8px rgba(255,230,109,.5);}
@@ -284,8 +292,9 @@ h1,.side-brand{
 .daily-more{
   margin-top:18px; padding:10px 24px; width:auto; font-size:14px;
   min-height:var(--tap);
-  background-color:#7A5807;  /* 实色兜底：白字在其上 6.51:1（AA 需 4.5） */
-  background-image:linear-gradient(135deg,#8A6408,#6E5006); color:#fff;
+  /* R230x：同主 CTA 玫瑰渐变 */
+  background-color:#B0435C;
+  background-image:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
   border:none; border-radius:999px; cursor:pointer; font-weight:600;
   transition:all .2s;
 }
@@ -355,7 +364,8 @@ h1,.side-brand{
   bottom:max(20px, env(safe-area-inset-bottom, 20px));
   z-index:60;
   width:52px; height:52px; border-radius:50%;
-  background:var(--primary);
+  /* R230x（V-3）：白字浅紫底仅 ~1.7:1——换深紫底，白字 ≥5.6 */
+  background:var(--primary-bg);
   border:none; cursor:pointer; padding:0;
   box-shadow:0 4px 16px rgba(0,0,0,.22);
   transition:transform .15s ease, box-shadow .15s ease;
@@ -672,13 +682,14 @@ button{
   /* R228n：实测主提交钮 41-42px，低于本仓库自定 --tap:44px 契约 */
   min-height:var(--tap);
   margin-top:20px; padding:12px 28px; font-size:15px; width:auto; cursor:pointer;
-  background-color:#7A5807;  /* 实色兜底：白字在其上 6.51:1（AA 需 4.5） */
-  background-image:linear-gradient(135deg,#8A6408,#6E5006); color:#fff;
+  /* R230x（V-4）：泥金渐变换玫瑰渐变（聊天气泡同款），白字 ≈4.9:1 */
+  background-color:#B0435C;
+  background-image:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff;
   border:none; border-radius:999px; font-weight:600;
   transition:all .25s cubic-bezier(.4,.2,.2,1); letter-spacing:.04em;
-  box-shadow:0 4px 16px rgba(184,134,11,.25);
+  box-shadow:0 4px 16px rgba(194,90,78,.25);
 }
-button:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 8px 28px rgba(184,134,11,.35);}
+button:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 8px 28px rgba(194,90,78,.32);}
 button:active{transform:translateY(0) scale(.98);}
 button:disabled{background:var(--border); color:var(--secondary); cursor:not-allowed;}
 button:focus-visible{outline:3px solid var(--text); outline-offset:2px;}
@@ -947,7 +958,15 @@ details.warm-pro-fold > summary{
 }
 .yao-row.moving{ border-color:var(--c-bazi); background:#fff5f5; }
 .yao-name{ font-size:13px; color:var(--secondary); }
-.yao-sym{ font-size:22px; font-family:var(--font-serif); color:var(--text); }
+.yao-sym{ font-size:22px; font-family:var(--font-serif); color:var(--text);
+  display:inline-flex; align-items:center; gap:8px; }
+/* R230x（V-5）：真卦画——横条替代 ⚊/⚋ 字形 */
+.yao-bar{ display:inline-flex; gap:18px; width:118px; height:15px; }
+.yao-bar i{ flex:1; background:#5A4A6A; border-radius:7px; }
+.yao-row.moving .yao-bar i{ background:#A43B4E; }
+.yao-dot{ width:9px; height:9px; border-radius:50%; background:#C0392B;
+  box-shadow:0 0 0 3px rgba(192,57,43,.15); }
+.yao-mark{ font-size:16px; color:var(--secondary); min-width:14px; text-align:center; }
 /* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
 .pro-notice{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -1165,7 +1184,8 @@ details.warm-pro-fold > summary{
  * 判据 2 的 200px 余量门柱不因入场动画爆线。全部带 reduced-motion 停用。
  * legacy 回滚主题（data-theme）下这些选择器命中与否不影响判据——动画层
  * 是 additive 装饰，回滚=回到 R209b 形态。 */
-.func-card:hover .func-icon{animation:iconWiggle .45s ease-in-out;}
+/* R230x（P2-5）：图片版图标补同款 hover 动效 */
+.func-card:hover .func-icon, .func-card:hover .func-icon-img{animation:iconWiggle .45s ease-in-out;}
 @keyframes iconWiggle{
   0%,100%{transform:rotate(0);}
   25%{transform:rotate(-8deg) scale(1.12);}
@@ -1389,6 +1409,8 @@ button:active{transform:scale(.96);}
 .ph-render{margin-top:6px;font-size:13px;color:var(--secondary);word-break:break-all;}
 .ph-actions{display:flex;gap:8px;margin-top:10px;}
 .ph-empty{color:var(--muted);padding:18px 6px;text-align:center;}
+/* R230x（P2-6）：空态配小满插画——图缺时 onerror 自移除，纯文字兜底 */
+.ph-empty-img{display:block;margin:0 auto 10px;border-radius:18px;opacity:.95;}
 .ph-detail{margin-top:16px;}
 .ph-detail .card{box-shadow:var(--shadow);}
 /* R228f：两段式删除确认——武装态把按钮翻成红底白字，3 秒后自动复原 */
@@ -1493,7 +1515,7 @@ button:active{transform:scale(.96);}
   border-radius:999px;font-size:16px;background:var(--card);color:var(--text);outline:none;}
 .hl-ask-btn{flex-shrink:0;margin:0;padding:9px 18px;border:none;border-radius:999px;
   font-size:14px;font-weight:600;min-height:var(--tap);min-width:44px;
-  background:linear-gradient(135deg,#8A6408,#6E5006);color:#fff;cursor:pointer;}
+  background:linear-gradient(135deg,#C25A4E,#B94A6A);color:#fff;cursor:pointer;}
 
 /* R228n：窄屏宽表不出页——表本身横向滚动，整页不滚 */
 .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
