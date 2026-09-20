@@ -1015,12 +1015,62 @@ def _abs_or_holiday(msg: str, now: datetime):
     yoff = next((v for w, v in _ypre.items() if w in msg_n), None)
     from guji import lunar as lunar_mod
 
+    # 农历：可带「农历/阴历/旧历」前缀与「闰」标记；无前缀时只接
+    # 正/冬/腊 三个纯农历月名（「八月十五」有歧义不放行）。
     lm = re.search(
-        r"(?:农历|阴历|旧历)([正一二两三四五六七八九十冬腊\d]{1,2})月"
+        r"(农历|阴历|旧历)?(闰)?"
+        r"([正一二两三四五六七八九十冬腊\d]{1,2})月"
         r"([初廿一二三四五六七八九十\d]{1,3})[日号]?", msg_n)
+    if lm and not lm.group(1) and not lm.group(2) \
+            and lm.group(3) not in ("正", "冬", "腊"):
+        lm = None                     # 「八月十五」无前缀不猜农历
     if lm:
-        md = _lunar_md(lm.group(1), lm.group(2))
+        md = _lunar_md(lm.group(3), lm.group(4))
         if md:
+            is_leap = bool(lm.group(2))
+            try:
+                ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
+                                               now.day)["year"]
+            except ValueError:
+                ly0 = now.year
+            lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+            # 闰月稀疏（1900-2100 间十多年才一闰）——放宽到 ±12 个农历年
+            # 并让 leap_month 把守，找真正带这个闰月的年份。
+            if is_leap and yoff is None:
+                lys = [ly for ly in range(ly0 - 12, ly0 + 13)
+                       if lunar_mod.leap_month(ly) == md[0]]
+            cands = []
+            for ly in lys:
+                try:
+                    cands.append(lunar_mod.lunar_to_solar(ly, *md, is_leap))
+                except ValueError:
+                    pass
+            if is_leap and cands:
+                # 闰月稀疏（常隔十几年）——「闰六月十五」多数在说记忆里
+                # 的那一天，按绝对就近取（过去语标仍优先落过去）。
+                if past:
+                    _ps = [d for d in cands if d <= now.date()]
+                    pick = _ps[-1] if _ps else min(
+                        cands, key=lambda d: abs((d - now.date()).days))
+                else:
+                    pick = min(cands,
+                               key=lambda d: abs((d - now.date()).days))
+            else:
+                pick = _nearest_day(cands, now, past)
+            if pick:
+                _dl, _ln = _day_suffix(msg_n, lm.end())
+                return (datetime.combine(pick + timedelta(days=_dl),
+                                         now.time()),
+                        msg_n[lm.start():lm.end() + _ln])
+
+    # 「腊月底/正月末」：农历月末——无前缀同样只放纯农历月名。
+    lme = re.search(
+        r"(农历|阴历|旧历)?([正冬腊一二两三四五六七八九十]{1,2})月"
+        r"(底|末)", msg_n)
+    if lme and (lme.group(1)
+                or lme.group(2) in ("正", "冬", "腊")):
+        _mm = _lunar_md(lme.group(2), "初一")
+        if _mm:
             try:
                 ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
                                                now.day)["year"]
@@ -1030,15 +1080,16 @@ def _abs_or_holiday(msg: str, now: datetime):
             cands = []
             for ly in lys:
                 try:
-                    cands.append(lunar_mod.lunar_to_solar(ly, *md))
+                    cands.append(lunar_mod.lunar_to_solar(
+                        ly, _mm[0], lunar_mod.month_days(ly, _mm[0])))
                 except ValueError:
                     pass
             pick = _nearest_day(cands, now, past)
             if pick:
-                _dl, _ln = _day_suffix(msg_n, lm.end())
+                _dl, _ln = _day_suffix(msg_n, lme.end())
                 return (datetime.combine(pick + timedelta(days=_dl),
                                          now.time()),
-                        msg_n[lm.start():lm.end() + _ln])
+                        msg_n[lme.start():lme.end() + _ln])
 
     for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
                        | set(_HOLIDAY_NTH)
@@ -1126,12 +1177,14 @@ def _abs_or_holiday(msg: str, now: datetime):
             _dl, _ln = _day_suffix(msg_n, _w0 + 2)
             return (datetime.combine(pick + timedelta(days=_dl), now.time()),
                     msg_n[_w0:_w0 + 2 + _ln])
-    if "月初" in msg:
+    # 「月初」须排除农历日语境——「五月初一」里的「月初」不是月初。
+    _yc = re.search(r"月初(?!一|二|两|三|四|五|六|七|八|九|十|廿|\d)", msg_n)
+    if _yc:
         cands = [date(now.year + (now.month == 12), (now.month % 12) + 1, 1),
                  date(now.year, now.month, 1)]
         pick = _nearest_day(cands, now, past)
         if pick:
-            _w0 = msg_n.find("月初")
+            _w0 = _yc.start()
             _dl, _ln = _day_suffix(msg_n, _w0 + 2)
             return (datetime.combine(pick + timedelta(days=_dl), now.time()),
                     msg_n[_w0:_w0 + 2 + _ln])
