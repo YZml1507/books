@@ -4333,7 +4333,8 @@ function buildLiuyaoResult(j) {
    * 放在 if/else 之外：温柔版与专业版都该看到这段。 */
   if (j.cross_ref && j.cross_ref.message) {
     html += '<div class="cross-ref"><span class="cross-ref-icon">☯️</span>' +
-      esc(j.cross_ref.message) + '</div>';
+      esc(j.cross_ref.message) +
+      crossDirBadge(j.cross_ref, 'gua_direction', '卦象') + '</div>';
   }
   html += tailHook('liuyao');
   html += '</div>';
@@ -4688,6 +4689,26 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 /* R39-P2-2：结果页统一「明天」收口——最后一屏指向明天而不是看完即走。 */
+/* R233b（R40-A2/W3）：cross_ref 方向副键可视化——后端算了
+ * today_direction（值宫倾向）× card/gua_direction（牌面/卦象倾向）
+ * 却只拼进 message 一句，一致性判定（两个独立信号同不同调）是现成
+ * 的说服力来源。这里做一致性小徽标：同调✓ / 一方中性~ / 相反✗。 */
+function _dirLabel(d) {
+  return { forward: '往前推', hold: '稳一稳', observe: '先看看',
+           mixed: '各一半' }[d] || '';
+}
+function crossDirBadge(cr, key, name) {
+  if (!cr || !cr[key] || !cr.today_direction) return '';
+  var a = cr[key], b = cr.today_direction;
+  var rel = (a === b) ? '同调'
+    : ((a === 'mixed' || b === 'observe') ? '并行' : '方向相反');
+  var ic = rel === '同调' ? '✓' : (rel === '并行' ? '~' : '✗');
+  return '<span class="cross-dir" title="' + esc(name) + '方向 × 今日' +
+    esc(cr.today_sign || '') + '宫方向">' + esc(name) + '·' +
+    esc(_dirLabel(a)) + ' × 值宫·' + esc(_dirLabel(b)) + ' ' +
+    ic + ' ' + esc(rel) + '</span>';
+}
+
 var _TAIL_HOOK = {
   bazi: '🌙 明天的盘面会换，记得再来看看',
   taohua: '🌙 桃花每天都在动，明天再来看看',
@@ -4823,7 +4844,8 @@ function buildTarotResult(j) {
   /* R221b：交叉引用收口 7/7——塔罗不收生日，引今天值宫 × 牌面正逆同调 */
   if (j.cross_ref && j.cross_ref.message) {
     html += '<div class="cross-ref"><span class="cross-ref-icon">🔮</span>' +
-      esc(j.cross_ref.message) + '</div>';
+      esc(j.cross_ref.message) +
+      crossDirBadge(j.cross_ref, 'card_direction', '牌面') + '</div>';
   }
   html += renderVoice(j, '📖 牌面转述（确定性规则）');
   html += tailHook('tarot');

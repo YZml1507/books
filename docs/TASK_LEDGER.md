@@ -11074,3 +11074,7 @@ scripts_importable / llm_polish / ruff 全绿。
 - probe_contract callsite 解析扩展：成员表达式实参（renderCiteTree(j.citations)）与多实参调用（renderWarm(j.warm,j.interpretation,ev)）现按形参位注入种子——helper 函数体内字段读点进钉扎面（493→532 读点，+39 全部核过真响应）
 - resolve 列表段：不再只按 [0] 判 skip-empty——扫前 16 元素取首个可判定（warm.details[2].basis 有 7 条而 [0] 为空曾致 6 读点假 SKIP）
 - 闸：contract 532 全绿（SKIP 6→0）
+
+### R233b（R40-A2/W3 cross_ref 副键可视化）
+- 塔罗/六爻 cross-ref 块新增方向一致性徽标 `crossDirBadge`：牌面/卦象方向 × 值宫方向 → 同调✓/并行~/相反✗（后端 today_direction/card_direction/gua_direction 副键此前零消费，一致性判定是现成说服力）
+- 闸：selftest 237 / contract 532 / ui_smoke 58 / ruff 全绿

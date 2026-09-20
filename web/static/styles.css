@@ -1799,3 +1799,7 @@ html{-webkit-text-size-adjust:100%;}
   font-size:13px; min-height:36px;
 }
 @media print{.celeb-backdrop{display:none !important;}}
+/* R233b：cross-ref 方向一致性徽标 */
+.cross-dir{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;
+  font-size:11px;background:rgba(122,107,168,.10);color:#6B5B95;
+  border:1px solid rgba(122,107,168,.22);vertical-align:1px;}
