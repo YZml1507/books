@@ -372,8 +372,10 @@ def compute(year: int, month: int, day: int, hour: int,
         if _lx.get("month") == 1 and not _lx.get("is_leap"):
             lichun = term_time(year, "立春") + timedelta(hours=8)
             if dt < lichun:
+                # R230a-7（R13-P2-2）：原文案「正月初一换年派会取上一年」
+                # 恰好说反——正月初一派取的是本年（新干支），立春派才取旧年。
                 warns.append("正月出生且在立春前：本盘年柱按立春换年"
-                             "（正月初一换年派会取上一年）")
+                             "（正月初一换年派会取本年干支）")
     except Exception:
         pass
 

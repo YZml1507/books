@@ -56,6 +56,9 @@ class BaziRequest(BaseModel):
     month: int = Field(..., description="月 1-12")
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
+    # R230a-7（R13-P1-3）：时辰留空时前端补 12 并置 False——后端拿到
+    # 标志给提示，不再静默按午时排。旧客户端不传此键 → 默认 True 兼容。
+    hour_known: bool = True
     gender: str = "男"
     # R229c：自由文本上限 200（TarotRequest 同款）——否则超长串原样回显
     # 进 warm.reply 撑破横屏（R5 审计 P1，实测 scrollWidth 3105px）。
@@ -270,6 +273,14 @@ class NameReviewRequest(BaseModel):
         for n in clean:
             if len(n) > 8:
                 raise ValidationError(f"名字过长：{n[:8]}…")
+        # R230a-6（R12-P2-6）：facts 此前无校验——单请求可塞 ~50 万字进
+        # prompt（仅全局 512KB 体帽兜底）。与 ChatRequest 同款界。
+        if self.facts:
+            if len(self.facts) > 20:
+                raise ValidationError("facts 最多 20 条")
+            for f in self.facts:
+                if not isinstance(f, str) or len(f) > 500:
+                    raise ValidationError("facts 单条需为 ≤500 字字符串")
 
 
 class TarotRequest(BaseModel):

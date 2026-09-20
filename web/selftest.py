@@ -652,6 +652,14 @@ def _run_inner() -> list[str]:
                      and j.get("day_wx_sheng") is True
                      and j.get("peach_same") is False
                      and j.get("render") and j.get("notes")))
+    # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
+    check("hehun.same_wx_bihe", client.post("/api/hehun", json={
+          "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
+          "a_gender": "男", "b_year": 1990, "b_month": 6, "b_day": 15,
+          "b_hour": 12, "b_gender": "女"}),
+          lambda j: (j.get("day_wx_same") is True
+                     and j.get("day_wx_sheng") is False
+                     and "比和" in j.get("render", "")))
     # R204b（D-257b）：天干五合 + 十神互见 standing 覆盖——固定两生日，
     # 庚辰×戊辰：无五合（gan_he=False）、庚见戊=偏印/戊见庚=食神。
     check("hehun.gan_he_gods", client.post("/api/hehun", json={"a_year": 1990,
@@ -1640,7 +1648,9 @@ def _run_inner() -> list[str]:
                         # R220b：交叉引用铺到桃花（星座桃花信号 × 八字强度）
                         "cross_ref"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
-                       "day_wx_b", "day_wx_sheng", "peach_a", "peach_b",
+                       "day_wx_b", "day_wx_sheng",
+                       # R230a-7（R13-P0-2）：同五行比和标志
+                       "day_wx_same", "peach_a", "peach_b",
                        "peach_same", "dayun_hits", "warm", "a_bazi", "b_bazi",
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见

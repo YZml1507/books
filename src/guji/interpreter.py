@@ -117,12 +117,17 @@ def interpret_bazi(paipan: dict, calc: dict,
             for s in strong:
                 lines.append(f"{s}偏旺——{ELEMENT_PLAIN.get(s, '')}的一面比较突出，"
                              f"用力过头时容易失衡")
+        _tied = fe.get("strong_tied") or []
+        if not strong and _tied:
+            lines.append(f"{'、'.join(_tied)}并列最高——几股劲相当，没有一行独大")
         if missing:
             for m in missing:
-                helper = ELEMENT_GENERATES.get(m)
+                # R230a-7（R13-P0-1）：补缺走「生我」方向（缺木→补水，水生木），
+                # 此前用 ELEMENT_GENERATES（我生，即泄耗方向）恰好说反。
+                helper = {v: k for k, v in ELEMENT_GENERATES.items()}.get(m)
                 tip = f"，可从{helper}的方向补" if helper else ""
                 lines.append(f"缺{m}——{ELEMENT_PLAIN.get(m, '')}的一面偏弱{tip}")
-        if not strong and not missing:
+        if not strong and not _tied and not missing:
             lines.append("五行齐全且无一行独旺，整体偏均衡")
         sections.append({"title": "五行强弱", "lines": lines})
         basis.append("calc.five_elements.counts/strong/missing")

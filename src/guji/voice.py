@@ -256,7 +256,22 @@ def _topic_of(question: str) -> tuple[tuple[str, ...], str] | None:
     return None
 
 
-def one_liner(day_master: str, calc: dict, question: str | None) -> str:
+def _topic_gender(topic: tuple[tuple[str, ...], str],
+                  gender: str | None) -> tuple[tuple[str, ...], str]:
+    """R230a-7（R13-P2-1）：感情类落点按性别分——女命以官杀为夫星，
+    男命以财星为妻星；不分性别时把财星也算进女方感情位是口径错位。
+    性别未知 → 维持合并集（向后兼容）。"""
+    gods, label = topic
+    if label == "感情":
+        if gender == "女":
+            return (("正官", "七杀"), label)
+        if gender == "男":
+            return (("正财", "偏财"), label)
+    return topic
+
+
+def one_liner(day_master: str, calc: dict, question: str | None,
+              gender: str | None = None) -> str:
     """≤20 字的一句话。有提问先回应提问，无提问给本命底色。
 
     长度硬约束：模板本身就写短；末尾仍做一次截断兜底，保证判据 2 恒成立。
@@ -265,7 +280,7 @@ def one_liner(day_master: str, calc: dict, question: str | None) -> str:
     warm = ELEMENT_WARM.get(mine, ("", ""))[0]
     topic = _topic_of(question or "")
     if topic:
-        gods, label = topic
+        gods, label = _topic_gender(topic, gender)
         hit = [t for t in (calc.get("ten_gods") or []) if t.get("god") in gods]
         if gods and hit:
             s = f"{label}这块，盘里有着落点"
@@ -281,14 +296,23 @@ def one_liner(day_master: str, calc: dict, question: str | None) -> str:
         strong = fe.get("strong") or []
         missing = fe.get("missing") or []
         # F-008：术语人话化——五行名翻译为日常语标签（金→决断、木→生长…）
-        _strong_label = ELEMENT_WARM.get(strong[0], ("", ""))[0] if strong else ""
-        _missing_label = ELEMENT_WARM.get(missing[0], ("", ""))[0] if missing else ""
+        # R230a-7（R13-P1-1）：并列偏旺说全（金火两旺→「决断、行动力」）
+        _strong_label = "、".join(ELEMENT_WARM.get(x, ("", ""))[0] or x
+                                 for x in strong[:3]) if strong else ""
+        _missing_label = "、".join(ELEMENT_WARM.get(x, ("", ""))[0] or x
+                                  for x in missing[:2]) if missing else ""
+        _tied = fe.get("strong_tied") or []
+        _tied_label = "、".join(_tied[:3])
         if strong and missing:
             s = f"{warm}底子，{_strong_label}多缺{_missing_label}"
         elif strong:
             s = f"{warm}底子，{_strong_label}偏多"
         elif missing:
             s = f"{warm}底子，缺{_missing_label}"
+            if _tied:
+                s += f"，{_tied_label}几股劲相当"
+        elif _tied:
+            s = f"{warm}底子，{_tied_label}几股劲相当"
         else:
             s = f"{warm}底子，五行挺匀"
     return s if len(s) <= _L0_MAX else s[:_L0_MAX]
@@ -297,7 +321,8 @@ def one_liner(day_master: str, calc: dict, question: str | None) -> str:
 # ---------------------------------------------------------------------------
 # L1.5 reply（判据 1/8：对提问的描述性回应，3–5 行）
 # ---------------------------------------------------------------------------
-def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
+def reply_bazi(day_master: str, calc: dict, question: str | None,
+                gender: str | None = None) -> list[str]:
     """把提问对齐到已算出的坐标，用日常语说出来。不新增结论。"""
     q = (question or "").strip()
     tg = calc.get("ten_gods") or []
@@ -314,7 +339,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
             "下面把盘面明细都列了，你可以自己对照着看。",
         ]
 
-    gods, label = topic
+    gods, label = _topic_gender(topic, gender)
     # 回声用户原话（判据 1）：只说分类标签（"学业"）会让用户觉得没被听见
     # ——他问的是"考研能上吗"。原话入引号，标签作为归类跟在后面。
     quoted = f"「{q}」" if len(q) <= 18 else f"「{q[:18]}…」"
@@ -324,16 +349,30 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
         lines.append(f"你问{quoted}——这属于{label}，主要看五行匀不匀。")
         if strong:
-            e = strong[0]
-            lines.append(f"你的{e}偏多（{ELEMENT_WARM.get(e, ('', ''))[1]}），"
-                         f"用力过头的时候容易失衡。")
+            # R230a-7（R13-P1-1）：并列偏旺全说（火土两旺→都说）
+            for e in strong[:3]:
+                lines.append(f"你的{e}偏多（{ELEMENT_WARM.get(e, ('', ''))[1]}），"
+                             f"用力过头的时候容易失衡。")
+        _tied = fe.get("strong_tied") or []
+        if not strong and _tied:
+            lines.append(f"{'、'.join(_tied)}几股劲相当，没有一行独大。")
         if missing:
             m = missing[0]
-            helper = ELEMENT_GENERATES.get(m)
+            # R230a-7（R13-P0-1）：补缺走「生我」方向（缺木→补水），此前用
+            # ELEMENT_GENERATES（我生=泄耗方向）恰好说反。:207 已是对的。
+            helper = ELEMENT_GENERATED_BY.get(m)
             tip = f"，可以从{helper}的方向补" if helper else ""
             lines.append(f"缺{m}（{ELEMENT_WARM.get(m, ('', ''))[1]}的一面偏弱）{tip}。")
-        if not strong and not missing:
+        if not strong and not _tied and not missing:
             lines.append("五行齐全、没有一行独大，整体偏均衡。")
+        # R230a-7（R13-P1-9）：把今日十神搓进正文——此前提问路径
+        # 不读 day_luck，同一盘同一问题连续多日逐字节复读。
+        _dl = calc.get("day_luck") or {}
+        _rel = str(_dl.get("day_master_rel") or "")
+        _god = _rel.rsplit("之", 1)[-1] if "之" in _rel else ""
+        _warm = TEN_GOD_WARM.get(_god)
+        if _warm:
+            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}，顺着来。")
         lines.append("具体怎么对应，盘面只是参照，你的感受同样重要。")
         return lines
 
@@ -342,8 +381,10 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         spots = "、".join(f"{t.get('pos', '')}{t.get('gan', '')}"
                           f"（{TEN_GOD_WARM.get(t.get('god', ''), (t.get('god', ''), ''))[0]}）"
                           for t in hit[:3])
+        # R230a-7（R13-P3-1）：spots 只列前 3 个，数与量不符——补「等」。
         lines.append(f"你问{quoted}——这属于{label}，"
-                     f"盘里对应的位置有 {len(hit)} 处：{spots}。")
+                     f"盘里对应的位置有 {len(hit)} 处：{spots}"
+                     f"{'等' if len(hit) > 3 else ''}。")
         first = hit[0].get("god", "")
         note = TEN_GOD_WARM.get(first, ("", ""))[1]
         if note:
@@ -365,6 +406,13 @@ def reply_bazi(day_master: str, calc: dict, question: str | None) -> list[str]:
         if warm:
             lines.append(f"另外四柱里有{r.get('type')}（{r.get('a', '')}×"
                          f"{r.get('b', '')}）——{warm}。")
+    # R230a-7（R13-P1-9）：今日十神进正文，破跨日复读。
+    _dl = calc.get("day_luck") or {}
+    _rel = str(_dl.get("day_master_rel") or "")
+    _god = _rel.rsplit("之", 1)[-1] if "之" in _rel else ""
+    _warm = TEN_GOD_WARM.get(_god)
+    if _warm:
+        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。")
     return lines[:5]
 
 
@@ -376,8 +424,13 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
     strong, missing = fe.get("strong") or [], fe.get("missing") or []
     if strong:
         # F-008：术语人话化——"五行里金偏多"→"你自带「决断」的底色"
-        _w = ELEMENT_WARM.get(strong[0], ("", ""))
-        lines.append(f"你自带「{_w[0]}」的底色——{_w[1]}。")
+        # R230a-7（R13-P1-1）：并列偏旺全说
+        for _s in strong[:3]:
+            _w = ELEMENT_WARM.get(_s, ("", ""))
+            lines.append(f"你自带「{_w[0]}」的底色——{_w[1]}。")
+    _tied = fe.get("strong_tied") or []
+    if not strong and _tied:
+        lines.append(f"{'、'.join(_tied)}几股劲相当——没有一行独大。")
     if missing:
         # F-008：术语人话化——缺行也用日常语标签
         _missing_labels = [ELEMENT_WARM.get(m, ('', ''))[0] for m in missing]
@@ -389,8 +442,9 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         _rel = str(dl["day_master_rel"])
         _god = _rel.rsplit("之", 1)[-1]
         _warm = TEN_GOD_WARM.get(_god)
-        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。"
-                     if _warm else "")
+        # R230a-7（R13-P3-4）：映射不到时此前 append 空串 → 回复出空行。
+        if _warm:
+            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。")
     lines.append("想问具体的事，在上面填一句就行。")
     return lines[:5]
 
@@ -518,8 +572,10 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         trend = "整体有起伏——事情在推进中，节奏会有两次小调整。"
     else:
         trend = "整体变数偏多——先别求一步到位，分几步走更稳。"
-    if vname and vname != bname and vn in (1, 11, 14, 19, 34, 55):
-        trend += "变卦序号靠前段（阳长之势），劲是往上走的。"
+    # R230a-7（R13-P1-4）：阳长之势 = 十二消息卦阳长段（复24/临19/泰11/
+    # 大壮34/夬43/乾1）——此前的 (14,55) 是误植（大有/丰不在消息卦阳长段）。
+    if vname and vname != bname and vn in (1, 11, 19, 24, 34, 43):
+        trend += "变卦落在阳气渐长的卦位，劲是往上走的。"
     lines.insert(min(1, len(lines)), trend)
 
     lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
@@ -550,7 +606,8 @@ def _wrap(l0: str, card: dict | None, reply: list[str],
 
 
 def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
-              question: str | None = None) -> dict:
+              question: str | None = None,
+              gender: str | None = None) -> dict:
     """八字 warm 视图。citations 逐字节复用 interpreter 输出（判据 15）。"""
     calc = calc or {}
     day_master = ""
@@ -562,7 +619,7 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
         render = (paipan or {}).get("render") or ""
         day_master = render.split("日主：")[-1][:1] if "日主：" in render else ""
     interp = interpretation or {}
-    reply = list(reply_bazi(day_master, calc, question))
+    reply = list(reply_bazi(day_master, calc, question, gender=gender))
     # R214b：日主人设卡——「小太阳」式昵称 + 高光时刻，替代术语开场。
     # 判据 1 纪律：有提问时首段必须回应提问——人设行追加在末尾而非开头。
     persona = next((p for p in (COPY_BANK.get("gan_persona") or [])
@@ -573,7 +630,7 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
     # 有提问时不插人设行：提问优先（判据 1），且避免推高结果区高度
     # （判据 2 门柱）。人设卡只在无提问的首屏场景出现。
     return _wrap(
-        one_liner(day_master, calc, question),
+        one_liner(day_master, calc, question, gender=gender),
         energy_card(day_master, calc),
         reply,
         details_from_sections(interp.get("sections") or []),
@@ -668,7 +725,26 @@ _TAROT_KW_GUIDANCE = {
     "自由": "别被束缚，你值得更好的",
     "信任": "相信对方，也相信自己",
     "放下": "该放手了，别拖着",
+    # R230a-7（R13-P0-3）：重牌软化指引——死神/高塔/恶魔/月亮/审判 之前
+    # 掉进兜底「X是一个重要信号」，吓人字眼零安抚。
+    "结束": "一个阶段翻篇了，不是坏事——腾出来的位置才有新的开始",
+    "突变": "事情可能有变化，提前有准备就不慌",
+    "束缚": "有些缠着你的东西，可以慢慢松开它",
+    "幻象": "现在看不太清就先别急着定论，等等再决定",
+    "审判": "该翻篇的翻篇，该面对的面对——这是重新评估的机会",
+    "孤独": "一个人待着的时候，正好听见自己的声音",
+    "冲突": "有摩擦不怕，说开了反而更近",
+    "恐惧": "害怕是正常的，先承认它，再看看它到底有多真",
+    "牺牲": "有些付出暂时看不到回报，但不是白费的",
+    "死亡": "一个阶段翻篇了，不是坏事——腾出来的位置才有新的开始",
+    "阻碍": "卡住了不一定是坏事——慢下来的这段正好是调整窗口",
+    "隐秘": "有些事还没浮出水面，先观察再下结论",
+    "阴影": "看不清的地方先照个亮，别急着否定自己的直觉",
 }
+
+# R230a-7（R13-P0-3）：重牌黑名单——抽到这些牌时综合判定不说
+# 「整体是顺的」（问健康抽到死神还说「顺」是错上加错）。
+_TAROT_HEAVY = {"死神", "高塔", "恶魔", "月亮", "宝剑三", "宝剑九", "宝剑十"}
 
 def _tarot_kw_guidance(kw: str, q: str) -> str:
     """D-002：将牌义关键词转化为用户问题的具体指引"""
@@ -681,7 +757,14 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
     """D-002：综合多张牌给一句方向性指引"""
     if not q:
         # C-004：禁用免责套话，改为给具体方向
+        # R230a-7（R13-P0-3）：无提问路径同样先看重牌
+        if any(c.get("name") in _TAROT_HEAVY for c in cards):
+            return "牌里有几张在提醒你，先把自己照顾好，事情慢一点没关系。"
         return "牌面整体是顺的，可以试着往前走一小步。"
+    # R230a-7（R13-P0-3）：有重牌在场时不论正逆位都不说「整体是顺的」——
+    # 先安抚再看走向。
+    if any(c.get("name") in _TAROT_HEAVY for c in cards):
+        return f"牌里有几张在提醒你的位置——关于「{q}」，先照顾好自己，事情可以慢一点推进。"
     # 根据牌的正逆位比例给综合判断
     upright_count = sum(1 for c in cards if c.get("upright"))
     total = len(cards)
@@ -738,6 +821,21 @@ def warm_taohua(t: dict) -> dict:
         if peach:
             lines.append(f"你的魅力方位在「{peach}」——传统说法图个开心，"
                          f"方位不背锅，行动才管用。")
+        # R230a-7（R13-P2-4）：copy_bank 分支此前丢了坐标事实行
+        # （落柱/红鸾/天喜）——与 fallback 分支对齐，保住可核验性。
+        _hits = [_PILLAR_WARM.get(p, p)
+                 for p in (t.get("hit_pillars") or [])]
+        if _hits:
+            lines.append(f"桃花就落在你自己的盘里（{'、'.join(_hits)}）——"
+                         f"自带吸引力的类型。")
+        _hl = "、".join(_PILLAR_WARM.get(p, p)
+                       for p in (t.get("hongluan_pillar") or []))
+        _tx = "、".join(_PILLAR_WARM.get(p, p)
+                       for p in (t.get("tianxi_pillar") or []))
+        if _hl and _hl != "未临柱":
+            lines.append(f"红鸾落在{_hl}——婚恋缘分的信号在你自己盘里。")
+        if _tx and _tx != "未临柱":
+            lines.append(f"天喜落在{_tx}——喜庆缘分的信号也有。")
         dayun = t.get("dayun_hits") or []
         if dayun:
             # F-005：应期年份动态计算用户年龄（±5 岁内有参考价值）
@@ -773,6 +871,10 @@ def warm_taohua(t: dict) -> dict:
             [],
         )
 
+    # R230a-7（R13-P2-3）：无 copy_bank 的 fallback 路径此前 l0 从未赋值
+    # → NameError。按强度给固定一句。
+    l0 = ("缘分信号满格" if "偏快" in strength
+          else "慢热蓄力中" if "慢热" in strength else "稳步升温中")
     lines: list[str] = []
     peach = t.get("peach_zhi") or ""
     yz = t.get("year_zhi") or ""
@@ -842,6 +944,10 @@ def warm_hehun(h: dict) -> dict:
         lines.append(f"两人日主五行相生（{h.get('day_wx_a', '')}与"
                      f"{h.get('day_wx_b', '')}）——能量是顺着走的，"
                      f"一方天然愿意托着另一方。")
+    elif h.get("day_wx_same"):
+        # R230a-7（R13-P0-2）：同五行是比和——此前被归入「相克」口径。
+        lines.append(f"两人日主同是{h.get('day_wx_a', '')}——同气相属，"
+                     f"合拍来得快，顶起来也镜像，各留半步就顺。")
     if h.get("peach_same"):
         lines.append(f"两人桃花支相同（都是{h.get('peach_a', '')}）——"
                      f"对感情的期待容易同频。")

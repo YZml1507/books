@@ -57,6 +57,9 @@ _NOTE_CLASH = "年支六冲：传统说法里生肖相冲，脾气得互相让�
 _NOTE_COMBINE = "年支六合：传统说法里生肖相合，缘分是顺的"
 _NOTE_DAY_WX = "日主五行相生：能量顺着走，一方天然愿意托着另一方"
 _NOTE_DAY_WX_CLASH = "日主五行相克：能量会碰，磨合期长一点但不是不能处"
+# R230a-7（R13-P0-2）：同五行是比和/同气，不是相克——此前火×火 也被
+# 归入相克分支（约 20% 组合中招）。
+_NOTE_DAY_WX_SAME = "日主同气相属：同类元素像照镜子——合拍来得快，顶撞也镜像，各留半步就顺"
 _NOTE_PEACH = "桃花支重叠：两个人的缘分信号是同频的"
 
 
@@ -79,6 +82,7 @@ class Hehun:
     god_b_sees_a: str = ""           # 乙日干见甲日干十神（R204b）
     gender_a: str = ""               # 甲性别（F-004 动态标签）
     gender_b: str = ""               # 乙性别（F-004 动态标签）
+    day_wx_same: bool = False        # R230a-7：日主同五行（比和/同气）
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
@@ -87,7 +91,8 @@ class Hehun:
         parts = [f"{ga} {self.day_gz_a}（日主{self.day_wx_a}）· {gb} {self.day_gz_b}（日主{self.day_wx_b}）"]
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
                      ("六冲" if self.clash else ("六合" if self.combine else "无冲合")))
-        parts.append(f"日主五行：" + ("相生" if self.day_wx_sheng else "相克"))
+        parts.append(f"日主五行：" + ("相生" if self.day_wx_sheng
+                                   else ("比和" if self.day_wx_same else "相克")))
         if self.gan_he:
             parts.append("日干五合")
         if self.god_a_sees_b:
@@ -104,7 +109,10 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     clash = SIX_CLASH.get(za) == zb
     combine = SIX_COMBINE.get(za) == zb
     wxa, wxb = GAN_ELEMENT[b_a.day[0]], GAN_ELEMENT[b_b.day[0]]
-    sheng = _SHENG.get(wxa) == wxb or _SHENG.get(wxb) == wxa
+    # R230a-7（R13-P0-2）：同元素先判比和——同五行不落入相生表，此前
+    # 直接掉进「相克」分支（火×火 → 「相克」）。
+    same = wxa == wxb
+    sheng = (not same) and (_SHENG.get(wxa) == wxb or _SHENG.get(wxb) == wxa)
     ta, tb = taohua_compute(b_a), taohua_compute(b_b)
     pa, pb = ta.peach_zhi, tb.peach_zhi
     peach_same = pa == pb
@@ -118,7 +126,8 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         notes.append(_NOTE_CLASH)
     if combine:
         notes.append(_NOTE_COMBINE)
-    notes.append(_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH)
+    notes.append(_NOTE_DAY_WX_SAME if same
+                 else (_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH))
     if gan_he:
         notes.append(_GAN_HE_NOTE)
     if god_ab and god_ba:
@@ -134,6 +143,7 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         day_gz_a=b_a.day, day_gz_b=b_b.day,
         day_wx_a=wxa, day_wx_b=wxb, day_wx_sheng=sheng,
         peach_a=pa, peach_b=pb, peach_same=peach_same,
+        day_wx_same=same,
         gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
         gender_a=getattr(b_a, "gender", ""), gender_b=getattr(b_b, "gender", ""),
         notes=notes,

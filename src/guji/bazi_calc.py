@@ -213,7 +213,12 @@ def calc(b: Bazi, ask_date: str | None = None,
     counts = five_element_counts(b)
     missing = [e for e, v in counts.items() if v <= 0.001]
     mx = max(counts.values())
-    strong = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
+    # R230a-7（R13-P1-1）：并列最高 = 均势不是独旺——此前木火金水同分时
+    # 四行全标「偏旺」（抽样约 4.7% 的盘踩到）。并列放 strong_tied，
+    # strong 只保留唯一最高者。
+    _tops = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
+    strong = _tops if len(_tops) == 1 else []
+    strong_tied = _tops if len(_tops) > 1 else []
 
     # --- 地支关系：命局内两两 + 三合/自刑 ---
     zhis = [p[1] for p in pillars]
@@ -275,6 +280,8 @@ def calc(b: Bazi, ask_date: str | None = None,
         parts.append(f"缺{''.join(missing)}")
     if strong:
         parts.append(f"{'、'.join(strong)}偏旺")
+    elif strong_tied:
+        parts.append(f"{'、'.join(strong_tied)}均势（无一行独大）")
     if relations:
         parts.append("地支关系：" + "；".join(f"{r['note']}" for r in relations))
     if day_branch or day_luck["day_master_rel"]:
@@ -292,7 +299,8 @@ def calc(b: Bazi, ask_date: str | None = None,
 
     return {
         "ten_gods": ten_gods,
-        "five_elements": {"counts": counts, "missing": missing, "strong": strong},
+        "five_elements": {"counts": counts, "missing": missing,
+                           "strong": strong, "strong_tied": strong_tied},
         "relations": relations,
         "day_luck": day_luck,
         "summary": "。".join(parts) + "。",

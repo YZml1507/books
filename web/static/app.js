@@ -413,7 +413,9 @@ function buildChatContext(viewKey) {
       '），这两人配吗';
     facts = ['甲方日柱：' + (a.day || '—'), '乙方日柱：' + (b.day || '—')];
     if (j.day_wx_sheng !== undefined) {
-      facts.push('日主五行：' + (j.day_wx_sheng ? '相生' : '相克'));
+      /* R230a-7（R13-P0-2）：同五行是比和，不是相克 */
+      facts.push('日主五行：' + (j.day_wx_sheng ? '相生' :
+                                 (j.day_wx_same ? '比和' : '相克')));
     }
   } else if (viewKey === 'huangli') {
     var yi = (j.yi || []).slice(0, 3).join('、');
@@ -425,13 +427,17 @@ function buildChatContext(viewKey) {
     var names = (j.full_names || []).slice(0, 5).map(function (n) {
       return n.full_name;
     });
-    var miss = ((j.five_elements || {}).missing || []).join('');
+    /* R230a-7（R13-P1-6）：missing 只报真实缺行；俱全时补 weak 口径 */
+    var _fe0 = j.five_elements || {};
+    var miss = (_fe0.missing || []).join('');
+    var _weak = (_fe0.weak || []).join('');
     /* v2 修复：消息带上性别（用户反馈：发给小满的消息里没有性别）。
        性别存在 rememberResult 存的 body 里（submit 时随 req 一起存）。 */
     var _g = (entry && entry.body && entry.body.gender) || '';
     var _gl = _g ? ('我是' + _g + '生，') : '';
     msg = _gl + '候选名字是' + (names.join(' / ') || '（还没生成）') +
-      (miss ? '，八字缺' + miss : '') + '，哪个更好';
+      (miss ? '，八字缺' + miss : (_weak ? '，八字偏弱' + _weak : '')) +
+      '，哪个更好';
     facts = (_g ? ['性别：' + _g] : []).concat(
       names.map(function (n) { return '候选名：' + n; }));
   } else if (viewKey === 'liuyao') {
@@ -539,59 +545,53 @@ function autoSendChatContext() {
  * 选句策略：同 session 内消息序号 = 轮换种子（同用户复读也变），关键词匹配
  * 命中后取对应池的第 (counter % pool_size) 句。零 API 契约变更、零后端改动。 */
 var _CHAT_FALLBACK_DEFAULT = [
-  "今天小满提前打烊啦～先把上面的牌面看着，明天 0 点我准时在线，找我聊。",
-  "解忧铺今晚休整中，今天发的心事我记下了，明天来听你细说。",
-  "小满今天不上班，门口的牌子写着『明日再会』✨ 你先歇会儿，明天找我。",
-  "今晚小满调休中～把心事先写下来，明天上线第一时间翻你的牌。",
-  "打烊了哦～这条消息我存着，明天0点以后来找我说完。",
-  "解忧铺的灯今天关了——你的心事没丢，明天开门第一单给你留着。",
-  "今晚上线时间到了我先下了，存好你的话，明天带着新力气一起拆。",
-  "小满今晚关店早，你先看看上面那张牌的提示，明天找我深聊。",
-  "门牌已经翻到『休息中』，你的消息我等明天再回——今晚先睡个好觉。",
-  "今天解忧铺的茶凉了，明天重新烧——你写下来的我都会读。"
+  "今天小满提前打烊啦～先把上面的牌面看着，想聊的时候随时来，我一直在这。",
+  "解忧铺这会儿休整中，发的心事我记下了——随时回来听我细说。",
+  "小满现在不上班，门口的牌子写着『歇业中』✨ 你先歇会儿，想聊再来。",
+  "这会儿小满调休中～把心事先写下来，我一回来就翻你的牌。",
+  "打烊了哦～这条消息我存着，下回开门接着说。",
+  "解忧铺的灯这会儿关了——你的心事没丢，开门第一单给你留着。",
+  "我先歇一会儿，存好你的话，回来带着力气一起拆。",
+  "小满今晚关店早，你先看看上面那张牌的提示，回来找我深聊。",
+  "门牌已经翻到『休息中』，你的消息我存着——先睡个好觉。",
+  "解忧铺的茶这会儿凉了，重新烧上了——你写下来的我都会读。"
 ];
 var _CHAT_FALLBACK_BY_KW = {
   'tired': [
-    "累了啊…小满今天不上班，明天听你说细节。今晚先喝口温水，别再撑了。",
-    "听着就累。先把肩膀松下来，明天来找我，咱们一件一件拆。",
-    "身体先叫停一下比什么都重要。今晚睡饱，明天找我。",
-    "累的时候做的决定十有八九会后悔，今晚先放放，明天来。"
+    "累了啊…小满这会儿不在岗，细节留着我回来听。先喝口温水，别再撑了。",
+    "听着就累。先把肩膀松下来，回头来找我，咱们一件一件拆。",
+    "身体先叫停一下比什么都重要。先睡饱，回头找我。",
+    "累的时候做的决定十有八九会后悔，先放放，回头来。"
   ],
   'work': [
-    "工作的坎儿先不急开今晚的会——思路睡一觉会清楚很多。明天找我聊细节。",
-    "听到工作的苦。明天跟我讲讲你卡在哪一环，咱们一起拆。",
-    "工作的事交给明天的我，今晚先下班。",
-    "职场的弯弯绕绕明天拆给你听。今晚喝口热的，先喘口气。"
+    "工作的坎儿先不急开会——思路睡一觉会清楚很多，回头找我聊细节。",
+    "听到工作的苦。回头跟我讲讲你卡在哪一环，咱们一起拆。",
+    "工作的事先放我这儿，你今晚先下班。",
+    "职场的弯弯绕绕回来拆给你听。先喝口热的，喘口气。"
   ],
   'love': [
-    "感情的事急也急不出答案。今晚先放过自己，明天来跟我讲。",
-    "爱里的纠结最难熬。明天来找我，把心意慢慢理顺。",
-    "今天先不猜他的心思了，明天来听我说说牌面给的信号。",
-    "心动或心累都先收着，明天我陪你解。"
+    "感情的事急也急不出答案。先放过自己，回头来跟我讲。",
+    "爱里的纠结最难熬。回头来找我，把心意慢慢理顺。",
+    "先不猜他的心思了，回头来听我说说牌面给的信号。",
+    "心动或心累都先收着，回来我陪你解。"
   ],
   'study': [
-    "学习的压力今晚先放一放，脑子也需要打烊。明天我陪你拆重点。",
-    "考试的事交给明天的自己——今晚先复盘三件今天做对的小事。",
-    "学不进去的时候别硬撑，明天来我帮你把节奏理一理。",
-    "作业的事明天再战。今晚奖励自己一集短剧。"
+    "学习的压力先放一放，脑子也需要打烊。回头我陪你拆重点。",
+    "考试的事先交给睡一觉的自己——先复盘三件今天做对的小事。",
+    "学不进去的时候别硬撑，回头来我帮你把节奏理一理。",
+    "作业的事回头再战。先奖励自己一集短剧。"
   ],
   'money': [
-    "钱包的事明天再算——今晚先不想它了。",
-    "理财的纠结明天拆给你听。今晚先关掉账单页面。",
-    "今天先不数余额。明天来找我，把账本翻一遍。",
-    "钱的事别熬夜想——夜里做的预算都偏严。明天聊。"
-  ],
-  'reading': [
-    "牌面我看了，今天先不展开细说——明天上线我把核心那一条讲给你听。",
-    "牌面的提示在，但小满今天不上班。明天找我对这一条，帮你揉碎了讲。",
-    "这张牌不是三两句能说完的。今晚先看，明天来找我深读。",
-    "牌先不剧透了——小满今晚打烊，明天来翻牌。"
+    "钱包的事回头再算——先不想钱的事。",
+    "理财的纠结回来拆给你听。先关掉账单页面。",
+    "先不数余额。回头来找我，把账本翻一遍。",
+    "钱的事别熬夜想——夜里做的预算都偏严。回头聊。"
   ],
   'default': [
-    "今天小满提前打烊啦～先把上面的牌面看着，明天 0 点我准时在线。",
-    "解忧铺今晚休整中，你的心事我存着，明天来听。",
-    "门牌已经翻到『休息中』，明天找我深聊。",
-    "今天解忧铺的茶凉了，明天重新烧——你写下来的我都会读。"
+    "今天小满提前打烊啦～先把上面的牌面看着，我一直在这。",
+    "解忧铺这会儿休整中，你的心事我存着，随时来听。",
+    "门牌已经翻到『休息中』，回头找我深聊。",
+    "解忧铺的茶凉了，重新烧上了——你写下来的我都会读。"
   ]
 };
 /* 关键词→分类映射（命中第一个即用） */
@@ -740,6 +740,9 @@ function chatBubble(role, text, opts) {
    * 是否含 'chat-typing' 子串——用户消息自带这串字就绕过 esc 裸插
    * innerHTML（自注入面）。用户/后端文本一律 renderRichText（先 esc）。 */
   if (opts && opts.raw) div.innerHTML = text;
+  /* R230a-6（R12-P3-9）：用户自己发的气泡不跑富文本——「3*5」「2*面霜*」
+   * 会被单 * 规则误渲成斜体。用户输入没有 markdown 语义，textContent 即净。 */
+  else if (role === 'me') div.textContent = text;
   else div.innerHTML = renderRichText(text);   /* v3 P5：markdown 渲染 */
   flow.appendChild(div);
   flow.scrollTop = flow.scrollHeight;
@@ -766,7 +769,7 @@ function chatSend() {
       var sendBtn2 = document.getElementById('chatSendBtn');
       /* D-006：第一条自动发后允许追问 1 次，累计发送 ≥2 次后才锁 */
       if (_CHAT_SEND_COUNT >= 2) {
-        if (input) { input.disabled = true; input.placeholder = '小满休息中，明天再来聊吧'; }
+        if (input) { input.disabled = true; input.placeholder = '小满休息中，回头再来聊吧'; }
         if (sendBtn2) sendBtn2.disabled = true;
       }
       return;
@@ -1683,7 +1686,8 @@ function _posterHookForView(view, j) {
   /* qiming: 用 TOP 1 名 + 评分（j 必有 full_names）；v2 用新评分口径 */
   if (view === 'qiming' && j && j.full_names && j.full_names[0]) {
     var top = j.full_names[0];
-    var _ts = _qmScore(top, (j.five_elements || {}).missing);
+    var _fe1 = j.five_elements || {};
+    var _ts = _qmScore(top, (_fe1.missing && _fe1.missing.length) ? _fe1.missing : (_fe1.weak || []));
     return '首选「' + (top.full_name || '') + '」· 参考分 ' + (_ts.total || 0) + ' / 100';
   }
   /* taohua: 用桃花支 + 强度 */
@@ -1694,7 +1698,8 @@ function _posterHookForView(view, j) {
   }
   /* hehun: 用双方日主五行 */
   if (view === 'hehun' && j && j.day_wx_a && j.day_wx_b) {
-    return j.day_wx_a + ' 遇 ' + j.day_wx_b + ' · ' + (j.day_wx_sheng ? '相生' : '互补');
+    return j.day_wx_a + ' 遇 ' + j.day_wx_b + ' · ' +
+      (j.day_wx_sheng ? '相生' : (j.day_wx_same ? '同气' : '互补'));
   }
   /* 默认文案版（R218a-11 原版） */
   var hooks = {
@@ -1797,7 +1802,7 @@ function buildShareData(view, j) {
       sh.big = l0 || '甜度超标组合';
       sh.lines = [];
       if (j && j.day_wx_a && j.day_wx_b) {
-        var sheng = j.day_wx_sheng ? ' · 相生' : '';
+        var sheng = j.day_wx_sheng ? ' · 相生' : (j.day_wx_same ? ' · 比和' : '');
         sh.lines.push({ k: '日主五行', v: j.day_wx_a + ' ↔ ' + j.day_wx_b + sheng });
       }
       if (j && j.clash) sh.lines.push({ k: '六冲', v: j.clash });
@@ -3313,8 +3318,10 @@ async function doQiming() {
     const bz = j.bazi || {};
     if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
     const fe = j.five_elements || {};
+    /* R230a-7（R13-P1-6）：俱全时写「偏弱」不写「缺」 */
     html += '<p class="nayin">五行分布：' + esc(fmtScalar(fe.counts)) +
-      (fe.missing && fe.missing.length ? '　缺：' + esc(fe.missing.join('、')) : '') +
+      (fe.missing && fe.missing.length ? '　缺：' + esc(fe.missing.join('、')) :
+       (fe.weak && fe.weak.length ? '　偏弱：' + esc(fe.weak.join('、')) : '')) +
       '</p>';
     if (j.summary) html += '<div class="calc-summary">' + esc(j.summary) + '</div>';
     // R187b：完整名推荐卡（specs/006 前置：用户痛点「没给出完整名字」）
@@ -3338,7 +3345,9 @@ async function doQiming() {
     }
     var _scored = _styleNames.map(function (n, idx) {
       n._rank = idx;
-      return { n: n, s: _qmScore(n, fe.missing) };
+      /* R230a-7（R13-P1-6）：俱全时按 weak 打分（选字池用的就是 weak） */
+      return { n: n, s: _qmScore(n,
+        (fe.missing && fe.missing.length) ? fe.missing : (fe.weak || [])) };
     }).sort(function (a, b) { return b.s.total - a.s.total; });
     if (_scored && _scored.length) {
       html += '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
@@ -3384,7 +3393,7 @@ async function doQiming() {
      * 提示语，不再可反复点。 */
     var _aiOff = !j.ai_task_id;
     html += '<button class="chat-entry" type="button" id="nameReviewBtn"' +
-      (_aiOff ? ' disabled title="小满点评今天休息，明天再来吧"' : '') + '>' +
+      (_aiOff ? ' disabled title="小满点评这会儿休息，回头再来吧"' : '') + '>' +
       '✨ 让 AI 用古籍典故点评这些名字</button>' +
       '<div id="nameReviewOut" hidden></div>';
     /* candidates[] = {char, element, radical, meaning}。
@@ -3422,12 +3431,13 @@ async function doQiming() {
       }).filter(Boolean).slice(0, 6);
       postJSON('/api/qiming/review', {
         names: names,
-        facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无')]
+        facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无') +
+          (((j.five_elements || {}).weak || []).length ? '，偏弱：' + j.five_elements.weak.join('、') : '')]
       }).then(function (rj) {
         if (!rj.review_task_id) {
           /* R216b 续5（U-019）：降级文案带人设+替代引导；按钮保持置灰。 */
           paint('nameReviewOut', '<div class="no-evidence">小满点评今天休息～' +
-            '名字的寓意卡片里都有说明，先看着，明天来听故事版 ✨</div>');
+            '名字的寓意卡片里都有说明，先看着，回头来听故事版 ✨</div>');
           const o = el('nameReviewOut'); if (o) o.hidden = false;
           if (btn) btn.disabled = false;
           return;
@@ -3943,9 +3953,10 @@ async function doHehun() {
     html += '<span class="pill sm" style="background:' + relColor + ';">年支（' +
       esc(j.year_zhi_a || '') + '×' + esc(j.year_zhi_b || '') + '）：' +
       esc(relLabel) + '</span>';
+    /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
     html += '<span class="pill sm" style="background:' +
-      (j.day_wx_sheng ? 'var(--c-good)' : 'var(--c-bazi)') + ';">日主五行：' +
-      esc(j.day_wx_sheng ? '相生' : '非相生') + '</span>';
+      ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';">日主五行：' +
+      esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '非相生')) + '</span>';
     html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
       esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
       esc(j.peach_same ? '重叠' : '不同') + '</span>';

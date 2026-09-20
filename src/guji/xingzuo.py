@@ -147,6 +147,32 @@ def day_sign(day_zhi: str) -> str:
     return _ZHI_SIGN.get(day_zhi or "", "")
 
 
+# R230a-7（R13-P1-5）：日运日变层——原实现每宫的 note/love/career/wealth
+# 是恒定串，任何一天打开星座页都一字不差（只有值宫高亮在轮转）。
+# 加「日课」池按日干支确定性轮换（不能用内置 hash()——str.hash 进程间
+# 加盐，重启即变）。宫位底色保留为 sign_note，供详情区对照。
+_DAILY_BEATS = (
+    "今日宜开口——想到的话别憋着",
+    "今日宜收尾——拖着的尾巴适合清掉",
+    "今日宜慢——急事缓办，稳比快赚",
+    "今日宜主动——先迈半步的人占便宜",
+    "今日宜断舍离——不顺手的就放下",
+    "今日宜储蓄——进账管住，别冲动花",
+    "今日宜联结——久未联系的人可以戳一下",
+    "今日宜独处——安静半天，气就顺了",
+    "今日宜早睡——把觉睡好是最便宜的转运",
+    "今日宜尝试——小范围试水，别一把梭",
+    "今日宜复盘——回头看一眼，答案多半在里面",
+    "今日宜换道——老路走不通就别硬撞",
+)
+
+
+def _daily_beat(day_ganzhi: str, sign_name: str) -> str:
+    """日干支 + 宫名 → 确定性的当日一句。输入固定输出固定。"""
+    h = sum(ord(c) for c in (day_ganzhi or "") + (sign_name or ""))
+    return _DAILY_BEATS[h % len(_DAILY_BEATS)]
+
+
 def daily_horoscope(day_ganzhi: str) -> dict:
     """当日日干支 → 十二宫聚合卡（今日值宫 + 全 12 宫一句话）。
 
@@ -158,13 +184,15 @@ def daily_horoscope(day_ganzhi: str) -> dict:
     return {
         "day_ganzhi": day_ganzhi,
         "today_sign": today,
-        "today_note": SIGNS[today]["note"] if today else "",
+        "today_note": (_daily_beat(day_ganzhi, today) if today else ""),
         "signs": [
             {
                 "sign": name,
                 "palace": SIGNS[name]["palace"],
                 "star": SIGNS[name]["star"],
-                "note": SIGNS[name]["note"],
+                # note 换日变句；sign_note 保留宫位底色
+                "note": _daily_beat(day_ganzhi, name),
+                "sign_note": SIGNS[name]["note"],
                 "love": SIGNS[name].get("love", ""),
                 "career": SIGNS[name].get("career", ""),
                 "wealth": SIGNS[name].get("wealth", ""),

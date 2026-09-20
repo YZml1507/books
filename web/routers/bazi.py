@@ -72,9 +72,11 @@ def chat(req: ChatRequest) -> dict:
     # R227b：黄历类提问先在后端算成「黄历判定」事实再交给小满——
     # 事项没列进宜忌 ≠ 不支持（中性 + 近期吉日），杜绝照本宣科式回复。
     facts = list(req.facts or [])
-    facts += services.chat_huangli_facts(req.message)
+    # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是
+    # 话题参考，按子串升格会让伪造判定混入权威位。
     tid = llm_polish.spawn_chat_task(
-        req.session_id, req.message, facts=facts)
+        req.session_id, req.message, facts=facts,
+        verdict_facts=services.chat_huangli_facts(req.message))
     if tid:
         out["chat_task_id"] = tid
     return out

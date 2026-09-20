@@ -198,7 +198,16 @@ def bazi(req) -> dict:
                                                evidence, req.question)
     # R182b（004 M1）：warm 视图 **additive** 附加——不动 interpretation 一个
     # 字节。判据 9 要求专业模式逐字节等于基线，由 web/baseline_voice.py 把关。
-    warm = voice.warm_bazi(paipan_out, calc_out, interpretation, req.question)
+    # R230a-7（R13-P2-1）：gender 透传——感情类落点按性别分星。
+    warm = voice.warm_bazi(paipan_out, calc_out, interpretation,
+                           req.question, gender=req.gender)
+
+    # R230a-7（R13-P1-3）：时辰留空 → warm reply 首部明示时柱是默认午时，
+    # 响应带 hour_known 供前端卡面标注。此前静默按午时排。
+    if req.hour_known is False:
+        warm["reply"] = ["没填时辰——时柱这条按中午 12 点算的，"
+                          "前三柱（年/月/日）不受影响，照样准。"] + list(
+                              warm.get("reply") or [])
 
     # R187b（specs/006）：AI 润色层，additive 附加。失败/关闭 → None，
     # 前端整块不渲染；LLM 永远不是承重墙（D-244a）。
@@ -207,7 +216,8 @@ def bazi(req) -> dict:
     # （响应与旧版逐字节一致，specs/006 判据 11）。
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
-        llm_polish.facts_bazi(paipan_out, warm, req.question),
+        llm_polish.facts_bazi(paipan_out, warm, req.question,
+                              gender=req.gender),
         req.question)
 
     # R219b（P0-4 用户裁决）：不再把排盘写入 history.db——「我的解读」历史
@@ -233,6 +243,7 @@ def bazi(req) -> dict:
         # 是农历值，直接拿去查黄道边界会算错座。
         "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
+        **({"hour_known": req.hour_known} if req.hour_known is False else {}),
     }
     paipan_history.save_async({
         "year": req.year, "month": req.month, "day": req.day,
@@ -306,6 +317,7 @@ def hehun(req) -> dict:
         "clash": h.clash, "combine": h.combine,
         "day_wx_a": h.day_wx_a, "day_wx_b": h.day_wx_b,
         "day_wx_sheng": h.day_wx_sheng,
+        "day_wx_same": h.day_wx_same,   # R230a-7（R13-P0-2）：同五行比和
         "peach_a": h.peach_a, "peach_b": h.peach_b, "peach_same": h.peach_same,
         # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
         "gan_he": h.gan_he,
@@ -1267,15 +1279,17 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     R228r（chat-flow 审查）：原先只有明天/后天/大后天三档，昨天/下周X/周末
     静默按今天判——说错日期比不答更伤（用户拿「明天」的答案去安排「下周」）。
     """
-    if "大后天" in msg or "大後天" in msg:
+    if "大后天" in msg or "大後天" in msg or "大后日" in msg:
         return now + timedelta(days=3), "大后天"
-    if "大前天" in msg:
+    if "大前天" in msg or "大前日" in msg:
         return now - timedelta(days=3), "大前天"
-    if "后天" in msg or "後天" in msg:
+    # R230a-6（R12-P3-3）：「日」字辈（后日/前日）此前前端会解、后端不
+    # 认——同一句问法两侧判定不同天（parity 探针已钉扎）。
+    if "后天" in msg or "後天" in msg or "后日" in msg or "後日" in msg:
         return now + timedelta(days=2), "后天"
     if "过两天" in msg or "過兩天" in msg:
         return now + timedelta(days=2), "过两天"
-    if "前天" in msg:
+    if "前天" in msg or "前日" in msg:
         return now - timedelta(days=2), "前天"
     if "明天" in msg or "明日" in msg:
         return now + timedelta(days=1), "明天"
