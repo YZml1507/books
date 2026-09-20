@@ -1887,7 +1887,8 @@ function showPosterModal(canvas, view) {
   /* 视图名 → 人话标题 */
   var viewTitle = ({
     bazi: '今日命盘', liuyao: '六爻指引', tarot: '塔罗指引',
-    qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势'
+    qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势',
+    huangli: '今日宜忌'
   })[view] || '命盘海报';
   var img = canvas.toDataURL('image/png');
   _posterTrigger = document.activeElement;   /* R228d：关闭时焦点归还 */
