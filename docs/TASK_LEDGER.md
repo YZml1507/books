@@ -11063,3 +11063,9 @@ scripts_importable / llm_polish / ruff 全绿。
 - **P3-3 320px 礼盒余裁**：52px→44px+margin 6px
 - **nit**：?view=bogus toast 后 replaceState 清参（F5 不再复弹）
 - **闸**：selftest 237 / contract 477(SOFT40) / ui_smoke 58 / parity 88 / baseline 14 / ruff 全绿
+
+### R232d（R40 读书域字段尾批）
+- concept：0 命中时渲染后端 hint 引导语（此前空结果只剩空表）；census 表补底本归属；shared_truncated 披露「共 N 处只列前 30」
+- threads 列表：opened_at 开题日期；truncated 时披露「共 N 条只显示前 50」；详情 claims 补 method/created_at 小标
+- compare_works：wit 头部补底本（attribution）
+- **闸**：selftest 237 / contract 493 / ui_smoke 58 / ruff 全绿

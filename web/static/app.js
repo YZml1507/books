@@ -3959,17 +3959,27 @@ async function _threadListHtml() {
   const list = await api('/api/threads');
   var html = '';
   (list.threads || []).forEach(function (t) {
+    /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
+     * 一眼可辨新旧（updated_at 只记最近动静）。 */
+    var _opened = t.opened_at ? (' · 开题 ' + esc(t.opened_at)) : '';
     html += '<div class="thread-item"><div class="thread-topic">' +
       esc(t.topic || '') + '</div>' +
       '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
       ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
-      esc(t.updated_at || '') + '</div>' +
+      esc(t.updated_at || '') + _opened + '</div>' +
       '<div class="thread-actions">' +
       '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
       '">查看</button>' +
       '<button class="thread-del" type="button" data-thread-del="' + esc(t.id) +
       '" aria-label="删除线程 #' + esc(t.id) + '">删</button></div></div>';
   });
+  /* R232d（R40-A12）：线程超 50 条被截断——如实披露总数，
+   * 不再让用户以为列表就这么多。 */
+  if (list.truncated && list.total != null) {
+    html += '<div class="thread-meta" style="margin-top:8px;">共 ' +
+      esc(list.total) + ' 条线程，只显示前 ' + esc(list.limit || 50) +
+      ' 条</div>';
+  }
   return html;
 }
 
@@ -3998,7 +4008,10 @@ async function showThread(tid) {
     (j.claims || []).forEach(function (c) {
       html += '<div class="claim-box"><span class="claim-kind">' + esc(c.kind) +
         '</span>' + esc(c.claim || '') +
-        '<span class="claim-conf">' + esc(c.confidence || '') + '</span>';
+        '<span class="claim-conf">' + esc(c.confidence || '') +
+        /* R232d：method/created_at 此前零读——补上让论断可追溯 */
+        (c.method ? ' · ' + esc(c.method) : '') +
+        (c.created_at ? ' · ' + esc(c.created_at) : '') + '</span>';
       (c.evidence || []).forEach(function (ev) {
         html += '<div class="claim-ev">' + esc(ev.role) + ' · ' + esc(ev.work_id) +
           ' @' + esc(ev.page_anchor || '') + '：' + esc(ev.quote || '') + '</div>';
@@ -4036,8 +4049,9 @@ async function doCompareWorks() {
       html += '<div class="cmp-wit" style="border-left:3px solid ' + c + ';">' +
         '<h3 style="color:' + c + ';">《' + esc(w.title || w.work_id) + '》 命中 ' +
         esc(w.n_hits) + ' 条' + (w.truncated ? '（已截断）' : '') + '</h3>' +
-        '<p style="font-size:12px;color:var(--secondary);">层分布：' +
-        esc(fmtScalar(w.layers)) + '</p>';
+        '<p style="font-size:12px;color:var(--secondary);">' +
+        (w.attribution ? '底本：' + esc(w.attribution) + ' · ' : '') +
+        '层分布：' + esc(fmtScalar(w.layers)) + '</p>';
       (w.top || []).forEach(function (t) {
         html += '<div class="ev-item"><div class="ev-meta">' + esc(humanCite(t.citation || '')) +
           (t.layer ? ' · ' + esc(t.layer) : '') + '</div>' +
@@ -4081,11 +4095,19 @@ async function doConcept() {
     html += '<table class="works"><thead><tr><th>书</th><th>命中</th><th>层分布</th>' +
       '</tr></thead><tbody>';
     (j.census || []).forEach(function (row) {
-      html += '<tr><td>《' + esc(row.title || row.work_id) + '》</td>' +
+      html += '<tr><td>《' + esc(row.title || row.work_id) + '》' +
+        /* R232d：底本归属（kanripo/tls/…）一直在回——同名书区分版本 */
+        (row.attribution ? '<div style="font-size:11px;color:var(--muted);">' +
+          esc(row.attribution) + '</div>' : '') + '</td>' +
         '<td class="num">' + esc(row.n_hits) + '</td>' +
         '<td>' + esc(fmtScalar(row.layers)) + '</td></tr>';
     });
     html += '</tbody></table></div>';
+    /* R232d（R40-A13）：0 命中时后端专门回了引导语 hint，
+     * 此前前端不渲染——空结果只剩一张空表。 */
+    if (!(j.census || []).length && j.hint) {
+      html += '<p class="hit-cite">' + esc(j.hint) + '</p>';
+    }
     const shared = j.shared_addresses || [];
     if (shared.length) {
       html += '<h3 style="margin-top:16px;">同址多见证地图</h3>';
@@ -4093,6 +4115,11 @@ async function doConcept() {
         html += '<div class="finding">' + esc(s.addr || '') + '　' +
           esc(fmtScalar(s.works)) + '</div>';
       });
+      /* R232d：共享址超 30 条被截断——如实披露总数（shared_total 一直在回）。 */
+      if (j.shared_truncated && j.shared_total) {
+        html += '<div class="finding" style="color:var(--muted);">共 ' +
+          esc(j.shared_total) + ' 处同址，只列出前 30</div>';
+      }
     }
     const first = (j.census || [])[0];
     if (first && first.top && first.top.length) {
