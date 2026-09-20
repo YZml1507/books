@@ -2018,13 +2018,11 @@ def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:
             msg = f"今天是{today_sign}座当班的日子：{note}"
         else:
             return {}
+        # R230k（R23-P3-7）：zodiac_love/career/wealth/today_sign/today_note
+        # 五个子字段零消费者（前端只读 .message，selftest 也只钉 message）——
+        # 删，载荷不再白胖；message 拼装已在上方完成不受影响。
         return {
             "zodiac_sign": sign,
-            "zodiac_love": prof.get("love", ""),
-            "zodiac_career": prof.get("career", ""),
-            "zodiac_wealth": prof.get("wealth", ""),
-            "today_sign": today.get("today_sign", ""),
-            "today_note": note,
             "message": msg,
         }
     except Exception:

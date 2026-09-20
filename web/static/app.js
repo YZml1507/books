@@ -37,7 +37,14 @@ function el(id) {
 /** 取输入框字符串值，trim 后返回；元素不存在返回 ''（不抛异常）。 */
 function val(id) {
   const node = el(id);
-  return node ? String(node.value == null ? '' : node.value).trim() : '';
+  return node ? zwClean(node.value == null ? '' : node.value) : '';
+}
+
+/* R230k（R23-P3-4）：String.trim() 不剥零宽格式符（\u200B-\u200D/
+ * \uFEFF）——只含它们的输入会过非空检查：聊天发出「隐形气泡」、
+ * 排盘 question 写入历史成空白行。统一剥。 */
+function zwClean(s) {
+  return String(s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 }
 
 /** 取输入框整数值；空或非法返回 null（让调用方决定是否发送该字段）。 */
@@ -484,7 +491,10 @@ function buildChatContext(viewKey) {
  *  已有则跳过（重绘安全）；无 .card（如空态/错误态）不挂。 */
 function attachChatEntry(container) {
   if (!container) return;
-  var card = container.querySelector('.card');
+  /* R230k（R23-P2-1）：星座结果根节点是 .xz-result、本命盘抽屉是
+   * .birth-card——都不含 .card，入口钮一直挂不上（实测这三面计数=0）。
+   * 选择器放宽到已知结果壳。 */
+  var card = container.querySelector('.card, .xz-result, .birth-card');
   if (!card || card.querySelector('.chat-entry')) return;
   var btn = document.createElement('button');
   btn.className = 'chat-entry';
@@ -808,7 +818,7 @@ function chatBubble(role, text, opts) {
 }
 function chatSend() {
   var input = el('chatInput');
-  var msg = (input && input.value || '').trim();
+  var msg = zwClean(input && input.value);   /* R230k：零宽不当非空 */
   /* R230d（R16-P3-6）：空消息此前完全静默——跟 hlAskInput 的占位提示
    * 口径拉齐，给一句轻提示。 */
   if (!msg) {
@@ -2463,6 +2473,7 @@ async function loadDailyDetail() {
       n.style.transform = 'none';
     });
     try { target.scrollIntoView({ behavior: _rmBehavior(), block: 'start' }); } catch (e) {}
+    attachChatEntry(target);   /* R230k（R23-P2-1）：直写 innerHTML 不走 paint——手动挂 */
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
     target.innerHTML = '<div class="no-evidence">解读失败：' + esc(_humanizeErr(e.message)) + '</div>';
@@ -4998,7 +5009,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (scenes) scenes.addEventListener('click', function (ev) {
       if (!ev.target.closest('#hlAskBtn')) return;
       var inp = document.getElementById('hlAskInput');
-      var q = inp ? inp.value.trim() : '';
+      var q = inp ? zwClean(inp.value) : '';   /* R230k */
       if (!q) {
         if (inp) inp.placeholder = '先输入想问的事，比如：今天适不适合面试';
         /* R230f续2（R16-P2-4）：placeholder 若已是这段文字则界面纹丝不动，
@@ -5734,7 +5745,14 @@ function baziPersonaCard(j) {
           detailEl.hidden = false;
           detailEl.scrollIntoView({ behavior: _rmBehavior() });
         }
-      } catch (e) { showToast('读取失败：' + e.message, 'error'); }
+      } catch (e) {
+        showToast('读取失败：' + e.message, 'error');
+        /* R230k（R23-P3-6）：多标签页里 B 删过的行在 A 仍是陈旧行——
+         * 复看撞 404 时顺手把该行摘出列表，不留死入口。 */
+        if (/(404|没查到)/.test(e && e.message || '') && item.isConnected) {
+          item.remove();
+        }
+      }
     }
   });
   function phBind() {
@@ -5813,6 +5831,7 @@ function baziPersonaCard(j) {
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
       html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人解读也会不同。仅供娱乐，不构成决策依据 ✨</div></div>';
       out.innerHTML = html;
+      attachChatEntry(out);   /* R230k（R23-P2-1）：本命盘卡挂聊天入口 */
       try { rememberResult('bazi', j, '我的本命盘', body); } catch (e) {}
     } catch (err) {
       out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(err.message) + '，稍后再试～</div>';

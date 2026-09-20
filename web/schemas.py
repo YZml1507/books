@@ -22,6 +22,17 @@ SCOPES = ("day", "range", "life")
 CALENDARS = ("solar", "lunar")
 GENDERS = ("男", "女")
 
+# R230k（R23-P3-4）：零宽格式符（ZWSP/ZWNJ/ZWJ/BOM）不在 str.strip()
+# 的空白集合里——纯零宽串会过「非空」检查，落成空白气泡/空白排盘问句。
+_ZW_RE = re.compile(r"[\u200b-\u200d\ufeff]")
+
+
+def strip_zw(s: str | None) -> str | None:
+    if s is None:
+        return None
+    s = _ZW_RE.sub("", s).strip()
+    return s or None
+
 
 class ValidationError(ValueError):
     """业务校验失败（路由层转 HTTP 400）。
@@ -92,6 +103,7 @@ class BaziRequest(BaseModel):
             raise ValidationError("历法只能是 solar 或 lunar")
         if self.scope not in SCOPES:
             raise ValidationError(f"范围只能是 {'/'.join(SCOPES)}")
+        self.question = strip_zw(self.question)   # R230k
         if self.calendar_type == "lunar":
             if not (self.lunar_year and self.lunar_month and self.lunar_day):
                 raise ValidationError("农历输入需提供农历年月日")
@@ -271,7 +283,7 @@ class ChatRequest(BaseModel):
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:
             raise ValidationError("session_id 需为 1-64 字符")
-        msg = (self.message or "").strip()
+        msg = strip_zw(self.message) or ""      # R230k：零宽剥后可为空
         if not msg:
             raise ValidationError("消息不能为空")
         if len(msg) > 500:

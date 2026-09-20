@@ -251,6 +251,12 @@ def main() -> int:
     from guji import knowledge as kb_mod
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     hist_baseline = history_db.count()
+    # R230k（R23-P3-5）：bazi_history 自 R219b 无写路径——探针每轮 bazi
+    # 提交实际写 paipan_history.db，原来一直清着一张不再被写的表。
+    # 换成 contract 同款 paipan 基线+增量清理。
+    from guji import paipan_history as _ph_db
+    _ph_baseline = (0 if _ph_db.disabled()
+                    else _ph_db.list_records(limit=200)["total"])
     with kb_mod.KnowledgeBase(kb_path) as kb:
         derived_baseline = kb.db.execute(
             "SELECT COALESCE(MAX(id),0) AS m FROM derived").fetchone()["m"]
@@ -751,6 +757,45 @@ def main() -> int:
             results.append({"name": "btn:history.replay",
                             "ok": ok, "detail": detail})
 
+            # ── R230k（R23-P2-2）：排盘历史启用态「删除」此前在所有闸门里
+            # 零断言——selftest 强制 DISABLE 只测 404，contract 只清台账不
+            # 走 API。真人路径：btn:bazi 已写 paipan_history → 历史视图
+            # 第一段行数 → 点「删除」（两段式，首点武装再点真删）→ 行数-1。
+            errors.clear()
+            try:
+                goto_view("history")
+                page.wait_for_selector("#historyList .ph-item .ph-del",
+                                       timeout=8000)
+                # 列表有 limit=50 渲染帽——总行>50 时删一行行数不变
+                # （下一行顶上），断言锚在被删行的 data-id 消失。
+                first_id = page.evaluate(
+                    "() => document.querySelector('#historyList .ph-item')"
+                    ".getAttribute('data-id')")
+                before_n = page.evaluate(
+                    "() => document.querySelectorAll('#historyList .ph-item').length")
+                page.click("#historyList .ph-item .ph-del")       # 武装
+                page.wait_for_timeout(300)
+                page.click("#historyList .ph-item .ph-del")       # 真删
+                page.wait_for_function(
+                    "rid => !document.querySelector("
+                    "'#historyList .ph-item[data-id=\"' + rid + '\"]')",
+                    arg=first_id, timeout=8000)
+                after_n = page.evaluate(
+                    "() => document.querySelectorAll('#historyList .ph-item').length")
+                gone = page.evaluate(
+                    "(rid) => !document.querySelector("
+                    "'#historyList .ph-item[data-id=\"' + rid + '\"]')",
+                    first_id)
+                ok = bool(gone) and not errors
+                detail = (f"data-id={first_id} 真删后消失={gone} "
+                          f"行数 {before_n}->{after_n}（两段式走 API）")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:history.delete",
+                            "ok": ok, "detail": detail})
+
             # ── R229c：打卡 chips 可读性钉扎——R5 审计 P1：`.checkin-opt`
             # 只盖 background 不盖 color，继承全局 button{color:#fff} =
             # 白字白底四个选项全空白。computed style 断言非白字（picked 态
@@ -981,6 +1026,19 @@ def main() -> int:
         for rec in history_db.list_records(200)[:n_extra]:
             if history_db.delete_record(rec["id"]):
                 cleaned.append(f"history#{rec['id']}")
+    # R230k（R23-P3-5）：paipan_history 增量回收（对齐 contract 清理段）
+    _ph_after = _ph_baseline
+    try:
+        if not _ph_db.disabled():
+            _extra = (_ph_db.list_records(limit=200)["total"]
+                      - _ph_baseline)
+            if _extra > 0:
+                for _r in _ph_db.list_records(limit=200)["items"][:_extra]:
+                    if _ph_db.delete_record(_r["id"]):
+                        cleaned.append(f"paipan_history#{_r['id']}")
+            _ph_after = _ph_db.list_records(limit=200)["total"]
+    except Exception as _exc:                    # noqa: BLE001
+        cleaned.append(f"\u26a0 paipan_history 清理未完成：{_exc}")
     with kb_mod.KnowledgeBase(kb_path) as kb:
         rows = kb.db.execute("SELECT id, claim FROM derived WHERE id > ?",
                              (derived_baseline,)).fetchall()
@@ -1008,11 +1066,13 @@ def main() -> int:
     for r in results:
         print(f"  [{'PASS' if r['ok'] else 'FAIL'}] {r['name']}: {r['detail']}")
     print(f"\n清理: {', '.join(cleaned) or '无'}；"
-          f"history 行数 {hist_baseline} -> {hist_after}")
+          f"history 行数 {hist_baseline} -> {hist_after}；"
+          f"paipan_history 行数 {_ph_baseline} -> {_ph_after}")
     print(f"截图/服务日志: {LOGDIR}")
-    if hist_after != hist_baseline:
-        print(f"probe_ui_smoke FAIL: history.db 未清理干净 "
-              f"({hist_baseline} -> {hist_after})")
+    if hist_after != hist_baseline or _ph_after != _ph_baseline:
+        print(f"probe_ui_smoke FAIL: 台账未清理干净 "
+              f"(history {hist_baseline} -> {hist_after}, "
+              f"paipan {_ph_baseline} -> {_ph_after})")
         return 1
     if failed:
         print(f"probe_ui_smoke FAIL: {len(failed)} 个用例失败 "

@@ -503,7 +503,9 @@ UNPINNED_ROUTES = {
     ("POST", "/api/favorites"):  "同上：收藏写端点 UI 已撤",
     ("DELETE", "/api/favorites/{fid}"): "同上",
     ("DELETE", "/api/paipan/history/{rid}"): "删除写端点——探针只读纪律"
-                                 "（写路径由 ui_smoke/selftest 的建删回环覆盖）",
+                                 "（R230k 起写路径由 ui_smoke btn:history.delete"
+                                 " 两段式真删覆盖；此前注释误称已由建删回环"
+                                 " 覆盖——selftest 在 DISABLE 态跑根本测不到）",
 }
 
 
