@@ -10464,3 +10464,4 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - `doHuangli` 渲后挂 `#shareHuangli` 钮（幂等，原位刷新重挂），点按走 `downloadPoster(j,'huangli')` 通用模板+免责页脚
 - 实机验证：#shareHuangli 存在，buildShareData 返回完整海报结构
 - 闸门：selftest 196 / contract 392 / ui_smoke 48 / parity 61+31+83 全绿
+- R230a-2：黄历卡免责行上方补「彭祖百忌：X不修灶 · X不安床」（day_query 一直算好了 gan_text/zhi_text，前端从没画）
