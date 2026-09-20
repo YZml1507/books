@@ -10578,3 +10578,18 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   - P1：MCP `compare` gua 越界拒判+零见证拒判（此前卦99 假称「存在校勘差异」）+ `flagged` 披露行（受损见证此前静默消失）；S2T 重试表下沉 `search.py` 共享（MCP 简体查询此前系统性假阴性）；`add_local_work` work_id 白名单+`re.escape`（正则注入面，`".*"`/`""` 实锤落盘隐藏目录/污染 raw 根）；`sources.py` RAW/MANIFEST 改包位置绝对路径（cwd 漂移写错目录）；`mcp==2.2.0` 进 requirements-ci + 蓝图（此前零声明干净环境必崩）；`ask.py`/`ask_bazi.py` GBK 终端 utf-8/reconfigure + ask_bazi 年份校验+compute 异常人话；launcher `port_ready` 加身份探针（外来监听者不再被当成就绪）+ `taskkill` 前校验映像名。
   - P2：`Corpus()` 缺索引/0B 残库/缺表前置 FileNotFoundError（毒化链断根，errors.py 映 503）；`ask.py --limit` 钳 1-200 + `addr/compare` 卦号范围；ingest 坏 JSON 带文件名；空 work/skip 目录打日志。
   - 闸门：selftest 214 / contract 410 / regress / baseline_voice / xingzuo / warm_voice 全绿。审计排除面复核无误（参数化 SQL/泄露面/limit clamp）。
+
+## R230d — R16 PWA/离线+交互完整性审计批落地
+- 审计源：子 agent R16（audit_r16_pwa.md，25 项清单），全部清零。
+- P0-1：sw.js runtime 缓存两处 caches.put 未包 e.waitUntil——fetch 回调返回即收，put 未落盘离线重启丢资源；SHELL 预缓存补齐 web-lite.css/lxgw.css/zcool 子集字/favicon/9 张 cream 图。
+- P0-2：此前无任何 pushState/popstate——装主屏后系统返回键直接退出应用；showView 进叶页推 {view} 记录，popstate 回落；顺带修叶页→叶页抱着旧滚动位落中段。
+- P1-1：on() 包装函数不 return 则 _busy 锁秒释（xzSubmit/xzPrev/xzNext/xzToday/xzTomorrow 双击实发两遍）；doHuangli 委托路径不经过 on()，函数体加 _hlBusy 锁。
+- P1-3：failWithRetry 从 bazi 独有普及到 ly/qm/th/tr/hh/xz/hl 七视图。
+- P1-4：tq/bswork/aguan/ayao/aname/aaddr1 Enter 绑定 + 黄历 y/m/d 回车=查这一天。
+- P1-5：navigator.onLine===false 冷启动离线也 toast。
+- P2-2：tarot 分享钮（case 早有没入口）+ xingzuo case/按钮新增。
+- P2-3：Esc 收拢所有 open <details>；P2-4：六爻时间起卦前端 1900-2100 校验；P2-5：塔罗 n 钳位 toast + 14 个 text input maxlength。
+- P2-6：黄历卡手动挂「聊聊这件事」；P2-7：chat 封顶 rec.closed=True → 前端「开新话题」chip（换 sid）。
+- P3-2：manifest id + maskable；P3-3：nameReviewBtn 终态解灰。
+- 未做（清单内判定不做）：P1-2 同页重进保持滚动位是 v5 用户裁决保留（只修跨页）；P3-1 dead views read/divine 与僵尸端点同属「等你拍板」批。
+- 闸门：selftest 214 / contract 412 / ui_smoke 48 / first_screen / plain_first / poster / parity 66 / dollar_misuse / ruff E9,F 全绿。
