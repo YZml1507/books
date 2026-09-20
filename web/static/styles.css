@@ -158,15 +158,18 @@ html[data-daypart] .func-grid .func-card:nth-child(3){animation-delay:.12s;}
 /* R231f（R38-P2-3）：档位差加大（morning/noon 原仅 ±2% RGB 肉眼不可辨）；
  * 选择器加 :not([data-theme="legacy"])——原注释自称 legacy 不匹配，实际
  * 选择器没有主题限定，legacy 照样吃时段渐变（回滚不彻底）。 */
-html:not([data-theme="legacy"])[data-daypart="dawn"] body{
+/* R2345（R62-P1-1）：选择器收窄为「无 data-theme 属性」（aa 浅色默认态）。
+ * 原来 :not([data-theme="legacy"]) 在 dark 下同样命中（dark≠legacy），
+ * 优先级压过 dark body 的 var(--bg)——深色页大底被奶粉渐变劫持。 */
+html:not([data-theme])[data-daypart="dawn"] body{
   background:linear-gradient(175deg,#FFF2E2 0%,#FFE9F0 55%,#F0E4FF 100%);}
-html:not([data-theme="legacy"])[data-daypart="morning"] body{
+html:not([data-theme])[data-daypart="morning"] body{
   background:linear-gradient(175deg,#FFFDFA 0%,#FFF0E8 60%,#FFF6E0 100%);}
-html:not([data-theme="legacy"])[data-daypart="noon"] body{
+html:not([data-theme])[data-daypart="noon"] body{
   background:linear-gradient(175deg,#FFFEFA 0%,#FFF3DC 60%,#FFEEDD 100%);}
-html:not([data-theme="legacy"])[data-daypart="dusk"] body{
+html:not([data-theme])[data-daypart="dusk"] body{
   background:linear-gradient(175deg,#FFF0E2 0%,#FFE2D2 55%,#FFDCe8 100%);}
-html:not([data-theme="legacy"])[data-daypart="night"] body{
+html:not([data-theme])[data-daypart="night"] body{
   background:linear-gradient(175deg,#EAE0FA 0%,#FFDDEB 55%,#FCEBDD 100%);}
 
 body{
@@ -276,7 +279,10 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R231c（R36-P3-4）：拆礼物封面——盖在每日卡上，点击淡出让位。 */
 .daily-cover{
   position:absolute; inset:0; z-index:3; border-radius:var(--radius);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  /* R2345（R62-P1-3）：卡高约 1.5 屏，垂直居中的熊会落到首屏视口之外——
+   * 触发点钉在卡顶往下 ~1/3 视口处，保证首屏内可见。 */
+  padding-top:min(30vh, 240px);
   gap:14px; cursor:pointer;
   /* R2341（R57-P1-5）：巨型空白卡升级——奶油底+斜纹包装纸感 */
   background:repeating-linear-gradient(45deg, var(--card,#FFFDFB) 0 26px,
@@ -287,6 +293,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   animation:giftBob 2.4s ease-in-out infinite;}
 .daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
   letter-spacing:.04em; padding:0 24px; text-align:center;}
+.daily-cover-sub{font-size:12.5px; color:var(--muted); letter-spacing:.06em;
+  margin-top:-6px; text-align:center;}
 .daily-cover.open{opacity:0; pointer-events:none;}
 .daily-cover:focus-visible{outline:2px solid var(--primary-ink); outline-offset:-2px;}
 @keyframes giftBob{0%,100%{transform:translateY(0) rotate(-2deg);}
@@ -357,7 +365,10 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
 .daily-meta{display:flex; gap:10px; margin-top:18px; flex-wrap:nowrap;
   overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
-  padding-bottom:2px;}
+  padding-bottom:2px;
+  /* R2345（R62-P2）：横滚带右缘渐隐，提示可滑（裁切感→设计感）。 */
+  -webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);
+  mask-image:linear-gradient(90deg,#000 90%,transparent);}
 .daily-meta::-webkit-scrollbar{display:none;}
 .daily-meta-item{
   display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;
@@ -600,7 +611,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R228d 起以下 chip 全部补足 44px tap 下限——padding 内收视觉不变 */
 .qm-style-chip{
   min-height:var(--tap);
-  flex:1 1 auto; min-width:74px; padding:4px 10px;
+  /* R2345（R62-P2）：原 flex:1 1 auto 在 390px 把「综合」挤到独占一行——
+   * 改 0 0 auto 按内容宽排，不再撑满。 */
+  flex:0 0 auto; min-width:74px; padding:4px 10px;
   border:1px solid var(--border); border-radius:18px;
   background:#FFF4E8; color:var(--text); font-family:var(--font-sans);
   font-size:13px; cursor:pointer; transition:all .15s;
@@ -941,7 +954,8 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
   border-radius:0 6px 6px 0; font-size:13px; margin-top:8px; font-family:var(--font-mono);
   word-break:break-all;
 }
-.hit-cite{font-size:12px; color:var(--secondary); font-family:var(--font-mono); word-break:break-all;}
+/* R2345（R62-P2）：mono 栈不含 CJK——中文回落系统杂字体，栈尾补文楷。 */
+.hit-cite{font-size:12px; color:var(--secondary); font-family:var(--font-mono),var(--font-wenkai); word-break:break-all;}
 .hit-score{font-size:11px; color:var(--secondary); font-family:var(--font-mono); margin-left:8px;}
 .step-list{margin:8px 0 8px 20px;}
 .step-list li{font-size:13px; margin:3px 0; font-family:var(--font-mono);}
@@ -1498,7 +1512,8 @@ button:active{transform:scale(.96);}
 
 /* ── 水墨命理改版组件（2026-08-28）：logo/hero/图标/历史视图 ── */
 .ink-hero{margin:0 0 14px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);}
-.ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;}
+/* R2345（R62-P2）：移动端上缘裁脸——锚定底缘，熊脸保在框内。 */
+.ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;object-position:bottom;}
 .ink-hero.is-missing{display:none;}
 .brand-mark-img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);box-shadow:0 2px 10px rgba(35,42,56,.18);flex-shrink:0;}
 .brand-mark-img.is-missing{display:none;}
@@ -1653,6 +1668,11 @@ button:active{transform:scale(.96);}
   /* R232c（R41-P2-2）：daily-full 也挂 pro-drawer 类——一刀切会把
    * 用户展开的「完整解读」从纸上吞掉。只藏纯输入抽屉。 */
   #hlPickDrawer, #birthDrawer, details.pro-drawer:not(.daily-full),
+  /* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
+   * 缩到 44px 挪右下（右下是分享/返回惯例位）。 */
+  .recent-toggle{left:auto; right:12px; width:44px; height:44px;
+    bottom:max(14px, env(safe-area-inset-bottom, 14px));}
+  .recent-toggle-txt{font-size:10px;}
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
   .install-tip,
@@ -1851,6 +1871,11 @@ html{-webkit-text-size-adjust:100%;}
 button.is-working{opacity:.62;cursor:progress}
 .is-working>*:not(.res-loading-tag):not(.fail-line){opacity:.5;filter:saturate(.75);pointer-events:none}
 .res-loading-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--secondary);padding:5px 12px;margin-bottom:8px;background:#FBF6EE;border:1px solid #EDE2D0;border-radius:999px}
+/* R2345（R62-P2）：loading 加转圈 spinner——纯文字「加载中」像断了网。 */
+.res-loading-tag::before{content:"";width:12px;height:12px;border-radius:50%;
+  border:2px solid #E3D5BE;border-top-color:#B08A4E;animation:spin 0.9s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.res-loading-tag::before{animation:none}}
 .fail-line{margin-bottom:8px;padding:8px 12px;border-radius:12px;background:#FDF1EC;color:#A15B3F;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !important;outline-color:#D4735E}
 .func-card:active,.work-card:active,#dailyCover:active{transform:scale(.96)}
@@ -1914,9 +1939,13 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 .birth-card .birth-head{padding-right:110px;}
 #xzResult{position:relative;}
 /* P1：合婚三钮窄屏改静态流（原 absolute 压 h2/判词首行，
- * 360px 挤成竖排圆球）。 */
+ * 360px 挤成竖排圆球）。R2345（R62-P1-5）：星座分享钮同款处理——
+ * 390px 下 absolute 浮在「今日当班」卡上压标题。 */
 @media (max-width:520px){
   .hh-btns{position:static;justify-content:flex-end;margin:2px 0 8px;flex-wrap:wrap;}
+  /* R2345（R62-P2）：合婚三钮 wrap 后 2+1 不齐——主 CTA（分享图）独占一行。 */
+  .hh-btns .fav-btn:first-child{flex-basis:100%;}
+  #xzResult .fav-btn{position:static; width:100%; margin:10px 0 0 !important;}
 }
 /* P1：结果卡 fav-btn 骑 h2 盖副标尾字——右上角让位。 */
 .view .card h2{padding-right:92px;}
@@ -2020,6 +2049,17 @@ html[data-theme="dark"] .modal-mask, html[data-theme="dark"] .overlay{
 }
 /* 深色补丁三批：交叉引用/装饰条内剩余硬编码浅底 */
 html[data-theme="dark"] .cross-ref{background:#332E3D; color:var(--secondary);}
+/* R2345（R62-P1-1）：光斑层在深色下换暗紫弱光——奶粉光斑把深底照亮。 */
+html[data-theme="dark"] .page-glow{opacity:.4;}
+/* R2345（R62-P1-2）：三块浅底面深补丁——deco-banner 原仅 brightness
+ * 滤镜（浅渐变+浅字整条洗白）；tarot-deep/chat-entry 此前零补丁。 */
+html[data-theme="dark"] .deco-banner{background:#332A30; border-color:#453C42;}
+html[data-theme="dark"] .deco-text{color:var(--text);}
+html[data-theme="dark"] .tarot-deep{background:#2E282C; border-color:#453C42;}
+html[data-theme="dark"] .tarot-deep h4{color:var(--secondary);}
+html[data-theme="dark"] .tarot-deep .tarot-advice{border-top-color:#453C42;}
+html[data-theme="dark"] .chat-entry{background:linear-gradient(135deg,#4A3440,#3E2E38);
+  border-color:#5A4650;}
 html[data-theme="dark"] .deco-banner{filter:brightness(.9) saturate(.95);}
 html[data-theme="dark"] .xz-today{filter:brightness(.9);}
 html[data-theme="dark"] .interp-line, html[data-theme="dark"] .quote-box,

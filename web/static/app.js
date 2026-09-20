@@ -217,6 +217,13 @@ function busy(id, text) {
  * 换成人话尾巴（前面中文前缀「查询失败：」保留）。 */
 function _humanizeErr(text) {
   if (typeof text !== 'string') return '出了点小状况，稍后再试';
+  /* R2345（R62-P1-6）：服务器内部路径直接泄到屏（「索引缺失或为空：
+   * /home/ubuntu/repos/books/data/index/corpus.db」）——先剥绝对路径，
+   * 再对基础设施类错误整条换成安抚话术。 */
+  text = text.replace(/[\w.\-~]*(?:\/[\w.\-~]+){2,}/g, '…');
+  if (/索引缺失|corpus\.db|build_index|sqlite|OperationalError|Permission denied/i.test(text)) {
+    return '排盘服务还没睡醒，一会儿再来～';
+  }
   return text.replace(
     /(?:Failed to fetch|Load failed|Network request failed|Cannot read propert\w+|is not defined|is not a function|out of range|Unexpected token|Script error|AbortError|TimeoutError)[^。；\n]*/gi,
     '网络或服务出了点小状况');
@@ -2535,7 +2542,8 @@ function _paintPoster(j, W, H) {
 
   // 标题
   ctx.fillStyle = '#7A5C2E';
-  ctx.font = '600 64px "LXGW WenKai","Noto Serif TC",serif';
+  /* R2345（R62-P1-7）：海报标题换品牌快乐体（站点标题同款声口） */
+  ctx.font = '64px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
   ctx.textAlign = 'center';
   /* R230r（R29-#3）：legacy 版式混用 W 与 1080 逻辑坐标——750 档下标题/
    * pills/能量卡/水印集体左移、首 pill 被裁。几何值全部钉回 1080 逻辑系。 */
@@ -2717,7 +2725,8 @@ function _paintSharePoster(s, W, H) {
   ctx.textAlign = 'center';
 
   /* 标题 + 副题 */
-  ctx.fillStyle = '#7A5C2E'; ctx.font = '600 60px "LXGW WenKai","Noto Serif TC",serif';
+  /* R2345（R62-P1-7）：标题换品牌快乐体——衬线粗体与全站声口不一致 */
+  ctx.fillStyle = '#7A5C2E'; ctx.font = '60px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
   ctx.fillText(_pStr(s.title) || '知命', 540, 128);
   if (s.subtitle) {
     ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
@@ -2829,21 +2838,23 @@ function _paintSharePoster(s, W, H) {
     if (ctx.measureText(hook).width > 980) hook = _gSlice(hook, 34) + '…';
     /* R2341（R57-P1-1）：hook/CTA 在紫/樱底上对比度不足且两行
      * 字形互碰——两行合并垫同一块米白衬底（照抄免责 pill 做法）。 */
+    /* R2345（R62-P1-7）：CTA 是海报转化位却最挤——pill 加宽到 88%，
+     * hook/CTA 两行都在 pill 内（原 680px 宽，CTA 贴着 pill 底缘）。 */
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 540 - 340, 1372, 680, 62, 21); ctx.fill();
+    _roundRectPath(ctx, 65, 1366, 950, 68, 22); ctx.fill();
     ctx.fillStyle = '#815934';
-    ctx.fillText(hook, 540, 1398);
+    ctx.fillText(hook, 540, 1396);
   }
   /* R231d（R37-F1/F10）：回流 CTA——海报底部一行邀请语，收到图的人
    * 知道去哪儿玩同款（部署域名未定时只引品牌名，不画裸 URL）。 */
   /* R2341：hook 缺席时 CTA 也要有衬底（P1-1 同根因） */
   if (!hook) {
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 540 - 340, 1372, 680, 62, 21); ctx.fill();
+    _roundRectPath(ctx, 65, 1366, 950, 68, 22); ctx.fill();
   }
   ctx.fillStyle = '#7A5C2E';
-  ctx.font = '400 24px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('测你的同款 → 搜「小满的解忧铺」', 540, 1424);
+  ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('测你的同款 → 搜「小满的解忧铺」', 540, 1422);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {

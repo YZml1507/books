@@ -11487,3 +11487,13 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 ## R2345b — 尾项
 - 打卡文案带昵称：pickCheckinFeedback 现读 me.n（净化后）前缀称呼。
 - `_BANNED_OUT_PAT` 补露骨成人/仇恨词兜底（R61-P1-3 轻量版）。
+
+## R2346 — R62 视觉美学排版清零（P1×7 + P2 轻量批）
+- P1-1 深色底被时段渐变劫持：5 个 daypart 选择器 `html:not([data-theme="legacy"])` 收窄为 `html:not([data-theme])`（aa 态无属性），dark 下 `.page-glow` 透明度 .4。
+- P1-2 深色漏补丁：`.deco-banner`/`.deco-text`/`.tarot-deep`(+h4/advice)/`.chat-entry` 全部进补丁。
+- P1-3 拆礼物封面熊落首屏外：`.daily-cover` 改 `flex-start`+`padding-top:min(30vh,240px)`，新增 `.daily-cover-sub`「每天的礼物都不一样」。
+- P1-4 聊天 FAB 遮内容：≤600px 缩 44px 挪右下角。
+- P1-5 星座分享钮压标题：≤520px `#xzResult .fav-btn` 改静态全宽；合婚主 CTA 独占一行。
+- P1-6 错误裸路径泄露：`_humanizeErr` 先剥绝对路径再对基础设施类错误整条换「排盘服务还没睡醒」。
+- P1-7 海报：两处标题字体换 ZCOOL KuaiLe；hook/CTA pill 680→950px 宽、CTA 完全收进 pill。
+- P2：`.hit-cite` mono 栈尾补文楷；Smiley 子集补「小」（签级圆章双字体混排）；`.daily-meta` 横滚渐隐；`.ink-hero img` object-position:bottom；`.qm-style-chip` flex 0 0 auto；`.res-loading-tag` 加 spinner。
