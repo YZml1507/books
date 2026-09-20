@@ -48,6 +48,7 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 """
 from __future__ import annotations
 
+import datetime
 import http.client
 import json
 import os
@@ -320,8 +321,22 @@ def main() -> int:
     _js_path = os.path.join(ROOT, "web", "static", "app.js")
     _js = open(_js_path, encoding="utf-8").read()
     _on_ids = set(re.findall(r"(?<![\w.])on\(\s*['\"](\w+)['\"]", _js))
+    # R2344（R60-P2）：on() 之外的裸绑定也进覆盖闸——
+    # var x = getElementById('id') → x.addEventListener('click')
+    _var_ids = dict(re.findall(
+        r"(?:var|let|const)\s+(\w+)\s*=\s*(?:document\.getElementById|el)"
+        r"\(['\"](\w+)['\"]\)", _js))
+    for _v, _i in _var_ids.items():
+        if re.search(rf"\b{re.escape(_v)}\.addEventListener\(['\"]click", _js):
+            _on_ids.add(_i)
     _covered = {btn.lstrip("#") for _n, _v, _t, btn, _r in BUTTON_CASES}
-    _covered |= {"dailyMore", "submit"}
+    _covered |= {"dailyMore", "submit",
+                 # R2344：内联用例覆盖的裸绑定/容器委托 id（见 ui:* 用例）
+                 "historyImportBtn", "xzPrev", "xzToday", "birthSubmit",
+                 "hlPickBtn", "recentToggle", "recentClose", "themeToggle",
+                 "dailyCover", "viewBack", "dailyTomorrow", "historyRefresh",
+                 "historyExport", "historyExportJson",
+                 "hlResult", "qmResult"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -334,8 +349,16 @@ def main() -> int:
         "shareHehun": "同上",
         "shareDaily": "同上",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
-        "xzPrev": "同上", "xzNext": "同上", "xzToday": "同上",
-        "xzTomorrow": "同上",
+        "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
+        "xzPrev": "ui:xznav.roundtrip 已覆盖", "xzToday": "同上",
+        # R2344（R60-P2）：裸绑定补登记
+        "dailyRecall": "点击=data-hlask-q 文档级委托，链路同 deeplink/"
+                       "问一嘴用例",
+        "dailyCard": "卡片本体无独立点击动作（scrollIntoView 场景），"
+                     "封面/打卡/预告均各有用例",
+        "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
+        "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
+                     "发送链路已由 crisis_fe/drawer 用例覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
@@ -595,10 +618,19 @@ def main() -> int:
                 _b1 = page.inner_text('#hlResult')[:40]
                 _chip_on = page.evaluate(
                     "document.querySelector('.hl-chip[data-hloffset=\\\"1\\\"]').classList.contains('active')")
+                # hlPickBtn 自选日期抽屉开合（R2344 覆盖补齐）
+                _pk0 = page.evaluate(
+                    "document.getElementById('hlPickDrawer').open")
+                page.click('#hlPickBtn'); page.wait_for_timeout(300)
+                _pk1 = page.evaluate(
+                    "document.getElementById('hlPickDrawer').open")
+                page.evaluate(
+                    "document.getElementById('hlPickDrawer').open=false")
                 results.append({
                     "name": "ui:hlchip.click",
-                    "ok": bool(_chip_on) and _b0 != _b1,
-                    "detail": f"active={_chip_on} 卡面 {_b0[:12]!r}→{_b1[:12]!r}"})
+                    "ok": bool(_chip_on) and _b0 != _b1 and _pk1 and not _pk0,
+                    "detail": f"active={_chip_on} 卡面 {_b0[:12]!r}→{_b1[:12]!r}"
+                            f" 抽屉{_pk0}→{_pk1}"})
             except Exception as exc:
                 results.append({"name": "ui:hlchip.click", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
@@ -698,6 +730,203 @@ def main() -> int:
                     "detail": "坏值回放 pageerror=" + str(errors[:3])})
             except Exception as exc:
                 results.append({"name": "ui:storage.bad_values", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 星座导航回环：‹前一天→「今天」回到当日（R60-P1-14）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_timeout(1200)
+                _d0 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                page.click('#xzPrev'); page.wait_for_timeout(1200)
+                _d1 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                page.click('#xzToday'); page.wait_for_timeout(1200)
+                _d2 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                # viewBack：非首页视图应可见，点了回首页（R2344）
+                _vb = page.evaluate(
+                    "var e=document.getElementById('viewBack');"
+                    "e?getComputedStyle(e).display!=='none':false")
+                page.click('#viewBack'); page.wait_for_timeout(500)
+                _home = page.evaluate(
+                    "var e=document.getElementById('homeMain');"
+                    "e ? getComputedStyle(e).display !== 'none' : false")
+                results.append({
+                    "name": "ui:xznav.roundtrip",
+                    "ok": (_d0 != _d1) and (_d2 == _d0) and _vb and _home,
+                    "detail": f"今={_d0} 昨={_d1} 回={_d2} 返回条={_vb}/{_home}"})
+            except Exception as exc:
+                results.append({"name": "ui:xznav.roundtrip", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 本命盘提交真点击（R60-P1-14：此前 birthSubmit 零覆盖）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_timeout(600)
+                page.evaluate(
+                    "document.getElementById('birthDrawer').open = true")
+                page.click('#birthSubmit')
+                page.wait_for_function(
+                    "document.getElementById('birthResult')"
+                    " && document.getElementById('birthResult')"
+                    "  .innerText.length > 40",
+                    timeout=15000)
+                _bt = page.inner_text('#birthResult')[:50]
+                results.append({
+                    "name": "ui:birth.submit", "ok": True,
+                    "detail": f"本命解读出字 {_bt[:30]!r}"})
+            except Exception as exc:
+                results.append({"name": "ui:birth.submit", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 起名心水链：♡收藏→心水行出现→×摘除→行隐藏（R60-P1-15，
+            # favorites 端点唯一的真实点击面）
+            try:
+                goto_view('qiming')
+                # 深链用例 reload 过页面——qmResult 为空，重提交再收 ♡
+                page.click('#qmSubmit')
+                page.wait_for_selector(
+                    '#qmResult .qm-fav', timeout=20000)
+                _f0 = page.evaluate(
+                    "var e=document.querySelector('#qmResult .qm-fav');"
+                    "e?e.dataset.favName:''")
+                page.click('#qmResult .qm-fav >> nth=0')
+                page.wait_for_function(
+                    "var r=document.getElementById('qmFavRow');"
+                    "r && !r.hidden && r.querySelector('.fav-chip-x')",
+                    timeout=8000)
+                _lit = page.evaluate(
+                    "var e=document.querySelector('#qmResult .qm-fav');"
+                    "e?e.textContent:''")
+                page.click('#qmFavRow .fav-chip-x >> nth=0')
+                page.wait_for_function(
+                    "var r=document.getElementById('qmFavRow');"
+                    "!r || r.hidden || !r.querySelector('.fav-chip-x')",
+                    timeout=8000)
+                results.append({
+                    "name": "ui:qm.fav_chain", "ok": True,
+                    "detail": f"♡{_f0[:8]!r}→{_lit!r}→×摘除"})
+            except Exception as exc:
+                results.append({"name": "ui:qm.fav_chain", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 起名风格 chip 真点击（R60-P1-15）
+            try:
+                goto_view('qiming')
+                page.wait_for_selector(
+                    '#qmResult .qm-style-chip', timeout=20000)
+                _c0 = page.evaluate(
+                    "var a=document.querySelector("
+                    "'#qmResult .qm-style-chip.active');"
+                    "a?a.dataset.style:''")
+                _oth = page.evaluate(
+                    "(()=>{var l=document.querySelectorAll("
+                    "'#qmResult .qm-style-chip');for(var i=0;i<l.length;i++){"
+                    "if(!l[i].classList.contains('active'))"
+                    "return l[i].dataset.style}return ''})()")
+                if _oth:
+                    page.click(
+                        f"#qmResult .qm-style-chip[data-style='{_oth}']")
+                    page.wait_for_timeout(1800)
+                    _c1 = page.evaluate(
+                        "var a=document.querySelector("
+                        "'#qmResult .qm-style-chip.active');"
+                        "a?a.dataset.style:''")
+                    results.append({
+                        "name": "ui:qm.style_chip",
+                        "ok": _c1 == _oth and _c0 != _c1,
+                        "detail": f"{_c0!r}→{_c1!r}"})
+                else:
+                    results.append({"name": "ui:qm.style_chip", "ok": False,
+                                    "detail": "无备选 chip"})
+            except Exception as exc:
+                results.append({"name": "ui:qm.style_chip", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 历史导入文件链：backup JSON 喂 file input → toast+列表刷新
+            # （R60-P1-16：导入路径此前零覆盖）
+            try:
+                goto_view('history')
+                page.wait_for_timeout(800)
+                _imp = os.path.join(LOGDIR, "_probe_backup.json")
+                with open(_imp, "w", encoding="utf-8") as _f:
+                    json.dump({
+                        "kind": "backup",
+                        "browser": {},
+                        "records": [{
+                            # ts 用跑时当前值——固定 ts 上轮留库后 dedup
+                            # 会判重→imported=0→列表翻不到（id 老了）
+                            "type": "bazi", "name": "探针导入",
+                            "ts": __import__('datetime').datetime.now()
+                                .isoformat(timespec='seconds'),
+                            "req": {}, "result": {}}]}, _f,
+                        ensure_ascii=False)
+                page.set_input_files('#historyImportFile', _imp)
+                page.wait_for_function(
+                    "document.getElementById('historyList')"
+                    " && document.getElementById('historyList')"
+                    "  .innerText.indexOf('探针导入') >= 0",
+                    timeout=8000)
+                # 导出两钮真点击（R2344）：export=window.open 新标签；
+                # exportJson=blob 下载。弹层/下载任一触发即算活。
+                _err0 = len(errors)
+                _pop = False
+                try:
+                    with page.context.expect_page(timeout=3000) as _pi:
+                        page.click('#historyExport')
+                    _pi.value.close()
+                    _pop = True
+                except Exception:
+                    pass
+                _dlok = True
+                try:
+                    with page.expect_download(timeout=4000) as _dli:
+                        page.click('#historyExportJson')
+                    _dlok = bool(_dli.value.suggested_filename)
+                except Exception:
+                    _dlok = False
+                _exp_ok = _pop and _dlok and len(errors) == _err0
+                page.click('#historyRefresh'); page.wait_for_timeout(1000)
+                _still = page.evaluate(
+                    "document.getElementById('historyList')"
+                    ".innerText.indexOf('探针导入') >= 0")
+                results.append({
+                    "name": "ui:history.import", "ok": bool(_exp_ok and _still),
+                    "detail": f"导入列表现「探针导入」+导出弹层={_pop}"
+                              f" JSON下载={_dlok} 刷新留存={_still}"})
+            except Exception as exc:
+                results.append({"name": "ui:history.import", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 书目卡点击→回填书ID走检索（R60-P1-17：work-card 零覆盖）
+            try:
+                goto_view('read')
+                page.wait_for_timeout(500)
+                page.click(".rtab[data-rsec='rsec-works']")
+                page.click('#worksBtn')
+                page.wait_for_function(
+                    "document.querySelector('#worksResult .work-card')",
+                    timeout=15000)
+                _wid = page.evaluate(
+                    "var e=document.querySelector("
+                    "'#worksResult .work-card');e?e.dataset.work:''")
+                page.click("#worksResult .work-card >> nth=0")
+                page.wait_for_timeout(1200)
+                _back = page.evaluate(
+                    "var e=document.getElementById('rwork');"
+                    "e?e.value:''")
+                results.append({
+                    "name": "ui:works.card_click",
+                    "ok": bool(_wid) and _wid in (_back or ''),
+                    "detail": f"卡={_wid[:14]!r} 回填rwork={_back[:14]!r}"})
+                # 清场：rwork 残留会把后续 btn:search 锁死在单书范围
+                page.evaluate(
+                    "document.getElementById('rwork').value='';"
+                    "var q=document.getElementById('rq');"
+                    "if(q)q.value='';")
+            except Exception as exc:
+                results.append({"name": "ui:works.card_click", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
             # ── 标签切换用例 ───────────────────────────────────
@@ -969,6 +1198,42 @@ def main() -> int:
                 ok = st["t"] and st["r"] and st["m"] and not errors
                 detail = ("明天预告=%s 昨天接续=%s 小档案=%s"
                           % (st["t"], st["r"], st["m"]))
+                # R2344：明天预告可点——点了跳黄历页翻明天（R59-gap1）
+                if st["t"]:
+                    # goto_view 点 func-card——home 没有对应卡，走
+                    # showView 直达
+                    page.evaluate("showView('home')")
+                    page.wait_for_timeout(600)
+                    # 日签封面没拆时兄弟节点 inert（500ms 后才摘）——
+                    # JS 直接触发开封，等 cover 从 DOM 移除再点预告
+                    page.evaluate(
+                        "var c=document.getElementById('dailyCover');"
+                        "if(c)c.click()")
+                    try:
+                        page.wait_for_selector(
+                            '#dailyCover', state='detached', timeout=2500)
+                    except Exception:
+                        pass
+                    # goto_view(home) 会重跑 loadDaily——等预告重新
+                    # 出字（hidden 摘除）再点
+                    page.wait_for_selector(
+                        '#dailyTomorrow:not([hidden])', timeout=8000)
+                    # 封面 inert 摘除时序在批量跑下不稳——dispatchEvent
+                    # 走真实 handler 路径，跳过分层命中判定
+                    page.dispatch_event('#dailyTomorrow', 'click')
+                    page.wait_for_timeout(1200)
+                    _hv = page.evaluate(
+                        "document.getElementById('view-huangli')"
+                        ".classList.contains('active')")
+                    _hd = page.evaluate(
+                        "var e=document.querySelector('#hlResult .hl-head div');"
+                        "e?e.textContent.trim():''")
+                    ok = ok and _hv and _hd.startswith(
+                        (datetime.date.today()
+                         + datetime.timedelta(days=1)).isoformat())
+                    detail += f" 预告点击→黄历={_hv} 明日卡={_hd[:10]!r}"
+                    # home 无 func-card 直达——showView 收尾回首页
+                    page.evaluate("showView('home')")
             except Exception as exc:
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             if errors:
@@ -1381,7 +1646,21 @@ def main() -> int:
                 for _r in _ph_db.list_records(limit=200)["items"][:_extra]:
                     if _ph_db.delete_record(_r["id"]):
                         cleaned.append(f"paipan_history#{_r['id']}")
-            _ph_after = _ph_db.list_records(limit=200)["total"]
+            # 被 kill 的上轮可能留下「探针导入」残留——dedup 会让本轮
+            # 导入 imported=0 且旧行沉出 top50 → 用例假红。按名兜底清。
+            _residue = 0
+            # 残留行可能沉在 top200 之外——直连库按名扫全表
+            import sqlite3 as _sq
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _ids = [r[0] for r in _pc.execute(
+                    "SELECT id FROM records WHERE name='探针导入'")]
+            for _rid in _ids:
+                if _ph_db.delete_record(_rid):
+                    cleaned.append(f"paipan_history#残留{_rid}")
+                    _residue += 1
+            # 残留行在被杀上轮写入、早于本论 baseline——删掉后 total 会
+            # 比 baseline 低 _residue，计闸时把这部分加回去才算干净。
+            _ph_after = _ph_db.list_records(limit=200)["total"] + _residue
     except Exception as _exc:                    # noqa: BLE001
         cleaned.append(f"\u26a0 paipan_history 清理未完成：{_exc}")
     with kb_mod.KnowledgeBase(kb_path) as kb:

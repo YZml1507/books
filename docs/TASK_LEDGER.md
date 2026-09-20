@@ -11445,3 +11445,20 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 断网首查失败时 hlResult 补问一嘴输入行（文档级点击委托可直接用）。
 - `_hlAskChipsRender` 调用点加 try——渲染辅助异常不再伪装成查询失败。
 - 闸门：selftest 252 / ui_smoke 68 / contract 542 / ruff E9F 全绿。
+
+## R2344 — R60 补钉批2：覆盖再扩 + 用例健壮化
+- ui_smoke 66→74：xznav 往返（昨天→今天→回首页）、本命解读真提交、
+  起名收藏链（♡→chip→×摘除）、风格 chip 切换、历史导入文件链
+  （备份 JSON 真喂 file input + 导出弹层 + JSON 下载 + 刷新留存）、
+  书目卡点击回填书 ID、留存钩子（明天预告/昨天接续/小档案条 +
+  预告可点→翻黄历明天卡）。
+- gate:on_coverage 升级：`var x = el('id')` + `x.addEventListener('click')`
+  裸绑定也计入覆盖名单（此前只认 on()）。
+- 用例健壮化：form.linkage 先展开 baziAdvanced details；
+  evaluate 裸 return 改 IIFE；home 无 func-card 直达——两处
+  goto_view('home') 改 showView('home')；封面 inert 摘除时序在
+  批量跑下不稳——明天预告点击改 dispatchEvent 走真实 handler。
+- 假红根因修：history.import 固定 ts 被上轮残留 dedup 判重——
+  ts 改跑时当前值；清理段直连库按名扫「探针导入」残留并补偿
+  baseline 计闸。
+- 闸门：ui_smoke 74/74 + 台账清理闸绿。
