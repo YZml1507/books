@@ -10465,3 +10465,4 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - 实机验证：#shareHuangli 存在，buildShareData 返回完整海报结构
 - 闸门：selftest 196 / contract 392 / ui_smoke 48 / parity 61+31+83 全绿
 - R230a-2：黄历卡免责行上方补「彭祖百忌：X不修灶 · X不安床」（day_query 一直算好了 gan_text/zhi_text，前端从没画）
+- R230a-3：节日表 +4——中元节(七月十五)/小年(腊月廿三北口径)/双十一+光棍节(11/11)；前端 _HL_COMPLEX_DATE+事项词剥离正则同步，parity 探针 4 例转正并加「双十一月搬家」防呆钉
