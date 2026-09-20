@@ -7,7 +7,6 @@ We map slug → id for generality works by using slug as the id.
 """
 import json
 import os
-import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

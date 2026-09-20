@@ -79,7 +79,7 @@ else:
 # 卦47 上六 is the case that forced this: contiguity 0.199 had it classified text-damage while
 # it carries just 2 substitutions and a 92-character common run — KR1a0006's span simply runs
 # on into 卦48 井. It must stay classified as a span problem, never as damage.
-print(f"\n=== KNOWN-NEGATIVE CONTROL: 卦47 上六 must NOT be called text-damage ===")
+print("\n=== KNOWN-NEGATIVE CONTROL: 卦47 上六 must NOT be called text-damage ===")
 neg = [x for x in ctl if x["gua"] == 47 and x["yao"] == "上六"]
 if not neg:
     print("  [PASS] 卦47 上六 is not among the low-coverage outliers at all")
@@ -103,7 +103,6 @@ print(f"\n{'='*78}\n=== Q-06 junk census (per work) ===")
 print(f"  {'work':12} {'chars':>9} {'PUA':>6} {'ExtA':>6} {'FFFD':>6} {'cid':>6} "
       f"{'junk%':>7}")
 junk_report = {}
-import glob as _glob  # noqa: E402
 for w in sorted(_d for _d in os.listdir(RAW)
                 if os.path.isdir(os.path.join(RAW, _d))):
     body = work_body(RAW, w)
@@ -122,6 +121,6 @@ print(f"  works with any junk: {len(junk_report)}")
 
 with open(os.path.join(CAT, "quality_report.json"), "w", encoding="utf-8") as f:
     json.dump(report, f, ensure_ascii=False, indent=1)
-print(f"\n-> data/catalog/quality_report.json")
+print("\n-> data/catalog/quality_report.json")
 print("PASS" if not fails else f"FAIL: {fails}")
 sys.exit(1 if fails else 0)

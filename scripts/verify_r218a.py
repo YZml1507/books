@@ -13,7 +13,7 @@ check_plain_first/check_poster 等脚本在当前 scripts/ 目录均不存在（
     BOOKS_LLM_DISABLE=1 .venv/bin/python -m uvicorn web.app:app --port 8183
 （R229x R7#15：无服务时连接拒绝的报错补上这句提示）
 """
-import json, sys, time, urllib.request, urllib.error, re
+import json, sys, time, urllib.request, urllib.error
 from pathlib import Path
 
 BASE = "http://127.0.0.1:8183"
@@ -142,7 +142,7 @@ check("copy_bank.json#chat_fallback_openers", copy_bank_markers)
 
 
 # 汇总
-print(f"\n=== 汇总 ===")
+print("\n=== 汇总 ===")
 print(f"  总检查: 8  通过: {8 - len(failures)}  失败: {len(failures)}")
 if failures:
     print("  失败项:")

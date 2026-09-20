@@ -180,4 +180,4 @@ for w in COMMENTARIES:
 
 with open(os.path.join(CAT, "alignment_score.json"), "w", encoding="utf-8") as f:
     json.dump({"gold": GOLD, "summary": summary}, f, ensure_ascii=False, indent=1)
-print(f"\nscores -> data/catalog/alignment_score.json")
+print("\nscores -> data/catalog/alignment_score.json")

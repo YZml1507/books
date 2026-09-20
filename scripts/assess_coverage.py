@@ -15,7 +15,6 @@ makes every quality number less meaningful. That would settle the question.
 """
 import json
 import os
-import re
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -72,12 +71,12 @@ for wid, w in works.items():
 tot_units = sum(w["units"] for w in works.values())
 val_units = sum(works[x]["units"] for x in tiers["validated"])
 print("-" * 68)
-print(f"\n=== states ===")
+print("\n=== states ===")
 for k, v in tiers.items():
     u = sum(works[x]["units"] for x in v)
     print(f"  {k:14} {len(v):3} works  {u:6,} units  ({100.0*u/tot_units:5.1f}% of units)")
 
-print(f"\n=== what this means for 'add more books?' ===")
+print("\n=== what this means for 'add more books?' ===")
 print(f"  works whose text is validated by ANY independent check : "
       f"{len(tiers['validated'])}/{len(works)}")
 print(f"  units in that set                                      : "
@@ -89,14 +88,14 @@ print(f"  works named by an acceptance test                       : "
 gm = os.path.join(CAT, "generality_manifest.json")
 if os.path.exists(gm):
     g = json.load(open(gm, encoding="utf-8"))
-    print(f"\n=== non-古籍 set ===")
+    print("\n=== non-古籍 set ===")
     print(f"  fetched: {len(g)}   indexed into corpus.db: "
           f"{sum(1 for x in g if x['slug'] in works)}")
     for t in (1, 2, 3):
         s = [x["slug"] for x in g if x["tier"] == t]
         print(f"  tier {t}: {len(s)}  {', '.join(s)}")
 
-print(f"\n=== 周易 depth: what is still open on the best-covered work ===")
+print("\n=== 周易 depth: what is still open on the best-covered work ===")
 # Live status, not a stale snapshot: an earlier hardcoded list here claimed the `suspect`
 # column and the G5 差异摘要 did not exist — both had already shipped (X-11, guji.compare)
 # and the printed "still open" list was misleading (R18a). What follows is derived from the

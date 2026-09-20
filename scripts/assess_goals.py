@@ -8,7 +8,6 @@ The sharpest of these is G6: citation error rate. It is checkable without human 
 every unit claims a file and a raw range, so the unit's text must literally occur in that
 file. That turns "引用错误率 ≤ 1%" into an executable assertion instead of an aspiration.
 """
-import glob
 import os
 import random
 import re
