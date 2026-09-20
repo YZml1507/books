@@ -425,7 +425,10 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
            genre: str | None = None, scheme: str | None = None,
            limit: int = 10) -> dict:
     q = _require_q(q, what="查询词不能为空——检索需要查询词；找某个地址请用 /api/addr")
-    limit = min(max(limit, 1), 50)
+    # R230s（R30-#9）：limit<=0 此前静默钳成 1——如实 400。
+    if limit < 1:
+        raise ValidationError("limit 至少是 1（最多 50 条）")
+    limit = min(limit, 50)
     with deps.corpus() as c:
         # R230a-33（R14-P3-6）：scheme 与 addr 同纪律——未知值 400 而非静默零命中。
         if scheme is not None and scheme not in deps.SCHEME_LABELS:
@@ -467,7 +470,19 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     if scheme not in deps.SCHEME_LABELS:
         raise ValidationError(
             f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
-    limit = min(max(limit, 1), 100)
+    if limit < 1:
+        raise ValidationError("limit 至少是 1（最多 100 条）")
+    limit = min(limit, 100)
+    # R230s（R30-#14）：与所选 scheme 不相干的参数如实披露，不静默吞。
+    if scheme == "zhouyi":
+        _ignored = [n for n, v in (("addr_name", addr_name),
+                                   ("addr1", addr1), ("addr2", addr2))
+                    if v is not None]
+    else:
+        _ignored = [n for n, v in (("gua", gua), ("yao", yao))
+                    if v is not None]
+    hint = (f"参数 {'/'.join(_ignored)} 对 {scheme} 编址不生效，已忽略"
+            if _ignored else None)
     with deps.corpus() as c:
         if scheme == "zhouyi":
             if gua is None:
@@ -487,6 +502,12 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
                                  _p).fetchone()["n"]
         else:
+            # R230s（R30-#13）：yilin 候数与 zhouyi 同纪律 1–64 越界 400；
+            # bcv/booksec/play/euclid 的 addr1 上界随卷/书目而异，无法
+            # 全局校验——超界仍回空集（不算差异，算没那个地址）。
+            if scheme == "yilin" and addr1 is not None \
+                    and not (1 <= addr1 <= 64):
+                raise ValidationError("易林候数要在 1–64 之间")
             hits = c.at_scheme(None if scheme == "none" else scheme,
                                addr_name=addr_name, addr1=addr1,
                                addr2=addr2, layer=layer, limit=limit)
@@ -500,7 +521,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
                                  _p).fetchone()["n"]
         return {"scheme": scheme, "count": len(hits), "total": total,
-                "truncated": total > len(hits),
+                "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
 
 

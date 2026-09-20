@@ -146,6 +146,15 @@ def _run_inner() -> list[str]:
           params={"scheme": "zhouyi", "gua": 1}),
           lambda j: j.get("total", 0) >= j.get("count", 0)
           and j.get("truncated") is not None)
+    # R230s（R30-#14）：与 scheme 不相干的参数进 hint，不静默吞。
+    check("addr.ignored_hint", client.get("/api/addr",
+          params={"scheme": "bcv", "gua": 99, "addr_name": "Genesis",
+                  "addr1": 1}),
+          lambda j: "gua" in (j.get("hint") or ""))
+    # R230s（R30-#13）：yilin 候数越界与 zhouyi 同纪律 400。
+    _ay = client.get("/api/addr", params={"scheme": "yilin", "addr1": 65})
+    assert _ay.status_code == 400, ("err.addr.yilin_range", _ay.status_code)
+    ok.append("err.addr.yilin_range")
     # R230a-48（R14-P0-1 钉扎）：受损 unit（卦47·上六 KR1a0006
     # span-overextended）不上桌当见证——进 flagged 披露位；
     # allow_damaged=1 才放回（显式看受损料）。
@@ -1289,6 +1298,16 @@ def _run_inner() -> list[str]:
     _sl = client.get("/api/search", params={"q": "乾", "layer": "BOGUS"})
     assert _sl.status_code == 400, ("err.search.layer_missing", _sl.status_code)
     ok.append("err.search.layer_missing")
+    # R230s（R30-#9）：limit<=0 不再静默钳——如实 400。
+    for _nm, _u, _p in (
+            ("err.search.limit_zero", "/api/search",
+             {"q": "乾", "limit": 0}),
+            ("err.addr.limit_zero", "/api/addr",
+             {"scheme": "zhouyi", "gua": 1, "limit": -3}),
+    ):
+        _r = client.get(_u, params=_p)
+        assert _r.status_code == 400, (_nm, _r.status_code, _r.text[:200])
+        ok.append(_nm)
     # R177b（D-225b）：/api/ask max_addresses 边界 standing 覆盖——Pydantic
     # Field(ge=1, le=6) 两条 422 分支。
     _ask_max_low = client.post("/api/ask", json={"q": "潛龍勿用",
