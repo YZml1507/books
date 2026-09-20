@@ -11627,3 +11627,8 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - themeToggle aria-pressed 同步；poster img alt=视图名+分享图（不再恒「命盘海报」）
 - 触控：daily-tomorrow flex 40px+focus-visible、toast-x 40px、daily-birthday-go 40px；skip-link 移到 welcomeBar 之前（Tab 首站）
 - 闸门：selftest 254 / contract 542 / ui_smoke 75 全绿；sw shell hash 已 bump
+
+## R2349i（海报底图池 +1）
+- Agnes 生成青瓷山水底图 poster-bg-celadon.jpg（1080×1440, 71KB），六爻分享图专用色系——此前与命盘共用暖杏
+- POSTER_BG.celadon + _POSTER_BG_BY_VIEW.liuyao='celadon' + 预拉；sw bump
+- check_poster 判据12/13/14 全绿，selftest 254 绿

@@ -5486,7 +5486,8 @@ var POSTER_BG = {
   warm: new Image(), sakura: new Image(), lilac: new Image(),
   /* R2349d：薄荷山月新底图（Agnes 生成）——daily/huangli 高频分享
    * 视图换清新系，与暖杏/樱粉/夜紫/梦紫错开一层。 */
-  dream: new Image(), mint: new Image()
+  /* R2349i：青瓷山水底（Agnes）——六爻卦象专用，取「山水有章」意。 */
+  dream: new Image(), mint: new Image(), celadon: new Image()
 };
 /* R230x（P2-8）：海报角落小满吉祥物贴纸。 */
 var POSTER_MASCOT = new Image();
@@ -5500,7 +5501,7 @@ var _POSTER_TITLES = {
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
-  daily: 'mint', huangli: 'mint' };
+  daily: 'mint', huangli: 'mint', liuyao: 'celadon' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 /* R39-P2-2：结果页统一「明天」收口——最后一屏指向明天而不是看完即走。 */
 /* R233b（R40-A2/W3）：cross_ref 方向副键可视化——后端算了
@@ -5643,6 +5644,7 @@ function _idlePrefetch() {
   /* R231b（R36-P3-1）：起名海报换紫云梦底——与塔罗夜紫错开一层。 */
   POSTER_BG.dream.src = '/static/shared/poster-bg-dream.jpg';
   POSTER_BG.mint.src = '/static/shared/poster-bg-mint.jpg';
+  POSTER_BG.celadon.src = '/static/shared/poster-bg-celadon.jpg';
   POSTER_MASCOT.src = '/static/cream/poster-mascot.png';
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */
