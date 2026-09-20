@@ -10513,3 +10513,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-18（2026-09-20）：hour_known 钉扎
 - bazi.hour_unknown：False→回显+warm 首部「按中午12点算」声明；缺省→键缺席（additive 键序约定）。
+
+## R230a-19（2026-09-20）：xingzuo 日运变体钉扎
+- xingzuo.daily_beat.variety：14 连续日 today_note ≥3 种（回归闸住 R13 修复的「每天一字不差」）。
