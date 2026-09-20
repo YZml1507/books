@@ -209,6 +209,18 @@ def _run_inner() -> list[str]:
     _xline = next((l for l in _xtxt.split("\n") if "缺水" in l), "")
     assert "从金的方向补" in _xline, ("bazi.buque.direction", _xline)
     ok.append("bazi.buque.direction")
+    # R230a-22（R13 钉扎）：并列最高 → 均势口径——1988-01-04 18 时
+    # 水金各 2.0 并列，strong_tied=[水,金] 且解读带「均势（无一行独大）」，
+    # 此前并列时只会把第一个 max 说成「偏旺」误导。
+    _bt = client.post("/api/bazi", json={"year": 1988, "month": 1, "day": 4,
+                                         "hour": 18, "gender": "男"}).json()
+    _tf = _bt.get("calc", {}).get("five_elements", {})
+    assert sorted(_tf.get("strong_tied") or []) == ["水", "金"], \
+        ("bazi.strong_tied.fields", _tf)
+    _ttxt = _bt.get("interpretation", {}).get("text", "")
+    assert "均势" in _ttxt and "独大" in _ttxt, \
+        ("bazi.strong_tied.text", _ttxt[-120:])
+    ok.append("bazi.strong_tied")
     # R178b（D-226b）：确定性解读层 standing 覆盖——原 llm 字段（生成文本，
     # 需 key + 网络、不可复现）替换为 interpretation（guji.interpreter 规则
     # 输出）。断言引擎标识 + sections 非空 + text 以「## 排盘坐标」开头，
