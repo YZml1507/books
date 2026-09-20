@@ -76,6 +76,14 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python web/check_xingzuo.py
+      - name: 温柔口吻闸 check_warm_voice（004 判据 1-8×10 用例+禁语）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_warm_voice.py
+      - name: 异步 AI 闸 check_async_ai（006 判据 9/10/11）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_async_ai.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
@@ -144,3 +152,7 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python web/check_plain_first.py
+      - name: 分享图闸门 check_poster（004 判据 12/13/14：真点 share 零异常）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_poster.py
