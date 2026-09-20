@@ -10695,3 +10695,14 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **CI 补齐**：`probe_no_generated_in_corpus` + `probe_scripts_importable` 进 CI（两条均 <1s，PHASE「建议纳入」挂起一个月收口）。
 - **文档漂移修正**：README/台账闸门数字 217/416/53 对齐+「以末行为准」；docs/README 快照 glob 误伤现行 HANDOFF.md 已修；GOAL.md 归档探针路径修正；台账闸门清单补 llm_polish/ruff/dual_engine + 13 道宪法闸门与 CI 的口径划分（G1/G4/G7 等需 bge 的为本地手动闸）；spec 001/004/005/006/007 Status→Implemented；spec 009 回写读书卡移除裁决；HANDOFF 登记出网端点白名单；probe_herodotus 归位 probes/；蓝图 test 知识段数字已提建议（用户已批准）。
 - **归档完成**：35 个一次性探针（fetch_*/survey_*/gold_*/t7*/探源 spike）进 archive/，probes/ 根降至 25 文件。
+
+## §R230q — R28 真实用户旅程压力批（按 audit_r28_journey.md 全单清零：P1×1 P2×4 P3×9）
+
+- **P1-1a Enter 绕过在途锁**：回车直接调 handler 不经 on() —— 连打 Enter 并发发请求、#tq 每秒刷一条永久线程。`on()` 重构为按 key 共享的 `_ON_BUSY`/`guardedCall` 注册表：全部查询输入框 Enter 与对应按钮同锁（chatInput↔chatSendBtn 同）。
+- **P1-1b 线程无删除入口**：新增 `DELETE /api/threads/{tid}`（turns 随删、derived claims 解绑保留→contentless FTS 零触碰）+ 列表每条加「删」按钮（确认框后刷新列表）。selftest `threads.delete` 钉扎。
+- **P2-2 切视图丢 AI 段落**：showView bump 世代号作废轮询后永久失联——新增 `AI_PENDING` 登记表，回视图对仍 pending 容器重新武装轮询。
+- **P2-3 pushState 空 URL**：地址栏恒 `/`、F5 丢视图。现在推 `?view=X`，回首页清参；深链初始化不再补推重复历史。ui_smoke 新增 `deep.pushstate_reload`（点卡→`?view=bazi`→刷新回同视图）。
+- **P2-4 刷新后新消息接进不可见旧上下文**：聊天气泡 transcript 与 sid 同存 sessionStorage（50 条封顶），刷新原样重渲；「开个新话题」连带清 transcript+DOM。
+- **P2-5 toast 洪泛**：同文案在屏折叠为「×N」，栈上限 3 摘最旧。
+- **P3-6** 非法 `?view=` → toast 提示不再静默；**P3-7** checkin 先落盘再标 picked，失败 toast 不再假装已打卡；**P3-8** 全部 4 处 AI 轮询挂 `_aiPollGate()`（hidden/offline 暂停取数）；**P3-9** `_humanize422` 补 int_parsing/field required/date 模式；**P3-10** `_ZW_RE` 扩至 LRM/RLM+bidi 覆盖/隔离符，`_no_c0` 写路径同剥（线程题防排版搅乱）；**P3-11** 聊天发送失败恢复输入稿+回收 me 气泡；**P3-12** 黄历交互区打印整体隐藏（.hl-interactive/.hl-ask）；**P3-13** 海报同视图 4s 内只弹浮层不再下载；**P3-14** 排盘同参 1.5s 防抖（成功后记账，失败重试不拦）。
+- 验证：selftest 218 / contract 420 / ui_smoke 54 / parity 全绿。实机复评 28/28 真机 LLM 事实锚定零漂移。
