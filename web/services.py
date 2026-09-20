@@ -729,19 +729,12 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # 后按日期并集（一事项多规范词：搬家→移徙+入宅+修造）。
         terms = _CHAT_SCENE_TERMS.get(affair) or [affair]
         # R229z续8（R8 P1-1）：原实现对 terms 逐词跑 find_good_days（5 词×92
-        # 天=460 次 day_query）——改单日循环一次取 yi/ji 对全部词做判定，
-        # 92 天恒 92 次。词先过 huangli 侧别名归一，与 find_good_days 同口径。
-        terms = [huangli_mod.AFFAIR_ALIASES.get(t, t) for t in terms]
-        good: list[dict] = []
-        cur = dt
-        while cur <= end:
-            _q = huangli_mod.day_query(cur)
-            if any(t in _q["yi"] and t not in _q["ji"] for t in terms):
+        # 天=460 次 day_query）——find_good_days 现直接收词列表，单日循环
+        # 一次判定全部词（92 天恒 92 次）。
+        good = [{"date": _q["date"], "yi": _q["yi"], "ji": _q["ji"]}
                 # R8 P2-6：前端只读 date/yi/ji——pengzu/shensha/lunar/
                 # chongsha 不随列表回吐（92天×12.9KB→~2KB）。
-                good.append({"date": _q["date"], "yi": _q["yi"],
-                             "ji": _q["ji"]})
-            cur += timedelta(days=1)
+                for _q in huangli_mod.find_good_days(dt, end, terms)]
         return {"affair": affair, "terms": terms,
                 "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
                 "days": days, "good_days": good, "count": len(good)}
@@ -1358,18 +1351,12 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
 def _hl_next_yi_days(dt: datetime, terms: list[str],
                    span: int = 45, limit: int = 4) -> list[str]:
     """[dt, dt+span) 内宜任一规范词的日子（并集），返回 "M/D" 列表。"""
-    out: list[str] = []
-    cur = dt
-    for _ in range(span):
-        # R229z续8：day_query 提出 any()——同一天每换一个规范词重算全天
-        # 坐标（45 天×5 词→45 天×1 次）；宜∩忌双标日不当吉日推（R228m）。
-        q = huangli_mod.day_query(cur)
-        if any(t in q["yi"] and t not in q["ji"] for t in terms):
-            out.append(f"{cur.month}/{cur.day}")
-            if len(out) >= limit:
-                break
-        cur += timedelta(days=1)
-    return out
+    # R229z续8：走 find_good_days（单日循环一次判定全部词，R8 P1-1；
+    # 含宜∩忌双标日剔除 R228m）。
+    out = [f"{int(q['date'][5:7])}/{int(q['date'][8:10])}"
+           for q in huangli_mod.find_good_days(dt, dt + timedelta(days=span - 1),
+                                               terms)]
+    return out[:limit]
 
 
 def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:

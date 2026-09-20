@@ -455,20 +455,24 @@ AFFAIR_ALIASES: dict[str, str] = {
 
 
 def find_good_days(start: datetime, end: datetime,
-                   affair: str) -> list[dict]:
+                   affair: str | list[str]) -> list[dict]:
     """在 [start, end] 区间内找出适宜某事项的日子。
 
-    affair: 婚嫁/开业/出行/动土/搬家/安葬/祭祀/祈福/求嗣/上任/入学/纳财
+    affair: 婚嫁/开业/出行/动土/搬家/安葬/祭祀/祈福/求嗣/上任/入学/纳财，
+    或一串规范词列表（任一命中即收——R229z续8：多词逐日循环一次，
+    不再词×天双重扫描）。
     返回 list[day_query result]，只含 affair 在 yi 里的日子。
     """
-    key = AFFAIR_ALIASES.get(affair, affair)   # 别名归一后再匹配
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])   # 别名归一后再匹配
     good: list[dict] = []
     cur = start
     while cur <= end:
         q = day_query(cur)
         # R228m：宜∩忌双标日剔除——「宜嫁娶也忌嫁娶」的日子不能当吉日推
         # （92 天窗口实测 19 天同项冲忌并存）。
-        if key in q["yi"] and key not in q["ji"]:
+        if any(t in q["yi"] and t not in q["ji"] for t in terms):
             good.append(q)
         cur += timedelta(days=1)
     return good
