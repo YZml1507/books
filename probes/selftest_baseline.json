@@ -47,6 +47,7 @@
   "chat.sessions.cap",
   "chat.validation.400",
   "classical_db.integrity",
+  "client_date.validate",
   "compare",
   "compare.flagged",
   "compare.flagged.opt_in",

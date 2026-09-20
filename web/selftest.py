@@ -1572,6 +1572,19 @@ def _run_inner() -> list[str]:
     _rc3 = client.post("/api/chat", json={"session_id": "st", "message": "x" * 501})
     assert _rc3.status_code == 400, _rc3.status_code
     ok.append("chat.validation.400")
+    # R230m：client_date 三端点统一校验钉扎——坏格式/越界年 400，
+    # 合法值与缺席放行（缺席回落服务器日）。
+    for _ep, _body in (
+            ("/api/chat", {"session_id": "st", "message": "x"}),
+            ("/api/tarot", {"seed": 1}),
+            ("/api/liuyao", {"method": "coins", "seed": 1})):
+        _bad = client.post(_ep, json={**_body, "client_date": "garbage"})
+        assert _bad.status_code == 400, (_ep, _bad.status_code)
+        _oor = client.post(_ep, json={**_body, "client_date": "1800-01-01"})
+        assert _oor.status_code == 400, (_ep, _oor.status_code)
+        _good = client.post(_ep, json={**_body, "client_date": "2026-09-20"})
+        assert _good.status_code == 200, (_ep, _good.status_code, _good.text[:120])
+    ok.append("client_date.validate")
     _ccfg = {"base_url": "http://127.0.0.1:1", "api_key": "x", "model": "m"}
     _crisis = _LC.chat("st-crisis", "不想活了", config=_ccfg)
     assert _crisis and "专业人士" in _crisis, _crisis
