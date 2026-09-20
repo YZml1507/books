@@ -1,0 +1,31 @@
+# 文本强制 LF，防 Windows 端 CRLF 翻转污染 diff（二进制行靠下方 -text 兜底）
+* text=auto eol=lf
+
+# R230n（R26-P1）：根级 LFS 规则——此前 LFS 只在 bge 子树自带属性里生效，
+# 其它目录大二进制全裸入库（corpus.db 46 个版本直接入库是主因之一）。
+# 覆盖：模型权重 / 数据库 / 压缩归档 / 语料原包 / 字体二进制。
+# 故意不收 png/jpg/webp/woff2：它们是 app 运行期静态资产——转 LFS 后
+# 用户若无 git-lfs 拉到的会是指针文本、页面直接坏。这些单文件本身体量
+# 小（~1MB 级），留 git 可接受；新增大文件请走对应扩展名。
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.db filter=lfs diff=lfs merge=lfs -text
+*.sqlite filter=lfs diff=lfs merge=lfs -text
+*.sqlite3 filter=lfs diff=lfs merge=lfs -text
+*.npy filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+*.ckpt filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.7z filter=lfs diff=lfs merge=lfs -text
+*.gz filter=lfs diff=lfs merge=lfs -text
+*.epub filter=lfs diff=lfs merge=lfs -text
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.wasm filter=lfs diff=lfs merge=lfs -text

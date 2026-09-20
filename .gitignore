@@ -65,6 +65,16 @@ web/llm_config.json
 # OS junk
 Thumbs.db
 desktop.ini
+.DS_Store
+node_modules/
+
+# R230n（R26-P1）：SQLite WAL/SHM 边车 + R230i 腐库检疫产物——
+# 运行期二进制，git add -A 会把腐库收回去（当年 corpus.db 事故同款）。
+data/index/*.db-wal
+data/index/*.db-shm
+data/*.db-wal
+data/*.db-shm
+*.corrupt-*
 
 # Temp probes (scratch files, not deliverables)
 temp_*.py

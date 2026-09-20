@@ -14,13 +14,15 @@
   python scripts/image_gen.py "..." --backend auto --size 1024x1024
 
 密钥:
-  - agnes: 从 C:/Users/Lenovo/Desktop/API key.txt 读取
-  - 备选: 环境变量 AGNES_API_KEY
+  - 环境变量 AGNES_API_KEY（首选）
+  - 或 AGNES_KEY_FILE 指向的文本文件（内含「apikey: xxx」一行）
+  - R230n（R26-P3）：此前钉死作者本机路径 C:/Users/Lenovo/... 入库——
+    改环境变量驱动，路径不进代码。
 """
 import os, sys, json, time, argparse, re, urllib.request, urllib.parse, urllib.error
 from pathlib import Path
 
-KEY_FILE = Path("C:/Users/Lenovo/Desktop/API key.txt")
+KEY_FILE = Path(os.environ.get("AGNES_KEY_FILE", "")) if os.environ.get("AGNES_KEY_FILE") else None
 POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/"
 AGNES_BASE = "https://apihub.agnes-ai.com/v1"
 
@@ -28,8 +30,8 @@ def load_agnes_key() -> str:
     env = os.environ.get("AGNES_API_KEY")
     if env:
         return env.strip()
-    if not KEY_FILE.exists():
-        raise RuntimeError(f"未找到密钥文件: {KEY_FILE}")
+    if KEY_FILE is None or not KEY_FILE.exists():
+        raise RuntimeError("未配置密钥：设 AGNES_API_KEY 或 AGNES_KEY_FILE=<密钥文件路径>")
     text = KEY_FILE.read_text(encoding="utf-8")
     m = re.search(r"apikey[：:]\s*(\S+)", text)
     if not m:

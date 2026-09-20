@@ -21,9 +21,15 @@ import sqlite3
 import threading
 from datetime import datetime
 
-# PyInstaller frozen 兼容：data/ 在 exe 同目录（与 web/deps.py 口径一致）
+# PyInstaller frozen 兼容：与 web/deps.py 同口径——先查 exe 父目录有无
+# data/index（data/ 在项目根的标准摆放），找不到才退 exe 同目录。
+# R230n（R26-P3）：此前本模块只认 exe 同目录，和 deps 的父目录探测
+# 分叉——同一 exe 会出现两套 data 根。
 if getattr(__import__("sys"), "frozen", False):
-    _ROOT = os.path.dirname(__import__("sys").executable)
+    _exe_dir = os.path.dirname(__import__("sys").executable)
+    _parent = os.path.dirname(_exe_dir)
+    _ROOT = (_parent if os.path.isdir(os.path.join(_parent, "data", "index"))
+             else _exe_dir)
 else:
     _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(_ROOT, "data", "paipan_history.db")
