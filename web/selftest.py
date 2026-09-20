@@ -1718,6 +1718,25 @@ def _run_inner() -> list[str]:
         _want = "/".join(_hl.guiren(_dt(_d.year, _d.month, _d.day, 12)))
         return j.get("noble") == _want and j.get("noble") not in ("", None)
     check("daily.noble.guiren", client.get("/api/daily"), _daily_noble_ok)
+    # R2349g：①noble_liuhe=日支六合生肖（前端「合拍」第二层）必在且是
+    # 单地支；②「绝不降级静默空卡」——连扫 45 天，任一天 do=='—' 即
+    # 说明等级/字典键失配进了降级分支（R230y 小吉 KeyError 的回归钉）。
+    def _daily_fields_ok():
+        from guji.bazi_calc import LIU_HE as _LH
+        for _i in range(45):
+            _ds = f"2026-{9 + _i // 30:02d}-{(_i % 30) + 1:02d}"
+            _r = client.get("/api/daily", params={"date": _ds})
+            if _r.status_code != 200:
+                return f"{_ds} status={_r.status_code}"
+            _j = _r.json()
+            if _j.get("do") == "—" or _j.get("dont") == "—":
+                return f"{_ds} 降级空卡 level={_j.get('level')}"
+            if _j.get("noble_liuhe") not in _LH:
+                return f"{_ds} noble_liuhe={_j.get('noble_liuhe')!r}"
+        return True
+    _dfd = _daily_fields_ok()
+    assert _dfd is True, ("daily.fields.no_degrade", _dfd)
+    ok.append("daily.fields.no_degrade")
     # R229z续4：宜/忌两条建议不许同项撞签（实测"空腹喝冰美式、空腹喝
     # 冰美式"——同池两签会撞）。连测 30 天。
     def _daily_no_dup():

@@ -663,14 +663,24 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # R216b 续4（UX 队列 U-023）：直白节奏倾向语——由动爻数与卦变
     # 确定性推导，只描述节奏不给吉凶承诺（G7 红线内）。
     n = len(ml)
+    # R2349g（R68-P2）：每档 trend 双变体——同一卦（时间起卦同日同时辰
+    # 恒定）连摇不再复读同一句；按本卦卦号确定性二选一。
+    _alt = (bn % 2) == 1
     if not ml:
-        trend = "整体偏稳——眼下更适合守着现状，不必急着动。"
+        trend = ("整体偏稳——眼下更适合守着现状，不必急着动。" if not _alt
+                 else "卦面是静的——格局稳着，安心做手上的事。")
     elif n == 1:
-        trend = "整体偏稳、局部有变化——大方向不变，中间有一个点要留意。"
+        trend = ("整体偏稳、局部有变化——大方向不变，中间有一个点要留意。"
+                 if not _alt else
+                 "主线是稳的，就一个地方在动——盯住那一点就够。")
     elif n == 2:
-        trend = "整体有起伏——事情在推进中，节奏会有两次小调整。"
+        trend = ("整体有起伏——事情在推进中，节奏会有两次小调整。"
+                 if not _alt else
+                 "两处都在动——事情会拐两个小弯，跟着节奏走。")
     else:
-        trend = "整体变数偏多——先别求一步到位，分几步走更稳。"
+        trend = ("整体变数偏多——先别求一步到位，分几步走更稳。"
+                 if not _alt else
+                 "动的点多——这事先抓大方向，细节边走边调。")
     # R230a-7（R13-P1-4）：阳长之势 = 十二消息卦阳长段（复24/临19/泰11/
     # 大壮34/夬43/乾1）——此前的 (14,55) 是误植（大有/丰不在消息卦阳长段）。
     if vname and vname != bname and vn in (1, 11, 19, 24, 34, 43):
@@ -952,25 +962,41 @@ def _tarot_kw_guidance(kw: str, q: str) -> str:
 
 def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
     """D-002：综合多张牌给一句方向性指引"""
+    # R2349g（R68-P1-3）：收尾句按首牌名做确定性盐，各档双变体——
+    # 同阵重抽（同日同问 seed 恒定）仍同款，跨问题/跨天错开。
+    _salt = sum(ord(c) for c in str((cards[0] or {}).get("name", ""))) if cards else 0
+    _alt = (_salt % 2) == 1
     if not q:
         # C-004：禁用免责套话，改为给具体方向
         # R230a-7（R13-P0-3）：无提问路径同样先看重牌
         if any(c.get("name") in _TAROT_HEAVY for c in cards):
-            return "牌里有几张在提醒你，先把自己照顾好，事情慢一点没关系。"
-        return "牌面整体是顺的，可以试着往前走一小步。"
+            return ("牌里有几张在提醒你，先把自己照顾好，事情慢一点没关系。"
+                    if not _alt else
+                    "这组牌有几张沉甸甸的——先顾好自己，别的都可以等等。")
+        return ("牌面整体是顺的，可以试着往前走一小步。"
+                if not _alt else
+                "这组牌气色不错——心里那件事，可以往前试半步。")
     # R230a-7（R13-P0-3）：有重牌在场时不论正逆位都不说「整体是顺的」——
     # 先安抚再看走向。
     if any(c.get("name") in _TAROT_HEAVY for c in cards):
-        return f"牌里有几张在提醒你的位置——关于「{q}」，先照顾好自己，事情可以慢一点推进。"
+        return (f"牌里有几张在提醒你的位置——关于「{q}」，先照顾好自己，事情可以慢一点推进。"
+                if not _alt else
+                f"关于「{q}」——牌里有几张分量重的，先把自己安顿好，事不急这一天。")
     # 根据牌的正逆位比例给综合判断
     upright_count = sum(1 for c in cards if c.get("upright"))
     total = len(cards)
     if upright_count > total * 0.6:
-        return f"牌面整体是顺的，你问的「{q}」可以试着往前走一小步。"
+        return (f"牌面整体是顺的，你问的「{q}」可以试着往前走一小步。"
+                if not _alt else
+                f"顺位的牌占了上风——「{q}」这事，可以先迈半步试试水。")
     elif upright_count < total * 0.4:
-        return f"牌面有些别扭，关于「{q}」先别急着推进，多观察几天。"
+        return (f"牌面有些别扭，关于「{q}」先别急着推进，多观察几天。"
+                if not _alt else
+                f"逆位偏多——「{q}」这事先放一放，看清了再动不迟。")
     else:
-        return f"牌面有顺有逆，关于「{q}」保持现状，等时机更明朗再动。"
+        return (f"牌面有顺有逆，关于「{q}」保持现状，等时机更明朗再动。"
+                if not _alt else
+                f"顺逆各半——「{q}」眼下不动比乱动强，再等等信号。")
 
 
 # ---------------------------------------------------------------------------

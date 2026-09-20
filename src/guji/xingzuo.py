@@ -167,10 +167,30 @@ _DAILY_BEATS = (
 )
 
 
+def _sign_idx(sign_name: str) -> int:
+    """宫名 → 黄经序（0-11）。查不到返回 0（调用方按已知宫名调用）。"""
+    try:
+        return _SIGN_ORDER.index(sign_name)
+    except ValueError:
+        return 0
+
+
+def _beat_hash(day_ganzhi: str, sign_name: str, extra: str = "") -> int:
+    """确定性哈希：日干字符和 + 宫序 × 素数 + 维度字符和。
+
+    R2349g（R68-P0）：旧实现把宫名 ord 和混进哈希——「白羊」「天蝎」
+    ord 和同余 12、「摩羯」「双鱼」同理，两对星座的日运逐字节永久
+    克隆（30/30 天全同）。改按宫序索引取模，同日 12 宫散到 12 个
+    不同槽位；输入固定输出固定，跨进程稳定（不用内置 hash()）。
+    """
+    return (sum(ord(c) for c in (day_ganzhi or "")) * 31
+            + _sign_idx(sign_name) * 7
+            + sum(ord(c) for c in extra))
+
+
 def _daily_beat(day_ganzhi: str, sign_name: str) -> str:
-    """日干支 + 宫名 → 确定性的当日一句。输入固定输出固定。"""
-    h = sum(ord(c) for c in (day_ganzhi or "") + (sign_name or ""))
-    return _DAILY_BEATS[h % len(_DAILY_BEATS)]
+    """日干支 + 宫序 → 确定性的当日一句。输入固定输出固定。"""
+    return _DAILY_BEATS[_beat_hash(day_ganzhi, sign_name) % len(_DAILY_BEATS)]
 
 
 # R230y（R36-P2-2）：三维度日变池——原 love/career/wealth 是各宫恒定串，
@@ -222,10 +242,9 @@ _DIM_BEATS = {"love": _LOVE_BEATS, "career": _CAREER_BEATS, "wealth": _WEALTH_BE
 
 
 def _dim_beat(day_ganzhi: str, sign_name: str, dim: str) -> str:
-    """日干支 + 宫名 + 维度 → 确定性日变句（纯函数）。"""
+    """日干支 + 宫序 + 维度 → 确定性日变句（纯函数）。"""
     pool = _DIM_BEATS.get(dim) or _DAILY_BEATS
-    h = sum(ord(c) for c in (day_ganzhi or "") + (sign_name or "") + dim)
-    return pool[h % len(pool)]
+    return pool[_beat_hash(day_ganzhi, sign_name, dim) % len(pool)]
 
 
 def daily_horoscope(day_ganzhi: str) -> dict:

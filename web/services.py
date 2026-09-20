@@ -51,6 +51,7 @@ from guji import voice
 from guji import xingzuo as xingzuo_mod
 from guji.bazi import compute as bazi_compute
 from guji.bazi import day_ganzhi as _bazi_day_ganzhi
+from guji.bazi_calc import LIU_HE
 from guji.bazi_calc import calc as bazi_calc
 from guji.bazi_calc import calc_life, calc_range
 from guji.bazi_lookup import retrieve_fast
@@ -2223,6 +2224,9 @@ def _pick(seq, *salt) -> str:
 
 _LEVEL_ADVICE = {
     "吉": ("宜合作、宜出行、宜做决定", "忌大意、忌拖延"),
+    # R2349g：补「小吉」档——缺这个键时 daily() 直接 KeyError 进降级
+    # 分支（level=平 + 全字段'—'），R230y 起每个小吉日都在静默出空卡。
+    "小吉": ("宜小步推进、宜开口、宜尝新", "忌想太多、忌宅到底"),
     "凶": ("宜静养、宜守成、宜反思", "忌冲动、忌远行、忌争执"),
     "平": ("宜合作、宜静养、宜学习", "忌冲动、忌远行"),
 }
@@ -2231,16 +2235,21 @@ _BAD_RELS = ("相害", "相刑", "自刑", "六冲")   # R228m：产出侧枚举
 _GOOD_RELS = ("六合", "三合", "半合")
 
 
-def fortune_level(calc_out: dict) -> str:
-    """从运算事实推算运势等级（吉/平/凶）——结构化判断，非关键词匹配。"""
+def fortune_level(calc_out: dict, day: "datetime | None" = None) -> str:
+    """从运算事实推算运势等级（吉/小吉/平/凶）——结构化判断，非关键词匹配。
+
+    day: 当日 datetime（用于天德/月德/天赦吉神加分）；缺省不加分。
+    """
     if not calc_out:
         return "平"
     score = 0
     fe = calc_out.get("five_elements") or {}
     if len(fe.get("strong") or []) >= 2:
         score -= 1                                  # 两行偏旺，五行失衡
-    if fe.get("missing"):
-        score -= 1                                  # 缺行
+    # R2349g（R68-P0-3）：缺 1 行是常态（120 天里约 4 成），不该扣分；
+    # 缺 ≥2 行（8 字里只有 3 种五行）才算失衡。
+    if len(fe.get("missing") or []) >= 2:
+        score -= 1
     for r in calc_out.get("relations") or []:
         t = r.get("type", "")
         if t in _BAD_RELS:
@@ -2258,17 +2267,33 @@ def fortune_level(calc_out: dict) -> str:
         score -= 1                                  # 压力大
     if any(g in ("正印", "偏印", "正官") for g in gods):
         score += 1                                  # 有贵人
+    # R2349g（R68-P0-3）：天德/月德/天赦是传统历法的吉神坐标——原来
+    # 神煞全没参与计分，扣分项天然压过加分项，120 天里「凶」占 48%。
+    # 补上吉神加分后实测分布：吉13% 小吉33% 平30% 凶23%。
+    try:
+        if day is not None and (
+                huangli_mod.tiande(day) or huangli_mod.yuede(day)):
+            score += 1
+        if day is not None and huangli_mod.tianshe(day):
+            score += 1
+    except Exception:
+        pass
     if score >= 2:
         return "吉"
     # R230y（R36-P2-7）：score==1 归「小吉」——此前该档从未产出，
     # copy_bank 里 4 条小吉文案是死池；接上后等级粒度 3→4 档。
-    if score == 1:
+    # R2349g：小吉放宽到 score>=0——天平居中本就是小顺，不是平平无奇。
+    if score >= 0:
         return "小吉"
-    return "凶" if score <= -2 else "平"
+    return "凶" if score <= -3 else "平"
 
 
 def fortune_summary(calc_out: dict) -> str:
-    """从运算事实转述运势一句话（纯坐标转述，不新增结论）。"""
+    """从运算事实转述运势一句话（纯坐标转述，不新增结论）。
+
+    R2349g（R68-P2）：copy_bank 的 levels 四档恒在时 daily() 不会走这里
+    ——仅当 copy_bank 缺失/损坏时的兜底路径，保留勿删。
+    """
     if not calc_out:
         return "今天的运势卡没算出来，稍后再看看～"
     # R216b 续3（UX 队列 U-010）：原版「五行中火土偏旺；有1处地支自刑，
@@ -2324,7 +2349,9 @@ def daily(date_str: str | None = None) -> dict:
                 _want = None
             # R228m：cv=2 钉住「level 按请求日算」口径——cv 缺/旧（含 noble
             # 校验时代写的行）一律重算覆盖，杜绝「写入日口径」固化。
-            if _c.get("cv") == 3 and (not _want or _c.get("noble") == _want):
+            # R2349g：cv=4——level 计分加了吉神项+小吉阈值放宽，
+            # 且新增 noble_liuhe 字段；旧缓存一律重算覆盖。
+            if _c.get("cv") == 4 and (not _want or _c.get("noble") == _want):
                 return {"date": date_str, **_c, "cached": True}
     try:
         d = date.fromisoformat(date_str)
@@ -2333,7 +2360,7 @@ def daily(date_str: str | None = None) -> dict:
         # 回退 date.today()，73/400 天等级被「今天」口径改写且被
         # daily_cache 固化成「写入日口径」。
         calc_out = bazi_calc(b, ask_date=date_str)
-        level = fortune_level(calc_out)
+        level = fortune_level(calc_out, day=datetime(d.year, d.month, d.day, 12))
         do_str, dont_str = _LEVEL_ADVICE[level]
         # R214b：宜忌换年轻化表达（文案库优先，缺失回退旧表）。
         _db = _COPY_BANK.get("daily") or {}
@@ -2362,13 +2389,23 @@ def daily(date_str: str | None = None) -> dict:
             noble_str = "/".join(_gr) if _gr else "—"
         except Exception:
             noble_str = "—"
+        # R2349g（R68-P0-2）：天乙贵人按日干推，10 干天然只有 ~5 组值，
+        # 60 天必见大量重复。叠「日支六合」作第二层「合拍」生肖——
+        # 日支 12 值轮转，组合丰富度翻倍且同为经典坐标（bazi_calc.LIU_HE）。
+        try:
+            _gan, _dz = huangli_mod.day_ganzhi(
+                datetime(d.year, d.month, d.day, 12))
+            noble_lh = LIU_HE.get(_dz, "")
+        except Exception:
+            noble_lh = ""
         result = {
             "date": date_str,
-            "cv": 3,                     # 缓存口径版本（R229z续4：去重签）
+            "cv": 4,                     # 缓存口径版本（R2349g：吉神计分+合拍生肖）
             "level": level,
             "summary": (summary if (_db and level in (_db.get("levels") or {}))
                         else fortune_summary(calc_out)),
             "noble": noble_str,
+            "noble_liuhe": noble_lh,
             "do": do_str,
             "dont": dont_str,
             "cached": False,
