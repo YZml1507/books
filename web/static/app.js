@@ -526,7 +526,7 @@ function buildTaohuaResult(j) {
   }
   if (j.dayun_hits && j.dayun_hits.length) {
     html += '<h3 style="margin-top:16px;">桃花什么时候旺</h3>' +
-      '<table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
+      '<div class="table-scroll"><table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
       '<th>约几岁</th></tr></thead><tbody>';
     j.dayun_hits.forEach(function (d) {
       html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
@@ -4445,7 +4445,7 @@ async function doConcept() {
     let html = '<h3>「' + esc(j.concept || q) + '」在 ' + esc(j.works_with_hits) +
       ' 部书中有命中' + (j.truncated ? '（扫描上限 ' + esc(j.scan_limit) + '）' : '') +
       '</h3>';
-    html += '<table class="works"><thead><tr><th>书</th><th>命中</th><th>层分布</th>' +
+    html += '<div class="table-scroll"><table class="works"><thead><tr><th>书</th><th>命中</th><th>层分布</th>' +
       '</tr></thead><tbody>';
     (j.census || []).forEach(function (row) {
       html += '<tr><td>《' + esc(row.title || row.work_id) + '》' +
@@ -4503,7 +4503,7 @@ async function doBookStructure() {
     }
     let html = '<h3>《' + esc(j.title || j.work_id) + '》 scheme=' + esc(j.scheme) +
       ' · ' + esc(j.n_sections) + ' 节 / ' + esc(j.n_units) + ' 单元</h3>';
-    html += '<table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
+    html += '<div class="table-scroll"><table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
       html += '<tr><td>' + esc(s.label || '') + '</td>' +

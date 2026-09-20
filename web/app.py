@@ -112,8 +112,7 @@ def create_app() -> FastAPI:
         resp = await call_next(request)
         p = request.url.path
         if p.startswith(("/static/fonts/", "/static/cream/",
-                         "/static/tarot/", "/static/animotion/",
-                         "/static/_candidates/")):
+                         "/static/tarot/", "/static/animotion/")):
             resp.headers.setdefault("Cache-Control",
                                     "public, max-age=86400")
         elif p.startswith(("/static/",)) and p.endswith((".js", ".css")):

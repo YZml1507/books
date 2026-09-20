@@ -11181,3 +11181,13 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - welcomeBar 首访文案补分享钩（「测完还能生成分享图发给闺蜜」）。
 - 排雷：三枚 .fav-btn 原 right:24/84px 绝对定位会互叠（ui_smoke 抓出）→ hehun 卡改 .hh-btns flex 行；on_coverage 闸抓出 hhInvite 无用例 → 新增 hehun.invite 点击断言（toast 双路均可）。
 - 闸门：selftest 237 / contract 550 / regress PASS / ui_smoke 59 / ruff E9F 全绿。
+
+## R233o（R48 设计令牌/资产完整性批）
+- 静态减重：`web/static/_candidates/`（75MB 出图源稿）+ `web/static/ink/`（22MB 退役水墨全目录）+ `cream/*-full.png`（21 张全尺寸原稿）→ `assets_src/`（仍在 git、不再挂 /static 公开分发）；app.py 缓存前缀相应摘除。web/static 130MB→8.9MB。
+- 死字体管道复通：`.daily-level` 第二条规则的 font-family/font-weight 删掉——Smiley Sans（`--font-display`）此前被 serif 覆盖、下载后零渲染，现生效。
+- legacy 回滚补齐：`:root[data-theme=legacy]` 复置 `--font-display:var(--font-serif)` + h1/.side-brand/.brand-title/.card h2 覆写（原 ZCOOL 硬编码绕令牌）；`--cta-grad` 令牌收口 10 处玫瑰渐变 + legacy 档回落旧金。
+- 令牌修洞：`--line:#E8D5CC` 定义（fav-chip 永远吃兜底的 bug）；`var(--primary/#C25A4E)`、`var(--primary-bg,#FFF5F1/#C25A4E)` 过期兜底→真值对齐（#D4B5FF/#7A5FB8）；`--font-mono` 从 `"Georgia",serif`（假等宽）改真 mono 栈并收口 6 处裸 `monospace`/`Consolas`。
+- 一致性：`.card-sub` 类替换 10 处内联 h2 副标题；3 处裸 `table.works` 外包 `.table-scroll`（320px 横滚）；`ph-t-bazi` 徽标补色；`border-radius:99px`×2 归一 999px；#FFFCF7/#FFFCF8（色差<3 级）→ var(--card)；<11px 字号抬升（hl-week-yi/ji 10→11、char-count 10→11、窄屏 9→10）。
+- print：`.install-tip` 入隐藏名单；`.hlPickDrawer/.birthDrawer` 修成 id 选择器；删死 `.func-card-back`；`.recent-sidebar.open` 重复声明合并；`color-scheme:light` meta 显式声明无暗色档。
+- 坑位记录：heredoc 链 `cmd1 && cmd2` 遇 grep 无命中（exit1）会静默跳过后续 python——这是继 batch4 assert 之后第二种「脚本没写盘」的坑。
+- 闸门：selftest 237 / regress PASS / ui_smoke 59 / ruff E9F / contract 550 全绿。

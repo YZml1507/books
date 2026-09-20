@@ -2,8 +2,9 @@
 
 ## AI 生图（cream/ink 系列）
 
-`web/static/cream/`、`web/static/ink/` 下约 70 张插画为本项目用
-文生图模型生成的原创资产：
+`web/static/cream/` 下的插画为本项目用文生图模型生成的原创资产
+（旧水墨 `ink/` 与出图原稿 `cream/*-full.png` 已于 R233o 移到仓库内
+`assets_src/`——仍在 git，但不再挂在 /static 公开分发）：
 
 - 生成后端：`agnes-image-2.x-flash`（apihub.agnes-ai.com）与
   image.pollinations.ai（早期批次）
@@ -18,4 +19,6 @@
 | `fonts/` | 得意黑/霞鹜文楷/站酷快乐体子集 | SIL OFL 1.1，见 `fonts/licenses/` |
 | `tarot/` | 塔罗韦特牌面扫描 | 公版（1909 Rider-Waite，版权已过期） |
 | `animotion/` | 动画库 vendored | 见 `data/catalog/external_manifest.json` |
-| `_candidates/` | 出图候选/原稿 | 同 AI 生图口径 |
+| `assets_src/candidates/` | 出图候选/原稿（不随静态分发） | 同 AI 生图口径 |
+| `assets_src/ink/` | 旧水墨主题资产（退役，存档） | 同 AI 生图口径 |
+| `assets_src/cream-full/` | cream 系列全尺寸原稿 | 同 AI 生图口径 |

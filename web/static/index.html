@@ -14,7 +14,8 @@
 <meta name="twitter:image" content="/static/cream/cream-hero-v2.jpg">
 <!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
 <meta name="theme-color" content="#FFF8E7">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>小满的解忧铺 · 知命</title>
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
      643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
@@ -219,7 +220,7 @@ if ('serviceWorker' in navigator) {
 
   <div class="view" id="view-bazi">
     <div class="card">
-      <h2><span aria-hidden="true">🔮</span> 八字排盘 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看看你的五行底色</span></h2>
+      <h2><span aria-hidden="true">🔮</span> 八字排盘 <span class="card-sub">看看你的五行底色</span></h2>
       <!-- R229c（R5 审计 P2）：novalidate 关掉浏览器原生英文气泡
            （年=1800 → "Value must be ≥1900"），让站内统一中文校验
            （后端「年份需在 1900-2100」）接管——两条校验路径口径一致。 -->
@@ -314,7 +315,7 @@ if ('serviceWorker' in navigator) {
   <!-- 古籍读书视图 -->
   <div class="view" id="view-read">
     <div class="card">
-      <h2><span aria-hidden="true">📜</span> 古籍读书 <span style="font-size:14px;color:var(--secondary);font-weight:400;">知往圣 · 绝学</span></h2>
+      <h2><span aria-hidden="true">📜</span> 古籍读书 <span class="card-sub">知往圣 · 绝学</span></h2>
       <div class="rtabs">
         <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
         <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
@@ -481,7 +482,7 @@ if ('serviceWorker' in navigator) {
   <!-- 六爻 -->
   <div class="view" id="view-liuyao">
     <div class="card">
-      <h2><span aria-hidden="true">🪙</span> 六爻占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">摇卦问事</span></h2>
+      <h2><span aria-hidden="true">🪙</span> 六爻占卜 <span class="card-sub">摇卦问事</span></h2>
       <div class="row">
         <div class="field"><label for="ly_method">起卦方式</label>
           <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
@@ -516,7 +517,7 @@ if ('serviceWorker' in navigator) {
   <div class="view" id="view-huangli">
     <div class="card">
       <!-- R229z续23（R11-#13）：功能名与首页卡「今天适合」对齐 -->
-      <h2><span aria-hidden="true">🌙</span> 黄历 · 今天宜忌 <span style="font-size:14px;color:var(--secondary);font-weight:400;">好日子，一目了然</span></h2>
+      <h2><span aria-hidden="true">🌙</span> 黄历 · 今天宜忌 <span class="card-sub">好日子，一目了然</span></h2>
       <!-- v3（P7）：日期快选 chip，原生输入收进折叠（兼容保留） -->
       <div class="hl-chips" id="hlChips">
         <button type="button" class="hl-chip active" data-hloffset="0" aria-pressed="true">今天</button>
@@ -546,7 +547,7 @@ if ('serviceWorker' in navigator) {
   <!-- 起名 -->
   <div class="view" id="view-qiming">
     <div class="card">
-      <h2><span aria-hidden="true">🌸</span> 五行起名 <span style="font-size:14px;color:var(--secondary);font-weight:400;">补五行 · 起好名</span></h2>
+      <h2><span aria-hidden="true">🌸</span> 五行起名 <span class="card-sub">补五行 · 起好名</span></h2>
       <div class="row">
         <div class="field"><label for="qm_surname">姓氏</label>
           <!-- R230t（R33-P3-13）：后端恰好单字，前端 maxlength=8 放行复姓
@@ -573,7 +574,7 @@ if ('serviceWorker' in navigator) {
   <!-- 桃花 -->
   <div class="view" id="view-taohua">
     <div class="card">
-      <h2><span aria-hidden="true">🌺</span> 桃花运 <span style="font-size:14px;color:var(--secondary);font-weight:400;">看桃花 · 知缘分</span></h2>
+      <h2><span aria-hidden="true">🌺</span> 桃花运 <span class="card-sub">看桃花 · 知缘分</span></h2>
       <div class="row">
         <div class="field"><label for="th_year">年</label>
           <input id="th_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
@@ -594,7 +595,7 @@ if ('serviceWorker' in navigator) {
   <!-- 塔罗 -->
   <div class="view" id="view-tarot">
     <div class="card">
-      <h2><span aria-hidden="true">✨</span> 塔罗占卜 <span style="font-size:14px;color:var(--secondary);font-weight:400;">抽牌 · 看指引</span></h2>
+      <h2><span aria-hidden="true">✨</span> 塔罗占卜 <span class="card-sub">抽牌 · 看指引</span></h2>
       <!-- R216b 续（UX 队列 U-006）：Seed 是复验用的技术参数，收进默认
            折叠的高级设置——普通用户不该第一眼看到调试字段。id 保持不变，
            不填时前端自动生成。 -->
@@ -619,7 +620,7 @@ if ('serviceWorker' in navigator) {
   <!-- 合婚 -->
   <div class="view" id="view-hehun">
     <div class="card">
-      <h2><span aria-hidden="true">💕</span> 八字合婚 <span style="font-size:14px;color:var(--secondary);font-weight:400;">两人八字 · 缘分深浅</span></h2>
+      <h2><span aria-hidden="true">💕</span> 八字合婚 <span class="card-sub">两人八字 · 缘分深浅</span></h2>
       <div class="row">
         <div class="field"><label for="hh_a_year">甲年</label>
           <input id="hh_a_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
@@ -661,7 +662,7 @@ if ('serviceWorker' in navigator) {
   <!-- D-005：星座 -->
   <div class="view" id="view-xingzuo">
     <div class="card">
-      <h2><span aria-hidden="true">⭐</span> 星座 <span style="font-size:14px;color:var(--secondary);font-weight:400;">十二宫 · 今日运势</span></h2>
+      <h2><span aria-hidden="true">⭐</span> 星座 <span class="card-sub">十二宫 · 今日运势</span></h2>
       <!-- R220b（P1-1）：原生 type="date" 在 390px 移动端要唤起系统日历、
            点选层级深。改成「前一天／后一天 + 年月日三 select」——进页面默认
            今天，一次点击就能翻天，不必打开任何弹层。 -->
@@ -706,7 +707,7 @@ if ('serviceWorker' in navigator) {
   <!-- 排盘历史视图（2026-08-28 新增，C2） -->
   <div class="view" id="view-history">
     <div class="card">
-      <h2><span aria-hidden="true">🕘</span> 排盘历史 <span style="font-size:14px;color:var(--secondary);font-weight:400;">本机记录 · 可回查可导出</span></h2>
+      <h2><span aria-hidden="true">🕘</span> 排盘历史 <span class="card-sub">本机记录 · 可回查可导出</span></h2>
       <div class="ph-toolbar">
         <button id="historyRefresh" type="button" class="ghost">刷新</button>
         <button id="historyExport" type="button" class="ghost">导出 CSV</button>
