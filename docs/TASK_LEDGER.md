@@ -10611,3 +10611,5 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   schema/表单/服务层全链通；给了分钟后告警右界收窄 ±30min。
 - P3 备查不改：晚子时当日派（已文档化+warn）、讼/师简体字形（仅显示层）、
   节气精度 ≤12.6min（代码声明 ±15min 内）。
+- 续：ui_smoke +btn:r16.fixtures（黄历 chatEntry / shareTarot / shareXingzuo
+  存在性钉扎），49 用例全绿。
