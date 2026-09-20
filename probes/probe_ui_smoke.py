@@ -340,6 +340,15 @@ def main() -> int:
     for _v, _i in _var_ids.items():
         if re.search(rf"\b{re.escape(_v)}\.addEventListener\(['\"]click", _js):
             _on_ids.add(_i)
+    # R2347（R60-meta-1 收口）：直链式裸绑定也钉——
+    # `el('x').addEventListener('click')` / `getElementById('x').addEventListener`
+    # / `querySelector('#x').addEventListener` 三种不赋值形态此前仍逃逸。
+    _on_ids |= set(re.findall(
+        r"(?:document\.getElementById|el)\(['\"](\w+)['\"]\)"
+        r"\.addEventListener\(['\"]click", _js))
+    _on_ids |= set(re.findall(
+        r"\.querySelector\(['\"]#(\w+)['\"]\)\.addEventListener\(['\"]click",
+        _js))
     _covered = {btn.lstrip("#") for _n, _v, _t, btn, _r in BUTTON_CASES}
     _covered |= {"dailyMore", "submit",
                  # R2344：内联用例覆盖的裸绑定/容器委托 id（见 ui:* 用例）
