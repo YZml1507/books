@@ -4686,6 +4686,11 @@ async function doHuangli(offset, reveal) {
             }
             doHuangli(null, false);
           }
+        }).catch(function () {
+          /* R229z续13：resolve_date 离线/不可达——节日词本地解不出也不能
+           * 静默；回退当前显示日判定（无事项词走中性卡）。 */
+          if (sc) doHuangli(null, false);
+          else _hlShowNeutral();
         });
         return;
       }
