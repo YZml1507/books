@@ -310,7 +310,10 @@ class KnowledgeBase:
                    (SELECT count(*) FROM turn WHERE thread_id = t.id) turns,
                    (SELECT count(*) FROM derived WHERE thread_id = t.id) claims
             FROM thread t WHERE t.status = 'open'
-            ORDER BY coalesce(t.updated_at, t.opened_at) DESC""").fetchall()
+            ORDER BY coalesce(t.updated_at, t.opened_at) DESC
+            LIMIT 50""").fetchall()
+        # R230j（R22-P2-2）：无 LIMIT 时前端全量渲染——对齐
+        # /api/paipan/history?limit=50 的既有口径。
 
     def stats(self) -> dict:
         q = ("SELECT (SELECT count(*) FROM derived) d, (SELECT count(*) FROM evidence) e, "

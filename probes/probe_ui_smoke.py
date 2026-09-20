@@ -703,8 +703,10 @@ def main() -> int:
             #   c) 星座页 doXingzuo(true) 后须挂 #shareXingzuo（P2-2）。
             errors.clear()
             try:
+                # R230j：chatEntry 钮的 id 已摘（多容器共存=重复 id），
+                # 钉扎改按 .chat-entry 类。
                 hl_chat = page.evaluate(
-                    "() => !!document.querySelector('#hlResult #chatEntry')")
+                    "() => !!document.querySelector('#hlResult .chat-entry')")
                 tr_share = page.evaluate(
                     "() => !!document.querySelector('#trResult #shareTarot')")
                 goto_view("xingzuo")

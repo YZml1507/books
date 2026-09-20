@@ -485,11 +485,12 @@ function buildChatContext(viewKey) {
 function attachChatEntry(container) {
   if (!container) return;
   var card = container.querySelector('.card');
-  if (!card || card.querySelector('#chatEntry')) return;
+  if (!card || card.querySelector('.chat-entry')) return;
   var btn = document.createElement('button');
   btn.className = 'chat-entry';
   btn.type = 'button';
-  btn.id = 'chatEntry';
+  /* R230j（R22-P3-6）：id=chatEntry 与黄历内联钮共存时是重复 id
+   * （invalid HTML）——委托与判重都走 .chat-entry 类即可，id 摘掉。 */
   /* R218a-巡4（A-b）：图标按钮补 aria-label */
   btn.setAttribute('aria-label', '打开小满聊天，聊聊这件事');
   btn.textContent = '💬 聊聊这件事';
@@ -799,6 +800,9 @@ function chatBubble(role, text, opts) {
   else if (role === 'me') div.textContent = text;
   else div.innerHTML = renderRichText(text);   /* v3 P5：markdown 渲染 */
   flow.appendChild(div);
+  /* R230j（R22-P3-3）：气泡无上限 DOM 只涨不裁——保留最近 50 条，
+   * 更早的摘掉（与 R228j records 滚动裁剪同一思路）。 */
+  while (flow.children.length > 50) flow.removeChild(flow.firstChild);
   flow.scrollTop = flow.scrollHeight;
   return div;   /* 轮询写回用节点引用，不赌 lastChild */
 }
@@ -906,6 +910,10 @@ function showView(viewId) {
    *     对策：切换前记住位置，布局变更后原样恢复（浏览器钳到新最大值，
    *     短页面自然落顶，不产生「拽回页顶」的观感）。提交后的定位仍由
    *     revealResult() 负责，probe_first_screen 判据 1 不受影响。 */
+  /* R230j（R22-P3-4）：切视图时在跑的 AI 轮询继续空转打到 deadline
+   * ——结果已不可见还在发请求。切走即 bump 全部世代号，让 in-flight
+   * tick 下一次自查自然终止（同容器新结果 bump 同一键，语义一致）。 */
+  Object.keys(RESULT_GEN).forEach(function (k) { RESULT_GEN[k]++; });
   var _sy = window.scrollY;
   var isHome = (viewId === 'home');
   document.querySelectorAll('.view').forEach(function (v) {
@@ -1152,6 +1160,14 @@ function revealResult(containerId) {
   };
   requestAnimationFrame(function () { requestAnimationFrame(_confirm); });
   setTimeout(_confirm, 260);
+  /* R230j（R22-P2-1）：once 监听在用户无滚轮/触摸/按键时永不自行
+   * 回收，每次提交积 3 个（55 次提交实测 +150）。最后一次 _confirm
+   * 跑完后三监听使命已尽——主动摘掉。 */
+  setTimeout(function () {
+    window.removeEventListener('wheel', _stop);
+    window.removeEventListener('touchmove', _stop);
+    window.removeEventListener('keydown', _stop);
+  }, 300);
 }
 
 /* ── 口吻模式（004 US3：一键切回）─────────────────────────────
@@ -1975,7 +1991,13 @@ function downloadPoster(j, view) {
  * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
 function showPosterModal(canvas, view) {
   var existing = document.getElementById('posterModal');
-  if (existing) existing.remove();
+  /* R230j（R22-P3-1）：直接 remove() 会绕过 closePosterModal()——旧
+   * backdrop 的 _posterOnKey 引用被覆盖后 keydown 监听永久残留。
+   * 走正经关闭路径（摘监听+焦点归还），再兜底 remove。 */
+  if (existing) {
+    closePosterModal();
+    if (existing.isConnected) existing.remove();
+  }
   var backdrop = document.createElement('div');
   backdrop.id = 'posterModal';
   backdrop.className = 'poster-modal-backdrop';
@@ -3331,6 +3353,9 @@ var _QM_STYLES = {
 /* D-004：换一批不重复——候选池 + 已显示集合，循环一轮后才重复 */
 /* D-004：批次偏移——每次换一批 +8，循环一轮后才重复 */
 var _qmBatchOffset = 0;
+/* R230j（R22-P1-1）：chip 点击路径不在 on() 在途锁内，连点会发并发
+ * POST /api/qiming——补一把同式在途锁。 */
+var _qmBusy = false;
 /* D-004-fix：换一批种子——每次换一批 +1，传入后端得到不同名字。
  * R224b（审查轨 R221a 连带发现）：初值原为 null，而 seed=null 在后端走的是
  * 「按性别打分排序取前 8」分支，**不在洗牌轮次体系内** → 首屏那批与
@@ -3341,7 +3366,7 @@ var _qmBatchOffset = 0;
 var _qmSeed = 1;
 /* D-004：用给定的名字数组重绘起名列表（不重新请求后端） */
 function _qmSwitchStyle(style) {
-  if (!_QM_STYLES[style]) return;
+  if (!_QM_STYLES[style] || _qmBusy) return;   /* R230j：chip 连点在途锁 */
   _QM_STYLE = style;
   _qmBatchOffset = 0;
   /* R228d：不等 doQiming 重渲就先把 chip 态同步——点击与读屏反馈即时 */
@@ -3400,6 +3425,8 @@ function _qmBadgeHtml(score, rank) {
 }
 
 async function doQiming() {
+  if (_qmBusy) return;                        /* R230j */
+  _qmBusy = true;
   busy('qmResult', '起名中…');
   try {
     const j = await postJSON('/api/qiming', {
@@ -3580,9 +3607,14 @@ async function doQiming() {
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
     /* R218a-04：风格芯片 + 换一批按钮的事件绑定。芯片是动态渲染的，
-     * 用委托绑到 qmResult 上——避免每次切换重绑漏点。 */
+     * 用委托绑到 qmResult 上——避免每次切换重绑漏点。
+     * R230j（R22-P1-1）：#qmResult 是静态持久容器，paint() 只换
+     * innerHTML——原来这段委托在 doQiming 成功路径里，每提交一次
+     * +1 个监听，chip 点击请求数随提交数翻倍（实测第5次48并发）。
+     * 改一次性幂等绑定。 */
     const _qmRoot = el('qmResult');
-    if (_qmRoot) {
+    if (_qmRoot && !_qmRoot.dataset.qmbound) {
+      _qmRoot.dataset.qmbound = '1';
       _qmRoot.addEventListener('click', function (ev) {
         const t = ev.target.closest && ev.target.closest('.qm-style-chip');
         if (t && t.dataset && t.dataset.style) {
@@ -3598,6 +3630,8 @@ async function doQiming() {
     });
   } catch (e) {
     failWithRetry('qmResult', '起名失败：' + e.message, function () { doQiming(); });
+  } finally {
+    _qmBusy = false;                          /* R230j */
   }
 }
 
@@ -4830,7 +4864,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     /* R230d（R16-P2-6）：黄历卡没有 .card 容器，paint 的自动挂钮
      * 找不到宿主——手动挂「聊聊这件事」（其他五个视图都有）。 */
-    html += '<button class="chat-entry" type="button" id="chatEntry" ' +
+    html += '<button class="chat-entry" type="button" ' +
       'aria-label="打开小满聊天，聊聊这件事">💬 聊聊这件事</button>';
     paint('hlResult', html);
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
@@ -5212,7 +5246,7 @@ function initBazi() {
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
    * 用委托绑到 document。 */
   document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('#chatEntry')) {
+    if (e.target.closest && e.target.closest('.chat-entry')) {
       chatOpen();
       autoSendChatContext();
     }
@@ -5472,8 +5506,24 @@ if (document.readyState === 'loading') {
     });
   }
   watchCards();
-  /* 动态插入的结果区也纳入观察 */
-  new MutationObserver(function () { watchCards(); }).observe(document.body, { childList: true, subtree: true });
+  /* 动态插入的结果区也纳入观察。
+   * R230j（R22-P3-5）：原来每批变更都全文档 querySelectorAll——
+   * 聊天气泡等高频插入也触发全扫。改为只扫 mutation.addedNodes
+   * （含其子树里的 .card）。 */
+  new MutationObserver(function (muts) {
+    for (var mi = 0; mi < muts.length; mi++) {
+      var an = muts[mi].addedNodes;
+      for (var ni = 0; ni < an.length; ni++) {
+        var n = an[ni];
+        if (n.nodeType !== 1) continue;
+        if (n.matches && n.matches('.card:not(.fx-watch)')) {
+          n.classList.add('fx-watch');
+          if (io) io.observe(n); else n.classList.add('fx-in');
+        }
+        if (n.querySelectorAll) watchCards(n);
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true });
 })();
 
 /* ── R214b：「今日玄学搭子」打卡互动（纯前端，确定性反馈）── */
@@ -5508,7 +5558,18 @@ function renderCheckin(dateKey) {
       const btn = e.target.closest('.checkin-opt');
       if (!btn || !dateKey) return;
       const opt = btn.dataset.opt;
-      try { window.localStorage.setItem('checkin:' + dateKey, opt); } catch (e2) {}
+      try {
+        window.localStorage.setItem('checkin:' + dateKey, opt);
+        /* R230j（R22-P3-2）：checkin:* 每日一键永不清理——写今日键时
+         * 顺手清掉非今日的旧键（一年 ~365 键的无界增长收口）。 */
+        for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
+          var _ck = window.localStorage.key(_ci);
+          if (_ck && _ck.indexOf('checkin:') === 0 &&
+              _ck !== 'checkin:' + dateKey) {
+            window.localStorage.removeItem(_ck);
+          }
+        }
+      } catch (e2) {}
       box.querySelectorAll('.checkin-opt').forEach(function (b) {
         var on = b === btn;
         b.classList.toggle('picked', on);
