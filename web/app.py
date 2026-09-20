@@ -128,10 +128,9 @@ def create_app() -> FastAPI:
     for router in ROUTERS:
         application.include_router(router)
 
-    @application.get("/", include_in_schema=False)
-    def index(request: Request):
-        """单页前端入口。R230n（R25-3.1）：og:image 是相对路径时主流卡片
-        爬虫不解析——按 request.base_url 注入绝对 URL（不依赖固定域名）。"""
+    def _index_response(request: Request):
+        """单页前端入口响应。R230n（R25-3.1）：og:image 是相对路径时主流
+        卡片爬虫不解析——按 request.base_url 注入绝对 URL（不依赖固定域名）。"""
         if not os.path.exists(deps.INDEX):
             raise HTTPException(500, "前端文件缺失：web/static/index.html")
         try:
@@ -141,6 +140,10 @@ def create_app() -> FastAPI:
             return HTMLResponse(html)
         except OSError:
             return FileResponse(deps.INDEX)
+
+    @application.get("/", include_in_schema=False)
+    def index(request: Request):
+        return _index_response(request)
 
     # R228k：SW 根作用域——/static/sw.js 默认只管 /static/ 下的请求，
     # '/' 的导航永远进不了 fetch 分支，「断网不白屏」此前完全不生效。
@@ -164,7 +167,7 @@ def create_app() -> FastAPI:
         if (request.method == "GET" and resp.status_code == 404
                 and not request.url.path.startswith(("/api/", "/static/"))
                 and os.path.exists(deps.INDEX)):
-            return FileResponse(deps.INDEX)
+            return _index_response(request)
         return resp
 
     return application
