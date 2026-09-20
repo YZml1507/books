@@ -16,7 +16,6 @@ Each candidate is scored the same way cross_edition_coverage + verify_index T11
 do: compared count (>= 358), median coverage (>= 0.95), and the 5 EXPECTED
 len_b values (want 卦58 九五 / 卦46 初六 to drop).
 """
-import bisect
 import difflib
 import os
 import statistics
@@ -129,7 +128,7 @@ def score_jing(name, bodies, pol, strip_naked):
             exp[(d[0], d[1])] = d[4]
     print(f"\n=== {name} ===")
     print(f"  compared={len(out)}  median_cov={statistics.median(covs):.3f}")
-    print(f"  EXPECTED len_b: " + "  ".join(f"{g}{y}={exp.get((g, y), '?')}" for g, y in sorted(EXPECTED)))
+    print("  EXPECTED len_b: " + "  ".join(f"{g}{y}={exp.get((g, y), '?')}" for g, y in sorted(EXPECTED)))
 
 
 CUTTERS = {
@@ -166,7 +165,7 @@ def score(name: str, cut, bodies, pol):
             exp[(d[0], d[1])] = d[4]
     print(f"\n=== {name} ===")
     print(f"  compared={len(out)}  median_cov={statistics.median(covs):.3f}")
-    print(f"  EXPECTED len_b: " + "  ".join(f"{g}{y}={exp.get((g, y), '?')}" for g, y in sorted(EXPECTED)))
+    print("  EXPECTED len_b: " + "  ".join(f"{g}{y}={exp.get((g, y), '?')}" for g, y in sorted(EXPECTED)))
 
 
 def main():

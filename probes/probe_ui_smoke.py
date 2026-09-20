@@ -41,7 +41,8 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 
 复现命令：
     C:\\Users\\Lenovo\\Desktop\\projects\\books\\.venv\\Scripts\\python.exe probes\\probe_ui_smoke.py
-可选：--headed 看真实点击过程；--port N 换端口；--keep 保留 logs/ 截图。
+可选：--headed 看真实点击过程；--port N 换端口。
+（截图/日志无条件写入 logs/ui_smoke/，无需 --keep。）
 退出码：0 全绿；1 有用例失败；2 环境不可用（chromium 未装 / 服务起不来）。
 截图与失败详情：logs/ui_smoke/
 """
@@ -218,7 +219,6 @@ def wait_health(port: int, timeout: float = 90.0) -> bool:
 
 def main() -> int:
     headed = "--headed" in sys.argv
-    keep = "--keep" in sys.argv
     forced_port = None
     if "--port" in sys.argv:
         forced_port = int(sys.argv[sys.argv.index("--port") + 1])

@@ -3,7 +3,6 @@ import glob
 import os
 import re
 import unicodedata
-from collections import Counter
 
 # canonical corpus (R18a: was a single-dirname probes/data/raw path that
 # matched no existing directory — the historical scratch fetcher output)

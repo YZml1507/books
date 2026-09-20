@@ -89,7 +89,7 @@ jobs:
       - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入，活代码零存量）
         # R230e：scripts/+web_launcher 存量清零后纳入同一闸；probes/ 是
         # 审查脚手架（归档一次性脚本），不在此口径。
-        run: ruff check src web scripts web_launcher.py --select E9,F
+        run: ruff check src web scripts probes web_launcher.py --select E9,F
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
         run: |
           python scripts/check_booksec.py

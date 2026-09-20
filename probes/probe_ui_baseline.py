@@ -263,7 +263,6 @@ def main() -> int:
                 ctx = browser.new_context(viewport={"width": vw, "height": vh},
                                           reduced_motion=motion)
                 page = ctx.new_page()
-                longtasks = []
                 page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
                 page.wait_for_timeout(1800)
                 m = page.evaluate(MEASURE_JS)

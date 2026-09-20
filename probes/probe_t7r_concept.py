@@ -266,8 +266,6 @@ def main():
     doc_vectors /= norms
 
     # unit id -> row index
-    uid_to_idx = {uid: i for i, (uid, _) in enumerate(docs)}
-
     # addr1/addr2 lookup by unit id
     addr_lookup = {r[0]: (r[2], r[3]) for r in rows}
 
@@ -300,7 +298,6 @@ def main():
             hits += 1
             if found_rank <= top_k:
                 rank_in_k += 1
-        top_text = docs[top[0]][0]
         top_score = sims[top[0]]
         print(f"  [{status}] expect 卦{exp_gua} {exp_yao}  "
               f"rank={found_rank}  top_score={top_score:.3f}")
@@ -308,7 +305,7 @@ def main():
         print(f"       why:   {why}")
 
     total = len(PARAPHRASES)
-    print(f"\n=== verdict ===")
+    print("\n=== verdict ===")
     print(f"hit rate (correct addr in top-{top_k}): {rank_in_k}/{total} = "
           f"{100*rank_in_k/total:.1f}%")
     print(f"exact-rank-1 rate: {hits}/{total} = {100*hits/total:.1f}%")

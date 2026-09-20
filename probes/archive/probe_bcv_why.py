@@ -17,7 +17,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji.bcv import BOOK_INDEX, VERSE_RE, book_in_line, book_spans  # noqa: E402
+from guji.bcv import VERSE_RE, book_in_line, book_spans  # noqa: E402
 
 EXT = os.path.join(ROOT, "data", "raw_ext", "generality")
 IDS = {"bible-kjv": 10, "bible-web": 8294, "bible-douay": 1581}
@@ -44,7 +44,7 @@ for slug, gid in IDS.items():
     print(f"  headings followed by a verse marker within 12 lines: "
           f"{len(with_v)} / {len(marks)}")
 
-    print(f"  first 8 Genesis/Exodus-ish marks (line, book, followed?):")
+    print("  first 8 Genesis/Exodus-ish marks (line, book, followed?):")
     for i, b in marks[:10]:
         print(f"    {i:7} {b:16} followed={followed(i)}   {lines[i].strip()[:52]}")
 

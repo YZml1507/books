@@ -53,5 +53,5 @@ for rom, n in sorted(pc3.items()):
 
 # Find the actual structure: each book has PROPOSITION I, II, III, ... up to some max
 # Let's look at the first 5000 chars of stripped text
-print(f"\n=== first 2000 chars of stripped text ===")
+print("\n=== first 2000 chars of stripped text ===")
 print(t[:2000])

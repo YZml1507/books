@@ -1,6 +1,5 @@
 """Quantify the CNKI font-encoding corruption and test whether OCR is the only way out."""
 import sys
-import unicodedata
 import pymupdf
 
 path = sys.argv[1]

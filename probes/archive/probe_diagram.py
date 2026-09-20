@@ -11,7 +11,6 @@ Distinguishing signal to test: diagram entries should be very short and densely 
 十翼 references should sit inside long prose runs.
 """
 import os
-import re
 import sys
 from collections import Counter
 

@@ -29,7 +29,6 @@
 from __future__ import annotations
 
 import http.client
-import io
 import json
 import os
 import socket
@@ -410,13 +409,13 @@ def main() -> int:
                                 f"（折叠可以，删除不行）：{missing}")
                 print(f"  ❌ {len(missing)} 段原文缺失：{missing}")
             else:
-                print(f"  ✅ 抽查 6 段引文原文均可在页面取到（含折叠内容）")
+                print("  ✅ 抽查 6 段引文原文均可在页面取到（含折叠内容）")
             if cite_missing:
                 failures.append(f"{len(cite_missing)} 段引文的出处缺失："
                                 f"{cite_missing}")
                 print(f"  ❌ 出处缺失：{cite_missing}")
             else:
-                print(f"  ✅ 抽查 6 段引文出处均在页面上")
+                print("  ✅ 抽查 6 段引文出处均在页面上")
 
             page.screenshot(
                 path=os.path.join(ROOT, "logs", "first_screen_375.png"),

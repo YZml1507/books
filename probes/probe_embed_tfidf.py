@@ -129,7 +129,7 @@ def main():
 
     t_build_end = time.time()
     build_time = t_build_end - t_start
-    print(f"\n=== build timing ===")
+    print("\n=== build timing ===")
     print(f"total build time: {build_time:.1f}s "
           f"({'OK' if build_time <= 600 else 'OVER 10min'})")
 
@@ -204,7 +204,7 @@ def main():
     median_lat = float(np.median(latencies)) if latencies else 0.0
     max_lat = float(np.max(latencies)) if latencies else 0.0
 
-    print(f"\n=== verdict (方案 C: TF-IDF + SVD) ===")
+    print("\n=== verdict (方案 C: TF-IDF + SVD) ===")
     print(f"hit rate (correct addr in top-{top_k}): {rank_in_k}/{total} = "
           f"{100*hit_rate:.1f}%")
     print(f"exact-rank-1 rate: {hits}/{total} = {100*hits/total:.1f}%")

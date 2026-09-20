@@ -21,7 +21,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from guji.anchors import clean, extract_yao, gua_spans, yao_names
-from guji.ingest import ZHOUYI_WORKS
 from guji.zhouyi import derive_polarity, work_body
 
 RAW_DIR = os.path.join(ROOT, "data", "raw")

@@ -122,8 +122,8 @@ after = kb.stats()
 attempt("derived knowledge survives a corpus rebuild",
         after["derived"] == before["derived"] and after["derived"] > 0,
         f"before={before['derived']} after={after['derived']}")
-print(f"      corpus.db is deleted by ingest.build() (os.remove) on EVERY build; "
-      f"knowledge.db is a different file, so it is untouched.")
+print("      corpus.db is deleted by ingest.build() (os.remove) on EVERY build; "
+      "knowledge.db is a different file, so it is untouched.")
 
 print("\n--- attempt 6: is a derived claim auditable back to source after the fact? ---")
 d = kb.get(did)

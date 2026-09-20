@@ -72,7 +72,7 @@ for key in common:
     rows.append((covered / len(a), key, len(a), len(b), a))
 
 rows.sort()
-print(f"\n=== addresses where 王弼注 is LEAST recoverable inside 註疏 ===")
+print("\n=== addresses where 王弼注 is LEAST recoverable inside 註疏 ===")
 print(f"  {'cover':>6} {'卦':>4} {'爻':6} {'lenA':>6} {'lenB':>6}  KR1a0006 text")
 for cov, (g, label), la, lb, a in rows[:16]:
     print(f"  {cov:6.3f} {g:4} {label:6} {la:6} {lb:6}  {a[:46]}")

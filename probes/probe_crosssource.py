@@ -10,7 +10,6 @@ Also exercises markitdown's EPUB converter on real CJK.
 import glob
 import os
 import re
-import unicodedata
 
 from markitdown import MarkItDown
 
@@ -50,7 +49,7 @@ def strip(s):
 
 
 kr_c, pg_c = strip(kr_txt), strip(pg_txt)
-print(f"\n=== raw size ===")
+print("\n=== raw size ===")
 print(f"  Kanripo KR1a0001 : {len(kr_c):,} chars")
 print(f"  Gutenberg #25501 : {len(pg_c):,} chars")
 print(f"  ratio            : {len(pg_c)/max(len(kr_c),1):.2f}x")

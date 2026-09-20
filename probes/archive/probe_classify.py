@@ -27,7 +27,7 @@ for w in ("KR1a0006", "KR1a0007", "KR1a0016", "KR1a0031", "KR1a0032"):
     c = Counter(cls.values())
     on = {s.number for s in spans}
     # which 卦 exist only as off-chain 正文, i.e. are missing from the index entirely?
-    from guji.anchors import HEX_RE, gua_number
+    from guji.anchors import gua_number
     offbody = {gua_number(raw[p]) for p, k in cls.items() if k == "正文"}
     lost = sorted(offbody - on)
     print(f"{w:10} {len(spans):8} {c.get('圖',0):5} {c.get('正文',0):5} "

@@ -6,8 +6,6 @@ numbers, footnote markers, tables, equations). A book that lacks the feature in
 its digitisation is useless to us however famous it is.
 """
 import json
-import re
-import sys
 import urllib.parse
 import urllib.request
 

@@ -1,5 +1,4 @@
 """Survey several real PDFs: text layer present? encoding corrupted? page labels? TOC?"""
-import glob
 import os
 import sys
 import pymupdf

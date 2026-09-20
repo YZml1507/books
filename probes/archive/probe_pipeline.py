@@ -4,7 +4,6 @@ import glob
 import os
 import re
 import sqlite3
-import sys
 
 BASE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "raw"
@@ -14,7 +13,7 @@ BASE = os.path.join(
 VARIANTS = {
     "𫝊": "傳", "𫝑": "勢", "𧰼": "象", "𢎞": "弘", "𨽻": "隸", "𩔖": "類",
     "𤣥": "玄", "説": "說", "眞": "真", "内": "內", "𥘉": "初", "𥙿": "裕",
-    "𣏌": "杞", "𡵨": "岐", "𫉬": "獲", "𢎞": "弘", "𨗿": "邇", "𠔉": "𠔉",
+    "𣏌": "杞", "𡵨": "岐", "𫉬": "獲", "𨗿": "邇", "𠔉": "𠔉",
 }
 
 GUA_RE = re.compile(r"《([^》]{1,4})第([一二三四五六七八九十]+)》")

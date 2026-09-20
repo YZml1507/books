@@ -17,7 +17,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji.anchors import HEX_RE, clean, extract_yao, gua_number, gua_spans, yao_names  # noqa: E402
+from guji.anchors import HEX_RE, clean, gua_number, gua_spans  # noqa: E402
 from guji.ingest import derive_gua_names  # noqa: E402
 from guji.variants import fold  # noqa: E402
 from guji.zhouyi import derive_gold, derive_polarity, work_body  # noqa: E402

@@ -12,7 +12,6 @@ Both must be checked against our own source rather than assumed. If our corpus r
 prints 習坎, then our `gua_name` is right for THIS edition and biangua is using the common
 short name — a difference to record, not a bug to fix.
 """
-import json
 import os
 import re
 import sys

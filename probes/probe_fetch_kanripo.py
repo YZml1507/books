@@ -7,7 +7,6 @@ cannot clobber the canonical corpus. R18a audit note.
 """
 import io
 import os
-import sys
 import tarfile
 import urllib.request
 

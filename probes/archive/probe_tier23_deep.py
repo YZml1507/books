@@ -148,7 +148,6 @@ def darwin_deep():
     # CHAPTER on own line — what do they look like?
     ch = re.findall(r"^\s*CHAPTER\s+([IVXL]+|\d+)\.?\s*(.*)$", b, re.M)
     print(f"CHAPTER lines n={len(ch)}")
-    from collections import Counter
     # Distinguish roman vs arabic
     rom = [c for c in ch if c[0].isalpha()]
     arab = [c for c in ch if c[0].isdigit()]

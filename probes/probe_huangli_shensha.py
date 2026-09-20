@@ -33,9 +33,9 @@ def run():
     # ---- 3. 天赦：春季戊寅日 ----
     # 2026-03-05 = 戊寅日，寅月属春季 → tianshe=True
     dt_ts = datetime(2026, 3, 5)
-    assert tianshe(dt_ts) is True, f"tianshe 2026-03-05 戊寅春 期望 True"
+    assert tianshe(dt_ts) is True, "tianshe 2026-03-05 戊寅春 期望 True"
     # 非天赦日：2026-02-15 = 庚申
-    assert tianshe(dt) is False, f"tianshe 2026-02-15 庚申 期望 False"
+    assert tianshe(dt) is False, "tianshe 2026-02-15 庚申 期望 False"
     # 冬季天赦：甲子日且月支=子/丑/亥
     # 2025-12-21 = 甲子，月支应为子（冬季）—— 单独验甲子日干支
     dt_winter = datetime(2025, 12, 21)
@@ -107,7 +107,7 @@ def run():
     # ---- 12. day_query 集成 ----
     q = day_query(dt)
     assert "shensha" in q, "day_query 应含 'shensha' 字段"
-    assert q["shensha"]["day_gan"] == "庚", f"day_query.shensha.day_gan 核实失败"
+    assert q["shensha"]["day_gan"] == "庚", "day_query.shensha.day_gan 核实失败"
     # 既有字段未破坏
     for k in ("date", "jianchu", "xiu", "pengzu", "yi", "ji"):
         assert k in q, f"day_query 缺既有字段: {k}"

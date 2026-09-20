@@ -84,7 +84,7 @@ for yao, ph in targets:
     else:
         print(f"  {yao:6} {'NO':>6} {'-':>8} {'-':>12}")
 
-print(f"\n  depth at 10% steps through the span:")
+print("\n  depth at 10% steps through the span:")
 step = max(1, len(seg) // 10)
 print("   " + " ".join(f"{depths[i]:>3}" for i in range(0, len(seg), step)))
 

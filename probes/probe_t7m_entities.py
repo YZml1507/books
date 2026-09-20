@@ -61,7 +61,7 @@ def main():
 
     print(f"  不同实体数: {len(all_ents)}")
     print(f"  实体总次数: {sum(len(v) for v in all_ents.values())}")
-    print(f"  Top 实体（按出现次数）:")
+    print("  Top 实体（按出现次数）:")
     for ent, occurrences in sorted(all_ents.items(), key=lambda x: -len(x[1]))[:10]:
         works = set(w for w, _ in occurrences)
         print(f"    {ent}: {len(occurrences)}次, works={sorted(works)}")

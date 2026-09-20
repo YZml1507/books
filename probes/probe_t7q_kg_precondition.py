@@ -163,7 +163,7 @@ def main():
     print(f"  FOLD 含 破? {'破' in fold_keys}")
 
     # NOT_VARIANTS 是否显式排除了这些对？
-    print(f"\n  NOT_VARIANTS 显式排除的对（differs 異文不折叠）:")
+    print("\n  NOT_VARIANTS 显式排除的对（differs 異文不折叠）:")
     for pair in [("梯", "稊"), ("破", "跛")]:
         in_nv = pair in NOT_VARIANTS or (pair[1], pair[0]) in NOT_VARIANTS
         print(f"    {pair}: {'显式排除' if in_nv else '未排除'}")
@@ -172,8 +172,6 @@ def main():
     print("\n  折叠后 differs 異文是否被抹平？")
     for a, b, desc in DIFFERS_CASES:
         # 检查 FOLD 是否会把 a/b 归一到同一字符
-        a_fold = FOLD.get(a[0], a[0])  # 检查首字
-        b_fold = FOLD.get(b[0], b[0])
         # 更精确：检查 FOLD 里是否有 a→X 和 b→X 的映射
         a_targets = {v for k, v in FOLD.items() if k == a[0]}
         b_targets = {v for k, v in FOLD.items() if k == b[0]}
