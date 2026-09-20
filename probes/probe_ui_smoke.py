@@ -722,6 +722,56 @@ def main() -> int:
             results.append({"name": "btn:huangli.holiday_ask",
                             "ok": ok, "detail": detail})
 
+            # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
+            #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.wait_for_selector(".hl-week-cell", timeout=8000)
+                cells = page.query_selector_all(".hl-week-cell")
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                cells[2].click()          # 后天
+                page.wait_for_timeout(1200)
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                ok = len(cells) == 7 and head1 != head0 and not errors
+                detail = (f"格数={len(cells)} 翻页"
+                          f"{'成功' if head1 != head0 else '未变'}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:hl_week", "ok": ok, "detail": detail})
+
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => { const y = new Date(); y.setDate(y.getDate()-1);"
+                    " const iso = y.toISOString().slice(0,10);"
+                    " localStorage.setItem('hlask', JSON.stringify([{q:'适合搬家吗',d:iso}]));"
+                    " localStorage.setItem('me', JSON.stringify({y:1995,m:5,d:20,h:9,g:'女'}));"
+                    " localStorage.setItem('checkin:'+iso, '平稳'); }")
+                # 不 reload（会冲掉 btn:tarot 渲染态断后续用例）——
+                # 直接触发渲染路径：loadDaily 拉明天预告+接续条，
+                # _renderMeStrip 画档案条。
+                page.evaluate("() => { loadDaily(); _renderMeStrip(); }")
+                page.wait_for_timeout(1800)
+                st = page.evaluate(
+                    "() => { const t = document.getElementById('dailyTomorrow');"
+                    " const r = document.getElementById('dailyRecall');"
+                    " const m = document.getElementById('dailyMe');"
+                    " return { t: !!(t && !t.hidden && t.textContent.includes('明天')),"
+                    "        r: !!(r && !r.hidden),"
+                    "        m: !!(m && !m.hidden && m.textContent.includes('1995')) }; }")
+                ok = st["t"] and st["r"] and st["m"] and not errors
+                detail = ("明天预告=%s 昨天接续=%s 小档案=%s"
+                          % (st["t"], st["r"], st["m"]))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:daily_retention_hooks",
+                            "ok": ok, "detail": detail})
+
             # ── R230d（R16 审计新增件钉扎）：
             #   a) 黄历结果卡须挂「聊聊这件事」（hlResult 无 .card 宿主，
             #      paint 自动挂不上——P2-6 手动注入，回归只查存在性）；
