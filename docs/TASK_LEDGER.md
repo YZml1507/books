@@ -10619,3 +10619,10 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
   detail 数组提前吞成裸「请求没走通（422）」，_humanize422 拿不到（空年份/
   超长问题）；问一嘴空输入补 toast（原 placeholder 同文重设无可见反馈）。
   R16 清单至此全清零（P3-1 dead views 留待用户拍板）。
+- **R230g**：R19 故障注入审计（P0/P1=0，降级矩阵 20 行全绿）——P2-1 liuyao
+  引文查询包 try/except 降级空引文 200（纯算不被 corpus 连坐）；P2-2
+  thread_record 新开线程失败路径补偿删除（_drop_thread，ENOSPC 不留空壳）；
+  P3-1 external fetch_source error 中文化+debug 字段留英文；P3-2
+  bazi_lookup 两处直连 sqlite3.connect 补存在性守卫（不再顺手建 0B 残库）；
+  P3-3 errors.py json_invalid →「请求体不是合法的 JSON」。
+  蓝图补装 feedparser 建议已交用户（initialize+maintenance 两处）。
