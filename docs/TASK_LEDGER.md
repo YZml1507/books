@@ -11069,3 +11069,8 @@ scripts_importable / llm_polish / ruff 全绿。
 - threads 列表：opened_at 开题日期；truncated 时披露「共 N 条只显示前 50」；详情 claims 补 method/created_at 小标
 - compare_works：wit 头部补底本（attribution）
 - **闸**：selftest 237 / contract 493 / ui_smoke 58 / ruff 全绿
+
+### R233a（R40-B3 闸门盲区收口）
+- probe_contract callsite 解析扩展：成员表达式实参（renderCiteTree(j.citations)）与多实参调用（renderWarm(j.warm,j.interpretation,ev)）现按形参位注入种子——helper 函数体内字段读点进钉扎面（493→532 读点，+39 全部核过真响应）
+- resolve 列表段：不再只按 [0] 判 skip-empty——扫前 16 元素取首个可判定（warm.details[2].basis 有 7 条而 [0] 为空曾致 6 读点假 SKIP）
+- 闸：contract 532 全绿（SKIP 6→0）

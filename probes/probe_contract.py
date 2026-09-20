@@ -334,8 +334,16 @@ THEN_JSON_RE = re.compile(r"\.then\(\s*function\s*\((\w+)\)\s*\{")
 # R228g：render 层参数传递——`buildX(j)` 把已绑定的响应变量传给
 # `function buildX(p)`，callee 体内 `p.field` 及派生变量读取按 caller 的
 # URL/路径记账。只匹配单参简单调用（保守，不猜实参表达式）。
-FN_DEF_RE = re.compile(r"^\s*(?:async\s+)?function\s+(\w+)\s*\(\s*(\w*)")
-CALLSITE_RE = re.compile(r"(?<![\w.])\b(\w+)\s*\(\s*(\w+)\s*\)")
+# R233a（R40-B3）：此前只有「标识符单实参」调用被解析——
+# `renderCiteTree(j.citations)`（成员表达式实参）与
+# `renderWarm(j.warm, j.interpretation, ev)`（多实参）整块落在盲区，
+# helper 体内字段读点零钉扎。扩成：形参表全捕获 + 实参逐个
+# （标识符或根标识符+成员链，如 j.citations）按位置注入种子。
+FN_DEF_RE = re.compile(r"^\s*(?:async\s+)?function\s+(\w+)\s*\(\s*([^)]*)")
+CALLSITE_RE = re.compile(
+    r"(?<![\w.])\b(\w+)\s*\(\s*"
+    r"((?:\w+(?:\.\w+)*\s*,\s*)*\w+(?:\.\w+)*)\s*\)")
+ARG_RE = re.compile(r"^(\w+)((?:\.\w+)*)$")
 # const ben = j.ben || {}   /   const a = j.a_bazi, b = j.b_bazi;
 OBJ_BIND_RE = re.compile(r"(?:const|let|var)\s+(\w+)\s*=\s*(\w+)\.(\w+)"
                          r"(?:\s*\|\|\s*\{\})?")
@@ -531,6 +539,14 @@ def resolve(body, kind: str, path: list[str]):
         if isinstance(cur, list):
             if not cur:
                 return "skip-empty", None
+            # R233b（R40-B3 连带）：列表段不再只按 [0] 判——首个剩余路径
+            # 可判定的元素为准。例：warm.details[0].basis=[] 而
+            # details[2].basis 有 7 条，旧实现把全部 d.basis 读点记
+            # skip-empty → SKIP；真稀疏（全元素都缺）仍如实 SKIP。
+            for el in cur[:16]:
+                st, val = resolve(el, kind, path[i:])
+                if st == "ok":
+                    return st, val
             cur = cur[0]
         if not isinstance(cur, dict):
             return "missing", None
@@ -835,8 +851,10 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
     fnmap = {}
     for cb in (all_blocks or []):
         fm = FN_DEF_RE.match(cb["lines"][0])
-        if fm and fm.group(2):
-            fnmap[fm.group(1)] = (cb, fm.group(2))
+        if fm and fm.group(2) is not None:
+            # R233a：形参全表（按位与实参配对）
+            fnmap[fm.group(1)] = (cb, [p.strip() for p in
+                                       fm.group(2).split(",") if p.strip()])
 
     checked = 0
     for b in blocks:
@@ -849,20 +867,42 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
         # 派生变量（const paipan = j.paipan）随种子链一并归因。
         for off_c, line in enumerate(b["lines"]):
             for cm in CALLSITE_RE.finditer(line):
-                fn, arg = cm.groups()
-                if fn in fnmap and arg in binds and fn != arg:
+                fn = cm.group(1)
+                if fn not in fnmap:
+                    continue
+                cal_blk, params = fnmap[fn]
+                if not params:
+                    continue
+                seeds: dict[str, tuple] = {}
+                seed_urls: dict[str, str] = {}
+                for param, arg in zip(params, cm.group(2).split(",")):
+                    arg = arg.strip()
+                    if not param or arg == fn:
+                        continue
+                    am = ARG_RE.match(arg)
+                    if not am:
+                        continue        # 表达式实参不猜（保守照旧）
+                    root, tail = am.groups()
+                    if root not in binds:
+                        continue        # 实参根未绑响应变量——不是本端点的数据
                     # R228o 续：种子取实参在**调用行**生效的绑定版本——
                     # 同块 j 再绑定不会污染此前 buildX(j) 的归因。
-                    live = [bv for bv in binds[arg] if bv[0] <= off_c]
+                    live = [bv for bv in binds[root] if bv[0] <= off_c]
                     if not live:
                         continue
                     _bo, _kind, _path, _burl = live[-1]
-                    cal_blk, param = fnmap[fn]
-                    url = _burl or (urls[0] if urls else "")
-                    _cb, creads, _cu, _cv, _cn = field_reads(
-                        cal_blk, seeds={param: (_kind, _path)},
-                        seed_urls={param: url})
-                    reads += creads
+                    if tail:
+                        # 成员链实参 j.citations：种子带路径下钻，
+                        # callee 里 h.field 读点按 citations[0].field 判定
+                        _path = _path + [s for s in tail.split(".") if s]
+                        _kind = "obj" if _kind != "elem" else "elem"
+                    seeds[param] = (_kind, _path)
+                    seed_urls[param] = _burl or (urls[0] if urls else "")
+                if not seeds:
+                    continue
+                _cb, creads, _cu, _cv, _cn = field_reads(
+                    cal_blk, seeds=seeds, seed_urls=seed_urls)
+                reads += creads
         if not reads:
             continue
         # 按读点各自的 URL 取响应（R188b：多 URL 块各归各端点）
