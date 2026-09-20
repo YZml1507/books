@@ -10495,3 +10495,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 
 ## R230a-13（2026-09-20）：断言回归闸进 CI
 - probe_selftest_regress 加入 selftest job（此前仅本地/审查轨用）；baseline 193→197。
+
+## R230a-14（2026-09-20）：baseline_voice 重冻 + 进 CI
+- 14 处漂移均为 R13 既定修复（补缺 ELEMENT_GENERATED_BY、日主标签），重冻 sha256 ebb4fb…；
+- 该字节冻结闸此前只在本地，补进 selftest job（判据 9 在 CI 闭环）。
