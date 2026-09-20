@@ -10629,3 +10629,11 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - 裁注：/api/bazi 在 corpus 缺失时维持 503 人话（提示跑 build_index）——
   与六爻不同，八字解读层必须带证据引文，静默降级成零引文解读反而违
   「引用与生成分离」宪法，故不是连坐。
+- **R230h**：R20 跨视图/边界审计清零——F1 判定器对齐（前端 _hit 双向包含、
+  砍 map 描述串通道；备孕/求子/要孩子/生子/怀孕→求嗣 两侧同步增键）；
+  F2 黄历进页自动查今天死代码修复（占位文案门恒假→data-ph 标记）；
+  F3 宜日 chips 存绝对日期（跨零点 +1 漂移）；F5 chips 滤 < today；
+  F4 daily 宜/忌改「宜试试/先缓缓」与黄历正交；F6 daily/xingzuo/ask_date
+  带浏览器日 todayIso()；F7 判词主推行摘相冲词（conflict 传参）；
+  F8 共情日盐 UTC→本地；F9 req_json 补 minute/hour_known；F10 大运
+  year_start int→round。selftest 新增静态钉扎（j.conflict+双向包含）。
