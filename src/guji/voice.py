@@ -306,7 +306,12 @@ def one_liner(day_master: str, calc: dict, question: str | None,
         if strong and missing:
             s = f"{warm}底子，{_strong_label}多缺{_missing_label}"
         elif strong:
-            s = f"{warm}底子，{_strong_label}偏多"
+            # R230a-7（R13-P3-2）：日主元素=偏旺元素时叠词太怪
+            # （「生长底子，生长偏多」）→ 换说法。
+            if _strong_label == warm:
+                s = f"{warm}底子，还偏多一层——就是容易厚过头"
+            else:
+                s = f"{warm}底子，{_strong_label}偏多"
         elif missing:
             s = f"{warm}底子，缺{_missing_label}"
             if _tied:

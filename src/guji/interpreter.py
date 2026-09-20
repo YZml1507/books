@@ -141,10 +141,15 @@ def interpret_bazi(paipan: dict, calc: dict,
             plain = TEN_GOD_PLAIN.get(god, "")
             pos = t.get("pos") or ""
             gan = t.get("gan") or ""
-            seg = f"{pos}{gan} → {god}"
-            if plain:
+            # R230a-7（R13-P3-3）：日主不派十神（惯例）——「日干X → 比肩」
+            # 换成「日主（自我）」标注，不显外行。
+            if pos == "日干":
+                seg = f"{pos}{gan} → 日主（自我）"
+            else:
+                seg = f"{pos}{gan} → {god}"
+            if plain and pos != "日干":
                 seg += f"：{plain}"
-            if t.get("basis"):
+            if t.get("basis") and pos != "日干":
                 seg += f"（依据：{t['basis']}）"
             lines.append(seg)
         sections.append({"title": "十神格局", "lines": lines})
