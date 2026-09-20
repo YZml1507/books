@@ -1918,6 +1918,14 @@ function showView(viewId) {
     if (_back2) {
       try { _back2.focus({ preventScroll: true }); }
       catch (e0) { try { _back2.focus(); } catch (e1) {} }
+      /* R2348（R66-P2）：卡在收起的 <details>/隐藏 .view 里时 focus
+       * 静默失败（落 BODY，Tab 从头爬）——校验落地，失败退 funcGrid。 */
+      if (document.activeElement !== _back2) {
+        var _fg = el('funcGrid');
+        if (_fg && _fg !== _back2) {
+          try { _fg.focus({ preventScroll: true }); } catch (e2) {}
+        }
+      }
     }
   }
   /* v3（P8 修复）：记住「离开首页时的位置」，回首页时精确恢复。
@@ -1938,6 +1946,12 @@ function showView(viewId) {
      * 功能视图内部切换不覆盖记忆（否则会记成功能页自己的滚动位）。 */
     window.__homeScrollMem = _sy;
   }
+  /* R2348（R66-P2）：document.title 随视图走——读屏/多标签/书签可辨。 */
+  try {
+    var _vn = isHome ? '' :
+      ((document.querySelector('.func-card[data-view="' + viewId + '"] .func-name') || {}).textContent || viewId);
+    document.title = (_vn ? (_vn + ' · ') : '') + '小满的解忧铺 · 知命';
+  } catch (eT) {}
   window.__inView = !isHome;
   /* R230q（R28-P2-2）：切走即 bump 世代号会把在跑的 AI 轮询作废，
    * 回来后那段「小满想了想」永远不来。回到视图时对本视图内仍
@@ -1960,15 +1974,21 @@ function showView(viewId) {
     if (!isHome && target && !window.__suppressPush) {
       /* R230q（R28-P2-3）：此前推的是空 URL——地址栏恒为 /，F5 后视图
        * 全丢回首页，与 ?view= 深链机制自相矛盾。带上 ?view=，刷新由
-       * init 深链回跳原视图，结果页也可整链分享。 */
+       * init 深链回跳原视图，结果页也可整链分享。
+       * R2348（R66-P1）：'?view=' 是相对址——在 /huangli 路径上 push
+       * 会产出 /huangli?view=bazi 混合 URL，F5 被路径段拽错页。写绝对。 */
       history.pushState({ view: viewId }, '',
-        '?view=' + encodeURIComponent(viewId));
+        '/?view=' + encodeURIComponent(viewId));
     } else if (isHome && !window.__suppressPush &&
-        /[?&]view=/.test(location.search)) {
-      /* 回首页清掉 ?view=——否则挂着旧参数的 F5 会被深链拽回上一视图 */
+        (/[?&]view=/.test(location.search) || location.pathname !== '/')) {
+      /* 回首页清掉 ?view=——否则挂着旧参数的 F5 会被深链拽回上一视图。
+       * R2348（R66-P1）：路径式落地（/huangli）search 为空，原条件
+       * 永不命中——回首页后地址栏还挂 /huangli，F5 又拽回去。 */
       history.pushState({ view: 'home' }, '', '/');
     }
   } catch (e) { /* file:// 环境无 history API */ }
+  /* R2348（R67-P2）：海报资产惰性预拉——首进功能视图时启动。 */
+  if (!isHome) { try { _idlePrefetch(); } catch (eP) {} }
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
   /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
@@ -5517,7 +5537,13 @@ var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 /* R228k：原来顶层立刻拉三张图（~95KB）——海报背景只在点「存成图」才用，
  * manifest 只在塔罗视图才用。挪进 requestIdleCallback（无此 API 则
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
+var _didPrefetch = false;
 function _idlePrefetch() {
+  /* R2348（R67-P2）：原来首屏 idle 期就拉海报底图×4+mascot+tarot
+   * manifest（~380KB）——低频功能让首访/弱网用户买单。改为首次进
+   * 功能视图才触发（showView 调用点），用户没点卡就零开销。 */
+  if (_didPrefetch) return;
+  _didPrefetch = true;
   POSTER_BG.warm.src = '/static/shared/poster-bg-peach.jpg';
   POSTER_BG.sakura.src = '/static/shared/poster-bg-sakura.jpg';
   POSTER_BG.lilac.src = '/static/shared/poster-bg-lilac.jpg';
@@ -5533,11 +5559,7 @@ function _idlePrefetch() {
     .then(function (j) { TAROT_MANIFEST = j || {}; })
     .catch(function () { TAROT_MANIFEST = {}; });
 }
-if (typeof requestIdleCallback === 'function') {
-  requestIdleCallback(_idlePrefetch, { timeout: 4000 });
-} else {
-  window.addEventListener('load', function () { setTimeout(_idlePrefetch, 2000); });
-}
+/* 触发点挪进 showView：进任一功能视图（塔罗/排盘/起名都产海报）才拉。 */
 
 var TAROT_ART = {
   "愚者": "🐕", "魔术师": "🪄", "女祭司": "🌙", "皇后": "🌹", "皇帝": "👑",
@@ -7549,11 +7571,20 @@ function initDivination() {
  * 本轮接两个窄入口：合婚「存这对」chips、起名「♡心水名单」——不复活
  * R208b 删掉的通用收藏面板。 */
 
+var _favListInflight = null;
 async function _favList() {
-  try {
-    const j = await api('/api/user/prefs', { silent: true });
-    return (j && j.favorites) || [];
-  } catch (e) { return []; }
+  /* R2348（R67-P2）：合婚/起名两个 favorites 渲染各调一次——冷启瀑布
+   * 实测同秒两条重复 GET。合并在途请求（不是 memoize：收藏会增删，
+   * 每次渲染要新读；但同一 tick 的并发调用共享一份）。 */
+  if (_favListInflight) return _favListInflight;
+  _favListInflight = (async function () {
+    try {
+      const j = await api('/api/user/prefs', { silent: true });
+      return (j && j.favorites) || [];
+    } catch (e) { return []; }
+    finally { _favListInflight = null; }
+  })();
+  return _favListInflight;
 }
 
 /* 合婚「测过的 CP」chips：ref_id 编码 10 字段+昵称，点 chip 回填表单 */
@@ -7959,11 +7990,17 @@ function init() {
    * 一条重复历史（__suppressPush）。 */
   try {
     var _vp = new URLSearchParams(location.search).get('view');
+    var _badPath = false;
     if (!_vp) {
       var _seg = location.pathname.replace(/^\/+|\/+$/g, '');
+      /* R2348（R66-P2）：多级路径 /huangli/extra 此前静默落首页、
+       * 与 /bogus 提示口径不一致——含 / 的非空路径同样按坏链处理。 */
       if (_seg && _seg.indexOf('/') < 0) _vp = _seg;
+      else if (_seg) _badPath = true;
     }
-    if (_vp) {
+    /* R2348（R66-P2）：规整——HUANGLI/bazi%20 此前直接当坏链弹提示。 */
+    if (_vp) _vp = _vp.trim().toLowerCase();
+    if (_vp || _badPath) {
       /* R231d（R39-P0-2）：海报分享链会带 daily/checkin/birth 三个
        * 无独立视图的别名——受邀者落地吃「入口不存在」toast 是负承接。
        * 别名映射 + 落地后滚动/展开承接：daily/checkin→首页 daily 卡、
@@ -8000,6 +8037,9 @@ function init() {
            * 否则发起人的生日会顶掉受邀者自己的档案。用户手改 A 侧
            * 任一字段即视同放弃邀请口径，恢复默认归属。 */
           window.__hhInviteMode = true;
+          /* R2348（R66-P2）：邀请态下 B 侧档案源=me——置位后补跑一次
+           * 回填（init 早段的 _meFillAll 还按默认映射填过 hh_b）。 */
+          try { _meFillAll(); } catch (eM) {}
           ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour','hh_a_gender',
            'hh_a_name'].forEach(function (_id) {
             var _ae = document.getElementById(_id);
@@ -8024,6 +8064,12 @@ function init() {
         window.__suppressPush = true;
         try { showView(_vp); } finally { window.__suppressPush = _hold; }
         if (_vpRaw !== _vp) {
+          /* R2348（R66-P2）：别名落地后地址栏还挂 ?view=daily 残留——
+           * 规整到目标视图的规范 URL。 */
+          try {
+            history.replaceState({ view: _vp }, '',
+              _vp === 'home' ? '/' : '/?view=' + encodeURIComponent(_vp));
+          } catch (eR) {}
           setTimeout(function () {
             if (_vpRaw === 'daily' || _vpRaw === 'checkin') {
               var _dc = document.getElementById('dailyCard');
@@ -8034,12 +8080,13 @@ function init() {
             }
           }, 300);
         }
-      } else if (_vp !== 'home') {
+      } else if (_vp !== 'home' || _badPath) {
         showToast('这个入口不存在，先带你回首页', 'info');
-        /* R232c（R41-nit）：清掉坏参——否则 F5 会再弹一遍同样 toast。 */
+        /* R232c（R41-nit）：清掉坏参——否则 F5 会再弹一遍同样 toast。
+         * R2348（R66-P2）：pathname 本身就是坏参时原写法把它原样写回，
+         * /bogus 永远清不掉——统一归 '/'。 */
         try {
-          history.replaceState({ view: 'home' }, '',
-            location.pathname === '/' ? '/' : location.pathname);
+          history.replaceState({ view: 'home' }, '', '/');
         } catch (e) {}
       }
     }
@@ -8069,28 +8116,28 @@ if (document.readyState === 'loading') {
     return;
   }
   function _mk() {
-    if (document.getElementById('welcomeBar')) return;
-    var bar = document.createElement('div');
-    bar.id = 'welcomeBar';
-    bar.className = 'welcome-bar';
-    bar.setAttribute('role', 'note');
+    /* R2348（R67-P1）：bar 静态在 index.html（首帧占位消 CLS），这里只
+     * 接管交互：老用户（html.welcomed）摘掉节点、受邀回流换承接文案。 */
+    var bar = document.getElementById('welcomeBar');
+    if (!bar) return;
+    if (document.documentElement.classList.contains('welcomed')) {
+      bar.remove();
+      return;
+    }
     /* R39-P2-1：受邀回流（?from=share）换一句承接——「朋友在晒她的运势」 */
     var _fromShare = false;
     try {
       _fromShare = new URLSearchParams(location.search).get('from') === 'share';
     } catch (e) {}
-    bar.innerHTML = '<span class="welcome-txt">' +
-      (_fromShare
-        ? '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨'
-        : '第一次来？点一张卡就能测——塔罗 · 桃花 · 合婚 · 黄历都有，' +
-          '测完还能生成分享图发给闺蜜 ✨') +
-      '</span>' +
-      '<button type="button" class="welcome-close" aria-label="知道了">×</button>';
-    /* 内嵌到页面顶部而不是 fixed——不遮内容不抢焦点 */
-    document.body.insertBefore(bar, document.body.firstChild);
+    if (_fromShare) {
+      var _txt = bar.querySelector('.welcome-txt');
+      if (_txt) _txt.textContent =
+        '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨';
+    }
     bar.querySelector('.welcome-close').addEventListener('click', function () {
       bar.remove();
       try { window.localStorage.setItem('welcomed', '1'); } catch (e) {}
+      try { document.documentElement.classList.add('welcomed'); } catch (e) {}
     });
   }
   if (document.readyState === 'loading') {
@@ -8540,8 +8587,14 @@ function _meFillAll() {
   _meFill('me', { y: 'year', m: 'month', d: 'day', h: 'hour', g: 'gender' });
   _meFill('me', { y: 'b_year', m: 'b_month', d: 'b_day', h: 'b_hour', g: 'b_gender', n: 'b_nick' });
   _meFill('me', { y: 'th_year', m: 'th_month', d: 'th_day', h: 'th_hour', g: 'th_gender' });
-  _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
-  _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+  /* R2348（R66-P2）：邀请链落地时受邀者=B 侧=本人——档案源要翻成 me
+   * （原写死 me:partner，受邀者存的伴侣档多半就是发起人自己→两侧同盘）。 */
+  if (window.__hhInviteMode) {
+    _meFill('me', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+  } else {
+    _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
+    _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+  }
   try { _renderMeStrip(); } catch (e) {}
 }
 /* R231g（R39-P1-5）：「我的小档案」汇总行——存过生日的用户进首页

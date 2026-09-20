@@ -1708,6 +1708,9 @@ button:active{transform:scale(.96);}
   font-size:13px; color:var(--secondary);
 }
 .welcome-txt{flex:1;}
+/* R2348（R67-P1）：welcomed 类由 head 内联脚本在首帧前打上——老用户
+ * 的 bar 从未渲染（display:none 不参与布局），CLS=0。 */
+html.welcomed .welcome-bar{display:none;}
 .welcome-close{
   border:none; background:transparent; font-size:18px; line-height:1;
   color:var(--secondary); cursor:pointer; padding:2px 6px;

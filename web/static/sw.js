@@ -8,7 +8,10 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-16431cb3ba91';   // shell-hash: 16431cb3ba91
+var CACHE = 'books-shell-63e378f28956';   // shell-hash: 63e378f28956
+/* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
+ * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
+var RT = CACHE + '-rt';
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。
  * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体
@@ -111,14 +114,26 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* 同源静态资源：cache-first，命中即回，后台静默更新 */
+  /* 同源静态资源：cache-first，命中即回，后台静默更新。
+   * R2348（R67-P1）：运行时写进独立 books-rt 桶并 LRU 封顶 60 条——
+   * 原先全部塞进 SHELL 桶且无上限，tarot 3MB+lxgw 长尾随浏览单调涨，
+   * 只能靠版本 bump 整库清。 */
   e.respondWith(
     caches.match(e.request).then(function (hit) {
       var net = fetch(e.request).then(function (resp) {
         if (resp.ok) {
           /* R230d（R16-P0-1）：同上，运行时缓存回写必须挂 waitUntil。 */
-          e.waitUntil(caches.open(CACHE).then(function (c) {
-            return c.put(e.request, resp.clone()).catch(function () {});
+          e.waitUntil(caches.open(RT).then(function (c) {
+            return c.put(e.request, resp.clone()).then(function () {
+              /* 超帽逐出最老条（keys() 顺序即写入序）。60 条≈几 MB，
+               * 删掉自己刚写入的边界情形用 '!==e.request' 排除不掉——
+               * 先 put 后 trim，刚写的在最尾不会被删。 */
+              return c.keys().then(function (ks) {
+                if (ks.length <= 60) return;
+                return Promise.all(ks.slice(0, ks.length - 60)
+                  .map(function (k) { return c.delete(k); }));
+              });
+            }).catch(function () {});
           }));
         }
         return resp;

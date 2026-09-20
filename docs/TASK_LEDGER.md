@@ -11503,3 +11503,36 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - R60-#18：9 件未接线证伪探针全部验证通过并接进 selftest job（纳甲/神煞/见证隔离/泛化交叉/披露/希罗多德/BCV/章节/字符守恒）；probe_huangli_shensha 过期键集修复（+linri，R233w 有意新增）。
 - R58-P2-4：只读库恢复备忘进 rollback.md（-shm/-wal sidecar 要一起处理）。
 - R60 残余说明：P0 组（危机镜像/聊天链/打卡/chip 点击/星座导航/历史工具条/mock-LLM 轮询）在 R2342-2345 已陆续补闸，报告基于旧 HEAD e55ed17，按当前基线核对多为已覆盖；P1 组中收藏/分享/深链小项与既有 held 项重叠（view-read 入口、僵尸端点删留）等用户拍板。
+
+## R2348（R66+R67 深链/性能批）
+- **R66-P1**：路径式深链杂交 URL 修复——showView 的 `pushState('?view='+id)`
+  是相对址，在 `/huangli` 路径上 push 产出 `/huangli?view=bazi` 混合 URL
+  （F5 被路径段拽错页）；改为绝对 `/?view=`。回首页清理条件补
+  `pathname !== '/'`（路径式落地 search 为空，原条件永不命中→地址栏
+  残留 /huangli，F5 拽回）。
+- **R66-P2×5**：坏路径 `/bogus` 的 replaceState 原样写回 pathname 清不掉
+  →统一归 '/'；多级路径 `/x/y` 此前静默落首页→同坏链 toast 口径；
+  `?view=` 参数规整 trim+lowercase；别名落地后残留 ?view=daily→replaceState
+  规整到目标视图规范 URL；document.title 随视图走（「合婚 · 小满的
+  解忧铺 · 知命」，读屏/多标签可辨）；焦点回落校验 activeElement 落地，
+  收起的 details/隐藏视图里的卡 focus 静默失败退 funcGrid；合婚邀请链
+  B 侧档案源翻转 me（原写死 me:partner，受邀者存的伴侣档多半就是发起人
+  自己→两侧同盘）。
+- **R67-P0**：LXGW 分片缺数据驱动字符——黄历宜忌「祀/祼/繕/羯/謁/馬/魚」
+  +宫名「寶/獅」+UI 符号「▾/✓」回落宋体系跳字；从上游
+  lxgw-wenkai-webfont 1.7.0 包补回 9 个分片（subset-24/25/36/44/49/50/55/
+  73/87/88 中缺的 9 个）+ @font-face 块写入 lxgw.css。ZCOOL 子集补半角
+  空格（967 glyphs，「座」上一轮已补）。
+- **R67-P1×5**：welcome bar 改 index.html 静态渲染 + head 内联脚本首帧前
+  打 welcomed 类——消首访 CLS 0.075（原 DOMContentLoaded 插入把整页下压）；
+  图片超采样瘦身：gift-bear 104→15KB(340→400px量化)、box-gift 63→7KB
+  (256→96)、9 张功能卡图 320²→112²(合 ~135→21KB)、12 张 zodiac 320²→
+  168²(合 ~168→62KB)、icon-512 296→25KB/maskable 174→16KB(128色量化)；
+  SW 运行时缓存拆独立 books-rt 桶 LRU 60 条封顶（原混 SHELL 桶无上限，
+  tarot 3MB+字体长尾随浏览单调涨）；_idlePrefetch 海报资产 ~380KB 从首屏
+  idle 期改为首进功能视图才触发（_didPrefetch 闸）；_favList 在途请求
+  合并（冷启重复 GET×2 →1）。
+- **R67-P2**：smiley-sans.woff2 1.15MB 全量源档移出 web/static →
+  assets-src/fonts/（部署包立省 1.15MB，子集引用不受影响）。
+- 闸门：selftest 253 / contract 542 / ui_smoke 75 / baseline_voice 14
+  逐字节 / ruff E9,F 全绿。
