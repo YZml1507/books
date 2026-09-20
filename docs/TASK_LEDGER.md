@@ -10952,3 +10952,25 @@ selftest 237 / contract 442(SOFT38) / regress / parity 65+35+88 / ui_smoke 55 / 
 selftest 237 / contract 442(SOFT38) / regress / parity 65+35+88 / ui_smoke 55 /
 plain_first / dollar / xingzuo / warm_voice / baseline_voice / async_ai / poster 14 /
 no_generated / scripts_importable / llm_polish / ruff 全绿。
+
+## R231c —— 78 张塔罗全量奶油系 + 每日拆礼物封面 + 文件名中文化（2026-09-20）
+
+### 塔罗 56 小阿卡纳补齐（R35-P1-2 完结）
+- 沿用大阿卡纳同提示词骨架生成 56 张小阿卡纳（花色意象数量化：圣杯金盏/
+  宝剑小剑/星币星币/权杖木杖；宫廷牌=小狐狸侍从/小猫骑士/小鹿王后/小熊国王），
+  manifest 全 78 键现已同系。旧 RWS 扫图 56 张并入 `_candidates/r231a/tarot-rws-originals/`。
+- 整副 78+牌背同一薰衣草奶油色板；PNG 源稿收 `_candidates/r231a/tarot-minors-src/`。
+
+### 每日卡「拆礼物」封面（R36-P3-4）
+- `.daily-cover` 绝对定位盖在每日卡上（礼盒图+浮动动画+「点开看看」文案），
+  点击/回车淡出让位；`localStorage['dailyRevealed:<YYYY-MM-DD>']` 当天免二次拆。
+- ui_smoke `btn:dailyMore` 用例补真实前置步：先点封面再点按钮（与真人路径一致）。
+
+### 分享文件名中文化（R36-P3-2）
+- `xiaoman-{view}-{ymd}.png` → `小满-{中文视图名}-{月日}.png`；视图标题表提为
+  模块级 `_POSTER_TITLES`，浮层标题与文件名共用一份映射（新增 xingzuo 键）。
+
+### 闸门
+selftest 237 / contract 442 / regress / parity / ui_smoke 55 / plain_first / dollar /
+xingzuo / warm_voice / baseline_voice / async_ai / poster 14 / no_generated /
+scripts_importable / llm_polish / ruff 全绿。

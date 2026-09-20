@@ -539,6 +539,11 @@ def main() -> int:
             errors.clear()
             before = page.content()
             try:
+                # R231c：每日卡有「拆礼物」封面（R36-P3-4）——真人路径就是
+                # 先点封面再点按钮，走真实 click 不强摘 DOM。
+                if page.is_visible("#dailyCover"):
+                    page.click("#dailyCover")
+                    page.wait_for_timeout(300)
                 page.click("#dailyMore")
                 page.wait_for_timeout(600)
                 changed = page.content() != before

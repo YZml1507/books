@@ -136,6 +136,14 @@ if ('serviceWorker' in navigator) {
     <!-- #dailyMore 的落点：原来只有按钮没有处理器也没有容器（R000a-03） -->
     <!-- R229z续23（R10-#22）：异步装入的解读正文要能被朗读 -->
     <div class="daily-detail" id="dailyDetail" aria-live="polite" hidden></div>
+    <!-- R231c（R36-P3-4）：每日卡「拆礼物」仪式——封面只挡视线不改数据，
+         点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
+    <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
+         aria-label="点开查看今日运势">
+      <img src="/static/_candidates/r212b/daily-box-gift-v2.png" alt=""
+           loading="lazy" decoding="async">
+      <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
+    </div>
   </div>
 
   <!-- 功能卡片（R206b US2 二剪：首页只留小满刚需五卡——

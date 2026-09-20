@@ -246,6 +246,22 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   box-shadow:0 4px 16px rgba(184,134,11,.12);
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
+/* R231c（R36-P3-4）：拆礼物封面——盖在每日卡上，点击淡出让位。 */
+.daily-cover{
+  position:absolute; inset:0; z-index:3; border-radius:var(--radius);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; cursor:pointer; background:var(--card,#FFFDFB);
+  transition:opacity .45s ease;
+}
+.daily-cover img{width:120px; height:auto; filter:drop-shadow(0 8px 20px rgba(184,134,11,.22));
+  animation:giftBob 2.4s ease-in-out infinite;}
+.daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
+  letter-spacing:.04em; padding:0 24px; text-align:center;}
+.daily-cover.open{opacity:0; pointer-events:none;}
+.daily-cover:focus-visible{outline:2px solid var(--primary-ink); outline-offset:-2px;}
+@keyframes giftBob{0%,100%{transform:translateY(0) rotate(-2deg);}
+  50%{transform:translateY(-8px) rotate(2deg);}}
+@media (prefers-reduced-motion:reduce){ .daily-cover img{animation:none;} }
 /* R230x（P2-9）：四色彩虹顶条收敛为手帐胶带感两色。 */
 .daily-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:5px;

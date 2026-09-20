@@ -2762,8 +2762,11 @@ async function downloadPoster(j, view) {
         var _d = new Date();
         var _ymd = _d.getFullYear() +
           ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
-        /* R230y（R36-P3-2）：文件名对齐品牌「小满」 */
-        a.download = 'xiaoman-' + _vkey + '-' + _ymd + '.png';
+        /* R230y（R36-P3-2）：文件名对齐品牌「小满」
+         * R231c：中文文件名「小满-今日命盘-0920」——小红书链路里
+         * 辨识度高于 xiaoman-bazi（保存到相册一眼可认）。 */
+        a.download = '小满-' + (_POSTER_TITLES[_vkey] || '分享图') +
+          '-' + _ymd.slice(4) + '.png';
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
@@ -2788,12 +2791,8 @@ function showPosterModal(canvas, view) {
   var backdrop = document.createElement('div');
   backdrop.id = 'posterModal';
   backdrop.className = 'poster-modal-backdrop';
-  /* 视图名 → 人话标题 */
-  var viewTitle = ({
-    bazi: '今日命盘', liuyao: '六爻指引', tarot: '塔罗指引',
-    qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对', daily: '今日运势',
-    huangli: '今日宜忌'
-  })[view] || '命盘海报';
+  /* 视图名 → 人话标题（R231c：与下载文件名共用 _POSTER_TITLES） */
+  var viewTitle = _POSTER_TITLES[view] || '命盘海报';
   /* R230r（R29-#7）：toDataURL 在画布被污染时会抛 SecurityError——
    * 原来裸调用让「文件已下载、浮层弹不出」成半失败态。 */
   var img;
@@ -4426,6 +4425,12 @@ var POSTER_BG = {
 };
 /* R230x（P2-8）：海报角落小满吉祥物贴纸。 */
 var POSTER_MASCOT = new Image();
+/* R231c：视图中文标题提升到模块级——浮层标题与下载文件名同一口径。 */
+var _POSTER_TITLES = {
+  bazi: '今日命盘', liuyao: '六爻指引', tarot: '塔罗指引',
+  qiming: '五行起名', taohua: '桃花运势', hehun: '合婚配对',
+  daily: '今日运势', huangli: '今日宜忌', xingzuo: '星座日运'
+};
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream' };
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
@@ -6364,6 +6369,25 @@ function init() {
   /* R230q（R28-P2-4）：sid 跨刷新存活则气泡也跨刷新恢复——否则
    * 新消息悄悄接进看不见的上一轮上下文。 */
   _chatTsRestore();
+  /* R231c（R36-P3-4）：每日卡拆礼物封面——同一天已拆过就直接不盖；
+   * 点/回车拆开，记到 localStorage 按天复位。 */
+  (function () {
+    var _cov = el('dailyCover');
+    if (!_cov) return;
+    var _dk = 'dailyRevealed:' + todayIso();
+    try {
+      if (localStorage.getItem(_dk)) { _cov.remove(); return; }
+    } catch (e) {}
+    var _reveal = function () {
+      _cov.classList.add('open');
+      try { localStorage.setItem(_dk, '1'); } catch (e) {}
+      setTimeout(function () { if (_cov.parentNode) _cov.remove(); }, 500);
+    };
+    _cov.addEventListener('click', _reveal);
+    _cov.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _reveal(); }
+    });
+  })();
   loadDaily();
   /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
