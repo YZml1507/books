@@ -10510,3 +10510,6 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ## R230a-17（2026-09-20）：specs 验收闸全进 CI
 - check_xingzuo（004 判据10/11）→ selftest job；check_plain_first（005 判据1-8）→ browser-gates job。
 - 复核结果：web/+probes/ 下所有带 pass/fail 语义的验收闸现已全部进 CI；其余探针为一次性研究量尺。
+
+## R230a-18（2026-09-20）：hour_known 钉扎
+- bazi.hour_unknown：False→回显+warm 首部「按中午12点算」声明；缺省→键缺席（additive 键序约定）。
