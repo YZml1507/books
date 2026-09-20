@@ -10573,3 +10573,8 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **R230a-47~50**：新行为钉扎批——`compare.flagged`（受损见证隔离 + opt-in）、`search.s2t_hint`、`search.total`、`err.threads.role/empty_quote`（孤儿零增量复用旧断言窗）、`daily.future_nowrite`、`err.int64_overflow`。selftest 206→214。
 - 顺带：`_validation_handler` 的 `ctx.error` 嵌套 ValidationError 对象让 JSONResponse 炸 500——新断言当场抓到，ctx 值统一 str()。
 - **R230b**：仓库此前零 linter——接入 `ruff check src web --select E9,F`（语法错/未定义名/未用导入最窄口径）进 CI selftest job。存量 18 条全清（16 自动修：未用 import/f-string 前缀；2 手清：douay `cur_chap`、ingest `yilin_cells` 死赋值）。活代码在 F821/E999/B023 等高危规则上零命中——宽规则集留作后续档（958 条多为 BLE001/SIM115 风格项）。
+- **R230c（R17 MCP/CLI/入口面审计修复批）**：
+  - P0：`load_work` work 名 `glob.escape`（`br[ac]ket` 张冠李戴实锤）；`build()` 输入先校验、全程写 `.tmp` 成功后 `os.replace` 原子换入（此前先删旧库再解析，坏 manifest 留 schema-only 残库）；`bazi_lookup` ROOT 补 frozen 分支（与 deps.py 同口径，此前打包 exe 恒 503）；MCP `record_claim` 缺 thread_id 自动开线程（与 web 同纪律，orphan 谎称「可恢复」）。
+  - P1：MCP `compare` gua 越界拒判+零见证拒判（此前卦99 假称「存在校勘差异」）+ `flagged` 披露行（受损见证此前静默消失）；S2T 重试表下沉 `search.py` 共享（MCP 简体查询此前系统性假阴性）；`add_local_work` work_id 白名单+`re.escape`（正则注入面，`".*"`/`""` 实锤落盘隐藏目录/污染 raw 根）；`sources.py` RAW/MANIFEST 改包位置绝对路径（cwd 漂移写错目录）；`mcp==2.2.0` 进 requirements-ci + 蓝图（此前零声明干净环境必崩）；`ask.py`/`ask_bazi.py` GBK 终端 utf-8/reconfigure + ask_bazi 年份校验+compute 异常人话；launcher `port_ready` 加身份探针（外来监听者不再被当成就绪）+ `taskkill` 前校验映像名。
+  - P2：`Corpus()` 缺索引/0B 残库/缺表前置 FileNotFoundError（毒化链断根，errors.py 映 503）；`ask.py --limit` 钳 1-200 + `addr/compare` 卦号范围；ingest 坏 JSON 带文件名；空 work/skip 目录打日志。
+  - 闸门：selftest 214 / contract 410 / regress / baseline_voice / xingzuo / warm_voice 全绿。审计排除面复核无误（参数化 SQL/泄露面/limit clamp）。
