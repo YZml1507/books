@@ -10569,3 +10569,4 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **P2-3** `GET /api/daily` 写副作用 + purge 只删 90 天前 → 脚本可灌 7.3 万未来行永不清理。写入限窗口(-400d~+31d)且清理前置。
 - **P3**：chatSid→crypto.getRandomValues；ph-item `data-id` esc 纪律；check_poster B-013 50ms 阈值在 CI 共享机假阳（本地 13ms vs CI 55ms）→ 取 3 次最小值。
 - 闸门：selftest 206 / contract 410 / llm_polish / poster（本地重跑 3/3 过）全绿。
+- **P3-10**：`keep()` 里 suspect 命中也计入 kept——kept 语义是「进证据集」，披露行不算证据，已拆。
