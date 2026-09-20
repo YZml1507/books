@@ -10452,3 +10452,9 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
   voice 内部腔清理、widget 描述对齐、星座当班、免责声明铺开、标点格式统一。
 - 闸门：selftest 196 / contract 392 / ui_smoke 48 / parity 全绿；CI 推送后跑。
 - 待用户拍板（已留言，不阻塞）：死视图 read/divine 与僵尸端点删留、46MB 存档挪位。
+
+## R229z续24（2026-09-20）— R9 P2 遗留清零
+- build_meta 提交前重写 works/units+补 ext_works；euclid 空 unit 跳过入库。
+- daily_cache set 时删 90 天前行；env-seed 哨兵偏移→真偏移（README+CI 同修）。
+- lunar_to_solar 越界语义写进 docstring（农历2100腊月→公历2101 为合法输出）。
+- 闸门：selftest 196 绿。剩 P2-1 shensha_yiji 死代码去向（合并/删除）待用户拍板。
