@@ -10556,3 +10556,16 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - **P2-2**：本地 corpus.db 重建（gitignored 本地产物），3 个 raw_start>raw_end 幽灵 unit 消失。
 - **P3**：SCHEME_LABELS 字面键 "None"→真值 "none"（at_scheme 支持 IS NULL）；search/addr 参数校验对称化（bogus scheme→400，addr gua 越界→400）；compare_works 同书→400；chapter 错误文本去 "None"；derived_fts 注 contentless 删除语法。
 - 闸门：selftest 206 / contract 409（+6 新字段）/ baseline_voice 冻结一致 / llm_polish / xingzuo / warm_voice / async_ai / dollar 全绿。
+
+## R230a-38~45 — R15 安全/输入面审计修复批（91de8f0）
+
+R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、静态穿越全 404、SQL 全参数化、FTS5 引号包裹、localStorage 无 sink。按单清零：
+
+- **P1-1** `_body_size_guard` 只认 Content-Length → chunked 整体绕过（2MB 实锤走到校验层+422 回显放大）。无长度+TE 即 413。
+- **P1-2** `OverflowError` 不在 STATUS_MAP → int64 溢出 ≥9 端点 500。专属 handler → 400 中文。
+- **P1-3** 客户端 `facts` 直进 system 角色（prompt 注入实锤：伪造「黄历判定：今日宜抢劫」以 system 特权送达）。降为 user 上下文块+剥仿冒判定/指令形行。
+- **P2-1** 孤立代理项（\ud800）使 422 序列化炸 500；`input` 回显 ~2x 放大。自定义 RequestValidationError handler：input→repr+200字截断。
+- **P2-2** `external.py` 关 TLS 校验抓 RSS → 恢复默认（失败走单源降级）。
+- **P2-3** `GET /api/daily` 写副作用 + purge 只删 90 天前 → 脚本可灌 7.3 万未来行永不清理。写入限窗口(-400d~+31d)且清理前置。
+- **P3**：chatSid→crypto.getRandomValues；ph-item `data-id` esc 纪律；check_poster B-013 50ms 阈值在 CI 共享机假阳（本地 13ms vs CI 55ms）→ 取 3 次最小值。
+- 闸门：selftest 206 / contract 410 / llm_polish / poster（本地重跑 3/3 过）全绿。
