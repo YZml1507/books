@@ -10441,3 +10441,14 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - `probe_contract` 豁免表补 `conflict`/`year_note`（条件存在键）——392 读点全绿。
 - P1-3 干支年双口径：`services.huangli` 在春节↔立春错位窗加 `year_note` 键（错位才出现），卡面显示「民俗按初一换年 vs 排盘按立春换年——都正常」。
 - P2-2 「移徒→移徙」异体字归一：ZHIRI「满」忌、前端 JI_MAP 同步；新增 `huangli.scene_vocab.alive` 闸——每个场景词至少映射一个宜忌词表真词（健身/唱歌系有意中性除外）。
+
+## R229z续23（2026-09-20，commit 8770f32）— R11文案口径批 + R10无障碍批
+- **P0**：聊天侧栏在 `.wrap` 内，`_mainInert` 打开时把 wrap 打 inert 传染侧栏——
+  鼠键全灭、移动端无 Esc 只能刷新；三个覆盖层移出 .wrap，Playwright 实测链路恢复。
+- R10：对比度一批（粉橙渐变 2.68→≥4.5 档、top2 1.79→加深、8B6FC7 残留清零）、
+  chatFlow role=log、hl-scene aria-pressed、daychip 32→44、Enter 视图委托、
+  h2 emoji aria-hidden、星标语义、checkin group+live、详情容器 live、死 DOM 清理。
+- R11：海报凶→缓同口径、六爻🪙、合婚甲乙统一、services 报错人话化 7 处、
+  voice 内部腔清理、widget 描述对齐、星座当班、免责声明铺开、标点格式统一。
+- 闸门：selftest 196 / contract 392 / ui_smoke 48 / parity 全绿；CI 推送后跑。
+- 待用户拍板（已留言，不阻塞）：死视图 read/divine 与僵尸端点删留、46MB 存档挪位。
