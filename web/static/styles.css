@@ -1914,3 +1914,108 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;}
 .view .card h2{padding-right:92px;}
 /* P1：签册 summary 触控高 20px → ≥40px。 */
 .ck-album>summary{min-height:40px;display:flex;align-items:center;}
+
+/* ── R2340 深色主题（睡前刷一刷场景）：只覆令牌+补丁块，
+ * 回滚=摘 data-theme 属性。data-daypart 在 dark 下不生效（夜间色谱
+ * 已经是「夜」——再叠时段渐变反而忽明忽暗）。 ── */
+html[data-theme="dark"]{
+  --bg:#221D20; --card:#2B2529; --text:#F0E7DC;
+  --primary:#B99FE0; --primary-ink:#D8C6F2; --primary-bg:#6A5395;
+  --secondary:#C0AE98; --accent:#F08CA4; --accent-ink:#F5A9BC;
+  --good:#74B98D; --c-good:#74B98D; --muted:#AD9E8C;
+  --border:#453C42; --line:#4E4348;
+  --cta-grad:linear-gradient(135deg,#C25A4E,#B94A6A);
+  --shadow:0 8px 28px rgba(0,0,0,.42), 0 2px 8px rgba(0,0,0,.30);
+  --shadow-hover:0 14px 40px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+}
+/* 深色补丁：硬编码浅色面的常见面（chips/输入/卡片内衬/toast/引用块…） */
+html[data-theme="dark"] body{background:var(--bg);}
+html[data-theme="dark"] .func-card{background:#2B2529; border-color:#453C42;}
+html[data-theme="dark"] input, html[data-theme="dark"] select,
+html[data-theme="dark"] textarea{
+  background:#352E33; color:var(--text); border-color:#4E4348;
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder{color:#8E7F70;}
+html[data-theme="dark"] .checkin-opt{background:#352E33; color:var(--text);}
+html[data-theme="dark"] .toast{background:#3A3237; color:var(--text);
+  border-color:#4E4348;}
+html[data-theme="dark"] .toast-warn{background:#3A332C;}
+html[data-theme="dark"] .chip, html[data-theme="dark"] .hl-chip,
+html[data-theme="dark"] .chat-chip, html[data-theme="dark"] .xz-chip,
+html[data-theme="dark"] .qm-style-chip, html[data-theme="dark"] .fav-chip,
+html[data-theme="dark"] .chat-sug{background:#352E33; color:var(--text);
+  border-color:#4E4348;}
+html[data-theme="dark"] .no-evidence{color:var(--secondary);}
+html[data-theme="dark"] .warm-wrap, html[data-theme="dark"] .calc-block,
+html[data-theme="dark"] .work-card, html[data-theme="dark"] .ev-item,
+html[data-theme="dark"] .finding, html[data-theme="dark"] .claim-box,
+html[data-theme="dark"] .thread-item, html[data-theme="dark"] .interp-basis,
+html[data-theme="dark"] .xz-detail{background:#2F282D; border-color:#453C42;}
+html[data-theme="dark"] .daily-card{background:#2B2529;}
+html[data-theme="dark"] .daily-cover{background:#332B31;}
+html[data-theme="dark"] .chat-bubble{background:#352E33; color:var(--text);}
+html[data-theme="dark"] .chat-bubble.chat-user{background:#5C4452;}
+html[data-theme="dark"] .ph-empty-img{filter:brightness(.9);}
+html[data-theme="dark"] .ink-hero img, html[data-theme="dark"] .birth-img,
+html[data-theme="dark"] .xz-today-img, html[data-theme="dark"] .daily-card-gift img{
+  filter:brightness(.88) saturate(.92); border-radius:14px;
+}
+html[data-theme="dark"] .tarot-card-back img{filter:brightness(.9);}
+html[data-theme="dark"] .pro-drawer>summary,
+html[data-theme="dark"] .ck-album>summary{color:var(--secondary);}
+html[data-theme="dark"] .theme-toggle{background:#352E33; border-color:#4E4348;}
+html[data-theme="dark"] .view-back{background:#352E33; color:var(--text);
+  border-color:#4E4348;}
+html[data-theme="dark"] .fail-line{background:#3A2E2B; color:#E8A288;}
+/* 图标 jpg 在深色底上白边明显——微降亮更融。 */
+html[data-theme="dark"] .func-icon-img{filter:brightness(.92);}
+/* 主题切换钮：品牌行右侧小圆钮 */
+.brand{position:relative;}
+.theme-toggle{
+  position:absolute; right:0; top:50%; transform:translateY(-50%);
+  width:40px; height:40px; border-radius:50%;
+  border:1px solid var(--line); background:var(--card);
+  font-size:17px; cursor:pointer; padding:0;
+}
+.theme-toggle:hover{transform:translateY(-50%) scale(1.08);}
+/* 深色补丁二批：内嵌浅底块（warm-l0 渐变卡/cite-block/判词引用/原型卡等）
+ * ——浅色盒+浅紫字在深底上对比度归零，统一压暗。 */
+html[data-theme="dark"] .warm-l0{
+  background-color:#332A30; background-image:linear-gradient(135deg,#332A30,#2E262B);
+  color:var(--text);
+}
+html[data-theme="dark"] .warm-basis{background:#2E282C;}
+html[data-theme="dark"] .cite-block{background:#2A302B;}
+html[data-theme="dark"] .ai-polish{background:#2E2831; border-color:#453C48;}
+html[data-theme="dark"] .daily-detail{background:#2E282C;}
+html[data-theme="dark"] details>summary{color:var(--secondary);}
+html[data-theme="dark"] .table-scroll table{background:transparent;}
+html[data-theme="dark"] .history-item, html[data-theme="dark"] .hh-hist-item,
+html[data-theme="dark"] .qm-cand{background:#2E282C; border-color:#453C42;}
+html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
+  background:#2E282C; border-color:#453C42;
+}
+html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
+html[data-theme="dark"] .ck-album .ck-cell{background:#2E282C; border-color:#453C42;}
+html[data-theme="dark"] .archetype-card, html[data-theme="dark"] .wx-card,
+html[data-theme="dark"] .pillar-card{background:#332C31;}
+html[data-theme="dark"] .bazi-persona{background:#332C31;}
+html[data-theme="dark"] .bazi-persona-nick{color:var(--text);}
+html[data-theme="dark"] .daily-quote, html[data-theme="dark"] .daily-scene,
+html[data-theme="dark"] .daily-tipbox{background:#2E282C;}
+html[data-theme="dark"] .chat-drawer{background:#251F23;}
+html[data-theme="dark"] .chat-input{background:#352E33; color:var(--text);
+  border-color:#4E4348;}
+html[data-theme="dark"] .modal-mask, html[data-theme="dark"] .overlay{
+  background:rgba(0,0,0,.6);
+}
+/* 深色补丁三批：交叉引用/装饰条内剩余硬编码浅底 */
+html[data-theme="dark"] .cross-ref{background:#332E3D; color:var(--secondary);}
+html[data-theme="dark"] .deco-banner{filter:brightness(.9) saturate(.95);}
+html[data-theme="dark"] .xz-today{filter:brightness(.9);}
+html[data-theme="dark"] .interp-line, html[data-theme="dark"] .quote-box,
+html[data-theme="dark"] .hint-box{background:#2E282C; border-color:#453C42;}
+html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{
+  border-color:#453C42; color:var(--text);
+}

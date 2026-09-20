@@ -11375,3 +11375,16 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
   保留原文（判据语义即「标注 AI 生成」）。
 - 闸门：selftest 248 / ui_smoke 59 / contract 542 / warm_voice /
   regress / ruff 全绿。
+
+## R2340 深色主题（睡前刷一刷场景）
+- `html[data-theme="dark"]` 令牌整块覆盖（奶油深咖系，同色系降维）+
+  三批补丁：硬编码浅底面（输入框/chips/吐司/引文块/原型卡/知识卡/
+  线程卡/工作台卡/装饰条）全压暗；插画类加 brightness 滤镜融底。
+- 品牌行 🌙 切换钮：aa↔dark 轮转（legacy 保留为回滚主题）；
+  未存过时跟系统 prefers-color-scheme；theme-color meta 同步换色；
+  toast 提示切换结果。
+- applyTheme 扩展三值；uiTheme() 系统跟随→存储覆盖。
+- data-daypart 在 dark 下不叠时段渐变（夜色谱恒定）。
+- 新冒烟用例 ui:theme_toggle（点击→存→刷新三步断言）。
+- 真机截图验证：首页/黄历/排盘/聊天抽屉暗色可读无翻车。
+- 闸门：selftest 248 / ui_smoke 60 / contract 542 全绿。

@@ -439,6 +439,27 @@ def main() -> int:
                 results.append({"name": "ui:welcome_bar", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R2340：深浅色切换——点 #themeToggle 后 html[data-theme=dark]
+            # 且 localStorage 落盘；刷新仍在 dark。
+            try:
+                page.evaluate("localStorage.removeItem('uiTheme')")
+                page.click('#themeToggle')
+                page.wait_for_timeout(300)
+                _d1 = page.evaluate(
+                    "document.documentElement.getAttribute('data-theme')")
+                _sv = page.evaluate("localStorage.getItem('uiTheme')")
+                page.reload(); page.wait_for_timeout(600)
+                _d2 = page.evaluate(
+                    "document.documentElement.getAttribute('data-theme')")
+                page.evaluate("localStorage.removeItem('uiTheme');"
+                              "document.documentElement.removeAttribute('data-theme')")
+                results.append({
+                    "name": "ui:theme_toggle", "ok": _d1 == 'dark' and _sv == 'dark' and _d2 == 'dark',
+                    "detail": f"点击后={_d1} 存={_sv} 刷新={_d2}"})
+            except Exception as exc:
+                results.append({"name": "ui:theme_toggle", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             def goto_view(view: str):
                 # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
                 # huangli）；qiming/taohua/hehun 在 view-bazi 底部「相关功能」区。

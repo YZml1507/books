@@ -2148,18 +2148,26 @@ var THEME_KEY = 'uiTheme';
 
 function uiTheme() {
   try {
-    return localStorage.getItem(THEME_KEY) === 'legacy' ? 'legacy' : 'aa';
-  } catch (e) {
-    return 'aa';
-  }
+    var v = localStorage.getItem(THEME_KEY);
+    if (v === 'legacy' || v === 'dark') return v;
+    /* R2340：没存过就跟系统深浅色走（睡前场景占大头） */
+    if (v == null && window.matchMedia &&
+        matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+  } catch (e) {}
+  return 'aa';
 }
 
 function applyTheme(theme) {
-  var t = theme === 'legacy' ? 'legacy' : 'aa';
-  if (t === 'legacy') {
-    document.documentElement.setAttribute('data-theme', 'legacy');
-  } else {
+  var t = (theme === 'legacy' || theme === 'dark') ? theme : 'aa';
+  /* R2340：theme-color meta 跟着换——浏览器地址栏/PWA 顶栏同色。 */
+  var _meta = document.querySelector('meta[name="theme-color"]');
+  if (t === 'aa') {
     document.documentElement.removeAttribute('data-theme');
+    if (_meta) _meta.setAttribute('content', '#FFF8E7');
+  } else {
+    document.documentElement.setAttribute('data-theme', t);
+    if (_meta) _meta.setAttribute('content',
+      t === 'dark' ? '#221D20' : '#F7F3EA');
   }
   try {
     localStorage.setItem(THEME_KEY, t);
@@ -7078,6 +7086,22 @@ function initBazi() {
   });
   syncBaziForm();
   on('dailyMore', loadDailyDetail);
+  /* R2340：深浅色切换——aa↔dark↔legacy 轮转（legacy 是回滚主题）。 */
+  var _tt = el('themeToggle');
+  if (_tt) {
+    var _ttIcon = function () {
+      _tt.textContent = uiTheme() === 'dark' ? '☀️' : '🌙';
+      _tt.setAttribute('aria-label',
+        uiTheme() === 'dark' ? '切回浅色模式' : '切换深色模式');
+    };
+    _ttIcon();
+    _tt.addEventListener('click', function () {
+      applyTheme(uiTheme() === 'dark' ? 'aa' : 'dark');
+      _ttIcon();
+      showToast(uiTheme() === 'dark' ? '夜间模式开啦～看着不累眼睛' :
+                '回到奶油白啦', 'info');
+    });
+  }
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
    * 用委托绑到 document。 */
   document.addEventListener('click', function (e) {
