@@ -10821,3 +10821,13 @@ ph-del armed+inflight、chat 清空两段式确认、phBind 防抖、failWithRet
 本批（P3）：birthDrawer Enter 接入视图委托、autoSendChatContext 在途窗、qm_surname maxlength 对齐后端、
 五视图结果区空态占位、_parse_iso_date「不存在 vs 格式错」分说；顺带修防抖 _bkey 引用残留（冒烟抓到）。
 hold：view-read 死视图缺陷（R208b 已定无入口，跟随死视图去留决策）、P3-12/14/16/18/20/21 低值记录项。
+
+## R230v（R34 传输层清零）— 2026-09-20
+
+传输层审计 24 条全落：聊天轮询跨话题幻影气泡（sid 校验 ×2 路径）、pollNameReview
+代际保护、聊天任务排队感知（后端 started 标记 + queued 字段，前端排队期不烧
+生成预算）、黄历在途入口改取最新排队、gooddays 基准日比对+去重、原位刷新失败
+保留旧卡叠错误条、SW 核心件缺失即装失败、polish 轮询 404 口径对齐、委托路径
+guardedCall、api() signal 合并+极老内核超时兜底、toBlob 失败提示、no-store、
+phFetch 422 语义、tarot 翻牌节点引用、AI_PENDING 回收、facts 缓存键加指纹。
+hold：#18 截断口径 800/2000 系上下文预算设计（记录待议）。
