@@ -10541,3 +10541,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ## R230a-27（2026-09-20）：确定性文案与禁语闸对齐
 - hehun_one_liners「命中注定的羁绊」→「越处越合拍的一对」（copy_bank + voice._STRONG_CP 桶同步）。
 - 全库扫禁语模式：其余命中均为映射表/注释/自查断言，合法。
+
+## R230a-28（2026-09-20）：禁语实锤 + 三闸进 CI
+- index.html「新的一天还是你说了算」命中判据16禁语模式——改「照常过」；
+- check_warm_voice / check_async_ai / check_poster 进 CI——此前三闸仅本地，漏网即是证明。
