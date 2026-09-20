@@ -10499,3 +10499,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ## R230a-14（2026-09-20）：baseline_voice 重冻 + 进 CI
 - 14 处漂移均为 R13 既定修复（补缺 ELEMENT_GENERATED_BY、日主标签），重冻 sha256 ebb4fb…；
 - 该字节冻结闸此前只在本地，补进 selftest job（判据 9 在 CI 闭环）。
+
+## R230a-15（2026-09-20）：probe_llm_polish 进 CI
+- specs/006 判据 2/2b/3/6/7/8 的离线验收闸此前未接 CI——LLM 层等于无把关，补上。
+- 复核全 probes 清单：其余 not-CI 项均为一次性研究量尺（非判定闸），处置正确。
