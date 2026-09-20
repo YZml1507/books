@@ -111,6 +111,11 @@ html[data-theme="legacy"]{
   --font-wenkai: var(--font-serif);
   --font-sans: "Yuanti SC","YouYuan","幼圆","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
 }
+/* R231i（R38-P3-2）：legacy 回滚漏底色——body 渐变是写死奶油色不走
+ * token，daypart 选择器加了 :not(legacy) 后底色仍停在新版渐变。
+ * 回滚档给纯色旧底（当年版面就是浅米纯色）。 */
+html[data-theme="legacy"] body{background:#F7F3EA;}
+html[data-theme="legacy"] .page-glow{display:none;}
 
 /* ── R201b（B-010）：animotion 接线——只取 web-lite 子集 ────────────
  * animotion.css 的 740 个类引用驼峰 keyframes，而 keyframes*.css 提供

@@ -11040,3 +11040,6 @@ scripts_importable / llm_polish / ruff 全绿。
 ### R231h（R39-P3-3 里程碑仪式）
 - 连签 3/7/14/30 当天弹 `.celeb-backdrop` 庆典卡（吉祥物+档级文案+「晒一下」直发生成打卡分享图）；同日同档只弹一次（checkinCeleb: 键）
 - 闸：selftest 237 / ui_smoke 56 全绿
+
+### R231i（R38 尾账）
+- legacy 回滚补底色：body 渐变写死奶油色不走 token → legacy 档显式纯色旧底 + 关 page-glow（回滚不再半吊子）
