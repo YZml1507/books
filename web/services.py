@@ -740,13 +740,27 @@ def huangli(date_str: str | None = None, affair: str | None = None,
                 "days": days, "good_days": good, "count": len(good)}
 
     q = huangli_mod.day_query(dt)
-    # R216b 续6（V-001）：透传农历与冲煞（additive，既有键零改动）。
-    # R228p：jianchu/xiu/pengzu/shensha 本来就算好了却被丢掉——单日响应
-    # 补透传（additive）。它们是传统黄历的核心坐标，前端将来可直接取。
+    # R229z续21c（R9-P1-3）：黄历卡干支年走春节口径、排盘年柱走立春口径，
+    # 春节↔立春窗口期两值并存——只在真正错位的日子给提示键（窗口全落在
+    # 公历 1-3 月，其余日子不算这笔账）。
+    _ynote = {}
+    _lunar_gz = (q.get("lunar") or {}).get("ganzhi_year_cn", "")
+    if _lunar_gz and dt.month <= 3:
+        try:
+            _p = bazi_compute(dt.year, dt.month, dt.day, 12, "男")
+            _bz_year = _p.year or ""
+            _ln_year = _lunar_gz.replace("年", "")
+            if _bz_year and _ln_year and _bz_year != _ln_year:
+                _ynote["year_note"] = (
+                    f"干支年双口径：民俗黄历按正月初一换年（{_lunar_gz}），"
+                    f"排盘按立春换年（{_bz_year}年）——都正常，看哪个口径")
+        except Exception:
+            pass
     return {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
             "jianchu": q.get("jianchu"), "xiu": q.get("xiu"),
             "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
             **({"conflict": q["conflict"]} if q.get("conflict") else {}),
+            **_ynote,
             **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}

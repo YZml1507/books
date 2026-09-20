@@ -240,7 +240,11 @@ CONDITIONAL_FIELDS = {
     # 前端对 good_days 有 Array.isArray 守卫 → 条件存在字段，不算漂移。
     "/api/huangli": {"good_days", "good_days.date", "good_days.yi",
                      "good_days.ji", "count", "terms", "affair", "start",
-                     "days"},
+                     "days",
+                     # R229z续21（R9 审计修复）：conflict（宜忌相冲词）只在
+                     # 非空时返回；year_note 只在干支年双口径错位日返回——
+                     # 前端 Array.isArray/if 守卫即正确探测。
+                     "conflict", "year_note"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

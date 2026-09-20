@@ -309,6 +309,20 @@ def _run_inner() -> list[str]:
         assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
             ("huangli.term_day.yiji_flip", _tn, _ty)
     ok.append("huangli.term_day.consistent")
+    # R229z续22（R9-P2-2）：场景映射词防死词——每个场景词必须至少映射
+    # 一个宜忌词表中的真词（自映射中性词如「健身/唱歌」有意除外）。
+    from guji.huangli import ZHIRI_YIJI as _ZY, XIUXIU_YIJI as _XY
+    from web.services import _CHAT_SCENE_TERMS as _CST
+    _vocab = set()
+    for _t in list(_ZY.values()) + list(_XY.values()):
+        _vocab |= set(_t["yi"]) | set(_t["ji"])
+    _NEUTRAL_TERMS = {"健身", "唱歌"}   # 有意的中性词（恒中性判定）
+    _dead = {k: [t for t in ts if t not in _vocab]
+             for k, ts in _CST.items()
+             if not any(t in _vocab for t in ts)
+             and not set(ts) <= _NEUTRAL_TERMS}
+    assert not _dead, ("huangli.scene_vocab.dead", _dead)
+    ok.append("huangli.scene_vocab.alive")
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
