@@ -831,7 +831,9 @@ button.fav-btn[id^="share"]:hover{transform:translateY(-1px);
 
 .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0;}
 .pill{
-  color:#fff; padding:6px 14px; border-radius:999px;
+  /* R2349j（R70-P1-18）：白字配 pastel 模块底色只有 1.6-2.3:1——
+   * 浅色深色都不过 AA，统一改深字。 */
+  color:#4A3A44; padding:6px 14px; border-radius:999px;
   font-family:var(--font-serif); font-size:15px; font-weight:600;
 }
 .pill.sm{font-size:13px; font-family:var(--font-sans); font-weight:500;}
@@ -1581,6 +1583,15 @@ button:active{transform:scale(.96);}
 
 /* ── v3 P2/P1 补丁 ── */
 .deco-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:10px 0 12px;padding:10px 14px;border-radius:14px;border:1px solid rgba(184,134,11,.18);}
+/* R2349j（R70-P0-5）：装饰条渐变从内联收编为类——深色补丁才能盖住。 */
+.deco-bazi{background:linear-gradient(120deg,#FFF1F3,#E4D4FF);}
+.deco-qiming{background:linear-gradient(120deg,#F0FFF4,#E4FFE9);}
+.deco-taohua{background:linear-gradient(120deg,#FFE4E9,#FFD6E0);}
+.deco-tarot{background:linear-gradient(120deg,#F3EBFF,#FFE4E9);}
+.deco-hehun{background:linear-gradient(120deg,#FFE4E9,#FFF1F3);}
+.deco-huangli{background:linear-gradient(120deg,#FFF8E1,#FFE9C9);}
+.deco-xingzuo{background:linear-gradient(120deg,#E4F0FF,#E4D4FF);}
+.deco-liuyao{background:linear-gradient(120deg,#FFF1F3,#F3EBFF);}
 .deco-icon-img{width:44px;height:44px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(255,143,171,.25);flex-shrink:0;}
 .deco-icon-img.is-missing{display:none;}
 .deco-text{flex:1;font-family:var(--font-serif);font-weight:700;font-size:14px;color:var(--primary-ink);}
@@ -1600,7 +1611,16 @@ button:active{transform:scale(.96);}
 .hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;}   /* R228d：33→44；R229z续23：宽也守44 */
 .hl-scene:hover{border-color:var(--accent);}
 .hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
-@media (max-width:480px){ .hl-yiji{grid-template-columns:1fr !important;} }
+/* R2349j（R70-P0-2/5）：黄历头与宜忌卡从内联收编为类。 */
+.hl-head{background:linear-gradient(120deg,#FFF8E1,#FFE9C9);border-radius:16px;padding:14px 16px;margin-bottom:12px;}
+.hl-yiji{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hl-yi{background:rgba(135,217,166,.16);border:1px solid rgba(95,167,119,.35);border-radius:16px;padding:12px;}
+.hl-ji{background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;}
+.hl-yi-t{font-weight:800;color:#3E7A52;margin-bottom:6px;}
+.hl-ji-t{font-weight:800;color:#C2527B;margin-bottom:6px;}
+.hl-flag{font-size:12.5px;color:#a3542a;margin-top:6px;}
+.hl-csmsg{font-size:13px;color:var(--primary-ink);margin-top:6px;}
+@media (max-width:480px){ .hl-yiji{grid-template-columns:1fr;} }
 
 /* ── v4（2026-08-29 交接修复）────────────────────────────── */
 /* ① 黄历场景结论行：点选场景后卡内直接给一句答案 */
@@ -1991,7 +2011,8 @@ html[data-theme="dark"] textarea{
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder{color:var(--muted);}
 html[data-theme="dark"] .checkin-opt{background:#352E33; color:var(--text);}
-html[data-theme="dark"] .toast{background:#3A3237; color:var(--text);
+/* R2349j（R70-P0-6）：真类名是 .toast-item，.toast 补丁落空已久。 */
+html[data-theme="dark"] .toast-item{background:#3A3237; color:var(--text);
   border-color:#4E4348;}
 html[data-theme="dark"] .toast-warn{background:#3A332C;}
 html[data-theme="dark"] .chip, html[data-theme="dark"] .hl-chip,
@@ -2008,7 +2029,8 @@ html[data-theme="dark"] .xz-detail{background:#2F282D; border-color:#453C42;}
 html[data-theme="dark"] .daily-card{background:#2B2529;}
 html[data-theme="dark"] .daily-cover{background:#332B31;}
 html[data-theme="dark"] .chat-bubble{background:#352E33; color:var(--text);}
-html[data-theme="dark"] .chat-bubble.chat-user{background:#5C4452;}
+/* R2349j（R70）：真类名 .chat-me。 */
+html[data-theme="dark"] .chat-me{background:#5C4452;}
 html[data-theme="dark"] .ph-empty-img{filter:brightness(.9);}
 html[data-theme="dark"] .ink-hero img, html[data-theme="dark"] .birth-img,
 html[data-theme="dark"] .xz-today-img, html[data-theme="dark"] .daily-card-gift img{
@@ -2050,7 +2072,8 @@ html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
   background:#2E282C; border-color:#453C42;
 }
 html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
-html[data-theme="dark"] .ck-album .ck-cell{background:#2E282C; border-color:#453C42;}
+/* R2349j（R70 机制性附注）：真类名 .ck-album-cell，.ck-cell 死补丁修正。 */
+html[data-theme="dark"] .ck-album-cell{background:#2E282C; border-color:#453C42;}
 /* R2345（R62-P2）：深色下凶档星 #B3455A 在深底上对比弱 → 提亮 */
 html[data-theme="dark"] .daily-stars .star-bad{color:#F08CA4;}
 html[data-theme="dark"] .archetype-card, html[data-theme="dark"] .wx-card,
@@ -2108,6 +2131,83 @@ html[data-theme="dark"]{--cta-grad:linear-gradient(135deg,#B85649,#A8445F);}
 /* R2349h（R69-P3-14）：生日横幅浅色卡在深底上跳色——半透明深底。 */
 html[data-theme="dark"] .daily-birthday{background:rgba(240,140,164,.10);
   border-color:#5A3A44; color:var(--text);}
+
+/* ── R2349j（R70 深色全视图复扫清零批）── */
+/* 原生控件随主题（select 下拉/日期框/滚动条） */
+html[data-theme="dark"]{color-scheme:dark;}
+/* P0-1 判词卡 / P0-2 黄历头 */
+html[data-theme="dark"] .hl-verdict{background:#332E3D;border-color:#4E4358;
+  color:var(--text);}
+html[data-theme="dark"] .hl-head{background:#332E3D;}
+/* P0-3 吉日 chip / P0-4 周日历格 */
+html[data-theme="dark"] .hl-daychip{background:#332C33;color:var(--text);
+  border-color:var(--accent-ink);}
+html[data-theme="dark"] .hl-daychip:hover{background:#3E3440;}
+html[data-theme="dark"] .hl-week-cell{background:#2E282C;border-color:#453C42;}
+html[data-theme="dark"] .hl-week-cell.active{background:#3A3040;
+  border-color:var(--accent-ink);}
+html[data-theme="dark"] .hl-week-date{color:var(--text);}
+html[data-theme="dark"] .hl-week-yi{color:#8FC49B;}
+html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
+/* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
+html[data-theme="dark"] .deco-banner{background:#332A30;}
+/* P0-9 skip-link / P0-10 专业盘返回钮 */
+html[data-theme="dark"] .skip-link{background:var(--cta-grad);}
+html[data-theme="dark"] .pro-back-btn{background:var(--card);color:var(--text);
+  border-color:var(--c-bazi);}
+/* P1-11 侧栏抽屉 */
+html[data-theme="dark"] .side-chat{background:#251F23;}
+html[data-theme="dark"] .recent-side-head{background:#2B2529;
+  color:var(--text);}
+/* P1-12 宜忌 pill：白底 pill 在深卡上突兀 */
+html[data-theme="dark"] .hl-pill{background:rgba(116,185,141,.16);
+  color:#8FC49B;border-color:rgba(116,185,141,.4);}
+html[data-theme="dark"] .hl-pill.hl-hot{background:#3F6B4E;color:#EAF6EE;}
+html[data-theme="dark"] .hl-pill-ji{color:#F08CA4;
+  border-color:rgba(240,140,164,.4);background:rgba(240,140,164,.12);}
+/* P1-13 宜/忌卡标题色（深底安全色）+ 卡面微调 */
+html[data-theme="dark"] .hl-yi-t{color:#74B98D;}
+html[data-theme="dark"] .hl-ji-t{color:#F08CA4;}
+html[data-theme="dark"] .hl-yi{background:rgba(116,185,141,.10);
+  border-color:rgba(116,185,141,.3);}
+html[data-theme="dark"] .hl-ji{background:rgba(240,140,164,.09);
+  border-color:rgba(240,140,164,.28);}
+/* P1-14 chip 选中态浅渐变洗白 */
+html[data-theme="dark"] .hl-chip.active,
+html[data-theme="dark"] .hl-scene.active{background:#3A3040;
+  border-color:var(--accent-ink);color:var(--text);font-weight:700;}
+/* P1-15 评分条 / P1-16 心水钮 */
+html[data-theme="dark"] .qm-score{background:#332C33;color:var(--secondary);}
+html[data-theme="dark"] .qm-fav{background:rgba(0,0,0,.3);color:#E8A2B4;}
+html[data-theme="dark"] .qm-fav.on{color:#F08CA4;}
+/* P1-17 塔罗问句 hook 卡 */
+html[data-theme="dark"] .tarot-question-hook,
+html[data-theme="dark"] .tarot-hook-tag{background:#332C33;
+  color:var(--text);border-color:#453C42;}
+/* P1-19 动爻行 / P1-20 方向徽标 / P1-21 专业模式提示 */
+html[data-theme="dark"] .yao-row.moving{background:rgba(167,199,231,.10);}
+html[data-theme="dark"] .cross-dir{color:#B9A8E0;
+  background:rgba(122,107,168,.14);}
+html[data-theme="dark"] .pro-notice{background:#2E3332;color:var(--secondary);}
+/* P1-22 改资料钮 / P1-24 海报 chrome（部分 R2349h 已补，补漏） /
+   P1-25 聊天输入禁用态 */
+html[data-theme="dark"] .daily-me-edit{background:var(--card);
+  color:var(--secondary);border-color:var(--border);}
+html[data-theme="dark"] .chat-input-row input:disabled,
+html[data-theme="dark"] .chat-input-row button:disabled{
+  background:#332C33;color:var(--muted);}
+/* P2 批次：分享钮/加载 pill/人设圈/hover/disclaimer */
+html[data-theme="dark"] .checkin-share{background:#3A3237;color:#E8A288;
+  border-color:#5A3A44;}
+html[data-theme="dark"] .res-loading-tag{background:#332C33;
+  color:var(--secondary);}
+html[data-theme="dark"] .bazi-persona-emoji{background:#3A3237;}
+html[data-theme="dark"] .bazi-persona-kw{background:#332C33;
+  color:var(--secondary);}
+html[data-theme="dark"] .daily-recall-btn:hover{background:#3A3237;}
+html[data-theme="dark"] .interp-disclaimer-soft{opacity:1;
+  color:var(--secondary);}
+html[data-theme="dark"] .hl-flag{color:#E8A288;}
 
 /* R2340b（R55-P2）：360px 档 daily chips 6px 溢出——缩字号/内距止血 */
 @media (max-width:400px){

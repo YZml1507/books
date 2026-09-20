@@ -11635,3 +11635,11 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 
 ## R2349i 续（og 分享卡）
 - og:image/twitter:image 换 Agnes 生成 1200×630 专用卡（月亮猫+奶油粉底+东方大凯标题字），补 og:image:width/height——原 hero 1440×384 被平台裁剩一条
+
+## R2349j（R70 深色全视图复扫清零批）
+- 根因修复：deco-banner 8 视图渐变、hl-head、hl-yi/hl-ji 卡、hl-yiji 网格、宜忌标题色、hl-flag/csmsg 全部从内联 style 收编为类——内联优先级此前压死所有 [data-theme=dark] 补丁
+- 死选择器修正：.toast→.toast-item（白底浅字 ≈1.4:1 落空已久）、.ck-album .ck-cell→.ck-album-cell、.chat-bubble.chat-user→.chat-me
+- 深色补丁新增 ~30 条：hl-verdict/daychip/week-cell/pill 系、chip/scene active、side-chat/recent-side-head、qm-score/qm-fav、tarot-question-hook、yao-row.moving、cross-dir、pro-notice/pro-back-btn、daily-me-edit、chat-input 禁用态、checkin-share、res-loading-tag、bazi-persona-emoji/kw、daily-recall-btn:hover、interp-disclaimer-soft、hl-flag、skip-link→cta-grad
+- .pill 白字→深字（pastel 底浅深双主题都不过 AA）
+- color-scheme:dark（CSS + applyTheme 同步 meta）——原生控件随主题
+- 真机抽验：375px 深色黄历卡整组可读；ui_smoke 75/75

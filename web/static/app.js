@@ -2285,6 +2285,11 @@ function applyTheme(theme) {
     if (_meta) _meta.setAttribute('content',
       t === 'dark' ? '#221D20' : '#F7F3EA');
   }
+  /* R2349j（R70-P1-23）：原生控件（select 下拉/日期框/滚动条）随主题——
+   * meta color-scheme 写死 light 时深色下控件仍按浅色画。CSS 侧也有
+   * html[data-theme="dark"]{color-scheme:dark}，meta 双保险。 */
+  var _cs = document.querySelector('meta[name="color-scheme"]');
+  if (_cs) _cs.setAttribute('content', t === 'dark' ? 'dark' : 'light');
   try {
     localStorage.setItem(THEME_KEY, t);
   } catch (e) { /* 存不了就只在本次会话生效 */ }
@@ -4255,19 +4260,21 @@ function baziBody() {
 function renderDecoration(view) {
   /* v3（P2）：装饰条统一走 cream 图标（与首页同一套资产语言），
    * 清除乱码 emoji；全视图覆盖，缺失视图安全返回空。 */
+  /* R2349j（R70-P0-5）：渐变收进 CSS 类（.deco-banner.deco-<view>）——
+   * 内联 style 优先级永远压过 [data-theme=dark] 补丁，深色下文案洗白。 */
   var presets = {
-    bazi:    { icon: '/static/cream/cream-icon-bazi.jpg',    txt: '你的命盘已就位', grad: 'linear-gradient(120deg,#FFF1F3,#E4D4FF)' },
-    qiming:  { icon: '/static/cream/cream-icon-qiming.jpg',  txt: '好名字，自己也能换', grad: 'linear-gradient(120deg,#F0FFF4,#E4FFE9)' },
-    taohua:  { icon: '/static/cream/cream-icon-taohua.jpg',  txt: '今天的桃花信号帮你看看', grad: 'linear-gradient(120deg,#FFE4E9,#FFD6E0)' },
-    tarot:   { icon: '/static/cream/cream-icon-tarot.jpg',   txt: '静心抽牌，听听牌怎么说', grad: 'linear-gradient(120deg,#F3EBFF,#FFE4E9)' },
-    hehun:   { icon: '/static/cream/cream-icon-hehun.jpg',   txt: '缘分配对，一拍即合', grad: 'linear-gradient(120deg,#FFE4E9,#FFF1F3)' },
-    huangli: { icon: '/static/cream/cream-icon-huangli.jpg', txt: '择个好日子，事事顺心', grad: 'linear-gradient(120deg,#FFF8E1,#FFE9C9)' },
-    xingzuo: { icon: '/static/cream/cream-icon-xingzuo.jpg', txt: '星空为你指路', grad: 'linear-gradient(120deg,#E4F0FF,#E4D4FF)' },
-    liuyao:  { icon: '/static/cream/cream-icon-liuyao.jpg',  txt: '摇出来的卦，读给你听', grad: 'linear-gradient(120deg,#FFF1F3,#F3EBFF)' }
+    bazi:    { icon: '/static/cream/cream-icon-bazi.jpg',    txt: '你的命盘已就位' },
+    qiming:  { icon: '/static/cream/cream-icon-qiming.jpg',  txt: '好名字，自己也能换' },
+    taohua:  { icon: '/static/cream/cream-icon-taohua.jpg',  txt: '今天的桃花信号帮你看看' },
+    tarot:   { icon: '/static/cream/cream-icon-tarot.jpg',   txt: '静心抽牌，听听牌怎么说' },
+    hehun:   { icon: '/static/cream/cream-icon-hehun.jpg',   txt: '缘分配对，一拍即合' },
+    huangli: { icon: '/static/cream/cream-icon-huangli.jpg', txt: '择个好日子，事事顺心' },
+    xingzuo: { icon: '/static/cream/cream-icon-xingzuo.jpg', txt: '星空为你指路' },
+    liuyao:  { icon: '/static/cream/cream-icon-liuyao.jpg',  txt: '摇出来的卦，读给你听' }
   };
   var p = presets[view];
   if (!p) return '';
-  return '<div class="deco-banner deco-' + view + '" style="background:' + p.grad + ';">' +
+  return '<div class="deco-banner deco-' + view + '">' +
     '<img class="deco-icon-img" src="' + p.icon + '" alt="" onerror="this.classList.add(\'is-missing\')">' +
     '<div class="deco-text">' + esc(p.txt) + '</div>' +
     '<div class="deco-corner"></div>' +
@@ -6848,7 +6855,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
     var yiSet = {}; yi.forEach(function (x) { yiSet[x] = true; });
     var html = '';
     /* 头部：日期 + 农历干支 */
-    html += '<div class="hl-head" style="background:linear-gradient(120deg,#FFF8E1,#FFE9C9);border-radius:16px;padding:14px 16px;margin-bottom:12px;">';
+    /* R2349j（R70-P0-2）：渐变类化，深色补丁可生效。 */
+    html += '<div class="hl-head">';
     html += '<div style="font-size:20px;font-weight:800;color:#7A5F33;">' + esc(j.date || dateStr) + '</div>';
     /* R230n（R25-1.3）：记下本卡实际展示的公历日——跨零点自刷新靠它
      * 判「这张卡是不是昨天的快照」。 */
@@ -6878,22 +6886,21 @@ async function _doHuangli(offset, reveal, spokenWord) {
           : f === '四绝' ? '四绝日——立季前一天，大事留到后天'
           : f === '杨公忌' ? '杨公忌日——老传统提醒稳着点，小事照常' : f;
       }).join('、');
-      html += '<div class="hl-flag" style="font-size:12.5px;color:#a3542a;' +
-        'margin-top:6px;">🌙 今天逢' + esc(_flTxt) + '</div>';
+      html += '<div class="hl-flag">🌙 今天逢' + esc(_flTxt) + '</div>';
     }
-    if (cs && cs.message) html += '<div style="font-size:13px;color:var(--primary-ink);margin-top:6px;">✨ ' + esc(cs.message) + '</div>';
+    if (cs && cs.message) html += '<div class="hl-csmsg">✨ ' + esc(cs.message) + '</div>';
     /* R229z续21c：干支年双口径错位日（春节↔立春窗口）才出现的说明行 */
     if (j.year_note) html += '<div style="font-size:12px;color:var(--muted);margin-top:4px;">📅 ' + esc(j.year_note) + '</div>';
     html += '</div>';
     /* 宜/忌 双色大卡 */
-    html += '<div class="hl-yiji" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    html += '<div class="hl-yiji">';
     /* R229z续21（R9-P1-2）：宜∩忌同见的词（黄历自相矛盾项，约 22% 日子）
      * 标※并在卡下方附说明——不然同一词两头出现像渲染坏了。 */
     var _conflict = Array.isArray(j.conflict) ? j.conflict : [];
     var _cflSet = {};
     _conflict.forEach(function (w) { _cflSet[w] = 1; });
-    html += '<div class="hl-yi" style="background:rgba(135,217,166,.16);border:1px solid rgba(95,167,119,.35);border-radius:16px;padding:12px;">';
-    html += '<div style="font-weight:800;color:#3E7A52;margin-bottom:6px;">✅ 宜</div>';
+    html += '<div class="hl-yi">';
+    html += '<div class="hl-yi-t">✅ 宜</div>';
     html += yi.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       yi.map(function (w) {
         var hot = (_HL.scene &&
@@ -6906,8 +6913,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
           (_g ? '<small class="hl-pill-sub">' + esc(_g) + '</small>' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">' + esc(_dayWord) + '没什么特别适宜的</div>';
     html += '</div>';
-    html += '<div class="hl-ji" style="background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;">';
-    html += '<div style="font-weight:800;color:#C2527B;margin-bottom:6px;">🚫 忌</div>';
+    html += '<div class="hl-ji">';
+    html += '<div class="hl-ji-t">🚫 忌</div>';
     html += ji.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       ji.map(function (w) {
         var _g2 = JI_MAP[w] || '';
