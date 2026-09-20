@@ -47,7 +47,20 @@ CASES = [
     ("周日出行", 1), ("周天出行", 1), ("礼拜天签约", 1), ("星期天", 1),
     ("周五搬家", 6), ("星期一上班", 2), ("星期三看医生", 4),
     ("明天适合出行吗", 1),
+    # R229z：公历绝对日期——前后端同一套就近口径（9/19 视角下 9/25 未过）。
+    ("9月25号搬家", 6), ("10月1日结婚", 12), ("10-5出差", 16),
+    ("25号面试", 6), ("下个月5号开业", 16), ("这个月30号签约", 11),
+    ("月底签约", 11), ("9月1号那天", -18),
     ("跟对象吵架了", None),  # 无日期词 → null/今天
+]
+
+# R229z：节日/农历是后端单点真相（前端 _hlDayOffset 应返回 null，由
+# /api/huangli/resolve_date 兜底——双轨不同解才是 bug）。这里钉后端偏移
+# 且断言 js 必须 None。
+PY_ONLY = [
+    ("国庆节出游", 12), ("中秋節搬新家", 6), ("农历八月十五出行", 6),
+    ("除夕那天在干嘛", -215), ("清明节扫墓", 198), ("母亲节送花", 232),
+    ("腊八粥好喝吗", 118),
 ]
 
 # 两实现都钉在同一语义上：返回的是「相对 BASE 的天数偏移」。
@@ -116,12 +129,26 @@ def main() -> int:
                     diffs.append(q)
                 print(f"  [{status}] {q!r:>24}  js={js}  py={py_val}"
                       f"（{sp} → {dt.date()}）{exp_mark}")
+            # R229z：节日/农历是后端单点真相——前端必须返回 null（交给
+            # resolve_date 端点），本地若解出则是双轨分叉。
+            for q, exp in PY_ONLY:
+                js = page.evaluate(
+                    "(q) => _hlDayOffset(q, new Date(2026, 8, 19, 12))", q)
+                from web import services as _s2
+                dt, sp = _s2._hl_day_part(q, BASE)
+                py_off = (dt.date() - BASE.date()).days
+                ok = (js is None and py_off == exp)
+                status = "OK " if ok else "DIFF"
+                if not ok:
+                    diffs.append(f"{q}(js={js},py={py_off})")
+                print(f"  [{status}] {q!r:>24}  js={js}  py={py_off}"
+                      f"（{sp} → {dt.date()}）")
             browser.close()
 
         if diffs:
             print(f"\nprobe_date_parity FAIL: {len(diffs)} 条分歧: {diffs}")
             return 1
-        print(f"\nprobe_date_parity PASS: {len(CASES)} 条问法前后端偏移一致")
+        print(f"\nprobe_date_parity PASS: {len(CASES)}+{len(PY_ONLY)} 条问法偏移一致")
 
         # ── R229q：事项词别名表前后端同构钉扎 ──────────────────────
         # 前端 HL_SCENE_ALIAS ↔ 后端 _CHAT_SCENE_TERMS 各存一份，R229q

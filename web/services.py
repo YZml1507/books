@@ -837,11 +837,248 @@ _T2S = {
     "動": "动", "離": "离", "準": "准", "備": "备", "處": "处", "幾": "几",
     "緊": "紧", "擇": "择", "幹": "干", "臺": "台", "週": "周", "禮": "礼",
     "樣": "样",
+    # R229z：节日/农历问法常见繁体（中秋節/國慶/農曆/聖誕/兒童節/重陽/萬聖節/舊曆）
+    "節": "节", "婦": "妇", "萬": "万", "兒": "儿", "誕": "诞",
+    "慶": "庆", "陽": "阳", "舊": "旧", "農": "农", "陰": "阴",
 }
 
 
 def _t2s(s: str) -> str:
     return "".join(_T2S.get(ch, ch) for ch in s)
+
+
+# ── R229z：绝对日期 / 节日 / 农历表达 ────────────────────────────
+# 「10月1日」「9-25」「25号」「下个月5号」「国庆」「中秋」「农历八月十五」
+# 此前全部静默按今天判（R228r 同类伤：说错日期比不答更伤）。
+# 统一口径——就近取：当年未过取当年；已过且有过去语标（那天/过了…）落当年
+# （复盘口径能消化过去），无语标顺到下一个同档（明年/下个月）。
+
+# 公历节日（固定月日）；「十一/五一/六一/五四」这类数字节需防「十一月」
+# 误命中——匹配后紧跟计量字（月/日/号/天/个/年）时跳过。
+_HOLIDAY_SOLAR = {
+    "元旦": (1, 1), "新年": (1, 1), "情人节": (2, 14), "妇女节": (3, 8),
+    "植树节": (3, 12), "愚人节": (4, 1), "劳动节": (5, 1), "五一": (5, 1),
+    "青年节": (5, 4), "儿童节": (6, 1), "建党节": (7, 1), "建军节": (8, 1),
+    "教师节": (9, 10), "国庆节": (10, 1), "国庆": (10, 1), "十一": (10, 1),
+    "万圣节": (11, 1), "平安夜": (12, 24), "圣诞节": (12, 25),
+    "圣诞": (12, 25), "跨年": (12, 31),
+}
+# 农历节日（月, 日）；除夕单列（正月初一前一天）。
+_HOLIDAY_LUNAR = {
+    "大年初一": (1, 1), "春节": (1, 1), "元宵节": (1, 15), "元宵": (1, 15),
+    "端午节": (5, 5), "端午": (5, 5), "七夕": (7, 7), "中秋节": (8, 15),
+    "中秋": (8, 15), "重阳节": (9, 9), "重阳": (9, 9), "腊八节": (12, 8),
+    "腊八": (12, 8),
+}
+_CN_DIGIT = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _lunar_md(mtxt: str, dtxt: str):
+    """农历月日串（中文或数字）→ (month, day)；解不动返回 None。"""
+    m_map = {"正": 1, "冬": 11, "腊": 12, "十一": 11, "十二": 12,
+             **_CN_DIGIT}
+    m = int(mtxt) if mtxt.isdigit() else m_map.get(mtxt)
+    if m is None or not (1 <= m <= 12):
+        return None
+    if dtxt.isdigit():
+        d = int(dtxt)
+    elif dtxt.startswith("初"):                    # 初一..初十
+        d = _CN_DIGIT.get(dtxt[1:], 0) if len(dtxt) == 2 else 0
+        if dtxt[1:] == "十":
+            d = 10
+    elif dtxt.startswith("廿"):                    # 廿一..廿九
+        d = 20 + _CN_DIGIT.get(dtxt[1:], 0)
+    elif dtxt == "二十":
+        d = 20
+    elif dtxt == "三十":
+        d = 30
+    elif dtxt.startswith("十"):                    # 十一..十九
+        d = 10 + _CN_DIGIT.get(dtxt[1:], 0) if len(dtxt) > 1 else 10
+    else:
+        return None
+    return (m, d) if 1 <= d <= 30 else None
+
+
+def _nearest_day(cands: list, now: datetime, past: bool):
+    """候选公历日里按口径挑一个：过去语标 → ≤今天的最近者；否则 →
+    ≥今天的最近者；都没有 → 离今天最近。"""
+    today = now.date()
+    fut = sorted(d for d in cands if d >= today)
+    pst = sorted((d for d in cands if d <= today), reverse=True)
+    if past and pst:
+        return pst[0]
+    if not past and fut:
+        return fut[0]
+    pool = pst if past else fut
+    if pool:
+        return pool[0]
+    return min(cands, key=lambda d: abs((d - today).days)) if cands else None
+
+
+# 第 N 个周日类节日：(月, weekday[周一=0], 第几个)
+_HOLIDAY_NTH = {
+    "母亲节": (5, 6, 2), "父亲节": (6, 6, 3), "感恩节": (11, 3, 4),
+}
+
+
+def _nth_weekday(y: int, m: int, wd: int, n: int) -> date:
+    """y 年 m 月第 n 个 weekday（周一=0）的公历日。"""
+    first_wd = date(y, m, 1).weekday()
+    return date(y, m, 1 + (wd - first_wd) % 7 + 7 * (n - 1))
+
+
+def _holiday_candidates(name: str, now: datetime) -> list:
+    """节日词 → 相邻若干年的候选公历 date 列表。"""
+    from guji import lunar as lunar_mod
+    out: list = []
+    if name in _HOLIDAY_SOLAR:
+        m, d = _HOLIDAY_SOLAR[name]
+        return [date(y, m, d) for y in range(now.year - 1, now.year + 2)]
+    if name in _HOLIDAY_NTH:
+        m, wd, n = _HOLIDAY_NTH[name]
+        return [_nth_weekday(y, m, wd, n)
+                for y in range(now.year - 1, now.year + 2)]
+    if name == "除夕":
+        for ly in range(now.year - 1, now.year + 2):
+            try:
+                out.append(lunar_mod.lunar_to_solar(ly + 1, 1, 1)
+                           - timedelta(days=1))
+            except ValueError:
+                pass
+        return out
+    if name == "清明":
+        from guji import bazi as bazi_mod
+        for y in range(now.year - 1, now.year + 2):
+            try:
+                out.append(bazi_mod.term_time(y, "清明").date())
+            except Exception:
+                pass
+        return out
+    if name in _HOLIDAY_LUNAR:
+        lm, ld = _HOLIDAY_LUNAR[name]
+        try:
+            ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
+                                           now.day)["year"]
+        except ValueError:
+            ly0 = now.year
+        for ly in range(ly0 - 1, ly0 + 2):
+            try:
+                out.append(lunar_mod.lunar_to_solar(ly, lm, ld))
+            except ValueError:
+                pass
+    return out
+
+
+def _abs_or_holiday(msg: str, now: datetime):
+    """绝对日期/节日/农历表达 → (datetime, 用户原词)；解不出返回 None。
+
+    顺序就是特异性：农历先（不被公历数字式抢）、节日（长词优先且防
+    「十一月」误命中）、下个月X号/这个月X号、M月D日/M-D/M/D、月底月初、
+    裸 D号。过去的判定看语标（那天/过了/已经/当时/去了）。
+    """
+    msg_n = _t2s(msg)          # R229z：繁体节日/农历/语标先归一再匹配
+    past = any(w in msg_n for w in ("那天", "过了", "已经", "当时", "去了"))
+    from guji import lunar as lunar_mod
+
+    lm = re.search(
+        r"(?:农历|阴历|旧历)([正一二两三四五六七八九十冬腊\d]{1,2})月"
+        r"([初廿一二三四五六七八九十\d]{1,3})[日号]?", msg_n)
+    if lm:
+        md = _lunar_md(lm.group(1), lm.group(2))
+        if md:
+            try:
+                ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
+                                               now.day)["year"]
+            except ValueError:
+                ly0 = now.year
+            cands = []
+            for ly in range(ly0 - 1, ly0 + 2):
+                try:
+                    cands.append(lunar_mod.lunar_to_solar(ly, *md))
+                except ValueError:
+                    pass
+            pick = _nearest_day(cands, now, past)
+            if pick:
+                return datetime.combine(pick, now.time()), lm.group(0)
+
+    for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
+                       | set(_HOLIDAY_NTH)
+                       | {"除夕", "清明", "清明節"}, key=len, reverse=True):
+        w = "清明" if name == "清明節" else name
+        if w not in msg_n:
+            continue
+        idx = msg_n.find(w) + len(w)
+        if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
+            continue                      # 「十一月」之类误命中
+        cands = _holiday_candidates("清明" if name == "清明節" else name,
+                                  now)
+        pick = _nearest_day(cands, now, past)
+        if pick:
+            return datetime.combine(pick, now.time()), w
+
+    nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg)
+    if nm:
+        d = int(nm.group(1))
+        ny, nmth = now.year + (now.month == 12), (now.month % 12) + 1
+        try:
+            return datetime(ny, nmth, d), nm.group(0)
+        except ValueError:
+            pass
+    tm = re.search(r"这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg)
+    if tm:
+        try:
+            return datetime(now.year, now.month, int(tm.group(1))), \
+                tm.group(0)
+        except ValueError:
+            pass
+
+    am = (re.search(r"(?<!\d)(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])", msg)
+          or re.search(r"(?<!\d)(\d{1,2})\s*[/\-.](\d{1,2})(?!\d)", msg))
+    if am:
+        m, d = int(am.group(1)), int(am.group(2))
+        cands = []
+        for y in range(now.year - 1, now.year + 2):
+            try:
+                cands.append(date(y, m, d))
+            except ValueError:
+                pass
+        pick = _nearest_day(cands, now, past)
+        if pick:
+            return datetime.combine(pick, now.time()), am.group(0)
+
+    if "月底" in msg or "月末" in msg:
+        import calendar
+        cands = [date(now.year + (now.month == 12), (now.month % 12) + 1,
+                      calendar.monthrange(now.year + (now.month == 12),
+                                          (now.month % 12) + 1)[1]),
+                 date(now.year, now.month,
+                      calendar.monthrange(now.year, now.month)[1])]
+        pick = _nearest_day(cands, now, past)
+        if pick:
+            return datetime.combine(pick, now.time()), "月底"
+    if "月初" in msg:
+        cands = [date(now.year + (now.month == 12), (now.month % 12) + 1, 1),
+                 date(now.year, now.month, 1)]
+        pick = _nearest_day(cands, now, past)
+        if pick:
+            return datetime.combine(pick, now.time()), "月初"
+
+    # 裸「D号/D日」：防「3号线/25号楼/8号院」误命中——后接线路/楼栋字跳过。
+    bd = re.search(r"(?<![\d月/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])", msg)
+    if bd:
+        d = int(bd.group(1))
+        cands = []
+        for dy, dm in ((now.year, now.month),
+                       (now.year + (now.month == 12), (now.month % 12) + 1)):
+            try:
+                cands.append(date(dy, dm, d))
+            except ValueError:
+                pass
+        pick = _nearest_day(cands, now, past)
+        if pick:
+            return datetime.combine(pick, now.time()), bd.group(0)
+    return None
 
 
 def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
@@ -879,6 +1116,11 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return now - timedelta(days=1), "昨晚"
     if "昨天" in msg or "昨日" in msg:
         return now - timedelta(days=1), "昨天"
+    # R229z：绝对日期 / 节日 / 农历表达——先接住再落「下周」等相对词，
+    # 否则「国庆后第一天上班」之类会被曜日通配截胡。
+    _abs = _abs_or_holiday(msg, now)
+    if _abs is not None:
+        return _abs
     # R229f：「本周X/这周X」此前根本没解析——静默按今天判（R228r 同类：
     # 说错日期比不答更伤）。本周一=0 基准；结果为负即本周已过的日子。
     for anchor in ("本周", "这周", "本週", "這週", "这週", "這周"):
@@ -932,6 +1174,25 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         wd = _wd_idx(m.group(2))
         return now + timedelta(days=(wd - now.weekday()) % 7), m.group(0)
     return now, "今天"
+
+
+def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
+    """GET /api/huangli/resolve_date：把任意日期表达解成公历日。
+
+    前端 _hlDayOffset 只覆盖高频相对词（明天/下周X…），节日/农历这类
+    本地解不动的词走这里兜底；解不出返回 date=None，前端回退显示日。
+    """
+    now = now or datetime.now()
+    q = (q or "").strip()[:80]
+    if not q:
+        return {"date": None, "spoken": ""}
+    dt, spoken = _hl_day_part(q, now)
+    # 「无日期词」与「显式说今天」在返回值上不可分——spoken=='今天'
+    # 且消息里没有今天系词才算没解出。
+    if spoken == "今天" and not any(
+            w in q for w in ("今天", "今日", "今晚", "今夜")):
+        return {"date": None, "spoken": ""}
+    return {"date": dt.date().isoformat(), "spoken": spoken}
 
 
 def _hl_next_yi_days(dt: datetime, terms: list[str],

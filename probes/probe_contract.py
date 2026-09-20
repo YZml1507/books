@@ -109,6 +109,9 @@ FIXTURES: dict[str, dict] = {
     "/api/user/prefs":        {"method": "GET"},
     "/api/huangli":           {"method": "GET", "params": {"year": 2026,
                                                            "month": 8, "day": 19}},
+    # R229z：节日/农历日期解析兜底端点（前端 _hlDayOffset 解不动时调用）。
+    "/api/huangli/resolve_date": {"method": "GET",
+                                  "params": {"q": "中秋节搬家"}},
     "POST /api/bazi":    {"method": "POST", "json": {
         "year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",
         "calendar_type": "solar", "scope": "day", "use_llm": False}},

@@ -27,6 +27,13 @@ def huangli(date: str | None = None, affair: str | None = None,
     return services.huangli(date, affair, days)
 
 
+@router.get("/api/huangli/resolve_date")
+def huangli_resolve_date(q: str = Query("", max_length=80)) -> dict:
+    """R229z：节日/农历/复杂日期表达 → 公历日期（前端问一嘴的兜底——
+    _hlDayOffset 本地解不动时调它；解不出 date=null，前端回退显示日）。"""
+    return services.resolve_huangli_date(q)
+
+
 @router.post("/api/tarot")
 def tarot(req: TarotRequest) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌 + 关键词转述。"""

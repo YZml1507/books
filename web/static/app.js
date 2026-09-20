@@ -4076,7 +4076,10 @@ var _T2S = {
   '價':'价','醫':'医','藥':'药','養':'养','貓':'猫','魚':'鱼','鳥':'鸟','種':'种',
   '運':'运','氣':'气','勢':'势','曆':'历','歷':'历','黃':'黄','還':'还','見':'见',
   '長':'长','親':'亲','屬':'属','喪':'丧','動':'动','離':'离','準':'准','備':'备',
-  '處':'处','幾':'几','緊':'紧','擇':'择','幹':'干','臺':'台','週':'周','禮':'礼','樣':'样'
+  '處':'处','幾':'几','緊':'紧','擇':'择','幹':'干','臺':'台','週':'周','禮':'礼','樣':'样',
+  /* R229z：节日/农历问法繁体（与 services._T2S 同表，parity 钉扎） */
+  '節':'节','婦':'妇','萬':'万','兒':'儿','誕':'诞','慶':'庆','陽':'阳','舊':'旧',
+  '農':'农','陰':'阴'
 };
 function _t2s(s) {
   return String(s || '').replace(/./g, function (ch) { return _T2S[ch] || ch; });
@@ -4121,6 +4124,64 @@ function _hlDayOffset(q, base) {
   if (/(后|後)晚/.test(s)) return 2;
   if (/今晚|今夜/.test(s)) return 0;
   if (/昨晚/.test(s)) return -1;
+  /* R229z：公历绝对日期「10月1日/9-25/25号/下个月5号/月底」——就近取
+   * （当年/当月未过取当年；已过无语标顺下一档；语标「那天/过了…」落已过）。
+   * 节日与农历（中秋/春节/农历八月十五…）本地解不动——提交路径识别后走
+   * /api/huangli/resolve_date 端点（单点真相在后端）。 */
+  var _past = /(那天|过了|已经|当时|去了)/.test(s);
+  /* 越界日期（2/30）回 null，对齐 py 的 ValueError 跳过——JS Date 会
+   * 静默进位到 3/2，必须校验。月参数允许 >11（自然跨年/月下月）。 */
+  var _mkd = function (y, m, d) {
+    var t = new Date(y, m, d);
+    return t.getDate() === d ? t : null;
+  };
+  var _pick = function (cands) {   /* cands: [Date|null,...] → 偏移 | null */
+    var t = base || new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    var best = null, bestPast = null;
+    for (var i = 0; i < cands.length; i++) {
+      if (!cands[i]) continue;
+      var off = Math.round((cands[i] - t) / 86400000);
+      if (off >= 0 && (best === null || off < best)) best = off;
+      if (off <= 0 && (bestPast === null || off > bestPast)) bestPast = off;
+    }
+    if (_past) return bestPast !== null ? bestPast : best;
+    return best !== null ? best : bestPast;
+  };
+  var _nxm = s.match(/下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  if (_nxm) {
+    var bN = base || new Date();
+    return _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, +_nxm[1])]);
+  }
+  var _tsm = s.match(/这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  if (_tsm) {
+    var bT = base || new Date();
+    return _pick([_mkd(bT.getFullYear(), bT.getMonth(), +_tsm[1])]);
+  }
+  var _am = s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])/) ||
+            s.match(/(\d{1,2})\s*[\/.-](\d{1,2})/);
+  if (_am) {
+    var bA = base || new Date();
+    return _pick([_mkd(bA.getFullYear(), +_am[1] - 1, +_am[2]),
+                  _mkd(bA.getFullYear() + 1, +_am[1] - 1, +_am[2]),
+                  _mkd(bA.getFullYear() - 1, +_am[1] - 1, +_am[2])]);
+  }
+  if (/月底|月末/.test(s)) {
+    var bE = base || new Date();
+    return _pick([new Date(bE.getFullYear(), bE.getMonth() + 1, 0),
+                  new Date(bE.getFullYear(), bE.getMonth() + 2, 0)]);
+  }
+  if (/月初/.test(s)) {
+    var bS = base || new Date();
+    return _pick([new Date(bS.getFullYear(), bS.getMonth() + 1, 1),
+                  new Date(bS.getFullYear(), bS.getMonth(), 1)]);
+  }
+  /* 裸「D号」：防「3号线/25号楼/8号院」误命中（与 py 同邻接字表）。 */
+  var _bd = s.match(/(^|[^\d月\/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])/);
+  if (_bd) {
+    var bB = base || new Date();
+    return _pick([_mkd(bB.getFullYear(), bB.getMonth(), +_bd[2]),
+                  _mkd(bB.getFullYear(), bB.getMonth() + 1, +_bd[2])]);
+  }
   /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。 */
   var mw = s.match(/(本周|这周|本週|這週|这週|這周)([一二三四五六日天])/);
   if (mw) {
@@ -4227,6 +4288,29 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day) {
  * R228a：以前挂在 doHuangli 函数对象属性上（doHuangli._scene …）——合法
  * 但踩中 probe_dollar_misuse「函数当对象用」红线，换成纯数据对象更干净。 */
 var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false};
+
+/* R229z：本地 _hlDayOffset 解不动、但后端能解的日期词（节日/农历）——
+ * 命中时问一嘴提交走 /api/huangli/resolve_date 兜底。与后端
+ * _HOLIDAY_SOLAR/_HOLIDAY_LUNAR/除夕/清明 对齐维护。 */
+var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|除夕|春节|春節|大年初一|元宵|端午|七夕|中秋|重阳|重陽|腊八|臘八|清明|元旦|新年|情人|植树|植樹|愚人|劳动|勞動|五一|青年|儿童|兒童|六一|建党|建黨|建军|建軍|教师|教師|国庆|國慶|万圣|萬聖|平安|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩/;
+
+/* 「问一嘴」无事项词时的中性提示（当日主推+引导）——提交主路径与
+ * resolve_date 兜底复用。 */
+function _hlShowNeutral() {
+  var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
+  var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
+    _HL.dayWord || '今天');
+  var v2 = document.getElementById('hlVerdict');
+  if (v2) { v2.textContent = note; return; }
+  var askRow = document.querySelector('#hlResult .hl-ask');
+  if (askRow && askRow.parentNode) {
+    var nv = document.createElement('div');
+    nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
+    nv.setAttribute('role', 'status');
+    nv.textContent = note;
+    askRow.parentNode.insertBefore(nv, askRow);
+  }
+}
 async function doHuangli(offset, reveal) {
   /* v3（P7）重写：支持 chip 快选（offset 相对今天的天数）与自选日期。
    * 渲染：大字宜忌双色卡 + 农历干支 + 冲煞 + 场景 chip 高亮。
@@ -4497,6 +4581,39 @@ async function doHuangli(offset, reveal) {
        * 进判定卡，回退中性「这件事」——仍给出当日宜忌判定。 */
       if (sc && !/[一-鿿]/.test(sc)) sc = '这件事';
       var off = _hlDayOffset(q);
+      /* R229z：节日/农历等本地解不动的日期词——_hlDayOffset 返回 null 且
+       * 词表命中时走 /api/huangli/resolve_date；解出翻页，解不出回退
+       * 显示日（与既有 off=null 路径等价）。 */
+      if (off == null && _HL_COMPLEX_DATE.test(q)) {
+        api('/api/huangli/resolve_date?q=' + encodeURIComponent(q),
+            { silent: true }).then(function (r) {
+          var off2 = null;
+          if (r && r.date) {
+            var rp = r.date.split('-');
+            var _t0 = new Date(); _t0.setHours(0, 0, 0, 0);
+            off2 = Math.round((new Date(+rp[0], +rp[1] - 1, +rp[2]) - _t0) / 86400000);
+          }
+          _HL.scene = sc || '';
+          if (off2 != null) {
+            if (!sc) _HL.pendingAskNote = true;
+            _HL.keepSy = window.scrollY;
+            doHuangli(off2, false);
+          } else if (!sc) {
+            _hlShowNeutral();
+          } else {
+            var hd = document.querySelector('#hlResult .hl-head div');
+            var d3 = hd ? hd.textContent.trim() : '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d3)) {
+              var p3 = d3.split('-');
+              el('hl_year').value = p3[0];
+              el('hl_month').value = Number(p3[1]);
+              el('hl_day').value = Number(p3[2]);
+            }
+            doHuangli(null, false);
+          }
+        });
+        return;
+      }
       if (!sc) {
         _HL.scene = '';
         if (off != null) {
@@ -4505,21 +4622,7 @@ async function doHuangli(offset, reveal) {
           doHuangli(off, false);
           return;
         }
-        var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
-        var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
-          _HL.dayWord || '今天');
-        var v2 = document.getElementById('hlVerdict');
-        if (v2) { v2.textContent = note; }
-        else {
-          var askRow = document.querySelector('#hlResult .hl-ask');
-          if (askRow && askRow.parentNode) {
-            var nv = document.createElement('div');
-            nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
-            nv.setAttribute('role', 'status');
-            nv.textContent = note;
-            askRow.parentNode.insertBefore(nv, askRow);
-          }
-        }
+        _hlShowNeutral();
         return;
       }
       _HL.scene = sc;
