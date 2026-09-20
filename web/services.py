@@ -555,8 +555,10 @@ def thread_detail(tid: int) -> dict:
         if not turns:
             raise NotFoundError(f"线程 {tid} 不存在或暂无对话")
         claims = []
+        _claim_ids: list[int] = []
         for row in kb.db.execute(
                 "SELECT id FROM derived WHERE thread_id=? ORDER BY id", (tid,)):
+            _claim_ids.append(row["id"])
             d = kb.get(row["id"])
             if d is None:
                 continue
@@ -571,7 +573,8 @@ def thread_detail(tid: int) -> dict:
                 } for e in d.evidence],
             })
         return {"turns": turns, "claims": claims,
-                "verify": kb.verify(deps.RAW_DIR)}
+                # R8 P2-4：verify 从全表 evidence 收敛到本线程 claims
+                "verify": kb.verify(deps.RAW_DIR, derived_ids=_claim_ids)}
 
 
 def thread_record(req) -> dict:
@@ -725,11 +728,20 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # 与聊天/问一嘴同走 _CHAT_SCENE_TERMS 拿规范词集合，逐词找日
         # 后按日期并集（一事项多规范词：搬家→移徙+入宅+修造）。
         terms = _CHAT_SCENE_TERMS.get(affair) or [affair]
-        by_date: dict[str, dict] = {}
-        for _t in terms:
-            for _q in huangli_mod.find_good_days(dt, end, _t):
-                by_date.setdefault(_q["date"], _q)
-        good = [by_date[k] for k in sorted(by_date)]
+        # R229z续8（R8 P1-1）：原实现对 terms 逐词跑 find_good_days（5 词×92
+        # 天=460 次 day_query）——改单日循环一次取 yi/ji 对全部词做判定，
+        # 92 天恒 92 次。词先过 huangli 侧别名归一，与 find_good_days 同口径。
+        terms = [huangli_mod.AFFAIR_ALIASES.get(t, t) for t in terms]
+        good: list[dict] = []
+        cur = dt
+        while cur <= end:
+            _q = huangli_mod.day_query(cur)
+            if any(t in _q["yi"] and t not in _q["ji"] for t in terms):
+                # R8 P2-6：前端只读 date/yi/ji——pengzu/shensha/lunar/
+                # chongsha 不随列表回吐（92天×12.9KB→~2KB）。
+                good.append({"date": _q["date"], "yi": _q["yi"],
+                             "ji": _q["ji"]})
+            cur += timedelta(days=1)
         return {"affair": affair, "terms": terms,
                 "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
                 "days": days, "good_days": good, "count": len(good)}
@@ -919,6 +931,14 @@ def _nearest_day(cands: list, now: datetime, past: bool):
 # 第 N 个周日类节日：(月, weekday[周一=0], 第几个)
 _HOLIDAY_NTH = {
     "母亲节": (5, 6, 2), "父亲节": (6, 6, 3), "感恩节": (11, 3, 4),
+}
+# 节气也可当日期词（「冬至吃饺子」「立春后开工」）——term_time 走
+# 天文算法。排除：小满（小满是本应用吉祥物名，「小满觉得我…」是在
+# 叫它不是问节气）、大雪/小雪/大寒/小寒（天气语境歧义太大）。
+_SOLAR_TERMS = {
+    "立春", "雨水", "惊蛰", "春分", "谷雨", "立夏", "芒种", "夏至",
+    "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "冬至", "大暑",
+    "小暑",
 }
 
 
@@ -1329,7 +1349,10 @@ def _hl_next_yi_days(dt: datetime, terms: list[str],
     out: list[str] = []
     cur = dt
     for _ in range(span):
-        if any(t in huangli_mod.day_query(cur)["yi"] for t in terms):
+        # R229z续8：day_query 提出 any()——同一天每换一个规范词重算全天
+        # 坐标（45 天×5 词→45 天×1 次）；宜∩忌双标日不当吉日推（R228m）。
+        q = huangli_mod.day_query(cur)
+        if any(t in q["yi"] and t not in q["ji"] for t in terms):
             out.append(f"{cur.month}/{cur.day}")
             if len(out) >= limit:
                 break
@@ -1368,18 +1391,16 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
                              # R229o：「今天宜做什么」「明天忌什么」裸问法
                              "宜做什么", "忌做什么", "宜什么", "忌什么",
                              "做什么好", "干点啥", "能干啥", "能干什么"))
+    dt, spoken = _hl_day_part(msg, now)
     if not scene and not generic:
         # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
         # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌
         # 总表而不是零事实放手让模型瞎答。
-        _probe_sp = _hl_day_part(msg, now)[1]
-        if _probe_sp != "今天" or any(
+        if spoken != "今天" or any(
                 w in msg for w in ("今天", "今日", "今晚", "今夜")):
             generic = True
         else:
             return []
-
-    dt, spoken = _hl_day_part(msg, now)
     q = huangli_mod.day_query(dt)
     yi, ji = q["yi"], q["ji"]
     date_cn = q["date"]
@@ -1403,10 +1424,14 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     hit_ji = [t for t in terms if any(t in w or w in t for w in ji)]
     # R229z续2：已过去的日子不给「近45天宜X」——从过去日起扫的全是过去日，
     # 且与「不要再给择日建议」的复盘指令自相矛盾。
-    good = [] if past_note else _hl_next_yi_days(dt, terms)
-    good_str = "、".join(good)
-    good_part = (f"近45天宜{scene}的日子：{good_str}——想要黄历背书可挑这几天。"
-                 if good else "")
+    # R229z续8（R8 P1-1）：good_part 只在忌/中性分支引用——宜判定的路径
+    # 不再白扫 45 天。
+    def _good_part() -> str:
+        if past_note:
+            return ""
+        g = _hl_next_yi_days(dt, terms)
+        return (f"近45天宜{scene}的日子：{'、'.join(g)}——"
+                "想要黄历背书可挑这几天。" if g else "")
     # R229v：已过去的日子不能只靠宜忌行尾巴的括号——模型实测会漏看，
     # 对着 9/18 的「宜面试」说出「周五冲一把」。把标记嵌进判定句本体，
     # 并要求回复口径改为复盘/温和指出而非择日建议。
@@ -1417,7 +1442,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     elif hit_ji and not hit_yi:
         verdict = (f"黄历判定：{date_cn}{past_mid} 忌「{scene}」"
                    f"（忌项含【{'、'.join(hit_ji)}】）；"
-                   f"已安排也不必慌，放缓节奏即可。{good_part}")
+                   f"已安排也不必慌，放缓节奏即可。{_good_part()}")
     elif hit_yi and hit_ji:
         verdict = (f"黄历判定：{date_cn}{past_mid} 「{scene}」宜忌都有——"
                    f"宜【{'、'.join(hit_yi)}】也忌【{'、'.join(hit_ji)}】；"
@@ -1426,7 +1451,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
         that_day = "今天" if dt.date() == now.date() else f"{spoken}（{date_cn}）"
         verdict = (f"黄历判定：{date_cn}{past_mid} 宜忌都没直接提「{scene}」——中性，"
                    f"不是不支持，只是黄历{that_day}没为它背书，{scene}可照常安排。"
-                   f"{good_part}")
+                   f"{_good_part()}")
     if past_mid:
         verdict += "（该日期已过去，请温和点出、按复盘口径回应，不要再给择日建议。）"
     facts.append(verdict)

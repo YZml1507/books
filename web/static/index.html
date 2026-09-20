@@ -17,6 +17,10 @@
 <title>小满的解忧铺 · 知命</title>
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
      643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
+<!-- R8 P2-1：原 styles.css 内 @import 造成 HTML→styles→字体 串行瀑布；
+     提成并行 link（顺序保持原 import 语义：这两份先加载）。 -->
+<link rel="stylesheet" href="/static/animotion/web-lite.css">
+<link rel="stylesheet" href="/static/fonts/lxgw.css">
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
@@ -709,6 +713,8 @@ if ('serviceWorker' in navigator) {
 
   <!-- R209b：聊天并入左侧统一栏（chat-panel 抽屉退役）。 -->
 
-<script src="/static/app.js"></script>
+<!-- R8 P3：defer 让 269KB 的 app.js 与 HTML 解析并行，不再阻塞
+     DOMContentLoaded（defer 仍在 DOMContentLoaded 前执行，初始化语义不变）。 -->
+<script src="/static/app.js" defer></script>
 </body>
 </html>

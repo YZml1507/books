@@ -10364,3 +10364,16 @@ R229b：docs/README.md 文档导航——31 份 md 分三层：现行治理（PH
 
 - 农历问法继续补：`闰` 前缀、`农历闰五月初一`、裸「腊月廿三/正月十五」（无前缀只放纯农历月名，「八月十五」有歧义不猜）。闰月稀疏（十多年一闰）——候选年放宽 ±12 个农历年、`leap_month` 把守，且按**绝对就近**取（「闰六月十五」→ 2025-08-08 而不是 2036）。
 - 顺带抓到两侧同款真 bug：「五月初一」里的「月初」被月初分支吃掉错算 10/1——py/js 都加「月初后随农历日字不命中」护栏；「腊月底/正月末」新增农历月末解析（`month_days` 算末日），JS 侧遇农历月末式返回 null 走 resolve_date 兜底。parity +9 用例（61+24=85 全绿）。
+
+### R229z续8（R8 性能/韧性审计清零 · P1+P2 批）
+
+R8 子 agent 实测报告（audit_r8_perf.md）落地批：
+- **P1-1 黄历区间扫描重复算**：`_hl_next_yi_days` 把 day_query 写进了逐词 genexpr（45天×5词=225 次全天坐标计算）→ 一天一次（45 次），顺手加宜∩忌双标日剔除（与 find_good_days R228m 同口径）；`huangli(affair=)` 逐词循环改单日循环（460→92 次）；`good` 改惰性——宜判定分支不再白扫 45 天；`_hl_day_part` 双调合一。实测 `affair=搬家&days=92` **358ms→82ms**，`/api/chat` 同款问法 100ms→18ms。
+- **P1-2 GZipMiddleware**（starlette 自带零依赖，>1KB 才压）：app.js 269KB→98KB，文本首屏 390KB→~131KB。
+- **P2-2 双提交闸**：`submitBazi`（form submit 不经 on()）与 `birthSubmit`（裸 click）加在途锁——防连点/回车连击发并发 POST、响应后到覆盖 + 排盘历史写重复行。
+- **P2-3** `.chat-bubble{overflow-wrap:anywhere}`——400 字无空白串不再被 max-width 裁掉。
+- **P2-4** `verify()` 读路径收敛：thread_detail 只验本线程 evidence（原全表×全书体扫），命中即 break；`derived_ids` 可选参数 additive。
+- **P2-6** `good_days` 瘦身 `{date,yi,ji}`（前端只读 date；92 天响应 12.9KB→~2.6KB）。
+- **P2-9** `api()` 错误带 `err.status`；聊天/点评轮询对 404（任务不在内存表）早退降级，不再轮满 40s。
+- **P2-1** styles.css 两条 @import 提成 index.html 并行 `<link>`（原串行瀑布）；**P3** `app.js` 加 `defer`。
+- 暂缓：P2-5（paipan_history 摘要列，动 schema 需迁移，下轮）、P2-7（research 截断分页）、P2-8（ink/cream 全量源档案——docs/assets-manifest.md 定为有意存档，动它要用户点头）。

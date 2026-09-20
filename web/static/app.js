@@ -207,6 +207,7 @@ async function api(path, options) {
      * 错（黄底提示），5xx 是服务端异常（红底提示）。 */
     var status = resp.status;
     var isClient = status >= 400 && status < 500;
+    err.status = status;   /* R8 P2-9：让轮询方对 404 早退（任务不存在） */
     if (!options.silent) {
       showToast(typeof err.message === 'string' ? err.message : '请求失败',
                 isClient ? 'warn' : 'error');
@@ -489,9 +490,13 @@ function autoSendChatContext() {
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
         else _ty.textContent = '（网络不太好，再发一次试试？）';
-      }).catch(function () {
+      }).catch(function (e) {
         /* R228c：瞬时抖动原来直接杀死轮询（catch 空转，typing 永转圈）。
-         * 截止前继续排，超时才降级文案。 */
+         * 截止前继续排，超时才降级文案。R8 P2-9：404 任务不存在早退。 */
+        if (e && e.status === 404) {
+          if (_ty) _ty.textContent = '（这次没接住，再发一次试试？）';
+          return;
+        }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
         else if (_ty) _ty.textContent = '（网络不太好，再发一次试试？）';
       });
@@ -613,8 +618,12 @@ function pollNameReview(taskId) {
       }
       if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
       else out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>';
-    }).catch(function () {
-      /* R228c：同上——瞬时抖动不该杀死轮询。 */
+    }).catch(function (e) {
+      /* R228c：同上——瞬时抖动不该杀死轮询。R8 P2-9：404 早退。 */
+      if (e && e.status === 404) {
+        out.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        return;
+      }
       if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
       else out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>';
     });
@@ -753,7 +762,12 @@ function chatSend() {
         }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
         else _ty.textContent = '（网络不太好，再发一次试试？）';
-      }).catch(function () {
+      }).catch(function (e) {
+        /* R8 P2-9：404 = 任务已不在（重启/过期）——别再轮满 40s，直接降级。 */
+        if (e && e.status === 404) {
+          if (_ty) _ty.textContent = '（这次没接住，再发一次试试？）';
+          return;
+        }
         if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
         else if (_ty) _ty.textContent = '（网络不太好，再发一次试试？）';
       });
@@ -2452,8 +2466,11 @@ function buildBaziResult(j) {
   return html;
 }
 
+var _submitBaziBusy = false;   /* R8 P2-2：form submit 不经 on()，自加在途锁 */
 async function submitBazi(event) {
   if (event) event.preventDefault();
+  if (_submitBaziBusy) return;   // 连点/回车连击 → 只发一次，防并发覆盖
+  _submitBaziBusy = true;
   busy('result', '计算中…');
   try {
     const body = baziBody();
@@ -2478,6 +2495,8 @@ async function submitBazi(event) {
   } catch (e) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
     failWithRetry('result', '计算失败：' + e.message, function () { submitBazi(); });
+  } finally {
+    _submitBaziBusy = false;
   }
 }
 
@@ -5357,9 +5376,15 @@ function baziPersonaCard(j) {
       out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(err.message) + '，稍后再试～</div>';
     }
   }
+  var _birthBusy = false;   /* R8 P2-2：裸 click 不经 on()，自加在途锁 */
+  async function _birthGuard(ev) {
+    if (_birthBusy) return;
+    _birthBusy = true;
+    try { await doBirthReading(ev); } finally { _birthBusy = false; }
+  }
   function bind() {
     var btn = document.getElementById('birthSubmit');
-    if (btn) btn.addEventListener('click', doBirthReading);
+    if (btn) btn.addEventListener('click', _birthGuard);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
   else bind();

@@ -156,17 +156,28 @@ class KnowledgeBase:
             "SELECT d.id FROM derived d LEFT JOIN evidence e ON e.derived_id = d.id "
             "WHERE d.kind != 'refusal' AND e.id IS NULL")]
 
-    def verify(self, raw_dir: str) -> dict:
+    def verify(self, raw_dir: str, derived_ids=None) -> dict:
         """Re-check every stored quote against data/raw/. -> {ok, stale, details}.
 
         Checked in the `folded_notes` space, the same space eval_g1.py verifies its gold in,
         because a quote lifted from a unit has already lost punctuation and had 異體字 folded
         (guji.evalset). Comparing raw bytes here would report every quote as stale.
+        derived_ids 给定时只验这些 derived 名下的 evidence（thread_detail
+        读路径用——全表重扫挂进 GET 是 R8 P2-4 抓出的 N×全书 放大）。
         """
         ok = 0
         stale = []
         bodies = {}   # R228f：per-work memo——原实现每条 evidence 都重读整本
-        for r in self.db.execute("SELECT * FROM evidence ORDER BY id"):
+        if derived_ids is None:
+            rows = self.db.execute("SELECT * FROM evidence ORDER BY id")
+        elif not derived_ids:
+            return {"ok": 0, "stale": 0, "details": []}
+        else:
+            _ph = ",".join("?" * len(derived_ids))
+            rows = self.db.execute(
+                f"SELECT * FROM evidence WHERE derived_id IN ({_ph}) ORDER BY id",
+                tuple(derived_ids))
+        for r in rows:
             if r["work_id"] not in bodies:
                 bodies[r["work_id"]] = body_in(raw_dir, r["work_id"],
                                                "folded_notes")
@@ -183,6 +194,8 @@ class KnowledgeBase:
             for ch in body:
                 if i < len(q) and ch == q[i]:
                     i += 1
+                if i == len(q):   # R8 P2-4：命中即停——原实现恒扫完整本书体
+                    break
             if i == len(q):
                 ok += 1
             else:

@@ -28,6 +28,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 # 双导入形态支持（R179b，D-233b）：本模块必须在两种导入方式下都能工作。
 #   * `web.app:app`   —— 包导入（web/selftest.py、web_launcher.py 用）
@@ -58,6 +59,11 @@ VERSION = "0.6.0"
 def create_app() -> FastAPI:
     """构建应用。可被自测、uvicorn、PyInstaller 入口各自调用。"""
     application = FastAPI(title="古籍智慧助手（读书 + 数术）", version=VERSION)
+
+    # R229z续8（R8 P1-2）：HTTP 压缩——starlette 自带零新依赖。实测
+    # app.js 269KB→97KB、/api/bazi 46KB 约压 80%，/api/research 349KB
+    # 收益更大。1KB 以下的响应不值得压（gzip 有固定头）。
+    application.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # 静态资源：/static 指向 index.html 所在目录（开发期 ROOT/web/static，
     # frozen 期 _MEIPASS/web/static，与 INDEX 同源）。

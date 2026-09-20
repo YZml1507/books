@@ -14,8 +14,8 @@
  * *{reset} 之后，浏览器按规范整条丢弃，LXGW 文楷与 animotion 入场
  * 动画从未真正加载（真浏览器实测 styleSheets 仅 styles.css）。
  * 移到文件最顶。 */
-@import url("./animotion/web-lite.css");
-@import url("./fonts/lxgw.css");
+/* R8 P2-1：两个 @import 已提成 index.html 的并行 <link>（串行瀑布→并行）。
+ * 这里不再保留 @import——否则双份请求。 */
 
 /* ── 003 判据 3/12（R183b）：无障碍配色令牌 + 一键回滚 ──────────────
  *
@@ -420,6 +420,7 @@ h1,.side-brand{
 .chat-bubble{
   max-width:82%; padding:10px 14px; border-radius:14px;
   font-size:14.5px; line-height:1.7; white-space:pre-wrap;
+  overflow-wrap:anywhere;   /* R8 P2-3：无空白长串（URL）折行不裁剪 */
 }
 .chat-me{align-self:flex-end; background:linear-gradient(135deg,#F27B6C,#E86A8A);
   color:#fff; border-radius:14px 14px 4px 14px;}
