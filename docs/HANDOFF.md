@@ -117,3 +117,7 @@ $env:BOOKS_LLM_DISABLE="1"
 ```
 
 每完成一小步就更新台账，不要攒着！
+
+> **R229z续15 纪律**：改了 `web/static/app.js` 必须跑 `python scripts/bump_sw.py`
+> 再提交——SW 的 CACHE 名绑 app.js 内容哈希，selftest 的 `sw.shell_hash`
+> 闸会强制这一步（不改就红），目的是让已装机用户下次打开必拿新壳。
