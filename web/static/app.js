@@ -2724,6 +2724,12 @@ async function submitBazi(event) {
     rememberVoice('result', j, buildBaziResult);
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
+    /* R230n续（R23-P3-6）：排盘成功广播脏标——其他 tab 的历史列表即时失效。 */
+    try {
+      if (window.BroadcastChannel) {
+        new BroadcastChannel('paipan_history').postMessage('dirty');
+      }
+    } catch (e) {}
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareBazi', function () { downloadPoster(j, 'bazi'); });   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
@@ -5832,7 +5838,16 @@ function baziPersonaCard(j) {
         }, 3000);
         return;
       }
-      try { await phFetch('/api/paipan/history/' + id, { method: 'DELETE' }); loadPaipanHistory(); }
+      try {
+        await phFetch('/api/paipan/history/' + id, { method: 'DELETE' });
+        loadPaipanHistory();
+        /* R230n续（R23-P3-6）：删除成功广播脏标，其他 tab 同步刷新。 */
+        try {
+          if (window.BroadcastChannel) {
+            new BroadcastChannel('paipan_history').postMessage('dirty');
+          }
+        } catch (e2) {}
+      }
       /* R228c：错误反馈统一走 toast 体系，不用原生 alert */
       catch (e) { showToast('删除失败：' + e.message, 'error'); }
       return;
@@ -5857,6 +5872,18 @@ function baziPersonaCard(j) {
       }
     }
   });
+  /* R230n续（R23-P3-6）：跨 tab 脏标监听——别页新建/删除排盘后，
+   * 本页历史视图若在展示中就地重载（陈旧行不再留死入口）。 */
+  try {
+    if (window.BroadcastChannel) {
+      var _phBC = new BroadcastChannel('paipan_history');
+      _phBC.onmessage = function (e) {
+        if (!e || e.data !== 'dirty') return;
+        var hv = document.getElementById('view-history');
+        if (hv && hv.classList.contains('active')) loadPaipanHistory();
+      };
+    }
+  } catch (e) {}
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
