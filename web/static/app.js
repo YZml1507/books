@@ -794,7 +794,12 @@ function chatBubble(role, text, opts) {
 function chatSend() {
   var input = el('chatInput');
   var msg = (input && input.value || '').trim();
-  if (!msg) return;
+  /* R230d（R16-P3-6）：空消息此前完全静默——跟 hlAskInput 的占位提示
+   * 口径拉齐，给一句轻提示。 */
+  if (!msg) {
+    if (input) input.placeholder = '先写点什么再发哦';
+    return;
+  }
   if (input) input.value = '';
   chatBubble('me', msg);
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
@@ -5101,14 +5106,20 @@ function initViews() {
   }
   /* R228d：Esc 关侧栏（全站此前只有海报层有 Esc）
    * R230d（R16-P2-3）：Esc 同时收拢开着的 <details> 抽屉
-   * （hlPickDrawer 等——此前 Esc 对它们无效，只能再点一次开关钮）。 */
+   * （hlPickDrawer 等——此前 Esc 对它们无效，只能再点一次开关钮）。
+   * R230d（R16-P3-4）：都没有可关的层时 Esc 当「返回首页」——桌面端
+   * 习惯语义，与 P0-2 的 popstate 体系同方向。 */
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    var closed = false;
     document.querySelectorAll('details[open]').forEach(function (d) {
-      d.open = false;
+      d.open = false; closed = true;
     });
-    if (!sb) return;
-    if (sb.classList.contains('open')) _setRecent(false);
+    if (sb && sb.classList.contains('open')) { _setRecent(false); closed = true; }
+    /* 海报模态开着时 Esc 归它（_posterOnKey）——别顺手回首页。 */
+    if (!closed && window.__inView && !document.getElementById('posterModal')) {
+      showView('home');
+    }
   });
   if (tgl) tgl.addEventListener('click', function () {
     /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
