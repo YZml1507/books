@@ -1015,7 +1015,7 @@ function buildChatContext(viewKey) {
     /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
     msg = '今天是' + (j.date || '') + '，'
       + ((today && today.sign) || '—') + '当值，我今天运势怎么样';
-    facts = ['今日当值宫：' + ((today && today.sign) || '—')];
+    facts = ['今天轮到' + ((today && today.sign) || '—') + '座当班'];
   } else {
     msg = '帮我看看这个结果';
   }
@@ -2501,7 +2501,7 @@ function _paintSharePoster(s, W, H) {
   }
 
   /* R218a-11：品牌水印 + 金句 hook——海报底部分两行：
-   * 1) 品牌水印「@小满的解忧铺 · 知命知书知天机」（替原「知命 · 仅供娱乐」）
+   * 1) 品牌水印「@小满的解忧铺 · 知命知趣知自己」（替原「知命 · 仅供娱乐」）
    * 2) 金句 hook（按 view 给不同内容，无 view 时通用）。 */
   ctx.textAlign = 'center';
   /* 水印行 */
@@ -2646,7 +2646,7 @@ function buildShareData(view, j) {
     case 'xingzuo': {
       var sxz = base('星座日运', _pStr(j && j.date));
       var _xzTd = _pArr(j && j.signs).filter(function (s) { return s && s.is_today; })[0];
-      sxz.big = _pStr(j && j.today_sign) || '今日值宫';
+      sxz.big = _pStr(j && j.today_sign) || '今日当班';
       var _xzl = [];
       if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: _gSlice(_xzTd.love, 24) });
       if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: _gSlice(_xzTd.career, 24) });
@@ -4786,7 +4786,7 @@ function crossDirBadge(cr, key, name) {
   var ic = rel === '同调' ? '✓' : (rel === '并行' ? '~' : '✗');
   return '<span class="cross-dir" title="' + esc(name) + '方向 × 今日' +
     esc(cr.today_sign || '') + '宫方向">' + esc(name) + '·' +
-    esc(_dirLabel(a)) + ' × 值宫·' + esc(_dirLabel(b)) + ' ' +
+    esc(_dirLabel(a)) + ' × 今日·' + esc(_dirLabel(b)) + ' ' +
     ic + ' ' + esc(rel) + '</span>';
 }
 
@@ -5335,7 +5335,7 @@ async function doXingzuo(force) {
     if (j.today_sign) {
       /* C-002-fix：星座配图 + 今日值宫 */
       var _tk = ({'白羊':'aries','金牛':'taurus','双子':'gemini','巨蟹':'cancer','狮子':'leo','处女':'virgo','天秤':'libra','天蝎':'scorpio','射手':'sagittarius','摩羯':'capricorn','水瓶':'aquarius','双鱼':'pisces'})[j.today_sign] || 'aries';
-      html += '<div class="xz-today"><img class="xz-today-img" src="/static/cream/zodiac-' + _tk + '.jpg" alt="" onerror="this.classList.add(\'is-missing\')"><span class="xz-today-label">今日值宫</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
+      html += '<div class="xz-today"><img class="xz-today-img" src="/static/cream/zodiac-' + _tk + '.jpg" alt="" onerror="this.classList.add(\'is-missing\')"><span class="xz-today-label">今日当班</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
       /* C-002：星座详情页——爱情/事业/财运分维度 */
       var _todayDetail = (j.signs || []).filter(function (s) { return s.is_today; })[0];
       /* R232b（R40-A3/W4）：值宫名+值星露出——palace/star 算好了

@@ -11137,3 +11137,8 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - **R44 尾巴**：`voice.py` 暖层「十神互见：你眼里的 ta…」→「互看：…」；`hehun._GOD_NOTE`「日主十神互见：甲见乙为七杀…」→「互看：甲眼里的乙带「七杀」的能量…」（暖层白话照旧）。
 
 闸门：selftest 237 / ui_smoke 58 / ruff 全绿（bump_sw 已跑）。
+
+## R233i：值宫口径收尾
+
+- app.js 三处用户可见「值宫/当值宫」→「当班/今天轮到X座当班」：chat 事实行（1018）、星座大卡兜底（2649）、黄历交叉引用标签（5338）、cross-dir pill「值宫·X」→「今日·X」。services.py 注释域保留术语不动。
+- 闸门：selftest 237 / ui_smoke 58 / warm_voice / xingzuo 全绿。
