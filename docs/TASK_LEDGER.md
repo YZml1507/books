@@ -10839,3 +10839,14 @@ hold：#18 截断口径 800/2000 系上下文预算设计（记录待议）。
 POSTER_BG 扩三槽 + 视图映射（tarot/xingzuo→lilac，taohua/hehun→sakura），
 downloadPoster 按视图预热，未加载回落 warm→渐变；check_poster 判据14 九视图全绿。
 R35（视觉审计）/R36（功能受众审计）子 agent 在跑，清单到后继续。
+
+## R230x（视觉批·界面）— 2026-09-20
+
+R35 视觉审计清单落地第一批：控件全家继承 --font-sans（原 UA→Arial 断层）；
+礼盒收进 daily-top flex（修压日期字）+ label nowrap；FAB 深紫底达标；
+主 CTA/问一嘴/完整解读换玫瑰渐变；签运圆盘马卡龙三档；顶条收两色；
+六爻真卦画（阳实条/阴断条/动爻红点）；六空态配瞌睡小满插画；
+busy() 三点跳。新资产 7 张（agnes-image-2.1-flash）：起名图标去乱码、
+头像 v2、扁平礼盒、空态插画、塔罗牌背、hero v2、海报吉祥物贴纸；
+海报字体换文楷链+fonts.load 预热。闸门：selftest 237 / contract 427 /
+ui_smoke 54 / poster 判据12-14 全绿。
