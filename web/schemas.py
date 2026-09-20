@@ -34,6 +34,19 @@ def strip_zw(s: str | None) -> str | None:
     return s or None
 
 
+def _check_client_date(v: str | None) -> None:
+    """R230l/m：client_date（浏览器本地日）统一校验。None 放行（可选字段，
+    缺席回落服务器日——旧行为），给了就必须是界内 YYYY-MM-DD。"""
+    if v is None:
+        return
+    try:
+        _cd = date.fromisoformat(v)
+    except (ValueError, TypeError):
+        raise ValidationError("client_date 需为 YYYY-MM-DD") from None
+    if not (YEAR_LO <= _cd.year <= YEAR_HI):
+        raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
+
+
 class ValidationError(ValueError):
     """业务校验失败（路由层转 HTTP 400）。
 
@@ -221,8 +234,12 @@ class LiuyaoRequest(BaseModel):
     day: int | None = None
     hour: int | None = None
     question: str | None = Field(None, max_length=200)
+    # R230m（R24-P2-3 同类）：cross_ref「今日值宫」锚浏览器本地日。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
         if self.method not in ("coins", "time"):
             raise ValidationError(f"起卦方式需为 coins|time，收到 {self.method}")
         if self.method != "time":
@@ -290,13 +307,7 @@ class ChatRequest(BaseModel):
         msg = strip_zw(self.message) or ""      # R230k：零宽剥后可为空
         if not msg:
             raise ValidationError("消息不能为空")
-        if self.client_date is not None:
-            try:
-                _cd = date.fromisoformat(self.client_date)
-            except (ValueError, TypeError):
-                raise ValidationError("client_date 需为 YYYY-MM-DD")
-            if not (YEAR_LO <= _cd.year <= YEAR_HI):
-                raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
+        _check_client_date(self.client_date)
         if len(msg) > 500:
             raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
         # R228r：facts 无界可塞爆 LLM system prompt——限条数+单条长度。
@@ -336,6 +347,12 @@ class TarotRequest(BaseModel):
     # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
     n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
     question: str | None = Field(None, max_length=200)
+    # R230m：cross_ref「今日值宫」锚浏览器本地日。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
+
+    def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
 
 
 class TarotDrawRequest(BaseModel):

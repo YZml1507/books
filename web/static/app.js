@@ -3335,6 +3335,7 @@ async function doLiuyao() {
   }
   const q = val('ly_question');
   if (q) body.question = q;
+  body.client_date = todayIso();   /* R230m：今日值宫锚本地日 */
   try {
     const j = await postJSON('/api/liuyao', body);
     paint('lyResult', buildLiuyaoResult(j));
@@ -4063,6 +4064,7 @@ async function doTarot() {
   if (seed != null) body.seed = seed;
   const q = val('tr_question');
   if (q) body.question = q;
+  body.client_date = todayIso();   /* R230m：今日值宫锚本地日 */
   try {
     // /api/tarot 支持多张牌阵（含 position）；/api/tarot/draw 只给单张。
     const j = await postJSON('/api/tarot', body);

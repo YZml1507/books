@@ -243,7 +243,9 @@ def bazi(req) -> dict:
         # R220b：太阳星座按【出生月日】判定，不再拿日支当本命星座。
         # 必须用 resolve_birth 换算后的公历 bm/bd——农历输入下 req.month/req.day
         # 是农历值，直接拿去查黄道边界会算错座。
-        "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd),
+        # R230m：cross_ref 的「今天」锚起问日（前端已传 todayIso()）。
+        "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd,
+                                     today_iso=req.ask_date),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
         **({"hour_known": req.hour_known} if req.hour_known is False else {}),
     }
@@ -789,7 +791,8 @@ def liuyao(req) -> dict:
         # R218a-巡2（N-01）：echo question 让前端 liuyaoQuestionHook 真生效
         "question": req.question,
         # R221b：交叉引用收口 7/7——六爻不收生日，只引"今天"的值宫
-        "cross_ref": _cross_ref_liuyao(ben.moving_lines),
+        "cross_ref": _cross_ref_liuyao(ben.moving_lines,
+                                        today_iso=getattr(req, "client_date", None)),
     }
 
 
@@ -1585,6 +1588,7 @@ def _draw_dicts(draws) -> list[dict]:
 
 def tarot(req) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌（固定 seed → 固定牌面）。"""
+    req.validate_ranges()   # R230m：client_date 校验入口
     draws = tarot_mod.draw(seed=req.seed, n=req.n)
     cards = _draw_dicts(draws)
     interpretation = interpreter.interpret_tarot(cards, req.question)
@@ -1597,7 +1601,7 @@ def tarot(req) -> dict:
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
         "question": req.question,
         # R221b：交叉引用收口 7/7——塔罗不收生日，只引"今天"的值宫
-        "cross_ref": _cross_ref_tarot(cards),
+        "cross_ref": _cross_ref_tarot(cards, today_iso=req.client_date),
     }
 
 
@@ -1983,14 +1987,16 @@ def _today_horoscope_cached(iso_day: str) -> dict:
         return {}
 
 
-def _today_horoscope() -> dict:
+def _today_horoscope(iso_day: str | None = None) -> dict:
     """今天的值宫卡（用于"今日运势"侧）。失败返回 {}。"""
     # R228b：原来每请求重算当日八字（~23ms，占 bazi() 三成）——进程内
     # memo。浅拷贝返回防调用方改写缓存对象。
-    return dict(_today_horoscope_cached(date.today().isoformat()))
+    # R230m：iso_day 让「今日值宫」可锚到客户端本地日（缺省服务器日）。
+    return dict(_today_horoscope_cached(iso_day or date.today().isoformat()))
 
 
-def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:
+def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
+                    today_iso: str | None = None) -> dict:
     """八字结果页 → 你的太阳星座 + 今天的运势侧重。
 
     month/day 是**出生**月日（太阳星座的唯一依据）。缺省 0 时降级为只给
@@ -1999,7 +2005,7 @@ def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0) -> dict:
     from guji.xingzuo import sun_sign_profile
     try:
         prof = sun_sign_profile(month, day) if month and day else {}
-        today = _today_horoscope()
+        today = _today_horoscope(today_iso)
         sign = prof.get("sign", "")
         today_sign = today.get("today_sign", "")
         note = today.get("today_note", "")
@@ -2151,7 +2157,8 @@ def _signal_relation(a_dir: str, b_dir: str, a_name: str) -> str:
     return "今天倒是能推一把，那就只做有把握的那一步"
 
 
-def _cross_ref_tarot(cards: list[dict]) -> dict:
+def _cross_ref_tarot(cards: list[dict],
+                     today_iso: str | None = None) -> dict:
     """塔罗结果页 → 今天的星座值宫 × 牌面正逆方向是否同调。
 
     塔罗没有出生日期可用（不要求用户填生日），所以这里**只能**引"今天"，
@@ -2159,7 +2166,7 @@ def _cross_ref_tarot(cards: list[dict]) -> dict:
     """
     from guji.xingzuo import sign_direction
     try:
-        today = _today_horoscope()
+        today = _today_horoscope(today_iso)
         sign = today.get("today_sign", "")
         note = today.get("today_note", "")
         if not (sign and note and cards):
@@ -2194,14 +2201,15 @@ def _cross_ref_tarot(cards: list[dict]) -> dict:
         return {}
 
 
-def _cross_ref_liuyao(moving_lines: list | tuple) -> dict:
+def _cross_ref_liuyao(moving_lines: list | tuple,
+                      today_iso: str | None = None) -> dict:
     """六爻结果页 → 今天的星座值宫 × 动爻多寡（变数大小）是否同调。
 
     同塔罗：六爻不收生日，只能引"今天"。
     """
     from guji.xingzuo import sign_direction
     try:
-        today = _today_horoscope()
+        today = _today_horoscope(today_iso)
         sign = today.get("today_sign", "")
         note = today.get("today_note", "")
         if not (sign and note):
