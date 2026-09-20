@@ -10593,3 +10593,8 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - P3-2：manifest id + maskable；P3-3：nameReviewBtn 终态解灰。
 - 未做（清单内判定不做）：P1-2 同页重进保持滚动位是 v5 用户裁决保留（只修跨页）；P3-1 dead views read/divine 与僵尸端点同属「等你拍板」批。
 - 闸门：selftest 214 / contract 412 / ui_smoke 48 / first_screen / plain_first / poster / parity 66 / dollar_misuse / ruff E9,F 全绿。
+
+## R230e — lint 口径补齐：scripts/+web_launcher 清零并入闸
+- scripts/ 15 条存量（9 F541 f-string 前缀 + 6 F401 未用 import）ruff --fix 全清。
+- CI lint 闸从 `src web` 扩到 `src web scripts web_launcher.py`——活代码全覆盖。
+  probes/ 是归档审查脚手架不入闸（66 条存量属一次性脚本噪声，清它等于动探针）。
