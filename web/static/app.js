@@ -284,11 +284,23 @@ function showToast(msg, kind) {
   stack.appendChild(t);
   /* 入场动画 */
   requestAnimationFrame(function () { t.classList.add('show'); });
-  /* 自动消失 */
-  setTimeout(function () {
+  /* R230n（R25-6.1）：error toast 3.5s 消失对读屏用户太短（WCAG 可驻留
+   * 建议）——错误类延长到 8s 且 hover/focus 暂停计时；其余仍 3.5s。 */
+  var _tmo = (kind === 'error') ? 8000 : 3500;
+  var _tmr = setTimeout(function () {
     t.classList.remove('show');
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
-  }, 3500);
+  }, _tmo);
+  if (kind === 'error') {
+    t.addEventListener('mouseenter', function () { clearTimeout(_tmr); });
+    t.addEventListener('mouseleave', function () {
+      _tmr = setTimeout(function () {
+        t.classList.remove('show');
+        setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
+      }, 3000);
+    });
+    t.addEventListener('focusin', function () { clearTimeout(_tmr); });
+  }
 }
 
 function postJSON(path, payload) {
@@ -348,12 +360,19 @@ function pollAiPolish(containerId, taskId) {
 
 /* ── R206b（specs/009 US1）：AI 陪伴层「问问小满」──────────────
  * 排盘结果尾部入口 → 聊天抽屉。复用 pollAiPolish 的轮询语义
- * （/api/ai/{tid}），会话 id 存 localStorage（跨标签持久化，零隐私留存）。
+ * （/api/ai/{tid}），会话 id 存 sessionStorage。
+ * R230n（R25-2.2）：原在 localStorage 全 tab 共享——B 重置会话后 A 下条
+ * 消息静默并入新 sid（上下文污染）；sessionStorage 每 tab 独立，重启
+ * 浏览器回到全新会话（原来也是一次性语义，无回归）。
  * DISABLE=1 时 /api/chat 返回无 chat_task_id 键 → 入口隐藏（D-244a）。 */
 var CHAT_SID_KEY = 'chatSessionId';
+function _chatStore() {
+  try { return window.sessionStorage; } catch (e) { return null; }
+}
 function chatSid() {
   try {
-    var sid = localStorage.getItem(CHAT_SID_KEY);
+    var _st = _chatStore() || localStorage;
+    var sid = _st.getItem(CHAT_SID_KEY);
     if (!sid) {
       /* R230a-44（R15-P3）：Math.random sid ~31 位熵可猜——猜到即可往别人
        * 会话注入上下文。crypto.getRandomValues 给到 ~63 位。 */
@@ -364,7 +383,7 @@ function chatSid() {
         rnd = buf[0].toString(36) + buf[1].toString(36);
       } catch (e2) { rnd = Math.random().toString(36).slice(2, 12); }
       sid = 'c' + Date.now().toString(36) + rnd;
-      localStorage.setItem(CHAT_SID_KEY, sid);
+      _st.setItem(CHAT_SID_KEY, sid);
     }
     return sid;
   } catch (e) { return 'c-anon'; }
@@ -520,7 +539,7 @@ function _chatClosedHint(bubble) {
   b.setAttribute('aria-label', '清空本轮聊天，开个新话题');
   b.textContent = '🌱 聊够啦？开个新话题';
   b.addEventListener('click', function () {
-    try { localStorage.removeItem(CHAT_SID_KEY); } catch (e) {}
+    try { (_chatStore() || localStorage).removeItem(CHAT_SID_KEY); } catch (e) {}
     chatSid();   /* 重新生成 sid */
     _CHAT_SEND_COUNT = 0;
     chatBubble('ai', '新话题开张～想聊什么？');
@@ -2384,6 +2403,9 @@ async function loadDaily() {
      * 而不是静默无操作。 */
     setText('dailyDate', '今天');
     setText('dailySummary', '运势计算暂时不可用：' + _humanizeErr(e.message));
+    /* R230n（R25-5.2）：打卡是纯 localStorage 功能，daily 失败时不该
+     * 连带隐藏——按浏览器今天渲出来，离线也能打。 */
+    renderCheckin(todayIso());
   }
 }
 
@@ -4782,6 +4804,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* 头部：日期 + 农历干支 */
     html += '<div class="hl-head" style="background:linear-gradient(120deg,#FFF8E1,#FFE9C9);border-radius:16px;padding:14px 16px;margin-bottom:12px;">';
     html += '<div style="font-size:20px;font-weight:800;color:#7A5F33;">' + esc(j.date || dateStr) + '</div>';
+    /* R230n（R25-1.3）：记下本卡实际展示的公历日——跨零点自刷新靠它
+     * 判「这张卡是不是昨天的快照」。 */
+    if (_hlBox) _hlBox.dataset.shownDate = j.date || dateStr;
     /* R228c：month_cn 本身已带「月」（后端 MONTH_CN 表生成时即带），
      * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。
      * 注意：注释里别写「模块.文件」式点号串——probe_contract 会当字段读取。 */
@@ -5462,6 +5487,53 @@ function init() {
   loadFavorites();
   /* R208b：loadNews 随「今日关注」面板移除 */
   warmPoster();   /* R193b：空闲预热海报管线，消除首点冷启动长任务 */
+
+  /* R230n（R25-1.2/1.3/2.1）：回访三件套——
+   * 1) 跨零点自刷新：回前台或每 60s 检查浏览器日；变了则重跑
+   *    loadDaily/renderCheckin，已展示的「昨天」黄历/星座卡按今天重查
+   *    （用户自选日期的结果不动——只有显示日恰是旧今天才换）。
+   * 2) checkin 跨 tab 同步：storage 事件命中 checkin:* 即重渲。 */
+  var _lastDay = todayIso();
+  var _onDayFlip = function () {
+    var t = todayIso();
+    if (!t || t === _lastDay) return;
+    var prev = _lastDay;
+    _lastDay = t;
+    try { loadDaily(); } catch (e) {}
+    var dd = el('dailyDetail');
+    if (dd) dd.dataset.loaded = '';   /* 展开缓存按新天失效 */
+    var hl = el('hlResult'), hv = el('view-huangli');
+    if (hl && hl.dataset && hl.dataset.shownDate === prev &&
+        hv && hv.classList.contains('active')) {
+      doHuangli(0, true);
+    }
+    var xv = el('view-xingzuo');
+    if (_xzLastDate === prev && xv && xv.classList.contains('active')) {
+      ['xz_year', 'xz_month', 'xz_day'].forEach(function (id) {
+        var _e = el(id); if (_e) _e.value = '';
+      });
+      doXingzuo(true);
+    }
+  };
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) _onDayFlip();
+  });
+  setInterval(_onDayFlip, 60000);
+  window.addEventListener('storage', function (e) {
+    if (e && e.key && e.key.indexOf('checkin:') === 0) {
+      renderCheckin(todayIso());
+    }
+  });
+
+  /* R230n（R25-3.2）：?view=huangli 深链——白名单内直接落到对应功能页。
+   * 拼错/越名单的静默回首页（不报错）。 */
+  try {
+    var _vp = new URLSearchParams(location.search).get('view');
+    if (_vp && document.getElementById('view-' + _vp) &&
+        document.querySelector('.func-card[data-view="' + _vp + '"]')) {
+      showView(_vp);
+    }
+  } catch (e) {}
 }
 
 if (document.readyState === 'loading') {
@@ -5575,7 +5647,16 @@ function renderCheckin(dateKey) {
     box.addEventListener('click', function (e) {
       const btn = e.target.closest('.checkin-opt');
       if (!btn || !dateKey) return;
+      /* R230n（R25-P2-1）：dateKey 是渲染时刻闭包——挂过零点的陈旧 tab
+       * 绑定着昨天，点击会把「昨天」写进去、清理循环再把「今天」误删。
+       * 点击时重算今天：变了就先整卡重渲成今天，再接着写今日键。
+       * 注意：重渲后原按钮已脱离 DOM，picked 态按 opt 在新按钮上重标。 */
       const opt = btn.dataset.opt;
+      var _today = todayIso();
+      if (_today && dateKey !== _today) {
+        dateKey = _today;
+        renderCheckin(_today);
+      }
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
         /* R230j（R22-P3-2）：checkin:* 每日一键永不清理——写今日键时
@@ -5589,7 +5670,7 @@ function renderCheckin(dateKey) {
         }
       } catch (e2) {}
       box.querySelectorAll('.checkin-opt').forEach(function (b) {
-        var on = b === btn;
+        var on = (b.dataset && b.dataset.opt === opt);
         b.classList.toggle('picked', on);
         b.setAttribute('aria-pressed', String(on));   /* R228d */
       });

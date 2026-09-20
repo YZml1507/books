@@ -1504,3 +1504,25 @@ button:active{transform:scale(.96);}
 /* R228n：视觉隐藏但读屏可达 */
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
   overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+
+/* R230n（R25-4.1）：打印样式——结果页能干净落纸。
+ * 隐去导航/表单/按钮/装饰层，结果卡拉满宽、防截断。 */
+@media print {
+  .page-glow, .func-card, .view-back, .back-bar, .bottom-nav, nav,
+  form, button, input, select, textarea, details,
+  .hl-chip, .hl-chips, #hlChips, .checkin, .toast, .share-btn,
+  .ai-cta, .chat-drawer, .fab, .btn-row, .toolbar,
+  [class*="deco"], [class*="glow"] {
+    display: none !important;
+  }
+  body { background: #fff !important; color: #222 !important; }
+  .wrap { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+  .view { display: none !important; }
+  .view.active { display: block !important; }
+  .card, .result-card, .hl-result, .xz-result, .daily-card {
+    box-shadow: none !important; border: 1px solid #ccc !important;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  img { max-width: 60mm !important; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
+}

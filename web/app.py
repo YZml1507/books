@@ -25,8 +25,8 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -112,20 +112,35 @@ def create_app() -> FastAPI:
         resp = await call_next(request)
         p = request.url.path
         if p.startswith(("/static/fonts/", "/static/cream/",
-                         "/static/tarot/", "/static/animotion/")):
+                         "/static/tarot/", "/static/animotion/",
+                         "/static/_candidates/")):
             resp.headers.setdefault("Cache-Control",
                                     "public, max-age=86400")
+        elif p.startswith(("/static/",)) and p.endswith((".js", ".css")):
+            # R230n（R25-5.1）：主资源此前只有启发式缓存——SW 未装的回访
+            # 用户每次全量重拉 ~400KB。1h 缓存+SW shell-hash 保证版本一致。
+            resp.headers.setdefault("Cache-Control",
+                                    "public, max-age=3600")
+        elif p == "/":
+            resp.headers.setdefault("Cache-Control", "no-cache")
         return resp
 
     for router in ROUTERS:
         application.include_router(router)
 
     @application.get("/", include_in_schema=False)
-    def index():
-        """单页前端入口。"""
+    def index(request: Request):
+        """单页前端入口。R230n（R25-3.1）：og:image 是相对路径时主流卡片
+        爬虫不解析——按 request.base_url 注入绝对 URL（不依赖固定域名）。"""
         if not os.path.exists(deps.INDEX):
             raise HTTPException(500, "前端文件缺失：web/static/index.html")
-        return FileResponse(deps.INDEX)
+        try:
+            html = open(deps.INDEX, encoding="utf-8").read()
+            base = str(request.base_url).rstrip("/")
+            html = html.replace('content="/static/', f'content="{base}/static/')
+            return HTMLResponse(html)
+        except OSError:
+            return FileResponse(deps.INDEX)
 
     # R228k：SW 根作用域——/static/sw.js 默认只管 /static/ 下的请求，
     # '/' 的导航永远进不了 fetch 分支，「断网不白屏」此前完全不生效。
@@ -137,6 +152,20 @@ def create_app() -> FastAPI:
             raise HTTPException(404, "sw.js 缺失")
         return FileResponse(sw_path, media_type="application/javascript",
                             headers={"Service-Worker-Allowed": "/"})
+
+    # R230n（R25-3.3）：SPA 兜底——乱路径此前 404 JSON（无 SW 时）与
+    # SW 接管渲染首页（有 SW 时）口径分裂。统一：非 /api//static 的 GET
+    # 且下游已返 404 时回 index.html（?view= 深链随之可用）。
+    # 注意必须做成中间件而非 `/{path:path}` 路由——catch-all 路由对
+    # DELETE 等非 GET 方法是部分匹配，会把未知路径的 404 抬成 405。
+    @application.middleware("http")
+    async def _spa_fallback(request, call_next):
+        resp = await call_next(request)
+        if (request.method == "GET" and resp.status_code == 404
+                and not request.url.path.startswith(("/api/", "/static/"))
+                and os.path.exists(deps.INDEX)):
+            return FileResponse(deps.INDEX)
+        return resp
 
     return application
 

@@ -36,8 +36,29 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'——
-       改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。 */
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+       改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
+       R230n（R25-2.4）：新版本 install 完成→置 waiting，提示刷新即换新版
+       （老版仍活着，不强制打断）。 */
+    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+      if (!reg) return;
+      var toast = function () {
+        if (window.showToast) {
+          try { window.showToast('小满更新好了，刷新看新版', 'info'); }
+          catch (e) {}
+        }
+      };
+      if (reg.waiting) { toast(); return; }
+      reg.addEventListener('updatefound', function () {
+        var sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', function () {
+          /* 有新 SW 且已有 controller（非首装）→ 可提示升级 */
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            toast();
+          }
+        });
+      });
+    }).catch(function () {});
   });
 }
 </script>
