@@ -798,22 +798,83 @@ def _run_inner() -> list[str]:
                     == ["过去", "现在", "未来"])
     check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
           lambda j: [d.get("position") for d in j.get("draws", [])]
-                    == ["现状", "助力", "阻碍", "过去", "结果"])
+                    == ["过去", "现状", "阻碍", "助力", "结果"])
     # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
     # 综合指引不得出现「整体是顺的」——先安抚再看走向。
     _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,
                                           "question": "这段感情"})
     _t4j = _t4.json()
-    assert any(d["name"] in {"死神", "高塔", "恶魔", "月亮", "宝剑三",
-                             "宝剑九", "宝剑十"}
+    # R233u（R53-P0-1）：牌名规范化为「宝剑3/9/10」——旧钉扎写
+    # 「宝剑三」永远匹配不上 deck 名，黑名单检查对全部小牌失效。
+    assert any(d["name"] in {"死神", "高塔", "恶魔", "月亮", "宝剑3",
+                             "宝剑9", "宝剑10"}
                for d in _t4j.get("draws", [])), ("tarot.heavy.fixture",
                                                 _t4j.get("draws"))
     _tw = " ".join((_t4j.get("warm") or {}).get("reply") or [])
     assert "整体是顺的" not in _tw and "照顾好自己" in _tw, \
         ("tarot.heavy.no_顺", _tw[:80])
     ok.append("tarot.heavy.no_顺")
+    # R233u（R53-P0-1）：小牌重牌 fixture——seed=9 抽出宝剑10，此前
+    # 「宝剑十」写法的黑名单对它完全不可达。
+    _t9 = client.post("/api/tarot", json={"seed": 9, "n": 3,
+                                          "question": "最近状态"})
+    _t9j = _t9.json()
+    assert _t9j["draws"][0]["name"] == "宝剑10", \
+        ("tarot.heavy.minor.fixture", _t9j["draws"])
+    _t9w = " ".join((_t9j.get("warm") or {}).get("reply") or [])
+    assert "整体是顺的" not in _t9w, ("tarot.heavy.minor", _t9w[:80])
+    # 覆写后的宝剑10 不得再出现共享 rank 词的「满载/顶点」。
+    assert "满载" not in _t9w and "顶点" not in _t9w, \
+        ("tarot.sword10.kw", _t9w[:120])
+    ok.append("tarot.heavy.minor")
+    # R233u（R53-P0-3 钉扎）：指引表 ↔ 牌面首关键词双向对齐——
+    # 任何 kw0 掉出表就回到兜底复读，死键一律清掉。
+    from guji import tarot as _T, voice as _V
+    _kw0s = set()
+    for _n, _u, _r, _m in _T.DECK:
+        _kw0s.add(_u.split("·")[0]); _kw0s.add(_r.split("·")[0])
+    assert not (_kw0s - set(_V._TAROT_KW_GUIDANCE)) and \
+        not (set(_V._TAROT_KW_GUIDANCE) - _kw0s), \
+        ("tarot.guidance.coverage",
+         _kw0s - set(_V._TAROT_KW_GUIDANCE),
+         set(_V._TAROT_KW_GUIDANCE) - _kw0s)
+    ok.append("tarot.guidance.coverage")
     # R121b（D-167b）：八字合婚纯坐标 standing 覆盖——固定两人生日 → 固定
     # 输出（1990-05-15 男 vs 1992-08-20 女 → 无冲合/日主相生/桃花不同）。
+    # R233v（R52-P1-3）：硬凶日分级——2026-09-01 是月破日（日支冲月支），
+    # 响应必须带 day_flags。
+    _fl = client.get("/api/huangli", params={"date": "2026-09-01"}).json()
+    assert "月破" in (_fl.get("day_flags") or []), \
+        ("huangli.day_flags", _fl.get("day_flags"))
+    ok.append("huangli.day_flags")
+    # R233v（R52-P2-7）：前端宜忌白话注表覆盖全词集且零死键——
+    # 词集 = 建除 + 星宿 + 神煞三表并集。
+    import re as _re_hm
+    _appjs = open(_ROOT + "/web/static/app.js", encoding="utf-8").read()
+    _yi_map = set(_re_hm.findall(
+        r"'([^']+)':\s*'", _appjs.split("var _HL_YI_MAP = {")[1]
+        .split("};")[0]))
+    _ji_map = set(_re_hm.findall(
+        r"'([^']+)':\s*'", _appjs.split("var _HL_JI_MAP = {")[1]
+        .split("};")[0]))
+    from guji import huangli as _hlm
+    _yi_all, _ji_all = set(), set()
+    for _t in list(_hlm.ZHIRI_YIJI.values()) + list(_hlm.XIUXIU_YIJI.values()):
+        _yi_all |= set(_t["yi"]); _ji_all |= set(_t["ji"])
+    for _mn in ("_TIAND_YIJI", "_YUEDE_YIJI", "_TIANSHA_YIJI",
+                "_GUIREN_YIJI", "_YIMA_YIJI", "_JIESHA_YIJI",
+                "_ZAISHA_YIJI", "_YUESHA_YIJI", "_YUEYAN_YIJI"):
+        _a, _b = getattr(_hlm, _mn)
+        _yi_all |= set(_a); _ji_all |= set(_b)
+    assert _yi_all <= _yi_map, \
+        ("hl_map.yi_missing", sorted(_yi_all - _yi_map))
+    assert _ji_all <= _ji_map, \
+        ("hl_map.ji_missing", sorted(_ji_all - _ji_map))
+    _uni = _yi_all | _ji_all
+    assert _yi_map <= _uni and _ji_map <= _uni, \
+        ("hl_map.dead_keys", sorted((_yi_map | _ji_map) - _uni))
+    ok.append("hl_map.coverage")
+
     check("hehun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
           "a_day": 15, "a_hour": 10, "a_gender": "男",
           "b_year": 1992, "b_month": 8, "b_day": 20, "b_hour": 14,
@@ -2031,6 +2092,9 @@ def _run_inner() -> list[str]:
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
                        "gan_he", "god_a_sees_b", "god_b_sees_a",
+                       # R233u（R53-P1-3）：日支夫妻宫 + 纳音 + 年支半合
+                       "day_zhi_a", "day_zhi_b", "day_zhi_rel",
+                       "nayin_a", "nayin_b", "nayin_rel", "year_zhi_rel",
                        # C-003：交叉引用——合婚结果页增加星座配对维度
                        "cross_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",

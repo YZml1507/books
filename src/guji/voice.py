@@ -556,8 +556,39 @@ YAO_WARM: dict[int, str] = {
 }
 
 
+# R233u（R53-P0-4）：问题词 → 用神（六亲）——传统断卦的坐标层
+# 「先看哪一爻」。只做坐标指认不断吉凶（G7 内）。
+_YAO_POS_CN = {1: "初", 2: "二", 3: "三", 4: "四", 5: "五", 6: "上"}
+
+
+_LIUYAO_SCENE: list[tuple[str, str, str]] = [
+    ("事业|工作|求职|跳槽|升职|面试|offer|项目|职称|离职", "官鬼",
+     "官鬼主事业与职位"),
+    ("感情|恋爱|喜欢|复合|表白|桃花|婚姻|结婚|对象|分手|相亲|异地",
+     "妻财", "感情看官鬼（问男生）/妻财（问女生），没性别先看应爻"),
+    ("财|钱|工资|副业|投资|生意|买卖|理财|债|报销", "妻财",
+     "妻财主财物与所得"),
+    ("学业|考试|论文|证书|文书|签证|房子|合同|考研|留学", "父母",
+     "父母爻主文书学业与庇护"),
+    ("健康|身体|生病|病|手术|体检", "官鬼", "官鬼主疾病与健康所忧"),
+    ("子女|孩子|怀孕|求嗣|宠物|下属", "子孙", "子孙主子女与晚辈缘"),
+    ("合作|同事|竞争|朋友|兄弟|姐妹|合伙人", "兄弟",
+     "兄弟主同侪与合作竞争"),
+]
+import re as _re_lq
+_SCENE_RE = [( _re_lq.compile(k), v, note) for k, v, note in _LIUYAO_SCENE]
+
+
+def _liuyao_scene(q: str) -> tuple[str, str] | tuple[None, None]:
+    for pat, ys, note in _SCENE_RE:
+        if pat.search(q):
+            return ys, note
+    return None, None
+
+
 def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
-                 question: str | None) -> list[str]:
+                 question: str | None,
+                 paipan: dict | None = None) -> list[str]:
     """六爻对提问的描述性回应（判据 8）。
 
     spec 实测原文：当前六爻只回「系统只给卦象坐标与經文原文，不代为断事」。
@@ -575,6 +606,35 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     lines: list[str] = []
     head = f"你问的是「{q}」。" if q else "这一卦起出来是这样："
     lines.append(head + f"起到的是{bname}卦——{GUA_WARM.get(bn, '')}。")
+
+    # R233u（R53-P0-4）：用神/世应坐标——让用户知道「这卦里先看哪一爻」。
+    # 坐标如实转述（六亲落位、是否动爻），不断吉凶。
+    _pp = paipan or {}
+    _bl = ((_pp.get("ben_gua") or {}).get("lines")) or []
+    _shi_pos = (_pp.get("ben_gua") or {}).get("shi")
+    _ying_pos = (_pp.get("ben_gua") or {}).get("ying")
+    if _bl and _shi_pos:
+        _by_pos = {int(l.get("position", 0)): l for l in _bl}
+        _shi_l = _by_pos.get(int(_shi_pos), {})
+        _ying_l = _by_pos.get(int(_ying_pos or 0), {})
+        _seg = (f"卦面坐标：你这边（世爻）在{_YAO_POS_CN.get(int(_shi_pos), '第' + str(_shi_pos))}爻"
+                f"临{_shi_l.get('liuqin', '—')}")
+        if _ying_l:
+            _seg += (f"，事情那头（应爻）在{_YAO_POS_CN.get(int(_ying_pos or 0), '')}爻"
+                     f"临{_ying_l.get('liuqin', '—')}")
+        _ys, _ys_note = _liuyao_scene(q) if q else (None, None)
+        if _ys:
+            _ys_pos = [int(l.get("position", 0)) for l in _bl
+                       if l.get("liuqin") == _ys]
+            if _ys_pos:
+                _mv = "且是动爻——你问的事正在动的点上" \
+                    if _ys_pos[0] in ml else ""
+                _seg += (f"。问这类事传统上先看{_ys}（{_ys_note}）——"
+                         f"落在{_YAO_POS_CN.get(_ys_pos[0], '第' + str(_ys_pos[0]))}爻{_mv}")
+            else:
+                _seg += (f"。问这类事传统上先看{_ys}——它没直接落在这卦里"
+                         f"（叫「不现」），看世应两端更实在")
+        lines.append(_seg + "。")
 
     if ml:
         pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
@@ -609,7 +669,8 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
 
     lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
                  "慢慢体会，不急。")
-    return lines[:5]
+    # R233u：坐标行新增后 6 行——cap 放宽到 6，经文引导不再被截
+    return lines[:6]
 
 
 # ---------------------------------------------------------------------------
@@ -704,7 +765,8 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
 
 
 def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
-                interpretation: dict, question: str | None = None) -> dict:
+                interpretation: dict, question: str | None = None,
+                paipan: dict | None = None) -> dict:
     """六爻 warm 视图（判据 8）。"""
     interp = interpretation or {}
     bn = int((ben or {}).get("gua_number") or 0)
@@ -716,7 +778,8 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None,
-        reply_liuyao(ben or {}, bian or {}, moving_lines or [], question),
+        reply_liuyao(ben or {}, bian or {}, moving_lines or [], question,
+                     paipan=paipan),
         details_from_sections(interp.get("sections") or []),
         interp.get("citations") or [],
     )
@@ -740,18 +803,33 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         lines.append("每张牌这样说：")
     # ≥6 张时只展示前 3 张 + 剩余提示 + 收尾
     shown = cards[:3] if len(cards) > 5 else cards[:5]
+    # R233u（R53-P0-3 连带）：位置修饰让「过去/现在/未来」真的参与语义；
+    # 同阵同 kw0（约 5%）降级为呼应表述，不再同一句话贴两遍。
+    _POS_CLAUSE = {"过去": "（留下的影响）", "现在": "（正在发生）",
+                   "现状": "（正在发生）", "未来": "（接下来要注意）",
+                   "结果": "（走向）"}
+    _seen_kw: set[str] = set()
     for c in shown:
         cu = bool(c.get("upright"))
         ckw = (c.get("upright_kw") if cu else c.get("reversed_kw")) or ""
         pos = c.get("position") or ""
+        pos_label = pos + _POS_CLAUSE.get(pos, "") if pos else ""
         name = c.get('name', '')
         kw0 = ckw.split('·')[0] if ckw else ''
         # D-002：每张牌一句话直接关联问题，给具体指引
         guidance = _tarot_kw_guidance(kw0, q)
         if q:
-            lines.append(f"{pos + '：' if pos else ''}{name}说「{kw0}」——{guidance}")
+            if kw0 in _seen_kw:
+                lines.append(f"{pos_label + '：' if pos_label else ''}"
+                             f"{name}也在说「{kw0}」——和前面那张是呼应，"
+                             f"这件事的信号挺明确。")
+            else:
+                lines.append(f"{pos_label + '：' if pos_label else ''}"
+                             f"{name}说「{kw0}」——{guidance}")
         else:
-            lines.append(f"{pos + '：' if pos else ''}{name}（{'正位' if cu else '逆位'}）——{ckw}。")
+            lines.append(f"{pos_label + '：' if pos_label else ''}"
+                         f"{name}（{'正位' if cu else '逆位'}）——{ckw}。")
+        _seen_kw.add(kw0)
     # 收尾：给一句具体方向
     tail = []
     if len(cards) > 5:
@@ -768,48 +846,92 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         interp.get("citations") or [],
     )
 
-# D-002：牌义关键词 → 具体指引映射
+# D-002：牌义关键词 → 具体指引映射。
+# R233u（R53-P0-3）：键必须与牌面首关键词（kw0）双向对齐——旧表 33 键
+# 里 23 个永远不可达、69 个可达 kw0 只有 10 个有指引，88% 走兜底复读。
+# 现全表 69 键 = DECK 全部 kw0，probes 里有覆盖闸钉着。
 _TAROT_KW_GUIDANCE = {
     "调和": "你需要找到平衡，别走极端",
-    "适度": "刚刚好就行，太多太少都不行",
-    "耐心": "时机还没到，先稳住自己",
     "丰饶": "身边已经有值得珍惜的人/事了，别视而不见",
-    "滋养": "多花心思经营，会越来越好",
-    "收获": "之前的付出开始有回报了",
     "掌控": "主动权在你手里，想清楚自己要什么",
-    "成熟": "你已经知道怎么做了，相信自己的判断",
-    "主导": "别等别人先开口，你先走一步",
-    "热情": "大胆表达，别藏着",
-    "冷静": "先别急着决定，让情绪过去",
-    "突破": "是时候做出改变了",
-    "守护": "珍惜眼前人，别等失去了才后悔",
-    "变化": "接受改变，这是好事",
-    "等待": "别急，让子弹飞一会儿",
     "行动": "想好了就去做，别犹豫",
-    "反思": "回头看看走过的路，有收获",
-    "自由": "别被束缚，你值得更好的",
-    "信任": "相信对方，也相信自己",
-    "放下": "该放手了，别拖着",
-    # R230a-7（R13-P0-3）：重牌软化指引——死神/高塔/恶魔/月亮/审判 之前
-    # 掉进兜底「X是一个重要信号」，吓人字眼零安抚。
+    "冲突": "有摩擦不怕，说开了反而更近",
+    "阴影": "看不清的地方先照个亮，别急着否定自己的直觉",
+    # R230a-7（R13-P0-3）：重牌软化指引——吓人字眼必须带安抚。
     "结束": "一个阶段翻篇了，不是坏事——腾出来的位置才有新的开始",
     "突变": "事情可能有变化，提前有准备就不慌",
     "束缚": "有些缠着你的东西，可以慢慢松开它",
     "幻象": "现在看不太清就先别急着定论，等等再决定",
-    "审判": "该翻篇的翻篇，该面对的面对——这是重新评估的机会",
-    "孤独": "一个人待着的时候，正好听见自己的声音",
-    "冲突": "有摩擦不怕，说开了反而更近",
-    "恐惧": "害怕是正常的，先承认它，再看看它到底有多真",
-    "牺牲": "有些付出暂时看不到回报，但不是白费的",
-    "死亡": "一个阶段翻篇了，不是坏事——腾出来的位置才有新的开始",
-    "阻碍": "卡住了不一定是坏事——慢下来的这段正好是调整窗口",
-    "隐秘": "有些事还没浮出水面，先观察再下结论",
-    "阴影": "看不清的地方先照个亮，别急着否定自己的直觉",
+    # 22 大牌 kw0
+    "开始": "新起点就在眼前，先迈一小步试试",
+    "鲁莽": "冲劲有了，就差先看一眼脚下",
+    "创造": "你的想法能落地，别怕和别人不一样",
+    "欺骗": "有些事没表面那么简单，多留个心眼",
+    "直觉": "你的感觉是对的，别硬找理由否定它",
+    "忽视直觉": "心里那个嘀咕声不是错觉，听听它",
+    "依赖": "可以靠，但别把全部重量都放上一个人身上",
+    "秩序": "按节奏来，现在稳比快重要",
+    "专制": "抓得太紧反而留不住，松一点",
+    "传承": "老办法有它的道理，值得参考",
+    "教条": "规矩是死的，你的情况是活的",
+    "结合": "能走到一起的就顺着来，别硬拧",
+    "分歧": "不一致不可怕，先听对方说完再定",
+    "前进": "方向没错，保持这个速度",
+    "失控": "方向盘暂时不在你手里，先减速别硬掰",
+    "勇气": "你比想象中扛得住，再顶一下",
+    "软弱": "现在示弱不是认输，是保存体力",
+    "内省": "答案在你自己身上，安静一会儿就听见了",
+    "孤立": "一个人待着没问题，但别把门关死",
+    "转折": "运气在换挡，别按老剧本走",
+    "停滞": "停不是坏事，正好检查一遍再出发",
+    "公正": "公道会到的，你该得的跑不掉",
+    "偏颇": "信息不全的时候别急着站队",
+    "换位": "站到对面看一眼，答案会不一样",
+    "固执": "认死理认到最后，累的只有自己",
+    "抗拒": "越抗拒越缠人，先承认它存在",
+    "解脱": "松开的那一刻你就自由了",
+    "避祸": "躲开的那一下，其实是替你挡了灾",
+    "希望": "熬的这段够长了，这就是天亮前的信号",
+    "失望": "落差是真实的，但它不是终局",
+    "澄清": "雾在散，很快就能看清",
+    "光明": "好事在明面上，放心往前走",
+    "觉醒": "你其实已经醒了，接下来只是承认它",
+    "自省": "回看不是后悔，是把路数理一遍",
+    "完成": "这一段真的告一段落了，值得松口气",
+    "未竟": "就差最后一步，别在这时候松手",
+    # 56 小牌 rank/宫廷 kw0
+    "开端": "种子刚落土，浇水就行，别挖出来看",
+    "联合": "单打独斗不如搭个伙",
+    "成长": "在往上走，别急，速度正常",
+    "稳固": "底盘是稳的，可以往上盖了",
+    "调整": "现在改还来得及，成本很低",
+    "坚持": "快了，这时候放弃最亏",
+    "进展": "在动，只是还没到你的视野里",
+    "累积": "攒的东西快够用了，再忍一忍",
+    "顶点": "到顶了，接下来该往回收一收",
+    "暂缓": "先别启动，时机差一口气",
+    "失衡": "两头都在拉你，先找回自己的重心",
+    "受挫": "磕一下不是否定你，是路线要微调",
+    "内耗": "最大的消耗是你自己跟自己打架",
+    "反复": "旧问题回潮，这次换个处理方式",
+    "自我怀疑": "怀疑自己是改卷太严，不是答得差",
+    "阻滞": "堵是暂时的，别把堵车当成路不对",
+    "收尾难": "就差临门一脚，别耗在最后一公里",
+    "过载": "扛太满了，该卸的卸一卸",
+    "天真": "愿意相信是好事，给自己留个验证步骤",
+    "涵养": "你稳得住，这就是最大的底牌",
+    "学习": "当新手不丢人，这个阶段就该多吸收",
+    "过度": "再好的东西过量了也是负担",
+    "专断": "一言堂省事，但容易漏掉关键声音",
+    "忧惧": "脑子里那个小剧场先关一关，事情没它演的那么糟",
+    "谷底": "最坏的一段到了——往后只有回升，先照顾好自己",
+    "缓过来": "没那么糟，你在慢慢回血——别急着复盘",
+    "触底回升": "最坏的已经过去了，往后每一步都是往上",
 }
 
 # R230a-7（R13-P0-3）：重牌黑名单——抽到这些牌时综合判定不说
 # 「整体是顺的」（问健康抽到死神还说「顺」是错上加错）。
-_TAROT_HEAVY = {"死神", "高塔", "恶魔", "月亮", "宝剑三", "宝剑九", "宝剑十"}
+_TAROT_HEAVY = {"死神", "高塔", "恶魔", "月亮", "宝剑3", "宝剑9", "宝剑10"}
 
 def _tarot_kw_guidance(kw: str, q: str) -> str:
     """D-002：将牌义关键词转化为用户问题的具体指引"""
@@ -990,6 +1112,8 @@ def warm_hehun(h: dict) -> dict:
         rel = "两年支六冲——传统上叫磨合型：不是不合，是相处需要多一轮理解"
     elif h.get("combine"):
         rel = "年支六合——传统上主生肖相合，相处起来比较顺"
+    elif h.get("year_zhi_rel") == "半合":
+        rel = "年支半合——不是最强的那种合，但有天然的三分顺意"
     else:
         rel = "盘面上没有明显的冲也没有明显的合——关系的样子更多靠你们自己写"
     l0 = ("磨合型组合" if h.get("clash")
@@ -1004,9 +1128,12 @@ def warm_hehun(h: dict) -> dict:
     # （selftest 契约安全），分桶靠词级白名单。
     _hh_all = COPY_BANK.get("hehun_one_liners") or []
     if _hh_all:
+        # R233u（R53-P1-1）：强肯定词全归强桶——「这俩是真配」「双向奔赴型
+        # 选手」等半强词此前漏在中性桶，盐修好就会砸到相克盘。
         _STRONG_CP = {"甜度超标组合", "天生一对CP", "锁死这对了", "CP感爆棚",
                       "越处越合拍的一对", "默契度拉满的一对", "互补型神仙搭档",
-                      "甜而不腻的组合"}
+                      "甜而不腻的组合", "这俩是真配", "双向奔赴型选手",
+                      "久处不厌预备役"}
         if h.get("day_wx_sheng") and not h.get("clash"):
             l0 = _pick(_hh_all, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
         else:
@@ -1022,6 +1149,31 @@ def warm_hehun(h: dict) -> dict:
         # R230a-7（R13-P0-2）：同五行是比和——此前被归入「相克」口径。
         lines.append(f"两人日主同是{h.get('day_wx_a', '')}——同气相属，"
                      f"合拍来得快，顶起来也镜像，各留半步就顺。")
+    # R233u（R53-P1-3/P2-4）：相克日主在 warm 层不再沉默——最需要安抚的
+    # 盘面恰好缺一句人话；日支（夫妻宫）结果也落屏。
+    if not h.get("day_wx_sheng") and not h.get("day_wx_same"):
+        lines.append(f"两人日主五行相克（{h.get('day_wx_a', '')}与"
+                     f"{h.get('day_wx_b', '')}）——能量会碰：磨合期长一点，"
+                     f"但磨合好的相克盘反而最扛事。")
+    _dz = h.get("day_zhi_rel") or ""
+    if _dz == "冲":
+        lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
+                     f"{h.get('day_zhi_b','')}相冲——相处里会有磕绊，"
+                     f"把话说开比憋着强。")
+    elif _dz == "合":
+        lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
+                     f"{h.get('day_zhi_b','')}六合——传统合婚最看重的一支"
+                     f"对上了，底色是合的。")
+    elif _dz == "半合":
+        lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
+                     f"{h.get('day_zhi_b','')}半合——相处里有天然的合拍。")
+    if h.get("nayin_rel") == "比和":
+        lines.append(f"年命纳音同是{h.get('nayin_a','')}——命底相近，"
+                     f"很多事不用解释就懂。")
+    elif h.get("nayin_rel") == "相生":
+        lines.append(f"年命纳音相生（{h.get('nayin_a','')}与"
+                     f"{h.get('nayin_b','')}）——传统上主互相滋养，"
+                     f"在一起越久越顺。")
     if h.get("peach_same"):
         lines.append(f"两人桃花支相同（都是{h.get('peach_a', '')}）——"
                      f"对感情的期待容易同频。")
@@ -1054,6 +1206,12 @@ def warm_hehun(h: dict) -> dict:
         if abs(int(d0.get("year_start", 0)) - _now.year) > 10:
             lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
                          f"（{d0.get('relation', '')}）——远期参考，不是日程表。")
+        elif str(d0.get("relation", "")) == "冲":
+            # R233u（R53-P1-2）：冲运主摩擦动荡——劝「一起做决定」与
+            # 冲的语义直接矛盾，改中性缓冲口径。
+            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+                         f"（冲）——那段时间容易顶上，重要的事留点缓冲、"
+                         f"慢半拍再定。")
         else:
             lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
                          f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")

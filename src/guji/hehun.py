@@ -33,6 +33,16 @@ SIX_COMBINE: dict[str, str] = {
     "卯": "戌", "戌": "卯", "辰": "酉", "酉": "辰",
     "巳": "申", "申": "巳", "午": "未", "未": "午",
 }
+# R233u（R53-P1-3）：三合局半合——同一局里任取两支即半合
+# （巳酉丑金局的 巳×酉 此前被判「无冲合」）。
+_HALF_GROUPS = (("申", "子", "辰"), ("寅", "午", "戌"),
+                ("巳", "酉", "丑"), ("亥", "卯", "未"))
+
+
+def half_combine(za, zb):
+    return any(za in g and zb in g and za != zb for g in _HALF_GROUPS)
+
+
 # 天干五行
 GAN_ELEMENT: dict[str, str] = {
     "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
@@ -83,6 +93,13 @@ class Hehun:
     gender_a: str = ""               # 甲性别（F-004 动态标签）
     gender_b: str = ""               # 乙性别（F-004 动态标签）
     day_wx_same: bool = False        # R230a-7：日主同五行（比和/同气）
+    day_zhi_a: str = ""              # R233u（R53-P1-3）：日支（夫妻宫）
+    day_zhi_b: str = ""
+    day_zhi_rel: str = ""            # '冲'|'合'|'半合'|''
+    nayin_a: str = ""                # 年命纳音（如「路旁土」）
+    nayin_b: str = ""
+    nayin_rel: str = ""              # '比和'|'相生'|'相克'|''
+    year_zhi_rel: str = ""           # R233u：'半合'（年支半合）
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
@@ -90,7 +107,14 @@ class Hehun:
         gb = "女" if self.gender_b == "女" else "男"
         parts = [f"{ga} {self.day_gz_a}（日主{self.day_wx_a}）· {gb} {self.day_gz_b}（日主{self.day_wx_b}）"]
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
-                     ("六冲" if self.clash else ("六合" if self.combine else "无冲合")))
+                     ("六冲" if self.clash else ("六合" if self.combine
+                      else ("半合" if self.year_zhi_rel == "半合" else "无冲合"))))
+        if self.day_zhi_rel:
+            parts.append(f"日支（夫妻宫）{self.day_zhi_a}/{self.day_zhi_b}："
+                         f"{self.day_zhi_rel}")
+        if self.nayin_rel:
+            parts.append(f"年命纳音 {self.nayin_a}/{self.nayin_b}："
+                         f"{self.nayin_rel}")
         parts.append("日主五行：" + ("相生" if self.day_wx_sheng
                                    else ("比和" if self.day_wx_same else "相克")))
         if self.gan_he:
@@ -108,6 +132,21 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     za, zb = b_a.year[1], b_b.year[1]
     clash = SIX_CLASH.get(za) == zb
     combine = SIX_COMBINE.get(za) == zb
+    half = (not clash) and (not combine) and half_combine(za, zb)
+    # R233u（R53-P1-3）：日支（夫妻宫，合婚最核心的一支）此前完全没进
+    # 任何比较维度。
+    dza, dzb = b_a.day[1], b_b.day[1]
+    dz_clash = SIX_CLASH.get(dza) == dzb
+    dz_combine = SIX_COMBINE.get(dza) == dzb
+    dz_rel = ("冲" if dz_clash else "合" if dz_combine
+              else "半合" if half_combine(dza, dzb) else "")
+    # 年命纳音（传统合婚维度之一）：取末字为五行
+    na = (b_a.nayin or [""])[0]; nb = (b_b.nayin or [""])[0]
+    ea, eb = na[-1:] if na else "", nb[-1:] if nb else ""
+    nayin_rel = ("比和" if ea and ea == eb
+                 else "相生" if ea and (_SHENG.get(ea) == eb
+                                        or _SHENG.get(eb) == ea)
+                 else "相克" if ea and eb else "")
     wxa, wxb = GAN_ELEMENT[b_a.day[0]], GAN_ELEMENT[b_b.day[0]]
     # R230a-7（R13-P0-2）：同元素先判比和——同五行不落入相生表，此前
     # 直接掉进「相克」分支（火×火 → 「相克」）。
@@ -126,6 +165,19 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         notes.append(_NOTE_CLASH)
     if combine:
         notes.append(_NOTE_COMBINE)
+    if half:
+        notes.append("年支半合：传统说法里有三分合意——缘分不算冲，"
+                     "处起来有天然的顺")
+    if dz_rel == "冲":
+        notes.append("日支相冲：夫妻宫有磕绊——吵架归吵架，别上纲上线")
+    elif dz_rel == "合":
+        notes.append("日支六合：夫妻宫相合——传统上最看重的一支对上了")
+    elif dz_rel == "半合":
+        notes.append("日支半合：夫妻宫有合意——相处里有天然的合拍")
+    if nayin_rel == "比和":
+        notes.append("年命纳音同命——同气相属，底色相近")
+    elif nayin_rel == "相生":
+        notes.append(f"年命纳音相生（{na}与{nb}）——传统上主互相滋养")
     notes.append(_NOTE_DAY_WX_SAME if same
                  else (_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH))
     if gan_he:
@@ -144,6 +196,9 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         day_wx_a=wxa, day_wx_b=wxb, day_wx_sheng=sheng,
         peach_a=pa, peach_b=pb, peach_same=peach_same,
         day_wx_same=same,
+        day_zhi_a=dza, day_zhi_b=dzb, day_zhi_rel=dz_rel,
+        nayin_a=na, nayin_b=nb, nayin_rel=nayin_rel,
+        year_zhi_rel="半合" if half else "",
         gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
         gender_a=getattr(b_a, "gender", ""), gender_b=getattr(b_b, "gender", ""),
         notes=notes,
@@ -164,7 +219,17 @@ def dayun_relation(b_a: Bazi, birth_a: int, b_b: Bazi, birth_b: int) -> list[dic
     la = calc_life(b_a, birth_a)["dayun"]
     lb = calc_life(b_b, birth_b)["dayun"]
     out: list[dict] = []
-    for da, db in zip(la, lb):
+    # R233u（R53-P2-2）：按年份窗口对齐而非 zip 序号——两人起运年龄
+    # 不同时，序号配对会把相差数年的两段运拿来比冲合。
+    for da in la:
+        ya = da.get("year_start")
+        if ya is None:
+            continue
+        db = next((d for d in lb
+                   if d.get("year_start") is not None
+                   and d["year_start"] <= ya < d["year_start"] + 10), None)
+        if db is None:
+            continue
         za, zb = da["pillar"][1], db["pillar"][1]
         if SIX_CLASH.get(za) == zb:
             rel = "冲"

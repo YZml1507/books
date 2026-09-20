@@ -45,6 +45,9 @@ RADICAL_ELEMENT: dict[str, str] = {
     "川": "水", "巛": "水",
     # 人/走/言部首归入其五行本气（人=土、走=土、言=金）
     "亻": "土", "彳": "火", "口": "金",
+    # R233u（R53-P2-3）：彡（文采修饰）入木——彬的字表标签是木，
+    # 部首口径与字表标签对齐
+    "彡": "木",
 }
 
 # --------------------------------------------------------------------------------------
@@ -111,7 +114,7 @@ CANDIDATE_CHARS: dict[str, list[tuple[str, str, str]]] = {
         ("增", "土", "土-增益其所不能"),
         ("圣", "土", "土-圣贤之德"),
         ("佳", "亻", "土-佳人佳偶"),
-        ("嘉", "口", "土-嘉言懿行"),
+
         ("瑞", "王", "土-祥瑞之兆"),
         ("珍", "王", "土-珍奇宝贵"),
         ("珠", "王", "土-珠圆玉润"),
@@ -137,6 +140,8 @@ CANDIDATE_CHARS: dict[str, list[tuple[str, str, str]]] = {
         ("铂", "钅", "金-铂金珍贵"),
         ("铠", "钅", "金-铠甲坚固"),
         ("镜", "钅", "金-明镜高悬"),
+        # R233u（R53-P2-3）：嘉部首是口（口→金），原标土与部首口径矛盾
+        ("嘉", "口", "金-嘉言懿行"),
         ("铜", "钅", "金-铜墙铁壁"),
         ("铁", "钅", "金-铁骨铮铮"),
         ("锡", "钅", "金-锡泽恩惠"),
@@ -231,12 +236,43 @@ _MAX_MEANING_REPEAT = 2      # 同一寓意坐标的组合最多出现次数
 _QIMING_HEAD_REPEAT = 2      # U-005：同一「名字首字」同批最多出现次数
 
 
+# R233u（R53-P1-4）：姓氏×高危谐音 denylist——挨着姓的那个字一旦
+# 凑成谐音词就是网名级翻车（实测产出：吴德=无德、吴陵=亡灵、杜梓=
+# 肚子、范铜=饭桶、杨伟、秦寿、史珍香…）。只挡「紧邻姓的首字」
+# 和「单字名」，第二字不受限（谐音必须挨着姓才成立）。
+_SURNAME_TRAP: dict[str, frozenset[str]] = {
+    "吴": {"德", "陵", "能", "心", "名", "用", "情", "义", "赖", "忧",
+           "疾", "聊", "辜", "为", "寿", "畏", "法", "礼", "良", "福"},
+    "杜": {"梓", "子", "楠", "康", "飞", "绝"},
+    "范": {"铜", "桶", "统", "剑", "畴", "愁", "罪", "统", "例"},
+    "史": {"珍", "香", "真", "达", "蒂", "努", "前", "尚"},
+    "杨": {"伟", "柳", "絮", "花"},
+    "朱": {"逸", "群", "仔", "投", "砂"},
+    "贾": {"仁", "义", "善", "正", "经", "道", "庆"},
+    "秦": {"寿", "兽", "晋"},
+    "苟": {"且", "安", "延", "全"},
+    "费": {"钱", "财", "劲", "心", "力"},
+    "梅": {"运", "福", "财", "有", "钱", "门"},
+    "毕": {"须", "竟", "胜", "业"},
+    "殷": {"商", "实", "勤"},
+    "宫": {"刑", "保", "廷"},
+    "牛": {"马", "皮", "奶"},
+    "马": {"虎", "桶", "后", "尚"},
+    "侯": {"车", "爵", "赛"},
+    "熊": {"掌", "胆", "腰"},
+    "傅": {"债", "科", "彩"},
+    "夏": {"流", "侯", "候"},
+}
+
+
 def _full_name_combos(surname: str, missing: list[str], gender: str,
                       candidates: list[dict],
-                      full_n: int = FULL_N_DEFAULT) -> list[dict]:
+                      full_n: int = FULL_N_DEFAULT,
+                      strong_elem: str = "") -> list[dict]:
     """候选字 → 完整姓名列表（姓+单字 / 姓+双字），确定性排序。"""
     pool = [c for c in candidates if c["char"] not in surname]
     miss_set = set(missing)
+    _trap = _SURNAME_TRAP.get(surname, frozenset())
 
     def _entry(given: str, chars: list[dict]) -> dict:
         return {
@@ -252,8 +288,10 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
     scored: list[tuple[int, int, int, dict]] = []   # (缺行命中数, 性别分, 表序, entry)
     order = 0
 
-    # 形态一：单字名
+    # 形态一：单字名（R233u：trap 字挨着姓成词，剔除）
     for c in pool:
+        if c["char"] in _trap:
+            continue
         hit = 1 if c["element"] in miss_set else 0
         g = _gender_score(c["char"], gender)
         scored.append((hit, g, order := order + 1, _entry(c["char"], [c])))
@@ -262,7 +300,12 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
     for i in range(len(pool)):
         for j in range(i + 1, len(pool)):
             a, b2 = pool[i], pool[j]
-            if a["char"] == b2["char"]:
+            if a["char"] == b2["char"] or a["char"] in _trap:
+                continue
+            # R233u（R53-P1-5）：最强五行字不进双字——缺木+火最旺时
+            # 「李桐闻」把最强的火再塞一字，与「补缺不加强」矛盾。
+            if strong_elem and strong_elem not in miss_set and \
+               (a["element"] == strong_elem or b2["element"] == strong_elem):
                 continue
             hit = (1 if a["element"] in miss_set else 0) + \
                   (1 if b2["element"] in miss_set else 0)
@@ -306,6 +349,19 @@ def _full_name_combos(surname: str, missing: list[str], gender: str,
             continue
         meaning_count[entry["meanings"]] = meaning_count.get(entry["meanings"], 0) + 1
         out.append(entry)
+    # R233u（R53-P1-5）：排序键让双字恒压单字——单字名实际不可达。
+    # top_n 内保底 ~1/4 单字席位：用次优单字顶替尾部双字。
+    _seat = max(1, full_n // 4)
+    if sum(1 for e in out if e["form"] == "single") < _seat:
+        _spare = [e for e in scored if e[3]["form"] == "single"
+                  and e[3] not in out]
+        for _se in _spare:
+            if sum(1 for e in out if e["form"] == "single") >= _seat:
+                break
+            for _k in range(len(out) - 1, -1, -1):
+                if out[_k]["form"] == "double":
+                    out[_k] = _se[3]
+                    break
     return out
 
 
@@ -374,7 +430,9 @@ def name_candidates(surname: str, year: int, month: int, day: int,
 
     candidates = candidates[:top_n]
 
-    full_names = _full_name_combos(surname, missing, gender, candidates)
+    _strong_elem = max(counts.items(), key=lambda x: x[1])[0] if counts else ""
+    full_names = _full_name_combos(surname, missing, gender, candidates,
+                                   strong_elem=_strong_elem)
 
     # summary：模板拼接（可核验，非 LLM 文本）
     dist = "、".join(f"{e}{v:g}" for e, v in counts.items())

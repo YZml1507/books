@@ -91,6 +91,15 @@ _RANK_MEANING = {
     10: "象征该主题的顶点与满载",
 }
 
+# R233u（R53-P0-1 连带）：花色×rank 覆写表——传统牌义与共享 rank
+# 词冲突的单独写实（宝剑9=忧惧/宝剑10=谷底，不是「临近完成/满载」）。
+_RANK_OVERRIDE: dict[tuple[str, int], tuple[str, str, str]] = {
+    ("宝剑", 9): ("忧惧·反刍·想太多", "缓过来·想开了·没那么糟",
+                  "象征深夜独自反刍的忧惧——天亮了会缓的"),
+    ("宝剑", 10): ("谷底·终结·至暗", "触底回升·最坏的过了",
+                   "象征跌到谷底——到这儿就只有回升一条路了"),
+}
+
 # 宫廷牌：人物位阶 + 传统面向
 _COURT = [
     ("侍从", "学习·消息·萌芽", "天真·轻信·停滞", "象征初学者与新的讯息"),
@@ -108,7 +117,14 @@ def _minor_deck() -> list[tuple[str, str, str, str]]:
             name = f"{suit}{rank}" if rank > 1 else f"{suit}A"
             # R230a-8：逆位查专属表；查不到的走老兜底
             rev = _RANK_KW_REV.get(rank) or _reverse_kw(kw)
-            deck.append((name, kw, rev, f"{theme}。{_RANK_MEANING[rank]}"))
+            meaning = f"{theme}。{_RANK_MEANING[rank]}"
+            # R233u（R53-P0-1 连带）：花色×rank 覆写——共享 rank 词
+            # 套到宝剑9（忧惧）/宝剑10（谷底）上是彻底的语气反转。
+            _ov = _RANK_OVERRIDE.get((suit, rank))
+            if _ov:
+                kw, rev, meaning = _ov
+                meaning = f"{theme}。{meaning}"
+            deck.append((name, kw, rev, meaning))
         for title, up, rev, meaning in _COURT:
             deck.append((f"{suit}{title}", up, rev, f"{theme}。{meaning}"))
     return deck
@@ -126,7 +142,7 @@ DECK: list[tuple[str, str, str, str]] = MAJOR_ARCANA + _minor_deck()
 # 到"第N张"。写死静态，非生成文本。
 SPREADS: dict[int, tuple[str, ...]] = {
     3: ("过去", "现在", "未来"),
-    5: ("现状", "助力", "阻碍", "过去", "结果"),
+    5: ("过去", "现状", "阻碍", "助力", "结果"),
     7: ("第1日", "第2日", "第3日", "第4日", "第5日", "第6日", "第7日"),
 }
 

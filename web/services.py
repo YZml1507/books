@@ -50,6 +50,7 @@ from guji import tarot as tarot_mod
 from guji import voice
 from guji import xingzuo as xingzuo_mod
 from guji.bazi import compute as bazi_compute
+from guji.bazi import day_ganzhi as _bazi_day_ganzhi
 from guji.bazi_calc import calc as bazi_calc
 from guji.bazi_calc import calc_life, calc_range
 from guji.bazi_lookup import retrieve_fast
@@ -335,6 +336,12 @@ def hehun(req) -> dict:
     h_dict = {
         "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
         "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
+        # R233u（R53-P1-1）：one_liner 盐键接线——此前 day_zhi_* 恒 None，
+        # 同桶所有 CP 抽到同一句判词。
+        "day_zhi_a": h.day_zhi_a, "day_zhi_b": h.day_zhi_b,
+        "day_zhi_rel": h.day_zhi_rel,
+        "nayin_a": h.nayin_a, "nayin_b": h.nayin_b, "nayin_rel": h.nayin_rel,
+        "year_zhi_rel": h.year_zhi_rel,
         "year_zhi_a": h.year_zhi_a, "year_zhi_b": h.year_zhi_b,
         "clash": h.clash, "combine": h.combine,
         "day_wx_a": h.day_wx_a, "day_wx_b": h.day_wx_b,
@@ -941,6 +948,22 @@ def liuyao(req) -> dict:
         ben = liuyao_mod.cast_time(lm["year"], lm["month"], lm["day"], hour_zhi)
 
     bian = liuyao_mod.changing_hexagram(ben)
+    # R233u（R53-P0-4）：断卦坐标接线——纳甲/六亲/世应/六神此前只被
+    # probe 调用，API 用户拿不到。六神按起卦日天干起（time 法用所给日，
+    # coins 法用用户那边今天）。
+    _pp = None
+    try:
+        if req.method != "coins" and req.year and req.month and req.day:
+            _dd = datetime(req.year, req.month, req.day)
+        else:
+            _cd = getattr(req, "client_date", None)
+            try:
+                _dd = datetime.strptime(_cd, "%Y-%m-%d") if _cd else datetime.now()
+            except (ValueError, TypeError):
+                _dd = datetime.now()
+        _pp = liuyao_mod.paipan(ben, _bazi_day_ganzhi(_dd)[0][0])
+    except Exception:
+        _pp = None
     # R230g（R19-P2-1）：引文是锦上添花，卦象本身不依赖语料——corpus
     # 缺失/损坏时降级为空引文继续 200（与 tarot/huangli 纯算端点同口径），
     # 不让一卦被语料库连坐打 503。
@@ -948,6 +971,20 @@ def liuyao(req) -> dict:
         with deps.corpus() as c:
             ben_jing = [hit_dict(h) for h in
                         c.at_address(ben.gua_number, layer="經", limit=10)]
+            # R233u（R53-P0-4 连带）：动爻 1-2 个时定点取动爻辞——此前
+            # 单动爻卦也整卦灌 10 条經文，用户得自己在原文堆里找。
+            _ml = ben.moving_lines or []
+            if 1 <= len(_ml) <= 2:
+                _POS_NAME = {1: "初", 2: "二", 3: "三", 4: "四",
+                             5: "五", 6: "上"}
+                _yj: list = []
+                for _p in _ml:
+                    _yao = ben.lines[_p - 1]
+                    _nm = f"{_POS_NAME[_p]}{'九' if _yao.yang else '六'}"
+                    _yj += [hit_dict(h) for h in c.at_address(
+                        ben.gua_number, yao=_nm, layer="經", limit=6)]
+                if _yj:
+                    ben_jing = _yj
             bian_jing = [hit_dict(h) for h in
                          c.at_address(bian.gua_number, layer="經", limit=10)]
     except Exception:
@@ -966,7 +1003,8 @@ def liuyao(req) -> dict:
         # 判据 8：六爻原本对提问只回「不代为断事」。warm 分支给出基于**已起出
         # 的卦象**的描述性回应（不预测结果），专业分支原文不动。
         "warm": voice.warm_liuyao(ben_out, bian_out, ben.moving_lines,
-                                  interpretation, req.question),
+                                  interpretation, req.question,
+                                  paipan=_pp),
         # R218a-巡2（N-01）：echo question 让前端 liuyaoQuestionHook 真生效
         "question": req.question,
         # R221b：交叉引用收口 7/7——六爻不收生日，只引"今天"的值宫
@@ -1040,7 +1078,8 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             **_ynote,
             **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
-            **({"chongsha": q["chongsha"]} if q.get("chongsha") else {})}
+            **({"chongsha": q["chongsha"]} if q.get("chongsha") else {}),
+            **({"day_flags": q["day_flags"]} if q.get("day_flags") else {})}
 
 
 # ---------------------------------------------------------------------------
@@ -1081,7 +1120,7 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "出行": ["出行", "远行"], "旅行": ["出行", "远行"],
     "旅游": ["出行", "远行"], "出差": ["出行", "远行"], "出游": ["出行", "远行"],
     "收款": ["纳财"], "理财": ["纳财"], "看病": ["求医", "治病", "求医疗病"],
-    "种花": ["栽植", "栽种"], "种菜": ["栽种"], "许愿": ["祈福", "求嗣"],
+    "种花": ["栽种"], "种菜": ["栽种"], "许愿": ["祈福", "求嗣"],
     "拜拜": ["祭祀"], "祭灶": ["祭祀"], "祭祖": ["祭祀"],
     "考试": ["入学"], "上学": ["入学"], "开学": ["入学"],
     "和解": ["解除"], "打官司": ["诉讼"], "诉讼": ["诉讼"],
@@ -1182,6 +1221,9 @@ _HOLIDAY_SOLAR = {
     # 「双十一月」式误命中，下方 same-digit 计量字防呆规则已覆盖
     # （节后紧跟 月/日/号/天/个/年 跳过）。
     "双十一": (11, 11), "光棍节": (11, 11),
+    # R233v（R52-P2-5）：口语高频节别名补洞
+    "三八节": (3, 8), "女生节": (3, 7), "520": (5, 20), "521": (5, 21),
+    "网络情人节": (5, 20), "白色情人节": (3, 14), "圣诞夜": (12, 24),
 }
 # 农历节日（月, 日）；除夕单列（正月初一前一天）。
 _HOLIDAY_LUNAR = {
@@ -1191,6 +1233,10 @@ _HOLIDAY_LUNAR = {
     "腊八": (12, 8), "中元节": (7, 15), "中元": (7, 15),
     # 小年按北方通行腊月廿三；南方廿四口径暂不强拆，spoken 仍回用户原词。
     "小年": (12, 23),
+    # R233v（R52-P2-5）：民俗高频农历节补洞
+    "龙抬头": (2, 2), "二月二": (2, 2), "上巳节": (3, 3), "三月三": (3, 3),
+    "花朝节": (2, 15), "寒衣节": (10, 1), "十月朝": (10, 1),
+    "下元节": (10, 15), "七夕节": (7, 7),
 }
 _CN_DIGIT = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
              "六": 6, "七": 7, "八": 8, "九": 9}
@@ -1258,6 +1304,85 @@ def _nth_weekday(y: int, m: int, wd: int, n: int) -> date:
     return date(y, m, 1 + (wd - first_wd) % 7 + 7 * (n - 1))
 
 
+# R233v（R52-P2-4）：法定节假日放假表（国务院办公厅通知口径，
+# 写死可核验；「节后上班/收假/小长假」这类词此前静默按今天判）。
+# 行：(节日名, 放假起, 放假止, 调班上班日 tuple)
+_LEGAL_SPANS: list[tuple[str, date, date, tuple]] = [
+    ("元旦", date(2024, 1, 1), date(2024, 1, 1), ()),
+    ("春节", date(2024, 2, 10), date(2024, 2, 17),
+     (date(2024, 2, 4), date(2024, 2, 18))),
+    ("清明", date(2024, 4, 4), date(2024, 4, 6), (date(2024, 4, 7),)),
+    ("劳动节", date(2024, 5, 1), date(2024, 5, 5),
+     (date(2024, 4, 28), date(2024, 5, 11))),
+    ("端午", date(2024, 6, 8), date(2024, 6, 10), ()),
+    ("中秋", date(2024, 9, 15), date(2024, 9, 17), (date(2024, 9, 14),)),
+    ("国庆", date(2024, 10, 1), date(2024, 10, 7),
+     (date(2024, 9, 29), date(2024, 10, 12))),
+    ("元旦", date(2025, 1, 1), date(2025, 1, 1), ()),
+    ("春节", date(2025, 1, 28), date(2025, 2, 4),
+     (date(2025, 1, 26), date(2025, 2, 8))),
+    ("清明", date(2025, 4, 4), date(2025, 4, 6), ()),
+    ("劳动节", date(2025, 5, 1), date(2025, 5, 5), (date(2025, 4, 27),)),
+    ("端午", date(2025, 5, 31), date(2025, 6, 2), ()),
+    ("国庆中秋", date(2025, 10, 1), date(2025, 10, 8),
+     (date(2025, 9, 28), date(2025, 10, 11))),
+    ("元旦", date(2026, 1, 1), date(2026, 1, 3), (date(2026, 1, 4),)),
+    ("春节", date(2026, 2, 15), date(2026, 2, 23),
+     (date(2026, 2, 14), date(2026, 2, 28))),
+    ("清明", date(2026, 4, 4), date(2026, 4, 6), ()),
+    ("劳动节", date(2026, 5, 1), date(2026, 5, 5), (date(2026, 5, 9),)),
+    ("端午", date(2026, 6, 19), date(2026, 6, 21), ()),
+    ("中秋", date(2026, 9, 25), date(2026, 9, 27), ()),
+    ("国庆", date(2026, 10, 1), date(2026, 10, 7),
+     (date(2026, 9, 20), date(2026, 10, 10))),
+]
+
+
+_SPAN_NAME = {"国庆": "国庆", "春节": "春节", "过年": "春节",
+              "中秋": "中秋", "五一": "劳动节", "劳动": "劳动节",
+              "端午": "端午", "清明": "清明", "元旦": "元旦"}
+
+
+def _span_phrase(msg_n: str, now: datetime):
+    """假期间隔词 → (date, spoken)。「国庆节后第一天上班」=国庆假止日
+    +1（法定表口径，不是国庆日+1）；「收假/假期最后一天」=在进行的或
+    下一个假期的止日；「小长假/什么时候放假」=下一个假期起日；
+    「调班/补班」=下一个调班上班日。消息里带节日名时钉死那一档。"""
+    td = now.date()
+    spans = sorted(_LEGAL_SPANS, key=lambda r: r[1])
+    # 消息限定的节日档（「国庆中秋」合档对 国庆/中秋 同名命中）
+    named = next((v for w, v in _SPAN_NAME.items() if w in msg_n), None)
+    pool = [r for r in spans if not named
+            or named in r[0] or r[0] in named]
+    if re.search(r"(节后|假期后|过完节|收假|收心|假期结束|上班第一天)",
+                 msg_n):
+        nxt = [r for r in pool if r[2] >= td]
+        if nxt:
+            return nxt[0][2] + timedelta(days=1), f"{nxt[0][0]}后第一天"
+        done = [r for r in pool if r[2] < td]
+        if done:
+            return done[-1][2] + timedelta(days=1), f"{done[-1][0]}后第一天"
+    if re.search(r"假期最后一天|最后一天假|假期的尾巴", msg_n):
+        live = [r for r in pool if r[1] <= td <= r[2]]
+        nxt = [r for r in pool if r[1] > td]
+        done = [r for r in pool if r[2] < td]
+        tgt = live[0] if live else (nxt[0] if nxt else
+                                    (done[-1] if done else None))
+        if tgt:
+            return tgt[2], f"{tgt[0]}假期最后一天"
+    if re.search(r"小长假|什么时候放假|啥时候放假|放假", msg_n):
+        nxt = [r for r in pool if r[1] >= td or r[2] >= td]
+        if nxt:
+            name, _a, _b, _mk = nxt[0]
+            return _a, f"{name}假期"
+    if re.search(r"调班|调休上班|补班", msg_n):
+        mk = sorted({d for _n, _a, _b, mks in spans for d in mks})
+        nxt = [d for d in mk if d >= td]
+        if nxt:
+            return nxt[0], "调班上班日"
+    return None
+
+
 def _holiday_candidates(name: str, now: datetime,
                         yoff: int | None = None) -> list:
     """节日词 → 候选公历 date 列表。yoff=None 取相邻三年就近；
@@ -1274,7 +1399,7 @@ def _holiday_candidates(name: str, now: datetime,
         yrs = range(now.year - 1, now.year + 2) if yoff is None \
             else [now.year + yoff]
         return [_nth_weekday(y, m, wd, n) for y in yrs]
-    if name == "除夕":
+    if name in ("除夕", "大年三十", "大年夜", "年三十"):
         try:
             ly0 = lunar_mod.solar_to_lunar(now.year, now.month,
                                            now.day)["year"]
@@ -1288,13 +1413,57 @@ def _holiday_candidates(name: str, now: datetime,
             except ValueError:
                 pass
         return out
+    if name == "寒食节":
+        from guji import bazi as bazi_mod
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        for y in yrs:
+            try:
+                out.append((bazi_mod.term_time(y, "清明")
+                            + timedelta(hours=8)).date()
+                           - timedelta(days=1))
+            except Exception:
+                pass
+        return out
+    if name in ("入伏", "三伏"):
+        from guji import bazi as bazi_mod
+        # 夏至后第三个庚日入伏（庚=天干第7）——逐日数干支可核验。
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        for y in yrs:
+            try:
+                xz = (bazi_mod.term_time(y, "夏至") + timedelta(hours=8)).date()
+                cnt = 0
+                for k in range(0, 40):
+                    dd = xz + timedelta(days=k)
+                    if bazi_mod.day_ganzhi(datetime(dd.year, dd.month,
+                                                    dd.day))[0][0] == "庚":
+                        cnt += 1
+                        if cnt == 3:
+                            out.append(dd)
+                            break
+            except Exception:
+                pass
+        return out
+    if name in ("数九", "入九"):
+        from guji import bazi as bazi_mod
+        yrs = range(now.year - 1, now.year + 2) if yoff is None \
+            else [now.year + yoff]
+        for y in yrs:
+            try:
+                out.append((bazi_mod.term_time(y, "冬至")
+                            + timedelta(hours=8)).date())
+            except Exception:
+                pass
+        return out
     if name == "清明":
         from guji import bazi as bazi_mod
         yrs = range(now.year - 1, now.year + 2) if yoff is None \
             else [now.year + yoff]
         for y in yrs:
             try:
-                out.append(bazi_mod.term_time(y, "清明").date())
+                out.append((bazi_mod.term_time(y, "清明")
+                            + timedelta(hours=8)).date())
             except Exception:
                 pass
         return out
@@ -1304,7 +1473,8 @@ def _holiday_candidates(name: str, now: datetime,
             else [now.year + yoff]
         for y in yrs:
             try:
-                out.append(bazi_mod.term_time(y, name).date())
+                out.append((bazi_mod.term_time(y, name)
+                            + timedelta(hours=8)).date())
             except Exception:
                 pass
         return out
@@ -1433,7 +1603,9 @@ def _abs_or_holiday(msg: str, now: datetime):
 
     for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
                        | set(_HOLIDAY_NTH) | _SOLAR_TERMS
-                       | {"除夕", "清明", "清明節"}, key=len, reverse=True):
+                       | {"除夕", "清明", "清明節", "大年三十", "大年夜",
+                          "年三十", "寒食节", "入伏", "三伏", "数九"},
+                       key=len, reverse=True):
         w = "清明" if name == "清明節" else name
         if w not in msg_n:
             continue
@@ -1443,7 +1615,9 @@ def _abs_or_holiday(msg: str, now: datetime):
             continue
         idx = widx + len(w)
         if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
-            continue                      # 「十一月」之类误命中
+            # R233v：「三伏天/数九天」的「天」是词的一部分，不是计量字
+            if not (w in ("三伏", "入伏", "数九") and msg_n[idx] == "天"):
+                continue                  # 「十一月」之类误命中
         cands = _holiday_candidates("清明" if name == "清明節" else name,
                                   now, yoff)
         pick = _nearest_day(cands, now, past)
@@ -1588,6 +1762,17 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return now - timedelta(days=1), "昨天"
     # R229z：绝对日期 / 节日 / 农历表达——先接住再落「下周」等相对词，
     # 否则「国庆后第一天上班」之类会被曜日通配截胡。
+    # R233v（R52-P2-4）：假期间隔词（节后上班/小长假/调班）走法定
+    # 假表——比「节日名+第N天」更特异，必须先接（「国庆节后第一天上班」
+    # 此前被「国庆」+后缀「后第一天」错算成 10/2）。
+    _sp = _span_phrase(_t2s(msg), now)
+    if _sp is not None:
+        # _LEGAL_SPANS 存的是 date——归一成 datetime 再交给下游
+        # （parity 探针/聊天事实行都吃 datetime.date() 语义）。
+        _sd, _ss = _sp
+        if not isinstance(_sd, datetime):
+            _sd = datetime(_sd.year, _sd.month, _sd.day)
+        return _sd, _ss
     _abs = _abs_or_holiday(msg, now)
     if _abs is not None:
         return _abs
@@ -1632,9 +1817,10 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
                 return _d, msg[msg.find(anchor):idx + 1]
             # 「下周」没跟曜日——按下个周一算
             return now + timedelta(days=(7 - now.weekday())), "下周"
-    # 周末：下一个周六（今天已是周末则指今天）
+    # 周末：下一个周六（今天已是周末则指今天）——R233v（R52-P2-4）：
+    # 此前周日问「周末」gap=(5-6)%7=6 整段跳到下周六，今天被漏掉。
     if "周末" in msg or "週末" in msg:
-        gap = (5 - now.weekday()) % 7
+        gap = 0 if now.weekday() >= 5 else (5 - now.weekday()) % 7
         return now + timedelta(days=gap), "周末"
     # R229h：裸曜日词「周五/礼拜天/星期日」= 最近的那个（今天命中即今天），
     # 不落在下周/本周之后误判。负向词（下周/本周）已在上面消化，这里只接

@@ -11241,3 +11241,41 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - **P2**：checkin 字段名修正+口号 8 条轮换池；liuyao 明细标签位置化；daily 贵人地支→生肖；base() 默认副标 `M月D日·周X`；每 view 独立 hook；hhInvite 无 clipboard 时 execCommand 兜底（此前弹「复制好了」实际没复制）；Web Share files 分支附 text+url；from=share 老用户承接 toast。
 - **遗留**：P1-10 图上回流入口（QR/短链）等正式域名；P1-11 og:image 绝对路径同待域名；P3-24 文本断言闸登记。
 - 闸门：selftest 239 / regress / contract 544 / poster 14判据 / plain_first / dollar / ui_smoke 复跑全绿。
+
+## R233u（R52+R53 后端批）
+- **R52-P0**：`term_time()` 返回的是 UTC，两处 `.date()` 直接拿去跟 CST 语义对表——
+  24/24 节气里 7 个凌晨前交节的错位一整天（2026 冬至 -1 天、惊蛰 +1 天）。
+  统一 `(term_time()+8h).date()`，parity 钉扎从旧错值 93/167 订正为 94/168。
+- **R52-P1-2**：`shensha_yiji`（九神煞宜忌）接进 `day_query` 宜忌并集——
+  远行/移徙/上任/诉讼/归家/谒贵/安葬等词此前全落中性。
+- **R52-P1-3**：`day_flags` 硬凶日分级（月破/四离/四绝/杨公忌13日）进
+  `day_query` 并经 `/api/huangli` 回吐；前端黄历卡渲染 ⛔ 提示 chip。
+- **R52-P2-4**：法定假表 `_LEGAL_SPANS`（2024-2026 国务院口径，含调班日）+
+  `_span_phrase`：国庆节后第一天上班→10/8、假期最后一天→9/27中秋、
+  收假上班→9/28、什么时候放假/小长假→下一个假期起日、调班/补班→下一个
+  调班日；节日名限定档钉死（「春节后」不会错指中秋）。
+- **R52-P2-5**：节日词扩 13 个——三八节/女生节/520/521/网络情人节/白色情人节/
+  圣诞夜；龙抬头=二月二/上巳节=三月三/花朝节/寒衣节/下元节/七夕节；
+  除夕别名大年三十/大年夜/年三十；寒食节=清明前一日；入伏/三伏=
+  夏至后第3个庚日（逐日数干支，2026 实测 7/15 与历书一致）；数九=冬至。
+- **R52-P2-6**：`pick_lucky_days` 宜含/忌排统一 `_hit` 双向子串语义。
+- **R52-P2-7**：`_HL_YI_MAP/_HL_JI_MAP` 重写为全词集覆盖（建除+星宿+
+  9张神煞表并集，42词），删死键（移徒/栽植——栽植只在彭祖原文里，
+  「种花」场景词同改栽种）。selftest 新增 `hl_map.coverage` 闸：
+  词集↔注表双向钉扎，死键无处可藏。
+- **R52-P3-8**：历法表边界文案分方向——晚于 2100-12-31 报「晚于表终点」、
+  早于 1900-01-31 报「早于表起点」（此前一律「超出范围」）。
+- **周日语义**：周六/周日当天问「周末」不再 +6 跳到下周末
+  （`gap = 0 if now.weekday() >= 5`）；parity 新增「周末适合搬家吗=0」钉扎。
+- **R53 余量**：塔罗宝剑9/10 数字名重写进入 `_RANK_OVERRIDE`（忧惧·反刍·
+  想太多/谷底·终结·至暗…）、`_TAROT_HEAVY` 黑名单归一到阿拉伯数字名；
+  `_TAROT_KW_GUIDANCE` 69 词全覆盖 + `_POS_CLAUSE` 位置修饰 +
+  同 kw0 去重「呼应」；`hehun` 新增三合半合/日支夫妻宫/纳音生克/
+  大运窗口对位（year_start 对齐替换 zip）；`reply_liuyao` 接 paipan
+  卦面坐标行+用神落爻；起名姓氏谐音陷阱表（吴德/杜梓/范铜…20 姓）
+  + 单名位次配额 + 嘉改金部；典籍库 27 条出处订正到可核验原文、
+  2 条无源删除，`classical_db.integrity` 闸已含。
+- 闸门：selftest 241→243（huangli.day_flags、hl_map.coverage）、
+  contract 546、parity 66+41 条 + 88 别名键、ui_smoke 59、poster 14判据、
+  baseline_voice 14 字节冻结（yao 定点引文后重冻）、llm_polish 六道、
+  ruff E9/F 干净。
