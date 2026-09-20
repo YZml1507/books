@@ -24,9 +24,11 @@ def liuyao(req: LiuyaoRequest) -> dict:
 @router.get("/api/huangli")
 def huangli(date: str | None = None, affair: str | None = None,
             # R228b：days 无界时逐日 day_query 线性 DoS（实测 365 天≈21s）
-            days: int = Query(1, ge=1, le=92)) -> dict:
+            days: int = Query(1, ge=1, le=92),
+            # R2349k（R72-B3）：客户端本地日——cross_ref「今天」锚用它。
+            today: str = Query("", max_length=10)) -> dict:
     """黄历择日：单日宜忌坐标，或在日期区间内找宜某事项的日子。"""
-    return services.huangli(date, affair, days)
+    return services.huangli(date, affair, days, today or None)
 
 
 @router.get("/api/huangli/resolve_date")

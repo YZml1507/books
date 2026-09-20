@@ -1027,7 +1027,10 @@ def liuyao(req) -> dict:
 
 
 def huangli(date_str: str | None = None, affair: str | None = None,
-            days: int = 1) -> dict:
+            days: int = 1,
+            # R2349k（R72-B3）：cross_ref 的「今天/那天」锚客户端本地日
+            # （UTC 服务器日与中国用户差 8 小时）。
+            today: str | None = None) -> dict:
     """黄历择日（本地纯计算）。
 
     - date=YYYY-MM-DD：单日宜忌坐标（建除/二十八宿/彭祖百忌）
@@ -1035,6 +1038,10 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     """
     # R228p：手写 split('-') 校准器退役——与 xingzuo/daily 同走
     # _parse_iso_date（fromisoformat 对月日越界天然 400，三段校验不再需要）。
+    # R2349k（R72-B5）：?date= 空串此前静默当「没传」查今天——与
+    # daily/xingzuo 的空串→400 口径对齐。
+    if date_str == "":
+        raise ValidationError("日期格式没看懂——照着 2026-01-01 这样填试试")
     dt = (datetime(_d.year, _d.month, _d.day)
           if (_d := _parse_iso_date(date_str) if date_str else None)
           else datetime.now())
@@ -1081,13 +1088,17 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
             **({"conflict": q["conflict"]} if q.get("conflict") else {}),
             **_ynote,
-            **({"cross_ref": _cross_ref_huangli(date_str)}),  # C-003：黄历交叉引用
+            **({"cross_ref": _cross_ref_huangli(date_str, today)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {}),
             **({"day_flags": q["day_flags"]} if q.get("day_flags") else {}),
             # R233w（R52-P3-9）：交节日透明化——「今日交节 XX，交在 HH:MM」
             **({"term_today": q["term_today"]}
-               if q.get("term_today") else {})}
+               if q.get("term_today") else {}),
+            # R2349k（R72-A2）：节日行——前端拿到显示「今天是中秋节」。
+            "festival": _festival_for(
+                dt.date(),
+                (q.get("term_today") or {}).get("name", ""))}
 
 
 # ---------------------------------------------------------------------------
@@ -1383,9 +1394,76 @@ _HOLIDAY_NTH = {
 # 叫它不是问节气）、大雪/小雪/大寒/小寒（天气语境歧义太大）。
 _SOLAR_TERMS = {
     "立春", "雨水", "惊蛰", "春分", "谷雨", "立夏", "芒种", "夏至",
-    "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "冬至", "大暑",
-    "小暑",
+    # R2349k（R72-A1）：立秋曾是节气表里唯一缺词——「秋天第一杯奶茶」
+    # 爆点日解不了，静默判当前日。
+    "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "冬至",
+    "大暑", "小暑",
 }
+
+
+# R2349k（R72-A2）：反向查「这天是什么节」——黄历卡/今日卡的节日行。
+# 词源与 _abs_or_holiday 同表（公历固定/农历固定/月第N个周几），另补
+# 除夕（腊月最后一日）与节气（huangli() 用已算好的 term_today 叠上）。
+_FEST_SOLAR = {
+    (1, 1): "元旦", (2, 14): "情人节", (3, 7): "女生节",
+    (3, 8): "妇女节", (3, 12): "植树节", (3, 14): "白色情人节",
+    (4, 1): "愚人节", (5, 1): "劳动节", (5, 4): "青年节",
+    (5, 20): "网络情人节", (5, 21): "521", (6, 1): "儿童节",
+    (7, 1): "建党节", (8, 1): "建军节", (9, 10): "教师节",
+    (10, 1): "国庆节", (11, 1): "万圣节", (11, 11): "双十一",
+    (12, 24): "平安夜", (12, 25): "圣诞节", (12, 31): "跨年夜",
+}
+_FEST_LUNAR = {
+    (1, 1): "春节", (1, 15): "元宵节", (2, 2): "龙抬头",
+    (2, 15): "花朝节", (3, 3): "上巳节", (5, 5): "端午节",
+    (7, 7): "七夕", (7, 15): "中元节", (8, 15): "中秋节",
+    (9, 9): "重阳节", (10, 1): "寒衣节", (10, 15): "下元节",
+    (12, 8): "腊八节", (12, 23): "小年",
+}
+
+
+def _festival_for(d: date, term_name: str = "") -> list[str]:
+    """公历日 d → 当日节日名列表；无节返回 []。term_name 传当日交节名。"""
+    out: list[str] = []
+    nm = _FEST_SOLAR.get((d.month, d.day))
+    if nm:
+        out.append(nm)
+    for name, (hm, wd, n) in _HOLIDAY_NTH.items():
+        try:
+            if _nth_weekday(d.year, hm, wd, n) == d:
+                out.append(name)
+        except Exception:
+            pass
+    try:
+        from guji import lunar as lunar_mod
+        l = lunar_mod.solar_to_lunar(d.year, d.month, d.day)
+        if not l.get("is_leap"):
+            lnm = _FEST_LUNAR.get((l["month"], l["day"]))
+            if lnm:
+                out.append(lnm)
+            # 除夕 = 腊月最后一日（二十九或三十，随年走）
+            if (l["month"] == 12
+                    and l["day"] == lunar_mod.month_days(l["year"], 12)):
+                out.append("除夕")
+    except Exception:
+        pass
+    # 节气也当节日行素材（「今天立秋」是值得说的话术）
+    if term_name:
+        out.append(term_name + "（节气）")
+    return out
+
+
+def _term_name_for(d: date) -> str:
+    """公历日 d 当天交节的节气名（无 → ''）。term_time 有 lru_cache，
+    单日调用近零成本。"""
+    try:
+        from guji.bazi import TERM_LONGITUDE, term_time
+        for _tn in TERM_LONGITUDE:
+            if (term_time(d.year, _tn) + timedelta(hours=8)).date() == d:
+                return _tn
+    except Exception:
+        pass
+    return ""
 
 
 def _nth_weekday(y: int, m: int, wd: int, n: int) -> date:
@@ -1954,14 +2032,28 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     now = now or datetime.now()
     q = (q or "").strip()[:80]
     if not q:
-        return {"date": None, "spoken": ""}
+        return {"date": None, "spoken": "", "invalid": ""}
     dt, spoken = _hl_day_part(q, now)
+    # R2349k（R72-A3）：「下个月31号」这种「词命中但日子不存在」此前
+    # 静默回落显示日——单独给 invalid 信号让前端说人话提示。
+    _mm = re.search(r"(下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
+    if _mm and spoken == "今天":
+        _mo = {"下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
+        _yy = now.year + (now.month + _mo - 1) // 12
+        _mth = (now.month + _mo - 1) % 12 + 1
+        _dd = int(_mm.group(2))
+        import calendar as _cal
+        if _dd > _cal.monthrange(_yy, _mth)[1]:
+            return {"date": None, "spoken": "",
+                    "invalid": f"{_mm.group(1)}个月没有 {_dd} 号哦——"
+                               f"它最多到 {_cal.monthrange(_yy, _mth)[1]} 号"}  # 常驻键（契约探针）
     # 「无日期词」与「显式说今天」在返回值上不可分——spoken=='今天'
     # 且消息里没有今天系词才算没解出。
     if spoken == "今天" and not any(
             w in q for w in ("今天", "今日", "今晚", "今夜")):
-        return {"date": None, "spoken": ""}
-    return {"date": dt.date().isoformat(), "spoken": spoken}
+        return {"date": None, "spoken": "", "invalid": ""}
+    return {"date": dt.date().isoformat(), "spoken": spoken,
+            "invalid": ""}
 
 
 def _hl_next_yi_days(dt: datetime, terms: list[str],
@@ -2352,7 +2444,11 @@ def daily(date_str: str | None = None) -> dict:
             # R2349g：cv=4——level 计分加了吉神项+小吉阈值放宽，
             # 且新增 noble_liuhe 字段；旧缓存一律重算覆盖。
             if _c.get("cv") == 4 and (not _want or _c.get("noble") == _want):
-                return {"date": date_str, **_c, "cached": True}
+                # R2349k（R72-A2）：festival 是派生字段不入缓存语义——
+                # 现算随包回（旧缓存行也能拿到节日行）。
+                return {"date": date_str, **_c, "cached": True,
+                        "festival": _festival_for(
+                            _d0, _term_name_for(_d0))}
     try:
         d = date.fromisoformat(date_str)
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
@@ -2409,6 +2505,8 @@ def daily(date_str: str | None = None) -> dict:
             "do": do_str,
             "dont": dont_str,
             "cached": False,
+            # R2349k（R72-A2）：节日行与黄历卡同源
+            "festival": _festival_for(d, _term_name_for(d)),
         }
         with deps.knowledge() as kb:
             kb.set_daily_cache(date_str, bazi=result)
@@ -2693,7 +2791,7 @@ def _parse_iso_date(date_str: str) -> "date":
     return parsed
 
 
-def _cross_ref_huangli(date_str: str) -> dict:
+def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
     """黄历结果页 → 今天的星座值宫（这一处本来就该用"今日"，逻辑成立）。"""
     from guji.xingzuo import daily_horoscope
     try:
@@ -2706,7 +2804,14 @@ def _cross_ref_huangli(date_str: str) -> dict:
         if not (sign and note):
             return {}
         # R228p：用户翻的是查询日，不一定是今天——文案跟着说"那天"。
-        _when = "今天" if d == _date.today() else "那天"
+        # R2349k（R72-B3）：「今天」的锚用客户端日（today 参数）——
+        # UTC 服务器日 0-8 点比中国用户慢半天，那时候翻今天会被说「那天」。
+        try:
+            _today = (_date.fromisoformat(today_str)
+                      if today_str else _date.today())
+        except (ValueError, TypeError):
+            _today = _date.today()
+        _when = "今天" if d == _today else "那天"
         return {
             "zodiac_sign": sign,
             "zodiac_note": note,

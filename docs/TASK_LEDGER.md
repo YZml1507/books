@@ -11649,3 +11649,19 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - P1：专业版依据字段键名中文化（依据：五行分布/十神…，原值进 title）；星座本命盘 catch 裸 err.message 过 _humanizeErr；引文可见行去 @锚点/(file.txt) 尾巴、全文进 title；classical_names.json 文件名去屏；phFetch detail 过 _humanizeErr（405 等透传兜底）
 - P2：schemas.py 7 处枚举/字段名消息中文化（历法/起卦方式/风格/session_id/client_date/起止）；interpreter「misc」→「其他」；「导出 CSV」→「导出表格」；「起/止（YYYY-MM-DD）」→「（年-月-日）」；_PH_TYPE_LABEL 未知 type→「记录」；share_type/pref key 不再回显原值
 - 闸门：selftest 254 / contract 542 / ui_smoke 75 / ruff 全绿
+
+## R2349k（R72 节日节气+时钟边界清零批，15/15）
+- A1 立秋补洞：_SOLAR_TERMS/问一嘴剥词正则/_HL_COMPLEX_DATE 三处同补——「立秋」此前是唯一解不了的节气词
+- A2 节日行：_festival_for() 反向查（公历节+农历节+月第N周节+除夕+交节），festival 字段挂进 /api/huangli 与 /api/daily（派生字段不入缓存语义）；黄历卡「🎉 今天是中秋节」+ 首页日卡 meta 行
+- A3 invalid 信号：「这个月31号」这类词命中但日子不存在——resolve_date 回 invalid 键（常驻，契约探针要求），前端 toast+判词行提示「最多到 30 号」，不再静默按显示日判
+- B1/B2 隔夜陈旧：黄历卡/星座卡记渲染日戳（renderedOn/_xzRenderedOn），跨日进页重置表单重查——按渲染日判，主动翻「昨天」不误伤
+- B3 cross_ref「今天/那天」锚客户端日：/api/huangli 加 today= 参数（UTC 服务器日比中国用户慢 8h）
+- B4 问一嘴足迹双日期：d=被问卡面日（chip 前缀），a=问的那一天（接续条 ago 锚）；老足迹无 a 回落 d
+- B5 /api/huangli?date= 空串→400（与 daily/xingzuo 对齐，此前静默查今天）
+- B6 导出文件名 UTC→本地日（toLocaleDateString('sv')）
+- B7 周日历格 data-hldate 存绝对日，点击当刻换算偏移（跨零点不再跳错天）
+- B8 星座年界钳位：xzShiftDay 越 1900–2100 钳边界+toast，不再 select 空值跳回今天
+- B9 2/29→平年/31号→小月静默钳日：toast 明示「按 X 月 X 号查了」
+- C1 hl-flag「今天逢」→_dayWord；C2 非今日时「今日当班/今日守护星」→「当日」；C3 问一嘴占位「今天」→「哪天」
+- 副判明：「立秋那天搬家」→2027-08-08 是 R64 既定设计（节日词对过去语标免疫，总指下一次）
+- 闸门：selftest 254 / contract 547 全绿 / date_parity 68+41 例+220 键 / ui_smoke 75 / first_screen / voice/poster 批全绿 / ruff 净

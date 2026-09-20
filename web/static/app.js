@@ -2017,7 +2017,16 @@ function showView(viewId) {
   /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
   if (viewId === 'huangli') hlInitToday();
   /* C-002-fix：星座视图进入时自动加载今日运势 */
-  if (viewId === 'xingzuo') doXingzuo(false);   /* R228f：重进同日复用已渲染，不再重拉+跳动 */
+  if (viewId === 'xingzuo') {
+    /* R2349k（R72-B2）：隔夜进星座页表单还停在昨天却写「今日当班」——
+     * 先回到今天再查。 */
+    if (_xzLastDate && _xzRenderedOn && _xzRenderedOn !== todayIso()) {
+      var _tt = new Date();
+      xzSetDate(_tt.getFullYear(), _tt.getMonth() + 1, _tt.getDate());
+      _xzLastDate = null;
+    }
+    doXingzuo(false);   /* R228f：重进同日复用已渲染，不再重拉+跳动 */
+  }
   /* R231d（R37-F3）：?view=history 深链/F5 落地即死卡——加载此前只在
    * 首页卡片 click 里触发，进视图就补一次（函数在排盘历史 IIFE 内，
    * 经 window 钩子暴露）。 */
@@ -3987,6 +3996,21 @@ async function loadDaily() {
     }
     if (_sg) _sg.innerHTML = '📜 今日签号：<strong>第' +
       _signNo(j.date) + '签</strong>';
+    /* R2349k（R72-A2）：节日行——首页日卡也要说「今天是中秋」。 */
+    var _fv = el('dailyFest');
+    if (!_fv) {
+      _fv = document.createElement('div');
+      _fv.id = 'dailyFest';
+      _fv.className = 'daily-meta-item';
+      var _mrowF = document.querySelector('#dailyCard .daily-meta');
+      if (_mrowF) _mrowF.appendChild(_fv);
+    }
+    if (_fv) {
+      if (j.festival && j.festival.length) {
+        _fv.innerHTML = '🎉 今天是<strong>' + esc(j.festival.join('、')) + '</strong>';
+        _fv.hidden = false;
+      } else { _fv.hidden = true; _fv.innerHTML = ''; }
+    }
     /* R233n（R47-P2-5）：生日横幅——档案里的生日撞上今天就铺一条
      * 「今天你最大」，顺带把生日盘入口点亮。
      * R2349（R65-P2-5）：抽成函数——daily API 失败的 catch 兜底
@@ -4046,9 +4070,12 @@ async function loadDaily() {
       var _hl0 = null;
       try { _hl0 = (JSON.parse(localStorage.getItem('hlask') || '[]') || [])[0]; }
       catch (e0) {}
-      if (_hl0 && _hl0.q && _hl0.d && _hl0.d < _today) {
+      /* R2349k（R72-B4）：接续条比较/话术都锚「问的那天」（a），
+       * 老足迹没 a 时回落 d。 */
+      var _hlA = _hl0 && (_hl0.a || _hl0.d);
+      if (_hl0 && _hl0.q && _hlA && _hlA < _today) {
         _recEl.innerHTML = '<button type="button" class="daily-recall-btn" ' +
-          'data-hlask-q="' + esc(_hl0.q) + '">💬 ' + _hlAgoWord(_hl0.d) + '你问了「' +
+          'data-hlask-q="' + esc(_hl0.q) + '">💬 ' + _hlAgoWord(_hlA) + '你问了「' +
           esc(_gSlice(_hl0.q, 14)) + '」——今天再看看？</button>';
         _recEl.hidden = false;
       } else { _recEl.hidden = true; }
@@ -5172,6 +5199,17 @@ function hlInitToday() {
   var _res = document.getElementById('hlResult');
   if (_res && (!_res.firstElementChild || _res.querySelector('[data-ph]'))) {
     doHuangli(0, true);
+  } else if (_HL.renderedOn && _HL.renderedOn !== todayIso()) {
+    /* R2349k（R72-B1）：隔夜回来的卡是昨天渲染的——判词「今天」话术
+     * 已错一天。按渲染日判陈旧（不看显示日——主动翻「昨天」的卡是
+     * 今天渲的，不陈旧）。 */
+    ['hl_year', 'hl_month', 'hl_day'].forEach(function (id) {
+      var _e = el(id); if (_e) _e.value = '';
+    });
+    setv('hl_year', t.getFullYear());
+    setv('hl_month', t.getMonth() + 1);
+    setv('hl_day', t.getDate());
+    doHuangli(0, true);
   }
   hlLoadWeek();   /* R231d：未来 7 天速览条随进页加载（每会话一次） */
 }
@@ -5205,7 +5243,11 @@ async function hlLoadWeek() {
       var wd = i === 0 ? '今天' : ('周' + WD[dt.getDay()]);
       var yi = (j && j.yi && j.yi.length) ? (_HL_YI_MAP[j.yi[0]] || j.yi[0]) : '—';
       var ji = (j && j.ji && j.ji.length) ? (_HL_JI_MAP[j.ji[0]] || j.ji[0]) : '';
-      html += '<button type="button" class="hl-week-cell" data-hlwk="' + i + '"' +
+      /* R2349k（R72-B7）：格子记绝对日不记下标——下标是相对渲染时
+       * 「今天」的偏移，跨零点后点同一格会翻到错那天。点击时才换算
+       * 偏移，落在点击当刻的今天。 */
+      html += '<button type="button" class="hl-week-cell" data-hldate="' +
+        esc(days[i]) + '"' +
         (i === 0 ? ' aria-current="date"' : '') + '>' +
         '<span class="hl-week-wd">' + esc(wd) + '</span>' +
         '<span class="hl-week-date">' + esc((dt.getMonth() + 1) + '/' + dt.getDate()) + '</span>' +
@@ -5228,7 +5270,14 @@ async function hlLoadWeek() {
         x.removeAttribute('aria-current');
       });
       c.setAttribute('aria-current', 'date');
-      doHuangli(Number(c.dataset.hlwk));
+      /* R2349k（R72-B7）：点击当刻用本地日换算偏移——跨零点打开的
+       * 页面点格子仍落到格子上写的那天。 */
+      var _wdd = c.dataset.hldate;
+      var _wdt = new Date(); _wdt.setHours(0, 0, 0, 0);
+      var _woff = Math.round(
+        (new Date(_wdd + 'T00:00:00') - _wdt) / 86400000);
+      if (!isFinite(_woff)) return;
+      doHuangli(_woff);
     });
   } catch (e) { box.hidden = true; }
 }
@@ -6201,6 +6250,12 @@ function xzSetDate(y, m, d) {
     ds.innerHTML = '';
     for (var dd = 1; dd <= days; dd++) ds.add(new Option(dd + ' 日', String(dd)));
   }
+  /* R2349k（R72-B9）：2/29 换到平年/31 号换到小月——此前静默钳到
+   * 月末日，查的其实不是用户说的那天。明示落到了哪天。 */
+  if (d > days) {
+    showToast(y + ' 年 ' + m + ' 月没有 ' + d + ' 号——按 ' +
+      m + ' 月 ' + days + ' 号查了', 'info');
+  }
   ds.value = String(Math.min(d, days));
 }
 
@@ -6209,6 +6264,20 @@ function xzShiftDay(step) {
   var parts = xzDateStr().split('-');
   var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   d.setDate(d.getDate() + step);
+  /* R2349k（R72-B8）：历法表界 1900–2100——越界此前给 select 塞进
+   * 不存在的选项、xzDateStr 读空回落今天（看着像「跳回今天」）。
+   * 钳在边界日并告诉用户。 */
+  var _lo = new Date(1900, 0, 1), _hi = new Date(2100, 11, 31);
+  if (d < _lo) {
+    xzSetDate(1900, 1, 1);
+    showToast('黄历表最早到 1900 年，再往前翻不到啦', 'info');
+    return doXingzuo(true);
+  }
+  if (d > _hi) {
+    xzSetDate(2100, 12, 31);
+    showToast('黄历表最远到 2100 年，再往后翻不到啦', 'info');
+    return doXingzuo(true);
+  }
   xzSetDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
   /* R230d（R16-P1-1）：return 才能在 on() 在途锁里生效 */
   return doXingzuo(true);
@@ -6227,6 +6296,7 @@ function xzInitDate() {
  * 原实现每次进星座页都重发请求并 busy() 占位，造成两次滚动跳变。
  * 日期变更/主动查询仍传 true 强制刷新。 */
 var _xzLastDate = null;
+var _xzRenderedOn = null;   /* R2349k（R72-B2）：卡面渲染日戳 */
 var _XZ_GEN = 0;   /* R230t（R33-P2-1）：翻页五个入口锁 key 互不共享，
                     * 乱序响应会盖掉新结果——代际号丢弃过期响应 */
 async function doXingzuo(force) {
@@ -6243,7 +6313,10 @@ async function doXingzuo(force) {
     if (j.today_sign) {
       /* C-002-fix：星座配图 + 今日值宫 */
       var _tk = ({'白羊':'aries','金牛':'taurus','双子':'gemini','巨蟹':'cancer','狮子':'leo','处女':'virgo','天秤':'libra','天蝎':'scorpio','射手':'sagittarius','摩羯':'capricorn','水瓶':'aquarius','双鱼':'pisces'})[j.today_sign] || 'aries';
-      html += '<div class="xz-today"><img class="xz-today-img" src="/static/cream/zodiac-' + _tk + '.jpg" alt="" onerror="this.classList.add(\'is-missing\')"><span class="xz-today-label">今日当班</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
+      /* R2349k（R72-C2）：翻的不是今天时「今日当班/今日守护星」是错
+       * 话术——跟查询日改说「当日」。 */
+      var _xzT0 = (dateStr === todayIso()) ? '今日' : '当日';
+      html += '<div class="xz-today"><img class="xz-today-img" src="/static/cream/zodiac-' + _tk + '.jpg" alt="" onerror="this.classList.add(\'is-missing\')"><span class="xz-today-label">' + _xzT0 + '当班</span><span class="xz-today-sign">' + esc(j.today_sign) + '</span></div>';
       /* C-002：星座详情页——爱情/事业/财运分维度 */
       var _todayDetail = (j.signs || []).filter(function (s) { return s.is_today; })[0];
       /* R232b（R40-A3/W4）：值宫名+值星露出——palace/star 算好了
@@ -6251,7 +6324,7 @@ async function doXingzuo(force) {
       if (_todayDetail && (_todayDetail.palace || _todayDetail.star)) {
         html += '<div class="xz-palace-line">' +
           esc((_todayDetail.palace || '') +
-              (_todayDetail.star ? ' · 今日守护星：' + _todayDetail.star : '')) +
+              (_todayDetail.star ? ' · ' + _xzT0 + '守护星：' + _todayDetail.star : '')) +
           '</div>';
         if (_todayDetail.sign_note) {
           html += '<div class="xz-palace-note">' +
@@ -6294,6 +6367,7 @@ async function doXingzuo(force) {
     html += tailHook('xingzuo');
     paint('xzResult', html);
     _xzLastDate = dateStr;   /* R228f */
+    _xzRenderedOn = todayIso();   /* R2349k（R72-B2） */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
     revealResult('xzResult');
     /* R230d（R16-P2-2）：星座分享按钮（其他五个测算页都有，独缺这里）。 */
@@ -6444,7 +6518,7 @@ function _hlExtractScene(q) {
   /* R229z：新日期词也要剥——节日/农历/绝对日期/月内相对/前后缀，
    * 否则「国庆节前一天摆摊」会残成「国庆节前一天摆摊」。 */
   s = s.replace(/(农历|農曆|阴历|陰曆|旧历|舊曆)?(闰|閏)?[正一二两三四五六七八九十冬腊\d]{1,2}月[初廿一二三四五六七八九十\d]{1,3}[日号]?/g, '');
-  s = s.replace(/(除夕|春节|春節|大年初一|元宵节|元宵節|端午节|端午節|端午|七夕|中秋节|中秋節|中秋|重阳节|重陽節|重阳|重陽|腊八节|臘八節|腊八|臘八|清明节|清明節|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人节|情人節|妇女节|婦女節|植树节|植樹節|愚人节|愚人節|劳动节|勞動節|青年节|青年節|儿童节|兒童節|建党节|建黨節|建军节|建軍節|教师节|教師節|国庆节|國慶節|国庆|國慶|万圣节|萬聖節|平安夜|圣诞节|聖誕節|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩节|感恩節|中元节|中元節|中元|小年|双十一|雙十一|光棍节|光棍節|月底|月末|月初|下个?月|上个?月|这个?月|\d{1,2}\s*[月\/\-.]\s*\d{1,2}\s*[日号]?|\d{1,2}\s*[号日])(的?前[一二三四五六两]?[天日]?|的?后[一二三四五六两]?[天日]?|之前|之后|当天|当日)?/g, '');
+  s = s.replace(/(除夕|春节|春節|大年初一|元宵节|元宵節|端午节|端午節|端午|七夕|中秋节|中秋節|中秋|重阳节|重陽節|重阳|重陽|腊八节|臘八節|腊八|臘八|清明节|清明節|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|立秋|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人节|情人節|妇女节|婦女節|植树节|植樹節|愚人节|愚人節|劳动节|勞動節|青年节|青年節|儿童节|兒童節|建党节|建黨節|建军节|建軍節|教师节|教師節|国庆节|國慶節|国庆|國慶|万圣节|萬聖節|平安夜|圣诞节|聖誕節|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩节|感恩節|中元节|中元節|中元|小年|双十一|雙十一|光棍节|光棍節|月底|月末|月初|下个?月|上个?月|这个?月|\d{1,2}\s*[月\/\-.]\s*\d{1,2}\s*[日号]?|\d{1,2}\s*[号日])(的?前[一二三四五六两]?[天日]?|的?后[一二三四五六两]?[天日]?|之前|之后|当天|当日)?/g, '');
   /* 多字节后缀（前一天/次日/的后三天…）总是日期修饰，无锚直接剥；
    * 裸「前/后」只在串尾剥（「前后矛盾」是真词）。 */
   s = s.replace(/(前一天|前两天|前三天|头一天|头两天|的后?一?两?三天|的后两天|之后|后一天|后两天|次日|第二天|当天|当日)/g, '');
@@ -6763,7 +6837,7 @@ var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false,
  * _HOLIDAY_SOLAR/_HOLIDAY_LUNAR/除夕/清明 对齐维护。 */
 /* R229z续9：节气词也走兜底（小满=吉祥物名不进；大雪/小雪/大寒/小寒
  * 天气歧义不进——与后端 _SOLAR_TERMS 同表）。 */
-var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月|冬月|腊月|臘月|除夕|春节|春節|大年初一|元宵|端午|七夕|中秋|重阳|重陽|腊八|臘八|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人|植树|植樹|愚人|劳动|勞動|五一|青年|儿童|兒童|六一|建党|建黨|建军|建軍|教师|教師|国庆|國慶|万圣|萬聖|平安|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩|中元|小年|双十一|雙十一|光棍/;
+var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月|冬月|腊月|臘月|除夕|春节|春節|大年初一|元宵|端午|七夕|中秋|重阳|重陽|腊八|臘八|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|立秋|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人|植树|植樹|愚人|劳动|勞動|五一|青年|儿童|兒童|六一|建党|建黨|建军|建軍|教师|教師|国庆|國慶|万圣|萬聖|平安|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩|中元|小年|双十一|雙十一|光棍|下个?月|上个?月|这个?月|本个?月|月底|月末|月初/;
 
 /* 「问一嘴」无事项词时的中性提示（当日主推+引导）——提交主路径与
  * resolve_date 兜底复用。 */
@@ -6869,7 +6943,10 @@ async function _doHuangli(offset, reveal, spokenWord) {
   }
   var dateStr = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
   try {
-    const j = await api('/api/huangli?' + new URLSearchParams({ date: dateStr }).toString());
+    const j = await api('/api/huangli?' + new URLSearchParams({
+      date: dateStr,
+      today: todayIso(),   /* R2349k（R72-B3）：cross_ref「今天」锚客户端日 */
+    }).toString());
     var YI_MAP = _HL_YI_MAP, JI_MAP = _HL_JI_MAP;   /* R230y：映射表提升为模块级常量 */
     var yi = (j.yi || []);
     var ji = (j.ji || []);
@@ -6884,6 +6961,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* R230n（R25-1.3）：记下本卡实际展示的公历日——跨零点自刷新靠它
      * 判「这张卡是不是昨天的快照」。 */
     if (_hlBox) _hlBox.dataset.shownDate = j.date || dateStr;
+    _HL.renderedOn = todayIso();   /* R2349k（R72-B1）：渲染日戳，隔夜重查用 */
     /* R228c：month_cn 本身已带「月」（后端 MONTH_CN 表生成时即带），
      * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。
      * 注意：注释里别写「模块.文件」式点号串——probe_contract 会当字段读取。 */
@@ -6909,9 +6987,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
           : f === '四绝' ? '四绝日——立季前一天，大事留到后天'
           : f === '杨公忌' ? '杨公忌日——老传统提醒稳着点，小事照常' : f;
       }).join('、');
-      html += '<div class="hl-flag">🌙 今天逢' + esc(_flTxt) + '</div>';
+      /* R2349k（R72-C1）：「今天逢」写死——翻过去/未来日照样顶「今天」，
+       * 跟 _dayWord 走。 */
+      html += '<div class="hl-flag">🌙 ' + esc(_dayWord) + '逢' + esc(_flTxt) + '</div>';
     }
     if (cs && cs.message) html += '<div class="hl-csmsg">✨ ' + esc(cs.message) + '</div>';
+    /* R2349k（R72-A2）：节日行——中秋节/立秋/母亲节这天值得说出来。 */
+    if (j.festival && j.festival.length) {
+      html += '<div class="hl-festival">🎉 ' + esc(_dayWord) + '是' +
+        esc(j.festival.join('、')) + '</div>';
+    }
     /* R229z续21c：干支年双口径错位日（春节↔立春窗口）才出现的说明行 */
     if (j.year_note) html += '<div style="font-size:12px;color:var(--muted);margin-top:4px;">📅 ' + esc(j.year_note) + '</div>';
     html += '</div>';
@@ -6982,7 +7067,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */
     html += '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
-      '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" aria-label="问一嘴：今天适不适合某事" placeholder="问一嘴：今天适不适合面试/搬家…">' +
+      '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" aria-label="问一嘴：哪天适不适合某事" placeholder="问一嘴：哪天适不适合面试/搬家…">' +
       '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button>' +
       '</div>' +
       /* R230z（R36-P2-5）：问一嘴足迹——问过的问题收在这里可复点 */
@@ -7209,7 +7294,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
         _hr.insertAdjacentHTML('beforeend',
           '<div class="hl-ask" style="margin-top:10px;display:flex;gap:8px;">' +
           '<input id="hlAskInput" class="hl-ask-input" type="text" maxlength="30" ' +
-          'aria-label="问一嘴：今天适不适合某事" placeholder="问一嘴：今天适不适合面试/搬家…">' +
+          'aria-label="问一嘴：哪天适不适合某事" placeholder="问一嘴：哪天适不适合面试/搬家…">' +
           '<button type="button" id="hlAskBtn" class="hl-ask-btn">问</button></div>');
       }
     }
@@ -7280,9 +7365,13 @@ async function _doHuangli(offset, reveal, spokenWord) {
       }
       /* R230z（R36-P2-5）：足迹落库——记问题+当前显示日（日期词改写的
        * 分支会在跳转后由卡面日期自然对上）。 */
+      /* R2349k（R72-B4）：足迹记两个日子——d 是被问的卡面日（chip 前缀
+       * 用），a 是问的那一天（接续条「X天前你问了」的锚——此前锚在
+       * d 上，正在翻未来日时「刚才问的」会算成「几天前」。 */
       var _hd0 = document.querySelector('#hlResult .hl-head div');
       var _ds0 = _hd0 ? _hd0.textContent.trim() : '';
-      _hlAskLog(q, /^\d{4}-\d{2}-\d{2}$/.test(_ds0) ? _ds0 : todayIso());
+      _hlAskLog(q, /^\d{4}-\d{2}-\d{2}$/.test(_ds0) ? _ds0 : todayIso(),
+                todayIso());
       /* R2349（R64-P1-3/P1-5）：事项词识别改「词表子串命中，长词优先」
        * ——与后端 _CHAT_SCENE_TERMS→_HUANGLI_VOCAB 同序同口径。此前
        * KNOWN 只有 25 词，chat 端 80+ 键能命中而 UI 落中性卡，同一
@@ -7324,6 +7413,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
         api('/api/huangli/resolve_date?q=' + encodeURIComponent(q) +
             '&base=' + todayIso(),   /* R230l（R24-P3-4） */
             { silent: true }).then(function (r) {
+          /* R2349k（R72-A3）：词命中但日子不存在（下个月31号）——
+           * 如实提示，不回退显示日乱判。 */
+          if (r && r.invalid) {
+            showToast(r.invalid, 'warn');
+            var _v0 = document.getElementById('hlVerdict');
+            if (_v0) _v0.textContent = r.invalid;
+            return;
+          }
           var off2 = null;
           if (r && r.date) {
             var rp = r.date.split('-');
@@ -7919,12 +8016,12 @@ function _qmFavMark(favs) {
 }
 
 /* 问一嘴足迹：localStorage 存 {d, q} 最近 12 条，chip 点击回到那天重问 */
-function _hlAskLog(q, dateStr) {
+function _hlAskLog(q, dateStr, askedOn) {
   try {
     var list = JSON.parse(window.localStorage.getItem('hlask') || '[]');
     if (!Array.isArray(list)) list = [];
     list = list.filter(function (x) { return !(x && x.q === q && x.d === dateStr); });
-    list.unshift({ q: q, d: dateStr });
+    list.unshift({ q: q, d: dateStr, a: askedOn || dateStr });
     window.localStorage.setItem('hlask', JSON.stringify(list.slice(0, 12)));
   } catch (e) {}
 }
@@ -9479,7 +9576,10 @@ function baziPersonaCard(j) {
                             { type: 'application/json' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = '小满-我的数据-' + new Date().toISOString().slice(0, 10) + '.json';
+        /* R2349k（R72-B6）：toISOString 是 UTC 日——东八区 0-8 点导出的
+         * 文件名会写昨天。本地日用 sv 语法的 toLocaleDateString。 */
+        a.download = '小满-我的数据-' +
+          new Date().toLocaleDateString('sv') + '.json';
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
         showToast('备份已下载：' + (j.records || []).length + ' 条记录 + 本机偏好', 'info');

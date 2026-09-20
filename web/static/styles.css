@@ -1620,6 +1620,8 @@ button:active{transform:scale(.96);}
 .hl-ji-t{font-weight:800;color:#C2527B;margin-bottom:6px;}
 .hl-flag{font-size:12.5px;color:#a3542a;margin-top:6px;}
 .hl-csmsg{font-size:13px;color:var(--primary-ink);margin-top:6px;}
+/* R2349k（R72-A2）：节日行 */
+.hl-festival{font-size:12.5px;color:#b5732f;margin-top:6px;font-weight:600;}
 @media (max-width:480px){ .hl-yiji{grid-template-columns:1fr;} }
 
 /* ── v4（2026-08-29 交接修复）────────────────────────────── */
@@ -2208,6 +2210,7 @@ html[data-theme="dark"] .daily-recall-btn:hover{background:#3A3237;}
 html[data-theme="dark"] .interp-disclaimer-soft{opacity:1;
   color:var(--secondary);}
 html[data-theme="dark"] .hl-flag{color:#E8A288;}
+html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 
 /* R2340b（R55-P2）：360px 档 daily chips 6px 溢出——缩字号/内距止血 */
 @media (max-width:400px){

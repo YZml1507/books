@@ -71,6 +71,7 @@
   "daily",
   "daily.advice.dedup",
   "daily.date",
+  "daily.fields.no_degrade",
   "daily.future_nowrite",
   "daily.noble.guiren",
   "err.addr.limit_zero",
