@@ -11087,3 +11087,10 @@ scripts_importable / llm_polish / ruff 全绿。
 - manifest theme/background → #FFF8E7（与 --bg/meta 对齐）；接线资产迁出 `_candidates/` → `shared/`（gift 1024→256px 65KB；sakura/lilac PNG→JPEG 1.1MB→~85KB；peach/dream/moon-cat JPEG 正名 .jpg）；礼盒 img 补 onerror；hero fetchpriority=high；icon-180.png 补 apple-touch-icon；SW SHELL +7 首屏资产（smiley 子集也在）；删真死 2 件（cream-hero.jpg v1、daily-box-gift.png v1）；`_candidates/README.md` 接线表修正 + r231a 补登记
 - 闸：selftest 237 / contract 537 / ui_smoke 58 / poster 14判据 / plain_first / dollar / ruff 全绿
 - R233e：maskable 专用图（72% 安全区）+ zcool preload（R42-#8 尾巴）
+
+### R233f（R43 二轮 a11y 清零批）
+- P1×2：celeb 连签卡补真模态（aria-modal+焦点圈+Esc+inert+焦点归还 picked 钮）；me-strip「改」死钮→先切星座视图再开抽屉聚焦 b_year
+- P2×9：checkin/ph-del 重建焦点归还；hl-week aria-current=date；forced-colors 选中态补 outline/✓；`<main>`+funcGrid `<nav>` 地标；fav-chip-x 24px；侧栏开时 skip-link/install-tip 等 body 级浮件一并 inert；深链返回焦点回落 funcGrid；hlPickDrawer toggle 事件回写 aria-expanded
+- P3：install-tip role=status+44px；qm-fav 防重 disabled→inflight（不丢焦点）；ph-del 武装态 aria-label；daily-meta tabindex 区域；海报开层 _mainInert+trigger isConnected；触控面补齐 44px 契约
+- 遗留（M 级缓办）：#11 title-only 信息（hl-pill 译注改可见副标）、#14 结果整卡 live 播报轰炸（拆 stub）
+- 闸：selftest 237 / ui_smoke 58 / ruff 绿

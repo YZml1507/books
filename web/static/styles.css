@@ -1807,3 +1807,21 @@ html{-webkit-text-size-adjust:100%;}
 .hour-note{display:inline-block;margin:8px 0 0;padding:2px 10px;border-radius:99px;
   font-size:11px;color:var(--secondary);background:rgba(184,134,11,.08);
   border:1px dashed rgba(184,134,11,.3);}
+
+/* ── R233f（R43-P2/P3 a11y 批） ── */
+/* P2-8/P3-16：触控面收缩补到规范尺寸（视觉尺寸不变，负 margin 收排距） */
+.fav-chip-x{min-width:24px;min-height:24px;}
+.daily-me-edit{min-height:44px;padding:6px 14px;margin:-7px 0;}
+.celeb-share,.celeb-x{min-height:44px;}
+.install-tip-go{min-height:44px;}
+.install-tip-x{width:44px;height:44px;margin:-8px 0;}
+.welcome-close{min-width:44px;}
+/* P2-6：forced-colors 下渐变底/彩边被系统色抹平——选中态补非颜色指示 */
+@media (forced-colors:active){
+  .checkin-opt.picked,.hl-chip.active,.rtab.active,
+  .func-card[aria-current],.hl-week-cell.active,
+  .hl-week-cell[aria-current]{
+    outline:2px solid Highlight;outline-offset:-2px;forced-color-adjust:none;
+  }
+  .checkin-opt.picked::after{content:' ✓';}
+}

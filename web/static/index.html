@@ -72,6 +72,8 @@ if ('serviceWorker' in navigator) {
 <!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
 <a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
 <div class="wrap">
+<!-- R233f（R43-P2-7）：<main> 地标——读屏 landmarks 此前无主内容区 -->
+<main id="main">
   <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
   <h1 class="visually-hidden">小满的解忧铺——黄历、八字、塔罗、起名</h1>
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
@@ -119,7 +121,8 @@ if ('serviceWorker' in navigator) {
         <div class="daily-summary" id="dailySummary">正在为你推算今日运势…</div>
       </div>
     </div>
-    <div class="daily-meta">
+    <!-- R233f（R43-P3-17）：窄屏横滚区需可键盘聚焦，否则 Tab 进不去 -->
+    <div class="daily-meta" tabindex="0" role="region" aria-label="今日提示">
       <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
       <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong></div>
       <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
@@ -157,7 +160,7 @@ if ('serviceWorker' in navigator) {
        桃花/合婚从 view-bazi 相关功能区提回首页（specs/009 §2 裁决）。 -->
   <div class="ia-group" data-group="ask">
     <div class="ia-label">✨ 今天想看点什么</div>
-    <div class="func-grid" id="funcGrid" tabindex="-1">
+    <nav class="func-grid" id="funcGrid" tabindex="-1" aria-label="功能入口">
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
@@ -179,7 +182,7 @@ if ('serviceWorker' in navigator) {
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
-    </div>
+    </nav>
   </div>
 
   <!-- R206b US2：高级入口——研究型功能（六爻/古籍读书/起名）收进这里，
@@ -724,11 +727,12 @@ if ('serviceWorker' in navigator) {
         <button id="historyImportBtn" type="button" class="ghost">导入备份</button>
         <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
       </div>
-      <div id="historyList" class="ph-list"><div class="ph-empty">加载中…</div></div>
+      <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
       <div id="historyDetail" class="ph-detail" aria-live="polite" hidden></div>
     </div>
   </div>
 
+</main>
 </div><!-- /wrap -->
 
   <!-- R229z续23（R10-#1 P0）：三个覆盖层移出 .wrap——它们在 wrap 内时，

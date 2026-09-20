@@ -1314,11 +1314,20 @@ function sbFocusable(sb, enable) {
 }
 /* R228n：侧栏打开时主区 inert——原来遮罩只挡鼠标，Tab 能穿透到
  * 被盖住的控件（in_modal=false 实测落到 .checkin-opt）。 */
-function _mainInert(on) {
+function _mainInert(on, except) {
   var w = document.querySelector('.wrap');
-  if (!w) return;
-  w.inert = on;
-  if (_NO_INERT) sbFocusable(w, !on);
+  if (w) { w.inert = on; if (_NO_INERT) sbFocusable(w, !on); }
+  /* R233f（R43-P2-9）：.wrap 之外的 body 级浮件（skip-link/welcomeBar/
+   * install-tip）此前侧栏/模态开着仍可 Tab 到且被遮罩盖住。除侧栏
+   * 三件套（自己管理 inert）与当前模态（except）外统一打 inert。 */
+  var _keep = { recentToggle: 1, recentBackdrop: 1, recentSidebar: 1 };
+  Array.prototype.forEach.call(document.body.children, function (n) {
+    if (n === w || n === except || n.nodeType !== 1) return;
+    if (n.id && _keep[n.id]) return;
+    if (n.classList && n.classList.contains('page-glow')) return;
+    n.inert = on;
+    if (_NO_INERT) sbFocusable(n, !on);
+  });
 }
 
 /* R209b：聊天并入左侧统一栏——打开聊天=打开侧栏并滚到聊天段。 */
@@ -1592,9 +1601,14 @@ function showView(viewId) {
    * preventScroll：不干扰本函数的滚动位置恢复。 */
   if (!isHome && back && !back.hidden) {
     try { back.focus({ preventScroll: true }); } catch (e0) { back.focus(); }
-  } else if (isHome && window.__lastFuncCard) {
-    try { window.__lastFuncCard.focus({ preventScroll: true }); }
-    catch (e0) { try { window.__lastFuncCard.focus(); } catch (e1) {} }
+  } else if (isHome) {
+    /* R233f（R43-P2-10）：深链进叶页再返回——__lastFuncCard 从未被设
+     * 过，焦点丢 BODY 从头爬。空则落回功能区锚点。 */
+    var _back2 = window.__lastFuncCard || el('funcGrid');
+    if (_back2) {
+      try { _back2.focus({ preventScroll: true }); }
+      catch (e0) { try { _back2.focus(); } catch (e1) {} }
+    }
   }
   /* v3（P8 修复）：记住「离开首页时的位置」，回首页时精确恢复。
    * 实测原实现回首页恒为 0（y2987→0）。进入视图时把当前 scrollY 存入
@@ -2935,6 +2949,9 @@ function showPosterModal(canvas, view) {
   });
   /* 触发动画 */
   requestAnimationFrame(function () { backdrop.classList.add('open'); });
+  /* R233f（R43-P3-18）：开层时主区打 inert——键盘圈防 Tab，inert
+   * 防读屏虚拟光标读到被遮内容。 */
+  _mainInert(true, backdrop);
   /* R228d：焦点移入弹层（关闭钮），否则键盘 Tab 走主区 */
   var _pcb = backdrop.querySelector('.poster-modal-close');
   if (_pcb) _pcb.focus();
@@ -2986,10 +3003,17 @@ function closePosterModal() {
     document.removeEventListener('keydown', _posterOnKey);
     _posterOnKey = null;
   }
-/* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位） */
-  if (_posterTrigger && _posterTrigger.focus) {
-    try { _posterTrigger.focus(); } catch (e) {}
-    _posterTrigger = null;
+  _mainInert(false);
+/* R228d：焦点归还触发的分享钮（读屏/键盘用户不丢位）
+ * R233f（R43-P3-20）：celeb「晒一下」场景触发钮已销毁——
+ * isConnected 校验，落空回落 #funcGrid（程序可聚焦，不丢位）。 */
+  if (_posterTrigger && !_posterTrigger.isConnected) _posterTrigger = null;
+  var _fall = _posterTrigger || el('funcGrid');
+  _posterTrigger = null;
+  if (_fall && _fall.focus) {
+    try { _fall.focus({preventScroll:true}); } catch (e) {
+      try { _fall.focus(); } catch (e2) {}
+    }
   }
   var m = document.getElementById('posterModal');
   if (!m) return;
@@ -4416,7 +4440,8 @@ async function hlLoadWeek() {
       var wd = i === 0 ? '今天' : ('周' + WD[dt.getDay()]);
       var yi = (j && j.yi && j.yi.length) ? (_HL_YI_MAP[j.yi[0]] || j.yi[0]) : '—';
       var ji = (j && j.ji && j.ji.length) ? (_HL_JI_MAP[j.ji[0]] || j.ji[0]) : '';
-      html += '<button type="button" class="hl-week-cell" data-hlwk="' + i + '">' +
+      html += '<button type="button" class="hl-week-cell" data-hlwk="' + i + '"' +
+        (i === 0 ? ' aria-current="date"' : '') + '>' +
         '<span class="hl-week-wd">' + esc(wd) + '</span>' +
         '<span class="hl-week-date">' + esc((dt.getMonth() + 1) + '/' + dt.getDate()) + '</span>' +
         '<span class="hl-week-yi">宜 ' + esc(_gSlice(yi, 6)) + '</span>' +
@@ -4433,6 +4458,11 @@ async function hlLoadWeek() {
         x.classList.remove('active');
       });
       c.classList.add('active');
+      /* R233f（R43-P2-5）：激活格同步 aria-current——读屏知道在看哪天 */
+      box.querySelectorAll('.hl-week-cell').forEach(function (x) {
+        x.removeAttribute('aria-current');
+      });
+      c.setAttribute('aria-current', 'date');
       doHuangli(Number(c.dataset.hlwk));
     });
   } catch (e) { box.hidden = true; }
@@ -6102,6 +6132,12 @@ async function _doHuangli(offset, reveal, spokenWord) {
         pick.setAttribute('aria-expanded', String(dr.open));
       }
     });
+    /* R233f（R43-P2-12）：原生点 <summary>/chip 关抽屉都不走 pick 的
+     * click——统一听抽屉 toggle 事件回写 aria-expanded。 */
+    var _hpd = document.getElementById('hlPickDrawer');
+    if (_hpd) _hpd.addEventListener('toggle', function () {
+      if (pick) pick.setAttribute('aria-expanded', String(_hpd.open));
+    });
     /* R228c：#hlSubmit 原在这里和 initDivination 的 on('hlSubmit', …)
      * 双绑定——每次「查这一天」发两遍请求。保留 on() 一处（还会带
      * 在途防重），这里不再绑。抽屉由 doHuangli 自选日期路径负责关闭。 */
@@ -6689,8 +6725,10 @@ document.addEventListener('click', function (ev) {
   var qf = t.closest('.qm-fav');
   if (qf) {
     var nm = qf.dataset.favName;
-    if (!nm || qf.disabled) return;
-    qf.disabled = true;
+    if (!nm || qf.dataset.inflight === '1') return;
+    /* R233f（R43-P3-15）：disabled=true 会瞬间把焦点甩回 BODY——
+     * 改用 dataset.inflight 防重，焦点位不丢。 */
+    qf.dataset.inflight = '1';
     postJSON('/api/favorites', { type: 'qiming', ref_id: nm.slice(0, 64), title: nm })
       .then(function () {
         qf.textContent = '♥'; qf.classList.add('on');
@@ -6698,6 +6736,7 @@ document.addEventListener('click', function (ev) {
         _qmFavsRender();
       })
       .catch(function (e) { showToast('没存上：' + e.message, 'error'); })
+      .finally(function () { qf.dataset.inflight = ''; })
       .finally(function () { qf.disabled = false; });
     return;
   }
@@ -7250,6 +7289,10 @@ function renderCheckin(dateKey) {
       /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
        * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
       renderCheckin(dateKey);
+      /* R233f（R43-P2-3）：整卡重渲销毁了聚焦钮，焦点丢 BODY 从头爬
+       * ——落回新渲出的 picked 钮。 */
+      var _pk = box.querySelector('.checkin-opt.picked');
+      if (_pk) { try { _pk.focus(); } catch (ef) {} }
       /* R231h（R39-P3-2）：已装为 PWA 时把连签数打到 app 角标——
        * 未安装/不支持的浏览器静默跳过。 */
       try {
@@ -7281,7 +7324,7 @@ function _checkinCelebrate(streak, opt) {
   var bd = document.createElement('div');
   bd.className = 'celeb-backdrop';
   bd.innerHTML =
-    '<div class="celeb-card" role="dialog" aria-label="连签里程碑">' +
+    '<div class="celeb-card" role="dialog" aria-modal="true" aria-label="连签里程碑">' +
     '<img src="/static/cream/poster-mascot.png" alt="" class="celeb-img">' +
     '<div class="celeb-title">连续 ' + streak + ' 天打卡达成 🎉</div>' +
     '<div class="celeb-sub">' + esc(_MILES[streak] || '') +
@@ -7290,7 +7333,33 @@ function _checkinCelebrate(streak, opt) {
     '<button type="button" class="celeb-share">📸 晒一下</button>' +
     '<button type="button" class="celeb-x">收下好运</button>' +
     '</div></div>';
-  var _close = function () { if (bd.parentNode) bd.remove(); };
+  /* R233f（R43-P1-1）：celeb 此前是假模态——焦点不进、Esc 不关、
+   * Tab 穿透遮罩、关后焦点丢 BODY。补齐 dialog 语义+焦点圈+归还。 */
+  var _trig = document.activeElement;
+  var _celebKey = function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) { _close(); return; }
+    if (e.key === 'Tab' || e.keyCode === 9) {
+      var _f = bd.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])');
+      if (!_f.length) return;
+      var _first = _f[0], _last = _f[_f.length - 1];
+      if (e.shiftKey && document.activeElement === _first) {
+        e.preventDefault(); _last.focus();
+      } else if (!e.shiftKey && document.activeElement === _last) {
+        e.preventDefault(); _first.focus();
+      } else if (!bd.contains(document.activeElement)) {
+        e.preventDefault(); _first.focus();
+      }
+    }
+  };
+  var _close = function () {
+    document.removeEventListener('keydown', _celebKey);
+    _mainInert(false);
+    if (bd.parentNode) bd.remove();
+    /* 焦点归还：触发钮已被打卡重渲销毁 → 落回新打的 picked 钮 */
+    var back = (_trig && _trig.isConnected) ? _trig :
+      (document.querySelector('.checkin-opt.picked') || el('dailyCard'));
+    if (back && back.focus) { try { back.focus(); } catch (ef) {} }
+  };
   bd.addEventListener('click', function (e) {
     if (e.target === bd || e.target.closest('.celeb-x')) _close();
   });
@@ -7300,7 +7369,11 @@ function _checkinCelebrate(streak, opt) {
     if (p && p.catch) p.catch(function () {});
     _close();
   });
+  _mainInert(true);
   document.body.appendChild(bd);
+  document.addEventListener('keydown', _celebKey);
+  var _fb = bd.querySelector('.celeb-share') || bd.querySelector('.celeb-x');
+  if (_fb) { try { _fb.focus(); } catch (e2) {} }
 }
 /* R230y（R36-P1-4）：「我的生日」本地 profile——任一本人表单提交
  * 成功后写入 localStorage，其余同人表单的空值/仍带预填标记的字段
@@ -7374,7 +7447,14 @@ function _renderMeStrip() {
   var btn = box.querySelector('.daily-me-edit');
   if (btn) btn.addEventListener('click', function () {
     var bd = el('birthDrawer');
-    if (bd) { bd.open = true; bd.scrollIntoView({behavior:'smooth'}); }
+    if (!bd) return;
+    /* R233f（R43-P1-2）：抽屉在 #view-xingzuo 里——此前只给隐藏视图内
+     * 的 details 置 open，用户只见一次莫名滚动（死钮）。先切视图再开。 */
+    if (typeof showView === 'function') showView('xingzuo');
+    bd.open = true;
+    bd.scrollIntoView({behavior:'smooth'});
+    var _fy = el('b_year');
+    if (_fy) { try { _fy.focus({preventScroll:true}); } catch (e) {} }
   });
   box.hidden = false;
 }
@@ -7421,6 +7501,8 @@ function _renderInstallTip() {
   } catch (e) {}
   var bar = document.createElement('div');
   bar.className = 'install-tip'; bar.id = 'installTip';
+  /* R233f（R43-P3-13）：静默出现读屏无感知——role=status 出现即播。 */
+  bar.setAttribute('role', 'status');
   bar.innerHTML = '<span>🏠 把小满放进桌面，明天直接来</span>' +
     '<button type="button" class="install-tip-go">装好</button>' +
     '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
@@ -7606,10 +7688,14 @@ function baziPersonaCard(j) {
         tg.dataset.armed = '1';
         var _origTxt = tg.textContent;
         tg.textContent = '再点一次确认删除';
+        /* R233f（R43-P3-19）：聚焦中按钮 textContent 变化读屏多半不重播
+         * ——同步 aria-label，武装态可被朗读。 */
+        tg.setAttribute('aria-label', '再点一次确认删除');
         tg.classList.add('ph-del-armed');
         setTimeout(function () {
           tg.dataset.armed = '';
           tg.textContent = _origTxt;
+          tg.removeAttribute('aria-label');
           tg.classList.remove('ph-del-armed');
         }, 3000);
         return;
@@ -7621,7 +7707,11 @@ function baziPersonaCard(j) {
       tg.dataset.inflight = '1';
       try {
         await phFetch('/api/paipan/history/' + id, { method: 'DELETE' });
-        loadPaipanHistory();
+        /* R233f（R43-P2-4）：列表重建销毁聚焦钮 → 落回列表容器 */
+        loadPaipanHistory().then(function () {
+          var _hl = el('historyList');
+          if (_hl) { try { _hl.focus(); } catch (ef) {} }
+        }, function () {});
         /* R230n续（R23-P3-6）：删除成功广播脏标，其他 tab 同步刷新。 */
         try {
           if (window.BroadcastChannel) {
