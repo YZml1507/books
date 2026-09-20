@@ -10570,3 +10570,5 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **P3**：chatSid→crypto.getRandomValues；ph-item `data-id` esc 纪律；check_poster B-013 50ms 阈值在 CI 共享机假阳（本地 13ms vs CI 55ms）→ 取 3 次最小值。
 - 闸门：selftest 206 / contract 410 / llm_polish / poster（本地重跑 3/3 过）全绿。
 - **P3-10**：`keep()` 里 suspect 命中也计入 kept——kept 语义是「进证据集」，披露行不算证据，已拆。
+- **R230a-47~50**：新行为钉扎批——`compare.flagged`（受损见证隔离 + opt-in）、`search.s2t_hint`、`search.total`、`err.threads.role/empty_quote`（孤儿零增量复用旧断言窗）、`daily.future_nowrite`、`err.int64_overflow`。selftest 206→214。
+- 顺带：`_validation_handler` 的 `ctx.error` 嵌套 ValidationError 对象让 JSONResponse 炸 500——新断言当场抓到，ctx 值统一 str()。
