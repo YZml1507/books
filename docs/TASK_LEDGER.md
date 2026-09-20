@@ -10706,3 +10706,29 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 - **P2-5 toast 洪泛**：同文案在屏折叠为「×N」，栈上限 3 摘最旧。
 - **P3-6** 非法 `?view=` → toast 提示不再静默；**P3-7** checkin 先落盘再标 picked，失败 toast 不再假装已打卡；**P3-8** 全部 4 处 AI 轮询挂 `_aiPollGate()`（hidden/offline 暂停取数）；**P3-9** `_humanize422` 补 int_parsing/field required/date 模式；**P3-10** `_ZW_RE` 扩至 LRM/RLM+bidi 覆盖/隔离符，`_no_c0` 写路径同剥（线程题防排版搅乱）；**P3-11** 聊天发送失败恢复输入稿+回收 me 气泡；**P3-12** 黄历交互区打印整体隐藏（.hl-interactive/.hl-ask）；**P3-13** 海报同视图 4s 内只弹浮层不再下载；**P3-14** 排盘同参 1.5s 防抖（成功后记账，失败重试不拦）。
 - 验证：selftest 218 / contract 420 / ui_smoke 54 / parity 全绿。实机复评 28/28 真机 LLM 事实锚定零漂移。
+
+## R230r（2026-09-20）：R29 分享图链路 + R30 古籍研究面清零
+
+双份审计报告（子 agent R29 poster / R30 research）按单清零，修复与钉扎：
+
+**分享图/海报（R29 15 条）**——`web/static/app.js`：
+- `_paintSharePoster` 全字段类型护栏（`_pStr`/`_pArr`/`_gSlice`）：后端若返回数组/对象/null 不再画 `[object Object]` 或 NaN 坐标；hook 文案 shrink-to-fit（28→16px 再截断+…）。
+- 免责声明加深色底 pill（`rgba(253,248,240,0.78)`）——暖底图上浅色字可读性不足。
+- `downloadPoster` 改 async：等待 `POSTER_BG.warm.decode()`（1500ms 竞态上限）——此前点快得到渐变色占位图而非暖底图；失败 toast「这张图没画出来」。
+- `buildShareData` 九视图全加固；`_paintPoster` legacy 坐标钉 1080 逻辑空间；`wrapText*` 截断补 …。
+- `web/check_poster.py` 判据 14 扩到 9 视图真路径（每视图真实 fetch + 点 share + PNG>40KB + 0 pageerror）。
+
+**古籍研究面（R30 ~14/22 条）**——`src/guji/research.py`、`src/guji/bookstudy.py`、`web/services.py`、`web/routers/reading.py`、`web/schemas.py`：
+- `_subphrases` 两轮重排：短词（≤4 字）保底预算 + 长窗动态配额——自然口语长问「請問無為在老子與莊子裡面到底是怎麼表述的呢」此前必拒（0 种子），现出 6 条证据。`concept_census` 增 `hint`/`shared_total`/`shared_truncated`（共现截断第三态披露）。
+- bookstudy 错误文案全中文；bcv `addr1` 无 `addr_name` 直接报错（章号按卷内计，Genesis/Exodus ch1 会揉错节）；章单元带 `addr_name`/`addr1`。
+- `search`：`work`/`layer` 参数校验存在性（不存在的名不再静默零命中）；`_require_q` 剥零宽字符（纯 ZWSP 查询此前当真词查 FTS）。
+- `addr` 响应增 `total`/`truncated`（前 20 条不代表全部的第三态披露）。
+- `compare` 增 `no_witness`——无见证层时 `agree=False` 此前误读为「有差异」。
+- `works` 的 source 按 manifest `gutenberg_id`/`source_url` 实标（47 部全被误标 kanripo）。
+- `threads` 响应披露 `total`/`limit=50`/`truncated`；新增 `PATCH /api/threads/{tid}`（open/parked/closed——schema 早有此 CHECK 但此前零写入路径）；`thread_record` 先查线程存在（FK 缺失不再 500）。
+- `claim` 空白 → 422「claim 不能是空白」（`_claim_not_blank` validator）。
+- `_FIELD_CN` 补 evidence/tid/thread_id/max_addresses/per_work/addr_name——422 人话化全覆盖。
+
+R30 其余 8 条处置：view-read 前端缺陷 5 条按用户 R208b 决策持留（视图无入口）；#14 无关参数提示、#9 负 limit 钳制为边际项暂略。
+
+闸门：selftest 218→233（+15 钉扎断言）、contract 420、parity 65+35/88、poster 判据 12–14（9 视图）、ui_smoke 54、baseline_voice 14 字节冻结、plain_first、xingzuo、warm_voice、async_ai、dollar_misuse、regress 基线已刷新、ruff E9/F 全绿。
