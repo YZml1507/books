@@ -20,6 +20,7 @@
   "bazi",
   "bazi.cross_ref.sun_sign",
   "bazi.evidence.citation",
+  "bazi.hour_unknown",
   "bazi.interpretation.deterministic",
   "bazi.life",
   "bazi.lunar",

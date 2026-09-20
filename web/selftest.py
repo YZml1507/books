@@ -187,6 +187,20 @@ def _run_inner() -> list[str]:
                      and j.get("evidence")
                      and any(e.get("work_id") in ZI_PING_WORKS
                              for e in j.get("evidence", []))))
+    # R230a-18（R13-P1-3 钉扎）：hour_known=False → 响应带该键且 warm
+    # reply 首部有时柱默认午时声明；缺省（True）时不该出现该键（additive
+    # 键序约定——_expect_keys 精确比对依赖这一点）。
+    _hk = client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
+                                         "hour": 12, "gender": "男",
+                                         "hour_known": False}).json()
+    assert _hk.get("hour_known") is False, "hour_known=False 须回显"
+    _wr = (_hk.get("warm") or {}).get("reply") or []
+    assert _wr and "时辰" in _wr[0] and "中午" in _wr[0], \
+        ("bazi.hour_unknown.prepend", _wr[:1])
+    _hk2 = client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
+                                          "hour": 12, "gender": "男"}).json()
+    assert "hour_known" not in _hk2, "hour_known 缺省不得出现"
+    ok.append("bazi.hour_unknown")
     # R178b（D-226b）：确定性解读层 standing 覆盖——原 llm 字段（生成文本，
     # 需 key + 网络、不可复现）替换为 interpretation（guji.interpreter 规则
     # 输出）。断言引擎标识 + sections 非空 + text 以「## 排盘坐标」开头，
