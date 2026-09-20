@@ -484,6 +484,29 @@ function attachChatEntry(container) {
   card.appendChild(btn);
 }
 
+/* R230d（R16-P2-7）：轮数封顶后此前只复读收尾文案，用户没有任何
+ * 出路提示。后端 rec.closed=True 时在气泡尾部挂「开新话题」引导钮——
+ * 点了换新 sid（旧会话仍在内存，只是不再继续聊）。 */
+function _chatClosedHint(bubble) {
+  if (!bubble || bubble.querySelector('.chat-reset')) return;
+  var row = document.createElement('div');
+  row.className = 'chat-reset';
+  row.style.marginTop = '8px';
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'chat-chip';
+  b.setAttribute('aria-label', '清空本轮聊天，开个新话题');
+  b.textContent = '🌱 聊够啦？开个新话题';
+  b.addEventListener('click', function () {
+    try { localStorage.removeItem(CHAT_SID_KEY); } catch (e) {}
+    chatSid();   /* 重新生成 sid */
+    _CHAT_SEND_COUNT = 0;
+    chatBubble('ai', '新话题开张～想聊什么？');
+    row.remove();
+  });
+  row.appendChild(b);
+  bubble.appendChild(row);
+}
+
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
 function autoSendChatContext() {
   /* D-001-fix：先确保侧栏打开再发送消息 */
@@ -523,6 +546,7 @@ function autoSendChatContext() {
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
+          if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
           return;
         }
         if (st && st.status === 'failed') {
@@ -636,31 +660,41 @@ function _chatFallbackLine(message) {
 }
 
 /** R207b：起名点评轮询——复用 /api/ai/{tid}，done 渲染点评卡。 */
+/* R230d（R16-P3-3）：终态时把 nameReviewBtn 解灰——此前按钮在点击后
+ * 永久 disabled，点评成功后想换换说法再点一次都没门（只能靠整卡重绘）。 */
+function _nameReviewDone() {
+  var b = el('nameReviewBtn');
+  if (b) b.disabled = false;
+}
 function pollNameReview(taskId) {
   var deadline = Date.now() + AI_POLL_CAP_S * 1000;
   var tick = function () {
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       const out = el('nameReviewOut');
-      if (!out) return;
+      if (!out) { _nameReviewDone(); return; }
       if (st && st.status === 'done' && st.text) {
         out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4><p style="white-space:pre-wrap;">' +
           renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
+        _nameReviewDone();
         return;
       }
       if (st && st.status === 'failed') {
         out.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        _nameReviewDone();
         return;
       }
       if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-      else out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>';
+      else { out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
     }).catch(function (e) {
       /* R228c：同上——瞬时抖动不该杀死轮询。R8 P2-9：404 早退。 */
+      var out2 = el('nameReviewOut');
       if (e && e.status === 404) {
-        out.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        if (out2) out2.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        _nameReviewDone();
         return;
       }
       if (Date.now() < deadline) setTimeout(tick, AI_POLL_INTERVAL_MS);
-      else out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>';
+      else { if (out2) out2.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
     });
   };
   setTimeout(tick, AI_POLL_INTERVAL_MS);
@@ -792,6 +826,7 @@ function chatSend() {
         if (st && st.status === 'done' && st.text) {
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
           _ty.innerHTML = renderRichText(st.text);
+          if (st.closed) _chatClosedHint(_ty);   /* R230d（P2-7） */
           return;
         }
         if (st && st.status === 'failed') {
@@ -856,7 +891,6 @@ function showView(viewId) {
    *     revealResult() 负责，probe_first_screen 判据 1 不受影响。 */
   var _sy = window.scrollY;
   var isHome = (viewId === 'home');
-  var wasInView = !!window.__inView;   /* v5-fix：切换前的状态，滚顶判据用 */
   document.querySelectorAll('.view').forEach(function (v) {
     v.classList.remove('active');
   });
@@ -900,11 +934,17 @@ function showView(viewId) {
     window.__homeScrollMem = _sy;
   }
   window.__inView = !isHome;
-  /* v5（用户反馈）：滚顶只发生在「从首页进入功能页」这一次；
-   * 功能页之间跳转保持阅读位置，不再每次都拽到最顶。
-   * v5-fix：判据须用赋值前的 __inView——原写法先赋值再判断，
-   * `!isHome && !window.__inView` 恒为假，滚顶分支永远不执行。 */
-  if (!isHome && !wasInView) window.scrollTo({ top: 0, behavior: 'auto' });
+  /* R230d（R16-P1-2）：叶页→叶页此前抱着旧滚动位落在新页面中段——
+   * v5「保持阅读位置」的本意是同一页内的重进，不是跨页。 */
+  if (!isHome) window.scrollTo({ top: 0, behavior: 'auto' });
+  /* R230d（R16-P0-2）：进叶页推 history 记录——装进主屏后系统返回键
+   * 此前直接退出应用（无任何 pushState/popstate）。popstate 回落到
+   * state.view 或首页。 */
+  try {
+    if (!isHome && target && !window.__suppressPush) {
+      history.pushState({ view: viewId }, '');
+    }
+  } catch (e) { /* file:// 环境无 history API */ }
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
   /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
@@ -912,6 +952,17 @@ function showView(viewId) {
   /* C-002-fix：星座视图进入时自动加载今日运势 */
   if (viewId === 'xingzuo') doXingzuo(false);   /* R228f：重进同日复用已渲染，不再重拉+跳动 */
 }
+
+/* R230d（R16-P0-2）：系统返回/后退手势 → 回到 state 记的视图（默认首页）。 */
+window.addEventListener('popstate', function (e) {
+  window.__suppressPush = true;
+  try {
+    showView((e.state && e.state.view) ? e.state.view : 'home');
+  } finally {
+    window.__suppressPush = false;
+  }
+});
+try { history.replaceState({ view: 'home' }, ''); } catch (e) {}
 
 /* ── 通用渲染件 ────────────────────────────────────────────── */
 
@@ -1756,6 +1807,18 @@ function buildShareData(view, j) {
         return { name: d.name, sub: d.upright ? '正位' : '逆位', img: el };
       });
       return s;
+    }
+    /* R230d（R16-P2-2）：星座日运分享图——值宫 + 三维度摘要。 */
+    case 'xingzuo': {
+      var sxz = base('星座日运', (j && j.date) || '');
+      var _xzTd = ((j && j.signs) || []).filter(function (s) { return s.is_today; })[0];
+      sxz.big = (j && j.today_sign) || '今日值宫';
+      var _xzl = [];
+      if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: String(_xzTd.love).slice(0, 24) });
+      if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: String(_xzTd.career).slice(0, 24) });
+      if (_xzTd && _xzTd.wealth) _xzl.push({ k: '财运', v: String(_xzTd.wealth).slice(0, 24) });
+      sxz.lines = _xzl.slice(0, 3);
+      return sxz;
     }
     case 'liuyao': {
       var sly = base('六爻占卜', '');
@@ -3181,6 +3244,12 @@ async function doLiuyao() {
     body.month = num('ly_month');
     body.day = num('ly_day');
     body.hour = num('ly_hour');
+    /* R230d（R16-P2-4）：起卦时间是四个校验入口里唯一没做年份
+     * 范围的——超界交给后端 422 才报，前端先说人话。 */
+    if (body.year != null && (body.year < 1900 || body.year > 2100)) {
+      fail('lyResult', '年份要在 1900–2100 之间');
+      return;
+    }
   }
   const q = val('ly_question');
   if (q) body.question = q;
@@ -3202,7 +3271,8 @@ async function doLiuyao() {
       lyBtn.addEventListener('click', function () { downloadPoster(j, 'liuyao'); });
     }
   } catch (e) {
-    fail('lyResult', '摇卦失败：' + e.message);
+    /* R230d（R16-P1-3）：与 bazi 同一条内联重试——此前只有 bazi 有。 */
+    failWithRetry('lyResult', '摇卦失败：' + e.message, function () { doLiuyao(); });
   }
 }
 
@@ -3482,7 +3552,7 @@ async function doQiming() {
       doQiming();
     });
   } catch (e) {
-    fail('qmResult', '起名失败：' + e.message);
+    failWithRetry('qmResult', '起名失败：' + e.message, function () { doQiming(); });
   }
 }
 
@@ -3592,7 +3662,7 @@ async function doTaohua() {
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareTaohua', function () { downloadPoster(j, 'taohua'); });   /* R218a-巡2（N-04）：改用 taohua 专属 case */
   } catch (e) {
-    fail('thResult', '测算失败：' + e.message);
+    failWithRetry('thResult', '测算失败：' + e.message, function () { doTaohua(); });
   }
 }
 
@@ -3891,6 +3961,11 @@ async function doTarot() {
     (Date.now() % 1000000) : num('tr_seed');
   const n = num('tr_n');
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
+  /* R230d（R16-P2-5）：静默钳位会让用户以为抽了输入的张数——
+   * 超界时吱一声（防呆提示，不阻断）。 */
+  if (n != null && n !== body.n) {
+    showToast('牌数最多 10 张，已按 ' + body.n + ' 张抽', 'info');
+  }
   if (seed != null) body.seed = seed;
   const q = val('tr_question');
   if (q) body.question = q;
@@ -3901,6 +3976,18 @@ async function doTarot() {
     rememberVoice('trResult', j, buildTarotResult);
     rememberResult('tarot', j, q || '');   /* R219b（P0-2）：牌名+正逆位进第一句 */
     revealResult('trResult');
+    /* R230d（R16-P2-2）：塔罗分享按钮——buildShareData 的 tarot case
+     * 早就画好了，页面上却从没挂入口（liuyao 同模式）。 */
+    var trCard = el('trResult');
+    if (trCard && !document.getElementById('shareTarot')) {
+      var trBtn = document.createElement('button');
+      trBtn.className = 'ghost fav-btn';
+      trBtn.id = 'shareTarot'; trBtn.title = '生成分享图';
+      trBtn.textContent = '🔀 分享图';
+      trBtn.style.margin = '10px 0 0';
+      trCard.appendChild(trBtn);
+      trBtn.addEventListener('click', function () { downloadPoster(j, 'tarot'); });
+    }
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
     (j.draws || []).forEach(function (_d, i) {
       setTimeout(function () {
@@ -3909,7 +3996,7 @@ async function doTarot() {
       }, 300 + i * 200);
     });
   } catch (e) {
-    fail('trResult', '抽牌失败：' + e.message);
+    failWithRetry('trResult', '抽牌失败：' + e.message, function () { doTarot(); });
   }
 }
 
@@ -4017,7 +4104,7 @@ async function doHehun() {
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04）：改用 hehun 专属 case */
   } catch (e) {
-    fail('hhResult', '计算失败：' + e.message);
+    failWithRetry('hhResult', '计算失败：' + e.message, function () { doHehun(); });
   }
 }
 
@@ -4064,7 +4151,8 @@ function xzShiftDay(step) {
   var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   d.setDate(d.getDate() + step);
   xzSetDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  doXingzuo(true);
+  /* R230d（R16-P1-1）：return 才能在 on() 在途锁里生效 */
+  return doXingzuo(true);
 }
 
 
@@ -4122,8 +4210,20 @@ async function doXingzuo(force) {
     _xzLastDate = dateStr;   /* R228f */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
     revealResult('xzResult');
+    /* R230d（R16-P2-2）：星座分享按钮（其他五个测算页都有，独缺这里）。 */
+    var xzCard2 = el('xzResult');
+    if (xzCard2 && !document.getElementById('shareXingzuo')) {
+      var xzBtn = document.createElement('button');
+      xzBtn.className = 'ghost fav-btn';
+      xzBtn.id = 'shareXingzuo'; xzBtn.title = '生成分享图';
+      xzBtn.textContent = '🔀 分享图';
+      xzBtn.style.margin = '10px 0 0';
+      xzCard2.appendChild(xzBtn);
+      xzBtn.addEventListener('click', function () { downloadPoster(j, 'xingzuo'); });
+    }
   } catch (e) {
-    fail('xzResult', '查询失败：' + e.message);
+    failWithRetry('xzResult', '查询失败：' + e.message,
+                  function () { doXingzuo(true); });
   }
 }
 
@@ -4473,7 +4573,17 @@ function _hlShowNeutral() {
     askRow.parentNode.insertBefore(nv, askRow);
   }
 }
+/* R230d（R16-P1-1）：黄历 chip/场景/问一嘴全走 addEventListener 委托，
+ * 不经过 on() 的 _busy 锁——双击「明天」chip 实发两遍 GET /api/huangli。
+ * 在途锁放进函数本身（submitBazi 的 _submitBaziBusy 先例）。 */
+var _hlBusy = false;
 async function doHuangli(offset, reveal, spokenWord) {
+  if (_hlBusy) return;
+  _hlBusy = true;
+  try { return await _doHuangli(offset, reveal, spokenWord); }
+  finally { _hlBusy = false; }
+}
+async function _doHuangli(offset, reveal, spokenWord) {
   /* v3（P7）重写：支持 chip 快选（offset 相对今天的天数）与自选日期。
    * 渲染：大字宜忌双色卡 + 农历干支 + 冲煞 + 场景 chip 高亮。
    * API 契约零改动（GET /api/huangli?date=YYYY-MM-DD）。 */
@@ -4657,6 +4767,10 @@ async function doHuangli(offset, reveal, spokenWord) {
         esc(j.cross_ref.message) + '</div>';
     }
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
+    /* R230d（R16-P2-6）：黄历卡没有 .card 容器，paint 的自动挂钮
+     * 找不到宿主——手动挂「聊聊这件事」（其他五个视图都有）。 */
+    html += '<button class="chat-entry" type="button" id="chatEntry" ' +
+      'aria-label="打开小满聊天，聊聊这件事">💬 聊聊这件事</button>';
     paint('hlResult', html);
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
      * （后端 affair+days 区间查，含口语词归一），chip 点击直接翻
@@ -4728,7 +4842,8 @@ async function doHuangli(offset, reveal, spokenWord) {
     }
   } catch (e) {
     if (_hlBox) { _hlBox.classList.remove('is-loading'); _hlBox.style.pointerEvents = ''; }
-    fail('hlResult', '查询失败：' + e.message);
+    failWithRetry('hlResult', '查询失败：' + e.message,
+                  function () { doHuangli(offset, reveal, spokenWord); });
   }
 }
 
@@ -4979,9 +5094,15 @@ function initViews() {
       try { tgl.focus(); } catch (e) {}
     }
   }
-  /* R228d：Esc 关侧栏（全站此前只有海报层有 Esc） */
+  /* R228d：Esc 关侧栏（全站此前只有海报层有 Esc）
+   * R230d（R16-P2-3）：Esc 同时收拢开着的 <details> 抽屉
+   * （hlPickDrawer 等——此前 Esc 对它们无效，只能再点一次开关钮）。 */
   document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape' || !sb) return;
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('details[open]').forEach(function (d) {
+      d.open = false;
+    });
+    if (!sb) return;
     if (sb.classList.contains('open')) _setRecent(false);
   });
   if (tgl) tgl.addEventListener('click', function () {
@@ -5052,8 +5173,12 @@ function initReading() {
   on('conceptBtn', doConcept);          // R000a-02
 
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
+  /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
+   * 此前按 Enter 无反应，只能伸手去点按钮。 */
   [['rq', doSearch], ['rq2', doResearch], ['cq', doConcept],
-   ['cwq', doCompareWorks], ['aaddr2', doAddr]].forEach(function (pair) {
+   ['cwq', doCompareWorks], ['aaddr2', doAddr], ['tq', doThread],
+   ['bswork', doBookStructure], ['aguan', doAddr], ['ayao', doAddr],
+   ['aname', doAddr], ['aaddr1', doAddr]].forEach(function (pair) {
     const node = el(pair[0]);
     if (node) {
       node.addEventListener('keydown', function (e) {
@@ -5133,9 +5258,12 @@ function initDivination() {
   var _ENTER_SUBMIT = {
     'view-liuyao': 'lySubmit', 'view-tarot': 'trSubmit',
     'view-qiming': 'qmSubmit', 'view-taohua': 'thSubmit',
-    'view-hehun': 'hhSubmit'
-    /* view-bazi 是真 <form>，Enter 原生已提交；view-huangli 的输入框
-     * 是动态注入的（hlAskInput 已有自己的 Enter 绑定）。 */
+    'view-hehun': 'hhSubmit',
+    /* R230d（R16-P1-4）：黄历 y/m/d 三个数字框回车=查这一天
+     * （hlAskInput 自带 Enter 绑问一嘴，已被下面的 id 排护栏拦住）。
+     * 抽屉输入 b_* 在 <form> 内、原生可回车，不在此列。 */
+    'view-huangli': 'hlSubmit'
+    /* view-bazi 是真 <form>，Enter 原生已提交。 */
   };
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' || !e.target || e.target.tagName !== 'INPUT') return;
@@ -5145,20 +5273,23 @@ function initDivination() {
     var b = el(_ENTER_SUBMIT[v.id]);
     if (b && !b.disabled) { e.preventDefault(); b.click(); }
   });
-  on('xzSubmit', function () { doXingzuo(true); });
+  /* R230d（R16-P1-1）：包装函数必须 return 异步调用——否则
+   * Promise.resolve(undefined) 下个微任务就释放 on() 的 _busy 锁，
+   * 双击实发两遍请求（实测 xzSubmit/xzNext 各发 2 次）。 */
+  on('xzSubmit', function () { return doXingzuo(true); });
   /* R220b（P1-1）：日期导航——箭头翻天、今天/明天快捷、三 select 改即查 */
-  on('xzPrev', function () { xzShiftDay(-1); });
-  on('xzNext', function () { xzShiftDay(1); });
+  on('xzPrev', function () { return xzShiftDay(-1); });
+  on('xzNext', function () { return xzShiftDay(1); });
   on('xzToday', function () {
     var t = new Date();
     xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    doXingzuo(true);
+    return doXingzuo(true);
   });
   on('xzTomorrow', function () {
     var t = new Date();
     t.setDate(t.getDate() + 1);
     xzSetDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    doXingzuo(true);
+    return doXingzuo(true);
   });
   ['xz_year', 'xz_month', 'xz_day'].forEach(function (id) {
     var node = el(id);
@@ -5598,4 +5729,15 @@ function humanCite(citation) {
   window.addEventListener('online', function () {
     showToast('网络回来了～', 'info');
   });
+  /* R230d（R16-P1-5）：冷启动就离线（PWA 壳由 SW 兜住）时给同一条提示——
+   * offline 事件只在「由在线转离线」时发，启动即离线它不发。 */
+  if (navigator.onLine === false) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () {
+        showToast('当前离线——数据暂时刷不出来，恢复网络后再试', 'warn');
+      });
+    } else {
+      showToast('当前离线——数据暂时刷不出来，恢复网络后再试', 'warn');
+    }
+  }
 })();

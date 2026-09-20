@@ -343,7 +343,8 @@ def ai_task_status(tid: str) -> dict | None:
         rec = _tasks.get(tid)
         if rec is None:
             return None
-        return {"status": rec["status"], "text": rec["text"]}
+        return {"status": rec["status"], "text": rec["text"],
+                "closed": bool(rec.get("closed"))}
 
 
 # ---------------------------------------------------------------------------
@@ -496,6 +497,10 @@ def chat(session_id: str, user_msg: str,
                 # messages 到顶后不再追加——用独立 closed_n 计数推进轮换
                 _over = sess.get("closed_n", 0)
                 sess["closed_n"] = _over + 1
+                # R230d（R16-P2-7）：标记收口态——轮询端点带出 closed=True，
+                # 前端据此给「开新话题」引导（此前用户只能对着复读的收尾文案
+                # 干发消息，没有任何出路提示）。
+                sess["closed"] = True
                 return _CHAT_CLOSERS[_over % len(_CHAT_CLOSERS)]
 
             history = list(sess["messages"])
@@ -776,6 +781,13 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
     return tid
 
 
+def chat_session_closed(session_id: str) -> bool:
+    """该会话是否已到轮数封顶（R230d，P2-7 前端引导用）。"""
+    with _chat_lock:
+        sess = _chat_sessions.get(session_id)
+        return bool(sess and sess.get("closed"))
+
+
 def spawn_chat_task(session_id: str, user_msg: str,
                     facts: list[str] | None = None,
                     verdict_facts: list[str] | None = None,
@@ -812,6 +824,7 @@ def spawn_chat_task(session_id: str, user_msg: str,
             if rec is not None:
                 rec["status"] = status
                 rec["text"] = text
+                rec["closed"] = chat_session_closed(session_id)
 
     threading.Thread(target=_run, name="ai-chat-" + tid[:8],
                      daemon=True).start()

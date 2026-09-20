@@ -8,12 +8,28 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-dde0cb55de4f';   // shell-hash: dde0cb55de4f
+var CACHE = 'books-shell-c02d39b530d2';   // shell-hash: c02d39b530d2
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
- * 此前只靠运行时懒缓存兜不住。 */
+ * 此前只靠运行时懒缓存兜不住。
+ * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体
+ * 声明本体）、zcool woff2、favicon、8 张功能卡图（lazy 藏在 details 里的
+ * 两张此前离线断图）。lxgw 的 ~15 个 woff2 分片走运行时缓存（P0-1 修复后
+ * put 真正落地）。 */
 var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css',
              '/static/manifest.json', '/static/cream/icon-192.png',
-             '/static/cream/icon-512.png'];
+             '/static/cream/icon-512.png',
+             '/static/animotion/web-lite.css', '/static/fonts/lxgw.css',
+             '/static/fonts/zcool-kuaile-subset.woff2',
+             '/static/cream/favicon-cream-64.png',
+             '/static/cream/cream-icon-bazi.jpg',
+             '/static/cream/cream-icon-liuyao.jpg',
+             '/static/cream/cream-icon-huangli.jpg',
+             '/static/cream/cream-icon-tarot.jpg',
+             '/static/cream/cream-icon-qiming.jpg',
+             '/static/cream/cream-icon-hehun.jpg',
+             '/static/cream/cream-icon-taohua.jpg',
+             '/static/cream/cream-icon-xingzuo.jpg',
+             '/static/cream/cream-icon-history.jpg'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -43,7 +59,11 @@ self.addEventListener('fetch', function (e) {
         var net = fetch(e.request).then(function (resp) {
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
           if (resp.ok) {
-            caches.open(CACHE).then(function (c) { c.put('/', resp.clone()); });
+            /* R230d（R16-P0-1）：put 挂 waitUntil——游离 Promise 会在
+             * respondWith resolve 后随 SW 回收而丢，运行时缓存恒写不进。 */
+            e.waitUntil(caches.open(CACHE).then(function (c) {
+              return c.put('/', resp.clone());
+            }));
           }
           return resp;
         }).catch(function () { return hit; });
@@ -58,7 +78,10 @@ self.addEventListener('fetch', function (e) {
     caches.match(e.request).then(function (hit) {
       var net = fetch(e.request).then(function (resp) {
         if (resp.ok) {
-          caches.open(CACHE).then(function (c) { c.put(e.request, resp.clone()); });
+          /* R230d（R16-P0-1）：同上，运行时缓存回写必须挂 waitUntil。 */
+          e.waitUntil(caches.open(CACHE).then(function (c) {
+            return c.put(e.request, resp.clone());
+          }));
         }
         return resp;
       }).catch(function () { return hit; });

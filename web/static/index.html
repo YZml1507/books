@@ -236,7 +236,7 @@ if ('serviceWorker' in navigator) {
             <div class="field"><label for="ask_hour">问事时辰（可选）</label>
               <input id="ask_hour" type="number" min="0" max="23" placeholder="默认不比对"></div>
             <div class="field"><label for="location">地点（可选）</label>
-              <input id="location" type="text" placeholder="例如：北京"></div>
+              <input id="location" type="text" maxlength="32" placeholder="例如：北京"></div>
           </div>
           <div class="row" style="margin-top:6px;" id="range_row" hidden>
             <div class="field"><label for="range_start">起（YYYY-MM-DD）</label>
@@ -303,11 +303,11 @@ if ('serviceWorker' in navigator) {
         <h3>全文检索</h3>
         <div class="row">
           <div class="field" style="flex:3;"><label for="rq">查询词</label>
-            <input id="rq" type="text" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
+            <input id="rq" type="text" maxlength="200" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
           <div class="field"><label for="rlayer">层过滤</label>
             <select id="rlayer"><option value="">全部</option><option value="經">經</option><option value="傳">傳</option><option value="注">注</option><option value="疏">疏</option><option value="箋">箋</option><option value="緒">緒</option><option value="衍">衍</option><option value="演">演</option><option value="評">評</option><option value="纂">纂</option><option value="拾遺">拾遺</option><option value="misc">misc</option></select></div>
           <div class="field"><label for="rwork">书过滤</label>
-            <input id="rwork" type="text" placeholder="如：KR1a0001"></div>
+            <input id="rwork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
         </div>
         <button id="searchBtn" type="button">检 索</button>
         <div id="searchResult" style="margin-top:16px;"></div>
@@ -318,7 +318,7 @@ if ('serviceWorker' in navigator) {
         <h3>深度研究</h3>
         <div class="row">
           <div class="field" style="flex:3;"><label for="rq2">查询词</label>
-            <input id="rq2" type="text" placeholder="如：無為"></div>
+            <input id="rq2" type="text" maxlength="200" placeholder="如：無為"></div>
           <div class="field"><label for="rmax">最大地址数（1–6）</label>
             <input id="rmax" type="number" min="1" max="6" value="2"></div>
         </div>
@@ -342,13 +342,13 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="aguan">卦（zhouyi）</label>
             <input id="aguan" type="number" min="1" max="64" placeholder="1–64"></div>
           <div class="field"><label for="ayao">爻位</label>
-            <input id="ayao" type="text" placeholder="如：初九"></div>
+            <input id="ayao" type="text" maxlength="16" placeholder="如：初九"></div>
           <div class="field"><label for="aname">名称</label>
-            <input id="aname" type="text" placeholder="如：Proverbs"></div>
+            <input id="aname" type="text" maxlength="64" placeholder="如：Proverbs"></div>
           <div class="field"><label for="aaddr1">地址1</label>
             <input id="aaddr1" type="number" placeholder="如：12"></div>
           <div class="field"><label for="aaddr2">地址2</label>
-            <input id="aaddr2" type="text" placeholder="如：12"></div>
+            <input id="aaddr2" type="text" maxlength="16" placeholder="如：12"></div>
         </div>
         <button id="addrBtn" type="button">定 位</button>
         <div id="addrResult" style="margin-top:16px;"></div>
@@ -361,7 +361,7 @@ if ('serviceWorker' in navigator) {
           <div class="field"><label for="cgua">卦（1–64）</label>
             <input id="cgua" type="number" min="1" max="64" value="28"></div>
           <div class="field"><label for="cyao">爻位</label>
-            <input id="cyao" type="text" value="九二"></div>
+            <input id="cyao" type="text" maxlength="16" value="九二"></div>
         </div>
         <button id="compareBtn" type="button">比 对</button>
         <div id="compareResult" style="margin-top:16px;"></div>
@@ -379,7 +379,7 @@ if ('serviceWorker' in navigator) {
         <h3>研究线程</h3>
         <div class="row">
           <div class="field" style="flex:3;"><label for="tq">新建线程主题</label>
-            <input id="tq" type="text" placeholder="如：无为思想研究"></div>
+            <input id="tq" type="text" maxlength="64" placeholder="如：无为思想研究"></div>
         </div>
         <button id="threadBtn" type="button">新 建</button>
         <div id="threadResult" style="margin-top:16px;"></div>
@@ -390,7 +390,7 @@ if ('serviceWorker' in navigator) {
         <h3>读书（结构/章节/摘要）</h3>
         <div class="row">
           <div class="field"><label for="bswork">书 ID</label>
-            <input id="bswork" type="text" placeholder="如：KR1a0001"></div>
+            <input id="bswork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
           <div class="field"><label for="bsscheme">Scheme</label>
             <select id="bsscheme">
               <option value="zhouyi">zhouyi</option>
@@ -426,11 +426,11 @@ if ('serviceWorker' in navigator) {
         <h3>两书对照</h3>
         <div class="row">
           <div class="field"><label for="cwa">书 A</label>
-            <input id="cwa" type="text" value="KR5c0057" placeholder="如：KR5c0057"></div>
+            <input id="cwa" type="text" maxlength="32" value="KR5c0057" placeholder="如：KR5c0057"></div>
           <div class="field"><label for="cwb">书 B</label>
-            <input id="cwb" type="text" value="KR5c0126" placeholder="如：KR5c0126"></div>
+            <input id="cwb" type="text" maxlength="32" value="KR5c0126" placeholder="如：KR5c0126"></div>
           <div class="field"><label for="cwq">查询词</label>
-            <input id="cwq" type="text" value="無爲" placeholder="如：無爲"></div>
+            <input id="cwq" type="text" maxlength="200" value="無爲" placeholder="如：無爲"></div>
         </div>
         <button id="cwBtn" type="button">对 照</button>
         <div id="cwResult" style="margin-top:16px;"></div>
@@ -441,7 +441,7 @@ if ('serviceWorker' in navigator) {
         <h3>概念研究</h3>
         <div class="row">
           <div class="field" style="flex:3;"><label for="cq">概念</label>
-            <input id="cq" type="text" placeholder="如：無爲"></div>
+            <input id="cq" type="text" maxlength="200" placeholder="如：無爲"></div>
         </div>
         <button id="conceptBtn" type="button">研 究</button>
         <div id="conceptResult" style="margin-top:16px;"></div>
@@ -518,7 +518,7 @@ if ('serviceWorker' in navigator) {
       <h2><span aria-hidden="true">🌸</span> 五行起名 <span style="font-size:14px;color:var(--secondary);font-weight:400;">补五行 · 起好名</span></h2>
       <div class="row">
         <div class="field"><label for="qm_surname">姓氏</label>
-          <input id="qm_surname" type="text" value="李"></div>
+          <input id="qm_surname" type="text" maxlength="8" value="李"></div>
         <div class="field"><label for="qm_year">年</label>
           <input id="qm_year" type="number" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="qm_month">月</label>

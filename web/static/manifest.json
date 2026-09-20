@@ -8,7 +8,22 @@
   "background_color": "#F5EFE0",
   "theme_color": "#F5EFE0",
   "icons": [
-    {"src": "/static/cream/icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "/static/cream/icon-512.png", "sizes": "512x512", "type": "image/png"}
-  ]
+    {
+      "src": "/static/cream/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/cream/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/cream/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/"
 }
