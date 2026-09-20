@@ -22,6 +22,7 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 from .evalset import body_in, in_space
 from .variants import fold, segment_cjk
@@ -295,6 +296,10 @@ class KnowledgeBase:
              json.dumps(bazi, ensure_ascii=False) if bazi else None,
              json.dumps(tarot, ensure_ascii=False) if tarot else None,
              time.strftime("%Y-%m-%dT%H:%M:%S")))
+        # R229z续24（R9-P2-5）：daily_cache 原本无 DELETE 路径——每个被查过
+        # 的日期永久滞留一行。date 主键是 ISO 串，字典序=时间序，90 天前直删。
+        _cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+        self.db.execute("DELETE FROM daily_cache WHERE date < ?", (_cutoff,))
         self.db.commit()
 
     def add_favorite(self, ftype: str, ref_id: str, title: str) -> int:

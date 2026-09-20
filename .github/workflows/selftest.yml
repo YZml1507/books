@@ -46,7 +46,7 @@ jobs:
           if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
               kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
                         evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
-                                           raw_start=-1, raw_end=-1,
+                                           raw_start=6918, raw_end=6994,
                                            quote='第四十三章 天下之至柔',
                                            page_anchor='KR5c0057_tls_043-1a')],
                         thread_id=tid)
@@ -106,7 +106,7 @@ jobs:
           if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
               kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
                         evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
-                                           raw_start=-1, raw_end=-1,
+                                           raw_start=6918, raw_end=6994,
                                            quote='第四十三章 天下之至柔',
                                            page_anchor='KR5c0057_tls_043-1a')],
                         thread_id=tid)

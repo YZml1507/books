@@ -126,7 +126,12 @@ def solar_to_lunar(y: int, m: int, d: int) -> dict:
 
 
 def lunar_to_solar(ly: int, lm: int, ld: int, is_leap: bool = False) -> date:
-    """农历 ly 年 lm 月 ld 日（is_leap 是否闰月）-> 公历 date。"""
+    """农历 ly 年 lm 月 ld 日（is_leap 是否闰月）-> 公历 date。
+
+    R229z续24（R9-P2-3 定义域不对称声明）：输入农历年 ≤2100，但农历 2100
+    年腊月初二~廿九映射到公历 2101-01/02——返回值可越出 solar_to_lunar
+    的 1900-2100 接收域（反向再转会 ValueError）。下游干支/节气走天文
+    算法不受表界限制；调用方需要「可回读」语义时应自行框界。"""
     if not (1900 <= ly <= 2100):
         raise ValueError(f"农历年份需在 1900-2100（收到 {ly}）")
     if not (1 <= lm <= 12):

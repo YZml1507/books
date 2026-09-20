@@ -833,6 +833,11 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                 props = euclid.parse_propositions(html)
                 for prop in props:
                     for sub_text, sub_start, sub_end, skipped in split_long_text(euclid_text, prop.start, prop.end):
+                        # R229z续24（R9-P2-4）：偏移倒挂/空串的 unit 不入库
+                        # （实测 3 行 raw_start>raw_end 且 text=''，锚点 NULL
+                        # 的孤行——被引用则不可核验）。
+                        if not sub_text or sub_start > sub_end:
+                            continue
                         uid += 1
                         db.execute(
                             "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -986,6 +991,20 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                     (slug, m.get("title", slug), m.get("genre"), m.get("edition"), None,
                      len(txt_files), len(raw), _src, _sha, _lic, m.get("fetched_at")))
                 stats.works += 1
+
+    # R229z续24（R9-P2-4）：build_meta 在主线入库后就写，ext_dir 追加的
+    # 7 部西文作品不进 meta——works/units 与实际表内容脱节（审计实测
+    # meta=40/14914 vs 实际 47/62109）。提交前重写为最终值。
+    if ext_dir and os.path.isdir(ext_dir):
+        _meta = dict(db.execute(
+            "SELECT key, value FROM build_meta").fetchall())
+        _mainline_works = int(_meta.get("works", stats.works))
+        db.execute("UPDATE build_meta SET value=? WHERE key='works'",
+                   (str(stats.works),))
+        db.execute("UPDATE build_meta SET value=? WHERE key='units'",
+                   (str(stats.units),))
+        db.execute("INSERT OR REPLACE INTO build_meta VALUES ('ext_works', ?)",
+                   (str(stats.works - _mainline_works),))
 
     db.commit()
     db.close()
