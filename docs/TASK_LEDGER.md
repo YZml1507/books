@@ -11002,3 +11002,7 @@ scripts_importable / llm_polish / ruff 全绿。
 - 闸门：selftest 237 / contract 445 / ui_smoke 55 / parity 88 /
   baseline_voice / xingzuo / warm_voice / async_ai / plain_first / dollar /
   poster / no_generated / scripts_importable / llm_polish / ruff 全绿。
+
+- **F17**：合婚海报加「缘分指数」——确定性字段凑分（六合+15/天干五合
+  +10/日主相生+10/比和+6/桃花同支+5/六冲-15，夹 40–98），海报键值行
+  首行大字感数字，瞄准 CP 晒图量化晒点。

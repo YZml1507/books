@@ -2659,6 +2659,18 @@ function buildShareData(view, j) {
       var sh = base(_hhT, '');
       sh.big = l0 || '甜度超标组合';
       sh.lines = [];
+      /* R231d（R37-F17）：缘分指数——确定性字段凑一个一眼数字
+       * （小红书 CP 晒图最吃量化分）：六合+15 / 天干五合+10 /
+       * 日主相生+10 / 同五行比和+6 / 桃花同支+5，六冲-15，夹 40–98。 */
+      var _sc = 60;
+      if (_pStr(j && j.combine)) _sc += 15;
+      if (_pStr(j && j.gan_he)) _sc += 10;
+      if (j && j.day_wx_sheng) _sc += 10;
+      else if (j && j.day_wx_same) _sc += 6;
+      if (j && j.peach_same) _sc += 5;
+      if (_pStr(j && j.clash)) _sc -= 15;
+      _sc = Math.max(40, Math.min(98, _sc));
+      sh.lines.push({ k: '缘分指数', v: String(_sc) });
       var _wa = _pStr(j && j.day_wx_a), _wb = _pStr(j && j.day_wx_b);
       if (_wa && _wb) {
         var sheng = j.day_wx_sheng ? ' · 相生' : (j.day_wx_same ? ' · 比和' : '');
