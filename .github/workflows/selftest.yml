@@ -68,6 +68,10 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python web/baseline_voice.py
+      - name: LLM 层闸门 probe_llm_polish（specs/006 判据 2/2b/3/6/7/8）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_llm_polish.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
