@@ -10974,3 +10974,7 @@ no_generated / scripts_importable / llm_polish / ruff 全绿。
 selftest 237 / contract 442 / regress / parity / ui_smoke 55 / plain_first / dollar /
 xingzuo / warm_voice / baseline_voice / async_ai / poster 14 / no_generated /
 scripts_importable / llm_polish / ruff 全绿。
+
+### R231c 续：桃花图标去撞脸（R35-P2-2）
+- `cream-icon-taohua.jpg` 换粉兔抱桃花枝贴纸（原小熊+花瓶与头像熊+茶构图几乎一致，
+  小满头像失去辨识度）；旧图归档 `_candidates/r231a/cream-icon-taohua-old.jpg`。
