@@ -11029,3 +11029,10 @@ scripts_importable / llm_polish / ruff 全绿。
 - **daypart**：morning/noon 档差加大（原 ±2% RGB 不可辨）、dawn/night 加重；选择器加 :not([data-theme="legacy"]) 修掉 legacy 仍吃时段渐变的回滚漏；60s tick 同步复算（挂后台跨时段不再停档）
 - **杂项**：theme-color meta 对齐 --bg #FFF8E7；-webkit-text-size-adjust:100%；.xz-card hover 位移假 affordance 移除（留阴影）
 - **闸**：selftest 237 / contract 445 / ui_smoke 56 / ruff 全绿
+
+### R231g（R39 收尾批）
+- **P1-5 我的小档案**：daily 卡 meta 下新增汇总行（生日·打卡次数·TA档案+「改」按钮开抽屉）——存过生日的用户不再忘记自己有档案
+- **P1-4 装到桌面**：beforeinstallprompt 捕获 + `.install-tip` 左下小条（装好/✕ 7 天不再烦；standalone 模式不出现）
+- **P2-3 聊天空态个性化**：存过「me」→ chip 换「看看我的本命盘」；存过 partner →「我们俩最近合不合」；有 hlask 足迹 → 首 chip 变「接着上次：X」
+- **闸**：selftest 237 / contract 445 / smoke 56 / parity 88 / ruff 全绿
+- **遗留（需拍板/大工程）**：R39-P2-5 跨日话题总结（涉隐私边界）、P3-2 app badge、P3-3 里程碑仪式页、R38-P3-1 暗色主题（token 化大工程，目前主题切换 UI 已删，uiTheme 属内部回滚档）

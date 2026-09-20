@@ -6584,6 +6584,7 @@ function init() {
   initReading();
   initDivination();
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
+  _chatChipsPersonalize();   /* R231g（R39-P2-3）：聊天空态 chips 个性化 */
   _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
   _qmFavsRender();   /* R230z：心水名单行 */
   /* R231a（R35-P2-10）：滚动中 FAB 缩小半透明——只动 transform/opacity，
@@ -7073,6 +7074,105 @@ function _meFillAll() {
   _meFill('me', { y: 'th_year', m: 'th_month', d: 'th_day', h: 'th_hour', g: 'th_gender' });
   _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
   _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+  try { _renderMeStrip(); } catch (e) {}
+}
+/* R231g（R39-P1-5）：「我的小档案」汇总行——存过生日的用户进首页
+ * 就看到档案卡（生日自动代入的明示+打卡数+TA档案），点「改」开抽屉。 */
+function _renderMeStrip() {
+  var card = el('dailyCard');
+  if (!card) return;
+  var box = el('dailyMe');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'dailyMe'; box.className = 'daily-me';
+    var meta = card.querySelector('.daily-meta');
+    if (meta && meta.parentNode) {
+      meta.parentNode.insertBefore(box, meta.nextSibling);
+    } else { card.appendChild(box); }
+  }
+  var me = _meGet('me');
+  if (!me || !me.y) { box.hidden = true; return; }
+  var ck = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('checkin:') === 0) ck++;
+    }
+  } catch (e) {}
+  var partner = _meGet('me:partner');
+  var txt = '🧸 你的小档案 · ' + me.y + '年' + me.m + '月' + me.d + '日' +
+    '（测算时自动代入）';
+  if (ck) txt += ' · 打过 ' + ck + ' 次卡';
+  if (partner && partner.y) txt += ' · 也存了TA的';
+  box.innerHTML = '<span class="daily-me-txt">' + esc(txt) + '</span>' +
+    '<button type="button" class="daily-me-edit">改</button>';
+  var btn = box.querySelector('.daily-me-edit');
+  if (btn) btn.addEventListener('click', function () {
+    var bd = el('birthDrawer');
+    if (bd) { bd.open = true; bd.scrollIntoView({behavior:'smooth'}); }
+  });
+  box.hidden = false;
+}
+/* R231g（R39-P2-3）：聊天空态个性化——存过档案的用户，chips 换成
+ * 跟自己相关的入口（本命盘/合不合/接着上次问）。 */
+function _chatChipsPersonalize() {
+  var box = document.getElementById('chatEmpty');
+  if (!box) return;
+  var chips = box.querySelectorAll('.chat-chip');
+  if (!chips.length) return;
+  var me = _meGet('me');
+  if (me && me.y) {
+    chips[chips.length - 1].textContent = '看看我的本命盘';
+    chips[chips.length - 1].setAttribute('data-ask', '帮我看看我的八字命盘');
+  }
+  var p = _meGet('me:partner');
+  if (p && p.y && chips[1]) {
+    chips[1].textContent = '我们俩最近合不合';
+    chips[1].setAttribute('data-ask', '看看我和TA最近的缘分');
+  }
+  var hl = null;
+  try { hl = (JSON.parse(localStorage.getItem('hlask') || '[]') || [])[0]; }
+  catch (e) {}
+  if (hl && hl.q && chips[0]) {
+    chips[0].textContent = '接着上次：' + _gSlice(hl.q, 8);
+    chips[0].setAttribute('data-ask', hl.q);
+  }
+}
+/* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
+ * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */
+var _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  _deferredInstall = e;
+  try { _renderInstallTip(); } catch (e2) {}
+});
+function _renderInstallTip() {
+  if (el('installTip')) return;
+  if (window.matchMedia &&
+      window.matchMedia('(display-mode: standalone)').matches) return;
+  try {
+    var ds = localStorage.getItem('installTipDismissed');
+    if (ds && Date.now() - Date.parse(ds) < 7 * 864e5) return;
+  } catch (e) {}
+  var bar = document.createElement('div');
+  bar.className = 'install-tip'; bar.id = 'installTip';
+  bar.innerHTML = '<span>🏠 把小满放进桌面，明天直接来</span>' +
+    '<button type="button" class="install-tip-go">装好</button>' +
+    '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
+  var go = bar.querySelector('.install-tip-go');
+  var xx = bar.querySelector('.install-tip-x');
+  if (go) go.addEventListener('click', function () {
+    if (!_deferredInstall) { bar.remove(); return; }
+    var d = _deferredInstall; _deferredInstall = null;
+    try { d.prompt(); } catch (e) {}
+    bar.remove();
+  });
+  if (xx) xx.addEventListener('click', function () {
+    try { localStorage.setItem('installTipDismissed', new Date().toISOString()); }
+    catch (e) {}
+    bar.remove();
+  });
+  document.body.appendChild(bar);
 }
 /* 用户手动输入即解除预填标记——下次 _meFill 不再碰这个字段 */
 ['input', 'change'].forEach(function (ev) {

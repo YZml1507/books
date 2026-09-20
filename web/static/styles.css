@@ -1732,3 +1732,35 @@ html{-webkit-text-size-adjust:100%;}
   .recent-toggle{transform:scale(.72); opacity:.55;}
   .recent-toggle:hover{transform:scale(.8); opacity:.9;}
 }
+
+/* ── R231g（R39）：小档案条 + 装桌面提示 ── */
+.daily-me{
+  display:flex; align-items:center; gap:8px; margin-top:8px;
+  font-size:12px; color:var(--secondary);
+}
+.daily-me-txt{flex:1;}
+.daily-me-edit{
+  font-size:11px; padding:2px 10px; border-radius:999px;
+  border:1px solid var(--border); background:#fff; color:var(--secondary);
+  cursor:pointer; min-height:28px;
+}
+.daily-me-edit:hover{border-color:var(--primary-ink); color:var(--primary-ink);}
+.install-tip{
+  position:fixed; left:14px; bottom:14px; z-index:280;
+  display:flex; align-items:center; gap:8px;
+  background:#fff; border:1px solid var(--border); border-radius:14px;
+  padding:10px 12px; font-size:13px; color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.14); max-width:min(330px,86vw);
+  animation:tipIn .3s ease;
+}
+@keyframes tipIn{from{transform:translateY(12px);opacity:0;}to{transform:none;opacity:1;}}
+.install-tip-go{
+  padding:6px 12px; border-radius:999px; border:0;
+  background:var(--primary-ink); color:#fff; font-size:12.5px; cursor:pointer;
+  min-height:32px;
+}
+.install-tip-x{
+  width:28px; height:28px; border-radius:50%; border:0;
+  background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
+}
+@media (max-width:400px){ .install-tip{left:8px; bottom:8px; font-size:12px;} }
