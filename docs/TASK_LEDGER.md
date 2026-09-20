@@ -11086,3 +11086,4 @@ scripts_importable / llm_polish / ruff 全绿。
 ### R233d（R42 静态资源批）
 - manifest theme/background → #FFF8E7（与 --bg/meta 对齐）；接线资产迁出 `_candidates/` → `shared/`（gift 1024→256px 65KB；sakura/lilac PNG→JPEG 1.1MB→~85KB；peach/dream/moon-cat JPEG 正名 .jpg）；礼盒 img 补 onerror；hero fetchpriority=high；icon-180.png 补 apple-touch-icon；SW SHELL +7 首屏资产（smiley 子集也在）；删真死 2 件（cream-hero.jpg v1、daily-box-gift.png v1）；`_candidates/README.md` 接线表修正 + r231a 补登记
 - 闸：selftest 237 / contract 537 / ui_smoke 58 / poster 14判据 / plain_first / dollar / ruff 全绿
+- R233e：maskable 专用图（72% 安全区）+ zcool preload（R42-#8 尾巴）
