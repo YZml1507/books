@@ -1634,7 +1634,12 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     都不沾 → []（调用方原样透传，零扰动）。
     """
     now = now or datetime.now()
-    _ck = (_t2s((message or "").strip())[:200], now.date().isoformat())
+    # R230v（R34-#24）：键含原文指纹——此前 [:200] 截断，两条 200 字
+    # 前缀相同的同日长消息会串事实行（概率极低但语义错）。
+    _msg_norm = _t2s((message or "").strip())
+    _ck = (_msg_norm[:200] + "#" + hashlib.sha1(
+        _msg_norm.encode("utf-8")).hexdigest()[:12],
+           now.date().isoformat())
     if _ck in _CHAT_FACTS_CACHE:
         return list(_CHAT_FACTS_CACHE[_ck])
     facts = _chat_facts_inner(message, now)

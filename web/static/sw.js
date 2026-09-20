@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-0a81f43171a8';   // shell-hash: 0a81f43171a8
+var CACHE = 'books-shell-a547c4c11b91';   // shell-hash: a547c4c11b91
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。
  * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体
@@ -32,8 +32,28 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css',
              '/static/cream/cream-icon-history.jpg'];
 
 self.addEventListener('install', function (e) {
+  /* R230v（R34-#9）：addAll 全有或全无 + catch 吞错 = 单文件 404 时
+   * 安装「成功」但 CACHE 是空的，首次离线导航 respondWith(undefined)
+   * 白屏——「断网不白屏」静默失效。改为逐件 allSettled：壳核心件
+   * （/、index.html、app.js、styles.css）缺一不可装；装饰件（图标/
+   * 字体/卡图）失败容忍，下次安装补齐。 */
+  var CORE = ['/', '/static/index.html', '/static/app.js',
+              '/static/styles.css'];
   e.waitUntil(caches.open(CACHE).then(function (c) {
-    return c.addAll(SHELL).catch(function () { /* 单文件失败不阻断安装 */ });
+    return Promise.allSettled(SHELL.map(function (u) {
+      return c.add(u);
+    })).then(function (rs) {
+      var coreMiss = [];
+      rs.forEach(function (r, i) {
+        if (r.status === 'rejected' && CORE.indexOf(SHELL[i]) !== -1) {
+          coreMiss.push(SHELL[i]);
+        }
+      });
+      if (coreMiss.length) {
+        /* 核心件缺失 → 安装失败让浏览器下次重试，不留「装了但没壳」。 */
+        throw new Error('shell core missing: ' + coreMiss.join(','));
+      }
+    });
   }));
   self.skipWaiting();
 });

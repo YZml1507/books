@@ -399,6 +399,10 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
                        "created": time.monotonic()}
 
     def _run() -> None:
+        with _tasks_lock:
+            rec0 = _tasks.get(tid)
+            if rec0 is not None:
+                rec0["started"] = time.monotonic()
         try:
             text = polish(facts, question, cfg, _transport=_transport)
             status = "done" if text else "failed"
@@ -427,6 +431,8 @@ def ai_task_status(tid: str) -> dict | None:
             return None
         return {"status": rec["status"], "text": rec["text"],
                 "closed": bool(rec.get("closed")),
+                # R230v（R34-#5）：未起动=在 _session_lock 里排队
+                "queued": "started" not in rec,
                 # R230t（R31-P2-6）：进程启动记号透传——前端据此识别
                 # 「重启失忆」并在气泡间插分隔提示。
                 "boot": _BOOT_ID}
@@ -885,6 +891,10 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
                        "created": time.monotonic()}
 
     def _run() -> None:
+        with _tasks_lock:
+            rec0 = _tasks.get(tid)
+            if rec0 is not None:
+                rec0["started"] = time.monotonic()
         try:
             text = review_names(names, facts=facts, config=cfg,
                                 _transport=_transport)
@@ -940,6 +950,12 @@ def spawn_chat_task(session_id: str, user_msg: str,
                        "created": time.monotonic()}
 
     def _run() -> None:
+        # R230v（R34-#5）：标记实际起动时刻——_session_lock 排队期间
+        # 前端据此区分「排队中」与「生成中」，轮询预算从起动算而非入队算。
+        with _tasks_lock:
+            rec0 = _tasks.get(tid)
+            if rec0 is not None:
+                rec0["started"] = time.monotonic()
         try:
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,

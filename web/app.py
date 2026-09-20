@@ -123,6 +123,10 @@ def create_app() -> FastAPI:
                                     "public, max-age=3600")
         elif p == "/":
             resp.headers.setdefault("Cache-Control", "no-cache")
+        elif p.startswith("/api/"):
+            # R230v（R34-#17）：API 响应钉死 no-store——SW 已不缓存，
+            # 但代理/隐私扩展见到无声明的 JSON 可能启发式暂存命理数据。
+            resp.headers.setdefault("Cache-Control", "no-store")
         return resp
 
     for router in ROUTERS:

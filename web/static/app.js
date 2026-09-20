@@ -208,19 +208,34 @@ async function api(path, options) {
   options = options || {};
   /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
    * 只能刷新页面。AbortSignal.timeout 存在就用，否则手工 controller。 */
-  var _ctl = null, _t = null;
-  if (!options.signal) {
-    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
-      options.signal = AbortSignal.timeout(API_TIMEOUT_MS);
-    } else if (typeof AbortController !== 'undefined') {
-      _ctl = new AbortController();
-      _t = setTimeout(function () { _ctl.abort(); }, API_TIMEOUT_MS);
-      options.signal = _ctl.signal;
+  var _ctl = null, _t = null, _raceT = null;
+  if (options.signal) {
+    /* R230v（R34-#14）：调用方自带 signal 不再整体跳过 20s 超时——
+     * AbortSignal.any 合并两者（旧内核不支持时调用方信号优先）。 */
+    if (typeof AbortSignal !== 'undefined' && AbortSignal.any && AbortSignal.timeout) {
+      options.signal = AbortSignal.any([options.signal,
+                                        AbortSignal.timeout(API_TIMEOUT_MS)]);
     }
+  } else if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    options.signal = AbortSignal.timeout(API_TIMEOUT_MS);
+  } else if (typeof AbortController !== 'undefined') {
+    _ctl = new AbortController();
+    _t = setTimeout(function () { _ctl.abort(); }, API_TIMEOUT_MS);
+    options.signal = _ctl.signal;
   }
   var resp;
   try {
-    resp = await fetch(path, options);
+    /* R230v（R34-#15）：连 AbortController 都没有的极老内核此前零超时
+     * ——fetch 悬挂即永转圈。Promise.race 计时器兜底。 */
+    resp = await ((options.signal || typeof Promise === 'undefined')
+      ? fetch(path, options)
+      : Promise.race([fetch(path, options), new Promise(function (_, rej) {
+          _raceT = setTimeout(function () {
+            var te = new Error('网络有点慢，稍后再试试');
+            te.name = 'TimeoutError';
+            rej(te);
+          }, API_TIMEOUT_MS);
+        })]));
   } catch (e) {
     if (_t) clearTimeout(_t);
     if (e && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
@@ -234,7 +249,7 @@ async function api(path, options) {
     var fe = new Error('网络似乎断开了，检查后再试试');
     fe.cause = e;
     throw fe;
-  } finally { if (_t) clearTimeout(_t); }
+  } finally { if (_t) clearTimeout(_t); if (_raceT) clearTimeout(_raceT); }
   let body = null;
   try {
     body = await resp.json();
@@ -410,7 +425,14 @@ function pollAiPolish(containerId, taskId) {
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var _done = function () { delete AI_PENDING[containerId]; };
   var tick = function () {
-    if (RESULT_GEN[containerId] !== gen) return;   // 已被新一轮结果覆盖
+    if (RESULT_GEN[containerId] !== gen) {
+      /* R230v（R34-#20）：新一轮已接管时 AI_PENDING 里的 taskId 是新的，
+       * 不能删；只在容器真的不在 DOM 了（视图重绘摘除）才回收残留。 */
+      if (!el(containerId) || !document.contains(el(containerId))) {
+        delete AI_PENDING[containerId];
+      }
+      return;   // 已被新一轮结果覆盖
+    }
     /* R230q（R28-P3-8）：后台/断网暂停取数 */
     if (_aiPollGate()) {
       if (performance.now() < deadline) setTimeout(tick, 2000);
@@ -430,7 +452,13 @@ function pollAiPolish(containerId, taskId) {
       if (st && st.status === 'failed') { _done(); return; }  // 拿不到 → 整块不渲染
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
       else _done();
-    }).catch(function () { /* 404/过期/网络抖动：静默放弃 */ _done(); });
+    }).catch(function (e) {
+      /* R230v（R34-#10）：与聊天轮询同口径——404/过期才永弃，
+       * 瞬时网络抖动续排到 deadline（此前一次抖动就永久缺席 AI 块）。 */
+      if (e && e.status === 404) { _done(); return; }
+      if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
+      else _done();
+    });
   };
   setTimeout(tick, AI_POLL_INTERVAL_MS);
 }
@@ -707,10 +735,12 @@ function autoSendChatContext() {
   /* R230t（R32-P2-16）：自动发与手发同口径计数——此前自动发不计数，
    * 同一会话两套禁用行为并存（「允许追问 1 次」的语义本就该含自动条）。 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
+  /* R230v（R34-#3）：同 chatSend——捕获 sid 防跨话题幻影写回。 */
+  var _sid0 = chatSid();
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
-    session_id: chatSid(), message: msg, facts: facts,
+    session_id: _sid0, message: msg, facts: facts,
     client_date: todayIso()
   }).then(function (j) {
     if (!j.chat_task_id) {
@@ -737,6 +767,8 @@ function autoSendChatContext() {
     var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
     var tick = function () {
+      /* R230v（R34-#3）：换过 sid 的旧任务落地即弃（同 chatSend）。 */
+      if (_sid0 !== chatSid()) return;
       /* R230q（R28-P3-8）：后台标签页/断网时轮询空转烧预算——暂停取数，
        * 恢复后再探；预算照样走，到点降级行为不变。 */
       if (_aiPollGate()) {
@@ -745,7 +777,7 @@ function autoSendChatContext() {
         return;
       }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
-        if (!_ty) return;
+        if (!_ty || _sid0 !== chatSid()) return;
         if (st && st.status === 'done' && st.text) {
           _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
@@ -758,6 +790,13 @@ function autoSendChatContext() {
           /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
            * 冒充小满历史挤占真对话。 */
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+          return;
+        }
+        if (st && st.status === 'pending' && st.queued) {
+          /* R230v（R34-#5）：服务端排队中——生成预算从起动起算。 */
+          if (performance.now() < _queueCap) {
+            setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
+          } else { _ty.textContent = '（小满有点忙，再发一次试试？）'; }
           return;
         }
         if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
@@ -873,10 +912,14 @@ function _nameReviewDone() {
   var b = el('nameReviewBtn');
   if (b) b.disabled = false;
 }
+var _NR_GEN = 0;   /* R230v（R34-#2）：点评任务代际——旧任务落地不得
+ * 写进新一批名字的点评容器（nameReviewOut 是同 id 复用的）。 */
 function pollNameReview(taskId) {
+  var _gen = _NR_GEN;
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var tick = function () {
+    if (_gen !== _NR_GEN) { _nameReviewDone(); return; }   /* 新点评接管 */
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
       else { var o0 = el('nameReviewOut'); if (o0) o0.innerHTML =
@@ -885,7 +928,7 @@ function pollNameReview(taskId) {
     }
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       const out = el('nameReviewOut');
-      if (!out) { _nameReviewDone(); return; }
+      if (!out || _gen !== _NR_GEN) { _nameReviewDone(); return; }
       if (st && st.status === 'done' && st.text) {
         out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4><p style="white-space:pre-wrap;">' +
           renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
@@ -1023,8 +1066,11 @@ function chatSend() {
   chatBubble('me', msg);
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
+  /* R230v（R34-#3）：捕获发送时 sid——在途回复遇上「开个新话题」换 sid
+   * 时，旧任务落地不得把回复写进新 transcript（幻影气泡）。 */
+  var _sid0 = chatSid();
   postJSON('/api/chat', {
-    session_id: chatSid(), message: msg, facts: CHAT_LAST_FACTS,
+    session_id: _sid0, message: msg, facts: CHAT_LAST_FACTS,
     client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
@@ -1050,15 +1096,21 @@ function chatSend() {
     var _ty = chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
     var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+    /* R230v（R34-#5）：排队等待不烧生成预算——第二条消息在
+     * _session_lock 里先排 ~30s；排队期另给 90s 总帽。 */
+    var _queueCap = performance.now() + 90000;
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
     var tick = function () {
+      /* R230v（R34-#3）：换过 sid（开新话题）的旧任务落地即弃——
+       * 不写气泡、不存 transcript，否则新话题里冒幻影回复。 */
+      if (_sid0 !== chatSid()) return;
       if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
         if (performance.now() < deadline) setTimeout(tick, 2000);
         else if (_ty) { _ty.textContent = '（网络不太好，再发一次试试？）'; }
         return;
       }
       api('/api/ai/' + encodeURIComponent(j.chat_task_id), { silent: true }).then(function (st) {
-        if (!_ty) return;
+        if (!_ty || _sid0 !== chatSid()) return;
         if (st && st.status === 'done' && st.text) {
           _chatBootNote(st, _ty);      /* R230t：重启失忆插分隔 */
           /* R227b：写回要走 renderRichText——textContent 会让 ** 原样露出 */
@@ -1071,6 +1123,13 @@ function chatSend() {
           /* R230t（R32-P2-17）：降级文案不落 transcript——刷新后不再
            * 冒充小满历史挤占真对话。 */
           _ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+          return;
+        }
+        if (st && st.status === 'pending' && st.queued) {
+          /* R230v（R34-#5）：服务端排队中——生成预算从起动起算。 */
+          if (performance.now() < _queueCap) {
+            setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
+          } else { _ty.textContent = '（小满有点忙，再发一次试试？）'; }
           return;
         }
         if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
@@ -1127,6 +1186,12 @@ function guardedCall(key, handler, ev) {
     console.warn('[on] handler error', e);
   }).then(function () { _ON_BUSY[key] = false; });
 }
+/* R230v（R34-#23）：bfcache 冻结期间 fetch 被掐死但不 reject 的边角
+ * 会让锁永不释放——pageshow persisted 时清表（锁保护的是真在途请求，
+ * 恢复后它们早已不存在）。 */
+window.addEventListener('pageshow', function (e) {
+  if (e && e.persisted) _ON_BUSY = {};
+});
 function on(id, handler) {
   const node = el(id);
   if (!node) return;
@@ -2306,7 +2371,12 @@ async function downloadPoster(j, view) {
     } else {
       _POSTER_LAST[_vkey] = performance.now();
       r.canvas.toBlob(function (blob) {
-        if (!blob) return;
+        /* R230v（R34-#13）：canvas 编码失败此前静默——浮层照弹但文件
+         * 没落盘，用户找不到图。给一句说明。 */
+        if (!blob) {
+          showToast('图保存没成功，浮层里的预览长按也能存～', 'warn');
+          return;
+        }
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         /* R230r（R29-#9）：文件名带视图+日期——连存多张不再全是同名。 */
@@ -3993,6 +4063,7 @@ async function doQiming() {
       const names = (j.full_names || []).map(function (n) {
         return n.full_name || '';
       }).filter(Boolean).slice(0, 6);
+      _NR_GEN++;   /* R230v（R34-#2）：开新一轮点评，旧轮询就地弃 */
       postJSON('/api/qiming/review', {
         names: names,
         facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无') +
@@ -4170,7 +4241,11 @@ var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
 function _idlePrefetch() {
   POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
-  fetch('/static/tarot/manifest.json')
+  /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
+   * 占住浏览器并发位。 */
+  var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
+    ? { signal: AbortSignal.timeout(API_TIMEOUT_MS) } : {};
+  fetch('/static/tarot/manifest.json', _preOpt)
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) { TAROT_MANIFEST = j || {}; })
     .catch(function () { TAROT_MANIFEST = {}; });
@@ -4479,10 +4554,14 @@ async function doTarot() {
       trBtn.addEventListener('click', function () { downloadPoster(j, 'tarot'); });
     }
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
+    /* R230v（R34-#21）：按节点引用翻牌而非按 data-card 重查——窗口内
+     * 重抽时旧 timer 翻到的是已摘下的旧节点，不再误翻新卡。 */
+    var _trInners = trCard.parentNode
+      ? trCard.parentNode.querySelectorAll('.tarot-card-inner') : [];
     (j.draws || []).forEach(function (_d, i) {
+      var _inner = _trInners[i];
       setTimeout(function () {
-        const inner = document.querySelector('.tarot-card-inner[data-card="' + i + '"]');
-        if (inner) inner.classList.add('flipped');
+        if (_inner) _inner.classList.add('flipped');
       }, 300 + i * 200);
     });
   } catch (e) {
@@ -5088,11 +5167,20 @@ function _hlShowNeutral() {
  * 不经过 on() 的 _busy 锁——双击「明天」chip 实发两遍 GET /api/huangli。
  * 在途锁放进函数本身（submitBazi 的 _submitBaziBusy 先例）。 */
 var _hlBusy = false;
+var _hlQueued = null;   /* R230v（R34-#6）：取最新排队 */
 async function doHuangli(offset, reveal, spokenWord) {
-  if (_hlBusy) return;
+  /* R230v（R34-#6）：在途期间不再静默丢弃——记最新一次请求，当前
+   * 查询完成后立即补跑（连点 chip/场景只会看到最后一次意图生效）。 */
+  if (_hlBusy) { _hlQueued = [offset, reveal, spokenWord]; return; }
   _hlBusy = true;
   try { return await _doHuangli(offset, reveal, spokenWord); }
-  finally { _hlBusy = false; }
+  finally {
+    _hlBusy = false;
+    if (_hlQueued) {
+      var q = _hlQueued; _hlQueued = null;
+      doHuangli(q[0], q[1], q[2]);
+    }
+  }
 }
 async function _doHuangli(offset, reveal, spokenWord) {
   /* v3（P7）重写：支持 chip 快选（offset 相对今天的天数）与自选日期。
@@ -5297,7 +5385,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
       api('/api/huangli?date=' + _gsrc + '&affair=' + encodeURIComponent(_gsc) +
           '&days=45', { silent: true }).then(function (gj) {
         var box = document.getElementById('hlVerdict');
+        /* R230v（R34-#8）：基准日比对——场景筛选的请求落地时，卡面
+         * 可能已翻到别的日子；旧基准的吉日条不许注入新卡。 */
+        var _hlBoxG = el('hlResult');
         if (!box || !gj || _HL.scene !== _gsc ||
+            !_hlBoxG || _hlBoxG.dataset.shownDate !== _gsrc ||
             !Array.isArray(gj.good_days) || !gj.good_days.length) return;
         var _today0 = new Date(); _today0.setHours(0, 0, 0, 0);
         var _todayIso = _today0.getFullYear() + '-' +
@@ -5321,6 +5413,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
           return '<button type="button" class="hl-daychip" data-hldate="' +
             esc(String(gd.date || '')) + '">' + esc(lab) + '</button>';
         }).join('');
+        /* R230v（R34-#8）：去重——重渲/重注窗口重叠时先清旧条，不叠双份。 */
+        var _oldGd = box.parentNode && box.parentNode.querySelector('.hl-gooddays');
+        if (_oldGd) _oldGd.remove();
         var tip = document.createElement('div');
         tip.className = 'hl-gooddays';
         tip.innerHTML = '<span class="hl-gooddays-label">近期宜' +
@@ -5329,8 +5424,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
         else box.parentNode.appendChild(tip);
         tip.querySelectorAll('[data-hldate]').forEach(function (b) {
           b.addEventListener('click', function () {
-            /* R230t（R33-P3-9）：busy 静默丢——给反馈。 */
-            if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
+            /* R230v（R34-#6）：吉日 chip 也走取最新排队，不再吞点。 */
             /* 点击时刻才换算偏移——跨零点不漂（R20-F3）。 */
             var pp = String(b.dataset.hldate || '').split('-');
             if (pp.length !== 3) return;
@@ -5371,8 +5465,26 @@ async function _doHuangli(offset, reveal, spokenWord) {
     }
   } catch (e) {
     if (_hlBox) { _hlBox.classList.remove('is-loading'); _hlBox.style.pointerEvents = ''; }
-    failWithRetry('hlResult', '查询失败：' + e.message,
-                  function () { doHuangli(offset, reveal, spokenWord); });
+    /* R230v（R34-#12）：原位刷新失败保留旧卡——错误条叠在卡片上方
+     * +重试钮，不再整卡替换（旧结果里的场景 chips/问一嘴框不丢）。 */
+    if (reveal === false && _hlBox && _hlBox.children.length) {
+      var _errBar = _hlBox.querySelector('.hl-fetch-err');
+      if (!_errBar) {
+        _errBar = document.createElement('div');
+        _errBar.className = 'no-evidence hl-fetch-err';
+        _hlBox.insertBefore(_errBar, _hlBox.firstChild);
+      }
+      _errBar.innerHTML = esc('刷新失败：' + _humanizeErr(e.message)) +
+        ' <button type="button" class="ghost" data-retry style="margin-left:8px;">🔄 重试</button>';
+      var _rb = _errBar.querySelector('[data-retry]');
+      if (_rb) _rb.addEventListener('click', function () {
+        _errBar.remove();
+        doHuangli(offset, reveal, spokenWord);
+      });
+    } else {
+      failWithRetry('hlResult', '查询失败：' + e.message,
+                    function () { doHuangli(offset, reveal, spokenWord); });
+    }
   }
 }
 
@@ -5386,9 +5498,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
     box.addEventListener('click', function (ev) {
       var btn = ev.target.closest('.hl-chip');
       if (!btn || btn.id === 'hlPickBtn') return;
-      /* R230t（R33-P2-2）：在途时点击会被 doHuangli 静默丢弃，但
-       * .active 已置位 → chip 高亮与卡片错位。busy 时给反馈不动态。 */
-      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
+      /* R230v（R34-#6）：在途不再拦——doHuangli 取最新排队，点中的
+       * chip 立即高亮，旧响应落地即被新查询覆盖。 */
       _HL.keepSy = window.scrollY;   /* v5-fix：关抽屉会压短页面发生钳位，先把滚动位存下来 */
       box.querySelectorAll('.hl-chip').forEach(function (c) { c.classList.remove('active'); });
       btn.classList.add('active');
@@ -5423,9 +5534,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     });
     if (scenes) scenes.addEventListener('click', function (ev) {
       if (!ev.target.closest('#hlAskBtn')) return;
-      /* R230t（R33-P2-5）：在途时 Enter/点问都被 doHuangli 静默丢——
-       * 输入已读零反馈比报错更糟，给个提示。 */
-      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
+      /* R230v（R34-#6）：在途不拦——问一嘴请求进取最新队列。 */
       var inp = document.getElementById('hlAskInput');
       var q = inp ? zwClean(inp.value) : '';   /* R230k */
       if (!q) {
@@ -5517,9 +5626,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (scenes) scenes.addEventListener('click', function (ev) {
       var s = ev.target.closest('.hl-scene');
       if (!s) return;
-      /* R230t（R33-P3-8）：在途丢弃时场景标记已翻转但卡片没重渲——
-       * busy 时先拦下，别翻标记。 */
-      if (_hlBusy) { showToast('正在算这一天，稍等一下～', 'info'); return; }
+      /* R230v（R34-#6）：场景翻转+取最新排队——旧响应落地即被新查询
+       * 覆盖，不再出现「标记翻了卡没换」。 */
       _HL.scene = (_HL.scene === s.dataset.scene) ? '' : s.dataset.scene;
       /* 用最后请求的日期重渲染：读 hlResult 头部日期回填 */
       var head = document.querySelector('#hlResult .hl-head div');
@@ -5683,8 +5791,14 @@ function initBazi() {
      * 委托判定改走 data-chat-entry，误伤才停止（实测点「换一批」
      * 会拉开聊天侧栏还自动发一条上下文消息）。 */
     if (e.target.closest && e.target.closest('[data-chat-entry]')) {
-      chatOpen();
-      autoSendChatContext();
+      /* R230v（R34-#11）：委托路径过同一把 chatSendBtn 锁——双击
+       * 「聊聊这件事」不再双发气泡+双任务（_autoSendBusy 管函数体，
+       * guardedCall 管与手发互斥）。 */
+      guardedCall('chatSendBtn', function () {
+        chatOpen();
+        autoSendChatContext();
+        return Promise.resolve();
+      }, e);
     }
   });
   on('chatSendBtn', chatSend);
@@ -5696,7 +5810,7 @@ function initBazi() {
     if (!chip || !chip.dataset || !chip.dataset.ask) return;
     var input2 = el('chatInput');
     if (input2) input2.value = chip.dataset.ask;
-    chatSend();
+    guardedCall('chatSendBtn', chatSend, ev);   /* R230v（R34-#11） */
   });
   var ci = el('chatInput');
   if (ci) ci.addEventListener('keydown', function (e) {
@@ -6217,7 +6331,13 @@ function baziPersonaCard(j) {
     }
     if (!r.ok) {
       let m = '没查到这条记录（' + r.status + '）';
-      try { const j = await r.json(); if (j && typeof j.detail === 'string') m = j.detail; } catch (e) {}
+      /* R230v（R34-#22）：422 的 detail 是 pydantic 数组——取首条 msg，
+       * 不再落进「没查到」的误导文案。 */
+      try { const j = await r.json();
+        if (j && typeof j.detail === 'string') m = j.detail;
+        else if (j && Array.isArray(j.detail) && j.detail.length &&
+                 j.detail[0] && j.detail[0].msg) m = j.detail[0].msg;
+      } catch (e) {}
       throw new Error(m);
     }
     return r.json();
