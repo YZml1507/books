@@ -5,8 +5,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F5EFE0",
-  "theme_color": "#F5EFE0",
+  "background_color": "#FFF8E7",
+  "theme_color": "#FFF8E7",
   "icons": [
     {
       "src": "/static/cream/icon-192.png",

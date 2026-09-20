@@ -1362,7 +1362,7 @@ function chatEmptyGuide() {
   var d = document.createElement('div');
   d.className = 'chat-empty';   /* R228c：不再抢 id——双份 #chatEmpty 会串 */
   var im = document.createElement('img');
-  im.src = '/static/_candidates/r212b/icon-set-moon-cat.png';
+  im.src = '/static/shared/icon-set-moon-cat.jpg';
   im.alt = '';
   im.className = 'chat-empty-img';
   d.appendChild(im);
@@ -4680,7 +4680,7 @@ async function doTaohua() {
 
 
 /* ── v4 交接修复：上一轮恢复函数时丢失的常量块，自 v3 快照原样找回 ── */
-/* R209b：已批准海报背景预加载（_candidates 目录，同源） */
+/* R209b：已批准海报背景预加载（shared/ 目录，同源） */
 var POSTER_BG = {
   /* R230r（R29-#6）：night 预加载后没有任何绘制方使用——白拉一张图，摘掉。
    * R230w：按视图分底图——塔罗/星座用夜紫云月、桃花/合婚用樱粉，
@@ -4760,11 +4760,11 @@ var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
  * manifest 只在塔罗视图才用。挪进 requestIdleCallback（无此 API 则
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
 function _idlePrefetch() {
-  POSTER_BG.warm.src = '/static/_candidates/r212b/poster-bg-peach.png';
-  POSTER_BG.sakura.src = '/static/_candidates/r212b/poster-bg-sakura.png';
-  POSTER_BG.lilac.src = '/static/_candidates/r212b/poster-bg-lilac.png';
+  POSTER_BG.warm.src = '/static/shared/poster-bg-peach.jpg';
+  POSTER_BG.sakura.src = '/static/shared/poster-bg-sakura.jpg';
+  POSTER_BG.lilac.src = '/static/shared/poster-bg-lilac.jpg';
   /* R231b（R36-P3-1）：起名海报换紫云梦底——与塔罗夜紫错开一层。 */
-  POSTER_BG.dream.src = '/static/_candidates/r212b/poster-bg-dream.png';
+  POSTER_BG.dream.src = '/static/shared/poster-bg-dream.jpg';
   POSTER_MASCOT.src = '/static/cream/poster-mascot.png';
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */

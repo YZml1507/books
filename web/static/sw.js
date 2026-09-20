@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-dff4d93858da';   // shell-hash: dff4d93858da
+var CACHE = 'books-shell-e0f602df6667';   // shell-hash: e0f602df6667
 /* R229x：manifest+图标进预缓存——「装上 PWA 即断网」场景下图标/manifest
  * 此前只靠运行时懒缓存兜不住。
  * R230d（R16-P2-1）：SHELL 补齐首屏依赖——web-lite.css、lxgw.css（字体
@@ -29,7 +29,16 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/styles.css',
              '/static/cream/cream-icon-hehun.jpg',
              '/static/cream/cream-icon-taohua.jpg',
              '/static/cream/cream-icon-xingzuo.jpg',
-             '/static/cream/cream-icon-history.jpg'];
+             '/static/cream/cream-icon-history.jpg',
+             /* R233d（R42-#5）：首屏图 + 礼盒 + 吉凶字字体补进 SHELL——
+              * 装完即断网不再破图/回落字体（gift 另有 onerror 双保险）。 */
+             '/static/cream/cream-hero-v2.jpg',
+             '/static/cream/avatar-xiaoman-cream.jpg',
+             '/static/cream/empty-xiaoman.png',
+             '/static/cream/icon-180.png',
+             '/static/shared/daily-box-gift.png',
+             '/static/shared/icon-set-moon-cat.jpg',
+             '/static/fonts/smiley-sans-subset.woff2'];
 
 self.addEventListener('install', function (e) {
   /* R230v（R34-#9）：addAll 全有或全无 + catch 吞错 = 单文件 404 时
