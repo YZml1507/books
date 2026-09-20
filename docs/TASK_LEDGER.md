@@ -10388,3 +10388,8 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 - **P1-2 附**：低变动资产（fonts/cream/tarot/animotion）补 `Cache-Control: max-age=86400`——非 SW 会话不再每次逐个 304。
 - **P2-7 结论**：/api/research 349KB 的大头已被 gzip（P1-2）压到 ~60KB；`evidence.text` 是引证原文，截断会损「可核验性」这个立身之本——不截，结项。
 - **P2-8 缓办**：ink/cream 全量源档案是 docs/assets-manifest.md 钦定的有意存档，移出 web/static 要用户拍板（exe 体积问题 real 但与存档纪律冲突）。
+
+### R229z续11（真机 eval 22/22 + 祭灶/祭祖别名）
+
+- eval_xiaoman_llm +4 节气/农历/月末问法，真机 22/22 全回复零裸 `*`，事实逐条照读：「去年中秋面试」复盘口径正确（宜上任+温和点出已过去，零择日建议）；「冬至吃饺子」识别为已过去的节气；「惊蛰后剪头发」锚到 2027-03-06。
+- eval 顺手抓到供给缺口：「祭灶」此前走 generic 中性（要靠模型自己读宜忌表对上祭祀）——收进 _CHAT_SCENE_TERMS/HL_SCENE_ALIAS（→祭祀，祭祖同理），现在直接给宜判定。_T2S 补「竈」。alias 83 键同构。
