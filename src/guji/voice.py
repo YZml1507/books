@@ -395,8 +395,8 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if note:
             lines.append(f"其中最靠前的那个是{TEN_GOD_WARM.get(first, (first, ''))[0]}"
                          f"（{first}）——{note}。")
-        lines.append(f"意思是这件事在你盘里有落点，不是空的；"
-                     f"具体怎么走，还要看你自己的选择。")
+        lines.append("意思是这件事在你盘里有落点，不是空的；"
+                     "具体怎么走，还要看你自己的选择。")
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
                      f"但这块在四柱天干上没有直接落点。")
@@ -863,7 +863,7 @@ def warm_taohua(t: dict) -> dict:
                 _year = int(d0.get("year_start", 0))
                 _diff = abs(_year - _user_birth_year - _user_age)
                 if _diff > 15:
-                    lines.append(f"未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
+                    lines.append("未来某段时间你的社交运势会有变化——节奏上的参考，不是日程表。")
                 else:
                     lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
         # D-003：禁用免责套话「感情这事你的感受最重要」

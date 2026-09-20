@@ -431,7 +431,7 @@ def report(data: dict) -> None:
 
 def verify() -> int:
     if not os.path.exists(FIXTURE):
-        print(f"check_plain_first SKIP-ENV: 缺 fixture，先跑 --freeze",
+        print("check_plain_first SKIP-ENV: 缺 fixture，先跑 --freeze",
               file=sys.stderr)
         return 2
     data = collect()

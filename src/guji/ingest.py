@@ -765,7 +765,6 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
         if w == yilin.WORK_ID:
             uid, n_cells = _ingest_yilin(db, w, raw, bounds, names, uid, stats)
             stats.works += 1
-            yilin_cells = n_cells
             continue
 
         addr = AddrIndex(raw, polarity, w in ZHOUYI_WORKS)

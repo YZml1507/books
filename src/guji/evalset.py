@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import glob
 import os
-import re
 
 from .variants import DROP, FOLD
 

@@ -1921,7 +1921,7 @@ def external_news() -> dict:
                 "disabled": True}
     try:
         return external_feed.fetch_sources(max_sources=6)
-    except Exception as exc:
+    except Exception:
         # R229n（R6-#13）：异常原文不外泄——与 external_fortune 同纪律。
         return {"fetched_at": None, "proxy": external_feed.PROXY,
                 "sources": [], "error": "外部资讯暂时取不到"}

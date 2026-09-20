@@ -22,7 +22,6 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 
 from .evalset import body_in, in_space
 from .variants import fold, segment_cjk

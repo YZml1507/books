@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from .bazi import term_time, jdn, GAN, ZHI
+from .bazi import term_time, jdn, ZHI
 
 # --------------------------------------------------------------------------------------
 # 建除十二值（十二值星）

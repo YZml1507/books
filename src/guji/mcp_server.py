@@ -149,7 +149,7 @@ def research_tool(q: str, max_addresses: int = 3,
     try:
         r = research(c, q, max_addresses=min(max(max_addresses, 1), 6),
                      allow_damaged=allow_damaged)
-        out = [f"steps: " + " | ".join(
+        out = ["steps: " + " | ".join(
             f"{s.action}→「{s.query}」{s.kept}/{s.found}" for s in r.steps)]
         if r.refused:
             out.append(f"REFUSED: {r.reason}")

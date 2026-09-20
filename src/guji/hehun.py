@@ -91,7 +91,7 @@ class Hehun:
         parts = [f"{ga} {self.day_gz_a}（日主{self.day_wx_a}）· {gb} {self.day_gz_b}（日主{self.day_wx_b}）"]
         parts.append(f"年支 {self.year_zhi_a}/{self.year_zhi_b}：" +
                      ("六冲" if self.clash else ("六合" if self.combine else "无冲合")))
-        parts.append(f"日主五行：" + ("相生" if self.day_wx_sheng
+        parts.append("日主五行：" + ("相生" if self.day_wx_sheng
                                    else ("比和" if self.day_wx_same else "相克")))
         if self.gan_he:
             parts.append("日干五合")
