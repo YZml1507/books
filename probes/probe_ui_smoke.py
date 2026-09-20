@@ -134,6 +134,9 @@ BUTTON_CASES = [
     # R230z（R36-P1-2）：存这对钮只有 hehun 出卡后才存在——用例必须排
     # 在 hehun 之后；点击后 #hhFavRow 浮出「测过的 CP」chips 为断言。
     ("hehun.savepair",  "hehun",   None,            "#hhSavePair",    "#hhFavRow"),
+    # R233n：邀请链——点「喊 TA 来对盘」出 toast（clipboard 成败两路
+    # 都出 toast）；须在 hehun 出卡后，同 savepair 排序约束。
+    ("hehun.invite",    "hehun",   None,            "#hhInvite",      ".toast-item"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）

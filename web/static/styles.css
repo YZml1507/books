@@ -1850,3 +1850,20 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .chat-input-row{position:relative}
 .char-count{position:absolute;top:-16px;right:4px;font-size:10px;color:var(--secondary);background:#FFFCF8;padding:0 6px;border-radius:8px;box-shadow:0 1px 3px rgba(90,60,40,.12)}
 @media (prefers-reduced-motion:reduce){.ai-arrive{animation:none}}
+/* ── R233n ─────────────────────────────────────────── */
+/* 生日横幅：当天档案生日→奶油蜜桃底+蛋糕行 */
+.daily-birthday{
+  margin:10px 0 4px; padding:10px 14px; border-radius:var(--radius-sm,12px);
+  background:linear-gradient(135deg,#FFF0F5,#FFF8EC);
+  border:1px solid #F5D5DC; color:#8A4B5C; font-size:13.5px; line-height:1.7;
+}
+.daily-birthday-go{
+  display:inline-block; margin-left:6px; padding:2px 12px; min-height:30px;
+  border:none; border-radius:999px; cursor:pointer;
+  background:linear-gradient(135deg,#C25A4E,#B94A6A); color:#fff; font-size:12.5px;
+}
+.daily-birthday-go:hover{filter:brightness(1.06);}
+/* 合婚卡右上三钮：原 .fav-btn 绝对定位右偏移只算两枚，三枚互叠 */
+.hh-btns{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
+.hh-btns .fav-btn{position:static;}
+.hh-btns .fav-btn + .fav-btn{right:auto;}

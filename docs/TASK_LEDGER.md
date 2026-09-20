@@ -11170,3 +11170,14 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 
 ### R233m（R45-P3 续接）
 - LAST_RESULT 随 sessionStorage 续接：rememberResult 存 `lastResult:<view>`（<200KB 才写，tab 关即焚），buildChatContext 缺缓存时懒恢复——刷新后「聊聊这件事」不再退成泛化句。
+
+## R233n（R47 功能批：分享/留存五连）
+- 合婚邀请链：结果卡新增「🔗 喊 TA 来对盘」——把 A 侧生辰编进 `?view=hehun&ay&am&ad&ah&ag&an`；受邀者落地自动预填 A 侧（字段打 data-me 防档案覆盖）+ toast「轮到你了」+ 焦点落 B 侧首字段。
+- 打卡签首日可晒：分享钮条件 `_streak>=3` → `>=3 || saved`；海报 case 'checkin' 按连签分档（<3 挂「今天的小满签」标题+签面 big）。
+- 日签升级：daily 海报副题 = 周X·农历X月X·第N签（N=哈希64池，同日同签）；lines 首行插签诗（10 句日盐池）；daily 缺 lunar 字段→_downloadPoster 懒取当日黄历补齐。
+- 打卡池 4→8（+暴富签/甜甜运/上岸运/顺顺签）：_dayPickN LCG 播种洗牌确定性出 4（同日同序跨天换）；CHECKIN_FEEDBACK 补 4×6 条+_default 兜底；saved 被轮换走时首位补显。
+- 昵称链：小档案抽屉加 b_nick（选填）；_meSave 改合并写（其他表单全量写不抹 n）；_meFillAll 补 n→b_nick；档案条/封面「第N次开铺」/聊天空态招呼三处喊名字。
+- 生日横幅：档案生日=今天时 daily 卡插 🎂 横幅+「去开生日盘」跳星座页开抽屉。
+- welcomeBar 首访文案补分享钩（「测完还能生成分享图发给闺蜜」）。
+- 排雷：三枚 .fav-btn 原 right:24/84px 绝对定位会互叠（ui_smoke 抓出）→ hehun 卡改 .hh-btns flex 行；on_coverage 闸抓出 hhInvite 无用例 → 新增 hehun.invite 点击断言（toast 双路均可）。
+- 闸门：selftest 237 / contract 550 / regress PASS / ui_smoke 59 / ruff E9F 全绿。
