@@ -11483,3 +11483,7 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 探针：selftest +1（chat.facts.sanitized=253）；ui_smoke +1
   （ui:history.wipe 真清空）+ 台账清理闸改 id 水位判定（wipe 兼容）。
 - 闸门：selftest 253 / contract 542 / ui_smoke 75 / 其余全绿。
+
+## R2345b — 尾项
+- 打卡文案带昵称：pickCheckinFeedback 现读 me.n（净化后）前缀称呼。
+- `_BANNED_OUT_PAT` 补露骨成人/仇恨词兜底（R61-P1-3 轻量版）。
