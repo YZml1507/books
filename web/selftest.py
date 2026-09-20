@@ -201,6 +201,14 @@ def _run_inner() -> list[str]:
                                           "hour": 12, "gender": "男"}).json()
     assert "hour_known" not in _hk2, "hour_known 缺省不得出现"
     ok.append("bazi.hour_unknown")
+    # R230a-21（R13-P0-1 钉扎）：补缺走「生我」方向——1989-02-24 缺水须
+    # 说「从金的方向补」（金生水），而不是「我生」的反向（此前错指）。
+    _bx = client.post("/api/bazi", json={"year": 1989, "month": 2, "day": 24,
+                                         "hour": 10, "gender": "男"}).json()
+    _xtxt = _bx.get("interpretation", {}).get("text", "")
+    _xline = next((l for l in _xtxt.split("\n") if "缺水" in l), "")
+    assert "从金的方向补" in _xline, ("bazi.buque.direction", _xline)
+    ok.append("bazi.buque.direction")
     # R178b（D-226b）：确定性解读层 standing 覆盖——原 llm 字段（生成文本，
     # 需 key + 网络、不可复现）替换为 interpretation（guji.interpreter 规则
     # 输出）。断言引擎标识 + sections 非空 + text 以「## 排盘坐标」开头，
