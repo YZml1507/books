@@ -4621,6 +4621,11 @@ async function doHuangli(offset, reveal, spokenWord) {
          (j.chongsha.sha_fang ? '煞' + j.chongsha.sha_fang : ''));
     }
     if (_csTxt) html += '<div class="hl-cs" style="margin-top:12px;font-size:13px;color:var(--secondary);">冲煞：' + esc(_csTxt) + '</div>';
+    /* R230a-2：彭祖百忌——接口一直返回但卡面从未露出（黄历标配的两句老话）。
+     * 小字收在免责前，不抢戏。 */
+    var _pz = j.pengzu || {};
+    var _pzTxt = (_pz.gan_text || '') + ((_pz.gan_text && _pz.zhi_text) ? ' · ' : '') + (_pz.zhi_text || '');
+    if (_pzTxt) html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">彭祖百忌：' + esc(_pzTxt) + '</div>';
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     paint('hlResult', html);
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
