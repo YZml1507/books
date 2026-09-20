@@ -10685,3 +10685,13 @@ R15 审计结论：**P0 零**——37 处 innerHTML 全经 esc/renderRichText、
 **R26 卫生（1907e27）**：根 .gitattributes（* text=auto eol=lf 在前，二进制 -text 在后）+ 19 个大文件转 LFS 指针（zip/epub/npy/ttf）；data/raw_ext/_probe 33MB 移出 tracked（git mv 进 gitignored 目录会保持跟踪——需 git rm --cached）；image_gen.py 多密钥路径（AGNES_API_KEY env→AGNES_KEY_FILE→报错）；paipan_history 冻结 ROOT 与 deps.py 对齐；新增 data/raw/README.md（Kanripo 溯源）、fonts/licenses/README.md（OFL 映射）、ASSETS.md（AI 出图溯源）、requirements-packaging.txt（pyinstaller 6.11.1）。R24 遗留 .git 444MB 历史减肥（filter-repo）仍持用户裁决。
 
 **闸门**：selftest 216 / contract 416(SOFT=30) / regress 只增不减 / parity 65+35+88 / ui_smoke 50 / voice 14 冻结 / llm_polish / xingzuo / warm_voice / async_ai / dollar_misuse / plain_first / poster / ruff——全绿。
+
+## §R230o–R230p — probes 卫生清零 + R27 文档对账批（4 commits）
+
+**R230o**：probes/ 目录纳入 ruff E9+F 并清零 66 条存量（30 死 import / 27 裸 f 串 / 8 死变量 / 1 重复 dict 键𢎞）；顺手抓出 ui_smoke `--keep` 文档承诺了未实现的旗标（删旗标+文档改成实话）、probe_scripts_importable 死声明 `broken_import`。CI ruff 行扩至 probes。
+
+**R230p（R27 对账批）**：
+- **真找回**：eval_g1 题库在 ce03c59 重生成时丢光 26 道焦氏易林题——yilin 编址回归保护归零近一月。已从 ec3a9a6 合回（26/26 在 corpus 实命中），derive_eval_g1.py 加「外来题段随重生成保留+断言」防再丢。题库 248→274。
+- **CI 补齐**：`probe_no_generated_in_corpus` + `probe_scripts_importable` 进 CI（两条均 <1s，PHASE「建议纳入」挂起一个月收口）。
+- **文档漂移修正**：README/台账闸门数字 217/416/53 对齐+「以末行为准」；docs/README 快照 glob 误伤现行 HANDOFF.md 已修；GOAL.md 归档探针路径修正；台账闸门清单补 llm_polish/ruff/dual_engine + 13 道宪法闸门与 CI 的口径划分（G1/G4/G7 等需 bge 的为本地手动闸）；spec 001/004/005/006/007 Status→Implemented；spec 009 回写读书卡移除裁决；HANDOFF 登记出网端点白名单；probe_herodotus 归位 probes/；蓝图 test 知识段数字已提建议（用户已批准）。
+- **归档完成**：35 个一次性探针（fetch_*/survey_*/gold_*/t7*/探源 spike）进 archive/，probes/ 根降至 25 文件。
