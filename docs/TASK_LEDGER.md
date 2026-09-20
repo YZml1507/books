@@ -10397,3 +10397,7 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ### R229z续12（实现归一）
 
 - `find_good_days` 收 `str | list[str]`（多词单日循环内置），`huangli(affair=)` 与 `_hl_next_yi_days` 统一走它——三处重复实现收敛回库函数，R8 P1-1 的修法落到公共层。
+
+### R229z续13（resolve_date 离线兜底）
+
+- 问一嘴节日词走 `/api/huangli/resolve_date` 的异步调用原来**没有 `.catch`**——离线/服务不可达时整个提交静默无响应（不打卡不报错）。补 catch：事项词在手回退当前显示日判定，无词走中性卡。
