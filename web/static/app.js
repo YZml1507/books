@@ -7034,6 +7034,14 @@ function renderCheckin(dateKey) {
       /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
        * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
       renderCheckin(dateKey);
+      /* R231h（R39-P3-2）：已装为 PWA 时把连签数打到 app 角标——
+       * 未安装/不支持的浏览器静默跳过。 */
+      try {
+        if (navigator.setAppBadge) {
+          var _bs = _checkinStreak(_checkinAll(), dateKey);
+          if (_bs > 0) navigator.setAppBadge(_bs).catch(function () {});
+        }
+      } catch (e4) {}
       /* R231h（R39-P3-3）：里程碑仪式——连签 3/7/14/30 的当天给一张
        * 小庆典卡（可直发分享图）；同一天同一档不重复弹。 */
       try {
