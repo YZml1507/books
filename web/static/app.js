@@ -238,6 +238,7 @@ async function api(path, options) {
  * 多次调用堆叠，z-index 最高（遮在 modal 之上）。additive，不动既有
  * 任何 DOM 结构。 */
 function showToast(msg, kind) {
+  msg = _humanizeErr(msg);   /* R229z续17+：phFetch 等裸 fetch 的英文错误尾 */
   var stack = document.getElementById('toastStack');
   if (!stack) {
     stack = document.createElement('div');
@@ -2208,7 +2209,7 @@ async function loadDaily() {
     /* R228c：失败态补全——dailyDate 别停在「加载中…」，分享钮也给提示
      * 而不是静默无操作。 */
     setText('dailyDate', '今天');
-    setText('dailySummary', '运势计算暂时不可用：' + e.message);
+    setText('dailySummary', '运势计算暂时不可用：' + _humanizeErr(e.message));
   }
 }
 
@@ -2301,7 +2302,7 @@ async function loadDailyDetail() {
     try { target.scrollIntoView({ behavior: _rmBehavior(), block: 'start' }); } catch (e) {}
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
-    target.innerHTML = '<div class="no-evidence">解读失败：' + esc(e.message) + '</div>';
+    target.innerHTML = '<div class="no-evidence">解读失败：' + esc(_humanizeErr(e.message)) + '</div>';
   }
 }
 
@@ -5282,7 +5283,7 @@ function baziPersonaCard(j) {
           '<button type="button" class="ghost ph-del">删除</button></div></div>';
       }).join('');
     } catch (e) {
-      listEl.innerHTML = '<div class="ph-empty">加载失败：' + esc(e.message) + '（可点上方「刷新」重试）</div>';
+      listEl.innerHTML = '<div class="ph-empty">加载失败：' + esc(_humanizeErr(e.message)) + '（可点上方「刷新」重试）</div>';
     }
   }
   document.addEventListener('click', async function (ev) {

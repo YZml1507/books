@@ -10420,3 +10420,5 @@ R8 子 agent 实测报告（audit_r8_perf.md）落地批：
 ### R229z续17（运行时错误文案统一人话化）
 
 - `fail`/`failWithRetry` 统一过 `_humanizeErr`：JS 运行时错（Cannot read/is not defined/out of range/AbortError 等英文片段）换「网络或服务出了点小状况」，中文前缀保留。补 api() 层之外最后一道英文泄漏缝。
+
+- `_humanizeErr` 覆盖剩余三处裸 `e.message` 落屏点（dailySummary/解读失败/排盘历史加载失败）+ showToast 入口统一过滤（phFetch 裸 fetch 路径）。
