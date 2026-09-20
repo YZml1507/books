@@ -1,0 +1,14 @@
+# R230n（R26-P3）：依赖更新巡检——pip 运行依赖 + CI actions 各一条周检。
+# 只开 PR 不合码；安全告警路径由 GitHub 侧 Dependabot alerts 另走。
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
