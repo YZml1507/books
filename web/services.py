@@ -472,13 +472,13 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
     q = _require_q(q, what="查询词不能为空——检索需要查询词；找某个地址请用 /api/addr")
     # R230s（R30-#9）：limit<=0 此前静默钳成 1——如实 400。
     if limit < 1:
-        raise ValidationError("limit 至少是 1（最多 50 条）")
+        raise ValidationError("一次最多取 50 条")
     limit = min(limit, 50)
     with deps.corpus() as c:
         # R230a-33（R14-P3-6）：scheme 与 addr 同纪律——未知值 400 而非静默零命中。
         if scheme is not None and scheme not in deps.SCHEME_LABELS:
             raise ValidationError(
-                f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
+                f"这种编址方式不支持——可选：{' / '.join(deps.SCHEME_NAMES.values())}")
         # 'none' 哨兵原样下传，由 Corpus._search_where 翻成 IS NULL。
         # R230r（R30-#11）：过滤参数拼错/不存在时如实 400——work=NOSUCH
         # 此前静默 200 零命中，看起来像「语料里没有这个词」。
@@ -514,9 +514,9 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     """地址定位。scheme 显式声明，杜绝 Psalms-99 == 卦99 类跨体系碰撞（D-005）。"""
     if scheme not in deps.SCHEME_LABELS:
         raise ValidationError(
-            f"这种编址方式不认识（支持的：{'/'.join(deps.SCHEME_LABELS)}）")
+            f"这种编址方式不支持——可选：{' / '.join(deps.SCHEME_NAMES.values())}")
     if limit < 1:
-        raise ValidationError("limit 至少是 1（最多 100 条）")
+        raise ValidationError("一次最多取 100 条")
     limit = min(limit, 100)
     # R230s（R30-#14）：与所选 scheme 不相干的参数如实披露，不静默吞。
     if scheme == "zhouyi":
@@ -526,7 +526,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     else:
         _ignored = [n for n, v in (("gua", gua), ("yao", yao))
                     if v is not None]
-    hint = (f"参数 {'/'.join(_ignored)} 对 {scheme} 编址不生效，已忽略"
+    hint = (f"你传的 {'/'.join(_ignored)} 这项在{deps.SCHEME_NAMES.get(scheme, scheme)}用不上，帮你忽略了"
             if _ignored else None)
     with deps.corpus() as c:
         if scheme == "zhouyi":
@@ -655,7 +655,7 @@ def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
     """两书对照：两书 top 证据并排 + 层分布对照 + 同址命中地址。"""
     work_a, work_b = (work_a or "").strip(), (work_b or "").strip()
     if not work_a or not work_b:
-        raise ValidationError("两本书的书号不能为空")
+        raise ValidationError("两本书的书号都得填上")
     # R230a-34（R14-P3-7）：同书对照无意义——全部行恒等，纯烧 IO。
     if work_a == work_b:
         raise ValidationError("对照需要两本不同的书")
@@ -749,7 +749,7 @@ def thread_set_status(tid: int, status: str) -> dict:
     """改线程状态（R230r / R30-#8：schema 早有 open/parked/closed CHECK，
     但没有任何写入路径能到 closed/parked）。"""
     if status not in ("open", "parked", "closed"):
-        raise ValidationError("这条心事只能「挂着」「收起来」或「打开」")
+        raise ValidationError("这条线程只能改成「进行中」「先收起」或「已结束」")
     with deps.knowledge() as kb:
         row = kb.db.execute(
             "SELECT id FROM thread WHERE id=?", (tid,)).fetchone()
@@ -842,7 +842,7 @@ def thread_record(req) -> dict:
     for e in req.evidence:
         if e.role not in ("supports", "contradicts", "context"):
             raise ValidationError(
-                "证据的角色只能是 supports/contradicts/context")
+                "证据只能标成「支持」「反驳」或「背景」")
 
     with deps.knowledge() as kb:
         tid = req.thread_id
@@ -881,7 +881,7 @@ def thread_record(req) -> dict:
             # 内部约束名属实现细节——翻成中文人话。
             if created_tid is not None:
                 _drop_thread(kb, created_tid)
-            raise ValidationError("记录被拒绝：类型或内容不合规") from exc
+            raise ValidationError("这条没存上——格式不对，检查一下再试") from exc
         except Exception:
             # R230g（R19-P2-2）：盘满/OperationalError 等底层失败同样
             # 把本调用新开的空壳线程清掉，再把异常交给 errors.py 翻 503。
@@ -2149,7 +2149,7 @@ def fortune_level(calc_out: dict) -> str:
 def fortune_summary(calc_out: dict) -> str:
     """从运算事实转述运势一句话（纯坐标转述，不新增结论）。"""
     if not calc_out:
-        return "今天运势数据暂不可用"
+        return "今天的运势卡没算出来，稍后再看看～"
     # R216b 续3（UX 队列 U-010）：原版「五行中火土偏旺；有1处地支自刑，
     # 宜稳不宜争；今日日运：庚午」术语裸抛——每条跟一句人话短注。
     parts = []
@@ -2351,16 +2351,16 @@ def set_user_prefs(payload: dict) -> dict:
     # R228j：自由键值≠无界——键数/键长/值长不设限就是 sqlite 无限写入面。
     payload = payload or {}
     if len(payload) > 64:
-        raise ValidationError("偏好键最多 64 个")
+        raise ValidationError("存的偏好太多了，先清一批再存")
     items = []
     for k, v in payload.items():
         if not isinstance(k, str) or not k or len(k) > 64:
-            raise ValidationError("偏好键需为 1-64 字符")
+            raise ValidationError("偏好名太长或为空——换短一点的")
         if isinstance(v, (list, dict)):
             v = json.dumps(v, ensure_ascii=False)
         v = str(v)
         if len(v) > 4000:
-            raise ValidationError(f"偏好值过长（≤4000），键 {k}")
+            raise ValidationError(f"这条偏好存不下（太长了）：{k}")
         items.append((k, v))
     with deps.knowledge() as kb:
         kb.set_prefs(items)   # 单事务——全部校验过后才落库

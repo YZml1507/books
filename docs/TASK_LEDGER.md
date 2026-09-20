@@ -11356,3 +11356,22 @@ selftest 237 / contract 547(SOFT=41) / regress / llm_polish / dollar / parity(66
 - 闸门：selftest 248 / contract 540 / ui_smoke 59 / plain_first /
   xingzuo / parity(66+41+88) / poster(14) / async_ai / llm_polish /
   importable / baseline_voice / warm_voice / regress / ruff 全绿。
+
+## R233z（R54 文案 P1 尾巴 + 研究域术语清零）
+- 主路径：八字卡「坐标还在」→「不影响解读」；合婚 chat 自动气泡
+  甲方/乙方日柱 → 我的/TA 的日柱；无命中/无引文兜底 →
+  「这次没翻到——换个词试试？」；chip/台账口语漏网清掉。
+- services：scheme/limit/role/kind/confidence 枚举原文全翻人话
+  （新增 deps.SCHEME_NAMES 短名表）；偏好键值报错去数据模型话；
+  「今天运势数据暂不可用」→「运势卡没算出来」。
+- 研究域（休眠 view 内但文案先清）：found/kept→翻到/留下；
+  「同址版本分歧」「同址多见证地图」「两书同址命中」→ 白话标题；
+  「各见证一致」→「几种版本说法一致」；claim/turns/claims/open/stale
+  枚举全翻中文；线程创建/删除/截断/详情全链路人话；
+  知识卡字段名（地址体系/单元/层分布…）→ 编址方式/段落/各层命中；
+  suspect→存疑；misc→其他；Scheme/地址1/地址2 表单标签中文化，
+  读书页 scheme 下拉补中文选项。
+- 一处回退：「AI 生成」badge 文案被 probe_ui_smoke 字面钉扎，
+  保留原文（判据语义即「标注 AI 生成」）。
+- 闸门：selftest 248 / ui_smoke 59 / contract 542 / warm_voice /
+  regress / ruff 全绿。

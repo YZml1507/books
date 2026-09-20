@@ -65,6 +65,15 @@ SCHEME_LABELS = {
 }
 
 
+# R233y（R54-P1-23）：对外报错用的编址方式短名（label 是给定位页
+# 看的长说明，错误提示里要短词）。
+SCHEME_NAMES = {
+    "zhouyi": "周易", "bcv": "圣经章节", "yilin": "易林",
+    "booksec": "书章节", "play": "剧本", "euclid": "欧几里得",
+    "none": "无编址（页锚点）",
+}
+
+
 @contextmanager
 def corpus():
     """语料库句柄（只读检索），退出必关。"""

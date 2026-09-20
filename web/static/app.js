@@ -1156,10 +1156,10 @@ function buildChatContext(viewKey) {
   } else if (viewKey === 'hehun') {
     var a = j.a_bazi || {}, b = j.b_bazi || {};
     /* R229z续23（R11-#10）：A/B → 甲/乙，与表单/422 口径统一 */
-    msg = '甲方日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
-      '），乙方日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
-      '），这两人配吗';
-    facts = ['甲方日柱：' + (a.day || '—'), '乙方日柱：' + (b.day || '—')];
+    msg = '我的日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
+      '），TA 的日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
+      '），我俩配吗';
+    facts = ['我的日柱：' + (a.day || '—'), 'TA 的日柱：' + (b.day || '—')];
     if (j.day_wx_sheng !== undefined) {
       /* R230a-7（R13-P0-2）：同五行是比和，不是相克 */
       facts.push('日主五行：' + (j.day_wx_sheng ? '相生' :
@@ -1933,7 +1933,7 @@ try { history.replaceState({ view: 'home' }, ''); } catch (e) {}
 function renderHits(hits, opts) {
   const o = opts || {};
   if (!hits || !hits.length) {
-    return '<div class="no-evidence">' + esc(o.empty || '无命中') + '</div>';
+    return '<div class="no-evidence">' + esc(o.empty || '这次没翻到——换个词试试？') + '</div>';
   }
   let html = '';
   hits.forEach(function (h, i) {
@@ -1999,7 +1999,7 @@ function renderCiteTree(items, opts) {
     return h && (h.text || h.citation);
   });
   if (!list.length) {
-    return '<div class="no-evidence">' + esc(o.empty || '无引文') + '</div>';
+    return '<div class="no-evidence">' + esc(o.empty || '这次没翻到——换个词试试？') + '</div>';
   }
   // 按书分组，保持首次出现顺序（检索相关性顺序，不重排）
   const order = [];
@@ -4110,8 +4110,8 @@ function buildBaziResult(j) {
       /* R228r：空数组此前整块不渲染——用户分不清「没检索」和「检索没中」；
        * 渲染空态文案说明。 */
       html += j.evidence.length
-        ? renderHits(j.evidence, { empty: '无引文' })
-        : '<p style="color:var(--secondary);font-size:13px;">这次没检索到可引的古籍原文——坐标还在，解读照常。</p>';
+        ? renderHits(j.evidence, { empty: '这条没有古籍引文' })
+        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文——不影响解读，往下看～</p>';
     }
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
@@ -4275,14 +4275,14 @@ async function doResearch() {
     if (j.steps && j.steps.length) {
       html += '<h3>检索链路</h3><ol class="step-list">';
       j.steps.forEach(function (s) {
-        html += '<li>' + esc(s.action || '') + ' 「' + esc(s.query || '') + '」 → found ' +
-          esc(s.found) + ' / kept ' + esc(s.kept) +
+        html += '<li>' + esc(s.action || '') + ' 「' + esc(s.query || '') + '」 → 翻到 ' +
+          esc(s.found) + ' 处、留下 ' + esc(s.kept) + ' 处' +
           (s.note ? '（' + esc(s.note) + '）' : '') + '</li>';
       });
       html += '</ol>';
     }
     if (j.comparisons && j.comparisons.length) {
-      html += '<h3>同址版本分歧</h3>';
+      html += '<h3>同一位置，不同书的说法不一样</h3>';
       j.comparisons.forEach(function (cmp) {
         html += '<div class="finding">' + esc(cmp.addr || '') + '：' +
           esc((cmp.findings || []).length) + ' 处差异</div>';
@@ -4316,7 +4316,7 @@ async function doAddr() {
   try {
     const j = await api('/api/addr?' + params.toString());
     paint('addrResult',
-      '<p class="hit-cite">' + esc(j.scheme) + ' · 命中 ' + esc(j.count) + ' 条</p>' +
+      '<p class="hit-cite">' + esc(j.scheme) + ' · 翻到 ' + esc(j.count) + ' 条</p>' +
       renderHits(j.hits, { empty: '🔍 无命中，换个定位参数？' }));
   } catch (e) {
     fail('addrResult', '定位失败：' + e.message);
@@ -4334,8 +4334,8 @@ async function doCompare() {
   if (val('cyao')) params.set('yao', val('cyao'));
   try {
     const j = await api('/api/compare?' + params.toString());
-    let html = '<h3>' + esc(j.addr || '') + '　基准：' + esc(j.reference || '') +
-      '　' + (j.agree ? '各见证一致' : '存在差异') + '</h3>';
+    let html = '<h3>' + esc(j.addr || '') + '　以《' + esc(j.reference || '') + '》为底本　' +
+      (j.agree ? '几种版本说法一致' : '几种版本说法不一样') + '</h3>';
     const witnesses = j.witnesses || {};
     const citations = j.citations || {};
     const ids = Object.keys(witnesses);
@@ -4390,7 +4390,7 @@ async function doWorks() {
         ' · ' + esc(w.source || '') + '</p>' +
         '<p style="font-size:18px;color:' + c + ';font-weight:600;">' +
         esc(w.units == null ? '?' : w.units) + '</p>' +
-        '<p style="font-size:11px;color:var(--secondary);">单元 · 编址率 ' +
+        '<p style="font-size:11px;color:var(--secondary);">段落 · 已编址 ' +
         esc(rate == null ? '?' : rate + '%') +
         (anchoredRate == null ? '' : '（锚定 ' + anchoredRate + '%）') + '</p></div>';
     });
@@ -4429,14 +4429,13 @@ async function doThread() {
       confidence: 'open',
       topic: topic   /* R228s：后端用 topic 真开 thread 行，claim 绑定其上 */
     });
-    let html = '<div class="no-evidence">线程已创建：#' + esc(j.thread_id) +
-      '（claim #' + esc(j.derived_id) + '）</div>' +
+    let html = '<div class="no-evidence">线程开好了（#' + esc(j.thread_id) + '）</div>' +
       /* R201b（B-005）：展示 claim 内容与证据数——用户能确认「记下了什么」，
        * 不再只回一行 id（响应键 claim/n_evidence 原本零引用）。 */
       '<div class="calc-block" style="margin:10px 0;">' +
       '<p style="font-size:14px;line-height:1.6;">' + esc(j.claim || '') + '</p>' +
-      (j.n_evidence != null ? '<p style="font-size:12px;color:var(--secondary);">证据 ' +
-        esc(j.n_evidence) + ' 条</p>' : '') + '</div>';
+      (j.n_evidence != null ? '<p style="font-size:12px;color:var(--secondary);">翻到 ' +
+        esc(j.n_evidence) + ' 条材料</p>' : '') + '</div>';
     /* R228l：创建与拉列表分两段 try——第二步失败时不能报「创建失败」，
      * 那会误导用户重试造出重复线程。 */
     try {
@@ -4462,8 +4461,9 @@ async function _threadListHtml() {
     var _opened = t.opened_at ? (' · 开题 ' + esc(t.opened_at)) : '';
     html += '<div class="thread-item"><div class="thread-topic">' +
       esc(t.topic || '') + '</div>' +
-      '<div class="thread-meta">#' + esc(t.id) + ' · ' + esc(t.status) +
-      ' · ' + esc(t.turns) + ' turns / ' + esc(t.claims) + ' claims · ' +
+      '<div class="thread-meta">#' + esc(t.id) + ' · ' +
+      esc({open:'进行中', closed:'已结束', shelved:'先收起'}[t.status] || t.status) +
+      ' · 聊了 ' + esc(t.turns) + ' 轮 / 记了 ' + esc(t.claims) + ' 条 · ' +
       esc(t.updated_at || '') + _opened + '</div>' +
       '<div class="thread-actions">' +
       '<button class="thread-view" type="button" data-thread="' + esc(t.id) +
@@ -4474,15 +4474,15 @@ async function _threadListHtml() {
   /* R232d（R40-A12）：线程超 50 条被截断——如实披露总数，
    * 不再让用户以为列表就这么多。 */
   if (list.truncated && list.total != null) {
-    html += '<div class="thread-meta" style="margin-top:8px;">共 ' +
-      esc(list.total) + ' 条线程，只显示前 ' + esc(list.limit || 50) +
+    html += '<div class="thread-meta" style="margin-top:8px;">线程有点多（共 ' +
+      esc(list.total) + ' 条），先看最近的 ' + esc(list.limit || 50) +
       ' 条</div>';
   }
   return html;
 }
 
 async function deleteThread(tid) {
-  if (!window.confirm('删掉这条线程？（里面的研究结论会保留为独立记录）')) return;
+  if (!window.confirm('删掉这条线程？里面记下的研究结论会留着')) return;
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
     showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
@@ -4501,24 +4501,36 @@ async function showThread(tid) {
     let html = '<h3>线程 #' + esc(tid) + '</h3>';
     (j.turns || []).forEach(function (t) {
       html += '<div class="' + (t.role === 'user' ? 'turn-user' : 'turn-assistant') +
-        '">' + esc(t.role) + '：' + esc(t.text || '') + '</div>';
+        '">' + (t.role === 'user' ? '你' : '小满') + '：' + esc(t.text || '') + '</div>';
     });
+    /* R233y（R54-P1-13）：kind/confidence/role 枚举翻中文，
+     * 不再 JSON 直出。 */
+    var _KIND_CN = { thread: '线程', summary: '笔记', answer: '结论',
+      link: '关联', diff: '比对', refusal: '存疑' };
+    var _CONF_CN = { high: '把握高', mid: '把握中', low: '把握低',
+      open: '进行中' };
+    var _ROLE_CN = { supports: '支持', contradicts: '反驳',
+      context: '背景' };
     (j.claims || []).forEach(function (c) {
-      html += '<div class="claim-box"><span class="claim-kind">' + esc(c.kind) +
+      html += '<div class="claim-box"><span class="claim-kind">' +
+        esc(_KIND_CN[c.kind] || c.kind) +
         '</span>' + esc(c.claim || '') +
-        '<span class="claim-conf">' + esc(c.confidence || '') +
+        '<span class="claim-conf">' +
+        esc(_CONF_CN[c.confidence] || c.confidence || '') +
         /* R232d：method/created_at 此前零读——补上让论断可追溯 */
         (c.method ? ' · ' + esc(c.method) : '') +
         (c.created_at ? ' · ' + esc(c.created_at) : '') + '</span>';
       (c.evidence || []).forEach(function (ev) {
-        html += '<div class="claim-ev">' + esc(ev.role) + ' · ' + esc(ev.work_id) +
+        html += '<div class="claim-ev">' +
+          esc(_ROLE_CN[ev.role] || ev.role) + ' · ' + esc(ev.work_id) +
           ' @' + esc(ev.page_anchor || '') + '：' + esc(ev.quote || '') + '</div>';
       });
       html += '</div>';
     });
     if (j.verify) {
-      html += '<div class="interp-basis">证据回查：ok ' + esc(j.verify.ok) +
-        ' / stale ' + esc(j.verify.stale) + '</div>';
+      html += '<div class="interp-basis">证据回查：' + esc(j.verify.ok) +
+        ' 条还能对得上' + (j.verify.stale ? '，' + esc(j.verify.stale) +
+        ' 条过期了' : '') + '</div>';
     }
     paint('threadResult', html);
   } catch (e) {
@@ -4545,11 +4557,11 @@ async function doCompareWorks() {
     (j.works || []).forEach(function (w, i) {
       const c = colorAt(i);
       html += '<div class="cmp-wit" style="border-left:3px solid ' + c + ';">' +
-        '<h3 style="color:' + c + ';">《' + esc(w.title || w.work_id) + '》 命中 ' +
-        esc(w.n_hits) + ' 条' + (w.truncated ? '（已截断）' : '') + '</h3>' +
+        '<h3 style="color:' + c + ';">《' + esc(w.title || w.work_id) + '》 翻到 ' +
+        esc(w.n_hits) + ' 条' + (w.truncated ? '（只展示前几条）' : '') + '</h3>' +
         '<p style="font-size:12px;color:var(--secondary);">' +
         (w.attribution ? '底本：' + esc(w.attribution) + ' · ' : '') +
-        '层分布：' + esc(fmtScalar(w.layers)) + '</p>';
+        '各层命中：' + esc(fmtScalar(w.layers)) + '</p>';
       (w.top || []).forEach(function (t) {
         html += '<div class="ev-item"><div class="ev-meta">' + esc(humanCite(t.citation || '')) +
           (t.layer ? ' · ' + esc(t.layer) : '') + '</div>' +
@@ -4562,7 +4574,7 @@ async function doCompareWorks() {
     html += '</div>';
     const shared = j.shared_addresses || [];
     if (shared.length) {
-      html += '<h3 style="margin-top:16px;">两书同址命中（分歧起点）</h3>';
+      html += '<h3 style="margin-top:16px;">两本书在同一位置都讲了这件事</h3>';
       // R228o：shared_addresses 项只有 {addr}（research.compare_works），
       // 两书命中是集合语义本身——旧代码读不存在的 s.works 会渲染出
       // "undefined"（契约探针实测抓获的真漂移）。
@@ -4570,7 +4582,7 @@ async function doCompareWorks() {
         html += '<div class="finding">' + esc(s.addr || '') + '</div>';
       });
     } else {
-      html += '<div class="no-evidence">两书无共享地址命中</div>';
+      html += '<div class="no-evidence">两本书没在同一位置对上这个词</div>';
     }
     paint('cwResult', html);
   } catch (e) {
@@ -4608,7 +4620,7 @@ async function doConcept() {
     }
     const shared = j.shared_addresses || [];
     if (shared.length) {
-      html += '<h3 style="margin-top:16px;">同址多见证地图</h3>';
+      html += '<h3 style="margin-top:16px;">同一位置的多种说法</h3>';
       shared.forEach(function (s) {
         html += '<div class="finding">' + esc(s.addr || '') + '　' +
           esc(fmtScalar(s.works)) + '</div>';
@@ -4616,7 +4628,7 @@ async function doConcept() {
       /* R232d：共享址超 30 条被截断——如实披露总数（shared_total 一直在回）。 */
       if (j.shared_truncated && j.shared_total) {
         html += '<div class="finding" style="color:var(--muted);">共 ' +
-          esc(j.shared_total) + ' 处同址，只列出前 30</div>';
+          esc(j.shared_total) + ' 处同址，先看前 30</div>';
       }
     }
     const first = (j.census || [])[0];
@@ -4685,11 +4697,11 @@ async function doBookChapter() {
       return;
     }
     let html = '<h3>' + esc(j.work_id) + ' · ' + esc(j.scheme) + ' 第 ' +
-      esc(j.section) + ' 节 · ' + esc(j.n_units) + ' 单元</h3>';
+      esc(j.section) + ' 节 · ' + esc(j.n_units) + ' 段</h3>';
     (j.units || []).forEach(function (u) {
       html += '<div class="ev-item"><div class="ev-meta">' + esc(humanCite(u.citation || '')) +
         (u.addr2 ? ' · ' + esc(u.addr2) : '') + (u.layer ? ' · ' + esc(u.layer) : '') +
-        (u.suspect ? ' ⚠ suspect' : '') + '</div>' +
+        (u.suspect ? ' ⚠ 存疑' : '') + '</div>' +
         '<div class="ev-text">' + esc(u.text || '') + '</div></div>';
     });
     paint('bsChapter', html);
@@ -4713,13 +4725,14 @@ async function doBookSummary() {
       return;
     }
     let html = '<h3>《' + esc(j.title || j.work_id) + '》知识卡</h3><div class="calc-grid">';
+    /* R233y（R54-P1-19）：知识卡字段名半行话化翻一遍。 */
     [
-      ['体裁', j.genre], ['地址体系', j.scheme], ['节数', j.n_sections],
-      ['单元数', j.n_units], ['总字数', j.total_chars],
-      ['层分布', fmtScalar(j.layers)], ['未编址单元', j.unaddressed_units],
-      ['质量标记单元', j.suspect_units], ['跳字单元', j.skipped_chars_units],
-      ['最大节', fmtScalar(j.largest_section)],
-      ['最小节', fmtScalar(j.smallest_section)]
+      ['体裁', j.genre], ['编址方式', j.scheme], ['章节数', j.n_sections],
+      ['段落数', j.n_units], ['总字数', j.total_chars],
+      ['各层命中', fmtScalar(j.layers)], ['未编址段落', j.unaddressed_units],
+      ['存疑段落', j.suspect_units], ['缺字段落', j.skipped_chars_units],
+      ['最长一节', fmtScalar(j.largest_section)],
+      ['最短一节', fmtScalar(j.smallest_section)]
     ].forEach(function (pair, i) {
       if (pair[1] == null) return;
       html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +
@@ -5811,7 +5824,7 @@ async function doHehun() {
           type: 'hehun', ref_id: ref.slice(0, 64),
           title: (_an || '我') + ' × ' + (_bn || 'TA')
         });
-        showToast('已存下这对～下次直接点上方 chip 回填', 'info');
+        showToast('已存下这对～下次点上面的标签就能直接填', 'info');
         _hhFavsRender();
       } catch (e) {
         showToast('没存上：' + e.message, 'error');
@@ -8747,7 +8760,7 @@ function baziPersonaCard(j) {
                                       { records: bundle.records.slice(0, 500) });
             n = rj.imported || 0;
           }
-          showToast('导入完成：台账 +' + n + ' 条，偏好已恢复（刷新生效）', 'info');
+          showToast('导入好了：多了 ' + n + ' 条记录，偏好也回来了（刷新后生效）', 'info');
           loadPaipanHistory();
         } catch (e) {
           showToast('导入失败：' + e.message, 'error');
