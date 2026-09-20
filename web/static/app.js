@@ -2451,9 +2451,14 @@ function baziBody() {
     scope: scope
   };
   /* R230f（R18-P1-1）：可选分钟——只在填了时辰+分钟时才传（节气当小时
-   * 内出生需分钟级才不被截到节前一侧）。 */
+   * 内出生需分钟级才不被截到节前一侧）。时辰留空时传分钟没意义
+   * （默认 12 点的盘带个 30 分纯属误导）。 */
   var _min = num('minute');
-  if (_min != null) body.minute = _min;
+  if (_min != null && !(hourRaw === '' || hourRaw == null)) {
+    body.minute = _min;
+  } else if (_min != null) {
+    showToast('填了分钟但没填时辰，分钟不生效哦', 'info');
+  }
   if (calendar === 'lunar') {
     // 农历输入复用同三个输入框（HTML 只有一组年月日），后端要 lunar_* 键。
     body.lunar_year = body.year;
