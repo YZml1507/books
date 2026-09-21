@@ -3143,7 +3143,9 @@ function buildShareData(view, j) {
       var sly = base('六爻占卜', '');
       /* R233t（R51-P2-13）：4 行全叫「依据」分不清——位置化标签。 */
       var _lyLbl = ['卦象', '提示', '走势', '备注'];
-      sly.lines = _pArr(w.details && w.details.basis).slice(0, 4)
+      /* R2349m（R75-P2-1）：明细行与 hook 大字逐字重复时剔掉——不当复读机 */
+      sly.lines = _pArr(w.details && w.details.basis)
+        .filter(function (b) { return _pStr(b) !== l0; }).slice(0, 4)
         .map(function (b, i) { return { k: _lyLbl[i] || '看点', v: _pStr(b) }; });
       /* R2341（R57-P2-2）：basis 空时退化行复读大字——改画卦名/
        * 动爻这些已有字段，明细区不当复读机。 */
