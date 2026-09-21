@@ -12146,3 +12146,19 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
   后 welcomeBar 隐藏、内容上移使该竞态稳定复现并揪出）→
   .toast-item 穿透 + × 保活（键盘 focusin 暂停仍在）。
   selftest 271 / contract 606 / ui_smoke 75 / 全探针绿。
+
+## R2350d（R100 传播性审计清零）
+- P0-1 本命盘卡 `.is-working` 永不摘除（busy()→innerHTML 绕过 paint，整卡半透+按钮全假）：doBirthReading 成功/失败两路补 remove；同型残留 dailyDetail 同修；全站 20 个 busy 目标已扫净。
+- P1-1 全结果卡底统一品牌水印 `🐻 小满的解忧铺`（attachChatEntry 一处注入，手动截图自带出处）。
+- P1-2 toast 拦截点击：`.toast-item{pointer-events:none}`（.toast-x 恢复 auto）——上轮已修并解出 ui:qm.style_chip 假回归真因。
+- P1-3 PWA 装桌面横幅：beforeinstallprompt 早发遮日卡 → 延迟 8s + 仅 home 视图弹。
+- P1-4 星座速配补「📸 分享图」钮 + xzm 海报 case/标题/分享文案（此前最低成本晒点无分享口）。
+- P2-1/2 深色补丁：cite-top 硬编码浅底+深字 → 深底#2A302B/字#9AD6CE；xz-card 深底描边#453C42。
+- P2-3 黄历「当班」金句 13px→判词级头行（17px 金句体居中）。
+- P2-4 read hit 卡出处行 → 胶囊头样式（含深色档）。
+- P2-5 海报底部三行整体上移，底缘留白 6px→~50px（吉祥物随行上移避让）。
+- P2-6 wrapText3 孤行门槛 1 字→<3 字（「主角」孤行回借）。
+- P2-7 六爻海报画六爻条形阵（ben.lines 阳实/阴断/动爻红点，挤不下跳过）；birth 海报补「小满短评」行。
+- P2-8 --font-mono 栈尾补 var(--font-wenkai) CJK 兜底（桌面无全量 CJK 时繁体不再豆腐块）。
+- P2-9 分享弹层按端文案已在库（maxTouchPoints 分端）——确认非缺口。
+- 闸门：selftest 271 / contract 606 / ui_smoke 75 / voice/check_* 全绿 / ruff 净。SW 版本已 bump。

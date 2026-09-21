@@ -1458,6 +1458,15 @@ function attachChatEntry(container) {
   btn.setAttribute('aria-label', '打开小满聊天，聊聊这件事');
   btn.textContent = '💬 聊聊这件事';
   card.appendChild(btn);
+  /* R2350d（R100-P1-1）：结果卡零品牌露出——手动截图发小红书
+   * 看不出出处。挂聊天入口的卡（≈全部结果卡）底部统一一行
+   * 小字水印，截图自带品牌。 */
+  if (!card.querySelector('.card-brand')) {
+    var wm = document.createElement('div');
+    wm.className = 'card-brand';
+    wm.textContent = '🐻 小满的解忧铺';
+    card.appendChild(wm);
+  }
 }
 
 /* R230d（R16-P2-7）：轮数封顶后此前只复读收尾文案，用户没有任何
@@ -3134,6 +3143,36 @@ function _paintSharePoster(s, W, H) {
     ctx.textAlign = 'center';
   }
 
+  /* R2350d（R100-P2-7）：六爻海报中腰偏空——卦象数据就在响应里
+   * （ben.lines：阳/阴/动爻），画六爻条形阵让卦「长」在图上：
+   * 阳=整根实条，阴=两段断条，动爻尾缀红点。挤不下时跳过不画。 */
+  var _lyL = (s.view === 'liuyao') &&
+    _pArr((((s._src || {}).ben) || {}).lines);
+  if (_lyL && _lyL.length === 6) {
+    var _gy = (lines.length ?
+      Math.min(1160, (cardY + (lines.length * lh)) + 24) : 640);
+    if (_gy + 6 * 26 + 24 <= 1280) {
+      ctx.fillStyle = '#FFFFFF';
+      _roundRectPath(ctx, 330, _gy - 18, 420, 6 * 26 + 36, 20); ctx.fill();
+      ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
+      _roundRectPath(ctx, 330, _gy - 18, 420, 6 * 26 + 36, 20); ctx.stroke();
+      _lyL.forEach(function (L, i) {
+        var _by = _gy + i * 26;
+        ctx.fillStyle = '#5A4633';
+        if (L && L.yang) {
+          _roundRectPath(ctx, 390, _by, 300, 16, 8); ctx.fill();
+        } else {
+          _roundRectPath(ctx, 390, _by, 136, 16, 8); ctx.fill();
+          _roundRectPath(ctx, 554, _by, 136, 16, 8); ctx.fill();
+        }
+        if (L && L.moving) {
+          ctx.fillStyle = '#C43E3E';
+          ctx.beginPath(); ctx.arc(712, _by + 8, 7, 0, Math.PI * 2); ctx.fill();
+        }
+      });
+    }
+  }
+
   /* 卡片区（塔罗：RWS 真图直绘；其他：文字卡） */
   var cards = (s.cards || []).slice(0, 3);
   if (cards.length) {
@@ -3170,14 +3209,16 @@ function _paintSharePoster(s, W, H) {
   ctx.textAlign = 'center';
   /* 水印行 */
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
-  ctx.fillText('@小满的解忧铺', 540, 1320);
+  /* R2350d（R100-P2-5）：底部 CTA 区距画布底缘 6px 贴边——整张带
+   * 上移 32px，底缘留白 ~50px，长图在相册里不顶脚。 */
+  ctx.fillText('@小满的解忧铺', 540, 1288);
   /* R230r（R29-#11）：免责声明是合规件——花纹底图上浅棕字几乎不可读，
    * 给文字垫一条半透明米白衬底，任何背景下都可读。 */
   ctx.fillStyle = 'rgba(253,248,240,0.78)';
-  _roundRectPath(ctx, 540 - 340, 1330, 680, 42, 21); ctx.fill();
+  _roundRectPath(ctx, 540 - 340, 1298, 680, 42, 21); ctx.fill();
   ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
-  ctx.fillText('· 知命知趣知自己 · 仅供娱乐 ·', 540, 1356);
+  ctx.fillText('· 知命知趣知自己 · 仅供娱乐 ·', 540, 1324);
   /* 金句 hook（按 view 动态 + 数据驱动） */
   /* R218a-巡3 修复（N-02+N-04 同根因）：原 `j` 是父函数 _paintPoster 的形参，
    * 本函数 _paintSharePoster(s, W, H) 形参只有 s；j 在 share 分支闭包不可见，
@@ -3200,29 +3241,29 @@ function _paintSharePoster(s, W, H) {
     /* R2345（R62-P1-7）：CTA 是海报转化位却最挤——pill 加宽到 88%，
      * hook/CTA 两行都在 pill 内（原 680px 宽，CTA 贴着 pill 底缘）。 */
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 65, 1366, 950, 68, 22); ctx.fill();
+    _roundRectPath(ctx, 65, 1334, 950, 68, 22); ctx.fill();
     ctx.fillStyle = '#815934';
-    ctx.fillText(hook, 540, 1396);
+    ctx.fillText(hook, 540, 1364);
   }
   /* R231d（R37-F1/F10）：回流 CTA——海报底部一行邀请语，收到图的人
    * 知道去哪儿玩同款（部署域名未定时只引品牌名，不画裸 URL）。 */
   /* R2341：hook 缺席时 CTA 也要有衬底（P1-1 同根因） */
   if (!hook) {
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 65, 1366, 950, 68, 22); ctx.fill();
+    _roundRectPath(ctx, 65, 1334, 950, 68, 22); ctx.fill();
   }
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R2350b（R99-P2）：CTA 换接收方口吻——只看图的人想测，教她
    * 去搜品牌名；「链接甩给 TA 就行」是对分享者说的话。 */
-  ctx.fillText('搜「小满的解忧铺」· 测你的同款 ✨', 540, 1422);
+  ctx.fillText('搜「小满的解忧铺」· 测你的同款 ✨', 540, 1390);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
     try {
       /* R2341（R57-P1-3）：tarot 卡片区 (880-1300) 与右下贴纸
        * (1216-1340) 重叠压第三张牌——有卡片时挪右上角。 */
-      var _mx = 974, _my = cards.length ? 76 : 1278;
+      var _mx = 974, _my = cards.length ? 76 : 1238;
       ctx.save();
       ctx.beginPath(); ctx.arc(_mx, _my, 62, 0, Math.PI * 2); ctx.clip();
       ctx.drawImage(POSTER_MASCOT, _mx - 62, _my - 62, 124, 124);
@@ -3512,6 +3553,10 @@ function buildShareData(view, j) {
         .map(function (p) { return p[0] + ' ' + p[1]; }).join(' · ');
       if (_bfx) _bir.lines.push({ k: '五行偏旺', v: _clauseCut(_bfx, 20) });
       if (_bec.element) _bir.lines.push({ k: '本命', v: _pStr(_bec.element) });
+      /* R2350d（R100-P2-7 续）：本命盘海报中腰偏空——warm 里现成的
+       * one_liner 短评补一行，三行撑不满时不再留大片死白。 */
+      var _bol = _pStr(w && w.one_liner);
+      if (_bol) _bir.lines.push({ k: '小满短评', v: _clauseCut(_bol, 20) });
       if (!_bir.lines.length) _bir.lines = [{ k: '结论', v: '知己知命' }];
       return _bir;
     }
@@ -3684,6 +3729,17 @@ function buildShareData(view, j) {
         shl.lines.push({ k: '小满提一句', v: _cf.slice(0, 3).map(_pStr).join('·') + ' 宜忌两边都见，自己掂量' });
       }
       return shl;
+    }
+    /* R2350d（R100-P1-4）：星座速配——全站填表成本最低的晒点此前
+     * 没有分享图，只能手截一张无品牌小卡。 */
+    case 'xzm': {
+      var _xm = base('星座速配', _cnDateSub(todayIso()));
+      _xm.big = _pStr(j && j.a) + '座 × ' + _pStr(j && j.b) + '座';
+      _xm.lines = [
+        { k: '合拍指数', v: _pStr(j && j.score) + '/99' },
+        { k: '判词', v: _pStr(j && j.label) },
+        { k: '小满说', v: _clauseCut(_pStr(j && j.line), 20) }];
+      return _xm;
     }
     default:
       return null;
@@ -4123,9 +4179,12 @@ function wrapText3(ctx, text, maxWidth) {
     });
     if (cur) lines.push(cur);
     /* R2349s（R86-P1-4）：末行只剩 1 个字是排版事故（孤字悬行）——
-     * 从上一行尾巴匀一个字过来。 */
-    if (lines.length > 1 && Array.from(lines[lines.length - 1]).length === 1
-        && Array.from(lines[lines.length - 2]).length > 3) {
+     * 从上一行尾巴匀一个字过来。
+     * R2350d（R100-P2-6）：末行 2 字同样悬空（实测「主角」孤行）——
+     * 门槛提到 <3 字，按需逐字回借。 */
+    while (lines.length > 1 &&
+           Array.from(lines[lines.length - 1]).length < 3 &&
+           Array.from(lines[lines.length - 2]).length > 3) {
       var _pa = Array.from(lines[lines.length - 2]);
       lines[lines.length - 1] = _pa.pop() + lines[lines.length - 1];
       lines[lines.length - 2] = _pa.join('');
@@ -4986,6 +5045,9 @@ async function loadDailyDetail() {
         '</details>';
     }
     html += '</div>';
+    /* R2350d（R100-P0-1 同型）：dailyDetail 也绕过 paint() 直写——
+     * is-working 不摘的话整卡恒半透+子元素 pointer-events:none。 */
+    target.classList.remove('is-working');
     target.innerHTML = html;
     target.dataset.loaded = '1';
     /* R233r（R49-Top5-4）：日签卡接入聊天上下文——首页「聊聊这件事」/
@@ -6485,7 +6547,8 @@ var _POSTER_TITLES = {
   bazi: '今日命盘', liuyao: '六爻占卜', tarot: '塔罗指引',
   qiming: '五行起名', taohua: '桃花运势', hehun: '八字合婚',
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
-  birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运'
+  birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运',
+  xzm: '星座速配'
 };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
@@ -6505,7 +6568,8 @@ var _SHARE_TEXT = {
   huangli: '今天宜忌帮你查好了 →',
   checkin: '我在小满攒好运签，一起吗 →',
   'checkin-week': '我这周的签运攒成图了，你的呢 →',
-  birth: '我的本命盘出来了，看看你的 →'};
+  birth: '我的本命盘出来了，看看你的 →',
+  xzm: '我们星座合拍指数出来了，你们的呢 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
 }
@@ -9317,7 +9381,15 @@ function initDivination() {
         '<div style="margin-top:8px;color:var(--secondary);font-size:14px;">' +
         esc(mj.line) + '</div>' +
         '<div style="margin-top:8px;font-size:12px;color:var(--secondary);">' +
-        '想更准？补个生辰试试八字合婚 →</div>';
+        '想更准？补个生辰试试八字合婚 →</div>' +
+        /* R2350d（R100-P1-4）：速配卡补分享钮——最低成本的晒点。 */
+        '<button class="ghost fav-btn" type="button" id="shareXzm" ' +
+        'title="生成分享图" style="margin-top:10px;">📸 分享图</button>';
+      var _sxm = box.querySelector('#shareXzm');
+      if (_sxm) _sxm.addEventListener('click', function () {
+        var _p = downloadPoster(mj, 'xzm');
+        if (_p && _p.catch) _p.catch(function () {});
+      });
     } catch (e) {
       box.innerHTML = '<div class="ph-empty" style="padding:12px;">' +
         esc((e && e.message) || '速配没跑出来，再点一次试试') + '</div>';
@@ -11024,7 +11096,12 @@ var _deferredInstall = null;
 window.addEventListener('beforeinstallprompt', function (e) {
   e.preventDefault();
   _deferredInstall = e;
-  try { _renderInstallTip(); } catch (e2) {}
+  /* R2350d（R100-P1-3）：beforeinstallprompt 在首屏早期就发——
+   * 左下角横幅会盖住刚渲染的日卡（主视觉位）。延迟到 8s 后、且
+   * 只在首访兴趣建立后（留在 home）才出。 */
+  setTimeout(function () {
+    try { _renderInstallTip(); } catch (e2) {}
+  }, 8000);
 });
 function _renderInstallTip() {
   if (el('installTip')) return;
@@ -11039,6 +11116,10 @@ function _renderInstallTip() {
     var ds = localStorage.getItem('installTipDismissed');
     if (ds && Date.now() - Date.parse(ds) < 7 * 864e5) return;
   } catch (e) {}
+  /* R2350d（R100-P1-3 续）：当前不在 home 视图（已在别的功能页
+   * 深度使用中）不打断。 */
+  var _vv = document.querySelector('.view.active');
+  if (_vv && _vv.id && _vv.id !== 'view-home') return;
   var bar = document.createElement('div');
   bar.className = 'install-tip'; bar.id = 'installTip';
   /* R233f（R43-P3-13）：静默出现读屏无感知——role=status 出现即播。 */
@@ -11831,6 +11912,10 @@ function baziPersonaCard(j) {
       html += '<button class="ghost fav-btn" type="button" id="shareBirth" ' +
         'title="生成分享图">📸 分享图</button>';
       html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人解读也会不同。仅供娱乐，不构成决策依据 ✨</div></div>';
+      /* R2350d（R100-P0-1）：busy() 挂的 is-working 此前永不摘除
+       * （唯一绕过 paint() 的 busy 流）——整卡恒半透且子元素
+       * pointer-events:none，分享钮/聊聊都是假的。 */
+      out.classList.remove('is-working');
       out.innerHTML = html;
       attachChatEntry(out);   /* R230k（R23-P2-1）：本命盘卡挂聊天入口 */
       /* R231d（R37-F14）：本命盘挂分享钮——「你是X座」天生海报素材 */
@@ -11844,6 +11929,7 @@ function baziPersonaCard(j) {
       try { rememberResult('bazi', j, '我的本命盘', body); } catch (e) {}
     } catch (err) {
       /* R2349j（R71-P1-18）：非 API 异常（TypeError 等）裸英文先过人话化。 */
+      out.classList.remove('is-working');   /* R2350d：同 P0-1，失败路径也摘 */
       out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(_humanizeErr(err.message)) + '，稍后再试～</div>';
     }
   }
