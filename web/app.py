@@ -221,9 +221,41 @@ def create_app() -> FastAPI:
     def index(request: Request):
         return _index_response(request)
 
+    # R2350g（R105-P2-3）：HEAD / ——监控/链接检查器裸 HEAD 此前 405。
+    @application.head("/", include_in_schema=False)
+    def index_head():
+        return HTMLResponse("")
+
     # R228k：SW 根作用域——/static/sw.js 默认只管 /static/ 下的请求，
     # '/' 的导航永远进不了 fetch 分支，「断网不白屏」此前完全不生效。
     # 改从根路径下发同一文件并显式放行 scope。
+    # R2350g（R105-P1-1）：爬虫三件套从根路径下发——/static/ 下的文件
+    # 爬虫不会去翻。favicon.ico 旧式 UA 会裸请求根路径。
+    @application.api_route("/robots.txt", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def robots():
+        p = os.path.join(deps.STATIC_DIR, "robots.txt")
+        if not os.path.exists(p):
+            raise HTTPException(404)
+        return FileResponse(p, media_type="text/plain")
+
+    @application.api_route("/sitemap.xml", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def sitemap():
+        p = os.path.join(deps.STATIC_DIR, "sitemap.xml")
+        if not os.path.exists(p):
+            raise HTTPException(404)
+        return FileResponse(p, media_type="application/xml")
+
+    @application.api_route("/favicon.ico", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def favicon():
+        for name in ("icon-192.png", "icon-512.png"):
+            p = os.path.join(deps.STATIC_DIR, "cream", name)
+            if os.path.exists(p):
+                return FileResponse(p, media_type="image/png")
+        raise HTTPException(404)
+
     @application.get("/sw.js", include_in_schema=False)
     def service_worker():
         sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
@@ -244,8 +276,14 @@ def create_app() -> FastAPI:
     @application.middleware("http")
     async def _spa_fallback(request, call_next):
         resp = await call_next(request)
-        if (request.method == "GET" and resp.status_code == 404
+        # R2350g（R105-P2-3）：HEAD 同样收——监控/链接检查器/IM 预取
+        # 先发 HEAD，405 会被误判成站点挂了。Starlette 对 HEAD 自动剥体。
+        if (request.method in ("GET", "HEAD") and resp.status_code == 404
                 and not request.url.path.startswith(("/api/", "/static/"))
+                # R2350g（R105-P1-1）：含扩展名的请求（robots.txt /
+                # sitemap.xml / favicon.ico / 任意 .xml）不做 SPA 兜底——
+                # 否则爬虫拿到 50KB HTML 壳当 robots，坏链全成 soft-404。
+                and "." not in request.url.path.rsplit("/", 1)[-1]
                 and os.path.exists(deps.INDEX)):
             return _index_response(request)
         return resp

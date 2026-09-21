@@ -2547,6 +2547,12 @@ def _run_inner() -> list[str]:
         ("sw.shell_hash", "壳文件已变——跑 scripts/bump_sw.py",
          (_m.group(1) if _m else None), _want)
     assert f"books-shell-{_want}" in _swsrc, "CACHE 名未绑哈希"
+    # R2350g（R105-P2-2）：?v= 注入是精确字符串替换——index.html 哪天改
+    # 写法（单引号/属性换序）就静默失效、混版复发且无警报。钉死下发
+    # 的 HTML 里必须出现版本化资产引用。
+    _html = client.get("/").text
+    assert 'app.js?v=' in _html and 'styles.css?v=' in _html, \
+        ("sw.shell_hash", "下发 HTML 未带 ?v= 版本化资产", _html[:200])
     ok.append("sw.shell_hash")
 
     # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。

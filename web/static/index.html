@@ -229,8 +229,10 @@ try {
          点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
     <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
          aria-label="点开查看今日运势">
+      <!-- R2350g（R105-P1-3）：窄屏弱网下这张封套图是真 LCP 元素
+           （实测 4.78s）——提优先级 + 去掉 lazy（视口内本来也立刻拉）。 -->
       <img src="/static/cream/daily-gift-bear.png" alt=""
-           loading="lazy" decoding="async" onerror="this.parentNode.remove()">
+           fetchpriority="high" decoding="async" onerror="this.parentNode.remove()">
       <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
       <p class="daily-cover-sub">每天的礼物都不一样</p>
     </div>
