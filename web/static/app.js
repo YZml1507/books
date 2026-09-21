@@ -8441,6 +8441,19 @@ function init() {
   function _bindDailyCover(_cov) {
     if (!_cov) return;
     var _n = _visitCount();
+    /* R2349l（R73-obs1）：二访起封面降为顶部缎带——礼物仪式留着，
+     * 但不再整卡遮罩把功能入口压在首屏外。 */
+    var _mini = _n > 1;
+    if (_mini) {
+      _cov.classList.add('mini');
+      var _im = _cov.querySelector('img');
+      if (_im) _im.src = '/static/cream/daily-gift-bear.png';
+      /* 缎带是卡内静态流元素——挪到卡顶，露出「今天有礼物」的头位。 */
+      var _cardM = _cov.closest('.daily-card');
+      if (_cardM && _cardM.firstElementChild !== _cov) {
+        _cardM.insertBefore(_cov, _cardM.firstElementChild);
+      }
+    }
     if (_n > 1) {
       var _ct = _cov.querySelector('.daily-cover-txt');
       /* R233n：有昵称喊名字——回访承接更贴。 */
@@ -8449,10 +8462,15 @@ function init() {
        * 400 次逐字节相同——换 4 句池按日轮换。 */
       if (_ct) _ct.textContent = '🎀 ' +
         (_mn ? _mn + '，' : '') +
-        _dayPick(['小满第 ' + _n + ' 次为你开铺，拆开看看今天的运',
-                  '第 ' + _n + ' 次见面啦，今天也给你包了礼物',
-                  '又来啦——第 ' + _n + ' 次开铺，今天的运在里面',
-                  '第 ' + _n + ' 次重逢，今天的包裹热着呢'], 'revisit');
+        (_mini
+          ? _dayPick(['今天的礼物在上面——点开看看',
+                      '今日包裹已就位，点这条拆',
+                      '小礼物等着呢——点一下拆开'], 'revisit-mini')
+          : _dayPick(['小满第 ' + _n + ' 次为你开铺，拆开看看今天的运',
+                      '第 ' + _n + ' 次见面啦，今天也给你包了礼物',
+                      '又来啦——第 ' + _n + ' 次开铺，今天的运在里面',
+                      '第 ' + _n + ' 次重逢，今天的包裹热着呢'],
+                     'revisit'));
     }
     /* R231f（R38-P1-2）+ R232c（R41-P1-1 修）：封面遮罩只挡鼠标不挡
      * 键盘——给卡内封面以外的直接子元素打 inert（容器级，innerHTML
@@ -8462,7 +8480,7 @@ function init() {
     var _card0 = _cov.closest('.daily-card');
     var _mo = null;
     var _inertSibs = function () {
-      if (!_card0) return;
+      if (!_card0 || _mini) return;   /* mini 缎带不遮内容，无需 inert */
       Array.prototype.forEach.call(_card0.children, function (c) {
         if (c !== _cov && !c.hasAttribute('inert')) c.setAttribute('inert', '');
       });

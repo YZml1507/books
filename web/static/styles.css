@@ -2260,3 +2260,13 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
   background:var(--card);}
 .tarot-cell.got{opacity:1;border-color:var(--accent);color:var(--primary-ink);
   background:var(--accent-soft, #fdf2ea);}
+
+/* R2349l（R73-obs1）：二访起封面降级为顶部缎带——不盖卡面，
+ * 拆礼物动作保留但不再挡路。 */
+.daily-cover.mini{position:static; padding:0; height:auto;
+  flex-direction:row; gap:8px; border-radius:12px;
+  padding:8px 14px; background:var(--accent-soft,#fdf2ea);
+  border:1px dashed var(--accent); margin-top:10px;}
+.daily-cover.mini img{width:26px; animation:none; filter:none;}
+.daily-cover.mini .daily-cover-txt{font-size:13px; padding:0; text-align:left;}
+.daily-cover.mini .daily-cover-sub{display:none;}
