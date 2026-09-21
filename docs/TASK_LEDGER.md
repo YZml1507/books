@@ -11898,3 +11898,10 @@ localStorage，倒计时改异步链。
   xingzuo / warm_voice / async_ai / dollar / parity(68+41,250键) /
   plain_first / poster 9 视图 / first_screen / no_generated /
   scripts_importable / llm_polish / ui_smoke 75/75 / ruff 净
+
+### R2349q 续 — R81 剩余 P2 清零
+
+- P2-13 六爻分域 hook 每格补第二变体（卦名+问题盐确定性轮换，
+  18 格 → 36 句）
+- P2-10 塔罗收口句盐值轮换（_trVar）已在同批
+- 闸门补跑：ruff 净 / selftest 260 / llm_polish 判据8 绿
