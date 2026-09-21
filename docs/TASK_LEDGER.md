@@ -11823,3 +11823,8 @@ localStorage，倒计时改异步链。
 - P2-2：解签/牌意 peek 钮补 aria-expanded + aria-controls
 - 复核记录：func-name 1.61:1 判为动画中途采样假象（两主题令牌均 ≥7:1）；
   xz-dim-text/xz-note 走 --secondary 令牌达标
+
+### R2349o尾：R78-P2-3（9-21）
+
+- toast 悬停/聚焦暂停计时从 error 扩到全部级别——info 3.5s 自动消失，
+  键盘用户 Tab 到 × 之前提示就没了

@@ -946,16 +946,16 @@ function showToast(msg, kind) {
     t.classList.remove('show');
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
   }, _tmo);
-  if (kind === 'error') {
-    t.addEventListener('mouseenter', function () { clearTimeout(_tmr); });
-    t.addEventListener('mouseleave', function () {
-      _tmr = setTimeout(function () {
-        t.classList.remove('show');
-        setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
-      }, 3000);
-    });
-    t.addEventListener('focusin', function () { clearTimeout(_tmr); });
-  }
+  /* R2349o（R78-P2-3）：悬停/聚焦暂停计时从 error 扩到全部 toast——
+   * info 3.5s 自动消失，键盘用户 Tab 到 × 之前提示就没了。 */
+  t.addEventListener('mouseenter', function () { clearTimeout(_tmr); });
+  t.addEventListener('mouseleave', function () {
+    _tmr = setTimeout(function () {
+      t.classList.remove('show');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
+    }, 3000);
+  });
+  t.addEventListener('focusin', function () { clearTimeout(_tmr); });
 }
 
 function postJSON(path, payload) {
