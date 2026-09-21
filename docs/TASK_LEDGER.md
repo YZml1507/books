@@ -12199,3 +12199,26 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - R2350g：R105 爬虫面清零——根路径真 robots.txt/sitemap.xml/favicon.ico（此前 SPA 兜底把 50KB HTML 喂给爬虫，坏链全成 soft-404）；带扩展名的未知路径不再做 SPA 兜底（真 404）；GET 路由补 HEAD（监控/IM 预取不再 405）；LCP 封套图 fetchpriority=high；selftest 钉死下发 HTML 必须带 `?v=`（防 ?v 注入静默失效）。
 - R2350g续：R104 回归审计清零（0 P0/3 P1/3 P2）——①排盘卡生日回显死代码复活（scope 恒 day/range/life，「bazi」分支永不成立；三范围都按生日起盘故全回显）；②「明天提醒我」权限 denied 时不再假翻牌打标；③分享 seed 重放 record=false 不再污染接收方台账/牌册（/api/tarot、/api/liuyao 新增 record 开关，默认 true 保契约）；④重放只认 from=share 链、s≥1、tn 1-10。
 - R2350h：R106 时区/日期边界审计清零（0 P0/2 P1/4 P2）——①排盘卡生日回显在 scope=day/range/life 全亮；②2/29 生日平年口径统一：_bdayInYear 映射 2/28（横幅/倒计时/「我生日」问法三处同改，此前全年永不弹）；③农历生日落「我的小档案」：/api/bazi 回显 birth_solar，档案记公历+农历标注；④缺参回落「今天」全站统一锚 UTC+8（daily/xingzuo/huangli/liuyao/bazi/chat/resolve_date/share 时间戳/台账文件名，UTC 部署早 8 点前不再差一天）；⑤合婚 18+ 精确到日（17y11m 不再放行）；⑥跨零点视觉窗 60s→15s+打卡/拆礼物入口顺手翻日。
+
+### R2350i —— 海报视觉速赢批（R107 痛点）＋时区锚定推广（R106 余量）
+
+**海报 4 处改动**（真机出图验收）：
+- 塔罗：`sub` 一行写入牌位名+正逆位（「现况 · 逆位」），不再只有牌名；
+- 每日：评分行渲成等级+星图（吉→★★★★★ … 凶→「缓」★★☆☆☆）；
+- 打卡周运势：四枚特殊签（开运蛋/暴富签/生日签/甜甜运）行尾加 `✦` 高光；
+- 海报模板新增 `s.chip`：粉色胶囊横置大字下（`cardY += 96`），
+  合婚首个用上「合拍指数 68/99」——此前分数埋在卡内小字里；
+- _LAST_BIRTH.bazi 记录无条件带生辰（农历标「（农历）」）。
+
+**时区锚定补刀**（R106 F4 同类）：`_bdayInYear(m,d,y)` 把 2/29 映射到
+非闰年 2/28，四处生日判定（_isMyBirthday/生日横幅/TA 倒计时/_hlDayOffset）
+统一走它；参数缺失的「今天」全部锚 UTC+8（bazi ask_date、xingzuo、
+liuyao _dd、huangli、chat facts now、daily、_today_horoscope_cached、
+_cross_ref_huangli、排盘台账时间戳、导出文件名、external.fortune）。
+分享重放 seed 的牌局/卦局不再写台账（`record:false`，schema 加字段默认 true
+保契约）；深链解析收紧：须 `from=share` 才吃 seed，tn 钳 1–10。
+SEO/爬虫面：`robots.txt`+`sitemap.xml`+`favicon.ico` 路由、`HEAD /`、
+带扩展名 404 不再回 SPA 壳、每日礼物熊图提 fetchpriority。
+bazi 响应回显 `birth_solar`，前端存入 `me` 并在档案条标农历。
+
+验证：selftest 271 / 契约 610 / ui_smoke 75 / 海报闸 9 视图 / 对账两探针全绿。

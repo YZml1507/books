@@ -3135,6 +3135,19 @@ function _paintSharePoster(s, W, H) {
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
   var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
+  /* R2350h（R107-合婚海报）：s.chip——大字与明细卡之间的亮分胶囊
+   * （合拍指数此前只是 40px 普通行，晒点不够）。 */
+  if (s.chip) {
+    var _cT = _pStr(s.chip);
+    ctx.font = '600 46px "LXGW WenKai","PingFang SC",sans-serif';
+    var _cW = ctx.measureText(_cT).width + 96;
+    var _cY = 300 + (words.length - 1) * bigGap + 66;
+    ctx.fillStyle = '#E8668A';
+    _roundRectPath(ctx, 540 - _cW / 2, _cY - 42, _cW, 84, 42); ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(_cT, 540, _cY + 14);
+    cardY += 96;
+  }
   if (lines.length) {
     /* R233t：底部水印 y≈1330，卡片区 y≈880——明细区硬顶 1260，
      * 行数多时收行高（最低 64px 可容 7 行）。
@@ -3445,7 +3458,16 @@ function buildShareData(view, j) {
           ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
           : '今日份小确幸',
         /* R229z续23（R11-#8）：海报与卡面同口径——凶→缓 */
-        lines: [{ k: '今日评分', v: _pStr((j && j.level) === '凶' ? '缓' : (j && j.level)) || '—' },
+        lines: [{ k: '今日评分',
+                  v: (function () {
+                    /* R2350h（R107-共1）：等级值是真实计算结果——配星
+                     * 级视觉，单字「平」收据感太弱。 */
+                    var _lv = _pStr((j && j.level)) || '';
+                    var _st = ({ '吉': '★★★★★', '小吉': '★★★★☆',
+                                 '平': '★★★☆☆', '凶': '★★☆☆☆' })[_lv] || '';
+                    return ((_lv === '凶' ? '缓' : _lv) || '—') +
+                      (_st ? ' ' + _st : '');
+                  })() },
                 /* R233t（R51-P2-14）：地支原文「丑/未」上天书——转生肖。 */
                 { k: '贵人属相', v: _pStr(j && j.noble) ?
                   _zhiToAnimal(j.noble) : '—' },
@@ -3484,7 +3506,12 @@ function buildShareData(view, j) {
       s.big = _tb || '今天这几张牌，值得你看一眼';
       s.cards = draws.slice(0, 3).map(function (d, i) {
         var el = imgs[i] && imgs[i].complete && imgs[i].naturalWidth > 0 ? imgs[i] : null;
-        return { name: _pStr(d && d.name), sub: (d && d.upright) ? '正位' : '逆位', img: el };
+        /* R2350h（R107-塔罗海报）：位置名（过去/现在/未来…）此前算出来
+         * 却不上图——牌阵叙事丢光。拼进副标位。 */
+        var _pos = _pStr(d && d.position);
+        return { name: _pStr(d && d.name),
+          sub: (_pos ? _pos + ' · ' : '') + ((d && d.upright) ? '正位' : '逆位'),
+          img: el };
       });
       return s;
     }
@@ -3654,10 +3681,14 @@ function buildShareData(view, j) {
          (_wd[6] ? _cnDateSub(_wd[6].date).split(' · ')[0] : '')));
       _wk.big = '本周打卡 ' + _hit + '/7 天' +
         (j && j.streak >= 3 ? ' · 连签 ' + j.streak + ' 天' : '');
+      /* R2350h（R107-周报）：高光签标 ✦——抽中稀有签面的日子一眼
+       * 能看出，流水账变晒点。 */
+      var _hi = { '开运蛋': 1, '暴富签': 1, '生日签': 1, '甜甜运': 1 };
       _wk.lines = _wd.map(function (d) {
         var dd = String(d.date || '');
+        var _op = d.opt || '歇了一天';
         return { k: _weekdayCn(dd) + ' ' + dd.slice(5).replace('-', '/'),
-                 v: d.opt || '歇了一天' };
+                 v: _op + (_hi[d.opt] ? ' ✦' : '') };
       });
       return _wk;
     }
@@ -3710,6 +3741,9 @@ function buildShareData(view, j) {
        * 打分（60+15combine+10gan_he…），同一对盘卡面 68/99、海报 70
        * 无分母，转发出去两个数对不上。直接读服务端 match_score。 */
       var _ms = (j && j.match_score != null) ? j.match_score : null;
+      /* R2350h（R107-合婚海报）：分数上胶囊主位——明细行里仍留一行
+       * 供读完图的人核对。 */
+      if (_ms != null) sh.chip = '合拍指数 ' + _ms + ' / 99';
       sh.lines.push({ k: '合拍指数', v: (_ms != null ? String(_ms) + '/99' : '—') });
       var _wa = _pStr(j && j.day_wx_a), _wb = _pStr(j && j.day_wx_b);
       if (_wa && _wb) {
