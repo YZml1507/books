@@ -30,6 +30,9 @@ EXTRA_GLOBS = (
     "cream/poster-mascot.png",
     "cream/icon-512-maskable.png",
     "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
+    # R2349u（R91-P2-5）：og 分享卡此前漏出哈希——换图不 bump，
+    # 已装用户/分享爬虫无限期看旧卡。
+    "shared/og-card.jpg",
 )
 
 
@@ -59,10 +62,11 @@ def shell_hash() -> str:
     for p in _shell_paths(src) + _extra_paths():
         h.update(p.name.encode())
         h.update(b"\0")
-        try:
-            h.update(p.read_bytes())
-        except OSError:
-            h.update(b"MISSING")
+        # R2349u（R91-P2-5）：缺文件此前按 MISSING 静默计哈希——
+        # 核心壳件漏装会让 SW install 失败且闸还绿着。直接报错。
+        if not p.exists():
+            raise SystemExit(f"壳清单文件缺失：{p.relative_to(STATIC)}")
+        h.update(p.read_bytes())
         h.update(b"\0")
     return h.hexdigest()[:12]
 

@@ -11994,3 +11994,30 @@ R88 情感化批（FE 附加层，冻结面零触碰）：生日全站认出（�
 庆典卡 data-tier 描边）；分享链带昵称 `&n=`（接力页喊名+回赠 toast）；邀请链
 发起人名贯穿 toast/welcomeBar/回发提示；聊天空态时段分级（深夜/晨间）；季节
 光晕轮换（data-season，不压深色主题）。contract 条件字段表 +history.disabled。
+
+## R2349u — R89/R90/R91 三审清零（情感化回归/性能/SW更新链）
+
+R89（真机回归）：`_visitCount` 从 init() 内提到模块级（白天+无昵称+非久归
+时 init 中途 ReferenceError，日签/打卡/深链全灭——子 agent 审计时捕获，主窗
+口在报告前已同修）；「百日传说」被 90 天 GC 钉死在 ≤91 连签——窗口放宽 150；
+聊天空态补生日分支（与封面优先级对齐）；邀请链补紧凑格式 `invite=1&a=Y-M-D-
+性别-时`（投放短链可手写）；深色下里程碑卡分档描边被底卡覆盖失效→`:not(
+[data-tier])` 拆分+60/100 深色描边补亮；`.daily-cheer`/`.hh-tier` 深色对比度
+2.9:1→7:1；海报 checkin 补 60 档「双满月款」。
+
+R90（性能）：LXGW ~976KB 字体 css 转非阻塞（slow4G 日卡 6.7s→预期 ~2.5s）；
+日签 API 不再等 app.js eval——head 内联裸 fetch 预取（15s race 兜底），
+loadDaily URL 逐字一致才吃结果、null 回退 api() 完整错误链。app.js 瘦身
+（33% 注释）记为遗留——需要引入构建步骤，与零构建仓库形态冲突，暂记。
+
+R91（SW 更新链）：P0-1 precache 遮蔽——静态分支改 RT 桶先查，precache 命中
+零 revalidate（桶名即内容哈希，字节钉死，revalidation 风暴一并收掉）；
+P0-2 混版——`_index_response` 给 app.js/styles.css 引用注入 `?v=shell-hash`
+（服务端注入免改 index.html，旧 SW 存活期内 `?v=` miss→走网拿新字节）；
+P0-3 遗留 `/static/` scope 注册注销（注册成功后枚举注销一切非根 scope）；
+P1-3 `/docs` 导航不再污染 `/` 壳位（put('/') 限 pathname==='/'）；P2-1
+回前台 `reg.update()`；P2-2 toast 挪到 controllerchange（真接管时刻）；
+P2-4 SPA fallback 补安全头+no-cache；P2-5 og-card.jpg 入哈希+壳文件缺失断言。
+
+闸门：selftest 268 / contract 581 / ui_smoke 75 / parity 68+41+251 /
+dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。

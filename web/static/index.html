@@ -33,7 +33,10 @@
 <link rel="stylesheet" href="/static/animotion/web-lite.css">
 <!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
 <link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/fonts/lxgw.css">
+<!-- R2349u（R90-P0-1）：LXGW ~976KB 分片 render-blocking 压过日卡——
+     print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。 -->
+<link rel="stylesheet" href="/static/fonts/lxgw.css" media="print"
+      onload="this.media='all'">
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
@@ -52,30 +55,69 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'——
        改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
-       R230n（R25-2.4）：新版本 install 完成→置 waiting，提示刷新即换新版
-       （老版仍活着，不强制打断）。 */
+       R2349u（R91-P0-3）：084b5bf 时代注册过 /static/sw.js（scope=/static/，
+       固定桶名 books-shell-v1）——老用户浏览器里它还活着，按最长前缀
+       匹配抢走 /static/* 喂旧代码，且 scope 内无导航几乎不再检查更新。
+       注册成功后注销一切非根 scope，一次性清掉存量。 */
     navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
       if (!reg) return;
-      var toast = function () {
+      try {
+        navigator.serviceWorker.getRegistrations().then(function (rs) {
+          rs.forEach(function (r) {
+            var sc = new URL(r.scope).pathname;
+            if (sc !== '/' && sc !== '') { r.unregister(); }
+          });
+        });
+      } catch (eU) {}
+      /* R2349u（R91-P2-1/P2-2）：旧设计注释假定「waiting 态提示刷新」，
+       * 但 sw.js 里 skipWaiting() 无条件立即接管——reg.waiting 分支是
+       * 死代码，toast 弹起时新 SW 其实已激活。改为 controllerchange
+       * （新 SW 真接管的那一下）再提示；页面回前台时主动检查更新，
+       * 长开 SPA 不再缺席更新检查。 */
+      var _toasted = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (_toasted) return;
+        _toasted = true;
         if (window.showToast) {
-          try { window.showToast('小满更新好了，刷新看新版', 'info'); }
+          try { window.showToast('小满换好新版本了，刷新生效 ✨', 'info'); }
           catch (e) {}
         }
-      };
-      if (reg.waiting) { toast(); return; }
-      reg.addEventListener('updatefound', function () {
-        var sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener('statechange', function () {
-          /* 有新 SW 且已有 controller（非首装）→ 可提示升级 */
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            toast();
-          }
-        });
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          try { reg.update(); } catch (e) {}
+        }
       });
     }).catch(function () {});
   });
 }
+
+/* R2349u（R90-P0-3）：日签不再等 594KB 的 app.js eval 完才发请求——
+   head 内联裸 fetch 预取（读 localStorage me 拼同一 URL），loadDaily
+   命中即用、null 回退 api() 走完整错误链。15s race 防悬挂。 */
+try {
+  (function () {
+    var d = new Date();
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+      '-' + String(d.getDate()).padStart(2, '0');
+    var u = '/api/daily?date=' + iso;
+    var me = null;
+    try { me = JSON.parse(localStorage.getItem('me') || 'null'); } catch (eM) {}
+    if (me && me.y && me.m && me.d) {
+      u += '&bday=' + me.y + '-' + String(me.m).padStart(2, '0') +
+           '-' + String(me.d).padStart(2, '0');
+    }
+    var _to = new Promise(function (_, rej) {
+      setTimeout(function () { rej(new Error('prefetch timeout')); }, 15000);
+    });
+    window.__dailyPref = {
+      url: u,
+      p: Promise.race([fetch(u, {credentials: 'same-origin'})
+        .then(function (r) { return r.ok ? r.json() : null; }), _to])
+        .catch(function () { return null; })
+    };
+  })();
+} catch (eDP) {}
 </script>
 </head>
 <body>

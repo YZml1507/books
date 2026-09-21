@@ -2200,8 +2200,10 @@ html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{
 }
 /* R2349h（R69-P1-1/2/3）：深色漏配的新浮层表面——里程碑卡/分享图
  * 浮层/install-tip 固定 #fff 底+深底文字色，对比度实测 1.2:1。 */
-html[data-theme="dark"] .celeb-card{background:var(--card); color:var(--text);
-  border:1px solid var(--border);}
+/* R2349u（R89-P1-4）：分档描边不能被深色底卡盖掉——data-tier 卡
+ * 走自己的档位描边，仅无档卡吃默认 border。 */
+html[data-theme="dark"] .celeb-card{background:var(--card); color:var(--text);}
+html[data-theme="dark"] .celeb-card:not([data-tier]){border:1px solid var(--border);}
 html[data-theme="dark"] .celeb-sub{color:var(--secondary);}
 html[data-theme="dark"] .celeb-share{background:var(--primary-bg); color:#fff;}
 html[data-theme="dark"] .celeb-x{background:#3A3237; color:var(--text);
@@ -2397,3 +2399,9 @@ html:not([data-theme])[data-season="winter"] .page-glow{
 /* ── R2349t（R88-6/4）：高分标签 + 吉签庆祝句 ─────────────── */
 .hh-tier{font-size:13px;color:#B04E40;font-weight:600;margin:2px 0 0;}
 .daily-cheer{color:#B04E40;font-weight:600;}
+
+/* ── R2349u（R89-P1-4/P1-5）：深色下分档描边与庆祝句可读性 ── */
+html[data-theme="dark"] .daily-cheer,
+html[data-theme="dark"] .hh-tier{color:#E8A0BF;}
+html[data-theme="dark"] .celeb-card[data-tier="60"]{border:2px solid #E891A8;}
+html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}

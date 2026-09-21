@@ -2464,26 +2464,26 @@ def _run_inner() -> list[str]:
             continue
         _h.update(_os.path.basename(_u).encode())
         _h.update(b"\0")
-        try:
-            _h.update(open(_os.path.join(_os.path.dirname(__file__),
-                           "static", _u[len("/static/"):]), "rb").read())
-        except OSError:
-            _h.update(b"MISSING")
+        # R2349u（R91-P2-5）：核心壳件缺失不再按 MISSING 计哈希放行。
+        _sp = _os.path.join(_os.path.dirname(__file__),
+                            "static", _u[len("/static/"):])
+        assert _os.path.exists(_sp), ("sw.shell_hash", "壳文件缺失", _u)
+        _h.update(open(_sp, "rb").read())
         _h.update(b"\0")
     # R2345（R63-P2-2）：与 scripts/bump_sw.py 的 EXTRA_GLOBS 同表——
     # 二线资产（运行时缓存件）变了也必须 bump CACHE 名。
     import glob as _gl5
     for _g in ("tarot/*", "cream/zodiac-*.jpg", "shared/poster-bg-*.jpg",
                "cream/poster-mascot.png", "cream/icon-512-maskable.png",
-               "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2"):
+               "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
+               # R2349u（R91-P2-5）：og 分享卡纳入哈希同口径
+               "shared/og-card.jpg"):
         for _ep in sorted(_gl5.glob(_os.path.join(
                 _os.path.dirname(__file__), "static", _g))):
             _h.update(_os.path.basename(_ep).encode())
             _h.update(b"\0")
-            try:
-                _h.update(open(_ep, "rb").read())
-            except OSError:
-                _h.update(b"MISSING")
+            assert _os.path.exists(_ep), ("sw.shell_hash", "资产缺失", _ep)
+            _h.update(open(_ep, "rb").read())
             _h.update(b"\0")
     _want = _h.hexdigest()[:12]
     _m = _re5.search(r"shell-hash: (\w+)", _swsrc)

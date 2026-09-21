@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-874688278422';   // shell-hash: 874688278422
+var CACHE = 'books-shell-3460ceebf2bb';   // shell-hash: 3460ceebf2bb
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -97,7 +97,10 @@ self.addEventListener('fetch', function (e) {
       caches.match('/').then(function (hit) {
         var net = fetch(e.request).then(function (resp) {
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
-          if (resp.ok) {
+          /* R2349u（R91-P1-3）：FastAPI 默认开 /docs /openapi.json，
+           * 那些导航的响应此前被写进 '/' 壳位——壳污染后首页变 Swagger。
+           * 只有真 '/' 导航才允许回写壳位。 */
+          if (resp.ok && url.pathname === '/') {
             /* R230d（R16-P0-1）：put 挂 waitUntil——游离 Promise 会在
              * respondWith resolve 后随 SW 回收而丢，运行时缓存恒写不进。 */
             e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -114,31 +117,47 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* 同源静态资源：cache-first，命中即回，后台静默更新。
-   * R2348（R67-P1）：运行时写进独立 books-rt 桶并 LRU 封顶 60 条——
-   * 原先全部塞进 SHELL 桶且无上限，tarot 3MB+lxgw 长尾随浏览单调涨，
-   * 只能靠版本 bump 整库清。 */
+  /* 同源静态资源：cache-first。
+   * R2349u（R91-P0-1/P1-1）：此前 caches.match 按桶创建序命中——
+   * precache 桶恒先于 RT 命中，「后台静默更新」写进的是永远读不到的
+   * 死字节，同版本内 app.js 不可自愈合；且命中也照发 refetch——
+   * 每页加载对 ~30 壳件+长尾各 revalidate 一次纯属浪费。
+   * 现改为：RT 桶先查（运行资产自愈用），再查 precache
+   * （ignoreSearch 让 ?v= 版本化 URL 命中版本钉死的壳件）；
+   * precache 命中直接回（桶名即内容哈希，字节不可能变，零 refetch）；
+   * RT 命中才后台 revalidate。 */
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      var net = fetch(e.request).then(function (resp) {
-        if (resp.ok) {
-          /* R230d（R16-P0-1）：同上，运行时缓存回写必须挂 waitUntil。 */
-          e.waitUntil(caches.open(RT).then(function (c) {
-            return c.put(e.request, resp.clone()).then(function () {
-              /* 超帽逐出最老条（keys() 顺序即写入序）。60 条≈几 MB，
-               * 删掉自己刚写入的边界情形用 '!==e.request' 排除不掉——
-               * 先 put 后 trim，刚写的在最尾不会被删。 */
-              return c.keys().then(function (ks) {
-                if (ks.length <= 60) return;
-                return Promise.all(ks.slice(0, ks.length - 60)
-                  .map(function (k) { return c.delete(k); }));
-              });
-            }).catch(function () {});
-          }));
+    caches.open(RT).then(function (rtc) {
+      return rtc.match(e.request).then(function (rtHit) {
+        var _net = function () {
+          return fetch(e.request).then(function (resp) {
+            if (resp.ok) {
+              /* R230d（R16-P0-1）：运行时缓存回写必须挂 waitUntil。 */
+              e.waitUntil(rtc.put(e.request, resp.clone()).then(function () {
+                /* 超帽逐出最老条（keys() 顺序即写入序）。60 条≈几 MB。 */
+                return rtc.keys().then(function (ks) {
+                  if (ks.length <= 60) return;
+                  return Promise.all(ks.slice(0, ks.length - 60)
+                    .map(function (k) { return rtc.delete(k); }));
+                });
+              }).catch(function () {}));
+            }
+            return resp;
+          });
+        };
+        if (rtHit) {
+          /* RT 命中：serve + 后台 revalidate（牌面/字体等运行资产
+           * 跨版本更换桶名，自愈只在同版本内需要）。 */
+          e.waitUntil(_net().catch(function () {}));
+          return rtHit;
         }
-        return resp;
-      }).catch(function () { return hit; });
-      return hit || net;
+        return caches.match(e.request, { ignoreSearch: true })
+          .then(function (hit) {
+            /* precache 命中：版本钉死内容，不再 revalidate（R91-P1-1）。 */
+            if (hit) return hit;
+            return _net().catch(function () { return undefined; });
+          });
+      });
     })
   );
 });

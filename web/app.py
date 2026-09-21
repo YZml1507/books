@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -131,6 +132,27 @@ def create_app() -> FastAPI:
     for router in ROUTERS:
         application.include_router(router)
 
+    # R2349u（R91-P0-2）：壳资产版本化——HTML 引用 app.js/styles.css
+    # 时注入 ?v=<shell-hash>，与 sw.js 的 CACHE 名同源。旧 SW 存活期内
+    # 「新 HTML + 旧 JS」混版被一次收掉：旧壳里没有 ?v=新 的请求，
+    # caches.match 直接 miss → 走网拿到新字节。sw.js 用 ignoreSearch
+    # 匹配，新 SW 的钉死壳件照常命中。
+    _SW_HASH = {"t": 0.0, "v": ""}
+
+    def _shell_hash() -> str:
+        sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
+        try:
+            mt = os.path.getmtime(sw_path)
+            if _SW_HASH["t"] == mt and _SW_HASH["v"]:
+                return _SW_HASH["v"]
+            m = re.search(r"books-shell-(\w+)",
+                           open(sw_path, encoding="utf-8").read())
+            v = m.group(1) if m else ""
+            _SW_HASH["t"], _SW_HASH["v"] = mt, v
+            return v
+        except OSError:
+            return ""
+
     def _index_response(request: Request):
         """单页前端入口响应。R230n（R25-3.1）：og:image 是相对路径时主流
         卡片爬虫不解析——按 request.base_url 注入绝对 URL（不依赖固定域名）。"""
@@ -140,7 +162,20 @@ def create_app() -> FastAPI:
             html = open(deps.INDEX, encoding="utf-8").read()
             base = str(request.base_url).rstrip("/")
             html = html.replace('content="/static/', f'content="{base}/static/')
-            return HTMLResponse(html)
+            v = _shell_hash()
+            if v:
+                html = html.replace('src="/static/app.js"',
+                                    f'src="/static/app.js?v={v}"')
+                html = html.replace('href="/static/styles.css"',
+                                    f'href="/static/styles.css?v={v}"')
+            # R2349u（R91-P2-4）：SPA fallback 走这条路时绕过了内层
+            # 安全头/no-cache 中间件——在出口补齐同口径。
+            resp = HTMLResponse(html)
+            resp.headers["Cache-Control"] = "no-cache"
+            resp.headers["X-Content-Type-Options"] = "nosniff"
+            resp.headers["X-Frame-Options"] = "DENY"
+            resp.headers["Referrer-Policy"] = "no-referrer"
+            return resp
         except OSError:
             return FileResponse(deps.INDEX)
 

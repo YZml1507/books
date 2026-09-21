@@ -4254,10 +4254,24 @@ async function loadDaily() {
     var _bday0 = (_me0 && _me0.y && _me0.m && _me0.d)
       ? ('&bday=' + _me0.y + '-' + String(_me0.m).padStart(2, '0') +
          '-' + String(_me0.d).padStart(2, '0')) : '';
+    /* R2349u（R90-P0-3）：head 内联预取——此前日签请求要等
+     * app.js 594KB eval 完才发（slow4G 实测 6.45s 才出手）。
+     * URL 逐字一致才吃预取结果；预取失败（null）回退 api() 完整
+     * 错误链。跨零点重跑时 date 已变，天然不吃。 */
+    var _durl = '/api/daily?date=' + _today + _bday0;
+    var _dp = null;
+    try { _dp = window.__dailyPref; window.__dailyPref = null; }
+    catch (eDP) {}
     const [j, x, tm] = await Promise.all([
       /* R230h（R20-F6）：显式带浏览器日——跨零点时服务器「今天」
        * 与用户本地「今天」可能差一天。 */
-      api('/api/daily?date=' + _today + _bday0),
+      (async function () {
+        if (_dp && _dp.url === _durl) {
+          var _pj = await _dp.p;
+          if (_pj) return _pj;
+        }
+        return api(_durl);
+      })(),
       api('/api/xingzuo?date=' + _today, { silent: true }).catch(function () { return null; }),
       /* R39-P0-1：明天预告——每日回访的最短钩子，走 daily_cache 幂等
        * 成本≈0。 */
@@ -9537,6 +9551,19 @@ function init() {
             }
           }
         } catch (eSF) {}
+        /* R2349u（R89-P1-3）：紧凑邀请格式——投放/手拼短链
+         * ?view=hehun&invite=1&a=1998-7-20-女-12&an=小雅
+         * 在读 ay 前展开成原生参数，复用同一链路。 */
+        if (_vp === 'hehun' && _qsAll.get('invite') === '1' &&
+            _qsAll.get('a')) {
+          try {
+            var _cp = String(_qsAll.get('a')).split('-');
+            var _cpv = ['ay', 'am', 'ad', 'ag', 'ah'];
+            _cp.slice(0, 5).forEach(function (_cv, _ci) {
+              if (_cv) _qsAll.set(_cpv[_ci], _cv);
+            });
+          } catch (eCP) {}
+        }
         var _invA = _qsAll.get('ay');
         if (_vp === 'hehun' && !_invA) {
           try {
