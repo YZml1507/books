@@ -8995,6 +8995,17 @@ if (document.readyState === 'loading') {
   /* R233t（R51-P2-18c）：老用户点朋友分享链接也要有承接语境——
    * welcomeBar 跳过、toast 一句即可。 */
   if (_seen) {
+    /* R2349m（R58-B-001 后半）：二次回访补一句指路——迎新条已撤，
+     * 日签卡入口对回访者值得再点一次名（只此一次）。 */
+    try {
+      if (!window.localStorage.getItem('ret_tip') &&
+          !location.search) {
+        window.localStorage.setItem('ret_tip', '1');
+        setTimeout(function () {
+          showToast('日签每天更新——点第一张卡看今天的 ✨', 'ok');
+        }, 1500);
+      }
+    } catch (e) {}
     try {
       var _qs = new URLSearchParams(location.search);
       if (_qs.get('from') === 'share') {
