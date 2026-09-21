@@ -13,15 +13,23 @@
 """
 from __future__ import annotations
 
+import contextlib
+import glob
 import json
 import os
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-# PyInstaller frozen 兼容：data/ 在 exe 同目录（与 web/deps.py 口径一致）
+# PyInstaller frozen 兼容：与 web/deps.py 同口径——先查 exe 父目录有无
+# data/index（data/ 在项目根的标准摆放），找不到才退 exe 同目录。
+# R230n（R26-P3）：此前本模块只认 exe 同目录，和 deps 的父目录探测
+# 分叉——同一 exe 会出现两套 data 根。
 if getattr(__import__("sys"), "frozen", False):
-    _ROOT = os.path.dirname(__import__("sys").executable)
+    _exe_dir = os.path.dirname(__import__("sys").executable)
+    _parent = os.path.dirname(_exe_dir)
+    _ROOT = (_parent if os.path.isdir(os.path.join(_parent, "data", "index"))
+             else _exe_dir)
 else:
     _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(_ROOT, "data", "paipan_history.db")
@@ -33,30 +41,151 @@ def _log(msg: str) -> None:
     """轻量日志（复用 logs/ 目录，失败静默）。"""
     try:
         with _log_lock:
+            log_path = os.path.join(_ROOT, "logs", "paipan_history.log")
+            # R228j：原 makedirs 建的是 data/ 而 open 的是 logs/——fresh clone
+            # 无 logs/ 时 open 抛错被吞，日志从未落盘（打包启动路径的
+            # web_launcher.py 恰好先建了 logs/ 才掩盖此 bug）。
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
             os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-            with open(os.path.join(_ROOT, "logs", "paipan_history.log"),
-                      "a", encoding="utf-8") as f:
+            # R229n（R6-#10）：追加写无轮转会长成无底洞——超 256KB 只留
+            # 尾部 64KB（低频写路径，简单截断即可，不引 RotatingFileHandler）。
+            try:
+                if (os.path.exists(log_path)
+                        and os.path.getsize(log_path) > 256 * 1024):
+                    with open(log_path, "rb") as fr:
+                        fr.seek(-64 * 1024, os.SEEK_END)
+                        tail = fr.read()
+                    with open(log_path, "wb") as fw:
+                        fw.write(tail)
+            except OSError:
+                pass
+            with open(log_path, "a", encoding="utf-8") as f:
                 f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
     except OSError:
         pass
 
 
 def disabled() -> bool:
-    return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "") in ("1", "on", "true", "yes")
+    # R2349w（R93-P1-1）：此前不带 strip().lower()——CI/Windows 环境
+    # 变量框贴个 "TRUE"/" 1" 就静默不关，与 BOOKS_LLM_DISABLE 等其余
+    # 开关的三套解析不一致。对齐统一口径。
+    return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "").strip().lower() in         ("1", "on", "true", "yes")
+
+
+_ddl_lock = threading.Lock()
+_write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
+_WIPE_GEN = 0   # R2349q：clear_all 代次——wipe 前入队的异步写一律作废
+KEEP_MAX = 500                   # R228j：排盘历史滚动上限
+
+
+_DDL = """CREATE TABLE IF NOT EXISTS records(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    name TEXT,
+    question TEXT,
+    req_json TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'bazi')"""
+
+
+def _quarantine() -> None:
+    """R228l：db 损坏自恢复——把坏文件挪到 .corrupt-<ts> 留档，
+    下次连接开新库。功能降级为空历史，而不是永久 500。
+
+    R230i（R21-P2-2）：时间戳带毫秒防同秒两次事件互相覆盖；留档
+    只留最新 5 份，不无限攒。"""
+    if not os.path.exists(DB_PATH):
+        return
+    qua = (DB_PATH + ".corrupt-" +
+           datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:21])
+    # R230t（R31-P2-8）：exists 之后 replace 之前文件被别处挪走是真实
+    # 竞态——FileNotFoundError 不该冒成 500，直接让第二轮开新库。
+    try:
+        os.replace(DB_PATH, qua)
+    except FileNotFoundError:
+        return
+    _log("WARN paipan_history db 损坏，已挪至 %s" % qua)
+    try:
+        olds = sorted(glob.glob(DB_PATH + ".corrupt-*"))
+        for f in olds[:-5]:
+            os.remove(f)
+    except Exception:
+        pass
 
 
 def _conn() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=5)
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS records(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ts TEXT NOT NULL,
-            name TEXT,
-            question TEXT,
-            req_json TEXT NOT NULL,
-            result_json TEXT NOT NULL)""")
-    return conn
+    for attempt in range(2):
+        conn = None
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=5)
+            conn.execute("PRAGMA busy_timeout=5000")  # R228b：写锁等待而非秒抛
+            # R230t（R31-P2-7）：WAL——排盘页与历史页并发读写不再互斥；
+            # 与 knowledge.db 同纪律。只读文件上写 PRAGMA 会抛——降级继续。
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.DatabaseError:
+                pass
+            # 轻量完整性探针：connect 成功不代表页可解析，真读一行才暴露损坏
+            conn.execute("SELECT name FROM sqlite_master LIMIT 1").fetchall()
+            # R230i（R21-P1-5）：运行中被换成「合法但无 records 的库」
+            # 时 _ddl_done .once 缓存让全端点永久 503——每次连接验表存在，
+            # 缺表当场补建；也顺带吞掉「老库缺列」漂移（ensure 补列）。
+            has = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='records'").fetchone()
+            if not has:
+                with _ddl_lock:
+                    conn.execute(_DDL)
+                    conn.commit()
+            _ensure_columns(conn)
+            return conn
+        except sqlite3.OperationalError:
+            # R230i（R21-P0-3）：「database is locked」/只读是
+            # OperationalError 不是损坏——此前被 DatabaseError 粗粒度
+            # 当成坏库把 917KB 真库挪成 .corrupt-*。锁冒成 503 就好，
+            # 不许搬库。
+            try:
+                if conn is not None:
+                    conn.close()
+            except Exception:
+                pass
+            raise
+        except sqlite3.DatabaseError:
+            try:
+                if conn is not None:
+                    conn.close()
+            except Exception:
+                pass
+            if attempt == 0:
+                _quarantine()   # 损坏文件挪走，第二轮开新库
+            else:
+                raise
+    raise AssertionError("unreachable")
+
+
+# R230i（R21-P0-1 同款）：老库缺列自愈——pre-git 版本的 records 可能
+# 缺后加的列；PRAGMA table_info 查缺失、ALTER TABLE ADD COLUMN 补上。
+_RECORDS_COLS = {
+    "ts": "TEXT NOT NULL DEFAULT ''",
+    "name": "TEXT",
+    "question": "TEXT",
+    "req_json": "TEXT NOT NULL DEFAULT '{}'",
+    "result_json": "TEXT NOT NULL DEFAULT '{}'",
+    # R230z（R36-P1-1）：品类列——历史台账不再只收八字。桃花/合婚/塔罗/
+    # 六爻/起名同写一张表，老库经 _ensure_columns 补列（默认 'bazi'，存量
+    # 行语义正确，无需回填）。
+    "type": "TEXT NOT NULL DEFAULT 'bazi'",
+}
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    have = {r[1] for r in conn.execute("PRAGMA table_info(records)")}
+    for col, ddl in _RECORDS_COLS.items():
+        if col not in have:
+            conn.execute(
+                f"ALTER TABLE records ADD COLUMN {col} {ddl}")
+    conn.commit()
 
 
 def _name_summary(req: dict) -> str:
@@ -78,23 +207,44 @@ def _name_summary(req: dict) -> str:
     return f"{req.get('year')}-{req.get('month'):02d}-{req.get('day'):02d} {shichen} {gender}{cal}"
 
 
-def save_async(req_dict: dict, result_dict: dict) -> None:
-    """排盘成功后异步落一条记录。永不抛错、永不阻塞调用方。"""
+def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
+               name: str | None = None) -> None:
+    """排盘成功后异步落一条记录。永不抛错、永不阻塞调用方。
+
+    R230z（R36-P1-1）：rtype 标记品类（bazi/taohua/hehun/tarot/liuyao/
+    qiming），name 允许调用方覆盖摘要（合婚双人/塔罗张数等非生辰形）。"""
     if disabled():
         return
+    # R2349q（ui_smoke history.wipe 实测）：排盘响应已返回、台账写线程
+    # 仍在排队——wipe 的 DELETE 先落地、在途 INSERT 后落地 → 清空后
+    # 鬼行复活。代次闸：wipe 抬 _WIPE_GEN，在代次切换前入队的写一律作废。
+    _gen = _WIPE_GEN
 
     def _work():
         try:
             row_req = json.dumps(req_dict, ensure_ascii=False)
             row_res = json.dumps(result_dict, ensure_ascii=False)
-            name = _name_summary(req_dict)
+            row_name = name if name else _name_summary(req_dict)
             question = (req_dict.get("question") or None)
-            ts = datetime.now().isoformat(timespec="seconds")
-            with _conn() as c:
+            # R2349w（R93-P2-15）：与旧 history.py 的 UTC+8 口径对齐——
+            # 此前裸服务器本地时，非 +8 部署下历史时间戳漂移。
+            ts = datetime.now(timezone(timedelta(hours=8))).isoformat(
+                timespec="seconds")
+            # closing() 只负责关连接，无隐式 commit——写路径用 `with c:`
+            # 保住原 `with _conn()` 的提交语义（R228b 重构注意点）。
+            with _write_lock, contextlib.closing(_conn()) as c, c:
+                if _gen != _WIPE_GEN:
+                    return   # 入队后发生过 wipe——这条记录不再属于新台账
                 c.execute(
-                    "INSERT INTO records(ts,name,question,req_json,result_json)"
-                    " VALUES(?,?,?,?,?)",
-                    (ts, name, question, row_req, row_res))
+                    "INSERT INTO records(ts,name,question,req_json,result_json,"
+                    "type) VALUES(?,?,?,?,?,?)",
+                    (ts, row_name, question, row_req, row_res, rtype))
+                # R228j：滚动裁剪——单行 ~50KB，不裁剪用户每排一次盘就永久
+                # +1 行（实测 31 次→3.7MB），列表/导出全量 fetchall 越滚越慢。
+                c.execute(
+                    "DELETE FROM records WHERE id NOT IN "
+                    "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
+                    (KEEP_MAX,))
         except Exception as exc:  # noqa: BLE001 — 台账绝不拖垮排盘
             _log(f"save failed: {type(exc).__name__}: {exc}")
 
@@ -106,26 +256,39 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
     """分页列表（id 倒序=最新在前）。返回前端契约结构。"""
     limit = max(1, min(int(limit), 100))
     offset = max(0, int(offset))
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c:
         total = c.execute("SELECT COUNT(*) FROM records").fetchone()[0]
+        # R229z续10（R8 P2-5）：原实现为渲染摘要把整行 req_json+result_json
+        # （~50KB/行）搬进 Python 再 json.loads——改 json_extract 在 SQLite
+        # 内直取两个摘要字段；req 全字段前端列表零引用（复看走详情接口），
+        # 不再回吐。
+        # R230z：多类型共存后 result_summary 只对 bazi 有意义——非八字
+        # 行 render 落空字符串，前端按 type 渲染徽标，摘要区展示 name。
         rows = c.execute(
-            "SELECT id,ts,name,question,req_json,result_json FROM records"
-            " ORDER BY id DESC LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+            # R233x（R56-P0）：坏 result_json 行让 json_extract 抛
+            # malformed JSON → 整列 503，且列表恰是找坏行的唯一入口。
+            "SELECT id,ts,name,question,type,"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.paipan.render') END,"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.calc.five_elements.counts') END,"
+            " CASE WHEN json_valid(result_json) THEN"
+            "   json_extract(result_json,'$.render') END"
+            " FROM records ORDER BY id DESC LIMIT ? OFFSET ?",
+            (limit, offset)).fetchall()
     items = []
-    for rid, ts, name, question, req_json, res_json in rows:
+    for rid, ts, name, question, rtype, render, counts, flat_render in rows:
         try:
-            result = json.loads(res_json)
+            counts = json.loads(counts) if counts else None
         except ValueError:
-            result = {}
-        paipan = result.get("paipan") or {}
-        calc = result.get("calc") or {}
+            counts = None
         items.append({
             "id": rid, "ts": ts, "name": name,
             "question": question,
-            "req": json.loads(req_json) if req_json else {},
+            "type": rtype or "bazi",
             "result_summary": {
-                "paipan_render": paipan.get("render"),
-                "five_elements": (calc.get("five_elements") or {}).get("counts"),
+                "paipan_render": render or flat_render,
+                "five_elements": counts,
             },
         })
     return {"total": total, "items": items}
@@ -133,36 +296,158 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
 
 def get_record(rid: int) -> dict | None:
     """单条完整记录；不存在返回 None（路由层转 404）。"""
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c:
         row = c.execute(
-            "SELECT id,ts,name,question,req_json,result_json FROM records"
-            " WHERE id=?", (int(rid),)).fetchone()
+            "SELECT id,ts,name,question,req_json,result_json,type"
+            " FROM records WHERE id=?", (int(rid),)).fetchone()
     if row is None:
         return None
-    rid, ts, name, question, req_json, res_json = row
+    rid, ts, name, question, req_json, res_json, rtype = row
+    try:
+        req_obj = json.loads(req_json) if req_json else {}
+    except ValueError:
+        req_obj = {}                    # R228j：同 list_records 的护栏
+    try:
+        res_obj = json.loads(res_json) if res_json else {}
+    except ValueError:
+        res_obj = {}
     return {"id": rid, "ts": ts, "name": name, "question": question,
-            "req": json.loads(req_json) if req_json else {},
-            "result": json.loads(res_json) if res_json else {}}
+            "type": rtype or "bazi", "req": req_obj, "result": res_obj}
 
 
 def delete_record(rid: int) -> bool:
     """删除单条；返回是否存在。"""
-    with _conn() as c:
+    with contextlib.closing(_conn()) as c, c:
         cur = c.execute("DELETE FROM records WHERE id=?", (int(rid),))
         return cur.rowcount > 0
 
 
+def tarot_collection() -> dict:
+    """R2349l（R73-P1-12）：塔罗图鉴——扫台账 rtype=tarot 行聚合抽过的
+    牌名 → {collected: [名], total: 78}。牌序由调用方给（DECK 在
+    tarot.py，这里不反向 import 防环）。"""
+    seen: set[str] = set()
+    try:
+        with contextlib.closing(_conn()) as c:
+            rows = c.execute(
+                "SELECT result_json FROM records WHERE type='tarot'"
+                " ORDER BY id DESC LIMIT 500").fetchall()
+    except Exception:
+        return {"collected": []}
+    for (res_json,) in rows:
+        try:
+            obj = json.loads(res_json) or {}
+        except ValueError:
+            continue
+        for dr in (obj.get("draws") or []):
+            nm = (dr or {}).get("name")
+            if nm:
+                seen.add(str(nm))
+    return {"collected": sorted(seen)}
+
+
+def clear_all() -> int:
+    """清空台账（R2345 / R63-P1-3：「忘掉我的数据」入口的服务端一半）。
+    返回删除行数。先抬代次——wipe 前排盘的在途 save_async 一并作废。"""
+    global _WIPE_GEN
+    with _write_lock, contextlib.closing(_conn()) as c, c:
+        _WIPE_GEN += 1
+        cur = c.execute("DELETE FROM records")
+        return cur.rowcount
+
+
 def export_rows() -> list[tuple]:
-    """CSV 导出数据行：(id, ts, name, question, paipan_render)。"""
-    with _conn() as c:
+    """CSV 导出数据行：(id, ts, name, question, type, paipan_render)。"""
+    with contextlib.closing(_conn()) as c:
         rows = c.execute(
-            "SELECT id,ts,name,question,result_json FROM records"
+            "SELECT id,ts,name,question,type,result_json FROM records"
             " ORDER BY id DESC").fetchall()
     out = []
-    for rid, ts, name, question, res_json in rows:
+    for rid, ts, name, question, rtype, res_json in rows:
         try:
-            render = ((json.loads(res_json) or {}).get("paipan") or {}).get("render") or ""
+            _robj = json.loads(res_json) or {}
+            render = (_robj.get("paipan") or {}).get("render") or \
+                _robj.get("render") or ""
         except ValueError:
             render = ""
-        out.append((rid, ts, name or "", question or "", render))
+        out.append((rid, ts, _csv_safe(name or ""),
+                    _csv_safe(question or ""), _csv_safe(rtype or "bazi"),
+                    _csv_safe(render)))
     return out
+
+
+# R231a（R36-P3-3）：换设备数据迁移——导出全量行（含 req/result 供
+# 复看回放）+ 导入落库。导入走独立函数而非 save_async：批量、同步返回
+# 计数、跳过禁用闸（用户显式恢复动作——与 export 在禁用下仍可读的
+# 既有口径一致）。
+_VALID_TYPES = {"bazi", "taohua", "hehun", "tarot", "liuyao", "qiming"}
+
+
+def export_all() -> list[dict]:
+    """全量导出：每行含 req/result dict，前端打包成备份 JSON。"""
+    with contextlib.closing(_conn()) as c:
+        rows = c.execute(
+            "SELECT ts,name,question,type,req_json,result_json FROM records"
+            " ORDER BY id").fetchall()
+    out = []
+    for ts, name, question, rtype, req_json, res_json in rows:
+        try:
+            req_obj = json.loads(req_json) if req_json else {}
+        except ValueError:
+            req_obj = {}
+        try:
+            res_obj = json.loads(res_json) if res_json else {}
+        except ValueError:
+            res_obj = {}
+        out.append({"ts": ts, "name": name or "", "question": question or "",
+                    "type": rtype or "bazi",
+                    "req": req_obj, "result": res_obj})
+    return out
+
+
+def import_rows(rows: list[dict]) -> int:
+    """批量落库（追加式，去重靠 ts+name+type 三元组）；返回写入条数。
+
+    防线：条数 ≤ KEEP_MAX、单行序列化 ≤256KB、字段截断到列上限、
+    type 白名单——备份文件是用户可控输入，按不可信数据验。"""
+    if not isinstance(rows, list) or not rows:
+        return 0
+    with _write_lock, contextlib.closing(_conn()) as c, c:
+        written = 0
+        for r in rows[:KEEP_MAX]:
+            if not isinstance(r, dict):
+                continue
+            rtype = r.get("type") if r.get("type") in _VALID_TYPES else "bazi"
+            try:
+                req_s = json.dumps(r.get("req") or {}, ensure_ascii=False)
+                res_s = json.dumps(r.get("result") or {}, ensure_ascii=False)
+            except (TypeError, ValueError):
+                continue
+            if len(req_s) > 262144 or len(res_s) > 262144:
+                continue
+            ts = str(r.get("ts") or "")[:32] or \
+                datetime.now().isoformat(timespec="seconds")
+            name = str(r.get("name") or "")[:200]
+            question = str(r.get("question") or "")[:200] or None
+            # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
+            dup = c.execute(
+                "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
+                (ts, name, rtype)).fetchone()
+            if dup:
+                continue
+            c.execute(
+                "INSERT INTO records(ts,name,question,req_json,result_json,"
+                "type) VALUES(?,?,?,?,?,?)",
+                (ts, name, question, req_s, res_s, rtype))
+            written += 1
+        c.execute(
+            "DELETE FROM records WHERE id NOT IN "
+            "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
+            (KEEP_MAX,))
+    return written
+
+
+def _csv_safe(v: str) -> str:
+    """R229n（R6-#9）：CSV 单元格以 =+-@ / 制表符开头时 Excel/WPS 会按
+    公式执行（question 是用户自由文本）——前置 ' 转义。"""
+    return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v

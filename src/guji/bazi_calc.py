@@ -29,7 +29,6 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .bazi import Bazi, day_ganzhi, hour_ganzhi
@@ -214,7 +213,12 @@ def calc(b: Bazi, ask_date: str | None = None,
     counts = five_element_counts(b)
     missing = [e for e, v in counts.items() if v <= 0.001]
     mx = max(counts.values())
-    strong = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
+    # R230a-7（R13-P1-1）：并列最高 = 均势不是独旺——此前木火金水同分时
+    # 四行全标「偏旺」（抽样约 4.7% 的盘踩到）。并列放 strong_tied，
+    # strong 只保留唯一最高者。
+    _tops = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
+    strong = _tops if len(_tops) == 1 else []
+    strong_tied = _tops if len(_tops) > 1 else []
 
     # --- 地支关系：命局内两两 + 三合/自刑 ---
     zhis = [p[1] for p in pillars]
@@ -276,6 +280,8 @@ def calc(b: Bazi, ask_date: str | None = None,
         parts.append(f"缺{''.join(missing)}")
     if strong:
         parts.append(f"{'、'.join(strong)}偏旺")
+    elif strong_tied:
+        parts.append(f"{'、'.join(strong_tied)}均势（无一行独大）")
     if relations:
         parts.append("地支关系：" + "；".join(f"{r['note']}" for r in relations))
     if day_branch or day_luck["day_master_rel"]:
@@ -293,7 +299,8 @@ def calc(b: Bazi, ask_date: str | None = None,
 
     return {
         "ten_gods": ten_gods,
-        "five_elements": {"counts": counts, "missing": missing, "strong": strong},
+        "five_elements": {"counts": counts, "missing": missing,
+                           "strong": strong, "strong_tied": strong_tied},
         "relations": relations,
         "day_luck": day_luck,
         "summary": "。".join(parts) + "。",
@@ -312,10 +319,10 @@ def calc_range(b: Bazi, start_date: str, end_date: str,
     d0 = datetime.strptime(start_date, "%Y-%m-%d")
     d1 = datetime.strptime(end_date, "%Y-%m-%d")
     if d1 < d0:
-        raise ValueError("end_date 不能早于 start_date")
+        raise ValueError("结束的日子要排在开始之后哦")
     span = (d1 - d0).days
     if span > 31:
-        raise ValueError("日期范围最长 31 天（一次查询防爆），请分段查询")
+        raise ValueError("一次最多看 31 天，分几段查更清楚")
     pillars = [b.year, b.month, b.day, b.hour]
     zhis = [p[1] for p in pillars]
     day_master = b.day_master
@@ -378,7 +385,9 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
             "end_age": round(end_age, 1),
             "pillar": p,
             "gan_rel": ten_god(day_master, p[0]),
-            "year_start": birth_year + int(start_age),   # 约略公历年份段起点
+            # R230h（R20-F10）：int() 截断与 start_age 的 round(1) 展示错位
+            # ——「4.9岁起运→1994」读着像 1995；按四舍五入进位贴展示口径。
+            "year_start": birth_year + int(round(start_age)),  # 约略公历年份段起点
         })
     parts = [f"日主{day_master}，大运{'顺' if b.dayun_dir == '顺' else '逆'}排，"
              f"约 {round(qi, 1) if qi is not None else '?'} 岁起运"]

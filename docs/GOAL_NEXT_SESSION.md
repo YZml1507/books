@@ -91,8 +91,8 @@ cd C:\Users\Lenovo\Desktop\projects\books
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.sources --selftest
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.bookstudy
 PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.research
-PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest
-cd web; PYTHONPATH=src:. ..\.venv\Scripts\python.exe -m app --selftest
+PYTHONPATH=src .\.venv\Scripts\python.exe -m guji.mcp_server --selftest   # 需额外依赖：pip install mcp（venv 未装则 ModuleNotFoundError）
+.\.venv\Scripts\python.exe web\selftest.py                                 # web 自测入口（R228s 订正：原 `python -m app --selftest` 会起 8123 服务挂住，见 PHASE.md R190b 订正）
 ```
 
 **当前（R69b 功能终态，13/13 全过 + 五层自测全齐；web 自测 123 checks，R53b/R54b/R61b/R69b 补端点 + R110b-R115b 功能轮 +11 + R118b/R119b 各 +2 + R121b +1 + R124b +5 + R126b +2 + R128b +2 + R130b +2 + R132b +1 + R134b +1 + R136b +1 + R137b +1 + R138b +1 + R139b +3 + R140b +2 + R141b +3 + R142b +3 + R143b +3 + R144b +3 + R145b +1 + R146b +2 + R147b +1 + R148b +3 + R149b +5 + R150b +6 + R151b +4 + R152b +4 + R153b +2 + R154b +4 + R156b +1 + R157b +1 + R158b +1 + R159b +1 + R162b +5 + R163b +1 + R164b +2 + R169b +1 + R170b +2 + R171b +1 + R174b +1 + R176b +1，R139b-R176b 同步）**（R85b 补注、R92b 去范围钉死、R116b 修正：R70b-R110b 为 docs-only 对齐轮、功能终态维持 R69b；**R111b 起恢复功能轮**——桃花运/塔罗/大运应期/牌阵/ask 模型标注/hehun 合婚/合婚大运应期，web 24→35→39→40→45→47→49→51→52→53→55→56→59→61→64→67→70→73→74→76→77→80→85→91→95→99→101→105→106→107→108→109→114→115→117→118→120→121→122→123 checks；PROJECT_STATUS 头部 R78b 指快照块内容轮次，见 D-119b/D-130b）：
@@ -198,13 +198,13 @@ G 判据    PASS 9 · PART 0 · FAIL 0（含 G4 多跳/G8 三类知识隔离/G9 
 
 **三类不要自主执行，但处置方式是"跳过并记录"，不是"停下等人"**：
 
-1. **破坏性且不可逆**：删 `data/raw/` 或 `data/external/` 原始语料、git push、重写历史。（重建 `data/index/corpus.db` **不属于**此类，它 5 秒可重建，随便重建。）
+1. **破坏性且不可逆**：删 `data/raw/` 或 `data/external/` 原始语料、git push、重写历史。（重建 `data/index/corpus.db` **不属于**此类，它十几秒可重建（62,109 单元实测 ~14.5s），随便重建。）
 2. **为了让数字变好而放宽任何验收闸门**：见 GOAL.md §3，本项目红线。闸门先定后测，达不到就 BLOCKED，不调闸门。
 3. **引入新的外部依赖或联网抓取新语料**：见 §5。撞上时把任务记 BLOCKED 写进 TASK_LEDGER.md（附原因与实测数据），**然后直接开始下一个任务**。
 
 **已授权的（照上一窗口先例，可直接执行）**：
 - commit / push 到 main（历次窗口已记录用户授权）。push 不顺时用代理 `127.0.0.1:7897`：`git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 push origin main`。
-- 重建 corpus.db / knowledge.db（5 秒可重建，随便重建）。
+- 重建 corpus.db / knowledge.db（十几秒可重建，随便重建）。
 - 联网抓取释义数据用于 G1 概念级（但 D-030 已确认无合规源，这条授权实际用不上）。
 
 **法务（GOAL.md §5）**：绝对不可入库生成文本。每次获取必须记 `sha256 / source_url / fetched_at / licence`。版权按层判定不按文件判定。

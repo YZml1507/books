@@ -224,8 +224,10 @@ cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe probes\probe_g8_isolation.py
 .\.venv\Scripts\python.exe probes\probe_booksec.py
 
-# Web 自测
-.\.venv\Scripts\python.exe web/app.py --selftest
+# Web 自测（R228s 订正：web/app.py --selftest 是死命令——__main__ 现直接
+# uvicorn.run 起 8123 服务；真入口是 web\selftest.py，见 PHASE.md R190b 订正）
+$env:BOOKS_LLM_DISABLE="1"
+.\.venv\Scripts\python.exe web/selftest.py
 
 # Git 状态
 git log --oneline -5

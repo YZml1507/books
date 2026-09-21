@@ -21,7 +21,7 @@ from collections import Counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji import clean, extract_yao, fold, gua_spans, yao_names  # noqa: E402
+from guji import clean, extract_yao, gua_spans, yao_names  # noqa: E402
 from guji.zhouyi import derive_gold, derive_polarity, work_body  # noqa: E402
 
 RAW = os.path.join(ROOT, "data", "raw")

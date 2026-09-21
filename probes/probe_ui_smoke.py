@@ -23,14 +23,11 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 本轮新增行并复验回到基线，删不干净则整体判失败。
 
 **R132a（审查轨）两处重钉**：
-  * news.refresh（B-018）：原用例把「外网有新闻条目」当产品判据，本网络下
-    永远不可能全绿（curl 直连/代理均 000，同网 HN 200——环境问题，非代码
-    回归；git stash -u 干净 HEAD 复跑同一条 FAIL）。拆成两层：
-    (a) btn:news.refresh.endpoint —— 产品行为层，离线可判：点击后真的请求了
-        /api/external/news，容器出现合法终态（有条目**或**设计的「暂无新闻」
-        降级文案），零 console.error；
-    (b) env:news.content_reachable —— 外网内容层：可达时断言有条目并报数；
-        不可达时打印 SKIP 说明，**不再 FAIL**。用例不删除，只不再拿天气当闸门。
+  * news.panel_removed / news.retired_marker（B-018 → R208b → R2349s）：
+    原用例把「外网有新闻条目」当产品判据；R208b 删除 news 面板后，
+    这两条改为退役钉扎（R85-P1-6 复扫改名，断言体本就如此）：
+    (a) news.panel_removed —— newsRefresh/newsList DOM 零残留（反向钉扎）；
+    (b) news.retired_marker —— 恒真占位，语义=该功能已退役，防名字复活。
   * ai.polish 两用例（specs/006 T2.3，D-145a 只断行为不钉内部命名）：
     ai.block.renders_with_ai —— LLM 可用时排盘结果区出现 .ai-polish 区块且
     标注（AI 生成/仅供娱乐）常显；ai.block.separate_from_citations —— AI 区块
@@ -41,12 +38,14 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 
 复现命令：
     C:\\Users\\Lenovo\\Desktop\\projects\\books\\.venv\\Scripts\\python.exe probes\\probe_ui_smoke.py
-可选：--headed 看真实点击过程；--port N 换端口；--keep 保留 logs/ 截图。
+可选：--headed 看真实点击过程；--port N 换端口。
+（截图/日志无条件写入 logs/ui_smoke/，无需 --keep。）
 退出码：0 全绿；1 有用例失败；2 环境不可用（chromium 未装 / 服务起不来）。
 截图与失败详情：logs/ui_smoke/
 """
 from __future__ import annotations
 
+import datetime
 import http.client
 import json
 import os
@@ -98,13 +97,13 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 
 # ---------------------------------------------------------------------------
 # 用例表：(名字, 视图, 按钮选择器, 结果容器选择器, 视图内先切的标签)
-# 覆盖 index.html 全部 15 个提交按钮 + 9 个 rtab + 3 个 rsec2 子标签。
+# 覆盖 index.html ~20 个动作按钮（部分刻意入 NO_CASE 豁免表）+ 9 个 rtab + 3 个 rsec2 子标签。
 # ---------------------------------------------------------------------------
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
-    # R132a（B-018）：news.refresh 从按钮用例表移出，重钉为两层判据——
-    # btn:news.refresh.endpoint（产品行为，离线可判）+ env:news.content_reachable
+    # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
+    # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
     # R122a：三个读书子标签的选择器**不再写死 data-rsec2 的值**，改为运行时
     # 从 DOM 读（见 discover_subtabs）。原因是 R120a/R179b 撞过一次协调事故：
@@ -130,6 +129,12 @@ BUTTON_CASES = [
     ("taohua",         "taohua",  None,            "#thSubmit",      "#thResult"),
     ("tarot",          "tarot",   None,            "#trSubmit",      "#trResult"),
     ("hehun",          "hehun",   None,            "#hhSubmit",      "#hhResult"),
+    # R230z（R36-P1-2）：存这对钮只有 hehun 出卡后才存在——用例必须排
+    # 在 hehun 之后；点击后 #hhFavRow 浮出「测过的 CP」chips 为断言。
+    ("hehun.savepair",  "hehun",   None,            "#hhSavePair",    "#hhFavRow"),
+    # R233n：邀请链——点「喊 TA 来对盘」出 toast（clipboard 成败两路
+    # 都出 toast）；须在 hehun 出卡后，同 savepair 排序约束。
+    ("hehun.invite",    "hehun",   None,            "#hhInvite",      ".toast-item"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）
@@ -218,7 +223,6 @@ def wait_health(port: int, timeout: float = 90.0) -> bool:
 
 def main() -> int:
     headed = "--headed" in sys.argv
-    keep = "--keep" in sys.argv
     forced_port = None
     if "--port" in sys.argv:
         forced_port = int(sys.argv[sys.argv.index("--port") + 1])
@@ -251,9 +255,29 @@ def main() -> int:
     from guji import knowledge as kb_mod
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     hist_baseline = history_db.count()
+    # R230k（R23-P3-5）：bazi_history 自 R219b 无写路径——探针每轮 bazi
+    # 提交实际写 paipan_history.db，原来一直清着一张不再被写的表。
+    # 换成 contract 同款 paipan 基线+增量清理。
+    from guji import paipan_history as _ph_db
+    _ph_baseline = (0 if _ph_db.disabled()
+                    else _ph_db.list_records(limit=200)["total"])
+    # R2345：wipe 用例会真删台账——「total−baseline」在其后失真，
+    # 残留判定改按 id 水位：本论新建行 id 必 > 基线 max_id。
+    _ph_max_id0 = 0
+    try:
+        if not _ph_db.disabled():
+            _items0 = _ph_db.list_records(limit=1)["items"]
+            if _items0:
+                _ph_max_id0 = int(_items0[0]["id"])
+    except Exception:
+        pass
     with kb_mod.KnowledgeBase(kb_path) as kb:
         derived_baseline = kb.db.execute(
             "SELECT COALESCE(MAX(id),0) AS m FROM derived").fetchone()["m"]
+        # R228x续：后端「新建线程」语义修复后，btn:threads 每跑一轮会真开
+        # 一行 thread+turn——跟 derived 一样按基线回收，别让线程表越堆越脏。
+        thread_baseline = kb.db.execute(
+            "SELECT COALESCE(MAX(id),0) AS m FROM thread").fetchone()["m"]
 
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([ROOT, os.path.join(ROOT, "src"),
@@ -296,6 +320,108 @@ def main() -> int:
         cwd=cwd, env=env,
         stdout=srv_log, stderr=subprocess.STDOUT)
     results: list[dict] = []
+    _wipe_delta = [0]   # ui:history.wipe 真删台账行数（清理闸补偿用）
+
+    # ── R228o 静态闸（不占浏览器，服务就绪前先跑）─────────────────
+    # S1) on() 注册面 ⊆ BUTTON_CASES ∪ NO_CASE——新按钮忘了接冒烟用例时
+    #     立刻 FAIL 而不是静默没人点过（gate-blindspots 审查发现：xz* 与
+    #     share* 等 10 个 on() 注册此前零点击验证且无登记）。
+    _js_path = os.path.join(ROOT, "web", "static", "app.js")
+    _js = open(_js_path, encoding="utf-8").read()
+    _on_ids = set(re.findall(r"(?<![\w.])on\(\s*['\"](\w+)['\"]", _js))
+    # R2344（R60-P2）：on() 之外的裸绑定也进覆盖闸——
+    # var x = getElementById('id') → x.addEventListener('click')
+    _var_ids = dict(re.findall(
+        r"(?:var|let|const)\s+(\w+)\s*=\s*(?:document\.getElementById|el)"
+        r"\(['\"](\w+)['\"]\)", _js))
+    for _v, _i in _var_ids.items():
+        if re.search(rf"\b{re.escape(_v)}\.addEventListener\(['\"]click", _js):
+            _on_ids.add(_i)
+    # R2347（R60-meta-1 收口）：直链式裸绑定也钉——
+    # `el('x').addEventListener('click')` / `getElementById('x').addEventListener`
+    # / `querySelector('#x').addEventListener` 三种不赋值形态此前仍逃逸。
+    _on_ids |= set(re.findall(
+        r"(?:document\.getElementById|el)\(['\"](\w+)['\"]\)"
+        r"\.addEventListener\(['\"]click", _js))
+    _on_ids |= set(re.findall(
+        r"\.querySelector\(['\"]#(\w+)['\"]\)\.addEventListener\(['\"]click",
+        _js))
+    _covered = {btn.lstrip("#") for _n, _v, _t, btn, _r in BUTTON_CASES}
+    _covered |= {"dailyMore", "submit",
+                 # R2344：内联用例覆盖的裸绑定/容器委托 id（见 ui:* 用例）
+                 "historyImportBtn", "xzPrev", "xzToday", "birthSubmit",
+                 "hlPickBtn", "recentToggle", "recentClose", "themeToggle",
+                 "dailyCover", "viewBack", "dailyTomorrow", "historyRefresh",
+                 "historyExport", "historyExportJson",
+                 "historyImportFile", "historyWipe",
+                 "hlResult", "qmResult"}
+    # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
+    NO_CASE = {
+        "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
+                       "冒烟只到按钮可见",
+        "nameReviewBtn": "AI 点评轮询入口——LLM 任务在冒烟环境不产生",
+        "qmRefreshBtn": "改名候选重生按钮——同 qiming 链路",
+        "shareBazi": "分享海报模态（Canvas）——冒烟不测文件生成",
+        "shareQiming": "同上",
+        "shareTaohua": "同上",
+        "shareHehun": "同上",
+        "shareDaily": "同上",
+        "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
+        "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
+        "xzPrev": "ui:xznav.roundtrip 已覆盖", "xzToday": "同上",
+        # R2344（R60-P2）：裸绑定补登记
+        "dailyRecall": "点击=data-hlask-q 文档级委托，链路同 deeplink/"
+                       "问一嘴用例",
+        "dailyCard": "卡片本体无独立点击动作（scrollIntoView 场景），"
+                     "封面/打卡/预告均各有用例",
+        "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
+        "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
+                     "发送链路已由 crisis_fe/drawer 用例覆盖",
+        # R2349l（R73）：本批新增的动态/抽屉内控件
+        "dailyPersonalCta": "日卡 meta 行动态生成按钮（档案缺失时才有），"
+                            "点击=showView('xingzuo')+开 birthDrawer——"
+                            "导航链路已由 deep.* 用例覆盖",
+        "signPeekBtn": "解签展开钮——生成在日卡 meta 行内，toggle 本地"
+                       " signCard hidden，零请求零副作用",
+        "tarotPeekBtn": "同上模式：今日牌牌意展开钮",
+        "xzmSubmit": "星座速配——API 层已由 selftest xzmatch/xzmatch.hard/"
+                     "xzmatch.bad 三用例钉死，冒烟只到抽屉可见",
+        "dailyWeekGo": "周条提示钮——仅周日/周一生成的动态钮，"
+                       "点击=showView('huangli') 导航同 deep.* 用例",
+        "xzResult": "星座宫卡容器——委托监听 .xz-card 展开三运折叠行，"
+                    "本地 toggle 零请求",
+    }
+    _miss = sorted(_on_ids - _covered - set(NO_CASE))
+    results.append({"name": "gate:on_coverage",
+                    "ok": not _miss,
+                    "detail": ("on() 注册 28 个全部在用例表或豁免表"
+                               if not _miss else
+                               f"未覆盖且未豁免的 on() 注册: {_miss}")})
+
+    # S2) innerHTML 单行注入 lint：同行结束的 innerHTML 赋值里若出现
+    #     \w+\.\w+ 裸字段读且没有 esc(/fmtScalar(/renderRichText(/renderStars(
+    #     包装 → FAIL（跨行拼接由契约探针+人审兜底，本闸只抓直注）。
+    _raw_hits = []
+    for _i, _ln in enumerate(_js.splitlines(), 1):
+        _m = re.search(r"innerHTML\s*(?:\+?=)\s*(.+;)", _ln)
+        if not _m:
+            continue
+        _rhs = _m.group(1)
+        _fields = re.findall(r"\b(\w+)\.(\w+)", _rhs)
+        if not _fields:
+            continue
+        if re.search(r"esc\(|fmtScalar\(|renderRichText\(|renderStars\(|"
+                     r"buildBaziResult\(|renderDecoration\(|insertAiPolish\(",
+                     _rhs):
+            continue
+        if "// esc-reviewed" in _ln:
+            continue
+        _raw_hits.append(f"{_i}:{_rhs[:60]}")
+    results.append({"name": "gate:innerHTML_esc",
+                    "ok": not _raw_hits,
+                    "detail": ("单行 innerHTML 注入全部经包装"
+                               if not _raw_hits else
+                               f"裸字段注入: {_raw_hits[:4]}")})
     try:
         if not wait_health(port):
             srv_log.flush()
@@ -354,6 +480,39 @@ def main() -> int:
                 "name": "page.load", "ok": not load_errors,
                 "detail": "; ".join(load_errors[:4]) or "首屏加载零 console.error",
             })
+
+            # R231d（R37-F4/F7）：首访应有新人条；关掉后刷新不再出现。
+            try:
+                wv = page.evaluate(
+                    "() => { const w = document.getElementById('welcomeBar');"
+                    " return !!(w && w.offsetParent !== null); }")
+                results.append({
+                    "name": "ui:welcome_bar", "ok": bool(wv),
+                    "detail": "首访新人条存在=%s" % wv})
+            except Exception as exc:
+                results.append({"name": "ui:welcome_bar", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R2340：深浅色切换——点 #themeToggle 后 html[data-theme=dark]
+            # 且 localStorage 落盘；刷新仍在 dark。
+            try:
+                page.evaluate("localStorage.removeItem('uiTheme')")
+                page.click('#themeToggle')
+                page.wait_for_timeout(300)
+                _d1 = page.evaluate(
+                    "document.documentElement.getAttribute('data-theme')")
+                _sv = page.evaluate("localStorage.getItem('uiTheme')")
+                page.reload(); page.wait_for_timeout(600)
+                _d2 = page.evaluate(
+                    "document.documentElement.getAttribute('data-theme')")
+                page.evaluate("localStorage.removeItem('uiTheme');"
+                              "document.documentElement.removeAttribute('data-theme')")
+                results.append({
+                    "name": "ui:theme_toggle", "ok": _d1 == 'dark' and _sv == 'dark' and _d2 == 'dark',
+                    "detail": f"点击后={_d1} 存={_sv} 刷新={_d2}"})
+            except Exception as exc:
+                results.append({"name": "ui:theme_toggle", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
 
             def goto_view(view: str):
                 # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
@@ -415,6 +574,424 @@ def main() -> int:
                         return true;
                     }""", sec)
 
+            # ── R2342（R60-P0）：覆盖盲区补钉——真实点击路径 ──
+
+            # 打卡真点击：.checkin-opt → localStorage 落键 + picked 态
+            # （daily-cover 会 inert 卡内元素——先点封面拆掉）
+            try:
+                page.wait_for_selector('.checkin-opt', timeout=15000)
+                try:
+                    if page.is_visible('#dailyCover'):
+                        page.click('#dailyCover'); page.wait_for_timeout(700)
+                except Exception:
+                    pass
+                page.click('.checkin-opt >> nth=0')
+                page.wait_for_timeout(400)
+                _picked = page.evaluate(
+                    "!!document.querySelector('.checkin-opt.picked')")
+                _ckkeys = page.evaluate(
+                    "Object.keys(localStorage).filter(k=>k.startsWith('checkin:'))")
+                results.append({
+                    "name": "ui:checkin.click", "ok": _picked and len(_ckkeys) >= 1,
+                    "detail": f"picked={_picked} 落键={_ckkeys}"})
+            except Exception as exc:
+                results.append({"name": "ui:checkin.click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
+            try:
+                page.click('#recentToggle')
+                page.wait_for_timeout(400)
+                _open = page.evaluate(
+                    "document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                page.click('#recentClose')
+                page.wait_for_timeout(300)
+                _closed = page.evaluate(
+                    "!document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                results.append({
+                    "name": "ui:chat.drawer", "ok": bool(_open) and bool(_closed),
+                    "detail": f"开={_open} 合={_closed}"})
+            except Exception as exc:
+                results.append({"name": "ui:chat.drawer", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 危机词前端镜像：发「我不想活了」→ 气泡含 12356 且不走轮询
+            try:
+                page.click('#recentToggle')
+                page.wait_for_timeout(400)
+                page.fill('#chatInput', '我不想活了')
+                page.click('#chatSendBtn')
+                page.wait_for_timeout(1200)
+                _bub = page.evaluate(
+                    "(document.getElementById('chatFlow').innerText||'')"
+                    ".includes('12356')")
+                results.append({
+                    "name": "ui:chat.crisis_fe", "ok": bool(_bub),
+                    "detail": "危机词→12356转介气泡=" + str(_bub)})
+                # 抽屉还开着会 _mainInert 锁住主区——先收
+                try:
+                    page.click('#recentClose'); page.wait_for_timeout(300)
+                except Exception:
+                    pass
+            except Exception as exc:
+                results.append({"name": "ui:chat.crisis_fe", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 黄历 chip 真点击：data-hloffset=1 → 卡片换到明天
+            try:
+                goto_view('huangli')
+                page.wait_for_selector('#hlResult .hl-date, #hlResult', timeout=12000)
+                _b0 = page.inner_text('#hlResult')[:40]
+                page.click('.hl-chip[data-hloffset="1"]')
+                page.wait_for_timeout(1200)
+                _b1 = page.inner_text('#hlResult')[:40]
+                _chip_on = page.evaluate(
+                    "document.querySelector('.hl-chip[data-hloffset=\\\"1\\\"]').classList.contains('active')")
+                # hlPickBtn 自选日期抽屉开合（R2344 覆盖补齐）
+                _pk0 = page.evaluate(
+                    "document.getElementById('hlPickDrawer').open")
+                page.click('#hlPickBtn'); page.wait_for_timeout(300)
+                _pk1 = page.evaluate(
+                    "document.getElementById('hlPickDrawer').open")
+                page.evaluate(
+                    "document.getElementById('hlPickDrawer').open=false")
+                results.append({
+                    "name": "ui:hlchip.click",
+                    "ok": bool(_chip_on) and _b0 != _b1 and _pk1 and not _pk0,
+                    "detail": f"active={_chip_on} 卡面 {_b0[:12]!r}→{_b1[:12]!r}"
+                            f" 抽屉{_pk0}→{_pk1}"})
+            except Exception as exc:
+                results.append({"name": "ui:hlchip.click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 星座导航真点击：xzNext → 日期+1 且结果重渲（R60-P0-5：
+            # 整组 xz 导航此前 NO_CASE）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_selector('#xzResult', timeout=10000)
+                page.wait_for_timeout(1500)
+                _x0 = page.inner_text('#xzResult')[:60]
+                _d0 = page.evaluate(
+                    "[document.getElementById('xz_year').value,"
+                    "document.getElementById('xz_month').value,"
+                    "document.getElementById('xz_day').value].join('-')")
+                page.click('#xzNext')
+                page.wait_for_timeout(1500)
+                _x1 = page.inner_text('#xzResult')[:60]
+                _d1 = page.evaluate(
+                    "[document.getElementById('xz_year').value,"
+                    "document.getElementById('xz_month').value,"
+                    "document.getElementById('xz_day').value].join('-')")
+                results.append({
+                    "name": "ui:xznav.next",
+                    "ok": (_d0 != _d1) or (_x0 != _x1),
+                    "detail": f"日期 {_d0!r}→{_d1!r} 卡面 {_x0[:16]!r}→{_x1[:16]!r}"})
+            except Exception as exc:
+                results.append({"name": "ui:xznav.next", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 表单显隐联动：scope=range→range_row 现/ask_row 隐；
+            # calendar_type=lunar→lunar_leap 现（R60-P1-12）
+            try:
+                goto_view('bazi')
+                page.wait_for_selector('#scope', state='attached',
+                                        timeout=8000)
+                # #scope 在闭合的 pro-drawer 里——select_option 有可见性
+                # actionability，先展开抽屉（用户也得先点开）
+                page.evaluate(
+                    "document.getElementById('baziAdvanced').open = true")
+                page.select_option('#scope', 'range')
+                page.wait_for_timeout(300)
+                _r1 = page.evaluate(
+                    "!document.getElementById('range_row').hidden"
+                    " && document.getElementById('ask_row').hidden")
+                page.select_option('#scope', 'day')
+                page.select_option('#calendar_type', 'lunar')
+                page.wait_for_timeout(300)
+                _r2 = page.evaluate(
+                    "!document.getElementById('f_lunar_leap').hidden")
+                page.select_option('#calendar_type', 'solar')
+                results.append({
+                    "name": "ui:form.linkage", "ok": bool(_r1) and bool(_r2),
+                    "detail": f"range行联动={_r1} 闰月联动={_r2}"})
+            except Exception as exc:
+                results.append({"name": "ui:form.linkage", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 合婚邀请深链：?view=hehun&ay/am/ad/ag → A 侧预填+受邀提示
+            # （R60-P1-13：邀请链全系此前零测）
+            try:
+                page.goto(f"http://127.0.0.1:{port}/?view=hehun&ay=1998"
+                          "&am=7&ad=20&ag=%E5%A5%B3")
+                page.wait_for_timeout(2000)
+                _pre = page.evaluate(
+                    "var g=function(i){var e=document.getElementById(i);"
+                    "return e?e.value:''};"
+                    "[g('hh_a_year'),g('hh_a_month'),g('hh_a_day'),"
+                    "g('hh_a_gender')].join('|')")
+                results.append({
+                    "name": "ui:deeplink.hehun_invite",
+                    "ok": _pre == '1998|7|20|女',
+                    "detail": f"A侧预填={_pre!r}"})
+                page.goto(f"http://127.0.0.1:{port}/")
+                page.wait_for_timeout(800)
+            except Exception as exc:
+                results.append({"name": "ui:deeplink.hehun_invite",
+                                "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # localStorage 坏值回放：坏 JSON/错枚举进页不炸
+            try:
+                errors.clear()
+                page.evaluate(
+                    "localStorage.setItem('me','{broken');"
+                    "localStorage.setItem('uiTheme','nope');"
+                    "localStorage.setItem('hlask','[1,2]');"
+                    "localStorage.setItem('visits','x,y');"
+                    "localStorage.setItem('voiceMode','weird')")
+                page.reload(); page.wait_for_timeout(1500)
+                _okp = not errors
+                page.evaluate(
+                    "['me','hlask','visits','voiceMode','uiTheme']"
+                    ".forEach(k=>localStorage.removeItem(k))")
+                results.append({
+                    "name": "ui:storage.bad_values", "ok": _okp,
+                    "detail": "坏值回放 pageerror=" + str(errors[:3])})
+            except Exception as exc:
+                results.append({"name": "ui:storage.bad_values", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 星座导航回环：‹前一天→「今天」回到当日（R60-P1-14）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_timeout(1200)
+                _d0 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                page.click('#xzPrev'); page.wait_for_timeout(1200)
+                _d1 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                page.click('#xzToday'); page.wait_for_timeout(1200)
+                _d2 = page.evaluate(
+                    "document.getElementById('xz_day').value")
+                # viewBack：非首页视图应可见，点了回首页（R2344）
+                _vb = page.evaluate(
+                    "var e=document.getElementById('viewBack');"
+                    "e?getComputedStyle(e).display!=='none':false")
+                page.click('#viewBack'); page.wait_for_timeout(500)
+                _home = page.evaluate(
+                    "var e=document.getElementById('homeMain');"
+                    "e ? getComputedStyle(e).display !== 'none' : false")
+                results.append({
+                    "name": "ui:xznav.roundtrip",
+                    "ok": (_d0 != _d1) and (_d2 == _d0) and _vb and _home,
+                    "detail": f"今={_d0} 昨={_d1} 回={_d2} 返回条={_vb}/{_home}"})
+            except Exception as exc:
+                results.append({"name": "ui:xznav.roundtrip", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 本命盘提交真点击（R60-P1-14：此前 birthSubmit 零覆盖）
+            try:
+                goto_view('xingzuo')
+                page.wait_for_timeout(600)
+                page.evaluate(
+                    "document.getElementById('birthDrawer').open = true")
+                page.click('#birthSubmit')
+                page.wait_for_function(
+                    "document.getElementById('birthResult')"
+                    " && document.getElementById('birthResult')"
+                    "  .innerText.length > 40",
+                    timeout=15000)
+                _bt = page.inner_text('#birthResult')[:50]
+                results.append({
+                    "name": "ui:birth.submit", "ok": True,
+                    "detail": f"本命解读出字 {_bt[:30]!r}"})
+            except Exception as exc:
+                results.append({"name": "ui:birth.submit", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 起名心水链：♡收藏→心水行出现→×摘除→行隐藏（R60-P1-15，
+            # favorites 端点唯一的真实点击面）
+            try:
+                goto_view('qiming')
+                # 深链用例 reload 过页面——qmResult 为空，重提交再收 ♡
+                page.click('#qmSubmit')
+                page.wait_for_selector(
+                    '#qmResult .qm-fav', timeout=20000)
+                _f0 = page.evaluate(
+                    "var e=document.querySelector('#qmResult .qm-fav');"
+                    "e?e.dataset.favName:''")
+                page.click('#qmResult .qm-fav >> nth=0')
+                page.wait_for_function(
+                    "var r=document.getElementById('qmFavRow');"
+                    "r && !r.hidden && r.querySelector('.fav-chip-x')",
+                    timeout=8000)
+                _lit = page.evaluate(
+                    "var e=document.querySelector('#qmResult .qm-fav');"
+                    "e?e.textContent:''")
+                page.click('#qmFavRow .fav-chip-x >> nth=0')
+                page.wait_for_function(
+                    "var r=document.getElementById('qmFavRow');"
+                    "!r || r.hidden || !r.querySelector('.fav-chip-x')",
+                    timeout=8000)
+                results.append({
+                    "name": "ui:qm.fav_chain", "ok": True,
+                    "detail": f"♡{_f0[:8]!r}→{_lit!r}→×摘除"})
+            except Exception as exc:
+                results.append({"name": "ui:qm.fav_chain", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 起名风格 chip 真点击（R60-P1-15）
+            try:
+                goto_view('qiming')
+                page.wait_for_selector(
+                    '#qmResult .qm-style-chip', timeout=20000)
+                _c0 = page.evaluate(
+                    "var a=document.querySelector("
+                    "'#qmResult .qm-style-chip.active');"
+                    "a?a.dataset.style:''")
+                _oth = page.evaluate(
+                    "(()=>{var l=document.querySelectorAll("
+                    "'#qmResult .qm-style-chip');for(var i=0;i<l.length;i++){"
+                    "if(!l[i].classList.contains('active'))"
+                    "return l[i].dataset.style}return ''})()")
+                if _oth:
+                    page.click(
+                        f"#qmResult .qm-style-chip[data-style='{_oth}']")
+                    page.wait_for_timeout(1800)
+                    _c1 = page.evaluate(
+                        "var a=document.querySelector("
+                        "'#qmResult .qm-style-chip.active');"
+                        "a?a.dataset.style:''")
+                    results.append({
+                        "name": "ui:qm.style_chip",
+                        "ok": _c1 == _oth and _c0 != _c1,
+                        "detail": f"{_c0!r}→{_c1!r}"})
+                else:
+                    results.append({"name": "ui:qm.style_chip", "ok": False,
+                                    "detail": "无备选 chip"})
+            except Exception as exc:
+                results.append({"name": "ui:qm.style_chip", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 历史导入文件链：backup JSON 喂 file input → toast+列表刷新
+            # （R60-P1-16：导入路径此前零覆盖）
+            try:
+                goto_view('history')
+                page.wait_for_timeout(800)
+                _imp = os.path.join(LOGDIR, "_probe_backup.json")
+                with open(_imp, "w", encoding="utf-8") as _f:
+                    json.dump({
+                        "kind": "backup",
+                        "browser": {},
+                        "records": [{
+                            # ts 用跑时当前值——固定 ts 上轮留库后 dedup
+                            # 会判重→imported=0→列表翻不到（id 老了）
+                            "type": "bazi", "name": "探针导入",
+                            "ts": __import__('datetime').datetime.now()
+                                .isoformat(timespec='seconds'),
+                            "req": {}, "result": {}}]}, _f,
+                        ensure_ascii=False)
+                page.set_input_files('#historyImportFile', _imp)
+                page.wait_for_function(
+                    "document.getElementById('historyList')"
+                    " && document.getElementById('historyList')"
+                    "  .innerText.indexOf('探针导入') >= 0",
+                    timeout=8000)
+                # 导出两钮真点击（R2344）：export=window.open 新标签；
+                # exportJson=blob 下载。弹层/下载任一触发即算活。
+                _err0 = len(errors)
+                _pop = False
+                try:
+                    with page.context.expect_page(timeout=3000) as _pi:
+                        page.click('#historyExport')
+                    _pi.value.close()
+                    _pop = True
+                except Exception:
+                    pass
+                _dlok = True
+                try:
+                    with page.expect_download(timeout=4000) as _dli:
+                        page.click('#historyExportJson')
+                    _dlok = bool(_dli.value.suggested_filename)
+                except Exception:
+                    _dlok = False
+                _exp_ok = _pop and _dlok and len(errors) == _err0
+                page.click('#historyRefresh'); page.wait_for_timeout(1000)
+                _still = page.evaluate(
+                    "document.getElementById('historyList')"
+                    ".innerText.indexOf('探针导入') >= 0")
+                results.append({
+                    "name": "ui:history.import", "ok": bool(_exp_ok and _still),
+                    "detail": f"导入列表现「探针导入」+导出弹层={_pop}"
+                              f" JSON下载={_dlok} 刷新留存={_still}"})
+            except Exception as exc:
+                results.append({"name": "ui:history.import", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 「忘掉我的数据」两段式清空（R2345/R63-P1-3）：武装文案→
+            # 二点→本机键清空+服务端台账清空。删行数记下供台账闸补偿。
+            _wipe_delta[0] = 0
+            try:
+                _before = page.evaluate(
+                    "(async()=>{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return j.total||0})()")
+                page.evaluate("localStorage.setItem('me',"
+                              " JSON.stringify({y:1990,m:1,d:1,n:'探针'}))")
+                page.click('#historyWipe')
+                page.wait_for_timeout(300)
+                _armed = '再点一次' in page.inner_text('#historyWipe')
+                page.click('#historyWipe')
+                page.wait_for_timeout(1500)
+                _after = page.evaluate(
+                    "(async()=>{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return j.total||0})()")
+                _me_left = page.evaluate("localStorage.getItem('me')")
+                _wipe_delta[0] = max(0, _before - _after)
+                results.append({
+                    "name": "ui:history.wipe",
+                    "ok": bool(_armed) and _after == 0 and _me_left is None,
+                    "detail": f"武装={_armed} 台账{_before}→{_after}"
+                              f" 本机me清空={_me_left is None}"})
+            except Exception as exc:
+                results.append({"name": "ui:history.wipe", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # 书目卡点击→回填书ID走检索（R60-P1-17：work-card 零覆盖）
+            try:
+                goto_view('read')
+                page.wait_for_timeout(500)
+                page.click(".rtab[data-rsec='rsec-works']")
+                page.click('#worksBtn')
+                page.wait_for_function(
+                    "document.querySelector('#worksResult .work-card')",
+                    timeout=15000)
+                _wid = page.evaluate(
+                    "var e=document.querySelector("
+                    "'#worksResult .work-card');e?e.dataset.work:''")
+                page.click("#worksResult .work-card >> nth=0")
+                page.wait_for_timeout(1200)
+                # R2349v（R92-P2-4）：点书卡语义改为「打开这本书」——
+                # 跳读书 tab + 回填 bswork（不再是检索过滤）。
+                _back = page.evaluate(
+                    "var e=document.getElementById('bswork');"
+                    "e?e.value:''")
+                _tab = page.evaluate(
+                    "var e=document.getElementById('rsec-bookstudy');"
+                    "e?e.classList.contains('active'):false")
+                results.append({
+                    "name": "ui:works.card_click",
+                    "ok": bool(_wid) and _wid in (_back or '') and _tab,
+                    "detail": f"卡={_wid[:14]!r} 回填bswork={_back[:14]!r}"
+                              f" 读书tab={_tab}"})
+                # 清场：bswork 残留会把后续 bookstudy 用例的输入污染
+                page.evaluate(
+                    "document.getElementById('bswork').value='';")
+            except Exception as exc:
+                results.append({"name": "ui:works.card_click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # ── 标签切换用例 ───────────────────────────────────
             goto_view("read")
             for sec in TAB_CASES:
@@ -470,6 +1047,11 @@ def main() -> int:
             errors.clear()
             before = page.content()
             try:
+                # R231c：每日卡有「拆礼物」封面（R36-P3-4）——真人路径就是
+                # 先点封面再点按钮，走真实 click 不强摘 DOM。
+                if page.is_visible("#dailyCover"):
+                    page.click("#dailyCover")
+                    page.wait_for_timeout(300)
                 page.click("#dailyMore")
                 page.wait_for_timeout(600)
                 changed = page.content() != before
@@ -498,6 +1080,15 @@ def main() -> int:
                             page.wait_for_timeout(150)
                     for sel, val in FILL.get(name, {}).items():
                         page.fill(sel, val)
+                    # R228d：#hlSubmit 住在 <details id=hlPickDrawer> 内，
+                    # 抽屉默认收起 → 按钮对真人也不可点（v5 自选日期改版后
+                    # 探针没跟上）。先程序化开抽屉——与真人点「选日期 ▾」
+                    # 摘要的路径一致，测试侧不强改 web/。
+                    if btn == "#hlSubmit":
+                        page.evaluate(
+                            "() => { const d = document.getElementById"
+                            "('hlPickDrawer'); if (d) d.open = true; }")
+                        page.wait_for_timeout(150)
                     api_calls.clear()
                     # `@subtab:N` 占位符 → 运行时按序号取真实 data-rsec2 值。
                     # 见 BUTTON_CASES 注释：不把对方的内部命名写死成契约。
@@ -569,20 +1160,322 @@ def main() -> int:
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
 
-            # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
+            # ── R228x：黄历「挑吉日」chip 链路——点场景出判词后应异步长出
+            # 「近期宜X」chip 行；点 chip 翻到那天（hlResult 头部日期变化）。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.evaluate(
+                    "() => { const d = document.getElementById('hlPickDrawer');"
+                    " if (d) d.open = true; }")
+                page.click("#hlSubmit")
+                page.wait_for_selector("#hlResult .hl-scene", timeout=8000)
+                # 出行是当日忌项常客：选一个 忌 或 中性 都行的场景——直接点
+                # 「出行」无论判什么，宜日 chip 都该出（忌/中性都引导挑日）。
+                page.click('.hl-scene[data-scene="出行"]')
+                page.wait_for_selector("#hlVerdict", timeout=6000)
+                page.wait_for_selector(".hl-gooddays .hl-daychip",
+                                       timeout=8000)
+                chips = page.query_selector_all(".hl-gooddays .hl-daychip")
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                chips[0].click()
+                page.wait_for_timeout(1200)
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                jumped = head1 != head0 and head1.strip() != ""
+                ok = len(chips) >= 1 and jumped and not errors
+                detail = (f"chips={len(chips)} 翻页{'成功' if jumped else '未变'}: "
+                          f"{head0.strip()[:20]!r} → {head1.strip()[:20]!r}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:huangli.gooddays_chip",
+                            "ok": ok, "detail": detail})
+
+            # ── R229z续14：节日词问一嘴钉扎——「中秋节搬家合适吗」走
+            # resolve_date 解出真实日期，卡片判词应写回原词「中秋节」
+            # 而非泛化「那天」，且 hlResult 头部日期应翻离今天。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.evaluate("doHuangli(0, true)")
+                page.wait_for_selector("#hlAskInput", timeout=8000)
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                page.fill("#hlAskInput", "中秋节搬家合适吗")
+                page.click("#hlAskBtn")
+                page.wait_for_selector("#hlVerdict", timeout=8000)
+                page.wait_for_timeout(400)
+                vd = page.inner_text("#hlVerdict") or ""
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                ok = ("中秋节" in vd and head1 != head0
+                      and "八月十五" in head1 and not errors)
+                detail = (f"判词={vd.strip()[:30]!r} "
+                          f"翻页={head0.strip()[:14]!r}→{head1.strip()[:14]!r}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:huangli.holiday_ask",
+                            "ok": ok, "detail": detail})
+
+            # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
+            #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.wait_for_selector(".hl-week-cell", timeout=8000)
+                cells = page.query_selector_all(".hl-week-cell")
+                head0 = page.inner_text("#hlResult .hl-head") or ""
+                cells[2].click()          # 后天
+                page.wait_for_timeout(1200)
+                head1 = page.inner_text("#hlResult .hl-head") or ""
+                ok = len(cells) == 7 and head1 != head0 and not errors
+                detail = (f"格数={len(cells)} 翻页"
+                          f"{'成功' if head1 != head0 else '未变'}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:hl_week", "ok": ok, "detail": detail})
+
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => { const y = new Date(); y.setDate(y.getDate()-1);"
+                    " const iso = y.toISOString().slice(0,10);"
+                    " localStorage.setItem('hlask', JSON.stringify([{q:'适合搬家吗',d:iso}]));"
+                    " localStorage.setItem('me', JSON.stringify({y:1995,m:5,d:20,h:9,g:'女'}));"
+                    " localStorage.setItem('checkin:'+iso, '平稳'); }")
+                # 不 reload（会冲掉 btn:tarot 渲染态断后续用例）——
+                # 直接触发渲染路径：loadDaily 拉明天预告+接续条，
+                # _renderMeStrip 画档案条。
+                page.evaluate("() => { loadDaily(); _renderMeStrip(); }")
+                page.wait_for_timeout(1800)
+                st = page.evaluate(
+                    "() => { const t = document.getElementById('dailyTomorrow');"
+                    " const r = document.getElementById('dailyRecall');"
+                    " const m = document.getElementById('dailyMe');"
+                    " return { t: !!(t && !t.hidden && t.textContent.includes('明天')),"
+                    "        r: !!(r && !r.hidden),"
+                    "        m: !!(m && !m.hidden && m.textContent.includes('1995')) }; }")
+                ok = st["t"] and st["r"] and st["m"] and not errors
+                detail = ("明天预告=%s 昨天接续=%s 小档案=%s"
+                          % (st["t"], st["r"], st["m"]))
+                # R2344：明天预告可点——点了跳黄历页翻明天（R59-gap1）
+                if st["t"]:
+                    # goto_view 点 func-card——home 没有对应卡，走
+                    # showView 直达
+                    page.evaluate("showView('home')")
+                    page.wait_for_timeout(600)
+                    # 日签封面没拆时兄弟节点 inert（500ms 后才摘）——
+                    # JS 直接触发开封，等 cover 从 DOM 移除再点预告
+                    page.evaluate(
+                        "var c=document.getElementById('dailyCover');"
+                        "if(c)c.click()")
+                    try:
+                        page.wait_for_selector(
+                            '#dailyCover', state='detached', timeout=2500)
+                    except Exception:
+                        pass
+                    # goto_view(home) 会重跑 loadDaily——等预告重新
+                    # 出字（hidden 摘除）再点
+                    page.wait_for_selector(
+                        '#dailyTomorrow:not([hidden])', timeout=8000)
+                    # 封面 inert 摘除时序在批量跑下不稳——dispatchEvent
+                    # 走真实 handler 路径，跳过分层命中判定
+                    page.dispatch_event('#dailyTomorrow', 'click')
+                    page.wait_for_timeout(1200)
+                    _hv = page.evaluate(
+                        "document.getElementById('view-huangli')"
+                        ".classList.contains('active')")
+                    _hd = page.evaluate(
+                        "var e=document.querySelector('#hlResult .hl-head div');"
+                        "e?e.textContent.trim():''")
+                    ok = ok and _hv and _hd.startswith(
+                        (datetime.date.today()
+                         + datetime.timedelta(days=1)).isoformat())
+                    detail += f" 预告点击→黄历={_hv} 明日卡={_hd[:10]!r}"
+                    # home 无 func-card 直达——showView 收尾回首页
+                    page.evaluate("showView('home')")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:daily_retention_hooks",
+                            "ok": ok, "detail": detail})
+
+            # ── R230d（R16 审计新增件钉扎）：
+            #   a) 黄历结果卡须挂「聊聊这件事」（hlResult 无 .card 宿主，
+            #      paint 自动挂不上——P2-6 手动注入，回归只查存在性）；
+            #   b) 塔罗结果须挂 #shareTarot（btn:tarot 已跑，DOM 还在）；
+            #   c) 星座页 doXingzuo(true) 后须挂 #shareXingzuo（P2-2）。
+            errors.clear()
+            try:
+                # R230j：chatEntry 钮的 id 已摘（多容器共存=重复 id），
+                # 钉扎改按 .chat-entry 类。
+                hl_chat = page.evaluate(
+                    "() => !!document.querySelector('#hlResult .chat-entry')")
+                tr_share = page.evaluate(
+                    "() => !!document.querySelector('#trResult #shareTarot')")
+                goto_view("xingzuo")
+                page.evaluate("doXingzuo(true)")
+                page.wait_for_selector("#xzResult .xz-result", timeout=8000)
+                xz_share = page.evaluate(
+                    "() => !!document.querySelector('#xzResult #shareXingzuo')")
+                ok = hl_chat and tr_share and xz_share and not errors
+                detail = (f"hl chatEntry={hl_chat} tarot share={tr_share} "
+                          f"xingzuo share={xz_share}")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:r16.fixtures",
+                            "ok": ok, "detail": detail})
+
+            # ── R229c：排盘历史「复看」链路回归钉扎——R5 审计 P0 抓到
+            # `_rmBehavior` 嵌套在 closePosterModal 体内，复看点击必抛
+            # ReferenceError（toast 假错 + scrollIntoView 从未发生）。此类
+            # 浏览器侧运行错误此前无任何闸门盯着：用例走真人路径——btn:bazi
+            # 已写 history.db（D-039），进历史视图点第一条「复看」，断言
+            # #historyDetail 渲染可见且零 console/pageerror。
+            errors.clear()
+            try:
+                goto_view("history")
+                page.wait_for_selector("#historyList .ph-item .ph-open",
+                                       timeout=8000)
+                page.click("#historyList .ph-item .ph-open")
+                page.wait_for_timeout(1200)
+                detail_vis = page.evaluate(
+                    "() => { const d = document.getElementById('historyDetail');"
+                    " return d && !d.hidden && d.textContent.trim().length > 10; }")
+                rel_errs = [e for e in errors
+                            if "_rmBehavior" in e or "ReferenceError" in e]
+                ok = bool(detail_vis) and not rel_errs
+                detail = (f"historyDetail 可见={detail_vis}，"
+                          f"复看路径错误={len(rel_errs)}"
+                          + (": " + "; ".join(rel_errs[:2]) if rel_errs else ""))
+                # R231d（R37-F16）：复看卡顶应有一个真分享钮——点开
+                # posterModal 且动作行带「复制链接」。
+                if ok:
+                    try:
+                        share_vis = page.evaluate(
+                            "() => { const b = document.querySelector("
+                            "'#historyDetail #phShareBtn');"
+                            " return !!(b && b.offsetParent !== null); }")
+                        if share_vis:
+                            page.click("#historyDetail #phShareBtn")
+                            page.wait_for_selector(
+                                "#posterModal #posterCopyLink", timeout=8000)
+                            ok, share_msg = True, "复看分享钮→浮层+复制链接 OK"
+                            page.click("#posterModal .poster-modal-close")
+                        else:
+                            ok, share_msg = False, "phShareBtn 不可见"
+                    except Exception as exc:
+                        ok, share_msg = False, f"分享链异常: {exc}"
+                    detail += f"；{share_msg}"
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "btn:history.replay",
+                            "ok": ok, "detail": detail})
+
+            # ── R230k（R23-P2-2）：排盘历史启用态「删除」此前在所有闸门里
+            # 零断言——selftest 强制 DISABLE 只测 404，contract 只清台账不
+            # 走 API。真人路径：btn:bazi 已写 paipan_history → 历史视图
+            # 第一段行数 → 点「删除」（两段式，首点武装再点真删）→ 行数-1。
+            errors.clear()
+            try:
+                goto_view("history")
+                page.wait_for_selector("#historyList .ph-item .ph-del",
+                                       timeout=8000)
+                # 列表有 limit=50 渲染帽——总行>50 时删一行行数不变
+                # （下一行顶上），断言锚在被删行的 data-id 消失。
+                first_id = page.evaluate(
+                    "() => document.querySelector('#historyList .ph-item')"
+                    ".getAttribute('data-id')")
+                before_n = page.evaluate(
+                    "() => document.querySelectorAll('#historyList .ph-item').length")
+                page.click("#historyList .ph-item .ph-del")       # 武装
+                page.wait_for_timeout(300)
+                page.click("#historyList .ph-item .ph-del")       # 真删
+                page.wait_for_function(
+                    "rid => !document.querySelector("
+                    "'#historyList .ph-item[data-id=\"' + rid + '\"]')",
+                    arg=first_id, timeout=8000)
+                after_n = page.evaluate(
+                    "() => document.querySelectorAll('#historyList .ph-item').length")
+                gone = page.evaluate(
+                    "(rid) => !document.querySelector("
+                    "'#historyList .ph-item[data-id=\"' + rid + '\"]')",
+                    first_id)
+                ok = bool(gone) and not errors
+                detail = (f"data-id={first_id} 真删后消失={gone} "
+                          f"行数 {before_n}->{after_n}（两段式走 API）")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:history.delete",
+                            "ok": ok, "detail": detail})
+
+            # ── R229c：打卡 chips 可读性钉扎——R5 审计 P1：`.checkin-opt`
+            # 只盖 background 不盖 color，继承全局 button{color:#fff} =
+            # 白字白底四个选项全空白。computed style 断言非白字（picked 态
+            # 是白字渐变底，只查未选中项）。
+            try:
+                chk = page.evaluate(
+                    "() => { const o = document.querySelector("
+                    "'.checkin-opt:not(.picked)'); if (!o) return null;"
+                    " const c = getComputedStyle(o);"
+                    " return {color: c.color, bg: c.backgroundColor}; }")
+                ok = bool(chk) and chk["color"] != "rgb(255, 255, 255)"
+                detail = (f"未选中 chip 文字色={chk['color']} 底色={chk['bg']}"
+                          if chk else "未找到 .checkin-opt")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "css:checkin-opt.readable",
+                            "ok": ok, "detail": detail})
+
+                        # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
             # 割裂，面板已删；后端 /api/external/news 零改动）。原两层判据
-            # （btn:news.refresh.endpoint / env:news.content_reachable）改为
+            # （news.panel_removed / news.retired_marker）改为
             # 反向钉扎：DOM 确认面板不存在。用例名保留不删（只增不减口径）。
             errors.clear()
             goto_view("bazi")
             gone = page.evaluate(
                 "() => !document.getElementById('newsRefresh')"
                 " && !document.getElementById('newsList')")
-            results.append({"name": "btn:news.refresh.endpoint", "ok": gone,
+            results.append({"name": "news.panel_removed", "ok": gone,
                             "detail": ("R208b 面板已移除（反向钉扎）" if gone
                                        else "检测到 news 元素残留")})
-            results.append({"name": "env:news.content_reachable", "ok": True,
+            results.append({"name": "news.retired_marker", "ok": True,
                             "detail": "R208b 随面板一并退役"})
+
+            # ── R229n（R6-#3）：422 pydantic 英文原文上屏钉扎——JS 直设
+            # #question 超 maxlength（绕过属性），提交后 toast 必须是
+            # _humanize422 的中文（"问题最多 200 字"），不能漏
+            # 'Input should…'/'String should…' 之类 pydantic 原文。
+            errors.clear()
+            goto_view("bazi")
+            try:
+                page.evaluate(
+                    "() => {"
+                    " const m = {year:'1990',month:'5',day:'15'};"
+                    " for (const k in m) { const e = document.getElementById(k);"
+                    "  if (e) e.value = m[k]; }"
+                    " const q = document.getElementById('question');"
+                    " if (q) q.value = '啊'.repeat(300); }")
+                page.click("#submit")
+                page.wait_for_selector(".toast-item", timeout=8000)
+                tmsg = page.inner_text(".toast-item .toast-msg") or ""
+                en_leak = any(s in tmsg for s in (
+                    "Input should", "String should", "should be",
+                    "characters", "items", "type", "value_error"))
+                ok = bool(tmsg.strip()) and not en_leak
+                detail = f"toast={tmsg!r}"
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            results.append({"name": "ui:err422.humanized",
+                            "ok": ok, "detail": detail})
 
             # ── AI 润色区块两用例（R132a，specs/006 T2.3）──────────────
             # mock LLM 已注入被测服务。D-145a：只断行为（区块出现、标注常显、
@@ -735,6 +1628,58 @@ def main() -> int:
                 "detail": ("brand-title/h2 首选字体=ZCOOL KuaiLe 且 fonts.check=true"
                            if zc_ok else f"快乐体未上屏：{zc}"),
             })
+
+            # R230n：?view= 深链——白名单内的视图应直接激活并隐去首页主体
+            dl = ctx.new_page()
+            dl.goto(f"http://127.0.0.1:{port}/?view=huangli")
+            try:
+                dl.wait_for_selector("#view-huangli.active", timeout=5000)
+                hm_hidden = dl.evaluate(
+                    "() => document.getElementById('homeMain').hidden")
+                results.append({
+                    "name": "deep.view_link",
+                    "ok": bool(hm_hidden),
+                    "detail": "?view=huangli → 视图激活且首页主体隐藏",
+                })
+            except Exception as _e:
+                results.append({"name": "deep.view_link", "ok": False,
+                                "detail": f"深链未激活：{_e}"})
+            # 越名单值应回首页不报错
+            dl.goto(f"http://127.0.0.1:{port}/?view=nonexist")
+            dl.wait_for_timeout(400)
+            still_home = dl.evaluate(
+                "() => !document.getElementById('homeMain').hidden")
+            results.append({
+                "name": "deep.view_link.bogus",
+                "ok": bool(still_home),
+                "detail": "?view=nonexist → 静默回首页",
+            })
+            # R230n续：路径式深链 /huangli —— SPA 兜底回 index 后按 pathname 激活
+            dl.goto(f"http://127.0.0.1:{port}/huangli")
+            try:
+                dl.wait_for_selector("#view-huangli.active", timeout=5000)
+                results.append({"name": "deep.path_link", "ok": True,
+                                "detail": "/huangli 路径式深链激活"})
+            except Exception as _e:
+                results.append({"name": "deep.path_link", "ok": False,
+                                "detail": f"路径式深链未激活：{_e}"})
+            # R230q（R28-P2-3）：站内导航推 ?view=——F5 刷新回跳同视图。
+            dl.goto(f"http://127.0.0.1:{port}/")
+            try:
+                dl.click('.func-card[data-view="bazi"]')
+                dl.wait_for_selector("#view-bazi.active", timeout=5000)
+                _q = dl.evaluate("() => location.search")
+                dl.reload()
+                dl.wait_for_selector("#view-bazi.active", timeout=5000)
+                results.append({
+                    "name": "deep.pushstate_reload",
+                    "ok": "view=bazi" in _q,
+                    "detail": f"点入口卡后地址栏 {_q}；刷新回 view-bazi",
+                })
+            except Exception as _e:
+                results.append({"name": "deep.pushstate_reload", "ok": False,
+                                "detail": f"?view= 写址/刷新恢复失败：{_e}"})
+            dl.close()
             ctx.close()
             browser.close()
     finally:
@@ -754,6 +1699,36 @@ def main() -> int:
         for rec in history_db.list_records(200)[:n_extra]:
             if history_db.delete_record(rec["id"]):
                 cleaned.append(f"history#{rec['id']}")
+    # R230k（R23-P3-5）：paipan_history 增量回收（对齐 contract 清理段）
+    _ph_leftover = 0
+    try:
+        if not _ph_db.disabled():
+            # 按 id 水位清本论新建行——wipe 清空后 total−baseline 为负
+            # 数不出本论写入，id>基线水位才是真相（id 单调增）。
+            # list_records 有 ≤100 的 cap——直连库全量扫水位。
+            import sqlite3 as _sq
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _new_ids = [r[0] for r in _pc.execute(
+                    "SELECT id FROM records WHERE id>?", (_ph_max_id0,))]
+            for _rid in _new_ids:
+                if _ph_db.delete_record(_rid):
+                    cleaned.append(f"paipan_history#{_rid}")
+            # 被 kill 的上轮可能留下「探针导入」残留（id 可能低于水位
+            # 扫不到）——按名扫全表兜底清。
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _ids = [r[0] for r in _pc.execute(
+                    "SELECT id FROM records WHERE name='探针导入'")]
+            for _rid in _ids:
+                if _ph_db.delete_record(_rid):
+                    cleaned.append(f"paipan_history#残留{_rid}")
+            # 计闸：本论水位以上不得剩行（wipe 删的旧行是测试语义本身，
+            # 不算残留）。
+            with _sq.connect(_ph_db.DB_PATH) as _pc:
+                _ph_leftover = _pc.execute(
+                    "SELECT COUNT(*) FROM records WHERE id>?",
+                    (_ph_max_id0,)).fetchone()[0]
+    except Exception as _exc:                    # noqa: BLE001
+        cleaned.append(f"\u26a0 paipan_history 清理未完成：{_exc}")
     with kb_mod.KnowledgeBase(kb_path) as kb:
         rows = kb.db.execute("SELECT id, claim FROM derived WHERE id > ?",
                              (derived_baseline,)).fetchall()
@@ -765,6 +1740,11 @@ def main() -> int:
             kb.db.execute("DELETE FROM evidence WHERE derived_id=?", (row["id"],))
             kb.db.execute("DELETE FROM derived WHERE id=?", (row["id"],))
             cleaned.append(f"derived#{row['id']}")
+        for trow in kb.db.execute("SELECT id FROM thread WHERE id > ?",
+                                  (thread_baseline,)).fetchall():
+            kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
+            kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
+            cleaned.append(f"thread#{trow['id']}")
         kb.db.commit()
     hist_after = history_db.count()
 
@@ -776,11 +1756,13 @@ def main() -> int:
     for r in results:
         print(f"  [{'PASS' if r['ok'] else 'FAIL'}] {r['name']}: {r['detail']}")
     print(f"\n清理: {', '.join(cleaned) or '无'}；"
-          f"history 行数 {hist_baseline} -> {hist_after}")
+          f"history 行数 {hist_baseline} -> {hist_after}；"
+          f"paipan_history 水位以上残留 {_ph_leftover}")
     print(f"截图/服务日志: {LOGDIR}")
-    if hist_after != hist_baseline:
-        print(f"probe_ui_smoke FAIL: history.db 未清理干净 "
-              f"({hist_baseline} -> {hist_after})")
+    if hist_after != hist_baseline or _ph_leftover:
+        print(f"probe_ui_smoke FAIL: 台账未清理干净 "
+              f"(history {hist_baseline} -> {hist_after}, "
+              f"paipan 水位 {_ph_max_id0} 以上剩 {_ph_leftover} 行)")
         return 1
     if failed:
         print(f"probe_ui_smoke FAIL: {len(failed)} 个用例失败 "

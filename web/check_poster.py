@@ -150,19 +150,30 @@ def _realpath_check(self_check: bool = False) -> int:
         from playwright.sync_api import sync_playwright
 
         # 各 view 提交参数（基于 check_poster.py PAYLOAD 复用性别/问题）
+        # R230r（R29-#15）：VIEWS 从 3/9 补齐全 9 视图——liuyao/qiming/tarot/
+        # daily/xingzuo/huangli 六个分享钮此前零真链路回归覆盖，畸形字段崩链
+        # （R29-#1）就藏在这六个 case 里。元组 = (view, method, url, body)。
         VIEWS = [
-            ("bazi", "#submit", "shareBazi",
+            ("bazi", "POST", "/api/bazi",
              {"year": 1998, "month": 7, "day": 20, "hour": 14,
               "gender": "女", "question": "感情运怎么样？", "ask_date": "2026-08-20"}),
-            ("taohua", "#thSubmit", "shareTaohua",
+            ("taohua", "POST", "/api/taohua",
              {"year": 1998, "month": 7, "day": 20, "hour": 14,
               "gender": "女", "question": "我的桃花什么时候来？", "ask_date": "2026-08-20"}),
-            ("hehun", "#hhSubmit", "shareHehun",
-             # 合婚需两组八字，HehunRequest 字段是 a_year/b_year
+            ("hehun", "POST", "/api/hehun",
              {"a_year": 1998, "a_month": 7, "a_day": 20, "a_hour": 14,
               "a_gender": "女",
               "b_year": 1996, "b_month": 3, "b_day": 20, "b_hour": 10,
               "b_gender": "男"}),
+            ("liuyao", "POST", "/api/liuyao",
+             {"method": "coins", "seed": 42, "question": "事业怎么样"}),
+            ("qiming", "POST", "/api/qiming",
+             {"surname": "李", "year": 1990, "month": 1, "day": 1,
+              "hour": 12, "gender": "男", "top_n": 5}),
+            ("tarot", "POST", "/api/tarot", {"seed": 42, "n": 3}),
+            ("daily", "GET", "/api/daily", None),
+            ("xingzuo", "GET", "/api/xingzuo?date=2026-08-20", None),
+            ("huangli", "GET", "/api/huangli?date=2026-08-20&days=1", None),
         ]
 
         results: list[dict] = []
@@ -204,43 +215,24 @@ def _realpath_check(self_check: bool = False) -> int:
             page.goto(f"http://127.0.0.1:{RP_PORT}/", wait_until="load")
             page.wait_for_timeout(1500)
 
-            for view, submit_sel, share_id, payload in VIEWS:
+            for view, method, url, body in VIEWS:
                 rec = {"view": view}
                 try:
-                    # 切到该 view：data-view 在首页/侧栏/抽卡快捷入口等位置
-                    # 共有 3 个 func-card，Playwright .first 会被侧栏小图标
-                    # 拦截导致 click timeout。改走前端 showView() 内部 API，
-                    # 稳定不受 DOM 层级影响；侧栏点「展开」后才能看到
-                    # taohua/hehun 的 share 按钮，downloadPoster 直接调
-                    # 其实不需要切视图，但仍调 showView 走完整链路。
+                    # 切到该 view：走前端 showView() 内部 API，稳定不受 DOM
+                    # 层级影响（func-card 选择器在侧栏有重名）。
                     page.evaluate(f"showView('{view}')")
-                    page.wait_for_selector(
-                        f'#view-{view}.active', timeout=5000)
+                    try:
+                        page.wait_for_selector(
+                            f'#view-{view}.active', timeout=3000)
+                    except Exception:
+                        pass   # daily/xingzuo 等非视图 id 不挡路——只要 fetch+海报链
                     page.wait_for_timeout(400)
-                    # 填表（focus 第一个 input 后用 keyboard.fill 模拟）
-                    page.fill(f"#view-{view}.active input[type='number']:nth-of-type(1)",
-                              str(payload.get("year") or payload.get("a_year")))
-                    # 简化：让后端用默认值（避免 selector 失配），仅必要字段
-                    # 直接调 fetch 走 /api/{view} 端点拿响应，然后用 DOM 注
-                    # 入 LAST_RESPONSE（最稳的「不依赖 UI 细节」做法）。
-                    if view == "bazi":
-                        api = page.evaluate(
-                            "(p) => fetch('/api/bazi', {method:'POST', "
-                            "headers:{'Content-Type':'application/json'}, "
-                            "body: JSON.stringify(p)}).then(r => r.json())",
-                            payload)
-                    elif view == "taohua":
-                        api = page.evaluate(
-                            "(p) => fetch('/api/taohua', {method:'POST', "
-                            "headers:{'Content-Type':'application/json'}, "
-                            "body: JSON.stringify(p)}).then(r => r.json())",
-                            payload)
-                    else:  # hehun
-                        api = page.evaluate(
-                            "(p) => fetch('/api/hehun', {method:'POST', "
-                            "headers:{'Content-Type':'application/json'}, "
-                            "body: JSON.stringify(p)}).then(r => r.json())",
-                            payload)
+                    # 直接调 fetch 拿端点响应（最稳，不依赖表单细节）
+                    api = page.evaluate(
+                        "(a) => fetch(a.url, a.method === 'POST' ? "
+                        "{method:'POST', headers:{'Content-Type':'application/json'}, "
+                        "body: JSON.stringify(a.body)} : {}).then(r => r.json())",
+                        {"method": method, "url": url, "body": body})
                     rec["api_ok"] = bool(api and isinstance(api, dict))
                     # 把 api 响应塞到 LAST_RESPONSE（downloadPoster 入口用）
                     page.evaluate("(j) => { window.LAST_RESPONSE = j; }", api)
@@ -248,10 +240,12 @@ def _realpath_check(self_check: bool = False) -> int:
                     # window.LAST_RESPONSE，而是参数 j 来自 on('shareBazi', ...)
                     # 闭包变量。所以这里我们**直接触发 share 按钮的回调**——
                     # 通过 page.evaluate 调用 downloadPoster(api, view)。
+                    # R230r：downloadPoster 已是 async（等背景图加载）——
+                    # 同步 try/catch 抓不到异步拒收，改 catch 挂 promise。
                     eval_err = page.evaluate(
-                        "(args) => { try { downloadPoster(args.j, args.view); "
-                        "  return null; "
-                        "} catch (e) { return e.message + ' || ' + e.stack; } }",
+                        "(args) => Promise.resolve(downloadPoster(args.j, args.view))"
+                        "  .then(() => null)"
+                        "  .catch(e => e.message + ' || ' + e.stack)",
                         {"j": api, "view": view})
                     if eval_err:
                         rec["err"] = eval_err[:400]
@@ -318,9 +312,9 @@ def _realpath_check(self_check: bool = False) -> int:
         r.get("modal_ok") and r.get("png_bytes", 0) > MIN_BYTES and not r.get("err")
         for r in results)
     if not ok14:
-        print("判据 14 FAIL：3 视图任一未弹 modal / PNG < 40KB / 有 pageerror")
+        print("判据 14 FAIL：9 视图任一未弹 modal / PNG < 40KB / 有 pageerror")
         return 1
-    print("判据 14 PASS：3 视图真实点 share 按钮均 0 pageerror，PNG > 40KB")
+    print("判据 14 PASS：9 视图真实点 share 按钮均 0 pageerror，PNG > 40KB")
     return 0
 
 
@@ -371,12 +365,20 @@ def main(self_check: bool = False) -> int:
                     return orig.call(this, t, ...a);
                 };
             }""")
-            res = page.evaluate("(j) => { const __t0 = performance.now();"
-                               " const __r = drawPoster(j, {auto:false});"
-                               " const __dt = performance.now() - __t0;"
+            res = page.evaluate("(j) => {"
+                               " let __r = null; let __min = 1e9;"
+                               # R230a-45：CI 共享机时序抖动实测 55ms（本地 13ms），
+                               # 50ms 阈值在噪声下会假阳——取 3 次最小值滤调度
+                               # 抖动，真回归（≥2x）仍必然触发。
+                               " for (let __k = 0; __k < 3; __k++) {"
+                               "   const __t0 = performance.now();"
+                               "   __r = drawPoster(j, {auto:false});"
+                               "   const __dt = performance.now() - __t0;"
+                               "   if (__dt < __min) __min = __dt;"
+                               " }"
                                " if (!__r || !__r.canvas) return null; "
                                " const cv = __r.canvas;"
-                               " return {w: cv.width, h: cv.height, ms: __dt, "
+                               " return {w: cv.width, h: cv.height, ms: __min, "
                                "url: cv.toDataURL('image/png'), "
                                "texts: window.__texts}; }", api)
             # R193b（T3.3 后半）：外壳 auto 模式与强制低配直绘的尺寸契约。

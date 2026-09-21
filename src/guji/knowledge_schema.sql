@@ -89,6 +89,10 @@ CREATE INDEX IF NOT EXISTS idx_turn_thread ON turn(thread_id, seq);
 -- searching derived text are different operations against different indexes. corpus.db's
 -- unit_fts contains no derived text and this one contains no source text; probe_g8_isolation
 -- asserts both directions.
+-- contentless 表（R230a-37 / R14-P3-3）：若将来给 derived 加删除路径，
+-- 不能 DELETE FROM derived_fts WHERE rowid=?——要用
+-- INSERT INTO derived_fts(derived_fts, rowid, seg) VALUES('delete', ?, ?)，
+-- 且必须重放原 seg（contentless 表行不可读回）。
 CREATE VIRTUAL TABLE IF NOT EXISTS derived_fts USING fts5(seg, content='');
 
 CREATE TABLE IF NOT EXISTS kb_meta (
@@ -127,3 +131,8 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type);
+
+-- R230i（R21-P2-1）：(type, ref_id) 唯一约束——SELECT-then-INSERT 非
+-- 原子，跨实例并发实测落重复行。老库已含重复行时此索引建不成，
+-- _ensure 降级路径吞掉（业务层 SELECT 预检仍挡住绝大多数重复）。
+CREATE UNIQUE INDEX IF NOT EXISTS ux_favorites_type_ref ON favorites(type, ref_id);

@@ -36,7 +36,7 @@ C:\Users\Lenovo\.atomcode\sessions\025973b91a55cfb5\<sessionId>.jsonl  # 旧窗�
 **下列三类不要自主执行。但注意处置方式是「跳过并记录」，不是「停下等人」：**
 
 1. **破坏性且不可逆的操作** —— 删除 `data/raw/` 或 `data/external/` 下的原始语料、
-   `git push`、重写历史。（重建 `data/index/corpus.db` **不属于**此类，它 5 秒可重建，随便重建。
+   `git push`、重写历史。（重建 `data/index/corpus.db` **不属于**此类，它十几秒可重建（62,109 单元实测 ~14.5s），随便重建。
    **R99b 标注**：`git push` 到 main 已授权——历次窗口记录用户授权，见
    `GOAL_NEXT_SESSION.md` §4 已授权段；重写历史仍红线。）
 2. **为了让数字变好而放宽任何验收闸门** —— 见 §3，本项目红线。
@@ -134,7 +134,7 @@ data/index/corpus.db   （build_index.py 会删掉重建）
 ```powershell
 cd C:\Users\Lenovo\Desktop\projects\books
 .\.venv\Scripts\python.exe scripts\check_quality.py       # 先跑：产出 quality_report.json（X-11 suspect 列；R90b 修正顺序）
-.\.venv\Scripts\python.exe scripts\build_index.py         # 重建（约 5 秒）
+.\.venv\Scripts\python.exe scripts\build_index.py         # 重建（约十几秒，62,109 单元实测 ~14.5s）
 .\.venv\Scripts\python.exe scripts\verify_index.py        # T1–T11 共 23 断言，须 ALL PASS
 .\.venv\Scripts\python.exe scripts\validate_alignment.py  # 对齐，须 >= 1824/1872
 .\.venv\Scripts\python.exe probes\probe_conservation.py   # 守恒，须 delta 0 / ratio 1.0000
@@ -207,7 +207,7 @@ Retrieval / Citation / Groundedness / Version-awareness 四类。每题必须有
 ### T4 京氏易傳 / 焦氏易林 编址（可行，但**不要照我最初的说法做**）
 
 **这一节本身是 §2 的活教材。** 我最初在本文里写下三个数字，其中两个是**没测就写的**，
-自查后全部推翻（复验：`probes/probe_verify_my_claims.py`）：
+自查后全部推翻（复验：`probes/archive/probe_verify_my_claims.py`）：
 
 | 我最初写的 | 实测 |
 |---|---|
@@ -365,8 +365,8 @@ G 判据   PASS 3（G2 定位 / G3 版本 / G6 引用） · PART 1（G5） · FA
 |---|---|
 | `MASTER_PLAN.md` | 目标、范围、架构、地址体系模型、实施顺序 |
 | `TASK_LEDGER.md` | **任务状态 + 复验命令 + REJECTED 清单** |
-| `DECISIONS.md` | 每条技术决策及其实测依据（D-001…D-018） |
-| `LESSONS.md` | 可迁移的工程教训（L-01…L-16） |
+| `DECISIONS.md` | 每条技术决策及其实测依据（D-001 起持续追加，编号见文件末条） |
+| `LESSONS.md` | 可迁移的工程教训（L-01 起持续追加，编号见文件末条） |
 | `PROJECT_STATUS.md` | 当轮实测快照 |
 | `BOOK_AI_ARCHITECTURE.md` | **仅** G1–G9 判据的定义（其余已过时，文首有说明） |
 

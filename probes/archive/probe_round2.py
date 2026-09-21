@@ -4,13 +4,11 @@ Round 1 told us WHICH books carry a scheme. This measures whether the scheme is
 dense enough to align on, and whether PG52692 really is the Greek Iliad (its
 gutendex language is 'la', which would be a problem for a cross-lingual test).
 """
-import io
 import json
 import os
 import re
 import sys
 import urllib.request
-import zipfile
 
 PROXY = "http://127.0.0.1:7897"
 opener = urllib.request.build_opener(

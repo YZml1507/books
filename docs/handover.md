@@ -3,11 +3,11 @@
 更新：2026-08-28（v2 奶油玄学改版）。本文档面向"接手跑起来"的新人，覆盖启动、配置、目录、排障。
 
 ## 0. v2 改版速览（2026-08-28 下午）
-- **风格**：水墨命理 → 奶油玄学（奶油白 #FFF8E7 + 香芋紫 #D4B5FF + 蜜桃粉/雾霾蓝/薄荷绿马卡龙分色），依据小红书风格模型三问结论 + 联网调研（`.cluster/research/qa_log.md`）。
+- **风格**：水墨命理 → 奶油玄学（奶油白 #FFF8E7 + 香芋紫 #D4B5FF + 蜜桃粉/雾霾蓝/薄荷绿马卡龙分色），依据小红书风格模型三问结论 + 联网调研（~~`.cluster/research/qa_log.md`~~ 该目录已删，R85-P1-7）。
 - **星座页**：♈ emoji 网格 → 12 张 Q 版手绘星座卡（web/static/cream/zodiac-*.jpg）；新增「查我的本命盘」（生日→太阳星座性格+四柱+五行+小满解读）；年份范围 1900-2100（原只有今年±1）。
 - **起名**：评分重写为可解释口径（五行补缺 0/16/30 + 典籍 +5/8 + 寓意 +5/9 + 音形 ± + 气质契合 +2~9），每名下显示明细 chip；修复了清一色 80 分（实测一组 8 名 87→80 全不同分）。
 - **聊天**：「聊聊这件事」消息补上性别（「我是女生，」+ facts 首条「性别：女」，Playwright 抓包实测）。
-- 资产归档：web/static/cream/（21 张，manifest.json 清单）；旧水墨资产保留在 web/static/ink/ 未删，可随时切回。
+- 资产归档：web/static/cream/（21 张，manifest.json 清单）。~~旧水墨资产保留在 web/static/ink/ 未删，可随时切回~~（R2349s/R85-P1-7 复核：ink 目录已随静态瘦身删除，回退路径已断——水墨原稿只剩云端存档，勿按此条操作）。
 
 ## 1. 启动项目
 
@@ -41,7 +41,7 @@ cd C:\Users\Lenovo\Desktop\projects\books
 - 更换 key：直接改这个文件，重启服务生效（无热加载）。
 - 环境变量覆盖：`BOOKS_LLM_API_KEY` / `BOOKS_LLM_BASE_URL`；`BOOKS_LLM_DISABLE=1` 强制关闭全部 AI。
 - key 失效表现：聊天发消息后一直"思考中"或入口消失（前端按 additive 语义降级，不影响排盘）。
-- **文生图 key**（生成图标/图片用，与聊天同一家 Agnes）：脚本 `.cluster\gen_assets.py` 顶部 `KEY` 常量；改 key 后可重跑 `.\.venv\Scripts\python.exe .cluster\gen_assets.py --only all` 重新生成全套资产。
+- **文生图 key**（生成图标/图片用，与聊天同一家 Agnes）：~~脚本 `.cluster\gen_assets.py`~~（R2349s/R85-P1-7：`.cluster/` 整目录已删，此节作废——资产生成现走 Agnes images API 脚本，见 README）。
 - 排盘/桃花/合婚/黄历等核心功能 **不依赖任何 key**，断网也可用。
 
 ## 3. 目录结构（改版后）
@@ -62,8 +62,8 @@ books\
 │     ├─ index.html         单页前端（全部视图）
 │     ├─ styles.css         主题令牌+全部样式（水墨命理色板在 :root）
 │     ├─ app.js             前端逻辑（renderBazi 排盘渲染、历史 UI 在此）
-│     ├─ sw.js              离线缓存（改静态资源后必须 bump CACHE_NAME）
-│     ├─ ink\               水墨资产包（v1 改版产物，已不再引用，保留可回退）
+│     ├─ sw.js              离线缓存（改静态资源后必须 bump——变量名是 CACHE，跑 `scripts/bump_sw.py` 哈希派生）
+│     ├─ ~~ink\~~          （已删——R85-P1-7：v1 水墨资产不再随仓库分发）
 │     ├─ cream\             ★ 奶油玄学资产包 v2（12 星座卡+8 功能图标+hero；
 │     │                       manifest.json 清单；*-full.png 为原图）
 │     ├─ tarot\             塔罗牌图 78 张（本地化，勿动）

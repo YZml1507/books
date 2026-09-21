@@ -20,7 +20,6 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-import guji.anchors as anchors  # noqa: E402
 from guji import clean, gua_spans, yao_names  # noqa: E402
 from guji.anchors import HEX_RE, gua_number  # noqa: E402
 from guji.variants import FOLD  # noqa: E402

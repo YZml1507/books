@@ -66,14 +66,13 @@ def retag_symbols(raw, sym2lines):
 def locate(seg_raw, expected, view, repair):
     """Ordered 爻位 search, plus the tight one-substitution repair."""
     text = view.text
-    found, cursor, prev = {}, 0, None
+    found, cursor = {}, 0
     for label in expected:
         at = text.find(label, cursor)
         if at == -1:
             continue
         found[label] = at
         cursor = at + len(label)
-        prev = label
     fired = None
     if repair and len(found) < len(expected):
         toks = [(m.start(), m.group()) for m in LABEL_RE.finditer(text)]

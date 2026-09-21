@@ -31,9 +31,9 @@ import sqlite3
 from dataclasses import dataclass
 
 from . import booksec, douay, euclid, play, yilin
-from .anchors import HEX_RE, classify_offchain, clean, extract_yao, gua_number, gua_spans, yao_names
+from .anchors import classify_offchain, clean, extract_yao, gua_number, gua_spans, yao_names
 from .variants import fold, segment_cjk
-from .zhouyi import derive_gold, derive_polarity, work_body
+from .zhouyi import derive_polarity, work_body
 
 PB_RE = re.compile(r"<pb:([^>]+)>")
 NOTE_RE = re.compile(r"[（(]([^（()）]*)[）)]")
@@ -115,11 +115,20 @@ def load_work(raw_dir: str, work: str) -> tuple[str, list[tuple[int, str]]]:
     parts: list[str] = []
     bounds: list[tuple[int, str]] = []
     at = 0
-    for path in sorted(glob.glob(os.path.join(raw_dir, work, "*.txt"))):
+    # R230c（R17-P0-1）：work 名原样进 glob 会把 `br[ac]ket` 解释成字符类——
+    # 内容张冠李戴进错索引。escape 后按字面匹配；命中目录的 fake.txt 跳过。
+    skipped: list[str] = []
+    for path in sorted(glob.glob(os.path.join(raw_dir, glob.escape(work),
+                                              "*.txt"))):
+        if not os.path.isfile(path):
+            skipped.append(os.path.basename(path) + "(是目录)")
+            continue
         body = re.sub(r"^#.*$", "", _read(path), flags=re.M)
         bounds.append((at, os.path.basename(path)))
         parts.append(body)
         at += len(body)
+    for p in skipped:
+        print(f"  [skip] {work}/{p}")
     return "".join(parts), bounds
 
 
@@ -709,20 +718,30 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
     ext_dir: optional path to data/raw_ext/generality/ for booksec-addressed works
     (Herodotus, Darwin). If provided, those works are indexed using booksec.py.
     """
-    if os.path.exists(db_path):
-        os.remove(db_path)
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    db = sqlite3.connect(db_path)
-    here = os.path.dirname(os.path.abspath(__file__))
-    db.executescript(open(os.path.join(here, "schema.sql"), encoding="utf-8").read())
-
-    manifest = json.load(open(manifest_path, encoding="utf-8"))
+    # R230c（R17-P0-2）：输入先全量校验，再碰旧库——此前先 remove 再
+    # json.load，坏 manifest/坏 report/目录撞 *.txt 会把好库换成 schema-only
+    # 残库。现在 manifest/report 解析在前，build 落 .tmp，成功后原子换入。
+    try:
+        manifest = json.load(open(manifest_path, encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SystemExit(f"{manifest_path} 不是合法 JSON：{exc}")
     meta = {w["id"]: w for w in manifest.get("works", [])}
 
     if quality_report is None:
         quality_report = os.path.join(os.path.dirname(os.path.dirname(
             os.path.dirname(os.path.abspath(db_path)))), "catalog", "quality_report.json")
-    suspect, suspect_meta = load_suspect(quality_report)
+    try:
+        suspect, suspect_meta = load_suspect(quality_report)
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SystemExit(f"{quality_report} 不是合法 JSON：{exc}")
+
+    tmp_path = db_path + ".tmp"
+    if os.path.exists(tmp_path):
+        os.remove(tmp_path)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    db = sqlite3.connect(tmp_path)
+    here = os.path.dirname(os.path.abspath(__file__))
+    db.executescript(open(os.path.join(here, "schema.sql"), encoding="utf-8").read())
 
     # 卦 polarity and names are derived from the corpus, never hardcoded (D-006).
     zy_bodies = {w: work_body(raw_dir, w) for w in ZHOUYI_WORKS if
@@ -734,11 +753,18 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
 
     works = sorted(d for d in os.listdir(raw_dir)
                    if os.path.isdir(os.path.join(raw_dir, d)))
+    # R230c（R17-P0-1）：work 目录名带 glob 元字符/怪异字符的——escape 后
+    # 虽不再张冠李戴，但仍拒收（这类目录名多半不是有意命名）。
+    import re as _re
+    _bad_names = [w for w in works if not _re.fullmatch(r"[A-Za-z0-9_.-]+", w)]
+    if _bad_names:
+        raise SystemExit(f"work 目录名非法（限字母数字._-）：{_bad_names}")
     uid = 0
     stats = BuildStats(0, 0, 0, 0, 0)
     for w in works:
         raw, bounds = load_work(raw_dir, w)
         if not raw:
+            print(f"  [skip] {w}: 无 .txt 内容")
             continue
         m = meta.get(w, {})
         zy = ZHOUYI_WORKS.get(w)
@@ -765,7 +791,6 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
         if w == yilin.WORK_ID:
             uid, n_cells = _ingest_yilin(db, w, raw, bounds, names, uid, stats)
             stats.works += 1
-            yilin_cells = n_cells
             continue
 
         addr = AddrIndex(raw, polarity, w in ZHOUYI_WORKS)
@@ -833,6 +858,11 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                 props = euclid.parse_propositions(html)
                 for prop in props:
                     for sub_text, sub_start, sub_end, skipped in split_long_text(euclid_text, prop.start, prop.end):
+                        # R229z续24（R9-P2-4）：偏移倒挂/空串的 unit 不入库
+                        # （实测 3 行 raw_start>raw_end 且 text=''，锚点 NULL
+                        # 的孤行——被引用则不可核验）。
+                        if not sub_text or sub_start > sub_end:
+                            continue
                         uid += 1
                         db.execute(
                             "INSERT INTO unit VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -987,6 +1017,24 @@ def build(db_path: str, raw_dir: str, manifest_path: str,
                      len(txt_files), len(raw), _src, _sha, _lic, m.get("fetched_at")))
                 stats.works += 1
 
+    # R229z续24（R9-P2-4）：build_meta 在主线入库后就写，ext_dir 追加的
+    # 7 部西文作品不进 meta——works/units 与实际表内容脱节（审计实测
+    # meta=40/14914 vs 实际 47/62109）。提交前重写为最终值。
+    if ext_dir and os.path.isdir(ext_dir):
+        _meta = dict(db.execute(
+            "SELECT key, value FROM build_meta").fetchall())
+        _mainline_works = int(_meta.get("works", stats.works))
+        db.execute("UPDATE build_meta SET value=? WHERE key='works'",
+                   (str(stats.works),))
+        db.execute("UPDATE build_meta SET value=? WHERE key='units'",
+                   (str(stats.units),))
+        db.execute("INSERT OR REPLACE INTO build_meta VALUES ('ext_works', ?)",
+                   (str(stats.works - _mainline_works),))
+
     db.commit()
     db.close()
+    # R230c（R17-P0-2）：build 全程写 .tmp，成功后原子换入——任何中途
+    # 崩溃（坏 JSON 已于入口拦截，目录撞名/空 work 有 skip 日志）都不再
+    # 摧毁旧索引。
+    os.replace(tmp_path, db_path)
     return stats

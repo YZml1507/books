@@ -13,12 +13,40 @@ from __future__ import annotations
 
 from datetime import date
 
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 
 YEAR_LO, YEAR_HI = 1900, 2100
 SCOPES = ("day", "range", "life")
 CALENDARS = ("solar", "lunar")
 GENDERS = ("男", "女")
+
+# R230k（R23-P3-4）：零宽格式符（ZWSP/ZWNJ/ZWJ/BOM）不在 str.strip()
+# 的空白集合里——纯零宽串会过「非空」检查，落成空白气泡/空白排盘问句。
+# R230q（R28-P3-10）：LRM/RLM 与 bidi 覆盖符（RLO/PDF/LRI…）同属
+# 方向控制——不触发 HTML 注入但能把线程列表排版搅乱（esc() 挡不住）。
+_ZW_RE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]")
+
+
+def strip_zw(s: str | None) -> str | None:
+    if s is None:
+        return None
+    s = _ZW_RE.sub("", s).strip()
+    return s or None
+
+
+def _check_client_date(v: str | None) -> None:
+    """R230l/m：client_date（浏览器本地日）统一校验。None 放行（可选字段，
+    缺席回落服务器日——旧行为），给了就必须是界内 YYYY-MM-DD。"""
+    if v is None:
+        return
+    try:
+        _cd = date.fromisoformat(v)
+    except (ValueError, TypeError):
+        raise ValidationError("client_date 要写成 2026-01-01 这样") from None
+    if not (YEAR_LO <= _cd.year <= YEAR_HI):
+        raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
 
 
 class ValidationError(ValueError):
@@ -40,13 +68,13 @@ class NotFoundError(LookupError):
 def _check_ymdh(tag: str, year: int, month: int, day: int, hour: int) -> None:
     """合婚两侧共用的值域校验（报错文本与重构前逐字一致）。"""
     if not (YEAR_LO <= year <= YEAR_HI):
-        raise ValidationError(f"{tag} 年份须在 {YEAR_LO}-{YEAR_HI}，收到 {year}")
+        raise ValidationError(f"{tag}年份需在 {YEAR_LO}-{YEAR_HI}，收到 {year}")
     if not (1 <= month <= 12):
-        raise ValidationError(f"{tag} month 须在 1-12，收到 {month}")
+        raise ValidationError(f"{tag}月份需在 1-12，收到 {month}")
     if not (1 <= day <= 31):
-        raise ValidationError(f"{tag} day 须在 1-31，收到 {day}")
+        raise ValidationError(f"{tag}日需在 1-31，收到 {day}")
     if not (0 <= hour <= 23):
-        raise ValidationError(f"{tag} hour 须在 0-23，收到 {hour}")
+        raise ValidationError(f"{tag}时辰需在 0-23，收到 {hour}")
 
 
 class BaziRequest(BaseModel):
@@ -54,8 +82,17 @@ class BaziRequest(BaseModel):
     month: int = Field(..., description="月 1-12")
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
+    # R230f（R18-P1-1）：节气当小时内出生，整数时辰会被截到节前一侧
+    # （如立春 17:07 时 17:30 出生的盘年柱/月柱全错）。可选分钟字段——
+    # 不给按 :00 算（与旧行为一致），给了走真实时刻。
+    minute: int | None = Field(None, description="分 0-59，可选")
+    # R230a-7（R13-P1-3）：时辰留空时前端补 12 并置 False——后端拿到
+    # 标志给提示，不再静默按午时排。旧客户端不传此键 → 默认 True 兼容。
+    hour_known: bool = True
     gender: str = "男"
-    question: str | None = None
+    # R229c：自由文本上限 200（TarotRequest 同款）——否则超长串原样回显
+    # 进 warm.reply 撑破横屏（R5 审计 P1，实测 scrollWidth 3105px）。
+    question: str | None = Field(None, max_length=200)
     calendar_type: str = "solar"          # solar | lunar
     lunar_year: int | None = None
     lunar_month: int | None = None
@@ -66,7 +103,10 @@ class BaziRequest(BaseModel):
     range_end: str | None = Field(None, description="范围终点 YYYY-MM-DD")
     ask_date: str | None = Field(None, description="问事日期 YYYY-MM-DD，默认今天")
     ask_hour: int | None = Field(None, description="问事时辰 0-23，默认不比对流时")
-    location: str | None = Field(None, description="问事地点（可选，仅提示用）")
+    # R229n（R6-#8）：location 加界——此前无 max_length，任意长串会被
+    # 原样 echo 进响应与 LLM facts 链（与 question 200 字同纪律）。
+    location: str | None = Field(None, max_length=100,
+                               description="问事地点（可选，仅提示用）")
 
     def validate_ranges(self) -> None:
         """值域校验：非法输入抛 ValidationError（路由层转 400 中文报错）。
@@ -75,47 +115,51 @@ class BaziRequest(BaseModel):
         逐条断言这些消息与状态码，改动措辞即改动契约。
         """
         if self.calendar_type not in CALENDARS:
-            raise ValidationError("calendar_type 只能是 solar 或 lunar")
+            raise ValidationError("历法只能是公历或农历")
         if self.scope not in SCOPES:
-            raise ValidationError(f"scope 只能是 {'/'.join(SCOPES)}")
+            raise ValidationError(f"范围只能是 {'/'.join(SCOPES)}")
+        self.question = strip_zw(self.question)   # R230k
         if self.calendar_type == "lunar":
             if not (self.lunar_year and self.lunar_month and self.lunar_day):
-                raise ValidationError("农历输入需提供 lunar_year/month/day")
+                raise ValidationError("农历输入需提供农历年月日")
             if not (1 <= self.lunar_month <= 12):
-                raise ValidationError("lunar_month 需在 1-12")
+                raise ValidationError("农历月需在 1-12")
             if not (1 <= self.lunar_day <= 30):
-                raise ValidationError("lunar_day 需在 1-30")
+                raise ValidationError("农历日需在 1-30")
         else:
             if not (YEAR_LO <= self.year <= YEAR_HI):
                 raise ValidationError(
-                    f"year 需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
+                    f"年份需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
             if not (1 <= self.month <= 12):
-                raise ValidationError("month 需在 1-12")
+                raise ValidationError("月份需在 1-12")
             if not (1 <= self.day <= 31):
-                raise ValidationError("day 需在 1-31")
+                raise ValidationError("日需在 1-31")
         if not (0 <= self.hour <= 23):
-            raise ValidationError("hour 需在 0-23")
+            raise ValidationError("时辰需在 0-23")
+        # R230f：分钟可选但给了就必须合法
+        if self.minute is not None and not (0 <= self.minute <= 59):
+            raise ValidationError("分钟需在 0-59")
         if self.gender not in GENDERS:
-            raise ValidationError("gender 只能是 男 或 女")
+            raise ValidationError("性别只能是 男 或 女")
         if self.ask_hour is not None and not (0 <= self.ask_hour <= 23):
-            raise ValidationError("ask_hour 需在 0-23")
+            raise ValidationError("占卜时辰需在 0-23")
         if self.ask_date is not None:
             try:
                 d = date.fromisoformat(self.ask_date)
             except ValueError:
-                raise ValidationError("ask_date 需为 YYYY-MM-DD 格式") from None
+                raise ValidationError("占卜日期要写成 2026-01-01 这样") from None
             if not (YEAR_LO <= d.year <= YEAR_HI):
                 raise ValidationError(
-                    f"ask_date 年份需在 {YEAR_LO}-{YEAR_HI} 之间")
+                    f"占卜年份需在 {YEAR_LO}-{YEAR_HI} 之间")
         if self.scope == "range":
             if not (self.range_start and self.range_end):
-                raise ValidationError("scope=range 需提供 range_start 和 range_end")
+                raise ValidationError("选了「一段日子」的话，开头和结尾两天都要填哦")
             try:
                 date.fromisoformat(self.range_start)
                 date.fromisoformat(self.range_end)
             except ValueError:
                 raise ValidationError(
-                    "range_start/range_end 需为 YYYY-MM-DD 格式") from None
+                    "范围起止要写成 2026-01-01 这样") from None
 
 
 class AskRequest(BaseModel):
@@ -125,16 +169,39 @@ class AskRequest(BaseModel):
 
 
 class ThreadEvidence(BaseModel):
-    work_id: str = ""
-    file: str = ""
-    quote: str = ""
+    """R228i：work_id/file 无校验时，verify() 会 os.path.join(raw_dir, work_id)
+    后 glob *.txt 读任意目录——绝对路径与 ../ 都能穿透（实测 oracle 成立）。
+    work_id 只许语料目录名形态；file 只作展示用不碰盘，只限长度。"""
+    work_id: str = Field("", max_length=64)
+    file: str = Field("", max_length=200)
+    quote: str = Field("", max_length=2000)
     raw_start: int | None = None
     raw_end: int | None = None
-    page_anchor: str | None = None
-    scheme: str | None = None
+    page_anchor: str | None = Field(None, max_length=200)
+    scheme: str | None = Field(None, max_length=32)
     addr1: int | None = None
-    addr2: str | None = None
-    role: str = "supports"
+    addr2: str | None = Field(None, max_length=64)
+    role: str = Field("supports", max_length=32)
+
+    @field_validator("work_id")
+    @classmethod
+    def _work_id_safe(cls, v: str) -> str:
+        if not v:
+            return v                    # 空 work_id（纯文字 claim）合法
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", v):
+            raise ValidationError("work_id 只接受语料目录名（字母数字._-）")
+        if ".." in v:
+            raise ValidationError("work_id 不允许含 ..")
+        return v
+
+    @field_validator("quote")
+    @classmethod
+    def _quote_required_with_source(cls, v: str, info) -> str:
+        # R230a-32（R14-P2-4）：给了出处（work_id）却不给引文，等于声称
+        # 有凭据但不可核验——verify() 对空 quote 是恒真漏洞。
+        if info.data.get("work_id") and not v.strip():
+            raise ValidationError("给了出处就得给引文（quote 不能为空）")
+        return v
 
 
 class ThreadRecordRequest(BaseModel):
@@ -142,9 +209,35 @@ class ThreadRecordRequest(BaseModel):
     kind: str = Field(..., description="summary | diff | link | answer | refusal")
     claim: str = Field(..., min_length=1, max_length=2000)
     method: str = Field(..., min_length=1, max_length=100)
-    evidence: list[ThreadEvidence] = Field(default_factory=list)
-    confidence: str | None = None
+    # R229n（R6-#4）：evidence/confidence/topic 加界——此前无上限，单请求
+    # 可携数千条 evidence 批量写库（写放大）。与 facts ≤20×500 同纪律。
+    evidence: list[ThreadEvidence] = Field(default_factory=list,
+                                           max_length=64)
+    confidence: str | None = Field(None, max_length=50)
     thread_id: int | None = None
+    # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
+    topic: str | None = Field(None, max_length=100)
+
+    @field_validator("claim", "method", "topic", "confidence")
+    @classmethod
+    def _no_c0(cls, v: str | None) -> str | None:
+        # R230a-36（R14-P2-4 续）：C0 控制字符在写路径剥掉——读路径
+        # （fts_phrase）已剥，写路径不剥会让含 \x00 的 claim 永不可被
+        # derived_fts 检回（不对称）。
+        # R230q（R28-P3-10）：Cf 方向控制符（RLO/bidi 覆盖等）同剥——
+        # 线程题带 RLO 入库会把列表排版搅成乱序。
+        if v is None:
+            return None
+        return _ZW_RE.sub("", "".join(ch for ch in v if ord(ch) >= 0x20))
+
+    @field_validator("claim")
+    @classmethod
+    def _claim_not_blank(cls, v: str) -> str:
+        # R230r（R30-#17）：min_length=1 挡不住「   」——剥洗后空白
+        # 的 claim 会建出 topic 为空的幽灵线程。
+        if not v.strip():
+            raise ValueError("claim 不能是空白")
+        return v
 
 
 class LiuyaoRequest(BaseModel):
@@ -154,24 +247,28 @@ class LiuyaoRequest(BaseModel):
     month: int | None = None
     day: int | None = None
     hour: int | None = None
-    question: str | None = None
+    question: str | None = Field(None, max_length=200)
+    # R230m（R24-P2-3 同类）：cross_ref「今日值宫」锚浏览器本地日。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
         if self.method not in ("coins", "time"):
-            raise ValidationError(f"method 须为 coins|time，收到 {self.method}")
+            raise ValidationError("起卦方式只认摇钱或报时两种")
         if self.method != "time":
             return
         if not all(v is not None for v in (self.year, self.month,
                                            self.day, self.hour)):
-            raise ValidationError("时间起卦需 year/month/day/hour")
+            raise ValidationError("时间起卦需年份、月份、日、时辰")
         if not (YEAR_LO <= self.year <= YEAR_HI):
-            raise ValidationError(f"year 须在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
+            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
         if not (1 <= self.month <= 12):
-            raise ValidationError(f"month 须在 1-12，收到 {self.month}")
+            raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
-            raise ValidationError(f"day 须在 1-31，收到 {self.day}")
+            raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
-            raise ValidationError(f"hour 须在 0-23，收到 {self.hour}")
+            raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
 
 
 class QimingRequest(BaseModel):
@@ -181,23 +278,35 @@ class QimingRequest(BaseModel):
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
     gender: str = "男"
-    top_n: int = 20
+    # R2349s（R84-P1-12）：时辰留空时前端补 12 并置 False——不再静默按
+    # 固定时辰排。旧客户端不传 → 默认 True 兼容。
+    hour_known: bool = True
+    # R228j：top_n 此前无界（文档面只写了建议范围），大值让响应膨胀；
+    # style 无枚举校验——拼错的值静默按 all 出结果，用户以为没生效。
+    top_n: int = Field(20, ge=1, le=50)
     seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
     style: str = Field("all", description="v3（P3）风格档：classics=诗经类 / chuci=楚辞类 / fresh=柔美 / all=全部")
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):
-            raise ValidationError(f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
-        if not self.surname or len(self.surname) != 1:
-            raise ValidationError("surname 须为单字姓氏")
+            raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
+        # R2349s（R84-P2-15）：复姓（欧阳/司马…）此前被「单字」拒掉，
+        # 而 " " 空格却恰好过 len==1 校验产出名带前导空格。先 strip 再
+        # 放 1-2 字。
+        self.surname = strip_zw((self.surname or "").strip())
+        if not self.surname or len(self.surname) > 2:
+            raise ValidationError("姓氏填 1-2 个字就行（复姓也支持）")
+        # R228j：style 枚举——非法值不许静默当 all
+        if self.style not in ("all", "classics", "chuci", "fresh"):
+            raise ValidationError("这个风格还没有，换综合/诗经/楚辞/清新试试")
         if not (1 <= self.month <= 12):
-            raise ValidationError(f"month 须在 1-12，收到 {self.month}")
+            raise ValidationError(f"月份需在 1-12，收到 {self.month}")
         if not (1 <= self.day <= 31):
-            raise ValidationError(f"day 须在 1-31，收到 {self.day}")
+            raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
-            raise ValidationError(f"hour 须在 0-23，收到 {self.hour}")
+            raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
         if self.gender not in GENDERS:
-            raise ValidationError(f"gender 须为 男/女，收到 {self.gender}")
+            raise ValidationError(f"性别需为 男/女，收到 {self.gender}")
 
 
 class ChatRequest(BaseModel):
@@ -208,15 +317,29 @@ class ChatRequest(BaseModel):
     session_id: str = Field(..., description="会话 id（前端生成 UUID）")
     message: str = Field(..., description="用户消息（≤500 字）")
     facts: list[str] | None = None
+    # R230l（R24-P2-3）：黄历事实的「今天」基准。不给按服务器日（旧行为）；
+    # 前端传浏览器本地日，跨零点 ±TZ 窗口不漂移。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:
-            raise ValidationError("session_id 须为 1-64 字符")
-        msg = (self.message or "").strip()
+            raise ValidationError("会话号格式不对")
+        msg = strip_zw(self.message) or ""      # R230k：零宽剥后可为空
         if not msg:
-            raise ValidationError("message 不能为空")
+            raise ValidationError("消息不能为空")
+        _check_client_date(self.client_date)
         if len(msg) > 500:
-            raise ValidationError(f"message 超长（≤500 字），收到 {len(msg)} 字")
+            raise ValidationError(f"消息超长（≤500 字），收到 {len(msg)} 字")
+        # R230t（R32-P2-12）：校验算出的干净串回写——此前零宽字符原文
+        # 进 prompt 并进会话历史。
+        self.message = msg
+        # R228r：facts 无界可塞爆 LLM system prompt——限条数+单条长度。
+        for f in (self.facts or []):
+            if not isinstance(f, str) or len(f) > 500:
+                raise ValidationError("facts 单条需为 ≤500 字字符串")
+        if self.facts and len(self.facts) > 20:
+            raise ValidationError("facts 最多 20 条")
 
 
 class NameReviewRequest(BaseModel):
@@ -227,24 +350,45 @@ class NameReviewRequest(BaseModel):
     def validate_ranges(self) -> None:
         clean = [n for n in (self.names or []) if n.strip()]
         if not clean:
-            raise ValidationError("names 不能为空")
+            raise ValidationError("候选名不能为空")
         if len(clean) > 6:
-            raise ValidationError(f"names 最多 6 个，收到 {len(clean)} 个")
+            raise ValidationError(f"候选名最多 6 个，收到 {len(clean)} 个")
         for n in clean:
             if len(n) > 8:
                 raise ValidationError(f"名字过长：{n[:8]}…")
+        # R230a-6（R12-P2-6）：facts 此前无校验——单请求可塞 ~50 万字进
+        # prompt（仅全局 512KB 体帽兜底）。与 ChatRequest 同款界。
+        if self.facts:
+            if len(self.facts) > 20:
+                raise ValidationError("facts 最多 20 条")
+            for f in self.facts:
+                if not isinstance(f, str) or len(f) > 500:
+                    raise ValidationError("facts 单条需为 ≤500 字字符串")
 
 
 class TarotRequest(BaseModel):
-    seed: int = Field(42, description="随机种子（固定 seed → 固定牌面，可复验）")
-    n: int = Field(3, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
-    question: str | None = None
+    seed: int | None = Field(None, description="随机种子（固定 seed → 固定牌面，可复验；不传则随机）")
+    # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
+    n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
+    question: str | None = Field(None, max_length=200)
+    # R230m：cross_ref「今日值宫」锚浏览器本地日。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
+
+    def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
 
 
 class TarotDrawRequest(BaseModel):
     seed: int | None = None
-    n: int = 1
-    question: str | None = None
+    n: int = Field(1, ge=1, le=10)
+    question: str | None = Field(None, max_length=200)
+
+
+class PaipanImportRequest(BaseModel):
+    """R231a（R36-P3-3）：备份文件导入——records 上限与台账 KEEP_MAX 对齐，
+    逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。"""
+    records: list[dict] = Field(default_factory=list, max_length=500)
 
 
 class PrefsRequest(BaseModel):
@@ -267,15 +411,31 @@ class HehunRequest(BaseModel):
     a_day: int = Field(..., description="甲 日 1-31")
     a_hour: int = Field(..., description="甲 时 0-23")
     a_gender: str = "男"
+    # R2349s（R84-P1-12）：时辰不详侧前端补 12 + 置 False——不再静默
+    # 按 10 点排盘参与判定。
+    a_hour_known: bool = True
     b_year: int = Field(..., description="乙 公历年")
     b_month: int = Field(..., description="乙 月 1-12")
     b_day: int = Field(..., description="乙 日 1-31")
     b_hour: int = Field(..., description="乙 时 0-23")
     b_gender: str = "女"
+    b_hour_known: bool = True
+    # R230z（R36-P1-2）：双方昵称（可空）——结果卡/海报/历史记录/存这对
+    # 全部以「小鱼 × 阿哲」呈现，不再是冷冰冰的甲/乙。
+    a_name: str | None = Field(None, max_length=16, description="甲昵称，可空")
+    b_name: str | None = Field(None, max_length=16, description="乙昵称，可空")
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
         _check_ymdh("乙", self.b_year, self.b_month, self.b_day, self.b_hour)
+        # R228i：gender 此前零校验——非法值落进 dayun_dir 的 else 分支
+        # 按「逆」静默排大运（bazi.py:324），输出错误结果还打了 200。
+        if self.a_gender not in GENDERS:
+            raise ValidationError("甲方性别需为 男 或 女")
+        if self.b_gender not in GENDERS:
+            raise ValidationError("乙方性别需为 男 或 女")
+        self.a_name = strip_zw((self.a_name or "").strip() or None)
+        self.b_name = strip_zw((self.b_name or "").strip() or None)
 
 
 # R178b（D-229b）：原 `DailyRequest` 已删除——`/api/daily` 的 `date` 改为
@@ -284,6 +444,17 @@ class HehunRequest(BaseModel):
 
 
 class FavoriteAddRequest(BaseModel):
-    type: str
-    ref_id: str
-    title: str
+    """R228j：三字段此前零界——type 无白名单、ref_id/title 无长度上限，
+    一次请求可无限写行。favorites 表无上限，参考 KEEP_MAX 语义先卡输入面。"""
+    type: str = Field(..., max_length=32)
+    ref_id: str = Field(..., max_length=64)
+    title: str = Field(..., max_length=200)
+
+    @field_validator("type")
+    @classmethod
+    def _type_whitelist(cls, v: str) -> str:
+        if v not in ("bazi", "taohua", "hehun", "qiming", "liuyao",
+                     "huangli", "xingzuo", "tarot", "daily", "book",
+                     "thread"):
+            raise ValidationError("收藏类型未知")
+        return v

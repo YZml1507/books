@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from .bazi import term_time, jdn, GAN, ZHI
+from .bazi import term_time, jdn, ZHI
 
 # --------------------------------------------------------------------------------------
 # 建除十二值（十二值星）
@@ -30,8 +30,13 @@ JIAN_CHU = ["建", "除", "满", "平", "定", "执", "破", "危", "成", "收"
 # 建除十二值对应的宜忌（通行规则，写死可核验）
 ZHIRI_YIJI: dict[str, dict[str, list[str]]] = {
     "建": {"yi": ["谒贵", "上任", "出行"], "ji": ["开仓", "动土"]},
-    "除": {"yi": ["治病", "祭祀", "解除"], "ji": ["嫁娶", "求名"]},
-    "满": {"yi": ["祭祀", "祈福", "进人口"], "ji": ["安葬", "移徒"]},
+    # R2349n（R77-P1-1）：「沐浴」是传统黄历真词（除日去秽气），补进
+    # 除日宜词——此前词表没有它，沐浴问法只能走中性卡。
+    "除": {"yi": ["治病", "祭祀", "解除", "沐浴"], "ji": ["嫁娶", "求名"]},
+    # R229z续22（R9-P2-2）：词表统一通行字形「移徙」——原「移徒」是异体
+    # 写法，与场景词表/神煞层的「移徙」永不相等（搬家/挪窝的忌项映射
+    # 因此永不命中）。
+    "满": {"yi": ["祭祀", "祈福", "进人口"], "ji": ["安葬", "移徙"]},
     "平": {"yi": ["修造", "动土", "平整"], "ji": ["祭祀", "祈福"]},
     "定": {"yi": ["祭祀", "祈福", "冠笄"], "ji": ["诉讼", "出官"]},
     "执": {"yi": ["捕捉", "狩猎", "祭祀"], "ji": ["开市", "立券"]},
@@ -48,9 +53,14 @@ def _month_zhi_index(dt: datetime) -> int:
     """dt 所在月的地支索引（0=子..11=亥）。
 
     月支以"节"为界：立春=寅(2) 惊蛰=卯(3) .. 小寒=丑(1)。
-    取 dt 之前最近"节"的地支。
+    R229z续21b（R9-P1-1）：黄历层统一到「日」粒度——交节日整日记新月建，
+    与传统万年历一致（交节叠值落交节日）。此前按交节时刻精确切，
+    ?date=D（hour=0）与同日 now() 会给出不同建除/月支。
+    注意：八字 bazi.compute 的月令仍按真实交节时刻——那是排盘口径，
+    与本函数的日粒度黄历口径各管各的，互不影响。
     """
     year = dt.year
+    day = dt.date()
     # 十二节 + 对应地支索引
     jies = [("立春", 2), ("惊蛰", 3), ("清明", 4), ("立夏", 5), ("芒种", 6),
             ("小暑", 7), ("立秋", 8), ("白露", 9), ("寒露", 10), ("立冬", 11),
@@ -62,7 +72,7 @@ def _month_zhi_index(dt: datetime) -> int:
     cands.sort()
     prev_zhi = 2  # 默认寅
     for t, zhi in cands:
-        if t <= dt:
+        if t.date() <= day:
             prev_zhi = zhi
         else:
             break
@@ -127,13 +137,27 @@ XIUXIU_YIJI: dict[str, dict[str, list[str]]] = {
     "軫": {"yi": ["祭祀", "祈福", "出行"], "ji": ["嫁娶", "开市"]},
 }
 
-# 二十八宿起算锚点：1900-01-31（农历庚子年正月初一）= 室宿
-# 权威核实：wnl.cc 万年历 1900-01-31 "星宿：室宿（室火猪）"。
-# JDN(1900,1,31)=2415051；XIUXIU[12]=室，故 offset=12。
-# 此前注释写"1900-01-31=角宿"+JDN=2415081，两处皆错（差 30 天、错 2 宿位），
-# 已 R5 审查推翻并修复（DECISIONS.md D-050）。
+# 二十八宿起算锚点：1900-01-31（农历庚子年正月初一）= 箕宿
+# R229z续20（R9-P0）：R5 修复时从 wnl.cc 取的「星宿：室宿」实为本命星宿字段
+# （同页并排还有「值日星宿」）。三方独立证据收敛 offset=6：
+#   1. 曜日规则：1900-01-31=星期三（水曜），水宿组={箕,壁,參,軫}，offset=6 给箕✓
+#      （offset=12 给室=火宿，违例——曜日宿组是全定义域硬不变量）
+#   2. 外部锚点：2000-01-01 万年历=胃宿（offset=6✓，12✗）
+#   3. 外部锚点：2024-02-10 万年历=氐宿（offset=6✓，12✗）
+# JDN(1900,1,31)=2415051；XIUXIU[6]=箕。
 _XIU_ANCHOR_JDN = 2415051
-_XIU_ANCHOR_OFFSET = 12  # 室=12
+_XIU_ANCHOR_OFFSET = 6  # 箕=6
+
+# 曜日→宿组（七曜配宿不变量：每个曜日恒落同五行宿组）——probe 回归用
+_WEEKDAY_XIU_GROUP = {
+    6: {"房", "虚", "昴", "星"},      # 周日=日宿
+    0: {"心", "危", "畢", "張"},      # 周一=月宿
+    1: {"尾", "室", "觜", "翼"},      # 周二=火宿
+    2: {"箕", "壁", "參", "軫"},      # 周三=水宿
+    3: {"斗", "奎", "井", "角"},      # 周四=木宿
+    4: {"牛", "婁", "鬼", "亢"},      # 周五=金宿
+    5: {"氐", "女", "胃", "柳"},      # 周六=土宿
+}
 
 
 def xiu_value(dt: datetime) -> str:
@@ -232,6 +256,12 @@ GUIREN: dict[str, list[str]] = {
     "辛": ["寅", "午"],
 }
 
+# R233v（R52-P1-3）：杨公忌十三日（农历月日，通行表写死可核验）。
+_YANGGONG: frozenset = frozenset({
+    (1, 13), (2, 11), (3, 9), (4, 7), (5, 5), (6, 3), (7, 1),
+    (7, 29), (8, 27), (9, 25), (10, 23), (11, 21), (12, 19),
+})
+
 # 神煞对宜忌的影响（写死可核验）
 _TIAND_YIJI: tuple[list[str], list[str]] = (
     ["祭祀", "祈福", "嫁娶"], ["诉讼"])
@@ -254,10 +284,13 @@ _YUEYAN_YIJI: tuple[list[str], list[str]] = (
 
 
 def day_ganzhi(dt: datetime) -> tuple[str, str]:
-    """dt 这天的日柱天干地支。儒略日 → 六十甲子，锚点 (jd+49)%60。"""
-    jd = jdn(dt.year, dt.month, dt.day)
-    gz = (jd + 49) % 60
-    return GAN[gz % 10], ZHI[gz % 12]
+    """dt 这天的日柱天干地支。
+
+    R228p：算法单源化——直接委托 bazi.day_ganzhi（JDN 锚点 (jd+49)%60
+    两边一致），本函数只剩签名适配（gan,zhi）。"""
+    from .bazi import day_ganzhi as _dgz
+    gz, _idx = _dgz(dt)
+    return gz[0], gz[1]
 
 
 def tiande(dt: datetime) -> str:
@@ -338,7 +371,33 @@ def shensha(dt: datetime) -> dict:
         "day_gan": gan,
         "day_zhi": zhi,
         "month_zhi": ZHI[mzi],
+        # R233w（R52-P1-2）：「临日」判定收成单点真相——前端此前自己复现
+        # 了一份（日支==神煞值 的逐项比较），两份逻辑迟早漂。这里直接
+        # 回吐命中的神煞名，前端只做 名字→文案 的展示映射。
+        "linri": _linri(gan, zhi, dt),
     }
+
+
+def _linri(gan: str, zhi: str, dt: datetime) -> dict:
+    """临日命中名单：吉神/凶煞各一列，名字是神煞键。"""
+    good, bad = [], []
+    if zhi in guiren(dt):
+        good.append("贵人")
+    if yima(dt) == zhi:
+        good.append("驿马")
+    if tianshe(dt):
+        good.append("天赦")
+    _td = tiande(dt)
+    if _td and (_td == gan or _td == zhi):
+        good.append("天德")
+    _yd = yuede(dt)
+    if _yd and _yd == gan:
+        good.append("月德")
+    for fn, name in ((jiesha, "劫煞"), (zaisha, "灾煞"),
+                     (yuesha, "月煞"), (yueyan, "月厌")):
+        if fn(dt) == zhi:
+            bad.append(name)
+    return {"good": good, "bad": bad}
 
 
 def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
@@ -385,6 +444,43 @@ def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
 # --------------------------------------------------------------------------------------
 # 综合查询
 # --------------------------------------------------------------------------------------
+# R77（R2349n）：同义族冲突——宜忌两侧换字同义照样是打架。
+# 「宜修造/塞穴/筑堤 忌动土」在卡面上读作「宜装修、忌开工」，同词交集
+# 的 conflict 键盖不到（28/60 天有同词，跨字同义另有一批）。
+# 判定：某词的族同时命中宜、忌两侧 → 该族两侧词全部标记。
+_TERM_FAMILIES: list[frozenset[str]] = [
+    frozenset({"修造", "动土", "破土", "塞穴", "筑堤", "破屋坏垣",
+               "竖柱", "上梁"}),                          # 开工营造
+    frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
+    frozenset({"开市", "立券", "纳财", "开仓", "交易", "置产"}),
+    frozenset({"嫁娶", "求嗣", "进人口", "纳采", "订盟"}),  # 婚育
+    frozenset({"上任", "求名", "入学"}),                   # 功名
+    frozenset({"祭祀", "祈福"}),                           # 敬拜
+    frozenset({"求医", "治病", "求医疗病"}),               # 医疗
+    frozenset({"捕捉", "畋猎", "狩猎", "田猎"}),           # 猎取
+]
+_WORD_FAMILY: dict[str, frozenset[str]] = {}
+for _fam in _TERM_FAMILIES:
+    for _w in _fam:
+        _WORD_FAMILY[_w] = _WORD_FAMILY.get(_w, frozenset()) | _fam
+
+
+def term_family(term: str) -> frozenset[str]:
+    """词的同义族（无族时返回只含自身的单元素集）。"""
+    return _WORD_FAMILY.get(term, frozenset({term}))
+
+
+def family_conflicts(yi: list[str], ji: list[str]) -> list[str]:
+    """返回所有卷入「同义族宜忌对冲」的词（两侧并集）。"""
+    yi_s, ji_s = set(yi), set(ji)
+    out: set[str] = set()
+    for w in yi_s | ji_s:
+        fam = _WORD_FAMILY.get(w)
+        if fam and (fam & yi_s) and (fam & ji_s):
+            out |= (fam & (yi_s | ji_s))
+    return sorted(out)
+
+
 def day_query(dt: datetime) -> dict:
     """查 dt 这天的黄历坐标（纯计算，无解读）。
 
@@ -403,6 +499,13 @@ def day_query(dt: datetime) -> dict:
     yi = list(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
     ji = list(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
 
+    # R233v（R52-P1-2）：神煞宜忌层接线——天赦/天德/月德/驿马/贵人临日
+    # 的宜项与劫煞/灾煞/月煞/月厌的忌项此前算完就丢（死代码），词表里
+    # 远行/移徙/上任/诉讼 这类词因此恒不命中（「问搬家年年中性」）。
+    _sy, _sj = shensha_yiji(dt)
+    yi = list(set(yi) | set(_sy))
+    ji = list(set(ji) | set(_sj))
+
     # R216b 续6（V-001）：补农历日期与冲煞——传统黄历核心字段，
     # 纯坐标计算 additive（既有键零改动）。
     _lunar = {}
@@ -413,6 +516,42 @@ def day_query(dt: datetime) -> dict:
         _lunar = {}
     _gz_gan, _gz_zhi = day_ganzhi(dt)
     _zhi_idx = ZHI.index(_gz_zhi) if _gz_zhi in ZHI else 0
+
+    # R233v（R52-P1-3）：传统硬凶日标记——月破/四离/四绝/杨公忌。
+    # 此前任何日子宜忌条目都差不多多，「诸事不宜」级日子与普通日
+    # 无差别。只打标不改词表。
+    _flags: list[str] = []
+    if _zhi_idx == (_month_zhi_index(dt) + 6) % 12:
+        _flags.append("月破")
+    try:
+        from .bazi import term_time as _tt
+        _tom = dt + timedelta(days=1)
+        for _y in (dt.year - 1, dt.year, dt.year + 1):
+            for _tn in ("春分", "夏至", "秋分", "冬至"):
+                if (_tt(_y, _tn) + timedelta(hours=8)).date() == _tom.date() \
+                        and "四离" not in _flags:
+                    _flags.append("四离")
+            for _tn in ("立春", "立夏", "立秋", "立冬"):
+                if (_tt(_y, _tn) + timedelta(hours=8)).date() == _tom.date() \
+                        and "四绝" not in _flags:
+                    _flags.append("四绝")
+    except Exception:
+        pass
+    if _lunar and (_lunar.get("month"), _lunar.get("day")) in _YANGGONG:
+        _flags.append("杨公忌")
+    # R233w（R52-P3-9）：交节时刻 ±15min 精度对日粒度的残余风险——
+    # 与其藏着，把「今日交节 + CST 时刻」透明化回吐；用户看到
+    # 「交在 23:5X」自然明白日粒度边界，这也是黄历卡本该有的信息。
+    _term_today = None
+    try:
+        from .bazi import TERM_LONGITUDE
+        for _tn in TERM_LONGITUDE:
+            _t = term_time(dt.year, _tn) + timedelta(hours=8)
+            if _t.date() == dt.date():
+                _term_today = {"name": _tn, "time": _t.strftime("%H:%M")}
+                break
+    except Exception:
+        pass
     _chong = ZHI[(_zhi_idx + 6) % 12]          # 六冲：对冲支
     _cs_animal = {"子":"鼠","丑":"牛","寅":"虎","卯":"兔","辰":"龙","巳":"蛇",
                   "午":"马","未":"羊","申":"猴","酉":"鸡","戌":"狗","亥":"猪"}
@@ -423,6 +562,12 @@ def day_query(dt: datetime) -> dict:
         "pengzu": pz,
         "yi": sorted(yi),
         "ji": sorted(ji),
+        # R229z续21（R9-P1-2）：约 22% 日子宜∩忌同见（建除说宜、星宿说忌）。
+        # 原样透出两列是黄历本真写法，但阅读者需要知道哪些词在打架——
+        # 交集单独开键透出，卡面标※、聊天事实行改走「宜忌都有」口径。
+        "conflict": sorted(set(yi) & set(ji)),
+        # R77（R2349n）：换字同义的对冲词也透出——卡面同样标※
+        "conflict_family": family_conflicts(yi, ji),
         "shensha": shensha(dt),
         "lunar": {"month_cn": _lunar.get("month_cn", ""),
                   "day_cn": _lunar.get("day_cn", ""),
@@ -430,6 +575,8 @@ def day_query(dt: datetime) -> dict:
         "chongsha": {"chong": _chong,
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
+        "day_flags": _flags,
+        **({"term_today": _term_today} if _term_today else {}),
     }
 
 
@@ -452,18 +599,34 @@ AFFAIR_ALIASES: dict[str, str] = {
 
 
 def find_good_days(start: datetime, end: datetime,
-                   affair: str) -> list[dict]:
+                   affair: str | list[str]) -> list[dict]:
     """在 [start, end] 区间内找出适宜某事项的日子。
 
-    affair: 婚嫁/开业/出行/动土/搬家/安葬/祭祀/祈福/求嗣/上任/入学/纳财
+    affair: 婚嫁/开业/出行/动土/搬家/安葬/祭祀/祈福/求嗣/上任/入学/纳财，
+    或一串规范词列表（任一命中即收——R229z续8：多词逐日循环一次，
+    不再词×天双重扫描）。
     返回 list[day_query result]，只含 affair 在 yi 里的日子。
     """
-    key = AFFAIR_ALIASES.get(affair, affair)   # 别名归一后再匹配
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])   # 别名归一后再匹配
     good: list[dict] = []
     cur = start
     while cur <= end:
         q = day_query(cur)
-        if key in q["yi"]:
+        # R228m：宜∩忌双标日剔除——「宜嫁娶也忌嫁娶」的日子不能当吉日推
+        # （92 天窗口实测 19 天同项冲忌并存）。
+        # R233v（R52-P2-6）：命中口径与聊天事实行统一为双向子串——
+        # term「求医」⊂词「求医疗病」这种包含关系两侧不再打架。
+        def _hit(tt, words):
+            return any(tt in w or w in tt for w in words)
+        # R77（R2349n-P2-7）：上榜日忌栏含同义族词也要剔除——
+        # 「宜修造忌动土」的日子不算干净的搬家吉日。
+        _fam_terms: set[str] = set()
+        for _t in terms:
+            _fam_terms |= set(_WORD_FAMILY.get(_t, (_t,)))
+        if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
+                and not any(_hit(t, q["ji"]) for t in _fam_terms)):
             good.append(q)
         cur += timedelta(days=1)
     return good

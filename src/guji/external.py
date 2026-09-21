@@ -82,9 +82,9 @@ def _fetch_bytes(url: str, mode: str = "proxy") -> bytes:
         handlers.append(urllib.request.ProxyHandler({
             "http": PROXY, "https": PROXY,
         }))
+    # R230a-42（R15-P2-2）：此前关主机名校验+CERT_NONE，出站抓取可被路径
+    # 上中间人换内容。恢复默认校验；证书失败走 fetch_source 单源降级。
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     handlers.append(urllib.request.HTTPSHandler(context=ctx))
     opener = urllib.request.build_opener(*handlers)
     req = urllib.request.Request(url, headers={
@@ -112,17 +112,23 @@ def parse_feed_bytes(data: bytes) -> list[dict]:
 
 
 def fetch_source(src: dict) -> dict:
-    """抓取单个源，异常降级返回 {'ok': False, 'error': ...}。"""
+    """抓取单个源，异常降级返回 {'ok': False, 'error': ...}。
+
+    R230g（R19-P3-1）：error 字段此前塞原始英文异常（URLError/DNS
+    原文）——前端零调用时无感，一旦 UI 复用就触「英文原文上屏」红线。
+    error 只留中文人话；英文细节进 debug 字段供排查。"""
     try:
         data = _fetch_bytes(src["url"], src.get("mode", "proxy"))
     except Exception as exc:  # 网络/超时/证书 → 单源降级
         return {"id": src["id"], "title": src["title"], "url": src["url"],
-                "ok": False, "error": f"{type(exc).__name__}: {exc}", "items": []}
+                "ok": False, "error": "这个源暂时拉不到",
+                "debug": f"{type(exc).__name__}: {exc}", "items": []}
     try:
         items = parse_feed_bytes(data)
     except Exception as exc:
         return {"id": src["id"], "title": src["title"], "url": src["url"],
-                "ok": False, "error": f"解析失败: {exc}", "items": []}
+                "ok": False, "error": "这个源的内容暂时读不懂",
+                "debug": f"解析失败: {exc}", "items": []}
     return {"id": src["id"], "title": src["title"], "url": src["url"],
             "ok": True, "error": "", "items": items}
 

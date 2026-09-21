@@ -75,7 +75,7 @@ for i in range(len(occ) - 1):
         pairs.add((g1, g2))
 print(f"  adjacent name-name pairs: {adj}   distinct (本,之) pairs: {len(pairs)}")
 print(f"  adjacency rate: {100.0*adj/max(len(occ),1):.1f}% of occurrences")
-print(f"  a full matrix would be 64x64=4096 (or 64x63=4032 excluding self)")
+print("  a full matrix would be 64x64=4096 (or 64x63=4032 excluding self)")
 print(f"  self-pairs present: {sum(1 for a, b in pairs if a == b)}")
 
 print("\n" + "=" * 78)

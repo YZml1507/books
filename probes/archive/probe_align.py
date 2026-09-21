@@ -7,7 +7,6 @@ KR1a0001, then scan the commentary sequentially and carry forward the last match
 import glob
 import os
 import re
-import sys
 from collections import Counter
 
 BASE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "raw")

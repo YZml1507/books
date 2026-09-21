@@ -9,15 +9,55 @@ the returned text.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import dataclass
 
 from .variants import fold, segment_cjk
 
 
+# R230a-30（R14-P1-1）+ R230c（R17-P1-3 下沉共享）：简体查询词的保守简→繁
+# 重试表。只收单义字（一对一映射，古籍语境不会错）；云/后/余/只/干/几/征/
+# 系/台/面/松/咸/曲/谷/卜/丑/于/舍/历/困/蒙/涂/辟/向/须/御/折/钟/朱/致/
+# 脏/伙/签 等一对多或简繁同字易错者一律不收——宁可不命中也不给错方向。
+# 只对查询词生效，语料侧 fold 不变。web services 与 mcp_server 共用此表。
+S2T_RETRY = {p[0]: p[1] for p in (  # noqa: E501 — 数据表，逐对显式
+    "潜潛 龙龍 马馬 门門 问問 闻聞 见見 无無 为為 与與 车車 长長 风風 飞飛 鸟鳥 "
+    "鱼魚 龟龜 万萬 书書 乐樂 礼禮 学學 师師 处處 变變 数數 断斷 时時 东東 "
+    "国國 离離 兑兌 阴陰 阳陽 传傳 说說 记記 经經 义義 圣聖 贞貞 来來 跃躍 "
+    "渊淵 饮飲 军軍 众眾 妇婦 户戶 庙廟 泽澤 电電 岁歲 昼晝 进進 动動 穷窮 "
+    "达達 败敗 兴興 乱亂 顺順 应應 当當 据據 敌敵 刚剛 险險 丽麗 战戰 劳勞 "
+    "润潤 热熱 视視 听聽 觉覺 声聲 语語 辞辭 艺藝 医醫 亿億 忆憶 营營 蝇蠅 "
+    "踊踴 忧憂 优優 邮郵 誉譽 园園 员員 圆圓 远遠 愿願 运運 酝醞 杂雜 赃贓 "
+    "凿鑿 枣棗 灶竈 斋齋 毡氈 赵趙 证證 郑鄭 织織 职職 纸紙 挚摯 掷擲 滞滯 "
+    "种種 烛燭 筑築 庄莊 桩樁 妆妝 壮壯 状狀 准準 浊濁 资資 总總 纵縱 丰豐 "
+    "涣渙 节節 济濟 谦謙 随隨 蛊蠱 临臨 观觀 贲賁 剥剝 颐頤 习習 恒恆 晋晉 "
+    "损損 渐漸 归歸 术術 药藥 权權 杀殺 满滿 岗崗 体體 肤膚 灵靈 厉厲 厌厭 "
+    "县縣 备備 伞傘 举舉 乌烏 买買 卖賣 亲親 亵褻 仅僅 从從 仑侖 仓倉 仪儀 "
+    "们們 价價 会會 伟偉 伤傷 伦倫 伪偽 伫佇 剑劍 剂劑 剧劇 劝勸 办辦 务務 "
+    "励勵 劲勁 势勢 勋勳 区區 协協 却卻 参參 双雙 发發 叙敘 号號 叹嘆 吃喫 "
+    "启啟 吴吳 唤喚 嘱囑 团團 围圍 图圖 场場 坏壞 块塊 坚堅 坛壇 坝壩 坟墳 "
+    "坠墜 垒壘 垦墾 垫墊 堑塹 堕墮 墙牆 壳殼 壶壺 头頭 夹夾 夺奪 奋奮 奖獎 "
+    "奥奧 妈媽 妩嫵 妪嫗 姗姍 娄婁 娅婭 娆嬈 娇嬌 娈孌 娱娛 娲媧 娴嫻 婴嬰 "
+    "婵嬋 婶嬸 媪媼 嫒嬡 嫔嬪 嫘嫘 嫠嫠 嫣嫣 嫦嫦 嫩嫩 嬉嬉 嬷嬤 孀孀 孪孿 "
+    "宁寧 宝寶 实實 宠寵 审審 宪憲 宫宮 宽寬 宾賓 寝寢 对對 导導 将將 尔爾 "
+    "尘塵 尝嘗 尧堯 尴尷 层層 屉屜 届屆 属屬 屡屢 屿嶼 岂豈 岖嶇 岘峴 岚嵐 "
+    "岛島 岭嶺 岳嶽 峡峽 峣嶢 峤嶠 峥崢 峦巒 崭嶄 嵘嶸 嶔嶔 巅巔 巋巋 巍巍").split()
+    if len(p) == 2 and p[0] != p[1]}  # len 守卫：手滑拼出三字词即静默丢弃
+
+
+def s2t_retry(q: str) -> str:
+    """按保守映射把简体查询词翻成繁体候选——无变化时返回原串（调用方据此
+    决定是否重试与是否披露 hint）。"""
+    return "".join(S2T_RETRY.get(ch, ch) for ch in q)
+
+
 def fts_phrase(q: str) -> str:
     """Segmented, folded, and quoted so FTS5 treats it as an adjacent phrase."""
     seg = segment_cjk(fold(q)).replace('"', '')
+    # R228z续：C0 控制字符剥掉——\x00 会让 FTS5 报 "unterminated string"
+    # （内部按 C 串截断），别的控制符也不构成任何检索意义。
+    seg = "".join(ch for ch in seg if ord(ch) >= 0x20)
     return f'"{seg}"'
 
 
@@ -126,8 +166,48 @@ FROM unit u JOIN work w ON w.id = u.work_id
 
 class Corpus:
     def __init__(self, db_path: str):
+        # R230c（R17-P2-3/P2-6/P2-9）：sqlite3.connect 对缺失路径会顺手建
+        # 0B 残库，让后续所有 `os.path.exists` 入口失效——先挡存在性/非空/
+        # schema 再开，缺索引的入口得到的是一句人话不是 traceback。
+        if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
+            raise FileNotFoundError(
+                f"索引缺失或为空：{db_path}（先跑 scripts/build_index.py）")
         self.db = sqlite3.connect(db_path)
         self.db.row_factory = sqlite3.Row
+        try:
+            has_work = self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='work'").fetchone()
+        except sqlite3.DatabaseError:
+            # R230i（R21-P1-6）：库文件损坏此前走 DatabaseError→503
+            # 「稍后再试」——误导（永远不会自己好）。给可操作文案。
+            self.db.close()
+            raise FileNotFoundError(
+                f"索引文件损坏：{db_path}（请跑 scripts/build_index.py 重建）"
+            ) from None
+        if not has_work:
+            self.db.close()
+            raise FileNotFoundError(
+                f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
+        if not self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type IN ('table','view') "
+                "AND name='unit'").fetchone():
+            self.db.close()
+            raise FileNotFoundError(
+                f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
+        # R230i（R21-P2-3）：列级漂移（pre-D015 直列 gua/gua_name 等旧版
+        # 索引）此前走 DatabaseError 泛文案「存储暂时不可用」——明示
+        # 「索引版本过旧，请重建」更可操作。
+        _need = {"work_id", "layer", "page_anchor", "file", "text",
+                 "raw_start", "skipped_chars", "suspect", "scheme",
+                 "addr_name", "addr1", "addr2"}
+        have = {r[1] for r in self.db.execute("PRAGMA table_info(unit)")}
+        missing = _need - have
+        if missing:
+            self.db.close()
+            raise FileNotFoundError(
+                f"索引版本过旧（缺列：{'、'.join(sorted(missing))}）："
+                f"{db_path}（请跑 scripts/build_index.py 重建）")
 
     def close(self):
         self.db.close()
@@ -148,6 +228,30 @@ class Corpus:
             FROM work w LEFT JOIN unit u ON u.work_id = w.id
             GROUP BY w.id ORDER BY w.genre, w.id""").fetchall()
 
+    def _search_where(self, query: str, gua, yao, layer, work_id, genre,
+                      scheme, addr_name, addr1, addr2
+                      ) -> tuple[str, list]:
+        sql = """
+            FROM unit_fts
+            JOIN unit u ON u.id = unit_fts.rowid
+            JOIN work w ON w.id = u.work_id
+            WHERE unit_fts MATCH ?"""
+        args: list = [fts_phrase(query)]
+        # 'none' 哨兵 = scheme IS NULL（页锚点作品）；None = 不过滤。
+        scheme_eq = "none" if scheme is not None and str(scheme).lower() == "none" \
+            else scheme
+        for col, val in (("u.addr1", gua if gua is not None else addr1),
+                         ("u.addr2", yao if yao is not None else addr2),
+                         ("u.scheme", scheme_eq), ("u.addr_name", addr_name),
+                         ("u.layer", layer),
+                         ("u.work_id", work_id), ("w.genre", genre)):
+            if val is not None:
+                sql += (f" AND {col} IS NULL" if val == "none"
+                        else f" AND {col} = ?")
+                if val != "none":
+                    args.append(val)
+        return sql, args
+
     def search(self, query: str, limit: int = 10, gua: int | None = None,
                yao: str | None = None, layer: str | None = None,
                work_id: str | None = None, genre: str | None = None,
@@ -156,27 +260,23 @@ class Corpus:
         """`gua`/`yao` are convenience aliases for `addr1`/`addr2` (D-016). They are kept
         because 卦/爻 is what a 周易 caller means, but they carry no special status in
         storage — a Bible caller passes addr_name/addr1/addr2 through the same path."""
-        sql = """
+        where, args = self._search_where(query, gua, yao, layer, work_id,
+                                         genre, scheme, addr_name, addr1, addr2)
+        sql = ("""
             SELECT u.work_id, w.title, w.attribution, w.edition, u.page_anchor,
                    u.scheme, u.addr_name, u.addr1 AS gua, u.addr2 AS yao,
                    u.layer, u.text, u.file, u.skipped_chars, u.suspect,
-                   bm25(unit_fts) AS score
-            FROM unit_fts
-            JOIN unit u ON u.id = unit_fts.rowid
-            JOIN work w ON w.id = u.work_id
-            WHERE unit_fts MATCH ?"""
-        args: list = [fts_phrase(query)]
-        for col, val in (("u.addr1", gua if gua is not None else addr1),
-                         ("u.addr2", yao if yao is not None else addr2),
-                         ("u.scheme", scheme), ("u.addr_name", addr_name),
-                         ("u.layer", layer),
-                         ("u.work_id", work_id), ("w.genre", genre)):
-            if val is not None:
-                sql += f" AND {col} = ?"
-                args.append(val)
-        sql += " ORDER BY score LIMIT ?"
+                   bm25(unit_fts) AS score """ + where + " ORDER BY score LIMIT ?")
         args.append(limit)
         return [self._hit(r) for r in self.db.execute(sql, args)]
+
+    def search_count(self, query: str, gua=None, yao=None, layer=None,
+                     work_id=None, genre=None, scheme=None, addr_name=None,
+                     addr1=None, addr2=None) -> int:
+        """命中总数（R230a-30：count 原是截断后条数，UI 无法说「共 Y 条」）。"""
+        where, args = self._search_where(query, gua, yao, layer, work_id,
+                                         genre, scheme, addr_name, addr1, addr2)
+        return self.db.execute("SELECT count(*) " + where, args).fetchone()[0]
 
     def at_address(self, gua: int, yao: str | None = None,
                    layer: str | None = None, limit: int = 50) -> list[Hit]:
@@ -212,7 +312,7 @@ class Corpus:
                 out[h.work_id].append(h)
         return out
 
-    def at_scheme(self, scheme: str, addr_name: str | None = None,
+    def at_scheme(self, scheme: str | None, addr_name: str | None = None,
                   addr1: int | None = None, addr2: str | None = None,
                   layer: str | None = None, limit: int = 50) -> list[Hit]:
         """Generic address lookup for ANY scheme — 卦/爻 for zhouyi, 卷:章 for bcv,
@@ -220,9 +320,16 @@ class Corpus:
         zhouyi-only convenience (D-005: Psalms 99 == 卦99 collision); this is the
         scheme-scoped form used by the web addr view, where the caller declares the
         scheme explicitly so no cross-scheme collision can occur.
+
+        scheme=None / 'none' 表示无编址（页锚点）作品——R230a-33 前 SCHEME_LABELS
+        靠字面键 'None' 防呆，传字符串 'None' 会变成查 scheme='None' 恒零命中。
         """
-        sql = _SELECT + " WHERE u.scheme = ?"
-        args: list = [scheme]
+        if scheme is None or str(scheme).lower() == "none":
+            sql = _SELECT + " WHERE u.scheme IS NULL"
+            args: list = []
+        else:
+            sql = _SELECT + " WHERE u.scheme = ?"
+            args = [scheme]
         for col, val in (("u.addr_name", addr_name), ("u.addr1", addr1),
                          ("u.addr2", addr2), ("u.layer", layer)):
             if val is not None:

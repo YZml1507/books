@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from .. import services
 from ..schemas import FavoriteAddRequest, PrefsRequest
@@ -19,11 +19,18 @@ def health() -> dict:
 
 
 @router.get("/api/daily")
-def daily(date: str | None = None) -> dict:
+def daily(date: str | None = None,
+          # R2349l（R73-P1-3）：bday=用户生日 → 出 personal 个性行
+          bday: str = Query("", max_length=10)) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌（命中 daily_cache）。"""
-    return services.daily(date)
+    return services.daily(date, bday or None)
 
 
+# R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
+# ——widget 是嵌入部件预留面、share 是分享卡数据面（JS 侧走本地海报渲染）、
+# fortune 是外部资讯预留。selftest 断言钉着契约，不是僵尸端点。
+# R2349s（R85-P1-5）：R208b 删 news 面板后 /api/external/news 同样
+# 前端零调用，一并登记（仅 probe_contract 作网络用例覆盖）。
 @router.get("/api/widget")
 def widget() -> dict:
     """首页功能卡片数据：各模块图标/标题/描述 + 最近使用标记。"""
@@ -60,6 +67,12 @@ def remove_favorite(fid: int) -> dict:
     return services.remove_favorite(fid)
 
 
+@router.delete("/api/favorites")
+def clear_favorites() -> dict:
+    """R2349（R65-P1-2）：清空全部收藏——「忘掉我的数据」调用面。"""
+    return services.clear_favorites()
+
+
 @router.get("/api/external/news")
 def external_news() -> dict:
     """外部资讯通道：抓预置 RSS/Atom 源。不落库，与语料 Source 层隔离。"""
@@ -68,5 +81,5 @@ def external_news() -> dict:
 
 @router.get("/api/external/fortune")
 def external_fortune() -> dict:
-    """外部资讯的运势风格包装（每日运势卡片的外部资讯部分）。"""
+    """外部资讯的运势风格包装（预留面——daily 未接入，前端零调用，R85-P2-8 登记）。"""
     return services.external_fortune()

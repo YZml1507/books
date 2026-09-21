@@ -24,6 +24,16 @@
 """
 from __future__ import annotations
 
+
+# R233g（R44-P0-1）：生死/重病类敏感问法——不能走话题兜底（会被当
+# 格式错吐黑话），也不能交给判词背书。确定性转介，语气放稳。
+# R233r（R49-Top5-3）：词表与聊天层同源（llm_polish._is_sensitive）——
+# 此前两表漂移：这边多「寿命/要死了/病死」，那边多「存活率/晚期」，
+# 同一个问法过不同闸门宽严不一。软词排除表（多肉会不会死）也一并共享。
+_SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意——"
+                   "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
+                   "小满陪你说点别的也行。")
+
 # 本模块唯一的"事实来源"是入参；下面这些表是**术语解释表**，
 # 只是翻译表——把命理术语转成白话，不改变任何计算结果。（R219b P1-4：去套话）
 
@@ -55,7 +65,7 @@ ELEMENT_GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "�
 
 # 地支关系白话（中性描述关系强度，不断吉凶）
 RELATION_PLAIN = {
-    "相冲": "两支正对，主变动、位移，节奏易被打断",
+    "六冲": "两支正对，主变动、位移，节奏易被打断",
     "相害": "两支暗损，多为细碎摩擦而非大事",
     "相刑": "两支相扰，事情容易反复、需要返工",
     "自刑": "同支自扰，内部消耗多于外部阻力",
@@ -117,12 +127,17 @@ def interpret_bazi(paipan: dict, calc: dict,
             for s in strong:
                 lines.append(f"{s}偏旺——{ELEMENT_PLAIN.get(s, '')}的一面比较突出，"
                              f"用力过头时容易失衡")
+        _tied = fe.get("strong_tied") or []
+        if not strong and _tied:
+            lines.append(f"{'、'.join(_tied)}并列最高——几股劲相当，没有一行独大")
         if missing:
             for m in missing:
-                helper = ELEMENT_GENERATES.get(m)
+                # R230a-7（R13-P0-1）：补缺走「生我」方向（缺木→补水，水生木），
+                # 此前用 ELEMENT_GENERATES（我生，即泄耗方向）恰好说反。
+                helper = {v: k for k, v in ELEMENT_GENERATES.items()}.get(m)
                 tip = f"，可从{helper}的方向补" if helper else ""
                 lines.append(f"缺{m}——{ELEMENT_PLAIN.get(m, '')}的一面偏弱{tip}")
-        if not strong and not missing:
+        if not strong and not _tied and not missing:
             lines.append("五行齐全且无一行独旺，整体偏均衡")
         sections.append({"title": "五行强弱", "lines": lines})
         basis.append("calc.five_elements.counts/strong/missing")
@@ -136,10 +151,15 @@ def interpret_bazi(paipan: dict, calc: dict,
             plain = TEN_GOD_PLAIN.get(god, "")
             pos = t.get("pos") or ""
             gan = t.get("gan") or ""
-            seg = f"{pos}{gan} → {god}"
-            if plain:
+            # R230a-7（R13-P3-3）：日主不派十神（惯例）——「日干X → 比肩」
+            # 换成「日主（自我）」标注，不显外行。
+            if pos == "日干":
+                seg = f"{pos}{gan} → 日主（自我）"
+            else:
+                seg = f"{pos}{gan} → {god}"
+            if plain and pos != "日干":
                 seg += f"：{plain}"
-            if t.get("basis"):
+            if t.get("basis") and pos != "日干":
                 seg += f"（依据：{t['basis']}）"
             lines.append(seg)
         sections.append({"title": "十神格局", "lines": lines})
@@ -267,6 +287,11 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
     """把用户问题对齐到已算出的坐标，只做筛选与转述，不新增判断。"""
     tg = calc.get("ten_gods") or []
     gods = [t.get("god") for t in tg]
+    # R233g（R44-P0-1）：敏感问法优先拦截——此前落空吐「坐标维度」黑话。
+    # R233r：与聊天层同一判定（lazy import 与 voice.py:1090 同款）。
+    from guji import llm_polish as _lp
+    if _lp._is_sensitive(q):
+        return [_SENSITIVE_LINE]
     for kw, targets, label in _TOPIC_MAP:
         if kw not in q:
             continue
@@ -287,9 +312,9 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                               for t in hit)
                     + f"——{label}现于盘中，相关事项在四柱里有着落点"]
         return [f"{label}未现于四柱天干（{'、'.join(str(g) for g in gods if g)}）"
-                f"——本盘该维度信息偏少，系统不据此推测（G7）"]
-    return ["问题未匹配到系统支持的坐标维度（事业/财运/感情/学业/健康），"
-            "以上通盘坐标已全部列出，请据坐标自行对照。"]
+                f"——本盘这一维线索偏少，不作推测"]
+    return ["这个问题盘面没有对应的维度——感情、工作、学习、财运、"
+            "身体节奏这些能聊，要不换个问法试试？"]
 
 
 def _citations(evidence: list[dict]) -> list[dict]:
@@ -457,11 +482,11 @@ def interpret_research(question: str, evidence: list[dict],
             "kind": "rule-based",
             "engine": "guji.interpreter/1.0（确定性规则，无 LLM）",
             "sections": [{"title": "证据不足", "lines": [
-                f"「{question}」在当前语料未检索到可核验原文——"
-                "系统不据此推测（G7）"]}],
+                f"「{question}」在当前语料没检索到能对上的原文——"
+                "不作推测"]}],
             "citations": [],
-            "text": f"## 证据不足\n- 「{question}」在当前语料未检索到可核验原文，"
-                    f"系统不据此推测（G7）。\n\n{_DISCLAIMER}",
+            "text": f"## 证据不足\n- 「{question}」在当前语料没检索到能对上的原文，"
+                    f"不作推测。\n\n{_DISCLAIMER}",
             "basis": ["evidence 为空"],
             "disclaimer": _DISCLAIMER,
         }
@@ -471,7 +496,8 @@ def interpret_research(question: str, evidence: list[dict],
     for e in evidence:
         key = e.get("title") or e.get("work_id") or "?"
         by_work.setdefault(key, []).append(e)
-        lay = e.get("layer") or "misc"
+        # R2349j（R71-P2）：缺键兜底 misc 是技术词——界面会显示「misc N」。
+        lay = e.get("layer") or "其他"
         by_layer[lay] = by_layer.get(lay, 0) + 1
 
     sections.append({"title": "命中概览", "lines": [

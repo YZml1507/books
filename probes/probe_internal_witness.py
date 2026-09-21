@@ -18,7 +18,6 @@ Three concrete questions, all answerable from disk:
 If Q1/Q2 come back positive, my earlier statement was wrong and no new books are needed for
 this purpose.
 """
-import glob
 import os
 import re
 import sys

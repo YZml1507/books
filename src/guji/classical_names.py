@@ -14,7 +14,7 @@ import hashlib as _hashlib
 import json as _json
 import os as _os
 
-from .qiming import CANDIDATE_CHARS, FEMININE_CHARS, MASCULINE_CHARS, _gender_score
+from .qiming import FEMININE_CHARS, MASCULINE_CHARS
 
 # 加载古籍典故库
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
@@ -52,10 +52,12 @@ def _pick_n(seq, n, *salt):
 
 
 # ---------------------------------------------------------------------------
-# R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`）：典故库自带的性别
-# 倾向表。`qiming.py` 的 FEMININE_CHARS/MASCULINE_CHARS 服务于它自己那套候选池，
-# 与本模块 R217a 另建的 75 字典故库是两套独立词汇，交集为 0 → 女性加分从未
-# 触发。这里按目标用户（15-25 岁年轻女性）标尺对典故库 75 字逐字归类。
+# R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`，写作时属实）：
+# 典故库自带的性别倾向表。`qiming.py` 的 FEMININE_CHARS/MASCULINE_CHARS 服务于
+# 它自己那套候选池——本表按目标用户（15-25 岁年轻女性）标尺对本模块典故库
+# 逐字归类。R2349s 复扫（R85-P1-2）：典故库已扩到 156 字，与 qiming 两表交集
+# 现为 ∩FEM={瑶,铃}、∩MASC={坚,松,柏,沛,渊}——交集 0 的原始断言已过期，
+# 两套表并存仍各司其职（这边只管典故库）。
 #
 # 判定标尺：好念、好写、寓意正向、有质感但不做作。
 # ---------------------------------------------------------------------------
@@ -73,7 +75,7 @@ _FEM_LEAN: frozenset[str] = frozenset({
     "萧", "蔓", "莞", "茁", "沃", "荷",        # R225b 二批
     # 火
     "彤", "皎", "丹", "仪", "照", "流",
-    "昭", "晞", "灿", "阳", "熠",              # R225b 新增
+    "昭", "晞", "阳", "熠",              # R225b 新增
     "灼", "月", "煌",                          # R225b 二批
     # 土
     "悠", "谦", "靖",
@@ -110,10 +112,33 @@ _MASC_LEAN: frozenset[str] = frozenset({
 # 女性池排除：语义不佳或过于生僻，对年轻女性用户是负分
 #   鹜=野鸭 / 茕=孤独 / 玷=玉的瑕疵 / 暴、牢、烂、炉=意象不佳
 #   埙=古乐器（生僻）/ 苞=未开花苞（易误读）/ 染=有污染联想
-_AVOID_FEM: frozenset[str] = frozenset({
+# R230a-7（R13-P1-8）：贬义字拆出全性别过滤——茕/玷/鹜 给男生也
+# 不该用（此前只在女池过滤，男名照样出「王瑟茕」）。
+_AVOID: frozenset[str] = frozenset({
     "鹜", "茕", "玷", "暴", "牢", "烂", "炉", "埙", "苞", "染",
+    # R233u（R53-P1-4）：俗字/音义不吉字入名怪；生僻字办证与输入法
+    # 成本高（「璆/琇」典故仍在库里展示，但不再推进名）。
+    "萍", "露", "汤", "干", "聊", "离", "陵", "殡", "夭",
+    "璆", "琇", "沔", "渌", "楫", "猗", "绾", "纮",
+})
+_AVOID_FEM: frozenset[str] = frozenset({
     "萋",   # 「萋萋」在诗里多连着荒芜寂寥用，不适合做名字
 })
+
+# 五行生克表（P1-7：双字名「意象相生」按真实生克说）
+_WX_SHENG = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
+_WX_KE = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+
+
+def _wx_pair_word(e1: str, e2: str) -> str:
+    """两元素间的关系文案：相生 / 相承（同气） / 相济（相克）。"""
+    if e1 == e2:
+        return "意象相承"
+    if _WX_SHENG.get(e1) == e2 or _WX_SHENG.get(e2) == e1:
+        return "意象相生"
+    if _WX_KE.get(e1) == e2 or _WX_KE.get(e2) == e1:
+        return "意象相济"
+    return "意象相生"
 
 
 def _style_match(name_entry: dict, style: str) -> bool:
@@ -161,6 +186,21 @@ def _entry_match_style(entry: dict, style: str) -> bool:
     return True
 
 
+
+# R2349s（R84-P2-16）：典故句不吉片语黑名单——起名引用句的语义要过审，
+# 「载沉载浮」「黍离麦秀」这类亡国之音/覆败意象不该进娃的名字故事。
+# 只拦成片语，不拦单字（「病」在「霍去病」里是该有的用法）。
+_BAD_STORY_FRAG = frozenset({
+    "载沉载浮", "涂炭", "夭折", "早夭", "殂", "驾崩", "国殇",
+    "家破", "流离失所", "灾殃", "祸患", "厄难", "沉舟", "覆巢",
+    "黍离", "麦秀", "身败", "名裂", "孤魂", "野死",
+})
+
+def _story_ok(entry: dict) -> bool:
+    """典故条目过审：句+意象不含不吉片语。"""
+    blob = f"{entry.get('句', '')} {entry.get('意象', '')}"
+    return not any(b in blob for b in _BAD_STORY_FRAG)
+
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
                               top_n: int = 8, seed: int | None = None,
@@ -185,7 +225,10 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
 
     b = bazi_compute(year, month, day, hour, gender)
     counts = five_element_counts(b)
+    # R230a-7（R13-P1-6）：真实缺行与「补弱兜底」分开报——此前五行俱全
+    # 的盘也把最弱两行写成「缺XY」，summary 对外谎报。
     missing = [e for e, v in counts.items() if v <= 0.001]
+    weak: list[str] = []
     if not missing:
         # R220b（P0-3 第二次返工的真因）：五行都不缺时原来只取**最弱的一个**
         # 元素兜底 → 候选池只有该元素的 15 个字。top_n=8 时 8×2 > 15，
@@ -196,7 +239,8 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         # 补两个最弱的比只补一个更贴近「补不足」的本意。
         _ranked = sorted(counts.items(),
                          key=lambda x: x[1] if x[1] > 0 else float("inf"))
-        missing = [e for e, _v in _ranked[:2]]
+        weak = [e for e, _v in _ranked[:2]]
+        missing = list(weak)   # 选字池仍用偏弱行，只是对外口径不再叫「缺」
 
     full_names = []
 
@@ -215,8 +259,8 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         _AVOID_FEM），与原字表并用（原字表保留，命中仍算分）。
         """
         char = entry.get("字", "")
-        # 明确不适合给女生的字：语义不佳或生僻（鹜=野鸭、茕=孤独、玷=玉瑕）
-        if gender == "女" and char in _AVOID_FEM:
+        # R230a-7（R13-P1-8）：贬义字全性别扣分；萋仅女避。
+        if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
             return -2
         if gender == "女" and (char in _FEM_LEAN or char in FEMININE_CHARS):
             return 3
@@ -255,7 +299,10 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             # R225b：语义不佳/生僻字**直接不进女性池**。原先只靠 _score_entry
             # 排序压后，但 seed 分支走的是洗牌+分段、完全不看分数 → 这些字
             # 照样上屏（「李鹜」「李茕」就是这么来的）。这里做硬过滤。
-            if gender == "女" and char in _AVOID_FEM:
+            if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
+                continue
+            # R2349s（R84-P2-16）：典故句不吉片语一并拦。
+            if not _story_ok(entry):
                 continue
             # v3（P3）：风格过滤——池子阶段就按风格筛，保证切风格真正换血。
             if not _entry_match_style(entry, style):
@@ -263,7 +310,11 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             pool.append((elem, entry))
 
     # v3：风格过滤后池子不足一批 → 放宽为全量重建（保证用户一定拿到名字）
+    # R2349s（R84-P1-6）：放宽直接把风格层整个稀释（实测 classics 档
+    # 与 all 全同序）——改「风格命中排前、全量池垫底」，切风格永远
+    # 先看到风格字，批次仍由全量兜满。
     if len(pool) < max(int(top_n), 1) and style not in ("all", "", None):
+        _rest: list[tuple[str, dict]] = []
         for elem in missing:
             for entry in _CLASSICAL_DB.get(elem, []):
                 char = entry.get("字", "")
@@ -271,9 +322,14 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     continue
                 if len(set(char)) != len(char):
                     continue
-                if gender == "女" and char in _AVOID_FEM:
+                if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
                     continue
-                pool.append((elem, entry))
+                if not _story_ok(entry):
+                    continue
+                _rest.append((elem, entry))
+        # 风格命中的置顶（保序），未命中的垫后（保序去重留交下层）。
+        _rest.sort(key=lambda p: 0 if _entry_match_style(p[1], style) else 1)
+        pool = pool + _rest
 
     # 同字去重（不同缺行可能命中同一个字，合并后会重复上屏）
     _seen_chars: set[str] = set()
@@ -290,9 +346,16 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
     # 「陵/粮/顺/敦/厚/振」这类明显男性向的字。改为**先按性别把池分成
     # 契合层 + 中性层，契合层优先**，层内再洗牌分段——既保留"换一批不重复"
     # 的轮次语义，又让性别倾向真正生效。
+    # R2349s（R84-P1-6）：风格命中字额外加权——否则下游按契合分排序/
+    # 分层时又把风格池与非风格池重新搅匀，chip 变白切。
+    def _eff_score(entry: dict) -> int:
+        s = _score_entry(entry)
+        if style not in ("all", "", None) and _entry_match_style(entry, style):
+            s += 10
+        return s
     if pool:
-        _fit = [p for p in pool if _score_entry(p[1]) >= 3]
-        _neutral = [p for p in pool if _score_entry(p[1]) < 3]
+        _fit = [p for p in pool if _eff_score(p[1]) >= 3]
+        _neutral = [p for p in pool if _eff_score(p[1]) < 3]
     else:
         _fit, _neutral = [], []
 
@@ -302,15 +365,22 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         # 契合层够一批就只在契合层内轮转；不够则契合层打头、中性层补齐
         _base = _fit if len(_fit) >= _step else (_fit + _neutral)
         _segs = max(len(_base) // _step, 1)
-        _round = (max(int(seed), 1) - 1) // _segs
-        _seg = (max(int(seed), 1) - 1) % _segs
+        # R2349s（R83 残余）：seed=0 与 seed=1 撞段（max(0,1)=1）——
+        # 0 语义改成「来一炉随机新签」，不再是 1 号的别名。
+        _eff = int(seed)
         _shuffled = _base[:]
-        _random.Random(_round).shuffle(_shuffled)     # 每轮一个新顺序
+        if _eff == 0:
+            _random.Random().shuffle(_shuffled)
+            _seg = 0
+        else:
+            _round = (max(_eff, 1) - 1) // _segs
+            _seg = (max(_eff, 1) - 1) % _segs
+            _random.Random(_round).shuffle(_shuffled)  # 每轮一个新顺序
         _start = _seg * _step
         selected_pairs = _shuffled[_start:_start + _step] or _shuffled[:_step]
     else:
         selected_pairs = sorted(
-            pool, key=lambda p: _score_entry(p[1]), reverse=True)[:_step]
+            pool, key=lambda p: _eff_score(p[1]), reverse=True)[:_step]
 
     for elem, entry in selected_pairs:
         given = entry.get("字", "")
@@ -355,7 +425,16 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     continue
                 if c1 in surname or c2 in surname:
                     continue
+                # R230a-7（R13-P1-8）：贬义字全性别过滤 + 异性倾向字过滤
+                # （此前双字路径除女避字外零性别过滤：男名出淑蔓/瑶梧，
+                # 女名出振条/干聊）。
+                if c1 in _AVOID or c2 in _AVOID:
+                    continue
                 if gender == "女" and (c1 in _AVOID_FEM or c2 in _AVOID_FEM):
+                    continue
+                if gender == "男" and (c1 in _FEM_LEAN or c2 in _FEM_LEAN):
+                    continue
+                if gender == "女" and (c1 in _MASC_LEAN or c2 in _MASC_LEAN):
                     continue
                 given = c1 + c2
                 name = surname + given
@@ -366,7 +445,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     "given": given,
                     "elements": [elem, gender_comp],
                     "origin": e1.get("出处", "") + " + " + e2.get("出处", ""),
-                    "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，意象相生。",
+                    "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
                     "form": "double",
                 })
                 if len(_doubles) >= _double_quota * 3:   # 池子留余量供风格过滤
@@ -415,7 +494,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                         "given": given,
                         "elements": [elem, gender_comp],
                         "origin": e1.get("出处", "") + " + " + e2.get("出处", ""),
-                        "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，意象相生。",
+                        "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
                         "form": "double",
                     })
                     if len(full_names) >= top_n:
@@ -430,6 +509,23 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         if n["full_name"] not in seen:
             seen.add(n["full_name"])
             unique.append(n)
+
+    # R2349s（R84-P2-14）：重名热字 / 生僻字提醒——只对库内实际会出现
+    # 的字建表（149 字全量核对）：热字=近年新生儿高频（梓/瑶/彤/桐/
+    # 伊/仪），生僻=笔画多或输入法都得翻页的（埙/猗/玷/琇/璆/鹜/樊/
+    # 楫/渌/湄/湛/溯）。提醒是信息不是否决，文案给选择权。
+    _HOT = set("梓瑶彤桐伊仪")
+    _RARE = set("埙猗玷琇璆鹜樊楫渌湄湛溯")
+    for n in unique:
+        _g = n.get("given", "")
+        _hot = [c for c in _g if c in _HOT]
+        _rare = [c for c in _g if c in _RARE]
+        if _rare:
+            n["name_note"] = (f"「{'、'.join(_rare)}」偏生僻——"
+                              "娃以后写名办证可能要多解释两句")
+        elif _hot:
+            n["name_note"] = (f"「{'、'.join(_hot)}」是近年热字，"
+                              "重名率偏高——想要独特感可以换一换")
 
     # R221b-fix（审查轨 R221a 目视发现）：`candidates` 自 R217a 建模块起就
     # 写死空列表，前端却一直渲染「单字候选池（0 字）」折叠区 → 一个永远空的
@@ -451,11 +547,18 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
     ]
     return {
         "surname": surname,
-        "five_elements": {"counts": counts, "missing": missing},
+        # missing 对外只报真实缺行；选字兜底走 weak（P1-6 不谎报）。
+        "five_elements": {"counts": counts,
+                           "missing": ([] if weak else missing),
+                           "weak": weak},
         "full_names": unique[:top_n],
         "candidates": _cand,
         "bazi": {"render": b.render()},
-        "summary": f"姓氏：{surname}；八字：{b.year} {b.month} {b.day} {b.hour}（日主{b.day_master}）；五行分布：{'、'.join(f'{e}{v:g}' for e, v in counts.items())}；{'缺' + ''.join(missing) if missing else '五行俱全'}",
+        # R230a-7（R13-P1-6）：五行俱全走兜底时写「偏弱」不写「缺」。
+        "summary": f"姓氏：{surname}；八字：{b.year} {b.month} {b.day} {b.hour}（日主{b.day_master}）；五行分布：{'、'.join(f'{e}{v:g}' for e, v in counts.items())}；"
+                   + (f"缺{''.join(missing)}" if not weak
+                      else (f"偏弱：{'、'.join(weak)}（五行俱全，起名补偏弱行）"
+                            if weak else "五行俱全")),
     }
 
 

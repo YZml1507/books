@@ -13,7 +13,6 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji import clean, gua_spans  # noqa: E402
 from guji.zhouyi import work_body  # noqa: E402
 
 RAW = os.path.join(ROOT, "data", "raw")

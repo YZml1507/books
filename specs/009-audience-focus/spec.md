@@ -188,3 +188,7 @@ US1（AI 陪伴层，依赖子 agent 勘查报告，独立一轮）。
 - 判据 a：表单卡片化（.card 内柔和底色渐变+圆角输入框，消除工具感断层）；
 - 判据 b：正文次级文字对比度 ≥ AA（灰字提色）；
 - 判据 c：check_plain_first 5×8 全达标、ui_smoke/selftest 全绿。
+> **R230n 回写（R27-#14）**：原案「读书·检索 收进高级抽屉」已按 R208b
+> 用户裁决改为**移除入口**——view-read/view-divine 无 func-card 入口，
+> 研究端点（/api/ask、/api/research 等）保留存活；死视图处置待拍板
+> （台账 R230d P3-1）。

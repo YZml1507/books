@@ -1,4 +1,4 @@
-"""Douay-Rheims Bible parser — the third bcv-family edition.
+r"""Douay-Rheims Bible parser — the third bcv-family edition.
 
 The Douay-Rheims Old Testament (1582/1609-10, Challoner revision 1749-52) follows
 Vulgate numbering and spelling, which differ from the Protestant KJV/WEB that
@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import re
 
-from . import bcv
 from .bcv import BOOK_INDEX
 
 # "<BookShortName> Chapter <N>" — Douay chapter heading. Short name, no leading
@@ -138,7 +137,6 @@ def parse_verses(text: str) -> list[Verse]:
     lines = text.splitlines(keepends=True)
     out: list[Verse] = []
     cur_bcv: str | None = None
-    cur_chap: int | None = None
     cur_c: int | None = None
     cur_v: int | None = None
     buf_lines: list[str] = []
@@ -172,7 +170,6 @@ def parse_verses(text: str) -> list[Verse]:
             flush(offset)
             douay_name = cm.group(1)
             cur_bcv = DOUAY_TO_BCV.get(douay_name)
-            cur_chap = int(cm.group(2))
         elif vm:
             flush(offset)
             cur_c, cur_v = int(vm.group(1)), int(vm.group(2))

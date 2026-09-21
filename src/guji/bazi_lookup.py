@@ -18,14 +18,39 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import sqlite3
 
-import numpy as np
-
 from .bazi import Bazi
+
+# R228k：numpy 只在语义检索路径用（_sem_vecs/retrieve_semantic），web 入口
+# 只调 retrieve_fast 纯 sqlite——顶层 import 让每个进程白付 ~66ms
+# （-X importtime 实测，占 web.app 导入的 ~16%）。改成用到才载。
+np = None
+
+
+def _np():
+    global np
+    if np is None:
+        import numpy as _np_mod
+        np = _np_mod
+    return np
+
+
 from .search import render_citation
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# R230c（R17-P0-3）：frozen 下 __file__ 落在 _MEIPASS，ROOT 推导错位会让
+# DB 指向不存在的 _MEIPASS/data/index/corpus.db → /api/bazi 恒 503。
+# 与 web/deps.py 同口径：frozen 期向 exe 上一级找含 data/index 的项目根，
+# 找不到退回 exe 同目录。
+if getattr(sys, "frozen", False):
+    _exe_dir = os.path.dirname(sys.executable)
+    _parent = os.path.dirname(_exe_dir)
+    ROOT = _parent if os.path.isdir(os.path.join(
+        _parent, "data", "index")) else _exe_dir
+else:
+    ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
 DB = os.path.join(ROOT, "data", "index", "corpus.db")
 
 # 八字命理相关书目（有内容、与排盘坐标直接相关的优先在前）
@@ -70,7 +95,9 @@ def queries_from(b: Bazi) -> list[tuple[str, str]]:
         (b.day, "日柱"),                       # 如 甲辰
         (b.month, "月柱"),                     # 如 丙寅
         (b.year, "年柱"),                      # 如 甲辰
+        (b.hour, "时柱"),                      # R228r：时柱此前从不参与检索
         (b.nayin[2], "日柱纳音"),              # 如 覆灯火
+        (b.nayin[3], "时柱纳音"),
         (b.nayin[1], "月柱纳音"),
         (b.nayin[0], "年柱纳音"),
         (b.day_master, "日主"),                # 如 甲
@@ -96,14 +123,23 @@ TOPIC_QUERIES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("感情", "恋爱", "婚", "桃花", "对象", "姻缘"), ("妻财", "婚姻")),
     (("事业", "工作", "升职", "考公", "创业"), ("官鬼", "功名")),
     (("财", "钱", "收入", "财运", "投资"), ("财帛", "妻财")),
-    (("学", "考试", "考研", "读书", "学业"), ("学业", "文昌")),
+    (("学习", "考试", "考研", "读书", "学业"), ("学业", "文昌")),
     (("健康", "身体", "疾病"), ("疾厄", "寿元")),
 )
 
 
+# 繁体输入归一：FOLD 只管异体字（説→说），不收繁简对（財→财）。关键词表
+# 全是简体，繁体提问会整批漏配——这里只映射关键词表实际用到的字。
+_TRAD_KEY = str.maketrans("戀緣財運學業讀試錢體醫療歷離職創昇",
+                          "恋缘财运学业读试钱体医疗历离职创升")
+
+
 def topic_queries(question: str | None) -> list[str]:
     """提问 → 追加检索词列表（去重保序）。无提问/未命中返回空表。"""
-    q = (question or "").strip()
+    # R228r：先 fold 归一异体再简繁归一——『財運』『姻緣』这类繁体提问
+    # 此前整批漏配。
+    from .variants import fold
+    q = fold((question or "").strip()).translate(_TRAD_KEY)
     if not q:
         return []
     out: list[str] = []
@@ -120,16 +156,16 @@ _TOPIC_WHY = "提问主题"
 
 
 def _fts_phrase(q: str) -> str:
-    from .variants import fold, segment_cjk
-    seg = segment_cjk(fold(q)).replace('"', "")
-    return f'"{seg}"'
+    # 与 search.fts_phrase 同语义——复用不另存（同规则双份拷贝是 L-01 事故形态）。
+    from .search import fts_phrase
+    return fts_phrase(q)
 
 
 # --------------------------------------------------------------------------------------
 # FTS 路径
 # --------------------------------------------------------------------------------------
 def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
-                  top_queries: int = 3, question: str | None = None) -> list[dict]:
+                  top_queries: int = 5, question: str | None = None) -> list[dict]:
     """坐标词 FTS 检索命理书，返回带引用的原文证据。
 
     返回 [{query, why, work_id, title, citation, text, layer}...]，
@@ -139,6 +175,12 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
     主题词**追加**在坐标词队尾参与检索（why="提问主题"）。坐标词的顺序、
     权重与去重逻辑一字不动——无提问时输出与旧版逐字节一致。
     """
+    # R230g（R19-P3-2）：sqlite3.connect 对缺失路径会顺手建 0B 残库，
+    # 与 Corpus.__init__ 同一道存在性守卫——缺索引报人话而非污染文件。
+    if not os.path.exists(DB) or os.path.getsize(DB) == 0:
+        raise FileNotFoundError(
+            # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
+            "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
@@ -146,6 +188,7 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
         qs.append((t, _TOPIC_WHY))
     seen: set[tuple] = set()
     out: list[dict] = []
+
     for q, why in qs:
         if len(q) < 2:
             continue  # 单字不参与 FTS（噪音）
@@ -180,7 +223,9 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
                 if len([o for o in out if o["work_id"] == wid]) >= per_work:
                     break
     conn.close()
-    out.sort(key=lambda o: (-o["score"], o["work_id"]))
+    # R228m：FTS5 bm25 分数为负、越负越好——`-score` 升序=最差在前，
+    # 叠上 [:20] 截断等于把最强命中整批丢弃。改回 bm25 升序。
+    out.sort(key=lambda o: (o["score"], o["work_id"]))
     return out[: 20]
 
 
@@ -188,6 +233,17 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
 # bge 语义路径（命理书向量缓存，照 eval_g1 的 bge_docvecs 先例）
 # --------------------------------------------------------------------------------------
 _sem_cache: tuple | None = None
+_model_cache = None
+
+
+def _model():
+    """SentenceTransformer 单例——~100MB 权重此前每次检索都重载。
+    惰性加载：web 路径不走语义检索时零成本。"""
+    global _model_cache
+    if _model_cache is None:
+        from sentence_transformers import SentenceTransformer
+        _model_cache = SentenceTransformer(MODEL_DIR)
+    return _model_cache
 
 
 def _sem_vecs(conn) -> tuple:
@@ -210,15 +266,14 @@ def _sem_vecs(conn) -> tuple:
         # 结构校验：缓存必须含 id 字段（早期缓存缺它会导致回查 KeyError）
         if (old.get("ids") == ids_now and old_meta
                 and all("id" in m for m in old_meta)):
-            vecs = np.load(SEM_DOCVECS)
+            vecs = _np().load(SEM_DOCVECS)
             _sem_cache = (vecs, old_meta)
             return _sem_cache
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(MODEL_DIR)
-    vecs = np.asarray(model.encode([r["text"] for r in rows], batch_size=64,
-                                   show_progress_bar=False, normalize_embeddings=True),
-                      dtype=np.float32)
-    np.save(SEM_DOCVECS, vecs)
+    model = _model()
+    vecs = _np().asarray(model.encode([r["text"] for r in rows], batch_size=64,
+                                      show_progress_bar=False, normalize_embeddings=True),
+                         dtype=_np().float32)
+    _np().save(SEM_DOCVECS, vecs)
     json.dump(meta, open(SEM_DOCMETA, "w", encoding="utf-8"))
     _sem_cache = (vecs, meta["meta"])
     return _sem_cache
@@ -229,17 +284,21 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
 
     元数据缓存不含 text（text 大、避免 json 膨胀），命中后按单元 id 回查。
     """
+    if not os.path.exists(DB) or os.path.getsize(DB) == 0:
+        raise FileNotFoundError(
+            # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
+            "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     vecs, meta = _sem_vecs(conn)
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(MODEL_DIR)
+    model = _model()
     queries = [q for q, _ in queries_from(b)]
-    qv = np.asarray(model.encode(queries, normalize_embeddings=True), dtype=np.float32)
+    qv = _np().asarray(model.encode(queries, normalize_embeddings=True),
+                       dtype=_np().float32)
     # 取各查询最高分的并集（一个单元被任一坐标词命中即算）
     sims = vecs @ qv.T
     best = sims.max(axis=1)
-    order = np.argsort(-best)[:top_k]
+    order = _np().argsort(-best)[:top_k]
     out = []
     for idx in order:
         m = meta[idx]

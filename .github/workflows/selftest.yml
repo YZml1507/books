@@ -1,0 +1,193 @@
+# 每次 push/PR 自动跑主闸门：web/selftest.py（268 项）+ 契约/静态探针。
+# 步骤与 Devin 环境蓝图（initialize 段）同源：装依赖 → 重建 corpus.db →
+# knowledge.db 种子 → 离线跑 selftest。新增依赖时两处同步改。
+name: selftest
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # lfs: true — bge-small-zh 模型权重（model.safetensors/pytorch_model.bin）
+      # 在 LFS 里；不拉的话 bazi.semantic 会拿指针文件当权重读，直接挂。
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: 依赖
+        run: |
+          pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-ci.txt
+      - name: 构建语料索引（data/index/corpus.db，gitignored）
+        run: |
+          python scripts/check_quality.py
+          python scripts/build_index.py
+      - name: knowledge.db 种子（selftest threads.detail/share.bazi 需要 id=1）
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'src')
+          from guji.knowledge import KnowledgeBase, Evidence
+          kb = KnowledgeBase('data/index/knowledge.db')
+          if kb.db.execute("SELECT count(*) c FROM thread").fetchone()["c"] == 0:
+              tid = kb.open_thread('env-seed: CI 种子线程')
+              kb.add_turn(tid, 'user', 'CI 自检种子')
+          else:
+              tid = kb.db.execute("SELECT id FROM thread ORDER BY id LIMIT 1").fetchone()["id"]
+          if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
+              kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
+                        evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
+                                           raw_start=6918, raw_end=6994,
+                                           quote='第四十三章 天下之至柔',
+                                           page_anchor='KR5c0057_tls_043-1a')],
+                        thread_id=tid)
+          kb.close()
+          PY
+      - name: 主闸门 selftest
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/selftest.py
+      - name: 契约探针
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_contract.py
+      - name: 断言回归闸 probe_selftest_regress（断言集只增不减）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_selftest_regress.py
+      - name: 专业模式字节冻结闸 baseline_voice（判据 9）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/baseline_voice.py
+      - name: LLM 层闸门 probe_llm_polish（specs/006 判据 2/2b/3/6/7/8）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_llm_polish.py
+      - name: 星座闸门 check_xingzuo（004 判据 10/11：锚点逐字命中+确定性）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_xingzuo.py
+      - name: 温柔口吻闸 check_warm_voice（004 判据 1-8×10 用例+禁语）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_warm_voice.py
+      - name: 异步 AI 闸 check_async_ai（006 判据 9/10/11）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_async_ai.py
+      - name: $ 误用静态探针
+        run: python probes/probe_dollar_misuse.py
+      - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入）
+        # R230o：probes/ 存量清零后一并纳入——归档的一次性脚本也要过。
+        run: ruff check src web scripts probes web_launcher.py --select E9,F
+      - name: 生成文本不入库闸 probe_no_generated_in_corpus
+        # R230o（R27-#12）：PHASE「建议纳入」挂起约一月——两条均 <1s，直接收口进 CI。
+        run: python probes/probe_no_generated_in_corpus.py
+      - name: 脚本符号闸 probe_scripts_importable（guji 引用静态校对）
+        run: python probes/probe_scripts_importable.py
+      - name: corpus 数据闸门（章节/双引擎/出处/索引/G1-G9）
+        run: |
+          python scripts/check_booksec.py
+          python scripts/check_dual_engine.py
+          python scripts/check_provenance.py
+          python scripts/verify_index.py
+          python scripts/assess_goals.py
+      - name: R2347 补接线闸门（R60-#18 剩余：计算层+语料层证伪）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          python probes/probe_liuyao_najia.py
+          python probes/probe_huangli_shensha.py
+          python probes/probe_internal_witness.py
+          python probes/probe_generality_crossref.py
+          python probes/probe_disclosure.py
+          python probes/probe_herodotus.py
+          python probes/probe_bcv.py
+          python probes/probe_booksec.py
+          python probes/probe_conservation.py
+
+  # 浏览器闸门：DOM 渲染层回归（selftest 只到 API 层）。独立 job 免得拖慢主闸。
+  browser-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: 依赖（含 playwright + chromium）
+        run: |
+          pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-ci.txt playwright==1.63.0
+          python -m playwright install --with-deps chromium
+      - name: 构建语料索引 + knowledge 种子（与 selftest job 同步骤）
+        run: |
+          python scripts/check_quality.py
+          python scripts/build_index.py
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'src')
+          from guji.knowledge import KnowledgeBase, Evidence
+          kb = KnowledgeBase('data/index/knowledge.db')
+          if kb.db.execute("SELECT count(*) c FROM thread").fetchone()["c"] == 0:
+              tid = kb.open_thread('env-seed: CI 种子线程')
+              kb.add_turn(tid, 'user', 'CI 自检种子')
+          else:
+              tid = kb.db.execute("SELECT id FROM thread ORDER BY id LIMIT 1").fetchone()["id"]
+          if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
+              kb.record('summary', '天下之至柔，驰骋于天下之至坚', 'env-seed',
+                        evidence=[Evidence(work_id='KR5c0057', file='KR5c0057_043.txt',
+                                           raw_start=6918, raw_end=6994,
+                                           quote='第四十三章 天下之至柔',
+                                           page_anchor='KR5c0057_tls_043-1a')],
+                        thread_id=tid)
+          kb.close()
+          PY
+      - name: R2342 补接线闸门（R60-#18：count_open_findings/r128a/g8_isolation）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          python scripts/count_open_findings.py
+          python probes/probe_r128a_no_dup_citations.py
+          python probes/probe_g8_isolation.py
+      - name: R218a 验收 verify_r218a（需常驻服务 8183）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: |
+          PYTHONPATH=src:. python -m uvicorn web.app:app --port 8183 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8183/ >/dev/null && break; sleep 1; done
+          python scripts/verify_r218a.py
+      - name: 首屏闸门 probe_first_screen
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_first_screen.py
+      - name: UI 冒烟 probe_ui_smoke
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_ui_smoke.py
+      - name: 日期词前后端一致性 probe_date_parity
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python probes/probe_date_parity.py
+      - name: 白话优先闸门 check_plain_first（specs/005 判据 1-8×5 用例）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_plain_first.py
+      - name: 分享图闸门 check_poster（004 判据 12/13/14：真点 share 零异常）
+        env:
+          BOOKS_LLM_DISABLE: "1"
+        run: python web/check_poster.py

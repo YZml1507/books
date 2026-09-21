@@ -5,7 +5,9 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from datetime import date as _date, datetime as _datetime
+
+from fastapi import APIRouter, Query
 
 from .. import services
 from ..schemas import LiuyaoRequest, TarotDrawRequest, TarotRequest
@@ -21,9 +23,28 @@ def liuyao(req: LiuyaoRequest) -> dict:
 
 @router.get("/api/huangli")
 def huangli(date: str | None = None, affair: str | None = None,
-            days: int = 1) -> dict:
+            # R228b：days 无界时逐日 day_query 线性 DoS（实测 365 天≈21s）
+            days: int = Query(1, ge=1, le=92),
+            # R2349k（R72-B3）：客户端本地日——cross_ref「今天」锚用它。
+            today: str = Query("", max_length=10)) -> dict:
     """黄历择日：单日宜忌坐标，或在日期区间内找宜某事项的日子。"""
-    return services.huangli(date, affair, days)
+    return services.huangli(date, affair, days, today or None)
+
+
+@router.get("/api/huangli/resolve_date")
+def huangli_resolve_date(q: str = Query("", max_length=80),
+                         base: str = Query("", max_length=10)) -> dict:
+    """R229z：节日/农历/复杂日期表达 → 公历日期（前端问一嘴的兜底——
+    _hlDayOffset 本地解不动时调它；解不出 date=null，前端回退显示日）。
+    R230l（R24-P3-4）：base=浏览器本地日——跨零点±TZ/年界窗口不漂移。"""
+    _now = None
+    if base:
+        try:
+            _now = _datetime.combine(
+                _date.fromisoformat(base), _datetime.now().time())
+        except (ValueError, TypeError):
+            _now = None        # 非法 base 静默回落服务器日（同旧行为）
+    return services.resolve_huangli_date(q, now=_now)
 
 
 @router.post("/api/tarot")

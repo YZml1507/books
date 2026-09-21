@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # 大阿卡纳（22 张）：(名称, 正位关键词, 逆位关键词, 传统象征说明)
 MAJOR_ARCANA: list[tuple[str, str, str, str]] = [
@@ -64,6 +64,20 @@ _RANK_KW = {
     9: "累积·临近完成",
     10: "顶点·完成·满载",
 }
+# R230a-8（R13-P2-5）：数字位逆位关键词——不再是正位串+「·偏滞」懒式
+# 取反（56 张小牌共享同一尾巴，逆位毫无信息量）。逐位写实。
+_RANK_KW_REV = {
+    1: "暂缓·未启动·时机未到",
+    2: "失衡·两难·拉扯",
+    3: "受挫·返工·方向要调",
+    4: "停滞·倦怠·安不动",
+    5: "内耗·僵局·互相消耗",
+    6: "反复·旧账·进退难",
+    7: "自我怀疑·守不住·耗",
+    8: "阻滞·拖延·事不顺",
+    9: "收尾难·差口气·撑住",
+    10: "过载·扛太满·该卸了",
+}
 _RANK_MEANING = {
     1: "象征事物的种子与初始能量",
     2: "象征两方力量的交汇与权衡",
@@ -75,6 +89,21 @@ _RANK_MEANING = {
     8: "象征节奏加快与果断推进",
     9: "象征接近完成的累积状态",
     10: "象征该主题的顶点与满载",
+}
+
+# R233u（R53-P0-1 连带）：花色×rank 覆写表——传统牌义与共享 rank
+# 词冲突的单独写实（宝剑9=忧惧/宝剑10=谷底，不是「临近完成/满载」）。
+_RANK_OVERRIDE: dict[tuple[str, int], tuple[str, str, str]] = {
+    ("宝剑", 9): ("忧惧·反刍·想太多", "缓过来·想开了·没那么糟",
+                  "象征深夜独自反刍的忧惧——天亮了会缓的"),
+    ("宝剑", 10): ("谷底·终结·至暗", "触底回升·最坏的过了",
+                   "象征跌到谷底——到这儿就只有回升一条路了"),
+    # R2349q（R81-P1-6）：宝剑3/8 传统义与共享 rank 词冲突——宝剑3
+    # 在重牌名单里，自己牌面却写「成长·协作·初成」，口径内部打架。
+    ("宝剑", 3): ("心痛·戳心·看清", "愈合·放下·缓过来",
+                  "象征一段戳心的事——疼是真的，也在教你看清"),
+    ("宝剑", 8): ("受困·自我设限·缠住", "松绑·脱身·看清出口",
+                  "象征自己把自己困住——绳子没感觉的那么紧"),
 }
 
 # 宫廷牌：人物位阶 + 传统面向
@@ -92,8 +121,16 @@ def _minor_deck() -> list[tuple[str, str, str, str]]:
     for suit, theme in _MINOR_SUITS:
         for rank, kw in _RANK_KW.items():
             name = f"{suit}{rank}" if rank > 1 else f"{suit}A"
-            rev = _reverse_kw(kw)
-            deck.append((name, kw, rev, f"{theme}。{_RANK_MEANING[rank]}"))
+            # R230a-8：逆位查专属表；查不到的走老兜底
+            rev = _RANK_KW_REV.get(rank) or _reverse_kw(kw)
+            meaning = f"{theme}。{_RANK_MEANING[rank]}"
+            # R233u（R53-P0-1 连带）：花色×rank 覆写——共享 rank 词
+            # 套到宝剑9（忧惧）/宝剑10（谷底）上是彻底的语气反转。
+            _ov = _RANK_OVERRIDE.get((suit, rank))
+            if _ov:
+                kw, rev, meaning = _ov
+                meaning = f"{theme}。{meaning}"
+            deck.append((name, kw, rev, meaning))
         for title, up, rev, meaning in _COURT:
             deck.append((f"{suit}{title}", up, rev, f"{theme}。{meaning}"))
     return deck
@@ -111,7 +148,7 @@ DECK: list[tuple[str, str, str, str]] = MAJOR_ARCANA + _minor_deck()
 # 到"第N张"。写死静态，非生成文本。
 SPREADS: dict[int, tuple[str, ...]] = {
     3: ("过去", "现在", "未来"),
-    5: ("现状", "助力", "阻碍", "过去", "结果"),
+    5: ("过去", "现状", "阻碍", "助力", "结果"),
     7: ("第1日", "第2日", "第3日", "第4日", "第5日", "第6日", "第7日"),
 }
 
@@ -133,7 +170,7 @@ class Draw:
         return f"{head}{self.name}（{pos}）：{kw}——{self.meaning}"
 
 
-def draw(seed: int, n: int = 3) -> list[Draw]:
+def draw(seed: "int | None", n: int = 3) -> list[Draw]:
     """seed 确定性抽 n 张（默认 3 张，照 liuyao seed=42 先例）。
 
     固定 seed → 固定牌面与正逆位，可命令复验；n 上限 10（超过截断）。

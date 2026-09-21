@@ -80,8 +80,13 @@ def compute(b: Bazi) -> Taohua:
     """主入口：八字四柱 → 桃花运分析（纯坐标计算）。"""
     pillars = {k: b.__getattribute__(k)[1] for k in _PILLARS}  # 取各柱地支
     year_zhi = pillars["year"]
+    day_zhi = pillars["day"]
     peach = XIANCHI[year_zhi]
-    hit = [k for k in _PILLARS if pillars[k] == peach]
+    # R2349s（R83-P1）：咸池传统上也可由日支起——只认年支参考时，年柱
+    # 自己永远不可能命中 →「strong」构造性稀缺（实测 50 盘 0 强）。
+    # 年/日支两个参考位都认，命中任一并集计。
+    peach_d = XIANCHI[day_zhi]
+    hit = [k for k in _PILLARS if pillars[k] == peach or pillars[k] == peach_d]
 
     hl = _hongluan_zhi(year_zhi)
     hl_hit = [k for k in _PILLARS if pillars[k] == hl]

@@ -11,7 +11,11 @@
 
 ## 核心指令
 
-1. **完整读** `docs/GOAL.md`，理解 §1 授权与约束、§4 任务优先级
+0. **先读 `docs/PHASE.md` 的 `CURRENT_PHASE`**（当前 OPTIMIZE）决定自己在哪条轨：
+   审查轨/优化轨双轨制，分工与闸门表见 PHASE.md；优化池见 `docs/OPTIMIZE_BACKLOG.md`，
+   缺陷清单见 `docs/AUDIT_FINDINGS.md`，规范见 `specs/`。
+1. **完整读** `docs/GOAL.md`，理解 §1 授权与约束、§4 任务优先级（§4 的 T1–T7
+   早已全部 DONE，勿按它排队——实际优先级以台账末轮为准）
 2. **完整读** `docs/TASK_LEDGER.md`，找出所有标记为 TODO/PART/未完成的任务
 3. **按 §4 顺序连续执行**，不要停下来问意见
 4. **每完成一小项立刻更新台账**（`TASK_LEDGER.md`）——这是跨压缩唯一状态载体
@@ -46,10 +50,10 @@
 
 ## 已知待办（仅供参考，以你读台账后的判断为准）
 
-前窗口提到但未验证的：
-- **P-05**: 焦氏易林 4,096 单元未纳入 G1 题库
-- **P-06**: tier 2/3 五书解析器部分完成（Euclid/Shakespeare/Plato/Iliad 未动）
-- **W-04**: 京氏易傳编址标记 PART（59/62，3 处符号/内容错配）
+前窗口提到但未验证的（R228s 复核更新）：
+- ~~**P-05**: 焦氏易林 4,096 单元未纳入 G1 题库~~ **DONE**——eval_g1 已含 32 道易林题（现 248 题）
+- ~~**P-06**: tier 2/3 五书解析器部分完成~~ **DONE**——五书全部入索引
+- **W-04**: 京氏易傳编址标记 PART（59/62，3 处符号/内容错配）——仍属实，未清偿
 
 **你自己判断**：
 1. 这些是否真的未完成（读代码、跑命令验证）
@@ -79,15 +83,31 @@
 2. 自主做了哪些决策（附实测依据）
 3. 新发现的问题（已加入台账）
 4. Git 操作（commit/push 了什么）
-5. 当前闸门状态（`scripts/assess_goals.py` 输出）
+5. 当前闸门状态（`scripts/assess_goals.py` 输出 + web 层闸门：`web/selftest.py`、
+   `probes/probe_ui_smoke.py`、`probes/probe_contract.py`、`probes/probe_dollar_misuse.py`、
+   `probes/probe_selftest_regress.py`、`probes/probe_first_screen.py`、
+   `probes/probe_date_parity.py`——全集合见 TASK_LEDGER 开头闸门清单与 PHASE.md 闸门表；
+   另 `probes/eval_xiaoman_llm.py` 为需真实 key 的人工复验工具，不进 CI）
 
 ---
 
 ## 立即行动
 
+> **R229x 备注**：跑数据闸门（check_quality / assess_goals / eval_* 等）会重写
+> `data/catalog/*.json` 报告文件——它们被 git 追踪，跑完 `git status` 出现
+> 若干 ` M` 属正常。取舍：要么把新报告提交（它就是给交付看的），要么
+> `git checkout` 还原。`.npy` 向量缓存（~10MB）同理在库——刻意决策见
+> R7 审计 #11，不视为问题。
+
 ```powershell
-# 1. 看当前状态
+# 0. 看当前阶段
+#    type docs\PHASE.md 第三行（CURRENT_PHASE）
+
+# 1. 看当前状态（语料侧 + web 侧）
 .\.venv\Scripts\python.exe scripts\assess_goals.py
+$env:BOOKS_LLM_DISABLE="1"
+.\.venv\Scripts\python.exe web\selftest.py
+.\.venv\Scripts\python.exe probes\probe_ui_smoke.py
 
 # 2. 读任务书
 # docs/GOAL.md（重点 §1 §4）
@@ -97,3 +117,21 @@
 ```
 
 每完成一小步就更新台账，不要攒着！
+
+> **R229z续15 纪律**：改了 `web/static/app.js` 必须跑 `python scripts/bump_sw.py`
+> 再提交——SW 的 CACHE 名绑 app.js 内容哈希，selftest 的 `sw.shell_hash`
+> 闸会强制这一步（不改就红），目的是让已装机用户下次打开必拿新壳。
+
+## 出网端点白名单（R230n·R26 审计登记）
+
+运行期允许的外联全清单（全部功能所需，新增请登记在此）：
+
+| 端点 | 用途 | 位置 |
+|---|---|---|
+| `apihub.agnes-ai.com` | 小满 LLM（chat/polish/name-review）+ 分享图出图 | `llm_polish.py`、`image_gen.py` |
+| `note3-prev-api.askdiandian.com` | LLM 备用端点 | `llm_polish.py` |
+| `image.pollinations.ai` | 出图备用端点 | `image_gen.py` |
+| `feeds.bbci.co.uk`、`www.solidot.org` | 资讯 RSS（external/*，可用 BOOKS_EXTERNAL_DISABLE 关停） | `external.py` |
+| `codeload.github.com` | Kanripo 语料下载（仅 scripts，非运行期） | `sources.py`、`backfill_provenance.py` |
+
+其余 `127.0.0.1`/`localhost` 为本机回环。任何新增外联域先自问：是否功能必需 + 登记本表。

@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import glob
 import os
-import re
 
 from .variants import DROP, FOLD
 
@@ -88,6 +87,15 @@ def raw_body(raw_dir: str, work: str) -> str:
     data/raw_ext) keep their own single-file reads.
     """
     work_dir = os.path.join(raw_dir, work)
+    # R228i：路径穿越围堵——work_id 上游虽有 schema 校验，本函数仍可能被
+    # 其他调用方（fixture/probe）绕过。realpath 后必须仍落在 raw_dir 或
+    # 其兄弟 raw_ext/generality 内，越界即空正文（verify 判 stale 不读盘）。
+    _real = os.path.realpath(work_dir)
+    _allowed = (os.path.realpath(raw_dir),
+                os.path.realpath(os.path.join(
+                    os.path.dirname(raw_dir), "raw_ext", "generality")))
+    if not any(os.path.commonpath([_real, a]) == a for a in _allowed):
+        return ""
     if os.path.isdir(work_dir):
         from .ingest import load_work  # lazy: knowledge.py imports this module
         return load_work(raw_dir, work)[0]
@@ -114,12 +122,14 @@ def raw_body(raw_dir: str, work: str) -> str:
         return ""
 
 
-_cache: dict[tuple[str, str], str] = {}
+_cache: dict[tuple[str, str, str], str] = {}
 
 
 def body_in(raw_dir: str, work: str, space: str) -> str:
-    """Cached: a full pass over 28 works in three spaces is ~12M chars of work."""
-    key = (work, space)
+    """Cached: a full pass over 28 works in three spaces is ~12M chars of work.
+    R228r：键须带 raw_dir——同进程换语料目录（测试夹具/多库比对）时
+    旧键 (work, space) 会把别家正文当命中返回。"""
+    key = (raw_dir, work, space)
     if key not in _cache:
         _cache[key] = in_space(raw_body(raw_dir, work), space)
     return _cache[key]

@@ -13,7 +13,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from guji import clean, extract_yao, gua_spans, yao_names  # noqa: E402
+from guji import clean, gua_spans, yao_names  # noqa: E402
 from guji.anchors import HEX_RE, gua_number  # noqa: E402
 from guji.variants import FOLD  # noqa: E402
 from guji.zhouyi import derive_gold, derive_polarity, work_body  # noqa: E402

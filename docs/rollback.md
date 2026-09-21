@@ -26,7 +26,9 @@
 4. 重建虚拟环境（备份不含 .venv，用它跑起来需要一次重建）：
    `cd C:\Users\Lenovo\Desktop\projects\books`
    `python -m venv .venv`（或把现 books_ink_v2\.venv 整个复制回来，二进制兼容最省事）
-   `.venv\Scripts\pip install -r requirements.txt`（如无 requirements，见交接文档依赖清单）
+   `.venv\Scripts\pip install -r requirements-ci.txt`（钉扎版，与 CI 同源；torch 另装：
+   `.venv\Scripts\pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu`，
+   浏览器闸门需要 `playwright==1.63.0` + `python -m playwright install chromium`）
 5. 双击桌面「八字命理检索」验证恢复。
 
 > 简化路径：如果不想动 .venv，可只回滚被改的目录——把备份里的
@@ -50,3 +52,12 @@ git status                                     # 确认 web/ src/ 已还原
 ## 回滚后验证
 1. 双击桌面「八字命理检索」→ 浏览器自动打开 http://127.0.0.1:8123
 2. 首页正常渲染、排盘一次出结果即恢复成功。
+
+## 运维坑备忘（R58-P2-4）
+`data/index/*.db`（knowledge.db / paipan_history.db 等 SQLite）被 chmod 只读后，
+SQLite 会连带生成 `-shm`/`-wal` sidecar 且同为只读。**恢复时只 chmod 主文件不够**
+——要三个文件一起恢复或直接删 sidecar 重建：
+```
+chmod 664 data/index/knowledge.db data/index/knowledge.db-shm data/index/knowledge.db-wal
+# 或删掉 -shm/-wal，下次写时自动重建
+```

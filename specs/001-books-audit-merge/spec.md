@@ -2,7 +2,7 @@
 
 **Feature Branch**: `audit/R18 → main`
 **Created**: 2026-08-19
-**Status**: Draft
+**Status**: Implemented（融合完成）
 **Input**: User description: "融合 books-audit (audit/R18 分支) 到 books (main 分支)，确保 13 道闸门零回退"
 
 ## User Scenarios & Testing *(mandatory)*

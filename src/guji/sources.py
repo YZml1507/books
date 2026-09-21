@@ -31,8 +31,12 @@ import urllib.request
 import zipfile
 
 DEFAULT_PROXY = "http://127.0.0.1:7897"
-MANIFEST = os.path.join("data", "catalog", "corpus_manifest.json")
-RAW = os.path.join("data", "raw")
+# R230c（R17-P1-4）：模块级相对路径会落在调用方的 cwd——MCP 客户端以
+# 自身 cwd spawn 时 add_local_work 把数据写进错目录。改为按包位置推 ROOT。
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))
+MANIFEST = os.path.join(_ROOT, "data", "catalog", "corpus_manifest.json")
+RAW = os.path.join(_ROOT, "data", "raw")
 
 
 def _opener() -> urllib.request.OpenerDirector:
@@ -70,6 +74,10 @@ def extract(kid: str, blob: bytes, dest_dir: str = RAW) -> dict:
     Zip-slip proof by construction: the name filter admits only `{kid}(_\\w+)?\\.txt`,
     so no path component from the archive is ever used.
     """
+    # R230c（R17-P1-5 同型）：kid 进正则前先白名单——虽然 Kanripo 名都是
+    # KR*，入口仍可被直接调用。
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", kid or ""):
+        raise RuntimeError(f"kid 非法：{kid!r}")
     dest = os.path.join(dest_dir, kid)
     os.makedirs(dest, exist_ok=True)
     n_files = n_chars = 0
@@ -147,11 +155,17 @@ def add_local_work(wid: str, genre: str, rationale: str, txt_dir: str,
         when present (same convention as Kanripo files), else left blank;
       * files are COPIED (source directory untouched).
     """
+    # R230c（R17-P1-5）：work_id 白名单——此前 `re.fullmatch(rf"{wid}...")`
+    # 让 wid 本身成为正则注入点（'.*' 吃掉目录里全部 txt 还落盘隐藏目录），
+    # 空 wid 会把文件写进 raw 根。过滤改字面 fnmatch，不进正则。
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", wid or ""):
+        raise RuntimeError(
+            f"work_id 非法（限字母数字开头+[A-Za-z0-9_-]，≤64 字符）：{wid!r}")
     src = os.path.abspath(txt_dir)
     if not os.path.isdir(src):
         raise RuntimeError(f"{wid}: txt_dir not found: {txt_dir}")
     names = sorted(n for n in os.listdir(src)
-                   if re.fullmatch(rf"{wid}(_\w+)?\.txt", n))
+                   if re.fullmatch(rf"{re.escape(wid)}(_\w+)?\.txt", n))
     if not names:
         raise RuntimeError(f"{wid}: no {wid}*.txt files in {txt_dir}")
     dest = os.path.join(raw_dir, wid)

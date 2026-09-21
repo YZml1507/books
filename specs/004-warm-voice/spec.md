@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-warm-voice`
 **Created**: 2026-08-20
-**Status**: Draft
+**Status**: Implemented（CI 闸 check_warm_voice）
 **Phase**: OPTIMIZE
 **Author**: 审查轨（本文件由审查轨独占写；同目录 `plan.md` / `tasks.md` 由优化轨写，
 宪法第六条文件级分工）

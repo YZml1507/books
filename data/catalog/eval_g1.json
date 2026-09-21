@@ -4,11 +4,11 @@
  "seed": 11,
  "top_k": 10,
  "counts": {
-  "retrieval": 40,
+  "retrieval": 52,
   "retrieval_cross": 24,
   "retrieval_hard": 24,
-  "citation": 30,
-  "grounded_pos": 25,
+  "citation": 38,
+  "grounded_pos": 31,
   "grounded_neg": 30,
   "version": 20,
   "retrieval_concept": 55
@@ -4716,6 +4716,475 @@
     "why": "轉述未濟卦九四爻辭"
    },
    "note": "概念转述题（D-029 批）：轉述未濟卦九四爻辭"
+  },
+  {
+   "id": "YL-R-18-坤",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "坤軥軥&",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 18,
+    "addr2": "坤",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "坤軥軥&",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 坤軥軥&KR0008;&KR0008;歲"
+  },
+  {
+   "id": "YL-R-08-夬",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "夬玉鋭鐡",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 8,
+    "addr2": "夬",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "夬玉鋭鐡",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 夬玉鋭鐡頭倉庫空虛賈市滿盈與利為仇"
+  },
+  {
+   "id": "YL-R-41-恆",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "良夫伯姬",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 41,
+    "addr2": "恆",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "良夫伯姬",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 恒良夫伯姬負理登臺昆季不扶衛輒走逃"
+  },
+  {
+   "id": "YL-R-45-旅",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "旅三日不",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 45,
+    "addr2": "旅",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "旅三日不",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 旅三日不飲逺水無酒晝夜焦喉使我為咎"
+  },
+  {
+   "id": "YL-R-57-履",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "履霧露早",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 57,
+    "addr2": "履",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "履霧露早",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 履霧露早霜日暗不明隂陽孽疾年榖大傷"
+  },
+  {
+   "id": "YL-R-10-師",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "師羊腸九",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 10,
+    "addr2": "師",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "師羊腸九",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 師羊腸九縈相推併前止須王孫乃能上天"
+  },
+  {
+   "id": "YL-R-24-遯",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "遯仲冬兼",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 24,
+    "addr2": "遯",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "遯仲冬兼",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 遯仲冬兼秋鳥散飲憂困於米食數驚鸇鵰"
+  },
+  {
+   "id": "YL-R-24-豫",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "豫卵與石",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 24,
+    "addr2": "豫",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "豫卵與石",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 豫卵與石鬭糜碎無處挈瓶之使不為憂懼"
+  },
+  {
+   "id": "YL-R-11-革",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "革履踐危",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 11,
+    "addr2": "革",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "革履踐危",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 革履踐危難脱執去患入福喜門見誨大君"
+  },
+  {
+   "id": "YL-R-36-旅",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "旅管仲遇",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 36,
+    "addr2": "旅",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "旅管仲遇",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 旅管仲遇桓得其願歡膠日殺糾振冠無憂笑喜不"
+  },
+  {
+   "id": "YL-R-06-蹇",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "蹇兩羝三",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 6,
+    "addr2": "蹇",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "蹇兩羝三",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 蹇兩羝三羊俱之我鄉留連多難損其食糧"
+  },
+  {
+   "id": "YL-R-45-頤",
+   "category": "retrieval",
+   "kind": "verbatim",
+   "query": "頤陽伏在",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 45,
+    "addr2": "頤",
+    "top_k": 10
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "頤陽伏在",
+    "space": "folded_notes",
+    "why": "fragment occurs exactly once in 焦氏易林"
+   },
+   "note": "林辭 頤陽伏在下隂制祐福生不逢時潛龍隠處"
+  },
+  {
+   "id": "YL-C-23-頤",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 23,
+    "addr2": "頤",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "頤危坐至暮請求不",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-18-坤",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 18,
+    "addr2": "坤",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "坤軥軥&KR00",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-08-夬",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 8,
+    "addr2": "夬",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "夬玉鋭鐡頭倉庫空",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-41-恆",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 41,
+    "addr2": "恆",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "恒良夫伯姬負理登",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-45-旅",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 45,
+    "addr2": "旅",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "旅三日不飲逺水無",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-57-履",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 57,
+    "addr2": "履",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "履霧露早霜日暗不",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-10-師",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 10,
+    "addr2": "師",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "師羊腸九縈相推併",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-C-24-遯",
+   "category": "citation",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 24,
+    "addr2": "遯",
+    "min_works": 1,
+    "all_citations_resolve": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "遯仲冬兼秋鳥散飲",
+    "space": "folded_jing",
+    "why": "address is attested in data/raw/"
+   }
+  },
+  {
+   "id": "YL-GP-18-坤",
+   "category": "grounded_pos",
+   "query": "坤軥軥&KR0008",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 18,
+    "addr2": "坤",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "坤軥軥&KR0008",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
+  },
+  {
+   "id": "YL-GP-08-夬",
+   "category": "grounded_pos",
+   "query": "夬玉鋭鐡頭倉庫空虛賈",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 8,
+    "addr2": "夬",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "夬玉鋭鐡頭倉庫空虛賈",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
+  },
+  {
+   "id": "YL-GP-10-師",
+   "category": "grounded_pos",
+   "query": "師羊腸九縈相推併前止",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 10,
+    "addr2": "師",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "師羊腸九縈相推併前止",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
+  },
+  {
+   "id": "YL-GP-24-遯",
+   "category": "grounded_pos",
+   "query": "遯仲冬兼秋鳥散飲憂困",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 24,
+    "addr2": "遯",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "遯仲冬兼秋鳥散飲憂困",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
+  },
+  {
+   "id": "YL-GP-11-革",
+   "category": "grounded_pos",
+   "query": "革履踐危難脱執去患入",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 11,
+    "addr2": "革",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "革履踐危難脱執去患入",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
+  },
+  {
+   "id": "YL-GP-36-旅",
+   "category": "grounded_pos",
+   "query": "旅管仲遇桓得其願歡膠",
+   "expect": {
+    "scheme": "yilin",
+    "addr1": 36,
+    "addr2": "旅",
+    "text_present_at_address": true
+   },
+   "gold_witness": {
+    "work": "KR3g0029",
+    "text": "旅管仲遇桓得其願歡膠",
+    "space": "folded_notes",
+    "why": "10-char head of the 林辭, unique in the work"
+   }
   }
+ ],
+ "notes": [
+  "R230n/R27-#6：26 道焦氏易林题自 ec3a9a6 合并回库（ce03c59 重生成丢失，derive_eval_g1.py 已加外来题段保留断言）"
  ]
 }

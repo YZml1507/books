@@ -35,9 +35,10 @@ def addr(scheme: str = "zhouyi", gua: int | None = None,
 
 
 @router.get("/api/compare")
-def compare(gua: int, yao: str = "九三", layer: str = "經") -> dict:
+def compare(gua: int, yao: str = "九三", layer: str = "經",
+            allow_damaged: bool = False) -> dict:
     """跨版本同址比对 + 差异摘要。"""
-    return services.compare(gua, yao, layer)
+    return services.compare(gua, yao, layer, allow_damaged=allow_damaged)
 
 
 @router.get("/api/research")
@@ -48,6 +49,8 @@ def research(q: str = "", max_addresses: int = 3,
                                   allow_damaged=allow_damaged)
 
 
+# R228l 登记：/api/ask 与 /api/stats 前端零调用——有意保留给
+# CLI 等价物与第三方集成（selftest 断言仍钉着其契约），不是僵尸。
 @router.post("/api/ask")
 def ask(req: AskRequest) -> dict:
     """研究问答：证据集 + 确定性综合（拒绝时不综合，G7）。"""
@@ -75,7 +78,9 @@ def works() -> dict:
 
 @router.get("/api/stats")
 def stats() -> dict:
-    """索引统计（与 CLI `ask.py stats` 同内核）。"""
+    """索引统计（与 CLI `ask.py stats` 同内核）。
+
+    前端零调用——有意保留（见本文件 /api/ask 上方 R228l 登记）。"""
     return services.stats()
 
 
@@ -89,6 +94,19 @@ def threads() -> dict:
 def thread_detail(tid: int) -> dict:
     """单条线程完整内容：transcript + derived claims + 证据回查。"""
     return services.thread_detail(tid)
+
+
+@router.delete("/api/threads/{tid}")
+def thread_remove(tid: int) -> dict:
+    """删除一条研究线程（R230q：turns 随删，derived claims 解绑保留）。"""
+    return services.thread_delete(tid)
+
+
+@router.patch("/api/threads/{tid}")
+def thread_patch(tid: int, status: str) -> dict:
+    """改线程状态（R230r / R30-#8：open/parked/closed——收起的线程不再
+    占 resume 列表位）。"""
+    return services.thread_set_status(tid, status)
 
 
 @router.post("/api/threads")

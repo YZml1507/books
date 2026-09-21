@@ -92,7 +92,6 @@ def main() -> int:
     print(f"guji 现有子模块 {len(mods)} 个、包级属性 {len(attrs)} 个")
 
     broken_static: list[str] = []
-    broken_import: list[str] = []
     n_files = n_refs = 0
 
     for d in SCAN_DIRS:

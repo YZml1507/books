@@ -767,7 +767,7 @@ def pass3h() -> None:
             bad.append((name + "  [NO Dramatis Personae]", len(ac), len(sc)))
     print(f"  plays with ACT headings after Dramatis Personae = {plays}")
     print(f"  total SCENE headings after Dramatis Personae   = {tot}")
-    print(f"  works whose ACT count != 5 (or lacking Dramatis Personae):")
+    print("  works whose ACT count != 5 (or lacking Dramatis Personae):")
     for n, a, s in bad:
         print(f"     {n[:52]:<54} acts={a} scenes={s}")
 

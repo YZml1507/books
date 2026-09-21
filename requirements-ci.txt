@@ -1,0 +1,11 @@
+# CI/自测最小依赖（含版本钉扎）——与 .github/workflows/selftest.yml 配套。
+# torch 由 workflow 单独从 CPU wheel 索引安装（避免拉 ~2GB CUDA 轮子）。
+fastapi==0.141.1
+uvicorn==0.53.0
+httpx==0.28.1
+pydantic==2.13.5
+numpy==2.2.6
+sentence-transformers==6.1.0
+feedparser==6.0.12        # R7#4：/api/external/* RSS 解析的既有代码依赖，此前清单漏声明
+ruff==0.16.8             # R230b：lint 闸（E9+F 最小口径，活代码零存量）
+mcp==2.2.0                # R230c（R17-P1-6）：MCP server 依赖此前零声明，干净环境必崩

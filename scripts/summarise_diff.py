@@ -61,7 +61,7 @@ def show(c: Corpus, gua: int, yao: str, layer: str | None = "經") -> None:
         print(f"  {t[:180]}{'…' if len(t) > 180 else ''}")
 
     ev = cmp.evidential()
-    print(f"\n--- 差异摘要 ---")
+    print("\n--- 差异摘要 ---")
     print(f"  校勘性差异 {len(ev)} 处" + (
         f"；正字法差异 {cmp.counts().get('orthographic', 0)} 处" if cmp.counts().get("orthographic") else ""))
     if cmp.commentary:

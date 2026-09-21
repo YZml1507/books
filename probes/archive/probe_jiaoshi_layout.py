@@ -359,7 +359,7 @@ print(f"卦名 occurrences body={len(occ_body)} content={len(occ_cont)} "
       f"distinct={len(seen)}")
 print(f"headings={len(headings)} entries={len(entries)} pairs={len(pairs)} "
       f"hexagram_symbols={len(syms)}")
-print(f"role split: " + "  ".join(f"{k.split()[0]}={v}" for k, v in sorted(roles.items())))
+print("role split: " + "  ".join(f"{k.split()[0]}={v}" for k, v in sorted(roles.items())))
 print(f"之+卦名 = {len(zx)}   adjacency(content) = {len(adjc)} "
       f"({len(adjc) / max(len(occ_cont), 1):.2%})")
 

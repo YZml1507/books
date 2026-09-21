@@ -107,7 +107,6 @@ def judge(name: str, ok: bool, detail: str = "") -> bool:
 
 def check_p95_and_arrival() -> bool:
     """判据 9 + 判据 10：四端点 p95<2s；轮询最终 done 且文本非空。"""
-    from guji import llm_polish as L
     from fastapi.testclient import TestClient
     from web.app import app
 
@@ -150,7 +149,6 @@ def check_p95_and_arrival() -> bool:
 
 def check_degrade_failed() -> bool:
     """判据 10 降级半边：LLM 恒失败 → 任务 failed、主体完整、前端语义=不渲染。"""
-    from guji import llm_polish as L
     from fastapi.testclient import TestClient
     from web.app import app
 
@@ -224,7 +222,6 @@ def main() -> int:
         # 同步阻塞世界。若判据 9 的断言逻辑失效（比如阈值写错成 10s），
         # 这里会全绿 → 本闸门是假的 → exit 1。
         import web.services as svc
-        from guji import llm_polish as L
 
         def _sync_blocking_spawn(facts, question, config=None, **kw):
             time.sleep(5.0)               # 旧世界：请求线程内等 LLM

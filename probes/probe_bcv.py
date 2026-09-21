@@ -72,7 +72,7 @@ for slug, gid in IDS.items():
         chain = " ".join(s.name for s in spans[:6])
         print(f"               chain starts: {chain}")
 
-print(f"\n=== control cases (the naive parser answered the first two WRONG) ===")
+print("\n=== control cases (the naive parser answered the first two WRONG) ===")
 fails = []
 SUPPORTED = ("bible-kjv", "bible-web", "bible-douay")
 for (book, ch, v), needles in EXPECT.items():
@@ -100,7 +100,7 @@ for key in (("John", 3, 16), ("Psalms", 23, 1)):
         if t:
             print(f"    {slug:14} {t[:100]}")
 
-print(f"\n=== book coverage: how many of the 66/73 books got verses? ===")
+print("\n=== book coverage: how many of the 66/73 books got verses? ===")
 for slug in IDS:
     got = {b for b, _, _ in parsed[slug]}
     print(f"  {slug:14} {len(got):3} books, "

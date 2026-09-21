@@ -16,9 +16,13 @@
     精度约 ±15 分钟；出生时刻落在节前后 30 分钟内时置 warn（边界出生需人工核对，
     不假装精确）。日柱用儒略日数 mod 60。
   * 时柱按"五鼠遁"（日干推子时干）；月干按"五虎遁"（年干推寅月干）。
+  * 晚子时口径（R228p 补记）：23:00-24:00 出生**不换日柱**（按当日日干推
+    子时，不采用「夜子时日柱归次日」一派）。两派在命理上并存，本项目
+    取不换日一派并在 warn 里提示——用户若按晚子时派自查，会差一个日柱。
 """
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -138,8 +142,14 @@ def jde_from_dt(dt: datetime) -> float:
     return jd + (dt.hour + dt.minute / 60 + dt.second / 3600) / 24.0
 
 
+@functools.lru_cache(maxsize=512)
 def term_time(year: int, name: str) -> datetime:
     """该公历年内某节气的 UTC 时刻（二分求解黄经交点）。
+
+    R228b：返回值为纯函数结果（同年同名节气时刻恒定），且
+    shensha→_month_zhi_index 每查一天要调它 8 次×36 候选——此前无缓存，
+    chat 问一句黄历事项扫 45 天要 ~2.7s。进程内缓存后单日成本降到零头。
+    datetime 不可变，跨调用共享安全。
 
     太阳黄经一年单调经过每个目标角度一次，所以单峰二分即可；为稳妥在
     [year-01-01, year+1-01-01) 内求解，返回命中年份的那次。
@@ -286,9 +296,14 @@ def _dayun_pillars(month_pillar: str, direction: str, count: int = 8) -> list[st
 
 
 def compute(year: int, month: int, day: int, hour: int,
-            gender: str = "男") -> Bazi:
-    """主入口：公历生日（hour 为 0..23 整数）-> Bazi。"""
-    dt = datetime(year, month, day, hour, 0, 0)
+            gender: str = "男", minute: int = 0) -> Bazi:
+    """主入口：公历生日（hour 为 0..23 整数，minute 可选 0..59）-> Bazi。
+
+    R230f（R18-P1-1）：minute 让节气当小时内的出生不再被截到节前一侧
+    （此前 dt 恒为 xx:00——立春 17:07 时 17:30 出生取错年柱/月柱）。
+    minute 只影响边界判定与起运岁数，时柱仍按整时推（hour_ganzhi 口径不变）。
+    """
+    dt = datetime(year, month, day, hour, minute, 0)
 
     # 年柱：立春为界。立春前仍属上一干支年。
     # 干支纪年：公历 (y-4) % 10 / (y-4) % 12（甲子=0 对应公历 4 的倍数年）。
@@ -339,15 +354,38 @@ def compute(year: int, month: int, day: int, hour: int,
     warns = []
     if warn0:
         warns.append(warn0)
-    # 边界警示：dt 距最近节 ≤ 30 分钟
+    # 边界警示：dt 距最近节 ≤ 30 分钟。
+    # R228q：输入粒度是「整点」——节气若落在该小时的 xx:31-:59，整点距
+    # >30min 旧判据不告警，但真实出生在后段已跨节。右界放宽到 +90 分钟
+    # 覆盖整个小时桶（左界 30min 不变：出生在节气前 30 分钟内才需核）。
+    # R230f：minute 给了精确时刻后，左界告警照旧（±30min 真邻近仍提示），
+    # 右界窗口在用户已给分钟时可收窄到 ±30min（不再需要整桶告警）。
     near = None
+    _right = 1800 if minute else 5400
     for y in (year - 1, year, year + 1):
         for name in TERM_LONGITUDE:
             t = term_time(y, name) + timedelta(hours=8)
-            if abs((dt - t).total_seconds()) <= 1800:
+            _d = (t - dt).total_seconds()
+            if -1800 <= _d <= _right:
                 near = f"{t:%Y-%m-%d %H:%M} {name}"
     if near:
         warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")
+    if hour == 23:
+        warns.append("23点后属夜子时：本盘按当日排日柱（另一派会归入次日）")
+    # R228p续3：年柱双口径提示——立春前但已过正月初一（正月出生）的盘，
+    # 「正月初一换年」派与本项目的立春换年派会给出不同年柱，warn 明示。
+    try:
+        from .lunar import solar_to_lunar
+        _lx = solar_to_lunar(dt.year, dt.month, dt.day)
+        if _lx.get("month") == 1 and not _lx.get("is_leap"):
+            lichun = term_time(year, "立春") + timedelta(hours=8)
+            if dt < lichun:
+                # R230a-7（R13-P2-2）：原文案「正月初一换年派会取上一年」
+                # 恰好说反——正月初一派取的是本年（新干支），立春派才取旧年。
+                warns.append("正月出生且在立春前：本盘年柱按立春换年"
+                             "（正月初一换年派会取本年干支）")
+    except Exception:
+        pass
 
     return Bazi(
         year=year_pillar, month=month_pillar, day=day_pillar, hour=hour_pillar,
@@ -367,7 +405,6 @@ def compute(year: int, month: int, day: int, hour: int,
 
 
 if __name__ == "__main__":
-    import sys
     print("usage: python -m guji.bazi   (self-test)")
     # 自检：几个已知日柱基准点
     for (y, m, d, h, g) in [(2000, 1, 1, 12, "男"), (1984, 2, 2, 12, "男"),

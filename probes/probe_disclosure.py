@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from collections import Counter
 
@@ -129,6 +128,10 @@ qp = os.path.join(ROOT, "data", "catalog", "quality_report.json")
 q = json.load(open(qp, encoding="utf-8")) if os.path.exists(qp) else {}
 flagged = []
 for pair, d in q.items():
+    # R228z续3：quality_report.json 后来混进了非 work|addr 键（汇总/meta），
+    # 裸 split('|') 直接崩——历史遗留 B-011，见到非对键跳过。
+    if "|" not in pair:
+        continue
     a, b = pair.split("|")
     for low in d["low"]:
         flagged.append((a, low["gua"], low["yao"], low["verdict"], low["coverage"]))

@@ -82,7 +82,7 @@ def main():
     print(f"cached doc vectors -> {DOCVECS} ({doc_vecs.nbytes / 1e6:.1f}MB) + {DOCMETA}")
     print(f"encoded {n_units} docs: {doc_vecs.shape} dtype={doc_vecs.dtype} "
           f"nbytes={doc_vecs.nbytes / 1e6:.1f}MB in {time.time() - t_enc:.1f}s")
-    print(f"\n=== build timing ===")
+    print("\n=== build timing ===")
     print(f"total build time: {build_time:.1f}s "
           f"({'OK' if build_time <= 600 else 'OVER 10min'})")
 
@@ -92,7 +92,7 @@ def main():
     latencies = []
     miss_details = []
 
-    print(f"\n=== paraphrase retrieval (bge-small-zh-v1.5 + cosine) ===")
+    print("\n=== paraphrase retrieval (bge-small-zh-v1.5 + cosine) ===")
     for query, exp_gua, exp_yao, why in PARAPHRASES:
         t_q = time.time()
         q = model.encode([QUERY_PREFIX + query], normalize_embeddings=True)
@@ -136,7 +136,7 @@ def main():
     median_lat = float(np.median(latencies)) if latencies else 0.0
     max_lat = float(np.max(latencies)) if latencies else 0.0
 
-    print(f"\n=== verdict (方案 A/B: bge-small-zh-v1.5) ===")
+    print("\n=== verdict (方案 A/B: bge-small-zh-v1.5) ===")
     print(f"hit rate (correct addr in top-{top_k}): {hits}/{total} = "
           f"{100*hit_rate:.1f}%")
     print(f"query latency: median={median_lat*1000:.0f}ms  max={max_lat*1000:.0f}ms  "
