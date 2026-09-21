@@ -12042,3 +12042,7 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - **P1-3** llm_config `enabled:"false"`（字符串）此前 truthy 误判开启——字符串按语义解析，写 "false"/"0"/"off"/"no" 真关。
 - **P1-4** `timeout_s`/`max_tokens`/`base_url` 类型错原放行到 polish 才静默炸——load_config 启动期 coerce，非法回默认+stderr 告警。
 - **P2 批**：README 补全开关表（EXTERNAL/PAIPAN/GUJI_PROXY/timeout/max_tokens/exe 形态 llm_config+corpus 落点）+ mcp 依赖 + corpus 重建时长勘正（5分钟→实测10秒）；llm_polish docstring 勘正；`errors.py` FileNotFoundError 响应剥绝对路径（开发期泄仓库路径/exe 期泄 _MEIPASS）；paipan_history 时间戳对齐 UTC+8（旧 history.py 同款口径）；start_web.bat 校验 pythonw 存在；SHUTDOWN_GRACE 60→300s（空闲误杀）。
+
+## R2349x — 占卜→古籍「去书库翻」闭环（R92-P1-4）
+
+- 深链复活后补最小闭环：所有 renderCiteTree 折叠树尾部加「📚 这些书都在书库里，去翻翻 →」按钮，点击 showView('read')——八字/六爻/起名等结果页的古籍引文从此可顺藤摸瓜进书库（此前只呈现零跳转）。

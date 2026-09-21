@@ -2345,6 +2345,10 @@ function renderCiteTree(items, opts) {
     });
     html += '</div></div>';
   });
+  /* R2349x（R92-P1-4）：引文树尾部补「去书库翻」入口——占卜域此前
+   * 只呈现零跳转，深链复活（R2349v）后顺藤摸瓜的最小闭环。 */
+  html += '<div class="cite-readmore"><button type="button" ' +
+    'class="thread-view cite-toread">📚 这些书都在书库里，去翻翻 →</button></div>';
   html += '</div></div></div>';
   return html;
 }
@@ -8859,6 +8863,11 @@ function initReading() {
       return;
     }
 
+    /* R2349x（R92-P1-4）：引文树「去书库翻」按钮——占卜域→古籍域跳转。 */
+    if (e.target.closest('.cite-toread')) {
+      showView('read');
+      return;
+    }
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
       searchByWork(workCard.dataset.work);
