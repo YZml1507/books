@@ -2419,6 +2419,9 @@ def _run_inner() -> list[str]:
                       "warm", "ai_polish",
                       # R218a-巡2（N-01）：后端回写 question 供前端钩子使用
                       "question",
+                      # R2350g（R106-F3）：换算后公历生日回显——农历输入
+                      # 的用户档案靠它落公历日。
+                      "birth_solar",
                       # C-003：交叉引用——八字结果页增加星座维度
                       "cross_ref"},
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",

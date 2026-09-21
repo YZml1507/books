@@ -6,6 +6,10 @@
 from __future__ import annotations
 
 from datetime import date as _date, datetime as _datetime
+from datetime import timedelta as _td, timezone as _tz
+
+# R2350g（R106-F4）：缺参回落锚 UTC+8。
+_CN_TZ = _tz(_td(hours=8))
 
 from fastapi import APIRouter, Query
 
@@ -41,7 +45,7 @@ def huangli_resolve_date(q: str = Query("", max_length=80),
     if base:
         try:
             _now = _datetime.combine(
-                _date.fromisoformat(base), _datetime.now().time())
+                _date.fromisoformat(base), _datetime.now(_CN_TZ).time())
         except (ValueError, TypeError):
             _now = None        # 非法 base 静默回落服务器日（同旧行为）
     return services.resolve_huangli_date(q, now=_now)

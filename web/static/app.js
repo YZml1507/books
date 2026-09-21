@@ -4871,8 +4871,8 @@ async function loadDaily() {
         _cands.forEach(function (c) {
           if (!c.m || !c.d || c.m < 1 || c.m > 12 || c.d < 1 || c.d > 31) return;
           var yy = _t0.getFullYear();
-          var bd = new Date(yy, c.m - 1, c.d);
-          if (bd < _t0) bd = new Date(yy + 1, c.m - 1, c.d);
+          var bd = _bdayInYear(c.m, c.d, yy);
+          if (bd < _t0) bd = _bdayInYear(c.m, c.d, yy + 1);
           var dd = Math.round((bd - _t0) / 86400000);
           if (dd > 0 && dd <= 30 && (!_best || dd < _best.dd)) {
             _best = { dd: dd, n: c.n };
@@ -5011,9 +5011,11 @@ function _renderBirthdayBanner() {
   try {
     var _bme = _meGet('me'), _bdt = new Date();
     var _bbar = el('dailyBirthday');
-    if (_bme && _bme.y &&
-        Number(_bme.m) === _bdt.getMonth() + 1 &&
-        Number(_bme.d) === _bdt.getDate()) {
+    var _bbd = _bme && _bme.y
+      ? _bdayInYear(_bme.m, _bme.d, _bdt.getFullYear()) : null;
+    if (_bbd &&
+        _bbd.getMonth() === _bdt.getMonth() &&
+        _bbd.getDate() === _bdt.getDate()) {
       if (!_bbar) {
         _bbar = document.createElement('div');
         _bbar.id = 'dailyBirthday';
@@ -5432,12 +5434,18 @@ async function submitBazi(event) {
     const j = await postJSON('/api/bazi', body);
     /* 只在成功后记账——失败重试（failWithRetry）不该被同参防抖拦 */
     _submitBaziLast = { key: _bkey0, ts: performance.now() };
-    /* R230y：本人表单成功提交 → 存「我的生日」并代入其余同人表单 */
-    if (body.calendar_type === 'solar') {
-      _meSave('me', { y: body.year, m: body.month, d: body.day,
-        h: body.hour_known ? body.hour : null, g: body.gender });
-      _meFillAll();
-    }
+    /* R230y：本人表单成功提交 → 存「我的生日」并代入其余同人表单。
+     * R2350g（R106-F3）：农历生日也落档——后端回显 birth_solar（换算后
+     * 的公历），档案记公历日期+农历原值标注，生日横幅/倒计时通吃。 */
+    var _bs = (j.birth_solar && j.birth_solar.y) ? j.birth_solar
+      : { y: body.year, m: body.month, d: body.day };
+    _meSave('me', { y: _bs.y, m: _bs.m, d: _bs.d,
+      h: body.hour_known ? body.hour : null, g: body.gender,
+      lunar: (body.calendar_type === 'lunar')
+        ? ('农历' + body.lunar_year + '年' + body.lunar_month + '月' +
+           body.lunar_day + '日' + (body.lunar_leap ? '（闰）' : ''))
+        : null });
+    _meFillAll();
     const paipan = j.paipan || {};
     /* R206b US1：给陪伴层喂坐标事实（干支五行词，非 PII——不含生日） */
     try {
@@ -8256,8 +8264,8 @@ function _hlDayOffset(q, base) {
     if (_meR && _meR.m && _meR.d) {
       var bB2 = base || new Date();
       var _bd0 = new Date(bB2.getFullYear(), bB2.getMonth(), bB2.getDate());
-      var _bc = new Date(bB2.getFullYear(), _meR.m - 1, _meR.d);
-      if (_bc < _bd0) _bc = new Date(bB2.getFullYear() + 1, _meR.m - 1, _meR.d);
+      var _bc = _bdayInYear(_meR.m, _meR.d, bB2.getFullYear());
+      if (_bc < _bd0) _bc = _bdayInYear(_meR.m, _meR.d, bB2.getFullYear() + 1);
       return Math.round((_bc - _bd0) / 86400000);
     }
     window.__hlBirthdayNA = true;
@@ -10094,6 +10102,7 @@ function init() {
     };
     window.__dailyCoverCleanup = _cleanup;
     var _reveal = function () {
+      try { if (window.__onDayFlip) window.__onDayFlip(); } catch (eF) {}
       _cov.classList.add('open');
       /* R41-P3-2：隔夜未拆次日再拆——key 按点击时刻的今天写，
        * 不能复用绑定时算好的昨天。 */
@@ -10229,7 +10238,10 @@ function init() {
   });
   /* R231f（R38-P2-3）：时段档随 60s tick 同步——挂后台跨时段回前台
    * 时渐变不再停在进页那一档。 */
-  setInterval(function () { _applyDaypart(); _onDayFlip(); }, 60000);
+  /* R2350g（R106-F6）：跨零点≤60s 视觉混合态收窄——tick 降到 15s，
+   * 且交互入口（打卡/拆礼物）点击时顺手翻一次，不等下个 tick。 */
+  window.__onDayFlip = _onDayFlip;
+  setInterval(function () { _applyDaypart(); _onDayFlip(); }, 15000);
   window.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
     if (e.key.indexOf('checkin:') === 0) {
@@ -11172,6 +11184,9 @@ function renderCheckin(dateKey) {
        * 点击时重算今天：变了就先整卡重渲成今天，再接着写今日键。
        * 注意：重渲后原按钮已脱离 DOM，picked 态按 opt 在新按钮上重标。 */
       const opt = btn.dataset.opt;
+      /* R2350g（R106-F6）：点打卡顺手翻日——隔夜 tab 的卡面先换新天
+       * 再写今日键。 */
+      try { if (window.__onDayFlip) window.__onDayFlip(); } catch (eF) {}
       var _today = todayIso();
       if (_today && dateKey !== _today) {
         dateKey = _today;
@@ -11399,13 +11414,25 @@ function _visitCount() {
 }
 /* R2349t（R88-1/8）：「今天是不是我生日」与「距上次来访隔了几天」——
  * 封面/日签/聊天空态/打卡四处共用同一口径。 */
+/* R2350g（R106-F2）：2/29 生日的平年口径——三处此前分裂：_isMyBirthday
+ * 精确日永不命中（全年不弹），两处倒计时 new Date(y,1,29) 溢进 3/1。
+ * 统一映射：平年 2/29 → 2/28 庆生。 */
+function _bdayInYear(m, d, y) {
+  m = Number(m); d = Number(d);
+  if (m === 2 && d === 29 &&
+      !(y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0))) {
+    d = 28;
+  }
+  return new Date(y, m - 1, d);
+}
 function _isMyBirthday() {
   try {
     var _m = _meGet('me');
     if (!_m || !_m.y || !_m.m || !_m.d) return false;
     var _t = new Date();
-    return Number(_m.m) === _t.getMonth() + 1 &&
-      Number(_m.d) === _t.getDate();
+    var _bd = _bdayInYear(_m.m, _m.d, _t.getFullYear());
+    return _bd.getMonth() === _t.getMonth() &&
+      _bd.getDate() === _t.getDate();
   } catch (e) { return false; }
 }
 function _visitsGap() {
@@ -11463,6 +11490,7 @@ function _renderMeStrip() {
    * 「你的小档案」更像为她开的铺。 */
   var txt = '🧸 ' + (me.n ? me.n + ' 的小档案' : '你的小档案') +
     ' · ' + me.y + '年' + me.m + '月' + me.d + '日' +
+    (me.lunar ? '（' + me.lunar + '）' : '') +
     '（测算时自动代入）';
   if (ck) txt += ' · 打过 ' + ck + ' 次卡';
   if (partner && partner.y) txt += ' · 也存了TA的';

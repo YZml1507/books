@@ -60,7 +60,7 @@ def _log(msg: str) -> None:
             except OSError:
                 pass
             with open(log_path, "a", encoding="utf-8") as f:
-                f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
+                f.write(f"{datetime.now(timezone(timedelta(hours=8))).isoformat(timespec='seconds')} {msg}\n")
     except OSError:
         pass
 
@@ -97,7 +97,7 @@ def _quarantine() -> None:
     if not os.path.exists(DB_PATH):
         return
     qua = (DB_PATH + ".corrupt-" +
-           datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:21])
+           datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d-%H%M%S-%f")[:21])
     # R230t（R31-P2-8）：exists 之后 replace 之前文件被别处挪走是真实
     # 竞态——FileNotFoundError 不该冒成 500，直接让第二轮开新库。
     try:

@@ -7,7 +7,14 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
+
+# R2350g（R106-F4）：缺参回落锚 UTC+8（同 services._now_cn）。
+_CN_TZ = timezone(timedelta(hours=8))
+
+
+def _now_cn() -> datetime:
+    return datetime.now(_CN_TZ)
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
@@ -81,14 +88,14 @@ def chat(req: ChatRequest) -> dict:
     if req.client_date:
         try:
             _now = datetime.combine(
-                date.fromisoformat(req.client_date), datetime.now().time())
+                date.fromisoformat(req.client_date), _now_cn().time())
         except (ValueError, TypeError):
             pass   # validate_ranges 已挡；此处再兜底不炸
     tid = llm_polish.spawn_chat_task(
         req.session_id, req.message, facts=facts,
         verdict_facts=services.chat_huangli_facts(req.message, now=_now),
         # R230t（R32-P1-7）：判定锚定日透传——跨日存档判定作废。
-        verdict_day=(_now or datetime.now()).date().isoformat())
+        verdict_day=(_now or _now_cn()).date().isoformat())
     if tid:
         out["chat_task_id"] = tid
     return out
@@ -168,7 +175,7 @@ def paipan_history_export() -> Response:
     for row in paipan_history.export_rows():
         writer.writerow(row)
     content = "\ufeff" + buf.getvalue()
-    filename = datetime.now().strftime("paipan_history_%Y%m%d.csv")
+    filename = _now_cn().strftime("paipan_history_%Y%m%d.csv")
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
@@ -183,7 +190,7 @@ def paipan_history_export_json() -> dict:
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
     return {"version": 1,
-            "exported_at": datetime.now().isoformat(timespec="seconds"),
+            "exported_at": _now_cn().isoformat(timespec="seconds"),
             "records": paipan_history.export_all()}
 
 

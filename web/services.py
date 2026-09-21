@@ -30,9 +30,23 @@ import random
 import logging
 import re
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 _logger = logging.getLogger("books")
+
+# R2350g（R106-F4）：「今天」的参数缺省回落统一锚 UTC+8——用户全在中国
+# 时区，UTC 部署机上裸 date.today()/datetime.now() 在早上 8 点前的请求
+# 会被算成昨天（日签/黄历/起卦日干支整体换日）。主链路前端透传
+# client_date，这里管的是缺参数直调（外链/爬虫/旧端）。
+_CN_TZ = timezone(timedelta(hours=8))
+
+
+def _now_cn() -> datetime:
+    return datetime.now(_CN_TZ)
+
+
+def _today_cn() -> date:
+    return _now_cn().date()
 
 from guji import external as external_feed
 # R219b（P0-4）：`from guji import history as history_db` 随历史记录功能删除
@@ -184,7 +198,7 @@ def bazi(req) -> dict:
     except Exception as exc:                     # 节气表范围外等 → 422
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
 
-    ask_date = req.ask_date or date.today().isoformat()
+    ask_date = req.ask_date or _today_cn().isoformat()
     if req.scope == "range":
         try:
             calc_out = calc_range(b, req.range_start, req.range_end, req.ask_hour)
@@ -258,6 +272,9 @@ def bazi(req) -> dict:
         # R230m：cross_ref 的「今天」锚起问日（前端已传 todayIso()）。
         "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd,
                                      today_iso=req.ask_date),
+        # R2350g（R106-F3）：回显换算后的公历生日——农历输入时前端拿着
+        # 它才能落「我的生日」档案（banner/倒计时全走公历比对）。
+        "birth_solar": {"y": by, "m": bm, "d": bd},
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
         **({"hour_known": req.hour_known} if req.hour_known is False else {}),
     }
@@ -356,8 +373,13 @@ def hehun(req) -> dict:
     req.validate_ranges()
     # R2349s（R84-P0-1）：未成年边界——1900–2100 只验「是不是日期」，
     # 实测 8 岁盘正常出「并肩作战型情侣」配对文案，敏感失守。
-    _now_y = datetime.now().year
-    if _now_y - req.a_year < 18 or _now_y - req.b_year < 18:
+    # R2350g（R106-F5）：年龄精确到日——纯年份差会让 17y11m 放行。
+    _now_d = _today_cn()
+
+    def _age(y, m, d):
+        return _now_d.year - y - ((_now_d.month, _now_d.day) < (m, d))
+    if _age(req.a_year, req.a_month, req.a_day) < 18 or \
+            _age(req.b_year, req.b_month, req.b_day) < 18:
         raise ValidationError(
             "合婚是给成年人测的——这一位还没满 18 岁，长大点再来呀～")
     # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
@@ -512,7 +534,7 @@ def xingzuo(date_str: str | None = None) -> dict:
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
             raise ValidationError(
                 f"年份要在 {YEAR_LO}–{YEAR_HI} 之间")
-    d = date.fromisoformat(date_str) if date_str else date.today()
+    d = date.fromisoformat(date_str) if date_str else _today_cn()
     b = bazi_compute(d.year, d.month, d.day, 12, "男")
     out = xingzuo_mod.daily_horoscope(b.day)
     out["date"] = d.isoformat()
@@ -1035,9 +1057,9 @@ def liuyao(req) -> dict:
         else:
             _cd = getattr(req, "client_date", None)
             try:
-                _dd = datetime.strptime(_cd, "%Y-%m-%d") if _cd else datetime.now()
+                _dd = datetime.strptime(_cd, "%Y-%m-%d") if _cd else _now_cn()
             except (ValueError, TypeError):
-                _dd = datetime.now()
+                _dd = _now_cn()
         _pp = liuyao_mod.paipan(ben, _bazi_day_ganzhi(_dd)[0][0])
     except Exception:
         _pp = None
@@ -1145,7 +1167,7 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         raise ValidationError("日期格式没看懂——照着 2026-01-01 这样填试试")
     dt = (datetime(_d.year, _d.month, _d.day)
           if (_d := _parse_iso_date(date_str) if date_str else None)
-          else datetime.now())
+          else _now_cn())
 
     if affair:
         # R228b：days 不设上限时 find_good_days 逐日扫描线性放大
@@ -2397,7 +2419,7 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     前端 _hlDayOffset 只覆盖高频相对词（明天/下周X…），节日/农历这类
     本地解不动的词走这里兜底；解不出返回 date=None，前端回退显示日。
     """
-    now = now or datetime.now()
+    now = now or _now_cn()
     q = (q or "").strip()[:80]
     if not q:
         return {"date": None, "spoken": "", "invalid": ""}
@@ -2447,7 +2469,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     只泛问黄历（「今天宜做什么」「看看黄历」）→ 当日宜忌 + 中性口径说明；
     都不沾 → []（调用方原样透传，零扰动）。
     """
-    now = now or datetime.now()
+    now = now or _now_cn()
     # R230v（R34-#24）：键含原文指纹——此前 [:200] 截断，两条 200 字
     # 前缀相同的同日长消息会串事实行（概率极低但语义错）。
     _msg_norm = _t2s((message or "").strip())
@@ -2468,7 +2490,7 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
     msg = (message or "").strip()
     if not msg:
         return []
-    now = now or datetime.now()
+    now = now or _now_cn()
     msg_n = _t2s(msg)   # R229d：繁中归一后再做事项词/泛问匹配（原文留给日期词）
 
     scene, terms = "", []
@@ -2821,7 +2843,7 @@ def daily(date_str: str | None = None,
     """
     if date_str is not None:
         _parse_iso_date(date_str)   # 边界即拒（R228p 统一解析口径）
-    date_str = date_str or date.today().isoformat()
+    date_str = date_str or _today_cn().isoformat()
     # R2349l（R73-P1-3）：bday=用户生日 → 「我的日主 × 今天日干」十神行。
     # personal 含用户生辰，绝不进 daily_cache（按日缓存会串用户）。
     _personal = None
@@ -3036,7 +3058,7 @@ SHARE_COLORS = {"bazi": "#B8860B", "tarot": "#9D4EDD",
 
 def share(share_type: str, share_id: str) -> dict:
     """分享卡片数据：可截图分享的结果摘要。"""
-    today = date.today().isoformat()
+    today = _today_cn().isoformat()
     if share_type == "bazi":
         with deps.knowledge() as kb:
             try:
@@ -3179,7 +3201,7 @@ def _today_horoscope(iso_day: str | None = None) -> dict:
     # R228b：原来每请求重算当日八字（~23ms，占 bazi() 三成）——进程内
     # memo。浅拷贝返回防调用方改写缓存对象。
     # R230m：iso_day 让「今日值宫」可锚到客户端本地日（缺省服务器日）。
-    return dict(_today_horoscope_cached(iso_day or date.today().isoformat()))
+    return dict(_today_horoscope_cached(iso_day or _today_cn().isoformat()))
 
 
 def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
@@ -3286,7 +3308,7 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
     from guji.xingzuo import daily_horoscope
     try:
         from datetime import date as _date
-        d = _date.fromisoformat(date_str) if date_str else _date.today()
+        d = _date.fromisoformat(date_str) if date_str else _today_cn()
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
         h = daily_horoscope(b.day)
         sign = h.get("today_sign", "")
@@ -3298,9 +3320,9 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
         # UTC 服务器日 0-8 点比中国用户慢半天，那时候翻今天会被说「那天」。
         try:
             _today = (_date.fromisoformat(today_str)
-                      if today_str else _date.today())
+                      if today_str else _today_cn())
         except (ValueError, TypeError):
-            _today = _date.today()
+            _today = _today_cn()
         _when = "今天" if d == _today else "那天"
         # R2350a（R94-P1-6）：note 文案内含硬编码「今日宜…」——非今天卡
         # 变成「那天轮到X座当班：今日宜…」时态打架。剥掉前缀时间词。
