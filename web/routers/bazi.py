@@ -116,9 +116,11 @@ def xingzuo(date: str | None = None) -> dict:
 
 @router.get("/api/xzmatch")
 def xzmatch(a: str = Query("", max_length=4),
-            b: str = Query("", max_length=4)) -> dict:
-    """R2349l（R73-P1-7）：星座速配——sa/sb 为星座名（白羊…双鱼）。"""
-    out = services.xzmatch(a, b)
+            b: str = Query("", max_length=4),
+            rel: str = Query("", max_length=2)) -> dict:
+    """R2349l（R73-P1-7）：星座速配——sa/sb 为星座名（白羊…双鱼）；
+    rel=闺蜜/同事 追加语境尾巴（R73-P2-11）。"""
+    out = services.xzmatch(a, b, rel)
     if not out:
         raise ValidationError("没认出星座名——白羊、金牛、双子…双鱼里挑两个")
     return out

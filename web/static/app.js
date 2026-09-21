@@ -8197,8 +8197,11 @@ function initDivination() {
     var sa2 = el('xzm_a'), sb2 = el('xzm_b'), box = el('xzmResult');
     if (!sa2 || !sb2 || !box) return;
     try {
+      var _rel = el('xzm_rel');
       var mj = await api('/api/xzmatch?a=' + encodeURIComponent(sa2.value) +
-                         '&b=' + encodeURIComponent(sb2.value));
+                         '&b=' + encodeURIComponent(sb2.value) +
+                         (_rel && _rel.value
+                          ? '&rel=' + encodeURIComponent(_rel.value) : ''));
       box.innerHTML = '<div class="hh-score" style="margin-top:0;">' +
         esc(mj.a) + '座 × ' + esc(mj.b) + '座 · 合拍指数 <strong>' +
         esc(String(mj.score)) + '</strong>/99 ' +

@@ -1469,10 +1469,11 @@ _SIGN_HARD: frozenset[frozenset[str]] = frozenset(
     {frozenset({"火", "水"}), frozenset({"风", "土"})})
 
 
-def xzmatch(sa: str, sb: str) -> dict:
+def xzmatch(sa: str, sb: str, rel: str = "") -> dict:
     """两星座速配：同象 88 / 相合象组 82 / 相冲 61 / 其余 74，附白话一句。
 
     四象兼容是通行口径（娱乐向，不涉命理断言）。未知星座名 → {}。
+    rel=闺蜜/同事 追加语境尾巴（R73-P2-11）。
     """
     ea, eb = _SIGN_ELEM.get(sa or ""), _SIGN_ELEM.get(sb or "")
     if not (ea and eb):
@@ -1497,6 +1498,14 @@ def xzmatch(sa: str, sb: str) -> dict:
     else:
         score, label, line = 74, "随缘", \
             f"{sa}和{sb}——说不上天生一对，但各有趣味，处着看。"
+    # R2349l.8（R73-P2-11）：关系维度——闺蜜/同事换一条语境尾巴，
+    # 默认（恋人/空）不加，避免硬塞感情腔。
+    _rel_tail = {
+        "闺蜜": "闺蜜局里这种组合，一个闹一个笑刚刚好。",
+        "同事": "共事的话分工比合拍更要紧——各管一段反而顺。",
+    }
+    if rel in _rel_tail:
+        line = line + _rel_tail[rel]
     return {"a": sa, "b": sb, "elem_a": ea, "elem_b": eb,
             "score": score, "label": label, "line": line}
 
