@@ -5184,12 +5184,11 @@ function baziBody() {
   } else {
     LAST_BAZI_LUNAR = false;
   }
-  /* R2350f（R102-P1-5）：仅 scope=bazi 回显生日——range/day 结果不是
-   * 「这张盘是谁的」，回显反而误导。 */
-  _LAST_BIRTH.bazi = (scope === 'bazi')
-    ? body.year + '-' + body.month + '-' + body.day +
-      (LAST_BAZI_LUNAR ? '（农历）' : '')
-    : null;
+  /* R2350g（R104-P1-1）：scope 恒为 day/range/life——「bazi」分支永不
+   * 成立。三种范围都按所填生日起盘，回显全该亮（出厂示例生日的
+   * 错盘外溢正是 R102-P1-5 要堵的）。 */
+  _LAST_BIRTH.bazi = body.year + '-' + body.month + '-' + body.day +
+    (LAST_BAZI_LUNAR ? '（农历）' : '');
   const q = val('question');
   if (q) body.question = q;
   if (scope === 'range') {
@@ -6787,14 +6786,16 @@ async function _replaySharedDraw(ssd) {
   try {
     if (ssd.view === 'tarot') {
       var _tj = await _post('/api/tarot',
-        { seed: ssd.seed, n: ssd.tn || 3, client_date: todayIso() });
+        { seed: ssd.seed, n: ssd.tn || 3, client_date: todayIso(),
+          record: false });
       if (_tj && _tj.draws) {
         paint('trResult', _banner('抽到的牌') + buildTarotResult(_tj));
         revealResult('trResult');
       }
     } else if (ssd.view === 'liuyao' && ssd.method === 'coins') {
       var _lj = await _post('/api/liuyao',
-        { method: 'coins', seed: ssd.seed, client_date: todayIso() });
+        { method: 'coins', seed: ssd.seed, client_date: todayIso(),
+          record: false });
       if (_lj && _lj.ben) {
         paint('lyResult', _banner('摇到的卦') + buildLiuyaoResult(_lj));
         revealResult('lyResult');
@@ -10373,15 +10374,19 @@ function init() {
           }
         } catch (eHD) {}
         /* R2350f（R102-P1-1 落地侧）：分享链带 seed——?view=tarot&s=N&tn=3
-         * 或 ?view=liuyao&m=coins&s=N，落地先重现「TA 抽到的那副」。 */
+         * 或 ?view=liuyao&m=coins&s=N，落地先重现「TA 抽到的那副」。
+         * R2350g（R104-P2）：只认 from=share 的链——手搓裸 s= 不播重放；
+         * s=0/超界 tn 不产生重放（生成侧永不写这些值）。 */
         try {
           var _ss = _qsAll.get('s');
-          if (_ss && /^\d{1,10}$/.test(_ss) &&
+          var _seedOk = _ss && /^\d{1,10}$/.test(_ss) &&
+                        parseInt(_ss, 10) >= 1;
+          var _tnv = parseInt(_qsAll.get('tn') || '', 10);
+          if (_seedOk && _qsAll.get('from') === 'share' &&
               (_vp === 'tarot' || _vp === 'liuyao')) {
             window.__shareSeed = {
               view: _vp, seed: parseInt(_ss, 10),
-              tn: /^\d{1,2}$/.test(_qsAll.get('tn') || '')
-                ? parseInt(_qsAll.get('tn'), 10) : 3,
+              tn: (_tnv >= 1 && _tnv <= 10) ? _tnv : 3,
               method: _qsAll.get('m') === 'coins' ? 'coins' : null
             };
           }
@@ -11112,8 +11117,14 @@ function renderCheckin(dateKey) {
     };
     if (typeof Notification !== 'undefined' &&
         Notification.permission === 'granted') { _grant(); return; }
+    /* R2350g（R104-P1-2）：denied 不能再落进 _grant()——权限已被拒还
+     * 翻牌打标，明天根本喊不了却让用户以为开着。如实回退。 */
     if (typeof Notification !== 'undefined' &&
-        Notification.permission !== 'denied' && Notification.requestPermission) {
+        Notification.permission === 'denied') {
+      showToast('浏览器把通知关掉了——去地址栏旁边改权限，或明天自己回来看看也行', 'info');
+      return;
+    }
+    if (typeof Notification !== 'undefined' && Notification.requestPermission) {
       Notification.requestPermission().then(function (p) {
         if (p === 'granted') _grant();
         else showToast('浏览器不让发通知——没关系，明天自己回来看看也行', 'info');

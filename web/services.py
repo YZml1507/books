@@ -1116,12 +1116,14 @@ def liuyao(req) -> dict:
             _wr.append("小提示：时间起卦的卦面跟着日时走，同一个时辰再摇"
                        "容易是同族的卦——想要更随机的卦面，试试铜钱摇卦。")
     # R230z（R36-P1-1）：六爻进台账；摘要用问题或本卦名
-    paipan_history.save_async(
-        {"method": req.method, "seed": req.seed, "year": req.year,
-         "month": req.month, "day": req.day, "hour": req.hour,
-         "question": req.question},
-        out, rtype="liuyao",
-        name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
+    # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账。
+    if getattr(req, "record", True):
+        paipan_history.save_async(
+            {"method": req.method, "seed": req.seed, "year": req.year,
+             "month": req.month, "day": req.day, "hour": req.hour,
+             "question": req.question},
+            out, rtype="liuyao",
+            name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
     return out
 
 
@@ -2649,10 +2651,12 @@ def tarot(req) -> dict:
         "cross_ref": _cross_ref_tarot(cards, today_iso=req.client_date),
     }
     # R230z（R36-P1-1）：塔罗进台账；摘要用问题或张数
-    paipan_history.save_async(
-        {"seed": req.seed, "n": req.n, "question": req.question},
-        out, rtype="tarot",
-        name=(req.question or f"{req.n} 张牌阵"))
+    # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账/牌册。
+    if getattr(req, "record", True):
+        paipan_history.save_async(
+            {"seed": req.seed, "n": req.n, "question": req.question},
+            out, rtype="tarot",
+            name=(req.question or f"{req.n} 张牌阵"))
     return out
 
 

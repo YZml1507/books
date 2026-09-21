@@ -12197,3 +12197,4 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - 闸门：selftest 271 / contract 609 / ui_smoke 75 / poster 3判据 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
 - R2350f 续：R101 缓议项收口——全角数字归一化（１９９０→1990，中文输入法常见产出）；maxlength 顶格时吱一声（截断不再静默）。
 - R2350g：R105 爬虫面清零——根路径真 robots.txt/sitemap.xml/favicon.ico（此前 SPA 兜底把 50KB HTML 喂给爬虫，坏链全成 soft-404）；带扩展名的未知路径不再做 SPA 兜底（真 404）；GET 路由补 HEAD（监控/IM 预取不再 405）；LCP 封套图 fetchpriority=high；selftest 钉死下发 HTML 必须带 `?v=`（防 ?v 注入静默失效）。
+- R2350g续：R104 回归审计清零（0 P0/3 P1/3 P2）——①排盘卡生日回显死代码复活（scope 恒 day/range/life，「bazi」分支永不成立；三范围都按生日起盘故全回显）；②「明天提醒我」权限 denied 时不再假翻牌打标；③分享 seed 重放 record=false 不再污染接收方台账/牌册（/api/tarot、/api/liuyao 新增 record 开关，默认 true 保契约）；④重放只认 from=share 链、s≥1、tn 1-10。
