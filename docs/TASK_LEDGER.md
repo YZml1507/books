@@ -11828,3 +11828,33 @@ localStorage，倒计时改异步链。
 
 - toast 悬停/聚焦暂停计时从 error 扩到全部级别——info 3.5s 自动消失，
   键盘用户 Tab 到 × 之前提示就没了
+
+### R2349p：R79+R80 双报告清零（9-21）
+
+- R80-P0-1 首屏折叠：桌面 hero 等比放大 ~284px 压宫格出折叠线——
+  ink-hero 钳高 min(15vh,150px)（≤800px 矮视口 100px）、封面态日签卡
+  44vh/430px（矮口 42vh/400px）、封面熊 160px。实测 5 视口宫格全露头：
+  1280×720 +17 / 1366×768 +45 / 1440×900 +69 / 390×844 +8 / 768×1024 +144
+- R80-P1-2 邀请链落地（前批已入）：__landingFrom 记忆剥参前的 from=invite，
+  欢迎条「喊TA来对盘」承接+合婚表单默认女+昵称占位
+- R80-P1-3 复核：全链路统一 from=（无 ?ref= 消费点）——无操作项
+- R80-P1-4：封面 .45s 淡出期文字残影——子元素先 0.2s 收掉
+- R79-P0-1 合婚海报标题出画布：双昵称上限 16×2 → 60px 下 ~2010px；
+  照抄 hook 行 measureText 缩字号循环（60→34px），兜底 _gSlice 截断
+- R79-P1-1 LXGW 子集补包：源码内 492 个未覆盖码点中字体实有 422 个
+  （酝/晦/賁/頤/暌/蹇/姤/兌…卦名繁体+勘误字）→ 新 subset-120.woff2
+  125KB + lxgw.css @font-face（emoji/Ext-B+ 源字体不含、设备兜底不收录）
+- R79-P1-2 六爻海报字段名对不上（j.gua/j.moving vs 真实 j.ben.gua_name/
+  j.ben.moving_lines）→ 明细区恒空壳「结论」；改读真字段+变卦方向行
+- R79-P1-3 截断正则只认「项」→「等 3 件」拦腰；量词放宽 [项件条]
+- R79-P2-1 明细卡下死白：lh 封顶 120→150 + 行块剩余区间垂直居中
+  （下移封顶 120px 保页脚呼吸）
+- R79-P2-2 默认副标接 _cnDateSub（去月前导零，口径统一）
+- R79-P2-3 daily 宜/忌行换 _clauseCut（子句边界截，不拦腰断词）
+- R79-P2-5 幸运色行补色块圆点（14 色名→hex 映射，文字照画）
+- R79-P2-6 「建除·除」叠字 → 正式名「建除·X日」（建日/除日/满日…）
+- R79-P2-4 「——」横线高度跳项（字体字形特质，非缺陷）
+- 闸门：selftest 260 / regress 262→260 / contract 562 / voice baseline /
+  xingzuo / warm_voice / async_ai / dollar / parity(68+41,243键) /
+  plain_first / poster(9视图) / first_screen / no_generated /
+  scripts_importable / llm_polish / ui_smoke 全绿 + ruff 净

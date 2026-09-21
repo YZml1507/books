@@ -284,12 +284,35 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
 /* R231c（R36-P3-4）：拆礼物封面——盖在每日卡上，点击淡出让位。 */
+/* R2349p（R80-P0-1）：封面闭合时日签卡仍被内容撑到 ~999px——折叠线内
+ * 只剩一只熊，功能宫格全沉。封面态把卡高封顶，揭开后恢复自然高度。 */
+.daily-card:has(> .daily-cover:not(.open):not(.mini)){
+  /* R2349p：58vh→54vh——390×844 下让功能宫格上缘探出折叠线
+   * （完整露出约需 -26px），给用户「下面还有东西」的信号。 */
+  max-height:min(54vh, 500px); overflow:hidden;
+}
+@media (min-width:768px){
+  /* R2349p：桌面视口更高但顶栏也更占——同逻辑再收一档让宫格露头。 */
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)){
+    max-height:min(44vh, 430px);
+  }
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{width:160px;}
+  /* R2349p 续：桌面 hero 按容器宽等比放大到 ~284px，把功能宫格压出
+   * 折叠线（实测 funcGrid 顶 1014>900）——钳高裁切保住横幅氛围。 */
+  .ink-hero img{height:min(15vh, 150px); aspect-ratio:auto;}
+}
+@media (min-width:768px) and (max-height:800px){
+  /* R2349p 续：720p 级矮视口再收一档——日签卡 42vh、hero 100px。 */
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)){max-height:min(42vh, 400px);}
+  .ink-hero img{height:100px;}
+}
 .daily-cover{
   position:absolute; inset:0; z-index:3; border-radius:var(--radius);
   display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
   /* R2345（R62-P1-3）：卡高约 1.5 屏，垂直居中的熊会落到首屏视口之外——
-   * 触发点钉在卡顶往下 ~1/3 视口处，保证首屏内可见。 */
-  padding-top:min(30vh, 240px);
+   * 触发点钉在卡顶往下 ~1/3 视口处，保证首屏内可见。
+   * R2349p：卡高封顶后 30vh 会把 CTA 压出封面——改按卡高比例定位。 */
+  padding-top:min(15vh, 130px);
   gap:14px; cursor:pointer;
   /* R2341（R57-P1-5）：巨型空白卡升级——奶油底+斜纹包装纸感 */
   background:repeating-linear-gradient(45deg, var(--card,#FFFDFB) 0 26px,
@@ -303,6 +326,10 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .daily-cover-sub{font-size:12.5px; color:var(--muted); letter-spacing:.06em;
   margin-top:-6px; text-align:center;}
 .daily-cover.open{opacity:0; pointer-events:none;}
+/* R2349p（R80-P1-4）：封面 .45s 淡出期间文字残影叠在日签上——
+ * 子元素先 0.2s 收掉，只剩斜纹底完成淡出。 */
+.daily-cover.open > *{opacity:0; transition:opacity .2s ease;}
+.daily-cover > *{transition:opacity .2s ease;}
 .daily-cover:focus-visible{outline:2px solid var(--primary-ink); outline-offset:-2px;}
 @keyframes giftBob{0%,100%{transform:translateY(0) rotate(-2deg);}
   50%{transform:translateY(-8px) rotate(2deg);}}

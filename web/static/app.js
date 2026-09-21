@@ -2841,8 +2841,20 @@ function _paintSharePoster(s, W, H) {
 
   /* 标题 + 副题 */
   /* R2345（R62-P1-7）：标题换品牌快乐体——衬线粗体与全站声口不一致 */
-  ctx.fillStyle = _ink.title; ctx.font = '60px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
-  ctx.fillText(_pStr(s.title) || '知命', 540, 128);
+  ctx.fillStyle = _ink.title;
+  /* R2349p（R79-P0-1）：合婚双昵称 16 字上限 ×2 能到 35 字——60px 下
+   * ~2010px 冲出画布。照抄 hook 行的 measureText 缩字号循环，兜底截断。 */
+  var _title = _pStr(s.title) || '知命';
+  var _ts = 60;
+  ctx.font = _ts + 'px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
+  while (_ts > 34 && ctx.measureText(_title).width > 960) {
+    _ts -= 4;
+    ctx.font = _ts + 'px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
+  }
+  if (ctx.measureText(_title).width > 960) {
+    _title = _gSlice(_title, 30) + '…';
+  }
+  ctx.fillText(_title, 540, 128);
   if (s.subtitle) {
     ctx.fillStyle = _ink.sub; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
     /* R2349（R65-P2-7）：底图星芒装饰会压副题行——给文字一圈
@@ -2876,8 +2888,13 @@ function _paintSharePoster(s, W, H) {
   var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
   if (lines.length) {
     /* R233t：底部水印 y≈1330，卡片区 y≈880——明细区硬顶 1260，
-     * 行数多时收行高（最低 64px 可容 7 行）。 */
-    var lh = Math.min(120, Math.max(64, (1260 - cardY) / lines.length));
+     * 行数多时收行高（最低 64px 可容 7 行）。
+     * R2349p（R79-P2-1）：lh 封顶 120 + cardY 固定 → 少行视图卡下
+     * 留 300-700px 死白——行高上限放 150，且行块在剩余区间里
+     * 垂直居中（下移量封顶 120px，给页脚留呼吸）。 */
+    var lh = Math.min(150, Math.max(64, (1260 - cardY) / lines.length));
+    var _slack = 1260 - (cardY - 60) - (lines.length * lh + 40);
+    if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
     ctx.fillStyle = '#FFFFFF';
     _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
@@ -2895,12 +2912,33 @@ function _paintSharePoster(s, W, H) {
        * 截成「等 3…」——遇到「等N项」收尾时保住尾巴完整。 */
       var _vv = v;
       if (Array.from(v).length > 22) {
-        var _mEq = v.match(/等\s*\d+\s*项?$/);
+        /* R2349p（R79-P1-3）：黄历忌行产「等 3 件」——正则只认「项」
+         * 把「件」拦腰截掉；量词放宽。 */
+        var _mEq = v.match(/等\s*\d+\s*[项件条]?$/);
         var _keep = _mEq ? _mEq[0] : '';
         _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
           '…' + _keep;
       }
       ctx.fillText(_vv, 150, y + 52);
+      /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
+       * share 模板只印字。文字照画，色块排在值右侧。 */
+      if (r.k === '幸运色') {
+        var _cmap = { 红: '#C0392B', 紫: '#8E44AD', 黄: '#D4AC0D',
+          棕: '#8D6E63', 黑: '#2C3E50', 蓝: '#2874A6', 青: '#148F77',
+          绿: '#27AE60', 白: '#F2F3F4', 金: '#B7950B', 粉: '#FF8FAB',
+          橙: '#E67E22', 灰: '#95A5A6' };
+        var _scx = 150 + ctx.measureText(_vv).width + 40;
+        String(v).split(/\s*·\s*|\s*、\s*/).forEach(function (cn) {
+          var hex = _cmap[cn.trim().charAt(0)];
+          if (hex && _scx < 940) {
+            ctx.fillStyle = hex;
+            ctx.beginPath(); ctx.arc(_scx, y + 40, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(62,52,40,.25)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(_scx, y + 40, 18, 0, Math.PI * 2); ctx.stroke();
+            _scx += 50;
+          }
+        });
+      }
     });
     ctx.textAlign = 'center';
   }
@@ -3070,8 +3108,8 @@ function buildShareData(view, j) {
     /* R230y（R36-P3-2）：subtitle 空兜当天日期——海报带「今天的签」时效感 */
     /* R233t（R51-P2-15）：裸 ISO 日期「2026-09-20」默认副标
      * 全部视图统一「M月D日 · 周X」。 */
-    var _defSub = todayIso().slice(5).replace('-', '月') + '日 · ' +
-      _weekdayCn(todayIso());
+    /* R2349p（R79-P2-2）：默认副标与 _cnDateSub 口径统一（去月前导零）。 */
+    var _defSub = _cnDateSub(todayIso());
     return { title: title, subtitle: subtitle || _defSub, big: l0 || title,
              lines: [], cards: [], view: view };
   }
@@ -3103,8 +3141,10 @@ function buildShareData(view, j) {
                 /* R233t（R51-P2-14）：地支原文「丑/未」上天书——转生肖。 */
                 { k: '天乙贵人', v: _pStr(j && j.noble) ?
                   _zhiToAnimal(j.noble) : '—' },
-                { k: '宜', v: _pStr(j && j.do) || '—' },
-                { k: '忌', v: _pStr(j && j.dont) || '—' }],
+                { k: '宜', v: _clauseCut(_pStr(j && j.do) || '—', 20) },
+                /* R2349p（R79-P2-3）：忌行与子句口径一致——顿号清单
+                 * 在子句边界截，不拦腰断词。 */
+                { k: '忌', v: _clauseCut(_pStr(j && j.dont) || '—', 20) }],
         cards: [], view: view };
       _ds.lines.unshift({ k: '签诗', v: _dpoem });
       return _ds;
@@ -3150,12 +3190,26 @@ function buildShareData(view, j) {
       /* R2341（R57-P2-2）：basis 空时退化行复读大字——改画卦名/
        * 动爻这些已有字段，明细区不当复读机。 */
       if (!sly.lines.length) {
-        var _lg = _pStr((j && (j.gua || j.gua_name || j.hexagram)));
-        var _lm = _pStr((j && (j.moving || j.dong_yao)));
-        if (_lg || _lm) sly.lines = [
-          { k: '起到的卦', v: _lg || '—' },
-          { k: '动爻', v: _lm || '—' }];
-        else sly.lines = [{ k: '结论', v: _clauseCut(l0, 18) }];
+        /* R2349p（R79-P1-2）：旧字段名（j.gua/j.moving…）与真实响应
+         * 对不上（j.ben.gua_name/j.ben.moving_lines），fallback 恒走
+         * 「结论」空壳——读真字段；变卦不同名时给出方向行。 */
+        var _ben = (j && j.ben) || {}, _bian = (j && j.bian) || {};
+        var _lg = _pStr(_ben.gua_name);
+        var _lml = _pArr(_ben.moving_lines);
+        var _lmn = ['初', '二', '三', '四', '五', '上'];
+        var _lm = _lml.map(function (i) {
+          return (_lmn[i - 1] || i) + '爻';
+        }).join('、');
+        if (_lg) {
+          sly.lines = [{ k: '起到的卦', v: _lg }];
+          if (_lm) sly.lines.push({ k: '动爻', v: _lm });
+          else sly.lines.push({ k: '动爻', v: '静卦 · 格局稳住' });
+          if (_bian.gua_name && _bian.gua_name !== _lg) {
+            sly.lines.push({ k: '走向', v: _lg + ' → ' + _bian.gua_name });
+          }
+        } else {
+          sly.lines = [{ k: '结论', v: _clauseCut(l0, 18) }];
+        }
       }
       return sly;
     }
@@ -3348,8 +3402,10 @@ function buildShareData(view, j) {
       if (_yiP.length) shl.lines.push({ k: '宜', v: _yiT });
       if (_jiP.length) shl.lines.push({ k: '忌', v: _jiT });
       /* R2341（R57-P2-5）：单字行合并「建除·X / 值宿·Y」省一行 */
+      /* R2349p（R79-P2-6）：「建除·除」单字撞上标签字读着叠音——
+       * 值日用正式名「X日」（建日/除日/满日…）。 */
       if (jh.jianchu || jh.xiu) shl.lines.push({ k: '神煞',
-        v: (jh.jianchu ? '建除·' + _pStr(jh.jianchu) : '') +
+        v: (jh.jianchu ? '建除·' + _pStr(jh.jianchu) + '日' : '') +
            ((jh.jianchu && jh.xiu) ? '　' : '') +
            (jh.xiu ? '值宿·' + _pStr(jh.xiu) : '') });
       if (jh.chongsha) {
@@ -9040,6 +9096,16 @@ function init() {
           /* R2348（R66-P2）：邀请态下 B 侧档案源=me——置位后补跑一次
            * 回填（init 早段的 _meFillAll 还按默认映射填过 hh_b）。 */
           try { _meFillAll(); } catch (eM) {}
+          /* R2349p（R80-P2）：受邀者=B=「我」，面向小红书女性用户——
+           * 档案没带性别时出厂默认「男」不合适；昵称例也从阿哲换成中性。 */
+          try {
+            var _bgr = document.getElementById('hh_b_gender');
+            if (_bgr && !_bgr.dataset.me && _bgr.selectedIndex <= 0) {
+              _bgr.value = '女';
+            }
+            var _bnm = document.getElementById('hh_b_name');
+            if (_bnm) _bnm.placeholder = '可空，如：小梨';
+          } catch (eN) {}
           ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour','hh_a_gender',
            'hh_a_name'].forEach(function (_id) {
             var _ae = document.getElementById(_id);
@@ -9061,6 +9127,9 @@ function init() {
               '&ag=' + encodeURIComponent(_qsAll.get('ag') || '') +
               '&an=' + encodeURIComponent(_qsAll.get('an') || ''));
           } catch (eSS2) {}
+          /* R2349p（R80-P1-2）：from=invite 被剥参后欢迎条分支永远读不到——
+           * 剥前先存一份，_mk() 优先读它。 */
+          try { window.__landingFrom = 'invite'; } catch (eF0) {}
           try {
             history.replaceState(null, '',
               location.pathname + '?view=hehun');
@@ -9168,6 +9237,9 @@ if (document.readyState === 'loading') {
     var _from = null;
     try {
       _from = new URLSearchParams(location.search).get('from');
+      /* R2349p（R80-P1-2）：邀请链 from=invite 已被剥参——回落到
+       * init 时存下的 __landingFrom。 */
+      if (!_from && window.__landingFrom) _from = window.__landingFrom;
     } catch (e) {}
     var _txtEl = bar.querySelector('.welcome-txt');
     if (_txtEl && _from === 'share') {
