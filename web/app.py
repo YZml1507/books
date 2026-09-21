@@ -171,6 +171,35 @@ def create_app() -> FastAPI:
                 '<meta property="og:type" content="website">\n'
                 f'<meta property="og:url" content="{base}/">\n'
                 '<meta property="og:site_name" content="小满的解忧铺">')
+            # R2350f（R102-P2-3）：分享链按 ?view= 换 og:title/description——
+            # 微信/QQ 预览此前千链一面，不含「她在测塔罗」语境。
+            _OG_VIEW = {
+                "tarot": ("塔罗占卜", "抽到的是哪几张？晒晒你的牌"),
+                "liuyao": ("六爻摇卦", "摇出来的卦，读给你听"),
+                "hehun": ("八字合婚", "和 TA 配不配 · 看缘分深浅"),
+                "huangli": ("翻黄历", "今天适合做什么 · 宜忌一览"),
+                "bazi": ("今日命盘", "生日一填 · 大白话解读你的盘"),
+                "taohua": ("桃花运", "最近的桃花信号帮你看看"),
+                "qiming": ("五行起名", "按五行补缺 · 起个好名字"),
+                "daily": ("今日一签", "每天抽一签 · 攒连签好运"),
+                "xingzuo": ("今日星座", "十二宫 · 今日运势播报"),
+                "xzm": ("星座速配", "你们俩的星座合拍指数"),
+                "history": ("排盘历史", "翻翻看过的盘 · 可导出"),
+            }
+            _v = (request.query_params.get("view") or "").lower()
+            if not _v:
+                # 路径式深链 /tarot 走 SPA fallback——路径段也当视图名。
+                _seg = request.url.path.strip("/").lower()
+                if _seg and "/" not in _seg:
+                    _v = _seg
+            if _v in _OG_VIEW:
+                _t, _d = _OG_VIEW[_v]
+                html = html.replace(
+                    '<meta property="og:title" content="小满的解忧铺">',
+                    f'<meta property="og:title" content="{_t} · 小满的解忧铺">')
+                html = html.replace(
+                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">',
+                    f'<meta property="og:description" content="{_d}">')
             v = _shell_hash()
             if v:
                 html = html.replace('src="/static/app.js"',

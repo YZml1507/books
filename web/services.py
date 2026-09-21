@@ -1088,6 +1088,11 @@ def liuyao(req) -> dict:
         "ben_jing": ben_jing,
         "bian_jing": bian_jing,
         "cast_at": _cast_at,
+        # R2350f（R102-P1-1）：回显 seed——铜钱卦 seed 可复现同卦，分享链
+        # 带 s= 让接收方翻到「TA 摇到的那卦」。时间起卦的 seed 不参与
+        # 构造（卦面随日时走），回显无害。
+        "seed": req.seed,
+        "method": req.method,
         "interpretation": interpretation,
         # 判据 8：六爻原本对提问只回「不代为断事」。warm 分支给出基于**已起出
         # 的卦象**的描述性回应（不预测结果），专业分支原文不动。

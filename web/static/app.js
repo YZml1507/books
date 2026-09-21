@@ -467,6 +467,7 @@ function buildHehunResult(j) {
   let html = '<div class="card"><h2>💕 八字合婚' +
     (_hn ? ' <small style="font-size:15px;color:var(--primary-ink);">' +
     esc(_hn) + '</small>' : '') + '</h2>';
+  html += _birthEcho('hehun');
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
   /* R233n：三枚 fav-btn 全按 right:24/84px 绝对定位会互叠——本卡
    * 三钮改用 .hh-btns flex 行（静态流，gap 间隔）。 */
@@ -630,6 +631,7 @@ function buildHehunResult(j) {
  * 按 rec.type 回放同一渲染；do* 里只剩 paint 一行。 */
 function buildTaohuaResult(j) {
   let html = '<div class="card"><h2>🌺 桃花运</h2>';
+  html += _birthEcho('taohua');
   /* R218a-巡2（N-08）：装饰图——桃花卡顶部加 SVG/CSS 装饰 banner。 */
   html += renderDecoration('taohua');
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
@@ -741,6 +743,7 @@ function buildTaohuaResult(j) {
  * 按 rec.type 回放同一渲染；do* 里只剩 paint 一行。 */
 function buildQimingResult(j) {
   let html = '<div class="card"><h2>🌸 起名推荐</h2>';
+  html += _birthEcho('qiming');
   /* R218a-巡2（N-08）：装饰图——起名卡顶部加 SVG/CSS 装饰 banner。 */
   html += renderDecoration('qiming');
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
@@ -2249,6 +2252,9 @@ function showView(viewId) {
   if (!isHome) { try { _idlePrefetch(); } catch (eP) {} }
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
+  /* R2350f（R102-P2-7）：塔罗落地先亮「今日牌」——日卡/打卡/黄历/
+   * 星座首屏都有自动内容，唯独塔罗是空表单；一张免费牌先接住她。 */
+  if (viewId === 'tarot') _tarotLandingCard();
   /* R222b（E-301 P0）：黄历同理——原 HTML 写死 2026/8/19 */
   if (viewId === 'huangli') hlInitToday();
   /* C-002-fix：星座视图进入时自动加载今日运势 */
@@ -2587,6 +2593,14 @@ var WARM_EMPATHY_DEFAULT = "来了就好。不管今天怎么样，先看看盘�
  * 「函数当对象访问属性」FAIL（本仓铁律），改模块级变量 WARM_LAST_QUESTION。 */
 var WARM_LAST_QUESTION = "";
 var LAST_BAZI_LUNAR = false;   /* R216b 续5（U-021）：本次提交是否农历输入 */
+/* R2350f（R102-P1-5）：结果卡回显「按哪个生日排的」——表单出厂是
+ * 示例值（1990/5/15），截图外溢时接收方能认出这是谁的盘。 */
+var _LAST_BIRTH = {};
+function _birthEcho(view) {
+  var t = _LAST_BIRTH[view];
+  return t ? '<p class="hit-cite">📅 按生日 ' + esc(t) +
+    ' 排的——不是你的生日就去上面改一下再算</p>' : '';
+}
 function warmEmpathy(question) {
   var q = question || "";
   for (var k in WARM_EMPATHY) {
@@ -3285,8 +3299,18 @@ function _paintSharePoster(s, W, H) {
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R2350b（R99-P2）：CTA 换接收方口吻——只看图的人想测，教她
-   * 去搜品牌名；「链接甩给 TA 就行」是对分享者说的话。 */
-  ctx.fillText('搜「小满的解忧铺」· 测你的同款 ✨', 540, 1390);
+   * 去搜品牌名；「链接甩给 TA 就行」是对分享者说的话。
+   * R2350f（R102-P1-2）：部署在真实域名时把 host 画进 CTA——图单飞
+   * 也有回站路径；本地/内网自动不画。 */
+  var _host = '';
+  try {
+    _host = (location.hostname || '').toLowerCase();
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(_host) ||
+        /(^|\.)(localhost|local|internal|lan)$/.test(_host) ||
+        /^\d+\.\d+\.\d+\.\d+$/.test(_host)) _host = '';
+  } catch (eH) { _host = ''; }
+  ctx.fillText(_host ? ('→ ' + _host + ' 测你的同款 ✨')
+                     : '搜「小满的解忧铺」· 测你的同款 ✨', 540, 1390);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
@@ -3962,12 +3986,12 @@ async function _downloadPoster(j, view) {
     }
   } catch (e) { /* 低端降级：静默，不打断主流程 */ }
   /* 弹浮层——海报预览 + 移动端长按保存提示 */
-  showPosterModal(r.canvas, view);
+  showPosterModal(r.canvas, view, j);
 }
 
 /* R218a-巡2（N-02）：海报浮层——背景遮罩 + 中央海报图 + 关闭按钮 +
  * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
-function showPosterModal(canvas, view) {
+function showPosterModal(canvas, view, j) {
   var existing = document.getElementById('posterModal');
   /* R230j（R22-P3-1）：直接 remove() 会绕过 closePosterModal()——旧
    * backdrop 的 _posterOnKey 引用被覆盖后 keydown 监听永久残留。
@@ -4029,7 +4053,7 @@ function showPosterModal(canvas, view) {
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
        * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
       '<div class="poster-modal-actions">' +
-        '<button type="button" class="poster-act" id="posterCopyLink">🔗 复制链接</button>' +
+        '<button type="button" class="poster-act" id="posterCopyLink">🔗 复制文案+链接</button>' +
         ((typeof navigator !== 'undefined' && navigator.share)
           ? '<button type="button" class="poster-act" id="posterSysShare">📤 分享给朋友</button>' : '') +
       '</div>' +
@@ -4049,6 +4073,14 @@ function showPosterModal(canvas, view) {
           encodeURIComponent(_sd0.shownDate);
       } catch (eSD) {}
     }
+    /* R2350f（R102-P1-1）：结果随链走——塔罗/六爻 seed 确定性可复现，
+     * 接收方落地先看到「TA 抽到的那几张/那一卦」再邀她抽自己的。 */
+    if ((view === 'tarot' || view === 'liuyao') && j &&
+        typeof j.seed === 'number') {
+      url += '&s=' + j.seed;
+      if (view === 'tarot' && j.n) url += '&tn=' + j.n;
+      if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
+    }
     /* R2349t（R88-13a）：分享链带昵称——接力页能喊出「谁晒的」。
      * 昵称与生辰不同级：纯显名，不进任何请求体（邀请链已有先例）。 */
     try {
@@ -4057,12 +4089,15 @@ function showPosterModal(canvas, view) {
     } catch (eSN) {}
     var ok = function () { showToast(_dayPick(['链接已复制，发给 TA 吧','复制好啦，发给 TA 看看','已复制——等 TA 打开'], 'copy'), 'ok'); };
     var bad = function () { showToast('复制没成功，手动复制地址栏里的链接吧', 'warn'); };
+    /* R2350f（R102-P1-12）：复制内容改为「钩子文案 + URL」——微信/
+     * 评论区场景贴一串裸链接，接收方零语境不知道点了会看到什么。 */
+    var _clipPayload = _shareText(view).trim() + ' ' + url;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(ok, bad);
+      navigator.clipboard.writeText(_clipPayload).then(ok, bad);
     } else {
       try {
         var _ta = document.createElement('textarea');
-        _ta.value = url; _ta.style.position = 'fixed'; _ta.style.opacity = '0';
+        _ta.value = _clipPayload; _ta.style.position = 'fixed'; _ta.style.opacity = '0';
         document.body.appendChild(_ta); _ta.select();
         document.execCommand('copy') ? ok() : bad();
         _ta.remove();
@@ -4079,6 +4114,12 @@ function showPosterModal(canvas, view) {
         if (_sd1.shownDate) url += '&date=' +
           encodeURIComponent(_sd1.shownDate);
       } catch (eSD1) {}
+    }
+    if ((view === 'tarot' || view === 'liuyao') && j &&
+        typeof j.seed === 'number') {
+      url += '&s=' + j.seed;
+      if (view === 'tarot' && j.n) url += '&tn=' + j.n;
+      if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
     }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
     try {
@@ -5138,6 +5179,12 @@ function baziBody() {
   } else {
     LAST_BAZI_LUNAR = false;
   }
+  /* R2350f（R102-P1-5）：仅 scope=bazi 回显生日——range/day 结果不是
+   * 「这张盘是谁的」，回显反而误导。 */
+  _LAST_BIRTH.bazi = (scope === 'bazi')
+    ? body.year + '-' + body.month + '-' + body.day +
+      (LAST_BAZI_LUNAR ? '（农历）' : '')
+    : null;
   const q = val('question');
   if (q) body.question = q;
   if (scope === 'range') {
@@ -5232,6 +5279,7 @@ function buildBaziResult(j) {
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
      * 首屏只有一句人话生日线。事实零改动，只是呈现位置后移。 */
     html += '<p class="bazi-birthday">' + esc(baziBirthdayLine(paipan)) + '</p>';
+    html += _birthEcho('bazi');
     /* R218a-03：人设卡——按日主五行分支从 copy_bank.gan_persona 选一套。
      * 视觉锚点：左条+人设短句+1-2 关键词气泡。让「我是什么命格」秒级可达。 */
     html += baziPersonaCard(j);
@@ -6548,6 +6596,9 @@ async function doQiming() {
       seed: _qmSeed || null,
       style: _QM_STYLE || 'all'    /* v3（P3）：风格档后端过滤 */
     });
+    /* R2350f（R102-P1-5）：结果回显用了哪个生日（示例值外溢防错盘传播）。 */
+    _LAST_BIRTH.qiming = num('qm_year') + '-' + num('qm_month') +
+      '-' + num('qm_day');
     paint('qmResult', buildQimingResult(j));
     rememberVoice('qmResult', j, buildQimingResult);   /* R2349s P2-20 */
     _qmFavsRender();   /* R230z（R36-P2-3）：心水名单行+♡点亮 */
@@ -6650,6 +6701,8 @@ async function doTaohua() {
     _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
       h: (_thHour === '') ? null : num('th_hour'), g: val('th_gender') || '女' });
     _meFillAll();   /* R230y */
+    _LAST_BIRTH.taohua = num('th_year') + '-' + num('th_month') +
+      '-' + num('th_day');   /* R2350f（R102-P1-5） */
     paint('thResult', buildTaohuaResult(j));
     rememberVoice('thResult', j, buildTaohuaResult);   /* R2349s P2-20 */
     rememberResult('taohua', j, '', { gender: val('th_gender') });   /* v2：补性别 */
@@ -6709,6 +6762,70 @@ var _SHARE_TEXT = {
   xzm: '我们星座合拍指数出来了，你们的呢 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
+}
+
+/* R2350f（R102-P1-1）：分享链 seed 重放——接收方落地先看到分享者
+ * 抽到的同一副牌/同一卦（seed 确定性），再邀她抽自己的。
+ * 复用正式结果渲染器，零新接口、不写台账诉求由后端既有逻辑管。 */
+async function _replaySharedDraw(ssd) {
+  if (!ssd || typeof postJSON !== 'function') return;
+  var _who = (typeof _shareByName === 'function' && _shareByName()) || 'TA';
+  var _banner = function (t) {
+    return '<div class="hl-csmsg" style="margin-bottom:8px">🎁 ' +
+      esc(_who) + ' ' + esc(t) + '——下面换成你的问题，再抽你自己的～</div>';
+  };
+  var _post = function (path, payload) {
+    return api(path, { method: 'POST', silent: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload) });
+  };
+  try {
+    if (ssd.view === 'tarot') {
+      var _tj = await _post('/api/tarot',
+        { seed: ssd.seed, n: ssd.tn || 3, client_date: todayIso() });
+      if (_tj && _tj.draws) {
+        paint('trResult', _banner('抽到的牌') + buildTarotResult(_tj));
+        revealResult('trResult');
+      }
+    } else if (ssd.view === 'liuyao' && ssd.method === 'coins') {
+      var _lj = await _post('/api/liuyao',
+        { method: 'coins', seed: ssd.seed, client_date: todayIso() });
+      if (_lj && _lj.ben) {
+        paint('lyResult', _banner('摇到的卦') + buildLiuyaoResult(_lj));
+        revealResult('lyResult');
+      }
+    }
+  } catch (e) { /* 重放失败静默——表单还在，用户自己抽不受影响 */ }
+}
+
+/* R2350f（R102-P2-7）：塔罗页空态先亮「今日牌」——与首页日卡同一
+ * seed（'tarot|'+今天 哈希单抽，确定性、不写台账）。只在结果区仍是
+ * 出厂空态时注入；用户抽过自己的牌后不再覆盖。 */
+function _tarotLandingCard() {
+  var box = el('trResult');
+  if (!box || !box.querySelector('.ph-empty')) return;
+  var _seed = 0, _src = 'tarot|' + todayIso();
+  for (var _i = 0; _i < _src.length; _i++) {
+    _seed = (_seed * 31 + _src.charCodeAt(_i)) >>> 0;
+  }
+  api('/api/tarot/draw', { method: 'POST', silent: true,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ seed: _seed, n: 1, client_date: todayIso() }) })
+    .then(function (tj) {
+      var d = tj && tj.card;
+      if (!d || !d.name) return;
+      /* 用户已抽（ph-empty 被结果顶掉）就不覆盖。 */
+      if (!box.querySelector('.ph-empty')) return;
+      box.innerHTML = '<div class="ph-empty">' +
+        '<div class="sign-card" style="text-align:left;margin-bottom:10px;">' +
+        '🃏 今日牌：<strong>' + esc(d.name) + '</strong> · ' +
+        (d.upright ? '正位' : '逆位') +
+        '<span>' + esc(d.upright ? (d.upright_kw || '') :
+                                 (d.reversed_kw || '')) +
+        (d.meaning ? ' —— ' + esc(d.meaning) : '') + '</span></div>' +
+        '想好要问的事，点「抽一张」，抽你自己的～</div>';
+    })
+    .catch(function () {});
 }
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 /* R39-P2-2：结果页统一「明天」收口——最后一屏指向明天而不是看完即走。 */
@@ -7431,6 +7548,11 @@ async function doHehun() {
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
     }
     _meFillAll();
+    /* R2350f（R102-P1-5）：双侧生日都回显——邀请态下 A 侧是 TA。 */
+    _LAST_BIRTH.hehun = (window.__hhInviteMode ? 'TA ' : '') +
+      num('hh_a_year') + '-' + num('hh_a_month') + '-' + num('hh_a_day') +
+      ' × ' + (window.__hhInviteMode ? '我 ' : '') +
+      num('hh_b_year') + '-' + num('hh_b_month') + '-' + num('hh_b_day');
     paint('hhResult', buildHehunResult(j));
     rememberVoice('hhResult', j, buildHehunResult);   /* R2349s P2-20 */
     rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
@@ -8903,7 +9025,10 @@ async function _doHuangli(offset, reveal, spokenWord) {
       if (window.__hlBirthdayNA) {
         /* R2349（R64-P1-4）：「生日」无档案——明说解不动+指路档案位；
          * 不按今天替她判（静默判错天比不答更伤）。 */
-        showToast('你的生日还没存——在首页「我的小档案」填一下，我就能翻那天的黄历', 'info');
+        /* R2350f（R102-P2-6）：原指路「我的小档案」——无档案用户首页
+         * 根本没有这张卡（_renderMeStrip 整体隐藏），指引失效。真正
+         * 入口是日卡 meta 的「存个生日」CTA。 */
+        showToast('你的生日还没存——首页日卡里点「存个生日」填一下，我就能翻那天的黄历', 'info');
         _HL.scene = '';
         _hlShowNeutral();
         return;
@@ -10231,6 +10356,20 @@ function init() {
             }
           }
         } catch (eHD) {}
+        /* R2350f（R102-P1-1 落地侧）：分享链带 seed——?view=tarot&s=N&tn=3
+         * 或 ?view=liuyao&m=coins&s=N，落地先重现「TA 抽到的那副」。 */
+        try {
+          var _ss = _qsAll.get('s');
+          if (_ss && /^\d{1,10}$/.test(_ss) &&
+              (_vp === 'tarot' || _vp === 'liuyao')) {
+            window.__shareSeed = {
+              view: _vp, seed: parseInt(_ss, 10),
+              tn: /^\d{1,2}$/.test(_qsAll.get('tn') || '')
+                ? parseInt(_qsAll.get('tn'), 10) : 3,
+              method: _qsAll.get('m') === 'coins' ? 'coins' : null
+            };
+          }
+        } catch (eSS) {}
         /* R2349s（R86-P1-7）：别名视图（daily/checkin/checkin-week/
          * birth）归一化会把 from=share 参数剥掉——新客欢迎条与老用户
          * 承接 toast 都读不到，全成死代码。剥参前先存进内存。 */
@@ -10392,6 +10531,13 @@ function init() {
         var _hold = window.__suppressPush;
         window.__suppressPush = true;
         try { showView(_vp); } finally { window.__suppressPush = _hold; }
+        /* R2350f（R102-P1-1）：seed 重放——表单照常摆着，结果区先渲染
+         * 「TA 抽到的」。抽她自己的仍是原按钮动线。 */
+        if (window.__shareSeed && window.__shareSeed.view === _vp) {
+          var _ssd = window.__shareSeed;
+          window.__shareSeed = null;
+          setTimeout(function () { _replaySharedDraw(_ssd); }, 250);
+        }
         /* R2350b（R99-P2）：微信/小红书容器内落地的分享/邀请链——
          * beforeinstallprompt 不触发、装桌面提示缺席，给一行轻提示
          * 让接收方知道可以「浏览器打开更灵」。 */
@@ -10434,7 +10580,7 @@ function init() {
             var _qs2 = new URLSearchParams(location.search);
             var _dirty = false;
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
-             'ag'].forEach(function (_k) {
+             'ag', 's', 'tn', 'm'].forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
             if (_dirty) {
@@ -10575,6 +10721,22 @@ if (document.readyState === 'loading') {
     } else if (_txtEl && _from === 'invite') {
       _txtEl.textContent = (window.__hhInviteBy || 'TA') +
         ' 约你来合婚——填好你的生日就能对上盘 💕';
+    } else if (_txtEl && _sv2) {
+      /* R2350f（R102-P2-4）：非 share 深链（书签/手敲 ?view=tarot）落地
+       * 已在塔罗页，通用句「点一张卡就能测」指错路。 */
+      var _plainBar = {
+        tarot: '你已经在塔罗页了——想好要问的事，抽一张就是 🃏',
+        liuyao: '你已经在六爻页了——想好要问的事，摇一卦就是 ☯️',
+        hehun: '你已经在合婚页了——填你和 TA 的生日就能合 💕',
+        huangli: '你已经在黄历页了——上面就是今天的宜忌 📅',
+        bazi: '你已经在排盘页了——填生日点「排个盘」 🔮',
+        taohua: '你已经在桃花页了——填生日看最近桃花 🌺',
+        qiming: '你已经在起名页了——填姓氏和生日就能起 🌸',
+        xingzuo: '你已经在星座页了——上面就是今日运势 ⭐',
+        read: '你已经在古籍域了——搜个词翻翻看 📜',
+        history: '这里是排盘历史——看过的盘都收在这里 🗂',
+      };
+      if (_plainBar[_sv2]) _txtEl.textContent = _plainBar[_sv2];
     }
     bar.querySelector('.welcome-close').addEventListener('click', function () {
       /* R2349h（R69-P2-7）：自毁钮先把焦点还到页内落点，
@@ -10775,6 +10937,19 @@ function renderCheckin(dateKey) {
   if (_isMyBirthday() && _todays.indexOf('生日签') < 0) {
     _todays.unshift('生日签');
   }
+  /* R2350f（R102-P2-8 消费侧）：开了「明天提醒我」且今天还没打——
+   * 每天首渲提醒一次（标记当天已提醒，防同天复读）。 */
+  if (!saved) {
+    try {
+      if (localStorage.getItem('remind:1') === '1' &&
+          localStorage.getItem('remind:shown') !== dateKey) {
+        localStorage.setItem('remind:shown', dateKey);
+        setTimeout(function () {
+          showToast('🔔 说好今天喊你的——抽一签吧', 'info');
+        }, 1200);
+      }
+    } catch (eRM) {}
+  }
   const opts = _todays.map(function (o) {
     /* R2349t（R87-P1-1）：saved 是 localStorage 原始串——词表外脏值
      * 会被 unshift 进来直拼 HTML（属性逃逸即存储型 XSS）。两处全 esc。 */
@@ -10852,14 +11027,29 @@ function renderCheckin(dateKey) {
         '<button type="button" class="checkin-share" id="checkinWeek" ' +
         'title="生成本周签运图">📅 本周签运</button>' : '');
     })() +
+    /* R2350f（R102-P2-8/P2-13）：两枚留存/拉新小动作——「明天提醒我」
+     * 走本地 Notification（无推送基建，次日开屏 toast 口径如实说清），
+     * 「安利铺子」产出 文案+链 一键复制给闺蜜。 */
+    '<button type="button" class="checkin-share" id="checkinRemind" ' +
+      'title="明天回来时提醒你抽新签">🔔 ' +
+      ((function () {
+        try { return localStorage.getItem('remind:1') === '1'; }
+        catch (e) { return false; }
+      })() ? '明天会来喊你' : '明天提醒我') + '</button>' +
+    '<button type="button" class="checkin-share" id="shopShare" ' +
+      'title="把这铺子发给闺蜜">📮 安利铺子</button>' +
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>' +
     /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
-     * （details 懒渲染，点开才算 DOM；集齐感是小红书留存钩子）。 */
-    (Object.keys(_ckAll).length ?
-      '<details class="ck-album"><summary>📒 看看我的签册' +
-      '（' + Object.keys(_ckAll).length + '）</summary>' +
-      '<div class="ck-album-body" id="checkinAlbum"></div></details>' : '');
+     * （details 懒渲染，点开才算 DOM；集齐感是小红书留存钩子）。
+     * R2350f（R102-P2-9）：零打卡用户也渲染——集齐线首日就得亮相，
+     * 否则新客不知道有这条收集线在等她。 */
+    '<details class="ck-album"><summary>📒 ' +
+      (Object.keys(_ckAll).length
+        ? '看看我的签册（' + Object.keys(_ckAll).length + '）'
+        : '我的签册——打一次卡开第一张') +
+      '</summary>' +
+      '<div class="ck-album-body" id="checkinAlbum"></div></details>';
   var _alb = box.querySelector('.ck-album');
   if (_alb && !_alb.dataset.bound) {
     _alb.dataset.bound = '1';
@@ -10885,6 +11075,65 @@ function renderCheckin(dateKey) {
     }
     var _p2 = downloadPoster({ days: _days, streak: _streak }, 'checkin-week');
     if (_p2 && _p2.catch) _p2.catch(function () {});
+  });
+  /* R2350f（R102-P2-8）：「明天提醒我」——无推送基建下的诚实实现：
+   * 拿 Notification 权限 + 本地打标，次日开屏 toast 提醒。权限被拒
+   * 时按钮如实回退，不假装已开。 */
+  var _ckr = box.querySelector('#checkinRemind');
+  if (_ckr) _ckr.addEventListener('click', function () {
+    var _on = false;
+    try { _on = localStorage.getItem('remind:1') === '1'; } catch (e) {}
+    if (_on) {
+      try { localStorage.removeItem('remind:1'); } catch (e2) {}
+      _ckr.innerHTML = '🔔 明天提醒我';
+      showToast('好，明天不喊你了', 'info');
+      return;
+    }
+    var _grant = function () {
+      try { localStorage.setItem('remind:1', '1'); } catch (e3) {}
+      _ckr.innerHTML = '🔔 明天会来喊你';
+      showToast('好嘞——明天打开铺子就提醒你抽新签', 'ok');
+    };
+    if (typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted') { _grant(); return; }
+    if (typeof Notification !== 'undefined' &&
+        Notification.permission !== 'denied' && Notification.requestPermission) {
+      Notification.requestPermission().then(function (p) {
+        if (p === 'granted') _grant();
+        else showToast('浏览器不让发通知——没关系，明天自己回来看看也行', 'info');
+      }).catch(function () {
+        showToast('浏览器不让发通知——明天自己回来看看也行', 'info');
+      });
+      return;
+    }
+    /* 无 Notification 环境——仍然存标记，次日开屏 toast 兜底提醒。 */
+    _grant();
+  });
+  /* R2350f（R102-P2-13）：「安利铺子」——应用级分享出口，不挂结果件。
+   * 复制 钩子文案+链接；支持系统分享面板的走面板。 */
+  var _shops = box.querySelector('#shopShare');
+  if (_shops) _shops.addEventListener('click', function () {
+    var _url = location.origin + '/?from=share';
+    var _txt = '我在「小满的解忧铺」抽日签/翻黄历/测桃花——来一起玩 ' + _url;
+    var _ok = function () { showToast('安利文案已复制——发给闺蜜吧', 'ok'); };
+    var _bad = function () { showToast('复制没成功，手动复制地址栏链接吧', 'warn'); };
+    if (navigator.share) {
+      navigator.share({ title: '小满的解忧铺', text: _txt, url: _url })
+        .catch(function () {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(_txt).then(_ok, _bad);
+    } else {
+      try {
+        var _ta2 = document.createElement('textarea');
+        _ta2.value = _txt; _ta2.style.position = 'fixed';
+        _ta2.style.opacity = '0';
+        document.body.appendChild(_ta2); _ta2.select();
+        document.execCommand('copy') ? _ok() : _bad();
+        _ta2.remove();
+      } catch (e4) { _bad(); }
+    }
   });
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
@@ -11539,7 +11788,17 @@ function baziPersonaCard(j) {
         return;
       }
       if (!j.items || !j.items.length) {
-        listEl.innerHTML = '<div class="ph-empty">还没有占卜记录——命盘、桃花、合婚、塔罗、六爻、起名都会收在这里 ✨</div>';
+        /* R2350f（R102-P2-11）：空态加行动出口——罗列品类但没一个能点，
+         * 新客读完只能自己回首页找。 */
+        listEl.innerHTML = '<div class="ph-empty">还没有占卜记录——命盘、桃花、合婚、塔罗、六爻、起名都会收在这里 ✨' +
+          '<div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">' +
+          '<button type="button" class="ghost" data-view="daily">✨ 去抽今日一签</button>' +
+          '<button type="button" class="ghost" data-view="taohua">🌺 测测桃花</button></div></div>';
+        listEl.querySelectorAll('[data-view]').forEach(function (_b) {
+          _b.addEventListener('click', function () {
+            if (typeof showView === 'function') showView(_b.dataset.view);
+          });
+        });
         return;
       }
       listEl.innerHTML = j.items.map(function (it) {

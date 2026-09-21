@@ -12178,3 +12178,20 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - P2-7（弃案记录）六爻留空补值回面为逐格补——syncLiuyaoToday 本已空才填三格，唯一静默的是时辰；四框 placeholder 逐格说清「留空=本项当前值」，行为改成文案明示约定。ui_smoke btn:liuyao 回归由此钉回。
 - P2-8/11 缓议（maxlength 截断提示、全角数字 onblur 提示属锦上添花）；P2-10 复姓零宽名验证为非问题（val() 已 zwClean→null→默认「我 × TA」渲染）；P2-12/13 属确认项。
 - 闸门：selftest 271 / contract 608 / ui_smoke 75/75 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
+
+## R2350f — R102 传播留存漏斗清零（13 项）+ R103 术数对账全通过
+- P1-1 分享链带结果：塔罗/六爻分享链追加 s=<seed>（+tn/m），落地先重现「TA 抽到的牌/摇到的卦」再邀抽自己的——_replaySharedDraw 走 /api/tarot、/api/liuyao 确定性 seed 重放；liuyao 响应回显 seed/method。
+- P1-2 海报 CTA 行：部署在真实域名时画 host（→ example.com 测你的同款），localhost/内网/IP 自动回落品牌名搜索口径。
+- P1-5 表单出厂示例值明示：4 张生辰表空态改「表单里是示例生日——直接点也能看」，结果卡回显「按生日 X 排的盘」（bazi 仅 scope=bazi；hehun 双侧，邀请态标 TA/我）。
+- P1-12 复制链接产出 钩子文案+URL（不再裸链），按钮文案同步「复制文案+链接」。
+- P2-3 og:title/description 按 ?view=（含 /path 深链）换语境——分享预览不再千链一面。
+- P2-4 welcomeBar 对非 share 深链按视图换「你已经在X页了」句。
+- P2-6 「生日」toast 指路修正——指向真实入口「日卡·存个生日」CTA（原指的「小档案」卡无档案时不存在）。
+- P2-7 塔罗落地亮「今日牌」（与日卡同 seed 单抽，不写台账、不覆盖用户已抽结果）。
+- P2-8 「明天提醒我」：Notification 权限+本地标记，次日开屏 toast 提醒（无推送基建的诚实实现，权限被拒如实回退）。
+- P2-9 签册零态渲染（「打一次卡开第一张」）——集齐线首日亮相。
+- P2-10 manifest shortcuts：长按图标直达 今日一签/翻黄历/抽塔罗。
+- P2-11 排盘历史空态加两个跳转钮（去抽今日一签/测测桃花）。
+- P2-13 「安利铺子」应用级分享钮（打卡区常驻，复制 文案+链 / 走系统分享）。
+- R103 术数对账（sxtwl+lunar_python 参照，34 断言）：全通过；P2-1 夜子时流派差异已披露照留；P2-2 name_candidates 旧路径已在 R2350a 删除（审计跑在旧 HEAD）。
+- 闸门：selftest 271 / contract 609 / ui_smoke 75 / poster 3判据 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
