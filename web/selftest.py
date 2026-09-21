@@ -1463,6 +1463,21 @@ def _run_inner() -> list[str]:
         _kbt.close()
     assert _tc1 == _tc0, ("err.threads.orphan_free", _tc0, _tc1)
     ok.append("err.threads.orphan_free")
+    # R2350a（R96-P0-1/P1-1 钉扎）：note 类无证据可写（「记一条」
+    # 复活回归闸）+ status 过滤参数端到端（bogus 值 → 400）。
+    _note = client.post("/api/threads", json={
+        "kind": "note", "claim": "probe手记", "method": "probe"})
+    assert _note.status_code == 200, ("threads.note",
+                                      _note.status_code, _note.text)
+    ok.append("threads.note")
+    _stok = client.get("/api/threads?status=all")
+    assert _stok.status_code == 200 and "threads" in _stok.json(), (
+        "threads.status_all", _stok.status_code)
+    ok.append("threads.status_all")
+    _stbad = client.get("/api/threads?status=bogus")
+    assert _stbad.status_code == 400, ("threads.status_bad",
+                                       _stbad.status_code)
+    ok.append("threads.status_bad")
     # R229n（R6-#4）：evidence ≤64 写放大护栏——100 条须被 pydantic 422 拒。
     _ev_over = client.post("/api/threads", json={
         "kind": "refusal", "claim": "x", "method": "probe",
