@@ -11694,3 +11694,20 @@ poster/plain_first/first_screen/llm_polish/ruff 全绿；sw 哈希已 bump。
 `Unexpected token '*'`（4214 行定位法：注入 script + error.lineno）；
 ②/services.py tuple 跨行需括号包裹；③/_favList 是服务端收藏非
 localStorage，倒计时改异步链。
+
+### R2349l.5 续批（同日）
+
+- #14 流年卡：personal 增 year_gz/year_god/year_line（日主×流年干十神，
+  立春口径 _year_gz）；日卡个性行下挂小字流年行
+- #15 周运提示：周日「看下周哪天顺」/ 周一「本周宜忌速览」meta 行
+  →跳黄历周条（零新请求）
+- #13 分享接力：?from=share&view=X 落地承接按视图定制文案
+  （toast 8 宫格 + welcomeBar 3 视图），复制链接不变
+- obs1：二访起 daily-cover 降为顶部缎带（.daily-cover.mini，静态流
+  不遮内容、不打 inert），文案换「点这条拆」
+- obs3：星座宫卡 title 悬停 → 可点展开「三运」折叠行（.xz-tri，
+  委托监听挂 xzResult 一次；移动端 title 不可达补位）
+- ui_smoke 豁免表 +5（dailyPersonalCta/signPeekBtn/tarotPeekBtn/
+  xzmSubmit/dailyWeekGo/xzResult——动态/委托/导航类，理由在表内）
+- selftest 260 断言覆盖 match_score/xzmatch×3/tarot.collection/moon 扫窗
+- sw 哈希 bump（c1c3c880509e）

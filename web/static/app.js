@@ -4089,7 +4089,10 @@ async function loadDaily() {
     }
     if (j.personal && j.personal.line) {
       _dailyMetaItem('dailyPersonal',
-        '🪞 ' + esc(j.personal.line));
+        '🪞 ' + esc(j.personal.line) +
+        (j.personal.year_line
+          ? '<br><span style="font-size:12px;opacity:.85;">' +
+            '📅 ' + esc(j.personal.year_line) + '</span>' : ''));
     } else {
       /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3） */
       _dailyMetaItem('dailyPersonal',
@@ -4171,6 +4174,27 @@ async function loadDaily() {
         '<strong>' + esc(j.moon.label) + '</strong> —— ' +
         esc(j.moon.line || ''));
     } else { _dailyMetaItem('dailyMoon', ''); }
+    /* R2349l（R73-P1-15）：周日给「本周辛苦了→下周哪天顺」，
+     * 周一给「新的一周看宜忌」——跳黄历页，周条本就在那。 */
+    (function () {
+      var _wd = new Date().getDay();
+      if (_wd === 0) {
+        _dailyMetaItem('dailyWeekHint',
+          '🗓 这周辛苦了——<button type="button" ' +
+          'class="sign-peek" id="dailyWeekGo">看看下周哪天顺</button>');
+      } else if (_wd === 1) {
+        _dailyMetaItem('dailyWeekHint',
+          '🗓 新的一周——<button type="button" ' +
+          'class="sign-peek" id="dailyWeekGo">本周宜忌速览</button>');
+      }
+      var _wg = el('dailyWeekGo');
+      if (_wg && !_wg.dataset.bound) {
+        _wg.dataset.bound = '1';
+        _wg.addEventListener('click', function () {
+          try { showView('huangli'); } catch (e) {}
+        });
+      }
+    })();
     /* R2349l（R73-P1-16）：TA 生日倒计时——扫 me/me:partner/测过的 CP
      * 里的生日，最近一次 ≤30 天的给倒数行。favorites 在服务端，
      * _favList 在途合并+静默失败，不打扰主渲染。 */
@@ -6553,11 +6577,19 @@ async function doXingzuo(force) {
                     ['财运', s.sign_wealth]]
           .filter(function (p) { return p[1]; })
           .map(function (p) { return p[0] + '：' + p[1]; }).join('\n');
-        html += '<div class="xz-card' + cls + '"' +
+        /* R2349l（R73-obs3）：悬停 title 移动端不可达——宫卡改可点，
+         * 三运明细收成卡内折叠行，点一下展开/收起。 */
+        var _tri = _stt ? '<div class="xz-tri" hidden>' +
+          _stt.split('\n').map(function (t2) {
+            return '<div>' + esc(t2) + '</div>';
+          }).join('') + '</div>' : '';
+        html += '<div class="xz-card' + cls + (_stt ? ' xz-tap' : '') + '"' +
           (_stt ? ' title="' + esc(_stt) + '"' : '') +
           '><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) + '</span>' +
           (s.palace ? '<span class="xz-palace">' + esc(s.palace) + '</span>' : '') +
-          '<span class="xz-note">' + esc(s.note) + '</span></div></div>';
+          '<span class="xz-note">' + esc(s.note) + '</span>' +
+          (_stt ? '<span class="xz-more">三运 ›</span>' : '') +
+          _tri + '</div></div>';
       });
       html += '</div>';
     }
@@ -6566,6 +6598,21 @@ async function doXingzuo(force) {
     html += '</div>';
     html += tailHook('xingzuo');
     paint('xzResult', html);
+    /* R2349l（R73-obs3）：宫卡点展开三运——委托绑一次，重渲不失。 */
+    var _xzg = el('xzResult');
+    if (_xzg && !_xzg.dataset.xzTriBound) {
+      _xzg.dataset.xzTriBound = '1';
+      _xzg.addEventListener('click', function (e) {
+        var c = e.target && e.target.closest
+          ? e.target.closest('.xz-card.xz-tap') : null;
+        if (!c) return;
+        var tri = c.querySelector('.xz-tri');
+        if (!tri) return;
+        tri.hidden = !tri.hidden;
+        var mo = c.querySelector('.xz-more');
+        if (mo) mo.textContent = tri.hidden ? '三运 ›' : '收起 ‹';
+      });
+    }
     _xzLastDate = dateStr;   /* R228f */
     _xzRenderedOn = todayIso();   /* R2349k（R72-B2） */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
@@ -8842,10 +8889,23 @@ if (document.readyState === 'loading') {
    * welcomeBar 跳过、toast 一句即可。 */
   if (_seen) {
     try {
-      if (new URLSearchParams(location.search).get('from') === 'share') {
-        setTimeout(function () {
-          showToast('朋友在晒她的运势——来测测你的 ✨', 'ok');
-        }, 800);
+      var _qs = new URLSearchParams(location.search);
+      if (_qs.get('from') === 'share') {
+        /* R2349l（R73-P1-13）：接力承接按来源视图说话——
+         * 「TA 抽了塔罗，看看你的」比通用一句更有接力感。 */
+        var _sv = _qs.get('view') || '';
+        var _relay = {
+          tarot: '朋友在晒她抽的塔罗牌——点下面抽你的 🃏',
+          daily: '朋友在晒今日运势——看看你今天什么运 ✨',
+          hehun: '朋友在晒合婚指数——你和 TA 也来一对 💕',
+          bazi: '朋友在晒她的八字盘——你的盘也排一排 🔮',
+          xingzuo: '朋友在晒今日星座运——看看你的宫今天说啥 ⭐',
+          qiming: '朋友在晒起的好名字——你的名字也测测 🌸',
+          taohua: '朋友在晒桃花信号——你的桃花今天啥情况 🌺',
+          liuyao: '朋友摇了一卦——心里有件事也来摇一爻 🎲',
+        };
+        var _rt = _relay[_sv] || '朋友在晒她的运势——来测测你的 ✨';
+        setTimeout(function () { showToast(_rt, 'ok'); }, 800);
       }
     } catch (e) {}
     return;
@@ -8868,7 +8928,15 @@ if (document.readyState === 'loading') {
     } catch (e) {}
     var _txtEl = bar.querySelector('.welcome-txt');
     if (_txtEl && _from === 'share') {
-      _txtEl.textContent =
+      /* R2349l（R73-P1-13）：新客落地也按接力视图说话。 */
+      var _sv2 = null;
+      try { _sv2 = new URLSearchParams(location.search).get('view'); } catch (e) {}
+      var _relayBar = {
+        tarot: '朋友抽了塔罗牌喊你接力——点「塔罗占卜」抽你的 🃏',
+        daily: '朋友在晒今日运势——日签卡就在上面，看看你的 ✨',
+        hehun: '朋友约你合婚——点「八字合婚」测你俩的合拍度 💕',
+      };
+      _txtEl.textContent = _relayBar[_sv2] ||
         '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨';
     } else if (_txtEl && _from === 'invite') {
       _txtEl.textContent = 'TA 约你来合婚——填好你的生日就能对上盘 💕';

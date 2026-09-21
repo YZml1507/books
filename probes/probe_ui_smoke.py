@@ -389,6 +389,10 @@ def main() -> int:
         "tarotPeekBtn": "同上模式：今日牌牌意展开钮",
         "xzmSubmit": "星座速配——API 层已由 selftest xzmatch/xzmatch.hard/"
                      "xzmatch.bad 三用例钉死，冒烟只到抽屉可见",
+        "dailyWeekGo": "周条提示钮——仅周日/周一生成的动态钮，"
+                       "点击=showView('huangli') 导航同 deep.* 用例",
+        "xzResult": "星座宫卡容器——委托监听 .xz-card 展开三运折叠行，"
+                    "本地 toggle 零请求",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

@@ -1548,6 +1548,21 @@ _MERCURY_RETRO: tuple[tuple[str, str], ...] = (
 )
 
 
+def _year_gz(d: date) -> str:
+    """R2349l（R73-P1-14）：流年干支——立春口径（子平法通行），
+    立春前算上一岁。"""
+    y = d.year
+    try:
+        from guji.bazi import term_time
+        from datetime import timedelta as _td
+        if datetime(d.year, d.month, d.day) < term_time(y, "立春") + _td(hours=8):
+            y -= 1
+    except Exception:
+        pass
+    from guji.bazi import GAN, ZHI
+    return GAN[(y - 4) % 10] + ZHI[(y - 4) % 12]
+
+
 def _moon_for(d: date) -> dict:
     """R2349l（R73-P1-8）：农历初一/十五（±1天）→ 新月/满月仪式行。
 
@@ -2606,6 +2621,16 @@ def daily(date_str: str | None = None,
                 "line": (f"你的日主 {_ug} × 今天 {_dg} —— "
                          f"今天是你的「{_lb or _god}」日"),
             }
+            # R2349l（R73-P1-14）：流年十神——日主 × 流年天干（立春口径）。
+            _yg = _year_gz(date.fromisoformat(date_str))
+            _ygod = ten_god(_ug, _yg[0]) if _ug else ""
+            _ylb = voice.TEN_GOD_WARM.get(_ygod, ("", ""))[0]
+            _personal["year_gz"] = _yg
+            _personal["year_god"] = _ygod
+            _personal["year_line"] = (
+                f"{date.fromisoformat(date_str).year} 是你的"
+                f"「{_ylb or _ygod}」年（流年 {_yg}）"
+                if _ug else "")
         except ComputeError:
             _personal = None
         except Exception:
