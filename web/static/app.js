@@ -9220,19 +9220,6 @@ function init() {
   var _dailyCoverHtml = null;
   /* R39-P1-3：第 N 次开铺——来访日集合存 localStorage（cap 400），
    * 回访者封面文案区别于首访。 */
-  function _visitCount() {
-    try {
-      var v = String(localStorage.getItem('visits') || '').split(',')
-        .filter(Boolean);
-      var t = todayIso();
-      if (v.indexOf(t) < 0) {
-        v.push(t);
-        if (v.length > 400) v = v.slice(-400);
-        localStorage.setItem('visits', v.join(','));
-      }
-      return v.length;
-    } catch (e) { return 0; }
-  }
   function _bindDailyCover(_cov) {
     if (!_cov) return;
     var _n = _visitCount();
@@ -10317,6 +10304,21 @@ function _meFill(key, ids) {
       e.dataset.me = '1';
     }
   });
+}
+/* R2349t（R88-9 修正）：_visitCount 原定义在 init() 内——聊天空态
+ * 也用它判「第 N 次来」，提升到模块级（语义不变：同日不重复计）。 */
+function _visitCount() {
+  try {
+    var v = String(localStorage.getItem('visits') || '').split(',')
+      .filter(Boolean);
+    var t = todayIso();
+    if (v.indexOf(t) < 0) {
+      v.push(t);
+      if (v.length > 400) v = v.slice(-400);
+      localStorage.setItem('visits', v.join(','));
+    }
+    return v.length;
+  } catch (e) { return 0; }
 }
 /* R2349t（R88-1/8）：「今天是不是我生日」与「距上次来访隔了几天」——
  * 封面/日签/聊天空态/打卡四处共用同一口径。 */
