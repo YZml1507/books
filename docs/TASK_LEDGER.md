@@ -12127,3 +12127,22 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
   基线：voice refreeze（sha256 44df79bd…——bazi.life 五行块/
   liuyao 引文集/research.hit 漂移均为有意演进）。selftest 271 /
   contract 606 / ui_smoke 75 / 全探针绿。
+
+- **R2350c（R97 留存回访审计清零）**：0 P0 / 2 P1 / 4 P2 全清。
+  P1-1 回访分层失效：welcomed 只在点新人条 × 时写——没点过 × 的
+  老用户天天见新人条、ret_tip 永锁；head 内联脚本 + app.js 双层
+  补写（访次>1 或有 checkin: 键即 veteran）。
+  P1-2 连签倒计时断档：原守卫「meta 含档位词就跳」——档位词是
+  ≥ 区间标，14→30/30→60/60→100 最长间隔反无目标；改只跳过
+  里程碑当日（3/7/14/30/60/100）。
+  P2：revisit「第 N 次开铺」文案池死代码（_n>1 时 _mini 恒真，
+  mini 池永命中）→ 缎带直接吃 revisit 池；接续条「今天再看看」
+  与原句「明天」漂移矛盾 → 带 data-hlask-today 重问前剥相对
+  日期词按今天判；签册墙改锚今天回看 21 槽（缺签灰槽+N/21 进度）；
+  宜签池相邻日撞首项（16 池双抽 9-21/9-22 同签实测）→ 昨日已抽
+  签做跨日剔除。
+  连带真 bug：toast 浮层 pointer-events:auto 会盖住顶栏导航钮
+  （viewBack 被「收进心水名单啦」拦截 4s 超时—— welcomed 补写
+  后 welcomeBar 隐藏、内容上移使该竞态稳定复现并揪出）→
+  .toast-item 穿透 + × 保活（键盘 focusin 暂停仍在）。
+  selftest 271 / contract 606 / ui_smoke 75 / 全探针绿。

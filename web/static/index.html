@@ -21,7 +21,13 @@
 <meta name="color-scheme" content="light">
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
-<script>try{if(window.localStorage.getItem('welcomed')){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
+<script>try{var _w=window.localStorage.getItem('welcomed');
+if(!_w){/* R2350c（R97-P1-1）：welcomed 只在点 × 时写——老用户
+（访次>1/有打卡键）补写，避免天天见新人条+ret_tip 永锁 */
+var _v=String(localStorage.getItem('visits')||'').split(',').filter(Boolean).length>1;
+if(!_v){for(var _i=0;_i<localStorage.length;_i++){var _k=localStorage.key(_i);if(_k&&_k.indexOf('checkin:')===0){_v=true;break}}}
+if(_v){localStorage.setItem('welcomed','1');_w='1'}}
+if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
   <!-- R2349m（R76-P0-2 附带）：resizes-content 让 Android Chrome 键盘
      弹起时收缩 layout viewport，fixed 底栏跟随；iOS 忽略无副作用。 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">

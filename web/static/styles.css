@@ -1999,8 +1999,12 @@ button.is-working{opacity:.62;cursor:progress}
 input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !important;outline-color:#D4735E}
 .func-card:active,.work-card:active,#dailyCover:active{transform:scale(.96)}
 .work-card:focus-visible{outline:2px solid var(--primary-bg,#7A5FB8);outline-offset:2px}
-.toast-item{pointer-events:auto}
-/* R233y（R55-P2）：关闭钮 ~21px 低于触控下限。 */
+/* R2350c（R97 连带修）：toast 文案区不再拦截点击——浮层在顶栏 3.5s
+ * 内会盖住导航钮（实测 viewBack 被「收进心水名单啦」挡住点不动，
+ * 用户只能干等或去够 ×）。item 点击穿透到下层、× 仍可点；
+ * 悬停暂停随 item 穿透失效，键盘聚焦暂停（focusin→×）仍在。 */
+.toast-item{pointer-events:none}
+.toast-item .toast-x{pointer-events:auto}
 .toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:40px;min-height:40px;cursor:pointer;opacity:.7}
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
@@ -2049,6 +2053,11 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 .ck-album-cell i{font-style:normal;font-size:10px;color:var(--muted);}
 .ck-album-cell b{font-size:12px;font-weight:600;color:var(--primary-ink);}
 .ck-album-cell:hover{border-color:#E8B898;}
+/* R2350c（R97-P2-3）：缺签日灰槽——可看出缺口，「集满」有视觉拉力。 */
+.ck-album-miss{cursor:default;border-style:dashed;opacity:.55;}
+.ck-album-miss:hover{border-color:var(--border);}
+.ck-album-miss b{color:var(--muted);font-weight:400;}
+.ck-album-prog{font-size:11px;color:var(--muted);margin-top:6px;}
 .ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}
 /* 打卡抽中弹出反馈（翻签仪式感轻量版） */
 @keyframes ckPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}

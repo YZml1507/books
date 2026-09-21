@@ -2900,12 +2900,24 @@ def daily(date_str: str | None = None,
             summary = _pick(_db["levels"].get(lvl_key) or [], date_str, "sum")
             # R229z续4：同池两签会撞（实测"空腹喝冰美式、空腹喝冰美式"）——
             # 第二签从剔除首签的池子抽；池子只剩一条时允许原样。
-            _y1 = _pick(_db["yi"], date_str, "y")
-            _y2 = _pick([x for x in _db["yi"] if x != _y1] or _db["yi"],
+            # R2350c（R97-P2-4）：相邻日还会撞首项（16 池双抽，实测
+            # 9-21/9-22 同签）——再把「昨天抽过的」从今日池剔除，
+            # 明天预告不再有复读感。池子剔空时兜底原池。
+            _yd = (d - timedelta(days=1)).isoformat()
+            _py1 = _pick(_db["yi"], _yd, "y")
+            _py2 = _pick([x for x in _db["yi"] if x != _py1] or _db["yi"],
+                         _yd, "y2")
+            _yp = [x for x in _db["yi"] if x not in (_py1, _py2)] or _db["yi"]
+            _y1 = _pick(_yp, date_str, "y")
+            _y2 = _pick([x for x in _yp if x != _y1] or _yp,
                         date_str, "y2")
             do_str = _y1 + "、" + _y2
-            _j1 = _pick(_db["ji"], date_str, "j")
-            _j2 = _pick([x for x in _db["ji"] if x != _j1] or _db["ji"],
+            _pj1 = _pick(_db["ji"], _yd, "j")
+            _pj2 = _pick([x for x in _db["ji"] if x != _pj1] or _db["ji"],
+                         _yd, "j2")
+            _jp = [x for x in _db["ji"] if x not in (_pj1, _pj2)] or _db["ji"]
+            _j1 = _pick(_jp, date_str, "j")
+            _j2 = _pick([x for x in _jp if x != _j1] or _jp,
                         date_str, "j2")
             dont_str = _j1 + "、" + _j2
         # B-017（R195b 清偿）：旧实现按公历年取生肖是「今年的生肖」，

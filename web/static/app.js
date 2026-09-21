@@ -4841,7 +4841,8 @@ async function loadDaily() {
       var _hlA = _hl0 && (_hl0.a || _hl0.d);
       if (_hl0 && _hl0.q && _hlA && _hlA < _today) {
         _recEl.innerHTML = '<button type="button" class="daily-recall-btn" ' +
-          'data-hlask-q="' + esc(_hl0.q) + '">💬 ' + _hlAgoWord(_hlA) + '你问了「' +
+          'data-hlask-q="' + esc(_hl0.q) + '" data-hlask-today="1">💬 ' +
+          _hlAgoWord(_hlA) + '你问了「' +
           esc(_gSlice(_hl0.q, 14)) + '」——今天再看看？</button>';
         _recEl.hidden = false;
       } else { _recEl.hidden = true; }
@@ -9536,10 +9537,16 @@ document.addEventListener('click', function (ev) {
   var hc = t.closest('[data-hh-fav]');
   if (hc) { _hhFavFill(hc.dataset.hhFav); return; }
   /* 问一嘴足迹 chip → 把问题原样再问一遍（日期词按当下重算，
-   * 比钉死那天更贴近用户意图） */
+   * 比钉死那天更贴近用户意图）。
+   * R2350c（R97-P2-2）：dailyRecall 接续条文案是「今天再看看？」——
+   * 原句里的「明天」会漂到明天判，点的人要的是今天。带
+   * data-hlask-today 的条目重问前剥掉相对日期词，按今天判。 */
   var hq = t.closest('[data-hlask-q]');
   if (hq) {
     var _q = hq.dataset.hlaskQ || '';
+    if (hq.dataset.hlaskToday === '1') {
+      _q = _q.replace(/大后天|大前天|过两天|后晚|后天|明晚|明天|明日|明儿|今晚|今夜|今天|今日|昨晚|昨天|昨日|前天|前日|这周末|下周末|下下周[一二三四五六日天]|下周[一二三四五六日天末]?|本周[一二三四五六日天]|这周[一二三四五六日天]?|这个月|下个月|上个月|月底|月末|年底/g, '');
+    }
     var inp = document.getElementById('hlAskInput');
     /* R232c（R41-P2-1）：dailyRecall 接续条点击先于黄历首次渲染——
      * input/btn 还不存在时填充静默落空。暂存待问句，doHuangli 渲完
@@ -9641,15 +9648,14 @@ function init() {
        * 400 次逐字节相同——换 4 句池按日轮换。 */
       if (_ct) _ct.textContent = '🎀 ' +
         (_mn ? _mn + '，' : '') +
-        (_mini
-          ? _dayPick(['今天的礼物在上面——点开看看',
-                      '今日包裹已就位，点这条拆',
-                      '小礼物等着呢——点一下拆开'], 'revisit-mini')
-          : _dayPick(['小满第 ' + _n + ' 次为你开铺，拆开看看今天的运',
-                      '第 ' + _n + ' 次见面啦，今天也给你包了礼物',
-                      '又来啦——第 ' + _n + ' 次开铺，今天的运在里面',
-                      '第 ' + _n + ' 次重逢，今天的包裹热着呢'],
-                     'revisit'));
+        /* R2350c（R97-P2-1）：_n>1 时 _mini 恒真——revisit-mini 池
+         * 永命中，「第 N 次开铺」四句是死代码。缎带文案直接吃
+         * revisit 池（mini 只是封面形态，文案照样能报第几次来）。 */
+        _dayPick(['小满第 ' + _n + ' 次为你开铺，拆开看看今天的运',
+                  '第 ' + _n + ' 次见面啦，今天也给你包了礼物',
+                  '又来啦——第 ' + _n + ' 次开铺，今天的运在里面',
+                  '第 ' + _n + ' 次重逢，今天的包裹热着呢'],
+                 'revisit');
       /* R2349t（R88-8/1b）：生日 > 久归 > 常规 N 次的承接优先级——
        * 断几天回来的用户落进和第二天回来一样的文案，是最亏的一屏。 */
       var _gapC = _visitsGap();
@@ -10212,6 +10218,26 @@ if (document.readyState === 'loading') {
 (function () {
   var _seen = false;
   try { _seen = !!window.localStorage.getItem('welcomed'); } catch (e) { _seen = true; }
+  /* R2350c（R97-P1-1）：welcomed 此前只在点新人条 × 时写——没点过 ×
+   * 的老用户天天见「第一次来？」，且 ret_tip 回访指路被永久锁死。
+   * 回头客（访次>1 或有任何 checkin: 键）进来即补写，新人条只给
+   * 真新客看。 */
+  if (!_seen) {
+    try {
+      var _veteran = _visitCount() > 1;
+      if (!_veteran) {
+        for (var _li = 0; _li < window.localStorage.length; _li++) {
+          var _lk = window.localStorage.key(_li);
+          if (_lk && _lk.indexOf('checkin:') === 0) { _veteran = true; break; }
+        }
+      }
+      if (_veteran) {
+        window.localStorage.setItem('welcomed', '1');
+        document.documentElement.classList.add('welcomed');
+        _seen = true;
+      }
+    } catch (e) {}
+  }
   /* R233t（R51-P2-18c）：老用户点朋友分享链接也要有承接语境——
    * welcomeBar 跳过、toast 一句即可。 */
   if (_seen) {
@@ -10518,8 +10544,12 @@ function renderCheckin(dateKey) {
     else if (_streak >= 60) _meta += ' · 双满月';
     else if (_streak >= 30) _meta += ' · 满月级选手';
     else if (_streak >= 14) _meta += ' · 半月不断';
-    /* R39-P2-4：里程碑之间补倒计时——4→7、8→14 的空白带不再无目标 */
-    if (!/小满贯|整一周|半月不断|满月级|双满月|百日传说/.test(_meta)) {
+    /* R39-P2-4：里程碑之间补倒计时——4→7、8→14 的空白带不再无目标。
+     * R2350c（R97-P1-2）：原守卫「meta 含档位词就跳过」是错的——档位词
+     * 是 ≥ 区间标（连签 14→30 天天挂「半月不断」），结果三段最长里程
+     * 间隔（14→30/30→60/60→100）反而断档。改只跳过里程碑当天。 */
+    if (_streak < 100 &&
+        [3, 7, 14, 30, 60].indexOf(_streak) < 0) {
       var _mile = [[3, '小满贯'], [7, '整一周'], [14, '半月不断'],
                    [30, '满月级选手'], [60, '双满月'], [100, '百日传说']];
       for (var _mi = 0; _mi < _mile.length; _mi++) {
@@ -11067,24 +11097,37 @@ function _renderCheckinAlbum(dateKey) {
   var host = document.getElementById('checkinAlbum');
   if (!host) return;
   var all = _checkinAll();
-  var days = Object.keys(all).sort().slice(-21).reverse();
-  if (!days.length) {
+  if (!Object.keys(all).length) {
     host.innerHTML = '<div class="ck-album-empty">签册还空着——抽一签就开张</div>';
     return;
   }
+  /* R2350c（R97-P2-3）：原只渲有签日——断签月的缺口在网格里不
+   * 存在，「集满」拉力弱。改锚今天回看 21 槽：有签日可点出签句，
+   * 缺签日灰槽悬停「这天没来」，尾部附 N/21 进度。 */
   var html = '<div class="ck-album-grid" role="list">';
-  days.forEach(function (dk) {
-    var opt = all[dk] || '';
+  var _hit = 0;
+  for (var _b = 20; _b >= 0; _b--) {
+    var dk = _isoShift(dateKey, -_b);
+    var opt = all[dk];
     var pp = String(dk).split('-');
-    var fb = pickCheckinFeedback(opt, dk);
-    /* R2349h（R69-P1-4）：role=listitem 会把原生 button 语义吃掉——
-     * SR 只报「列表项」不报可激活。格仍由父级 role=list 承载语义。 */
-    html += '<button type="button" class="ck-album-cell" ' +
-      'data-fb="' + esc(fb) + '" title="' + esc(dk) + '　' + esc(fb) + '">' +
-      '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' +
-      '<b>' + esc(opt) + '</b></button>';
-  });
-  host.innerHTML = html + '</div>';
+    if (opt) {
+      var fb = pickCheckinFeedback(opt, dk);
+      _hit++;
+      /* R2349h（R69-P1-4）：role=listitem 会把原生 button 语义吃掉——
+       * SR 只报「列表项」不报可激活。格仍由父级 role=list 承载语义。 */
+      html += '<button type="button" class="ck-album-cell" ' +
+        'data-fb="' + esc(fb) + '" title="' + esc(dk) + '　' + esc(fb) + '">' +
+        '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' +
+        '<b>' + esc(opt) + '</b></button>';
+    } else {
+      html += '<span class="ck-album-cell ck-album-miss" ' +
+        'title="' + esc(dk) + '　这天没来"><i>' +
+        esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i><b>·</b></span>';
+    }
+  }
+  host.innerHTML = html + '</div>' +
+    '<div class="ck-album-prog">近 21 天攒了 ' + _hit + '/21' +
+    (_hit >= 21 ? '——集满啦 🎉' : '') + '</div>';
 }
 function pickCheckinFeedback(opt, dateKey) {
   const pool = CHECKIN_FEEDBACK[opt] || CHECKIN_FEEDBACK._default || [];
