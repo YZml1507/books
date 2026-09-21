@@ -294,10 +294,15 @@ class KnowledgeBase:
     # 查询仍抛 OperationalError（search.fts_phrase 修过它没修）；留着
     # 是给将来接线埋雷。
     def orphans(self) -> list[int]:
-        """Asserting claims with no evidence. Must always be empty (assert in the gate)."""
+        """Asserting claims with no evidence. Must always be empty (assert in the gate).
+
+        R2350a（CI G8 实测）：白名单改为正向枚举 ASSERTING——'note'（用户
+        手记）等非断言类天然无证据，原 `!= 'refusal'` 会把它们误报成泄漏。
+        """
+        _in = ",".join("?" for _ in ASSERTING)
         return [r["id"] for r in self.db.execute(
             "SELECT d.id FROM derived d LEFT JOIN evidence e ON e.derived_id = d.id "
-            "WHERE d.kind != 'refusal' AND e.id IS NULL")]
+            f"WHERE d.kind IN ({_in}) AND e.id IS NULL", ASSERTING)]
 
     def verify(self, raw_dir: str, derived_ids=None) -> dict:
         """Re-check every stored quote against data/raw/. -> {ok, stale, details}.
@@ -362,35 +367,43 @@ class KnowledgeBase:
     _CAP_DERIVED = 2000
     _CAP_FAVORITES = 500
 
+    def _del_derived(self, did: int, claim: str) -> None:
+        """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能
+        直接 DELETE（sqlite 报 'cannot DELETE from contentless fts5
+        table'）——schema 注释约定的 'delete' 命令重写。R2350a 修：
+        _gc_threads/_gc_derived 此前用裸 DELETE，超帽触发时必抛
+        OperationalError。"""
+        self.db.execute("DELETE FROM evidence WHERE derived_id=?", (did,))
+        self.db.execute(
+            "INSERT INTO derived_fts(derived_fts, rowid, seg) "
+            "VALUES('delete', ?, ?)", (did, segment_cjk(fold(claim))))
+        self.db.execute("DELETE FROM derived WHERE id=?", (did,))
+
     def _gc_threads(self) -> None:
         """线程超帽：删最旧的（closed 优先，再按 updated_at），
         级联清 turn/derived/evidence/derived_fts 孤儿行。"""
+        # R2350a：updated_at 秒级粒度同刻并列时排序不确定——实测可把
+        # 刚 open 的新线程误删（下一条 record 撞 FK）。id DESC 决胜
+        # 保证「超帽删最旧」语义成立。
         over = self.db.execute(
             "SELECT id FROM thread ORDER BY "
-            "(status='open') DESC, updated_at DESC "
+            "(status='open') DESC, updated_at DESC, id DESC "
             "LIMIT -1 OFFSET ?", (self._CAP_THREAD,)).fetchall()
         for r in over:
             tid = r["id"]
             self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
-            self.db.execute(
-                "DELETE FROM evidence WHERE derived_id IN "
-                "(SELECT id FROM derived WHERE thread_id=?)", (tid,))
-            self.db.execute(
-                "DELETE FROM derived_fts WHERE rowid IN "
-                "(SELECT id FROM derived WHERE thread_id=?)", (tid,))
-            self.db.execute("DELETE FROM derived WHERE thread_id=?", (tid,))
+            for d in self.db.execute(
+                    "SELECT id, claim FROM derived WHERE thread_id=?",
+                    (tid,)).fetchall():
+                self._del_derived(d["id"], d["claim"])
             self.db.execute("DELETE FROM thread WHERE id=?", (tid,))
 
     def _gc_derived(self) -> None:
         over = self.db.execute(
-            "SELECT id FROM derived ORDER BY id DESC LIMIT -1 OFFSET ?",
-            (self._CAP_DERIVED,)).fetchall()
+            "SELECT id, claim FROM derived ORDER BY id DESC "
+            "LIMIT -1 OFFSET ?", (self._CAP_DERIVED,)).fetchall()
         for r in over:
-            self.db.execute("DELETE FROM evidence WHERE derived_id=?",
-                            (r["id"],))
-            self.db.execute("DELETE FROM derived_fts WHERE rowid=?",
-                            (r["id"],))
-            self.db.execute("DELETE FROM derived WHERE id=?", (r["id"],))
+            self._del_derived(r["id"], r["claim"])
 
     def open_thread(self, topic: str) -> int:
         cur = self.db.execute(

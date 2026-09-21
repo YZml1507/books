@@ -12093,3 +12093,10 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
   contract 595 读点全绿/ui_smoke 75/baseline_voice 14 字节同/xingzuo/warm/
   async_ai/dollar 244fn/date_parity 68+41+251/plain_first/poster/first_screen/
   corpus/scripts_importable/llm_polish/ruff 全 PASS。
+- **R2350a 续（CI G8 实测修复）**：`orphans()` 白名单改正向枚举 ASSERTING——
+  'note' 类天然无证据，原 `!= 'refusal'` 误报成泄漏（CI G8 实录 3 条）。
+  顺带修两个潜雷：contentless derived_fts 裸 DELETE 必抛 OperationalError
+  （_gc_threads/_gc_derived 超帽触发即崩）——改 'delete' 命令统一走
+  `_del_derived`；_gc_threads 同秒 updated_at 并列时排序不定会误删新线程
+  → id DESC 决胜。selftest note 用例补级联清理（derived_fts/derived/turn/thread）。
+  selftest 271 / g8 probe PASS。

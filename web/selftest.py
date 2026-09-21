@@ -1470,6 +1470,34 @@ def _run_inner() -> list[str]:
     assert _note.status_code == 200, ("threads.note",
                                       _note.status_code, _note.text)
     ok.append("threads.note")
+    # 写端点纪律：清掉本轮新增的 note+空壳线程（derived/turn/thread），
+    # 不然它们留在真实 knowledge.db 被 CI G8 当泄漏计数。
+    try:
+        from web import deps as _depsn
+        _nj = _note.json()
+        with _depsn.knowledge() as _kbn:
+            _did = _nj.get("derived_id"); _tid = _nj.get("thread_id")
+            if _did is not None:
+                # contentless derived_fts 走 'delete' 命令（裸 DELETE
+                # 会报 OperationalError）。
+                _row = _kbn.db.execute(
+                    "SELECT claim FROM derived WHERE id=?", (_did,)).fetchone()
+                if _row:
+                    from guji.variants import fold as _foldf, \
+                        segment_cjk as _segcjk
+                    _kbn.db.execute(
+                        "INSERT INTO derived_fts(derived_fts, rowid, seg) "
+                        "VALUES('delete', ?, ?)",
+                        (_did, _segcjk(_foldf(_row["claim"]))))
+                _kbn.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                                (_did,))
+                _kbn.db.execute("DELETE FROM derived WHERE id=?", (_did,))
+            if _tid is not None:
+                _kbn.db.execute("DELETE FROM turn WHERE thread_id=?", (_tid,))
+                _kbn.db.execute("DELETE FROM thread WHERE id=?", (_tid,))
+            _kbn.db.commit()
+    except Exception:
+        pass
     _stok = client.get("/api/threads?status=all")
     assert _stok.status_code == 200 and "threads" in _stok.json(), (
         "threads.status_all", _stok.status_code)

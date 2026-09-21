@@ -607,9 +607,14 @@ _ZHISHEN_START = {
 
 
 def zhishen_day(dt: datetime) -> str:
-    """日支值神（大黄道）：子日青龙、丑日明堂、寅日天刑……"""
+    """日值神（大黄道）：按「月支」起青龙（子午临申、卯酉居寅、
+    寅申从子、巳亥在午、辰戌归辰、丑未从戌），落在日支上的神即
+    当日值神。注意与小黄道（时辰值神，按日支起）区分——同一套
+    口诀、不同的锚。"""
+    month_zhi = _month_zhi_index(dt)
     _, zhi = day_ganzhi(dt)
-    return ZHISHEN[ZHI.index(zhi)]
+    start = ZHI.index(_ZHISHEN_START.get(ZHI[month_zhi], "申"))
+    return ZHISHEN[(ZHI.index(zhi) - start) % 12]
 
 
 def hour_zhishen(dt: datetime) -> list[dict]:
