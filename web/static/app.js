@@ -3161,11 +3161,19 @@ function buildShareData(view, j) {
     }
     case 'qiming':
       /* R2349m（R75-P2-6）：副题补日期——其余视图副题都带时效。 */
+      /* R2349m（R75-P2-7）：海报补五行行——「五行起名」主题缺席；
+       * 真实缺行/偏弱兜底分开说（与后端口径一致不谎报）。 */
+      var _qfe = (j && j.five_elements) || {};
+      var _qmiss = _pArr(_qfe.missing), _qweak = _pArr(_qfe.weak);
+      var _qfeLine = _qmiss.length ? ('缺 ' + _qmiss.join('、') + ' · 专补它')
+        : (_qweak.length ? ('五行俱全 · 偏弱补 ' + _qweak.join('、'))
+           : '五行俱全');
       return { title: '五行起名',
         subtitle: '按五行补缺 · ' + _cnDateSub(todayIso()),
         big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
-        lines: _pArr(j && j.full_names).slice(0, 4).map(function (n, i) {
-          return { k: '推荐 ' + (i + 1), v: _pStr(n && n.full_name) }; }),
+        lines: [{ k: '五行', v: _qfeLine }].concat(
+          _pArr(j && j.full_names).slice(0, 3).map(function (n, i) {
+            return { k: '推荐 ' + (i + 1), v: _pStr(n && n.full_name) }; })),
         cards: [], view: view };
     /* R218a-巡2（N-04）：补 3 case——之前 buildShareData 没有 bazi/taohua/hehun，
      * 直接走 default 返回 null，downloadPoster 拿不到 j.share，回落旧 bazi 专属
