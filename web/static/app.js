@@ -3577,10 +3577,10 @@ function showPosterModal(canvas, view) {
         /* R233t（R51-P2-18b）：files 分支此前只发纯图——接收方拿不到
          * 链接，回流断链。text+url 随文件一起给（iOS 已支持并存）。 */
         navigator.share({ files: [f], title: '小满的解忧铺',
-          text: '测你的同款 → 小满的解忧铺 ' + url }).catch(function () {});
+          text: _shareText(view) + url }).catch(function () {});
       } else {
         navigator.share({ title: '小满的解忧铺',
-          text: '测你的同款 → 小满的解忧铺', url: url }).catch(function () {});
+          text: _shareText(view).trim(), url: url }).catch(function () {});
       }
     }, 'image/png');
   });
@@ -5824,6 +5824,23 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon' };
+/* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
+ * 一句带钩子的邀请语（小红书转发口径）。 */
+var _SHARE_TEXT = {
+  hehun: '我和 TA 的合拍指数出炉了，测测你们的 →',
+  tarot: '我今天抽到的三张牌有点准，你也来抽 →',
+  bazi: '我的命盘解读出来了，看看你的 →',
+  daily: '我今天的日签领到了，看看你抽到什么签 →',
+  xingzuo: '看看你今天星座运势 →',
+  qiming: '古籍里挑的名字有点美，给娃试试 →',
+  taohua: '我的今日桃花信号，你的呢 →',
+  liuyao: '刚摇了一卦，卦象有点东西 →',
+  huangli: '今天宜忌帮你查好了 →',
+  checkin: '我在小满打卡攒签运，一起吗 →',
+  birth: '我的本命盘出来了，看看你的 →'};
+function _shareText(view) {
+  return (_SHARE_TEXT[view] || '测你的同款') + ' 小满的解忧铺 ';
+}
 /* R230y（R36-P2-4）：宜忌白话映射提升为模块级——卡面与分享海报同一口径 */
 /* R39-P2-2：结果页统一「明天」收口——最后一屏指向明天而不是看完即走。 */
 /* R233b（R40-A2/W3）：cross_ref 方向副键可视化——后端算了
