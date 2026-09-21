@@ -183,6 +183,10 @@ body{
   min-height:100vh;
   /* 移动端横向溢出兑底：装饰元素（礼盒图/光斑）超出视口时禁止横向滚动 */
   overflow-x:hidden;
+  /* R2349m（R76-P2-8/9）：tap 灰闪收口（fx-ripple 已自带反馈）；
+   * manipulation 禁双击缩放保留捏合，连点不触发整页缩放。 */
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 
 /* ── R210b（US9）：页面装饰光斑层——回应「背景图缩放/活泼度」体感。
@@ -367,7 +371,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
-  overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+  overflow-x:auto; scrollbar-width:none;
   padding-bottom:2px;
   /* R2345（R62-P2）：横滚带右缘渐隐，提示可滑（裁切感→设计感）。 */
   -webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);
@@ -484,11 +488,14 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 .recent-sidebar{
   position:fixed; top:0; left:0; bottom:0; z-index:70;
+  overscroll-behavior:contain;
   /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
   width:min(320px, 82vw);
   background:var(--card); border-left:1px solid var(--border);
   box-shadow:6px 0 24px rgba(0,0,0,.12);
-  padding:18px 16px 24px; overflow-y:auto;
+  /* R2349m（R76-P1-4a）：顶部并上刘海安全区（关钮不被状态栏盖） */
+  padding:calc(18px + env(safe-area-inset-top, 0px)) 16px 24px;
+  overflow-y:auto;
   transform:translateX(-105%); transition:transform .28s ease, visibility .28s;
   /* R228d：关态只移屏外仍占 Tab 序/读屏树——visibility 兜无 inert 的旧浏览器，
    * inert/aria-hidden 在 JS _setRecent 里同步。 */
@@ -500,7 +507,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   position:fixed; top:0; right:0; bottom:0; left:0; inset:0; z-index:65; background:rgba(0,0,0,0);
   pointer-events:none; transition:background .2s ease;
 }
-.recent-backdrop.open{background:rgba(0,0,0,.18); pointer-events:auto;}
+.recent-backdrop.open{background:rgba(0,0,0,.18); pointer-events:auto;
+  touch-action:none;   /* R2349m（R76-P2-10）：遮罩上拦滚动穿透 */}
 /* R209b：collapsed 在任何视口下都强制收起（探针/用户手动收起语义） */
 .recent-sidebar.open.collapsed{transform:translateX(-105%);}
 .recent-side-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -529,7 +537,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 样式，聊天并入侧栏后处于无样式裸奔态。恢复 + 按抽屉语境重调：
  * 输入行钉底、发送钮并入行内、空状态引导、头部渐变条。 */
 .chat-flow{flex:1; overflow-y:auto; padding:14px 16px; display:flex;
-  flex-direction:column; gap:10px;}
+  flex-direction:column; gap:10px; overscroll-behavior:contain;}
 .chat-bubble{
   max-width:82%; padding:10px 14px; border-radius:14px;
   font-size:14.5px; line-height:1.7; white-space:pre-wrap;
@@ -576,7 +584,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .recent-sidebar{display:flex; flex-direction:column;}
 .side-chat{
   display:flex; flex-direction:column; flex:1; min-height:0;
-  margin:12px -16px -24px; padding:12px 16px 20px;
+  /* R2349m（R76-P1-4b）：底 padding 并上 home 条安全区 */
+  margin:12px -16px -24px;
+  padding:12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   background:linear-gradient(180deg,#FDF9F2,#FBF3E7);
   border-top:1px solid var(--border);
 }
@@ -1446,7 +1456,8 @@ button:active{transform:scale(.96);}
 .poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);}
 .poster-modal{
   background:var(--card); border-radius:14px;
-  width:min(420px, 100%); max-height:90vh; display:flex;
+  /* R2349m（R76-P2-12）：iOS vh 按最大视口算——换 dvh，不支持自然回落 */
+  width:min(420px, 100%); max-height:90vh; max-height:90dvh; display:flex;
   flex-direction:column; overflow:hidden;
   box-shadow:0 12px 40px rgba(0,0,0,.3);
   transform:scale(.92); transition:transform .2s ease;
@@ -1466,7 +1477,7 @@ button:active{transform:scale(.96);}
 }
 .poster-modal-close:hover{background:var(--bg);}
 .poster-modal-body{
-  flex:1; padding:14px; overflow:auto;
+  flex:1; padding:14px; overflow:auto; overscroll-behavior:contain;
   display:flex; align-items:center; justify-content:center;
   background:#F5EFE6;
 }
@@ -1483,8 +1494,11 @@ button:active{transform:scale(.96);}
 /* ── R218a-巡2（N-05）：全局 toast 提示 ───────────── */
 .toast-stack{
   /* R2345（R62-P2）：top 16→26——原与顶部欢迎条同高同色相邻像一条，
-   * 下移+加深投影分层。 */
-  position:fixed; left:50%; top:26px; transform:translateX(-50%);
+   * 下移+加深投影分层。
+   * R2349m（R76-P1-3）：fixed 元素吃不到 body 的 env() padding——
+   * 刘海机 top 直接 calc 安全区。 */
+  position:fixed; left:50%; top:calc(env(safe-area-inset-top, 0px) + 12px);
+  transform:translateX(-50%);
   z-index:300; display:flex; flex-direction:column; gap:8px;
   pointer-events:none; max-width:min(420px, 92vw);
 }
@@ -1688,7 +1702,7 @@ button:active{transform:scale(.96);}
   background:var(--cta-grad);color:#fff;cursor:pointer;}
 
 /* R228n：窄屏宽表不出页——表本身横向滚动，整页不滚 */
-.table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.table-scroll{overflow-x:auto; overscroll-behavior:contain;}
 .table-scroll .works{margin:0;}
 /* deco-banner 文案 min-content 超盒：允许内部收缩 + 长词可断 */
 .deco-text{min-width:0; overflow-wrap:anywhere;}
@@ -1841,7 +1855,10 @@ html{-webkit-text-size-adjust:100%;}
 }
 .daily-me-edit:hover{border-color:var(--primary-ink); color:var(--primary-ink);}
 .install-tip{
-  position:fixed; left:14px; bottom:14px; z-index:280;
+  /* R2349m（R76-P1-5）：压 home 条 → env()；
+   * R76-P3：z-index 280>poster-modal 200 会叠在模态上 → 降到 180 */
+  position:fixed; left:14px;
+  bottom:max(14px, env(safe-area-inset-bottom, 14px)); z-index:180;
   display:flex; align-items:center; gap:8px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
   padding:10px 12px; font-size:13px; color:var(--text);
@@ -1858,7 +1875,8 @@ html{-webkit-text-size-adjust:100%;}
   width:28px; height:28px; border-radius:50%; border:0;
   background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
 }
-@media (max-width:400px){ .install-tip{left:8px; bottom:8px; font-size:12px;} }
+@media (max-width:400px){ .install-tip{left:8px;
+  bottom:max(8px, env(safe-area-inset-bottom, 8px)); font-size:12px;} }
 
 /* ── R231h（R39-P3-3）：连签里程碑卡 ── */
 .celeb-backdrop{
@@ -1937,7 +1955,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
 .qm-fav{min-width:44px}
-.hl-week{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hl-week{overflow-x:auto; overscroll-behavior-x:contain;}
 .hl-week-row{grid-template-columns:repeat(7,minmax(44px,1fr))}
 .ai-arrive{animation:fadeIn .45s ease}
 .chat-input-row{position:relative}

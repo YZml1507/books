@@ -2830,24 +2830,34 @@ function _paintSharePoster(s, W, H) {
   }
   ctx.textAlign = 'center';
 
+  /* R2349m（R75-P1-1/P2-3）：lilac 夜紫底上深色文字整体偏暗、
+   * 副题被月亮面冲刷——深底换浅字调色板+深色晕影。 */
+  var _bgKey = _POSTER_BG_BY_VIEW[s && s.view] || 'warm';
+  var _ink = (_bgKey === 'lilac')
+    ? { title: '#F5E3C0', sub: '#EADFC8', big: '#FFF6E8',
+        halo: 'rgba(40,28,60,0.85)' }
+    : { title: '#7A5C2E', sub: '#B7A98A', big: '#3E3428',
+        halo: 'rgba(253,248,240,0.95)' };
+
   /* 标题 + 副题 */
   /* R2345（R62-P1-7）：标题换品牌快乐体——衬线粗体与全站声口不一致 */
-  ctx.fillStyle = '#7A5C2E'; ctx.font = '60px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
+  ctx.fillStyle = _ink.title; ctx.font = '60px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
   ctx.fillText(_pStr(s.title) || '知命', 540, 128);
   if (s.subtitle) {
-    ctx.fillStyle = '#B7A98A'; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = _ink.sub; ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
     /* R2349（R65-P2-7）：底图星芒装饰会压副题行——给文字一圈
-     * 奶白晕影（shadowBlur 沿字形外扩），字浮在星上仍可读。 */
+     * 奶白晕影（shadowBlur 沿字形外扩），字浮在星上仍可读。
+     * R2349m：深底晕影换深色（白晕在夜紫上反而更糊）。 */
     ctx.save();
-    ctx.shadowColor = 'rgba(253,248,240,0.95)';
-    ctx.shadowBlur = 10;
+    ctx.shadowColor = _ink.halo;
+    ctx.shadowBlur = _bgKey === 'lilac' ? 14 : 10;
     ctx.fillText(_gSlice(s.subtitle, 24), 540, 182);
     ctx.restore();
   }
 
   /* 大字结论（最多两行，自动缩字号防溢出） */
   var big = _pStr(s.big);
-  ctx.fillStyle = '#3E3428';
+  ctx.fillStyle = _ink.big;
   var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
   ctx.font = '600 ' + bigSize + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R212：三行上限（原两行导致「宜稳不」截断感），行距随字号自适应 */
@@ -2880,9 +2890,17 @@ function _paintSharePoster(s, W, H) {
       ctx.fillStyle = '#3E3428'; ctx.font = '500 40px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var v = _pStr(r.v);
       /* R233t（R51-P1-4）：截断 15→22——四柱「戊寅·己未·辛酉·甲…」
-       * 残字一眼假，命盘图的可信度就在四柱齐全。 */
-      ctx.fillText(Array.from(v).length > 22 ? _gSlice(v, 21) + '…' : v,
-                   150, y + 52);
+       * 残字一眼假，命盘图的可信度就在四柱齐全。
+       * R2349m（R75-P1-2）：「…、在生气 等 3 项」这类尾巴被拦腰
+       * 截成「等 3…」——遇到「等N项」收尾时保住尾巴完整。 */
+      var _vv = v;
+      if (Array.from(v).length > 22) {
+        var _mEq = v.match(/等\s*\d+\s*项?$/);
+        var _keep = _mEq ? _mEq[0] : '';
+        _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
+          '…' + _keep;
+      }
+      ctx.fillText(_vv, 150, y + 52);
     });
     ctx.textAlign = 'center';
   }
@@ -3140,7 +3158,9 @@ function buildShareData(view, j) {
       return sly;
     }
     case 'qiming':
-      return { title: '五行起名', subtitle: '按五行补缺',
+      /* R2349m（R75-P2-6）：副题补日期——其余视图副题都带时效。 */
+      return { title: '五行起名',
+        subtitle: '按五行补缺 · ' + _cnDateSub(todayIso()),
         big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
         lines: _pArr(j && j.full_names).slice(0, 4).map(function (n, i) {
           return { k: '推荐 ' + (i + 1), v: _pStr(n && n.full_name) }; }),
@@ -3160,16 +3180,22 @@ function buildShareData(view, j) {
       /* R233t（R51-P1-5）：太阳星座是陌生人一秒能接的信息——调用处
        * 把 sunSign 结果挂 j._birth_sign 透传进来当大字。 */
       var _bsign = _pStr(j && j._birth_sign);
-      var _bir = base('我的本命盘', _bsign ?
-        ('你是' + _bsign + '座 · ' + _cnDateSub(todayIso())) : '');
+      /* R2349m（R75-P2-4）：副题「你是X座」与大字逐字重复——
+       * 副题只留日期，星座交给大字。 */
+      var _bir = base('我的本命盘', _cnDateSub(todayIso()));
       var _bp = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
       var _bec = (w && w.energy_card) || {};
       _bir.big = _bsign ? ('你是 ' + _bsign + '座') : (l0 || '本命已就位');
       _bir.lines = [];
       if (_bp.length) _bir.lines.push({ k: '四柱', v: _bp.join(' · ') });
       var _bfe = (((j && j.calc) || {}).five_elements || {}).counts || {};
-      var _bfx = Object.keys(_bfe).map(function (k) { return k + ' ' + _bfe[k]; }).join(' · ');
-      if (_bfx) _bir.lines.push({ k: '五行', v: _gSlice(_bfx, 20) });
+      /* R2349m（R75-P2-4）：「木 0.3·火 2·土 1.3」小数口径机器味——
+       * 海报只留偏旺行（取整 ≥1），弱的本来就不该当卖点。 */
+      var _bfx = Object.keys(_bfe)
+        .map(function (k) { return [k, Math.round(_bfe[k])]; })
+        .filter(function (p) { return p[1] >= 1; })
+        .map(function (p) { return p[0] + ' ' + p[1]; }).join(' · ');
+      if (_bfx) _bir.lines.push({ k: '五行偏旺', v: _gSlice(_bfx, 20) });
       if (_bec.element) _bir.lines.push({ k: '本命', v: _pStr(_bec.element) });
       if (!_bir.lines.length) _bir.lines = [{ k: '结论', v: '知己知命' }];
       return _bir;
@@ -3403,6 +3429,10 @@ async function _downloadPoster(j, view) {
    * 在哪、怎么用。本轮补 modal：海报图 + 关闭按钮（点遮罩/ESC 都关）
    * + 长按图片保存到相册的提示文案。下载仍走 toBlob（兼容 desktop）
    * 浮层只是补一层视觉反馈。 */
+  /* R2349m（R75-P1-3）：_idlePrefetch 只在进功能视图时触发——首页
+   * 日卡直接点分享图时底图/吉祥物 src 为空，产出无底图素版海报。
+   * 分享动作本身就是「这张海报我要了」的信号，先补预拉再等解码。 */
+  try { _idlePrefetch(); } catch (eP0) {}
   if (view) {
     /* R233n：daily 海报要农历——daily 响应不含 lunar，懒取一次
      * 当日黄历补齐（失败则海报退化为无农历副题）。 */
@@ -3460,10 +3490,18 @@ async function _downloadPoster(j, view) {
     showToast('这张图没画出来，再点一次试试', 'warn');
     return;
   }
-  /* 同时触发下载（兼容 desktop「图去哪了」老习惯）+ 弹浮层。 */
+  /* 同时触发下载（兼容 desktop「图去哪了」老习惯）+ 弹浮层。
+   * R2349m（R76-P2-7）：触屏机上 a[download] 路径是错的——iOS
+   * Safari 弹「下载到文件」不是相册、微信 webview 多半静默无效；
+   * 浮层里「长按保存」才是对的路。移动端跳过自动下载。 */
+  var _isTouch = (typeof navigator !== 'undefined' &&
+    (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
   try {
     if (_dup) {
       showToast('这张图刚保存过了，长按/右键可直接再存', 'info');
+    } else if (_isTouch) {
+      /* 触屏端不触发 a[download]——弹层长按保存即可 */
+      _POSTER_LAST[_vkey] = performance.now();
     } else {
       _POSTER_LAST[_vkey] = performance.now();
       r.canvas.toBlob(function (blob) {
@@ -3535,7 +3573,12 @@ function showPosterModal(canvas, view) {
         '<img class="poster-modal-img" src="' + img + '" alt="' +
           esc(viewTitle) + ' 分享图">' +
       '</div>' +
-      '<div class="poster-modal-tip">💡 长按图片可保存到相册 · 桌面端已自动下载到下载文件夹 · 发给闺蜜一起测～</div>' +
+      '<div class="poster-modal-tip">💡 ' +
+        ((typeof navigator !== 'undefined' &&
+          (navigator.maxTouchPoints > 0 || 'ontouchstart' in window))
+          ? '长按图片可保存到相册 · 发给闺蜜一起测～'
+          : '已自动下载到下载文件夹 · 也可右键另存 · 发给闺蜜一起测～') +
+        '</div>' +
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
        * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
       '<div class="poster-modal-actions">' +
@@ -8016,11 +8059,20 @@ function initBazi() {
   });
   /* R228q：移动键盘弹出会把侧栏输入框顶出可视区（visualViewport 收缩，
    * 但侧栏是 fixed 布局不跟随）——键盘开合时把输入框滚回视口内。
-   * 只在聊天输入聚焦状态下生效；不支持 visualViewport 的环境静默跳过。 */
+   * 只在聊天输入聚焦状态下生效；不支持 visualViewport 的环境静默跳过。
+   * R2349m（R76-P0-2）：iOS 键盘只缩 visualViewport，fixed 侧栏锚在
+   * 不变的 layout viewport——scrollIntoView 对 fixed 元素按构造无效。
+   * 改为直接换算侧栏 bottom = 被键盘吃掉的高度。 */
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', function () {
       var inp = el('chatInput');
-      if (!inp || document.activeElement !== inp) return;
+      var sb = document.querySelector('.recent-sidebar');
+      if (!inp || document.activeElement !== inp || !sb ||
+          !sb.classList.contains('open')) return;
+      var vv = window.visualViewport;
+      var eaten = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      /* 键盘弹出：侧栏底抬高到键盘上沿；收起：回落 0。 */
+      sb.style.bottom = eaten > 60 ? eaten + 'px' : '';
       setTimeout(function () {
         inp.scrollIntoView({ block: 'end', inline: 'nearest' });
       }, 250);
@@ -8647,7 +8699,9 @@ function init() {
     try {
       var _ios0 = /iP(hone|ad|od)/.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (_ios0 && !navigator.standalone && _visitCount() >= 2) {
+      /* R2349m（R76-P3）：WKWebView 里 standalone 是 undefined——
+       * 显式 !== true 而非 !x，侥幸正确转正为明确正确。 */
+      if (_ios0 && navigator.standalone !== true && _visitCount() >= 2) {
         _renderInstallTip();
       }
     } catch (eI) {}
@@ -9560,7 +9614,7 @@ function _renderInstallTip() {
    * 是 iPhone，恰在最大盘上没引导。检测 iOS UA 给手动步骤提示。 */
   var _ios = /iP(hone|ad|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (navigator.standalone) return;   /* iOS standalone 也不显示 */
+  if (navigator.standalone === true) return;   /* iOS standalone 也不显示 */
   try {
     var ds = localStorage.getItem('installTipDismissed');
     if (ds && Date.now() - Date.parse(ds) < 7 * 864e5) return;
@@ -9570,7 +9624,17 @@ function _renderInstallTip() {
   /* R233f（R43-P3-13）：静默出现读屏无感知——role=status 出现即播。 */
   bar.setAttribute('role', 'status');
   if (_ios) {
-    bar.innerHTML = '<span>🏠 点底部「分享」→「添加到主屏幕」，明天直接来</span>' +
+    /* R2349m（R76-P0-1）：iOS 微信 webview 无底部分享栏也没有
+     * 「添加到主屏幕」——原 Safari 指引是条死路。三分支：
+     * 微信→右上角···去 Safari 打开；Safari→底部分享；其他 iOS
+     * webview→同微信口径引导去 Safari。 */
+    var _wx = /MicroMessenger/i.test(navigator.userAgent);
+    var _isSafari = /Safari/i.test(navigator.userAgent) &&
+      !/CriOS|FxiOS|EdgiOS|MicroMessenger|QQ/i.test(navigator.userAgent);
+    bar.innerHTML = '<span>🏠 ' +
+      (_wx ? '点右上「···」→「在 Safari 打开」，再点分享→加到主屏幕'
+           : _isSafari ? '点底部「分享」→「添加到主屏幕」，明天直接来'
+           : '复制链接去 Safari 打开，再「添加到主屏幕」') + '</span>' +
       '<button type="button" class="install-tip-go">知道了</button>' +
       '<button type="button" class="install-tip-x" aria-label="先不了">✕</button>';
   } else {

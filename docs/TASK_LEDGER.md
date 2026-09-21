@@ -11743,3 +11743,27 @@ localStorage，倒计时改异步链。
 - 系统分享文案按视图定制：_SHARE_TEXT 12 视图钩子句
   （合婚「测测你们的」/塔罗「你也来抽」/日签「看看你抽到什么签」…），
   替换通用「测你的同款」——分享回流点击率向
+
+### R2349m：R76 iOS 专项 + R75 海报视觉清零（9-21）
+
+- R76-P0-1：装桌面提示三分支——微信 UA 给「右上···→Safari 打开」
+  （原 Safari 指引在微信 webview 是死路）；其他 iOS webview 同口径
+- R76-P0-2：iOS 键盘遮聊天输入框——visualViewport.resize 换算
+  侧栏 bottom=被键盘吃掉高度（scrollIntoView 对 fixed 按构造无效）
+- P1：toast top calc(env(inset-top)+12) 不再压刘海；侧栏头并上
+  safe-area-inset-top、side-chat 底并上 inset-bottom；install-tip
+  bottom env()+z-index 280→180（不再叠海报模态）；og:image 核实
+  已是服务端绝对化注入（审计静态读 html 的误报）
+- P2：触屏机海报不再触发 a[download]（iOS 只到「文件」不是相册），
+  提示按平台分叉；tap-highlight 透明收口；body touch-action:
+  manipulation；chat-flow/poster-modal-body/table-scroll/hl-week/
+  recent-sidebar overscroll-behavior；backdrop touch-action:none；
+  poster-modal 90vh→90dvh；format-detection telephone=no；
+  navigator.standalone 显式 === true
+- R75-P1-1/2-3：lilac 夜紫底海报换浅色文字调色板（标题/副题/大字
+  全换奶油浅色系+深色晕影），副题不再被月亮冲刷
+- R75-P1-2：海报明细行截断保「等N项」尾巴完整
+- R75-P1-3：分享图点击时先补跑 _idlePrefetch——首页首点不再产
+  无底图素版海报
+- R75-P2：birth 副题去重（星座留大字）、五行行改「偏旺」取整口径、
+  qiming 副题补日期
