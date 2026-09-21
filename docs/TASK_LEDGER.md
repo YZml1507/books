@@ -12059,3 +12059,37 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - **探针修两处自身盲区**：备份夹具补 `version:1`（对齐真实导出格式）；hehun 用例显式填双方生辰（此前靠 wipe 没清干净的 HTML 默认值混过，wipe 修成无条件清后裸奔）。
 
 闸门：selftest 268 / contract 584（SOFT≈49）/ ui_smoke 75 / parity 68+41+251 / voice×14 字节一致 / ruff 零告警，全绿。
+
+## R2350a（R96+R94 二轮审计清零批）
+- **R96（近三批真机回归）清零**：
+  - P0-1 「记一条」死功能复活——前端发 kind:'summary' 必 400（断言类要证据）；
+    正解：derived CHECK 新增 'note' 非断言类 + `_migrate_note()` 老库重建迁移
+    （PRAGMA foreign_keys=OFF → derived_new → INSERT SELECT → RENAME，id 保留
+    故 evidence/derived_fts rowid 不失联）；thread_record 白名单 + note。
+  - P1-1 搁置/已结线程从此可见——threads 全链 status 参数（open 默认/all/parked/
+    closed）+ 前端筛选 chip 条 + 线程卡「返回列表」钮；app.js 旧键 'shelved'→'parked'
+    修真（否则筛选必空）。
+  - P2-1 聊天气泡生日语料分支前置（此前先走通用池，生日行永不中）+子行。
+  - P2-2 SW hadCtl 判空防 TypeError。P2-3 humanCite ' 本'→'本'。
+- **R94（黄历日历域）清零**：
+  - 后端 day_query 新增 zhishen/zhishen_ji/hours(12时辰吉凶)/ganzhi_day_cn；
+    前端渲染「值神/贵人在X」行 + 时辰吉凶 pills（.hl-hour）。
+  - cross_ref「那天→今日X」剥离 note[2:] 前缀去叠词；底部重复句→
+    「去星座页看当班」data-xview 跳链（委托在总 click 处理器）。
+  - festival 叠词修复（「中秋节是中秋节」→「就是中秋节，过节啦」）。
+  - _offShown 经 _tp 换算（跨零点 chip 跳错天复修）；空日期请求→toast 不空转。
+  - 黄历卡标题日词动态（今天→今天，他日→那天）；农历行补干支日。
+  - ?view=huangli&date= 深链：init 存 __hlDeepDate，激活时按那天查；
+    分享链（复制+系统）自动带 &date=shownDate，对方打开见同一张卡。
+  - 海报三处写死「今日」归位：标题/大字/文件名全跟卡面日（明日宜忌/0922.png）。
+  - busy()：「仅 no-evidence+ask/fav 伴生行」也归整清——连错不再堆叠。
+  - 周格 aria-current 语义归位：留给今天格；选中日改 aria-pressed。
+  - 主题钮移出 homeMain（叶视图藏 homeMain 时按钮同藏——P1）→ position:fixed 全局。
+  - index.html h2 加 #hlTitleDay span；hl-week 标题「未来 7 天」→「这 7 天」。
+  - paipan_history.import_rows 返回 (written, skipped) 元组——废记录不再被
+    静默改名计入；非 dict/坏 type/无 ts/超 256KB/重复全计 skipped；
+    前端导入气泡展示 skipped 数；备份夹带「version:1」+日期后缀。
+- **闸门**：selftest 268（+threads.status/note 断言）/regress 270→268 PASS/
+  contract 595 读点全绿/ui_smoke 75/baseline_voice 14 字节同/xingzuo/warm/
+  async_ai/dollar 244fn/date_parity 68+41+251/plain_first/poster/first_screen/
+  corpus/scripts_importable/llm_polish/ruff 全 PASS。

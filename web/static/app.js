@@ -228,8 +228,19 @@ function busy(id, text) {
       return;
     }
   }
-  if (node && node.innerHTML.trim() &&
-      !node.querySelector('.no-evidence:only-child') &&
+  /* R2350a（R94-P2-8）：「仅 .no-evidence 错误 + .hl-ask/fav-row
+   * 伴生行」此前被当成「有内容」→ 错误走 fail-line 置顶、旧错误条
+   * 残留，连续失败堆叠。这类空壳同样归整清分支。 */
+  var _onlyErr = false;
+  if (node && node.querySelector('.no-evidence')) {
+    _onlyErr = !Array.prototype.some.call(node.children, function (c) {
+      return !(c.classList.contains('no-evidence') ||
+               c.classList.contains('hl-ask') ||
+               c.classList.contains('fav-row') ||
+               c.classList.contains('ph-skel'));
+    });
+  }
+  if (node && node.innerHTML.trim() && !_onlyErr &&
       !node.querySelector('.res-loading-tag')) {
     node.classList.add('is-working');
     var tag = document.createElement('div');
@@ -3227,9 +3238,22 @@ function _posterHookForView(view, j) {
     'xingzuo': '星星今天这么安排',
     'checkin': '新的一天，小满还在等你',
     'checkin-week': '一周七天，天天有签',
-    'huangli': '老黄历今天这么说',
+    'huangli': null,  /* R2350a（R94-P1-3）：写死「今天」是错话——下方按日词给 */
     'birth':  '这张小卡是你的底色'
   };
+  if (view === 'huangli' && hooks[view] == null) {
+    /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */
+    var _dw2 = '今天';
+    try {
+      var _jd = (j && j.date) || '';
+      if (_jd) {
+        var _tt = new Date(); _tt.setHours(0, 0, 0, 0);
+        _dw2 = _hlDayWord(Math.round(
+          (new Date(_jd + 'T00:00:00') - _tt) / 864e5));
+      }
+    } catch (eDW) {}
+    return '老黄历' + _dw2 + '这么说';
+  }
   return hooks[view] || '今天，明天，每一天，都值得被认真对待';
 }
 
@@ -3557,7 +3581,17 @@ function buildShareData(view, j) {
     case 'huangli': {
       var jh = j || {};
       var lun = jh.lunar || {};
-      var shl = base('今日宜忌',
+      /* R2350a（R94-P1-3）：标题/大字/文件名原写死「今日」——翻别的天
+       * 分享出去全是错话。日词跟卡面日走。 */
+      var _pdw = '今天';
+      if (jh.date) {
+        var _t0 = new Date(); _t0.setHours(0, 0, 0, 0);
+        var _off = Math.round(
+          (new Date(jh.date + 'T00:00:00') - _t0) / 864e5);
+        _pdw = _hlDayWord(_off);
+      }
+      var _pdwS = (_pdw === '今天') ? '今日' : _pdw;
+      var shl = base(_pdwS + '宜忌',
         _cnDateSub(jh.date) +
         ((lun.month_cn || lun.day_cn) ? ' · 农历' + (lun.month_cn || '') + (lun.day_cn || '') : ''));
       var yiL = _pArr(jh.yi), jiL = _pArr(jh.ji);
@@ -3567,7 +3601,7 @@ function buildShareData(view, j) {
       var _jiP = jiL.map(function (x) { return _HL_JI_MAP[x] || _pStr(x); });
       /* R233t（R51-P1-8）：大字只放最有梗的一条宜——原三词拼接
        * wrapText 切出孤行「 · 许愿」悬在半空。 */
-      shl.big = _yiP.length ? ('今日宜' + _yiP[0]) : '今日平稳';
+      shl.big = _yiP.length ? (_pdwS + '宜' + _yiP[0]) : (_pdwS + '平稳');
       shl.lines = [];
       /* R233t（R51-P1-8）：「前 2 条全量 + 等 N 件」不再拦腰截词。 */
       var _yiT = _yiP.slice(0, 2).join(' · ') +
@@ -3775,6 +3809,12 @@ async function _downloadPoster(j, view) {
         var _d = new Date();
         var _ymd = _d.getFullYear() +
           ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
+        /* R2350a（R94-P1-3）：黄历海报文件名跟卡面日——翻到 9/22
+         * 分享出的文件之前写 0921。 */
+        if (_vkey === 'huangli' && j && j.date &&
+            /^\d{4}-\d{2}-\d{2}$/.test(j.date)) {
+          _ymd = j.date.replace(/-/g, '');
+        }
         /* R230y（R36-P3-2）：文件名对齐品牌「小满」
          * R231c：中文文件名「小满-今日命盘-0920」——小红书链路里
          * 辨识度高于 xiaoman-bazi（保存到相册一眼可认）。 */
@@ -3806,6 +3846,20 @@ function showPosterModal(canvas, view) {
   backdrop.className = 'poster-modal-backdrop';
   /* 视图名 → 人话标题（R231c：与下载文件名共用 _POSTER_TITLES） */
   var viewTitle = _POSTER_TITLES[view] || '命盘海报';
+  /* R2350a（R94-P1-3）：黄历海报标题跟卡面日（「明日宜忌」）。
+   * 本函数签名只有 canvas/view——日期从 LAST_RESULT 取。 */
+  if (view === 'huangli') {
+    try {
+      var _j3 = (LAST_RESULT.huangli || {}).json;
+      var _jd3 = _j3 && _j3.date;
+      if (_jd3) {
+        var _tt0 = new Date(); _tt0.setHours(0, 0, 0, 0);
+        var _dw3 = _hlDayWord(Math.round(
+          (new Date(_jd3 + 'T00:00:00') - _tt0) / 864e5));
+        viewTitle = (_dw3 === '今天' ? '今日' : _dw3) + '宜忌';
+      }
+    } catch (eVT) {}
+  }
   /* R230r（R29-#7）：toDataURL 在画布被污染时会抛 SecurityError——
    * 原来裸调用让「文件已下载、浮层弹不出」成半失败态。 */
   var img;
@@ -3851,6 +3905,15 @@ function showPosterModal(canvas, view) {
   if (_pcl) _pcl.addEventListener('click', function () {
     /* R231d（R39-P2-1）：带 from=share 便于落地页换承接文案 */
     var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
+    /* R2350a（R94-P1-2）：黄历分享链带卡面日——对方打开看到的是
+     * 同一张那天，不是 TA 自己的今天。 */
+    if (view === 'huangli') {
+      try {
+        var _sd0 = (el('hlResult') || {}).dataset || {};
+        if (_sd0.shownDate) url += '&date=' +
+          encodeURIComponent(_sd0.shownDate);
+      } catch (eSD) {}
+    }
     /* R2349t（R88-13a）：分享链带昵称——接力页能喊出「谁晒的」。
      * 昵称与生辰不同级：纯显名，不进任何请求体（邀请链已有先例）。 */
     try {
@@ -3875,6 +3938,13 @@ function showPosterModal(canvas, view) {
   var _pss = backdrop.querySelector('#posterSysShare');
   if (_pss) _pss.addEventListener('click', function () {
     var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
+    if (view === 'huangli') {
+      try {
+        var _sd1 = (el('hlResult') || {}).dataset || {};
+        if (_sd1.shownDate) url += '&date=' +
+          encodeURIComponent(_sd1.shownDate);
+      } catch (eSD1) {}
+    }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
     try {
       var _snm2 = (_meGet('me') || {}).n;
@@ -5415,9 +5485,20 @@ async function doThread() {
 
 /* R230q（R28-P1-1b）：线程列表渲染抽出来——删除后整块重画用同一模板。
  * 每条补「删」按钮（data-thread-del）：空壳线程此前没有任何清理入口。 */
+var _threadStatus = 'open';
 async function _threadListHtml() {
-  const list = await api('/api/threads');
-  var html = '';
+  /* R2349z（R96-P1-1a）：收起的/聊完的线程此前从列表永久消失——
+   * 后端 resume() 只查 open。加状态过滤 chip，默认仍「进行中」。 */
+  const list = await api('/api/threads?status=' +
+                         encodeURIComponent(_threadStatus));
+  var html = '<div class="thread-filters" style="display:flex;gap:6px;' +
+    'margin-bottom:8px;flex-wrap:wrap;">' +
+    [['open', '进行中'], ['parked', '先收起'], ['closed', '已结束']]
+      .map(function (kv) {
+        return '<button type="button" class="chip' +
+          (_threadStatus === kv[0] ? ' active' : '') +
+          '" data-thread-filter="' + kv[0] + '">' + kv[1] + '</button>';
+      }).join('') + '</div>';
   (list.threads || []).forEach(function (t) {
     /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
      * 一眼可辨新旧（updated_at 只记最近动静）。 */
@@ -5425,7 +5506,9 @@ async function _threadListHtml() {
     html += '<div class="thread-item"><div class="thread-topic">' +
       esc(t.topic || '') + '</div>' +
       '<div class="thread-meta">#' + esc(t.id) + ' · ' +
-      esc({open:'进行中', closed:'已结束', shelved:'先收起'}[t.status] || t.status) +
+      /* R2349z（R96-P1-1b）：'shelved' 是死键——后端枚举是
+       * open/parked/closed，收起的线程此前渲染裸 'parked'。 */
+      esc({open:'进行中', closed:'已结束', parked:'先收起'}[t.status] || t.status) +
       ' · 聊了 ' + esc(t.turns) + ' 轮 / 记了 ' + esc(t.claims) + ' 条 · ' +
       esc(t.updated_at || '') + _opened + '</div>' +
       '<div class="thread-actions">' +
@@ -5468,8 +5551,8 @@ async function showThread(tid) {
     });
     /* R233y（R54-P1-13）：kind/confidence/role 枚举翻中文，
      * 不再 JSON 直出。 */
-    var _KIND_CN = { thread: '线程', summary: '笔记', answer: '结论',
-      link: '关联', diff: '比对', refusal: '存疑' };
+    var _KIND_CN = { thread: '线程', summary: '笔记', note: '笔记',
+      answer: '结论', link: '关联', diff: '比对', refusal: '存疑' };
     var _CONF_CN = { high: '把握高', mid: '把握中', low: '把握低',
       open: '进行中' };
     var _ROLE_CN = { supports: '支持', contradicts: '反驳',
@@ -5498,7 +5581,12 @@ async function showThread(tid) {
     }
     /* R2349v（R92-P1-2）：线程此前只能开/看/删——后端记 claim /
      * 改状态全套接口空转。详情页补「记一条」表单 + 状态钮。 */
-    html += '<div class="thread-note" style="margin-top:14px;">' +
+    /* R2349z（R96-P1-1c）：详情页此前无回列表入口——再点 tab 也因
+     * threadResult 非空不重画，只能刷新页面。 */
+    html += '<div style="margin-bottom:10px;">' +
+      '<button type="button" class="thread-view" data-thread-back="1">' +
+      '← 回列表</button></div>' +
+      '<div class="thread-note" style="margin-top:14px;">' +
       '<label for="threadNote" style="font-size:13px;color:var(--secondary);">' +
       '记一条（这条线程的心得/结论）</label>' +
       '<textarea id="threadNote" class="question-input" rows="2" maxlength="2000" ' +
@@ -5887,7 +5975,16 @@ function hlInitToday() {
    * 改成看「是否只有占位节点」（data-ph 标记）。 */
   var _res = document.getElementById('hlResult');
   if (_res && (!_res.firstElementChild || _res.querySelector('[data-ph]'))) {
-    doHuangli(0, true);
+    /* R2350a（R94-P1-2）：深链带日期时按那天查，不落今天。 */
+    var _dd = window.__hlDeepDate; window.__hlDeepDate = null;
+    if (_dd) {
+      setv('hl_year', +_dd.slice(0, 4));
+      setv('hl_month', +_dd.slice(5, 7));
+      setv('hl_day', +_dd.slice(8, 10));
+      doHuangli(null, true);
+    } else {
+      doHuangli(0, true);
+    }
   } else if (_HL.renderedOn && _HL.renderedOn !== todayIso()) {
     /* R2349k（R72-B1）：隔夜回来的卡是昨天渲染的——判词「今天」话术
      * 已错一天。按渲染日判陈旧（不看显示日——主动翻「昨天」的卡是
@@ -5924,7 +6021,7 @@ async function hlLoadWeek() {
         .catch(function () { return null; });
     }));
     var WD = ['日', '一', '二', '三', '四', '五', '六'];
-    var html = '<div class="hl-week-title">📅 未来 7 天宜忌速览' +
+    var html = '<div class="hl-week-title">📅 这 7 天宜忌速览' +
       '<span class="hl-week-sub">点一天直接翻过去</span></div>' +
       '<div class="hl-week-row">';
     js.forEach(function (j, i) {
@@ -5937,6 +6034,9 @@ async function hlLoadWeek() {
        * 偏移，落在点击当刻的今天。 */
       html += '<button type="button" class="hl-week-cell" data-hldate="' +
         esc(days[i]) + '"' +
+        /* R2350a（R94-P2-14）：aria-current="date" 只留在今天格——
+         * 此前点击时把它挪给「选中格」用，语义错了（读屏误报成当天）。
+         * 选中日走 class.active + aria-pressed。 */
         (i === 0 ? ' aria-current="date"' : '') + '>' +
         '<span class="hl-week-wd">' + esc(wd) + '</span>' +
         '<span class="hl-week-date">' + esc((dt.getMonth() + 1) + '/' + dt.getDate()) + '</span>' +
@@ -5952,13 +6052,12 @@ async function hlLoadWeek() {
       if (!c) return;
       box.querySelectorAll('.hl-week-cell').forEach(function (x) {
         x.classList.remove('active');
+        x.removeAttribute('aria-pressed');
       });
       c.classList.add('active');
-      /* R233f（R43-P2-5）：激活格同步 aria-current——读屏知道在看哪天 */
-      box.querySelectorAll('.hl-week-cell').forEach(function (x) {
-        x.removeAttribute('aria-current');
-      });
-      c.setAttribute('aria-current', 'date');
+      /* R2350a（R94-P2-14）：选中日改 aria-pressed——aria-current 是
+       * 「当前日期」语义，留给今天格（它在渲染时已钉在 i===0）。 */
+      c.setAttribute('aria-pressed', 'true');
       /* R2349k（R72-B7）：点击当刻用本地日换算偏移——跨零点打开的
        * 页面点格子仍落到格子上写的那天。 */
       var _wdd = c.dataset.hldate;
@@ -7882,7 +7981,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
   } else {
     y = num('hl_year'); m = num('hl_month'); d = num('hl_day');
     if (y == null || m == null || d == null) {
-      fail('hlResult', '请先选一个日期～');
+      /* R2350a（R94-P2-9）：本地校验轻错走 toast——整卡替换会把
+       * 上一张好卡抹成单行错误。 */
+      showToast('先选一个日期～', 'warn');
       return;
     }
   }
@@ -7906,7 +8007,10 @@ async function _doHuangli(offset, reveal, spokenWord) {
   /* R228c：chip 高亮跟本次实际查的日期走——自选日期/问一嘴跳日路径原来
    * 不动 chip，「今天」常亮但结果显示的是另一天（状态泄漏）。无对应
    * chip 的日期（绝对日期/超范围偏移）则全部灭掉。 */
-  var _offShown = _abs ? offset : null;
+  /* R2350a（R94-P1-7）：非绝对路径（自选日期/问一嘴/场景刷新）此前
+   * 恒灭灯——拿请求日反算偏移回填，落在 chip 覆盖区间就点亮。 */
+  var _offShown = _abs ? offset :
+    Math.round((new Date(y, m - 1, d) - _tp) / 864e5);
   document.querySelectorAll('#hlChips .hl-chip').forEach(function (c) {
     var on = _offShown != null && Number(c.dataset.hloffset) === _offShown;
     c.classList.toggle('active', on);
@@ -7956,6 +8060,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* R230n（R25-1.3）：记下本卡实际展示的公历日——跨零点自刷新靠它
      * 判「这张卡是不是昨天的快照」。 */
     if (_hlBox) _hlBox.dataset.shownDate = j.date || dateStr;
+    /* R2350a（R94-P2-12）：H2「今天宜忌」跟日期走。 */
+    try {
+      var _h2d = document.getElementById('hlTitleDay');
+      if (_h2d) _h2d.textContent = _dayWord;
+    } catch (eH2) {}
     _HL.renderedOn = todayIso();   /* R2349k（R72-B1）：渲染日戳，隔夜重查用 */
     /* R228c：month_cn 本身已带「月」（后端 MONTH_CN 表生成时即带），
      * 再拼一个就成「八月月十九」——直接 month_cn+day_cn。
@@ -7965,7 +8074,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     var _lunarTxt = (lunar.month_cn || '') + (lunar.day_cn || '');
     html += '<div style="font-size:13px;color:var(--secondary);margin-top:2px;">' +
       (_lunarTxt
-        ? '农历 ' + esc(_lunarTxt) + ' · ' + esc(lunar.ganzhi_year_cn || '')
+        ? '农历 ' + esc(_lunarTxt) + ' · ' + esc(lunar.ganzhi_year_cn || '') +
+          /* R2350a（R94-P2-10）：日干支透出（黄历标配缺项）。 */
+          (j.ganzhi_day_cn ? ' · ' + esc(j.ganzhi_day_cn) : '')
         : (j.date && j.date.slice(0, 4) > '2100'
            ? '农历：这一天晚于历法表终点（2100-12-31），宜忌仍按干支推'
            : '农历：这一天早于历法表起点（1900-01-31），宜忌仍按干支推')) +
@@ -7989,8 +8100,13 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (cs && cs.message) html += '<div class="hl-csmsg">✨ ' + esc(cs.message) + '</div>';
     /* R2349k（R72-A2）：节日行——中秋节/立秋/母亲节这天值得说出来。 */
     if (j.festival && j.festival.length) {
-      html += '<div class="hl-festival">🎉 ' + esc(_dayWord) + '是' +
-        esc(j.festival.join('、')) + '</div>';
+      /* R2350a（R94-P1-5）：spokenWord=节日名时「中秋节是中秋节」
+       * 叠词露馅——换「就是XX节」。 */
+      var _fes = String(j.festival && j.festival.join ? j.festival.join('、') : '');
+      html += '<div class="hl-festival">🎉 ' +
+        (_fes.indexOf(_dayWord) >= 0
+          ? '就是' + esc(_fes) + '，过节啦'
+          : esc(_dayWord) + '是' + esc(_fes)) + '</div>';
     }
     /* R229z续21c：干支年双口径错位日（春节↔立春窗口）才出现的说明行 */
     if (j.year_note) html += '<div style="font-size:12px;color:var(--muted);margin-top:4px;">📅 ' + esc(j.year_note) + '</div>';
@@ -8139,12 +8255,35 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (j.jianchu) _jx.push('建除：' + j.jianchu +
       (_JC[j.jianchu] ? '（' + _JC[j.jianchu] + '）' : ''));
     if (j.xiu) _jx.push('星宿：' + j.xiu);
-    /* R233w（R52-P3-9）：交节当日透明化——±15min 精度边界直接亮给用户。 */
-    if (j.term_today) _jx.push('交节：' + j.term_today.name + ' ' +
-      j.term_today.time);
+    /* R2350a（R94-P1-4）：日值神（大黄道）透出——「黄道日/黑道日」
+     * 是传统黄历标配。 */
+    if (j.zhishen) _jx.push('值神：' + j.zhishen +
+      (j.zhishen_ji ? '（黑道——大事缓一缓）' : '（黄道）'));
+    /* R2350a（R94-P2-10）：贵人方位人话化——支→方位。 */
+    var _GR_DIR = { '子': '北', '丑': '东北', '寅': '东北', '卯': '东',
+      '辰': '东南', '巳': '东南', '午': '南', '未': '西南',
+      '申': '西南', '酉': '西', '戌': '西北', '亥': '西北' };
+    var _gr = (_ss.guiren || []);
+    if (_gr.length) _jx.push('贵人在' + _gr.map(function (b) {
+      return _GR_DIR[b] || b; }).join('、'));
     if (_jx.length) {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">' +
         esc(_jx.join(' · ')) + '</div>';
+    }
+    /* R2350a（R94-P1-4）：十二时辰吉凶格——亮格=吉时。 */
+    if (Array.isArray(j.hours) && j.hours.length === 12) {
+      html += '<div class="hl-hours"><span style="font-size:12px;' +
+        'color:var(--muted);">时辰吉凶　</span>' +
+        j.hours.map(function (h) {
+          return '<span class="hl-hour' + (h.ji ? ' hl-hour-ji' : '') +
+            '" title="' + esc(h.branch) + '时·' + esc(h.shen) +
+            (h.ji ? '（吉）' : '（凶）') + '">' + esc(h.branch) + '</span>';
+        }).join('') + '</div>';
+    }
+    /* R233w（R52-P3-9）：交节当日透明化——±15min 精度边界直接亮给用户。 */
+    if (j.term_today) {
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">' +
+        esc('交节：' + j.term_today.name + ' ' + j.term_today.time) + '</div>';
     }
     /* R230a-2：彭祖百忌——接口一直返回但卡面从未露出（黄历标配的两句老话）。
      * 小字收在免责前，不抢戏。 */
@@ -8155,9 +8294,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (_pzTxt) html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">老话讲：' + esc(_pzTxt) + '</div>';
     /* R230a-11：黄历交叉引用——后端 _cross_ref_huangli 一直返回但卡面
      * 从未露出（星座值宫×当日干支的人话一句）。 */
-    if (j.cross_ref && j.cross_ref.message) {
-      html += '<div class="cross-ref"><span class="cross-ref-icon">⭐</span>' +
-        esc(j.cross_ref.message) + '</div>';
+    /* R2350a（R94-P1-1/P2-13）：同句双渲染——✨ 头行已有 cross_ref
+     * 全文，卡底不再复读，改成「去星座页看看」的可点链接
+     * （天然引流点此前是纯文本）。data-xview 在点击委托里收。 */
+    if (j.cross_ref && j.cross_ref.zodiac_sign) {
+      html += '<div class="cross-ref"><button type="button" ' +
+        'class="thread-view" data-xview="xingzuo">⭐ 看看' +
+        esc(j.cross_ref.zodiac_sign) + '座' + esc(_dayWord) +
+        '的运势 →</button></div>';
     }
     html += tailHook('huangli');
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
@@ -8564,7 +8708,10 @@ function activateRsec(secId) {
    * 正在看详情/刚建好线程的回执不覆盖。 */
   if (secId === 'rsec-threads') {
     var _tr = el('threadResult');
-    if (_tr && (_tr.querySelector('.ph-empty') || !_tr.innerHTML.trim())) {
+    /* R2349z（R96-P1-1c）：详情态（有 .thread-note 块）再点 tab
+     * 也回列表——此前只能刷新页面。 */
+    if (_tr && (_tr.querySelector('.ph-empty') || !_tr.innerHTML.trim() ||
+                _tr.querySelector('.thread-note'))) {
       guardedCall('threads-load', function () {
         return _threadListHtml().then(function (h) {
           paint('threadResult', h ||
@@ -8891,13 +9038,35 @@ function initReading() {
       var _ntid = threadNoteBtn.dataset.threadNote;
       var _ntxt = (el('threadNote') || {}).value || '';
       if (!_ntxt.trim()) { showToast('先写一句要记的话', 'info'); return; }
-      postJSON('/api/threads', { kind: 'summary', claim: _ntxt.trim(),
+      /* R2349z（R96-P0-1）：kind 从 'summary'（断言型，必带证据→
+       * 永远 400）改 'note'——用户手记专用非断言通道。 */
+      postJSON('/api/threads', { kind: 'note', claim: _ntxt.trim(),
         method: 'web-note', thread_id: parseInt(_ntid, 10) })
         .then(function () {
           showToast('记下了～', 'success');
           showThread(_ntid);
         })
         .catch(function (err) { showToast('没记上：' + err.message, 'warn'); });
+      return;
+    }
+    /* R2349z（R96-P1-1）：线程列表状态过滤 + 详情回列表。 */
+    /* R2350a（R94-P2-13）：跨域小链接——结果卡里 data-xview 跳
+     * 别的功能视图。 */
+    var _xv = e.target.closest('[data-xview]');
+    if (_xv) { try { showView(_xv.dataset.xview); } catch (eXV) {} return; }
+    const threadFilterBtn = e.target.closest('[data-thread-filter]');
+    if (threadFilterBtn) {
+      _threadStatus = threadFilterBtn.dataset.threadFilter;
+      _threadListHtml().then(function (h) {
+        paint('threadResult', h);
+      }).catch(function () {});
+      return;
+    }
+    if (e.target.closest('[data-thread-back]')) {
+      _threadListHtml().then(function (h) {
+        paint('threadResult', h ||
+          '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>');
+      }).catch(function () {});
       return;
     }
     const threadStatusBtn = e.target.closest('[data-thread-status]');
@@ -9666,6 +9835,22 @@ function init() {
          * R2349（R65-P2-1）：剥参后 F5 预填静默丢——值存 sessionStorage
          *（tab 级，关窗即焚，不进历史/书签），刷新后从这儿回灌。 */
         var _qsAll = new URLSearchParams(location.search);
+        /* R2350a（R94-P1-2）：?view=huangli&date=YYYY-MM-DD 深链——
+         * 校验合法后存内存，激活黄历时按该日查（参数被剥也不丢）。 */
+        try {
+          var _hld = _qsAll.get('date');
+          if (_vp === 'huangli' && _hld &&
+              /^\d{4}-\d{2}-\d{2}$/.test(_hld)) {
+            var _hdt = new Date(+_hld.slice(0, 4), +_hld.slice(5, 7) - 1,
+                                +_hld.slice(8, 10));
+            var _hdy = +_hld.slice(0, 4);
+            if (_hdy >= 1900 && _hdy <= 2100 &&
+                _hdt.getMonth() === +_hld.slice(5, 7) - 1 &&
+                _hdt.getDate() === +_hld.slice(8, 10)) {
+              window.__hlDeepDate = _hld;
+            }
+          }
+        } catch (eHD) {}
         /* R2349s（R86-P1-7）：别名视图（daily/checkin/checkin-week/
          * birth）归一化会把 from=share 参数剥掉——新客欢迎条与老用户
          * 承接 toast 都读不到，全成死代码。剥参前先存进内存。 */
@@ -10581,7 +10766,13 @@ function _chatChipsPersonalize() {
   var _gap2 = _visitsGap();
   var _nn2 = (me && me.n) || '';
   var _hiTxt = null;
-  if (_hh2 >= 23 || _hh2 < 5) {
+  /* R2349z（R96-P2-1）：生日分支补进空态——封面/日签/打卡三处都有
+   * 生日态，独漏这里；优先级最高（生日 > 时段 > 久归 > 昵称）。 */
+  var _bday = false;
+  try { _bday = _isMyBirthday(); } catch (eB) {}
+  if (_bday) {
+    _hiTxt = (_nn2 ? _nn2 + '，' : '') + '生日快乐 🎂 今天先给你占个彩头';
+  } else if (_hh2 >= 23 || _hh2 < 5) {
     _hiTxt = (_nn2 ? _nn2 + '，' : '') + '夜深了，睡不着的话我在这儿 🌙';
   } else if (_hh2 >= 5 && _hh2 < 10) {
     _hiTxt = (_nn2 ? _nn2 + '，' : '') + '早啊，新的一天先看看运 ☀️';
@@ -10594,7 +10785,9 @@ function _chatChipsPersonalize() {
   }
   if (_hi && _hiTxt) _hi.textContent = _hiTxt;
   if (_sub) {
-    if (_hh2 >= 23 || _hh2 < 5) {
+    if (_bday) {
+      _sub.textContent = '生日这天的签，是一年一次的限定款';
+    } else if (_hh2 >= 23 || _hh2 < 5) {
       _sub.textContent = '深夜的问心事也有人接——想说就说';
     } else if (_gap2 > 3) {
       _sub.textContent = '这几天攒的运都给你留着呢';
@@ -11492,7 +11685,9 @@ function humanCite(citation) {
   s = s.replace(/\s*\[([A-Za-z0-9]+)\]/g, function (m, t) {
     return ' · ' + ({ tls: 'TLS', chant: 'CHANT', wyg: '文渊阁',
       kanripo: 'Kanripo', gutenberg: 'Gutenberg', ctext: 'CTP',
-      w: 'W', j: 'J' }[t.toLowerCase()] || t) + ' 本';
+      /* R2349z（R96-P2-3）：' 本' 的空格让「文渊阁 本」突兀——
+       * 「TLS 本」无碍是因为 TLS 是字母；统一去掉。 */
+      w: 'W', j: 'J' }[t.toLowerCase()] || t) + '本';
   });
   s = s.replace(/\s{2,}/g, ' ');
   return s.trim();

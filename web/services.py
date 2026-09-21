@@ -790,16 +790,24 @@ def stats() -> dict:
         }
 
 
-def threads() -> dict:
+def threads(status: str = "open") -> dict:
     """研究线程列表（G9：可恢复的研究线索）。
 
     R230r（R30-#8）：resume() LIMIT 50 曾静默截断——超 50 条 open 线程后
     更老的永久消失。披露 total/limit/truncated，并支持 PATCH 改状态
     （open/parked/closed，收起的线程不再占列表位）。"""
+    # R2349z（R96-P1-1）：status 过滤——收起的/聊完的不再从列表永久消失。
+    if status not in ("open", "parked", "closed", "all"):
+        raise ValidationError("线程列表只能按「进行中/先收起/已结束」筛")
     with deps.knowledge() as kb:
-        rows = kb.resume()
-        total = kb.db.execute(
-            "SELECT count(*) n FROM thread WHERE status='open'").fetchone()["n"]
+        rows = kb.resume(status)
+        if status == "all":
+            total = kb.db.execute(
+                "SELECT count(*) n FROM thread").fetchone()["n"]
+        else:
+            total = kb.db.execute(
+                "SELECT count(*) n FROM thread WHERE status=?",
+                (status,)).fetchone()["n"]
         return {"threads": [dict(r) for r in rows], "stats": kb.stats(),
                 "total": total, "limit": 50, "truncated": total > 50}
 
@@ -892,7 +900,8 @@ def thread_record(req) -> dict:
     # R229n（R6-#2）：先校验后开线程——此前 open_thread/add_turn 各自
     # commit 落库后 record() 才校验 kind 抛 400，留下永不回收的孤儿
     # thread+turn（selftest kind=bogus 用例实测留行）。
-    if req.kind not in ASSERTING + ("refusal",):
+    # R2349z（R96-P0-1）：'note' 用户手记——非断言，G8 放行无证据。
+    if req.kind not in ASSERTING + ("refusal", "note"):
         raise ValidationError("这条记录没存上：内容不在支持的范围里")
     if req.kind in ASSERTING and not req.evidence:
         raise ValidationError("这条记录没存上：断言型记录得带至少一条证据")
@@ -1173,6 +1182,9 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {}),
             **({"day_flags": q["day_flags"]} if q.get("day_flags") else {}),
+            # R2350a（R94-P1-4/P2-10）：值神+时辰吉凶+日干支透出。
+            "zhishen": q.get("zhishen"), "zhishen_ji": q.get("zhishen_ji"),
+            "hours": q.get("hours"), "ganzhi_day_cn": q.get("ganzhi_day_cn"),
             # R233w（R52-P3-9）：交节日透明化——「今日交节 XX，交在 HH:MM」
             **({"term_today": q["term_today"]}
                if q.get("term_today") else {}),
@@ -2999,6 +3011,7 @@ def share(share_type: str, share_id: str) -> dict:
             # 按实际 kind 出，别一律误标「八字排盘结果」。
             # R233y（R54-P1-44）：六种笔记名收敛成三个口径。
             kind_title = {"thread": "研究笔记", "summary": "研究笔记",
+                          "note": "研究笔记",
                           "answer": "研究笔记", "link": "研究笔记",
                           "diff": "比对笔记", "refusal": "存疑记录"}
             title = kind_title.get(getattr(d, "kind", ""), "八字排盘结果")
@@ -3251,6 +3264,10 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
         except (ValueError, TypeError):
             _today = _date.today()
         _when = "今天" if d == _today else "那天"
+        # R2350a（R94-P1-6）：note 文案内含硬编码「今日宜…」——非今天卡
+        # 变成「那天轮到X座当班：今日宜…」时态打架。剥掉前缀时间词。
+        if _when == "那天" and note.startswith("今日"):
+            note = note[2:]
         return {
             "zodiac_sign": sign,
             "zodiac_note": note,

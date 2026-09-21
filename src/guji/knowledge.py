@@ -163,6 +163,7 @@ class KnowledgeBase:
                 except sqlite3.Error:
                     pass
         self._ensure_columns()
+        self._migrate_note()
         if first:
             self.db.execute("INSERT OR REPLACE INTO kb_meta VALUES ('created_at', ?)",
                             (time.strftime("%Y-%m-%dT%H:%M:%S"),))
@@ -180,6 +181,38 @@ class KnowledgeBase:
         "favorites":  {"title": "TEXT NOT NULL DEFAULT ''"},
         "user_prefs": {"updated_at": "TEXT NOT NULL DEFAULT ''"},
     }
+
+    # R2349z（R96-P0-1）：derived.kind 的 CHECK 枚举补 'note'——用户
+    # 「记一条」走非断言通道。CHECK 不可 ALTER，老库整表重建
+    # （行数有 _CAP_DERIVED 帽，重建代价恒定小；id 保留 → evidence/
+    # derived_fts 的外键与 rowid 关系不破）。
+    def _migrate_note(self) -> None:
+        row = self.db.execute(
+            "SELECT sql FROM sqlite_master WHERE name='derived'").fetchone()
+        if not row or "'note'" in (row[0] or ""):
+            return
+        try:
+            self.db.execute("PRAGMA foreign_keys=OFF")
+            self.db.executescript('''
+                BEGIN;
+                CREATE TABLE derived_new (
+                    id          INTEGER PRIMARY KEY,
+                    kind        TEXT NOT NULL,
+                    claim       TEXT NOT NULL,
+                    method      TEXT NOT NULL,
+                    confidence  TEXT,
+                    thread_id   INTEGER REFERENCES thread(id),
+                    created_at  TEXT NOT NULL,
+                    CHECK (kind IN ('summary', 'diff', 'link', 'answer',
+                                   'refusal', 'note'))
+                );
+                INSERT INTO derived_new SELECT * FROM derived;
+                DROP TABLE derived;
+                ALTER TABLE derived_new RENAME TO derived;
+                COMMIT;
+            ''')
+        finally:
+            self.db.execute("PRAGMA foreign_keys=ON")
 
     def _ensure_columns(self) -> None:
         for table, cols in self._ENSURE_COLS.items():
@@ -390,15 +423,21 @@ class KnowledgeBase:
         return self.db.execute("SELECT * FROM turn WHERE thread_id=? ORDER BY seq",
                                (thread_id,)).fetchall()
 
-    def resume(self) -> list[sqlite3.Row]:
-        """Open threads with their derived-claim counts: what G9 needs to pick work back up."""
-        return self.db.execute("""
+    def resume(self, status: str = "open") -> list[sqlite3.Row]:
+        """Threads with derived-claim counts: what G9 needs to pick work back up.
+
+        R2349z（R96-P1-1）：status 过滤——'open' 默认不变，'parked'/
+        'closed' 列收起与聊完的（此前收起的线程从列表永久消失），
+        'all' 全量。"""
+        where = "" if status == "all" else "WHERE t.status = ?"
+        args = () if status == "all" else (status,)
+        return self.db.execute(f"""
             SELECT t.id, t.topic, t.status, t.opened_at, t.updated_at,
                    (SELECT count(*) FROM turn WHERE thread_id = t.id) turns,
                    (SELECT count(*) FROM derived WHERE thread_id = t.id) claims
-            FROM thread t WHERE t.status = 'open'
+            FROM thread t {where}
             ORDER BY coalesce(t.updated_at, t.opened_at) DESC
-            LIMIT 50""").fetchall()
+            LIMIT 50""", args).fetchall()
         # R230j（R22-P2-2）：无 LIMIT 时前端全量渲染——对齐
         # /api/paipan/history?limit=50 的既有口径。
 

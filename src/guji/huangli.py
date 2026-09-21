@@ -576,8 +576,52 @@ def day_query(dt: datetime) -> dict:
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
         "day_flags": _flags,
+        # R2350a（R94-P1-4）：日值神 + 时辰吉凶——「黄道/黑道日」与
+        # 十二时辰宜忌是传统黄历卡标配字段。
+        "zhishen": zhishen_day(dt),
+        "zhishen_ji": zhishen_day(dt) in ZHISHEN_JI,
+        "hours": hour_zhishen(dt),
+        # R2350a（R94-P2-10）：日干支此前算而不透出（shensha 里
+        # 有 day_gan/day_zhi 散件）——直接给合成串。
+        "ganzhi_day_cn": _gz_gan + _gz_zhi + "日",
         **({"term_today": _term_today} if _term_today else {}),
     }
+
+
+# R2350a（R94-P1-4）：十二值神（大黄道）+ 时辰吉凶——传统黄历标配，
+# 此前整体缺席。日值神按日支轮值（子日青龙、丑日明堂……）；
+# 时辰值神按日支起青龙法：
+#   子午青龙起在申，卯酉之日寅上行，寅申须从子上起，
+#   巳亥在午不须论，辰戌之位定在辰，丑未戌时亲。
+# 黄道六神（青龙/明堂/金匮/天德/玉堂/司命）临为吉时，黑道六神
+# （天刑/朱雀/白虎/天牢/玄武/勾陈）临为凶时。
+ZHISHEN = ["青龙", "明堂", "天刑", "朱雀", "金匮", "天德",
+           "白虎", "玉堂", "天牢", "玄武", "司命", "勾陈"]
+ZHISHEN_JI = frozenset({"天刑", "朱雀", "白虎", "天牢", "玄武", "勾陈"})
+# 日支 → 青龙所在时辰（地支名）
+_ZHISHEN_START = {
+    "子": "申", "午": "申", "卯": "寅", "酉": "寅",
+    "寅": "子", "申": "子", "巳": "午", "亥": "午",
+    "辰": "辰", "戌": "辰", "丑": "戌", "未": "戌",
+}
+
+
+def zhishen_day(dt: datetime) -> str:
+    """日支值神（大黄道）：子日青龙、丑日明堂、寅日天刑……"""
+    _, zhi = day_ganzhi(dt)
+    return ZHISHEN[ZHI.index(zhi)]
+
+
+def hour_zhishen(dt: datetime) -> list[dict]:
+    """十二时辰值神+吉凶：[{branch, shen, ji}]，按日支起青龙法轮转。"""
+    _, day_zhi = day_ganzhi(dt)
+    start = ZHI.index(_ZHISHEN_START.get(day_zhi, "申"))
+    out = []
+    for i, br in enumerate(ZHI):
+        shen = ZHISHEN[(i - start) % 12]
+        out.append({"branch": br, "shen": shen,
+                    "ji": shen not in ZHISHEN_JI})
+    return out
 
 
 # 冲煞方位写死表（日支索引 → 煞方，通行规则：申子辰日煞南，寅午戌日煞北…）

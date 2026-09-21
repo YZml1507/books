@@ -24,7 +24,7 @@
 
 CREATE TABLE IF NOT EXISTS derived (
     id          INTEGER PRIMARY KEY,
-    kind        TEXT NOT NULL,     -- summary | diff | link | answer | refusal
+    kind        TEXT NOT NULL,     -- summary | diff | link | answer | refusal | note
     claim       TEXT NOT NULL,
     method      TEXT NOT NULL,     -- what produced it: module.function / model id + version
     confidence  TEXT,              -- NULL is legitimate: unknown is a first-class value
@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS derived (
     -- is itself a legitimate derived output, and the obvious design — a NOT NULL evidence
     -- reference — would have made G7's own output unstorable. That is the same mistake as
     -- writing 卦/爻 as column names (D-015), caught before it was made rather than after.
-    CHECK (kind IN ('summary', 'diff', 'link', 'answer', 'refusal'))
+    -- 'note'（R2349z/R96-P0）：用户手记——不主张事实、不必须带证据，
+    -- 与 refusal 同侧属非断言型；老库由 knowledge.py 的 _migrate_note 重建表补齐。
+    CHECK (kind IN ('summary', 'diff', 'link', 'answer', 'refusal', 'note'))
 );
 
 CREATE TABLE IF NOT EXISTS evidence (

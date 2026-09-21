@@ -85,9 +85,9 @@ def stats() -> dict:
 
 
 @router.get("/api/threads")
-def threads() -> dict:
+def threads(status: str = "open") -> dict:
     """研究线程列表（G9：可恢复的研究线索）。"""
-    return services.threads()
+    return services.threads(status)
 
 
 @router.get("/api/threads/{tid}")
