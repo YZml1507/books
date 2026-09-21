@@ -1078,6 +1078,8 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # （实测 365 天≈21s）——服务层兜底钳位，与路由 Query(le=92) 同值。
         days = max(1, min(int(days), 92))
         end = dt + timedelta(days=days - 1)
+        # R2349n（R77-P1-1）：繁体 affair 归一——簽約/結婚直达 API 零命中。
+        affair = _t2s(affair)
         # R228x：口语词归一——「理发/养猫」不在宜忌词表里，精确匹配恒空；
         # 与聊天/问一嘴同走 _CHAT_SCENE_TERMS 拿规范词集合，逐词找日
         # 后按日期并集（一事项多规范词：搬家→移徙+入宅+修造）。
@@ -1092,6 +1094,9 @@ def huangli(date_str: str | None = None, affair: str | None = None,
                 # R8 P2-6：前端只读 date/yi/ji/flags——pengzu/shensha/lunar/
                 # chongsha 不随列表回吐（92天×12.9KB→~2KB）。
                 for _q in huangli_mod.find_good_days(dt, end, terms)]
+        # R2349n（R77-P2-3）：回显归一后的 terms——affair=婚嫁实际按
+        # 嫁娶查，回显原词会让 API 消费者拿 terms 对 yi 误判。
+        terms = [huangli_mod.AFFAIR_ALIASES.get(t, t) for t in terms]
         # 排序：硬凶少的在前，同级按日期——「本月领证吉日榜」该有的榜感。
         good.sort(key=lambda g: (len(g["flags"]), g["date"]))
         return {"affair": affair, "terms": terms,
@@ -1119,6 +1124,9 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             "jianchu": q.get("jianchu"), "xiu": q.get("xiu"),
             "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
             **({"conflict": q["conflict"]} if q.get("conflict") else {}),
+            # R2349n（R77-P0-1）：跨字同义对冲透出（前端合入※标）
+            **({"conflict_family": q["conflict_family"]}
+               if q.get("conflict_family") else {}),
             **_ynote,
             **({"cross_ref": _cross_ref_huangli(date_str, today)}),  # C-003：黄历交叉引用
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
@@ -1163,8 +1171,9 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "领证": ["嫁娶"],
     # R229q：与前端 HL_SCENE_ALIAS 逐键同构（probe_date_parity 钉扎）。
     # 「平整」入搬家系（整理归置），「远行」作词条映射到出行。
-    "搬家": ["移徙", "移徒", "入宅", "修造", "平整"],
-    "挪窝": ["移徙", "移徒"], "远行": ["出行"],
+    # R2349n（R77-P2-6）：「移徒」是异体字死词（词表统一为移徙）。
+    "搬家": ["移徙", "入宅", "修造", "平整"],
+    "挪窝": ["移徙"], "远行": ["出行"],
     "装修": ["修造", "动土"], "动工": ["动土", "破土"],
     "开业": ["开市", "纳财"], "开张": ["开市"],
     "签约": ["立券", "纳财"], "合同": ["立券"],
@@ -1180,8 +1189,12 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "理发": ["冠笄"], "剪发": ["冠笄"], "剪头": ["冠笄"], "剃头": ["冠笄"],
     "美发": ["冠笄"], "烫头": ["冠笄"],
     "手术": ["求医", "治病", "求医疗病"], "开刀": ["求医"],
-    "体检": ["求医"], "洗牙": ["求医"], "拔牙": ["求医"],
-    "医美": ["求医"], "整容": ["求医"],
+    # R2349n（R77-P0-3）：医疗口径统一——「体检/洗牙/医美」此前只映
+    # 求医一个词，比「看病」少一半候选日且全克破日；与看病同集。
+    "体检": ["求医", "治病", "求医疗病"], "洗牙": ["求医", "治病", "求医疗病"],
+    "拔牙": ["求医", "治病", "求医疗病"], "复诊": ["求医", "治病", "求医疗病"],
+    "复查": ["求医", "治病", "求医疗病"],
+    "医美": ["求医", "治病", "求医疗病"], "整容": ["求医", "治病", "求医疗病"],
     "借钱": ["纳财"], "讨债": ["纳财"], "还钱": ["纳财"], "还贷": ["纳财"],
     "辞职": ["解除"], "离职": ["解除"], "跳槽": ["解除"], "换工作": ["解除"],
     "解除合同": ["解除"], "毁约": ["解除"], "退婚": ["解除"], "分手": ["解除"],
@@ -1265,6 +1278,18 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     # 出行变体：回家/团圆/出发/一日游/看电影。
     "回家": ["出行"], "团圆": ["出行", "谒贵"], "出发": ["出行"],
     "一日游": ["出行"], "自驾游": ["出行"], "看电影": ["出行"],
+    # R2349n（R77-P1-1）：API 层精确键裸奔的高频词——复诊/开工/乔迁/
+    # 买车/会友/沐浴/纹身/直播 等此前直达 ?affair= 零命中。
+    "开工": ["动土", "开市", "修造"], "开工大吉": ["动土", "开市"],
+    "乔迁": ["移徙", "入宅"], "搬新家": ["移徙", "入宅"],
+    "买车": ["纳财", "立券"], "提车": ["纳财", "立券"],
+    "会友": ["谒贵", "出行"], "会亲友": ["谒贵", "出行"],
+    "沐浴": ["沐浴"], "洗澡": ["沐浴"],
+    "纹身": ["求医", "冠笄"], "割双眼皮": ["求医"],
+    # 直播系与前端已立的 开市+纳财 口径同构（主播开播=开张做生意）。
+    "直播首秀": ["开市", "纳财"], "开播": ["开市", "纳财"],
+    "上学报道": ["入学"], "报道": ["上任", "入学"],
+    "成婚": ["嫁娶"], "出嫁": ["嫁娶"], "迎娶": ["嫁娶"],
     # 杂项：要微信/发消息→嫁娶/谒贵；上香拜庙→祭祀；囤货→纳财。
     "要微信": ["嫁娶"], "发消息": ["谒贵"], "见面": ["谒贵"],
     "上香": ["祭祀"], "拜庙": ["祭祀"], "囤货": ["纳财"],
@@ -2370,11 +2395,15 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
     date_cn = q["date"]
     # R229z续21（R9-P1-2）：约 22% 日子同词宜忌同见——引用列表里把打架
     # 词摘出来单独标注，免得小满嘴里念出「宜嫁娶；忌嫁娶」。
-    _cfl = q.get("conflict") or []
-    yi_str = "、".join(w for w in yi if w not in _cfl) or "无"
-    ji_str = "、".join(w for w in ji if w not in _cfl) or "无"
-    _cfl_note = (f"另有宜忌相冲项：{'、'.join(_cfl)}（这些黄历自己都打架，"
-                 "按存疑处理，别当凭据念）。" if _cfl else "")
+    # R2349n（R77-P0-1）：同义族对冲词同样不作凭据（宜修造忌动土类）。
+    _cfl = list(q.get("conflict") or [])
+    _cfam = list(q.get("conflict_family") or [])
+    _allcfl = sorted(set(_cfl) | set(_cfam))
+    yi_str = "、".join(w for w in yi if w not in _allcfl) or "无"
+    ji_str = "、".join(w for w in ji if w not in _allcfl) or "无"
+    _cfl_note = (f"另有宜忌相冲项：{'、'.join(_allcfl)}（这些黄历自己都打架"
+                 "（含同义词对冲，比如宜修造却忌动土），"
+                 "按存疑处理，别当凭据念）。" if _allcfl else "")
     # R229o：「这周五」按本周已过日判（9/19 说这话指向 9/18）——事实行
     # 提醒这天已经过去，免得模型照着宜忌去「建议」一个回不去的日子。
     past_note = "（这天已经过去了）" if dt.date() < now.date() else ""
@@ -2416,7 +2445,16 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
         return facts
 
     hit_yi = [t for t in terms if any(t in w or w in t for w in yi)]
+    # R2349n（R77-P0-1）：忌侧按同义族判——只在宜侧真有命中时把
+    # 「宜」降级为「宜忌都有」（宜修造忌动土的日子问搬家）。纯忌侧
+    # 族命中（这天压根没提搬家）仍是中性，不当作忌——那是过度引申。
     hit_ji = [t for t in terms if any(t in w or w in t for w in ji)]
+    if hit_yi:
+        _fam = set()
+        for _t in terms:
+            _fam |= set(huangli_mod.term_family(_t))
+        hit_ji = sorted(set(hit_ji) | {t for t in _fam
+                        if any(t in w or w in t for w in ji)})
     # R229z续2：已过去的日子不给「近45天宜X」——从过去日起扫的全是过去日，
     # 且与「不要再给择日建议」的复盘指令自相矛盾。
     # R229z续8（R8 P1-1）：good_part 只在忌/中性分支引用——宜判定的路径

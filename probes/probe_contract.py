@@ -263,6 +263,9 @@ CONDITIONAL_FIELDS = {
                      # 非空时返回；year_note 只在干支年双口径错位日返回——
                      # 前端 Array.isArray/if 守卫即正确探测。
                      "conflict", "year_note",
+                     # R2349n（R77）：conflict_family（同义族对冲）同 conflict
+                     # 口径——只在非空时返回。
+                     "conflict_family",
                      # R233w：term_today 只在交节日返回（day_flags 同理，
                      # 空时不回）；shensha.linri 恒在（dict 子键，守卫读法）。
                      "day_flags", "term_today", "term_today.name",

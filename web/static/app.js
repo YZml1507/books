@@ -5987,19 +5987,24 @@ function tailHook(view) {
  * 覆盖——此前 29 个宜词只注了 19 个、忌词一半裸词落屏，还有 5 个
  * 永不出现的死键。selftest 有 MAP⊆词集 的钉扎，死键再生会被拦。 */
 var _HL_YI_MAP = {
-  '嫁娶': '表白 / 约会好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
-  '祭祀': '整理心情', '祈福': '许愿', '求嗣': '备孕', '上任': '入职接项目',
+  /* R2349n（R77-P1-4）：白话失真修正——祭祀是拜一拜不是整理心情；
+   * 嫁娶是领证结婚级大事；捕捉/出官/安葬/行丧/开仓不再硬掰。
+   * 猎族三词拆开说，不再共享「主动出击争取」。 */
+  '嫁娶': '领证结婚好日子', '开市': '开业 / 发新作品', '出行': '出门走走',
+  '祭祀': '诚心拜一拜', '祈福': '许愿', '求嗣': '备孕', '上任': '入职接项目',
   '入学': '开学学新东西', '立券': '签合同', '纳财': '收款理财', '修造': '装修修缮',
   '动土': '开工', '平整': '整理归置', '安床': '布置房间',
-  '冠笄': '形象焕新', '解除': '化解矛盾', '治病': '看病调理',   '捕捉': '清掉拖了很久的小事', '安葬': '告别过去', '破土': '动工',
+  '冠笄': '形象焕新', '解除': '化解矛盾', '治病': '看病调理',   '捕捉': '收网——拖欠的事该了了', '安葬': '送行送别（白事）', '破土': '动工',
   /* R233v 新增（神煞层接线后这些词真的会出现了） */
   '塞穴': '堵漏洞补缺口', '栽种': '种花种树', '筑堤': '加固防守',
-  '入宅': '搬进新家', '乘船': '水路出门', '出官': '办事见官面上的人',
+  '入宅': '搬进新家', '乘船': '水路出门', '出官': '办正事见对人',
   '归家': '回家看看', '求医疗病': '看病调理', '求名': '争取认可',
-  '狩猎': '主动出击争取', '田猎': '主动出击争取', '畋猎': '主动出击争取',
-  '登山': '登高望远', '行丧': '送别悼念', '谒贵': '拜访前辈贵人',
+  '狩猎': '主动出击争取', '田猎': '该出手时出手', '畋猎': '争一争没坏处',
+  '登山': '登高望远', '行丧': '白事送别，多点郑重', '谒贵': '拜访前辈贵人',
   '进人口': '添丁纳新', '远行': '长途出行', '移徙': '搬家挪窝',
-  '破屋坏垣': '拆旧清理', '开仓': '开仓放粮启动储备', '诉讼': '有事说清',
+  '破屋坏垣': '拆旧清理', '开仓': '动用储备', '诉讼': '有事说清',
+  /* R2349n（R77）：除日宜词新增——沐浴洗个澡去去晦气。 */
+  '沐浴': '洗个澡去去晦气',
   '求医': '看医生'
 };
 var _HL_JI_MAP = {
@@ -6013,13 +6018,13 @@ var _HL_JI_MAP = {
   '入宅': '搬家另择日', '塞穴': '补漏的事改天', '筑堤': '加固改天',
   '开仓': '动用储备缓一缓', '出官': '求人办事另择日', '行丧': '送别另择日',
   '田猎': '出击缓一缓', '狩猎': '出击缓一缓', '畋猎': '出击缓一缓',
-  '登山': '登高改天', '乘船': '水路缓一缓', '栽种': '栽种另择日',
+  '登山': '登高改天', '乘船': '水路缓一缓', '栽种': '种东西改天',
   '祭祀': '祭拜另择日', '求嗣': '备孕不赶今天',
   '求名': '争取的事缓一缓', '破土': '动工另择日', '破屋坏垣': '拆改另择日',
   '立券': '签约再看看', '入学': '开学事宜缓一缓', '冠笄': '焕新另择日',
   '解除': '化解另择日', '治病': '调理另择日', '捕捉': '收网缓一缓',
   '平整': '归置改天', '安床': '布置另择日', '修造': '修缮改天',
-  '进人口': '添丁的事不急这一天', '乘船': '水路缓一缓', '开市': '开张另择日'
+  '进人口': '添丁的事不急这一天', '开市': '开张另择日'
 };
 function _posterBgFor(view) {
   var k = _POSTER_BG_BY_VIEW[view] || 'warm';
@@ -6741,7 +6746,8 @@ var HL_SCENE_ALIAS = {
   '约会': ['嫁娶'], '表白': ['嫁娶'], '相亲': ['嫁娶'], '结婚': ['嫁娶'], '领证': ['嫁娶'],
   /* R229q：与服务端 _CHAT_SCENE_TERMS 逐键同构（probe_date_parity 钉扎）。
    * 「入宅」入搬家系；「平整」上行注释已带。 */
-  '搬家': ['移徙', '移徒', '入宅', '修造', '平整'], '挪窝': ['移徙', '移徒'],
+  /* R2349n（R77-P2-6）：「移徒」异体字死词摘除——词表统一为移徙。 */
+  '搬家': ['移徙', '入宅', '修造', '平整'], '挪窝': ['移徙'],
   '远行': ['出行'], '装修': ['修造', '动土'],
   '开业': ['开市', '纳财'], '开张': ['开市'], '签约': ['立券', '纳财'], '合同': ['立券'],
   '出行': ['出行', '远行'], '旅行': ['出行', '远行'], '旅游': ['出行', '远行'],
@@ -6751,8 +6757,12 @@ var HL_SCENE_ALIAS = {
   '种花': ['栽种'],
   '理发': ['冠笄'], '剪发': ['冠笄'], '剪头': ['冠笄'], '剃头': ['冠笄'],
   '美发': ['冠笄'], '烫头': ['冠笄'],
-  '手术': ['求医', '治病', '求医疗病'], '开刀': ['求医'], '体检': ['求医'], '洗牙': ['求医'],
-  '拔牙': ['求医'], '医美': ['求医'], '整容': ['求医'],
+  /* R2349n（R77-P0-3）：医疗口径与后端统一——体检/洗牙/医美此前只映
+   * 求医一个词，比「看病」少一半候选日且全克破日。 */
+  '手术': ['求医', '治病', '求医疗病'], '开刀': ['求医'],
+  '体检': ['求医', '治病', '求医疗病'], '洗牙': ['求医', '治病', '求医疗病'],
+  '拔牙': ['求医', '治病', '求医疗病'], '医美': ['求医', '治病', '求医疗病'],
+  '整容': ['求医', '治病', '求医疗病'],
   '借钱': ['纳财'], '讨债': ['纳财'], '还钱': ['纳财'], '还贷': ['纳财'],
   '辞职': ['解除'], '离职': ['解除'], '跳槽': ['解除'], '换工作': ['解除'],
   '解除合同': ['解除'], '毁约': ['解除'], '退婚': ['解除'], '分手': ['解除'],
@@ -6765,7 +6775,8 @@ var HL_SCENE_ALIAS = {
   '买东西': ['出行'], '购物': ['出行'], '逛街': ['出行'],
   '出去玩': ['出行', '远行'], '聚餐': ['出行', '谒贵'], '请客': ['出行', '谒贵'],
   '聚会': ['出行', '谒贵'], '饭局': ['出行', '谒贵'],
-  '运动': ['健身'], '唱k': ['唱歌'],
+  /* R2349n（R77-P2-5）：健身/唱歌键此前只在后端——补齐逐键同构。 */
+  '健身': ['健身'], '唱歌': ['唱歌'], '运动': ['健身'], '唱k': ['唱歌'],
   '许愿': ['祈福', '求嗣'], '拜拜': ['祭祀'], '祭灶': ['祭祀'], '祭祖': ['祭祀'], '考试': ['入学'], '上学': ['入学'],
   '开学': ['入学'],
   /* R230h（R20-F1）：与后端 _CHAT_SCENE_TERMS 同步增键（parity 钉扎）。 */
@@ -6813,6 +6824,17 @@ var HL_SCENE_ALIAS = {
   '摆摊': ['开市','纳财'], '生意': ['开市','纳财'], '网店': ['开市','纳财'],
   '回家': ['出行'], '团圆': ['出行','谒贵'], '出发': ['出行'],
   '一日游': ['出行'], '自驾游': ['出行'], '看电影': ['出行'],
+  /* R2349n（R77-P1-1）：与后端 _CHAT_SCENE_TERMS 同构补键。 */
+  '开工': ['动土', '开市', '修造'], '开工大吉': ['动土', '开市'],
+  '乔迁': ['移徙', '入宅'], '搬新家': ['移徙', '入宅'],
+  '买车': ['纳财', '立券'], '提车': ['纳财', '立券'],
+  '会友': ['谒贵', '出行'], '会亲友': ['谒贵', '出行'],
+  '沐浴': ['沐浴'], '洗澡': ['沐浴'],
+  '纹身': ['求医', '冠笄'], '割双眼皮': ['求医'],
+  '直播首秀': ['开市', '纳财'], '开播': ['开市', '纳财'],
+  '上学报道': ['入学'], '报道': ['上任', '入学'],
+  '成婚': ['嫁娶'], '出嫁': ['嫁娶'], '迎娶': ['嫁娶'],
+  '复诊': ['求医', '治病', '求医疗病'], '复查': ['求医', '治病', '求医疗病'],
   '要微信': ['嫁娶'], '发消息': ['谒贵'], '见面': ['谒贵'],
   '上香': ['祭祀'], '拜庙': ['祭祀'], '囤货': ['纳财'],
   /* R2349f 第三波：考试细分/内容创业/医美轻项目/娱乐社交/断联。 */
@@ -6828,6 +6850,25 @@ var HL_SCENE_ALIAS = {
   '野餐': ['出行'], '断联': ['解除','祈福'], '冷战': ['解除']
 };
 function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
+/* R2349n（R77-P0-1）：与后端 _TERM_FAMILIES 同构——忌侧判定按同义族
+ * 判（问搬家而忌栏有动土 → 判「宜忌都有」不判「宜」）。 */
+var _HL_FAMILIES = [
+  ['修造', '动土', '破土', '塞穴', '筑堤', '破屋坏垣', '竖柱', '上梁'],
+  ['出行', '远行', '归家', '移徙', '入宅', '乘船', '登山'],
+  ['开市', '立券', '纳财', '开仓', '交易', '置产'],
+  ['嫁娶', '求嗣', '进人口', '纳采', '订盟'],
+  ['上任', '求名', '入学'],
+  ['祭祀', '祈福'],
+  ['求医', '治病', '求医疗病'],
+  ['捕捉', '畋猎', '狩猎', '田猎']
+];
+var _HL_FAMILY_OF = {};
+_HL_FAMILIES.forEach(function (fam) {
+  fam.forEach(function (w) {
+    _HL_FAMILY_OF[w] = (_HL_FAMILY_OF[w] || []).concat(fam);
+  });
+});
+function _hlFamily(t) { return _HL_FAMILY_OF[t] || [t]; }
 /* R227b（用户反馈「不能照本宣科」）：问一嘴的自由输入抽事项词——
  * 词表外的说法（养猫/剪头发/野餐…）也进「没直接提到=中性」判定，
  * 不再回「我接不住」把用户顶回去。 */
@@ -7095,6 +7136,14 @@ function _hlDayWord(off) {
   var M = { '-2': '前天', '-1': '昨天', 0: '今天', 1: '明天', 2: '后天', 3: '大后天' };
   return (off != null && M[String(off)] != null) ? M[String(off)] : '那天';
 }
+/* R2349n（R77-P0-1）：conflict + conflict_family 合并去重——判词/提示/chip 共用。 */
+function _hlMergedConflict(j) {
+  var out = [];
+  (Array.isArray(j && j.conflict) ? j.conflict : [])
+    .concat(Array.isArray(j && j.conflict_family) ? j.conflict_family : [])
+    .forEach(function (w) { if (out.indexOf(w) === -1) out.push(w); });
+  return out;
+}
 function _hlNoSceneNote(yi, ji, day, conflict) {
   /* R228c：「没直接管」生硬且与后端口径不齐，统一「没直接提」。
    * R230h（R20-F7）：相冲词摘出主推行（与 _hlVerdictHtml 同款）。 */
@@ -7102,7 +7151,8 @@ function _hlNoSceneNote(yi, ji, day, conflict) {
   var _yi = yi.filter(function (w) { return !_cfl[w]; });
   var _ji = ji.filter(function (w) { return !_cfl[w]; });
   return ((_HL.pastDay ? '这天已经过去啦，就当复盘看看——' : '') +
-    '这个黄历没直接提——' + (day || '今天') + '主推【' + (_yi.join('、') || '无') + '】' +
+    /* R2349n（R77-P2-4）：补宾语——「这个黄历没直接提」主谓残缺。 */
+    '这事黄历没直接提——' + (day || '今天') + '主推【' + (_yi.join('、') || '无') + '】' +
     (_ji.length ? '，忌【' + _ji.join('、') + '】' : '') +
     '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。');
 }
@@ -7130,7 +7180,21 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
   }
   var aliases = _aliasList(sc);
   var hitYi = _hit(yi, aliases, YI_MAP);
+  /* R2349n（R77-P0-1）：忌侧按同义族判——只在宜侧真有命中时把「宜」
+   * 降级为「宜忌都有」；纯忌侧族命中仍是中性，不当作忌（与后端
+   * chat facts 同口径）。 */
   var hitJi = _hit(ji, aliases, JI_MAP);
+  if (hitYi.length) {
+    var _famAliases = [];
+    aliases.forEach(function (a) {
+      _hlFamily(a).forEach(function (w) {
+        if (_famAliases.indexOf(w) === -1) _famAliases.push(w);
+      });
+    });
+    _hit(ji, _famAliases, JI_MAP).forEach(function (w) {
+      if (hitJi.indexOf(w) === -1) hitJi.push(w);
+    });
+  }
   var why = '（' + day + '黄历主推' + (_yiClean.length ? '【' + _yiClean.join('、') + '】' : '的内容不多') +
     (_jiClean.length ? '，忌【' + _jiClean.join('、') + '】' : '') + '）';
   /* R2349（R64-P0-B/P1-1）：过去日期的判词要明说「已经过去」——后端
@@ -7187,7 +7251,7 @@ var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月
 function _hlShowNeutral() {
   var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
   var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
-    _HL.dayWord || '今天', (_lr && _lr.conflict) || []);
+    _HL.dayWord || '今天', _hlMergedConflict(_lr || {}));
   var v2 = document.getElementById('hlVerdict');
   if (v2) { v2.textContent = note; return; }
   var askRow = document.querySelector('#hlResult .hl-ask');
@@ -7346,8 +7410,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* 宜/忌 双色大卡 */
     html += '<div class="hl-yiji">';
     /* R229z续21（R9-P1-2）：宜∩忌同见的词（黄历自相矛盾项，约 22% 日子）
-     * 标※并在卡下方附说明——不然同一词两头出现像渲染坏了。 */
-    var _conflict = Array.isArray(j.conflict) ? j.conflict : [];
+     * 标※并在卡下方附说明——不然同一词两头出现像渲染坏了。
+     * R2349n（R77-P0-1）：同义族对冲词并入※标（宜修造忌动土类）。 */
+    var _conflict = [];
+    (Array.isArray(j.conflict) ? j.conflict : [])
+      .concat(Array.isArray(j.conflict_family) ? j.conflict_family : [])
+      .forEach(function (w) {
+        if (_conflict.indexOf(w) === -1) _conflict.push(w);
+      });
     var _cflSet = {};
     _conflict.forEach(function (w) { _cflSet[w] = 1; });
     html += '<div class="hl-yi">';
@@ -7376,7 +7446,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '</div></div>';
     if (_conflict.length) {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">※ ' +
-        esc(_conflict.join('、')) + ' 宜忌两边都见——黄历自己都打架的日子，' +
+        esc(_conflict.join('、')) + ' 在宜忌两边打架——黄历自己都矛盾的日子，' +
         '这类事想做就把节奏放缓，不赶大动作</div>';
     }
     /* 场景 chips：点选高亮匹配宜项
@@ -7385,7 +7455,19 @@ async function _doHuangli(offset, reveal, spokenWord) {
     var SCENES = ['搬家', '开业', '约会', '面试', '出行', '签约'];
     html += '<div class="hl-interactive" style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
     html += SCENES.map(function (s) {
-      var ok = yi.some(function (w) { return (YI_MAP[w] || '').indexOf(s) !== -1 || w.indexOf(s) !== -1; });
+      /* R2349n（R77-P0-4）：chip ✓ 与判词同口径——别名命中宜侧、
+       * 不命中忌侧、命中词不在冲突集里才亮 ✓（原先白话描述串当
+       * 事项词的旧通道+只看宜不看忌，同卡两判）。 */
+      var _als = [s].concat(_hlSceneAlias(s));
+      var _hY = yi.filter(function (w) {
+        return !_cflSet[w] && _als.some(function (a) {
+          return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; });
+      });
+      var _hJ = ji.filter(function (w) {
+        return _als.some(function (a) {
+          return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; });
+      });
+      var ok = _hY.length && !_hJ.length;
       /* R229z续23（R10-#9）：选中态同步 aria-pressed——读屏能知道选了哪个
        * 场景；判定文案同时并进 aria-label（title 悬停键盘/读屏不可达，#21） */
       var _on = _HL.scene === s;
@@ -7398,14 +7480,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
     if (_HL.scene) {
-      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord, j.conflict);
+      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord, _conflict);
     }
     /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
     if (_HL.pendingAskNote) {
       _HL.pendingAskNote = false;
       html += '<div class="hl-verdict" id="hlVerdict">' +
-        esc(_hlNoSceneNote(yi, ji, _dayWord, j.conflict)) + '</div>';
+        esc(_hlNoSceneNote(yi, ji, _dayWord, _conflict)) + '</div>';
     }
     /* v5（用户反馈）：「问一嘴」——用户自由输入「今天适不适合面试」这类问题，
      * 场景词库匹配后给同款带所以然的结论。 */

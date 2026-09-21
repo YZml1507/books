@@ -30,7 +30,9 @@ JIAN_CHU = ["建", "除", "满", "平", "定", "执", "破", "危", "成", "收"
 # 建除十二值对应的宜忌（通行规则，写死可核验）
 ZHIRI_YIJI: dict[str, dict[str, list[str]]] = {
     "建": {"yi": ["谒贵", "上任", "出行"], "ji": ["开仓", "动土"]},
-    "除": {"yi": ["治病", "祭祀", "解除"], "ji": ["嫁娶", "求名"]},
+    # R2349n（R77-P1-1）：「沐浴」是传统黄历真词（除日去秽气），补进
+    # 除日宜词——此前词表没有它，沐浴问法只能走中性卡。
+    "除": {"yi": ["治病", "祭祀", "解除", "沐浴"], "ji": ["嫁娶", "求名"]},
     # R229z续22（R9-P2-2）：词表统一通行字形「移徙」——原「移徒」是异体
     # 写法，与场景词表/神煞层的「移徙」永不相等（搬家/挪窝的忌项映射
     # 因此永不命中）。
@@ -442,6 +444,43 @@ def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
 # --------------------------------------------------------------------------------------
 # 综合查询
 # --------------------------------------------------------------------------------------
+# R77（R2349n）：同义族冲突——宜忌两侧换字同义照样是打架。
+# 「宜修造/塞穴/筑堤 忌动土」在卡面上读作「宜装修、忌开工」，同词交集
+# 的 conflict 键盖不到（28/60 天有同词，跨字同义另有一批）。
+# 判定：某词的族同时命中宜、忌两侧 → 该族两侧词全部标记。
+_TERM_FAMILIES: list[frozenset[str]] = [
+    frozenset({"修造", "动土", "破土", "塞穴", "筑堤", "破屋坏垣",
+               "竖柱", "上梁"}),                          # 开工营造
+    frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
+    frozenset({"开市", "立券", "纳财", "开仓", "交易", "置产"}),
+    frozenset({"嫁娶", "求嗣", "进人口", "纳采", "订盟"}),  # 婚育
+    frozenset({"上任", "求名", "入学"}),                   # 功名
+    frozenset({"祭祀", "祈福"}),                           # 敬拜
+    frozenset({"求医", "治病", "求医疗病"}),               # 医疗
+    frozenset({"捕捉", "畋猎", "狩猎", "田猎"}),           # 猎取
+]
+_WORD_FAMILY: dict[str, frozenset[str]] = {}
+for _fam in _TERM_FAMILIES:
+    for _w in _fam:
+        _WORD_FAMILY[_w] = _WORD_FAMILY.get(_w, frozenset()) | _fam
+
+
+def term_family(term: str) -> frozenset[str]:
+    """词的同义族（无族时返回只含自身的单元素集）。"""
+    return _WORD_FAMILY.get(term, frozenset({term}))
+
+
+def family_conflicts(yi: list[str], ji: list[str]) -> list[str]:
+    """返回所有卷入「同义族宜忌对冲」的词（两侧并集）。"""
+    yi_s, ji_s = set(yi), set(ji)
+    out: set[str] = set()
+    for w in yi_s | ji_s:
+        fam = _WORD_FAMILY.get(w)
+        if fam and (fam & yi_s) and (fam & ji_s):
+            out |= (fam & (yi_s | ji_s))
+    return sorted(out)
+
+
 def day_query(dt: datetime) -> dict:
     """查 dt 这天的黄历坐标（纯计算，无解读）。
 
@@ -527,6 +566,8 @@ def day_query(dt: datetime) -> dict:
         # 原样透出两列是黄历本真写法，但阅读者需要知道哪些词在打架——
         # 交集单独开键透出，卡面标※、聊天事实行改走「宜忌都有」口径。
         "conflict": sorted(set(yi) & set(ji)),
+        # R77（R2349n）：换字同义的对冲词也透出——卡面同样标※
+        "conflict_family": family_conflicts(yi, ji),
         "shensha": shensha(dt),
         "lunar": {"month_cn": _lunar.get("month_cn", ""),
                   "day_cn": _lunar.get("day_cn", ""),
@@ -579,7 +620,13 @@ def find_good_days(start: datetime, end: datetime,
         # term「求医」⊂词「求医疗病」这种包含关系两侧不再打架。
         def _hit(tt, words):
             return any(tt in w or w in tt for w in words)
-        if any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms):
+        # R77（R2349n-P2-7）：上榜日忌栏含同义族词也要剔除——
+        # 「宜修造忌动土」的日子不算干净的搬家吉日。
+        _fam_terms: set[str] = set()
+        for _t in terms:
+            _fam_terms |= set(_WORD_FAMILY.get(_t, (_t,)))
+        if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
+                and not any(_hit(t, q["ji"]) for t in _fam_terms)):
             good.append(q)
         cur += timedelta(days=1)
     return good
