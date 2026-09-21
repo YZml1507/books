@@ -566,29 +566,42 @@ _LIUQIN_WARM = {"官鬼": "事业与忧心", "妻财": "财物", "兄弟": "同�
                 "父母": "文书庇护", "子孙": "晚辈与解忧"}
 
 
-_LIUYAO_SCENE: list[tuple[str, str, str]] = [
+_LIUYAO_SCENE: list[tuple[str, str, str, str]] = [
     ("事业|工作|求职|跳槽|升职|面试|offer|项目|职称|离职", "官鬼",
-     "代表事业与职位的那一爻"),
+     "代表事业与职位的那一爻", "career"),
     ("感情|恋爱|喜欢|复合|表白|桃花|婚姻|结婚|对象|分手|相亲|异地",
-     "妻财", "代表感情走向的那一爻"),
+     "妻财", "代表感情走向的那一爻", "love"),
     ("财|钱|工资|副业|投资|生意|买卖|理财|债|报销", "妻财",
-     "代表财物与所得的那一爻"),
+     "代表财物与所得的那一爻", "money"),
     ("学业|考试|论文|证书|文书|签证|房子|合同|考研|留学", "父母",
-     "代表文书与学业的那一爻"),
-    ("健康|身体|生病|病|手术|体检", "官鬼", "代表身体状况的那一爻"),
-    ("子女|孩子|怀孕|求嗣|宠物|下属", "子孙", "代表孩子与晚辈的那一爻"),
+     "代表文书与学业的那一爻", "study"),
+    ("健康|身体|生病|病|手术|体检", "官鬼", "代表身体状况的那一爻",
+     "health"),
+    ("子女|孩子|怀孕|求嗣|宠物|下属", "子孙", "代表孩子与晚辈的那一爻",
+     "child"),
     ("合作|同事|竞争|朋友|兄弟|姐妹|合伙人", "兄弟",
-     "代表同辈与合作竞争的那一爻"),
+     "代表同辈与合作竞争的那一爻", "peer"),
 ]
 import re as _re_lq
-_SCENE_RE = [( _re_lq.compile(k), v, note) for k, v, note in _LIUYAO_SCENE]
+_SCENE_RE = [(_re_lq.compile(k), v, note, cat)
+             for k, v, note, cat in _LIUYAO_SCENE]
 
 
-def _liuyao_scene(q: str) -> tuple[str, str] | tuple[None, None]:
-    for pat, ys, note in _SCENE_RE:
+def _liuyao_scene(q: str) -> tuple[str, str, str] | tuple[None, None, None]:
+    for pat, ys, note, cat in _SCENE_RE:
         if pat.search(q):
-            return ys, note
-    return None, None
+            return ys, note, cat
+    return None, None, None
+
+
+# R2349q（R81-P1-5）：六亲白话按语境换皮——健康题世爻临官鬼是
+# 「身体状况」不是「事业与忧心」；感情题（女命看官鬼/男命看妻财）
+# 两星同报，不把女用户指到妻财爻。
+_LIUQIN_WARM_SCENE = {
+    ("官鬼", "health"): "身体状况",
+    ("官鬼", "love"): "感情里牵挂的那一端",
+    ("妻财", "love"): "感情里牵挂的那一端",
+}
 
 
 def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
@@ -602,6 +615,13 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     本函数只转述**已经起出来的卦象**，不预测结果。
     """
     q = (question or "").strip()
+    # R2349q（R81-P0-1）：生死/重病提问此前零拦截——用神指认+走向
+    # 分析照常跑是指向性伤害。与聊天/问一嘴同一闸口径。
+    from guji import llm_polish as _lp
+    if _lp._is_sensitive(q):
+        return ["这个话题卦面真答不了，也不该靠它拿主意——"
+                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
+                "小满陪你说点别的也行。"]
     bn = int(ben.get("gua_number") or 0)
     bname = ben.get("gua_name") or ""
     vn = int(bian.get("gua_number") or 0)
@@ -624,19 +644,42 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         _ying_l = _by_pos.get(int(_ying_pos or 0), {})
         # R233y（R54-P2-19/20）：六亲黑话不进温柔版正文——世爻/应爻/
         # 官鬼/妻财/不现 全翻成位置人话（专业坐标在 details 里照给）。
-        _lq_a = _LIUQIN_WARM.get(_shi_l.get("liuqin", ""), "")
-        _lq_b = _LIUQIN_WARM.get(_ying_l.get("liuqin", ""), "")
+        _ys, _ys_note, _cat = _liuyao_scene(q) if q else (None, None, None)
+        # R2349q（R81-P1-5）：六亲标签按场景换皮（健康→身体状况等）。
+        _lq_a = (_LIUQIN_WARM_SCENE.get((_shi_l.get("liuqin", ""), _cat))
+                 or _LIUQIN_WARM.get(_shi_l.get("liuqin", ""), ""))
+        _lq_b = (_LIUQIN_WARM_SCENE.get((_ying_l.get("liuqin", ""), _cat))
+                 or _LIUQIN_WARM.get(_ying_l.get("liuqin", ""), ""))
         _seg = (f"卦里代表你的那一爻在{_YAO_POS_CN.get(int(_shi_pos), '第' + str(_shi_pos))}爻"
                 + (f"（临{_lq_a}）" if _lq_a else ""))
         if _ying_l:
             _seg += (f"，代表事情那头的那一爻在"
                      f"{_YAO_POS_CN.get(int(_ying_pos or 0), '')}爻"
                      + (f"（临{_lq_b}）" if _lq_b else ""))
-        _ys, _ys_note = _liuyao_scene(q) if q else (None, None)
         if _ys:
-            _ys_pos = [int(l.get("position", 0)) for l in _bl
-                       if l.get("liuqin") == _ys]
-            if _ys_pos:
+            _pos_of = lambda lq: [int(l.get("position", 0)) for l in _bl
+                                  if l.get("liuqin") == lq]
+            _ys_pos = _pos_of(_ys)
+            if _cat == "love":
+                # 感情题两星同报：女命看官鬼（夫星）、男命看妻财（妻星）。
+                _gg = _pos_of("官鬼")
+                _qc = _pos_of("妻财")
+                _bits = []
+                if _gg:
+                    _bits.append(
+                        f"官鬼在{_YAO_POS_CN.get(_gg[0], '第' + str(_gg[0]))}爻"
+                        + ("（动爻，正在动的点上）" if _gg[0] in ml else ""))
+                if _qc:
+                    _bits.append(
+                        f"妻财在{_YAO_POS_CN.get(_qc[0], '第' + str(_qc[0]))}爻"
+                        + ("（动爻，正在动的点上）" if _qc[0] in ml else ""))
+                if _bits:
+                    _seg += ("。感情的事传统上女看官鬼、男看妻财——这卦里"
+                             + "、".join(_bits))
+                else:
+                    _seg += ("。感情的事传统上女看官鬼、男看妻财——两星都没直接落位，"
+                             "那就看代表你和事情的两端更实在")
+            elif _ys_pos:
                 _mv = "且是动爻——你问的事正在动的点上" \
                     if _ys_pos[0] in ml else ""
                 _seg += (f"。问这类事传统上先看{_ys_note}——"
@@ -648,8 +691,14 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
 
     if ml:
         pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
-        lines.append(f"动的是{pos}（共 {len(ml)} 个）——"
-                     f"{YAO_WARM.get(ml[0], '').split('——')[-1]}。")
+        # R2349q（R81-P1-16）：多动爻此前只解释第一爻（3 动爻共用初爻
+        # 语义）——每爻各自取白话，逗号隔开。
+        _mv_mean = [
+            (YAO_WARM.get(i, f"第{i}爻").split("——")[0],
+             YAO_WARM.get(i, "").split("——")[-1])
+            for i in ml]
+        _mv_txt = "；".join(f"{p}在动：{m}" for p, m in _mv_mean)
+        lines.append(f"动的是{pos}（共 {len(ml)} 个）——{_mv_txt}。")
         if len(ml) >= 3:
             lines.append("动爻偏多，说明这件事变数不小，看整体走向比抠单爻实在。")
     else:
@@ -817,6 +866,15 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     l0 = f"{first.get('name', '')}·{'正' if up else '逆'}：{kw.split('·')[0]}"
     lines: list[str] = []
     q = (question or "").strip()
+    # R2349q（R81-P0-1）：生死/重病提问此前零拦截——抽到行动 kw0
+    # 时逐张给「想好了就去做」是指向性伤害。与聊天/问一嘴同一闸口径。
+    from guji import llm_polish as _lp
+    if _lp._is_sensitive(q):
+        return _wrap(l0, None,
+                     ["这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。",
+                      "身体或心里难受的话，医生和信得过的人才是最该找的。",
+                      "想聊点别的，小满都在。"],
+                     [], [])
     if q:
         lines.append(f"针对你的问题「{q}」，每张牌这样说：")
     else:
@@ -847,8 +905,15 @@ def warm_tarot(cards: list[dict], interpretation: dict,
                 lines.append(f"{pos_label + '：' if pos_label else ''}"
                              f"{name}说「{kw0}」——{guidance}")
         else:
-            lines.append(f"{pos_label + '：' if pos_label else ''}"
-                         f"{name}（{'正位' if cu else '逆位'}）——{ckw}。")
+            # R2349q（R81-P1-9）：无提问路径同 kw0 撞句也降级——
+            # 此前圣杯2逆+权杖2逆连出两句一字不差的「失衡·两难·拉扯」。
+            if kw0 in _seen_kw:
+                lines.append(f"{pos_label + '：' if pos_label else ''}"
+                             f"{name}（{'正位' if cu else '逆位'}）——"
+                             f"也在说「{kw0}」，是呼应前面那张。")
+            else:
+                lines.append(f"{pos_label + '：' if pos_label else ''}"
+                             f"{name}（{'正位' if cu else '逆位'}）——{ckw}。")
         _seen_kw.add(kw0)
     # 收尾：给一句具体方向
     tail = []
@@ -858,7 +923,10 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         tail.append(f"综合来看，{_tarot_combined_guidance(shown, q)}")
     else:
         # C-004：禁用免责套话，改为给具体方向
-        tail.append("牌面整体是顺的，可以试着往前走一小步。")
+        # R2349q（R81-P0-4）：无提问路径此前写死「整体是顺的」——
+        # 死神/三逆位也照说；走 combined 函数吃重牌检查（原来里面
+        # 的 not-q 重牌分支是死代码）。
+        tail.append(_tarot_combined_guidance(shown, q))
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
         None, lines[:5] + tail,
@@ -947,6 +1015,11 @@ _TAROT_KW_GUIDANCE = {
     "谷底": "最坏的一段到了——往后只有回升，先照顾好自己",
     "缓过来": "没那么糟，你在慢慢回血——别急着复盘",
     "触底回升": "最坏的已经过去了，往后每一步都是往上",
+    # R2349q（R81-P1-6）：宝剑3/8 覆写后的新 kw0 指引（重牌口吻带安抚）。
+    "心痛": "疼是真的，但看清了就不白疼——先把自己照顾好",
+    "愈合": "伤口在收口——别急着回去揭，让它自己长好",
+    "受困": "绳子没你感觉的那么紧——先解最近的一个结",
+    "松绑": "困住你的在松——往外挪一步试试",
 }
 
 # R230a-7（R13-P0-3）：重牌黑名单——抽到这些牌时综合判定不说

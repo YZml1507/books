@@ -71,6 +71,7 @@ def disabled() -> bool:
 
 _ddl_lock = threading.Lock()
 _write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
+_WIPE_GEN = 0   # R2349q：clear_all 代次——wipe 前入队的异步写一律作废
 KEEP_MAX = 500                   # R228j：排盘历史滚动上限
 
 
@@ -211,6 +212,10 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
     qiming），name 允许调用方覆盖摘要（合婚双人/塔罗张数等非生辰形）。"""
     if disabled():
         return
+    # R2349q（ui_smoke history.wipe 实测）：排盘响应已返回、台账写线程
+    # 仍在排队——wipe 的 DELETE 先落地、在途 INSERT 后落地 → 清空后
+    # 鬼行复活。代次闸：wipe 抬 _WIPE_GEN，在代次切换前入队的写一律作废。
+    _gen = _WIPE_GEN
 
     def _work():
         try:
@@ -222,6 +227,8 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
             # closing() 只负责关连接，无隐式 commit——写路径用 `with c:`
             # 保住原 `with _conn()` 的提交语义（R228b 重构注意点）。
             with _write_lock, contextlib.closing(_conn()) as c, c:
+                if _gen != _WIPE_GEN:
+                    return   # 入队后发生过 wipe——这条记录不再属于新台账
                 c.execute(
                     "INSERT INTO records(ts,name,question,req_json,result_json,"
                     "type) VALUES(?,?,?,?,?,?)",
@@ -335,8 +342,10 @@ def tarot_collection() -> dict:
 
 def clear_all() -> int:
     """清空台账（R2345 / R63-P1-3：「忘掉我的数据」入口的服务端一半）。
-    返回删除行数。"""
+    返回删除行数。先抬代次——wipe 前排盘的在途 save_async 一并作废。"""
+    global _WIPE_GEN
     with _write_lock, contextlib.closing(_conn()) as c, c:
+        _WIPE_GEN += 1
         cur = c.execute("DELETE FROM records")
         return cur.rowcount
 

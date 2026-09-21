@@ -1146,6 +1146,12 @@ details.warm-pro-fold > summary{
 .yao-dot{ width:9px; height:9px; border-radius:50%; background:#C0392B;
   box-shadow:0 0 0 3px rgba(192,57,43,.15); }
 .yao-mark{ font-size:16px; color:var(--secondary); min-width:14px; text-align:center; }
+/* R2349q（R81-P2-14）：爻行坐标注——六亲·六神 muted 小字 + 世/应角标。 */
+.yao-coord{ font-size:11px; color:var(--muted); letter-spacing:.02em;
+  margin-left:auto; margin-right:6px; }
+.yao-seat{ font-size:10px; line-height:1; padding:3px 6px; border-radius:999px;
+  background:var(--c-bazi); color:#fff; font-weight:600; }
+.yao-seat.ying{ background:var(--secondary); }
 /* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
 .pro-notice{
   display:flex; align-items:center; justify-content:space-between; gap:8px;

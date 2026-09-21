@@ -1039,6 +1039,9 @@ def liuyao(req) -> dict:
                                   paipan=_pp),
         # R218a-巡2（N-01）：echo question 让前端 liuyaoQuestionHook 真生效
         "question": req.question,
+        # R2349q（R81-P2-14）：paipan（纳甲/六亲/世应/六神）算完只喂了
+        # warm，API 拿不到——入响应让前端画出坐标层。
+        "paipan": _pp,
         # R221b：交叉引用收口 7/7——六爻不收生日，只引"今天"的值宫
         "cross_ref": _cross_ref_liuyao(ben.moving_lines,
                                         today_iso=getattr(req, "client_date", None)),
@@ -1211,6 +1214,12 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "聚会": ["出行", "谒贵"], "饭局": ["出行", "谒贵"],
     "购物": ["出行"], "买东西": ["出行"], "逛街": ["出行"],
     "出去玩": ["出行", "远行"],
+    # R2349q（R82-P2-6）：真实语料缺口——「买房」只在已成事实标记里，
+    # 词表缺席走零事实泛句；买房=置产安家向（纳财+入宅）。
+    # 蹦极归出行；打游戏/熬夜自映射走中性口径。
+    "买房": ["纳财", "入宅"], "买房子": ["纳财", "入宅"], "置业": ["纳财", "入宅"],
+    "蹦极": ["出行"],
+    "打游戏": ["打游戏"], "玩游戏": ["打游戏"], "熬夜": ["熬夜"],
     "健身": ["健身"], "运动": ["健身"], "唱歌": ["唱歌"], "唱k": ["唱歌"],
     # R230h（R20-F1）：「备孕/求子」→求嗣——此前前端靠 YI_MAP 描述串
     # 撞出「宜」、后端中性，同问相反；进词表后两侧同源判定。
@@ -2209,6 +2218,12 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
         return _abs
     # R229f：「本周X/这周X」此前根本没解析——静默按今天判（R228r 同类：
     # 说错日期比不答更伤）。本周一=0 基准；结果为负即本周已过的日子。
+    # R2349q续：个/個 可选字（这个周五同锚）。
+    _bw = re.search(r"(本|这|這)个?(?:周|週|礼拜|禮拜)([一二三四五六日天])|"
+                    r"(本|这|這)個(?:周|週|礼拜|禮拜)([一二三四五六日天])", msg)
+    if _bw:
+        wd = _wd_idx(_bw.group(2) or _bw.group(4))
+        return now + timedelta(days=wd - now.weekday()), _bw.group(0)
     for anchor in ("本周", "这周", "本週", "這週", "这週", "這周"):
         if anchor in msg:
             idx = msg.find(anchor) + len(anchor)
@@ -2218,36 +2233,59 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
             break  # 「本周」无曜日字 → 不落下面 周末/今天 兜底，交给默认今天
     # R229y续：「下下周X/下下周末」——"下下周一"自身含"下周"，会被下面
     # 的「下周」通配截胡按下周判（差整 7 天）。先接住：以「再下一个周一」
-    # 为基准。
-    for anchor in ("下下周末", "下下週末"):
-        if anchor in msg:
-            nn_mon = now + timedelta(days=(14 - now.weekday()))
-            return nn_mon + timedelta(days=5), "下下周末"
-    for anchor in ("下下周", "下下週", "下下礼拜", "下下禮拜"):
-        if anchor in msg:
-            idx = msg.find(anchor) + len(anchor)
-            nn_mon = now + timedelta(days=(14 - now.weekday()))
-            if idx < len(msg) and msg[idx] in _WEEKDAY:
-                wd = _wd_idx(msg[idx])
-                return nn_mon + timedelta(days=wd), msg[msg.find(anchor):idx + 1]
-            return nn_mon, "下下周"
+    # 为基准。R2349q续：「下下个周X」的 个/個 为可选字。
+    _nn = re.search(r"下下个?(?:周|週|礼拜|禮拜)末|下下個(?:周|週|礼拜|禮拜)末", msg)
+    if _nn:
+        nn_mon = now + timedelta(days=(14 - now.weekday()))
+        return nn_mon + timedelta(days=5), _nn.group(0)
+    _nnw = re.search(r"下下个?(?:周|週|礼拜|禮拜)([一二三四五六日天])|"
+                     r"下下個(?:周|週|礼拜|禮拜)([一二三四五六日天])", msg)
+    if _nnw:
+        nn_mon = now + timedelta(days=(14 - now.weekday()))
+        wd = _wd_idx(_nnw.group(1) or _nnw.group(2))
+        return nn_mon + timedelta(days=wd), _nnw.group(0)
+    _nnb = re.search(r"下下个?(?:周|週|礼拜|禮拜)|下下個(?:周|週|礼拜|禮拜)", msg)
+    if _nnb:
+        nn_mon = now + timedelta(days=(14 - now.weekday()))
+        return nn_mon, _nnb.group(0)
     # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
     # 落进通用分支被吃成下周一，而用户说的是下周的周六。
-    for anchor in ("下周末", "下週末"):
-        if anchor in msg:
-            next_mon = now + timedelta(days=(7 - now.weekday()))
-            return next_mon + timedelta(days=5), "下周末"
+    _nw = re.search(r"下个?(?:周|週|礼拜|禮拜)末|下個(?:周|週|礼拜|禮拜)末", msg)
+    if _nw:
+        next_mon = now + timedelta(days=(7 - now.weekday()))
+        return next_mon + timedelta(days=5), _nw.group(0)
     # 下周X / 下礼拜X：以下个周一为基准的 X 曜日
-    for anchor in ("下周", "下週", "下礼拜", "下禮拜"):
-        if anchor in msg:
-            idx = msg.find(anchor) + len(anchor)
-            if idx < len(msg) and msg[idx] in _WEEKDAY:
-                wd = _wd_idx(msg[idx])
-                next_mon = now + timedelta(days=(7 - now.weekday()))
-                _d = next_mon + timedelta(days=wd)
-                return _d, msg[msg.find(anchor):idx + 1]
-            # 「下周」没跟曜日——按下个周一算
-            return now + timedelta(days=(7 - now.weekday())), "下周"
+    _nx = re.search(r"下个?(?:周|週|礼拜|禮拜)([一二三四五六日天])|"
+                    r"下個(?:周|週|礼拜|禮拜)([一二三四五六日天])", msg)
+    if _nx:
+        next_mon = now + timedelta(days=(7 - now.weekday()))
+        wd = _wd_idx(_nx.group(1) or _nx.group(2))
+        return next_mon + timedelta(days=wd), _nx.group(0)
+    _nb = re.search(r"下个?(?:周|週|礼拜|禮拜)|下個(?:周|週|礼拜|禮拜)", msg)
+    if _nb:
+        # 「下周」没跟曜日——按下个周一算
+        return now + timedelta(days=(7 - now.weekday())), _nb.group(0)
+    # R2349q（R82-P0-1）：「上周X/上礼拜X/上星期X」此前无锚点——
+    # 裸曜日正则把它锚到未来的同名日（周一问「上周六」被按下周六判，
+    # 过去日保护完全绕过）。基准=本周一-7d。续：个/個 为可选字。
+    _lw = re.search(r"上个?(?:周|週|礼拜|禮拜|星期)末|上個(?:周|週|礼拜|禮拜|星期)末", msg)
+    if _lw:
+        last_mon = now - timedelta(days=now.weekday() + 7)
+        return last_mon + timedelta(days=5), _lw.group(0)
+    _lx = re.search(r"上个?(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])|"
+                    r"上個(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])", msg)
+    if _lx:
+        last_mon = now - timedelta(days=now.weekday() + 7)
+        wd = _wd_idx(_lx.group(1) or _lx.group(2))
+        return last_mon + timedelta(days=wd), _lx.group(0)
+    _lb = re.search(r"上个?(?:周|週|礼拜|禮拜|星期)|上個(?:周|週|礼拜|禮拜|星期)", msg)
+    if _lb:
+        last_mon = now - timedelta(days=now.weekday() + 7)
+        return last_mon, _lb.group(0)
+    # R2349q（R82-P0-1 连带）：「上个月/上月」——上月 1 号为代表日。
+    if re.search(r"上个月|上個月|上月", msg):
+        _pm = (now.replace(day=1) - timedelta(days=1)).replace(day=1)
+        return _pm, "上个月"
     # R2349（R64-P1-4）：「年底/年末/岁尾」——当年 12/31 代表日；
     # 已在 12 月下旬后说「年底」多半指明年收尾，顺下一年。
     if re.search(r"年底|年末|岁尾", msg):
@@ -2464,8 +2502,13 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
             return ""
         g = _hl_next_yi_days(dt, terms)
         # R2349（R64-P2）：「宜分手/宜解除」直译刺耳——换「适合办X」口径。
+        # R2349q（R82-P1-1）：45 天无宜日时给空串 → prompt 要求「报宜日」
+        # 与「不许编日子」自相矛盾，模型只能违一条。事实行明说没有，
+        # 让模型直说没翻到。
         return (f"近45天适合{scene}的日子：{'、'.join(g)}——"
-                "想要黄历背书可挑这几天。" if g else "")
+                "想要黄历背书可挑这几天。" if g
+                else f"近45天里没翻到宜「{scene}」的日子——直说没翻到，"
+                     "不要自己编日子。")
     # R229v：已过去的日子不能只靠宜忌行尾巴的括号——模型实测会漏看，
     # 对着 9/18 的「宜面试」说出「周五冲一把」。把标记嵌进判定句本体，
     # 并要求回复口径改为复盘/温和指出而非择日建议。

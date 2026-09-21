@@ -1379,6 +1379,10 @@ function autoSendChatContext() {
    'bazi'].forEach(function (k) {
     if (!viewKey && viewId.indexOf(k) !== -1) viewKey = k;
   });
+  /* R2349q（R82-P1-4）：首页（无 .view 壳）发「聊聊这件事」此前落
+   * 空 viewKey → 零上下文泛句；日签本就存了 rememberResult('daily')，
+   * 与 _activeViewFacts 同口径兜底 'daily'。 */
+  if (!viewKey) viewKey = 'daily';
   var ctx = buildChatContext(viewKey);
   var msg = ctx.msg;
   /* facts 优先用本视图的结构化坐标；为空时回落到排盘时存的 CHAT_LAST_FACTS */
@@ -1751,6 +1755,20 @@ var _CRISIS_FE_PAT = new RegExp(
 var _CRISIS_FE_REPLY = '这个话题有点重，我不太敢乱说。如果心里真的很难受，' +
   '全国心理援助热线 12356（24 小时，免费）随时能打通，跟信任的朋友聊聊' +
   '也会好一些——我一直都在，陪你聊聊别的也行。';
+
+/* R2349q（R81-P0-1）：生死/重病敏感词前端镜像——词表与后端
+ * llm_polish._SENSITIVE_HARD/SOFT/EXCLUDE 逐字同源（改后端表要同步改这里）。
+ * 塔罗/六爻 hook 命中时换转介文案，不给方向性指引。 */
+var _SENSITIVE_FE_HARD = /绝症|癌症|病危|临终|会不会去世|会去世|存活率|寿命|要死了|病死|癌.{0,4}晚期|晚期.{0,4}癌/i;
+var _SENSITIVE_FE_SOFT = /还能活|活多久|会不会死|会死吗|晚期|治得好吗/i;
+var _SENSITIVE_FE_EXC = /多肉|植物|宠物|猫|狗|鸟|鱼|花|虫|乌龟|仓鼠|手机|电池|电脑|游戏|痘|拖延|懒|基金|股票|冰箱|车/;
+function feSensitive(s) {
+  s = String(s || '');
+  return _SENSITIVE_FE_HARD.test(s) ||
+    (_SENSITIVE_FE_SOFT.test(s) && !_SENSITIVE_FE_EXC.test(s));
+}
+var _SENSITIVE_FE_LINE = '这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。' +
+  '身体或心里难受的话，医生和信得过的人才是最该找的。想聊点别的，小满都在。';
 
 /* R233r（R49-Top5-2）：chatSend 兜底 facts——不走排盘直接开聊时
  * CHAT_LAST_FACTS 恒空；按当前活跃视图从 LAST_RESULT 拼坐标。 */
@@ -5447,7 +5465,9 @@ function buildLiuyaoResult(j) {
   if (voiceMode() === 'warm' && warm.reply && warm.reply.length) {
     html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
       esc(warm.one_liner || '') + '</div><div class="warm-reply">';
-    warm.reply.slice(0, 3).forEach(function (ln) {
+    /* R2349q（R81-P1-15）：reply 截断 3→6——后端产出上限即 6 行，
+     * 原 3 行把动爻白话/变卦方向/经文引导整段吃掉。 */
+    warm.reply.slice(0, 6).forEach(function (ln) {
       html += '<p>' + esc(ln) + '</p>';
     });
     html += '</div>';
@@ -5466,15 +5486,32 @@ function buildLiuyaoResult(j) {
      * 也让「降序取爻位」的意图更直白。 */
     var _sortedLines = ben.lines.slice()
       .sort(function (a, b) { return b.position - a.position; });
+    /* R2349q（R81-P2-14）：paipan 坐标层——六神/六亲/世应此前算完
+     * 只进 warm 文案，界面不可见。按爻位合一行尾小注（muted），
+     * 世/应给角标；paipan 缺席（旧缓存/降级）时整列不出现。 */
+    var _ppLines = {};
+    var _ppBen = (j.paipan && j.paipan.ben_gua) || null;
+    if (_ppBen && Array.isArray(_ppBen.lines)) {
+      _ppBen.lines.forEach(function (pl) { _ppLines[pl.position] = pl; });
+    }
     _sortedLines.forEach(function (ln) {
         const mark = ln.moving ? (ln.yang ? ' ○' : ' ×') : '';
         /* R230x（V-5）：爻画真图形——阳=通长实条、阴=断两截，动爻加红点。
          * 原 ⚊/⚋ 字形在部分机型渲染成小横线、卦感弱；mark 文本保留。 */
         var _yaoCls = ln.yang ? 'yang' : 'yin';
         var _yaoBars = ln.yang ? '<i></i>' : '<i></i><i></i>';
+        var _pl = _ppLines[ln.position];
+        var _coord = '';
+        if (_pl) {
+          _coord = '<span class="yao-coord">' +
+            esc([_pl.liuqin, _pl.shen].filter(Boolean).join('·')) + '</span>' +
+            (_pl.is_shi ? '<span class="yao-seat">世</span>'
+             : _pl.is_ying ? '<span class="yao-seat ying">应</span>' : '');
+        }
         html += '<div class="yao-row' + (ln.moving ? ' moving' : '') + '">' +
           '<span class="yao-name">' + esc(YAO_NAME[ln.position] || ('第' + ln.position + '爻')) +
-          '</span><span class="yao-sym" role="img" aria-label="' +
+          '</span>' + _coord +
+          '<span class="yao-sym" role="img" aria-label="' +
           (ln.yang ? '阳爻' : '阴爻') + (ln.moving ? '，动爻' : '') + '">' +
           '<span class="yao-bar ' + _yaoCls + '">' + _yaoBars + '</span>' +
           (ln.moving ? '<span class="yao-dot"></span>' : '') +
@@ -5487,7 +5524,9 @@ function buildLiuyaoResult(j) {
   } else {
     html += '<p>无动爻（静卦）——当下格局稳住，变化的劲不明显</p>';
   }
-  if (bian.gua_name) {
+  /* R2349q（R81-P0-3 连带）：静卦（变卦=本卦）不再渲染「变卦」行——
+   * 与「无动爻，格局稳住」表里互搏。 */
+  if (bian.gua_name && bian.gua_name !== ben.gua_name) {
     html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
       esc(bian.gua_name) + '（第 ' + esc(bian.gua_number) + ' 卦）</p>';
   }
@@ -6221,7 +6260,11 @@ var TAROT_POS_HINT = {
   "阻碍": "这张牌说的是挡在路上的东西——往往是心里的某个念头",
   "环境": "这是你周围的氛围和别人的态度，不全是你能控制的",
   "建议": "这张牌是牌阵给你的提醒，最值得记住的一张",
-  "结果": "如果一切照旧，事情大概率是这样收场"
+  "结果": "如果一切照旧，事情大概率是这样收场",
+  /* R2349q（R81-P1-8）：5 张阵的「现状」、7 日阵的「第N日」、
+   * 以及「助力」此前落兜底废话「这一步说的是X的位置」。 */
+  "现状": "这是你此刻正站的位置——先看清楚脚下的这块",
+  "助力": "这张牌是能借的力——顺着它比硬扛省力"
 };
 
 /* R218a-07：塔罗首屏问题绑定——5-6 套问题域关键词（感情/工作/学业/财运/健康/通用），
@@ -6245,13 +6288,49 @@ function _tarotClassify(question) {
 }
 
 
+/* R2349q（R81-P0-1/P0-2）：塔罗前端重牌镜像——与后端 voice._TAROT_HEAVY
+ * 逐字同源；抽到这些牌时 hook/深读收尾不说「整体是顺的」。 */
+var _TAROT_HEAVY_FE = { '死神': 1, '高塔': 1, '恶魔': 1, '月亮': 1,
+  '宝剑3': 1, '宝剑9': 1, '宝剑10': 1 };
+function _tarotHasHeavy(draws) {
+  return (draws || []).some(function (d) {
+    return d && _TAROT_HEAVY_FE[d.name];
+  });
+}
+/* R2349q（R81-P2-10）：牌面盐值确定性挑同义句——同组牌同一处位
+ * 每次渲染同句，不同牌/不同位错开。 */
+function _trVar(draws, arr, shift) {
+  var s = 0;
+  (draws || []).forEach(function (d) {
+    var n = (d && d.name) || '';
+    for (var i = 0; i < n.length; i++) s += n.charCodeAt(i);
+  });
+  return arr[(s + (shift || 0) * 7) % arr.length];
+}
+
 function tarotQuestionHook(question, draws) {
+  /* R2349q（R81-P0-1）：生死/重病提问不走方向模板——转介文案。 */
+  if (feSensitive(question)) {
+    return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+      esc(String(question).slice(0, 18)) + '」</span><p>' +
+      esc(_SENSITIVE_FE_LINE) + '</p></div>';
+  }
   var cat = _tarotClassify(question);
   var main = (draws && draws.length) ? (draws[Math.min(1, draws.length - 1)] || draws[0]) : null;
   var upright = main && main.upright;
+  /* R2349q（R81-P2-10）：「往前走一小步」同页三连复读——收口句按牌面
+   * 盐值在三套同义写法里轮换；与深读收尾位用不同 shift 错开。 */
+  var _loveUp = [
+    '**整体是顺的**——你心里想的那个方向可以试着往前走一小步，缘分正在慢慢靠近。',
+    '**整体在顺这边**——那个方向轻轻推一下就有回应，缘分在慢慢靠拢。',
+    '**往顺的方向走**——心里想的路线可以试探着迈半步，缘分别急。'];
+  var _genUp = [
+    '**牌面整体是顺的**——你心里想的那个方向可以试着往前走一小步。',
+    '**这组牌气色不错**——那个方向可以往前试半步。',
+    '**顺位的牌占上风**——心里那事先迈半步试试水。'];
   var lines = {
     love: {
-      true: '**整体是顺的**——你心里想的那个方向可以试着往前走一小步，缘分正在慢慢靠近。',
+      true: _trVar(draws, _loveUp, 0),
       false: '**现在有点拧**——先别急着给关系下结论，等心里那股劲过去再决定。'
     },
     work: {
@@ -6271,12 +6350,18 @@ function tarotQuestionHook(question, draws) {
       false: '**身体在喊停**——今天先放自己一马，好好睡一觉。身体的事，医生和检查结果最准～'
     },
     general: {
-      true: '**牌面整体是顺的**——你心里想的那个方向可以试着往前走一小步。',
+      true: _trVar(draws, _genUp, 1),
       false: '**牌面有些别扭**——先别急着推进，这几天多观察少动作。'
     }
   };
   var key = upright ? 'true' : 'false';
   var line = (lines[cat] && lines[cat][key]) || lines.general[key];
+  /* R2349q（R81-P0-2）：hook 与 warm 收尾同口径——场上有重牌时
+   * 主牌正位也改安抚变体，不然同页两句互搏。 */
+  if (upright && _tarotHasHeavy(draws)) {
+    line = '**牌里有几张在提醒你的位置**——先照顾好自己，' +
+      '关于「' + String(question).slice(0, 18) + '」这事可以慢一点推进。';
+  }
   /* R228c：模板里的 **粗体** 要走 renderRichText——paint() 只 innerHTML，
    * 裸拼会把 ** 字面量裸露给用户（与 R227b 聊天路径同类漏网）。 */
   return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
@@ -6306,9 +6391,18 @@ function _liuyaoClassify(question) {
 
 
 function liuyaoQuestionHook(question, ben, bian) {
+  /* R2349q（R81-P0-1）：生死/重病提问不走方向模板——转介文案。 */
+  if (feSensitive(question)) {
+    return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+      esc(String(question).slice(0, 18)) + '」</span><p>' +
+      esc(_SENSITIVE_FE_LINE) + '</p></div>';
+  }
   var cat = _liuyaoClassify(question);
   var moving = (ben && ben.moving_lines && ben.moving_lines.length) || 0;
-  var changed = !!bian && !!bian.gua_name;
+  /* R2349q（R81-P0-3）：无动爻时变卦=本卦卦名仍在——旧判定
+   * `!!bian.gua_name` 恒真，静卦被说成「有变数」。按卦名不同才算变。 */
+  var changed = !!bian && !!bian.gua_name &&
+    bian.gua_name !== (ben && ben.gua_name);
   var lines = {
     work: {
       moving: '**对应你问的工作**：近期有调整的机会，但建议先稳后动——动爻不在当位，基础打牢再考虑主动求变。',
@@ -6370,8 +6464,12 @@ function tarotDeepRead(draws, question) {
   draws.forEach(function (d, i) {
     var pos = d.position || '';
     var kw = (d.upright ? d.upright_kw : d.reversed_kw) || '';
+    /* R2349q（R81-P1-8）：「第N日」按日序给白话；其余未知位置名
+     * 不再复读「这一步说的是X的位置」废话。 */
     var hint = TAROT_POS_HINT[pos] ||
-      ('这一步说的是「' + pos + '」的位置');
+      (/^第\d+日$/.test(pos)
+        ? '这一天的牌单独跟你说——记下这个提醒' :
+        '这张牌落在「' + pos + '」的位置上');
     _items += '<li><strong>' + esc(pos || ('第' + (i + 1) + '张') + '·' +
       d.name) + '</strong>：' + esc(kw.split('·')[0]) + '。' +
       esc(hint) + '。</li>';
@@ -6384,10 +6482,21 @@ function tarotDeepRead(draws, question) {
   }
   // 第三段：行动建议（按主牌正/逆位给方向感，不给断言）
   var main = draws[Math.min(1, draws.length - 1)] || draws[0];
+  /* R2349q（R81-P0-2）：深读收尾与 warm 同口径——场上有重牌时
+   * 主牌正位也不再「整体是顺的」（实测宝剑3在场收尾说顺）。 */
+  var _heavy = _tarotHasHeavy(draws);
+  var _advUp = [
+    '牌面整体是顺的：你心里想的那个方向可以试着往前走一小步，不用一下子做很大的决定。',
+    '这组牌气色不错：那个方向先迈半步试试，不用一次到位。',
+    '牌往顺的方向倒：心里那条路线可以轻轻推一下，小步就好。'];
+  var _advDn = [
+    '牌面有些别扭：先别急着推进，这几天多观察少动作，等心里那股拧劲过去了再决定。',
+    '这组牌在踩刹车：先稳一稳，多看几天再动，拧劲过了再定。',
+    '牌面方向有点拧：这几天以看为主，手上的事先按住别推。'];
   html += '<p class="tarot-advice">' +
-    (main.upright
-      ? '牌面整体是顺的：你心里想的那个方向可以试着往前走一小步，不用一下子做很大的决定。'
-      : '牌面有些别扭：先别急着推进，这几天多观察少动作，等心里那股拧劲过去了再决定。') +
+    (_heavy
+      ? '牌里有几张在提醒你的位置——先照顾好自己，事情可以慢一点推进，不急这一天。'
+      : _trVar(draws, main.upright ? _advUp : _advDn, 2)) +
     /* R222b（E-302 P0）：此处原有「牌只是镜子，怎么走还是你自己说了算。」
      * ——多一个「自己」躲过了禁用词 grep（审查轨渲染后扫 innerText 才抓到）。
      * 前半句刚给了具体建议（往前走一小步 / 先别急着推进），这句免责声明
@@ -6406,6 +6515,20 @@ function tarotDeepRead(draws, question) {
 /* R230y（R36-P2-1）：一事一天一问——同一问题同一天派生同一 seed，
  * 连点不再出互相矛盾的牌面；换问题/隔天自然换牌。 */
 var _trNoteDay = '';
+/* R2349q（R81-P2-11）：本日已问过的问题集（sessionStorage），
+ * 供同日重复问判「牌面不变」提示——跨天自动重置。 */
+var _trAsked = null;
+function _trAskedQs() {
+  if (!_trAsked) {
+    try {
+      _trAsked = JSON.parse(sessionStorage.getItem('trAskedToday') || 'null') || null;
+    } catch (e) { _trAsked = null; }
+  }
+  if (!_trAsked || _trAsked.d !== todayIso() || !Array.isArray(_trAsked.qs)) {
+    _trAsked = { d: todayIso(), qs: [] };
+  }
+  return _trAsked;
+}
 async function doTarot() {
   busy('trResult', '抽牌中…');
   /* R216b 续（U-006）：Seed 字段收进高级折叠，留空=用户不关心复验，
@@ -6420,7 +6543,17 @@ async function doTarot() {
         _qh = (_qh * 31 + _qs.charCodeAt(_qi)) >>> 0;
       }
       seed = _qh % 1000000;
-      _trNoteDay = todayIso();
+      /* R2349q（R81-P2-11）：「同一问题今天牌面不变」首次问就出是
+       * 抢白——用户还没重抽就看到「再问不变」。改为只在本日
+       * 重复同一问题时提示（此时牌面真没变，提示才有意义）。 */
+      var _aq = _trAskedQs();
+      _trNoteDay = (_aq.qs.indexOf(q0) >= 0) ? todayIso() : '';
+      if (_aq.qs.indexOf(q0) < 0) {
+        _aq.qs.push(q0);
+        if (_aq.qs.length > 30) _aq.qs.shift();
+        try { sessionStorage.setItem('trAskedToday', JSON.stringify(_aq)); }
+        catch (e) {}
+      }
     } else {
       seed = Date.now() % 1000000;
       _trNoteDay = '';
@@ -6895,6 +7028,11 @@ var HL_SCENE_ALIAS = {
   '接小猫': ['进人口'], '绝育': ['求医'], '打疫苗': ['求医'], '疫苗': ['求医'],
   '看房': ['出行','入宅'], '搬新窝': ['移徙','入宅'], '续租': ['立券','移徙'],
   '租房': ['立券','入宅'],
+  /* R2349q（R82-P2-6）：与后端 _CHAT_SCENE_TERMS 逐键同构——买房/
+   * 蹦极/打游戏/熬夜补词（此前零事实放飞）。 */
+  '买房': ['纳财','入宅'], '买房子': ['纳财','入宅'], '置业': ['纳财','入宅'],
+  '蹦极': ['出行'],
+  '打游戏': ['打游戏'], '玩游戏': ['打游戏'], '熬夜': ['熬夜'],
   '找工作': ['上任','谒贵'], '被裁': ['解除'], '裁员': ['解除'],
   '海投': ['上任'], '简历': ['上任'], '终面': ['上任','谒贵'],
   '报到': ['上任'], '谈加薪': ['谒贵','纳财'], '加薪': ['纳财','谒贵'],
@@ -6978,7 +7116,7 @@ function _hlExtractScene(q) {
   var s = String(q || '');
   /* R229j：交替顺序约束——「X周末」复合词必须先于裸「本周/这周/周末」，
    * 否则「打算这周末…」被剥成「末…」；裸曜日（周五/礼拜天）殿后。 */
-  s = s.replace(/(大后[天日]|大後天|后[天日]|後天|明晚|后晚|後晚|今晚|昨晚|今夜|明[天日]|明[儿兒]|明日|今[天日]|今日|昨[天日]|大前[天日]|前[天日]|过[两兩][天日]|这两天|这几天|那几天|那一天|那天|这一天|这天|最近|哪天|几时|几号|何时|啥时候|什么时候|(本周|这周|本週|這週|这週|這周)[一二三四五六日天]|(本|这|這|下)(周|週|礼拜|禮拜)末|本周|这周|本週|這週|这週|這周|周末|週末|下下(周|週|礼拜|禮拜)[一二三四五六日天]|下下(周|週|礼拜|禮拜)末|下下(周|週|礼拜|禮拜)|下(周|週|礼拜|禮拜)[一二三四五六日天]|下(周|週|礼拜|禮拜)|(周|週|礼拜|禮拜|星期)[一二三四五六日天]|一大早|凌晨|早上|上午|中午|下午|傍晚|晚上|夜里|白天|现在|当下|前年|去年|今年|明年|后年|後年|往年)/g, '');
+  s = s.replace(/(大后[天日]|大後天|后[天日]|後天|明晚|后晚|後晚|今晚|昨晚|今夜|明[天日]|明[儿兒]|明日|今[天日]|今日|昨[天日]|大前[天日]|前[天日]|过[两兩][天日]|这两天|这几天|那几天|那一天|那天|这一天|这天|最近|哪天|几时|几号|何时|啥时候|什么时候|(本周|这周|本週|這週|这週|這周)[一二三四五六日天]|(本|这|這|下)个?(周|週|礼拜|禮拜)末|(本|这|這|下)個(周|週|礼拜|禮拜)末|本周|这周|本週|這週|这週|這周|周末|週末|下下个?(周|週|礼拜|禮拜)[一二三四五六日天]|下下個(周|週|礼拜|禮拜)[一二三四五六日天]|下下个?(周|週|礼拜|禮拜)末|下下個(周|週|礼拜|禮拜)末|下下个?(周|週|礼拜|禮拜)|下下個(周|週|礼拜|禮拜)|下个?(周|週|礼拜|禮拜)[一二三四五六日天]|下個(周|週|礼拜|禮拜)[一二三四五六日天]|下个?(周|週|礼拜|禮拜)|下個(周|週|礼拜|禮拜)|上个?(周|週|礼拜|禮拜|星期)末|上個(周|週|礼拜|禮拜|星期)末|上个?(周|週|礼拜|禮拜|星期)[一二三四五六日天]|上個(周|週|礼拜|禮拜|星期)[一二三四五六日天]|上个?(周|週|礼拜|禮拜|星期)|上個(周|週|礼拜|禮拜|星期)|上个月|上個月|上月|(周|週|礼拜|禮拜|星期)[一二三四五六日天]|一大早|凌晨|早上|上午|中午|下午|傍晚|晚上|夜里|白天|现在|当下|前年|去年|今年|明年|后年|後年|往年)/g, '');
   /* R229z：新日期词也要剥——节日/农历/绝对日期/月内相对/前后缀，
    * 否则「国庆节前一天摆摊」会残成「国庆节前一天摆摊」。 */
   s = s.replace(/(农历|農曆|阴历|陰曆|旧历|舊曆)?(闰|閏)?[正一二两三四五六七八九十冬腊\d]{1,2}月[初廿一二三四五六七八九十\d]{1,3}[日号]?/g, '');
@@ -7129,8 +7267,9 @@ function _hlDayOffset(q, base) {
                      _mkd(bB.getFullYear(), bB.getMonth() + 1, +_bd[2])]);
     return _o7 === null ? null : _o7 + _suf(_bd.index + _bd[0].length);
   }
-  /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。 */
-  var mw = s.match(/(本周|这周|本週|這週|这週|這周)([一二三四五六日天])/);
+  /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。
+   * R2349q续：个/個 可选字（这个周五/這個週三同锚）。 */
+  var mw = s.match(/(本个?周|这个?周|本个?週|這个?週|这个?週|這个?周|本個周|這個週|這個周)([一二三四五六日天])/);
   if (mw) {
     var wdw = _wdIdx(mw[2]);
     var bw = base || new Date();
@@ -7138,37 +7277,60 @@ function _hlDayOffset(q, base) {
   }
   /* R229y续：「下下周X/下下周末」——"下下周一"自身含"下周"，会被下面
    * 通配截胡差整 7 天。先接住：以「再下一个周一」为基准。 */
-  if (/下下(周|週|礼拜|禮拜)末/.test(s)) {
+  if (/下下个?(周|週|礼拜|禮拜)末|下下個(周|週|礼拜|禮拜)末/.test(s)) {
     var bn0 = base || new Date();
     return (14 - ((bn0.getDay() + 6) % 7)) + 5; /* 再下周一 +5 */
   }
-  var mn = s.match(/下下(周|週|礼拜|禮拜)([一二三四五六日天])/);
+  var mn = s.match(/下下个?(周|週|礼拜|禮拜)([一二三四五六日天])|下下個(周|週|礼拜|禮拜)([一二三四五六日天])/);
   if (mn) {
-    var wdn = _wdIdx(mn[2]);
+    var wdn = _wdIdx(mn[2] || mn[4]);
     var bn = base || new Date();
     return (14 - ((bn.getDay() + 6) % 7)) + wdn;
   }
-  if (/下下(周|週|礼拜|禮拜)/.test(s)) {
+  if (/下下个?(周|週|礼拜|禮拜)|下下個(周|週|礼拜|禮拜)/.test(s)) {
     var bn2 = base || new Date();
     return 14 - ((bn2.getDay() + 6) % 7);         /* 「下下周」→ 再下周一 */
   }
   /* R229e：「下周末/下週末」必须先于「下周」通配——否则被吃成下周一，
-   * 而用户说的是下周的周六。 */
-  if (/下(周|週|礼拜|禮拜)末/.test(s)) {
+   * 而用户说的是下周的周六。R2349q续：个/個 可选字。 */
+  if (/下个?(周|週|礼拜|禮拜)末|下個(周|週|礼拜|禮拜)末/.test(s)) {
     var b0 = base || new Date();
     return (7 - ((b0.getDay() + 6) % 7)) + 5;   /* 下个周一 +5 = 下周六 */
   }
   /* 下周X / 下礼拜X：以下个周一为基准的曜日偏移（对齐服务端口径）。 */
-  var m = s.match(/下(周|週|礼拜|禮拜)([一二三四五六日天])/);
+  var m = s.match(/下个?(周|週|礼拜|禮拜)([一二三四五六日天])|下個(周|週|礼拜|禮拜)([一二三四五六日天])/);
   if (m) {
-    var wd = _wdIdx(m[2]);
+    var wd = _wdIdx(m[2] || m[4]);
     var b = base || new Date();
     var todayWd = (b.getDay() + 6) % 7;           /* 周一=0 */
     return (7 - todayWd) + wd;
   }
-  if (/下(周|週|礼拜|禮拜)/.test(s)) {
+  if (/下个?(周|週|礼拜|禮拜)|下個(周|週|礼拜|禮拜)/.test(s)) {
     var b2 = base || new Date();
     return 7 - ((b2.getDay() + 6) % 7);           /* 「下周」→ 下个周一 */
+  }
+  /* R2349q（R82-P0-1）：「上周X/上礼拜X/上周末」与后端同锚——
+   * 此前走裸曜日分支落到未来的同名日（差整一周），后端同步修。
+   * 个/個 为可选字（上个周六/上個週末同锚）。 */
+  if (/上个?(周|週|礼拜|禮拜|星期)末|上個(周|週|礼拜|禮拜|星期)末/.test(s)) {
+    var lb0 = base || new Date();
+    return -(7 + ((lb0.getDay() + 6) % 7)) + 5;   /* 上周一 +5 = 上周六 */
+  }
+  var mlw = s.match(/上个?(周|週|礼拜|禮拜|星期)([一二三四五六日天])|上個(周|週|礼拜|禮拜|星期)([一二三四五六日天])/);
+  if (mlw) {
+    var wdl = _wdIdx(mlw[2] || mlw[4]);
+    var lb = base || new Date();
+    return -(7 + ((lb.getDay() + 6) % 7)) + wdl;
+  }
+  if (/上个?(周|週|礼拜|禮拜|星期)|上個(周|週|礼拜|禮拜|星期)/.test(s)) {
+    var lb2 = base || new Date();
+    return -(7 + ((lb2.getDay() + 6) % 7));       /* 「上周」→ 上周一 */
+  }
+  /* R2349q（R82-P0-1 连带）：「上个月/上月」→ 上月 1 号代表日。 */
+  if (/上个月|上個月|上月/.test(s)) {
+    var pm0 = base || new Date();
+    var _pmS = new Date(pm0.getFullYear(), pm0.getMonth() - 1, 1);
+    return Math.round((_pmS - new Date(pm0.getFullYear(), pm0.getMonth(), pm0.getDate())) / 86400000);
   }
   /* R2349（R64-P0-A）：周末口径与后端对齐——今天已是周末（六/日）
    * 就指今天；原式周日算出 +6 整段跳下周六，与小满判出相反日子
@@ -10301,6 +10463,16 @@ function baziPersonaCard(j) {
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
+          /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
+           * 在 sessionStorage——wipe 只扫 localStorage 时聊天数据全幸存。
+           * 连同活跃会话快照一起清。 */
+          var _sr = [];
+          for (var j2 = 0; j2 < sessionStorage.length; j2++) {
+            var sk = sessionStorage.key(j2);
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite)$/
+                .test(sk) || sk.indexOf('lastResult:') === 0)) _sr.push(sk);
+          }
+          _sr.forEach(function (k) { sessionStorage.removeItem(k); });
         } catch (e) {}
         try { _renderMeStrip(); } catch (e2) {}
         try { loadPaipanHistory(); } catch (e3) {}

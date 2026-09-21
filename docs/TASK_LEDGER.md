@@ -11858,3 +11858,43 @@ localStorage，倒计时改异步链。
   xingzuo / warm_voice / async_ai / dollar / parity(68+41,243键) /
   plain_first / poster(9视图) / first_screen / no_generated /
   scripts_importable / llm_polish / ui_smoke 全绿 + ruff 净
+
+## R2349q — R81 塔罗/六爻深审 + R82 小满人格审计 清零批
+
+- R81-P0-1 敏感提问（生死/重病/自伤）前端镜像敏感闸：tarot/liuyao
+  questionHook + tarotDeepRead 命中 _SENSITIVE_FE_* 三层词表时直接给
+  「牌面接不了这个话题」边界文案；后端 voice.reply_liuyao /
+  warm_tarot 同款早退（LLM 关闭时降级链不再裸奔）
+- R81-P0-2 重牌口径统一：_TAROT_HEAVY_FE 前端镜像；hook/深读/无问
+  收尾三处在死神/高塔/恶魔/月亮/宝剑3/9/10 在场时不再「整体是顺的」
+- R81-P0-3 静卦不再渲染「变卦」行——后端对静卦返回 bian=ben 同名，
+  !!bian.gua_name 判据恒真已改为「名称不同才显示」（hook+渲染两处）
+- R81-P1 批：六爻六亲按问题域分场景标签（_LIUYAO_SCENE 4 元组+
+  _LIUQIN_WARM_SCENE 健康/感情口径；女命问感情看官鬼、男命看妻财
+  双星报位）；多动爻逐爻含义；warm_tarot 无问收尾走组合指引；
+  kw0 去重；_RANK_OVERRIDE 补宝剑3/宝剑8 真词；POS_HINT 补
+  现状/助力位 + 「第N日」兜底；warm.reply 截断 3→6 对齐后端上限
+- R82-P0-1 「上周X/上周末/上个月」日期锚贯通：前后端都新增上周族
+  解析（本周一-7d 基准）、上个月→上月1号；同时全家族（本/这/下/
+  下下/上）支持可选 个/個 字；剥词正则同步——实测此前「上周六」
+  落未来同名日且绕过过去日保护
+- R82-P1-1 45 天无宜日时事实行明说「没翻到、别编日子」（原空串让
+  prompt「报宜日」与「不许编」互搏）
+- R82-P1-2 _CHAT_SYSTEM 补理财边界款（不下买卖判断、温和转专业）
+- R82-P1-3 wipe 覆盖 sessionStorage（chatSessionId/chatTranscript/
+  lastResult:*/trAskedToday/hhInvite 含对方生辰）
+- R82-P1-4 autoSendChatContext 视图白名单外回落 daily（原先静默丢
+  上下文）
+- R82-P2-6 事项词补词：买房/置业/蹦极/打游戏/玩游戏/熬夜（前后端
+  同构）
+- R81-P2-10 「往前走一小步」同页三连复读→_trVar 牌面盐值三套轮换
+- R81-P2-11 「同一问题今天牌面不变」只在同日真重复时出现
+  （sessionStorage 记问集，首次问不抢白）
+- R81-P2-14 paipan 坐标层透出 API 并渲染：六神/六亲按爻位行尾小注
+  + 世/应角标（此前算完只进 warm 文案、界面不可见）
+- wipe 竞态：save_async 后台线程可在 DELETE 后落库→鬼行复活；
+  _WIPE_GEN 代次闸作废在途写（ui_smoke history.wipe 抓到 63→1）
+- 闸门：selftest 260 / regress / contract 565 / voice baseline /
+  xingzuo / warm_voice / async_ai / dollar / parity(68+41,250键) /
+  plain_first / poster 9 视图 / first_screen / no_generated /
+  scripts_importable / llm_polish / ui_smoke 75/75 / ruff 净

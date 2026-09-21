@@ -438,7 +438,9 @@ def _run_inner() -> list[str]:
     _vocab = set()
     for _t in list(_ZY.values()) + list(_XY.values()):
         _vocab |= set(_t["yi"]) | set(_t["ji"])
-    _NEUTRAL_TERMS = {"健身", "唱歌"}   # 有意的中性词（恒中性判定）
+    # R2349q（R82-P2-6）：打游戏/熬夜同为有意中性词——黄历管不着
+    # 的事按中性口径走，不是死映射。
+    _NEUTRAL_TERMS = {"健身", "唱歌", "打游戏", "熬夜"}   # 有意的中性词（恒中性判定）
     _dead = {k: [t for t in ts if t not in _vocab]
              for k, ts in _CST.items()
              if not any(t in _vocab for t in ts)
