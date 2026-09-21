@@ -560,13 +560,16 @@ try {
           <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
           <select id="ly_method"><option value="time">时间起卦</option><option value="coins">铜钱起卦</option></select></div>
         <div class="field"><label for="ly_year">年</label>
-          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
+          <!-- R2350b（R98-P0-1）：写死 value="1990/5/15/10" 使
+               syncLiuyaoToday 的「空才填」恒败——时间起卦默起
+               1990-05-15 的卦。改 placeholder：留空=以现在起卦。 -->
+          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="留空=现在"></div>
         <div class="field"><label for="ly_month">月</label>
-          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
+          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" placeholder="1-12"></div>
         <div class="field"><label for="ly_day">日</label>
-          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" placeholder="1-31"></div>
         <div class="field"><label for="ly_hour">时辰</label>
-          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
+          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="0-23"></div>
       </div>
       <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">

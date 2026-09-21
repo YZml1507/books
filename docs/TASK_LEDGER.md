@@ -12100,3 +12100,30 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
   `_del_derived`；_gc_threads 同秒 updated_at 并列时排序不定会误删新线程
   → id DESC 决胜。selftest note 用例补级联清理（derived_fts/derived/turn/thread）。
   selftest 271 / g8 probe PASS。
+
+- **R2350b（R98 结果页 + R99 分享接收方双审清零）**：一次合批落地两报告。
+  P0：六爻时间起卦写死 value="1990/5/15/10" → syncLiuyaoToday 恒败，
+  默起 1990 年的卦；改 placeholder + doLiuyao 留空=以现在起卦
+  （时间起卦本义），selftest 钉 cast_at 回显 + 卡面「起卦：X年X月X日 X时」行。
+  R98 摘：温柔模式六亲/六神黑话挂白话 gloss（官鬼→「对方/压力信号」等
+  yao-plain 旁注 + yao-legend 图例条）；renderWarm 能量卡去重（_ewSaid
+  判重）、本命关键词标签修正；renderCalc 空数组/空对象不再渲染空块；
+  塔罗 _BASIS_CN 补 upright_kw/reversed_kw（顺序防 upright 前缀吞掉
+  kw）；塔罗无问题横幅改「随手一抽，牌面随缘」；合婚甲乙卡 title
+  悬停出四柱 + 「本命（日主）」标注；pro 模式 render 字段折叠；
+  humanCite 清「! 」赘空格。
+  R99 摘：邀请链完善——hhInvite 复制时把 A 侧生辰编进链接（hh_b_*），
+  B 侧落地预填且 A 侧改字段后 label 复原；shareBy:<view> 指纹键
+  （raw+别名双写）；落地后 URL 剥跟踪参数（from/n/invite/a/an/ay/
+  am/ad/ah/ag）保 view/date；MicroMessenger/xhsdiscover UA 出「浏览器
+  打开」toast；微信 webview 海报下载给长按保存兜底；海报 CTA 改
+  「搜「小满的解忧铺」· 测你的同款 ✨」；深链 &date= 直接赋值 +
+  非法日期 toast；index 注入 og:url/og:site_name；threads status
+  校验 + record 白名单 ASSERTING+refusal/note；liuyao cast_at 回显；
+  a_bazi/b_bazi 带 render 字段；README 补 TLS 反代部署
+  （--proxy-headers/--forwarded-allow-ips）。
+  anchors：gua span 尾部回剥 `** 《X第N》` 装饰（pb/¶/空白），
+  卦45·上六不再吐下一卦标题碎屑（corpus 重建后 0/98 误归）。
+  基线：voice refreeze（sha256 44df79bd…——bazi.life 五行块/
+  liuyao 引文集/research.hit 漂移均为有意演进）。selftest 271 /
+  contract 606 / ui_smoke 75 / 全探针绿。

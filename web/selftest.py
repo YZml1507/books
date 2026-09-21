@@ -387,7 +387,10 @@ def _run_inner() -> list[str]:
     # 可复验：time 起卦 2026-08-16 10:00 → 萃45；affair=婚嫁 30 天 → 非空。
     check("liuyao.time", client.post("/api/liuyao", json={"method": "time",
           "year": 2026, "month": 8, "day": 16, "hour": 10}),
-          lambda j: j.get("ben") and j["ben"].get("gua_number") == 45)
+          lambda j: (j.get("ben") and j["ben"].get("gua_number") == 45
+                     # R2350b（R98-P0-1）：起卦时刻回显——防「默认
+                     # 1990-05-15」重演，用户要知道卦是按哪天摇的
+                     and j.get("cast_at") == "2026年8月16日 10时"))
     check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
           "date": "2026-08-17", "days": 30}),
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
@@ -987,7 +990,11 @@ def _run_inner() -> list[str]:
                      and j.get("render") and j.get("notes")
                      # R2349l（R73-P1-1）：合拍指数常驻键，界内整数
                      and isinstance(j.get("match_score"), int)
-                     and 35 <= j["match_score"] <= 99))
+                     and 35 <= j["match_score"] <= 99
+                     # R2350b（R98-P2-13）：a_bazi.render 常驻——
+                     # pro 模式「A 四柱」pill 与甲乙卡悬停都读它
+                     and j.get("a_bazi", {}).get("render")
+                     and j.get("b_bazi", {}).get("render")))
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,

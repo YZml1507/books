@@ -1152,6 +1152,12 @@ details.warm-pro-fold > summary{
 .yao-seat{ font-size:10px; line-height:1; padding:3px 6px; border-radius:999px;
   background:var(--c-bazi); color:#fff; font-weight:600; }
 .yao-seat.ying{ background:var(--secondary); }
+/* R2350b（R98-P1-3）：六亲/六神随行白话 + 卦图图例——原词裸奔时
+ * 正文（人话）与图上（术语）对不上号。 */
+.yao-plain{ font-style:normal; color:var(--secondary); opacity:.75;
+  margin-left:3px; }
+.yao-legend{ font-size:11px; color:var(--muted); line-height:1.7;
+  margin-top:8px; padding-top:6px; border-top:1px dashed var(--line,rgba(0,0,0,.08)); }
 /* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
 .pro-notice{
   display:flex; align-items:center; justify-content:space-between; gap:8px;

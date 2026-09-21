@@ -56,6 +56,11 @@ PY
 #  写进 stdout——对外部署/反代场景务必关掉）
 ```
 
+**TLS 反代后部署**（nginx/Caddy/网关终结 HTTPS）：务必加
+`--proxy-headers --forwarded-allow-ips <反代网段>`——og:image/og:url 的绝对
+URL 按 `request.base_url` 生成，不开 proxy-headers 会落成 `http://` 内网
+地址，微信/推特种爬虫静默抓不到卡片图，且无任何报错面（R2350b / R99-P2）。
+
 Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服务、开浏览器、
 关浏览器自动停服务）。
 

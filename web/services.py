@@ -375,8 +375,13 @@ def hehun(req) -> dict:
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     h_dict = {
-        "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
-        "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
+        # R2350b（R98-P2-13）：补 render——pro 模式「A 四柱」pill 读
+        # a_bazi.render，此前键缺席恒 undefined（死 pill）；甲乙卡也
+        # 用它做四柱悬停。
+        "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master,
+                   "render": ba.render()},
+        "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master,
+                   "render": bb.render()},
         # R233u（R53-P1-1）：one_liner 盐键接线——此前 day_zhi_* 恒 None，
         # 同桶所有 CP 抽到同一句判词。
         "day_zhi_a": h.day_zhi_a, "day_zhi_b": h.day_zhi_b,
@@ -1066,11 +1071,23 @@ def liuyao(req) -> dict:
     bian_out = liuyao_mod.render_hexagram(bian, "变卦")
     interpretation = interpreter.interpret_liuyao(
         ben_out, bian_out, ben.moving_lines, ben_jing + bian_jing, req.question)
+    # R2350b（R98-P0-1 附带）：回显起卦时间——卡面此前不回显，
+    # 表单默认值 bug 期间用户无从察觉卦是按哪天起的。
+    if req.method == "time":
+        _cast_at = f"{req.year}年{req.month}月{req.day}日 {req.hour}时"
+    else:
+        _cd0 = getattr(req, "client_date", None)
+        try:
+            _cd1 = datetime.strptime(_cd0, "%Y-%m-%d")
+            _cast_at = f"{_cd1.year}年{_cd1.month}月{_cd1.day}日（铜钱摇）"
+        except (ValueError, TypeError):
+            _cast_at = "刚才（铜钱摇）"
     out = {
         "ben": ben_out,
         "bian": bian_out,
         "ben_jing": ben_jing,
         "bian_jing": bian_jing,
+        "cast_at": _cast_at,
         "interpretation": interpretation,
         # 判据 8：六爻原本对提问只回「不代为断事」。warm 分支给出基于**已起出
         # 的卦象**的描述性回应（不预测结果），专业分支原文不动。

@@ -162,6 +162,15 @@ def create_app() -> FastAPI:
             html = open(deps.INDEX, encoding="utf-8").read()
             base = str(request.base_url).rstrip("/")
             html = html.replace('content="/static/', f'content="{base}/static/')
+            # R2350b（R99-P2）：og:url/og:site_name 补缺——爬虫拿到
+            # 规范地址与站名；部署在 TLS 反代后需 uvicorn
+            # --proxy-headers 才能拿到对的 scheme/host（base_url
+            # 落成 http://内网 时 og:image 静默抓不到）。
+            html = html.replace(
+                '<meta property="og:type" content="website">',
+                '<meta property="og:type" content="website">\n'
+                f'<meta property="og:url" content="{base}/">\n'
+                '<meta property="og:site_name" content="小满的解忧铺">')
             v = _shell_hash()
             if v:
                 html = html.replace('src="/static/app.js"',

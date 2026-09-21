@@ -491,17 +491,23 @@ function buildHehunResult(j) {
     html += '</div>';
   }
   html += '<div class="calc-grid">';
+  /* R2350b（R98-P2-13）：甲乙块此前只露年柱+日柱两截，完整四柱
+   * 躺在 a_bazi.render 里没用上；「日主」一词随行翻译成本命五行。 */
   html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
     '<h3 style="color:var(--c-bazi);">' + esc(j.a_name || '甲') + '</h3>' +
-    '<p style="font-family:var(--font-serif);font-size:18px;">' +
+    '<p style="font-family:var(--font-serif);font-size:18px;"' +
+    (a.render ? ' title="四柱：' + esc(a.render) + '"' : '') + '>' +
     esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
-    '<p style="font-size:13px;color:var(--secondary);">日主：' +
+    '<p style="font-size:13px;color:var(--secondary);" ' +
+    'title="日主=出生那天的天干，代表本命五行">本命（日主）：' +
     esc(a.day_master || '') + '（' + esc(j.day_wx_a || '') + '）</p></div>';
   html += '<div class="calc-block" style="border-left:3px solid var(--c-hehun);">' +
     '<h3 style="color:var(--c-hehun);">' + esc(j.b_name || '乙') + '</h3>' +
-    '<p style="font-family:var(--font-serif);font-size:18px;">' +
+    '<p style="font-family:var(--font-serif);font-size:18px;"' +
+    (b.render ? ' title="四柱：' + esc(b.render) + '"' : '') + '>' +
     esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
-    '<p style="font-size:13px;color:var(--secondary);">日主：' +
+    '<p style="font-size:13px;color:var(--secondary);" ' +
+    'title="日主=出生那天的天干，代表本命五行">本命（日主）：' +
     esc(b.day_master || '') + '（' + esc(j.day_wx_b || '') + '）</p></div>';
   html += '</div><div class="pill-row">';
   const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
@@ -522,7 +528,9 @@ function buildHehunResult(j) {
     html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
   }
   if (j.god_a_sees_b && j.god_b_sees_a) {
-    /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。 */
+    /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。
+     * R2350b（R98-P2-8）：这张表与 voice.py:1324 的性格词表语义不同
+     * （这里=对方盘里的角色，那里=性格气质），不合并但需同步维护。 */
     var _GP = {比肩:'同类',劫财:'对手',食神:'玩伴',伤官:'点子王',偏财:'惊喜',
                正财:'稳定',七杀:'压力',正官:'靠山',偏印:'直觉',正印:'底气'};
     html += '<span class="pill sm" style="background:var(--secondary);" ' +
@@ -531,7 +539,17 @@ function buildHehunResult(j) {
       esc(_GP[j.god_b_sees_a] || j.god_b_sees_a) + '」</span>';
   }
   html += '</div>';
-  if (j.render) html += '<div class="calc-summary">' + esc(j.render) + '</div>';
+  /* R2350b（R98-P1-6）：j.render 是干支摘要串（「甲：1990年 庚午 ·
+   * 大运：逆　…」），温柔模式直贴屏全是黑话——收进折叠，专业模式
+   * 保持平铺。 */
+  if (j.render) {
+    if (voiceMode() === 'pro') {
+      html += '<div class="calc-summary">' + esc(j.render) + '</div>';
+    } else {
+      html += '<details class="paipan-fold"><summary>看看技术细节</summary>' +
+        '<div class="calc-summary">' + esc(j.render) + '</div></details>';
+    }
+  }
   if (j.dayun_hits && j.dayun_hits.length) {
     /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
      * 收进默认折叠（事实零删减）；pro 模式保持平铺。 */
@@ -1259,6 +1277,18 @@ function _chatTsRestore() {
  * tarot/liuyao/hehun/huangli/qiming/xingzuo），值 = {json, question}。
  * 只存内存，随刷新丢弃（不落库——历史记录功能已按用户裁决删除）。 */
 var LAST_RESULT = {};
+/* R2350b（R99-P2）：shareBy 昵称只认当次链——sessionStorage 里的
+ * 名字绑视图指纹（shareBy:<view>），跨视图/换一条不带 n= 的链
+ * 不再喊错人。 */
+function _shareByName() {
+  if (window.__shareBy) return window.__shareBy;
+  try {
+    var _fv = window.__shareFromView ||
+      new URLSearchParams(location.search).get('view') || '';
+    if (!_fv) return '';
+    return sessionStorage.getItem('shareBy:' + _fv) || '';
+  } catch (e) { return ''; }
+}
 function rememberResult(viewKey, json, question, body) {
   /* v2：多存一份 body（含 gender 等），供 buildChatContext 拼性别。 */
   LAST_RESULT[viewKey] = { json: json || {}, question: question || '',
@@ -1275,8 +1305,7 @@ function rememberResult(viewKey, json, question, body) {
    * 弹一句「顺手替 XX 讨个彩头」。daily 是自动拉取不算「她去测」，
    * 一次性闸防每次提交都弹。 */
   try {
-    var _sby = window.__shareBy ||
-      sessionStorage.getItem('shareBy') || '';
+    var _sby = _shareByName();
     if (_sby && viewKey && viewKey !== 'daily' &&
         !sessionStorage.getItem('shareBy:done')) {
       sessionStorage.setItem('shareBy:done', '1');
@@ -2564,7 +2593,7 @@ function annotatePowers(text) {
   });
   return t;
 }
-function renderWarm(warm, interp, evidence) {
+function renderWarm(warm, interp, evidence, scope) {
   if (!warm) return renderInterpretation(interp, '📖 小满的解读');
   var html = '<div class="warm-wrap">';
   /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
@@ -2588,9 +2617,14 @@ function renderWarm(warm, interp, evidence) {
   // L1 能量卡
   var ec = warm.energy_card;
   if (ec) {
+    /* R2350b（R98-P2-9）：同屏复读——one_liner/reply 里已说过的
+     * 词组，能量卡抬头不再重印（实测「干脆、边界清楚」×3）。 */
+    var _said = (warm.one_liner || '') + (warm.reply || []).join('');
+    var _ew = ec.element_warm || '';
+    var _ewSaid = _ew && _said.indexOf(_ew) >= 0;
     html += '<div class="energy-card">';
     html += '<div class="energy-head">本命 <strong>' + esc(ec.element || '') +
-      '</strong>（' + esc(ec.element_warm || '') + '）· ' +
+      '</strong>' + (_ew && !_ewSaid ? '（' + esc(_ew) + '）' : '') + '· ' +
       esc(ec.element_note || '') + '</div>';
     html += '<div class="energy-grid">';
     if (ec.lucky_colors && ec.lucky_colors.length) {
@@ -2609,8 +2643,17 @@ function renderWarm(warm, interp, evidence) {
         '</span></div>';
     }
     if (ec.keywords && ec.keywords.length) {
-      html += '<div class="energy-item"><span class="energy-k">今日关键词</span>' +
-        '<span class="energy-v">' + esc(ec.keywords.join(' / ')) +
+      /* R2350b（R98-P0-2 附带）：一生盘讲「今日」不对题——scope=life
+       * 时标签换「本命关键词」（词本身是盘属性，随 five_elements
+       * 补齐后已与当日判词一致）。 */
+      var _kwLabel = (scope === 'life') ? '本命关键词' : '今日关键词';
+      /* R2350b（R98-P2-9）：关键词去重——reply 已说的不再进卡。 */
+      var _kws = ec.keywords.filter(function (k) {
+        return _said.indexOf(k) < 0;
+      });
+      if (!_kws.length) _kws = ec.keywords;
+      html += '<div class="energy-item"><span class="energy-k">' + _kwLabel +
+        '</span><span class="energy-v">' + esc(_kws.join(' / ')) +
         '</span></div>';
     }
     /* R233c（R40-W10）：helper_element（生我之行=补餽方向）此前零露出——
@@ -3170,7 +3213,9 @@ function _paintSharePoster(s, W, H) {
   }
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('测你的同款 → 链接甩给 TA 就行', 540, 1422);
+  /* R2350b（R99-P2）：CTA 换接收方口吻——只看图的人想测，教她
+   * 去搜品牌名；「链接甩给 TA 就行」是对分享者说的话。 */
+  ctx.fillText('搜「小满的解忧铺」· 测你的同款 ✨', 540, 1422);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
@@ -3701,8 +3746,10 @@ function _posterTextCollect(s) {
     }
   } catch (e) {}
   /* 页脚常量 + 旧版式 drawPoster 的固定串 + 各视图兜底文案也要覆盖 */
+  /* R2350b（R99-P2）：预热集与现役 CTA 对齐（「铺/的」等字原不在
+   * 集里，命中未加载子集时回落系统字体）。 */
   return t + '知命，是为了更好地活@小满的解忧铺·知命知趣知自己' +
-    '仅供娱乐测你的同款→搜「」' ;
+    '仅供娱乐测你的同款→搜「」✨' ;
 }
 
 async function _downloadPoster(j, view) {
@@ -3791,8 +3838,10 @@ async function _downloadPoster(j, view) {
   try {
     if (_dup) {
       showToast('这张图刚保存过了，长按/右键可直接再存', 'info');
-    } else if (_isTouch) {
-      /* 触屏端不触发 a[download]——弹层长按保存即可 */
+    } else if (_isTouch && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+      /* 触屏端不触发 a[download]——弹层长按保存即可。
+       * R2350b（R99-P2）：微信 webview（尤其 Android）对 data: 图
+       * 长按多半不弹「保存图片」——容器内恢复走下载兜底。 */
       _POSTER_LAST[_vkey] = performance.now();
     } else {
       _POSTER_LAST[_vkey] = performance.now();
@@ -4152,7 +4201,8 @@ function renderVoice(j, proTitle, evidenceKeys) {
     (evidenceKeys || ['evidence']).forEach(function (k) {
       if (j[k] && j[k].length) ev = ev.concat(j[k]);
     });
-    html += renderWarm(j.warm, j.interpretation, ev);
+    html += renderWarm(j.warm, j.interpretation, ev,
+                       j.calc && j.calc.scope);
   } else {
     /* R216b 续（UX 队列 U-015）：voiceMode 是 localStorage 持久态，普通
      * 用户点过一次「专业版」后所有功能永久变成开发者视图且找不到退路。
@@ -4232,7 +4282,12 @@ function renderInterpretation(interp, title) {
       'paipan.render': '命盘四柱', 'paipan.nayin': '纳音',
       'calc.five_elements': '五行分布', 'calc.ten_gods': '十神',
       'calc.relations': '地支关系', 'calc.day_luck': '流日',
-      'calc.summary': '总评', 'warm': '温柔版', 'cross_ref': '交叉印证'
+      'calc.summary': '总评', 'warm': '温柔版', 'cross_ref': '交叉印证',
+      /* R2350b（R98-P2-11）：塔罗 pro「依据」行裸字段名——补键。 */
+      'name': '牌名', 'upright_kw': '正位关键词',
+      'reversed_kw': '逆位关键词', 'upright': '正逆位',
+      'meaning': '牌义', 'position': '位置',
+      'arcana': '牌系', 'suit': '花色', 'card': '牌'
     };
     var _basisCn = interp.basis.map(function (b) {
       var _hit = Object.keys(_BASIS_CN).filter(function (k) {
@@ -4264,6 +4319,10 @@ function renderCalc(calc) {
   Object.keys(calc).forEach(function (k) {
     if (k === 'summary' || k === 'scope') return;
     const v = calc[k];
+    /* R2350b（R98-P2-10）：空数组/空对象跳过——否则 pro 页只剩一个
+     * 光秃秃的字段名标题（实测 relations=[] 时白挂一行）。 */
+    if (Array.isArray(v) && !v.length) return;
+    if (v && typeof v === 'object' && !Object.keys(v).length) return;
     const c = colorAt(i);
     i += 1;
     html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
@@ -5100,6 +5159,11 @@ function buildBaziResult(j) {
     if (paipan.nayin && paipan.nayin.length) {
       html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
     }
+    /* R2350b（R98-P1-5）：折叠卡里「日主/大运：逆/纳音」裸奔——
+     * 加一行小注把三个词一次翻完。 */
+    html += '<p class="nayin" style="color:var(--muted);font-size:11px">' +
+      '日主=出生那天的天干（你的本命五行）；大运=十年一轮的大方向，' +
+      '「逆排」就是从月柱往前数；纳音是五行的传统叫法，当个小标签看就好</p>';
     html += '</details>';
   }
   if (paipan.warn && paipan.warn.length) {
@@ -5823,6 +5887,11 @@ function buildLiuyaoResult(j) {
   const ben = j.ben || {};
   const bian = j.bian || {};
   let html = '<div class="card"><h2>🔮 六爻卦象</h2>';
+  /* R2350b（R98-P0-1 附带）：回显起卦时间——卦是按哪天起的心里有数。 */
+  if (j.cast_at) {
+    html += '<div style="font-size:12px;color:var(--muted);margin:-2px 0 6px">' +
+      '🕐 起卦：' + esc(j.cast_at) + '</div>';
+  }
   /* R216b 续（UX 队列 U-007）：解读先给人话结论（warm.reply 已是结论式，
    * 这里把它提到坐标区之前常显），再画卦象。
    * R216b 续4（U-022）：本块仅 warm 模式渲染；warm 模式下页尾
@@ -5853,6 +5922,12 @@ function buildLiuyaoResult(j) {
     /* R216b 续（U-007）：爻象图形化——自上而下（上爻→初爻）、每爻带爻位名
      * 与阴阳符号（⚊阳 ⚋阴），动爻加「○/×」动标并高亮。 */
     const YAO_NAME = {6:'上爻',5:'五爻',4:'四爻',3:'三爻',2:'二爻',1:'初爻'};
+    /* R2350b（R98-P1-3）：六亲/六神随行白话——与 voice._LIUQIN_WARM
+     * 同口径，让卦图词和正文人话对得上号。 */
+    var _LIUQIN_PLAIN = {'官鬼': '事业与忧心', '妻财': '财物',
+      '兄弟': '同辈竞争', '父母': '文书庇护', '子孙': '晚辈与解忧'};
+    var _LIUSHEN_PLAIN = {'青龙': '喜气', '朱雀': '口舌', '勾陈': '拖延',
+      '螣蛇': '缠绕', '白虎': '激烈', '玄武': '暧昧'};
     html += '<div class="yao-stack">';
     /* R228o：跨行链式改为命名中间变量——契约探针逐行归因，
      * 也让「降序取爻位」的意图更直白。 */
@@ -5875,10 +5950,22 @@ function buildLiuyaoResult(j) {
         var _pl = _ppLines[ln.position];
         var _coord = '';
         if (_pl) {
-          _coord = '<span class="yao-coord">' +
-            esc([_pl.liuqin, _pl.shen].filter(Boolean).join('·')) + '</span>' +
-            (_pl.is_shi ? '<span class="yao-seat">世</span>'
-             : _pl.is_ying ? '<span class="yao-seat ying">应</span>' : '');
+          /* R2350b（R98-P1-3）：六亲/六神原词裸奔——行尾随行白话让
+           * 图上词和正文人话对上号（正文说「事业与忧心」，图上
+           * 只印「官鬼」用户建立不了映射）。 */
+          var _lq = _LIUQIN_PLAIN[_pl.liuqin];
+          var _sj = _LIUSHEN_PLAIN[_pl.shen];
+          var _coordTxt = [_pl.liuqin, _pl.shen].filter(Boolean).join('·');
+          var _coordHint = [_lq, _sj].filter(Boolean).join('·');
+          _coord = '<span class="yao-coord"' +
+            (_coordHint ? ' title="' + esc(_coordHint) + '"' : '') + '>' +
+            esc(_coordTxt) +
+            (_coordHint ? '<i class="yao-plain">' + esc(_coordHint) +
+             '</i>' : '') + '</span>' +
+            (_pl.is_shi ? '<span class="yao-seat" title="世=你自己">世</span>'
+             : _pl.is_ying
+             ? '<span class="yao-seat ying" title="应=对方/这件事">应</span>'
+             : '');
         }
         html += '<div class="yao-row' + (ln.moving ? ' moving' : '') + '">' +
           '<span class="yao-name">' + esc(YAO_NAME[ln.position] || ('第' + ln.position + '爻')) +
@@ -5890,6 +5977,12 @@ function buildLiuyaoResult(j) {
           '<span class="yao-mark">' + esc(mark) + '</span></span></div>';
       });
     html += '</div>';
+    /* R2350b（R98-P1-3）：图例——世/应角标此前无任何说明。 */
+    if (_ppBen) {
+      html += '<div class="yao-legend">世=你自己　应=对方/这件事　' +
+        '官鬼=事业与忧心　妻财=财物　父母=文书庇护　兄弟=同辈竞争　' +
+        '子孙=晚辈与解忧</div>';
+    }
   }
   if (ben.moving_lines && ben.moving_lines.length) {
     html += '<p>动爻：' + esc(ben.moving_lines.join('、')) + ' 爻——变化从这里发生</p>';
@@ -5975,12 +6068,15 @@ function hlInitToday() {
    * 改成看「是否只有占位节点」（data-ph 标记）。 */
   var _res = document.getElementById('hlResult');
   if (_res && (!_res.firstElementChild || _res.querySelector('[data-ph]'))) {
-    /* R2350a（R94-P1-2）：深链带日期时按那天查，不落今天。 */
+    /* R2350a（R94-P1-2）：深链带日期时按那天查，不落今天。
+     * R2350b 修（R99-P0）：此前用 setv——「空才填」恒败（
+     * hlInitToday 已先把今天填进去），深链日白写。直接赋值覆盖。 */
     var _dd = window.__hlDeepDate; window.__hlDeepDate = null;
     if (_dd) {
-      setv('hl_year', +_dd.slice(0, 4));
-      setv('hl_month', +_dd.slice(5, 7));
-      setv('hl_day', +_dd.slice(8, 10));
+      ['hl_year', 'hl_month', 'hl_day'].forEach(function (id, i) {
+        var _e = el(id);
+        if (_e) _e.value = +_dd.split('-')[i];
+      });
       doHuangli(null, true);
     } else {
       doHuangli(0, true);
@@ -6083,6 +6179,17 @@ async function doLiuyao() {
     const seedRaw = val('ly_seed');
     if (seedRaw !== '' && seedRaw != null) body.seed = num('ly_seed');
   } else {
+    /* R2350b（R98-P0-1 续）：placeholder 化后字段可为空——时间起卦
+     * 的本义是「以当下起卦」，留空逐项补现在，不再吃 400。 */
+    var _now4 = new Date();
+    var _dfl = { ly_year: _now4.getFullYear(),
+                 ly_month: _now4.getMonth() + 1,
+                 ly_day: _now4.getDate(),
+                 ly_hour: _now4.getHours() };
+    ['ly_year', 'ly_month', 'ly_day', 'ly_hour'].forEach(function (_fid) {
+      var _fe = document.getElementById(_fid);
+      if (_fe && _fe.value === '') _fe.value = _dfl[_fid];
+    });
     body.year = num('ly_year');
     body.month = num('ly_month');
     body.day = num('ly_day');
@@ -6608,8 +6715,13 @@ function buildTarotResult(j) {
   let html = '<div class="card"><h2>✨ 塔罗占卜</h2>' + _festivalBand();
   /* R216b 续（U-006）：工程口吻复验说明人话化；seed 编号收进 title 悬停
    * 可见（专业用户仍可复验），不再平铺在正文。 */
-  html += '<p class="hit-cite" title="复验编号 ' + esc(j.seed) + '">' + esc(j.n) +
-    ' 张牌 · 同一天问同一件事，翻到的就是这几张</p>';
+  /* R2350b（R98-P2-12）：确定性承诺按输入对齐——填了问题才是
+   * 「同一天问同一件事翻同几张」（seed=hash(question+date)）；
+   * 没填问题 seed 每次随机（Date.now()），挂这句是空头支票。 */
+  html += '<p class="hit-cite" title="复验编号 ' + esc(j.seed) + '">' +
+    esc(j.n) + ' 张牌 · ' + (j.question
+      ? '同一天问同一件事，翻到的就是这几张'
+      : '随手一抽，牌面随缘') + '</p>';
   /* R218a-07：综合结论首屏 hook——三张牌翻完前用户先看到一句针对问题的
    * 直接回答，再下钻逐牌解读。j.question 是用户输入关键词。 */
   if (j.question) {
@@ -7116,13 +7228,17 @@ async function doHehun() {
      * 对方打开即预填+提示「轮到你了」。 */
     on('hhInvite', function () {
       try {
+        /* R2350b（R99-P1）：邀请态下受邀者=B 侧——再点「喊 TA 来对盘」
+         * 应该编码受邀者自己的盘（B 侧），否则把发起人的生辰明文
+         * 代发出去，语义也反了。 */
+        var _side = window.__hhInviteMode ? 'b' : 'a';
         var _u = location.origin + location.pathname + '?view=hehun&from=invite' +
-          '&ay=' + encodeURIComponent(val('hh_a_year') || '') +
-          '&am=' + encodeURIComponent(val('hh_a_month') || '') +
-          '&ad=' + encodeURIComponent(val('hh_a_day') || '') +
-          '&ah=' + encodeURIComponent(val('hh_a_hour') || '') +
-          '&ag=' + encodeURIComponent(val('hh_a_gender') || '') +
-          '&an=' + encodeURIComponent(val('hh_a_name') || '');
+          '&ay=' + encodeURIComponent(val('hh_' + _side + '_year') || '') +
+          '&am=' + encodeURIComponent(val('hh_' + _side + '_month') || '') +
+          '&ad=' + encodeURIComponent(val('hh_' + _side + '_day') || '') +
+          '&ah=' + encodeURIComponent(val('hh_' + _side + '_hour') || '') +
+          '&ag=' + encodeURIComponent(val('hh_' + _side + '_gender') || '') +
+          '&an=' + encodeURIComponent(val('hh_' + _side + '_name') || '');
         var _ok = function () {
           showToast(_dayPick(['邀请链接复制好了（里面有你的生辰，发给信任的人哦）',
             '链接已备好——TA 打开就能接着测（链接含你的生辰信息）',
@@ -9839,15 +9955,24 @@ function init() {
          * 校验合法后存内存，激活黄历时按该日查（参数被剥也不丢）。 */
         try {
           var _hld = _qsAll.get('date');
-          if (_vp === 'huangli' && _hld &&
-              /^\d{4}-\d{2}-\d{2}$/.test(_hld)) {
-            var _hdt = new Date(+_hld.slice(0, 4), +_hld.slice(5, 7) - 1,
-                                +_hld.slice(8, 10));
-            var _hdy = +_hld.slice(0, 4);
-            if (_hdy >= 1900 && _hdy <= 2100 &&
+          if (_vp === 'huangli' && _hld) {
+            var _okD = false;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(_hld)) {
+              var _hdt = new Date(+_hld.slice(0, 4), +_hld.slice(5, 7) - 1,
+                                  +_hld.slice(8, 10));
+              var _hdy = +_hld.slice(0, 4);
+              _okD = _hdy >= 1900 && _hdy <= 2100 &&
                 _hdt.getMonth() === +_hld.slice(5, 7) - 1 &&
-                _hdt.getDate() === +_hld.slice(8, 10)) {
+                _hdt.getDate() === +_hld.slice(8, 10);
+            }
+            if (_okD) {
               window.__hlDeepDate = _hld;
+            } else {
+              /* R2350b（R99-P0 附带）：链接里的日期不合法（2/30、
+               * 超量程）——静默落今天但给接收方一句交代。 */
+              try {
+                showToast('那条链接里的日子打不开，先看今天的吧', 'warn');
+              } catch (eT) {}
             }
           }
         } catch (eHD) {}
@@ -9863,7 +9988,15 @@ function init() {
             if (_sby0) {
               window.__shareBy = String(_sby0).slice(0, 24);
               try {
-                sessionStorage.setItem('shareBy', window.__shareBy);
+                /* R2350b（R99-P2）：昵称绑当次链的视图指纹——同 tab
+                 * 再开别的不带 n= 的分享链不再喊上一位的名字。 */
+                sessionStorage.setItem('shareBy:' + _vpRaw,
+                  window.__shareBy);
+                /* 别名落地后 URL 规整成 _vp——F5 回灌按新名查。 */
+                if (_vp !== _vpRaw) {
+                  sessionStorage.setItem('shareBy:' + _vp,
+                    window.__shareBy);
+                }
               } catch (eSB) {}
             }
           }
@@ -9882,7 +10015,11 @@ function init() {
           } catch (eCP) {}
         }
         var _invA = _qsAll.get('ay');
-        if (_vp === 'hehun' && !_invA) {
+        /* R2350b（R99-P2）：同 tab 残留串台——受邀过的 tab 再开
+         * from=share 普通分享链时，sessionStorage 里的旧邀请参会复活
+         *（发起人数据串进来）。显式带 from 的落地不吃回灌；F5 剥参后
+         * URL 无 from，回灌照常。 */
+        if (_vp === 'hehun' && !_invA && !_qsAll.get('from')) {
           try {
             var _sv = sessionStorage.getItem('hhInvite');
             if (_sv) _qsAll = new URLSearchParams(_sv);
@@ -9949,6 +10086,19 @@ function init() {
             var _ae = document.getElementById(_id);
             if (_ae) _ae.addEventListener('input', function () {
               window.__hhInviteMode = false;
+              /* R2350b（R99-P2）：手改 A 侧视同放弃邀请口径——归属
+               * 已恢复默认，标签也得翻回来，否则改完的人把数据
+               * 存错档（改的是「TA 的」却记到自己档案）。 */
+              [['hh_a_year','我的出生年'],['hh_a_month','我的出生月'],
+               ['hh_a_day','我的出生日'],['hh_a_hour','我的时辰'],
+               ['hh_a_gender','我的性别'],['hh_a_name','我的昵称'],
+               ['hh_b_year','TA 的出生年'],['hh_b_month','TA 的出生月'],
+               ['hh_b_day','TA 的出生日'],['hh_b_hour','TA 的时辰'],
+               ['hh_b_gender','TA 的性别'],['hh_b_name','TA 的昵称']
+              ].forEach(function (_rp) {
+                var _rl = document.querySelector('label[for="' + _rp[0] + '"]');
+                if (_rl) _rl.textContent = _rp[1];
+              });
             }, { once: true });
           });
           /* R2345（R63-P2-6）：邀请链生辰此前驻留 location.search——
@@ -9987,6 +10137,21 @@ function init() {
         var _hold = window.__suppressPush;
         window.__suppressPush = true;
         try { showView(_vp); } finally { window.__suppressPush = _hold; }
+        /* R2350b（R99-P2）：微信/小红书容器内落地的分享/邀请链——
+         * beforeinstallprompt 不触发、装桌面提示缺席，给一行轻提示
+         * 让接收方知道可以「浏览器打开更灵」。 */
+        try {
+          var _ua0 = navigator.userAgent || '';
+          if (/MicroMessenger|xhsdiscover|XHSAPP|discover\//i.test(_ua0) &&
+              (window.__shareFromView || window.__landingFrom)) {
+            setTimeout(function () {
+              showToast('在' +
+                (/MicroMessenger/i.test(_ua0) ? '微信' : '小红书') +
+                '里存图/分享不灵的话，点右上 ··· 用浏览器打开更灵～',
+                'info');
+            }, 1600);
+          }
+        } catch (eUA) {}
         if (_vpRaw !== _vp) {
           /* R2348（R66-P2）：别名落地后地址栏还挂 ?view=daily 残留——
            * 规整到目标视图的规范 URL。 */
@@ -10006,6 +10171,23 @@ function init() {
               if (_bd) _bd.open = true;
             }
           }, 300);
+        } else {
+          /* R2350b（R99-P2）：分享/邀请参数落地后剥掉——转抄地址栏
+           * 不把原作者昵称和生辰带进下一跳；view/date 保留（F5/转抄
+           * 仍指向同一视图同一张卡）。别名分支在上面已规整过。 */
+          try {
+            var _qs2 = new URLSearchParams(location.search);
+            var _dirty = false;
+            ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
+             'ag'].forEach(function (_k) {
+              if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
+            });
+            if (_dirty) {
+              var _q2 = _qs2.toString();
+              history.replaceState({ view: _vp }, '',
+                location.pathname + (_q2 ? '?' + _q2 : ''));
+            }
+          } catch (eSP) {}
         }
       } else if (_vp !== 'home' || _badPath) {
         showToast('这个入口不存在，先带你回首页', 'info');
@@ -10067,9 +10249,7 @@ if (document.readyState === 'loading') {
         };
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
-        var _who = window.__shareBy || '';
-        try { if (!_who) _who = sessionStorage.getItem('shareBy') || ''; }
-        catch (eW) {}
+        var _who = _shareByName();
         var _rt = (_relay[_sv] || '朋友在晒她的运势——来测测你的 ✨');
         if (_who) _rt = _rt.replace(/^朋友/, _who);
         setTimeout(function () { showToast(_rt, 'ok'); }, 800);
@@ -10113,9 +10293,7 @@ if (document.readyState === 'loading') {
         birth: '朋友翻了她的本命盘——你的底色也翻一张 🌙',
         hehun: '朋友约你合婚——点「八字合婚」测你俩的合拍度 💕',
       };
-      var _who2 = window.__shareBy || '';
-      try { if (!_who2) _who2 = sessionStorage.getItem('shareBy') || ''; }
-      catch (eW2) {}
+      var _who2 = _shareByName();
       _txtEl.textContent = ((_relayBar[_sv2] ||
         '朋友在晒她的运势，来测测你的——点一张卡就能开始 ✨')
         .replace(/^朋友/, _who2 || '朋友'));
@@ -11689,6 +11867,9 @@ function humanCite(citation) {
        * 「TLS 本」无碍是因为 TLS 是字母；统一去掉。 */
       w: 'W', j: 'J' }[t.toLowerCase()] || t) + '本';
   });
+  /* R2350b（R98-P2-14）：引注尾巴残留的分段标记「 ! 」清掉
+   * （实测「卦45（萃） ! · 經」直贴屏）。 */
+  s = s.replace(/\s*!\s*/g, ' ');
   s = s.replace(/\s{2,}/g, ' ');
   return s.trim();
 }
