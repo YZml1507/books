@@ -278,6 +278,9 @@ class QimingRequest(BaseModel):
     day: int = Field(..., description="日 1-31")
     hour: int = Field(..., description="时 0-23")
     gender: str = "男"
+    # R2349s（R84-P1-12）：时辰留空时前端补 12 并置 False——不再静默按
+    # 固定时辰排。旧客户端不传 → 默认 True 兼容。
+    hour_known: bool = True
     # R228j：top_n 此前无界（文档面只写了建议范围），大值让响应膨胀；
     # style 无枚举校验——拼错的值静默按 all 出结果，用户以为没生效。
     top_n: int = Field(20, ge=1, le=50)
@@ -287,8 +290,12 @@ class QimingRequest(BaseModel):
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):
             raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
-        if not self.surname or len(self.surname) != 1:
-            raise ValidationError("姓氏需为单字")
+        # R2349s（R84-P2-15）：复姓（欧阳/司马…）此前被「单字」拒掉，
+        # 而 " " 空格却恰好过 len==1 校验产出名带前导空格。先 strip 再
+        # 放 1-2 字。
+        self.surname = strip_zw((self.surname or "").strip())
+        if not self.surname or len(self.surname) > 2:
+            raise ValidationError("姓氏填 1-2 个字就行（复姓也支持）")
         # R228j：style 枚举——非法值不许静默当 all
         if self.style not in ("all", "classics", "chuci", "fresh"):
             raise ValidationError("这个风格还没有，换综合/诗经/楚辞/清新试试")
@@ -404,11 +411,15 @@ class HehunRequest(BaseModel):
     a_day: int = Field(..., description="甲 日 1-31")
     a_hour: int = Field(..., description="甲 时 0-23")
     a_gender: str = "男"
+    # R2349s（R84-P1-12）：时辰不详侧前端补 12 + 置 False——不再静默
+    # 按 10 点排盘参与判定。
+    a_hour_known: bool = True
     b_year: int = Field(..., description="乙 公历年")
     b_month: int = Field(..., description="乙 月 1-12")
     b_day: int = Field(..., description="乙 日 1-31")
     b_hour: int = Field(..., description="乙 时 0-23")
     b_gender: str = "女"
+    b_hour_known: bool = True
     # R230z（R36-P1-2）：双方昵称（可空）——结果卡/海报/历史记录/存这对
     # 全部以「小鱼 × 阿哲」呈现，不再是冷冰冰的甲/乙。
     a_name: str | None = Field(None, max_length=16, description="甲昵称，可空")

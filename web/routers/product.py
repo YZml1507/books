@@ -29,6 +29,8 @@ def daily(date: str | None = None,
 # R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
 # ——widget 是嵌入部件预留面、share 是分享卡数据面（JS 侧走本地海报渲染）、
 # fortune 是外部资讯预留。selftest 断言钉着契约，不是僵尸端点。
+# R2349s（R85-P1-5）：R208b 删 news 面板后 /api/external/news 同样
+# 前端零调用，一并登记（仅 probe_contract 作网络用例覆盖）。
 @router.get("/api/widget")
 def widget() -> dict:
     """首页功能卡片数据：各模块图标/标题/描述 + 最近使用标记。"""
@@ -79,5 +81,5 @@ def external_news() -> dict:
 
 @router.get("/api/external/fortune")
 def external_fortune() -> dict:
-    """外部资讯的运势风格包装（每日运势卡片的外部资讯部分）。"""
+    """外部资讯的运势风格包装（预留面——daily 未接入，前端零调用，R85-P2-8 登记）。"""
     return services.external_fortune()

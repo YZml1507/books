@@ -1,4 +1,4 @@
-# 每次 push/PR 自动跑主闸门：web/selftest.py（190+ 项）+ 契约/静态探针。
+# 每次 push/PR 自动跑主闸门：web/selftest.py（268 项）+ 契约/静态探针。
 # 步骤与 Devin 环境蓝图（initialize 段）同源：装依赖 → 重建 corpus.db →
 # knowledge.db 种子 → 离线跑 selftest。新增依赖时两处同步改。
 name: selftest

@@ -9,7 +9,7 @@
     deps.py       路径解析（含 PyInstaller frozen 分支）+ 资源句柄
     schemas.py    输入形状与值域校验 → 抛业务异常
     services.py   编排 src/guji，返回纯 dict，不认识 HTTP
-    errors.py     业务异常 → 400/422/404 的唯一映射点
+    errors.py     业务异常 + 基建异常 → 400/422/404/503 的统一映射点
     routers/*.py  HTTP 绑定，按域拆分
     selftest.py   standing 自测（原 __main__ 那 912 行，断言逐条保留）
 

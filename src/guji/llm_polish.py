@@ -226,14 +226,14 @@ def polish(facts: list[str], question: str | None = None,
 _LEAK_PAT = re.compile(
     r"《[^》]{1,20}》|第\s*\d+\s*页|page\s*\d+|p\.\s*\d+", re.IGNORECASE)
 
-# R230a-6（R12-P1-3）：review/xhs 的 prompt 明令引《诗经》《楚辞》篇名——
+# R230a-6（R12-P1-3）：review 的 prompt 明令引《诗经》《楚辞》篇名——
 # 全表剥《》会把卖点销毁成断头句；这两路改用不含书名号段的变体。
 _LEAK_PAT_KEEP_BOOK = re.compile(
     r"第\s*\d+\s*页|page\s*\d+|p\.\s*\d+", re.IGNORECASE)
 
 # R230a-6（R12-P1-4）：输出侧禁语闸——与 _SYSTEM/_CHAT_SYSTEM 明令清单
 # 对齐（注定/孤独/没戏/必离/克… + 指令式措辞）。此前只有 chat 有一条
-# 偏窄的拦截表，polish/review/xhs 失守文本可原样落屏。命中 → 该次调用
+# 偏窄的拦截表，polish/review 失守文本可原样落屏。命中 → 该次调用
 # 按失败处理（重试/降级），不落历史不渲染。
 _BANNED_OUT_PAT = re.compile(
     r"注定|孤独|没戏|必离|相克|相刑|克夫|克妻|克你|克[他她它]|灾劫|大凶|劫数|"
@@ -261,7 +261,7 @@ def _is_loopback(url: str) -> bool:
 def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     """输出净化：去书名号引用外观、裁掉空段、剥离推理模型 thinking 泄漏。判据 6 的代码侧兜底。
 
-    keep_citations=True 保留《书名》段（起名点评/小红书文案的卖点就是出处）。
+    keep_citations=True 保留《书名》段（起名点评的卖点就是出处）。
     R230a-6（R12-P1-4）：禁语命中按失败处理（返回 None 交给调用方重试/降级）。"""
     if not text:
         return None
@@ -827,7 +827,7 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                banned_seen: list[bool] | None = None) -> str | None:
     """单次对话调用：复用 polish 的传输细节与重试语义。失败 None。
 
-    keep_citations=True 时输出保留《书名》引文（起名点评/小红书文案专用）。
+    keep_citations=True 时输出保留《书名》引文（起名点评专用）。
     deadline：调用方传入的总预算终点（monotonic），单次尝试按剩余窗口递减
     （R12-P2-4：主模型+dots 链共享同一预算，合计不超过前端轮询上限）。"""
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
@@ -899,8 +899,9 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
 
 
 # ── R213b：dots（小红书点点）模型接入 ──
-# 三用途：①小红书文案生成（海报标题/笔记文案）；②chat 失败时的备选大脑；
-# ③调研顾问（平台知识问答）。配置读 web/llm_config.json 的 "dots" 段；
+# 活用途：chat 失败时的备选大脑 + review_names 起名点评备选
+# （R2349s/R85-P1-3 复扫：xhs_copy 已于 R230t 删除、「调研顾问」无
+# 调用方）。配置读 web/llm_config.json 的 "dots" 段；
 # 缺失或 enabled=false → 全部 dots 功能静默关闭（与主 LLM 同一降级纪律）。
 
 def load_dots_config() -> dict | None:
@@ -1147,7 +1148,9 @@ def facts_taohua(t: dict, warm: dict | None = None,
     hits = "、".join(t.get("hit_pillars") or []) or "四柱均未临"
     hl_p = "、".join(t.get("hongluan_pillar") or []) or "未临柱"
     tx_p = "、".join(t.get("tianxi_pillar") or []) or "未临柱"
-    strength_warm = {"strong": "旺", "medium": "平", "weak": "慢热"}.get(
+    # R2349s（R84-P1-12）：taohua.py 的强度值是 "mid" 不是 "medium"——
+    # 此前 mid 落不进映射，英文原值直接喂给 AI facts。
+    strength_warm = {"strong": "旺", "mid": "平", "weak": "慢热"}.get(
         t.get("strength"), t.get("strength", ""))
     facts = [
         # R191b（B-016 同型补齐）：桃花解读天然依赖性别，必须显式给

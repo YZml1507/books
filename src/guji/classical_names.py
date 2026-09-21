@@ -52,10 +52,12 @@ def _pick_n(seq, n, *salt):
 
 
 # ---------------------------------------------------------------------------
-# R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`）：典故库自带的性别
-# 倾向表。`qiming.py` 的 FEMININE_CHARS/MASCULINE_CHARS 服务于它自己那套候选池，
-# 与本模块 R217a 另建的 75 字典故库是两套独立词汇，交集为 0 → 女性加分从未
-# 触发。这里按目标用户（15-25 岁年轻女性）标尺对典故库 75 字逐字归类。
+# R225b（审查轨 R222a 抓到 `典故库 ∩ FEMININE_CHARS = 0`，写作时属实）：
+# 典故库自带的性别倾向表。`qiming.py` 的 FEMININE_CHARS/MASCULINE_CHARS 服务于
+# 它自己那套候选池——本表按目标用户（15-25 岁年轻女性）标尺对本模块典故库
+# 逐字归类。R2349s 复扫（R85-P1-2）：典故库已扩到 156 字，与 qiming 两表交集
+# 现为 ∩FEM={瑶,铃}、∩MASC={坚,松,柏,沛,渊}——交集 0 的原始断言已过期，
+# 两套表并存仍各司其职（这边只管典故库）。
 #
 # 判定标尺：好念、好写、寓意正向、有质感但不做作。
 # ---------------------------------------------------------------------------
@@ -290,7 +292,11 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             pool.append((elem, entry))
 
     # v3：风格过滤后池子不足一批 → 放宽为全量重建（保证用户一定拿到名字）
+    # R2349s（R84-P1-6）：放宽直接把风格层整个稀释（实测 classics 档
+    # 与 all 全同序）——改「风格命中排前、全量池垫底」，切风格永远
+    # 先看到风格字，批次仍由全量兜满。
     if len(pool) < max(int(top_n), 1) and style not in ("all", "", None):
+        _rest: list[tuple[str, dict]] = []
         for elem in missing:
             for entry in _CLASSICAL_DB.get(elem, []):
                 char = entry.get("字", "")
@@ -300,7 +306,10 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     continue
                 if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
                     continue
-                pool.append((elem, entry))
+                _rest.append((elem, entry))
+        # 风格命中的置顶（保序），未命中的垫后（保序去重留交下层）。
+        _rest.sort(key=lambda p: 0 if _entry_match_style(p[1], style) else 1)
+        pool = pool + _rest
 
     # 同字去重（不同缺行可能命中同一个字，合并后会重复上屏）
     _seen_chars: set[str] = set()
@@ -317,9 +326,16 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
     # 「陵/粮/顺/敦/厚/振」这类明显男性向的字。改为**先按性别把池分成
     # 契合层 + 中性层，契合层优先**，层内再洗牌分段——既保留"换一批不重复"
     # 的轮次语义，又让性别倾向真正生效。
+    # R2349s（R84-P1-6）：风格命中字额外加权——否则下游按契合分排序/
+    # 分层时又把风格池与非风格池重新搅匀，chip 变白切。
+    def _eff_score(entry: dict) -> int:
+        s = _score_entry(entry)
+        if style not in ("all", "", None) and _entry_match_style(entry, style):
+            s += 10
+        return s
     if pool:
-        _fit = [p for p in pool if _score_entry(p[1]) >= 3]
-        _neutral = [p for p in pool if _score_entry(p[1]) < 3]
+        _fit = [p for p in pool if _eff_score(p[1]) >= 3]
+        _neutral = [p for p in pool if _eff_score(p[1]) < 3]
     else:
         _fit, _neutral = [], []
 
@@ -337,7 +353,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         selected_pairs = _shuffled[_start:_start + _step] or _shuffled[:_step]
     else:
         selected_pairs = sorted(
-            pool, key=lambda p: _score_entry(p[1]), reverse=True)[:_step]
+            pool, key=lambda p: _eff_score(p[1]), reverse=True)[:_step]
 
     for elem, entry in selected_pairs:
         given = entry.get("字", "")

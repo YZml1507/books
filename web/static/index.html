@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="description" content="小满的解忧铺——黄历择日、八字排盘、塔罗占卜，古籍佐证，温柔解读。">
 <meta property="og:title" content="小满的解忧铺">
-<meta property="og:description" content="黄历择日 · 八字排盘 · 塔罗占卜 · 古籍佐证">
+<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">
 <meta property="og:type" content="website">
 <!-- R229d：链接分享卡——此前 og 无图，微信/iMessage/Twitter 展开只有文字。 -->
 <meta property="og:image" content="/static/shared/og-card.jpg">
@@ -14,7 +14,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="小满的解忧铺">
-<meta name="twitter:description" content="黄历择日 · 八字排盘 · 塔罗占卜 · 古籍佐证">
+<meta name="twitter:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">
 <meta name="twitter:image" content="/static/shared/og-card.jpg">
 <!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
 <meta name="theme-color" content="#FFF8E7">
@@ -583,7 +583,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="qm_day">日</label>
           <input id="qm_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="qm_hour">时辰</label>
-          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" value="12"></div>
+          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
         <div class="field"><label for="qm_gender">性别</label>
             <select id="qm_gender"><option>女</option><option>男</option></select></div>
       </div>
@@ -606,7 +606,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="th_day">日</label>
           <input id="th_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="th_hour">时辰</label>
-          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
+          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
         <div class="field"><label for="th_gender">性别</label>
             <select id="th_gender"><option>女</option><option>男</option></select></div>
       </div>
@@ -658,7 +658,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="hh_a_day">我的出生日</label>
           <input id="hh_a_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="hh_a_hour">我的时辰</label>
-          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
+          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
         <div class="field"><label for="hh_a_gender">我的性别</label>
             <!-- R231d（R37-F12）：甲侧=我，默认女——与主受众一致 -->
             <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
@@ -674,7 +674,7 @@ if ('serviceWorker' in navigator) {
         <div class="field"><label for="hh_b_day">TA 的出生日</label>
           <input id="hh_b_day" type="number" inputmode="numeric" min="1" max="31" value="20"></div>
         <div class="field"><label for="hh_b_hour">TA 的时辰</label>
-          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" value="14"></div>
+          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
         <div class="field"><label for="hh_b_gender">TA 的性别</label>
           <!-- R231d（R37-F12）：乙侧=TA，默认男 -->
           <select id="hh_b_gender"><option>男</option><option>女</option></select></div>

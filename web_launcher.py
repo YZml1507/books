@@ -188,6 +188,9 @@ def _monitor(server, alive_fn=_server_alive, stop_fn=_server_stop) -> int:
     退出」且「无浏览器连接持续 GRACE 秒」才判定浏览器已关闭，随后终止
     server 并返回 0。非浏览器连接（健康检查/探测脚本）不参与判定、不重置
     计时——否则一个残留探测连接会让服务永不关闭。
+    另两条退出路径（R2349s/R85-P2-15 补登记）：saw_any——非白名单客户端
+    连过又断开也关服（R229x）；NEVER_SEEN_GRACE=600——从未有连接时的兜底
+    超时。
 
     server 兼容两种类型：
       * subprocess.Popen（非 frozen 模式：子进程 uvicorn）

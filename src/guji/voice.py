@@ -937,7 +937,7 @@ def warm_tarot(cards: list[dict], interpretation: dict,
 # D-002：牌义关键词 → 具体指引映射。
 # R233u（R53-P0-3）：键必须与牌面首关键词（kw0）双向对齐——旧表 33 键
 # 里 23 个永远不可达、69 个可达 kw0 只有 10 个有指引，88% 走兜底复读。
-# 现全表 69 键 = DECK 全部 kw0，probes 里有覆盖闸钉着。
+# 现全表 77 键 = DECK 全部 kw0，selftest（web/selftest.py 判据）里有覆盖闸钉着。
 _TAROT_KW_GUIDANCE = {
     "调和": "你需要找到平衡，别走极端",
     "丰饶": "身边已经有值得珍惜的人/事了，别视而不见",
@@ -1099,21 +1099,15 @@ def warm_taohua(t: dict) -> dict:
     _tb = COPY_BANK.get("taohua") or {}
     if _tb:
         _band = "强" if "偏快" in strength else "弱" if "慢热" in strength else "中"
-        _pool = (_tb.get("one_liners") or [])
-        # 按强度过滤：强→满格/爆棚类，弱→独美/待激活类，中→平稳类
-        if _band == "强":
-            _filtered = [l for l in _pool if any(k in l for k in ["满格", "爆棚", "外挂", "焦点", "满开"])]
-        elif _band == "弱":
-            _filtered = [l for l in _pool if any(k in l for k in ["独美", "待激活", "慢热", "蓄力", "充电"])]
-        else:
-            _filtered = [l for l in _pool if any(k in l for k in ["平稳", "适中", "刚刚好"])]
-        # R233j（R46-P0）：①盐加日期——同一用户逐日换句（tailHook 说
-        # 「每天都在动」不能是空话）；②band 池 <3 条时放宽到全池，
-        # 让 16 条 all reachable（强档此前只剩 2 条可达）。
+        # R2349s（R84-P0-3）：one_liners 改为分档 dict——关键词过滤
+        # 强档只命中 2/16，旺盘实测抽到「待激活」弱档句同屏互搏。
+        # 现在每档 ≥4 条且永不错档；盐仍带日期逐日轮换。
         import datetime as _dt
         _today = _dt.date.today().isoformat()
-        _eff = _filtered if len(_filtered) >= 3 else _pool
-        l0 = _pick(_eff or _pool, t.get("year_zhi"), _today, "ol")
+        _ol = _tb.get("one_liners") or {}
+        _pool = (_ol.get(_band) if isinstance(_ol, dict)
+                 else _ol) or []
+        l0 = _pick(_pool, t.get("year_zhi"), _today, "ol")
         _band = ("强" if "偏快" in strength
                  else "弱" if "慢热" in strength else "中")
         lines: list[str] = [_pick((_tb.get("replies") or {}).get(_band) or [],
@@ -1121,7 +1115,12 @@ def warm_taohua(t: dict) -> dict:
         peach = t.get("peach_zhi") or ""
         yz = t.get("year_zhi") or ""
         if peach:
-            lines.append(f"你的魅力方位在「{peach}」——传统说法图个开心，"
+            # R2349s（R84-P2-18）：地支黑话翻译——与大运行的 ZHI_DIR
+            # 口径一致（「卯（兔·东）」）。
+            _pz = ZHI_ZODIAC.get(peach, "")
+            _pd = ZHI_DIR.get(peach, "")
+            _pt = f"{peach}（{_pz}·{_pd}）" if _pz and _pd else peach
+            lines.append(f"你的魅力方位在「{_pt}」——传统说法图个开心，"
                          f"方位不背锅，行动才管用。")
         # R230a-7（R13-P2-4）：copy_bank 分支此前丢了坐标事实行
         # （落柱/红鸾/天喜）——与 fallback 分支对齐，保住可核验性。
@@ -1130,6 +1129,11 @@ def warm_taohua(t: dict) -> dict:
         if _hits:
             lines.append(f"桃花就落在你自己的盘里（{'、'.join(_hits)}）——"
                          f"自带吸引力的类型。")
+        else:
+            # R2349s（R84-P1-7）：弱盘此前全篇没解释「弱在哪」——与
+            # fallback 分支对齐补盘理行。
+            lines.append("四柱都没直接临桃花——缘分走的是细水长流路线，"
+                         "熟人圈比陌生场合更容易遇到。")
         _hl = "、".join(_PILLAR_WARM.get(p, p)
                        for p in (t.get("hongluan_pillar") or []))
         _tx = "、".join(_PILLAR_WARM.get(p, p)
@@ -1165,7 +1169,9 @@ def warm_taohua(t: dict) -> dict:
                     # 定心丸话术，比含糊更准确也更治愈。
                     lines.append("你的天喜/红鸾应期偏晚——缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
                 else:
-                    lines.append(f"从{d0.get('year_start')}年起进入大运互动期——节奏上的参考，不是日程表。")
+                    # R2349s（R84-P1-8）：「互动期」是合婚术语串场——
+                    # 单人盘改「桃花运当班」口径。
+                    lines.append(f"从{d0.get('year_start')}年起桃花运当班——节奏上的参考，不是日程表。")
         # D-003：禁用免责套话「感情这事你的感受最重要」
         # 改为一句具体可操作的小建议（根据强度分支已在前面给过建议，这里不再重复）
         return _wrap(
@@ -1217,12 +1223,22 @@ def warm_taohua(t: dict) -> dict:
 def warm_hehun(h: dict) -> dict:
     """合婚人话视图。h = hehun.compute 的坐标 dict（web/services.hehun 返回）。"""
     h = h or {}
+    # R2349s（R84-P0-2）：开篇判词只看年支——日支（夫妻宫）六合/相冲
+    # 的盘仍被判「没有明显的合/冲」，与同屏日支行直接互搏。日支有
+    # 动静时如实带上。
+    _dz0 = h.get("day_zhi_rel") or ""
     if h.get("clash"):
         rel = "两年支六冲——传统上叫磨合型：不是不合，是相处需要多一轮理解"
     elif h.get("combine"):
         rel = "年支六合——传统上主生肖相合，相处起来比较顺"
     elif h.get("year_zhi_rel") == "半合":
         rel = "年支半合——不是最强的那种合，但有天然的三分顺意"
+    elif _dz0 == "合":
+        rel = "年支上动静不大，但日支（你们俩的夫妻宫）六合——传统合婚最看重的一支对上了"
+    elif _dz0 == "半合":
+        rel = "年支上动静不大，夫妻宫（日支）半合——相处里有天然的合拍"
+    elif _dz0 == "冲":
+        rel = "年支上动静不大，但日支（你们俩的夫妻宫）相冲——磕绊藏在日常里，把话说开比憋着强"
     else:
         rel = "盘面上没有明显的冲也没有明显的合——关系的样子更多靠你们自己写"
     l0 = ("磨合型组合" if h.get("clash")
@@ -1243,7 +1259,10 @@ def warm_hehun(h: dict) -> dict:
                       "越处越合拍的一对", "默契度拉满的一对", "互补型神仙搭档",
                       "甜而不腻的组合", "这俩是真配", "双向奔赴型选手",
                       "久处不厌预备役"}
-        if h.get("day_wx_sheng") and not h.get("clash"):
+        # R2349s（R84-P1-10）：强桶门槛此前只看年支 clash——日支冲
+        # （夫妻宫顶牛）的相生盘照样抽「锁死这对了」，日支冲一并禁强桶。
+        if h.get("day_wx_sheng") and not h.get("clash") \
+                and _dz0 != "冲":
             l0 = _pick(_hh_all, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
         else:
             _mid = [t for t in _hh_all if t not in _STRONG_CP] or ["细水长流搭子"]
@@ -1336,10 +1355,14 @@ def warm_hehun(h: dict) -> dict:
                         "合的是节奏不是命——这张表当参考，答案在你们手里。"],
                        "hehun-close", (h.get("a_bazi") or {}).get("day"),
                        (h.get("b_bazi") or {}).get("day")))
+    # R2349s（R84-P1-4）：收口免责句此前 append 后被 lines[:5] 裁掉——
+    # 信号越丰富的盘（最甜的那批）恰好丢免责声明。留固定席位：内容行
+    # 至多取 4 条 + 收口恒在。
+    _body, _close = lines[:-1][:4], lines[-1:]
     return _wrap(
         l0[:_L0_MAX],
         None,
-        lines[:5],
+        _body + _close,
         _render_details(h.get("render", "")),
         [],
     )
@@ -1364,14 +1387,26 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
         f"给{sn}家{kid}挑了 {len(names)} 个名字——都从古籍里来，"
         f"不是凭空造的。"]
     if miss:
-        lines.append(f"五行里 {'、'.join(miss)} 这一行比较薄——"
+        # R2349s（R84-P2-13）：量词随个数变——两行说「这一行」语法别扭。
+        _mq = "这一行" if len(miss) == 1 else "这几行"
+        lines.append(f"五行里 {'、'.join(miss)} {_mq}比较薄——"
                      f"名字里给它补一补，图个心里踏实。")
     elif weak:
-        lines.append(f"五行没缺，{'、'.join(weak)} 这一行偏弱——"
+        _wq = "这一行" if len(weak) == 1 else "这两行" if len(weak) == 2 else "这几行"
+        lines.append(f"五行没缺，{'、'.join(weak)} {_wq}偏弱——"
                      f"挑字的时候往这个方向偏了偏。")
     else:
         lines.append("五行挺匀的——挑名就只管好听、有出处。")
-    _top = names[0] if names else {}
+    # R2349s（R84-P2-17）：names[0] 是后端乱序首位，而前端按 _qmScore
+    # 重排——点名的可能不是屏上「⭐首选」。后端没有 score 字段，对齐
+    # 前端评分主维度：命中的缺行/弱行数 + 双字加成 + 出处字数。
+    _want = set(miss or []) | set(weak or [])
+    def _nm_score(n):
+        _els = set(str(e) for e in (n.get("elements") or []))
+        return (len(_els & _want) * 16
+                + (6 if n.get("form") == "double" else 3)
+                + min(len(n.get("story") or "") // 20, 9))
+    _top = (max(names, key=_nm_score) if names else {})
     if _top.get("full_name"):
         _src = _top.get("origin") or "古籍"
         lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"

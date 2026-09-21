@@ -36,6 +36,6 @@ description: How to set up and drive end-to-end UI testing for 「小满的解�
 - Backend fact merge: `services.chat_huangli_facts` handles 明天/后天/大后天 offsets (+1/+2/+3) and emits `黄历判定` strings — verify in the mock request log.
 
 ## Known baselines (do NOT report as regressions)
-- `probe_ui_smoke` 43/43 全绿（`btn:huangli` 曾基线抖动，R228k 修 @import 后稳定 PASS——再挂是真回归）；`probe_dollar_misuse` PASS（154 函数 0 命中）。
-- `probe_contract`：382 读点、HARD=0，但因 SKIP=8（threads fixture 产不出非空 claims 列表）判 **INCONCLUSIVE**（exit 2）而非全绿——这是当前已知形态，R228r 已修 CONDITIONAL_FIELDS 方法前缀键失效的旧 FAIL。
+- `probe_ui_smoke` 75/75 全绿（`btn:huangli` 曾基线抖动，R228k 修 @import 后稳定 PASS——再挂是真回归）；`probe_dollar_misuse` PASS（240 函数 0 命中）。
+- `probe_contract`：565 读点全钉扎，exit 0 **PASS**。SKIP 形态已清偿——出现 INCONCLUSIVE/FAIL 一律当回归上报。
 - Typed date prefixes in the huangli 问一嘴 input (明天/后天/大后天/昨天/前天) DO offset the judged day since commit 054f7e0 (`_hlDayOffset`): asking「明天适合出行吗」re-queries tomorrow and the verdict says「明天适合/不宜…」; a date-word-only question (「明天怎么样」) navigates to that day and writes a「明天主推…」note. If an older checkout lacks this, the symptom is: judged on displayed day with hardcoded「今天」wording. Chips and chat backend `_hl_day_part` offset the same way.

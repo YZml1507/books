@@ -340,14 +340,14 @@ KR1a0007 有序爻位搜索锁定了孔穎達的交叉引用而非真正爻辭�
 **注意循环风险**：用「跟随文本最接近底本爻辭」来选位置会让准确率指标自我印证。
 候选非循环判据：段落长度不应退化到该卦中位数的极小比例——此判据不查底本文本。
 
-### P1 Douay-Rheims 不支持
+### ~~P1 Douay-Rheims 不支持~~（已清偿——见上方快照 §tier 2/3，R85-P2-10 复核 douay.py 在列且 35787 段在索引）
 
-行首经文号仅 3 个，行内 35,905 个是互见。需段内编号解析器。
+行首经文号仅 3 个，行内 35,905 个是互见。需段内编号解析器。（历史记录保留）
 
-### P2 tier 2/3 七部书未建索引
+### ~~P2 tier 2/3 七部书未建索引~~（已清偿——R85-P2-10 复核 corpus.db 七书全在索引）
 
 Plato（Stephanus）、Shakespeare（幕/场）、Euclid（卷/命题）、Darwin、Herodotus、
-Iliad 两译本。已落盘 + manifest（`data/catalog/generality_manifest.json`），
+Iliad 两译本。（历史记录保留）已落盘 + manifest（`data/catalog/generality_manifest.json`），
 但 `bcv` 之外的 scheme 解析器都没写。**「系统通用」目前只能说到两种体系。**
 
 ### P2 KR1a0006 卦19 缺文、卦61 损坏未在索引中标记

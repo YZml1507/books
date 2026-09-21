@@ -5,8 +5,8 @@
 
 为什么独立成文件：自测塞在 `app.py` 的 `__main__` 里，等于把 912 行测试
 代码压在 2277 行文件的尾部——`app.py` 的行数里 40% 是测试，谁读都先被
-它挡住。分离后 `app.py` 是 76 行的应用工厂，本文件是唯一的 web 层测试
-入口，`docs/PHASE.md` 闸门 2 直接指向它。
+它挡住。分离后 `app.py` 是纯应用工厂（现 189 行），本文件是唯一的 web
+层测试入口，`docs/PHASE.md` 闸门 2 直接指向它。
 
 断言纪律（R178b 重构时逐条搬迁，不放宽）：
   * 每条 check/断言的**名字、固定输入、期望值**与重构前逐字一致。
@@ -1056,6 +1056,51 @@ def _run_inner() -> list[str]:
                                                 "a_day": 15, "a_hour": 10,
                                                 "b_year": 1992, "b_month": 8,
                                                 "b_day": 20, "b_hour": 14}))
+    # R2349s（R84-P0-1/P1-5）：未成年与同盘两道人话闸 standing 覆盖。
+    _expect_400("err.hehun.minor",
+                client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                "a_day": 15, "a_hour": 10,
+                                                "b_year": 2018, "b_month": 8,
+                                                "b_day": 20, "b_hour": 14}))
+    _expect_400("err.hehun.same_person",
+                client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
+                                                "a_day": 15, "a_hour": 10,
+                                                "a_gender": "女",
+                                                "b_year": 1990, "b_month": 5,
+                                                "b_day": 15, "b_hour": 10,
+                                                "b_gender": "女"}))
+    # R2349s（R84-P1-12）：时辰不详标志——三域暖句首部明示。
+    check("hehun.hour_unknown_note", client.post("/api/hehun", json={
+          "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+          "a_gender": "男", "b_year": 1992, "b_month": 8, "b_day": 20,
+          "b_hour": 12, "b_hour_known": False, "b_gender": "女"}),
+          lambda j: "时辰没填" in "".join((j.get("warm") or {}).get("reply") or []))
+    check("taohua.hour_unknown_note", client.post("/api/taohua", json={
+          "year": 1998, "month": 7, "day": 20, "hour": 12,
+          "hour_known": False, "gender": "女"}),
+          lambda j: "没填时辰" in "".join((j.get("warm") or {}).get("reply") or []))
+    check("qiming.hour_unknown_note", client.post("/api/qiming", json={
+          "surname": "李", "year": 2020, "month": 5, "day": 1,
+          "hour": 12, "hour_known": False, "gender": "女"}),
+          lambda j: "没填时辰" in "".join((j.get("warm") or {}).get("reply") or []))
+    # R2349s（R84-P0-2/P1-4）：日支六合的盘开篇判词不再说「没有明显的
+    # 合」；收口免责句在最甜的盘上也不被截断。
+    # 日支酉×辰六合盘（实测定位）：开篇判词不再说「没有明显的合」；
+    # 收口免责句在信号丰富的盘上不被截断。
+    check("hehun.rel_dayzhi", client.post("/api/hehun", json={
+          "a_year": 1996, "a_month": 3, "a_day": 1, "a_hour": 10,
+          "a_gender": "男", "b_year": 1996, "b_month": 3, "b_day": 8,
+          "b_hour": 14, "b_gender": "女"}),
+          lambda j: (j.get("day_zhi_rel") == "合"
+                     and "没有明显的合" not in (j.get("warm") or {})
+                     .get("reply", [""])[0]))
+    check("hehun.close_survives", client.post("/api/hehun", json={
+          "a_year": 1996, "a_month": 3, "a_day": 1, "a_hour": 10,
+          "a_gender": "男", "b_year": 1996, "b_month": 3, "b_day": 8,
+          "b_hour": 14, "b_gender": "女"}),
+          lambda j: any(("合格证" in l or "一起写出来" in l
+                         or "在你们手里" in l)
+                        for l in (j.get("warm") or {}).get("reply") or []))
     # R150b（D-196b）：hehun 乙侧 b_year/b_month/b_day 三条 400 校验分支
     # standing 覆盖——甲侧先抛 400 时乙侧代码路径从未执行。
     _expect_400("err.hehun.b_year",
@@ -1267,8 +1312,14 @@ def _run_inner() -> list[str]:
                                                "scope": "range",
                                                "range_start": "2026-01-01",
                                                "range_end": "2026-03-15"}))
+    # R2349s（R84-P2-15）：姓氏放宽到 1-2 字（复姓合法）——非法输入
+    # 改三字符断言 400。
     _expect_400("err.qiming.surname",
-                client.post("/api/qiming", json={"surname": "张伟",
+                client.post("/api/qiming", json={"surname": "张伟伟",
+                                                 "year": 1990, "month": 5,
+                                                 "day": 15, "hour": 10}))
+    _expect_400("err.qiming.surname_blank",
+                client.post("/api/qiming", json={"surname": " ",
                                                  "year": 1990, "month": 5,
                                                  "day": 15, "hour": 10}))
     # R140b（D-186b）：qiming gender/year 两条 400 校验分支 standing 覆盖。
@@ -1293,8 +1344,11 @@ def _run_inner() -> list[str]:
                 client.post("/api/qiming", json={"surname": "李", "year": 1990,
                                                  "month": 5, "day": 15,
                                                  "hour": 24, "gender": "男"}))
-    # R152b（D-198b）：qiming 计算失败分支（name_candidates 抛异常→400）
-    # standing 覆盖。实测 month=2/day=30（不存在的日期）→ 400。
+    # R152b（D-198b）：qiming 计算失败分支（排盘异常→400）standing 覆盖。
+    # 实测 month=2/day=30（不存在的日期）→ 400。
+    # R2349s（R85-P2-4 归因修正）：活路径走 services.py →
+    # classical_names.generate_classical_names；qiming.name_candidates 除自身
+    # __main__ 外零调用，是事实死引擎（待删/待标，本批不动）。
     _expect_400("err.qiming.calc_fail",
                 client.post("/api/qiming", json={"surname": "李", "year": 1990,
                                                  "month": 2, "day": 30,

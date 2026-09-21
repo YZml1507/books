@@ -8,6 +8,11 @@ taohua / hehun 里被复制三遍，措辞漂移就是 R000a-04 那类契约漂�
     ComputeError     -> 422   合法参数但计算失败（如 1990-02-30 排盘）
     NotFoundError    -> 404   资源不存在（历史记录 / 研究线程）
 
+此外 install() 还挂了五个基建映射（R2349s/R85-P2-5 补登记）：
+    sqlite3.DatabaseError / OSError -> 503   存储层故障（可恢复口径）
+    StarletteHTTPException -> 404 中文 detail / RequestValidationError -> 422 中文化
+    OverflowError -> 400   int64 溢出护栏
+
 响应体形状与重构前逐字一致：`{"detail": "<中文报错>"}`——web selftest 的
 err.* 断言逐条依赖这些状态码与消息，改形状即改契约。
 """

@@ -305,6 +305,12 @@ def taohua(req) -> dict:
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
     # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     warm = voice.warm_taohua(t_dict)
+    # R2349s（R84-P1-12）：时辰未知明示——此前前端静默预填 10 点，
+    # 用户以为排的是真时辰。
+    if getattr(req, "hour_known", True) is False:
+        warm["reply"] = ["没填时辰——时柱这条按中午 12 点算的，"
+                         "桃花判定前三柱为主，大方向不变。"] + list(
+                             warm.get("reply") or [])
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_taohua(t_dict, warm, gender=req.gender))
@@ -348,6 +354,17 @@ def _hehun_score(h) -> int:
 def hehun(req) -> dict:
     """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
     req.validate_ranges()
+    # R2349s（R84-P0-1）：未成年边界——1900–2100 只验「是不是日期」，
+    # 实测 8 岁盘正常出「并肩作战型情侣」配对文案，敏感失守。
+    _now_y = datetime.now().year
+    if _now_y - req.a_year < 18 or _now_y - req.b_year < 18:
+        raise ValidationError(
+            "合婚是给成年人测的——这一位还没满 18 岁，长大点再来呀～")
+    # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
+    if ((req.a_year, req.a_month, req.a_day, req.a_hour, req.a_gender)
+            == (req.b_year, req.b_month, req.b_day, req.b_hour,
+                req.b_gender)):
+        raise ValidationError("两边填的是同一个人呀——换上 TA 的生辰再测～")
     try:
         ba = bazi_compute(req.a_year, req.a_month, req.a_day, req.a_hour,
                           req.a_gender)
@@ -386,6 +403,15 @@ def hehun(req) -> dict:
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
     # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
     warm = voice.warm_hehun(h_dict)
+    # R2349s（R84-P1-12）：时辰不详侧明示——此前前端静默预填 10 点，
+    # 「TA 的时辰」常被默认值冒充。
+    _unk = [("我" if req.a_hour_known is False else None),
+            ("TA" if req.b_hour_known is False else None)]
+    _unk = [s for s in _unk if s]
+    if _unk:
+        warm["reply"] = [f"{'和'.join(_unk)}的时辰没填——"
+                         "那侧按中午 12 点排的，日支/合婚主线不受影响。"
+                         ] + list(warm.get("reply") or [])
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_hehun(h_dict, warm,
@@ -444,6 +470,11 @@ def qiming(req) -> dict:
     # R233w（R53-P3-3）：起名补 warm 层——其余功能都有 warm.reply 多行，
     # 起名 LLM 挂了只剩裸名单。
     out["warm"] = voice.warm_qiming(out, req.surname, req.gender)
+    # R2349s（R84-P1-12）：时辰留空明示——不再静默按预填 12 点排。
+    if getattr(req, "hour_known", True) is False:
+        out["warm"]["reply"] = ["没填时辰——按中午 12 点排的盘，"
+                                "五行分布前三柱为准，名字照挑。"] + list(
+                                    out["warm"].get("reply") or [])
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_qiming(out, req.gender, warm=out["warm"]))
     out["ai_polish"] = ai_polish
@@ -1046,6 +1077,13 @@ def liuyao(req) -> dict:
         "cross_ref": _cross_ref_liuyao(ben.moving_lines,
                                         today_iso=getattr(req, "client_date", None)),
     }
+    # R2349s（R83-P0-1）：时间起卦同一天同时辰卦族高度集中（梅花公式
+    # 构造使然，60 天实测只出 8/64 卦）——如实披露并指铜钱路。
+    if req.method == "time":
+        _wr = out["warm"].get("reply")
+        if isinstance(_wr, list):
+            _wr.append("小提示：时间起卦的卦面跟着日时走，同一个时辰再摇"
+                       "容易是同族的卦——想要更随机的卦面，试试铜钱摇卦。")
     # R230z（R36-P1-1）：六爻进台账；摘要用问题或本卦名
     paipan_history.save_async(
         {"method": req.method, "seed": req.seed, "year": req.year,
@@ -1177,6 +1215,9 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     # R2349n（R77-P2-6）：「移徒」是异体字死词（词表统一为移徙）。
     "搬家": ["移徙", "入宅", "修造", "平整"],
     "挪窝": ["移徙"], "远行": ["出行"],
+    # R2349s（R85-P1-1）：神煞层独贡献词「归家」此前两条路径都不在——
+    # 聊天问「今天适合归家吗」退化成当日宜忌总表。补映射进出行系。
+    "归家": ["出行", "远行"],
     "装修": ["修造", "动土"], "动工": ["动土", "破土"],
     "开业": ["开市", "纳财"], "开张": ["开市"],
     "签约": ["立券", "纳财"], "合同": ["立券"],
@@ -1317,11 +1358,12 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "野餐": ["出行"], "断联": ["解除", "祈福"], "冷战": ["解除"],
 }
 
-# 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值两张
-# 通行规则表自动汇成（day_query 的 yi/ji 只出自这两张表），不另写死。
+# 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值
+# 通行规则表汇成；day_query 的 yi/ji 自 R233v 起还并入 shensha_yiji
+# 神煞层（370 天窗口里仅此层独贡献「归家/远行」两词——显式补上）。
 _HUANGLI_VOCAB: frozenset = frozenset(
-    w for d in (*huangli_mod.ZHIRI_YIJI.values(), *huangli_mod.XIUXIU_YIJI.values())
-    for w in (*d["yi"], *d["ji"]))
+    [w for d in (*huangli_mod.ZHIRI_YIJI.values(), *huangli_mod.XIUXIU_YIJI.values())
+     for w in (*d["yi"], *d["ji"])] + ["归家", "远行"])
 # R228m：frozenset 迭代序跨进程不稳定（PYTHONHASHSEED）——候选词表固定为
 # 「长词优先、同长字典序」的 tuple，同一消息在不同进程必选同一事项词。
 _HUANGLI_VOCAB_ORD: tuple = tuple(
@@ -3028,7 +3070,7 @@ def external_news() -> dict:
 
 
 def external_fortune() -> dict:
-    """外部资讯的运势风格包装（每日运势卡片的外部资讯部分）。"""
+    """外部资讯的运势风格包装（预留面——daily 未接入，前端零调用，R85-P2-8 登记）。"""
     if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
             "1", "on", "true", "yes"):
         return {"date": None, "ok": False, "items": [],
@@ -3125,10 +3167,28 @@ def _cross_ref_hehun(ba, bb, a_md: tuple = (), b_md: tuple = ()) -> dict:
         sb = sun_sign(*b_md) if len(b_md) == 2 else ""
         if not (sa and sb):
             return {}
+        # R2349s（R84-P1-11）：全宇宙 66 对异座组合只有 2 个模板——按
+        # 四象给差异化口径，同象/异象不同说法。
+        _ELEM = {"白羊": "火", "狮子": "火", "射手": "火",
+                 "金牛": "土", "处女": "土", "摩羯": "土",
+                 "双子": "风", "天秤": "风", "水瓶": "风",
+                 "巨蟹": "水", "天蝎": "水", "双鱼": "水"}
         if sa == sb:
-            tip = f"都是{sa}座，同款脾气——合得来的时候特别合，别较劲就行。"
+            _pool = [f"都是{sa}座，同款脾气——合得来的时候特别合，别较劲就行。",
+                     f"两个{sa}座照镜子——优点是翻倍的，毛病也是翻倍的。",
+                     "同座同频，很多话不用解释——偶尔也要给对方留点新鲜感。"]
+            tip = _pool[hash((a_md, b_md)) % len(_pool)]
+        elif _ELEM.get(sa) == _ELEM.get(sb):
+            tip = (f"{sa}座配{sb}座，同象（{_ELEM.get(sa)}象）同频——"
+                   "底层节奏天然合拍，剩下就看谁更有趣了。")
+        elif {_ELEM.get(sa), _ELEM.get(sb)} in ({"火", "风"}, {"土", "水"}):
+            tip = (f"{sa}座配{sb}座，风火相煽/土水相养的路数——"
+                   "能量是互相喂的，搭好了很旺。")
         else:
-            tip = f"{sa}座配{sb}座，节奏不一样反而互补，谁先开口谁占便宜。"
+            _pool = [f"{sa}座配{sb}座，节奏不一样反而互补，谁先开口谁占便宜。",
+                     f"{sa}座配{sb}座，一个快一个慢——慢的那个决定走多远。",
+                     f"{sa}座配{sb}座，频道不同但可以互译——愿意翻译就是爱。"]
+            tip = _pool[hash((a_md, b_md)) % len(_pool)]
         return {
             "zodiac_a": sa,
             "zodiac_b": sb,

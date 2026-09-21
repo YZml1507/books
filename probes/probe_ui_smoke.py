@@ -23,14 +23,11 @@ console 干净。所以容器内容必须**同时**排除失败文案（"失败"
 本轮新增行并复验回到基线，删不干净则整体判失败。
 
 **R132a（审查轨）两处重钉**：
-  * news.refresh（B-018）：原用例把「外网有新闻条目」当产品判据，本网络下
-    永远不可能全绿（curl 直连/代理均 000，同网 HN 200——环境问题，非代码
-    回归；git stash -u 干净 HEAD 复跑同一条 FAIL）。拆成两层：
-    (a) btn:news.refresh.endpoint —— 产品行为层，离线可判：点击后真的请求了
-        /api/external/news，容器出现合法终态（有条目**或**设计的「暂无新闻」
-        降级文案），零 console.error；
-    (b) env:news.content_reachable —— 外网内容层：可达时断言有条目并报数；
-        不可达时打印 SKIP 说明，**不再 FAIL**。用例不删除，只不再拿天气当闸门。
+  * news.panel_removed / news.retired_marker（B-018 → R208b → R2349s）：
+    原用例把「外网有新闻条目」当产品判据；R208b 删除 news 面板后，
+    这两条改为退役钉扎（R85-P1-6 复扫改名，断言体本就如此）：
+    (a) news.panel_removed —— newsRefresh/newsList DOM 零残留（反向钉扎）；
+    (b) news.retired_marker —— 恒真占位，语义=该功能已退役，防名字复活。
   * ai.polish 两用例（specs/006 T2.3，D-145a 只断行为不钉内部命名）：
     ai.block.renders_with_ai —— LLM 可用时排盘结果区出现 .ai-polish 区块且
     标注（AI 生成/仅供娱乐）常显；ai.block.separate_from_citations —— AI 区块
@@ -100,13 +97,13 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 
 # ---------------------------------------------------------------------------
 # 用例表：(名字, 视图, 按钮选择器, 结果容器选择器, 视图内先切的标签)
-# 覆盖 index.html 全部 15 个提交按钮 + 9 个 rtab + 3 个 rsec2 子标签。
+# 覆盖 index.html ~20 个动作按钮（部分刻意入 NO_CASE 豁免表）+ 9 个 rtab + 3 个 rsec2 子标签。
 # ---------------------------------------------------------------------------
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
-    # R132a（B-018）：news.refresh 从按钮用例表移出，重钉为两层判据——
-    # btn:news.refresh.endpoint（产品行为，离线可判）+ env:news.content_reachable
+    # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
+    # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
     # R122a：三个读书子标签的选择器**不再写死 data-rsec2 的值**，改为运行时
     # 从 DOM 读（见 discover_subtabs）。原因是 R120a/R179b 撞过一次协调事故：
@@ -1436,17 +1433,17 @@ def main() -> int:
 
                         # ── news 模块移除核验（R208b：用户裁决「今日关注」与产品气质
             # 割裂，面板已删；后端 /api/external/news 零改动）。原两层判据
-            # （btn:news.refresh.endpoint / env:news.content_reachable）改为
+            # （news.panel_removed / news.retired_marker）改为
             # 反向钉扎：DOM 确认面板不存在。用例名保留不删（只增不减口径）。
             errors.clear()
             goto_view("bazi")
             gone = page.evaluate(
                 "() => !document.getElementById('newsRefresh')"
                 " && !document.getElementById('newsList')")
-            results.append({"name": "btn:news.refresh.endpoint", "ok": gone,
+            results.append({"name": "news.panel_removed", "ok": gone,
                             "detail": ("R208b 面板已移除（反向钉扎）" if gone
                                        else "检测到 news 元素残留")})
-            results.append({"name": "env:news.content_reachable", "ok": True,
+            results.append({"name": "news.retired_marker", "ok": True,
                             "detail": "R208b 随面板一并退役"})
 
             # ── R229n（R6-#3）：422 pydantic 英文原文上屏钉扎——JS 直设

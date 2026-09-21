@@ -275,9 +275,9 @@ G7 `FAIL → PASS`、G8 `FAIL → PASS`、G9 `FAIL → PASS`。
 - **此前勘查结论"75 个不同书名"已被实测推翻**：`^(\S.+) Chapter (\d+)\s*$` 全量匹配实测 73 个 distinct 书名（1334 个章标题）。
 - **Vulgate 编号特性（已显式记录于 `probes/probe_bcv.py` 的 `DOUAY_EXPECTED_CONFLICTS=9`，不静默放宽闸门）**：Psalms 113 把 Protestant 诗篇 114+115 合并为一章，章内经文号 1-8 重置一次（8 个同-(C:V) 重复）；Proverbs 12:12 同一节号印两次，文本不同（1 个同-(C:V) 重复）。任何新增冲突都会变 FAIL。
 - **接入过程发现的真实缺陷（已修复）**：`search.at_address(gua, ...)` 原先只过滤 `WHERE u.addr1 = ?`，不带 `scheme` 过滤。Douay 接入后 `bcv` 单元的 `addr1=chapter` 与 卦号冲突：`at_address(99, None)` 把 Douay Psalms 99（bcv, addr1=99）误当"卦99"返回 5 段经文，导致 `eval_g7` 的 impossible-address 测试从 4/4 退到 3/4。**修复**：`at_address` 加 `AND u.scheme = 'zhouyi'` 过滤，eval_g7 恢复 4/4=100%，G7 = PASS。13 道闸门零回退。
-| U-07 | tier 2/3 七部书建索引 | **TODO** | Plato/Shakespeare/Euclid/Darwin/Herodotus/Iliad×2 已落盘未索引 | — |
+| U-07 | tier 2/3 七部书建索引 | DONE | corpus.db 实测七书全在索引（douay 35787 / shakespeare 6512 / plato 1325 / iliad-pope 1123 / iliad-but 1038 / herodotus 761 / euclid 646）——复勘见 §622 P-06 | — |
 
-**U-03 为何只是 PART**：解析器覆盖面仍不全（Douay 段内编号、tier 2/3 七书未做）。
+**U-03 为何只是 PART**：解析器覆盖面仍不全（Douay 段内编号）。tier 2/3 七书索引已完成（U-07 DONE）。
 但「系统通用」**现在可以说到三种**了：`zhouyi`（卦/爻）、`bcv`（卷/章/節）、
 `yilin`（本卦/之卦，4,096 单元，见 §17）。三种都装进同一组
 `(scheme, addr_name, addr1, addr2)` 列、**未改 schema**——这是 D-016 那次通用化的回报。
@@ -359,7 +359,7 @@ WEB 每一卷都写作 `Book 12 2 Kings`，于是 `2 Kings` 匹配到裸名 `kin
 | W-02 | 卦符普查 | DONE | KR3g0030 **62 个**（60 不同）· KR3g0015 **31 个**（24 不同）· 其余 0 |
 | W-03 | 爻辭逐字引用普查 | DONE | **6 部书共 31 处**;标记 易云 48 · 易曰 81（易云 46/48 集中在 KR3g0030） |
 | W-04 | 京氏易傳 编址可行性 | **PART** | LIS 12/62 → 逐符号 **59/62 = 95.2%**;但 3 处**符号/内容错配** → **应以卦名为主** |
-| W-05 | 焦氏易林 结构 | **TODO** | 邻接率仅 **3.4%**（237 对/219 不同），**不是矩阵**;真实版式待查 |
+| W-05 | 焦氏易林 结构 | DONE | 真实版式已查明：64×64=4096 单元矩阵（见 §622）|
 | W-06 | provenance 补齐 + 上游核验 | DONE | KR1a0001/0006/0007 曾无 provenance;补齐并**逐字节等于上游** |
 
 **W-04/W-05 的重要提醒**:我曾写下「60/62 卦名验证 100%」与「4,032 配对邻接率 96.8%」,
@@ -11922,3 +11922,48 @@ localStorage，倒计时改异步链。
 - P2-6 已在 R2349q 完成（买房/蹦极/打游戏/熬夜进词表）
 - 遗留观察项（不动作）：P2-9 降级锁语义注释不一致；
   P2-10 view-read 入口（与用户拍板项合并）
+
+## §R2349s — R83/84/85/86 四审合一收尾批（内容质量×分享物料×文档漂移）
+
+**审计源**：R83 确定性×新鲜度量化、R84 起名/合婚/桃花内容质量、
+R85 注释文档漂移复扫、R86 分享物料文案口吻（小红书口径专项）。
+
+### 内容质量（R84 落点）
+- 桃花强度并入日支参考系（XIANCHI 年支∪日支双锚），60 盘实测
+  弱39/中17/强4（此前恒 0 强盘）；判词改本命语气（不夸「今天」）。
+- 合婚：日支六合/半合/冲三级补进收口判定；strong 桶补 day_zhi_rel
+  ≠冲 闸；收口免责句从截断幸存（lines[:-1] 切身留尾）；同盘/未成年
+  双侧各返回 400 人话；时辰未填三端（桃花/起名/合婚双侧）声明
+  「前三柱为准」。
+- 起名：风格 chip 真起作用（典故库条目按 style 先排 + _eff_score
+  +10）；姓氏校验允许复姓拒空格；TOP1 推荐与 FE 评分口径镜像。
+- 星座 12 条目宫轮换池 ×2（24 条/维度，60 天不重样半径翻倍）。
+
+### 分享物料（R86 全清）
+- P0-1 合婚海报分数与卡面同源（match_score/99「合拍指数」），
+  撤掉前端另起炉灶的打分公式。
+- 截断引擎：_clauseCut 收「·」为子句边界 + 尾巴剥孤点；
+  wrapText3 「——」不可分 + 末行孤字回匀。
+- 术语墙全清：神煞→今日值日、冲煞→属相提醒人话、天干五合→
+  天干相合、推荐N→首选/备选、日主五行→五行底子+「越处越合拍」。
+- 签命名统一：daily 海报=「今日签」、checkin=「好运签」、
+  副题/承接文案同口径；ISO 日期全转「M月D日」中文式。
+- P1-7 别名视图 share 链死代码修复：归一化剥参前存内存，
+  welcomeBar/toast 按 daily/checkin/checkin-week/birth 给专属承接。
+- og:description 改成有点击钩子的版本；页脚 CTA「搜」→「甩链接」。
+
+### 文档漂移复扫（R85 全清）
+- P0-1 SKILL 基线改现值（75/240/566-PASS），删 INCONCLUSIVE 常态句
+  ——否则真回归会被当已知形态放行。
+- P1-1 「归家」补 _CHAT_SCENE_TERMS+HL_SCENE_ALIAS+_HUANGLI_VOCAB
+  三处（神煞层独贡献词，此前问「适合归家吗」退化为当日总表）。
+- 台账 U-07/W-05 改 DONE；handover.md 断掉的 ink/.cluster 回退
+  路径标废；errors.py 映射表补 8 handler 全口径；chatgpt草稿便签
+  归档 docs/；README/CI 注释闸门数同步现值；probe_ui_smoke 两条
+  news 断言改名（news.panel_removed/news.retired_marker）钉退役语义。
+
+### 闸门
+selftest 268 / contract 566（SOFT 45）/ ui_smoke 75 / date_parity
+68+41+251键 / llm_polish / check_poster 判据12/13/14 / first_screen /
+no_generated / scripts_importable / ruff E9,F —— 全绿。
+sw: books-shell-fe3d0e02cb8b（静态资产已 bump）。

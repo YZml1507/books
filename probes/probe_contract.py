@@ -1,6 +1,6 @@
 """probe_contract.py — 前后端字段名契约闸门（审查轨 R118a，D-127a）。
 
-**为什么存在**：`web/app.py --selftest` 有 130 条断言，全部是后端 TestClient
+**为什么存在**：后端自测（当时 `web/app.py --selftest` 130 条断言，现 `web/selftest.py` 268 条）全部是后端 TestClient
 断言——它们只检查*后端返回了什么*，从不检查*前端读了什么*。三处字段名漂移
 （`j.llm_out` / `j.items` / `j.addresses`）就是这么漏过 130 条断言的：后端返回
 `llm` / `records` / `evidence`，前端读另一个名字，结果区永远空白，而自测全绿。
