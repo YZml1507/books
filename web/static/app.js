@@ -4240,6 +4240,25 @@ async function loadDaily() {
      * R2349（R65-P2-5）：抽成函数——daily API 失败的 catch 兜底
      * 路径也调（横幅只依赖本地档案，离线生日不该缺席）。 */
     _renderBirthdayBanner();
+    /* R2349l.6（R73-P2-10）：节气横幅——交节日首页铺一条民俗提示，
+     * 24 节气每年 24 个天然内容节点；生日横幅优先，节气在其下。 */
+    var _tbar = el('dailyTerm');
+    if (j.term && j.term.name) {
+      if (!_tbar) {
+        _tbar = document.createElement('div');
+        _tbar.id = 'dailyTerm';
+        _tbar.className = 'daily-term';
+        _tbar.setAttribute('role', 'note');
+        var _ckb2 = el('dailyCheckin');
+        if (_ckb2 && _ckb2.parentNode) {
+          _ckb2.parentNode.insertBefore(_tbar, _ckb2);
+        }
+      }
+      _tbar.innerHTML = '🌾 今日节气·<strong>' + esc(j.term.name) + '</strong>' +
+        (j.term.time ? '（' + esc(j.term.time) + ' 交节）' : '') +
+        (j.term.tip ? '——' + esc(j.term.tip) : '');  // esc-reviewed
+      _tbar.hidden = false;
+    } else if (_tbar) { _tbar.hidden = true; }
     renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
     /* R39-P0-1：卡尾「明天预告」一行。 */
     var _tmrEl = el('dailyTomorrow');

@@ -1948,6 +1948,11 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
   background:var(--cta-grad); color:#fff; font-size:12.5px;
 }
 .daily-birthday-go:hover{filter:brightness(1.06);}
+.daily-term{
+  margin:10px 0 4px; padding:10px 14px; border-radius:var(--radius-sm,12px);
+  background:linear-gradient(135deg,#F0F7EC,#FBF6E8);
+  border:1px solid #D8E4C8; color:#5C7340; font-size:13.5px; line-height:1.7;
+}
 /* 合婚卡右上三钮：原 .fav-btn 绝对定位右偏移只算两枚，三枚互叠 */
 .hh-btns{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
 .hh-btns .fav-btn{position:static;}
@@ -2139,6 +2144,8 @@ html[data-theme="dark"]{--cta-grad:linear-gradient(135deg,#B85649,#A8445F);}
 /* R2349h（R69-P3-14）：生日横幅浅色卡在深底上跳色——半透明深底。 */
 html[data-theme="dark"] .daily-birthday{background:rgba(240,140,164,.10);
   border-color:#5A3A44; color:var(--text);}
+html[data-theme="dark"] .daily-term{background:rgba(160,190,120,.10);
+  border-color:#3F4A33; color:var(--text);}
 
 /* ── R2349j（R70 深色全视图复扫清零批）── */
 /* 原生控件随主题（select 下拉/日期框/滚动条） */

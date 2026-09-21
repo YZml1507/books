@@ -11711,3 +11711,14 @@ localStorage，倒计时改异步链。
   xzmSubmit/dailyWeekGo/xzResult——动态/委托/导航类，理由在表内）
 - selftest 260 断言覆盖 match_score/xzmatch×3/tarot.collection/moon 扫窗
 - sw 哈希 bump（c1c3c880509e）
+
+### R2349l.6 续：节气横幅 + warm 禁语修复（同日）
+
+- #10 节气仪式感：daily 响应增 `term` 键（交节日 → {name,time,tip}，
+  24 节气民俗一句池 _TERM_FOLK；三返回路径全 resident，降级={}）；
+  首页节气横幅 .daily-term（青绿调，深色有补丁），生日横幅优先
+- 修复 CI 红：voice.py 盐池里「往哪走还是你说了算」「还是你们说了算」
+  命中用户明令禁用的 你.{0,4}说了算 正则 → 改写；check_warm_voice 转绿
+- ui_smoke 两次 playwright 抖动（posterModal 拦截/compare tab 超时），
+  第三次 75/75 全绿——判定为时序抖动，非回归
+- sw 哈希 bump

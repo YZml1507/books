@@ -1548,6 +1548,49 @@ _MERCURY_RETRO: tuple[tuple[str, str], ...] = (
 )
 
 
+# R2349l（R73-P2-10）：节气民俗一句池——交节日的首页仪式感。
+_TERM_FOLK: dict[str, str] = {
+    "立春": "打春吃春饼，新一年的开头宜立个小愿望",
+    "雨水": "春雨贵如油——喝点热汤，养养脾气",
+    "惊蛰": "雷声起万物醒，适合把拖延的事翻出来动一动",
+    "春分": "昼夜平分——今天立个蛋讨个好彩头",
+    "清明": "踏青扫墓日，也适合把心里的事清一清",
+    "谷雨": "雨生百谷——春天最后一站，收住别贪凉",
+    "立夏": "立夏称人吃蛋——夏天来了，换个轻快作息",
+    "小满": "小满未满刚刚好——凡事留点余地就是圆满",
+    "芒种": "忙着收也忙着种——手上的事先收个尾",
+    "夏至": "一年最长的白天——吃个面，事情慢慢做",
+    "小暑": "小暑不算热，心先静下来就不燥",
+    "大暑": "一年最热的时候——冰的别贪，午觉要睡",
+    "立秋": "贴秋膘的日子——给身体补点好的",
+    "处暑": "暑气到此为止——换季的衣服可以翻出来了",
+    "白露": "露从今夜白——早晚添件衣",
+    "秋分": "昼夜又平分——收一半放一半，都挺好",
+    "寒露": "脚别露了——从今天开始保暖优先",
+    "霜降": "霜降吃柿子——甜的软的，养一养脾胃",
+    "立冬": "立冬进补日——吃点热的，冬天正式开场",
+    "小雪": "初雪将至——家里囤点暖的",
+    "大雪": "大雪腌肉季——适合囤东西也适合囤计划",
+    "冬至": "冬至大如年——吃饺子/汤圆，早点回家",
+    "小寒": "小寒胜大寒——最冷的日子更要把被子和心都捂热",
+    "大寒": "大寒到顶点，春就不远了——收尾迎新",
+}
+
+
+def _term_banner(d: date) -> dict:
+    """当日交节 → {name, time, tip}；非交节日返回 {}。"""
+    try:
+        from guji.bazi import TERM_LONGITUDE, term_time
+        for name in TERM_LONGITUDE:
+            t = term_time(d.year, name) + timedelta(hours=8)
+            if t.date() == d:
+                return {"name": name, "time": t.strftime("%H:%M"),
+                        "tip": _TERM_FOLK.get(name, "")}
+    except Exception:
+        pass
+    return {}
+
+
 def _year_gz(d: date) -> str:
     """R2349l（R73-P1-14）：流年干支——立春口径（子平法通行），
     立春前算上一岁。"""
@@ -2659,6 +2702,7 @@ def daily(date_str: str | None = None,
                       "festival": _festival_for(
                           _d0, _term_name_for(_d0)),
                       "moon": _moon_for(_d0),
+                      "term": _term_banner(_d0),
                       # R2349l：lucky/mercury 是 per-date 派生键——cv4
                       # 之前落库的旧缓存行没有它们，现算随包回。
                       "lucky": _c.get("lucky") or _lucky_for(_d0),
@@ -2730,6 +2774,7 @@ def daily(date_str: str | None = None,
             "lucky": _lucky_for(d),
             "mercury": _mercury_state(d),
             "moon": _moon_for(d),
+            "term": _term_banner(d),
             **({"personal": _personal} if _personal else {}),
         }
         with deps.knowledge() as kb:
@@ -2741,7 +2786,8 @@ def daily(date_str: str | None = None,
         return {"date": date_str, "level": "平", "summary": "今天的运势卡暂时没算出来，稍后再看看～",
                 "noble": "—", "do": "—", "dont": "—", "cached": False,
                 # R2349l：降级路径同构常驻键（契约探针）
-                "festival": [], "lucky": {}, "mercury": {}, "moon": {}}
+                "festival": [], "lucky": {}, "mercury": {}, "moon": {},
+                "term": {}}
 
 
 MODULES = (

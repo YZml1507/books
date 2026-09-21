@@ -405,7 +405,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         # （_d2 已在 357 行导过——同函数内重复 import 删一行）
         lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
                             "具体怎么走，还要看你自己的选择。",
-                            "盘里给这事留了位置——往哪走还是你说了算。",
+                            "盘里给这事留了位置——往哪走，看你心意。",
                             "这题盘里能接住，方向有了，步子你来定。"],
                            "bazi-hit", q, _d2.date.today().isoformat()))
     else:
@@ -1306,7 +1306,7 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
     lines.append(_pick(
         ["名字是参考，不是定数——家里人念着顺口最重要。",
          "好名字是祝福，不是枷锁——挑你们全家都喜欢的那个。",
-         "这些名字只是个开头——最后叫哪个，还是你们说了算。"],
+         "这些名字只是个开头——最后叫哪个，听你们全家的心意。"],
         "qm-close", sn, str(len(names))))
     return _wrap(
         (out.get("one_liner") or "古书里挑的名字")[:_L0_MAX],
