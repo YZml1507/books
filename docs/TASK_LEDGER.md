@@ -12046,3 +12046,16 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 ## R2349x — 占卜→古籍「去书库翻」闭环（R92-P1-4）
 
 - 深链复活后补最小闭环：所有 renderCiteTree 折叠树尾部加「📚 这些书都在书库里，去翻翻 →」按钮，点击 showView('read')——八字/六爻/起名等结果页的古籍引文从此可顺藤摸瓜进书库（此前只呈现零跳转）。
+
+## R2349y — 数据生命周期/导入导出审计清零（R95 全批）
+
+- **P1-1** R2349u 声称的「历史 GC 90→150 天」实际没落进 app.js（审计抓出的真回归）——两处 GC 窗口真改 150，我 + 对象的双列阵同口径。
+- **P1-2** 页内存 `_MEM_STORE`（无痕/禁存储兜底）此前 wipe 碰不到——清空路径补 `_MEM_STORE._m={}`。
+- **P1-3** 跨 tab 残留复活：A tab 清空后 B tab 本机数据还在。新增 `wipeAt` 墓碑——清完写时间戳，其他 tab 收 storage 事件自清 26 字段+_MEM_STORE+界面重渲。
+- **P2/P3 导入侧**：备份文件 >20MB 拒读（防冻结）；`version!==1` 拒收（不再静默半导入）；`checkinCeleb:`/`ret_tip` 收进白名单（导得出导不回修复）；日期后缀键尾段必须 `YYYY-MM-DD`（脏格不再入库）；`visits` 值须 CSV 日期形、`hlask` 须数组、`me*.n` 过 `_meNickClean`（脏昵称不再绕清洗）。
+- **P2/P3 导出侧**：台账禁用态不再整个中止——降级 `records:[]`+toast 明说；`me` 前缀收口为精确键（不再扫进未来 me* 键）；toast 补「含生辰昵称，存哪儿自己留心」。
+- **P2-9 后端**：`import_rows` 返回 `(written, skipped)`——伪造 type 不再改名落库、缺 ts 行不再捏造时间戳（重复导入会再造一份）；路由层回 `skipped` 计数。
+- **杂项**：非 dict records 元素前端先滤（不再 422 整体炸）；导入 toast 分口径「X 条记录 + Y 条收藏，Z 条类型不认识没导」；批量导入后 BroadcastChannel dirty（其他 tab 台账就地刷）；备份/清空口径写明不含古籍研究线程笔记（hint 文案）。
+- **探针修两处自身盲区**：备份夹具补 `version:1`（对齐真实导出格式）；hehun 用例显式填双方生辰（此前靠 wipe 没清干净的 HTML 默认值混过，wipe 修成无条件清后裸奔）。
+
+闸门：selftest 268 / contract 584（SOFT≈49）/ ui_smoke 75 / parity 68+41+251 / voice×14 字节一致 / ruff 零告警，全绿。

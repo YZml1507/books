@@ -405,28 +405,40 @@ def export_all() -> list[dict]:
     return out
 
 
-def import_rows(rows: list[dict]) -> int:
+def import_rows(rows: list[dict]) -> tuple[int, int]:
     """批量落库（追加式，去重靠 ts+name+type 三元组）；返回写入条数。
 
     防线：条数 ≤ KEEP_MAX、单行序列化 ≤256KB、字段截断到列上限、
     type 白名单——备份文件是用户可控输入，按不可信数据验。"""
     if not isinstance(rows, list) or not rows:
-        return 0
+        return 0, 0
     with _write_lock, contextlib.closing(_conn()) as c, c:
         written = 0
+        skipped = 0
         for r in rows[:KEEP_MAX]:
+            # R2349y（R95-P2-9/P3-5）：非 dict / 伪造 type（eviltype 曾被
+            # 静默改名落库为 bazi）/ 缺 ts（重复导入去重失效）一律跳过
+            # 并计数，不再改名换姓或捏造时间戳。
             if not isinstance(r, dict):
+                skipped += 1
                 continue
-            rtype = r.get("type") if r.get("type") in _VALID_TYPES else "bazi"
+            if r.get("type") not in _VALID_TYPES:
+                skipped += 1
+                continue
+            rtype = r["type"]
             try:
                 req_s = json.dumps(r.get("req") or {}, ensure_ascii=False)
                 res_s = json.dumps(r.get("result") or {}, ensure_ascii=False)
             except (TypeError, ValueError):
+                skipped += 1
                 continue
             if len(req_s) > 262144 or len(res_s) > 262144:
+                skipped += 1
                 continue
-            ts = str(r.get("ts") or "")[:32] or \
-                datetime.now().isoformat(timespec="seconds")
+            if not r.get("ts"):
+                skipped += 1
+                continue
+            ts = str(r.get("ts"))[:32]
             name = str(r.get("name") or "")[:200]
             question = str(r.get("question") or "")[:200] or None
             # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
@@ -434,6 +446,7 @@ def import_rows(rows: list[dict]) -> int:
                 "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
                 (ts, name, rtype)).fetchone()
             if dup:
+                skipped += 1
                 continue
             c.execute(
                 "INSERT INTO records(ts,name,question,req_json,result_json,"
@@ -444,7 +457,7 @@ def import_rows(rows: list[dict]) -> int:
             "DELETE FROM records WHERE id NOT IN "
             "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
             (KEEP_MAX,))
-    return written
+    return written, skipped
 
 
 def _csv_safe(v: str) -> str:

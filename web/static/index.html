@@ -809,6 +809,11 @@ try {
         <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
              两段式确认后清本机键+服务端台账。 -->
         <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
+        <!-- R2349y（R95-P2-7）：古籍研究线程的笔记在服务端 knowledge
+             库，不进备份也不被「忘掉」清——口径写明，别让用户以为全包了。 -->
+        <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
+          备份/清空只覆盖排盘台账与本机偏好——古籍研究笔记另算，不清不带。
+        </div>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
       <div id="historyDetail" class="ph-detail" hidden></div>

@@ -192,7 +192,8 @@ def paipan_history_import(req: PaipanImportRequest) -> dict:
     """R231a（R36-P3-3）：备份文件回灌——追加式去重落库。"""
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
-    return {"imported": paipan_history.import_rows(req.records)}
+    _w, _sk = paipan_history.import_rows(req.records)
+    return {"imported": _w, "skipped": _sk}
 
 
 @router.get("/api/paipan/history/{rid}")

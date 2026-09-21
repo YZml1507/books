@@ -9481,7 +9481,10 @@ function init() {
   /* R232a（R40-R1）：dailyRevealed/checkin GC 原来只挂在打卡点击里——
    * 只拆信封不打卡的用户键无限累积。启动时跑一次兜底。 */
   try {
-    var _gc0 = _isoShift(_lastDay, -90);
+    /* R2349y（R95-P1-1）：90 天窗口把「百日传说」连签档钉死在
+     * ≤91 天——放宽到 150（台账 R2349u 宣称的口径，那次提交漏带了
+     * app.js）。 */
+    var _gc0 = _isoShift(_lastDay, -150);
     for (var _gi = window.localStorage.length - 1; _gi >= 0; _gi--) {
       var _gk = window.localStorage.key(_gi);
       /* R2349（R65-P2-4）：checkinCeleb:N:YYYY-MM-DD 此前不在 GC——
@@ -9577,6 +9580,27 @@ function init() {
     if (e.key === THEME_KEY) { applyTheme(uiTheme()); }
     /* R232a（R40-R2）：生日档案跨 tab 同步——A tab 改了生日，
      * B tab 表单下次进页才跟太迟，就地重填未手改字段。 */
+    /* R2349y（R95-P1-3）：wipe 墓碑——A 整库清空后写入 wipeAt，
+     * B tab 收到后把无 data-me 标记的表单字段（含手输生日/邀请链
+     * 生辰）也清掉，并作废本 tab 的聊天会话态（sessionStorage 是
+     * tab 级，A 够不到 B 的，各自收到事件自清）。 */
+    if (e.key === 'wipeAt') {
+      ['year', 'month', 'day', 'hour', 'gender',
+       'b_year', 'b_month', 'b_day', 'b_hour', 'b_gender', 'b_nick',
+       'th_year', 'th_month', 'th_day', 'th_hour', 'th_gender',
+       'hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_hour',
+       'hh_a_gender', 'hh_a_name',
+       'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
+       'hh_b_gender', 'hh_b_name'].forEach(function (_fid) {
+        var _f = document.getElementById(_fid);
+        if (_f) { _f.value = ''; delete _f.dataset.me; delete _f.dataset.invite; }
+      });
+      try { _MEM_STORE._m = {}; } catch (eM2) {}
+      try { LAST_RESULT = {}; } catch (eLR) {}
+      try { _renderMeStrip(); } catch (eMS2) {}
+      try { renderCheckin(todayIso()); } catch (eRC2) {}
+      return;
+    }
     if (e.key === 'me' || e.key === 'me:partner') {
       /* R2349t（R87-P1-2e）：B tab 删掉档案（newValue=null）时本 tab
        * 不能走重填（早退后字段仍留旧生辰，再提交即复活）——
@@ -9592,6 +9616,10 @@ function init() {
           var _f = document.getElementById(_fid);
           if (_f && _f.dataset.me === '1') { _f.value = ''; delete _f.dataset.me; }
         });
+        /* R2349y（R95-P1-3）：字段清了但档案条/打卡面没重渲——
+         * B tab 会挂着已删档案直到刷新。 */
+        try { _renderMeStrip(); } catch (eMS) {}
+        try { renderCheckin(todayIso()); } catch (eRC) {}
       } else { _meFillAll(); }
     }
   });
@@ -10238,8 +10266,8 @@ function renderCheckin(dateKey) {
         /* R230j（R22-P3-2）：checkin:* 清理收口。
          * R230y（R36-P1-3）：连签是留客钩子——不再写今日删昨日，
          * 改为保留最近 90 天，超过才清。 */
-        var _cutoff = 'checkin:' + _isoShift(dateKey, -90);
-        var _cutoff2 = 'dailyRevealed:' + _isoShift(dateKey, -90);
+        var _cutoff = 'checkin:' + _isoShift(dateKey, -150);
+        var _cutoff2 = 'dailyRevealed:' + _isoShift(dateKey, -150);
         for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
           var _ck = window.localStorage.key(_ci);
           /* R39-P3-1：dailyRevealed:* 此前无 GC，每年 365 个废键——
@@ -11005,7 +11033,13 @@ function baziPersonaCard(j) {
     var _exj = document.getElementById('historyExportJson');
     if (_exj) _exj.addEventListener('click', async function () {
       try {
-        const j = await phFetch('/api/paipan/history/export_json');
+        /* R2349y（R95-P2-5）：台账禁用态下 export_json 404——此前整个
+         * 备份中止，连本机偏好都带不走。降级 records:[] 并明说。 */
+        var j;
+        var _noLedger = false;
+        try {
+          j = await phFetch('/api/paipan/history/export_json');
+        } catch (eEx) { j = { records: [] }; _noLedger = true; }
         var local = {};
         /* R39-P3-1：dailyRevealed/visits 收进备份白名单——换机不丢
          * 连拆记录与「第 N 次开铺」计数。 */
@@ -11013,18 +11047,20 @@ function baziPersonaCard(j) {
          * 换机后不再重见新手引导与安装提示。 */
         /* R2349t（R87-P1-3）：checkinCeleb 里程碑标记/ret_tip 也
          * 进备份——换机后庆典不重弹、提示不重见。 */
-        ['checkin:', 'dailyRevealed:', 'checkinCeleb:', 'me', 'me:partner',
-         'hlask', 'visits', 'welcomed', 'installTipDismissed', 'ret_tip']
-          .forEach(function (pref) {
-          try {
-            for (var i = 0; i < window.localStorage.length; i++) {
-              var k = window.localStorage.key(i);
-              if (k && (k === pref || k.indexOf(pref) === 0)) {
-                local[k] = window.localStorage.getItem(k);
-              }
-            }
-          } catch (e) {}
-        });
+        /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
+         * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
+        var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:'];
+        var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
+                      'installTipDismissed', 'ret_tip'];
+        for (var i = 0; i < window.localStorage.length; i++) {
+          var k = window.localStorage.key(i);
+          if (!k) continue;
+          var _hit = _EXACT.indexOf(k) >= 0 ||
+            _PREF.some(function (p) { return k.indexOf(p) === 0; });
+          if (_hit) {
+            try { local[k] = window.localStorage.getItem(k); } catch (e) {}
+          }
+        }
         [VOICE_KEY, THEME_KEY].forEach(function (k) {
           try {
             var v = window.localStorage.getItem(k);
@@ -11052,7 +11088,11 @@ function baziPersonaCard(j) {
           new Date().toLocaleDateString('sv') + '.json';
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
-        showToast('备份已下载：' + (j.records || []).length + ' 条记录 + 本机偏好', 'info');
+        /* R2349y（R95-P2-4）：备份含明文生辰/昵称/提问——
+         * toast 明说让用户存的时候留心。 */
+        showToast((_noLedger ? '台账没开，只备份了本机偏好'
+          : '备份已下载：' + (j.records || []).length + ' 条记录 + 本机偏好') +
+          '（含生辰昵称，存哪儿自己留心）', 'info');
       } catch (e) {
         showToast('备份失败：' + e.message, 'error');
       }
@@ -11097,14 +11137,26 @@ function baziPersonaCard(j) {
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
            * 在 sessionStorage——wipe 只扫 localStorage 时聊天数据全幸存。
            * 连同活跃会话快照一起清。 */
+          /* R2349y（R95-P2-2）：shareBy/shareBy:done 留着的是「发起人
+           * 昵称」——他人昵称属个人信息，一起清。 */
           var _sr = [];
           for (var j2 = 0; j2 < sessionStorage.length; j2++) {
             var sk = sessionStorage.key(j2);
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite)$/
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done)$/
                 .test(sk) || sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
           _sr.forEach(function (k) { sessionStorage.removeItem(k); });
         } catch (e) {}
+        /* R2349y（R95-P1-2）：sessionStorage 被禁时聊天 sid/记录落
+         * 页内存 _MEM_STORE——上面那轮遍历碰不到它，wipe 后同 tab
+         * 继续聊会接回服务端旧 sid（含昵称/生辰 facts）——「忘掉」
+         * 破洞。内存面一并清。 */
+        try { _MEM_STORE._m = {}; } catch (eM) {}
+        /* R2349y（R95-P2-2）：分享者昵称/邀请发起人/上次日签的
+         * 内存态同样要清。 */
+        try { window.__shareBy = ''; } catch (eSB) {}
+        try { window.__hhInviteBy = ''; } catch (eHI) {}
+        try { window.__lastDaily = null; } catch (eLD) {}
         /* R2349t（R87-P1-2）：wipe 复活封堵——只清存储键不够：
          * ① 各表单里已回填的生辰还在，任一点击就把档案写回；
          * ② LAST_RESULT/CHAT_LAST_FACTS 内存态还带已删上下文；
@@ -11118,9 +11170,18 @@ function baziPersonaCard(j) {
            'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
            'hh_b_gender', 'hh_b_name'].forEach(function (_fid) {
             var _f = document.getElementById(_fid);
-            if (_f && _f.dataset.me === '1') { _f.value = ''; delete _f.dataset.me; }
+            /* R2349y（R95-P2-3）：手输的生日（input 事件即删
+             * data-me 标记）、邀请链字段（data-invite）此前漏清——
+             * wipe 语义是「忘掉」全部个人字段，不是只清回填的。 */
+            if (_f) { _f.value = ''; delete _f.dataset.me; delete _f.dataset.invite; }
           });
         } catch (e2a) {}
+        /* R2349y（R95-P3-6）：聊天侧栏气泡同 tab 还挂着旧对话——
+         * 顺手清 DOM（存储已清，纯观感一致）。 */
+        try {
+          var _cf = document.getElementById('chatFlow');
+          if (_cf) _cf.innerHTML = '';
+        } catch (eCF) {}
         try { LAST_RESULT = {}; } catch (e2b) {}
         try { if (typeof CHAT_LAST_FACTS !== 'undefined') CHAT_LAST_FACTS = []; } catch (e2c) {}
         try { _trAsked = null; } catch (e2d) {}
@@ -11128,6 +11189,15 @@ function baziPersonaCard(j) {
         try { renderCheckin(todayIso()); } catch (e2f) {}
         try { _renderMeStrip(); } catch (e2) {}
         try { loadPaipanHistory(); } catch (e3) {}
+        /* R2349y（R95-P1-3/P3-9）：写完才落 wipeAt 墓碑（先写会被
+         * 上面的清扫误删）——其他 tab 收到事件自清表单/会话态；
+         * 台账 dirty 广播让其他 tab 的历史列表就地刷新。 */
+        try { localStorage.setItem('wipeAt', String(Date.now())); } catch (eWA) {}
+        try {
+          if (window.BroadcastChannel) {
+            new BroadcastChannel('paipan_history').postMessage('dirty');
+          }
+        } catch (eBC) {}
         showToast(serverOk
           ? '都忘掉啦——本机档案和台账都空了'
           : '本机档案清了，台账没连上——联网后再点一次', serverOk ? 'info' : 'warn');
@@ -11148,10 +11218,20 @@ function baziPersonaCard(j) {
         var f = _imf.files && _imf.files[0];
         _imf.value = '';
         if (!f) return;
+        /* R2349y（R95-P2-6）：超大文件全量读入会冻结 tab——20MB 上限；
+         * version 不校验则未来结构变更会按 v1 静默半导入。 */
+        if (f.size > 20 * 1024 * 1024) {
+          showToast('这个文件太大了，不像备份', 'warn');
+          return;
+        }
         try {
           var bundle = JSON.parse(await f.text());
           if (!bundle || bundle.kind !== 'backup') {
             showToast('这不是小满的备份文件', 'error');
+            return;
+          }
+          if (bundle.version !== 1) {
+            showToast('这版备份格式不认识——用小满最新版导出的再试', 'warn');
             return;
           }
           var local = bundle.browser || {};
@@ -11160,42 +11240,90 @@ function baziPersonaCard(j) {
             /* R2349t（R87-P1-1）：checkin: 值直拼 innerHTML——值域
              * 收进词表白名单（词表外的签名存进来也是炸渲染的脏值）；
              * 键名限长——「checkin:」+8000 字符键此前照存。 */
-            if (!/^(checkin:|dailyRevealed:|me$|me:partner$|hlask$|visits$|welcomed$|installTipDismissed$|voiceMode$|uiTheme$)/
+            /* R2349y（R95-P2-1）：checkinCeleb:/ret_tip 导得出导不回
+             * ——收进白名单。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$)/
                 .test(k) || k.length > 40 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
             }
+            /* R2349y（R95-P3-1）：日期后缀键不做形状校验会收进
+             * 「checkin:hello-world」这种脏格（伪造未来日永不进 GC）。
+             * 三类日期键的尾段必须是合法 YYYY-MM-DD。 */
+            var _dsfx = k.indexOf('checkin:') === 0 ? k.slice(8)
+              : k.indexOf('dailyRevealed:') === 0 ? k.slice(14)
+              : k.indexOf('checkinCeleb:') === 0
+                ? k.slice(k.lastIndexOf(':') + 1) : null;
+            if (_dsfx !== null && !/^\d{4}-\d{2}-\d{2}$/.test(_dsfx)) return;
             if (k.indexOf('checkin:') === 0 &&
                 CHECKIN_OPT_POOL.indexOf(local[k]) < 0 &&
                 !CHECKIN_FEEDBACK[local[k]]) {
               return;
             }
+            /* R2349y（R95-P3-7）：visits/hlask 值形状校验——
+             * 任意字符串入库会让计数虚高。 */
+            if (k === 'visits' &&
+                !/^\d{4}-\d{2}-\d{2}(,\d{4}-\d{2}-\d{2})*$/
+                  .test(local[k])) return;
+            if (k === 'hlask') {
+              try { if (!Array.isArray(JSON.parse(local[k]))) return; }
+              catch (eH) { return; }
+            }
+            if (k.indexOf('checkinCeleb:') === 0 && local[k] !== '1') return;
+            /* R2349y（R95-P3-3）：me*.n 导入绕过 _meNickClean——
+             * 脏昵称入库。解析+净化后再落。 */
+            if (k === 'me' || k === 'me:partner') {
+              try {
+                var _mo = JSON.parse(local[k]);
+                if (!_mo || typeof _mo !== 'object') return;
+                _mo.n = _meNickClean(_mo.n);
+                local[k] = JSON.stringify(_mo);
+              } catch (eMe) { return; }
+            }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });
           var n = 0;
-          if (Array.isArray(bundle.records) && bundle.records.length) {
+          /* R2349y（R95-P3-5）：records 含非 dict 元素时后端
+           * list[dict] 整体 422——本地键已写入才报失败，口径误导。
+           * 先过滤掉。 */
+          var _recs = (bundle.records || []).filter(function (r) {
+            return r && typeof r === 'object' && !Array.isArray(r);
+          });
+          if (_recs.length) {
             const rj = await postJSON('/api/paipan/history/import',
-                                      { records: bundle.records.slice(0, 500) });
+                                      { records: _recs.slice(0, 500) });
             n = rj.imported || 0;
           }
           /* R2349t（R87-P1-3）：favorites 回灌——POST 端幂等去重
            * 已具备（INSERT OR IGNORE + 同键查重）。 */
           if (Array.isArray(bundle.favorites) && bundle.favorites.length) {
-            var _fvN = 0;
+            var _fvN = 0, _fvBad = 0;
             for (var _fi = 0; _fi < bundle.favorites.length && _fi < 500; _fi++) {
               var _fv = bundle.favorites[_fi];
-              if (!_fv || typeof _fv !== 'object') continue;
+              if (!_fv || typeof _fv !== 'object') { _fvBad++; continue; }
               try {
                 await postJSON('/api/favorites', {
                   type: String(_fv.type || 'misc').slice(0, 32),
                   ref_id: String(_fv.ref_id || '').slice(0, 64),
                   title: String(_fv.title || '').slice(0, 200) });
                 _fvN++;
-              } catch (eFI) {}
+              } catch (eFI) { _fvBad++; }
             }
-            if (_fvN) n += _fvN;
           }
-          showToast('导入好了：多了 ' + n + ' 条记录，偏好也回来了（刷新后生效）', 'info');
+          /* R2349y（R95-P2-8/P3-8）：收藏失败条数点名，不再并进
+           * 「记录」计数混口径。 */
+          var _msg = '导入好了：多了 ' + n + ' 条记录' +
+            (_fvN ? ' + ' + _fvN + ' 条收藏' : '') +
+            '，偏好也回来了（刷新后生效）' +
+            (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
+          showToast(_msg, 'info');
+          /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的
+           * 历史视图就地刷新（原只有单删时发）。 */
+          try {
+            if (window.BroadcastChannel) {
+              new BroadcastChannel('paipan_history').postMessage('dirty');
+            }
+          } catch (eBC2) {}
           loadPaipanHistory();
         } catch (e) {
           showToast('导入失败：' + e.message, 'error');

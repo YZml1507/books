@@ -1971,24 +1971,29 @@ def _run_inner() -> list[str]:
                                           _sr.status_code)
     ok.append("share.guardrails")
     # R2342（R60-P0-6）：import_rows 真实路径——模块层直连（DISABLE 只
-    # 闸路由不闸模块）：合法行写入、重复行去重、非法类型归一、超长跳过。
+    # 闸路由不闸模块）：合法行写入、重复行去重、非法类型跳过、超长跳过。
     # 测试行事后 delete_record 清掉，不留污染。
+    # R2349y（R95-P2-9）：返回 (written, skipped)——伪造 type 不再改名
+    # 落库而是计 skip；缺 ts 行（重复导入会再造一份）同样计 skip。
     from guji import paipan_history as _phx
     _mine = {"type": "bazi", "ts": "probe-selftest-imp",
              "name": "钉扎自检", "req": {"y": 1}, "result": {"ok": True}}
     _w1 = _phx.import_rows([dict(_mine)])
     _w2 = _phx.import_rows([dict(_mine)])
     _w3 = _phx.import_rows([{"type": "bogus", "ts": "probe-selftest-imp2",
-                            "name": "类型归一", "req": {}, "result": {}}])
+                            "name": "类型伪造", "req": {}, "result": {}}])
     _w4 = _phx.import_rows([{"type": "bazi", "ts": "probe-selftest-big",
                              "name": "超长", "req": {"x": "a" * 300000},
                              "result": {}}])
+    _w5 = _phx.import_rows([{"type": "bazi", "name": "无时间戳",
+                             "req": {}, "result": {}}])
     _stale = [r["id"] for r in _phx.list_records(limit=500)["items"]
               if str(r.get("ts") or "").startswith("probe-selftest")]
     for _i in _stale:
         _phx.delete_record(_i)
-    assert _w1 == 1 and _w2 == 0 and _w3 == 1 and _w4 == 0, (
-        "paipan.import_rows", _w1, _w2, _w3, _w4)
+    assert (_w1 == (1, 0) and _w2 == (0, 1) and _w3 == (0, 1)
+            and _w4 == (0, 1) and _w5 == (0, 1)), (
+        "paipan.import_rows", _w1, _w2, _w3, _w4, _w5)
     ok.append("paipan.import_rows")
     # R178b（D-230b）：LLM 层已整体移除——断言它**回不来**。`guji.llm_reader`
     # 必须不可导入，且响应里不得再出现 llm/llm_out/use_llm 字段（若哪轮把

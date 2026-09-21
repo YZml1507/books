@@ -147,6 +147,11 @@ FILL = {
     "threads":       {"#tq": "probe_ui_smoke 线程"},
     "compare_works": {"#cwa": "KR5c0057", "#cwb": "KR5c0126", "#cwq": "無爲"},
     "concept":       {"#cq": "無爲"},
+    # R2349y：wipe 改成无条件清字段（R95-P1-3）后，B 侧不再剩 HTML
+    # 默认值——合婚用例必须显式填双方，与真人输入路径一致。
+    "hehun":         {"#hh_a_year": "1990", "#hh_a_month": "5",
+                      "#hh_a_day": "15", "#hh_b_year": "1992",
+                      "#hh_b_month": "8", "#hh_b_day": "20"},
     # 读书三子功能：书 ID + scheme + 地址（固定值，实测 KR1a0001 卦1 有内容）
     "bookstudy.structure": {"#bswork": "KR1a0001"},
     "bookstudy.chapter":   {"#bswork": "KR1a0001", "#bsaddr1": "1"},
@@ -884,6 +889,7 @@ def main() -> int:
                 with open(_imp, "w", encoding="utf-8") as _f:
                     json.dump({
                         "kind": "backup",
+                        "version": 1,
                         "browser": {},
                         "records": [{
                             # ts 用跑时当前值——固定 ts 上轮留库后 dedup
