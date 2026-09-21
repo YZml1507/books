@@ -2153,7 +2153,13 @@ html[data-theme="dark"] .tarot-deep .tarot-advice{border-top-color:#453C42;}
 html[data-theme="dark"] .chat-entry{background:linear-gradient(135deg,#4A3440,#3E2E38);
   border-color:#5A4650;}
 html[data-theme="dark"] .deco-banner{filter:brightness(.9) saturate(.95);}
-html[data-theme="dark"] .xz-today{filter:brightness(.9);}
+/* R2349o（R78-P1-3 补）：xz-today 写死浅渐变，brightness(.9) 后仍是浅底，
+ * 内里 --secondary 深主题浅字 → ~3.8:1。换真·深底渐变。 */
+html[data-theme="dark"] .xz-today{background:linear-gradient(120deg,#3A2E3C,#342C44);
+  border-color:#4E4348; filter:none;}
+/* R2349o（R78-P1-3 补）：ph-ts/ph-render 沿用 --muted/--secondary 浅值，
+ * 深卡上 ~4.1 擦边——升 --secondary（深底 6.97:1）。 */
+html[data-theme="dark"] .ph-ts, html[data-theme="dark"] .ph-render{color:var(--secondary);}
 html[data-theme="dark"] .interp-line, html[data-theme="dark"] .quote-box,
 html[data-theme="dark"] .hint-box{background:#2E282C; border-color:#453C42;}
 html[data-theme="dark"] table.works td, html[data-theme="dark"] table.works th{

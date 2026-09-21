@@ -11815,3 +11815,11 @@ localStorage，倒计时改异步链。
   --muted（浏览器默认灰 ~3.9→≥4.7）
   * 复核不成立：.func-name/--secondary 系（.ph-ts/xz-note）本身已达标令牌
 - P1-4：ghost 钮半透明卡色兜底（color-mix + rgba 回落），渐变/图底不再吞字
+
+### R2349o续：R78 复扫补漏（9-21）
+
+- P1-3 漏项补修：xz-today 写死浅渐变（brightness 压暗后浅底浅字 ~3.8:1）
+  → 深底渐变 #3A2E3C→#342C44；ph-ts/ph-render 深色下升 --secondary
+- P2-2：解签/牌意 peek 钮补 aria-expanded + aria-controls
+- 复核记录：func-name 1.61:1 判为动画中途采样假象（两主题令牌均 ≥7:1）；
+  xz-dim-text/xz-note 走 --secondary 令牌达标

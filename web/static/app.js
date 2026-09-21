@@ -4093,6 +4093,7 @@ async function loadDaily() {
       _sg.innerHTML = '📜 今日签号：<strong>第' +
         _signNo(j.date) + '签</strong>' +
         '<button type="button" class="sign-peek" id="signPeekBtn"' +
+        ' aria-expanded="false" aria-controls="signCard"' +
         ' title="看看这签说了啥">解签</button>';
       var _scl = el('signCard');
       if (!_scl) {
@@ -4115,6 +4116,7 @@ async function loadDaily() {
           if (sc) {
             sc.hidden = !sc.hidden;
             _pk.textContent = sc.hidden ? '解签' : '收起';
+            _pk.setAttribute('aria-expanded', sc.hidden ? 'false' : 'true');
           }
         });
       }
@@ -4195,7 +4197,8 @@ async function loadDaily() {
           _dailyMetaItem('dailyTarot',
             '🃏 今日牌：<strong>' + esc(d.name) + '</strong>' +
             ' · ' + (d.upright ? '正位' : '逆位') +
-            '<button type="button" class="sign-peek" id="tarotPeekBtn">牌意</button>');
+            '<button type="button" class="sign-peek" id="tarotPeekBtn"' +
+            ' aria-expanded="false" aria-controls="tarotCard">牌意</button>');
           var _tc = el('tarotCard');
           if (!_tc) {
             _tc = document.createElement('div');
@@ -4220,6 +4223,7 @@ async function loadDaily() {
               if (c2) {
                 c2.hidden = !c2.hidden;
                 _tb.textContent = c2.hidden ? '牌意' : '收起';
+                _tb.setAttribute('aria-expanded', c2.hidden ? 'false' : 'true');
               }
             });
           }
