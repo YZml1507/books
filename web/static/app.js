@@ -50,11 +50,31 @@ function zwClean(s) {
 }
 
 /** 取输入框整数值；空或非法返回 null（让调用方决定是否发送该字段）。 */
+var _numBadLast = 0;
 function num(id) {
   const raw = val(id);
   if (raw === '') return null;
-  const n = parseInt(raw, 10);
-  return Number.isNaN(n) ? null : n;
+  /* R2350e（R101-P0-1）：parseInt 静默吞错——「1e1」→1、
+   * 「30.5」→30、「1990e2」→1990，盘按错值排而用户毫不知情。
+   * 只认纯整数文本；脏值标红并统一提醒一次（多字段不刷屏）。 */
+  if (!/^-?\d+$/.test(raw)) {
+    const _be = el(id);
+    if (_be) {
+      _be.setAttribute('aria-invalid', 'true');
+      const _nbClr = function () {
+        _be.removeAttribute('aria-invalid');
+        _be.removeEventListener('input', _nbClr);
+      };
+      _be.addEventListener('input', _nbClr);
+    }
+    const _nw = Date.now();
+    if (_nw - _numBadLast > 2500) {
+      _numBadLast = _nw;
+      showToast('红框里的数字格式不对——只认整数（比如 1990、8）', 'warn');
+    }
+    return null;
+  }
+  return parseInt(raw, 10);
 }
 
 /** 取复选框布尔值。 */
@@ -197,6 +217,7 @@ function paint(/* v3-fx-guard */id, html) {
   const node = el(id);
   if (node) {
     node.classList.remove('is-working');   /* R233k：新结果落地摘忙态 */
+    node.classList.remove('is-stale');     /* R2350e：重算落地摘过期标 */
     node.hidden = false;
     node.innerHTML = html;
     if (!_paintSilent && html) {
@@ -352,6 +373,12 @@ function _badYmdField(yId, mId, dId) {
   if (d < 1 || d > new Date(y, m, 0).getDate()) return dId;
   return null;
 }
+/* R2350e（R101-P2-1/P2-2）：范围越界同界预检——此前 qm/th/hh 的年份
+ * 和所有时辰/分钟框没有前端界，越界要白跑一轮后端 422/400 才报。 */
+function _badRange(fid, min, max) {
+  var n = num(fid);
+  return n != null && (n < min || n > max);
+}
 function _failField(fId, boxId, text) {
   var f = fId && el(fId);
   if (f) {
@@ -387,7 +414,10 @@ var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰'
   /* R230r（R30-#19）：研究面字段补齐——此前 evidence/tid/max_addresses
    * 走不进中文映射，toast 出英文原文。 */
   evidence: '证据', tid: '线程号', thread_id: '线程号',
-  max_addresses: '地址数', per_work: '每书条数', addr_name: '节名',
+  /* R2350e（R101-P2-5）：古籍面字段——422 不再露英文键名。 */
+  gua: '卦号', yao: '爻位', scheme: '编址方式', addr1: '节号',
+  addr2: '单元号', addr_name: '节名',
+  max_addresses: '地址数', per_work: '每书条数',
   ref_id: '对象', title: '标题', text: '内容', work: '书号' };
 function _humanize422(detail) {
   try {
@@ -5299,15 +5329,48 @@ async function submitBazi(event) {
      * 请求，直接站内中文提示（原来要等一轮 422）。 */
     if (body.year == null || body.month == null || body.day == null
         || body.year < 1900 || body.year > 2100
-        || body.month < 1 || body.month > 12 || body.day < 1 || body.day > 31) {
+        || body.month < 1 || body.month > 12 || body.day < 1
+        || body.day > (body.calendar_type === 'lunar' ? 30 : 31)) {
       /* R233k：预检失败聚焦出错格 + toast（此前只有屏外一行灰字）。 */
       var _fb = (body.year == null || body.year < 1900 || body.year > 2100) ? 'year'
         : (body.month == null || body.month < 1 || body.month > 12) ? 'month' : 'day';
       _failField(_fb, 'result', '日期看起来不太对，检查一下年月日再试～');
       return;
     }
-    /* R233k（R45-Top5-1）：1-31 合法但当月不存在（2/31）也在前端拦。 */
-    var _badd = _badYmdField('year', 'month', 'day');
+    /* R2350e（R101-P2-2）：时辰/分钟/问事时辰同界前端先拦——
+     * 越界免一轮后端 400。 */
+    if (_badRange('hour', 0, 23)) {
+      _failField('hour', 'result', '时辰填 0–23，不知道就留空'); return;
+    }
+    if (_badRange('minute', 0, 59)) {
+      _failField('minute', 'result', '分钟填 0–59'); return;
+    }
+    if (_badRange('ask_hour', 0, 23)) {
+      _failField('ask_hour', 'result', '问事时辰填 0–23'); return;
+    }
+    if (_badRange('range_hour', 0, 23)) {
+      _failField('range_hour', 'result', '区间时辰填 0–23'); return;
+    }
+    /* R2350e（R101-P2-3）：range 端此前无年份界——1500 直发后端
+     * 出 200（与 ask_date 的 1900–2100 口径不一致）。 */
+    if (body.scope === 'range') {
+      var _rgBad = ['range_start', 'range_end'].filter(function (_rid) {
+        var _rv = val(_rid);
+        if (!_rv) return false;
+        var _ry = parseInt(_rv.slice(0, 4), 10);
+        return _ry < 1900 || _ry > 2100;
+      });
+      if (_rgBad.length) {
+        _failField(_rgBad[0], 'result', '区间年份要在 1900–2100 之间');
+        return;
+      }
+    }
+    /* R233k（R45-Top5-1）：1-31 合法但当月不存在（2/31）也在前端拦。
+     * R2350e（R101-P1-2）：农历月长只有 29/30 天且按年变——公历月长
+     * 校验会把合法的农历二月三十误拦（后端能算）。农历只做 1-30 粗检，
+     * 真存在性交给后端换算报文。 */
+    var _badd = (body.calendar_type === 'lunar') ? null
+      : _badYmdField('year', 'month', 'day');
     if (_badd) {
       _failField(_badd, 'result',
         '这一天不存在——' + num('month') + ' 月没有 ' + num('day') + ' 号');
@@ -5415,7 +5478,13 @@ async function doResearch() {
   const params = new URLSearchParams({ q: q });
   const maxAddr = num('rmax');
   // 后端值域是 1-6（超出返回 400），前端先钳制，避免把 400 当成"坏了"。
-  if (maxAddr != null) params.set('max_addresses', String(Math.min(Math.max(maxAddr, 1), 6)));
+  if (maxAddr != null) {
+    params.set('max_addresses', String(Math.min(Math.max(maxAddr, 1), 6)));
+    /* R2350e（R101-P2-7）：钳位与 tr_n 同口径——静默吃掉用户填的
+     * 99 会让人以为生效了；照塔罗做法给一句轻提示。 */
+    if (maxAddr > 6 || maxAddr < 1)
+      showToast('每处最多取 6 条，已按范围内处理', 'info');
+  }
   try {
     const j = await api('/api/research?' + params.toString());
     let html = '';
@@ -5460,15 +5529,43 @@ async function doResearch() {
   }
 }
 
+/* R2350e：编址方式→有效字段白名单——显隐（_syncAddrFields）与
+ * 发包（doAddr）共用一张表。R2349v 原声明在 init IIFE 内，此处
+ * 提为模块级让两处都能读到。 */
+var _ASCHEME_FIELDS = {
+  zhouyi:  ['aguan', 'ayao'],
+  bcv:     ['aname', 'aaddr1', 'aaddr2'],
+  yilin:   ['aguan'],
+  booksec: ['aaddr1'],
+  play:    ['aaddr1', 'aaddr2'],
+  euclid:  ['aaddr1', 'aaddr2']
+};
+
 async function doAddr() {
   busy('addrResult', '定位中…');
+  /* R2350e（R101-P1-3 附带）：addr 侧同款爻位校验。 */
+  const _ayv = val('ayao');
+  if (_ayv && !/^(初|二|三|四|五|上)(九|六)$|^用(九|六)$/.test(_ayv)) {
+    _failField('ayao', 'addrResult',
+      '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」');
+    return;
+  }
   const params = new URLSearchParams();
-  params.set('scheme', val('ascheme') || 'zhouyi');
-  if (val('aguan')) params.set('gua', val('aguan'));
-  if (val('ayao')) params.set('yao', val('ayao'));
-  if (val('aname')) params.set('addr_name', val('aname'));
-  if (val('aaddr1')) params.set('addr1', val('aaddr1'));
-  if (val('aaddr2')) params.set('addr2', val('aaddr2'));
+  var _asch0 = val('ascheme') || 'zhouyi';
+  params.set('scheme', _asch0);
+  /* R2350e（R101-P2-5/P2-6）：①卦号走 num()——「5.9」不再原文外发
+   * 吃 422；②按当前编址方式白名单收参——隐藏字段的残值（切到 bcv
+   * 后 aguan/ayao 旧值）不再随 query 发出。 */
+  var _asend = _ASCHEME_FIELDS[_asch0] || [];
+  if (_asend.indexOf('aguan') >= 0 && num('aguan') != null)
+    params.set('gua', String(num('aguan')));
+  if (_asend.indexOf('ayao') >= 0 && _ayv) params.set('yao', _ayv);
+  if (_asend.indexOf('aname') >= 0 && val('aname'))
+    params.set('addr_name', val('aname'));
+  if (_asend.indexOf('aaddr1') >= 0 && val('aaddr1'))
+    params.set('addr1', val('aaddr1'));
+  if (_asend.indexOf('aaddr2') >= 0 && val('aaddr2'))
+    params.set('addr2', val('aaddr2'));
   try {
     const j = await api('/api/addr?' + params.toString());
     paint('addrResult',
@@ -5486,11 +5583,30 @@ async function doCompare() {
     fail('compareResult', '卦号要填 1–64 之间的数字');
     return;
   }
+  /* R2350e（R101-P1-3 附带）：爻位词表校验——「abc」这类非法爻名
+   * 此前直发后端，渲染出「说法不一样+无差异」自相矛盾卡。 */
+  const _cyv = val('cyao');
+  if (_cyv && !/^(初|二|三|四|五|上)(九|六)$|^用(九|六)$/.test(_cyv)) {
+    _failField('cyao', 'compareResult',
+      '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」');
+    return;
+  }
   const params = new URLSearchParams({ gua: String(gua) });
-  if (val('cyao')) params.set('yao', val('cyao'));
+  if (_cyv) params.set('yao', _cyv);
   try {
     const j = await api('/api/compare?' + params.toString());
-    let html = '<h3>' + esc(j.addr || '') + '　以《' + esc(j.reference || '') + '》为底本　' +
+    /* R2350e（R101-P1-3）：后端 no_witness 三态此前未消费——
+     * 「卦28·用九」这类合法但无比对材料的查询渲染成
+     * 「几种版本说法不一样+无差异发现」自相矛盾卡。第三态单列。 */
+    if (j.no_witness) {
+      paint('compareResult',
+        '<h3>' + esc(j.addr || '') + '</h3>' +
+        '<div class="no-evidence">📖 这一处没找到可比对的版本材料' +
+        '——换个卦爻，或不带爻位整卦比对试试。</div>');
+      return;
+    }
+    let html = '<h3>' + esc(j.addr || '') +
+      (j.reference ? '　以《' + esc(j.reference) + '》为底本' : '') + '　' +
       (j.agree ? '几种版本说法一致' : '几种版本说法不一样') + '</h3>';
     const witnesses = j.witnesses || {};
     const citations = j.citations || {};
@@ -6242,8 +6358,10 @@ async function doLiuyao() {
     const seedRaw = val('ly_seed');
     if (seedRaw !== '' && seedRaw != null) body.seed = num('ly_seed');
   } else {
-    /* R2350b（R98-P0-1 续）：placeholder 化后字段可为空——时间起卦
-     * 的本义是「以当下起卦」，留空逐项补现在，不再吃 400。 */
+    /* R2350b（R98-P0-1 续）：留空逐项补现在（时间起卦本义是「以当下
+     * 起卦」）。R2350e（R101-P2-9 回面）：补值保留，但四个框的
+     * placeholder 逐格说清「留空=本项当前值」——用户知道哪格会按
+     * 当下填，行为是文案明示的约定而非暗中改写。 */
     var _now4 = new Date();
     var _dfl = { ly_year: _now4.getFullYear(),
                  ly_month: _now4.getMonth() + 1,
@@ -6253,6 +6371,7 @@ async function doLiuyao() {
       var _fe = document.getElementById(_fid);
       if (_fe && _fe.value === '') _fe.value = _dfl[_fid];
     });
+    /* R2350e：留空格补完后再读——num() 拿的是 DOM 值。 */
     body.year = num('ly_year');
     body.month = num('ly_month');
     body.day = num('ly_day');
@@ -6262,6 +6381,10 @@ async function doLiuyao() {
     if (body.year != null && (body.year < 1900 || body.year > 2100)) {
       _failField('ly_year', 'lyResult', '年份要在 1900–2100 之间');
       return;
+    }
+    /* R2350e（R101-P2-2）：ly_hour=25 此前要吃一轮后端 400。 */
+    if (_badRange('ly_hour', 0, 23)) {
+      _failField('ly_hour', 'lyResult', '时辰填 0–23'); return;
     }
     var _lb = _badYmdField('ly_year', 'ly_month', 'ly_day');
     if (_lb) {
@@ -6393,6 +6516,13 @@ async function doQiming() {
       '这一天不存在——' + num('qm_month') + ' 月没有 ' + num('qm_day') + ' 号');
     return;
   }
+  /* R2350e（R101-P2-1/2-2）：年份/时辰同界前端先拦，免一轮 422。 */
+  if (_badRange('qm_year', 1900, 2100)) {
+    _failField('qm_year', 'qmResult', '年份要在 1900–2100 之间'); return;
+  }
+  if (_badRange('qm_hour', 0, 23)) {
+    _failField('qm_hour', 'qmResult', '时辰填 0–23，不知道就留空'); return;
+  }
   _qmBusy = true;
   busy('qmResult', '起名中…');
   try {
@@ -6497,6 +6627,13 @@ async function doTaohua() {
     _failField(_tb, 'thResult',
       '这一天不存在——' + num('th_month') + ' 月没有 ' + num('th_day') + ' 号');
     return;
+  }
+  /* R2350e（R101-P2-1/2-2）：同界预检。 */
+  if (_badRange('th_year', 1900, 2100)) {
+    _failField('th_year', 'thResult', '年份要在 1900–2100 之间'); return;
+  }
+  if (_badRange('th_hour', 0, 23)) {
+    _failField('th_hour', 'thResult', '时辰填 0–23，不知道就留空'); return;
   }
   busy('thResult', '计算中…');
   try {
@@ -7243,6 +7380,17 @@ async function doHehun() {
         _hp[3] + '日期不存在——' + num(_hp[1]) + ' 月没有 ' + num(_hp[2]) + ' 号');
       return;
     }
+    /* R2350e（R101-P2-1/2-2）：年份/时辰同界预检（双侧）。 */
+    if (_badRange(_hp[0], 1900, 2100)) {
+      _failField(_hp[0], 'hhResult', _hp[3] + '年份要在 1900–2100 之间');
+      return;
+    }
+  }
+  if (_badRange('hh_a_hour', 0, 23)) {
+    _failField('hh_a_hour', 'hhResult', '时辰填 0–23，不知道就留空'); return;
+  }
+  if (_badRange('hh_b_hour', 0, 23)) {
+    _failField('hh_b_hour', 'hhResult', '时辰填 0–23，不知道就留空'); return;
   }
   busy('hhResult', '计算中…');
   try {
@@ -9116,14 +9264,7 @@ function initReading() {
 
   /* R2349v（R92-P2-1）：编址方式切换时收起无关字段——此前五个字段
    * 全摆着，填错的参数会原样进 query（aguan/ayao 对 bcv 是无效参）。 */
-  var _ASCHEME_FIELDS = {
-    zhouyi:  ['aguan', 'ayao'],
-    bcv:     ['aname', 'aaddr1', 'aaddr2'],
-    yilin:   ['aguan'],
-    booksec: ['aaddr1'],
-    play:    ['aaddr1', 'aaddr2'],
-    euclid:  ['aaddr1', 'aaddr2']
-  };
+  /* _ASCHEME_FIELDS 已提为模块级（doAddr 复用同一张白名单）。 */
   var _asch = el('ascheme');
   if (_asch) {
     var _syncAddrFields = function () {
@@ -9143,9 +9284,12 @@ function initReading() {
    * 此前按 Enter 无反应，只能伸手去点按钮。
    * R230q（R28-P1-1）：pair[1] 是与对应 on() 按钮共用的锁 key——
    * Enter 连打与连点同防重（bswork 无 on() 按钮，自占一键）。 */
+  /* R2350e（R101-P2-4）：rwork/cwa/cwb 是 Enter 死键——补上。 */
   [['rq', 'searchBtn', doSearch], ['rq2', 'researchBtn', doResearch],
    ['cq', 'conceptBtn', doConcept],
    ['cwq', 'cwBtn', doCompareWorks], ['aaddr2', 'addrBtn', doAddr],
+   ['rwork', 'searchBtn', doSearch],
+   ['cwa', 'cwBtn', doCompareWorks], ['cwb', 'cwBtn', doCompareWorks],
    ['tq', 'threadBtn', doThread],
    ['bswork', 'bswork', doBookStructure], ['aguan', 'addrBtn', doAddr],
    ['ayao', 'addrBtn', doAddr],
@@ -9570,6 +9714,39 @@ function _hlAskChipsRender() {
         esc((x.d || '').slice(5) + ' ' + (x.q || '')) + '</button>';
     }).join('');
 }
+
+/* R2350e（R101-P1-4）：改了表单参数后旧结果卡原样挂着——按字段
+ * 前缀把对应结果容器标 .is-stale（淡化+「参数改过了」角标），
+ * paint() 落地新结果时摘掉。只在容器里已有真实结果时才标。 */
+var _STALE_MAP = [
+  [/^(year|month|day|hour|minute|question|location|gender|calendar_type|scope|f_lunar_leap|ask_date|ask_hour|range_start|range_end|range_hour)$/, 'result'],
+  [/^b_(year|month|day|hour|gender|nick)$/, 'birthResult'],
+  [/^ly_/, 'lyResult'], [/^qm_/, 'qmResult'], [/^th_/, 'thResult'],
+  [/^hh_/, 'hhResult'], [/^tr_/, 'trResult'], [/^hl_(year|month|day)$/, 'hlResult'],
+  [/^xzm_/, 'xzmResult'], [/^xz_/, 'xzResult'],
+  [/^(rwork|rq|rmax)$/, 'searchResult'],
+  [/^(ascheme|aguan|ayao|aname|aaddr1|aaddr2)$/, 'addrResult'],
+  [/^(cgua|cyao)$/, 'compareResult'],
+  [/^(cwa|cwb|cwq)$/, 'cwResult'], [/^cq$/, 'conceptResult']];
+function _markStale(fid) {
+  for (var _si = 0; _si < _STALE_MAP.length; _si++) {
+    if (!_STALE_MAP[_si][0].test(fid)) continue;
+    var _bx = el(_STALE_MAP[_si][1]);
+    /* 空态/错误态不算「旧结果」——只有挂着真实卡时才标。 */
+    if (_bx && !_bx.classList.contains('is-stale') &&
+        _bx.textContent && _bx.textContent.trim().length > 60 &&
+        !_bx.querySelector('.ph-empty')) {
+      _bx.classList.add('is-stale');
+    }
+    return;
+  }
+}
+['input', 'change'].forEach(function (_ev) {
+  document.addEventListener(_ev, function (e) {
+    var _f = e.target;
+    if (_f && _f.id) _markStale(_f.id);
+  }, true);
+});
 
 document.addEventListener('click', function (ev) {
   var t = ev.target;

@@ -12162,3 +12162,19 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - P2-8 --font-mono 栈尾补 var(--font-wenkai) CJK 兜底（桌面无全量 CJK 时繁体不再豆腐块）。
 - P2-9 分享弹层按端文案已在库（maxTouchPoints 分端）——确认非缺口。
 - 闸门：selftest 271 / contract 606 / ui_smoke 75 / voice/check_* 全绿 / ruff 净。SW 版本已 bump。
+
+## R2350e — R101 表单输入体验全链路深审清零（1 P0 + 4 P1 + 13 P2 主要项）
+- P0-1 num() 收紧为严格整数 `/^-?\d+$/`——此前 parseFloat 让「abc」「12a」「1.5」「1e5」静默解析成半截数字直发后端；非法输入置 aria-invalid + 节流 toast「请填数字」。
+- P1-1 起名姓氏 maxlength 1→2（欧阳/司马复姓此前被静默截一字，排的还是错的盘）。
+- P1-2 农历生日月份长校验跳过：农历月长 29/30 随年变，公历 31 天表会误拦合法「农历二月三十」——农历仅留 1-30 粗检，真存在性交后端换算报文。
+- P1-3 doAddr 表单「一键复制上次」改为按 scheme 白名单发参（_ASCHEME_FIELDS 提升到模块级）——此前堆全部字段，后端收到多余参数报「参数不认识」；aguan 走 num()。
+- P1-4 全站数字框批量预校验（_badRange）：bazi hour/minute/ask_hour/range_hour、qiming/taohua/hehun year 1900-2100+hour 0-23、liuyao ly_hour 0-23——此前全靠后端 4xx，报错时卡片已半渲染。
+- P2-1 doCompare/doAddr 爻位白名单 `初|二|三|四|五|上 + 九|六` 与乾坤 用九/用六；compare no_witness 补第三态渲染（此前 true/false 之外静默落默认分支）。
+- P2-2 _FIELD_CN 增 gua/yao/scheme/addr1/addr2/addr_name——后端 422 字段名翻译覆盖。
+- P2-3 range_start/range_end 加 min/max=1900-2100 属性 + submitBazi 前端年份界（与 ask_date 口径一致，1500 不再直发得 200）。
+- P2-4 Enter 直达提交补 rwork/cwa/cwb 三组输入对。
+- P2-5 _STALE_MAP/_markStale：改表单后旧结果卡打 .is-stale 水印（旧结果与新输入脱钩提示），paint() 时清除；样式落 styles.css。
+- P2-6 rmax 钳位补轻提示（与塔罗 tr_n 同口径，不再静默吃 99）。
+- P2-7（弃案记录）六爻留空补值回面为逐格补——syncLiuyaoToday 本已空才填三格，唯一静默的是时辰；四框 placeholder 逐格说清「留空=本项当前值」，行为改成文案明示约定。ui_smoke btn:liuyao 回归由此钉回。
+- P2-8/11 缓议（maxlength 截断提示、全角数字 onblur 提示属锦上添花）；P2-10 复姓零宽名验证为非问题（val() 已 zwClean→null→默认「我 × TA」渲染）；P2-12/13 属确认项。
+- 闸门：selftest 271 / contract 608 / ui_smoke 75/75 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。

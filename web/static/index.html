@@ -348,9 +348,9 @@ try {
           </div>
           <div class="row" style="margin-top:6px;" id="range_row" hidden>
             <div class="field"><label for="range_start">起（年-月-日）</label>
-              <input id="range_start" type="date"></div>
+              <input id="range_start" type="date" min="1900-01-01" max="2100-12-31"></div>
             <div class="field"><label for="range_end">止（年-月-日）</label>
-              <input id="range_end" type="date"></div>
+              <input id="range_end" type="date" min="1900-01-01" max="2100-12-31"></div>
             <div class="field"><label for="range_hour">统一时辰（可选）</label>
               <input id="range_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
           </div>
@@ -569,13 +569,13 @@ try {
           <!-- R2350b（R98-P0-1）：写死 value="1990/5/15/10" 使
                syncLiuyaoToday 的「空才填」恒败——时间起卦默起
                1990-05-15 的卦。改 placeholder：留空=以现在起卦。 -->
-          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="留空=现在"></div>
+          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="留空=今年"></div>
         <div class="field"><label for="ly_month">月</label>
-          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" placeholder="1-12"></div>
+          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" placeholder="留空=本月"></div>
         <div class="field"><label for="ly_day">日</label>
-          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" placeholder="1-31"></div>
+          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" placeholder="留空=今天"></div>
         <div class="field"><label for="ly_hour">时辰</label>
-          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="0-23"></div>
+          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="留空=此时"></div>
       </div>
       <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">
@@ -633,7 +633,8 @@ try {
         <div class="field"><label for="qm_surname">姓氏</label>
           <!-- R230t（R33-P3-13）：后端恰好单字，前端 maxlength=8 放行复姓
              撞 400——对齐到 1。 -->
-          <input id="qm_surname" type="text" maxlength="1" value="李"></div>
+          <!-- R2350e（R101-P1-1）：后端已支持 1-2 字复姓，前端 maxlength=1 把欧阳拦死 -->
+          <input id="qm_surname" type="text" maxlength="2" value="李"></div>
         <div class="field"><label for="qm_year">年</label>
           <input id="qm_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="qm_month">月</label>
