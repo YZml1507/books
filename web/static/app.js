@@ -2125,7 +2125,10 @@ function showView(viewId) {
   /* R2348（R66-P2）：document.title 随视图走——读屏/多标签/书签可辨。 */
   try {
     var _vn = isHome ? '' :
-      ((document.querySelector('.func-card[data-view="' + viewId + '"] .func-name') || {}).textContent || viewId);
+      ((document.querySelector('.func-card[data-view="' + viewId + '"] .func-name') || {}).textContent ||
+        /* R2349v（R92-P2-5）：无入口卡的视图（read/history）此前兜底
+         * 直泄英文 id 上标题栏——视图名小表兜底。 */
+        ({read:'古籍',history:'排盘台账'})[viewId] || viewId);
     document.title = (_vn ? (_vn + ' · ') : '') + '小满的解忧铺 · 知命';
   } catch (eT) {}
   window.__inView = !isHome;
@@ -2224,10 +2227,14 @@ function renderHits(hits, opts) {
       (h.layer ? ' · ' + esc(h.layer) : '') +
       /* R228w：bm25 负分（越接近 0 越好）原值 16 位浮点糊脸，
        * 留 1 位小数 + title 说明口径。 */
-      (o.score && h.score != null ? '<span class="hit-score" title="BM25 相关度：负分，越接近 0 越相关">相关度 ' +
-        esc(Number(h.score).toFixed(1)) + '</span>' : '') +
+      /* R2349v（R92-P1-3）：BM25 负分直出「相关度 -3.6」对受众无意义
+       * ——折成档位词，精确分留 title 悬停。 */
+      (o.score && h.score != null ? '<span class="hit-score" title="相关性评分（BM25，' +
+        esc(Number(h.score).toFixed(1)) + '）">' +
+        (Number(h.score) > -5 ? '更相关' : (Number(h.score) > -15 ? '较相关' : '沾边')) +
+        '</span>' : '') +
       '</div>';
-    html += '<div class="ev-text">' + esc(h.text || '') + '</div>';
+    html += '<div class="ev-text">' + esc(_rmMarks(h.text || '')) + '</div>';
     if (h.disclosure) html += '<div class="ev-disc">' + esc(h.disclosure) + '</div>';
     html += '</div>';
   });
@@ -5219,7 +5226,11 @@ async function doResearch() {
     if (j.steps && j.steps.length) {
       html += '<h3>检索链路</h3><ol class="step-list">';
       j.steps.forEach(function (s) {
-        html += '<li>' + esc(s.action || '') + ' 「' + esc(s.query || '') + '」 → 翻到 ' +
+        html += '<li>' + esc(/* R2349v（R92-P1-3）：链路行话翻人话 */
+          ({search:'先按整句找', 'search-fallback':'整句没命中，换子句翻',
+            witnesses:'同一位置各版本对照', compare:'并排比对异文',
+            'link-hop':'顺着卦序往下翻'})[s.action] || s.action || '') +
+          ' 「' + esc(s.query || '') + '」 → 翻到 ' +
           esc(s.found) + ' 处、留下 ' + esc(s.kept) + ' 处' +
           (s.note ? '（' + esc(s.note) + '）' : '') + '</li>';
       });
@@ -5231,7 +5242,7 @@ async function doResearch() {
         html += '<div class="finding">' + esc(cmp.addr || '') + '：' +
           esc((cmp.findings || []).length) + ' 处差异</div>';
         (cmp.findings || []).slice(0, 5).forEach(function (f) {
-          html += '<div class="finding">' + esc(f.line || f.note || '') + '</div>';
+          html += '<div class="finding">' + esc(_rmMarks(f.line || f.note || '')) + '</div>';
         });
       });
     }
@@ -5296,7 +5307,7 @@ async function doCompare() {
       html += '<h3 style="margin-top:16px;">差异明细</h3>';
       j.findings.forEach(function (f, i) {
         html += '<div class="finding" style="border-left-color:' + colorAt(i) + ';">' +
-          esc(f.line || (f.kind + ' @' + f.at + ' ' + f.base)) + '</div>';
+          esc(_rmMarks(f.line || (f.kind + ' @' + f.at + ' ' + f.base))) + '</div>';
       });
     } else {
       html += '<div class="no-evidence">🔍 无差异发现，换个卦爻试试？</div>';
@@ -5345,17 +5356,15 @@ async function doWorks() {
   }
 }
 
-/** 书目卡片点击 → 回到检索页按该书过滤。事件委托在 initReading 里绑。 */
+/** 书目卡片点击 → 打开这本书（读书 tab 的结构页）。
+ * R2349v（R92-P2-4）：此前点书卡跳检索页+硬塞默认词「無爲」——
+ * 英文书稳定 0 命中，「打开书」的意图落空成「按书过滤的搜索」。 */
 function searchByWork(workId) {
-  const workField = el('rwork');
-  if (workField) workField.value = workId;
-  if (!val('rq')) {
-    const q = el('rq');
-    if (q) q.value = '無爲';       // 没有查询词时给一个必然有命中的默认词
-  }
-  activateRsec('rsec-search');
-  /* R233k（R45-P2）：裸调绕锁，连点不同书后到覆盖先到——进锁+最新优先。 */
-  guardedCall('searchBtn', doSearch, null, true);
+  var wf = el('bswork');
+  if (wf) wf.value = workId;
+  activateRsec('rsec-bookstudy');
+  activateBssec('bs-structure');
+  showToast('翻开了这本书的结构——点章节看正文', 'info');
 }
 
 /** 研究线程：原来发 {topic}，后端要 {kind,claim,method} → 必然 422
@@ -5365,6 +5374,12 @@ function searchByWork(workId) {
 async function doThread() {
   busy('threadResult', '创建中…');
   const topic = val('tq') || '新线程';
+  /* R2349v（R92-P2-6）：空主题原来静默开一条「新线程」——先内联提示，
+   * 用户知道自己在建什么。 */
+  if (!val('tq')) {
+    var _tq = el('tq');
+    if (_tq && !_tq.value.trim()) { showToast('先写个主题名，比如「无为在不同本子的差异」', 'info'); return; }
+  }
   try {
     const j = await postJSON('/api/threads', {
       kind: 'refusal',
@@ -5471,11 +5486,30 @@ async function showThread(tid) {
       });
       html += '</div>';
     });
-    if (j.verify) {
+    /* R2349v（R92-P2-6）：「证据回查：0 条还能对得上」对空线程是噪音。 */
+    if (j.verify && (j.verify.ok || j.verify.stale)) {
       html += '<div class="interp-basis">证据回查：' + esc(j.verify.ok) +
         ' 条还能对得上' + (j.verify.stale ? '，' + esc(j.verify.stale) +
         ' 条过期了' : '') + '</div>';
     }
+    /* R2349v（R92-P1-2）：线程此前只能开/看/删——后端记 claim /
+     * 改状态全套接口空转。详情页补「记一条」表单 + 状态钮。 */
+    html += '<div class="thread-note" style="margin-top:14px;">' +
+      '<label for="threadNote" style="font-size:13px;color:var(--secondary);">' +
+      '记一条（这条线程的心得/结论）</label>' +
+      '<textarea id="threadNote" class="question-input" rows="2" maxlength="2000" ' +
+      'placeholder="比如：比较了几个本子，道德经 X 章的说法不一样…"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+      '<button type="button" class="thread-view" data-thread-note="' + esc(tid) +
+      '">记下来</button>' +
+      '<button type="button" class="thread-view" data-thread-status="' + esc(tid) +
+      '|open">继续聊</button>' +
+      '<button type="button" class="thread-view" data-thread-status="' + esc(tid) +
+      '|parked">先收起</button>' +
+      '<button type="button" class="thread-view" data-thread-status="' + esc(tid) +
+      '|closed">这条聊完了</button>' +
+      '<button type="button" class="thread-del" data-thread-del="' + esc(tid) +
+      '" aria-label="删除线程 #' + esc(tid) + '">删</button></div></div>';
     paint('threadResult', html);
   } catch (e) {
     fail('threadResult', '加载失败：' + e.message);
@@ -5602,7 +5636,8 @@ async function doBookStructure() {
       fail('bsStructure', j.error);
       return;
     }
-    let html = '<h3>《' + esc(j.title || j.work_id) + '》 scheme=' + esc(j.scheme) +
+    let html = '<h3>《' + esc(j.title || j.work_id) + '》 · 编址：' +
+      esc(_SCHEME_CN[j.scheme] || j.scheme) +
       ' · ' + esc(j.n_sections) + ' 节 / ' + esc(j.n_units) + ' 单元</h3>';
     html += '<div class="table-scroll"><table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
       '<th>层</th><th>样例</th></tr></thead><tbody>';
@@ -5640,13 +5675,13 @@ async function doBookChapter() {
       fail('bsChapter', j.error);
       return;
     }
-    let html = '<h3>' + esc(j.work_id) + ' · ' + esc(j.scheme) + ' 第 ' +
+    let html = '<h3>' + esc(j.work_id) + ' · ' + esc(_SCHEME_CN[j.scheme] || j.scheme) + ' 第 ' +
       esc(j.section) + ' 节 · ' + esc(j.n_units) + ' 段</h3>';
     (j.units || []).forEach(function (u) {
       html += '<div class="ev-item"><div class="ev-meta">' + esc(humanCite(u.citation || '')) +
         (u.addr2 ? ' · ' + esc(u.addr2) : '') + (u.layer ? ' · ' + esc(u.layer) : '') +
         (u.suspect ? ' ⚠ 存疑' : '') + '</div>' +
-        '<div class="ev-text">' + esc(u.text || '') + '</div></div>';
+        '<div class="ev-text">' + esc(_rmMarks(u.text || '')) + '</div></div>';
     });
     paint('bsChapter', html);
   } catch (e) {
@@ -8559,7 +8594,9 @@ function activateBssec(key) {
   });
   // 切到子标签即按当前书 ID 拉数据——标签本身就是"我要看这个"的意思。
   // R233k（R45-P2）：裸 load 无锁/代际，连点子标签会后到盖先到。
-  if (val('bswork')) guardedCall('bsload-' + key, function () { return entry.load(); }, null, true);
+  /* R2349v（R92-P2-2）：书号空时静默无响应——照样调 load()，
+   * 让函数内部的「先填书号」fail 生效。 */
+  guardedCall('bsload-' + key, function () { return entry.load(); }, null, true);
 }
 
 var _PH_OPEN_GEN = 0;   /* R233k：历史复看代际号 */
@@ -8745,6 +8782,30 @@ function initReading() {
   on('cwBtn', doCompareWorks);          // R000a-02
   on('conceptBtn', doConcept);          // R000a-02
 
+  /* R2349v（R92-P2-1）：编址方式切换时收起无关字段——此前五个字段
+   * 全摆着，填错的参数会原样进 query（aguan/ayao 对 bcv 是无效参）。 */
+  var _ASCHEME_FIELDS = {
+    zhouyi:  ['aguan', 'ayao'],
+    bcv:     ['aname', 'aaddr1', 'aaddr2'],
+    yilin:   ['aguan'],
+    booksec: ['aaddr1'],
+    play:    ['aaddr1', 'aaddr2'],
+    euclid:  ['aaddr1', 'aaddr2']
+  };
+  var _asch = el('ascheme');
+  if (_asch) {
+    var _syncAddrFields = function () {
+      var keep = _ASCHEME_FIELDS[_asch.value] || [];
+      ['aguan', 'ayao', 'aname', 'aaddr1', 'aaddr2'].forEach(function (id) {
+        var f = el(id);
+        var box = f && f.closest('.field');
+        if (box) box.style.display = keep.indexOf(id) >= 0 ? '' : 'none';
+      });
+    };
+    _asch.addEventListener('change', _syncAddrFields);
+    _syncAddrFields();
+  }
+
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
   /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
    * 此前按 Enter 无反应，只能伸手去点按钮。
@@ -8813,6 +8874,34 @@ function initReading() {
     const threadBtn = e.target.closest('[data-thread]');
     if (threadBtn) {
       showThread(threadBtn.dataset.thread);
+      return;
+    }
+    /* R2349v（R92-P1-2）：线程详情内「记一条」+状态切换的委托。 */
+    const threadNoteBtn = e.target.closest('[data-thread-note]');
+    if (threadNoteBtn) {
+      var _ntid = threadNoteBtn.dataset.threadNote;
+      var _ntxt = (el('threadNote') || {}).value || '';
+      if (!_ntxt.trim()) { showToast('先写一句要记的话', 'info'); return; }
+      postJSON('/api/threads', { kind: 'summary', claim: _ntxt.trim(),
+        method: 'web-note', thread_id: parseInt(_ntid, 10) })
+        .then(function () {
+          showToast('记下了～', 'success');
+          showThread(_ntid);
+        })
+        .catch(function (err) { showToast('没记上：' + err.message, 'warn'); });
+      return;
+    }
+    const threadStatusBtn = e.target.closest('[data-thread-status]');
+    if (threadStatusBtn) {
+      var _sp = threadStatusBtn.dataset.threadStatus.split('|');
+      api('/api/threads/' + encodeURIComponent(_sp[0]) +
+        '?status=' + encodeURIComponent(_sp[1]), { method: 'PATCH' })
+        .then(function () {
+          showToast({ open: '继续聊～', parked: '先收起，想它再开',
+            closed: '这条聊完了' }[_sp[1]] || '好', 'success');
+          showThread(_sp[0]);
+        })
+        .catch(function (err) { showToast('状态没改成：' + err.message, 'warn'); });
       return;
     }
     const favDel = e.target.closest('[data-fav-del]');
@@ -9523,11 +9612,17 @@ function init() {
        * birth→星座页的本命盘抽屉。 */
       var _vpRaw = _vp;
       var _alias = { daily: 'home', checkin: 'home', 'checkin-week': 'home',
-                     birth: 'xingzuo' };
+                     birth: 'xingzuo',
+                     /* R2349v（R92-P0-2）：古籍域视图 id 是 read，但任务书/
+                     * 直觉都写 research——别名收编，免得深链查无此页。 */
+                     research: 'read', books: 'read', library: 'read' };
       if (_alias[_vp]) _vp = _alias[_vp];
+      /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
+       * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
+       * 被连带判死（F5 状态全丢、toast 谎报「入口不存在」）。卡是
+       * 入口展示层，不该当视图合法性判据——按视图元素存在判。 */
       var _vpOk = (_vp === 'home') ||
-        (document.getElementById('view-' + _vp) &&
-         document.querySelector('.func-card[data-view="' + _vp + '"]'));
+        !!document.getElementById('view-' + _vp);
       if (_vpOk) {
         /* R233n（R47-Top5-1）：合婚邀请链落地——?view=hehun&ay&am&ad
          * &ah&ag&an 把发起人的盘预填进 A 侧，受邀者只需填自己。
@@ -11240,10 +11335,28 @@ function renderRichText(raw) {
   return out.join('\n');
 }
 /* ── v3（P4）：内部引文清洗——「書名 @ADDR (file.txt) · 层」→「書名 · 层」── */
+/* R2349v（R92-P1-3）：古籍域行话收口。
+ * _rmMarks：语料里的章节标记 `**` 是源码记号，直接贴上屏就是裸奔
+ * （聊天域 R227b 修过同款，这边补上）。
+ * _SCHEME_CN：编址方式英文 id → 中文名（ascheme 下拉同款口径）。 */
+function _rmMarks(t) {
+  return String(t == null ? '' : t).replace(/\*\*/g, '');
+}
+
+var _SCHEME_CN = { zhouyi: '周易', bcv: '圣经章节', yilin: '易林',
+  booksec: '书章节', play: '剧本', euclid: '欧几里得' };
+
 function humanCite(citation) {
   var s = String(citation == null ? '' : citation);
   s = s.replace(/\s*@(\?|[^\s·]{0,})/g, '');             /* 去 @ADDR / @?（v4：@ 后非空白非·的尾巴一并清） */
   s = s.replace(/\s*\([^)]*\.txt\)/gi, '');               /* 去 (file.txt) */
+  /* R2349v（R92-P1-3）：[tls]/[wyg] 这类内部版本标签直出没人看得懂，
+   * 折成中文版本名。 */
+  s = s.replace(/\s*\[([A-Za-z0-9]+)\]/g, function (m, t) {
+    return ' · ' + ({ tls: 'TLS', chant: 'CHANT', wyg: '文渊阁',
+      kanripo: 'Kanripo', gutenberg: 'Gutenberg', ctext: 'CTP',
+      w: 'W', j: 'J' }[t.toLowerCase()] || t) + ' 本';
+  });
   s = s.replace(/\s{2,}/g, ' ');
   return s.trim();
 }

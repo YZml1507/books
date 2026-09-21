@@ -2405,3 +2405,7 @@ html[data-theme="dark"] .daily-cheer,
 html[data-theme="dark"] .hh-tier{color:#E8A0BF;}
 html[data-theme="dark"] .celeb-card[data-tier="60"]{border:2px solid #E891A8;}
 html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
+
+/* R2349v（R92-P1-1）：书目卡里 kanripo 裸 URL 把 375px 页面横向撑爆
+ * ——长串按字符断行。 */
+.work-card p{overflow-wrap:anywhere;}

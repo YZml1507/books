@@ -972,18 +972,22 @@ def main() -> int:
                     "'#worksResult .work-card');e?e.dataset.work:''")
                 page.click("#worksResult .work-card >> nth=0")
                 page.wait_for_timeout(1200)
+                # R2349v（R92-P2-4）：点书卡语义改为「打开这本书」——
+                # 跳读书 tab + 回填 bswork（不再是检索过滤）。
                 _back = page.evaluate(
-                    "var e=document.getElementById('rwork');"
+                    "var e=document.getElementById('bswork');"
                     "e?e.value:''")
+                _tab = page.evaluate(
+                    "var e=document.getElementById('rsec-bookstudy');"
+                    "e?e.classList.contains('active'):false")
                 results.append({
                     "name": "ui:works.card_click",
-                    "ok": bool(_wid) and _wid in (_back or ''),
-                    "detail": f"卡={_wid[:14]!r} 回填rwork={_back[:14]!r}"})
-                # 清场：rwork 残留会把后续 btn:search 锁死在单书范围
+                    "ok": bool(_wid) and _wid in (_back or '') and _tab,
+                    "detail": f"卡={_wid[:14]!r} 回填bswork={_back[:14]!r}"
+                              f" 读书tab={_tab}"})
+                # 清场：bswork 残留会把后续 bookstudy 用例的输入污染
                 page.evaluate(
-                    "document.getElementById('rwork').value='';"
-                    "var q=document.getElementById('rq');"
-                    "if(q)q.value='';")
+                    "document.getElementById('bswork').value='';")
             except Exception as exc:
                 results.append({"name": "ui:works.card_click", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})

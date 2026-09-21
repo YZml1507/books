@@ -338,7 +338,7 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
     sb = _side(work_b)
     if sa is None or sb is None:
         _miss = work_a if sa is None else work_b
-        return {"error": f"这本书没找到（{_miss}）——书号先查 /api/works"}
+        return {"error": f"这本书没找到（{_miss}）——先去书目页翻翻"}
     if sa["n_hits"] == 0 and sb["n_hits"] == 0:
         return {"error": f"「{concept}」在两书均无命中"}
     # shared zhouyi addresses where BOTH works meet the concept

@@ -40,7 +40,7 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"这本书没找到（{work_id}）——书号先查 /api/works"}
+        return {"error": f"这本书没找到（{work_id}）——先去书目页翻翻"}
     rows = corpus.db.execute(
         "SELECT scheme, addr_name, addr1, addr2, layer, text, file, page_anchor, "
         "suspect, skipped_chars FROM unit WHERE work_id = ? ORDER BY raw_start",
@@ -176,7 +176,7 @@ def book_summary(corpus: Corpus, work_id: str) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"这本书没找到（{work_id}）——书号先查 /api/works"}
+        return {"error": f"这本书没找到（{work_id}）——先去书目页翻翻"}
     rows = corpus.db.execute(
         "SELECT scheme, layer, text, suspect, skipped_chars FROM unit "
         "WHERE work_id = ?", (work_id,)).fetchall()

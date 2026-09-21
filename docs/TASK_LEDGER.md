@@ -12021,3 +12021,12 @@ P2-4 SPA fallback 补安全头+no-cache；P2-5 og-card.jpg 入哈希+壳文件�
 
 闸门：selftest 268 / contract 581 / ui_smoke 75 / parity 68+41+251 /
 dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
+
+## R2349v — R92 古籍域审计清零（13 条全落）
+
+- **P0-1 古籍域+台账深链全死**：`_vpOk` 原判据「视图存在+有入口卡」——R208b 裁卡后 `?view=read`/`?view=history` 深链+F5 全被弹回首页且 toast 谎报「入口不存在」。改按视图元素存在性判；补别名 `research/books/library→read`。古籍域仍无首页入口卡（R208b 口径保留），但深链与刷新恢复可用。
+- **P1-2 线程只能开看删**：详情页补「记一条」（POST /api/threads kind=summary）+ 状态钮（继续聊/先收起/聊完了 PATCH）+ 删钮；此前后端 record/set_status 全套接口零出口。
+- **P1-3 结果区行话直出**：链路步骤名 `search-fallback/witnesses/compare`→中文步骤名；`相关度 -3.6` 负分→更相关/较相关/沾边档（原值留 title）；`scheme=zhouyi`/`KR1a0001 · zhouyi`→编址中文名；`[tls]/[WYG]` 版本标签→「TLS 本/文渊阁本」；证据文本 `**` 源码记号统一剥（`_rmMarks`，聊天域 R227b 同款）。
+- **P1-1 书目页 375px 横滚**：kanripo 裸 URL 撑到 459px——`.work-card p{overflow-wrap:anywhere}`。
+- **P2×5**：ascheme 切换收起无关字段；bswork 空时子标签静默→走 fail；「书号先查 /api/works」→「先去书目页翻翻」；点书卡语义从「按书过滤搜索」改为「打开这本书」（读书 tab 结构页）；document.title 兜底不再泄英文视图 id；空主题开线程改内联提示+verify 0 条噪音行隐藏。
+- 冒烟钉扎：`ui:works.card_click` 断言更新为新语义（75/75 绿）。
