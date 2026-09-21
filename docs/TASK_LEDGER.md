@@ -11800,3 +11800,18 @@ localStorage，倒计时改异步链。
 ### R2349n续：星座日课池 12→24（9-21）
 
 - R77-P1-6：_DAILY_BEATS 扩 12 句同款口吻——相邻日撞句实测 6/60→1/60
+
+### R2349o：R78 键盘流+读屏审计清零（9-21）
+
+- P0-1：星座宫卡键盘可达——xz-tap 卡补 tabindex/role=button/aria-expanded/
+  aria-label，点/键统一走 _xzToggle，Enter/Space 同展开（preventDefault 防滚屏）
+- P1-1：dailyMore 首次展开补 _syncBtn()——aria-expanded/文案原来只在二次
+  切换路径同步，首开后读屏仍被告知「已收起」
+- P1-2：Esc 关 details 前焦点在抽屉内→先还给 summary 再关，不再甩回 BODY
+- P1-3 对比度批：hl-head 内联 #7A5F33→var(--primary-ink)（1.77→5.0）、
+  .xz-more --accent→--accent-ink（1.68→4.87）、.rtab --secondary→--text、
+  .hl-week-yi/ji 加深一轮（#4E7020/#8E3F2B + 深底 #E8A193）、
+  ph-t-bazi/taohua/qiming 徽章底加深到 ≥4.5、input placeholder 收编
+  --muted（浏览器默认灰 ~3.9→≥4.7）
+  * 复核不成立：.func-name/--secondary 系（.ph-ts/xz-note）本身已达标令牌
+- P1-4：ghost 钮半透明卡色兜底（color-mix + rgba 回落），渐变/图底不再吞字

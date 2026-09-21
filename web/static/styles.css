@@ -339,9 +339,11 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .ph-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
   font-weight:700;color:#fff;background:var(--primary-ink);margin-right:8px;
   vertical-align:1px;letter-spacing:.5px;}
-.ph-t-bazi{background:#5B7BA6;}.ph-t-taohua{background:#D96C8B;}.ph-t-hehun{background:#B94A6A;}
+/* R2349o（R78-P1-3）：白字徽章底加深到 ≥4.5:1（bazi 4.35→5.55、
+ * taohua 3.25→5.06、qiming 3.4→4.98；tarot/hehun/liuyao 原本达标不动）。 */
+.ph-t-bazi{background:#4A6A94;}.ph-t-taohua{background:#B04E6B;}.ph-t-hehun{background:#B94A6A;}
 .ph-t-tarot{background:#7A6BA8;}.ph-t-liuyao{background:#5A4A6A;}
-.ph-t-qiming{background:#C27A4A;}
+.ph-t-qiming{background:#9E6136;}
 .fav-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;}
 .fav-row-label{font-size:12px;color:var(--secondary);}
 .fav-chip{border:1.5px solid var(--line,#E8D5CC);background:#FFF;color:var(--primary-ink);
@@ -794,6 +796,9 @@ input:focus, select:focus{
   /* R231f（R38-P2-4）：焦点指示加深——原 0.15 透明度擦边 WCAG 2.4.13 */
   box-shadow:0 0 0 3px rgba(107,79,174,.35);
 }
+/* R2349o（R78-P1-3）：placeholder 走浏览器默认灰在奶油底实测 ~3.9:1——
+ * 占位文案常是必填说明（「例如：北京」），收编 --muted（≥4.7）。 */
+input::placeholder, textarea::placeholder{color:var(--muted); opacity:1;}
 /* R231f（R38-P3-3）：summary 焦点环统一——pro-drawer/warm-basis 有显式环，
  * paipan-fold/daily-full/warm-pro-fold 此前只有 UA 默认环，口径不一。 */
 summary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
@@ -822,7 +827,11 @@ button:active{transform:translateY(0) scale(.98);}
 button:disabled{background:var(--border); color:var(--secondary); cursor:not-allowed;}
 button:focus-visible{outline:3px solid var(--text); outline-offset:2px;}
 button.ghost{
-  background:transparent; color:var(--primary-ink); border:2px solid var(--primary);
+  /* R2349o（R78-P1-4）：纯透明 ghost 落在渐变/图底上会吞字——
+   * 半透明卡色兜底（color-mix 不可用时回落 rgba 奶白）。 */
+  background:rgba(255,253,251,.72);
+  background:color-mix(in srgb, var(--card) 80%, transparent);
+  color:var(--primary-ink); border:2px solid var(--primary);
 }
 button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translateY(-2px);}
 /* R207b：修复双操作钮重叠——fav-btn 原本 absolute 同点位，
@@ -934,7 +943,8 @@ button.fav-btn[id^="share"]:hover{transform:translateY(-1px);
 .rtab{
   margin:0; padding:8px 16px; font-size:13px; width:auto; border-radius:999px;
   min-height:var(--tap); min-width:44px;
-  background:var(--border); color:var(--secondary); cursor:pointer;
+  /* R2349o（R78-P1-3）：--secondary 在 --border 底上擦边不达标——改用 --text。 */
+  background:var(--border); color:var(--text); cursor:pointer;
   transition:all .2s; box-shadow:none;
 }
 .rtab:hover{background:var(--primary-bg); color:#fff;}
@@ -1799,8 +1809,9 @@ html.welcomed .welcome-bar{display:none;}
 .hl-week-cell.active{border-color:var(--primary-bg);background:#F6F0FF;}
 .hl-week-wd{font-size:11px;color:var(--secondary);}
 .hl-week-date{font-size:12px;font-weight:700;color:var(--primary-ink);}
-.hl-week-yi{font-size:11px;color:#6B8E23;line-height:1.2;text-align:center;}
-.hl-week-ji{font-size:11px;color:#B5573F;line-height:1.2;text-align:center;}
+/* R2349o（R78-P1-3）：#6B8E23/#B5573F 在奶油底 ~3.3/3.6:1——加深一轮。 */
+.hl-week-yi{font-size:11px;color:#4E7020;line-height:1.2;text-align:center;}
+.hl-week-ji{font-size:11px;color:#8E3F2B;line-height:1.2;text-align:center;}
 @media (max-width:400px){
   .hl-week-yi,.hl-week-ji{font-size:10px;}
   .hl-week-cell{padding:6px 1px;}
@@ -2190,6 +2201,7 @@ html[data-theme="dark"] .hl-week-cell.active{background:#3A3040;
   border-color:var(--accent-ink);}
 html[data-theme="dark"] .hl-week-date{color:var(--text);}
 html[data-theme="dark"] .hl-week-yi{color:#8FC49B;}
+html[data-theme="dark"] .hl-week-ji{color:#E8A193;}   /* R2349o：深底配套加深一轮的浅色 */
 html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
 /* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
 html[data-theme="dark"] .deco-banner{background:#332A30;}
@@ -2307,6 +2319,7 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 
 /* R2349l（R73-obs3）：宫卡三运展开（移动端替代悬停 title） */
 .xz-card.xz-tap{cursor:pointer;}
-.xz-more{font-size:11px;color:var(--accent);margin-top:2px;display:inline-block;}
+/* R2349o（R78-P1-3）：--accent 蜜桃粉是装饰色（~1.68:1），文字用 -ink 变体。 */
+.xz-more{font-size:11px;color:var(--accent-ink);margin-top:2px;display:inline-block;}
 .xz-tri{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);
   font-size:11.5px;color:var(--secondary);line-height:1.7;}

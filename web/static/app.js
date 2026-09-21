@@ -4535,6 +4535,9 @@ async function loadDailyDetail() {
       n.style.transform = 'none';
     });
     try { target.scrollIntoView({ behavior: _rmBehavior(), block: 'start' }); } catch (e) {}
+    /* R2349o（R78-P1-1）：首载成功后同步 aria-expanded/文案——原来只在
+     * 二次切换路径调，首开后读屏仍被告知「已收起」。 */
+    _syncBtn();
     attachChatEntry(target);   /* R230k（R23-P2-1）：直写 innerHTML 不走 paint——手动挂 */
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
@@ -6684,8 +6687,12 @@ async function doXingzuo(force) {
           _stt.split('\n').map(function (t2) {
             return '<div>' + esc(t2) + '</div>';
           }).join('') + '</div>' : '';
+        /* R2349o（R78-P0-1）：宫卡是整条键盘死路——补 tabindex+role+
+         * aria-expanded，Enter/Space 走同一展开路径（keydown 委托在下）。 */
         html += '<div class="xz-card' + cls + (_stt ? ' xz-tap' : '') + '"' +
-          (_stt ? ' title="' + esc(_stt) + '"' : '') +
+          (_stt ? ' title="' + esc(_stt) + '"' +
+                 ' tabindex="0" role="button" aria-expanded="false"' +
+                 ' aria-label="' + esc(s.sign + '宫，展开三运明细') + '"' : '') +
           '><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) + '</span>' +
           (s.palace ? '<span class="xz-palace">' + esc(s.palace) + '</span>' : '') +
           '<span class="xz-note">' + esc(s.note) + '</span>' +
@@ -6703,15 +6710,28 @@ async function doXingzuo(force) {
     var _xzg = el('xzResult');
     if (_xzg && !_xzg.dataset.xzTriBound) {
       _xzg.dataset.xzTriBound = '1';
-      _xzg.addEventListener('click', function (e) {
-        var c = e.target && e.target.closest
-          ? e.target.closest('.xz-card.xz-tap') : null;
+      var _xzToggle = function (c) {
         if (!c) return;
         var tri = c.querySelector('.xz-tri');
         if (!tri) return;
         tri.hidden = !tri.hidden;
+        c.setAttribute('aria-expanded', tri.hidden ? 'false' : 'true');
         var mo = c.querySelector('.xz-more');
         if (mo) mo.textContent = tri.hidden ? '三运 ›' : '收起 ‹';
+      };
+      _xzg.addEventListener('click', function (e) {
+        var c = e.target && e.target.closest
+          ? e.target.closest('.xz-card.xz-tap') : null;
+        _xzToggle(c);
+      });
+      /* R2349o（R78-P0-1）：键盘 Enter/Space 同展开。 */
+      _xzg.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var c = e.target && e.target.closest
+          ? e.target.closest('.xz-card.xz-tap') : null;
+        if (!c) return;
+        e.preventDefault();
+        _xzToggle(c);
       });
     }
     _xzLastDate = dateStr;   /* R228f */
@@ -7364,7 +7384,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
     /* 头部：日期 + 农历干支 */
     /* R2349j（R70-P0-2）：渐变类化，深色补丁可生效。 */
     html += '<div class="hl-head">';
-    html += '<div style="font-size:20px;font-weight:800;color:#7A5F33;">' + esc(j.date || dateStr) + '</div>';
+    /* R2349o（R78-P1-3）：内联 #7A5F33 在奶油底仅 1.77:1——文字色收编
+     * 令牌（--primary-ink 奶油底 5.0、深底同样达标）。 */
+    html += '<div style="font-size:20px;font-weight:800;color:var(--primary-ink);">' + esc(j.date || dateStr) + '</div>';
     /* R230n（R25-1.3）：记下本卡实际展示的公历日——跨零点自刷新靠它
      * 判「这张卡是不是昨天的快照」。 */
     if (_hlBox) _hlBox.dataset.shownDate = j.date || dateStr;
@@ -8076,6 +8098,13 @@ function initViews() {
      * 面板里按 Esc 想关候选词，结果整页跳走（输入还在但上下文断）。
      * R233r（R50-#10）：closed 死变量删——判断分支已整段移除。 */
     document.querySelectorAll('details[open]').forEach(function (d) {
+      /* R2349o（R78-P1-2）：焦点在抽屉里时 Esc 关抽屉会把它甩回 BODY，
+       * 下一次 Tab 从头爬——先还给 summary 再关。 */
+      var _ae = document.activeElement;
+      if (_ae && d.contains(_ae)) {
+        var _sm = d.querySelector('summary');
+        if (_sm && _sm.focus) { try { _sm.focus(); } catch (eF) {} }
+      }
       d.open = false;
     });
     if (sb && sb.classList.contains('open')) { _setRecent(false); }
