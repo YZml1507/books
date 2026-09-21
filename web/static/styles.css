@@ -52,6 +52,9 @@
   --secondary: #7E6A58;       /* 燕麦棕·次要文字：奶油底实测 ≥4.85 */
   --accent:    #FF8FAB;       /* 蜜桃粉强调——装饰用，文字用 -ink 变体 */
   --accent-ink:#B84A6F;       /* 蜜桃粉·文字：卡底实测 4.87 */
+  /* R2349l.7（R74-P1）：--accent-soft 此前无定义全靠内联 fallback——
+   * 收编成令牌，暗色作用域有对应深色值。 */
+  --accent-soft:#FDF2EA;      /* 蜜桃粉底·强调浅衬 */
   --good:      #5FA777;       /* 抹茶绿 */
   --c-good:    #5FA777;       /* 别名：JS 内联样式引用的是 --c-good */
   --muted:     #7F6C57;       /* 次要说明（R228d 加深：正文级实测 ≥4.7） */
@@ -363,13 +366,17 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .daily-stars .star-bad{color:#B3455A;}
 .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
-.daily-meta{display:flex; gap:10px; margin-top:18px; flex-wrap:nowrap;
+.daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
   overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
   padding-bottom:2px;
   /* R2345（R62-P2）：横滚带右缘渐隐，提示可滑（裁切感→设计感）。 */
   -webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);
   mask-image:linear-gradient(90deg,#000 90%,transparent);}
 .daily-meta::-webkit-scrollbar{display:none;}
+/* R2349l.7（R74-P2-b）：宽屏不省空间——meta 项多时直接换行全展示，
+ * 横滚条只留给窄屏（375px 仍单行滑动）。 */
+@media (min-width:640px){.daily-meta{flex-wrap:wrap; overflow:visible;
+  -webkit-mask-image:none; mask-image:none;}}
 .daily-meta-item{
   display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;
   font-size:14px; color:var(--secondary); background:var(--card);
@@ -1639,6 +1646,7 @@ button:active{transform:scale(.96);}
 /* R228x：判词卡下方「近期宜X」chip 行 */
 .hl-gooddays{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:13px;color:var(--secondary);}
 .hl-gooddays-label{flex-shrink:0;}
+.hl-gooddays-note{font-size:12px;color:var(--muted);}
 .hl-daychip{border:1px solid var(--accent);background:#FFF;color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}
 .hl-daychip:hover{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);font-weight:700;}
 
@@ -2007,6 +2015,7 @@ html[data-theme="dark"]{
   --bg:#221D20; --card:#2B2529; --text:#F0E7DC;
   --primary:#B99FE0; --primary-ink:#D8C6F2; --primary-bg:#6A5395;
   --secondary:#C0AE98; --accent:#F08CA4; --accent-ink:#F5A9BC;
+  --accent-soft:#4A3540;      /* 深底上的蜜桃浅衬（R74-P1 牌册 .got 可读性） */
   --good:#74B98D; --c-good:#74B98D; --muted:#AD9E8C;
   --border:#453C42; --line:#4E4348;
   --cta-grad:linear-gradient(135deg,#C25A4E,#B94A6A);
@@ -2248,9 +2257,9 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 .hh-score-sub{font-size:12px;color:var(--muted);margin-left:2px;}
 
 /* R2349l（R73-P1-1）：解签展开 */
-.sign-peek{margin-left:8px;padding:1px 10px;font-size:11px;border-radius:999px;
+.sign-peek{margin-left:8px;padding:4px 12px;font-size:11px;border-radius:999px;
   border:1px solid var(--accent);color:var(--accent);background:transparent;
-  cursor:pointer;min-height:26px;}
+  cursor:pointer;min-height:36px;}
 .sign-card{margin-top:8px;
   background:var(--card);border:1px solid var(--border);border-radius:12px;
   padding:10px 14px;font-size:13px;

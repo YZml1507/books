@@ -7480,11 +7480,18 @@ async function _doHuangli(offset, reveal, spokenWord) {
         /* R230v（R34-#8）：去重——重渲/重注窗口重叠时先清旧条，不叠双份。 */
         var _oldGd = box.parentNode && box.parentNode.querySelector('.hl-gooddays');
         if (_oldGd) _oldGd.remove();
+        /* R2349l.7（R74-P2-a）：凶日排序沉底+窗口截 6——若被截部分里
+         * 还有逢凶日，榜尾补一行说明，⚠ 标记不至于完全不可见。 */
+        var _sunk = _days.slice(6).reduce(function (n, gd) {
+          return n + ((gd.flags || []).length ? 1 : 0);
+        }, 0);
         var tip = document.createElement('div');
         tip.className = 'hl-gooddays';
         /* R2349（R64-P2）：「近期宜分手」直译刺耳——换「适合」口径。 */
         tip.innerHTML = '<span class="hl-gooddays-label">近期适合' +
-          esc(_gsc) + '：</span>' + chips;
+          esc(_gsc) + '：</span>' + chips +
+          (_sunk ? '<span class="hl-gooddays-note">（另 ' + _sunk +
+            ' 天逢凶日未列出）</span>' : '');
         if (box.nextSibling) box.parentNode.insertBefore(tip, box.nextSibling);
         else box.parentNode.appendChild(tip);
         tip.querySelectorAll('[data-hldate]').forEach(function (b) {
