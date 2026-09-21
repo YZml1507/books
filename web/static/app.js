@@ -1865,8 +1865,12 @@ function chatSend() {
     /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），
      * 不是网络问题——保留已发气泡、如实报服务端文案，别回收成「被吞了」。 */
     if (e && e.status >= 400 && e.status < 500) {
-      chatBubble('ai', '（' + (e.message || '这条没发出去') + '）',
-                 { nosave: true });
+      /* R2349r（R82-P2-8）：服务端 detail 是机器腔（「消息超长（≤500字），
+       * 收到 501 字」）——包装成小满腔，不当原文广播。 */
+      var _d = String(e && e.message || '');
+      chatBubble('ai', /长|超|too|character|字/.test(_d)
+        ? '（这条有点长，小满接不住——说短一点试试？）'
+        : '（' + (_d || '这条没发出去') + '）', { nosave: true });
       return;
     }
     /* R230q（R28-P3-11）：发送失败把已打文案放回输入框，离线不丢稿 */

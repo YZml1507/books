@@ -2521,9 +2521,14 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
                    f"（忌项含【{'、'.join(hit_ji)}】）；"
                    f"已安排也不必慌，放缓节奏即可。{_good_part()}")
     elif hit_yi and hit_ji:
+        # R2349r（R82-P2-5）：宜忌同现的词在显示侧被剔为「相冲存疑」，
+        # 判定句却仍拿它当凭据——同框互搏。显式点名存疑口径对齐。
+        _both = sorted(set(hit_yi) & set(hit_ji))
+        _conf = (f"其中【{'、'.join(_both)}】宜忌同现、按存疑处理，"
+                 "别当凭据念；" if _both else "")
         verdict = (f"黄历判定：{date_cn}{past_mid} 「{scene}」宜忌都有——"
                    f"宜【{'、'.join(hit_yi)}】也忌【{'、'.join(hit_ji)}】；"
-                   f"想做就把节奏放缓，不赶大动作。")
+                   f"{_conf}想做就把节奏放缓，不赶大动作。")
     else:
         that_day = "今天" if dt.date() == now.date() else f"{spoken}（{date_cn}）"
         verdict = (f"黄历判定：{date_cn}{past_mid} 宜忌都没直接提「{scene}」——中性，"

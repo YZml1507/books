@@ -470,11 +470,17 @@ _CHAT_MAX_SESSIONS = 512       # R229t：sid 洪泛防护——TTL 只清旧不�
 
 _CHAT_SYSTEM = (
     "你是「小满」，一个懂玄学、更懂用户的互联网闺蜜（R214b 人设升级）。"
-    "说话像躺在沙发上和朋友聊天：称呼对方「宝」，语气柔和带一点点俏皮，"
-    "多用「我觉得」「说不定」这类软化词；可以用轻梗但绝不堆砌网络热梗。"
+    # R2349r（R82-P2-3）：自称与 emoji 口径钉死——polish 的 _SYSTEM 有
+    # 「不要 emoji」，chat 侧一直没写；自称「小满」同理补明。
+    "说话像躺在沙发上和朋友聊天：称呼对方「宝」，自称「小满」，"
+    "语气柔和带一点点俏皮，多用「我觉得」「说不定」这类软化词；"
+    "可以用轻梗但绝不堆砌网络热梗，不用 emoji。"
     "用户可能刚测完盘，也可能什么都没测、直接来聊心情感情工作——"
-    "有盘面信息就温和引用当话题，但绝不用命理术语吓人，绝不下判断"
-    "（如「你们不合适」「你会倒霉」）。"
+    "有盘面信息就温和引用当话题，但绝不用命理术语吓人。"
+    # R2349r（R82-P2-4）：「绝不下判断」收窄为「命运式断言」——与
+    # 「宜就放心安利」的字面冲突消解（判定义务写清适用范围）。
+    "绝不下命运式断言（如「你们不合适」「你会倒霉」「命中注定」）；"
+    "系统算好的黄历判定除外——那种事照判定放心说。"
     # R233r（R49-Top5-5）：事实诚信——没测过的盘不许假装看过，
     # 用户没提的细节不许替 ta 编具体结论。
     "事实里没有的东西不许编：没给盘面就别假装看过盘，用户没说的细节"
@@ -705,6 +711,10 @@ def chat(session_id: str, user_msg: str,
                     break
                 _hkeep.append(_m)
             history = _hkeep[::-1]
+            # R2349r（R82-P2-7）：截断静默→模型不知道「更早的轮被省略
+            # 了」，会对「我刚才说过…」类引用臆造。截断发生时写进人设
+            # 尾巴一句实话。
+            _truncated = len(_hkeep) < len(sess["messages"])
             # R230a-6（R12-P2-7）：判定事实落会话档——第 1 轮的判定在第 2
             # 轮 prompt 会消失（回复还在历史里、依据没了），模型只能自由
             # 发挥。新一轮判定覆盖旧的。
@@ -748,6 +758,9 @@ def chat(session_id: str, user_msg: str,
                      "用户问到对应事项时必须照它回答、不许说没查到；"
                      "日期只能引用判定里出现的，不要自己编日子：\n- "
                      + "\n- ".join(_verdicts))
+        if _truncated:
+            _sys += ("\n更早的聊天内容被省略了——用户提到「我之前说过…」"
+                     "而你没看到时，老实说记不清了，不要编。")
         payload_msgs = [{"role": "system", "content": _sys}]
         _coords = _coords_snap
         _user_msg = msg
@@ -872,9 +885,12 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
             # R230t（R32-P1-6）：共情复读用户原话里的禁词会连环撞闸——
             # 给下一次重试一句改正线索，不再同参盲烧（banned_seen=None 的
             # review 路径同样撞闸烧钱，提示也跟上）。
-            msgs = msgs + [{"role": "system", "content":
-                            "上一条回复因措辞过于直白被拦，请换一种更柔和、"
-                            "不下判断的说法重答，保持纯文本口语。"}]
+            # R2349r（R82-P2-1）：改正指令以 user 角色追加——尾部 system
+            # 会让消息序变成 […,user,system,system]，部分 provider 对非
+            # 交替角色低权重或拒绝；user 角色天然合规且语义不变。
+            msgs = msgs + [{"role": "user", "content":
+                            "（系统提醒：上一条回复因措辞过于直白被拦，请换"
+                            "一种更柔和、不下判断的说法重答，保持纯文本口语。）"}]
         out = _sanitize(raw, keep_citations=keep_citations)
         if out:
             return out
@@ -1030,6 +1046,21 @@ def spawn_chat_task(session_id: str, user_msg: str,
     cfg = config or load_config()
     if cfg is None:
         return None
+    # R2349r（R82-P2-2）：危机红线排在限流闸之前——此前超频的直连
+    # 危机消息拿到的是静默降级（{} → 前端按 DISABLE 处理）。预置
+    # 已完成任务把转介文案送回去，不烧 LLM、不落历史（与 chat()
+    # 内的危机路径同口径）。
+    _msg0 = (user_msg or "").strip()
+    if _msg0 and _CRISIS_PAT.search(_msg0):
+        tid = secrets.token_urlsafe(16)
+        with _tasks_lock:
+            _gc_tasks()
+            if len(_tasks) >= _MAX_TASK_ROWS:
+                return None
+            _tasks[tid] = {"status": "done", "text": _CHAT_REFUSAL,
+                           "created": time.monotonic(),
+                           "started": time.monotonic()}
+        return tid
     # R230t（R32-P0-4）：每 sid 每分钟 8 任务——正常连聊远低于此；
     # 换 sid 重试撞全局帽。超限静默降级（与 DISABLE 同路径）。
     if not _rate_ok("chat:" + (session_id or "anon"), _RATE_CHAT_PER_SID):
