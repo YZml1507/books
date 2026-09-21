@@ -12,9 +12,10 @@ python3 -m venv .venv
 .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
 .venv/bin/pip install sentence-transformers          # bge 语义检索（命理书证据）
 .venv/bin/pip install playwright                     # 仅浏览器探针需要
+.venv/bin/pip install mcp                            # 可选：Claude Desktop 集成（python -m guji.mcp_server）
 .venv/bin/python -m playwright install chromium
 
-# 语料索引（data/index/corpus.db，gitignored，约 5 分钟可重建）
+# 语料索引（data/index/corpus.db，gitignored，实测重建 ~10 秒，约 55MB）
 .venv/bin/python scripts/check_quality.py
 .venv/bin/python scripts/build_index.py
 
@@ -61,8 +62,24 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 ### LLM 陪伴层（可选）
 
 不配 key 也能用全部确定性功能。要小满开口聊天：建 `web/llm_config.json`
-（gitignored）或设环境变量 `BOOKS_LLM_API_KEY` / `BOOKS_LLM_BASE_URL` /
-`BOOKS_LLM_MODEL`；`BOOKS_LLM_DISABLE=1` 强制离线。
+（gitignored）或设环境变量覆盖（key 不落盘时用这个）。
+
+### 环境变量开关表（R2349w / R93-P2-1 补全）
+
+| 变量 | 取值 | 语义 | 默认 |
+|---|---|---|---|
+| `BOOKS_LLM_API_KEY` | key 字符串 | LLM key（替代配置文件） | 读 `web/llm_config.json` |
+| `BOOKS_LLM_BASE_URL` | `https://…/v1` | LLM 端点 | 配置文件/内置默认 |
+| `BOOKS_LLM_MODEL` | 模型名 | LLM 模型 | `agnes-2.5-flash` |
+| `BOOKS_LLM_TIMEOUT_S` | 秒数 | LLM 超时 | `30` |
+| `BOOKS_LLM_MAX_TOKENS` | 整数 | LLM token 上限 | `1000` |
+| `BOOKS_LLM_DISABLE` | `1/on/true/yes` | 强制离线（所有 AI 层关掉） | 关 |
+| `BOOKS_PAIPAN_HISTORY_DISABLE` | `1/on/true/yes` | 关排盘台账（隐私部署用） | 关 |
+| `BOOKS_EXTERNAL_DISABLE` | `1/on/true/yes` | 关 external/* 外部资讯拉取 | 关 |
+| `GUJI_PROXY` | `http://…` | external 抓取出网代理 | 直连 |
+
+exe 形态：`llm_config.json` 放在 exe 同目录（或 exe 旁 `web/` 下）即可被读到；
+exe 旁还必须放 `data/index/corpus.db`（缺了古籍相关端点会 503）。
 
 ## 闸门（全部须 PASS）
 

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import sqlite3
 
+import re
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -53,6 +54,20 @@ def install(app: FastAPI) -> None:
 
     for exc_type, status in STATUS_MAP:
         app.add_exception_handler(exc_type, _make(status))
+
+    # R2349w（R93-P2-13）：FileNotFoundError 的 str(exc) 会带绝对路径
+    #（开发期泄仓库路径、exe 期泄 _MEIPASS 临时目录）——剥成「文件名
+    # 缺失」口径；模块自己 raise 的中文消息（如「古籍索引还没装好」）
+    # 不含路径，原样放行。
+    async def _fnf_handler(_request: Request,
+                           exc: Exception) -> JSONResponse:
+        msg = str(exc)
+        if "[Errno" in msg or "/" in msg or "\\" in msg:
+            msg = re.sub(r"[\w.\-]+(?:/[\w.\-]+)+", "…", msg)
+            if "[Errno" in msg:
+                msg = "资源文件没装进来——请确认部署包完整"
+        return JSONResponse(status_code=503, content={"detail": msg})
+    app.add_exception_handler(FileNotFoundError, _fnf_handler)
 
     # R229n（R6-#6）：sqlite 原文（"database is locked" 等）是英文实现
     # 细节，不能上屏——固定中文，原文只在服务端可见处才有价值。

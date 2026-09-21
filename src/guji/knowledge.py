@@ -136,8 +136,15 @@ class KnowledgeBase:
         except sqlite3.DatabaseError:
             pass
         here = os.path.dirname(os.path.abspath(__file__))
-        schema = open(os.path.join(here, "knowledge_schema.sql"),
-                      encoding="utf-8").read()
+        try:
+            schema = open(os.path.join(here, "knowledge_schema.sql"),
+                          encoding="utf-8").read()
+        except FileNotFoundError as exc:
+            # R2349w（R93-P0-2）：exe 打包漏带 schema 时裸
+            # FileNotFoundError 穿透成 503+绝对路径。给可定位的人话。
+            raise FileNotFoundError(
+                "知识库的建表脚本没打进包里（knowledge_schema.sql）"
+            ) from exc
         try:
             self.db.executescript(schema)
         except sqlite3.Error:

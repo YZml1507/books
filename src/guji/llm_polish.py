@@ -50,8 +50,9 @@ _DEFAULTS = {
 def load_config() -> dict | None:
     """读配置。返回 None = 功能关闭（调用方直接跳过，不得报错）。"""
     # 总开关（D-245a）：环境变量显式禁用优先于一切配置。
-    # 语义：BOOKS_LLM_DISABLE=1/on/true/yes → 禁用；=0/off/false/no → 强制启用
-    #（即使无 key 也走降级路径，行为一致）；未设置 → 按配置文件。
+    # R2349w（R93-P2-2 勘正）：DISABLE=1/on/true/yes → 禁用；其余取值
+    #（含 0/false）不覆盖文件配置、按配置文件走——此前 docstring 宣称
+    # "=0 强制启用" 与实现不符。
     _dis = os.getenv(_ENV_DISABLE)
     if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
         return None
@@ -90,9 +91,39 @@ def load_config() -> dict | None:
         cfg["base_url"] = os.environ[_ENV_BASE]
     if os.getenv(_ENV_MODEL):
         cfg["model"] = os.environ[_ENV_MODEL]
+    # R2349w（R93-P2-3）：timeout_s/max_tokens 补 env 覆盖——不想落盘
+    # json 的部署形态此前只能改文件。
+    if os.getenv("BOOKS_LLM_TIMEOUT_S"):
+        cfg["timeout_s"] = os.environ["BOOKS_LLM_TIMEOUT_S"]
+    if os.getenv("BOOKS_LLM_MAX_TOKENS"):
+        cfg["max_tokens"] = os.environ["BOOKS_LLM_MAX_TOKENS"]
 
+    # R2349w（R93-P1-3）：enabled 手写 "false"（字符串）此前被判
+    # truthy → 以为离线的环境照样连 LLM。字符串按语义解析。
+    _en = cfg.get("enabled")
+    if isinstance(_en, str):
+        _en_l = _en.strip().lower()
+        if _en_l in ("0", "false", "off", "no"):
+            return None
+        cfg["enabled"] = _en_l in ("1", "true", "on", "yes")
     if not cfg.get("enabled"):
         return None
+
+    # R2349w（R93-P1-4）：timeout_s/max_tokens/base_url 类型错此前
+    # load_config 放行、polish 时抛进 task failed 且服务端零日志——
+    # 配置坏→AI 层静默消失。启动期 coerce，非法值回默认+stderr 告警。
+    for _k, _t in (("timeout_s", int), ("max_tokens", int)):
+        try:
+            cfg[_k] = _t(cfg[_k])
+        except (TypeError, ValueError):
+            print(f"[llm_polish] 配置项 {_k}={cfg[_k]!r} 不是数字，"
+                  f"回退默认 {_DEFAULTS[_k]}", file=sys.stderr)
+            cfg[_k] = _DEFAULTS[_k]
+    if (not isinstance(cfg.get("base_url"), str)
+            or not cfg["base_url"].startswith("http")):
+        print(f"[llm_polish] 配置项 base_url={cfg.get('base_url')!r} "
+              f"不是合法 URL，回退默认", file=sys.stderr)
+        cfg["base_url"] = _DEFAULTS["base_url"]
     # R230l（R24-P2-1）：api_key 非字符串（用户手写配置文件填了
     # 数字/对象）此前 startswith 炸 AttributeError → 端点 500。
     # 按未配置处理——与 DISABLE 同路径静默降级。

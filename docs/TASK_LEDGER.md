@@ -12030,3 +12030,15 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - **P1-1 书目页 375px 横滚**：kanripo 裸 URL 撑到 459px——`.work-card p{overflow-wrap:anywhere}`。
 - **P2×5**：ascheme 切换收起无关字段；bswork 空时子标签静默→走 fail；「书号先查 /api/works」→「先去书目页翻翻」；点书卡语义从「按书过滤搜索」改为「打开这本书」（读书 tab 结构页）；document.title 兜底不再泄英文视图 id；空主题开线程改内联提示+verify 0 条噪音行隐藏。
 - 冒烟钉扎：`ui:works.card_click` 断言更新为新语义（75/75 绿）。
+
+## R2349w — R93 部署/配置矩阵审计清零（4P0+4P1+P2主项）
+
+- **P0-1 spec 打包链死**：`_spec_dir` 多退一级（SPECPATH 已是目录绝对径），`pyinstaller` Analysis 第一步必挂——改 `os.path.abspath(SPECPATH)`。
+- **P0-2 exe 缺 knowledge_schema.sql**：datas 补 `(src/guji/knowledge_schema.sql,'guji')`；`knowledge.py` open 包 try，缺件给人话不泄路径。
+- **P0-3 datas 落点错一级**：`classical_names.json`/`copy_bank.json` dest `src/guji`→`guji`（frozen 模块 `__file__` 在 `_MEIPASS/guji/`）——此前 exe 里起名 422、copy_bank 静默退化。
+- **P0-4 spec 注释撒谎**：「找不到则降级仅排盘无检索」不实——缺 corpus.db 时 bazi/search 直接 503，注释勘正 + README 说明 exe 旁必须放 data/index/corpus.db。
+- **P1-1** `BOOKS_PAIPAN_HISTORY_DISABLE` 补 `strip().lower()`（"TRUE"/" 1" 此前静默无效）。
+- **P1-2** web_launcher POSIX 全盲（CREATE_NO_WINDOW 在 POSIX 抛 ValueError、netstat/tasklist 全家不存在→连接监控失明、600s 兜底误杀活服务）：POSIX 下 main() 直接明说「跑 uvicorn」退出；CREATE_NO_WINDOW 按 os.name 归 0。
+- **P1-3** llm_config `enabled:"false"`（字符串）此前 truthy 误判开启——字符串按语义解析，写 "false"/"0"/"off"/"no" 真关。
+- **P1-4** `timeout_s`/`max_tokens`/`base_url` 类型错原放行到 polish 才静默炸——load_config 启动期 coerce，非法回默认+stderr 告警。
+- **P2 批**：README 补全开关表（EXTERNAL/PAIPAN/GUJI_PROXY/timeout/max_tokens/exe 形态 llm_config+corpus 落点）+ mcp 依赖 + corpus 重建时长勘正（5分钟→实测10秒）；llm_polish docstring 勘正；`errors.py` FileNotFoundError 响应剥绝对路径（开发期泄仓库路径/exe 期泄 _MEIPASS）；paipan_history 时间戳对齐 UTC+8（旧 history.py 同款口径）；start_web.bat 校验 pythonw 存在；SHUTDOWN_GRACE 60→300s（空闲误杀）。

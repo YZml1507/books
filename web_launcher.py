@@ -35,8 +35,13 @@ PY = (os.path.join(ROOT, ".venv", "Scripts", "python.exe")
       else os.path.join(ROOT, ".venv", "bin", "python"))
 PORT = 8123
 URL = f"http://127.0.0.1:{PORT}"
-CREATE_NO_WINDOW = 0x08000000
-SHUTDOWN_GRACE = 60          # 浏览器退出后，无连接持续多久（秒）判定关闭
+# R2349w（R93-P1-2）：CREATE_NO_WINDOW 是 Windows 专属 flag——POSIX 下
+# subprocess.run 直接 ValueError 被 _run 吞掉，连接监控全盲、
+# NEVER_SEEN_GRACE 会杀掉正在服务的服务器。POSIX 归 0。
+CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
+# R2349w（R93-P2-10）：60s 太短——浏览器 keep-alive 池空闲回收 socket
+# 时 ESTABLISHED 清零会误杀在线服务。放宽到 300s。
+SHUTDOWN_GRACE = 300         # 浏览器退出后，无连接持续多久（秒）判定关闭
 NEVER_SEEN_GRACE = 600       # R229x：启动后始终无任何连接的兜底关服时长
 POLL_INTERVAL = 5            # 轮询间隔（秒）
 LOG = os.path.join(ROOT, "logs", "web_launcher.log")
@@ -238,6 +243,16 @@ def _monitor(server, alive_fn=_server_alive, stop_fn=_server_stop) -> int:
 
 
 def main() -> int:
+    # R2349w（R93-P1-2）：连接监控/kill_stale/pid_alive 全套依赖
+    # netstat/tasklist/taskkill——POSIX 下拿不到连接数据，浏览器监控
+    # 全盲，最终靠兜底误杀活服务。本入口是 Windows 桌面专用，POSIX
+    # 直接明说并指向正确启动方式，别假装能跑。
+    if os.name != "nt":
+        log("web_launcher 是 Windows 桌面入口——POSIX 请直接跑："
+            "uvicorn web.app:app --host 127.0.0.1 --port 8123")
+        print("web_launcher 是 Windows 桌面入口。POSIX 请直接跑：\n"
+              "  uvicorn web.app:app --host 127.0.0.1 --port 8123")
+        return 2
     log("=== launcher start ===")
     kill_stale()
     time.sleep(1)

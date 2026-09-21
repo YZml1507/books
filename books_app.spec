@@ -6,8 +6,10 @@
 # 设计：
 #   * entry = web_launcher.py（无控制台窗口，--windowed）
 #   * 内嵌 web/static/（前端单页，60K）
-#   * data/ 不内嵌（392MB 太大）：exe 启动时从同目录 data/ 读，
-#     找不到则降级（仅排盘无检索）。发行时 exe + data/ 一起分发。
+#   * data/ 不内嵌（392MB 太大）：exe 启动时从同目录 data/ 读。
+#     R2349w（R93-P0-4 勘正）：缺 corpus.db 时 /api/bazi、/api/search
+#     等古籍依赖端点直接 503（bazi 要引文，不是「仅排盘无检索」的
+#     降级）——exe 旁必须放 data/index/corpus.db + knowledge 层。
 #   * 注意（R230c 勘正——原 R18a 注释与 deps.py 实际行为相反）：frozen
 #     下 _STATIC_CANDIDATES 优先 _MEIPASS 内嵌副本（本 spec datas 已嵌
 #     web/static）——exe 单文件即可渲染首页；exe 旁的 web/static 存在时
@@ -29,7 +31,9 @@ import sys
 
 block_cipher = None
 
-_spec_dir = os.path.dirname(os.path.abspath(SPECPATH))
+# R2349w（R93-P0-1）：SPECPATH 本身就是 spec 所在目录的绝对路径，
+# 再 dirname 退到项目根的父目录——所有 _spec_dir 拼接全解析不到。
+_spec_dir = os.path.abspath(SPECPATH)
 # R230n（R26）：guji 子模块从「靠 import 链自动收编」改显式枚举——
 # 未来谁加了插件式/字符串动态导入也不会漏进 exe。
 sys.path.insert(0, os.path.join(_spec_dir, 'src'))
@@ -50,8 +54,15 @@ a = Analysis(
         (os.path.join(_spec_dir, 'web/static'), 'web/static'),
         # R229x：起名典故库 + daily/warm 文案库——不进 exe 时
         # classical_names 静默 0 候选、copy_bank 静默回退旧表。
-        (os.path.join(_spec_dir, 'src/guji/classical_names.json'), 'src/guji'),
-        (os.path.join(_spec_dir, 'src/guji/copy_bank.json'), 'src/guji'),
+        # R2349w（R93-P0-3）：frozen 模块按包名摆位——
+        # guji.classical_names.__file__ 指向 _MEIPASS/guji/，dest 写
+        # 'src/guji' 会让两个 JSON 在 exe 内永远摸不到（多了一层 src/）。
+        # R2349w（R93-P0-2）：knowledge_schema.sql 此前完全没进 datas，
+        # exe 里 knowledge.db 初始化即 FileNotFoundError → 知识层端点
+        # （prefs/favorites/threads/daily/widget）全 503。
+        (os.path.join(_spec_dir, 'src/guji/classical_names.json'), 'guji'),
+        (os.path.join(_spec_dir, 'src/guji/copy_bank.json'), 'guji'),
+        (os.path.join(_spec_dir, 'src/guji/knowledge_schema.sql'), 'guji'),
     ],
     hiddenimports=[
         'uvicorn.logging',

@@ -19,7 +19,7 @@ import json
 import os
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 # PyInstaller frozen 兼容：与 web/deps.py 同口径——先查 exe 父目录有无
 # data/index（data/ 在项目根的标准摆放），找不到才退 exe 同目录。
@@ -66,7 +66,10 @@ def _log(msg: str) -> None:
 
 
 def disabled() -> bool:
-    return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "") in ("1", "on", "true", "yes")
+    # R2349w（R93-P1-1）：此前不带 strip().lower()——CI/Windows 环境
+    # 变量框贴个 "TRUE"/" 1" 就静默不关，与 BOOKS_LLM_DISABLE 等其余
+    # 开关的三套解析不一致。对齐统一口径。
+    return os.getenv("BOOKS_PAIPAN_HISTORY_DISABLE", "").strip().lower() in         ("1", "on", "true", "yes")
 
 
 _ddl_lock = threading.Lock()
@@ -223,7 +226,10 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
             row_res = json.dumps(result_dict, ensure_ascii=False)
             row_name = name if name else _name_summary(req_dict)
             question = (req_dict.get("question") or None)
-            ts = datetime.now().isoformat(timespec="seconds")
+            # R2349w（R93-P2-15）：与旧 history.py 的 UTC+8 口径对齐——
+            # 此前裸服务器本地时，非 +8 部署下历史时间戳漂移。
+            ts = datetime.now(timezone(timedelta(hours=8))).isoformat(
+                timespec="seconds")
             # closing() 只负责关连接，无隐式 commit——写路径用 `with c:`
             # 保住原 `with _conn()` 的提交语义（R228b 重构注意点）。
             with _write_lock, contextlib.closing(_conn()) as c, c:
