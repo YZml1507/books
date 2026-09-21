@@ -1347,8 +1347,9 @@ def _run_inner() -> list[str]:
     # R152b（D-198b）：qiming 计算失败分支（排盘异常→400）standing 覆盖。
     # 实测 month=2/day=30（不存在的日期）→ 400。
     # R2349s（R85-P2-4 归因修正）：活路径走 services.py →
-    # classical_names.generate_classical_names；qiming.name_candidates 除自身
-    # __main__ 外零调用，是事实死引擎（待删/待标，本批不动）。
+    # classical_names.generate_classical_names；R2350a 已把 qiming.py 的
+    # 死引擎簇（name_candidates/_full_name_combos/字池表/演示main）删除，
+    # 模块只剩 FEMININE/MASCULINE 字池 + 两个 re-export。
     _expect_400("err.qiming.calc_fail",
                 client.post("/api/qiming", json={"surname": "李", "year": 1990,
                                                  "month": 2, "day": 30,
