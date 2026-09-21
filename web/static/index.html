@@ -22,7 +22,9 @@
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
 <script>try{if(window.localStorage.getItem('welcomed')){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- R2349m（R76-P0-2 附带）：resizes-content 让 Android Chrome 键盘
+     弹起时收缩 layout viewport，fixed 底栏跟随；iOS 忽略无副作用。 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>小满的解忧铺 · 知命</title>
 <!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
      643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
