@@ -3258,11 +3258,18 @@ function buildShareData(view, j) {
       var st = base('桃花运势', '');
       st.big = l0 || '桃花正在加载';
       st.lines = [];
-      if (_pStr(j && j.peach_zhi)) st.lines.push({ k: '桃花支', v: _pStr(j.peach_zhi) });
+      /* R2349m（R75-P2-2）：地支黑话映生肖——「卯」陌生人看不懂，「兔」一秒接住 */
+      var _zhiAn = {'子':'鼠','丑':'牛','寅':'虎','卯':'兔','辰':'龙','巳':'蛇',
+        '午':'马','未':'羊','申':'猴','酉':'鸡','戌':'狗','亥':'猪'};
+      var _zhiCn = function (z) {
+        z = _pStr(z);
+        return z && _zhiAn[z] ? (z + '（' + _zhiAn[z] + '）') : z;
+      };
+      if (_pStr(j && j.peach_zhi)) st.lines.push({ k: '桃花支', v: _zhiCn(j.peach_zhi) });
       var _hp = _pArr(j && j.hit_pillars);
       if (_hp.length) st.lines.push({ k: '命中柱', v: _hp.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || _pStr(p); }).join(' · ') });
-      if (_pStr(j && j.hongluan)) st.lines.push({ k: '红鸾', v: _pStr(j.hongluan) });
-      if (_pStr(j && j.tianxi)) st.lines.push({ k: '天喜', v: _pStr(j.tianxi) });
+      if (_pStr(j && j.hongluan)) st.lines.push({ k: '红鸾星', v: _zhiCn(j.hongluan) });
+      if (_pStr(j && j.tianxi)) st.lines.push({ k: '天喜星', v: _zhiCn(j.tianxi) });
       /* R233t（R51-P1-9）：裸枚举 strong 上图社死——映射人话。 */
       var _stg = _pStr(j && j.strength);
       if (_stg) st.lines.push({ k: '桃花信号', v:
