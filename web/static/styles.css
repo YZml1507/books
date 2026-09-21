@@ -2362,3 +2362,38 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 .xz-more{font-size:11px;color:var(--accent-ink);margin-top:2px;display:inline-block;}
 .xz-tri{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);
   font-size:11.5px;color:var(--secondary);line-height:1.7;}
+
+/* ── R2349t（R88-12）：连签里程碑卡分档——档徽描边/底色差异化 ── */
+.celeb-card[data-tier="3"]{border:2px solid #A8C686;}
+.celeb-card[data-tier="7"]{border:2px solid #E8A0BF;}
+.celeb-card[data-tier="14"]{border:2px solid #9A8CDB;}
+.celeb-card[data-tier="30"]{border:2px solid #E0B84C; box-shadow:0 8px 30px rgba(224,184,76,.25);}
+.celeb-card[data-tier="60"]{border:2px solid #D97E96; box-shadow:0 8px 30px rgba(217,126,150,.3);}
+.celeb-card[data-tier="100"]{border:3px solid #C23B3B; box-shadow:0 10px 36px rgba(194,59,59,.35);}
+
+/* ── R2349t（R88-15a）：季节光晕——换季那天铺子换底色 ────────
+ * 只覆盖 .page-glow 渐变，不动文字色；深色/legacy 主题不动。 */
+html:not([data-theme])[data-season="spring"] .page-glow{
+  background:
+    radial-gradient(420px 420px at 88% 6%, rgba(255,182,193,.22), transparent 70%),
+    radial-gradient(520px 520px at 4% 92%, rgba(168,198,134,.16), transparent 70%),
+    radial-gradient(360px 360px at 78% 78%, rgba(255,230,150,.16), transparent 70%);}
+html:not([data-theme])[data-season="summer"] .page-glow{
+  background:
+    radial-gradient(420px 420px at 88% 6%, rgba(154,208,245,.20), transparent 70%),
+    radial-gradient(520px 520px at 4% 92%, rgba(255,214,150,.16), transparent 70%),
+    radial-gradient(360px 360px at 78% 78%, rgba(180,230,200,.16), transparent 70%);}
+html:not([data-theme])[data-season="autumn"] .page-glow{
+  background:
+    radial-gradient(420px 420px at 88% 6%, rgba(255,196,140,.20), transparent 70%),
+    radial-gradient(520px 520px at 4% 92%, rgba(200,150,110,.14), transparent 70%),
+    radial-gradient(360px 360px at 78% 78%, rgba(255,220,160,.18), transparent 70%);}
+html:not([data-theme])[data-season="winter"] .page-glow{
+  background:
+    radial-gradient(420px 420px at 88% 6%, rgba(190,205,235,.20), transparent 70%),
+    radial-gradient(520px 520px at 4% 92%, rgba(230,210,230,.14), transparent 70%),
+    radial-gradient(360px 360px at 78% 78%, rgba(215,230,250,.18), transparent 70%);}
+
+/* ── R2349t（R88-6/4）：高分标签 + 吉签庆祝句 ─────────────── */
+.hh-tier{font-size:13px;color:#B04E40;font-weight:600;margin:2px 0 0;}
+.daily-cheer{color:#B04E40;font-weight:600;}

@@ -186,6 +186,21 @@ def _entry_match_style(entry: dict, style: str) -> bool:
     return True
 
 
+
+# R2349s（R84-P2-16）：典故句不吉片语黑名单——起名引用句的语义要过审，
+# 「载沉载浮」「黍离麦秀」这类亡国之音/覆败意象不该进娃的名字故事。
+# 只拦成片语，不拦单字（「病」在「霍去病」里是该有的用法）。
+_BAD_STORY_FRAG = frozenset({
+    "载沉载浮", "涂炭", "夭折", "早夭", "殂", "驾崩", "国殇",
+    "家破", "流离失所", "灾殃", "祸患", "厄难", "沉舟", "覆巢",
+    "黍离", "麦秀", "身败", "名裂", "孤魂", "野死",
+})
+
+def _story_ok(entry: dict) -> bool:
+    """典故条目过审：句+意象不含不吉片语。"""
+    blob = f"{entry.get('句', '')} {entry.get('意象', '')}"
+    return not any(b in blob for b in _BAD_STORY_FRAG)
+
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
                               top_n: int = 8, seed: int | None = None,
@@ -286,6 +301,9 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             # 照样上屏（「李鹜」「李茕」就是这么来的）。这里做硬过滤。
             if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
                 continue
+            # R2349s（R84-P2-16）：典故句不吉片语一并拦。
+            if not _story_ok(entry):
+                continue
             # v3（P3）：风格过滤——池子阶段就按风格筛，保证切风格真正换血。
             if not _entry_match_style(entry, style):
                 continue
@@ -305,6 +323,8 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                 if len(set(char)) != len(char):
                     continue
                 if char in _AVOID or (gender == "女" and char in _AVOID_FEM):
+                    continue
+                if not _story_ok(entry):
                     continue
                 _rest.append((elem, entry))
         # 风格命中的置顶（保序），未命中的垫后（保序去重留交下层）。
@@ -345,10 +365,17 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         # 契合层够一批就只在契合层内轮转；不够则契合层打头、中性层补齐
         _base = _fit if len(_fit) >= _step else (_fit + _neutral)
         _segs = max(len(_base) // _step, 1)
-        _round = (max(int(seed), 1) - 1) // _segs
-        _seg = (max(int(seed), 1) - 1) % _segs
+        # R2349s（R83 残余）：seed=0 与 seed=1 撞段（max(0,1)=1）——
+        # 0 语义改成「来一炉随机新签」，不再是 1 号的别名。
+        _eff = int(seed)
         _shuffled = _base[:]
-        _random.Random(_round).shuffle(_shuffled)     # 每轮一个新顺序
+        if _eff == 0:
+            _random.Random().shuffle(_shuffled)
+            _seg = 0
+        else:
+            _round = (max(_eff, 1) - 1) // _segs
+            _seg = (max(_eff, 1) - 1) % _segs
+            _random.Random(_round).shuffle(_shuffled)  # 每轮一个新顺序
         _start = _seg * _step
         selected_pairs = _shuffled[_start:_start + _step] or _shuffled[:_step]
     else:
@@ -482,6 +509,23 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         if n["full_name"] not in seen:
             seen.add(n["full_name"])
             unique.append(n)
+
+    # R2349s（R84-P2-14）：重名热字 / 生僻字提醒——只对库内实际会出现
+    # 的字建表（149 字全量核对）：热字=近年新生儿高频（梓/瑶/彤/桐/
+    # 伊/仪），生僻=笔画多或输入法都得翻页的（埙/猗/玷/琇/璆/鹜/樊/
+    # 楫/渌/湄/湛/溯）。提醒是信息不是否决，文案给选择权。
+    _HOT = set("梓瑶彤桐伊仪")
+    _RARE = set("埙猗玷琇璆鹜樊楫渌湄湛溯")
+    for n in unique:
+        _g = n.get("given", "")
+        _hot = [c for c in _g if c in _HOT]
+        _rare = [c for c in _g if c in _RARE]
+        if _rare:
+            n["name_note"] = (f"「{'、'.join(_rare)}」偏生僻——"
+                              "娃以后写名办证可能要多解释两句")
+        elif _hot:
+            n["name_note"] = (f"「{'、'.join(_hot)}」是近年热字，"
+                              "重名率偏高——想要独特感可以换一换")
 
     # R221b-fix（审查轨 R221a 目视发现）：`candidates` 自 R217a 建模块起就
     # 写死空列表，前端却一直渲染「单字候选池（0 字）」折叠区 → 一个永远空的

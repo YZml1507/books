@@ -2832,7 +2832,9 @@ def daily(date_str: str | None = None,
             # 校验时代写的行）一律重算覆盖，杜绝「写入日口径」固化。
             # R2349g：cv=4——level 计分加了吉神项+小吉阈值放宽，
             # 且新增 noble_liuhe 字段；旧缓存一律重算覆盖。
-            if _c.get("cv") == 4 and (not _want or _c.get("noble") == _want):
+            # R2349t（R87-P0-1）：cv=5——cv≤4 的行可能含 personal
+            # 脏字段（请求方生辰派生），抬代次让存量脏行一律重算覆盖。
+            if _c.get("cv") == 5 and (not _want or _c.get("noble") == _want):
                 # R2349k（R72-A2）：festival 是派生字段不入缓存语义——
                 # 现算随包回（旧缓存行也能拿到节日行）。
                 _r = {"date": date_str, **_c, "cached": True,
@@ -2847,6 +2849,10 @@ def daily(date_str: str | None = None,
                                   or _mercury_state(_d0))}
                 if _personal:
                     _r["personal"] = _personal
+                else:
+                    # R2349t（R87-P0-1）：防御存量脏行——不带 bday 的
+                    # 请求绝不能拿到上一个用户的 personal 行。
+                    _r.pop("personal", None)
                 return _r
     try:
         d = date.fromisoformat(date_str)
@@ -2895,7 +2901,7 @@ def daily(date_str: str | None = None,
             noble_lh = ""
         result = {
             "date": date_str,
-            "cv": 4,                     # 缓存口径版本（R2349g：吉神计分+合拍生肖）
+            "cv": 5,                     # 缓存口径版本（R2349t：personal 移出缓存）
             "level": level,
             "summary": (summary if (_db and level in (_db.get("levels") or {}))
                         else fortune_summary(calc_out)),
@@ -2915,7 +2921,13 @@ def daily(date_str: str | None = None,
             **({"personal": _personal} if _personal else {}),
         }
         with deps.knowledge() as kb:
-            kb.set_daily_cache(date_str, bazi=result)
+            # R2349t（R87-P0-1）：personal 是请求方生辰派生——整包落
+            # daily_cache 会让无 bday 的请求拿到上一用户的日主行，
+            # wipe 也够不着（缓存只按日期窗口清）。落库剔除；
+            # 每请求现算成本=一次干支查表。
+            kb.set_daily_cache(
+                date_str,
+                bazi={k: v for k, v in result.items() if k != "personal"})
         return result
     except Exception:                                 # 计算失败降级为"平"，不 500
         # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文

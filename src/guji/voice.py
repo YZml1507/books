@@ -1312,8 +1312,16 @@ def warm_hehun(h: dict) -> dict:
                      "相处时那种不用解释的默契是有来处的。")
     god_ab, god_ba = h.get("god_a_sees_b") or "", h.get("god_b_sees_a") or ""
     if god_ab and god_ba:
-        la = TEN_GOD_WARM.get(god_ab, (god_ab, ""))[0]
-        lb = TEN_GOD_WARM.get(god_ba, (god_ba, ""))[0]
+        # R2349s（R84-P2-19）：互看语境不复用 TEN_GOD_WARM 的资源词——
+        # 「你眼里的 ta 带『稳定财』」把伴侣读成钱袋，物化观感差。
+        # 互看专用一套「在对方身上感到的特质」标签。
+        _GOD_REL = {
+            "正财": "踏实感", "偏财": "灵气", "正官": "靠谱感", "七杀": "冲劲",
+            "正印": "安定感", "偏印": "怪点子", "比肩": "战友感",
+            "劫财": "义气", "食神": "松弛感", "伤官": "才气",
+        }
+        la = _GOD_REL.get(god_ab, god_ab)
+        lb = _GOD_REL.get(god_ba, god_ba)
         lines.append(f"互看：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
                      f"——两种力量互相成全，也偶尔较劲。")
     dayun = h.get("dayun_hits") or []

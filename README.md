@@ -49,8 +49,10 @@ PY
 然后：
 
 ```bash
-.venv/bin/python -m uvicorn web.app:app --port 8123
+.venv/bin/python -m uvicorn web.app:app --port 8123 --no-access-log
 # 打开 http://127.0.0.1:8123
+# （R87-P1-4：uvicorn access log 会把 ?bday=/邀请链等含生辰的 query
+#  写进 stdout——对外部署/反代场景务必关掉）
 ```
 
 Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服务、开浏览器、

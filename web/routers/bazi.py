@@ -135,7 +135,9 @@ def paipan_history_list(
 ) -> dict:
     """排盘历史分页列表（id 倒序=最新在前）。空库 → {total:0, items:[]}。"""
     if paipan_history.disabled():
-        return {"total": 0, "items": []}
+        # R2349t（R87-P2-1）：带禁用标记——前端此前把禁用读成「还没用过」，
+        # 「都会收在这里」与永不写的事实矛盾。
+        return {"total": 0, "items": [], "disabled": True}
     return paipan_history.list_records(limit=limit, offset=offset)
 
 
@@ -143,6 +145,11 @@ def paipan_history_list(
 def paipan_tarot_collection() -> dict:
     """R2349l（R73-P1-12）：塔罗图鉴——台账里抽过的牌 + 全 78 牌名。"""
     from guji.tarot import DECK
+    # R2349t（R87-P2-1）：「不写不查」口径破洞——禁用下仍聚合存量
+    # 库出牌，与历史列表的禁用语义不一致。
+    if paipan_history.disabled():
+        return {"collected": [], "deck": [d[0] for d in DECK],
+                "total": len(DECK)}
     got = paipan_history.tarot_collection()
     return {"collected": got.get("collected", []),
             "deck": [d[0] for d in DECK], "total": len(DECK)}

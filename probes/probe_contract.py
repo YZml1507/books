@@ -270,6 +270,10 @@ CONDITIONAL_FIELDS = {
                      # 空时不回）；shensha.linri 恒在（dict 子键，守卫读法）。
                      "day_flags", "term_today", "term_today.name",
                      "term_today.time"},
+    # R2349t（R87-P2-1）：disabled 只在 BOOKS_PAIPAN_HISTORY_DISABLE
+    # 开启时返回——探针跑非禁用态所以响应里本就没有；前端
+    # `if (j.disabled)` 正是对缺席的探测。
+    "/api/paipan/history": {"disabled"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

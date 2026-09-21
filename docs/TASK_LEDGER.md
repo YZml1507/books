@@ -11967,3 +11967,30 @@ selftest 268 / contract 566（SOFT 45）/ ui_smoke 75 / date_parity
 68+41+251键 / llm_polish / check_poster 判据12/13/14 / first_screen /
 no_generated / scripts_importable / ruff E9,F —— 全绿。
 sw: books-shell-fe3d0e02cb8b（静态资产已 bump）。
+
+## R2349t — R87 存储/隐私 + R88 情感化时刻批（两审计报告全清）
+
+R87 P0（daily_cache personal 泄漏）：`_personal`（请求方生辰派生）此前整包落
+daily_cache——不带 bday 的请求会拿到上一位用户的日主行，且「忘掉我的数据」够不
+着（缓存按日期窗口清）。修法：落库时剔除 personal（每请求现算成本=一次干支查
+表）+ 命中路径对无 bday 请求防御性 pop + cv 4→5 抬代次让存量脏行一律重算覆盖。
+
+R87 P1：打卡 chip 词表外脏值 esc() 补漏（存储型 XSS 面）；「忘掉我的数据」复活
+封堵——清档案后各表单 data-me 回填值/LAST_RESULT/CHAT_LAST_FACTS/_trAsked/
+chatBootId 一并收口，B tab 删档案跨 tab 同步不再重填；导入白名单加值域校验
+（checkin 值限定词表、键名限长）；导出备份补 checkinCeleb:/ret_tip:/服务端
+favorites（「全量带走」名实相符）。
+
+R87 P2：台账禁用态响应带 `disabled` 标记（前端此前把「永不写」读成「还没用过」，
+合进牌阵收集同样补闸）；hlask 两读端口径统一；死分支 `_birSub` 明文生日副标
+收编；README 记 uvicorn access-log 会把 ?bday= 生辰写进 stdout 的部署注意。
+
+R88 情感化批（FE 附加层，冻结面零触碰）：生日全站认出（封面「生日礼物已包好」/
+日签「生日签」限定签/打卡词表+回执池/庆生周倒数升级）；久归承接（间隔>3天
+封面+聊天空态专属话术，断签报「N 天先存个档」）；吉签庆祝层（dailyCheer 六句
+池+日卡星爆复用 __fxBurstAt+海报「上上签」行）；节日/节气上海报副题+右上徽章
+（🌕🧧🥟🌾）；合婚 85+/90+ 稀有度标签；塔罗亮牌阵（太阳/世界/恋人/星星正位）
+庆祝收尾句；连签档 60/100（双满月/百日传说）全链路（meta 档/池/触发/海报款/
+庆典卡 data-tier 描边）；分享链带昵称 `&n=`（接力页喊名+回赠 toast）；邀请链
+发起人名贯穿 toast/welcomeBar/回发提示；聊天空态时段分级（深夜/晨间）；季节
+光晕轮换（data-season，不压深色主题）。contract 条件字段表 +history.disabled。
