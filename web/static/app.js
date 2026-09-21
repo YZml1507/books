@@ -52,7 +52,12 @@ function zwClean(s) {
 /** 取输入框整数值；空或非法返回 null（让调用方决定是否发送该字段）。 */
 var _numBadLast = 0;
 function num(id) {
-  const raw = val(id);
+  var raw = val(id);
+  /* R2350f（R101-P2-11）：中文输入法常产出全角数字 １９９０——
+   * 归一化成 ASCII 再走校验，不当脏值拦。 */
+  raw = raw.replace(/[０-９]/g, function (c) {
+    return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+  });
   if (raw === '') return null;
   /* R2350e（R101-P0-1）：parseInt 静默吞错——「1e1」→1、
    * 「30.5」→30、「1990e2」→1990，盘按错值排而用户毫不知情。
@@ -9869,7 +9874,18 @@ function _markStale(fid) {
 ['input', 'change'].forEach(function (_ev) {
   document.addEventListener(_ev, function (e) {
     var _f = e.target;
-    if (_f && _f.id) _markStale(_f.id);
+    if (!_f || !_f.id) return;
+    _markStale(_f.id);
+    /* R2350f（R101-P2-8）：maxlength 静默截断——「张小可爱」变「张小」
+     * 用户不察觉。顶到上限时吱一声（每字段只报一次，删短了再允许报）。 */
+    if (_ev === 'input' && _f.maxLength > 0 &&
+        _f.value.length >= _f.maxLength && !_f.dataset.maxHit) {
+      _f.dataset.maxHit = '1';
+      showToast('这栏最多 ' + _f.maxLength + ' 个字哦', 'info');
+    } else if (_f.dataset.maxHit &&
+               _f.value.length < _f.maxLength) {
+      _f.dataset.maxHit = '';
+    }
   }, true);
 });
 

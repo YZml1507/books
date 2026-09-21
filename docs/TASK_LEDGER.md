@@ -12195,3 +12195,4 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 - P2-13 「安利铺子」应用级分享钮（打卡区常驻，复制 文案+链 / 走系统分享）。
 - R103 术数对账（sxtwl+lunar_python 参照，34 断言）：全通过；P2-1 夜子时流派差异已披露照留；P2-2 name_candidates 旧路径已在 R2350a 删除（审计跑在旧 HEAD）。
 - 闸门：selftest 271 / contract 609 / ui_smoke 75 / poster 3判据 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
+- R2350f 续：R101 缓议项收口——全角数字归一化（１９９０→1990，中文输入法常见产出）；maxlength 顶格时吱一声（截断不再静默）。
