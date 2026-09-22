@@ -611,12 +611,24 @@ def main() -> int:
     from guji import paipan_history as _ph_db
     _ph_baseline = (0 if _ph_db.disabled()
                     else _ph_db.list_records(limit=200)["total"])
-    text = open(FRONTEND_JS, encoding="utf-8").read()
-    lines, base = script_region(text, FRONTEND_JS)
-    all_blocks = split_blocks(lines, base)
-    blocks = [b for b in all_blocks if b["has_call"]]
     src_name = os.path.basename(FRONTEND_JS)
-    print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）")
+    # R2400j：懒加载 chunk 也是前端载体——app_poster.js/app_research.js
+    # 里照样有 api() 调用与字段读点；不扫它们，chunk 里的读点全逃出
+    # 契约视野（R122 拆分后实测读点 622→442 假缩水）。app_*.js 约定
+    # 即 chunk 命名，新 chunk 自动入扫。
+    all_blocks = []
+    _files = [FRONTEND_JS] + sorted(
+        os.path.join(STATIC, f) for f in os.listdir(STATIC)
+        if re.fullmatch(r"app_[a-z0-9_]+\.js", f))
+    for _f in _files:
+        _t = open(_f, encoding="utf-8").read()
+        _ls, _bs = script_region(_t, _f)
+        for _blk in split_blocks(_ls, _bs):
+            _blk["file"] = os.path.basename(_f)
+            all_blocks.append(_blk)
+    blocks = [b for b in all_blocks if b["has_call"]]
+    print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）" +
+          (f" + {len(_files) - 1} 个懒加载 chunk" if len(_files) > 1 else ""))
     if not blocks:
         print(f"probe_contract FAIL-ENV: 在 {src_name} 里切不出任何含 fetch 的 "
               f"handler 块。可能是代码风格变了（如改用箭头函数顶层缩进），"
@@ -823,7 +835,8 @@ def main() -> int:
                          f"{r['renders_as']}  {r['value_preview']}")
             if r.get("note"):
                 extra += f"  ⚠ {r['note']}"
-            print(f"  {src_name}:{r['line_no']}  {r.get('url', '-')}  读 {path}"
+            print(f"  {r.get('file') or src_name}:{r['line_no']}  "
+                  f"{r.get('url', '-')}  读 {path}"
                   f"{extra}\n      源码: {r['src']}")
 
     print(f"probe_contract: {len(blocks)} 个含 fetch 的 handler 块，"
@@ -910,8 +923,11 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
     checked = 0
     for b in blocks:
         binds, reads, urls, var_urls, nofix = field_reads(b)
+        for _rd in reads:
+            _rd["file"] = b.get("file")
         for nu in nofix:
-            skipped.append({"line_no": b["start"], "src": f"no fixture for {nu}",
+            skipped.append({"line_no": b["start"], "file": b.get("file"),
+                            "src": f"no fixture for {nu}",
                             "path": [], "field": "-"})
         # R228g：render 层——caller 块里 `fn(arg)` 且 arg 已绑定 → 以 arg 的
         # (kind,path,url) 为种子在 callee 体内重跑 field_reads，callee 内
