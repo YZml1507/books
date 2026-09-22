@@ -30,6 +30,7 @@ import random
 import logging
 import re
 import sqlite3
+import time
 from datetime import date, datetime, timedelta, timezone
 
 _logger = logging.getLogger("books")
@@ -2622,7 +2623,33 @@ def _hl_next_yi_days(dt: datetime, terms: list[str],
 _CHAT_FACTS_CACHE: dict = {}
 
 
-def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
+# R2400（R123-P1-1/P1-4）：会话级日期/事项锚——「明天适合出行吗」→「那搬家呢」
+# 沿用上一句说的日子按明天判（原按今天注入错误宜忌）；「那后天呢」
+# 沿用上一句问的事项按出行判（原降级成原始宜忌总表）。
+# 只在内存，随进程生灭；TTL 内才算同一段对话。
+_CHAT_CTX: dict = {}
+_CHAT_CTX_TTL = 1800   # 30 分钟
+
+
+def _chat_ctx_get(sid: str | None) -> dict | None:
+    if not sid:
+        return None
+    ent = _CHAT_CTX.get(sid)
+    if ent and time.time() - ent[0] < _CHAT_CTX_TTL:
+        return ent[1]
+    return None
+
+
+def _chat_ctx_put(sid: str | None, ctx: dict) -> None:
+    if not sid:
+        return
+    if len(_CHAT_CTX) >= 512:
+        _CHAT_CTX.clear()
+    _CHAT_CTX[sid] = (time.time(), ctx)
+
+
+def chat_huangli_facts(message: str, now: datetime | None = None,
+                       session_id: str | None = None) -> list[str]:
     """小满聊天的黄历事实供给：先把「适不适合」算成判定再交给 LLM。
 
     消息提到黄历事项词（口语词或规范词）→ 当日宜忌 + 判定 + 近期吉日；
@@ -2633,28 +2660,48 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     # R230v（R34-#24）：键含原文指纹——此前 [:200] 截断，两条 200 字
     # 前缀相同的同日长消息会串事实行（概率极低但语义错）。
     _msg_norm = _t2s((message or "").strip())
+    # R2400：锚是输入的一部分——不同锚态下同一消息产出不同事实行，
+    # 缓存键必须带上生效锚，否则跨会话串味/同会话锚变后吃旧事实。
+    _anchor = _chat_ctx_get(session_id)
     _ck = (_msg_norm[:200] + "#" + hashlib.sha1(
         _msg_norm.encode("utf-8")).hexdigest()[:12],
-           now.date().isoformat())
+           now.date().isoformat(),
+           (_anchor["dt"], _anchor["scene"]) if _anchor else None)
     # R2359（R114-P3-3）：get 原子取值——in 检查与 [] 取值之间另一线程
     # 的 clear() 落进来会 KeyError→task failed→用户看到「没接住」。
     _hit = _CHAT_FACTS_CACHE.get(_ck)
     if _hit is not None:
         return list(_hit)
-    facts = _chat_facts_inner(message, now)
+    _ctx_out: dict = {}
+    facts = _chat_facts_inner(message, now, _anchor, _ctx_out)
     if len(_CHAT_FACTS_CACHE) >= 512:
         _CHAT_FACTS_CACHE.clear()   # 键带日期，粗清即够
     _CHAT_FACTS_CACHE[_ck] = facts
+    # R2400：事实行非空才记锚（倾诉/不存在的日期不更新锚态）。
+    if facts and _ctx_out:
+        _chat_ctx_put(session_id, _ctx_out)
     return list(facts)
 
 
-def _chat_facts_inner(message: str, now: datetime) -> list[str]:
+def _chat_facts_inner(message: str, now: datetime,
+                      anchor: dict | None = None,
+                      ctx_out: dict | None = None) -> list[str]:
     """chat_huangli_facts 的计算主体（缓存键之外的一切都不变）。"""
     msg = (message or "").strip()
     if not msg:
         return []
     now = now or _now_cn()
     msg_n = _t2s(msg)   # R229d：繁中归一后再做事项词/泛问匹配（原文留给日期词）
+    # R2400：日期解析提前——事项沿用判定（「那后天呢」继承上句场景）
+    # 需要先知道本句带没带日期词。
+    dt, spoken = _hl_day_part(msg, now)
+    _explicit_day = (spoken != "今天" or any(
+        w in msg for w in ("今天", "今日", "今晚", "今夜")))
+    # 追问形：那/要不/还是/换 开头、呢吗嘛收尾、或短句——这类消息
+    # 的「没提日期」意为沿用上一句而非「今天」。
+    _followup = bool(re.match(r"^(那|要不|还是|换|哎|诶|话说)", msg_n)) \
+        or msg_n.endswith(("呢", "吗", "嘛", "?", "？")) \
+        or len(msg_n) <= 12
 
     scene, terms = "", []
     # R228s：长词优先匹配——「解除合同」若先撞上「合同」会被误分到立券
@@ -2668,13 +2715,28 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
             if t in msg_n:
                 scene, terms = t, [t]
                 break
+    # R2400（R123-P1-4）：只有日期词的追问（「那后天呢」）沿用上一句的
+    # 事项——此前降级成原始宜忌总表。
+    if anchor and not scene and anchor.get("scene") and _explicit_day:
+        scene, terms = anchor["scene"], list(anchor["terms"])
     generic = not scene and any(
         k in msg_n for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
                              "择日", "适合做什么", "适合干什么",
                              # R229o：「今天宜做什么」「明天忌什么」裸问法
                              "宜做什么", "忌做什么", "宜什么", "忌什么",
                              "做什么好", "干点啥", "能干啥", "能干什么"))
-    dt, spoken = _hl_day_part(msg, now)
+    # R2400（R123-P1-1）：场景追问没提日期 → 沿用上一句的日子
+    # （「明天适合出行吗」→「那搬家呢」按明天判）。
+    if (anchor and not _explicit_day and _followup and scene
+            and anchor.get("dt")):
+        try:
+            dt = datetime.fromisoformat(anchor["dt"])
+            spoken = anchor["spoken"]
+        except (ValueError, TypeError):
+            pass
+    if ctx_out is not None:
+        ctx_out.update({"dt": dt.isoformat(), "spoken": spoken,
+                        "scene": scene or None, "terms": list(terms)})
     # R233r（R49-P2-2）：高敏事项（分手/辞职/怀孕/离婚→解除/求嗣/嫁娶）
     # 已成事实且不带择日/决策意图 → 是倾诉不是问日子，别塞判定句把
     # 共情话头带歪。「我分手了怎么办」的「怎么办」仍算决策词放行。

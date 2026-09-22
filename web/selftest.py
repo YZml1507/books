@@ -2510,6 +2510,23 @@ def _run_inner() -> list[str]:
     # + 事项词的吉日扫描此前在 find_good_days 里 aware/naive 混比崩。
     _hf9 = _svc.chat_huangli_facts("明天面试会顺利吗")
     assert _hf9 and any("黄历判定" in f or "中性" in f for f in _hf9), _hf9
+    # R2400（R123-P1-1）：场景追问沿用上一句的日子——「明天适合出行吗」
+    # →「那搬家呢」必须按明天（9-20）判，不得回落今天（9-19）。
+    _sid = "selftest-anchor"
+    _svc.chat_huangli_facts("明天适合出行吗", now=_dt(2026, 9, 19),
+                            session_id=_sid)
+    _hfa = _svc.chat_huangli_facts("那搬家呢", now=_dt(2026, 9, 19),
+                                   session_id=_sid)
+    assert _hfa and any("2026-09-20" in f for f in _hfa), _hfa
+    # R2400（R123-P1-4）：只有日期词的追问沿用上一句事项——「那后天呢」
+    # 按「搬家」判，不降级成原始宜忌总表。
+    _hfb = _svc.chat_huangli_facts("那后天呢", now=_dt(2026, 9, 19),
+                                   session_id=_sid)
+    assert _hfb and any("搬家" in f and "黄历判定" in f for f in _hfb), _hfb
+    # 锚不跨会话：无锚会话的同句追问仍按今天判。
+    _hfc = _svc.chat_huangli_facts("那搬家呢", now=_dt(2026, 9, 19),
+                                   session_id="selftest-anchor-2")
+    assert _hfc and any("2026-09-19" in f for f in _hfc), _hfc
     ok.append("chat.facts.dates_vocab")
     # R2345（R61-P1-1/P1-2）：facts 放行闸——仿冒判定/指令注入/危机词
     # 经 facts 混进 user 位全剥除；正常坐标事实放行。
