@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-e27235a7cf8e';   // shell-hash: e27235a7cf8e
+var CACHE = 'books-shell-e0d454f77d63';   // shell-hash: e0d454f77d63
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';

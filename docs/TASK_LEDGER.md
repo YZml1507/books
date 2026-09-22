@@ -12446,3 +12446,33 @@ warm_voice / baseline / plain_first 全绿。
 - 评估保留项：renderHits `_rmMarks` 与证据树逐字节为有意分工（树=核验面/列表=阅读面）；线程部署态半残（BOOKS_WRITE_DISABLE 400 中文提示已达标）。
 - 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
 - 子 agent 在跑：R126（R2400 批回归扫：锚误伤/危机词边界/前端回归/两形并查副作用）、R127（本机镜像/云端双轨一致性）。
+
+## R2400g（PR #15）
+- R122-P1-1(上)：app.js 拆海报 chunk——画海报/分享链路 74KB 移入懒加载
+  `app_poster.js`（POSTER_*几何、drawPoster、_paintPoster、
+  _paintSharePoster、buildShareData、downloadPoster 全家+画布工具）；
+  app.js 留同名 stub，点「存图/分享」时 `_loadPosterJs()` 动态注入，
+  chunk 内真身覆盖接管（二次调用零成本）；warmPoster 空闲预热
+  只拉字节不解析、失败静默吞。模态簇/导出簇/_posterOnKey 留
+  app.js——避免 chunk var 重置 stranded 监听（注释里早有警告）。
+  sw.js SHELL +app_poster.js（precache 拉字节，首点离线也能开）。
+  净效：app.js 711KB→639K（-10%），主包少解析 ~1400 行。
+- R127（本机镜像/云端双轨一致性）P1 全清：
+  * P1-1 镜像复活：新增墓碑小键 `paipan_mirror_del_v1`（id→ts），
+    同一条删过即压、同号新记录 ts 不符不误压；写墓碑独立落盘——
+    镜像整体写不下时删除仍生效。
+  * P1-2 详情 id 跨代碰撞：`_phMirrorDetailFor` 命中前对摘要 ts，
+    串档旧尸不上屏顺手摘。
+  * P1-3 断网/5xx 列表回退镜像（`_phRenderMirrorList` 共用——云端空
+    与 fetch 失败同一渲染面）；与 P1-5 合起来统一口径：镜像只补
+    「够不到」，不补「不让看」（401/403 一律不出留档）。
+  * P1-4 备份兜底：export_json 空→镜像 details+items 合成 records；
+    prefs 空→_favMirrorLoad()。
+  * P1-5 _favList 对 401/403 不回退镜像（闸过期 CP 生辰不贴屏）。
+- R127 P2 同步清：wipe 失败路径镜像照清（清扫正则收三镜像键，
+  「本机档案清了」不再说假话）；详情淘汰改 dorder「最近打开」序；
+  saver 同值不写（跨 tab 事件收敛）；镜像键进 storage 监听面
+  （收藏 chips/留档列表跨 tab 就地跟新）；禁写态 toast 提示一次。
+  遗留：P2-5 导入回灌详情需后端返新 id（暂记）、P2-7 CP chips
+  无删除口（产品决策，留）。
+- 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
