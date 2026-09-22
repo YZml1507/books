@@ -258,6 +258,7 @@ async function doThread() {
     if (_tq && !_tq.value.trim()) { showToast('先写个主题名，比如「无为在不同本子的差异」', 'info'); return; }
   }
   try {
+    try { localStorage.setItem('threads_seen_v1', '1'); } catch (eTS) {}
     const j = await postJSON('/api/threads', {
       kind: 'refusal',
       claim: '开题：' + topic + '（尚无证据，待检索后补充）',
@@ -302,11 +303,20 @@ async function _threadListHtml() {
   /* R2400（R124-P1-1）：0 条线程时只剩筛选条+整片空白——按状态给
    * 相应的空态句（进行中没有就引导开一个，收起/结束是正常空空）。 */
   if (!(list.threads || []).length) {
+    /* R2400（R138-P0-2）：清盘后谎称「还没开过」——本地标记住
+     * 「有过线程」；空+见过 = 云端被清，说真话。 */
+    var _seenT = false;
+    try { _seenT = localStorage.getItem('threads_seen_v1') === '1'; }
+    catch (eS) {}
+    var _emptyTxt = _seenT
+      ? '云端的研究记录被服务重启清掉了——这类笔记只存服务器上，重启就没啦。'
+      : {open: '还没有进行中的研究线程——搜个词顺手开一个？',
+         parked: '没有先收起的线程。',
+         closed: '还没有聊完的线程。'}[_threadStatus];
     return html + '<div class="ph-empty" style="margin-top:10px;">' +
-      {open: '还没有进行中的研究线程——搜个词顺手开一个？',
-       parked: '没有先收起的线程。',
-       closed: '还没有聊完的线程。'}[_threadStatus] + '</div>';
+      _emptyTxt + '</div>';
   }
+  try { localStorage.setItem('threads_seen_v1', '1'); } catch (eT) {}
   (list.threads || []).forEach(function (t) {
     /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
      * 一眼可辨新旧（updated_at 只记最近动静）。 */

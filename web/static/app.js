@@ -7942,17 +7942,30 @@ function _phMirrorLoad() {
     if (!(_m && _m.items && _m.details)) _m = { items: {}, details: {} };
     _m.del = _phMirrorDelLoad();
     if (!Array.isArray(_m.dorder)) _m.dorder = [];
+    /* R2400（R138-P1-2）：镜像键去 rowid 化——清盘后服务端 id 从 1
+     * 重排，新记录会按 id 顺序顶掉同号旧归档（无声丢档）。镜像键改
+     * `id|ts` 复合；旧版裸 id 键在这里一次性换键。 */
+    ['items', 'details'].forEach(function (w) {
+      Object.keys(_m[w]).forEach(function (k) {
+        if (k.indexOf('|') !== -1) return;
+        var _it = _m[w][k];
+        delete _m[w][k];
+        _m[w][k + '|' + String((_it && _it.ts) || '')] = _it;
+      });
+    });
     /* R2400（R139-P1-1）：墓碑从「挡写」升级为「摘尸」——跨 tab 删除
      * 与在途响应竞态后，已删条目会借镜像回写复活成幽灵「本机留档」。
      * 读时先按 ts 摘掉与墓碑同代的尸首（同号新记录 ts 不同不殃及）。 */
     Object.keys(_m.del).forEach(function (k) {
-      var _ts = _m.del[k];
-      if (_m.items[k] && String(_m.items[k].ts || '') === String(_ts)) {
-        delete _m.items[k];
-      }
-      if (_m.details[k] && String(_m.details[k].ts || '') === String(_ts)) {
-        delete _m.details[k];
-      }
+      var _ts = _m.del[k], _pfx = k + '|';
+      ['items', 'details'].forEach(function (w) {
+        Object.keys(_m[w]).forEach(function (mk) {
+          if ((mk === k || mk.indexOf(_pfx) === 0) &&
+              _m[w][mk] && String(_m[w][mk].ts || '') === String(_ts)) {
+            delete _m[w][mk];
+          }
+        });
+      });
     });
     return _m;
   } catch (e0) { return { items: {}, details: {}, del: _phMirrorDelLoad(), dorder: [] }; }
@@ -7965,11 +7978,23 @@ function _phMirrorSave(m) {
       localStorage.setItem(_PH_MIRROR_KEY, _s);
     }
   } catch (e1) {
-    /* 写满：按「最近打开」序从最旧的详情砍起再试一次 */
-    var _ord = m.dorder || Object.keys(m.details);
-    for (var _i = 0; _i < _ord.length; _i++) delete m.details[_ord[_i]];
-    try { localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); }
-    catch (e2) { _mirrorWriteWarn(); }
+    /* R2400（R138-P2-3）：超限改 LRU 逐条淘汰——此前一刀切删全部
+     * details，一次超限所有详情蒸发只剩摘要行。 */
+    var _ord = (m.dorder || Object.keys(m.details)).slice();
+    var _ok = false;
+    while (_ord.length && !_ok) {
+      var _oldest = _ord.shift();
+      delete m.details[_oldest];
+      m.dorder = (m.dorder || []).filter(function (k) { return k !== _oldest; });
+      try { localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); _ok = true; }
+      catch (e2) {}
+    }
+    if (!_ok) {
+      try { m.details = {}; m.dorder = [];
+        localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); _ok = true;
+      } catch (e3) {}
+    }
+    if (!_ok) _mirrorWriteWarn();
   }
 }
 function _phMirrorList(m, items) {
@@ -7985,7 +8010,8 @@ function _phMirrorList(m, items) {
         localStorage.setItem(_PH_MIRROR_DEL_KEY, JSON.stringify(_dd));
       } catch (eD) {}
     }
-    m.items[String(it.id)] = it;
+    /* R2400（R138-P1-2）：复合键 id|ts——同 id 不同 ts 并存不互顶。 */
+    m.items[String(it.id) + '|' + String(it.ts || '')] = it;
   });
   /* 只留最近 60 条列表摘要 */
   var _ks = Object.keys(m.items).sort(function (a, b) {
@@ -7995,7 +8021,7 @@ function _phMirrorList(m, items) {
 }
 function _phMirrorDetail(m, rec) {
   if (!rec || rec.id == null) return;
-  var _k = String(rec.id);
+  var _k = String(rec.id) + '|' + String(rec.ts || '');
   m.details[_k] = rec;
   /* 详情最重——按「最近打开」序只留 25 条（dorder 队尾=最新） */
   m.dorder = (m.dorder || []).filter(function (k) { return k !== _k; });
@@ -8007,25 +8033,67 @@ function _phMirrorDetail(m, rec) {
 }
 function _phMirrorDrop(m, id) {
   /* R2400（R127-P1-1）：删=摘条目+盖墓碑（记原 ts 防跨代误压；
-   * 盘上小键与本对象 del 同步落，免同一次操作里读滞后值）。 */
-  var _ts = (m.items[String(id)] || m.details[String(id)] || {}).ts;
+   * 盘上小键与本对象 del 同步落，免同一次操作里读滞后值）。
+   * R2400（R138-P1-2）：复合键按前缀扫——同 id 的所有 ts 代一并摘。 */
+  var _pid = String(id), _pfx = _pid + '|', _ts = '';
+  Object.keys(m.items || {}).forEach(function (k) {
+    if (k === _pid || k.indexOf(_pfx) === 0) {
+      _ts = ((m.items[k] || {}).ts || '') || _ts;
+      delete m.items[k];
+    }
+  });
+  Object.keys(m.details || {}).forEach(function (k) {
+    if (k === _pid || k.indexOf(_pfx) === 0) {
+      _ts = _ts || ((m.details[k] || {}).ts || '');
+      delete m.details[k];
+    }
+  });
   _phMirrorDelMark(id, _ts);
-  if (m.del) m.del[String(id)] = String(_ts || '');
-  delete m.items[String(id)]; delete m.details[String(id)];
-  m.dorder = (m.dorder || []).filter(function (k) { return k !== String(id); });
+  if (m.del) m.del[_pid] = String(_ts || '');
+  m.dorder = (m.dorder || []).filter(function (k) {
+    return k !== _pid && k.indexOf(_pfx) !== 0;
+  });
 }
 function _phMirrorClear() {
   try { localStorage.removeItem(_PH_MIRROR_KEY); } catch (e0) {}
   try { localStorage.removeItem(_PH_MIRROR_DEL_KEY); } catch (e1) {}
 }
+/* R2400（R138-P0-1）：从排盘镜像聚合抽过的塔罗牌名——清盘后图鉴
+ * 不再谎称 0/78。 */
+function _tarotMirrorNames() {
+  var _out = {};
+  try {
+    var _m = _phMirrorLoad();
+    Object.keys(_m.details || {}).forEach(function (k) {
+      var _r = _m.details[k];
+      if (!_r || _r.type !== 'tarot') return;
+      var _j = _r.result || {};
+      ((_j.draws) || []).forEach(function (d) {
+        if (d && d.name) _out[d.name] = 1;
+      });
+    });
+  } catch (e) {}
+  return Object.keys(_out);
+}
 /* R2400（R127-P1-2）：清盘后 id 重排——同号详情若不是同一条
  * （ts 对不上摘要）就是串档旧尸，不能上屏。 */
 function _phMirrorDetailFor(m, id) {
-  var _det = m.details[String(id)];
+  /* R2400（R138-P1-2）：复合键前缀扫——同 id 多代取 ts 最新；
+   * 复合键里自带 ts，撞号串档在键层就不存在。 */
+  var _pid = String(id), _pfx = _pid + '|';
+  var _det = null, _dk = '';
+  Object.keys(m.details || {}).forEach(function (k) {
+    if (k === _pid || k.indexOf(_pfx) === 0) {
+      var _d = m.details[k];
+      if (!_det || String(_d.ts || '') > String(_det.ts || '')) {
+        _det = _d; _dk = k;
+      }
+    }
+  });
   if (!_det) return null;
-  var _sum = m.items[String(id)];
+  var _sum = (m.items || {})[_dk];
   if (_sum && String(_det.ts || '') !== String(_sum.ts || '')) {
-    delete m.details[String(id)];   /* 顺手摘尸 */
+    delete m.details[_dk];   /* 顺手摘尸 */
     return null;
   }
   return _det;
@@ -8464,9 +8532,20 @@ function initDivination() {
           var got = {};
           (cj.collected || []).forEach(function (n) { got[n] = 1; });
           var cnt = (cj.collected || []).length;
-          box.innerHTML = '<div class="tarot-album-count">已收集 <strong>' +
-            cnt + '</strong> / ' + esc(String(cj.total)) +
-            ' 张——多抽几签，把牌册点亮 ✨</div>' +
+          /* R2400（R138-P0-1）：清盘后图鉴谎称「0/78 从0点亮」——
+           * 但抽过的牌其实躺在排盘镜像详情里（result.draws[].name）。
+           * 云端 0 + 镜像有 = 聚合镜像牌名照常渲染，文案说真话。 */
+          var _mNames = _tarotMirrorNames();
+          var _mirrorOnly = !cnt && _mNames.length;
+          _mNames.forEach(function (n) { got[n] = 1; });
+          if (_mirrorOnly) cnt = Object.keys(got).length;
+          box.innerHTML = '<div class="tarot-album-count">' +
+            (_mirrorOnly
+              ? '云端牌册被服务重启清掉了——你设备上还亮着 <strong>' +
+                cnt + '</strong> / ' + esc(String(cj.total)) + ' 张'
+              : '已收集 <strong>' + cnt + '</strong> / ' +
+                esc(String(cj.total)) + ' 张——多抽几签，把牌册点亮 ✨') +
+            '</div>' +
             '<div class="tarot-album-grid">' +
             cj.deck.map(function (n) {
               return '<div class="tarot-cell' + (got[n] ? ' got' : '') +
@@ -11063,13 +11142,16 @@ function baziPersonaCard(j) {
        * （清盘前旧档、翻页窗外旧档）按 ts 归位标「本机留档」；id 撞号
        * 云端为准（同号是否同条在 _phMirrorList 里已裁决）。 */
       var _cloudIds = {};
-      j.items.forEach(function (it) { _cloudIds[String(it.id)] = 1; });
+      /* R2400（R138-P1-2）：复合键去重——同 id 不同 ts 不再互顶。 */
+      j.items.forEach(function (it) {
+        _cloudIds[String(it.id) + '|' + String(it.ts || '')] = 1;
+      });
       var _localIds = {};
       var _rows = j.items.slice();
       Object.keys(_mm.items || {}).forEach(function (k) {
         if (!_cloudIds[k]) {
           var _o = _mm.items[k];
-          _localIds[k] = 1;
+          _localIds[String(_o.id) + '|' + String(_o.ts || '')] = 1;
           _rows.push({ id: _o.id, ts: _o.ts, name: _o.name, type: _o.type,
                        question: _o.question,
                        result_summary: _o.result_summary });
@@ -11094,7 +11176,7 @@ function baziPersonaCard(j) {
           esc(tLabel) + '</span>' +
           '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
           '<span class="ph-ts">' + esc(ts) + '</span>' +
-          (_localIds[String(it.id)]
+          (_localIds[String(it.id) + '|' + String(it.ts || '')]
             ? '<span class="ph-type" style="opacity:.7;">本机留档</span>' : '') +
           '</div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
@@ -11359,6 +11441,25 @@ function baziPersonaCard(j) {
         /* R2400（R127-P1-4）：云端空/拉不到时拿本机留档兜底——清盘态
          * 点「备份」不该导出一本空账（设备上唯一的副本要带走）。 */
         if (!_favs.length) _favs = _favMirrorLoad();
+        /* R2400（R138-P0-2/P1-3）：研究线程/手记此前无出口——清盘
+         * 永丢且「忘掉」也不清。备份带线程摘要+每线程轮次。 */
+        var _threads = [];
+        try {
+          var _tl = await api('/api/threads?status=all', { silent: true });
+          var _tlArr = (_tl && _tl.threads) || [];
+          for (var _ti = 0; _ti < _tlArr.length && _ti < 50; _ti++) {
+            try {
+              var _td = await api('/api/threads/' +
+                                  encodeURIComponent(_tlArr[_ti].id),
+                                  { silent: true });
+              _threads.push({ id: _tlArr[_ti].id, topic: _tlArr[_ti].topic,
+                              status: _tlArr[_ti].status,
+                              opened_at: _tlArr[_ti].opened_at,
+                              updated_at: _tlArr[_ti].updated_at,
+                              turns: (_td && _td.turns) || [] });
+            } catch (eTd) {}
+          }
+        } catch (eTl) {}
         var _recsOut = j.records || [];
         if (!_recsOut.length) {
           var _mmB = _phMirrorLoad();
@@ -11376,7 +11477,7 @@ function baziPersonaCard(j) {
         var bundle = { app: '小满的解忧铺', kind: 'backup', version: 1,
                        exported_at: j.exported_at || new Date().toISOString(),
                        browser: local, records: _recsOut,
-                       favorites: _favs };
+                       favorites: _favs, threads: _threads };
         /* R2353（R110-P1-1）：触屏/微信里 blob a[download] 静默丢弃
          * 还误报「已下载」——改展示式弹层+复制。 */
         if (_exportShowOnly()) {
@@ -11437,7 +11538,7 @@ function baziPersonaCard(j) {
             var k = localStorage.key(i);
             /* R2349（R65-P2-4）：checkinCeleb:*（里程碑已弹标记）此前
            * 游离在清除清单外——一起收。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
@@ -11513,10 +11614,20 @@ function baziPersonaCard(j) {
           : '本机档案清了，台账没连上——联网后再点一次', serverOk ? 'info' : 'warn');
       };
       /* R2349（R65-P1-2）：收藏表（合婚CP/心水名单）含双方生辰+昵称，
-       * 「忘掉我的数据」承诺必须覆盖——与台账一起清。 */
+       * 「忘掉我的数据」承诺必须覆盖——与台账一起清。
+       * R2400（R138-P1-3）：研究线程/手记（knowledge.db）此前无删除
+       * 路径——点「忘掉」后还残留在服务端。逐条 DELETE 一并清。 */
+      var _threadsDel = api('/api/threads?status=all', { silent: true })
+        .then(function (_tl) {
+          return Promise.all((((_tl && _tl.threads) || [])).map(function (t) {
+            return api('/api/threads/' + encodeURIComponent(t.id),
+                       { method: 'DELETE', silent: true }).catch(function () {});
+          }));
+        }).catch(function () {});
       Promise.all([
         phFetch('/api/paipan/history', { method: 'DELETE' }),
-        phFetch('/api/favorites', { method: 'DELETE' })
+        phFetch('/api/favorites', { method: 'DELETE' }),
+        _threadsDel
       ]).then(function () { _phMirrorClear(); _favMirrorClear(); _done(true); })
         /* R2400（R127-P2-1）：云端没连上时本机镜像也一并清（_done
          * 里的键扫描已收镜像键）——不然「本机档案清了」是假的。 */
