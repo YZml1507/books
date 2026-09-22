@@ -496,6 +496,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .recent-toggle{
   position:fixed; left:16px;
   /* R218a-巡2（N-10）：FAB 避开底部 home indicator（iOS）和六爻初爻 */
+  /* R2353（R110-P2-10）：max()/env() 不认的老内核整行丢弃，FAB
+     掉文档尾不可见——先纯 px 兜底再覆盖（同 90vh→90dvh 双写法）。 */
+  bottom:20px;
   bottom:max(20px, env(safe-area-inset-bottom, 20px));
   z-index:60;
   width:52px; height:52px; border-radius:50%;
@@ -1560,6 +1563,15 @@ button:active{transform:scale(.96);}
   background:#FDF8F0; border-top:1px solid var(--border);
   text-align:center;
 }
+/* R2353（R110-P1-1）：展示式导出的文本框——占满 body 区可滚可选 */
+.export-modal-ta{
+  width:100%; height:100%; min-height:38vh; max-height:60vh;
+  resize:none; border:1px solid var(--border); border-radius:8px;
+  padding:10px; font-size:12px; line-height:1.6;
+  background:var(--card); color:var(--ink);
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  -webkit-user-select:text; user-select:text;
+}
 
 /* ── R218a-巡2（N-05）：全局 toast 提示 ───────────── */
 .toast-stack{
@@ -1567,7 +1579,9 @@ button:active{transform:scale(.96);}
    * 下移+加深投影分层。
    * R2349m（R76-P1-3）：fixed 元素吃不到 body 的 env() padding——
    * 刘海机 top 直接 calc 安全区。 */
-  position:fixed; left:50%; top:calc(env(safe-area-inset-top, 0px) + 12px);
+  position:fixed; left:50%; top:12px;
+  /* R2353（R110-P2-10）：同上——env()/calc 不认时 toast 栈不可见 */
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
   transform:translateX(-50%);
   z-index:300; display:flex; flex-direction:column; gap:8px;
   pointer-events:none; max-width:min(420px, 92vw);
@@ -1800,6 +1814,8 @@ button:active{transform:scale(.96);}
   /* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
    * 缩到 44px 挪右下（右下是分享/返回惯例位）。 */
   .recent-toggle{left:auto; right:12px; width:44px; height:44px;
+    bottom:14px;
+    /* R2353（R110-P2-10）：同上 */
     bottom:max(14px, env(safe-area-inset-bottom, 14px));}
   .recent-toggle-txt{font-size:10px;}
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
@@ -1933,6 +1949,8 @@ html{-webkit-text-size-adjust:100%;}
   /* R2349m（R76-P1-5）：压 home 条 → env()；
    * R76-P3：z-index 280>poster-modal 200 会叠在模态上 → 降到 180 */
   position:fixed; left:14px;
+  bottom:14px;
+  /* R2353（R110-P2-10）：同上——安装提示掉文档尾 */
   bottom:max(14px, env(safe-area-inset-bottom, 14px)); z-index:180;
   display:flex; align-items:center; gap:8px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
@@ -1951,6 +1969,8 @@ html{-webkit-text-size-adjust:100%;}
   background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
 }
 @media (max-width:400px){ .install-tip{left:8px;
+  bottom:8px;
+  /* R2353（R110-P2-10）：同上 */
   bottom:max(8px, env(safe-area-inset-bottom, 8px)); font-size:12px;} }
 
 /* ── R231h（R39-P3-3）：连签里程碑卡 ── */

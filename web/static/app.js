@@ -2288,9 +2288,20 @@ function showView(viewId) {
 
 /* R230d（R16-P0-2）：系统返回/后退手势 → 回到 state 记的视图（默认首页）。 */
 window.addEventListener('popstate', function (e) {
+  /* R2353（R110-P2-1）：海报/导出弹层也入栈（见 showPosterModal）——
+   * 弹层开着时按返回先关弹层；回落到的 state.view 与现视图相同时
+   * 不再 showView（同视图重渲会重复触发进页钩子，如塔罗落地卡）。 */
+  if (document.getElementById('posterModal')) {
+    try { closePosterModal(); } catch (eM) {}
+  }
+  window.__modalPushed = false;
+  var _sv = (e.state && e.state.view) ? e.state.view : 'home';
+  var _av = document.querySelector('.view.active');
+  var _cv = _av ? _av.id.replace(/^view-/, '') : 'home';
+  if (_sv === _cv) return;
   window.__suppressPush = true;
   try {
-    showView((e.state && e.state.view) ? e.state.view : 'home');
+    showView(_sv);
   } finally {
     window.__suppressPush = false;
   }
@@ -4143,10 +4154,14 @@ function showPosterModal(canvas, view, j) {
           esc(viewTitle) + ' 分享图">' +
       '</div>' +
       '<div class="poster-modal-tip">💡 ' +
-        ((typeof navigator !== 'undefined' &&
-          (navigator.maxTouchPoints > 0 || 'ontouchstart' in window))
-          ? '长按图片可保存到相册 · 发给闺蜜一起测～'
-          : '已自动下载到下载文件夹 · 也可右键另存 · 发给闺蜜一起测～') +
+        ((typeof navigator === 'undefined' ||
+          !(navigator.maxTouchPoints > 0 || 'ontouchstart' in window))
+          ? '已自动下载到下载文件夹 · 也可右键另存 · 发给闺蜜一起测～'
+          /* R2353（R110-P2-3）：小红书 webview 长按菜单由 app 侧实现，
+           * 对 data-URI 图不一定有「保存图片」——改截图口径。 */
+          : (/xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent || '')
+             ? '截图保存，或点下方「复制文案+链接」发给闺蜜～'
+             : '长按图片可保存到相册 · 发给闺蜜一起测～')) +
         '</div>' +
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
        * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
@@ -4157,6 +4172,16 @@ function showPosterModal(canvas, view, j) {
       '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  /* R2353（R110-P2-1）：弹层入栈——弹层开着按返回键/手势先关弹层
+   * 而不是退回上一视图（微信/XHS webview 左滑返回场景实测踩坑）。
+   * 同视图 push（URL 不变，state 多 modal 标记），popstate 侧按
+   * 「同视图不 showView」兜住。 */
+  try {
+    history.pushState({
+      view: (history.state && history.state.view) || 'home',
+      modal: 'poster' }, '');
+    window.__modalPushed = true;
+  } catch (ePS) {}
   /* 复制本视图深链——朋友打开直达同一页 */
   var _pcl = backdrop.querySelector('#posterCopyLink');
   if (_pcl) _pcl.addEventListener('click', function () {
@@ -4282,6 +4307,90 @@ function showPosterModal(canvas, view, j) {
 }
 var _posterOnKey = null;
 var _posterTrigger = null;
+/* R2353（R110-P1-1）：展示式导出——iOS 微信/触屏端没有用户可见的
+ * 下载管理器，blob/attachment 静默丢弃还误报成功。改走弹层：
+ * 文本进 readonly textarea + 「复制全部」钮（clipboard+execCommand
+ * 兜底），用户可存备忘录/发文件传输助手。复用 #posterModal 关闭链。 */
+function _showTextExportModal(title, text, tipText) {
+  var existing = document.getElementById('posterModal');
+  if (existing) { closePosterModal(); if (existing.isConnected) existing.remove(); }
+  var backdrop = document.createElement('div');
+  backdrop.id = 'posterModal';
+  backdrop.className = 'poster-modal-backdrop';
+  _posterTrigger = document.activeElement;
+  backdrop.innerHTML =
+    '<div class="poster-modal" role="dialog" aria-modal="true" aria-label="' +
+      esc(title) + '">' +
+      '<div class="poster-modal-head">' +
+        '<span class="poster-modal-title">📦 ' + esc(title) + '</span>' +
+        '<button type="button" class="poster-modal-close" aria-label="关闭">×</button>' +
+      '</div>' +
+      '<div class="poster-modal-body">' +
+        '<textarea readonly class="export-modal-ta" aria-label="备份内容">' +
+          esc(text) + '</textarea>' +
+      '</div>' +
+      '<div class="poster-modal-tip">💡 ' + esc(tipText || '') + '</div>' +
+      '<div class="poster-modal-actions">' +
+        '<button type="button" class="poster-act" id="exportCopyAll">📋 复制全部</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(backdrop);
+  /* R2353（R110-P2-1）：弹层入栈——弹层开着按返回键/手势先关弹层
+   * 而不是退回上一视图（微信/XHS webview 左滑返回场景实测踩坑）。
+   * 同视图 push（URL 不变，state 多 modal 标记），popstate 侧按
+   * 「同视图不 showView」兜住。 */
+  try {
+    history.pushState({
+      view: (history.state && history.state.view) || 'home',
+      modal: 'poster' }, '');
+    window.__modalPushed = true;
+  } catch (ePS) {}
+  var _eca = backdrop.querySelector('#exportCopyAll');
+  if (_eca) _eca.addEventListener('click', function () {
+    var ok = function () { showToast('已复制全部内容——去备忘录粘贴留存吧', 'ok'); };
+    var bad = function () { showToast('复制没成功——长按文本手动全选复制', 'warn'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok, bad);
+    } else {
+      try {
+        var _ta2 = backdrop.querySelector('textarea');
+        _ta2.focus(); _ta2.select();
+        document.execCommand('copy') ? ok() : bad();
+      } catch (e) { bad(); }
+    }
+  });
+  requestAnimationFrame(function () { backdrop.classList.add('open'); });
+  _mainInert(true, backdrop);
+  var _pcb2 = backdrop.querySelector('.poster-modal-close');
+  if (_pcb2) _pcb2.focus();
+  _pcb2.addEventListener('click', closePosterModal);
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closePosterModal();
+  });
+  _posterOnKey = function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) closePosterModal();
+    if (e.key === 'Tab' || e.keyCode === 9) {
+      var _f = backdrop.querySelectorAll(
+        'button,[href],textarea,[tabindex]:not([tabindex="-1"])');
+      if (!_f.length) return;
+      var _first = _f[0], _last = _f[_f.length - 1];
+      if (e.shiftKey && document.activeElement === _first) {
+        e.preventDefault(); _last.focus();
+      } else if (!e.shiftKey && document.activeElement === _last) {
+        e.preventDefault(); _first.focus();
+      } else if (!backdrop.contains(document.activeElement)) {
+        e.preventDefault(); _first.focus();
+      }
+    }
+  };
+  document.addEventListener('keydown', _posterOnKey);
+}
+/* 触屏/内嵌浏览器判定——导出/下载类操作在这些环境该走展示式。 */
+function _exportShowOnly() {
+  if (typeof navigator === 'undefined') return false;
+  return (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) ||
+    /MicroMessenger|xhsdiscover|XHSAPP/i.test(navigator.userAgent || '');
+}
 /* R229c：_rmBehavior 提升到模块级——此前嵌套在 closePosterModal 体内，
  * 函数声明不外溢，app.js:5006 的调用必然 ReferenceError（排盘历史
  * 「复看」每点必报假错 toast；2254 处同款调用被外层 try 静默吞掉，
@@ -4292,6 +4401,14 @@ function _rmBehavior() {
     ? 'auto' : 'smooth';
 }
 function closePosterModal() {
+  /* R2353（R110-P2-1）：UI 路径关弹层时把 showPosterModal 推的
+   * modal 栈项一并弹掉——不然栈里留 {modal:'poster'} 陈旧项，
+   * 下一次返回键多走一步「原地」。popstate 回调里的再次调用
+   * 因 __modalPushed 已 false 不会重入。 */
+  if (window.__modalPushed) {
+    window.__modalPushed = false;
+    try { history.back(); } catch (eHB) {}
+  }
   if (_posterOnKey) {
     document.removeEventListener('keydown', _posterOnKey);
     _posterOnKey = null;
@@ -10140,9 +10257,11 @@ document.addEventListener('click', function (ev) {
         showToast(_dayPick(['收进心水名单啦','放进心水夹了～','这个名字归你了'], 'fav'), 'info');
         _qmFavsRender();
       })
-      .catch(function (e) { showToast('没存上：' + e.message, 'error'); })
-      .finally(function () { qf.dataset.inflight = ''; })
-      .finally(function () { qf.disabled = false; });
+      /* R2353（R110-P2-7）：.finally 未 gate——Chromium<63/iOS<13.4
+       * 上是 undefined → 同步 TypeError，inflight 永不复位按钮报废。
+       * 改 then/catch 双侧各复位（等值）。 */
+      .then(function () { qf.dataset.inflight = ''; qf.disabled = false; },
+            function () { qf.dataset.inflight = ''; qf.disabled = false; });
     return;
   }
   var qd = t.closest('[data-qm-fav-del]');
@@ -10154,7 +10273,9 @@ document.addEventListener('click', function (ev) {
         { method: 'DELETE', silent: true })
       .then(function () { _qmFavsRender(); })
       .catch(function () { showToast('摘失败，稍后再试', 'warn'); })
-      .finally(function () { qd.dataset.inflight = '0'; });
+      /* R2353（R110-P2-7）：同 P2-7——.finally 换双分支复位。 */
+      .then(function () { qd.dataset.inflight = '0'; },
+            function () { qd.dataset.inflight = '0'; });
     return;
   }
   /* 测过的 CP chip → 回填表单并直接合婚 */
@@ -11882,10 +12003,14 @@ function _renderInstallTip() {
      * 微信→右上角···去 Safari 打开；Safari→底部分享；其他 iOS
      * webview→同微信口径引导去 Safari。 */
     var _wx = /MicroMessenger/i.test(navigator.userAgent);
+    /* R2353（R110-P2-4）：小红书 webview「···」菜单是「在浏览器打开」，
+     * 通用 iOS 口径「复制链接去 Safari」不准——补 XHS 分支。 */
+    var _xhs = /xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent);
     var _isSafari = /Safari/i.test(navigator.userAgent) &&
       !/CriOS|FxiOS|EdgiOS|MicroMessenger|QQ/i.test(navigator.userAgent);
     bar.innerHTML = '<span>🏠 ' +
       (_wx ? '点右上「···」→「在 Safari 打开」，再点分享→加到主屏幕'
+           : _xhs ? '点右上「···」→「在浏览器打开」，再点分享→加到主屏幕'
            : _isSafari ? '点底部「分享」→「添加到主屏幕」，明天直接来'
            : '复制链接去 Safari 打开，再「添加到主屏幕」') + '</span>' +
       '<button type="button" class="install-tip-go">知道了</button>' +
@@ -12391,7 +12516,23 @@ function baziPersonaCard(j) {
     if (ex) ex.addEventListener('click', function () {
       if (performance.now() - _phLast.ex < 1500) return;
       _phLast.ex = performance.now();
-      window.open('/api/paipan/history/export', '_blank');
+      /* R2353（R110-P1-1）：微信/触屏端 window.open(attachment) 静默
+       * 丢弃——取回 CSV 文本改走展示式弹层。 */
+      if (_exportShowOnly()) {
+        fetch('/api/paipan/history/export', { credentials: 'same-origin' })
+          .then(function (r) {
+            return r.ok ? r.text() : Promise.reject(new Error('csv ' + r.status));
+          })
+          .then(function (csv) {
+            _showTextExportModal('排盘台账备份',
+              csv, '点「复制全部」，存到备忘录或发给文件传输助手');
+          })
+          .catch(function () {
+            showToast('台账暂时取不来，稍后再试试', 'warn');
+          });
+      } else {
+        window.open('/api/paipan/history/export', '_blank');
+      }
     });
     /* R231a（R36-P3-3）：备份我的数据 = 台账全量 JSON + 浏览器侧键
      * （打卡/me 双档/问一嘴足迹/主题/口吻）。换设备一键带走。 */
@@ -12443,6 +12584,15 @@ function baziPersonaCard(j) {
                        exported_at: j.exported_at || new Date().toISOString(),
                        browser: local, records: j.records || [],
                        favorites: _favs };
+        /* R2353（R110-P1-1）：触屏/微信里 blob a[download] 静默丢弃
+         * 还误报「已下载」——改展示式弹层+复制。 */
+        if (_exportShowOnly()) {
+          _showTextExportModal('我的数据备份',
+            JSON.stringify(bundle, null, 2),
+            '点「复制全部」，存到备忘录或发给文件传输助手——换新设备时贴回导入' +
+            '（含生辰昵称，存哪儿自己留心）');
+          return;
+        }
         var blob = new Blob([JSON.stringify(bundle, null, 2)],
                             { type: 'application/json' });
         var a = document.createElement('a');
