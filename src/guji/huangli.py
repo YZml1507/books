@@ -569,9 +569,14 @@ def day_query(dt: datetime) -> dict:
         # R77（R2349n）：换字同义的对冲词也透出——卡面同样标※
         "conflict_family": family_conflicts(yi, ji),
         "shensha": shensha(dt),
+        # R2351（R108-§四.3-1）：1900-01-01~30 在宣称域内但农历表
+        # 起点是 1900-01-31（该日=庚子年正月初一）——此前 lunar
+        # 三键静默空串，现在透一句「表外」说明而不是假装无农历。
         "lunar": {"month_cn": _lunar.get("month_cn", ""),
                   "day_cn": _lunar.get("day_cn", ""),
-                  "ganzhi_year_cn": _lunar.get("ganzhi_year_cn", "")},
+                  "ganzhi_year_cn": _lunar.get("ganzhi_year_cn", ""),
+                  **({"note": "农历对照自 1900-01-31 起"}
+                     if not _lunar.get("month_cn") else {})},
         "chongsha": {"chong": _chong,
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
@@ -659,6 +664,9 @@ def find_good_days(start: datetime, end: datetime,
     terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
              if isinstance(affair, list)
              else [AFFAIR_ALIASES.get(affair, affair)])   # 别名归一后再匹配
+    # R2351（R108-§四.3-2）：宣称域 1900-2100——end 跨界会把 2101 日
+    # 推上吉日榜，而该日拿去单日查询又被 400 拒。钳到域内末日。
+    end = min(end, datetime(2100, 12, 31))
     good: list[dict] = []
     cur = start
     while cur <= end:

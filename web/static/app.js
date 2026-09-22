@@ -3093,7 +3093,7 @@ function _paintSharePoster(s, W, H) {
     ctx.font = _ts + 'px "ZCOOL KuaiLe","LXGW WenKai","Noto Serif TC",serif';
   }
   if (ctx.measureText(_title).width > 960) {
-    _title = _gSlice(_title, 30) + '…';
+    _title = _gSliceB(_title, 30) + '…';
   }
   ctx.fillText(_title, 540, 128);
   /* R2349t（R88-15b）：节日徽章——中秋🌕/春节🧧/冬至🥟/节气🌾，
@@ -3112,7 +3112,7 @@ function _paintSharePoster(s, W, H) {
     ctx.save();
     ctx.shadowColor = _ink.halo;
     ctx.shadowBlur = _bgKey === 'lilac' ? 14 : 10;
-    ctx.fillText(_gSlice(s.subtitle, 24), 540, 182);
+    ctx.fillText(_gSliceB(s.subtitle, 24), 540, 182);
     ctx.restore();
   }
 
@@ -3181,6 +3181,14 @@ function _paintSharePoster(s, W, H) {
         _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
           '…' + _keep;
       }
+      /* R2351（R109-P1-2）：按字数截断不测宽——22 字 × 40px ≈ 880px
+       * 会冲出卡右缘。逐 2px 缩字号到放得下（最低 30px 再截）。 */
+      var _vMax = 990 - 150 - 20;
+      for (var _fz = 40; _fz > 30 &&
+           ctx.measureText(_vv).width > _vMax; _fz -= 2) {
+        ctx.font = '500 ' + _fz +
+          'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+      }
       ctx.fillText(_vv, 150, y + 52);
       /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
        * share 模板只印字。文字照画，色块排在值右侧。 */
@@ -3211,9 +3219,13 @@ function _paintSharePoster(s, W, H) {
   var _lyL = (s.view === 'liuyao') &&
     _pArr((((s._src || {}).ben) || {}).lines);
   if (_lyL && _lyL.length === 6) {
-    var _gy = (lines.length ?
-      Math.min(1160, (cardY + (lines.length * lh)) + 24) : 640);
-    if (_gy + 6 * 26 + 24 <= 1280) {
+    /* R2351（R109-P2）：原预算 `_gy+180<=1280` 在有任何明细行时
+     * 恒不成立（条阵=死代码）。改挂「标题区底→明细卡顶」空档带：
+     * 带高 ≥212px 才画且垂直居中，不够就跳过（密版式不硬塞）。 */
+    var _bandTop = 560, _bandBot = lines.length ? (cardY - 60) : 1100;
+    var _need = 6 * 26 + 36 + 20;
+    if (_bandBot - _bandTop >= _need) {
+      var _gy = _bandTop + Math.round((_bandBot - _bandTop - _need + 20) / 2);
       ctx.fillStyle = '#FFFFFF';
       _roundRectPath(ctx, 330, _gy - 18, 420, 6 * 26 + 36, 20); ctx.fill();
       ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
@@ -3538,6 +3550,24 @@ function buildShareData(view, j) {
     }
     case 'liuyao': {
       var sly = base('六爻占卜', '');
+      /* R2349s（R86-P1-3）：古籍侧卦名是繁体（賁/復/臨/觀/兌/離…）
+       * ——简体海报直出混排生僻繁体，先过映射表。
+       * R2351（R109-P1）：大字标题（warm.one_liner 直出）同样要过——
+       * 此前只罩明细行，标题「賁卦」对卡内「贲」打架。 */
+      var _gs = {'賁':'贲','復':'复','臨':'临','觀':'观','兌':'兑',
+        '離':'离','夬':'夬','姤':'姤','遯':'遁','蹇':'蹇','謙':'谦',
+        '師':'师','比':'比','畜':'畜','隨':'随','蠱':'蛊','剝':'剥',
+        '頤':'颐','過':'过','鹹':'咸','恆':'恒','壯':'壮','晉':'晋',
+        '夷':'夷','睽':'睽','解':'解','損':'损','升':'升','困':'困',
+        '井':'井','革':'革','鼎':'鼎','震':'震','艮':'艮','漸':'渐',
+        '妹':'妹','豐':'丰','旅':'旅','巽':'巽','渙':'涣','節':'节',
+        '孚':'孚','濟':'济','訟':'讼','蒙':'蒙','需':'需','履':'履',
+        '泰':'泰','否':'否','乾':'乾','坤':'坤','屯':'屯','坎':'坎'};
+      var _gsS = function (g) {
+        g = _pStr(g);
+        return g ? g.split('').map(function (c) {
+          return _gs[c] || c; }).join('') : g;
+      };
       /* R233t（R51-P2-13）：4 行全叫「依据」分不清——位置化标签。 */
       var _lyLbl = ['卦象', '提示', '走势', '小满捎话'];
       /* R2349m（R75-P2-1）：明细行与 hook 大字逐字重复时剔掉——不当复读机 */
@@ -3551,22 +3581,6 @@ function buildShareData(view, j) {
          * 对不上（j.ben.gua_name/j.ben.moving_lines），fallback 恒走
          * 「结论」空壳——读真字段；变卦不同名时给出方向行。 */
         var _ben = (j && j.ben) || {}, _bian = (j && j.bian) || {};
-        /* R2349s（R86-P1-3）：古籍侧卦名是繁体（賁/復/臨/觀/兌/離…）
-         * ——简体海报直出混排生僻繁体，先过映射表。 */
-        var _gs = {'賁':'贲','復':'复','臨':'临','觀':'观','兌':'兑',
-          '離':'离','夬':'夬','姤':'姤','遯':'遁','蹇':'蹇','謙':'谦',
-          '師':'师','比':'比','畜':'畜','隨':'随','蠱':'蛊','剝':'剥',
-          '頤':'颐','過':'过','鹹':'咸','恆':'恒','壯':'壮','晉':'晋',
-          '夷':'夷','睽':'睽','解':'解','損':'损','升':'升','困':'困',
-          '井':'井','革':'革','鼎':'鼎','震':'震','艮':'艮','漸':'渐',
-          '妹':'妹','豐':'丰','旅':'旅','巽':'巽','渙':'涣','節':'节',
-          '孚':'孚','濟':'济','訟':'讼','蒙':'蒙','需':'需','履':'履',
-          '泰':'泰','否':'否','乾':'乾','坤':'坤','屯':'屯','坎':'坎'};
-        var _gsS = function (g) {
-          g = _pStr(g);
-          return g ? g.split('').map(function (c) {
-            return _gs[c] || c; }).join('') : g;
-        };
         var _lg = _gsS(_ben.gua_name);
         var _lml = _pArr(_ben.moving_lines);
         var _lmn = ['初', '二', '三', '四', '五', '上'];
@@ -3585,6 +3599,7 @@ function buildShareData(view, j) {
           sly.lines = [{ k: '结论', v: _clauseCut(l0, 18) }];
         }
       }
+      sly.big = _gsS(sly.big);   /* R2351：大字标题同样过简体映射 */
       return sly;
     }
     case 'qiming':
@@ -3743,10 +3758,11 @@ function buildShareData(view, j) {
        * 打分（60+15combine+10gan_he…），同一对盘卡面 68/99、海报 70
        * 无分母，转发出去两个数对不上。直接读服务端 match_score。 */
       var _ms = (j && j.match_score != null) ? j.match_score : null;
-      /* R2350h（R107-合婚海报）：分数上胶囊主位——明细行里仍留一行
-       * 供读完图的人核对。 */
+      /* R2350h（R107-合婚海报）：分数上胶囊主位。
+       * R2351（R109-P2）：chip 已写一遍「合拍指数 X/99」，明细行
+       * 再写同数是双写——有分时删明细行，没分时留占位「—」。 */
       if (_ms != null) sh.chip = '合拍指数 ' + _ms + ' / 99';
-      sh.lines.push({ k: '合拍指数', v: (_ms != null ? String(_ms) + '/99' : '—') });
+      if (_ms == null) sh.lines.push({ k: '合拍指数', v: '—' });
       var _wa = _pStr(j && j.day_wx_a), _wb = _pStr(j && j.day_wx_b);
       if (_wa && _wb) {
         var sheng = j.day_wx_sheng ? ' · 越处越合拍'
@@ -3821,7 +3837,7 @@ function buildShareData(view, j) {
       }
       var _cf = _pArr(jh.conflict);
       if (_cf.length) {
-        shl.lines.push({ k: '小满提一句', v: _cf.slice(0, 3).map(_pStr).join('·') + ' 宜忌两边都见，自己掂量' });
+        shl.lines.push({ k: '小满提一句', v: _cf.slice(0, 3).map(_pStr).join('·') + ' 宜忌两边都见，自己拿捏' });
       }
       return shl;
     }
@@ -4334,7 +4350,7 @@ function wrapText(ctx, text, maxWidth) {
 function _clauseCut(v, n) {
   var t = _pStr(v);
   if (Array.from(t).length <= n) return t;
-  var cut = _gSlice(t, n);
+  var cut = _gSliceB(t, n);
   var seps = ['。','！','？','；','，','——','·'];
   var pos = -1;
   seps.forEach(function (sep) {
@@ -4354,6 +4370,25 @@ function _pStr(v) {
   return String(v);
 }
 function _gSlice(v, n) { return Array.from(_pStr(v)).slice(0, n).join(''); }
+/* R2351（R109-P1-3）：括号感知截断——切点落在「（秋分…」这类
+ * 未闭合括号里时，回退到开括号前（吊半个「（」比少几个字难看）。
+ * 只处理最常见的单侧未闭合情形，成对括号内容不完整时不硬切。 */
+function _gSliceB(v, n) {
+  var t = _gSlice(v, n);
+  var pairs = [['（', '）'], ['「', '」'], ['【', '】'], ['(', ')'],
+               ['《', '》']];
+  for (var i = 0; i < pairs.length; i++) {
+    var o = t.lastIndexOf(pairs[i][0]), c = t.lastIndexOf(pairs[i][1]);
+    if (o > c) {           /* 有开无合 */
+      /* 开括号前至少留 4 字才不回退（「（节气）」整段当尾巴弃掉
+       * 不值得，前面只剩「秋分」又太空——折中：回退到开括号，
+       * 但前面 ≥4 字才执行）。 */
+      if (o >= 4) { t = _gSlice(t, o); }
+      break;
+    }
+  }
+  return t;
+}
 
 /* 上一次响应缓存：切换口吻时就地重画，不重发请求。
  * 键 = 结果容器 id，值 = {json, proTitle, render}。render 是"用这份 json

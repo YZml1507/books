@@ -434,6 +434,30 @@ def _run_inner() -> list[str]:
         assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
             ("huangli.term_day.yiji_flip", _tn, _ty)
     ok.append("huangli.term_day.consistent")
+    # R2351（R108-§3.2 钉扎）：±13min 近似把 12 个跨午夜交节推错
+    # 日期——修正表落地后，逐条钉 CST 日期（参照：sxtwl/lunar_python）。
+    for _tn, _ty, _md in (("寒露", 1912, (10, 9)), ("大雪", 1917, (12, 8)),
+                          ("雨水", 1923, (2, 19)), ("谷雨", 1950, (4, 20)),
+                          ("冬至", 1951, (12, 23)), ("惊蛰", 2014, (3, 6)),
+                          ("小暑", 2016, (7, 7)), ("小暑", 2045, (7, 7)),
+                          ("惊蛰", 2047, (3, 6)), ("春分", 2051, (3, 20)),
+                          ("大寒", 2082, (1, 20)), ("立夏", 2097, (5, 5))):
+        _t8 = _tt6(_ty, _tn) + _td0(hours=8)
+        assert (_t8.month, _t8.day) == _md, \
+            ("huangli.term.flipday", _tn, _ty,
+             f"{_t8.month}-{_t8.day}", _md)
+    ok.append("huangli.term.flipday")
+    # R2351（R108-§四.3 钉扎）：find_good_days 不再越 2100 域推日；
+    # 1900-01-31 前 lunar 三键空时带「表外」说明（不再是静默空串）。
+    from guji.huangli import find_good_days as _fgd9, day_query as _dq9
+    _beyond = _fgd9(_dt6(2100, 12, 15), _dt6(2101, 1, 31), "出行")
+    assert all(g["date"] <= "2100-12-31" for g in _beyond), \
+        ("huangli.gooddays.clamp", _beyond[-1]["date"] if _beyond else None)
+    ok.append("huangli.gooddays.clamp")
+    _pre = _dq9(_dt6(1900, 1, 15))["lunar"]
+    assert _pre.get("note") and not _pre.get("month_cn"), \
+        ("huangli.lunar.prenote", _pre)
+    ok.append("huangli.lunar.prenote")
     # R229z续22（R9-P2-2）：场景映射词防死词——每个场景词必须至少映射
     # 一个宜忌词表中的真词（自映射中性词如「健身/唱歌」有意除外）。
     from guji.huangli import ZHIRI_YIJI as _ZY, XIUXIU_YIJI as _XY

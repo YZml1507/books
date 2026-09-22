@@ -142,6 +142,18 @@ def jde_from_dt(dt: datetime) -> float:
     return jd + (dt.hour + dt.minute / 60 + dt.second / 3600) / 24.0
 
 
+# R2351（R108-§3.2 全量对账修正）：_sun_longitude 是 ±13min 近似，
+# 当真实交节时刻距午夜 < ~8min 时误差会把节气推出/推入错日期。
+# 全量对账（sxtwl/lunar_python 参照，1900-2100）实测出全部 12 个
+# 翻日——秒级修正表覆盖整个宣称区间，值为「应加到我方时刻的分钟数」。
+_TERM_MIN_FIX: dict[tuple[int, str], float] = {
+    (1912, "寒露"): +6.9, (1917, "大雪"): +5.5, (1923, "雨水"): -4.3,
+    (1950, "谷雨"): -2.3, (1951, "冬至"): +5.9, (2014, "惊蛰"): +3.8,
+    (2016, "小暑"): +7.3, (2045, "小暑"): +8.2, (2047, "惊蛰"): +4.7,
+    (2051, "春分"): -3.6, (2082, "大寒"): +8.4, (2097, "立夏"): +8.4,
+}
+
+
 @functools.lru_cache(maxsize=512)
 def term_time(year: int, name: str) -> datetime:
     """该公历年内某节气的 UTC 时刻（二分求解黄经交点）。
@@ -196,7 +208,9 @@ def term_time(year: int, name: str) -> datetime:
             hi, hi_g = mid, mg
         else:
             lo, lo_g = mid, mg
-    return lo + (hi - lo) / 2
+    _hit = lo + (hi - lo) / 2
+    _fix = _TERM_MIN_FIX.get((year, name))
+    return _hit + timedelta(minutes=_fix) if _fix else _hit
 
 
 def _is_before(dt: datetime, year: int, name: str) -> bool:
