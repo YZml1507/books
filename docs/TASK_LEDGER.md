@@ -12526,3 +12526,13 @@ warm_voice / baseline / plain_first 全绿。
   warm_voice / async_ai / dollar_misuse / no_generated /
   scripts_importable / selftest_regress / ruff 全绿；
   sw.shell_hash 已 bump。
+
+## R2400j（R122-P1-1下）：古籍域懒加载 chunk 拆分（2026-09-22）
+
+- **app_research.js**（629 行 + 头注）：15 个古籍域 handler（doSearch/doResearch/doAddr/doCompare/doWorks/searchByWork/doThread/_threadListHtml/deleteThread/showThread/doCompareWorks/doConcept/doBookStructure/doBookChapter/doBookSummary）原样搬出；chunk 头注声明「共享 globals + 顶格函数覆盖同名 stub」约定。
+- **app.js 639→621KB**：原位置留下 `_loadResearchJs()`（幂等 promise，script 注入 `/static/app_research.js`）+ `_researchStub()` 转发器（自参捕获 arguments）+ 15 个同名 stub；`_ASCHEME_FIELDS`/`_threadStatus` 留在主文件（syncAddrFields/委托处理器也用）。
+- 预热：`showView('read')` 进页即拉 chunk（catch 吞失败，点按走 stub 再拉一次）。
+- sw.js SHELL +app_research.js；`bump_sw` → books-shell-bb7404487cfd。
+- **probe_contract 扩扫**：`FRONTEND_JS` 单文件 → app.js + glob `app_*.js` 全部 chunk；每块打 `file` 标签，读点/跳项报告按归属文件打印。实测拆分前 622 → 拆后 442 假缩水，扩扫后 623（+poster chunk 1 个原本漏算的读点）。
+- 真机验证（Playwright）：首页零 chunk 请求 → `showView('read')` 拉一次 → 真身接管 stub → doSearch 走通到失败分支（无后端环境），pageerrors=0。
+- 闸：selftest 293 / ui_smoke 76 / contract 623(SOFT=48) / ruff scoped 全绿。
