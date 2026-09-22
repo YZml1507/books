@@ -12536,3 +12536,10 @@ warm_voice / baseline / plain_first 全绿。
 - **probe_contract 扩扫**：`FRONTEND_JS` 单文件 → app.js + glob `app_*.js` 全部 chunk；每块打 `file` 标签，读点/跳项报告按归属文件打印。实测拆分前 622 → 拆后 442 假缩水，扩扫后 623（+poster chunk 1 个原本漏算的读点）。
 - 真机验证（Playwright）：首页零 chunk 请求 → `showView('read')` 拉一次 → 真身接管 stub → doSearch 走通到失败分支（无后端环境），pageerrors=0。
 - 闸：selftest 293 / ui_smoke 76 / contract 623(SOFT=48) / ruff scoped 全绿。
+
+## R2400k（R127-P2-7）：台账云端/本机合渲（2026-09-22）
+
+- `loadPaipanHistory` 云端有行时，把镜像里**页外行**（清盘前旧档、limit=50 翻页窗外的旧档）按 ts 归位合渲，行头标「本机留档」——云端/本机谁是出处一眼可辨。
+- id 撞号云端为准（同号是否同条在 `_phMirrorList` 已裁决）；纯镜像行的「查看」走 `_phMirrorDetailFor` ts 对账、「删除」404 视同摘镜像——既有兜底直接复用。
+- 实现：`_localIds` id 集合判出处，行对象不落 `__local` 合成字段（契约探针会把合成字段判成响应漂移 HARD——实测抓到后改的）。
+- 闸：contract 627(SOFT=48) PASS / node --check 通过 / bump_sw books-shell-42365eca8f29。
