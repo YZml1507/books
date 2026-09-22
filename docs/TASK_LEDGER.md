@@ -12439,3 +12439,10 @@ warm_voice / baseline / plain_first 全绿。
 
 验证：TestClient 实测门页/401/health 豁免/?key=直通/表单解锁/错钥匙
 提示/Cookie 30 天六项全过；selftest 292（+access_gate.token）/ruff 全绿。
+
+## R2400f（PR #15）
+- R124-P2 批清零：线程删除两段式（对齐排盘历史口径）；历史「查看」忙时态「翻开中…」；周历条全断网 7 裸格→一句实话；问一嘴复杂日期 resolve_date 等待提示「帮你翻那天…」；起典请求失败行内交代；线程 tab 重拉失败不再留陈旧空态。
+- R125-P2 批清零：addr 结果头裸 scheme（zhouyi）→ 下拉框同款中文标签；pro 口吻引文补「去翻翻」入口（与白话引文树同权）；compare_works 两形并查（concept2 透传 s2t_retry，简体「无为」两书对照 28 条命中复活）。
+- 评估保留项：renderHits `_rmMarks` 与证据树逐字节为有意分工（树=核验面/列表=阅读面）；线程部署态半残（BOOKS_WRITE_DISABLE 400 中文提示已达标）。
+- 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
+- 子 agent 在跑：R126（R2400 批回归扫：锚误伤/危机词边界/前端回归/两形并查副作用）、R127（本机镜像/云端双轨一致性）。
