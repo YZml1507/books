@@ -3715,7 +3715,7 @@ function buildShareData(view, j) {
       var _md = (j && j.days) || [];
       var _mm0 = (_md[0] && _md[0].date || '').slice(0, 7);
       var _hit = _md.filter(function (d) { return d && d.opt; }).length;
-      var _mk = base('我的本月签运',
+      var _mspec = base('我的本月签运',
         _mm0 ? (Number(_mm0.slice(5)) + ' 月 · 已攒 ' + _hit + ' 张签') : '');
       var _hi2 = { '开运蛋': 1, '暴富签': 1, '生日签': 1, '甜甜运': 1 };
       var _rare = _md.filter(function (d) { return _hi2[d.opt]; });
@@ -3732,23 +3732,23 @@ function buildShareData(view, j) {
       });
       var _top = Object.keys(_cnt).sort(function (a, b) {
         return _cnt[b] - _cnt[a]; }).slice(0, 2);
-      _mk.big = '本月打卡 ' + _hit + ' 天' +
+      _mspec.big = '本月打卡 ' + _hit + ' 天' +
         (_rare.length ? ' · 稀有签 ' + _rare.length + ' 张' : '');
-      _mk.lines = [
+      _mspec.lines = [
         { k: '打卡天数', v: _hit + '/' + _md.length + ' 天' },
         { k: '连签峰值', v: _peak >= 2 ? (_peak + ' 天连签') : '还没连起来' }];
-      if (_top.length) _mk.lines.push(
+      if (_top.length) _mspec.lines.push(
         { k: '最常翻牌', v: _top.map(function (o) {
           return o + '×' + _cnt[o]; }).join(' · ') });
-      if (_rare.length) _mk.lines.push(
+      if (_rare.length) _mspec.lines.push(
         { k: '稀有签 ✦', v: _rare.slice(0, 3).map(function (d) {
           return d.date.slice(5).replace('-', '/') + ' ' + d.opt;
         }).join(' · ') + (_rare.length > 3 ? ' 等' : '') });
-      _mk.lines.push({ k: '本月签运词', v:
+      _mspec.lines.push({ k: '本月签运词', v:
         _hit >= 20 ? '全勤选手，锦鲤本鲤' :
         (_hit >= 10 ? '稳稳在线，好运常来' :
          (_hit >= 5 ? '隔三差五，运气在攒' : '初来乍到，签运开张')) });
-      return _mk;
+      return _mspec;
     }
     case 'bazi': {
       var sb = base('今日命盘', '');
@@ -11509,7 +11509,7 @@ function renderCheckin(dateKey) {
        * 小庆典卡（可直发分享图）；同一天同一档不重复弹。 */
       try {
         var _ns = _checkinStreak(_checkinAll(), dateKey);
-        var _mk = 'checkinCeleb:' + _ns + ':' + dateKey;
+        var _mspec = 'checkinCeleb:' + _ns + ':' + dateKey;
         /* R2349t（R88-10）：连签档补 60/100——百日选手和满月选手
          * 不该是同一张脸。键结构 checkinCeleb:N:date 与 90 天 GC 兼容。 */
         if ([3, 7, 14, 30, 60, 100].indexOf(_ns) >= 0 &&
