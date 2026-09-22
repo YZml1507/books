@@ -12299,3 +12299,23 @@ ruff 全绿。
 （含跨月干扰项）→ 按钮出现 → 海报 688KB，统计全对。
 
 验证：selftest 279 / poster 判据 12-14 / ui_smoke 76 全绿。
+
+## R2353 · R110 内嵌浏览器/弱网审计清零
+
+微信/小红书内嵌浏览器 + 弱网 + 老内核深审（Fast3G 节流实测）。
+零 P0；P1 修 2 持 1：
+- 展示式导出：blob 下载在微信 iOS 静默丢弃——_exportShowOnly()
+  （触屏或 MicroMessenger/xhsdiscover UA）时 CSV/JSON 备份改弹层
+  readonly textarea +「复制全部」（clipboard→execCommand 兜底），
+  复用 #posterModal 关闭链；新增 .export-modal-ta 样式。
+- 弱网让路：LXGW 分片（~500KB）翻 media='all' 延迟到
+  __dailyPref.p resolve 或 4s 兜底——日卡 JSON 不再被字体抢带宽。
+- 持项：P1-2 档案只存 localStorage（微信清缓存即失）——根治需
+  服务端档案+身份归属（user_prefs 单一共享存储缺隔离），待拍板。
+
+P2×5 清：弹层入栈（返回键先关弹层，同视图 popstate 不重渲）、
+XHS 海报提示「截图保存」+ 安装提示「在浏览器打开」分支、
+.finally×3→then 双分支复位、sw.js allSettled 手写等值、
+max()/env() 五处纯 px 兜底。P2-5 启动图 / P2-9 flex-gap 接受现状。
+
+验证：ui_smoke 76 / first_screen / poster 判据 12-14 全绿。
