@@ -92,6 +92,12 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', function () {
         if (_toasted || !_hadCtl) return;
         _toasted = true;
+        /* R2400（R139-P2-4）：新 SW 接管后懒加载 chunk 会新旧混注——
+           页在后台时直接静默刷新到全新版（用户看不见不打断）；
+           前台保留 toast 引导手动刷。 */
+        if (document.hidden) {
+          try { location.reload(); return; } catch (eR) {}
+        }
         if (window.showToast) {
           try { window.showToast('小满换好新版本了，刷新生效 ✨', 'info'); }
           catch (e) {}

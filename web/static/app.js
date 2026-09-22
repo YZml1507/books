@@ -7942,6 +7942,18 @@ function _phMirrorLoad() {
     if (!(_m && _m.items && _m.details)) _m = { items: {}, details: {} };
     _m.del = _phMirrorDelLoad();
     if (!Array.isArray(_m.dorder)) _m.dorder = [];
+    /* R2400（R139-P1-1）：墓碑从「挡写」升级为「摘尸」——跨 tab 删除
+     * 与在途响应竞态后，已删条目会借镜像回写复活成幽灵「本机留档」。
+     * 读时先按 ts 摘掉与墓碑同代的尸首（同号新记录 ts 不同不殃及）。 */
+    Object.keys(_m.del).forEach(function (k) {
+      var _ts = _m.del[k];
+      if (_m.items[k] && String(_m.items[k].ts || '') === String(_ts)) {
+        delete _m.items[k];
+      }
+      if (_m.details[k] && String(_m.details[k].ts || '') === String(_ts)) {
+        delete _m.details[k];
+      }
+    });
     return _m;
   } catch (e0) { return { items: {}, details: {}, del: _phMirrorDelLoad(), dorder: [] }; }
 }
@@ -8637,6 +8649,29 @@ async function _favList() {
       var _sv = (j && j.favorites) || [];
       var _loc = _favMirrorLoad();
       if (_sv.length || !_loc.length) {
+        /* R2400（R139-P1-3）：服务端非空+镜像有独条（清盘后续命的
+         * 旧收藏）——此前整表覆盖静默丢。镜像独有条目回推服务端
+         * （(type,ref_id) UNIQUE+INSERT OR IGNORE，幂等），与排盘
+         * 「留档能回流」同口径。 */
+        var _have = {};
+        _sv.forEach(function (f) { _have[String(f.type) + '|' + String(f.ref_id)] = 1; });
+        var _orphans = _loc.filter(function (f) {
+          return f && f.type && f.ref_id &&
+                 !_have[String(f.type) + '|' + String(f.ref_id)];
+        });
+        if (_orphans.length) {
+          _orphans.forEach(function (f) {
+            try {
+              postJSON('/api/favorites', { type: String(f.type).slice(0, 24),
+                                           ref_id: String(f.ref_id).slice(0, 128),
+                                           title: String(f.title || '').slice(0, 64) });
+            } catch (eP) {}
+          });
+          try {
+            var _j2 = await api('/api/user/prefs', { silent: true });
+            _sv = (_j2 && _j2.favorites) || _sv;
+          } catch (eR) {}
+        }
         _favMirrorSave(_sv);
         return _sv;
       }
@@ -10981,7 +11016,11 @@ function baziPersonaCard(j) {
                  j.detail[0] && j.detail[0].msg) m = j.detail[0].msg;
         m = _humanizeErr(m);
       } catch (e) {}
-      throw new Error(m);
+      /* R2400（R139-P1-2）：裸 Error 没有 .status——下游 401/403
+       * 「门匙失效不走镜像」判据从此真的够得着。 */
+      var _err = new Error(m);
+      _err.status = r.status;
+      throw _err;
     }
     return r.json();
   }
@@ -11152,6 +11191,13 @@ function baziPersonaCard(j) {
         /* R2363：云端取不到（404/清盘）→ 读本机镜像详情
          * R2400（R127-P1-2）：同号详情先对 ts——清盘重排后 id 撞号，
          * ts 不符的是串档旧尸，不上屏（_phMirrorDetailFor 顺手摘尸）。 */
+        /* R2400（R139-P1-2）：门匙失效 401/403 不走镜像详情——
+         * 「过期设备不该再看数据」与列表面同一口径。 */
+        if (e0 && (e0.status === 401 || e0.status === 403)) {
+          if (tg.isConnected) { tg.textContent = _origLabel; tg.disabled = false; }
+          showToast('门匙失效了——重新输口令进门再翻记录', 'warn');
+          return;
+        }
         var _mmx = _phMirrorLoad();
         rec = _phMirrorDetailFor(_mmx, id);
         if (rec) { _phMirrorDetail(_mmx, rec); }   /* 刷新最近打开序 */
@@ -11222,8 +11268,12 @@ function baziPersonaCard(j) {
       var _phBC = new BroadcastChannel('paipan_history');
       _phBC.onmessage = function (e) {
         if (!e || e.data !== 'dirty') return;
+        /* R2400（R139-P2-5）：dirty 先于台账落库 ~60ms 广播——
+         * 立即重拉读到不含新行的列表。缓 400ms 再拉。 */
         var hv = document.getElementById('view-history');
-        if (hv && hv.classList.contains('active')) loadPaipanHistory();
+        if (hv && hv.classList.contains('active')) {
+          setTimeout(loadPaipanHistory, 400);
+        }
       };
     }
   } catch (e) {}
