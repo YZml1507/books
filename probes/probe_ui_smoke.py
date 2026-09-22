@@ -980,6 +980,34 @@ def main() -> int:
                 results.append({"name": "ui:history.import", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R2400k 云端/本机合渲：镜像里有而云端本页没有的行按 ts
+            # 归位标「本机留档」。塞一条假留档行触发重载验证徽标。
+            try:
+                page.evaluate(
+                    "()=>{var m=JSON.parse(localStorage.getItem("
+                    "'paipan_mirror_v1')||'{\"items\":{},\"details\":{}"
+                    ",\"del\":{},\"dorder\":[]}');"
+                    "m.items['999999']={id:999999,"
+                    "ts:'2099-01-01T00:00:00',name:'探针留档行',"
+                    "type:'bazi',result_summary:{paipan_render:'r'}};"
+                    "localStorage.setItem('paipan_mirror_v1',"
+                    "JSON.stringify(m));}")
+                page.evaluate("window.__loadPaipanHistory()")
+                page.wait_for_timeout(800)
+                _mrk = page.evaluate(
+                    "(()=>{var e=document.querySelector("
+                    "'.ph-item[data-id=\"999999\"]');"
+                    "return e?e.innerText:''})()")
+                results.append({
+                    "name": "ui:history.mirror_merge",
+                    "ok": '本机留档' in _mrk and '探针留档行' in _mrk,
+                    "detail": f"假留档行渲染={'探针留档行' in _mrk}"
+                              f" 徽标={'本机留档' in _mrk}"})
+            except Exception as exc:
+                results.append({"name": "ui:history.mirror_merge",
+                                "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # 「忘掉我的数据」两段式清空（R2345/R63-P1-3）：武装文案→
             # 二点→本机键清空+服务端台账清空。删行数记下供台账闸补偿。
             _wipe_delta[0] = 0
