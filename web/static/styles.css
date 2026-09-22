@@ -75,6 +75,7 @@
   --c-taohua:  #FF8FAB;       /* 蜜桃粉 · 桃花 */
   --c-liuyao:  #FFB7C5;       /* 樱粉 · 六爻 */
   --c-hehun:   #FF6B8A;       /* 草莓 · 合婚 */
+  --c-chat:    #FFD6A5;       /* 杏子奶 · 和小满聊聊 */
 
   /* R197b（specs/008-US2 素材轮）：网红风字体三件套——
    * 文楷（手写楷感正文）→ 得意黑（斜体黑标题/数字）→ 思源黑兜底。
@@ -484,6 +485,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .func-card[data-view="taohua"]  {--card-accent:var(--c-taohua);}
 .func-card[data-view="liuyao"]  {--card-accent:var(--c-liuyao);}
 .func-card[data-view="hehun"]   {--card-accent:var(--c-hehun);}
+/* R2363（R117-P1）：chat 卡此前无 accent——回落 #D4B5FF 与塔罗撞色。 */
+.func-card[data-view="chat"]   {--card-accent:var(--c-chat);}
 
 /* ── 最近解读 ── */
 

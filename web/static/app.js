@@ -10307,6 +10307,28 @@ function initDivination() {
  * R208b 删掉的通用收藏面板。 */
 
 var _favListInflight = null;
+/* R2363（R116-P0-1）：收藏同清盘面——测过的 CP/心水名单也镜像本机。
+ * 语义：服务端非空 = 真相，顺手重镜像；服务端空 + 镜像有 = 清盘，
+ * 用镜像续着；镜像内删除走 _favMirrorDrop（用户在本机删过才是真删）。 */
+var _FAV_MIRROR_KEY = 'favorites_mirror_v1';
+function _favMirrorLoad() {
+  try {
+    var _m = JSON.parse(localStorage.getItem(_FAV_MIRROR_KEY) || 'null');
+    return Array.isArray(_m) ? _m : [];
+  } catch (e) { return []; }
+}
+function _favMirrorSave(list) {
+  try { localStorage.setItem(_FAV_MIRROR_KEY, JSON.stringify(list || [])); }
+  catch (e) {}
+}
+function _favMirrorDrop(id) {
+  _favMirrorSave(_favMirrorLoad().filter(function (f) {
+    return String(f && f.id) !== String(id);
+  }));
+}
+function _favMirrorClear() {
+  try { localStorage.removeItem(_FAV_MIRROR_KEY); } catch (e) {}
+}
 async function _favList() {
   /* R2348（R67-P2）：合婚/起名两个 favorites 渲染各调一次——冷启瀑布
    * 实测同秒两条重复 GET。合并在途请求（不是 memoize：收藏会增删，
@@ -10315,8 +10337,18 @@ async function _favList() {
   _favListInflight = (async function () {
     try {
       const j = await api('/api/user/prefs', { silent: true });
-      return (j && j.favorites) || [];
-    } catch (e) { return []; }
+      var _sv = (j && j.favorites) || [];
+      var _loc = _favMirrorLoad();
+      if (_sv.length || !_loc.length) {
+        _favMirrorSave(_sv);
+        return _sv;
+      }
+      /* 云端空 + 本机有 = 睡醒清盘——用本机留档续，不吞镜像。 */
+      return _loc;
+    } catch (e) {
+      var _loc2 = _favMirrorLoad();
+      return _loc2.length ? _loc2 : [];
+    }
     finally { _favListInflight = null; }
   })();
   return _favListInflight;
@@ -10502,8 +10534,13 @@ document.addEventListener('click', function (ev) {
     qd.dataset.inflight = '1';
     api('/api/favorites/' + encodeURIComponent(qd.dataset.qmFavDel),
         { method: 'DELETE', silent: true })
-      .then(function () { _qmFavsRender(); })
-      .catch(function () { showToast('摘失败，稍后再试', 'warn'); })
+      .then(function () { _favMirrorDrop(qd.dataset.qmFavDel); _qmFavsRender(); })
+      .catch(function (e) {
+        /* R2363：404 = 云端已清——视同摘成功，镜像摘掉再渲。 */
+        if (/(404|不存在)/.test(e && e.message || '')) {
+          _favMirrorDrop(qd.dataset.qmFavDel); _qmFavsRender();
+        } else { showToast('摘失败，稍后再试', 'warn'); }
+      })
       /* R2353（R110-P2-7）：同 P2-7——.finally 换双分支复位。 */
       .then(function () { qd.dataset.inflight = '0'; },
             function () { qd.dataset.inflight = '0'; });
@@ -13026,7 +13063,7 @@ function baziPersonaCard(j) {
       Promise.all([
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' })
-      ]).then(function () { _phMirrorClear(); _done(true); })
+      ]).then(function () { _phMirrorClear(); _favMirrorClear(); _done(true); })
         .catch(function () { _done(false); });
     });
     var _imb = document.getElementById('historyImportBtn');
