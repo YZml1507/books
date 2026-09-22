@@ -569,15 +569,69 @@ def day_query(dt: datetime) -> dict:
         # R77（R2349n）：换字同义的对冲词也透出——卡面同样标※
         "conflict_family": family_conflicts(yi, ji),
         "shensha": shensha(dt),
+        # R2351（R108-§四.3-1）：1900-01-01~30 在宣称域内但农历表
+        # 起点是 1900-01-31（该日=庚子年正月初一）——此前 lunar
+        # 三键静默空串，现在透一句「表外」说明而不是假装无农历。
         "lunar": {"month_cn": _lunar.get("month_cn", ""),
                   "day_cn": _lunar.get("day_cn", ""),
-                  "ganzhi_year_cn": _lunar.get("ganzhi_year_cn", "")},
+                  "ganzhi_year_cn": _lunar.get("ganzhi_year_cn", ""),
+                  **({"note": "农历对照自 1900-01-31 起"}
+                     if not _lunar.get("month_cn") else {})},
         "chongsha": {"chong": _chong,
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
         "day_flags": _flags,
+        # R2350a（R94-P1-4）：日值神 + 时辰吉凶——「黄道/黑道日」与
+        # 十二时辰宜忌是传统黄历卡标配字段。
+        "zhishen": zhishen_day(dt),
+        "zhishen_ji": zhishen_day(dt) in ZHISHEN_JI,
+        "hours": hour_zhishen(dt),
+        # R2350a（R94-P2-10）：日干支此前算而不透出（shensha 里
+        # 有 day_gan/day_zhi 散件）——直接给合成串。
+        "ganzhi_day_cn": _gz_gan + _gz_zhi + "日",
         **({"term_today": _term_today} if _term_today else {}),
     }
+
+
+# R2350a（R94-P1-4）：十二值神（大黄道）+ 时辰吉凶——传统黄历标配，
+# 此前整体缺席。日值神按日支轮值（子日青龙、丑日明堂……）；
+# 时辰值神按日支起青龙法：
+#   子午青龙起在申，卯酉之日寅上行，寅申须从子上起，
+#   巳亥在午不须论，辰戌之位定在辰，丑未戌时亲。
+# 黄道六神（青龙/明堂/金匮/天德/玉堂/司命）临为吉时，黑道六神
+# （天刑/朱雀/白虎/天牢/玄武/勾陈）临为凶时。
+ZHISHEN = ["青龙", "明堂", "天刑", "朱雀", "金匮", "天德",
+           "白虎", "玉堂", "天牢", "玄武", "司命", "勾陈"]
+ZHISHEN_JI = frozenset({"天刑", "朱雀", "白虎", "天牢", "玄武", "勾陈"})
+# 日支 → 青龙所在时辰（地支名）
+_ZHISHEN_START = {
+    "子": "申", "午": "申", "卯": "寅", "酉": "寅",
+    "寅": "子", "申": "子", "巳": "午", "亥": "午",
+    "辰": "辰", "戌": "辰", "丑": "戌", "未": "戌",
+}
+
+
+def zhishen_day(dt: datetime) -> str:
+    """日值神（大黄道）：按「月支」起青龙（子午临申、卯酉居寅、
+    寅申从子、巳亥在午、辰戌归辰、丑未从戌），落在日支上的神即
+    当日值神。注意与小黄道（时辰值神，按日支起）区分——同一套
+    口诀、不同的锚。"""
+    month_zhi = _month_zhi_index(dt)
+    _, zhi = day_ganzhi(dt)
+    start = ZHI.index(_ZHISHEN_START.get(ZHI[month_zhi], "申"))
+    return ZHISHEN[(ZHI.index(zhi) - start) % 12]
+
+
+def hour_zhishen(dt: datetime) -> list[dict]:
+    """十二时辰值神+吉凶：[{branch, shen, ji}]，按日支起青龙法轮转。"""
+    _, day_zhi = day_ganzhi(dt)
+    start = ZHI.index(_ZHISHEN_START.get(day_zhi, "申"))
+    out = []
+    for i, br in enumerate(ZHI):
+        shen = ZHISHEN[(i - start) % 12]
+        out.append({"branch": br, "shen": shen,
+                    "ji": shen not in ZHISHEN_JI})
+    return out
 
 
 # 冲煞方位写死表（日支索引 → 煞方，通行规则：申子辰日煞南，寅午戌日煞北…）
@@ -610,6 +664,9 @@ def find_good_days(start: datetime, end: datetime,
     terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
              if isinstance(affair, list)
              else [AFFAIR_ALIASES.get(affair, affair)])   # 别名归一后再匹配
+    # R2351（R108-§四.3-2）：宣称域 1900-2100——end 跨界会把 2101 日
+    # 推上吉日榜，而该日拿去单日查询又被 400 拒。钳到域内末日。
+    end = min(end, datetime(2100, 12, 31))
     good: list[dict] = []
     cur = start
     while cur <= end:

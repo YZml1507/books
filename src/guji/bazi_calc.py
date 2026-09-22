@@ -132,6 +132,23 @@ def five_element_counts(b: Bazi) -> dict[str, float]:
     return {e: round(v, 2) for e, v in counts.items()}
 
 
+def _five_elements_block(b: Bazi) -> dict:
+    """五行分布块（counts/missing/strong/strong_tied）——盘本体属性，
+    day/range/life 三 scope 共用。R2350b（R98-P0-2）：calc_life 此前
+    不带它，warm 层落「五行挺匀」兜底与当日判词自相矛盾。"""
+    counts = five_element_counts(b)
+    missing = [e for e, v in counts.items() if v <= 0.001]
+    mx = max(counts.values())
+    # R230a-7（R13-P1-1）：并列最高 = 均势不是独旺——此前木火金水同分时
+    # 四行全标「偏旺」（抽样约 4.7% 的盘踩到）。并列放 strong_tied，
+    # strong 只保留唯一最高者。
+    _tops = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
+    strong = _tops if len(_tops) == 1 else []
+    strong_tied = _tops if len(_tops) > 1 else []
+    return {"counts": counts, "missing": missing,
+            "strong": strong, "strong_tied": strong_tied}
+
+
 # --------------------------------------------------------------------------------------
 # 地支关系
 # --------------------------------------------------------------------------------------
@@ -210,15 +227,11 @@ def calc(b: Bazi, ask_date: str | None = None,
         })
 
     # --- 五行统计 ---
-    counts = five_element_counts(b)
-    missing = [e for e, v in counts.items() if v <= 0.001]
-    mx = max(counts.values())
-    # R230a-7（R13-P1-1）：并列最高 = 均势不是独旺——此前木火金水同分时
-    # 四行全标「偏旺」（抽样约 4.7% 的盘踩到）。并列放 strong_tied，
-    # strong 只保留唯一最高者。
-    _tops = sorted(e for e, v in counts.items() if abs(v - mx) < 0.001)
-    strong = _tops if len(_tops) == 1 else []
-    strong_tied = _tops if len(_tops) > 1 else []
+    five_elements = _five_elements_block(b)
+    counts = five_elements["counts"]
+    missing = five_elements["missing"]
+    strong = five_elements["strong"]
+    strong_tied = five_elements["strong_tied"]
 
     # --- 地支关系：命局内两两 + 三合/自刑 ---
     zhis = [p[1] for p in pillars]
@@ -299,8 +312,7 @@ def calc(b: Bazi, ask_date: str | None = None,
 
     return {
         "ten_gods": ten_gods,
-        "five_elements": {"counts": counts, "missing": missing,
-                           "strong": strong, "strong_tied": strong_tied},
+        "five_elements": five_elements,
         "relations": relations,
         "day_luck": day_luck,
         "summary": "。".join(parts) + "。",
@@ -396,6 +408,10 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
     return {
         "qi_yun_age": round(qi, 1) if qi is not None else None,
         "dayun": dayun,
+        # R2350b（R98-P0-2）：五行是盘本体属性，不分 scope——
+        # warm 层（one_liner/energy_card）依赖它，缺了会落「五行挺匀」
+        # 兜底与同一盘当日判词自相矛盾。
+        "five_elements": _five_elements_block(b),
         "summary": "。".join(parts) + "。",
     }
 

@@ -662,23 +662,26 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _ys_pos = _pos_of(_ys)
             if _cat == "love":
                 # 感情题两星同报：女命看官鬼（夫星）、男命看妻财（妻星）。
+                # R2350b（R98-P1-4）：官鬼/妻财当场翻译——六亲黑话不进
+                # 温柔版正文是既定纪律（本文件 645 行注释），这里漏翻了。
                 _gg = _pos_of("官鬼")
                 _qc = _pos_of("妻财")
                 _bits = []
                 if _gg:
                     _bits.append(
-                        f"官鬼在{_YAO_POS_CN.get(_gg[0], '第' + str(_gg[0]))}爻"
+                        f"夫星落在{_YAO_POS_CN.get(_gg[0], '第' + str(_gg[0]))}爻"
                         + ("（动爻，正在动的点上）" if _gg[0] in ml else ""))
                 if _qc:
                     _bits.append(
-                        f"妻财在{_YAO_POS_CN.get(_qc[0], '第' + str(_qc[0]))}爻"
+                        f"妻星落在{_YAO_POS_CN.get(_qc[0], '第' + str(_qc[0]))}爻"
                         + ("（动爻，正在动的点上）" if _qc[0] in ml else ""))
                 if _bits:
-                    _seg += ("。感情的事传统上女看官鬼、男看妻财——这卦里"
-                             + "、".join(_bits))
+                    _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
+                             "（官鬼/妻财）——这卦里" + "、".join(_bits))
                 else:
-                    _seg += ("。感情的事传统上女看官鬼、男看妻财——两星都没直接落位，"
-                             "那就看代表你和事情的两端更实在")
+                    _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
+                             "——两星都没直接落位，那就看代表你和事情的"
+                             "两端更实在")
             elif _ys_pos:
                 _mv = "且是动爻——你问的事正在动的点上" \
                     if _ys_pos[0] in ml else ""
@@ -1138,10 +1141,12 @@ def warm_taohua(t: dict) -> dict:
                        for p in (t.get("hongluan_pillar") or []))
         _tx = "、".join(_PILLAR_WARM.get(p, p)
                        for p in (t.get("tianxi_pillar") or []))
+        # R2350b（R98-P1-7）：天喜/红鸾首提随行翻译——裸词贴屏时
+        # 用户不知道这两个词指什么。
         if _hl and _hl != "未临柱":
-            lines.append(f"红鸾落在{_hl}——婚恋缘分的信号在你自己盘里。")
+            lines.append(f"红鸾（婚恋信号）落在{_hl}——婚恋缘分的信号在你自己盘里。")
         if _tx and _tx != "未临柱":
-            lines.append(f"天喜落在{_tx}——喜庆缘分的信号也有。")
+            lines.append(f"天喜（喜庆信号）落在{_tx}——喜庆缘分的信号也有。")
         dayun = t.get("dayun_hits") or []
         if dayun:
             # F-005：应期年份动态计算用户年龄（±5 岁内有参考价值）
@@ -1167,7 +1172,8 @@ def warm_taohua(t: dict) -> dict:
                     # R230y（R36-口播）：晚缘不再虚化——「未来某段时间」对用户
                     # 等于没说（实测 1998 年生应期落在 69+ 岁）。给「慢炖型」
                     # 定心丸话术，比含糊更准确也更治愈。
-                    lines.append("你的天喜/红鸾应期偏晚——缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
+                    # R2350b（R98-P1-7）：「应期」翻成「来得偏晚」。
+                    lines.append("你的缘分信号（天喜/红鸾）来得偏晚——缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
                 else:
                     # R2349s（R84-P1-8）：「互动期」是合婚术语串场——
                     # 单人盘改「桃花运当班」口径。

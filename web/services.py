@@ -30,9 +30,23 @@ import random
 import logging
 import re
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 _logger = logging.getLogger("books")
+
+# R2350g（R106-F4）：「今天」的参数缺省回落统一锚 UTC+8——用户全在中国
+# 时区，UTC 部署机上裸 date.today()/datetime.now() 在早上 8 点前的请求
+# 会被算成昨天（日签/黄历/起卦日干支整体换日）。主链路前端透传
+# client_date，这里管的是缺参数直调（外链/爬虫/旧端）。
+_CN_TZ = timezone(timedelta(hours=8))
+
+
+def _now_cn() -> datetime:
+    return datetime.now(_CN_TZ)
+
+
+def _today_cn() -> date:
+    return _now_cn().date()
 
 from guji import external as external_feed
 # R219b（P0-4）：`from guji import history as history_db` 随历史记录功能删除
@@ -184,7 +198,7 @@ def bazi(req) -> dict:
     except Exception as exc:                     # 节气表范围外等 → 422
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
 
-    ask_date = req.ask_date or date.today().isoformat()
+    ask_date = req.ask_date or _today_cn().isoformat()
     if req.scope == "range":
         try:
             calc_out = calc_range(b, req.range_start, req.range_end, req.ask_hour)
@@ -258,6 +272,9 @@ def bazi(req) -> dict:
         # R230m：cross_ref 的「今天」锚起问日（前端已传 todayIso()）。
         "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd,
                                      today_iso=req.ask_date),
+        # R2350g（R106-F3）：回显换算后的公历生日——农历输入时前端拿着
+        # 它才能落「我的生日」档案（banner/倒计时全走公历比对）。
+        "birth_solar": {"y": by, "m": bm, "d": bd},
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
         **({"hour_known": req.hour_known} if req.hour_known is False else {}),
     }
@@ -356,8 +373,13 @@ def hehun(req) -> dict:
     req.validate_ranges()
     # R2349s（R84-P0-1）：未成年边界——1900–2100 只验「是不是日期」，
     # 实测 8 岁盘正常出「并肩作战型情侣」配对文案，敏感失守。
-    _now_y = datetime.now().year
-    if _now_y - req.a_year < 18 or _now_y - req.b_year < 18:
+    # R2350g（R106-F5）：年龄精确到日——纯年份差会让 17y11m 放行。
+    _now_d = _today_cn()
+
+    def _age(y, m, d):
+        return _now_d.year - y - ((_now_d.month, _now_d.day) < (m, d))
+    if _age(req.a_year, req.a_month, req.a_day) < 18 or \
+            _age(req.b_year, req.b_month, req.b_day) < 18:
         raise ValidationError(
             "合婚是给成年人测的——这一位还没满 18 岁，长大点再来呀～")
     # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
@@ -375,8 +397,13 @@ def hehun(req) -> dict:
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     h_dict = {
-        "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master},
-        "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master},
+        # R2350b（R98-P2-13）：补 render——pro 模式「A 四柱」pill 读
+        # a_bazi.render，此前键缺席恒 undefined（死 pill）；甲乙卡也
+        # 用它做四柱悬停。
+        "a_bazi": {"year": ba.year, "day": ba.day, "day_master": ba.day_master,
+                   "render": ba.render()},
+        "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master,
+                   "render": bb.render()},
         # R233u（R53-P1-1）：one_liner 盐键接线——此前 day_zhi_* 恒 None，
         # 同桶所有 CP 抽到同一句判词。
         "day_zhi_a": h.day_zhi_a, "day_zhi_b": h.day_zhi_b,
@@ -507,7 +534,7 @@ def xingzuo(date_str: str | None = None) -> dict:
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
             raise ValidationError(
                 f"年份要在 {YEAR_LO}–{YEAR_HI} 之间")
-    d = date.fromisoformat(date_str) if date_str else date.today()
+    d = date.fromisoformat(date_str) if date_str else _today_cn()
     b = bazi_compute(d.year, d.month, d.day, 12, "男")
     out = xingzuo_mod.daily_horoscope(b.day)
     out["date"] = d.isoformat()
@@ -790,16 +817,24 @@ def stats() -> dict:
         }
 
 
-def threads() -> dict:
+def threads(status: str = "open") -> dict:
     """研究线程列表（G9：可恢复的研究线索）。
 
     R230r（R30-#8）：resume() LIMIT 50 曾静默截断——超 50 条 open 线程后
     更老的永久消失。披露 total/limit/truncated，并支持 PATCH 改状态
     （open/parked/closed，收起的线程不再占列表位）。"""
+    # R2349z（R96-P1-1）：status 过滤——收起的/聊完的不再从列表永久消失。
+    if status not in ("open", "parked", "closed", "all"):
+        raise ValidationError("线程列表只能按「进行中/先收起/已结束」筛")
     with deps.knowledge() as kb:
-        rows = kb.resume()
-        total = kb.db.execute(
-            "SELECT count(*) n FROM thread WHERE status='open'").fetchone()["n"]
+        rows = kb.resume(status)
+        if status == "all":
+            total = kb.db.execute(
+                "SELECT count(*) n FROM thread").fetchone()["n"]
+        else:
+            total = kb.db.execute(
+                "SELECT count(*) n FROM thread WHERE status=?",
+                (status,)).fetchone()["n"]
         return {"threads": [dict(r) for r in rows], "stats": kb.stats(),
                 "total": total, "limit": 50, "truncated": total > 50}
 
@@ -892,7 +927,8 @@ def thread_record(req) -> dict:
     # R229n（R6-#2）：先校验后开线程——此前 open_thread/add_turn 各自
     # commit 落库后 record() 才校验 kind 抛 400，留下永不回收的孤儿
     # thread+turn（selftest kind=bogus 用例实测留行）。
-    if req.kind not in ASSERTING + ("refusal",):
+    # R2349z（R96-P0-1）：'note' 用户手记——非断言，G8 放行无证据。
+    if req.kind not in ASSERTING + ("refusal", "note"):
         raise ValidationError("这条记录没存上：内容不在支持的范围里")
     if req.kind in ASSERTING and not req.evidence:
         raise ValidationError("这条记录没存上：断言型记录得带至少一条证据")
@@ -1021,9 +1057,9 @@ def liuyao(req) -> dict:
         else:
             _cd = getattr(req, "client_date", None)
             try:
-                _dd = datetime.strptime(_cd, "%Y-%m-%d") if _cd else datetime.now()
+                _dd = datetime.strptime(_cd, "%Y-%m-%d") if _cd else _now_cn()
             except (ValueError, TypeError):
-                _dd = datetime.now()
+                _dd = _now_cn()
         _pp = liuyao_mod.paipan(ben, _bazi_day_ganzhi(_dd)[0][0])
     except Exception:
         _pp = None
@@ -1057,11 +1093,28 @@ def liuyao(req) -> dict:
     bian_out = liuyao_mod.render_hexagram(bian, "变卦")
     interpretation = interpreter.interpret_liuyao(
         ben_out, bian_out, ben.moving_lines, ben_jing + bian_jing, req.question)
+    # R2350b（R98-P0-1 附带）：回显起卦时间——卡面此前不回显，
+    # 表单默认值 bug 期间用户无从察觉卦是按哪天起的。
+    if req.method == "time":
+        _cast_at = f"{req.year}年{req.month}月{req.day}日 {req.hour}时"
+    else:
+        _cd0 = getattr(req, "client_date", None)
+        try:
+            _cd1 = datetime.strptime(_cd0, "%Y-%m-%d")
+            _cast_at = f"{_cd1.year}年{_cd1.month}月{_cd1.day}日（铜钱摇）"
+        except (ValueError, TypeError):
+            _cast_at = "刚才（铜钱摇）"
     out = {
         "ben": ben_out,
         "bian": bian_out,
         "ben_jing": ben_jing,
         "bian_jing": bian_jing,
+        "cast_at": _cast_at,
+        # R2350f（R102-P1-1）：回显 seed——铜钱卦 seed 可复现同卦，分享链
+        # 带 s= 让接收方翻到「TA 摇到的那卦」。时间起卦的 seed 不参与
+        # 构造（卦面随日时走），回显无害。
+        "seed": req.seed,
+        "method": req.method,
         "interpretation": interpretation,
         # 判据 8：六爻原本对提问只回「不代为断事」。warm 分支给出基于**已起出
         # 的卦象**的描述性回应（不预测结果），专业分支原文不动。
@@ -1085,12 +1138,14 @@ def liuyao(req) -> dict:
             _wr.append("小提示：时间起卦的卦面跟着日时走，同一个时辰再摇"
                        "容易是同族的卦——想要更随机的卦面，试试铜钱摇卦。")
     # R230z（R36-P1-1）：六爻进台账；摘要用问题或本卦名
-    paipan_history.save_async(
-        {"method": req.method, "seed": req.seed, "year": req.year,
-         "month": req.month, "day": req.day, "hour": req.hour,
-         "question": req.question},
-        out, rtype="liuyao",
-        name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
+    # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账。
+    if getattr(req, "record", True):
+        paipan_history.save_async(
+            {"method": req.method, "seed": req.seed, "year": req.year,
+             "month": req.month, "day": req.day, "hour": req.hour,
+             "question": req.question},
+            out, rtype="liuyao",
+            name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
     return out
 
 
@@ -1110,9 +1165,17 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     # daily/xingzuo 的空串→400 口径对齐。
     if date_str == "":
         raise ValidationError("日期格式没看懂——照着 2026-01-01 这样填试试")
+    # R2355（R111-P2-8）：today= 垃圾值此前在 cross_ref 内吞错回退服务器
+    # 日——契约上悄悄吞错。与 date= 同口径：非法即 400。
+    if today:
+        try:
+            date.fromisoformat(today)
+        except ValueError:
+            raise ValidationError(
+                "today 参数格式没看懂——照着 2026-01-01 这样填试试") from None
     dt = (datetime(_d.year, _d.month, _d.day)
           if (_d := _parse_iso_date(date_str) if date_str else None)
-          else datetime.now())
+          else _now_cn())
 
     if affair:
         # R228b：days 不设上限时 find_good_days 逐日扫描线性放大
@@ -1173,6 +1236,9 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             **({"lunar": q["lunar"]} if q.get("lunar") else {}),
             **({"chongsha": q["chongsha"]} if q.get("chongsha") else {}),
             **({"day_flags": q["day_flags"]} if q.get("day_flags") else {}),
+            # R2350a（R94-P1-4/P2-10）：值神+时辰吉凶+日干支透出。
+            "zhishen": q.get("zhishen"), "zhishen_ji": q.get("zhishen_ji"),
+            "hours": q.get("hours"), "ganzhi_day_cn": q.get("ganzhi_day_cn"),
             # R233w（R52-P3-9）：交节日透明化——「今日交节 XX，交在 HH:MM」
             **({"term_today": q["term_today"]}
                if q.get("term_today") else {}),
@@ -2002,6 +2068,31 @@ def _abs_or_holiday(msg: str, now: datetime):
     # （「去年国庆」不能再就近到今年）。
     _ypre = {"前年": -2, "去年": -1, "今年": 0, "明年": 1, "后年": 2}
     yoff = next((v for w, v in _ypre.items() if w in msg_n), None)
+    # R2355（R111-P1-3/P2-1）：显式 4 位年——「2099年12月31号」此前
+    # 「年」被忽略就近解到当年同日（说错日比不答更伤）；「2027-02-29」
+    # ISO 残片同理。显式年份按那一年解，越出历法表界/日子不存在
+    # → None（交「黄历里没有这天」口径，不静默换日）。
+    _xy = re.search(r"(?<!\d)(\d{4})\s*年", msg_n) or \
+        re.search(r"(?<!\d)(\d{4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,2})",
+                  msg_n)
+    if _xy:
+        _yy = int(_xy.group(1))
+        if not (YEAR_LO <= _yy <= YEAR_HI):
+            return None
+        if _xy.re.pattern.endswith("年"):
+            _md = re.search(r"(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?", msg_n)
+            if not _md:
+                return None
+            _mm2, _dd2 = int(_md.group(1)), int(_md.group(2))
+        else:
+            _mm2, _dd2 = int(_xy.group(2)), int(_xy.group(3))
+        try:
+            _xd = datetime(_yy, _mm2, _dd2, now.hour, now.minute)
+        except ValueError:
+            return None
+        _spn = (msg_n[_xy.start():_md.end()] if _xy.re.pattern.endswith("年")
+                else _xy.group(0))
+        return _xd, _spn
     from guji import lunar as lunar_mod
 
     # 农历：可带「农历/阴历/旧历」前缀与「闰」标记；无前缀时只接
@@ -2109,6 +2200,22 @@ def _abs_or_holiday(msg: str, now: datetime):
             return (datetime.combine(pick + timedelta(days=_dl),
                                      now.time()), _sp or w)
 
+    # R2355（R111-P2-2）：「下下个月」先接——「下下」里的「下个月」
+    # 会被下面通配截胡差整一月。基准 = 再下一个月。
+    nnm = re.search(r"下下[个個]?月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])",
+                    msg_n)
+    if nnm:
+        d = int(nnm.group(1))
+        _mo2 = now.month + 2
+        ny, nmth = now.year + (_mo2 - 1) // 12, (_mo2 - 1) % 12 + 1
+        try:
+            _dl, _ln = _day_suffix(msg_n, nnm.end())
+            return (datetime(ny, nmth, d) + timedelta(days=_dl),
+                    msg_n[nnm.start():nnm.end() + _ln])
+        except ValueError:
+            # 「下下个月31号」而那个月只有 30 天——词命中但日子不存在；
+            # 不许 fallthrough 让 nm 把「下个月31号」截胡成另一月。
+            return None
     nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nm:
         d = int(nm.group(1))
@@ -2361,16 +2468,18 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     前端 _hlDayOffset 只覆盖高频相对词（明天/下周X…），节日/农历这类
     本地解不动的词走这里兜底；解不出返回 date=None，前端回退显示日。
     """
-    now = now or datetime.now()
+    now = now or _now_cn()
     q = (q or "").strip()[:80]
     if not q:
         return {"date": None, "spoken": "", "invalid": ""}
     dt, spoken = _hl_day_part(q, now)
     # R2349k（R72-A3）：「下个月31号」这种「词命中但日子不存在」此前
     # 静默回落显示日——单独给 invalid 信号让前端说人话提示。
-    _mm = re.search(r"(下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
+    # R2355（R111-P2-2）：「下下个月31号」的 下下 也要算——原来正则
+    # 从第二个「下」起匹配成「下个月」，报错月差一整月。
+    _mm = re.search(r"(下下|下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
     if _mm and spoken == "今天":
-        _mo = {"下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
+        _mo = {"下下": 2, "下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
         _yy = now.year + (now.month + _mo - 1) // 12
         _mth = (now.month + _mo - 1) % 12 + 1
         _dd = int(_mm.group(2))
@@ -2383,6 +2492,16 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     # 且消息里没有今天系词才算没解出。
     if spoken == "今天" and not any(
             w in q for w in ("今天", "今日", "今晚", "今夜")):
+        # R2355（R111-P1-2/P2-3）：「说过但解不出」的日期词（农历13月/
+        # 星期八/32号/越界年号）——invalid 如实说没有这天；继续静默
+        # 回退显示日会把旧判定当新答案贴屏。
+        if re.search(
+                r"农历|阴历|旧历|闰|農曆|陰曆|舊曆|閏|\d{4}|"
+                r"星期|礼拜|禮拜|周天|周日|周[一二三四五六八]|"
+                r"[0-9]{1,2}\s*[号日]", q):
+            return {"date": None, "spoken": "",
+                    "invalid": "这个日子黄历里没有哦——"
+                               "换个说法或换个日子再试试～"}
         return {"date": None, "spoken": "", "invalid": ""}
     return {"date": dt.date().isoformat(), "spoken": spoken,
             "invalid": ""}
@@ -2411,7 +2530,7 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     只泛问黄历（「今天宜做什么」「看看黄历」）→ 当日宜忌 + 中性口径说明；
     都不沾 → []（调用方原样透传，零扰动）。
     """
-    now = now or datetime.now()
+    now = now or _now_cn()
     # R230v（R34-#24）：键含原文指纹——此前 [:200] 截断，两条 200 字
     # 前缀相同的同日长消息会串事实行（概率极低但语义错）。
     _msg_norm = _t2s((message or "").strip())
@@ -2432,7 +2551,7 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
     msg = (message or "").strip()
     if not msg:
         return []
-    now = now or datetime.now()
+    now = now or _now_cn()
     msg_n = _t2s(msg)   # R229d：繁中归一后再做事项词/泛问匹配（原文留给日期词）
 
     scene, terms = "", []
@@ -2461,6 +2580,20 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
             and _ALREADY_HAPPENED_PAT.search(msg_n)
             and not _DECIDE_INTENT_PAT.search(msg_n)):
         return []
+    # R2355（R111-P2-3）：显式但解不出的日期词（星期八/32号/农历13月/
+    # 越界年号）——_hl_day_part 回落「今天」且带这些标记 = 用户真在
+    # 问一个不存在的日子。给「日子不存在」事实行，而不是拿今天的
+    # 宜忌替她判（星期八判今天搬家、32号判今天开业都是错事实）。
+    if spoken == "今天" and not any(
+            w in msg for w in ("今天", "今日", "今晚", "今夜")) and \
+            re.search(r"农历|阴历|旧历|闰|農曆|陰曆|舊曆|閏|"
+                      r"星期[八九]|礼拜[八九]|禮拜[八九]|周[八九]|"
+                      r"(3[2-9]|[4-9]\d)\s*[号日]|"
+                      r"(下下|下|上|这|這|本)个?月\s*[0-9]{1,2}\s*[号日]|"
+                      r"\d{4}\s*年|\d{4}\s*[/\-.]", msg_n):
+        return ["用户说的这个日子在黄历里不存在（比如星期八/32号/"
+                "农历十三月/历法表界外的年份）——温和点出它没这天，"
+                "请她换个说法或换个日子；别按今天替她判宜忌。"]
     if not scene and not generic:
         # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
         # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌
@@ -2600,13 +2733,54 @@ def _draw_dicts(draws) -> list[dict]:
 def tarot(req) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌（固定 seed → 固定牌面）。"""
     req.validate_ranges()   # R230m：client_date 校验入口
-    draws = tarot_mod.draw(seed=req.seed, n=req.n)
+    # R2350l：命名牌阵——key 必须在库内，张数=牌阵长度。
+    _positions = None
+    _spread_name = ""
+    if req.spread:
+        _sp = tarot_mod.NAMED_SPREADS.get(req.spread)
+        if _sp is None:
+            raise ValidationError("没这个牌阵，换一个试试")
+        _spread_name, _positions = _sp
+    # R2350k：自点牌背——cards 给了就用选定下标成牌（越界/重复在
+    # draw_picked 内收敛），否则照旧 seed 抽。
+    if req.cards:
+        # R2354（R112-P2-4/5）：静默瘦身防线——重复/越界原来悄悄
+        # 丢弃出更少张；张数≠阵位数时半截结果顶着全阵名。显式拒。
+        _seen: set[int] = set()
+        _bad = False
+        for _ci in req.cards:
+            if (not isinstance(_ci, int) or _ci < 0
+                    or _ci >= len(tarot_mod.DECK) or _ci in _seen):
+                _bad = True
+                break
+            _seen.add(_ci)
+        if _bad:
+            raise ValidationError("选的牌里有重复或没对上号，再点一次试试")
+        if _positions and len(req.cards) != len(_positions):
+            raise ValidationError(
+                _spread_name + "要 " + str(len(_positions)) +
+                " 张牌——牌的数目对不上，再点一次试试")
+        draws = tarot_mod.draw_picked(req.cards, req.seed,
+                                      positions=_positions)
+        if not draws:
+            raise ComputeError("选的牌没对上号，再点一次试试")
+    else:
+        draws = tarot_mod.draw(seed=req.seed,
+                               n=len(_positions) if _positions else req.n,
+                               positions=_positions)
     cards = _draw_dicts(draws)
     interpretation = interpreter.interpret_tarot(cards, req.question)
     out = {
         "seed": req.seed,
         "n": len(cards),
         "draws": cards,
+        # R2350l：牌阵名回显（默认空串，前端副标用）
+        "spread": _spread_name,
+        # R2354（R112-P1-2/3）：分享 replay 需要原样还原——
+        # spread_key 让重放走同一牌阵；picked 标记自点牌（URL
+        # 带 cards 索引重放 draw_picked 而非 seed 重抽）。
+        "spread_key": req.spread if _positions else "",
+        "picked": bool(req.cards),
         "interpretation": interpretation,
         "warm": voice.warm_tarot(cards, interpretation, req.question),
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
@@ -2615,10 +2789,17 @@ def tarot(req) -> dict:
         "cross_ref": _cross_ref_tarot(cards, today_iso=req.client_date),
     }
     # R230z（R36-P1-1）：塔罗进台账；摘要用问题或张数
-    paipan_history.save_async(
-        {"seed": req.seed, "n": req.n, "question": req.question},
-        out, rtype="tarot",
-        name=(req.question or f"{req.n} 张牌阵"))
+    # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账/牌册。
+    if getattr(req, "record", True):
+        paipan_history.save_async(
+            {"seed": req.seed, "n": len(cards),
+             "question": req.question, "spread": _spread_name},
+            out, rtype="tarot",
+            # R2354（R112-P3-6）：账本名原来按 req.n——celtic 记「3 张
+            # 牌阵」实抽 10。按实际抽数+阵名。
+            name=(req.question or
+                  ((_spread_name + " · " + str(len(cards)) + " 张")
+                   if _spread_name else f"{len(cards)} 张牌阵")))
     return out
 
 
@@ -2783,7 +2964,7 @@ def daily(date_str: str | None = None,
     """
     if date_str is not None:
         _parse_iso_date(date_str)   # 边界即拒（R228p 统一解析口径）
-    date_str = date_str or date.today().isoformat()
+    date_str = date_str or _today_cn().isoformat()
     # R2349l（R73-P1-3）：bday=用户生日 → 「我的日主 × 今天日干」十神行。
     # personal 含用户生辰，绝不进 daily_cache（按日缓存会串用户）。
     _personal = None
@@ -2871,12 +3052,24 @@ def daily(date_str: str | None = None,
             summary = _pick(_db["levels"].get(lvl_key) or [], date_str, "sum")
             # R229z续4：同池两签会撞（实测"空腹喝冰美式、空腹喝冰美式"）——
             # 第二签从剔除首签的池子抽；池子只剩一条时允许原样。
-            _y1 = _pick(_db["yi"], date_str, "y")
-            _y2 = _pick([x for x in _db["yi"] if x != _y1] or _db["yi"],
+            # R2350c（R97-P2-4）：相邻日还会撞首项（16 池双抽，实测
+            # 9-21/9-22 同签）——再把「昨天抽过的」从今日池剔除，
+            # 明天预告不再有复读感。池子剔空时兜底原池。
+            _yd = (d - timedelta(days=1)).isoformat()
+            _py1 = _pick(_db["yi"], _yd, "y")
+            _py2 = _pick([x for x in _db["yi"] if x != _py1] or _db["yi"],
+                         _yd, "y2")
+            _yp = [x for x in _db["yi"] if x not in (_py1, _py2)] or _db["yi"]
+            _y1 = _pick(_yp, date_str, "y")
+            _y2 = _pick([x for x in _yp if x != _y1] or _yp,
                         date_str, "y2")
             do_str = _y1 + "、" + _y2
-            _j1 = _pick(_db["ji"], date_str, "j")
-            _j2 = _pick([x for x in _db["ji"] if x != _j1] or _db["ji"],
+            _pj1 = _pick(_db["ji"], _yd, "j")
+            _pj2 = _pick([x for x in _db["ji"] if x != _pj1] or _db["ji"],
+                         _yd, "j2")
+            _jp = [x for x in _db["ji"] if x not in (_pj1, _pj2)] or _db["ji"]
+            _j1 = _pick(_jp, date_str, "j")
+            _j2 = _pick([x for x in _jp if x != _j1] or _jp,
                         date_str, "j2")
             dont_str = _j1 + "、" + _j2
         # B-017（R195b 清偿）：旧实现按公历年取生肖是「今年的生肖」，
@@ -2986,7 +3179,7 @@ SHARE_COLORS = {"bazi": "#B8860B", "tarot": "#9D4EDD",
 
 def share(share_type: str, share_id: str) -> dict:
     """分享卡片数据：可截图分享的结果摘要。"""
-    today = date.today().isoformat()
+    today = _today_cn().isoformat()
     if share_type == "bazi":
         with deps.knowledge() as kb:
             try:
@@ -2999,6 +3192,7 @@ def share(share_type: str, share_id: str) -> dict:
             # 按实际 kind 出，别一律误标「八字排盘结果」。
             # R233y（R54-P1-44）：六种笔记名收敛成三个口径。
             kind_title = {"thread": "研究笔记", "summary": "研究笔记",
+                          "note": "研究笔记",
                           "answer": "研究笔记", "link": "研究笔记",
                           "diff": "比对笔记", "refusal": "存疑记录"}
             title = kind_title.get(getattr(d, "kind", ""), "八字排盘结果")
@@ -3128,7 +3322,7 @@ def _today_horoscope(iso_day: str | None = None) -> dict:
     # R228b：原来每请求重算当日八字（~23ms，占 bazi() 三成）——进程内
     # memo。浅拷贝返回防调用方改写缓存对象。
     # R230m：iso_day 让「今日值宫」可锚到客户端本地日（缺省服务器日）。
-    return dict(_today_horoscope_cached(iso_day or date.today().isoformat()))
+    return dict(_today_horoscope_cached(iso_day or _today_cn().isoformat()))
 
 
 def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
@@ -3215,6 +3409,12 @@ def _parse_iso_date(date_str: str) -> "date":
 
     此前 huangli 手写 split('-')、daily/xingzuo 各写一遍
     fromisoformat+年份界——同一约束三套实现。统一在这里。"""
+    # R2355（R111-P2-7）：先查年份界再查日内有效性——「2101-02-30」
+    # 此前报「这一天不存在」，其实问题是年份越界。
+    _ym = re.match(r"^(\d{4})-\d{1,2}-\d{1,2}$", date_str or "")
+    if _ym and not (YEAR_LO <= int(_ym.group(1)) <= YEAR_HI):
+        raise ValidationError(
+            f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_ym.group(1)}")
     try:
         parsed = date.fromisoformat(date_str)
     except ValueError:
@@ -3235,7 +3435,7 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
     from guji.xingzuo import daily_horoscope
     try:
         from datetime import date as _date
-        d = _date.fromisoformat(date_str) if date_str else _date.today()
+        d = _date.fromisoformat(date_str) if date_str else _today_cn()
         b = bazi_compute(d.year, d.month, d.day, 12, "男")
         h = daily_horoscope(b.day)
         sign = h.get("today_sign", "")
@@ -3247,10 +3447,14 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
         # UTC 服务器日 0-8 点比中国用户慢半天，那时候翻今天会被说「那天」。
         try:
             _today = (_date.fromisoformat(today_str)
-                      if today_str else _date.today())
+                      if today_str else _today_cn())
         except (ValueError, TypeError):
-            _today = _date.today()
+            _today = _today_cn()
         _when = "今天" if d == _today else "那天"
+        # R2350a（R94-P1-6）：note 文案内含硬编码「今日宜…」——非今天卡
+        # 变成「那天轮到X座当班：今日宜…」时态打架。剥掉前缀时间词。
+        if _when == "那天" and note.startswith("今日"):
+            note = note[2:]
         return {
             "zodiac_sign": sign,
             "zodiac_note": note,

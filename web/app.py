@@ -162,6 +162,44 @@ def create_app() -> FastAPI:
             html = open(deps.INDEX, encoding="utf-8").read()
             base = str(request.base_url).rstrip("/")
             html = html.replace('content="/static/', f'content="{base}/static/')
+            # R2350b（R99-P2）：og:url/og:site_name 补缺——爬虫拿到
+            # 规范地址与站名；部署在 TLS 反代后需 uvicorn
+            # --proxy-headers 才能拿到对的 scheme/host（base_url
+            # 落成 http://内网 时 og:image 静默抓不到）。
+            html = html.replace(
+                '<meta property="og:type" content="website">',
+                '<meta property="og:type" content="website">\n'
+                f'<meta property="og:url" content="{base}/">\n'
+                '<meta property="og:site_name" content="小满的解忧铺">')
+            # R2350f（R102-P2-3）：分享链按 ?view= 换 og:title/description——
+            # 微信/QQ 预览此前千链一面，不含「她在测塔罗」语境。
+            _OG_VIEW = {
+                "tarot": ("塔罗占卜", "抽到的是哪几张？晒晒你的牌"),
+                "liuyao": ("六爻摇卦", "摇出来的卦，读给你听"),
+                "hehun": ("八字合婚", "和 TA 配不配 · 看缘分深浅"),
+                "huangli": ("翻黄历", "今天适合做什么 · 宜忌一览"),
+                "bazi": ("今日命盘", "生日一填 · 大白话解读你的盘"),
+                "taohua": ("桃花运", "最近的桃花信号帮你看看"),
+                "qiming": ("五行起名", "按五行补缺 · 起个好名字"),
+                "daily": ("今日一签", "每天抽一签 · 攒连签好运"),
+                "xingzuo": ("今日星座", "十二宫 · 今日运势播报"),
+                "xzm": ("星座速配", "你们俩的星座合拍指数"),
+                "history": ("排盘历史", "翻翻看过的盘 · 可导出"),
+            }
+            _v = (request.query_params.get("view") or "").lower()
+            if not _v:
+                # 路径式深链 /tarot 走 SPA fallback——路径段也当视图名。
+                _seg = request.url.path.strip("/").lower()
+                if _seg and "/" not in _seg:
+                    _v = _seg
+            if _v in _OG_VIEW:
+                _t, _d = _OG_VIEW[_v]
+                html = html.replace(
+                    '<meta property="og:title" content="小满的解忧铺">',
+                    f'<meta property="og:title" content="{_t} · 小满的解忧铺">')
+                html = html.replace(
+                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">',
+                    f'<meta property="og:description" content="{_d}">')
             v = _shell_hash()
             if v:
                 html = html.replace('src="/static/app.js"',
@@ -183,9 +221,41 @@ def create_app() -> FastAPI:
     def index(request: Request):
         return _index_response(request)
 
+    # R2350g（R105-P2-3）：HEAD / ——监控/链接检查器裸 HEAD 此前 405。
+    @application.head("/", include_in_schema=False)
+    def index_head():
+        return HTMLResponse("")
+
     # R228k：SW 根作用域——/static/sw.js 默认只管 /static/ 下的请求，
     # '/' 的导航永远进不了 fetch 分支，「断网不白屏」此前完全不生效。
     # 改从根路径下发同一文件并显式放行 scope。
+    # R2350g（R105-P1-1）：爬虫三件套从根路径下发——/static/ 下的文件
+    # 爬虫不会去翻。favicon.ico 旧式 UA 会裸请求根路径。
+    @application.api_route("/robots.txt", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def robots():
+        p = os.path.join(deps.STATIC_DIR, "robots.txt")
+        if not os.path.exists(p):
+            raise HTTPException(404)
+        return FileResponse(p, media_type="text/plain")
+
+    @application.api_route("/sitemap.xml", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def sitemap():
+        p = os.path.join(deps.STATIC_DIR, "sitemap.xml")
+        if not os.path.exists(p):
+            raise HTTPException(404)
+        return FileResponse(p, media_type="application/xml")
+
+    @application.api_route("/favicon.ico", methods=["GET", "HEAD"],
+                           include_in_schema=False)
+    def favicon():
+        for name in ("icon-192.png", "icon-512.png"):
+            p = os.path.join(deps.STATIC_DIR, "cream", name)
+            if os.path.exists(p):
+                return FileResponse(p, media_type="image/png")
+        raise HTTPException(404)
+
     @application.get("/sw.js", include_in_schema=False)
     def service_worker():
         sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
@@ -206,8 +276,14 @@ def create_app() -> FastAPI:
     @application.middleware("http")
     async def _spa_fallback(request, call_next):
         resp = await call_next(request)
-        if (request.method == "GET" and resp.status_code == 404
+        # R2350g（R105-P2-3）：HEAD 同样收——监控/链接检查器/IM 预取
+        # 先发 HEAD，405 会被误判成站点挂了。Starlette 对 HEAD 自动剥体。
+        if (request.method in ("GET", "HEAD") and resp.status_code == 404
                 and not request.url.path.startswith(("/api/", "/static/"))
+                # R2350g（R105-P1-1）：含扩展名的请求（robots.txt /
+                # sitemap.xml / favicon.ico / 任意 .xml）不做 SPA 兜底——
+                # 否则爬虫拿到 50KB HTML 壳当 robots，坏链全成 soft-404。
+                and "." not in request.url.path.rsplit("/", 1)[-1]
                 and os.path.exists(deps.INDEX)):
             return _index_response(request)
         return resp

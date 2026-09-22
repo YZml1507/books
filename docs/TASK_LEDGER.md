@@ -12046,3 +12046,304 @@ dollar / baseline_voice / poster / plain_first / importable / ruff 全绿。
 ## R2349x — 占卜→古籍「去书库翻」闭环（R92-P1-4）
 
 - 深链复活后补最小闭环：所有 renderCiteTree 折叠树尾部加「📚 这些书都在书库里，去翻翻 →」按钮，点击 showView('read')——八字/六爻/起名等结果页的古籍引文从此可顺藤摸瓜进书库（此前只呈现零跳转）。
+
+## R2349y — 数据生命周期/导入导出审计清零（R95 全批）
+
+- **P1-1** R2349u 声称的「历史 GC 90→150 天」实际没落进 app.js（审计抓出的真回归）——两处 GC 窗口真改 150，我 + 对象的双列阵同口径。
+- **P1-2** 页内存 `_MEM_STORE`（无痕/禁存储兜底）此前 wipe 碰不到——清空路径补 `_MEM_STORE._m={}`。
+- **P1-3** 跨 tab 残留复活：A tab 清空后 B tab 本机数据还在。新增 `wipeAt` 墓碑——清完写时间戳，其他 tab 收 storage 事件自清 26 字段+_MEM_STORE+界面重渲。
+- **P2/P3 导入侧**：备份文件 >20MB 拒读（防冻结）；`version!==1` 拒收（不再静默半导入）；`checkinCeleb:`/`ret_tip` 收进白名单（导得出导不回修复）；日期后缀键尾段必须 `YYYY-MM-DD`（脏格不再入库）；`visits` 值须 CSV 日期形、`hlask` 须数组、`me*.n` 过 `_meNickClean`（脏昵称不再绕清洗）。
+- **P2/P3 导出侧**：台账禁用态不再整个中止——降级 `records:[]`+toast 明说；`me` 前缀收口为精确键（不再扫进未来 me* 键）；toast 补「含生辰昵称，存哪儿自己留心」。
+- **P2-9 后端**：`import_rows` 返回 `(written, skipped)`——伪造 type 不再改名落库、缺 ts 行不再捏造时间戳（重复导入会再造一份）；路由层回 `skipped` 计数。
+- **杂项**：非 dict records 元素前端先滤（不再 422 整体炸）；导入 toast 分口径「X 条记录 + Y 条收藏，Z 条类型不认识没导」；批量导入后 BroadcastChannel dirty（其他 tab 台账就地刷）；备份/清空口径写明不含古籍研究线程笔记（hint 文案）。
+- **探针修两处自身盲区**：备份夹具补 `version:1`（对齐真实导出格式）；hehun 用例显式填双方生辰（此前靠 wipe 没清干净的 HTML 默认值混过，wipe 修成无条件清后裸奔）。
+
+闸门：selftest 268 / contract 584（SOFT≈49）/ ui_smoke 75 / parity 68+41+251 / voice×14 字节一致 / ruff 零告警，全绿。
+
+## R2350a（R96+R94 二轮审计清零批）
+- **R96（近三批真机回归）清零**：
+  - P0-1 「记一条」死功能复活——前端发 kind:'summary' 必 400（断言类要证据）；
+    正解：derived CHECK 新增 'note' 非断言类 + `_migrate_note()` 老库重建迁移
+    （PRAGMA foreign_keys=OFF → derived_new → INSERT SELECT → RENAME，id 保留
+    故 evidence/derived_fts rowid 不失联）；thread_record 白名单 + note。
+  - P1-1 搁置/已结线程从此可见——threads 全链 status 参数（open 默认/all/parked/
+    closed）+ 前端筛选 chip 条 + 线程卡「返回列表」钮；app.js 旧键 'shelved'→'parked'
+    修真（否则筛选必空）。
+  - P2-1 聊天气泡生日语料分支前置（此前先走通用池，生日行永不中）+子行。
+  - P2-2 SW hadCtl 判空防 TypeError。P2-3 humanCite ' 本'→'本'。
+- **R94（黄历日历域）清零**：
+  - 后端 day_query 新增 zhishen/zhishen_ji/hours(12时辰吉凶)/ganzhi_day_cn；
+    前端渲染「值神/贵人在X」行 + 时辰吉凶 pills（.hl-hour）。
+  - cross_ref「那天→今日X」剥离 note[2:] 前缀去叠词；底部重复句→
+    「去星座页看当班」data-xview 跳链（委托在总 click 处理器）。
+  - festival 叠词修复（「中秋节是中秋节」→「就是中秋节，过节啦」）。
+  - _offShown 经 _tp 换算（跨零点 chip 跳错天复修）；空日期请求→toast 不空转。
+  - 黄历卡标题日词动态（今天→今天，他日→那天）；农历行补干支日。
+  - ?view=huangli&date= 深链：init 存 __hlDeepDate，激活时按那天查；
+    分享链（复制+系统）自动带 &date=shownDate，对方打开见同一张卡。
+  - 海报三处写死「今日」归位：标题/大字/文件名全跟卡面日（明日宜忌/0922.png）。
+  - busy()：「仅 no-evidence+ask/fav 伴生行」也归整清——连错不再堆叠。
+  - 周格 aria-current 语义归位：留给今天格；选中日改 aria-pressed。
+  - 主题钮移出 homeMain（叶视图藏 homeMain 时按钮同藏——P1）→ position:fixed 全局。
+  - index.html h2 加 #hlTitleDay span；hl-week 标题「未来 7 天」→「这 7 天」。
+  - paipan_history.import_rows 返回 (written, skipped) 元组——废记录不再被
+    静默改名计入；非 dict/坏 type/无 ts/超 256KB/重复全计 skipped；
+    前端导入气泡展示 skipped 数；备份夹带「version:1」+日期后缀。
+- **闸门**：selftest 268（+threads.status/note 断言）/regress 270→268 PASS/
+  contract 595 读点全绿/ui_smoke 75/baseline_voice 14 字节同/xingzuo/warm/
+  async_ai/dollar 244fn/date_parity 68+41+251/plain_first/poster/first_screen/
+  corpus/scripts_importable/llm_polish/ruff 全 PASS。
+- **R2350a 续（CI G8 实测修复）**：`orphans()` 白名单改正向枚举 ASSERTING——
+  'note' 类天然无证据，原 `!= 'refusal'` 误报成泄漏（CI G8 实录 3 条）。
+  顺带修两个潜雷：contentless derived_fts 裸 DELETE 必抛 OperationalError
+  （_gc_threads/_gc_derived 超帽触发即崩）——改 'delete' 命令统一走
+  `_del_derived`；_gc_threads 同秒 updated_at 并列时排序不定会误删新线程
+  → id DESC 决胜。selftest note 用例补级联清理（derived_fts/derived/turn/thread）。
+  selftest 271 / g8 probe PASS。
+
+- **R2350b（R98 结果页 + R99 分享接收方双审清零）**：一次合批落地两报告。
+  P0：六爻时间起卦写死 value="1990/5/15/10" → syncLiuyaoToday 恒败，
+  默起 1990 年的卦；改 placeholder + doLiuyao 留空=以现在起卦
+  （时间起卦本义），selftest 钉 cast_at 回显 + 卡面「起卦：X年X月X日 X时」行。
+  R98 摘：温柔模式六亲/六神黑话挂白话 gloss（官鬼→「对方/压力信号」等
+  yao-plain 旁注 + yao-legend 图例条）；renderWarm 能量卡去重（_ewSaid
+  判重）、本命关键词标签修正；renderCalc 空数组/空对象不再渲染空块；
+  塔罗 _BASIS_CN 补 upright_kw/reversed_kw（顺序防 upright 前缀吞掉
+  kw）；塔罗无问题横幅改「随手一抽，牌面随缘」；合婚甲乙卡 title
+  悬停出四柱 + 「本命（日主）」标注；pro 模式 render 字段折叠；
+  humanCite 清「! 」赘空格。
+  R99 摘：邀请链完善——hhInvite 复制时把 A 侧生辰编进链接（hh_b_*），
+  B 侧落地预填且 A 侧改字段后 label 复原；shareBy:<view> 指纹键
+  （raw+别名双写）；落地后 URL 剥跟踪参数（from/n/invite/a/an/ay/
+  am/ad/ah/ag）保 view/date；MicroMessenger/xhsdiscover UA 出「浏览器
+  打开」toast；微信 webview 海报下载给长按保存兜底；海报 CTA 改
+  「搜「小满的解忧铺」· 测你的同款 ✨」；深链 &date= 直接赋值 +
+  非法日期 toast；index 注入 og:url/og:site_name；threads status
+  校验 + record 白名单 ASSERTING+refusal/note；liuyao cast_at 回显；
+  a_bazi/b_bazi 带 render 字段；README 补 TLS 反代部署
+  （--proxy-headers/--forwarded-allow-ips）。
+  anchors：gua span 尾部回剥 `** 《X第N》` 装饰（pb/¶/空白），
+  卦45·上六不再吐下一卦标题碎屑（corpus 重建后 0/98 误归）。
+  基线：voice refreeze（sha256 44df79bd…——bazi.life 五行块/
+  liuyao 引文集/research.hit 漂移均为有意演进）。selftest 271 /
+  contract 606 / ui_smoke 75 / 全探针绿。
+
+- **R2350c（R97 留存回访审计清零）**：0 P0 / 2 P1 / 4 P2 全清。
+  P1-1 回访分层失效：welcomed 只在点新人条 × 时写——没点过 × 的
+  老用户天天见新人条、ret_tip 永锁；head 内联脚本 + app.js 双层
+  补写（访次>1 或有 checkin: 键即 veteran）。
+  P1-2 连签倒计时断档：原守卫「meta 含档位词就跳」——档位词是
+  ≥ 区间标，14→30/30→60/60→100 最长间隔反无目标；改只跳过
+  里程碑当日（3/7/14/30/60/100）。
+  P2：revisit「第 N 次开铺」文案池死代码（_n>1 时 _mini 恒真，
+  mini 池永命中）→ 缎带直接吃 revisit 池；接续条「今天再看看」
+  与原句「明天」漂移矛盾 → 带 data-hlask-today 重问前剥相对
+  日期词按今天判；签册墙改锚今天回看 21 槽（缺签灰槽+N/21 进度）；
+  宜签池相邻日撞首项（16 池双抽 9-21/9-22 同签实测）→ 昨日已抽
+  签做跨日剔除。
+  连带真 bug：toast 浮层 pointer-events:auto 会盖住顶栏导航钮
+  （viewBack 被「收进心水名单啦」拦截 4s 超时—— welcomed 补写
+  后 welcomeBar 隐藏、内容上移使该竞态稳定复现并揪出）→
+  .toast-item 穿透 + × 保活（键盘 focusin 暂停仍在）。
+  selftest 271 / contract 606 / ui_smoke 75 / 全探针绿。
+
+## R2350d（R100 传播性审计清零）
+- P0-1 本命盘卡 `.is-working` 永不摘除（busy()→innerHTML 绕过 paint，整卡半透+按钮全假）：doBirthReading 成功/失败两路补 remove；同型残留 dailyDetail 同修；全站 20 个 busy 目标已扫净。
+- P1-1 全结果卡底统一品牌水印 `🐻 小满的解忧铺`（attachChatEntry 一处注入，手动截图自带出处）。
+- P1-2 toast 拦截点击：`.toast-item{pointer-events:none}`（.toast-x 恢复 auto）——上轮已修并解出 ui:qm.style_chip 假回归真因。
+- P1-3 PWA 装桌面横幅：beforeinstallprompt 早发遮日卡 → 延迟 8s + 仅 home 视图弹。
+- P1-4 星座速配补「📸 分享图」钮 + xzm 海报 case/标题/分享文案（此前最低成本晒点无分享口）。
+- P2-1/2 深色补丁：cite-top 硬编码浅底+深字 → 深底#2A302B/字#9AD6CE；xz-card 深底描边#453C42。
+- P2-3 黄历「当班」金句 13px→判词级头行（17px 金句体居中）。
+- P2-4 read hit 卡出处行 → 胶囊头样式（含深色档）。
+- P2-5 海报底部三行整体上移，底缘留白 6px→~50px（吉祥物随行上移避让）。
+- P2-6 wrapText3 孤行门槛 1 字→<3 字（「主角」孤行回借）。
+- P2-7 六爻海报画六爻条形阵（ben.lines 阳实/阴断/动爻红点，挤不下跳过）；birth 海报补「小满短评」行。
+- P2-8 --font-mono 栈尾补 var(--font-wenkai) CJK 兜底（桌面无全量 CJK 时繁体不再豆腐块）。
+- P2-9 分享弹层按端文案已在库（maxTouchPoints 分端）——确认非缺口。
+- 闸门：selftest 271 / contract 606 / ui_smoke 75 / voice/check_* 全绿 / ruff 净。SW 版本已 bump。
+
+## R2350e — R101 表单输入体验全链路深审清零（1 P0 + 4 P1 + 13 P2 主要项）
+- P0-1 num() 收紧为严格整数 `/^-?\d+$/`——此前 parseFloat 让「abc」「12a」「1.5」「1e5」静默解析成半截数字直发后端；非法输入置 aria-invalid + 节流 toast「请填数字」。
+- P1-1 起名姓氏 maxlength 1→2（欧阳/司马复姓此前被静默截一字，排的还是错的盘）。
+- P1-2 农历生日月份长校验跳过：农历月长 29/30 随年变，公历 31 天表会误拦合法「农历二月三十」——农历仅留 1-30 粗检，真存在性交后端换算报文。
+- P1-3 doAddr 表单「一键复制上次」改为按 scheme 白名单发参（_ASCHEME_FIELDS 提升到模块级）——此前堆全部字段，后端收到多余参数报「参数不认识」；aguan 走 num()。
+- P1-4 全站数字框批量预校验（_badRange）：bazi hour/minute/ask_hour/range_hour、qiming/taohua/hehun year 1900-2100+hour 0-23、liuyao ly_hour 0-23——此前全靠后端 4xx，报错时卡片已半渲染。
+- P2-1 doCompare/doAddr 爻位白名单 `初|二|三|四|五|上 + 九|六` 与乾坤 用九/用六；compare no_witness 补第三态渲染（此前 true/false 之外静默落默认分支）。
+- P2-2 _FIELD_CN 增 gua/yao/scheme/addr1/addr2/addr_name——后端 422 字段名翻译覆盖。
+- P2-3 range_start/range_end 加 min/max=1900-2100 属性 + submitBazi 前端年份界（与 ask_date 口径一致，1500 不再直发得 200）。
+- P2-4 Enter 直达提交补 rwork/cwa/cwb 三组输入对。
+- P2-5 _STALE_MAP/_markStale：改表单后旧结果卡打 .is-stale 水印（旧结果与新输入脱钩提示），paint() 时清除；样式落 styles.css。
+- P2-6 rmax 钳位补轻提示（与塔罗 tr_n 同口径，不再静默吃 99）。
+- P2-7（弃案记录）六爻留空补值回面为逐格补——syncLiuyaoToday 本已空才填三格，唯一静默的是时辰；四框 placeholder 逐格说清「留空=本项当前值」，行为改成文案明示约定。ui_smoke btn:liuyao 回归由此钉回。
+- P2-8/11 缓议（maxlength 截断提示、全角数字 onblur 提示属锦上添花）；P2-10 复姓零宽名验证为非问题（val() 已 zwClean→null→默认「我 × TA」渲染）；P2-12/13 属确认项。
+- 闸门：selftest 271 / contract 608 / ui_smoke 75/75 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
+
+## R2350f — R102 传播留存漏斗清零（13 项）+ R103 术数对账全通过
+- P1-1 分享链带结果：塔罗/六爻分享链追加 s=<seed>（+tn/m），落地先重现「TA 抽到的牌/摇到的卦」再邀抽自己的——_replaySharedDraw 走 /api/tarot、/api/liuyao 确定性 seed 重放；liuyao 响应回显 seed/method。
+- P1-2 海报 CTA 行：部署在真实域名时画 host（→ example.com 测你的同款），localhost/内网/IP 自动回落品牌名搜索口径。
+- P1-5 表单出厂示例值明示：4 张生辰表空态改「表单里是示例生日——直接点也能看」，结果卡回显「按生日 X 排的盘」（bazi 仅 scope=bazi；hehun 双侧，邀请态标 TA/我）。
+- P1-12 复制链接产出 钩子文案+URL（不再裸链），按钮文案同步「复制文案+链接」。
+- P2-3 og:title/description 按 ?view=（含 /path 深链）换语境——分享预览不再千链一面。
+- P2-4 welcomeBar 对非 share 深链按视图换「你已经在X页了」句。
+- P2-6 「生日」toast 指路修正——指向真实入口「日卡·存个生日」CTA（原指的「小档案」卡无档案时不存在）。
+- P2-7 塔罗落地亮「今日牌」（与日卡同 seed 单抽，不写台账、不覆盖用户已抽结果）。
+- P2-8 「明天提醒我」：Notification 权限+本地标记，次日开屏 toast 提醒（无推送基建的诚实实现，权限被拒如实回退）。
+- P2-9 签册零态渲染（「打一次卡开第一张」）——集齐线首日亮相。
+- P2-10 manifest shortcuts：长按图标直达 今日一签/翻黄历/抽塔罗。
+- P2-11 排盘历史空态加两个跳转钮（去抽今日一签/测测桃花）。
+- P2-13 「安利铺子」应用级分享钮（打卡区常驻，复制 文案+链 / 走系统分享）。
+- R103 术数对账（sxtwl+lunar_python 参照，34 断言）：全通过；P2-1 夜子时流派差异已披露照留；P2-2 name_candidates 旧路径已在 R2350a 删除（审计跑在旧 HEAD）。
+- 闸门：selftest 271 / contract 609 / ui_smoke 75 / poster 3判据 / voice·check_*·probe_* 全绿 / ruff 净。SW hash 已 bump。
+- R2350f 续：R101 缓议项收口——全角数字归一化（１９９０→1990，中文输入法常见产出）；maxlength 顶格时吱一声（截断不再静默）。
+- R2350g：R105 爬虫面清零——根路径真 robots.txt/sitemap.xml/favicon.ico（此前 SPA 兜底把 50KB HTML 喂给爬虫，坏链全成 soft-404）；带扩展名的未知路径不再做 SPA 兜底（真 404）；GET 路由补 HEAD（监控/IM 预取不再 405）；LCP 封套图 fetchpriority=high；selftest 钉死下发 HTML 必须带 `?v=`（防 ?v 注入静默失效）。
+- R2350g续：R104 回归审计清零（0 P0/3 P1/3 P2）——①排盘卡生日回显死代码复活（scope 恒 day/range/life，「bazi」分支永不成立；三范围都按生日起盘故全回显）；②「明天提醒我」权限 denied 时不再假翻牌打标；③分享 seed 重放 record=false 不再污染接收方台账/牌册（/api/tarot、/api/liuyao 新增 record 开关，默认 true 保契约）；④重放只认 from=share 链、s≥1、tn 1-10。
+- R2350h：R106 时区/日期边界审计清零（0 P0/2 P1/4 P2）——①排盘卡生日回显在 scope=day/range/life 全亮；②2/29 生日平年口径统一：_bdayInYear 映射 2/28（横幅/倒计时/「我生日」问法三处同改，此前全年永不弹）；③农历生日落「我的小档案」：/api/bazi 回显 birth_solar，档案记公历+农历标注；④缺参回落「今天」全站统一锚 UTC+8（daily/xingzuo/huangli/liuyao/bazi/chat/resolve_date/share 时间戳/台账文件名，UTC 部署早 8 点前不再差一天）；⑤合婚 18+ 精确到日（17y11m 不再放行）；⑥跨零点视觉窗 60s→15s+打卡/拆礼物入口顺手翻日。
+
+### R2350i —— 海报视觉速赢批（R107 痛点）＋时区锚定推广（R106 余量）
+
+**海报 4 处改动**（真机出图验收）：
+- 塔罗：`sub` 一行写入牌位名+正逆位（「现况 · 逆位」），不再只有牌名；
+- 每日：评分行渲成等级+星图（吉→★★★★★ … 凶→「缓」★★☆☆☆）；
+- 打卡周运势：四枚特殊签（开运蛋/暴富签/生日签/甜甜运）行尾加 `✦` 高光；
+- 海报模板新增 `s.chip`：粉色胶囊横置大字下（`cardY += 96`），
+  合婚首个用上「合拍指数 68/99」——此前分数埋在卡内小字里；
+- _LAST_BIRTH.bazi 记录无条件带生辰（农历标「（农历）」）。
+
+**时区锚定补刀**（R106 F4 同类）：`_bdayInYear(m,d,y)` 把 2/29 映射到
+非闰年 2/28，四处生日判定（_isMyBirthday/生日横幅/TA 倒计时/_hlDayOffset）
+统一走它；参数缺失的「今天」全部锚 UTC+8（bazi ask_date、xingzuo、
+liuyao _dd、huangli、chat facts now、daily、_today_horoscope_cached、
+_cross_ref_huangli、排盘台账时间戳、导出文件名、external.fortune）。
+分享重放 seed 的牌局/卦局不再写台账（`record:false`，schema 加字段默认 true
+保契约）；深链解析收紧：须 `from=share` 才吃 seed，tn 钳 1–10。
+SEO/爬虫面：`robots.txt`+`sitemap.xml`+`favicon.ico` 路由、`HEAD /`、
+带扩展名 404 不再回 SPA 壳、每日礼物熊图提 fetchpriority。
+bazi 响应回显 `birth_solar`，前端存入 `me` 并在档案条标农历。
+
+验证：selftest 271 / 契约 610 / ui_smoke 75 / 海报闸 9 视图 / 对账两探针全绿。
+
+### R2350j —— 许愿瓶 lite（R107-Top5-4 留存钩子）
+
+打卡区新增「🫙 许愿瓶」details 卡（与签册同构懒渲染）：写 ≤60 字愿望 +
+分类 chip（感情/事业/学业/财运/健康/小秘密）丢进 localStorage（key
+`wishbottle`），瓶口标签实时显示「今天刚丢的/愿望躺了 N 天」。封存卡给
+「成真啦🎉/换个愿望/继续躺着」三出口；打卡委托监听收编到
+`.checkin-opts .checkin-opt`（许愿瓶复用 chip 皮相不再被当打卡签重渲），
+save/done 只刷 summary 文本不整卡重渲（details 不再被回弹合上）。
+
+### R2350k —— 塔罗「自己抽一把」（R107-Top5-1 互动缺口）
+
+- 后端：`TarotRequest.cards`（0-77 牌表下标，≤10）；`tarot.draw_picked`
+  用选定下标成牌、越界去重收敛、位置按 SPREADS[len]、正逆位仍由 seed
+  确定性推出（同 seed+同下标可复验）；全越界 → ComputeError 人话。
+- 前端：「🃏 自己抽一把」开合 22 张真牌背（fresh shuffle 子集，点的
+  是位置不是牌名——熵不减），点选计数「已点 x/n」、齐 n 解锁
+  「就开这几张」；`doTarot(cards)` 同链路出卡/翻牌/进台账。
+- 钉扎：selftest +2（cards 成牌/同 seed 复验）；ui_smoke +1
+  （ui:tarot.pick：22 背→点 3→成局→结果出字，收尾还原侧栏+回首页）。
+
+验证：selftest 273 / 契约 610 / ui_smoke 76 / 其余 14 闸全绿。
+
+## R2350l · 命名塔罗牌阵库（R107-Top5-1 后半）
+
+8 套主题牌阵，每个位置都有名有姓——从「抽 n 张看位置」升级成
+「为这个题选这个阵」。`src/guji/tarot.py` 新增 `NAMED_SPREADS`
+（时间流/身心灵/你和TA/钻石阵/二选一/周运势/六芒星/凯尔特十字，
+3-10 张），`draw`/`draw_picked` 收 `positions` 覆盖参数（默认不变）。
+`TarotRequest.spread`（≤20 字）给了张数=阵长、n 字段失效；
+坏 key → 400「没这个牌阵，换一个试试」（ValidationError，非 422
+——参数错不是计算错）。响应新增 `spread`（牌阵名回显，默认空串）。
+前端牌阵下拉（随缘抽=原逻辑），选了藏张数框；自己抽牌扇的 n 也
+跟着牌阵走；结果副标/分享图副标都带「『牌阵名』牌阵」。
+
+钉扎：selftest +3（choose 五位置逐名、celtic 10 张末位=结果、
+坏 key 400 人话）；on_coverage 登记 tr_spread。
+
+验证：selftest 276 / 契约 611 / ui_smoke 76 / ruff / 其余 14 闸全绿。
+
+## R2351 · R108 全量历法对账 + R109 海报视觉复评清零
+
+**R108（73,414 天全量对账 sxtwl/lunar_python）**：日柱/农历/宿/冲煞
+全量零真不一致；唯一真缺陷=节气近似 ±13min 把 12 个跨午夜交节
+推错日期（级联建除/四离四绝/交节横幅）。落地 `bazi._TERM_MIN_FIX`
+秒级修正表（覆盖 1900-2100 全部 12 例，已逐条复验归位）；
+`find_good_days` 钳到 2100-12-31（不再把域外日推上吉日榜）；
+1900-01-31 前 lunar 带「表外」说明不再静默空串。分钟级残余仍
+在已声明 ±30min warn 带内（文档化精度代价，非新缺陷）。
+
+**R109（九视图海报复评）**：上轮四处修复全部验收生效（塔罗 8.5）。
+本轮清零：liuyao 大字标题繁简混排（`_gsS` 上提罩 big）、xingzuo
+明细值 40px×22 字冲卡右缘（按测宽逐 2px 缩字号，不再按字数硬截）、
+daily 副题/行值括号中途腰斩（`_gSliceB` 括号感知截断，全海报
+标题/副题/_clauseCut 换用）、huangli「掂」豆腐字（字库子集外，
+文案换子集内「拿捏」）、六爻条形阵死代码（预算恒超 1280 从未渲染，
+改挂标题区→明细卡空档带垂直居中）、合拍指数 chip+明细行双写
+（有分删行，无分留「—」占位）。
+
+钉扎：selftest +3（term.flipday 12 例逐钉 / gooddays.clamp /
+lunar.prenote）。
+
+验证：selftest 279 / 契约 611 / ui_smoke 76 / poster 判据 12-14 /
+ruff 全绿。
+
+## R2352 · 「本月签运」月报海报 + 页脚瘦身（R107 剩项）
+
+周报下一档收集钩：本月打卡 ≥5 天时签卡多出「🗓️ 本月签运」钮。
+`checkin-month` 海报视图不走 31 行流水账——聚合 5 行战报：
+打卡天数 X/已到日、月内连签峰值、最常翻牌 top2、稀有签清单
+（✦ 与周报同口径）、分档签运词（≥20 全勤锦鲤 / ≥10 稳稳在线 /
+≥5 运气在攒 / 否则开张）。分享文案/深链别名/落地承接/接力横幅/
+海报底图（warm）全链路注册。页脚 4 行 150px 挤 → 品牌+口号
+合并+免责 3 行拉开行距。真机 Playwright 实测：注入 8 天打卡
+（含跨月干扰项）→ 按钮出现 → 海报 688KB，统计全对。
+
+验证：selftest 279 / poster 判据 12-14 / ui_smoke 76 全绿。
+
+## R2353 · R110 内嵌浏览器/弱网审计清零
+
+微信/小红书内嵌浏览器 + 弱网 + 老内核深审（Fast3G 节流实测）。
+零 P0；P1 修 2 持 1：
+- 展示式导出：blob 下载在微信 iOS 静默丢弃——_exportShowOnly()
+  （触屏或 MicroMessenger/xhsdiscover UA）时 CSV/JSON 备份改弹层
+  readonly textarea +「复制全部」（clipboard→execCommand 兜底），
+  复用 #posterModal 关闭链；新增 .export-modal-ta 样式。
+- 弱网让路：LXGW 分片（~500KB）翻 media='all' 延迟到
+  __dailyPref.p resolve 或 4s 兜底——日卡 JSON 不再被字体抢带宽。
+- 持项：P1-2 档案只存 localStorage（微信清缓存即失）——根治需
+  服务端档案+身份归属（user_prefs 单一共享存储缺隔离），待拍板。
+
+P2×5 清：弹层入栈（返回键先关弹层，同视图 popstate 不重渲）、
+XHS 海报提示「截图保存」+ 安装提示「在浏览器打开」分支、
+.finally×3→then 双分支复位、sw.js allSettled 手写等值、
+max()/env() 五处纯 px 兜底。P2-5 启动图 / P2-9 flex-gap 接受现状。
+
+验证：ui_smoke 76 / first_screen / poster 判据 12-14 全绿。
+
+## R2355（R111 混乱输入审计清零，含 P2-6/7/8）
+
+R111 报告（3 P1 + 11 P2/P3）全清：
+
+- P1-3/P2-1 显式 4 位年锚定：`_abs_or_holiday` 先接 `\d{4}年`/ISO 残片，
+  按显式年解（2026年10月1日→10/1），越界/不存在→None；前端
+  `_hlDayOffset` 遇 `\d{4}` 一律 null 交 resolve（残片防误吃）。
+- P1-2/P2-3 「说过但解不出」给 invalid：`resolve_huangli_date` 标记
+  （农历/星期八/32号/越界年）→「这个日子黄历里没有哦」；`_chat_facts_inner`
+  同步喂「日子不存在」事实行——不拿今天替她判。
+- P2-2 「下下个月」两侧同锚（+2 月）；「下下个月31号」无此日→invalid
+  （nm 截胡已堵：nnm ValueError→return None，resolve `_mm` 下下→+2）。
+- P2-4 问一嘴同句 800ms 去抖。
+- P2-5 姓氏服务端 CJK 校验（emoji/拉丁→400），与 maxlength=2 双保险。
+- P2-6 限流≠关停：`spawn_chat_task` 每-sid-每分钟超限返回
+  `__rate_limited__` 哨兵→`/api/chat` 回 `rate_limited:true`→前端
+  「歇口气」气泡+不计入锁死门槛（原路径按 DISABLE 永久锁输入框）。
+- P2-7 校验顺序：「2101-02-30」先报年份界而非「这一天不存在」。
+- P2-8 `?today=asdf` 400（原静默回退服务器日）。
+- 探针：probe_contract CONDITIONAL_FIELDS 加 `rate_limited`；
+  parity CASES +6（下下个月×2/2027-02-29/2101年/星期八/32号）
+  PY_ONLY +2（显式年锚 12/377）；selftest 285→288
+  （resolve_date.invalid×8/nnm/today.bad/year_first/surname.glyph）。
+
+验证：selftest 288 / parity 74+43+251 / contract 617 / ui_smoke 76 /
+poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
+warm_voice / baseline / plain_first / selftest_regress 全绿。

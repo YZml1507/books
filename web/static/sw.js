@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-f65a64cbc839';   // shell-hash: f65a64cbc839
+var CACHE = 'books-shell-bed67f02be99';   // shell-hash: bed67f02be99
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -53,11 +53,19 @@ self.addEventListener('install', function (e) {
   var CORE = ['/', '/static/index.html', '/static/app.js',
               '/static/styles.css'];
   e.waitUntil(caches.open(CACHE).then(function (c) {
-    return Promise.allSettled(SHELL.map(function (u) {
+    /* R2353（R110-P2-8）：allSettled 在 Chromium<76/iOS<13 未实现——
+     * install 抛异常 SW 装不上，离线壳静默缺失（老 X5 命中）。
+     * 手动等值包装，兼容到最早 SW 实现。 */
+    var _settle = function (p) {
+      return p.then(
+        function (v) { return { status: 'fulfilled', value: v }; },
+        function (r) { return { status: 'rejected', reason: r }; });
+    };
+    return Promise.all(SHELL.map(function (u) {
       /* R2345（R63-P2-3）：c.add 默认走 HTTP 缓存——js/css 有
        * max-age=3600，部署后 1h 内安装可能把旧字节装进新 CACHE 名。
        * reload 模式绕开 HTTP 缓存直取网络。 */
-      return c.add(new Request(u, {cache: 'reload'}));
+      return _settle(c.add(new Request(u, {cache: 'reload'})));
     })).then(function (rs) {
       var coreMiss = [];
       rs.forEach(function (r, i) {

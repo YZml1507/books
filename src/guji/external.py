@@ -187,8 +187,11 @@ def fortune_wrap(raw: dict, date_str: str | None = None) -> dict:
     不是返回新闻列表，而是包装成命理博主口吻的"今天需要注意什么"。
     用于 /api/daily 端点的外部资讯部分。
     """
-    from datetime import date as _date
-    ds = date_str or _date.today().isoformat()
+    # R2350g（R106-F4）：缺 date 回落锚 UTC+8——UTC 部署早 8 点前
+    # 裸 today() 会取到昨天。
+    from datetime import datetime as _dt, timedelta as _td, \
+        timezone as _tz
+    ds = date_str or _dt.now(_tz(_td(hours=8))).date().isoformat()
 
     items: list[dict] = []
     for src in raw.get("sources", []):

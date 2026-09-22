@@ -28,6 +28,22 @@ from .variants import DROP, FOLD, fold
 HEX_RE = re.compile(r"[䷀-䷿]")
 PB_RE = re.compile(r"<pb:([^>]+)>")
 
+# 《升第四十六》-style headings announce the next 卦 and PRECEDE its hexagram
+# symbol — a span ending at the next symbol would swallow this heading into the
+# previous 卦's last 爻 (real bug: 卦45·上六 returned 「** 《升第四十六》」).
+_HEADING_RE = re.compile(r"《[一-鿿]{1,4}第([一二三四五六七八九十]{1,4})》")
+_NUMERALS = {c: i for i, c in enumerate("一二三四五六七八九十", 1)}
+
+
+def _cn_number(s: str) -> int | None:
+    """十一 -> 11, 三十七 -> 37. Only needs to cover 1..64."""
+    if s in _NUMERALS:
+        return _NUMERALS[s]
+    if "十" not in s:
+        return None
+    tens, _, ones = s.partition("十")
+    return _NUMERALS.get(tens, 1) * 10 + _NUMERALS.get(ones, 0)
+
 # Bottom-to-top line polarity, 1 = yang (九), 0 = yin (六).
 TRIGRAM_LINES = {
     "乾": (1, 1, 1), "坤": (0, 0, 0), "震": (1, 0, 0), "艮": (0, 0, 1),
@@ -178,9 +194,23 @@ def gua_spans(raw: str) -> tuple[list[GuaSpan], list[int]]:
     for k, (pos, num) in enumerate(marks):
         if k not in keep:
             continue
-        nxt = next((p for j, (p, _) in enumerate(marks) if j > k and j in keep), None)
-        if nxt is None:
+        nxt_pair = next(((p, marks[j][1]) for j, (p, _) in enumerate(marks)
+                         if j > k and j in keep), None)
+        if nxt_pair is None:
             nxt = tail_at if tail_at is not None else len(raw)
+        else:
+            nxt = nxt_pair[0]
+            # The next 卦's own 《X第N》 heading sits between this span's symbol
+            # and its symbol — cut the span at the heading so the title line is
+            # not filed under this 卦's last 爻 (卦45·上六 read 「《升第四十六》」).
+            _h = _HEADING_RE.search(raw, pos, nxt)
+            if _h is not None and _cn_number(_h.group(1)) == nxt_pair[1]:
+                # Back over the heading's decorations (「** 」markdown, <pb:>
+                # page anchor, ¶/空白) — cutting at 《 leaves them inside this
+                # span's tail where the stray title line still inherits 上六.
+                _m2 = re.search(r"(?:<pb:[^>]+>|[\s*¶])*$",
+                                raw[pos:_h.start()])
+                nxt = _m2.start() + pos if _m2 else _h.start()
         spans.append(GuaSpan(num, pos, nxt, _nearest_anchor(raw, pos)))
     return spans, [n for k, (_, n) in enumerate(marks) if k not in keep]
 

@@ -21,7 +21,13 @@
 <meta name="color-scheme" content="light">
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
-<script>try{if(window.localStorage.getItem('welcomed')){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
+<script>try{var _w=window.localStorage.getItem('welcomed');
+if(!_w){/* R2350c（R97-P1-1）：welcomed 只在点 × 时写——老用户
+（访次>1/有打卡键）补写，避免天天见新人条+ret_tip 永锁 */
+var _v=String(localStorage.getItem('visits')||'').split(',').filter(Boolean).length>1;
+if(!_v){for(var _i=0;_i<localStorage.length;_i++){var _k=localStorage.key(_i);if(_k&&_k.indexOf('checkin:')===0){_v=true;break}}}
+if(_v){localStorage.setItem('welcomed','1');_w='1'}}
+if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
   <!-- R2349m（R76-P0-2 附带）：resizes-content 让 Android Chrome 键盘
      弹起时收缩 layout viewport，fixed 底栏跟随；iOS 忽略无副作用。 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -34,9 +40,11 @@
 <!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
 <link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
 <!-- R2349u（R90-P0-1）：LXGW ~976KB 分片 render-blocking 压过日卡——
-     print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。 -->
-<link rel="stylesheet" href="/static/fonts/lxgw.css" media="print"
-      onload="this.media='all'">
+     print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。
+     R2353（R110-P1-3）：media 翻 all 改由下方 __lxgwFlip 控制——
+     等 /api/daily 预取 resolve（或 4s 兜底）再放行 ~500KB 字体分片，
+     弱网下日卡 JSON 不再被字体抢带宽（FCP 由系统字体兜底，视觉无损）。 -->
+<link id="lxgwCss" rel="stylesheet" href="/static/fonts/lxgw.css" media="print">
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
@@ -75,8 +83,12 @@ if ('serviceWorker' in navigator) {
        * （新 SW 真接管的那一下）再提示；页面回前台时主动检查更新，
        * 长开 SPA 不再缺席更新检查。 */
       var _toasted = false;
+      /* R2349z（R96-P2-2）：首次安装（此前无 controller）也弹
+       * 「换好新版本」——新客没有旧版可换，文案错乱。
+       * 注册前先记「有没有旧 controller」再判。 */
+      var _hadCtl = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', function () {
-        if (_toasted) return;
+        if (_toasted || !_hadCtl) return;
         _toasted = true;
         if (window.showToast) {
           try { window.showToast('小满换好新版本了，刷新生效 ✨', 'info'); }
@@ -118,6 +130,24 @@ try {
     };
   })();
 } catch (eDP) {}
+/* R2353（R110-P1-3）：字体分片让路——daily JSON 落地（或 4s 兜底）后
+   才翻 media='all' 放行 woff2 分片下载；预取缺席时 1.5s 后放行。 */
+try {
+  (function () {
+    var _done = false;
+    var _go = function () {
+      if (_done) return; _done = true;
+      var l = document.getElementById('lxgwCss');
+      if (l) l.media = 'all';
+    };
+    try {
+      if (window.__dailyPref && window.__dailyPref.p) {
+        window.__dailyPref.p.then(_go, _go);
+        setTimeout(_go, 4000);
+      } else { setTimeout(_go, 1500); }
+    } catch (eF) { _go(); }
+  })();
+} catch (eFF) {}
 </script>
 </head>
 <body>
@@ -144,6 +174,11 @@ try {
   <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
        固定高度，引文区高度与书数无关）。首页时 hidden。 -->
   <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
+  <!-- R2350a（R94-P2-11）：主题钮原本住在 homeMain 的 brand 行里——
+       功能页 homeMain 整个 hidden，换肤入口随之消失。挪到顶层做
+       fixed 浮钮，全站可达。 -->
+  <button class="theme-toggle" id="themeToggle" type="button"
+    aria-label="切换深色模式" title="换个眼睛友好的色调">🌙</button>
   <div class="home-main" id="homeMain">
 
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
@@ -160,8 +195,6 @@ try {
       <div class="brand-title">小满的解忧铺</div>
       <div class="brand-tagline">今天也要好好生活呀 ✨</div>
     </div>
-    <button class="theme-toggle" id="themeToggle" type="button"
-      aria-label="切换深色模式" title="换个眼睛友好的色调">🌙</button>
   </div>
 
   <!-- 每日运势 -->
@@ -216,8 +249,10 @@ try {
          点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
     <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
          aria-label="点开查看今日运势">
+      <!-- R2350g（R105-P1-3）：窄屏弱网下这张封套图是真 LCP 元素
+           （实测 4.78s）——提优先级 + 去掉 lazy（视口内本来也立刻拉）。 -->
       <img src="/static/cream/daily-gift-bear.png" alt=""
-           loading="lazy" decoding="async" onerror="this.parentNode.remove()">
+           fetchpriority="high" decoding="async" onerror="this.parentNode.remove()">
       <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
       <p class="daily-cover-sub">每天的礼物都不一样</p>
     </div>
@@ -335,9 +370,9 @@ try {
           </div>
           <div class="row" style="margin-top:6px;" id="range_row" hidden>
             <div class="field"><label for="range_start">起（年-月-日）</label>
-              <input id="range_start" type="date"></div>
+              <input id="range_start" type="date" min="1900-01-01" max="2100-12-31"></div>
             <div class="field"><label for="range_end">止（年-月-日）</label>
-              <input id="range_end" type="date"></div>
+              <input id="range_end" type="date" min="1900-01-01" max="2100-12-31"></div>
             <div class="field"><label for="range_hour">统一时辰（可选）</label>
               <input id="range_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
           </div>
@@ -349,7 +384,7 @@ try {
              #result + toast）——删掉；字段级错误提示仍走统一 fail 路径。 -->
       </form>
 
-      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「排个盘」，你的命盘就出来啦～</div></div>
+      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「排个盘」也能看，换成你的更准～</div></div>
       <!-- R229z续23（R11-#24）：法条式长注 → 人话版 -->
       <p class="footnote">盘面按命理规则计算、引文标出处、解读是写死的规则转述——不是算命先生在替你拿主意，仅供娱乐。</p>
 
@@ -553,13 +588,16 @@ try {
           <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
           <select id="ly_method"><option value="time">时间起卦</option><option value="coins">铜钱起卦</option></select></div>
         <div class="field"><label for="ly_year">年</label>
-          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
+          <!-- R2350b（R98-P0-1）：写死 value="1990/5/15/10" 使
+               syncLiuyaoToday 的「空才填」恒败——时间起卦默起
+               1990-05-15 的卦。改 placeholder：留空=以现在起卦。 -->
+          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="留空=今年"></div>
         <div class="field"><label for="ly_month">月</label>
-          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
+          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" placeholder="留空=本月"></div>
         <div class="field"><label for="ly_day">日</label>
-          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" placeholder="留空=今天"></div>
         <div class="field"><label for="ly_hour">时辰</label>
-          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" value="10"></div>
+          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="留空=此时"></div>
       </div>
       <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
       <div class="row" style="margin-top:6px;">
@@ -582,7 +620,7 @@ try {
   <div class="view" id="view-huangli">
     <div class="card">
       <!-- R229z续23（R11-#13）：功能名与首页卡「今天适合」对齐 -->
-      <h2><span aria-hidden="true">🌙</span> 黄历 · 今天宜忌 <span class="card-sub">好日子，一目了然</span></h2>
+      <h2><span aria-hidden="true">🌙</span> 黄历 · <span id="hlTitleDay">今天</span>宜忌 <span class="card-sub">好日子，一目了然</span></h2>
       <!-- v3（P7）：日期快选 chip，原生输入收进折叠（兼容保留） -->
       <div class="hl-chips" id="hlChips">
         <button type="button" class="hl-chip active" data-hloffset="0" aria-pressed="true">今天</button>
@@ -617,7 +655,8 @@ try {
         <div class="field"><label for="qm_surname">姓氏</label>
           <!-- R230t（R33-P3-13）：后端恰好单字，前端 maxlength=8 放行复姓
              撞 400——对齐到 1。 -->
-          <input id="qm_surname" type="text" maxlength="1" value="李"></div>
+          <!-- R2350e（R101-P1-1）：后端已支持 1-2 字复姓，前端 maxlength=1 把欧阳拦死 -->
+          <input id="qm_surname" type="text" maxlength="2" value="李"></div>
         <div class="field"><label for="qm_year">年</label>
           <input id="qm_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="qm_month">月</label>
@@ -632,7 +671,7 @@ try {
       <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
       <div id="qmFavRow" class="fav-row" hidden></div>
       <button id="qmSubmit" type="button">起一个名</button>
-      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好姓氏和生日，点「起一个名」～</div></div>
+      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「起一个名」也能看，换成你的更准～</div></div>
     </div>
   </div>
 
@@ -653,7 +692,7 @@ try {
             <select id="th_gender"><option>女</option><option>男</option></select></div>
       </div>
       <button id="thSubmit" type="button">测测桃花</button>
-      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好生日，点「测测桃花」～</div></div>
+      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「测测桃花」也能看，换成你的更准～</div></div>
     </div>
   </div>
 
@@ -672,12 +711,34 @@ try {
         </div>
       </details>
       <div class="row">
-        <div class="field"><label for="tr_n">张数（1–10）</label>
+        <div class="field"><label for="tr_spread">牌阵</label>
+          <select id="tr_spread">
+            <option value="">随缘抽（自己定张数）</option>
+            <option value="time">时间流 · 3 张</option>
+            <option value="mind">身心灵 · 3 张</option>
+            <option value="you_ta">你和TA · 3 张</option>
+            <option value="diamond">钻石阵 · 4 张</option>
+            <option value="choose">二选一 · 5 张</option>
+            <option value="week">周运势 · 7 张</option>
+            <option value="star">六芒星 · 7 张</option>
+            <option value="celtic">凯尔特十字 · 10 张</option>
+          </select></div>
+      </div>
+      <div class="row">
+        <div class="field" id="tr_n_field"><label for="tr_n">张数（1–10）</label>
           <input id="tr_n" type="number" inputmode="numeric" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
       <button id="trSubmit" type="button">抽一张</button>
+      <!-- R2350k：自己抽——背面牌扇点选，点满张数成局，仪式感比
+           「按一下就出结果」强一档。 -->
+      <button id="trPickBtn" type="button" class="ghost" style="margin-top:8px;">🃏 自己抽一把</button>
+      <div id="trPickPanel" style="display:none;margin-top:10px;">
+        <div class="tr-pick-hint" id="trPickHint"></div>
+        <div class="tr-fan" id="trPickFan" role="group" aria-label="牌背——点选出你要的牌"></div>
+        <button id="trPickGo" type="button" disabled>就开这几张</button>
+      </div>
       <!-- R2349l（R73-P1-12）：我的牌册——抽过的牌进收集图鉴，
            78 格灰显未收，长线回访钩子。 -->
       <details class="pro-drawer" id="tarotAlbumDrawer" style="margin-top:12px;">
@@ -726,7 +787,7 @@ try {
       <!-- R230z（R36-P1-2）：测过的 CP——存过的配对一键回填 -->
       <div id="hhFavRow" class="fav-row" hidden></div>
       <button id="hhSubmit" type="button">合一下</button>
-      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填好你和 TA 的生日，点「合一下」～</div></div>
+      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「合一下」也能看，换成你们俩的更准～</div></div>
     </div>
   </div>
 
@@ -809,6 +870,11 @@ try {
         <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
              两段式确认后清本机键+服务端台账。 -->
         <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
+        <!-- R2349y（R95-P2-7）：古籍研究线程的笔记在服务端 knowledge
+             库，不进备份也不被「忘掉」清——口径写明，别让用户以为全包了。 -->
+        <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
+          备份/清空只覆盖排盘台账与本机偏好——古籍研究笔记另算，不清不带。
+        </div>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
       <div id="historyDetail" class="ph-detail" hidden></div>

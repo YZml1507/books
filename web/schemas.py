@@ -243,6 +243,9 @@ class ThreadRecordRequest(BaseModel):
 class LiuyaoRequest(BaseModel):
     method: str = "coins"        # coins | time
     seed: int | None = None      # coins 法：可选 seed（复验用），不传则真随机
+    # R2350g（R104-P1-3）：分享链 seed 重放只是「给接收方看一眼 TA 摇到
+    # 的卦」——不该写进接收方的台账。record=false 走纯算不落库。
+    record: bool = True
     year: int | None = None      # time 法：公历年/月/日/时
     month: int | None = None
     day: int | None = None
@@ -296,6 +299,10 @@ class QimingRequest(BaseModel):
         self.surname = strip_zw((self.surname or "").strip())
         if not self.surname or len(self.surname) > 2:
             raise ValidationError("姓氏填 1-2 个字就行（复姓也支持）")
+        # R2355（R111-P2-5）：emoji/拉丁字母过 len 校验后产出
+        # 「😀沃球」这类名——限 CJK 字形（含扩展 A 区）。
+        if not re.fullmatch(r"[一-鿿豈-﫿]{1,2}", self.surname):
+            raise ValidationError("姓氏用汉字哦（1-2 个，复姓也行）")
         # R228j：style 枚举——非法值不许静默当 all
         if self.style not in ("all", "classics", "chuci", "fresh"):
             raise ValidationError("这个风格还没有，换综合/诗经/楚辞/清新试试")
@@ -371,6 +378,13 @@ class TarotRequest(BaseModel):
     # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
     n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
     question: str | None = Field(None, max_length=200)
+    # R2350k：自点牌背——0-77 牌表下标，给了就忽略 seed 抽牌、
+    # 用选定下标成牌（正逆位仍由 seed 推）。n 以 len(cards) 为准。
+    cards: list[int] | None = Field(None, max_length=10)
+    # R2350l：命名牌阵 key（tarot.NAMED_SPREADS），给了张数按牌阵长度。
+    spread: str | None = Field(None, max_length=20)
+    # R2350g（R104-P1-3）：分享重放免台账。
+    record: bool = True
     # R230m：cross_ref「今日值宫」锚浏览器本地日。
     client_date: str | None = Field(None, max_length=10,
                                     description="浏览器本地日 YYYY-MM-DD，可选")

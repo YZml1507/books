@@ -115,6 +115,10 @@ FIXTURES: dict[str, dict] = {
     # R231a：备份导出端点——空库也返回 version/exported_at/records 三键，
     # 读点可判定（前端只读 j.exported_at / j.records）。
     "/api/paipan/history/export_json": {"method": "GET"},
+    # R2353（R110-P1-1）：触屏/微信下 CSV 走 fetch→text() 展示式
+    # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
+    # 不钉字段（前端用 r.text() 不读 JSON 键）。
+    "/api/paipan/history/export": {"method": "GET", "text": True},
     # R231a：导入回灌——fixture 发空 records 数组（0 写入、无副作用），
     # 只为让 j.imported 读点可判定；真实写入路径由 import_rows 收敛逻辑
     # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
@@ -251,7 +255,11 @@ CONDITIONAL_FIELDS = {
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
     # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
     # 缺席的正确探测。
-    "/api/chat": {"chat_task_id"},
+    "/api/chat": {"chat_task_id",
+                  # R2355（R111-P2-6）：rate_limited 只在每 sid 每分钟
+                  # 超限那次返回——前端 `if (j.rate_limited)` 是对缺席
+                  # 的探测（限流≠关停分流用）。
+                  "rate_limited"},
     "/api/qiming/review": {"review_task_id"},
     # R228x：/api/huangli 双形态——单日返回 yi/ji/…，带 affair+days 返回
     # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；
@@ -743,6 +751,12 @@ def main() -> int:
         if r.status_code != 200:
             cache[url] = ("http", (r.status_code, r.text[:160]))
             return cache[url]
+        # R2353：text/csv 等非 JSON 端点（展示式导出）——声明 text:True
+        # 的 fixture 只验「200+非空文本」，前端走 r.text() 本无字段
+        # 读点可钉。
+        if fx.get("text"):
+            cache[url] = ("ok", {"__text__": r.text})
+            return cache[url]
         body = r.json()
         if fx.get("cleanup") == "derived" and isinstance(body, dict):
             did = body.get("derived_id")
@@ -958,6 +972,12 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
                 continue
             seen_reads.add(key)
             checked += 1
+            # R2353：text:True fixture——响应不是 JSON（CSV 展示式导出），
+            # r.ok/r.text/r.status 是 Response 成员而非 JSON 字段，读点
+            # 不参与契约判定；端点活性由 fixture 的 200+非空钉过。
+            if isinstance(FIXTURES.get(url), dict) and \
+                    FIXTURES[url].get("text"):
+                continue
             status, value = resolve(body, rd["kind"], rd["path"])
             rd["url"] = url
             if status == "missing":

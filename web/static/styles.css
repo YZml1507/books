@@ -85,7 +85,9 @@
   --font-serif:  var(--font-wenkai);
   --font-display:"Smiley Sans",var(--font-wenkai);
   --font-sans:   "LXGW WenKai","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
-  --font-mono:   ui-monospace,"Consolas","Courier New",monospace;
+  /* R2350d（R100-P2-8）：mono 栈无 CJK 兑底——桌面端缺全量 CJK
+   * 字体时繁体直排豆腐块；栈尾接 wenkai。 */
+  --font-mono:   ui-monospace,"Consolas","Courier New",var(--font-wenkai),monospace;
 
   --radius: 18px;
   --radius-sm: 12px;
@@ -494,6 +496,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .recent-toggle{
   position:fixed; left:16px;
   /* R218a-巡2（N-10）：FAB 避开底部 home indicator（iOS）和六爻初爻 */
+  /* R2353（R110-P2-10）：max()/env() 不认的老内核整行丢弃，FAB
+     掉文档尾不可见——先纯 px 兜底再覆盖（同 90vh→90dvh 双写法）。 */
+  bottom:20px;
   bottom:max(20px, env(safe-area-inset-bottom, 20px));
   z-index:60;
   width:52px; height:52px; border-radius:50%;
@@ -920,7 +925,13 @@ button.fav-btn[id^="share"]:hover{transform:translateY(-1px);
 .ev-item{padding:12px 0; border-bottom:1px solid var(--border);}
 .ev-item:last-child{border-bottom:none;}
 .ev-item.accent{border-left:3px solid var(--primary); padding-left:14px;}
-.ev-meta{font-size:12px; color:var(--secondary); font-family:var(--font-mono); word-break:break-all;}
+/* R2350d（R100-P2-4）：hit 卡出处行从裸 mono 串收为胶囊头——
+ * 「书名·章节」一眼可辨，文字墙有了一点卡感。 */
+.ev-meta{font-size:12px; color:var(--secondary); font-family:var(--font-mono);
+  word-break:break-all; display:inline-block; background:var(--primary-bg);
+  border:1px solid var(--border); border-radius:999px; padding:2px 10px;
+  margin-bottom:2px;}
+html[data-theme="dark"] .ev-meta{background:#2E2830;}
 .ev-text{font-family:var(--font-serif); font-size:15px; margin-top:6px; line-height:1.8;
   white-space:pre-wrap;}
 /* R228d：.ev-toggle 死样式删除（零引用） */
@@ -1065,6 +1076,19 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
   border-radius:8px;}
 
+/* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。 */
+.tr-fan{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+.tr-back{width:34px;height:54px;padding:0;border:none;border-radius:6px;
+  background:url('/static/tarot/card-back.jpg') center/cover no-repeat #B8860B;
+  cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);min-height:44px;}
+.tr-back:hover{transform:translateY(-3px);}
+.tr-back.on{transform:translateY(-8px);box-shadow:0 0 0 2px #E8668A,
+  0 6px 12px rgba(232,102,138,.35);}
+.tr-back:focus-visible{outline:2px solid #E8668A;outline-offset:2px;}
+.tr-pick-hint{font-size:12.5px;color:var(--secondary);margin-bottom:6px;}
+html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
+
 /* R228l：.tback 死样式删除——JS 发 .tbimg 图片牌背，无 .tback 载体。 */
 /* R195b：牌正面插画版式——暖米白渐变底（海报同色板）+ 意象符号大图 +
  * 牌名/关键词分区，替代原"只有字"的空白牌面 */
@@ -1152,6 +1176,12 @@ details.warm-pro-fold > summary{
 .yao-seat{ font-size:10px; line-height:1; padding:3px 6px; border-radius:999px;
   background:var(--c-bazi); color:#fff; font-weight:600; }
 .yao-seat.ying{ background:var(--secondary); }
+/* R2350b（R98-P1-3）：六亲/六神随行白话 + 卦图图例——原词裸奔时
+ * 正文（人话）与图上（术语）对不上号。 */
+.yao-plain{ font-style:normal; color:var(--secondary); opacity:.75;
+  margin-left:3px; }
+.yao-legend{ font-size:11px; color:var(--muted); line-height:1.7;
+  margin-top:8px; padding-top:6px; border-top:1px dashed var(--line,rgba(0,0,0,.08)); }
 /* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
 .pro-notice{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -1533,6 +1563,15 @@ button:active{transform:scale(.96);}
   background:#FDF8F0; border-top:1px solid var(--border);
   text-align:center;
 }
+/* R2353（R110-P1-1）：展示式导出的文本框——占满 body 区可滚可选 */
+.export-modal-ta{
+  width:100%; height:100%; min-height:38vh; max-height:60vh;
+  resize:none; border:1px solid var(--border); border-radius:8px;
+  padding:10px; font-size:12px; line-height:1.6;
+  background:var(--card); color:var(--ink);
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  -webkit-user-select:text; user-select:text;
+}
 
 /* ── R218a-巡2（N-05）：全局 toast 提示 ───────────── */
 .toast-stack{
@@ -1540,7 +1579,9 @@ button:active{transform:scale(.96);}
    * 下移+加深投影分层。
    * R2349m（R76-P1-3）：fixed 元素吃不到 body 的 env() padding——
    * 刘海机 top 直接 calc 安全区。 */
-  position:fixed; left:50%; top:calc(env(safe-area-inset-top, 0px) + 12px);
+  position:fixed; left:50%; top:12px;
+  /* R2353（R110-P2-10）：同上——env()/calc 不认时 toast 栈不可见 */
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
   transform:translateX(-50%);
   z-index:300; display:flex; flex-direction:column; gap:8px;
   pointer-events:none; max-width:min(420px, 92vw);
@@ -1689,7 +1730,11 @@ button:active{transform:scale(.96);}
 .hl-yi-t{font-weight:800;color:#3E7A52;margin-bottom:6px;}
 .hl-ji-t{font-weight:800;color:#C2527B;margin-bottom:6px;}
 .hl-flag{font-size:12.5px;color:#a3542a;margin-top:6px;}
-.hl-csmsg{font-size:13px;color:var(--primary-ink);margin-top:6px;}
+/* R2350d（R100-P2-3）：当班金句是全卡唯一「可截封面」的句子却
+ * 只有 13px 副行——提为判词级头行（金句体+居中）。 */
+.hl-csmsg{font-size:17px;color:var(--primary-ink);margin-top:8px;
+  font-family:var(--font-display);font-weight:600;text-align:center;
+  letter-spacing:.3px;line-height:1.6;}
 /* R2349k（R72-A2）：节日行 */
 .hl-festival{font-size:12.5px;color:#b5732f;margin-top:6px;font-weight:600;}
 @media (max-width:480px){ .hl-yiji{grid-template-columns:1fr;} }
@@ -1769,6 +1814,8 @@ button:active{transform:scale(.96);}
   /* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
    * 缩到 44px 挪右下（右下是分享/返回惯例位）。 */
   .recent-toggle{left:auto; right:12px; width:44px; height:44px;
+    bottom:14px;
+    /* R2353（R110-P2-10）：同上 */
     bottom:max(14px, env(safe-area-inset-bottom, 14px));}
   .recent-toggle-txt{font-size:10px;}
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
@@ -1902,6 +1949,8 @@ html{-webkit-text-size-adjust:100%;}
   /* R2349m（R76-P1-5）：压 home 条 → env()；
    * R76-P3：z-index 280>poster-modal 200 会叠在模态上 → 降到 180 */
   position:fixed; left:14px;
+  bottom:14px;
+  /* R2353（R110-P2-10）：同上——安装提示掉文档尾 */
   bottom:max(14px, env(safe-area-inset-bottom, 14px)); z-index:180;
   display:flex; align-items:center; gap:8px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
@@ -1920,6 +1969,8 @@ html{-webkit-text-size-adjust:100%;}
   background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
 }
 @media (max-width:400px){ .install-tip{left:8px;
+  bottom:8px;
+  /* R2353（R110-P2-10）：同上 */
   bottom:max(8px, env(safe-area-inset-bottom, 8px)); font-size:12px;} }
 
 /* ── R231h（R39-P3-3）：连签里程碑卡 ── */
@@ -1993,8 +2044,12 @@ button.is-working{opacity:.62;cursor:progress}
 input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !important;outline-color:#D4735E}
 .func-card:active,.work-card:active,#dailyCover:active{transform:scale(.96)}
 .work-card:focus-visible{outline:2px solid var(--primary-bg,#7A5FB8);outline-offset:2px}
-.toast-item{pointer-events:auto}
-/* R233y（R55-P2）：关闭钮 ~21px 低于触控下限。 */
+/* R2350c（R97 连带修）：toast 文案区不再拦截点击——浮层在顶栏 3.5s
+ * 内会盖住导航钮（实测 viewBack 被「收进心水名单啦」挡住点不动，
+ * 用户只能干等或去够 ×）。item 点击穿透到下层、× 仍可点；
+ * 悬停暂停随 item 穿透失效，键盘聚焦暂停（focusin→×）仍在。 */
+.toast-item{pointer-events:none}
+.toast-item .toast-x{pointer-events:auto}
 .toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:40px;min-height:40px;cursor:pointer;opacity:.7}
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
@@ -2043,6 +2098,23 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 .ck-album-cell i{font-style:normal;font-size:10px;color:var(--muted);}
 .ck-album-cell b{font-size:12px;font-weight:600;color:var(--primary-ink);}
 .ck-album-cell:hover{border-color:#E8B898;}
+/* R2350c（R97-P2-3）：缺签日灰槽——可看出缺口，「集满」有视觉拉力。 */
+.ck-album-miss{cursor:default;border-style:dashed;opacity:.55;}
+.ck-album-miss:hover{border-color:var(--border);}
+/* R2350j：许愿瓶——与签册同 token，深色经变量自适应。 */
+.ck-wish-card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm,12px);padding:12px 14px;}
+.ck-wish-text{font-size:14.5px;color:var(--primary-ink);line-height:1.7;
+  margin:6px 0;}
+.ck-wish-meta{font-size:11.5px;color:var(--muted);line-height:1.6;}
+.ck-wish-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.ck-wish-cats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;}
+.ck-wish-input{width:100%;box-sizing:border-box;min-height:60px;resize:vertical;
+  border:1px solid var(--border);border-radius:10px;padding:9px 11px;
+  font-size:13.5px;font-family:inherit;background:var(--card);color:var(--text);}
+.ck-wish-input:focus{outline:none;border-color:#E8B898;}
+.ck-album-miss b{color:var(--muted);font-weight:400;}
+.ck-album-prog{font-size:11px;color:var(--muted);margin-top:6px;}
 .ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}
 /* 打卡抽中弹出反馈（翻签仪式感轻量版） */
 @keyframes ckPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
@@ -2098,6 +2170,13 @@ html[data-theme="dark"] .checkin-opt{background:#352E33; color:var(--text);}
 /* R2349j（R70-P0-6）：真类名是 .toast-item，.toast 补丁落空已久。 */
 html[data-theme="dark"] .toast-item{background:#3A3237; color:var(--text);
   border-color:#4E4348;}
+/* R2350d（R100-P2-1）：cite-top 硬编码浅底/深字——深底上亮带突兀。 */
+html[data-theme="dark"] .cite-top{background:#2A302B;}
+html[data-theme="dark"] .cite-top > .cite-toggle{color:#9AD6CE;}
+html[data-theme="dark"] .cite-toggle:hover{background:#313832;}
+/* R2350d（R100-P2-2）：星座 12 宫小卡浅插画在深底上成浅岛——
+ * 描边换深色过渡减少贴纸感。 */
+html[data-theme="dark"] .xz-card{border-color:#453C42;box-shadow:none;}
 html[data-theme="dark"] .toast-warn{background:#3A332C;}
 html[data-theme="dark"] .chip, html[data-theme="dark"] .hl-chip,
 html[data-theme="dark"] .chat-chip, html[data-theme="dark"] .xz-chip,
@@ -2129,15 +2208,24 @@ html[data-theme="dark"] .view-back{background:#352E33; color:var(--text);
 html[data-theme="dark"] .fail-line{background:#3A2E2B; color:#E8A288;}
 /* 图标 jpg 在深色底上白边明显——微降亮更融。 */
 html[data-theme="dark"] .func-icon-img{filter:brightness(.92);}
-/* 主题切换钮：品牌行右侧小圆钮 */
+/* 主题切换钮（R2350a/R94-P2-11）：原本 absolute 在 brand 行——随
+ * homeMain hidden 在功能页消失。改全站 fixed 浮钮。 */
 .brand{position:relative;}
 .theme-toggle{
-  position:absolute; right:0; top:50%; transform:translateY(-50%);
+  position:fixed; right:16px; top:14px;
   width:40px; height:40px; border-radius:50%;
   border:1px solid var(--line); background:var(--card);
-  font-size:17px; cursor:pointer; padding:0;
+  font-size:17px; cursor:pointer; padding:0; z-index:60;
+  box-shadow:0 2px 10px rgba(35,42,56,.12);
 }
-.theme-toggle:hover{transform:translateY(-50%) scale(1.08);}
+.theme-toggle:hover{transform:scale(1.08);}
+/* R2350a（R94-P1-4）：时辰吉凶十二格 */
+.hl-hours{margin-top:8px;}
+.hl-hour{display:inline-block; min-width:22px; text-align:center;
+  font-size:11px; padding:2px 3px; border-radius:5px; margin:1px;
+  border:1px solid var(--border); color:var(--secondary);}
+.hl-hour-ji{border-color:var(--primary); color:var(--primary);
+  font-weight:600;}
 /* 深色补丁二批：内嵌浅底块（warm-l0 渐变卡/cite-block/判词引用/原型卡等）
  * ——浅色盒+浅紫字在深底上对比度归零，统一压暗。 */
 html[data-theme="dark"] .warm-l0{
@@ -2409,3 +2497,14 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 /* R2349v（R92-P1-1）：书目卡里 kanripo 裸 URL 把 375px 页面横向撑爆
  * ——长串按字符断行。 */
 .work-card p{overflow-wrap:anywhere;}
+/* R2350d（R100-P1-1）：结果卡品牌水印——手动截图转发时落款可读。 */
+.card-brand{margin-top:10px;text-align:center;font-size:11px;color:var(--muted);letter-spacing:.5px;}
+/* R2350e（R101-P1-4）：参数改过后的旧结果卡标「已过期」——
+ * 淡化+顶沿角标，重算落地由 paint() 摘除。 */
+.is-stale{position:relative;}
+.is-stale>*{opacity:.55;filter:saturate(.8);}
+.is-stale::after{content:'参数改过了 · 重新算算看';position:absolute;
+  top:-11px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font-size:11px;color:var(--secondary);background:var(--card,#fff);
+  border:1px dashed var(--border);border-radius:999px;
+  padding:2px 10px;z-index:3;}

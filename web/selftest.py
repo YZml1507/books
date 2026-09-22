@@ -387,7 +387,10 @@ def _run_inner() -> list[str]:
     # 可复验：time 起卦 2026-08-16 10:00 → 萃45；affair=婚嫁 30 天 → 非空。
     check("liuyao.time", client.post("/api/liuyao", json={"method": "time",
           "year": 2026, "month": 8, "day": 16, "hour": 10}),
-          lambda j: j.get("ben") and j["ben"].get("gua_number") == 45)
+          lambda j: (j.get("ben") and j["ben"].get("gua_number") == 45
+                     # R2350b（R98-P0-1）：起卦时刻回显——防「默认
+                     # 1990-05-15」重演，用户要知道卦是按哪天摇的
+                     and j.get("cast_at") == "2026年8月16日 10时"))
     check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
           "date": "2026-08-17", "days": 30}),
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
@@ -431,6 +434,30 @@ def _run_inner() -> list[str]:
         assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
             ("huangli.term_day.yiji_flip", _tn, _ty)
     ok.append("huangli.term_day.consistent")
+    # R2351（R108-§3.2 钉扎）：±13min 近似把 12 个跨午夜交节推错
+    # 日期——修正表落地后，逐条钉 CST 日期（参照：sxtwl/lunar_python）。
+    for _tn, _ty, _md in (("寒露", 1912, (10, 9)), ("大雪", 1917, (12, 8)),
+                          ("雨水", 1923, (2, 19)), ("谷雨", 1950, (4, 20)),
+                          ("冬至", 1951, (12, 23)), ("惊蛰", 2014, (3, 6)),
+                          ("小暑", 2016, (7, 7)), ("小暑", 2045, (7, 7)),
+                          ("惊蛰", 2047, (3, 6)), ("春分", 2051, (3, 20)),
+                          ("大寒", 2082, (1, 20)), ("立夏", 2097, (5, 5))):
+        _t8 = _tt6(_ty, _tn) + _td0(hours=8)
+        assert (_t8.month, _t8.day) == _md, \
+            ("huangli.term.flipday", _tn, _ty,
+             f"{_t8.month}-{_t8.day}", _md)
+    ok.append("huangli.term.flipday")
+    # R2351（R108-§四.3 钉扎）：find_good_days 不再越 2100 域推日；
+    # 1900-01-31 前 lunar 三键空时带「表外」说明（不再是静默空串）。
+    from guji.huangli import find_good_days as _fgd9, day_query as _dq9
+    _beyond = _fgd9(_dt6(2100, 12, 15), _dt6(2101, 1, 31), "出行")
+    assert all(g["date"] <= "2100-12-31" for g in _beyond), \
+        ("huangli.gooddays.clamp", _beyond[-1]["date"] if _beyond else None)
+    ok.append("huangli.gooddays.clamp")
+    _pre = _dq9(_dt6(1900, 1, 15))["lunar"]
+    assert _pre.get("note") and not _pre.get("month_cn"), \
+        ("huangli.lunar.prenote", _pre)
+    ok.append("huangli.lunar.prenote")
     # R229z续22（R9-P2-2）：场景映射词防死词——每个场景词必须至少映射
     # 一个宜忌词表中的真词（自映射中性词如「健身/唱歌」有意除外）。
     from guji.huangli import ZHIRI_YIJI as _ZY, XIUXIU_YIJI as _XY
@@ -447,6 +474,49 @@ def _run_inner() -> list[str]:
              and not set(ts) <= _NEUTRAL_TERMS}
     assert not _dead, ("huangli.scene_vocab.dead", _dead)
     ok.append("huangli.scene_vocab.alive")
+    # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
+    # 不静默回落显示日/就近换日。
+    for _q, _want_date, _want_invalid in (
+            ("2027-02-29搬家", False, True),      # 非闰年 ISO 不存在
+            ("2101年3月1号开业", False, True),    # 越界年号（表界 2100）
+            ("星期八出行", False, True),           # 曜日表外
+            ("32号开业", False, True),             # 超月界
+            ("农历13月初一领证", False, True),     # 农历只有十二月
+            ("下下个月31号签约", False, True),     # 词命中但该月没这天
+            ("下下个月15号出差", True, False),     # 下下个真解
+            ("2026年10月1日搬家", True, False)):   # 显式年锚定
+        _r = client.get("/api/huangli/resolve_date",
+                        params={"q": _q})
+        _rj = _r.json()
+        _got_d = bool(_rj.get("date"))
+        assert (_r.status_code == 200 and _got_d == _want_date and
+                bool(_rj.get("invalid")) == _want_invalid), \
+            ("resolve_date.invalid", _q, _rj)
+    ok.append("resolve_date.invalid")
+    _n1 = client.get("/api/huangli/resolve_date",
+                     params={"q": "下个月15号出差"}).json()["date"].split("-")
+    _n2 = client.get("/api/huangli/resolve_date",
+                     params={"q": "下下个月15号出差"}).json()["date"].split("-")
+    # 下下个月 = 下个月 +1 月（12 月跨年取模），不许被「下个月」截胡。
+    assert (int(_n2[1]) - int(_n1[1])) % 12 == 1 and int(_n2[2]) == 15, \
+        ("resolve_date.nnm", _n1, _n2)
+    ok.append("resolve_date.nnm")
+    # today= 垃圾值 400（此前静默回退服务器日）。
+    _tb = client.get("/api/huangli", params={"today": "asdf"})
+    assert _tb.status_code == 400, ("huangli.today.bad", _tb.status_code)
+    ok.append("huangli.today.bad")
+    # 2101 年先报年份界而非「这一天不存在」。
+    _ty = client.get("/api/huangli", params={"date": "2101-02-30"})
+    assert _ty.status_code == 400 and "年份须在" in str(_ty.json().get("detail")), \
+        ("huangli.year_first", _ty.status_code, _ty.text[:120])
+    ok.append("huangli.year_first")
+    # R2355（R111-P1-1）：姓氏非汉字拒——前端 maxlength=2 之外的
+    # 服务端护栏；汉字正则（拼音/emoji 都不收）。
+    _qs = client.post("/api/qiming", json={"surname": "😀",
+                      "year": 1990, "month": 1, "day": 1,
+                      "hour": 12, "gender": "男"})
+    assert _qs.status_code == 400, ("qiming.surname.glyph", _qs.status_code)
+    ok.append("qiming.surname.glyph")
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),
@@ -863,6 +933,68 @@ def _run_inner() -> list[str]:
     check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
           lambda j: [d.get("position") for d in j.get("draws", [])]
                     == ["过去", "现状", "阻碍", "助力", "结果"])
+    # R2350k：自点牌背——cards 下标成牌（越界去重收敛、位置按序、
+    # 同 seed+同下标结果可复验）。DECK[0..2] = 愚人/魔术师/女祭司。
+    _c = client.post("/api/tarot", json={"seed": 7, "n": 3,
+                                         "cards": [0, 1, 2]})
+    _cj = _c.json()
+    assert (_cj.get("n") == 3 and
+            [d["name"] for d in _cj.get("draws", [])] ==
+            ["愚者", "魔术师", "女祭司"] and
+            [d.get("position") for d in _cj["draws"]] ==
+            ["过去", "现在", "未来"]), ("tarot.cards", _cj.get("draws"))
+    ok.append("tarot.cards")
+    _c2 = client.post("/api/tarot", json={"seed": 7, "n": 3,
+                                          "cards": [0, 1, 2]})
+    assert _c2.json()["draws"] == _cj["draws"], ("tarot.cards.replay",
+                                                _c2.json()["draws"])
+    ok.append("tarot.cards.replay")
+    # R2350l：命名牌阵——张数=阵长、位置名按主题表、坏 key 被拒成人话。
+    _s = client.post("/api/tarot", json={"seed": 11, "spread": "choose",
+                                         "question": "去不去"})
+    _sj = _s.json()
+    assert (_sj.get("n") == 5 and _sj.get("spread") == "二选一" and
+            [d.get("position") for d in _sj["draws"]] ==
+            ["选项A", "现状", "关键", "选项B", "指引"]), \
+        ("tarot.spread.named", _sj.get("draws"))
+    ok.append("tarot.spread.named")
+    _s2 = client.post("/api/tarot", json={"seed": 11, "spread": "celtic"})
+    assert _s2.json()["n"] == 10 and \
+        _s2.json()["draws"][9]["position"] == "结果", \
+        ("tarot.spread.celtic", _s2.json()["n"])
+    ok.append("tarot.spread.celtic")
+    _bad = client.post("/api/tarot", json={"spread": "bogus"})
+    assert _bad.status_code == 400 and \
+        "没这个牌阵" in str(_bad.json().get("detail")), \
+        ("tarot.spread.bad", _bad.status_code, _bad.text[:120])
+    ok.append("tarot.spread.bad")
+    # R2354（R112-P2-4/5）：cards 静默瘦身改显式拒——重复/越界 →
+    # 400；张数≠阵位数 → 400（不再产半截「凯尔特十字 · 3 张牌」）。
+    _dup = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [5, 5, 5]})
+    assert _dup.status_code == 400 and \
+        "重复" in str(_dup.json().get("detail")), \
+        ("tarot.cards.dup", _dup.status_code)
+    ok.append("tarot.cards.dup")
+    _oor = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [0, 99]})
+    assert _oor.status_code == 400, ("tarot.cards.range", _oor.status_code)
+    ok.append("tarot.cards.range")
+    _mm = client.post("/api/tarot",
+                      json={"seed": 7, "cards": [0, 1, 2],
+                            "spread": "celtic"})
+    assert _mm.status_code == 400 and \
+        "10 张牌" in str(_mm.json().get("detail")), \
+        ("tarot.cards.spread_mismatch", _mm.status_code)
+    ok.append("tarot.cards.spread_mismatch")
+    _fit = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [0, 1, 2],
+                            "spread": "you_ta"})
+    _fj = _fit.json()
+    assert _fit.status_code == 200 and _fj.get("n") == 3 and \
+        _fj.get("picked") is True and _fj.get("spread_key") == "you_ta", \
+        ("tarot.cards.spread_fit", _fit.status_code)
+    ok.append("tarot.cards.spread_fit")
     # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
     # 综合指引不得出现「整体是顺的」——先安抚再看走向。
     _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,
@@ -987,7 +1119,11 @@ def _run_inner() -> list[str]:
                      and j.get("render") and j.get("notes")
                      # R2349l（R73-P1-1）：合拍指数常驻键，界内整数
                      and isinstance(j.get("match_score"), int)
-                     and 35 <= j["match_score"] <= 99))
+                     and 35 <= j["match_score"] <= 99
+                     # R2350b（R98-P2-13）：a_bazi.render 常驻——
+                     # pro 模式「A 四柱」pill 与甲乙卡悬停都读它
+                     and j.get("a_bazi", {}).get("render")
+                     and j.get("b_bazi", {}).get("render")))
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
@@ -1347,8 +1483,9 @@ def _run_inner() -> list[str]:
     # R152b（D-198b）：qiming 计算失败分支（排盘异常→400）standing 覆盖。
     # 实测 month=2/day=30（不存在的日期）→ 400。
     # R2349s（R85-P2-4 归因修正）：活路径走 services.py →
-    # classical_names.generate_classical_names；qiming.name_candidates 除自身
-    # __main__ 外零调用，是事实死引擎（待删/待标，本批不动）。
+    # classical_names.generate_classical_names；R2350a 已把 qiming.py 的
+    # 死引擎簇（name_candidates/_full_name_combos/字池表/演示main）删除，
+    # 模块只剩 FEMININE/MASCULINE 字池 + 两个 re-export。
     _expect_400("err.qiming.calc_fail",
                 client.post("/api/qiming", json={"surname": "李", "year": 1990,
                                                  "month": 2, "day": 30,
@@ -1463,6 +1600,49 @@ def _run_inner() -> list[str]:
         _kbt.close()
     assert _tc1 == _tc0, ("err.threads.orphan_free", _tc0, _tc1)
     ok.append("err.threads.orphan_free")
+    # R2350a（R96-P0-1/P1-1 钉扎）：note 类无证据可写（「记一条」
+    # 复活回归闸）+ status 过滤参数端到端（bogus 值 → 400）。
+    _note = client.post("/api/threads", json={
+        "kind": "note", "claim": "probe手记", "method": "probe"})
+    assert _note.status_code == 200, ("threads.note",
+                                      _note.status_code, _note.text)
+    ok.append("threads.note")
+    # 写端点纪律：清掉本轮新增的 note+空壳线程（derived/turn/thread），
+    # 不然它们留在真实 knowledge.db 被 CI G8 当泄漏计数。
+    try:
+        from web import deps as _depsn
+        _nj = _note.json()
+        with _depsn.knowledge() as _kbn:
+            _did = _nj.get("derived_id"); _tid = _nj.get("thread_id")
+            if _did is not None:
+                # contentless derived_fts 走 'delete' 命令（裸 DELETE
+                # 会报 OperationalError）。
+                _row = _kbn.db.execute(
+                    "SELECT claim FROM derived WHERE id=?", (_did,)).fetchone()
+                if _row:
+                    from guji.variants import fold as _foldf, \
+                        segment_cjk as _segcjk
+                    _kbn.db.execute(
+                        "INSERT INTO derived_fts(derived_fts, rowid, seg) "
+                        "VALUES('delete', ?, ?)",
+                        (_did, _segcjk(_foldf(_row["claim"]))))
+                _kbn.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                                (_did,))
+                _kbn.db.execute("DELETE FROM derived WHERE id=?", (_did,))
+            if _tid is not None:
+                _kbn.db.execute("DELETE FROM turn WHERE thread_id=?", (_tid,))
+                _kbn.db.execute("DELETE FROM thread WHERE id=?", (_tid,))
+            _kbn.db.commit()
+    except Exception:
+        pass
+    _stok = client.get("/api/threads?status=all")
+    assert _stok.status_code == 200 and "threads" in _stok.json(), (
+        "threads.status_all", _stok.status_code)
+    ok.append("threads.status_all")
+    _stbad = client.get("/api/threads?status=bogus")
+    assert _stbad.status_code == 400, ("threads.status_bad",
+                                       _stbad.status_code)
+    ok.append("threads.status_bad")
     # R229n（R6-#4）：evidence ≤64 写放大护栏——100 条须被 pydantic 422 拒。
     _ev_over = client.post("/api/threads", json={
         "kind": "refusal", "claim": "x", "method": "probe",
@@ -1971,24 +2151,29 @@ def _run_inner() -> list[str]:
                                           _sr.status_code)
     ok.append("share.guardrails")
     # R2342（R60-P0-6）：import_rows 真实路径——模块层直连（DISABLE 只
-    # 闸路由不闸模块）：合法行写入、重复行去重、非法类型归一、超长跳过。
+    # 闸路由不闸模块）：合法行写入、重复行去重、非法类型跳过、超长跳过。
     # 测试行事后 delete_record 清掉，不留污染。
+    # R2349y（R95-P2-9）：返回 (written, skipped)——伪造 type 不再改名
+    # 落库而是计 skip；缺 ts 行（重复导入会再造一份）同样计 skip。
     from guji import paipan_history as _phx
     _mine = {"type": "bazi", "ts": "probe-selftest-imp",
              "name": "钉扎自检", "req": {"y": 1}, "result": {"ok": True}}
     _w1 = _phx.import_rows([dict(_mine)])
     _w2 = _phx.import_rows([dict(_mine)])
     _w3 = _phx.import_rows([{"type": "bogus", "ts": "probe-selftest-imp2",
-                            "name": "类型归一", "req": {}, "result": {}}])
+                            "name": "类型伪造", "req": {}, "result": {}}])
     _w4 = _phx.import_rows([{"type": "bazi", "ts": "probe-selftest-big",
                              "name": "超长", "req": {"x": "a" * 300000},
                              "result": {}}])
+    _w5 = _phx.import_rows([{"type": "bazi", "name": "无时间戳",
+                             "req": {}, "result": {}}])
     _stale = [r["id"] for r in _phx.list_records(limit=500)["items"]
               if str(r.get("ts") or "").startswith("probe-selftest")]
     for _i in _stale:
         _phx.delete_record(_i)
-    assert _w1 == 1 and _w2 == 0 and _w3 == 1 and _w4 == 0, (
-        "paipan.import_rows", _w1, _w2, _w3, _w4)
+    assert (_w1 == (1, 0) and _w2 == (0, 1) and _w3 == (0, 1)
+            and _w4 == (0, 1) and _w5 == (0, 1)), (
+        "paipan.import_rows", _w1, _w2, _w3, _w4, _w5)
     ok.append("paipan.import_rows")
     # R178b（D-230b）：LLM 层已整体移除——断言它**回不来**。`guji.llm_reader`
     # 必须不可导入，且响应里不得再出现 llm/llm_out/use_llm 字段（若哪轮把
@@ -2363,6 +2548,9 @@ def _run_inner() -> list[str]:
                       "warm", "ai_polish",
                       # R218a-巡2（N-01）：后端回写 question 供前端钩子使用
                       "question",
+                      # R2350g（R106-F3）：换算后公历生日回显——农历输入
+                      # 的用户档案靠它落公历日。
+                      "birth_solar",
                       # C-003：交叉引用——八字结果页增加星座维度
                       "cross_ref"},
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
@@ -2491,6 +2679,12 @@ def _run_inner() -> list[str]:
         ("sw.shell_hash", "壳文件已变——跑 scripts/bump_sw.py",
          (_m.group(1) if _m else None), _want)
     assert f"books-shell-{_want}" in _swsrc, "CACHE 名未绑哈希"
+    # R2350g（R105-P2-2）：?v= 注入是精确字符串替换——index.html 哪天改
+    # 写法（单引号/属性换序）就静默失效、混版复发且无警报。钉死下发
+    # 的 HTML 里必须出现版本化资产引用。
+    _html = client.get("/").text
+    assert 'app.js?v=' in _html and 'styles.css?v=' in _html, \
+        ("sw.shell_hash", "下发 HTML 未带 ?v= 版本化资产", _html[:200])
     ok.append("sw.shell_hash")
 
     # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。
