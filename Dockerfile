@@ -9,7 +9,9 @@
 #   BOOKS_EXTERNAL_DISABLE=1        关掉 RSS 外呼面（无代理环境必开）
 #   BOOKS_ALLOWED_HOSTS=your.domain TrustedHost 白名单（有正式域名后开）
 #   BOOKS_CORS_ORIGINS=https://…    分体部署（落地页+API 分离）时开
-FROM python:3.10-slim   # 与 CI/.python-version 同钉——漂移过一次就不测第二次
+# 与 CI/.python-version 同钉——漂移过一次就不测第二次
+# （注意：Docker 不允许指令行尾挂 # 注释——行内注释只认行首）
+FROM python:3.10-slim
 WORKDIR /app
 COPY requirements-runtime.txt .
 RUN pip install --no-cache-dir -r requirements-runtime.txt
