@@ -12319,3 +12319,31 @@ XHS 海报提示「截图保存」+ 安装提示「在浏览器打开」分支�
 max()/env() 五处纯 px 兜底。P2-5 启动图 / P2-9 flex-gap 接受现状。
 
 验证：ui_smoke 76 / first_screen / poster 判据 12-14 全绿。
+
+## R2355（R111 混乱输入审计清零，含 P2-6/7/8）
+
+R111 报告（3 P1 + 11 P2/P3）全清：
+
+- P1-3/P2-1 显式 4 位年锚定：`_abs_or_holiday` 先接 `\d{4}年`/ISO 残片，
+  按显式年解（2026年10月1日→10/1），越界/不存在→None；前端
+  `_hlDayOffset` 遇 `\d{4}` 一律 null 交 resolve（残片防误吃）。
+- P1-2/P2-3 「说过但解不出」给 invalid：`resolve_huangli_date` 标记
+  （农历/星期八/32号/越界年）→「这个日子黄历里没有哦」；`_chat_facts_inner`
+  同步喂「日子不存在」事实行——不拿今天替她判。
+- P2-2 「下下个月」两侧同锚（+2 月）；「下下个月31号」无此日→invalid
+  （nm 截胡已堵：nnm ValueError→return None，resolve `_mm` 下下→+2）。
+- P2-4 问一嘴同句 800ms 去抖。
+- P2-5 姓氏服务端 CJK 校验（emoji/拉丁→400），与 maxlength=2 双保险。
+- P2-6 限流≠关停：`spawn_chat_task` 每-sid-每分钟超限返回
+  `__rate_limited__` 哨兵→`/api/chat` 回 `rate_limited:true`→前端
+  「歇口气」气泡+不计入锁死门槛（原路径按 DISABLE 永久锁输入框）。
+- P2-7 校验顺序：「2101-02-30」先报年份界而非「这一天不存在」。
+- P2-8 `?today=asdf` 400（原静默回退服务器日）。
+- 探针：probe_contract CONDITIONAL_FIELDS 加 `rate_limited`；
+  parity CASES +6（下下个月×2/2027-02-29/2101年/星期八/32号）
+  PY_ONLY +2（显式年锚 12/377）；selftest 285→288
+  （resolve_date.invalid×8/nnm/today.bad/year_first/surname.glyph）。
+
+验证：selftest 288 / parity 74+43+251 / contract 617 / ui_smoke 76 /
+poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
+warm_voice / baseline / plain_first / selftest_regress 全绿。

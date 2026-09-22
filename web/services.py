@@ -1165,6 +1165,14 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     # daily/xingzuo 的空串→400 口径对齐。
     if date_str == "":
         raise ValidationError("日期格式没看懂——照着 2026-01-01 这样填试试")
+    # R2355（R111-P2-8）：today= 垃圾值此前在 cross_ref 内吞错回退服务器
+    # 日——契约上悄悄吞错。与 date= 同口径：非法即 400。
+    if today:
+        try:
+            date.fromisoformat(today)
+        except ValueError:
+            raise ValidationError(
+                "today 参数格式没看懂——照着 2026-01-01 这样填试试") from None
     dt = (datetime(_d.year, _d.month, _d.day)
           if (_d := _parse_iso_date(date_str) if date_str else None)
           else _now_cn())
@@ -2060,6 +2068,31 @@ def _abs_or_holiday(msg: str, now: datetime):
     # （「去年国庆」不能再就近到今年）。
     _ypre = {"前年": -2, "去年": -1, "今年": 0, "明年": 1, "后年": 2}
     yoff = next((v for w, v in _ypre.items() if w in msg_n), None)
+    # R2355（R111-P1-3/P2-1）：显式 4 位年——「2099年12月31号」此前
+    # 「年」被忽略就近解到当年同日（说错日比不答更伤）；「2027-02-29」
+    # ISO 残片同理。显式年份按那一年解，越出历法表界/日子不存在
+    # → None（交「黄历里没有这天」口径，不静默换日）。
+    _xy = re.search(r"(?<!\d)(\d{4})\s*年", msg_n) or \
+        re.search(r"(?<!\d)(\d{4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,2})",
+                  msg_n)
+    if _xy:
+        _yy = int(_xy.group(1))
+        if not (YEAR_LO <= _yy <= YEAR_HI):
+            return None
+        if _xy.re.pattern.endswith("年"):
+            _md = re.search(r"(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?", msg_n)
+            if not _md:
+                return None
+            _mm2, _dd2 = int(_md.group(1)), int(_md.group(2))
+        else:
+            _mm2, _dd2 = int(_xy.group(2)), int(_xy.group(3))
+        try:
+            _xd = datetime(_yy, _mm2, _dd2, now.hour, now.minute)
+        except ValueError:
+            return None
+        _spn = (msg_n[_xy.start():_md.end()] if _xy.re.pattern.endswith("年")
+                else _xy.group(0))
+        return _xd, _spn
     from guji import lunar as lunar_mod
 
     # 农历：可带「农历/阴历/旧历」前缀与「闰」标记；无前缀时只接
@@ -2167,6 +2200,22 @@ def _abs_or_holiday(msg: str, now: datetime):
             return (datetime.combine(pick + timedelta(days=_dl),
                                      now.time()), _sp or w)
 
+    # R2355（R111-P2-2）：「下下个月」先接——「下下」里的「下个月」
+    # 会被下面通配截胡差整一月。基准 = 再下一个月。
+    nnm = re.search(r"下下[个個]?月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])",
+                    msg_n)
+    if nnm:
+        d = int(nnm.group(1))
+        _mo2 = now.month + 2
+        ny, nmth = now.year + (_mo2 - 1) // 12, (_mo2 - 1) % 12 + 1
+        try:
+            _dl, _ln = _day_suffix(msg_n, nnm.end())
+            return (datetime(ny, nmth, d) + timedelta(days=_dl),
+                    msg_n[nnm.start():nnm.end() + _ln])
+        except ValueError:
+            # 「下下个月31号」而那个月只有 30 天——词命中但日子不存在；
+            # 不许 fallthrough 让 nm 把「下个月31号」截胡成另一月。
+            return None
     nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nm:
         d = int(nm.group(1))
@@ -2426,9 +2475,11 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     dt, spoken = _hl_day_part(q, now)
     # R2349k（R72-A3）：「下个月31号」这种「词命中但日子不存在」此前
     # 静默回落显示日——单独给 invalid 信号让前端说人话提示。
-    _mm = re.search(r"(下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
+    # R2355（R111-P2-2）：「下下个月31号」的 下下 也要算——原来正则
+    # 从第二个「下」起匹配成「下个月」，报错月差一整月。
+    _mm = re.search(r"(下下|下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
     if _mm and spoken == "今天":
-        _mo = {"下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
+        _mo = {"下下": 2, "下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
         _yy = now.year + (now.month + _mo - 1) // 12
         _mth = (now.month + _mo - 1) % 12 + 1
         _dd = int(_mm.group(2))
@@ -2441,6 +2492,16 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     # 且消息里没有今天系词才算没解出。
     if spoken == "今天" and not any(
             w in q for w in ("今天", "今日", "今晚", "今夜")):
+        # R2355（R111-P1-2/P2-3）：「说过但解不出」的日期词（农历13月/
+        # 星期八/32号/越界年号）——invalid 如实说没有这天；继续静默
+        # 回退显示日会把旧判定当新答案贴屏。
+        if re.search(
+                r"农历|阴历|旧历|闰|農曆|陰曆|舊曆|閏|\d{4}|"
+                r"星期|礼拜|禮拜|周天|周日|周[一二三四五六八]|"
+                r"[0-9]{1,2}\s*[号日]", q):
+            return {"date": None, "spoken": "",
+                    "invalid": "这个日子黄历里没有哦——"
+                               "换个说法或换个日子再试试～"}
         return {"date": None, "spoken": "", "invalid": ""}
     return {"date": dt.date().isoformat(), "spoken": spoken,
             "invalid": ""}
@@ -2519,6 +2580,20 @@ def _chat_facts_inner(message: str, now: datetime) -> list[str]:
             and _ALREADY_HAPPENED_PAT.search(msg_n)
             and not _DECIDE_INTENT_PAT.search(msg_n)):
         return []
+    # R2355（R111-P2-3）：显式但解不出的日期词（星期八/32号/农历13月/
+    # 越界年号）——_hl_day_part 回落「今天」且带这些标记 = 用户真在
+    # 问一个不存在的日子。给「日子不存在」事实行，而不是拿今天的
+    # 宜忌替她判（星期八判今天搬家、32号判今天开业都是错事实）。
+    if spoken == "今天" and not any(
+            w in msg for w in ("今天", "今日", "今晚", "今夜")) and \
+            re.search(r"农历|阴历|旧历|闰|農曆|陰曆|舊曆|閏|"
+                      r"星期[八九]|礼拜[八九]|禮拜[八九]|周[八九]|"
+                      r"(3[2-9]|[4-9]\d)\s*[号日]|"
+                      r"(下下|下|上|这|這|本)个?月\s*[0-9]{1,2}\s*[号日]|"
+                      r"\d{4}\s*年|\d{4}\s*[/\-.]", msg_n):
+        return ["用户说的这个日子在黄历里不存在（比如星期八/32号/"
+                "农历十三月/历法表界外的年份）——温和点出它没这天，"
+                "请她换个说法或换个日子；别按今天替她判宜忌。"]
     if not scene and not generic:
         # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
         # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌
@@ -3334,6 +3409,12 @@ def _parse_iso_date(date_str: str) -> "date":
 
     此前 huangli 手写 split('-')、daily/xingzuo 各写一遍
     fromisoformat+年份界——同一约束三套实现。统一在这里。"""
+    # R2355（R111-P2-7）：先查年份界再查日内有效性——「2101-02-30」
+    # 此前报「这一天不存在」，其实问题是年份越界。
+    _ym = re.match(r"^(\d{4})-\d{1,2}-\d{1,2}$", date_str or "")
+    if _ym and not (YEAR_LO <= int(_ym.group(1)) <= YEAR_HI):
+        raise ValidationError(
+            f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {_ym.group(1)}")
     try:
         parsed = date.fromisoformat(date_str)
     except ValueError:

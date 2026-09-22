@@ -299,6 +299,10 @@ class QimingRequest(BaseModel):
         self.surname = strip_zw((self.surname or "").strip())
         if not self.surname or len(self.surname) > 2:
             raise ValidationError("姓氏填 1-2 个字就行（复姓也支持）")
+        # R2355（R111-P2-5）：emoji/拉丁字母过 len 校验后产出
+        # 「😀沃球」这类名——限 CJK 字形（含扩展 A 区）。
+        if not re.fullmatch(r"[一-鿿豈-﫿]{1,2}", self.surname):
+            raise ValidationError("姓氏用汉字哦（1-2 个，复姓也行）")
         # R228j：style 枚举——非法值不许静默当 all
         if self.style not in ("all", "classics", "chuci", "fresh"):
             raise ValidationError("这个风格还没有，换综合/诗经/楚辞/清新试试")

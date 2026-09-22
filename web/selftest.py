@@ -474,6 +474,49 @@ def _run_inner() -> list[str]:
              and not set(ts) <= _NEUTRAL_TERMS}
     assert not _dead, ("huangli.scene_vocab.dead", _dead)
     ok.append("huangli.scene_vocab.alive")
+    # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
+    # 不静默回落显示日/就近换日。
+    for _q, _want_date, _want_invalid in (
+            ("2027-02-29搬家", False, True),      # 非闰年 ISO 不存在
+            ("2101年3月1号开业", False, True),    # 越界年号（表界 2100）
+            ("星期八出行", False, True),           # 曜日表外
+            ("32号开业", False, True),             # 超月界
+            ("农历13月初一领证", False, True),     # 农历只有十二月
+            ("下下个月31号签约", False, True),     # 词命中但该月没这天
+            ("下下个月15号出差", True, False),     # 下下个真解
+            ("2026年10月1日搬家", True, False)):   # 显式年锚定
+        _r = client.get("/api/huangli/resolve_date",
+                        params={"q": _q})
+        _rj = _r.json()
+        _got_d = bool(_rj.get("date"))
+        assert (_r.status_code == 200 and _got_d == _want_date and
+                bool(_rj.get("invalid")) == _want_invalid), \
+            ("resolve_date.invalid", _q, _rj)
+    ok.append("resolve_date.invalid")
+    _n1 = client.get("/api/huangli/resolve_date",
+                     params={"q": "下个月15号出差"}).json()["date"].split("-")
+    _n2 = client.get("/api/huangli/resolve_date",
+                     params={"q": "下下个月15号出差"}).json()["date"].split("-")
+    # 下下个月 = 下个月 +1 月（12 月跨年取模），不许被「下个月」截胡。
+    assert (int(_n2[1]) - int(_n1[1])) % 12 == 1 and int(_n2[2]) == 15, \
+        ("resolve_date.nnm", _n1, _n2)
+    ok.append("resolve_date.nnm")
+    # today= 垃圾值 400（此前静默回退服务器日）。
+    _tb = client.get("/api/huangli", params={"today": "asdf"})
+    assert _tb.status_code == 400, ("huangli.today.bad", _tb.status_code)
+    ok.append("huangli.today.bad")
+    # 2101 年先报年份界而非「这一天不存在」。
+    _ty = client.get("/api/huangli", params={"date": "2101-02-30"})
+    assert _ty.status_code == 400 and "年份须在" in str(_ty.json().get("detail")), \
+        ("huangli.year_first", _ty.status_code, _ty.text[:120])
+    ok.append("huangli.year_first")
+    # R2355（R111-P1-1）：姓氏非汉字拒——前端 maxlength=2 之外的
+    # 服务端护栏；汉字正则（拼音/emoji 都不收）。
+    _qs = client.post("/api/qiming", json={"surname": "😀",
+                      "year": 1990, "month": 1, "day": 1,
+                      "hour": 12, "gender": "男"})
+    assert _qs.status_code == 400, ("qiming.surname.glyph", _qs.status_code)
+    ok.append("qiming.surname.glyph")
     check("qiming", client.post("/api/qiming", json={"surname": "李",
           "year": 1990, "month": 1, "day": 1, "hour": 12, "gender": "男",
           "top_n": 5}),

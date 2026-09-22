@@ -1094,9 +1094,11 @@ def spawn_chat_task(session_id: str, user_msg: str,
                            "started": time.monotonic()}
         return tid
     # R230t（R32-P0-4）：每 sid 每分钟 8 任务——正常连聊远低于此；
-    # 换 sid 重试撞全局帽。超限静默降级（与 DISABLE 同路径）。
+    # 换 sid 重试撞全局帽。
+    # R2355（R111-P2-6）：超限改哨兵串返回——调用方回 rate_limited=True，
+    # 前端提示「聊太急歇口气」而不是按功能关停永久锁输入框。
     if not _rate_ok("chat:" + (session_id or "anon"), _RATE_CHAT_PER_SID):
-        return None
+        return "__rate_limited__"
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()

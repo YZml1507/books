@@ -255,7 +255,11 @@ CONDITIONAL_FIELDS = {
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
     # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
     # 缺席的正确探测。
-    "/api/chat": {"chat_task_id"},
+    "/api/chat": {"chat_task_id",
+                  # R2355（R111-P2-6）：rate_limited 只在每 sid 每分钟
+                  # 超限那次返回——前端 `if (j.rate_limited)` 是对缺席
+                  # 的探测（限流≠关停分流用）。
+                  "rate_limited"},
     "/api/qiming/review": {"review_task_id"},
     # R228x：/api/huangli 双形态——单日返回 yi/ji/…，带 affair+days 返回
     # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；

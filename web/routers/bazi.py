@@ -96,7 +96,11 @@ def chat(req: ChatRequest) -> dict:
         verdict_facts=services.chat_huangli_facts(req.message, now=_now),
         # R230t（R32-P1-7）：判定锚定日透传——跨日存档判定作废。
         verdict_day=(_now or _now_cn()).date().isoformat())
-    if tid:
+    # R2355（R111-P2-6）：限流哨兵分流——rate_limited 给前端「歇口气」
+    # 提示位；None 仍是关停/兜底静默降级（{}）。
+    if tid == "__rate_limited__":
+        out["rate_limited"] = True
+    elif tid:
         out["chat_task_id"] = tid
     return out
 

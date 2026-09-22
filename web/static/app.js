@@ -1584,6 +1584,13 @@ function autoSendChatContext() {
     client_date: todayIso()
   }).then(function (j) {
     if (!j.chat_task_id) {
+      /* R2355（R111-P2-6）：限流≠关停——rate_limited 只提示不锁框。 */
+      if (j && j.rate_limited) {
+        if (_ty0) { _ty0.remove(); _ty0 = null; }
+        _CHAT_SEND_COUNT = Math.max(0, (_CHAT_SEND_COUNT || 0) - 1);
+        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）', { nosave: true });
+        return;
+      }
       if (_ty0) { _ty0.remove(); _ty0 = null; }
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
        * 4-6 句确定性轮换，并按上下文（自动发送：必属「看盘」类）做轻回应。 */
@@ -2019,6 +2026,14 @@ function chatSend() {
     client_date: todayIso()   /* R230l */
   }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
+      /* R2355（R111-P2-6）：限流≠关停——rate_limited 只提示不锁框，
+       * 且不计入 ≥2 次的锁死门槛（歇口气就能再发）。 */
+      if (j && j.rate_limited) {
+        if (_ty0) { _ty0.remove(); _ty0 = null; }
+        _CHAT_SEND_COUNT = Math.max(0, (_CHAT_SEND_COUNT || 0) - 1);
+        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）', { nosave: true });
+        return;
+      }
       if (_ty0) { _ty0.remove(); _ty0 = null; }
       /* R216b 续3（UX 队列 U-008）：原降级文案「（聊天功能暂时没开，
        * 稍后再来吧）」系统腔零共情——用户刚倾诉疲惫。改为情绪承接 +
@@ -8466,6 +8481,11 @@ function _hlDayOffset(q, base) {
    * 节日与农历（中秋/春节/农历八月十五…）本地解不动——提交路径识别后走
    * /api/huangli/resolve_date 端点（单点真相在后端）。 */
   var _s0 = _t2s(s);
+  /* R2355（R111-P1-3）：显式 4 位年（2027-02-29 / 2099年12月31号）
+   * 本地不猜——M-D 残片正则会把 ISO 里的 '27-02' 吃成乱日。带年号
+   * 的串一律交 /api/huangli/resolve_date（后端按显式年锚定，越界
+   * 判「黄历里没有这天」）。 */
+  if (/\d{4}\s*[-\/.]|\d{4}\s*年/.test(_s0)) return null;
   var _past = /(那天|过了|已经|当时|去了)/.test(_s0);
   /* 「去年/明年/前年/后年」年前缀约束候选年（与 py yoff 同口径）。 */
   var _yoff = null;
@@ -8509,6 +8529,14 @@ function _hlDayOffset(q, base) {
     if (/^后/.test(tail)) return 1;
     return 0;
   };
+  /* R2355（R111-P2-2）：「下下个月」先接——「下下」里的「下个月」
+   * 会被下面通配截胡差整一月（与 py nnm 同锚）。 */
+  var _nnm = _s0.match(/下下个?月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  if (_nnm) {
+    var bN0 = base || new Date();
+    var _o0 = _pick([_mkd(bN0.getFullYear(), bN0.getMonth() + 2, +_nnm[1])]);
+    return _o0 === null ? null : _o0 + _suf(_nnm.index + _nnm[0].length);
+  }
   var _nxm = _s0.match(/下[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
   if (_nxm) {
     var bN = base || new Date();
@@ -8782,7 +8810,10 @@ var _HL = {scene: '', dayWord: '', keepSy: null, pendingAskNote: false,
  * _HOLIDAY_SOLAR/_HOLIDAY_LUNAR/除夕/清明 对齐维护。 */
 /* R229z续9：节气词也走兜底（小满=吉祥物名不进；大雪/小雪/大寒/小寒
  * 天气歧义不进——与后端 _SOLAR_TERMS 同表）。 */
-var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月|冬月|腊月|臘月|除夕|春节|春節|大年初一|元宵|端午|七夕|中秋|重阳|重陽|腊八|臘八|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|立秋|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人|植树|植樹|愚人|劳动|勞動|五一|青年|儿童|兒童|六一|建党|建黨|建军|建軍|教师|教師|国庆|國慶|万圣|萬聖|平安|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩|中元|小年|双十一|雙十一|光棍|下个?月|上个?月|这个?月|本个?月|月底|月末|月初/;
+/* R2355（R111-P1-2/P1-3）：补 星期/礼拜/4位年/裸N号——这些词形本
+ * 地解不动时（星期八/32号/2027-02-29）要交后端 resolve 判 invalid
+ * 明说，不许静默拿显示日判。 */
+var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月|冬月|腊月|臘月|除夕|春节|春節|大年初一|元宵|端午|七夕|中秋|重阳|重陽|腊八|臘八|清明|立春|雨水|惊蛰|驚蟄|春分|谷雨|穀雨|立夏|芒种|芒種|夏至|立秋|处暑|處暑|白露|秋分|寒露|霜降|立冬|冬至|大暑|小暑|元旦|新年|情人|植树|植樹|愚人|劳动|勞動|五一|青年|儿童|兒童|六一|建党|建黨|建军|建軍|教师|教師|国庆|國慶|万圣|萬聖|平安|圣诞|聖誕|跨年|母亲节|母親節|父亲节|父親節|感恩|中元|小年|双十一|雙十一|光棍|下个?月|上个?月|这个?月|本个?月|月底|月末|月初|星期|礼拜|禮拜|\d{4}|(3[2-9]|[4-9]\d)\s*[号日]/;
 
 /* 「问一嘴」无事项词时的中性提示（当日主推+引导）——提交主路径与
  * resolve_date 兜底复用。 */
@@ -9379,9 +9410,14 @@ async function _doHuangli(offset, reveal, spokenWord) {
     });
     if (scenes) scenes.addEventListener('click', function (ev) {
       if (!ev.target.closest('#hlAskBtn')) return;
-      /* R230v（R34-#6）：在途不拦——问一嘴请求进取最新队列。 */
+      /* R230v（R34-#6）：在途不拦——问一嘴请求进取最新队列。
+       * R2355（R111-P2-4）：同一句话 800ms 内连点吞掉——重复发同样的
+       * resolve+huangli 对，慢网排队零收益；不同问题照走最新覆盖。 */
       var inp = document.getElementById('hlAskInput');
       var q = inp ? zwClean(inp.value) : '';   /* R230k */
+      var _now0 = Date.now();
+      if (q && q === _HL.lastAskQ && _now0 - (_HL.lastAskT || 0) < 800) return;
+      _HL.lastAskQ = q; _HL.lastAskT = _now0;
       if (!q) {
         if (inp) inp.placeholder = '先输入想问的事，比如：今天适不适合面试';
         /* R230f续2（R16-P2-4）：placeholder 若已是这段文字则界面纹丝不动，
