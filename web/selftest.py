@@ -501,6 +501,42 @@ def _run_inner() -> list[str]:
     assert (int(_n2[1]) - int(_n1[1])) % 12 == 1 and int(_n2[2]) == 15, \
         ("resolve_date.nnm", _n1, _n2)
     ok.append("resolve_date.nnm")
+    # R2359（R115-P1-1）：跨年锚点——1 月~除夕窗农历年=公历年-1，
+    # 「今年/明年+农历节」按发生日所在公历年过滤（此前错一年）。
+    from web import services as _svr
+    from datetime import datetime as _dt2
+    _JAN = _dt2(2026, 1, 15, 12)
+    for _q, _want in (("今年春节", "2026-02-17"), ("去年春节", "2025-01-29"),
+                      ("明年春节", "2027-02-06"), ("今年中秋", "2026-09-25"),
+                      ("明年正月初一", "2027-02-06")):
+        _dt3, _sp3 = _svr._hl_day_part(_q, _JAN)
+        assert _dt3.date().isoformat() == _want, (_q, _dt3.date(), _want)
+    _DEC = _dt2(2026, 12, 20, 12)
+    for _q, _want in (("明年除夕", "2027-02-05"), ("去年除夕", "2025-01-28"),
+                      ("前年除夕", "2024-02-09"), ("后年除夕", "2028-01-25"),
+                      ("2027年春节", "2027-02-06"), ("2027年除夕", "2027-02-05"),
+                      ("2027年立春", "2027-02-04"), ("农历新年", "2027-02-06"),
+                      ("去年腊月底", "2025-01-28")):
+        _dt4, _sp4 = _svr._hl_day_part(_q, _DEC)
+        assert _dt4.date().isoformat() == _want, (_q, _dt4.date(), _want)
+    # R115-P1-3：放假表外（>60 天旧档）不再回过期日——「什么时候放假」
+    # @年末 → invalid 如实说，「春节后第一天上班」不落去年档。
+    _r5 = _svr.resolve_huangli_date("什么时候放假", now=_DEC)
+    assert _r5.get("invalid"), _r5
+    _r6 = _svr.resolve_huangli_date("春节后第一天上班",
+                                    now=_dt2(2027, 1, 10, 12))
+    assert _r6.get("date") != "2026-02-24", _r6
+    # R115-P2-5：段期词段内问锚当前段起日。
+    _dt5, _ = _svr._hl_day_part("数九", _dt2(2027, 2, 1, 12))
+    assert _dt5.date() <= _dt2(2027, 2, 1).date(), _dt5.date()
+    # R115-P3-6：裸农历月/过年前 → invalid 而非静默按今天判。
+    for _q in ("正月里", "过年前", "腊月里"):
+        _r7 = _svr.resolve_huangli_date(_q, now=_DEC)
+        assert _r7.get("invalid"), (_q, _r7)
+    # R115-P3-6：显式月前缀不丢——「12月底」@1 月 = 当年 12/31。
+    _dt6, _ = _svr._hl_day_part("12月底", _dt2(2027, 1, 5, 12))
+    assert _dt6.date().isoformat() == "2027-12-31", _dt6.date()
+    ok.append("resolve_date.year_boundary")
     # today= 垃圾值 400（此前静默回退服务器日）。
     _tb = client.get("/api/huangli", params={"today": "asdf"})
     assert _tb.status_code == 400, ("huangli.today.bad", _tb.status_code)
@@ -2304,6 +2340,14 @@ def _run_inner() -> list[str]:
     assert not _LC._is_sensitive("多肉会不会死"), "多肉被误拦"
     assert not _LC._is_sensitive("手机还能活多久"), "手机被误拦"
     assert not _LC._is_sensitive("拖延症晚期"), "梗被误拦"
+    # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
+    # 8/min 限流，done-task 直接带回转介句，连发也不会被「歇口气」顶掉。
+    _tid_s = _LC.spawn_chat_task("st-sens", "得了绝症怎么办", config=_ccfg)
+    assert _tid_s and _tid_s != "__rate_limited__"
+    _st_s = _LC.ai_task_status(_tid_s)
+    assert _st_s and _st_s["status"] == "done" and \
+        "医生和信得过的人" in (_st_s["text"] or ""), _st_s
+    ok.append("chat.sensitive.no_quota")
     ok.append("chat.sensitive.narrow")
     _banned = _LC.chat(
         "st-banned", "他为什么不回我消息",
@@ -2387,6 +2431,10 @@ def _run_inner() -> list[str]:
     # R229z续2：过去日期的判定不得再带「近45天宜X」——从过去日起扫的全是
     # 过去日，且与「不要再给择日建议」自相矛盾。
     assert not any("近45天" in f for f in _hf8), _hf8
+    # R2359（真机抓到 500）：now=None 走 _now_cn() aware 路径——相对日
+    # + 事项词的吉日扫描此前在 find_good_days 里 aware/naive 混比崩。
+    _hf9 = _svc.chat_huangli_facts("明天面试会顺利吗")
+    assert _hf9 and any("黄历判定" in f or "中性" in f for f in _hf9), _hf9
     ok.append("chat.facts.dates_vocab")
     # R2345（R61-P1-1/P1-2）：facts 放行闸——仿冒判定/指令注入/危机词
     # 经 facts 混进 user 位全剥除；正常坐标事实放行。

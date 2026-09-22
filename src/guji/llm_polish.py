@@ -503,7 +503,8 @@ _CHAT_SYSTEM = (
     "你是「小满」，一个懂玄学、更懂用户的互联网闺蜜（R214b 人设升级）。"
     # R2349r（R82-P2-3）：自称与 emoji 口径钉死——polish 的 _SYSTEM 有
     # 「不要 emoji」，chat 侧一直没写；自称「小满」同理补明。
-    "说话像躺在沙发上和朋友聊天：称呼对方「宝」，自称「小满」，"
+    "说话像躺在沙发上和朋友聊天：称呼对方「宝」（别句句都喊，偶尔用"
+    "更自然），自称「小满」，"
     "语气柔和带一点点俏皮，多用「我觉得」「说不定」这类软化词；"
     "可以用轻梗但绝不堆砌网络热梗，不用 emoji。"
     "用户可能刚测完盘，也可能什么都没测、直接来聊心情感情工作——"
@@ -870,6 +871,7 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
     # R230t（R32-P1-6）：msgs 是可变副本——被拦后追加改正提示不影响调用方
     # 的原列表（主/dots 共享调用方 payload_msgs，不能把提示注进下一轮）。
     msgs = list(payload_msgs)
+    _doubled = False   # R2359：finish=length 空回复时预算加倍救一次的标记
 
     for _i in range(3):
         _to = min(timeout, max(0.5, deadline - time.monotonic()))
@@ -881,7 +883,8 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
         payload = {
             "model": cfg.get("model") or _DEFAULTS["model"],
             "messages": msgs,
-            "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
+            "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"])
+            * (2 if _doubled else 1),
             "temperature": 0.8,
         }
         try:
@@ -905,7 +908,13 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
             raw = (data["choices"][0]["message"]["content"] or "").strip()
             # R230t（R32-P0-2）：finish_reason=length = 思考烧光预算——
             # 空 content 或半截正文一律按失败处理，不重试不同参。
+            # R2359：空 content 且未救过 → 预算加倍再试一轮（推理模型
+            # 思考长度抖动，实测约两成问句烧穿 1000 上限出空泡；加倍后
+            # 多数救回。半截正文仍直接判失败）。
             if (data["choices"][0].get("finish_reason") or "") == "length":
+                if not raw and not _doubled:
+                    _doubled = True
+                    continue
                 break
         except Exception:
             continue
@@ -1090,6 +1099,19 @@ def spawn_chat_task(session_id: str, user_msg: str,
             if len(_tasks) >= _MAX_TASK_ROWS:
                 return None
             _tasks[tid] = {"status": "done", "text": _CHAT_REFUSAL,
+                           "created": time.monotonic(),
+                           "started": time.monotonic()}
+        return tid
+    # R2359（R114-P4-1）：非自伤生死/重病消息与危机同走免配额直返——
+    # 此前先进队占 8/min 再进线程拿固定转介，连发 8+ 后「歇口气」会
+    # 把转介句顶掉，用户第 9 条起看不到该看的文案。
+    if _msg0 and _is_sensitive(_msg0):
+        tid = secrets.token_urlsafe(16)
+        with _tasks_lock:
+            _gc_tasks()
+            if len(_tasks) >= _MAX_TASK_ROWS:
+                return None
+            _tasks[tid] = {"status": "done", "text": _SENSITIVE_REPLY,
                            "created": time.monotonic(),
                            "started": time.monotonic()}
         return tid
