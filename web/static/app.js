@@ -10965,7 +10965,10 @@ function init() {
                      birth: 'xingzuo',
                      /* R2349v（R92-P0-2）：古籍域视图 id 是 read，但任务书/
                      * 直觉都写 research——别名收编，免得深链查无此页。 */
-                     research: 'read', books: 'read', library: 'read' };
+                     research: 'read', books: 'read', library: 'read',
+                     /* R2364（R120-P1-2）：速配分享链写 view=xzm，速配卡
+                      * 住在星座视图里——别名收编，不再弹「入口不存在」。 */
+                     xzm: 'xingzuo' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
@@ -13012,7 +13015,8 @@ function baziPersonaCard(j) {
           for (var j2 = 0; j2 < sessionStorage.length; j2++) {
             var sk = sessionStorage.key(j2);
             if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done)$/
-                .test(sk) || sk.indexOf('lastResult:') === 0)) _sr.push(sk);
+                .test(sk) || sk.indexOf('shareBy:') === 0 ||
+                sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
           _sr.forEach(function (k) { sessionStorage.removeItem(k); });
         } catch (e) {}

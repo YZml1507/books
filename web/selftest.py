@@ -2247,8 +2247,25 @@ def _run_inner() -> list[str]:
         _g8 = client.get("/api/health")
         assert _g8.status_code == 200, _g8.status_code
         client.cookies.clear()
+        # R2364（R120-P1-1）：深链被闸 → 门页带 next 隐藏域 → 解锁跳回原址。
+        _gd = client.get("/?view=hehun&ay=2000", follow_redirects=False)
+        assert _gd.status_code == 403 and "name=next" in _gd.text and \
+            "view=hehun" in _gd.text, _gd.status_code
+        _gn = client.post("/_gate",
+                          data={"key": "testkey123",
+                                "next": "/?view=hehun&ay=2000"},
+                          follow_redirects=False)
+        assert _gn.status_code == 302 and \
+            _gn.headers["location"] == "/?view=hehun&ay=2000", \
+            (_gn.status_code, _gn.headers.get("location"))
+        # 开放跳转护栏：外域 next 不落 Location，回根。
+        _gx = client.post("/_gate",
+                          data={"key": "testkey123", "next": "//evil.com"},
+                          follow_redirects=False)
+        assert _gx.status_code == 302 and \
+            _gx.headers["location"] == "/", _gx.headers.get("location")
         # R2363（R116-P1-2）：/_gate 限速——同 IP 10 次/60s 后第 11 次 429。
-        # 上面已计 2 次；再敲到上限后断言限流页。放块尾，免得污染它闸。
+        # 上面已计 4 次；再敲到上限后断言限流页。放块尾，免得污染它闸。
         for _i in range(8):
             client.post("/_gate", data={"key": "nope"})
         _g9 = client.post("/_gate", data={"key": "nope"})

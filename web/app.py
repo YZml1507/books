@@ -23,6 +23,7 @@
 """
 from __future__ import annotations
 
+import html as _html
 import os
 import re
 import time
@@ -122,6 +123,9 @@ def create_app() -> FastAPI:
         "<button style='margin-top:14px;width:100%;padding:10px 0;border:0;"
         "border-radius:10px;background:#c96f4a;color:#fff;font-size:15px;"
         "cursor:pointer'>开门</button>"
+        # R2364（R120-P1-1）：next 槽——门页记住你要去的深链，
+        # 解锁完跳回原址（邀请链生辰参数不再被闸吃掉）。
+        "<input type=hidden name=next value='{next}'>"
         "{hint}</form></body>")
     _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
                   "钥匙不对——再想想？</p>")
@@ -161,12 +165,16 @@ def create_app() -> FastAPI:
             if len(_gate_bucket) > 2000:
                 _gate_bucket.clear()
             from urllib.parse import parse_qs
-            key = parse_qs(
-                (await request.body()).decode("utf-8", "replace")
-            ).get("key", [""])[0]
+            _qs = parse_qs(
+                (await request.body()).decode("utf-8", "replace"))
+            key = _qs.get("key", [""])[0]
+            # R2364：解锁跳回深链原址；只放站内相对路径防开放跳转。
+            _nxt = _qs.get("next", [""])[0]
+            if not (_nxt.startswith("/") and not _nxt.startswith("//")):
+                _nxt = "/"
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
-                                         headers={"Location": "/"})
+                                         headers={"Location": _nxt})
                 resp.set_cookie("books_key", _tok, httponly=True,
                                 samesite="lax",
                                 secure=request.url.scheme == "https",
@@ -176,7 +184,8 @@ def create_app() -> FastAPI:
             # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
             # 浏览器照常渲染 HTML 体，用户看到同样的门。
             return PlainTextResponse(
-                _GATE_PAGE.format(hint=_GATE_HINT),
+                _GATE_PAGE.format(hint=_GATE_HINT,
+                                  next=_html.escape(_nxt, quote=True)),
                 media_type="text/html", status_code=403)
         if good:
             return await call_next(request)
@@ -196,8 +205,12 @@ def create_app() -> FastAPI:
         if path.startswith("/api"):
             return JSONResponse(status_code=401,
                                 content={"detail": "需要钥匙才能进来哦"})
-        return PlainTextResponse(_GATE_PAGE.format(hint=""),
-                                 media_type="text/html", status_code=403)
+        # R2364：GET 深链被闸 → 门页记住原路径+查询，解锁跳回。
+        _orig = request.url.path + (
+            "?" + request.url.query if request.url.query else "")
+        return PlainTextResponse(
+            _GATE_PAGE.format(hint="", next=_html.escape(_orig, quote=True)),
+            media_type="text/html", status_code=403)
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
     # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，
