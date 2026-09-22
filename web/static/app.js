@@ -12049,6 +12049,34 @@ function baziPersonaCard(j) {
             const rj = await postJSON('/api/paipan/history/import',
                                       { records: _recs.slice(0, 500) });
             n = rj.imported || 0;
+            /* R2400（R127-P2-5）：导入回灌详情——后端返回新行
+             * {id,ts,name,type}，按去重键（与后端同口径截断）匹配
+             * 本地 bundle 行，把完整 req/result 写进镜像详情——
+             * Render 清盘后点开留档依旧有完整排盘。 */
+            if (n && Array.isArray(rj.new_records) &&
+                rj.new_records.length) {
+              var _mmI = _phMirrorLoad();
+              var _byKey = {};
+              _recs.forEach(function (r) {
+                _byKey[String(r.ts || '').slice(0, 32) + '|' +
+                       String(r.name || '').slice(0, 200) + '|' +
+                       String(r.type || '')] = r;
+              });
+              rj.new_records.forEach(function (nr) {
+                var _row = _byKey[String(nr.ts || '') + '|' +
+                                  String(nr.name || '') + '|' +
+                                  String(nr.type || '')];
+                if (_row) {
+                  _phMirrorDetail(_mmI, {
+                    id: nr.id, ts: String(nr.ts || ''),
+                    name: String(nr.name || ''),
+                    question: String(_row.question || '').slice(0, 200) || null,
+                    type: String(nr.type || ''),
+                    req: _row.req || {}, result: _row.result || {} });
+                }
+              });
+              _phMirrorSave(_mmI);
+            }
           }
           /* R2349t（R87-P1-3）：favorites 回灌——POST 端幂等去重
            * 已具备（INSERT OR IGNORE + 同键查重）。 */

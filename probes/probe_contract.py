@@ -119,11 +119,12 @@ FIXTURES: dict[str, dict] = {
     # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
     # 不钉字段（前端用 r.text() 不读 JSON 键）。
     "/api/paipan/history/export": {"method": "GET", "text": True},
-    # R231a：导入回灌——fixture 发空 records 数组（0 写入、无副作用），
-    # 只为让 j.imported 读点可判定；真实写入路径由 import_rows 收敛逻辑
-    # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
+    # R231a：导入回灌——gen_records 每轮发一条唯一 ts 的真记录（去重键
+    # 不撞、imported=1），让 j.imported/j.new_records.* 读点都可判；
+    # 写一条与 POST /api/bazi 同量级的测试行（fixture 本就有写副作用）。
     "POST /api/paipan/history/import": {"method": "POST",
-                                        "json": {"records": []}},
+                                        "json": {"records": []},
+                                        "gen_records": True},
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴收集端点。
     "/api/xzmatch":          {"method": "GET",
                               "params": {"a": "白羊", "b": "射手"}},
@@ -748,7 +749,17 @@ def main() -> int:
         if fx["method"] == "GET":
             r = client.get(url_real, params=fx.get("params"))
         else:
-            r = client.post(url_real, json=fx.get("json"))
+            _payload = fx.get("json")
+            if fx.get("gen_records"):
+                # R2400（R127-P2-5）：import 需非空 new_records 才可判——
+                # 每轮生成唯一 ts 的记录（毫秒戳），避开 (ts,name,type)
+                # 去重撞车导致的空 new_rows。
+                _payload = {"records": [{
+                    "type": "bazi",
+                    "ts": f"probe-contract-{int(time.time() * 1000)}",
+                    "name": "契约探针",
+                    "req": {"y": 1}, "result": {"ok": True}}]}
+            r = client.post(url_real, json=_payload)
         if r.status_code != 200:
             cache[url] = ("http", (r.status_code, r.text[:160]))
             return cache[url]
