@@ -8057,6 +8057,12 @@ async function doHehun() {
          * 应该编码受邀者自己的盘（B 侧），否则把发起人的生辰明文
          * 代发出去，语义也反了。 */
         var _side = window.__hhInviteMode ? 'b' : 'a';
+        /* R2364（R120-P2）：年都没填就生成邀请——对方收到空 ay 落回
+         * 出厂默认生日，还以为填好了。先拦一步。 */
+        if (!val('hh_' + _side + '_year')) {
+          showToast('先填好你的出生年，再喊 TA 来对盘哦', 'warn');
+          return;
+        }
         var _u = location.origin + location.pathname + '?view=hehun&from=invite' +
           '&ay=' + encodeURIComponent(val('hh_' + _side + '_year') || '') +
           '&am=' + encodeURIComponent(val('hh_' + _side + '_month') || '') +
@@ -11089,15 +11095,24 @@ function init() {
           } catch (eSS) {}
           _invA = _qsAll.get('ay');
         }
-        if (_vp === 'hehun' && _invA) {
-          [['ay','hh_a_year'],['am','hh_a_month'],['ad','hh_a_day'],
-           ['ah','hh_a_hour'],['ag','hh_a_gender'],['an','hh_a_name']
+        /* R2364：ay 非 4 位年 = 伪造/残缺链——不进邀请态（不然空字段
+         * 摆出「TA 的信息已填好」的假欢迎，出厂默认生日混进真值）。 */
+        if (_vp === 'hehun' && _invA && /^\d{4}$/.test(_invA)) {
+          [['ay','hh_a_year',1],['am','hh_a_month',1],['ad','hh_a_day',1],
+           ['ah','hh_a_hour',1],['ag','hh_a_gender',0],['an','hh_a_name',0]
           ].forEach(function (p) {
             var v = _qsAll.get(p[0]), elx = document.getElementById(p[1]);
             /* 不置 data-me——非空值本身就不被 _meFill 覆盖（置 1 反而
              * 放行：受邀者自己的档案会盖掉发起人数据）。
              * R233r（R50-#17）：时辰留空时也要把默认值清成空——
-             * 「未知时辰」比静默按 10 点算诚实。 */
+             * 「未知时辰」比静默按 10 点算诚实。
+             * R2364（R121-P2）：伪造参护栏——数字段只收纯数字、昵称
+             * 按后端 max_length=16 截断，手搓长串不再换来 422。 */
+            if (v != null && p[2]) {
+              if (!/^\d{1,4}$/.test(v)) v = null;
+            } else if (v != null && p[0] === 'an') {
+              v = v.slice(0, 16);
+            }
             if (elx && v != null &&
                 (v !== '' || elx.tagName !== 'SELECT')) {
               elx.value = v;
@@ -11144,26 +11159,11 @@ function init() {
             var _bnm = document.getElementById('hh_b_name');
             if (_bnm) _bnm.placeholder = '可空，如：小梨';
           } catch (eN) {}
-          ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour','hh_a_gender',
-           'hh_a_name'].forEach(function (_id) {
-            var _ae = document.getElementById(_id);
-            if (_ae) _ae.addEventListener('input', function () {
-              window.__hhInviteMode = false;
-              /* R2350b（R99-P2）：手改 A 侧视同放弃邀请口径——归属
-               * 已恢复默认，标签也得翻回来，否则改完的人把数据
-               * 存错档（改的是「TA 的」却记到自己档案）。 */
-              [['hh_a_year','我的出生年'],['hh_a_month','我的出生月'],
-               ['hh_a_day','我的出生日'],['hh_a_hour','我的时辰'],
-               ['hh_a_gender','我的性别'],['hh_a_name','我的昵称'],
-               ['hh_b_year','TA 的出生年'],['hh_b_month','TA 的出生月'],
-               ['hh_b_day','TA 的出生日'],['hh_b_hour','TA 的时辰'],
-               ['hh_b_gender','TA 的性别'],['hh_b_name','TA 的昵称']
-              ].forEach(function (_rp) {
-                var _rl = document.querySelector('label[for="' + _rp[0] + '"]');
-                if (_rl) _rl.textContent = _rp[1];
-              });
-            }, { once: true });
-          });
+          /* R2364（R121-P1-1）：邀请态归属全程固定——A 侧装的是
+           * 发起人的盘，受邀者手改它多半是「帮 TA 修正」，不是把
+           * 别人生日据为己有。此前一改 A 侧就翻转归属，提交时把
+           * 发起人生辰写进受邀者自己的 me 档案（污染不可逆）。
+           * 现在改 A 不再翻——受邀者真要另测一对，换 B 侧就行。 */
           /* R2345（R63-P2-6）：邀请链生辰此前驻留 location.search——
            * 浏览器历史/分享面板长存明文生日。落地预填后剥掉参数
            * （深链语义不变，?view=hehun 保留以便刷新仍回本页）。 */

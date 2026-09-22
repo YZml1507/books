@@ -39,6 +39,8 @@ if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
 <link rel="stylesheet" href="/static/animotion/web-lite.css">
 <!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
 <link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
+<!-- R2364（R122-P1-3）：拆礼物的熊是首屏 LCP 图——preload 省 ~0.4s slow4G -->
+<link rel="preload" href="/static/cream/daily-gift-bear.png" as="image" fetchpriority="high">
 <!-- R2349u（R90-P0-1）：LXGW ~976KB 分片 render-blocking 压过日卡——
      print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。
      R2353（R110-P1-3）：media 翻 all 改由下方 __lxgwFlip 控制——
@@ -183,7 +185,7 @@ try {
 
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
   <div class="ink-hero" aria-hidden="true">
-    <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="high"
+    <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
       onerror="this.closest('.ink-hero').classList.add('is-missing')">
   </div>
 
