@@ -8095,11 +8095,15 @@ async function doHehun() {
       var btn = el('hhSavePair');
       if (btn) btn.disabled = true;
       var _an = (val('hh_a_name') || '').trim(), _bn = (val('hh_b_name') || '').trim();
+      /* R2364（R119-P1-1）：昵称里的 | 会顶歪 ref_id 的 11 段分隔——
+       * 编码名前先剥分隔符/空白，展示名（title）保留原样。 */
+      var _anE = _an.replace(/[|%]/g, '').slice(0, 8);
+      var _bnE = _bn.replace(/[|%]/g, '').slice(0, 8);
       var ref = [num('hh_a_year'), num('hh_a_month'), num('hh_a_day'),
         num('hh_a_hour'), val('hh_a_gender') || '女',
         num('hh_b_year'), num('hh_b_month'), num('hh_b_day'),
         num('hh_b_hour'), val('hh_b_gender') || '女',
-        _an.slice(0, 8), _bn.slice(0, 8)].join('|');
+        _anE, _bnE].join('|');
       try {
         await postJSON('/api/favorites', {
           type: 'hehun', ref_id: ref.slice(0, 64),
@@ -12333,6 +12337,15 @@ function _renderInstallTip() {
       delete e.target.dataset.me;
     }
   }, true);
+});
+/* R2364（R119-P1-3）：多 Tab 串改——别的标签页改了档案（me/me:partner），
+ * 本页仍带 data-me 预填标的字段显示的是旧值，提交会拿串改值合盘。
+ * 原生 storage 事件跨 Tab 触发：把这类字段的结果容器标陈旧提示。 */
+window.addEventListener('storage', function (e) {
+  if (e.key !== 'me' && e.key !== 'me:partner') return;
+  document.querySelectorAll('[data-me]').forEach(function (f) {
+    if (f.id) _markStale(f.id);
+  });
 });
 /* R233p：签墙渲染——最近 21 个打卡日倒序，每格 M/D + 签面，
  * 点击格 toast 当日反馈句。 */

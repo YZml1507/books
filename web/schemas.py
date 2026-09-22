@@ -26,7 +26,11 @@ GENDERS = ("男", "女")
 # 的空白集合里——纯零宽串会过「非空」检查，落成空白气泡/空白排盘问句。
 # R230q（R28-P3-10）：LRM/RLM 与 bidi 覆盖符（RLO/PDF/LRI…）同属
 # 方向控制——不触发 HTML 注入但能把线程列表排版搅乱（esc() 挡不住）。
-_ZW_RE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]")
+_ZW_RE = re.compile(
+    r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff"
+    # R2364（R119-P1-2）：C0/C1 控制字一并剥——NUL/换行/CR 此前原样
+    # 进台账标题（hehun 昵称、六爻/塔罗 question 落 name 字段）。
+    r"\x00-\x1f\x7f-\x9f]")
 
 
 def strip_zw(s: str | None) -> str | None:
@@ -272,6 +276,8 @@ class LiuyaoRequest(BaseModel):
             raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
             raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
+        # R2364：question 落台账 name——控制字剥掉免得标题带 NUL/换行。
+        self.question = strip_zw(self.question)
 
 
 class QimingRequest(BaseModel):
@@ -391,12 +397,16 @@ class TarotRequest(BaseModel):
 
     def validate_ranges(self) -> None:
         _check_client_date(self.client_date)
+        self.question = strip_zw(self.question)
 
 
 class TarotDrawRequest(BaseModel):
     seed: int | None = None
     n: int = Field(1, ge=1, le=10)
     question: str | None = Field(None, max_length=200)
+
+    def validate_ranges(self) -> None:
+        self.question = strip_zw(self.question)
 
 
 class PaipanImportRequest(BaseModel):
