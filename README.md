@@ -1,3 +1,10 @@
+---
+title: 小满的解忧铺
+emoji: 🌾
+sdk: docker
+app_port: 7860
+---
+
 # 小满的解忧铺（books）
 
 古籍语料库 + 传统命理计算（八字 / 六爻 / 黄历 / 合婚 / 起名 / 塔罗 / 星座 / 每日运势）
@@ -68,8 +75,22 @@ URL 按 `request.base_url` 生成，不开 proxy-headers 会落成 `http://` 内
 ```bash
 docker build -t books . && docker run -p 8123:8123 books
 # 平台形态：装 requirements-runtime.txt，启动命令
-uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8123} \
+uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} \
   --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1
+```
+
+**只给自己看的私有站**（R2361）——设了它整站带钥匙才进，没钥匙只见
+「输口令」的门；不设则全开（本地单用户默认）：
+
+```bash
+BOOKS_ACCESS_TOKEN=你自己的口令     # 页面输一次口令写 Cookie 30 天；
+                                    # 或带 ?key=口令 的链接直通
+# /api/health 豁免（平台探活要用）。Render 免费档步骤：
+#   1. render.com 注册 → New → Web Service → 连本仓库 → Runtime 选 Docker
+#   2. Instance type 选 Free；环境变量加 BOOKS_ACCESS_TOKEN
+#     和 BOOKS_LLM_API_KEY（小满聊天要）
+#   3. Deploy → 几分钟后 https://<名字>.onrender.com 开门输口令即进
+#   免费档 15 分钟无请求休眠、冷启动 ~30s；要常驻升 Starter。
 ```
 
 **多访客公开站必须开的环境变量**（这站按本地单用户设计——排盘台账

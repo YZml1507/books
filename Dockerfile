@@ -15,5 +15,6 @@ COPY requirements-runtime.txt .
 RUN pip install --no-cache-dir -r requirements-runtime.txt
 COPY . .
 RUN python scripts/check_quality.py && python scripts/build_index.py
-EXPOSE 8123
-CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8123} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]
+EXPOSE 7860
+# 默认 7860 = HF Spaces app_port 缺省值；Railway/Render/Fly 注入 PORT 即用其值。
+CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]
