@@ -5733,7 +5733,11 @@ function buildBaziResult(j) {
       /* R228r：空数组此前整块不渲染——用户分不清「没检索」和「检索没中」；
        * 渲染空态文案说明。 */
       html += j.evidence.length
-        ? renderHits(j.evidence, { empty: '这条没有古籍引文' })
+        ? renderHits(j.evidence, { empty: '这条没有古籍引文' }) +
+          /* R2400（R125-P2）：pro 引文缺「去翻翻」入口——与白话版
+           * 引文树同权，顺藤摸瓜的最小闭环补平。 */
+          '<div class="cite-readmore"><button type="button" ' +
+          'class="thread-view cite-toread">📚 这些书都在书库里，去翻翻 →</button></div>'
         : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文——不影响解读，往下看～</p>';
     }
   }
@@ -6015,8 +6019,12 @@ async function doAddr() {
     params.set('addr2', val('aaddr2'));
   try {
     const j = await api('/api/addr?' + params.toString());
+    /* R2400（R125-P2）：结果头此前直出裸 scheme 名（zhouyi）——
+     * 用下拉框同款中文标签。 */
+    var _aschOpt = document.querySelector('#ascheme option:checked');
+    var _aschLabel = (_aschOpt && _aschOpt.textContent) || j.scheme;
     paint('addrResult',
-      '<p class="hit-cite">' + esc(j.scheme) + ' · 翻到 ' + esc(j.count) + ' 条</p>' +
+      '<p class="hit-cite">' + esc(_aschLabel) + ' · 翻到 ' + esc(j.count) + ' 条</p>' +
       renderHits(j.hits, { empty: '🔍 无命中，换个定位参数？' }));
   } catch (e) {
     fail('addrResult', '定位失败：' + e.message);
@@ -6225,8 +6233,24 @@ async function _threadListHtml() {
   return html;
 }
 
-async function deleteThread(tid) {
-  if (!window.confirm('删掉这条线程？里面记下的研究结论会留着')) return;
+async function deleteThread(tid, btn) {
+  /* R2400（R124-P2-3）：原生 confirm() 与全局两段式口径不一致——
+   * 对齐排盘历史的「再点一次确认」武装模式（3s 窗口）。 */
+  if (btn) {
+    if (btn.dataset.armed !== '1') {
+      btn.dataset.armed = '1';
+      var _origTxt = btn.textContent;
+      btn.textContent = '再点确认';
+      btn.setAttribute('aria-label', '再点一次确认删除这条线程');
+      setTimeout(function () {
+        btn.dataset.armed = '';
+        btn.textContent = _origTxt;
+        btn.removeAttribute('aria-label');
+      }, 3000);
+      return;
+    }
+    btn.dataset.armed = '';
+  }
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
     showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
@@ -6750,6 +6774,14 @@ async function hlLoadWeek() {
       return api('/api/huangli?date=' + ds, { silent: true })
         .catch(function () { return null; });
     }));
+    /* R2400（R124-P2-5）：全断网时此前渲染 7 个「宜 —」裸格——
+     * 收成一句实话，不摆一排死格。 */
+    if (js.every(function (j) { return !j; })) {
+      box.innerHTML = '<div class="hl-week-title">📅 这 7 天宜忌速览</div>' +
+        '<div class="no-evidence">网还没连上，周历翻不开——联网后再进来就有了</div>';
+      box.hidden = false;
+      return;
+    }
     var WD = ['日', '一', '二', '三', '四', '五', '六'];
     var html = '<div class="hl-week-title">📅 这 7 天宜忌速览' +
       '<span class="hl-week-sub">点一天直接翻过去</span></div>' +
@@ -7034,6 +7066,14 @@ async function doQiming() {
         if (out) { out.hidden = false; out.innerHTML = '<div class="no-evidence">AI 正在翻书找典故…</div>'; }
         pollNameReview(rj.review_task_id);
       }).catch(function () {
+        /* R2400（R124-P2-4）：起典请求本身失败此前只解禁按钮、
+         * 结果区零文案——补行内交代，不然像没点到。 */
+        const o0 = el('nameReviewOut');
+        if (o0) {
+          o0.hidden = false;
+          o0.innerHTML = '<div class="no-evidence">点评这趟没跑起来，' +
+            '再点一次试试～</div>';
+        }
         if (btn) btn.disabled = false;
       });
     });
@@ -9598,6 +9638,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
        * 词表命中时走 /api/huangli/resolve_date；解出翻页，解不出回退
        * 显示日（与既有 off=null 路径等价）。 */
       if (off == null && _HL_COMPLEX_DATE.test(q)) {
+        /* R2400（R124-P2-6）：复杂日期词要等 resolve_date 往返，
+         * 慢网下此前零反馈——先吱一声再翻。 */
+        showToast('帮你翻那天…', 'info');
         api('/api/huangli/resolve_date?q=' + encodeURIComponent(q) +
             '&base=' + todayIso(),   /* R230l（R24-P3-4） */
             { silent: true }).then(function (r) {
@@ -9731,6 +9774,12 @@ function activateRsec(secId) {
         return _threadListHtml().then(function (h) {
           paint('threadResult', h ||
             '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>');
+        }).catch(function (e) {
+          /* R2400（R124-P2-7）：重拉失败此前留着「还没有线程」的陈旧
+           * 空态——与「拉不动」不可区分，如实说一句。 */
+          paint('threadResult', '<div class="no-evidence">线程列表这趟没拉上来' +
+            (e && e.message ? '：' + esc(e.message) : '') +
+            '——网好了再点一下这个页签</div>');
         });
       });
     }
@@ -10086,7 +10135,7 @@ function initReading() {
      * 与查看同卡片，避免冒泡误进详情）。 */
     const threadDel = e.target.closest('[data-thread-del]');
     if (threadDel) {
-      deleteThread(threadDel.dataset.threadDel);
+      deleteThread(threadDel.dataset.threadDel, threadDel);
       return;
     }
     const threadBtn = e.target.closest('[data-thread]');
@@ -12831,6 +12880,11 @@ function baziPersonaCard(j) {
        * 代际号丢弃过期响应（_XZ_GEN 先例）。 */
       var _g = ++_PH_OPEN_GEN;
       var rec;
+      /* R2400（R124-P2-2）：点「查看」到详情上屏期间零反馈——
+       * 钮忙时态，慢网下不再像没点上。 */
+      var _origLabel = tg.textContent;
+      tg.textContent = '翻开中…';
+      tg.disabled = true;
       try {
         rec = await phFetch('/api/paipan/history/' + id);
         /* R2363：能拿到就推进镜像——打开过的记录清盘后仍可复看。 */
@@ -12839,6 +12893,7 @@ function baziPersonaCard(j) {
         /* R2363：云端取不到（404/清盘）→ 读本机镜像详情 */
         rec = _phMirrorLoad().details[String(id)] || null;
         if (!rec) {
+          if (tg.isConnected) { tg.textContent = _origLabel; tg.disabled = false; }
           showToast('这条云端已清、本机只留了摘要行——以后点过的记录会整条留在你设备上', 'warn');
           if (/(404|没查到)/.test(e0 && e0.message || '') && item.isConnected) {
             item.remove();
@@ -12846,6 +12901,7 @@ function baziPersonaCard(j) {
           return;
         }
       }
+      if (tg.isConnected) { tg.textContent = _origLabel; tg.disabled = false; }
       try {
         if (_g !== _PH_OPEN_GEN) return;
         const detailEl = document.getElementById('historyDetail');
