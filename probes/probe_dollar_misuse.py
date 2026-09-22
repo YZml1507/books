@@ -34,7 +34,10 @@ STATIC = os.path.join(ROOT, "web", "static")
 # R120a：R178b 把内联 JS 拆到 app.js，前端 JS 不再只在 index.html 里。
 # 扫描**所有**前端 JS 载体，否则 probe 会因为"找不到代码"而报 0 命中——
 # 那是假通过，正是宪法第四条 U-08 要杜绝的（「永远返回 0 的闸门等于没有闸门」）。
-SCAN_FILES = ["index.html", "app.js"]
+# R134-§6：懒加载 chunk（app_*.js）同样入扫描面——加新 chunk 自动被扫。
+SCAN_FILES = (["index.html", "app.js"]
+              + sorted(f for f in os.listdir(STATIC)
+                       if f.startswith("app_") and f.endswith(".js")))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

@@ -12633,3 +12633,19 @@ var() 引用零悬空。sw → books-shell-74f440b68531。
 写锚、叙事插话不打飞日期锚、星期八检出+不污锚、再往后两天沿用场景、
 这周五复合词、双场景就近配对、还是算了吧不重放、撒娇豁免+危机不写锚、
 裸想死了仍接住。以后谁改坏锚点逻辑当场红。
+
+## R2400p — R134 闸门盲区清零（selftest 294→298 + 三处闸扩面）
+
+R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_object`/
+`frontend.on_wiring`/`probe_dollar_misuse` 统一扫 app_*.js chunk（懒加载
+块不再逃闸）；②新增 chat.facts.anchor_r134 钉扎块——顺延词形态矩阵
+（挪/推迟/后一天/繁体、周×7、本句日词基）、TTL 过期不算锚、512 FIFO
+逐出、换话题/裸呢不追问、找日分句限域+句尾场景、findday 写锚、泛问不
+清锚、锚变缓存键、aware/naive 混型、情绪倾诉零供给+场景反向钉、多日
+对比逐日判、危机豁免参表+想死我了钉住（想死你了语序变体·有意豁免）、
+电池寿命敏感兜、chatx 收尾态限流、检索两形并查 hint；③门页白名单参
+表（反斜杠/CRLF/javascript:/合法深链）+?key= GET 同口径；④sw.js 三
+新闸——navigate 顺序钉 network-first、壳位回写条件、SHELL⊇磁盘 chunk
+集合；⑤css.var_defs 新闸——var() 引用⊆定义集（含 JS setProperty 动态
+令牌），当场抓到 --ink 未定义真 bug 已修为 var(--text)。三份审计报告
+（R132 真机回归 9 组/R133 视觉双主题 62 图/R134 盲区 30 条）全清。

@@ -2264,10 +2264,32 @@ def _run_inner() -> list[str]:
                           follow_redirects=False)
         assert _gx.status_code == 302 and \
             _gx.headers["location"] == "/", _gx.headers.get("location")
+        # R2400（R134-§3.1/§3.2）：next/?key= 白名单参表——外域/反斜杠/
+        # CRLF 解码体/javascript: 全部回落「/」，合法深链不受误伤。
+        # /%0d%0a 字面串过白名单是安全的（浏览器只当同域编码路径，不进
+        # Location 头注入）；真洞是解码后的 CRLF——两种形态都要钉。
+        # 放限速灌水之前：每条 POST 都计 _gate 桶，本表 5 条内不越 10/60s。
+        for _bad_nxt in ("/\\evil.com", "/ /@evil", "javascript:alert(1)",
+                         "%0d%0aSet-Cookie:x", "\r\nSet-Cookie: x"):
+            _gn2 = client.post("/_gate",
+                               data={"key": "testkey123", "next": _bad_nxt},
+                               follow_redirects=False)
+            assert _gn2.status_code == 302 and \
+                _gn2.headers["location"] == "/", \
+                ("next 白名单漏放", _bad_nxt, _gn2.status_code,
+                 _gn2.headers.get("location"))
+        # ?key= GET 直通跳回同口径：path 里解码出的 \\ 同样回落「/」。
+        # 先清 cookie——前面正确口令的 POST 已种 books_key，带着它请求会
+        # 直接放行到路由（404），测不到 ?key= 分支。
+        client.cookies.clear()
+        _gk = client.get("/%5C%5Cevil.com?key=testkey123",
+                         follow_redirects=False)
+        assert _gk.status_code == 302 and _gk.headers["location"] == "/", \
+            ("?key= 白名单漏放", _gk.status_code, _gk.headers.get("location"))
         # R2363（R116-P1-2）：/_gate 限速——同 IP 10 次/60s 后第 11 次 429。
-        # 上面已计 4 次；再敲到上限后断言限流页。放块尾，免得污染它闸。
-        for _i in range(8):
-            client.post("/_gate", data={"key": "nope"})
+        # 上面已计 9 次（4 正常 + 5 白名单表）；再敲 1 次到上限后断言限流页。
+        # 放块尾，免得污染它闸。
+        client.post("/_gate", data={"key": "nope"})
         _g9 = client.post("/_gate", data={"key": "nope"})
         assert _g9.status_code == 429, _g9.status_code
     finally:
@@ -2593,6 +2615,114 @@ def _run_inner() -> list[str]:
     assert _LC._is_crisis("活着没啥意思")
     _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
     ok.append("chat.facts.anchor_r128")
+
+    # ── R134 闸门盲区钉扎批——锚点/顺延/危机/敏感/限流/检索边界 ──
+    # 顺延词形态矩阵（R134-1.3/1.4）：自带基日词恒按今天+N；
+    # 顺延词基日三选一=本句日词＞借锚＞今天；周/星期按 ×7；繁体同纪律。
+    for _msg, _iso in (("往后挪一周搬家好吗", "2026-09-30"),
+                       ("推迟三天搬家好吗", "2026-09-26"),
+                       ("后一天搬家好吗", "2026-09-24"),
+                       ("過兩天搬家好嗎", "2026-09-25"),
+                       ("明天搬家，往后挪三天好吗", "2026-09-27")):
+        _rf = _svc.chat_huangli_facts(_msg, now=_NW)
+        assert any(_iso in f for f in _rf), (_msg, _rf[:2])
+    # TTL 到期：过期的锚不算锚（R134-1.1）——写锚后人为拨回 1801s，
+    # 「那搬家呢」回落今天判（事项词本句自带，日期不再沿用）。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-ttl")
+    _svc._CHAT_CTX["st-ttl"] = (
+        _svc._CHAT_CTX["st-ttl"][0] - 1801, _svc._CHAT_CTX["st-ttl"][1])
+    _rt = _svc.chat_huangli_facts("那搬家呢", now=_NW, session_id="st-ttl")
+    assert any("2026-09-23" in f for f in _rt) and \
+        not any("2026-09-24" in f for f in _rt), _rt
+    # 512 帽按写入序逐出最旧单条，不是全清（R134-1.2）。
+    _svc._CHAT_CTX.clear()
+    for _i in range(513):
+        _svc._chat_ctx_put(f"st-ev{_i}", {"scene": "搬家"})
+    assert "st-ev0" not in _svc._CHAT_CTX and \
+        "st-ev512" in _svc._CHAT_CTX and len(_svc._CHAT_CTX) == 512
+    _svc._CHAT_CTX.clear()
+    # 换话题词不入追问（R134-1.5/1.6）：「换个话题，后天呢」不沿事项锚；
+    # 裸「呢」零供给。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-td")
+    _rtd = _svc.chat_huangli_facts("换个话题，后天呢", now=_NW,
+                                   session_id="st-td")
+    assert _rtd and not any("搬家" in f for f in _rtd), _rtd
+    assert _svc.chat_huangli_facts("呢", now=_NW, session_id="st-td") == []
+    # 找日分句限域 + 同长多场景取句尾（R134-1.7/1.8）：找日词所在分句
+    # 定场景——「分手了心情不好」的分手不被拉成复合对象的反面。
+    _rsc = _svc.chat_huangli_facts("分手后哪天复合好", now=_NW)
+    assert any("复合" in f and "近45天" in f for f in _rsc), _rsc
+    _rsc2 = _svc.chat_huangli_facts("哪天搬家好，我分手了心情不好", now=_NW)
+    assert any("搬家" in f and "近45天" in f for f in _rsc2) and \
+        not any("复合" in f for f in _rsc2), _rsc2
+    # 「换个日子」→ findday；findday 也写锚（R134-1.9/1.10）。
+    _rfd = _svc.chat_huangli_facts("搬家换个日子", now=_NW)
+    assert any("近45天" in f and "搬家" in f for f in _rfd), _rfd
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("哪天搬家好", now=_NW, session_id="st-fd")
+    _rfu = _svc.chat_huangli_facts("那后天呢", now=_NW, session_id="st-fd")
+    assert any("搬家" in f and "2026-09-25" in f for f in _rfu), _rfu
+    # 泛问不清事项锚（R134-1.11）+ 锚变后缓存键不吃旧 facts（1.18）+
+    # aware 写锚 naive 续问不炸（§8）。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-g")
+    _svc.chat_huangli_facts("今天天气怎么样", now=_NW, session_id="st-g")
+    _rg = _svc.chat_huangli_facts("那后天呢", now=_NW, session_id="st-g")
+    assert any("搬家" in f for f in _rg), _rg
+    _svc.chat_huangli_facts("下周三开业好吗", now=_NW, session_id="st-g")
+    _rg2 = _svc.chat_huangli_facts("那后天呢", now=_NW, session_id="st-g")
+    assert any("开业" in f for f in _rg2) and \
+        not any("搬家" in f for f in _rg2), _rg2
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_svc._now_cn(),
+                            session_id="st-mix")
+    _rm = _svc.chat_huangli_facts("那后天呢", now=_NW, session_id="st-mix")
+    assert _rm, "aware/naive 混型锚续问不应炸"
+    # 情绪倾诉零供给（R134-1.12/1.13）；带场景的同类问正常给判定。
+    assert _svc.chat_huangli_facts("最近心情不太好", now=_NW) == []
+    assert _svc.chat_huangli_facts("今晚网抑云", now=_NW) == []
+    assert _svc.chat_huangli_facts("我分手了怎么办", now=_NW) == []
+    _rm2 = _svc.chat_huangli_facts("明天心情不好适合搬家吗", now=_NW)
+    assert _rm2 and any("黄历判定" in f for f in _rm2), _rm2
+    # 单场景多日对比逐日判 + 同日词去重（R134-1.14/1.15）。
+    _rc1 = _svc.chat_huangli_facts("明天和后天搬家哪个好", now=_NW)
+    assert any("2026-09-24" in f for f in _rc1) and \
+        any("2026-09-25" in f for f in _rc1), _rc1
+    _rc4 = _svc.chat_huangli_facts("周一和周二和周三和周四哪天搬家好", now=_NW)
+    # 首日直给判定、后三日各挂「对比」头——四天须全出场。
+    assert any("周一（2026-09-28）" in f for f in _rc4), _rc4
+    for _dw in ("周二", "周三", "周四"):
+        assert any(f"对比「{_dw}」" in f for f in _rc4), (_dw, _rc4)
+    _rcd = _svc.chat_huangli_facts("明天搬家和明天开业哪个好", now=_NW)
+    assert sum(1 for f in _rcd if "搬家·明天" in f) == 1 and \
+        sum(1 for f in _rcd if "开业·明天" in f) == 1, _rcd
+    # 危机豁免词表（R134-2.1/2.2）+ 敏感词物件兜（2.3）。
+    for _m in ("想死我了", "电脑死了算了", "这剧烂死了算了"):
+        assert not _LC._is_crisis(_m), _m
+    for _m in ("一了百了", "活腻了", "活着真没意思"):
+        assert _LC._is_crisis(_m), _m
+    for _m in ("电池寿命", "冰箱寿命"):
+        assert not _LC._is_sensitive(_m), _m
+    # 收尾态独立限流 chatx:×4（R134-2.4）：closed 会话不吃 chat: 桶，
+    # 第 33 次返回哨兵。
+    _LC._chat_sessions["st-closed"] = {"closed": True}
+    _rsx = [_LC.spawn_chat_task("st-closed", "好", config=_ccfg)
+            for _ in range(9)]
+    assert all(t != "__rate_limited__" for t in _rsx) and \
+        "chat:st-closed" not in _LC._RATE
+    _rsx2 = [_LC.spawn_chat_task("st-closed", "好", config=_ccfg)
+             for _ in range(30)]
+    assert _rsx2[-1] == "__rate_limited__", _rsx2[-3:]
+    _LC._chat_sessions.pop("st-closed", None)
+    _LC._RATE.pop("chatx:st-closed", None)
+    # 检索两形并查（R134-1.16）：简体「无为」须附繁体命中 hint。
+    _rse = _svc.search("无为", limit=10)
+    assert "已附繁体" in (_rse.get("hint") or "") and \
+        "無為" in _rse["hint"], _rse.get("hint")
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    ok.append("chat.facts.anchor_r134")
     # R2345（R61-P1-1/P1-2）：facts 放行闸——仿冒判定/指令注入/危机词
     # 经 facts 混进 user 位全剥除；正常坐标事实放行。
     assert _LC._fact_is_safe("她叫小鱼"), "正常昵称事实须放行"
@@ -2643,11 +2773,19 @@ def _run_inner() -> list[str]:
     import os as _os
     import re as _re
 
-    _js = open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
-                             "static", "app.js"), encoding="utf-8").read()
+    _static_dir = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                "static")
+    # R134-§6：拆 chunk 后 app_*.js 同扫——懒加载块里的渲染路径不许逃闸。
+    _chunk_files = ["app.js"] + sorted(
+        f for f in _os.listdir(_static_dir)
+        if f.startswith("app_") and f.endswith(".js"))
+    _js = open(_os.path.join(_static_dir, "app.js"), encoding="utf-8").read()
+    _js_all = "\n".join(
+        open(_os.path.join(_static_dir, _f), encoding="utf-8").read()
+        for _f in _chunk_files)
     # 裸 esc(v) / esc(item) / esc(iv)：这三个变量名在 renderCalc 里承载
     # 「可能是 dict」的值，必须经 fmtScalar 包一层。
-    _bare = _re.findall(r"esc\((?:v|item|iv)\)", _js)
+    _bare = _re.findall(r"esc\((?:v|item|iv)\)", _js_all)
     assert not _bare, ("object-render guard: 发现裸 esc() 未过 fmtScalar", _bare)
     assert "function fmtScalar" in _js, "fmtScalar renderer must exist"
     ok.append("frontend.no_object_object")
@@ -2659,8 +2797,8 @@ def _run_inner() -> list[str]:
     _html = open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
                                "static", "index.html"), encoding="utf-8").read()
     _dom_ids = set(_re.findall(r'id="([\w-]+)"', _html)) | \
-        set(_re.findall(r'id="([\w-]+)"', _js))
-    _dead = sorted(set(_re.findall(r"(?<![\w.])on\('(\w+)'", _js)) - _dom_ids)
+        set(_re.findall(r'id="([\w-]+)"', _js_all))
+    _dead = sorted(set(_re.findall(r"(?<![\w.])on\('(\w+)'", _js_all)) - _dom_ids)
     assert not _dead, ("on() 死绑定：id 在 index.html 与 app.js 模板中均不存在",
                        _dead)
     ok.append("frontend.on_wiring")
@@ -2912,6 +3050,43 @@ def _run_inner() -> list[str]:
     assert 'app.js?v=' in _html and 'styles.css?v=' in _html, \
         ("sw.shell_hash", "下发 HTML 未带 ?v= 版本化资产", _html[:200])
     ok.append("sw.shell_hash")
+
+    # R134-§4.1：navigate 必须 network-first——return fetch(...) 在前、
+    # 缓存 hit 只在 catch 兜底。改回 hit||net 会让门页对老设备失效复活
+    # 且所有既有闸全绿，这里按源码顺序钉死。
+    _nav = _swsrc.find("mode === 'navigate'")
+    _fetch_i = _swsrc.find("return fetch(e.request)", _nav)
+    _hit_i = _swsrc.find("return hit", _nav)
+    assert _nav != -1 and _fetch_i != -1 and _hit_i != -1 and \
+        _fetch_i < _hit_i, \
+        "sw.navigate 顺序：fetch 必须先于 hit 回退（network-first）"
+    # R134-§4.2：壳位回写条件——resp.ok 且 pathname==='/' 才写 '/' 壳位，
+    # 403 门页/错误页不许进壳。
+    _wr = _re5.search(r"resp\.ok\s*&&[^;]{0,80}pathname", _swsrc)
+    assert _wr, "sw.navigate 缺 resp.ok+pathname 壳位回写闸"
+    ok.append("sw.navigate_order")
+    # R134-§4.3：SHELL 清单对磁盘完备——新增 app_*.js chunk 忘进 SHELL
+    # 时哈希闸不红（只哈希清单内），这里按集合包含钉住。
+    _shell_set = set(_re5.findall(r"'([^']+)'", _sm.group(1)))
+    _disk_chunks = {"/static/" + f for f in
+                    _os.listdir(_os.path.dirname(_idx_path))
+                    if f.startswith("app_") and f.endswith(".js")}
+    _miss = sorted(_disk_chunks - _shell_set)
+    assert not _miss, ("sw.shell_completeness", "chunk 未入 SHELL 清单", _miss)
+    ok.append("sw.shell_completeness")
+
+    # R134-§5.1：CSS var() 引用须有定义——令牌改名/删除会让 var() 静默
+    # 解析失败（颜色回落 inherit），零报错零闸。定义口径放宽：任何选择器
+    # 下的 `--x:`（如 .func-card 的 --card-accent）+ JS setProperty 内联
+    # 动态令牌（--dx/--dy 纸屑动画）都算已定义。
+    _css = open(_os.path.join(_os.path.dirname(_idx_path), "styles.css"),
+                encoding="utf-8").read()
+    _var_refs = set(_re.findall(r"var\(\s*(--[\w-]+)", _css))
+    _var_defs = set(_re.findall(r"(?<![\w-])(--[\w-]+)\s*:", _css)) | \
+        set(_re.findall(r"setProperty\(\s*['\"](--[\w-]+)['\"]", _js_all))
+    _undef = sorted(_var_refs - _var_defs)
+    assert not _undef, ("css.var_defs", "var() 引用未定义的令牌", _undef)
+    ok.append("css.var_defs")
 
     # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。
     _big = client.post("/api/bazi", content="x" * (513 * 1024),
