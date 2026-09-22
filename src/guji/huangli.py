@@ -472,6 +472,44 @@ for _fam in _TERM_FAMILIES:
     for _w in _fam:
         _WORD_FAMILY[_w] = _WORD_FAMILY.get(_w, frozenset()) | _fam
 
+# R2400（R141-P2-2）：族表孤儿白名单——刻意不落任何族的词。
+# 解除/沐浴/冠笄/诉讼/安床/栽种在 yi/ji 词表内无同义词，不进族。
+# 其中「解除」被口语映射（分手/辞职/毁约…）共用——若日后引入
+# 「解约/散伙」类词必须收编成族，否则漏族裁静默。
+
+# R2400（R141-P2-1）：挑吉日的上榜否决不按整族连坐，改按「同义
+# 不同字」簇判——求嗣∈婚育族，但「忌嫁娶」不该否掉「许愿」（求嗣
+# ≠嫁娶）；「忌出行」否「搬家」语义站得住（移徙/入宅本属出行大类）。
+# 簇只用于 find_good_days 否决；日卡冲突展示仍用完整 _TERM_FAMILIES。
+_TERM_VETO_CLUSTERS: list[frozenset[str]] = [
+    frozenset({"修造", "动土", "破土", "破屋坏垣", "竖柱", "上梁",
+               "平整"}),                                 # 开工兴造
+    frozenset({"塞穴"}), frozenset({"筑堤"}),
+    frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
+    frozenset({"开市", "开仓"}),                          # 开张
+    frozenset({"立券", "交易"}),                          # 立约
+    frozenset({"纳财", "置产"}),                          # 置产求财
+    frozenset({"嫁娶"}), frozenset({"求嗣"}),
+    frozenset({"纳采", "订盟", "进人口"}),                 # 议亲
+    frozenset({"上任", "出官"}),                          # 赴任
+    frozenset({"求名", "入学"}),                          # 应试
+    frozenset({"谒贵"}),
+    frozenset({"安葬", "启攒", "修坟", "立碑", "入殓"}),   # 殡葬
+    frozenset({"行丧", "除服", "成服"}),                   # 守制
+    frozenset({"祭祀", "祈福"}),
+    frozenset({"求医", "治病", "求医疗病"}),
+    frozenset({"捕捉", "畋猎", "狩猎", "田猎"}),
+]
+_WORD_VETO: dict[str, frozenset[str]] = {}
+for _clu in _TERM_VETO_CLUSTERS:
+    for _w in _clu:
+        _WORD_VETO[_w] = _WORD_VETO.get(_w, frozenset()) | _clu
+
+
+def _veto_terms(term: str) -> frozenset[str]:
+    """该事项词的否决词集——同簇词命中忌侧即不上榜；孤儿词只否决自己。"""
+    return _WORD_VETO.get(term, frozenset((term,)))
+
 
 def term_family(term: str) -> frozenset[str]:
     """词的同义族（无族时返回只含自身的单元素集）。"""
@@ -686,6 +724,11 @@ _SHA_FANG: dict[int, str] = {
 AFFAIR_ALIASES: dict[str, str] = {
     "婚嫁": "嫁娶",
     "开市": "开市",
+    # R2400（R141-P2-3）：办酒席口语归一——API 层落不进场景键时
+    # 至少走别名拿到规范词，不再静默恒空。
+    "摆酒": "嫁娶",
+    "办酒": "嫁娶",
+    "办喜事": "嫁娶",
 }
 
 
@@ -716,11 +759,13 @@ def find_good_days(start: datetime, end: datetime,
         # term「求医」⊂词「求医疗病」这种包含关系两侧不再打架。
         def _hit(tt, words):
             return any(tt in w or w in tt for w in words)
-        # R77（R2349n-P2-7）：上榜日忌栏含同义族词也要剔除——
+        # R77（R2349n-P2-7）：上榜日忌栏含同义词也要剔除——
         # 「宜修造忌动土」的日子不算干净的搬家吉日。
+        # R2400（R141-P2-1）：否决口径从整族收窄到同义簇——「许愿」
+        # （祈福+求嗣）不再被忌嫁娶连坐（婚育族跨事件否决是误伤）。
         _fam_terms: set[str] = set()
         for _t in terms:
-            _fam_terms |= set(_WORD_FAMILY.get(_t, (_t,)))
+            _fam_terms |= set(_veto_terms(_t))
         if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
                 and not any(_hit(t, q["ji"]) for t in _fam_terms)):
             good.append(q)

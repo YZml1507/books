@@ -6636,11 +6636,15 @@ function _hlSceneAlias(sc) { return (HL_SCENE_ALIAS[sc] || []).slice(); }
 /* R2349n（R77-P0-1）：与后端 _TERM_FAMILIES 同构——忌侧判定按同义族
  * 判（问搬家而忌栏有动土 → 判「宜忌都有」不判「宜」）。 */
 var _HL_FAMILIES = [
-  ['修造', '动土', '破土', '塞穴', '筑堤', '破屋坏垣', '竖柱', '上梁'],
+  /* R2400（R141-P1-2）：与后端 _TERM_FAMILIES 同构——R2400 后端扩编
+   * （营造+平整、功名+出官/谒贵、新增丧葬整族）时此表静默漂移了
+   * 一整批场景日。probe_date_parity 已钉族表同构段，再漂移会红。 */
+  ['修造', '动土', '破土', '塞穴', '筑堤', '破屋坏垣', '竖柱', '上梁', '平整'],
   ['出行', '远行', '归家', '移徙', '入宅', '乘船', '登山'],
   ['开市', '立券', '纳财', '开仓', '交易', '置产'],
   ['嫁娶', '求嗣', '进人口', '纳采', '订盟'],
-  ['上任', '求名', '入学'],
+  ['上任', '求名', '入学', '出官', '谒贵'],
+  ['安葬', '行丧', '启攒', '修坟', '立碑', '除服', '成服', '入殓'],
   ['祭祀', '祈福'],
   ['求医', '治病', '求医疗病'],
   ['捕捉', '畋猎', '狩猎', '田猎']
@@ -7305,8 +7309,17 @@ async function _doHuangli(offset, reveal, spokenWord) {
         return !_cflSet[w] && _als.some(function (a) {
           return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; });
       });
+      /* R2400（R141-P1-1）：chip ✓ 此前不做族扩展——同卡判词说
+       * 「宜X也忌Y」而 chip 却亮「✓ 适合」（全年搬家 22 天分裂）。
+       * 别名→族词并集再扫忌侧，与判词/后端同口径。 */
+      var _fals = _als.slice();
+      _als.forEach(function (a) {
+        _hlFamily(a).forEach(function (w) {
+          if (_fals.indexOf(w) === -1) _fals.push(w);
+        });
+      });
       var _hJ = ji.filter(function (w) {
-        return _als.some(function (a) {
+        return _fals.some(function (a) {
           return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; });
       });
       var ok = _hY.length && !_hJ.length;
@@ -7487,7 +7500,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
           var _tt = '';
           var _gy = gd.yi || [], _gj = gd.ji || [];
           if (_gy.length) {
-            _tt = '宜：' + _gy.slice(0, 4).join('、');
+            /* R2400（R141-P3-3）：悬停宜词截断会把命中词藏到第 5 位
+             * 后——命中词提为 title 首项，让用户看到「为什么适合」。 */
+            var _ga = [_gsc].concat(_hlSceneAlias(_gsc));
+            var _gHit = _gy.filter(function (w) {
+              return _ga.some(function (a) {
+                return w.indexOf(a) !== -1 || a.indexOf(w) !== -1; });
+            });
+            var _gRest = _gy.filter(function (w) {
+              return _gHit.indexOf(w) === -1; });
+            _tt = '宜：' + _gHit.concat(_gRest).slice(0, 4).join('、');
             if (_gj.length) {
               _tt += '　忌：' + _gj.slice(0, 3).join('、');
             }

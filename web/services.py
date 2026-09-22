@@ -1219,7 +1219,12 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         # R228x：口语词归一——「理发/养猫」不在宜忌词表里，精确匹配恒空；
         # 与聊天/问一嘴同走 _CHAT_SCENE_TERMS 拿规范词集合，逐词找日
         # 后按日期并集（一事项多规范词：搬家→移徙+入宅+修造）。
-        terms = _CHAT_SCENE_TERMS.get(affair) or [affair]
+        terms = _CHAT_SCENE_TERMS.get(affair)
+        if terms is None:
+            # R2400（R141-P2-3）：精确键未中时与聊天同走「子串最长命中」——
+            # affair=签订合同/签合同此前 terms=[原词] 恒空。
+            _sub = [k for k in _CHAT_SCENE_TERMS if k in affair]
+            terms = _CHAT_SCENE_TERMS[max(_sub, key=len)] if _sub else [affair]
         # R229z续8（R8 P1-1）：原实现对 terms 逐词跑 find_good_days（5 词×92
         # 天=460 次 day_query）——find_good_days 现直接收词列表，单日循环
         # 一次判定全部词（92 天恒 92 次）。
@@ -1235,9 +1240,23 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         terms = [huangli_mod.AFFAIR_ALIASES.get(t, t) for t in terms]
         # 排序：硬凶少的在前，同级按日期——「本月领证吉日榜」该有的榜感。
         good.sort(key=lambda g: (len(g["flags"]), g["date"]))
-        return {"affair": affair, "terms": terms,
-                "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
-                "days": days, "good_days": good, "count": len(good)}
+        # R2400（R141-P3-1）：days 回显实扫窗口（2100 域边钳位后不再是
+        # 请求值）+截断标记；（R141-P3-2）整窗在过去时加 past 标记——
+        # 裸 API 消费者此前拿无标记的过去吉日。
+        _end_eff = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
+        _scanned = max(0, (_end_eff - dt).days + 1)
+        _unrec = (terms == [affair] and affair not in _HUANGLI_VOCAB
+                  and affair not in huangli_mod.AFFAIR_ALIASES)
+        out = {"affair": affair, "terms": terms,
+               "start": f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}",
+               "days": _scanned, "good_days": good, "count": len(good)}
+        if _scanned < days:
+            out["truncated"] = True
+        if _end_eff.date() < _now_cn().date():
+            out["past"] = True
+        if _unrec:
+            out["unrecognized"] = True
+        return out
 
     q = huangli_mod.day_query(dt)
     # R229z续21c（R9-P1-3）：黄历卡干支年走春节口径、排盘年柱走立春口径，

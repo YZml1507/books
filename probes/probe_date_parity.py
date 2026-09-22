@@ -312,6 +312,29 @@ def main() -> int:
                   + "; ".join(bad[:12]))
             return 1
         print(f"probe_date_parity alias PASS: {len(js_alias)} 键前后端同构")
+
+        # ── R2400（R141-P1-2）：宜忌同义族表前后端同构钉扎 ──────────
+        # 前端 _HL_FAMILIES ↔ 后端 _TERM_FAMILIES 各存一份；R2400 后端
+        # 扩族（营造+平整/功名+出官谒贵/新增丧葬族）时前端静默漂移，
+        # 全年 32 场景 356 场景日判定分裂。钉集合级同构（顺序不比）。
+        from guji import huangli as _hl
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+            page.wait_for_timeout(800)
+            js_fams = page.evaluate("() => _HL_FAMILIES")
+            browser.close()
+        py_fams = [sorted(f) for f in _hl._TERM_FAMILIES]
+        js_fams_s = sorted(tuple(f) for f in (sorted(x) for x in js_fams))
+        py_fams_s = sorted(tuple(f) for f in py_fams)
+        if js_fams_s != py_fams_s:
+            only_js = [f for f in js_fams_s if f not in py_fams_s]
+            only_py = [f for f in py_fams_s if f not in js_fams_s]
+            print("probe_date_parity FAIL: 宜忌族表分歧 "
+                  f"JS独有={only_js[:4]} PY独有={only_py[:4]}")
+            return 1
+        print(f"probe_date_parity family PASS: {len(js_fams_s)} 族前后端同构")
         return 0
     finally:
         proc.terminate()

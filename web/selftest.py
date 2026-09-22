@@ -400,6 +400,29 @@ def _run_inner() -> list[str]:
     check("huangli.affair.spoken", client.get("/api/huangli", params={
           "affair": "理发", "date": "2026-09-19", "days": 45}),
           lambda j: j.get("terms") == ["冠笄"] and j.get("count", 0) > 0)
+    # R2400（R141-P2-1）：簇级否决——「宜祈福忌嫁娶」的日子不该被
+    # 婚育族连坐踢出许愿榜（2026-01-01 实测该构型）。整族否决时此日
+    # 恒缺席；同簇否决（忌求嗣/忌祭祀）仍应生效。
+    check("huangli.affair.veto_cluster", client.get("/api/huangli",
+          params={"affair": "许愿", "date": "2026-01-01", "days": 3}),
+          lambda j: "2026-01-01" in [g["date"] for g in
+                    j.get("good_days", [])])
+    # R2400（R141-P2-3）：affair 非精确键走子串最长命中——签订合同
+    # 此前 terms=[原词] 恒空；未识别词要有标记不是静默返空。
+    check("huangli.affair.substr", client.get("/api/huangli", params={
+          "affair": "签订合同", "date": "2026-09-19", "days": 45}),
+          lambda j: j.get("terms") != ["签订合同"]
+                    and not j.get("unrecognized"))
+    check("huangli.affair.unrecognized", client.get("/api/huangli",
+          params={"affair": "asdf", "date": "2026-09-19", "days": 10}),
+          lambda j: j.get("unrecognized") is True)
+    # R2400（R141-P3-1/P3-2）：days 回显实扫窗口+截断/过去标记。
+    check("huangli.affair.truncated", client.get("/api/huangli",
+          params={"affair": "嫁娶", "date": "2100-12-31", "days": 92}),
+          lambda j: j.get("days") == 1 and j.get("truncated") is True)
+    check("huangli.affair.past", client.get("/api/huangli", params={
+          "affair": "嫁娶", "date": "2020-03-05", "days": 45}),
+          lambda j: j.get("past") is True)
     check("huangli", client.get("/api/huangli", params={"date": "2026-08-17",
           "days": 1}),
           lambda j: j.get("date") and j.get("yi") and j.get("ji"))
