@@ -138,9 +138,13 @@ def create_app() -> FastAPI:
         good = _hmac.compare_digest(
             request.cookies.get("books_key", ""), _tok)
         # 解锁端点：表单口令 → 写 Cookie 回首页。
+        # （不用 request.form()——Starlette 表单解析要 python-multipart，
+        #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
         if path == "/_gate" and request.method == "POST":
-            form = await request.form()
-            key = str(form.get("key", ""))
+            from urllib.parse import parse_qs
+            key = parse_qs(
+                (await request.body()).decode("utf-8", "replace")
+            ).get("key", [""])[0]
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
                                          headers={"Location": "/"})
