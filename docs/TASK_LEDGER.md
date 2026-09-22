@@ -12709,3 +12709,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   +truncated/past 标记；摆酒/办酒/办喜事别名→嫁娶。⑥挑吉日
   chip 悬停宜词命中词提前防截断藏因。probe_date_parity 新增
   族表同构段（9 族钉死）；selftest +5 断言。
+
+- **R2400v（R140 真机回归跟进批）**：真 agnes-2.5-flash 端到端
+  25/25 PASS——11 注入面全剥、合法坐标零误伤、危机/口吻/锚点
+  正常。两个低优先瑕疵照修：①模型把判定日 09-25 口播「10月
+  25号」（月份口误）——scene 判词补「照判词写的念不换算」约束；
+  ②起名点评漏裸 `---` 分隔线上屏——_sanitize 补 markdown hr
+  （-_*_ 独占行）压除。contract 探针白名单补 indexOf/concat。

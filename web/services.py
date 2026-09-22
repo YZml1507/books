@@ -3092,6 +3092,9 @@ def _chat_facts_inner(message: str, now: datetime,
     if set(terms) & _MED_SCENE_TERMS:
         verdict += "（医疗事项：请在回复里带一句「看病以医生为准，黄历不作数」的口径。）"
     facts.append(verdict)
+    # R2400（R140-followup）：真机回归抓到模型口播日期口误——判定日
+    # 09-25 被念成「10月25号」。补念法约束：照判词写的念不换算。
+    facts.append("回复里念到上述日期时照判词里写的月日原样念，不要自己换算或改写。")
     facts += _compare_extra_facts(msg, spoken, scene, now, _cmp)
     if ctx_out is not None and "qk" not in ctx_out:
         ctx_out["qk"] = "scene"

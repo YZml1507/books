@@ -358,6 +358,9 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     text = re.sub(r"(?im)^\s*system\s*[:：].*\n?", "", text).strip()
     text = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", text)
     text = re.sub(r"(?m)^\s*#{1,6}\s*", "", text)
+    # R2400（R140-followup）：markdown hr（---/*** /___ 独占行）压掉——
+    # 起名点评实测漏「---」裸分隔线上屏。
+    text = re.sub(r"(?m)^\s*[-*_]{3,}\s*$\n?", "", text)
     if len(text) < 3:
         return None
     return text
