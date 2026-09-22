@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 import re
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
@@ -96,6 +97,81 @@ def create_app() -> FastAPI:
                           name="static")
 
     errors.install(application)
+
+    # R2361（部署）：BOOKS_ACCESS_TOKEN 访问令闸——设了它整站带钥匙才
+    # 进（含页面/静态/全部 API），没钥匙只见到一把「输口令」的门；
+    # /api/health 豁免（托管平台健康探测要用）。不设 = 现状全开
+    # （本地单用户），自用公网实例强烈建议设。
+    _GATE_PAGE = (
+        "<!doctype html><meta charset=utf-8><meta name=viewport "
+        "content='width=device-width,initial-scale=1'>"
+        "<title>小满的门</title><body style='margin:0;min-height:100vh;"
+        "display:flex;align-items:center;justify-content:center;"
+        "background:#f7efe6;font-family:ui-rounded,PingFang SC,"
+        "Microsoft YaHei,sans-serif'>"
+        "<form method=post action='/_gate' style='background:#fff;"
+        "padding:32px 28px;border-radius:18px;box-shadow:0 8px 30px "
+        "rgba(120,80,40,.12);text-align:center;max-width:320px'>"
+        "<div style='font-size:34px'>🌾</div>"
+        "<p style='color:#7a6650;margin:10px 0 16px'>这里是小满的解忧铺，"
+        "带钥匙的朋友请进～</p>"
+        "<input name=key type=password placeholder='口令' autofocus "
+        "style='width:100%;box-sizing:border-box;padding:10px 12px;"
+        "border:1.5px solid #e5d5c0;border-radius:10px;font-size:15px'>"
+        "<button style='margin-top:14px;width:100%;padding:10px 0;border:0;"
+        "border-radius:10px;background:#c96f4a;color:#fff;font-size:15px;"
+        "cursor:pointer'>开门</button>"
+        "{hint}</form></body>")
+    _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
+                  "钥匙不对——再想想？</p>")
+
+    @application.middleware("http")
+    async def _access_gate(request, call_next):
+        import hmac as _hmac
+        _tok = os.getenv("BOOKS_ACCESS_TOKEN", "")
+        if not _tok:
+            return await call_next(request)
+        path = request.url.path
+        # 健康探测永远放行（平台探活用，无敏感内容）。
+        if path == "/api/health":
+            return await call_next(request)
+        good = _hmac.compare_digest(
+            request.cookies.get("books_key", ""), _tok)
+        # 解锁端点：表单口令 → 写 Cookie 回首页。
+        if path == "/_gate" and request.method == "POST":
+            form = await request.form()
+            key = str(form.get("key", ""))
+            if _hmac.compare_digest(key, _tok):
+                resp = PlainTextResponse("ok", status_code=302,
+                                         headers={"Location": "/"})
+                resp.set_cookie("books_key", _tok, httponly=True,
+                                samesite="lax",
+                                secure=request.url.scheme == "https",
+                                max_age=30 * 86400)
+                return resp
+            return PlainTextResponse(
+                _GATE_PAGE.format(hint=_GATE_HINT),
+                media_type="text/html")
+        if good:
+            return await call_next(request)
+        # ?key= 直通：给主人自己用的可分享链接——验完设 Cookie 再跳回
+        # 原路径（钥匙不进历史记录）。
+        if _hmac.compare_digest(request.query_params.get("key", ""), _tok):
+            q = dict(request.query_params)
+            q.pop("key", None)
+            target = path + ("?" + urlencode(q, doseq=True) if q else "")
+            resp = PlainTextResponse("ok", status_code=302,
+                                     headers={"Location": target or "/"})
+            resp.set_cookie("books_key", _tok, httponly=True,
+                            samesite="lax",
+                            secure=request.url.scheme == "https",
+                            max_age=30 * 86400)
+            return resp
+        if path.startswith("/api"):
+            return JSONResponse(status_code=401,
+                                content={"detail": "需要钥匙才能进来哦"})
+        return PlainTextResponse(_GATE_PAGE.format(hint=""),
+                                 media_type="text/html")
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
     # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，

@@ -12422,3 +12422,20 @@ R115（农历节气跨年对账）修复批——核心结构性 bug：1 月~除
 +_hf9）/ regress / contract 617 / parity 74+43+251+跨年组 / ui_smoke 76 /
 poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
 warm_voice / baseline / plain_first 全绿。
+
+## R2360/R2361：HF Spaces 适配 + 访问令闸（部署接续）
+
+- R2360：README 顶部加 `sdk: docker` + `app_port: 7860` frontmatter
+  （HF Space 按 README 声明识别 SDK/端口）；Dockerfile EXPOSE/CMD
+  默认端口改 ${PORT:-7860} 对齐 HF app_port 缺省。
+- R2361：HF 改价——Docker/Gradio Space 需 PRO（$9/月），放弃 HF 走
+  Render 免费档 + 访问令闸。`BOOKS_ACCESS_TOKEN` 新 env：设后整站
+  （页面/静态/全部 API）带钥匙才进——Cookie `books_key`（httponly/
+  samesite=lax/30 天）或 `?key=` 直通设 Cookie；`/_gate` POST 表单
+  解锁页（小满口吻「带钥匙的朋友请进～/钥匙不对——再想想？」）；
+  `/api/health` 豁免平台探活；API 无钥匙 401、页面无钥匙回门页。
+  不设 = 现状全开（本地单用户不变）。hmac.compare_digest 防时序。
+- README 补私有站步骤（Render：New Web Service→Docker→Free→env 两项）。
+
+验证：TestClient 实测门页/401/health 豁免/?key=直通/表单解锁/错钥匙
+提示/Cookie 30 天六项全过；selftest 292（+access_gate.token）/ruff 全绿。

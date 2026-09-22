@@ -2198,6 +2198,39 @@ def _run_inner() -> list[str]:
     finally:
         del _osw.environ["BOOKS_WRITE_DISABLE"]
     ok.append("write_guard.public")
+    # R2361：访问令闸——BOOKS_ACCESS_TOKEN 设后整站带钥匙才进；
+    # /api/health 豁免；?key= 直通设 Cookie；错钥匙回门页。
+    _osw.environ["BOOKS_ACCESS_TOKEN"] = "testkey123"
+    try:
+        _g0 = client.get("/", follow_redirects=False)
+        assert _g0.status_code == 200 and "这里是小满的解忧铺" in _g0.text, \
+            _g0.status_code
+        _g1 = client.get("/api/huangli?date=2026-09-22")
+        assert _g1.status_code == 401, _g1.status_code
+        _g2 = client.get("/api/health")
+        assert _g2.status_code == 200, _g2.status_code
+        _g3 = client.get("/static/app.js", follow_redirects=False)
+        assert _g3.status_code == 200 and "开门" in _g3.text, _g3.status_code
+        _g4 = client.get("/?key=wrong", follow_redirects=False)
+        assert _g4.status_code == 200 and "开门" in _g4.text, _g4.status_code
+        _g5 = client.get("/?key=testkey123", follow_redirects=False)
+        assert _g5.status_code == 302 and \
+            _g5.headers.get("set-cookie", "").startswith("books_key"), \
+            (_g5.status_code, dict(_g5.headers))
+        _g6 = client.post("/_gate", data={"key": "testkey123"},
+                          follow_redirects=False)
+        assert _g6.status_code == 302 and \
+            _g6.headers.get("set-cookie", "").startswith("books_key"), \
+            _g6.status_code
+        _g7 = client.post("/_gate", data={"key": "nope"})
+        assert _g7.status_code == 200 and "钥匙不对" in _g7.text, _g7.status_code
+        client.cookies.set("books_key", "testkey123")
+        _g8 = client.get("/api/health")
+        assert _g8.status_code == 200, _g8.status_code
+        client.cookies.clear()
+    finally:
+        del _osw.environ["BOOKS_ACCESS_TOKEN"]
+    ok.append("access_gate.token")
     check("share.tarot", client.get("/api/share/tarot/abc123"),
           lambda j: j.get("title") == "塔罗占卜结果")
     for _sp, _want in (("/api/share/nope/1", 404),
