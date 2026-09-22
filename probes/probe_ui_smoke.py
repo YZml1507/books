@@ -399,6 +399,9 @@ def main() -> int:
                        "点击=showView('huangli') 导航同 deep.* 用例",
         "xzResult": "星座宫卡容器——委托监听 .xz-card 展开三运折叠行，"
                     "本地 toggle 零请求",
+        # R2363（R117-P0-2）：meta 行超 5 粒折叠的「+N 条」收纳钮——
+        # 同 signPeekBtn 模式：动态生成、本地 toggle 零请求。
+        "dailyMetaMore": "meta 折叠收纳钮——动态生成、本地 toggle 零请求",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

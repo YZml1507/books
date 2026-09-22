@@ -23,8 +23,10 @@
 """
 from __future__ import annotations
 
+import html as _html
 import os
 import re
+import time
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, HTTPException, Request
@@ -121,6 +123,9 @@ def create_app() -> FastAPI:
         "<button style='margin-top:14px;width:100%;padding:10px 0;border:0;"
         "border-radius:10px;background:#c96f4a;color:#fff;font-size:15px;"
         "cursor:pointer'>开门</button>"
+        # R2364（R120-P1-1）：next 槽——门页记住你要去的深链，
+        # 解锁完跳回原址（邀请链生辰参数不再被闸吃掉）。
+        "<input type=hidden name=next value='{next}'>"
         "{hint}</form></body>")
     _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
                   "钥匙不对——再想想？</p>")
@@ -141,21 +146,47 @@ def create_app() -> FastAPI:
         # （不用 request.form()——Starlette 表单解析要 python-multipart，
         #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
         if path == "/_gate" and request.method == "POST":
+            # R2363（R116-P1-2）：在线爆破面——口令闸是唯一防线，
+            # 进程内 10 次/60s/IP 限速（单 worker 下够用）。
+            _now = time.time()
+            _ip = (request.client.host if request.client else "?")
+            _gate_bucket = getattr(_access_gate, "_bucket", None)
+            if _gate_bucket is None:
+                _gate_bucket = {}
+                _access_gate._bucket = _gate_bucket
+            _hist = [t for t in _gate_bucket.get(_ip, [])
+                     if _now - t < 60]
+            if len(_hist) >= 10:
+                return PlainTextResponse(
+                    "敲太多次门啦——歇一分钟再来",
+                    status_code=429)
+            _hist.append(_now)
+            _gate_bucket[_ip] = _hist
+            if len(_gate_bucket) > 2000:
+                _gate_bucket.clear()
             from urllib.parse import parse_qs
-            key = parse_qs(
-                (await request.body()).decode("utf-8", "replace")
-            ).get("key", [""])[0]
+            _qs = parse_qs(
+                (await request.body()).decode("utf-8", "replace"))
+            key = _qs.get("key", [""])[0]
+            # R2364：解锁跳回深链原址；只放站内相对路径防开放跳转。
+            _nxt = _qs.get("next", [""])[0]
+            if not (_nxt.startswith("/") and not _nxt.startswith("//")):
+                _nxt = "/"
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
-                                         headers={"Location": "/"})
+                                         headers={"Location": _nxt})
                 resp.set_cookie("books_key", _tok, httponly=True,
                                 samesite="lax",
                                 secure=request.url.scheme == "https",
                                 max_age=30 * 86400)
                 return resp
+            # 403 而非 200：SW 的 navigate 分支只缓存 resp.ok——门页
+            # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
+            # 浏览器照常渲染 HTML 体，用户看到同样的门。
             return PlainTextResponse(
-                _GATE_PAGE.format(hint=_GATE_HINT),
-                media_type="text/html")
+                _GATE_PAGE.format(hint=_GATE_HINT,
+                                  next=_html.escape(_nxt, quote=True)),
+                media_type="text/html", status_code=403)
         if good:
             return await call_next(request)
         # ?key= 直通：给主人自己用的可分享链接——验完设 Cookie 再跳回
@@ -174,8 +205,12 @@ def create_app() -> FastAPI:
         if path.startswith("/api"):
             return JSONResponse(status_code=401,
                                 content={"detail": "需要钥匙才能进来哦"})
-        return PlainTextResponse(_GATE_PAGE.format(hint=""),
-                                 media_type="text/html")
+        # R2364：GET 深链被闸 → 门页记住原路径+查询，解锁跳回。
+        _orig = request.url.path + (
+            "?" + request.url.query if request.url.query else "")
+        return PlainTextResponse(
+            _GATE_PAGE.format(hint="", next=_html.escape(_orig, quote=True)),
+            media_type="text/html", status_code=403)
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
     # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，

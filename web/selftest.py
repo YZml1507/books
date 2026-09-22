@@ -434,6 +434,18 @@ def _run_inner() -> list[str]:
         assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
             ("huangli.term_day.yiji_flip", _tn, _ty)
     ok.append("huangli.term_day.consistent")
+    # R2362（用户直报）：宜忌按《协纪辨方书》层票裁决——任一天
+    # yi∩ji 恒空、conflict/conflict_family 透出空表，同框矛盾不许回归。
+    for _mm in (1, 4, 7, 10):
+        for _dd in (2, 11, 19, 27):
+            _qq = _dq6(_dt6(2026, _mm, _dd, 12))
+            assert not (set(_qq["yi"]) & set(_qq["ji"])), \
+                ("huangli.yiji.resolved", _qq["date"],
+                 set(_qq["yi"]) & set(_qq["ji"]))
+            assert not _qq["conflict"] and not _qq["conflict_family"], \
+                ("huangli.yiji.conflict_keys", _qq["date"],
+                 _qq["conflict"], _qq["conflict_family"])
+    ok.append("huangli.yiji.resolved")
     # R2351（R108-§3.2 钉扎）：±13min 近似把 12 个跨午夜交节推错
     # 日期——修正表落地后，逐条钉 CST 日期（参照：sxtwl/lunar_python）。
     for _tn, _ty, _md in (("寒露", 1912, (10, 9)), ("大雪", 1917, (12, 8)),
@@ -1847,11 +1859,12 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 9, ("home.ia.count", len(_cards), _cards)  # 6 直达+3 抽屉（D-005 星座；2026-08-28 水墨改版新增 history 卡）
+    assert len(_cards) == 10, ("home.ia.count", len(_cards), _cards)  # 8 直达+2 抽屉（D-005 星座；history；R2362 chat 伪视图卡）
     # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming
     assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
-    assert _cards[5:] == ["xingzuo", "history", "liuyao", "qiming"], \
+    # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前
+    assert _cards[5:] == ["xingzuo", "history", "chat", "liuyao", "qiming"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
     _visible = _home_seg.split('id="proDrawer"')[0]
@@ -1861,6 +1874,11 @@ def _run_inner() -> list[str]:
     assert '<details class="pro-drawer" id="proDrawer">' in home.text \
         and 'pro-drawer" id="proDrawer" open' not in home.text, \
         ("home.ia.drawer-closed",)
+    # R2362（用户直报）：chat 卡点击走 chatOpen 不走 showView——钉死接线。
+    _appsrc_g = open("web/static/app.js", encoding="utf-8").read()
+    assert "dataset.view === 'chat'" in _appsrc_g and \
+        "chatOpen(); return" in _appsrc_g, \
+        ("home.ia.chat-card-wiring",)
     ok.append("home.ia")
 
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理
@@ -2202,17 +2220,18 @@ def _run_inner() -> list[str]:
     # /api/health 豁免；?key= 直通设 Cookie；错钥匙回门页。
     _osw.environ["BOOKS_ACCESS_TOKEN"] = "testkey123"
     try:
+        # R2363：门页回 403——SW 只缓存 resp.ok，200 会污染 '/' 壳位。
         _g0 = client.get("/", follow_redirects=False)
-        assert _g0.status_code == 200 and "这里是小满的解忧铺" in _g0.text, \
+        assert _g0.status_code == 403 and "这里是小满的解忧铺" in _g0.text, \
             _g0.status_code
         _g1 = client.get("/api/huangli?date=2026-09-22")
         assert _g1.status_code == 401, _g1.status_code
         _g2 = client.get("/api/health")
         assert _g2.status_code == 200, _g2.status_code
         _g3 = client.get("/static/app.js", follow_redirects=False)
-        assert _g3.status_code == 200 and "开门" in _g3.text, _g3.status_code
+        assert _g3.status_code == 403 and "开门" in _g3.text, _g3.status_code
         _g4 = client.get("/?key=wrong", follow_redirects=False)
-        assert _g4.status_code == 200 and "开门" in _g4.text, _g4.status_code
+        assert _g4.status_code == 403 and "开门" in _g4.text, _g4.status_code
         _g5 = client.get("/?key=testkey123", follow_redirects=False)
         assert _g5.status_code == 302 and \
             _g5.headers.get("set-cookie", "").startswith("books_key"), \
@@ -2223,11 +2242,34 @@ def _run_inner() -> list[str]:
             _g6.headers.get("set-cookie", "").startswith("books_key"), \
             _g6.status_code
         _g7 = client.post("/_gate", data={"key": "nope"})
-        assert _g7.status_code == 200 and "钥匙不对" in _g7.text, _g7.status_code
+        assert _g7.status_code == 403 and "钥匙不对" in _g7.text, _g7.status_code
         client.cookies.set("books_key", "testkey123")
         _g8 = client.get("/api/health")
         assert _g8.status_code == 200, _g8.status_code
         client.cookies.clear()
+        # R2364（R120-P1-1）：深链被闸 → 门页带 next 隐藏域 → 解锁跳回原址。
+        _gd = client.get("/?view=hehun&ay=2000", follow_redirects=False)
+        assert _gd.status_code == 403 and "name=next" in _gd.text and \
+            "view=hehun" in _gd.text, _gd.status_code
+        _gn = client.post("/_gate",
+                          data={"key": "testkey123",
+                                "next": "/?view=hehun&ay=2000"},
+                          follow_redirects=False)
+        assert _gn.status_code == 302 and \
+            _gn.headers["location"] == "/?view=hehun&ay=2000", \
+            (_gn.status_code, _gn.headers.get("location"))
+        # 开放跳转护栏：外域 next 不落 Location，回根。
+        _gx = client.post("/_gate",
+                          data={"key": "testkey123", "next": "//evil.com"},
+                          follow_redirects=False)
+        assert _gx.status_code == 302 and \
+            _gx.headers["location"] == "/", _gx.headers.get("location")
+        # R2363（R116-P1-2）：/_gate 限速——同 IP 10 次/60s 后第 11 次 429。
+        # 上面已计 4 次；再敲到上限后断言限流页。放块尾，免得污染它闸。
+        for _i in range(8):
+            client.post("/_gate", data={"key": "nope"})
+        _g9 = client.post("/_gate", data={"key": "nope"})
+        assert _g9.status_code == 429, _g9.status_code
     finally:
         del _osw.environ["BOOKS_ACCESS_TOKEN"]
     ok.append("access_gate.token")

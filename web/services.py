@@ -2890,6 +2890,7 @@ def tarot_draw(req) -> dict:
     **不新增 `draws` 键**：多张牌阵是 `/api/tarot` 的职责，本端点只给单张，
     否则同一份牌面在两个键里各存一份，前端不知该信哪个。
     """
+    req.validate_ranges()   # R2364：与其他入口同纪律——question 剥控制字
     draws = tarot_mod.draw(seed=req.seed, n=req.n)
     if not draws:
         raise ComputeError("抽牌失败")

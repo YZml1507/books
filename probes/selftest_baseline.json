@@ -1,5 +1,6 @@
 {
  "checks": [
+  "access_gate.token",
   "addr",
   "addr.bcv",
   "addr.booksec",
@@ -203,6 +204,7 @@
   "huangli.today.bad",
   "huangli.xiu.weekday_invariant",
   "huangli.year_first",
+  "huangli.yiji.resolved",
   "liuyao",
   "liuyao.time",
   "llm.fields.absent",

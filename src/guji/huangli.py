@@ -450,7 +450,9 @@ def shensha_yiji(dt: datetime) -> tuple[list[str], list[str]]:
 # 判定：某词的族同时命中宜、忌两侧 → 该族两侧词全部标记。
 _TERM_FAMILIES: list[frozenset[str]] = [
     frozenset({"修造", "动土", "破土", "塞穴", "筑堤", "破屋坏垣",
-               "竖柱", "上梁"}),                          # 开工营造
+               "竖柱", "上梁", "平整"}),                   # 开工营造
+    # R2363（R118-P1-2）：「平整」是整地/归置——营造族漏收会让
+    # 「宜平整+忌动土」的同页对冲漏裁，且挑吉日把忌动土日列成搬家吉日。
     frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
     frozenset({"开市", "立券", "纳财", "开仓", "交易", "置产"}),
     frozenset({"嫁娶", "求嗣", "进人口", "纳采", "订盟"}),  # 婚育
@@ -505,6 +507,32 @@ def day_query(dt: datetime) -> dict:
     _sy, _sj = shensha_yiji(dt)
     yi = list(set(yi) | set(_sy))
     ji = list(set(ji) | set(_sj))
+
+    # R2362（用户直报）：宜忌同框矛盾按《协纪辨方书》卷十断例裁决——
+    # 「凡吉足胜凶，从宜不从忌；凡吉凶相抵，德喜之事仍忌；
+    #   吉不足胜凶，则从忌不从宜」。
+    # 三层历系（建除/二十八宿/神煞）对每个同义族逐层投票：
+    #   净胜（宜票>忌票）→ 该族归宜，忌侧删词（从宜不从忌）；
+    #   平或负 → 该族归忌，宜侧删词（相抵仍忌 / 从忌不从宜）。
+    # 裁决后 yi∩ji 恒空，conflict/conflict_family 透出空表。
+    _layers_yi = (set(ZHIRI_YIJI[jc]["yi"]), set(XIUXIU_YIJI[xx]["yi"]), set(_sy))
+    _layers_ji = (set(ZHIRI_YIJI[jc]["ji"]), set(XIUXIU_YIJI[xx]["ji"]), set(_sj))
+    for _w in list(set(yi) & set(ji)):
+        _fam = term_family(_w)
+        _vy = sum(1 for _L in _layers_yi if _L & _fam)
+        _vj = sum(1 for _L in _layers_ji if _L & _fam)
+        if _vy > _vj:
+            ji = [x for x in ji if x not in _fam]
+        else:
+            yi = [x for x in yi if x not in _fam]
+    # 换字同义对冲同例裁决（宜修造忌动土这类不同词同族对冲）。
+    for _fam in {term_family(_w) for _w in family_conflicts(yi, ji)}:
+        _vy = sum(1 for _L in _layers_yi if _L & _fam)
+        _vj = sum(1 for _L in _layers_ji if _L & _fam)
+        if _vy > _vj:
+            ji = [x for x in ji if x not in _fam]
+        else:
+            yi = [x for x in yi if x not in _fam]
 
     # R216b 续6（V-001）：补农历日期与冲煞——传统黄历核心字段，
     # 纯坐标计算 additive（既有键零改动）。

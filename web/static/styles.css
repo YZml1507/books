@@ -75,6 +75,7 @@
   --c-taohua:  #FF8FAB;       /* 蜜桃粉 · 桃花 */
   --c-liuyao:  #FFB7C5;       /* 樱粉 · 六爻 */
   --c-hehun:   #FF6B8A;       /* 草莓 · 合婚 */
+  --c-chat:    #FFD6A5;       /* 杏子奶 · 和小满聊聊 */
 
   /* R197b（specs/008-US2 素材轮）：网红风字体三件套——
    * 文楷（手写楷感正文）→ 得意黑（斜体黑标题/数字）→ 思源黑兜底。
@@ -417,6 +418,13 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   font-size:14px; color:var(--secondary); background:var(--card);
   padding:6px 14px; border-radius:999px; border:1px solid var(--border);
 }
+/* R2362（用户直报）：display:flex 压过 [hidden] 的 display:none——
+ * 空 meta 项在卡上渲染成一排竖空胶囊，补上针对性复位。 */
+.daily-meta-item[hidden]{display:none;}
+/* R2363（R117-P0-2）：>5 粒折叠——capped 的收进「+N 条」收纳钮。 */
+.daily-meta-item[data-capped="1"]{display:none;}
+.daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
+.daily-meta-more{cursor:pointer; font:inherit; color:var(--accent);}
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;
@@ -477,6 +485,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .func-card[data-view="taohua"]  {--card-accent:var(--c-taohua);}
 .func-card[data-view="liuyao"]  {--card-accent:var(--c-liuyao);}
 .func-card[data-view="hehun"]   {--card-accent:var(--c-hehun);}
+/* R2363（R117-P1）：chat 卡此前无 accent——回落 #D4B5FF 与塔罗撞色。 */
+.func-card[data-view="chat"]   {--card-accent:var(--c-chat);}
 
 /* ── 最近解读 ── */
 

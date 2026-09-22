@@ -39,6 +39,8 @@ if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
 <link rel="stylesheet" href="/static/animotion/web-lite.css">
 <!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
 <link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
+<!-- R2364（R122-P1-3）：拆礼物的熊是首屏 LCP 图——preload 省 ~0.4s slow4G -->
+<link rel="preload" href="/static/cream/daily-gift-bear.png" as="image" fetchpriority="high">
 <!-- R2349u（R90-P0-1）：LXGW ~976KB 分片 render-blocking 压过日卡——
      print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。
      R2353（R110-P1-3）：media 翻 all 改由下方 __lxgwFlip 控制——
@@ -183,7 +185,7 @@ try {
 
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
   <div class="ink-hero" aria-hidden="true">
-    <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="high"
+    <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
       onerror="this.closest('.ink-hero').classList.add('is-missing')">
   </div>
 
@@ -209,8 +211,8 @@ try {
     <button class="ghost" type="button" id="shareDaily"
             title="生成分享图" aria-label="把今日运势存成分享图"
             style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
-    <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
-    <div class="daily-checkin" id="dailyCheckin"></div>
+    <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
+         打卡块移到判词下面。 -->
     <div class="daily-main">
       <div class="daily-level" id="dailyLevel">—</div>
       <div>
@@ -219,18 +221,19 @@ try {
         <div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div>
       </div>
     </div>
+    <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
+    <div class="daily-checkin" id="dailyCheckin"></div>
     <!-- R233f（R43-P3-17）：窄屏横滚区需可键盘聚焦，否则 Tab 进不去 -->
     <div class="daily-meta" tabindex="0" role="region" aria-label="今日提示">
       <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
-      <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong></div>
+      <!-- R2363（R117-P0-3）：贵人+合拍并一粒，高共鸣钩子位置前移。 -->
       <!-- R2349g（R68-P0-2）：天乙贵人按日干只有 ~5 组值，叠日支六合
            「合拍生肖」做第二层，日签天天有新鲜组合。 -->
-      <div class="daily-meta-item" title="和你今天最合得来的属相——见到了多聊两句">💞 合拍生肖：<strong id="dailyPal">—</strong></div>
+      <div class="daily-meta-item" title="传统里最帮你的方位/时段 · 今天最合得来的属相">🍀 天乙贵人 <strong id="dailyNoble">—</strong> · 💞 合拍 <strong id="dailyPal">—</strong></div>
       <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
            老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
            打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
-      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试：<strong id="dailyDo">—</strong></div>
-      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">🚫 先缓缓：<strong id="dailyDont">—</strong></div>
+      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试 <strong id="dailyDo">—</strong> · 🚫 先缓缓 <strong id="dailyDont">—</strong></div>
     </div>
     <!-- R229z续23（R11-每日免责缺口）：首页卡面此前无免责 -->
     <div style="font-size:11px;color:var(--muted);margin-top:6px;">仅供娱乐，新的一天照常过 ✨</div>
@@ -285,6 +288,12 @@ try {
     </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
+    </div>
+    <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
+         data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
+         不切视图。 -->
+    <div class="func-card func-entry func-chat" data-view="chat" role="button" tabindex="0" aria-label="和小满聊聊">
+      <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">和小满聊聊</div><div class="func-desc">有心事随时来说</div>
     </div>
     </nav>
   </div>
