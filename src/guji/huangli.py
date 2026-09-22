@@ -666,7 +666,9 @@ def find_good_days(start: datetime, end: datetime,
              else [AFFAIR_ALIASES.get(affair, affair)])   # 别名归一后再匹配
     # R2351（R108-§四.3-2）：宣称域 1900-2100——end 跨界会把 2101 日
     # 推上吉日榜，而该日拿去单日查询又被 400 拒。钳到域内末日。
-    end = min(end, datetime(2100, 12, 31))
+    # R2359：tzinfo 跟随 end——相对日期词走 _now_cn() aware 路径，
+    # naive 钳子与 aware end 比大小会 TypeError→500。
+    end = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
     good: list[dict] = []
     cur = start
     while cur <= end:

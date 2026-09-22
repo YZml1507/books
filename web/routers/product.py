@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from .. import services
+from .. import deps, services
 from ..schemas import FavoriteAddRequest, PrefsRequest
 
 router = APIRouter(tags=["product"])
@@ -52,24 +52,28 @@ def user_prefs() -> dict:
 @router.post("/api/user/prefs")
 def set_user_prefs(req: PrefsRequest) -> dict:
     """设置用户偏好（任意键值；list/dict 值自动 JSON 序列化）。"""
+    deps.write_guard()   # R2357：公网演示模式禁写共享库
     return services.set_user_prefs(req.to_dict())
 
 
 @router.post("/api/favorites")
 def add_favorite(req: FavoriteAddRequest) -> dict:
     """收藏一条结果。"""
+    deps.write_guard()   # R2357
     return services.add_favorite(req)
 
 
 @router.delete("/api/favorites/{fid}")
 def remove_favorite(fid: int) -> dict:
     """取消收藏。"""
+    deps.write_guard()   # R2357
     return services.remove_favorite(fid)
 
 
 @router.delete("/api/favorites")
 def clear_favorites() -> dict:
     """R2349（R65-P1-2）：清空全部收藏——「忘掉我的数据」调用面。"""
+    deps.write_guard()   # R2357
     return services.clear_favorites()
 
 

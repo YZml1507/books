@@ -12347,3 +12347,78 @@ R111 报告（3 P1 + 11 P2/P3）全清：
 验证：selftest 288 / parity 74+43+251 / contract 617 / ui_smoke 76 /
 poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
 warm_voice / baseline / plain_first / selftest_regress 全绿。
+
+## R2357（R113 部署就绪度审计实施批）
+
+审计：子会话 10f8214e（audit_r113.md）。21 项：P0×5 部署配方缺失、
+P1×5 共享库隐私/进程内状态/依赖爆弹、P2×6、P3×5。
+
+- P0×5 部署配方落地：`requirements-runtime.txt`（精简运行时，
+  与 ci 版分轨——ci 含 sentence-transformers→torch ~2GB 会撑爆
+  免费档）；`Dockerfile`（python:3.10-slim，对齐 .python-version/CI；
+  build 期跑 check_quality+build_index；CMD uvicorn --workers 1
+  --proxy-headers 读 $PORT）；`.dockerignore`（剥 dbs/data external
+  131MB/打包链/probes/docs）；`.python-version` 3.10。
+- P1-7 共享库公网总闸：`deps.write_guard()` +
+  `BOOKS_WRITE_DISABLE` env——开启时 prefs/favorites×3/threads×3/
+  paipan import+delete×2 全部 400「这是公开演示站——写入功能被关掉了」，
+  只读端点不受影响。selftest 新增 write_guard.public（6 端点×400）。
+- P1 文档化约束：paipan_history.db 记录生辰明文、ephemeral 磁盘、
+  _RATE/_tasks/_chat_sessions 进程内字典→必须 --workers 1——
+  全部写进 README 公网部署节+env 表（PAIPAN_HISTORY_DISABLE/
+  WRITE_DISABLE/ALLOWED_HOSTS/CORS_ORIGINS 三新旗）。
+- P2-11 sitemap/robots 动态绝对 URL（request.base_url 渲染——
+  此前写死相对路径，搜索引擎拿到的 loc 无效）。
+- P2-15 `BOOKS_ALLOWED_HOSTS`→TrustedHostMiddleware（防 Host 头污染）；
+  P3-21 `BOOKS_CORS_ORIGINS`→CORSMiddleware（前端分部署时用）。
+- 接受项：GUJI_PROXY 已有 env；P2-16 RSS TTL、P3-17/18/19/20 记档。
+
+验证：公网旗真机冒烟（WRITE_DISABLE→400 中文/Bad Host→400/
+sitemap 绝对 loc/bazi 仍通）；selftest 288→289（+write_guard.public）/
+contract 617 / ui_smoke 76 / poster 12-14 / parity 74+43+251 /
+ruff / dollar / first_screen / async_ai / xingzuo / warm_voice /
+baseline / plain_first / selftest_regress 全绿。
+
+## R2359：R114 口吻批 + R115 跨年对账清零（合并提交）
+
+R114（小满人格口吻真机审计）修复批——8/8 真机 on-persona：
+- P3-1：聊天兜底文案去 ✨（_CHAT_FALLBACK_DEFAULT 第 3 条）。
+- P3-2：_CHAT_SYSTEM 加「宝」频率提示（别句句都喊）。
+- P4-1：敏感词预检在 _rate_ok 之前——危机/敏感消息直出 done-task
+  （_SENSITIVE_REPLY），不再消耗 8/min 配额。selftest 新增
+  chat.sensitive.no_quota。
+- P4-2：_CHAT_FALLBACK_KW_MAP 读书类目去掉裸「看」关键词。
+- P3-3：chat_huangli_facts 命中检查/写入合并为原子读（竞态钉扎）。
+- 真机抓到的两条额外修复：agnes-2.5-flash 为 reasoning 模型，
+  finish_reason=length 时 max_tokens=1000 全烧在思考上→约 17%
+  回复体为空——空回复时以 2x max_tokens 兜底重试一次（_doubled）。
+  find_good_days 2100 clamp 用 naive datetime 撞 tz-aware now→500
+  （R2351 引回），改 tzinfo=end.tzinfo；selftest 新增 _hf9 aware 回归。
+
+R115（农历节气跨年对账）修复批——核心结构性 bug：1 月~除夕窗
+农历年=公历年-1，「年前缀+农历节」此前对农历年下标加 yoff 差整年：
+- P1-1：除夕/_HOLIDAY_LUNAR/显式农历月日/腊月底 四路候选一律按
+  发生日所在公历年过滤（d.year == now.year + yoff），候选窗放宽
+  到 ly0-3..+3/+4。实测：@1月「明年春节」→2027-02-06（原 2026-02-17）、
+  @12月「去年除夕」→2025-01-28（原 2026-02-16）、
+  「前年除夕」→2024-02-09、「明年正月初一」对。
+- P1-2：_abs_or_holiday 加 _yoff_force——「2027年春节」经显式年
+  no-md 分支剥离年份后递归走节日通道（原落入"今年中秋"式错判/None）。
+- P1-3：_span_phrase 加 60 天新鲜度闸——放假表档过期（>60 天）
+  不再回过期日；「什么时候放假」@年末→invalid 如实说。
+  resolve_huangli_date invalid 信号表扩：放假|假期|收假|调班|节后|
+  年后|过年前|正月|腊月|冬月|数九|入伏|三伏|梅雨季（P3-6）。
+- P2-4：_HOLIDAY_LUNAR 加「农历新年/阴历新年/旧历新年」→(1,1)
+  别名→春节（裸「新年」仍=公历 1/1，不动）。
+- P2-5：段期词（入伏/三伏 40 天、数九/入九 81 天）段内问锚当前
+  段起日——@2027-02-01「数九」→2026-12-22（原已跳到下一段）。
+- P3-6：「N月底/N月初」显式月前缀——「12月底」@1月→当年 12/31
+  （原丢「12」落 1/31）。
+- parity 探针补跨年锚点组（BASE_JAN/DEC/FEB 三基线 18 例，js 仍
+  null 交后端、py 钉偏移）；两条 PY_ONLY 期望换新契约值（去年除夕
+  -599、春节后上班 141）——旧期望钉的是被修的错值，注释留档。
+
+验证：selftest 291（+resolve_date.year_boundary +chat.sensitive.no_quota
++_hf9）/ regress / contract 617 / parity 74+43+251+跨年组 / ui_smoke 76 /
+poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
+warm_voice / baseline / plain_first 全绿。

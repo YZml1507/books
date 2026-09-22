@@ -1,0 +1,8 @@
+# 运行时最小依赖（R2357，R113-P0-1）——部署/容器装这个。
+# 别装 requirements-ci.txt：里面 sentence-transformers 会拖 torch ~2GB，
+# 免费档直接炸（语义检索是懒加载，不装只是 --sem 路径不可用，web 主路径无损）。
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic==2.13.5
+httpx==0.28.1             # 仅 LLM 润色链路懒加载用到（不配 LLM 也可装，~200KB）
+feedparser==6.0.12        # /api/external/* RSS 解析懒加载用到

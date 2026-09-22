@@ -61,6 +61,36 @@ PY
 URL 按 `request.base_url` 生成，不开 proxy-headers 会落成 `http://` 内网
 地址，微信/推特种爬虫静默抓不到卡片图，且无任何报错面（R2350b / R99-P2）。
 
+### 公网部署（Railway/Render/Fly.io/Docker）
+
+仓库自带 `Dockerfile` + `requirements-runtime.txt` + `.python-version`（R2357）：
+
+```bash
+docker build -t books . && docker run -p 8123:8123 books
+# 平台形态：装 requirements-runtime.txt，启动命令
+uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8123} \
+  --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1
+```
+
+**多访客公开站必须开的环境变量**（这站按本地单用户设计——排盘台账
+自动记生辰，knowledge.db 全部共享）：
+
+```bash
+BOOKS_PAIPAN_HISTORY_DISABLE=1   # 排盘台账整体关闭（否则所有人生日互见互删）
+BOOKS_WRITE_DISABLE=1            # 共享库写面拒绝（prefs/favorites/threads/import）
+BOOKS_EXTERNAL_DISABLE=1         # 服务器上没 GUJI_PROXY 时关 RSS 外呼
+```
+
+- **不要装 `requirements-ci.txt`**——里面的 sentence-transformers 会拖
+  torch ~2GB，免费档直接炸；运行时只需 `requirements-runtime.txt`。
+- **必须单实例单 worker**（`--workers 1`）：限流/AI 任务/聊天会话全在
+  进程内存里，多 worker 下任务会 404。
+- 数据不持久：paipan_history.db / knowledge.db 写在容器盘，免费档重启
+  即清零（要留存就挂卷到 `data/`）。
+- 建索引是构建期步骤（Dockerfile 已固化 `build_index.py`）；缺
+  `data/index/corpus.db` 时古籍端点返回 503 但站点其余功能正常。
+- 部署后健康检查指 `GET /api/health`（返回 `engine` + `index` 就位标志）。
+
 Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服务、开浏览器、
 关浏览器自动停服务）。
 
@@ -80,7 +110,10 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 | `BOOKS_LLM_MAX_TOKENS` | 整数 | LLM token 上限 | `1000` |
 | `BOOKS_LLM_DISABLE` | `1/on/true/yes` | 强制离线（所有 AI 层关掉） | 关 |
 | `BOOKS_PAIPAN_HISTORY_DISABLE` | `1/on/true/yes` | 关排盘台账（隐私部署用） | 关 |
+| `BOOKS_WRITE_DISABLE` | `1/on/true/yes` | 共享 knowledge.db 写面拒绝（公网演示） | 关 |
 | `BOOKS_EXTERNAL_DISABLE` | `1/on/true/yes` | 关 external/* 外部资讯拉取 | 关 |
+| `BOOKS_ALLOWED_HOSTS` | 逗号分隔域名 | TrustedHost 白名单（防 Host 投毒） | 放行全部 |
+| `BOOKS_CORS_ORIGINS` | 逗号分隔 Origin | 分体部署的跨域白名单 | 不加 CORS 头 |
 | `GUJI_PROXY` | `http://…` | external 抓取出网代理 | 直连 |
 
 exe 形态：`llm_config.json` 放在 exe 同目录（或 exe 旁 `web/` 下）即可被读到；

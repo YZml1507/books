@@ -1502,6 +1502,9 @@ _HOLIDAY_LUNAR = {
     "端午节": (5, 5), "端午": (5, 5), "七夕": (7, 7), "中秋节": (8, 15),
     "中秋": (8, 15), "重阳节": (9, 9), "重阳": (9, 9), "腊八节": (12, 8),
     "腊八": (12, 8), "中元节": (7, 15), "中元": (7, 15),
+    # R2359（R115-P2-4）：「农历/阴历/旧历新年」≡春节（正月初一），
+    # 不带前缀的「新年」仍走公历元旦——前缀反转语义要接住。
+    "农历新年": (1, 1), "阴历新年": (1, 1), "旧历新年": (1, 1),
     # 小年按北方通行腊月廿三；南方廿四口径暂不强拆，spoken 仍回用户原词。
     "小年": (12, 23),
     # R233v（R52-P2-5）：民俗高频农历节补洞
@@ -1905,14 +1908,18 @@ def _span_phrase(msg_n: str, now: datetime):
         if nxt:
             return nxt[0][2] + timedelta(days=_afn), f"{nxt[0][0]}后第{_afw}天"
         done = [r for r in pool if r[2] < td]
-        if done:
+        # R2359（R115-P1-3）：放假表有新鲜度——表外 >60 天的旧档不回，
+        # 否则「春节后第一天上班」会拿一年前的复工日当答案。
+        if done and (td - done[-1][2]).days <= 60:
             return done[-1][2] + timedelta(days=_afn), f"{done[-1][0]}后第{_afw}天"
     if re.search(r"假期最后一天|最后一天假|假期的尾巴", msg_n):
         live = [r for r in pool if r[1] <= td <= r[2]]
         nxt = [r for r in pool if r[1] > td]
         done = [r for r in pool if r[2] < td]
+        # R2359（R115-P1-3）：done 档同样要新鲜度闸。
         tgt = live[0] if live else (nxt[0] if nxt else
-                                    (done[-1] if done else None))
+                                    (done[-1] if done and
+                                     (td - done[-1][2]).days <= 60 else None))
         if tgt:
             return tgt[2], f"{tgt[0]}假期最后一天"
     if re.search(r"小长假|什么时候放假|啥时候放假|放假", msg_n):
@@ -1950,13 +1957,18 @@ def _holiday_candidates(name: str, now: datetime,
                                            now.day)["year"]
         except ValueError:
             ly0 = now.year
-        lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+        # R2359（R115-P1-1）：年前缀指公历年，农历年下标会差一年
+        #（1月~除夕窗）——一律按发生日所在公历年过滤；除夕本就落在
+        # 下个公历年，候选放宽到 ly0+3 再按 d.year 收。
+        lys = range(ly0 - 3, ly0 + 3)
         for ly in lys:
             try:
                 out.append(lunar_mod.lunar_to_solar(ly + 1, 1, 1)
                            - timedelta(days=1))
             except ValueError:
                 pass
+        if yoff is not None:
+            out = [d for d in out if d.year == now.year + yoff]
         return out
     if name == "寒食节":
         from guji import bazi as bazi_mod
@@ -2030,12 +2042,15 @@ def _holiday_candidates(name: str, now: datetime,
                                            now.day)["year"]
         except ValueError:
             ly0 = now.year
-        lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+        # R2359（R115-P1-1）：同除夕——按公历年过滤。
+        lys = range(ly0 - 3, ly0 + 4)
         for ly in lys:
             try:
                 out.append(lunar_mod.lunar_to_solar(ly, lm, ld))
             except ValueError:
                 pass
+        if yoff is not None:
+            out = [d for d in out if d.year == now.year + yoff]
     return out
 
 
@@ -2055,7 +2070,8 @@ def _day_suffix(msg_n: str, end: int) -> tuple[int, int]:
     return 0, 0
 
 
-def _abs_or_holiday(msg: str, now: datetime):
+def _abs_or_holiday(msg: str, now: datetime,
+                    _yoff_force: int | None = None):
     """绝对日期/节日/农历表达 → (datetime, 用户原词)；解不出返回 None。
 
     顺序就是特异性：农历先（不被公历数字式抢）、节日（长词优先且防
@@ -2067,7 +2083,8 @@ def _abs_or_holiday(msg: str, now: datetime):
     # 「去年/明年/前年/后年」年前缀——约束节日与 M月D 的候选年
     # （「去年国庆」不能再就近到今年）。
     _ypre = {"前年": -2, "去年": -1, "今年": 0, "明年": 1, "后年": 2}
-    yoff = next((v for w, v in _ypre.items() if w in msg_n), None)
+    yoff = (_yoff_force if _yoff_force is not None
+            else next((v for w, v in _ypre.items() if w in msg_n), None))
     # R2355（R111-P1-3/P2-1）：显式 4 位年——「2099年12月31号」此前
     # 「年」被忽略就近解到当年同日（说错日比不答更伤）；「2027-02-29」
     # ISO 残片同理。显式年份按那一年解，越出历法表界/日子不存在
@@ -2082,6 +2099,13 @@ def _abs_or_holiday(msg: str, now: datetime):
         if _xy.re.pattern.endswith("年"):
             _md = re.search(r"(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?", msg_n)
             if not _md:
+                # R2359（R115-P1-2）：显式年+节日/节气名（「2027年春节」）——
+                # 剥掉年词走节日/农历通道，yoff 钉到该公历年；解不出才 None。
+                _rest = (msg_n[:_xy.start()] + msg_n[_xy.end():]).strip()
+                if _rest:
+                    _rc = _abs_or_holiday(_rest, now, _yy - now.year)
+                    if _rc is not None:
+                        return _rc
                 return None
             _mm2, _dd2 = int(_md.group(1)), int(_md.group(2))
         else:
@@ -2113,10 +2137,10 @@ def _abs_or_holiday(msg: str, now: datetime):
                                                now.day)["year"]
             except ValueError:
                 ly0 = now.year
-            lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+            lys = range(ly0 - 3, ly0 + 4)
             # 闰月稀疏（1900-2100 间十多年才一闰）——放宽到 ±12 个农历年
             # 并让 leap_month 把守，找真正带这个闰月的年份。
-            if is_leap and yoff is None:
+            if is_leap:
                 lys = [ly for ly in range(ly0 - 12, ly0 + 13)
                        if lunar_mod.leap_month(ly) == md[0]]
             cands = []
@@ -2125,6 +2149,10 @@ def _abs_or_holiday(msg: str, now: datetime):
                     cands.append(lunar_mod.lunar_to_solar(ly, *md, is_leap))
                 except ValueError:
                     pass
+            # R2359（R115-P1-1）：「明年正月初一」按发生日公历年过滤，
+            # 农历年下标加 yoff 会差一年（1月~除夕窗）。
+            if yoff is not None:
+                cands = [d for d in cands if d.year == now.year + yoff]
             if is_leap and cands:
                 # 闰月稀疏（常隔十几年）——「闰六月十五」多数在说记忆里
                 # 的那一天，按绝对就近取（过去语标仍优先落过去）。
@@ -2156,7 +2184,7 @@ def _abs_or_holiday(msg: str, now: datetime):
                                                now.day)["year"]
             except ValueError:
                 ly0 = now.year
-            lys = range(ly0 - 1, ly0 + 2) if yoff is None else [ly0 + yoff]
+            lys = range(ly0 - 3, ly0 + 4)
             cands = []
             for ly in lys:
                 try:
@@ -2164,6 +2192,9 @@ def _abs_or_holiday(msg: str, now: datetime):
                         ly, _mm[0], lunar_mod.month_days(ly, _mm[0])))
                 except ValueError:
                     pass
+            # R2359（R115-P1-1）：同上按公历年过滤。
+            if yoff is not None:
+                cands = [d for d in cands if d.year == now.year + yoff]
             pick = _nearest_day(cands, now, past)
             if pick:
                 _dl, _ln = _day_suffix(msg_n, lme.end())
@@ -2194,6 +2225,14 @@ def _abs_or_holiday(msg: str, now: datetime):
         # 只是回指节日，用户几乎总在问下一次；原 past 语标把她拽回今年
         # 已过的节日判忌。节日词对 past 免疫（yoff 年前缀仍钉死年份）。
         pick = _nearest_day(cands, now, False)
+        # R2359（R115-P2-5）：段期词段内问锚当前段起日——数九 81 天/
+        # 三伏 40 天里「数九/入伏」说的是正在进行的这段，不是明年起日。
+        if name in ("入伏", "三伏", "数九", "入九"):
+            _span = 40 if name in ("入伏", "三伏") else 81
+            _in = [s for s in cands
+                   if s <= now.date() < s + timedelta(days=_span)]
+            if _in:
+                pick = _in[-1]
         if pick:
             _dl, _ln = _day_suffix(msg_n, idx)
             _sp = msg_n[widx:idx + _ln]
@@ -2269,13 +2308,31 @@ def _abs_or_holiday(msg: str, now: datetime):
 
     if "月底" in msg or "月末" in msg:
         import calendar
-        cands = [date(now.year + (now.month == 12), (now.month % 12) + 1,
-                      calendar.monthrange(now.year + (now.month == 12),
-                                          (now.month % 12) + 1)[1]),
-                 date(now.year, now.month,
-                      calendar.monthrange(now.year, now.month)[1])]
+        # R2359（R115-P3-6）：显式月前缀「12月底」——「12」不能被丢，
+        # 1 月问时落当月月底是把十二月错读成本月。
+        _mex = re.search(r"(?<!\d)(\d{1,2})\s*月(?:底|末)", msg_n)
+        cands = []
+        if _mex:
+            _mm3 = int(_mex.group(1))
+            if 1 <= _mm3 <= 12:
+                for _yy3 in range(now.year - 1, now.year + 2):
+                    cands.append(date(_yy3, _mm3,
+                                      calendar.monthrange(_yy3, _mm3)[1]))
+        else:
+            cands = [date(now.year + (now.month == 12), (now.month % 12) + 1,
+                          calendar.monthrange(now.year + (now.month == 12),
+                                              (now.month % 12) + 1)[1]),
+                     date(now.year, now.month,
+                          calendar.monthrange(now.year, now.month)[1])]
+        if yoff is not None:
+            cands = [dd for dd in cands if dd.year == now.year + yoff]
         pick = _nearest_day(cands, now, past)
         if pick:
+            if _mex:
+                _dl, _ln = _day_suffix(msg_n, _mex.end())
+                return (datetime.combine(pick + timedelta(days=_dl),
+                                         now.time()),
+                        msg_n[_mex.start():_mex.end() + _ln])
             _w0 = msg_n.find("月底") if "月底" in msg_n else msg_n.find("月末")
             _dl, _ln = _day_suffix(msg_n, _w0 + 2)
             return (datetime.combine(pick + timedelta(days=_dl), now.time()),
@@ -2283,10 +2340,23 @@ def _abs_or_holiday(msg: str, now: datetime):
     # 「月初」须排除农历日语境——「五月初一」里的「月初」不是月初。
     _yc = re.search(r"月初(?!一|二|两|三|四|五|六|七|八|九|十|廿|\d)", msg_n)
     if _yc:
-        cands = [date(now.year + (now.month == 12), (now.month % 12) + 1, 1),
-                 date(now.year, now.month, 1)]
+        # R2359（R115-P3-6）：「12月初」同样不能丢显式月。
+        _myx = re.search(r"(?<!\d)(\d{1,2})\s*月初", msg_n)
+        if _myx and 1 <= int(_myx.group(1)) <= 12:
+            cands = [date(_yy4, int(_myx.group(1)), 1)
+                     for _yy4 in range(now.year - 1, now.year + 2)]
+        else:
+            cands = [date(now.year + (now.month == 12), (now.month % 12) + 1, 1),
+                     date(now.year, now.month, 1)]
+        if yoff is not None:
+            cands = [dd for dd in cands if dd.year == now.year + yoff]
         pick = _nearest_day(cands, now, past)
         if pick:
+            if _myx and 1 <= int(_myx.group(1)) <= 12:
+                _dl, _ln = _day_suffix(msg_n, _myx.end())
+                return (datetime.combine(pick + timedelta(days=_dl),
+                                         now.time()),
+                        msg_n[_myx.start():_myx.end() + _ln])
             _w0 = _yc.start()
             _dl, _ln = _day_suffix(msg_n, _w0 + 2)
             return (datetime.combine(pick + timedelta(days=_dl), now.time()),
@@ -2498,6 +2568,11 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
         if re.search(
                 r"农历|阴历|旧历|闰|農曆|陰曆|舊曆|閏|\d{4}|"
                 r"星期|礼拜|禮拜|周天|周日|周[一二三四五六八]|"
+                # R2359（R115-P1-3/P3-6）：放假表界外词与裸农历月/
+                # 过年前/段期词同属「说过但解不出」——invalid 如实说，
+                # 别静默按今天判。
+                r"放假|假期|收假|调班|节后|年后|过年前|"
+                r"正月|腊月|冬月|数九|入伏|三伏|梅雨季|"
                 r"[0-9]{1,2}\s*[号日]", q):
             return {"date": None, "spoken": "",
                     "invalid": "这个日子黄历里没有哦——"
@@ -2537,8 +2612,11 @@ def chat_huangli_facts(message: str, now: datetime | None = None) -> list[str]:
     _ck = (_msg_norm[:200] + "#" + hashlib.sha1(
         _msg_norm.encode("utf-8")).hexdigest()[:12],
            now.date().isoformat())
-    if _ck in _CHAT_FACTS_CACHE:
-        return list(_CHAT_FACTS_CACHE[_ck])
+    # R2359（R114-P3-3）：get 原子取值——in 检查与 [] 取值之间另一线程
+    # 的 clear() 落进来会 KeyError→task failed→用户看到「没接住」。
+    _hit = _CHAT_FACTS_CACHE.get(_ck)
+    if _hit is not None:
+        return list(_hit)
     facts = _chat_facts_inner(message, now)
     if len(_CHAT_FACTS_CACHE) >= 512:
         _CHAT_FACTS_CACHE.clear()   # 键带日期，粗清即够

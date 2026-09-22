@@ -21,7 +21,7 @@ from fastapi.responses import Response
 
 from guji import llm_polish, paipan_history
 
-from .. import services
+from .. import deps, services
 from ..errors import NotFoundError
 from ..schemas import (BaziRequest, ChatRequest, HehunRequest,
                        NameReviewRequest, PaipanImportRequest,
@@ -201,6 +201,7 @@ def paipan_history_export_json() -> dict:
 @router.post("/api/paipan/history/import")
 def paipan_history_import(req: PaipanImportRequest) -> dict:
     """R231a（R36-P3-3）：备份文件回灌——追加式去重落库。"""
+    deps.write_guard()   # R2357
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
     _w, _sk = paipan_history.import_rows(req.records)
@@ -221,6 +222,7 @@ def paipan_history_get(rid: int) -> dict:
 @router.delete("/api/paipan/history")
 def paipan_history_clear() -> dict:
     """R2345（R63-P1-3）：「忘掉我的数据」——台账整表清空。"""
+    deps.write_guard()   # R2357：公开模式下任何人都能清别人的库
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
     return {"ok": True, "deleted": paipan_history.clear_all()}
@@ -228,6 +230,7 @@ def paipan_history_clear() -> dict:
 
 @router.delete("/api/paipan/history/{rid}")
 def paipan_history_delete(rid: int) -> dict:
+    deps.write_guard()   # R2357
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
     if not paipan_history.delete_record(rid):
