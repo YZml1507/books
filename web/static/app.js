@@ -10965,13 +10965,15 @@ function baziPersonaCard(j) {
        * 云端为准（同号是否同条在 _phMirrorList 里已裁决）。 */
       var _cloudIds = {};
       j.items.forEach(function (it) { _cloudIds[String(it.id)] = 1; });
+      var _localIds = {};
       var _rows = j.items.slice();
       Object.keys(_mm.items || {}).forEach(function (k) {
         if (!_cloudIds[k]) {
           var _o = _mm.items[k];
+          _localIds[k] = 1;
           _rows.push({ id: _o.id, ts: _o.ts, name: _o.name, type: _o.type,
                        question: _o.question,
-                       result_summary: _o.result_summary, __local: true });
+                       result_summary: _o.result_summary });
         }
       });
       if (_rows.length !== j.items.length) {
@@ -10993,7 +10995,7 @@ function baziPersonaCard(j) {
           esc(tLabel) + '</span>' +
           '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
           '<span class="ph-ts">' + esc(ts) + '</span>' +
-          (it.__local
+          (_localIds[String(it.id)]
             ? '<span class="ph-type" style="opacity:.7;">本机留档</span>' : '') +
           '</div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
