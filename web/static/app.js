@@ -5036,6 +5036,40 @@ async function loadDaily() {
     /* R2349l（R73-P1-3/P1-4/P2-9）：个性行 + 开运三件套 + 水逆态——
      * 三条 meta 行同一个惰性挂载点。 */
     var _metaRow = document.querySelector('#dailyCard .daily-meta');
+    /* R2363（R117-P0-2）：胶囊行硬上限——可见 >5 粒折进「+N 条」
+     * 收纳钮（横滚 1798px 实测爆炸）；点开完整展示，不收内容只收视线。 */
+    function _dailyMetaCap() {
+      if (!_metaRow) return;
+      var _kids = Array.prototype.slice.call(_metaRow.children)
+        .filter(function (n) {
+          return n.classList.contains('daily-meta-item') &&
+            n.id !== 'dailyMetaMore';
+        });
+      var _vis = _kids.filter(function (n) { return !n.hidden; });
+      _kids.forEach(function (n) { n.dataset.capped = ''; });
+      var _more = el('dailyMetaMore');
+      if (_vis.length <= 5) {
+        if (_more) _more.hidden = true;
+        return;
+      }
+      var _open = _metaRow.dataset.expanded === '1';
+      if (!_open) {
+        _vis.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
+      }
+      if (!_more) {
+        _more = document.createElement('button');
+        _more.id = 'dailyMetaMore'; _more.type = 'button';
+        _more.className = 'daily-meta-item daily-meta-more';
+        _metaRow.appendChild(_more);
+        _more.addEventListener('click', function () {
+          _metaRow.dataset.expanded =
+            _metaRow.dataset.expanded === '1' ? '' : '1';
+          _dailyMetaCap();
+        });
+      }
+      _more.hidden = false;
+      _more.textContent = _open ? '收起' : '+' + (_vis.length - 5) + ' 条';
+    }
     function _dailyMetaItem(id, html) {
       var n = el(id);
       if (!n) {
@@ -5045,6 +5079,7 @@ async function loadDaily() {
       }
       if (html) { n.innerHTML = html; n.hidden = false; }  // esc-reviewed（各调用点 esc() 字段，文本键原样）
       else { n.hidden = true; n.innerHTML = ''; }
+      _dailyMetaCap();
     }
     if (j.personal && j.personal.line) {
       _dailyMetaItem('dailyPersonal',
@@ -9682,6 +9717,54 @@ function activateBssec(key) {
 
 var _PH_OPEN_GEN = 0;   /* R233k：历史复看代际号 */
 
+/* R2363（R116-P0-1）：部署态容器盘每次睡醒清零——排盘台账顺手镜像
+ * localStorage（本机=用户设备，云清不丢）。云端正常时云端为准、
+ * 顺手把新记录推进镜像；云端空了改读本机留档并标明出处。 */
+var _PH_MIRROR_KEY = 'paipan_mirror_v1';
+function _phMirrorLoad() {
+  try {
+    var _m = JSON.parse(localStorage.getItem(_PH_MIRROR_KEY) || 'null');
+    return (_m && _m.items && _m.details) ? _m : { items: {}, details: {} };
+  } catch (e0) { return { items: {}, details: {} }; }
+}
+function _phMirrorSave(m) {
+  try { localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); }
+  catch (e1) {
+    /* 写满：砍最旧的详情再试一次 */
+    var _ids = Object.keys(m.details).sort();
+    for (var _i = 0; _i < _ids.length; _i++) delete m.details[_ids[_i]];
+    try { localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); }
+    catch (e2) {}
+  }
+}
+function _phMirrorList(m, items) {
+  (items || []).forEach(function (it) {
+    if (it && it.id != null) m.items[String(it.id)] = it;
+  });
+  /* 只留最近 60 条列表摘要 */
+  var _ks = Object.keys(m.items).sort(function (a, b) {
+    return String(m.items[b].ts || '').localeCompare(String(m.items[a].ts || ''));
+  });
+  _ks.slice(60).forEach(function (k) { delete m.items[k]; });
+}
+function _phMirrorDetail(m, rec) {
+  if (!rec || rec.id == null) return;
+  m.details[String(rec.id)] = rec;
+  /* 详情最重——只留最近打开的 25 条 */
+  var _ids = Object.keys(m.details);
+  if (_ids.length > 25) {
+    _ids.slice(0, _ids.length - 25).forEach(function (k) {
+      delete m.details[k];
+    });
+  }
+}
+function _phMirrorDrop(m, id) {
+  delete m.items[String(id)]; delete m.details[String(id)];
+}
+function _phMirrorClear() {
+  try { localStorage.removeItem(_PH_MIRROR_KEY); } catch (e0) {}
+}
+
 /* ── 初始化 ────────────────────────────────────────────────── */
 
 function initViews() {
@@ -12511,7 +12594,38 @@ function baziPersonaCard(j) {
         listEl.innerHTML = '<div class="ph-empty">记录功能没开——命盘照算，只是不留档 ✨</div>';
         return;
       }
+      /* R2363：云端照常时顺手推镜像（只进不出，老记录自然滚动淘汰）。 */
+      var _mm = _phMirrorLoad();
+      _phMirrorList(_mm, j.items);
+      _phMirrorSave(_mm);
       if (!j.items || !j.items.length) {
+        /* R2363（R116-P0-1）：云端空但本机有镜像——这是睡醒清盘后
+         * 的「本机留档」态，照旧列出记录并标明出处（不是「还没用过」）。 */
+        var _localItems = Object.keys(_mm.items).map(function (k) {
+          return _mm.items[k];
+        }).sort(function (a, b) {
+          return String(b.ts || '').localeCompare(String(a.ts || ''));
+        });
+        if (_localItems.length) {
+          listEl.innerHTML = '<div class="ph-empty" style="margin-bottom:10px;">' +
+            '☁️ 云端记录被服务重启清掉了——下面是你设备上留下的本机备份' +
+            '（未打开过的只有摘要行）</div>' +
+            _localItems.map(function (it) {
+              var _t = (it.ts || '').replace('T', ' ');
+              var _tL = _PH_TYPE_LABEL[it.type] || '记录';
+              var _r = (it.result_summary && it.result_summary.paipan_render) || '';
+              return '<div class="ph-item" data-id="' + esc(String(it.id)) + '">' +
+                '<div class="ph-head"><span class="ph-type ph-t-' +
+                esc(it.type || 'bazi') + '">' + esc(_tL) + '</span>' +
+                '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
+                '<span class="ph-ts">' + esc(_t) + '</span>' +
+                '<span class="ph-type" style="opacity:.7;">本机留档</span></div>' +
+                '<div class="ph-render">' + esc(_r) + '</div>' +
+                '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
+                '<button type="button" class="ghost ph-del">删除</button></div></div>';
+            }).join('');
+          return;
+        }
         /* R2350f（R102-P2-11）：空态加行动出口——罗列品类但没一个能点，
          * 新客读完只能自己回首页找。 */
         listEl.innerHTML = '<div class="ph-empty">还没有占卜记录——命盘、桃花、合婚、塔罗、六爻、起名都会收在这里 ✨' +
@@ -12581,6 +12695,8 @@ function baziPersonaCard(j) {
       tg.dataset.inflight = '1';
       try {
         await phFetch('/api/paipan/history/' + id, { method: 'DELETE' });
+        /* R2363：删成功了顺手把镜像里的也摘掉（两边口径一致）。 */
+        var _md = _phMirrorLoad(); _phMirrorDrop(_md, id); _phMirrorSave(_md);
         /* R233f（R43-P2-4）：列表重建销毁聚焦钮 → 落回列表容器 */
         loadPaipanHistory().then(function () {
           var _hl = el('historyList');
@@ -12595,7 +12711,15 @@ function baziPersonaCard(j) {
         } catch (e2) {}
       }
       /* R228c：错误反馈统一走 toast 体系，不用原生 alert */
-      catch (e) { showToast('删除失败：' + e.message, 'error'); }
+      catch (e) {
+        /* R2363：404 = 云端已清——视同删成功，把镜像也摘掉、行摘走。 */
+        if (/(404|没查到|不存在)/.test(e && e.message || '')) {
+          var _md2 = _phMirrorLoad(); _phMirrorDrop(_md2, id); _phMirrorSave(_md2);
+          if (item.isConnected) item.remove();
+        } else {
+          showToast('删除失败：' + e.message, 'error');
+        }
+      }
       finally { tg.dataset.inflight = '0'; }
       return;
     }
@@ -12604,8 +12728,23 @@ function baziPersonaCard(j) {
       /* R233k（R45-P2）：连点两条历史并发取详情，后到覆盖先到——
        * 代际号丢弃过期响应（_XZ_GEN 先例）。 */
       var _g = ++_PH_OPEN_GEN;
+      var rec;
       try {
-        const rec = await phFetch('/api/paipan/history/' + id);
+        rec = await phFetch('/api/paipan/history/' + id);
+        /* R2363：能拿到就推进镜像——打开过的记录清盘后仍可复看。 */
+        var _mo = _phMirrorLoad(); _phMirrorDetail(_mo, rec); _phMirrorSave(_mo);
+      } catch (e0) {
+        /* R2363：云端取不到（404/清盘）→ 读本机镜像详情 */
+        rec = _phMirrorLoad().details[String(id)] || null;
+        if (!rec) {
+          showToast('这条云端已清、本机只留了摘要行——以后点过的记录会整条留在你设备上', 'warn');
+          if (/(404|没查到)/.test(e0 && e0.message || '') && item.isConnected) {
+            item.remove();
+          }
+          return;
+        }
+      }
+      try {
         if (_g !== _PH_OPEN_GEN) return;
         const detailEl = document.getElementById('historyDetail');
         /* R230z（R36-P1-1）：按品类回放对应渲染器 */
@@ -12887,7 +13026,7 @@ function baziPersonaCard(j) {
       Promise.all([
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' })
-      ]).then(function () { _done(true); })
+      ]).then(function () { _phMirrorClear(); _done(true); })
         .catch(function () { _done(false); });
     });
     var _imb = document.getElementById('historyImportBtn');

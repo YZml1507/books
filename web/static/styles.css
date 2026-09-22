@@ -420,6 +420,10 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R2362（用户直报）：display:flex 压过 [hidden] 的 display:none——
  * 空 meta 项在卡上渲染成一排竖空胶囊，补上针对性复位。 */
 .daily-meta-item[hidden]{display:none;}
+/* R2363（R117-P0-2）：>5 粒折叠——capped 的收进「+N 条」收纳钮。 */
+.daily-meta-item[data-capped="1"]{display:none;}
+.daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
+.daily-meta-more{cursor:pointer; font:inherit; color:var(--accent);}
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;

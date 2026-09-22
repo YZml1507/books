@@ -209,8 +209,8 @@ try {
     <button class="ghost" type="button" id="shareDaily"
             title="生成分享图" aria-label="把今日运势存成分享图"
             style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
-    <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
-    <div class="daily-checkin" id="dailyCheckin"></div>
+    <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
+         打卡块移到判词下面。 -->
     <div class="daily-main">
       <div class="daily-level" id="dailyLevel">—</div>
       <div>
@@ -219,18 +219,19 @@ try {
         <div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div>
       </div>
     </div>
+    <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
+    <div class="daily-checkin" id="dailyCheckin"></div>
     <!-- R233f（R43-P3-17）：窄屏横滚区需可键盘聚焦，否则 Tab 进不去 -->
     <div class="daily-meta" tabindex="0" role="region" aria-label="今日提示">
       <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
-      <div class="daily-meta-item" title="传统里最帮你的那个方位/时段——拿不准就都试试">🍀 今日天乙贵人：<strong id="dailyNoble">—</strong></div>
+      <!-- R2363（R117-P0-3）：贵人+合拍并一粒，高共鸣钩子位置前移。 -->
       <!-- R2349g（R68-P0-2）：天乙贵人按日干只有 ~5 组值，叠日支六合
            「合拍生肖」做第二层，日签天天有新鲜组合。 -->
-      <div class="daily-meta-item" title="和你今天最合得来的属相——见到了多聊两句">💞 合拍生肖：<strong id="dailyPal">—</strong></div>
+      <div class="daily-meta-item" title="传统里最帮你的方位/时段 · 今天最合得来的属相">🍀 天乙贵人 <strong id="dailyNoble">—</strong> · 💞 合拍 <strong id="dailyPal">—</strong></div>
       <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
            老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
            打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
-      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试：<strong id="dailyDo">—</strong></div>
-      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">🚫 先缓缓：<strong id="dailyDont">—</strong></div>
+      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试 <strong id="dailyDo">—</strong> · 🚫 先缓缓 <strong id="dailyDont">—</strong></div>
     </div>
     <!-- R229z续23（R11-每日免责缺口）：首页卡面此前无免责 -->
     <div style="font-size:11px;color:var(--muted);margin-top:6px;">仅供娱乐，新的一天照常过 ✨</div>

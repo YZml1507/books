@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, HTTPException, Request
@@ -141,6 +142,24 @@ def create_app() -> FastAPI:
         # （不用 request.form()——Starlette 表单解析要 python-multipart，
         #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
         if path == "/_gate" and request.method == "POST":
+            # R2363（R116-P1-2）：在线爆破面——口令闸是唯一防线，
+            # 进程内 10 次/60s/IP 限速（单 worker 下够用）。
+            _now = time.time()
+            _ip = (request.client.host if request.client else "?")
+            _gate_bucket = getattr(_access_gate, "_bucket", None)
+            if _gate_bucket is None:
+                _gate_bucket = {}
+                _access_gate._bucket = _gate_bucket
+            _hist = [t for t in _gate_bucket.get(_ip, [])
+                     if _now - t < 60]
+            if len(_hist) >= 10:
+                return PlainTextResponse(
+                    "敲太多次门啦——歇一分钟再来",
+                    status_code=429)
+            _hist.append(_now)
+            _gate_bucket[_ip] = _hist
+            if len(_gate_bucket) > 2000:
+                _gate_bucket.clear()
             from urllib.parse import parse_qs
             key = parse_qs(
                 (await request.body()).decode("utf-8", "replace")
@@ -153,9 +172,12 @@ def create_app() -> FastAPI:
                                 secure=request.url.scheme == "https",
                                 max_age=30 * 86400)
                 return resp
+            # 403 而非 200：SW 的 navigate 分支只缓存 resp.ok——门页
+            # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
+            # 浏览器照常渲染 HTML 体，用户看到同样的门。
             return PlainTextResponse(
                 _GATE_PAGE.format(hint=_GATE_HINT),
-                media_type="text/html")
+                media_type="text/html", status_code=403)
         if good:
             return await call_next(request)
         # ?key= 直通：给主人自己用的可分享链接——验完设 Cookie 再跳回
@@ -175,7 +197,7 @@ def create_app() -> FastAPI:
             return JSONResponse(status_code=401,
                                 content={"detail": "需要钥匙才能进来哦"})
         return PlainTextResponse(_GATE_PAGE.format(hint=""),
-                                 media_type="text/html")
+                                 media_type="text/html", status_code=403)
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
     # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，
