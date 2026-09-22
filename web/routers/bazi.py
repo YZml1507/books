@@ -206,9 +206,16 @@ def paipan_history_import(req: PaipanImportRequest) -> dict:
     if paipan_history.disabled():
         raise NotFoundError("排盘历史未启用")
     _w, _sk, _new = paipan_history.import_rows(req.records)
+    # R2400（R138-P1-3 跟进）：备份包里的研究线程/手记同样回灌——
+    # (topic, opened_at) 去重，幂等不翻倍。
+    _tw = _tsk = 0
+    if req.threads:
+        with deps.knowledge() as kb:
+            _tw, _tsk = kb.import_threads(req.threads)
     # R2400（R127-P2-5）：新行 id 回给前端——备份里的完整 req/result
     # 按新 id 回灌进本机镜像详情，云端清盘后点开依旧有完整排盘。
-    return {"imported": _w, "skipped": _sk, "new_records": _new}
+    return {"imported": _w, "skipped": _sk, "new_records": _new,
+            "threads_imported": _tw, "threads_skipped": _tsk}
 
 
 @router.get("/api/paipan/history/{rid}")

@@ -12716,3 +12716,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   25号」（月份口误）——scene 判词补「照判词写的念不换算」约束；
   ②起名点评漏裸 `---` 分隔线上屏——_sanitize 补 markdown hr
   （-_*_ 独占行）压除。contract 探针白名单补 indexOf/concat。
+
+- **R2400w（线程备份回灌闭环）**：上轮把 threads 纳入备份包但
+  导入端只认 records——备份里的研究线程被静默丢。补全闭环：
+  knowledge.import_threads（thread+turn 原样恢复、(topic,
+  opened_at) 幂等去重、status/role/seq 保真、50线程/500轮帽）、
+  PaipanImportRequest 加 threads 字段、导入响应透出
+  threads_imported/skipped、前端 POST 带 bundle.threads。
+  selftest +1 钉扎（306 checks）。

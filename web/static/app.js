@@ -11734,10 +11734,16 @@ function baziPersonaCard(j) {
           var _recs = (bundle.records || []).filter(function (r) {
             return r && typeof r === 'object' && !Array.isArray(r);
           });
-          if (_recs.length) {
-            const rj = await postJSON('/api/paipan/history/import',
-                                      { records: _recs.slice(0, 500) });
-            n = rj.imported || 0;
+          var _impBody = { records: _recs.slice(0, 500) };
+          /* R2400（R138-P1-3 跟进）：备份包带的研究线程/手记同样
+           * 回灌——此前只认 records 被静默丢掉。形状收敛与 records 同款。 */
+          var _thr = (bundle.threads || []).filter(function (t) {
+            return t && typeof t === 'object' && !Array.isArray(t);
+          });
+          if (_thr.length) _impBody.threads = _thr.slice(0, 50);
+          if (_recs.length || _thr.length) {
+            const rj = await postJSON('/api/paipan/history/import', _impBody);
+            n = (rj.imported || 0) + (rj.threads_imported || 0);
             /* R2400（R127-P2-5）：导入回灌详情——后端返回新行
              * {id,ts,name,type}，按去重键（与后端同口径截断）匹配
              * 本地 bundle 行，把完整 req/result 写进镜像详情——

@@ -2373,6 +2373,32 @@ def _run_inner() -> list[str]:
             and _w2[2] == [] and _w3[2] == []), (
         "paipan.import_rows.new_rows", _w1[2], _w2[2])
     ok.append("paipan.import_rows")
+    # R2400u（R138-P1-3 跟进钉扎）：备份包 threads 回灌——
+    # (topic, opened_at) 幂等去重、status/turns 原样恢复。
+    from guji.knowledge import KnowledgeBase as _KBt
+    _kbt = _KBt(KNOWLEDGE_DB)
+    try:
+        _t1 = _kbt.import_threads([{"topic": "回灌钉扎", "status": "parked",
+            "opened_at": "2026-01-01T00:00:00",
+            "turns": [{"role": "user", "text": "开题", "seq": 1,
+                       "created_at": "2026-01-01T00:00:00"}]}])
+        _t2 = _kbt.import_threads([{"topic": "回灌钉扎",
+            "opened_at": "2026-01-01T00:00:00", "turns": []}])
+        _row = _kbt.db.execute(
+            "SELECT id, status FROM thread WHERE topic='回灌钉扎'").fetchone()
+        _seq = _kbt.db.execute(
+            "SELECT seq, role, text FROM turn WHERE thread_id=?",
+            (_row["id"],)).fetchall()
+        _kbt.db.execute("DELETE FROM turn WHERE thread_id=?", (_row["id"],))
+        _kbt.db.execute("DELETE FROM thread WHERE id=?", (_row["id"],))
+        _kbt.db.commit()
+        assert (_t1 == (1, 0) and _t2 == (0, 1)
+                and _row["status"] == "parked" and len(_seq) == 1
+                and _seq[0]["role"] == "user" and _seq[0]["text"] == "开题"), (
+            "knowledge.import_threads", _t1, _t2, dict(_row), _seq)
+    finally:
+        _kbt.close()
+    ok.append("knowledge.import_threads")
     # R178b（D-230b）：LLM 层已整体移除——断言它**回不来**。`guji.llm_reader`
     # 必须不可导入，且响应里不得再出现 llm/llm_out/use_llm 字段（若哪轮把
     # 生成式解读悄悄接回来，此处立刻红）。
