@@ -578,16 +578,36 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
         kw = dict(layer=layer, work_id=work, genre=genre, scheme=scheme)
         hits = c.search(q, limit=limit, **kw)
         hint = None
-        if not hits:
-            # R230a-30（R14-P1-1）：语料是繁体，简体问句零命中时用保守映射
-            # 重试一次——「潜龙勿用」→「潛龍勿用」。只对查询词生效，不动语料。
-            q2 = s2t_retry(q)
-            if q2 != q:
-                hits = c.search(q2, limit=limit, **kw)
-                if hits:
+        q2 = s2t_retry(q)
+        retried = False
+        extra: list = []
+        if q2 != q:
+            # R2400（R125-P1-2）：此前只在「零命中」时才按繁体重试——
+            # 简体有部分命中时繁体形静默缺席（「无为」10 条 vs
+            # 「無為」165 条），属误导性输出。现在两形并查、按
+            # (work_id,text) 去重合并，超 limit 如实 truncated。
+            hits2 = c.search(q2, limit=limit, **kw)
+            if not hits:
+                if hits2:
+                    hits = hits2
                     hint = f"已按繁体重试「{q2}」"
-        total = c.search_count(q if hint is None else q2, **kw) \
-            if hits else 0
+                    retried = True
+            elif hits2:
+                seen = {(h.work_id, h.text) for h in hits}
+                extra = [h for h in hits2 if (h.work_id, h.text) not in seen]
+                if extra:
+                    hits = (hits + extra)[:limit]
+                    hint = f"已附繁体「{q2}」命中"
+        # total = 保留数 + 各形未展示的余量（各形只算真被搜过的那个；
+        # 合并窗口外的交集无法计数，如实按下界报并与 truncated 一致）。
+        kept = len(hits) - len(extra)
+        total = 0
+        if kept:
+            src = q2 if retried else q
+            total = kept + max(0, c.search_count(src, **kw) - kept)
+        if extra:
+            total += len(extra) + \
+                max(0, c.search_count(q2, **kw) - len(extra))
         return {"query": q, "count": len(hits), "total": total,
                 "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
@@ -734,7 +754,11 @@ def concept(q: str, per_work: int = 3) -> dict:
     """跨书概念研究：作品级普查 + 同址多见证地图。"""
     q = _require_q(q)
     with deps.corpus() as c:
-        return concept_census(c, q, per_work=min(max(per_work, 1), 10))
+        # R2400（R125-P1-2）：与 /api/search 同纪律——简体概念繁体形
+        # 并查（「无为」普查 4 部 →「無為」21 部，此前后者静默缺席）。
+        return concept_census(
+            c, q, per_work=min(max(per_work, 1), 10),
+            concept2=s2t_retry(q))
 
 
 def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:

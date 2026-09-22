@@ -6169,6 +6169,14 @@ async function _threadListHtml() {
           (_threadStatus === kv[0] ? ' active' : '') +
           '" data-thread-filter="' + kv[0] + '">' + kv[1] + '</button>';
       }).join('') + '</div>';
+  /* R2400（R124-P1-1）：0 条线程时只剩筛选条+整片空白——按状态给
+   * 相应的空态句（进行中没有就引导开一个，收起/结束是正常空空）。 */
+  if (!(list.threads || []).length) {
+    return html + '<div class="ph-empty" style="margin-top:10px;">' +
+      {open: '还没有进行中的研究线程——搜个词顺手开一个？',
+       parked: '没有先收起的线程。',
+       closed: '还没有聊完的线程。'}[_threadStatus] + '</div>';
+  }
   (list.threads || []).forEach(function (t) {
     /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
      * 一眼可辨新旧（updated_at 只记最近动静）。 */
@@ -10199,7 +10207,13 @@ function initDivination() {
               return '<div class="tarot-cell' + (got[n] ? ' got' : '') +
                 '">' + esc(got[n] ? n : '？') + '</div>';
             }).join('') + '</div>';
-        }).catch(function () {});
+        }).catch(function () {
+          /* R2400（R124-P1-2）：静默 catch 此前抽屉停在
+           * 「展开看看收集进度～」假候态——失败了明说。 */
+          var _bx = el('tarotAlbum');
+          if (_bx) _bx.innerHTML = '<div class="ph-empty" ' +
+            'style="padding:12px;">牌册暂时翻不开——合上再开试试</div>';
+        });
       });
     }
   })();
@@ -10246,6 +10260,9 @@ function initDivination() {
   on('xzmSubmit', async function () {
     var sa2 = el('xzm_a'), sb2 = el('xzm_b'), box = el('xzmResult');
     if (!sa2 || !sb2 || !box) return;
+    /* R2400（R124-P1-3）：钮被 on() 锁但结果区零反馈——慢网下
+     * 用户以为没点上。与其他提交同纪律 busy()。 */
+    busy('xzmResult', '正在替你们对星盘…');
     try {
       var _rel = el('xzm_rel');
       var mj = await api('/api/xzmatch?a=' + encodeURIComponent(sa2.value) +

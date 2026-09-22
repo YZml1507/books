@@ -425,6 +425,10 @@ try {
   <div class="view" id="view-read">
     <div class="card">
       <h2><span aria-hidden="true">📜</span> 古籍读书 <span class="card-sub">知往圣 · 绝学</span></h2>
+      <!-- R2400（R125-P2）：常驻语境说明——这块是给查证用的工具，
+           原文多为繁体，免得误入的朋友一脸懵。 -->
+      <p style="font-size:12px;color:var(--secondary);margin:4px 0 10px;">
+        这里放的是原文查证工具——古籍多为繁体，找句子、对版本、看引用用。</p>
       <div class="rtabs">
         <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
         <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
@@ -444,7 +448,10 @@ try {
           <div class="field" style="flex:3;"><label for="rq">查询词</label>
             <input id="rq" type="text" maxlength="200" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
           <div class="field"><label for="rlayer">层过滤</label>
-            <select id="rlayer"><option value="">全部</option><option value="經">經</option><option value="傳">傳</option><option value="注">注</option><option value="疏">疏</option><option value="箋">箋</option><option value="緒">緒</option><option value="衍">衍</option><option value="演">演</option><option value="評">評</option><option value="纂">纂</option><option value="拾遺">拾遺</option><option value="misc">其他</option></select></div>
+            <!-- R2400（R125-P1-1）：层选项换实测分布——旧表 11 选 9 个
+                 必 400（傳/疏/箋/緒/衍/演/評/纂/misc 库里根本没有），
+                 占 80% 的「正文」反而没得选。 -->
+            <select id="rlayer"><option value="">全部</option><option value="正文">正文</option><option value="注">注</option><option value="經">經</option><option value="林辭">林辭</option><option value="十翼">十翼</option><option value="圖">圖</option><option value="標題">標題</option></select></div>
           <div class="field"><label for="rwork">书过滤</label>
             <input id="rwork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
         </div>
@@ -845,7 +852,8 @@ try {
             </select></div>
         </div>
         <button id="xzmSubmit" type="button" style="margin-top:10px;">测测合拍度 💗</button>
-        <div id="xzmResult" style="margin-top:12px;"></div>
+        <!-- R2400（R124-P2）：结果区补空态，不再是一片空白 -->
+        <div id="xzmResult" style="margin-top:12px;"><div class="ph-empty" style="padding:12px;">选你们的星座，点「测测合拍度」～</div></div>
       </details>
       <div class="xz-datebar">
         <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>

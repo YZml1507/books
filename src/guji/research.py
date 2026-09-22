@@ -243,7 +243,8 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
 
 
 def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
-                   scan_limit: int = 200) -> dict:
+                   scan_limit: int = 200,
+                   concept2: str | None = None) -> dict:
     """One concept across the whole corpus: per-work census + shared-address map.
 
     The cross-book research shape the founding brief §17 asks for («研究'变'的概念»):
@@ -257,6 +258,14 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
     shared: dict[tuple[int, str | None], list[str]] = {}
     for w in works:
         hits = corpus.search(concept, limit=scan_limit, work_id=w["id"])
+        if concept2 and concept2 != concept:
+            # R2400（R125-P1-2）：简体概念有部分命中时繁体形静默缺席
+            # （「无为」4 部 vs「無為」21 部）——两形并查去重。
+            hits2 = corpus.search(concept2, limit=scan_limit,
+                                  work_id=w["id"])
+            seen = {(h.work_id, h.text) for h in hits}
+            hits = hits + [h for h in hits2
+                           if (h.work_id, h.text) not in seen]
         if not hits:
             continue
         layers: dict[str, int] = {}
