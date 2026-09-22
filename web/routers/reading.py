@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from .. import services
+from .. import deps, services
 from ..schemas import AskRequest, ThreadRecordRequest
 
 router = APIRouter(tags=["reading"])
@@ -99,6 +99,7 @@ def thread_detail(tid: int) -> dict:
 @router.delete("/api/threads/{tid}")
 def thread_remove(tid: int) -> dict:
     """删除一条研究线程（R230q：turns 随删，derived claims 解绑保留）。"""
+    deps.write_guard()   # R2357
     return services.thread_delete(tid)
 
 
@@ -106,12 +107,14 @@ def thread_remove(tid: int) -> dict:
 def thread_patch(tid: int, status: str) -> dict:
     """改线程状态（R230r / R30-#8：open/parked/closed——收起的线程不再
     占 resume 列表位）。"""
+    deps.write_guard()   # R2357
     return services.thread_set_status(tid, status)
 
 
 @router.post("/api/threads")
 def thread_record(req: ThreadRecordRequest) -> dict:
     """写入一条研究结论（G8：断言型 kind 必须带证据，refusal 可无）。"""
+    deps.write_guard()   # R2357
     return services.thread_record(req)
 
 

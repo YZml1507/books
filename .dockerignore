@@ -1,0 +1,30 @@
+# R2357（R113-P3-18）：部署工件减重——这些不该进镜像层。
+.git
+.gitattributes
+.venv
+venv
+__pycache__
+*.pyc
+logs/
+node_modules/
+
+# 运行期产物——镜像内由 build_index.py 重新生成
+data/index/corpus.db
+data/index/knowledge.db
+data/paipan_history.db
+data/history.db
+
+# 131MB 第三方参考包：运行期零引用（R113 实测 grep 无消费方）。
+# 注意 data/raw_ext/generality 是 build_index 的输入（booksec 系作品），
+# 与它是两码事，不能排。
+data/external/
+
+# 桌面打包件与审计面：Linux 容器噪音
+web_launcher.py
+start_web.bat
+books_app.spec
+requirements-packaging.txt
+probes/
+docs/
+.agents/
+.aider*

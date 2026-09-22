@@ -27,7 +27,8 @@ import os
 import re
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
+                               PlainTextResponse, Response)
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -65,6 +66,27 @@ def create_app() -> FastAPI:
     # app.js 269KB→97KB、/api/bazi 46KB 约压 80%，/api/research 349KB
     # 收益更大。1KB 以下的响应不值得压（gzip 有固定头）。
     application.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    # R2357（R113-P2-15/P3-21）：公网部署两个可选闸——
+    #  BOOKS_ALLOWED_HOSTS：逗号分隔 Host 白名单（TrustedHost），防伪造
+    #    Host 让 og:url/og:image 缓存投毒；不设 = 现状放行（本地单用户）。
+    #  BOOKS_CORS_ORIGINS：逗号分隔 Origin 白名单（分体部署用，如
+    #    github.io 落地页 + Railway API）；不设 = 不加 CORS 头（同源形态）。
+    _hosts = [h.strip() for h in
+              os.getenv("BOOKS_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    if _hosts:
+        from starlette.middleware.trustedhost import TrustedHostMiddleware
+        application.add_middleware(TrustedHostMiddleware,
+                                   allowed_hosts=_hosts)
+    _origins = [o.strip() for o in
+                os.getenv("BOOKS_CORS_ORIGINS", "").split(",") if o.strip()]
+    if _origins:
+        from starlette.middleware.cors import CORSMiddleware
+        application.add_middleware(CORSMiddleware,
+                                 allow_origins=_origins,
+                                 allow_methods=["GET", "POST", "DELETE",
+                                                "PATCH"],
+                                 allow_headers=["Content-Type"])
 
     # 静态资源：/static 指向 index.html 所在目录（开发期 ROOT/web/static，
     # frozen 期 _MEIPASS/web/static，与 INDEX 同源）。
@@ -233,19 +255,29 @@ def create_app() -> FastAPI:
     # 爬虫不会去翻。favicon.ico 旧式 UA 会裸请求根路径。
     @application.api_route("/robots.txt", methods=["GET", "HEAD"],
                            include_in_schema=False)
-    def robots():
+    def robots(request: Request):
+        # R2357（R113-P2-11）：robots 的 Sitemap 指令同样要绝对 URL。
         p = os.path.join(deps.STATIC_DIR, "robots.txt")
         if not os.path.exists(p):
             raise HTTPException(404)
-        return FileResponse(p, media_type="text/plain")
+        base = str(request.base_url).rstrip("/")
+        body = open(p, encoding="utf-8").read().replace(
+            "Sitemap: /sitemap.xml", f"Sitemap: {base}/sitemap.xml")
+        return PlainTextResponse(body)
 
     @application.api_route("/sitemap.xml", methods=["GET", "HEAD"],
                            include_in_schema=False)
-    def sitemap():
+    def sitemap(request: Request):
+        # R2357（R113-P2-11）：sitemap 规范要绝对 URL——全相对 <loc>
+        # 会被搜索引擎整体丢弃。按请求 base_url（含 proxy-headers 还原
+        # 的公网域）动态拼，部署域名写死不得。
         p = os.path.join(deps.STATIC_DIR, "sitemap.xml")
         if not os.path.exists(p):
             raise HTTPException(404)
-        return FileResponse(p, media_type="application/xml")
+        base = str(request.base_url).rstrip("/")
+        body = re.sub(r"<loc>/", "<loc>" + base + "/",
+                      open(p, encoding="utf-8").read())
+        return Response(body, media_type="application/xml")
 
     @application.api_route("/favicon.ico", methods=["GET", "HEAD"],
                            include_in_schema=False)

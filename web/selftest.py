@@ -2141,6 +2141,27 @@ def _run_inner() -> list[str]:
         if _theme0:
             client.post("/api/user/prefs", json={"theme": _theme0})
     ok.append("prefs.guardrails")
+    # R2357（R113-P1-7）：BOOKS_WRITE_DISABLE 公网写入总闸——env 即时读，
+    # 开则所有共享库写端点 400 中文，关则恢复。
+    import os as _osw
+    _osw.environ["BOOKS_WRITE_DISABLE"] = "1"
+    try:
+        for _m, _u, _kw in (
+                ("post", "/api/user/prefs", {"json": {"theme": "aa"}}),
+                ("post", "/api/favorites",
+                 {"json": {"type": "bazi", "ref_id": "r1", "title": "t"}}),
+                ("delete", "/api/favorites/1", {}),
+                ("delete", "/api/threads/1", {}),
+                ("patch", "/api/threads/1?status=closed", {}),
+                ("post", "/api/threads",
+                 {"json": {"kind": "answer", "claim": "x",
+                           "method": "manual"}})):
+            _wg = getattr(client, _m)(_u, **_kw)
+            assert _wg.status_code == 400 and "写入功能被关" in \
+                str(_wg.json().get("detail")), ("write_guard", _u, _wg.status_code)
+    finally:
+        del _osw.environ["BOOKS_WRITE_DISABLE"]
+    ok.append("write_guard.public")
     check("share.tarot", client.get("/api/share/tarot/abc123"),
           lambda j: j.get("title") == "塔罗占卜结果")
     for _sp, _want in (("/api/share/nope/1", 404),

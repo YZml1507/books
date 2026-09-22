@@ -94,3 +94,22 @@ def knowledge():
         yield kb
     finally:
         kb.close()
+
+
+def public_writes_open() -> bool:
+    """公网部署写入总闸（R2357，R113-P1-7）。
+
+    BOOKS_WRITE_DISABLE=1：演示/公开模式——prefs/favorites/threads/
+    paipan-import 这些写「共享 knowledge.db」的端点整体拒绝。
+    排盘台账另有专属开关 BOOKS_PAIPAN_HISTORY_DISABLE（自动记盘面）。
+    读面不受影响。"""
+    return os.getenv("BOOKS_WRITE_DISABLE", "").strip().lower() not in (
+        "1", "on", "true", "yes")
+
+
+def write_guard() -> None:
+    """写端点入口闸——公开模式下所有共享库写操作给中文 400。"""
+    if not public_writes_open():
+        from .schemas import ValidationError
+        raise ValidationError(
+            "这是公开演示站——写入功能被关掉了，只能看不能改哦")

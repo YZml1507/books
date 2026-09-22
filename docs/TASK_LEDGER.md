@@ -12347,3 +12347,34 @@ R111 报告（3 P1 + 11 P2/P3）全清：
 验证：selftest 288 / parity 74+43+251 / contract 617 / ui_smoke 76 /
 poster 12-14 / ruff / dollar / first_screen / async_ai / xingzuo /
 warm_voice / baseline / plain_first / selftest_regress 全绿。
+
+## R2357（R113 部署就绪度审计实施批）
+
+审计：子会话 10f8214e（audit_r113.md）。21 项：P0×5 部署配方缺失、
+P1×5 共享库隐私/进程内状态/依赖爆弹、P2×6、P3×5。
+
+- P0×5 部署配方落地：`requirements-runtime.txt`（精简运行时，
+  与 ci 版分轨——ci 含 sentence-transformers→torch ~2GB 会撑爆
+  免费档）；`Dockerfile`（python:3.10-slim，对齐 .python-version/CI；
+  build 期跑 check_quality+build_index；CMD uvicorn --workers 1
+  --proxy-headers 读 $PORT）；`.dockerignore`（剥 dbs/data external
+  131MB/打包链/probes/docs）；`.python-version` 3.10。
+- P1-7 共享库公网总闸：`deps.write_guard()` +
+  `BOOKS_WRITE_DISABLE` env——开启时 prefs/favorites×3/threads×3/
+  paipan import+delete×2 全部 400「这是公开演示站——写入功能被关掉了」，
+  只读端点不受影响。selftest 新增 write_guard.public（6 端点×400）。
+- P1 文档化约束：paipan_history.db 记录生辰明文、ephemeral 磁盘、
+  _RATE/_tasks/_chat_sessions 进程内字典→必须 --workers 1——
+  全部写进 README 公网部署节+env 表（PAIPAN_HISTORY_DISABLE/
+  WRITE_DISABLE/ALLOWED_HOSTS/CORS_ORIGINS 三新旗）。
+- P2-11 sitemap/robots 动态绝对 URL（request.base_url 渲染——
+  此前写死相对路径，搜索引擎拿到的 loc 无效）。
+- P2-15 `BOOKS_ALLOWED_HOSTS`→TrustedHostMiddleware（防 Host 头污染）；
+  P3-21 `BOOKS_CORS_ORIGINS`→CORSMiddleware（前端分部署时用）。
+- 接受项：GUJI_PROXY 已有 env；P2-16 RSS TTL、P3-17/18/19/20 记档。
+
+验证：公网旗真机冒烟（WRITE_DISABLE→400 中文/Bad Host→400/
+sitemap 绝对 loc/bazi 仍通）；selftest 288→289（+write_guard.public）/
+contract 617 / ui_smoke 76 / poster 12-14 / parity 74+43+251 /
+ruff / dollar / first_screen / async_ai / xingzuo / warm_voice /
+baseline / plain_first / selftest_regress 全绿。
