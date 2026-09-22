@@ -434,6 +434,18 @@ def _run_inner() -> list[str]:
         assert _a["yi"] == _b["yi"] and _a["ji"] == _b["ji"], \
             ("huangli.term_day.yiji_flip", _tn, _ty)
     ok.append("huangli.term_day.consistent")
+    # R2362（用户直报）：宜忌按《协纪辨方书》层票裁决——任一天
+    # yi∩ji 恒空、conflict/conflict_family 透出空表，同框矛盾不许回归。
+    for _mm in (1, 4, 7, 10):
+        for _dd in (2, 11, 19, 27):
+            _qq = _dq6(_dt6(2026, _mm, _dd, 12))
+            assert not (set(_qq["yi"]) & set(_qq["ji"])), \
+                ("huangli.yiji.resolved", _qq["date"],
+                 set(_qq["yi"]) & set(_qq["ji"]))
+            assert not _qq["conflict"] and not _qq["conflict_family"], \
+                ("huangli.yiji.conflict_keys", _qq["date"],
+                 _qq["conflict"], _qq["conflict_family"])
+    ok.append("huangli.yiji.resolved")
     # R2351（R108-§3.2 钉扎）：±13min 近似把 12 个跨午夜交节推错
     # 日期——修正表落地后，逐条钉 CST 日期（参照：sxtwl/lunar_python）。
     for _tn, _ty, _md in (("寒露", 1912, (10, 9)), ("大雪", 1917, (12, 8)),
@@ -1847,11 +1859,12 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 9, ("home.ia.count", len(_cards), _cards)  # 6 直达+3 抽屉（D-005 星座；2026-08-28 水墨改版新增 history 卡）
+    assert len(_cards) == 10, ("home.ia.count", len(_cards), _cards)  # 8 直达+2 抽屉（D-005 星座；history；R2362 chat 伪视图卡）
     # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming
     assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
-    assert _cards[5:] == ["xingzuo", "history", "liuyao", "qiming"], \
+    # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前
+    assert _cards[5:] == ["xingzuo", "history", "chat", "liuyao", "qiming"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
     _visible = _home_seg.split('id="proDrawer"')[0]
@@ -1861,6 +1874,11 @@ def _run_inner() -> list[str]:
     assert '<details class="pro-drawer" id="proDrawer">' in home.text \
         and 'pro-drawer" id="proDrawer" open' not in home.text, \
         ("home.ia.drawer-closed",)
+    # R2362（用户直报）：chat 卡点击走 chatOpen 不走 showView——钉死接线。
+    _appsrc_g = open("web/static/app.js", encoding="utf-8").read()
+    assert "dataset.view === 'chat'" in _appsrc_g and \
+        "chatOpen(); return" in _appsrc_g, \
+        ("home.ia.chat-card-wiring",)
     ok.append("home.ia")
 
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理

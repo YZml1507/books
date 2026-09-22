@@ -2754,7 +2754,8 @@ function renderWarm(warm, interp, evidence, scope) {
     if (ec.basis && ec.basis.length) {
       html += '<details class="warm-basis"><summary>这几项是怎么来的</summary><ul>';
       ec.basis.forEach(function (b) {
-        html += '<li>' + esc(b) + '</li>';
+        /* R2362：内部字段路径过 _basisCn 翻译，不再裸贴 calc.ten_gods。 */
+        html += '<li>' + esc(_basisCn(b)) + '</li>';
       });
       html += '</ul></details>';
     }
@@ -2783,7 +2784,7 @@ function renderWarm(warm, interp, evidence, scope) {
         html += '<details class="warm-basis"><summary>推导依据（' +
           esc(d.basis.length) + ' 条）</summary><ul>';
         d.basis.forEach(function (b) {
-          html += '<li>' + esc(b) + '</li>';
+          html += '<li>' + esc(_basisCn(b)) + '</li>';
         });
         html += '</ul></details>';
       }
@@ -2800,7 +2801,7 @@ function renderWarm(warm, interp, evidence, scope) {
       html += '<details class="warm-basis"><summary>推导依据（' +
         esc(d.basis.length) + ' 条）</summary><ul>';
       d.basis.forEach(function (b) {
-        html += '<li>' + esc(b) + '</li>';
+        html += '<li>' + esc(_basisCn(b)) + '</li>';
       });
       html += '</ul></details>';
     }
@@ -3015,7 +3016,7 @@ function _paintPoster(j, W, H) {
   // 出处三条（判据 10 可追溯）
   ctx.fillStyle = '#9A8A6C'; ctx.font = '400 30px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   _pArr(ec.basis).slice(0, 3).forEach(function (b, i) {
-    var t = '· ' + _pStr(b);
+    var t = '· ' + _basisCn(b);   /* R2362：海报不再画裸字段路径 */
     if (Array.from(t).length > 26) {
       /* V-004：截断点避开英文键名中间——优先回退到最近的非字母数字字符。 */
       var cut = 25;
@@ -3611,7 +3612,7 @@ function buildShareData(view, j) {
       /* R2349m（R75-P2-1）：明细行与 hook 大字逐字重复时剔掉——不当复读机 */
       sly.lines = _pArr(w.details && w.details.basis)
         .filter(function (b) { return _pStr(b) !== l0; }).slice(0, 4)
-        .map(function (b, i) { return { k: _lyLbl[i] || '看点', v: _pStr(b) }; });
+        .map(function (b, i) { return { k: _lyLbl[i] || '看点', v: _basisCn(b) }; });
       /* R2341（R57-P2-2）：basis 空时退化行复读大字——改画卦名/
        * 动爻这些已有字段，明细区不当复读机。 */
       if (!sly.lines.length) {
@@ -4697,25 +4698,12 @@ function renderInterpretation(interp, title) {
   if (interp.basis && interp.basis.length) {
     /* R2349j（R71-P1-16）：依据字段键名中文化——paipan.render 这类路径
      * 对受众是乱码；原值收进 title 供核对。 */
-    var _BASIS_CN = {
-      'paipan.render': '命盘四柱', 'paipan.nayin': '纳音',
-      'calc.five_elements': '五行分布', 'calc.ten_gods': '十神',
-      'calc.relations': '地支关系', 'calc.day_luck': '流日',
-      'calc.summary': '总评', 'warm': '温柔版', 'cross_ref': '交叉印证',
-      /* R2350b（R98-P2-11）：塔罗 pro「依据」行裸字段名——补键。 */
-      'name': '牌名', 'upright_kw': '正位关键词',
-      'reversed_kw': '逆位关键词', 'upright': '正逆位',
-      'meaning': '牌义', 'position': '位置',
-      'arcana': '牌系', 'suit': '花色', 'card': '牌'
-    };
-    var _basisCn = interp.basis.map(function (b) {
-      var _hit = Object.keys(_BASIS_CN).filter(function (k) {
-        return b.indexOf(k) === 0; })[0];
-      return _hit ? _BASIS_CN[_hit] : String(b).split('.').pop();
-    });
+    /* R2362：与 warm-basis/海报同一翻译器——局部 _BASIS_CN 并入全局
+     * _basisCn（覆盖面更全：calc.days/dayun、liuyao/tarot/evidence 系）。 */
+    var _basisCnList = interp.basis.map(function (b) { return _basisCn(b); });
     html += '<div class="interp-basis" title="' +
       esc(interp.basis.join(' / ')) + '">依据：' +
-      esc(_basisCn.join(' / ')) + '</div>';
+      esc(_basisCnList.join(' / ')) + '</div>';
   }
   if (interp.disclaimer) {
     /* R216b 续5（V-003）：「非生成文本、同输入必同输出」技术腔——
@@ -4798,6 +4786,54 @@ function fmtScalar(v) {
   }
   if (typeof v === 'boolean') return v ? '是' : '否';
   return String(v);
+}
+
+/* R2362（用户直报）：后端 basis 是内部字段路径（calc.ten_gods[].god/basis、
+ * liuyao.render_hexagram(ben/bian).gua_name…），多个渲染点曾把它原样
+ * 贴屏/贴上海报。统一过这个翻译器：已知键段换中文，残余技术符清掉。 */
+var _BASIS_KEY_CN = {
+  'calc.ten_gods': '十神格局', 'calc.five_elements': '五行分布',
+  'calc.relations': '地支关系', 'calc.day_luck': '流日',
+  'calc.days': '逐日干支', 'calc.dayun': '大运',
+  'calc.summary': '总评', 'paipan.render': '命盘四柱',
+  'paipan.nayin': '纳音', 'liuyao.render_hexagram': '卦象推演',
+  'tarot.draw': '牌面'
+};
+var _BASIS_ROOT_CN = {
+  calc: '命盘运算', paipan: '命盘', liuyao: '卦象推演', tarot: '塔罗牌面',
+  evidence: '古籍检索', comparisons: '对照结论', ben: '本卦', bian: '变卦',
+  question: '问题', warm: '温柔版', cross_ref: '交叉印证',
+  name: '牌名', upright_kw: '正位关键词', reversed_kw: '逆位关键词',
+  upright: '正逆位', meaning: '牌义', position: '位置',
+  arcana: '牌系', suit: '花色', card: '牌',
+  gua_name: '卦名', moving_lines: '动爻', work_id: '书名',
+  file: '文件', layer: '层级', god: '十神', type: '类型', note: '注解',
+  day_ganzhi: '日干支', day_branch_rels: '日支关系', pillar: '柱',
+  gan_rel: '干关系', counts: '计数', strong: '强', missing: '缺',
+  scope: '范围', render: '排盘', nayin: '纳音', draw: '抽牌',
+  keywords: '关键词', basis: '依据', title: '题名', units: '条目数',
+  method: '方式', claim: '结论', line: '条目', findings: '发现',
+  duration: '时长', score: '分', level: '等级', date: '日期'
+};
+function _basisCn(b) {
+  var s = _pStr(b);
+  if (!s) return '';
+  var out = s
+    .replace(/\[\]/g, '')
+    .replace(/[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_.]*/g, function (p) {
+      var segs = p.split('.');
+      return _BASIS_KEY_CN[segs[0] + '.' + segs[1]] ||
+             _BASIS_ROOT_CN[segs[0]] || '';
+    })
+    .replace(/[A-Za-z_][A-Za-z0-9_]*/g, function (w) {
+      return _BASIS_ROOT_CN[w] !== undefined ? _BASIS_ROOT_CN[w] : '';
+    })
+    .replace(/[（(][^）)]*[）)]/g, function (m) { return ' ' + m + ' '; })
+    .replace(/[\s\/\.·]+/g, ' ')
+    .replace(/ +[×x] +/g, '×')
+    .trim();
+  /* 技术符清完只剩名字时兜底成通用说法——永不把裸标识符漏上屏。 */
+  return out || '推算依据';
 }
 
 /* ── 每日运势 ──────────────────────────────────────────────── */
@@ -9652,6 +9688,8 @@ function initViews() {
   document.querySelectorAll('.func-card').forEach(function (card) {
     card.addEventListener('click', function () {
       window.__lastFuncCard = card;   /* R228d：回首页时焦点归还这里 */
+      /* R2362（用户直报）：data-view="chat" 伪视图——开聊天侧栏不切视图。 */
+      if (card.dataset.view === 'chat') { chatOpen(); return; }
       showView(card.dataset.view);
     });
     // 卡片是可点区域，给键盘用户同等入口
@@ -9659,6 +9697,7 @@ function initViews() {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         window.__lastFuncCard = card;
+        if (card.dataset.view === 'chat') { chatOpen(); return; }
         showView(card.dataset.view);
       }
     });

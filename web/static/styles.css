@@ -417,6 +417,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   font-size:14px; color:var(--secondary); background:var(--card);
   padding:6px 14px; border-radius:999px; border:1px solid var(--border);
 }
+/* R2362（用户直报）：display:flex 压过 [hidden] 的 display:none——
+ * 空 meta 项在卡上渲染成一排竖空胶囊，补上针对性复位。 */
+.daily-meta-item[hidden]{display:none;}
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;

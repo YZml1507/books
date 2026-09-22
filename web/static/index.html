@@ -286,6 +286,12 @@ try {
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
+    <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
+         data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
+         不切视图。 -->
+    <div class="func-card func-entry func-chat" data-view="chat" role="button" tabindex="0" aria-label="和小满聊聊">
+      <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">和小满聊聊</div><div class="func-desc">有心事随时来说</div>
+    </div>
     </nav>
   </div>
 
