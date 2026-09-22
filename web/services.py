@@ -1296,6 +1296,11 @@ _DECIDE_INTENT_PAT = re.compile(
     r"可以吗|能不能|哪天|何日|哪日|几日|几号|什么时候|何时|怎么办|"
     r"咋办|咋办呢|选日子|挑日子|择日|吉日|吉利|黄道|宜不宜|后悔吗|"
     r"还有机会|有救吗|值得吗")
+# R2400（R123-P2-7）：情绪倾诉词表——无事项场景时命中即零事实供给
+# （求安慰的上下文里不该塞当日宜忌，会把共情话头带歪）。
+_MOOD_VENT_PAT = re.compile(
+    r"心情|网抑云|emo|好丧|丧丧|难过|难受|想哭|郁闷|心烦|烦死|好烦|"
+    r"心累|压力大|压力好大|低落|委屈|崩溃|破防|不开心|不高兴|emo了")
 
 _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "面试": ["上任"], "求职": ["上任"], "上班": ["上任"], "入职": ["上任"],
@@ -2685,7 +2690,8 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
 
 def _chat_facts_inner(message: str, now: datetime,
                       anchor: dict | None = None,
-                      ctx_out: dict | None = None) -> list[str]:
+                      ctx_out: dict | None = None,
+                      _cmp: int = 0) -> list[str]:
     """chat_huangli_facts 的计算主体（缓存键之外的一切都不变）。"""
     msg = (message or "").strip()
     if not msg:
@@ -2702,6 +2708,28 @@ def _chat_facts_inner(message: str, now: datetime,
     _followup = bool(re.match(r"^(那|要不|还是|换|哎|诶|话说)", msg_n)) \
         or msg_n.endswith(("呢", "吗", "嘛", "?", "？")) \
         or len(msg_n) <= 12
+    # R2400（R123-P2-1）：「再往后一天/两天」类指代词——有锚按锚+N 天，
+    # 没锚从今天+N 算，不再零事实让模型自己编日子。
+    _m_after = re.search(
+        r"再?往后([一二两])天|再过([一二两])天|后一天|下一天|"
+        r"顺延([一二两])?天|往后推([一二两])?天", msg)
+    if _m_after:
+        _na = next((g for g in _m_after.groups() if g), "一")
+        _nd = {"一": 1, "二": 2, "两": 2}.get(_na, 1)
+        _base = None
+        if anchor and anchor.get("dt"):
+            try:
+                _base = datetime.fromisoformat(anchor["dt"])
+            except (ValueError, TypeError):
+                _base = None
+        dt = (_base or now) + timedelta(days=_nd)
+        spoken = _m_after.group(0)
+        _explicit_day = True
+    # 「换个日期/换个日子」：想为上一句的事项另择日子——归入找日意图
+    # （也作为场景沿用的触发条件之一）。
+    _find_day_switch = bool(
+        re.search(r"换[一个点]?(?:日子|日期|时间|天)|"
+                  r"改[一个点]?(?:日子|日期)", msg_n))
 
     scene, terms = "", []
     # R228s：长词优先匹配——「解除合同」若先撞上「合同」会被误分到立券
@@ -2715,9 +2743,10 @@ def _chat_facts_inner(message: str, now: datetime,
             if t in msg_n:
                 scene, terms = t, [t]
                 break
-    # R2400（R123-P1-4）：只有日期词的追问（「那后天呢」）沿用上一句的
-    # 事项——此前降级成原始宜忌总表。
-    if anchor and not scene and anchor.get("scene") and _explicit_day:
+    # R2400（R123-P1-4/P2-1）：只有日期词的追问（「那后天呢」）或
+    # 「换个日期」沿用上一句的事项——此前降级成原始宜忌总表。
+    if (anchor and not scene and anchor.get("scene")
+            and (_explicit_day or _find_day_switch)):
         scene, terms = anchor["scene"], list(anchor["terms"])
     generic = not scene and any(
         k in msg_n for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
@@ -2727,7 +2756,9 @@ def _chat_facts_inner(message: str, now: datetime,
                              "做什么好", "干点啥", "能干啥", "能干什么"))
     # R2400（R123-P1-1）：场景追问没提日期 → 沿用上一句的日子
     # （「明天适合出行吗」→「那搬家呢」按明天判）。
+    # 「换个日期」除外——她要的就是另择日子，沿用锚会把同一天再判一遍。
     if (anchor and not _explicit_day and _followup and scene
+            and not _find_day_switch
             and anchor.get("dt")):
         try:
             dt = datetime.fromisoformat(anchor["dt"])
@@ -2762,6 +2793,11 @@ def _chat_facts_inner(message: str, now: datetime,
         # R229o：带日期词的泛问（「下周末出去玩行吗」「明晚聚餐行不行」）——
         # 没命中事项词也没命中泛问词，但用户在问某天的日子，给当日宜忌
         # 总表而不是零事实放手让模型瞎答。
+        # R2400（R123-P2-7）：情绪倾诉（心情/网抑云/丧…）不是问日子——
+        # 「最近心情不太好」「今晚网抑云」此前被时间词拖进当日宜忌总表，
+        # 模型上下文塞着「宜嫁娶忌安葬」回共情，口径违和。倾诉求安慰零供给。
+        if _MOOD_VENT_PAT.search(msg_n):
+            return []
         if spoken != "今天" or any(
                 w in msg for w in ("今天", "今日", "今晚", "今夜")):
             generic = True
@@ -2799,7 +2835,9 @@ def _chat_facts_inner(message: str, now: datetime,
     # 近 45 天宜它的日子列表，别绕回今天的宜忌判定。
     # 但只改「无日期词」的：带着明确日期的（「分手后哪天复合」里的哪天
     # 是真问日）仍走正常判定 + 清单双给。
-    _find_intent = bool(re.search(r"哪天|什么时候|啥时候|几时|几号", msg_n))
+    _find_intent = bool(re.search(
+        r"哪天|什么时候|啥时候|几时|几号|"
+        r"换[一个点]?(?:日子|日期|时间|天)|改[一个点]?(?:日子|日期)", msg_n))
     _find_only = _find_intent and scene and spoken == "今天" \
         and not any(w in msg for w in ("今天", "今日", "今晚", "今夜"))
     if _find_only:
@@ -2819,6 +2857,7 @@ def _chat_facts_inner(message: str, now: datetime,
         if past_note:
             facts.append("该日期已过去，请温和点出、按复盘口径回应，"
                          "不要再给择日建议。")
+        facts += _compare_extra_facts(msg, spoken, scene, now, _cmp)
         return facts
 
     hit_yi = [t for t in terms if any(t in w or w in t for w in yi)]
@@ -2880,7 +2919,37 @@ def _chat_facts_inner(message: str, now: datetime,
     if set(terms) & _MED_SCENE_TERMS:
         verdict += "（医疗事项：请在回复里带一句「看病以医生为准，黄历不作数」的口径。）"
     facts.append(verdict)
+    facts += _compare_extra_facts(msg, spoken, scene, now, _cmp)
     return facts
+
+
+# R2400（R123-P2-2）：「明天和后天哪天好」——_hl_day_part if 链只回
+# 首个命中词，对比的另一日此前静默丢弃（只判后天、明天当没提过）。
+# 检出对比语境时，把另一日的判定一并供给，模型才能如实对比。
+_COMPARE_DAY_WORDS = (
+    "大后天", "大後天", "大前天", "后天", "後天", "过两天", "過兩天",
+    "前天", "前日", "明天", "明日", "明儿", "明兒", "明晚", "后晚",
+    "後晚", "今晚", "今夜", "昨晚", "昨夜", "昨天", "昨日", "今天",
+    "今日", "下下周末", "下下週末", "下周末", "下週末", "周末", "週末",
+    "下下周", "下周", "下週", "这周", "本周", "這週", "本週")
+
+
+def _compare_extra_facts(msg: str, spoken: str, scene: str,
+                         now: datetime, _cmp: int) -> list[str]:
+    """对比语境检出后的「另一日」事实行（depth 防递归）。"""
+    if _cmp:
+        return []
+    if not re.search(r"和|跟|与|还是|或者|或|哪个|哪天|比谁|对比|比较",
+                     msg):
+        return []
+    for w in _COMPARE_DAY_WORDS:
+        if w in msg and w != spoken:
+            sub = _chat_facts_inner((scene or "") + w, now, None, None,
+                                    _cmp=1)
+            if sub:
+                return [f"用户还在对比「{w}」——那天的口径："] + sub
+            return []
+    return []
 
 
 # R233g：映射到医疗类宜忌词的事项集合（问一嘴/chat 两侧同表）

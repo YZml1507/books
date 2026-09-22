@@ -1107,12 +1107,14 @@ function showToast(msg, kind) {
   t.addEventListener('focusin', function () { clearTimeout(_tmr); });
 }
 
-function postJSON(path, payload) {
-  return api(path, {
+function postJSON(path, payload, opts) {
+  /* R2400（R123-P2-3）：opts 透传给 api——聊天发送走 silent，
+   * 4xx 由 catch 气泡单一承载，不再 toast+气泡双重提示。 */
+  return api(path, Object.assign({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  });
+  }, opts || {}));
 }
 
 /* ── AI 段落后到（R191b，B-014 / specs/006 判据 9/10、D-251b）──────
@@ -1305,9 +1307,16 @@ function _chatTsClear() {
 }
 function _chatTsRestore() {
   /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。 */
+  var _last = null;
   _chatTsRead().forEach(function (m) {
-    chatBubble(m.r === 'me' ? 'me' : 'ai', m.t, { nosave: true });
+    _last = chatBubble(m.r === 'me' ? 'me' : 'ai', m.t, { nosave: true });
   });
+  /* R2400（R123-P2-4）：收尾态的「开新话题」钮挂回最后一条泡。 */
+  try {
+    if ((_chatStore() || _MEM_STORE).getItem('chatClosed') === '1' && _last) {
+      _chatClosedHint(_last);
+    }
+  } catch (e) {}
 }
 
 /* R219b（P0-2）：各视图最近一次 API 响应缓存——「聊聊这件事」要把真实牌面/
@@ -1512,6 +1521,9 @@ function attachChatEntry(container) {
  * 点了换新 sid（旧会话仍在内存，只是不再继续聊）。 */
 function _chatClosedHint(bubble) {
   if (!bubble || bubble.querySelector('.chat-reset')) return;
+  /* R2400（R123-P2-4）：closed 态持久化——F5 后 transcript 恢复气泡
+   * 但钮丢了（服务端仍收尾态）。存旗标，恢复时挂回。 */
+  try { (_chatStore() || _MEM_STORE).setItem('chatClosed', '1'); } catch (e) {}
   var row = document.createElement('div');
   row.className = 'chat-reset';
   row.style.marginTop = '8px';
@@ -1530,7 +1542,10 @@ function _chatClosedHint(bubble) {
       }, 3000);
       return;
     }
-    try { (_chatStore() || _MEM_STORE).removeItem(CHAT_SID_KEY); } catch (e) {}
+    try {
+      (_chatStore() || _MEM_STORE).removeItem(CHAT_SID_KEY);
+      (_chatStore() || _MEM_STORE).removeItem('chatClosed');
+    } catch (e) {}
     chatSid();   /* 重新生成 sid */
     _chatTsClear();   /* R230q：新话题起新 transcript——旧气泡重渲会污染新会话 */
     var _flow = el('chatFlow');
@@ -1588,7 +1603,8 @@ function autoSendChatContext() {
       if (j && j.rate_limited) {
         if (_ty0) { _ty0.remove(); _ty0 = null; }
         _CHAT_SEND_COUNT = Math.max(0, (_CHAT_SEND_COUNT || 0) - 1);
-        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）', { nosave: true });
+        /* R2400（R123-P2-5）：限流气泡落档——nosave 会留孤儿气泡。 */
+        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）');
         return;
       }
       if (_ty0) { _ty0.remove(); _ty0 = null; }
@@ -2029,14 +2045,15 @@ function chatSend() {
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
       ? CHAT_LAST_FACTS : _activeViewFacts()),   /* R233r：无排盘按视图兜底 */
     client_date: todayIso()   /* R230l */
-  }).then(function (j) {
+  }, { silent: true }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */
       /* R2355（R111-P2-6）：限流≠关停——rate_limited 只提示不锁框，
        * 且不计入 ≥2 次的锁死门槛（歇口气就能再发）。 */
       if (j && j.rate_limited) {
         if (_ty0) { _ty0.remove(); _ty0 = null; }
         _CHAT_SEND_COUNT = Math.max(0, (_CHAT_SEND_COUNT || 0) - 1);
-        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）', { nosave: true });
+        /* R2400（R123-P2-5）：限流气泡落档——nosave 会留孤儿气泡。 */
+        chatBubble('ai', '（聊太急啦，小满喝口水歇口气——一会儿再戳我～）');
         return;
       }
       if (_ty0) { _ty0.remove(); _ty0 = null; }

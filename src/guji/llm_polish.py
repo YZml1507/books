@@ -1124,8 +1124,17 @@ def spawn_chat_task(session_id: str, user_msg: str,
     # 换 sid 重试撞全局帽。
     # R2355（R111-P2-6）：超限改哨兵串返回——调用方回 rate_limited=True，
     # 前端提示「聊太急歇口气」而不是按功能关停永久锁输入框。
-    if not _rate_ok("chat:" + (session_id or "anon"), _RATE_CHAT_PER_SID):
-        return "__rate_limited__"
+    if not chat_session_closed(session_id):
+        if not _rate_ok("chat:" + (session_id or "anon"),
+                        _RATE_CHAT_PER_SID):
+            return "__rate_limited__"
+    else:
+        # R2400（R123-P2-6）：收尾态只回确定性文案（不烧 LLM）——此前
+        # 照吃 8/min 配额，用户到顶再发 2 条就撞「歇口气」，文案口径
+        # 打架（先说聊够又说太急）。独立放宽上限，防刷屏仍有限。
+        if not _rate_ok("chatx:" + (session_id or "anon"),
+                        _RATE_CHAT_PER_SID * 4):
+            return "__rate_limited__"
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()
