@@ -307,7 +307,8 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
 
 
 def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
-                  per_work: int = 3, scan_limit: int = 200) -> dict:
+                  per_work: int = 3, scan_limit: int = 200,
+                  concept2: str | None = None) -> dict:
     """Two-work side-by-side comparison at one concept (愿景 §7 Comparative Study).
 
     The founding brief's third UX scenario verbatim — 「把《道德经》和《庄子》
@@ -330,6 +331,13 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
         if w is None:
             return None
         hits = corpus.search(concept, limit=scan_limit, work_id=wid)
+        # R2400（R125-P1-2 延展）：简体概念有部分命中时繁体形静默缺席——
+        # 两形并查去重，与 search/concept_census 同纪律。
+        if concept2 and concept2 != concept:
+            hits2 = corpus.search(concept2, limit=scan_limit, work_id=wid)
+            seen = {(h.work_id, h.text) for h in hits}
+            hits = hits + [h for h in hits2
+                           if (h.work_id, h.text) not in seen]
         layers: dict[str, int] = {}
         for h in hits:
             layers[h.layer] = layers.get(h.layer, 0) + 1

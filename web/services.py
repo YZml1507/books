@@ -772,8 +772,10 @@ def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
         raise ValidationError("对照需要两本不同的书")
     q = _require_q(q)
     with deps.corpus() as c:
-        return research_compare_works(c, work_a, work_b, q,
-                                      per_work=min(max(per_work, 1), 10))
+        return research_compare_works(
+            c, work_a, work_b, q,
+            per_work=min(max(per_work, 1), 10),
+            concept2=s2t_retry(q))
 
 
 def works() -> dict:
