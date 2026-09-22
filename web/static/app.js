@@ -6187,10 +6187,21 @@ async function doHehun() {
      * R233n续：邀请链落地时视角相反——受邀者填的 B 才是「自己」，
      * A（发起人）落到 me:partner。手改过 A 侧则恢复默认。 */
     if (window.__hhInviteMode) {
+      /* R2400（R130-P2-4）：受邀提交把发起人写进 me:partner——B 原来
+       * 存着别的 TA 就被静默顶掉；存前先记一下，不同的才提示。 */
+      var _oldP = null;
+      try { _oldP = _meGet('me:partner'); } catch (eOP) {}
       _meSave('me', { y: num('hh_b_year'), m: num('hh_b_month'),
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
       _meSave('me:partner', { y: num('hh_a_year'), m: num('hh_a_month'),
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+      if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
+                    String(_oldP.m) !== String(num('hh_a_month')) ||
+                    String(_oldP.d) !== String(num('hh_a_day')))) {
+        try {
+          showToast('顺带说下：你之前存的 TA 档案被这次邀请更新掉啦', 'info');
+        } catch (eTP) {}
+      }
     } else {
       _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
@@ -9382,14 +9393,48 @@ function init() {
          * URL 无 from，回灌照常。 */
         if (_vp === 'hehun' && !_invA && !_qsAll.get('from')) {
           try {
-            var _sv = sessionStorage.getItem('hhInvite');
-            if (_sv) _qsAll = new URLSearchParams(_sv);
+            /* R2400（R130-P3-1）：F5 回灌只在真刷新（reload）——同 tab
+             * 手动开 ?view=hehun（navigate）不该复活上次的邀请态。 */
+            var _navT = (performance.getEntriesByType &&
+                        (performance.getEntriesByType('navigation')[0] || {})
+                       ).type;
+            if (_navT == null || _navT === 'reload') {
+              var _sv = sessionStorage.getItem('hhInvite');
+              if (_sv) _qsAll = new URLSearchParams(_sv);
+            } else {
+              sessionStorage.removeItem('hhInvite');
+            }
           } catch (eSS) {}
           _invA = _qsAll.get('ay');
         }
         /* R2364：ay 非 4 位年 = 伪造/残缺链——不进邀请态（不然空字段
          * 摆出「TA 的信息已填好」的假欢迎，出厂默认生日混进真值）。 */
-        if (_vp === 'hehun' && _invA && /^\d{4}$/.test(_invA)) {
+        /* R2400（R130-P1-1/P3-2/P3-3）：门槛再收——年月日齐全且在
+         * 范围、时辰 0-23、性别只收 男/女，才算邀请链。残参不进
+         * 邀请态（否则缺格被受邀者自己的 me 档案静默填上，出个不是
+         * 发起人盘的假合盘，toast 还谎报「已填好」）。 */
+        var _invFull = _vp === 'hehun' && _invA &&
+          /^\d{4}$/.test(_invA) && +_invA >= 1900 && +_invA <= 2100 &&
+          /^\d{1,2}$/.test(_qsAll.get('am') || '') &&
+          /^\d{1,2}$/.test(_qsAll.get('ad') || '') &&
+          +(_qsAll.get('am') || 0) >= 1 && +(_qsAll.get('am') || 0) <= 12 &&
+          +(_qsAll.get('ad') || 0) >= 1 && +(_qsAll.get('ad') || 0) <= 31 &&
+          (_qsAll.get('ag') == null || _qsAll.get('ag') === '' ||
+           _qsAll.get('ag') === '男' || _qsAll.get('ag') === '女') &&
+          (_qsAll.get('ah') == null || _qsAll.get('ah') === '' ||
+           (/^\d{1,2}$/.test(_qsAll.get('ah')) && +_qsAll.get('ah') <= 23));
+        if (_vp === 'hehun' && _invFull) {
+          /* R2400（R130-P1-1）：进邀请态先把 A 侧清零——init 早段的
+           * _meFillAll 已按默认映射把受邀者自己的生日填过这些格子，
+           * 没给的字段不能留着那份值冒充发起人的盘。性别是必填位，
+           * 没带就占位「女」（与提交/后端回落口径一致）。 */
+          ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour','hh_a_name'
+          ].forEach(function (_cid) {
+            var _ce = document.getElementById(_cid);
+            if (_ce) { _ce.value = ''; delete _ce.dataset.me; }
+          });
+          var _ag0 = document.getElementById('hh_a_gender');
+          if (_ag0) { _ag0.value = '女'; delete _ag0.dataset.me; }
           [['ay','hh_a_year',1],['am','hh_a_month',1],['ad','hh_a_day',1],
            ['ah','hh_a_hour',1],['ag','hh_a_gender',0],['an','hh_a_name',0]
           ].forEach(function (p) {
@@ -9487,6 +9532,21 @@ function init() {
               'TA 的信息已经填好啦——轮到你了 💕');
             var _by = document.getElementById('hh_b_year');
             if (_by) { try { _by.focus(); } catch (e) {} }
+          }, 350);
+        }
+        /* R2400（R130-P1-1）：标着邀请却不过关的链——残参/越界/性别
+         * 伪造——不进邀请态，明说一声按普通页用；顺手把同 tab 残留
+         * 的旧邀请参清掉免得 F5 复活。 */
+        else if (_vp === 'hehun' &&
+                 (_qsAll.get('from') === 'invite' ||
+                  _qsAll.get('invite') === '1' || _invA)) {
+          try { sessionStorage.removeItem('hhInvite'); } catch (eRI) {}
+          try {
+            history.replaceState(null, '',
+              location.pathname + '?view=hehun');
+          } catch (eRS) {}
+          setTimeout(function () {
+            showToast('这条邀请链接缺了点信息——当普通合婚用就好～', 'info');
           }, 350);
         }
         var _hold = window.__suppressPush;

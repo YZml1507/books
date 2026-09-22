@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-42365eca8f29';   // shell-hash: 42365eca8f29
+var CACHE = 'books-shell-97f69ffbd4e0';   // shell-hash: 97f69ffbd4e0
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -105,7 +105,11 @@ self.addEventListener('fetch', function (e) {
       && url.pathname.indexOf('/static/') !== 0) {
     e.respondWith(
       caches.match('/').then(function (hit) {
-        var net = fetch(e.request).then(function (resp) {
+        /* R2400（R130-P2-2）：network-first——旧版「先给缓存壳」让
+         * 门页对解锁过的设备永久失效（cookie 过期/换口令都赶不走）。
+         * 在线时以服务端响应为准（403 门页照实上屏），缓存壳只留作
+         * 离线兜底。 */
+        return fetch(e.request).then(function (resp) {
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
           /* R2349u（R91-P1-3）：FastAPI 默认开 /docs /openapi.json，
            * 那些导航的响应此前被写进 '/' 壳位——壳污染后首页变 Swagger。
@@ -121,7 +125,6 @@ self.addEventListener('fetch', function (e) {
           }
           return resp;
         }).catch(function () { return hit; });
-        return hit || net;
       })
     );
     return;

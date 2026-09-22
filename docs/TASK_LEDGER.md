@@ -12543,3 +12543,17 @@ warm_voice / baseline / plain_first 全绿。
 - id 撞号云端为准（同号是否同条在 `_phMirrorList` 已裁决）；纯镜像行的「查看」走 `_phMirrorDetailFor` ts 对账、「删除」404 视同摘镜像——既有兜底直接复用。
 - 实现：`_localIds` id 集合判出处，行对象不落 `__local` 合成字段（契约探针会把合成字段判成响应漂移 HARD——实测抓到后改的）。
 - 闸：contract 627(SOFT=48) PASS / node --check 通过 / bump_sw books-shell-42365eca8f29。
+
+## R2400l（R130）：分享回流链路复验清零（2026-09-22）
+
+- **P1-1 邀请残链污染（真机实证）**：`?view=hehun&from=invite&ay=1998` 这类只带部分参数的链，A 侧缺格被受邀者自己的 me 静默填上（init 早段 `_meFillAll` 按默认映射先填了 hh_a_*，邀请块只写有值的参）→ 出「TA 1998-3-8 × 我 1995-3-8」假合盘还报「已填好」。修法：
+  - 门槛 `_invFull`：年月日齐全（年 1900-2100 / 月 1-12 / 日 1-31）+ 时辰 0-23 + 性别只收 男/女，才进邀请态；
+  - 进邀请态先把 hh_a_* 清零+摘 data-me（没给的字段不许冒充发起人），性别占位「女」（与提交回落口径一致）；
+  - 标着邀请却不过关的链：剥参+toast「缺了点信息，当普通合婚用就好」+清 sessionStorage 旧邀请参。
+- **P2-1 门页开放跳转**：`next`/`?key=` 跳回的 Location 只查 `/` 头——`/%5cevil.com` 解码出 `\` 被浏览器归一成 `//` 即成钓鱼跳转。改白名单 `^/[A-Za-z0-9_/?=&%#.:\-~+]*$` 且显式拦 `//` 前缀，CRLF 同收（P2-3 顺带灭）。selftest 既有用例 `//evil.com→/` 实测把关。
+- **P2-2 SW 缓存壳让门页失效**：navigate 改 network-first——在线以服务端响应为准（403 门页照实上屏，cookie 过期/换口令能赶人），缓存壳只留离线兜底。
+- **P2-4 受邀提交覆盖旧 TA 档案提示**：me:partner 原有不同生日时 toast「之前存的 TA 档案被这次邀请更新掉啦」。
+- **P3-1 邀请态同 tab 粘住**：sessionStorage 回灌只在 navigation.type=reload 时；navigate/back_forward 一律清 hhInvite。
+- 真机验证：残链→普通访问+提示、完整链→邀请态+TA 字段全对、污染不再。
+- P3-4 二维码功能不存在——确认即现状（海报走口令文案），记 backlog 待正式域名。
+- 闸：selftest 293 / ui_smoke 77 / contract 627 / node --check / bump_sw books-shell-97f69ffbd4e0 全绿。

@@ -169,8 +169,12 @@ def create_app() -> FastAPI:
                 (await request.body()).decode("utf-8", "replace"))
             key = _qs.get("key", [""])[0]
             # R2364：解锁跳回深链原址；只放站内相对路径防开放跳转。
+            # R2400（R130-P2-1/P2-3）：next 白名单收紧——`%5c` 解码进
+            # next 被浏览器归一成 `//` 即成开放跳转；CRLF 落 Location
+            # 头是未处理异常面。`/` 起、字符集内全收，越界回落 '/'。
             _nxt = _qs.get("next", [""])[0]
-            if not (_nxt.startswith("/") and not _nxt.startswith("//")):
+            if (_nxt.startswith("//") or
+                    not re.fullmatch(r"/[A-Za-z0-9_/?=&%#.:\-~+]*", _nxt)):
                 _nxt = "/"
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
@@ -195,6 +199,11 @@ def create_app() -> FastAPI:
             q = dict(request.query_params)
             q.pop("key", None)
             target = path + ("?" + urlencode(q, doseq=True) if q else "")
+            # R2400（R130-P2-1）：?key= 跳回同样组 Location——path 里
+            # 解码出的 `\`/CRLF 与 next 同洞，同白名单回落 '/'。
+            if (target.startswith("//") or
+                    not re.fullmatch(r"/[A-Za-z0-9_/?=&%#.:\-~+]*", target)):
+                target = "/"
             resp = PlainTextResponse("ok", status_code=302,
                                      headers={"Location": target or "/"})
             resp.set_cookie("books_key", _tok, httponly=True,
