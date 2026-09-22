@@ -10960,7 +10960,26 @@ function baziPersonaCard(j) {
         });
         return;
       }
-      listEl.innerHTML = j.items.map(function (it) {
+      /* R2400（R127-P2-7）：云端/本机合渲——镜像里有而本页没有的行
+       * （清盘前旧档、翻页窗外旧档）按 ts 归位标「本机留档」；id 撞号
+       * 云端为准（同号是否同条在 _phMirrorList 里已裁决）。 */
+      var _cloudIds = {};
+      j.items.forEach(function (it) { _cloudIds[String(it.id)] = 1; });
+      var _rows = j.items.slice();
+      Object.keys(_mm.items || {}).forEach(function (k) {
+        if (!_cloudIds[k]) {
+          var _o = _mm.items[k];
+          _rows.push({ id: _o.id, ts: _o.ts, name: _o.name, type: _o.type,
+                       question: _o.question,
+                       result_summary: _o.result_summary, __local: true });
+        }
+      });
+      if (_rows.length !== j.items.length) {
+        _rows.sort(function (a, b) {
+          return String(b.ts || '').localeCompare(String(a.ts || ''));
+        });
+      }
+      listEl.innerHTML = _rows.map(function (it) {
         const ts = (it.ts || '').replace('T', ' ');
         const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
         /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘 */
@@ -10973,7 +10992,10 @@ function baziPersonaCard(j) {
           '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
           esc(tLabel) + '</span>' +
           '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
-          '<span class="ph-ts">' + esc(ts) + '</span></div>' + q +
+          '<span class="ph-ts">' + esc(ts) + '</span>' +
+          (it.__local
+            ? '<span class="ph-type" style="opacity:.7;">本机留档</span>' : '') +
+          '</div>' + q +
           '<div class="ph-render">' + esc(render) + '</div>' +
           '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
           '<button type="button" class="ghost ph-del">删除</button></div></div>';
