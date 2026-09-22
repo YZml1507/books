@@ -519,8 +519,10 @@ def field_reads(block: dict,
             for m in re.finditer(r"(?<![\w.])" + re.escape(var) + r"\.(\w+)", line):
                 field = m.group(1)
                 # 数组方法（含会改写数组的 sort/push——它们是方法不是字段）
+                # R2400u：indexOf/concat 补白名单——filter 结果再链它们
+                # 被误当字段读点判 HARD（app.js 挑吉日 tooltip 命中词提前）。
                 if field in ("forEach", "length", "slice", "map", "join",
-                             "filter", "push", "sort"):
+                             "filter", "push", "sort", "indexOf", "concat"):
                     continue
                 if field in binds:            # 派生变量自己的名字，跳过
                     pass
