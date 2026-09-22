@@ -237,6 +237,8 @@
   "taohua.dayun",
   "taohua.hour_unknown_note",
   "tarot",
+  "tarot.cards",
+  "tarot.cards.replay",
   "tarot.collection",
   "tarot.draw",
   "tarot.draw.keys",

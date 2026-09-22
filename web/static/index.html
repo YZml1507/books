@@ -697,6 +697,14 @@ try {
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>
       </div>
       <button id="trSubmit" type="button">抽一张</button>
+      <!-- R2350k：自己抽——背面牌扇点选，点满张数成局，仪式感比
+           「按一下就出结果」强一档。 -->
+      <button id="trPickBtn" type="button" class="ghost" style="margin-top:8px;">🃏 自己抽一把</button>
+      <div id="trPickPanel" style="display:none;margin-top:10px;">
+        <div class="tr-pick-hint" id="trPickHint"></div>
+        <div class="tr-fan" id="trPickFan" role="group" aria-label="牌背——点选出你要的牌"></div>
+        <button id="trPickGo" type="button" disabled>就开这几张</button>
+      </div>
       <!-- R2349l（R73-P1-12）：我的牌册——抽过的牌进收集图鉴，
            78 格灰显未收，长线回访钩子。 -->
       <details class="pro-drawer" id="tarotAlbumDrawer" style="margin-top:12px;">

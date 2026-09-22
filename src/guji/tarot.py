@@ -188,3 +188,28 @@ def draw(seed: "int | None", n: int = 3) -> list[Draw]:
                         upright_kw=up, reversed_kw=rev, meaning=meaning,
                         position=position))
     return out
+
+
+def draw_picked(indices: list[int], seed: "int | None") -> list[Draw]:
+    """R2350k：用户自点牌背的下标成牌——牌面由选定下标定，
+    正逆位仍由 seed 确定性推出（同 seed+同下标 → 同牌面可复验）。
+    位置按 SPREADS[len(indices)]，越界下标静默跳过。"""
+    rng = random.Random(seed)
+    seen: set[int] = set()
+    idxs: list[int] = []
+    for i in indices:
+        if isinstance(i, int) and 0 <= i < len(DECK) and i not in seen:
+            seen.add(i)
+            idxs.append(i)
+        if len(idxs) >= 10:
+            break
+    spread = SPREADS.get(len(idxs), ())
+    out: list[Draw] = []
+    for slot, idx in enumerate(idxs):
+        name, up, rev, meaning = DECK[idx]
+        upright = rng.random() < 0.5
+        position = spread[slot] if slot < len(spread) else f"第{slot + 1}张"
+        out.append(Draw(index=idx, name=name, upright=upright,
+                        upright_kw=up, reversed_kw=rev, meaning=meaning,
+                        position=position))
+    return out

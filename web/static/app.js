@@ -7443,7 +7443,8 @@ function _trAskedQs() {
   }
   return _trAsked;
 }
-async function doTarot() {
+/* R2350k：cards 给了走「自己抽」——选定下标成牌；不给照旧。 */
+async function doTarot(cards) {
   busy('trResult', '抽牌中…');
   /* R216b 续（U-006）：Seed 字段收进高级折叠，留空=用户不关心复验，
    * 前端自动生成一个编号（仅用于「同牌可复验」说明，不影响体验）。 */
@@ -7478,9 +7479,14 @@ async function doTarot() {
   }
   const n = num('tr_n');
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
-  /* R230d（R16-P2-5）：静默钳位会让用户以为抽了输入的张数——
-   * 超界时吱一声（防呆提示，不阻断）。 */
-  if (n != null && n !== body.n) {
+  /* R2350k：自点牌背——n 以点选张数为准，跳过张数钳位提示。 */
+  var _picked = (cards && cards.length) ? cards.slice(0, 10) : null;
+  if (_picked) {
+    body.cards = _picked;
+    body.n = _picked.length;
+  } else if (n != null && n !== body.n) {
+    /* R230d（R16-P2-5）：静默钳位会让用户以为抽了输入的张数——
+     * 超界时吱一声（防呆提示，不阻断）。 */
     showToast('牌数最多 10 张，已按 ' + body.n + ' 张抽', 'info');
   }
   if (seed != null) body.seed = seed;
@@ -7520,6 +7526,78 @@ async function doTarot() {
   } catch (e) {
     failWithRetry('trResult', '抽牌失败：' + e.message, function () { doTarot(); });
   }
+}
+
+/* R2350k：自己抽——22 张牌背里点 n 张。牌背是 fresh shuffle 的
+ * 0-77 下标子集，点选顺序即成局顺序（位置名按序给）。 */
+var _trPickState = { idxs: [], picks: [], n: 3 };
+function _trPickNeed() {
+  var n = num('tr_n');
+  return (n == null) ? 3 : Math.min(Math.max(n, 1), 10);
+}
+function _trPickOpen() {
+  var panel = el('trPickPanel'), fan = el('trPickFan'), btn = el('trPickBtn');
+  if (!panel || !fan) return;
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    if (btn) btn.textContent = '🃏 自己抽一把';
+    return;
+  }
+  panel.style.display = 'block';
+  if (btn) btn.textContent = '🃏 收起牌扇';
+  _trPickState.n = _trPickNeed();
+  _trPickState.picks = [];
+  /* fresh shuffle：取 78 里 22 个下标摆出——点的是位置不是牌名，
+   * 熵不减（子集本身随机）。 */
+  var pool = [];
+  for (var i = 0; i < 78; i++) pool.push(i);
+  for (var j = pool.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1));
+    var t = pool[j]; pool[j] = pool[k]; pool[k] = t;
+  }
+  _trPickState.idxs = pool.slice(0, 22);
+  fan.innerHTML = _trPickState.idxs.map(function (idx, i) {
+    return '<button type="button" class="tr-back" data-i="' + i +
+      '" aria-label="第 ' + (i + 1) + ' 张牌背" aria-pressed="false"></button>';
+  }).join('');
+  _trPickHint();
+}
+function _trPickHint() {
+  var hint = el('trPickHint'), go = el('trPickGo');
+  var need = _trPickState.n, got = _trPickState.picks.length;
+  if (hint) {
+    hint.textContent = got >= need
+      ? ('齐啦——' + need + ' 张在手')
+      : ('背面朝上的牌里点 ' + need + ' 张（已点 ' + got + '）');
+  }
+  if (go) go.disabled = got < need;
+}
+function _trPickTap(i) {
+  var st = _trPickState;
+  var idx = st.idxs[i];
+  if (idx == null) return;
+  var at = st.picks.indexOf(idx);
+  if (at >= 0) { st.picks.splice(at, 1); }
+  else if (st.picks.length >= st.n) {
+    showToast('够 ' + st.n + ' 张啦，先点开一张不要的', 'info');
+    return;
+  }
+  else { st.picks.push(idx); }
+  var btn = document.querySelector('#trPickFan .tr-back[data-i="' + i + '"]');
+  if (btn) {
+    var on = st.picks.indexOf(idx) >= 0;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  }
+  _trPickHint();
+}
+function _trPickGo() {
+  var st = _trPickState;
+  if (st.picks.length < st.n) return;
+  var panel = el('trPickPanel'), btn = el('trPickBtn');
+  if (panel) panel.style.display = 'none';
+  if (btn) btn.textContent = '🃏 自己抽一把';
+  doTarot(st.picks);
 }
 
 
@@ -9617,6 +9695,19 @@ function initDivination() {
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
   on('trSubmit', doTarot);
+  /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
+  on('trPickBtn', _trPickOpen);
+  on('trPickGo', _trPickGo);
+  (function () {
+    var fan = el('trPickFan');
+    if (fan && !fan.dataset.bound) {
+      fan.dataset.bound = '1';
+      fan.addEventListener('click', function (e) {
+        var b = e.target.closest('.tr-back');
+        if (b && b.dataset.i != null) _trPickTap(+b.dataset.i);
+      });
+    }
+  })();
   /* R2349l（R73-P1-12）：我的牌册——展开抽屉时拉收集清单渲染 78 格。 */
   (function () {
     var dr = el('tarotAlbumDrawer');
@@ -11116,7 +11207,13 @@ function renderCheckin(dateKey) {
         ? '看看我的签册（' + Object.keys(_ckAll).length + '）'
         : '我的签册——打一次卡开第一张') +
       '</summary>' +
-      '<div class="ck-album-body" id="checkinAlbum"></div></details>';
+      '<div class="ck-album-body" id="checkinAlbum"></div></details>' +
+      /* R2350j（R107-Top5-4）：许愿瓶 lite——写个愿望丢进去，
+       * localStorage 封存，几天后回来认领。和签册同构的 details
+       * 懒渲染卡，零后端依赖。 */
+      '<details class="ck-album ck-wish"><summary>🫙 许愿瓶' +
+      _wishSummary() + '</summary>' +
+      '<div class="ck-album-body" id="wishBottleBody"></div></details>';
   var _alb = box.querySelector('.ck-album');
   if (_alb && !_alb.dataset.bound) {
     _alb.dataset.bound = '1';
@@ -11126,6 +11223,17 @@ function renderCheckin(dateKey) {
     _alb.addEventListener('click', function (e) {
       var cell = e.target.closest('.ck-album-cell');
       if (cell && cell.dataset.fb) showToast(cell.dataset.fb, 'info');
+    });
+  }
+  var _wish = box.querySelector('.ck-wish');
+  if (_wish && !_wish.dataset.bound) {
+    _wish.dataset.bound = '1';
+    _wish.addEventListener('toggle', function () {
+      if (_wish.open) _renderWishBottle();
+    });
+    _wish.addEventListener('click', function (e) {
+      var act = e.target.closest('[data-wish]');
+      if (act) _wishAction(act.dataset.wish, act.dataset.arg || '', dateKey);
     });
   }
   var _cks = box.querySelector('#checkinShare');
@@ -11211,8 +11319,10 @@ function renderCheckin(dateKey) {
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
     box.addEventListener('click', function (e) {
-      const btn = e.target.closest('.checkin-opt');
-      if (!btn || !dateKey) return;
+      /* R2350j：收编到打卡选项组内——许愿瓶等复用 .checkin-opt
+       * 皮相的按钮（无 data-opt）不能被当成打卡签重渲。 */
+      const btn = e.target.closest('.checkin-opts .checkin-opt');
+      if (!btn || !dateKey || !btn.dataset.opt) return;
       /* R230n（R25-P2-1）：dateKey 是渲染时刻闭包——挂过零点的陈旧 tab
        * 绑定着昨天，点击会把「昨天」写进去、清理循环再把「今天」误删。
        * 点击时重算今天：变了就先整卡重渲成今天，再接着写今日键。
@@ -11748,6 +11858,114 @@ function pickCheckinFeedback(opt, dateKey) {
   return (_nick ? _nick + '，' : '') +
     (pool[h % Math.max(1, pool.length)] || '') +
     '　' + closers[h2 % closers.length];
+}
+
+/* R2350j（R107-Top5-4）：许愿瓶 lite——localStorage 单愿望封存，
+ * 无后端。结构 {t: 愿望文, c: 分类, ts: 毫秒戳}。 */
+var _WISH_CATS = ['感情', '事业', '学业', '财运', '健康', '小秘密'];
+function _wishGet() {
+  try {
+    var w = JSON.parse(localStorage.getItem('wishbottle') || 'null');
+    return (w && typeof w.t === 'string' && w.t) ? w : null;
+  } catch (e) { return null; }
+}
+function _wishSet(w) {
+  try { localStorage.setItem('wishbottle', JSON.stringify(w)); } catch (e) {}
+}
+function _wishClear() {
+  try { localStorage.removeItem('wishbottle'); } catch (e) {}
+}
+function _wishDays(w) {
+  var ts = (w && +w.ts) || Date.now();
+  return Math.max(0, Math.floor((Date.now() - ts) / 86400000));
+}
+function _wishSummary() {
+  var w = _wishGet();
+  if (!w) return '——写个愿望丢进去';
+  var d = _wishDays(w);
+  return '（' + (d === 0 ? '今天刚丢的' : '愿望躺了 ' + d + ' 天') + '）';
+}
+function _renderWishBottle(edit) {
+  var host = document.getElementById('wishBottleBody');
+  if (!host) return;
+  var w = _wishGet();
+  if (w && !edit) {
+    var d = _wishDays(w);
+    host.innerHTML =
+      '<div class="ck-wish-card">' +
+        '<div class="ck-wish-meta">' + esc(w.c || '小秘密') + ' · ' +
+          (d === 0 ? '今天丢进来的' : '躺了 ' + d + ' 天') + '</div>' +
+        '<div class="ck-wish-text">「' + esc(w.t) + '」</div>' +
+        '<div class="ck-wish-meta">' + esc(_dayPick([
+          '它还在这儿，等你哪天来认领', '愿望没说出口就不算数？说了',
+          '躺着躺着，说不定哪天就成真了', '瓶子帮你记着，你只管往前走'],
+          'wish|' + (w.ts || 0))) + '</div>' +
+        '<div class="ck-wish-actions">' +
+          '<button type="button" class="checkin-opt" data-wish="done">成真啦 🎉</button>' +
+          '<button type="button" class="checkin-opt" data-wish="edit">换个愿望</button>' +
+          '<button type="button" class="checkin-opt" data-wish="keep">继续躺着</button>' +
+        '</div></div>';
+    return;
+  }
+  host.innerHTML =
+    '<div class="ck-wish-card">' +
+      '<textarea id="wishText" class="ck-wish-input" maxlength="60" rows="2" ' +
+        'placeholder="比如：希望下个月面试顺利…">' +
+        esc(w ? w.t : '') + '</textarea>' +
+      '<div class="ck-wish-cats">' + _WISH_CATS.map(function (c) {
+        return '<button type="button" class="checkin-opt' +
+          (w && w.c === c ? ' picked' : '') + '" data-wish="cat" data-arg="' +
+          esc(c) + '">' + esc(c) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" data-wish="save">丢进瓶子 🫙</button>' +
+      '</div>' +
+      '<div class="ck-wish-meta">只有你的浏览器记得它，写给自己看的</div>' +
+    '</div>';
+}
+function _wishRefreshSummary() {
+  var s = document.querySelector('#dailyCheckin .ck-wish summary');
+  if (s) s.innerHTML = '🫙 许愿瓶' + _wishSummary();
+}
+function _wishAction(act, arg, dateKey) {
+  if (act === 'cat') {
+    var host = document.getElementById('wishBottleBody');
+    if (!host) return;
+    var chips = host.querySelectorAll('.ck-wish-cats .checkin-opt');
+    for (var i = 0; i < chips.length; i++) {
+      chips[i].classList.toggle('picked', chips[i].dataset.arg === arg &&
+        !chips[i].classList.contains('picked'));
+    }
+    return;
+  }
+  if (act === 'save') {
+    var ta = document.getElementById('wishText');
+    var t = ta ? ta.value.trim() : '';
+    if (!t) { showToast('先写点什么再丢进去～', 'warn'); return; }
+    var cat = '';
+    var host2 = document.getElementById('wishBottleBody');
+    var sel = host2 ? host2.querySelector('.ck-wish-cats .checkin-opt.picked') : null;
+    if (sel) cat = sel.dataset.arg || '';
+    _wishSet({ t: t.slice(0, 60), c: cat || '小秘密', ts: Date.now() });
+    showToast(_dayPick(['瓶子收好了，等它慢慢发酵',
+                       '愿望已封存，过几天再来看看',
+                       '装进瓶子啦，今天起算'], 'wishs'), 'info');
+    _renderWishBottle();
+    _wishRefreshSummary();
+    return;
+  }
+  if (act === 'done') {
+    _wishClear();
+    showToast('替你开心 🎉 瓶子空出来等新愿望了', 'info');
+    _renderWishBottle();
+    _wishRefreshSummary();
+    return;
+  }
+  if (act === 'edit') { _renderWishBottle(true); return; }
+  if (act === 'keep') {
+    showToast(_dayPick(['好，让它再躺会儿', '愿望继续躺着，你也继续',
+                       '瓶子盖好了，回头见'], 'wishk'), 'info');
+  }
 }
 
 /* R2341（R57-P2-6）：地支→生肖映射提模块级——海报与卡面同口径 */

@@ -2658,7 +2658,14 @@ def _draw_dicts(draws) -> list[dict]:
 def tarot(req) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌（固定 seed → 固定牌面）。"""
     req.validate_ranges()   # R230m：client_date 校验入口
-    draws = tarot_mod.draw(seed=req.seed, n=req.n)
+    # R2350k：自点牌背——cards 给了就用选定下标成牌（越界/重复在
+    # draw_picked 内收敛），否则照旧 seed 抽。
+    if req.cards:
+        draws = tarot_mod.draw_picked(req.cards, req.seed)
+        if not draws:
+            raise ComputeError("选的牌没对上号，再点一次试试")
+    else:
+        draws = tarot_mod.draw(seed=req.seed, n=req.n)
     cards = _draw_dicts(draws)
     interpretation = interpreter.interpret_tarot(cards, req.question)
     out = {

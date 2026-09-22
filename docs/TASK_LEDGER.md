@@ -12222,3 +12222,25 @@ SEO/爬虫面：`robots.txt`+`sitemap.xml`+`favicon.ico` 路由、`HEAD /`、
 bazi 响应回显 `birth_solar`，前端存入 `me` 并在档案条标农历。
 
 验证：selftest 271 / 契约 610 / ui_smoke 75 / 海报闸 9 视图 / 对账两探针全绿。
+
+### R2350j —— 许愿瓶 lite（R107-Top5-4 留存钩子）
+
+打卡区新增「🫙 许愿瓶」details 卡（与签册同构懒渲染）：写 ≤60 字愿望 +
+分类 chip（感情/事业/学业/财运/健康/小秘密）丢进 localStorage（key
+`wishbottle`），瓶口标签实时显示「今天刚丢的/愿望躺了 N 天」。封存卡给
+「成真啦🎉/换个愿望/继续躺着」三出口；打卡委托监听收编到
+`.checkin-opts .checkin-opt`（许愿瓶复用 chip 皮相不再被当打卡签重渲），
+save/done 只刷 summary 文本不整卡重渲（details 不再被回弹合上）。
+
+### R2350k —— 塔罗「自己抽一把」（R107-Top5-1 互动缺口）
+
+- 后端：`TarotRequest.cards`（0-77 牌表下标，≤10）；`tarot.draw_picked`
+  用选定下标成牌、越界去重收敛、位置按 SPREADS[len]、正逆位仍由 seed
+  确定性推出（同 seed+同下标可复验）；全越界 → ComputeError 人话。
+- 前端：「🃏 自己抽一把」开合 22 张真牌背（fresh shuffle 子集，点的
+  是位置不是牌名——熵不减），点选计数「已点 x/n」、齐 n 解锁
+  「就开这几张」；`doTarot(cards)` 同链路出卡/翻牌/进台账。
+- 钉扎：selftest +2（cards 成牌/同 seed 复验）；ui_smoke +1
+  （ui:tarot.pick：22 背→点 3→成局→结果出字，收尾还原侧栏+回首页）。
+
+验证：selftest 273 / 契约 610 / ui_smoke 76 / 其余 14 闸全绿。

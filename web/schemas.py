@@ -374,6 +374,9 @@ class TarotRequest(BaseModel):
     # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
     n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
     question: str | None = Field(None, max_length=200)
+    # R2350k：自点牌背——0-77 牌表下标，给了就忽略 seed 抽牌、
+    # 用选定下标成牌（正逆位仍由 seed 推）。n 以 len(cards) 为准。
+    cards: list[int] | None = Field(None, max_length=10)
     # R2350g（R104-P1-3）：分享重放免台账。
     record: bool = True
     # R230m：cross_ref「今日值宫」锚浏览器本地日。

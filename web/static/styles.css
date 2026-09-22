@@ -1073,6 +1073,19 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
   border-radius:8px;}
 
+/* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。 */
+.tr-fan{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+.tr-back{width:34px;height:54px;padding:0;border:none;border-radius:6px;
+  background:url('/static/tarot/card-back.jpg') center/cover no-repeat #B8860B;
+  cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);min-height:44px;}
+.tr-back:hover{transform:translateY(-3px);}
+.tr-back.on{transform:translateY(-8px);box-shadow:0 0 0 2px #E8668A,
+  0 6px 12px rgba(232,102,138,.35);}
+.tr-back:focus-visible{outline:2px solid #E8668A;outline-offset:2px;}
+.tr-pick-hint{font-size:12.5px;color:var(--secondary);margin-bottom:6px;}
+html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
+
 /* R228l：.tback 死样式删除——JS 发 .tbimg 图片牌背，无 .tback 载体。 */
 /* R195b：牌正面插画版式——暖米白渐变底（海报同色板）+ 意象符号大图 +
  * 牌名/关键词分区，替代原"只有字"的空白牌面 */
@@ -2068,6 +2081,18 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 /* R2350c（R97-P2-3）：缺签日灰槽——可看出缺口，「集满」有视觉拉力。 */
 .ck-album-miss{cursor:default;border-style:dashed;opacity:.55;}
 .ck-album-miss:hover{border-color:var(--border);}
+/* R2350j：许愿瓶——与签册同 token，深色经变量自适应。 */
+.ck-wish-card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm,12px);padding:12px 14px;}
+.ck-wish-text{font-size:14.5px;color:var(--primary-ink);line-height:1.7;
+  margin:6px 0;}
+.ck-wish-meta{font-size:11.5px;color:var(--muted);line-height:1.6;}
+.ck-wish-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.ck-wish-cats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;}
+.ck-wish-input{width:100%;box-sizing:border-box;min-height:60px;resize:vertical;
+  border:1px solid var(--border);border-radius:10px;padding:9px 11px;
+  font-size:13.5px;font-family:inherit;background:var(--card);color:var(--text);}
+.ck-wish-input:focus{outline:none;border-color:#E8B898;}
 .ck-album-miss b{color:var(--muted);font-weight:400;}
 .ck-album-prog{font-size:11px;color:var(--muted);margin-top:6px;}
 .ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}

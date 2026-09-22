@@ -866,6 +866,22 @@ def _run_inner() -> list[str]:
     check("tarot.spread5", client.post("/api/tarot", json={"seed": 42, "n": 5}),
           lambda j: [d.get("position") for d in j.get("draws", [])]
                     == ["过去", "现状", "阻碍", "助力", "结果"])
+    # R2350k：自点牌背——cards 下标成牌（越界去重收敛、位置按序、
+    # 同 seed+同下标结果可复验）。DECK[0..2] = 愚人/魔术师/女祭司。
+    _c = client.post("/api/tarot", json={"seed": 7, "n": 3,
+                                         "cards": [0, 1, 2, 0, 99, -1]})
+    _cj = _c.json()
+    assert (_cj.get("n") == 3 and
+            [d["name"] for d in _cj.get("draws", [])] ==
+            ["愚者", "魔术师", "女祭司"] and
+            [d.get("position") for d in _cj["draws"]] ==
+            ["过去", "现在", "未来"]), ("tarot.cards", _cj.get("draws"))
+    ok.append("tarot.cards")
+    _c2 = client.post("/api/tarot", json={"seed": 7, "n": 3,
+                                          "cards": [0, 1, 2]})
+    assert _c2.json()["draws"] == _cj["draws"], ("tarot.cards.replay",
+                                                _c2.json()["draws"])
+    ok.append("tarot.cards.replay")
     # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
     # 综合指引不得出现「整体是顺的」——先安抚再看走向。
     _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,

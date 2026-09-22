@@ -359,7 +359,10 @@ def main() -> int:
                  "dailyCover", "viewBack", "dailyTomorrow", "historyRefresh",
                  "historyExport", "historyExportJson",
                  "historyImportFile", "historyWipe",
-                 "hlResult", "qmResult"}
+                 "hlResult", "qmResult",
+                 # R2350k：自点牌扇——ui:tarot.pick 用例覆盖（fan 委托
+                 # 也由用例里的 .tr-back 点选走到）
+                 "trPickBtn", "trPickGo", "trPickFan"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -602,6 +605,43 @@ def main() -> int:
             except Exception as exc:
                 results.append({"name": "ui:checkin.click", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R2350k：自点牌扇——开扇 22 背 → 点 3 张 → 成局 → 结果卡出字
+            try:
+                goto_view('tarot')
+                page.wait_for_selector('#trPickBtn', timeout=12000)
+                page.click('#trPickBtn')
+                page.wait_for_selector('#trPickFan .tr-back', timeout=8000)
+                _n_back = page.evaluate(
+                    "document.querySelectorAll('#trPickFan .tr-back').length")
+                for _bi in range(3):
+                    page.click(f'#trPickFan .tr-back >> nth={_bi}')
+                    page.wait_for_timeout(120)
+                _go_on = page.evaluate(
+                    "!document.getElementById('trPickGo').disabled")
+                page.click('#trPickGo')
+                page.wait_for_timeout(1500)
+                _tr_txt = page.evaluate(
+                    "(document.getElementById('trResult').innerText||'').length")
+                results.append({
+                    "name": "ui:tarot.pick",
+                    "ok": _n_back == 22 and _go_on and _tr_txt > 60,
+                    "detail": f"背={_n_back} 可开={_go_on} 结果 {_tr_txt} 字符"})
+            except Exception as exc:
+                results.append({"name": "ui:tarot.pick", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                # 回到首页并还原侧栏——goto_view 会把 recentSidebar 收成
+                # collapsed，桌面端 recentToggle 随之隐藏，后续用例点不到。
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
 
             # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
             try:
