@@ -2695,7 +2695,14 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
             _chat_ctx_put(session_id, dict(_c_hit))
         return list(_f_hit)
     _ctx_out: dict = {}
-    facts = _chat_facts_inner(message, now, _anchor, _ctx_out)
+    # R2400（R135-P2-8）：危机消息根本不该跑判定计算——chat() 先走
+    # 转介回复，verdicts 不落档；facts 本体是浪费。提前短路（不写锚
+    # 语义已由「空 facts 不写锚」覆盖）。
+    if llm_polish._is_crisis(message or ""):
+        _ctx_out["qk"] = "crisis"
+        facts = []
+    else:
+        facts = _chat_facts_inner(message, now, _anchor, _ctx_out)
     # R2400（R128-P1-2/P2-4）：记锚只认判定/找日型供给——泛问/叙事
     # 插话（「我昨天去了医院」「今天天气怎样」）覆写日期锚会把下一问
     # 打飞；不存在日（badday）与危机拒答（crisis）根本不写。

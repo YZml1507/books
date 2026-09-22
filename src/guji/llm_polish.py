@@ -287,6 +287,12 @@ _INTERNAL_OUT_PAT = re.compile(
     r"traceback|corpus\.db|knowledge\.db|/home/|/users/|/app/|"
     r"[a-z]:[\\/]|\w+\.py\s*(?:line|:)", re.IGNORECASE)
 
+# R2400（R135-P2-1）：prompt 模板的内部字段名——模型原样复述
+# 「根据给定事实/参考口吻/排盘坐标」等于提示词结构外露。
+_PROMPT_LEAK_PAT = re.compile(
+    r"给定事实|候选名字|五行背景|参考口吻|排盘坐标|话题参考|请泛泛而谈|"
+    r"ctx\s*[:：]|我的规则|只使用.{0,8}(信息|事实)", re.IGNORECASE)
+
 # R230a-6（R12-P2-4）：前端轮询上限 40s，后端最坏 3×30s+dots 3×60s≈270s
 # ——40–270s 区间完成的任务是慢成功白烧 quota，用户永远看不到。每次尝试
 # 的 timeout 按「轮询预算剩余」递减，超预算直接收手让上层降级。
@@ -919,9 +925,14 @@ def chat(session_id: str, user_msg: str,
             # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
             _safe = [f for f in _coords if _fact_is_safe(f)]
             if _safe:
+                # R2400（R135-P2-5）：prompt 总长无帽——facts 段按 3K
+                # 截（单条坐标 ≤500、20 条上限本就该 ~10K 内，帽是给
+                # 将来字段膨胀兜底）。
+                _blk = "\n- ".join(_fact_line(f) for f in _safe)
+                if len(_blk) > 3000:
+                    _blk = _blk[:3000].rstrip() + "……"
                 _user_msg = ("（我的排盘坐标事实，只作话题参考，"
-                             "不要逐条念）：\n- "
-                             + "\n- ".join(_fact_line(f) for f in _safe)
+                             "不要逐条念）：\n- " + _blk
                              + "\n\n" + msg)
         payload_msgs.extend(history)
         payload_msgs.append({"role": "user", "content": _user_msg})
@@ -1327,8 +1338,9 @@ def facts_bazi(paipan: dict, warm: dict, question: str | None,
     reply0 = (w.get("reply") or [None])[0]
     if reply0:
         # R230a-6（R12-P3-8）：字段名改中性标记——口语化字段名可能被模型
-        # 当指令/台词复读。
-        facts.append("ctx: " + reply0)
+        # 当指令/台词复读。R2400（R135-P2-1）：`ctx:` 是内部构形外露——
+        # 改中文自然标签。
+        facts.append("语境：" + _fact_line(reply0))
     return facts
 
 
@@ -1359,7 +1371,7 @@ def facts_taohua(t: dict, warm: dict | None = None,
         facts.append("大运桃花应期：{}年起走{}运".format(
             d0.get("year_start") or "？", d0.get("pillar") or ""))
     if warm and warm.get("one_liner"):
-        facts.append("ctx: " + warm["one_liner"])
+        facts.append("语境：" + _fact_line(warm["one_liner"]))
     return facts
 
 
@@ -1394,7 +1406,7 @@ def facts_hehun(h: dict, warm: dict | None = None,
             (_bb.get("day") or "")[:1], (_ab.get("day") or "")[:1],
             h.get("god_b_sees_a") or ""))
     if warm and warm.get("one_liner"):
-        facts.append("ctx: " + warm["one_liner"])
+        facts.append("语境：" + _fact_line(warm["one_liner"]))
     return facts
 
 

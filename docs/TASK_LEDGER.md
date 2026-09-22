@@ -12667,3 +12667,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   优雅停机、.dockerignore 排 assets_src/delivery（镜像 -126M）。
   闸门：selftest 300（+chat.facts.r135 +huangli.families.r136 两块）
   /contract 627/ui_smoke 77/parity 74+43+251/ruff 全绿。
+
+- **R2400r（R135 残余收尾批）**：①prompt 内部字段名外露收口——
+  `ctx:` 改「语境：」自然标签；新增 _PROMPT_LEAK_PAT 出侧闸
+  （给定事实/候选名字/五行背景/参考口吻/我的规则/只使用…信息
+  复述即降级）。②坐标块 3K 字符帽（schema 上限外的保险）。
+  ③危机消息不再跑黄历事实计算（chat_huangli_facts 入口短路）。
+  ④day_query 中间态 list(set()) 全改 sorted()——跨进程
+  PYTHONHASHSEED 漂移保险。⑤2026-03-09 全年唯一「宜为空」日
+  裁定为有意（传统确有宜空日，前端诚实空态已有）。

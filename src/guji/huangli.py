@@ -504,15 +504,18 @@ def day_query(dt: datetime) -> dict:
     xx = xiu_value(dt)
     pz = pengzu_baiji(dt)
 
-    yi = list(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
-    ji = list(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
+    # R2400（R135-P1-1）：中间态一律 sorted 收敛——纯 set 序依赖
+    # PYTHONHASHSEED 跨进程漂移，任何未来消费方（yi[:3]/join）都会
+    # 产出跨进程不一致的卡面。
+    yi = sorted(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
+    ji = sorted(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
 
     # R233v（R52-P1-2）：神煞宜忌层接线——天赦/天德/月德/驿马/贵人临日
     # 的宜项与劫煞/灾煞/月煞/月厌的忌项此前算完就丢（死代码），词表里
     # 远行/移徙/上任/诉讼 这类词因此恒不命中（「问搬家年年中性」）。
     _sy, _sj = shensha_yiji(dt)
-    yi = list(set(yi) | set(_sy))
-    ji = list(set(ji) | set(_sj))
+    yi = sorted(set(yi) | set(_sy))
+    ji = sorted(set(ji) | set(_sj))
 
     # R2362（用户直报）：宜忌同框矛盾按《协纪辨方书》卷十断例裁决——
     # 「凡吉足胜凶，从宜不从忌；凡吉凶相抵，德喜之事仍忌；
@@ -523,7 +526,7 @@ def day_query(dt: datetime) -> dict:
     # 裁决后 yi∩ji 恒空，conflict/conflict_family 透出空表。
     _layers_yi = (set(ZHIRI_YIJI[jc]["yi"]), set(XIUXIU_YIJI[xx]["yi"]), set(_sy))
     _layers_ji = (set(ZHIRI_YIJI[jc]["ji"]), set(XIUXIU_YIJI[xx]["ji"]), set(_sj))
-    for _w in list(set(yi) & set(ji)):
+    for _w in sorted(set(yi) & set(ji)):
         _fam = term_family(_w)
         _vy = sum(1 for _L in _layers_yi if _L & _fam)
         _vj = sum(1 for _L in _layers_ji if _L & _fam)
