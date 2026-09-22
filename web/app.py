@@ -119,10 +119,12 @@ def create_app() -> FastAPI:
         "带钥匙的朋友请进～</p>"
         "<input name=key type=password placeholder='口令' autofocus "
         "style='width:100%;box-sizing:border-box;padding:10px 12px;"
-        "border:1.5px solid #e5d5c0;border-radius:10px;font-size:15px'>"
+        "border:1.5px solid #e5d5c0;border-radius:12px;font-size:15px'>"
+        # R2400（R129-P2-9）：门页按钮收编品牌玫瑰渐变（原 #c96f4a
+        # 陶土色与 app 内玫瑰不同族），圆角随全站 12px 档。
         "<button style='margin-top:14px;width:100%;padding:10px 0;border:0;"
-        "border-radius:10px;background:#c96f4a;color:#fff;font-size:15px;"
-        "cursor:pointer'>开门</button>"
+        "border-radius:12px;background:linear-gradient(135deg,#B04E40,"
+        "#A8435F);color:#fff;font-size:15px;cursor:pointer'>开门</button>"
         # R2364（R120-P1-1）：next 槽——门页记住你要去的深链，
         # 解锁完跳回原址（邀请链生辰参数不再被闸吃掉）。
         "<input type=hidden name=next value='{next}'>"

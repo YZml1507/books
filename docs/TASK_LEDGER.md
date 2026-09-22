@@ -12598,3 +12598,31 @@ R128 报告 1×P0+10×P1+8×P2 全清：
 ruff 等 15 道全绿。实测序列：明天搬家→我昨天去了医院→那理发呢
 （锚不飞）；明天搬家→星期八开业→那开业呢（badday 检出+锚不污）；
 还是算了吧（不重放）；明天搬家和后天开业（配对正确）。
+
+## R2400n — R129 视觉细节二扫清零（styles.css + web/app.py）
+
+R129 报告 P1×3 + P2×23 全清（无 P0）：
+
+- **P1-1 chip 选中态深色掉色**：`.checkin-opt.picked`/`.qm-style-chip.active`/
+  `.mode-btn.active` 三处特异性反转漏网——按 hl-chip.active 范式补 (0,3,1)
+  深色专属覆盖（#3A3040 底 + --accent-ink 边字）。
+- **P1-2 星座大卡白岛**：`.xz-card-img` 并入调光清单（.82/.9）。
+- **P1-3 许愿瓶 13.5px**：违反全仓 iOS 16px 防线→16px。
+- **深色残留 ×10**：chat-ai 奶油描边/内联粉彩 pill sm 滤镜/deco-corner
+  .05/deco-icon-img 入清单+func-icon-img 再压/抽屉遮罩 .45/焦点环
+  --focus-ring 深浅双值/海报弹窗体 #2B2529/门页按钮收编玫瑰渐变+12px/
+  wish-input focus 走 --hover-line/ink-hero 亮岛标有意。
+- **色彩散落**：~10 个玫瑰近值收编 --rose/--rose-deep/--rose-soft 三档
+  （cta-grad 两端保留刻意字面量，深浅各自加深档）；#E8B898 六处→
+  --hover-line；橙色离群脉冲→玫瑰族；冷灰蓝阴影→暖灰棕。
+- **节奏**：圆角 12 档→{12,16,18,999,50%}；字号半步（11.5/12.5/13.5/
+  14.5/17）全归并；chip gap 统一 8；hl-chips/deco-banner 外边距 12。
+- **动效**：xz-chip/xz-nav/hl-scene/chat-chip transition:all .15s；
+  button:active 死定义删；非 CTA 类（ghost/chip/pill 系）去玫瑰投影。
+- **布局**：daily-meta 右缘渐隐已在（R62 落地）；「忘掉我的数据」红描边
+  与次级按钮分型。
+- 深色令牌覆盖：--rose/--hover-line/--focus-ring 深浅双值（浅底深色值
+  在深底反向不可读）。
+
+验证：selftest 293 / ui_smoke 76 / contract 627 / ruff 全绿；braces 配平；
+var() 引用零悬空。sw → books-shell-74f440b68531。
