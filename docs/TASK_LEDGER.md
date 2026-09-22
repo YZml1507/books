@@ -12649,3 +12649,21 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 集合；⑤css.var_defs 新闸——var() 引用⊆定义集（含 JS setProperty 动态
 令牌），当场抓到 --ink 未定义真 bug 已修为 var(--text)。三份审计报告
 （R132 真机回归 9 组/R133 视觉双主题 62 图/R134 盲区 30 条）全清。
+
+- **R2400q（R135 LLM 链路 + R136 宜忌族 + R137 部署态三审清零）**：
+  ①facts 注入面系统性收口——`_fact_is_safe` 入闸前先归一（剥零宽/
+  控制字 + 繁折简小表），词表扩形状类（判定/权威/系统/角色/要求/
+  说法/act as/obey/don't listen）与内部外形串（calc.x/SQL/Traceback/
+  服务器路径/.py 行号）；含换行事实整行剥除（防 `- ` 伪造权威行），
+  voice.py 问句回显剥「」防 ctx 行提前封口注入；`review_names` 的
+  names/facts 此前零过滤已并同闸；coords 入档即过闸不再存恶意行。
+  ②出侧 `_sanitize` 补内部外形降级 + 伪 `system:` 行剥除 + `**`/`##`
+  记号压回纯文本。③facts_* 脏值批：None 字面量/dict repr/`medium`
+  未映射/`a_bazi=None` 崩溃点 全兜住；verdicts 空白行不入档、跨日
+  判定档作废。④huangli 功名族收「出官/谒贵」（全年 17 天
+  「宜上任 忌出官」对冲漏裁）+ 丧葬族补位。⑤部署态：/_gate 限速
+  桶改取 XFF 链尾（首元素伪造不再换桶）、books_key 改口令 HMAC
+  派生指纹（cookie 明文不再等于钥匙）、Dockerfile exec 顶 PID1
+  优雅停机、.dockerignore 排 assets_src/delivery（镜像 -126M）。
+  闸门：selftest 300（+chat.facts.r135 +huangli.families.r136 两块）
+  /contract 627/ui_smoke 77/parity 74+43+251/ruff 全绿。

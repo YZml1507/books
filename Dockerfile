@@ -19,4 +19,6 @@ COPY . .
 RUN python scripts/check_quality.py && python scripts/build_index.py
 EXPOSE 7860
 # 默认 7860 = HF Spaces app_port 缺省值；Railway/Render/Fly 注入 PORT 即用其值。
-CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]
+# R2400（R137-P2-3）：sh -c 下 dash 不 exec → uvicorn 是子进程收不到
+# SIGTERM，容器停机等 kill 超时。exec 让 uvicorn 顶 PID1 优雅停机。
+CMD ["sh", "-c", "exec uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]

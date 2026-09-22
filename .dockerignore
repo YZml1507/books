@@ -28,3 +28,8 @@ probes/
 docs/
 .agents/
 .aider*
+
+# R2400（R137-P2-4）：出图原稿+走查交付件合计 ~126M——运行期零消费
+# 方（grep 无引用），镜像层纯负重。
+assets_src/
+delivery/

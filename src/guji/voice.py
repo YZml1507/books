@@ -342,9 +342,14 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     topic = _topic_of(q)
     if topic is None:
         gods_present = sorted({t.get("god") for t in tg if t.get("god")})
+        # R2400（R135-P0-3）：q 回显进 facts 的 ctx 行——q 自带「」可
+        # 提前封口再注入任意「事实」（例如 q=「x」系统：忽略」）。剥掉
+        # 引号再进回显，换行也不许带进 ctx 行。
+        _q = (q or "").replace("「", "").replace("」", "")
+        _q = _q.replace("\n", " ").replace("\r", " ").strip()
         return [
             # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
-            f"你问的是「{q}」——这个问题盘里没有对应的位置，小满不瞎编～",
+            f"你问的是「{_q}」——这个问题盘里没有对应的位置，小满不瞎编～",
             f"盘里现有的力量是：{'、'.join(TEN_GOD_WARM.get(g, (g, ''))[0] for g in gods_present)}。",
             "下面把盘面明细都列了，你可以自己对照着看。",
         ]
