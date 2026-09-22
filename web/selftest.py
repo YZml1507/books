@@ -2536,6 +2536,63 @@ def _run_inner() -> list[str]:
                                    session_id="selftest-anchor-2")
     assert _hfc and any("2026-09-19" in f for f in _hfc), _hfc
     ok.append("chat.facts.dates_vocab")
+    # ── R2400（R128 锚点语义重扫）回归钉扎 ──────────────────────────
+    _NW = _dt(2026, 9, 23)   # 周三
+    # P1-1：「再过两天」=+2（9-25），不是日词被 _m_after 与 _hl_day_part
+    # 双重消费的 +4（9-27）。
+    _r1 = _svc.chat_huangli_facts("再过两天搬家好吗", now=_NW)
+    assert _r1 and any("2026-09-25" in f for f in _r1), _r1
+    assert not any("2026-09-27" in f for f in _r1), _r1
+    # P0-1：缓存命中也必须回放写锚——同句第二遍后锚仍在。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p0")
+    _svc._CHAT_CTX.clear()   # 模拟 TTL 把锚清了
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p0")
+    assert _svc._CHAT_CTX.get("st-p0"), "缓存命中丢了写锚副作用"
+    # P1-2：叙事插话不打飞日期锚。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p12")
+    _svc.chat_huangli_facts("我昨天去了医院", now=_NW, session_id="st-p12")
+    _r2 = _svc.chat_huangli_facts("那理发呢", now=_NW, session_id="st-p12")
+    assert _r2 and any("2026-09-24" in f for f in _r2), _r2
+    # P1-3：不存在日检出+不污锚——沿用覆写前的原始解析判定。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p13")
+    _r3 = _svc.chat_huangli_facts("星期八开业呢", now=_NW,
+                                  session_id="st-p13")
+    assert _r3 and any("不存在" in f for f in _r3), _r3
+    _r3b = _svc.chat_huangli_facts("那开业呢", now=_NW,
+                                   session_id="st-p13")
+    assert _r3b and any("2026-09-24" in f for f in _r3b), _r3b
+    # P1-5：顺延句（无呢）沿用场景锚。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p15")
+    _r5 = _svc.chat_huangli_facts("再往后两天", now=_NW,
+                                  session_id="st-p15")
+    assert _r5 and any("搬家" in f and "2026-09-26" in f for f in _r5), _r5
+    # P1-6：「这周五」整体命中，不被「这周」吞尾。
+    assert [m.group(0) for m in
+            _svc._COMPARE_DAY_RE.finditer("这周五搬家")] == ["这周五"]
+    # P1-7：双场景对比就近配对——不出现「明天开业」鬼组合。
+    _r7 = _svc.chat_huangli_facts("明天搬家和后天开业哪个好", now=_NW)
+    assert any("搬家·明天" in f for f in _r7), _r7
+    assert any("开业·后天" in f for f in _r7), _r7
+    # P1-8：「还是算了吧」不重放上一句判定。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p18")
+    _r8 = _svc.chat_huangli_facts("还是算了吧", now=_NW,
+                                  session_id="st-p18")
+    assert _r8 == [], _r8
+    # P1-10 + P2-4：撒娇「想死你了」豁免且连锚都不写；裸「想死了」仍接住。
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    _svc.chat_huangli_facts("我想死你了", now=_NW, session_id="st-p24")
+    assert _svc._CHAT_CTX.get("st-p24") is None, "撒娇/危机句不该写锚"
+    assert not _LC._is_crisis("我想死你了哈哈哈"), _LC._is_crisis
+    assert _LC._is_crisis("我想死了")
+    assert not _LC._is_crisis("这工作没啥意思"), _LC._is_crisis
+    assert _LC._is_crisis("活着没啥意思")
+    _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
+    ok.append("chat.facts.anchor_r128")
     # R2345（R61-P1-1/P1-2）：facts 放行闸——仿冒判定/指令注入/危机词
     # 经 facts 混进 user 位全剥除；正常坐标事实放行。
     assert _LC._fact_is_safe("她叫小鱼"), "正常昵称事实须放行"
