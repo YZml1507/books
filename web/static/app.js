@@ -3498,7 +3498,9 @@ function buildShareData(view, j) {
       /* R233t（R51-P1-7）：卡图不再按 DOM 顺序抓——复看/重渲后 DOM
        * 序与 draws 可能错位；改用 draws[].img/src 数据键（若有）。 */
       var imgs = document.querySelectorAll('.tarot-card-front img');
-      var s = base('塔罗指引', _pStr(j && j.question) ? '你问的：「' + _gSlice(_pStr(j.question), 16) + '」' : '');
+      var s = base('塔罗指引',
+        (_pStr(j && j.spread) ? '「' + _pStr(j.spread) + '」牌阵 · ' : '') +
+        (_pStr(j && j.question) ? '你问的：「' + _gSlice(_pStr(j.question), 16) + '」' : ''));
       /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
       /* R2349s（R86-P2-7）：「节制·正：调和，少硬刚」的「·正：」
        * 是内部编码格式漏到画上——转成顺读「节制（正位）：…」。 */
@@ -7086,6 +7088,7 @@ function buildTarotResult(j) {
    * 「同一天问同一件事翻同几张」（seed=hash(question+date)）；
    * 没填问题 seed 每次随机（Date.now()），挂这句是空头支票。 */
   html += '<p class="hit-cite" title="复验编号 ' + esc(j.seed) + '">' +
+    (_pStr(j.spread) ? '「' + esc(j.spread) + '」牌阵 · ' : '') +
     esc(j.n) + ' 张牌 · ' + (j.question
       ? '同一天问同一件事，翻到的就是这几张'
       : '随手一抽，牌面随缘') + '</p>';
@@ -7443,6 +7446,14 @@ function _trAskedQs() {
   }
   return _trAsked;
 }
+/* R2350l：命名牌阵——前端只镜像「key→张数」，位置名以服务端为准。 */
+var _TR_SPREAD_N = {time:3, mind:3, you_ta:3, diamond:4, choose:5,
+                    week:7, star:7, celtic:10};
+function _trSpread() { return val('tr_spread') || ''; }
+function _trSpreadSync() {
+  var f = el('tr_n_field');
+  if (f) f.style.display = _trSpread() ? 'none' : '';
+}
 /* R2350k：cards 给了走「自己抽」——选定下标成牌；不给照旧。 */
 async function doTarot(cards) {
   busy('trResult', '抽牌中…');
@@ -7481,10 +7492,15 @@ async function doTarot(cards) {
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
   /* R2350k：自点牌背——n 以点选张数为准，跳过张数钳位提示。 */
   var _picked = (cards && cards.length) ? cards.slice(0, 10) : null;
+  var _sp = _trSpread();
+  if (_sp) {
+    body.spread = _sp;
+    body.n = _TR_SPREAD_N[_sp] || body.n;   /* 牌阵定张数 */
+  }
   if (_picked) {
     body.cards = _picked;
-    body.n = _picked.length;
-  } else if (n != null && n !== body.n) {
+    if (!_sp) body.n = _picked.length;
+  } else if (n != null && n !== body.n && !_sp) {
     /* R230d（R16-P2-5）：静默钳位会让用户以为抽了输入的张数——
      * 超界时吱一声（防呆提示，不阻断）。 */
     showToast('牌数最多 10 张，已按 ' + body.n + ' 张抽', 'info');
@@ -7532,6 +7548,8 @@ async function doTarot(cards) {
  * 0-77 下标子集，点选顺序即成局顺序（位置名按序给）。 */
 var _trPickState = { idxs: [], picks: [], n: 3 };
 function _trPickNeed() {
+  var sp = _trSpread();
+  if (sp && _TR_SPREAD_N[sp]) return _TR_SPREAD_N[sp];
   var n = num('tr_n');
   return (n == null) ? 3 : Math.min(Math.max(n, 1), 10);
 }
@@ -9698,6 +9716,10 @@ function initDivination() {
   /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
   on('trPickBtn', _trPickOpen);
   on('trPickGo', _trPickGo);
+  /* R2350l：牌阵选了 → 藏张数框（张数跟着牌阵走）。 */
+  (function(){ var s = el('tr_spread');
+    if (s) s.addEventListener('change', _trSpreadSync); })();
+  _trSpreadSync();
   (function () {
     var fan = el('trPickFan');
     if (fan && !fan.dataset.bound) {

@@ -152,6 +152,20 @@ SPREADS: dict[int, tuple[str, ...]] = {
     7: ("第1日", "第2日", "第3日", "第4日", "第5日", "第6日", "第7日"),
 }
 
+# R2350l：命名牌阵库——张数由牌阵长度决定，位置名带着说人话的主题。
+# key → (显示名, 位置名元组)。「time」与 n=3 默认阵同位不同名地保留显式项。
+NAMED_SPREADS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "time":    ("时间流", ("过去", "现在", "未来")),
+    "mind":    ("身心灵", ("身体", "内心", "灵性")),
+    "you_ta":  ("你和TA", ("你", "TA", "这段关系")),
+    "choose":  ("二选一", ("选项A", "现状", "关键", "选项B", "指引")),
+    "diamond": ("钻石阵", ("现状", "阻碍", "助力", "结果")),
+    "week":    ("周运势", ("周一", "周二", "周三", "周四", "周五", "周六", "周日")),
+    "star":    ("六芒星", ("过去", "现在", "未来", "阻碍", "环境", "建议", "结果")),
+    "celtic":  ("凯尔特十字", ("现状", "阻碍", "根源", "过去", "目标",
+                              "未来", "你", "环境", "希望", "结果")),
+}
+
 
 @dataclass
 class Draw:
@@ -170,15 +184,18 @@ class Draw:
         return f"{head}{self.name}（{pos}）：{kw}——{self.meaning}"
 
 
-def draw(seed: "int | None", n: int = 3) -> list[Draw]:
+def draw(seed: "int | None", n: int = 3,
+         positions: "tuple[str, ...] | None" = None) -> list[Draw]:
     """seed 确定性抽 n 张（默认 3 张，照 liuyao seed=42 先例）。
 
     固定 seed → 固定牌面与正逆位，可命令复验；n 上限 10（超过截断）。
     每张按牌阵 SPREADS 给位置名（n 不在表内时 fallback 第N张）。
+    R2350l：positions 给了就用命名牌阵的位置表（长度即张数上限）。
     """
     rng = random.Random(seed)
     picked = rng.sample(range(len(DECK)), min(max(n, 1), 10))
-    spread = SPREADS.get(min(max(n, 1), 10), ())
+    spread = positions if positions is not None else \
+        SPREADS.get(min(max(n, 1), 10), ())
     out: list[Draw] = []
     for slot, idx in enumerate(picked):
         name, up, rev, meaning = DECK[idx]
@@ -190,10 +207,11 @@ def draw(seed: "int | None", n: int = 3) -> list[Draw]:
     return out
 
 
-def draw_picked(indices: list[int], seed: "int | None") -> list[Draw]:
+def draw_picked(indices: list[int], seed: "int | None",
+                positions: "tuple[str, ...] | None" = None) -> list[Draw]:
     """R2350k：用户自点牌背的下标成牌——牌面由选定下标定，
     正逆位仍由 seed 确定性推出（同 seed+同下标 → 同牌面可复验）。
-    位置按 SPREADS[len(indices)]，越界下标静默跳过。"""
+    位置按 SPREADS[len(indices)] 或 positions 覆盖，越界下标静默跳过。"""
     rng = random.Random(seed)
     seen: set[int] = set()
     idxs: list[int] = []
@@ -203,7 +221,8 @@ def draw_picked(indices: list[int], seed: "int | None") -> list[Draw]:
             idxs.append(i)
         if len(idxs) >= 10:
             break
-    spread = SPREADS.get(len(idxs), ())
+    spread = positions if positions is not None else \
+        SPREADS.get(len(idxs), ())
     out: list[Draw] = []
     for slot, idx in enumerate(idxs):
         name, up, rev, meaning = DECK[idx]

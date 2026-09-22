@@ -691,7 +691,21 @@ try {
         </div>
       </details>
       <div class="row">
-        <div class="field"><label for="tr_n">张数（1–10）</label>
+        <div class="field"><label for="tr_spread">牌阵</label>
+          <select id="tr_spread">
+            <option value="">随缘抽（自己定张数）</option>
+            <option value="time">时间流 · 3 张</option>
+            <option value="mind">身心灵 · 3 张</option>
+            <option value="you_ta">你和TA · 3 张</option>
+            <option value="diamond">钻石阵 · 4 张</option>
+            <option value="choose">二选一 · 5 张</option>
+            <option value="week">周运势 · 7 张</option>
+            <option value="star">六芒星 · 7 张</option>
+            <option value="celtic">凯尔特十字 · 10 张</option>
+          </select></div>
+      </div>
+      <div class="row">
+        <div class="field" id="tr_n_field"><label for="tr_n">张数（1–10）</label>
           <input id="tr_n" type="number" inputmode="numeric" min="1" max="10" value="3"></div>
         <div class="field"><label for="tr_question">心中所想</label>
           <input id="tr_question" type="text" maxlength="200" placeholder="可选，如：今天运势如何？"></div>

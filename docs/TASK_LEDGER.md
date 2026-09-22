@@ -12244,3 +12244,20 @@ save/done 只刷 summary 文本不整卡重渲（details 不再被回弹合上�
   （ui:tarot.pick：22 背→点 3→成局→结果出字，收尾还原侧栏+回首页）。
 
 验证：selftest 273 / 契约 610 / ui_smoke 76 / 其余 14 闸全绿。
+
+## R2350l · 命名塔罗牌阵库（R107-Top5-1 后半）
+
+8 套主题牌阵，每个位置都有名有姓——从「抽 n 张看位置」升级成
+「为这个题选这个阵」。`src/guji/tarot.py` 新增 `NAMED_SPREADS`
+（时间流/身心灵/你和TA/钻石阵/二选一/周运势/六芒星/凯尔特十字，
+3-10 张），`draw`/`draw_picked` 收 `positions` 覆盖参数（默认不变）。
+`TarotRequest.spread`（≤20 字）给了张数=阵长、n 字段失效；
+坏 key → 400「没这个牌阵，换一个试试」（ValidationError，非 422
+——参数错不是计算错）。响应新增 `spread`（牌阵名回显，默认空串）。
+前端牌阵下拉（随缘抽=原逻辑），选了藏张数框；自己抽牌扇的 n 也
+跟着牌阵走；结果副标/分享图副标都带「『牌阵名』牌阵」。
+
+钉扎：selftest +3（choose 五位置逐名、celtic 10 张末位=结果、
+坏 key 400 人话）；on_coverage 登记 tr_spread。
+
+验证：selftest 276 / 契约 611 / ui_smoke 76 / ruff / 其余 14 闸全绿。

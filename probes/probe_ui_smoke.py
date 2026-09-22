@@ -362,7 +362,8 @@ def main() -> int:
                  "hlResult", "qmResult",
                  # R2350k：自点牌扇——ui:tarot.pick 用例覆盖（fan 委托
                  # 也由用例里的 .tr-back 点选走到）
-                 "trPickBtn", "trPickGo", "trPickFan"}
+                 "trPickBtn", "trPickGo", "trPickFan",
+                 "tr_spread"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"

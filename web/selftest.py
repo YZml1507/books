@@ -882,6 +882,25 @@ def _run_inner() -> list[str]:
     assert _c2.json()["draws"] == _cj["draws"], ("tarot.cards.replay",
                                                 _c2.json()["draws"])
     ok.append("tarot.cards.replay")
+    # R2350l：命名牌阵——张数=阵长、位置名按主题表、坏 key 被拒成人话。
+    _s = client.post("/api/tarot", json={"seed": 11, "spread": "choose",
+                                         "question": "去不去"})
+    _sj = _s.json()
+    assert (_sj.get("n") == 5 and _sj.get("spread") == "二选一" and
+            [d.get("position") for d in _sj["draws"]] ==
+            ["选项A", "现状", "关键", "选项B", "指引"]), \
+        ("tarot.spread.named", _sj.get("draws"))
+    ok.append("tarot.spread.named")
+    _s2 = client.post("/api/tarot", json={"seed": 11, "spread": "celtic"})
+    assert _s2.json()["n"] == 10 and \
+        _s2.json()["draws"][9]["position"] == "结果", \
+        ("tarot.spread.celtic", _s2.json()["n"])
+    ok.append("tarot.spread.celtic")
+    _bad = client.post("/api/tarot", json={"spread": "bogus"})
+    assert _bad.status_code == 400 and \
+        "没这个牌阵" in str(_bad.json().get("detail")), \
+        ("tarot.spread.bad", _bad.status_code, _bad.text[:120])
+    ok.append("tarot.spread.bad")
     # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
     # 综合指引不得出现「整体是顺的」——先安抚再看走向。
     _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,

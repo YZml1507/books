@@ -2658,20 +2658,33 @@ def _draw_dicts(draws) -> list[dict]:
 def tarot(req) -> dict:
     """塔罗牌阵：78 张静态牌表 + seed 确定性抽牌（固定 seed → 固定牌面）。"""
     req.validate_ranges()   # R230m：client_date 校验入口
+    # R2350l：命名牌阵——key 必须在库内，张数=牌阵长度。
+    _positions = None
+    _spread_name = ""
+    if req.spread:
+        _sp = tarot_mod.NAMED_SPREADS.get(req.spread)
+        if _sp is None:
+            raise ValidationError("没这个牌阵，换一个试试")
+        _spread_name, _positions = _sp
     # R2350k：自点牌背——cards 给了就用选定下标成牌（越界/重复在
     # draw_picked 内收敛），否则照旧 seed 抽。
     if req.cards:
-        draws = tarot_mod.draw_picked(req.cards, req.seed)
+        draws = tarot_mod.draw_picked(req.cards, req.seed,
+                                      positions=_positions)
         if not draws:
             raise ComputeError("选的牌没对上号，再点一次试试")
     else:
-        draws = tarot_mod.draw(seed=req.seed, n=req.n)
+        draws = tarot_mod.draw(seed=req.seed,
+                               n=len(_positions) if _positions else req.n,
+                               positions=_positions)
     cards = _draw_dicts(draws)
     interpretation = interpreter.interpret_tarot(cards, req.question)
     out = {
         "seed": req.seed,
         "n": len(cards),
         "draws": cards,
+        # R2350l：牌阵名回显（默认空串，前端副标用）
+        "spread": _spread_name,
         "interpretation": interpretation,
         "warm": voice.warm_tarot(cards, interpretation, req.question),
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效

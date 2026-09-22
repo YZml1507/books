@@ -377,6 +377,8 @@ class TarotRequest(BaseModel):
     # R2350k：自点牌背——0-77 牌表下标，给了就忽略 seed 抽牌、
     # 用选定下标成牌（正逆位仍由 seed 推）。n 以 len(cards) 为准。
     cards: list[int] | None = Field(None, max_length=10)
+    # R2350l：命名牌阵 key（tarot.NAMED_SPREADS），给了张数按牌阵长度。
+    spread: str | None = Field(None, max_length=20)
     # R2350g（R104-P1-3）：分享重放免台账。
     record: bool = True
     # R230m：cross_ref「今日值宫」锚浏览器本地日。
