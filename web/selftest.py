@@ -893,7 +893,7 @@ def _run_inner() -> list[str]:
     # R2350k：自点牌背——cards 下标成牌（越界去重收敛、位置按序、
     # 同 seed+同下标结果可复验）。DECK[0..2] = 愚人/魔术师/女祭司。
     _c = client.post("/api/tarot", json={"seed": 7, "n": 3,
-                                         "cards": [0, 1, 2, 0, 99, -1]})
+                                         "cards": [0, 1, 2]})
     _cj = _c.json()
     assert (_cj.get("n") == 3 and
             [d["name"] for d in _cj.get("draws", [])] ==
@@ -925,6 +925,33 @@ def _run_inner() -> list[str]:
         "没这个牌阵" in str(_bad.json().get("detail")), \
         ("tarot.spread.bad", _bad.status_code, _bad.text[:120])
     ok.append("tarot.spread.bad")
+    # R2354（R112-P2-4/5）：cards 静默瘦身改显式拒——重复/越界 →
+    # 400；张数≠阵位数 → 400（不再产半截「凯尔特十字 · 3 张牌」）。
+    _dup = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [5, 5, 5]})
+    assert _dup.status_code == 400 and \
+        "重复" in str(_dup.json().get("detail")), \
+        ("tarot.cards.dup", _dup.status_code)
+    ok.append("tarot.cards.dup")
+    _oor = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [0, 99]})
+    assert _oor.status_code == 400, ("tarot.cards.range", _oor.status_code)
+    ok.append("tarot.cards.range")
+    _mm = client.post("/api/tarot",
+                      json={"seed": 7, "cards": [0, 1, 2],
+                            "spread": "celtic"})
+    assert _mm.status_code == 400 and \
+        "10 张牌" in str(_mm.json().get("detail")), \
+        ("tarot.cards.spread_mismatch", _mm.status_code)
+    ok.append("tarot.cards.spread_mismatch")
+    _fit = client.post("/api/tarot",
+                       json={"seed": 7, "cards": [0, 1, 2],
+                            "spread": "you_ta"})
+    _fj = _fit.json()
+    assert _fit.status_code == 200 and _fj.get("n") == 3 and \
+        _fj.get("picked") is True and _fj.get("spread_key") == "you_ta", \
+        ("tarot.cards.spread_fit", _fit.status_code)
+    ok.append("tarot.cards.spread_fit")
     # R230a-20（R13-P0-3 钉扎）：重牌在场（seed=4 抽出死神）时 warm
     # 综合指引不得出现「整体是顺的」——先安抚再看走向。
     _t4 = client.post("/api/tarot", json={"seed": 4, "n": 3,

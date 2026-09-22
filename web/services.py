@@ -2669,6 +2669,22 @@ def tarot(req) -> dict:
     # R2350k：自点牌背——cards 给了就用选定下标成牌（越界/重复在
     # draw_picked 内收敛），否则照旧 seed 抽。
     if req.cards:
+        # R2354（R112-P2-4/5）：静默瘦身防线——重复/越界原来悄悄
+        # 丢弃出更少张；张数≠阵位数时半截结果顶着全阵名。显式拒。
+        _seen: set[int] = set()
+        _bad = False
+        for _ci in req.cards:
+            if (not isinstance(_ci, int) or _ci < 0
+                    or _ci >= len(tarot_mod.DECK) or _ci in _seen):
+                _bad = True
+                break
+            _seen.add(_ci)
+        if _bad:
+            raise ValidationError("选的牌里有重复或没对上号，再点一次试试")
+        if _positions and len(req.cards) != len(_positions):
+            raise ValidationError(
+                _spread_name + "要 " + str(len(_positions)) +
+                " 张牌——牌的数目对不上，再点一次试试")
         draws = tarot_mod.draw_picked(req.cards, req.seed,
                                       positions=_positions)
         if not draws:
@@ -2685,6 +2701,11 @@ def tarot(req) -> dict:
         "draws": cards,
         # R2350l：牌阵名回显（默认空串，前端副标用）
         "spread": _spread_name,
+        # R2354（R112-P1-2/3）：分享 replay 需要原样还原——
+        # spread_key 让重放走同一牌阵；picked 标记自点牌（URL
+        # 带 cards 索引重放 draw_picked 而非 seed 重抽）。
+        "spread_key": req.spread if _positions else "",
+        "picked": bool(req.cards),
         "interpretation": interpretation,
         "warm": voice.warm_tarot(cards, interpretation, req.question),
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
@@ -2696,9 +2717,14 @@ def tarot(req) -> dict:
     # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账/牌册。
     if getattr(req, "record", True):
         paipan_history.save_async(
-            {"seed": req.seed, "n": req.n, "question": req.question},
+            {"seed": req.seed, "n": len(cards),
+             "question": req.question, "spread": _spread_name},
             out, rtype="tarot",
-            name=(req.question or f"{req.n} 张牌阵"))
+            # R2354（R112-P3-6）：账本名原来按 req.n——celtic 记「3 张
+            # 牌阵」实抽 10。按实际抽数+阵名。
+            name=(req.question or
+                  ((_spread_name + " · " + str(len(cards)) + " 张")
+                   if _spread_name else f"{len(cards)} 张牌阵")))
     return out
 
 

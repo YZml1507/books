@@ -3538,6 +3538,16 @@ function buildShareData(view, j) {
           sub: (_pos ? _pos + ' · ' : '') + ((d && d.upright) ? '正位' : '逆位'),
           img: el };
       });
+      /* R2354（R112-P3-7）：>3 张的阵（celtic 10 张）海报只带前三位，
+       * 「结果」位永远不上图——明细行续上第 4-6 位+总数收口。 */
+      if (draws.length > 3) {
+        s.lines = draws.slice(3, 6).map(function (d, i2) {
+          return { k: _pStr(d && d.position) || ('第 ' + (i2 + 4) + ' 张'),
+            v: _pStr(d && d.name) +
+              (((d || {}).upright) ? '（正位）' : '（逆位）') };
+        });
+        s.lines.push({ k: '还有', v: '共 ' + draws.length + ' 张牌' });
+      }
       return s;
     }
     /* R230d（R16-P2-2）：星座日运分享图——值宫 + 三维度摘要。 */
@@ -3751,10 +3761,18 @@ function buildShareData(view, j) {
       if (_top.length) _mspec.lines.push(
         { k: '最常翻牌', v: _top.map(function (o) {
           return o + '×' + _cnt[o]; }).join(' · ') });
-      if (_rare.length) _mspec.lines.push(
-        { k: '稀有签 ✦', v: _rare.slice(0, 3).map(function (d) {
-          return d.date.slice(5).replace('-', '/') + ' ' + d.opt;
-        }).join(' · ') + (_rare.length > 3 ? ' 等' : '') });
+      if (_rare.length) {
+        /* R2354（R112-P3-8）：「日期+签名 等」超 22 字被 _gSlice
+         * 腰斩成裸「…暴…」——改按签名计数缩写，一行必进。 */
+        var _rc = {};
+        _rare.forEach(function (d) {
+          _rc[d.opt] = (_rc[d.opt] || 0) + 1;
+        });
+        _mspec.lines.push({ k: '稀有签 ✦', v:
+          Object.keys(_rc).map(function (o) {
+            return o + '×' + _rc[o]; }).join(' · ') +
+          '（共 ' + _rare.length + ' 张）' });
+      }
       _mspec.lines.push({ k: '本月签运词', v:
         _hit >= 20 ? '全勤选手，锦鲤本鲤' :
         (_hit >= 10 ? '稳稳在线，好运常来' :
@@ -4202,6 +4220,16 @@ function showPosterModal(canvas, view, j) {
         typeof j.seed === 'number') {
       url += '&s=' + j.seed;
       if (view === 'tarot' && j.n) url += '&tn=' + j.n;
+      /* R2354（R112-P1-2/3）：replay 还原上下文——自点牌带 c= 索引
+       * 重放 draw_picked（不然 seed 重抽的是另一套牌）；牌阵带
+       * sp= 不然收方退化成随缘张数。 */
+      if (view === 'tarot' && j.spread_key) {
+        url += '&sp=' + encodeURIComponent(j.spread_key);
+      }
+      if (view === 'tarot' && j.picked && j.draws) {
+        url += '&c=' + j.draws.map(function (d) {
+          return d.index; }).join(',');
+      }
       if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
     }
     /* R2349t（R88-13a）：分享链带昵称——接力页能喊出「谁晒的」。
@@ -4242,6 +4270,16 @@ function showPosterModal(canvas, view, j) {
         typeof j.seed === 'number') {
       url += '&s=' + j.seed;
       if (view === 'tarot' && j.n) url += '&tn=' + j.n;
+      /* R2354（R112-P1-2/3）：replay 还原上下文——自点牌带 c= 索引
+       * 重放 draw_picked（不然 seed 重抽的是另一套牌）；牌阵带
+       * sp= 不然收方退化成随缘张数。 */
+      if (view === 'tarot' && j.spread_key) {
+        url += '&sp=' + encodeURIComponent(j.spread_key);
+      }
+      if (view === 'tarot' && j.picked && j.draws) {
+        url += '&c=' + j.draws.map(function (d) {
+          return d.index; }).join(',');
+      }
       if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
     }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
@@ -7024,9 +7062,16 @@ async function _replaySharedDraw(ssd) {
   };
   try {
     if (ssd.view === 'tarot') {
-      var _tj = await _post('/api/tarot',
-        { seed: ssd.seed, n: ssd.tn || 3, client_date: todayIso(),
-          record: false });
+      /* R2354（R112-P1-2/3）：replay 忠实还原——自点链走 draw_picked
+       * （cards 索引原样回传），牌阵链带 spread key，不然收方看到
+       * 的是另一套牌/退化成随缘张数。cards 与 spread 同传时后端
+       * 校验张数=阵位，对不上 → 请求被拒走 catch 静默回表单。 */
+      var _payload = { seed: ssd.seed, client_date: todayIso(),
+        record: false };
+      if (ssd.cards) { _payload.cards = ssd.cards; }
+      else { _payload.n = ssd.tn || 3; }
+      if (ssd.spread) { _payload.spread = ssd.spread; }
+      var _tj = await _post('/api/tarot', _payload);
       if (_tj && _tj.draws) {
         paint('trResult', _banner('抽到的牌') + buildTarotResult(_tj));
         revealResult('trResult');
@@ -7811,6 +7856,24 @@ function _trPickGo() {
   if (panel) panel.style.display = 'none';
   if (btn) btn.textContent = '🃏 自己抽一把';
   doTarot(st.picks);
+}
+/* R2354（R112-P1-1）：换阵/换张数时牌扇还开着 → 已选列表滞留
+ * 旧 need，跨配置静默提交（celtic 顶 3 张选牌、要 7 发出 3）。
+ * 面板开着时把 picks 清空+need 重算并明说「牌得重抽」。 */
+function _trPickInvalidate(msg) {
+  var panel = el('trPickPanel');
+  if (!panel || panel.style.display !== 'block') return;
+  var need = _trPickNeed();
+  if (!_trPickState.picks.length && need === _trPickState.n) return;
+  _trPickState.n = need;
+  _trPickState.picks = [];
+  var fan = el('trPickFan');
+  if (fan) fan.querySelectorAll('.tr-back.on').forEach(function (b) {
+    b.classList.remove('on');
+    b.setAttribute('aria-pressed', 'false');
+  });
+  _trPickHint();
+  if (msg) showToast(msg, 'info');
 }
 
 
@@ -9911,9 +9974,17 @@ function initDivination() {
   /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
   on('trPickBtn', _trPickOpen);
   on('trPickGo', _trPickGo);
-  /* R2350l：牌阵选了 → 藏张数框（张数跟着牌阵走）。 */
+  /* R2350l：牌阵选了 → 藏张数框（张数跟着牌阵走）。
+   * R2354（R112-P1-1）：换阵/换张数时牌扇开着要失效已选列表。 */
   (function(){ var s = el('tr_spread');
-    if (s) s.addEventListener('change', _trSpreadSync); })();
+    if (s) s.addEventListener('change', function () {
+      _trSpreadSync();
+      _trPickInvalidate('换了牌阵，手里的牌得重抽');
+    }); })();
+  (function(){ var n2 = el('tr_n');
+    if (n2) n2.addEventListener('input', function () {
+      _trPickInvalidate('换了张数，手里的牌得重抽');
+    }); })();
   _trSpreadSync();
   (function () {
     var fan = el('trPickFan');
@@ -10746,7 +10817,21 @@ function init() {
             window.__shareSeed = {
               view: _vp, seed: parseInt(_ss, 10),
               tn: (_tnv >= 1 && _tnv <= 10) ? _tnv : 3,
-              method: _qsAll.get('m') === 'coins' ? 'coins' : null
+              method: _qsAll.get('m') === 'coins' ? 'coins' : null,
+              /* R2354（R112-P1-2/3）：自点索引/牌阵 key 随链还原 */
+              cards: (function () {
+                var _c = _qsAll.get('c');
+                if (!_c) return null;
+                var _a = String(_c).split(',').map(function (x) {
+                  return parseInt(x, 10); }).filter(function (x) {
+                  return Number.isInteger(x) && x >= 0 && x <= 77;
+                });
+                return (_a.length >= 1 && _a.length <= 10) ? _a : null;
+              })(),
+              spread: (function () {
+                var _p = _qsAll.get('sp');
+                return (_p && _p.length <= 20) ? _p : null;
+              })()
             };
           }
         } catch (eSS) {}
@@ -11414,7 +11499,10 @@ function renderCheckin(dateKey) {
     (function () {
       var _mm = dateKey.slice(0, 7), _m = 0;
       Object.keys(_ckAll).forEach(function (k) {
-        if (k.slice(0, 7) === _mm && k <= dateKey) _m++;
+        /* R2354（R112-P3-9）：门控按 key 计数、海报按 truthy 值
+         * 计数——空串/脏值键能把门控抬到 5 但海报报 0 天。
+         * 两侧同按 truthy 值口径。 */
+        if (k.slice(0, 7) === _mm && k <= dateKey && _ckAll[k]) _m++;
       });
       return (_m >= 5 ?
         '<button type="button" class="checkin-share" id="checkinMonth" ' +

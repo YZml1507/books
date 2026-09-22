@@ -115,6 +115,10 @@ FIXTURES: dict[str, dict] = {
     # R231a：备份导出端点——空库也返回 version/exported_at/records 三键，
     # 读点可判定（前端只读 j.exported_at / j.records）。
     "/api/paipan/history/export_json": {"method": "GET"},
+    # R2353（R110-P1-1）：触屏/微信下 CSV 走 fetch→text() 展示式
+    # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
+    # 不钉字段（前端用 r.text() 不读 JSON 键）。
+    "/api/paipan/history/export": {"method": "GET", "text": True},
     # R231a：导入回灌——fixture 发空 records 数组（0 写入、无副作用），
     # 只为让 j.imported 读点可判定；真实写入路径由 import_rows 收敛逻辑
     # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
@@ -743,6 +747,12 @@ def main() -> int:
         if r.status_code != 200:
             cache[url] = ("http", (r.status_code, r.text[:160]))
             return cache[url]
+        # R2353：text/csv 等非 JSON 端点（展示式导出）——声明 text:True
+        # 的 fixture 只验「200+非空文本」，前端走 r.text() 本无字段
+        # 读点可钉。
+        if fx.get("text"):
+            cache[url] = ("ok", {"__text__": r.text})
+            return cache[url]
         body = r.json()
         if fx.get("cleanup") == "derived" and isinstance(body, dict):
             did = body.get("derived_id")
@@ -958,6 +968,12 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
                 continue
             seen_reads.add(key)
             checked += 1
+            # R2353：text:True fixture——响应不是 JSON（CSV 展示式导出），
+            # r.ok/r.text/r.status 是 Response 成员而非 JSON 字段，读点
+            # 不参与契约判定；端点活性由 fixture 的 200+非空钉过。
+            if isinstance(FIXTURES.get(url), dict) and \
+                    FIXTURES[url].get("text"):
+                continue
             status, value = resolve(body, rd["kind"], rd["path"])
             rd["url"] = url
             if status == "missing":
