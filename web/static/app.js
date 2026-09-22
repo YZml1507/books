@@ -3007,16 +3007,15 @@ function _paintPoster(j, W, H) {
    * 写在「知命 · 仅供娱乐」上方（保留底标过 check_poster 判据 12）。 */
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
-  ctx.fillText('@小满的解忧铺', 540, 1440 - 158);
-  ctx.fillStyle = '#B7A98A';
-  ctx.font = '400 24px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('· 知命知趣知自己 ·', 540, 1440 - 124);
+  ctx.fillText('@小满的解忧铺', 540, 1440 - 150);
+  /* R2351（R107-P2-页脚）：两句口号并一行——4 行 150px 太挤，
+   * 品牌+口号+免责三行拉开行距反而更清爽。 */
   ctx.fillStyle = '#815934';
-  ctx.font = '500 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('知命，是为了更好地活', 540, 1440 - 80);
+  ctx.font = '500 25px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('知命知趣知自己 · 为了更好地活', 540, 1440 - 104);
   ctx.fillStyle = '#B7A98A';
-  ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', 540, 1440 - 38);
+  ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('知命 · 仅供娱乐', 540, 1440 - 50);
 
   return cv;
 }
@@ -3130,7 +3129,8 @@ function _paintSharePoster(s, W, H) {
   /* R233t（R51-P0-2）：原来一律 slice(0,4)——daily 的「忌」、
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
-  var _lineCap = { daily: 5, 'checkin-week': 7, taohua: 5, hehun: 6,
+  var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
+                   taohua: 5, hehun: 6,
                    huangli: 6, birth: 5, bazi: 5 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -3407,7 +3407,7 @@ function _posterHookForView(view, j) {
     'tarot':  '牌已经替你说了',
     'xingzuo': '星星今天这么安排',
     'checkin': '新的一天，小满还在等你',
-    'checkin-week': '一周七天，天天有签',
+    'checkin-week': '一周七天，天天有签', 'checkin-month': '一个月的好运战报',
     'huangli': null,  /* R2350a（R94-P1-3）：写死「今天」是错话——下方按日词给 */
     'birth':  '这张小卡是你的底色'
   };
@@ -3708,6 +3708,47 @@ function buildShareData(view, j) {
                  v: _op + (_hi[d.opt] ? ' ✦' : '') };
       });
       return _wk;
+    }
+    case 'checkin-month': {
+      /* R2352（R107-月报）：整月聚合——不走 31 行流水账，
+       * 给「打卡天数/连签峰值/稀有签/最常翻牌/签运词」5 行战报。 */
+      var _md = (j && j.days) || [];
+      var _mm0 = (_md[0] && _md[0].date || '').slice(0, 7);
+      var _hit = _md.filter(function (d) { return d && d.opt; }).length;
+      var _mk = base('我的本月签运',
+        _mm0 ? (Number(_mm0.slice(5)) + ' 月 · 已攒 ' + _hit + ' 张签') : '');
+      var _hi2 = { '开运蛋': 1, '暴富签': 1, '生日签': 1, '甜甜运': 1 };
+      var _rare = _md.filter(function (d) { return _hi2[d.opt]; });
+      /* 连签峰值（月内最长连续打卡段） */
+      var _peak = 0, _run = 0;
+      _md.forEach(function (d) {
+        _run = d.opt ? _run + 1 : 0;
+        if (_run > _peak) _peak = _run;
+      });
+      /* 最常翻的签 top2 */
+      var _cnt = {};
+      _md.forEach(function (d) {
+        if (d.opt) _cnt[d.opt] = (_cnt[d.opt] || 0) + 1;
+      });
+      var _top = Object.keys(_cnt).sort(function (a, b) {
+        return _cnt[b] - _cnt[a]; }).slice(0, 2);
+      _mk.big = '本月打卡 ' + _hit + ' 天' +
+        (_rare.length ? ' · 稀有签 ' + _rare.length + ' 张' : '');
+      _mk.lines = [
+        { k: '打卡天数', v: _hit + '/' + _md.length + ' 天' },
+        { k: '连签峰值', v: _peak >= 2 ? (_peak + ' 天连签') : '还没连起来' }];
+      if (_top.length) _mk.lines.push(
+        { k: '最常翻牌', v: _top.map(function (o) {
+          return o + '×' + _cnt[o]; }).join(' · ') });
+      if (_rare.length) _mk.lines.push(
+        { k: '稀有签 ✦', v: _rare.slice(0, 3).map(function (d) {
+          return d.date.slice(5).replace('-', '/') + ' ' + d.opt;
+        }).join(' · ') + (_rare.length > 3 ? ' 等' : '') });
+      _mk.lines.push({ k: '本月签运词', v:
+        _hit >= 20 ? '全勤选手，锦鲤本鲤' :
+        (_hit >= 10 ? '稳稳在线，好运常来' :
+         (_hit >= 5 ? '隔三差五，运气在攒' : '初来乍到，签运开张')) });
+      return _mk;
     }
     case 'bazi': {
       var sb = base('今日命盘', '');
@@ -6820,11 +6861,12 @@ var _POSTER_TITLES = {
   bazi: '今日命盘', liuyao: '六爻占卜', tarot: '塔罗指引',
   qiming: '五行起名', taohua: '桃花运势', hehun: '八字合婚',
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
-  birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运',
+  birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配'
 };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
+  'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon' };
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -6841,6 +6883,7 @@ var _SHARE_TEXT = {
   huangli: '今天宜忌帮你查好了 →',
   checkin: '我在小满攒好运签，一起吗 →',
   'checkin-week': '我这周的签运攒成图了，你的呢 →',
+  'checkin-month': '我这个月的签运战报出炉了，你的呢 →',
   birth: '我的本命盘出来了，看看你的 →',
   xzm: '我们星座合拍指数出来了，你们的呢 →'};
 function _shareText(view) {
@@ -10525,6 +10568,7 @@ function init() {
        * birth→星座页的本命盘抽屉。 */
       var _vpRaw = _vp;
       var _alias = { daily: 'home', checkin: 'home', 'checkin-week': 'home',
+                     'checkin-month': 'home',
                      birth: 'xingzuo',
                      /* R2349v（R92-P0-2）：古籍域视图 id 是 read，但任务书/
                      * 直觉都写 research——别名收编，免得深链查无此页。 */
@@ -10779,7 +10823,7 @@ function init() {
             /* R2349（R65-P2-6）：checkin-week 别名此前落首页顶部无
              * 承接——和 daily/checkin 一样滚到日签卡（签运图在那）。 */
             if (_vpRaw === 'daily' || _vpRaw === 'checkin' ||
-                _vpRaw === 'checkin-week') {
+                _vpRaw === 'checkin-week' || _vpRaw === 'checkin-month') {
               var _dc = document.getElementById('dailyCard');
               if (_dc) _dc.scrollIntoView({ behavior: _rmBehavior(), block: 'start' });
             } else if (_vpRaw === 'birth') {
@@ -10875,6 +10919,7 @@ if (document.readyState === 'loading') {
           daily: '朋友在晒今天的签——上面第一张就是你的 ✨',
           checkin: '朋友在攒连签——打卡一下，今天的签就归你 ✍️',
           'checkin-week': '朋友在晒她的一周签运——你的周运也攒一个 🗓️',
+          'checkin-month': '朋友在晒她的一月签运——你的月运也攒一个 🗓️',
           birth: '朋友翻了她的本命盘——你的底色也翻一张 🌙',
           hehun: '朋友在晒合婚指数——你和 TA 也来一对 💕',
           bazi: '朋友在晒她的八字盘——你的盘也排一排 🔮',
@@ -10926,6 +10971,7 @@ if (document.readyState === 'loading') {
         daily: '朋友在晒今天的签——上面第一张就是你的 ✨',
         checkin: '朋友在攒连签——打卡一下，今天的签就归你 ✍️',
         'checkin-week': '朋友在晒她的一周签运——你的也攒一个 🗓️',
+        'checkin-month': '朋友在晒她的一月签运——你的也攒一个 🗓️',
         birth: '朋友翻了她的本命盘——你的底色也翻一张 🌙',
         hehun: '朋友约你合婚——点「八字合婚」测你俩的合拍度 💕',
       };
@@ -11242,6 +11288,17 @@ function renderCheckin(dateKey) {
         '<button type="button" class="checkin-share" id="checkinWeek" ' +
         'title="生成本周签运图">📅 本周签运</button>' : '');
     })() +
+    /* R2352（R107-月报）：本月打卡 ≥5 天给「本月签运」海报——
+     * 周报的下一档收集钩，月底晒感最强。 */
+    (function () {
+      var _mm = dateKey.slice(0, 7), _m = 0;
+      Object.keys(_ckAll).forEach(function (k) {
+        if (k.slice(0, 7) === _mm && k <= dateKey) _m++;
+      });
+      return (_m >= 5 ?
+        '<button type="button" class="checkin-share" id="checkinMonth" ' +
+        'title="生成本月签运图">🗓️ 本月签运</button>' : '');
+    })() +
     /* R2350f（R102-P2-8/P2-13）：两枚留存/拉新小动作——「明天提醒我」
      * 走本地 Notification（无推送基建，次日开屏 toast 口径如实说清），
      * 「安利铺子」产出 文案+链 一键复制给闺蜜。 */
@@ -11307,6 +11364,19 @@ function renderCheckin(dateKey) {
     }
     var _p2 = downloadPoster({ days: _days, streak: _streak }, 'checkin-week');
     if (_p2 && _p2.catch) _p2.catch(function () {});
+  });
+  var _ckm = box.querySelector('#checkinMonth');
+  if (_ckm) _ckm.addEventListener('click', function () {
+    /* 本月 1 号→今天逐日扫，聚合签种分布/稀有签/连签峰值。 */
+    var _mm = dateKey.slice(0, 7), _days = [];
+    for (var _d = 1; _d <= 31; _d++) {
+      var _dk = _mm + '-' + (_d < 10 ? '0' : '') + _d;
+      if (_dk > dateKey) break;
+      _days.push({ date: _dk, opt: _ckAll[_dk] || '' });
+    }
+    var _p3 = downloadPoster({ days: _days, streak: _streak },
+      'checkin-month');
+    if (_p3 && _p3.catch) _p3.catch(function () {});
   });
   /* R2350f（R102-P2-8）：「明天提醒我」——无推送基建下的诚实实现：
    * 拿 Notification 权限 + 本地打标，次日开屏 toast 提醒。权限被拒
