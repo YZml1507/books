@@ -4874,6 +4874,18 @@ async function loadDaily() {
         .catch(function () { return null; })
     ]);
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
+    /* R2400（R117-P2 时段问候）：顶行标签随时刻换——早/午/晚/夜安，
+     * 每天四次见面都说不一样的招呼。 */
+    var _greet = el('dailyGreet');
+    if (_greet) {
+      var _hr = new Date().getHours();
+      _greet.textContent =
+        (_hr >= 5 && _hr < 11) ? '☀️ 早呀，今日玄学搭子' :
+        (_hr >= 11 && _hr < 14) ? '🌤 午安，今日玄学搭子' :
+        (_hr >= 14 && _hr < 18) ? '🌟 下午好，今日玄学搭子' :
+        (_hr >= 18 && _hr < 23) ? '🌙 晚上好，今日玄学搭子' :
+        '🌙 夜安，今日玄学搭子';
+    }
     const dateEl = el('dailyDate');
     /* R233q：日期补星期——「2026-09-20 周日」比裸日期更像签 */
     if (dateEl) dateEl.textContent =
