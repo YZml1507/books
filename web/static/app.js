@@ -1597,7 +1597,7 @@ function autoSendChatContext() {
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
     session_id: _sid0, message: msg, facts: _chatFacts(facts),
     client_date: todayIso()
-  }).then(function (j) {
+  }, { silent: true }).then(function (j) {
     if (!j.chat_task_id) {
       /* R2355（R111-P2-6）：限流≠关停——rate_limited 只提示不锁框。 */
       if (j && j.rate_limited) {
@@ -1956,12 +1956,26 @@ function chatBubble(role, text, opts) {
 /* R233r（R49-P0）：危机词前端镜像——后端 _CRISIS_PAT 只在任务真起
  * 时才跑得着；DISABLE/限流/排队满时 spawn 返回 None，此前危机会被
  * _chatFallbackLine 卖萌句吞掉。本地镜像词表+转介文案，不发请求。 */
-var _CRISIS_FE_PAT = new RegExp(
+var _CRISIS_FE_HARD = new RegExp(
   '不想活|想死|自杀|自残|伤害自己|想不开|轻生|跳楼|抑郁|' +
   '活不下去|活着好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|' +
-  /* R2400（R123-P1-2）：与后端 _CRISIS_PAT 同步——插字变体+决绝句。 */
-  '活着.{0,3}没意思|死了算了|一了百了|活腻|' +
   'suicide|kill\\s*myself|end\\s*it', 'i');
+/* R2400（R126-P1-5）：与后端 _CRISIS_SOFT/OBJ_PAT + _is_crisis 同构——
+ * 软词（死了算了类）按分句判，分句带物件词豁免（「电脑死了算了」）。 */
+var _CRISIS_FE_SOFT = /活着.{0,3}没意思|死了算了|一了百了|活腻|没啥意思|没什么意思/i;
+var _CRISIS_FE_OBJ = /电脑|手机|剧|综艺|游戏|网|车|机器|电池|冰箱|代码|程序|软件|文件|快递|外卖|爱豆|偶像|交通|航班|火车|课|班|题|作业|考试|书|小说|电影|片子|番|漫|视频|多肉|植物|宠物|猫|狗|鸟|鱼|花|虫|乌龟|仓鼠|基金|股票|痘|拖延|懒/;
+function feCrisis(s) {
+  s = String(s || '');
+  if (_CRISIS_FE_HARD.test(s)) return true;
+  if (!_CRISIS_FE_SOFT.test(s)) return false;
+  var segs = s.split(/[，。！？；,.!?\n;~～…]+/);
+  for (var i = 0; i < segs.length; i++) {
+    if (_CRISIS_FE_SOFT.test(segs[i]) && !_CRISIS_FE_OBJ.test(segs[i])) {
+      return true;
+    }
+  }
+  return false;
+}
 var _CRISIS_FE_REPLY = '这个话题有点重，我不太敢乱说。如果心里真的很难受，' +
   '全国心理援助热线 12356（24 小时，免费）随时能打通，跟信任的朋友聊聊' +
   '也会好一些——我一直都在，陪你聊聊别的也行。';
@@ -2028,7 +2042,7 @@ function chatSend() {
   if (input) input.value = '';
   chatBubble('me', msg);
   /* R233r（R49-P0）：危机词本地先接住——不计发送数、不发请求。 */
-  if (_CRISIS_FE_PAT.test(msg)) {
+  if (feCrisis(msg)) {
     chatBubble('ai', _CRISIS_FE_REPLY);
     return;
   }
@@ -11828,8 +11842,9 @@ function baziPersonaCard(j) {
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
         /* R2349y（R95-P2-4）：备份含明文生辰/昵称/提问——
          * toast 明说让用户存的时候留心。 */
-        showToast((_noLedger ? '台账没开，只备份了本机偏好'
-          : '备份已下载：' + (j.records || []).length + ' 条记录 + 本机偏好') +
+        showToast((_noLedger && !_recsOut.length
+          ? '台账没开，只备份了本机偏好'
+          : '备份已下载：' + _recsOut.length + ' 条记录 + 本机偏好') +
           '（含生辰昵称，存哪儿自己留心）', 'info');
       } catch (e) {
         showToast('备份失败：' + e.message, 'error');

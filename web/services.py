@@ -580,35 +580,40 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
         hits = c.search(q, limit=limit, **kw)
         hint = None
         q2 = s2t_retry(q)
-        retried = False
         extra: list = []
+        shown_extra = 0
         if q2 != q:
             # R2400（R125-P1-2）：此前只在「零命中」时才按繁体重试——
             # 简体有部分命中时繁体形静默缺席（「无为」10 条 vs
             # 「無為」165 条），属误导性输出。现在两形并查、按
-            # (work_id,text) 去重合并，超 limit 如实 truncated。
+            # (work_id,text) 去重合并。
             hits2 = c.search(q2, limit=limit, **kw)
             if not hits:
                 if hits2:
                     hits = hits2
                     hint = f"已按繁体重试「{q2}」"
-                    retried = True
             elif hits2:
                 seen = {(h.work_id, h.text) for h in hits}
-                extra = [h for h in hits2 if (h.work_id, h.text) not in seen]
+                extra = [h for h in hits2
+                         if (h.work_id, h.text) not in seen]
                 if extra:
-                    hits = (hits + extra)[:limit]
-                    hint = f"已附繁体「{q2}」命中"
-        # total = 保留数 + 各形未展示的余量（各形只算真被搜过的那个；
-        # 合并窗口外的交集无法计数，如实按下界报并与 truncated 一致）。
-        kept = len(hits) - len(extra)
-        total = 0
-        if kept:
-            src = q2 if retried else q
-            total = kept + max(0, c.search_count(src, **kw) - kept)
-        if extra:
-            total += len(extra) + \
-                max(0, c.search_count(q2, **kw) - len(extra))
+                    # R126-P1-7：简体装满上限时 extra 全被 [:limit] 切掉、
+                    # hint 却谎称「已附」——简体侧让出名额给繁体，放不下的
+                    # 如实写进 hint。
+                    shown_extra = min(len(extra), max(3, limit // 3))
+                    hits = (hits[:limit - shown_extra]
+                            + extra[:shown_extra])
+                    hint = f"已附繁体「{q2}」命中 {shown_extra} 条"
+                    if len(extra) > shown_extra:
+                        hint += (f"（另有 {len(extra) - shown_extra} 条"
+                                 f"因上限没展示——想全看请直接搜「{q2}」）")
+        # total = 展示数 + 各形未展示的余量（两形的并集无法精确计数——
+        # 窗口外的交集不可知，按各形总数直加，配合 hint 的分形口径）。
+        shown_q = len(hits) - shown_extra
+        total = len(hits) \
+            + max(0, c.search_count(q, **kw) - shown_q) \
+            + (max(0, c.search_count(q2, **kw) - shown_extra)
+               if q2 != q else 0)
         return {"query": q, "count": len(hits), "total": total,
                 "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
@@ -2686,6 +2691,13 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
     _CHAT_FACTS_CACHE[_ck] = facts
     # R2400：事实行非空才记锚（倾诉/不存在的日期不更新锚态）。
     if facts and _ctx_out:
+        # R2400（R126-P2-5）：无场景插话（「今天天气怎样」这类泛问）
+        # 记锚时 scene=None 会把事项锚清掉，下一问「那后天呢」接不回
+        # 上一件事——新锚没事项时沿用旧锚的场景。
+        if _ctx_out.get("scene") is None and _anchor \
+                and _anchor.get("scene"):
+            _ctx_out["scene"] = _anchor["scene"]
+            _ctx_out["terms"] = list(_anchor.get("terms") or [])
         _chat_ctx_put(session_id, _ctx_out)
     return list(facts)
 
@@ -2705,21 +2717,28 @@ def _chat_facts_inner(message: str, now: datetime,
     dt, spoken = _hl_day_part(msg, now)
     _explicit_day = (spoken != "今天" or any(
         w in msg for w in ("今天", "今日", "今晚", "今夜")))
-    # 追问形：那/要不/还是/换 开头、呢吗嘛收尾、或短句——这类消息
-    # 的「没提日期」意为沿用上一句而非「今天」。
+    # R2400（R126-P1-1/P2-4）：追问形收窄——「那/换/要不/还是」开头或
+    # 呢/嘛/？收尾才算沿用语境；裸短句（「吃饭了吗」「今天天气怎样」）
+    # 是换话题不是追问，沿用锚点会把判词判到上一句事项头上。
     _followup = bool(re.match(r"^(那|要不|还是|换|哎|诶|话说)", msg_n)) \
-        or msg_n.endswith(("呢", "吗", "嘛", "?", "？")) \
-        or len(msg_n) <= 12
-    # R2400（R123-P2-1）：「再往后一天/两天」类指代词——有锚按锚+N 天，
-    # 没锚从今天+N 算，不再零事实让模型自己编日子。
+        or msg_n.endswith(("呢", "嘛", "?", "？"))
+    # R2400（R123-P2-1+R126-P1-4/P2-3）：「再往后N天」——基数优先认
+    # 本句自带日期词（「从周五起再往后两天」按周五+N），本句没提才借锚；
+    # 数词从 一二两 补到 十以内与阿拉伯数字。
     _m_after = re.search(
-        r"再?往后([一二两])天|再过([一二两])天|后一天|下一天|"
-        r"顺延([一二两])?天|往后推([一二两])?天", msg)
+        r"再?往后([一二两三四五六七八九十]|\d+)天|"
+        r"再过([一二两三四五六七八九十]|\d+)天|后一天|下一天|"
+        r"顺延([一二两三四五六七八九十]|\d+)?天|"
+        r"往后推([一二两三四五六七八九十]|\d+)?天", msg)
     if _m_after:
         _na = next((g for g in _m_after.groups() if g), "一")
-        _nd = {"一": 1, "二": 2, "两": 2}.get(_na, 1)
+        _ND = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+               "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+        _nd = _ND.get(_na) or (int(_na) if _na.isdigit() else 1)
         _base = None
-        if anchor and anchor.get("dt"):
+        if _explicit_day:
+            _base = dt
+        elif anchor and anchor.get("dt"):
             try:
                 _base = datetime.fromisoformat(anchor["dt"])
             except (ValueError, TypeError):
@@ -2732,23 +2751,36 @@ def _chat_facts_inner(message: str, now: datetime,
     _find_day_switch = bool(
         re.search(r"换[一个点]?(?:日子|日期|时间|天)|"
                   r"改[一个点]?(?:日子|日期)", msg_n))
+    # R2400（R126-P1-2）：「哪天/什么时候+事项」同样是找日问法——沿用
+    # 锚点日期会把 spoken 改写成锚那天，find-day 分支再也够不到
+    # （「那搬家哪天好」实测被答成明天的单天判定）。意图词表与下面
+    # _find_only 判定同源，提前到这里供沿用闸引用。
+    _find_intent = bool(re.search(
+        r"哪天|什么时候|啥时候|几时|几号|"
+        r"换[一个点]?(?:日子|日期|时间|天)|改[一个点]?(?:日子|日期)", msg_n))
 
     scene, terms = "", []
     # R228s：长词优先匹配——「解除合同」若先撞上「合同」会被误分到立券
     # （签约方向，与用户意图相反）。先扫长键再扫短键消歧。
-    for k in sorted(_CHAT_SCENE_TERMS, key=len, reverse=True):
-        if k in msg_n:
-            scene, terms = k, _CHAT_SCENE_TERMS[k]
-            break
+    # R2400（R126 跟进）：同长多命中时取句中最靠后者——意图词一般在
+    # 句尾（「分手了哪天复合好」问的是复合不是分手；「复合后又想
+    # 分手」问的是分手）。
+    _hits = [(len(k), msg_n.rfind(k), k) for k in _CHAT_SCENE_TERMS
+             if k in msg_n]
+    if _hits:
+        _k = max(_hits)[2]
+        scene, terms = _k, _CHAT_SCENE_TERMS[_k]
     if not scene:
         for t in _HUANGLI_VOCAB_ORD:
             if t in msg_n:
                 scene, terms = t, [t]
                 break
-    # R2400（R123-P1-4/P2-1）：只有日期词的追问（「那后天呢」）或
-    # 「换个日期」沿用上一句的事项——此前降级成原始宜忌总表。
+    # R2400（R123-P1-4/P2-1 + R126-P1-1/P2-2）：沿用锚点场景只给
+    # 真追问——纯问天（那后天呢）、裸追问（那咋办）、换日问法
+    # （换个日子）；换话题句（今天天气怎样/今天忌什么）不算追问，
+    # 不再被劫持到上一句的事项上判。
     if (anchor and not scene and anchor.get("scene")
-            and (_explicit_day or _find_day_switch)):
+            and (_followup or _find_day_switch)):
         scene, terms = anchor["scene"], list(anchor["terms"])
     generic = not scene and any(
         k in msg_n for k in ("黄历", "宜忌", "吉日", "挑日子", "看日子",
@@ -2756,11 +2788,12 @@ def _chat_facts_inner(message: str, now: datetime,
                              # R229o：「今天宜做什么」「明天忌什么」裸问法
                              "宜做什么", "忌做什么", "宜什么", "忌什么",
                              "做什么好", "干点啥", "能干啥", "能干什么"))
-    # R2400（R123-P1-1）：场景追问没提日期 → 沿用上一句的日子
-    # （「明天适合出行吗」→「那搬家呢」按明天判）。
-    # 「换个日期」除外——她要的就是另择日子，沿用锚会把同一天再判一遍。
-    if (anchor and not _explicit_day and _followup and scene
-            and not _find_day_switch
+    # R2400（R123-P1-1 + R126-P1-1/P1-2/P1-3/P2-2）：沿用锚点日期
+    # 收窄——必须真追问且不找日。「那搬家呢」按明天判保留；「那搬家
+    # 哪天好」走 find-day 另算近 45 天；「我分手了怎么办」不是追问
+    # 不沿用；裸追问「那咋办」没自带场景也沿用（接着上一句答）。
+    if (anchor and not _explicit_day and _followup
+            and not _find_intent
             and anchor.get("dt")):
         try:
             dt = datetime.fromisoformat(anchor["dt"])
@@ -2770,12 +2803,14 @@ def _chat_facts_inner(message: str, now: datetime,
     if ctx_out is not None:
         ctx_out.update({"dt": dt.isoformat(), "spoken": spoken,
                         "scene": scene or None, "terms": list(terms)})
-    # R233r（R49-P2-2）：高敏事项（分手/辞职/怀孕/离婚→解除/求嗣/嫁娶）
-    # 已成事实且不带择日/决策意图 → 是倾诉不是问日子，别塞判定句把
-    # 共情话头带歪。「我分手了怎么办」的「怎么办」仍算决策词放行。
+    # R233r（R49-P2-2）+ R2400（R126-P1-3）：高敏事项（分手/辞职/
+    # 怀孕/离婚→解除/求嗣/嫁娶）已成事实 → 是倾诉不是问日子，别塞
+    # 判定句把共情话头带歪。决策词（「怎么办/该不该」）不再豁免——
+    # 「我分手了怎么办」的「怎么办」是求安慰不是择日；真找日问法
+    # （分手了哪天复合好）仍放行——她真的在问日子。
     if (set(terms) & {"解除", "求嗣", "嫁娶"}
             and _ALREADY_HAPPENED_PAT.search(msg_n)
-            and not _DECIDE_INTENT_PAT.search(msg_n)):
+            and not _find_intent):
         return []
     # R2355（R111-P2-3）：显式但解不出的日期词（星期八/32号/农历13月/
     # 越界年号）——_hl_day_part 回落「今天」且带这些标记 = 用户真在
@@ -2837,9 +2872,6 @@ def _chat_facts_inner(message: str, now: datetime,
     # 近 45 天宜它的日子列表，别绕回今天的宜忌判定。
     # 但只改「无日期词」的：带着明确日期的（「分手后哪天复合」里的哪天
     # 是真问日）仍走正常判定 + 清单双给。
-    _find_intent = bool(re.search(
-        r"哪天|什么时候|啥时候|几时|几号|"
-        r"换[一个点]?(?:日子|日期|时间|天)|改[一个点]?(?:日子|日期)", msg_n))
     _find_only = _find_intent and scene and spoken == "今天" \
         and not any(w in msg for w in ("今天", "今日", "今晚", "今夜"))
     if _find_only:
@@ -2928,12 +2960,19 @@ def _chat_facts_inner(message: str, now: datetime,
 # R2400（R123-P2-2）：「明天和后天哪天好」——_hl_day_part if 链只回
 # 首个命中词，对比的另一日此前静默丢弃（只判后天、明天当没提过）。
 # 检出对比语境时，把另一日的判定一并供给，模型才能如实对比。
-_COMPARE_DAY_WORDS = (
-    "大后天", "大後天", "大前天", "后天", "後天", "过两天", "過兩天",
-    "前天", "前日", "明天", "明日", "明儿", "明兒", "明晚", "后晚",
-    "後晚", "今晚", "今夜", "昨晚", "昨夜", "昨天", "昨日", "今天",
-    "今日", "下下周末", "下下週末", "下周末", "下週末", "周末", "週末",
-    "下下周", "下周", "下週", "这周", "本周", "這週", "本週")
+# R2400（R126-P1-6/P2-6）：换 regex 整体匹配修两个坑——①裸「周X/
+# 星期X/礼拜X」（周五、下周一）收进来；②`w in msg` 子串碰撞
+# （「下周五」先被「下周」截胡算错天）。长形优先排好序。
+_COMPARE_DAY_RE = re.compile(
+    r"下下周末|下下週末|下周末|下週末|下下周|下下週|大后天|大後天|"
+    r"大前天|过两天|過兩天|下星期[一二三四五六日天一二]|"
+    r"下礼拜[一二三四五六日天一二]|上星期[一二三四五六日天一二]|"
+    r"上礼拜[一二三四五六日天一二]|下周[一二三四五六日天]|"
+    r"下週[一二三四五六日天]|上周[一二三四五六日天]|上週[一二三四五六日天]|"
+    r"本周|本週|这周|這週|本星期|星期[一二三四五六日天一二]|"
+    r"礼拜[一二三四五六日天一二]|周[一二三四五六日天]|週[一二三四五六日天]|"
+    r"后天|後天|前天|前日|明天|明日|明儿|明兒|明晚|后晚|後晚|今晚|"
+    r"今夜|昨晚|昨夜|昨天|昨日|今天|今日|周末|週末|下周|下週")
 
 
 def _compare_extra_facts(msg: str, spoken: str, scene: str,
@@ -2944,14 +2983,20 @@ def _compare_extra_facts(msg: str, spoken: str, scene: str,
     if not re.search(r"和|跟|与|还是|或者|或|哪个|哪天|比谁|对比|比较",
                      msg):
         return []
-    for w in _COMPARE_DAY_WORDS:
-        if w in msg and w != spoken:
-            sub = _chat_facts_inner((scene or "") + w, now, None, None,
-                                    _cmp=1)
-            if sub:
-                return [f"用户还在对比「{w}」——那天的口径："] + sub
-            return []
-    return []
+    # 按出现顺序收集全部「另一日」（spoken 当日已在主判定里）——
+    # 「这周五和下周五和周六」只补首个的旧毛病顺手修掉。
+    words: list[str] = []
+    for m in _COMPARE_DAY_RE.finditer(msg):
+        w = m.group(0)
+        if w not in ("这", "這") and w != spoken and w not in words:
+            words.append(w)
+    out: list[str] = []
+    for w in words[:3]:
+        sub = _chat_facts_inner((scene or "") + w, now, None, None,
+                                _cmp=1)
+        if sub:
+            out += [f"用户还在对比「{w}」——那天的口径："] + sub
+    return out
 
 
 # R233g：映射到医疗类宜忌词的事项集合（问一嘴/chat 两侧同表）

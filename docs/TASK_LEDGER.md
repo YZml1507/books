@@ -12476,3 +12476,53 @@ warm_voice / baseline / plain_first 全绿。
   遗留：P2-5 导入回灌详情需后端返新 id（暂记）、P2-7 CP chips
   无删除口（产品决策，留）。
 - 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
+
+## R2400h（PR #15）
+- R126（回归专项扫）P1 七项全清 + P2 九项跟进（web/services.py、
+  src/guji/llm_polish.py、src/guji/research.py、web/static/app.js）：
+  * P1-1 场景劫持：追问形收窄——「那/换/要不/还是」开头或 呢/嘛/？
+    收尾才算沿用语境（裸短句「吃饭了吗」「今天天气怎样」不再被锚
+    点拖去判出行）；场景沿用同步收紧为 `_followup or _find_day_switch`。
+  * P1-2 找日截胡：dt 沿用加 `not _find_intent`——「那搬家哪天好」
+    不再被锚点日期把 spoken 改写成明天而答成单天判定，照常出近45天
+    宜搬家清单。`_find_intent` 词表上移到沿用闸之前。
+  * P1-3 共情污染：高敏事项「怎么办/该不该」类决策词豁免撤掉——
+    「我分手了怎么办」不再沿用锚定明天判分手+塞吉日清单（返回 []
+    走共情）；真找日问法（「分手了哪天复合好」）仍放行。
+  * P1-4 `_m_after` 覆盖本句日期：基数优先认本句自带日期词
+    （「从周五起再往后两天」按周五+2=周日算），本句没提才借锚；
+    数词从一二两扩到十以内+阿拉伯数字（P2-3）。
+  * P1-5 危机误伤：`_CRISIS_PAT` 拆硬/软两层+`_is_crisis()`——硬词
+    （想死/自杀类）全语境接住；软词（死了算了/活腻/活着没意思/
+    没啥意思）按分句判、分句带物件词豁免（「电脑死了算了」「这剧
+    烂死了算了」「猫咪死了算了」不再误触转介）。前端
+    `_CRISIS_FE_HARD/SOFT/OBJ`+`feCrisis()` 同构镜像（FE 命
+    中点改走 feCrisis）。`_CRISIS_PAT` 并集形态留给 facts 过滤。
+  * P1-6 对比词表缺口：`_COMPARE_DAY_WORDS` 元组改
+    `_COMPARE_DAY_RE`——裸「周X/星期X/礼拜X」（周五/下周一）收
+    进来；regex 整体匹配修「下周五」被「下周」子串截胡。
+  * P1-7 search 两形并查失效：简体装满上限时繁体 extra 全被
+    [:limit] 切掉、hint 谎称「已附」——简体侧让名额给繁体
+    （min(len(extra), max(3, limit//3))），放不下的如实写进 hint；
+    total 按「展示数+各形未展示余量」直算（修 kept 错算的 q 侧
+    漏报）。
+  * P2-1 危机漏网：软词表补「没啥意思/没什么意思」。
+  * P2-2 裸追问丢锚：「那咋办」无场景也沿用（dt 沿用不再要求
+    scene 命中，场景沿用本身给裸追问）。
+  * P2-5 锚被插话重置：记锚时新 ctx 无场景则沿用旧锚场景——
+    「今天天气怎样」不再把事项锚清零。
+  * P2-6 三日对比只补一日：`_compare_extra_facts` 按出现顺序收
+    全部「另一日」（≤3），不再只回首个。
+  * P2-8 truncated 旗标过火：concept_census/compare_works 改
+    limit+1 探边界——恰好满额不再误标，两形合并后按「形」报。
+  * P2-9 autoSend 补 `{silent:true}`（与 chatSend 同口径——失败
+    走 chat 气泡，不再叠全局 toast）。
+  * 顺手修：同长事项词多命中取句中最靠后者（「分手了哪天复合好」
+    判复合→嫁娶，不再判成宜解除的日子）；备份 toast 计数改读
+    `_recsOut`（镜像兜底时不再谎报 0 条）；probe_contract 数组
+    方法白名单补 `sort`（`_recsOut.sort` 被误判缺 || 兜底字段）。
+- 闸门：selftest 293 / probe_contract 609 / ui_smoke 76 /
+  parity 74+43+251 / llm_polish / baseline_voice / xingzuo /
+  warm_voice / async_ai / dollar_misuse / no_generated /
+  scripts_importable / selftest_regress / ruff 全绿；
+  sw.shell_hash 已 bump。

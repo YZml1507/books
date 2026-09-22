@@ -517,8 +517,9 @@ def field_reads(block: dict,
             bind_off, kind, path, bind_url = live[-1]
             for m in re.finditer(r"(?<![\w.])" + re.escape(var) + r"\.(\w+)", line):
                 field = m.group(1)
+                # 数组方法（含会改写数组的 sort/push——它们是方法不是字段）
                 if field in ("forEach", "length", "slice", "map", "join",
-                             "filter", "push"):
+                             "filter", "push", "sort"):
                     continue
                 if field in binds:            # 派生变量自己的名字，跳过
                     pass

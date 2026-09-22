@@ -563,14 +563,45 @@ _CHAT_CLOSERS_LATE = [
 ]
 
 # R230a-6（R12-P2-5）：补高频口语与英文危机词——漏一个就是一条真实风险。
-_CRISIS_PAT = re.compile(
+# R2400（R126-P1-5）：拆硬/软两层——硬词（想死/自杀/跳楼…）任何语境
+# 接住；软词（死了算了/活腻/活着没意思）常见于物件口语（「电脑死了
+# 算了」「这剧烂死了算了」），命中时按分句判：分句带物件词豁免。
+_CRISIS_HARD_PAT = re.compile(
     r"不想活|想死|自杀|自残|伤害自己|想不开|轻生|跳楼|抑郁|"
     # R233r（R49-Top5-1）：直述自杀手段/绝望口语此前漏网。
     r"活不下去|活着好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|"
+    r"suicide|kill\s*myself|end\s*it", re.IGNORECASE)
+_CRISIS_SOFT_PAT = re.compile(
     # R2400（R123-P1-2）：插字变体与口语决绝句——「活着真没意思」
     # 此前被子串「活着没意思」漏掉，实测直达 LLM。
-    r"活着.{0,3}没意思|死了算了|一了百了|活腻|"
-    r"suicide|kill\s*myself|end\s*it", re.IGNORECASE)
+    # R2400（R126-P2-1）：「没啥意思/没什么意思」补进来（软层物件
+    # 豁免兜住「这游戏没啥意思」类口语）。
+    r"活着.{0,3}没意思|死了算了|一了百了|活腻|没啥意思|没什么意思",
+    re.IGNORECASE)
+_CRISIS_OBJ_PAT = re.compile(
+    r"电脑|手机|剧|综艺|游戏|网|车|机器|电池|冰箱|代码|程序|软件|文件|"
+    r"快递|外卖|爱豆|偶像|交通|航班|火车|课|班|题|作业|考试|"
+    r"书|小说|电影|片子|番|漫|视频|"
+    r"多肉|植物|宠物|猫|狗|鸟|鱼|花|虫|乌龟|仓鼠|基金|股票|痘|拖延|懒")
+_CRISIS_SEG_PAT = re.compile(r"[，。！？；,.!?\n;~～…]+")
+# 并集形态仍供 facts 过滤用（坐标事实里的危机词一律剥除，物件语境
+# 也无须入上下文）。
+_CRISIS_PAT = re.compile(
+    _CRISIS_HARD_PAT.pattern + "|" + _CRISIS_SOFT_PAT.pattern,
+    re.IGNORECASE)
+
+
+def _is_crisis(msg: str) -> bool:
+    """危机自伤判定——硬词全语境；软词分句判、物件语境豁免
+    （「电脑死了算了」「这班累死了算了」不是求助）。"""
+    msg = msg or ""
+    if _CRISIS_HARD_PAT.search(msg):
+        return True
+    if not _CRISIS_SOFT_PAT.search(msg):
+        return False
+    return any(
+        _CRISIS_SOFT_PAT.search(seg) and not _CRISIS_OBJ_PAT.search(seg)
+        for seg in _CRISIS_SEG_PAT.split(msg))
 
 # R233g（R44-P0-3）：非自伤的生死/重病问法（绝症/活多久/亲人会不会走）
 # 不属于危机自伤，但同样不该交给模型即兴——确定性转介，语气放稳。
@@ -712,7 +743,7 @@ def chat(session_id: str, user_msg: str,
                 session_id, {"messages": [], "updated": time.monotonic()})
             # R230a-6（R12-P1-2）：危机红线必须排在轮数收尾之前——此前满
             # 6 轮后发「我不想活了」会被收尾文案截胡，安全转介失效。
-            if _CRISIS_PAT.search(msg):
+            if _is_crisis(msg):
                 return _CHAT_REFUSAL
             # R233g：非自伤生死/重病问法——排危机之后（自伤优先走危机
             # 转介），调 LLM 之前确定性接住。
@@ -1097,7 +1128,7 @@ def spawn_chat_task(session_id: str, user_msg: str,
     # 已完成任务把转介文案送回去，不烧 LLM、不落历史（与 chat()
     # 内的危机路径同口径）。
     _msg0 = (user_msg or "").strip()
-    if _msg0 and _CRISIS_PAT.search(_msg0):
+    if _msg0 and _is_crisis(_msg0):
         tid = secrets.token_urlsafe(16)
         with _tasks_lock:
             _gc_tasks()
