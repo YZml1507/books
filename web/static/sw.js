@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-962c4289f5f2';   // shell-hash: 962c4289f5f2
+var CACHE = 'books-shell-30749762031d';   // shell-hash: 30749762031d
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -86,7 +86,9 @@ self.addEventListener('install', function (e) {
 
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+    /* R2500（R143-SW-P3）：自己的 RT 桶不删——此前 activate 把
+     * CACHE+'-rt' 也清了（无害但白删一轮）。 */
+    return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== RT; })
       .map(function (k) { return caches.delete(k); }));
   }));
   self.clients.claim();
@@ -163,6 +165,14 @@ self.addEventListener('fetch', function (e) {
            * 跨版本更换桶名，自愈只在同版本内需要）。 */
           e.waitUntil(_net().catch(function () {}));
           return rtHit;
+        }
+        /* R2500（R143-SW-P2）：?v= 版本化被 ignoreSearch 打穿——
+         * 「?v=新」请求照样命中旧 precache 的旧字节，新 HTML+旧 JS
+         * 混版。?v 存在且与本 SW hash 不符时跳过 precache 走网络。 */
+        var _reqV = url.searchParams.get('v');
+        var _vOk = !_reqV || _reqV === CACHE.slice('books-shell-'.length);
+        if (!_vOk) {
+          return _net().catch(function () { return undefined; });
         }
         return caches.match(e.request, { ignoreSearch: true })
           .then(function (hit) {

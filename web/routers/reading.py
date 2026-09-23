@@ -85,9 +85,18 @@ def stats() -> dict:
 
 
 @router.get("/api/threads")
-def threads(status: str = "open") -> dict:
-    """研究线程列表（G9：可恢复的研究线索）。"""
-    return services.threads(status)
+def threads(status: str = "open", limit: int = 50) -> dict:
+    """研究线程列表（G9：可恢复的研究线索）。limit≤500 供备份/wipe
+    够到全部线程（R2500/R143-P1-3）。"""
+    return services.threads(status, limit)
+
+
+@router.delete("/api/threads")
+def threads_clear() -> dict:
+    """全量清研究线程+手记（R2500/R143-P1-3：「忘掉我的数据」用——
+    逐条删只够到前 50 条且 claims 原文留库）。"""
+    deps.write_guard()   # R2357
+    return services.threads_clear_all()
 
 
 @router.get("/api/threads/{tid}")

@@ -203,9 +203,14 @@ def paipan_history_export_json() -> dict:
 def paipan_history_import(req: PaipanImportRequest) -> dict:
     """R231a（R36-P3-3）：备份文件回灌——追加式去重落库。"""
     deps.write_guard()   # R2357
-    if paipan_history.disabled():
+    # R2500（R143-P3-9）：threads 存 knowledge.db、独立于台账旗标——
+    # 台账禁用时线程回灌不该被连带 404；records 段才受闸。
+    if paipan_history.disabled() and not req.threads:
         raise NotFoundError("排盘历史未启用")
-    _w, _sk, _new = paipan_history.import_rows(req.records)
+    _w = _sk = 0
+    _new = []
+    if not paipan_history.disabled():
+        _w, _sk, _new = paipan_history.import_rows(req.records)
     # R2400（R138-P1-3 跟进）：备份包里的研究线程/手记同样回灌——
     # (topic, opened_at) 去重，幂等不翻倍。
     _tw = _tsk = 0

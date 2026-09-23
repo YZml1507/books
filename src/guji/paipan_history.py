@@ -440,6 +440,12 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
             if len(req_s) > 262144 or len(res_s) > 262144:
                 skipped += 1
                 continue
+            # R2500（R143-P1-1）：req/result 双空的「空壳记录」拒收——
+            # 镜像兜底备份可能只带摘要行，落库成空壳后 (ts,name,type)
+            # 去重键被占，之后带真内容的备份对该条永远 skip。
+            if req_s == "{}" and res_s == "{}":
+                skipped += 1
+                continue
             if not r.get("ts"):
                 skipped += 1
                 continue

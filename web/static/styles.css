@@ -308,10 +308,17 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   .daily-card:has(> .daily-cover:not(.open):not(.mini)){
     max-height:min(44vh, 430px);
   }
-  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{width:160px;}
+  /* R2500（R142-P1-1）：桌面卡封顶 430px，cover 内 padding-top130
+   * +img160+文案把「点开看看」挤出卡外被裁——桌面档内收让 CTA 落在卡内。 */
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover{
+    padding-top:min(9vh, 76px);}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{width:150px;}
   /* R2349p 续：桌面 hero 按容器宽等比放大到 ~284px，把功能宫格压出
    * 折叠线（实测 funcGrid 顶 1014>900）——钳高裁切保住横幅氛围。 */
-  .ink-hero img{height:min(15vh, 150px); aspect-ratio:auto;}
+  .ink-hero img{height:min(15vh, 150px); aspect-ratio:auto;
+    /* R2500（R142-P1-2）：object-position:bottom 在桌面窄高比下只露熊
+     * 躯干断头——上移到面部区（熊头占原图 15-55% 高）。 */
+    object-position:0 22%;}
 }
 @media (min-width:768px) and (max-height:800px){
   /* R2349p 续：720p 级矮视口再收一档——日签卡 42vh、hero 100px。 */
@@ -424,6 +431,9 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   -webkit-mask-image:none; mask-image:none;}}
 .daily-meta-item{
   display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;
+  /* R2500（R142-P2-1）：宜试试类长胶囊单粒 583px 独霸两屏——
+   * 限制视口宽内截断省略，多粒至少能露头。 */
+  max-width:76vw; overflow:hidden; text-overflow:ellipsis;
   font-size:14px; color:var(--secondary); background:var(--card);
   padding:6px 14px; border-radius:999px; border:1px solid var(--border);
 }
@@ -810,7 +820,9 @@ body{
 }
 /* R218a-巡2（N-10）：结果区底部预留 FAB 空间——避免初爻、分享图按钮被
  * 固定底栏挡。70px 容纳 52px FAB + 16px 间距 + 2px 安全余量。 */
-.view{padding-bottom:70px;}
+/* R2500（R144-P3-9）：左下 FAB 52px+距底 20px 共占 72px——70px 底垫
+ * 恰好压线，滚到页尾仍遮内容角。96px 留出清场。 */
+.view{padding-bottom:96px;}
 @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
 
 /* ── 通用卡片 ── */
@@ -1402,6 +1414,8 @@ details.warm-pro-fold > summary{
 /* R228d：.xz-cell/.xz-icon/.xz-palace 旧版死样式删除（v2 卡片版在用，.xz-grid 保留） */
 
 /* C-002：星座详情页分维度 */
+/* R2500（R144-P3-7）：宫名繁简混排的出处脚注 */
+.xz-palace-src{font-size:11px;color:var(--muted);margin-top:2px;}
 .xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:12px; }
 .xz-dim{ display:flex; gap:8px; margin-bottom:6px; }
 .xz-dim:last-child{ margin-bottom:0; }
@@ -1604,6 +1618,11 @@ button:active{transform:scale(.96);}
   transform:translateX(-50%);
   z-index:300; display:flex; flex-direction:column; gap:8px;
   pointer-events:none; max-width:min(420px, 92vw);
+}
+/* R2500（R144-P3-8）：toast 叠盖首屏日签/结果卡上缘 3.5s——
+ * 窄屏下移到首卡之下再叠。 */
+@media (max-width:560px){
+  .toast-stack{top:calc(env(safe-area-inset-top, 0px) + 64px);}
 }
 .toast-item{
   display:flex; align-items:center; gap:8px;
@@ -2149,6 +2168,9 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 /* R2341（R57-P1-6）：右上绝对定位分享钮会压住「你是X座」标题——
  * 头部 flex 行让出按钮宽度。 */
 .birth-card .birth-head{padding-right:110px;}
+/* R2500（R144-P1-1）：110px 固定让位在 ~270px 抽屉里把文字列压到
+ * 26px 逐字竖排——窄屏减到 64px，fav-btn 仍不压字。 */
+@media (max-width:480px){ .birth-card .birth-head{padding-right:64px;} }
 #xzResult{position:relative;}
 /* P1：合婚三钮窄屏改静态流（原 absolute 压 h2/判词首行，
  * 360px 挤成竖排圆球）。R2345（R62-P1-5）：星座分享钮同款处理——
@@ -2245,6 +2267,9 @@ html[data-theme="dark"] .func-icon-img{filter:brightness(.92);}
   box-shadow:0 2px 10px rgba(74,58,64,.12);
 }
 .theme-toggle:hover{transform:scale(1.08);}
+/* R2500（R142-P2-2）：新人条挂着时主题钮与条内 × 在右上角叠罗汉
+ * ——条存在期间把钮下移到条底之下，点偏不再误触。 */
+html:not(.welcomed) .theme-toggle{top:86px;}
 /* R2350a（R94-P1-4）：时辰吉凶十二格 */
 .hl-hours{margin-top:8px;}
 .hl-hour{display:inline-block; min-width:22px; text-align:center;
@@ -2357,6 +2382,9 @@ button.ghost, .hl-chip, .hl-scene, .hl-daychip, .checkin-opt,
 .fav-chip, .rtab, .pill{box-shadow:none;}
 /* P2-23 「忘掉我的数据」是破坏性操作——红描边与次级按钮分型 */
 #historyWipe.ghost{border-color:var(--rose-soft); color:var(--rose);}
+/* R2500（R144-P3-4）：hover 深紫底×玫红字 ~2.7:1——ID 选择器盖过
+ * button.ghost:hover 白字，点名补白字。 */
+#historyWipe.ghost:hover{color:#fff;}
 html[data-theme="dark"] #historyWipe.ghost{border-color:var(--rose-deep);}
 html[data-theme="dark"] .poster-act{background:#3A3237; color:var(--primary-ink);
   border-color:var(--border);}
@@ -2491,6 +2519,10 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
   background:var(--card);}
 .tarot-cell.got{opacity:1;border-color:var(--accent);color:var(--primary-ink);
   background:var(--accent-soft, #fdf2ea);}
+/* R2500（R144-P2-3）：已收集格 mini 牌面缩略图——牌册是晒图面，
+ * 78 格全「？」文本收藏感弱。 */
+.tarot-cell-img{width:34px;height:54px;object-fit:cover;border-radius:6px;
+  display:block;margin:0 auto 3px;box-shadow:0 2px 6px rgba(0,0,0,.18);}
 
 /* R2349l（R73-obs1）：二访起封面降级为顶部缎带——不盖卡面，
  * 拆礼物动作保留但不再挡路。 */

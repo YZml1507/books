@@ -484,11 +484,57 @@ class KnowledgeBase:
                     "VALUES (?,?,?,?,?)",
                     (tid, seq, role, text,
                      str(tr.get("created_at") or "").strip()[:32] or opened_at))
-            self.db.commit()
-            self._gc_threads()
-            self.db.commit()
+            # R2500（R143-P1-2/D2）：derived claims/手记随线程回灌——
+            # 此前只收 turns，清盘+恢复后手记原文永丢。证据条目形状
+            # 不齐时 record() 会拒，吞掉单条不拖死整线程。
+            for cl in (it.get("claims") or [])[:200]:
+                if not isinstance(cl, dict):
+                    continue
+                try:
+                    ev = [Evidence(
+                        work_id=str(e.get("work_id") or ""),
+                        file=str(e.get("file") or ""),
+                        raw_start=int(e.get("raw_start") or -1),
+                        raw_end=int(e.get("raw_end") or -1),
+                        quote=str(e.get("quote") or ""),
+                        page_anchor=e.get("page_anchor"),
+                        scheme=e.get("scheme"),
+                        addr1=e.get("addr1"), addr2=e.get("addr2"),
+                        role=str(e.get("role") or "context"))
+                        for e in (cl.get("evidence") or [])
+                        if isinstance(e, dict)]
+                    self.record(
+                        str(cl.get("kind") or "note"),
+                        str(cl.get("claim") or "")[:2000],
+                        str(cl.get("method") or "backup-import")[:200],
+                        ev, confidence=cl.get("confidence"),
+                        thread_id=tid)
+                except (ValueError, TypeError, sqlite3.IntegrityError):
+                    continue
             written += 1
+        # R2500（R143-P2-5/F1）：GC 移出循环——循环内每插一条就 GC
+        # 会把带旧 updated_at 的导入线程当场排进 200 名外删掉，
+        # written 仍 +1 计假数。收尾统一 GC 一次即可。
+        self._gc_threads()
+        self.db.commit()
         return written, skipped
+
+    def delete_all_threads(self) -> int:
+        """R2500（R143-P1-3/P2-4）：「忘掉我的数据」全量清线程——
+        前端逐条 DELETE 只够到 resume() LIMIT 50 的前 50 条，且
+        thread_delete 只解绑 derived 不删原文，手记永远留库。
+        这里整表清：全部 turn、全部 thread、全部 derived+evidence
+        +FTS 段（手记原文属用户数据，「忘掉」承诺覆盖）。
+        返回删除的线程数。"""
+        n = self.db.execute("SELECT count(*) c FROM thread").fetchone()["c"]
+        # derived 全清（含 evidence + FTS 删除记录）——contentless FTS
+        # 须走 'delete' 命令重写，不能直接 DELETE 表。
+        for d in self.db.execute("SELECT id, claim FROM derived").fetchall():
+            self._del_derived(d["id"], d["claim"])
+        self.db.execute("DELETE FROM turn")
+        self.db.execute("DELETE FROM thread")
+        self.db.commit()
+        return n
 
     def resume(self, status: str = "open") -> list[sqlite3.Row]:
         """Threads with derived-claim counts: what G9 needs to pick work back up.

@@ -12724,3 +12724,43 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   PaipanImportRequest 加 threads 字段、导入响应透出
   threads_imported/skipped、前端 POST 带 bundle.threads。
   selftest +1 钉扎（306 checks）。
+
+- **R2500a（R142 首访新客漏斗 + R143 备份导入闭环/PWA 两审清零批）**：
+  ①备份完整性——req/result 双空的「空壳」记录导入端拒收
+  （不再偷 dedup 键位）、导出端镜像回灌只带有正文条目；导出包
+  threads 每线补 claims（手记随备份走）、import_threads 回灌
+  claims（Evidence 字段 .get 容错）；「忘掉一切」新增
+  DELETE /api/threads 批量清除（绕 50 帽+孤儿 derived 一并清，
+  knowledge.delete_all_threads）；thread_detail 对 0 轮已有线程
+  不再 404（导出回看断点）。②PWA 版本混版根治——SW 预缓存命中
+  前校验 ?v 与自身 CACHE hash 一致（旧 SW 不再喂错版）、懒加载
+  chunk（app_poster/app_research）统一带 ?v、activate 保留自身
+  RT 桶不清运行时缓存。③新客体验——桌面日卡封面 CTA 被裁
+  （padding 压缩+图限高）、首页熊图脸被裁出框（object-position
+  上调）、出厂示例生日不再静默写入档案（_fieldsUntouched 比对
+  defaultValue，bazi/taohua/hehun/birth 五处接入）、打卡文案
+  「抽」→「挑」（与选签机制一致）、首访期主题钮挪离欢迎条
+  （html:not(.welcomed) 下调）、meta 胶囊文字 76vw 省略防炸版。
+  ④导入 UX——触屏/微信专属路径补对称「粘贴 JSON 导入」弹层
+  （_showTextImportModal，_importBackupText 管线文件/粘贴共用）；
+  导入 toast 分开报 records/threads/favorites 数不再混算；
+  _byKey 去重改先见先留。⑤探针/闸门——probe_ui_smoke fixture
+  换真内容（空壳拒收成特性）、importPasteGo 入 NO_CASE、
+  probe_dollar_misuse 局部变量 el 撞名顶层函数真歧义修复
+  （→node）；selftest +8 断言（310 checks）：shell 拒收/
+  claims 往返/wipe 清空/0轮详情/500 limit。sw 重发
+  books-shell-c61cd81c36ab。
+
+- **R2500b（R144 视觉调性深度评审清零批，93 截图巡场）**：P0 无。
+  ①P1 本命盘卡移动端文字列 26px 逐字竖排——.birth-head
+  padding-right 110px 固定让位在 ~270px 抽屉里压爆，≤480px 减到
+  64px（实测文字列 70px）。②P2 塔罗 cross_ref 跑连句——note
+  无句号时与「牌面这边」粘连，分隔符归一化补「；」。③P2 起名
+  温柔版裸贴干支行（庚午年…日主：庚）——收进专业版（五行卖点
+  由 nayin 行承载）。④P2 塔罗牌册 78 格全「？」——已收集格换
+  mini 牌面缩略图（tarot-cell-img 34×54，复用 /static/tarot 资产，
+  实测 2 格亮牌渲染正常）。⑤P3 一批——#historyWipe.ghost hover
+  深紫×玫红 2.7:1 补白字；海报页脚 hook/CTA 两行字形相触（基线
+  1364/1390）pill 下移加高各让一档；星座宫名繁简混排加「照原典
+  写法」脚注；toast 窄屏下移 64px 避首卡；.view 底垫 70→96px
+  FAB 不再压页脚角。ink-hero 桌面偏空=本轮 R142 已修（0 22%）。

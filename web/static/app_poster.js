@@ -491,17 +491,19 @@ function _paintSharePoster(s, W, H) {
      * 字形互碰——两行合并垫同一块米白衬底（照抄免责 pill 做法）。 */
     /* R2345（R62-P1-7）：CTA 是海报转化位却最挤——pill 加宽到 88%，
      * hook/CTA 两行都在 pill 内（原 680px 宽，CTA 贴着 pill 底缘）。 */
+    /* R2500（R144-P3-6）：hook 基线 1364×CTA 基线 1390 字形几乎相触
+     * ——pill 下移加高，两行各让开一档。 */
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 65, 1334, 950, 68, 22); ctx.fill();
+    _roundRectPath(ctx, 65, 1346, 950, 84, 22); ctx.fill();
     ctx.fillStyle = '#815934';
-    ctx.fillText(hook, 540, 1364);
+    ctx.fillText(hook, 540, 1374);
   }
   /* R231d（R37-F1/F10）：回流 CTA——海报底部一行邀请语，收到图的人
    * 知道去哪儿玩同款（部署域名未定时只引品牌名，不画裸 URL）。 */
   /* R2341：hook 缺席时 CTA 也要有衬底（P1-1 同根因） */
   if (!hook) {
     ctx.fillStyle = 'rgba(253,248,240,0.78)';
-    _roundRectPath(ctx, 65, 1334, 950, 68, 22); ctx.fill();
+    _roundRectPath(ctx, 65, 1346, 950, 62, 22); ctx.fill();
   }
   ctx.fillStyle = '#7A5C2E';
   ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
@@ -517,7 +519,8 @@ function _paintSharePoster(s, W, H) {
         /^\d+\.\d+\.\d+\.\d+$/.test(_host)) _host = '';
   } catch (eH) { _host = ''; }
   ctx.fillText(_host ? ('→ ' + _host + ' 测你的同款 ✨')
-                     : '搜「小满的解忧铺」· 测你的同款 ✨', 540, 1390);
+                     : '搜「小满的解忧铺」· 测你的同款 ✨',
+               540, hook ? 1414 : 1382);
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
