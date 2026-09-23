@@ -119,11 +119,12 @@ FIXTURES: dict[str, dict] = {
     # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
     # 不钉字段（前端用 r.text() 不读 JSON 键）。
     "/api/paipan/history/export": {"method": "GET", "text": True},
-    # R231a：导入回灌——fixture 发空 records 数组（0 写入、无副作用），
-    # 只为让 j.imported 读点可判定；真实写入路径由 import_rows 收敛逻辑
-    # 与 ui_smoke 纪律约束（探针不造有副作用的写）。
+    # R231a：导入回灌——gen_records 每轮发一条唯一 ts 的真记录（去重键
+    # 不撞、imported=1），让 j.imported/j.new_records.* 读点都可判；
+    # 写一条与 POST /api/bazi 同量级的测试行（fixture 本就有写副作用）。
     "POST /api/paipan/history/import": {"method": "POST",
-                                        "json": {"records": []}},
+                                        "json": {"records": []},
+                                        "gen_records": True},
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴收集端点。
     "/api/xzmatch":          {"method": "GET",
                               "params": {"a": "白羊", "b": "射手"}},
@@ -517,8 +518,11 @@ def field_reads(block: dict,
             bind_off, kind, path, bind_url = live[-1]
             for m in re.finditer(r"(?<![\w.])" + re.escape(var) + r"\.(\w+)", line):
                 field = m.group(1)
+                # 数组方法（含会改写数组的 sort/push——它们是方法不是字段）
+                # R2400u：indexOf/concat 补白名单——filter 结果再链它们
+                # 被误当字段读点判 HARD（app.js 挑吉日 tooltip 命中词提前）。
                 if field in ("forEach", "length", "slice", "map", "join",
-                             "filter", "push"):
+                             "filter", "push", "sort", "indexOf", "concat"):
                     continue
                 if field in binds:            # 派生变量自己的名字，跳过
                     pass
@@ -609,12 +613,24 @@ def main() -> int:
     from guji import paipan_history as _ph_db
     _ph_baseline = (0 if _ph_db.disabled()
                     else _ph_db.list_records(limit=200)["total"])
-    text = open(FRONTEND_JS, encoding="utf-8").read()
-    lines, base = script_region(text, FRONTEND_JS)
-    all_blocks = split_blocks(lines, base)
-    blocks = [b for b in all_blocks if b["has_call"]]
     src_name = os.path.basename(FRONTEND_JS)
-    print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）")
+    # R2400j：懒加载 chunk 也是前端载体——app_poster.js/app_research.js
+    # 里照样有 api() 调用与字段读点；不扫它们，chunk 里的读点全逃出
+    # 契约视野（R122 拆分后实测读点 622→442 假缩水）。app_*.js 约定
+    # 即 chunk 命名，新 chunk 自动入扫。
+    all_blocks = []
+    _files = [FRONTEND_JS] + sorted(
+        os.path.join(STATIC, f) for f in os.listdir(STATIC)
+        if re.fullmatch(r"app_[a-z0-9_]+\.js", f))
+    for _f in _files:
+        _t = open(_f, encoding="utf-8").read()
+        _ls, _bs = script_region(_t, _f)
+        for _blk in split_blocks(_ls, _bs):
+            _blk["file"] = os.path.basename(_f)
+            all_blocks.append(_blk)
+    blocks = [b for b in all_blocks if b["has_call"]]
+    print(f"前端载体：{src_name}（{os.path.getsize(FRONTEND_JS)}B）" +
+          (f" + {len(_files) - 1} 个懒加载 chunk" if len(_files) > 1 else ""))
     if not blocks:
         print(f"probe_contract FAIL-ENV: 在 {src_name} 里切不出任何含 fetch 的 "
               f"handler 块。可能是代码风格变了（如改用箭头函数顶层缩进），"
@@ -747,7 +763,17 @@ def main() -> int:
         if fx["method"] == "GET":
             r = client.get(url_real, params=fx.get("params"))
         else:
-            r = client.post(url_real, json=fx.get("json"))
+            _payload = fx.get("json")
+            if fx.get("gen_records"):
+                # R2400（R127-P2-5）：import 需非空 new_records 才可判——
+                # 每轮生成唯一 ts 的记录（毫秒戳），避开 (ts,name,type)
+                # 去重撞车导致的空 new_rows。
+                _payload = {"records": [{
+                    "type": "bazi",
+                    "ts": f"probe-contract-{int(time.time() * 1000)}",
+                    "name": "契约探针",
+                    "req": {"y": 1}, "result": {"ok": True}}]}
+            r = client.post(url_real, json=_payload)
         if r.status_code != 200:
             cache[url] = ("http", (r.status_code, r.text[:160]))
             return cache[url]
@@ -811,7 +837,8 @@ def main() -> int:
                          f"{r['renders_as']}  {r['value_preview']}")
             if r.get("note"):
                 extra += f"  ⚠ {r['note']}"
-            print(f"  {src_name}:{r['line_no']}  {r.get('url', '-')}  读 {path}"
+            print(f"  {r.get('file') or src_name}:{r['line_no']}  "
+                  f"{r.get('url', '-')}  读 {path}"
                   f"{extra}\n      源码: {r['src']}")
 
     print(f"probe_contract: {len(blocks)} 个含 fetch 的 handler 块，"
@@ -898,8 +925,11 @@ def scan(blocks, fetch, hard, type_bad, soft, skipped, seen_reads,
     checked = 0
     for b in blocks:
         binds, reads, urls, var_urls, nofix = field_reads(b)
+        for _rd in reads:
+            _rd["file"] = b.get("file")
         for nu in nofix:
-            skipped.append({"line_no": b["start"], "src": f"no fixture for {nu}",
+            skipped.append({"line_no": b["start"], "file": b.get("file"),
+                            "src": f"no fixture for {nu}",
                             "path": [], "field": "-"})
         # R228g：render 层——caller 块里 `fn(arg)` 且 arg 已绑定 → 以 arg 的
         # (kind,path,url) 为种子在 callee 体内重跑 field_reads，callee 内

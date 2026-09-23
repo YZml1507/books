@@ -243,7 +243,8 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
 
 
 def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
-                   scan_limit: int = 200) -> dict:
+                   scan_limit: int = 200,
+                   concept2: str | None = None) -> dict:
     """One concept across the whole corpus: per-work census + shared-address map.
 
     The cross-book research shape the founding brief §17 asks for («研究'变'的概念»):
@@ -256,7 +257,23 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
     census: list[dict] = []
     shared: dict[tuple[int, str | None], list[str]] = {}
     for w in works:
-        hits = corpus.search(concept, limit=scan_limit, work_id=w["id"])
+        # R126-P2-8：多取一条探边界——==scan_limit 不再一律标 truncated
+        # （恰好满额不代表还有剩），两形合并后 n_hits 可合法超过
+        # scan_limit，截断按「形」各自如实报。
+        hits = corpus.search(concept, limit=scan_limit + 1,
+                             work_id=w["id"])
+        _trunc = len(hits) > scan_limit
+        hits = hits[:scan_limit]
+        if concept2 and concept2 != concept:
+            # R2400（R125-P1-2）：简体概念有部分命中时繁体形静默缺席
+            # （「无为」4 部 vs「無為」21 部）——两形并查去重。
+            hits2 = corpus.search(concept2, limit=scan_limit + 1,
+                                  work_id=w["id"])
+            _trunc = _trunc or len(hits2) > scan_limit
+            hits2 = hits2[:scan_limit]
+            seen = {(h.work_id, h.text) for h in hits}
+            hits = hits + [h for h in hits2
+                           if (h.work_id, h.text) not in seen]
         if not hits:
             continue
         layers: dict[str, int] = {}
@@ -266,7 +283,7 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
                 shared.setdefault((h.gua, h.yao), []).append(w["id"])
         census.append({
             "work_id": w["id"], "title": w["title"], "attribution": w["attribution"],
-            "n_hits": len(hits), "layers": layers,
+            "n_hits": len(hits), "layers": layers, "truncated": _trunc,
             "top": [{"citation": h.citation(), "text": h.text[:200],
                      "disclosure": h.disclosure(),
                      # R35b: carry the raw provenance fields so a client can
@@ -278,9 +295,9 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
                     for h in hits[:per_work]],
         })
     census.sort(key=lambda c: -c["n_hits"])
-    # Honest census: n_hits is capped by scan_limit per work; say so instead of
-    # silently under-reporting a very frequent concept (audit-track R20a note 2).
-    truncated = any(c["n_hits"] >= scan_limit for c in census)
+    # Honest census: n_hits is capped by scan_limit per work per 形; say so
+    # instead of silently under-reporting (audit-track R20a note 2).
+    truncated = any(c["truncated"] for c in census)
     cross = [{"addr": f"卦{g}" + (f"·{y}" if y else ""), "works": sorted(set(ws))}
              for (g, y), ws in sorted(shared.items(),
                                       key=lambda kv: (kv[0][0], kv[0][1] or ""))
@@ -298,7 +315,8 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
 
 
 def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
-                  per_work: int = 3, scan_limit: int = 200) -> dict:
+                  per_work: int = 3, scan_limit: int = 200,
+                  concept2: str | None = None) -> dict:
     """Two-work side-by-side comparison at one concept (愿景 §7 Comparative Study).
 
     The founding brief's third UX scenario verbatim — 「把《道德经》和《庄子》
@@ -320,14 +338,27 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
             "SELECT id, title, attribution FROM work WHERE id = ?", (wid,)).fetchone()
         if w is None:
             return None
-        hits = corpus.search(concept, limit=scan_limit, work_id=wid)
+        # R126-P2-8：limit+1 探边界——满额≠截断；两形合并后按「形」报。
+        hits = corpus.search(concept, limit=scan_limit + 1, work_id=wid)
+        _trunc = len(hits) > scan_limit
+        hits = hits[:scan_limit]
+        # R2400（R125-P1-2 延展）：简体概念有部分命中时繁体形静默缺席——
+        # 两形并查去重，与 search/concept_census 同纪律。
+        if concept2 and concept2 != concept:
+            hits2 = corpus.search(concept2, limit=scan_limit + 1,
+                                  work_id=wid)
+            _trunc = _trunc or len(hits2) > scan_limit
+            hits2 = hits2[:scan_limit]
+            seen = {(h.work_id, h.text) for h in hits}
+            hits = hits + [h for h in hits2
+                           if (h.work_id, h.text) not in seen]
         layers: dict[str, int] = {}
         for h in hits:
             layers[h.layer] = layers.get(h.layer, 0) + 1
         return {
             "work_id": w["id"], "title": w["title"], "attribution": w["attribution"],
             "n_hits": len(hits), "layers": layers,
-            "truncated": len(hits) >= scan_limit,
+            "truncated": _trunc,
             "top": [{"citation": h.citation(), "layer": h.layer,
                      "text": h.text[:200], "disclosure": h.disclosure()}
                     for h in hits[:per_work]],

@@ -9,6 +9,8 @@
 #   BOOKS_EXTERNAL_DISABLE=1        关掉 RSS 外呼面（无代理环境必开）
 #   BOOKS_ALLOWED_HOSTS=your.domain TrustedHost 白名单（有正式域名后开）
 #   BOOKS_CORS_ORIGINS=https://…    分体部署（落地页+API 分离）时开
+# 平台健康检查路径必须配 /api/health——闸下 / 恒 403，配错即永久
+# unhealthy（R2400 R137 实测提醒）。
 # 与 CI/.python-version 同钉——漂移过一次就不测第二次
 # （注意：Docker 不允许指令行尾挂 # 注释——行内注释只认行首）
 FROM python:3.10-slim
@@ -19,4 +21,6 @@ COPY . .
 RUN python scripts/check_quality.py && python scripts/build_index.py
 EXPOSE 7860
 # 默认 7860 = HF Spaces app_port 缺省值；Railway/Render/Fly 注入 PORT 即用其值。
-CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]
+# R2400（R137-P2-3）：sh -c 下 dash 不 exec → uvicorn 是子进程收不到
+# SIGTERM，容器停机等 kill 超时。exec 让 uvicorn 顶 PID1 优雅停机。
+CMD ["sh", "-c", "exec uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]

@@ -436,6 +436,60 @@ class KnowledgeBase:
         return self.db.execute("SELECT * FROM turn WHERE thread_id=? ORDER BY seq",
                                (thread_id,)).fetchall()
 
+    def import_threads(self, items: list[dict]) -> tuple[int, int]:
+        """R2400（R138-P1-3 跟进）：备份包回灌——thread+turn 原样恢复。
+
+        去重键 (topic, opened_at)：同题同刻的线程已存在则整包跳过
+        （导入幂等，重灌不翻倍）。status/role/seq 按备份原值落，
+        非法值收敛到 open/user；文本超 4000 字截断（正常轮次 << 2000）。
+        返回 (写入线程数, 跳过线程数)。
+        """
+        written = skipped = 0
+        for it in items[:50]:
+            if not isinstance(it, dict):
+                skipped += 1
+                continue
+            topic = str(it.get("topic") or "").strip()[:100]
+            opened_at = str(it.get("opened_at") or "").strip()[:32]
+            if not topic or not opened_at:
+                skipped += 1
+                continue
+            dup = self.db.execute(
+                "SELECT 1 FROM thread WHERE topic=? AND opened_at=?",
+                (topic, opened_at)).fetchone()
+            if dup:
+                skipped += 1
+                continue
+            status = it.get("status")
+            if status not in ("open", "parked", "closed"):
+                status = "open"
+            updated_at = str(it.get("updated_at") or "").strip()[:32] or None
+            cur = self.db.execute(
+                "INSERT INTO thread (topic, status, opened_at, updated_at) "
+                "VALUES (?,?,?,?)", (topic, status, opened_at, updated_at))
+            tid = cur.lastrowid
+            seq = 0
+            for tr in (it.get("turns") or [])[: self._CAP_TURN_PER_THREAD]:
+                if not isinstance(tr, dict):
+                    continue
+                role = tr.get("role")
+                if role not in ("user", "assistant"):
+                    role = "user"
+                text = str(tr.get("text") or "")[:4000]
+                if not text:
+                    continue
+                seq += 1
+                self.db.execute(
+                    "INSERT INTO turn (thread_id, seq, role, text, created_at) "
+                    "VALUES (?,?,?,?,?)",
+                    (tid, seq, role, text,
+                     str(tr.get("created_at") or "").strip()[:32] or opened_at))
+            self.db.commit()
+            self._gc_threads()
+            self.db.commit()
+            written += 1
+        return written, skipped
+
     def resume(self, status: str = "open") -> list[sqlite3.Row]:
         """Threads with derived-claim counts: what G9 needs to pick work back up.
 

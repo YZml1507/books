@@ -119,10 +119,12 @@ def create_app() -> FastAPI:
         "带钥匙的朋友请进～</p>"
         "<input name=key type=password placeholder='口令' autofocus "
         "style='width:100%;box-sizing:border-box;padding:10px 12px;"
-        "border:1.5px solid #e5d5c0;border-radius:10px;font-size:15px'>"
+        "border:1.5px solid #e5d5c0;border-radius:12px;font-size:15px'>"
+        # R2400（R129-P2-9）：门页按钮收编品牌玫瑰渐变（原 #c96f4a
+        # 陶土色与 app 内玫瑰不同族），圆角随全站 12px 档。
         "<button style='margin-top:14px;width:100%;padding:10px 0;border:0;"
-        "border-radius:10px;background:#c96f4a;color:#fff;font-size:15px;"
-        "cursor:pointer'>开门</button>"
+        "border-radius:12px;background:linear-gradient(135deg,#B04E40,"
+        "#A8435F);color:#fff;font-size:15px;cursor:pointer'>开门</button>"
         # R2364（R120-P1-1）：next 槽——门页记住你要去的深链，
         # 解锁完跳回原址（邀请链生辰参数不再被闸吃掉）。
         "<input type=hidden name=next value='{next}'>"
@@ -140,8 +142,12 @@ def create_app() -> FastAPI:
         # 健康探测永远放行（平台探活用，无敏感内容）。
         if path == "/api/health":
             return await call_next(request)
+        # R2400（R137-P2-2）：cookie 值改为口令的派生指纹而非明文——
+        # 浏览器侧/日志里见到 cookie 不再等于见到钥匙本身。
+        _ck = _hmac.new(_tok.encode(), b"books-gate-cookie",
+                        "sha256").hexdigest()
         good = _hmac.compare_digest(
-            request.cookies.get("books_key", ""), _tok)
+            request.cookies.get("books_key", ""), _ck)
         # 解锁端点：表单口令 → 写 Cookie 回首页。
         # （不用 request.form()——Starlette 表单解析要 python-multipart，
         #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
@@ -150,6 +156,12 @@ def create_app() -> FastAPI:
             # 进程内 10 次/60s/IP 限速（单 worker 下够用）。
             _now = time.time()
             _ip = (request.client.host if request.client else "?")
+            # R2400（R137-P1-2）：XFF 首元素客户端可伪造——自填
+            # X-Forwarded-For 即换桶绕过 _gate 限速。单可信代理（Render）
+            # 下链尾 = 离服务端最近一跳回源的真实客户端。
+            _xff = request.headers.get("x-forwarded-for") or ""
+            if _xff.strip():
+                _ip = _xff.split(",")[-1].strip() or _ip
             _gate_bucket = getattr(_access_gate, "_bucket", None)
             if _gate_bucket is None:
                 _gate_bucket = {}
@@ -169,13 +181,17 @@ def create_app() -> FastAPI:
                 (await request.body()).decode("utf-8", "replace"))
             key = _qs.get("key", [""])[0]
             # R2364：解锁跳回深链原址；只放站内相对路径防开放跳转。
+            # R2400（R130-P2-1/P2-3）：next 白名单收紧——`%5c` 解码进
+            # next 被浏览器归一成 `//` 即成开放跳转；CRLF 落 Location
+            # 头是未处理异常面。`/` 起、字符集内全收，越界回落 '/'。
             _nxt = _qs.get("next", [""])[0]
-            if not (_nxt.startswith("/") and not _nxt.startswith("//")):
+            if (_nxt.startswith("//") or
+                    not re.fullmatch(r"/[A-Za-z0-9_/?=&%#.:\-~+]*", _nxt)):
                 _nxt = "/"
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
                                          headers={"Location": _nxt})
-                resp.set_cookie("books_key", _tok, httponly=True,
+                resp.set_cookie("books_key", _ck, httponly=True,
                                 samesite="lax",
                                 secure=request.url.scheme == "https",
                                 max_age=30 * 86400)
@@ -195,9 +211,14 @@ def create_app() -> FastAPI:
             q = dict(request.query_params)
             q.pop("key", None)
             target = path + ("?" + urlencode(q, doseq=True) if q else "")
+            # R2400（R130-P2-1）：?key= 跳回同样组 Location——path 里
+            # 解码出的 `\`/CRLF 与 next 同洞，同白名单回落 '/'。
+            if (target.startswith("//") or
+                    not re.fullmatch(r"/[A-Za-z0-9_/?=&%#.:\-~+]*", target)):
+                target = "/"
             resp = PlainTextResponse("ok", status_code=302,
                                      headers={"Location": target or "/"})
-            resp.set_cookie("books_key", _tok, httponly=True,
+            resp.set_cookie("books_key", _ck, httponly=True,
                             samesite="lax",
                             secure=request.url.scheme == "https",
                             max_age=30 * 86400)

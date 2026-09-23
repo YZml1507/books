@@ -60,7 +60,16 @@
   --muted:     #7F6C57;       /* 次要说明（R228d 加深：正文级实测 ≥4.7） */
   --border:    #F5E3D3;       /* 奶油细线 */
   --line:      #E8D5CC;       /* chip 描边（略深于 --border） */
-  /* R2340b（R55-P2）：浅端 #C25A4E 白字仅 4.32——深到 #B04E40
+  /* R2400（R129-P2-11/12/15）：散落近值收编成令牌——玫瑰红此前同一支
+   * 写了十种近似值（B3455A/B94A6A/E8668A…），tan hover 六处散用。
+   * cta-grad 两端是刻意的对比度值，不套令牌（改令牌≠改 CTA）。 */
+  --rose:      #B04E40;       /* 深玫瑰（浅底文字/hover 可用，≥5.2） */
+  --rose-deep: #A8435F;       /* 更深玫瑰 */
+  --rose-soft: #E8668A;       /* 亮玫瑰——装饰/焦点描边 */
+  --hover-line:#E8B898;       /* tan 描边 hover 统一色 */
+  --focus-ring:rgba(107,79,174,.35);  /* 输入焦点环（深底下另有覆盖） */
+  --r-sm:12px; --r-md:16px; --r-lg:18px;  /* 圆角三档（999/50% 胶囊单列） */
+  /* R2340b（R55-P2）：浅端 #B04E40 白字仅 4.32——深到 #B04E40
    * 两端 ≥5.2，视觉仍是玫瑰渐变。 */
   --cta-grad:  linear-gradient(135deg,#B04E40,#A8435F);  /* 主行动色玫瑰渐变 */
   --shadow:    0 8px 32px rgba(255,183,197,.22), 0 2px 10px rgba(212,181,255,.16);
@@ -282,7 +291,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   .daily-card-gift{flex-basis:44px; width:44px; margin-left:6px;}
 }
 .daily-card-gift{
-  border-radius:14px; overflow:hidden;
+  border-radius:16px; overflow:hidden;
   box-shadow:0 4px 16px rgba(184,134,11,.12);
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
@@ -326,7 +335,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   animation:giftBob 2.4s ease-in-out infinite;}
 .daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
   letter-spacing:.04em; padding:0 24px; text-align:center;}
-.daily-cover-sub{font-size:12.5px; color:var(--muted); letter-spacing:.06em;
+.daily-cover-sub{font-size:12px; color:var(--muted); letter-spacing:.06em;
   margin-top:-6px; text-align:center;}
 .daily-cover.open{opacity:0; pointer-events:none;}
 /* R2349p（R80-P1-4）：封面 .45s 淡出期间文字残影叠在日签上——
@@ -363,7 +372,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .daily-level.sml{background-color:#FBE8DC; background-image:linear-gradient(135deg,#FCEDE1,#F8DFCF);color:#A5502E;border:2px solid #F0C9AE;box-shadow:0 6px 24px rgba(196,120,80,.20);font-size:.82em;}
 .daily-level.bad{background-color:#F8E1E5; background-image:linear-gradient(135deg,#FAE7EA,#F4D8DE);color:#A43B4E;border:2px solid #EBB9C3;box-shadow:0 6px 24px rgba(180,90,110,.18);}
 /* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
-.daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:#B3455A;font-size:.92em;}
+.daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:var(--rose-deep);font-size:.92em;}
 .stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
 /* R230z（R36）：品类徽标 + 收藏 chips + 心水 ♡ */
 .ph-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
@@ -371,7 +380,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   vertical-align:1px;letter-spacing:.5px;}
 /* R2349o（R78-P1-3）：白字徽章底加深到 ≥4.5:1（bazi 4.35→5.55、
  * taohua 3.25→5.06、qiming 3.4→4.98；tarot/hehun/liuyao 原本达标不动）。 */
-.ph-t-bazi{background:#4A6A94;}.ph-t-taohua{background:#B04E6B;}.ph-t-hehun{background:#B94A6A;}
+.ph-t-bazi{background:#4A6A94;}.ph-t-taohua{background:var(--rose-deep);}.ph-t-hehun{background:var(--rose-deep);}
 .ph-t-tarot{background:#7A6BA8;}.ph-t-liuyao{background:#5A4A6A;}
 .ph-t-qiming{background:#9E6136;}
 .fav-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;}
@@ -389,17 +398,17 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .qm-fav{border:0;background:rgba(255,255,255,.55);border-radius:50%;width:30px;height:30px;
   font-size:16px;color:#C9A9B8;cursor:pointer;margin-left:8px;vertical-align:2px;
   transition:all .15s ease;line-height:1;}
-.qm-fav:hover{color:#D96C8B;transform:scale(1.15);}
-.qm-fav.on{color:#D96C8B;}
+.qm-fav:hover{color:var(--rose-soft);transform:scale(1.15);}
+.qm-fav.on{color:var(--rose-soft);}
 /* R216b 续5（V-003）：法律声明软化——缩小、降对比。 */
 .interp-disclaimer-soft{font-size:12px; opacity:.75; font-style:normal;}
-.daily-soothe{font-size:13.5px; color:var(--secondary); margin-top:6px;}
+.daily-soothe{font-size:13px; color:var(--secondary); margin-top:6px;}
 .daily-level.mid{background-color:#F7ECD2; background-image:linear-gradient(135deg,#F9F0DA,#F3E5C2);color:#7A5807;border:2px solid #E6D3A5;box-shadow:0 6px 24px rgba(184,134,11,.20);}
 .daily-level:hover{transform:scale(1.08) rotate(-3deg);}
 .daily-stars{font-size:28px; letter-spacing:6px;}
 .daily-stars .star-good{color:#A39346;text-shadow:0 0 8px rgba(255,230,109,.5);}
 .daily-stars .star-mid{color:#999184;}
-.daily-stars .star-bad{color:#B3455A;}
+.daily-stars .star-bad{color:var(--rose-deep);}
 .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
@@ -436,7 +445,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   margin-top:18px; padding:10px 24px; width:auto; font-size:14px;
   min-height:var(--tap);
   /* R230x：同主 CTA 玫瑰渐变 */
-  background-color:#B0435C;
+  background-color:var(--rose-deep);
   background-image:var(--cta-grad); color:#fff;
   border:none; border-radius:999px; cursor:pointer; font-weight:600;
   transition:all .2s;
@@ -574,7 +583,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   border:1px solid #F0CDB8; border-radius:12px;
   font-family:var(--font-sans); font-size:15px; cursor:pointer;
 }
-.chat-entry:hover{border-color:#E8B898;}
+.chat-entry:hover{border-color:var(--hover-line);}
 .chat-entry:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d：同 func-card */
 
 /* ── R212（用户复检：侧边栏排版）：R209b chat-panel 退役时误删气泡/输入框
@@ -583,24 +592,24 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .chat-flow{flex:1; overflow-y:auto; padding:14px 16px; display:flex;
   flex-direction:column; gap:10px; overscroll-behavior:contain;}
 .chat-bubble{
-  max-width:82%; padding:10px 14px; border-radius:14px;
-  font-size:14.5px; line-height:1.7; white-space:pre-wrap;
+  max-width:82%; padding:10px 14px; border-radius:16px;
+  font-size:14px; line-height:1.7; white-space:pre-wrap;
   overflow-wrap:anywhere;   /* R8 P2-3：无空白长串（URL）折行不裁剪 */
 }
 .chat-me{align-self:flex-end; background:var(--cta-grad);
-  color:#fff; border-radius:14px 14px 4px 14px;}
+  color:#fff; border-radius:16px 14px 4px 14px;}
 .chat-ai{align-self:flex-start; background:#FBF3EA; color:var(--text);
-  border:1px solid #EFDFC9; border-radius:14px 14px 14px 4px;}
-.chat-empty{margin:auto; text-align:center; color:var(--secondary); font-size:13.5px;
+  border:1px solid #EFDFC9; border-radius:16px 14px 14px 4px;}
+.chat-empty{margin:auto; text-align:center; color:var(--secondary); font-size:13px;
   line-height:1.9; padding:0 24px;}
 .chat-input-row{display:flex; gap:8px; padding:10px 0 2px; align-items:center;}
 .chat-input-row input{
   flex:1; min-height:44px; padding:0 14px;
-  border:1px solid var(--border); border-radius:22px;
+  border:1px solid var(--border); border-radius:18px;
   background:#fff; font-family:var(--font-sans); font-size:16px;   /* R228d：iOS 缩放 */
 }
 .chat-input-row button{
-  min-height:44px; min-width:56px; padding:0 16px; border:none; border-radius:22px;
+  min-height:44px; min-width:56px; padding:0 16px; border:none; border-radius:18px;
   background:var(--cta-grad); color:#fff;
   font-family:var(--font-sans); font-size:15px; cursor:pointer;
   box-shadow:0 3px 10px rgba(232,106,138,.35);
@@ -685,23 +694,23 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   background:#FFF4E8; color:var(--text); font-family:var(--font-sans);
   font-size:13px; cursor:pointer; transition:all .15s;
 }
-.qm-style-chip:hover{border-color:#E8B898; transform:translateY(-1px);}
+.qm-style-chip:hover{border-color:var(--hover-line); transform:translateY(-1px);}
 .qm-style-chip.active{
   background:var(--cta-grad); color:#fff;
   border-color:transparent; box-shadow:0 2px 8px rgba(232,106,138,.32);
 }
 .qm-style-chip:focus-visible{outline:3px solid var(--text); outline-offset:2px;}   /* R228d */
 .qm-style-hint{
-  font-size:11.5px; color:var(--secondary); margin:0 0 6px 2px;
+  font-size:11px; color:var(--secondary); margin:0 0 6px 2px;
 }
 .qm-score{
-  display:inline-block; font-size:12.5px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
-  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  display:inline-block; font-size:12px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:12px;
   padding:2px 8px; margin-bottom:4px; font-weight:600;
 }
 .qm-badge{
-  display:inline-block; font-size:12.5px; color:#fff;
-  padding:2px 8px; border-radius:10px; margin-left:4px;
+  display:inline-block; font-size:12px; color:#fff;
+  padding:2px 8px; border-radius:12px; margin-left:4px;
   font-weight:600; letter-spacing:.5px;
 }
 .qm-badge.qm-top1{background:var(--cta-grad);}
@@ -740,7 +749,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .bazi-persona-kws{display:flex; gap:6px; flex-wrap:wrap;}
 .bazi-persona-kw{
   display:inline-block; font-size:12px; color:#7A5C2E;
-  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:12px;
   padding:2px 10px; font-weight:500;
 }
 
@@ -749,12 +758,12 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   background:linear-gradient(135deg,#FFF4E8,#FDE8E0);
   border:1px solid #F0CDB8; border-radius:12px;
   padding:12px 14px; margin:8px 0 12px;
-  font-size:14.5px; line-height:1.7; color:var(--text);
+  font-size:14px; line-height:1.7; color:var(--text);
 }
 .tarot-question-hook p{margin:4px 0 0;}
 .tarot-hook-tag{
-  display:inline-block; font-size:11.5px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
-  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:10px;
+  display:inline-block; font-size:11px; color:var(--secondary);   /* R228d：#B7A98A 仅 2.11:1 */
+  background:#FBF3EA; border:1px solid #EFDFC9; border-radius:12px;
   padding:1px 8px; margin-bottom:4px; font-weight:500;
 }
 /* R228d：.recent-item/.recent-icon/.recent-info/.recent-title/.recent-date/
@@ -858,14 +867,13 @@ button{
   min-height:var(--tap);
   margin-top:20px; padding:12px 28px; font-size:15px; width:auto; cursor:pointer;
   /* R230x（V-4）：泥金渐变换玫瑰渐变（聊天气泡同款），白字 ≈4.9:1 */
-  background-color:#B0435C;
+  background-color:var(--rose-deep);
   background-image:var(--cta-grad); color:#fff;
   border:none; border-radius:999px; font-weight:600;
   transition:all .25s cubic-bezier(.4,.2,.2,1); letter-spacing:.04em;
   box-shadow:0 4px 16px rgba(194,90,78,.25);
 }
 button:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 8px 28px rgba(194,90,78,.32);}
-button:active{transform:translateY(0) scale(.98);}
 button:disabled{background:var(--border); color:var(--secondary); cursor:not-allowed;}
 button:focus-visible{outline:3px solid var(--text); outline-offset:2px;}
 button.ghost{
@@ -965,7 +973,7 @@ html[data-theme="dark"] .ev-meta{background:#2E2830;}
 .interp-disclaimer{font-size:12px; color:var(--secondary); margin-top:10px; font-style:normal;}
 .llm-text{font-size:15px; margin-top:12px; line-height:1.8;}
 .llm-text h3, .llm-text h4{font-family:var(--font-serif); color:var(--text); margin:14px 0 6px;}
-.llm-text h3{font-size:17px;} .llm-text h4{font-size:15px;}
+.llm-text h3{font-size:18px;} .llm-text h4{font-size:15px;}
 .llm-text p{margin:6px 0;}
 .llm-text ul, .llm-text ol{margin:6px 0 6px 22px;}
 .llm-text li{margin:3px 0;}
@@ -974,7 +982,7 @@ html[data-theme="dark"] .ev-meta{background:#2E2830;}
   color:var(--secondary); background:var(--card); border-radius:0 6px 6px 0;
 }
 .llm-text code{
-  background:var(--border); padding:1px 6px; border-radius:4px;
+  background:var(--border); padding:1px 6px; border-radius:12px;
   font-family:var(--font-mono); font-size:13px;
 }
 .llm-text strong{color:var(--text);}
@@ -982,7 +990,7 @@ html[data-theme="dark"] .ev-meta{background:#2E2830;}
 
 /* R228d：.hist-* 死样式删除——R219b 历史面板退役（app.js 仅存注释提及）。 */
 .hist-actions{display:flex; gap:8px; margin-top:6px;}   /* 通用钮排保留 */
-.hist-actions button{margin:0; padding:8px 14px; font-size:12px; width:auto; border-radius:5px; min-height:var(--tap);}
+.hist-actions button{margin:0; padding:8px 14px; font-size:12px; width:auto; border-radius:12px; min-height:var(--tap);}
 
 /* R228d：.news-* 死样式删除——R208b 新闻面板退役（probe_ui_smoke 有反向钉扎）。 */
 
@@ -1016,20 +1024,20 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 .thread-topic{font-size:15px; font-weight:500; color:var(--text);}
 .thread-meta{font-size:12px; color:var(--secondary); margin-top:4px; font-family:var(--font-mono);}
 .thread-actions{display:flex; gap:8px; margin-top:6px;}
-.thread-actions button{margin:0; padding:8px 14px; font-size:12px; width:auto; border-radius:5px; min-height:var(--tap);}
+.thread-actions button{margin:0; padding:8px 14px; font-size:12px; width:auto; border-radius:12px; min-height:var(--tap);}
 .thread-view{background:var(--primary-bg) !important; color:#fff;}
 .turn-user{font-size:13px; color:var(--primary-ink); background:var(--border);
-  padding:8px 12px; border-radius:6px; margin:8px 0;}
+  padding:8px 12px; border-radius:12px; margin:8px 0;}
 .turn-assistant{font-size:13px; color:var(--text); padding:8px 12px; margin:8px 0; background:var(--card);}
-.claim-box{border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin:8px 0;}
+.claim-box{border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin:8px 0;}
 .claim-kind{display:inline-block; font-size:11px; color:#fff;
-  background:var(--primary-bg); border-radius:4px; padding:1px 8px; margin-right:6px;}
+  background:var(--primary-bg); border-radius:12px; padding:1px 8px; margin-right:6px;}
 .claim-conf{font-size:11px; color:var(--secondary); margin-left:6px;}
 .claim-ev{font-size:12px; color:var(--secondary); margin-top:6px; font-family:var(--font-mono);}
 
 .cmp-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 @media (max-width:900px){ .cmp-grid{grid-template-columns:1fr;} }
-.cmp-wit{background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 12px;}
+.cmp-wit{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
 .cmp-wit h3{font-size:13px; color:var(--secondary); margin-bottom:6px; word-break:break-all;}
 .cmp-wit p{font-size:14px; font-family:var(--font-serif); line-height:1.7;}
 .finding{
@@ -1058,7 +1066,7 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 }
 .tarot-card-inner.flipped{transform:rotateY(180deg);}
 .tarot-card-face{
-  position:absolute; top:0; right:0; bottom:0; left:0; inset:0; border-radius:10px;
+  position:absolute; top:0; right:0; bottom:0; left:0; inset:0; border-radius:12px;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-serif); font-size:40px; color:#fff;
   backface-visibility:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15);
@@ -1075,7 +1083,7 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 .tarot-card-front .tart{width:100%; height:auto; flex:1 1 auto; min-height:0;
   display:flex; align-items:center; justify-content:center; overflow:hidden;}
 .tarot-card-front .tart img{
-  width:100%; height:100%; object-fit:contain; border-radius:8px 8px 0 0;
+  width:100%; height:100%; object-fit:contain; border-radius:12px 8px 0 0;
 }
 /* R231b：逆位牌倒置（与 tmeaning 的「逆位」标注同步）。 */
 .tarot-card-front .tart img.is-reversed{transform:rotate(180deg);}
@@ -1084,19 +1092,19 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
   padding:4px 6px 2px;
 }
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
-  border-radius:8px;}
+  border-radius:12px;}
 
 /* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。 */
 .tr-fan{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-.tr-back{width:34px;height:54px;padding:0;border:none;border-radius:6px;
+.tr-back{width:34px;height:54px;padding:0;border:none;border-radius:12px;
   background:url('/static/tarot/card-back.jpg') center/cover no-repeat #B8860B;
   cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;
   box-shadow:0 1px 3px rgba(0,0,0,.18);min-height:44px;}
 .tr-back:hover{transform:translateY(-3px);}
-.tr-back.on{transform:translateY(-8px);box-shadow:0 0 0 2px #E8668A,
+.tr-back.on{transform:translateY(-8px);box-shadow:0 0 0 2px var(--rose-soft),
   0 6px 12px rgba(232,102,138,.35);}
-.tr-back:focus-visible{outline:2px solid #E8668A;outline-offset:2px;}
-.tr-pick-hint{font-size:12.5px;color:var(--secondary);margin-bottom:6px;}
+.tr-back:focus-visible{outline:2px solid var(--rose-soft);outline-offset:2px;}
+.tr-pick-hint{font-size:12px;color:var(--secondary);margin-bottom:6px;}
 html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
 
 /* R228l：.tback 死样式删除——JS 发 .tbimg 图片牌背，无 .tback 载体。 */
@@ -1114,7 +1122,7 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
   display:flex; align-items:center; justify-content:center;
 }
 .tarot-card-front .tname{font-size:16px; font-weight:700; margin-bottom:0;}
-.tarot-card-front .tmeaning{font-size:11.5px; color:#815934; line-height:1.45;}
+.tarot-card-front .tmeaning{font-size:11px; color:#815934; line-height:1.45;}
 .tarot-grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:16px 0;}
 .tarot-cell{text-align:center;}
 .tarot-pos{font-size:13px; color:var(--secondary); margin-top:8px;}
@@ -1126,7 +1134,7 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
 }
 .tarot-deep h4{font-family:var(--font-serif); font-size:15px;
   color:#7A5C2E; margin-bottom:8px;}
-.tarot-deep p{font-size:14.5px; line-height:1.8; color:var(--text);
+.tarot-deep p{font-size:14px; line-height:1.8; color:var(--text);
   margin:6px 0;}
 .tarot-deep ul{margin:8px 0 8px 20px;}
 .tarot-deep li{font-size:14px; line-height:1.75; margin:5px 0;
@@ -1158,7 +1166,7 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
  * 与正文闺蜜语气区分开。 */
 details.warm-pro-fold{ margin-top:16px; }
 details.warm-pro-fold > summary{
-  cursor:pointer; font-size:13.5px; color:var(--secondary);
+  cursor:pointer; font-size:13px; color:var(--secondary);
   padding:10px 12px; border:1px dashed var(--border);
   border-radius:var(--radius-sm); background:var(--card);
 }
@@ -1175,7 +1183,7 @@ details.warm-pro-fold > summary{
   display:inline-flex; align-items:center; gap:8px; }
 /* R230x（V-5）：真卦画——横条替代 ⚊/⚋ 字形 */
 .yao-bar{ display:inline-flex; gap:18px; width:118px; height:15px; }
-.yao-bar i{ flex:1; background:#5A4A6A; border-radius:7px; }
+.yao-bar i{ flex:1; background:#5A4A6A; border-radius:12px; }
 .yao-row.moving .yao-bar i{ background:#A43B4E; }
 .yao-dot{ width:9px; height:9px; border-radius:50%; background:#C0392B;
   box-shadow:0 0 0 3px rgba(192,57,43,.15); }
@@ -1238,7 +1246,7 @@ details.warm-pro-fold > summary{
 .energy-item{
   display:flex; flex-direction:column; gap:2px;
   background:var(--card); border:1px solid var(--border);
-  border-radius:8px; padding:8px 12px;
+  border-radius:12px; padding:8px 12px;
 }
 .energy-k{ font-size:12px; color:var(--secondary); }
 .energy-v{ font-size:15px; color:var(--text); font-weight:600; }
@@ -1253,7 +1261,7 @@ details.warm-pro-fold > summary{
 /* 推导依据折叠（判据 4）：默认收起，展开后逐字不变 */
 .warm-basis{
   margin-top:8px; font-size:13px; color:var(--secondary);
-  background:#FBF7EF; border-radius:8px; padding:6px 12px;
+  background:#FBF7EF; border-radius:12px; padding:6px 12px;
 }
 .warm-basis summary{ cursor:pointer; color:var(--primary-ink); font-size:13px; min-height:var(--tap); display:flex; align-items:center; }
 .warm-basis summary:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
@@ -1318,7 +1326,7 @@ details.warm-pro-fold > summary{
 .ai-polish{
   margin-top:16px; padding:12px 14px;
   background:linear-gradient(135deg,#F6F2FF 0%,#FDF4F8 100%);
-  border:1px solid #E4D9F7; border-radius:10px;
+  border:1px solid #E4D9F7; border-radius:12px;
 }
 .ai-polish-head{
   display:flex; flex-wrap:wrap; align-items:center; gap:8px;
@@ -1337,7 +1345,7 @@ details.warm-pro-fold > summary{
 .daily-xingzuo{
   display:flex; flex-wrap:wrap; align-items:center; gap:8px;
   margin-top:10px; padding:8px 12px;
-  background:var(--card); border:1px solid var(--border); border-radius:8px;
+  background:var(--card); border:1px solid var(--border); border-radius:12px;
 }
 .dx-label{ font-size:13px; font-weight:600; color:var(--primary-ink); }
 .dx-note{ font-size:13px; color:var(--secondary); }
@@ -1357,7 +1365,7 @@ details.warm-pro-fold > summary{
 .chat-chip{ padding:9px 14px; font-size:13px; text-align:center; min-height:var(--tap);   /* R228d */
   border:1px solid var(--border); border-radius:999px;
   background:var(--card); color:var(--primary-ink); cursor:pointer;
-  transition:background .15s; }
+  transition:all .15s ease; }   /* R129-P2-19：只过渡 background 时 border 跳变 */
 .chat-chip:hover{ background:var(--bg); }
 
 /* R220b（P1-1）：星座日期条——箭头 + 年月日三 select + 今天/明天快捷。
@@ -1365,12 +1373,13 @@ details.warm-pro-fold > summary{
    触控目标 ≥44px 高，390px 宽下三个 select 平分剩余宽度不溢出。 */
 .xz-datebar{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .xz-nav{ flex:0 0 auto; width:44px; height:44px; padding:0; font-size:22px;
-  line-height:1; border:1px solid var(--border); border-radius:10px;
-  background:var(--card); color:var(--primary-ink); cursor:pointer; }
+  line-height:1; border:1px solid var(--border); border-radius:12px;
+  background:var(--card); color:var(--primary-ink); cursor:pointer;
+  transition:all .15s ease; }   /* R129-P2-19：hover 硬切补齐 */
 .xz-nav:hover{ background:var(--bg); }
 .xz-selects{ flex:1 1 auto; display:flex; gap:6px; min-width:0; }
 .xz-selects select{ flex:1 1 0; min-width:0; height:44px; padding:0 6px;
-  font-size:16px; border:1px solid var(--border); border-radius:10px;
+  font-size:16px; border:1px solid var(--border); border-radius:12px;
   background:var(--card); color:var(--primary-ink); }
 /* R228n：≤480px 三个 select 平分只剩 ~37px 不可读——箭头与 selects 折行，
  * selects 独占一整行；16px 字号守住 iOS 聚焦缩放防线（上方注释）。 */
@@ -1383,7 +1392,7 @@ details.warm-pro-fold > summary{
 .xz-chip{ padding:7px 16px; font-size:13px; min-height:var(--tap);   /* R228d */
   border:1px solid var(--border);
   border-radius:999px; background:var(--card); color:var(--secondary);
-  cursor:pointer; }
+  cursor:pointer; transition:all .15s ease; }   /* R129-P2-19 */
 .xz-chip:hover{ background:var(--bg); color:var(--primary-ink); }
 
 /* D-005：星座视图样式 */
@@ -1393,7 +1402,7 @@ details.warm-pro-fold > summary{
 /* R228d：.xz-cell/.xz-icon/.xz-palace 旧版死样式删除（v2 卡片版在用，.xz-grid 保留） */
 
 /* C-002：星座详情页分维度 */
-.xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:8px; }
+.xz-detail{ margin-top:10px; padding:10px 12px; background:#FFF5F0; border-radius:12px; }
 .xz-dim{ display:flex; gap:8px; margin-bottom:6px; }
 .xz-dim:last-child{ margin-bottom:0; }
 .xz-dim-label{ font-size:13px; font-weight:600; color:var(--primary-ink); flex-shrink:0; }
@@ -1401,7 +1410,7 @@ details.warm-pro-fold > summary{
 .xz-today-note{ font-size:13px; color:var(--secondary); margin-top:8px; line-height:1.5; }
 
 /* C-003：交叉引用样式 */
-.cross-ref{ margin-top:10px; padding:8px 12px; background:#F5F0FF; border-radius:8px; font-size:13px; color:var(--secondary); line-height:1.5; }
+.cross-ref{ margin-top:10px; padding:8px 12px; background:#F5F0FF; border-radius:12px; font-size:13px; color:var(--secondary); line-height:1.5; }
 .cross-ref-icon{ margin-right:6px; }
 
 /* R208b：历史记录迁入左侧栏 */
@@ -1434,7 +1443,7 @@ button:active{transform:scale(.96);}
 .recent-toggle:hover{animation:togglePulse 1s ease-in-out infinite;}
 @keyframes togglePulse{
   0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.18);}
-  50%{box-shadow:0 4px 22px rgba(255,140,105,.45);}
+  50%{box-shadow:0 4px 22px rgba(232,106,138,.45);}
 }
 @media (prefers-reduced-motion: reduce){
   .func-card:hover .func-icon,
@@ -1467,7 +1476,7 @@ button:active{transform:scale(.96);}
 .fx-trail{
   position:fixed; width:10px; height:10px; margin:-5px 0 0 -5px;
   pointer-events:none; z-index:9998; border-radius:50%;
-  background:radial-gradient(circle,#FBC7E0,#E86A8A);
+  background:radial-gradient(circle,#FBC7E0,var(--rose-soft));
   animation:fxTrail .55s ease-out forwards;
 }
 @keyframes fxTrail{
@@ -1493,7 +1502,7 @@ button:active{transform:scale(.96);}
 /* ── R214b：「今日玄学搭子」打卡互动 ── */
 .daily-checkin{margin:12px 14px 2px; padding-top:10px;
   border-top:1px dashed var(--border);}
-.checkin-q{font-size:13.5px; color:var(--secondary); margin-bottom:8px;}
+.checkin-q{font-size:13px; color:var(--secondary); margin-bottom:8px;}
 /* R230y（R36-P1-3）：连签元信息 + 近 7 天点阵 */
 .checkin-meta{display:block;font-size:12px;color:var(--primary-ink);margin-top:2px;}
 .checkin-dots{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle;}
@@ -1511,19 +1520,19 @@ button:active{transform:scale(.96);}
   cursor:pointer; transition:transform .15s ease, box-shadow .15s ease,
   border-color .15s ease, background .15s ease;
 }
-.checkin-opt:hover{border-color:#E8B898; transform:translateY(-1px);}
+.checkin-opt:hover{border-color:var(--hover-line); transform:translateY(-1px);}
 .checkin-opt.picked{
   background:var(--cta-grad); color:#fff;
   border-color:transparent; box-shadow:0 3px 10px rgba(232,106,138,.35);
 }
-.checkin-fx{min-height:20px; margin-top:8px; font-size:13.5px; /* R228n：#D4547E→--accent-ink（白底 3.9→4.87） */
+.checkin-fx{min-height:20px; margin-top:8px; font-size:13px; /* R228n：#D4547E→--accent-ink（白底 3.9→4.87） */
   color:var(--accent-ink); animation:fxCardIn .4s ease;}
 
 /* ── R215b：温柔模式生日线 + 生辰小卡折叠 ── */
 .bazi-birthday{font-size:14px; color:#B0576E; margin:10px 0 4px;
   font-family:var(--font-sans);}
 .paipan-fold{margin:6px 0 10px;}
-.paipan-fold summary{cursor:pointer; font-size:12.5px;
+.paipan-fold summary{cursor:pointer; font-size:12px;
   min-height:var(--tap); display:flex; align-items:center;   /* R228n：同卡 warm-basis 已 44px，本条漏修 */
   color:var(--secondary); user-select:none;}
 .paipan-fold[open] summary{margin-bottom:8px;}
@@ -1538,7 +1547,7 @@ button:active{transform:scale(.96);}
 }
 .poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);}
 .poster-modal{
-  background:var(--card); border-radius:14px;
+  background:var(--card); border-radius:16px;
   /* R2349m（R76-P2-12）：iOS vh 按最大视口算——换 dvh，不支持自然回落 */
   width:min(420px, 100%); max-height:90vh; max-height:90dvh; display:flex;
   flex-direction:column; overflow:hidden;
@@ -1566,19 +1575,19 @@ button:active{transform:scale(.96);}
 }
 .poster-modal-img{
   max-width:100%; max-height:60vh; height:auto; display:block;
-  border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.15);
+  border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 .poster-modal-tip{
-  padding:10px 16px; font-size:12.5px; color:var(--secondary);
+  padding:10px 16px; font-size:12px; color:var(--secondary);
   background:#FDF8F0; border-top:1px solid var(--border);
   text-align:center;
 }
 /* R2353（R110-P1-1）：展示式导出的文本框——占满 body 区可滚可选 */
 .export-modal-ta{
   width:100%; height:100%; min-height:38vh; max-height:60vh;
-  resize:none; border:1px solid var(--border); border-radius:8px;
+  resize:none; border:1px solid var(--border); border-radius:12px;
   padding:10px; font-size:12px; line-height:1.6;
-  background:var(--card); color:var(--ink);
+  background:var(--card); color:var(--text);
   font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
   -webkit-user-select:text; user-select:text;
 }
@@ -1598,7 +1607,7 @@ button:active{transform:scale(.96);}
 }
 .toast-item{
   display:flex; align-items:center; gap:8px;
-  padding:10px 14px; border-radius:10px;
+  padding:10px 14px; border-radius:12px;
   background:#fff; color:var(--text); font-size:14px;
   box-shadow:0 4px 16px rgba(0,0,0,.15);
   /* R231a（R35-P2-12）：info 级 toast 换雾蓝——燕麦棕语义不明 */
@@ -1642,10 +1651,12 @@ button:active{transform:scale(.96);}
 .ink-hero{margin:0 0 14px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);}
 /* R2345（R62-P2）：移动端上缘裁脸——锚定底缘，熊脸保在框内。 */
 .ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;object-position:bottom;}
+/* R129-P2-5 裁决：深底下 .ink-hero 调光 .88 后仍是首页最亮区块——
+ * 它是吉祥物主视觉，有意保留亮度（见 R129 报告 P2-5 记录为有意）。 */
 .ink-hero.is-missing{display:none;}
-.brand-mark-img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);box-shadow:0 2px 10px rgba(35,42,56,.18);flex-shrink:0;}
+.brand-mark-img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);box-shadow:0 2px 10px rgba(74,58,64,.18);flex-shrink:0;}
 .brand-mark-img.is-missing{display:none;}
-.func-icon-img{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--border);box-shadow:0 3px 12px rgba(35,42,56,.12);}
+.func-icon-img{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--border);box-shadow:0 3px 12px rgba(74,58,64,.12);}
 .func-icon-img.is-missing{display:none;}
 /* R231f（R38-P2-2）：320px 下 4 钮 scrollWidth 溢出把「导入备份」推出
  * 可视区——允许换行。 */
@@ -1653,7 +1664,7 @@ button:active{transform:scale(.96);}
 .ph-list{display:flex;flex-direction:column;gap:10px;}
 /* R228d：ph-item 卡身点不动（点击行为只在 .ph-open 钮上）——去掉假 affordance 的
  * cursor:pointer，挪到真按钮上。 */
-.ph-item{border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(35,42,56,.06);transition:box-shadow .15s ease,transform .15s ease;}
+.ph-item{border:1px solid var(--border);border-radius:16px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(74,58,64,.06);transition:box-shadow .15s ease,transform .15s ease;}
 .ph-item:hover{box-shadow:var(--shadow-hover);}
 .ph-open{cursor:pointer;}
 .ph-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;}
@@ -1686,7 +1697,7 @@ button:active{transform:scale(.96);}
 .xz-card .xz-note{font-size:12px;color:var(--secondary);line-height:1.5;}
 /* R228l 合并两代 xz-today：v1 仅存的 border 并进 v2（其余属性 v2 全覆盖）。 */
 .xz-today{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border:1px solid var(--border);border-radius:16px;padding:10px 14px;margin-bottom:12px;}
-.xz-today-img{width:64px;height:64px;border-radius:14px;object-fit:cover;box-shadow:0 3px 10px rgba(212,181,255,.35);}
+.xz-today-img{width:64px;height:64px;border-radius:16px;object-fit:cover;box-shadow:0 3px 10px rgba(212,181,255,.35);}
 .xz-today-img.is-missing{display:none;}
 .xz-today-sign{font-weight:800;font-size:18px;color:var(--primary-ink);}
 .birth-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);}
@@ -1703,7 +1714,7 @@ button:active{transform:scale(.96);}
 .qm-part{font-size:11px;color:var(--primary-ink);background:rgba(212,181,255,.18);border-radius:999px;padding:2px 8px;}
 
 /* ── v3 P2/P1 补丁 ── */
-.deco-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:10px 0 12px;padding:10px 14px;border-radius:14px;border:1px solid rgba(184,134,11,.18);}
+.deco-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:12px 0;padding:10px 14px;border-radius:16px;border:1px solid rgba(184,134,11,.18);}
 /* R2349j（R70-P0-5）：装饰条渐变从内联收编为类——深色补丁才能盖住。 */
 .deco-bazi{background:linear-gradient(120deg,#FFF1F3,#E4D4FF);}
 .deco-qiming{background:linear-gradient(120deg,#F0FFF4,#E4FFE9);}
@@ -1718,18 +1729,18 @@ button:active{transform:scale(.96);}
 .deco-text{flex:1;font-family:var(--font-serif);font-weight:700;font-size:14px;color:var(--primary-ink);}
 .rt-list{margin:4px 0 4px 18px;}
 .rt-list li{margin:2px 0;}
-.ai-polish-text code,.chat-bubble code{background:rgba(212,181,255,.16);border-radius:6px;padding:1px 6px;}
+.ai-polish-text code,.chat-bubble code{background:rgba(212,181,255,.16);border-radius:12px;padding:1px 6px;}
 #dailyDetail .card{opacity:1 !important;transform:none !important;}
 
 /* ── v3 P7 黄历重做 ── */
-.hl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px;}
+.hl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;}
 .hl-chip{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:all .15s ease;min-height:var(--tap);}   /* R228d：34→44 */
 .hl-chip:hover{border-color:var(--primary-ink);}
 .hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--primary-ink);}
 .hl-pill{background:rgba(255,255,255,.75);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;color:#3E7A52;border:1px solid rgba(95,167,119,.3);}
 .hl-pill.hl-hot{background:#5FA777;color:#fff;box-shadow:0 2px 10px rgba(95,167,119,.4);}
-.hl-pill-ji{color:#C2527B;border-color:rgba(226,98,138,.3);}
-.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;}   /* R228d：33→44；R229z续23：宽也守44 */
+.hl-pill-ji{color:var(--rose-soft);border-color:rgba(226,98,138,.3);}
+.hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}   /* R129-P2-19 */   /* R228d：33→44；R229z续23：宽也守44 */
 .hl-scene:hover{border-color:var(--accent);}
 .hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
 /* R2349j（R70-P0-2/5）：黄历头与宜忌卡从内联收编为类。 */
@@ -1738,15 +1749,15 @@ button:active{transform:scale(.96);}
 .hl-yi{background:rgba(135,217,166,.16);border:1px solid rgba(95,167,119,.35);border-radius:16px;padding:12px;}
 .hl-ji{background:rgba(255,143,171,.13);border:1px solid rgba(226,98,138,.3);border-radius:16px;padding:12px;}
 .hl-yi-t{font-weight:800;color:#3E7A52;margin-bottom:6px;}
-.hl-ji-t{font-weight:800;color:#C2527B;margin-bottom:6px;}
-.hl-flag{font-size:12.5px;color:#a3542a;margin-top:6px;}
+.hl-ji-t{font-weight:800;color:var(--rose-soft);margin-bottom:6px;}
+.hl-flag{font-size:12px;color:#a3542a;margin-top:6px;}
 /* R2350d（R100-P2-3）：当班金句是全卡唯一「可截封面」的句子却
  * 只有 13px 副行——提为判词级头行（金句体+居中）。 */
-.hl-csmsg{font-size:17px;color:var(--primary-ink);margin-top:8px;
+.hl-csmsg{font-size:18px;color:var(--primary-ink);margin-top:8px;
   font-family:var(--font-display);font-weight:600;text-align:center;
   letter-spacing:.3px;line-height:1.6;}
 /* R2349k（R72-A2）：节日行 */
-.hl-festival{font-size:12.5px;color:#b5732f;margin-top:6px;font-weight:600;}
+.hl-festival{font-size:12px;color:#b5732f;margin-top:6px;font-weight:600;}
 @media (max-width:480px){ .hl-yiji{grid-template-columns:1fr;} }
 
 /* ── v4（2026-08-29 交接修复）────────────────────────────── */
@@ -1756,14 +1767,14 @@ button:active{transform:scale(.96);}
 @keyframes hlPulse{0%,100%{opacity:.55;}50%{opacity:.25;}}
 
 /* R228x：判词卡下方「近期宜X」chip 行 */
-.hl-gooddays{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:13px;color:var(--secondary);}
+.hl-gooddays{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:13px;color:var(--secondary);}
 .hl-gooddays-label{flex-shrink:0;}
 .hl-gooddays-note{font-size:12px;color:var(--muted);}
 .hl-daychip{border:1px solid var(--accent);background:#FFF;color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}
 .hl-daychip:hover{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);font-weight:700;}
 
 .hl-verdict{
-  margin-top:10px; padding:12px 16px; border-radius:14px; line-height:1.75;
+  margin-top:10px; padding:12px 16px; border-radius:16px; line-height:1.75;
   word-break:break-word;
   background:linear-gradient(120deg,#FFF4E8,#F3EBFF);
   border:1px solid #E8D5F5; color:var(--text);
@@ -1772,7 +1783,7 @@ button:active{transform:scale(.96);}
 /* ② 今日完整解读：一句话+3条要点常显，完整版收进 details 二级折叠 */
 .daily-brief{margin-top:4px;}
 .daily-brief-list{margin:8px 0 0; padding-left:20px; color:var(--text);
-  font-size:14.5px; line-height:1.8;}
+  font-size:14px; line-height:1.8;}
 .daily-brief-list li{margin-bottom:4px;}
 .daily-full{margin-top:12px;}
 .daily-full summary{cursor:pointer; font-size:13px; color:var(--secondary);
@@ -1854,7 +1865,7 @@ button:active{transform:scale(.96);}
   display:flex; align-items:center; gap:10px;
   margin:10px 14px 0; padding:10px 14px;
   background:linear-gradient(135deg,#FFF6EC,#FDEFF4);
-  border:1px solid #F0DCC8; border-radius:14px;
+  border:1px solid #F0DCC8; border-radius:16px;
   font-size:13px; color:var(--secondary);
 }
 .welcome-txt{flex:1;}
@@ -1914,7 +1925,7 @@ html.welcomed .welcome-bar{display:none;}
   /* R2349h（R69-P2-5/6）：div role=button 不吃 button 全局规则——
    * 触控高度 31px 提到 40px，补 focus-visible 环。 */
   min-height:40px; box-sizing:border-box; display:flex; align-items:center;
-  padding:6px 10px; border-radius:10px; background:rgba(122,95,184,.06);
+  padding:6px 10px; border-radius:12px; background:rgba(122,95,184,.06);
   cursor:pointer;
 }
 .daily-tomorrow:focus-visible{
@@ -1963,7 +1974,7 @@ html{-webkit-text-size-adjust:100%;}
   /* R2353（R110-P2-10）：同上——安装提示掉文档尾 */
   bottom:max(14px, env(safe-area-inset-bottom, 14px)); z-index:180;
   display:flex; align-items:center; gap:8px;
-  background:#fff; border:1px solid var(--border); border-radius:14px;
+  background:#fff; border:1px solid var(--border); border-radius:16px;
   padding:10px 12px; font-size:13px; color:var(--text);
   box-shadow:0 8px 24px rgba(0,0,0,.14); max-width:min(330px,86vw);
   animation:tipIn .3s ease;
@@ -1971,7 +1982,7 @@ html{-webkit-text-size-adjust:100%;}
 @keyframes tipIn{from{transform:translateY(12px);opacity:0;}to{transform:none;opacity:1;}}
 .install-tip-go{
   padding:6px 12px; border-radius:999px; border:0;
-  background:var(--primary-ink); color:#fff; font-size:12.5px; cursor:pointer;
+  background:var(--primary-ink); color:#fff; font-size:12px; cursor:pointer;
   min-height:32px;
 }
 .install-tip-x{
@@ -1996,7 +2007,7 @@ html{-webkit-text-size-adjust:100%;}
 }
 .celeb-img{width:96px; height:96px; object-fit:cover; border-radius:50%;
   margin:0 auto 8px; display:block;}
-.celeb-title{font-size:17px; font-weight:600; color:var(--text);}
+.celeb-title{font-size:18px; font-weight:600; color:var(--text);}
 .celeb-sub{font-size:13px; color:var(--secondary); margin:6px 0 14px;}
 .celeb-row{display:flex; gap:10px; justify-content:center;}
 .celeb-share{
@@ -2068,25 +2079,25 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .hl-week-row{grid-template-columns:repeat(7,minmax(44px,1fr))}
 .ai-arrive{animation:fadeIn .45s ease}
 .chat-input-row{position:relative}
-.char-count{position:absolute;top:-16px;right:4px;font-size:11px;color:var(--secondary);background:var(--card);padding:0 6px;border-radius:8px;box-shadow:0 1px 3px rgba(90,60,40,.12)}
+.char-count{position:absolute;top:-16px;right:4px;font-size:11px;color:var(--secondary);background:var(--card);padding:0 6px;border-radius:12px;box-shadow:0 1px 3px rgba(90,60,40,.12)}
 @media (prefers-reduced-motion:reduce){.ai-arrive{animation:none}}
 /* ── R233n ─────────────────────────────────────────── */
 /* 生日横幅：当天档案生日→奶油蜜桃底+蛋糕行 */
 .daily-birthday{
   margin:10px 0 4px; padding:10px 14px; border-radius:var(--radius-sm,12px);
   background:linear-gradient(135deg,#FFF0F5,#FFF8EC);
-  border:1px solid #F5D5DC; color:#8A4B5C; font-size:13.5px; line-height:1.7;
+  border:1px solid #F5D5DC; color:#8A4B5C; font-size:13px; line-height:1.7;
 }
 .daily-birthday-go{
   display:inline-block; margin-left:6px; padding:6px 14px; min-height:40px;
   border:none; border-radius:999px; cursor:pointer;
-  background:var(--cta-grad); color:#fff; font-size:12.5px;
+  background:var(--cta-grad); color:#fff; font-size:12px;
 }
 .daily-birthday-go:hover{filter:brightness(1.06);}
 .daily-term{
   margin:10px 0 4px; padding:10px 14px; border-radius:var(--radius-sm,12px);
   background:linear-gradient(135deg,#F0F7EC,#FBF6E8);
-  border:1px solid #D8E4C8; color:#5C7340; font-size:13.5px; line-height:1.7;
+  border:1px solid #D8E4C8; color:#5C7340; font-size:13px; line-height:1.7;
 }
 /* 合婚卡右上三钮：原 .fav-btn 绝对定位右偏移只算两枚，三枚互叠 */
 .hh-btns{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
@@ -2096,7 +2107,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:keep-all;}  /* R2341（R57-P2-11）：按词断行 */
 /* 签册：打卡卡尾迷你签墙 */
 .ck-album{margin-top:10px;}
-.ck-album>summary{cursor:pointer;font-size:12.5px;color:var(--secondary);list-style:none;}
+.ck-album>summary{cursor:pointer;font-size:12px;color:var(--secondary);list-style:none;}
 .ck-album>summary::-webkit-details-marker{display:none;}
 .ck-album>summary::before{content:'▸ ';}
 .ck-album[open]>summary::before{content:'▾ ';}
@@ -2107,25 +2118,26 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
   background:var(--card);cursor:pointer;min-height:44px;}
 .ck-album-cell i{font-style:normal;font-size:10px;color:var(--muted);}
 .ck-album-cell b{font-size:12px;font-weight:600;color:var(--primary-ink);}
-.ck-album-cell:hover{border-color:#E8B898;}
+.ck-album-cell:hover{border-color:var(--hover-line);}
 /* R2350c（R97-P2-3）：缺签日灰槽——可看出缺口，「集满」有视觉拉力。 */
 .ck-album-miss{cursor:default;border-style:dashed;opacity:.55;}
 .ck-album-miss:hover{border-color:var(--border);}
 /* R2350j：许愿瓶——与签册同 token，深色经变量自适应。 */
 .ck-wish-card{background:var(--card);border:1px solid var(--border);
   border-radius:var(--radius-sm,12px);padding:12px 14px;}
-.ck-wish-text{font-size:14.5px;color:var(--primary-ink);line-height:1.7;
+.ck-wish-text{font-size:14px;color:var(--primary-ink);line-height:1.7;
   margin:6px 0;}
-.ck-wish-meta{font-size:11.5px;color:var(--muted);line-height:1.6;}
+.ck-wish-meta{font-size:11px;color:var(--muted);line-height:1.6;}
 .ck-wish-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .ck-wish-cats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;}
 .ck-wish-input{width:100%;box-sizing:border-box;min-height:60px;resize:vertical;
-  border:1px solid var(--border);border-radius:10px;padding:9px 11px;
-  font-size:13.5px;font-family:inherit;background:var(--card);color:var(--text);}
-.ck-wish-input:focus{outline:none;border-color:#E8B898;}
+  border:1px solid var(--border);border-radius:12px;padding:9px 11px;
+  /* R2400（R129-P1-3）：13.5→16——全仓输入控件守 16px iOS 聚焦不缩放。 */
+  font-size:16px;font-family:inherit;background:var(--card);color:var(--text);}
+.ck-wish-input:focus{outline:none;border-color:var(--hover-line);}
 .ck-album-miss b{color:var(--muted);font-weight:400;}
 .ck-album-prog{font-size:11px;color:var(--muted);margin-top:6px;}
-.ck-album-empty{font-size:12.5px;color:var(--secondary);padding:6px 0;}
+.ck-album-empty{font-size:12px;color:var(--secondary);padding:6px 0;}
 /* 打卡抽中弹出反馈（翻签仪式感轻量版） */
 @keyframes ckPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
 .checkin-opt.picked{animation:ckPop .35s ease;}
@@ -2162,7 +2174,11 @@ html[data-theme="dark"]{
   --accent-soft:#4A3540;      /* 深底上的蜜桃浅衬（R74-P1 牌册 .got 可读性） */
   --good:#74B98D; --c-good:#74B98D; --muted:#AD9E8C;
   --border:#453C42; --line:#4E4348;
-  --cta-grad:linear-gradient(135deg,#C25A4E,#B94A6A);
+  /* R2400（R129-P2-11/12）：浅底深色值的令牌在深底上反向不可读——
+   * 深浅各自定色（cta-grad 深档仍是字面量，见 :2328）。 */
+  --rose:#E08B7C; --rose-deep:#F0A4B8; --rose-soft:#F0A4B8;
+  --hover-line:#7A6258;
+  --focus-ring:rgba(216,198,242,.45);   /* R129-P2-7：深底紫环提亮 */
   --shadow:0 8px 28px rgba(0,0,0,.42), 0 2px 8px rgba(0,0,0,.30);
   --shadow-hover:0 14px 40px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
 }
@@ -2207,7 +2223,7 @@ html[data-theme="dark"] .chat-me{background:#5C4452;}
 html[data-theme="dark"] .ph-empty-img{filter:brightness(.9);}
 html[data-theme="dark"] .ink-hero img, html[data-theme="dark"] .birth-img,
 html[data-theme="dark"] .xz-today-img, html[data-theme="dark"] .daily-card-gift img{
-  filter:brightness(.88) saturate(.92); border-radius:14px;
+  filter:brightness(.88) saturate(.92); border-radius:16px;
 }
 html[data-theme="dark"] .tarot-card-back img{filter:brightness(.9);}
 html[data-theme="dark"] .pro-drawer>summary,
@@ -2225,14 +2241,14 @@ html[data-theme="dark"] .func-icon-img{filter:brightness(.92);}
   position:fixed; right:16px; top:14px;
   width:40px; height:40px; border-radius:50%;
   border:1px solid var(--line); background:var(--card);
-  font-size:17px; cursor:pointer; padding:0; z-index:60;
-  box-shadow:0 2px 10px rgba(35,42,56,.12);
+  font-size:18px; cursor:pointer; padding:0; z-index:60;
+  box-shadow:0 2px 10px rgba(74,58,64,.12);
 }
 .theme-toggle:hover{transform:scale(1.08);}
 /* R2350a（R94-P1-4）：时辰吉凶十二格 */
 .hl-hours{margin-top:8px;}
 .hl-hour{display:inline-block; min-width:22px; text-align:center;
-  font-size:11px; padding:2px 3px; border-radius:5px; margin:1px;
+  font-size:11px; padding:2px 3px; border-radius:12px; margin:1px;
   border:1px solid var(--border); color:var(--secondary);}
 .hl-hour-ji{border-color:var(--primary); color:var(--primary);
   font-weight:600;}
@@ -2256,7 +2272,7 @@ html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
 html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
 /* R2349j（R70 机制性附注）：真类名 .ck-album-cell，.ck-cell 死补丁修正。 */
 html[data-theme="dark"] .ck-album-cell{background:#2E282C; border-color:#453C42;}
-/* R2345（R62-P2）：深色下凶档星 #B3455A 在深底上对比弱 → 提亮 */
+/* R2345（R62-P2）：深色下凶档星 var(--rose-deep) 在深底上对比弱 → 提亮 */
 html[data-theme="dark"] .daily-stars .star-bad{color:#F08CA4;}
 html[data-theme="dark"] .archetype-card, html[data-theme="dark"] .wx-card,
 html[data-theme="dark"] .pillar-card{background:#332C31;}
@@ -2310,13 +2326,45 @@ html[data-theme="dark"] .poster-modal-head{background:linear-gradient(180deg,#35
 html[data-theme="dark"] .poster-modal-title{color:var(--text);}
 html[data-theme="dark"] .poster-modal-close{color:var(--secondary);}
 html[data-theme="dark"] .poster-modal-tip{color:var(--secondary); background:transparent;}
+
+/* ── R2400（R129 视觉二扫清零批）── */
+/* P1-1 三处 chip 选中态在深色下整组掉色（深浅特异性反转）——
+ * 与 hl-chip.active 同口径的专属覆盖。 */
+html[data-theme="dark"] .checkin-opt.picked,
+html[data-theme="dark"] .qm-style-chip.active,
+html[data-theme="dark"] .mode-btn.active{
+  background:#3A3040; color:var(--accent-ink);
+  border-color:var(--accent-ink); box-shadow:none;
+}
+/* P1-2 星座十二宫大卡插图此前没进调光清单——白岛压暗 */
+html[data-theme="dark"] .xz-card-img{filter:brightness(.82) saturate(.9);}
+/* P2-1 AI 气泡奶油描边在深底下发亮 */
+html[data-theme="dark"] .chat-ai{border-color:#453C42;}
+/* P2-2 内联粉彩胶囊（合婚 pill sm）不深降 → 压亮 */
+html[data-theme="dark"] .pill.sm{filter:brightness(.85) saturate(.8);}
+/* P2-3 装饰白碟在深渐变上发灰斑 */
+html[data-theme="dark"] .deco-corner{background:rgba(255,255,255,.05);}
+/* P2-4 图标砖：deco-icon 进调光清单，func-icon 再压一档 */
+html[data-theme="dark"] .deco-icon-img{filter:brightness(.85);}
+html[data-theme="dark"] .func-icon-img{filter:brightness(.82); border-color:#453C42;}
+/* P2-6 抽屉遮罩 .18 太薄——XHS 抽屉口径 .45 */
+html[data-theme="dark"] .recent-backdrop.open{background:rgba(0,0,0,.45);}
+/* P2-8 海报弹窗体奶油底未盖 */
+html[data-theme="dark"] .poster-modal-body{background:#2B2529;}
+/* P2-21 按钮基类玫瑰投影漏到 chip/ghost——非 CTA 类去投影 */
+button.ghost, .hl-chip, .hl-scene, .hl-daychip, .checkin-opt,
+.qm-style-chip, .mode-btn, .xz-chip, .xz-nav, .chat-chip,
+.fav-chip, .rtab, .pill{box-shadow:none;}
+/* P2-23 「忘掉我的数据」是破坏性操作——红描边与次级按钮分型 */
+#historyWipe.ghost{border-color:var(--rose-soft); color:var(--rose);}
+html[data-theme="dark"] #historyWipe.ghost{border-color:var(--rose-deep);}
 html[data-theme="dark"] .poster-act{background:#3A3237; color:var(--primary-ink);
   border-color:var(--border);}
 html[data-theme="dark"] .install-tip{background:var(--card); color:var(--text);
   border-color:var(--border);}
 html[data-theme="dark"] .install-tip-go{background:var(--primary-bg); color:#fff;}
 html[data-theme="dark"] .install-tip-x{color:var(--secondary);}
-/* R2349h（R69-P2-9）：CTA 渐变起点 #C25A4E 白字 4.32:1 贴线，加深一档。 */
+/* R2349h（R69-P2-9）：CTA 渐变起点 var(--rose) 白字 4.32:1 贴线，加深一档。 */
 html[data-theme="dark"]{--cta-grad:linear-gradient(135deg,#B85649,#A8445F);}
 /* R2349h（R69-P3-14）：生日横幅浅色卡在深底上跳色——半透明深底。 */
 html[data-theme="dark"] .daily-birthday{background:rgba(240,140,164,.10);
@@ -2340,10 +2388,8 @@ html[data-theme="dark"] .hl-week-cell.active{background:#3A3040;
   border-color:var(--accent-ink);}
 html[data-theme="dark"] .hl-week-date{color:var(--text);}
 html[data-theme="dark"] .hl-week-yi{color:#8FC49B;}
-html[data-theme="dark"] .hl-week-ji{color:#E8A193;}   /* R2349o：深底配套加深一轮的浅色 */
 html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
 /* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
-html[data-theme="dark"] .deco-banner{background:#332A30;}
 /* P0-9 skip-link / P0-10 专业盘返回钮 */
 html[data-theme="dark"] .skip-link{background:var(--cta-grad);}
 html[data-theme="dark"] .pro-back-btn{background:var(--card);color:var(--text);
@@ -2412,7 +2458,7 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 /* R2341（R57-P2-12）：加载态骨架行——「查询中…」纯文本升级 shimmer */
 @keyframes phShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
 .ph-skel{margin-top:14px}
-.ph-skel i{display:block;height:14px;border-radius:7px;margin:10px 0;
+.ph-skel i{display:block;height:14px;border-radius:12px;margin:10px 0;
   background:linear-gradient(90deg,var(--line) 25%,var(--card) 50%,var(--line) 75%);
   background-size:400px 100%;animation:phShimmer 1.4s infinite;}
 .ph-skel i:nth-child(1){width:62%}
@@ -2440,7 +2486,7 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 /* R2349l（R73-P1-12）：塔罗图鉴格 */
 .tarot-album-count{font-size:13px;color:var(--secondary);margin-bottom:8px;}
 .tarot-album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;}
-.tarot-cell{font-size:11px;text-align:center;padding:7px 4px;border-radius:8px;
+.tarot-cell{font-size:11px;text-align:center;padding:7px 4px;border-radius:12px;
   border:1px solid var(--border);color:var(--secondary);opacity:.42;
   background:var(--card);}
 .tarot-cell.got{opacity:1;border-color:var(--accent);color:var(--primary-ink);
@@ -2461,7 +2507,7 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 /* R2349o（R78-P1-3）：--accent 蜜桃粉是装饰色（~1.68:1），文字用 -ink 变体。 */
 .xz-more{font-size:11px;color:var(--accent-ink);margin-top:2px;display:inline-block;}
 .xz-tri{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);
-  font-size:11.5px;color:var(--secondary);line-height:1.7;}
+  font-size:11px;color:var(--secondary);line-height:1.7;}
 
 /* ── R2349t（R88-12）：连签里程碑卡分档——档徽描边/底色差异化 ── */
 .celeb-card[data-tier="3"]{border:2px solid #A8C686;}
@@ -2495,8 +2541,8 @@ html:not([data-theme])[data-season="winter"] .page-glow{
     radial-gradient(360px 360px at 78% 78%, rgba(215,230,250,.18), transparent 70%);}
 
 /* ── R2349t（R88-6/4）：高分标签 + 吉签庆祝句 ─────────────── */
-.hh-tier{font-size:13px;color:#B04E40;font-weight:600;margin:2px 0 0;}
-.daily-cheer{color:#B04E40;font-weight:600;}
+.hh-tier{font-size:13px;color:var(--rose);font-weight:600;margin:2px 0 0;}
+.daily-cheer{color:var(--rose);font-weight:600;}
 
 /* ── R2349u（R89-P1-4/P1-5）：深色下分档描边与庆祝句可读性 ── */
 html[data-theme="dark"] .daily-cheer,

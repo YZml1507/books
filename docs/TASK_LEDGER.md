@@ -12439,3 +12439,288 @@ warm_voice / baseline / plain_first 全绿。
 
 验证：TestClient 实测门页/401/health 豁免/?key=直通/表单解锁/错钥匙
 提示/Cookie 30 天六项全过；selftest 292（+access_gate.token）/ruff 全绿。
+
+## R2400f（PR #15）
+- R124-P2 批清零：线程删除两段式（对齐排盘历史口径）；历史「查看」忙时态「翻开中…」；周历条全断网 7 裸格→一句实话；问一嘴复杂日期 resolve_date 等待提示「帮你翻那天…」；起典请求失败行内交代；线程 tab 重拉失败不再留陈旧空态。
+- R125-P2 批清零：addr 结果头裸 scheme（zhouyi）→ 下拉框同款中文标签；pro 口吻引文补「去翻翻」入口（与白话引文树同权）；compare_works 两形并查（concept2 透传 s2t_retry，简体「无为」两书对照 28 条命中复活）。
+- 评估保留项：renderHits `_rmMarks` 与证据树逐字节为有意分工（树=核验面/列表=阅读面）；线程部署态半残（BOOKS_WRITE_DISABLE 400 中文提示已达标）。
+- 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
+- 子 agent 在跑：R126（R2400 批回归扫：锚误伤/危机词边界/前端回归/两形并查副作用）、R127（本机镜像/云端双轨一致性）。
+
+## R2400g（PR #15）
+- R122-P1-1(上)：app.js 拆海报 chunk——画海报/分享链路 74KB 移入懒加载
+  `app_poster.js`（POSTER_*几何、drawPoster、_paintPoster、
+  _paintSharePoster、buildShareData、downloadPoster 全家+画布工具）；
+  app.js 留同名 stub，点「存图/分享」时 `_loadPosterJs()` 动态注入，
+  chunk 内真身覆盖接管（二次调用零成本）；warmPoster 空闲预热
+  只拉字节不解析、失败静默吞。模态簇/导出簇/_posterOnKey 留
+  app.js——避免 chunk var 重置 stranded 监听（注释里早有警告）。
+  sw.js SHELL +app_poster.js（precache 拉字节，首点离线也能开）。
+  净效：app.js 711KB→639K（-10%），主包少解析 ~1400 行。
+- R127（本机镜像/云端双轨一致性）P1 全清：
+  * P1-1 镜像复活：新增墓碑小键 `paipan_mirror_del_v1`（id→ts），
+    同一条删过即压、同号新记录 ts 不符不误压；写墓碑独立落盘——
+    镜像整体写不下时删除仍生效。
+  * P1-2 详情 id 跨代碰撞：`_phMirrorDetailFor` 命中前对摘要 ts，
+    串档旧尸不上屏顺手摘。
+  * P1-3 断网/5xx 列表回退镜像（`_phRenderMirrorList` 共用——云端空
+    与 fetch 失败同一渲染面）；与 P1-5 合起来统一口径：镜像只补
+    「够不到」，不补「不让看」（401/403 一律不出留档）。
+  * P1-4 备份兜底：export_json 空→镜像 details+items 合成 records；
+    prefs 空→_favMirrorLoad()。
+  * P1-5 _favList 对 401/403 不回退镜像（闸过期 CP 生辰不贴屏）。
+- R127 P2 同步清：wipe 失败路径镜像照清（清扫正则收三镜像键，
+  「本机档案清了」不再说假话）；详情淘汰改 dorder「最近打开」序；
+  saver 同值不写（跨 tab 事件收敛）；镜像键进 storage 监听面
+  （收藏 chips/留档列表跨 tab 就地跟新）；禁写态 toast 提示一次。
+  遗留：P2-5 导入回灌详情需后端返新 id（暂记）、P2-7 CP chips
+  无删除口（产品决策，留）。
+- 闸门：selftest 293 / ui_smoke 76 / ruff 全绿；sw.shell_hash 已 bump。
+
+## R2400h（PR #15）
+- R126（回归专项扫）P1 七项全清 + P2 九项跟进（web/services.py、
+  src/guji/llm_polish.py、src/guji/research.py、web/static/app.js）：
+  * P1-1 场景劫持：追问形收窄——「那/换/要不/还是」开头或 呢/嘛/？
+    收尾才算沿用语境（裸短句「吃饭了吗」「今天天气怎样」不再被锚
+    点拖去判出行）；场景沿用同步收紧为 `_followup or _find_day_switch`。
+  * P1-2 找日截胡：dt 沿用加 `not _find_intent`——「那搬家哪天好」
+    不再被锚点日期把 spoken 改写成明天而答成单天判定，照常出近45天
+    宜搬家清单。`_find_intent` 词表上移到沿用闸之前。
+  * P1-3 共情污染：高敏事项「怎么办/该不该」类决策词豁免撤掉——
+    「我分手了怎么办」不再沿用锚定明天判分手+塞吉日清单（返回 []
+    走共情）；真找日问法（「分手了哪天复合好」）仍放行。
+  * P1-4 `_m_after` 覆盖本句日期：基数优先认本句自带日期词
+    （「从周五起再往后两天」按周五+2=周日算），本句没提才借锚；
+    数词从一二两扩到十以内+阿拉伯数字（P2-3）。
+  * P1-5 危机误伤：`_CRISIS_PAT` 拆硬/软两层+`_is_crisis()`——硬词
+    （想死/自杀类）全语境接住；软词（死了算了/活腻/活着没意思/
+    没啥意思）按分句判、分句带物件词豁免（「电脑死了算了」「这剧
+    烂死了算了」「猫咪死了算了」不再误触转介）。前端
+    `_CRISIS_FE_HARD/SOFT/OBJ`+`feCrisis()` 同构镜像（FE 命
+    中点改走 feCrisis）。`_CRISIS_PAT` 并集形态留给 facts 过滤。
+  * P1-6 对比词表缺口：`_COMPARE_DAY_WORDS` 元组改
+    `_COMPARE_DAY_RE`——裸「周X/星期X/礼拜X」（周五/下周一）收
+    进来；regex 整体匹配修「下周五」被「下周」子串截胡。
+  * P1-7 search 两形并查失效：简体装满上限时繁体 extra 全被
+    [:limit] 切掉、hint 谎称「已附」——简体侧让名额给繁体
+    （min(len(extra), max(3, limit//3))），放不下的如实写进 hint；
+    total 按「展示数+各形未展示余量」直算（修 kept 错算的 q 侧
+    漏报）。
+  * P2-1 危机漏网：软词表补「没啥意思/没什么意思」。
+  * P2-2 裸追问丢锚：「那咋办」无场景也沿用（dt 沿用不再要求
+    scene 命中，场景沿用本身给裸追问）。
+  * P2-5 锚被插话重置：记锚时新 ctx 无场景则沿用旧锚场景——
+    「今天天气怎样」不再把事项锚清零。
+  * P2-6 三日对比只补一日：`_compare_extra_facts` 按出现顺序收
+    全部「另一日」（≤3），不再只回首个。
+  * P2-8 truncated 旗标过火：concept_census/compare_works 改
+    limit+1 探边界——恰好满额不再误标，两形合并后按「形」报。
+  * P2-9 autoSend 补 `{silent:true}`（与 chatSend 同口径——失败
+    走 chat 气泡，不再叠全局 toast）。
+  * 顺手修：同长事项词多命中取句中最靠后者（「分手了哪天复合好」
+    判复合→嫁娶，不再判成宜解除的日子）；备份 toast 计数改读
+    `_recsOut`（镜像兜底时不再谎报 0 条）；probe_contract 数组
+    方法白名单补 `sort`（`_recsOut.sort` 被误判缺 || 兜底字段）。
+- 闸门：selftest 293 / probe_contract 609 / ui_smoke 76 /
+  parity 74+43+251 / llm_polish / baseline_voice / xingzuo /
+  warm_voice / async_ai / dollar_misuse / no_generated /
+  scripts_importable / selftest_regress / ruff 全绿；
+  sw.shell_hash 已 bump。
+
+## R2400j（R122-P1-1下）：古籍域懒加载 chunk 拆分（2026-09-22）
+
+- **app_research.js**（629 行 + 头注）：15 个古籍域 handler（doSearch/doResearch/doAddr/doCompare/doWorks/searchByWork/doThread/_threadListHtml/deleteThread/showThread/doCompareWorks/doConcept/doBookStructure/doBookChapter/doBookSummary）原样搬出；chunk 头注声明「共享 globals + 顶格函数覆盖同名 stub」约定。
+- **app.js 639→621KB**：原位置留下 `_loadResearchJs()`（幂等 promise，script 注入 `/static/app_research.js`）+ `_researchStub()` 转发器（自参捕获 arguments）+ 15 个同名 stub；`_ASCHEME_FIELDS`/`_threadStatus` 留在主文件（syncAddrFields/委托处理器也用）。
+- 预热：`showView('read')` 进页即拉 chunk（catch 吞失败，点按走 stub 再拉一次）。
+- sw.js SHELL +app_research.js；`bump_sw` → books-shell-bb7404487cfd。
+- **probe_contract 扩扫**：`FRONTEND_JS` 单文件 → app.js + glob `app_*.js` 全部 chunk；每块打 `file` 标签，读点/跳项报告按归属文件打印。实测拆分前 622 → 拆后 442 假缩水，扩扫后 623（+poster chunk 1 个原本漏算的读点）。
+- 真机验证（Playwright）：首页零 chunk 请求 → `showView('read')` 拉一次 → 真身接管 stub → doSearch 走通到失败分支（无后端环境），pageerrors=0。
+- 闸：selftest 293 / ui_smoke 76 / contract 623(SOFT=48) / ruff scoped 全绿。
+
+## R2400k（R127-P2-7）：台账云端/本机合渲（2026-09-22）
+
+- `loadPaipanHistory` 云端有行时，把镜像里**页外行**（清盘前旧档、limit=50 翻页窗外的旧档）按 ts 归位合渲，行头标「本机留档」——云端/本机谁是出处一眼可辨。
+- id 撞号云端为准（同号是否同条在 `_phMirrorList` 已裁决）；纯镜像行的「查看」走 `_phMirrorDetailFor` ts 对账、「删除」404 视同摘镜像——既有兜底直接复用。
+- 实现：`_localIds` id 集合判出处，行对象不落 `__local` 合成字段（契约探针会把合成字段判成响应漂移 HARD——实测抓到后改的）。
+- 闸：contract 627(SOFT=48) PASS / node --check 通过 / bump_sw books-shell-42365eca8f29。
+
+## R2400l（R130）：分享回流链路复验清零（2026-09-22）
+
+- **P1-1 邀请残链污染（真机实证）**：`?view=hehun&from=invite&ay=1998` 这类只带部分参数的链，A 侧缺格被受邀者自己的 me 静默填上（init 早段 `_meFillAll` 按默认映射先填了 hh_a_*，邀请块只写有值的参）→ 出「TA 1998-3-8 × 我 1995-3-8」假合盘还报「已填好」。修法：
+  - 门槛 `_invFull`：年月日齐全（年 1900-2100 / 月 1-12 / 日 1-31）+ 时辰 0-23 + 性别只收 男/女，才进邀请态；
+  - 进邀请态先把 hh_a_* 清零+摘 data-me（没给的字段不许冒充发起人），性别占位「女」（与提交回落口径一致）；
+  - 标着邀请却不过关的链：剥参+toast「缺了点信息，当普通合婚用就好」+清 sessionStorage 旧邀请参。
+- **P2-1 门页开放跳转**：`next`/`?key=` 跳回的 Location 只查 `/` 头——`/%5cevil.com` 解码出 `\` 被浏览器归一成 `//` 即成钓鱼跳转。改白名单 `^/[A-Za-z0-9_/?=&%#.:\-~+]*$` 且显式拦 `//` 前缀，CRLF 同收（P2-3 顺带灭）。selftest 既有用例 `//evil.com→/` 实测把关。
+- **P2-2 SW 缓存壳让门页失效**：navigate 改 network-first——在线以服务端响应为准（403 门页照实上屏，cookie 过期/换口令能赶人），缓存壳只留离线兜底。
+- **P2-4 受邀提交覆盖旧 TA 档案提示**：me:partner 原有不同生日时 toast「之前存的 TA 档案被这次邀请更新掉啦」。
+- **P3-1 邀请态同 tab 粘住**：sessionStorage 回灌只在 navigation.type=reload 时；navigate/back_forward 一律清 hhInvite。
+- 真机验证：残链→普通访问+提示、完整链→邀请态+TA 字段全对、污染不再。
+- P3-4 二维码功能不存在——确认即现状（海报走口令文案），记 backlog 待正式域名。
+- 闸：selftest 293 / ui_smoke 77 / contract 627 / node --check / bump_sw books-shell-97f69ffbd4e0 全绿。
+
+## R2400m — R128 锚点语义对抗重扫清零（web/services.py + src/guji/llm_polish.py）
+
+R128 报告 1×P0+10×P1+8×P2 全清：
+
+- **P0-1 缓存吃锚**：`chat_huangli_facts` 命中 `_CHAT_FACTS_CACHE` 时原样 return，
+  `_chat_ctx_put` 被跳过——同一句话发第二遍锚就没了。缓存值改存
+  `(facts, ctx)` 元组，命中回放 `_chat_ctx_put`。
+- **P1-1 「再过两天」判 +4 天**：`_hl_day_part` 先吃掉「过两天」(+2)，
+  `_m_after` 又 +2。修法：`_m_after` 先匹配并把命中 span 从日词输入里
+  摘掉再喂 `_hl_day_part`；自带基日的词（过N天/后一天/下一天）恒按
+  今天+N，顺延类词照旧优先本句日词→再借锚。
+- **P1-2 叙事插话打飞日期锚**：「我昨天去了医院」把锚从 {明天} 覆成
+  {昨天}。ctx_out 加 `qk` 类型标记——只有 scene/findday 型供给允许
+  覆写 dt；泛问/生日沿用旧锚 dt；badday/crisis 整条不写锚。
+- **P1-3 「星期八」双向错判**：不存在日检测改用 `_orig_spoken`
+  （沿用/顺延覆写前的原始解析），且标 badday 不写锚。
+- **P1-4 `_m_after` 漏繁体**：regex 从 msg 直匹并补简繁两写
+  （往後/過/週/禮拜），词表补 挪/延/推迟/推后/改后，单位补周×7。
+- **P1-5 「再往后两天」不带呢丢场景**：沿用闸加 `_m_after`。
+- **P1-6 「这周五」被「这周」吞尾造幻日**：`_COMPARE_DAY_RE` 加
+  `(这|這|本)个?(周|週|星期|禮拜|礼拜)[一二三四五六日天]` 复合形，
+  排在裸本周/这周之前。
+- **P1-7 双场景对比错配**：「明天搬家和后天开业」原判成后天开业+
+  明天开业鬼组合。≥2 场景且 ≥2 日词时按位置就近配对逐组判。
+- **P1-8 `_followup` 过松**：加换话题/作罢排除表（换个话题|算了|
+  别聊了…）+ 单字符句不算追问。
+- **P1-9 找日+多场景当选倾诉尾巴**：`_find_intent` + 多命中时场景
+  限在找日词所在分句内取。
+- **P1-10 危机误报/漏网**：「想死你了/想死我了」撒娇豁免（硬词逐命中
+  判定，裸「想死了」不豁免）；OBJ 表补 工作|日子|生活|婚姻|人生|
+  学业|感情|事业|恋爱|爱情|天气|饭|觉 等生活域词。
+- **P2-1** 对比日截尾补「还有 N 个没展开」提示；**P2-2** 叙事分句
+  的日词不再拉进对比（分句须含问题/决策标记）；**P2-3** 多日对比
+  主判日按句中首个日词定；**P2-4** 危机拒答不写锚；**P2-5**
+  `_CHAT_CTX` 满 512 从 clear() 改 FIFO 逐出最旧。
+
+验证：selftest 293 / contract 627 / ui_smoke 76 / parity 74+43+251 /
+ruff 等 15 道全绿。实测序列：明天搬家→我昨天去了医院→那理发呢
+（锚不飞）；明天搬家→星期八开业→那开业呢（badday 检出+锚不污）；
+还是算了吧（不重放）；明天搬家和后天开业（配对正确）。
+
+## R2400n — R129 视觉细节二扫清零（styles.css + web/app.py）
+
+R129 报告 P1×3 + P2×23 全清（无 P0）：
+
+- **P1-1 chip 选中态深色掉色**：`.checkin-opt.picked`/`.qm-style-chip.active`/
+  `.mode-btn.active` 三处特异性反转漏网——按 hl-chip.active 范式补 (0,3,1)
+  深色专属覆盖（#3A3040 底 + --accent-ink 边字）。
+- **P1-2 星座大卡白岛**：`.xz-card-img` 并入调光清单（.82/.9）。
+- **P1-3 许愿瓶 13.5px**：违反全仓 iOS 16px 防线→16px。
+- **深色残留 ×10**：chat-ai 奶油描边/内联粉彩 pill sm 滤镜/deco-corner
+  .05/deco-icon-img 入清单+func-icon-img 再压/抽屉遮罩 .45/焦点环
+  --focus-ring 深浅双值/海报弹窗体 #2B2529/门页按钮收编玫瑰渐变+12px/
+  wish-input focus 走 --hover-line/ink-hero 亮岛标有意。
+- **色彩散落**：~10 个玫瑰近值收编 --rose/--rose-deep/--rose-soft 三档
+  （cta-grad 两端保留刻意字面量，深浅各自加深档）；#E8B898 六处→
+  --hover-line；橙色离群脉冲→玫瑰族；冷灰蓝阴影→暖灰棕。
+- **节奏**：圆角 12 档→{12,16,18,999,50%}；字号半步（11.5/12.5/13.5/
+  14.5/17）全归并；chip gap 统一 8；hl-chips/deco-banner 外边距 12。
+- **动效**：xz-chip/xz-nav/hl-scene/chat-chip transition:all .15s；
+  button:active 死定义删；非 CTA 类（ghost/chip/pill 系）去玫瑰投影。
+- **布局**：daily-meta 右缘渐隐已在（R62 落地）；「忘掉我的数据」红描边
+  与次级按钮分型。
+- 深色令牌覆盖：--rose/--hover-line/--focus-ring 深浅双值（浅底深色值
+  在深底反向不可读）。
+
+验证：selftest 293 / ui_smoke 76 / contract 627 / ruff 全绿；braces 配平；
+var() 引用零悬空。sw → books-shell-74f440b68531。
+
+## R2400o — R128 回归钉扎进 selftest（chat.facts.anchor_r128，293→294）
+
+把 R128 修过的 10 类锚点语义全部钉进闸门：再过两天=+2、缓存命中回放
+写锚、叙事插话不打飞日期锚、星期八检出+不污锚、再往后两天沿用场景、
+这周五复合词、双场景就近配对、还是算了吧不重放、撒娇豁免+危机不写锚、
+裸想死了仍接住。以后谁改坏锚点逻辑当场红。
+
+## R2400p — R134 闸门盲区清零（selftest 294→298 + 三处闸扩面）
+
+R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_object`/
+`frontend.on_wiring`/`probe_dollar_misuse` 统一扫 app_*.js chunk（懒加载
+块不再逃闸）；②新增 chat.facts.anchor_r134 钉扎块——顺延词形态矩阵
+（挪/推迟/后一天/繁体、周×7、本句日词基）、TTL 过期不算锚、512 FIFO
+逐出、换话题/裸呢不追问、找日分句限域+句尾场景、findday 写锚、泛问不
+清锚、锚变缓存键、aware/naive 混型、情绪倾诉零供给+场景反向钉、多日
+对比逐日判、危机豁免参表+想死我了钉住（想死你了语序变体·有意豁免）、
+电池寿命敏感兜、chatx 收尾态限流、检索两形并查 hint；③门页白名单参
+表（反斜杠/CRLF/javascript:/合法深链）+?key= GET 同口径；④sw.js 三
+新闸——navigate 顺序钉 network-first、壳位回写条件、SHELL⊇磁盘 chunk
+集合；⑤css.var_defs 新闸——var() 引用⊆定义集（含 JS setProperty 动态
+令牌），当场抓到 --ink 未定义真 bug 已修为 var(--text)。三份审计报告
+（R132 真机回归 9 组/R133 视觉双主题 62 图/R134 盲区 30 条）全清。
+
+- **R2400q（R135 LLM 链路 + R136 宜忌族 + R137 部署态三审清零）**：
+  ①facts 注入面系统性收口——`_fact_is_safe` 入闸前先归一（剥零宽/
+  控制字 + 繁折简小表），词表扩形状类（判定/权威/系统/角色/要求/
+  说法/act as/obey/don't listen）与内部外形串（calc.x/SQL/Traceback/
+  服务器路径/.py 行号）；含换行事实整行剥除（防 `- ` 伪造权威行），
+  voice.py 问句回显剥「」防 ctx 行提前封口注入；`review_names` 的
+  names/facts 此前零过滤已并同闸；coords 入档即过闸不再存恶意行。
+  ②出侧 `_sanitize` 补内部外形降级 + 伪 `system:` 行剥除 + `**`/`##`
+  记号压回纯文本。③facts_* 脏值批：None 字面量/dict repr/`medium`
+  未映射/`a_bazi=None` 崩溃点 全兜住；verdicts 空白行不入档、跨日
+  判定档作废。④huangli 功名族收「出官/谒贵」（全年 17 天
+  「宜上任 忌出官」对冲漏裁）+ 丧葬族补位。⑤部署态：/_gate 限速
+  桶改取 XFF 链尾（首元素伪造不再换桶）、books_key 改口令 HMAC
+  派生指纹（cookie 明文不再等于钥匙）、Dockerfile exec 顶 PID1
+  优雅停机、.dockerignore 排 assets_src/delivery（镜像 -126M）。
+  闸门：selftest 300（+chat.facts.r135 +huangli.families.r136 两块）
+  /contract 627/ui_smoke 77/parity 74+43+251/ruff 全绿。
+
+- **R2400r（R135 残余收尾批）**：①prompt 内部字段名外露收口——
+  `ctx:` 改「语境：」自然标签；新增 _PROMPT_LEAK_PAT 出侧闸
+  （给定事实/候选名字/五行背景/参考口吻/我的规则/只使用…信息
+  复述即降级）。②坐标块 3K 字符帽（schema 上限外的保险）。
+  ③危机消息不再跑黄历事实计算（chat_huangli_facts 入口短路）。
+  ④day_query 中间态 list(set()) 全改 sorted()——跨进程
+  PYTHONHASHSEED 漂移保险。⑤2026-03-09 全年唯一「宜为空」日
+  裁定为有意（传统确有宜空日，前端诚实空态已有）。
+
+- **R2400s（R139 多Tab/镜像一致性批）**：①墓碑升级「摘尸」——
+  _phMirrorLoad 读时先摘掉与墓碑同 ts 的条目/详情，跨 tab 删除
+  竞态后的幽灵「本机留档」不再复活。②phFetch 抛错补 .status，
+  401/403 门匙失效判据复通——列表面与详情面同口径不走镜像，
+  提示重新输口令。③favorites 镜像独有条目在服务端非空时回推
+  POST（type+ref_id 幂等），清盘续命的旧收藏不再被新收藏静默
+  顶掉。④BC dirty 广播先于台账落库 60ms——重拉延迟 400ms。
+  ⑤新 SW 接管时页面若在后台静默 reload，懒加载 chunk 新旧混注
+  窗口收窄。⑥R138 清盘面+真机回归（R140）待报告。
+
+- **R2400t（R138 清盘丢数面批）**：①塔罗图鉴清盘后谎称
+  「0/78 从0点亮」——云端空+镜像有时聚合镜像 result.draws
+  照常点亮，文案改「云端清了，本机还亮着 N 张」。②研究线程
+  谎称「还没开过」——threads_seen_v1 本地标记，空+见过说真话；
+  线程/手记纳入备份包（摘要+轮次 ≤50 线程）与「忘掉我的数据」
+  清空（逐条 DELETE）。③排盘镜像键去 rowid 化——`id|ts`
+  复合键，清盘重排后新记录不再顶掉同号旧归档；裸 id 旧键
+  读时一次性迁移。④镜像超限一刀切清空改 dorder LRU 逐条
+  淘汰。⑤wipe 提示文案更新为全量口径。
+
+- **R2400u（R141 挑吉日对账批）**：全年 365 天后端裁决链零矛盾，
+  真问题在前端两处族口径+否决语义。①「我打算」chip ✓ 不做族
+  扩展——同卡判词「宜X也忌Y」而 chip 亮「适合」（全年搬家 22 天
+  分裂），别名→族词并集再扫忌侧对齐判词。②前端 _HL_FAMILIES
+  漂移补齐九族（+平整/出官/谒贵/丧葬整族，356 场景日分裂）。
+  ③find_good_days 否决整族→同义簇（_TERM_VETO_CLUSTERS）——
+  「许愿」不再被忌嫁娶连坐（1月吉日 5→23），「忌出行否搬家」
+  仍站得住。④affair= 非精确键走子串最长命中（签订合同→合同），
+  未识别词回 unrecognized 标记不静默返空。⑤days 回显实扫窗
+  +truncated/past 标记；摆酒/办酒/办喜事别名→嫁娶。⑥挑吉日
+  chip 悬停宜词命中词提前防截断藏因。probe_date_parity 新增
+  族表同构段（9 族钉死）；selftest +5 断言。
+
+- **R2400v（R140 真机回归跟进批）**：真 agnes-2.5-flash 端到端
+  25/25 PASS——11 注入面全剥、合法坐标零误伤、危机/口吻/锚点
+  正常。两个低优先瑕疵照修：①模型把判定日 09-25 口播「10月
+  25号」（月份口误）——scene 判词补「照判词写的念不换算」约束；
+  ②起名点评漏裸 `---` 分隔线上屏——_sanitize 补 markdown hr
+  （-_*_ 独占行）压除。contract 探针白名单补 indexOf/concat。
+
+- **R2400w（线程备份回灌闭环）**：上轮把 threads 纳入备份包但
+  导入端只认 records——备份里的研究线程被静默丢。补全闭环：
+  knowledge.import_threads（thread+turn 原样恢复、(topic,
+  opened_at) 幂等去重、status/role/seq 保真、50线程/500轮帽）、
+  PaipanImportRequest 加 threads 字段、导入响应透出
+  threads_imported/skipped、前端 POST 带 bundle.threads。
+  selftest +1 钉扎（306 checks）。

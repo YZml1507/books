@@ -411,8 +411,10 @@ class TarotDrawRequest(BaseModel):
 
 class PaipanImportRequest(BaseModel):
     """R231a（R36-P3-3）：备份文件导入——records 上限与台账 KEEP_MAX 对齐，
-    逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。"""
+    逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。
+    R2400u 续：threads（研究线程备份）同样回灌，上限 50 与备份导出对齐。"""
     records: list[dict] = Field(default_factory=list, max_length=500)
+    threads: list[dict] = Field(default_factory=list, max_length=50)
 
 
 class PrefsRequest(BaseModel):

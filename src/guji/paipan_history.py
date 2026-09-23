@@ -405,16 +405,21 @@ def export_all() -> list[dict]:
     return out
 
 
-def import_rows(rows: list[dict]) -> tuple[int, int]:
-    """批量落库（追加式，去重靠 ts+name+type 三元组）；返回写入条数。
+def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
+    """批量落库（追加式，去重靠 ts+name+type 三元组）。
+
+    返回 (written, skipped, new_rows)：new_rows 是每条新写入行的
+    {id,ts,name,type}——前端拿它把备份里的完整 req/result 按新 id
+    回灌进本机镜像详情（R2400，R127-P2-5）。
 
     防线：条数 ≤ KEEP_MAX、单行序列化 ≤256KB、字段截断到列上限、
     type 白名单——备份文件是用户可控输入，按不可信数据验。"""
     if not isinstance(rows, list) or not rows:
-        return 0, 0
+        return 0, 0, []
     with _write_lock, contextlib.closing(_conn()) as c, c:
         written = 0
         skipped = 0
+        new_rows = []
         for r in rows[:KEEP_MAX]:
             # R2349y（R95-P2-9/P3-5）：非 dict / 伪造 type（eviltype 曾被
             # 静默改名落库为 bazi）/ 缺 ts（重复导入去重失效）一律跳过
@@ -448,16 +453,18 @@ def import_rows(rows: list[dict]) -> tuple[int, int]:
             if dup:
                 skipped += 1
                 continue
-            c.execute(
+            cur = c.execute(
                 "INSERT INTO records(ts,name,question,req_json,result_json,"
                 "type) VALUES(?,?,?,?,?,?)",
                 (ts, name, question, req_s, res_s, rtype))
+            new_rows.append({"id": cur.lastrowid, "ts": ts,
+                             "name": name, "type": rtype})
             written += 1
         c.execute(
             "DELETE FROM records WHERE id NOT IN "
             "(SELECT id FROM records ORDER BY id DESC LIMIT ?)",
             (KEEP_MAX,))
-    return written, skipped
+    return written, skipped, new_rows
 
 
 def _csv_safe(v: str) -> str:

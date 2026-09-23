@@ -456,7 +456,13 @@ _TERM_FAMILIES: list[frozenset[str]] = [
     frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
     frozenset({"开市", "立券", "纳财", "开仓", "交易", "置产"}),
     frozenset({"嫁娶", "求嗣", "进人口", "纳采", "订盟"}),  # 婚育
-    frozenset({"上任", "求名", "入学"}),                   # 功名
+    # R2400（R136）：功名族漏「出官/谒贵」——全年 17 天存在
+    # 「宜上任/谒贵 忌出官」同页对冲（如 2026-01-19）。
+    frozenset({"上任", "求名", "入学", "出官", "谒贵"}),   # 功名
+    # R2400（R136 续）：丧葬族补位——「宜安葬 忌行丧」同型对冲
+    # （窗口期 0 共现但属同族，提前收编防漏裁）。
+    frozenset({"安葬", "行丧", "启攒", "修坟", "立碑", "除服",
+               "成服", "入殓"}),                           # 丧葬
     frozenset({"祭祀", "祈福"}),                           # 敬拜
     frozenset({"求医", "治病", "求医疗病"}),               # 医疗
     frozenset({"捕捉", "畋猎", "狩猎", "田猎"}),           # 猎取
@@ -465,6 +471,44 @@ _WORD_FAMILY: dict[str, frozenset[str]] = {}
 for _fam in _TERM_FAMILIES:
     for _w in _fam:
         _WORD_FAMILY[_w] = _WORD_FAMILY.get(_w, frozenset()) | _fam
+
+# R2400（R141-P2-2）：族表孤儿白名单——刻意不落任何族的词。
+# 解除/沐浴/冠笄/诉讼/安床/栽种在 yi/ji 词表内无同义词，不进族。
+# 其中「解除」被口语映射（分手/辞职/毁约…）共用——若日后引入
+# 「解约/散伙」类词必须收编成族，否则漏族裁静默。
+
+# R2400（R141-P2-1）：挑吉日的上榜否决不按整族连坐，改按「同义
+# 不同字」簇判——求嗣∈婚育族，但「忌嫁娶」不该否掉「许愿」（求嗣
+# ≠嫁娶）；「忌出行」否「搬家」语义站得住（移徙/入宅本属出行大类）。
+# 簇只用于 find_good_days 否决；日卡冲突展示仍用完整 _TERM_FAMILIES。
+_TERM_VETO_CLUSTERS: list[frozenset[str]] = [
+    frozenset({"修造", "动土", "破土", "破屋坏垣", "竖柱", "上梁",
+               "平整"}),                                 # 开工兴造
+    frozenset({"塞穴"}), frozenset({"筑堤"}),
+    frozenset({"出行", "远行", "归家", "移徙", "入宅", "乘船", "登山"}),
+    frozenset({"开市", "开仓"}),                          # 开张
+    frozenset({"立券", "交易"}),                          # 立约
+    frozenset({"纳财", "置产"}),                          # 置产求财
+    frozenset({"嫁娶"}), frozenset({"求嗣"}),
+    frozenset({"纳采", "订盟", "进人口"}),                 # 议亲
+    frozenset({"上任", "出官"}),                          # 赴任
+    frozenset({"求名", "入学"}),                          # 应试
+    frozenset({"谒贵"}),
+    frozenset({"安葬", "启攒", "修坟", "立碑", "入殓"}),   # 殡葬
+    frozenset({"行丧", "除服", "成服"}),                   # 守制
+    frozenset({"祭祀", "祈福"}),
+    frozenset({"求医", "治病", "求医疗病"}),
+    frozenset({"捕捉", "畋猎", "狩猎", "田猎"}),
+]
+_WORD_VETO: dict[str, frozenset[str]] = {}
+for _clu in _TERM_VETO_CLUSTERS:
+    for _w in _clu:
+        _WORD_VETO[_w] = _WORD_VETO.get(_w, frozenset()) | _clu
+
+
+def _veto_terms(term: str) -> frozenset[str]:
+    """该事项词的否决词集——同簇词命中忌侧即不上榜；孤儿词只否决自己。"""
+    return _WORD_VETO.get(term, frozenset((term,)))
 
 
 def term_family(term: str) -> frozenset[str]:
@@ -498,15 +542,18 @@ def day_query(dt: datetime) -> dict:
     xx = xiu_value(dt)
     pz = pengzu_baiji(dt)
 
-    yi = list(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
-    ji = list(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
+    # R2400（R135-P1-1）：中间态一律 sorted 收敛——纯 set 序依赖
+    # PYTHONHASHSEED 跨进程漂移，任何未来消费方（yi[:3]/join）都会
+    # 产出跨进程不一致的卡面。
+    yi = sorted(set(ZHIRI_YIJI[jc]["yi"] + XIUXIU_YIJI[xx]["yi"]))
+    ji = sorted(set(ZHIRI_YIJI[jc]["ji"] + XIUXIU_YIJI[xx]["ji"]))
 
     # R233v（R52-P1-2）：神煞宜忌层接线——天赦/天德/月德/驿马/贵人临日
     # 的宜项与劫煞/灾煞/月煞/月厌的忌项此前算完就丢（死代码），词表里
     # 远行/移徙/上任/诉讼 这类词因此恒不命中（「问搬家年年中性」）。
     _sy, _sj = shensha_yiji(dt)
-    yi = list(set(yi) | set(_sy))
-    ji = list(set(ji) | set(_sj))
+    yi = sorted(set(yi) | set(_sy))
+    ji = sorted(set(ji) | set(_sj))
 
     # R2362（用户直报）：宜忌同框矛盾按《协纪辨方书》卷十断例裁决——
     # 「凡吉足胜凶，从宜不从忌；凡吉凶相抵，德喜之事仍忌；
@@ -517,7 +564,7 @@ def day_query(dt: datetime) -> dict:
     # 裁决后 yi∩ji 恒空，conflict/conflict_family 透出空表。
     _layers_yi = (set(ZHIRI_YIJI[jc]["yi"]), set(XIUXIU_YIJI[xx]["yi"]), set(_sy))
     _layers_ji = (set(ZHIRI_YIJI[jc]["ji"]), set(XIUXIU_YIJI[xx]["ji"]), set(_sj))
-    for _w in list(set(yi) & set(ji)):
+    for _w in sorted(set(yi) & set(ji)):
         _fam = term_family(_w)
         _vy = sum(1 for _L in _layers_yi if _L & _fam)
         _vj = sum(1 for _L in _layers_ji if _L & _fam)
@@ -677,6 +724,11 @@ _SHA_FANG: dict[int, str] = {
 AFFAIR_ALIASES: dict[str, str] = {
     "婚嫁": "嫁娶",
     "开市": "开市",
+    # R2400（R141-P2-3）：办酒席口语归一——API 层落不进场景键时
+    # 至少走别名拿到规范词，不再静默恒空。
+    "摆酒": "嫁娶",
+    "办酒": "嫁娶",
+    "办喜事": "嫁娶",
 }
 
 
@@ -707,11 +759,13 @@ def find_good_days(start: datetime, end: datetime,
         # term「求医」⊂词「求医疗病」这种包含关系两侧不再打架。
         def _hit(tt, words):
             return any(tt in w or w in tt for w in words)
-        # R77（R2349n-P2-7）：上榜日忌栏含同义族词也要剔除——
+        # R77（R2349n-P2-7）：上榜日忌栏含同义词也要剔除——
         # 「宜修造忌动土」的日子不算干净的搬家吉日。
+        # R2400（R141-P2-1）：否决口径从整族收窄到同义簇——「许愿」
+        # （祈福+求嗣）不再被忌嫁娶连坐（婚育族跨事件否决是误伤）。
         _fam_terms: set[str] = set()
         for _t in terms:
-            _fam_terms |= set(_WORD_FAMILY.get(_t, (_t,)))
+            _fam_terms |= set(_veto_terms(_t))
         if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
                 and not any(_hit(t, q["ji"]) for t in _fam_terms)):
             good.append(q)

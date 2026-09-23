@@ -92,6 +92,12 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', function () {
         if (_toasted || !_hadCtl) return;
         _toasted = true;
+        /* R2400（R139-P2-4）：新 SW 接管后懒加载 chunk 会新旧混注——
+           页在后台时直接静默刷新到全新版（用户看不见不打断）；
+           前台保留 toast 引导手动刷。 */
+        if (document.hidden) {
+          try { location.reload(); return; } catch (eR) {}
+        }
         if (window.showToast) {
           try { window.showToast('小满换好新版本了，刷新生效 ✨', 'info'); }
           catch (e) {}
@@ -203,7 +209,7 @@ try {
   <div class="daily-card" id="dailyCard">
     <!-- R230x（V-1）：礼盒收进顶行 flex 流，不再绝对定位压日期 -->
     <div class="daily-top">
-      <span class="daily-label">🌟 今日玄学搭子</span>
+      <span class="daily-label" id="dailyGreet">🌟 今日玄学搭子</span>
       <span class="daily-date" id="dailyDate">加载中…</span>
       <div class="daily-card-gift"><img src="/static/shared/daily-box-gift.png" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></div>
     </div>
@@ -425,6 +431,10 @@ try {
   <div class="view" id="view-read">
     <div class="card">
       <h2><span aria-hidden="true">📜</span> 古籍读书 <span class="card-sub">知往圣 · 绝学</span></h2>
+      <!-- R2400（R125-P2）：常驻语境说明——这块是给查证用的工具，
+           原文多为繁体，免得误入的朋友一脸懵。 -->
+      <p style="font-size:12px;color:var(--secondary);margin:4px 0 10px;">
+        这里放的是原文查证工具——古籍多为繁体，找句子、对版本、看引用用。</p>
       <div class="rtabs">
         <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
         <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
@@ -444,7 +454,10 @@ try {
           <div class="field" style="flex:3;"><label for="rq">查询词</label>
             <input id="rq" type="text" maxlength="200" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
           <div class="field"><label for="rlayer">层过滤</label>
-            <select id="rlayer"><option value="">全部</option><option value="經">經</option><option value="傳">傳</option><option value="注">注</option><option value="疏">疏</option><option value="箋">箋</option><option value="緒">緒</option><option value="衍">衍</option><option value="演">演</option><option value="評">評</option><option value="纂">纂</option><option value="拾遺">拾遺</option><option value="misc">其他</option></select></div>
+            <!-- R2400（R125-P1-1）：层选项换实测分布——旧表 11 选 9 个
+                 必 400（傳/疏/箋/緒/衍/演/評/纂/misc 库里根本没有），
+                 占 80% 的「正文」反而没得选。 -->
+            <select id="rlayer"><option value="">全部</option><option value="正文">正文</option><option value="注">注</option><option value="經">經</option><option value="林辭">林辭</option><option value="十翼">十翼</option><option value="圖">圖</option><option value="標題">標題</option></select></div>
           <div class="field"><label for="rwork">书过滤</label>
             <input id="rwork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
         </div>
@@ -845,7 +858,8 @@ try {
             </select></div>
         </div>
         <button id="xzmSubmit" type="button" style="margin-top:10px;">测测合拍度 💗</button>
-        <div id="xzmResult" style="margin-top:12px;"></div>
+        <!-- R2400（R124-P2）：结果区补空态，不再是一片空白 -->
+        <div id="xzmResult" style="margin-top:12px;"><div class="ph-empty" style="padding:12px;">选你们的星座，点「测测合拍度」～</div></div>
       </details>
       <div class="xz-datebar">
         <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>
@@ -879,10 +893,10 @@ try {
         <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
              两段式确认后清本机键+服务端台账。 -->
         <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
-        <!-- R2349y（R95-P2-7）：古籍研究线程的笔记在服务端 knowledge
-             库，不进备份也不被「忘掉」清——口径写明，别让用户以为全包了。 -->
+        <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
+             全量口径。 -->
         <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
-          备份/清空只覆盖排盘台账与本机偏好——古籍研究笔记另算，不清不带。
+          备份/清空覆盖排盘台账、研究笔记与本机偏好——本机留档（只存在这台设备上的备份）也会一起清。
         </div>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
