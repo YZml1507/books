@@ -849,17 +849,20 @@ def stats() -> dict:
         }
 
 
-def threads(status: str = "open") -> dict:
+def threads(status: str = "open", limit: int = 50) -> dict:
     """研究线程列表（G9：可恢复的研究线索）。
 
     R230r（R30-#8）：resume() LIMIT 50 曾静默截断——超 50 条 open 线程后
     更老的永久消失。披露 total/limit/truncated，并支持 PATCH 改状态
-    （open/parked/closed，收起的线程不再占列表位）。"""
+    （open/parked/closed，收起的线程不再占列表位）。
+    R2500（R143-P1-3）：limit 参数（≤500）——备份导出/wipe 需要够到
+    全部线程而非前 50。"""
     # R2349z（R96-P1-1）：status 过滤——收起的/聊完的不再从列表永久消失。
     if status not in ("open", "parked", "closed", "all"):
         raise ValidationError("线程列表只能按「进行中/先收起/已结束」筛")
+    limit = max(1, min(int(limit or 50), 500))
     with deps.knowledge() as kb:
-        rows = kb.resume(status)
+        rows = kb.resume(status)[:limit]
         if status == "all":
             total = kb.db.execute(
                 "SELECT count(*) n FROM thread").fetchone()["n"]
@@ -868,7 +871,15 @@ def threads(status: str = "open") -> dict:
                 "SELECT count(*) n FROM thread WHERE status=?",
                 (status,)).fetchone()["n"]
         return {"threads": [dict(r) for r in rows], "stats": kb.stats(),
-                "total": total, "limit": 50, "truncated": total > 50}
+                "total": total, "limit": limit, "truncated": total > limit}
+
+
+def threads_clear_all() -> dict:
+    """R2500（R143-P1-3/P2-4）：「忘掉我的数据」全量清线程+手记——
+    前端逐条 DELETE 只够到前 50 条，且 claims 原文留库；这里一次清
+    全表（threads/turns/derived/evidence/fts）。"""
+    with deps.knowledge() as kb:
+        return {"deleted": kb.delete_all_threads()}
 
 
 def thread_set_status(tid: int, status: str) -> dict:
@@ -892,7 +903,14 @@ def thread_detail(tid: int) -> dict:
     with deps.knowledge() as kb:
         turns = [dict(r) for r in kb.thread_transcript(tid)]
         if not turns:
-            raise NotFoundError("这条线程没找到——可能还没聊过")
+            # R2500（R143-P2-6/G1）：0 轮线程是存在的（import_threads
+            # 可产出空 turns 线程）——之前 404 让导出端整线丢弃、备份
+            # 循环每轮悄悄掉一批。线程存在但 0 轮 → 空 transcript +
+            # 照常带 claims；只有线程真不存在才 404。
+            row = kb.db.execute(
+                "SELECT 1 FROM thread WHERE id=?", (tid,)).fetchone()
+            if not row:
+                raise NotFoundError("这条线程没找到——可能还没聊过")
         claims = []
         _claim_ids: list[int] = []
         for row in kb.db.execute(

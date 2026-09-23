@@ -402,6 +402,12 @@ def main() -> int:
         # R2363（R117-P0-2）：meta 行超 5 粒折叠的「+N 条」收纳钮——
         # 同 signPeekBtn 模式：动态生成、本地 toggle 零请求。
         "dailyMetaMore": "meta 折叠收纳钮——动态生成、本地 toggle 零请求",
+        # R2500（R143-P2-8）：触屏/微信专属粘贴导入弹层——桌面冒烟
+        # _exportShowOnly()=False 根本开不出这个弹层（按钮不渲染），
+        # 链路同 ui:history.import 的导入主路径。
+        "importPasteGo": "触屏/微信专属粘贴导入弹层钮——桌面端"
+                          "_exportShowOnly()=False 弹层不产生，"
+                          "导入主路径 ui:history.import 已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
@@ -941,7 +947,10 @@ def main() -> int:
                             "type": "bazi", "name": "探针导入",
                             "ts": __import__('datetime').datetime.now()
                                 .isoformat(timespec='seconds'),
-                            "req": {}, "result": {}}]}, _f,
+                            # R2500（R143-P1-1）：req/result 双空现在
+                            # 判「空壳」拒收——fixture 带真内容。
+                            "req": {"y": 1990, "m": 5, "d": 15},
+                            "result": {"ok": True, "probe": 1}}]}, _f,
                         ensure_ascii=False)
                 page.set_input_files('#historyImportFile', _imp)
                 page.wait_for_function(

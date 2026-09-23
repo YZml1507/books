@@ -2399,6 +2399,83 @@ def _run_inner() -> list[str]:
     finally:
         _kbt.close()
     ok.append("knowledge.import_threads")
+    # R2500（R143-P1-1 钉扎）：req/result 双空的「空壳记录」拒收——
+    # 不占 (ts,name,type) 去重键，之后带真内容的同名记录正常写入。
+    _sh1 = _phx.import_rows([{"type": "bazi", "ts": "probe-selftest-shell",
+                             "name": "空壳", "req": {}, "result": {}}])
+    _sh2 = _phx.import_rows([{"type": "bazi", "ts": "probe-selftest-shell",
+                             "name": "空壳", "req": {"y": 1},
+                             "result": {"ok": True}}])
+    _stale2 = [r["id"] for r in _phx.list_records(limit=500)["items"]
+               if str(r.get("ts") or "") == "probe-selftest-shell"]
+    for _i in _stale2:
+        _phx.delete_record(_i)
+    assert _sh1[:2] == (0, 1) and _sh2[:2] == (1, 0), (
+        "paipan.import_rows.shell", _sh1, _sh2)
+    ok.append("paipan.import_rows.shell")
+    # R2500（R143-P1-2/P1-3/P2-5 钉扎）：claims 随线程回灌、GC 出循环
+    # 计真数、delete_all_threads 全清（threads+turns+derived+evidence）。
+    # 走临时库——不碰会话真实 knowledge.db。
+    import tempfile as _tf
+    _tmpk = os.path.join(_tf.mkdtemp(prefix="kbt-"), "k.db")
+    _kbt2 = _KBt(_tmpk)
+    try:
+        _tw2, _ = _kbt2.import_threads([{
+            "topic": "临时钉扎", "status": "open",
+            "opened_at": "2026-02-02T00:00:00",
+            "turns": [{"role": "user", "text": "手记线程"}],
+            "claims": [{"kind": "note", "claim": "测试手记原文",
+                        "method": "g9", "confidence": "medium",
+                        "evidence": [{"role": "supports",
+                                      "work_id": "zhouyi", "file": "x.txt",
+                                      "quote": "引文"}]}]}])
+        _ncl = _kbt2.db.execute(
+            "SELECT count(*) c FROM derived").fetchone()["c"]
+        _ndel = _kbt2.delete_all_threads()
+        _left = _kbt2.db.execute(
+            "SELECT (SELECT count(*) FROM thread) + "
+            "(SELECT count(*) FROM turn) + (SELECT count(*) FROM derived) + "
+            "(SELECT count(*) FROM evidence) AS n").fetchone()["n"]
+        assert (_tw2 == 1 and _ncl == 1 and _ndel == 1 and _left == 0), (
+            "knowledge.import_claims+wipe", _tw2, _ncl, _ndel, _left)
+    finally:
+        _kbt2.close()
+    ok.append("knowledge.import_claims_wipe")
+    # R2500（R143-P2-6 钉扎）：0 轮线程 detail 不再 404——返回空
+    # transcript+claims；真不存在才 404。借真库起一条 0 轮再删。
+    _kbt3 = _KBt(KNOWLEDGE_DB)
+    _tid0 = None
+    try:
+        _kbt3.db.execute(
+            "INSERT INTO thread (topic, status, opened_at) VALUES (?,?,?)",
+            ("st-0turn", "open", "2026-03-03T00:00:00"))
+        _kbt3.db.commit()
+        _tid0 = _kbt3.db.execute(
+            "SELECT id FROM thread WHERE topic='st-0turn'").fetchone()["id"]
+    finally:
+        _kbt3.close()
+    from web import services as _svt
+    try:
+        _d0 = _svt.thread_detail(_tid0)
+        _ok0 = (_d0["turns"] == [] and _d0["claims"] == [])
+    except Exception:
+        _ok0 = False
+    try:
+        _svt.thread_detail(-1)
+        _ok404 = False
+    except Exception:
+        _ok404 = True
+    with _KBt(KNOWLEDGE_DB) as _kbt4:
+        _kbt4.db.execute("DELETE FROM thread WHERE id=?", (_tid0,))
+        _kbt4.db.commit()
+    assert _ok0 and _ok404, ("services.thread_detail.0turn", _ok0, _ok404)
+    ok.append("services.thread_detail.0turn")
+    # R2500（R143-P1-3 钉扎）：limit 参数上线路由——status=all&limit=500
+    # 回显 limit=500 且 truncated 按 500 口径。
+    _tl = client.get("/api/threads", params={"status": "all", "limit": 500})
+    assert _tl.status_code == 200 and _tl.json().get("limit") == 500, (
+        "threads.limit", _tl.status_code, _tl.json())
+    ok.append("threads.limit")
     # R178b（D-230b）：LLM 层已整体移除——断言它**回不来**。`guji.llm_reader`
     # 必须不可导入，且响应里不得再出现 llm/llm_out/use_llm 字段（若哪轮把
     # 生成式解读悄悄接回来，此处立刻红）。

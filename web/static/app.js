@@ -2900,11 +2900,26 @@ function renderAiPolish(j) {
  * warmPoster 的空闲预热语义 = 提前把组件字节拉进缓存，
  * 首点「分享图」仍秒开；SW 壳清单含本 chunk，离线也可用。 */
 var _posterJsLoad = null;
+/* R2500（R143-SW-P3）：懒 chunk 裸路径不带 ?v=——旧页面开着时新 SW
+ * 接管，拉 chunk 拿到新字节混注进旧运行时。与 app.js 同源取 ?v。 */
+function _assetV() {
+  try {
+    var _ss = document.querySelectorAll('script[src*="/static/app.js"]');
+    var _m = _ss.length &&
+      (_ss[_ss.length - 1].getAttribute('src') || '').match(/[?&]v=([^&]+)/);
+    return _m ? '?v=' + _m[1] : '';
+  } catch (eAV) { return ''; }
+}
+var _ASSET_V = null;
+function _assetSuffix() {
+  if (_ASSET_V === null) _ASSET_V = _assetV();
+  return _ASSET_V;
+}
 function _loadPosterJs() {
   if (!_posterJsLoad) {
     _posterJsLoad = new Promise(function (res, rej) {
       var s = document.createElement('script');
-      s.src = '/static/app_poster.js';
+      s.src = '/static/app_poster.js' + _assetSuffix();
       s.onload = function () { res(); };
       s.onerror = function () {
         _posterJsLoad = null;
@@ -4493,6 +4508,9 @@ async function submitBazi(event) {
      * 的公历），档案记公历日期+农历原值标注，生日横幅/倒计时通吃。 */
     var _bs = (j.birth_solar && j.birth_solar.y) ? j.birth_solar
       : { y: body.year, m: body.month, d: body.day };
+    if (!_fieldsUntouched(['year','month','day','hour','minute',
+                           'calendar_type','lunar_year','lunar_month',
+                           'lunar_day','gender']))
     _meSave('me', { y: _bs.y, m: _bs.m, d: _bs.d,
       h: body.hour_known ? body.hour : null, g: body.gender,
       lunar: (body.calendar_type === 'lunar')
@@ -4581,7 +4599,7 @@ function _loadResearchJs() {
   if (!_researchJsLoad) {
     _researchJsLoad = new Promise(function (res, rej) {
       var s = document.createElement('script');
-      s.src = '/static/app_research.js';
+      s.src = '/static/app_research.js' + _assetSuffix();
       s.onload = function () { res(); };
       s.onerror = function () {
         _researchJsLoad = null;
@@ -5225,6 +5243,8 @@ async function doTaohua() {
       hour_known: _thHour !== '',
       gender: val('th_gender') || '女'
     });
+    if (!_fieldsUntouched(['th_year','th_month','th_day','th_hour',
+                           'th_gender']))
     _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
       h: (_thHour === '') ? null : num('th_hour'), g: val('th_gender') || '女' });
     _meFillAll();   /* R230y */
@@ -6191,8 +6211,14 @@ async function doHehun() {
        * 存着别的 TA 就被静默顶掉；存前先记一下，不同的才提示。 */
       var _oldP = null;
       try { _oldP = _meGet('me:partner'); } catch (eOP) {}
+      /* R2500（R142-P1-3）：受邀侧字段照样守未动不写——B 侧邀请
+       * 预填值 ≠ 出厂 defaultValue，手填/邀请值都会如实落档。 */
+      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+                             'hh_b_hour','hh_b_gender']))
       _meSave('me', { y: num('hh_b_year'), m: num('hh_b_month'),
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+                             'hh_a_hour','hh_a_gender']))
       _meSave('me:partner', { y: num('hh_a_year'), m: num('hh_a_month'),
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
       if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
@@ -6203,8 +6229,12 @@ async function doHehun() {
         } catch (eTP) {}
       }
     } else {
+      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+                             'hh_a_hour','hh_a_gender']))
       _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+                             'hh_b_hour','hh_b_gender']))
       _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
     }
@@ -10165,7 +10195,9 @@ function renderCheckin(dateKey) {
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天的好运搭子：', '今天的运，你挑哪款：',
                   '选一个接住今天的好运：', '今天想要哪张签：',
-                  '抽一个陪你过今天：', '今天的幸运签是哪一个：'], 'ckq')) + ' ' +
+                  /* R2500（R142-P2-3）：四签全亮是「选」不是「抽」——
+                   * 文案对齐机制，新客不再误以为点了是随机。 */
+                  '挑一个陪你过今天：', '今天的幸运签是哪一个：'], 'ckq')) + ' ' +
     '<span class="checkin-dots" aria-hidden="true">' + _dots + '</span>' +
     (_meta ? '<span class="checkin-meta">' + _meta + '</span>' : '') + '</div>' +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
@@ -10519,6 +10551,16 @@ function _meGet(key) {
     var j = JSON.parse(window.localStorage.getItem(key) || 'null');
     return (j && typeof j === 'object') ? j : null;
   } catch (e) { return null; }
+}
+/* R2500（R142-P1-3）：出厂示例生日（1990-5-15 等）原样提交就静默
+ * 写进「我的档案」，污染次日判词/生日横幅。字段值与 HTML 出厂
+ * defaultValue 一致 = 用户没动过，这种提交不写档。 */
+function _fieldsUntouched(ids) {
+  for (var i = 0; i < ids.length; i++) {
+    var node = document.getElementById(ids[i]);
+    if (node && String(node.value) !== String(node.defaultValue)) return false;
+  }
+  return true;
 }
 function _meSave(key, rec) {
   /* R233n：合并写——nick 等补充键只有个别表单维护，其他表单提交时
@@ -11467,18 +11509,24 @@ function baziPersonaCard(j) {
          * 永丢且「忘掉」也不清。备份带线程摘要+每线程轮次。 */
         var _threads = [];
         try {
-          var _tl = await api('/api/threads?status=all', { silent: true });
+          /* R2500（R143-P1-3）：limit=500 够到全部线程——此前默认前 50
+           * 条，第 51+ 条备份不到。truncated 仍有 200 帽外残余但已限窄。 */
+          var _tl = await api('/api/threads?status=all&limit=500',
+                              { silent: true });
           var _tlArr = (_tl && _tl.threads) || [];
-          for (var _ti = 0; _ti < _tlArr.length && _ti < 50; _ti++) {
+          for (var _ti = 0; _ti < _tlArr.length; _ti++) {
             try {
               var _td = await api('/api/threads/' +
                                   encodeURIComponent(_tlArr[_ti].id),
                                   { silent: true });
+              /* R2500（R143-P1-2/D2）：claims/手记入包——此前只带 turns
+               * 清盘恢复后手记原文永丢。 */
               _threads.push({ id: _tlArr[_ti].id, topic: _tlArr[_ti].topic,
                               status: _tlArr[_ti].status,
                               opened_at: _tlArr[_ti].opened_at,
                               updated_at: _tlArr[_ti].updated_at,
-                              turns: (_td && _td.turns) || [] });
+                              turns: (_td && _td.turns) || [],
+                              claims: (_td && _td.claims) || [] });
             } catch (eTd) {}
           }
         } catch (eTl) {}
@@ -11489,8 +11537,15 @@ function baziPersonaCard(j) {
           _recsOut = Object.keys(_mmB.details).map(function (k) {
             _seen[k] = 1; return _mmB.details[k];
           });
+          /* R2500（R143-P1-1）：镜像 items 只有摘要行（无 req/result）
+           * ——空壳进包落库后 (ts,name,type) 去重键被占，之后带真内容
+           * 的备份对该条永远 skip。只收有内容的行。 */
           Object.keys(_mmB.items).forEach(function (k) {
-            if (!_seen[k]) _recsOut.push(_mmB.items[k]);
+            var _it = _mmB.items[k];
+            var _hasBody = _it && (_it.req || _it.result) &&
+              (Object.keys(_it.req || {}).length ||
+               Object.keys(_it.result || {}).length);
+            if (!_seen[k] && _hasBody) _recsOut.push(_it);
           });
           _recsOut.sort(function (a, b) {
             return String(b.ts || '').localeCompare(String(a.ts || ''));
@@ -11639,13 +11694,11 @@ function baziPersonaCard(j) {
        * 「忘掉我的数据」承诺必须覆盖——与台账一起清。
        * R2400（R138-P1-3）：研究线程/手记（knowledge.db）此前无删除
        * 路径——点「忘掉」后还残留在服务端。逐条 DELETE 一并清。 */
-      var _threadsDel = api('/api/threads?status=all', { silent: true })
-        .then(function (_tl) {
-          return Promise.all((((_tl && _tl.threads) || [])).map(function (t) {
-            return api('/api/threads/' + encodeURIComponent(t.id),
-                       { method: 'DELETE', silent: true }).catch(function () {});
-          }));
-        }).catch(function () {});
+      /* R2500（R143-P1-3/P2-4）：改调全清端点——逐条 DELETE 只够到前
+       * 50 条（51+ 连全部 turn 留库）且 derived claims 原文不清；
+       * 「忘掉」语义必须覆盖整表。 */
+      var _threadsDel = api('/api/threads', { method: 'DELETE', silent: true })
+        .catch(function () {});
       Promise.all([
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' }),
@@ -11658,7 +11711,12 @@ function baziPersonaCard(j) {
     var _imb = document.getElementById('historyImportBtn');
     var _imf = document.getElementById('historyImportFile');
     if (_imb && _imf) {
-      _imb.addEventListener('click', function () { _imf.click(); });
+      _imb.addEventListener('click', function () {
+        /* R2500（R143-P2-8）：触屏/微信里导出是文本弹层「贴回导入」——
+         * 导入侧同样给文本弹层，闭环对称；桌面端照旧文件选择器。 */
+        if (_exportShowOnly()) { _showTextImportModal(_importBackupText); }
+        else { _imf.click(); }
+      });
       _imf.addEventListener('change', async function () {
         var f = _imf.files && _imf.files[0];
         _imf.value = '';
@@ -11669,8 +11727,15 @@ function baziPersonaCard(j) {
           showToast('这个文件太大了，不像备份', 'warn');
           return;
         }
+        await _importBackupText(await f.text());
+      });
+    }
+  }
+  /* R2500（R143-P2-8）：备份导入主路径抽成文本入口——文件读入与
+   * 粘贴弹层共用。 */
+  async function _importBackupText(_txt) {
         try {
-          var bundle = JSON.parse(await f.text());
+          var bundle = JSON.parse(_txt);
           if (!bundle || bundle.kind !== 'backup') {
             showToast('这不是小满的备份文件', 'error');
             return;
@@ -11727,7 +11792,7 @@ function baziPersonaCard(j) {
             }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });
-          var n = 0;
+          var n = 0, _nThr = 0;
           /* R2349y（R95-P3-5）：records 含非 dict 元素时后端
            * list[dict] 整体 422——本地键已写入才报失败，口径误导。
            * 先过滤掉。 */
@@ -11743,7 +11808,8 @@ function baziPersonaCard(j) {
           if (_thr.length) _impBody.threads = _thr.slice(0, 50);
           if (_recs.length || _thr.length) {
             const rj = await postJSON('/api/paipan/history/import', _impBody);
-            n = (rj.imported || 0) + (rj.threads_imported || 0);
+            n = (rj.imported || 0);
+            _nThr = (rj.threads_imported || 0);
             /* R2400（R127-P2-5）：导入回灌详情——后端返回新行
              * {id,ts,name,type}，按去重键（与后端同口径截断）匹配
              * 本地 bundle 行，把完整 req/result 写进镜像详情——
@@ -11753,9 +11819,13 @@ function baziPersonaCard(j) {
               var _mmI = _phMirrorLoad();
               var _byKey = {};
               _recs.forEach(function (r) {
-                _byKey[String(r.ts || '').slice(0, 32) + '|' +
-                       String(r.name || '').slice(0, 200) + '|' +
-                       String(r.type || '')] = r;
+                /* R2500（R143-P2-7/B1）：同 (ts,name,type) 两条不同内容
+                 * 后端留第一条——本地 _byKey 也要先胜者后跳过，不然被
+                 * 跳行的内容会错装到保留行的 id 上。 */
+                var _bk = String(r.ts || '').slice(0, 32) + '|' +
+                          String(r.name || '').slice(0, 200) + '|' +
+                          String(r.type || '');
+                if (!_byKey[_bk]) _byKey[_bk] = r;
               });
               rj.new_records.forEach(function (nr) {
                 var _row = _byKey[String(nr.ts || '') + '|' +
@@ -11791,7 +11861,9 @@ function baziPersonaCard(j) {
           }
           /* R2349y（R95-P2-8/P3-8）：收藏失败条数点名，不再并进
            * 「记录」计数混口径。 */
+          /* R2500（R143-P3-11）：线程不并进「记录」计数——口径分说。 */
           var _msg = '导入好了：多了 ' + n + ' 条记录' +
+            (_nThr ? ' + ' + _nThr + ' 个研究线程' : '') +
             (_fvN ? ' + ' + _fvN + ' 条收藏' : '') +
             '，偏好也回来了（刷新后生效）' +
             (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
@@ -11807,8 +11879,58 @@ function baziPersonaCard(j) {
         } catch (e) {
           showToast('导入失败：' + e.message, 'error');
         }
-      });
-    }
+  }
+  /* R2500（R143-P2-8）：粘贴导入弹层——与导出文本弹层对称
+   * （textarea 可编辑 + 导入按钮）。 */
+  function _showTextImportModal(onImport) {
+    var _ex2 = document.getElementById('posterModal');
+    if (_ex2) { closePosterModal(); if (_ex2.isConnected) _ex2.remove(); }
+    var bd = document.createElement('div');
+    bd.id = 'posterModal';
+    bd.className = 'poster-modal-backdrop';
+    _posterTrigger = document.activeElement;
+    bd.innerHTML =
+      '<div class="poster-modal" role="dialog" aria-modal="true" aria-label="导入备份">' +
+        '<div class="poster-modal-head">' +
+          '<span class="poster-modal-title">📦 导入备份</span>' +
+          '<button type="button" class="poster-modal-close" aria-label="关闭">×</button>' +
+        '</div>' +
+        '<div class="poster-modal-body">' +
+          '<textarea class="export-modal-ta" aria-label="粘贴备份内容" ' +
+            'placeholder="把之前在备忘录/文件传输助手里存的备份文本整段贴进来"></textarea>' +
+        '</div>' +
+        '<div class="poster-modal-tip">💡 贴的是「我的数据备份」那段 JSON——含生辰昵称，别贴进公开群</div>' +
+        '<div class="poster-modal-actions">' +
+          '<button type="button" class="poster-act" id="importPasteGo">✨ 导入这份备份</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(bd);
+    try {
+      history.pushState({
+        view: (history.state && history.state.view) || 'home',
+        modal: 'poster' }, '');
+      window.__modalPushed = true;
+    } catch (ePS) {}
+    requestAnimationFrame(function () { bd.classList.add('open'); });
+    _mainInert(true, bd);
+    var _pcc = bd.querySelector('.poster-modal-close');
+    _pcc.addEventListener('click', closePosterModal);
+    bd.addEventListener('click', function (e) {
+      if (e.target === bd) closePosterModal();
+    });
+    _posterOnKey = function (e) {
+      if (e.key === 'Escape' || e.keyCode === 27) closePosterModal();
+    };
+    document.addEventListener('keydown', _posterOnKey);
+    bd.querySelector('#importPasteGo').addEventListener('click', async function () {
+      var _v = (bd.querySelector('textarea').value || '').trim();
+      if (!_v) { showToast('先把备份文本贴进来再点', 'warn'); return; }
+      try { JSON.parse(_v); }
+      catch (eJ) { showToast('这段不是完整的备份文本——从头「{」到尾「}」整段贴', 'warn'); return; }
+      closePosterModal();
+      await onImport(_v);
+    });
+    _pcc.focus();
   }
   /* R231d（R37-F3）：?view=history 深链/F5 补加载——IIFE 内函数经
    * window 暴露给 showView 的视图钩子。 */
@@ -11872,6 +11994,9 @@ function baziPersonaCard(j) {
        * 边缘与日签/黄历错位；与 dailyDetail 同款 client 日。 */
       var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g,
         ask_date: todayIso() };
+      /* R2500（R142-P1-3）：示例生日原样提交不落档——同日但 nick 想
+       * 单存的走星座页显式存。 */
+      if (!_fieldsUntouched(['b_year','b_month','b_day','b_hour','b_gender']))
       _meSave('me', { y: y, m: m, d: d, h: (hv === '' ? null : Number(hv)), g: g,
         n: (document.getElementById('b_nick') || {}).value || '' });
       _meFillAll();   /* R230y */
