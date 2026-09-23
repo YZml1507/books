@@ -773,7 +773,10 @@ function buildQimingResult(j) {
   /* R2349s（R84-P2-20）：口吻开关——pro 展开候选池原表。 */
   html += renderModeSwitch();
   const bz = j.bazi || {};
-  if (bz.render) html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
+  /* R2500（R144-P2-2）：温柔版裸贴干支行（「庚午年…日主：庚 大运：逆」）
+   * 是术语噪声——收进专业版（五行卖点已由下方 nayin 行承载）。 */
+  if (bz.render && voiceMode() === 'pro')
+    html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
   const fe = j.five_elements || {};
   if (voiceMode() === 'pro') {
     var _qpt = '<div class="pro-notice">📐 专业视角：候选池原表 + 五行计数。</div>';
@@ -6438,7 +6441,10 @@ async function doXingzuo(force) {
         html += '<div class="xz-palace-line">' +
           esc((_todayDetail.palace || '') +
               (_todayDetail.star ? ' · ' + _xzT0 + '守护星：' + _todayDetail.star : '')) +
-          '</div>';
+          '</div>' +
+          /* R2500（R144-P3-7）：宫名/星名是《星学大成》原典繁体，
+           * 与卡片简体 chip 混排观感不统一——加脚注说明出处。 */
+          '<div class="xz-palace-src">宫名·星名照原典写法</div>';
         if (_todayDetail.sign_note) {
           html += '<div class="xz-palace-note">' +
             esc(_todayDetail.sign_note) + '</div>';
@@ -8600,8 +8606,14 @@ function initDivination() {
             '</div>' +
             '<div class="tarot-album-grid">' +
             cj.deck.map(function (n) {
+              /* R2500（R144-P2-3）：已收集格换 mini 牌面缩略图——
+               * 78 格全「？」文本收藏感弱，牌册是小红书晒图面。 */
+              var _ti = got[n] ? tarotImg(n) : null;
               return '<div class="tarot-cell' + (got[n] ? ' got' : '') +
-                '">' + esc(got[n] ? n : '？') + '</div>';
+                '">' +
+                (_ti ? '<img class="tarot-cell-img" src="' + esc(_ti) +
+                       '" alt="" loading="lazy">' : '') +
+                esc(got[n] ? n : '？') + '</div>';
             }).join('') + '</div>';
         }).catch(function () {
           /* R2400（R124-P1-2）：静默 catch 此前抽屉停在

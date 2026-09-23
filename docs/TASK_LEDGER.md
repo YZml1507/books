@@ -12750,3 +12750,17 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   （→node）；selftest +8 断言（310 checks）：shell 拒收/
   claims 往返/wipe 清空/0轮详情/500 limit。sw 重发
   books-shell-c61cd81c36ab。
+
+- **R2500b（R144 视觉调性深度评审清零批，93 截图巡场）**：P0 无。
+  ①P1 本命盘卡移动端文字列 26px 逐字竖排——.birth-head
+  padding-right 110px 固定让位在 ~270px 抽屉里压爆，≤480px 减到
+  64px（实测文字列 70px）。②P2 塔罗 cross_ref 跑连句——note
+  无句号时与「牌面这边」粘连，分隔符归一化补「；」。③P2 起名
+  温柔版裸贴干支行（庚午年…日主：庚）——收进专业版（五行卖点
+  由 nayin 行承载）。④P2 塔罗牌册 78 格全「？」——已收集格换
+  mini 牌面缩略图（tarot-cell-img 34×54，复用 /static/tarot 资产，
+  实测 2 格亮牌渲染正常）。⑤P3 一批——#historyWipe.ghost hover
+  深紫×玫红 2.7:1 补白字；海报页脚 hook/CTA 两行字形相触（基线
+  1364/1390）pill 下移加高各让一档；星座宫名繁简混排加「照原典
+  写法」脚注；toast 窄屏下移 64px 避首卡；.view 底垫 70→96px
+  FAB 不再压页脚角。ink-hero 桌面偏空=本轮 R142 已修（0 22%）。

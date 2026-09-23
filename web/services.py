@@ -4021,6 +4021,9 @@ def _cross_ref_tarot(cards: list[dict],
                      "hold": "偏逆位，提示先别急",
                      "mixed": "正逆各半"}[card_dir]
         relation = _signal_relation(card_dir, sign_direction(sign), "牌面")
+        # R2500（R144-P2-1）：note 末尾无句号时与「牌面这边」直接粘连
+        # 成跑连句（实屏「…脑子才转牌面这边偏逆位…」）——分隔符归一化。
+        _note = note.rstrip("。！？…；") + "；" if note else ""
         return {
             "today_sign": sign,
             "today_note": note,
@@ -4028,7 +4031,7 @@ def _cross_ref_tarot(cards: list[dict],
             "card_direction": card_dir,
             "upright_count": _up,
             "total": _total,
-            "message": f"今天{sign}宫：{note}牌面这边{card_side}——{relation}。",
+            "message": f"今天{sign}宫：{_note}牌面这边{card_side}——{relation}。",
         }
     except Exception:
         return {}
