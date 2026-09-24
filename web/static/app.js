@@ -9392,7 +9392,12 @@ function init() {
        'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
        'hh_b_gender', 'hh_b_name'].forEach(function (_fid) {
         var _f = document.getElementById(_fid);
-        if (_f) { _f.value = ''; delete _f.dataset.me; delete _f.dataset.invite; }
+        if (_f) {
+          _f.value = '';
+          delete _f.dataset.me;
+          delete _f.dataset.invite;
+          delete _f.dataset.touched;
+        }
       });
       try { _MEM_STORE._m = {}; } catch (eM2) {}
       try { LAST_RESULT = {}; } catch (eLR) {}
@@ -9413,7 +9418,11 @@ function init() {
          'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
          'hh_b_gender', 'hh_b_name'].forEach(function (_fid) {
           var _f = document.getElementById(_fid);
-          if (_f && _f.dataset.me === '1') { _f.value = ''; delete _f.dataset.me; }
+          if (_f && _f.dataset.me === '1') {
+            _f.value = '';
+            delete _f.dataset.me;
+            delete _f.dataset.touched;
+          }
         });
         /* R2349y（R95-P1-3）：字段清了但档案条/打卡面没重渲——
          * B tab 会挂着已删档案直到刷新。 */
@@ -10564,13 +10573,19 @@ function _meGet(key) {
     return (j && typeof j === 'object') ? j : null;
   } catch (e) { return null; }
 }
-/* R2500（R142-P1-3）：出厂示例生日（1990-5-15 等）原样提交就静默
- * 写进「我的档案」，污染次日判词/生日横幅。字段值与 HTML 出厂
- * defaultValue 一致 = 用户没动过，这种提交不写档。 */
+/* R2501（R142-P1-3 收尾）：出厂示例生日（1990-5-15 等）原样提交就静默
+ * 写进「我的档案」，污染次日判词/生日横幅。输入值仍与 HTML 出厂
+ * defaultValue 一致、select 仍停首选项 = 用户没动过，这种提交不写档。 */
 function _fieldsUntouched(ids) {
   for (var i = 0; i < ids.length; i++) {
     var node = document.getElementById(ids[i]);
-    if (node && String(node.value) !== String(node.defaultValue)) return false;
+    if (!node) continue;
+    var untouched = (node.dataset.invite !== '1')
+      && (node.dataset.touched !== '1')
+      && ((node.tagName === 'SELECT')
+        ? (node.selectedIndex <= 0)
+        : (String(node.value) === String(node.defaultValue)));
+    if (!untouched) return false;
   }
   return true;
 }
@@ -10613,8 +10628,9 @@ function _meFill(key, ids) {
     /* R2343（R59-BROKEN）：硬编码 value= 默认值让非空判定恒真——
      * 表单档案代入从未生效过。值还停在出厂默认即视同未动过可回填；
      * select 无 defaultValue，用「还停在首选项」近似。受邀链回填的
-     * 字段带 data-invite，跳过。 */
-    if (e.dataset.invite === '1') return;
+     * 字段带 data-invite，跳过。R2501：data-touched 表示用户本 tab
+     * 实际碰过，即使后来改回默认值/首选项也不能被跨 tab 档案回填覆盖。 */
+    if (e.dataset.invite === '1' || e.dataset.touched === '1') return;
     var _untouched = (e.tagName === 'SELECT') ? (e.selectedIndex <= 0)
       : (e.value === '' || e.value === e.defaultValue);
     if (_untouched || e.dataset.me === '1') {
@@ -10878,8 +10894,15 @@ function _renderInstallTip() {
 /* 用户手动输入即解除预填标记——下次 _meFill 不再碰这个字段 */
 ['input', 'change'].forEach(function (ev) {
   document.addEventListener(ev, function (e) {
-    if (e.target && e.target.dataset && e.target.dataset.me) {
-      delete e.target.dataset.me;
+    if (e.target && e.target.dataset) {
+      /* R2501：记住用户是否实际碰过本 tab 的字段。select 改回首项后
+       * selectedIndex 又回到 0，单看值会误判为“仍未动过”。 */
+      if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(e.target.tagName) >= 0) {
+        e.target.dataset.touched = '1';
+      }
+      if (e.target.dataset.me) {
+        delete e.target.dataset.me;
+      }
     }
   }, true);
 });
@@ -11673,7 +11696,12 @@ function baziPersonaCard(j) {
             /* R2349y（R95-P2-3）：手输的生日（input 事件即删
              * data-me 标记）、邀请链字段（data-invite）此前漏清——
              * wipe 语义是「忘掉」全部个人字段，不是只清回填的。 */
-            if (_f) { _f.value = ''; delete _f.dataset.me; delete _f.dataset.invite; }
+            if (_f) {
+              _f.value = '';
+              delete _f.dataset.me;
+              delete _f.dataset.invite;
+              delete _f.dataset.touched;
+            }
           });
         } catch (e2a) {}
         /* R2349y（R95-P3-6）：聊天侧栏气泡同 tab 还挂着旧对话——

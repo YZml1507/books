@@ -594,6 +594,261 @@ def main() -> int:
 
             # ── R2342（R60-P0）：覆盖盲区补钉——真实点击路径 ──
 
+            # R2501：出厂示例盘直接提交不能污染本人档案；真实改动仍要落档。原生 select
+            # 的 defaultValue 为空；旧实现拿它和首选项值比较，误判
+            # 「用户改过性别」，于是 1990-05-15 被写进 localStorage.me。
+            try:
+                page.evaluate("localStorage.removeItem('me')")
+                goto_view('bazi')
+                page.wait_for_selector("#view-bazi.active", timeout=5000)
+                with page.expect_response(
+                        lambda r: r.url.endswith('/api/bazi')
+                        and r.request.method == 'POST',
+                        timeout=20000) as _default_response:
+                    page.click('#submit')
+                _default_status = _default_response.value.status
+                page.wait_for_function(
+                    "() => { const r = document.getElementById('result');"
+                    " return r && r.querySelector('.card'); }",
+                    timeout=20000)
+                _default_me = page.evaluate("localStorage.getItem('me')")
+                # 用户改过后再改回默认值/首选项时，档案回填也不能覆盖；
+                # data-me 会被事件监听清掉，但 data-touched 必须继续保护该值。
+                _refill_respected = page.evaluate("""() => {
+                    localStorage.setItem('me', JSON.stringify({
+                        y: 1992, m: 5, d: 15, h: null, g: '男', lunar: null
+                    }));
+                    const year = document.getElementById('year');
+                    const gender = document.getElementById('gender');
+                    year.value = year.defaultValue;
+                    year.dataset.me = '1';
+                    year.dataset.touched = '1';
+                    gender.selectedIndex = 0;
+                    gender.dataset.me = '1';
+                    gender.dataset.touched = '1';
+                    _meFill('me', {y: 'year', m: 'month', d: 'day',
+                                   h: 'hour', g: 'gender'});
+                    const got = {y: year.value, g: gender.value,
+                                 yt: year.dataset.touched || '',
+                                 gt: gender.dataset.touched || ''};
+                    localStorage.removeItem('me');
+                    ['year', 'gender'].forEach(id => {
+                        const node = document.getElementById(id);
+                        delete node.dataset.me;
+                        delete node.dataset.touched;
+                    });
+                    return got;
+                }""")
+                _invite_default = page.evaluate("""() => {
+                    const gender = document.getElementById('gender');
+                    gender.dataset.invite = '1';
+                    const untouched = _fieldsUntouched(['year', 'month', 'day',
+                        'hour', 'minute', 'calendar_type', 'gender']);
+                    delete gender.dataset.invite;
+                    return untouched;
+                }""")
+                _select_to_first = page.evaluate("""() => {
+                    const gender = document.getElementById('gender');
+                    gender.value = '男';
+                    gender.selectedIndex = 1;
+                    gender.dispatchEvent(new Event('change', {bubbles: true}));
+                    gender.selectedIndex = 0;
+                    gender.dispatchEvent(new Event('change', {bubbles: true}));
+                    return _fieldsUntouched(['year', 'month', 'day',
+                        'hour', 'minute', 'calendar_type', 'gender']);
+                }""")
+                # 旧档案回填“男”后，用户真实 change 回首项“女”。提交必须
+                # 保存“女”，不能被 selectedIndex<=0 的首项近似吞掉。
+                page.evaluate("""() => {
+                    localStorage.setItem('me', JSON.stringify({
+                        y: 1990, m: 5, d: 15, h: null, g: '男', lunar: null
+                    }));
+                    ['year', 'month', 'day', 'hour', 'gender'].forEach(id => {
+                        delete document.getElementById(id).dataset.touched;
+                    });
+                    _meFillAll();
+                    const gender = document.getElementById('gender');
+                    gender.selectedIndex = 0;
+                    gender.dispatchEvent(new Event('change', {bubbles: true}));
+                    document.getElementById('question').value = '性别回填边界';
+                }""")
+                page.click('#submit')
+                page.wait_for_function(
+                    """() => {
+                        const raw = localStorage.getItem('me');
+                        if (!raw) return false;
+                        try { return JSON.parse(raw).g === '女'; }
+                        catch (_) { return false; }
+                    }""", timeout=20000)
+                _first_select_pre = page.evaluate("""() => {
+                    const gender = document.getElementById('gender');
+                    const year = document.getElementById('year');
+                    return {g: gender.value, gi: gender.selectedIndex,
+                            gt: gender.dataset.touched || '',
+                            y: year.value, yt: year.dataset.touched || ''};
+                }""")
+                _first_select_me = page.evaluate("localStorage.getItem('me')")
+                page.evaluate("localStorage.removeItem('me')")
+                page.evaluate("""() => {
+                    ['year', 'month', 'day', 'hour', 'gender'].forEach(id => {
+                        const node = document.getElementById(id);
+                        node.value = node.defaultValue;
+                        node.selectedIndex = 0;
+                        delete node.dataset.touched;
+                        delete node.dataset.me;
+                    });
+                }""")
+                page.evaluate("""() => {
+                    const year = document.getElementById('year');
+                    year.value = '1991';
+                    year.dispatchEvent(new Event('input', {bubbles: true}));
+                    const gender = document.getElementById('gender');
+                    gender.selectedIndex = 1;
+                    gender.dispatchEvent(new Event('change', {bubbles: true}));
+                }""")
+                page.wait_for_timeout(1600)
+                page.click('#submit')
+                page.wait_for_function(
+                    """() => {
+                        const raw = localStorage.getItem('me');
+                        if (!raw) return false;
+                        try {
+                            const me = JSON.parse(raw);
+                            return me.y === 1991 && me.g === '男';
+                        } catch (_) { return false; }
+                    }""", timeout=20000)
+                _custom_me = page.evaluate("localStorage.getItem('me')")
+                _first_g = (json.loads(_first_select_me).get('g')
+                            if _first_select_me else None)
+                _custom = json.loads(_custom_me) if _custom_me else None
+                results.append({
+                    "name": "ui:profile.bazi_save_boundary",
+                    "ok": (_default_status == 200 and _default_me is None
+                           and _refill_respected.get('y') == '1990'
+                           and _refill_respected.get('g') == '女'
+                           and _refill_respected.get('yt') == '1'
+                           and _refill_respected.get('gt') == '1'
+                           and _invite_default is False
+                           and _select_to_first is False and _first_g == '女'
+                           and _custom is not None
+                           and _custom.get('y') == 1991
+                           and _custom.get('g') == '男'),
+                    "detail": (f"默认盘 HTTP={_default_status} me={_default_me!r}；"
+                               f"回填尊重touched={_refill_respected!r}；邀请标记判改="
+                               f"{not _invite_default}；select改回首项判改="
+                               f"{not _select_to_first}；回填后改回首项 pre={_first_select_pre} "
+                               f"g={_first_g!r}；改年份/性别后 me={_custom_me!r}")})
+            except Exception as exc:
+                results.append({
+                    "name": "ui:profile.bazi_save_boundary",
+                    "ok": False,
+                    "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("localStorage.removeItem('me')")
+                    page.evaluate("localStorage.setItem('voiceMode', 'warm')")
+                    page.evaluate("""() => {
+                        ['year', 'month', 'day', 'hour', 'gender'].forEach(id => {
+                            const node = document.getElementById(id);
+                            if (!node) return;
+                            node.value = node.defaultValue;
+                            node.selectedIndex = 0;
+                            delete node.dataset.touched;
+                            delete node.dataset.me;
+                            delete node.dataset.invite;
+                        });
+                        showView('home');
+                    }""")
+                    page.wait_for_timeout(200)
+                except Exception:
+                    pass
+
+            # R2501：邀请预填即使当前值等于首项，也属于用户待提交的受邀身份；
+            # 走真实提交，确认 me/me:partner 分别落到受邀者与发起人。
+            try:
+                errors.clear()
+                page.evaluate("""() => {
+                    localStorage.removeItem('me');
+                    localStorage.removeItem('me:partner');
+                    ['year', 'month', 'day', 'gender',
+                     'hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_gender',
+                     'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_gender']
+                        .forEach(id => {
+                            const node = document.getElementById(id);
+                            if (node) {
+                                node.value = node.defaultValue;
+                                node.selectedIndex = 0;
+                                delete node.dataset.me;
+                                delete node.dataset.touched;
+                                delete node.dataset.invite;
+                            }
+                        });
+                    window.__hhInviteMode = false;
+                    showView('hehun');
+                }""")
+                page.wait_for_selector('#view-hehun.active', timeout=5000)
+                page.evaluate("""() => {
+                    const set = (id, value) => {
+                        const node = document.getElementById(id);
+                        node.value = value;
+                        node.dataset.invite = '1';
+                    };
+                    set('hh_a_year', '1990');
+                    set('hh_a_month', '5');
+                    set('hh_a_day', '15');
+                    set('hh_a_gender', '女');
+                    window.__hhInviteMode = true;
+                    set('hh_b_year', '1991');
+                    set('hh_b_month', '6');
+                    set('hh_b_day', '16');
+                    set('hh_b_gender', '男');
+                }""")
+                page.click('#hhSubmit')
+                page.wait_for_function(
+                    """() => {
+                        const me = JSON.parse(localStorage.getItem('me') || 'null');
+                        const partner = JSON.parse(localStorage.getItem('me:partner') || 'null');
+                        return me && partner && me.y === 1991
+                            && partner.y === 1990;
+                    }""", timeout=20000)
+                _invite_me = page.evaluate("localStorage.getItem('me')")
+                _invite_partner = page.evaluate("localStorage.getItem('me:partner')")
+                _invite_saved = (json.loads(_invite_me or '{}').get('y') == 1991
+                                and json.loads(_invite_partner or '{}').get('y') == 1990)
+                results.append({
+                    "name": "ui:profile.hehun_invite_save",
+                    "ok": (_invite_saved and not errors),
+                    "detail": (f"me={_invite_me!r}；partner={_invite_partner!r}；"
+                               f"errors={errors[:2]}")})
+            except Exception as exc:
+                results.append({
+                    "name": "ui:profile.hehun_invite_save",
+                    "ok": False,
+                    "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("""() => {
+                        localStorage.removeItem('me');
+                        localStorage.removeItem('me:partner');
+                        window.__hhInviteMode = false;
+                        ['hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_gender',
+                         'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_gender']
+                            .forEach(id => {
+                                const node = document.getElementById(id);
+                                if (node) {
+                                    node.value = node.defaultValue;
+                                    node.selectedIndex = 0;
+                                    delete node.dataset.me;
+                                    delete node.dataset.touched;
+                                    delete node.dataset.invite;
+                                }
+                            });
+                        showView('home');
+                    }""")
+                    page.wait_for_timeout(200)
+                except Exception:
+                    pass
+
             # 打卡真点击：.checkin-opt → localStorage 落键 + picked 态
             # （daily-cover 会 inert 卡内元素——先点封面拆掉）
             try:

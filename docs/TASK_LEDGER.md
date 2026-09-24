@@ -12764,3 +12764,14 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   1364/1390）pill 下移加高各让一档；星座宫名繁简混排加「照原典
   写法」脚注；toast 窄屏下移 64px 避首卡；.view 底垫 70→96px
   FAB 不再压页脚角。ink-hero 桌面偏空=本轮 R142 已修（0 22%）。
+
+- **R2501（本人档案保存边界收尾）**：真实浏览器钉住出厂默认盘不污染
+  `localStorage.me`；邀请预填、用户显式改回首项/改回默认值仍必须落档。
+  `_fieldsUntouched` 不再单看 value/defaultValue，另以 `data-touched`
+  记录本标签页实际交互；档案回填与 wipe 同步尊重/清理该标记，跨标签
+  页更新不能覆盖用户亲手确认过的值。新增 `ui:profile.bazi_save_boundary`
+  与真实合婚邀请提交回归，红灯分别复现“显式改回首项漏存”“回填覆盖
+  touched”，转绿后 R2501-only 隔离候选 `probe_ui_smoke 79/79`、
+  混合整树 `82/82`、`web self-test 310`、`probe_contract 595`、静态检查
+  全绿；R2501-only SW `books-shell-98a9b3c04a90`，混合整树 SW
+  `books-shell-e3d43672b91a`。
