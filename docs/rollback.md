@@ -26,9 +26,10 @@
 4. 重建虚拟环境（备份不含 .venv，用它跑起来需要一次重建）：
    `cd C:\Users\Lenovo\Desktop\projects\books`
    `python -m venv .venv`（或把现 books_ink_v2\.venv 整个复制回来，二进制兼容最省事）
-   `.venv\Scripts\pip install -r requirements-ci.txt`（钉扎版，与 CI 同源；torch 另装：
-   `.venv\Scripts\pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu`，
-   浏览器闸门需要 `playwright==1.63.0` + `python -m playwright install chromium`）
+   `.venv\Scripts\pip install -r requirements-ci.txt playwright==1.63.0`；
+   PyTorch CPU wheel 从阿里云 flat wheel 镜像解析：
+   `.venv\Scripts\pip install "torch==2.14.0+cpu" --find-links https://mirrors.aliyun.com/pytorch-wheels/cpu/`；
+   浏览器闸门再执行 `.venv\Scripts\python -m playwright install chromium`。
 5. 双击桌面「八字命理检索」验证恢复。
 
 > 简化路径：如果不想动 .venv，可只回滚被改的目录——把备份里的

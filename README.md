@@ -15,11 +15,9 @@ app_port: 7860
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install fastapi 'uvicorn[standard]' httpx pydantic numpy feedparser   # feedparser：/api/external/* 资讯源（R229x 补声明）
-.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
-.venv/bin/pip install sentence-transformers          # bge 语义检索（命理书证据）
-.venv/bin/pip install playwright                     # 仅浏览器探针需要
-.venv/bin/pip install mcp                            # 可选：Claude Desktop 集成（python -m guji.mcp_server）
+.venv/bin/pip install -r requirements-runtime.txt
+.venv/bin/pip install "torch==2.14.0+cpu" --find-links https://mirrors.aliyun.com/pytorch-wheels/cpu/
+.venv/bin/pip install -r requirements-ci.txt playwright==1.63.0
 .venv/bin/python -m playwright install chromium
 
 # 语料索引（data/index/corpus.db，gitignored，实测重建 ~10 秒，约 55MB）

@@ -15,6 +15,9 @@
 # （注意：Docker 不允许指令行尾挂 # 注释——行内注释只认行首）
 FROM python:3.10-slim
 WORKDIR /app
+ENV PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
+    PIP_EXTRA_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple https://mirrors.aliyun.com/pypi/simple https://mirrors.bfsu.edu.cn/pypi/web/simple" \
+    PIP_FIND_LINKS=https://mirrors.aliyun.com/pytorch-wheels/cpu/
 COPY requirements-runtime.txt .
 RUN pip install --no-cache-dir -r requirements-runtime.txt
 COPY . .
