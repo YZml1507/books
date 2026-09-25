@@ -1225,7 +1225,7 @@ function pollAiPolish(containerId, taskId) {
       if (st && st.status === 'done' && st.text) {
         if (insertAiPolish(containerId, st.text)) {
           var entry = LAST_RESPONSE[containerId];   // 让口吻切换重画也带上 AI 块
-          if (entry && entry.json) entry.json.ai_polish = st.text;
+          if (entry) entry.aiOverlay = st.text;
         }
         _done();
         return;                                      // 终态：停止轮询
@@ -3342,10 +3342,14 @@ function rerenderVoice() {
   Object.keys(LAST_RESPONSE).forEach(function (containerId) {
     var entry = LAST_RESPONSE[containerId];
     if (entry && typeof entry.render === 'function') {
-      paint(containerId, entry.render(entry.json));
+      var renderJson = entry.json;
+      if (entry.aiOverlay) {
+        renderJson = Object.assign({}, entry.json, {ai_polish: entry.aiOverlay});
+      }
+      paint(containerId, entry.render(renderJson));
       /* R195b（用户报告 bug）：重画会重建 DOM，.flipped 全部丢失——
        * 塔罗牌面退回背面「知」且不再恢复。重画发生在用户**已经看过**
-       * 牌面之后（切换口吻），所以恢复语义是"全部翻开"，不重播动画。
+       * 牌面之后（切换口吻），所以恢复语义="全部翻开"，不重播动画。
        * （变量名避开函数名——probe_dollar 静态闸门禁「函数名.属性」。） */
       var host = document.getElementById(containerId);
       if (host) host.querySelectorAll('.tarot-card-inner').forEach(function (c) {
