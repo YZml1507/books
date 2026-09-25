@@ -3845,6 +3845,7 @@ async function loadDaily() {
        * save_async，日卡自动抽会把排盘历史灌满日更牌。 */
       postJSON('/api/tarot/draw', { seed: _seed, n: 1 })
         .then(function (tj) {
+          if (_gen !== DAILY_GEN) return;   /* 旧 daily 不得覆盖新牌面 */
           var d = (tj && tj.card) || null;
           if (!d || !d.name) return;
           _dailyMetaItem('dailyTarot',
@@ -3881,7 +3882,9 @@ async function loadDaily() {
             });
           }
         })
-        .catch(function () { _dailyMetaItem('dailyTarot', ''); });
+        .catch(function () {
+          if (_gen === DAILY_GEN) _dailyMetaItem('dailyTarot', '');
+        });
     })();
     /* R2349l（R73-P1-8）：新月许愿/满月复盘——农历初一十五窗口的
      * 仪式行（后端 daily 的 moon 派生键）。 */
