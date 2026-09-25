@@ -3543,7 +3543,10 @@ function _basisCn(b) {
 
 /* ── 每日运势 ──────────────────────────────────────────────── */
 
+var DAILY_GEN = 0;
+
 async function loadDaily() {
+  const _gen = ++DAILY_GEN;
   try {
     /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
      * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
@@ -3578,6 +3581,7 @@ async function loadDaily() {
       api('/api/daily?date=' + _isoShift(_today, 1), { silent: true })
         .catch(function () { return null; })
     ]);
+    if (_gen !== DAILY_GEN) return;   /* 旧请求不得覆盖新结果 */
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
     /* R2400（R117-P2 时段问候）：顶行标签随时刻换——早/午/晚/夜安，
      * 每天四次见面都说不一样的招呼。 */
@@ -4065,6 +4069,7 @@ async function loadDaily() {
       }
     } catch (e2) { /* 十二宫不可用不阻塞今日运势 */ }
   } catch (e) {
+    if (_gen !== DAILY_GEN) return;   /* 旧请求失败也不得污染新结果 */
     /* R228c：失败态补全——dailyDate 别停在「加载中…」，分享钮也给提示
      * 而不是静默无操作。 */
     setText('dailyDate', '今天');
