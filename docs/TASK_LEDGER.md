@@ -14088,3 +14088,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - SHELL 31 项全 200（含 manifest/图标/字体声明/卡图）；CACHE 名派生
   app.js 哈希（bump_sw 漏跑会被 sw.shell_hash 闸拦）；/api/* 永不
   缓存、RT 桶 60 条帽。
+
+## R2625 巡检#42——export_json 字段面干净
+- 封套 {version,exported_at,records}；每条仅 {ts,name,question,type,
+  req,result}——无内部键/session_id/DB 细节；CSV 侧 export_rows 走
+  _csv_safe 逐字段脱活。
