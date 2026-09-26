@@ -14132,3 +14132,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 13 张功能卡全解析：11 个真视图一一对应（tarot/bazi/taohua/hehun/
   huangli/xingzuo/history/liuyao/qiming + 重复快捷卡）；data-view=
   "chat" 伪视图改走 chatOpen() 实测侧栏开——设计在案非死链。
+
+## R2634 巡检#51——bazi ai_polish 异步链实测
+- 即时响应 ai_polish:null + ai_task_id；轮询 /api/ai/{tid}→done 携
+  文案；additive 语义（LLM 不是承重墙）与 renderRichText 孤儿 **
+  剥离纪律闭环。
