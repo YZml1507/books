@@ -603,7 +603,10 @@ function buildHehunResult(j) {
       var _ra = function (v) { return v != null ? Math.round(parseFloat(v)) : '—'; };
       var _ages = (d.start_age_a != null || d.start_age_b != null)
         ? _ra(d.start_age_a) + '/' + _ra(d.start_age_b) : '';
-      _table += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar_a) +
+      /* R2530：标当前步——与解读「←眼下」同口径（year_start 起 10 年）。 */
+      var _now = (d.year_start != null && new Date().getFullYear() >= d.year_start &&
+        new Date().getFullYear() < d.year_start + 10) ? ' ←眼下' : '';
+      _table += '<tr><td>第 ' + esc(d.index) + ' 运' + _now + '</td><td>' + esc(d.pillar_a) +
         '</td><td>' + esc(d.pillar_b) + '</td><td>' + esc(d.relation) +
         '</td><td class="num">' + esc(d.year_start) + '</td>' +
         '<td class="num">' + esc(_ages) + '</td></tr>';
@@ -722,7 +725,10 @@ function buildTaohuaResult(j) {
     var _thTbl = '<div class="table-scroll"><table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
       '<th>约几岁</th></tr></thead><tbody>';
     j.dayun_hits.forEach(function (d) {
-      _thTbl += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
+      /* R2530：标当前步——与解读「←眼下」同口径。 */
+      var _thNow = (d.year_start != null && new Date().getFullYear() >= d.year_start &&
+        new Date().getFullYear() < d.year_start + 10) ? ' ←眼下' : '';
+      _thTbl += '<tr><td>第 ' + esc(d.index) + ' 运' + _thNow + '</td><td>' + esc(d.pillar) +
         '</td><td class="num">' + esc(d.year_start) + '</td>' +
         /* R2349s（R84-P2-18）：start_age 是 float（34.3）——「约几岁」
          * 列原样塞小数，取整显示。 */

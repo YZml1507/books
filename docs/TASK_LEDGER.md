@@ -13519,3 +13519,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **interpreter.py**：`_POS_DOMAIN` 柱位人生域白话（年=早年/月=父母·青年/日=自己·婚姻/时=子女·将来）——地支关系行补「牵动X与Y」、流日行补「今天碰到的这一宫管X」——触发点从干支落到生活面。
 - **app.js timer/async 面抽审**：干净——轮询已被 R230q/v 加固（gen 校验/deadline/指数退避/可见性闸/404 分流），无新伤。
 - probe_r2529 更新钉扎（现于/未现两形态）9/9；selftest 310 + contract 639 + r2524/25 全绿。
+
+## R2530 补（当轮续）
+- **range scope 逐日行**：冲合标记升级 `六冲` → `六冲·年支巳(早年)`——被碰的柱位+该宫域白话与 day scope 同口径（`_POS_DOMAIN` 复用）。
+- **hehun/taohua 大运表 `←眼下`**：前端按 `year_start ≤ 今年 < +10` 给当前运行加标——「十年一轮的合拍表」用户一眼定位眼下步。
+- SW hash 重发（app.js 改动）；selftest 310 + r2529 9/9 + contract 639 全绿。

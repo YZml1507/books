@@ -240,7 +240,15 @@ def interpret_bazi(paipan: dict, calc: dict,
         days = calc.get("days") or []
         lines = [f"范围 {calc.get('start', '')} ~ {calc.get('end', '')}，共 {len(days)} 天"]
         for d in days:
-            marks = [f"{r.get('type', '')}" for r in (d.get("day_branch_rels") or [])]
+            # R2530（调研-因果层）：只报「六冲」不知道冲了谁——带上被碰
+            # 的柱位与该宫管什么（与流日段的 _POS_DOMAIN 同口径）。
+            marks = []
+            for r in (d.get("day_branch_rels") or []):
+                seg = f"{r.get('type', '')}·{r.get('pos', '')}"
+                dom = _POS_DOMAIN.get((r.get("pos") or "")[:1], "")
+                if dom:
+                    seg += f"({dom})"
+                marks.append(seg)
             tag = "、".join(marks) if marks else "无冲合"
             lines.append(f"{d.get('date', '')} {d.get('day_ganzhi', '')}："
                          f"{d.get('day_master_rel', '')}；{tag}")
