@@ -24,7 +24,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 
 # R233g（R44-P0-1）：生死/重病类敏感问法——不能走话题兜底（会被当
@@ -262,7 +262,9 @@ def interpret_bazi(paipan: dict, calc: dict,
         # R2529（调研-因果层）：大运=十年气候、流年是逐年天气——先给
         # 框架再给表，并标出「眼下」那一步（用户最常问的就是不知道
         # 自己在哪一步）。眼下步按当前公历年落在哪段判定，确定性。
-        _now_y = datetime.now().year
+        # R2536：与 _today_cn / day_luck 同口径 UTC+8——UTC 部署下
+        # 北京时间元旦 0–8 点本地年差一年，眼下步会标错一运。
+        _now_y = datetime.now(timezone(timedelta(hours=8))).year
         _cur_idx = next(
             (d.get("index") for d in dayun
              if isinstance(d.get("year_start"), int)

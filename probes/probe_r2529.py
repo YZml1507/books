@@ -26,7 +26,7 @@ ck("it.targets_in_parens",
 ck("it.climate_frame",
    "大运是十年的气候" in _it and "←眼下" in _it)
 ck("it.cur_idx_year",
-   "_now_y = datetime.now().year" in _it and
+   "datetime.now(timezone(timedelta(hours=8))).year" in _it and
    'd["year_start"] <= _now_y < d["year_start"] + 10' in _it)
 
 # 行为级：life scope 全链
