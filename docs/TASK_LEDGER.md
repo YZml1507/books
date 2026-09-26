@@ -14030,3 +14030,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   offset 正确移位（5363→5362）。
 - 实现层复确认：json_valid 守卫坏行、LIMIT/OFFSET 参数化、摘要走
   json_extract 不搬整行（R229z续10）。
+
+## R2614 巡检#31——CSV 导出全绿
+- 实导出：UTF-8 BOM ✓、attachment 文件名带日期、列头 6 列、8 行
+  台账全量。
+- 公式注入脱活在案（R2517：=+ −@ 前缀加 ' 脱活）；csv.writer 引号
+  转义标准、nosniff 头齐。
