@@ -13716,3 +13716,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - mock_llm(8901)+uvicorn(8123 无 DISABLE)：POST /api/chat→chat_task_id→/api/ai/{tid}→done 全链通；浏览器气泡渲染零 `*` 残留。
 - mock 日志实证 facts 注入：人设 system prompt + 「排盘坐标事实（只作话题参考）」+ 用户消息三层结构正确。
 - strongs=0 非缺陷——双层设计：闲聊人设 prompt 明令纯文本（不用 markdown）+ 后端 sanitize 剥配对 `**` + 前端白名单兜底吃孤儿 `**`。
+
+## R2570 probe_chat_e2e 收编——chat ENABLED 链 CI 零覆盖缺口闭环
+- 新增 `probes/probe_chat_e2e.py`（进程内 HTTPServer mock + TestClient，离线可跑）：
+  task→poll→done、三层注入（人设/黄历判定/用户消息）、facts 透传、危机罐头零 LLM——4/4 PASS。
+- 此前该链只有 R2569 手工验证；check_async_ai 只管 DISABLE 降级面。README 闸表已登记（注：此探针勿加 BOOKS_LLM_DISABLE）。
+- 残余核验：sw.js shell-hash 同步（selftest 有闸强制）、依赖全为最新。
