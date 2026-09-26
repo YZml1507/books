@@ -376,7 +376,8 @@ def one_liner(day_master: str, calc: dict, question: str | None,
         gods, label = _topic_gender(topic, gender)
         hit = [t for t in (calc.get("ten_gods") or []) if t.get("god") in gods]
         if gods and hit:
-            s = f"{label}这块，盘里有着落点"
+            # R2545（spec/008 P1）：「有着落点」spec 列为生硬残留反例。
+            s = f"{label}这块，盘里有实实在在的对应"
         elif gods:
             s = f"{label}这块，盘里信息偏少"
         else:

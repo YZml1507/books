@@ -439,8 +439,10 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                 dom = _POS_DOMAIN.get((t.get("pos") or "")[:1], "")
                 g = f"{t.get('pos', '')}{t.get('gan', '')}({t.get('god', '')}"
                 return g + (f"，这宫管{dom}" if dom else "") + ")"
+            # R2545（spec/008 P1）：「盘里有着落点」被 spec 列为生硬
+            # 残留反例——换更日常的转述，事实（现于盘中）不丢。
             return [f"{label}出现在：" + "、".join(_hit_seg(t) for t in hit)
-                    + f"——{label}现于盘中，相关事项在四柱里有着落点"]
+                    + f"——{label}现于你盘中，这件事在盘上有实实在在的呼应"]
         # R2529：括号列的是「想看谁」targets 不是「盘里有谁」gods——
         # life scope 无 ten_gods 时 gods 全空渲染成裸「（）」。
         _tg = "、".join(str(g) for g in targets if g)
