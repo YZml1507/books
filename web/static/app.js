@@ -9877,6 +9877,21 @@ function init() {
             } else if (_vpRaw === 'birth') {
               var _bd = document.getElementById('birthDrawer');
               if (_bd) _bd.open = true;
+            } else if (_vpRaw === 'xzm') {
+              /* R2505：速配分享链落星座页后速配抽屉仍合着——收链的人
+               * 看不见速配卡，分享闭环断在最后一米。与 birth 同款
+               * 自动展开+滚到位；日运数据晚到会重排页面，1.1s 后再
+               * 校一次滚动。 */
+              var _xd = document.getElementById('xzMatchDrawer');
+              if (_xd) {
+                _xd.open = true;
+                var _xscroll = function () {
+                  _xd.scrollIntoView({ behavior: _rmBehavior(),
+                                       block: 'start' });
+                };
+                _xscroll();
+                setTimeout(_xscroll, 1100);
+              }
             } else if (_vpRaw === 'chat') {
               /* R2502：伪视图深链承接——落到首页后把聊天侧栏打开，
                * 与点「和小满聊聊」卡同行为。 */

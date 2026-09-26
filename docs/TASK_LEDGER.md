@@ -12876,3 +12876,23 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   async_ai、llm_polish、date_parity、first_screen、plain_first、
   check_poster 全过；knowledge.db probe 残留 231 行清零（FTS
   delete-all 重建后写删往返正常）。SW 重发 books-shell-ce853745dc75。
+- **R2505（边界/异常面双 agent 深审 + 二级流程实测批）**：
+  审查面=services 编排异常路径+计算核心数值（A/B agent），我同步
+  二级流程实测（failWithRetry 全链路/自抽牌阵/合婚邀请链/历史页/
+  聊天 fallback/9 类海报）。①审-P0 resolve_huangli_date 农历闰月词
+  与「X月底」两路 lys range 随用户可控 base= 冲出 LUNAR_INFO 表界
+  [1900,2100]——leap_month/month_days 对表外年抛 IndexError 而
+  except 只接 ValueError，实测 base=2099+闰六月词 / base=2100+
+  腊月底 / /api/chat client_date=2099 全 500 → 两路 range 一律钳
+  表界（表外年本来产不出候选），复测三路全 200、正常年解算不变
+  （2025 闰六月→08-08、正月初一→2026-02-17）。②深链补全：
+  ?view=xzm 落地星座页速配抽屉仍合着，收链人看不见速配卡 → 与
+  birth 同款自动展开+滚到位（日运晚到重排后 1.1s 再校一次），
+  真机实测落地即见速配表单。③selftest 去残留依赖：threads.detail
+  与 threads.post+readback 此前赌库里有 id=1 残留线程（清库后裸
+  404 假红）→ 两段全改自建线程取真 id、断言面不变、derived+FTS
+  delete 标记+线程全清场。验证：probe_r2505.py 新增 7 断言全绿
+  （表外 base=3000/1900 边界+正常年不回归+xzm 别名展开钉扎）；
+  selftest 310、contract 636、ui_smoke、selftest_regress、
+  ruff E9F 全过；knowledge.db 无新增残留（thread/turn/evidence
+  归零，derived 58 行为既有探针基线）。SW 重发 books-shell-5db95299d746。

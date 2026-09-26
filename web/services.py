@@ -2228,11 +2228,16 @@ def _abs_or_holiday(msg: str, now: datetime,
                                                now.day)["year"]
             except ValueError:
                 ly0 = now.year
-            lys = range(ly0 - 3, ly0 + 4)
+            lys = range(max(1900, ly0 - 3), min(2101, ly0 + 4))
             # 闰月稀疏（1900-2100 间十多年才一闰）——放宽到 ±12 个农历年
             # 并让 leap_month 把守，找真正带这个闰月的年份。
+            # R2505（C-1）：leap_month/month_days 对表外年份抛 IndexError
+            # （lunar_to_solar 才是 ValueError——except ValueError 接不住），
+            # ly0 贴近 2100 的 base= 用户链直接 500。两路 range 一律钳到
+            # LUNAR_INFO 表界 [1900, 2101)——表外年本来也产不出候选。
             if is_leap:
-                lys = [ly for ly in range(ly0 - 12, ly0 + 13)
+                lys = [ly for ly in range(max(1900, ly0 - 12),
+                                          min(2101, ly0 + 13))
                        if lunar_mod.leap_month(ly) == md[0]]
             cands = []
             for ly in lys:
@@ -2275,7 +2280,8 @@ def _abs_or_holiday(msg: str, now: datetime,
                                                now.day)["year"]
             except ValueError:
                 ly0 = now.year
-            lys = range(ly0 - 3, ly0 + 4)
+            # R2505（C-1）：month_days 同 IndexError——钳 LUNAR_INFO 表界。
+            lys = range(max(1900, ly0 - 3), min(2101, ly0 + 4))
             cands = []
             for ly in lys:
                 try:

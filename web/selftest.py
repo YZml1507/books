@@ -1832,8 +1832,40 @@ def _run_inner() -> list[str]:
     assert client.delete("/some/random/path").status_code == 404, \
         "spa.fallback.delete_404"
     ok.append("spa.fallback")
-    check("threads.detail", client.get("/api/threads/1"),
+    # R2505：threads.detail 此前隐式依赖「库里恰好有 id=1 线程」（靠
+    # 历次跑批残留喂饱——残留清零后裸 404）。自建线程取真 id 读详情，
+    # 断言面不变，顺带清场不污染环境。
+    _tdd = client.post("/api/threads", json={
+        "kind": "refusal", "claim": "selftest detail 线程",
+        "method": "selftest", "topic": "selftest-detail"})
+    _tdd_j = _tdd.json() if _tdd.status_code == 200 else {}
+    _tdd_id = _tdd_j.get("thread_id") or 0
+    check("threads.detail", client.get(f"/api/threads/{_tdd_id}"),
           lambda j: "claims" in j and "turns" in j)
+    if _tdd_id:
+        client.delete(f"/api/threads/{_tdd_id}")
+        _tdd_did = _tdd_j.get("derived_id")
+        if _tdd_did:
+            from guji.knowledge import KnowledgeBase as _KB0
+            from guji.variants import fold as _f0, segment_cjk as _s0f
+            _kb0 = _KB0(KNOWLEDGE_DB)
+            try:
+                _r0 = _kb0.db.execute(
+                    "SELECT claim FROM derived WHERE id=?",
+                    (_tdd_did,)).fetchone()
+                if _r0 is not None:
+                    _s0 = _s0f(_f0(_r0["claim"]))
+                    _kb0.db.execute(
+                        "INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                        "VALUES('delete',?,?)", (_tdd_did, _s0))
+                    _kb0.db.execute(
+                        "DELETE FROM evidence WHERE derived_id=?",
+                        (_tdd_did,))
+                    _kb0.db.execute("DELETE FROM derived WHERE id=?",
+                                    (_tdd_did,))
+                    _kb0.db.commit()
+            finally:
+                _kb0.close()
     # R169b（D-215b）：threads.detail 404 拒绝路径 standing 覆盖。
     # 实测 tid=99999 → 404 + detail "线程 99999 不存在或暂无记录"。
     _td_miss = client.get("/api/threads/99999")
@@ -1909,33 +1941,48 @@ def _run_inner() -> list[str]:
     from guji.knowledge import KnowledgeBase
     from guji.variants import fold, segment_cjk
 
+    # R2505：与 threads.detail 同源——先自建线程拿真 id，不再赌
+    # id=1 残留。
+    _tp0 = client.post("/api/threads", json={
+        "kind": "refusal", "claim": "selftest readback 线程",
+        "method": "selftest", "topic": "selftest-readback"})
+    assert _tp0.status_code == 200, _tp0.text
+    _tid0 = _tp0.json()["thread_id"]
+    _tp0_did = _tp0.json().get("derived_id")
+
     post = client.post("/api/threads", json={
         "kind": "summary",
         "claim": "web selftest: 無爲在老子中的可核验引文",
-        "method": "app-selftest", "thread_id": 1,
+        "method": "app-selftest", "thread_id": _tid0,
         "evidence": [{"work_id": "KR5c0057", "file": "KR5c0057_043.txt",
                       "quote": "第四十三章 天下之至柔",
                       "page_anchor": "KR5c0057_tls_043-1a"}]})
     assert post.status_code == 200, post.text
     did = post.json()["derived_id"]
-    assert post.json()["thread_id"] == 1
-    detail = client.get("/api/threads/1").json()
+    assert post.json()["thread_id"] == _tid0
+    detail = client.get(f"/api/threads/{_tid0}").json()
     assert any(c["id"] == did and "無爲在老子中的可核验引文" in c["claim"]
                for c in detail["claims"]), \
         "thread readback must contain the bound claim"
     kb = KnowledgeBase(KNOWLEDGE_DB)
     try:
-        row = kb.db.execute("SELECT claim FROM derived WHERE id=?",
-                            (did,)).fetchone()
-        if row is not None:
-            seg = segment_cjk(fold(row["claim"]))
-            kb.db.execute("INSERT INTO derived_fts(derived_fts,rowid,seg) "
-                          "VALUES('delete',?,?)", (did, seg))
-            kb.db.execute("DELETE FROM evidence WHERE derived_id=?", (did,))
-            kb.db.execute("DELETE FROM derived WHERE id=?", (did,))
-            kb.db.commit()
+        for _did2 in (did, _tp0_did):
+            if _did2 is None:
+                continue
+            row = kb.db.execute("SELECT claim FROM derived WHERE id=?",
+                                (_did2,)).fetchone()
+            if row is not None:
+                seg = segment_cjk(fold(row["claim"]))
+                kb.db.execute(
+                    "INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                    "VALUES('delete',?,?)", (_did2, seg))
+                kb.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                              (_did2,))
+                kb.db.execute("DELETE FROM derived WHERE id=?", (_did2,))
+        kb.db.commit()
     finally:
         kb.close()
+    client.delete(f"/api/threads/{_tid0}")
     ok.append("threads.post+readback+cleanup")
 
     # R230q（R28-P1-1b）：DELETE /api/threads/{tid}——turns 随删、claims
