@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import time
@@ -119,7 +120,11 @@ def port_ready(timeout: int = 30) -> bool:
                 head = s.recv(65536)
                 # 本应用首页/健康端点特征：HTML 里带 小满/古籍 标记或
                 # manifest 链——拿不到就继续等（服务可能还在起）。
-                if (b"\xe5\xb0\x8f\xe6\bb\xa1" in head   # 小满
+                # R2522（审-P2）：原写 \xe6\bb\xa1——\bb 解析成 \x08+'b'，
+                # 是永不匹配 UTF-8 的死标记；闸页（gate）下首页既无
+                # manifest 也无 books → 探测健康服务恒超时被误杀。
+                if (b"\xe5\xb0\x8f\xe6\xbb\xa1" in head   # 小满
+                        or b"/_gate" in head
                         or b"manifest.json" in head
                         or b"books" in head.lower()):
                     return True
@@ -145,7 +150,10 @@ def active_conns() -> set[str]:
 
 def pid_alive(pid: str) -> bool:
     out = _run(["tasklist", "/FI", f"PID eq {pid}"])
-    return pid in out
+    # R2522（审-P3-6）：裸子串匹配会把 PID "123" 错配成 "51230" 等
+    # （tasklist 输出其他列/映像名里的数字子串）→ 误判浏览器活着，
+    # 服务跟着活到重启。按词边界匹配。
+    return re.search(r"\b" + re.escape(str(pid)) + r"\b", out) is not None
 
 
 # 常见浏览器进程名（用于识别"浏览器还开着"→ 不关服务）

@@ -13341,3 +13341,26 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   无旧壳风险（agent 交办点之一，先自查）。
 - [x] `probe_r2518.py` 扩 16/16（hotline.all_three）。
 - 在途：deps/app 中间件深审 agent af7d1231（交付后归入下轮）。
+
+## R2522 — 中间件/启动面 + app.js 渲染面双审（agent 双交付）
+
+- [x] **af7d1231 迟交（~40min）**：deps/app.py/中间件面深审，P1×1+P2×1+P3×15，全亲验。
+- [x] **审-P1**：`_access_gate` 三处 `compare_digest(str)` 非 ASCII 抛
+  TypeError（ExceptionMiddleware 外侧→裸 500；非 ASCII 口令全站 500）。
+  `_eq()` 统一 bytes 比对。活端点实证：非 ASCII 口令下 4 攻击向量
+  403（原 500）、正确口令 POST/?key= 双径 302；ASCII 回归不破。
+- [x] **审-P2**：`web_launcher.py` `b"\xe6\bb\xa1"`（\bb=\x08+'b' 死标记）
+  → `\xbb`，补 `/_gate` 匹配——闸页无 manifest/books 时探测健康服务
+  恒超时误杀。
+- [x] **审-P3**：`_INDEX_CACHE` 键 (mtime_ns,size)；CORS
+  `allow_credentials=True`（分体部署+口令原结构性不通）；
+  `pid_alive` 词边界匹配（PID 123↛51230）；XFF 注释纠偏（Dockerfile
+  不设 BOOKS_TRUST_XFF）；services.py 重复 import time。
+- [x] **17186a1d**：app.js 全 sink 审（79×innerHTML+3×insertAdjacentHTML）
+  → **零可利用 XSS**（esc/renderRichText/textContent 纪律全点位一致）。
+  唯一 P2-1：`_chatTsRestore` 循环内 scrollTop=scrollHeight 每条强排
+  → `noscroll` 批量选项+收尾单滚；顺手 `esc(tarot img)`。
+- [x] `probe_ui_smoke` history.replay/delete 抖动修复：等 DOM 前先轮询
+  服务端台账有行（save_async best-effort 线程在重负载下晚落地——
+  实测一轮全灭、一轮 80/80）。本质是把等待锚在数据落地而非墙钟。
+- [x] `probe_r2522.py` 21/21；selftest 310；contract 639；ui_smoke 80/80。

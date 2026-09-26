@@ -63,16 +63,19 @@ VERSION = "0.6.0"
 # R2509（审-P2-7）：_index_response 原每请求同步 open() 50KB——
 # async _spa_fallback 里它直接跑在事件循环上。按 mtime 缓存原文，
 # 改文件自动失效（dev 友好），og/base 注入仍是每请求的事。
-_INDEX_CACHE: dict[str, tuple[float, str]] = {}
+# R2522（审-P3-1）：键加 st_size——cp -p/tar -p 保 mtime 的部署曾会
+# 永久发旧壳；stat→read 间隙的半写文件也可能顶着新 mtime 被缓存。
+_INDEX_CACHE: dict[str, tuple[tuple[int, int], str]] = {}
 
 
 def _read_index_text(path: str) -> str:
     st = os.stat(path)
+    sig = (st.st_mtime_ns, st.st_size)
     ent = _INDEX_CACHE.get(path)
-    if ent is not None and ent[0] == st.st_mtime:
+    if ent is not None and ent[0] == sig:
         return ent[1]
     txt = open(path, encoding="utf-8").read()
-    _INDEX_CACHE[path] = (st.st_mtime, txt)
+    _INDEX_CACHE[path] = (sig, txt)
     return txt
 
 
@@ -102,6 +105,12 @@ def create_app() -> FastAPI:
         from starlette.middleware.cors import CORSMiddleware
         application.add_middleware(CORSMiddleware,
                                  allow_origins=_origins,
+                                 # R2522（审-P3-4）：分体部署 + 访问口令
+                                 # 此前结构性不通——缺 credentials 浏览器
+                                 # 不送 books_key cookie，跨源恒 401。
+                                 # origins 已是显式白名单（非 *），开
+                                 # credentials 安全；同源形态不受影响。
+                                 allow_credentials=True,
                                  allow_methods=["GET", "POST", "DELETE",
                                                 "PATCH"],
                                  allow_headers=["Content-Type"])
@@ -153,6 +162,14 @@ def create_app() -> FastAPI:
         _tok = os.getenv("BOOKS_ACCESS_TOKEN", "")
         if not _tok:
             return await call_next(request)
+
+        def _eq(a: str, b: str) -> bool:
+            # R2522（审-P1）：compare_digest(str) 双参要求 ASCII——非 ASCII
+            # 口令/cookie/?key=/表单值在 ExceptionMiddleware 外侧抛
+            # TypeError → 匿名可达裸 500（非 ASCII 口令更直接全站 500）。
+            # 统一 bytes 比对，非 ASCII 口令也能正常工作。
+            return _hmac.compare_digest(
+                a.encode("utf-8", "replace"), b.encode("utf-8", "replace"))
         path = request.url.path
         # 健康探测永远放行（平台探活用，无敏感内容）。
         if path == "/api/health":
@@ -168,8 +185,7 @@ def create_app() -> FastAPI:
         # 浏览器侧/日志里见到 cookie 不再等于见到钥匙本身。
         _ck = _hmac.new(_tok.encode(), b"books-gate-cookie",
                         "sha256").hexdigest()
-        good = _hmac.compare_digest(
-            request.cookies.get("books_key", ""), _ck)
+        good = _eq(request.cookies.get("books_key", ""), _ck)
         # R2503（审-P1）：限速桶/IP 解析从 POST /_gate 块内提出来——
         # ?key= 直通此前不耗桶，302/403 oracle 下 GET 旁路把
         # 10 次/60s/IP 爆破防线整体架空。两个认证原语同桶同口径。
@@ -179,8 +195,9 @@ def create_app() -> FastAPI:
             # X-Forwarded-For 即换桶绕过 _gate 限速。单可信代理（Render）
             # 下链尾 = 离服务端最近一跳回源的真实客户端。
             # R2502：整链无条件信任仍有洞——直连部署（无代理）时攻击者
-            # 整根伪造 XFF 轮换桶位。改为显式开关：BOOKS_TRUST_XFF=1
-            # 才信（Dockerfile 对 HF Spaces 这类恒代理部署默认开）。
+            # 整根伪造 XFF 轮换桶位。改为显式开关：BOOKS_TRUST_XFF=1 才信。
+            # R2522（审-P3-5）：Dockerfile 并不设此开关（恒代理部署靠
+            # --forwarded-allow-ips '*' + 下方 __all__ 全局桶兜底）。
             _xff = request.headers.get("x-forwarded-for") or ""
             if _xff.strip() and os.getenv(
                     "BOOKS_TRUST_XFF", "").strip().lower() in (
@@ -233,7 +250,7 @@ def create_app() -> FastAPI:
             # R2506（审-F1 配套）：先验口令再扣桶——与 ?key= 直通同口径。
             # 验对不耗桶也不查桶（全局桶下攻击者灌桶锁不住主人自己解锁）；
             # 验错才计一次失败。
-            if _hmac.compare_digest(key, _tok):
+            if _eq(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
                                          headers={"Location": _nxt})
                 resp.set_cookie("books_key", _ck, httponly=True,
@@ -260,8 +277,7 @@ def create_app() -> FastAPI:
         # GET 旁路把爆破防线整体架空。补齐「验错才扣桶」：对口令不罚
         # （分享链让同 NAT 的朋友秒进不是攻击），错 key 与 POST /_gate
         # 同桶，10 次/60s 后 429。
-        _key_ok = _hmac.compare_digest(
-            request.query_params.get("key", ""), _tok)
+        _key_ok = _eq(request.query_params.get("key", ""), _tok)
         if ("key" in request.query_params and not _key_ok
                 and _gate_limited()):
             return PlainTextResponse(

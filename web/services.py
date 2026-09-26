@@ -31,7 +31,6 @@ import logging
 import re
 import sqlite3
 import time
-import time
 from datetime import date, datetime, timedelta, timezone
 
 _logger = logging.getLogger("books")

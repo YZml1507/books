@@ -1697,6 +1697,14 @@ def main() -> int:
             errors.clear()
             try:
                 goto_view("history")
+                # R2522：save_async 是 best-effort 后台线程——重负载下
+                # INSERT 可能晚于列表首拉几秒（R2522 实测一轮整体超时全灭
+                # 的抖动源）。先轮询服务端台账有行，再等 DOM，把等待锚在
+                # 数据落地而非墙钟上。
+                page.wait_for_function(
+                    "(async()=>{try{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return (j.total||0)>0"
+                    "}catch(e){return false}})()", timeout=15000)
                 page.wait_for_selector("#historyList .ph-item .ph-open",
                                        timeout=8000)
                 page.click("#historyList .ph-item .ph-open")
@@ -1741,6 +1749,10 @@ def main() -> int:
             errors.clear()
             try:
                 goto_view("history")
+                page.wait_for_function(
+                    "(async()=>{try{const r=await fetch('/api/paipan/history"
+                    "?limit=1');const j=await r.json();return (j.total||0)>0"
+                    "}catch(e){return false}})()", timeout=15000)
                 page.wait_for_selector("#historyList .ph-item .ph-del",
                                        timeout=8000)
                 # 列表有 limit=50 渲染帽——总行>50 时删一行行数不变

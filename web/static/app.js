@@ -1319,11 +1319,15 @@ function _chatTsClear() {
   try { (_chatStore() || _MEM_STORE).removeItem(CHAT_TS_KEY); } catch (e) {}
 }
 function _chatTsRestore() {
-  /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。 */
+  /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。
+   * noscroll：逐泡滚会每条强排一次同步回流（审-P2-1），滚一次即可。 */
   var _last = null;
   _chatTsRead().forEach(function (m) {
-    _last = chatBubble(m.r === 'me' ? 'me' : 'ai', m.t, { nosave: true });
+    _last = chatBubble(m.r === 'me' ? 'me' : 'ai', m.t,
+                       { nosave: true, noscroll: true });
   });
+  var _flow = el('chatFlow');
+  if (_flow && _last) _flow.scrollTop = _flow.scrollHeight;
   /* R2400（R123-P2-4）：收尾态的「开新话题」钮挂回最后一条泡。 */
   try {
     if ((_chatStore() || _MEM_STORE).getItem('chatClosed') === '1' && _last) {
@@ -1966,7 +1970,10 @@ function chatBubble(role, text, opts) {
   /* R230j（R22-P3-3）：气泡无上限 DOM 只涨不裁——保留最近 50 条，
    * 更早的摘掉（与 R228j records 滚动裁剪同一思路）。 */
   while (flow.children.length > 50) flow.removeChild(flow.firstChild);
-  flow.scrollTop = flow.scrollHeight;
+  /* R2522（审-P2-1）：scrollTop=scrollHeight 是「写后读」强排——恢复
+   * transcript 时泡循环里每条触发一次同步回流（50 条=50 次）。noscroll
+   * 让批量路径跳过，循环结束统一滚一次。 */
+  if (!opts || !opts.noscroll) flow.scrollTop = flow.scrollHeight;
   return div;   /* 轮询写回用节点引用，不赌 lastChild */
 }
 /* R233r（R49-P0）：危机词前端镜像——后端 _CRISIS_PAT 只在任务真起
@@ -5695,7 +5702,7 @@ function tarotFace(d) {
   /* R2345（R63-P1-2）：牌面图只走运行时缓存——装上即断网时 <img>
    * 挂掉此前只剩裂图；onerror 落回既有 emoji 意象（tarotArt）。 */
   var art = img
-    ? '<div class="tart"><img src="' + img + '" alt="' + esc(d.name) + '"' + _rev +
+    ? '<div class="tart"><img src="' + esc(img) + '" alt="' + esc(d.name) + '"' + _rev +
       ' onerror="this.outerHTML=\'' + esc(tarotArt(d.name)) + '\'"></div>' +
       '<div class="tinfo">'
     : '<div class="tart">' + tarotArt(d.name) + '</div><div class="tinfo">';
