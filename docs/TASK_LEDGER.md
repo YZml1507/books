@@ -14271,3 +14271,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2663 巡检#80·第二段大快照——全闸持续零漂移
 - selftest 312 · contract 643 · dup_keys · date_parity 三组全绿；
   R2623 后 40 轮巡检期间零代码改动、闸态无漂移。
+
+## R2664 巡检#81——cross_ref 全端点在产
+- bazi（金牛×今日天秤当班口信）/taohua/hehun/qiming/liuyao（值宫+
+  方向）五端点 cross_ref 全下发；「今天」锚起问日（R230m，前端传
+  todayIso 对齐）。
