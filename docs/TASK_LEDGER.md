@@ -14137,3 +14137,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 即时响应 ai_polish:null + ai_task_id；轮询 /api/ai/{tid}→done 携
   文案；additive 语义（LLM 不是承重墙）与 renderRichText 孤儿 **
   剥离纪律闭环。
+
+## R2635 巡检#52——qiming 复姓+边界全绿
+- 欧阳→200：full_names 带典籍出处（伊←诗经·蒹葭）+candidates
+  字级五行/含义+summary/warm/cross_ref 全键齐；>2字姓→400 人话
+  「1-2个字（复姓也支持）」；month=13→400 人话。
