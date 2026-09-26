@@ -345,11 +345,11 @@ try {
              高级字段（农历/推算范围/问事日期地点）收进「更多设置」折叠。 -->
         <div class="row">
           <div class="field" id="f_year"><label for="year">出生年份</label>
-            <input id="year" type="number" inputmode="numeric" min="1900" max="2100" value="1990" required></div>
+            <input id="year" type="number" inputmode="numeric" min="1900" max="2100" value="1990" required autocomplete="bday-year"></div>
           <div class="field" id="f_month"><label for="month">月</label>
-            <input id="month" type="number" inputmode="numeric" min="1" max="12" value="5" required></div>
+            <input id="month" type="number" inputmode="numeric" min="1" max="12" value="5" required autocomplete="bday-month"></div>
           <div class="field" id="f_day"><label for="day">日</label>
-            <input id="day" type="number" inputmode="numeric" min="1" max="31" value="15" required></div>
+            <input id="day" type="number" inputmode="numeric" min="1" max="31" value="15" required autocomplete="bday-day"></div>
           <div class="field"><label for="gender">性别</label>
             <select id="gender"><option>女</option><option>男</option></select></div>
         </div>
@@ -678,7 +678,7 @@ try {
           <!-- R230t（R33-P3-13）：后端恰好单字，前端 maxlength=8 放行复姓
              撞 400——对齐到 1。 -->
           <!-- R2350e（R101-P1-1）：后端已支持 1-2 字复姓，前端 maxlength=1 把欧阳拦死 -->
-          <input id="qm_surname" type="text" maxlength="2" value="李"></div>
+          <input id="qm_surname" type="text" maxlength="2" value="李" autocomplete="family-name"></div>
         <div class="field"><label for="qm_year">年</label>
           <input id="qm_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
         <div class="field"><label for="qm_month">月</label>
@@ -835,7 +835,7 @@ try {
           <div class="field"><label for="b_gender">性别</label>
             <select id="b_gender"><option>女</option><option>男</option></select></div>
           <div class="field"><label for="b_nick">怎么称呼你（选填）</label>
-            <input id="b_nick" type="text" maxlength="12" placeholder="比如 小鱼"></div>
+            <input id="b_nick" type="text" maxlength="12" placeholder="比如 小鱼" autocomplete="nickname"></div>
         </div>
         <button id="birthSubmit" type="button" style="margin-top:10px;">看我的本命解读 ✨</button>
         <div id="birthResult" style="margin-top:14px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑完生日，看你的本命小卡～</div></div>

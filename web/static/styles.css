@@ -153,6 +153,12 @@ html[data-theme="legacy"] .page-glow{display:none;}
  * R201b 补记：接线首版误删了下一行全局 reset，导致 check_plain_first
  * 判据 2 四用例爆线（c6_career 3,444px > 3,248px）——已恢复，实测归位。 */
 *{box-sizing:border-box; margin:0; padding:0;}
+/* R2514（审-P1 bug 类收口）：任何带 display 规则的定义都会压过
+ * [hidden] 的 display:none——此前已按点修过三处（daily-meta-item/
+ * view-back/home-main），还剩 ask_row/range_row/dailyXingzuo/
+ * daily-tomorrow/fav-row 四处漏网（推算范围切「单日」后日期行
+ * 仍常显、日卡上常驻空「— —」胶囊/空紫条）。全局守卫灭类。 */
+[hidden]{display:none !important;}
 .animotion-respect-motion{animation-duration:.5s;}
 .view.active{animation-name:none;}
 .home-main .ia-group,
@@ -445,15 +451,15 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R2363（R117-P0-2）：>5 粒折叠——capped 的收进「+N 条」收纳钮。 */
 .daily-meta-item[data-capped="1"]{display:none;}
 .daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
-.daily-meta-more{cursor:pointer; font:inherit; color:var(--accent);}
+.daily-meta-more{cursor:pointer; font:inherit; color:var(--accent-ink);}   /* R2514：装饰色2.12:1→文字色4.87:1 */
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;
-  font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;
+  font:inherit;color:var(--accent-ink);cursor:pointer;text-decoration:underline;   /* R2514 */
   text-underline-offset:3px;min-height:0;}
 /* R2506（审-U1/U5）：日签失败重试钮——句内 compact ghost；
  * 「存个生日」CTA 扩触控热区到 44px 但不撑行高（视觉不变、命中面达标）。 */
-.daily-retry{padding:4px 14px;min-height:36px;margin-left:6px;
+.daily-retry{padding:4px 14px;min-height:var(--tap);margin-left:6px;   /* R2514：36→--tap */
   font-size:inherit;}
 .daily-personal-cta{padding:11px 0;margin:-11px 0;min-height:44px;}
 .daily-lucky-word{display:inline-block;margin-left:6px;font-size:11px;
@@ -1126,7 +1132,7 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 
 /* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。 */
 .tr-fan{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-.tr-back{width:34px;height:54px;padding:0;border:none;border-radius:12px;
+.tr-back{width:40px;height:54px;padding:0;border:none;border-radius:12px;   /* R2514：34→40px 触控 */
   background:url('/static/tarot/card-back.jpg') center/cover no-repeat #B8860B;
   cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;
   box-shadow:0 1px 3px rgba(0,0,0,.18);min-height:44px;}
@@ -1776,7 +1782,7 @@ button:active{transform:scale(.96);}
 .hl-chip.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--primary-ink);}
 .hl-pill{background:rgba(255,255,255,.75);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;color:#3E7A52;border:1px solid rgba(95,167,119,.3);}
 .hl-pill.hl-hot{background:#5FA777;color:#fff;box-shadow:0 2px 10px rgba(95,167,119,.4);}
-.hl-pill-ji{color:var(--rose-soft);border-color:rgba(226,98,138,.3);}
+.hl-pill-ji{color:var(--rose-deep);border-color:rgba(226,98,138,.3);}   /* R2514：3.2:1→达标 */
 .hl-scene{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}   /* R129-P2-19 */   /* R228d：33→44；R229z续23：宽也守44 */
 .hl-scene:hover{border-color:var(--accent);}
 .hl-scene.active{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);border-color:var(--accent);font-weight:700;color:var(--text);}
@@ -1871,6 +1877,7 @@ button:active{transform:scale(.96);}
   #hlPickDrawer, #birthDrawer, details.pro-drawer:not(.daily-full),
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
+  .celeb-backdrop,   /* R2514：连签庆祝浮层漏进打印隐藏表 */
   .install-tip,
   .recent-sidebar, .recent-toggle, .ph-toolbar, .ph-share, .checkin-share,
   .chat-entry, .share-cta, .poster-modal-actions, .xz-grid,
@@ -2272,7 +2279,7 @@ html[data-theme="dark"] .func-icon-img{filter:brightness(.92);}
 .brand{position:relative;}
 .theme-toggle{
   position:fixed; right:16px; top:14px;
-  width:40px; height:40px; border-radius:50%;
+  width:44px; height:44px; border-radius:50%;   /* R2514：40→--tap */
   border:1px solid var(--line); background:var(--card);
   font-size:18px; cursor:pointer; padding:0; z-index:60;
   box-shadow:0 2px 10px rgba(74,58,64,.12);
@@ -2506,14 +2513,15 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 
 /* R2349l（R73-P1-6）：合拍指数 */
 .hh-score{margin:10px 0 4px;font-size:15px;color:var(--secondary);}
-.hh-score strong{font-size:30px;color:var(--accent);font-family:var(--font-serif);
+.hh-score strong{font-size:30px;color:var(--accent-ink);font-family:var(--font-serif);   /* R2514 */
   letter-spacing:1px;}
 .hh-score-sub{font-size:12px;color:var(--muted);margin-left:2px;}
 
 /* R2349l（R73-P1-1）：解签展开 */
 .sign-peek{margin-left:8px;padding:4px 12px;font-size:11px;border-radius:999px;
-  border:1px solid var(--accent);color:var(--accent);background:transparent;
-  cursor:pointer;min-height:36px;}
+  /* R2514：accent→accent-ink 文字可读；36px→--tap 触控下限。 */
+  border:1px solid var(--accent);color:var(--accent-ink);background:transparent;
+  cursor:pointer;min-height:var(--tap);}
 .sign-card{margin-top:8px;
   background:var(--card);border:1px solid var(--border);border-radius:12px;
   padding:10px 14px;font-size:13px;

@@ -7295,6 +7295,15 @@ async function _doHuangli(offset, reveal, spokenWord) {
       showToast('先选一个日期～', 'warn');
       return;
     }
+    /* R2514（审-P2）：手输日期此前零本地校验——1500-13-32 直达
+     * 后端 400 才报「查询失败」。对齐全站 _badRange/_badYmdField
+     * 红标字段+toast 的既有轻错路径（boxId=null 不抹好卡）。 */
+    var _badF = _badRange('hl_year', 1900, 2100) ? 'hl_year'
+      : (_badYmdField('hl_year', 'hl_month', 'hl_day') || null);
+    if (_badF) {
+      _failField(_badF, null, '这天查不了——再看看日期？');
+      return;
+    }
   }
   /* R227b-fix：日词跟着本次查询的日期走——chip 偏移直接映射，自选日期
    * 与今天比对（同一天=「今天」，否则=「那天」），问一嘴的日期词经
@@ -8597,7 +8606,15 @@ function initReading() {
     }
     const threadBtn = e.target.closest('[data-thread]');
     if (threadBtn) {
-      showThread(threadBtn.dataset.thread);
+      /* R2514（审-次）：无请求去重——连点发 N 个 GET（代际闸保不出
+       * 错屏但纯浪费）。同 data-thread-note 的 inflight 先例；
+       * 不清复位——代际闸下后到的响应就是正确的，而按钮所在卡片
+       * 随列表/详情重画摘除，卡死风险为零。 */
+      if (threadBtn.dataset.inflight === '1') return;
+      threadBtn.dataset.inflight = '1';
+      showThread(threadBtn.dataset.thread).finally(function () {
+        threadBtn.dataset.inflight = '';
+      });
       return;
     }
     /* R2349v（R92-P1-2）：线程详情内「记一条」+状态切换的委托。 */
@@ -11238,9 +11255,15 @@ function _renderWishBottle(edit) {
       '<textarea id="wishText" class="ck-wish-input" maxlength="60" rows="2" ' +
         'placeholder="比如：希望下个月面试顺利…">' +
         esc(w ? w.t : '') + '</textarea>' +
-      '<div class="ck-wish-cats">' + _WISH_CATS.map(function (c) {
+      /* R2514（审-P2）：分类 chips 此前只有 picked class——选中态
+       * 不进无障碍树（rtab/hl-chip/checkin-opt 全站都有 aria-pressed）。
+       * 补 aria-pressed + role=group。 */
+      '<div class="ck-wish-cats" role="group" aria-label="愿望分类">' +
+        _WISH_CATS.map(function (c) {
+        var _pk = !!(w && w.c === c);
         return '<button type="button" class="checkin-opt' +
-          (w && w.c === c ? ' picked' : '') + '" data-wish="cat" data-arg="' +
+          (_pk ? ' picked' : '') + '" aria-pressed="' + _pk +
+          '" data-wish="cat" data-arg="' +
           esc(c) + '">' + esc(c) + '</button>';
       }).join('') + '</div>' +
       '<div class="ck-wish-actions">' +
@@ -11259,8 +11282,10 @@ function _wishAction(act, arg, dateKey) {
     if (!host) return;
     var chips = host.querySelectorAll('.ck-wish-cats .checkin-opt');
     for (var i = 0; i < chips.length; i++) {
-      chips[i].classList.toggle('picked', chips[i].dataset.arg === arg &&
-        !chips[i].classList.contains('picked'));
+      var _on = chips[i].dataset.arg === arg &&
+        !chips[i].classList.contains('picked');
+      chips[i].classList.toggle('picked', _on);
+      chips[i].setAttribute('aria-pressed', _on ? 'true' : 'false');   /* R2514 */
     }
     return;
   }

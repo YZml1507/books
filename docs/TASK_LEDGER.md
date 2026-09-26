@@ -13174,3 +13174,35 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   doThread/showThread 后到赢、deleteThread 武装删除可用。
 - [x] 闸门：selftest 310（SW hash 重发 a8d150ae2ff9）、ui_smoke、
   contract 638、r2509-r2513 探针全绿、ruff 零告警。
+
+## R2514 — index.html/styles.css 结构面收口（hidden bug 类灭绝）
+
+- [x] **审-P1 display 压 [hidden] bug 类（4 处漏网）**：`.row`/
+  `.daily-xingzuo`/`.daily-tomorrow`/`.fav-row` 的 flex 规则压过
+  `[hidden]` 原生 display:none——推算范围切「单日」后区间日期行
+  仍恒显（含两个死输入框+两个多余 tab 位）、日卡常驻空「— —」
+  星座胶囊和 40px 空紫条。项目已按点修过三处同款（442 注释自带
+  根因说明）——补全局 `[hidden]{display:none!important}` 守卫
+  灭类。**真浏览器实证**：scope day↔range 切换日行正确显隐、
+  日卡空胶囊消失。
+- [x] **审-P1 --accent 装饰色被当文字色（2.12:1）**：文件自带
+  「装饰用，文字用 -ink 变体」契约，五处违规——daily-personal-cta/
+  daily-meta-more/sign-peek/hh-score（合拍指数 30px 也不到 3:1
+  大字线）/hl-pill-ji（rose-soft 3.2:1）。全部换 --accent-ink
+  （4.87:1）/--rose-deep。
+- [x] **审-P2 黄历手输日期零本地校验**：1500-13-32 直达后端 400
+  才报「查询失败」——对齐全站 _badRange/_badYmdField+_failField
+  轻错路径（toast 不抹好卡）。**实证**：月13 本地拦下 0 请求+人话
+  toast。
+- [x] **审-P2 许愿瓶分类 chips 无 aria-pressed**：全站 rtab/
+  hl-chip/checkin-opt 都同步无障碍态——补 aria-pressed 生成/切换
+  + role=group。
+- [x] **审-P2 .tr-back 牌背 34px**：触控下限 40px。
+- [x] **审-次 data-thread 连点无去重**：dataset.inflight 闸
+  +finally 复位（同文件 note/status 先例）。
+- [x] **顺手**：theme-toggle/sign-peek/daily-retry 触控归一到
+  --tap；celeb-backdrop 补进 print 隐藏表；主表单生日三元组+
+  姓氏 autocomplete。
+- [x] 探针 `probes/probe_r2514.py`（14 项）；SW hash fc5e57354e90。
+- [x] 闸门：selftest 310、ui_smoke、contract 638、r2512/13/14
+  探针全绿；真浏览器 8/8（scope 显隐+本地校验+toast）。
