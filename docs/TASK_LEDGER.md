@@ -13872,3 +13872,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - probe_ui_smoke：浏览器用例全 PASS（含深链/推送态/清理断言）。
 - 合计此前快闸（selftest 311/contract 643/dup_keys/chat_e2e 4-4）——
   巡检模式十轮无任何代码变更，全部闸门维持基线绿。
+
+## R2594 巡检#11——塔罗命名牌阵位置绑定实测全绿
+- 时间流（time）：过去/现在/未来三位各绑一卡（圣杯2正/魔术师正/
+  圣杯3逆），卡面关键词逐位成句非同模板复读。
+- 钻石阵（diamond）：现状/阻碍/助力/结果四位正确绑卡。
+- 周运阵（week，seed=7）：7 抽全异零重复，周一~周日位置齐。
+- 响应形态：{seed,n,draws,spread,spread_key,picked,interpretation,
+  warm,cross_ref}——draws[].position 由牌阵定义注入。
