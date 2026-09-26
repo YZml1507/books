@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass, field
 
 from .compare import compare_address
-from .search import Corpus, Hit
+from .search import Corpus, Hit, s2t_retry
 
 
 @dataclass
@@ -56,6 +56,44 @@ class Research:
 
 def _key(h: Hit):
     return (h.work_id, h.gua, h.yao, h.layer, h.page_anchor, h.text[:60])
+
+
+# R2597（巡检-P2）：「乾卦初九」问的是地址不是短语——子串种子落在
+# 「讨论初九的註疏行」上（按地址计那是九二的见证），整轮证据可以
+# 全数错爻（实测：问初九、回来 12 条全是見龍在田）。点名的地址必须
+# 直接进 ranked 拿首读权。卦名表不硬编码——从 unit 表现取（繁体
+# canonical，简体问法经 s2t_retry 折叠后再查）。
+_ADDR_INTENT_RE = re.compile(
+    r"([^卦\s，。、？！：；·「」『』【】（）()]{1,2})卦?"
+    r"(初九|初六|九二|六二|九三|六三|九四|六四|九五|六五|上九|上六|用九|用六)")
+_INTENT_SCORE = 1e9   # 点名的地址永远排在检索命中的地址前面
+
+
+def _gua_numbers(corpus: Corpus) -> dict[str, int]:
+    rows = corpus.db.execute(
+        "SELECT DISTINCT addr_name, addr1 FROM unit"
+        " WHERE scheme='zhouyi' AND addr_name IS NOT NULL").fetchall()
+    out: dict[str, int] = {}
+    for nm, g in rows:
+        if nm:
+            out.setdefault(nm, g)
+    return out
+
+
+def _address_intents(corpus: Corpus, question: str) -> set[tuple[int, str]]:
+    names = _gua_numbers(corpus)
+    out: set[tuple[int, str]] = set()
+    for nm, yao in _ADDR_INTENT_RE.findall(question):
+        # 「和夬卦初九」这类黏连——2 字窗口吃到前字时退化取末字再查。
+        cands = [nm] if len(nm) == 1 else [nm, nm[1:]]
+        g = None
+        for c in cands:
+            g = names.get(c) or names.get(s2t_retry(c))
+            if g is not None:
+                break
+        if g is not None:
+            out.add((g, yao))
+    return out
 
 
 def _subphrases(q: str, max_tries: int = 150) -> list[tuple[str, int]]:
@@ -193,11 +231,18 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
         if h.scheme == "zhouyi" and h.gua is not None:
             k = (h.gua, h.yao)
             ranked[k] = max(ranked.get(k, 0.0), h.score)
+    # R2597：点名的地址直接入列——它可能零检索命中（问句短语落在注疏
+    # 行而非原文行），但用户问的就是那个位置。
+    intent_addrs = _address_intents(corpus, question)
+    for k in intent_addrs:
+        ranked[k] = max(ranked.get(k, 0.0), _INTENT_SCORE)
     for gua, yao in sorted(ranked, key=ranked.get, reverse=True)[:max_addresses]:
         label = f"卦{gua}" + (f"·{yao}" if yao else "")
         wit = corpus.at_address(gua, yao, limit=per_address)
         keep(wit, Step("witnesses", label, len(wit), 0,
-                       "该地址全部见证（各版本/各层）"))
+                       "该地址全部见证（各版本/各层）"
+                       + ("——用户点名的地址"
+                          if (gua, yao) in intent_addrs else "")))
         works = {h.work_id for h in wit if h.scheme == "zhouyi"}
         if len(works) >= 2 and yao:
             cmp = compare_address(corpus, gua, yao,

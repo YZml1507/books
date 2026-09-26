@@ -1806,6 +1806,16 @@ def _run_inner() -> list[str]:
     check("ask", client.post("/api/ask", json={"q": "潛龍勿用",
           "max_addresses": 2}),
           lambda j: j.get("evidence_citations"))
+    # R2597（巡检-P2 实测缺陷修复）：「X卦Y爻」是点名地址不是短语——
+    # 修复前种子落在讨论初九的註疏行（地址=九二），12 条证据全数错爻。
+    # 断言点名地址抢首读权 + 原文爻辞进证据集。
+    check("ask.yao_intent", client.post("/api/ask",
+          json={"q": "乾卦初九爻辞是什么"}),
+          lambda j: any(s.get("query") == "卦1·初九"
+                        for s in (j.get("steps") or [])
+                        if s.get("action") == "witnesses")
+                    and any("潛龍" in (e.get("text") or "")
+                            for e in (j.get("evidence") or [])))
     # R178b（D-226b）：ask 的解读字段结构 standing 覆盖（原 ask.llm.shape）。
     # 原断言 llm 为 None 或含 text+model 的 dict——LLM 移除后改断言确定性
     # interpretation：ok/engine/sections/text 齐全，且**同输入两次逐字相同**。
