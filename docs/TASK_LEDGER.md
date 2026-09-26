@@ -13772,3 +13772,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   轮数帽、import 进程内锁防翻倍、delete_all_threads 整表清+FTS delete 记录。
 - prefs：批量单事务、帽逐出 rowid 决胜。
 - daily_cache：坏行自愈删除、90 天滞行清理。favorites CRUD 常规。
+
+## R2580 liuyao.py 深潜——确定性+装配全绿
+- 同输入恒同卦；纳甲/六亲/世应/六神四层全挂线（R233u 接线在案）；静卦变卦=本卦（文档行为，曾误报否→未济系构造卦形错误非真缺陷）；全动乾→坤正确。
+- src/guji/ 用户面模块深潜至此全覆盖。
