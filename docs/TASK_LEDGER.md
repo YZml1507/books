@@ -13614,3 +13614,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2549-2550 全闸门快照 + 许愿瓶审计
 - **R2549 全闸门矩阵连跑**：selftest 310 · contract 643 · baseline 14 例逐字节 · standing 3/3 · llm_polish · r2524/25/29 全绿；台账挂账项复核全有清偿/登记记录，零遗忘开放项。
 - **R2550 许愿瓶审计**（从没按目标用户体验审过的功能）：隐私叙事「只有你的浏览器记得它，写给自己看的」**范本级**（本地态诚实）；分类贴人设（感情/事业/学业/财运/健康/小秘密）；状态机完备（封存/躺N天/成真庆祝/换愿望/继续躺）；esc/aria-pressed/跨tab同步/wipe白名单全在案。日签盲盒同型已被多轮加固。零改造缺口。
+
+## R2551 性能轴盘点 + 移动端 persona 实测
+- **性能各层已饱和**：script defer(R8)+懒chunk(R2400)+日签不等eval(R2349u)；gzip 663KB→241KB；字体 unicode-range 分包按需+swap+品牌字子集preload(R233d)；LCP图preload(R2364)；SW 内容哈希桶 precache 命中零refetch+导航match/fetch并行(R2510)。app.js 再拆=复杂度风险换 defer 资源 ~100KB——裁决不做。
+- **移动端 375×812 persona 实测**（Playwright touch）：零横滚、零 <30px 触点、排盘全流程 tap 通畅、结果卡/能量卡/相关功能卡渲染精细无溢出、诚实兜底正常。toast 上缘叠盖已被 R2500 下移 64px 处理。零改造缺口。
