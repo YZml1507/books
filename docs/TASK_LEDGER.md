@@ -13787,3 +13787,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - qiming：57 行 facade（常量+re-export，死簇 R2350a 已除）。
 - **src/guji/ 用户面模块全部深潜完毕**：interpreter/voice/huangli/tarot/xingzuo/taohua/
   classical_names/liuyao/hehun/bazi_calc/knowledge/llm_polish/services/deps/schemas/errors。
+
+## R2583 深潜战役正式收官 + 转入低频巡检
+- 研究向端点边界实测：search/addr/compare 人话报错全对、compare 证同链路正常。
+- web_launcher.py（330 行桌面入口）lint/结构干净。
+- **深潜战役（R2571-R2583）宣告收官**：代码面零剩余未审区。此后转低频巡检节奏——
+  每轮：全闸快照+随机抽一区块复检+台账记档；发现真缺陷才动代码。
