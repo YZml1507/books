@@ -14072,3 +14072,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2621 巡检#38——进程健康面无泄漏迹象
 - uvicorn：11 分钟新进程、RSS 69MB、7 线程正常；系统 5.3G 可用。
 - 历史 python 进程全为 browser-use 守护（11MB 级、与 app 无关）。
+
+## R2622 巡检#39——富文本 XSS 面全封死
+- renderRichText 首步 esc() 全量转义再插白名单标签（strong/em/code/
+  ul/li/br 无属性注入位）；四处 raw:true 调用点只喂硬编码打字动画；
+  me 气泡走 textContent（防「3*5」误渲+自注入）；AI 文本全 sink
+  （polish/tarot-deep/review）均过 renderRichText。
