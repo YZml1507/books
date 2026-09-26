@@ -14127,3 +14127,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2632 巡检#49——xingzuo 逐日 beat 实测 10/14
 - 处女座 09-01~09-14 连测：10 种不同 today_note（判据 ≥3 远超），
   文案全「今日宜X——一句人话」形态，确定性哈希碰撞率正常。
+
+## R2633 巡检#50·半百——功能卡导航 13 卡全通
+- 13 张功能卡全解析：11 个真视图一一对应（tarot/bazi/taohua/hehun/
+  huangli/xingzuo/history/liuyao/qiming + 重复快捷卡）；data-view=
+  "chat" 伪视图改走 chatOpen() 实测侧栏开——设计在案非死链。
