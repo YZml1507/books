@@ -14237,3 +14237,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 同一请求 client_date=09-27 vs 12-25 → today_sign/direction 不同
   （天秤/observe vs 金牛/hold——「今日值宫」锚浏览器本地日非服务
   器日）；garbage/2026-02-30→400 人话。
+
+## R2656 巡检#73——huangli affair 找日模式实测
+- affair=面试→词族映射「上任」→扫出 09-28 好日子（宜 8 项/忌 3
+  项/flags 全字段）；>32 字→422 帽；affair 是 /api/huangli 的
+  query 参数（找日模式非独立端点）。
