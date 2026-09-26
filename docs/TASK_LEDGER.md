@@ -14099,3 +14099,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   同步（测试后复位未执行清空）；实现面：localStorage 白名单+
   sessionStorage+_MEM_STORE+表单字段+DOM 气泡+内存态+wipeAt
   跨 tab 墓碑+服务端三端点全清（paipan/favorites/threads）。
+
+## R2627 巡检#44——daily_cache 写窗口实锤
+- 实测：今天/明天（+31d 窗口内）缓存落行；2027-06-01/1990-01-01
+  照算照回但零缓存行（窗口 -400d~+31d，UTC+8 锚 R2511）；坏日期
+  400 人话；purge 在写前跑防灌行淤积（R230a-43）。
