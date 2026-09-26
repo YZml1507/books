@@ -900,7 +900,9 @@ try {
         </div>
       </div>
       <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
-      <div id="historyDetail" class="ph-detail" hidden></div>
+      <!-- R2506（审-U2）：tabindex=-1——「查看」展开详情后程序可把焦点
+           移进来，键盘/读屏用户不用 Tab 爬完剩余列表才到详情。 -->
+      <div id="historyDetail" class="ph-detail" tabindex="-1" hidden></div>
     </div>
   </div>
 

@@ -109,6 +109,16 @@ def install(app: FastAPI) -> None:
                             content={"detail": "参数超出可接受范围"})
     app.add_exception_handler(OverflowError, _overflow_handler)
 
+    # R2506（审-F4）：递归 JSON body（~950 层嵌套）在 json.loads 的递归
+    # 解析里抛 RecursionError——非 JSONDecodeError 子类，
+    # RequestValidationError 处理器接不住，此前穿透成英文 500。
+    # 与 shape 错同档 422。
+    async def _recursion_handler(_request: Request,
+                                 exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=422,
+                            content={"detail": "请求体嵌套太深，解析不了"})
+    app.add_exception_handler(RecursionError, _recursion_handler)
+
     # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显
     # 原始输入——孤立代理项（\ud800）让默认序列化炸成 500，超长 input
     # 又造成 ~2x 响应放大。改成 repr 转义 + 200 字截断。

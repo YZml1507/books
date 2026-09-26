@@ -12896,3 +12896,43 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   selftest 310、contract 636、ui_smoke、selftest_regress、
   ruff E9F 全过；knowledge.db 无新增残留（thread/turn/evidence
   归零，derived 58 行为既有探针基线）。SW 重发 books-shell-5db95299d746。
+- **R2506（三 agent 深审：请求生命周期+边界异常+受众 UX 批）**：
+  审查面=app.py/deps/errors/schemas/routers 请求生命周期横切面
+  （1037586b）、同范围复查（5e0bba5c）、index.html+app.js 可达性/
+  失败态/性能（9288e831）。①审-F1 门页限速桶在发货配置下被 XFF
+  架空——Dockerfile 以 --forwarded-allow-ips '*' 起 uvicorn，
+  request.client.host 早被自填 XFF[0] 改写，轮换 XFF 无限换桶：
+  不信 XFF 时桶键退化为全局桶 __all__（单口令语义反而更对），
+  POST /_gate 改先验口令再扣桶——对口令与已解锁 Cookie 永不查桶，
+  攻击者灌桶锁不住主人。②审-F2 控制字剥离三漏：liuyao coins 的
+  question 早退跳过 strip_zw、bazi location 未剥、import_rows
+  name/question 只截不断——补 guji 层 _CTRL_RE 同字符集。③审-F3
+  GET 日期参数非规范形（Py3.11+ 放宽的 20260101/2026-W01-1）与
+  POST _iso_canonical 契约分裂：_parse_iso_date 加 isoformat 往返，
+  xingzuo/today 同口径且 today 年钳节气表界——huangli/xingzuo/
+  daily 三处统一 400，R2502「归一化放行」钉扎同步更新（原「不落
+  脏缓存键」不变式以更严方式守住）。④审-F4 递归 JSON body
+  （~950 层）json.loads 抛 RecursionError 穿透成英文 500 → 映射
+  422 中文。⑤审-F5 CORS 中间件在门禁内侧——TOKEN+CORS_ORIGINS
+  分体部署下 OPTIONS 预检直撞 401 全灭：gate 内预检放行（不带
+  凭据不泄数据），真实请求仍拦。⑥审-F6 GET /api 裸路径 404 变
+  200 HTML——SPA 兜底补 /api、/static 精确排除。⑦审-U1 日签卡
+  失败=死卡（弱网/5xx 后无任何恢复通道）：catch 内「再来一次」
+  重试钮 + online 事件 __lastDaily 空时自动重拉。⑧审-U2 排盘
+  历史「查看」展开不管理焦点：historyDetail tabindex=-1 + 展开
+  后 focus（与删除路径 historyList.focus() 同纪律）。⑨审-U3
+  dailyMore 失败详情块已展开但 aria-expanded=false：catch 补
+  _syncBtn+重试文案。⑩审-U4 xz 宫卡 aria-label 顶替全卡内容：
+  日运正文并入可访问名。⑪审-U5「存个生日」CTA 触控 ~24px：
+  padding 扩到 44px 热区负边距保视觉。另修 ui_smoke on_coverage
+  误报根源（var 名复用 _dr 跨函数把 toggle 绑记成 click 钉）+
+  dailyRetry 登记豁免。验证：probe_r2506.py 26 断言全绿（含伪造
+  XFF 轮换仍 429/桶满对口令仍 302/OPTIONS 穿门禁 CORS 回答/裸
+  /api 404/各日期形拒放对照）；selftest 310（门闸计数口径已按
+  「错才扣桶」改写）、contract 637、ui_smoke 80、r2502/r2505
+  回归、dollar_misuse、selftest_regress、no_generated、
+  scripts_importable、baseline_voice、xingzuo、warm_voice、
+  async_ai、llm_polish、date_parity、first_screen、plain_first
+  全过；paipan/knowledge 残留清零（probe 端点写面已
+  BOOKS_PAIPAN_HISTORY_DISABLE 隔离+import_rows 自删行）。
+  SW 重发 books-shell-62e775d34ecc。

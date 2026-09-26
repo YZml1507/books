@@ -142,6 +142,13 @@ def create_app() -> FastAPI:
         # 健康探测永远放行（平台探活用，无敏感内容）。
         if path == "/api/health":
             return await call_next(request)
+        # R2506（审-F5）：CORS 预检放行——本闸注册在 CORSMiddleware
+        # 之后 = 位置更靠外，OPTIONS /api/* 此前直撞 401 且响应无
+        # ACAO 头，BOOKS_ACCESS_TOKEN + BOOKS_CORS_ORIGINS 的分体部署
+        # （github.io 落地页 + API）浏览器层全灭。预检不带凭据、不泄
+        # 业务数据，放行由内层 CORS 中间件正常回答；真实请求仍被拦。
+        if request.method == "OPTIONS":
+            return await call_next(request)
         # R2400（R137-P2-2）：cookie 值改为口令的派生指纹而非明文——
         # 浏览器侧/日志里见到 cookie 不再等于见到钥匙本身。
         _ck = _hmac.new(_tok.encode(), b"books-gate-cookie",
@@ -164,7 +171,14 @@ def create_app() -> FastAPI:
                     "BOOKS_TRUST_XFF", "").strip().lower() in (
                     "1", "on", "true", "yes"):
                 _ip = _xff.split(",")[-1].strip() or _ip
-            return _ip
+                return _ip
+            # R2506（审-F1）：不信 XFF 时 _ip 也不能当桶键——
+            # Dockerfile 以 --forwarded-allow-ips '*' 起 uvicorn，
+            # proxy-headers 早把 scope["client"] 用自填 XFF[0] 改写，
+            # 客户端旋转换 IP 值即无限换桶，10/60s 限速被整体架空。
+            # 默认桶退化为全局桶——单口令场景语义反而更对：验对口令
+            # 与已解锁 Cookie 不耗桶，攻击者灌桶也锁不住正确解锁。
+            return "__all__"
 
         _gate_bucket = getattr(_access_gate, "_bucket", None)
         if _gate_bucket is None:
@@ -189,10 +203,6 @@ def create_app() -> FastAPI:
         # （不用 request.form()——Starlette 表单解析要 python-multipart，
         #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
         if path == "/_gate" and request.method == "POST":
-            if _gate_limited():
-                return PlainTextResponse(
-                    "敲太多次门啦——歇一分钟再来",
-                    status_code=429)
             from urllib.parse import parse_qs
             _qs = parse_qs(
                 (await request.body()).decode("utf-8", "replace"))
@@ -205,6 +215,9 @@ def create_app() -> FastAPI:
             if (_nxt.startswith("//") or
                     not re.fullmatch(r"/[A-Za-z0-9_/?=&%#.:\-~+]*", _nxt)):
                 _nxt = "/"
+            # R2506（审-F1 配套）：先验口令再扣桶——与 ?key= 直通同口径。
+            # 验对不耗桶也不查桶（全局桶下攻击者灌桶锁不住主人自己解锁）；
+            # 验错才计一次失败。
             if _hmac.compare_digest(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
                                          headers={"Location": _nxt})
@@ -213,6 +226,10 @@ def create_app() -> FastAPI:
                                 secure=request.url.scheme == "https",
                                 max_age=30 * 86400)
                 return resp
+            if _gate_limited():
+                return PlainTextResponse(
+                    "敲太多次门啦——歇一分钟再来",
+                    status_code=429)
             # 403 而非 200：SW 的 navigate 分支只缓存 resp.ok——门页
             # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
             # 浏览器照常渲染 HTML 体，用户看到同样的门。
@@ -476,6 +493,10 @@ def create_app() -> FastAPI:
         # 先发 HEAD，405 会被误判成站点挂了。Starlette 对 HEAD 自动剥体。
         if (request.method in ("GET", "HEAD") and resp.status_code == 404
                 and not request.url.path.startswith(("/api/", "/static/"))
+                # R2506（审-F6）：裸 /api、/static 也要守 404 JSON 契约——
+                # startswith 带尾斜杠漏放裸路径，GET /api 此前收 200
+                # 的 index.html（与其他 /api/* 404 契约不一致）。
+                and request.url.path not in ("/api", "/static")
                 # R2350g（R105-P1-1）：含扩展名的请求（robots.txt /
                 # sitemap.xml / favicon.ico / 任意 .xml）不做 SPA 兜底——
                 # 否则爬虫拿到 50KB HTML 壳当 robots，坏链全成 soft-404。

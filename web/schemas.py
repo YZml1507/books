@@ -133,6 +133,9 @@ class BaziRequest(BaseModel):
         if self.scope not in SCOPES:
             raise ValidationError(f"范围只能是 {'/'.join(SCOPES)}")
         self.question = strip_zw(self.question)   # R230k
+        # R2506（审-F2）：location 同样回显进 calc_out/台账 req_json，
+        # 控制字/双向符此前不过 strip_zw。
+        self.location = strip_zw(self.location)
         if self.calendar_type == "lunar":
             if not (self.lunar_year and self.lunar_month and self.lunar_day):
                 raise ValidationError("农历输入需提供农历年月日")
@@ -266,6 +269,9 @@ class LiuyaoRequest(BaseModel):
         _check_client_date(self.client_date)
         if self.method not in ("coins", "time"):
             raise ValidationError("起卦方式只认摇钱或报时两种")
+        # R2506（审-F2）：question 落台账 name——控制字剥掉与 method
+        # 无关，此前 coins 早退跳过 strip_zw。
+        self.question = strip_zw(self.question)
         if self.method != "time":
             return
         if not all(v is not None for v in (self.year, self.month,
@@ -279,8 +285,6 @@ class LiuyaoRequest(BaseModel):
             raise ValidationError(f"日需在 1-31，收到 {self.day}")
         if not (0 <= self.hour <= 23):
             raise ValidationError(f"时辰需在 0-23，收到 {self.hour}")
-        # R2364：question 落台账 name——控制字剥掉免得标题带 NUL/换行。
-        self.question = strip_zw(self.question)
 
 
 class QimingRequest(BaseModel):

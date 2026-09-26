@@ -17,6 +17,7 @@ import contextlib
 import glob
 import json
 import os
+import re
 import sqlite3
 import threading
 from datetime import datetime, timedelta, timezone
@@ -450,8 +451,11 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
                 skipped += 1
                 continue
             ts = str(r.get("ts"))[:32]
-            name = str(r.get("name") or "")[:200]
-            question = str(r.get("question") or "")[:200] or None
+            # R2506（审-F2）：备份文件的 name/question 此前只截断不剥
+            # 控制字——手工构造的备份能把 NUL/双向符写进台账标题。
+            name = _CTRL_RE.sub("", str(r.get("name") or ""))[:200]
+            question = (_CTRL_RE.sub("", str(r.get("question") or ""))[:200]
+                        or None)
             # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
             dup = c.execute(
                 "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
@@ -477,3 +481,10 @@ def _csv_safe(v: str) -> str:
     """R229n（R6-#9）：CSV 单元格以 =+-@ / 制表符开头时 Excel/WPS 会按
     公式执行（question 是用户自由文本）——前置 ' 转义。"""
     return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+
+
+# R2506（审-F2）：备份回灌 name/question 的控制字/零宽/双向符剥离——
+# 与 web/schemas.py strip_zw 同字符集（guji 层不反向依赖 web）。
+_CTRL_RE = re.compile(
+    r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff"
+    r"\x00-\x1f\x7f-\x9f]")

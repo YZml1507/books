@@ -4076,7 +4076,23 @@ async function loadDaily() {
     /* R228c：失败态补全——dailyDate 别停在「加载中…」，分享钮也给提示
      * 而不是静默无操作。 */
     setText('dailyDate', '今天');
-    setText('dailySummary', '运势计算暂时不可用：' + _humanizeErr(e.message));
+    /* R2506（审-U1）：日签卡失败此前是死卡——loadDaily 只在 init 调
+     * 一次，弱网/5xx 后卡片停在错误态直到整页刷新（微信里刷新藏得
+     * 很深）。错误句后给「再来一次」重试钮；online 事件侧另有兜底
+     * （__lastDaily 仍空就重拉）。 */
+    var _ds = el('dailySummary');
+    if (_ds) {
+      _ds.innerHTML = '运势计算暂时不可用：' + esc(_humanizeErr(e.message)) +
+        ' <button type="button" class="ghost daily-retry" id="dailyRetry">' +
+        '再来一次</button>';
+      var _drRetry = el('dailyRetry');
+      if (_drRetry && !_drRetry.dataset.bound) {
+        _drRetry.dataset.bound = '1';
+        _drRetry.addEventListener('click', function () { loadDaily(); });
+      }
+    } else {
+      setText('dailySummary', '运势计算暂时不可用：' + _humanizeErr(e.message));
+    }
     /* R230n（R25-5.2）：打卡是纯 localStorage 功能，daily 失败时不该
      * 连带隐藏——按浏览器今天渲出来，离线也能打。 */
     renderCheckin(todayIso());
@@ -4225,7 +4241,13 @@ async function loadDailyDetail() {
     attachChatEntry(target);   /* R230k（R23-P2-1）：直写 innerHTML 不走 paint——手动挂 */
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
-    target.innerHTML = '<div class="no-evidence">解读失败：' + esc(_humanizeErr(e.message)) + '</div>';
+    /* R2506（审-U3）：失败时详情块已展开但按钮还停在
+     * aria-expanded=false + 「查看完整解读」——读屏宣告与视觉相反。
+     * 补 _syncBtn + 错误句给「再点一次」的重试语义（再点会重走 fetch，
+     * loaded 标记没置位所以真会重试）。 */
+    target.innerHTML = '<div class="no-evidence">解读失败：' +
+      esc(_humanizeErr(e.message)) + '——再点一次按钮重试</div>';
+    _syncBtn();
   }
 }
 
@@ -6531,10 +6553,14 @@ async function doXingzuo(force) {
           }).join('') + '</div>' : '';
         /* R2349o（R78-P0-1）：宫卡是整条键盘死路——补 tabindex+role+
          * aria-expanded，Enter/Space 走同一展开路径（keydown 委托在下）。 */
+        /* R2506（审-U4）：aria-label 顶替全卡内容——读屏此前只听
+         * 到「白羊宫，展开三运明细」，xz-note 日运正文整条丢失。
+         * 把正文并进可访问名。 */
         html += '<div class="xz-card' + cls + (_stt ? ' xz-tap' : '') + '"' +
           (_stt ? ' title="' + esc(_stt) + '"' +
                  ' tabindex="0" role="button" aria-expanded="false"' +
-                 ' aria-label="' + esc(s.sign + '宫，展开三运明细') + '"' : '') +
+                 ' aria-label="' + esc(s.sign + '宫，' + (s.note || '') +
+                 '，点按展开三运明细') + '"' : '') +
           '><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) + '</span>' +
           (s.palace ? '<span class="xz-palace">' + esc(s.palace) + '</span>' : '') +
           '<span class="xz-note">' + esc(s.note) + '</span>' +
@@ -11588,6 +11614,9 @@ function baziPersonaCard(j) {
           detailEl.dataset.rid = String(id);
           detailEl.hidden = false;
           detailEl.scrollIntoView({ behavior: _rmBehavior() });
+          /* R2506（审-U2）：焦点跟到详情面板——与删除路径结束后
+           * historyList.focus() 同纪律（此前焦点停在已滚离的行钮上）。 */
+          try { detailEl.focus({ preventScroll: true }); } catch (eF) {}
         }
       } catch (e) {
         showToast('读取失败：' + e.message, 'error');
@@ -12318,6 +12347,9 @@ function humanCite(citation) {
   });
   window.addEventListener('online', function () {
     showToast('网络回来了～', 'info');
+    /* R2506（审-U1）：日签卡死卡兜底——上次 loadDaily 失败后
+     * __lastDaily 仍空，回网自动重拉一次（DAILY_GEN 挡旧响应）。 */
+    if (!window.__lastDaily) { try { loadDaily(); } catch (e) {} }
   });
   /* R230d（R16-P1-5）：冷启动就离线（PWA 壳由 SW 兜住）时给同一条提示——
    * offline 事件只在「由在线转离线」时发，启动即离线它不发。 */

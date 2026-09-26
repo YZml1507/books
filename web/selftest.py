@@ -2343,7 +2343,7 @@ def _run_inner() -> list[str]:
         # CRLF 解码体/javascript: 全部回落「/」，合法深链不受误伤。
         # /%0d%0a 字面串过白名单是安全的（浏览器只当同域编码路径，不进
         # Location 头注入）；真洞是解码后的 CRLF——两种形态都要钉。
-        # 放限速灌水之前：每条 POST 都计 _gate 桶，本表 5 条内不越 10/60s。
+        # 放限速灌水之前：R2506 起只有错口令计桶（对口令 POST 不耗桶）。
         for _bad_nxt in ("/\\evil.com", "/ /@evil", "javascript:alert(1)",
                          "%0d%0aSet-Cookie:x", "\r\nSet-Cookie: x"):
             _gn2 = client.post("/_gate",
@@ -2361,10 +2361,13 @@ def _run_inner() -> list[str]:
                          follow_redirects=False)
         assert _gk.status_code == 302 and _gk.headers["location"] == "/", \
             ("?key= 白名单漏放", _gk.status_code, _gk.headers.get("location"))
-        # R2363（R116-P1-2）：/_gate 限速——同 IP 10 次/60s 后第 11 次 429。
-        # 上面已计 9 次（4 正常 + 5 白名单表）；再敲 1 次到上限后断言限流页。
+        # R2363（R116-P1-2）：/_gate 限速——10 次/60s 后第 11 次 429。
+        # R2506（审-F1 口径变化）：只有错口令计桶——对口令 POST 不再耗
+        # 桶（先验后扣），此前「4 正常 + 5 白名单」的计数方式作废。
+        # 此刻错桶计数 = ?key=wrong 1 + _g7 1 = 2；再补 8 条凑满 10。
         # 放块尾，免得污染它闸。
-        client.post("/_gate", data={"key": "nope"})
+        for _i in range(8):
+            client.post("/_gate", data={"key": "nope"})
         _g9 = client.post("/_gate", data={"key": "nope"})
         assert _g9.status_code == 429, _g9.status_code
         # R2400（R137-P1-2）：XFF 首元素伪造不再换桶——链尾才是真身，

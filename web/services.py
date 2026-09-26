@@ -534,6 +534,11 @@ def xingzuo(date_str: str | None = None) -> dict:
         except ValueError:
             raise ValidationError(
                 "日期没看懂——照着 2026-01-01 这样填试试") from None
+        # R2506（审-F3）：与 _parse_iso_date 同口径——Py3.11+
+        # fromisoformat 放宽的非规范形（20260101 等）拒掉。
+        if _parsed.isoformat() != date_str:
+            raise ValidationError(
+                "日期没看懂——照着 2026-01-01 这样填试试")
         # R228b：星历表有覆盖区间——极值年份（如 9999）会一路炸进
         # bazi_compute 报 ValueError → 未映射 500。边界即拒为 400。
         if not (YEAR_LO <= _parsed.year <= YEAR_HI):
@@ -1235,10 +1240,15 @@ def huangli(date_str: str | None = None, affair: str | None = None,
     # 日——契约上悄悄吞错。与 date= 同口径：非法即 400。
     if today:
         try:
-            date.fromisoformat(today)
+            _td = date.fromisoformat(today)
         except ValueError:
             raise ValidationError(
                 "today 参数格式没看懂——照着 2026-01-01 这样填试试") from None
+        # R2506（审-F3）：与 _parse_iso_date 同口径——非规范形拒掉，
+        # 年份也钳到节气表适用界（此前 today=9999-12-31 静默 200）。
+        if _td.isoformat() != today or not (YEAR_LO <= _td.year <= YEAR_HI):
+            raise ValidationError(
+                "today 参数格式没看懂——照着 2026-01-01 这样填试试")
     dt = (datetime(_d.year, _d.month, _d.day)
           if (_d := _parse_iso_date(date_str) if date_str else None)
           else _now_cn())
@@ -3917,6 +3927,12 @@ def _parse_iso_date(date_str: str) -> "date":
                 if re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", date_str or "")
                 else "日期格式没看懂——照着 2026-01-01 这样填试试")
         raise ValidationError(_msg) from None
+    # R2506（审-F3）：Py3.11+ fromisoformat 放宽收 20260101、
+    # 2026-W01-1 等非规范形——与 schemas._iso_canonical 同口径，
+    # isoformat 往返只放 YYYY-MM-DD（GET 与 POST 契约对齐）。
+    if parsed.isoformat() != date_str:
+        raise ValidationError(
+            "日期格式没看懂——照着 2026-01-01 这样填试试")
     if not (YEAR_LO <= parsed.year <= YEAR_HI):
         raise ValidationError(
             f"年份须在 {YEAR_LO}-{YEAR_HI}，收到 {parsed.year}")

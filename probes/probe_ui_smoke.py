@@ -408,6 +408,11 @@ def main() -> int:
         "importPasteGo": "触屏/微信专属粘贴导入弹层钮——桌面端"
                           "_exportShowOnly()=False 弹层不产生，"
                           "导入主路径 ui:history.import 已覆盖",
+        # R2506（审-U1）：日签失败态动态生成的重试钮——点击=loadDaily
+        # 重拉，主链路（日卡渲染/深链/跨零点重载）已由 daily/deep 用例覆盖；
+        # 冒烟强造 daily 5xx 成本高（需 mock 注入失败），豁免。
+        "dailyRetry": "日签失败态动态重试钮——loadDaily 主链路已由 "
+                      "daily/deep 用例覆盖，失败注入非冒烟面",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

@@ -7,7 +7,8 @@
  2. /api/threads?limit：0/负/超 500 → 400（与 search/addr 同口径）；
     limit>50 真正下推 SQL（此前 resume() 硬编 50，truncated 谎报）。
  3. /api/search?genre 拼错类别 → 400（与 work/layer 存在性校验同口径）。
- 4. /api/daily?date= 变体 → 归一化到规范形算真值，不落脏缓存键；
+ 4. /api/daily?date= 变体 → R2502 曾归一化放行；R2506（审-F3）改为
+    与 POST _iso_canonical 同口径 400——不落脏缓存键的不变式更严守；
     ?bday=garbage → 400（不再静默吞）。
  5. /api/huangli?affair 超长 → 422（max_length=32）。
  6. 备份回灌：evidence/confidence 塞非标量类型 → 不再 InterfaceError/
@@ -127,19 +128,16 @@ def main() -> int:
     else:
         check("search genre 正例", True, "stats 无 genre 列表，跳过正例")
 
-    # ── 4. daily 日期归一化 + bday 拒垃圾 ────────────────────
+    # ── 4. daily 日期规范形 + bday 拒垃圾 ────────────────────
+    # R2506（审-F3，取代 R2502「归一化放行」口径）：GET 与 POST 的
+    # _iso_canonical 同口径——非规范形（20260101/2026-W01-1）直接 400，
+    # 变体根本到不了缓存层，原「不落脏缓存键」不变式以更严方式守住。
     r = c.get("/api/daily?date=20260101")
-    _j = r.json() if r.status_code == 200 else {}
-    check("daily ?date=20260101 → 200 且回规范键",
-          r.status_code == 200 and _j.get("date") == "2026-01-01",
-          f"status={r.status_code} date={_j.get('date')}")
+    check("daily ?date=20260101 → 400（非规范形拒）",
+          r.status_code == 400, f"status={r.status_code}")
     r = c.get("/api/daily?date=2026-W01-1")
-    _j = r.json() if r.status_code == 200 else {}
-    # ISO 周历 2026-W01-1 = 2026 年第 1 周周一 = 2025-12-29（fromisoformat
-    # 真值；归一化后按它算，不再落「2026-W01-1」脏键或降级卡）。
-    check("daily ?date=2026-W01-1 → 200 归一到 2025-12-29",
-          r.status_code == 200 and _j.get("date") == "2025-12-29",
-          f"status={r.status_code} date={_j.get('date')}")
+    check("daily ?date=2026-W01-1 → 400（周历形拒）",
+          r.status_code == 400, f"status={r.status_code}")
     r = c.get("/api/daily?bday=garbage")
     check("daily ?bday=garbage → 400", r.status_code == 400,
           f"status={r.status_code}")
