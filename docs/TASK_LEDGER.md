@@ -13961,3 +13961,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - R2597 research.py 改动对前端面零影响确认；短超时设计（4s/
   action）下无成片的超时雪崩——测试健康度本身达标。
 - 附带：history/paipan 清理闭环（0 残留）自证探针不污染数据面。
+
+## R2605 巡检#22——qiming/review AI 点评链实测全绿
+- POST /api/qiming/review → review_task_id → done（mock 链）。
+- mock 日志实证专属人设：古典起名顾问、引经据典 40-70 字、
+  「不要编造不存在的句子；不确定出处就直说字义上」诚实纪律；
+  names+facts（缺水/喜木）结构化注入。
+- 限流哨兵 rate_limited 键与 chat 同口径（R2517 在案）。
