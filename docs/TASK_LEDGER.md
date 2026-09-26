@@ -14267,3 +14267,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 
 ## R2662 巡检#79——bookstudy.chapter 单节阅读
 - 乾卦→9 单元（addr/layer/text/citation 链齐、KR 编号可回溯）。
+
+## R2663 巡检#80·第二段大快照——全闸持续零漂移
+- selftest 312 · contract 643 · dup_keys · date_parity 三组全绿；
+  R2623 后 40 轮巡检期间零代码改动、闸态无漂移。
