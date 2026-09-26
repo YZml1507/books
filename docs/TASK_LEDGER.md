@@ -13864,3 +13864,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   aria-pressed=true——重渲即时不整页刷。
 - 刷新持久：voiceMode=pro 留存（localStorage 键与备份/wipe 白名单
   已在册）。回到温柔版按钮（pro-back-btn）在 DOM。
+
+## R2593 巡检#10——中段全闸大快照：十轮巡检零污染累积
+- probe_standing 3/3（warm/check_xingzuo/check_async_ai 含 p95<2.0s）。
+- probe_date_parity：74+43 问法偏移一致 · 253 别名同构 · 9 族同构。
+- probe_baseline：warm voice 14 用例逐字节 sha256 一致。
+- probe_ui_smoke：浏览器用例全 PASS（含深链/推送态/清理断言）。
+- 合计此前快闸（selftest 311/contract 643/dup_keys/chat_e2e 4-4）——
+  巡检模式十轮无任何代码变更，全部闸门维持基线绿。
