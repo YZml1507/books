@@ -13856,3 +13856,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - xingzuo 日更：12 宫全量下发，per-sign note/sign_note/love/career/
   wealth 五维文案在产；name 参数仅提示非过滤（恒同棋盘=设计口径）。
 - 裸 CJK query 被 HTTP 层拒（非 ASCII request-line）属协议层正确。
+
+## R2592 巡检#9——温柔/专业口径切换真浏览器实测全绿
+- bazi 结果卡默认 warm：mode-switch 在、无 pro-notice、warm 内容渲染、
+  active=warm（voiceMode 未存=默认温柔）。
+- 点 📐专业版：voiceMode=pro、pro-notice 出现、active 切换、
+  aria-pressed=true——重渲即时不整页刷。
+- 刷新持久：voiceMode=pro 留存（localStorage 键与备份/wipe 白名单
+  已在册）。回到温柔版按钮（pro-back-btn）在 DOM。
