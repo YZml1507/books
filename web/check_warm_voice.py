@@ -138,6 +138,8 @@ def _all_prose(warm: dict) -> str:
 
 def _cases():
     """固定输入集：与 baseline_voice 的用例对齐（同一批输入两个角度量）。"""
+    # R2508：排盘落档隔离——文案闸不该往 paipan_history.db 留测试行。
+    os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
     from fastapi.testclient import TestClient
 
     from web.app import app

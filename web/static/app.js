@@ -9456,6 +9456,14 @@ function init() {
   setInterval(function () { _applyDaypart(); _onDayFlip(); }, 15000);
   window.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
+    /* R2508（审-P2-1 续）：wishbottle 进 wipe/备份白名单后，A tab
+     * 的删掉/存新要让 B tab 已展开的瓶卡就地跟上——removeItem 的
+     * newValue=null 与新写入都走这条。 */
+    if (e.key === 'wishbottle') {
+      try { _renderWishBottle(); } catch (eW0) {}
+      try { _wishRefreshSummary(); } catch (eW1) {}
+      return;
+    }
     if (e.key.indexOf('checkin:') === 0) {
       renderCheckin(todayIso());
       return;
@@ -11700,8 +11708,10 @@ function baziPersonaCard(j) {
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:'];
+        /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
+         * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
-                      'installTipDismissed', 'ret_tip'];
+                      'installTipDismissed', 'ret_tip', 'wishbottle'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -11837,7 +11847,9 @@ function baziPersonaCard(j) {
             var k = localStorage.key(i);
             /* R2349（R65-P2-4）：checkinCeleb:*（里程碑已弹标记）此前
            * 游离在清除清单外——一起收。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|chatSessionId|chatTranscript|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
+           * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
@@ -11979,7 +11991,7 @@ function baziPersonaCard(j) {
              * 键名限长——「checkin:」+8000 字符键此前照存。 */
             /* R2349y（R95-P2-1）：checkinCeleb:/ret_tip 导得出导不回
              * ——收进白名单。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$)/
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$)/
                 .test(k) || k.length > 40 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -12016,6 +12028,20 @@ function baziPersonaCard(j) {
                 _mo.n = _meNickClean(_mo.n);
                 local[k] = JSON.stringify(_mo);
               } catch (eMe) { return; }
+            }
+            /* R2508（审-P2-1）：wishbottle 还原也要过形状校验——
+             * 归一化 {t,c,ts}，脏 JSON/脏字段不直接落库（渲染层
+             * 虽有 esc()，形状闸与 me 同款收口更稳）。 */
+            if (k === 'wishbottle') {
+              try {
+                var _wo = JSON.parse(local[k]);
+                if (!_wo || typeof _wo !== 'object') return;
+                _wo = { t: String(_wo.t || '').slice(0, 200),
+                        c: String(_wo.c || '小秘密').slice(0, 16),
+                        ts: +_wo.ts || Date.now() };
+                if (!_wo.t) return;
+                local[k] = JSON.stringify(_wo);
+              } catch (eW) { return; }
             }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });

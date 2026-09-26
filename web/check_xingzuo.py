@@ -50,6 +50,8 @@ def check_anchors(fixture: dict, conn: sqlite3.Connection) -> list[str]:
 
 def check_deterministic() -> list[str]:
     """判据 11：同日两次调用逐字节相等；12 宫齐全。"""
+    # R2508：排盘落档隔离——星座量尺不该往 paipan_history.db 留行。
+    os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
     from fastapi.testclient import TestClient
 
     from web.app import app

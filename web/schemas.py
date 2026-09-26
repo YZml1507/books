@@ -30,7 +30,10 @@ _ZW_RE = re.compile(
     r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff"
     # R2364（R119-P1-2）：C0/C1 控制字一并剥——NUL/换行/CR 此前原样
     # 进台账标题（hehun 昵称、六爻/塔罗 question 落 name 字段）。
-    r"\x00-\x1f\x7f-\x9f]")
+    # R2508（审-P0）：孤代理（\ud800-\udfff）在 Python str 里合法、
+    # pydantic str 字段拦得住，但 dict/Any 字段值能漏到 sqlite 绑定
+    # /json.dumps 序列化 → UnicodeEncodeError 穿透成 500。
+    r"\x00-\x1f\x7f-\x9f\ud800-\udfff]")
 
 
 def strip_zw(s: str | None) -> str | None:

@@ -3728,11 +3728,15 @@ def set_user_prefs(payload: dict) -> dict:
         raise ValidationError("存的偏好太多了，先清一批再存")
     items = []
     for k, v in payload.items():
+        # R2508（审-P0）：dict 值不属 pydantic str 校验面——孤代理
+        # \ud800 能漏到 sqlite 绑定炸 UnicodeEncodeError。键值都剥。
+        if isinstance(k, str):
+            k = re.sub(r"[\ud800-\udfff]", "", k)
         if not isinstance(k, str) or not k or len(k) > 64:
             raise ValidationError("偏好名太长或为空——换短一点的")
         if isinstance(v, (list, dict)):
             v = json.dumps(v, ensure_ascii=False)
-        v = str(v)
+        v = re.sub(r"[\ud800-\udfff]", "", str(v))
         if len(v) > 4000:
             raise ValidationError("这条偏好存不下（太长了）")
         items.append((k, v))

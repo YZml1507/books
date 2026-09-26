@@ -20,8 +20,24 @@ from __future__ import annotations
 
 import glob
 import os
+import re
 import sqlite3
 import time
+
+# R2508（审-P0）：孤代理 \ud800-\udfff 在 dict/Any 备份值里合法存在，
+# sqlite 绑定/json.dumps 回响两通道都炸 UnicodeEncodeError → 500。
+# 备份直灌面先递归剥再落库（str 字段的 pydantic 拦不住容器内值）。
+_SURG_RE = re.compile(r"[\ud800-\udfff]")
+
+
+def _surg_scrub(obj):
+    if isinstance(obj, str):
+        return _SURG_RE.sub("", obj)
+    if isinstance(obj, list):
+        return [_surg_scrub(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _surg_scrub(v) for k, v in obj.items()}
+    return obj
 from datetime import datetime
 from dataclasses import dataclass, field
 
@@ -454,6 +470,7 @@ class KnowledgeBase:
             if not isinstance(it, dict):
                 skipped += 1
                 continue
+            it = _surg_scrub(it)
             topic = str(it.get("topic") or "").strip()[:100]
             opened_at = str(it.get("opened_at") or "").strip()[:32]
             if not topic or not opened_at:
@@ -473,6 +490,17 @@ class KnowledgeBase:
                 "INSERT INTO thread (topic, status, opened_at, updated_at) "
                 "VALUES (?,?,?,?)", (topic, status, opened_at, updated_at))
             tid = cur.lastrowid
+            # R2508（自测实锤）：tid 复用已删行 rowid 时，旧行名下可能
+            # 留孤儿 turn（PRAGMA foreign_keys 未开，绕过级联的删除
+            # 不连带）——UNIQUE(thread_id,seq) 首插即撞 IntegrityError
+            # 穿透成 503 且毒化后续所有回灌。tid 全新，其名下旧 turn
+            # 必是孤儿，先清；余下撞键撤出本项写过的行按 skip 计。
+            self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
+            # derived.thread_id 无唯一约束但同样会被孤儿绑定错挂到
+            # 新线程名下——解绑而非删除（手记原文属历史数据）。
+            self.db.execute(
+                "UPDATE derived SET thread_id=NULL WHERE thread_id=?",
+                (tid,))
             seq = 0
             # R2503（审-P0）：turns 容器本身不是 list（备份塞 42/{...}）时
             # 切片抛 TypeError → 穿透 errors.py 映射成裸 500，且 thread 行
@@ -480,21 +508,29 @@ class KnowledgeBase:
             _turns = it.get("turns")
             if not isinstance(_turns, list):
                 _turns = []
-            for tr in _turns[: self._CAP_TURN_PER_THREAD]:
-                if not isinstance(tr, dict):
-                    continue
-                role = tr.get("role")
-                if role not in ("user", "assistant"):
-                    role = "user"
-                text = str(tr.get("text") or "")[:4000]
-                if not text:
-                    continue
-                seq += 1
-                self.db.execute(
-                    "INSERT INTO turn (thread_id, seq, role, text, created_at) "
-                    "VALUES (?,?,?,?,?)",
-                    (tid, seq, role, text,
-                     str(tr.get("created_at") or "").strip()[:32] or opened_at))
+            try:
+                for tr in _turns[: self._CAP_TURN_PER_THREAD]:
+                    if not isinstance(tr, dict):
+                        continue
+                    role = tr.get("role")
+                    if role not in ("user", "assistant"):
+                        role = "user"
+                    text = str(tr.get("text") or "")[:4000]
+                    if not text:
+                        continue
+                    seq += 1
+                    self.db.execute(
+                        "INSERT INTO turn (thread_id, seq, role, text, "
+                        "created_at) VALUES (?,?,?,?,?)",
+                        (tid, seq, role, text,
+                         str(tr.get("created_at") or "").strip()[:32]
+                         or opened_at))
+            except sqlite3.IntegrityError:
+                self.db.execute("DELETE FROM turn WHERE thread_id=?",
+                                (tid,))
+                self.db.execute("DELETE FROM thread WHERE id=?", (tid,))
+                skipped += 1
+                continue
             # R2500（R143-P1-2/D2）：derived claims/手记随线程回灌——
             # 此前只收 turns，清盘+恢复后手记原文永丢。证据条目形状
             # 不齐时 record() 会拒，吞掉单条不拖死整线程。

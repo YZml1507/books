@@ -63,7 +63,11 @@ def install(app: FastAPI) -> None:
                            exc: Exception) -> JSONResponse:
         msg = str(exc)
         if "[Errno" in msg or "/" in msg or "\\" in msg:
-            msg = re.sub(r"[\w.\-]+(?:/[\w.\-]+)+", "…", msg)
+            # R2508（审-P2）：脱敏正则此前连「（先跑 scripts/build_index.py）」
+            # 里的修复提示一起吃掉——分号内提示段不遮路径。
+            _head, _sep, _tail = msg.partition("（")
+            _head = re.sub(r"[\w.\-]+(?:/[\w.\-]+)+", "…", _head)
+            msg = _head + (_sep + _tail if _sep else "")
             if "[Errno" in msg:
                 msg = "资源文件没装进来——请确认部署包完整"
         return JSONResponse(status_code=503, content={"detail": msg})
@@ -95,6 +99,12 @@ def install(app: FastAPI) -> None:
         detail = exc.detail
         if exc.status_code == 404 and detail == "Not Found":
             detail = "要找的内容不在了"
+        # R2508（审-P2）：框架直出英文 detail 的另两条漏口——
+        # FastAPI 路由层「解析 body 失败」400 与 405 方法不允许。
+        elif detail == "There was an error parsing the body":
+            detail = "请求体解析不了，检查一下格式再发"
+        elif exc.status_code == 405 and detail == "Method Not Allowed":
+            detail = "这个接口不支持该请求方法"
         return JSONResponse(status_code=exc.status_code,
                             content={"detail": detail},
                             headers=getattr(exc, "headers", None))
@@ -115,9 +125,20 @@ def install(app: FastAPI) -> None:
     # 与 shape 错同档 422。
     async def _recursion_handler(_request: Request,
                                  exc: Exception) -> JSONResponse:
+        # R2508：GET 上的存储 JSON 递归同走此映射——不说「请求体」。
         return JSONResponse(status_code=422,
-                            content={"detail": "请求体嵌套太深，解析不了"})
+                            content={"detail": "数据嵌套太深，处理不了"})
     app.add_exception_handler(RecursionError, _recursion_handler)
+
+    # R2508（审-P0）：孤代理 \ud800-\udfff 走 dict/Any 备份值绕过
+    # pydantic str 校验 → sqlite 绑定 / JSONResponse 序列化双双
+    # 炸 UnicodeEncodeError（UnicodeError 子类、非 DatabaseError）——
+    # 此前穿透成英文裸 500。写面已逐点剥除，本映射是漏面兜底 422。
+    async def _unicode_handler(_request: Request,
+                               exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=422,
+                            content={"detail": "有特殊字符处理不了，换个写法再试"})
+    app.add_exception_handler(UnicodeError, _unicode_handler)
 
     # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显
     # 原始输入——孤立代理项（\ud800）让默认序列化炸成 500，超长 input

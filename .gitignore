@@ -50,8 +50,10 @@ thinking-effort-loaded.json
 # 曾被 git 跟踪，导致两条轨道各跑一次测试就双方 working tree 脏、
 # merge 时二进制冲突无法解决。改为忽略；重建命令见 constitution.md §IV。
 data/history.db
+data/knowledge.db
 data/index/corpus.db
 data/index/knowledge.db
+data/index/history.db
 
 # logs/ — runtime logs, screenshots, scratch probes (not deliverables)
 logs/

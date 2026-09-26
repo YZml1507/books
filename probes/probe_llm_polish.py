@@ -44,6 +44,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "src"))
+# R2508：本探针直建 TestClient 打排盘端点——隔离写面，不留测试行。
+os.environ.setdefault("BOOKS_PAIPAN_HISTORY_DISABLE", "1")
 # R132a：原硬编码 PY = ROOT/.venv/Scripts/python.exe 已删除——audit worktree
 # 没有自己的 .venv（解释器借主 worktree），子进程一律用 sys.executable。
 try:

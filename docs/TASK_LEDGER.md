@@ -12961,3 +12961,43 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   first_screen、baseline_voice、poster、async_ai、warm_voice、
   xingzuo、plain_first、llm_polish、ruff E9F 全过。
   SW 重发 books-shell-df022d363fda。
+
+## R2508 — 中间件/隐私面收口（审查 agent 7 条 + 自测 3 条）
+
+- [x] **P0 孤代理 → UnicodeEncodeError 500**（dict/Any 字段绕过
+  pydantic str 校验面，实测 import/prefs 500）— DONE
+  - 修：`_ZW_RE`/`_CTRL_RE` 剥离集加 `\ud800-\udfff`；
+    `import_rows` 的 req/result 序列化文本剥代理；
+    `set_user_prefs` 键值剥代理；`import_threads` 新增
+    `_surg_scrub` 递归净化备份 dict；errors.py 加
+    `UnicodeError→422` 漏面兜底。
+    `web/schemas.py src/guji/paipan_history.py web/services.py
+    src/guji/knowledge.py web/errors.py`
+  - 实证：name/req/topic/theme 四处孤代理全 200 剥净落库。
+- [x] **P1 CL+TE 双头绕过 512KB 体闸**— DONE
+  - TE 在场一律 413（无法预验长），与 TE-only 同口径。
+    `web/app.py`（raw-socket 实测 413）
+- [x] **P1 静态正缓存盖错误响应**— DONE
+  - `/static/fonts/*` 404 曾吃 `max-age=86400` 负缓存一天——
+    正缓存只盖 <300。实测 404 无 cc、app.js 仍 3600。
+- [x] **P2×4**：base_url 按 URL 安全集过滤注入 og/robots/
+  sitemap（Host 可控不再破属性）；413 补安全头（本中间件在
+  _security_headers 外侧）；400 parse/405 英文 detail 中文化
+  +RecursionError 措辞去「请求体」；fnf 脱敏按「（」分段保
+  留修复提示（scripts/build_index.py 不再被吃掉）。
+- [x] **自测-孤孤儿 turn**：复用已删 rowid 的新 tid 名下残留
+  UNIQUE(turn) 撞键 → 回灌 503 毒化——tid 全新先清孤儿 turn +
+  解绑孤儿 derived，IntegrityError 撤项按 skip 计（自愈）。
+  `src/guji/knowledge.py`
+- [x] **自测-许愿瓶隐私洞**（审-P2-1）：wishbottle 三面收口——
+  wipe 白名单、备份 _EXACT、还原白名单+{t,c,ts} 归一化、
+  跨 tab storage 同步。真机双段 wipe 实测键已删。
+- [x] **自测-闸脚本泄漏**：5 个闸脚本补
+  BOOKS_PAIPAN_HISTORY_DISABLE（此前每趟积 68 行残留）；
+  .gitignore 收 data/knowledge.db、data/index/history.db。
+- [x] **钉扎** `probes/probe_r2508.py`（32 项）。
+- [x] 闸门：selftest 310、ui_smoke、r2505 7、r2506 26、r2507 8、
+  r2508 32、ruff E9F、dollar_misuse、no_generated、
+  scripts_importable、date_parity、contract(同前 INCONCLUSIVE)、
+  first_screen、baseline_voice、poster、warm_voice、xingzuo、
+  plain_first、llm_polish、async_ai 全过。

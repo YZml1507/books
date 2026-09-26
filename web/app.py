@@ -296,17 +296,25 @@ def create_app() -> FastAPI:
     @application.middleware("http")
     async def _body_size_guard(request, call_next):
         cl = request.headers.get("content-length")
+        # R2508（审-P1）：CL+TE 双头时 TE 按 h11 语义赢——旧顺序只看
+        # cl 有没有，TE chunked 的多 MB body 照样全量进内存。TE 在场
+        # 一律拒（无法预先验长），与 TE-only 同口径。
+        if request.headers.get("transfer-encoding"):
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "请求体太大了，精简一下再发"},
+                # R2508（审-P2）：本中间件在 _security_headers 外侧——
+                # 它的 413 拿不到安全头（也拿不到 CORS 头）。就地补齐。
+                headers={"X-Content-Type-Options": "nosniff",
+                         "X-Frame-Options": "DENY",
+                         "Referrer-Policy": "no-referrer"})
         if cl is not None and cl.isdigit() and int(cl) > 512 * 1024:
             return JSONResponse(
                 status_code=413,
-                content={"detail": "请求体太大了，精简一下再发"})
-        # R230a-40（R15-P1-1）：chunked 传输天然无 Content-Length，此前整体
-        # 绕过护栏（2MB body 实测走到校验层）。浏览器永远不会发 chunked
-        # 请求体——见到 transfer-encoding 且无长度声明就拒。
-        if cl is None and request.headers.get("transfer-encoding"):
-            return JSONResponse(
-                status_code=413,
-                content={"detail": "请求体太大了，精简一下再发"})
+                content={"detail": "请求体太大了，精简一下再发"},
+                headers={"X-Content-Type-Options": "nosniff",
+                         "X-Frame-Options": "DENY",
+                         "Referrer-Policy": "no-referrer"})
         return await call_next(request)
 
     # R229z续8 续（R8 P1-2 附）：字体/出图资产低变动——一天 Cache-Control，
@@ -315,11 +323,16 @@ def create_app() -> FastAPI:
     async def _static_cache(request, call_next):
         resp = await call_next(request)
         p = request.url.path
-        if p.startswith(("/static/fonts/", "/static/cream/",
-                         "/static/tarot/", "/static/animotion/")):
+        # R2508（审-P1）：此前不判状态码——/static/fonts/ 下未部署文件
+        # 的 404 被盖 public,max-age=86400，浏览器/中间缓存钉死负缓存
+        # 一天；POST 体积超限的 413 也吃到 3600。正缓存只盖 2xx。
+        if resp.status_code < 300 and p.startswith(
+                ("/static/fonts/", "/static/cream/",
+                 "/static/tarot/", "/static/animotion/")):
             resp.headers.setdefault("Cache-Control",
                                     "public, max-age=86400")
-        elif p.startswith(("/static/",)) and p.endswith((".js", ".css")):
+        elif resp.status_code < 300 and p.startswith(("/static/",)) \
+                and p.endswith((".js", ".css")):
             # R230n（R25-5.1）：主资源此前只有启发式缓存——SW 未装的回访
             # 用户每次全量重拉 ~400KB。1h 缓存+SW shell-hash 保证版本一致。
             resp.headers.setdefault("Cache-Control",
@@ -363,7 +376,11 @@ def create_app() -> FastAPI:
             raise HTTPException(500, "前端文件缺失：web/static/index.html")
         try:
             html = open(deps.INDEX, encoding="utf-8").read()
-            base = str(request.base_url).rstrip("/")
+            # R2508（审-P2）：base_url 取自 Host/X-Forwarded-Host
+            # （--proxy-headers 下全可控）——含引号即破 og 属性注 HTML。
+            # 按 URL 安全集过滤后再注入（robots/sitemap 同款）。
+            base = re.sub(r"[^\w.\-~:/?#[\]@!$&'()*+,;=%]+", "",
+                          str(request.base_url).rstrip("/"))
             html = html.replace('content="/static/', f'content="{base}/static/')
             # R2350b（R99-P2）：og:url/og:site_name 补缺——爬虫拿到
             # 规范地址与站名；部署在 TLS 反代后需 uvicorn
@@ -441,7 +458,8 @@ def create_app() -> FastAPI:
         p = os.path.join(deps.STATIC_DIR, "robots.txt")
         if not os.path.exists(p):
             raise HTTPException(404)
-        base = str(request.base_url).rstrip("/")
+        base = re.sub(r"[^\w.\-~:/?#[\]@!$&'()*+,;=%]+", "",
+                      str(request.base_url).rstrip("/"))
         body = open(p, encoding="utf-8").read().replace(
             "Sitemap: /sitemap.xml", f"Sitemap: {base}/sitemap.xml")
         return PlainTextResponse(body)
@@ -455,7 +473,8 @@ def create_app() -> FastAPI:
         p = os.path.join(deps.STATIC_DIR, "sitemap.xml")
         if not os.path.exists(p):
             raise HTTPException(404)
-        base = str(request.base_url).rstrip("/")
+        base = re.sub(r"[^\w.\-~:/?#[\]@!$&'()*+,;=%]+", "",
+                      str(request.base_url).rstrip("/"))
         body = re.sub(r"<loc>/", "<loc>" + base + "/",
                       open(p, encoding="utf-8").read())
         return Response(body, media_type="application/xml")

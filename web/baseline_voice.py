@@ -108,6 +108,9 @@ CASES: tuple[dict, ...] = (
 
 def collect() -> dict:
     """跑固定输入集，抽出每例的 interpretation 全量快照（纯读，不改产品代码）。"""
+    # R2508：排盘落档隔离——本脚本只量 interpretation 文本，不该往
+    # paipan_history.db 写实行（此前每跑一趟积一批测试残留）。
+    os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
     from fastapi.testclient import TestClient
 
     from web.app import app
@@ -280,6 +283,8 @@ def freeze_dom() -> int:
 
     port = 8207          # 避开 8123（用户查看）与 8199（审查轨 probe）
     env = dict(os.environ)
+    # R2508：子进程服务同样隔离排盘写面。
+    env["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
     env["PYTHONPATH"] = os.pathsep.join([_ROOT, os.path.join(_ROOT, "src")])
     env["PYTHONIOENCODING"] = "utf-8"
     srv = subprocess.Popen(

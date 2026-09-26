@@ -137,6 +137,8 @@ def _realpath_check(self_check: bool = False) -> int:
             return 1
 
     env = dict(os.environ, BOOKS_LLM_DISABLE="1", PYTHONIOENCODING="utf-8",
+               # R2508：海报闸起真服务打排盘端点——隔离写面，不留测试行。
+               BOOKS_PAIPAN_HISTORY_DISABLE="1",
                PYTHONPATH=os.path.join(ROOT, "src"))
     proc = subprocess.Popen(
         [PY, "-m", "uvicorn", "web.app:app", "--port", str(RP_PORT),
@@ -331,6 +333,8 @@ def main(self_check: bool = False) -> int:
             return 1
 
     env = dict(os.environ, BOOKS_LLM_DISABLE="1", PYTHONIOENCODING="utf-8",
+               # R2508：海报闸起真服务打排盘端点——隔离写面，不留测试行。
+               BOOKS_PAIPAN_HISTORY_DISABLE="1",
                PYTHONPATH=os.path.join(ROOT, "src"))
     proc = subprocess.Popen(
         [PY, "-m", "uvicorn", "web.app:app", "--port", str(PORT),

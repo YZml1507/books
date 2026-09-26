@@ -438,6 +438,12 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
             except (TypeError, ValueError):
                 skipped += 1
                 continue
+            # R2508（审-P0）：ensure_ascii=False 会把孤代理原样写进
+            # JSON 文本（不做 \\udXXXX 转义）——下游 sqlite 绑定炸
+            # UnicodeEncodeError。剥掉后存储，值内容与 name/question
+            # 同纪律。JSON 语法字符不在剥离集，结构不受损。
+            req_s = _CTRL_RE.sub("", req_s)
+            res_s = _CTRL_RE.sub("", res_s)
             if len(req_s) > 262144 or len(res_s) > 262144:
                 skipped += 1
                 continue
@@ -453,9 +459,12 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
             ts = str(r.get("ts"))[:32]
             # R2506（审-F2）：备份文件的 name/question 此前只截断不剥
             # 控制字——手工构造的备份能把 NUL/双向符写进台账标题。
-            name = _CTRL_RE.sub("", str(r.get("name") or ""))[:200]
-            question = (_CTRL_RE.sub("", str(r.get("question") or ""))[:200]
-                        or None)
+            # R2508（审-P2-2）：只剥控制字不 strip——备份能埋前导
+            # 空白（"  =cmd"），导出时绕过 _csv_safe 的首字符公式闸。
+            # 对齐正常 API 路径（strip_zw 含 .strip()）。
+            name = _CTRL_RE.sub("", str(r.get("name") or ""))[:200].strip()
+            question = (_CTRL_RE.sub("", str(r.get("question") or ""))
+                        [:200].strip() or None)
             # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
             dup = c.execute(
                 "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
@@ -487,4 +496,6 @@ def _csv_safe(v: str) -> str:
 # 与 web/schemas.py strip_zw 同字符集（guji 层不反向依赖 web）。
 _CTRL_RE = re.compile(
     r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff"
-    r"\x00-\x1f\x7f-\x9f]")
+    # R2508（审-P0）：孤代理同剥——备份埋的 \ud800 在 sqlite 绑定
+    # /json.dumps 回响两个通道都会炸成 UnicodeEncodeError。
+    r"\x00-\x1f\x7f-\x9f\ud800-\udfff]")
