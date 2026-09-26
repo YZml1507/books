@@ -14041,3 +14041,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - /api/health 200 JSON（engine/index 自检在产）；/api、/api/ 404
   JSON 契约（R2506）；/static→307→/static/→404 JSON（不暴露目录
   列表）；深路径 SPA 兜底 200；favicon.png 直出。
+
+## R2616 巡检#33——会话 GC 全绿
+- _gc_chat_sessions 在真实任务路径调用（llm_polish.py:928）；TTL 清
+  旧+512 帽逐最旧、locked 会话跳过防在跑任务被逐（R230a-6）、锁表
+  独立 1024 帽防「只发被拒消息」洪泛；selftest chat.sessions.cap
+  灌表实测在闸。
