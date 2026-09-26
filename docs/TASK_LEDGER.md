@@ -13848,3 +13848,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   设计实测成立，顶层无 error、无 500。
 - 响应形态：sources[] = {id,title,url,ok,error,items}——前端可逐源
   渲染成败态。
+
+## R2591 巡检#8——xzmatch/xingzuo 星座端点对抗边界全绿
+- xzmatch：异座配对（白羊×天蝎 61「磨合」）文案配对专属非模板化；
+  同款星座（白羊×白羊 88「同款」）有专属判词；坏名/缺参/空参
+  一律 400 人话「没认出星座名——…里挑两个」。
+- xingzuo 日更：12 宫全量下发，per-sign note/sign_note/love/career/
+  wealth 五维文案在产；name 参数仅提示非过滤（恒同棋盘=设计口径）。
+- 裸 CJK query 被 HTTP 层拒（非 ASCII request-line）属协议层正确。
