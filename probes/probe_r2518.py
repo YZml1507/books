@@ -84,6 +84,14 @@ ck("bz.not_crisis",
        voice.reply_bazi("庚", {"ten_gods": [], "five_elements": {},
                                "relations": [], "day_luck": {}},
                         "想死你了我们什么时候见面", gender="女")))
+# R2521：三处转介统一带 12356 热线（此前只 chat 有）。
+ck("hotline.all_three",
+   all("12356" in "".join(r) for r in (
+       voice.reply_bazi("庚", {"ten_gods": [], "five_elements": {},
+                               "relations": [], "day_luck": {}},
+                        "我活不下去了", gender="女"),
+       voice.reply_liuyao({}, {}, [], "不想活了", paipan={}),
+       voice.warm_tarot([], {}, "我活不下去了")["reply"])))
 
 print(f"\n{len(PASS)} checks, {len(FAIL)} failed: {FAIL}")
 sys.exit(1 if FAIL else 0)

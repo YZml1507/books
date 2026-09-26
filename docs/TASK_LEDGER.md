@@ -13329,3 +13329,15 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   重复挂行动尾会双倍唠叨——不改（有意决策）。
 - 残余观察：`_is_crisis` 在 bazi 主表单经「不瞎编」路径也接得住
   （R2518 已补显式转介）；tarot_collection/share 预留面维持原状。
+
+## R2521 — 离线回归 + 危机热线补齐（agent 深审在途）
+
+- [x] **SW 离线回归（新 hash）**：8 视图离线态全部渲染自有内容
+  （bazi/taohua/hehun/liuyao/huangli/tarot/daily/read），SW controlled。
+- [x] **危机转介统一 12356**：三处解读入口的转介文案此前只说「找
+  信得过的人聊聊」——chat 侧早有的 24h 免费热线在真危机语境下
+  是信息差，三处补齐（活端点+函数级实证，撒娇豁免不破）。
+- [x] `_read_index_text` mtime 缓存核实——index.html 变更即失效，
+  无旧壳风险（agent 交办点之一，先自查）。
+- [x] `probe_r2518.py` 扩 16/16（hotline.all_three）。
+- 在途：deps/app 中间件深审 agent af7d1231（交付后归入下轮）。

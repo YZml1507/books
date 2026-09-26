@@ -378,8 +378,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     from guji import llm_polish as _lp
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return ["这个话题盘里真接不了，也不该靠它拿主意——"
-                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
-                "小满陪你说点别的也行。"]
+                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路；"
+                "真的很难受，全国心理援助热线 12356（24 小时，免费）"
+                "随时能打通。小满陪你说点别的也行。"]
 
     topic = _topic_of(q)
     if topic is None:
@@ -708,8 +709,9 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     from guji import llm_polish as _lp
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return ["这个话题卦面真答不了，也不该靠它拿主意——"
-                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
-                "小满陪你说点别的也行。"]
+                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路；"
+                "真的很难受，全国心理援助热线 12356（24 小时，免费）"
+                "随时能打通。小满陪你说点别的也行。"]
     bn = int(ben.get("gua_number") or 0)
     bname = ben.get("gua_name") or ""
     vn = int(bian.get("gua_number") or 0)
@@ -975,7 +977,9 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return _wrap(l0, None,
                      ["这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。",
-                      "身体或心里难受的话，医生和信得过的人才是最该找的。",
+                      "身体或心里难受的话，医生和信得过的人才是最该找的；"
+                      "真的很难受，全国心理援助热线 12356（24 小时，免费）"
+                      "随时能打通。",
                       "想聊点别的，小满都在。"],
                      [], [])
     if q:
