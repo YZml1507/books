@@ -13711,3 +13711,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - deps.py（115 行）干净：Corpus/KB contextmanager 收编原 20+ 处样板、frozen 路径解析完备、write_guard 公开站闸到人话 400。
 - __init__.py（20 行）双导入路径引导、schemas.py（528 行）Field 约束全覆盖（int64 界/max_length/ge-le）。
 - web/ 层六文件全审计完成。DECISIONS 待办命中项复核=历史决策记录条目（处置记于新条目，非开放项）。
+
+## R2569 mock LLM 聊天全链路 E2E（战役唯一未跑链路）
+- mock_llm(8901)+uvicorn(8123 无 DISABLE)：POST /api/chat→chat_task_id→/api/ai/{tid}→done 全链通；浏览器气泡渲染零 `*` 残留。
+- mock 日志实证 facts 注入：人设 system prompt + 「排盘坐标事实（只作话题参考）」+ 用户消息三层结构正确。
+- strongs=0 非缺陷——双层设计：闲聊人设 prompt 明令纯文本（不用 markdown）+ 后端 sanitize 剥配对 `**` + 前端白名单兜底吃孤儿 `**`。
