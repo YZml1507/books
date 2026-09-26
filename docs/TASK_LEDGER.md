@@ -14083,3 +14083,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 312 · contract 643 · dup_keys PASS · standing 3/3 ·
   date_parity 三组（74+43 偏移/253 键/9 族）· baseline 14 逐字节 ·
   chat_e2e 4/4 · ruff 零命中。R2593 后 30 轮巡检零污染累积。
+
+## R2624 巡检#41——SW 预缓存完整性实测
+- SHELL 31 项全 200（含 manifest/图标/字体声明/卡图）；CACHE 名派生
+  app.js 哈希（bump_sw 漏跑会被 sw.shell_hash 闸拦）；/api/* 永不
+  缓存、RT 桶 60 条帽。
