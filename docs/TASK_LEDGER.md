@@ -13702,3 +13702,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2566 data/external 死重清理（E-08 裁决落地）
 - 盘点：131MB/1114 文件被 git 跟踪。bge-small-zh（语义检索模型，代码引用）、zhouyi（bookstudy/compare/douay 引用）、biangua（E-02 独立极性见证）——保留。
 - **删除 3 个零价值目录**（E-08 已判「价值为零且有污染风险」，MASTER_PLAN §2 硬约束禁入库）：suanle-me 568K / starloom 17MB / chatgpt-tarot-divination 2MB ≈ 19.5MB/1050+ 文件。零活引用（无代码 walk/glob 该目录），删除安全。评估记录在台账 E-08 永存，原始文件可经 git 历史复核。
+
+## R2567 删除副作用验证 + data 目录策略审计
+- R2566 删除后复跑：selftest 310 + contract 643 全绿，零误伤。
+- data 目录 git 策略健康：raw/raw_ext/catalog 原文语料 tracked（内容芯）、index/*.db 派生库 ignored（可重建）、二进制模型走 LFS（.gitattributes 全模式覆盖 16 文件）、logs 运行时 ignored。
