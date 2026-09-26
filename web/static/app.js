@@ -1830,6 +1830,9 @@ function pollNameReview(taskId) {
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
       const out = el('nameReviewOut');
       if (!out || _gen !== _NR_GEN) { _nameReviewDone(); return; }
+      /* R2512：口吻切换重画后 #nameReviewOut 是新的 hidden 节点——
+       * 结果写进去也永远看不见。写入前显式翻开。 */
+      out.hidden = false;
       if (st && st.status === 'done' && st.text) {
         out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4><p style="white-space:pre-wrap;">' +
           renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
@@ -2298,6 +2301,15 @@ function showView(viewId) {
         pollAiPolish(cid, AI_PENDING[cid]);
       }
     });
+  }
+  /* R2512（前端审 P1-3）：dailyDetail 挂在主页容器链上，上面的
+   * leaf 重武装永远摸不到它——切走杀死轮询、回家 dataset.loaded
+   * 挡下重发、AI_PENDING 孤儿永久停摆。回家时按同一规则补武装。 */
+  if (isHome && AI_PENDING.dailyDetail) {
+    var _dd = el('dailyDetail');
+    if (_dd && !_dd.querySelector('.ai-polish')) {
+      pollAiPolish('dailyDetail', AI_PENDING.dailyDetail);
+    }
   }
   /* R230d（R16-P1-2）：叶页→叶页此前抱着旧滚动位落在新页面中段——
    * v5「保持阅读位置」的本意是同一页内的重进，不是跨页。 */
@@ -3356,22 +3368,40 @@ function rerenderVoice() {
       if (entry.aiOverlay) {
         renderJson = Object.assign({}, entry.json, {ai_polish: entry.aiOverlay});
       }
+      /* R2512（前端审 P1-4）：paint() 无条件摘 .is-stale——但重画用的是
+       * 同一份缓存 j，数据没有变新，「参数改过了」角标不该被口吻切换
+       * 抹掉。画前快照、画后复原。 */
+      var _pre = document.getElementById(containerId);
+      var _wasStale = !!(_pre && _pre.classList &&
+        _pre.classList.contains('is-stale'));
       paint(containerId, entry.render(renderJson));
+      var host = document.getElementById(containerId);
       /* R195b（用户报告 bug）：重画会重建 DOM，.flipped 全部丢失——
        * 塔罗牌面退回背面「知」且不再恢复。重画发生在用户**已经看过**
        * 牌面之后（切换口吻），所以恢复语义="全部翻开"，不重播动画。
        * （变量名避开函数名——probe_dollar 静态闸门禁「函数名.属性」。） */
-      var host = document.getElementById(containerId);
-      if (host) host.querySelectorAll('.tarot-card-inner').forEach(function (c) {
-        c.classList.add('flipped');
-      });
+      if (host) {
+        if (_wasStale) host.classList.add('is-stale');
+        host.querySelectorAll('.tarot-card-inner').forEach(function (c) {
+          c.classList.add('flipped');
+        });
+      }
+      /* R2512（前端审 P1-1）：on()/addEventListener 直绑的按钮在
+       * innerHTML 重建后全灭（委托绑 document/静态根的不受影响）。
+       * 各结果区登记 rememberVoice 时给出 rebind，画完重放。 */
+      if (typeof entry.rebind === 'function') {
+        try { entry.rebind(); } catch (eRB) {}
+      }
     }
   });
 }
 
-/** 记住这次响应与重画方式，供切换口吻时就地重画。 */
-function rememberVoice(containerId, json, renderFn) {
-  LAST_RESPONSE[containerId] = { json: json, render: renderFn };
+/** 记住这次响应与重画方式，供切换口吻时就地重画。
+ * rebindFn：重画后重放直绑监听器（R2512），可省。 */
+function rememberVoice(containerId, json, renderFn, rebindFn) {
+  LAST_RESPONSE[containerId] = {
+    json: json, render: renderFn, rebind: rebindFn || null,
+  };
 }
 
 /** 确定性解读（guji.interpreter 的输出）。按 sections 结构渲染，不解析
@@ -4582,7 +4612,11 @@ async function submitBazi(event) {
       if (_ln0 && _ln0.length) CHAT_LAST_FACTS.push('幸运数字：' + _ln0.join('、'));
     } catch (e) { CHAT_LAST_FACTS = []; }
     paint('result', buildBaziResult(j));
-    rememberVoice('result', j, buildBaziResult);
+    /* R2512：口吻切换重画后直绑按钮会灭——绑定收进 rebind 登记。 */
+    var _rbBazi = function () {
+      on('shareBazi', function () { downloadPoster(j, 'bazi'); });
+    };
+    rememberVoice('result', j, buildBaziResult, _rbBazi);
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
     /* R230n续（R23-P3-6）：排盘成功广播脏标——其他 tab 的历史列表即时失效。 */
@@ -4593,7 +4627,7 @@ async function submitBazi(event) {
       }
     } catch (e) {}
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareBazi', function () { downloadPoster(j, 'bazi'); });   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
+    _rbBazi();   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
   } catch (e) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
@@ -4837,6 +4871,10 @@ function buildLiuyaoResult(j) {
       crossDirBadge(j.cross_ref, 'gua_direction', '卦象') + '</div>';
   }
   html += tailHook('liuyao');
+  /* R2512：分享按钮挪进 build——此前 submit 后手工 createElement
+   * 挂进 .card，口吻切换重画即消失（build 不含它）。 */
+  html += '<button class="ghost fav-btn" type="button" id="shareLiuyao" ' +
+    'title="生成分享图" style="margin:10px 0 0">📸 分享图</button>';
   html += '</div>';
   return html;
 }
@@ -5051,20 +5089,15 @@ async function doLiuyao() {
     const j = await postJSON('/api/liuyao', body);
     if (_gen !== _LY_GEN) return;   /* R2502：新请求已接管——丢弃旧响应 */
     paint('lyResult', buildLiuyaoResult(j));
-    rememberVoice('lyResult', j, buildLiuyaoResult);
+    /* R198b（US5）+ R2512：分享按钮已挪进 build（重画不丢），
+     * 绑定收进 rebind 登记——口吻切换后重放。 */
+    var _rbLy = function () {
+      on('shareLiuyao', function () { downloadPoster(j, 'liuyao'); });
+    };
+    rememberVoice('lyResult', j, buildLiuyaoResult, _rbLy);
+    _rbLy();
     rememberResult('liuyao', j, val('ly_question') || '');   /* R219b（P0-2） */
     revealResult('lyResult');          // 005 判据 1 场景 5：不是只修排盘
-    /* R198b（US5）：六爻分享图——结果卡尾部注入按钮（对齐 shareBazi 模式） */
-    var lyCard = document.querySelector('#lyResult .card');
-    if (lyCard && !document.getElementById('shareLiuyao')) {
-      var lyBtn = document.createElement('button');
-      lyBtn.className = 'ghost fav-btn'; lyBtn.type = 'button';
-      lyBtn.id = 'shareLiuyao'; lyBtn.title = '生成分享图';
-      lyBtn.textContent = '📸 分享图';
-      lyBtn.style.margin = '10px 0 0';
-      lyCard.appendChild(lyBtn);
-      lyBtn.addEventListener('click', function () { downloadPoster(j, 'liuyao'); });
-    }
   } catch (e) {
     if (_gen !== _LY_GEN) return;   /* R2502 */
     /* R230d（R16-P1-3）：与 bazi 同一条内联重试——此前只有 bazi 有。 */
@@ -5205,10 +5238,10 @@ async function doQiming() {
     _LAST_BIRTH.qiming = num('qm_year') + '-' + num('qm_month') +
       '-' + num('qm_day');
     paint('qmResult', buildQimingResult(j));
-    rememberVoice('qmResult', j, buildQimingResult);   /* R2349s P2-20 */
-    _qmFavsRender();   /* R230z（R36-P2-3）：心水名单行+♡点亮 */
-    rememberResult('qiming', j, '', { gender: val('qm_gender') });   /* v2：补性别（用户反馈 bug F3） */
-    on('nameReviewBtn', function () {
+    /* R2512：点评/分享/换一批三个直绑收进 rebind——口吻切换重画后
+     * 重放；.qm-style-chip 是持久根委托不受影响。 */
+    var _rbQm = function () {
+      on('nameReviewBtn', function () {
       const btn = el('nameReviewBtn');
       if (btn) btn.disabled = true;
       const names = (j.full_names || []).map(function (n) {
@@ -5241,11 +5274,22 @@ async function doQiming() {
             '再点一次试试～</div>';
         }
         if (btn) btn.disabled = false;
+        });
       });
-    });
+      on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
+      on('qmRefreshBtn', function () {
+        /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
+        /* R224b：同上——初值已是 1，直接 +1 */
+        _qmSeed = (_qmSeed || 0) + 1;
+        doQiming();
+      });
+    };
+    rememberVoice('qmResult', j, buildQimingResult, _rbQm);   /* R2349s P2-20 */
+    _rbQm();
+    _qmFavsRender();   /* R230z（R36-P2-3）：心水名单行+♡点亮 */
+    rememberResult('qiming', j, '', { gender: val('qm_gender') });   /* v2：补性别（用户反馈 bug F3） */
     revealResult('qmResult');
     pollAiPolish('qmResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
     /* R218a-04：风格芯片 + 换一批按钮的事件绑定。芯片是动态渲染的，
      * 用委托绑到 qmResult 上——避免每次切换重绑漏点。
      * R230j（R22-P1-1）：#qmResult 是静态持久容器，paint() 只换
@@ -5262,12 +5306,6 @@ async function doQiming() {
         }
       });
     }
-    on('qmRefreshBtn', function () {
-      /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
-      /* R224b：同上——初值已是 1，直接 +1 */
-      _qmSeed = (_qmSeed || 0) + 1;
-      doQiming();
-    });
   } catch (e) {
     failWithRetry('qmResult', '起名失败：' + e.message, function () { doQiming(); });
   } finally {
@@ -5322,11 +5360,14 @@ async function doTaohua() {
     _LAST_BIRTH.taohua = num('th_year') + '-' + num('th_month') +
       '-' + num('th_day');   /* R2350f（R102-P1-5） */
     paint('thResult', buildTaohuaResult(j));
-    rememberVoice('thResult', j, buildTaohuaResult);   /* R2349s P2-20 */
+    var _rbTh = function () {
+      on('shareTaohua', function () { downloadPoster(j, 'taohua'); });
+    };
+    rememberVoice('thResult', j, buildTaohuaResult, _rbTh);   /* R2349s P2-20 */
+    _rbTh();
     rememberResult('taohua', j, '', { gender: val('th_gender') });   /* v2：补性别 */
     revealResult('thResult');
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareTaohua', function () { downloadPoster(j, 'taohua'); });   /* R218a-巡2（N-04）：改用 taohua 专属 case */
   } catch (e) {
     if (_gen !== _TH_GEN) return;   /* R2502 */
     failWithRetry('thResult', '测算失败：' + e.message, function () { doTaohua(); });
@@ -5706,6 +5747,10 @@ function buildTarotResult(j) {
   }
   html += renderVoice(j, '📖 牌面解读');
   html += tailHook('tarot');
+  /* R2512：分享按钮挪进 build——同 liuyao，post-paint 手工挂的节点
+   * 在口吻切换重画后消失。 */
+  html += '<button class="ghost fav-btn" type="button" id="shareTarot" ' +
+    'title="生成分享图" style="margin:10px 0 0">📸 分享图</button>';
   html += '</div>';
   return html;
 }
@@ -6101,21 +6146,16 @@ async function doTarot(cards) {
     const j = await postJSON('/api/tarot', body);
     if (_gen !== _TR_GEN) return;   /* R2502 */
     paint('trResult', buildTarotResult(j));
-    rememberVoice('trResult', j, buildTarotResult);
+    /* R230d（R16-P2-2）+ R2512：分享按钮挪进 build（重画不丢），
+     * 绑定收进 rebind 登记。 */
+    var _rbTr = function () {
+      on('shareTarot', function () { downloadPoster(j, 'tarot'); });
+    };
+    rememberVoice('trResult', j, buildTarotResult, _rbTr);
+    _rbTr();
     rememberResult('tarot', j, q || '');   /* R219b（P0-2）：牌名+正逆位进第一句 */
     revealResult('trResult');
-    /* R230d（R16-P2-2）：塔罗分享按钮——buildShareData 的 tarot case
-     * 早就画好了，页面上却从没挂入口（liuyao 同模式）。 */
     var trCard = el('trResult');
-    if (trCard && !document.getElementById('shareTarot')) {
-      var trBtn = document.createElement('button');
-      trBtn.className = 'ghost fav-btn';
-      trBtn.id = 'shareTarot'; trBtn.title = '生成分享图';
-      trBtn.textContent = '📸 分享图';   /* R231d（R37-F11）：全站统一 📸 */
-      trBtn.style.margin = '10px 0 0';
-      trCard.appendChild(trBtn);
-      trBtn.addEventListener('click', function () { downloadPoster(j, 'tarot'); });
-    }
     // 翻牌：逐张延迟触发（纯 CSS transform，prefers-reduced-motion 已在 CSS 里关）
     /* R230v（R34-#21）：按节点引用翻牌而非按 data-card 重查——窗口内
      * 重抽时旧 timer 翻到的是已摘下的旧节点，不再误翻新卡。 */
@@ -6330,14 +6370,12 @@ async function doHehun() {
       ' × ' + (window.__hhInviteMode ? '我 ' : '') +
       num('hh_b_year') + '-' + num('hh_b_month') + '-' + num('hh_b_day');
     paint('hhResult', buildHehunResult(j));
-    rememberVoice('hhResult', j, buildHehunResult);   /* R2349s P2-20 */
-    rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
-    revealResult('hhResult');
-    pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
-    on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04）：改用 hehun 专属 case */
-    /* R233n（R47-Top5-1）：邀请链——把 A 侧生辰编进 ?view=hehun 参数，
-     * 对方打开即预填+提示「轮到你了」。 */
-    on('hhInvite', function () {
+    /* R2512：分享/邀请/存这对三个直绑收进 rebind——口吻重画后重放。 */
+    var _rbHh = function () {
+      on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04） */
+      /* R233n（R47-Top5-1）：邀请链——把 A 侧生辰编进 ?view=hehun 参数，
+       * 对方打开即预填+提示「轮到你了」。 */
+      on('hhInvite', function () {
       try {
         /* R2350b（R99-P1）：邀请态下受邀者=B 侧——再点「喊 TA 来对盘」
          * 应该编码受邀者自己的盘（B 侧），否则把发起人的生辰明文
@@ -6408,7 +6446,13 @@ async function doHehun() {
       } finally {
         if (btn) btn.disabled = false;
       }
-    });
+      });
+    };
+    rememberVoice('hhResult', j, buildHehunResult, _rbHh);   /* R2349s P2-20 */
+    _rbHh();
+    rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
+    revealResult('hhResult');
+    pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
   } catch (e) {
     if (_gen !== _HH_GEN) return;   /* R2502 */
     failWithRetry('hhResult', '计算失败：' + e.message, function () { doHehun(); });

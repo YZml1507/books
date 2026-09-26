@@ -374,6 +374,10 @@ def main() -> int:
         "shareQiming": "同上",
         "shareTaohua": "同上",
         "shareHehun": "同上",
+        # R2512：两钮从 post-paint createElement 挪进 build 内联+
+        # on() 直绑（口吻重画 rebind 重放）——同族豁免理由。
+        "shareLiuyao": "同上",
+        "shareTarot": "同上",
         "shareDaily": "同上",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",

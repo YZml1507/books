@@ -13107,3 +13107,40 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] 闸门：selftest 310、ui_smoke、contract 638、r2509 21、
   r2510 13、r2511 13、llm_polish、ruff E9F、dollar、
   date_parity、no_generated、scripts 61 全过。
+
+## R2512 — app.js 口吻切换重画路径四修（前端运行时审查 4 条全实证）
+
+- [x] **审-P1 口吻重画灭杀全部直绑按钮**：`rerenderVoice()` 调
+  `paint()` 整体换 innerHTML——submit 成功路径里 `on()`/
+  `addEventListener` 直绑的按钮监听全灭（委托绑 document/
+  持久根的幸免）。六容器全中招：shareBazi / shareQiming /
+  qmRefreshBtn / nameReviewBtn / shareTaohua / shareHehun /
+  hhInvite / hhSavePair；shareLiuyao / shareTarot 更惨——
+  按钮本体是 post-paint createElement 挂的，build 里根本没有，
+  重画连元素都消失。修：`rememberVoice` 收 `rebindFn` 存进
+  `entry.rebind`，`rerenderVoice` 画完 try 重放；六容器各把
+  直绑收进 `_rb*` 闭包登记+首绑；liuyao/tarot 分享钮挪进
+  build 内联（重画自还带）。实证：真浏览器 bazi 两轮口吻
+  切换后分享钮点击出海报浮层、hehun 三钮存活。
+- [x] **审-P1 nameReview 轮询写进 hidden 新节点**：口吻重画后
+  `#nameReviewOut` 是新的 `hidden` 节点——在途轮询完成写入
+  也永不可见。修：`pollNameReview` 完成/失败写入前显式
+  `out.hidden = false`。实证：点评在途切口吻，结果落定后
+  容器已翻开。
+- [x] **审-P1 dailyDetail AI 轮询孤儿**：`#dailyDetail` 挂在
+  主页不在叶页 target 内——切走 bump 世代号杀轮询，回家
+  `dataset.loaded` 挡下重发，`AI_PENDING` 残留永久停摆。
+  修：showView 的 isHome 分支对 `AI_PENDING.dailyDetail`
+  按同规则（无 .ai-polish）重武装。实证：注入在途 pending
+  →切走→回家→轮询跑起→404 _done 收编（不重武装则孤儿永存）。
+- [x] **审-P2 口吻重画抹掉 .is-stale**：`paint()` 无条件摘
+  `.is-stale` 但重画用的是同一份缓存 j——「参数改过了」角标
+  被口吻切换洗掉，旧数据伪装成新结果。修：rerenderVoice 画前
+  快照、画后复原。实证：改年→is-stale→切口吻→标仍在。
+- [x] 探针 `probes/probe_r2512.py`（14 项源码钉扎全绿）；
+  ui_smoke NO_CASE 补 shareLiuyao/shareTarot 豁免登记。
+- [x] 真浏览器 25 项用例：bazi/qiming/liuyao/tarot/hehun 重画后
+  按钮全活+点击可用、stale 保留、nameReview unhide、daily
+  re-arm 收编、tarot flipped 复原、0 console 错误。
+- [x] 闸门：selftest 310、ui_smoke、contract 638、r2509/10/11、
+  r2512 14、llm_polish、ruff（r2512 探针自身零告警）全过。
