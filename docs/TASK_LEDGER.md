@@ -14000,3 +14000,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - time：2026-09-27 14时 → 坤卦，排盘返回完整。
 - 边界三人话：method 白名单「只认摇钱或报时两种」/time 缺参→
   「需年份、月份、日、时辰」/year=1800→「年份需在 1900-2100」。
+
+## R2610 巡检#27——taohua 边界实测全绿（复用 BaziRequest 口径）
+- hour 必填+hour_known 通道：hour=12&hour_known=false → 200 正常
+  桃花盘 + notes 披露「时柱桃花主中年后」降级口径。
+- 边界：month=13→「月份需在 1-12」、gender=X→「性别只能是 男 或 女」。
