@@ -12936,3 +12936,28 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   全过；paipan/knowledge 残留清零（probe 端点写面已
   BOOKS_PAIPAN_HISTORY_DISABLE 隔离+import_rows 自删行）。
   SW 重发 books-shell-62e775d34ecc。
+
+## R2507 — 研究台爻名校验双 bug（自测实锤，真浏览器复现）
+
+- [x] **doCompare/doAddr 爻名正则位序写反**（P1，2 处拷贝）— DONE
+  - 现象：比对页默认值「九二」都被拒；10/12 合法爻名全卡死，
+    反放行「二九/五六」伪名。
+  - 真因：`(初|二|三|四|五|上)(九|六)` 把位序搞反——2–5 爻
+    性先位后（九二/六三），初/上位先性后（初九/上六）。
+  - 修：抽共享 `_YAO_RE`/`_YAO_HINT` 单点常量，两处调用统一。
+    `web/static/app_research.js`
+  - 实证：默认值九二→1379 字比对结果（KR1a0001 底本+版本
+    分歧）；六三→优雅空态；二九→正确拒绝。
+- [x] **doAddr 编址无关校验**（P1）— DONE
+  - 现象：切 bcv 查 Proverbs 12:1 被隐藏 ayao 残值拦下。
+  - 修：校验挪到 `_asend` 白名单之后，仅 zhouyi 编址参与时跑。
+  - 实证：bcv Prov12:1→153 字命中；zhouyi 28·九二→10 条原文；
+    bookstudy 章节 1482 字。0 pageerror。
+- [x] **钉扎** `probes/probe_r2507.py`（8 项：真值表 14+14、
+  共享正则单点、scheme 门控序、后端直测）。
+- [x] 闸门：selftest 310、ui_smoke、contract(INCONCLUSIVE-SKIP
+  fixture 口径同前轮)、r2505 7、r2506 26、r2507 8、
+  date_parity、dollar_misuse、no_generated、scripts_importable、
+  first_screen、baseline_voice、poster、async_ai、warm_voice、
+  xingzuo、plain_first、llm_polish、ruff E9F 全过。
+  SW 重发 books-shell-df022d363fda。

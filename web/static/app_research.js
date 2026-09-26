@@ -10,6 +10,13 @@
  *    本文件按全局名直接引用（经典脚本共享 window 级变量）。
  *  - 不写模块级 DOM 副作用——本文件在用户已进页后才解析。 */
 
+/* R2507：爻名真值表共享正则——真实爻名 2–5 爻「性先位后」
+ * （九二/六三/…），初/上「位先性后」（初九/上六），乾坤专属
+ * 用九/用六。此前 doAddr/doCompare 各持一份反写的拷贝
+ * （(初|二|…)(九|六) 把位序搞反），修一处漏一处——收敛成单点。 */
+var _YAO_RE = /^(初[九六]|[九六][二三四五]|上[九六]|用[九六])$/;
+var _YAO_HINT = '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」';
+
 async function doSearch() {
   busy('searchResult', '检索中…');
   const params = new URLSearchParams();
@@ -99,13 +106,6 @@ async function doResearch() {
 
 async function doAddr() {
   busy('addrResult', '定位中…');
-  /* R2350e（R101-P1-3 附带）：addr 侧同款爻位校验。 */
-  const _ayv = val('ayao');
-  if (_ayv && !/^(初|二|三|四|五|上)(九|六)$|^用(九|六)$/.test(_ayv)) {
-    _failField('ayao', 'addrResult',
-      '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」');
-    return;
-  }
   const params = new URLSearchParams();
   var _asch0 = val('ascheme') || 'zhouyi';
   params.set('scheme', _asch0);
@@ -113,6 +113,14 @@ async function doAddr() {
    * 吃 422；②按当前编址方式白名单收参——隐藏字段的残值（切到 bcv
    * 后 aguan/ayao 旧值）不再随 query 发出。 */
   var _asend = _ASCHEME_FIELDS[_asch0] || [];
+  /* R2507：爻名校验只在 ayao 真参与查询（zhouyi 编址）时跑——
+   * 此前 bcv 查 Proverbs 12:1 都被隐藏字段的残值拦下；正则换
+   * 共享 _YAO_RE（修掉了位序反写）。 */
+  const _ayv = val('ayao');
+  if (_asend.indexOf('ayao') >= 0 && _ayv && !_YAO_RE.test(_ayv)) {
+    _failField('ayao', 'addrResult', _YAO_HINT);
+    return;
+  }
   if (_asend.indexOf('aguan') >= 0 && num('aguan') != null)
     params.set('gua', String(num('aguan')));
   if (_asend.indexOf('ayao') >= 0 && _ayv) params.set('yao', _ayv);
@@ -146,9 +154,11 @@ async function doCompare() {
   /* R2350e（R101-P1-3 附带）：爻位词表校验——「abc」这类非法爻名
    * 此前直发后端，渲染出「说法不一样+无差异」自相矛盾卡。 */
   const _cyv = val('cyao');
-  if (_cyv && !/^(初|二|三|四|五|上)(九|六)$|^用(九|六)$/.test(_cyv)) {
-    _failField('cyao', 'compareResult',
-      '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」');
+  /* R2507（自测实锤）：原正则 (初|二|三|四|五|上)(九|六) 把位序
+   * 搞反——默认值「九二」都过不了校验，10/12 合法爻名全被拒、
+   * 反倒放行二九/五六伪名。现统一走共享 _YAO_RE/_YAO_HINT。 */
+  if (_cyv && !_YAO_RE.test(_cyv)) {
+    _failField('cyao', 'compareResult', _YAO_HINT);
     return;
   }
   const params = new URLSearchParams({ gua: String(gua) });
