@@ -13706,3 +13706,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2567 删除副作用验证 + data 目录策略审计
 - R2566 删除后复跑：selftest 310 + contract 643 全绿，零误伤。
 - data 目录 git 策略健康：raw/raw_ext/catalog 原文语料 tracked（内容芯）、index/*.db 派生库 ignored（可重建）、二进制模型走 LFS（.gitattributes 全模式覆盖 16 文件）、logs 运行时 ignored。
+
+## R2568 web 层末件审计 + DECISIONS 待办回扫
+- deps.py（115 行）干净：Corpus/KB contextmanager 收编原 20+ 处样板、frozen 路径解析完备、write_guard 公开站闸到人话 400。
+- __init__.py（20 行）双导入路径引导、schemas.py（528 行）Field 约束全覆盖（int64 界/max_length/ge-le）。
+- web/ 层六文件全审计完成。DECISIONS 待办命中项复核=历史决策记录条目（处置记于新条目，非开放项）。
