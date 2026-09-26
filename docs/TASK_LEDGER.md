@@ -14259,3 +14259,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2660 巡检#77——works 47 书目全下发
 - 47 书带 units/addressed/yao_addressed/anchored/source 指标；多源
   覆盖（Bible/Euclid/Herodotus/Iliad 等），研究面可达非主导。
+
+## R2661 巡检#78——bookstudy.structure 实测
+- KR1a0001→128 节（卦1乾 zhouyi 编址+file 节混列、层分布/字数/
+  addr 覆盖齐）；work_id=evil→软错误「这本书没找到——先去书目页
+  翻翻」。
