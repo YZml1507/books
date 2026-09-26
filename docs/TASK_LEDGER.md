@@ -13698,3 +13698,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 日签海报：375px 点击→自动生成→下载「小满-今日签-0927.png」663KB——水彩底+签诗/签运/评分/贵人/宜试试结构卡+品牌水印「@小满的解忧铺」+回流钩「测你的同款」。
 - 命盘海报：「小满-今日命盘-0927.png」546KB——桃粉水彩底+生辰四柱/本命/幸运色（色块点）/幸运数字+同款品牌链路。
 - modal 预览含「复制文案+链接」动作+下载提示。塔罗同管道（shareTarot selftest 钉扎）。成片质量达「视觉即内容」判据。
+
+## R2566 data/external 死重清理（E-08 裁决落地）
+- 盘点：131MB/1114 文件被 git 跟踪。bge-small-zh（语义检索模型，代码引用）、zhouyi（bookstudy/compare/douay 引用）、biangua（E-02 独立极性见证）——保留。
+- **删除 3 个零价值目录**（E-08 已判「价值为零且有污染风险」，MASTER_PLAN §2 硬约束禁入库）：suanle-me 568K / starloom 17MB / chatgpt-tarot-divination 2MB ≈ 19.5MB/1050+ 文件。零活引用（无代码 walk/glob 该目录），删除安全。评估记录在台账 E-08 永存，原始文件可经 git 历史复核。
