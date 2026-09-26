@@ -13618,3 +13618,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2551 性能轴盘点 + 移动端 persona 实测
 - **性能各层已饱和**：script defer(R8)+懒chunk(R2400)+日签不等eval(R2349u)；gzip 663KB→241KB；字体 unicode-range 分包按需+swap+品牌字子集preload(R233d)；LCP图preload(R2364)；SW 内容哈希桶 precache 命中零refetch+导航match/fetch并行(R2510)。app.js 再拆=复杂度风险换 defer 资源 ~100KB——裁决不做。
 - **移动端 375×812 persona 实测**（Playwright touch）：零横滚、零 <30px 触点、排盘全流程 tap 通畅、结果卡/能量卡/相关功能卡渲染精细无溢出、诚实兜底正常。toast 上缘叠盖已被 R2500 下移 64px 处理。零改造缺口。
+
+## R2552 a11y 盘点 + spec 挂账拍板（R230d P3-1 清偿）
+- **a11y 轴已饱和**：对比度 R228d 实测提色（--secondary 4.85/--muted 4.7/--accent-ink 补文字角色）；func-card Enter/Space 激活+焦点归还(R228d)；inert 模态隔离+Safari 兜底(R228h/n)；aria-pressed(R2514)；label 覆盖 88 控件全可达（xz_* aria-label、hidden file、chatInput aria-label）。
+- **R230d P3-1 拍板清偿**：死视图处置——view-divine 已删；view-read 保留为深链证据视图（仅引文树「去书库翻」可达，零顶层入口）。依据：证据直接呈现原则/§4 零删除/双轨隔离。spec/009 已回写关闭。
