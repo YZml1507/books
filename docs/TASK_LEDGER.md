@@ -13979,3 +13979,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
     过 ruff E9/F 闸（归档也要过 lint，不许腐坏）。
   · eval_xiaoman_llm/probe_embed_*/probe_show/probe_ui_baseline＝
     工具/评测件，需模型资产或浏览器，非闸件。
+
+## R2607 巡检#24——排盘记录单条回放面实测全绿
+- GET {rid} 返回完整 {req,result}——result.paipan 与原响应逐键
+  一致（10 键），前端「复看」可直接复用渲染函数零降级。
+- 不存在 id → 404「排盘记录不存在：#99999」人话兜底。
+- 测试行已清。
