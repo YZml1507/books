@@ -13626,3 +13626,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2553 spec 漂移检查 + README 闸表同步
 - spec/008 P 表问题列是「重塑前现状陈述」（历史快照非现状宣称）——不算漂移；R2545 已修「有着落点」残留。spec/006 六约束无 facts_* 字段枚举，R2539-41 facts 供给无漂移。
 - README 闸表同步：selftest 268→310、contract 566→643、新增 probe_baseline/probe_standing 两行（底层脚本本就在 CI，包装探针补登记）。
+
+## R2554 后端余量扫（并发/limit/422 三面）
+- 并发写：knowledge/paipan_history 全 WAL+busy_timeout+per-request 连接+_import_lock；history.py 同款。零伤。
+- limit 钳位：services.search limit<1→400(不再静默钳1)、上限 50；max_addresses Field(ge=1,le=6)。全路由口径一致。
+- 422 人话：_422_MSG_CN 模板表+json_invalid+英文泛化兜底「参数格式不对」——覆盖设计完备，url 字段剥除在案。
