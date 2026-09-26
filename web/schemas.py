@@ -40,15 +40,25 @@ def strip_zw(s: str | None) -> str | None:
     return s or None
 
 
+def _iso_canonical(v: str, msg: str) -> "date":
+    """R2502：Py3.11+ 的 date.fromisoformat 放宽收下 20260101、2026-W01-1
+    等非规范 ISO 形——值能过校验，但下游按 '-' split 的口径会炸成 500，
+    或落成非规范 daily_cache 键。isoformat 往返比对，只放 YYYY-MM-DD。"""
+    try:
+        d = date.fromisoformat(v)
+    except (ValueError, TypeError):
+        raise ValidationError(msg) from None
+    if d.isoformat() != v:
+        raise ValidationError(msg) from None
+    return d
+
+
 def _check_client_date(v: str | None) -> None:
     """R230l/m：client_date（浏览器本地日）统一校验。None 放行（可选字段，
     缺席回落服务器日——旧行为），给了就必须是界内 YYYY-MM-DD。"""
     if v is None:
         return
-    try:
-        _cd = date.fromisoformat(v)
-    except (ValueError, TypeError):
-        raise ValidationError("client_date 要写成 2026-01-01 这样") from None
+    _cd = _iso_canonical(v, "client_date 要写成 2026-01-01 这样")
     if not (YEAR_LO <= _cd.year <= YEAR_HI):
         raise ValidationError(f"client_date 年份需在 {YEAR_LO}-{YEAR_HI}")
 
@@ -148,22 +158,15 @@ class BaziRequest(BaseModel):
         if self.ask_hour is not None and not (0 <= self.ask_hour <= 23):
             raise ValidationError("占卜时辰需在 0-23")
         if self.ask_date is not None:
-            try:
-                d = date.fromisoformat(self.ask_date)
-            except ValueError:
-                raise ValidationError("占卜日期要写成 2026-01-01 这样") from None
+            d = _iso_canonical(self.ask_date, "占卜日期要写成 2026-01-01 这样")
             if not (YEAR_LO <= d.year <= YEAR_HI):
                 raise ValidationError(
                     f"占卜年份需在 {YEAR_LO}-{YEAR_HI} 之间")
         if self.scope == "range":
             if not (self.range_start and self.range_end):
                 raise ValidationError("选了「一段日子」的话，开头和结尾两天都要填哦")
-            try:
-                date.fromisoformat(self.range_start)
-                date.fromisoformat(self.range_end)
-            except ValueError:
-                raise ValidationError(
-                    "范围起止要写成 2026-01-01 这样") from None
+            _iso_canonical(self.range_start, "范围起止要写成 2026-01-01 这样")
+            _iso_canonical(self.range_end, "范围起止要写成 2026-01-01 这样")
 
 
 class AskRequest(BaseModel):

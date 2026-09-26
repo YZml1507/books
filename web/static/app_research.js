@@ -244,6 +244,20 @@ function searchByWork(workId) {
   showToast('翻开了这本书的结构——点章节看正文', 'info');
 }
 
+/* R2502：线程视图代际闸——「查看/删除/改状态/建线程/过滤」每条都
+ * 重画 threadResult 且各自独立 await，并发出拳时后到覆盖先到（删完
+ * 半秒又回弹详情/旧列表）。照 _XZ_GEN/_TH_GEN 先例：每个操作入口
+ * 抬代际号，过代际的旧响应不写屏。 */
+var _TR_VIEW_GEN = 0;
+function _threadListPaint(emptyHtml) {
+  var _g = ++_TR_VIEW_GEN;
+  return _threadListHtml().then(function (h) {
+    if (_g !== _TR_VIEW_GEN) return;   /* 过代际不写屏 */
+    paint('threadResult', h || (emptyHtml ||
+      '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>'));
+  });
+}
+
 /** 研究线程：原来发 {topic}，后端要 {kind,claim,method} → 必然 422
  *  （R000a-05）。这里按 ThreadRecordRequest 发一条 refusal 型 claim——
  *  refusal 是唯一允许无证据的 kind（G7：「证据不足」本身是合法研究输出），
@@ -281,6 +295,8 @@ async function doThread() {
       html += '<div class="no-evidence">线程已创建，列表刷新失败：' +
         esc(e2.message) + '</div>';
     }
+    /* R2502：抬代际——并发的查看/删除旧响应不再盖掉这张新单。 */
+    _TR_VIEW_GEN++;
     paint('threadResult', html);
   } catch (e) {
     fail('threadResult', '创建失败：' + e.message);
@@ -363,21 +379,25 @@ async function deleteThread(tid, btn) {
     }
     btn.dataset.armed = '';
   }
+  var _g = ++_TR_VIEW_GEN;   /* R2502：删除本身也是一次视图操作 */
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
     showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
+    if (_g !== _TR_VIEW_GEN) return;   /* 删除途中有新操作则不画（但 toast 照给） */
     /* 列表与详情共用 threadResult——重拉列表覆盖回列表态 */
-    const html = await _threadListHtml();
-    paint('threadResult', html || '<div class="no-evidence">还没有研究线程——上面写个主题就能开一条</div>');
+    _threadListPaint('<div class="no-evidence">还没有研究线程——上面写个主题就能开一条</div>')
+      .catch(function (e2) { showToast('列表刷新失败：' + e2.message, 'warn'); });
   } catch (e) {
     showToast('删除失败：' + e.message, 'warn');
   }
 }
 
 async function showThread(tid) {
+  var _g = ++_TR_VIEW_GEN;
   busy('threadResult', '加载线程 #' + tid + '…');
   try {
     const j = await api('/api/threads/' + encodeURIComponent(tid));
+    if (_g !== _TR_VIEW_GEN) return;   /* R2502：过代际不写屏 */
     let html = '<h3>线程 #' + esc(tid) + '</h3>';
     (j.turns || []).forEach(function (t) {
       html += '<div class="' + (t.role === 'user' ? 'turn-user' : 'turn-assistant') +
@@ -436,8 +456,10 @@ async function showThread(tid) {
       '|closed">这条聊完了</button>' +
       '<button type="button" class="thread-del" data-thread-del="' + esc(tid) +
       '" aria-label="删除线程 #' + esc(tid) + '">删</button></div></div>';
+    if (_g !== _TR_VIEW_GEN) return;   /* R2502：渲染途中被超车则不画 */
     paint('threadResult', html);
   } catch (e) {
+    if (_g !== _TR_VIEW_GEN) return;
     fail('threadResult', '加载失败：' + e.message);
   }
 }

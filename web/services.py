@@ -576,6 +576,12 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
                 "SELECT 1 FROM unit WHERE layer=? LIMIT 1",
                 (layer,)).fetchone():
             raise ValidationError(f"这个分类库里没有（{layer}），换一个试试")
+        # R2502：genre 此前是唯一不进存在性校验的过滤——拼错类别静默
+        # 零命中，像「语料里没有这个词」。与 work/layer 同口径如实 400。
+        if genre and not c.db.execute(
+                "SELECT 1 FROM work WHERE genre=? LIMIT 1",
+                (genre,)).fetchone():
+            raise ValidationError(f"这个类别库里没有（{genre}）——先去书目页翻翻")
         kw = dict(layer=layer, work_id=work, genre=genre, scheme=scheme)
         hits = c.search(q, limit=limit, **kw)
         hint = None
@@ -860,9 +866,15 @@ def threads(status: str = "open", limit: int = 50) -> dict:
     # R2349z（R96-P1-1）：status 过滤——收起的/聊完的不再从列表永久消失。
     if status not in ("open", "parked", "closed", "all"):
         raise ValidationError("线程列表只能按「进行中/先收起/已结束」筛")
-    limit = max(1, min(int(limit or 50), 500))
+    # R2502：limit=0 此前被 `or 50` 静默改 50——与 search/addr 的
+    # limit<1→400 口径不一致。None 才走默认，显式 0/负如实拒。
+    limit = 50 if limit is None else int(limit)
+    if not 1 <= limit <= 500:
+        raise ValidationError("条数要在 1-500 之间")
     with deps.knowledge() as kb:
-        rows = kb.resume(status)[:limit]
+        # R2502：resume() 内置 LIMIT 50 让 [:limit] 恒 False——limit>50
+        # 时行数被截却报 truncated:false，备份导出静默丢线程。下推给 SQL。
+        rows = kb.resume(status, limit)
         if status == "all":
             total = kb.db.execute(
                 "SELECT count(*) n FROM thread").fetchone()["n"]
@@ -3425,14 +3437,19 @@ def daily(date_str: str | None = None,
     没有这个问题，改成查询参数后必须显式挡住）。
     """
     if date_str is not None:
-        _parse_iso_date(date_str)   # 边界即拒（R228p 统一解析口径）
+        # R2502：解析后规整回规范形——Py3.11+ fromisoformat 会收下
+        # 20260101/2026-W01-1 这类变体，原样下传会让 bazi_calc 的
+        # split('-') 炸进降级卡，还以非规范串当 daily_cache 键落脏行。
+        date_str = _parse_iso_date(date_str).isoformat()
     date_str = date_str or _today_cn().isoformat()
     # R2349l（R73-P1-3）：bday=用户生日 → 「我的日主 × 今天日干」十神行。
     # personal 含用户生辰，绝不进 daily_cache（按日缓存会串用户）。
     _personal = None
     if bday:
+        # R2502：bday 非法值此前被裸 except 静默吞成「无 personal」——
+        # 与 ?date=garbage→400 的契约不对称。边界即拒。
+        _bd = _parse_iso_date(bday)
         try:
-            _bd = _parse_iso_date(bday)
             _ub = bazi_compute(_bd.year, _bd.month, _bd.day, 12, "女")
             _ug = (_ub.day or "")[0]                    # 日主天干
             _dg, _dzz = huangli_mod.day_ganzhi(
@@ -3575,14 +3592,17 @@ def daily(date_str: str | None = None,
             "term": _term_banner(d),
             **({"personal": _personal} if _personal else {}),
         }
-        with deps.knowledge() as kb:
-            # R2349t（R87-P0-1）：personal 是请求方生辰派生——整包落
-            # daily_cache 会让无 bday 的请求拿到上一用户的日主行，
-            # wipe 也够不着（缓存只按日期窗口清）。落库剔除；
-            # 每请求现算成本=一次干支查表。
-            kb.set_daily_cache(
-                date_str,
-                bazi={k: v for k, v in result.items() if k != "personal"})
+        # R2502（R143 延伸）：BOOKS_WRITE_DISABLE 公开展示态下 GET 也照写
+        # daily_cache——共享库写面应全拒。写禁时跳过落库，照算照回。
+        if deps.public_writes_open():
+            with deps.knowledge() as kb:
+                # R2349t（R87-P0-1）：personal 是请求方生辰派生——整包落
+                # daily_cache 会让无 bday 的请求拿到上一用户的日主行，
+                # wipe 也够不着（缓存只按日期窗口清）。落库剔除；
+                # 每请求现算成本=一次干支查表。
+                kb.set_daily_cache(
+                    date_str,
+                    bazi={k: v for k, v in result.items() if k != "personal"})
         return result
     except Exception:                                 # 计算失败降级为"平"，不 500
         # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文

@@ -159,8 +159,13 @@ def create_app() -> FastAPI:
             # R2400（R137-P1-2）：XFF 首元素客户端可伪造——自填
             # X-Forwarded-For 即换桶绕过 _gate 限速。单可信代理（Render）
             # 下链尾 = 离服务端最近一跳回源的真实客户端。
+            # R2502：整链无条件信任仍有洞——直连部署（无代理）时攻击者
+            # 整根伪造 XFF 轮换桶位。改为显式开关：BOOKS_TRUST_XFF=1
+            # 才信（Dockerfile 对 HF Spaces 这类恒代理部署默认开）。
             _xff = request.headers.get("x-forwarded-for") or ""
-            if _xff.strip():
+            if _xff.strip() and os.getenv(
+                    "BOOKS_TRUST_XFF", "").strip().lower() in (
+                    "1", "on", "true", "yes"):
                 _ip = _xff.split(",")[-1].strip() or _ip
             _gate_bucket = getattr(_access_gate, "_bucket", None)
             if _gate_bucket is None:

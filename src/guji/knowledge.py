@@ -385,9 +385,14 @@ class KnowledgeBase:
         # R2350a：updated_at 秒级粒度同刻并列时排序不确定——实测可把
         # 刚 open 的新线程误删（下一条 record 撞 FK）。id DESC 决胜
         # 保证「超帽删最旧」语义成立。
+        # R2502：open_thread 插入时 updated_at=NULL，DESC 排序 NULL 落
+        # 最后——200 条 open 线程时刚建的线程排 201 被当场 GC，随后
+        # add_turn 撞 FK 报成 503。coalesce 回退 opened_at（resume()
+        # 同口径）。
         over = self.db.execute(
             "SELECT id FROM thread ORDER BY "
-            "(status='open') DESC, updated_at DESC, id DESC "
+            "(status='open') DESC, "
+            "coalesce(updated_at, opened_at) DESC, id DESC "
             "LIMIT -1 OFFSET ?", (self._CAP_THREAD,)).fetchall()
         for r in over:
             tid = r["id"]
@@ -491,25 +496,36 @@ class KnowledgeBase:
                 if not isinstance(cl, dict):
                     continue
                 try:
+                    # R2502：备份 JSON 里的非标量类型（dict/list 塞进
+                    # page_anchor/confidence）此前原样绑定 → InterfaceError
+                    # 逃逸出局部 except 变 503；int64 越界 OverflowError
+                    # 同理且记录间各自 commit → 半提交。先强转再入库。
                     ev = [Evidence(
                         work_id=str(e.get("work_id") or ""),
                         file=str(e.get("file") or ""),
                         raw_start=int(e.get("raw_start") or -1),
                         raw_end=int(e.get("raw_end") or -1),
                         quote=str(e.get("quote") or ""),
-                        page_anchor=e.get("page_anchor"),
-                        scheme=e.get("scheme"),
-                        addr1=e.get("addr1"), addr2=e.get("addr2"),
+                        page_anchor=None if e.get("page_anchor") is None
+                            else str(e.get("page_anchor")),
+                        scheme=None if e.get("scheme") is None
+                            else str(e.get("scheme")),
+                        addr1=None if e.get("addr1") is None
+                            else int(e.get("addr1")),
+                        addr2=None if e.get("addr2") is None
+                            else str(e.get("addr2")),
                         role=str(e.get("role") or "context"))
                         for e in (cl.get("evidence") or [])
                         if isinstance(e, dict)]
+                    _conf = cl.get("confidence")
                     self.record(
                         str(cl.get("kind") or "note"),
                         str(cl.get("claim") or "")[:2000],
                         str(cl.get("method") or "backup-import")[:200],
-                        ev, confidence=cl.get("confidence"),
+                        ev, confidence=None if _conf is None else str(_conf),
                         thread_id=tid)
-                except (ValueError, TypeError, sqlite3.IntegrityError):
+                except (ValueError, TypeError, OverflowError,
+                        sqlite3.Error):
                     continue
             written += 1
         # R2500（R143-P2-5/F1）：GC 移出循环——循环内每插一条就 GC
@@ -536,21 +552,24 @@ class KnowledgeBase:
         self.db.commit()
         return n
 
-    def resume(self, status: str = "open") -> list[sqlite3.Row]:
+    def resume(self, status: str = "open",
+               limit: int = 50) -> list[sqlite3.Row]:
         """Threads with derived-claim counts: what G9 needs to pick work back up.
 
         R2349z（R96-P1-1）：status 过滤——'open' 默认不变，'parked'/
         'closed' 列收起与聊完的（此前收起的线程从列表永久消失），
-        'all' 全量。"""
+        'all' 全量。
+        R2502：LIMIT 硬编码 50 让上层 ?limit>50 静默截断且 truncated
+        仍报 false——备份导出因此丢线程。limit 参数化下推。"""
         where = "" if status == "all" else "WHERE t.status = ?"
-        args = () if status == "all" else (status,)
+        args = (() if status == "all" else (status,)) + (int(limit),)
         return self.db.execute(f"""
             SELECT t.id, t.topic, t.status, t.opened_at, t.updated_at,
                    (SELECT count(*) FROM turn WHERE thread_id = t.id) turns,
                    (SELECT count(*) FROM derived WHERE thread_id = t.id) claims
             FROM thread t {where}
             ORDER BY coalesce(t.updated_at, t.opened_at) DESC
-            LIMIT 50""", args).fetchall()
+            LIMIT ?""", args).fetchall()
         # R230j（R22-P2-2）：无 LIMIT 时前端全量渲染——对齐
         # /api/paipan/history?limit=50 的既有口径。
 

@@ -12775,3 +12775,45 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   混合整树 `82/82`、`web self-test 310`、`probe_contract 595`、静态检查
   全绿；R2501-only SW `books-shell-98a9b3c04a90`，混合整树 SW
   `books-shell-e3d43672b91a`。
+
+- **R2502（双 agent 并行深审清零批：500 面/乱序/契约不对称）**：
+  ①P1 边界 500 面——ask_date/range 起止走 Py3.11+ 放宽的
+  fromisoformat 收下 20260101/2026-W01-1 后在 calc split('-') 炸
+  500 → schemas 加 _iso_canonical 往返比对只放 YYYY-MM-DD；
+  client_date 同口径收编。②P1 import_threads 备份 JSON 非标量
+  （confidence=dict、page_anchor=dict、raw_start=int64 越界）原样
+  绑定 → InterfaceError/OverflowError 逃逸局部 except 成 5xx 且
+  半提交 → 全部字段显式强转 + except 扩到 sqlite3.Error 整族。
+  ③P1 threads?limit>50 被 resume() 硬编 LIMIT 50 截断却报
+  truncated:false（备份导出静默丢线程）→ limit 参数化下推 SQL；
+  limit=0/负/超500 从静默改 50 改为如实 400。④P1 前端四大加载器
+  （liuyao/taohua/tarot/hehun）补在途代际号——data-retry 不走
+  guardedCall，与主提交并发时后到覆盖先到（照 _XZ_GEN 先例）；
+  trSubmit 包一层隔断 click MouseEvent 进 cards 形参；
+  _trPickGo return promise 让锁覆盖整在途期。⑤P2 _gc_threads
+  排序漏 coalesce(updated_at,opened_at)——open_thread 插入时
+  updated_at=NULL 排最旧，200 帽满时新线程当场被 GC、add_turn
+  撞 FK 报 503 → 与 resume() 同口径回退。⑥P2 _access_gate 无条件
+  信 XFF——直连部署自填头即换桶绕过 10req/60s 爆破限速 → 显式
+  BOOKS_TRUST_XFF=1 才取链尾（Dockerfile 恒代理部署配
+  --proxy-headers 本就走 client.host）。⑦P2 线程视图操作代际闸
+  _TR_VIEW_GEN——查看/删除/改状态/过滤/回列表全部走
+  _threadListPaint，删线程半秒后旧详情不再回弹。⑧P2 排盘历史
+  被动刷新（跨 tab storage/BC 脏标）此前无条件清在读详情 →
+  preserve 模式只在其行被别 tab 删掉时才收；loadPaipanHistory
+  加在途合并。⑨P3 一批——hlLoadWeek 断网失败永不重试+监听叠加
+  （成功后落旗、监听一次绑定、_hlWeekClick 抽具名）；daily
+  ?date 变体归一化防脏缓存键、?bday=garbage 从静默吞改 400；
+  BOOKS_WRITE_DISABLE 下 daily 照算但不写 daily_cache；search
+  genre 补存在性校验与 work/layer 同口径；huangli affair
+  max_length=32；?view=chat 深链别名归一+落地开侧栏；历史空态
+  data-view=daily 死链改 home；_phMirrorDelLoad 补形状闸；
+  sw.js 导航兜底 hit=undefined 时给离线人话页不再白屏。
+  验证：probe_r2502.py 新增 28 项断言全绿（ISO 变体 400/limit
+  口径/GC 缩帽/XFF 双向/write-disable 不落库/非标量导入）；
+  selftest 310、contract 636、ui_smoke 79、G1-G9 9/9、
+  ruff E9F、date_parity、dollar_misuse、selftest_regress、
+  first_screen、no_generated、scripts_importable、baseline_voice、
+  xingzuo、warm_voice、async_ai、plain_first、poster 全过；
+  ?view=chat 真实浏览器复测开侧栏零报错。SW 重发
+  books-shell-c5d2df84da1e。

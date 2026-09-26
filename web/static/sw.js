@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-3209781890cc';   // shell-hash: 3209781890cc
+var CACHE = 'books-shell-c5d2df84da1e';   // shell-hash: c5d2df84da1e
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -126,7 +126,21 @@ self.addEventListener('fetch', function (e) {
             }));
           }
           return resp;
-        }).catch(function () { return hit; });
+        }).catch(function () {
+          /* R2502：CacheStorage 在存储压力下可整体逐出——hit 此时是
+           * undefined，respondWith 收到非 Response 等价白屏。离线
+           * 且壳也丢了时给一句人话页兜底。 */
+          return hit || new Response(
+            '<!doctype html><meta charset="utf-8"><meta name="viewport" ' +
+            'content="width=device-width,initial-scale=1"><body ' +
+            'style="font-family:sans-serif;display:flex;min-height:100vh;' +
+            'align-items:center;justify-content:center;text-align:center;' +
+            'background:#FFF8E7;color:#4A3F35"><div>🌾 网没连上，' +
+            '缓存也刚好空了——联网后刷新一下，小满在这儿等你。</div>' +
+            '</body>',
+            { status: 503,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        });
       })
     );
     return;

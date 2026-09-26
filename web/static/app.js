@@ -4643,6 +4643,7 @@ function doWorks() { return _researchStub.apply(null, ['doWorks'].concat([].slic
 function searchByWork() { return _researchStub.apply(null, ['searchByWork'].concat([].slice.call(arguments))); }
 function doThread() { return _researchStub.apply(null, ['doThread'].concat([].slice.call(arguments))); }
 function _threadListHtml() { return _researchStub.apply(null, ['_threadListHtml'].concat([].slice.call(arguments))); }
+function _threadListPaint() { return _researchStub.apply(null, ['_threadListPaint'].concat([].slice.call(arguments))); }
 function deleteThread() { return _researchStub.apply(null, ['deleteThread'].concat([].slice.call(arguments))); }
 function showThread() { return _researchStub.apply(null, ['showThread'].concat([].slice.call(arguments))); }
 function doCompareWorks() { return _researchStub.apply(null, ['doCompareWorks'].concat([].slice.call(arguments))); }
@@ -4871,10 +4872,18 @@ function hlInitToday() {
  * 白话映射），点格走既有 doHuangli(offset) 翻页路径，API 零新增。 */
 var _hlWeekDone = false;
 async function hlLoadWeek() {
+  /* R2502：_hlWeekDone 此前请求发出前就置真——首访断网失败后
+   * 「网还没连上」在本会话内永不重试；catch 同理把条带永久藏掉。
+   * 改为成功后落真，失败路径保持可重入。 */
   if (_hlWeekDone) return;
-  _hlWeekDone = true;
   var box = el('hlWeek');
   if (!box) return;
+  /* R2502：click 监听此前在成功分支里每次重跑都叠加一份（跨零点
+   * 复位后重进就会多绑）——挪到一次绑定闸后，幂等。 */
+  if (!box.dataset.wbound) {
+    box.dataset.wbound = '1';
+    box.addEventListener('click', _hlWeekClick);
+  }
   var today = new Date();
   var days = [];
   for (var i = 0; i < 7; i++) {
@@ -4888,7 +4897,8 @@ async function hlLoadWeek() {
         .catch(function () { return null; });
     }));
     /* R2400（R124-P2-5）：全断网时此前渲染 7 个「宜 —」裸格——
-     * 收成一句实话，不摆一排死格。 */
+     * 收成一句实话，不摆一排死格。
+     * R2502：不置 _hlWeekDone——下次进视图重试，离线句不再粘住。 */
     if (js.every(function (j) { return !j; })) {
       box.innerHTML = '<div class="hl-week-title">📅 这 7 天宜忌速览</div>' +
         '<div class="no-evidence">网还没连上，周历翻不开——联网后再进来就有了</div>';
@@ -4922,30 +4932,39 @@ async function hlLoadWeek() {
     html += '</div>';
     box.innerHTML = html;
     box.hidden = false;
-    box.addEventListener('click', function (e) {
-      var c = e.target.closest('.hl-week-cell');
-      if (!c) return;
-      box.querySelectorAll('.hl-week-cell').forEach(function (x) {
-        x.classList.remove('active');
-        x.removeAttribute('aria-pressed');
-      });
-      c.classList.add('active');
-      /* R2350a（R94-P2-14）：选中日改 aria-pressed——aria-current 是
-       * 「当前日期」语义，留给今天格（它在渲染时已钉在 i===0）。 */
-      c.setAttribute('aria-pressed', 'true');
-      /* R2349k（R72-B7）：点击当刻用本地日换算偏移——跨零点打开的
-       * 页面点格子仍落到格子上写的那天。 */
-      var _wdd = c.dataset.hldate;
-      var _wdt = new Date(); _wdt.setHours(0, 0, 0, 0);
-      var _woff = Math.round(
-        (new Date(_wdd + 'T00:00:00') - _wdt) / 86400000);
-      if (!isFinite(_woff)) return;
-      doHuangli(_woff);
-    });
+    _hlWeekDone = true;   /* R2502：成功才落真——失败路径保持可重入 */
   } catch (e) { box.hidden = true; }
 }
 
+/* R2502：周历格点击处理抽成具名函数——配合 dataset.wbound 一次绑定，
+ * 不再随每次成功重跑叠加监听。 */
+function _hlWeekClick(e) {
+  var box = el('hlWeek');
+  if (!box) return;
+  var c = e.target.closest('.hl-week-cell');
+  if (!c) return;
+  box.querySelectorAll('.hl-week-cell').forEach(function (x) {
+    x.classList.remove('active');
+    x.removeAttribute('aria-pressed');
+  });
+  c.classList.add('active');
+  /* R2350a（R94-P2-14）：选中日改 aria-pressed——aria-current 是
+   * 「当前日期」语义，留给今天格（它在渲染时已钉在 i===0）。 */
+  c.setAttribute('aria-pressed', 'true');
+  /* R2349k（R72-B7）：点击当刻用本地日换算偏移——跨零点打开的
+   * 页面点格子仍落到格子上写的那天。 */
+  var _wdd = c.dataset.hldate;
+  var _wdt = new Date(); _wdt.setHours(0, 0, 0, 0);
+  var _woff = Math.round(
+    (new Date(_wdd + 'T00:00:00') - _wdt) / 86400000);
+  if (!isFinite(_woff)) return;
+  doHuangli(_woff);
+}
+
+var _LY_GEN = 0;   /* R2502：六爻在途代际——retry 钮不走 guardedCall，
+                    * 与主提交并发时后到覆盖先到。照 _XZ_GEN 先例。 */
 async function doLiuyao() {
+  var _gen = ++_LY_GEN;
   busy('lyResult', '摇卦中…');
   // 实测后端只认 coins|time（HTML 里原来的 "dice" 会得到 400）。
   const method = val('ly_method') === 'coins' ? 'coins' : 'time';
@@ -4998,6 +5017,7 @@ async function doLiuyao() {
   body.client_date = todayIso();   /* R230m：今日值宫锚本地日 */
   try {
     const j = await postJSON('/api/liuyao', body);
+    if (_gen !== _LY_GEN) return;   /* R2502：新请求已接管——丢弃旧响应 */
     paint('lyResult', buildLiuyaoResult(j));
     rememberVoice('lyResult', j, buildLiuyaoResult);
     rememberResult('liuyao', j, val('ly_question') || '');   /* R219b（P0-2） */
@@ -5014,6 +5034,7 @@ async function doLiuyao() {
       lyBtn.addEventListener('click', function () { downloadPoster(j, 'liuyao'); });
     }
   } catch (e) {
+    if (_gen !== _LY_GEN) return;   /* R2502 */
     /* R230d（R16-P1-3）：与 bazi 同一条内联重试——此前只有 bazi 有。 */
     failWithRetry('lyResult', '摇卦失败：' + e.message, function () { doLiuyao(); });
   }
@@ -5225,7 +5246,9 @@ async function doQiming() {
 
 
 
+var _TH_GEN = 0;   /* R2502：桃花在途代际（同 _LY_GEN） */
 async function doTaohua() {
+  var _gen = ++_TH_GEN;
   /* R233k（R45-§3）：同批预检——空字段/非法日前端先拦。 */
   if (num('th_year') == null || num('th_month') == null || num('th_day') == null) {
     _failField(num('th_year') == null ? 'th_year'
@@ -5258,6 +5281,7 @@ async function doTaohua() {
       hour_known: _thHour !== '',
       gender: val('th_gender') || '女'
     });
+    if (_gen !== _TH_GEN) return;   /* R2502 */
     if (!_fieldsUntouched(['th_year','th_month','th_day','th_hour',
                            'th_gender']))
     _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
@@ -5272,6 +5296,7 @@ async function doTaohua() {
     pollAiPolish('thResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     on('shareTaohua', function () { downloadPoster(j, 'taohua'); });   /* R218a-巡2（N-04）：改用 taohua 专属 case */
   } catch (e) {
+    if (_gen !== _TH_GEN) return;   /* R2502 */
     failWithRetry('thResult', '测算失败：' + e.message, function () { doTaohua(); });
   }
 }
@@ -5977,8 +6002,15 @@ function _trSpreadSync() {
   var f = el('tr_n_field');
   if (f) f.style.display = _trSpread() ? 'none' : '';
 }
+var _TR_GEN = 0;   /* R2502：塔罗在途代际（同 _LY_GEN）——trSubmit 的
+                    * guardedCall 锁护不住 data-retry 与 trPickGo 第二入口 */
 /* R2350k：cards 给了走「自己抽」——选定下标成牌；不给照旧。 */
 async function doTarot(cards) {
+  var _gen = ++_TR_GEN;
+  /* R2502：on() 的 handler 会吃到 click 事件实参——此前靠「MouseEvent
+   * 恰好没有 .length」侥幸正确，带 length 的对象进来会把非数组灌进
+   * body.cards 或让 .slice 抛 TypeError 卡死 loading。收编数组形。 */
+  if (!Array.isArray(cards)) cards = null;
   busy('trResult', '抽牌中…');
   /* R216b 续（U-006）：Seed 字段收进高级折叠，留空=用户不关心复验，
    * 前端自动生成一个编号（仅用于「同牌可复验」说明，不影响体验）。 */
@@ -6035,6 +6067,7 @@ async function doTarot(cards) {
   try {
     // /api/tarot 支持多张牌阵（含 position）；/api/tarot/draw 只给单张。
     const j = await postJSON('/api/tarot', body);
+    if (_gen !== _TR_GEN) return;   /* R2502 */
     paint('trResult', buildTarotResult(j));
     rememberVoice('trResult', j, buildTarotResult);
     rememberResult('tarot', j, q || '');   /* R219b（P0-2）：牌名+正逆位进第一句 */
@@ -6063,6 +6096,7 @@ async function doTarot(cards) {
       }, 300 + i * 200);
     });
   } catch (e) {
+    if (_gen !== _TR_GEN) return;   /* R2502 */
     failWithRetry('trResult', '抽牌失败：' + e.message, function () { doTarot(); });
   }
 }
@@ -6138,7 +6172,8 @@ function _trPickGo() {
   var panel = el('trPickPanel'), btn = el('trPickBtn');
   if (panel) panel.style.display = 'none';
   if (btn) btn.textContent = '🃏 自己抽一把';
-  doTarot(st.picks);
+  /* R2502：return 给 guardedCall——锁覆盖整个在途期，不再微任务后即放。 */
+  return doTarot(st.picks);
 }
 /* R2354（R112-P1-1）：换阵/换张数时牌扇还开着 → 已选列表滞留
  * 旧 need，跨配置静默提交（celtic 顶 3 张选牌、要 7 发出 3）。
@@ -6160,7 +6195,9 @@ function _trPickInvalidate(msg) {
 }
 
 
+var _HH_GEN = 0;   /* R2502：合婚在途代际（同 _LY_GEN） */
 async function doHehun() {
+  var _gen = ++_HH_GEN;
   /* R233k（R45-§3）：双侧预检——空字段/非法日前端先拦。
    * R2349（R65-P1-5）：邀请态下 A 侧=TA、B 侧=我——措辞随视角翻转。 */
   var _hs = window.__hhInviteMode
@@ -6215,6 +6252,7 @@ async function doHehun() {
       a_name: (val('hh_a_name') || '').trim() || null,
       b_name: (val('hh_b_name') || '').trim() || null
     });
+    if (_gen !== _HH_GEN) return;   /* R2502：丢弃旧响应——含 _meSave 副作用 */
     /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
     j.a_name = (val('hh_a_name') || '').trim() || null;
     j.b_name = (val('hh_b_name') || '').trim() || null;
@@ -6340,6 +6378,7 @@ async function doHehun() {
       }
     });
   } catch (e) {
+    if (_gen !== _HH_GEN) return;   /* R2502 */
     failWithRetry('hhResult', '计算失败：' + e.message, function () { doHehun(); });
   }
 }
@@ -7932,10 +7971,9 @@ function activateRsec(secId) {
     if (_tr && (_tr.querySelector('.ph-empty') || !_tr.innerHTML.trim() ||
                 _tr.querySelector('.thread-note'))) {
       guardedCall('threads-load', function () {
-        return _threadListHtml().then(function (h) {
-          paint('threadResult', h ||
-            '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>');
-        }).catch(function (e) {
+        /* R2502：走 _threadListPaint——点进详情/删线程在途时再点 tab
+         * 不再后到覆盖。 */
+        return _threadListPaint().catch(function (e) {
           /* R2400（R124-P2-7）：重拉失败此前留着「还没有线程」的陈旧
            * 空态——与「拉不动」不可区分，如实说一句。 */
           paint('threadResult', '<div class="no-evidence">线程列表这趟没拉上来' +
@@ -7986,8 +8024,13 @@ var _PH_MIRROR_KEY = 'paipan_mirror_v1';
  * 值记原记录 ts：清盘后 id 重排，同号新记录 ts 不同不被误压。 */
 var _PH_MIRROR_DEL_KEY = 'paipan_mirror_del_v1';
 function _phMirrorDelLoad() {
+  /* R2502：补形状闸——全站镜像读端唯一没校验的地方。键被写成合法但
+   * 非对象的 JSON（5/"x"/[1]）时 d[id] 静默写不进 → 墓碑丢失 → 清盘后
+   * 已删记录借镜像复活（正是本键要防的事故）。对齐 _phMirrorLoad 等
+   * 读端形状校验口径。 */
   try {
-    return JSON.parse(localStorage.getItem(_PH_MIRROR_DEL_KEY) || '{}') || {};
+    var _d = JSON.parse(localStorage.getItem(_PH_MIRROR_DEL_KEY) || '{}');
+    return (_d && typeof _d === 'object' && !Array.isArray(_d)) ? _d : {};
   } catch (e0) { return {}; }
 }
 function _phMirrorDelMark(id, ts) {
@@ -8502,16 +8545,13 @@ function initReading() {
     const threadFilterBtn = e.target.closest('[data-thread-filter]');
     if (threadFilterBtn) {
       _threadStatus = threadFilterBtn.dataset.threadFilter;
-      _threadListHtml().then(function (h) {
-        paint('threadResult', h);
-      }).catch(function () {});
+      /* R2502：统一走 _threadListPaint——代际闸防与在途查看/删除
+       * 互踩。 */
+      _threadListPaint().catch(function () {});
       return;
     }
     if (e.target.closest('[data-thread-back]')) {
-      _threadListHtml().then(function (h) {
-        paint('threadResult', h ||
-          '<div class="no-evidence">还没有研究线程——写个主题就能开一条～</div>');
-      }).catch(function () {});
+      _threadListPaint().catch(function () {});
       return;
     }
     const threadStatusBtn = e.target.closest('[data-thread-status]');
@@ -8563,7 +8603,9 @@ function initDivination() {
   on('hlSubmit', doHuangli);
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
-  on('trSubmit', doTarot);
+  /* R2502：包一层隔断 click 事件实参——doTarot 的 cards 形参不应
+   * 收到 MouseEvent（靠 Array.isArray 收编只是兜底）。 */
+  on('trSubmit', function () { return doTarot(); });
   /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
   on('trPickBtn', _trPickOpen);
   on('trPickGo', _trPickGo);
@@ -9361,7 +9403,8 @@ function init() {
       return;
     }
     if (e.key === _PH_MIRROR_KEY || e.key === _PH_MIRROR_DEL_KEY) {
-      try { if (window.__loadPaipanHistory) window.__loadPaipanHistory(); }
+      /* R2502：跨 tab 被动刷新不清正在读的详情（行没了才收）。 */
+      try { if (window.__loadPaipanHistory) window.__loadPaipanHistory(true); }
       catch (eP) {}
       return;
     }
@@ -9474,6 +9517,10 @@ function init() {
                      /* R2349v（R92-P0-2）：古籍域视图 id 是 read，但任务书/
                      * 直觉都写 research——别名收编，免得深链查无此页。 */
                      research: 'read', books: 'read', library: 'read',
+                     /* R2502：chat 是伪视图（点击开侧栏不切页）——深链
+                      * ?view=chat 此前吃「入口不存在」toast。归一化到首页
+                      * 并在落地后把侧栏打开，与点卡行为对齐。 */
+                     chat: 'home',
                      /* R2364（R120-P1-2）：速配分享链写 view=xzm，速配卡
                       * 住在星座视图里——别名收编，不再弹「入口不存在」。 */
                      xzm: 'xingzuo' };
@@ -9790,6 +9837,10 @@ function init() {
             } else if (_vpRaw === 'birth') {
               var _bd = document.getElementById('birthDrawer');
               if (_bd) _bd.open = true;
+            } else if (_vpRaw === 'chat') {
+              /* R2502：伪视图深链承接——落到首页后把聊天侧栏打开，
+               * 与点「和小满聊聊」卡同行为。 */
+              try { chatOpen(); } catch (eCO) {}
             }
           }, 300);
         } else {
@@ -11214,11 +11265,37 @@ function baziPersonaCard(j) {
     }
     return r.json();
   }
-  async function loadPaipanHistory() {
+  /* R2502：在途合并 + 详情保留。被动刷新（跨 tab storage 事件、
+   * BroadcastChannel 脏标）此前无条件清掉正在读的详情卡；并发调用
+   * 也无去重（后到写覆盖先到写）。preserve=true 的路径不动详情，
+   * 只在其对应行已消失时才收。 */
+  var _PH_LIST_BUSY = false;
+  var _PH_LIST_PEND;   /* 待跑的 preserve 意图（undefined=无） */
+  async function loadPaipanHistory(preserveDetail) {
     const listEl = document.getElementById('historyList');
     if (!listEl) return;
+    if (_PH_LIST_BUSY) {          /* R2502：并发去重——记最新意图补跑 */
+      _PH_LIST_PEND = preserveDetail;
+      return;
+    }
+    _PH_LIST_BUSY = true;
+    try {
+      await _loadPaipanHistoryInner(listEl, preserveDetail);
+    } finally {
+      _PH_LIST_BUSY = false;
+      if (_PH_LIST_PEND !== undefined) {
+        var _p = _PH_LIST_PEND;
+        _PH_LIST_PEND = undefined;
+        loadPaipanHistory(_p);
+      }
+    }
+  }
+  async function _loadPaipanHistoryInner(listEl, preserveDetail) {
     const detailEl = document.getElementById('historyDetail');
-    if (detailEl) { detailEl.hidden = true; detailEl.innerHTML = ''; }
+    if (detailEl && !preserveDetail) {
+      detailEl.hidden = true; detailEl.innerHTML = '';
+      delete detailEl.dataset.rid;
+    }
     listEl.innerHTML = '<div class="ph-empty">加载中…</div>';
     try {
       const j = await phFetch('/api/paipan/history?limit=50');
@@ -11240,7 +11317,9 @@ function baziPersonaCard(j) {
          * 新客读完只能自己回首页找。 */
         listEl.innerHTML = '<div class="ph-empty">还没有占卜记录——命盘、桃花、合婚、塔罗、六爻、起名都会收在这里 ✨' +
           '<div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">' +
-          '<button type="button" class="ghost" data-view="daily">✨ 去抽今日一签</button>' +
+          /* R2502：view-daily 不存在——showView('daily') 落回首页却把
+           * __inView 置真、标题拼成「daily · …」半吊子态。直接链 home。 */
+          '<button type="button" class="ghost" data-view="home">✨ 去抽今日一签</button>' +
           '<button type="button" class="ghost" data-view="taohua">🌺 测测桃花</button></div></div>';
         listEl.querySelectorAll('[data-view]').forEach(function (_b) {
           _b.addEventListener('click', function () {
@@ -11294,6 +11373,15 @@ function baziPersonaCard(j) {
           '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
           '<button type="button" class="ghost ph-del">删除</button></div></div>';
       }).join('');
+      /* R2502：被动刷新保留详情——但若正在读的那条已被别 tab 删掉，
+       * 行没了就收详情（留死详情比清屏更糟）。 */
+      if (preserveDetail && detailEl && !detailEl.hidden &&
+          detailEl.dataset.rid &&
+          !listEl.querySelector('.ph-item[data-id="' +
+              String(detailEl.dataset.rid).replace(/"/g, '') + '"]')) {
+        detailEl.hidden = true; detailEl.innerHTML = '';
+        delete detailEl.dataset.rid;
+      }
     } catch (e) {
       /* R2400（R127-P1-3）：镜像只补「够不到」不补「不让看」——
        * 断网/5xx 时回退本机留档（与详情、收藏同口径）；401/403
@@ -11441,6 +11529,8 @@ function baziPersonaCard(j) {
               showToast('分享图生成失败：' + (e && e.message || '稍后再试'), 'warn');
             }
           });
+          /* R2502：记下详情归属行——被动刷新时按它判定行还在不在。 */
+          detailEl.dataset.rid = String(id);
           detailEl.hidden = false;
           detailEl.scrollIntoView({ behavior: _rmBehavior() });
         }
@@ -11465,7 +11555,8 @@ function baziPersonaCard(j) {
          * 立即重拉读到不含新行的列表。缓 400ms 再拉。 */
         var hv = document.getElementById('view-history');
         if (hv && hv.classList.contains('active')) {
-          setTimeout(loadPaipanHistory, 400);
+          /* R2502：同 storage 口径——被动刷新保留在读详情。 */
+          setTimeout(function () { loadPaipanHistory(true); }, 400);
         }
       };
     }

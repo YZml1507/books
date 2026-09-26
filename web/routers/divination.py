@@ -26,7 +26,10 @@ def liuyao(req: LiuyaoRequest) -> dict:
 
 
 @router.get("/api/huangli")
-def huangli(date: str | None = None, affair: str | None = None,
+def huangli(date: str | None = Query(None, max_length=10),
+            # R2502：affair 无界时 MB 级串进 find_good_days 的 w in t
+            # 逐日子串扫变成 CPU 锤；回显也原样带超长串。
+            affair: str | None = Query(None, max_length=32),
             # R228b：days 无界时逐日 day_query 线性 DoS（实测 365 天≈21s）
             days: int = Query(1, ge=1, le=92),
             # R2349k（R72-B3）：客户端本地日——cross_ref「今天」锚用它。
