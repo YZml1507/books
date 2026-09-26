@@ -22,7 +22,11 @@ import glob
 import os
 import re
 import sqlite3
+import threading
 import time
+
+# R2525（审-DB-P3-8）：import_threads 查重-插入竞态的进程内串行锁。
+_import_lock = threading.Lock()
 
 # R2508（审-P0）：孤代理 \ud800-\udfff 在 dict/Any 备份值里合法存在，
 # sqlite 绑定/json.dumps 回响两通道都炸 UnicodeEncodeError → 500。
@@ -221,9 +225,21 @@ class KnowledgeBase:
             "SELECT sql FROM sqlite_master WHERE name='derived'").fetchone()
         if not row or "'note'" in (row[0] or ""):
             return
+        # R2525（审-DB-P2-3）：`INSERT INTO derived_new SELECT *` 是位置
+        # 拷贝——pre-G9 旧库 derived 缺 thread_id（_ENSURE_COLS 不补），
+        # 6 列塞进 7 列表 → OperationalError 从 __init__ 一路炸穿，
+        # 每个 knowledge() 连接 503 且永不自愈。显式列映射：缺列给
+        # 字面量（NOT NULL 列 ''、可空列 NULL），列都是自有常量。
+        _have = {r[1] for r in self.db.execute("PRAGMA table_info(derived)")}
+        _cols = ["id", "kind", "claim", "method", "confidence",
+                 "thread_id", "created_at"]
+        _sel = ", ".join(
+            c if c in _have
+            else ("NULL" if c in ("confidence", "thread_id") else "''")
+            for c in _cols)
         try:
             self.db.execute("PRAGMA foreign_keys=OFF")
-            self.db.executescript('''
+            self.db.executescript(f'''
                 BEGIN;
                 CREATE TABLE derived_new (
                     id          INTEGER PRIMARY KEY,
@@ -236,7 +252,9 @@ class KnowledgeBase:
                     CHECK (kind IN ('summary', 'diff', 'link', 'answer',
                                    'refusal', 'note'))
                 );
-                INSERT INTO derived_new SELECT * FROM derived;
+                INSERT INTO derived_new
+                    (id, kind, claim, method, confidence, thread_id, created_at)
+                    SELECT {_sel} FROM derived;
                 DROP TABLE derived;
                 ALTER TABLE derived_new RENAME TO derived;
                 COMMIT;
@@ -258,6 +276,16 @@ class KnowledgeBase:
                             f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
                     except sqlite3.DatabaseError:
                         pass
+        # R2525（审-DB-P2-3 续）：旧库 turn 刚补上的 seq 全是 DEFAULT 0——
+        # ORDER BY seq / max(seq)+1 语义退化。按 id 序回填每线程 1..N；
+        # 幂等（合法 seq 从 1 起，seq=0 只会来自 ALTER 默认值）。
+        try:
+            self.db.execute(
+                "UPDATE turn SET seq = (SELECT COUNT(*) FROM turn t "
+                "WHERE t.thread_id = turn.thread_id AND t.id <= turn.id) "
+                "WHERE seq = 0")
+        except sqlite3.DatabaseError:
+            pass
         self.db.commit()
 
     def close(self):
@@ -289,22 +317,33 @@ class KnowledgeBase:
         if kind == "refusal" and evidence:
             # Allowed, and worth keeping: a refusal may cite what it DID look at.
             pass
-        cur = self.db.execute(
-            "INSERT INTO derived (kind, claim, method, confidence, thread_id, created_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (kind, claim, method, confidence, thread_id,
-             time.strftime("%Y-%m-%dT%H:%M:%S")))
-        did = cur.lastrowid
-        for e in evidence:
-            self.db.execute(
-                "INSERT INTO evidence (derived_id, role, work_id, file, raw_start, raw_end,"
-                " page_anchor, scheme, addr1, addr2, quote) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (did, e.role, e.work_id, e.file, e.raw_start, e.raw_end, e.page_anchor,
-                 e.scheme, e.addr1, e.addr2, e.quote))
-        self.db.execute("INSERT INTO derived_fts(rowid, seg) VALUES (?,?)",
-                        (did, segment_cjk(fold(claim))))
-        self._gc_derived()
-        self.db.commit()
+        try:
+            cur = self.db.execute(
+                "INSERT INTO derived (kind, claim, method, confidence, thread_id, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (kind, claim, method, confidence, thread_id,
+                 time.strftime("%Y-%m-%dT%H:%M:%S")))
+            did = cur.lastrowid
+            # R2525（审-DB-P3-6）：derived.id 复用已删行 rowid 时，
+            # 历史孤儿 evidence（FK-off 删除残留）会重绑到新断言名下
+            # ——先清，本断言的合法证据在下一循环才落。
+            self.db.execute("DELETE FROM evidence WHERE derived_id=?", (did,))
+            for e in evidence:
+                self.db.execute(
+                    "INSERT INTO evidence (derived_id, role, work_id, file, raw_start, raw_end,"
+                    " page_anchor, scheme, addr1, addr2, quote) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (did, e.role, e.work_id, e.file, e.raw_start, e.raw_end, e.page_anchor,
+                     e.scheme, e.addr1, e.addr2, e.quote))
+            self.db.execute("INSERT INTO derived_fts(rowid, seg) VALUES (?,?)",
+                            (did, segment_cjk(fold(claim))))
+            self._gc_derived()
+            self.db.commit()
+        except BaseException:
+            # R2525（审-DB-P1）：写序中途失败（role CHECK / int64 溢出绑定）
+            # 此前无回滚——pending derived INSERT 被下一次 commit 静默落库，
+            # 产出零证据+无 FTS 的幻影断言行（orphans() 设计要拦的形态）。
+            self.db.rollback()
+            raise
         return did
 
     def get(self, derived_id: int) -> Derived | None:
@@ -396,6 +435,10 @@ class KnowledgeBase:
     _CAP_TURN_PER_THREAD = 500
     _CAP_DERIVED = 2000
     _CAP_FAVORITES = 500
+    # R2525（审-DB-P2-1）：PrefsRequest extra=allow 键任意——每请求 64
+    # 个新键可以无限写行且 wipe 不清，唯一无总帽的用户表。按
+    # updated_at LRU 逐出（合法键个位数，256 远超正常使用）。
+    _CAP_PREFS = 256
 
     def _del_derived(self, did: int, claim: str) -> None:
         """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能
@@ -444,10 +487,17 @@ class KnowledgeBase:
         cur = self.db.execute(
             "INSERT INTO thread (topic, opened_at) VALUES (?,?)",
             (topic, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        tid = cur.lastrowid
+        # R2525（审-DB-P3-6）：thread.id 无 AUTOINCREMENT——max-rowid
+        # 复用让历史孤儿 turn/derived 挂到新线程名下（import_threads
+        # 已有同款守卫，这里补上）。turn 孤儿删除；derived 解绑保留。
+        self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
+        self.db.execute(
+            "UPDATE derived SET thread_id=NULL WHERE thread_id=?", (tid,))
         # R233x：插后裁——先 GC 再插会恒超帽一行。
         self._gc_threads()
         self.db.commit()
-        return cur.lastrowid
+        return tid
 
     def add_turn(self, thread_id: int, role: str, text: str) -> int:
         # R233x（R56-P2）：SELECT+INSERT 两段式 seq 有竞态（并发同 seq
@@ -472,6 +522,13 @@ class KnowledgeBase:
                                (thread_id,)).fetchall()
 
     def import_threads(self, items: list[dict]) -> tuple[int, int]:
+        # R2525（审-DB-P3-8）：查重 SELECT→INSERT 分两步、库内无 UNIQUE
+        # ——两个并发同备份导入各过各的查重 → 线程/轮次/断言全翻倍。
+        # 进程内锁串行（部署单 worker），对齐 paipan_history._write_lock。
+        with _import_lock:
+            return self._import_threads(items)
+
+    def _import_threads(self, items: list[dict]) -> tuple[int, int]:
         """R2400（R138-P1-3 跟进）：备份包回灌——thread+turn 原样恢复。
 
         去重键 (topic, opened_at)：同题同刻的线程已存在则整包跳过
@@ -653,10 +710,21 @@ class KnowledgeBase:
         r = self.db.execute("SELECT value FROM user_prefs WHERE key=?", (key,)).fetchone()
         return r["value"] if r else default
 
+    def _gc_prefs(self) -> None:
+        """user_prefs 总帽逐出最旧（与 _gc_threads 同口径 DESC+OFFSET：
+        先排最新跳过帽数，余下最旧删。updated_at 秒级粒度会同秒撞车——
+        rowid 决胜：INSERT OR REPLACE 每写换 rowid，大者新）。"""
+        self.db.execute(
+            "DELETE FROM user_prefs WHERE key IN ("
+            " SELECT key FROM user_prefs"
+            " ORDER BY updated_at DESC, rowid DESC LIMIT -1 OFFSET ?)",
+            (self._CAP_PREFS,))
+
     def set_pref(self, key: str, value: str) -> None:
         self.db.execute(
             "INSERT OR REPLACE INTO user_prefs (key, value, updated_at) VALUES (?,?,?)",
             (key, value, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        self._gc_prefs()
         self.db.commit()
 
     def set_prefs(self, items: list[tuple[str, str]]) -> None:
@@ -666,6 +734,7 @@ class KnowledgeBase:
         self.db.executemany(
             "INSERT OR REPLACE INTO user_prefs (key, value, updated_at) VALUES (?,?,?)",
             [(k, v, now) for k, v in items])
+        self._gc_prefs()
         self.db.commit()
 
     def get_daily_cache(self, date: str) -> dict | None:

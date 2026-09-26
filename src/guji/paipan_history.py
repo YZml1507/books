@@ -142,7 +142,11 @@ def _conn() -> sqlite3.Connection:
                 with _ddl_lock:
                     conn.execute(_DDL)
                     conn.commit()
-            _ensure_columns(conn)
+            # R2525（审-DB-P3-9）：补列收进 _ddl_lock 且逐列容错——
+            # 两个并发首连接同抢补同一列时，后者 duplicate-column
+            # OperationalError 冒成一次性 503（下请求自愈，但不必挨）。
+            with _ddl_lock:
+                _ensure_columns(conn)
             return conn
         except sqlite3.OperationalError:
             # R230i（R21-P0-3）：「database is locked」/只读是
@@ -187,8 +191,13 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     have = {r[1] for r in conn.execute("PRAGMA table_info(records)")}
     for col, ddl in _RECORDS_COLS.items():
         if col not in have:
-            conn.execute(
-                f"ALTER TABLE records ADD COLUMN {col} {ddl}")
+            try:
+                conn.execute(
+                    f"ALTER TABLE records ADD COLUMN {col} {ddl}")
+            except sqlite3.DatabaseError:
+                # R2525：竞态/漂移下补列失败吞掉——下一连接会重试
+                #（_ddl_lock 已把常规竞态收窄，这里兜底层错误）。
+                pass
     conn.commit()
 
 
@@ -346,7 +355,9 @@ def get_record(rid: int) -> dict | None:
 
 def delete_record(rid: int) -> bool:
     """删除单条；返回是否存在。"""
-    with contextlib.closing(_conn()) as c, c:
+    # R2525（审-DB-P3-7）：补上 _write_lock——此前是全模块唯一绕过
+    # 写串行纪律的写者（功能上单语句删除本安全，纪律一致性）。
+    with _write_lock, contextlib.closing(_conn()) as c, c:
         cur = c.execute("DELETE FROM records WHERE id=?", (int(rid),))
         return cur.rowcount > 0
 
@@ -484,7 +495,9 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
             if not r.get("ts"):
                 skipped += 1
                 continue
-            ts = str(r.get("ts"))[:32]
+            # R2525（审-DB-P3-10）：ts 同剥控制字——它是 dedup 键+展示
+            # 字段，控制字会同时毒化查重命中与列表渲染。
+            ts = _CTRL_RE.sub("", str(r.get("ts")))[:32]
             # R2506（审-F2）：备份文件的 name/question 此前只截断不剥
             # 控制字——手工构造的备份能把 NUL/双向符写进台账标题。
             # R2508（审-P2-2）：只剥控制字不 strip——备份能埋前导

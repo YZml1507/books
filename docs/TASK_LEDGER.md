@@ -13420,3 +13420,38 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   probe_llm_polish PASS；r2522/r2518 回归绿。
 - [ ] **在途**：存储层 agent 40f2e5b9（knowledge/paipan_history/evalset）
   ~45min 未交付——交付归入 R2525。
+
+## R2525 — 存储层深审（40f2e5b9 交付 1×P1/4×P2/6×P3）全修复
+
+- [x] **审-DB-P1**：`record()` 无事务回滚——证据 INSERT 中途失败
+  （role CHECK/int64 溢出绑定）把 pending derived 留给下一次 commit
+  静默落成幻影断言（零证据+无 FTS，正是 orphans() 设计要拦的形态）。
+  写序包 try/rollback。合成实证：坏证据断言零残留、后续合法写入正常。
+- [x] **审-DB-P2-1**：`user_prefs` 唯一无总帽的用户表——extra=allow
+  任意键每请求+64 行无限写且 wipe 不清。`_CAP_PREFS=256` +
+  updated_at/rowid DESC LRU（实测 600 键洪泛=256 行、最新写入存活）。
+- [x] **审-DB-P2-2**：MCP `record_claim_tool` 开线程后 record 被拒/
+  异常→永久鬼线程（web 侧有 `_drop_thread` 补偿，MCP 没有）。
+  `_opened` 标记 + 失败补偿删除，异常面收宽。
+- [x] **审-DB-P2-3**：`_migrate_note` `INSERT INTO derived_new SELECT *`
+  位置拷贝——pre-G9 旧库 derived 缺 thread_id（_ENSURE_COLS 不补）
+  →6 列塞 7 列炸穿 __init__，每连接 503 永不自愈。改显式列映射
+  （缺列 NULL/'' 字面量）；合成 pre-G9 库实测迁移成功、行保留。
+  `turn.seq` ALTER DEFAULT 0 的历史行按 id 序回填每线程 1..N。
+- [x] **P3-5**：`_drop_thread` 被挂起 derived 卡 FK——随 P1 回滚解
+  （同根因）。顺带 `ThreadEvidence` 三个 int 字段补 int64 界
+  （OverflowError 的 503→422 参数错口径）。
+- [x] **P3-6**：thread/derived 无 AUTOINCREMENT——rowid 复用让
+  历史孤儿 turn/evidence 重绑新行（import 径早有守卫）。open_thread
+  补「删孤儿 turn + derived 解绑」、record 补「先清孤儿 evidence」。
+- [x] **P3-7**：`delete_record` 补 `_write_lock`（全模块写串行纪律）。
+- [x] **P3-8**：`import_threads` 查重-插入竞态→进程内 `_import_lock`。
+- [x] **P3-9**：paipan `_ensure_columns` 收进 `_ddl_lock` + 逐列容错
+  （并发首连抢补同列的 duplicate-column 一次性 503 关闭）。
+- [x] **P3-10**：`import_rows` ts 补 `_CTRL_RE` 清洗（dedup 键+展示）。
+- [x] **裁决**：role 枚举不加 pydantic 校验——err.threads.role 钉
+  400（DB CHECK→IntegrityError→「格式不对」），前置拦会变 422
+  破契约；500+ 洪水证据注「需要至少一条证据」语义不变。
+- [x] `probe_r2525.py` 18/18；selftest 310；contract 639。
+- [x] **全仓实质面审计覆盖收官**：src/guji + web 层所有文件至少
+  一轮专审（mcp_server/ingest 本轮顺带覆盖 MCP 写径）。

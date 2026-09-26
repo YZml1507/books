@@ -284,12 +284,26 @@ def record_claim_tool(kind: str, claim: str, method: str,
                 role=str(e.get("role") or "supports")))
         # R230c（R17-P0-4）：缺 thread_id 时与 web 同纪律——自动开线程绑定，
         # 不再写「可用 threads 恢复」的假承诺 orphan claim。
+        _opened = False
         if thread_id is None:
             thread_id = kb.open_thread(claim[:40])
+            _opened = True
         try:
             did = kb.record(kind, claim, method, ev, confidence=confidence,
                             thread_id=thread_id)
-        except ValueError as exc:
+        except Exception as exc:
+            # R2525（审-DB-P2-2）：record 被拒（kind=summary 无证据等）/
+            # IntegrityError/OverflowError 此前 thread 已 commit 留成永久
+            # 鬼线程——与 web 同纪律补偿删除。
+            if _opened:
+                try:
+                    kb.db.execute("DELETE FROM turn WHERE thread_id=?",
+                                  (thread_id,))
+                    kb.db.execute("DELETE FROM thread WHERE id=?",
+                                  (thread_id,))
+                    kb.db.commit()
+                except Exception:
+                    pass
             return f"error: {exc}"
         row = kb.db.execute(
             "SELECT thread_id FROM derived WHERE id = ?", (did,)).fetchone()

@@ -201,11 +201,13 @@ class ThreadEvidence(BaseModel):
     work_id: str = Field("", max_length=64)
     file: str = Field("", max_length=200)
     quote: str = Field("", max_length=2000)
-    raw_start: int | None = None
-    raw_end: int | None = None
+    # R2525：int64 界——超大整数进 SQLite 绑定点 OverflowError，
+    # 落「底层失败→503」而不是「参数非法→400」。
+    raw_start: int | None = Field(None, ge=-(2**63), le=2**63 - 1)
+    raw_end: int | None = Field(None, ge=-(2**63), le=2**63 - 1)
     page_anchor: str | None = Field(None, max_length=200)
     scheme: str | None = Field(None, max_length=32)
-    addr1: int | None = None
+    addr1: int | None = Field(None, ge=-(2**63), le=2**63 - 1)
     addr2: str | None = Field(None, max_length=64)
     role: str = Field("supports", max_length=32)
 
