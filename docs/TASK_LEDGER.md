@@ -14154,3 +14154,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   基建：sqlite/OSError/FNF→503 可恢复口径、RequestValidationError
   →422 中文化、StarletteHTTP→404 中文、OverflowError→400；统一
   {"detail":中文} 契约逐字钉扎。
+
+## R2638 巡检#55——tarot POST 边界全绿
+- evil 阵名→400 人话、seed 非数→422、spread 数字→422；celtic 实
+  测 draws×10 位置全绑+interpretation/warm 齐（键名 draws 非
+  cards——解析侧笔误一次已正）。
