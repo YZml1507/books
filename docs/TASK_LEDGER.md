@@ -14148,3 +14148,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   未成年→「合婚是给成年人测的——有一方还没满18岁，把生日改对
   或长大点再来呀～」；hour 必填先 schema 422（缺时另有 hour_known
   通道，R2610 已验）。
+
+## R2637 巡检#54——web/errors 统一映射层完备
+- 业务三态：ValidationError→400/ComputeError→422/NotFoundError→404；
+  基建：sqlite/OSError/FNF→503 可恢复口径、RequestValidationError
+  →422 中文化、StarletteHTTP→404 中文、OverflowError→400；统一
+  {"detail":中文} 契约逐字钉扎。
