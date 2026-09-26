@@ -13730,3 +13730,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - warm_tarot/liuyao/taohua/hehun/qiming 抽审：桃花方位/红鸾天喜/大运窗口/五行相生叙事均内容化，
   无泛泛兜底路径；泛用词仅 _pick 池内轮换条目，合规。
 - TOPIC_HINT「子女」消费点确认（miss 路径 line 578）。无改造缺口。
+
+## R2573 前端渲染层深潜（renderInterpretation/renderWarm/相关入口）
+- 结果卡全量渲染零截断：sections 逐行、引文独立段、basis 中文化、disclaimer 人话化。
+- renderWarm：共情行→L0→reply 逐行→能量卡（去重已说词）→补一补→badge→专业依据折叠（DOM 保留可核验）。
+- 相关入口：聊天空态生日>深夜>久归>昵称>来访 五档个性化 + 档案感知 chips，R2551 截图为证精细。
+- 结论：「讲解浅」瓶颈在内容生成层（已修：因果层+词表+牌义），渲染层无藏内容缺陷。
