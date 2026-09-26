@@ -14005,3 +14005,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - hour 必填+hour_known 通道：hour=12&hour_known=false → 200 正常
   桃花盘 + notes 披露「时柱桃花主中年后」降级口径。
 - 边界：month=13→「月份需在 1-12」、gender=X→「性别只能是 男 或 女」。
+
+## R2611 巡检#28——安全响应头实测全绿
+- 主文档：nosniff + frame DENY + referrer no-referrer + 完整 CSP
+  （default-src 'self'；img 放行 data:/blob: 供 canvas 海报；
+  object-src 'none'；frame-ancestors 'none'；form-action 'self'）
+  + no-cache。
+- script/style 'unsafe-inline' 是单文件 app 的必要口径（外链
+  脚本面不存在），非松懈。
