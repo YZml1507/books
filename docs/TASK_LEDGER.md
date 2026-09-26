@@ -13888,3 +13888,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「宜修造也忌出行，节奏放缓」——跨轮场景继承经真异步链验证。
 - 新判定覆盖旧判定（R230a-6）实测成立：第二轮判定块整体替换，
   非追加堆叠；历史轮次（user/assistant）正常携带。
+
+## R2596 巡检#13——深色主题真浏览器实测全绿（390px）
+- aa→dark 点击切换：data-theme=dark、uiTheme=dark、body 底
+  rgb(34,29,32)、图标翻 ☀️、aria-pressed=true、toast「夜间模式开啦」。
+- 切回：data-theme 移除、uiTheme=aa 复原。
+- 截图评审：暗紫底卡面对比正常、功能宫格 accent 顶边保留、
+  贵人/宜忌/星座卡文字全可读——深色非半成品，令牌覆盖无漏。
