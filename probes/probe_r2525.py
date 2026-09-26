@@ -22,7 +22,6 @@
 - 顺带：ThreadEvidence int64 界 + role 枚举校验（503→400 口径）。
 """
 import os
-import sqlite3
 import sys
 import tempfile
 

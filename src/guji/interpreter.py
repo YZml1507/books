@@ -447,7 +447,6 @@ _TOPIC_MAP = (
 def _focus_lines(q: str, calc: dict) -> list[str]:
     """把用户问题对齐到已算出的坐标，只做筛选与转述，不新增判断。"""
     tg = calc.get("ten_gods") or []
-    gods = [t.get("god") for t in tg]
     # R233g（R44-P0-1）：敏感问法优先拦截——此前落空吐「坐标维度」黑话。
     # R233r：与聊天层同一判定（lazy import 与 voice.py:1090 同款）。
     from guji import llm_polish as _lp

@@ -19,7 +19,6 @@
 - P3：polish 重试提示改 user 角色；fresh 采样挪到 GC 之后；
   _is_crisis/_is_sensitive 内部剥零宽。
 """
-import re
 import sys
 
 sys.path.insert(0, ".")
