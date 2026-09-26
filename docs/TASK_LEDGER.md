@@ -14173,3 +14173,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 文档级零横向溢出（docW 360<375）；clipped 元素全在 overflow:
   hidden 的日签封面卡内（刻意内裁非缺陷）；欢迎 toast/主题钮/
   品牌头/封面/聊天悬浮钮全部就位无重叠。
+
+## R2642 巡检#59——prefs 写读回环 + 自测残留清偿
+- GET {theme,recent,favorites} 三键；POST 平铺键值回写生效；清偿
+  R2588 遗留的 theme='x'*72 与 unknown_field=123 两条测试残留（服
+  务端宽容存原值、前端白名单坍缩，无注入面——数据卫生归位）。
