@@ -13364,3 +13364,22 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   服务端台账有行（save_async best-effort 线程在重负载下晚落地——
   实测一轮全灭、一轮 80/80）。本质是把等待锚在数据落地而非墙钟。
 - [x] `probe_r2522.py` 21/21；selftest 310；contract 639；ui_smoke 80/80。
+
+## R2523 — services.py 深审（dea71800 交付 3×P2）+ 自修项
+
+- [x] **审-SV-1**：`search()` 零命中繁体重试路径 total 双计——
+  `len(hits)+count(q2)` 把同批命中数两遍（实测 「飞龍在天」100→110 虚报）。
+  `shown_extra=len(hits2)` 后 total=count2。活端点实证 total=29=真值。
+- [x] **审-SV-2**：`thread_detail` 1+2N 查询——逐 claim kb.get() 改两条
+  批量查（derived 全列 + evidence IN 归组，与 verify() 同款）。
+  合成线程实测归组正确。
+- [x] **审-SV-3**：`bazi_lookup` 两处裸 connect 靠 GC 收尾（execute 抛错
+  即泄漏）+ `json.dump(meta, open(...))` 句柄裸奔 → contextlib.closing +
+  with open。retrieve_fast 实证 20 hits 带出处。
+- [x] **自修**：chat sid `'c-anon'` 共享字面量回退（sessionStorage 不可用时
+  公开部署下锚互串）→ `_SID_MEMO` 记忆化随机；search.py `PRAGMA table_info`
+  收进坏库 try（agent af7d1231 P3-10 挂账清偿）；README 环境变量表补
+  BOOKS_ACCESS_TOKEN/BOOKS_TRUST_XFF 两行。
+- [x] **裁决不改**：`PATCH /api/threads/{tid}` status 走 query 参数——
+  前后端一致、写闸+枚举内验，纯风格 nit 登记不改。
+- [x] `probe_r2522.py` 26/26；selftest 310；contract 639。

@@ -606,6 +606,10 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
             if not hits:
                 if hits2:
                     hits = hits2
+                    # R2523（审-SV-1）：全量出自 q2——展示数计入
+                    # shown_extra 而非 shown_q，否则 total = len+count2
+                    # 把同批命中数两遍（实测 100 条命中报 110）。
+                    shown_extra = len(hits2)
                     hint = f"已按繁体重试「{q2}」"
             elif hits2:
                 seen = {(h.work_id, h.text) for h in hits}
@@ -957,21 +961,32 @@ def thread_detail(tid: int) -> dict:
                 raise NotFoundError("这条线程没找到——可能还没聊过")
         claims = []
         _claim_ids: list[int] = []
-        for row in kb.db.execute(
-                "SELECT id FROM derived WHERE thread_id=? ORDER BY id", (tid,)):
-            _claim_ids.append(row["id"])
-            d = kb.get(row["id"])
-            if d is None:
-                continue
+        # R2523（审-SV-2）：原逐 claim kb.get()——每条 2 次往返
+        # （derived+evidence 各一查），N 条 = 1+2N。改为两条批量查、
+        # Python 侧按 derived_id 归组（与 verify() 同款 IN 模式）。
+        _drows = kb.db.execute(
+            "SELECT * FROM derived WHERE thread_id=? ORDER BY id",
+            (tid,)).fetchall()
+        _ev_by_did: dict[int, list] = {}
+        if _drows:
+            _evph = ",".join("?" * len(_drows))
+            for _x in kb.db.execute(
+                    f"SELECT * FROM evidence WHERE derived_id IN ({_evph})"
+                    " ORDER BY id",
+                    tuple(r["id"] for r in _drows)):
+                _ev_by_did.setdefault(_x["derived_id"], []).append(_x)
+        for r in _drows:
+            _claim_ids.append(r["id"])
             claims.append({
-                "id": d.id, "kind": d.kind, "claim": d.claim,
-                "method": d.method, "confidence": d.confidence,
-                "created_at": d.created_at,
+                "id": r["id"], "kind": r["kind"], "claim": r["claim"],
+                "method": r["method"], "confidence": r["confidence"],
+                "created_at": r["created_at"],
                 "evidence": [{
-                    "role": e.role, "work_id": e.work_id, "file": e.file,
-                    "page_anchor": e.page_anchor, "scheme": e.scheme,
-                    "addr1": e.addr1, "addr2": e.addr2, "quote": e.quote,
-                } for e in d.evidence],
+                    "role": e["role"], "work_id": e["work_id"],
+                    "file": e["file"], "page_anchor": e["page_anchor"],
+                    "scheme": e["scheme"], "addr1": e["addr1"],
+                    "addr2": e["addr2"], "quote": e["quote"],
+                } for e in _ev_by_did.get(r["id"], [])],
             })
         return {"turns": turns, "claims": claims,
                 # R8 P2-4：verify 从全表 evidence 收敛到本线程 claims

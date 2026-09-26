@@ -98,5 +98,29 @@ ck("fe.tarot_img_esc",
    '"<img src=\\"" + esc(img)' in _js or
    '\'<img src="\' + esc(img)' in _js or 'src="' + "' + esc(img)" in _js)
 
+# ── R2523 续修：sid 'c-anon' 共享回退 → 记忆化随机 ───────────────
+ck("fe.sid_no_shared_anon",
+   "return 'c-anon';" not in _js and "_SID_MEMO" in _js and
+   "'c-anon-'" in _js)
+
+# ── R2523：search.py PRAGMA 校验收进坏库 try（db 泄漏微观口）────
+_sch = open("src/guji/search.py", encoding="utf-8").read()
+ck("be.search_pragma_in_try",
+   "R2523（审-P3-10）" in _sch and
+   _sch.index("PRAGMA table_info(unit)") <
+   _sch.index("except sqlite3.DatabaseError"))
+
+# ── R2523 services agent 三 P2 ────────────────────────────────────
+_svc2 = _svc  # services.py 已读
+ck("sv.search_total_zero_retry",
+   "shown_extra = len(hits2)" in _svc2)
+ck("sv.thread_detail_batch",
+   "derived_id IN (" in _svc2 and "kb.get(row[\"id\"])" not in _svc2)
+_bl = open("src/guji/bazi_lookup.py", encoding="utf-8").read()
+ck("sv.lookup_conn_closing",
+   _bl.count("contextlib.closing(sqlite3.connect(DB))") == 2 and
+   "conn.close()" not in _bl and
+   "json.dump(meta, _mf)" in _bl)
+
 print(f"\n{len(PASS)} pass, {len(FAIL)} fail")
 sys.exit(1 if FAIL else 0)

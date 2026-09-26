@@ -178,6 +178,31 @@ class Corpus:
             has_work = self.db.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' "
                 "AND name='work'").fetchone()
+            if not has_work:
+                self.db.close()
+                raise FileNotFoundError(
+                    f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
+            if not self.db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type IN ('table','view') "
+                    "AND name='unit'").fetchone():
+                self.db.close()
+                raise FileNotFoundError(
+                    f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
+            # R230i（R21-P2-3）：列级漂移（pre-D015 直列 gua/gua_name 等旧版
+            # 索引）此前走 DatabaseError 泛文案「存储暂时不可用」——明示
+            # 「索引版本过旧，请重建」更可操作。
+            _need = {"work_id", "layer", "page_anchor", "file", "text",
+                     "raw_start", "skipped_chars", "suspect", "scheme",
+                     "addr_name", "addr1", "addr2"}
+            # R2523（审-P3-10）：本 PRAGMA 原在 try 外——损坏库在这里抛
+            # DatabaseError 时 self.db 泄漏（微观竞态，但收进同一闸语义更对）。
+            have = {r[1] for r in self.db.execute("PRAGMA table_info(unit)")}
+            missing = _need - have
+            if missing:
+                self.db.close()
+                raise FileNotFoundError(
+                    f"索引版本过旧（缺列：{'、'.join(sorted(missing))}）："
+                    f"{db_path}（请跑 scripts/build_index.py 重建）")
         except sqlite3.DatabaseError:
             # R230i（R21-P1-6）：库文件损坏此前走 DatabaseError→503
             # 「稍后再试」——误导（永远不会自己好）。给可操作文案。
@@ -185,29 +210,6 @@ class Corpus:
             raise FileNotFoundError(
                 f"索引文件损坏：{db_path}（请跑 scripts/build_index.py 重建）"
             ) from None
-        if not has_work:
-            self.db.close()
-            raise FileNotFoundError(
-                f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
-        if not self.db.execute(
-                "SELECT 1 FROM sqlite_master WHERE type IN ('table','view') "
-                "AND name='unit'").fetchone():
-            self.db.close()
-            raise FileNotFoundError(
-                f"索引缺表（残库）：{db_path}（先跑 scripts/build_index.py）")
-        # R230i（R21-P2-3）：列级漂移（pre-D015 直列 gua/gua_name 等旧版
-        # 索引）此前走 DatabaseError 泛文案「存储暂时不可用」——明示
-        # 「索引版本过旧，请重建」更可操作。
-        _need = {"work_id", "layer", "page_anchor", "file", "text",
-                 "raw_start", "skipped_chars", "suspect", "scheme",
-                 "addr_name", "addr1", "addr2"}
-        have = {r[1] for r in self.db.execute("PRAGMA table_info(unit)")}
-        missing = _need - have
-        if missing:
-            self.db.close()
-            raise FileNotFoundError(
-                f"索引版本过旧（缺列：{'、'.join(sorted(missing))}）："
-                f"{db_path}（请跑 scripts/build_index.py 重建）")
 
     def close(self):
         self.db.close()

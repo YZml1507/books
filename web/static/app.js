@@ -1291,8 +1291,17 @@ function chatSid() {
       _st.setItem(CHAT_SID_KEY, sid);
     }
     return sid;
-  } catch (e) { return 'c-anon'; }
+  } catch (e) {
+    /* R2523：原回退 'c-anon' 是共享字面量——sessionStorage 不可用的
+     * 用户在公开部署下同 sid 共享服务端锚（日期/场景上下文互串）。
+     * 记忆化随机回退：同页一致、跨页/跨用户不撞。 */
+    if (!_SID_MEMO) {
+      _SID_MEMO = 'c-anon-' + Math.random().toString(36).slice(2, 12);
+    }
+    return _SID_MEMO;
+  }
 }
+var _SID_MEMO = null;
 var CHAT_LAST_FACTS = [];   /* 最近一次排盘的坐标事实（干支五行词，非 PII） */
 var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自动发后允许追问 1 次 */
 

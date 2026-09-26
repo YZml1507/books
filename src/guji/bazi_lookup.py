@@ -16,6 +16,7 @@
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -181,48 +182,50 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
         raise FileNotFoundError(
             # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
             "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
-    for t in topic_queries(question):
-        qs.append((t, _TOPIC_WHY))
-    seen: set[tuple] = set()
-    out: list[dict] = []
+    # R2523（审-SV-3）：裸 connect + 末尾 close()——conn.execute 中途抛
+    # OperationalError（残库/缺 unit_fts）时连接泄漏，靠 GC 兜底。
+    # closing() 保证任何出口都关。
+    with contextlib.closing(sqlite3.connect(DB)) as conn:
+        conn.row_factory = sqlite3.Row
+        qs: list[tuple[str, str]] = queries_from(b)[:top_queries]
+        for t in topic_queries(question):
+            qs.append((t, _TOPIC_WHY))
+        seen: set[tuple] = set()
+        out: list[dict] = []
 
-    for q, why in qs:
-        if len(q) < 2:
-            continue  # 单字不参与 FTS（噪音）
-        for wid in MINGLI_WORKS:
-            hits = conn.execute(
-                "SELECT u.work_id, w.title, u.layer, u.page_anchor, u.file, u.text, "
-                "u.raw_start, bm25(unit_fts) AS score "
-                "FROM unit_fts JOIN unit u ON u.id = unit_fts.rowid "
-                "JOIN work w ON w.id = u.work_id "
-                "WHERE u.work_id = ? AND unit_fts MATCH ? "
-                "ORDER BY score LIMIT ?", (wid, _fts_phrase(q), per_query)).fetchall()
-            for h in hits:
-                key = (h["work_id"], h["raw_start"])
-                if key in seen:
-                    continue
-                seen.add(key)
-                out.append({
-                    "query": q, "why": why, "work_id": h["work_id"],
-                    "title": h["title"], "layer": h["layer"],
-                    "page_anchor": h["page_anchor"], "file": h["file"],
-                    "text": h["text"], "score": float(h["score"]),
-                    # R179b（D-231b，审查轨 R118a-03）：本函数返回裸 dict 而非
-                    # Hit，此前**没有 citation 键**——前端 `esc(ev.citation||'')`
-                    # 把出处静默渲染成空串，原文有了出处没了（宪法第三条
-                    # 「引用与生成分离」要求原文必带可核验出处）。
-                    # 复用 search.render_citation 而不是在此再拼一遍格式：
-                    # 同一渲染规则两份拷贝正是 LESSONS.md L-01 的事故形态。
-                    "citation": render_citation(
-                        work_id=h["work_id"], title=h["title"],
-                        page_anchor=h["page_anchor"], file=h["file"]),
-                })
-                if len([o for o in out if o["work_id"] == wid]) >= per_work:
-                    break
-    conn.close()
+        for q, why in qs:
+            if len(q) < 2:
+                continue  # 单字不参与 FTS（噪音）
+            for wid in MINGLI_WORKS:
+                hits = conn.execute(
+                    "SELECT u.work_id, w.title, u.layer, u.page_anchor, u.file, u.text, "
+                    "u.raw_start, bm25(unit_fts) AS score "
+                    "FROM unit_fts JOIN unit u ON u.id = unit_fts.rowid "
+                    "JOIN work w ON w.id = u.work_id "
+                    "WHERE u.work_id = ? AND unit_fts MATCH ? "
+                    "ORDER BY score LIMIT ?", (wid, _fts_phrase(q), per_query)).fetchall()
+                for h in hits:
+                    key = (h["work_id"], h["raw_start"])
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    out.append({
+                        "query": q, "why": why, "work_id": h["work_id"],
+                        "title": h["title"], "layer": h["layer"],
+                        "page_anchor": h["page_anchor"], "file": h["file"],
+                        "text": h["text"], "score": float(h["score"]),
+                        # R179b（D-231b，审查轨 R118a-03）：本函数返回裸 dict 而非
+                        # Hit，此前**没有 citation 键**——前端 `esc(ev.citation||'')`
+                        # 把出处静默渲染成空串，原文有了出处没了（宪法第三条
+                        # 「引用与生成分离」要求原文必带可核验出处）。
+                        # 复用 search.render_citation 而不是在此再拼一遍格式：
+                        # 同一渲染规则两份拷贝正是 LESSONS.md L-01 的事故形态。
+                        "citation": render_citation(
+                            work_id=h["work_id"], title=h["title"],
+                            page_anchor=h["page_anchor"], file=h["file"]),
+                    })
+                    if len([o for o in out if o["work_id"] == wid]) >= per_work:
+                        break
     # R228m：FTS5 bm25 分数为负、越负越好——`-score` 升序=最差在前，
     # 叠上 [:20] 截断等于把最强命中整批丢弃。改回 bm25 升序。
     out.sort(key=lambda o: (o["score"], o["work_id"]))
@@ -274,7 +277,9 @@ def _sem_vecs(conn) -> tuple:
                                       show_progress_bar=False, normalize_embeddings=True),
                          dtype=_np().float32)
     _np().save(SEM_DOCVECS, vecs)
-    json.dump(meta, open(SEM_DOCMETA, "w", encoding="utf-8"))
+    # R2523（审-SV-3）：open() 裸句柄不落句柄变量——dump 抛错时 fd 泄漏。
+    with open(SEM_DOCMETA, "w", encoding="utf-8") as _mf:
+        json.dump(meta, _mf)
     _sem_cache = (vecs, meta["meta"])
     return _sem_cache
 
@@ -288,35 +293,36 @@ def retrieve_semantic(b: Bazi, top_k: int = 8) -> list[dict]:
         raise FileNotFoundError(
             # R2349j（R71-P0-2）：绝对路径不再进 detail——贴屏泄服务器布局。
             "古籍索引还没装好（跑过 scripts/build_index.py 再试）")
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    vecs, meta = _sem_vecs(conn)
-    model = _model()
-    queries = [q for q, _ in queries_from(b)]
-    qv = _np().asarray(model.encode(queries, normalize_embeddings=True),
-                       dtype=_np().float32)
-    # 取各查询最高分的并集（一个单元被任一坐标词命中即算）
-    sims = vecs @ qv.T
-    best = sims.max(axis=1)
-    order = _np().argsort(-best)[:top_k]
-    out = []
-    for idx in order:
-        m = meta[idx]
-        r = conn.execute("SELECT text FROM unit WHERE id=?", (m["id"],)).fetchone()
-        w = conn.execute("SELECT title FROM work WHERE id=?", (m["work_id"],)).fetchone()
-        out.append({
-            "query": " / ".join(queries), "why": "语义检索",
-            "work_id": m["work_id"],
-            "title": w["title"] if w else None,   # 语义路径补书名（原硬编码 None）
-            "layer": m["layer"],
-            "page_anchor": m["page_anchor"], "file": m["file"],
-            "text": r["text"] if r else "", "score": float(best[idx]),
-            # 同 retrieve_fast：语义路径也必须带出处（R179b，D-231b）
-            "citation": render_citation(
-                work_id=m["work_id"], title=w["title"] if w else None,
-                page_anchor=m["page_anchor"], file=m["file"]),
-        })
-    conn.close()
+    # R2523（审-SV-3）：同 retrieve_fast——裸 connect 靠 GC 收尾，
+    # _sem_vecs/model.encode/逐 hit 查询任一抛错即泄漏。
+    with contextlib.closing(sqlite3.connect(DB)) as conn:
+        conn.row_factory = sqlite3.Row
+        vecs, meta = _sem_vecs(conn)
+        model = _model()
+        queries = [q for q, _ in queries_from(b)]
+        qv = _np().asarray(model.encode(queries, normalize_embeddings=True),
+                           dtype=_np().float32)
+        # 取各查询最高分的并集（一个单元被任一坐标词命中即算）
+        sims = vecs @ qv.T
+        best = sims.max(axis=1)
+        order = _np().argsort(-best)[:top_k]
+        out = []
+        for idx in order:
+            m = meta[idx]
+            r = conn.execute("SELECT text FROM unit WHERE id=?", (m["id"],)).fetchone()
+            w = conn.execute("SELECT title FROM work WHERE id=?", (m["work_id"],)).fetchone()
+            out.append({
+                "query": " / ".join(queries), "why": "语义检索",
+                "work_id": m["work_id"],
+                "title": w["title"] if w else None,   # 语义路径补书名（原硬编码 None）
+                "layer": m["layer"],
+                "page_anchor": m["page_anchor"], "file": m["file"],
+                "text": r["text"] if r else "", "score": float(best[idx]),
+                # 同 retrieve_fast：语义路径也必须带出处（R179b，D-231b）
+                "citation": render_citation(
+                    work_id=m["work_id"], title=w["title"] if w else None,
+                    page_anchor=m["page_anchor"], file=m["file"]),
+            })
     return out
 
 

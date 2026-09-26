@@ -136,6 +136,8 @@ Windows 桌面一键入口：`web_launcher.py` / `start_web.bat`（自拉起服�
 | `BOOKS_EXTERNAL_DISABLE` | `1/on/true/yes` | 关 external/* 外部资讯拉取 | 关 |
 | `BOOKS_ALLOWED_HOSTS` | 逗号分隔域名 | TrustedHost 白名单（防 Host 投毒） | 放行全部 |
 | `BOOKS_CORS_ORIGINS` | 逗号分隔 Origin | 分体部署的跨域白名单 | 不加 CORS 头 |
+| `BOOKS_ACCESS_TOKEN` | 口令字符串 | 访问闸：页面输一次口令写 Cookie 30 天（公网部署必配） | 不设=全开放 |
+| `BOOKS_TRUST_XFF` | `1/on/true/yes` | 限速桶信任 X-Forwarded-For 尾跳（仅受信代理部署开；不设=全局桶兜底，语义仍正确） | 关 |
 | `GUJI_PROXY` | `http://…` | external 抓取出网代理 | 直连 |
 
 exe 形态：`llm_config.json` 放在 exe 同目录（或 exe 旁 `web/` 下）即可被读到；
