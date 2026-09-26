@@ -13806,3 +13806,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2586 巡检#3——share 路由形态核验
 - /api/share/{type}/{id} 需 id 参数，裸路径 404 人话兜底=正确；selftest share.bazi/tarot
   fixture 链路在闸。
+
+## R2587 巡检#4——许愿瓶真实浏览器端到端首验
+- 真实用户路径（点开封面→展开许愿瓶→填写→丢进瓶子）全通：
+  localStorage `{"t","c","ts"}` 正确落盘、卡面渲染愿望+三动作、刷新持久。
+- 陈愿老化文案实测：ts-3天 →「学业 · 躺了 3 天」口径正确。
+- 「成真啦」完结流：localStorage 清空 + 回到填写态 + toast 贺语。
+- 自纠记录：初测绕过封面强开 details 触发「dailyCard intercepts pointer
+  events」伪影——封面态卡高封顶54vh+overflow:hidden 是刻意闸门设计，
+  真实路径点开封面后全区域可交互，非缺陷。
+- 闸门快照：selftest 311 · contract 643 · dup_keys PASS。
