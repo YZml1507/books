@@ -13581,3 +13581,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   - 残余差异有意保留：interpreter 裸「学」靠子串覆盖更宽，voice 按 U-024 避裸字防误命中——语义等价。
 - 实测：「情绪不太稳定」→状态、「想搞点投资」→财运、「失恋了」→感情+落点。
 - selftest 310 + probe 13/13 全绿。
+
+## R2543 同型缺口排查 + 真浏览器回归
+- **liuyao/tarot warm 层**：reply_liuyao 转述卦象坐标（用神/世应）不走话题表——六爻/塔罗的回答素材来自卦本身而非十神，**无同型口语缺口**。
+- **energy_card**：规则只需 five_elements + day_luck（calc_life 本有），不涉 ten_gods——无盲区。
+- **ui_smoke 真浏览器全过**——R2539-2542 后端文案+buildChatContext JS 改动渲染链零误伤。
