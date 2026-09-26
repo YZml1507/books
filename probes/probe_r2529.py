@@ -46,8 +46,11 @@ ck("bh.current_marked", len(_cur) == 1,
 ck("bh.marker_correct_pillar",
    _cur and ("2021 年起" in _cur[0] or "庚辰" in _cur[0]))
 foc = secs.get("针对「工作发展怎么样」", [])
-ck("bh.parens_show_targets",
-   foc and "想看的是正官、七杀" in foc[0],
+# R2530：calc_life 补 natal 层后，life scope 的「针对」能查到
+# 支藏干里的官杀——从「未现」升级为「现于 X 宫」。裸括号修复
+# 静态钉扎仍在（it.targets_in_parens），行为钉「现于/未现」两形态。
+ck("bh.focus_report_concrete",
+   foc and ("官杀现于盘中" in foc[0] or "想看的是" in foc[0]),
    (foc[0] if foc else "")[:80])
 ck("bh.no_bare_parens",
    foc and "（）" not in foc[0])

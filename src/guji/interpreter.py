@@ -77,6 +77,24 @@ RELATION_PLAIN = {
     "相生": "一方助另一方，能量顺向传递",
 }
 
+# R2530（调研-因果层）：柱位人生域——「年支巳 × 日支寅」点出了谁，
+# 再补一句这些位置各自管什么，关系才落到生活面上。
+_POS_DOMAIN = {
+    "年": "早年",
+    "月": "父母/青年环境",
+    "日": "自己/婚姻",
+    "时": "子女/将来",
+}
+
+
+def _pillar_domain(a: str, b: str) -> str:
+    """「年支巳」「时支丑」→ 各柱人生域白话；聚合条目（四柱/地支）返回 ''。"""
+    da = _POS_DOMAIN.get((a or "")[:1])
+    db = _POS_DOMAIN.get((b or "")[:1])
+    if not da or not db:
+        return ""
+    return f"牵动{da}与{db}"
+
 _DISCLAIMER = ("以上为系统按写死规则对运算坐标的转述，非生成文本、"
                "非现实决策依据；古籍原文以引文出处为准。")
 
@@ -181,6 +199,9 @@ def interpret_bazi(paipan: dict, calc: dict,
                 seg += f"（{a} × {b}）"
             if note:
                 seg += f"：{note}"
+            dom = _pillar_domain(a, b)
+            if dom:
+                seg += f"，{dom}"
             if plain:
                 seg += f"——{plain}"
             lines.append(seg)
@@ -196,6 +217,9 @@ def interpret_bazi(paipan: dict, calc: dict,
         for r in dl.get("day_branch_rels") or []:
             plain = RELATION_PLAIN.get(r.get("type") or "", "")
             seg = f"{r.get('pos', '')} {r.get('type', '')}（{r.get('note', '')}）"
+            pos_dom = _POS_DOMAIN.get((r.get("pos") or "")[:1], "")
+            if pos_dom:
+                seg += f"——今天碰到的这一宫管{pos_dom}"
             if plain:
                 seg += f"——{plain}"
             lines.append(seg)

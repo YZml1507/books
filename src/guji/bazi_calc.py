@@ -193,15 +193,12 @@ def _zi_xing(zhis: list[str]) -> list[dict]:
 # --------------------------------------------------------------------------------------
 # 主入口
 # --------------------------------------------------------------------------------------
-def calc(b: Bazi, ask_date: str | None = None,
-         ask_hour: int | None = None) -> dict:
-    """排盘坐标 -> 结构化运算事实。
+def _natal_blocks(b: Bazi) -> tuple[list, list, list]:
+    """命局本体层（出厂设置）：四柱天干十神 + 支藏干主气 + 地支关系。
 
-    ask_date: "YYYY-MM-DD"，缺省为今天（本地日期）；流日/流时与命局比对。
-    ask_hour: 0-23，缺省不比对流时。
-
-    返回（WEB_PLAN_v2 §3.2 契约）：
-      ten_gods / five_elements / relations / day_luck / summary
+    R2530：calc()/calc_life() 共用——生平模式同样需要这一层做
+    「原盘→大运→流年」因果骨架的第一层。
+    返回 (ten_gods, zhis, relations)。
     """
     pillars = [b.year, b.month, b.day, b.hour]
     day_master = b.day_master
@@ -226,13 +223,6 @@ def calc(b: Bazi, ask_date: str | None = None,
                      + _god_basis(day_master, main_gan),
         })
 
-    # --- 五行统计 ---
-    five_elements = _five_elements_block(b)
-    counts = five_elements["counts"]
-    missing = five_elements["missing"]
-    strong = five_elements["strong"]
-    strong_tied = five_elements["strong_tied"]
-
     # --- 地支关系：命局内两两 + 三合/自刑 ---
     zhis = [p[1] for p in pillars]
     relations = []
@@ -250,6 +240,28 @@ def calc(b: Bazi, ask_date: str | None = None,
         relations.append({"type": r["type"], "a": "四柱", "b": "地支", "note": r["note"]})
     for r in _zi_xing(zhis):
         relations.append({"type": r["type"], "a": "四柱", "b": "地支", "note": r["note"]})
+    return ten_gods, zhis, relations
+
+
+def calc(b: Bazi, ask_date: str | None = None,
+         ask_hour: int | None = None) -> dict:
+    """排盘坐标 -> 结构化运算事实。
+
+    ask_date: "YYYY-MM-DD"，缺省为今天（本地日期）；流日/流时与命局比对。
+    ask_hour: 0-23，缺省不比对流时。
+
+    返回（WEB_PLAN_v2 §3.2 契约）：
+      ten_gods / five_elements / relations / day_luck / summary
+    """
+    day_master = b.day_master
+    ten_gods, zhis, relations = _natal_blocks(b)
+
+    # --- 五行统计 ---
+    five_elements = _five_elements_block(b)
+    counts = five_elements["counts"]
+    missing = five_elements["missing"]
+    strong = five_elements["strong"]
+    strong_tied = five_elements["strong_tied"]
 
     # --- 流日 / 流时 ---
     if ask_date:
@@ -410,9 +422,14 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
              f"约 {round(qi, 1) if qi is not None else '?'} 岁起运"]
     parts.append("；".join(f"{d['pillar']}({d['start_age']}~{d['end_age']}岁)"
                            for d in dayun))
+    # R2530（调研-因果层）：生平解读需要「出厂设置」层——十神与地支
+    # 关系是原盘属性，没有它们 life scope 的「针对」段只能报「未现」。
+    ten_gods, _zhis, relations = _natal_blocks(b)
     return {
         "qi_yun_age": round(qi, 1) if qi is not None else None,
         "dayun": dayun,
+        "ten_gods": ten_gods,
+        "relations": relations,
         # R2350b（R98-P0-2）：五行是盘本体属性，不分 scope——
         # warm 层（one_liner/energy_card）依赖它，缺了会落「五行挺匀」
         # 兜底与同一盘当日判词自相矛盾。
