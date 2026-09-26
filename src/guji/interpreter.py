@@ -24,6 +24,8 @@
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 
 # R233g（R44-P0-1）：生死/重病类敏感问法——不能走话题兜底（会被当
 # 格式错吐黑话），也不能交给判词背书。确定性转介，语气放稳。
@@ -225,6 +227,18 @@ def interpret_bazi(paipan: dict, calc: dict,
         lines = []
         if calc.get("qi_yun_age") is not None:
             lines.append(f"约 {_fmt_num(calc['qi_yun_age'])} 岁起运")
+        # R2529（调研-因果层）：大运=十年气候、流年是逐年天气——先给
+        # 框架再给表，并标出「眼下」那一步（用户最常问的就是不知道
+        # 自己在哪一步）。眼下步按当前公历年落在哪段判定，确定性。
+        _now_y = datetime.now().year
+        _cur_idx = next(
+            (d.get("index") for d in dayun
+             if isinstance(d.get("year_start"), int)
+             and d["year_start"] <= _now_y < d["year_start"] + 10),
+            None)
+        if _cur_idx is not None:
+            lines.append("大运是十年的气候——你眼下走的那一步在下面标了"
+                         "「←眼下」，每年的流年在这个底色上做加减")
         for d in dayun:
             god = d.get("gan_rel") or ""
             plain = TEN_GOD_PLAIN.get(god, "")
@@ -233,6 +247,8 @@ def interpret_bazi(paipan: dict, calc: dict,
                    f"约 {d.get('year_start', '')} 年起）：{god}")
             if plain:
                 seg += f"——{plain}"
+            if d.get("index") == _cur_idx:
+                seg += "　←眼下"
             lines.append(seg)
         if lines:
             sections.append({"title": "大运走势", "lines": lines})
@@ -311,8 +327,11 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                     "、".join(f"{t.get('pos', '')}{t.get('gan', '')}({t.get('god', '')})"
                               for t in hit)
                     + f"——{label}现于盘中，相关事项在四柱里有着落点"]
-        return [f"{label}未现于四柱天干（{'、'.join(str(g) for g in gods if g)}）"
-                f"——本盘这一维线索偏少，不作推测"]
+        # R2529：括号列的是「想看谁」targets 不是「盘里有谁」gods——
+        # life scope 无 ten_gods 时 gods 全空渲染成裸「（）」。
+        _tg = "、".join(str(g) for g in targets if g)
+        return [f"{label}未现于四柱天干" + (f"（想看的是{_tg}）" if _tg else "")
+                + "——本盘这一维线索偏少，不作推测"]
     return ["这个问题盘面没有对应的维度——感情、工作、学习、财运、"
             "身体节奏这些能聊，要不换个问法试试？"]
 
