@@ -13455,3 +13455,20 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] `probe_r2525.py` 18/18；selftest 310；contract 639。
 - [x] **全仓实质面审计覆盖收官**：src/guji + web 层所有文件至少
   一轮专审（mcp_server/ingest 本轮顺带覆盖 MCP 写径）。
+
+## R2526 — 真浏览器回归 + MCP 自测钉扎勘正
+
+- [x] `probe_ui_smoke` 全量 80/80——含此前间歇的 history.replay/
+  history.delete；`ai.block.renders_with_ai` 实证 R2524 归一闸不误伤
+  正常 AI 气泡/起名点评渲染。
+- [x] `mcp_server --selftest` 修复（协议级）：
+  * record_claim_tool 补偿删实证（test row cleaned）；
+  * 3 处滞后钉扎勘正——空查询/超范围 gua 的钉扎写的是 R169b
+    「宽容返回 (no hits)/(卦99)/REFUSED」，R230c 起 tool 层守卫统一
+    先返 "error: 查询词不能为空/卦号要在 1–64 之间"（与 web
+    `_require_q` 同纪律的明确拒绝）。钉扎更新为接受 "error:" 前缀
+    或 REFUSED，保留「不许伪 evidence/不许崩」核心断言。
+- [x] `ingest.py`/`scripts/` 抽审：纯文本解析+离线 CLI，零 subprocess/
+  shell/eval 面。
+- [x] 回归：r2524 34/34、r2522 26/26、r2517 17/17、selftest 310、
+  contract 639。

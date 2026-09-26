@@ -547,8 +547,10 @@ if __name__ == "__main__":
             if name == "add_local_work_tool":
                 assert content.startswith("error:"), (name, content)
             elif name == "search" and not (args.get("q") or "").strip():
-                # R169b（D-215b）：search 空查询宽容返回 "(no hits)"，非崩溃
-                assert "(no hits)" in content, (name, content)
+                # R169b（D-215b）：search 空查询宽容返回，非崩溃——
+                # R2525 勘正：R230c 起 tool 层空守卫先返 "error:"，
+                # "(no hits)" 钉的是被取代的旧行为。
+                assert content.startswith("error:"), (name, content)
             elif name == "addr" and args.get("scheme") == "nonsense":
                 # R169b（D-215b）：addr 非法 scheme 宽容返回 "(no hits)"
                 assert "(no hits)" in content, (name, content)
@@ -557,11 +559,12 @@ if __name__ == "__main__":
                 # （"zhouyi needs gua (1-64)"，与 web 侧 R148b 同语义）
                 assert "zhouyi needs gua" in content, (name, content)
             elif name == "compare" and args.get("gua") == 99:
-                # R169b（D-215b）：compare 超范围 gua=99 宽容返回（含 "卦99"）
-                assert "卦99" in content, (name, content)
+                # R2525 勘正：范围守卫先返 "error: 卦号要在 1–64 之间"——
+                # 明确拒绝同样满足「非崩溃」语义。
+                assert content.startswith("error:"), (name, content)
             elif name == "concept" and not (args.get("q") or "").strip():
-                # R169b（D-215b）：concept 空查询宽容返回（含 "in 0 works"）
-                assert "in 0 works" in content, (name, content)
+                # R2525 勘正：同 search——tool 层空守卫先返 "error:"。
+                assert content.startswith("error:"), (name, content)
             elif name in ("book_summary_tool", "bookstudy_structure",
                           "bookstudy_chapter") and args.get("work_id") == "NO_SUCH_WORK":
                 # R168b（D-214b）：work_id 不存在的失败路径必须显式返回
@@ -573,9 +576,13 @@ if __name__ == "__main__":
                 assert content.startswith("recorded #"), (name, content)
                 record_did = int(content.split("#")[1].split()[0])
             elif name == "research_tool" and not (args.get("q") or "").strip():
-                # G7 拒绝路径：空查询必须显式 REFUSED（同 web /api/research
-                # 的 q 空→400 语义——同内核不同发布面）
-                assert "REFUSED" in content and "evidence:" not in content, (name, content)
+                # G7 拒绝路径：空查询必须显式拒绝（同 web /api/research
+                # 的 q 空→400 语义——同内核不同发布面）。
+                # R2525：tool 层空守卫先于内核 REFUSED 返回
+                # "error: 查询词不能为空"——两种形态都算明确拒绝，
+                # 关键是不许返回伪 evidence 也不许崩。
+                assert ("REFUSED" in content or content.startswith("error:")) \
+                    and "evidence:" not in content, (name, content)
             elif name == "research_tool":
                 # 正常检索路径：必须返回 evidence（同 web research check）
                 assert "evidence:" in content, (name, content)
