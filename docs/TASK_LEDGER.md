@@ -13918,3 +13918,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   当前代码到不了崩溃点，判为校验层落地前的历史栈（日志跨代累积）。
 - 对抗实测：/api/daily?date=W01 →「日期格式没看懂」；date=2026-13-45
   →「这一天不存在」——人话兜底层完整。
+
+## R2599 巡检#16——聊天侧栏真浏览器 E2E（390px）全绿
+- #recentToggle 展开：recent-sidebar open + flex。
+- CJK 输入验证：fill 后 .value=今天适合出门吗。
+- 发送→双气泡：chat-me（用户）+ chat-ai（mock 回复）渲染。
+- 孤儿 ** 残符被 renderRichText 剥净——气泡文本零 * 残留
+  （mock 回复特意携带不配对 ** 的 fallback 用例）。
