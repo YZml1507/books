@@ -1496,14 +1496,37 @@ def facts_bazi(paipan: dict, warm: dict, question: str | None,
         # 当指令/台词复读。R2400（R135-P2-1）：`ctx:` 是内部构形外露——
         # 改中文自然标签。
         facts.append("语境：" + _fact_line(reply0))
+    # R2539（因果层红利）：解读的确定性因果行也喂给模型——用户追问
+    # 「为什么」时模型手里得有眼下运/针对落点/五行分布，不是只有四柱。
+    # 全部取自 warm.details（interpreter 确定性原文），不新增事实。
+    for s in w.get("details") or []:
+        title = s.get("title") or ""
+        lines = s.get("lines") or []
+        if title == "五行强弱" and lines:
+            _fe = _fact_line(lines[0])
+            facts.append("五行分布："
+                         + (_fe[3:] if _fe.startswith("分布：") else _fe))
+        elif title == "大运走势":
+            _cur = next((l for l in lines if "←眼下" in l
+                         and l.startswith("第 ")), None)
+            if _cur:
+                facts.append("眼下大运：" + _fact_line(_cur))
+        elif title.startswith("针对") and lines:
+            facts.append("盘面落点：" + _fact_line(lines[0]))
     return facts
 
 
 def facts_taohua(t: dict, warm: dict | None = None,
                  gender: str | None = None) -> list[str]:
-    hits = "、".join(t.get("hit_pillars") or []) or "四柱均未临"
-    hl_p = "、".join(t.get("hongluan_pillar") or []) or "未临柱"
-    tx_p = "、".join(t.get("tianxi_pillar") or []) or "未临柱"
+    # R2539：hit_pillars 等字段是英文键（'day'/'hour'）——直接喂模型
+    # 会在回复里漏英文柱名；统一翻成中文柱名（命中层全表适用）。
+    _EN2CN = {"year": "年", "month": "月", "day": "日", "hour": "时",
+              "年": "年", "月": "月", "日": "日", "时": "时"}
+    _cn = lambda ps: "、".join(_EN2CN.get(str(p), str(p)) + "柱"
+                              for p in (ps or []))
+    hits = _cn(t.get("hit_pillars")) or "四柱均未临"
+    hl_p = _cn(t.get("hongluan_pillar")) or "未临柱"
+    tx_p = _cn(t.get("tianxi_pillar")) or "未临柱"
     # R2349s（R84-P1-12）：taohua.py 的强度值是 "mid" 不是 "medium"——
     # 此前 mid 落不进映射，英文原值直接喂给 AI facts。
     # R2400（R135-P1-2）：上游强度值两种写法都在流通（"mid"/"medium"）——
@@ -1520,6 +1543,16 @@ def facts_taohua(t: dict, warm: dict | None = None,
             t.get("hongluan", ""), hl_p, t.get("tianxi", ""), tx_p),
         "桃花整体节奏：{}".format(strength_warm),
     ]
+    # R2539（因果层红利）：临柱只报「年支/日支」模型仍不知道这个位置
+    # 管什么——补柱位人生域白话（与 interpreter._POS_DOMAIN 同一张表）。
+    if t.get("hit_pillars"):
+        from guji.interpreter import _POS_DOMAIN
+        _EN2CN = {"year": "年", "month": "月", "day": "日", "hour": "时"}
+        doms = [_POS_DOMAIN.get(_EN2CN.get(str(p), str(p)[:1]))
+                for p in t["hit_pillars"]]
+        doms = [d for d in doms if d]
+        if doms:
+            facts.append("这些位置管：{}".format("、".join(doms)))
     dayun = t.get("dayun_hits") or []
     if dayun:
         d0 = dayun[0]

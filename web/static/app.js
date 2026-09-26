@@ -1441,6 +1441,23 @@ function buildChatContext(viewKey) {
       (q ? '，我想问「' + q + '」' : '') + '，帮我看看';
     facts = (_gb ? ['性别：' + _gb] : []).concat(
       (pillars ? ['四柱：' + pillars] : []), dm ? ['日主：' + dm] : []);
+    /* R2539（因果层红利进聊天）：解读的确定性因果行一并作上下文——
+     * 用户追问「为什么」时模型手里有眼下运/落点宫，不是只有四柱。
+     * 全部取 interpretation.sections 原文（服务端确定性产出）。 */
+    var _secs = ((j.interpretation || {}).sections) || [];
+    _secs.forEach(function (s) {
+      var t = s.title || '', ls = s.lines || [];
+      if (t === '大运走势') {
+        var cur = ls.find(function (l) {
+          return l.indexOf('←眼下') !== -1 && l.indexOf('第 ') === 0;
+        });
+        if (cur) facts.push('眼下大运：' + cur);
+      } else if (t.indexOf('针对') === 0 && ls[0]) {
+        facts.push('盘面落点：' + ls[0]);
+      } else if (t === '五行强弱' && ls[0]) {
+        facts.push('五行分布：' + ls[0]);
+      }
+    });
   } else if (viewKey === 'taohua') {
     /* 后端 strength 取值是 strong/mid/weak（src/guji/taohua.py:92-96）——
      * 白话映射，别把英文枚举裸抛给用户。 */

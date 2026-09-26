@@ -13555,3 +13555,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **share B 端心流**：`/?view=X&from=share` 承接文案+shareBy 昵称绑视图指纹+首结果「接力回赠」——链路已被 R231d/2349t/2350g 加固，B 端冷启动有定制欢迎条。
 - **app_poster.js**（1419 行，最后未按 app.js 密度审过的 chunk）：**零 innerHTML/eval/localStorage/fetch**——纯 canvas→toBlob 下载，XSS 面构造上不存在；干净。
 - **voice.py warm_hehun 抽审**：强 CP 词按盘面冲突事实分桶（相克盘永不抽「锁死这对了」）、日支夫妻宫纳入判词——R214b/218a/2349s 多轮加固记录清晰，干净。
+
+## R2539 因果层红利进 AI 事实供给
+- **facts_bazi**：模型此前只拿四柱+一句话——追问「为什么」时没有因果素材。现从 warm.details 提取确定性行喂入：五行分布、眼下大运（←眼下行）、盘面落点（针对段）。双前缀「分布：分布：」顺手修。
+- **facts_taohua**：①hit_pillars/hongluan/tianxi 字段是英文键 'day'/'hour'——此前裸喂模型会在回复漏英文柱名，统一翻中文柱名；②临柱补柱位域白话「这些位置管：自己/婚姻」。
+- **buildChatContext(bazi)**：前端组 chat facts 同步补眼下大运/盘面落点/五行分布三行（取 interpretation.sections 原文），与服务端 facts 同构。
+- selftest 310 + probe_llm_polish 全绿；SW hash 重发。
