@@ -14242,3 +14242,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - affair=面试→词族映射「上任」→扫出 09-28 好日子（宜 8 项/忌 3
   项/flags 全字段）；>32 字→422 帽；affair 是 /api/huangli 的
   query 参数（找日模式非独立端点）。
+
+## R2657 巡检#74——toast 队列实测
+- 同文 3 连发折叠「测试同文（×3）」+异文并列、栈上限 3 条摘最旧；
+  error→role=alert、其余 status+polite（读屏可达）。
