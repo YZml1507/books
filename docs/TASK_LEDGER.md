@@ -14183,3 +14183,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - GET→405 人话；n=2/0→422（le=1 契约 R2517 对齐单卡语义）；
   question>200字→422；单卡 {card,interpretation,warm} 完整
   （权杖9逆位关键词/含义齐）。
+
+## R2644 巡检#61——checkin 打卡真浏览器全链
+- 点击「暴富签」→ localStorage checkin:YYYY-MM-DD 落盘→签册+1+
+  鸡汤提示「理财灵感特别灵」；实现面：连续天数计算、7 天圆点、
+  4/8 签确定性轮换、生日限定签、提醒 toast 日一次、跨 tab 同步、
+  90 天 GC 全在案；测试键已清。
