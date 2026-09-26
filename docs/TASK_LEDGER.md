@@ -13766,3 +13766,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「搬家哪天好」→10/5、11/2。
 - 追问继承：「那后天呢」沿用搬家场景→后天黄历判定「宜修造也忌出行，节奏放缓」。
 - 边界：危机短路不写锚/换话题排除/日期词 span 摘除防二次消费——此前多轮修复沉淀完整。
+
+## R2579 knowledge.py 全量审计——用户数据面全硬化无缺口
+- threads：rowid 复用守卫（新线程清孤儿 turn/解绑 derived）、INSERT..SELECT 原子 seq、
+  轮数帽、import 进程内锁防翻倍、delete_all_threads 整表清+FTS delete 记录。
+- prefs：批量单事务、帽逐出 rowid 决胜。
+- daily_cache：坏行自愈删除、90 天滞行清理。favorites CRUD 常规。
