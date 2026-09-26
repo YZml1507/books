@@ -14232,3 +14232,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 
 ## R2654 巡检#71——?view= 深链全落点
 - 9 个真视图深链全精准落位；b=evil 非法值安全落空无激活视图不炸。
+
+## R2655 巡检#72——client_date 锚定实测
+- 同一请求 client_date=09-27 vs 12-25 → today_sign/direction 不同
+  （天秤/observe vs 金牛/hold——「今日值宫」锚浏览器本地日非服务
+  器日）；garbage/2026-02-30→400 人话。
