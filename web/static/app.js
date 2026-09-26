@@ -8523,9 +8523,14 @@ function initReading() {
     /* R2349v（R92-P1-2）：线程详情内「记一条」+状态切换的委托。 */
     const threadNoteBtn = e.target.closest('[data-thread-note]');
     if (threadNoteBtn) {
+      /* R2503（审-P1）：在途零防重——慢网连点写进重复手记，后端不去重
+       * 且 claim 级删除不存在（想清只能删整线程）。照 data-qm-fav-del
+       * 口径 dataset.inflight 双分支复位。 */
+      if (threadNoteBtn.dataset.inflight === '1') return;
       var _ntid = threadNoteBtn.dataset.threadNote;
       var _ntxt = (el('threadNote') || {}).value || '';
       if (!_ntxt.trim()) { showToast('先写一句要记的话', 'info'); return; }
+      threadNoteBtn.dataset.inflight = '1';
       /* R2349z（R96-P0-1）：kind 从 'summary'（断言型，必带证据→
        * 永远 400）改 'note'——用户手记专用非断言通道。 */
       postJSON('/api/threads', { kind: 'note', claim: _ntxt.trim(),
@@ -8534,7 +8539,10 @@ function initReading() {
           showToast('记下了～', 'success');
           showThread(_ntid);
         })
-        .catch(function (err) { showToast('没记上：' + err.message, 'warn'); });
+        .catch(function (err) { showToast('没记上：' + err.message, 'warn'); })
+        /* R2353（R110-P2-7）同口径：.finally 换双分支复位。 */
+        .then(function () { threadNoteBtn.dataset.inflight = ''; },
+              function () { threadNoteBtn.dataset.inflight = ''; });
       return;
     }
     /* R2349z（R96-P1-1）：线程列表状态过滤 + 详情回列表。 */
@@ -8556,6 +8564,10 @@ function initReading() {
     }
     const threadStatusBtn = e.target.closest('[data-thread-status]');
     if (threadStatusBtn) {
+      /* R2503（审-P2）：状态钮在途零闸——慢网连点 = N 个 PATCH +
+       * N 次重渲闪跳（代际闸挡过期绘制但请求照发）。同 inflight 口径。 */
+      if (threadStatusBtn.dataset.inflight === '1') return;
+      threadStatusBtn.dataset.inflight = '1';
       var _sp = threadStatusBtn.dataset.threadStatus.split('|');
       api('/api/threads/' + encodeURIComponent(_sp[0]) +
         '?status=' + encodeURIComponent(_sp[1]), { method: 'PATCH' })
@@ -8564,7 +8576,9 @@ function initReading() {
             closed: '这条聊完了' }[_sp[1]] || '好', 'success');
           showThread(_sp[0]);
         })
-        .catch(function (err) { showToast('状态没改成：' + err.message, 'warn'); });
+        .catch(function (err) { showToast('状态没改成：' + err.message, 'warn'); })
+        .then(function () { threadStatusBtn.dataset.inflight = ''; },
+              function () { threadStatusBtn.dataset.inflight = ''; });
       return;
     }
     const favDel = e.target.closest('[data-fav-del]');
@@ -8895,8 +8909,15 @@ async function _hhFavsRender() {
   if (!favs.length) { row.innerHTML = ''; return; }
   row.innerHTML = '<span class="fav-row-label">测过的 CP：</span>' +
     favs.map(function (f) {
-      return '<button type="button" class="fav-chip" data-hh-fav="' +
-        esc(f.ref_id || '') + '">' + esc(f.title || '一对') + '</button>';
+      /* R2503（审-P2）：CP chip 补 ×——此前只可存不可摘，删错档只能
+       * 整库清空（data-fav-del/removeFavorite 空壳是死代码）。
+       * chip 本体仍回填，× 走 DELETE+镜像剔除（心水名单同构）。 */
+      return '<span class="fav-chip-wrap">' +
+        '<button type="button" class="fav-chip" data-hh-fav="' +
+        esc(f.ref_id || '') + '">' + esc(f.title || '一对') + '</button>' +
+        '<button type="button" class="fav-chip-x" data-hh-fav-del="' +
+        esc(String(f.id)) + '" aria-label="从测过的 CP 移除 ' +
+        esc(f.title || '一对') + '">×</button></span>';
     }).join('');
 }
 
@@ -9081,6 +9102,25 @@ document.addEventListener('click', function (ev) {
   /* 测过的 CP chip → 回填表单并直接合婚 */
   var hc = t.closest('[data-hh-fav]');
   if (hc) { _hhFavFill(hc.dataset.hhFav); return; }
+  /* R2503（审-P2）：CP chip 的 ×——与 data-qm-fav-del 同构：
+   * inflight 防双击、DELETE 后镜像剔除重渲、404 视同摘成功。 */
+  var hd = t.closest('[data-hh-fav-del]');
+  if (hd) {
+    if (hd.dataset.inflight === '1') return;
+    hd.dataset.inflight = '1';
+    api('/api/favorites/' + encodeURIComponent(hd.dataset.hhFavDel),
+        { method: 'DELETE', silent: true })
+      .then(function () { _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender(); })
+      .catch(function (e) {
+        if (/(404|不存在)/.test(e && e.message || '')) {
+          _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender();
+        } else { showToast('摘失败，稍后再试', 'warn'); }
+      })
+      /* R2353（R110-P2-7）：同 P2-7——.finally 换双分支复位。 */
+      .then(function () { hd.dataset.inflight = '0'; },
+            function () { hd.dataset.inflight = '0'; });
+    return;
+  }
   /* 问一嘴足迹 chip → 把问题原样再问一遍（日期词按当下重算，
    * 比钉死那天更贴近用户意图）。
    * R2350c（R97-P2-2）：dailyRecall 接续条文案是「今天再看看？」——

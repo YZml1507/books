@@ -474,7 +474,13 @@ class KnowledgeBase:
                 "VALUES (?,?,?,?)", (topic, status, opened_at, updated_at))
             tid = cur.lastrowid
             seq = 0
-            for tr in (it.get("turns") or [])[: self._CAP_TURN_PER_THREAD]:
+            # R2503（审-P0）：turns 容器本身不是 list（备份塞 42/{...}）时
+            # 切片抛 TypeError → 穿透 errors.py 映射成裸 500，且 thread 行
+            # 已插一半。容器畸形按空收敛，与元素级 isinstance(dict) 同纪律。
+            _turns = it.get("turns")
+            if not isinstance(_turns, list):
+                _turns = []
+            for tr in _turns[: self._CAP_TURN_PER_THREAD]:
                 if not isinstance(tr, dict):
                     continue
                 role = tr.get("role")
@@ -492,7 +498,11 @@ class KnowledgeBase:
             # R2500（R143-P1-2/D2）：derived claims/手记随线程回灌——
             # 此前只收 turns，清盘+恢复后手记原文永丢。证据条目形状
             # 不齐时 record() 会拒，吞掉单条不拖死整线程。
-            for cl in (it.get("claims") or [])[:200]:
+            # R2503（审-P0）：claims 同洞——容器非 list 切片即 500。
+            _claims = it.get("claims")
+            if not isinstance(_claims, list):
+                _claims = []
+            for cl in _claims[:200]:
                 if not isinstance(cl, dict):
                     continue
                 try:

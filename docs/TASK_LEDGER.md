@@ -12817,3 +12817,34 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   xingzuo、warm_voice、async_ai、plain_first、poster 全过；
   ?view=chat 真实浏览器复测开侧栏零报错。SW 重发
   books-shell-c5d2df84da1e。
+
+- **R2503（单 agent 视觉巡检 + 双 agent 代码深审清零批）**：
+  巡检面=390px 真浏览器 30+ 截图逐视图评审 + 后端（app/services/
+  schemas/guji 写面）与前端（app.js 12.3k 全调用点）两个并行
+  审查 agent。①V-01 P1 视觉回归——.recent-toggle 窄屏规则
+  （right:12px/44px）R2345 起误置于 @media print 块内，屏幕端
+  从未生效：375/390px 实测 FAB 停 left:16px/52px 压首页标题、
+  遮黄历问一嘴输入框、挡排盘历史条目 → 挪入 @media
+  (max-width:600px) 恢复本义，601px+ 桌面行为不动；probe_ui_smoke
+  新增 ui.fab.mobile_right 钉扎。②审-P0 备份回灌容器畸形——
+  threads[].turns/claims 塞 42/{...}/"abc" 等非 list 时切片抛
+  TypeError 穿透 errors.py 映射成裸 500，且 thread 行已插一半
+  （半提交）→ isinstance(list) 收敛按空处理，与元素级
+  isinstance(dict) 同纪律。③审-P1 ?key= 爆破旁路——GET 直通
+  不耗 _gate_bucket，302/403 oracle 下无限速 → 与 POST /_gate
+  同桶；语义取「验错才扣桶」（对口令放行——分享链让同 NAT 的
+  朋友秒进不算攻击），限速内 selftest 既有计数断言零改动。
+  ④审-P1 线程详情「记下来」在途零防重——慢网连点写重复手记，
+  后端不去重且 claim 不可单删 → dataset.inflight 双分支复位
+  （data-qm-fav-del 同款）；同块「继续聊/先收起/聊完了」状态钮
+  补同闸（P2：连点 N 个 PATCH+重渲闪跳）。⑤审-P2 合婚 CP
+  收藏只可存不可摘——_hhFavsRender chip 补 fav-chip-x ×，
+  走 DELETE+_favMirrorDrop+404 视同成功（心水名单同构），
+  data-fav-del/removeFavorite 死代码面随之有了真出口。
+  验证：probe_r2503.py 新增 8 断言全绿（畸形容器非 5xx/按空
+  收敛/好行照常落/?key= 错扣桶/混合同桶/对口令 302+Cookie
+  短路）；真实浏览器实测 FAB 归位、CP chip 存删往返；
+  selftest 310、contract 636、ui_smoke 80、ruff E9F、
+  dollar_misuse、selftest_regress、no_generated、
+  scripts_importable、baseline_voice、xingzuo、warm_voice、
+  async_ai、llm_polish 全过。SW 重发 books-shell-9ed9596f9016。

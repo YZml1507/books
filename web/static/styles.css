@@ -399,6 +399,8 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   transform:translateY(-1px);}
 .fav-chip.is-static{cursor:default;padding-right:6px;}
 .fav-chip.is-static:hover{transform:none;}
+/* R2503（审-P2）：合婚 CP chip 行——回填钮 + × 并排。 */
+.fav-chip-wrap{display:inline-flex;align-items:center;gap:2px;}
 .fav-chip-x{border:0;background:none;color:var(--secondary);cursor:pointer;
   font-size:14px;padding:0 2px 0 6px;line-height:1;}
 .fav-chip-x:hover{color:var(--primary,#D4B5FF);}
@@ -549,6 +551,17 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 .recent-toggle.is-mini:hover{transform:scale(.95); opacity:.9;}
 .recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
+/* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
+ * 缩到 44px 挪右下（右下是分享/返回惯例位）。
+ * R2503 修正：本规则此前误置于 @media print 块内，屏幕端从未生效——
+ * 375/390px 实测 FAB 停 left:16px/52px 压标题与输入框。 */
+@media (max-width:600px){
+  .recent-toggle{left:auto; right:12px; width:44px; height:44px;
+    bottom:14px;
+    /* R2353（R110-P2-10）：max()/env() 不认的老内核整行丢弃——先纯 px 兜底再覆盖。 */
+    bottom:max(14px, env(safe-area-inset-bottom, 14px));}
+  .recent-toggle-txt{font-size:10px;}
+}
 .recent-sidebar{
   position:fixed; top:0; left:0; bottom:0; z-index:70;
   overscroll-behavior:contain;
@@ -1851,13 +1864,6 @@ button:active{transform:scale(.96);}
   /* R232c（R41-P2-2）：daily-full 也挂 pro-drawer 类——一刀切会把
    * 用户展开的「完整解读」从纸上吞掉。只藏纯输入抽屉。 */
   #hlPickDrawer, #birthDrawer, details.pro-drawer:not(.daily-full),
-  /* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
-   * 缩到 44px 挪右下（右下是分享/返回惯例位）。 */
-  .recent-toggle{left:auto; right:12px; width:44px; height:44px;
-    bottom:14px;
-    /* R2353（R110-P2-10）：同上 */
-    bottom:max(14px, env(safe-area-inset-bottom, 14px));}
-  .recent-toggle-txt{font-size:10px;}
   .daily-cover, .daily-checkin, .daily-tomorrow, .daily-recall,
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
   .install-tip,

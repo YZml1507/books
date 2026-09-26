@@ -148,13 +148,10 @@ def create_app() -> FastAPI:
                         "sha256").hexdigest()
         good = _hmac.compare_digest(
             request.cookies.get("books_key", ""), _ck)
-        # 解锁端点：表单口令 → 写 Cookie 回首页。
-        # （不用 request.form()——Starlette 表单解析要 python-multipart，
-        #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
-        if path == "/_gate" and request.method == "POST":
-            # R2363（R116-P1-2）：在线爆破面——口令闸是唯一防线，
-            # 进程内 10 次/60s/IP 限速（单 worker 下够用）。
-            _now = time.time()
+        # R2503（审-P1）：限速桶/IP 解析从 POST /_gate 块内提出来——
+        # ?key= 直通此前不耗桶，302/403 oracle 下 GET 旁路把
+        # 10 次/60s/IP 爆破防线整体架空。两个认证原语同桶同口径。
+        def _gate_ip() -> str:
             _ip = (request.client.host if request.client else "?")
             # R2400（R137-P1-2）：XFF 首元素客户端可伪造——自填
             # X-Forwarded-For 即换桶绕过 _gate 限速。单可信代理（Render）
@@ -167,20 +164,35 @@ def create_app() -> FastAPI:
                     "BOOKS_TRUST_XFF", "").strip().lower() in (
                     "1", "on", "true", "yes"):
                 _ip = _xff.split(",")[-1].strip() or _ip
-            _gate_bucket = getattr(_access_gate, "_bucket", None)
-            if _gate_bucket is None:
-                _gate_bucket = {}
-                _access_gate._bucket = _gate_bucket
-            _hist = [t for t in _gate_bucket.get(_ip, [])
+            return _ip
+
+        _gate_bucket = getattr(_access_gate, "_bucket", None)
+        if _gate_bucket is None:
+            _gate_bucket = {}
+            _access_gate._bucket = _gate_bucket
+
+        def _gate_limited() -> bool:
+            # R2363（R116-P1-2）：在线爆破面——口令闸是唯一防线，
+            # 进程内 10 次/60s/IP 限速（单 worker 下够用）。
+            _now = time.time()
+            _hist = [t for t in _gate_bucket.get(_gate_ip(), [])
                      if _now - t < 60]
             if len(_hist) >= 10:
+                return True
+            _hist.append(_now)
+            _gate_bucket[_gate_ip()] = _hist
+            if len(_gate_bucket) > 2000:
+                _gate_bucket.clear()
+            return False
+
+        # 解锁端点：表单口令 → 写 Cookie 回首页。
+        # （不用 request.form()——Starlette 表单解析要 python-multipart，
+        #   runtime 依赖里没有；urlencoded body 手工 parse_qs 零新依赖）
+        if path == "/_gate" and request.method == "POST":
+            if _gate_limited():
                 return PlainTextResponse(
                     "敲太多次门啦——歇一分钟再来",
                     status_code=429)
-            _hist.append(_now)
-            _gate_bucket[_ip] = _hist
-            if len(_gate_bucket) > 2000:
-                _gate_bucket.clear()
             from urllib.parse import parse_qs
             _qs = parse_qs(
                 (await request.body()).decode("utf-8", "replace"))
@@ -212,7 +224,18 @@ def create_app() -> FastAPI:
             return await call_next(request)
         # ?key= 直通：给主人自己用的可分享链接——验完设 Cookie 再跳回
         # 原路径（钥匙不进历史记录）。
-        if _hmac.compare_digest(request.query_params.get("key", ""), _tok):
+        # R2503（审-P1）：?key= 直通此前不耗限速桶——302/403 oracle 下
+        # GET 旁路把爆破防线整体架空。补齐「验错才扣桶」：对口令不罚
+        # （分享链让同 NAT 的朋友秒进不是攻击），错 key 与 POST /_gate
+        # 同桶，10 次/60s 后 429。
+        _key_ok = _hmac.compare_digest(
+            request.query_params.get("key", ""), _tok)
+        if ("key" in request.query_params and not _key_ok
+                and _gate_limited()):
+            return PlainTextResponse(
+                "敲太多次门啦——歇一分钟再来",
+                status_code=429)
+        if _key_ok:
             q = dict(request.query_params)
             q.pop("key", None)
             target = path + ("?" + urlencode(q, doseq=True) if q else "")

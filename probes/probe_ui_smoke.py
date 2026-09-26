@@ -1947,6 +1947,22 @@ def main() -> int:
                 "ok": overflow <= 0,
                 "detail": f"横向溢出 {overflow}px（≤0 为通过）",
             })
+            # R2503（V-01）：FAB 窄屏应挪右下 44px——R2345 的规则曾误置于
+            # @media print 块内从未生效（375px 实测 left:16px/52px 压标题）。
+            # 钉住 ≤600px 下 rect 贴近视口右缘且宽 44px。
+            fab = page.evaluate(
+                """() => { const el = document.getElementById('recentToggle');
+                    const cs = getComputedStyle(el);
+                    return {left: cs.left, right: cs.right, w: cs.width,
+                            vw: document.documentElement.clientWidth}; }""")
+            fab_ok = (fab["w"] == "44px" and fab["right"] == "12px")
+            results.append({
+                "name": "ui.fab.mobile_right",
+                "ok": fab_ok,
+                "detail": (f"recentToggle @375px: right={fab['right']} "
+                           f"left={fab['left']} w={fab['w']}"
+                           f"（应 right=12px w=44px）"),
+            })
             # R211b（spec §7 US8' 判据 a）：快乐体真正上屏——R210b 的规则
             # 漏掉 .brand-title/h2，页面无 h1 导致全站零命中。此用例钉住
             # computed font-family 首选 ZCOOL KuaiLe + fonts.check 为 true。
