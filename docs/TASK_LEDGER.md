@@ -13968,3 +13968,14 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「不要编造不存在的句子；不确定出处就直说字义上」诚实纪律；
   names+facts（缺水/喜木）结构化注入。
 - 限流哨兵 rate_limited 键与 chat 同口径（R2517 在案）。
+
+## R2606 巡检#23——探针群健康盘点：50 文件零腐坏
+- probe_scripts_importable PASS：77 模块 109 处 guji 引用全有效。
+- CI 覆盖差分析（28 文件不在 workflow）全部有正当去向：
+  · probe_baseline/probe_standing＝本地聚合包装——底层脚本
+    （baseline_voice/check_xingzuo/check_warm_voice/check_async_ai）
+    各自独立在 CI，零漏跑。
+  · probe_r25XX ×23＝深潜期一次性审计探针——按 R230o 纪律
+    过 ruff E9/F 闸（归档也要过 lint，不许腐坏）。
+  · eval_xiaoman_llm/probe_embed_*/probe_show/probe_ui_baseline＝
+    工具/评测件，需模型资产或浏览器，非闸件。
