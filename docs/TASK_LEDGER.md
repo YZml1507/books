@@ -13605,3 +13605,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2547 孤儿检查器收编
 - **probe_standing.py 新增**：check_warm_voice/check_xingzuo/check_async_ai 三个 TestClient 离线检查器此前不在任何闸门（与 baseline_voice 同型孤儿）——收编常驻。check_poster/check_plain_first 需浏览器归 ui_smoke 不收。现闸门矩阵：selftest 310 + contract 643 + 探针族（含 baseline/standing）+ ui_smoke。
 - **hehun 针对段排查**：hehun 输出无 _focus_lines 同款针对节（合婚的提问锚在 warm 判词层，R233u/2349s 已覆盖日支夫妻宫）——无同型缺口。
+
+## R2548 MCP 读径/导入径/evalset 盘点（全清洁）
+- **mcp_server 读径**：search/addr/compare 三读径已按 web 同纪律加固（R230c 空长拒/卦号界/简体繁体重试），Corpus 全 finally 关闭，干净。
+- **import 端到端**：R2527 往返实证在案（同包幂等/空壳拒收/控制字剥后 dedup 命中），无残余。
+- **evalset.py**：G1 评测归一化库（三空间语义），probe_disclosure 已消费——非孤儿闸门。
