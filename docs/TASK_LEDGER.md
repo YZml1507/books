@@ -14093,3 +14093,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 封套 {version,exported_at,records}；每条仅 {ts,name,question,type,
   req,result}——无内部键/session_id/DB 细节；CSV 侧 export_rows 走
   _csv_safe 逐字段脱活。
+
+## R2626 巡检#43——「忘掉我的数据」真浏览器两段式确认
+- 首击→armed=1+「再点一次——生辰/昵称/记录全清」+aria-label 三
+  同步（测试后复位未执行清空）；实现面：localStorage 白名单+
+  sessionStorage+_MEM_STORE+表单字段+DOM 气泡+内存态+wipeAt
+  跨 tab 墓碑+服务端三端点全清（paipan/favorites/threads）。
