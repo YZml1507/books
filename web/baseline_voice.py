@@ -305,9 +305,11 @@ def freeze_dom() -> int:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 1280, "height": 900})
-            page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+            page.goto(f"http://127.0.0.1:{port}/?view=bazi", wait_until="load")
             page.wait_for_timeout(2500)
             # 排盘（专业分支的主战场）
+            # R2563：view 化 IA 后表单在 view-bazi 内——深链直达，
+            # 此前裸 goto('/') 时 #year 不可见、fill 超时失败。
             page.fill("#year", str(BAZI_BASE["year"]))
             page.fill("#month", str(BAZI_BASE["month"]))
             page.fill("#day", str(BAZI_BASE["day"]))
@@ -321,8 +323,11 @@ def freeze_dom() -> int:
             snap["bazi.result"] = _dom_fingerprint(page, "#result")
             for view, btn, out in (("liuyao", "#lySubmit", "#lyResult"),
                                    ("tarot", "#trSubmit", "#trResult")):
-                page.click(f'.func-card[data-view="{view}"]')
-                page.wait_for_timeout(200)
+                # R2563：func-card 入口可能折叠（liuyao 在「进阶玩法」
+                # details 里）——深链直达比点开抽屉稳。
+                page.goto(f"http://127.0.0.1:{port}/?view={view}",
+                          wait_until="load")
+                page.wait_for_timeout(400)
                 page.click(btn)
                 page.wait_for_function(
                     "id => { const n = document.querySelector(id);"
