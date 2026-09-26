@@ -13561,3 +13561,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **facts_taohua**：①hit_pillars/hongluan/tianxi 字段是英文键 'day'/'hour'——此前裸喂模型会在回复漏英文柱名，统一翻中文柱名；②临柱补柱位域白话「这些位置管：自己/婚姻」。
 - **buildChatContext(bazi)**：前端组 chat facts 同步补眼下大运/盘面落点/五行分布三行（取 interpretation.sections 原文），与服务端 facts 同构。
 - selftest 310 + probe_llm_polish 全绿；SW hash 重发。
+
+## R2540 因果事实端到端实证 + hehun 夫妻宫
+- **mock 请求日志实证**（端到端最后一口）：bazi 请求触发的 AI polish payload 实测含「五行分布/眼下大运：第4运庚辰 ←眼下/盘面落点」三行——因果素材确认到达模型。
+- **facts_hehun**：补「夫妻宫（日支）：寅/申 冲」——warm 判词早看日支，模型此前只拿年支关系，答「哪里冲」会漏权重最高的一宫。
+- selftest 310 + llm_polish + contract 643 全绿。

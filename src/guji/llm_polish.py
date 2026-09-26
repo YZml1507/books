@@ -1580,6 +1580,12 @@ def facts_hehun(h: dict, warm: dict | None = None,
         "两人桃花支：{}/{}，{}".format(h.get("peach_a", ""), h.get("peach_b", ""),
                                      "相同" if h.get("peach_same") else "不同"),
     ]
+    # R2539（因果层红利）：夫妻宫（日支）关系是合婚里权重最高的宫——
+    # warm 判词早看它了，模型 facts 之前没有，答「哪里合/冲」会只说年支。
+    if h.get("day_zhi_rel"):
+        facts.append("夫妻宫（日支）：{}/{} {}".format(
+            h.get("day_zhi_a") or "", h.get("day_zhi_b") or "",
+            h.get("day_zhi_rel") or ""))
     # R204b（D-257b）：天干五合 + 十神互见进事实行（yinyuan skill 融入）
     # R2400（R135-P2-3）：a_bazi/b_bazi 可为 None——.get 会 AttributeError。
     _ab = h.get("a_bazi") or {}
