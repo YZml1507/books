@@ -293,6 +293,7 @@
   "threads.status",
   "threads.status_all",
   "threads.status_bad",
+  "topic.parity",
   "user.prefs",
   "warm.badge.not_last",
   "warm.bazi.present",

@@ -1106,6 +1106,16 @@ def _run_inner() -> list[str]:
          _kw0s - set(_V._TAROT_KW_GUIDANCE),
          set(_V._TAROT_KW_GUIDANCE) - _kw0s)
     ok.append("tarot.guidance.coverage")
+    # R2571（钉扎）：interpreter._TOPIC_MAP ↔ voice.TOPIC_WARM 关键词
+    # 集合必须全等——两侧是同问题的专业/日常双表达，单侧加词会造成
+    # 「pro 答得上、warm 落兜底」的口径分裂（R2542/R2571 两次实测
+    # 都是这个漂移形态）。label 口径故意不同不比对。
+    from guji import interpreter as _IT
+    _tpi = {kw for kw, _, _ in _IT._TOPIC_MAP}
+    _tpw = {kw for kw, _, _ in _V.TOPIC_WARM}
+    assert _tpi == _tpw, ("topic.parity",
+                          sorted(_tpi - _tpw), sorted(_tpw - _tpi))
+    ok.append("topic.parity")
     # R121b（D-167b）：八字合婚纯坐标 standing 覆盖——固定两人生日 → 固定
     # 输出（1990-05-15 男 vs 1992-08-20 女 → 无冲合/日主相生/桃花不同）。
     # R233v（R52-P1-3）：硬凶日分级——2026-09-01 是月破日（日支冲月支），
