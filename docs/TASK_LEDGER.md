@@ -13909,3 +13909,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   双地址全解析（卦44·九三+卦43·初九）。
 - **钉扎**：selftest 新增 ask.yao_intent（点名地址首读+潛龍进证据集）——
   selftest 312 全绿 · contract 643 · ruff E9/F 零命中。
+
+## R2598 巡检#15——历史崩溃栈溯源：ask_date 无残留 500 面
+- 旧 uvicorn 日志尾 `int('W01')` ValueError 溯源：bazi_calc 的
+  `ask_date.split("-")` 裸 int 转换点是唯一嫌疑位。
+- 现状全绿：仅两条调用面（/api/bazi req.ask_date 经 _iso_canonical
+  400 人话；daily() date_str 经 _parse_iso_date canonical 化）——
+  当前代码到不了崩溃点，判为校验层落地前的历史栈（日志跨代累积）。
+- 对抗实测：/api/daily?date=W01 →「日期格式没看懂」；date=2026-13-45
+  →「这一天不存在」——人话兜底层完整。
