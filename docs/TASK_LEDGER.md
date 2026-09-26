@@ -13524,3 +13524,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **range scope 逐日行**：冲合标记升级 `六冲` → `六冲·年支巳(早年)`——被碰的柱位+该宫域白话与 day scope 同口径（`_POS_DOMAIN` 复用）。
 - **hehun/taohua 大运表 `←眼下`**：前端按 `year_start ≤ 今年 < +10` 给当前运行加标——「十年一轮的合拍表」用户一眼定位眼下步。
 - SW hash 重发（app.js 改动）；selftest 310 + r2529 9/9 + contract 639 全绿。
+
+## R2531 针对段柱位域 + timer 抽审收官
+- **_focus_lines 命中行**：`月支藏干癸(正官)` → `月支藏干癸(正官，这宫管父母/青年环境)`——不止报「在哪」，还说「这宫管什么」，与地支关系/流日段的 _POS_DOMAIN 三处同口径。
+- **app.js setTimeout 55 处抽样收官**：全部节点引用闭包（非按 id 重查）+ parentNode 守卫——R230v #21 已修过的误翻类无残余；timer/async 面结案。
+- ui_smoke 真浏览器全过（结果卡新节渲染无误伤）。
