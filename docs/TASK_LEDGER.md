@@ -14068,3 +14068,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 顺序：危机罐头→敏感罐头（均免配额直返）→限流哨兵→行帽
   256+_MAX_PENDING 在途帽→closed 会话 ×4 放宽独立限流；pending
   泄漏防（BaseException→failed）、fresh 锁内采样（R2511）。
+
+## R2621 巡检#38——进程健康面无泄漏迹象
+- uvicorn：11 分钟新进程、RSS 69MB、7 线程正常；系统 5.3G 可用。
+- 历史 python 进程全为 browser-use 守护（11MB 级、与 app 无关）。
