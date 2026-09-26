@@ -88,6 +88,9 @@ jobs:
         env:
           BOOKS_LLM_DISABLE: "1"
         run: python web/check_async_ai.py
+      - name: chat 全链闸 probe_chat_e2e（ENABLED 路径：进程内 mock LLM）
+        # 注：此步不带 BOOKS_LLM_DISABLE——探针自管 env，专测开启态链路。
+        run: python probes/probe_chat_e2e.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入）

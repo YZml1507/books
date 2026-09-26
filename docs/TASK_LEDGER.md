@@ -13722,3 +13722,4 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   task→poll→done、三层注入（人设/黄历判定/用户消息）、facts 透传、危机罐头零 LLM——4/4 PASS。
 - 此前该链只有 R2569 手工验证；check_async_ai 只管 DISABLE 降级面。README 闸表已登记（注：此探针勿加 BOOKS_LLM_DISABLE）。
 - 残余核验：sw.js shell-hash 同步（selftest 有闸强制）、依赖全为最新。
+- CI 收编：probe_chat_e2e 入 selftest.yml（check_async_ai 之后，无 DISABLE env）。
