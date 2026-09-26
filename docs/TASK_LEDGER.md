@@ -13075,3 +13075,35 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   ui_smoke、contract 638、r2508 32、r2509 21、r2510 13、
   ruff E9F、dollar、no_generated、scripts 61、date_parity、
   baseline、warm、xingzuo、poster、llm_polish 全过。
+
+## R2511 — services.py 编排层三轮收口（5 条修复全实证）
+
+- [x] **审-P1 星期词簇半个字表**：六个 下/下下周-前缀正则只收
+  「周|週|礼拜|禮拜」漏「星期」——「下星期三」穿透到裸曜日
+  兜底按本周判（实测差 7 天）、「下下星期三」差 14 天；上周簇
+  早带星期故不对称。六正则补齐「星期」：下星期三→+7、
+  下下星期三→+14、下星期日/末全对，旧词形零回归（实测 13 词形）。
+  `web/services.py`
+- [x] **审-P2 chat queued 谎报**：`started` 在 `_session_lock`
+  获取前打标——同会话排队任务 `queued=false` 谎报、前端 40s
+  轮询预算实际从入队起算。改 `chat()` 收 `_task_started` 回调
+  在锁内打标 + fresh 同刻采样（入队采样会把第二条误标 fresh）。
+  实证：锁外排队 `queued=true/started 无`，放锁 done。
+- [x] **审-P2 pending 泄漏→AI 层静默停摆**：`_gc_tasks` 豁免
+  pending——start 失败/BaseException/锁卡死各留永久行，攒满
+  `_MAX_PENDING=12` 后全部 spawn 静默 None 且零日志。pending
+  超 2×TTL 照收 + 三处 `_run` `except Exception`→`BaseException`。
+  实测 stale 收/fresh 保。
+- [x] **审-P2 `_SAVE_SLOTS` 槽位泄漏**：`Thread.start()` 抛错
+  （恰是信号量防的线程耗尽）时槽位永不释放，32 次后台账写
+  永久静默停摆。start 包 try/except 失败 release。
+- [x] **审-P3 daily_cache purge 锚错时区**：`_d.today()` 服务器
+  本地日——UTC 部署早 8 点前 31 天写窗/90 天清理各漂一天。
+  锚 UTC+8（`utcnow()+8h`）。
+- [x] 探针 `probes/probe_r2511.py`（13 项，含 gc_pending 功能实测）。
+- [x] 自查补验：SW 离线 8 视图回归全过；塔罗同 seed 10 线程并发
+  确定性一致；daily_cache/chat_ctx/facts_cache 三缓存均有界；
+  question 字段全 200 字+剥净；温文案 agent 尾部 P3 幻觉引用结案。
+- [x] 闸门：selftest 310、ui_smoke、contract 638、r2509 21、
+  r2510 13、r2511 13、llm_polish、ruff E9F、dollar、
+  date_parity、no_generated、scripts 61 全过。

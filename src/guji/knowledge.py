@@ -691,8 +691,12 @@ class KnowledgeBase:
         # 的日期永久滞留一行。date 主键是 ISO 串，字典序=时间序，90 天前直删。
         # R230a-43 续：清在写入之前——写被拒（窗外/坏日期）时清理仍要发生，
         # 否则攻击者灌进表里的 2099-12-31 行永远没人扫。
-        _cutoff = (_d.today() - _td(days=90)).strftime("%Y-%m-%d")
-        _future = (_d.today() + _td(days=31)).strftime("%Y-%m-%d")
+        # R2511（审-SV-P3）：purge/窗口此前锚 _d.today()（服务器本地
+        # 日）——UTC 部署机在早 8 点前「今天」差一天，31 天写窗口
+        # 边缘与 90 天清理各漂一天。与模块外 UTC+8 口径对齐。
+        _today = (datetime.utcnow() + _td(hours=8)).date()
+        _cutoff = (_today - _td(days=90)).strftime("%Y-%m-%d")
+        _future = (_today + _td(days=31)).strftime("%Y-%m-%d")
         self.db.execute(
             "DELETE FROM daily_cache WHERE date < ? OR date > ?",
             (_cutoff, _future))
@@ -704,7 +708,7 @@ class KnowledgeBase:
         except ValueError:
             self.db.commit()
             return
-        if not (_d.today() - _td(days=400) <= _d0 <= _d.today() + _td(days=31)):
+        if not (_today - _td(days=400) <= _d0 <= _today + _td(days=31)):
             self.db.commit()
             return
         # R228j：INSERT OR REPLACE 是整行覆盖——只传 bazi 会把已缓存的

@@ -271,8 +271,14 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
         finally:
             _SAVE_SLOTS.release()
 
-    threading.Thread(target=_work, daemon=True,
-                     name="paipan-history-save").start()
+    try:
+        threading.Thread(target=_work, daemon=True,
+                         name="paipan-history-save").start()
+    except Exception:
+        # R2511（审-SV-P2）：start() 抛错（恰是本信号量要防的线程耗尽）
+        # 时槽位永不释放——32 次后台账写永久静默停摆。
+        _SAVE_SLOTS.release()
+        _log("save dropped: thread start failed")
 
 
 def list_records(limit: int = 20, offset: int = 0) -> dict:

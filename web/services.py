@@ -2560,34 +2560,34 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     # R229y续：「下下周X/下下周末」——"下下周一"自身含"下周"，会被下面
     # 的「下周」通配截胡按下周判（差整 7 天）。先接住：以「再下一个周一」
     # 为基准。R2349q续：「下下个周X」的 个/個 为可选字。
-    _nn = re.search(r"下下个?(?:周|週|礼拜|禮拜)末|下下個(?:周|週|礼拜|禮拜)末", msg)
+    _nn = re.search(r"下下个?(?:周|週|礼拜|禮拜|星期)末|下下個(?:周|週|礼拜|禮拜|星期)末", msg)
     if _nn:
         nn_mon = now + timedelta(days=(14 - now.weekday()))
         return nn_mon + timedelta(days=5), _nn.group(0)
-    _nnw = re.search(r"下下个?(?:周|週|礼拜|禮拜)([一二三四五六日天])|"
-                     r"下下個(?:周|週|礼拜|禮拜)([一二三四五六日天])", msg)
+    _nnw = re.search(r"下下个?(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])|"
+                     r"下下個(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])", msg)
     if _nnw:
         nn_mon = now + timedelta(days=(14 - now.weekday()))
         wd = _wd_idx(_nnw.group(1) or _nnw.group(2))
         return nn_mon + timedelta(days=wd), _nnw.group(0)
-    _nnb = re.search(r"下下个?(?:周|週|礼拜|禮拜)|下下個(?:周|週|礼拜|禮拜)", msg)
+    _nnb = re.search(r"下下个?(?:周|週|礼拜|禮拜|星期)|下下個(?:周|週|礼拜|禮拜|星期)", msg)
     if _nnb:
         nn_mon = now + timedelta(days=(14 - now.weekday()))
         return nn_mon, _nnb.group(0)
     # R229e：「下周末/下週末」必须先于「下周」通配——否则「末」非曜日字，
     # 落进通用分支被吃成下周一，而用户说的是下周的周六。
-    _nw = re.search(r"下个?(?:周|週|礼拜|禮拜)末|下個(?:周|週|礼拜|禮拜)末", msg)
+    _nw = re.search(r"下个?(?:周|週|礼拜|禮拜|星期)末|下個(?:周|週|礼拜|禮拜|星期)末", msg)
     if _nw:
         next_mon = now + timedelta(days=(7 - now.weekday()))
         return next_mon + timedelta(days=5), _nw.group(0)
     # 下周X / 下礼拜X：以下个周一为基准的 X 曜日
-    _nx = re.search(r"下个?(?:周|週|礼拜|禮拜)([一二三四五六日天])|"
-                    r"下個(?:周|週|礼拜|禮拜)([一二三四五六日天])", msg)
+    _nx = re.search(r"下个?(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])|"
+                    r"下個(?:周|週|礼拜|禮拜|星期)([一二三四五六日天])", msg)
     if _nx:
         next_mon = now + timedelta(days=(7 - now.weekday()))
         wd = _wd_idx(_nx.group(1) or _nx.group(2))
         return next_mon + timedelta(days=wd), _nx.group(0)
-    _nb = re.search(r"下个?(?:周|週|礼拜|禮拜)|下個(?:周|週|礼拜|禮拜)", msg)
+    _nb = re.search(r"下个?(?:周|週|礼拜|禮拜|星期)|下個(?:周|週|礼拜|禮拜|星期)", msg)
     if _nb:
         # 「下周」没跟曜日——按下个周一算
         return now + timedelta(days=(7 - now.weekday())), _nb.group(0)

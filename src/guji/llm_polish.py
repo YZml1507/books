@@ -428,6 +428,14 @@ def _gc_tasks() -> None:
     # 排队时在途可 >TTL，回收会让线程跑完无处写、前端轮询 404「没接住」。
     stale = [tid for tid, t in _tasks.items()
              if now - t["created"] > _TASK_TTL_S and t["status"] != "pending"]
+    # R2511（审-SV-P2）：pending 豁免泄漏源——Thread.start() 抛错/
+    # BaseException/_session_lock 卡死都会留永久 pending 行，攒满
+    # _MAX_PENDING=12 后所有 spawn 静默 None、AI 层停摆且零日志。
+    # pending 的「不死」只保轮询预算内的正常排队；2×TTL 后照收
+    # （线程真还在跑也只是写不回——比整层关停好）。
+    stale += [tid for tid, t in _tasks.items()
+              if t["status"] == "pending"
+              and now - t["created"] > _TASK_TTL_S * 2]
     for tid in stale:
         _tasks.pop(tid, None)
 
@@ -471,7 +479,9 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
         try:
             text = polish(facts, question, cfg, _transport=_transport)
             status = "done" if text else "failed"
-        except Exception:                     # D-244a：任何异常都降级，不抛
+        # R2511（审-SV-P2）：BaseException——KeyboardInterrupt/
+        # SystemExit 从 Exception 底下漏走会留永久 pending 行。
+        except BaseException:                 # D-244a：任何异常都降级，不抛
             status, text = "failed", None
         with _tasks_lock:
             rec = _tasks.get(tid)
@@ -794,7 +804,8 @@ def chat(session_id: str, user_msg: str,
          facts: list[str] | None = None,
          verdict_facts: list[str] | None = None,
          config: dict | None = None, _transport=None,
-         verdict_day: str | None = None) -> str | None:
+         verdict_day: str | None = None,
+         _task_started=None) -> str | None:
     """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
 
     facts：前端透传的坐标事实，只作「话题参考」。
@@ -816,6 +827,11 @@ def chat(session_id: str, user_msg: str,
     # 串行化整段「快照→LLM→落历史」：同 session 并发按到达顺序完成，
     # 而非按 LLM 返回快慢（审查轨 chat-flow 实测时序倒置）。
     with _session_lock(session_id):
+        # R2511（审-SV-P2）：started 标记挪到拿到会话锁之后——此前在
+        # spawn 线程开头就打，排队等锁期间 queued=false 谎报，前端
+        # 40s 轮询预算实际从入队起算（与注释语义相反）。
+        if _task_started is not None:
+            _task_started()
         with _chat_lock:
             _gc_chat_sessions()
             sess = _chat_sessions.setdefault(
@@ -1192,7 +1208,7 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
             text = review_names(names, facts=facts, config=cfg,
                                 _transport=_transport)
             status = "done" if text else "failed"
-        except Exception:
+        except BaseException:            # R2511：同 polish/chat 径防 pending 泄漏
             status, text = "failed", None
         with _tasks_lock:
             rec = _tasks.get(tid)
@@ -1286,19 +1302,24 @@ def spawn_chat_task(session_id: str, user_msg: str,
         # 前端据此区分「排队中」与「生成中」，轮询预算从起动算而非入队算。
         # R233r（R49-P2-3）：会话被 TTL 回收/从未见过 → fresh 标记——
         # 前端据此提示「隔了几天小满可能记不全」。
-        with _chat_lock:
-            _fresh = session_id not in _chat_sessions
-        with _tasks_lock:
-            rec0 = _tasks.get(tid)
-            if rec0 is not None:
-                rec0["started"] = time.monotonic()
-                rec0["fresh"] = _fresh
+        def _mark_started():
+            # R2511：fresh 挪到锁内打标时刻采样——等锁期间先到的
+            # 同会话兄弟已建 sess，此刻再查「是不是第一条」才如实
+            # （入队时采样会把排在第二的消息误标 fresh）。
+            with _chat_lock:
+                _fresh = session_id not in _chat_sessions
+            with _tasks_lock:
+                rec0 = _tasks.get(tid)
+                if rec0 is not None:
+                    rec0["started"] = time.monotonic()
+                    rec0["fresh"] = _fresh
         try:
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,
-                        _transport=_transport, verdict_day=verdict_day)
+                        _transport=_transport, verdict_day=verdict_day,
+                        _task_started=_mark_started)
             status = "done" if text else "failed"
-        except Exception:
+        except BaseException:            # R2511：同 polish 径防 pending 泄漏
             status, text = "failed", None
         with _tasks_lock:
             rec = _tasks.get(tid)
