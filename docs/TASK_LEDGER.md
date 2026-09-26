@@ -13839,3 +13839,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 前端 wipe 覆盖：localStorage 白名单（me/checkin:/wishbottle…）+
   sessionStorage 聊天键 + 服务端三端点并行（threads/paipan/favorites）
   + wipeAt 时间戳——三面齐。
+
+## R2590 巡检#7——/api/external/news 外呼面降级实测全绿
+- BOOKS_EXTERNAL_DISABLE=1：200 + 诚实文案「外面的资讯今天歇着」
+  + sources 空 + fetched_at null（不假装拉到了）。
+- 启用态（本机半联网）：BBC 中文连接被拒→该源 ok:false +
+  「这个源暂时拉不到」，另一源照常交付 8 条——单源失败自动降级
+  设计实测成立，顶层无 error、无 500。
+- 响应形态：sources[] = {id,title,url,ok,error,items}——前端可逐源
+  渲染成败态。
