@@ -13798,3 +13798,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 311 · contract 643 · chat_e2e 4/4 · dup_keys PASS。
 - 随机抽检 /api/tarot/draw：seed 确定性与 warm/interpretation/card 三面一致；
   R2555 新牌义（圣杯6·逆「困在过去」）生产路径实测在跑。
+
+## R2585 巡检#2——daily/widget/qiming/hehun 四端点抽检全绿
+- daily 16 字段完整；widget 8 模块结构正常；qiming 复姓「欧阳」五行分析正常；
+  hehun「欢喜冤家预定」人设判词+无冲合诚实口径。
