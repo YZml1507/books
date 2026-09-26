@@ -13545,3 +13545,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **selftest 实测 25s**：无快慢分层必要（此前 290s 超时是余量非实际）。
 - **真修复**：`interpreter._now_y` 用服务器本地时区，与 `_today_cn`/day_luck 的 UTC+8 不一致——UTC 部署下北京元旦 0–8 点「眼下」会标错一运；改 UTC+8。前端 `getFullYear()` 用用户本地年（对用户「今年」定义更准）有意保留。
 - probe_r2529 钉扎随实现更新 13/13；selftest 310 全绿。
+
+## R2537 时区全扫 + 副 chunk 审
+- **跨时区一致性全扫**：全仓 `datetime.now()/date.today()/time.time()` 裸调用过一遍——剩余全是耗时计时/内部 ID/BootID（非用户可见日历），日历面 UTC+8 已全覆盖（本轮唯一实伤 R2536 已修）。
+- **probe_ui_smoke 拆分评估**：裁决不拆——共享浏览器会话的启动成本是大头，拆分省时为零且碎裂 fixture；单文件 2168 行按「逐例函数」组织可读。
+- **app_research.js 抽审**（副 chunk 最后未按 app.js 密度审过的面）：零 innerHTML（全走主域 paint() 已审），所有插值 esc() 包裹，干净。
