@@ -357,7 +357,11 @@ def _hehun_score(h) -> int:
     _rel = {"合": 18, "半合": 10, "冲": -16, "刑": -8, "害": -8}
     sc = 55.0
     sc += _rel.get(h.day_zhi_rel, 0)
-    sc += _rel.get(h.year_zhi_rel, 0) * 0.6
+    # R2504（B-1）：year_zhi_rel 值域只有 '半合'——年支六冲/六合落在独立
+    # bool（clash/combine）上，原读法让「年支减半」权项对两类关系恒为 0，
+    # 同屏 notes 说冲、分数却装没看见。
+    _yrel = "冲" if h.clash else ("合" if h.combine else h.year_zhi_rel)
+    sc += _rel.get(_yrel, 0) * 0.6
     sc += {"相生": 10, "比和": 5, "相克": -9}.get(h.nayin_rel, 0)
     sc += 14 if h.day_wx_sheng else (8 if h.day_wx_same else -11)
     if h.peach_same:
@@ -1831,9 +1835,10 @@ def _term_banner(d: date) -> dict:
     return {}
 
 
-def _year_gz(d: date) -> str:
-    """R2349l（R73-P1-14）：流年干支——立春口径（子平法通行），
-    立春前算上一岁。"""
+def _liunian(d: date) -> tuple[str, int]:
+    """R2349l（R73-P1-14）：流年干支+流年公历年——立春口径（子平法通行），
+    立春前算上一岁。R2504（B-2）：回吐调整后的公历年——原来调用方
+    拿日历年号配流年干支，立春前 ~35 天句首年号与干支自相矛盾。"""
     y = d.year
     try:
         from guji.bazi import term_time
@@ -1843,7 +1848,7 @@ def _year_gz(d: date) -> str:
     except Exception:
         pass
     from guji.bazi import GAN, ZHI
-    return GAN[(y - 4) % 10] + ZHI[(y - 4) % 12]
+    return GAN[(y - 4) % 10] + ZHI[(y - 4) % 12], y
 
 
 def _moon_for(d: date) -> dict:
@@ -3462,13 +3467,13 @@ def daily(date_str: str | None = None,
                          f"今天是你的「{_lb or _god}」日"),
             }
             # R2349l（R73-P1-14）：流年十神——日主 × 流年天干（立春口径）。
-            _yg = _year_gz(date.fromisoformat(date_str))
+            _yg, _yy = _liunian(date.fromisoformat(date_str))
             _ygod = ten_god(_ug, _yg[0]) if _ug else ""
             _ylb = voice.TEN_GOD_WARM.get(_ygod, ("", ""))[0]
             _personal["year_gz"] = _yg
             _personal["year_god"] = _ygod
             _personal["year_line"] = (
-                f"{date.fromisoformat(date_str).year} 是你的"
+                f"{_yy} 是你的"
                 f"「{_ylb or _ygod}」年（流年 {_yg}）"
                 if _ug else "")
         except ComputeError:

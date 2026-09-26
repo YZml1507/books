@@ -12848,3 +12848,31 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   dollar_misuse、selftest_regress、no_generated、
   scripts_importable、baseline_voice、xingzuo、warm_voice、
   async_ai、llm_polish 全过。SW 重发 books-shell-9ed9596f9016。
+- **R2504（双 agent 深审：海报/SW/研究台 + guji 领域逻辑清零批）**：
+  审查面=app_poster.js 全几何 + sw.js 全分支 + app_research.js 12
+  失败面（A agent），src/guji 领域算法+services 编排（B agent）；
+  六端点海报真机出图逐张评审 + 凯尔特十字≥5张实测。①审-P0 合婚
+  合拍指数漏算年支六冲/六合——year_zhi_rel 值域只有 '半合'，
+  _rel.get 对冲/合恒 0，notes 说冲分数装没看见 → 从 clash/
+  combine bool 推导 _yrel 再 ×0.6；实测子午冲对 61→51，六合对
+  +10.8，半合口径不变。②审-P1 daily year_line 立春前 ~35 天
+  年号误标（「2026 是你的比肩年（流年乙巳）」自相矛盾）→
+  _liunian 回吐流年公历年，句首年号与干支一致。③审-P2 voice.py
+  7 处裸 date.today()——UTC 部署下北京 0–8 点 warm 盐/应期年比
+  日签旧一天 → 统一 _today_cn() 锚 UTC+8（本机 CST 行为零变化），
+  模块纪律行如实改写。④审-P2 taohua dayun_hits 只认年支桃花，
+  与 R2349s 修过的 hit_pillars 年+日双口径脱节 → 并集计；实证
+  fixture 1985-06-10 日支桃花唯一命中乙酉运。⑤审-P1 塔罗 ≥5 张
+  牌阵海报补位明细行整片被卡座白卡盖住（880 起，含「还有·共N张」）
+  → lines 硬顶按有无 cards 分档 860/1260 + lh 贴底兜底上提；
+  实测 10 张阵 4 明细行全露。⑥审-P2 低配海报节日徽章 W 混入
+  1080 逻辑系漂至 64% 宽 → 钉回逻辑系；附带卡高 420→400 不再
+  盖品牌水印行。⑦审-P2 doThread 空主题早退残留「创建中…」→
+  fail() 内联提示；研究台 12 处 API 失败裸 fail() 补 failWithRetry
+  重试钮（对齐主域 8 loader 同款）。验证：probe_r2504.py 新增
+  15 断言全绿；selftest 310、contract 636、ui_smoke、ruff E9F、
+  r2502/r2503 回归、dollar_misuse、selftest_regress、no_generated、
+  scripts_importable、baseline_voice、xingzuo、warm_voice、
+  async_ai、llm_polish、date_parity、first_screen、plain_first、
+  check_poster 全过；knowledge.db probe 残留 231 行清零（FTS
+  delete-all 重建后写删往返正常）。SW 重发 books-shell-ce853745dc75。

@@ -31,7 +31,7 @@ async function doSearch() {
       '<p class="hit-cite">' + searchCountLine + '</p>' +
       renderHits(j.hits, { empty: '🔍 无命中，换个词试试？', score: true }));
   } catch (e) {
-    fail('searchResult', '检索失败：' + e.message);
+    failWithRetry('searchResult', '检索失败：' + e.message, function () { doSearch(); });
   }
 }
 
@@ -92,7 +92,7 @@ async function doResearch() {
     }
     paint('researchResult', html);
   } catch (e) {
-    fail('researchResult', '研究失败：' + e.message);
+    failWithRetry('researchResult', '研究失败：' + e.message, function () { doResearch(); });
   }
 }
 
@@ -132,7 +132,7 @@ async function doAddr() {
       '<p class="hit-cite">' + esc(_aschLabel) + ' · 翻到 ' + esc(j.count) + ' 条</p>' +
       renderHits(j.hits, { empty: '🔍 无命中，换个定位参数？' }));
   } catch (e) {
-    fail('addrResult', '定位失败：' + e.message);
+    failWithRetry('addrResult', '定位失败：' + e.message, function () { doAddr(); });
   }
 }
 
@@ -191,7 +191,7 @@ async function doCompare() {
     }
     paint('compareResult', html);
   } catch (e) {
-    fail('compareResult', '比对失败：' + e.message);
+    failWithRetry('compareResult', '比对失败：' + e.message, function () { doCompare(); });
   }
 }
 
@@ -229,7 +229,7 @@ async function doWorks() {
     html += '</div>';
     paint('worksResult', html);
   } catch (e) {
-    fail('worksResult', '加载失败：' + e.message);
+    failWithRetry('worksResult', '加载失败：' + e.message, function () { doWorks(); });
   }
 }
 
@@ -269,7 +269,7 @@ async function doThread() {
    * 用户知道自己在建什么。 */
   if (!val('tq')) {
     var _tq = el('tq');
-    if (_tq && !_tq.value.trim()) { showToast('先写个主题名，比如「无为在不同本子的差异」', 'info'); return; }
+    if (_tq && !_tq.value.trim()) { fail('threadResult', '先写个主题名，比如「无为在不同本子的差异」'); return; }
   }
   try {
     try { localStorage.setItem('threads_seen_v1', '1'); } catch (eTS) {}
@@ -299,7 +299,7 @@ async function doThread() {
     _TR_VIEW_GEN++;
     paint('threadResult', html);
   } catch (e) {
-    fail('threadResult', '创建失败：' + e.message);
+    failWithRetry('threadResult', '创建失败：' + e.message, function () { doThread(); });
   }
 }
 
@@ -460,7 +460,7 @@ async function showThread(tid) {
     paint('threadResult', html);
   } catch (e) {
     if (_g !== _TR_VIEW_GEN) return;
-    fail('threadResult', '加载失败：' + e.message);
+    failWithRetry('threadResult', '加载失败：' + e.message, function () { showThread(tid); });
   }
 }
 
@@ -512,7 +512,7 @@ async function doCompareWorks() {
     }
     paint('cwResult', html);
   } catch (e) {
-    fail('cwResult', '对照失败：' + e.message);
+    failWithRetry('cwResult', '对照失败：' + e.message, function () { doCompareWorks(); });
   }
 }
 
@@ -564,7 +564,7 @@ async function doConcept() {
     }
     paint('conceptResult', html);
   } catch (e) {
-    fail('conceptResult', '研究失败：' + e.message);
+    failWithRetry('conceptResult', '研究失败：' + e.message, function () { doConcept(); });
   }
 }
 
@@ -599,7 +599,7 @@ async function doBookStructure() {
     html += '</tbody></table></div>';
     paint('bsStructure', html);
   } catch (e) {
-    fail('bsStructure', '加载失败：' + e.message);
+    failWithRetry('bsStructure', '加载失败：' + e.message, function () { doBookStructure(); });
   }
 }
 
@@ -633,7 +633,7 @@ async function doBookChapter() {
     });
     paint('bsChapter', html);
   } catch (e) {
-    fail('bsChapter', '加载失败：' + e.message);
+    failWithRetry('bsChapter', '加载失败：' + e.message, function () { doBookChapter(); });
   }
 }
 
@@ -668,6 +668,6 @@ async function doBookSummary() {
     html += '</div>';
     paint('bsSummary', html);
   } catch (e) {
-    fail('bsSummary', '加载失败：' + e.message);
+    failWithRetry('bsSummary', '加载失败：' + e.message, function () { doBookSummary(); });
   }
 }

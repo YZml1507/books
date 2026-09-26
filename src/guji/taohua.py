@@ -129,11 +129,14 @@ def dayun_hits(b: Bazi, birth_year: int) -> list[dict]:
     """
     from .bazi_calc import calc_life
 
-    peach = XIANCHI[b.year[1]]
+    # R2504（B-4）：应期层与 hit_pillars 同口径——年/日支两个参考位
+    # 都认（R2349s 只修了命中层，应期漏改；日支桃花用户的全部应期
+    # 信号被系统性丢弃，应期本来就低频 ~1/12 每运）。
+    peaches = {XIANCHI[b.year[1]], XIANCHI[b.day[1]]}
     life = calc_life(b, birth_year)
     out: list[dict] = []
     for d in life["dayun"]:
-        if d["pillar"][1] == peach:
+        if d["pillar"][1] in peaches:
             out.append({
                 "index": d["index"],
                 "pillar": d["pillar"],

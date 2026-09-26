@@ -277,7 +277,9 @@ function _paintSharePoster(s, W, H) {
   if (s.badge) {
     ctx.font = '64px "Noto Sans Emoji","Apple Color Emoji",serif';
     ctx.textAlign = 'right';
-    ctx.fillText(s.badge, W - 56, 128);
+    /* R2504（A-2）：setTransform 后坐标全是 1080 逻辑系，这里误用
+     * 像素宽 W——低配 750 画布下徽章漂到 64% 画面宽处。 */
+    ctx.fillText(s.badge, 1080 - 56, 128);
     ctx.textAlign = 'center';
   }
   if (s.subtitle) {
@@ -330,10 +332,19 @@ function _paintSharePoster(s, W, H) {
      * 行数多时收行高（最低 64px 可容 7 行）。
      * R2349p（R79-P2-1）：lh 封顶 120 + cardY 固定 → 少行视图卡下
      * 留 300-700px 死白——行高上限放 150，且行块在剩余区间里
-     * 垂直居中（下移量封顶 120px，给页脚留呼吸）。 */
-    var lh = Math.min(150, Math.max(64, (1260 - cardY) / lines.length));
-    var _slack = 1260 - (cardY - 60) - (lines.length * lh + 40);
+     * 垂直居中（下移量封顶 120px，给页脚留呼吸）。
+     * R2504（A-1）：有卡片区（塔罗前三张）时硬顶收到 860——
+     * 原 1260 让 ≥5 张牌阵的补位明细行整片落进卡座（880 起）
+     * 被白卡盖住，「还有·共N张」永远不可见。 */
+    var _linesTop = (s.cards || []).length ? 860 : 1260;
+    var lh = Math.min(150, Math.max(64, (_linesTop - cardY) / lines.length));
+    var _slack = _linesTop - (cardY - 60) - (lines.length * lh + 40);
     if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
+    /* R2504（A-1 兜底）：lh 贴 64 下限仍超硬顶时整块上提，
+     * 保证行块底缘不越 _linesTop。 */
+    if (cardY - 60 + lines.length * lh + 40 > _linesTop) {
+      cardY -= (cardY - 60 + lines.length * lh + 40) - _linesTop;
+    }
     ctx.fillStyle = '#FFFFFF';
     _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
@@ -427,7 +438,10 @@ function _paintSharePoster(s, W, H) {
   /* 卡片区（塔罗：RWS 真图直绘；其他：文字卡） */
   var cards = (s.cards || []).slice(0, 3);
   if (cards.length) {
-    var cw = 250, ch = 420, gap = (1080 - cards.length * cw) / (cards.length + 1);
+    /* R2504（A-1b）：ch 420→400——有明细行时卡座 880 起、底缘
+     * 1300 会盖住品牌水印行（y≈1288）；收到 400 后底缘 1280，
+     * 与水印留 8px 缝。 */
+    var cw = 250, ch = 400, gap = (1080 - cards.length * cw) / (cards.length + 1);
     /* R2341（R57-P1-3）：无明细行时 cards 上提到 560——
      * 原来固定 880，大字(≤440)到卡片之间留 ~500px 空洞。 */
     var cy = lines.length ? 880 : 560;

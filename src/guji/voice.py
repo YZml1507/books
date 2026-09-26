@@ -13,8 +13,9 @@
 
 硬纪律（违反任一条即判据失败）：
 
-  1. **纯函数**：无 IO、无网络、无随机、不读时钟（"今天"由调用方传入）。
-     同输入必同输出（判据 5），两次调用逐字节相等。
+  1. **纯函数**：无 IO、无网络、无随机。「今天」只作逐日轮换盐，
+     统一走 _today_cn()（锚 UTC+8，R2504）——同输入同日必同输出，
+     两次调用逐字节相等。
   2. **不新增事实**：每句话都能回指一个 calc 字段。模板文字写死在本模块，
      事实全部来自入参——与 interpreter 同一条纪律。
   3. **不断吉凶、不给现实指令**（判据 6，spec US2）。句式只允许三类：
@@ -44,9 +45,16 @@ except Exception:
     COPY_BANK = {}
 
 
+def _today_cn():
+    """R2504（B-3）：「今天」锚 UTC+8——裸 date.today() 跟服务器本地时区
+    走，UTC 部署下北京 0–8 点被算成昨天：日签/黄历已换新日，warm 收口
+    盐/应期年仍按昨天，同屏一边新一边旧。"""
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8))).date()
+
+
 def _d3_today():
-    import datetime as _dd
-    return _dd.date.today().isoformat()
+    return _today_cn().isoformat()
 
 
 def _pick(seq, *salt):
@@ -359,7 +367,6 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     # ——他问的是"考研能上吗"。原话入引号，标签作为归类跟在后面。
     quoted = f"「{q}」" if len(q) <= 18 else f"「{q[:18]}…」"
     lines: list[str] = []
-    import datetime as _d2                            # R233j：收口日盐
     if not gods:                                     # 健康/状态类：看五行均衡
         fe = calc.get("five_elements") or {}
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
@@ -412,7 +419,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
                             "具体怎么走，还要看你自己的选择。",
                             "盘里给这事留了位置——往哪走，看你心意。",
                             "这题盘里能接住，方向有了，步子你来定。"],
-                           "bazi-hit", q, _d2.date.today().isoformat()))
+                           "bazi-hit", q, _today_cn().isoformat()))
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
                      f"但这块在四柱天干上没有直接落点。")
@@ -420,7 +427,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         lines.append(_pick(["小满不瞎编——没有的东西不硬凑。",
                             "盘上没有的我不硬说——这是小满的规矩。",
                             "这一维盘面没给线索，不猜。"],
-                           "bazi-miss", q, _d2.date.today().isoformat()))
+                           "bazi-miss", q, _today_cn().isoformat()))
         lines.append("可以看看下面的盘面明细，或换个问法。")
 
     rels = calc.get("relations") or []
@@ -813,8 +820,7 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
         dy = calc.get("dayun") or []
         if dy:
             qi = calc.get("qi_yun_age")
-            import datetime
-            _now_y = datetime.date.today().year
+            _now_y = _today_cn().year
             _cur = next((d for d in dy
                          if (d.get("year_start") is not None
                              and d["year_start"] <= _now_y
@@ -1110,8 +1116,7 @@ def warm_taohua(t: dict) -> dict:
         # R2349s（R84-P0-3）：one_liners 改为分档 dict——关键词过滤
         # 强档只命中 2/16，旺盘实测抽到「待激活」弱档句同屏互搏。
         # 现在每档 ≥4 条且永不错档；盐仍带日期逐日轮换。
-        import datetime as _dt
-        _today = _dt.date.today().isoformat()
+        _today = _today_cn().isoformat()
         _ol = _tb.get("one_liners") or {}
         _pool = (_ol.get(_band) if isinstance(_ol, dict)
                  else _ol) or []
@@ -1156,8 +1161,7 @@ def warm_taohua(t: dict) -> dict:
         if dayun:
             # F-005：应期年份动态计算用户年龄（±5 岁内有参考价值）
             # F-006：干支改生肖+方位注释
-            import datetime
-            _now = datetime.date.today()
+            _now = _today_cn()
             _user_birth_year = t.get("birth_year") or (_now.year - 22)
             _user_age = _now.year - _user_birth_year
             _near = [d for d in dayun if abs(int(d.get("start_age", 0)) - _user_age) <= 5]
@@ -1345,8 +1349,7 @@ def warm_hehun(h: dict) -> dict:
     _adult = [d for d in dayun if int(d.get("start_age_a", 99)) >= 16]
     # F-007：按 year_start 距离当前年份排序，优先展示近期应期
     if _adult:
-        import datetime
-        _now = datetime.date.today()
+        _now = _today_cn()
         _adult.sort(key=lambda d: abs(int(d.get("year_start", 0)) - _now.year))
         d0 = _adult[0]
         # F-015：当年份距今>10年时，降级为"远期参考"
