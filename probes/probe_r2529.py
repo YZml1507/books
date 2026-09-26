@@ -63,5 +63,23 @@ secs2 = {s["title"]: s["lines"] for s in r2["interpretation"]["sections"]}
 ck("bh.day_scope_still_works",
    any("针对" in t for t in secs2))
 
+# R2533 受众口语：实习/男朋友/室友/考研 必须命中各自十神组
+_it2 = _it  # interpreter 源码
+ck("it.slang_map",
+   '("实习"' in _it2 and '("室友"' in _it2 and '("crush"' in _it2
+    and '("考研"' in _it2 and '("男朋友"' in _it2)
+ck("it.boyfriend_before_friend",
+   _it2.index('("男朋友"') < _it2.index('("朋友"'))
+def _focus_of(q):
+    rr = services.bazi(BaziRequest(
+        year=1990, month=1, day=1, hour=1, gender="女",
+        calendar="solar", scope="life", question=q))
+    return {s["title"]: s["lines"] for s in
+            rr["interpretation"]["sections"]}
+ck("bh.slang_boyfriend_is_spouse",
+   "夫妻星" in (_focus_of("我和男朋友吵架")[ "针对「我和男朋友吵架」"][0]))
+ck("bh.slang_roommate_is_peer",
+   "同辈星" in (_focus_of("室友关系处不好")["针对「室友关系处不好」"][0]))
+
 print(f"\n{len(PASS)} pass, {len(FAIL)} fail")
 sys.exit(1 if FAIL else 0)
