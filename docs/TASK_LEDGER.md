@@ -13550,3 +13550,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **跨时区一致性全扫**：全仓 `datetime.now()/date.today()/time.time()` 裸调用过一遍——剩余全是耗时计时/内部 ID/BootID（非用户可见日历），日历面 UTC+8 已全覆盖（本轮唯一实伤 R2536 已修）。
 - **probe_ui_smoke 拆分评估**：裁决不拆——共享浏览器会话的启动成本是大头，拆分省时为零且碎裂 fixture；单文件 2168 行按「逐例函数」组织可读。
 - **app_research.js 抽审**（副 chunk 最后未按 app.js 密度审过的面）：零 innerHTML（全走主域 paint() 已审），所有插值 esc() 包裹，干净。
+
+## R2538 分享链路/副 chunk/温层抽审（全清洁）
+- **share B 端心流**：`/?view=X&from=share` 承接文案+shareBy 昵称绑视图指纹+首结果「接力回赠」——链路已被 R231d/2349t/2350g 加固，B 端冷启动有定制欢迎条。
+- **app_poster.js**（1419 行，最后未按 app.js 密度审过的 chunk）：**零 innerHTML/eval/localStorage/fetch**——纯 canvas→toBlob 下载，XSS 面构造上不存在；干净。
+- **voice.py warm_hehun 抽审**：强 CP 词按盘面冲突事实分桶（相克盘永不抽「锁死这对了」）、日支夫妻宫纳入判词——R214b/218a/2349s 多轮加固记录清晰，干净。
