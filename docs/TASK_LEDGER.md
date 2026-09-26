@@ -14063,3 +14063,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 同 sid 连发：8 发放行、第 9 发起 {\"rate_limited\":true} 哨兵
   （前端「歇口气」提示位，R2355 分流语义在产）；_RATE_CHAT_PER_SID=8
   /60s 滑窗精确生效。
+
+## R2620 巡检#37——spawn_chat_task 防线分层完备
+- 顺序：危机罐头→敏感罐头（均免配额直返）→限流哨兵→行帽
+  256+_MAX_PENDING 在途帽→closed 会话 ×4 放宽独立限流；pending
+  泄漏防（BaseException→failed）、fresh 锁内采样（R2511）。
