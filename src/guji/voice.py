@@ -452,7 +452,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
             (f"盘里现有的力量是：{_forces}。" if _forces
              else "这盘里能借力的地方比较薄。"),
             # R2516：未识别话题也指路——告诉用户盘能接住什么。
-            "下面把盘面明细都列了；感情、事业、学业、财运这些，换个问法盘里都能接住。",
+            # R2544：附真实问法示例——口语问法也接得住这事得说出来。
+            "下面把盘面明细都列了；感情、事业、学业、财运、人际这些，"
+            "比如「我和室友闹掰了」「考研能不能上岸」这样问也行。",
         ]
 
     gods, label = _topic_gender(topic, gender)
