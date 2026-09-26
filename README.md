@@ -156,6 +156,7 @@ BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_date_parity.py   # 前后端�
 .venv/bin/python probes/probe_selftest_regress.py               # 断言只增不减
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_first_screen.py  # 首屏抵达成本
 .venv/bin/python probes/probe_chat_e2e.py                        # chat 全链（进程内 mock LLM，勿加 DISABLE）
+.venv/bin/python probes/probe_dup_keys.py                        # dict 字面量重复键静态闸
 ```
 
 CI（`.github/workflows/selftest.yml`）在 push/PR 上自动跑以上全部 + corpus 数据闸门

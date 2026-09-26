@@ -13749,3 +13749,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - taohua：年/日支双参考位（R2349s）+应期同口径（R2504）在案；红鸾天喜公式定式可核验。
 - classical_names：缺行/偏弱分离口径、双弱元素扩池（R220b）、自带性别倾向表（R225b）均在——
   典故库层已经过多轮硬化，无新缺口。
+
+## R2576 重复键隐患系统排查 + probe_dup_keys 常驻闸
+- Python AST 全扫（src/web/probes/scripts/根散件，CI ruff 同口径）：dict 字面量零重复键。
+- JS 侧 brace 深度扫描：3 命中全是误报（regex 字面量内 shareBy:done 等）——真实重复零。
+- 固化 `probe_dup_keys.py`（<1s 离线）+ 入 CI + README 闸表——R2574 类「同键静默覆盖」常驻防。
