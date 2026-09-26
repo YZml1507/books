@@ -14178,3 +14178,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - GET {theme,recent,favorites} 三键；POST 平铺键值回写生效；清偿
   R2588 遗留的 theme='x'*72 与 unknown_field=123 两条测试残留（服
   务端宽容存原值、前端白名单坍缩，无注入面——数据卫生归位）。
+
+## R2643 巡检#60——tarot/draw 边界全绿
+- GET→405 人话；n=2/0→422（le=1 契约 R2517 对齐单卡语义）；
+  question>200字→422；单卡 {card,interpretation,warm} 完整
+  （权杖9逆位关键词/含义齐）。
