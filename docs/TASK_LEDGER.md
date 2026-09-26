@@ -14264,3 +14264,6 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - KR1a0001→128 节（卦1乾 zhouyi 编址+file 节混列、层分布/字数/
   addr 覆盖齐）；work_id=evil→软错误「这本书没找到——先去书目页
   翻翻」。
+
+## R2662 巡检#79——bookstudy.chapter 单节阅读
+- 乾卦→9 单元（addr/layer/text/citation 链齐、KR 编号可回溯）。
