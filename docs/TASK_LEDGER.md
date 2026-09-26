@@ -13597,3 +13597,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **spec/008 P1 明列「盘里有着落点」为生硬残留反例**——我 R2530 的针对段正是这句，voice one_liner 同句（还是首屏第一眼）。两处换更日常转述：interpreter「现于你盘中，这件事在盘上有实实在在的呼应」、one_liner「盘里有实实在在的对应」（≤20字判据内）。
 - **voice_baseline 16 处漂移全是本轮改进预期**——逐字节基线 --freeze 重冻（4f88c241），复核 PASS；probe 钉扎随文案更新。
 - selftest 310 + probe 13/13 + contract 643 + ui_smoke 全绿。
+
+## R2546 baseline 入闸 + spec/008 P2/P4 对照
+- **probe_baseline.py 新增**：baseline_voice 逐字节基线此前是孤儿脚本（selftest/探针族都不含），R2529-2544 文案改进漂移 16 处无人知——本轮起纳入常驻闸门。惯例：有意改解读文案先 `--freeze` 再提交。
+- **spec/008 P2/P4 对照**：P2 视觉即内容——海报 canvas（app_poster 1419 行背景/字体/下载）、塔罗牌面已成片；P4 惊喜感——塔罗翻牌动画+日签拆礼物在案。均已被多轮加固，无残余。
