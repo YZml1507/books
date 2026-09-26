@@ -14212,3 +14212,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2649 巡检#66——concept 跨书普查实测
 - 「龍」→ 30 书命中、per-work census（n_hits/层分布/top 引文）、
   13 个多书共址；空 q→400 人话。
+
+## R2650 巡检#67——任务标记链实测
+- 同会话连发两条：t2 fresh=False 正确（session 已建）；queued/
+  started 标记在案（mock 秒回未捕到在途态，机制经 selftest 钉扎）。
