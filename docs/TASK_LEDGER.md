@@ -13601,3 +13601,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2546 baseline 入闸 + spec/008 P2/P4 对照
 - **probe_baseline.py 新增**：baseline_voice 逐字节基线此前是孤儿脚本（selftest/探针族都不含），R2529-2544 文案改进漂移 16 处无人知——本轮起纳入常驻闸门。惯例：有意改解读文案先 `--freeze` 再提交。
 - **spec/008 P2/P4 对照**：P2 视觉即内容——海报 canvas（app_poster 1419 行背景/字体/下载）、塔罗牌面已成片；P4 惊喜感——塔罗翻牌动画+日签拆礼物在案。均已被多轮加固，无残余。
+
+## R2547 孤儿检查器收编
+- **probe_standing.py 新增**：check_warm_voice/check_xingzuo/check_async_ai 三个 TestClient 离线检查器此前不在任何闸门（与 baseline_voice 同型孤儿）——收编常驻。check_poster/check_plain_first 需浏览器归 ui_smoke 不收。现闸门矩阵：selftest 310 + contract 643 + 探针族（含 baseline/standing）+ ui_smoke。
+- **hehun 针对段排查**：hehun 输出无 _focus_lines 同款针对节（合婚的提问锚在 warm 判词层，R233u/2349s 已覆盖日支夫妻宫）——无同型缺口。
