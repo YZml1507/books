@@ -13693,3 +13693,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 四常驻探针全绿：date_parity 251键同构/first_screen/dollar_misuse 300函数零命中/selftest_regress（312→310 已审核改名2条）。
 - scripts 数据闸门本地连跑：booksec/dual_engine/provenance/verify_index 全 PASS；**assess_goals G9 本地 FAIL→诊断→修复**：本地 knowledge.db 只有 probe fixture（refusal claim 零 evidence），CI 种子带实证 Evidence。跑 `research_thread.py demo`（文档化验收路径，幂等）补 worked example（6 条 data/raw 实证引文）→ **9/9 PASS**。本地环境差异非回归。
 - workflow↔本地 drift：无——新包装探针底层脚本全在 CI。
+
+## R2565 分享图成片实测（spec/008 P2 实物验收）
+- 日签海报：375px 点击→自动生成→下载「小满-今日签-0927.png」663KB——水彩底+签诗/签运/评分/贵人/宜试试结构卡+品牌水印「@小满的解忧铺」+回流钩「测你的同款」。
+- 命盘海报：「小满-今日命盘-0927.png」546KB——桃粉水彩底+生辰四柱/本命/幸运色（色块点）/幸运数字+同款品牌链路。
+- modal 预览含「复制文案+链接」动作+下载提示。塔罗同管道（shareTarot selftest 钉扎）。成片质量达「视觉即内容」判据。
