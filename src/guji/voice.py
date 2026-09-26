@@ -373,6 +373,13 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     tg = calc.get("ten_gods") or []
     if not q:
         return _reply_no_question(day_master, calc)
+    # R2518：危机自伤词与 liuyao/tarot 同闸——「我活不下去了」走
+    # 「不瞎编」路径也是语气失当，确定性转介。
+    from guji import llm_polish as _lp
+    if _lp._is_sensitive(q) or _lp._is_crisis(q):
+        return ["这个话题盘里真接不了，也不该靠它拿主意——"
+                "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
+                "小满陪你说点别的也行。"]
 
     topic = _topic_of(q)
     if topic is None:
@@ -653,6 +660,18 @@ import re as _re_lq
 _SCENE_RE = [(_re_lq.compile(k), v, note, cat)
              for k, v, note, cat in _LIUYAO_SCENE]
 
+# R2518（深度第二轮）：七类场景各给一件卦外能做的小事——
+# 不断吉凶，卦面之外让人有事可做。
+_LIUYAO_CAT_STEP: dict[str, str] = {
+    "career": "能做的最实一步：把眼下最想推进的那件事拆成三步，今天先走第一步。",
+    "love": "比猜对方心思更实的：先想清楚你想从这段关系里要什么。",
+    "money": "先把这笔进出写成数字摆出来——能看清的账才好做决定。",
+    "study": "文书题最忌拖：今天就把要准备的东西列个清单。",
+    "health": "身体的事卦面只当参考——不舒服别硬扛，该看就看。",
+    "child": "这类事急不来，先把日常节奏理顺最划算。",
+    "peer": "跟人打交道的事：先想清楚你的底线在哪，再谈怎么配合。",
+}
+
 
 def _liuyao_scene(q: str) -> tuple[str, str, str] | tuple[None, None, None]:
     for pat, ys, note, cat in _SCENE_RE:
@@ -684,8 +703,10 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     q = (question or "").strip()
     # R2349q（R81-P0-1）：生死/重病提问此前零拦截——用神指认+走向
     # 分析照常跑是指向性伤害。与聊天/问一嘴同一闸口径。
+    # R2518：危机自伤词同拦——「我活不下去了」此前照常给卦面解读，
+    # 语气严重失当；与聊天层 _CRISIS_PAT 同一口径转介。
     from guji import llm_polish as _lp
-    if _lp._is_sensitive(q):
+    if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return ["这个话题卦面真答不了，也不该靠它拿主意——"
                 "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
                 "小满陪你说点别的也行。"]
@@ -808,8 +829,15 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         trend += "变卦落在阳气渐长的卦位，劲是往上走的。"
     lines.insert(min(1, len(lines)), trend)
 
-    lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
-                 "慢慢体会，不急。")
+    # R2518（深度第二轮）：收口从「慢慢体会」软着陆换成场景级一步——
+    # 与 TOPIC_HINT 同理：卦面之外给一个不冒充断语、能照做的动作。
+    _cat_end = _liuyao_scene(q)[2] if q else None
+    _step = _LIUYAO_CAT_STEP.get(_cat_end or "")
+    if _step:
+        lines.append(_step + "卦辞爻辞的原文在下面，慢慢对照，不急。")
+    else:
+        lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
+                     "慢慢体会，不急。")
     # R233u：坐标行新增后 6 行——cap 放宽到 6，经文引导不再被截
     return lines[:6]
 
@@ -943,7 +971,8 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     # R2349q（R81-P0-1）：生死/重病提问此前零拦截——抽到行动 kw0
     # 时逐张给「想好了就去做」是指向性伤害。与聊天/问一嘴同一闸口径。
     from guji import llm_polish as _lp
-    if _lp._is_sensitive(q):
+    # R2518：与 reply_liuyao 同补——危机自伤词也转介，不照常解牌。
+    if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return _wrap(l0, None,
                      ["这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。",
                       "身体或心里难受的话，医生和信得过的人才是最该找的。",
@@ -986,8 +1015,13 @@ def warm_tarot(cards: list[dict], interpretation: dict,
                              f"{name}（{'正位' if cu else '逆位'}）——"
                              f"也在说「{kw0}」，是呼应前面那张。")
             else:
+                # R2518：无提问路径此前只露原始 kw 串——指引表就在手边
+                # 却不给（「收尾难·差口气·撑住」alone 对用户是术语），
+                # 挂上指引句，与有提问路径同一深度。
+                _gd = _tarot_kw_guidance(kw0, "")
                 lines.append(f"{pos_label + '：' if pos_label else ''}"
-                             f"{name}（{'正位' if cu else '逆位'}）——{ckw}。")
+                             f"{name}（{'正位' if cu else '逆位'}）——{ckw}。"
+                             + (f"{_gd}。" if _gd else ""))
         _seen_kw.add(kw0)
     # 收尾：给一句具体方向
     tail = []
@@ -1102,8 +1136,11 @@ _TAROT_HEAVY = {"死神", "高塔", "恶魔", "月亮", "宝剑3", "宝剑9", "�
 
 def _tarot_kw_guidance(kw: str, q: str) -> str:
     """D-002：将牌义关键词转化为用户问题的具体指引"""
+    # R2518：无提问路径也吃指引表——原回落「提示你关注 X 的能量」
+    # 是空泛 meta 句；表里有就用表里的行动句，没有才回落。
     if not q:
-        return f"这张牌提示你关注「{kw}」的能量"
+        return _TAROT_KW_GUIDANCE.get(
+            kw, f"这张牌提示你关注「{kw}」的能量")
     # 直接返回关键词对应的指引
     return _TAROT_KW_GUIDANCE.get(kw, f"关于你问的，「{kw}」是一个重要信号")
 

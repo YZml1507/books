@@ -13281,3 +13281,20 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] `probe_r2517.py` 17/17。
 - 挂账不取：P3-6（concept/per_work 等静默钳位为有注释的刻意选择）、
   P3-13（PATCH status 走 query 为契约形状）、P3-14（session_id 信息级）。
+
+## R2518 — 深度第二轮：六爻/塔罗行动锚 + 危机词三入口补齐
+
+- [x] `_LIUYAO_CAT_STEP` 七类场景各一件卦外能做的小事（事业/感情/
+  财/学业/健康/子女/同辈），与经文指针合并收口（不挤 lines[:6]）。
+  实证：「跳槽要不要跳」收口「能做的最实一步：把眼下最想推进的
+  那件事拆成三步，今天先走第一步」。
+- [x] 塔罗无提问路径：kw 后挂 `_TAROT_KW_GUIDANCE` 行动句（此前只露
+  「收尾难·差口气·撑住」术语串）；`_tarot_kw_guidance` no-q 回落
+  先查表再给 meta 句。实证：「星币9逆——收尾难…就差临门一脚，
+  别耗在最后一公里」。
+- [x] **安全补齐**：`reply_bazi`/`reply_liuyao`/`warm_tarot` 三入口
+  危机自伤词此前零拦截（「我活不下去了」照常给解读=语气严重失当）——
+  统一 `_is_sensitive or _is_crisis` 同口径转介；撒娇豁免（「想死
+  你了」）不破。
+- [x] `probe_r2518.py` 15/15；`probe_r2516.py` 补 src 路径（reply_bazi
+  新增 guji 包内导入）。

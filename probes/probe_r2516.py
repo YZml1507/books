@@ -13,6 +13,7 @@ import re
 import sys
 
 sys.path.insert(0, ".")
+sys.path.insert(0, "src")   # guji 包内互导（R2518 reply_bazi 引 llm_polish）
 PASS, FAIL = [], []
 
 
