@@ -13780,3 +13780,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2581 ui_smoke 复跑——app.js 改动后全量浏览器冒烟 PASS（75+ 用例）
 - 唯一回归窗口闭合；日志/截图 logs/ui_smoke。
 - gh 未授权 CI 远端状态不可查；本地闸=CI 同命令全绿为最高可得置信。
+
+## R2582 hehun/bazi_calc/qiming 收尾——src/guji 用户面深潜战役收官
+- hehun：纳音相生/五行相生/十神互见/桃花支结构化输出+大运关系——输出诚实非断言。
+- bazi_calc：十神全表实测正确（甲日主十干全对）、五行加权计数和≈8。
+- qiming：57 行 facade（常量+re-export，死簇 R2350a 已除）。
+- **src/guji/ 用户面模块全部深潜完毕**：interpreter/voice/huangli/tarot/xingzuo/taohua/
+  classical_names/liuyao/hehun/bazi_calc/knowledge/llm_polish/services/deps/schemas/errors。
