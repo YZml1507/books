@@ -14109,3 +14109,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - evil kind→400 人话、空白 claim→422、summary 无证据→400（G8 纪律
   「断言必须带证据」）、refusal 无证据→200 正确放行、65 条
   evidence→422 帽、C0/bidi 剥洗在案。
+
+## R2629 巡检#46——search 层过滤实测全绿
+- layer=經→92 命中全經层、layer=注→201 命中全注层；layer=evil→
+  400 人话「这个分类库里没有（evil），换一个试试」；词库：十翼/
+  圖/林辭/標題/正文/注/經。
