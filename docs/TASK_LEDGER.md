@@ -13827,3 +13827,15 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - theme 注入面复核：applyTheme 白名单坍缩（legacy|dark 外一律 aa），
   存储值永不原样进 DOM——无注入。
 - access_gate 已由 selftest 钉扎（token/next 白名单/限速 429/XFF 伪造）。
+
+## R2589 巡检#6——「忘掉我的数据」隐私链路端到端实测全绿
+- 排盘台账：POST bazi→记录落库；DELETE 单条→真删+重复删如实 404
+  「排盘记录不存在」（不假装成功）；DELETE 全表→deleted 计数。
+- 导出：export_json 含 version/exported_at/records（req+result 完整，
+  备份可回放）；export→wipe→import 回环可走通。
+- wipe 复活竞态：save_async 入队捕获 _WIPE_GEN 代次、写锁内复核，
+  wipe 抬代次后在途写一律作废（R2349q 已修）——实测导出比异步写
+  早毫秒级落地属 best-effort 台账设计口径，非缺陷。
+- 前端 wipe 覆盖：localStorage 白名单（me/checkin:/wishbottle…）+
+  sessionStorage 聊天键 + 服务端三端点并行（threads/paipan/favorites）
+  + wipeAt 时间戳——三面齐。
