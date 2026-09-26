@@ -13793,3 +13793,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - web_launcher.py（330 行桌面入口）lint/结构干净。
 - **深潜战役（R2571-R2583）宣告收官**：代码面零剩余未审区。此后转低频巡检节奏——
   每轮：全闸快照+随机抽一区块复检+台账记档；发现真缺陷才动代码。
+
+## R2584 巡检#1——闸门快照+随机抽检全绿
+- selftest 311 · contract 643 · chat_e2e 4/4 · dup_keys PASS。
+- 随机抽检 /api/tarot/draw：seed 确定性与 warm/interpretation/card 三面一致；
+  R2555 新牌义（圣杯6·逆「困在过去」）生产路径实测在跑。
