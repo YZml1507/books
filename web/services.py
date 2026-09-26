@@ -31,6 +31,7 @@ import logging
 import re
 import sqlite3
 import time
+import time
 from datetime import date, datetime, timedelta, timezone
 
 _logger = logging.getLogger("books")
@@ -656,6 +657,19 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     hint = (f"你传的 {'/'.join(_ignored)} 这项在{deps.SCHEME_NAMES.get(scheme, scheme)}用不上，帮你忽略了"
             if _ignored else None)
     with deps.corpus() as c:
+        # R2517（审-P2-3）：与 search 同纪律——过滤参数拼错/不存在如实
+        # 400，此前静默零命中像「库里没有这条地址」。只查输入侧参数的
+        # 全局存在性（typo 检测）；合法组合为空仍回 200 空集。
+        for _col, _v, _lbl in (
+                ("layer", layer, "这个分类"),
+                ("addr_name", addr_name, "这个地址名"),
+                ("addr2", addr2 if scheme != "zhouyi" else yao,
+                 "这个爻/小节")):
+            if _v is not None and not c.db.execute(
+                    f"SELECT 1 FROM unit WHERE {_col}=? LIMIT 1",
+                    (_v,)).fetchone():
+                raise ValidationError(
+                    f"{_lbl}库里没有（{_v}），换一个试试")
         if scheme == "zhouyi":
             if gua is None:
                 raise ValidationError("用周易定位得给个卦号（1–64）")
@@ -825,13 +839,23 @@ def works() -> dict:
     return {"works": rows, "total": len(rows)}
 
 
+_STALE_TTL = 60.0          # R2517（审-P3-11）：stats 每请求全树 os.walk
+_stale_cache: dict = {"at": 0.0, "v": None}
+
+
 def _corpus_index_stale() -> bool | None:
     """R230t（R31-P1-1）：corpus.db 比 data/raw 旧 = 索引过期。
 
     build_meta 记的是构建时刻；raw 文本之后被改动（修订/增量入库）不会
     回写 meta，唯一能信的对比是文件 mtime。raw 目录缺失/读取失败时
     返回 None（「不知道」，不谎报）。
+
+    R2517（审-P3-11）：全目录树 os.walk 每请求一次太贵——60s 记忆窗，
+    过期重扫；staleness 本身是天级概念，分钟级新鲜度足够。
     """
+    _now = time.monotonic()
+    if _now - _stale_cache["at"] < _STALE_TTL:
+        return _stale_cache["v"]
     try:
         db_mtime = os.path.getmtime(deps.CORPUS_DB)
         newest = 0.0
@@ -843,11 +867,11 @@ def _corpus_index_stale() -> bool | None:
                     if fn.endswith(".txt"):
                         newest = max(newest, os.path.getmtime(
                             os.path.join(dirpath, fn)))
-        if not newest:
-            return None
-        return newest > db_mtime
+        _stale_cache["v"] = (newest > db_mtime) if newest else None
     except OSError:
-        return None
+        _stale_cache["v"] = None
+    _stale_cache["at"] = _now
+    return _stale_cache["v"]
 
 
 def stats() -> dict:

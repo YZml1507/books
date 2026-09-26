@@ -115,13 +115,17 @@ def qiming_review(req: NameReviewRequest) -> dict:
     req.validate_ranges()
     tid = llm_polish.spawn_name_review_task(
         req.names, facts=req.facts or [])
-    if tid:
+    # R2517（审-P3-7）：限流哨兵与 chat 同口径——此前限速静默缺键，
+    # 前端分不出「关了」和「太急」。
+    if tid == "__rate_limited__":
+        out["rate_limited"] = True
+    elif tid:
         out["review_task_id"] = tid
     return out
 
 
 @router.get("/api/xingzuo")
-def xingzuo(date: str | None = None) -> dict:
+def xingzuo(date: str | None = Query(None, max_length=10)) -> dict:
     """十二宫日运（004 M2）：当日日支查宫 + 12 宫一句话 + 语料锚点。"""
     return services.xingzuo(date)
 
@@ -178,7 +182,11 @@ def paipan_history_export() -> Response:
     writer = csv.writer(buf)
     writer.writerow(["id", "ts", "name", "question", "type", "paipan_render"])
     for row in paipan_history.export_rows():
-        writer.writerow(row)
+        # R2517（审-P3-8）：=、+、-、@ 开头的单元格在 Excel 里是公式——
+        # 台账 question/name 原文导出可携公式前缀，前加 ' 脱活。
+        writer.writerow([("'" + str(v))
+                         if isinstance(v, str) and v.startswith(
+                             ("=", "+", "-", "@")) else v for v in row])
     content = "\ufeff" + buf.getvalue()
     filename = _now_cn().strftime("paipan_history_%Y%m%d.csv")
     return Response(
@@ -219,8 +227,12 @@ def paipan_history_import(req: PaipanImportRequest) -> dict:
             _tw, _tsk = kb.import_threads(req.threads)
     # R2400（R127-P2-5）：新行 id 回给前端——备份里的完整 req/result
     # 按新 id 回灌进本机镜像详情，云端清盘后点开依旧有完整排盘。
-    return {"imported": _w, "skipped": _sk, "new_records": _new,
-            "threads_imported": _tw, "threads_skipped": _tsk}
+    out = {"imported": _w, "skipped": _sk, "new_records": _new,
+           "threads_imported": _tw, "threads_skipped": _tsk}
+    # R2517（审-P3-9）：台账禁用下 records 段被静默丢弃——如实披露。
+    if paipan_history.disabled() and req.records:
+        out["records_ignored"] = len(req.records)
+    return out
 
 
 @router.get("/api/paipan/history/{rid}")

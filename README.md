@@ -98,6 +98,9 @@ BOOKS_ACCESS_TOKEN=你自己的口令     # 页面输一次口令写 Cookie 30 �
 BOOKS_PAIPAN_HISTORY_DISABLE=1   # 排盘台账整体关闭（否则所有人生日互见互删）
 BOOKS_WRITE_DISABLE=1            # 共享库写面拒绝（prefs/favorites/threads/import）
 BOOKS_EXTERNAL_DISABLE=1         # 服务器上没 GUJI_PROXY 时关 RSS 外呼
+# R2517：公网演示还建议 BOOKS_LLM_DISABLE=1 或 BOOKS_ACCESS_TOKEN——
+# 否则匿名访客可消耗 LLM 配额（虽有 120/min 全局限速+12 在途帽兜底）。
+BOOKS_LLM_DISABLE=1              # 没配 LLM 凭据/不想给访客烧额度时开
 ```
 
 - **不要装 `requirements-ci.txt`**——里面的 sentence-transformers 会拖

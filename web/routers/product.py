@@ -19,7 +19,7 @@ def health() -> dict:
 
 
 @router.get("/api/daily")
-def daily(date: str | None = None,
+def daily(date: str | None = Query(None, max_length=10),
           # R2349l（R73-P1-3）：bday=用户生日 → 出 personal 个性行
           bday: str = Query("", max_length=10)) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌（命中 daily_cache）。"""

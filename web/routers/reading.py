@@ -3,6 +3,12 @@
 检索 / 定位 / 比对 / 深度研究 / 研究问答 / 概念普查 / 两书对照 / 书目 /
 索引统计 / 研究线程 / 读书视图。与 CLI（scripts/ask.py）调同一批 service
 函数，保证两端输出一致。
+
+契约登记（R2517，审-P2-3）：研究域端点的「对象不存在」走 200 +
+`{"error": "中文原因"}` 语义（bookstudy/compare_works/research/ask），
+是 selftest 钉扎的既有约定（`bookstudy.summary.missing` 等）——前端
+按 `j.error` 分支渲染，不翻 404；与 search/addr 的 400-ValidationError
+约定并存是有意的两套语义，非缺陷。
 """
 from __future__ import annotations
 

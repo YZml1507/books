@@ -5,7 +5,9 @@
 由 `web.errors` 注册的统一处理器转成 400/422/404。
 
 域划分（按 URL 前缀而非按实现文件，前端 tab 与之一一对应）：
-    bazi        /api/bazi /api/taohua /api/hehun /api/qiming（R219b：
+    bazi        /api/bazi /api/taohua /api/hehun /api/qiming
+                /api/qiming/review /api/chat /api/ai/{tid}
+                /api/xingzuo /api/xzmatch /api/paipan/*（R219b：
                 /api/history* 三端点随历史记录功能删除）
     reading     /api/search /api/addr /api/compare /api/research /api/ask
                 /api/concept /api/compare_works /api/works /api/stats

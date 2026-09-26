@@ -429,7 +429,9 @@ class TarotRequest(BaseModel):
 
 class TarotDrawRequest(BaseModel):
     seed: int | None = None
-    n: int = Field(1, ge=1, le=10)
+    # R2517（审-P3-10）：契约自称单张——n≤10 时 interpretation 覆盖全部
+    # 抽牌但 card 只回 [0]，调用方拿到的语义错位。收紧 le=1 对齐契约。
+    n: int = Field(1, ge=1, le=1)
     question: str | None = Field(None, max_length=200)
 
     def validate_ranges(self) -> None:

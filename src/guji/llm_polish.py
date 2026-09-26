@@ -1191,7 +1191,9 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
     if cfg is None:
         return None
     if not _rate_ok("review", 20):          # R230t（R32-P0-4）：点评限速
-        return None
+        # R2517（审-P3-7）：与 chat 同款哨兵——此前 None 与「功能关闭」
+        # 无法区分，前端把限速当关停。
+        return "__rate_limited__"
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
         _gc_tasks()

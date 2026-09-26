@@ -13251,3 +13251,33 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 实测对照：「考研能上岸吗」旧答收口「具体怎么走看你自己的选择」→
 新答「顺着这个位置走：自己琢磨、查资料、随手记灵感；想法别一个人
 闷着，容易想偏」+「今天适合：找个搭子一起做」。
+
+## R2517 — 路由审查挂账清偿（4×P2→2 收 2 登记 + 7×P3 实收）
+
+后台路由审查 agent 报告逐条亲验：
+
+- [x] **P2-2**：`_validation_handler` 只翻 json_invalid——`days=93` 漏
+  「Input should be less than or equal to 92」+ pydantic.dev url 上屏。
+  新增 `_422_MSG_CN` 12 类中文模板（ctx 参数回填）、value_error 剥
+  "Value error, " 前缀（ctx.error 本中文）、url 剥除、未覆盖类型
+  英文检测→「参数格式不对」泛化兜底。实证：四种形状全中文、无 url。
+- [x] **P2-3（addr 部分）**：`addr()` 过滤参数补全局存在性校验
+  （layer/addr_name/addr2，zhouyi 的 yao→addr2）——「不存在的层」/
+  「久三」如实 400 中文，合法组合空集仍 200（与 search 同纪律）。
+  bookstudy/compare_works 的 200+`{"error"}` 语义为 selftest 钉扎契约，
+  不改行为——在 reading.py 模块头显式登记两套语义并存是有意的。
+- [x] **P2-4**：README 公网演示段补 BOOKS_LLM_DISABLE/ACCESS_TOKEN
+  配套提示（匿名访客烧 LLM 配额面）。
+- [x] P3-5：daily/xingzuo `date` 补 `Query(max_length=10)`（对齐 huangli）。
+- [x] P3-7：`spawn_name_review_task` 限流返回 `__rate_limited__` 哨兵 +
+  路由映射 `{"rate_limited": true}`——与 chat 同口径（此前与功能
+  关闭不可区分）。
+- [x] P3-8：CSV 导出 `=+-@` 前缀单元格加 `'` 脱活（活端点实证 `'=cmd`）。
+- [x] P3-9：台账禁用下 import 的 records 段响应披露 `records_ignored`。
+- [x] P3-10：`TarotDrawRequest.n` 收紧 `le=1`——契约自称单张，n>1 时
+  interpretation 覆盖全部但 card 只回 [0]（前端只发 n=1，实测 422）。
+- [x] P3-11：`_corpus_index_stale` 60s 进程内记忆窗——/api/stats 每请求
+  全树 os.walk 消除（staleness 是天级概念）。
+- [x] `probe_r2517.py` 17/17。
+- 挂账不取：P3-6（concept/per_work 等静默钳位为有注释的刻意选择）、
+  P3-13（PATCH status 走 query 为契约形状）、P3-14（session_id 信息级）。

@@ -140,6 +140,23 @@ def install(app: FastAPI) -> None:
                             content={"detail": "有特殊字符处理不了，换个写法再试"})
     app.add_exception_handler(UnicodeError, _unicode_handler)
 
+    # R2517（审-P2-2）：422 msg 中文模板——ctx 参数（le/ge/min_length…）
+    # str 化后 format 填入；未列出的类型走尾部英文检测泛化兜底。
+    _422_MSG_CN = {
+        "less_than_equal": "不能大于 {le}",
+        "less_than": "必须小于 {lt}",
+        "greater_than_equal": "不能小于 {ge}",
+        "greater_than": "必须大于 {gt}",
+        "int_parsing": "得填整数",
+        "float_parsing": "得填数字",
+        "bool_parsing": "得填是或否",
+        "string_too_long": "最多 {max_length} 字",
+        "string_too_short": "至少 {min_length} 字",
+        "missing": "这个字段必填",
+        "extra_forbidden": "这个参数不认识",
+        "literal_error": "这个取值不在允许的范围里",
+    }
+
     # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显
     # 原始输入——孤立代理项（\ud800）让默认序列化炸成 500，超长 input
     # 又造成 ~2x 响应放大。改成 repr 转义 + 200 字截断。
@@ -159,8 +176,27 @@ def install(app: FastAPI) -> None:
                             dict(e["ctx"]).items()}
             # R230g（R19-P3-3）：body 不是合法 JSON 时 Starlette 给英文
             # msg（"JSON decode error"）——与全站中文 detail 口径统一。
-            if e.get("type") == "json_invalid":
+            # R2517（审-P2-2）：推广到全部 pydantic 英文 msg——「Input
+            # should be less than or equal to 92」+ pydantic.dev url
+            # 原样外流。常见 type 翻中文模板；value_error 剥
+            # "Value error, " 前缀（ctx.error 已是中文）；url 剥掉。
+            _t = e.get("type")
+            _c = e.get("ctx") or {}
+            if _t == "value_error" and str(e.get("msg") or "").startswith(
+                    "Value error, "):
+                e["msg"] = str(e["msg"])[len("Value error, "):]
+            elif _t in _422_MSG_CN:
+                try:
+                    e["msg"] = _422_MSG_CN[_t].format(**_c)
+                except Exception:
+                    e["msg"] = "参数格式不对，检查一下再试"
+            elif _t == "json_invalid":
                 e["msg"] = "请求体不是合法的 JSON"
+            elif e.get("msg") and re.search(r"[A-Za-z]{4,}",
+                                            str(e["msg"])):
+                # 未覆盖的类型仍含整词英文 → 泛化，不裸透传。
+                e["msg"] = "参数格式不对，检查一下再试"
+            e.pop("url", None)
             errs.append(e)
         return JSONResponse(status_code=422, content={"detail": errs})
     app.add_exception_handler(RequestValidationError, _validation_handler)
