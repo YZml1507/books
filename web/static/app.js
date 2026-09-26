@@ -4603,6 +4603,11 @@ async function submitBazi(event) {
         .slice(0, 3);
       const _pp = paipan.render || '';
       CHAT_LAST_FACTS = (_pp ? ['四柱：' + _pp] : []).concat(_warmFacts);
+      /* R2516（用户反馈「小满回复泛泛」）：把已生成的解读句喂进坐标——
+       * 此前模型只有孤立标签（四柱/元素），回复只能空共情；有了解读原句
+       * 小满能照着具体内容延展，而不是重复正确废话。 */
+      var _rp = (j.warm && j.warm.reply) || [];
+      if (_rp.length) CHAT_LAST_FACTS.push('盘面解读：' + _rp.slice(0, 2).join('；'));
       /* R233r（R49-Top5-2）：能量卡坐标补上——元素/幸运色/幸运数字
        * 是用户聊「我今天穿什么色」类问题的锚。 */
       var _ec0 = (j.warm && j.warm.energy_card) || {};

@@ -3760,7 +3760,9 @@ def add_favorite(req) -> dict:
 
 def remove_favorite(fid: int) -> dict:
     with deps.knowledge() as kb:
-        kb.remove_favorite(fid)
+        # R2516（审-P2-1）：不存在如实 404，不再假成功。
+        if not kb.remove_favorite(fid):
+            raise NotFoundError("这条收藏没找到——可能已经删掉了。")
     return {"ok": True}
 
 

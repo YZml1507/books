@@ -763,9 +763,12 @@ class KnowledgeBase:
         return self.db.execute(
             "SELECT * FROM favorites ORDER BY created_at DESC").fetchall()
 
-    def remove_favorite(self, fid: int) -> None:
-        self.db.execute("DELETE FROM favorites WHERE id=?", (fid,))
+    def remove_favorite(self, fid: int) -> bool:
+        # R2516（审-P2-1）：如实删除——不存在返回 False 让上层 404，
+        # 与 paipan_history/thread 删除口径对齐（不再假 ok）。
+        cur = self.db.execute("DELETE FROM favorites WHERE id=?", (fid,))
         self.db.commit()
+        return cur.rowcount > 0
 
     def clear_favorites(self) -> None:
         # R2349（R65-P1-2）：「忘掉我的数据」须覆盖收藏——CP/心水名单

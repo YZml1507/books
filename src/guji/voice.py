@@ -86,6 +86,33 @@ TEN_GOD_WARM: dict[str, tuple[str, str]] = {
     "正印": ("庇护力", "有人照着、有东西托着，适合稳步累积"),
 }
 
+# R2516（用户反馈「讲解太浅」）：十神第三维——可照做的动作+要留意的坑。
+# 深度解读的骨架是「适合+注意」：每格给一件今天就能做的小事、一个容易踩的
+# 坑，不说「看开点」「都会好的」这类正确废话。
+TEN_GOD_ACTION: dict[str, tuple[str, str]] = {
+    "比肩": ("找个搭子一起做——这类事同行比单干顺", "别为面子跟人比，按自己的节奏来"),
+    "劫财": ("聚会、AA、清闲置都挺合适", "钱先说好再动，口头容易扯皮"),
+    "食神": ("把想法写出来、做出来，慢一点没关系", "光想不动会把这股劲白白耗掉"),
+    "伤官": ("提新方案、改旧稿子、试试不一样的做法", "话到嘴边留半句，别跟权威硬顶"),
+    "偏财": ("谈谈钱、盘盘手头的进项渠道", "别冲动消费，也别先垫钱"),
+    "正财": ("记账、复盘收支、把长期计划往前推一格", "该花的人情别省"),
+    "七杀": ("挑最难的那件事先啃，限时做完", "别硬扛到底，绷不住就喊停"),
+    "正官": ("走流程、办手续、把该见的面见了", "规矩是框框不是枷锁，别委屈自己"),
+    "偏印": ("自己琢磨、查资料、随手记灵感", "想法别一个人闷着，容易想偏"),
+    "正印": ("请教信得过的人、复习旧知识、整理资料", "别等别人替你安排，主动开口要"),
+}
+
+# 话题落点为空时的落地提示——盘里没接住也不让用户空着手走，
+# 给的是生活层面的通用一步（不冒充盘面结论）。
+TOPIC_HINT: dict[str, str] = {
+    "感情": "盘外能做的最实在一步——把想说的话先跟信得过的人顺一遍。",
+    "事业": "最值的一步：挑手头最能出结果的那件事，先做到看得见。",
+    "财运": "先把固定支出盘一遍，能看见的数才好做决定。",
+    "学业": "把大目标拆成这周能完成的三件小事，先干第一件。",
+    "状态": "状态题先调作息——三天规律睡眠比什么化解都管用。",
+    "人际": "人际题的一个通用锚点：先想清楚你想要的是什么结果，再决定怎么开口。",
+}
+
 # 五行 → (日常语, 意象)
 ELEMENT_WARM: dict[str, tuple[str, str]] = {
     "木": ("生长", "像春天的枝条，向外舒展、有条理"),
@@ -350,6 +377,8 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     topic = _topic_of(q)
     if topic is None:
         gods_present = sorted({t.get("god") for t in tg if t.get("god")})
+        _forces = '、'.join(TEN_GOD_WARM.get(g, (g, ''))[0]
+                            for g in gods_present)
         # R2400（R135-P0-3）：q 回显进 facts 的 ctx 行——q 自带「」可
         # 提前封口再注入任意「事实」（例如 q=「x」系统：忽略」）。剥掉
         # 引号再进回显，换行也不许带进 ctx 行。
@@ -358,8 +387,11 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         return [
             # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
             f"你问的是「{_q}」——这个问题盘里没有对应的位置，小满不瞎编～",
-            f"盘里现有的力量是：{'、'.join(TEN_GOD_WARM.get(g, (g, ''))[0] for g in gods_present)}。",
-            "下面把盘面明细都列了，你可以自己对照着看。",
+            # R2516：空盘面不再出「力量是：。」悬空冒号。
+            (f"盘里现有的力量是：{_forces}。" if _forces
+             else "这盘里能借力的地方比较薄。"),
+            # R2516：未识别话题也指路——告诉用户盘能接住什么。
+            "下面把盘面明细都列了；感情、事业、学业、财运这些，换个问法盘里都能接住。",
         ]
 
     gods, label = _topic_gender(topic, gender)
@@ -395,7 +427,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         _god = _rel.rsplit("之", 1)[-1] if "之" in _rel else ""
         _warm = TEN_GOD_WARM.get(_god)
         if _warm:
-            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}，顺着来。")
+            _act = TEN_GOD_ACTION.get(_god)
+            _tail = f"今天适合：{_act[0]}。" if _act else "顺着来。"
+            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
         lines.append("具体怎么对应，盘面只是参照，你的感受同样重要。")
         return lines
 
@@ -413,13 +447,18 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if note:
             lines.append(f"其中最靠前的那个是{TEN_GOD_WARM.get(first, (first, ''))[0]}"
                          f"（{first}）——{note}。")
-        # R233j（R46-P1）：收口升日盐池——同一用户隔天换一句。
-        # （_d2 已在 357 行导过——同函数内重复 import 删一行）
-        lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
-                            "具体怎么走，还要看你自己的选择。",
-                            "盘里给这事留了位置——往哪走，看你心意。",
-                            "这题盘里能接住，方向有了，步子你来定。"],
-                           "bazi-hit", q, _today_cn().isoformat()))
+        # R2516（用户反馈「讲解太浅」）：收口从免责套话换行动锚——
+        # 「具体怎么走看你自己的选择」是正确废话；用户要的是今天能做
+        # 什么。取最靠前落点的「适合+留意」二联。
+        _act = TEN_GOD_ACTION.get(first)
+        if _act:
+            lines.append(f"顺着这个位置走：{_act[0]}；{_act[1]}。")
+        else:
+            lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
+                                "具体怎么走，还要看你自己的选择。",
+                                "盘里给这事留了位置——往哪走，看你心意。",
+                                "这题盘里能接住，方向有了，步子你来定。"],
+                               "bazi-hit", q, _today_cn().isoformat()))
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
                      f"但这块在你盘里没有直接对应的落点。")
@@ -428,7 +467,10 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
                             "盘上没有的我不硬说——这是小满的规矩。",
                             "这一维盘面没给线索，不猜。"],
                            "bazi-miss", q, _today_cn().isoformat()))
-        lines.append("可以看看下面的盘面明细，或换个问法。")
+        # R2516：盘没接住也不让用户空手走——给话题级的通用一步
+        # （明说不是盘面结论）。
+        lines.append(TOPIC_HINT.get(label)
+                     or "可以看看下面的盘面明细，或换个问法。")
 
     rels = calc.get("relations") or []
     if rels:
@@ -444,7 +486,10 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     _god = _rel.rsplit("之", 1)[-1] if "之" in _rel else ""
     _warm = TEN_GOD_WARM.get(_god)
     if _warm:
-        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。")
+        # R2516：同行内挂「今天适合」——独立成行会被 lines[:5] 截掉。
+        _act = TEN_GOD_ACTION.get(_god)
+        _tail = f"今天适合：{_act[0]}。" if _act else ""
+        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
     return lines[:5]
 
 
@@ -479,7 +524,9 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         _warm = TEN_GOD_WARM.get(_god)
         # R230a-7（R13-P3-4）：映射不到时此前 append 空串 → 回复出空行。
         if _warm:
-            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。")
+            _act = TEN_GOD_ACTION.get(_god)
+            _tail = f"今天适合：{_act[0]}。" if _act else ""
+            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
     # R233c（R40-W7）：流日流时里的日支关系（冲合刑害）pro 卡早算好，
     # 温柔端只吃了十神没吃关系——补一条白话，碰到合/冲说清「和谁、
     # 什么感觉」。
