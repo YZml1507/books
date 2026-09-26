@@ -14225,3 +14225,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - evil method/缺时辰/hour=25→全 400 人话；coins seed=42 两测同出
   賁卦（复验确定性在产）；record=false 纯算不落库键在案（分享链
   防污染 R2350g）。
+
+## R2653 巡检#70——hehun dayun_hits 独立排运
+- 同柱 index=2 己卯×己酉=冲：A 13-23 岁 / B 6-16 岁（生年不同各
+  自排运非复制）；match_score 87+notes×3+冲如实披露。
