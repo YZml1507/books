@@ -13816,3 +13816,14 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   events」伪影——封面态卡高封顶54vh+overflow:hidden 是刻意闸门设计，
   真实路径点开封面后全区域可交互，非缺陷。
 - 闸门快照：selftest 311 · contract 643 · dup_keys PASS。
+
+## R2588 巡检#5——write_guard + prefs 对抗性手测全绿
+- BOOKS_WRITE_DISABLE=1 下合法 payload 打 favorites/prefs/threads：
+  全部 400「这是公开演示站——写入功能被关掉了，只能看不能改哦」，
+  DB 零泄漏（favorites 反查无残留）；GET 读面不受影响。
+- write_guard 挂载面：bazi×3 + product×4 + reading×4 共 11 个写端点。
+- prefs 容量帽对抗实测（正常模式）：70 键→400「存的偏好太多了」、
+  5000 字值→400「这条偏好存不下」、空键→400「偏好名太长或为空」。
+- theme 注入面复核：applyTheme 白名单坍缩（legacy|dark 外一律 aa），
+  存储值永不原样进 DOM——无注入。
+- access_gate 已由 selftest 钉扎（token/next 白名单/限速 429/XFF 伪造）。
