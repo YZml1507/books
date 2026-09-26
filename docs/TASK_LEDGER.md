@@ -14036,3 +14036,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   台账全量。
 - 公式注入脱活在案（R2517：=+ −@ 前缀加 ' 脱活）；csv.writer 引号
   转义标准、nosniff 头齐。
+
+## R2615 巡检#32——探活与裸路径契约全绿
+- /api/health 200 JSON（engine/index 自检在产）；/api、/api/ 404
+  JSON 契约（R2506）；/static→307→/static/→404 JSON（不暴露目录
+  列表）；深路径 SPA 兜底 200；favicon.png 直出。
