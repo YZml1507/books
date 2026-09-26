@@ -13622,3 +13622,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2552 a11y 盘点 + spec 挂账拍板（R230d P3-1 清偿）
 - **a11y 轴已饱和**：对比度 R228d 实测提色（--secondary 4.85/--muted 4.7/--accent-ink 补文字角色）；func-card Enter/Space 激活+焦点归还(R228d)；inert 模态隔离+Safari 兜底(R228h/n)；aria-pressed(R2514)；label 覆盖 88 控件全可达（xz_* aria-label、hidden file、chatInput aria-label）。
 - **R230d P3-1 拍板清偿**：死视图处置——view-divine 已删；view-read 保留为深链证据视图（仅引文树「去书库翻」可达，零顶层入口）。依据：证据直接呈现原则/§4 零删除/双轨隔离。spec/009 已回写关闭。
+
+## R2553 spec 漂移检查 + README 闸表同步
+- spec/008 P 表问题列是「重塑前现状陈述」（历史快照非现状宣称）——不算漂移；R2545 已修「有着落点」残留。spec/006 六约束无 facts_* 字段枚举，R2539-41 facts 供给无漂移。
+- README 闸表同步：selftest 268→310、contract 566→643、新增 probe_baseline/probe_standing 两行（底层脚本本就在 CI，包装探针补登记）。

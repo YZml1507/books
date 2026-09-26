@@ -146,9 +146,11 @@ exe 旁还必须放 `data/index/corpus.db`（缺了古籍相关端点会 503）�
 ## 闸门（全部须 PASS）
 
 ```bash
-BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门（当前 268 项，以 selftest 末行输出为准）
-BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约（当前 566 读点，以末行为准）
-BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟（当前 75 用例，以末行为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 主闸门（当前 310 项，以 selftest 末行输出为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 契约（当前 643 读点，以末行为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 浏览器冒烟（当前 75+ 用例，以末行为准）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_baseline.py   # 专业模式字节冻结基线（baseline_voice 包装）
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_standing.py   # 常驻离线闸（warm_voice/xingzuo/async_ai 三件套）
 BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_date_parity.py   # 前后端日期词/别名同构
 .venv/bin/python probes/probe_dollar_misuse.py                  # 静态探针
 .venv/bin/python probes/probe_selftest_regress.py               # 断言只增不减
