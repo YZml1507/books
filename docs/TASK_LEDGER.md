@@ -13206,3 +13206,21 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] 探针 `probes/probe_r2514.py`（14 项）；SW hash fc5e57354e90。
 - [x] 闸门：selftest 310、ui_smoke、contract 638、r2512/13/14
   探针全绿；真浏览器 8/8（scope 显隐+本地校验+toast）。
+
+## R2515 — 路由层深审 + 边缘流韧性（零新修，审计结论+实测定盘）
+
+- [x] **web/routers/ 五文件全读**：所有 handler 纯绑定层转 services。
+  逐项核查 Query/Path 参数——表面无 `le` 界的（search.limit/
+  addr.limit/threads.limit/max_addresses/per_work/sample_chars）
+  services 层全部内部钳制或 ValidationError 如实拒；status 枚举、
+  write_guard 写面全覆盖、_require_q 200 帽、disabled 语义三端点
+  一致。**零新发现**——编排层已有 310 钉扎托底。
+- [x] **边缘流韧性真浏览器 6/6**：SW 离线壳活、离线提交人话兜底
+  +内联重试、恢复后重算出卡、快速清空重填不串值（2001 实渲）、
+  四视图 150ms 间隔连切末到赢、0 console 错误。
+- [x] **覆盖面盘点**（16 轮累计）：app.js/app_poster/app_research/
+  sw.js/styles.css/index.html/routers/errors/middleware/schemas/
+  services/binding/bazi_calc/knowledge/llm_polish/paipan_history/
+  voice/taohua/xingzuo/external/deps + 温文案 + 离线/打印/移动/
+  暗色/并发/双提交全部过审。未深审残余：voice.py 文案「深度」
+  本身（用户反馈讲解太浅→下轮主题）、deps.py 已自审。
