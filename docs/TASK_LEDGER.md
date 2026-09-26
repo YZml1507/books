@@ -14168,3 +14168,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2640 巡检#57——compare 卦爻对比实测
 - 卦1·初九：6 见证 agree、orthographic×2（潛/濳异体）flagged 披露、
   citations 带 KR 编号+书名章节——跨源校验链在产。
+
+## R2641 巡检#58——375px 窄屏布局回归（截图证）
+- 文档级零横向溢出（docW 360<375）；clipped 元素全在 overflow:
+  hidden 的日签封面卡内（刻意内裁非缺陷）；欢迎 toast/主题钮/
+  品牌头/封面/聊天悬浮钮全部就位无重叠。
