@@ -13631,3 +13631,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 并发写：knowledge/paipan_history 全 WAL+busy_timeout+per-request 连接+_import_lock；history.py 同款。零伤。
 - limit 钳位：services.search limit<1→400(不再静默钳1)、上限 50；max_addresses Field(ge=1,le=6)。全路由口径一致。
 - 422 人话：_422_MSG_CN 模板表+json_invalid+英文泛化兜底「参数格式不对」——覆盖设计完备，url 字段剥除在案。
+
+## R2555 塔罗花色×rank 牌义覆写扩展（4→18 张）
+- **真缺陷**：56 小牌共享 10 个 rank 词——「圣杯6=怀旧」被套「调整·给予·过渡」、「权杖6=胜利」同词、「圣杯7=选择幻想」被套「坚持·评估」等 14 处张冠李戴（同宝剑9/10/3/8 在 R233u/2349q 修过的同型）。
+- **修复**：_RANK_OVERRIDE 补 14 张（圣杯4/5/6/7/8/9、权杖6/9/10、宝剑6/7、星币5/8/9），口语化关键词+白话象征句。
+- **指引表**：新增 25 个 kw0 行动句；清死键——四个 9 全覆写后「累积/收尾难」成死键、「有人搭手」是词串第二词非 kw0。tarot.guidance.coverage 双向对齐钉扎抓到并已全部绿。
+- **重牌黑名单** +圣杯5（失落哀悼）+星币5（拮据被冷落）——问健康抽到还说「整体是顺的」同型错上加错。
+- 探针随行为升级：probe_r2518 fixture 改用星币9 新逆位词「虚撑」。
+- 验证：selftest 310 · contract 643 · baseline/standing/llm_polish · r2518 16/16 · r2529 13/13 全绿。

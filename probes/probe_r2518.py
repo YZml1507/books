@@ -47,19 +47,20 @@ ck("ly.noq_fallback",
    any("慢慢体会" in l for l in _noq))
 
 # --- 4. 塔罗无提问路径：指引句上屏 ---
-_cards = [{"name": "星币9", "upright": False, "upright_kw": "累积",
-           "reversed_kw": "收尾难·差口气·撑住", "meaning": "x"}]
+# R2555：星币9 覆写后逆位 kw0=虚撑；旧 fixture 用「收尾难」已死键。
+_cards = [{"name": "星币9", "upright": False, "upright_kw": "自足·独享·有底气",
+           "reversed_kw": "虚撑·依赖", "meaning": "x"}]
 _r = voice.warm_tarot(_cards, {"sections": []}, None)
 ck("tr.noq_guidance",
-   any("别耗在最后一公里" in l for l in _r["reply"]))
+   any("先补内功" in l for l in _r["reply"]))
 # 有提问路径不受影响（原有指引仍在）
 _r2 = voice.warm_tarot(_cards, {"sections": []}, "工作的事")
 ck("tr.q_guidance",
-   any("别耗在最后一公里" in l for l in _r2["reply"]))
+   any("先补内功" in l for l in _r2["reply"]))
 
 # --- 5. kw_guidance no-q 回落：表里有 → 行动句；表外 → meta 句 ---
 ck("kw.noq_table",
-   voice._tarot_kw_guidance("收尾难", "") == "就差临门一脚，别耗在最后一公里")
+   voice._tarot_kw_guidance("虚撑", "") == "底气要真的——撑场面不如先补内功")
 ck("kw.noq_fallback",
    "提示你关注" in voice._tarot_kw_guidance("不存在的词", ""))
 
