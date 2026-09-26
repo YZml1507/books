@@ -14276,3 +14276,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - bazi（金牛×今日天秤当班口信）/taohua/hehun/qiming/liuyao（值宫+
   方向）五端点 cross_ref 全下发；「今天」锚起问日（R230m，前端传
   todayIso 对齐）。
+
+## R2665 巡检#82——me 卡持久化时机确认
+- me/me:partner 键由排盘提交触发落盘（input 不落是设计——填了没
+  排不建档）；wipe 白名单覆盖两键、表单回填走 data-me 标记链。
