@@ -14013,3 +14013,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   + no-cache。
 - script/style 'unsafe-inline' 是单文件 app 的必要口径（外链
   脚本面不存在），非松懈。
+
+## R2612 巡检#29——favorites CRUD 全绿 + 一次有教学价值的探针自纠
+- add→list→delete→re-delete 实测：add 幂等（同 type+ref_id 返回已有
+  id）、真删 200、重复删如实 404「这条收藏没找到」、evil type/300字
+  title/外层错型全 422 人话。
+- **自纠**：初测「delete→404 但行已删」一度疑为 rowcount 缺陷——
+  根因是探针 harness 把 `urlopen(req)` 调了两次（.status 与 .read()
+  分两次发请求）：DELETE 第一次真删 200、第二次 404，读到的是第二
+  个响应。curl 单发复测 + TestClient + 直接调 services 三轨证明产品
+  层全程正确，纯测试伪影。
