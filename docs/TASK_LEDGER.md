@@ -14255,3 +14255,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2659 巡检#76——stats 如实对库
 - works=47/units=62106 与 corpus.db 逐行一致；层分布加总=总数
   （正文 50262+注 4587+林辭 4096+經 2955+圖 117+標題 64+十翼 25）。
+
+## R2660 巡检#77——works 47 书目全下发
+- 47 书带 units/addressed/yao_addressed/anchored/source 指标；多源
+  覆盖（Bible/Euclid/Herodotus/Iliad 等），研究面可达非主导。
