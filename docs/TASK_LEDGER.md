@@ -13688,3 +13688,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - **引文质抽**：12 条 evidence 反查原文——时柱精确命中「六乙日癸未时断」（日主×时柱专章，正是本盘）；年/月/日柱命中含该干支的时断章节（本库最佳可得结构化命中——验证「乙亥日/癸巳月/辛巳年」加位词检索反而更差：该语料按时断体系组织，不存在对等的日/月/年柱专章）。当前查询已是该库最优，无代码缺陷；why 字段如实标位。
 - **threads 引用模型**：唯一线程是 probe fixture——claim 结构强制 evidence 绑定（无证据标 refusal），数据质结构性达标。
 - **freeze-dom 真修复**：view 化 IA 后脚本裸 goto('/') 填 #year 必超时（表单在 view-bazi 内不可见）；liuyao 卡收「进阶玩法」details。修：全部改深链导航（?view=X）。pro_render_baseline.json 重生成（3 视图结构指纹新快照）。
+
+## R2564 常驻探针补跑 + 数据闸门存活核验
+- 四常驻探针全绿：date_parity 251键同构/first_screen/dollar_misuse 300函数零命中/selftest_regress（312→310 已审核改名2条）。
+- scripts 数据闸门本地连跑：booksec/dual_engine/provenance/verify_index 全 PASS；**assess_goals G9 本地 FAIL→诊断→修复**：本地 knowledge.db 只有 probe fixture（refusal claim 零 evidence），CI 种子带实证 Evidence。跑 `research_thread.py demo`（文档化验收路径，幂等）补 worked example（6 条 data/raw 实证引文）→ **9/9 PASS**。本地环境差异非回归。
+- workflow↔本地 drift：无——新包装探针底层脚本全在 CI。
