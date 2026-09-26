@@ -1542,6 +1542,10 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
         _src = _top.get("origin") or "古籍"
         lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"
                      f"念起来也顺口。")
+    # R2519（深度收尾）：定名前的两件实在事——比「随缘吧」有用的收口。
+    if names:
+        lines.append("定之前两步：把候选名连着姓大声念三遍听顺不顺；"
+                     "再搜搜有没有谐音歧义。")
     lines.append(_pick(
         ["名字是参考，不是定数——家里人念着顺口最重要。",
          "好名字是祝福，不是枷锁——挑你们全家都喜欢的那个。",

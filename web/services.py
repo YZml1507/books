@@ -3501,10 +3501,15 @@ def daily(date_str: str | None = None,
                 datetime(*map(int, date_str.split("-")), 12))
             _god = ten_god(_ug, _dg) if _ug else ""
             _lb = voice.TEN_GOD_WARM.get(_god, ("", ""))[0]
+            # R2519（深度收尾）：personal 行从纯描述加「适合」行动尾——
+            # 首页大卡此前只告诉用户「今天是什么日」不说「能干什么」，
+            # 复用 TEN_GOD_ACTION 二联（取适合项，留意项留给结果页）。
+            _act = voice.TEN_GOD_ACTION.get(_god)
             _personal = {
                 "god": _god, "label": _lb,
                 "line": (f"你的日主 {_ug} × 今天 {_dg} —— "
-                         f"今天是你的「{_lb or _god}」日"),
+                         f"今天是你的「{_lb or _god}」日"
+                         + (f"——适合{_act[0]}" if _act else "")),
             }
             # R2349l（R73-P1-14）：流年十神——日主 × 流年天干（立春口径）。
             _yg, _yy = _liunian(date.fromisoformat(date_str))
