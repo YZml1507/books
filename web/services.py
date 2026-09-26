@@ -2755,7 +2755,14 @@ def _chat_ctx_get(sid: str | None) -> dict | None:
     if not sid:
         return None
     ent = _CHAT_CTX.get(sid)
-    if ent and time.time() - ent[0] < _CHAT_CTX_TTL:
+    if ent and time.monotonic() - ent[0] < _CHAT_CTX_TTL:
+        # R2524（审-LLM-P2-6）：读即刷新——锚寿命对齐会话寿命（会话
+        # 每轮 updated 刷新，锚此前只在产出判定时写：判完聊 25 分钟
+        # 闲话再问「那后天呢」，锚先死、会话还活着 → 追问降级成泛化
+        # 判定）。命中的锚挪到末尾同步逐出序（真 LRU——普通 dict
+        # 无 move_to_end，pop+重插等价）。
+        _CHAT_CTX[sid] = (time.monotonic(), ent[1])
+        _CHAT_CTX[sid] = _CHAT_CTX.pop(sid)
         return ent[1]
     return None
 
@@ -2763,6 +2770,9 @@ def _chat_ctx_get(sid: str | None) -> dict | None:
 def _chat_ctx_put(sid: str | None, ctx: dict) -> None:
     if not sid:
         return
+    # R2524：同 sid 重写先弹再插——dict 赋值不换插入序，老 sid 会
+    # 按最初写入位被「最旧」误逐（伪 LRU bug）。
+    _CHAT_CTX.pop(sid, None)
     if len(_CHAT_CTX) >= 512:
         # R2400（R128-P2-5）：全局清空会把所有在线会话的锚一起打飞——
         # 按写入序逐出最旧一条（dict 保序）。
@@ -2770,7 +2780,7 @@ def _chat_ctx_put(sid: str | None, ctx: dict) -> None:
             _CHAT_CTX.pop(next(iter(_CHAT_CTX)))
         except StopIteration:
             pass
-    _CHAT_CTX[sid] = (time.time(), ctx)
+    _CHAT_CTX[sid] = (time.monotonic(), ctx)
 
 
 def chat_huangli_facts(message: str, now: datetime | None = None,

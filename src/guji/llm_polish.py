@@ -16,6 +16,7 @@
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -115,8 +116,12 @@ def load_config() -> dict | None:
     for _k, _t in (("timeout_s", int), ("max_tokens", int)):
         try:
             cfg[_k] = _t(cfg[_k])
+            # R2524（审-LLM-P3）：0/负值此前放行——每请求 instant-fail，
+            # 功能静默死亡；<=0 同坏类型回默认。
+            if cfg[_k] <= 0:
+                raise ValueError
         except (TypeError, ValueError):
-            print(f"[llm_polish] 配置项 {_k}={cfg[_k]!r} 不是数字，"
+            print(f"[llm_polish] 配置项 {_k}={cfg[_k]!r} 不是正整数，"
                   f"回退默认 {_DEFAULTS[_k]}", file=sys.stderr)
             cfg[_k] = _DEFAULTS[_k]
     if (not isinstance(cfg.get("base_url"), str)
@@ -234,6 +239,10 @@ def polish(facts: list[str], question: str | None = None,
                     if resp.status_code == 429 or 400 <= resp.status_code < 500:
                         break
                     continue                          # 可重试：网关类错误
+                # R2524（审-LLM-P2-4）：.json() 前字节帽——异常上游
+                # 实测吐过 36MB content，解析+回写放大内存×在途任务数。
+                if len(resp.content) > 2_000_000:
+                    continue
                 data = resp.json()
             text = (data["choices"][0]["message"]["content"] or "").strip()
             # R230t（R32-P0-2）：finish_reason=length = 推理模型把 max_tokens
@@ -249,9 +258,10 @@ def polish(facts: list[str], question: str | None = None,
         # R230t（R32-P1-6）：输出被拦（禁语/引文/过短）时给重试一句改正线索，
         # 同参盲烧三轮是三倍 quota。
         payload["messages"] = payload["messages"] + [{
-            "role": "system",
-            "content": "上一次回复因措辞不合规被拦（禁语/引文/过短），"
-                       "请换一种说法重答，保持纯文本口语。"}]
+            "role": "user",
+            "content": "（系统提醒：上一次回复因措辞不合规被拦"
+                       "（禁语/引文/过短），请换一种说法重答，"
+                       "保持纯文本口语。）"}]
     return None
 
 
@@ -292,6 +302,13 @@ _INTERNAL_OUT_PAT = re.compile(
 _PROMPT_LEAK_PAT = re.compile(
     r"给定事实|候选名字|五行背景|参考口吻|排盘坐标|话题参考|请泛泛而谈|"
     r"ctx\s*[:：]|我的规则|只使用.{0,8}(信息|事实)", re.IGNORECASE)
+
+# R2524（审-LLM-P2-3）：keep_citations 引文豁免段的窄禁表——只收
+# 现代恐吓/判死词（真古籍引文几乎不含）；「相克/相刑/大凶/劫数」是
+# 真古书高频词不进表，否则《五行相克》类合法引文被误杀。
+_BANNED_QUOTE_PAT = re.compile(
+    r"注定|必离|没戏|克夫|克妻|克你|克[他她它]|孤独终老|嫁不出去|"
+    r"直接分手|赶紧分|断联|你应该|你必须", re.IGNORECASE)
 
 # R230a-6（R12-P2-4）：前端轮询上限 40s，后端最坏 3×30s+dots 3×60s≈270s
 # ——40–270s 区间完成的任务是慢成功白烧 quota，用户永远看不到。每次尝试
@@ -339,19 +356,6 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
         _cjk = sum(1 for ch in text if "一" <= ch <= "鿿")
         if _cjk * 3 < len(text):
             return None
-    if _BANNED_OUT_PAT.search(text):
-        # R230t（R32-P2-13）：keep_citations 路径引文内的古词（《》/「」里
-        # 的「克明俊德」类）不该撞禁语闸——剥掉引号段再扫。
-        if keep_citations:
-            _unquoted = re.sub(r"《[^》]*》|「[^」]*」|『[^』]*』", "", text)
-            if _BANNED_OUT_PAT.search(_unquoted):
-                return None
-        else:
-            return None
-    # R2400（R135-P0-4）：内部外形串上屏——模型复述提示词里见到的
-    # 后端细节即降级（不渲染）。
-    if _INTERNAL_OUT_PAT.search(text):
-        return None
     # R2400（R135-P1-4）：伪 system 行/markdown 记号不许进小满口径——
     # 「system:」仿指令行剥掉；**/## 记号压回纯文本（卡片不渲 markdown，
     # 裸符号上屏很难看）。
@@ -361,7 +365,37 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # R2400（R140-followup）：markdown hr（---/*** /___ 独占行）压掉——
     # 起名点评实测漏「---」裸分隔线上屏。
     text = re.sub(r"(?m)^\s*[-*_]{3,}\s*$\n?", "", text)
+    # R2524（审-LLM-P1-1）：零宽/不可见控制字剥掉——「注\u200b定」
+    # 此前原样上屏渲染成「注定」，扫描形态也拼不回禁词。
+    text = _OUT_ZW.sub("", text)
     if len(text) < 3:
+        return None
+    # R2524（审-LLM-P1-1）：禁语/内部串/提示词外露三闸改扫归一形态
+    # ——此前在 markdown 还原之前扫原文，「注**定**」「你 应 该」
+    # 「註定」全漏。_scan_form 剥记号/零宽/空白+繁折简，绕闸形态
+    # 拼回真词再判（只用于判定，不改上屏文本）。
+    _sf = _scan_form(text)
+    if _BANNED_OUT_PAT.search(_sf):
+        # R230t（R32-P2-13）：keep_citations 路径引文内的古词（《》/「」里
+        # 的「克明俊德」类）不该撞禁语闸——剥掉引号段再扫。
+        if keep_citations:
+            _unquoted = re.sub(r"《[^》]*》|「[^」]*」|『[^』]*』", "", _sf)
+            if _BANNED_OUT_PAT.search(_unquoted):
+                return None
+            # R2524（审-LLM-P2-3）：引号豁免被「《注定》」「「必离」」
+            # 式投放绕开——现代恐吓词在真古籍引文里几乎不出现，
+            # 引号内单独补一张窄表（「相克/大凶」等真古词不进表防误伤）。
+            if _BANNED_QUOTE_PAT.search(_sf):
+                return None
+        else:
+            return None
+    # R2400（R135-P0-4）：内部外形串上屏——模型复述提示词里见到的
+    # 后端细节即降级（不渲染）。
+    if _INTERNAL_OUT_PAT.search(_sf):
+        return None
+    # R2524（审-LLM-P2-1）：_PROMPT_LEAK_PAT 此前定义后从未接入——
+    # 「根据给定事实…」式提示词结构外露直通上屏。
+    if _PROMPT_LEAK_PAT.search(_sf):
         return None
     return text
 
@@ -382,6 +416,13 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
 _TASK_TTL_S = 600.0          # 任务记录保留 10 分钟：足够前端轮询完，又不积内存
 _MAX_PENDING = 12            # 在途 AI 任务上限——未鉴权端点每请求一线程+最坏
                              # 6 次 LLM 往返，无界时单人会话能拖垮连接池
+# R2524（审-LLM-P1-2）：危机/敏感固定文案的罐头任务 id——覆盖写不
+# 增行，免限流短路不再产生行洪泛。
+_CANNED_TASK_IDS = {
+    "crisis": "__canned_crisis__",
+    "sensitive": "__canned_sensitive__",
+}
+
 _MAX_TASK_ROWS = 256         # R229t：任务行总数帽——_MAX_PENDING 只管在途，
                              # 完成行靠 600s TTL，洪泛可在此期间积成山；
                              # 超帽拒 spawn（功能降级但服务不死）。
@@ -644,7 +685,8 @@ _CRISIS_PAT = re.compile(
 def _is_crisis(msg: str) -> bool:
     """危机自伤判定——硬词全语境；软词分句判、物件语境豁免
     （「电脑死了算了」「这班累死了算了」不是求助）。"""
-    msg = msg or ""
+    # R2524：零宽字符剥掉再判——「想\u200b死」此前绕过硬词命中。
+    msg = _OUT_ZW.sub("", msg or "")
     for _h in _CRISIS_HARD_PAT.finditer(msg):
         # R2400（R128-P1-10）：「想死你了/想死我了/想死她了」是高频
         # 撒娇语气——想死+人称代词不算求助；裸「想死了」不豁免（含
@@ -710,12 +752,32 @@ _FACT_BAN_PAT = re.compile(
     # 进 prompt 会诱发模型复述「内部细节」或按注入语义接话。
     r"calc\.|select\s+.+\s+from|insert\s+into|drop\s+table|traceback|"
     r"corpus\.db|knowledge\.db|/home/|/users/|/app/|"
-    r"[a-z]:[\\/]|\w+\.py\s*(?:line|:)|file\s+\"", re.IGNORECASE)
+    r"[a-z]:[\\/]|\w+\.py\s*(?:line|:)|file\s+\"|"
+    # R2524（审-LLM-P2-3）：恐吓/判死词进过滤——「林注定」「林必离」
+    # 类候选名此前过闸喂模型，诱发模型输出正好撞出侧禁语表的词。
+    r"注定|必离|没戏|克夫|克妻|孤独终老", re.IGNORECASE)
 
 
 def _fact_norm(f: str) -> str:
     """校验用归一文本：剥零宽/控制字 + 繁折简（不改写原文，仅查用）。"""
     return "".join(_FACT_T2S.get(c, c) for c in _FACT_ZW.sub("", f))
+
+
+# R2524（审-LLM-P1-1）：输出侧零宽/不可见字表——比 _FACT_ZW 少了
+# \x00-\x1f（含 \n\r\t）与 \x7f-\x9f 里的换行族，剥它会把段落换行
+# 一起吃掉；只收对显示文本百害无一利的隐形格式字。
+_OUT_ZW = re.compile(
+    r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]")
+
+
+def _scan_form(s: str) -> str:
+    """出侧闸门扫描用归一形态（只用于判定，不改上屏文本）：
+    剥 markdown 记号/零宽/全部空白 + 繁折简——「注**定**」「注\u200b定」
+    「你 应 该」「註定」式绕闸写法拼回真词再交给禁语/内部串闸。"""
+    s = _OUT_ZW.sub("", s)
+    s = re.sub(r"[*_`~]+", "", s)
+    s = re.sub(r"\s+", "", s)
+    return "".join(_FACT_T2S.get(c, c) for c in s)
 
 
 def _fact_line(f) -> str:
@@ -746,6 +808,8 @@ def _fact_is_safe(f: str) -> bool:
 
 def _is_sensitive(msg: str) -> bool:
     """生死/重病敏感判定——聊天层与问一嘴（interpreter）共用一个口径。"""
+    # R2524：同 _is_crisis——零宽写法绕过敏感词命中。
+    msg = _OUT_ZW.sub("", msg or "")
     if _SENSITIVE_HARD_PAT.search(msg):
         return True
     return bool(_SENSITIVE_SOFT_PAT.search(msg)
@@ -772,6 +836,29 @@ def _session_lock(session_id: str) -> threading.Lock:
         if lk is None:
             lk = _chat_call_locks[session_id] = threading.Lock()
         return lk
+
+
+@contextlib.contextmanager
+def _held_session_lock(session_id: str):
+    """拿到「官方」会话锁再进临界区。
+
+    R2524（审-LLM-P2-2）：GC 在「持锁者 release → 等待者 acquire」的
+    缝隙里会把未锁定的锁行逐出表，新来者另建一把——等待者与后来者
+    各握一把锁并行跑「快照→LLM→落历史」，时序倒置复发。拿到锁后
+    回表里核对自己还是不是官方锁，不是就放掉重来。"""
+    lk = _session_lock(session_id)
+    lk.acquire()
+    try:
+        while True:
+            with _chat_lock:
+                if _chat_call_locks.get(session_id) is lk:
+                    break
+            lk.release()
+            lk = _session_lock(session_id)
+            lk.acquire()
+        yield
+    finally:
+        lk.release()
 
 
 def _gc_chat_sessions() -> None:
@@ -832,14 +919,19 @@ def chat(session_id: str, user_msg: str,
 
     # 串行化整段「快照→LLM→落历史」：同 session 并发按到达顺序完成，
     # 而非按 LLM 返回快慢（审查轨 chat-flow 实测时序倒置）。
-    with _session_lock(session_id):
+    with _held_session_lock(session_id):
+        with _chat_lock:
+            # R2524（审-LLM-P3）：GC 先跑——fresh 采样在逐出之后，
+            # 刚被 TTL 逐掉的会话如实报 fresh（前端补「记不全」分隔），
+            # 此前标记在 GC 前打：陈旧行还在 → fresh=False → 上下文
+            # 其实被清了却没任何提示。
+            _gc_chat_sessions()
         # R2511（审-SV-P2）：started 标记挪到拿到会话锁之后——此前在
         # spawn 线程开头就打，排队等锁期间 queued=false 谎报，前端
         # 40s 轮询预算实际从入队起算（与注释语义相反）。
         if _task_started is not None:
             _task_started()
         with _chat_lock:
-            _gc_chat_sessions()
             sess = _chat_sessions.setdefault(
                 session_id, {"messages": [], "updated": time.monotonic()})
             # R230a-6（R12-P1-2）：危机红线必须排在轮数收尾之前——此前满
@@ -987,7 +1079,9 @@ def chat(session_id: str, user_msg: str,
         # 输出侧禁语命中 → 整条降级为固定安全回复（双保险）。判定在写历史
         # 之前——此前先把原文 append 进 messages 再查 banned，违规内容会留在
         # 会话上下文里污染后续轮次（审查轨 chat-flow）。
-        if _CHAT_BANNED_PAT.search(text):
+        # R2524：归一形态复扫——_sanitize 已按归一形态判过，这里兜底
+        # 零宽/词内空白/繁体写法的漏网组合。
+        if _CHAT_BANNED_PAT.search(_scan_form(text)):
             text = ("我可能说得不太对。盘是盘，日子是你自己的——"
                     "按你自己舒服的来就好。")
 
@@ -1057,6 +1151,9 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                     if resp.status_code == 429 or 400 <= resp.status_code < 500:
                         break
                     continue
+                # R2524（审-LLM-P2-4）：同 polish——解析前字节帽。
+                if len(resp.content) > 2_000_000:
+                    continue
                 data = resp.json()
             raw = (data["choices"][0]["message"]["content"] or "").strip()
             # R230t（R32-P0-2）：finish_reason=length = 思考烧光预算——
@@ -1072,7 +1169,9 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
         except Exception:
             continue
         # R230a-7：记录「回了但被禁语拦」与「没回/挂了」的区别。
-        if _BANNED_OUT_PAT.search(raw):
+        # R2524：扫归一形态——「注**定**」式绕闸原文也要计入 banned_seen，
+        # 否则漏进 _sanitize 才拦，降级文案口径偏成「没回/挂了」。
+        if _BANNED_OUT_PAT.search(_scan_form(raw)):
             if banned_seen is not None:
                 banned_seen.append(True)
             # R230t（R32-P1-6）：共情复读用户原话里的禁词会连环撞闸——
@@ -1123,12 +1222,38 @@ def load_dots_config() -> dict | None:
             pass
     if not d:
         return None
-    if not d.get("enabled") or not d.get("api_key"):
-        return None
     d.setdefault("base_url", "https://note3-prev-api.askdiandian.com/v1")
     d.setdefault("model", "dots3-note-prev")
     d.setdefault("timeout_s", 60)
     d.setdefault("max_tokens", 1200)
+    # R2524（审-LLM-P2-5）：dots 配置补 load_config 同款校验——此前
+    # "enabled":"false"（字符串）被 truthy 放行、timeout_s 坏类型在
+    # _chat_call try 外抛 ValueError → 任务 failed。
+    _en = d.get("enabled")
+    if isinstance(_en, str):
+        _en_l = _en.strip().lower()
+        if _en_l in ("0", "false", "off", "no"):
+            return None
+        d["enabled"] = _en_l in ("1", "true", "on", "yes")
+    if not d.get("enabled"):
+        return None
+    _dd = {"timeout_s": 60, "max_tokens": 1200}
+    for _k in ("timeout_s", "max_tokens"):
+        try:
+            d[_k] = int(d[_k])
+            if d[_k] <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            print(f"[llm_polish] dots 配置项 {_k}={d[_k]!r} 非法，"
+                  f"回退默认 {_dd[_k]}", file=sys.stderr)
+            d[_k] = _dd[_k]
+    if (not isinstance(d.get("base_url"), str)
+            or not d["base_url"].startswith("http")):
+        print(f"[llm_polish] dots 配置项 base_url={d.get('base_url')!r} "
+              f"不是合法 URL，回退默认", file=sys.stderr)
+        d["base_url"] = "https://note3-prev-api.askdiandian.com/v1"
+    if not isinstance(d.get("api_key"), str) or not d["api_key"]:
+        return None
     return d
 
 
@@ -1253,12 +1378,13 @@ def spawn_chat_task(session_id: str, user_msg: str,
     # 已完成任务把转介文案送回去，不烧 LLM、不落历史（与 chat()
     # 内的危机路径同口径）。
     _msg0 = (user_msg or "").strip()
+    # R2524（审-LLM-P1-2）：危机/敏感短路此前每请求 token_urlsafe
+    # 新行——未过限流的短路 256 发匿名 POST 即灌满 _tasks 行帽，
+    # 全 AI 层停摆至 TTL（细流可无限续死）。固定文案走罐头任务行：
+    # 同 tid 覆盖写、行数不增，轮询端点照常读到 done 文案。
     if _msg0 and _is_crisis(_msg0):
-        tid = secrets.token_urlsafe(16)
+        tid = _CANNED_TASK_IDS["crisis"]
         with _tasks_lock:
-            _gc_tasks()
-            if len(_tasks) >= _MAX_TASK_ROWS:
-                return None
             _tasks[tid] = {"status": "done", "text": _CHAT_REFUSAL,
                            "created": time.monotonic(),
                            "started": time.monotonic()}
@@ -1267,11 +1393,8 @@ def spawn_chat_task(session_id: str, user_msg: str,
     # 此前先进队占 8/min 再进线程拿固定转介，连发 8+ 后「歇口气」会
     # 把转介句顶掉，用户第 9 条起看不到该看的文案。
     if _msg0 and _is_sensitive(_msg0):
-        tid = secrets.token_urlsafe(16)
+        tid = _CANNED_TASK_IDS["sensitive"]
         with _tasks_lock:
-            _gc_tasks()
-            if len(_tasks) >= _MAX_TASK_ROWS:
-                return None
             _tasks[tid] = {"status": "done", "text": _SENSITIVE_REPLY,
                            "created": time.monotonic(),
                            "started": time.monotonic()}

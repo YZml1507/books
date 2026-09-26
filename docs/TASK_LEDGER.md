@@ -13383,3 +13383,40 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] **裁决不改**：`PATCH /api/threads/{tid}` status 走 query 参数——
   前后端一致、写闸+枚举内验，纯风格 nit 登记不改。
 - [x] `probe_r2522.py` 26/26；selftest 310；contract 639。
+
+## R2524 — llm_polish 深审（cde6e16a 交付 2×P1/6×P2）+ services 锚层
+
+- [x] **审-LLM-P1-1**：出侧禁语/内部串/外露三闸改扫 `_scan_form` 归一
+  形态——此前在 markdown 还原**之前**扫原文，「注**定**」「注\u200b定」
+  「你 应 该」「註定」全绕闸上屏。显示文本同步剥 `_OUT_ZW`；
+  `_chat_call` 预扫与 chat 复扫同改归一形态。六种绕闸实测全拦，
+  合法句/真引文不误伤。
+- [x] **审-LLM-P1-2**：危机/敏感短路未过 `_rate_ok` 每请求造 done 行——
+  256 发匿名 POST 灌满 `_tasks` 全 AI 停摆至 TTL（细流无限续死）。
+  固定文案走 `_CANNED_TASK_IDS` 罐头行覆盖写：300+300 发实测 2 行，
+  热线文案语义不变且满表时危机不再被行帽卡 None。
+- [x] **审-LLM-P2-1**：`_PROMPT_LEAK_PAT` 定义后从未调用=死闸 → 接入
+  `_sanitize` 归一扫描（「根据给定事实…」实测拦下）。
+- [x] **审-LLM-P2-2**：`_held_session_lock`——拿锁后回表核对官方位，
+  GC「release→acquire」缝逐出锁行导致双锁并行/时序倒置的面关死。
+  4 并发同 sid 实测串行保序。
+- [x] **审-LLM-P2-3**：keep_citations 引文豁免补 `_BANNED_QUOTE_PAT`
+  窄表（现代恐吓词：注定/必离/克夫克妻/分手断联——《相克》类真古词
+  不进表防误伤）；`_FACT_BAN_PAT` 补恐吓词族拦「林注定」类候选名。
+- [x] **审-LLM-P2-4**：两处 `resp.json()` 前 2MB 字节帽（上游实测
+  吐过 36MB content，解析+回写放大内存）。
+- [x] **审-LLM-P2-5**：`load_dots_config` 补 load_config 同款 coercion
+  （"enabled":"false" 字符串 truthy 放行/timeout 坏类型 try 外抛错/
+  base_url 无校验）；主配置 timeout_s/max_tokens 补 <=0 下界。
+- [x] **审-LLM-P2-6**：`_CHAT_CTX` 换 `time.monotonic()` + 读即刷新 +
+  pop-重插真 LRU——锚只在判定时写、闲聊 25min 后「那后天呢」锚先死
+  会话活着 → 追问泛化判定的漂移面关闭；同 sid 重写不再被伪 LRU 误逐。
+- [x] **P3**：polish 重试提示 system→user 角色（对齐 _chat_call 修法）；
+  `_task_started` 挪到 GC 后采样 fresh（被逐会话如实报「记不全」）；
+  `_is_crisis`/`_is_sensitive` 内部剥零宽（纵深防御）。
+- [x] **自审**：huangli 表驱算法单源化干净；liuyao seed-参数化 rng
+  注入正确（随机性是产品语义）；taohua/xingzuo/qiming 无新伤。
+- [x] `probe_r2524.py` 34/34；selftest 310（.venv 口径）；contract 639；
+  probe_llm_polish PASS；r2522/r2518 回归绿。
+- [ ] **在途**：存储层 agent 40f2e5b9（knowledge/paipan_history/evalset）
+  ~45min 未交付——交付归入 R2525。
