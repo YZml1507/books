@@ -13045,3 +13045,33 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   dollar_misuse、no_generated、scripts_importable 60、
   date_parity、baseline_voice、warm_voice、xingzuo、poster、
   llm_polish 全过。
+
+## R2510 — SW 内部逻辑 + schemas 值域三轮收口（8 条修复全实证）
+
+- [x] **审-SW**（首次深审 sw.js 内部逻辑）：
+  ①P1 前台旧页遇新 SW——`?v=OLD` 懒 chunk 过 `_vOk` 失败后
+  `_net()` 把新字节混注进旧运行时必炸（旧 precache 已删）。
+  .js 请求改回 `location.reload()` 脚本：旧页自刷到新壳+新
+  chunk 一致态；非 JS 资源混用无害仍走网络。
+  ②P2 `?view=` og 变体文档凭 pathname==='/' 进 '/' 壳位——
+  补 `!url.search` 闸（分享链/PWA 捷径不再污染正壳）。
+  ③P2 manifest maskable 图标漏出 SHELL 预缓存（装完即离线
+  启动图标破图）——补入。
+  ④P2 导航串行 `match('/')` 白等一个 CacheStorage 往返——
+  与 fetch 并行起跳，hit 仅 catch 兜底（network-first 语义
+  不变，selftest 断言同步改形）。
+- [x] **审-schemas**（值域三轮）：
+  ⑤P1 lunar 分支跳过公历年月日全部界——`year=-999/month=13`
+  直通+脏值原样落台账标题。两历收同款粗界（前端农历模式
+  本就复制农历值进公历栏，不误伤）。
+  ⑥P2 range_start/end 无年界（1500 年照排）——与 ask_date
+  对齐 1900-2100。
+  ⑦P2 FavoriteAddRequest.title/ref_id 与 NameReviewRequest
+  .names 不过净化——C0/RLO 入库进 prompt。剥净+回写。
+  ⑧P2 resolve_date?base= 裸 fromisoformat 收非规范形——
+  isoformat 往返闸对齐 client_date 口径。
+- [x] 探针 `probes/probe_r2510.py`（13 项全绿含活端点实证）。
+- [x] 闸门：selftest 310（sw.navigate_order 断言随结构改形）、
+  ui_smoke、contract 638、r2508 32、r2509 21、r2510 13、
+  ruff E9F、dollar、no_generated、scripts 61、date_parity、
+  baseline、warm、xingzuo、poster、llm_polish 全过。

@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-b38a5b2ffd58';   // shell-hash: b38a5b2ffd58
+var CACHE = 'books-shell-dbb5f28dd494';   // shell-hash: dbb5f28dd494
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -41,6 +41,9 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
              '/static/cream/avatar-xiaoman-cream.jpg',
              '/static/cream/empty-xiaoman.png',
              '/static/cream/icon-180.png',
+             /* R2510（审-SW-P2）：manifest maskable 图标此前不在 SHELL——
+              * 装完即离线时启动图标破图。 */
+             '/static/cream/icon-512-maskable.png',
              '/static/shared/daily-box-gift.png',
              '/static/cream/daily-gift-bear.png',
              '/static/shared/icon-set-moon-cat.jpg',
@@ -105,18 +108,24 @@ self.addEventListener('fetch', function (e) {
    * 静态图拿到首页。静态路径放行落到下面的 cache-first 分支。 */
   if (e.request.mode === 'navigate'
       && url.pathname.indexOf('/static/') !== 0) {
+    /* R2510（审-SW-P2）：match('/') 与 fetch 此前串行——每次导航
+     * 白等一个 CacheStorage 往返才发网络请求。并行起，离线兜底时
+     * 再用壳查询结果；catch 兜底防 match 自身 reject 变游离拒绝。 */
+    var _hitP = caches.match('/').catch(function () { return undefined; });
     e.respondWith(
-      caches.match('/').then(function (hit) {
         /* R2400（R130-P2-2）：network-first——旧版「先给缓存壳」让
          * 门页对解锁过的设备永久失效（cookie 过期/换口令都赶不走）。
          * 在线时以服务端响应为准（403 门页照实上屏），缓存壳只留作
          * 离线兜底。 */
-        return fetch(e.request).then(function (resp) {
+        fetch(e.request).then(function (resp) {
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
           /* R2349u（R91-P1-3）：FastAPI 默认开 /docs /openapi.json，
            * 那些导航的响应此前被写进 '/' 壳位——壳污染后首页变 Swagger。
            * 只有真 '/' 导航才允许回写壳位。 */
-          if (resp.ok && url.pathname === '/') {
+          /* R2510（审-SW-P2）：?view= 等带参导航返回的是 og 变体文档
+           * （分享链接/PWA 捷径专用）——此前 pathname==='/' 就放它进
+           * 壳位，离线打开 '/' 看到变体页。空 search 才算正壳。 */
+          if (resp.ok && url.pathname === '/' && !url.search) {
             /* R230d（R16-P0-1）：put 挂 waitUntil——游离 Promise 会在
              * respondWith resolve 后随 SW 回收而丢，运行时缓存恒写不进。 */
             e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -130,7 +139,8 @@ self.addEventListener('fetch', function (e) {
           /* R2502：CacheStorage 在存储压力下可整体逐出——hit 此时是
            * undefined，respondWith 收到非 Response 等价白屏。离线
            * 且壳也丢了时给一句人话页兜底。 */
-          return hit || new Response(
+          return _hitP.then(function (hit) {
+            return hit || new Response(
             '<!doctype html><meta charset="utf-8"><meta name="viewport" ' +
             'content="width=device-width,initial-scale=1"><body ' +
             'style="font-family:sans-serif;display:flex;min-height:100vh;' +
@@ -186,6 +196,16 @@ self.addEventListener('fetch', function (e) {
         var _reqV = url.searchParams.get('v');
         var _vOk = !_reqV || _reqV === CACHE.slice('books-shell-'.length);
         if (!_vOk) {
+          /* R2510（审-SW-P1）：?v 不符 = 前台旧页遇上新 SW——旧
+           * precache 已在 activate 删掉，网络只有新字节，混注进旧
+           * 运行时必炸（此前 _net() 照发新字节）。JS 请求回一段
+           * 刷新脚本：旧页自刷 → 新壳+新 chunk 一致落地；非 JS
+           * 资源（css/img）新字节混用无害，仍走网络。 */
+          if (url.pathname.slice(-3) === '.js') {
+            return new Response('location.reload();', {
+              headers: { 'Content-Type':
+                'text/javascript; charset=utf-8' } });
+          }
           return _net().catch(function () { return undefined; });
         }
         return caches.match(e.request, { ignoreSearch: true })

@@ -3365,15 +3365,19 @@ def _run_inner() -> list[str]:
         ("sw.shell_hash", "下发 HTML 未带 ?v= 版本化资产", _html[:200])
     ok.append("sw.shell_hash")
 
-    # R134-§4.1：navigate 必须 network-first——return fetch(...) 在前、
+    # R134-§4.1：navigate 必须 network-first——fetch(...) 在前、
     # 缓存 hit 只在 catch 兜底。改回 hit||net 会让门页对老设备失效复活
     # 且所有既有闸全绿，这里按源码顺序钉死。
+    # R2510（审-SW-P2）：match('/') 与 fetch 并行起跳——fetch 不再挂
+    # return（respondWith 直接收 promise 链），字面序改为「fetch 出现
+    # 在 hit 回退之前」+ hit 只许出现在 _hitP.then 兜底里。
     _nav = _swsrc.find("mode === 'navigate'")
-    _fetch_i = _swsrc.find("return fetch(e.request)", _nav)
+    _fetch_i = _swsrc.find("fetch(e.request)", _nav)
     _hit_i = _swsrc.find("return hit", _nav)
+    _hitp_i = _swsrc.find("_hitP.then", _nav)
     assert _nav != -1 and _fetch_i != -1 and _hit_i != -1 and \
-        _fetch_i < _hit_i, \
-        "sw.navigate 顺序：fetch 必须先于 hit 回退（network-first）"
+        _hitp_i != -1 and _fetch_i < _hit_i and _hitp_i < _hit_i, \
+        "sw.navigate 顺序：fetch 先发、hit 仅 _hitP.then 兜底"
     # R134-§4.2：壳位回写条件——resp.ok 且 pathname==='/' 才写 '/' 壳位，
     # 403 门页/错误页不许进壳。
     _wr = _re5.search(r"resp\.ok\s*&&[^;]{0,80}pathname", _swsrc)

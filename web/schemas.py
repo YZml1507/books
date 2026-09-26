@@ -146,14 +146,18 @@ class BaziRequest(BaseModel):
                 raise ValidationError("农历月需在 1-12")
             if not (1 <= self.lunar_day <= 30):
                 raise ValidationError("农历日需在 1-30")
-        else:
-            if not (YEAR_LO <= self.year <= YEAR_HI):
-                raise ValidationError(
-                    f"年份需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
-            if not (1 <= self.month <= 12):
-                raise ValidationError("月份需在 1-12")
-            if not (1 <= self.day <= 31):
-                raise ValidationError("日需在 1-31")
+        # R2510（审-SC-P1）：lunar 分支此前连公历年月日的粗界都跳过——
+        # year=-999/month=13/day=40 直通，排盘按 lunar_* 算对了但
+        # 脏值原样落台账（历史卡标题「-999-13-40」）+进备份导出。
+        # 前端农历模式把农历值复制进这三栏（同名同值），两历收同款
+        # 粗界不挡正常输入；精确合法性仍由各历自己的换算兜住。
+        if not (YEAR_LO <= self.year <= YEAR_HI):
+            raise ValidationError(
+                f"年份需在 {YEAR_LO}-{YEAR_HI} 之间（节气表适用范围）")
+        if not (1 <= self.month <= 12):
+            raise ValidationError("月份需在 1-12")
+        if not (1 <= self.day <= 31):
+            raise ValidationError("日需在 1-31")
         if not (0 <= self.hour <= 23):
             raise ValidationError("时辰需在 0-23")
         # R230f：分钟可选但给了就必须合法
@@ -171,8 +175,17 @@ class BaziRequest(BaseModel):
         if self.scope == "range":
             if not (self.range_start and self.range_end):
                 raise ValidationError("选了「一段日子」的话，开头和结尾两天都要填哦")
-            _iso_canonical(self.range_start, "范围起止要写成 2026-01-01 这样")
-            _iso_canonical(self.range_end, "范围起止要写成 2026-01-01 这样")
+            _ds = _iso_canonical(self.range_start,
+                                 "范围起止要写成 2026-01-01 这样")
+            _de = _iso_canonical(self.range_end,
+                                 "范围起止要写成 2026-01-01 这样")
+            # R2510（审-SC-P2）：起止年份此前无界——1500 年照样
+            # calc_range（跨度≤31 照过），与 ask_date 的 1900-2100
+            # 界不齐（同义参数两种语义）。
+            if not (YEAR_LO <= _ds.year <= YEAR_HI
+                    and YEAR_LO <= _de.year <= YEAR_HI):
+                raise ValidationError(
+                    f"范围年份需在 {YEAR_LO}-{YEAR_HI} 之间")
 
 
 class AskRequest(BaseModel):
@@ -371,7 +384,10 @@ class NameReviewRequest(BaseModel):
     facts: list[str] | None = None
 
     def validate_ranges(self) -> None:
-        clean = [n for n in (self.names or []) if n.strip()]
+        # R2510（审-SC-P2）：names 元素此前只 strip()——C0/零宽/双向符
+        # 原样进 LLM prompt（spawn_name_review_task）与会话记录。
+        clean = [n for n in
+                 (strip_zw(n) or "" for n in (self.names or [])) if n]
         if not clean:
             raise ValidationError("候选名不能为空")
         if len(clean) > 6:
@@ -379,6 +395,7 @@ class NameReviewRequest(BaseModel):
         for n in clean:
             if len(n) > 8:
                 raise ValidationError(f"名字过长：{n[:8]}…")
+        self.names = clean   # 净化串回写（同 self.message 口径）
         # R230a-6（R12-P2-6）：facts 此前无校验——单请求可塞 ~50 万字进
         # prompt（仅全局 512KB 体帽兜底）。与 ChatRequest 同款界。
         if self.facts:
@@ -494,3 +511,14 @@ class FavoriteAddRequest(BaseModel):
                      "thread"):
             raise ValidationError("收藏类型未知")
         return v
+
+    @field_validator("ref_id", "title", mode="before")
+    @classmethod
+    def _strip_ctrl(cls, v: str) -> str:
+        # R2510（审-SC-P2）：title/ref_id 此前只卡长度——C0/双向符
+        # 原样入库，收藏列表渲染可被 RLO 搅成乱序。与线程字段同款
+        # 剥法（C0 + 零宽一并去）。
+        if not isinstance(v, str):
+            return v
+        return _ZW_RE.sub(
+            "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()

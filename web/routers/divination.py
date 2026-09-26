@@ -47,8 +47,12 @@ def huangli_resolve_date(q: str = Query("", max_length=80),
     _now = None
     if base:
         try:
-            _now = _datetime.combine(
-                _date.fromisoformat(base), _datetime.now(_CN_TZ).time())
+            _bd = _date.fromisoformat(base)
+            # R2510（审-SC-P2）：Py3.11+ fromisoformat 放宽收
+            # 20260101/2026-W01-1 等非规范形——虽只是锚点语义，与
+            # client_date/ask_date 的规范形界对齐（isoformat 往返）。
+            _now = (_datetime.combine(_bd, _datetime.now(_CN_TZ).time())
+                    if _bd.isoformat() == base else None)
         except (ValueError, TypeError):
             _now = None        # 非法 base 静默回落服务器日（同旧行为）
     return services.resolve_huangli_date(q, now=_now)
