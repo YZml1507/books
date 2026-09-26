@@ -13144,3 +13144,33 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   re-arm 收编、tarot flipped 复原、0 console 错误。
 - [x] 闸门：selftest 310、ui_smoke、contract 638、r2509/10/11、
   r2512 14、llm_polish、ruff（r2512 探针自身零告警）全过。
+
+## R2513 — 懒载 chunk 深审：海报在途锁 + 研究线程代际（4 条修复全实证）
+
+- [x] **审-P1 海报在途锁名存实亡→N 击 N 张同名 PNG**：`guardedCall`
+  `Promise.resolve().then(handler)` 在处理器不 return 时微秒级放锁；
+  `downloadPoster` 的 `_pbtn=activeElement` 兜底又必落 null
+  （按钮已被 guardedCall 置 disabled）。六处 `on('shareX')` + 9 处裸
+  `addEventListener`（xingzuo/huangli/xzm/checkin×3/celeb/
+  phShareBtn/shareBirth）全部无有效在途锁——连点起 N 条完整管线
+  （底图 decode+字体 load+huangli 请求），N 次 toBlob → N 张同名
+  下载 + 多次下载权限弹窗，全程零忙态。修：模块级
+  `_POSTER_INFLIGHT` 旗标在 chunk 包装入口单点吞点+finally 复位
+  （覆盖所有入口形态）；六+1 处 `on()` 处理器补 `return` 让
+  guardedCall 忙态覆盖全程。**实证**：daily 海报每管线一发
+  /api/huangli 做计数器——同 tick 三击仅 1 次请求。
+- [x] **审-P2 doThread 代际号抬在落地时**：入口语义反成「旧操作
+  必胜」——创建在途时查看先到先画后被创建回执整片覆盖。
+  对齐 showThread：入口 ++、paint/failWithRetry 前各校验。
+- [x] **审-P2 deleteThread 在途无闸**：武装确认后 DELETE 期间
+  三四连点重武装再发第二个 DELETE 吃 404 误报。补
+  `dataset.inflight` 闸+双分支复位（同文件 note/status 先例）。
+- [x] **审-P2 `_posterTextCollect` 漏收 s.chip**：hehun 合拍指数
+  胶囊命中未加载 unicode-range 子集时回落系统字体。补收。
+- [x] **次**：`a.click()` 抛错时 blob URL/节点双泄漏——try/finally。
+- [x] 探针 `probes/probe_r2513.py`（10 项）；shareDaily 同补
+  return 忙态覆盖。
+- [x] 真浏览器实证：3 击→1 管线、_dup 4s 窗语义正常、
+  doThread/showThread 后到赢、deleteThread 武装删除可用。
+- [x] 闸门：selftest 310（SW hash 重发 a8d150ae2ff9）、ui_smoke、
+  contract 638、r2509-r2513 探针全绿、ruff 零告警。

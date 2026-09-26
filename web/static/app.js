@@ -4614,7 +4614,7 @@ async function submitBazi(event) {
     paint('result', buildBaziResult(j));
     /* R2512：口吻切换重画后直绑按钮会灭——绑定收进 rebind 登记。 */
     var _rbBazi = function () {
-      on('shareBazi', function () { downloadPoster(j, 'bazi'); });
+      on('shareBazi', function () { return downloadPoster(j, 'bazi'); });
     };
     rememberVoice('result', j, buildBaziResult, _rbBazi);
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
@@ -5092,7 +5092,7 @@ async function doLiuyao() {
     /* R198b（US5）+ R2512：分享按钮已挪进 build（重画不丢），
      * 绑定收进 rebind 登记——口吻切换后重放。 */
     var _rbLy = function () {
-      on('shareLiuyao', function () { downloadPoster(j, 'liuyao'); });
+      on('shareLiuyao', function () { return downloadPoster(j, 'liuyao'); });
     };
     rememberVoice('lyResult', j, buildLiuyaoResult, _rbLy);
     _rbLy();
@@ -5276,7 +5276,7 @@ async function doQiming() {
         if (btn) btn.disabled = false;
         });
       });
-      on('shareQiming', function () { downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
+      on('shareQiming', function () { return downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
       on('qmRefreshBtn', function () {
         /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
         /* R224b：同上——初值已是 1，直接 +1 */
@@ -5361,7 +5361,7 @@ async function doTaohua() {
       '-' + num('th_day');   /* R2350f（R102-P1-5） */
     paint('thResult', buildTaohuaResult(j));
     var _rbTh = function () {
-      on('shareTaohua', function () { downloadPoster(j, 'taohua'); });
+      on('shareTaohua', function () { return downloadPoster(j, 'taohua'); });
     };
     rememberVoice('thResult', j, buildTaohuaResult, _rbTh);   /* R2349s P2-20 */
     _rbTh();
@@ -6149,7 +6149,7 @@ async function doTarot(cards) {
     /* R230d（R16-P2-2）+ R2512：分享按钮挪进 build（重画不丢），
      * 绑定收进 rebind 登记。 */
     var _rbTr = function () {
-      on('shareTarot', function () { downloadPoster(j, 'tarot'); });
+      on('shareTarot', function () { return downloadPoster(j, 'tarot'); });
     };
     rememberVoice('trResult', j, buildTarotResult, _rbTr);
     _rbTr();
@@ -6372,7 +6372,7 @@ async function doHehun() {
     paint('hhResult', buildHehunResult(j));
     /* R2512：分享/邀请/存这对三个直绑收进 rebind——口吻重画后重放。 */
     var _rbHh = function () {
-      on('shareHehun', function () { downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04） */
+      on('shareHehun', function () { return downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04） */
       /* R233n（R47-Top5-1）：邀请链——把 A 侧生辰编进 ?view=hehun 参数，
        * 对方打开即预填+提示「轮到你了」。 */
       on('hhInvite', function () {
@@ -8890,9 +8890,11 @@ function initDivination() {
   });
   /* R198b（US5）：今日运势分享图（数据来自最近一次 /api/daily 响应） */
   on('shareDaily', function () {
-    /* R228c：失败态下静默 return 用户无感——给 toast 提示 */
-    if (window.__lastDaily) downloadPoster(window.__lastDaily, 'daily');
-    else showToast('今日运势还没出来，等它算好再分享～', 'warn');
+    /* R228c：失败态下静默 return 用户无感——给 toast 提示
+     * R2513：return poster promise——guardedCall 忙态覆盖全程。 */
+    if (window.__lastDaily) return downloadPoster(window.__lastDaily, 'daily');
+    showToast('今日运势还没出来，等它算好再分享～', 'warn');
+    return null;
   });
 }
 

@@ -1111,7 +1111,13 @@ function buildShareData(view, j) {
 }
 
 var _POSTER_LAST = {};   /* view → ts：同视图 4s 内连点只弹浮层不再下载 */
+var _POSTER_INFLIGHT = false;   /* R2513（审-P1）：生成管线在途锁——
+ * on() 处理器不 return 时 guardedCall 微秒级放锁；裸 addEventListener
+ * 入口在各平台 activeElement 也不一定落在按钮上。模块级旗标单点
+ * 全覆盖：在途再点静默吞掉，绝不并行第二条管线/第二张同名 PNG。 */
 async function downloadPoster(j, view) {
+  if (_POSTER_INFLIGHT) return null;
+  _POSTER_INFLIGHT = true;
   /* R233k（R45-§2）：按下到浮层弹出要 ~1.5-4s（底图 decode+字体
    * load），原零反馈。触发按钮立即转忙态直到流程结束。 */
   var _pbtn = document.activeElement;
@@ -1123,6 +1129,7 @@ async function downloadPoster(j, view) {
   try {
     return await _downloadPoster(j, view);
   } finally {
+    _POSTER_INFLIGHT = false;
     if (_pbtn) {
       _pbtn.disabled = false;
       _pbtn.classList.remove('is-working');
@@ -1140,6 +1147,9 @@ function _posterTextCollect(s) {
   try {
     if (s) {
       t += _pStr(s.title) + _pStr(s.subtitle) + _pStr(s.big);
+      /* R2513（审-P2）：chip（hehun「合拍指数 X / 99」胶囊）漏收——
+       * 命中未加载 unicode-range 子集时胶囊文字回落系统字体。 */
+      t += _pStr(s.chip);
       (s.lines || []).forEach(function (r) {
         t += _pStr(r && r.k) + _pStr(r && r.v); });
       (s.cards || []).forEach(function (c) {
@@ -1283,8 +1293,12 @@ async function _downloadPoster(j, view) {
         a.download = '小满-' + (_POSTER_TITLES[_vkey] || '分享图') +
           '-' + _ymd.slice(4) + '.png';
         document.body.appendChild(a);
-        a.click();
-        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        /* R2513（审-次）：click() 抛错时 revoke/remove 漏跑——
+         * blob URL + DOM 节点双泄漏。包 try/finally。 */
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
       }, 'image/png');
     }
   } catch (e) { /* 低端降级：静默，不打断主流程 */ }

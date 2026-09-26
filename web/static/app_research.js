@@ -273,6 +273,9 @@ function _threadListPaint(emptyHtml) {
  *  refusal 是唯一允许无证据的 kind（G7：「证据不足」本身是合法研究输出），
  *  正好适配"新建一个空线程"这个语义。 */
 async function doThread() {
+  /* R2513（审-P2）：代际号必须入口抬——此前在响应落地才 ++，
+   * 语义反成「先发起后完成的旧操作必胜」。与 showThread 对齐。 */
+  var _g = ++_TR_VIEW_GEN;
   busy('threadResult', '创建中…');
   const topic = val('tq') || '新线程';
   /* R2349v（R92-P2-6）：空主题原来静默开一条「新线程」——先内联提示，
@@ -305,10 +308,12 @@ async function doThread() {
       html += '<div class="no-evidence">线程已创建，列表刷新失败：' +
         esc(e2.message) + '</div>';
     }
-    /* R2502：抬代际——并发的查看/删除旧响应不再盖掉这张新单。 */
-    _TR_VIEW_GEN++;
+    /* R2502+R2513：过代际不写屏——到得晚的旧创建不盖新视图；
+     * catch 同款校验（陈旧失败不盖新成功）。 */
+    if (_g !== _TR_VIEW_GEN) return;
     paint('threadResult', html);
   } catch (e) {
+    if (_g !== _TR_VIEW_GEN) return;
     failWithRetry('threadResult', '创建失败：' + e.message, function () { doThread(); });
   }
 }
@@ -389,15 +394,25 @@ async function deleteThread(tid, btn) {
     }
     btn.dataset.armed = '';
   }
+  /* R2513（审-P2）：DELETE 在途无闸——三四连点会重武装再发第二个
+   * DELETE 吃 404 误报「删除失败」。同文件 note/status 的
+   * dataset.inflight 先例对齐。 */
+  if (btn) {
+    if (btn.dataset.inflight === '1') return;
+    btn.dataset.inflight = '1';
+  }
   var _g = ++_TR_VIEW_GEN;   /* R2502：删除本身也是一次视图操作 */
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
     showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
+    if (btn) btn.dataset.inflight = '';   /* 成功路径按钮随列表重画摘除，
+     * 复位兜底防御。 */
     if (_g !== _TR_VIEW_GEN) return;   /* 删除途中有新操作则不画（但 toast 照给） */
     /* 列表与详情共用 threadResult——重拉列表覆盖回列表态 */
     _threadListPaint('<div class="no-evidence">还没有研究线程——上面写个主题就能开一条</div>')
       .catch(function (e2) { showToast('列表刷新失败：' + e2.message, 'warn'); });
   } catch (e) {
+    if (btn) btn.dataset.inflight = '';   /* 失败释放——可重试 */
     showToast('删除失败：' + e.message, 'warn');
   }
 }
