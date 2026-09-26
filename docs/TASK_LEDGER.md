@@ -13312,3 +13312,20 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - [x] `probe_r2519.py` 6/6。
 - 深度全景收口：bazi 两径、chat、daily 大卡、六爻、塔罗两径、
   起名、合婚（前轮已深）——全产品线均有「能做的一步」。
+
+## R2520 — COPY_BANK 文案库泛泛度抽审 + 聊天端到端复验（审计轮）
+
+- [x] **COPY_BANK 全池抽审**：daily.yi/ji 各 16 条（睡前写三行感恩日记、
+  回前任消息包括「在吗」）、taohua.replies 三档 18 条（分档行动句）、
+  chat_fallback 34 条（含微动作+离线诚实）、hehun/qiming/liuyao
+  池——**结论：文案库已是「具体」金标准，泛泛根源在模板拼装层
+  （R2516/18/19 已修）**，零修改。
+- [x] **chat 端到端真浏览器**：2 轮对话 4 气泡、mock LLM 往返正常、
+  0 console 错误；payload 层此前已实证「具体性规则+盘面解读坐标」
+  到达 LLM。
+- [x] 黄历问一嘴判定审查：verdict 本身是数据型（宜/忌/中性+近日
+  列表），具体性由 chat prompt 承担——判定结构不改。
+- [x] `_reply_no_question` 五行段评估：day_luck 行动句已覆盖，
+  重复挂行动尾会双倍唠叨——不改（有意决策）。
+- 残余观察：`_is_crisis` 在 bazi 主表单经「不瞎编」路径也接得住
+  （R2518 已补显式转介）；tarot_collection/share 预留面维持原状。
