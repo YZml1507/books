@@ -14023,3 +14023,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   分两次发请求）：DELETE 第一次真删 200、第二次 404，读到的是第二
   个响应。curl 单发复测 + TestClient + 直接调 services 三轨证明产品
   层全程正确，纯测试伪影。
+
+## R2613 巡检#30——排盘台账分页全绿
+- 边界：limit=0/101、offset=-1、limit=abc 全 422 人话（「不能小于1」
+  「不能大于100」「得填整数」）；合法分页 total=8 正确、id 倒序、
+  offset 正确移位（5363→5362）。
+- 实现层复确认：json_valid 守卫坏行、LIMIT/OFFSET 参数化、摘要走
+  json_extract 不搬整行（R229z续10）。
