@@ -475,7 +475,12 @@ def main() -> int:
                 print(f"probe_ui_smoke SKIP-ENV: chromium 内核不可用：{exc}\n"
                       f"装内核：<venv>\\python.exe -m playwright install chromium")
                 return 2
-            ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+            # R2509：CSP（无 unsafe-eval）把 Playwright wait_for_function
+            # 的 eval 注入也挡了——探针测应用行为不测 CSP（后者归
+            # probe_r2509），context 开 bypass_csp。
+            ctx = browser.new_context(
+                viewport={"width": 1280, "height": 900},
+                bypass_csp=True)
             ctx.set_default_timeout(ACTION_TIMEOUT_MS)
             page = ctx.new_page()
             errors: list[str] = []
@@ -2105,6 +2110,14 @@ def main() -> int:
             cleaned.append(f"derived#{row['id']}")
         for trow in kb.db.execute("SELECT id FROM thread WHERE id > ?",
                                   (thread_baseline,)).fetchall():
+            # R2509：derived→thread 是 NO ACTION 外键——wipe 测试把
+            # derived 表清空后，新挂到本线程名下的 derived 可能带
+            # ≤baseline 的 id，按 id 过滤漏清 → 删线程撞 FK。与
+            # knowledge.import_threads 同款自愈：先解绑（手记留档），
+            # 再删 turn、删 thread。
+            kb.db.execute(
+                "UPDATE derived SET thread_id=NULL WHERE thread_id=?",
+                (trow["id"],))
             kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
             kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
             cleaned.append(f"thread#{trow['id']}")

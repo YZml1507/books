@@ -548,14 +548,17 @@ function buildHehunResult(j) {
   html += '</div><div class="pill-row">';
   const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
   const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
-  html += '<span class="pill sm" style="background:' + relColor + ';">年支（' +
+  /* R2509（审-P1-5）：年支 pill 加「属相」注解——默认受众对属相比
+   * 年支有概念；「非相生」在相克盘上弱化事实（同屏 warm 行说相克），
+   * 改如实显「相克」。 */
+  html += '<span class="pill sm" style="background:' + relColor + ';">属相（' +
     esc(j.year_zhi_a || '') + '×' + esc(j.year_zhi_b || '') + '）：' +
     esc(relLabel) + '</span>';
   /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
   html += '<span class="pill sm" style="background:' +
     ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';"' +
     ' title="两人的日主五行关系">五行底子：' +
-    esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '非相生')) + '</span>';
+    esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '相克')) + '</span>';
   html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
     esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
     esc(j.peach_same ? '重叠' : '不同') + '</span>';
@@ -607,7 +610,7 @@ function buildHehunResult(j) {
     });
     _table += '</tbody></table></div>';
     if (voiceMode() === 'warm') {
-      html += '<details class="warm-basis"><summary>📅 大运合拍表（' +
+      html += '<details class="warm-basis"><summary>📅 十年一轮的合拍表（' +
         j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
     } else {
       html += '<h3 style="margin-top:16px;">十年一轮的节奏表</h3>' + _table;
@@ -716,11 +719,10 @@ function buildTaohuaResult(j) {
     html += '</details>';
   }
   if (j.dayun_hits && j.dayun_hits.length) {
-    html += '<h3 style="margin-top:16px;">桃花什么时候旺</h3>' +
-      '<div class="table-scroll"><table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
+    var _thTbl = '<div class="table-scroll"><table class="works"><thead><tr><th>运</th><th>干支</th><th>约起年</th>' +
       '<th>约几岁</th></tr></thead><tbody>';
     j.dayun_hits.forEach(function (d) {
-      html += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
+      _thTbl += '<tr><td>第 ' + esc(d.index) + ' 运</td><td>' + esc(d.pillar) +
         '</td><td class="num">' + esc(d.year_start) + '</td>' +
         /* R2349s（R84-P2-18）：start_age 是 float（34.3）——「约几岁」
          * 列原样塞小数，取整显示。 */
@@ -728,7 +730,15 @@ function buildTaohuaResult(j) {
           ? Math.round(parseFloat(d.start_age)) : '') +
         '</td></tr>';
     });
-    html += '</tbody></table></div>';
+    _thTbl += '</tbody></table></div>';
+    /* R2509（审-P1-2）：合婚大运表早就折进 warm-basis——桃花这张
+     * 是默认路径上唯一裸奔的干支柱表，同纪律折叠；专业版照旧裸出。 */
+    if (voiceMode() === 'warm') {
+      html += '<details class="warm-basis"><summary>📅 桃花节奏表（' +
+        j.dayun_hits.length + ' 行，展开看）</summary>' + _thTbl + '</details>';
+    } else {
+      html += '<h3 style="margin-top:16px;">桃花什么时候旺</h3>' + _thTbl;
+    }
   }
   if (j.notes && j.notes.length) {
     html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
@@ -843,7 +853,7 @@ function buildQimingResult(j) {
   if (_scored && _scored.length) {
     html += '<h3 style="margin-top:16px;">💐 古籍典故取名 · ' +
       esc((_QM_STYLES[_QM_STYLE] || {}).label || '') +
-      '<span style="font-size:12px;color:var(--secondary);font-weight:400;">　评分口径：五行补缺+典籍出处+寓意+音形+气质契合</span></h3>' +
+      '<span style="font-size:12px;color:var(--secondary);font-weight:400;">　怎么挑的：补缺的五行 + 典籍出处 + 寓意 + 念着顺口</span></h3>' +
       '<div class="calc-grid">';
     _scored.forEach(function (entry, i) {
       var n = entry.n;
@@ -8003,7 +8013,7 @@ function activateRsec(secId) {
           /* R2400（R124-P2-7）：重拉失败此前留着「还没有线程」的陈旧
            * 空态——与「拉不动」不可区分，如实说一句。 */
           paint('threadResult', '<div class="no-evidence">线程列表这趟没拉上来' +
-            (e && e.message ? '：' + esc(e.message) : '') +
+            (e && e.message ? '：' + esc(_humanizeErr(e.message)) : '') +
             '——网好了再点一下这个页签</div>');
         });
       });
@@ -12130,7 +12140,7 @@ function baziPersonaCard(j) {
           } catch (eBC2) {}
           loadPaipanHistory();
         } catch (e) {
-          showToast('导入失败：' + e.message, 'error');
+          showToast('导入失败：这份备份文件读不懂——确认贴的是完整那段 JSON 再试', 'error');
         }
   }
   /* R2500（R143-P2-8）：粘贴导入弹层——与导出文本弹层对称

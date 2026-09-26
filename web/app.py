@@ -60,6 +60,21 @@ else:                                    # pragma: no cover - 顶层导入分支
 
 VERSION = "0.6.0"
 
+# R2509（审-P2-7）：_index_response 原每请求同步 open() 50KB——
+# async _spa_fallback 里它直接跑在事件循环上。按 mtime 缓存原文，
+# 改文件自动失效（dev 友好），og/base 注入仍是每请求的事。
+_INDEX_CACHE: dict[str, tuple[float, str]] = {}
+
+
+def _read_index_text(path: str) -> str:
+    st = os.stat(path)
+    ent = _INDEX_CACHE.get(path)
+    if ent is not None and ent[0] == st.st_mtime:
+        return ent[1]
+    txt = open(path, encoding="utf-8").read()
+    _INDEX_CACHE[path] = (st.st_mtime, txt)
+    return txt
+
 
 def create_app() -> FastAPI:
     """构建应用。可被自测、uvicorn、PyInstaller 入口各自调用。"""
@@ -280,14 +295,35 @@ def create_app() -> FastAPI:
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
     # 嗅探把上传/拼接内容当可执行，DENY 防被 iframe 套壳钓鱼，
-    # no-referrer 防查询串外泄。CSP 不配：index.html 有内联 <script>/
-    # style=，要配只能 unsafe-inline，形同虚设。
+    # no-referrer 防查询串外泄。
+    # R2509：CSP 补位——早前因 index.html 有内联 <script>/style= 判定
+    # 「要配只能 unsafe-inline，形同虚设」整体不配。但 CSP 的价值不
+    # 止 script-src：connect-src 'self' 封死注入脚本的 fetch/beacon
+    # 外联（任何 esc() 漏网 XSS 都偷不走数据），base-uri/object-src/
+    # form-action 各堵一类注入面，代价为零（全站无外部资源、无
+    # eval/Worker、fetch 全走同源相对路径——已逐点核实）。
+    _SEC = {"X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "Referrer-Policy": "no-referrer",
+            "Content-Security-Policy":
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; "
+                "font-src 'self'; "
+                "connect-src 'self'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "frame-ancestors 'none'; "
+                "form-action 'self'; "
+                "worker-src 'self'; "
+                "manifest-src 'self'"}
+
     @application.middleware("http")
     async def _security_headers(request, call_next):
         resp = await call_next(request)
-        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-        resp.headers.setdefault("X-Frame-Options", "DENY")
-        resp.headers.setdefault("Referrer-Policy", "no-referrer")
+        for _k, _v in _SEC.items():
+            resp.headers.setdefault(_k, _v)
         return resp
 
     # R229r：请求体大小护栏——FastAPI 默认无上限，超大 POST 在 pydantic
@@ -305,16 +341,12 @@ def create_app() -> FastAPI:
                 content={"detail": "请求体太大了，精简一下再发"},
                 # R2508（审-P2）：本中间件在 _security_headers 外侧——
                 # 它的 413 拿不到安全头（也拿不到 CORS 头）。就地补齐。
-                headers={"X-Content-Type-Options": "nosniff",
-                         "X-Frame-Options": "DENY",
-                         "Referrer-Policy": "no-referrer"})
+                headers=_SEC)
         if cl is not None and cl.isdigit() and int(cl) > 512 * 1024:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "请求体太大了，精简一下再发"},
-                headers={"X-Content-Type-Options": "nosniff",
-                         "X-Frame-Options": "DENY",
-                         "Referrer-Policy": "no-referrer"})
+                headers=_SEC)
         return await call_next(request)
 
     # R229z续8 续（R8 P1-2 附）：字体/出图资产低变动——一天 Cache-Control，
@@ -375,7 +407,7 @@ def create_app() -> FastAPI:
         if not os.path.exists(deps.INDEX):
             raise HTTPException(500, "前端文件缺失：web/static/index.html")
         try:
-            html = open(deps.INDEX, encoding="utf-8").read()
+            html = _read_index_text(deps.INDEX)
             # R2508（审-P2）：base_url 取自 Host/X-Forwarded-Host
             # （--proxy-headers 下全可控）——含引号即破 og 属性注 HTML。
             # 按 URL 安全集过滤后再注入（robots/sitemap 同款）。
@@ -428,11 +460,13 @@ def create_app() -> FastAPI:
                                     f'href="/static/styles.css?v={v}"')
             # R2349u（R91-P2-4）：SPA fallback 走这条路时绕过了内层
             # 安全头/no-cache 中间件——在出口补齐同口径。
+            # R2509（审-P2-4）：上轮补 CSP 时漏了这条手工复刻路径——
+            # /tarot 等深链入口响应独缺 CSP，正好是最需要 connect-src
+            # 的地方。直接复用 _SEC，不再逐项手写。
             resp = HTMLResponse(html)
             resp.headers["Cache-Control"] = "no-cache"
-            resp.headers["X-Content-Type-Options"] = "nosniff"
-            resp.headers["X-Frame-Options"] = "DENY"
-            resp.headers["Referrer-Policy"] = "no-referrer"
+            for _k, _v in _SEC.items():
+                resp.headers[_k] = _v
             return resp
         except OSError:
             return FileResponse(deps.INDEX)

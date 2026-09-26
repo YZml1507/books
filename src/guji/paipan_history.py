@@ -77,6 +77,9 @@ _ddl_lock = threading.Lock()
 _write_lock = threading.Lock()   # R228b：串行化写入，削并发写锁竞争
 _WIPE_GEN = 0   # R2349q：clear_all 代次——wipe 前入队的异步写一律作废
 KEEP_MAX = 500                   # R228j：排盘历史滚动上限
+# R2509（审-P1-1）：在途写线程上限——超出即丢弃（台账 best-effort，
+# 不为记历史拖垮排盘）。32 ≈ 正常点击永远碰不到、洪峰可吸收。
+_SAVE_SLOTS = threading.BoundedSemaphore(32)
 
 
 _DDL = """CREATE TABLE IF NOT EXISTS records(
@@ -216,6 +219,23 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
     qiming），name 允许调用方覆盖摘要（合婚双人/塔罗张数等非生辰形）。"""
     if disabled():
         return
+    # R2509（审-P1-2）：演示/公开模式（BOOKS_WRITE_DISABLE）下六个
+    # 排盘端点照样把访客的生日/姓名/问题写进共享台账——操作者以为
+    # 写面全关，实际 PII 持续落库且全员可枚举。台账属「用户私域
+    # 数据」，公开模式下本就不该聚合。
+    try:
+        from web import deps as _deps
+        if not _deps.public_writes_open():
+            return
+    except Exception:  # noqa: BLE001 — web 层缺席（CLI 直调）时放行
+        pass
+    # R2509（审-P1-1）：每成功响应裸 spawn 一条线程——无鉴权端点被刷
+    # 时线程/内存（每条闭包钉住完整 result_dict）无界膨胀，耗尽后
+    # Thread.start() 在 services 里炸成 500 风暴。上限信号量：慢者
+    # 排队、溢者丢弃（台账本就 best-effort），写不崩响应。
+    if not _SAVE_SLOTS.acquire(blocking=False):
+        _log("save dropped: backlog full")
+        return
     # R2349q（ui_smoke history.wipe 实测）：排盘响应已返回、台账写线程
     # 仍在排队——wipe 的 DELETE 先落地、在途 INSERT 后落地 → 清空后
     # 鬼行复活。代次闸：wipe 抬 _WIPE_GEN，在代次切换前入队的写一律作废。
@@ -248,6 +268,8 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                     (KEEP_MAX,))
         except Exception as exc:  # noqa: BLE001 — 台账绝不拖垮排盘
             _log(f"save failed: {type(exc).__name__}: {exc}")
+        finally:
+            _SAVE_SLOTS.release()
 
     threading.Thread(target=_work, daemon=True,
                      name="paipan-history-save").start()

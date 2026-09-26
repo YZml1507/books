@@ -2245,9 +2245,46 @@ def _run_inner() -> list[str]:
     _pd = client.delete("/api/paipan/history/1")
     assert _pd.status_code == 404, ("paipan.disabled.delete", _pd.status_code)
     ok.append("paipan.disabled.read")
-    check("share.bazi", client.get("/api/share/bazi/1"),
-          lambda j: (j.get("title") and j.get("content")
-                     and j.get("image_color")))
+    # R2509：钉死 /1 依赖旧 fixture 行——derived 表被 wipe 探针清空后
+    # kb.get(1) 永久 404（本轮实测）。自建 note 得真实 id 再分享，
+    # 全链清回（threads.note 同构），不依赖库里有什么。
+    _sb = client.post("/api/threads", json={
+        "kind": "note", "claim": "selftest 分享卡夹具", "method": "selftest"})
+    assert _sb.status_code == 200, ("share.bazi.fixture", _sb.status_code)
+    _sbj = _sb.json()
+    _sb_tid, _sb_did = _sbj.get("thread_id"), _sbj.get("derived_id")
+    try:
+        check("share.bazi",
+              client.get(f"/api/share/bazi/{_sb_did}"),
+              lambda j: (j.get("title") and j.get("content")
+                         and j.get("image_color")))
+    finally:
+        try:
+            from web import deps as _depss
+            with _depss.knowledge() as _kbs:
+                if _sb_did is not None:
+                    _row = _kbs.db.execute(
+                        "SELECT claim FROM derived WHERE id=?",
+                        (_sb_did,)).fetchone()
+                    if _row:
+                        from guji.variants import fold as _folds, \
+                            segment_cjk as _segcs
+                        _kbs.db.execute(
+                            "INSERT INTO derived_fts(derived_fts, rowid, seg) "
+                            "VALUES('delete', ?, ?)",
+                            (_sb_did, _segcs(_folds(_row["claim"]))))
+                    _kbs.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                                    (_sb_did,))
+                    _kbs.db.execute("DELETE FROM derived WHERE id=?",
+                                    (_sb_did,))
+                if _sb_tid is not None:
+                    _kbs.db.execute("DELETE FROM turn WHERE thread_id=?",
+                                    (_sb_tid,))
+                    _kbs.db.execute("DELETE FROM thread WHERE id=?",
+                                    (_sb_tid,))
+                _kbs.db.commit()
+        except Exception:  # noqa: BLE001 — 清理失败不吞掉断言本体
+            pass
     check("user.prefs", client.get("/api/user/prefs"),
           lambda j: (j.get("theme") and isinstance(j.get("favorites"), list)))
     # R2342（R60-P1-9/10）：prefs 写路径护栏 + share 三类型/超长 id。

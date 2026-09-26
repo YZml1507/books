@@ -160,7 +160,7 @@ def resolve_birth(req) -> tuple[int, int, int]:
             d = lunar.lunar_to_solar(req.lunar_year, req.lunar_month,
                                      req.lunar_day, req.lunar_leap)
         except ValueError:
-            raise ValidationError("农历日期没换算成——查查是不是填错了月日") from None
+            raise ValidationError("农历日期没换算成——可能是月日对不上，换个日子试试") from None
         # R228p：农历 2100 年腊月换算到公历会溢出到 2101-01/02——
         # 下游干支/节气走天文算法（不受农历表 2100 界限制），此处按
         # YEAR_HI+1 放行；农历输入年本身仍由 lunar_to_solar 的表界把守。
@@ -234,8 +234,8 @@ def bazi(req) -> dict:
     # R230a-7（R13-P1-3）：时辰留空 → warm reply 首部明示时柱是默认午时，
     # 响应带 hour_known 供前端卡面标注。此前静默按午时排。
     if req.hour_known is False:
-        warm["reply"] = ["没填时辰——时柱这条按中午 12 点算的，"
-                          "前三柱（年/月/日）不受影响，照样准。"] + list(
+        warm["reply"] = ["没填时辰——我按中午 12 点排的盘，"
+                          "年/月/日三柱不受影响，大方向可参考。"] + list(
                               warm.get("reply") or [])
 
     # R187b（specs/006）：AI 润色层，additive 附加。失败/关闭 → None，
@@ -326,8 +326,8 @@ def taohua(req) -> dict:
     # R2349s（R84-P1-12）：时辰未知明示——此前前端静默预填 10 点，
     # 用户以为排的是真时辰。
     if getattr(req, "hour_known", True) is False:
-        warm["reply"] = ["没填时辰——时柱这条按中午 12 点算的，"
-                         "桃花判定前三柱为主，大方向不变。"] + list(
+        warm["reply"] = ["没填时辰——我按中午 12 点排的盘，"
+                         "桃花主要看年/月/日三柱，大方向不变。"] + list(
                              warm.get("reply") or [])
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
@@ -386,7 +386,7 @@ def hehun(req) -> dict:
     if _age(req.a_year, req.a_month, req.a_day) < 18 or \
             _age(req.b_year, req.b_month, req.b_day) < 18:
         raise ValidationError(
-            "合婚是给成年人测的——这一位还没满 18 岁，长大点再来呀～")
+            "合婚是给成年人测的——有一方还没满 18 岁，把生日改对或长大点再来呀～")
     # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
     if ((req.a_year, req.a_month, req.a_day, req.a_hour, req.a_gender)
             == (req.b_year, req.b_month, req.b_day, req.b_hour,
@@ -442,7 +442,7 @@ def hehun(req) -> dict:
     _unk = [s for s in _unk if s]
     if _unk:
         warm["reply"] = [f"{'和'.join(_unk)}的时辰没填——"
-                         "那侧按中午 12 点排的，日支/合婚主线不受影响。"
+                         "那边按中午 12 点排的，主线不受影响。"
                          ] + list(warm.get("reply") or [])
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
@@ -505,7 +505,7 @@ def qiming(req) -> dict:
     # R2349s（R84-P1-12）：时辰留空明示——不再静默按预填 12 点排。
     if getattr(req, "hour_known", True) is False:
         out["warm"]["reply"] = ["没填时辰——按中午 12 点排的盘，"
-                                "五行分布前三柱为准，名字照挑。"] + list(
+                                "五行分布按年/月/日三柱看，名字照挑。"] + list(
                                     out["warm"].get("reply") or [])
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_qiming(out, req.gender, warm=out["warm"]))
@@ -565,10 +565,10 @@ def xingzuo(date_str: str | None = None) -> dict:
 def search(q: str, *, layer: str | None = None, work: str | None = None,
            genre: str | None = None, scheme: str | None = None,
            limit: int = 10) -> dict:
-    q = _require_q(q, what="查询词不能为空——检索需要查询词；找某个地址请用 /api/addr")
+    q = _require_q(q, what="查询词不能为空——想找某个具体段落请用「定位」页")
     # R230s（R30-#9）：limit<=0 此前静默钳成 1——如实 400。
     if limit < 1:
-        raise ValidationError("一次最多取 50 条")
+        raise ValidationError("条数至少填 1——最多能取 50 条")
     limit = min(limit, 50)
     with deps.corpus() as c:
         # R230a-33（R14-P3-6）：scheme 与 addr 同纪律——未知值 400 而非静默零命中。
@@ -643,7 +643,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
         raise ValidationError(
             f"这种编址方式不支持——可选：{' / '.join(deps.SCHEME_NAMES.values())}")
     if limit < 1:
-        raise ValidationError("一次最多取 100 条")
+        raise ValidationError("条数至少填 1——最多能取 100 条")
     limit = min(limit, 100)
     # R230s（R30-#14）：与所选 scheme 不相干的参数如实披露，不静默吞。
     if scheme == "zhouyi":
@@ -3616,14 +3616,21 @@ def daily(date_str: str | None = None,
         # R2502（R143 延伸）：BOOKS_WRITE_DISABLE 公开展示态下 GET 也照写
         # daily_cache——共享库写面应全拒。写禁时跳过落库，照算照回。
         if deps.public_writes_open():
-            with deps.knowledge() as kb:
-                # R2349t（R87-P0-1）：personal 是请求方生辰派生——整包落
-                # daily_cache 会让无 bday 的请求拿到上一用户的日主行，
-                # wipe 也够不着（缓存只按日期窗口清）。落库剔除；
-                # 每请求现算成本=一次干支查表。
-                kb.set_daily_cache(
-                    date_str,
-                    bazi={k: v for k, v in result.items() if k != "personal"})
+            # R2509（审-P2-3）：缓存写失败（库只读/长锁）曾把整个算好的
+            # result 掉进「没算出来」降级——缓存写是辅助面，失败不该
+            # 伪报计算失败。独立 try，写挂照样回真卡。
+            try:
+                with deps.knowledge() as kb:
+                    # R2349t（R87-P0-1）：personal 是请求方生辰派生——整包落
+                    # daily_cache 会让无 bday 的请求拿到上一用户的日主行，
+                    # wipe 也够不着（缓存只按日期窗口清）。落库剔除；
+                    # 每请求现算成本=一次干支查表。
+                    kb.set_daily_cache(
+                        date_str,
+                        bazi={k: v for k, v in result.items()
+                              if k != "personal"})
+            except Exception:  # noqa: BLE001
+                pass
         return result
     except Exception:                                 # 计算失败降级为"平"，不 500
         # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文

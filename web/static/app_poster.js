@@ -793,8 +793,8 @@ function buildShareData(view, j) {
         }).join('、');
         if (_lg) {
           sly.lines = [{ k: '起到的卦', v: _lg }];
-          if (_lm) sly.lines.push({ k: '动爻', v: _lm });
-          else sly.lines.push({ k: '动爻', v: '静卦 · 格局稳住' });
+          if (_lm) sly.lines.push({ k: '动的那一爻', v: _lm });
+          else sly.lines.push({ k: '动的那一爻', v: '静卦 · 格局稳住' });
           var _lgb = _gsS(_bian.gua_name);
           if (_lgb && _lgb !== _lg) {
             sly.lines.push({ k: '走向', v: _lg + ' → ' + _lgb });
@@ -850,7 +850,7 @@ function buildShareData(view, j) {
       var _bec = (w && w.energy_card) || {};
       _bir.big = _bsign ? ('你是 ' + _bsign + '座') : (l0 || '本命已就位');
       _bir.lines = [];
-      if (_bp.length) _bir.lines.push({ k: '四柱', v: _bp.join(' · ') });
+      if (_bp.length) _bir.lines.push({ k: '生辰四柱', v: _bp.join(' · ') });
       var _bfe = (((j && j.calc) || {}).five_elements || {}).counts || {};
       /* R2349m（R75-P2-4）：「木 0.3·火 2·土 1.3」小数口径机器味——
        * 海报只留偏旺行（取整 ≥1），弱的本来就不该当卖点。 */
@@ -968,7 +968,7 @@ function buildShareData(view, j) {
       var ec = (w && w.energy_card) || {};
       sb.big = l0 || '本命已就位';
       sb.lines = [];
-      if (pillars.length) sb.lines.push({ k: '四柱', v: pillars.join(' · ') });
+      if (pillars.length) sb.lines.push({ k: '生辰四柱', v: pillars.join(' · ') });
       if (ec.element) sb.lines.push({ k: '本命', v: _pStr(ec.element) + (ec.element_warm ? '（' + _pStr(ec.element_warm) + '）' : '') });
       var _lc = _pArr(ec.lucky_colors), _ln = _pArr(ec.lucky_numbers);
       if (_lc.length) sb.lines.push({ k: '幸运色', v: _lc.slice(0, 3).map(_pStr).join(' · ') });
@@ -987,9 +987,9 @@ function buildShareData(view, j) {
         z = _pStr(z);
         return z && _zhiAn[z] ? (z + '（' + _zhiAn[z] + '）') : z;
       };
-      if (_pStr(j && j.peach_zhi)) st.lines.push({ k: '桃花支', v: _zhiCn(j.peach_zhi) });
+      if (_pStr(j && j.peach_zhi)) st.lines.push({ k: '桃花位置', v: _zhiCn(j.peach_zhi) });
       var _hp = _pArr(j && j.hit_pillars);
-      if (_hp.length) st.lines.push({ k: '命中柱', v: _hp.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || _pStr(p); }).join(' · ') });
+      if (_hp.length) st.lines.push({ k: '落在哪柱', v: _hp.map(function (p) { return ({ year: '年柱', month: '月柱', day: '日柱', hour: '时柱' })[p] || _pStr(p); }).join(' · ') });
       if (_pStr(j && j.hongluan)) st.lines.push({ k: '红鸾星', v: _zhiCn(j.hongluan) });
       if (_pStr(j && j.tianxi)) st.lines.push({ k: '天喜星', v: _zhiCn(j.tianxi) });
       /* R233t（R51-P1-9）：裸枚举 strong 上图社死——映射人话。 */
@@ -1024,8 +1024,8 @@ function buildShareData(view, j) {
       }
       /* R233t（R51-P2-14）：「六冲/六合」行话不上图——人话映射。 */
       if (j && j.clash === true) sh.lines.push({ k: '需要磨合', v: '冲合有磕绊' });
-      if (j && j.combine === true) sh.lines.push({ k: '天作之合', v: '日主相合' });
-      if (j && typeof j.peach_same === 'boolean') sh.lines.push({ k: '桃花支', v: j.peach_same ? '同支共振' : '各有桃花' });
+      if (j && j.combine === true) sh.lines.push({ k: '天作之合', v: '本命相合' });
+      if (j && typeof j.peach_same === 'boolean') sh.lines.push({ k: '桃花位置', v: j.peach_same ? '同支共振' : '各有桃花' });
       if (j && j.gan_he === true) sh.lines.push({ k: '天干相合', v: '有' });
       if (!sh.lines.length) sh.lines = [{ k: '结论', v: _gSlice(l0, 15) || '天作之合' }];
       return sh;

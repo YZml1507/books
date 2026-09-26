@@ -422,7 +422,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
                            "bazi-hit", q, _today_cn().isoformat()))
     else:
         lines.append(f"你问{quoted}——这属于{label}，"
-                     f"但这块在四柱天干上没有直接落点。")
+                     f"但这块在你盘里没有直接对应的落点。")
         # R229z续23（R11-#17/#18）：去内部腔——「本项目的规矩」「通盘坐标」
         lines.append(_pick(["小满不瞎编——没有的东西不硬凑。",
                             "盘上没有的我不硬说——这是小满的规矩。",
@@ -435,8 +435,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         r = rels[0]
         warm = RELATION_WARM.get(r.get("type") or "", "")
         if warm:
-            lines.append(f"另外四柱里有{r.get('type')}（{r.get('a', '')}×"
-                         f"{r.get('b', '')}）——{warm}。")
+            # R2509（审-P2-9）：默认路径不裸说「四柱」。
+            lines.append(f"另外你盘里有个「{r.get('type')}」的关系"
+                         f"（{r.get('a', '')}×{r.get('b', '')}）——{warm}。")
     # R230a-7（R13-P1-9）：今日十神进正文，破跨日复读。
     _dl = calc.get("day_luck") or {}
     _rel = str(_dl.get("day_master_rel") or "")
@@ -450,7 +451,10 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
 def _reply_no_question(day_master: str, calc: dict) -> list[str]:
     fe = calc.get("five_elements") or {}
     mine = _day_element(day_master)
-    lines = [f"你的日主是{day_master}（{mine}），"
+    # R2509（审-P1-3）：流量最大的一句暖文案——「日主」首次出现
+    # 就地注解，不指望用户去翻专业释义。
+    lines = [f"你的日主（出生那天的天干，也就是你的本命五行）"
+             f"是{day_master}（{mine}），"
              f"{ELEMENT_WARM.get(mine, ('', ''))[1]}。"]
     strong, missing = fe.get("strong") or [], fe.get("missing") or []
     if strong:
@@ -484,7 +488,11 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         _r0 = _dbr[0]
         _w = RELATION_WARM.get(_r0.get("type") or "", "")
         if _w:
-            lines.append(f"今天的日子碰到你的{_r0.get('pos', '')}"
+            # R2509（审-P2-10）：pos 是「日支/年支」行话——译成位置白话。
+            _pos_cn = {"日支": "夫妻/感情位", "年支": "根基位",
+                       "月支": "成长位", "时支": "归宿位"}.get(
+                _r0.get("pos") or "", _r0.get("pos") or "某个位置")
+            lines.append(f"今天的日子碰到你的{_pos_cn}"
                          f"（{_r0.get('type')}）——{_w}。")
     lines.append("想问具体的事，在上面填一句就行。")
     return lines[:5]
@@ -688,8 +696,10 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                         f"妻星落在{_YAO_POS_CN.get(_qc[0], '第' + str(_qc[0]))}爻"
                         + ("（动爻，正在动的点上）" if _qc[0] in ml else ""))
                 if _bits:
+                    # R2509（审-P2-14）：括号里的「官鬼/妻财」是把刚翻译完
+                    # 的黑话又塞回来——温柔版纪律（六亲白话）已破，删掉。
                     _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
-                             "（官鬼/妻财）——这卦里" + "、".join(_bits))
+                             "——这卦里" + "、".join(_bits))
                 else:
                     _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
                              "——两星都没直接落位，那就看代表你和事情的"
@@ -836,7 +846,10 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
             if _nxt:
                 seg.append(f"下一运 {_nxt.get('year_start')} 年前后换班"
                            f"（约 {_nxt.get('start_age')} 岁）")
-            reply = reply + ["大运节奏：" + "；".join(seg) +
+            # R2509（审-P1-1）：默认受众是 15–25 岁，「大运/第N运/干支
+            # 柱」裸出现看不懂——首提加口语注解、藏掉支柱名。
+            reply = reply + ["大运（十年一轮的大方向）节奏：" +
+                             "；".join(seg) +
                              "——方向感参考，不是日程表。"]
     return _wrap(
         one_liner(day_master, calc, question, gender=gender),
@@ -1205,7 +1218,8 @@ def warm_taohua(t: dict) -> dict:
     peach = t.get("peach_zhi") or ""
     yz = t.get("year_zhi") or ""
     if peach:
-        lines.append(f"你年支是{yz}，传统上对应的桃花位在「{peach}」——"
+        # R2509（审-P2-13）：「年支」译成属相——用户对自己的属相有概念。
+        lines.append(f"你的属相是{yz}，传统上对应的桃花位在「{peach}」——"
                      f"这是你的魅力方位，不是倒计时。")
     hits = [_PILLAR_WARM.get(p, p) for p in (t.get("hit_pillars") or [])]
     if hits:
@@ -1284,18 +1298,20 @@ def warm_hehun(h: dict) -> dict:
             l0 = _pick(_mid, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
 
     lines: list[str] = [f"{rel}。"]
+    # R2509（审-P1-4）：默认受众不认「日主五行/纳音/大运」行话——
+    # 首提一律译成「本命五行/五行小名/十年一轮的大方向」。
     if h.get("day_wx_sheng"):
-        lines.append(f"两人日主五行相生（{h.get('day_wx_a', '')}与"
+        lines.append(f"两人本命五行相生（{h.get('day_wx_a', '')}与"
                      f"{h.get('day_wx_b', '')}）——能量是顺着走的，"
                      f"一方天然愿意托着另一方。")
     elif h.get("day_wx_same"):
         # R230a-7（R13-P0-2）：同五行是比和——此前被归入「相克」口径。
-        lines.append(f"两人日主同是{h.get('day_wx_a', '')}——同气相属，"
+        lines.append(f"两人本命五行同是{h.get('day_wx_a', '')}——同气相属，"
                      f"合拍来得快，顶起来也镜像，各留半步就顺。")
     # R233u（R53-P1-3/P2-4）：相克日主在 warm 层不再沉默——最需要安抚的
     # 盘面恰好缺一句人话；日支（夫妻宫）结果也落屏。
     if not h.get("day_wx_sheng") and not h.get("day_wx_same"):
-        lines.append(f"两人日主五行相克（{h.get('day_wx_a', '')}与"
+        lines.append(f"两人本命五行相克（{h.get('day_wx_a', '')}与"
                      f"{h.get('day_wx_b', '')}）——能量会碰：磨合期长一点，"
                      f"但磨合好的相克盘反而最扛事。")
     _dz = h.get("day_zhi_rel") or ""
@@ -1311,19 +1327,21 @@ def warm_hehun(h: dict) -> dict:
         lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
                      f"{h.get('day_zhi_b','')}半合——相处里有天然的合拍。")
     if h.get("nayin_rel") == "比和":
-        lines.append(f"年命纳音同是{h.get('nayin_a','')}——命底相近，"
+        lines.append(f"年命纳音（五行的传统小名）同是"
+                     f"{h.get('nayin_a','')}——命底相近，"
                      f"很多事不用解释就懂。")
     elif h.get("nayin_rel") == "相生":
         lines.append(f"年命纳音相生（{h.get('nayin_a','')}与"
                      f"{h.get('nayin_b','')}）——传统上主互相滋养，"
                      f"在一起越久越顺。")
     if h.get("peach_same"):
-        lines.append(f"两人桃花支相同（都是{h.get('peach_a', '')}）——"
+        lines.append(f"两人桃花位相同（都是{h.get('peach_a', '')}）——"
                      f"对感情的期待容易同频。")
     # R204b（D-257b）：天干五合 + 十神互见的人话层（yinyuan skill 融入，
     # 日常语复用 TEN_GOD_WARM，无吉凶断言）
     if h.get("gan_he"):
-        lines.append("你们日干五合——传统上把这看作「天生对味」的组合，"
+        lines.append("你们俩的本命天干五合——传统上把这看作"
+                     "「天生对味」的组合，"
                      "相处时那种不用解释的默契是有来处的。")
     god_ab, god_ba = h.get("god_a_sees_b") or "", h.get("god_b_sees_a") or ""
     if god_ab and god_ba:
@@ -1343,7 +1361,7 @@ def warm_hehun(h: dict) -> dict:
     # R216b 续（UX 队列 U-017）：原实现无条件取 dayun_hits[0]（最早的大运
     # =童年期），产出「1997年前后…适合一起做决定」而两人当时 7 岁/5 岁的
     # 荒谬文案。修法：只取双方均已成年（≥16 岁）的大运；没有合格运就不给
-    # 行为建议，改为中性的「从 XXXX 年起你们进入大运互动期」描述。
+    # 行为建议，改为中性的「从 XXXX 年起你们进入大运（十年一轮）互动期」描述。
     # dayun_hits 数据本身零改动（selftest hehun.dayun 钉的 8 运口径不变），
     # 只是 warm 文案层做年龄过滤。
     _adult = [d for d in dayun if int(d.get("start_age_a", 99)) >= 16]
@@ -1354,20 +1372,20 @@ def warm_hehun(h: dict) -> dict:
         d0 = _adult[0]
         # F-015：当年份距今>10年时，降级为"远期参考"
         if abs(int(d0.get("year_start", 0)) - _now.year) > 10:
-            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+            lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
                          f"（{d0.get('relation', '')}）——远期参考，不是日程表。")
         elif str(d0.get("relation", "")) == "冲":
             # R233u（R53-P1-2）：冲运主摩擦动荡——劝「一起做决定」与
             # 冲的语义直接矛盾，改中性缓冲口径。
-            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+            lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
                          f"（冲）——那段时间容易顶上，重要的事留点缓冲、"
                          f"慢半拍再定。")
         else:
-            lines.append(f"{d0.get('year_start')}年前后两人的大运有互动"
+            lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
                          f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
     elif dayun:
         d0 = dayun[0]
-        lines.append(f"从{d0.get('year_start')}年起你们进入大运互动期"
+        lines.append(f"从{d0.get('year_start')}年起你们进入大运（十年一轮）互动期"
                      f"（{d0.get('relation', '')}）——节奏上的参考，不是日程表。")
     # R233j（R46-P1）：收口按两人日柱确定性抽池——每对组合不再同句。
     lines.append(_pick(["合婚看的是相处倾向，不是合格证——"
@@ -1403,11 +1421,18 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
     weak = [w for w in (fe.get("weak") or []) if w]
     kid = ("小姑娘" if gender == "女" else "小男孩" if gender == "男"
            else "宝宝")
-    sn = (surname or "").strip() or "这位"
+    sn = (surname or "").strip()
 
-    lines: list[str] = [
-        f"给{sn}家{kid}挑了 {len(names)} 个名字——都从古籍里来，"
-        f"不是凭空造的。"]
+    # R2509（审-P3-29）：空姓走「这位家小姑娘」语法不通；names 空时
+    # 「挑了 0 个名字——都从古籍里来」自相矛盾，各设分支。
+    if not names:
+        lines = ["这回没挑到合适的名字——换个条件再试试？"]
+    elif sn:
+        lines = [f"给{sn}家{kid}挑了 {len(names)} 个名字——都从古籍里来，"
+                 f"不是凭空造的。"]
+    else:
+        lines = [f"给{kid}挑了 {len(names)} 个名字——都从古籍里来，"
+                 f"不是凭空造的。"]
     if miss:
         # R2349s（R84-P2-13）：量词随个数变——两行说「这一行」语法别扭。
         _mq = "这一行" if len(miss) == 1 else "这几行"

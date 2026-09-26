@@ -91,6 +91,13 @@ class Derived:
     evidence: list[Evidence] = field(default_factory=list)
 
 
+# R2509（审-P2-6）：quick_check(1) 全页扫描按进程×文件只验一次——
+# deps.knowledge() 每请求建连接，原实现每个请求都付 O(库大小)
+# integrity scan。首验后（同进程同文件）跳过；schema DDL/补列/
+# 迁移幂等廉价仍每连接跑，自愈语义不变。
+_QC_OK: set[str] = set()
+
+
 class KnowledgeBase:
     """Derived + Conversation. Opening it never touches corpus.db."""
 
@@ -116,9 +123,16 @@ class KnowledgeBase:
             # 断电写坏中层页时 sqlite_master 完好、首个查询才炸。
             # knowledge.db 体积小，quick_check 全表扫一遍代价可忽略；
             # 非 ok 走同一条隔离自愈路径。
-            _qc = self.db.execute("PRAGMA quick_check(1)").fetchone()
-            if not _qc or _qc[0] != "ok":
-                raise sqlite3.DatabaseError("quick_check 未通过")
+            # R2509（审-P2-6）：但 quick_check 是 O(库大小) 全页扫——
+            # 原来每次 deps.knowledge() 获取都跑一遍（每请求一次
+            # integrity scan）。本进程内对同一文件首验后免检；文件被
+            # 换/删（makedirs 探针仍在）不算已验。DDL/补列/迁移本就
+            # 幂等且廉价，仍每连接跑保自愈。
+            if os.path.abspath(path) not in _QC_OK:
+                _qc = self.db.execute("PRAGMA quick_check(1)").fetchone()
+                if not _qc or _qc[0] != "ok":
+                    raise sqlite3.DatabaseError("quick_check 未通过")
+                _QC_OK.add(os.path.abspath(path))
         except sqlite3.OperationalError:
             raise   # OperationalError（锁/忙）不是损坏——透传不隔离
         except sqlite3.DatabaseError:

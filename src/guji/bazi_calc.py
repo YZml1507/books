@@ -29,7 +29,7 @@
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .bazi import Bazi, day_ganzhi, hour_ganzhi
 
@@ -257,7 +257,10 @@ def calc(b: Bazi, ask_date: str | None = None,
         dt = datetime(y, m, d, 12, 0, 0)
         dgz, _ = day_ganzhi(dt)
     else:
-        today = date.today()
+        # R2509（审-P3）：裸 date.today() 跟服务器本地时区走——UTC 部署
+        # 下北京 0–8 点把「今天」算成昨天（voice.py/services.py 的
+        # _today_cn 同口径，此处直调路径补齐）。
+        today = datetime.now(timezone(timedelta(hours=8))).date()
         dgz, _ = day_ganzhi(datetime(today.year, today.month, today.day, 12, 0, 0))
     day_rel = ten_god(day_master, dgz[0])
     day_branch = []
@@ -333,7 +336,9 @@ def calc_range(b: Bazi, start_date: str, end_date: str,
     if d1 < d0:
         raise ValueError("结束的日子要排在开始之后哦")
     span = (d1 - d0).days
-    if span > 31:
+    # R2509（审-P3）：闭区间天数 = span+1——「≤31 天」应拒 span≥31
+    # （旧 >31 让 31 天差的闭区间吐出 32 条，与文案不符）。
+    if span >= 31:
         raise ValueError("一次最多看 31 天，分几段查更清楚")
     pillars = [b.year, b.month, b.day, b.hour]
     zhis = [p[1] for p in pillars]

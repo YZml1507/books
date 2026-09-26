@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import ssl
+import sys
 import time
 import urllib.request
 import urllib.parse
@@ -120,15 +121,20 @@ def fetch_source(src: dict) -> dict:
     try:
         data = _fetch_bytes(src["url"], src.get("mode", "proxy"))
     except Exception as exc:  # 网络/超时/证书 → 单源降级
+        # R2509（审-P2-5）：debug 字段原样上公网响应——英文异常原文
+        # 泄漏实现细节。改打 stderr（运维排查够用），客户端只收中文。
+        print(f"[external] {src.get('id')} fetch failed: "
+              f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return {"id": src["id"], "title": src["title"], "url": src["url"],
-                "ok": False, "error": "这个源暂时拉不到",
-                "debug": f"{type(exc).__name__}: {exc}", "items": []}
+                "ok": False, "error": "这个源暂时拉不到", "items": []}
     try:
         items = parse_feed_bytes(data)
     except Exception as exc:
+        print(f"[external] {src.get('id')} parse failed: {exc}",
+              file=sys.stderr)
         return {"id": src["id"], "title": src["title"], "url": src["url"],
                 "ok": False, "error": "这个源的内容暂时读不懂",
-                "debug": f"解析失败: {exc}", "items": []}
+                "items": []}
     return {"id": src["id"], "title": src["title"], "url": src["url"],
             "ok": True, "error": "", "items": items}
 
@@ -161,8 +167,13 @@ def fetch_sources(sources: list[dict] | None = None, max_sources: int = 6) -> di
                 results.append(fut.result())
             except Exception as exc:  # 防御：单源不应让整批失败
                 s = futs[fut]
-                results.append({"id": s["id"], "title": s["title"], "url": s["url"],
-                                "ok": False, "error": str(exc), "items": []})
+                # R2509：同 P2-5——str(exc) 英文原文不上公网响应。
+                print(f"[external] {s.get('id')} worker failed: "
+                      f"{type(exc).__name__}: {exc}", file=sys.stderr)
+                results.append({"id": s["id"], "title": s["title"],
+                                "url": s["url"],
+                                "ok": False,
+                                "error": "这个源暂时拉不到", "items": []})
     # 按预置顺序稳定返回（as_completed 无序）
     order = {s["id"]: i for i, s in enumerate(srcs)}
     results.sort(key=lambda r: order.get(r["id"], 999))

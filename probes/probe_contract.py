@@ -761,6 +761,11 @@ def main() -> int:
                           else ("http", (r.status_code, r.text[:160])))
             return cache[url]
         if fx["method"] == "GET":
+            # R2509：线程列表读点要求非空——先确保契约线程已创建（与
+            # PATH resolver 同一先例）。库被清干净时裸 GET 返回 []，
+            # 11 个 j.threads.* 读点会全数 SKIP 挂 INCONCLUSIVE。
+            if url_real == "/api/threads":
+                fetch("POST /api/threads")
             r = client.get(url_real, params=fx.get("params"))
         else:
             _payload = fx.get("json")

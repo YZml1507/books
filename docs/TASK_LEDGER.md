@@ -13001,3 +13001,47 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   scripts_importable、date_parity、contract(同前 INCONCLUSIVE)、
   first_screen、baseline_voice、poster、warm_voice、xingzuo、
   plain_first、llm_polish、async_ai 全过。
+
+## R2509 — 契约闸自愈 + CSP 补位 + 温文案/绑定层三审收口
+
+- [x] **contract 闸 INCONCLUSIVE 清偿**（连续多轮 SKIP×11）：
+  GET /api/threads 裸 GET 空库→列表读点全 SKIP。fixture 补
+  「先建契约线程再 GET」自愈（PATH resolver 同先例），
+  638 读点全判、exit 0 PASS。`probes/probe_contract.py`
+- [x] **CSP 补位**（早前判「unsafe-inline 形同虚设」整体不配——
+  漏算了 connect-src/base-uri/object-src/frame-ancestors 价值）：
+  `_SEC` 统一字典，中间件+413 短路+SPA fallback 三通道同口径；
+  connect-src 'self' 封注入外联。真浏览器 4 视图零违规。
+  `web/app.py` + 补审-P2-4 SPA fallback 手工复刻漏 CSP。
+- [x] **审-guji**：六大高危边全健康（晚子时口径有warn、节气按
+  真时刻、闰月往返、塔罗确定性、星座边界（本条见下）、
+  同盘合婚拒同人不崩）。实修 2×P3：calc_range 闭区间
+  off-by-one（31 天差吐 32 条→拒）；ask_date=None 裸
+  date.today()→UTC+8 锚。死代码 "??" 月柱不可达不修。
+- [x] **自测-星座边界 off-by-one**：11/22 错归射手（民用主表
+  天蝎）——表内 11/12 条与主表一致只此条错位，改 11/23 起
+  射手。`src/guji/xingzuo.py` + 模块自检钉扎同步。
+- [x] **审-温文案**（15–25 受众适配，P1×6+P2/P3×~18 收主干）：
+  日主/大运/纳音/日支行话首提口语注解；taohua 大运表按
+  warm 模式折叠（合婚同构）；「非相生」改如实「相克」；
+  海报键位去行话；时辰没填三处统一「按 12 点排的盘」；
+  「那侧」「收到 {v}」「查查是不是」等机器腔清除；
+  起名空姓/0 名边缘分支。`voice.py services.py app.js
+  app_poster.js index.html`
+- [x] **审-绑定层**：①P1 save_async 无界线程→BoundedSemaphore
+  (32) 满则丢弃（洪峰不再线程耗尽→500 风暴）；②P1 公开模式
+  (BOOKS_WRITE_DISABLE) 下排盘台账照写访客 PII→save_async
+  挂 public_writes_open；③P2 daily_cache 写失败伪报「没算
+  出来」→独立 try；④P2 external debug 字段英文异常上公网→
+  stderr；⑤P2 quick_check 全页扫每请求一遍→进程内首验免检。
+- [x] **自测-测试基建**：ui_smoke 清理漏 derived→thread 的
+  NO ACTION 外键（wipe 后新 derived id<baseline 漏清→删线程
+  撞 FK）→先解绑再删；CSP 挡 Playwright wait_for_function→
+  context bypass_csp（探针测应用不测 CSP）；selftest
+  share.bazi 钉 /1 依赖外部 fixture→自建 note 全链清。
+- [x] **钉扎** `probes/probe_r2509.py`（21 项）。
+- [x] 闸门：selftest 310（含 BOOKS_LLM_DISABLE=1 复验）、
+  ui_smoke、contract 638、r2508 32、r2509 21、ruff E9F、
+  dollar_misuse、no_generated、scripts_importable 60、
+  date_parity、baseline_voice、warm_voice、xingzuo、poster、
+  llm_polish 全过。
