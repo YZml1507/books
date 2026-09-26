@@ -13925,3 +13925,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 发送→双气泡：chat-me（用户）+ chat-ai（mock 回复）渲染。
 - 孤儿 ** 残符被 renderRichText 剥净——气泡文本零 * 残留
   （mock 回复特意携带不配对 ** 的 fallback 用例）。
+
+## R2600 巡检#17——LLM 失败降级真链路实测全绿
+- 杀 mock 后 POST /api/chat → 任务异步落 status:failed + text:null
+  （真实传输失败路径，非 selftest 桩）。
+- 前端 failed 分支三处全人话兜底：聊天「（小满这次没接住，再说一遍
+  试试？）」/排队超时「（小满有点忙，再发一次试试？）」/AI 点评
+  「这次没点评出来，稍后再试」/附加块整块不渲染（D-244a）。
+- 零技术词、零僵死——降级层与用户语言一致。
