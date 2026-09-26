@@ -13723,3 +13723,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 此前该链只有 R2569 手工验证；check_async_ai 只管 DISABLE 降级面。README 闸表已登记（注：此探针勿加 BOOKS_LLM_DISABLE）。
 - 残余核验：sw.js shell-hash 同步（selftest 有闸强制）、依赖全为最新。
 - CI 收编：probe_chat_e2e 入 selftest.yml（check_async_ai 之后，无 DISABLE env）。
+
+## R2572 voice.py 全 warm 函数审计（同密度深潜第二轮）
+- reply_bazi 四分支（命中/未命中/敏感/无题）行动锚完备；one_liner 20字硬约束+术语人话化在位。
+- warm_bazi 人设卡提问优先纪律、life scope 大运人话段（15-25 注解口径）在案。
+- warm_tarot/liuyao/taohua/hehun/qiming 抽审：桃花方位/红鸾天喜/大运窗口/五行相生叙事均内容化，
+  无泛泛兜底路径；泛用词仅 _pick 池内轮换条目，合规。
+- TOPIC_HINT「子女」消费点确认（miss 路径 line 578）。无改造缺口。
