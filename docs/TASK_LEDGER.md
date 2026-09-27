@@ -14802,3 +14802,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   短语作种子（m2 命中 Euclid 公式）——steps 如实记「可
   见可复现」；全零命中路径由 answer.py「不推测」+selftest
   在产。
+
+## R2775 巡检#192——compare 校勘引擎
+- 谦·六五 6 见证对照：检出真异文 KR1a0031 缺「象曰利
+  用侵伐征不服也」10 字（omission 型 finding 带坐标行）
+  +agree:false+counts.omission=1+citations 带锚/! 标记。
