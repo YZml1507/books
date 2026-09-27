@@ -14923,3 +14923,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   concept/research/compare/ask 数据面扫完+黄历 affair
   生态（词族/否决簇/截断/过去日）+八字口径三披露
   （双派/节气桶/并列旺/性别取象/补缺/语料锚/语义层）。
+
+## R2801 巡检#218——hl_ask_dayoffset 前端偏移
+- 静态钉扎：_hlVerdictHtml 调用必带 _dayWord 参（判定
+  卡不写死「今天」）+conflict 双向包含判定器——R2697
+  浏览器层已实锤 chip 偏移日期/措辞真换。
