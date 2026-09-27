@@ -1204,6 +1204,16 @@ def liuyao(req) -> dict:
                         _xs = (_zb2 - _gs) % 12
                         _pp["xunkong"] = [_XZ[(_xs + 10) % 12],
                                           _XZ[(_xs + 11) % 12]]
+                # R3172：卦级六合/六冲——八纯+无妄+大壮为六冲卦（主散主快），
+                # 否泰困节旅贲复豫为六合卦（主缠主聚）。感情题最重的格局
+                # 属性，此前盘上没算。
+                _LH = {11, 12, 16, 22, 24, 47, 56, 60}
+                _LC = {1, 2, 25, 29, 30, 34, 51, 52, 57, 58}
+                for _gk in ("ben_gua", "bian_gua"):
+                    _g2 = _pp.get(_gk) or {}
+                    _gn2 = _g2.get("gua_number")
+                    _g2["liuhe_chong"] = ("六合" if _gn2 in _LH else
+                                          "六冲" if _gn2 in _LC else "")
             except Exception:
                 pass
     except Exception:

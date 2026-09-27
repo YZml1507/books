@@ -5452,14 +5452,19 @@ function buildLiuyaoResult(j) {
       var _yj2 = (j.paipan || {}).yuejian || '';
       var _rc2 = (j.paipan || {}).richen || '';
       var _xk2 = (j.paipan || {}).xunkong;
-      if (_yj2 || _rc2 || (_xk2 && _xk2.length)) {
+      var _lh2 = ((j.paipan || {}).ben_gua || {}).liuhe_chong || '';
+      if (_yj2 || _rc2 || (_xk2 && _xk2.length) || _lh2) {
         html += '<div class="yao-legend">' +
           (_yj2 ? '月建 ' + esc(_yj2) + '　' : '') +
           (_rc2 ? '日辰 ' + esc(_rc2) + '　' : '') +
           ((_xk2 && _xk2.length)
-           ? '旬空 ' + esc(_xk2.join('')) +
-             '<i class="yao-plain">这两支落空，事未坐实</i>'
-           : '') + '</div>';
+           ? '旬空 ' + esc(_xk2.join('')) + '　' : '') +
+          (_lh2 ? '<b>' + esc(_lh2) + '卦</b><i class="yao-plain">' +
+                  (_lh2 === '六合' ? '主缠主聚' : '主散主快') + '</i>'
+                : '') +
+          ((_xk2 && _xk2.length)
+           ? '<i class="yao-plain">（空支事未坐实）</i>' : '') +
+          '</div>';
       }
       html += '<div class="yao-legend">世=你自己　应=对方/这件事　' +
         '官鬼=事业与忧心　妻财=财物　父母=文书庇护　兄弟=同辈竞争　' +

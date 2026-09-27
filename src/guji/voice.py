@@ -1335,6 +1335,33 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     elif vname:
         lines.append("变卦与本卦相同，方向不改。")
 
+    # R3172：卦级六合/六冲格局——传统口径里六合主缠主聚（事黏糊，
+    # 急不得），六冲主散主快（一阵风，别拖）。本卦→变卦的合冲转
+    # 换是走向信号：先合后冲=眼下缠着长远散，先冲后合反之。
+    try:
+        _lh_b = ((_pp.get("ben_gua") or {}).get("liuhe_chong") or "")
+        _lh_v = ((_pp.get("bian_gua") or {}).get("liuhe_chong") or "")
+        if _lh_b and _lh_v and _lh_b != _lh_v:
+            lines.append(
+                f"卦象格局上，这卦{_lh_b}变{_lh_v}——传统口径里这是"
+                f"「先{'合着' if _lh_b == '六合' else '散着'}后"
+                f"{'散' if _lh_v == '六冲' else '合'}」的走向，"
+                "眼下与长远不是一回事，别拿当下一刻当结局。")
+        elif _lh_b:
+            lines.append(
+                f"卦象格局上，这卦是{_lh_b}卦——传统口径里"
+                + ("合主缠、主聚：这事黏糊，不会一拍两散，"
+                   "宜慢解不宜快刀。" if _lh_b == "六合" else
+                   "冲主散、主快：这事容易一阵风就过，"
+                   "拖泥带水反而更耗。"))
+        elif _lh_v and vname and vname != bname:
+            lines.append(
+                f"卦象格局上，变卦落{_lh_v}——往长远看这股劲是"
+                + ("「合上、黏住」的，急不得。" if _lh_v == "六合" else
+                   "「散开」的，别抱长久指望。"))
+    except Exception:
+        pass
+
     # R216b 续4（UX 队列 U-023）：直白节奏倾向语——由动爻数与卦变
     # 确定性推导，只描述节奏不给吉凶承诺（G7 红线内）。
     n = len(ml)
@@ -1374,7 +1401,10 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # R233u~R3168 同型四咬：每加一行处方（末位承重行）就被 [:N] 顶出去。
     # R3170 结构性修——不再逐次调 cap：含「卦辞爻辞」（处方/经文引导
     # 收尾行）的行先捞出保底，其余按序填满槽位，处方恒在队尾。
-    _CAP = 11
+    # R3172：六合冲格局行再占一行（seed42 实测连顶两次：cap 11/12
+    # 都把它挤掉）——最坏行序 13：卦名/节奏/坐标/倾向/应期/月令/
+    # 空亡/动爻/多动/回头/变卦/格局 + 处方尾行。
+    _CAP = 13
     if len(lines) <= _CAP:
         return lines
     _tail = [l for l in lines if "卦辞爻辞" in l]
