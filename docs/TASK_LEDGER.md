@@ -14976,3 +14976,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 真函数 node 抽测 7 例：@ADDR/@?/(file.txt) 全清、[wyg]
   [tls][w][gutenberg]→中文版本名、「!」分段标记清、null
   →空串不崩——用户面零内部记号。
+
+## R2812 巡检#229——离线感知链
+- offline→日换暖 toast；online→「网络回来了～」+
+  __lastDaily 空则自动重拉日签（DAILY_GEN 挡旧响应）；
+  冷启动离线 DOMContentLoaded 补同款提示（R230d——
+  offline 事件只发在线→离线转换）；另发现 _aiPollGate
+  hidden/offline 门控轮询+AI_PENDING 切视图恢复登记。
+  （注：read 工具偏移显示异常，内容以 sed/grep 为准。）
