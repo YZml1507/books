@@ -15950,3 +15950,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   与 animotion 真加载）。
 - var() 40 引用全有定义（47 定义含 JS setProperty
   动态令牌合并口径）——令牌改名静默失效面零。
+
+## R2947 巡检#364——0turn 线程详情+limit 实测
+- note 线程详情：自动「开题」turn + claim 行 + verify
+  计数器（ok/stale）——0 研究轮详情结构不塌。
+- 列表 limit=50+total+truncated 三键披露；探针线程
+  与 derived 行已全清。
