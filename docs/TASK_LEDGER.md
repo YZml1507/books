@@ -15368,3 +15368,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   recent_used），文案暖白话（大白话解读/轻决策/看
   缘分/桃花走势）贴合 009 受众；recent/recent_used
   是最近使用位（空历史零捏造如实空表）。
+
+## R2866 巡检#283——真修#7：ui_smoke favorites 水位
+- 实测发现 favorites 表挂「我×TA」合婚收藏：savepair
+  用例每轮真写 /api/favorites（ref_id 幂等只留 1 行
+  但照样挂库污染用户「测过的 CP」），清理块零基线。
+- 修：baseline 记 favorites max_id + 清理块水位以上
+  DELETE；重跑清理单出现 favorite#1，五表归零。
+- 验证：ui_smoke PASS + selftest 312 全绿。

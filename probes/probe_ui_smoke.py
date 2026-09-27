@@ -283,6 +283,11 @@ def main() -> int:
         # 一行 thread+turn——跟 derived 一样按基线回收，别让线程表越堆越脏。
         thread_baseline = kb.db.execute(
             "SELECT COALESCE(MAX(id),0) AS m FROM thread").fetchone()["m"]
+        # R2866：favorites 也要水位——hehun.savepair 用例点「存这对」
+        # 真写 /api/favorites（同 ref_id 幂等每轮最多+1 行，但行照样
+        # 挂库污染用户「测过的 CP」）。与 thread/derived 同款水位。
+        fav_baseline = kb.db.execute(
+            "SELECT COALESCE(MAX(id),0) AS m FROM favorites").fetchone()["m"]
 
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([ROOT, os.path.join(ROOT, "src"),
@@ -2165,6 +2170,15 @@ def main() -> int:
                           (drow["id"],))
             kb.db.execute("DELETE FROM derived WHERE id=?", (drow["id"],))
             cleaned.append(f"derived#残留{drow['id']}")
+        # R2866：favorites 水位以上行清——savepair 写入的收藏行，
+        # 幂等去重让它每轮只+1，但不清就永久挂在用户收藏里。
+        # 无子表无外键直接删。
+        for frow in kb.db.execute(
+                "SELECT id FROM favorites WHERE id > ?",
+                (fav_baseline,)).fetchall():
+            kb.db.execute("DELETE FROM favorites WHERE id=?",
+                          (frow["id"],))
+            cleaned.append(f"favorite#{frow['id']}")
         kb.db.commit()
     hist_after = history_db.count()
 
