@@ -16158,3 +16158,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 本批 11 轮：tarot/huangli affair/xingzuo/daily/widget
   /share 面+真浏览器五链（IA/问一嘴/bazi/liuyao/
   chat）全绿，零真缺陷。
+
+## R2974 巡检#391——真浏览器 hehun 合婚链
+- 双人表→合盘→52/99+无冲合诚实（「靠你们自己写」）
+  +五行相克重构（「磨合好最扛事」）+干合「天生
+  对味」+互看非对称（靠谱感 vs 踏实感）+时辰默认
+  披露+「合的是节奏不是命」收口；分享/存对/邀
+  TA 三动作位在。零 pageerror。
+- 残留审计：EPIPE 崩溃轮逃逸的 savepair 收藏行
+  （id=1，smoke fixture ref_id）已手动清除——水位
+  机制对崩溃轮无回溯属已知边界。
