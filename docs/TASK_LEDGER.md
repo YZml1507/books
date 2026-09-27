@@ -14809,5 +14809,5 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   +agree:false+counts.omission=1+citations 带锚/! 标记。
 
 ## R2776 巡检#193——widget 首页小组件
-- 9 模块（bazi/book/tarot/huangli/…）各带 icon/title/
+- 8 模块（bazi/book/tarot/huangli/…）各带 icon/title/
   desc/recent/recent_used——功能卡数据源在产。
