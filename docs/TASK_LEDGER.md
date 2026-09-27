@@ -15646,3 +15646,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   存在——dict 值全过标量化防 [object Object]；
 - on_wiring：on('id') 注册集⊆index.html+app.js
   模板 id 集——R2803 实测 33 注册零死绑。
+
+## R2902 巡检#319——nameReview 点评面核对
+- schema：names≤6/逐个 strip_zw/≤8字/facts≤20×500
+  ——净化回写防 C0/零宽/双向符进 prompt；
+- 任务链：rate_limited 哨兵（区分关停与太急）+
+  _MAX_TASK_ROWS/_MAX_PENDING 双帽（未鉴权点评
+  防烧 quota）+ started 单调+失败不落 pending。
