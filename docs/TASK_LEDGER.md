@@ -15163,3 +15163,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   ValidationError→400/ComputeError→422/NotFound→404/
   HTTPException→404 中文/RequestValidation→422 中文/
   OverflowError→400。
+
+## R2836 巡检#253——home.ia 信息架构
+- 10 卡次序实钉：tarot→bazi→taohua→hehun→huangli 五
+  直达（双人意图桃花/合婚相邻、黄历殿后）+xingzuo+
+  history+chat 伪视图（走 chatOpen 不走 showView）+
+  liuyao/qiming 抽屉默认折叠；可见区零研究词（检索/
+  比对/书目/线程/书ID/编址）——spec/009 默认路径落实。
