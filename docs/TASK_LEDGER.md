@@ -17165,3 +17165,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「针对」段挂盘面落点——审计绿。
 - 残余软话全端横扫（14 禁词族 × ~40 产出：bazi/hehun/taohua/
   qiming/liuyao/tarot/daily/xzmatch）零命中。
+
+## R3106——cross_ref 星座文案第三池与判词层对齐 + 真机视觉复核
+- 揪出第三套 xzmatch 文案：_cross_ref_hehun 的 else 分支让相冲
+  象组（水火/风土）与随缘组同吃 3 条通用池（「一个快一个慢…」）。
+  相冲组改报具体吵点+处方（与 R3101 xzmatch 同口径）。
+- 钉 hehun.crossref_friction；selftest 337。
+- 真机视觉：合婚卡判词/剧本/处方/交权全渲染正常（截图复核）。

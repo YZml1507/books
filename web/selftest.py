@@ -1040,6 +1040,16 @@ def _run_inner() -> list[str]:
         ("hehun.cross_ref.sun_sign", _crh)
     print("  hehun.cross_ref.sun_sign PASS（双子 × 金牛）")
     ok.append("hehun.cross_ref.sun_sign")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R3106（specs/010）：cross_ref 相冲象组（白羊火×巨蟹水）须报
+    # 具体吵点+处方——「快慢互补」池对相冲盘是错档文案。
+    _crh2 = client.post("/api/hehun", json={
+        "a_year": 2002, "a_month": 3, "a_day": 25, "a_hour": 10,
+        "a_gender": "女", "b_year": 1999, "b_month": 7, "b_day": 8,
+        "b_hour": 14, "b_gender": "男"}).json()
+    _crm = ((_crh2.get("cross_ref") or {}).get("message") or "")
+    assert "不懂我" in _crm or "接住" in _crm or "感受" in _crm, \
+        ("hehun.crossref_friction", _crm[:150])
+    ok.append("hehun.crossref_friction")
     # R111b（D-157b）：桃花运纯坐标计算 standing 覆盖——固定生日→固定输出，
     # 断言咸池/红鸾/天喜字段齐全且 render 含坐标事实。
     check("taohua", client.post("/api/taohua", json={"year": 1990, "month": 5,

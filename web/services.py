@@ -4065,6 +4065,17 @@ def _cross_ref_hehun(ba, bb, a_md: tuple = (), b_md: tuple = ()) -> dict:
         elif {_ELEM.get(sa), _ELEM.get(sb)} in ({"火", "风"}, {"土", "水"}):
             tip = (f"{sa}座配{sb}座，风火相煽/土水相养的路数——"
                    "能量是互相喂的，搭好了很旺。")
+        elif frozenset({_ELEM.get(sa), _ELEM.get(sb)}) in _SIGN_HARD:
+            # R3106（specs/010）：相冲象组与 xzmatch 同口径——报具体
+            # 吵点+处方，不再吃「快慢互补」通用池（66 对 3 模板实测）。
+            _hh = {frozenset({"火", "水"}):
+                       "一个急着冲、一个先要情绪被接住——最容易吵在"
+                       "「你不懂我」；急的先回应感受，慢的直接说要什么。",
+                   frozenset({"风", "土"}):
+                       "一个要变化、一个要落地——吵的点在「靠不靠谱」；"
+                       "大事听土象定盘，小事随风象兴头。"}
+            tip = (f"{sa}座配{sb}座，"
+                   + _hh[frozenset({_ELEM.get(sa), _ELEM.get(sb)})])
         else:
             _pool = [f"{sa}座配{sb}座，节奏不一样反而互补，谁先开口谁占便宜。",
                      f"{sa}座配{sb}座，一个快一个慢——慢的那个决定走多远。",
