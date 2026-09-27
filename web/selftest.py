@@ -2334,6 +2334,15 @@ def _run_inner() -> list[str]:
           params={"a": "双子", "b": "摩羯"}),
           lambda j: ("处方" in (j.get("line") or "")
                      and "听懂" not in (j.get("line") or "")))
+    # R3130：合盘升判词级——lines 面四行结构（判词/场景/处方/交权尾）
+    # 六象组全配，缺失或退回单行即红。
+    check("xzmatch.lines", client.get("/api/xzmatch",
+          params={"a": "金牛", "b": "天蝎"}),
+          lambda j: (isinstance(j.get("lines"), list)
+                     and len(j["lines"]) == 4
+                     and "日常画风" in j["lines"][1]
+                     and j["lines"][2].startswith("处方")
+                     and "地图" in j["lines"][-1]))
     _expect_400("xzmatch.bad", client.get("/api/xzmatch",
                 params={"a": "奥特曼", "b": "巨蟹"}))
     check("tarot.collection", client.get("/api/paipan/tarot_collection"),
@@ -3357,6 +3366,12 @@ def _run_inner() -> list[str]:
     assert _lp._chat_verdict_contra(
         "这步坎得一起扛", ["卡面判词行：判词直说：偏不合适——日支相冲"]
     ) is None
+    # R3132：polish 判词升格钉——「判词：」行必须渲成「判词口径·必须
+    # 一致」权威块，不能只是 facts 堆里的普通一条。
+    _pr = _lp._render(["双方性别：女 / 男",
+                       "判词：偏不合适——本命五行相克",
+                       "合拍指数：45/99"], "我们合吗")
+    assert "判词口径·必须一致" in _pr and "不许说反话" in _pr, _pr[:300]
     ok.append("chat.result_verdicts")
     # R3116：copy_bank chat_fallback_* 与 app.js 活池同源钉——
     # R3116 实测 JSON 已漂移（✨变体/4句 vs JS 6句），「同源复制」
