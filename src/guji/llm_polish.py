@@ -390,17 +390,21 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 「註定」全漏。_scan_form 剥记号/零宽/空白+繁折简，绕闸形态
     # 拼回真词再判（只用于判定，不改上屏文本）。
     _sf = _scan_form(text)
-    if _BANNED_OUT_PAT.search(_sf):
+    # R3069（巡#486）：禁语/引号窄表改扫 _scan_flat——「注.定」「必-离」
+    # 插符禁词不再直通上屏；内部串/泄露闸继续在带点 _sf 上跑
+    # （calc\\. / ctx： 依赖点号句号不被破坏）。
+    _sf2 = _scan_flat(text)
+    if _BANNED_OUT_PAT.search(_sf2):
         # R230t（R32-P2-13）：keep_citations 路径引文内的古词（《》/「」里
         # 的「克明俊德」类）不该撞禁语闸——剥掉引号段再扫。
         if keep_citations:
-            _unquoted = re.sub(r"《[^》]*》|「[^」]*」|『[^』]*』", "", _sf)
+            _unquoted = re.sub(r"《[^》]*》|「[^」]*」|『[^』]*』", "", _sf2)
             if _BANNED_OUT_PAT.search(_unquoted):
                 return None
             # R2524（审-LLM-P2-3）：引号豁免被「《注定》」「「必离」」
             # 式投放绕开——现代恐吓词在真古籍引文里几乎不出现，
             # 引号内单独补一张窄表（「相克/大凶」等真古词不进表防误伤）。
-            if _BANNED_QUOTE_PAT.search(_sf):
+            if _BANNED_QUOTE_PAT.search(_sf2):
                 return None
         else:
             return None
@@ -864,13 +868,19 @@ _FACT_ZW = re.compile(
 # 不做通用繁简转换；未收字原样通过）。
 _FACT_T2S = dict(zip(
     "曆歷體從規詞獄視設輸譯語說聽確給讓該當檔稱講讀寫開關閉啟這個們為與屬統權數據歲樣點條順嚴厲師專級員責評價處務態實認詳後喚執調試頁碼憑記錄監斷決變論訴訊誤導遺攜帶類別應擬偽裝竊臺賬號密鑰証訪終腳進環目錄徑內刪擇縮復復歷塗館鷄鴨鵝鶴",
-    "历历体从规词狱视设输译语说听确给让该当档称讲读写关关闭启这个们为与属统权数据岁样点条顺严厉师专级员责评价处务态实认详后唤执调试页码凭记录监断决变论讯讯误导遗携带类别应拟伪装窃台账号密钥证访终脚进环目录径内删择缩复复历涂馆鸡鸭鹅鹤"))
+    "历历体从规词狱视设输译语说听确给让该当档称讲读写开关闭启这个们为与属统权数据岁样点条顺严厉师专级员责评价处务态实认详后唤执调试页码凭记录监断决变论诉讯误导遗携带类别应拟伪装窃台账号密钥证访终脚进环目录径内删择缩复复历涂馆鸡鸭鹅鹤"))
 # R2995（巡#412）：危机/敏感判定归一化要吃的繁体用字——「自殺/
 # 腫瘤/強吻/猥褻/性騷擾/會不會死/還能活」全族。只收词族实际
 # 用字，不收著（著→着 会误伤「著名/著作」，活著走字符组处理）。
 _FACT_T2S.update(zip(
     "殺輕樓鬱燒藥腫絕臨強姦褻騷擾蹤脅嚇毆動繼練東機網領脫壓襠發飛牆餃湯圓凍樂蘋麥莊蘿蔔紙膠紀聞劇電綜藝遊戲車軟遞愛課題業書頻寵貓鳥魚蟲烏龜倉學戀氣飯覺妝髮膚話醫傷殘會嗎妳還對脈診術療極時風腎過膩厭複",
     "杀轻楼郁烧药肿绝临强奸亵骚扰踪胁吓殴动继练东机网领脱压裆发飞墙饺汤圆冻乐苹麦庄萝卜纸胶纪闻剧电综艺游戏车软递爱课题业书频宠猫鸟鱼虫乌龟仓学恋气饭觉妆发肤话医伤残会吗你还对脉诊术疗极时风肾过腻厌复"))
+
+# R3069（巡#486）：出侧禁语词族繁体——「註定/孤獨/沒戲/必離/相剋/
+# 災劫/大難/趕緊分/斷聯/必須/建議/約炮」模型吐出时此前漏折。
+_FACT_T2S.update(zip(
+    "註獨沒離剋災難趕緊聯須議約罷單",
+    "注独没离克灾难赶紧联须议约罢单"))
 
 
 def _norm_cs(msg: str) -> str:
@@ -966,6 +976,19 @@ def _scan_form(s: str) -> str:
     s = re.sub(r"[*_`~]+", "", s)
     s = re.sub(r"\s+", "", s)
     return "".join(_FACT_T2S.get(c, c) for c in s)
+
+# R3069（巡#486）：弱分隔符插字绕出侧闸——「注.定」「必-离」
+# 「断/联」模型吐出直通上屏。只剥装饰类分隔（句读 。，；：
+# 不剥——跨句拼接会误伤「注：定期」式合法文本）；点也剥，
+# 内部串闸继续在带点的 _scan_form 上跑（calc\\. 不被破坏）。
+_WEAK_SEP = re.compile(r"[.\-_/·'\"、．∙•・‒–—―]+")
+
+
+def _scan_flat(s: str) -> str:
+    """出侧禁语扫描的更强归一：_scan_form 之上再剥弱分隔符——
+    禁语词（注定/必离/孤独）内插装饰符拼回真词。只用于
+    _BANNED_OUT_PAT/_BANNED_QUOTE_PAT/_CHAT_BANNED_PAT 判定。"""
+    return _WEAK_SEP.sub("", _scan_form(s))
 
 
 def _fact_line(f) -> str:
@@ -1279,7 +1302,7 @@ def chat(session_id: str, user_msg: str,
         # 会话上下文里污染后续轮次（审查轨 chat-flow）。
         # R2524：归一形态复扫——_sanitize 已按归一形态判过，这里兜底
         # 零宽/词内空白/繁体写法的漏网组合。
-        if _CHAT_BANNED_PAT.search(_scan_form(text)):
+        if _CHAT_BANNED_PAT.search(_scan_flat(text)):
             text = ("我可能说得不太对。盘是盘，日子是你自己的——"
                     "按你自己舒服的来就好。")
 
@@ -1369,7 +1392,7 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
         # R230a-7：记录「回了但被禁语拦」与「没回/挂了」的区别。
         # R2524：扫归一形态——「注**定**」式绕闸原文也要计入 banned_seen，
         # 否则漏进 _sanitize 才拦，降级文案口径偏成「没回/挂了」。
-        if _BANNED_OUT_PAT.search(_scan_form(raw)):
+        if _BANNED_OUT_PAT.search(_scan_flat(raw)):
             if banned_seen is not None:
                 banned_seen.append(True)
             # R230t（R32-P1-6）：共情复读用户原话里的禁词会连环撞闸——

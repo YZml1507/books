@@ -2958,6 +2958,25 @@ def _run_inner() -> list[str]:
             "content": "你应该直接分手，别理他了"}}]}, config=_ccfg)
     assert _banned and "你自己舒服" in _banned, _banned
     ok.append("chat.banned.fallback")
+    # R3069（巡#486）：出侧插符/繁体禁词绕闸——「注.定」「必-离」
+    # 「你註定」模型吐出此前直通上屏（_scan_form 只剥空白不剥标点、
+    # T2S 缺禁语族繁体）；现与输入闸同口径压平+繁折简判。
+    for _t, _w in (("你注.定一生孤独", "注定"), ("这段感情必-离", "必离"),
+                   ("你们注定没戏", "注定"), ("你註定孤獨", "注定"),
+                   ("趕緊分了吧", "赶紧分"), ("斷聯最好", "断联"),
+                   ("听我的，別理他", "别理他"), ("你必須離開", "你必须")):
+        _o = _LC._sanitize(_t)
+        assert _o is None, ("插符/繁体禁词上屏", _t, _o)
+    # 豁免不误伤：句读跨句不拼禁词、否定 hedge、内部串带点仍可拦。
+    assert _LC._sanitize("注：定期复查就好") is not None, "句读误拼"
+    assert _LC._sanitize("你不.应该这么急") is not None, "否定 hedge 误伤"
+    assert _LC._sanitize("分数算出来是 calc 结果") is not None, "calc 误伤"
+    assert _LC._sanitize("错误在 calc.ten_gods 里") is None, "内部串漏拦"
+    # R3069b：T2S 错位实录修复——開→关/訴→讯 使「想不開」「告訴」
+    # 折错字（危机软词繁体形漏接）。
+    assert _LC._FACT_T2S["開"] == "开" and _LC._FACT_T2S["訴"] == "诉"
+    assert _LC._is_crisis("想不開了"), "繁体想不开漏接"
+    ok.append("out.evasion.r3069")
     # R229t：sid 洪泛防护——_CHAT_MAX_SESSIONS 封顶后 GC 逐最旧会话，
     # 海量唯一 session_id 不能撑爆内存。直接灌表测 GC（不走 API，
     # 否则每个会话要真发请求）。危机词短路返回不产生 LLM 调用。
