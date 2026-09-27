@@ -14629,3 +14629,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   堆栈泄漏），Solidot 8 条实时条目（title/link/published/
   summary）正常——单源失败降级在产；禁开关+异常兜底双
   层在代码面核过。
+
+## R2741 巡检#158——user/prefs 偏好写读
+- theme/recent_modules 写读回环通（JSON 值服务端序列化、
+  GET 反序列化回列表）；65 键/5000 字值各 400 人话；
+  键/值孤代理剥离（R2508）在码；测试态已复位 cream。
