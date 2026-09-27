@@ -15296,3 +15296,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   →400「给个卦号 1-64」；yilin ref=999→正常命中页锚
   非错误（ref 是页锚语义）；bookstudy 坏 work/缺参→
   404 中文。
+
+## R2856 巡检#273——threads 校验族补实测
+- claim 空白→422；thread_id 不存在→404「没找到」；
+  summary 无证据→400「断言型记录得带至少一条证据」
+  （认识论分层：note 观点可无证，summary 断言必带证）；
+  evidence×100→422；work_id 无 quote 字段放行（纯出处
+  引用合法）、quote 空白串才拒——针扎口径一致；失败
+  校验零孤儿线程；我造线程已清四表归零。
