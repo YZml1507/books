@@ -16044,3 +16044,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - warm 深：逐位置白话（节制=别走极端/皇后=别视
   而不见/权杖国王=主动权在你）+综合指引+details
   带 basis 槽。
+
+## R2960 巡检#377——share 分享卡面实测
+- bazi 卡：fixture→derived_id→title/subtitle/content/
+  image_color(#B8860B)/created_at 五键，claim 原样
+  入卡；tarot 码 abc123→解码「塔罗占卜结果」品牌色。
+- 三闸 404：野类型/81字超长id/非数字 bazi id。
+- FTS5 'delete' 清链验证：derived/thread/turn/
+  evidence 四表探针零残留。
