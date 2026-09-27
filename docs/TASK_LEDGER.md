@@ -14807,3 +14807,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 谦·六五 6 见证对照：检出真异文 KR1a0031 缺「象曰利
   用侵伐征不服也」10 字（omission 型 finding 带坐标行）
   +agree:false+counts.omission=1+citations 带锚/! 标记。
+
+## R2776 巡检#193——widget 首页小组件
+- 9 模块（bazi/book/tarot/huangli/…）各带 icon/title/
+  desc/recent/recent_used——功能卡数据源在产。
