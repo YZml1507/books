@@ -280,6 +280,21 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                     if isinstance(_res, dict) and "question" in _res:
                         _res = {k: v for k, v in _res.items()
                                 if k != "question"}
+                    # R3070（巡#487）：「针对「<q>」」节标题同样嵌原问题——
+                    # 落库存档+导出备份照样带走披露（实测 export 仍含
+                    # 「被父母打了」）。敏感问句的标题文本换中性代词，
+                    # 工件结构不失真；深拷贝防污染已发的实时响应。
+                    if isinstance(_res, dict):
+                        _interp = _res.get("interpretation")
+                        if isinstance(_interp, dict):
+                            import copy as _cp
+                            _it = _cp.deepcopy(_interp)
+                            for _s in _it.get("sections") or []:
+                                _t = _s.get("title")
+                                if isinstance(_t, str) and _qv in _t:
+                                    _s["title"] = _t.replace(
+                                        _qv, "这个问题")
+                            _res = {**_res, "interpretation": _it}
             except Exception:
                 pass   # 安全判定缺席不挡台账主路
             row_req = json.dumps(_rq, ensure_ascii=False)

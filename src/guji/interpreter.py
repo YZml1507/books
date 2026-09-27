@@ -32,6 +32,12 @@ from datetime import datetime, timedelta, timezone
 # R233r（R49-Top5-3）：词表与聊天层同源（llm_polish._is_sensitive）——
 # 此前两表漂移：这边多「寿命/要死了/病死」，那边多「存活率/晚期」，
 # 同一个问法过不同闸门宽严不一。软词排除表（多肉会不会死）也一并共享。
+# R3070（巡#487）：危机自伤问法——「我不想活了」crisis=True 而
+# sensitive=False，此前落空吐「没找到对应位置」黑话；与 voice 三处
+# 暖层同口径补危机转介行（含 12356 热线——比敏感行多一层）。
+_CRISIS_LINE = ("这个话题盘面真接不了，也不该靠它拿主意——"
+                "真的很难受，全国心理援助热线 12356（24 小时，免费）"
+                "随时能打通，找信得过的人聊聊才是正路。")
 _SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意——"
                    "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
                    "小满陪你说点别的也行。")
@@ -450,6 +456,10 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
     # R233g（R44-P0-1）：敏感问法优先拦截——此前落空吐「坐标维度」黑话。
     # R233r：与聊天层同一判定（lazy import 与 voice.py:1090 同款）。
     from guji import llm_polish as _lp
+    # R3070（巡#487）：危机优先于敏感判定（与 chat() 同序——自伤
+    # 走危机转介多带 12356；「我不想活了」crisis=T sens=F 此前落空）。
+    if _lp._is_crisis(q):
+        return [_CRISIS_LINE]
     if _lp._is_sensitive(q):
         return [_SENSITIVE_LINE]
     for kw, targets, label in _TOPIC_MAP:

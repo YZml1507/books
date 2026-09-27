@@ -2530,10 +2530,19 @@ def _run_inner() -> list[str]:
     _phx.DB_PATH = os.path.join(_tfx.mkdtemp(prefix="phx-"), "t.db")
     try:
         _phx.save_async({"seed": 1, "question": "被父母打了怎么办"},
-                        {"probe": "st-sens-1"}, rtype="liuyao",
+                        {"probe": "st-sens-1",
+                         # R3070（巡#487）：解释节「针对」标题嵌原问题——
+                         # 此前剥了 req/res 键但节标题文本照样带走披露
+                         # （实测 export 仍含）。落库时换中性代词。
+                         "interpretation": {"sections": [
+                             {"title": "针对「被父母打了怎么办」",
+                              "lines": ["x"]}]}}, rtype="liuyao",
                         name="六爻 · 被父母打了怎么办")
         _phx.save_async({"seed": 2, "question": "考研二战来得及吗"},
-                        {"probe": "st-sens-2"}, rtype="tarot",
+                        {"probe": "st-sens-2",
+                         "interpretation": {"sections": [
+                             {"title": "针对「考研二战来得及吗」",
+                              "lines": ["x"]}]}}, rtype="tarot",
                         name="考研二战来得及吗")
         _phx.save_async({"year": 1996, "month": 8, "day": 16,
                          "question": "我不想活了"},
@@ -2554,10 +2563,27 @@ def _run_inner() -> list[str]:
         assert not any("被父母打了" in s or "不想活了" in s
                        for s in _exp_all), ("export leak", _exp_all)
         assert any("考研二战来得及吗" in s for s in _exp_all), _exp_all
+        # R3070：敏感节标题落库换「这个问题」中性代词——结构失真不发生
+        # （节还在，只是不嵌披露文本）；良性标题原文保留。
+        _sens_titles = [
+            s.get("title") for r in _phx.export_all()
+            for s in ((r.get("result") or {}).get("interpretation") or {})
+            .get("sections") or []]
+        assert "针对「这个问题」" in _sens_titles, _sens_titles
+        assert "针对「考研二战来得及吗」" in _sens_titles, _sens_titles
     finally:
         _phx.DB_PATH = _saved_db
         if _saved_dis is not None:
             os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = _saved_dis
+    # R3070（巡#487）：_focus_lines 危机闸——「我不想活了」此前只吃
+    # 敏感单闸落空吐「没找到对应位置」黑话；危机（含 12356）与敏感
+    # 分行转介，与 voice 暖层同口径。
+    import guji.interpreter as _ITP
+    _calc0 = {"ten_gods": [], "five_elements": {}}
+    assert _ITP._focus_lines("我不想活了", _calc0) == [_ITP._CRISIS_LINE]
+    assert "12356" in _ITP._CRISIS_LINE
+    assert _ITP._focus_lines("被家暴了", _calc0) == [_ITP._SENSITIVE_LINE]
+    ok.append("focus.crisis_gate")
     _exp = sorted([
         ("六爻起卦", ""),
         ("考研二战来得及吗", "考研二战来得及吗"),
