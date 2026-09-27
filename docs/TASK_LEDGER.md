@@ -15653,3 +15653,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 任务链：rate_limited 哨兵（区分关停与太急）+
   _MAX_TASK_ROWS/_MAX_PENDING 双帽（未鉴权点评
   防烧 quota）+ started 单调+失败不落 pending。
+
+## R2903 巡检#320——paipan 导入面实测
+- 合法行导入 200 imported=1+new_records 新 id 回灌
+  （备份完整 req/result 按新 id 镜像详情）；
+- 同 (ts,name,type) 重复导入幂等 skip=1 不产重复行；
+- 防线实测：eviltype 白名单外拒/req+result 双空壳
+  拒/控制字剥离/字段截断/KEEP_MAX 滚动帽。
