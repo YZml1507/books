@@ -182,6 +182,15 @@ def polish(facts: list[str], question: str | None = None,
     单次成功率不足，重试后整体可用性显著提升。重试不改变确定性语义——
     本函数本来就因 LLM 而不可复现，降级路径同样如此。
     """
+    # R3018（真修#17）：question 是模板 user 位的裸用户文本——危机/敏感
+    # 问句此前照样交 LLM 写解读，输出净化只剥宿命词不给转介，LLM 关闭
+    # 时则静默缺席。确定性短路先于一切检查（罐头不依赖 LLM 在线、
+    # 不烧 quota），与 chat/问一嘴同口径。
+    if isinstance(question, str) and question.strip():
+        if _is_crisis(question):
+            return _CHAT_REFUSAL
+        if _is_sensitive(question):
+            return _SENSITIVE_REPLY
     cfg = config or load_config()
     if cfg is None:
         return None

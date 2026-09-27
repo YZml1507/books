@@ -201,6 +201,11 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# R3018（#17b）：敏感问题剥名后的中性回落标签——不含披露文本。
+_RTYPE_LABEL = {"bazi": "八字排盘", "taohua": "桃花运势", "hehun": "合婚",
+                "tarot": "塔罗抽牌", "liuyao": "六爻起卦", "qiming": "五行起名"}
+
+
 def _name_summary(req: dict) -> str:
     """人话摘要：「1990-05-15 午时 女」；农历输入标注「农历」。
 
@@ -252,10 +257,35 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
 
     def _work():
         try:
-            row_req = json.dumps(req_dict, ensure_ascii=False)
+            # R3018（真修#17b）：危机/敏感问题不落台账足迹——历史列表
+            # 的 name/question 列会回显披露（同 R2997 问一嘴纪律）：
+            # req_json 与 question 列里的原问题清掉；调用方把原问题
+            # 拼进 name（六爻「六爻 · <问题>」/塔罗裸问题）时整串含
+            # 敏感词——换 None 让 _name_summary 回落生辰摘要。
+            _rq = dict(req_dict)
+            _nm = name
+            try:
+                from guji.llm_polish import _is_crisis, _is_sensitive
+                _qv = _rq.get("question")
+                if isinstance(_qv, str) and _qv and \
+                        (_is_crisis(_qv) or _is_sensitive(_qv)):
+                    _rq["question"] = None
+                    if isinstance(_nm, str) and \
+                            (_is_crisis(_nm) or _is_sensitive(_nm)):
+                        _nm = None
+            except Exception:
+                pass   # 安全判定缺席不挡台账主路
+            row_req = json.dumps(_rq, ensure_ascii=False)
             row_res = json.dumps(result_dict, ensure_ascii=False)
-            row_name = name if name else _name_summary(req_dict)
-            question = (req_dict.get("question") or None)
+            row_name = _nm
+            if not row_name:
+                try:
+                    row_name = _name_summary(_rq)
+                except Exception:
+                    # 六爻/塔罗等无生辰 req 被剥名后——摘要拼不出，
+                    # 给品类中性标签而不是丢行（台账不该因脱敏丢记录）。
+                    row_name = _RTYPE_LABEL.get(rtype, "排盘记录")
+            question = (_rq.get("question") or None)
             # R2349w（R93-P2-15）：与旧 history.py 的 UTC+8 口径对齐——
             # 此前裸服务器本地时，非 +8 部署下历史时间戳漂移。
             ts = datetime.now(timezone(timedelta(hours=8))).isoformat(

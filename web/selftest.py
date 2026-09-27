@@ -2520,6 +2520,43 @@ def _run_inner() -> list[str]:
     assert _sh1[:2] == (0, 1) and _sh2[:2] == (1, 0), (
         "paipan.import_rows.shell", _sh1, _sh2)
     ok.append("paipan.import_rows.shell")
+    # R3018（真修#17b 钉扎）：危机/敏感问题不落台账足迹——question
+    # 列清空、name 内嵌敏感问题换品类中性标签，记录本身仍落库。
+    # save_async 在套件全局 DISABLE 下早退——揭开并指临时库。
+    import time as _tm
+    import tempfile as _tfx
+    _saved_dis = os.environ.pop("BOOKS_PAIPAN_HISTORY_DISABLE", None)
+    _saved_db = _phx.DB_PATH
+    _phx.DB_PATH = os.path.join(_tfx.mkdtemp(prefix="phx-"), "t.db")
+    try:
+        _phx.save_async({"seed": 1, "question": "被父母打了怎么办"},
+                        {"probe": "st-sens-1"}, rtype="liuyao",
+                        name="六爻 · 被父母打了怎么办")
+        _phx.save_async({"seed": 2, "question": "考研二战来得及吗"},
+                        {"probe": "st-sens-2"}, rtype="tarot",
+                        name="考研二战来得及吗")
+        _phx.save_async({"year": 1996, "month": 8, "day": 16,
+                         "question": "我不想活了"},
+                        {"probe": "st-sens-3"}, rtype="bazi")
+        _phx.save_async({"year": 1996, "month": 8, "day": 16,
+                         "question": "工作怎么样"},
+                        {"probe": "st-sens-4"}, rtype="bazi")
+        _tm.sleep(1.2)
+        _latest = _phx.list_records(limit=50)["items"]
+        _pairs = sorted(((r["name"], r.get("question") or "")
+                         for r in _latest), key=lambda p: (p[0], p[1]))
+    finally:
+        _phx.DB_PATH = _saved_db
+        if _saved_dis is not None:
+            os.environ["BOOKS_PAIPAN_HISTORY_DISABLE"] = _saved_dis
+    _exp = sorted([
+        ("六爻起卦", ""),
+        ("考研二战来得及吗", "考研二战来得及吗"),
+        ("1996-08-16 时辰未知 女", ""),
+        ("1996-08-16 时辰未知 女", "工作怎么样"),
+    ], key=lambda p: (p[0], p[1]))
+    assert _pairs == _exp, ("paipan.sensitive_strip", _pairs)
+    ok.append("paipan.sensitive_strip")
     # R2500（R143-P1-2/P1-3/P2-5 钉扎）：claims 随线程回灌、GC 出循环
     # 计真数、delete_all_threads 全清（threads+turns+derived+evidence）。
     # 走临时库——不碰会话真实 knowledge.db。
@@ -2860,6 +2897,16 @@ def _run_inner() -> list[str]:
         "医生和信得过的人" in (_st_s["text"] or ""), _st_s
     ok.append("chat.sensitive.no_quota")
     ok.append("chat.sensitive.narrow")
+    # R3018（真修#17）：polish 路径的 question 是模板 user 位裸文本——
+    # 危机/敏感问句确定性短路（先于 cfg 检查，罐头不依赖 LLM 在线）。
+    assert _LC.polish(["四柱：x"], "我不想活了") == _LC._CHAT_REFUSAL
+    assert _LC.polish(["四柱：x"], "被父母打了") == _LC._SENSITIVE_REPLY
+    assert _LC.polish(["四柱：x"], "被人強吻") == _LC._SENSITIVE_REPLY
+    assert _LC.polish(["四柱：x"], "查出肿瘤") == _LC._SENSITIVE_REPLY
+    # 良性/豁免问句不短路——落到 cfg 检查（禁写态返回 None）。
+    assert _LC.polish(["四柱：x"], "工作能转正吗") is None
+    assert _LC.polish(["四柱：x"], "想死你了宝贝") is None
+    ok.append("ai_polish.crisis_gate")
     _banned = _LC.chat(
         "st-banned", "他为什么不回我消息",
         _transport=lambda p, h, u, t: {"choices": [{"message": {

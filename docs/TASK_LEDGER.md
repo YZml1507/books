@@ -16513,3 +16513,15 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 8 例：空/空格→本命基线；emoji/乱码/复读/超长→诚实
   「小满不瞎编」；工作+零宽插字剥净正确分事业；中英混
   问照常分类。零崩溃零捏造。
+
+## R3018 巡检#435——真修#17：LLM 信道双半件
+- #17a polish 危机/敏感闸：question 是模板 user 位裸文本，
+  危机/敏感问句此前交 LLM 写解读（输出净化只剥宿命词不给
+  转介，LLM 关时静默缺席）。polish() 入口在 cfg 检查前确定
+  性短路：危机→_CHAT_REFUSAL(12356)、敏感→_SENSITIVE_REPLY，
+  罐头不吃 quota、LLM 离线也到。钉 ai_polish.crisis_gate。
+- #17b 台账足迹：bazi/liuyao/tarot 三端点把 question 原样落
+  records.question（六爻/塔罗还拼进 name）——历史列表回显
+  披露（同 R2997 问一嘴洞）。save_async 内统一剥：question
+  清空+name 换品类中性标签（无生辰 req 加 _RTYPE_LABEL 兜底
+  防丢行）。钉 paipan.sensitive_strip。315 全绿。
