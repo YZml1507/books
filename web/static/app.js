@@ -12625,8 +12625,12 @@ function baziPersonaCard(j) {
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
+        /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
+         * 换机后小满「不记得她」成预期内落差；wipe 已收编这两键，
+         * 备份带齐才对称。 */
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
-                      'installTipDismissed', 'ret_tip', 'wishbottle'];
+                      'installTipDismissed', 'ret_tip', 'wishbottle',
+                      'chat:topics', 'chat:cards'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -12906,7 +12910,7 @@ function baziPersonaCard(j) {
              * 键名限长——「checkin:」+8000 字符键此前照存。 */
             /* R2349y（R95-P2-1）：checkinCeleb:/ret_tip 导得出导不回
              * ——收进白名单。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$)/
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$)/
                 .test(k) || k.length > 40 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
