@@ -14592,3 +14592,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 合法三值 supports/contradicts/context 全 200；refutes 与
   evil_role→400「证据只能标成支持/反驳/背景」——CHECK 前置
   拦截在产；测试线程已删。
+
+## R2734 巡检#151——work_id 注入防护
+- ../etc/passwd/中文/空格→422「语料目录名（字母数字._-）」；
+  100 字符→string_too_long；KR1a0001 正常——路径穿透锁死；
+  测试线程已删。
