@@ -16777,3 +16777,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   重读原文标 STALE 不当权威；竞态锁+孤代理递归剥+CHECK
   枚举+三帽留存+UNIQUE 防重+truncated 诚实标；schema 版
   本整表重建处理不可 ALTER。
+
+## R3060 巡检#477——海报 Canvas 内核审计（绿）
+- 逻辑 1080×1440 + scale 分辨率无关；溢出三件套：wrapText
+  避头尾（CJK 行首标点不孤）+measureText 缩字号循环+终态
+  截断省略；POSTER_LOW 低端降级画布；导出 toBlob+触屏长按
+  保存层（a[download] 在 iOS 是错路实录）；字体栈回退。
