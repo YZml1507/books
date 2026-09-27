@@ -14515,3 +14515,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2715 巡检#132——明天提醒我诚实回退
 - Notification denied 态下点击：按钮文案不变、remind:1 不落
   ——权限被拒不假装已开（R2350f 诚实设计实测）。
+
+## R2716 巡检#133——poster checkin-week 支真出图
+- 14 模板分支在案；checkin-week 实测：渲染→「📸本周签运」
+  浮层开→预览 img=921KB PNG 实图+自动下载+复制文案钮；
+  首次探针误读 toBlob 时序（fire-and-forget 晚于 await）自纠。
