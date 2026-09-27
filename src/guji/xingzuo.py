@@ -354,9 +354,11 @@ def sun_sign(month: int, day: int) -> str:
     """
     try:
         m, d = int(month), int(day)
+        # 真实日历校验（闰年哨兵 2000 保住 2/29 生日）——2/30 这类
+        # 伪日期此前按 d<=31 落进双鱼，与「越界返回空串」口径不符。
+        from datetime import date as _date
+        _date(2000, m, d)
     except (TypeError, ValueError):
-        return ""
-    if not (1 <= m <= 12 and 1 <= d <= 31):
         return ""
     # 从后往前找第一个"起始日 <= 生日"的宫；都不满足 = 1 月上旬 → 摩羯
     for bm, bd, name in reversed(_SUN_SIGN_BOUNDS):
@@ -469,6 +471,9 @@ if __name__ == "__main__":
     # 越界月日返回空串，不抛
     assert sun_sign(0, 5) == "" and sun_sign(13, 5) == ""
     assert sun_sign(None, None) == ""  # type: ignore[arg-type]
+    # R3038：伪日历日同样空串（2/30、4/31），闰日生 2/29 合法
+    assert sun_sign(2, 30) == "" and sun_sign(4, 31) == ""
+    assert sun_sign(2, 29) == "双鱼"
     # R226b：12 宫方向倾向表必须全覆盖且取值合法
     assert set(SIGN_DIRECTION) == set(_SIGN_ORDER), \
         ("SIGN_DIRECTION 未覆盖 12 宫", sorted(set(_SIGN_ORDER) - set(SIGN_DIRECTION)))
