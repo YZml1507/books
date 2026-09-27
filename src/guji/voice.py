@@ -836,6 +836,33 @@ import re as _re_lq
 _SCENE_RE = [(_re_lq.compile(k), v, note, cat)
              for k, v, note, cat in _LIUYAO_SCENE]
 
+# R3100（specs/010 判词层）：用神/应爻×世爻五行生克→传统口径倾向行。
+# 只报「那股劲的方向」不下吉凶断言（G7 红线内）——用户要的是
+# 「照卦面看顺不顺」，不是「磨合一类」的虚词。
+_WX_KE_LY = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+
+
+def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
+    """user_wx=世爻五行，other_wx=用神/应爻五行。返回倾向句或空。"""
+    if not user_wx or not other_wx:
+        return ""
+    if other_wx == user_wx:
+        return (f"这一卦照传统口径看：{other_label}跟你同气——"
+                "不急不缓，按自己的节奏来就是。")
+    if ELEMENT_GENERATES.get(other_wx) == user_wx:
+        return (f"这一卦照传统口径看：{other_label}是朝你这边来的——"
+                "顺势接住比使劲推更划算。")
+    if ELEMENT_GENERATES.get(user_wx) == other_wx:
+        return (f"这一卦照传统口径看：这事要你持续供着劲——"
+                "先有付出才有回响，掂量好值不值。")
+    if _WX_KE_LY.get(other_wx) == user_wx:
+        return (f"这一卦照传统口径看：{other_label}压着你走——"
+                "先想清楚接不接得住，别硬扛。")
+    if _WX_KE_LY.get(user_wx) == other_wx:
+        return (f"这一卦照传统口径看：主动权在你手里——"
+                "成不成看你抓不抓，卦不管怂。")
+    return ""
+
 # R2518（深度第二轮）：七类场景各给一件卦外能做的小事——
 # 不断吉凶，卦面之外让人有事可做。
 _LIUYAO_CAT_STEP: dict[str, str] = {
@@ -958,6 +985,18 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                 _seg += (f"。问这类事传统上先看{_ys_note}——它没直接落在这卦里，"
                          f"那就看代表你和事情的两端更实在")
         lines.append(_seg + "。")
+        # R3100：倾向行——感情题看应×世（对方那头 vs 你），其余场景
+        # 看用神×世。五行生克是已算坐标，如实转述不下吉凶断言。
+        _lean = ""
+        if _cat == "love":
+            _lean = _ly_lean_line(_shi_l.get("wuxing", ""),
+                                  _ying_l.get("wuxing", ""), "对方那头")
+        elif _ys and _ys_pos:
+            _ys_l = _by_pos.get(_ys_pos[0], {})
+            _lean = _ly_lean_line(_shi_l.get("wuxing", ""),
+                                  _ys_l.get("wuxing", ""), "你问的事")
+        if _lean:
+            lines.append(_lean)
 
     if ml:
         pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)

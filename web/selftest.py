@@ -3694,6 +3694,25 @@ def _run_inner() -> list[str]:
                     for s in _wl["interpretation"].get("sections") or [])
     assert "不代为断事" in _pro, "专业分支原文必须保持不变（判据 9）"
     ok.append("warm.liuyao.answers_not_refuse")
+    # R3100（specs/010 判词层）：六爻倾向行——用神/应爻×世爻五行
+    # 生克报「那股劲的方向」。固定卦（time 2026-09-27 10时 已实测
+    # 世克用神/应）须有「照传统口径看」行，且随问题场景分化。
+    _ly1 = client.post("/api/liuyao", json={"method": "time",
+        "year": 2026, "month": 9, "day": 27, "hour": 10,
+        "question": "今年考研能上岸吗"}).json()
+    _lr1 = "".join((_ly1.get("warm") or {}).get("reply") or [])
+    assert "照传统口径看" in _lr1, ("liuyao.lean", _lr1[:220])
+    _ly2 = client.post("/api/liuyao", json={"method": "time",
+        "year": 2026, "month": 9, "day": 27, "hour": 10,
+        "question": "这个offer该接吗"}).json()
+    _lr2 = "".join((_ly2.get("warm") or {}).get("reply") or [])
+    _lean1 = [l for l in (_ly1.get("warm") or {}).get("reply") or []
+              if "照传统口径看" in l]
+    _lean2 = [l for l in (_ly2.get("warm") or {}).get("reply") or []
+              if "照传统口径看" in l]
+    # 考研（用神=父母）与 offer（用神=官鬼）的用神不同，倾向应分化。
+    assert _lean1 and _lean2, ("liuyao.lean.both", _lr1[:150], _lr2[:150])
+    ok.append("liuyao.lean_line")
 
     # ── 006 AI 润色层（R132a，T1.5）：selftest 侧三条契约断言 ─────────────
     # 完整判据由 probes/probe_llm_polish.py 把关（降级矩阵/三库零命中/注入抵抗）；
