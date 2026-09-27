@@ -15235,3 +15235,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   李原萋、金+木李鹤台——不硬套相生）；引文为真典籍
   （小雅·信南山/中孚九二/南山有台）；avoid 表男「萋」
   放行女禁，闸内王/1993 双性别扫零撞表。
+
+## R2846 巡检#263——tarot 抽牌+图鉴
+- 抽牌响应：draws 带 index/name/正逆位双关键词/位次
+  （过去·现在·未来）/render 串；picked/spread_key 形状
+  对；warm.reply 按问题逐牌答。
+- 图鉴=/api/paipan/tarot_collection：collected 从历史
+  tarot 行聚合、deck 全 78、total=78；我 2 次抽牌落的
+  2 行已清（collected 回落 0，库态干净）。
