@@ -16000,3 +16000,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   hit_pillars空（本命不临桃花）+strength弱+render
   人话渲染行+notes 只在有据处下「天喜临柱主喜庆」。
 - 空字段诚实：hongluan_pillar/hit_pillars 空表不硬编。
+
+## R2954 巡检#371——tarot 牌面族实测
+- seed=42 重放逐字节一致+三牌零重复（节制/皇后/
+  权杖国王）；celtic 命名阵忽略 n=5 实发 10 张带
+  阵位（现状/阻碍/根源/过去）——spread_fit 语义。
+- n=99→422「不能大于10」；draw 七键：index/upright
+  /双关键词（正反位）/meaning/position/render 串。
