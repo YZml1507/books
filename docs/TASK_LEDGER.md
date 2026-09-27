@@ -15803,3 +15803,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   设计内豁免，object-src 'none'/frame-ancestors
   'none'/base-uri 'self' 关键闸在）。
 - health：ok+engine 标注+index 真在；home 含「小满」。
+
+## R2926 巡检#343——err 服务端故障面实测
+- sqlite3.DatabaseError handler 实注册（MRO 兜住
+  OperationalError 锁/坏页→503 不漏 500 栈）。
+- 体界：513KB→413「请求体太大了，精简一下再发」；
+  400KB 放行→422 schema 层（界口径精确）。
