@@ -15742,3 +15742,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - seed=12345 两连打本卦逐字节一致；seed=99999 分异
   ——硬币起卦可复验（「这颗骰子掷出来就是这样」）。
 - cast_at=「刚才（铜钱摇）」白话披露+seed 原样回显。
+
+## R2917 巡检#334——liuyao 经文引用可核验实测
+- seed=12345→觀卦（gua20 坤下巽上）：ben_jing 引
+  KR1a0001 周易正文+page_anchor tls_020-2a+彖象全
+  文；gua_number/text 卦号卦画互证一致。
+- 无动爻时 bian==ben 如实呈现，不强造变卦。
