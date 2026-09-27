@@ -15778,3 +15778,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - BOOKS_WRITE_DISABLE=1：favorites 增/删/清+prefs 写
   +threads 增/删/清/改八端点统一 400「公开演示站—
   —只能看不能改哦」；schema 422 先于闸（分层正确）。
+
+## R2923 巡检#340·第十一段大快照（R2883+40轮）
+- selftest 312 全绿｜contract 643 钉扎（SOFT=50）｜
+  standing 3/3｜r2524 安全 34/0｜dup_keys 零重复｜
+  baseline_voice 14 逐字节｜chat_e2e 4/4｜ui_smoke
+  PASS（derived/favorite 防线同步接住）。
+- 本批 40 轮（R2884–R2923）：全部审计绿零真缺陷——
+  liuyao 六面/纳甲排盘/经文引用/cross_ref 联动/seed
+  确定性/scope 三面/resolve_date/择日窗/today锚/
+  favorites/write_guard/prefs/external 全实测在产。
