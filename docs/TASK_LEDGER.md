@@ -16627,3 +16627,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 315｜contract 643｜dup 零｜chat_e2e 4/4——
   9 轮审计（资产/月相/me档/边界/闰月/随机源/起名点评/错误链
   /研究面）零回归。
+
+## R3036 巡检#453——SW 缓存治理审计（绿）
+- 导航 network-first（门禁站防旧壳锁人）+并行 match 零白等+
+  空 search 才写壳位（防 og 变体污染）+500 不缓存+双失离线
+  兜底页；静态 RT 桶先查（自愈）/precache 哈希桶命中免
+  revalidate/RT 60 帽逐老；?v 不符 JS 回 reload  shim 防混版；
+  API 永不缓存。全链缺陷修复注释实录。
