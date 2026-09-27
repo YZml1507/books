@@ -9550,6 +9550,22 @@ function initDivination() {
     }
   })();
   on('hhSubmit', doHehun);
+  /* R3160：TA 档案免测入口——「想聊感情/想知道 TA 是怎样的人」不必
+   * 先跑一遍合婚：生日+昵称直接落 me:partner（纯 localStorage，
+   * 不发请求）。字段还停在出厂示例值就不写——假生日喂给聊天比
+   * 没有更糟。受邀模式下 TA=A 侧（发起人）。 */
+  on('hhSavePartner', function () {
+    var _p = window.__hhInviteMode ? 'hh_a_' : 'hh_b_';
+    if (_fieldsUntouched([_p+'year', _p+'month', _p+'day', _p+'hour', _p+'gender'])) {
+      showToast('先填一下 TA 的真实生日再存——现在还是示例值', 'warn');
+      return;
+    }
+    _meSave('me:partner', {
+      y: num(_p+'year'), m: num(_p+'month'), d: num(_p+'day'),
+      h: num(_p+'hour'), g: val(_p+'gender') || '女', n: val(_p+'name')
+    });
+    showToast('TA 的生日存好啦——只留在这台设备上。之后聊感情，小满能对上 TA 的盘', 'ok');
+  });
   /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
    * 视图级委托：任意 input 按 Enter = 点本视图主提交钮（原生 form 语义）。 */
   var _ENTER_SUBMIT = {

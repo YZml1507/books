@@ -135,6 +135,9 @@ BUTTON_CASES = [
     # R233n：邀请链——点「喊 TA 来对盘」出 toast（clipboard 成败两路
     # 都出 toast）；须在 hehun 出卡后，同 savepair 排序约束。
     ("hehun.invite",    "hehun",   None,            "#hhInvite",      ".toast-item"),
+    # R3160：TA 档案免测钮——B 侧已被 hehun 用例填过（touched），
+    # 点击 → me:partner 落档 + ok toast；须在 hehun 之后。
+    ("hehun.savepartner", "hehun", None,            "#hhSavePartner", ".toast-item"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）
