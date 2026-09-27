@@ -12637,7 +12637,7 @@ function baziPersonaCard(j) {
          * 备份带齐才对称。 */
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
                       'installTipDismissed', 'ret_tip', 'wishbottle',
-                      'chat:topics', 'chat:cards'];
+                      'chat:topics', 'chat:cards', 'remind:1'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -12776,7 +12776,8 @@ function baziPersonaCard(j) {
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
           if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
-                .test(k) || k.indexOf('checkin:') === 0 ||
+                .test(k) || k.indexOf('remind:') === 0 ||
+                k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
           }
@@ -12917,7 +12918,7 @@ function baziPersonaCard(j) {
              * 键名限长——「checkin:」+8000 字符键此前照存。 */
             /* R2349y（R95-P2-1）：checkinCeleb:/ret_tip 导得出导不回
              * ——收进白名单。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$)/
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|remind:1$)/
                 .test(k) || k.length > 40 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
