@@ -15611,3 +15611,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - shared_addresses 7 处多部共谈同址（卦64·上九 5
   部共论）——跨书比对钩子真实可用；
 - census/scan_limit/truncated 披露字段齐。
+
+## R2897 巡检#314——threads 全链+删后语义
+- summary 带证据建线程（role 词表 supports/
+  contradicts/context 中英映射人话 400）→详情→
+  DELETE→404「可能还没聊过」；
+- 删线程设计语义核实：turns 随删，derived claims
+  解绑保留（不可再生研究笔记不连坐）——设计内
+  非泄漏；探针行已清。
