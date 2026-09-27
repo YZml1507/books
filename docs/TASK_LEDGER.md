@@ -15478,3 +15478,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - open↔closed 双向 200 回显；bogus/空值 → 400 中文
   「只能改成『进行中』『先收起』或『已结束』」——
   三态清单全人话；残留已清。
+
+## R2880 巡检#297——compare 受损料三态实测
+- 受损 unit（卦47·上六 KR1a0006 span-overextended-A）
+  默认不上桌当见证→进 flagged 披露位；allow_damaged=1
+  才放回 witnesses——受损料不透明上桌的诚实面；
+- BOGUS layer → no_witness=true + witnesses={} 第三态
+  （「没见证」≠「有差异」）如实披露。
