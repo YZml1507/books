@@ -1612,12 +1612,16 @@ def main() -> int:
                     "  _hlVerdictHtml('跳槽', [], ['上任'], {}, {}, '今天', []),"
                     "  _hlVerdictHtml('面试', ['谒贵'], [], {}, {}, '今天', []),"
                     "  _hlVerdictHtml('产检', ['治病'], [], {}, {}, '今天', []),"
+                    # R3113：不宜判定并进硬凶日凭据（第 8 参 day_flags）
+                    "  _hlVerdictHtml('搬家', [], ['移徙'], {}, {}, '明天', [],"
+                    "                ['四离'])"
                     "]")
-                ok = (len(cases) == 4
+                ok = (len(cases) == 5
                       and "纳采" in cases[0] and "适合" in cases[0]
                       and "上任" in cases[1] and "不宜" in cases[1]
                       and "谒贵" in cases[2] and "适合" in cases[2]
                       and "治病" in cases[3] and "医生" in cases[3]
+                      and "不宜" in cases[4] and "四离" in cases[4]
                       and not errors)
                 detail = ("双腿四例判定=" +
                           "|".join("OK" if c else "X" for c in cases))

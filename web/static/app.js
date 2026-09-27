@@ -7426,7 +7426,7 @@ function _hlNoSceneNote(yi, ji, day, conflict) {
     (_ji.length ? '，忌【' + _ji.join('、') + '】' : '') +
     '；没在宜忌里的事照常安排不犯冲～想问具体的事就带上它，比如「适合搬家吗」。');
 }
-function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
+function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict, dayFlags) {
   /* R230h（R20-F7）：宜∩忌相冲词不作主推/凭据——后端同款摘除
    * （services.py:1512「按存疑处理，别当凭据念」），~22% 日子有此类词。 */
   var _cfl = {}; (conflict || []).forEach(function (w) { _cfl[w] = 1; });
@@ -7482,7 +7482,12 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict) {
   if (hitYi.length && !hitJi.length) {
     verdict = day + '适合' + sc + ' ✅ —— 宜项里就有【' + hitYi.join('、') + '】' + why;
   } else if (hitJi.length && !hitYi.length) {
-    verdict = day + '不宜' + sc + ' 🚫 —— 忌项里写着【' + hitJi.join('、') + '】' + why;
+    /* R3113（R3102 BE 同口径）：忌判定把硬凶日凭据并进判词——
+     * 旗行单独挂一行是「信息」，并进判词才是「凭据」。 */
+    var _flv = (dayFlags || []).slice(0, 2);
+    verdict = day + '不宜' + sc + ' 🚫 —— 忌项里写着【' + hitJi.join('、') +
+      '】' + (_flv.length ? '；这天还逢' + _flv.join('、') +
+      '，凭据更实' : '') + why;
   } else if (hitYi.length && hitJi.length) {
     /* R228c：补谓语——「今天搬家宜忌都有」不通，「今天搬家的宜忌都有」
      * 与兄弟分支「今天适合/不宜搬家」同构。 */
@@ -7803,7 +7808,8 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
     if (_HL.scene) {
-      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord, _conflict);
+      html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord,
+                             _conflict, j.day_flags || []);
     }
     /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
