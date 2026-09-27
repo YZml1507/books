@@ -16034,3 +16034,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - spoken/spokenWord 在 app.js _doHuangli：resolve_date
   解出的原词（中秋节）优先作卡片日期词。
 - past 标记在 _HL.pastDay 前端层（后端给坐标不渲染）。
+
+## R2959 巡检#376——tarot 剩余面实测
+- 自点牌背：cards=[0,1,2]→愚者/魔术师/女祭司，
+  同 seed+同下标可复验；越界/重复→400 人话。
+- 命名阵：choose→二选一（选项A/现状/关键/选项B/
+  指引）；bogus→「没这个牌阵，换一个试试」；
+  celtic 配 3 张→「要 10 张牌——数目对不上」。
+- warm 深：逐位置白话（节制=别走极端/皇后=别视
+  而不见/权杖国王=主动权在你）+综合指引+details
+  带 basis 槽。
