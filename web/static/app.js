@@ -1394,7 +1394,7 @@ function _shareByName() {
 function rememberResult(viewKey, json, question, body) {
   /* v2：多存一份 body（含 gender 等），供 buildChatContext 拼性别。 */
   LAST_RESULT[viewKey] = { json: json || {}, question: question || '',
-                           body: body || {} };
+                           body: body || {}, ts: Date.now() };
   /* R233m（R45-P3）：sessionStorage 续接——刷新后「聊聊这件事」不再
    * 退化成无上下文泛化句。tab 关闭即焚，不落 localStorage。 */
   try {
@@ -1437,7 +1437,7 @@ function buildChatContext(viewKey) {
       bazi: '帮我看这个盘', taohua: '桃花怎么样', tarot: '牌面说什么',
       liuyao: '卦象怎么看', hehun: '这两人配吗', huangli: '今天能做什么',
       qiming: '这些名字怎么样', xingzuo: '今天运势怎么样',
-      daily: '今天运势怎么样'
+      daily: '今天运势怎么样', xzm: '这两个星座配吗'
     };
     return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [],
              ref: '' };
@@ -1584,6 +1584,17 @@ function buildChatContext(viewKey) {
     if (_ddo) facts.push('今日宜：' + _ddo.slice(0, 60));
     if (_ddont) facts.push('今日忌：' + _ddont.slice(0, 60));
     if (_pStr(j.noble)) facts.push('今日贵人：' + _pStr(j.noble));
+  } else if (viewKey === 'xzm') {
+    /* R3131：合盘卡上下文——判词/场景/处方行进 facts，小满聊这张
+     * 卡手里有同一套口径（与 result_ref 权威块互补：xzm 无判词卡
+     * 锚点结构，facts 即全部上下文）。 */
+    msg = '我看了' + (j.a || '') + '×' + (j.b || '') + '的合盘（' +
+      (j.score || '') + '分·' + (j.label || '') + '），帮我详细说说';
+    facts = ['合盘：' + (j.a || '') + '×' + (j.b || '') + ' ' +
+             (j.score || '') + '分·' + (j.label || '')];
+    (j.lines || []).slice(0, 4).forEach(function (ln) {
+      if (ln) facts.push('合盘卡：' + String(ln).slice(0, 80));
+    });
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
     /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
@@ -1692,6 +1703,13 @@ function autoSendChatContext() {
    'bazi'].forEach(function (k) {
     if (!viewKey && viewId.indexOf(k) !== -1) viewKey = k;
   });
+  /* R3131：星座页内嵌速配抽屉——同页两套结果，聊天下手挑更新的
+   * 那张卡（刚测完合盘点聊聊 → xzm；刚看值宫 → xingzuo）。 */
+  if (viewKey === 'xingzuo' && LAST_RESULT.xzm &&
+      (!LAST_RESULT.xingzuo ||
+       (LAST_RESULT.xzm.ts || 0) > (LAST_RESULT.xingzuo.ts || 0))) {
+    viewKey = 'xzm';
+  }
   /* R2349q（R82-P1-4）：首页（无 .view 壳）发「聊聊这件事」此前落
    * 空 viewKey → 零上下文泛句；日签本就存了 rememberResult('daily')，
    * 与 _activeViewFacts 同口径兜底 'daily'。 */
@@ -9326,6 +9344,9 @@ function initDivination() {
         var _p = downloadPoster(mj, 'xzm');
         if (_p && _p.catch) _p.catch(function () {});
       });
+      /* R3131：合盘结果入聊天上下文——此前没存 LAST_RESULT，
+       * 用户照着卡聊小满走零上下文泛句。 */
+      try { rememberResult('xzm', mj, ''); } catch (e) {}
     } catch (e) {
       box.innerHTML = '<div class="ph-empty" style="padding:12px;">' +
         esc((e && e.message) || '速配没跑出来，再点一次试试') + '</div>';
