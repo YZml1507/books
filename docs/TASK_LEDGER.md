@@ -14402,3 +14402,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - bazi 无 record 字段——save_async 无条件落行（name 自动合成
   「YYYY-MM-DD 时辰 性别」）；list 携 result_summary（render+五行）。
 - 清偿：本批巡检测试行 5442-5456 共 15 条已删（66→52）。
+
+## R2692 巡检#109——history/{id} 详情读回
+- 单条完整读回：req 全原字段（含农历/scope/question）+result
+  全响应（paipan~cross_ref）；缺失 id→404「排盘记录不存在」。
