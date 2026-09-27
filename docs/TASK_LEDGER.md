@@ -15569,3 +15569,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - warm.citations==interpretation.citations 逐字节
   复用；内部 @ADDR/文件名由前端 humanCite 收口
   成中文版本名（R2811 已实测七例）。
+
+## R2891 巡检#308——interpretation 确定性实测
+- 同盘连打 interp+warm 逐字节全等；换 question/
+  换时辰输出分异——确定性引擎（guji.interpreter
+  /1.0 无 LLM）可复验+参数敏感双钉。
