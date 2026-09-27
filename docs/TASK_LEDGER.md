@@ -14605,3 +14605,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2736 巡检#153——write_guard 公网写总闸
 - BOOKS_WRITE_DISABLE=1 即时读：prefs/favorites/threads 6 写端
   全 400「公开演示站——只能看不能改」；env 现未设（写开）。
+
+## R2737 巡检#154——BOOKS_ACCESS_TOKEN 令牌闸全链
+- 闸内钉：门页 403（SW 防壳污染）/api 401/health 豁免；
+  ?key= 与 /_gate 双解锁道种 HMAC 派生 cookie；错口令 403+
+  10/60s→429 桶（对口令不耗）；next 白名单拦 //evil、\\、
+  javascript:、CRLF 全回落「/」；XFF 链尾定身份防换桶。
