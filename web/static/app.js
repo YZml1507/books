@@ -2140,6 +2140,12 @@ function feSensitive(s) {
 }
 var _SENSITIVE_FE_LINE = '这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。' +
   '身体或心里难受的话，医生和信得过的人才是最该找的。想聊点别的，小满都在。';
+/* R2996（巡#413）：chatSend 此前只查 feCrisis——敏感披露在
+ * DISABLE/配置关闭（spawn→None）路径拿的是 _chatFallbackLine 卖萌
+ * 兜底（R233r 修过的同一个洞，敏感到复犯）。本地接住+复用后端
+ * _SENSITIVE_REPLY 文案，双路径逐字一致。 */
+var _SENSITIVE_CHAT_REPLY = '这个话题我真接不了——不是不愿意，是它不该靠占卜来定。' +
+  '身体或心里难受的话，医生和信得过的人才是最该找的。想聊点别的，小满都在。';
 
 /* R233r（R49-Top5-2）：chatSend 兜底 facts——不走排盘直接开聊时
  * CHAT_LAST_FACTS 恒空；按当前活跃视图从 LAST_RESULT 拼坐标。 */
@@ -2190,6 +2196,13 @@ function chatSend() {
   /* R233r（R49-P0）：危机词本地先接住——不计发送数、不发请求。 */
   if (feCrisis(msg)) {
     chatBubble('ai', _CRISIS_FE_REPLY);
+    return;
+  }
+  /* R2996（巡#413）：敏感披露同款本地接住——此前只危机词有本地闸，
+   * DISABLE/无配置路径 spawn→None → _chatFallbackLine 卖萌句吞严肃
+   * 披露；也不该为固定转介文案烧一次网络往返。 */
+  if (feSensitive(msg)) {
+    chatBubble('ai', _SENSITIVE_CHAT_REPLY);
     return;
   }
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
