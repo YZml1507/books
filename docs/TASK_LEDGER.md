@@ -16573,3 +16573,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 实跑写-读-删循环：claim+method+evidence(supports/quote)
   三元落库、开题 turn、verify 状态块齐——G8 证据纪律在产。
   FK 级联清理顺序实测，零残留。
+
+## R3027 巡检#444——错误人话化全链审计（绿）
+- 后端 51 条 ValidationError 全中文带行动指引；calc 未匹配
+  异常落日志+泛化中文；前端 _humanizeErr 剥绝对路径+
+  基础设施/英文异常/网络三层翻译+重试钮+读屏播报。
+  端到端零技术残渣。
