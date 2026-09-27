@@ -16216,3 +16216,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   1996-8-16→狮子+丙子丙申乙酉壬午精确四柱+五行
   分布+藤蔓人格+确定性/决策双披露+聊聊桥）。
 - 速配入口在；三态分流清晰零 pageerror。
+
+## R2981 巡检#398——真浏览器深链矩阵
+- /huangli 路径式→view-huangli 激活+首页隐（SPA
+  回退+JS 解路径）；?view=nonexist→无激活+静默
+  回家不崩。
+- 点卡→?view=taohua pushState→reload 复住
+  view-taohua——深链四态全绿零 pageerror。
