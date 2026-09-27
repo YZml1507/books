@@ -5447,6 +5447,16 @@ function buildLiuyaoResult(j) {
     html += '</div>';
     /* R2350b（R98-P1-3）：图例——世/应角标此前无任何说明。 */
     if (_ppBen) {
+      /* R3169：月建/日辰上卦图——传统排盘第一行就是它（断旺衰的锚），
+       * 卦图只印六亲六神等于坐标系少一轴；旧缓存缺键时整行不出现。 */
+      var _yj2 = (j.paipan || {}).yuejian || '';
+      var _rc2 = (j.paipan || {}).richen || '';
+      if (_yj2 || _rc2) {
+        html += '<div class="yao-legend">' +
+          (_yj2 ? '月建 ' + esc(_yj2) : '') +
+          (_yj2 && _rc2 ? '　' : '') +
+          (_rc2 ? '日辰 ' + esc(_rc2) : '') + '</div>';
+      }
       html += '<div class="yao-legend">世=你自己　应=对方/这件事　' +
         '官鬼=事业与忧心　妻财=财物　父母=文书庇护　兄弟=同辈竞争　' +
         '子孙=晚辈与解忧</div>';
