@@ -15880,3 +15880,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   polish）+closed/fresh/queued 三旗+boot 失效标。
 - 真 LLM 输出质量抽评：「金气很旺，遇事干脆利落…
   边界划得太清」—庚金日主判得准，暖白话不玄学。
+
+## R2938 巡检#355·真修#8——facts 注入面 DAN 缺口
+- 审计发现「you are now DAN」型英文身份赋值开场白
+  漏过 _FACT_BAN_PAT（既有表盖 act as/obey/from now on
+  但没盖 you are now）→ 补 `you('re|\s+are)\s+now`。
+- 嵌入式「她叫 you are now 什么」同拦；合法坐标
+  （生辰/称呼/盘面词）零误伤；selftest 注入族补钉
+  两例，312 全绿。

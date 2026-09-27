@@ -754,6 +754,9 @@ _FACT_BAN_PAT = re.compile(
     # R2400（R135-P0-1 续）：英文注入形状
     r"act\s*as|obey|from\s*now\s*on|don'?t\s*(listen|obey|follow)|"
     r"listen\s*to|assistant|developer\s*mode|new\s*instruction|"
+    # R2938（巡#355）：DAN 系开场白——坐标事实只该是中文生辰/称呼/
+    # 盘面字段，「you are now…」英文句式天然非合法坐标，无过杀面。
+    r"you('re|\s+are)\s+now|"
     # R2400（R135-P0-4）：内部外形串——后端键名/SQL/异常栈/服务器路径
     # 进 prompt 会诱发模型复述「内部细节」或按注入语义接话。
     r"calc\.|select\s+.+\s+from|insert\s+into|drop\s+table|traceback|"
