@@ -14731,3 +14731,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2761 巡检#178——health 端点
 - {ok, engine 描述串, index 存在性} 三键——零路径/版本/
   内部信息；令牌闸下设时豁免在闸内钉死（托管探活可用）。
+
+## R2762 巡检#179——paipan CSV 导出
+- UTF-8 BOM+日期文件名+attachment；=+-@ 前缀单元格加 '
+  脱活（Excel 公式注入防护）；响应顺带带 nosniff 与
+  CSP（object-src none/frame-ancestors none）。
