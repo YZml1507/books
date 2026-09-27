@@ -390,6 +390,20 @@ def _run_inner() -> list[str]:
           "day": 15, "hour": 10, "gender": "男", "scope": "life"}),
           lambda j: (j.get("calc", {}).get("scope") == "life"
                      and len(j.get("calc", {}).get("dayun", [])) == 8))
+    # R3141（specs/014-L3）：年度追踪块钉——yearly 含本年干支十神 +
+    # 12 流月逐月十神；warm 回复带本年锚+顺气/使劲月份行。
+    check("bazi.yearly", client.post("/api/bazi", json={"year": 1990,
+          "month": 5, "day": 15, "hour": 10, "gender": "男",
+          "scope": "life"}),
+          lambda j: (lambda _y, _r: (
+              _y.get("year") and _y.get("ganzhi") and _y.get("gan_rel")
+              and len(_y.get("months") or []) == 12
+              and all(m.get("ganzhi") and m.get("gan_rel")
+                      for m in _y["months"])
+              and any(f"今年{_y['year']}是" in _ln for _ln in _r)
+              and any("偏顺气的月份" in _ln for _ln in _r))
+          )(j.get("calc", {}).get("yearly") or {},
+            (j.get("warm") or {}).get("reply") or []))
     # R69b（D-115b）：retrieve_semantic（bge 语义路径）standing 覆盖——该路径
     # 只在 CLI（scripts/ask_bazi.py）调用，web /api/bazi 不经过它，13 闸门与
     # 五层自测此前均不覆盖。固定 Bazi 输入 → 语义命中非空 + 含 P2 子平书。

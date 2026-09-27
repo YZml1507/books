@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from .bazi import Bazi, day_ganzhi, hour_ganzhi
+from .bazi import Bazi, day_ganzhi, hour_ganzhi, GAN, ZHI, compute
 
 # --------------------------------------------------------------------------------------
 # 基础规则表（写死、可核对）
@@ -425,9 +425,36 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
     # R2530（调研-因果层）：生平解读需要「出厂设置」层——十神与地支
     # 关系是原盘属性，没有它们 life scope 的「针对」段只能报「未现」。
     ten_gods, _zhis, relations = _natal_blocks(b)
+    # R3141（specs/014-L3）：年度追踪块——本年干支对日主十神 +
+    # 12 流月干支逐月十神（各取月中 15 号，必落该月节气窗内）。
+    # 全是确定性历法计算，不做吉凶分档——分档归 warm 层的口径。
+    yearly = None
+    try:
+        from datetime import date as _d
+        _cy = _d.today().year
+        _cidx = (_cy - 4) % 60
+        _cgz = GAN[_cidx % 10] + ZHI[_cidx % 12]
+        months = []
+        for _m in range(1, 13):
+            try:
+                _mb = compute(_cy, _m, 15, 12)
+                _mgz = _mb.month
+                months.append({"month": _m, "ganzhi": _mgz,
+                               "gan_rel": ten_god(day_master, _mgz[0])})
+            except Exception:
+                pass
+        yearly = {
+            "year": _cy,
+            "ganzhi": _cgz,
+            "gan_rel": ten_god(day_master, _cgz[0]),
+            "months": months,
+        }
+    except Exception:
+        yearly = None
     return {
         "qi_yun_age": round(qi, 1) if qi is not None else None,
         "dayun": dayun,
+        "yearly": yearly,
         "ten_gods": ten_gods,
         "relations": relations,
         # R2350b（R98-P0-2）：五行是盘本体属性，不分 scope——

@@ -1331,6 +1331,30 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
                 reply = reply + ["大运（十年一轮的大方向）节奏：" +
                                  "；".join(seg) +
                                  "——方向感参考，不是日程表。"]
+        # R3141（specs/014-L3）：年度追踪行——本年干支十神 +
+        # 十二流月按「顺气/使劲」分档点名（大师应期轴的年内尺度）。
+        _yr = calc.get("yearly") or {}
+        _g0 = TEN_GOD_WARM.get(_yr.get("gan_rel") or "")
+        if _yr.get("ganzhi") and _yr.get("gan_rel"):
+            reply.append(
+                f"今年{_yr['year']}是{_yr['ganzhi']}年——{_yr['ganzhi'][0]}"
+                f"对你日主{day_master}是「{_yr['gan_rel']}」"
+                + (f"（{_g0[0]}）：{_g0[1]}" if _g0 else "")
+                + "——年度主基调，不是日程表。")
+        _mos = _yr.get("months") or []
+        if _mos:
+            _EASY = {"正财", "偏财", "正官", "正印", "食神", "比肩"}
+            _ez = [f"{m['month']}月（{m['gan_rel']}）" for m in _mos
+                   if m.get("gan_rel") in _EASY]
+            _hd2 = [f"{m['month']}月（{m['gan_rel']}）" for m in _mos
+                    if m.get("gan_rel") and m["gan_rel"] not in _EASY]
+            if _ez:
+                reply.append("今年偏顺气的月份：" + "、".join(_ez[:6]) +
+                             "——基调轻的窗口，适合推进要在意的事。")
+            if _hd2:
+                reply.append("今年要使劲的月份：" + "、".join(_hd2[:6]) +
+                             "——不是坏，是这几个月基调偏重，别在那时"
+                             "硬扛大决定。")
     return _wrap(
         one_liner(day_master, calc, question, gender=gender),
         energy_card(day_master, calc),
