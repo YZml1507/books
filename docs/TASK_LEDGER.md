@@ -15473,3 +15473,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   稿）——深度非泛泛；
 - err.daily.date：garbage→400 中文带格式示例；
   future_nowrite：2099 远日不落 cache；缓存行已清。
+
+## R2879 巡检#296——threads 状态机实测
+- open↔closed 双向 200 回显；bogus/空值 → 400 中文
+  「只能改成『进行中』『先收起』或『已结束』」——
+  三态清单全人话；残留已清。
