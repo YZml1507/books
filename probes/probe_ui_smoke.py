@@ -1598,6 +1598,36 @@ def main() -> int:
             results.append({"name": "btn:huangli.holiday_ask",
                             "ok": ok, "detail": detail})
 
+            # ── R3086 钉扎（巡#503）：R3083/R3084 场景表补腿的真机
+            #   判定卡——直调 _hlVerdictHtml 受控宜忌，验证新腿（上任腿
+            #   跳槽/谒贵腿面试/议亲腿相亲/医疗三词腿产检）在前端判定
+            #   卡真实生效而非仅词表 parity。
+            errors.clear()
+            goto_view("huangli")
+            try:
+                page.wait_for_selector("#hlAskInput", timeout=8000)
+                cases = page.evaluate(
+                    "() => ["
+                    "  _hlVerdictHtml('相亲', ['纳采'], [], {}, {}, '今天', []),"
+                    "  _hlVerdictHtml('跳槽', [], ['上任'], {}, {}, '今天', []),"
+                    "  _hlVerdictHtml('面试', ['谒贵'], [], {}, {}, '今天', []),"
+                    "  _hlVerdictHtml('产检', ['治病'], [], {}, {}, '今天', []),"
+                    "]")
+                ok = (len(cases) == 4
+                      and "纳采" in cases[0] and "适合" in cases[0]
+                      and "上任" in cases[1] and "不宜" in cases[1]
+                      and "谒贵" in cases[2] and "适合" in cases[2]
+                      and "治病" in cases[3] and "医生" in cases[3]
+                      and not errors)
+                detail = ("双腿四例判定=" +
+                          "|".join("OK" if c else "X" for c in cases))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:hl_verdict_twoleg",
+                            "ok": ok, "detail": detail})
+
             # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
             #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
             errors.clear()
