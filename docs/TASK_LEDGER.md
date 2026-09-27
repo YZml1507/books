@@ -15604,3 +15604,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   混排带层分布）/ chapter 乾卦 9 unit 全带 citation /
   summary 知识卡（528 units/31572 字/未定位 64/
   损坏披露位）——研读面是真功能非壳。
+
+## R2896 巡检#313——concept 概念普查实测
+- 「無為」跨 21 部普查：莊子注 64 命中（注39/正文
+  25 分层）+每层 top 样本真引文；
+- shared_addresses 7 处多部共谈同址（卦64·上九 5
+  部共论）——跨书比对钩子真实可用；
+- census/scan_limit/truncated 披露字段齐。
