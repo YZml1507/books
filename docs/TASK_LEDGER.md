@@ -14541,3 +14541,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2721 巡检#138——daily lucky 三件套
 - 青绿/石榴红/鹅黄/雾蓝各配词（发芽生长/热乎劲儿/厚稳托底/
   绕得开找得到）+数 4-9 变——邻日同色系是同行分组设计。
+
+## R2722 巡检#139——tarot_collection 图鉴
+- /api/paipan/tarot_collection：deck=78 全牌（愚者→世界序）+
+  collected 收集计数（当前 0——历史无抽卡行）+disabled 下
+  仍吐 deck 不吐 collected（「不写不查」口径一致）。
