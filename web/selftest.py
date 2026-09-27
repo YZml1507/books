@@ -3325,7 +3325,11 @@ def _run_inner() -> list[str]:
                   "相生", "比和", "用神", "世爻", "应爻", "六亲",
                   "六神", "处方", "入口", "大运", "纳音", "日主",
                   "五行", "卦", "牌", "宫", "红鸾", "夫妻宫",
-                  "宜", "忌", "名", "缺", "弱"]
+                  "宜", "忌", "名", "缺", "弱",
+                  # R3122（attunement 扩面）：塔罗坐标词——牌位句式每行
+                  # 都点名花色牌（宝剑/星币/权杖/圣杯），不落这些词就
+                  # 算成零坐标裸行，得把塔罗自己的坐标词汇收进来。
+                  "宝剑", "星币", "权杖", "圣杯", "正位", "逆位"]
     def _attune(lines):
         _sc, _bare = 0, []
         for _i, _ln in enumerate(lines):
@@ -3348,11 +3352,19 @@ def _run_inner() -> list[str]:
         "year": 2002, "month": 5, "day": 20, "hour": 10,
         "gender": "女", "question": "这段感情继续还是放手",
         "scope": "life"})))
+    # R3122：闸面从三例扩到五例——六爻坐标句/塔罗牌位句同属
+    # warm 产出，具体度下限一起钉住。塔罗坐标词汇薄（牌名+位），
+    # 下限按实测口径定 ≥3；六爻与三视图同档 ≥4。
+    _att_cases.append(("liuyao", client.post("/api/liuyao", json={
+        "method": "coins", "question": "这次考试能过吗", "seed": 7})))
+    _att_cases.append(("tarot", client.post("/api/tarot", json={
+        "n": 3, "question": "要不要换工作", "seed": 11})))
+    _ATT_FLOOR = {"liuyao": 4, "tarot": 3}
     _att_bad = []
     for _nm, _resp in _att_cases:
         _rep = (_resp.json().get("warm") or {}).get("reply") or []
         _sc, _bare = _attune(_rep)
-        if _sc < 4 or _bare:
+        if _sc < _ATT_FLOOR.get(_nm, 4) or _bare:
             _att_bad.append((f"{_nm}:score={_sc}", _bare[:1]))
     assert not _att_bad, ("attunement.floor", _att_bad[:2])
     ok.append("attunement.floor")
