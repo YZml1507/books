@@ -17155,3 +17155,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - R3102：黄历忌判定带硬凶日凭据（月破/杨公忌/四离）。
 - 第 25 段快照：selftest 336 / contract 644 / dup 0 /
   chat_e2e 4/4 / smoke 83/83 全绿。
+
+## R3104——起名点评 prompt 补行点名
+- _NAME_REVIEW_SYSTEM 补「有缺/偏弱行就点名哪个名字接住了它，
+  没接住如实说」——与 R3093 确定性 warm 同口径。钉 prompt 断言。
+
+## R3105（巡检）——interpretation 引证层 + 残余软话横扫
+- bazi interpretation sections 逐行带（依据：干克/支藏）推导链，
+  「针对」段挂盘面落点——审计绿。
+- 残余软话全端横扫（14 禁词族 × ~40 产出：bazi/hehun/taohua/
+  qiming/liuyao/tarot/daily/xzmatch）零命中。
