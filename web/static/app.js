@@ -1449,7 +1449,13 @@ function buildChatContext(viewKey) {
     });
     msg = '我抽了' + (cards.join('、') || '牌') +
       (q ? '，问题是「' + q + '」' : '') + '，帮我解读';
-    facts = cards.map(function (c) { return '牌：' + c; });
+    /* R3136：综合收尾（方向+观察信号+复判时点）进上下文——
+     * 问「那我怎么办」时小满手里有卡面那段三段式，不是只报名号。 */
+    var _tcl = ((j.warm || {}).reply || []).filter(function (l) {
+      return l.indexOf('综合来看') !== -1 || l.indexOf('这组牌') !== -1;
+    })[0];
+    facts = (_tcl ? ['牌面口径：' + _tcl.slice(0, 90)] : [])
+      .concat(cards.map(function (c) { return '牌：' + c; }));
   } else if (viewKey === 'bazi') {
     /* paipan.render 实测形如「庚午年 辛巳月 庚辰日 壬午时　日主：庚　大运：逆」
      * ——用全角空格切出四柱段与日主，避免把「大运：逆」也塞进口语句。 */
@@ -1492,9 +1498,13 @@ function buildChatContext(viewKey) {
     facts = ['桃花支：' + (j.peach_zhi || '—'),
              '桃花强度：' + (STR[j.strength] || j.strength || '—')];
     if (j.hongluan) facts.push('红鸾：' + j.hongluan);
-    /* R3114（facts_taohua 同口径）：判词带+入口预判进上下文。 */
+    /* R3114（facts_taohua 同口径）：判词带+入口预判进上下文。
+     * R3136：先验位+入口动作行同进——「说中了才算数」和「先出现在
+     * 哪」是桃花卡最实的两行。 */
     ((j.warm || {}).reply || []).forEach(function (l) {
-      if (l.indexOf('判词') !== -1 || l.indexOf('入口') !== -1) {
+      if (l.indexOf('判词') !== -1 || l.indexOf('入口') !== -1 ||
+          l.indexOf('先验') !== -1 || l.indexOf('出现在') !== -1 ||
+          l.indexOf('运里') !== -1) {
         facts.push(l.slice(0, 80));
       }
     });
@@ -1563,7 +1573,10 @@ function buildChatContext(viewKey) {
      * 问「能成吗」没有判词层手里的生克口径。 */
     ((j.warm || {}).reply || []).forEach(function (l) {
       if (l.indexOf('照传统口径看') !== -1 ||
-          l.indexOf('传统上先看') !== -1) {
+          l.indexOf('传统上先看') !== -1 ||
+          /* R3136：三段式处方行进上下文（先做→看信号→若则） */
+          l.indexOf('观察信号') !== -1 ||
+          l.indexOf('能做的最实一步') !== -1) {
         facts.push(l.slice(0, 90));
       }
     });
