@@ -15667,3 +15667,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   ——不落库与语料 Source 层隔离；
 - /api/external/fortune：solidot 源成功返回——外部
   数据面降级诚实、与核心隔离双在产。
+
+## R2905 巡检#322——search 计数披露实测
+- count=返回条数 vs total=全库真总数（乾 10/1140、
+  無為 10/165、之 10/8060）+truncated 显式标记——
+  用户知道「前10条不代表全部」，截断不装全。
