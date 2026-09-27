@@ -417,6 +417,12 @@ def _run_inner() -> list[str]:
     check("liuyao", client.post("/api/liuyao", json={"method": "coins",
           "seed": 42}),
           lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
+    # R3143（specs/014-L2）：应期参考行——用神支逢值/逢冲日是确定性
+    # 可复验坐标；seed 固定 → 卦面固定 → 该带用神支的应期行必在产。
+    check("liuyao.yingqi", client.post("/api/liuyao", json={"method": "coins",
+          "seed": 42, "question": "我和他要不要分手"}),
+          lambda j: any("应期参考" in l and "逢值" in l and "逢冲" in l
+                        for l in (j.get("warm", {}).get("reply") or [])))
     # R118b（D-164b）：liuyao time（梅花易数时间起卦）与 huangli affair（择日
     # 查找 find_good_days）两条已接线能力路径此前零 standing 断言——实测曾
     # 发现 affair 分支因 timedelta 未导入而 NameError 静默损坏。固定参数确定性

@@ -848,6 +848,12 @@ _SCENE_RE = [(_re_lq.compile(k), v, note, cat)
 # 「照卦面看顺不顺」，不是「磨合一类」的虚词。
 _WX_KE_LY = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
 
+# R3143（specs/014-L2）：地支六冲——用神支的逢值（同支日）与逢冲
+# （对冲支日）是六爻传统断法里最常用的两条应期口径。
+_ZHI_CHONG_LY = {"子": "午", "午": "子", "丑": "未", "未": "丑",
+                 "寅": "申", "申": "寅", "卯": "酉", "酉": "卯",
+                 "辰": "戌", "戌": "辰", "巳": "亥", "亥": "巳"}
+
 
 def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
     """user_wx=世爻五行，other_wx=用神/应爻五行。返回倾向句或空。"""
@@ -1132,9 +1138,9 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _seg += (f"，代表事情那头的那一爻在"
                      f"{_YAO_POS_CN.get(int(_ying_pos or 0), '')}爻"
                      + (f"（临{_lq_b}）" if _lq_b else ""))
+        _pos_of = lambda lq: [int(l.get("position", 0)) for l in _bl
+                              if l.get("liuqin") == lq]
         if _ys:
-            _pos_of = lambda lq: [int(l.get("position", 0)) for l in _bl
-                                  if l.get("liuqin") == lq]
             _ys_pos = _pos_of(_ys)
             if _cat == "love":
                 # 感情题两星同报：女命看官鬼（夫星）、男命看妻财（妻星）。
@@ -1181,6 +1187,48 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                                   _ys_l.get("wuxing", ""), "你问的事")
         if _lean:
             lines.append(_lean)
+
+        # R3143（specs/014-L2）：应期参考——用神支的逢值（同支日）与
+        # 逢冲（对冲支日）是六爻最常用应期口径；动爻上的用神优先
+        # （传统以动为应）。如实转述成「参考窗口」，不下「必应验」断言。
+        _yz_l = _ying_l or {}
+        # 感情题与上文口径对齐——女看官鬼（夫星）优先，男命视角的
+        # 妻财次之；同星多爻时动爻优先（传统以动为应）。
+        _cands = ([_pos_of("官鬼"), _pos_of("妻财")] if _cat == "love"
+                  else [_pos_of(_ys)] if _ys else [])
+        for _pl in _cands:
+            if _pl:
+                _mv_c = [p for p in _pl if p in ml]
+                _yz_l = _by_pos.get((_mv_c or _pl)[0], {}) or _yz_l
+                break
+        _zb = (_yz_l or {}).get("branch") or ""
+        _zc = _ZHI_CHONG_LY.get(_zb, "")
+        if _zb and _zc:
+            try:
+                import datetime as _dt2
+                from guji.bazi import day_ganzhi as _dgz
+                _d_val = _d_chg = None
+                _base = _dt2.date.fromisoformat(str(_d3_today()))
+                for _i in range(1, 46):
+                    _dd = _base + _dt2.timedelta(days=_i)
+                    _gz = _dgz(_dt2.datetime(_dd.year, _dd.month,
+                                           _dd.day))[0]
+                    _bd = _gz[1] if len(_gz) >= 2 else ""
+                    if _d_val is None and _bd == _zb:
+                        _d_val = _dd
+                    if _d_chg is None and _bd == _zc:
+                        _d_chg = _dd
+                    if _d_val and _d_chg:
+                        break
+                if _d_val and _d_chg:
+                    lines.append(
+                        f"应期参考（传统口径）：代表这事的那爻带{_zb}——"
+                        f"{_d_val.month}月{_d_val.day}日逢值、"
+                        f"{_d_chg.month}月{_d_chg.day}日逢冲，"
+                        "事情容易在这两个日子前后有动静"
+                        "（参考，不是日程表）。")
+            except Exception:
+                pass
 
     if ml:
         pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
@@ -1241,7 +1289,9 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # R233u：坐标行新增后 6 行——cap 放宽到 6，经文引导不再被截
     # R3128：三段式处方比一步句长且是收尾行动位——再放宽到 7，
     # 实测「分手」问法下处方整行被 [:6] 裁掉。
-    return lines[:7]
+    # R3143：应期参考再占一行——最坏行序=卦名/节奏/坐标/倾向/应期/
+    # 动爻/多动提示/变卦/处方=9 行，cap 放宽到 9 否则处方又被顶出去。
+    return lines[:9]
 
 
 # ---------------------------------------------------------------------------
