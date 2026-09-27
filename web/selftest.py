@@ -2702,6 +2702,17 @@ def _run_inner() -> list[str]:
     assert not _LC._is_sensitive("他打我游戏账号"), "打我账号被误拦"
     assert not _LC._is_sensitive("快递跟踪单号"), "快递跟踪被误拦"
     assert not _LC._is_sensitive("看校园霸凌新闻"), "新闻语境被误拦"
+    # R2991（巡#408）：跳下/肿瘤补位——跳下裸形入软层吃物件豁免
+    # （天台/桥等自伤向量不进排除表）；肿瘤披露入软层转介。
+    assert _LC._is_crisis("想跳下去"), "跳下裸形未接"
+    assert _LC._is_crisis("站在天台想跳下去"), "天台跳下未接"
+    assert not _LC._is_crisis("跳下舞台谢幕"), "舞台跳下被误拦"
+    assert not _LC._is_crisis("蹦极的时候跳下去"), "蹦极跳下被误拦"
+    assert not _LC._is_crisis("跳下秋千就跑"), "秋千跳下被误拦"
+    assert _LC._is_sensitive("查出肿瘤了"), "肿瘤未接"
+    assert _LC._is_sensitive("肿瘤指标偏高"), "肿瘤指标未接"
+    assert not _LC._is_sensitive("肿瘤医院的猫"), "肿瘤猫被误拦"
+    assert not _LC._is_sensitive("刷到肿瘤新闻"), "肿瘤新闻被误拦"
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
     # 8/min 限流，done-task 直接带回转介句，连发也不会被「歇口气」顶掉。
     _tid_s = _LC.spawn_chat_task("st-sens", "得了绝症怎么办", config=_ccfg)
