@@ -15499,3 +15499,16 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - term_today：秋分 08:09 / 寒露 14:30 天文交节时刻
   当值下发；day_flags/linri 条件在场（无事不下发
   零捏造）。
+
+## R2883 巡检#300——第十段全闸大快照（300 巡检里程碑）
+- selftest 312 / contract 643(SOFT=50) / standing 3/3 /
+  dup AST / baseline_voice 14 逐字节 / ui_smoke PASS
+  （derived#1+thread#1+favorite#1 三条新防线同步
+  生效零残留）/ r2524 34/0 / date_parity 74+43+253+9
+  / chat_e2e 4/4 全绿。
+- 本批（R2864–R2883）20 轮：真修 #6/#7（derived/
+  favorites 探针残留防线）+ 数据面全表审计 +
+  SOFT=50 审完 + 门闸四层 + 安全族 34 + warm/chat
+  深度评审 + ask 双层校验 + paipan 生命周期 +
+  share 三面 + xingzuo beat + daily 三钉 + 线程
+  状态机 + compare 三态 + affair 六语义 + 黄历九钉。
