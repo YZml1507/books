@@ -15788,3 +15788,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   liuyao 六面/纳甲排盘/经文引用/cross_ref 联动/seed
   确定性/scope 三面/resolve_date/择日窗/today锚/
   favorites/write_guard/prefs/external 全实测在产。
+
+## R2924 巡检#341——SW/SPA 面 live 复验
+- sw.js：200+JS MIME+SWA:/ 三段齐；CACHE 名绑
+  shell-hash 6eab490f0c1f（壳变哈希变闸会红）。
+- SHELL 8 件+index 注册+下发 HTML 带 ?v= 版本化；
+  navigate 序 fetch 先行 hit 仅 _hitP.then 兜底
+  （上一轮 selftest 钉过，本轮直读源码复验一致）。
+- SPA：/huangli→200 HTML；/api/* 与非 GET→真 404。
