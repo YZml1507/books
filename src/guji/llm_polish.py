@@ -1979,6 +1979,13 @@ def facts_bazi(paipan: dict, warm: dict, question: str | None,
                 facts.append("眼下大运：" + _fact_line(_cur))
         elif title.startswith("针对") and lines:
             facts.append("盘面落点：" + _fact_line(lines[0]))
+    # R3148：时间问坐标行进 facts——用户带「今年/最近/下个月」提问时
+    # warm.reply 里已算好的流年/流月/顺劲月锚此前不进解读块上下文，
+    # 成稿只能泛写「运势起伏」。把这些确定性锚喂给模型。
+    for _rl in (w.get("reply") or [])[1:]:
+        if any(k in _rl for k in ("年度主基调", "当月基调", "眼下走在第",
+                                  "偏顺气的月份", "要使劲的月份")):
+            facts.append("时间坐标：" + _fact_line(_rl))
     return facts
 
 
