@@ -2457,7 +2457,10 @@ def _run_inner() -> list[str]:
     # 用白名单而非删掉断言——未登记的键仍会被抓到，这条断言的价值正在于
     # 「新增顶层键必须先在此登记」，等于强制走一次 review。
     _td = client.post("/api/tarot/draw", json={"seed": 42, "n": 1}).json()
-    assert set(_td) == {"card", "interpretation", "warm"}, sorted(_td)
+    # R3150c 登记：`result_ref` 是判词权威信道的 additive 新键
+    # （与其他六面结果卡同信道——聊这张抽的卡时服务端拿快照判词）。
+    assert set(_td) == {"card", "interpretation", "warm",
+                      "result_ref"}, sorted(_td)
     assert isinstance(_td["interpretation"], dict), type(_td["interpretation"])
     assert isinstance(_td["warm"], dict), type(_td["warm"])
     ok.append("tarot.draw.keys")
