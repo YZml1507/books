@@ -15619,3 +15619,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 删线程设计语义核实：turns 随删，derived claims
   解绑保留（不可再生研究笔记不连坐）——设计内
   非泄漏；探针行已清。
+
+## R2898 巡检#315——addr 五 scheme 实测
+- bcv 箴言12:12→Douay-Rheims 圣经 2 hit；yilin 中孚
+  61→焦氏易林 WYG 20 hit；booksec 章10→Iliad 20 hit；
+  play sonnet1→莎士比亚全集 20 hit；euclid B1P1→
+  几何原本 20 hit——五域寻址全真命中。
