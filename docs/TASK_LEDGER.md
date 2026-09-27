@@ -17236,3 +17236,4 @@ R3151：tarot/draw 契约键钉补 result_ref——加字段要同步钉白名�
 R3152：合婚接问句——schema/表单/服务/warm 四层补齐，判词后紧跟「对着你问的说」定向行（长远→大运节奏/吵架→磨点剧本/复合→变没变/异地→时间窗/心思→互看段）。335b277
 R3153（specs/014-L1+）：跨日卡片记忆——chat:cards 本机足迹（用户主动测的七面卡：哪天·哪面·问什么·判词短句，同日同面覆盖，14 天滚动）；隔天聊注入「她这几天测过的卡」行（仅昨天之前，今天的走 live 上下文）；wipe 收编；smoke 钉 cardsmem=OK。
 R3154：塔罗/六爻接 AI 解读块（此前只有八字/桃花/合婚/起名四面有 polish）——facts_tarot（牌面坐标+综合口径行升判词权威位）/facts_liuyao（本变卦+动爻+世应纳甲六亲+应期/处方判词行）；_SYSTEM 措辞泛化「八字盘」→「命理结果」；FE 双 build 挂 renderAiPolish+submit 挂 pollAiPolish；contract 登记两端点 ai_task_id 条件键（648 点 PASS）；真机验证 agnes-3.0-flash 实产出稿贴卦名/牌位不瞎编。
+R3155：星座合盘接 AI 解读块（闺蜜互测分享场景要口语段）——facts_xzmatch（象组/分数/lines 判词级行，交权尾不进 facts）；响应契约对齐 ai_polish 恒在+ai_task_id 条件；真机实测贴象组处方出稿。

@@ -1252,6 +1252,9 @@ def liuyao(req) -> dict:
         # R221b：交叉引用收口 7/7——六爻不收生日，只引"今天"的值宫
         "cross_ref": _cross_ref_liuyao(ben.moving_lines,
                                         today_iso=getattr(req, "client_date", None)),
+        # R3154：与其他四面同契约——ai_polish 恒在（同步段永 None，
+        # 解读走 ai_task_id 轮询），ai_task_id 仅 LLM 开启时追加。
+        "ai_polish": None,
     }
     # R2349s（R83-P0-1）：时间起卦同一天同时辰卦族高度集中（梅花公式
     # 构造使然，60 天实测只出 8/64 卦）——如实披露并指铜钱路。
@@ -1907,7 +1910,13 @@ def xzmatch(sa: str, sb: str, rel: str = "") -> dict:
                  "这里给的是地图，路是你们走的。")
     out = {"a": sa, "b": sb, "elem_a": ea, "elem_b": eb,
            "score": score, "label": label, "line": line,
-           "lines": lines}
+           "lines": lines,
+           # R3155：ai_polish 恒在（同步段永 None），ai_task_id 条件追加
+           "ai_polish": None}
+    # R3155：合盘接 AI 解读块——闺蜜互测是分享场景，要口语段
+    ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_xzmatch(out))
+    if ai_task_id:
+        out["ai_task_id"] = ai_task_id
     # R3150：合盘此前没进 result_ref 快照——照卡聊「我们配吗」时
     # 小满手里没有权威判词，82 分合拍能被说成「不太行」。
     out["result_ref"] = _stash_result("xzm", out)
@@ -3637,6 +3646,8 @@ def tarot(req) -> dict:
         "question": req.question,
         # R221b：交叉引用收口 7/7——塔罗不收生日，只引"今天"的值宫
         "cross_ref": _cross_ref_tarot(cards, today_iso=req.client_date),
+        # R3154：ai_polish 恒在（同步段永 None），ai_task_id 条件追加
+        "ai_polish": None,
     }
     # R230z（R36-P1-1）：塔罗进台账；摘要用问题或张数
     # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账/牌册。

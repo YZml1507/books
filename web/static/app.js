@@ -9583,9 +9583,12 @@ function initDivination() {
         }).join('') +
         '<div style="margin-top:8px;font-size:12px;color:var(--secondary);">' +
         '想更准？补个生辰试试八字合婚 →</div>' +
+        /* R3155：合盘接 AI 解读块——判词级 lines 进 facts */
+        renderAiPolish(mj) +
         /* R2350d（R100-P1-4）：速配卡补分享钮——最低成本的晒点。 */
         '<button class="ghost fav-btn" type="button" id="shareXzm" ' +
         'title="生成分享图" style="margin-top:10px;">📸 分享图</button>';
+      pollAiPolish('xzmResult', mj.ai_task_id);   /* R3155：AI 段落后到 */
       var _sxm = box.querySelector('#shareXzm');
       if (_sxm) _sxm.addEventListener('click', function () {
         var _p = downloadPoster(mj, 'xzm');

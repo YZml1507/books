@@ -2196,6 +2196,28 @@ def facts_liuyao(res: dict, warm: dict | None = None,
             facts.append(("判词：" if not _ls.startswith("判词")
                           else "") + _fact_line(_ls))
     return facts
+
+
+def facts_xzmatch(m: dict) -> list[str]:
+    """星座合盘卡事实——象组/分数/lines 判词级行进 polish。
+
+    R3155：闺蜜互测是分享型场景——卡面 bullet 已够细，加一段
+    口语化 AI 解读让「念给对方听」这个动作成立。
+    """
+    facts = [
+        "星座合盘：{}座 × {}座（{}象 × {}象）".format(
+            m.get("a") or "", m.get("b") or "",
+            m.get("elem_a") or "", m.get("elem_b") or ""),
+        "合拍指数：{}/99（{}）".format(m.get("score") or "",
+                                      m.get("label") or ""),
+    ]
+    for _ln in (m.get("lines") or [])[:4]:
+        _ls = str(_ln)
+        # 交权尾（「星座只是地图」）不进 facts——模型自己会说保留意见
+        if "地图" in _ls and "路" in _ls:
+            continue
+        facts.append("判词：" + _fact_line(_ls))
+    return facts
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
 

@@ -257,6 +257,8 @@ CONDITIONAL_FIELDS = {
     # 返回（缺席=无 AI 段落，与上四面同判据），pollAiPolish 显式守。
     "/api/liuyao": {"ai_task_id"},
     "/api/tarot": {"ai_task_id"},
+    # R3155：星座合盘同款——LLM 开启时才返回。
+    "/api/xzmatch": {"ai_task_id"},
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
     # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
     # 缺席的正确探测。
