@@ -1942,8 +1942,20 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
                      f"名字里给它补一补，图个心里踏实。")
     elif weak:
         _wq = "这一行" if len(weak) == 1 else "这两行" if len(weak) == 2 else "这几行"
-        lines.append(f"五行没缺，{'、'.join(weak)} {_wq}偏弱——"
-                     f"挑字的时候往这个方向偏了偏。")
+        # R3093（specs/010-P3）：弱行不再只说「往这个方向偏了偏」——
+        # 报候选池里真接住弱行的字数，让「偏」有可验的落点。
+        _wn = sum(1 for n in names
+                  if set(str(e) for e in (n.get("elements") or []))
+                  & set(weak))
+        if _wn >= len(names):
+            _wtail = (f"{len(names)} 个候选全都带着{'或'.join(weak)}"
+                      f"的字，就往这个方向挑的")
+        elif _wn:
+            _wtail = (f"{len(names)} 个候选里有 {_wn} 个带着"
+                      f"{'或'.join(weak)}的字，往这个方向偏的")
+        else:
+            _wtail = f"这批候选还没接住{_wq}——点「换一批」再试试"
+        lines.append(f"五行没缺，{'、'.join(weak)} {_wq}偏弱——{_wtail}。")
     else:
         lines.append("五行挺匀的——挑名就只管好听、有出处。")
     # R2349s（R84-P2-17）：names[0] 是后端乱序首位，而前端按 _qmScore
@@ -1958,8 +1970,20 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
     _top = (max(names, key=_nm_score) if names else {})
     if _top.get("full_name"):
         _src = _top.get("origin") or "古籍"
-        lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"
-                     f"念起来也顺口。")
+        # R3093（specs/010-P3）：点名不再只报出处——字级五行对上缺/
+        # 弱行的直接说「哪几字接住了哪几行」，说不出就退回出处口径。
+        _given = str(_top.get("given") or "")
+        _els = [str(e) for e in (_top.get("elements") or [])]
+        _fit = [f"「{_given[i]}」属{_els[i]}"
+                for i in range(min(len(_given), len(_els)))
+                if _els[i] in _want]
+        if _fit:
+            lines.append(f"私心喜欢「{_top['full_name']}」——"
+                         f"{'、'.join(_fit)}，正好接住弱的那几行；"
+                         f"出自{_src}。")
+        else:
+            lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"
+                         f"念起来也顺口。")
     # R2519（深度收尾）：定名前的两件实在事——比「随缘吧」有用的收口。
     if names:
         lines.append("定之前两步：把候选名连着姓大声念三遍听顺不顺；"

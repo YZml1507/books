@@ -651,6 +651,18 @@ def _run_inner() -> list[str]:
         "hour": 9, "top_n": 8, "seed": 7})
     assert _qm4.json().get("warm") == _qw, "warm.qiming.deterministic"
     ok.append("warm.qiming.present")
+    # R3093（specs/010-P3）：弱行盘 warm 须报候选池接住弱行的字数 +
+    # 点名行带字级五行——「往这个方向偏了偏」这类无落点话禁复出。
+    _qm5 = client.post("/api/qiming", json={"surname": "李",
+        "gender": "女", "year": 2002, "month": 5, "day": 20,
+        "hour": 10, "top_n": 20, "seed": 7}).json()
+    _qr5 = (_qm5.get("warm") or {}).get("reply") or []
+    _qweak = [_l for _l in _qr5 if "偏弱" in _l]
+    _qpick = [_l for _l in _qr5 if "私心喜欢" in _l]
+    assert _qweak and "个候选" in _qweak[0] and "偏了偏" not in _qweak[0], \
+        ("qiming.weak_count", _qr5)
+    assert _qpick and "属" in _qpick[0], ("qiming.pick_fit", _qr5)
+    ok.append("qiming.weak_fit_count")
     # R230a-16：qiming five_elements 的 weak 键钉扎（R13 五行俱全时前端
     # 吃 missing 变空卡的 bug 修字段）——键必须在、类型必须是 list。
     _fe2 = _rc2.json().get("five_elements") or {}
