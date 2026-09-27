@@ -14677,3 +14677,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2750 巡检#167——bazi ask_hour 流时层
 - 不传→day_luck 无流时；ask_hour=15→calc.day_luck 多
   「流时干支：十神」比对行——条件化在产；4 行已清。
+
+## R2751 巡检#168——location 回显分层防御
+- <script> 原样落 calc.location JSON（无 DOM 出口：不渲
+  染该键、_FIELD_CN 只翻字段名、历史详情全 esc()）；
+  bidi/控制字边界剥除、101 字→422——分层架构正确非缺陷。
