@@ -14364,3 +14364,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 312 / contract 643 / dup_keys / standing 3/3 /
   date_parity 74+43+253+9 / voice 14 逐字节 / chat_e2e 4/4 ——
   100 轮巡检零漂移。
+
+## R2684 巡检#101——危机词 facts 绕道封堵
+- facts 塞「她想自杀」→ 词表剥除（请求体只剩正常坐标）——
+  R61-P1-2 危机语义绕道封堵实测有效。
