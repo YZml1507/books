@@ -14786,3 +14786,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2771 巡检#188——concept 概念聚合
 - 谦→census 22 书命中数榜+shared_addresses 27 共址
   （卦3·初九跨两书）+shared_truncated 如实；空 q→人话。
+
+## R2772 巡检#189——works 书目 source 层
+- 47 书各带真实出处（gutenberg×7/kanripo codeload URL/
+  kanripo 内置×9）+units/addressed/anchored 三计数——
+  出处层归属非装饰。
