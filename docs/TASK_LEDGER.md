@@ -15512,3 +15512,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   深度评审 + ask 双层校验 + paipan 生命周期 +
   share 三面 + xingzuo beat + daily 三钉 + 线程
   状态机 + compare 三态 + affair 六语义 + 黄历九钉。
+
+## R2884 巡检#301——liuyao 双法实测
+- time 起卦→萃45+cast_at「2026年8月16日 10时」
+  时刻回显（防默认日歧义）；coins seed42→贲22/
+  变1、seed43→无妄25——确定性+种子分异双钉；
+- interpretation 四段（卦象坐标/动爻/走向/针对问）
+  + warm 软化层在产；残留已清。
