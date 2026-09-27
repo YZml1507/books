@@ -15023,3 +15023,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 验证：9 ban+5 pass 矩阵全绿；selftest 312 全绿（含
   chat.banned.fallback）；probe_r2524 34 全过；
   standing 3/3。
+
+## R2818 巡检#235——_sanitize 绕闸矩阵
+- 8 例实测：注**定**/你 应 该/註定繁体→全拦（_scan_form
+  剥记号+零宽+空白+繁折简拼回真词）；calc.内串/提示词
+  结构外露→降级 None；正常文本放行；keep_citations 真
+  引文豁免「克明俊德」、假引文《注定》窄表堵——双保险
+  方向都对。
