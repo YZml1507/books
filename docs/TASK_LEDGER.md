@@ -14971,3 +14971,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - node 层逐条实测：配对**→<strong>、孤儿**全吃零*残
   留（R227b）；XSS 先进 esc 惰性化再进 <strong>；-/•
   →<ul><li> 正确闭合；*em*→<em>、`code`→<code> 全绿。
+
+## R2811 巡检#228——humanCite 清洗链
+- 真函数 node 抽测 7 例：@ADDR/@?/(file.txt) 全清、[wyg]
+  [tls][w][gutenberg]→中文版本名、「!」分段标记清、null
+  →空串不崩——用户面零内部记号。
