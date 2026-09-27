@@ -14754,3 +14754,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   每轮一具体物/健康理财温和转介/禁指令/≤3 句纯文本/
   日期锚）与 polish（只用给定事实/称谓随性别/禁书名
   引文/禁注定孤独没戏克必离/≤90 字）双套一致无矛盾。
+
+## R2766 巡检#183——第五段全闸大快照（零回归）
+- selftest 312 全绿（注：须 .venv/bin/python——sentence_
+  transformers 依赖）；contract 643 全钉扎 SOFT=50；
+  dup_keys/standing 3/3/date_parity 74+43 问法+253 别名
+  +9 族/voice 14 逐字节/chat_e2e 4/4 全 PASS。本批
+  R2724–R2765 共 42 轮纯巡检+1 处文案修复（R2708），
+  巡检零副作用。
