@@ -3427,6 +3427,50 @@ _LEVEL_ADVICE = {
 _BAD_RELS = ("相害", "相刑", "自刑", "六冲")   # R228m：产出侧枚举是「六冲」（bazi_calc.py:141）
 _GOOD_RELS = ("六合", "三合", "半合")
 
+# R3091（specs/010-P3）：日签宜忌词白话表——daily.do/dont 改挂当日
+# 黄历 yi/ji 真词（盘点 agent Top-2：池子级 do/dont 与当日事实脱钩）。
+# 表外古词原样透出（书上的词，翻译缺位不编造）。
+_HL_TERM_SPOKEN: dict[str, str] = {
+    "出行": "出远门", "移徙": "搬家挪窝", "入宅": "搬新家",
+    "嫁娶": "办喜事", "纳采": "提亲相亲", "订盟": "定亲签约",
+    "问名": "相亲问名", "开市": "开业开张", "开业": "开业开张",
+    "动土": "动土开工", "修造": "装修修缮", "上梁": "上梁封顶",
+    "竖柱上梁": "上梁封顶", "安床": "安床挪床", "合帐": "挂帐安床",
+    "求医": "看医生", "治病": "治病调理", "求医疗病": "看医生",
+    "祭祀": "祭祖祈福", "祈福": "许愿祈福", "求嗣": "备孕添丁",
+    "会友": "约朋友聚", "赴任": "入职赴任", "上任": "入职赴任",
+    "谒贵": "见重要的人", "纳财": "进账收款", "出货财": "出货变现",
+    "交易": "谈生意", "立券": "签合同", "开仓": "动用存款",
+    "沐浴": "好好洗个澡", "扫舍": "大扫除", "理发": "理发",
+    "整手足甲": "剪指甲", "栽种": "种花种草", "牧养": "养宠物",
+    "破土": "破土动工", "安葬": "安葬", "解除": "断舍离消灾",
+    "经络": "按摩调理", "酝酿": "启动筹备", "畋猎": "户外活动",
+    "取渔": "钓鱼玩水", "乘船": "坐船", "渡水": "过河水边",
+    "登高": "爬山登高", "归宁": "回娘家", "入学": "开学上课",
+    "习艺": "学手艺", "平治道涂": "修路整地", "修饰垣墙": "刷墙翻新",
+    "伐木": "砍树伐木", "捕捉": "除虫除害", "裁衣": "做衣服",
+    "冠笄": "成年礼", "进人口": "添丁进口", "补垣": "补墙堵漏",
+    "塞穴": "堵洞防患", "造屋": "盖房", "架马": "搭架开工",
+    "开渠": "挖渠引水", "穿井": "打井", "结网": "织网筹备",
+    "分居": "分开住", "词讼": "打官司", "诉讼": "打官司",
+    "远行": "出远门", "苫盖": "遮盖防雨",
+}
+
+
+def _hl_spoken(terms: list[str], n: int = 3) -> str:
+    """黄历宜忌词列 → 白话串（前 n 个）。
+
+    同译名去重（出行/远行→出远门 同日并存时只留一个，selftest
+    daily.advice.dedup 闸对「、」分片唯一性有钉）。"""
+    out: list[str] = []
+    for t in terms:
+        s = _HL_TERM_SPOKEN.get(t, t)
+        if s not in out:
+            out.append(s)
+        if len(out) >= n:
+            break
+    return "、".join(out)
+
 
 def fortune_level(calc_out: dict, day: "datetime | None" = None) -> str:
     """从运算事实推算运势等级（吉/小吉/平/凶）——结构化判断，非关键词匹配。
@@ -3590,7 +3634,8 @@ def daily(date_str: str | None = None,
             # 且新增 noble_liuhe 字段；旧缓存一律重算覆盖。
             # R2349t（R87-P0-1）：cv=5——cv≤4 的行可能含 personal
             # 脏字段（请求方生辰派生），抬代次让存量脏行一律重算覆盖。
-            if _c.get("cv") == 5 and (not _want or _c.get("noble") == _want):
+            # R3091：cv=6——summary 事实句/do/dont 黄历真词口径。
+            if _c.get("cv") == 6 and (not _want or _c.get("noble") == _want):
                 # R2349k（R72-A2）：festival 是派生字段不入缓存语义——
                 # 现算随包回（旧缓存行也能拿到节日行）。
                 _r = {"date": date_str, **_c, "cached": True,
@@ -3647,6 +3692,28 @@ def daily(date_str: str | None = None,
             _j2 = _pick([x for x in _jp if x != _j1] or _jp,
                         date_str, "j2")
             dont_str = _j1 + "、" + _j2
+        # R3091（specs/010-P3）：do/dont 改挂当日黄历真宜忌——池子句
+        # 与当日事实脱钩（盘点 agent Top-2）。日无真词时回退池子。
+        try:
+            _dq = huangli_mod.day_query(datetime(d.year, d.month, d.day, 12))
+            _dyi, _dji = _dq.get("yi") or [], _dq.get("ji") or []
+            if _dyi:
+                do_str = "宜：" + _hl_spoken(_dyi)
+            if _dji:
+                dont_str = "忌：" + _hl_spoken(_dji)
+        except Exception:
+            pass
+        # R3091：summary 事实句优先——有盘面关系/失衡就说事实，
+        # 情绪池降级为语气后缀；事实为空才整句走池。
+        _mood = summary if (_db and level in (_db.get("levels") or {})) \
+            else ""
+        _fact_sum = fortune_summary(calc_out)
+        if _fact_sum and not _fact_sum.startswith("今天的运势卡") \
+                and not _fact_sum.startswith("今天五行平和"):
+            summary = (_fact_sum.rstrip("。")
+                       + ("；" + _mood if _mood else "。"))
+        else:
+            summary = _mood or _fact_sum
         # B-017（R195b 清偿）：旧实现按公历年取生肖是「今年的生肖」，
         # 与「贵人」无关（B-003 登记的语义缺陷）。改为当日日干的天乙贵人
         # （huangli.guiren，与黄历页同一算法、同一出处）——
@@ -3669,10 +3736,9 @@ def daily(date_str: str | None = None,
             noble_lh = ""
         result = {
             "date": date_str,
-            "cv": 5,                     # 缓存口径版本（R2349t：personal 移出缓存）
+            "cv": 6,                     # 缓存口径版本（R3091：summary/do/dont 接事实）
             "level": level,
-            "summary": (summary if (_db and level in (_db.get("levels") or {}))
-                        else fortune_summary(calc_out)),
+            "summary": summary,
             "noble": noble_str,
             "noble_liuhe": noble_lh,
             "do": do_str,

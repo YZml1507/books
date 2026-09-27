@@ -2278,6 +2278,13 @@ def _run_inner() -> list[str]:
     _dfd = _daily_fields_ok()
     assert _dfd is True, ("daily.fields.no_degrade", _dfd)
     ok.append("daily.fields.no_degrade")
+    # R3091（specs/010-P3）：日签事实接线钉——do/dont 挂当日黄历真
+    # 宜忌白话（宜：/忌：前缀），不再是池子句；summary 有盘面事实
+    # 时事实句在前。
+    _dly = client.get("/api/daily").json()
+    assert (_dly.get("do") or "").startswith("宜："), _dly.get("do")
+    assert (_dly.get("dont") or "").startswith("忌："), _dly.get("dont")
+    ok.append("daily.fact_wired")
     # R229z续4：宜/忌两条建议不许同项撞签（实测"空腹喝冰美式、空腹喝
     # 冰美式"——同池两签会撞）。连测 30 天。
     def _daily_no_dup():

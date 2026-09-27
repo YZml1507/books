@@ -17098,3 +17098,17 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   此前永远没机会开口）——关键位前 3 + 建议/指引/希望/结果补 2；
   尾行「其余 N 张是细节的注脚」。
 - 钉 tarot.position_voice；selftest 326 绿。
+
+## R3091（specs/010-P3）——日签 daily 接当日事实
+- 盘点 agent Top-2：daily.summary 走 copy_bank 情绪池，与 fortune_level
+  算出的五行/地支关系全脱钩；fortune_summary() 会写「N处别扭（六冲）
+  ——宜稳」却只在兜底见光。do/dont 同理是池子句。
+- 修法：
+  - summary 事实句优先——有 strong/missing/relations 时
+    fortune_summary 在前、情绪池降级为语气后缀；
+  - do/dont 改挂当日 huangli.day_query 的 yi/ji 真词，新增
+    _HL_TERM_SPOKEN 白话表（出行→出远门、谒贵→见重要的人、
+    纳财→进账收款…表外古词原样透出），同日与黄历页同词同源；
+  - _hl_spoken 同译名去重（出行/远行→出远门 同日并存只留一个）；
+  - cv 5→6 抬缓存代次，存量池子句缓存一律重算覆盖。
+- 钉 daily.fact_wired（宜：/忌：前缀）；327 绿。
