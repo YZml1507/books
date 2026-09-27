@@ -15197,3 +15197,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   list→{total:0,items:[]} 空表优雅不报错，get/export/
   delete→404；KEEP_MAX=500 滚动 + 写槽 32 洪峰丢弃 +
   _WIPE_GEN 作废 wipe 前入队写。
+
+## R2840 巡检#257——knowledge 导入链
+- _import_lock 串行查重→插入（无 UNIQUE 下并发同包会
+  翻倍，R2525）；去重键(topic,opened_at)幂等重灌不翻
+  倍；items≤50+非 dict/空 topic 跳过+_surg_scrub 剥
+  孤儿码点；非法 status 收敛 open；open_thread 防
+  rowid 复用挂孤儿（turn 删/derived 解绑）；add_turn
+  INSERT..SELECT 原子 seq 零竞态+单线程轮数帽。
