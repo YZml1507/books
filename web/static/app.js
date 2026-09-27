@@ -11526,6 +11526,32 @@ function _chatChipsPersonalize() {
     chips[0].textContent = '接着上次：' + _gSlice(hl.q, 8);
     chips[0].setAttribute('data-ask', hl.q);
   }
+  /* R3134（调研：测测「预置问题贴档案」）：chips 贴着刚出的结果卡——
+   * 最新 LAST_RESULT 在 30 分钟内时，首 chip 换成该卡的追问
+   * （判词刚出最容易想问的就是「那我怎么办/哪里会磨」）。 */
+  var _FOLLOWUP = {
+    hehun: '我们最可能为什么吵架、怎么磨',
+    tarot: '这组牌最要我注意什么',
+    liuyao: '这卦让我接下来先做什么',
+    bazi: '我接下来的运往哪走',
+    taohua: '我的桃花从哪个门进来',
+    qiming: '这几个名字你最推哪个',
+    xzm: '我们俩相处要注意什么',
+    daily: '今天要留意什么',
+    huangli: '今天做什么最顺'
+  };
+  var _fk = null, _fts = 0;
+  for (var _kv in LAST_RESULT) {
+    var _e2 = LAST_RESULT[_kv];
+    if (_e2 && _e2.json && (_e2.ts || 0) > _fts &&
+        Date.now() - (_e2.ts || 0) < 30 * 60e3) {
+      _fk = _kv; _fts = _e2.ts;
+    }
+  }
+  if (_fk && _FOLLOWUP[_fk] && chips[0]) {
+    chips[0].textContent = _FOLLOWUP[_fk];
+    chips[0].setAttribute('data-ask', _FOLLOWUP[_fk]);
+  }
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
  * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */
