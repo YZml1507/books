@@ -1730,16 +1730,27 @@ def main() -> int:
                     "  _chatFacts([]).join('|'),"
                     "  (()=>{document.querySelectorAll('.view.active')"
                     "   .forEach(v=>v.classList.remove('active'));"
-                    "   return _activeViewFacts().join('|')})()"
+                    "   return _activeViewFacts().join('|')})(),"
+                    "  (()=>{localStorage.setItem('chatTranscript',"
+                    "   JSON.stringify([{r:'me',t:'我们合婚怎么样'},"
+                    "   {r:'ai',t:'判词说偏不合适'}]));"
+                    "   CHAT_RESUME_FACT='我们合婚怎么样';"
+                    "   var f1=_chatFacts([]).join('|'),"
+                    "   f2=_chatFacts([]).join('|');"
+                    "   return f1+'##'+f2})()"
                     " ];}")
-                ok = (len(cases) == 2
+                ok = (len(cases) == 3
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       and "之前在合婚测过" in cases[1]
                       and "合拍指数" in cases[1]
+                      and "上次来聊过" in cases[2]
+                      and "我们合婚怎么样" in cases[2]
+                      and not cases[2].split("##")[1].count("上次来聊过")
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
-                          + " xview=" + ("OK" if cases[1] else "X"))
+                          + " xview=" + ("OK" if cases[1] else "X")
+                          + " resume=" + ("OK" if cases[2] else "X"))
             except Exception as exc:
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             if errors:

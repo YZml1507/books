@@ -1321,9 +1321,16 @@ var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自�
  * 新消息会悄悄接进用户看不见的上一轮上下文。把气泡 transcript 与 sid
  * 同介质存储，刷新后原样重渲（上限 50 条与 chatBubble 裁剪一致）。 */
 var CHAT_TS_KEY = 'chatTranscript';
+function _chatTsStore() {
+  /* R3118（specs/011 P3）：transcript 升 localStorage——原来跟
+   * sessionStorage 走，关页即失忆；跨天再开，小满看着像从没
+   * 见过她。sid/chatClosed 仍走 sessionStorage（新天新会话），
+   * 只有对话内容跨会话续存。 */
+  try { return window.localStorage; } catch (e) { return null; }
+}
 function _chatTsRead() {
   try {
-    var s = (_chatStore() || _MEM_STORE).getItem(CHAT_TS_KEY);
+    var s = (_chatTsStore() || _MEM_STORE).getItem(CHAT_TS_KEY);
     var arr = s ? JSON.parse(s) : [];
     return Array.isArray(arr) ? arr : [];
   } catch (e) { return []; }
@@ -1333,11 +1340,11 @@ function _chatTsSave(role, text) {
     var arr = _chatTsRead();
     arr.push({ r: role === 'me' ? 'me' : 'ai', t: String(text || '').slice(0, 2000) });
     if (arr.length > 50) arr = arr.slice(-50);
-    (_chatStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(arr));
+    (_chatTsStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(arr));
   } catch (e) {}
 }
 function _chatTsClear() {
-  try { (_chatStore() || _MEM_STORE).removeItem(CHAT_TS_KEY); } catch (e) {}
+  try { (_chatTsStore() || _MEM_STORE).removeItem(CHAT_TS_KEY); } catch (e) {}
 }
 function _chatTsRestore() {
   /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。
@@ -1349,6 +1356,16 @@ function _chatTsRestore() {
   });
   var _flow = el('chatFlow');
   if (_flow && _last) _flow.scrollTop = _flow.scrollHeight;
+  /* R3118（specs/011 P3）：跨天续聊钩子——恢复出的 transcript
+   * 里最后一条「她说的」存进一次性 resume 槽；下个新会话首次
+   * 发送时 _chatFacts 把它注成「上次你们聊到」事实，小满手里
+   * 有续聊的语境（服务端会话是新开的，不注入就是真失忆）。 */
+  try {
+    var _ts = _chatTsRead();
+    for (var _ri = _ts.length - 1; _ri >= 0; _ri--) {
+      if (_ts[_ri].r === 'me') { CHAT_RESUME_FACT = _ts[_ri].t || ''; break; }
+    }
+  } catch (e) {}
   /* R2400（R123-P2-4）：收尾态的「开新话题」钮挂回最后一条泡。 */
   try {
     if ((_chatStore() || _MEM_STORE).getItem('chatClosed') === '1' && _last) {
@@ -2281,8 +2298,18 @@ function _meNickClean(n) {
     .replace(/[^\u4e00-\u9fffA-Za-z0-9·_-]/g, '').slice(0, 12);
 }
 
+var CHAT_RESUME_FACT = '';   /* R3118：跨天续聊的一次性语境 */
 function _chatFacts(facts) {
   var _f = (facts || []).slice();
+  try {
+    /* R3118（specs/011 P3）：resume 槽一次性消费——只在新会话
+     * 首条消息注入（服务端会话是新开的，不注入等于真失忆）。 */
+    if (CHAT_RESUME_FACT) {
+      _f.unshift('她上次来聊过：「' + CHAT_RESUME_FACT.slice(0, 60) +
+                 '」——如果和现在的话题相关就自然接上，不相关不用硬提');
+      CHAT_RESUME_FACT = '';
+    }
+  } catch (e) {}
   try {
     var _me = _meGet('me');
     var _n = _me ? _meNickClean(_me.n) : '';
@@ -2391,7 +2418,7 @@ function chatSend() {
       if (_arr.length && _arr[_arr.length - 1].r === 'me' &&
           _arr[_arr.length - 1].t === msg) {
         _arr.pop();
-        (_chatStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
+        (_chatTsStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
         var _bbs = document.querySelectorAll('#chatFlow .chat-me');
         if (_bbs.length && _bbs[_bbs.length - 1].textContent === msg) {
           _bbs[_bbs.length - 1].remove();
