@@ -14583,3 +14583,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2731 巡检#148——threads.list 状态过滤
 - 建 A(open)+B(parked)：open 筛只见 A、parked 筛只见 B、
   all 见双、bogus→400 人话；测试线程已删。
+
+## R2732 巡检#149——threads limit 双界
+- limit=0/999/-1→400「条数要在 1-500 之间」双界人话；
+  limit=5 正常下发。
