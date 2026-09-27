@@ -15352,3 +15352,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   dup AST 零重复 / baseline_voice 14 逐字节 / ui_smoke
   PASS(75+) / r2524 安全 34/0 / date_parity 74+43+253+9
   / chat_e2e 4/4 全绿——第 280 轮巡检零回归。
+
+## R2864 巡检#281——真修#6：ui_smoke derived 孤儿防线
+- 实测发现 derived#1 孤儿：上轮 EPIPE 崩死留
+  thread+derived，R2837 名扫只解绑（thread_id=NULL）
+  不删 derived 行——「开题：probe_ui_smoke…」refusal
+  行 id≤baseline 水位扫不到，永久挂库。
+- 修：名扫新增 claim LIKE '开题：probe_ui_smoke%'
+  名扫删 derived（FTS 墓碑+evidence 同款）；
+- 验证：种孤儿→ui_smoke 跑出 thread#残留1+
+  derived#残留1 全清，四表归零 PASS。

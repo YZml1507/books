@@ -2149,6 +2149,22 @@ def main() -> int:
             kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
             kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
             cleaned.append(f"thread#残留{trow['id']}")
+        # R2864：名扫只解绑 derived 不删行——上轮被 kill 留下的
+        # 「开题：probe_ui_smoke …」 refusal 行 id≤baseline，水位扫不到、
+        # 名扫把它 thread_id 置 NULL 后成永久孤儿（本轮实测 derived#1）。
+        # claim 前缀由 app_research.js 写入，真实用户 claim 不会撞前缀；
+        # 与水位路径同款：先 FTS 墓碑，再清 evidence、删 derived。
+        for drow in kb.db.execute(
+                "SELECT id, claim FROM derived "
+                "WHERE claim LIKE '开题：probe_ui_smoke%'").fetchall():
+            from guji.variants import fold, segment_cjk
+            kb.db.execute("INSERT INTO derived_fts(derived_fts,rowid,seg) "
+                          "VALUES('delete',?,?)",
+                          (drow["id"], segment_cjk(fold(drow["claim"]))))
+            kb.db.execute("DELETE FROM evidence WHERE derived_id=?",
+                          (drow["id"],))
+            kb.db.execute("DELETE FROM derived WHERE id=?", (drow["id"],))
+            cleaned.append(f"derived#残留{drow['id']}")
         kb.db.commit()
     hist_after = history_db.count()
 
