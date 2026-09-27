@@ -1267,11 +1267,19 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             # R3170：旬空——用神支落空亡是「事还没坐实」的经典信号。
             # 如实转述成「飘着没定」，不吓人不断言凶。
             _xk = _pp.get("xunkong") or []
+            _xk_bits = []
             if _zb and _zb in _xk:
-                lines.append(
-                    f"还有一点——代表这事的那爻（{_zb}）摇卦这天正落空亡"
-                    "（旬空）：眼下这事还飘在半空没坐实，"
-                    "先别急着把它当定局，等它落了地再看。")
+                _xk_bits.append(f"代表这事的那爻（{_zb}）正落空亡——"
+                                "眼下这事还飘在半空没坐实")
+            # 世爻（你自己这头）落空是另一重信号：心还没定。用神与世
+            # 同支时只报一次。
+            _sh_b = (_shi_l or {}).get("branch") or ""
+            if _sh_b and _sh_b in _xk and _sh_b != _zb:
+                _xk_bits.append(f"你自己那爻（{_sh_b}）也空着——"
+                                "心里可能还没真拿定主意")
+            if _xk_bits:
+                lines.append("还有一点——" + "；".join(_xk_bits) +
+                             "。先别急着当定局，等它落了地再看。")
         except Exception:
             pass
 
