@@ -14392,3 +14392,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - %2f 穿透形→JSON 404「要找的内容不在了」（API 域不吃 SPA
   fallback）/双编码形→任务 404+tid 截断回显控制符已转义/
   真实 tid 正常 done——零内部路径泄漏。
+
+## R2690 巡检#107——threads 同线程追加+详情读回
+- summary→refusal 追加同 thread_id→详情 claims×2（各带证据
+  role/quote）+turns 开题行——写读链闭环；测试线程已删
+  （探针误读 records 键自纠，实为 turns+claims 双键）。
