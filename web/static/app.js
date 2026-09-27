@@ -7356,9 +7356,20 @@ async function doXingzuo(force) {
       html += '</div>';
     }
     if (j.signs && j.signs.length) {
+      /* R3174：me 档案生日→太阳星座，十二宫里点亮「我」的宫——
+       * 存过生日的用户扫一眼就知道哪张是自己的牌。 */
+      var _mySign = '';
+      try {
+        var _meX = _meGet('me');
+        if (_meX && _meX.m && _meX.d &&
+            typeof window.__sunSign === 'function') {
+          _mySign = window.__sunSign(+_meX.m, +_meX.d) || '';
+        }
+      } catch (eMS) {}
       html += '<div class="xz-grid">';
       j.signs.forEach(function (s) {
         var cls = s.is_today ? ' xz-active' : '';
+        if (_mySign && s.sign === _mySign) cls += ' xz-mine';
         /* C-002-fix：星座配图 */
         var _zk = ({'白羊':'aries','金牛':'taurus','双子':'gemini','巨蟹':'cancer','狮子':'leo','处女':'virgo','天秤':'libra','天蝎':'scorpio','射手':'sagittarius','摩羯':'capricorn','水瓶':'aquarius','双鱼':'pisces'})[s.sign] || 'aries';
         /* R232b（R40-A3）：宫卡补本命三运悬停——sign_love/career/wealth
@@ -7383,7 +7394,9 @@ async function doXingzuo(force) {
                  ' tabindex="0" role="button" aria-expanded="false"' +
                  ' aria-label="' + esc(s.sign + '宫，' + (s.note || '') +
                  '，点按展开三运明细') + '"' : '') +
-          '><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) + '</span>' +
+          '><img class="xz-card-img" src="/static/cream/zodiac-' + _zk + '.jpg" alt="' + esc(s.sign) + '" loading="lazy" onerror="this.classList.add(\'is-missing\')"><div class="xz-card-body"><span class="xz-name">' + esc(s.sign) +
+          (_mySign && s.sign === _mySign
+           ? '<i class="xz-mine-tag">我</i>' : '') + '</span>' +
           (s.palace ? '<span class="xz-palace">' + esc(s.palace) + '</span>' : '') +
           '<span class="xz-note">' + esc(s.note) + '</span>' +
           (_stt ? '<span class="xz-more">三运 ›</span>' : '') +
@@ -13164,6 +13177,9 @@ function baziPersonaCard(j) {
     }
     return '摩羯';
   }
+  /* R3174：宫格高亮「我的星座」要用——IIFE 内函数外露，避免十二宫
+   * 渲染处再抄一份日期表。 */
+  window.__sunSign = sunSign;
   var SIGN_TXT = {
     '白羊': '行动派小白羊，想到就冲，热情藏不住，偶尔上头但永远鲜活。',
     '金牛': '金牛的你嘴上佛系心里有数，认定的人和喜欢的东西特别长情。',

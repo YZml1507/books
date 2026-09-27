@@ -2634,3 +2634,9 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
   font-size:11px;color:var(--secondary);background:var(--card,#fff);
   border:1px dashed var(--border);border-radius:999px;
   padding:2px 10px;z-index:3;}
+
+/* R3174：十二宫格「我的星座」徽标——me 档案生日→太阳星座点亮 */
+.xz-card.xz-mine{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(255,143,171,.28);}
+.xz-mine-tag{font-style:normal;display:inline-block;margin-left:5px;padding:0 6px;
+  border-radius:8px;background:var(--accent,#ff8fab);color:#fff;font-size:11px;
+  vertical-align:1px;}
