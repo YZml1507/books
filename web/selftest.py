@@ -3249,6 +3249,14 @@ def _run_inner() -> list[str]:
     assert _hf2 and any("中性" in f or "宜「" in f for f in _hf2), _hf2
     _hf3 = _svc.chat_huangli_facts("他为什么不回我消息", now=_dt(2026, 9, 19))
     assert _hf3 == [], _hf3
+    # R3102（specs/010）：忌判定带硬凶日凭据——2026-09-22 四离日
+    # 问搬家，判定须点名「四离」而不只念忌项。
+    _hfw = _svc.chat_huangli_facts("9月22号适合搬家吗",
+                                   now=_dt(2026, 8, 31))
+    _v = " ".join(f for f in _hfw if "黄历判定" in f)
+    assert "忌「搬家」" in _v and "四离" in _v, \
+        ("huangli.verdict_flag", _v[:200])
+    ok.append("huangli.verdict_flag")
     ok.append("chat.huangli_facts")
     # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。

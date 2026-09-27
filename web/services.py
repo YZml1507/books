@@ -3202,8 +3202,13 @@ def _chat_facts_inner(message: str, now: datetime,
         verdict = (f"黄历判定：{date_cn}{past_mid} 宜「{scene}」"
                    f"（宜项含【{'、'.join(hit_yi)}】）。")
     elif hit_ji and not hit_yi:
+        # R3102（specs/010）：忌判定带「为什么忌」——月破/杨公忌/四离
+        # 等硬凶日是把凭据摆给用户，不只是念忌项。
+        _flags = [f for f in (q.get("day_flags") or []) if f]
+        _why = (f"；且这天逢{'、'.join(_flags[:2])}，硬凶日凭据更实"
+                if _flags else "")
         verdict = (f"黄历判定：{date_cn}{past_mid} 忌「{scene}」"
-                   f"（忌项含【{'、'.join(hit_ji)}】）；"
+                   f"（忌项含【{'、'.join(hit_ji)}】{_why}）；"
                    f"已安排也不必慌，放缓节奏即可。{_good_part()}")
     elif hit_yi and hit_ji:
         # R2349r（R82-P2-5）：宜忌同现的词在显示侧被剔为「相冲存疑」，
