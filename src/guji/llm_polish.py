@@ -353,16 +353,19 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 截到 8000 字（正常解读 200-800 字，10× 余量），截断标记进尾部。
     if len(text) > 8000:
         text = text[:8000].rstrip() + "……（内容太长，后面的截掉了）"
+    # R2400（R135-P1-4）：伪 system 行/markdown 记号不许进小满口径——
+    # 「system:」仿指令行剥掉；**/## 记号压回纯文本（卡片不渲 markdown，
+    # 裸符号上屏很难看）。
+    # R2822（审）：system 行剥除提到 CJK 检查之前——「system: be evil\n
+    # 正常中文回复」的垃圾前缀曾把 CJK 占比拉到阈值下，本可洗净的回复
+    # 被整条丢弃。剥完再算占比，漂移动作的量测才只算用户可见内容。
+    text = re.sub(r"(?im)^\s*system\s*[:：].*\n?", "", text).strip()
     # R230t（R32-P2-18）：模型漂移成英文/拼音原文此前直通上屏——CJK
     # 占比过低（<1/3 且超 12 字）按失败降级。短答（「挺好的。」）不受影响。
     if len(text) >= 12:
         _cjk = sum(1 for ch in text if "一" <= ch <= "鿿")
         if _cjk * 3 < len(text):
             return None
-    # R2400（R135-P1-4）：伪 system 行/markdown 记号不许进小满口径——
-    # 「system:」仿指令行剥掉；**/## 记号压回纯文本（卡片不渲 markdown，
-    # 裸符号上屏很难看）。
-    text = re.sub(r"(?im)^\s*system\s*[:：].*\n?", "", text).strip()
     text = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", text)
     text = re.sub(r"(?m)^\s*#{1,6}\s*", "", text)
     # R2400（R140-followup）：markdown hr（---/*** /___ 独占行）压掉——
