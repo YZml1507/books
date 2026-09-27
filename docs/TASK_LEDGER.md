@@ -15956,3 +15956,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   计数器（ok/stale）——0 研究轮详情结构不塌。
 - 列表 limit=50+total+truncated 三键披露；探针线程
   与 derived 行已全清。
+
+## R2948 巡检#365——paipan 禁写面正确路径实测
+- BOOKS_PAIPAN_DISABLE=1：GET /history→200{total:0,
+  items:[]} 优雅空表（功能整体隐藏不报错）；detail/
+  export/delete→404——读面存活写面全堵设计。
