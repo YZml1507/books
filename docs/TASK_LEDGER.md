@@ -15153,3 +15153,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   竞态/LLM 五层输出闸/会话锁/限流/相对日引擎/安全头；
   真修 2 处（R2817 禁语误伤 hedge、R2822 sanitize 顺
   序）。累计真缺陷 4 处全修。
+
+## R2835 巡检#252——错误映射层复核
+- STATUS_MAP+四特化处理器：sqlite3.DatabaseError→503
+  固定中文（英文锁错/坏页细节零上屏，MRO 兜
+  OperationalError/IntegrityError）；OSError→503 同
+  口径；FileNotFoundError→503 剥绝对路径但保留「（先
+  跑 build_index.py）」修复提示（R2508 修过度脱敏）；
+  ValidationError→400/ComputeError→422/NotFound→404/
+  HTTPException→404 中文/RequestValidation→422 中文/
+  OverflowError→400。
