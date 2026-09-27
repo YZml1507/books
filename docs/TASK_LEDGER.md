@@ -17112,3 +17112,34 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   - _hl_spoken 同译名去重（出行/远行→出远门 同日并存只留一个）；
   - cv 5→6 抬缓存代次，存量池子句缓存一律重算覆盖。
 - 钉 daily.fact_wired（宜：/忌：前缀）；327 绿。
+
+## R3092（specs/010-P3）——六爻 hook 接 paipan 坐标
+- 病灶：liuyaoQuestionHook 握 j.paipan（用神/六亲/世应/六神/动爻）
+  只吐分类通用句。
+- _liuyaoCoordLine：用神按题类（工作=官鬼/考试=父母/财=妻财/身体=
+  官鬼）报落爻+动否；感情报世应两位坐标哪边在动；其余动爻报六亲
+  落域；用神伏藏如实说根子不在明面上。敏感题短路在前。
+- 钉 ui:liuyao_coord 四例；smoke 83/83。
+
+## R3093（specs/010-P3）——起名 warm 弱行接点
+- 「往这个方向偏了偏」→ 候选池接住弱行的字数（全带/部分/没接住
+  三分支，没接住指「换一批」）；点名行带字级五行（琼属金、棠属木
+  正好接住弱行）。钉 qiming.weak_fit_count；328 绿。
+
+## R3094（specs/010-P2）——十神×题类条件化
+- 实测病灶：辞职问与分手问逐字节同文（女命正官=夫星领事业脚本）。
+- TEN_GOD_WARM_TOPIC/TEN_GOD_ACTION_TOPIC 题类覆盖表 +
+  _god_warm/_god_action 在 spots/释义/动作三处接入；感情×官杀=
+  夫星位等 8 星感情动作+事业/财/学/人际高频碰撞。
+- 钉 bazi.topic_action（禁同文+禁错类动作）；329 绿。
+
+## R3095（specs/010-P4）——文案池可互换性横扫
+- 5 组异盘逐行查重：hehun 零重复；taohua 仅分档判词重复（确定性
+  设计）；bazi 仅 UI 引导行重复。
+- 真修：taohua.replies 零消费者死池（18 软句）删除+钉
+  copybank.deadpool_purged。其余池核实有活消费者。330 绿。
+
+## R3096（巡检）——chat 全链路复核
+- probe_chat_e2e 4/4（task→poll→done / 三层注入+facts 透传 /
+  危机罐头零 LLM）；mock 固定回复下深度判定沿用 R3082 prompt 层
+  审计结论。审计绿。
