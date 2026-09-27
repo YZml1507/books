@@ -15170,3 +15170,16 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   history+chat 伪视图（走 chatOpen 不走 showView）+
   liuyao/qiming 抽屉默认折叠；可见区零研究词（检索/
   比对/书目/线程/书ID/编址）——spec/009 默认路径落实。
+
+## R2837 巡检#254——threads 界 + 探针残留修复（真修）
+- 端点实测：limit=0/999→400「1-500 之间」、不存在 id→
+  404「没找到——可能还没聊过」全人话。
+- 发现残留：knowledge.db 挂 thread#1+turn#1+derived#1
+  「probe_ui_smoke 线程」——上轮被打断留的孤儿，本轮
+  baseline=1 只清 >1 的按 id 漏网。
+- 已清：FK 自愈序（解绑 derived→删 turn→删 thread→
+  fts delete）四表全零。
+- 探针加固：清理块补「topic LIKE probe_ui_smoke%」名
+  扫兜底（与 paipan「探针导入」名扫同款），≤baseline
+  孤儿不再祖父化；重跑 smoke PASS 且本轮 thread 正常
+  清理。

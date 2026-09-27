@@ -2137,6 +2137,18 @@ def main() -> int:
             kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
             kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
             cleaned.append(f"thread#{trow['id']}")
+        # R2837：水位线下的孤儿同样兜——上轮被 kill 留下的 probe 线程 id
+        # ≤baseline，按 id 扫不到（本轮实测 thread#1 残留）。与 paipan
+        # 「探针导入」名扫同款：按线程名兜底清，真实用户线程名不会撞前缀。
+        for trow in kb.db.execute(
+                "SELECT id FROM thread WHERE topic LIKE 'probe_ui_smoke%'",
+                ).fetchall():
+            kb.db.execute(
+                "UPDATE derived SET thread_id=NULL WHERE thread_id=?",
+                (trow["id"],))
+            kb.db.execute("DELETE FROM turn WHERE thread_id=?", (trow["id"],))
+            kb.db.execute("DELETE FROM thread WHERE id=?", (trow["id"],))
+            cleaned.append(f"thread#残留{trow['id']}")
         kb.db.commit()
     hist_after = history_db.count()
 
