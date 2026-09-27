@@ -1813,9 +1813,12 @@ def facts_hehun(h: dict, warm: dict | None = None,
             gender_b if gender_b in ("男", "女") else "未填写"),
         "两人年支：{}×{}，关系：{}".format(h.get("year_zhi_a", ""),
                                          h.get("year_zhi_b", ""), rel),
-        "日主五行：{} 与 {}，相生：{}".format(
+        # R3097：同五行是比和不是「相生：否」——同气中性偏顺，否读作负
+        # 会误导模型判「不相生=不合」。三分支：相生/比和/相克。
+        "日主五行：{} 与 {}，{}".format(
             h.get("day_wx_a", ""), h.get("day_wx_b", ""),
-            "是" if h.get("day_wx_sheng") else "否"),
+            ("相生" if h.get("day_wx_sheng")
+             else "同气比和" if h.get("day_wx_same") else "相克")),
         "两人桃花支：{}/{}，{}".format(h.get("peach_a", ""), h.get("peach_b", ""),
                                      "相同" if h.get("peach_same") else "不同"),
     ]

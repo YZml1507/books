@@ -1363,6 +1363,17 @@ def _run_inner() -> list[str]:
           lambda j: (j.get("day_wx_same") is True
                      and j.get("day_wx_sheng") is False
                      and "比和" in j.get("render", "")))
+    # R3097：facts_hehun 日主行同口径——同五行报「同气比和」而非
+    # 「相生：否」（否读作负，误导小满判「不相生=不合」）。
+    from guji import llm_polish as _lpf
+    _hj = client.post("/api/hehun", json={
+        "a_year": 2002, "a_month": 5, "a_day": 20, "a_hour": 10,
+        "a_gender": "女", "b_year": 1999, "b_month": 8, "b_day": 14,
+        "b_hour": 14, "b_gender": "男"}).json()
+    _hf = " ".join(_lpf.facts_hehun(_hj, _hj.get("warm"), "女", "男"))
+    assert "同气比和" in _hf and "相生：否" not in _hf, \
+        ("hehun.facts_bihe", _hf[:200])
+    ok.append("hehun.facts_bihe")
     # R204b（D-257b）：天干五合 + 十神互见 standing 覆盖——固定两生日，
     # 庚辰×戊辰：无五合（gan_he=False）、庚见戊=偏印/戊见庚=食神。
     check("hehun.gan_he_gods", client.post("/api/hehun", json={"a_year": 1990,
