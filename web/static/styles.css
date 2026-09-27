@@ -2593,11 +2593,16 @@ html:not([data-theme])[data-season="winter"] .page-glow{
 
 /* ── R2349t（R88-6/4）：高分标签 + 吉签庆祝句 ─────────────── */
 .hh-tier{font-size:13px;color:var(--rose);font-weight:600;margin:2px 0 0;}
+/* R3087：低分档判词不再裸数——中档用琥珀、低档用深赭提示「书上有判词」。 */
+.hh-tier-mid{color:#9A6A1F;}
+.hh-tier-low{color:#A0522D;}
 .daily-cheer{color:var(--rose);font-weight:600;}
 
 /* ── R2349u（R89-P1-4/P1-5）：深色下分档描边与庆祝句可读性 ── */
 html[data-theme="dark"] .daily-cheer,
 html[data-theme="dark"] .hh-tier{color:#E8A0BF;}
+html[data-theme="dark"] .hh-tier-mid{color:#D9A84E;}
+html[data-theme="dark"] .hh-tier-low{color:#E0856A;}
 html[data-theme="dark"] .celeb-card[data-tier="60"]{border:2px solid #E891A8;}
 html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 

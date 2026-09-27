@@ -513,6 +513,12 @@ function buildHehunResult(j) {
       html += '<p class="hh-tier">🏆 百里挑一款合拍——这一分值得晒</p>';
     } else if (_msN >= 85) {
       html += '<p class="hh-tier">💗 高分合拍——这缘分不多见</p>';
+    } else if (_msN < 45) {
+      /* R3087（specs/010）：低分此前裸数零解读——判词层说偏不合适
+       * 时卡面也不能装看不见。与 warm 判词档同口径。 */
+      html += '<p class="hh-tier hh-tier-low">⚖️ 判词偏硬——书上对这组不客气，下面把成本摆出来</p>';
+    } else if (_msN < 60) {
+      html += '<p class="hh-tier hh-tier-mid">🌗 磕绊偏多——要花力气磨合，下面直说磨在哪</p>';
     }
   }
   // R187b：人话视图置顶（specs/005 US4）
