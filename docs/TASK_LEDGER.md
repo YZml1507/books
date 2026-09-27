@@ -15135,3 +15135,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 门闸侧：?key= 验错与 POST /_gate 同桶 10/60s→429
   （对口令不罚——同 NAT 分享不是攻击，R2503 修 GET
   旁路架空）；门页 403 非 200 防 SW 缓存进壳位。
+
+## R2833 巡检#250——sec.headers + SPA 回落
+- / 头全绿：nosniff/XFO DENY/no-referrer/CSP（script
+  style 'unsafe-inline' 单文件应用所需；object-src
+  none/frame-ancestors none/form-action self 收口）+
+  no-cache 与 SW 网络优先一致；/deep/spa/route→200
+  HTML 客户端路由回落在产。
