@@ -1783,9 +1783,22 @@ def main() -> int:
                     "  var _t1=new Date(Date.now()-864e5).toISOString().slice(0,10);"
                     "  localStorage.setItem('chat:topics', JSON.stringify(["
                     "   {d:_t0,t:'感情'},{d:_t1,t:'感情'},{d:_t1,t:'学业'}]));"
+                    "  return _chatFacts([]).join('|')})(),"
+                    # R3153：跨日卡片记忆钉——昨天之前测的卡带判词短句
+                    # 进 facts；今天的卡不重复（走 live 上下文）。
+                    " (()=>{sessionStorage.removeItem('chatCardsFactDone');"
+                    "  var _iso=function(d){return d.getFullYear()+'-'+"
+                    "   String(d.getMonth()+1).padStart(2,'0')+'-'+"
+                    "   String(d.getDate()).padStart(2,'0')};"
+                    "  var _t0=_iso(new Date()),"
+                    "   _t1=_iso(new Date(Date.now()-864e5));"
+                    "  localStorage.setItem('chat:cards', JSON.stringify(["
+                    "   {d:_t0,v:'hehun',s:'判词直说：今天的卡',q:''},"
+                    "   {d:_t1,v:'hehun',s:'判词直说：偏不合适',q:'我们能结婚吗'},"
+                    "   {d:'2020-01-01',v:'tarot',s:'老卡不该出现',q:''}]));"
                     "  return _chatFacts([]).join('|')})()"
                     " ];}")
-                ok = (len(cases) == 4
+                ok = (len(cases) == 5
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       # R3126（specs/013-P2）：partner 档案行钉——
@@ -1798,11 +1811,21 @@ def main() -> int:
                       and not cases[2].split("##")[1].count("上次来聊过")
                       # R3139：跨天主题画像行钉。
                       and "她这周来聊过「感情」这条线 2 天" in cases[3]
+                      # R3153：跨日卡片记忆——昨天的卡带判词+问句，
+                      # 今天的卡与老卡不进。
+                      and "她这几天测过的卡" in cases[4]
+                      and "偏不合适" in cases[4]
+                      and "我们能结婚吗" in cases[4]
+                      and "今天的卡" not in cases[4]
+                      and "老卡不该出现" not in cases[4]
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
                           + " xview=" + ("OK" if cases[1] else "X")
                           + " resume=" + ("OK" if cases[2] else "X")
-                          + " weekprofile=" + ("OK" if cases[3] else "X"))
+                          + " weekprofile=" + ("OK" if cases[3] else "X")
+                          + " cardsmem=" + ("OK" if cases[4] else "X"))
+                if not ok:
+                    detail += " || case4=" + repr(cases[4])[:200]
             except Exception as exc:
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             if errors:

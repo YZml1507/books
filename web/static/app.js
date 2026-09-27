@@ -1403,6 +1403,27 @@ function rememberResult(viewKey, json, question, body) {
   } catch (e) {}
   /* R233r（R49-P3-2）：新结果落地顺带刷新空态 chips 语境。 */
   try { _chatChipsPersonalize(); } catch (e) {}
+  /* R3153（specs/014-L1+）：跨日卡片记忆——用户主动去测的卡留一
+   * 条「哪天·哪面·问什么·判词短句」在本机，隔日回来聊小满能对上
+   * 「你前天测的那盘」。daily/xingzuo 是自动拉取不算「她去测」，
+   * 不记。同日同面重测覆盖旧条——画像记的是最新状态。 */
+  try {
+    var _CVIEWS = { bazi: 1, taohua: 1, hehun: 1, tarot: 1,
+                    liuyao: 1, qiming: 1, xzm: 1 };
+    if (_CVIEWS[viewKey]) {
+      var _cd = JSON.parse(localStorage.getItem('chat:cards') || '[]');
+      if (!Array.isArray(_cd)) _cd = [];
+      var _td = todayIso();
+      _cd = _cd.filter(function (x) {
+        return !(x && x.d === _td && x.v === viewKey);
+      });
+      _cd.unshift({ d: _td, v: viewKey, s: _cardVerdictShort(viewKey, json),
+                    q: (question || '').slice(0, 30) });
+      var _cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+      _cd = _cd.filter(function (x) { return x && x.d >= _cut; }).slice(0, 12);
+      localStorage.setItem('chat:cards', JSON.stringify(_cd));
+    }
+  } catch (e) {}
   /* R2349t（R88-13d）：接力回赠——share 链进来的首个非日签结果
    * 弹一句「顺手替 XX 讨个彩头」。daily 是自动拉取不算「她去测」，
    * 一次性闸防每次提交都弹。 */
@@ -1968,8 +1989,8 @@ function _chatFallbackLine(message) {
       if (_r && _r.ts && (Date.now() - _r.ts) < 1800000 &&
           (!_best || _r.ts > _best.ts)) { _best = _r; _bv = _vk; }
     }
-    var _rl = _best && _best.json && _best.json.warm &&
-      _best.json.warm.reply;
+    var _rl = _best && _best.json &&
+      ((_best.json.warm && _best.json.warm.reply) || _best.json.lines);
     if (_rl && _rl.length) {
       var _pick = '';
       for (var _i = 0; _i < _rl.length; _i++) {
@@ -2506,11 +2527,65 @@ function _chatWeekProfileFact() {
   } catch (e) { return ''; }
 }
 
+/* R3153：判词短句提取——各面卡里最有辨识度的一行（判词行优先，
+ * 没有就首行）。存进跨日记忆的就是屏上原句，小满复述不瞎编。 */
+function _cardVerdictShort(viewKey, j) {
+  try {
+    var r = ((j || {}).warm || {}).reply || [];
+    var line = r.filter(function (l) {
+      return l.indexOf('判词') !== -1;
+    })[0] || r[0] || '';
+    if (viewKey === 'xzm') line = (j.lines || [])[0] || line;
+    if (viewKey === 'tarot') {
+      line = r.filter(function (l) {
+        return l.indexOf('综合来看') !== -1 || l.indexOf('这组牌') !== -1;
+      })[0] || line;
+    }
+    if (viewKey === 'qiming') {
+      line = r.filter(function (l) {
+        return l.indexOf('推荐') !== -1;
+      })[0] || line;
+    }
+    return (line || '').slice(0, 60);
+  } catch (e) { return ''; }
+}
+/* R3153：跨日卡片记忆行——近 7 天、今天之前的测卡（今天的走
+ * result_ref/末结果上下文已经覆盖，重复注入只会挤窗口）。一次
+ * 会话注入一回。 */
+function _chatCardsFact() {
+  try {
+    if (sessionStorage.getItem('chatCardsFactDone')) return '';
+    sessionStorage.setItem('chatCardsFactDone', '1');
+    var arr = JSON.parse(localStorage.getItem('chat:cards') || '[]');
+    if (!Array.isArray(arr) || !arr.length) return '';
+    var today = todayIso();
+    var cut = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    var _VL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
+                tarot: '塔罗', liuyao: '六爻', qiming: '起名',
+                xzm: '合盘' };
+    var out = [];
+    arr.forEach(function (x) {
+      if (out.length >= 3) return;
+      if (x && x.d && x.d < today && x.d >= cut && x.s) {
+        out.push(x.d.slice(5) + (_VL[x.v] || '一张卡') +
+                 (x.q ? '问「' + x.q + '」' : '') + '：' + x.s);
+      }
+    });
+    if (!out.length) return '';
+    return '她这几天测过的卡——' + out.join('；') +
+      '。她若翻旧账能对上号；不相关别主动提';
+  } catch (e) { return ''; }
+}
+
 function _chatFacts(facts) {
   var _f = (facts || []).slice();
   try {
     var _wp = _chatWeekProfileFact();
     if (_wp) _f.unshift(_wp);
+  } catch (e) {}
+  try {
+    var _cf = _chatCardsFact();
+    if (_cf) _f.unshift(_cf);
   } catch (e) {}
   try {
     /* R3118（specs/011 P3）：resume 槽一次性消费——只在新会话
@@ -12611,7 +12686,7 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
@@ -12625,7 +12700,7 @@ function baziPersonaCard(j) {
           var _sr = [];
           for (var j2 = 0; j2 < sessionStorage.length; j2++) {
             var sk = sessionStorage.key(j2);
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone)$/
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone)$/
                 .test(sk) || sk.indexOf('shareBy:') === 0 ||
                 sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
