@@ -284,13 +284,14 @@ def _run_inner() -> list[str]:
         ("bazi.strong_tied.text", _ttxt[-120:])
     ok.append("bazi.strong_tied")
     # R230a-25（R13-P1-2 钉扎）：感情类提问按性别分星——女看官杀
-    # （规矩位/压力位）、男看财。同一盘 1990-05-15：女须有官杀落点，
-    # 男走财路径（该盘财星仅藏干弱位，故落「无直接落点」兜底）。
+    # （规矩位/压力位；R3094 题类层起对感情问说「夫星位」）、男看财。
+    # 同一盘 1990-05-15：女须有官杀落点，男走财路径（该盘财星仅藏干
+    # 弱位，故落「无直接落点」兜底）。
     _gf = client.post("/api/bazi", json={
         "year": 1990, "month": 5, "day": 15, "hour": 10,
         "gender": "女", "question": "感情运怎么样"}).json()
     _gre = " ".join((_gf.get("warm") or {}).get("reply") or [])
-    assert ("规矩位" in _gre or "压力位" in _gre), \
+    assert ("规矩位" in _gre or "压力位" in _gre or "夫星" in _gre), \
         ("bazi.gender.female", _gre[:100])
     _gm = client.post("/api/bazi", json={
         "year": 1990, "month": 5, "day": 15, "hour": 10,
@@ -301,6 +302,27 @@ def _run_inner() -> list[str]:
     assert "规矩位" not in _grm0 and "压力位" not in _grm0, \
         ("bazi.gender.male", _grm0)
     ok.append("bazi.gender_topic")
+    # R3094（specs/010-P2）：题类条件化——同一颗正官，事业问与感情问
+    # 不得逐字节同文（实测病灶：辞职问/分手问同领「走流程办手续」）。
+    # 感情问须出夫星语义+感情动作；事业问保规矩位原口径。
+    _bq_love = client.post("/api/bazi", json={
+        "year": 2002, "month": 5, "day": 20, "hour": 10,
+        "gender": "女", "question": "这段感情继续还是放手",
+        "scope": "life"}).json()
+    _bq_job = client.post("/api/bazi", json={
+        "year": 2002, "month": 5, "day": 20, "hour": 10,
+        "gender": "女", "question": "我该辞职换工作吗",
+        "scope": "life"}).json()
+    _rl = (_bq_love.get("warm") or {}).get("reply") or []
+    _rj = (_bq_job.get("warm") or {}).get("reply") or []
+    _ltxt = "".join(_rl[:3])
+    _jtxt = "".join(_rj[:3])
+    assert "夫星" in _ltxt and "办手续" not in _ltxt, \
+        ("bazi.topic_action.love", _rl[:3])
+    assert "规矩位" in _jtxt and "夫星" not in _jtxt, \
+        ("bazi.topic_action.job", _rj[:3])
+    assert _ltxt != _jtxt, "bazi.topic_action.diverge"
+    ok.append("bazi.topic_action")
     # R178b（D-226b）：确定性解读层 standing 覆盖——原 llm 字段（生成文本，
     # 需 key + 网络、不可复现）替换为 interpretation（guji.interpreter 规则
     # 输出）。断言引擎标识 + sections 非空 + text 以「## 排盘坐标」开头，
