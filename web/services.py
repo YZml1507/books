@@ -557,6 +557,9 @@ def xingzuo(date_str: str | None = None) -> dict:
     b = bazi_compute(d.year, d.month, d.day, 12, "男")
     out = xingzuo_mod.daily_horoscope(b.day)
     out["date"] = d.isoformat()
+    # R3150b：值宫卡接入 result_ref 快照——照「今天 XX 座当班」聊时
+    # 小满手里有同一张卡的坐标+文案，不是泛泛的星运腔。
+    out["result_ref"] = _stash_result("xingzuo", out)
     return out
 
 
@@ -3068,6 +3071,32 @@ def chat_result_verdicts(ref: str | None) -> list[str]:
             if str(_l).strip():
                 out.append("卡面判词行：" + str(_l)[:110])
         return out[:9]
+    elif view == "daily":
+        # R3150b：日签无 warm 块——summary 事实句/宜忌/等级是卡面原文。
+        if j.get("level"):
+            out.append(f"今日评级：{j['level']}")
+        if j.get("do"):
+            out.append(f"卡面宜：{str(j['do'])[:80]}")
+        if j.get("dont"):
+            out.append(f"卡面忌：{str(j['dont'])[:80]}")
+        for _seg in str(j.get("summary") or "").split("；"):
+            _seg = _seg.strip()
+            if _seg:
+                out.append("卡面判词行：" + _seg[:110])
+        return out[:9]
+    elif view == "xingzuo":
+        if j.get("today_sign"):
+            out.append(f"今日值宫：{j['today_sign']}座")
+        if j.get("today_note"):
+            out.append("卡面判词行：" + str(j["today_note"])[:110])
+        _ts = next((s for s in (j.get("signs") or [])
+                    if s.get("is_today")), None) or {}
+        for _f in ("note", "sign_note"):
+            _v = _ts.get(_f)
+            # today_note 与值宫 note 常同文——重复行不进权威块。
+            if _v and ("卡面判词行：" + str(_v)[:110]) not in out:
+                out.append("卡面判词行：" + str(_v)[:110])
+        return out[:9]
     if j.get("question"):
         out.append(f"她当时问的是：「{str(j['question'])[:60]}」")
     # warm.reply 原文逐条收——判词带/剧本/处方/倾向全在里面，
@@ -3905,6 +3934,11 @@ def daily(date_str: str | None = None,
                     # R2349t（R87-P0-1）：防御存量脏行——不带 bday 的
                     # 请求绝不能拿到上一个用户的 personal 行。
                     _r.pop("personal", None)
+                # R3150b：缓存命中路径同样挂快照 ref——走缓存≠没卡。
+                # personal 行在 stash 前剔除：快照不落库但仍是共享
+                # 内存件，不该进别的请求方的生辰派生字段。
+                _stash = {k: v for k, v in _r.items() if k != "personal"}
+                _r["result_ref"] = _stash_result("daily", _stash)
                 return _r
     try:
         d = date.fromisoformat(date_str)
@@ -4023,6 +4057,12 @@ def daily(date_str: str | None = None,
                               if k != "personal"})
             except Exception:  # noqa: BLE001
                 pass
+        # R3150b：日签接入 result_ref 快照——照卡聊「今天怎么样」
+        # 小满手里是卡面原文（summary/宜忌/贵人），不是泛日运腔。
+        # 快照只留内存（2h TTL/LRU）不落库；personal 是请求方生辰
+        # 派生字段，stash 前剔除（与落库剔除同口径）。
+        result["result_ref"] = _stash_result(
+            "daily", {k: v for k, v in result.items() if k != "personal"})
         return result
     except Exception:                                 # 计算失败降级为"平"，不 500
         # R228b：不把 str(exc) 透传给用户——那是 Python 异常原文
