@@ -14990,3 +14990,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   口径）；全角１９９０→ASCII 归一不当脏拦；^-?\d+$ 严
   格整数拒 1e1/30.5/1990e2（parseInt 静默吞错已堵）；
   脏值 aria-invalid 标红+2.5s 去抖 toast+输入自清。
+
+## R2814 巡检#231——AI 轮询竞态守卫族
+- RESULT_GEN 世代号：同容器新请求作废旧 tick、切视图全
+  bump 让 in-flight 自终（R230j）；AI_PENDING 登记+回视
+  图重武装（dailyDetail 主页链专项 R2512）；单调钟
+  deadline 防系统时钟回拨（R230t）；_aiPollGate 后台/
+  断网暂停；done→insertAiPolish+LAST_RESPONSE 记
+  aiOverlay 供口吻切换重画；failed→静默不渲染。
