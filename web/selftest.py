@@ -1084,6 +1084,16 @@ def _run_inner() -> list[str]:
     assert "replies" not in (_cb.get("taohua") or {}), \
         "copy_bank.taohua.replies 死池复活"
     ok.append("copybank.deadpool_purged")
+    # R3098（R3087 同型补齐）：facts_taohua 须带判词带+入口预判——
+    # 小满口径与判词层一致（问「我桃花怎么样」不得两套话）。
+    from guji import llm_polish as _lpt
+    _tj = client.post("/api/taohua", json={
+        "year": 2002, "month": 5, "day": 20, "hour": 10,
+        "gender": "女"}).json()
+    _tf = " ".join(_lpt.facts_taohua(_tj, _tj.get("warm"), "女"))
+    assert "判词" in _tf and "入口" in _tf, \
+        ("taohua.facts_verdict", _tf[:220])
+    ok.append("taohua.facts_verdict")
     # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
     # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王）。
     check("tarot", client.post("/api/tarot", json={"seed": 42, "n": 3}),

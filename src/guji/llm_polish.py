@@ -1797,6 +1797,13 @@ def facts_taohua(t: dict, warm: dict | None = None,
         d0 = dayun[0]
         facts.append("大运桃花应期：{}年起走{}运".format(
             d0.get("year_start") or "？", d0.get("pillar") or ""))
+    # R3098（R3087 同型）：判词带+入口预判进事实——warm.reply[0]/[1]
+    # 是「缘分信号偏X——锚点」与「入口预判：…」，小满口经须与判词
+    # 一致，否则用户问「我桃花怎么样」两套话。
+    _wr = (warm or {}).get("reply") or []
+    for _wl in _wr[:2]:
+        if "判词" in _wl or "入口" in _wl:
+            facts.append(_fact_line(_wl))
     if warm and warm.get("one_liner"):
         facts.append("语境：" + _fact_line(warm["one_liner"]))
     return facts
