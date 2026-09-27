@@ -14611,3 +14611,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   ?key= 与 /_gate 双解锁道种 HMAC 派生 cookie；错口令 403+
   10/60s→429 桶（对口令不耗）；next 白名单拦 //evil、\\、
   javascript:、CRLF 全回落「/」；XFF 链尾定身份防换桶。
+
+## R2738 巡检#155——CORS 分体部署口径
+- 同源形态（本实例）：evil.com 预检/带 Origin 请求全零
+  ACAO 头；BOOKS_CORS_ORIGINS 分体路径：显式白名单+
+  credentials（修 R2522 cookie 跨源不通），无 *+cred 危险
+  组合；methods/headers 收窄至 API 实需。
