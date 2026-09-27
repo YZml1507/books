@@ -2826,10 +2826,36 @@ def _run_inner() -> list[str]:
             r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]",
             "", _s)
         return "".join(_t2s.get(c, c) for c in _s)
+    # R3066（巡#483）：_normFEFlat 同构复刻——变调归 ascii + 剥
+    # 非字词符 + 拼音折叠（与 _PINYIN_FOLD_FE 逐条同源，改 JS 侧
+    # 要同步改这里；字母边界 lookbehind↔(^|[^a-z]) 锚等价）。
+    _tone = str.maketrans(
+        "āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü",
+        "aaaaeeeeiiiioooouuuuuuuuu")
+    _flatkeep = _re.compile(r"[^0-9a-zA-Z一-鿿]+")
+    _pinyin = (
+        (_re.compile(r"(?<![a-z])zisha(?![a-z])", _re.I), "自杀"),
+        (_re.compile(r"(?<![a-z])zi杀(?![a-z])"), "自杀"),
+        (_re.compile(r"(?<![a-z])gewan(?![a-z])", _re.I), "割腕"),
+        (_re.compile(r"([想要])si(?![a-z])", _re.I), r"\g<1>死"),
+        (_re.compile(r"不想huo(?![a-z])", _re.I), "不想活"),
+        (_re.compile(r"huo[着著]?不下去", _re.I), "活不下去"),
+        (_re.compile(r"huo[着著]好累", _re.I), "活着好累"),
+        (_re.compile(r"跳lou(?![a-z])", _re.I), "跳楼"),
+        (_re.compile(r"(?<![a-z])saorao(?![a-z])", _re.I), "性骚扰"),
+        (_re.compile(r"(?<![a-z])wexie(?![a-z])", _re.I), "猥亵"),
+        (_re.compile(r"(?<![a-z])qj(?![a-z])", _re.I), "强奸"),
+    )
+    def _fe_norm_flat(_s):
+        _s = _fe_norm(_s).lower().translate(_tone)
+        _s = _flatkeep.sub("", _s)
+        for _rx, _rep in _pinyin:
+            _s = _rx.sub(_rep, _s)
+        return _s
     _segpat = _re.compile(r"[，。！？；,.!?\n;~～…]+")
     def _fe_crisis(_s):
         _s = _fe_norm(_s)
-        _seg = _s
+        _seg = _fe_norm_flat(_s)
         while True:
             _h = _fch.search(_seg)
             if not _h:
@@ -2839,12 +2865,17 @@ def _run_inner() -> list[str]:
                     r"[你他她](?:了|啦)?|我了|我啦", _rest[:2])):
                 return True
             _seg = _rest
-        if not _fcs.search(_s):
-            return False
-        return any(_fcs.search(_g) and not _fco.search(_g)
-                   for _g in _segpat.split(_s))
+        _fsegs = [_fe_norm_flat(_g) for _g in _segpat.split(_s)]
+        for _i, _g in enumerate(_fsegs):
+            if _fcs.search(_g) and not _fco.search(_g):
+                return True
+            if _i + 1 < len(_fsegs):
+                _j = _g + _fsegs[_i + 1]
+                if _fcs.search(_j) and not _fco.search(_j):
+                    return True
+        return False
     def _fe_sens(_s):
-        _s = _fe_norm(_s)
+        _s = _fe_norm_flat(_s)
         return bool(_fsh.search(_s)
                     or (_fss.search(_s) and not _fse.search(_s)))
     for _m in ("想死", "我想死了", "想跳下去", "站在天台想跳下去",
@@ -2894,7 +2925,12 @@ def _run_inner() -> list[str]:
                "被摸头杀", "被同学拉着打游戏", "被老公打电话叫回家",
                "被男朋友打call", "被父母逼着考公", "被妈妈打扮得很漂亮",
                "被老板打算重用", "被爸爸打针吓哭了", "被室友拉去打麻将",
-               "被按摩得很舒服", "被按住打游戏不准走", "被老师点名"):
+               "被按摩得很舒服", "被按住打游戏不准走", "被老师点名",
+               # R3066（巡#483）：敏感词插符/拼音混写族——压平归一
+               # 双端一致；物件/影视语境豁免同样压平生效。
+               "被猥.亵", "被强.奸", "肿.瘤", "被qj了", "被人saorao了",
+               "被猥.亵了怎么办", "我得了抑.郁症", "查出来肿.瘤",
+               "被wexie", "肿.瘤医院的猫", "被按住打游戏"):
         assert _fe_sens(_m) == _LC._is_sensitive(_m), ("敏感镜像分叉", _m)
     ok.append("chat.mirror.parity")
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占

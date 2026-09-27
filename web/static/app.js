@@ -2041,6 +2041,42 @@ function _normFE(s) {
   for (i = 0; i < s.length; i++) r += _T2S_FE[s[i]] || s[i];
   return r;
 }
+/* R3066（巡#483）：词内插符/拼音混写绕闸前端镜像——与后端
+ * _norm_cs_flat 同构：变调归 ascii→剥全部非字词符→拼音折叠
+ * （折叠进既有词表，想si你=想死你同享人称豁免）。判定专用。 */
+var _TONE_FE = (function () {
+  var m = {}, i,
+      src = 'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü',
+      dst = 'aaaaeeeeiiiioooouuuuuuuuu';
+  for (i = 0; i < src.length; i++) m[src[i]] = dst[i];
+  return m;
+})();
+var _FLAT_RE_FE = /[^0-9a-zA-Z\u4e00-\u9fff]/g;
+/* 字母边界用 (^|[^a-z])+$1 代 lookbehind（同 ICU 锚——老 Safari
+ * 对含 lookbehind 的正则字面量整文件 SyntaxError）。 */
+var _PINYIN_FOLD_FE = [
+  [/(^|[^a-z])zisha(?![a-z])/gi, '$1自杀'],
+  [/(^|[^a-z])zi杀(?![a-z])/g, '$1自杀'],
+  [/(^|[^a-z])gewan(?![a-z])/gi, '$1割腕'],
+  [/([想要])si(?![a-z])/gi, '$1死'],
+  [/不想huo(?![a-z])/gi, '不想活'],
+  [/huo[着著]?不下去/gi, '活不下去'],
+  [/huo[着著]好累/gi, '活着好累'],
+  [/跳lou(?![a-z])/gi, '跳楼'],
+  [/(^|[^a-z])saorao(?![a-z])/gi, '$1性骚扰'],
+  [/(^|[^a-z])wexie(?![a-z])/gi, '$1猥亵'],
+  [/(^|[^a-z])qj(?![a-z])/gi, '$1强奸']
+];
+function _normFEFlat(s) {
+  s = _normFE(s).toLowerCase();
+  var r = '', i;
+  for (i = 0; i < s.length; i++) r += _TONE_FE[s[i]] || s[i];
+  s = r.replace(_FLAT_RE_FE, '');
+  for (i = 0; i < _PINYIN_FOLD_FE.length; i++) {
+    s = s.replace(_PINYIN_FOLD_FE[i][0], _PINYIN_FOLD_FE[i][1]);
+  }
+  return s;
+}
 var _CRISIS_FE_HARD = new RegExp(
   '不想活|想死|自杀|自残|伤害自己|想不开|轻生|跳楼|抑郁|厌世|' +
   '活不下去|活[着著]好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|' +
@@ -2057,7 +2093,9 @@ var _CRISIS_FE_SOFT = new RegExp(
   '世界.{0,4}消失|消失.{0,4}世界|拿刀.{0,4}(手|腕|脖|喉|脉)|割自己|' +
   /* R2996：农药名+诗意意念形，与后端同步。 */
   '敌敌畏|百草枯|喝.{0,3}毒药|去.{0,3}(天台|楼顶|桥).{0,4}算了|' +
-  '(楼顶|天台|桥).{0,3}边缘', 'i');
+  '(楼顶|天台|桥).{0,3}边缘|' +
+  /* R3066：谐音/黑话形与后端同步（必带语气后缀防壶/局误伤）。 */
+  '想紫砂[了啦吧]|想重开[了啦吧]', 'i');
 var _CRISIS_FE_OBJ = new RegExp(
   '电脑|手机|剧|综艺|游戏|网|车|机器|电池|冰箱|代码|程序|软件|文件|' +
   '快递|外卖|爱豆|偶像|交通|航班|火车|课|班|题|作业|考试|' +
@@ -2071,8 +2109,10 @@ var _CRISIS_FE_OBJ = new RegExp(
 function feCrisis(s) {
   s = _normFE(s);   /* R2995：剥零宽+繁折简，与后端 _norm_cs 同构 */
   /* R2994：想死+人称代词撒娇豁免——此前裸 test() 命中即危机，
-   * 「想死你了宝贝」前端发 12356 而后端放行，与 _is_crisis 同构补齐。 */
-  var _seg = s, _hm, _rest;
+   * 「想死你了宝贝」前端发 12356 而后端放行，与 _is_crisis 同构补齐。
+   * R3066：硬词改判压平形态——「自.杀」「zi sha」插符/拼音混写
+   * 不再绕闸；想si→想死折叠后同享人称豁免。 */
+  var _seg = _normFEFlat(s), _hm, _rest;
   while ((_hm = _seg.match(_CRISIS_FE_HARD))) {
     _rest = _seg.slice(_hm.index + _hm[0].length);
     if (!(_hm[0] === '想死' &&
@@ -2081,11 +2121,20 @@ function feCrisis(s) {
     }
     _seg = _rest;
   }
-  if (!_CRISIS_FE_SOFT.test(s)) return false;
-  var segs = s.split(/[，。！？；,.!?\n;~～…]+/);
+  /* R3066：软词仍先句界切分（保物件豁免：物件与现象不同句）
+   * 但每句压平+相邻两片并查——「死了.算了」切三片后并查仍命中；
+   * 「电脑死了.算了」第二片「算了」无词、并片「死了算了」吃物件
+   * 词豁免，原语义逐字保住。 */
+  var segs = s.split(/[，。！？；,.!?\n;~～…]+/).map(_normFEFlat);
   for (var i = 0; i < segs.length; i++) {
     if (_CRISIS_FE_SOFT.test(segs[i]) && !_CRISIS_FE_OBJ.test(segs[i])) {
       return true;
+    }
+    if (i + 1 < segs.length) {
+      var j = segs[i] + segs[i + 1];
+      if (_CRISIS_FE_SOFT.test(j) && !_CRISIS_FE_OBJ.test(j)) {
+        return true;
+      }
     }
   }
   return false;
@@ -2134,7 +2183,9 @@ var _SENSITIVE_FE_EXC = new RegExp(
   '痘|拖延|懒|基金|股票|冰箱|车|' +
   '电话|账号|物流|快递|外卖|新闻|剧情|纪录片|电影|电视剧|小说', 'i');
 function feSensitive(s) {
-  s = _normFE(s);   /* R2995：同 feCrisis——繁体/零宽绕闸口封死 */
+  /* R3066：同 feCrisis——硬/软/豁免三表全改判压平形态，
+   * 「被猥.亵」「被qj了」不再绕闸（豁免词条同样在压平面生效）。 */
+  s = _normFEFlat(s);
   return _SENSITIVE_FE_HARD.test(s) ||
     (_SENSITIVE_FE_SOFT.test(s) && !_SENSITIVE_FE_EXC.test(s));
 }

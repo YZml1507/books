@@ -700,7 +700,11 @@ _CRISIS_SOFT_PAT = re.compile(
     # 与诗意意念形（去天台算了/站楼顶边缘——天台刻意不进物件表）。
     r"敌敌畏|百草枯|喝.{0,3}毒药|"
     r"去.{0,3}(天台|楼顶|桥).{0,4}算了|"
-    r"(楼顶|天台|桥).{0,3}边缘", re.IGNORECASE)
+    r"(楼顶|天台|桥).{0,3}边缘|"
+    # R3066（巡#483）：谐音/黑话形——「想紫砂了」=想自杀、「想重
+    # 开了」=重启人生黑话。必带语气后缀，「想买紫砂壶」「想重开
+    # 一局游戏」不中（壶/局不占后缀位；游戏语境另吃物件豁免）。
+    r"想紫砂[了啦吧]|想重开[了啦吧]", re.IGNORECASE)
 _CRISIS_OBJ_PAT = re.compile(
     r"电脑|手机|剧|综艺|游戏|网|车|机器|电池|冰箱|代码|程序|软件|文件|"
     r"快递|外卖|爱豆|偶像|交通|航班|火车|课|班|题|作业|考试|"
@@ -737,20 +741,32 @@ def _is_crisis(msg: str) -> bool:
     （「电脑死了算了」「这班累死了算了」不是求助）。"""
     # R2524：零宽字符剥掉再判——「想\u200b死」此前绕过硬词命中。
     # R2995：归一升级——剥零宽之外再繁折简（自殺/輕生/抑鬱接住）。
+    # R3066：词内插符绕闸（自.杀/不想 活了）——硬词改判压平形态；
+    # 软词仍按分句（物件豁免要「同句」作用域），但每个分句压平判、
+    # 相邻两片并查兜住「死了.算了」被标点切开的插符形。
     msg = _norm_cs(msg)
-    for _h in _CRISIS_HARD_PAT.finditer(msg):
+    msg_flat = _norm_cs_flat(msg)
+    for _h in _CRISIS_HARD_PAT.finditer(msg_flat):
         # R2400（R128-P1-10）：「想死你了/想死我了/想死她了」是高频
         # 撒娇语气——想死+人称代词不算求助；裸「想死了」不豁免（含
         # 真危机可能）。其余硬词照旧全语境接住。
         if _h.group(0) == "想死" and re.match(
-                r"[你他她](?:了|啦)?|我了|我啦", msg[_h.end():_h.end() + 2]):
+                r"[你他她](?:了|啦)?|我了|我啦",
+                msg_flat[_h.end():_h.end() + 2]):
             continue
         return True
-    if not _CRISIS_SOFT_PAT.search(msg):
-        return False
-    return any(
-        _CRISIS_SOFT_PAT.search(seg) and not _CRISIS_OBJ_PAT.search(seg)
-        for seg in _CRISIS_SEG_PAT.split(msg))
+    _segs = [_norm_cs_flat(_s) for _s in _CRISIS_SEG_PAT.split(msg)]
+
+    def _soft_hit(t: str) -> bool:
+        return bool(_CRISIS_SOFT_PAT.search(t)
+                    and not _CRISIS_OBJ_PAT.search(t))
+
+    for _i, _seg in enumerate(_segs):
+        if _soft_hit(_seg):
+            return True
+        if _i + 1 < len(_segs) and _soft_hit(_seg + _segs[_i + 1]):
+            return True
+    return False
 
 # R233g（R44-P0-3）：非自伤的生死/重病问法（绝症/活多久/亲人会不会走）
 # 不属于危机自伤，但同样不该交给模型即兴——确定性转介，语气放稳。
@@ -863,6 +879,43 @@ def _norm_cs(msg: str) -> str:
     s = _OUT_ZW.sub("", msg or "")
     return "".join(_FACT_T2S.get(c, c) for c in s)
 
+# R3066（巡#483）：词内插符绕闸——「自.杀」「不想 活了」「被猥.亵」
+# 「zi sha」这类空白/标点/装饰拆词形此前全放行。判定用的第二形态：
+# 结构化归一（保分句符供软词物件豁免）之外再给一个压平形态。
+# 变调字母（sǐ/sì）先归 ascii 再走压平——拼音混写是同龄层真实写法。
+_TONE_MAP = str.maketrans(
+    "āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü",
+    "aaaaeeeeiiiioooouuuuuuuuu")
+_FLAT_KEEP = re.compile(r"[^0-9a-zA-Z一-鿿]+")
+
+# 拼音/混写→汉字折叠（压平后、判定前）：每条都是无歧义形，字母
+# 边界防「想sign」类误折。折叠后走既有词表+豁免——「想si你了」
+# 与「想死你了」同享人称豁免。
+_PINYIN_FOLD = (
+    (re.compile(r"(?<![a-z])zisha(?![a-z])", re.I), "自杀"),
+    (re.compile(r"(?<![a-z])zi杀(?![a-z])"), "自杀"),
+    (re.compile(r"(?<![a-z])gewan(?![a-z])", re.I), "割腕"),
+    (re.compile(r"([想要])si(?![a-z])", re.I), r"\g<1>死"),
+    (re.compile(r"不想huo(?![a-z])", re.I), "不想活"),
+    (re.compile(r"huo[着著]?不下去", re.I), "活不下去"),
+    (re.compile(r"huo[着著]好累", re.I), "活着好累"),
+    (re.compile(r"跳lou(?![a-z])", re.I), "跳楼"),
+    (re.compile(r"(?<![a-z])saorao(?![a-z])", re.I), "性骚扰"),
+    (re.compile(r"(?<![a-z])wexie(?![a-z])", re.I), "猥亵"),
+    (re.compile(r"(?<![a-z])qj(?![a-z])", re.I), "强奸"),
+)
+
+
+def _norm_cs_flat(msg: str) -> str:
+    """判定专用的压平归一：_norm_cs 之上再变调归 ascii + 剥全部
+    非字词符 + 拼音折叠。「自.杀/不想 活了/zi sha/想sǐ」同归正形。
+    分句结构已灭——只供硬词/单串判定，软词分句走结构形态。"""
+    s = _norm_cs(msg).lower().translate(_TONE_MAP)
+    s = _FLAT_KEEP.sub("", s)
+    for _rx, _rep in _PINYIN_FOLD:
+        s = _rx.sub(_rep, s)
+    return s
+
 _FACT_BAN_PAT = re.compile(
     # 指令词族（中英）+ 危机/敏感词（另见 _CRISIS_PAT/_is_sensitive）。
     # 坐标事实只该是生辰/称呼/盘面字段——「回答/输出/语言」进事实行
@@ -945,11 +998,13 @@ def _is_sensitive(msg: str) -> bool:
     """生死/重病敏感判定——聊天层与问一嘴（interpreter）共用一个口径。"""
     # R2524：同 _is_crisis——零宽写法绕过敏感词命中。
     # R2995：归一升级——繁折简（腫瘤/強吻/絕症接住）。
-    msg = _norm_cs(msg)
-    if _SENSITIVE_HARD_PAT.search(msg):
+    # R3066：词内插符绕闸（被猥.亵/肿.瘤）——改判压平形态；
+    # 排除词同判压平（物件豁免语义无分句作用域，行为不变）。
+    msg_flat = _norm_cs_flat(msg)
+    if _SENSITIVE_HARD_PAT.search(msg_flat):
         return True
-    return bool(_SENSITIVE_SOFT_PAT.search(msg)
-                and not _SENSITIVE_EXCLUDE_PAT.search(msg))
+    return bool(_SENSITIVE_SOFT_PAT.search(msg_flat)
+                and not _SENSITIVE_EXCLUDE_PAT.search(msg_flat))
 _SENSITIVE_REPLY = ("这个话题我真接不了——不是不愿意，是它不该靠占卜来定。"
                     "身体或心里难受的话，医生和信得过的人才是最该找的。"
                     "想聊点别的，小满都在。")
