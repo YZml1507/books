@@ -15994,3 +15994,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   五行相生 day_wx_sheng=true；match_score=87。
 - 空值诚实：gan_he=false、day_zhi_rel=""——无干合/
   无支关系不硬凑，零值字段照实下发。
+
+## R2953 巡检#370——taohua 全字段实测
+- 十键实算：peach_zhi卯+红鸾丑+天喜未（临月时柱）+
+  hit_pillars空（本命不临桃花）+strength弱+render
+  人话渲染行+notes 只在有据处下「天喜临柱主喜庆」。
+- 空字段诚实：hongluan_pillar/hit_pillars 空表不硬编。
