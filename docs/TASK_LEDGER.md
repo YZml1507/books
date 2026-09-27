@@ -15452,3 +15452,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   question/req/result/ts）→ DELETE 200 → 再 GET
   404 中文「排盘记录不存在：#id」全链人话；
 - 残留两行实测数据已清。
+
+## R2876 巡检#293——share 三面源码核对
+- bazi 分享从 derived 线程行取真内容+kind 感标题
+  （研究/比对/存疑三口径）；tarot/book 无后端存档
+  →share_id 回显 subtitle（80 字+isprintable 防
+  HTML/控制符回显）；
+- 404 中文「这条没找到——可能被清掉了」+ 未知类型
+  「这个分享类型不认识」全人话。
