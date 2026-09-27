@@ -14617,3 +14617,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   ACAO 头；BOOKS_CORS_ORIGINS 分体路径：显式白名单+
   credentials（修 R2522 cookie 跨源不通），无 *+cred 危险
   组合；methods/headers 收窄至 API 实需。
+
+## R2739 巡检#156——favorites 收藏夹写读删全链
+- POST 幂等去重（同 type+ref_id 返同 id）；非法 type 422
+  「收藏类型未知」；删缺失 404 人话（R2516 口径）；prefs
+  读回全字段；cap 裁尾+UNIQUE 兜并发；R2700 测试残留
+  （编码生辰的 ref_id）连带清偿——隐私纪律。
