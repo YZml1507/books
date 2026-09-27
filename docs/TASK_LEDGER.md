@@ -14811,3 +14811,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2776 巡检#193——widget 首页小组件
 - 8 模块（bazi/book/tarot/huangli/…）各带 icon/title/
   desc/recent/recent_used——功能卡数据源在产。
+
+## R2777 巡检#194——huangli affair 问事
+- 搬家→映射正经词族【移徙/入宅/修造/平整】；days=30
+  窗→10-05 命中（宜含三项）good_days 带当日宜忌全量；
+  未识别事项→terms 空+count0 如实不瞎编。
