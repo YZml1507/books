@@ -14782,3 +14782,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - summary：128 节/528 单元/31572 字+层分布{經:464}
   +最大节未濟 9105+未编址 64+损坏 0 全披露；坏 work→
   「先去书目页翻翻」；chapter 卦15→单元+引文逐条下发。
+
+## R2771 巡检#188——concept 概念聚合
+- 谦→census 22 书命中数榜+shared_addresses 27 共址
+  （卦3·初九跨两书）+shared_truncated 如实；空 q→人话。
