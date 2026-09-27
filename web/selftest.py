@@ -1373,7 +1373,7 @@ def _run_inner() -> list[str]:
     assert _jb3.get("match_score") == 35 and "偏不合适" in (_rb3[0] or ""), \
         (_jb3.get("match_score"), _rb3[0])
     assert any("相冲" in l for l in _rb3), _rb3
-    assert any("处方一条" in l for l in _rb3), _rb3
+    assert any("处方" in l for l in _rb3), _rb3
     assert any("判决书" in l or "成本" in l for l in _rb3[-1:]), _rb3[-1:]
     ok.append("hehun.band3_verdict")
     _hh_b2 = client.post("/api/hehun", json={
@@ -1386,7 +1386,7 @@ def _run_inner() -> list[str]:
     assert "磕绊偏多" in (_rb2[0] or ""), _rb2[0]
     assert any("相克就是相克" in l and "管控与自由" in l
                for l in _rb2), _rb2
-    assert any("处方一条" in l for l in _rb2), _rb2
+    assert any("处方三段" in l and "看信号" in l for l in _rb2), _rb2
     # R3088：用户点名的两句软话在 warm 与 notes 里都不许回魂。
     _jb2 = _hh_b2.json()
     _alltxt = " ".join(_rb2) + " " + " ".join(_jb2.get("notes") or [])
