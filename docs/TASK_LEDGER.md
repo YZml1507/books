@@ -16603,3 +16603,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   2-1 实测壬寅+提示）；节气 ±30min 邻近告警在产；
 - warn 链：compute→paipan_out["warn"]→API→app.js esc 渲染
   全通。学派分歧不藏——用户可见。
+
+## R3032 巡检#449——闰月链审计（绿）
+- UI：calendar_type 切农历显 f_lunar_leap（白话标注），年份
+  label 随切，ask/range 行联动；提交带 lunar_leap+历史显
+  「（闰）」标；
+- 换算：2023 闰二月十五→公历 4/5 正确、往返还原 is_leap；
+  不存在的闰月/日溢出双双拒（原始 ValueError「0月」哨兵被
+  resolve_birth 统一裹友好文不外泄）；2100 界农历放行明示。
