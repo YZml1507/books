@@ -3359,6 +3359,9 @@ def _run_inner() -> list[str]:
         "method": "coins", "question": "这次考试能过吗", "seed": 7})))
     _att_cases.append(("tarot", client.post("/api/tarot", json={
         "n": 3, "question": "要不要换工作", "seed": 11})))
+    _att_cases.append(("qiming", client.post("/api/qiming", json={
+        "surname": "林", "year": 2000, "month": 3, "day": 12,
+        "hour": 8, "gender": "女", "top_n": 5})))
     _ATT_FLOOR = {"liuyao": 4, "tarot": 3}
     _att_bad = []
     for _nm, _resp in _att_cases:
