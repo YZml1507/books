@@ -14998,3 +14998,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   deadline 防系统时钟回拨（R230t）；_aiPollGate 后台/
   断网暂停；done→insertAiPolish+LAST_RESPONSE 记
   aiOverlay 供口吻切换重画；failed→静默不渲染。
+
+## R2815 巡检#232——/api/ai/{tid} 任务端点
+- 未知/过期 id→404（detail 只回显 tid[:8]…不全串）；
+  读无副作用可重发；响应带 status/text/closed/fresh/
+  queued/boot 六键（boot=进程记号供前端识别重启失忆）；
+  chat 复用同 dict/锁/GC/端点零新面；会话只内存不入
+  库、危机词命中不调 LLM 直接转介话术、_CHAT_MAX_
+  TURNS=6 防依赖。
