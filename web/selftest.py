@@ -685,6 +685,12 @@ def _run_inner() -> list[str]:
         ("qiming.weak_count", _qr5)
     assert _qpick and "属" in _qpick[0], ("qiming.pick_fit", _qr5)
     ok.append("qiming.weak_fit_count")
+    # R3099：facts_qiming 读 weak 键——偏弱行此前被报「无」，小满
+    # 口径与卡面（金、木偏弱）打架。
+    from guji import llm_polish as _lpq
+    _qf = " ".join(_lpq.facts_qiming(_qm5, "女", _qm5.get("warm")))
+    assert "偏弱金、木" in _qf, ("qiming.facts_weak", _qf[:200])
+    ok.append("qiming.facts_weak")
     # R230a-16：qiming five_elements 的 weak 键钉扎（R13 五行俱全时前端
     # 吃 missing 变空卡的 bug 修字段）——键必须在、类型必须是 list。
     _fe2 = _rc2.json().get("five_elements") or {}

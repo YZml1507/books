@@ -1864,6 +1864,7 @@ def facts_qiming(q: dict, gender: str | None = None,
                  warm: dict | None = None) -> list[str]:
     fe = q.get("five_elements") or {}
     miss = fe.get("missing") or []
+    weak = [w for w in (fe.get("weak") or []) if w]
     names = [n.get("full_name") for n in (q.get("full_names") or [])[:3]
              if n.get("full_name")]
     # R191b（B-016）：性别必须显式喂给模型——否则它会自己猜，实测猜出
@@ -1878,7 +1879,13 @@ def facts_qiming(q: dict, gender: str | None = None,
             "、".join(f"{k}{v}" for k, v in (fe.get("counts") or {}).items())
             if isinstance(fe.get("counts"), dict) and fe.get("counts")
             else "未计算"),
-        "所缺或最弱行：{}".format("、".join(miss) if miss else "无"),
+        # R3099：weak 键此前不读——五行俱全但偏弱行被报成「无」，小满
+        # 口径与 warm 卡面（「金、木偏弱」）打架。
+        "所缺或最弱行：{}".format(
+            ("缺{}；偏弱{}".format("、".join(miss), "、".join(weak))
+             if miss and weak else
+             "缺{}".format("、".join(miss)) if miss else
+             "偏弱{}".format("、".join(weak)) if weak else "无")),
     ]
     if names:
         facts.append("推荐完整名：" + "、".join(names))
