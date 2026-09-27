@@ -330,6 +330,9 @@ def calc(b: Bazi, ask_date: str | None = None,
         "five_elements": five_elements,
         "relations": relations,
         "day_luck": day_luck,
+        # R3151：单日卡也挂年度块——「看八字」默认档此前拿不到今年
+        # 基调锚，warm 侧年度行恒空（只有 life scope 有 yearly）。
+        "yearly": _yearly_block(b),
         "summary": "。".join(parts) + "。",
     }
 
@@ -394,6 +397,35 @@ def calc_range(b: Bazi, start_date: str, end_date: str,
     return {"start": start_date, "end": end_date, "days": days, "summary": summary}
 
 
+def _yearly_block(b: "Bazi") -> dict | None:
+    """R3141/R3151：年度追踪块——本年干支对日主十神 + 12 流月干支
+    逐月十神（各取月中 15 号，必落该月节气窗内）。全是确定性历法
+    计算，不做吉凶分档——分档归 warm 层的口径。单日/生平共用。"""
+    day_master = b.day_master
+    try:
+        from datetime import date as _d
+        _cy = _d.today().year
+        _cidx = (_cy - 4) % 60
+        _cgz = GAN[_cidx % 10] + ZHI[_cidx % 12]
+        months = []
+        for _m in range(1, 13):
+            try:
+                _mb = compute(_cy, _m, 15, 12)
+                _mgz = _mb.month
+                months.append({"month": _m, "ganzhi": _mgz,
+                               "gan_rel": ten_god(day_master, _mgz[0])})
+            except Exception:
+                pass
+        return {
+            "year": _cy,
+            "ganzhi": _cgz,
+            "gan_rel": ten_god(day_master, _cgz[0]),
+            "months": months,
+        }
+    except Exception:
+        return None
+
+
 def calc_life(b: Bazi, birth_year: int) -> dict:
     """生平模式：大运表（起运岁数 + 每运 10 年干支 + 与日主十神）+ 流年概览。
 
@@ -425,32 +457,8 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
     # R2530（调研-因果层）：生平解读需要「出厂设置」层——十神与地支
     # 关系是原盘属性，没有它们 life scope 的「针对」段只能报「未现」。
     ten_gods, _zhis, relations = _natal_blocks(b)
-    # R3141（specs/014-L3）：年度追踪块——本年干支对日主十神 +
-    # 12 流月干支逐月十神（各取月中 15 号，必落该月节气窗内）。
-    # 全是确定性历法计算，不做吉凶分档——分档归 warm 层的口径。
-    yearly = None
-    try:
-        from datetime import date as _d
-        _cy = _d.today().year
-        _cidx = (_cy - 4) % 60
-        _cgz = GAN[_cidx % 10] + ZHI[_cidx % 12]
-        months = []
-        for _m in range(1, 13):
-            try:
-                _mb = compute(_cy, _m, 15, 12)
-                _mgz = _mb.month
-                months.append({"month": _m, "ganzhi": _mgz,
-                               "gan_rel": ten_god(day_master, _mgz[0])})
-            except Exception:
-                pass
-        yearly = {
-            "year": _cy,
-            "ganzhi": _cgz,
-            "gan_rel": ten_god(day_master, _cgz[0]),
-            "months": months,
-        }
-    except Exception:
-        yearly = None
+    # R3141（specs/014-L3）：年度追踪块——见 _yearly_block。
+    yearly = _yearly_block(b)
     return {
         "qi_yun_age": round(qi, 1) if qi is not None else None,
         "dayun": dayun,
