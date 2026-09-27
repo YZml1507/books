@@ -1561,6 +1561,16 @@ function buildChatContext(viewKey) {
       '，哪个更好';
     facts = (_g ? ['性别：' + _g] : []).concat(
       names.map(function (n) { return '候选名：' + n; }));
+    /* R3146：五行缺口+私心推荐行进上下文——此前只带名字串，用户问
+     * 「哪个更好」小满手里没有卡面刚给过的推荐依据，可能推荐得跟
+     * 卡面打架。 */
+    if (miss) facts.push('八字缺：' + miss);
+    else if (_weak) facts.push('八字偏弱：' + _weak);
+    ((j.warm || {}).reply || []).forEach(function (l) {
+      if (l.indexOf('私心') !== -1 || l.indexOf('偏弱') !== -1) {
+        facts.push(l.slice(0, 90));
+      }
+    });
   } else if (viewKey === 'liuyao') {
     var ben = j.ben || {};
     var moving = (ben.moving_lines || []).join('、');
@@ -2412,6 +2422,10 @@ var _CHAT_THEME_FE = {
   '学业': ['学业','考试','考研','考公','成绩','论文','学校','读书','专业'],
   '财运': ['钱','财','工资','收入','投资','副业','存款','花销'],
   '人际': ['朋友','闺蜜','室友','家人','父母','社交','关系'],
+  /* R3147：情绪/自我类——与服务端 _CHAT_THEME 同口径（emo/内耗/
+   * 迷茫是 15-25 受众核心语汇）。 */
+  '情绪': ['焦虑','迷茫','内耗','emo','难过','孤独','自卑','压力',
+           '崩溃','失眠','容貌','减肥','自我','开心','不开心'],
   '运势': ['运势','运气','今年','最近','大运','流年','水逆']
 };
 function _chatThemeFE(msg) {
