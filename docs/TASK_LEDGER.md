@@ -15362,3 +15362,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   名扫删 derived（FTS 墓碑+evidence 同款）；
 - 验证：种孤儿→ui_smoke 跑出 thread#残留1+
   derived#残留1 全清，四表归零 PASS。
+
+## R2865 巡检#282——widget 模块面实测
+- /api/widget 8 模块全下发（icon/title/desc/id/recent/
+  recent_used），文案暖白话（大白话解读/轻决策/看
+  缘分/桃花走势）贴合 009 受众；recent/recent_used
+  是最近使用位（空历史零捏造如实空表）。
