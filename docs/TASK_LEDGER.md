@@ -14359,3 +14359,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2682 巡检#99——_is_sensitive 短路（零 LLM 实锤）
 - 「奶奶重病还能活多久」→_SENSITIVE_REPLY 确定性文案（转介医生+
   「小满都在」）；mock 日志零新增请求——敏感轨不调 LLM 实证。
+
+## R2683 巡检#100——第三段全闸大快照（整数轮）
+- selftest 312 / contract 643 / dup_keys / standing 3/3 /
+  date_parity 74+43+253+9 / voice 14 逐字节 / chat_e2e 4/4 ——
+  100 轮巡检零漂移。
