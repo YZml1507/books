@@ -431,6 +431,15 @@ def _run_inner() -> list[str]:
           "seed": 42, "question": "我和他要不要分手"}),
           lambda j: any("应期参考" in l and "逢值" in l and "逢冲" in l
                         for l in (j.get("warm", {}).get("reply") or [])))
+    # R3168：月建/日辰旺衰锚——paipan 带坐标、warm 出底气行
+    # （「月令」「压着/生着/同气/泄着/耗着」之一）。
+    check("liuyao.yuejian", client.post("/api/liuyao", json={"method": "coins",
+          "seed": 42, "question": "我和他要不要分手",
+          "client_date": "2026-09-28"}),
+          lambda j: (j.get("paipan") or {}).get("yuejian")
+          and (j.get("paipan") or {}).get("richen")
+          and any("月令" in l for l in
+                  (j.get("warm", {}).get("reply") or [])))
     # R118b（D-164b）：liuyao time（梅花易数时间起卦）与 huangli affair（择日
     # 查找 find_good_days）两条已接线能力路径此前零 standing 断言——实测曾
     # 发现 affair 分支因 timedelta 未导入而 NameError 静默损坏。固定参数确定性

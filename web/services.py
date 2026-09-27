@@ -1184,6 +1184,19 @@ def liuyao(req) -> dict:
             except (ValueError, TypeError):
                 _dd = _now_cn()
         _pp = liuyao_mod.paipan(ben, _bazi_day_ganzhi(_dd)[0][0])
+        # R3168：月建/日辰坐标——传统断卦的旺衰锚此前没算进盘。
+        # 月建取节气月支（八字月柱第二字），日辰取当日干支支。
+        if _pp is not None:
+            try:
+                _dgz = _bazi_day_ganzhi(_dd)[0]
+                _mpz = bazi_compute(_dd.year, _dd.month,
+                                    _dd.day, 12).month
+                if _mpz and len(_mpz) > 1 and _mpz != "??":
+                    _pp["yuejian"] = _mpz[1]
+                if _dgz and len(_dgz) > 1:
+                    _pp["richen"] = _dgz[1]
+            except Exception:
+                pass
     except Exception:
         _pp = None
     # R230g（R19-P2-1）：引文是锦上添花，卦象本身不依赖语料——corpus

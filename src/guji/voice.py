@@ -1230,6 +1230,43 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             except Exception:
                 pass
 
+        # R3168（specs/014-L2+）：月建旺衰——传统断卦看「用神对月令得
+        # 不得气」，此前月建/日辰压根没算进盘。如实转述成底气句，
+        # 只描述支撑强弱，不下吉凶断言。用神选取与应期同口径（_yz_l）。
+        try:
+            _yj_b = (_pp.get("yuejian") or "")
+            _rc_b = (_pp.get("richen") or "")
+            _ys_wx2 = (_yz_l or {}).get("wuxing") or ""
+            _yj_wx = ZHI_ELEMENT.get(_yj_b, "")
+            _rc_wx = ZHI_ELEMENT.get(_rc_b, "")
+            _yj_txt = ""
+            if _yj_b and _yj_wx and _ys_wx2:
+                if _yj_wx == _ys_wx2:
+                    _yj_txt = (f"月令{_yj_b}和你问的事同气——正当令，"
+                               "这段日子事头底气足")
+                elif ELEMENT_GENERATES.get(_yj_wx) == _ys_wx2:
+                    _yj_txt = (f"月令{_yj_b}（{_yj_wx}）生着你问的事"
+                               f"（{_ys_wx2}）——这个月它有外援托着，底气偏足")
+                elif _WX_KE_LY.get(_yj_wx) == _ys_wx2:
+                    _yj_txt = (f"月令{_yj_b}（{_yj_wx}）压着你问的事"
+                               f"（{_ys_wx2}）——这段事头偏弱，更得照着"
+                               "处方那句来")
+                elif ELEMENT_GENERATES.get(_ys_wx2) == _yj_wx:
+                    _yj_txt = (f"月令{_yj_b}（{_yj_wx}）泄着你问的事"
+                               f"（{_ys_wx2}）——劲容易被分走，推进省着点用")
+                elif _WX_KE_LY.get(_ys_wx2) == _yj_wx:
+                    _yj_txt = (f"月令{_yj_b}（{_yj_wx}）耗着你问的事"
+                               f"（{_ys_wx2}）——能推动但费劲，别指望它"
+                               "自己滚起来")
+            if _yj_txt:
+                # 日辰帮衬只在和月令同向时点名——对冲细节留给专业层。
+                if _rc_wx and _rc_wx == _ys_wx2:
+                    _yj_txt += f"；日辰{_rc_b}也同气帮衬"
+                lines.append("顺带一提，这卦摇的时间坐标里——" +
+                             _yj_txt + "。")
+        except Exception:
+            pass
+
     if ml:
         pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
         # R2349q（R81-P1-16）：多动爻此前只解释第一爻（3 动爻共用初爻
@@ -1291,7 +1328,9 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # 实测「分手」问法下处方整行被 [:6] 裁掉。
     # R3143：应期参考再占一行——最坏行序=卦名/节奏/坐标/倾向/应期/
     # 动爻/多动提示/变卦/处方=9 行，cap 放宽到 9 否则处方又被顶出去。
-    return lines[:9]
+    # R3168：旺衰行再占一行——最坏 10 行。这型「新增行顶掉处方」已
+    # 第三次咬人，处方是承重行：cap 升 10。
+    return lines[:10]
 
 
 # ---------------------------------------------------------------------------

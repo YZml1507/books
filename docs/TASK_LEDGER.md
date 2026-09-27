@@ -17247,3 +17247,5 @@ R3163：备份白名单补 chat:topics/chat:cards——跨天画像+卡片记忆
 R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id 但 birthResult 从未挂 render/poll；真机验证 agnes 实产出稿贴丙午年食神锚。
 R3165：年度运势图——「📅 年度运势图」副钮上八字卡（calc.yearly 在才出钮）：calc.yearly 升结构化 easy/hard 分档（_EASY 十神表收进 calc 单源，voice 行与海报共用同口径不再双写）；buildShareData 加 bazi-yearly spec（大标题「同伴力之年」类人话 gloss+本年干支+顺劲/使劲月榜，月份纯「X月」不带括号防 22 字截断）；真机截图验证海报渲染+月份不截断。
 R3166：wipe/备份键清单扫尾——remind:1（明天提醒标记）三处全漏：wipe 不清（隐私语义缺口）、备份不带、导入不收；wipe 改 remind: 前缀连 remind:shown 一起收，导出 _EXACT 与导入正则补 remind:1（shown 为日抛噪声不入备份）；wipeAt 墓碑键确认刻意不在 wipe（清扫后落笔的跨 tab 信标）。
+R3167：修探针误伤——check_xingzuo 判据11「逐字节确定性」比对前摘 result_ref/ai_task_id 随机句柄（句柄不同≠内容不同，探针先于这两键存在）；standing 回 3/3。f18e0f0
+R3168（specs/014-L2+）：六爻月建/日辰旺衰锚——paipan 注入 yuejian（节气月支）/richen（日支）；warm 新增「月令底气行」（同气当令/生扶/压着/泄着/耗着五档如实转述，日辰同气时点名帮衬）；cap 升 10（新增行顶掉处方是同型第三次咬人）；facts_liuyao 白名单收「月令」行进 chat 上下文。
