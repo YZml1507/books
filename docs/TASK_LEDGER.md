@@ -15574,3 +15574,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 同盘连打 interp+warm 逐字节全等；换 question/
   换时辰输出分异——确定性引擎（guji.interpreter
   /1.0 无 LLM）可复验+参数敏感双钉。
+
+## R2892 巡检#309——bazi evidence 证据链实测
+- 12 条证据全带 citation（@锚点+源文件名）+九键
+  （work_id/layer/why/query/score/page_anchor/
+  title/text/file）——「引用与生成分离」合规，
+  每条原文可核验出处。
