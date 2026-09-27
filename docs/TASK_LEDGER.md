@@ -14796,3 +14796,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 47 书/62106 单元——layers 七层（正文 50262→十翼 25）
   逐项加总==units 自洽；卦编址率 92.2%、爻 84.4%；
   built_at/fold_pairs 元数据如实。
+
+## R2774 巡检#191——research 拒答与兜底
+- 乱码查询触 search-fallback：整句无命中→分解非重叠子
+  短语作种子（m2 命中 Euclid 公式）——steps 如实记「可
+  见可复现」；全零命中路径由 answer.py「不推测」+selftest
+  在产。
