@@ -16026,3 +16026,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - substr：裸「搬」归一不中→原词回显+count:0 诚实；
   truncated：60字→422「最多32字」；past：后端只给
   宜忌坐标，过去日标记在前端 _pastTag 渲染层。
+
+## R2958 巡检#375——affair 语义三钉实测补完
+- substr：签订合同→子串最长命中「立券」（45天5个
+  好日子）；unrecognized：量子蹦迪→原词回显+
+  unrecognized:True 显式标记，不静默返空。
+- spoken/spokenWord 在 app.js _doHuangli：resolve_date
+  解出的原词（中秋节）优先作卡片日期词。
+- past 标记在 _HL.pastDay 前端层（后端给坐标不渲染）。
