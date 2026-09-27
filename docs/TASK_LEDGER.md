@@ -15309,3 +15309,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - year=1e20→400 正常界报不炸（OverflowError→400 映射
   兜住 json 解析/比较路径）；ask_date=9999-12-31→
   「占卜年份需在 1900-2100」字段独立界。
+
+## R2858 巡检#275——warm 剩两钉实测
+- energy_card：幸运数 [5,0]/幸运色 [黄,棕] 由规则推出
+  ——basis 三行交代推导链（日主庚五行→河图数土→五
+  行配色）非随机；details basis 逐字带「依据：」；badge
+  「仅供娱乐」在 details 前。
