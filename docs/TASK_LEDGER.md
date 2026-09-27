@@ -16007,3 +16007,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   阵位（现状/阻碍/根源/过去）——spread_fit 语义。
 - n=99→422「不能大于10」；draw 七键：index/upright
   /双关键词（正反位）/meaning/position/render 串。
+
+## R2955 巡检#372——liuyao 双法确定性实测
+- coins seed=42→賁22 逐字节；time 2026-08-16 10时→
+  萃45——梅花易数时间卦确定性真算。
+- cast_at=「2026年8月16日 10时」白话回显（防默认
+  生日重演——R2350b 钉的披露义务在产）。
