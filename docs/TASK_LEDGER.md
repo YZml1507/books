@@ -16494,3 +16494,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   title+跨 tab 同步+键 GC+渲染全 esc。
 - 许愿瓶：localStorage 零后端（隐私）+6 分类+躺天数+进 wipe
   /备份白名单。留存件非壳，差异化在产。
+
+## R3015 巡检#432——无障碍（a11y）审计（绿）
+- aria 184 处全族（label/pressed/expanded/hidden/busy/live/
+  invalid/current/controls）+role 谱（dialog/log/status/note/
+  group）；Enter/Space 激活、Esc 分层（海报模态优先/焦点还
+  summary/不作返回键）、模态 Tab 焦点圈、toast 焦点暂停+
+  错误 8s/信息 3.5s 差分。无障面达标。
