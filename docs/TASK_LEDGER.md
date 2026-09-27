@@ -16052,3 +16052,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 三闸 404：野类型/81字超长id/非数字 bazi id。
 - FTS5 'delete' 清链验证：derived/thread/turn/
   evidence 四表探针零残留。
+
+## R2961 巡检#378——widget 嵌入件面实测
+- 8 模块去术语卡片（生日一排·大白话解读 口径
+  与首页对齐）+六爻换钱币图标避八字撞标。
+- _recent_list 护栏实战：recent_modules 写 42/
+  dict/裸串→widget 仍 200 recent=[]（TypeError→500
+  的历史缺口封死）；合法 list 精确 recent_used；
+  None 清键后 prefs 零 diff。
