@@ -2691,6 +2691,17 @@ def _run_inner() -> list[str]:
     assert not _LC._is_sensitive("多肉会不会死"), "多肉被误拦"
     assert not _LC._is_sensitive("手机还能活多久"), "手机被误拦"
     assert not _LC._is_sensitive("拖延症晚期"), "梗被误拦"
+    # R2939（巡#356）：家暴/侵害披露入敏感层转介——硬词无歧义族+
+    # 软词歧义族（打我/跟踪/霸凌）吃排除词豁免。
+    assert _LC._is_sensitive("男朋友打我怎么办"), "家暴软词未接"
+    assert _LC._is_sensitive("我被家暴了"), "家暴硬词未接"
+    assert _LC._is_sensitive("学校有人霸凌我"), "霸凌未接"
+    assert _LC._is_sensitive("同事性骚扰我"), "性骚扰未接"
+    assert _LC._is_sensitive("被人跟踪很害怕"), "跟踪未接"
+    assert not _LC._is_sensitive("打我电话"), "打我电话被误拦"
+    assert not _LC._is_sensitive("他打我游戏账号"), "打我账号被误拦"
+    assert not _LC._is_sensitive("快递跟踪单号"), "快递跟踪被误拦"
+    assert not _LC._is_sensitive("看校园霸凌新闻"), "新闻语境被误拦"
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
     # 8/min 限流，done-task 直接带回转介句，连发也不会被「歇口气」顶掉。
     _tid_s = _LC.spawn_chat_task("st-sens", "得了绝症怎么办", config=_ccfg)
