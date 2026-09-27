@@ -14491,3 +14491,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - ValidationError 文案全量盘点：条数/卦号/线程态均带全界
   或语义约束，pydantic ge/le 双方向中文——只 research 一处
   漏下界，已修。
+
+## R2711 巡检#128——renderRichText 白名单边界复测
+- `[x](javascript:)`落纯文本（无链接语法）/img-onerror 全转义/
+  `***x***`正确嵌套 em>strong/列表项内 script 转义——白名单
+  纪律实测仍严。
