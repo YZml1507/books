@@ -17245,3 +17245,4 @@ R3161：合婚昵称落档+回填——表单昵称框此前形同虚设（提�
 R3162：合盘卡补聊聊入口——attachChatEntry 选择器兜底退回容器自身（xzmResult 直渲裸 div 无内层 .card，入口静默挂不上）；result_ref/卡片记忆链路早通，卡面钮齐。159df28
 R3163：备份白名单补 chat:topics/chat:cards——跨天画像+卡片记忆 wipe 已收编但备份漏带，换机恢复后小满失忆；导出 _EXACT 与导入正则同步。d8dcc00
 R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id 但 birthResult 从未挂 render/poll；真机验证 agnes 实产出稿贴丙午年食神锚。
+R3165：年度运势图——「📅 年度运势图」副钮上八字卡（calc.yearly 在才出钮）：calc.yearly 升结构化 easy/hard 分档（_EASY 十神表收进 calc 单源，voice 行与海报共用同口径不再双写）；buildShareData 加 bazi-yearly spec（大标题「同伴力之年」类人话 gloss+本年干支+顺劲/使劲月榜，月份纯「X月」不带括号防 22 字截断）；真机截图验证海报渲染+月份不截断。

@@ -416,11 +416,20 @@ def _yearly_block(b: "Bazi") -> dict | None:
                                "gan_rel": ten_god(day_master, _mgz[0])})
             except Exception:
                 pass
+        # R3165：月份分档提为结构化数据——voice 行与年度海报共用
+        # 同一口径（吉凶十神表只有这一份，不再双写漂移）。
+        _EASY = {"正财", "偏财", "正官", "正印", "食神", "比肩"}
+        easy = [f"{m['month']}月（{m['gan_rel']}）" for m in months
+                if m.get("gan_rel") in _EASY][:6]
+        hard = [f"{m['month']}月（{m['gan_rel']}）" for m in months
+                if m.get("gan_rel") and m["gan_rel"] not in _EASY][:6]
         return {
             "year": _cy,
             "ganzhi": _cgz,
             "gan_rel": ten_god(day_master, _cgz[0]),
             "months": months,
+            "easy": easy,
+            "hard": hard,
         }
     except Exception:
         return None

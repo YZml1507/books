@@ -982,6 +982,38 @@ function buildShareData(view, j) {
       if (!sb.lines.length) sb.lines = [{ k: '结论', v: _gSlice(l0, 15) || '知己知命' }];
       return sb;
     }
+    /* R3165：年度运势图——年底/生日季晒图格式（年度干支十神+顺劲/
+     * 使劲月榜），数据源 calc.yearly.easy/hard（与 warm 行同口径）。
+     * 月份只放「X月」——十神明细在卡面逐月条上，海报要一眼扫完。 */
+    case 'bazi-yearly': {
+      var sy = base('年度运势图', '');
+      var _yr = (j && j.calc && j.calc.yearly) || {};
+      var _TGL = { 比肩: '同伴力', 劫财: '分享力', 食神: '表达力',
+                   伤官: '创造力', 偏财: '流动财', 正财: '稳定财',
+                   七杀: '压力位', 正官: '规矩位', 偏印: '直觉力',
+                   正印: '庇护力' };
+      var _yrRel = _pStr(_yr.gan_rel);
+      if (_yr.year && _yr.ganzhi) {
+        sy.subtitle = _yr.year + ' · ' + _pStr(_yr.ganzhi) + '年';
+      }
+      sy.big = _yrRel
+        ? ((_TGL[_yrRel] || _yrRel) + '之年')
+        : (l0 || '一年有一年的节奏');
+      sy.lines = [];
+      if (_yr.ganzhi && _yrRel) {
+        sy.lines.push({ k: '本年干支', v: _pStr(_yr.ganzhi) + ' · ' + _yrRel });
+      }
+      var _ezM = _pArr(_yr.easy).map(function (s) {
+        return _pStr(s).split('（')[0]; }).filter(Boolean);
+      var _hdM = _pArr(_yr.hard).map(function (s) {
+        return _pStr(s).split('（')[0]; }).filter(Boolean);
+      if (_ezM.length) sy.lines.push({ k: '顺劲月份', v: _ezM.join('·') });
+      if (_hdM.length) sy.lines.push({ k: '使劲月份', v: _hdM.join('·') });
+      if (!sy.lines.length) {
+        sy.lines = [{ k: '结论', v: _gSlice(l0, 15) || '知己知命' }];
+      }
+      return sy;
+    }
     case 'taohua': {
       var st = base('桃花运势', '');
       st.big = l0 || '桃花今日份';

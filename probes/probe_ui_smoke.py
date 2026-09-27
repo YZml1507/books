@@ -379,6 +379,9 @@ def main() -> int:
         "nameReviewBtn": "AI 点评轮询入口——LLM 任务在冒烟环境不产生",
         "qmRefreshBtn": "改名候选重生按钮——同 qiming 链路",
         "shareBazi": "分享海报模态（Canvas）——冒烟不测文件生成",
+        # R3165：年度运势图——同 shareBazi 海报模态豁免（生成链路
+        # 一致，只是 spec 分支不同；存在性由 bazi 卡断言覆盖）。
+        "shareBaziYear": "同 shareBazi——年度变体海报模态豁免",
         "shareQiming": "同上",
         "shareTaohua": "同上",
         "shareHehun": "同上",

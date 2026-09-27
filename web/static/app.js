@@ -5003,6 +5003,12 @@ function buildBaziResult(j) {
   // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
   html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
     'title="生成分享图">📸 分享图</button>';
+  /* R3165：年度运势图——年底/生日季晒图格式（年度干支+顺劲/使劲月
+   * 榜），calc.yearly 在才出钮（兜底防空卡）。 */
+  if (j.calc && j.calc.yearly && j.calc.yearly.ganzhi) {
+    html += '<button class="ghost fav-btn" type="button" id="shareBaziYear" ' +
+      'title="生成今年运势图">📅 年度运势图</button>';
+  }
   if (voiceMode() === 'pro') {
     /* R215b：专业模式保留原排盘标签（判据 9 口径不动）。 */
     html += '<div class="pill-row">';
@@ -5238,6 +5244,7 @@ async function submitBazi(event) {
     /* R2512：口吻切换重画后直绑按钮会灭——绑定收进 rebind 登记。 */
     var _rbBazi = function () {
       on('shareBazi', function () { return downloadPoster(j, 'bazi'); });
+      on('shareBaziYear', function () { return downloadPoster(j, 'bazi-yearly'); });
     };
     rememberVoice('result', j, buildBaziResult, _rbBazi);
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
@@ -6024,7 +6031,7 @@ var _POSTER_TITLES = {
   qiming: '五行起名', taohua: '桃花运势', hehun: '八字合婚',
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
-  xzm: '星座速配'
+  xzm: '星座速配', 'bazi-yearly': '年度运势'
 };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',

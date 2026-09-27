@@ -1402,12 +1402,10 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
     _mos = _yr.get("months") or []
     # R3151：月份分档明细只在生平档全量给——单日卡已有流日/日支
     # 关系行，再塞 12 月分档太满；单日卡只带年度锚行。
+    # R3165：分档数据由 calc.yearly.easy/hard 直给（同口径，不再本地重算）。
     if _mos and calc.get("scope") == "life":
-        _EASY = {"正财", "偏财", "正官", "正印", "食神", "比肩"}
-        _ez = [f"{m['month']}月（{m['gan_rel']}）" for m in _mos
-               if m.get("gan_rel") in _EASY]
-        _hd2 = [f"{m['month']}月（{m['gan_rel']}）" for m in _mos
-                if m.get("gan_rel") and m["gan_rel"] not in _EASY]
+        _ez = _yr.get("easy") or []
+        _hd2 = _yr.get("hard") or []
         if _ez:
             reply.append("今年偏顺气的月份：" + "、".join(_ez[:6]) +
                          "——基调轻的窗口，适合推进要在意的事。")
