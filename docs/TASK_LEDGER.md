@@ -14551,3 +14551,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 312 / contract 643 / dup_keys / standing 3/3 /
   date_parity 三组 / voice 14 / chat_e2e 4/4——40 轮+1 处
   真改（R2708）后零回归。
+
+## R2724 巡检#141——huangli term_today 节气当值
+- 10-08 寒露 14:30 / 10-23 霜降 17:40 精确到时刻，邻日键缺席
+  ——只在节气当日下发。
