@@ -15845,3 +15845,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 春分3-21→白羊/夏至7-23→狮子/冬至12-22→摩羯/
   1-20→水瓶——四个换座界日全踩对（按出生月日判定，
   不拿日支当本命星座——R220b 口径）。
+
+## R2933 巡检#350·里程碑快速快照
+- selftest 312 全绿｜contract 643（SOFT=50）｜standing
+  3/3｜dup_keys 零重复｜baseline_voice 14 逐字节——
+  350 巡检里程碑零回归。
+- 自 R2923 大快照后 10 轮：SW/SPA/sec.headers/err
+  故障面/xzmatch/bge 语义径/classical_db/cross_ref
+  矩阵/桃花三档/sun_sign 界日全实测在产。
