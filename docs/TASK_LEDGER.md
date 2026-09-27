@@ -17203,3 +17203,4 @@ R3114（specs/010）：FE 聊天上下文判词透传——buildChatContext 三�
 R3115（specs/011 P1）：全网调研立项 specs/011（陪伴AI两大死因=persona collapse+memory rot；HEART Attunement/Resonance 度量衡；巴纳姆反直觉=负面判词不损体感）——Phase1「她认识我」档案层：服务端 chat_profile_facts 生日确定性展开日主/星座；FE me档案注入性别+生日；_activeViewFacts 跨视图回落「她之前在X测过」；_CHAT_SYSTEM 档案使用规范（真修40）；selftest 338、smoke 85/85、contract 645。2933ac1
 R3116~R3118（specs/011）：P2 Attunement 具体度闸 attunement.floor（坐标词+1/空转词-2，三例warm总分≥4，非收尾禁零坐标纯安慰）；copy_bank fallback 池与 app.js 同源复位+drift钉（真修41）；P3 跨天续聊钩子——transcript 升 localStorage + resume 槽一次性注入「她上次来聊过」（真修42）；selftest 340、smoke 85/85。3bafcf1
 R3119~R3120：塔罗正位硬牌判词错档修复——_TAROT_HARD_UP kw0 判重（权杖10「扛太满」正位落阻碍位不再领好牌档；≥2硬牌收尾走吃力口径不说「整体是顺的」）（真修43）；钉 tarot.hard_upright；聊天空态个性化（建档老客用名字招呼）；selftest 341。9750eb2
+R3121（巡检绿）：判词卡全家福真机截图终审——hehun 判词/五行/纳音/互看/大运/地图交权全在屏；taohua 判词+入口预判+交权在屏；liuyao 用神坐标+照传统口径倾向行在产；tarot 凯尔特十字 10 位+牌面别扭收尾+权杖10硬牌坎句在屏；AI 解读块标注正常。审计绿无新修。
