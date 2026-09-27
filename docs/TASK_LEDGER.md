@@ -16733,3 +16733,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 315｜contract 643｜dup 零｜chat_e2e 4/4——
   16 轮审计（含 #19 星座伪日历真修）+ 全量古典表核对段
   零回归。
+
+## R3053 巡检#470——检索内核审计（绿）
+- CJK 短语语义正确：「見群龍」命中原文相邻短语（变体羣/群
+  fold 正确）非散字 AND；引号强制 phrase match+C0 剥离；
+  S2T_RETRY 保守单义表（一对多宁不命中）；render_citation
+  单源共享（Hit/bazi_lookup 同格式）+披露标记 !/?嵌出处；
+  实测 3 hits 逐字原文。
