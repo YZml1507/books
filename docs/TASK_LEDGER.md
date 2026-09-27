@@ -14946,3 +14946,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2805 巡检#222——ai_polish 契约
 - 键恒在（mock 环境下 task 创建走异步面、polish 槽
   None 如实不空编）；additive 语义=只增不改原文在闸。
+
+## R2806 巡检#223——SW 离线壳链
+- 下发 HTML ?v=6eab490f0c1f==sw.js shell-hash==CACHE 名
+  三处一致；bump 闸：SHELL+EXTRA_GLOBS 资产 sha256 变
+  即红；navigate network-first（fetch 先、match 并行兜底
+  离线）；壳位仅真「/」导航可写（防 /docs 污染/500 粘壳）。
