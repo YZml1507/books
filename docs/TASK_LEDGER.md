@@ -16066,3 +16066,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   dup_keys AST 全扫零重复。
 - 本批 8 轮纯审计绿：tarot 全链/liuyao 双法/huangli
   affair 语义族/share/widget 面收官，零真缺陷。
+
+## R2963 巡检#380——daily 月相/日期/缓存窗实测
+- moon.phase：28 天扫窗新月（11-09/10)+满月（11-23/24)
+  双命中，非朔望日空 dict 诚实；date 回显+garbage 400。
+- daily_cache 写窗 [-400d,+31d] UTC+8 锚：2099-12-31
+  与 11 月探针日均窗外零落库；purge-before-write
+  序保证被拒写也清窗外行。现存缓存全真产品行。
