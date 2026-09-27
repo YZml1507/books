@@ -15142,3 +15142,14 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   none/frame-ancestors none/form-action self 收口）+
   no-cache 与 SW 网络优先一致；/deep/spa/route→200
   HTML 客户端路由回落在产。
+
+## R2834 巡检#251·第八段大快照（250 轮巡检里程）
+- selftest 312 全绿（R2817/R2822 两真修后复跑）；
+  contract 643 全钉扎；baseline_voice 14 逐字节；
+  dup_keys AST 零重复；standing 3/3；chat_e2e 4/4；
+  date_parity 74+43/253别名/9族；ui_smoke PASS（清
+  理 8 行测试记录零残留）。
+- 本批（R2801–R2834）：前端/SW/CSS/输入清洗/AI 轮询
+  竞态/LLM 五层输出闸/会话锁/限流/相对日引擎/安全头；
+  真修 2 处（R2817 禁语误伤 hedge、R2822 sanitize 顺
+  序）。累计真缺陷 4 处全修。
