@@ -15859,3 +15859,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   别冲动网购）+summary 一句判+noble 贵人支丑未+
   noble_liuhe 酉+lucky 色数+mercury 水逆窗
   （off→10-24 距27天）+level 吉+festival 空表诚实。
+
+## R2935 巡检#352——qiming 名字因果链实测
+- 每名五键：elements（对偏弱行土金补）+origin 真典
+  籍+story 原句+白话意象+form——李悠《黍离》/李谦
+  《谦卦》/李秩苓跨篇双引（斯干+简兮）。
+- summary 披露逻辑「五行俱全，起名补偏弱行」；
+  candidates 50 字池，top_n=8 显示窗分离。
