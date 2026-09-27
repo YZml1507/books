@@ -3814,6 +3814,39 @@ def _run_inner() -> list[str]:
                            "god_a_sees_b": "正印", "a_bazi": None,
                            "b_bazi": None})
     assert any("五合" in f for f in _fh)
+    # R3154/3155：塔罗/六爻/合盘 facts builder 钉——牌位卦名坐标+
+    # 判词级行升格（判词：前缀进权威块），交权尾不进 facts。
+    _ftr = _LC.facts_tarot(
+        {"draws": [{"name": "太阳", "upright": True, "position": "未来"},
+                   {"name": "宝剑A", "upright": False, "position": "现在"}],
+         "spread": "三张牌"},
+        {"reply": ["综合来看，牌面有些别扭——先别急着推进，多观察几天。",
+                   "星座只是地图"]}, "我能复合吗")
+    assert any("太阳·正位" in f and "未来位" in f for f in _ftr), _ftr
+    assert any(f.startswith("判词：综合来看") for f in _ftr), _ftr
+    _fly = _LC.facts_liuyao(
+        {"ben": {"gua_name": "復", "moving_lines": [2]},
+         "bian": {"gua_name": "蒙"},
+         "paipan": {"ben_gua": {"lines": [
+             {"position": 2, "stem": "丙", "branch": "午",
+              "wuxing": "火", "liuqin": "官鬼", "is_shi": True},
+             {"position": 5, "stem": "壬", "branch": "申",
+              "wuxing": "金", "liuqin": "兄弟", "is_ying": True}]}}},
+        {"reply": ["应期参考（传统口径）：午支逢值 10/5",
+                   "能做的最实一步：拆三步走"]},
+        "感情")
+    assert any("本卦：復" in f for f in _fly)
+    assert any("变卦：蒙" in f for f in _fly)
+    assert any("世爻" in f and "官鬼" in f for f in _fly), _fly
+    assert any("判词：应期参考" in f for f in _fly), _fly
+    _fxz = _LC.facts_xzmatch({"a": "双鱼", "b": "天蝎", "elem_a": "水",
+                              "elem_b": "水", "score": 88, "label": "同象",
+                              "lines": ["水象自家人", "处方：轮流提反对意见",
+                                        "星座是地图，路是你们走的"]})
+    assert any("合拍指数：88/99" in f for f in _fxz), _fxz
+    assert any("处方" in f for f in _fxz), _fxz
+    assert not any("地图" in f for f in _fxz), _fxz
+    ok.append("llm.facts_divtarot")
     # P1-3/5：会话档卫生——空白判定行不入档、恶意 facts 不入档、
     # 跨日判定档作废
     _c_seen = {}
