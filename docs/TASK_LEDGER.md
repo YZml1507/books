@@ -14791,3 +14791,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 47 书各带真实出处（gutenberg×7/kanripo codeload URL/
   kanripo 内置×9）+units/addressed/anchored 三计数——
   出处层归属非装饰。
+
+## R2773 巡检#190——stats 统计自洽
+- 47 书/62106 单元——layers 七层（正文 50262→十翼 25）
+  逐项加总==units 自洽；卦编址率 92.2%、爻 84.4%；
+  built_at/fold_pairs 元数据如实。
