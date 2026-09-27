@@ -509,6 +509,13 @@ def _run_inner() -> list[str]:
              and not set(ts) <= _NEUTRAL_TERMS}
     assert not _dead, ("huangli.scene_vocab.dead", _dead)
     ok.append("huangli.scene_vocab.alive")
+    # R3083（巡#500）：跳槽/换工作是双腿行为——离开（解除）+赴任
+    # （上任）缺一腿时「宜解除+忌上任」的日子会被判成中性/宜，
+    # 黄历说忌赴任却答跳槽照常。钉双腿映射防回退。
+    for _k in ("跳槽", "换工作"):
+        assert (set(_CST[_k]) == {"解除", "上任"},
+                ("huangli.scene.twoleg", _k, _CST.get(_k)))
+    ok.append("huangli.scene.twoleg")
     # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
     # 不静默回落显示日/就近换日。
     for _q, _want_date, _want_invalid in (
