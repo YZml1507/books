@@ -16771,3 +16771,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   词序权重不动、无问句输出逐字节同；20 hits 跨命理书目逐
   字原文带 query/why 溯源；DB 存在性守卫+closing+去重+
   bm25。
+
+## R3059 巡检#476——knowledge 存储层审计（绿）
+- G7 存储层强制：断言无证据拒收（非调用方自觉）；verify
+  重读原文标 STALE 不当权威；竞态锁+孤代理递归剥+CHECK
+  枚举+三帽留存+UNIQUE 防重+truncated 诚实标；schema 版
+  本整表重建处理不可 ALTER。
