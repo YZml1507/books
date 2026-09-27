@@ -3298,6 +3298,51 @@ def _run_inner() -> list[str]:
         _miss += [ln for ln in _pool if ln not in _appjs]
     assert not _miss, ("copybank.fallback_drift", _miss[:2])
     ok.append("copybank.fallback_drift")
+    # R3117（specs/011 P2）：HEART 式 Attunement 具体度闸——
+    # 规则层打分：坐标词（判词/支/柱/爻/位/十神/用神/处方/五行…）
+    # 命中 +1、空转词（顺其自然/都会好的/慢慢来…）命中 -2。
+    # 「泛泛」装上可度量的下限：每个 warm 面总分 ≥4，
+    # 且非收尾行不得出现零坐标的纯安慰行。
+    _ATT_SOFT = ["顺其自然", "都会好的", "看开点", "慢慢来",
+                 "放轻松", "随缘", "开心就好", "别想太多",
+                 "心态最重要", "时间会给答案", "你开心就好"]
+    _ATT_COORD = ["判词", "支", "柱", "爻", "位", "正官", "七杀",
+                  "正财", "偏财", "伤官", "食神", "比肩", "劫财",
+                  "正印", "偏印", "桃花", "相冲", "相合", "相克",
+                  "相生", "比和", "用神", "世爻", "应爻", "六亲",
+                  "六神", "处方", "入口", "大运", "纳音", "日主",
+                  "五行", "卦", "牌", "宫", "红鸾", "夫妻宫",
+                  "宜", "忌", "名", "缺", "弱"]
+    def _attune(lines):
+        _sc, _bare = 0, []
+        for _i, _ln in enumerate(lines):
+            _c = sum(1 for w in _ATT_COORD if w in _ln)
+            _s = sum(1 for w in _ATT_SOFT if w in _ln)
+            _sc += _c - _s * 2
+            # 收尾行（交权/指路）允许零坐标；其余纯安慰行算裸句
+            if _s and not _c and _i < len(lines) - 1:
+                _bare.append(_ln[:40])
+        return _sc, _bare
+    _att_cases = []
+    _att_cases.append(("hehun", client.post("/api/hehun", json={
+        "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+        "a_gender": "女", "b_year": 1992, "b_month": 8, "b_day": 20,
+        "b_hour": 14, "b_gender": "男", "question": "我们合适吗"})))
+    _att_cases.append(("taohua", client.post("/api/taohua", json={
+        "year": 2003, "month": 11, "day": 8, "hour": 9,
+        "gender": "女", "question": "最近桃花怎么样"})))
+    _att_cases.append(("bazi", client.post("/api/bazi", json={
+        "year": 2002, "month": 5, "day": 20, "hour": 10,
+        "gender": "女", "question": "这段感情继续还是放手",
+        "scope": "life"})))
+    _att_bad = []
+    for _nm, _resp in _att_cases:
+        _rep = (_resp.json().get("warm") or {}).get("reply") or []
+        _sc, _bare = _attune(_rep)
+        if _sc < 4 or _bare:
+            _att_bad.append((f"{_nm}:score={_sc}", _bare[:1]))
+    assert not _att_bad, ("attunement.floor", _att_bad[:2])
+    ok.append("attunement.floor")
     # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
     _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))
