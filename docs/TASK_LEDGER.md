@@ -14322,3 +14322,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2674 巡检#91——bazi scope 三档递进
 - day→日级运算层；life→+起运 3.1 岁+dayun 柱列（比肩/正印十神
   标注+年界）；evil→400 人话「范围只能是 day/range/life」。
+
+## R2675 巡检#92——bazi lunar 农历输入实测
+- calendar_type=lunar + lunar_* 字段：1990-5-15→公历 06-07→壬午月
+  癸卯日柱（与 bazi.lunar 钉扎逐字一致）；1996-6-1→甲寅日（R230f
+  表修在产）；字段错名按 solar 走不炸（extra 容忍）。
