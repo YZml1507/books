@@ -14984,3 +14984,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   offline 事件只发在线→离线转换）；另发现 _aiPollGate
   hidden/offline 门控轮询+AI_PENDING 切视图恢复登记。
   （注：read 工具偏移显示异常，内容以 sed/grep 为准。）
+
+## R2813 巡检#230——zwClean/num 清洗对
+- 零宽\u200B-\u200D/\uFEFF+bidi\u202A-\u202E 剥（前后端同
+  口径）；全角１９９０→ASCII 归一不当脏拦；^-?\d+$ 严
+  格整数拒 1e1/30.5/1990e2（parseInt 静默吞错已堵）；
+  脏值 aria-invalid 标红+2.5s 去抖 toast+输入自清。
