@@ -16748,3 +16748,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   决定」实录）；import 期 _conflicts 断言防两表漂移；
   於→于折记明KNOWN COST；segment_cjk 解 unicode61 短询
   静默空档。
+
+## R3055 巡检#472——app_research.js 懒块审计（绿）
+- 15 handler 全 failWithRetry 重试钮；93 处 esc 动态串零裸
+  innerHTML；_YAO_RE 单点正则共 doAddr/doCompare（实录双份
+  反写缺陷收敛）；钳位给提示不静默；stub→注入→真身接管
+  机制清晰，共享函数留主包防双份。
