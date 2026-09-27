@@ -1469,6 +1469,12 @@ def warm_hehun(h: dict) -> dict:
     # 的盘仍被判「没有明显的合/冲」，与同屏日支行直接互搏。日支有
     # 动静时如实带上。
     _dz0 = h.get("day_zhi_rel") or ""
+    # R3075（巡#492）：_dz0 行与 body _dz 行此前双报同一日支关系
+    # （「相冲」判词出现两遍）——开篇行补支坐标，body 侧同关系跳过。
+    _dz_said = not (h.get("clash") or h.get("combine")
+                    or h.get("year_zhi_rel") == "半合")
+    _dza, _dzb = h.get("day_zhi_a", ""), h.get("day_zhi_b", "")
+    _dzc = f"{_dza}/{_dzb}" if _dza and _dzb else ""
     if h.get("clash"):
         rel = "两年支六冲——传统上叫磨合型：不是不合，是相处需要多一轮理解"
     elif h.get("combine"):
@@ -1476,11 +1482,19 @@ def warm_hehun(h: dict) -> dict:
     elif h.get("year_zhi_rel") == "半合":
         rel = "年支半合——不是最强的那种合，但有天然的三分顺意"
     elif _dz0 == "合":
-        rel = "年支上动静不大，但日支（你们俩的夫妻宫）六合——传统合婚最看重的一支对上了"
+        rel = (f"年支上动静不大，但日支（你们俩的夫妻宫）{_dzc}六合"
+               "——传统合婚最看重的一支对上了" if _dzc else
+               "年支上动静不大，但日支（你们俩的夫妻宫）六合"
+               "——传统合婚最看重的一支对上了")
     elif _dz0 == "半合":
-        rel = "年支上动静不大，夫妻宫（日支）半合——相处里有天然的合拍"
+        rel = (f"年支上动静不大，夫妻宫（日支）{_dzc}半合"
+               "——相处里有天然的合拍" if _dzc else
+               "年支上动静不大，夫妻宫（日支）半合——相处里有天然的合拍")
     elif _dz0 == "冲":
-        rel = "年支上动静不大，但日支（你们俩的夫妻宫）相冲——磕绊藏在日常里，把话说开比憋着强"
+        rel = (f"年支上动静不大，但日支（你们俩的夫妻宫）{_dzc}相冲"
+               "——磕绊藏在日常里，把话说开比憋着强" if _dzc else
+               "年支上动静不大，但日支（你们俩的夫妻宫）相冲"
+               "——磕绊藏在日常里，把话说开比憋着强")
     else:
         rel = "盘面上没有明显的冲也没有明显的合——关系的样子更多靠你们自己写"
     l0 = ("磨合型组合" if h.get("clash")
@@ -1528,6 +1542,10 @@ def warm_hehun(h: dict) -> dict:
                      f"{h.get('day_wx_b', '')}）——能量会碰：磨合期长一点，"
                      f"但磨合好的相克盘反而最扛事。")
     _dz = h.get("day_zhi_rel") or ""
+    # R3075：开篇判词已报过同一日支关系（年支平盘时）——body 行
+    # 不再复述（相冲/六合/半合此前同屏出现两遍）。
+    if _dz and _dz_said:
+        _dz = ""
     if _dz == "冲":
         lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
                      f"{h.get('day_zhi_b','')}相冲——相处里会有磕绊，"

@@ -1205,6 +1205,19 @@ def _run_inner() -> list[str]:
                      # pro 模式「A 四柱」pill 与甲乙卡悬停都读它
                      and j.get("a_bazi", {}).get("render")
                      and j.get("b_bazi", {}).get("render")))
+    # R3075（巡#492）：日支关系开篇+正文双报回归钉——相冲/六合/
+    # 半合在 reply 里只能出现一次（此前开篇判词与 body 行重复判词）。
+    _hh2000 = client.post("/api/hehun", json={
+        "a_year": 2000, "a_month": 5, "a_day": 15, "a_hour": 10,
+        "a_gender": "男",
+        "b_year": 2001, "b_month": 8, "b_day": 20, "b_hour": 14,
+        "b_gender": "女"})
+    assert _hh2000.status_code == 200, _hh2000.status_code
+    _hhr = (_hh2000.json().get("warm") or {}).get("reply") or []
+    _dzhits = [l for l in _hhr if "相冲" in l or "六合" in l]
+    assert len(_dzhits) <= 1, ("日支关系双报", _dzhits)
+    assert any("酉/卯相冲" in l for l in _hhr), _hhr
+    ok.append("hehun.dayzhi_dedup")
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
