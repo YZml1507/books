@@ -15205,3 +15205,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   孤儿码点；非法 status 收敛 open；open_thread 防
   rowid 复用挂孤儿（turn 删/derived 解绑）；add_turn
   INSERT..SELECT 原子 seq 零竞态+单线程轮数帽。
+
+## R2841 巡检#258——persist.guardrails 三护栏
+- 坏 JSON daily_cache 行→读返 None 且自愈删（实测行数
+  归 0——坏行不吊死后续读）；favorites 500 帽超插被裁；
+  turn/线程 500 帽同裁——持久层三处「宁裁不炸」在产。
