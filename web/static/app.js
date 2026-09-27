@@ -2371,8 +2371,75 @@ function _meNickClean(n) {
 }
 
 var CHAT_RESUME_FACT = '';   /* R3118：跨天续聊的一次性语境 */
+/* R3139（specs/014-L1）：跨天主题画像——与 llm_polish._CHAT_THEME
+ * 同口径的轻量前端镜像（子串命中即可，误伤代价低）。 */
+var _CHAT_THEME_FE = {
+  '感情': ['感情','恋爱','喜欢','桃花','对象','男朋友','女朋友','暗恋',
+           '复合','相亲','结婚','暧昧','他对我','分手','失恋','前任',
+           '脱单','表白'],
+  '工作': ['工作','职场','老板','同事','升职','跳槽','面试','裁员','加班'],
+  '学业': ['学业','考试','考研','考公','成绩','论文','学校','读书','专业'],
+  '财运': ['钱','财','工资','收入','投资','副业','存款','花销'],
+  '人际': ['朋友','闺蜜','室友','家人','父母','社交','关系'],
+  '运势': ['运势','运气','今年','最近','大运','流年','水逆']
+};
+function _chatThemeFE(msg) {
+  var s = String(msg || '');
+  for (var k in _CHAT_THEME_FE) {
+    var arr = _CHAT_THEME_FE[k];
+    for (var i = 0; i < arr.length; i++) {
+      if (s.indexOf(arr[i]) !== -1) return k;
+    }
+  }
+  return '';
+}
+/* 足迹：{d:'YYYY-MM-DD', t:'主题'}，14 天滚动窗、60 条封顶。
+ * 危机/敏感消息不写足迹（在闸之后才调）。 */
+function _chatTopicLog(msg) {
+  var t = _chatThemeFE(msg);
+  if (!t) return;
+  try {
+    var arr = JSON.parse(localStorage.getItem('chat:topics') || '[]');
+    if (!Array.isArray(arr)) arr = [];
+    var today = todayIso();
+    /* 同日同主题不重复记——一天问感情五次仍是一条 */
+    if (arr.length && arr[0].d === today && arr[0].t === t) return;
+    arr.unshift({ d: today, t: t });
+    var cutoff = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+    arr = arr.filter(function (x) {
+      return x && x.d >= cutoff;
+    }).slice(0, 60);
+    localStorage.setItem('chat:topics', JSON.stringify(arr));
+  } catch (e) {}
+}
+/* 画像行：近 7 天各主题计数，主打主题 ≥2 天才有「一直卡在这」
+ * 的观测价值。一次会话只注入一回（sessionStorage 旗标）。 */
+function _chatWeekProfileFact() {
+  try {
+    if (sessionStorage.getItem('chatTopicFactDone')) return '';
+    sessionStorage.setItem('chatTopicFactDone', '1');
+    var arr = JSON.parse(localStorage.getItem('chat:topics') || '[]');
+    if (!Array.isArray(arr) || !arr.length) return '';
+    var cutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    var cnt = {};
+    arr.forEach(function (x) {
+      if (x && x.d >= cutoff && x.t) cnt[x.t] = (cnt[x.t] || 0) + 1;
+    });
+    var top = '', topN = 0;
+    for (var k in cnt) { if (cnt[k] > topN) { top = k; topN = cnt[k]; } }
+    if (!top || topN < 2) return '';
+    return '她这周来聊过「' + top + '」这条线 ' + topN +
+      ' 天了——如果现在又绕回来，可以自然接一句「这事你惦记着几天了」' +
+      '这种体恤，别点破数据';
+  } catch (e) { return ''; }
+}
+
 function _chatFacts(facts) {
   var _f = (facts || []).slice();
+  try {
+    var _wp = _chatWeekProfileFact();
+    if (_wp) _f.unshift(_wp);
+  } catch (e) {}
   try {
     /* R3118（specs/011 P3）：resume 槽一次性消费——只在新会话
      * 首条消息注入（服务端会话是新开的，不注入等于真失忆）。 */
@@ -2430,6 +2497,9 @@ function chatSend() {
     chatBubble('ai', _SENSITIVE_CHAT_REPLY);
     return;
   }
+  /* R3139（specs/014-L1）：主题足迹落本地——危机/敏感闸之后才记，
+   * 那两类消息不进画像。同日同主题去重。 */
+  try { _chatTopicLog(msg); } catch (eTL) {}
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   /* R230v（R34-#3）：捕获发送时 sid——在途回复遇上「开个新话题」换 sid
@@ -12466,7 +12536,7 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
@@ -12480,7 +12550,7 @@ function baziPersonaCard(j) {
           var _sr = [];
           for (var j2 = 0; j2 < sessionStorage.length; j2++) {
             var sk = sessionStorage.key(j2);
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done)$/
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone)$/
                 .test(sk) || sk.indexOf('shareBy:') === 0 ||
                 sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }

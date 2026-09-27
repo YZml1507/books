@@ -1774,9 +1774,18 @@ def main() -> int:
                     "   CHAT_RESUME_FACT='我们合婚怎么样';"
                     "   var f1=_chatFacts([]).join('|'),"
                     "   f2=_chatFacts([]).join('|');"
-                    "   return f1+'##'+f2})()"
+                    "   return f1+'##'+f2})(),"
+                    # R3139（specs/014-L1）：跨天主题画像钉——7 天内
+                    # 同主题 ≥2 天 → facts 须带「她这周来聊过」画像行；
+                    # 一会话只注入一次（旗标先行复位）。
+                    " (()=>{sessionStorage.removeItem('chatTopicFactDone');"
+                    "  var _t0=new Date().toISOString().slice(0,10);"
+                    "  var _t1=new Date(Date.now()-864e5).toISOString().slice(0,10);"
+                    "  localStorage.setItem('chat:topics', JSON.stringify(["
+                    "   {d:_t0,t:'感情'},{d:_t1,t:'感情'},{d:_t1,t:'学业'}]));"
+                    "  return _chatFacts([]).join('|')})()"
                     " ];}")
-                ok = (len(cases) == 3
+                ok = (len(cases) == 4
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       # R3126（specs/013-P2）：partner 档案行钉——
@@ -1787,10 +1796,13 @@ def main() -> int:
                       and "上次来聊过" in cases[2]
                       and "我们合婚怎么样" in cases[2]
                       and not cases[2].split("##")[1].count("上次来聊过")
+                      # R3139：跨天主题画像行钉。
+                      and "她这周来聊过「感情」这条线 2 天" in cases[3]
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
                           + " xview=" + ("OK" if cases[1] else "X")
-                          + " resume=" + ("OK" if cases[2] else "X"))
+                          + " resume=" + ("OK" if cases[2] else "X")
+                          + " weekprofile=" + ("OK" if cases[3] else "X"))
             except Exception as exc:
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             if errors:
