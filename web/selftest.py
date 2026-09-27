@@ -1075,6 +1075,15 @@ def _run_inner() -> list[str]:
     _tr2 = (_tstrong.json().get("warm") or {}).get("reply") or []
     assert "缘分信号偏强" in (_tr2[0] or ""), _tr2[0]
     ok.append("taohua.verdict_band")
+    # R3095（specs/010-P4）：死软池清除——taohua.replies 自 R3089 起
+    # 零消费者（判词带+入口预判替代），删池防未来重接软句。
+    import json as _json, os as _os
+    _cb = _json.load(open(_os.path.join(_os.path.dirname(__file__),
+                       "..", "src", "guji", "copy_bank.json"),
+                     encoding="utf-8"))
+    assert "replies" not in (_cb.get("taohua") or {}), \
+        "copy_bank.taohua.replies 死池复活"
+    ok.append("copybank.deadpool_purged")
     # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
     # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王）。
     check("tarot", client.post("/api/tarot", json={"seed": 42, "n": 3}),
