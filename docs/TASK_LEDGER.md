@@ -16501,3 +16501,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   group）；Enter/Space 激活、Esc 分层（海报模态优先/焦点还
   summary/不作返回键）、模态 Tab 焦点圈、toast 焦点暂停+
   错误 8s/信息 3.5s 差分。无障面达标。
+
+## R3016 巡检#433——第十八段全闸快照（全绿）
+- selftest 313｜contract 643｜dup 零｜chat_e2e 4/4｜ui_smoke
+  PASS（探针自清 paipan/derived/thread/favorite 水位归零）。
+- 周期 #419–#433：深度主线 15 轮审计全绿（focus_lines/warm
+  五层/chat 注入 E2E/三域 warm/降级池/出处链/分享/引文/
+  日签/驻留遗忘/研究面/留存件/无障）零真缺陷。
