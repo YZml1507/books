@@ -704,9 +704,15 @@ function buildShareData(view, j) {
       /* R233t（R51-P1-7）：卡图不再按 DOM 顺序抓——复看/重渲后 DOM
        * 序与 draws 可能错位；改用 draws[].img/src 数据键（若有）。 */
       var imgs = document.querySelectorAll('.tarot-card-front img');
+      /* R3021（真修#18）：问题文本烤进可分享图=披露足迹外泄——危机/
+       * 敏感问句不上副题（复用 app.js 全局镜像判定，同源口径）。 */
+      var _tq = _pStr(j && j.question);
+      var _tqSafe = _tq &&
+        !(typeof feCrisis === 'function' && feCrisis(_tq)) &&
+        !(typeof feSensitive === 'function' && feSensitive(_tq));
       var s = base('塔罗指引',
         (_pStr(j && j.spread) ? '「' + _pStr(j.spread) + '」牌阵 · ' : '') +
-        (_pStr(j && j.question) ? '你问的：「' + _gSlice(_pStr(j.question), 16) + '」' : ''));
+        (_tqSafe ? '你问的：「' + _gSlice(_tq, 16) + '」' : ''));
       /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
       /* R2349s（R86-P2-7）：「节制·正：调和，少硬刚」的「·正：」
        * 是内部编码格式漏到画上——转成顺读「节制（正位）：…」。 */
