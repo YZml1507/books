@@ -14717,3 +14717,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - limit=0→「至少 1——最多 50」双界；500→按帽落 50 条
   截断如实；abc→422 得填整数；skipped_chars→引文卡渲
   ⚠「非连续引文」标记、suspect→? 标记——可疑披露在产。
+
+## R2759 巡检#176——ask 研究问答聚合
+- q=谦→12 证据带引文锚（work@anchor+file+!可疑标记
+  穿透到 citation 串）；rule-based 解读+steps 可追溯；
+  refused=false 如实。
