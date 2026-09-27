@@ -9306,12 +9306,16 @@ function initDivination() {
                          '&b=' + encodeURIComponent(sb2.value) +
                          (_rel && _rel.value
                           ? '&rel=' + encodeURIComponent(_rel.value) : ''));
+      /* R3130：lines 面在时逐行渲（场景+处方+交权），旧响应回退单行。 */
+      var _xlines = (mj.lines && mj.lines.length) ? mj.lines : [mj.line];
       box.innerHTML = '<div class="hh-score" style="margin-top:0;">' +
         esc(mj.a) + '座 × ' + esc(mj.b) + '座 · 合拍指数 <strong>' +
         esc(String(mj.score)) + '</strong>/99 ' +
         '<span class="daily-lucky-word">' + esc(mj.label) + '</span></div>' +
-        '<div style="margin-top:8px;color:var(--secondary);font-size:14px;">' +
-        esc(mj.line) + '</div>' +
+        _xlines.map(function (ln) {
+          return '<div style="margin-top:8px;color:var(--secondary);' +
+            'font-size:14px;">' + esc(ln) + '</div>';
+        }).join('') +
         '<div style="margin-top:8px;font-size:12px;color:var(--secondary);">' +
         '想更准？补个生辰试试八字合婚 →</div>' +
         /* R2350d（R100-P1-4）：速配卡补分享钮——最低成本的晒点。 */
