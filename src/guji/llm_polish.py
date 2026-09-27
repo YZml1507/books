@@ -2193,12 +2193,13 @@ def facts_liuyao(res: dict, warm: dict | None = None,
                 y.get("liuqin") or ""))
     if question:
         facts.append("她问的是：" + str(question)[:60])
-    # 判词级行升格——梳理行/口径行/应期/月建旺衰/三段式处方照卡面说。
+    # 判词级行升格——梳理行/口径行/应期/月建旺衰/旬空/三段式处方照卡面说。
     for _ln in ((warm or {}).get("reply") or []):
         _ls = str(_ln)
         if ("照传统口径" in _ls or "应期参考" in _ls or "判词" in _ls
                 or "最实一步" in _ls or "观察信号" in _ls
-                or "月令" in _ls or "先做" in _ls):
+                or "月令" in _ls or "旬空" in _ls or "落空亡" in _ls
+                or "先做" in _ls):
             facts.append(("判词：" if not _ls.startswith("判词")
                           else "") + _fact_line(_ls))
     return facts

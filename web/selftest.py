@@ -440,6 +440,13 @@ def _run_inner() -> list[str]:
           and (j.get("paipan") or {}).get("richen")
           and any("月令" in l for l in
                   (j.get("warm", {}).get("reply") or [])))
+    # R3170：旬空——日干支定旬的两支空亡进盘（甲子旬戌亥空…）。
+    check("liuyao.xunkong", client.post("/api/liuyao", json={"method": "coins",
+          "seed": 42, "question": "我和他要不要分手",
+          "client_date": "2026-09-28"}),
+          lambda j: (len((j.get("paipan") or {}).get("xunkong") or []) == 2
+                     and all(b in "子丑寅卯辰巳午未申酉戌亥"
+                             for b in (j["paipan"]["xunkong"]))))
     # R118b（D-164b）：liuyao time（梅花易数时间起卦）与 huangli affair（择日
     # 查找 find_good_days）两条已接线能力路径此前零 standing 断言——实测曾
     # 发现 affair 分支因 timedelta 未导入而 NameError 静默损坏。固定参数确定性

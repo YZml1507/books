@@ -1195,6 +1195,15 @@ def liuyao(req) -> dict:
                     _pp["yuejian"] = _mpz[1]
                 if _dgz and len(_dgz) > 1:
                     _pp["richen"] = _dgz[1]
+                    # R3170：旬空——日干支定旬，旬外两支落空亡
+                    # （甲子旬戌亥空…）。用神/世爻落空是「事未坐实」
+                    # 的经典信号，此前盘上完全没有。
+                    from guji.bazi import GAN as _XG, ZHI as _XZ
+                    _gs, _zb2 = _XG.find(_dgz[0]), _XZ.find(_dgz[1])
+                    if _gs >= 0 and _zb2 >= 0:
+                        _xs = (_zb2 - _gs) % 12
+                        _pp["xunkong"] = [_XZ[(_xs + 10) % 12],
+                                          _XZ[(_xs + 11) % 12]]
             except Exception:
                 pass
     except Exception:

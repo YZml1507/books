@@ -1264,6 +1264,14 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                     _yj_txt += f"；日辰{_rc_b}也同气帮衬"
                 lines.append("顺带一提，这卦摇的时间坐标里——" +
                              _yj_txt + "。")
+            # R3170：旬空——用神支落空亡是「事还没坐实」的经典信号。
+            # 如实转述成「飘着没定」，不吓人不断言凶。
+            _xk = _pp.get("xunkong") or []
+            if _zb and _zb in _xk:
+                lines.append(
+                    f"还有一点——代表这事的那爻（{_zb}）摇卦这天正落空亡"
+                    "（旬空）：眼下这事还飘在半空没坐实，"
+                    "先别急着把它当定局，等它落了地再看。")
         except Exception:
             pass
 
