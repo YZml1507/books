@@ -16568,3 +16568,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 三问实产：12 条逐字引文带 6 部真典籍书目分布+层分布；
   解读确定性引擎明示（无 LLM 标注）+拒答不综合（G7）+
   无证据 interpretation=None 不编造。研究面证据背书达标。
+
+## R3026 巡检#443——threads 研究笔记链审计（绿）
+- 实跑写-读-删循环：claim+method+evidence(supports/quote)
+  三元落库、开题 turn、verify 状态块齐——G8 证据纪律在产。
+  FK 级联清理顺序实测，零残留。
