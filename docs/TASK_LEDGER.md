@@ -14486,3 +14486,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - pydantic Field(ge=1,le=6)→max=0 422「不能小于 1」/
   max=99 422「不能大于 6」——双方向本就规范，R2708 修的
   是 research 独有问题。
+
+## R2710 巡检#127——「单界报错」全仓扫（R2708 独例）
+- ValidationError 文案全量盘点：条数/卦号/线程态均带全界
+  或语义约束，pydantic ge/le 双方向中文——只 research 一处
+  漏下界，已修。
