@@ -14525,3 +14525,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 默认 16 叶键全下发（level/summary/noble/do/dont/lucky/
   mercury/festival/cached）；moon.phase 仅朔望日出——
   11-09/10 新月、11-24 满月、平日无键，条件设计实测对。
+
+## R2718 巡检#135——daily festival+summary 文案
+- 国庆/元旦/圣诞各命中；summary 年轻化实锤（「省电模式
+  续航优先」「顺毛撸你」「甜品明天又是好汉」）。
