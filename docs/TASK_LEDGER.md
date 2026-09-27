@@ -15660,3 +15660,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 同 (ts,name,type) 重复导入幂等 skip=1 不产重复行；
 - 防线实测：eviltype 白名单外拒/req+result 双空壳
   拒/控制字剥离/字段截断/KEEP_MAX 滚动帽。
+
+## R2904 巡检#321——external 外部数据面实测
+- /api/external/news：RSS 抓取连接被拒时优雅降级
+  （bbc_zh fail 但其余源照出+fetched_at+proxy 披露）
+  ——不落库与语料 Source 层隔离；
+- /api/external/fortune：solidot 源成功返回——外部
+  数据面降级诚实、与核心隔离双在产。
