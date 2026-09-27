@@ -16550,3 +16550,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   （export_all 备份带走披露）。同口径剥除；解释节「针对」
   标题属回放工件不剥（剥了存档失真）。钉扩：export_all
   敏感词零残留断言。315 全绿。
+
+## R3023 巡检#440——足迹面终查（绿）
+- favorites title 只取配对/候选名不碰 question；chat 自动句
+  嵌问题走后端危机/敏感闸回罐头（纵深生效）；share API 无
+  存储足迹；questionHook 一次性屏显非持久面。四类足迹面
+  （列表/req/result 键/海报/导出）收口完毕。
