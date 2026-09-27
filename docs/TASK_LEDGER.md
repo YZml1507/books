@@ -15944,3 +15944,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   明说，不硬编感情辞。
 - one_liner 11 字同口径（「盘里信息偏少」）；
   badge「仅供娱乐」位在 details 前（键序钉死）。
+
+## R2946 巡检#363——CSS 面实测
+- @import 全部前置（R228k 修后持续在位——LXGW 文楷
+  与 animotion 真加载）。
+- var() 40 引用全有定义（47 定义含 JS setProperty
+  动态令牌合并口径）——令牌改名静默失效面零。
