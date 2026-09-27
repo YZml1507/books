@@ -14546,3 +14546,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - /api/paipan/tarot_collection：deck=78 全牌（愚者→世界序）+
   collected 收集计数（当前 0——历史无抽卡行）+disabled 下
   仍吐 deck 不吐 collected（「不写不查」口径一致）。
+
+## R2723 巡检#140——第四段全闸大快照
+- selftest 312 / contract 643 / dup_keys / standing 3/3 /
+  date_parity 三组 / voice 14 / chat_e2e 4/4——40 轮+1 处
+  真改（R2708）后零回归。
