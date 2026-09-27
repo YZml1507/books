@@ -15444,3 +15444,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   422 pydantic 原生（只钉状态码）；业务层（空白/
   全角空格/零宽 strip 后空）→ 400 中文「查询词不
   能为空」——三向全人话，分层正确。
+
+## R2875 巡检#292——paipan 历史生命周期实测
+- save_async 异步落库确认（排盘→~1s 后列表可见，
+  「1990-05-15 午时 女」摘要形）；
+- /api/paipan/history/{rid} 详情 200 六键（id/name/
+  question/req/result/ts）→ DELETE 200 → 再 GET
+  404 中文「排盘记录不存在：#id」全链人话；
+- 残留两行实测数据已清。
