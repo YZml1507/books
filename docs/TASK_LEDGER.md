@@ -16277,3 +16277,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   多源交叉核验；days_to=27→10-24 窗与 live 吻合。
 - 表外年份 {next:"",days_to:0} 静默——注释明记
   「无状态≠永不逆行」，不伪报远期历表。
+
+## R2990 巡检#407——facts 净化矩阵复查（真修#8 后态）
+- 对抗 14 例：DAN/jailbreak/act as/ignore/SYSTEM/
+  im_start/new instruction/prompt injection/obey 全拦；
+  合法坐标（生辰/日主/宜忌问）3 例全放零误伤。
+- 「you will now」裸形有界残余：命令宾语必撞
+  obey/ignore/act as/english 兄弟模式（实测复合形
+  全拦）——启发式边界非穿透孔。
