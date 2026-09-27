@@ -14579,3 +14579,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2730 巡检#147——threads 状态机 PATCH
 - open/parked/closed 三迁全 200、bogus→400 中文标签；status 是
   query 参数（探针两次误打 body/中文枚举自纠）。
+
+## R2731 巡检#148——threads.list 状态过滤
+- 建 A(open)+B(parked)：open 筛只见 A、parked 筛只见 B、
+  all 见双、bogus→400 人话；测试线程已删。
