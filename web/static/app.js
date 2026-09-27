@@ -2438,18 +2438,28 @@ function _chatThemeFE(msg) {
   }
   return '';
 }
-/* 足迹：{d:'YYYY-MM-DD', t:'主题'}，14 天滚动窗、60 条封顶。
- * 危机/敏感消息不写足迹（在闸之后才调）。 */
+/* 足迹：{d:'YYYY-MM-DD', t:'主题', v:'面板'}，14 天滚动窗、60 条封顶。
+ * v=发消息时手里正看着的结果卡面板（30min 内）——画像能说出
+ * 「在合盘那边聊感情」而不只是「聊过感情」。危机/敏感消息不写
+ * 足迹（在闸之后才调）。 */
 function _chatTopicLog(msg) {
   var t = _chatThemeFE(msg);
   if (!t) return;
   try {
+    var _vk0 = '';
+    var _bt = 0;
+    for (var _k in LAST_RESULT) {
+      var _r0 = LAST_RESULT[_k];
+      if (_r0 && _r0.ts && (Date.now() - _r0.ts) < 1800000 &&
+          _r0.ts > _bt) { _bt = _r0.ts; _vk0 = _k; }
+    }
     var arr = JSON.parse(localStorage.getItem('chat:topics') || '[]');
     if (!Array.isArray(arr)) arr = [];
     var today = todayIso();
-    /* 同日同主题不重复记——一天问感情五次仍是一条 */
-    if (arr.length && arr[0].d === today && arr[0].t === t) return;
-    arr.unshift({ d: today, t: t });
+    /* 同日同主题同面板不重复记——一天问感情五次仍是一条 */
+    if (arr.length && arr[0].d === today && arr[0].t === t &&
+        (arr[0].v || '') === _vk0) return;
+    arr.unshift({ d: today, t: t, v: _vk0 || undefined });
     var cutoff = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
     arr = arr.filter(function (x) {
       return x && x.d >= cutoff;
@@ -2473,8 +2483,25 @@ function _chatWeekProfileFact() {
     var top = '', topN = 0;
     for (var k in cnt) { if (cnt[k] > topN) { top = k; topN = cnt[k]; } }
     if (!top || topN < 2) return '';
+    /* R3149：主主题的主力面板——「在合盘那边聊感情」比裸主题更像
+     * 真人记得。面板中文名与 R3071 区块的 _LBL 同源。 */
+    var _VLBL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
+                  tarot: '塔罗', liuyao: '六爻', qiming: '起名',
+                  xingzuo: '星座', xzm: '合盘', daily: '日签',
+                  huangli: '黄历' };
+    var _vc = {};
+    arr.forEach(function (x) {
+      if (x && x.d >= cutoff && x.t === top && x.v && _VLBL[x.v]) {
+        _vc[x.v] = (_vc[x.v] || 0) + 1;
+      }
+    });
+    var _tv = '', _tvN = 0;
+    for (var _vk2 in _vc) {
+      if (_vc[_vk2] > _tvN) { _tv = _vk2; _tvN = _vc[_vk2]; }
+    }
     return '她这周来聊过「' + top + '」这条线 ' + topN +
-      ' 天了——如果现在又绕回来，可以自然接一句「这事你惦记着几天了」' +
+      ' 天了' + (_tv ? '（多在「' + _VLBL[_tv] + '」那边）' : '') +
+      '——如果现在又绕回来，可以自然接一句「这事你惦记着几天了」' +
       '这种体恤，别点破数据';
   } catch (e) { return ''; }
 }
