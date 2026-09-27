@@ -15638,3 +15638,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   不出现（additive 键序契约）；
 - 缺水→「可从金的方向补」生我方向正确（金生水，
   不指反向）。
+
+## R2901 巡检#318——frontend 三静态闸复核
+- hl_ask_dayoffset：_hlDayOffset+dayWord+conflict
+  三接线（偏移+相冲不作主推）；
+- no_object_object：零裸 esc(v|item|iv)+fmtScalar
+  存在——dict 值全过标量化防 [object Object]；
+- on_wiring：on('id') 注册集⊆index.html+app.js
+  模板 id 集——R2803 实测 33 注册零死绑。
