@@ -15773,3 +15773,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   值长4000「存不下」；dict/list 值自动 JSON 序列化；
   孤代理字符剥除防 sqlite UnicodeEncodeError（R2508）。
 - 探针写入已还原 theme=cream，表态核实 clean。
+
+## R2922 巡检#339——write_guard 公网禁写面实测
+- BOOKS_WRITE_DISABLE=1：favorites 增/删/清+prefs 写
+  +threads 增/删/清/改八端点统一 400「公开演示站—
+  —只能看不能改哦」；schema 422 先于闸（分层正确）。
