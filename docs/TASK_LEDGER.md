@@ -17011,3 +17011,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   约会→嫁娶+谒贵。「宜纳采+忌嫁娶」日不再漏判中性。
 - BE/FE 同构 253 键 parity 保持；selftest 320 绿（twoleg 钉
   扩为 18 词全表钉）、contract 643、dup 零、SW bump。
+
+## R3085 巡检#502——FE 单日判定卡与 BE verdict 口径核验（绿）
+- _hlVerdictHtml 与 chat_huangli_facts 同构实测：_aliasList 展开
+  同表（R3083/R3084 补腿自动继承）、双向子串命中、忌侧族扩
+  展仅在宜侧有命中时（后端 R2349n 同口径防过度引申）、宜∩忌
+  相冲词双侧摘除、pastDay 标记与医疗「听医生的」尾同有。
+- _MED 检查走 aliases——新补医疗词判定卡仍带医疗边界尾。
+  场景表修复全链路透传零口径漂移。
