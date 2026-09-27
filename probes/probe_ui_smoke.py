@@ -959,6 +959,25 @@ def main() -> int:
                 results.append({
                     "name": "ui:chat.crisis_fe", "ok": bool(_bub),
                     "detail": "危机词→12356转介气泡=" + str(_bub)})
+                # R3066（巡#483）：词内插符规避形真浏览器镜像——
+                # 「自.杀」此前绕 feCrisis 发 LLM，压平归一后同样
+                # 12356 气泡不走轮询（FE 闸先于后端）。
+                try:
+                    page.fill('#chatInput', '自.杀')
+                    page.click('#chatSendBtn')
+                    page.wait_for_timeout(1200)
+                    _bub2 = page.evaluate(
+                        "(document.getElementById('chatFlow')"
+                        ".innerText||'').split('12356').length-1 >= 2")
+                    results.append({
+                        "name": "ui:chat.crisis_fe.evasion",
+                        "ok": bool(_bub2),
+                        "detail": "自.杀→第二个12356气泡=" + str(_bub2)})
+                except Exception as exc:
+                    results.append({
+                        "name": "ui:chat.crisis_fe.evasion",
+                        "ok": False,
+                        "detail": f"{type(exc).__name__}: {exc}"})
                 # 抽屉还开着会 _mainInert 锁住主区——先收
                 try:
                     page.click('#recentClose'); page.wait_for_timeout(300)

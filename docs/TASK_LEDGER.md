@@ -16833,3 +16833,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   敏感规避形转介零 quota，mock 日志仅 3 条良性件。
 - 闸：selftest 315｜contract 643｜dup 零｜chat_e2e 4/4｜
   SW 壳哈希 bump（app.js 变更触版闸）。累计真缺陷 20 处全修。
+
+## R3067 巡检#484——真浏览器危机规避面钉（绿）
+- ui_smoke 80→81 用例全绿（首跑 2 件 history 时序抖动，复跑
+  全过非回归）；新增 crisis_fe.evasion 真浏览器钉——侧边栏
+  发「自.杀」插符形实测渲第二个 12356 气泡、不走轮询（FE 闸
+  先于后端在真机生效）。app.js 安全闸正则面（无 lookbehind）
+  真机解析零 SyntaxError 实证——整文件 81 用例跑通即证明。
