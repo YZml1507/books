@@ -1708,6 +1708,45 @@ def main() -> int:
             results.append({"name": "ui:chat_facts_verdict",
                             "ok": ok, "detail": detail})
 
+            # ── R3115 钉扎（specs/011 P1-2/P1-3）：me 档案注入 +
+            #   跨视图回落——_chatFacts 须带性别/生日；
+            #   _activeViewFacts 当前视图无盘时扫 lastResult:* 带
+            #   「她之前在X测过」语境行。
+            errors.clear()
+            try:
+                cases = page.evaluate(
+                    "() => {"
+                    " Object.keys(LAST_RESULT).forEach("
+                    "  k=>delete LAST_RESULT[k]);"
+                    " sessionStorage.clear();"
+                    " localStorage.setItem('me', JSON.stringify("
+                    "  {y:'2003', m:'5', d:'15', g:'女', n:'满仔'}));"
+                    " sessionStorage.setItem('lastResult:hehun',"
+                    "  JSON.stringify({json:{match_score:43,"
+                    "  a_bazi:{day:'甲子'}, b_bazi:{day:'乙丑'},"
+                    "  day_wx_sheng:false, warm:{reply:['判词直说：偏不合适']}},"
+                    "  question:'', body:{}}));"
+                    " return ["
+                    "  _chatFacts([]).join('|'),"
+                    "  (()=>{document.querySelectorAll('.view.active')"
+                    "   .forEach(v=>v.classList.remove('active'));"
+                    "   return _activeViewFacts().join('|')})()"
+                    " ];}")
+                ok = (len(cases) == 2
+                      and "性别：女" in cases[0]
+                      and "生日：2003-05-15" in cases[0]
+                      and "之前在合婚测过" in cases[1]
+                      and "合拍指数" in cases[1]
+                      and not errors)
+                detail = ("profile=" + ("OK" if cases[0] else "X")
+                          + " xview=" + ("OK" if cases[1] else "X"))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:chat_profile_facts",
+                            "ok": ok, "detail": detail})
+
             # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
             #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
             errors.clear()

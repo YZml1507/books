@@ -3268,6 +3268,21 @@ def _run_inner() -> list[str]:
         ("huangli.verdict_flag", _v[:200])
     ok.append("huangli.verdict_flag")
     ok.append("chat.huangli_facts")
+    # R3115（specs/011 P1-1）：档案生日确定性展开——「生日：YYYY-MM-DD」
+    # 事实行后端补日主/五行/太阳星座（day_ganzhi+sun_sign 纯函数），
+    # 小满知道「她是谁」。非生日行/非法日期原样透传零扰动。
+    _pf = _svc.chat_profile_facts(["她叫小满", "生日：2003-05-15",
+                                   "桃花支：卯"])
+    _pft = " ".join(_pf)
+    assert "日主" in _pft and "太阳星座" in _pft \
+        and "五行属" in _pft, ("chat.profile_facts", _pft[:200])
+    assert _pf[0] == "她叫小满" and _pf[4] == "桃花支：卯" \
+        and len(_pf) == 5, _pf
+    _pf2 = _svc.chat_profile_facts(["生日：2003-99-99", "x"])
+    assert _pf2 == ["生日：2003-99-99", "x"], _pf2
+    _pf3 = _svc.chat_profile_facts([])
+    assert _pf3 == [], _pf3
+    ok.append("chat.profile_facts")
     # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
     _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))

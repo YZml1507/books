@@ -2244,7 +2244,30 @@ function _activeViewFacts() {
   });
   if (!key) key = 'daily';   /* 首页无 .view 壳——daily 卡上下文兜底 */
   var c = buildChatContext(key);
-  return (c && c.facts) || [];
+  var _f = (c && c.facts) || [];
+  /* R3115（specs/011 P1-3）：跨视图连续感——当前视图没测过盘时，
+   * 扫描本会话 lastResult:* 里最近一次他类测算，带「她上次测过X」
+   * 语境行；换视图/换天再聊，小满手里不至于从零开始。 */
+  if (!_f.length) {
+    try {
+      var _LBL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
+                   tarot: '塔罗', liuyao: '六爻', qiming: '起名' };
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var _k = sessionStorage.key(i);
+        if (!_k || _k.indexOf('lastResult:') !== 0) continue;
+        var _vk = _k.slice(11);
+        if (_vk === key || !_LBL[_vk]) continue;
+        var _c2 = buildChatContext(_vk);
+        var _f2 = (_c2 && _c2.facts) || [];
+        if (_f2.length) {
+          _f = ['她之前在' + _LBL[_vk] + '测过一次，当时的事实：']
+            .concat(_f2);
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+  return _f;
 }
 
 /* R2343（R59-gap2）：昵称此前不进请求体，小满永远不喊名字——
@@ -2264,6 +2287,14 @@ function _chatFacts(facts) {
     var _me = _meGet('me');
     var _n = _me ? _meNickClean(_me.n) : '';
     if (_n) _f.unshift('她叫' + _n + '——聊天时自然地喊她名字，别每句都喊');
+    /* R3115（specs/011 P1-2）：me 档案进上下文——昵称之外，
+     * 小满此前对「她是谁」零感知。生日行服务端确定性展开成
+     * 日主/星座（chat_profile_facts）；只传公历（me 档全存公历）。 */
+    if (_me && _me.g) _f.push('性别：' + _me.g);
+    if (_me && _me.y && _me.m && _me.d) {
+      var _mm = ('0' + _me.m).slice(-2), _dd = ('0' + _me.d).slice(-2);
+      _f.push('生日：' + _me.y + '-' + _mm + '-' + _dd);
+    }
   } catch (e) {}
   return _f;
 }

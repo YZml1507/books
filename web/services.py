@@ -2884,6 +2884,39 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
     return list(facts)
 
 
+_BIRTHDAY_FACT_RE = re.compile(r"^生日[:：]\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})")
+
+
+def chat_profile_facts(facts: list[str]) -> list[str]:
+    """小满聊天档案层：客户端「生日：YYYY-MM-DD」事实确定性展开。
+
+    R3115（specs/011 P1-1）：me 档案生日此前只作昵称级事实透传，
+    服务端手里能算日主却不算——小满知道「她生日」却不知道「她是谁」。
+    现按 day_ganzhi + sun_sign_profile 纯函数展开（零 LLM、输入固定
+    输出固定）：「她的日主：庚（五行属金）」「她的太阳星座：金牛」。
+    非生日行原样透传；非法日期静默不展开。
+    """
+    out: list[str] = []
+    for f in facts or []:
+        out.append(f)
+        m = _BIRTHDAY_FACT_RE.match(str(f).strip())
+        if not m:
+            continue
+        try:
+            y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            gz, _idx = _bazi_day_ganzhi(datetime(y, mo, d))
+            dm = gz[0]
+            wx = GAN_ELEM.get(dm, "")
+            from guji.xingzuo import sun_sign
+            sign = sun_sign(mo, d) or ""
+            out.append(f"她的日主：{dm}" + (f"（五行属{wx}）" if wx else ""))
+            if sign:
+                out.append(f"她的太阳星座：{sign}")
+        except (ValueError, TypeError):
+            continue
+    return out
+
+
 def _chat_facts_inner(message: str, now: datetime,
                       anchor: dict | None = None,
                       ctx_out: dict | None = None,

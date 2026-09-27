@@ -80,6 +80,9 @@ def chat(req: ChatRequest) -> dict:
     # R227b：黄历类提问先在后端算成「黄历判定」事实再交给小满——
     # 事项没列进宜忌 ≠ 不支持（中性 + 近期吉日），杜绝照本宣科式回复。
     facts = list(req.facts or [])
+    # R3115（specs/011 P1-1）：me 档案生日确定性展开——「生日：YYYY-MM-DD」
+    # 进日主/太阳星座，小满知道「她是谁」而不是只知道「她生日」。
+    facts = services.chat_profile_facts(facts)
     # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是
     # 话题参考，按子串升格会让伪造判定混入权威位。
     # R230l（R24-P2-3）：客户端基准日透传——跨零点 ±TZ 窗口里服务器
