@@ -17204,3 +17204,6 @@ R3115（specs/011 P1）：全网调研立项 specs/011（陪伴AI两大死因=pe
 R3116~R3118（specs/011）：P2 Attunement 具体度闸 attunement.floor（坐标词+1/空转词-2，三例warm总分≥4，非收尾禁零坐标纯安慰）；copy_bank fallback 池与 app.js 同源复位+drift钉（真修41）；P3 跨天续聊钩子——transcript 升 localStorage + resume 槽一次性注入「她上次来聊过」（真修42）；selftest 340、smoke 85/85。3bafcf1
 R3119~R3120：塔罗正位硬牌判词错档修复——_TAROT_HARD_UP kw0 判重（权杖10「扛太满」正位落阻碍位不再领好牌档；≥2硬牌收尾走吃力口径不说「整体是顺的」）（真修43）；钉 tarot.hard_upright；聊天空态个性化（建档老客用名字招呼）；selftest 341。9750eb2
 R3121（巡检绿）：判词卡全家福真机截图终审——hehun 判词/五行/纳音/互看/大运/地图交权全在屏；taohua 判词+入口预判+交权在屏；liuyao 用神坐标+照传统口径倾向行在产；tarot 凯尔特十字 10 位+牌面别扭收尾+权杖10硬牌坎句在屏；AI 解读块标注正常。审计绿无新修。
+R3121b（真修44）：FE tarotQuestionHook 正位硬牌同型缺口——主位压权杖10「扛太满」正位照说顺、≥2硬牌无吃力分支；_TAROT_HARD_FE kw0 镜像 BE+主位硬牌翻档+多硬牌收尾与 BE combined 同句式；钉 ui:tarot_hardhook；smoke 86/86。9f6115c
+R3122（扩闸+真链亲验）：attunement.floor 三例→五例（liuyao≥4/tarot≥3，塔罗花色词入坐标表）；curl+mock日志亲证 chat 档案增强（日主/太阳星座）与会话内记忆在产（8123旧进程假阴非缺陷）。1966c8e
+R3123（扩闸收尾+巡检绿）：qiming 入闸——warm 六面「泛泛」全可钉；poster hook 各视图真数据、离线三层完备、FE软词仅装饰句2处——审计绿。d0c9e9e
