@@ -5087,9 +5087,34 @@ function buildBaziResult(j) {
   }
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
   html += renderVoice(j, '📖 小满的解读', ['evidence']);
+  /* R3159（specs/014-L3 收口）：今年逐月条——calc.yearly 服务端
+   * 一直在算但前端从没渲过（warm 只出三行概括）。12 个月chip 横排，
+   * 当月高亮。pro 模式 renderCalc 原样dump已含，只在温柔版补。 */
+  if (voiceMode() !== 'pro') html += _yearlyStrip(j.calc);
   html += tailHook('bazi');
   html += '</div>';
   return html;
+}
+
+/* R3159：今年逐月 chip 条——每格「M月 干支·十神」，当月高亮。 */
+function _yearlyStrip(calc) {
+  try {
+    var y = calc && calc.yearly;
+    if (!y || !y.months || !y.months.length) return '';
+    var now = new Date();
+    var curM = (y.year === now.getFullYear()) ? now.getMonth() + 1 : -1;
+    var cells = y.months.map(function (m) {
+      var on = m.month === curM;
+      return '<span class="yearly-cell' + (on ? ' on' : '') + '">' +
+        '<b>' + esc(String(m.month)) + '月</b>' +
+        '<i>' + esc(m.ganzhi || '') + '·' + esc(m.gan_rel || '') + '</i>' +
+        '</span>';
+    }).join('');
+    return '<div class="yearly-strip-wrap"><div class="yearly-strip-head">' +
+      '📅 ' + esc(String(y.year)) + '年逐月 · ' + esc(y.ganzhi || '') +
+      '年·' + esc(y.gan_rel || '') + '基调</div>' +
+      '<div class="yearly-strip">' + cells + '</div></div>';
+  } catch (e) { return ''; }
 }
 
 var _submitBaziBusy = false;   /* R8 P2-2：form submit 不经 on()，自加在途锁 */

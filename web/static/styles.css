@@ -956,6 +956,20 @@ button.fav-btn[id^="share"]:hover{transform:translateY(-1px);
 }
 .pill.sm{font-size:13px; font-family:var(--font-sans); font-weight:500;}
 
+/* R3159：今年逐月条——12 格横排可滑，当月高亮。 */
+.yearly-strip-wrap{margin:14px 0 4px;}
+.yearly-strip-head{font-size:13px;color:var(--secondary);margin-bottom:8px;}
+.yearly-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;
+  scrollbar-width:thin;}
+.yearly-cell{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+  min-width:64px;padding:7px 8px;border-radius:10px;
+  background:var(--card,#fff);border:1px solid rgba(180,140,160,.18);}
+.yearly-cell b{font-size:12px;color:var(--muted,#8a7a80);font-weight:600;}
+.yearly-cell i{font-style:normal;font-size:11px;color:var(--secondary);
+  margin-top:2px;white-space:nowrap;}
+.yearly-cell.on{background:rgba(212,130,160,.14);border-color:rgba(212,130,160,.45);}
+.yearly-cell.on b{color:#B25A78;}
+
 .calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
 @media (max-width:560px){ .calc-grid{grid-template-columns:1fr;} }
 .calc-block{
