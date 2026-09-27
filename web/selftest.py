@@ -2305,6 +2305,12 @@ def _run_inner() -> list[str]:
     check("xzmatch.hard", client.get("/api/xzmatch",
           params={"a": "白羊", "b": "巨蟹"}),
           lambda j: j.get("score") == 61 and j.get("label") == "磨合")
+    # R3101（specs/010）：相冲/随缘档须报具体吵点+处方——
+    # 「多花点心思听懂对方」旧虚词禁复出。
+    check("xzmatch.friction", client.get("/api/xzmatch",
+          params={"a": "双子", "b": "摩羯"}),
+          lambda j: ("处方" in (j.get("line") or "")
+                     and "听懂" not in (j.get("line") or "")))
     _expect_400("xzmatch.bad", client.get("/api/xzmatch",
                 params={"a": "奥特曼", "b": "巨蟹"}))
     check("tarot.collection", client.get("/api/paipan/tarot_collection"),
