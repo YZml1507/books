@@ -15853,3 +15853,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 自 R2923 大快照后 10 轮：SW/SPA/sec.headers/err
   故障面/xzmatch/bge 语义径/classical_db/cross_ref
   矩阵/桃花三档/sun_sign 界日全实测在产。
+
+## R2934 巡检#351——daily 全字段面实测
+- 14 键全下发：do/dont 具体可执行（三行感恩日记/
+  别冲动网购）+summary 一句判+noble 贵人支丑未+
+  noble_liuhe 酉+lucky 色数+mercury 水逆窗
+  （off→10-24 距27天）+level 吉+festival 空表诚实。
