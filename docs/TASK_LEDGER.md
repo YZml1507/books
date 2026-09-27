@@ -15767,3 +15767,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - add→id:1；同 ref_id 重复加→同 id 幂等不叠；
   delete 不存在→404「这条收藏没找到」人话；
   clear 200+表实清零——「忘掉我的数据」收口面。
+
+## R2921 巡检#338——user_prefs 写面护栏实测
+- 三道人话界：>64键「先清一批」/键长64「换短一点」/
+  值长4000「存不下」；dict/list 值自动 JSON 序列化；
+  孤代理字符剥除防 sqlite UnicodeEncodeError（R2508）。
+- 探针写入已还原 theme=cream，表态核实 clean。
