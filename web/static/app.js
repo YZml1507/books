@@ -2022,7 +2022,17 @@ function chatEmptyGuide() {
   im.className = 'chat-empty-img';
   d.appendChild(im);
   var t = document.createElement('p');
-  t.textContent = '我是小满，解忧铺的店员。\n最近有什么心事，都可以跟我说说——\n仅供陪伴，不构成任何建议。';
+  /* R3120（specs/011）：空态个性化——存过档案的老客用名字招呼
+   * （transcript 有存根时 restore 已渲气泡、本函数根本不会进；
+   * 这里接住的是「开新话题」后的真空态）。 */
+  var _who = '宝';
+  try {
+    var _me = _meGet('me');
+    var _nick = _me ? _meNickClean(_me.n) : '';
+    if (_nick) _who = _nick;
+  } catch (e) {}
+  t.textContent = '我是小满，解忧铺的店员。\n' + _who +
+    '最近有什么心事，都可以跟我说说——\n仅供陪伴，不构成任何建议。';
   d.appendChild(t);
   flow.appendChild(d);
 }
