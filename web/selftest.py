@@ -2732,6 +2732,18 @@ def _run_inner() -> list[str]:
     assert not _LC._is_sensitive("a particular example"), "ICU子串被误拦"
     assert not _LC._is_sensitive("上班摸鱼摸到腰疼"), "摸鱼梗被误拦"
     assert not _LC._is_sensitive("爸爸摸我头表扬"), "亲昵摸头被误拦"
+    # R2995（巡#412）：判定前统一归一——剥零宽+繁折简。繁体自伤/
+    # 重病/侵害全族此前漏网（自殺/腫瘤/強吻拿占卜腔）；「活著」走
+    # 字符组（著→着 不入表，防「著名/著作」误折）。厌世收硬表。
+    assert _LC._is_crisis("自殺"), "繁体自殺未接"
+    assert _LC._is_crisis("輕生"), "繁体輕生未接"
+    assert _LC._is_crisis("活著好累"), "活著未接"
+    assert _LC._is_crisis("厭世"), "厌世未接"
+    assert not _LC._is_crisis("著名小說"), "著名被误折"
+    assert _LC._is_sensitive("查出腫瘤"), "繁体腫瘤未接"
+    assert _LC._is_sensitive("被人強吻"), "繁体強吻未接"
+    assert _LC._is_sensitive("會不會死"), "繁体會死未接"
+    assert not _LC._is_sensitive("腫瘤醫院的貓"), "繁体貓被误拦"
     # R2994（巡#411）：前端镜像行为级 parity——从 app.js 抽六枚正则
     # 字面量，Python 侧复刻 feCrisis/feSensitive 判定（含想死+代词
     # 撒娇豁免），喂同一电池断言双向一致，防镜像再漂移（实测曾缺
@@ -2755,8 +2767,22 @@ def _run_inner() -> list[str]:
     _fsh, _fss, _fse = (_fe_re(_n) for _n in
                         ("_SENSITIVE_FE_HARD", "_SENSITIVE_FE_SOFT",
                          "_SENSITIVE_FE_EXC"))
+    # R2995：FE 侧 _T2S_FE/_normFE 同构复刻——从 IIFE 抽 _s/_d 串。
+    _tb = _re.search(
+        r"var _T2S_FE = \(function.*?var _s = (.*?);\s*var _d = (.*?);"
+        r"\s*var m", _app_src, _re.S)
+    _ts = "".join(_re.findall(r"'([^']*)'", _tb.group(1)))
+    _td = "".join(_re.findall(r"'([^']*)'", _tb.group(2)))
+    assert len(_ts) == len(_td) and _ts, "FE T2S 表抽取失败"
+    _t2s = dict(zip(_ts, _td))
+    def _fe_norm(_s):
+        _s = _re.sub(
+            r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]",
+            "", _s)
+        return "".join(_t2s.get(c, c) for c in _s)
     _segpat = _re.compile(r"[，。！？；,.!?\n;~～…]+")
     def _fe_crisis(_s):
+        _s = _fe_norm(_s)
         _seg = _s
         while True:
             _h = _fch.search(_seg)
@@ -2772,6 +2798,7 @@ def _run_inner() -> list[str]:
         return any(_fcs.search(_g) and not _fco.search(_g)
                    for _g in _segpat.split(_s))
     def _fe_sens(_s):
+        _s = _fe_norm(_s)
         return bool(_fsh.search(_s)
                     or (_fss.search(_s) and not _fse.search(_s)))
     for _m in ("想死", "我想死了", "想跳下去", "站在天台想跳下去",
@@ -2779,7 +2806,13 @@ def _run_inner() -> list[str]:
                "活着没啥意思", "吃了三十个饺子", "割自己家的麦子",
                "消失的世界纪录片", "跳下舞台谢幕", "蹦极的时候跳下去",
                "这工作没啥意思", "这游戏没啥意思", "电脑死了算了",
-               "想死你了宝贝", "想死我了", "这日子没啥意思"):
+               "想死你了宝贝", "想死我了", "这日子没啥意思",
+               # R2995：繁体/零宽/厌世——双端归一后行为应一致。
+               "自殺", "輕生", "抑鬱", "跳樓", "安眠藥", "燒炭", "厭世",
+               "活著好累", "吃了三十片藥", "拿刀對著手腕",
+               "想\u200b跳\u200b下\u200b去", "想\u200b死",
+               "著名小說", "這工作沒啥意思", "割自己家的麥子",
+               "蹦極的時候跳下去", "吃了三十個餃子", "跳下舞臺謝幕"):
         assert _fe_crisis(_m) == _LC._is_crisis(_m), ("危机镜像分叉", _m)
     for _m in ("我会不会死", "癌症晚期怎么办", "男朋友打我怎么办",
                "我被家暴了", "学校有人霸凌我", "同事性骚扰我",
@@ -2790,7 +2823,16 @@ def _run_inner() -> list[str]:
                "打我电话", "他打我游戏账号", "快递跟踪单号",
                "看校园霸凌新闻", "肿瘤医院的猫", "刷到肿瘤新闻",
                "看化疗纪录片哭了", "上班摸鱼摸到腰疼", "爸爸摸我头表扬",
-               "a particular example", "this is so difficult"):
+               "a particular example", "this is so difficult",
+               # R2995：繁体敏感词族——双端归一一致。
+               "查出腫瘤", "被人強吻", "被猥褻", "性騷擾", "被強姦",
+               "絕症", "白血病", "中風", "化療", "洗腎", "住進ICU",
+               "被繼父摸過", "被灌醉", "還能活多久", "會不會死",
+               "男朋友打我怎麼辦", "學校有人霸凌我", "被勒索", "被跟蹤",
+               "腫瘤醫院的貓", "刷到腫瘤新聞", "多肉會不會死",
+               "手機還能活多久", "打我電話", "看校園霸凌新聞",
+               "上班摸魚摸到腰疼", "爸爸摸我頭", "快遞跟蹤單號",
+               "電腦遊戲"):
         assert _fe_sens(_m) == _LC._is_sensitive(_m), ("敏感镜像分叉", _m)
     ok.append("chat.mirror.parity")
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
