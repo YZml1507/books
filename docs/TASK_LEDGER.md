@@ -15866,3 +15866,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   《谦卦》/李秩苓跨篇双引（斯干+简兮）。
 - summary 披露逻辑「五行俱全，起名补偏弱行」；
   candidates 50 字池，top_n=8 显示窗分离。
+
+## R2936 巡检#353——ai_polish LLM 润色面实测
+- key_present：四端点恒带 ai_polish 键（无配=None
+  不缺键）；本机 llm_config.json 真实配置→ai_task_id
+  真建任务（token_urlsafe16 异步轮询型）。
+- disabled_none：DISABLE=1 时 polish()→None 不抛，
+  环境恢复式测试不污染闸门；additive：顶层键=LLM前
+  形状+ai_polish 一键，specs/006 只附加不改写承诺。
