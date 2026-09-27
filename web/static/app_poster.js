@@ -1109,6 +1109,15 @@ function buildShareData(view, j) {
         { k: '合拍指数', v: _pStr(j && j.score) + '/99' },
         { k: '判词', v: _pStr(j && j.label) },
         { k: '小满说', v: _clauseCut(_pStr(j && j.line), 20) }];
+      /* R3138：lines 面在场时分享图补一行「画风」摘要——晒出去
+       * 的卡带场景句比单行判词更有记忆点。 */
+      var _xsc = ((j && j.lines) || []).filter(function (l) {
+        return String(l).indexOf('日常画风') === 0;
+      })[0];
+      if (_xsc) {
+        _xm.lines.push({ k: '画风',
+          v: _clauseCut(String(_xsc).replace('日常画风：', ''), 22) });
+      }
       return _xm;
     }
     default:
