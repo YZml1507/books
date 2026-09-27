@@ -15485,3 +15485,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   才放回 witnesses——受损料不透明上桌的诚实面；
 - BOGUS layer → no_witness=true + witnesses={} 第三态
   （「没见证」≠「有差异」）如实披露。
+
+## R2881 巡检#298——huangli.affair 六语义实测
+- 理发→冠笄（terms 回显归一词 4 吉日）；许愿簇否决
+  生效（祈福+求嗣族 1/1 上榜）；签订合同→立券子串
+  最长命中；asdf→unrecognized 诚实标记；2100 尾日
+  days=1+truncated；2020 过去日 past=true 仍给历史
+  数据——披露层全暖实。
