@@ -14815,4 +14815,4 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2777 巡检#194——huangli affair 问事
 - 搬家→映射正经词族【移徙/入宅/修造/平整】；days=30
   窗→10-05 命中（宜含三项）good_days 带当日宜忌全量；
-  未识别事项→terms 空+count0 如实不瞎编。
+  未识别事项→unrecognized:true 原词回显+count0 如实不瞎编。
