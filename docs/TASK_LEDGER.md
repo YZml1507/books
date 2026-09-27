@@ -14928,3 +14928,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 静态钉扎：_hlVerdictHtml 调用必带 _dayWord 参（判定
   卡不写死「今天」）+conflict 双向包含判定器——R2697
   浏览器层已实锤 chip 偏移日期/措辞真换。
+
+## R2802 巡检#219——no_object_object 闸
+- fmtScalar 递归展开（null→—/数组对象键值展开/嵌套递
+  归）在产；裸 esc(v|item|iv) 正则全 chunk 扫=0；闸内
+  并断言三字段实测为 dict（防止断言空转）。
