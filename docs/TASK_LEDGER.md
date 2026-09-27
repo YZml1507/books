@@ -14742,3 +14742,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   type/非 dict→skipped 不改名捏造（R2349y）；KEEP_MAX
   /256KB/字段截断/白名单多层不可信输入防线在产；
   disabled 下 records_ignored 如实披露。
+
+## R2764 巡检#181——chat client_date 锚（mock 实查）
+- client_date=2026-12-25 → system prompt 落「今天是
+  2026-12-25（用户那边的日子）」+服务端算出的当日宜
+  【嫁娶/捕捉/畋猎/祭祀/纳财】判定块——相对日期与权
+  威判定同锚。
