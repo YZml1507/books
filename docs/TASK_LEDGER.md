@@ -17199,3 +17199,4 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R3112（巡检·真机）——八字题类条件化屏上复核
 - 感情问真机卡：夫星位（正官）释义+「把关系摆上台面」感情动作
   渲染正常——R3094 修复在屏上确认。命盘/补行/依据引文全链正常。
+R3114（specs/010）：FE 聊天上下文判词透传——buildChatContext 三视图补判词事实（hehun 指数+判词 / taohua 判词带+入口 / liuyao 倾向行）——小满与判词层口径对齐（真修39）；钉 ui:chat_facts_verdict；smoke 84/84。审计绿：历史复看复用当前 builder、nameReview mock 链真机全通、xzmatch 娱乐定位相符。66a19e8
