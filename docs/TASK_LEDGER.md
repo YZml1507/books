@@ -15796,3 +15796,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   navigate 序 fetch 先行 hit 仅 _hitP.then 兜底
   （上一轮 selftest 钉过，本轮直读源码复验一致）。
 - SPA：/huangli→200 HTML；/api/* 与非 GET→真 404。
+
+## R2925 巡检#342——sec.headers/health/home 基面实测
+- 安全头四件：nosniff+DENY+no-referrer+CSP 全表
+  （script/style 'unsafe-inline' 是单文件内联架构的
+  设计内豁免，object-src 'none'/frame-ancestors
+  'none'/base-uri 'self' 关键闸在）。
+- health：ok+engine 标注+index 真在；home 含「小满」。
