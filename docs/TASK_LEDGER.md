@@ -16149,3 +16149,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   帽真 LRU——零 DB 残留属设计；追问「那搬家呢」
   沿日期/事项锚的机制在产。
 - 零 pageerror。
+
+## R2973 巡检#390——第十四段全闸快照
+- selftest 312｜contract 643(SOFT=50)｜baseline_voice
+  14 逐字节｜dup_keys 零重复｜ui_smoke PASS（首次
+  EPIPE 为 playwright 管道瞬时 flake，重试全绿，
+  探针自清 8 排盘+线程行）——非产品缺陷。
+- 本批 11 轮：tarot/huangli affair/xingzuo/daily/widget
+  /share 面+真浏览器五链（IA/问一嘴/bazi/liuyao/
+  chat）全绿，零真缺陷。
