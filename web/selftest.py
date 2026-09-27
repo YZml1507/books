@@ -1281,7 +1281,13 @@ def _run_inner() -> list[str]:
     assert any("相克就是相克" in l and "管控与自由" in l
                for l in _rb2), _rb2
     assert any("处方一条" in l for l in _rb2), _rb2
+    # R3088：用户点名的两句软话在 warm 与 notes 里都不许回魂。
+    _jb2 = _hh_b2.json()
+    _alltxt = " ".join(_rb2) + " " + " ".join(_jb2.get("notes") or [])
+    for _soft in ("磨合期长一点", "靠你们自己写", "扛事", "自己写出来"):
+        assert _soft not in _alltxt, ("软话回魂", _soft)
     ok.append("hehun.band2_friction")
+    ok.append("hehun.softcopy_purged")
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,

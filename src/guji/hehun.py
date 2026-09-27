@@ -63,14 +63,17 @@ _GAN_HE_NOTE = "日干五合：传统说法里这叫天生合得来，互相吸�
 _GOD_NOTE = "互看：{}眼里的{}带「{}」的能量，{}眼里的{}带「{}」的能量"
 
 # 写死说明文字（非生成，照 huangli YIJI 先例）
-_NOTE_CLASH = "年支六冲：传统说法里生肖相冲，脾气得互相让一让"
-_NOTE_COMBINE = "年支六合：传统说法里生肖相合，缘分是顺的"
-_NOTE_DAY_WX = "日主五行相生：能量顺着走，一方天然愿意托着另一方"
-_NOTE_DAY_WX_CLASH = "日主五行相克：能量会碰，磨合期长一点但不是不能处"
+# R3088（specs/010）：notes 是坐标层说明——判词/剧本/处方全在
+# warm_hehun，这里只报信号本身，不再写「磨合期长一点但不是不能处」
+# 「靠你们自己写」式软判词（用户点名消灭的两句原文）。
+_NOTE_CLASH = "年支六冲：传统判词属根基相冲——家庭衔接面易顶"
+_NOTE_COMBINE = "年支六合：传统上主生肖相合，根基层顺"
+_NOTE_DAY_WX = "日主五行相生：一方能量天然托着另一方"
+_NOTE_DAY_WX_CLASH = "日主五行相克：相克就是相克——具体磨在哪个生活面见判词段"
 # R230a-7（R13-P0-2）：同五行是比和/同气，不是相克——此前火×火 也被
 # 归入相克分支（约 20% 组合中招）。
-_NOTE_DAY_WX_SAME = "日主同气相属：同类元素像照镜子——合拍来得快，顶撞也镜像，各留半步就顺"
-_NOTE_PEACH = "桃花支重叠：两个人的缘分信号是同频的"
+_NOTE_DAY_WX_SAME = "日主同气相属：同类元素像照镜子——合拍来得快，顶撞也镜像"
+_NOTE_PEACH = "桃花支重叠：两个人的缘分信号同频"
 
 
 @dataclass
@@ -168,10 +171,9 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     if combine:
         notes.append(_NOTE_COMBINE)
     if half:
-        notes.append("年支半合：传统说法里有三分合意——缘分不算冲，"
-                     "处起来有天然的顺")
+        notes.append("年支半合：三分合意，不是最强的合")
     if dz_rel == "冲":
-        notes.append("日支相冲：夫妻宫有磕绊——吵架归吵架，别上纲上线")
+        notes.append("日支相冲：夫妻宫相顶——传统合婚权重最高的一支扣分项")
     elif dz_rel == "合":
         notes.append("日支六合：夫妻宫相合——传统上最看重的一支对上了")
     elif dz_rel == "半合":
@@ -180,6 +182,8 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         notes.append("年命纳音同命——同气相属，底色相近")
     elif nayin_rel == "相生":
         notes.append(f"年命纳音相生（{na}与{nb}）——传统上主互相滋养")
+    elif nayin_rel == "相克":
+        notes.append(f"年命纳音相克（{na}与{nb}）——命底小名也对冲，权重轻")
     notes.append(_NOTE_DAY_WX_SAME if same
                  else (_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH))
     if gan_he:
@@ -190,7 +194,7 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     if peach_same:
         notes.append(_NOTE_PEACH)
     if not notes:
-        notes.append("盘面没有明显的冲，也没有明显的合——关系的样子更多靠你们自己写")
+        notes.append("盘面坐标层无冲无合——书上说平淡局，判词见上面段落")
 
     return Hehun(
         year_zhi_a=za, year_zhi_b=zb, clash=clash, combine=combine,

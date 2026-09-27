@@ -17062,3 +17062,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - selftest 323 绿（新钉 hehun.band3_verdict/band2_friction/
   out.tech_terms.r3087，close_survives 钉更新），contract 643、
   dup 零、chat_e2e 4/4。
+
+## R3088（specs/010-P0 续）——合婚 notes 与判词口径对齐
+- 盘点 agent Top-1：hehun.py notes 仍含用户点名原文「磨合期长一点但
+  不是不能处」「关系的样子更多靠你们自己写」「吵架归吵架别上纲
+  上线」——经 app.js 📝 段与 R3087 新判词同屏互搏。
+- 修法：notes 降为纯坐标层（信号→一句中性含义），判词/剧本/处方/
+  交权全归 warm_hehun 单层负责；补纳音相克行（此前静默）；空盘
+  兜底改「坐标层无冲无合，判词见上面段落」。
+- 钉 hehun.softcopy_purged：「磨合期长一点/靠你们自己写/扛事/
+  自己写出来」在 warm+notes 全量文本零命中。selftest 324 绿。
