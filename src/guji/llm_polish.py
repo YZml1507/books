@@ -1062,6 +1062,69 @@ _OUT_CONTRA_NEG = re.compile(
     r"放弃吧|不会幸福|成不了|趁早放手")
 
 
+# R3126（specs/013-P1）：问题类型分类——调研塔罗师「问题梳理位」+
+# 咨询释义技术：回复结构跟着问题类型走，而不是一律同构答。
+# 倾诉先接情绪、求解先复述确认再给方向、验证先给口径再给理由。
+_CHAT_INTENT_VENT = re.compile(
+    r"好烦|烦死|难过|委屈|想哭|崩溃|撑不住|好累|失眠|分手|吵架|冷战|"
+    r"被裁|失业|焦虑|迷茫|emo|不开心|难受|郁闷|压力大|想哭|崩溃|心碎")
+_CHAT_INTENT_DECIDE = re.compile(
+    r"该不该|要不要|能不能|怎么办|怎么选|如何做|值得吗|还来得及|"
+    r"怎么破|怎么解决|选哪个|去不去|辞不辞|分不分|复合|表白")
+_CHAT_INTENT_VERIFY = re.compile(
+    r"是不是|会不会|真的吗|准吗|合适吗|配不配|有戏吗|喜欢我吗|爱我吗|"
+    r"在想我吗|靠谱吗|信不信得过|对不对")
+
+
+def _chat_intent(msg: str) -> str:
+    """倾诉 > 求解 > 验证——情绪在场永远优先接住。"""
+    m = _norm_cs_flat(msg or "")
+    if not m:
+        return ""
+    if _CHAT_INTENT_VENT.search(m):
+        return "vent"
+    if _CHAT_INTENT_DECIDE.search(m):
+        return "decide"
+    if _CHAT_INTENT_VERIFY.search(m):
+        return "verify"
+    return ""
+
+
+# R3126（specs/013-P5）：会话内复问识别——同一 session 里同一主题
+# 出现第二次，让她知道小满记得这条线在聊什么（Moonly 飞轮的
+# 最小实现：不建持久画像，先让模型看到重复主题）。
+_CHAT_THEME: list[tuple[str, "re.Pattern"]] = [
+    ("感情", re.compile(r"感情|恋爱|喜欢|桃花|对象|男朋友|女朋友|暗恋|"
+                        r"复合|相亲|结婚|暧昧|crush|他对我|分手|失恋|"
+                        r"前任|脱单|表白")),
+    ("工作", re.compile(r"工作|职场|老板|同事|升职|跳槽|面试|裁员|加班")),
+    ("学业", re.compile(r"学业|考试|考研|考公|成绩|论文|学校|读书|专业")),
+    ("财运", re.compile(r"钱|财|工资|收入|投资|副业|存款|花销")),
+    ("人际", re.compile(r"朋友|闺蜜|室友|家人|父母|社交|关系")),
+    ("运势", re.compile(r"运势|运气|今年|最近|大运|流年|水逆")),
+]
+
+
+def _chat_theme(msg: str) -> str:
+    m = _norm_cs_flat(msg or "")
+    for name, pat in _CHAT_THEME:
+        if pat.search(m):
+            return name
+    return ""
+
+
+_CHAT_INTENT_HINT = {
+    "vent": "她这条更像在倾诉——开头先接住情绪（把她说的事用你的话"
+            "复述一遍，「听起来真的挺…的」这种），别上来就讲道理或"
+            "甩建议；情绪接住了再轻轻给一点能做的事。",
+    "decide": "她这条是在要答案——开头先用一句把她的事复述成确认句"
+              "（「你是在纠结要不要…对吧」这种），然后直接给方向："
+              "盘/判词说了什么就说什么，再给能做的第一步，别绕。",
+    "verify": "她这条是在要确认——先给明确口径（盘/判词怎么算就怎么"
+              "说，是就是、不是就不是），再补一两句理由。",
+}
+
+
 def _chat_verdict_contra(text: str, rverdicts: list) -> str | None:
     """回复与卡面判词方向矛盾判定。
 
@@ -1351,6 +1414,30 @@ def chat(session_id: str, user_msg: str,
                      "就照实说不合适，不许软成「看你们自己」「因人而异」；"
                      "判词说顺也别泼冷水。判词没覆盖的角度可以自由展开，"
                      "但绝不能和判词打架、不许假装没看过这张卡。")
+        # R3126（specs/013-P1）：问题类型提示——回复结构跟问题走。
+        _int_now = _chat_intent(msg)
+        _int_hint = _CHAT_INTENT_HINT.get(_int_now)
+        if _int_hint:
+            _sys += "\n\n" + _int_hint
+        # R3126（specs/013-P4）：情绪惯性——上轮还在倾诉，这轮她发了
+        # 中性/开心的话也别秒变欢快；低落底色最多留一轮（久了就成
+        # 揣测式共情）。sess 存上一轮的极性。
+        if sess is not None:
+            if sess.pop("last_emo_down", None) and _int_now != "vent":
+                _sys += ("\n\n她刚才情绪偏低落——这轮语气保持温和、跟上"
+                         "她的节奏，别突然亢奋闲聊。")
+            sess["last_emo_down"] = (_int_now == "vent")
+            # R3126（specs/013-P5）：复问识别——同主题第二轮起让她知道
+            # 这条线聊过，顺着深聊而不是重新泛泛起头。
+            _th = _chat_theme(msg)
+            if _th:
+                _tc = sess.setdefault("theme_hits", {})
+                _tc[_th] = int(_tc.get(_th, 0)) + 1
+                if _tc[_th] >= 2:
+                    _sys += (f"\n\n她这轮已经第{_tc[_th]}次聊到「{_th}」"
+                             "——说明这条线她没放下。顺着前面的内容往深走，"
+                             "别像第一次那样泛泛起头；可以点名「你还是惦记"
+                             "着这事」。")
         if _truncated:
             _sys += ("\n更早的聊天内容被省略了——用户提到「我之前说过…」"
                      "而你没看到时，老实说记不清了，不要编。")

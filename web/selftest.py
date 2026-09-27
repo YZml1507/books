@@ -3296,6 +3296,46 @@ def _run_inner() -> list[str]:
     _pf3 = _svc.chat_profile_facts([])
     assert _pf3 == [], _pf3
     ok.append("chat.profile_facts")
+    # R3126（specs/013-P2）：partner 档案同款展开——TA的生日确定性
+    # 展开成 TA 的日主/星座（聊「他」时小满手里得有 TA 的坐标）。
+    _pfp = _svc.chat_profile_facts(["TA的生日：1999-08-02"])
+    assert any("TA的日主：" in f and "五行属" in f for f in _pfp), _pfp
+    assert any("TA的太阳星座：" in f for f in _pfp), _pfp
+    ok.append("chat.partner_facts")
+    # R3126（specs/013-P1/P4/P5）：意图提示+情绪惯性+复问识别——
+    # 桩 transport 捕 system 提示词三层验证。
+    _i_seen = []
+    _i_cfg = {"base_url": "http://127.0.0.1:9", "api_key": "x",
+              "model": "m", "max_tokens": 64, "timeout_s": 3}
+
+    def _i_tr(payload, headers, url, timeout):
+        _i_seen.append(payload["messages"][0]["content"])
+        return {"choices": [{"message": {"content": "我在听"}}]}
+
+    _LC.chat("st-i1", "分手后我该怎么办", config=_i_cfg,
+             _transport=_i_tr)
+    assert "倾诉" in _i_seen[-1], "vent 提示行缺失"
+    _LC.chat("st-i1", "嗯", config=_i_cfg, _transport=_i_tr)
+    assert "偏低落" in _i_seen[-1], "情绪惯性规范行缺失"
+    _LC.chat("st-i1", "他还喜欢我吗", config=_i_cfg, _transport=_i_tr)
+    assert "第2次" in _i_seen[-1] and "感情" in _i_seen[-1], \
+        "复问识别行缺失"
+    _LC.chat("st-i4", "我该不该跳槽", config=_i_cfg, _transport=_i_tr)
+    assert "要答案" in _i_seen[-1], "decide 提示行缺失"
+    _LC.chat("st-i5", "他是不是不喜欢我了", config=_i_cfg,
+             _transport=_i_tr)
+    assert "要确认" in _i_seen[-1], "verify 提示行缺失"
+    ok.append("chat.intent_emo_theme")
+    # R3126（specs/013-P3）：流月锚——temporal 回复须带本月干支+
+    # 日主十神行（节气换月口径）。
+    _rlm = client.post("/api/bazi", json={
+        "year": 2000, "month": 5, "day": 17, "hour": 14,
+        "gender": "女", "question": "最近怎么样",
+        "scope": "day"}).json()
+    _rlm_rep = (_rlm.get("warm") or {}).get("reply") or []
+    assert any("这个月是" in l and "月——" in l and "对你是" in l
+               for l in _rlm_rep), ("bazi.liuyue_anchor", _rlm_rep)
+    ok.append("bazi.liuyue_anchor")
     # R3124b/c（specs/012-P0）：判词升格权威信道——响应带 result_ref，
     # 服务端缓存提取判词层（合拍指数+判词行 verbatim）；伪造/过期
     # ref 拿空集。矛盾判定：负判词+硬说合适 → contra 命中。

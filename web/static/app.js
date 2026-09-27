@@ -2355,6 +2355,15 @@ function _chatFacts(facts) {
       var _mm = ('0' + _me.m).slice(-2), _dd = ('0' + _me.d).slice(-2);
       _f.push('生日：' + _me.y + '-' + _mm + '-' + _dd);
     }
+    /* R3126（specs/013-P2）：partner 档案进上下文——合婚留下的
+     * me:partner 此前只有合婚页自己用；聊「他/TA」时小满手里得有
+     * TA 的坐标。服务端把生日确定性展开成 TA 的日主/星座。 */
+    var _p = _meGet('me:partner');
+    if (_p && _p.y && _p.m && _p.d) {
+      var _pm = ('0' + _p.m).slice(-2), _pd = ('0' + _p.d).slice(-2);
+      _f.push('TA的生日：' + _p.y + '-' + _pm + '-' + _pd +
+              (_p.n ? '（' + _meNickClean(_p.n) + '）' : ''));
+    }
   } catch (e) {}
   return _f;
 }

@@ -1756,6 +1756,8 @@ def main() -> int:
                     " sessionStorage.clear();"
                     " localStorage.setItem('me', JSON.stringify("
                     "  {y:'2003', m:'5', d:'15', g:'女', n:'满仔'}));"
+                    " localStorage.setItem('me:partner', JSON.stringify("
+                    "  {y:'1999', m:'8', d:'2', g:'男'}));"
                     " sessionStorage.setItem('lastResult:hehun',"
                     "  JSON.stringify({json:{match_score:43,"
                     "  a_bazi:{day:'甲子'}, b_bazi:{day:'乙丑'},"
@@ -1777,6 +1779,9 @@ def main() -> int:
                 ok = (len(cases) == 3
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
+                      # R3126（specs/013-P2）：partner 档案行钉——
+                      # TA的生日随 facts 出（服务端展开日主/星座）。
+                      and "TA的生日：1999-08-02" in cases[0]
                       and "之前在合婚测过" in cases[1]
                       and "合拍指数" in cases[1]
                       and "上次来聊过" in cases[2]

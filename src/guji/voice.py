@@ -956,6 +956,24 @@ def _reply_temporal(question: str, calc: dict,
                 f"{_ly_gz[0]}对你日主{day_master}来说是「{_god}」"
                 + (f"（{_gw2[0]}）：{_gw2[1]}" if _gw2 else "")
                 + "——年度主线参考，不是日程表。")
+    # R3126（specs/013-P3）：流月锚——「这个月」尺度的确定性坐标，
+    # 本月干支（节气换月口径，与排盘一致）对日主十神。
+    if day_master:
+        try:
+            from .bazi import compute as _bz_compute
+            from .bazi_calc import ten_god as _tg2
+            _now_dt = _today_cn()
+            _mgz = _bz_compute(_now_dt.year, _now_dt.month,
+                               _now_dt.day, 12).month
+            _mgod = _tg2(day_master, _mgz[0])
+            _gm = TEN_GOD_WARM.get(_mgod or "")
+            if _mgod:
+                lines.append(f"这个月是{_mgz}月——{_mgz[0]}对你是"
+                             f"「{_mgod}」"
+                             + (f"（{_gm[0]}）：{_gm[1]}" if _gm else "")
+                             + "——当月基调参考。")
+        except Exception:
+            pass
     # 2) 流日气候（day_luck）——「最近」最实的抓手
     _rel = str(dl.get("day_master_rel") or "")
     _god = _rel.rsplit("之", 1)[-1] if "之" in _rel else ""
@@ -1051,7 +1069,15 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     ml = [int(x) for x in (moving_lines or []) if isinstance(x, int)]
 
     lines: list[str] = []
-    head = f"你问的是「{q}」。" if q else "这一卦起出来是这样："
+    # R3126（specs/013-P6）：梳理位——先把问题归到一条线再亮卦，
+    # 让她确认「它在回答我真正问的」（调研：塔罗师问题梳理是
+    # 解读前的专业步骤，选错线=回答跑题的根因）。
+    _th_line = ""
+    if q:
+        _th_line = _lp._chat_theme(q)
+        _th_line = f"——这事归「{_th_line}」这条线" if _th_line else ""
+    head = (f"你问的是「{q}」{_th_line}。" if q
+            else "这一卦起出来是这样：")
     lines.append(head + f"起到的是{bname}卦——{GUA_WARM.get(bn, '')}。")
 
     # R233u（R53-P0-4）：用神/世应坐标——让用户知道「这卦里先看哪一爻」。
@@ -1330,7 +1356,11 @@ def warm_tarot(cards: list[dict], interpretation: dict,
                       "想聊点别的，小满都在。"],
                      [], [])
     if q:
-        lines.append(f"针对你的问题「{q}」，每张牌这样说：")
+        # R3126（specs/013-P6）：梳理位——先归到一条线再逐张说牌。
+        _th = _lp._chat_theme(q)
+        lines.append(f"针对你的问题「{q}」"
+                     + (f"——这事归「{_th}」这条线，" if _th else "，")
+                     + "每张牌这样说：")
     else:
         lines.append("每张牌这样说：")
     # ≥6 张时不再只贴前 3 张——按位置权重选 5 张叙事（R3090/specs/010-P2）：

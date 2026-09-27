@@ -2896,6 +2896,10 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
 
 
 _BIRTHDAY_FACT_RE = re.compile(r"^生日[:：]\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})")
+# R3126（specs/013-P2）：TA 的生日同款展开——partner 档案（合婚留下的
+# me:partner）进 chat 后服务端确定性展开日主/星座，小满手里有 TA 的盘。
+_BIRTHDAY_PARTNER_RE = re.compile(
+    r"^TA的生日[:：]\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})")
 
 
 # R3124b（specs/012-P0）：判词升格权威信道——结果快照服务端缓存。
@@ -3013,19 +3017,25 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
     out: list[str] = []
     for f in facts or []:
         out.append(f)
-        m = _BIRTHDAY_FACT_RE.match(str(f).strip())
-        if not m:
+        _fs = str(f).strip()
+        m = _BIRTHDAY_FACT_RE.match(_fs)
+        mp = _BIRTHDAY_PARTNER_RE.match(_fs)
+        if not m and not mp:
             continue
         try:
-            y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            _mm = m or mp
+            y, mo, d = int(_mm.group(1)), int(_mm.group(2)), \
+                int(_mm.group(3))
             gz, _idx = _bazi_day_ganzhi(datetime(y, mo, d))
             dm = gz[0]
             wx = GAN_ELEM.get(dm, "")
             from guji.xingzuo import sun_sign
             sign = sun_sign(mo, d) or ""
-            out.append(f"她的日主：{dm}" + (f"（五行属{wx}）" if wx else ""))
+            _who = "TA" if mp else "她"
+            out.append(f"{_who}的日主：{dm}"
+                       + (f"（五行属{wx}）" if wx else ""))
             if sign:
-                out.append(f"她的太阳星座：{sign}")
+                out.append(f"{_who}的太阳星座：{sign}")
         except (ValueError, TypeError):
             continue
     return out
