@@ -16764,3 +16764,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - _beat_hash 宫序×素数混料确定性（不用内置 hash 跨进程稳，
   R2349g ord 克隆缺陷实录）；60 干支×单宫 21 unique/24 池
   散布健康；love/career/wealth 三维池各 24 条受众级微行动。
+
+## R3058 巡检#475——bazi_lookup 引文供给审计（绿）
+- 实产核验：坐标词=真实四柱干支+纳音；问句经 topic_queries
+  映射命理词（工作→官鬼）以 why=提问主题 追加入队——坐标
+  词序权重不动、无问句输出逐字节同；20 hits 跨命理书目逐
+  字原文带 query/why 溯源；DB 存在性守卫+closing+去重+
+  bm25。
