@@ -15731,3 +15731,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「快出头但还没稳」；变卦方向「顺势」。
 - 可执行（拆三步先走第一步）+方法诚实（时间卦同
   时辰同族→建议铜钱摇）——warm 六面全达标收官。
+
+## R2915 巡检#332——liuyao cross_ref 真联动实测
+- today_sign 天秤（9-27 正确）+today_direction observe
+  +gua_direction forward+moving_count=1（与实卦动爻
+  数一致）→合成建议「先感受再动，拆小一点起步」。
+- 交叉引用非装饰：卦面动力学与星座当班双源实算。
