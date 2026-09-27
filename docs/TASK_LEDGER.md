@@ -14952,3 +14952,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   三处一致；bump 闸：SHELL+EXTRA_GLOBS 资产 sha256 变
   即红；navigate network-first（fetch 先、match 并行兜底
   离线）；壳位仅真「/」导航可写（防 /docs 污染/500 粘壳）。
+
+## R2807 巡检#224——css 三面
+- @import/@charset 必在普通规则前（位置闸）；var() 引
+  用全有定义（含选择器内令牌+JS setProperty 动态令牌
+  同口径）零未定义；styles.css 200/145KB 下发正常。
