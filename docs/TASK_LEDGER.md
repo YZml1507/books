@@ -15580,3 +15580,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   （work_id/layer/why/query/score/page_anchor/
   title/text/file）——「引用与生成分离」合规，
   每条原文可核验出处。
+
+## R2893 巡检#310——research 研究链实测
+- 口语长问（無為在老子莊子怎麼表述）→steps 披露
+  search-fallback：整句无命中如实注明+拆 3 种子重
+  试——降级透明不装查到；
+- 6 条证据全真典籍（莊子知北遊 CHANT 版+莊子注
+  WYG 版，带 @ADDR 锚点）——research 不是空壳。
