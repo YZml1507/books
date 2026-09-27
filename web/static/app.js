@@ -6051,6 +6051,9 @@ async function _replaySharedDraw(ssd) {
       var _tj = await _post('/api/tarot', _payload);
       if (_tj && _tj.draws) {
         paint('trResult', _banner('抽到的牌') + buildTarotResult(_tj));
+        /* R3155b：分享重放也出 AI 解读段——新请求带新 task_id，
+         * 打开链接的人看到和发起者同款完整卡。 */
+        pollAiPolish('trResult', _tj.ai_task_id);
         revealResult('trResult');
       }
     } else if (ssd.view === 'liuyao' && ssd.method === 'coins') {
@@ -6059,6 +6062,7 @@ async function _replaySharedDraw(ssd) {
           record: false });
       if (_lj && _lj.ben) {
         paint('lyResult', _banner('摇到的卦') + buildLiuyaoResult(_lj));
+        pollAiPolish('lyResult', _lj.ai_task_id);   /* R3155b */
         revealResult('lyResult');
       }
     }
