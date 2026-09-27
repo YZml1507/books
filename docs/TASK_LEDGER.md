@@ -15919,3 +15919,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   天好日子清单+「日期照判词原样念」防 LLM 改写指令。
 - 不沾黄历→[]零扰动；判定是服务端先算再交给模型，
   模型只负责说话不负责断日子。
+
+## R2943 巡检#360·第十三段大快照（含真修#8/#9 后态）
+- selftest 312 全绿（含 DAN 钉2例+家暴族钉9例）｜
+  contract 643（SOFT=50）｜r2524 安全 34/0｜ui_smoke
+  PASS 零残留｜chat_e2e 4/4｜baseline 14 逐字节｜
+  standing 3/3。
+- 本批 R2934–R2943：daily 14键/qiming 因果链/
+  ai_polish 三钉/ai 任务真往返/facts 净化族（真修#8
+  DAN）/敏感面（真修#9 家暴转介）/会话帽/client_date/
+  危机罐头/黄历 facts 全实测——真缺陷累计 9 处全修。
