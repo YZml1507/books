@@ -63,7 +63,14 @@ def check_deterministic() -> list[str]:
     if r1.status_code != 200:
         problems.append(f"/api/xingzuo 状态码 {r1.status_code}")
         return problems
-    if r1.json() != r2.json():
+    def _norm(j):
+        # result_ref/ai_task_id 是每请求随机的句柄（缓存键/任务号），
+        # 不是结果内容——确定性判据比的是内容，先摘掉再比。
+        j2 = dict(j)
+        j2.pop("result_ref", None)
+        j2.pop("ai_task_id", None)
+        return j2
+    if _norm(r1.json()) != _norm(r2.json()):
         problems.append("判据 11：同日两次调用响应不等（违反确定性）")
     j = r1.json()
     signs = j.get("signs") or []
