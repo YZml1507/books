@@ -16634,3 +16634,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   兜底页；静态 RT 桶先查（自愈）/precache 哈希桶命中免
   revalidate/RT 60 帽逐老；?v 不符 JS 回 reload  shim 防混版；
   API 永不缓存。全链缺陷修复注释实录。
+
+## R3037 巡检#454——深链接收链审计（绿）
+- 服务端：?view=/路径式双式 og:title/description 视图变体
+  （11 视图各自的分享语境）；门页 next 记住深链解锁跳回
+  （仅站内相对防开放跳转）；app.js?v=哈希注入；
+- 前端：视图白名单落地+非法/多级/未规整链接各有 toast 口径
+  +别名映射（daily/checkin→首页卡承接）+from=share/invite
+  专属承接文案+剥参内存兜底+shareBy 视图指纹喊对人+
+  邀请链 B 侧预填+发起人入 me:partner。
