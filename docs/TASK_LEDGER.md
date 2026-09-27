@@ -14736,3 +14736,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - UTF-8 BOM+日期文件名+attachment；=+-@ 前缀单元格加 '
   脱活（Excel 公式注入防护）；响应顺带带 nosniff 与
   CSP（object-src none/frame-ancestors none）。
+
+## R2763 巡检#180——history import 回灌防御
+- 重导已有行→skipped（ts+name+type 三元组去重）；伪造
+  type/非 dict→skipped 不改名捏造（R2349y）；KEEP_MAX
+  /256KB/字段截断/白名单多层不可信输入防线在产；
+  disabled 下 records_ignored 如实披露。
