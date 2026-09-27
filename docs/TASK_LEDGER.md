@@ -14397,3 +14397,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - summary→refusal 追加同 thread_id→详情 claims×2（各带证据
   role/quote）+turns 开题行——写读链闭环；测试线程已删
   （探针误读 records 键自纠，实为 turns+claims 双键）。
+
+## R2691 巡检#108——paipan 隐式落历史+批量清偿
+- bazi 无 record 字段——save_async 无条件落行（name 自动合成
+  「YYYY-MM-DD 时辰 性别」）；list 携 result_summary（render+五行）。
+- 清偿：本批巡检测试行 5442-5456 共 15 条已删（66→52）。
