@@ -14529,3 +14529,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2718 巡检#135——daily festival+summary 文案
 - 国庆/元旦/圣诞各命中；summary 年轻化实锤（「省电模式
   续航优先」「顺毛撸你」「甜品明天又是好汉」）。
+
+## R2719 巡检#136——daily mercury 水逆双态
+- 平时 {on:false,next,days_to 倒数}；逆期（11-01 在 10-24~
+  11-13 窗内）{on:true,day_no:9,until}——形状随态切换正确。
