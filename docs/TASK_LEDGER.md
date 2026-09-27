@@ -15561,3 +15561,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   + 引原问。
 - warm 五面（bazi/hehun/qiming/taohua/tarot）肉评
   全达标：具体位置+因果链+可执行+诚实收口。
+
+## R2890 巡检#307——citations 引文链实测
+- 真盘 12 条典籍引文：三命通会按日按时断（庚日
+  庚辰时正是本盘坐标）+李虛中命书+子平真诠带
+  work_id/layer/why=时柱；
+- warm.citations==interpretation.citations 逐字节
+  复用；内部 @ADDR/文件名由前端 humanCite 收口
+  成中文版本名（R2811 已实测七例）。
