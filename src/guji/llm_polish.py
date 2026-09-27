@@ -1046,6 +1046,57 @@ def _fact_is_safe(f: str) -> bool:
     return True
 
 
+# R3124c（specs/012-P0）：回复↔判词方向矛盾判定词表。
+# 判词侧分负/正两族（同判词混出现时不判——混合盘天然两向都有）。
+_VD_NEG = re.compile(
+    r"不合适|相冲|相克|相刑|偏弱|偏淡|吃力|该退|宜守|不宜|"
+    r"磨人|高开低走|压着你|先想清楚")
+_VD_POS = re.compile(
+    r"合拍|相生|比和|中上|上上|很旺|正旺|顺|宜|正缘|越处越|天作")
+_OUT_CONTRA_POS = re.compile(
+    r"很合适|特别合适|十分合适|非常合适|天作之合|绝配|天生一对|"
+    r"命中注定的一对|放心在一起|大胆去爱|大胆在一起|一定会幸福|"
+    r"肯定能成|一定能成")
+_OUT_CONTRA_NEG = re.compile(
+    r"不合适|不太合适|趁早分|肯定会散|注定没戏|没戏|走不到头|"
+    r"放弃吧|不会幸福|成不了|趁早放手")
+
+
+def _chat_verdict_contra(text: str, rverdicts: list) -> str | None:
+    """回复与卡面判词方向矛盾判定。
+
+    返回 'pos_over_neg'（判词负、回复硬说正）/'neg_over_pos'
+    （判词正、回复硬说负）/None。判词双向混存时不判——混合盘
+    两向都真，无从判矛盾。
+    """
+    if not text or not rverdicts:
+        return None
+    _t = _scan_flat(text)
+    _vs = [str(v) for v in rverdicts]
+    _neg_v = any(_VD_NEG.search(v) for v in _vs)
+    _pos_v = any(_VD_POS.search(v) for v in _vs)
+    if _neg_v and not _pos_v and _OUT_CONTRA_POS.search(_t):
+        return "pos_over_neg"
+    if _pos_v and not _neg_v and _OUT_CONTRA_NEG.search(_t):
+        return "neg_over_pos"
+    return None
+
+
+def _verdict_anchor_reply(rverdicts: list) -> str:
+    """判词矛盾兜底回复——按判词原句确定性重组，方向必一致。"""
+    _v = ""
+    for f in rverdicts or []:
+        s = str(f)
+        if "判词" in s:
+            _v = s.split("：", 1)[-1].strip()
+            break
+    if not _v and rverdicts:
+        _v = str(rverdicts[0])[:80]
+    return ("照你那张卡的判词直说——" + (_v or "盘上写得挺清楚") +
+            "。这可能跟你想听的不一样，但盘就是这么落的；"
+            "哪里硌、怎么处，咱可以接着聊。")
+
+
 def _is_sensitive(msg: str) -> bool:
     """生死/重病敏感判定——聊天层与问一嘴（interpreter）共用一个口径。"""
     # R2524：同 _is_crisis——零宽写法绕过敏感词命中。
@@ -1141,6 +1192,7 @@ def chat(session_id: str, user_msg: str,
          verdict_facts: list[str] | None = None,
          config: dict | None = None, _transport=None,
          verdict_day: str | None = None,
+         result_verdicts: list[str] | None = None,
          _task_started=None) -> str | None:
     """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
 
@@ -1243,6 +1295,17 @@ def chat(session_id: str, user_msg: str,
                 _verdicts = []
                 sess.pop("verdicts", None)
                 sess.pop("verdict_day", None)
+            # R3124b（specs/012-P0）：卡面判词层权威档——与黄历判定
+            # 同信道级但语义不同：判词绑定的是「那张卡」，不锚日、
+            # 整个会话期有效（聊到它就口径一致）；换新卡/明确清空
+            # 才覆盖。
+            if result_verdicts is not None:
+                if result_verdicts:
+                    sess["rverdicts"] = [f for f in result_verdicts
+                                         if f and str(f).strip()]
+                else:
+                    sess.pop("rverdicts", None)
+            _rverdicts = list(sess.get("rverdicts") or [])
             # R230t（R32-P1-8）：客户端每条消息都重发坐标 facts——存档为
             # 会话快照：相同则是重发（省一层抖动），不同（换了新盘）才更新。
             # 注入用的是快照，整个会话期内坐标都是话题锚。
@@ -1272,6 +1335,22 @@ def chat(session_id: str, user_msg: str,
                      "用户问到对应事项时必须照它回答、不许说没查到；"
                      "日期只能引用判定里出现的，不要自己编日子：\n- "
                      + "\n- ".join(_fact_line(f) for f in _verdicts))
+        # R3124b（specs/012-P0）：卡面判词层进权威信道——此前判词只
+        # 走「话题参考」facts，模型可自由发挥成与判词相反口径（用户
+        # 实测「小满说的和卡面结果不一样」）。升格后：判词原句入
+        # system、标明与卡面一致、禁止反驳与软化。
+        if _rverdicts:
+            _rv = [str(f).strip() for f in _rverdicts
+                   if f and str(f).strip()][:9]
+            _rv_txt = "\n- ".join(_fact_line(f) for f in _rv)
+            if len(_rv_txt) > 1600:
+                _rv_txt = _rv_txt[:1600].rstrip() + "……"
+            _sys += ("\n\n这张卡的判词层结论是系统算好的，"
+                     "和用户屏上看到的卡面逐字一致：\n- " + _rv_txt +
+                     "\n聊到这张卡的事，口径必须和判词一致——判词说不合适"
+                     "就照实说不合适，不许软成「看你们自己」「因人而异」；"
+                     "判词说顺也别泼冷水。判词没覆盖的角度可以自由展开，"
+                     "但绝不能和判词打架、不许假装没看过这张卡。")
         if _truncated:
             _sys += ("\n更早的聊天内容被省略了——用户提到「我之前说过…」"
                      "而你没看到时，老实说记不清了，不要编。")
@@ -1327,6 +1406,24 @@ def chat(session_id: str, user_msg: str,
         if _CHAT_BANNED_PAT.search(_scan_flat(text)):
             text = ("我可能说得不太对。盘是盘，日子是你自己的——"
                     "按你自己舒服的来就好。")
+
+        # R3124c（specs/012-P0）：成稿一致性闸——判词层进了权威信道
+        # 模型仍可能方向性违背（判词说偏不合适、回复说很合适）。扫
+        # 方向矛盾 → 纠偏重试一次；仍矛盾 → 按判词原句确定性兜底。
+        if _rverdicts and text:
+            if _chat_verdict_contra(text, _rverdicts):
+                _fix_msgs = payload_msgs + [{
+                    "role": "system",
+                    "content": ("你上一版回复跟这张卡的判词层结论方向矛盾。"
+                                "判词是权威结论——按它的口径重说一遍，"
+                                "温柔但照实，不软化不加码。")}]
+                _t2 = _chat_call(_fix_msgs, cfg, _transport,
+                                 deadline=_dl, banned_seen=_banned_seen)
+                if _t2 and not _chat_verdict_contra(_t2, _rverdicts) \
+                        and not _CHAT_BANNED_PAT.search(_scan_flat(_t2)):
+                    text = _t2
+                else:
+                    text = _verdict_anchor_reply(_rverdicts)
 
         with _chat_lock:
             sess = _chat_sessions.get(session_id)
@@ -1613,7 +1710,8 @@ def spawn_chat_task(session_id: str, user_msg: str,
                     verdict_facts: list[str] | None = None,
                     config: dict | None = None,
                     _transport=None,
-                    verdict_day: str | None = None) -> str | None:
+                    verdict_day: str | None = None,
+                    result_verdicts: list[str] | None = None) -> str | None:
     """后台起一个 chat 任务，复用 _tasks/GC/轮询端点。关闭时返回 None。
 
     verdict_day：判定所锚定的日子（透传 chat() 的跨日作废判断）。"""
@@ -1695,6 +1793,7 @@ def spawn_chat_task(session_id: str, user_msg: str,
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,
                         _transport=_transport, verdict_day=verdict_day,
+                        result_verdicts=result_verdicts,
                         _task_started=_mark_started)
             status = "done" if text else "failed"
         except BaseException:            # R2511：同 polish 径防 pending 泄漏

@@ -3296,6 +3296,28 @@ def _run_inner() -> list[str]:
     _pf3 = _svc.chat_profile_facts([])
     assert _pf3 == [], _pf3
     ok.append("chat.profile_facts")
+    # R3124b/c（specs/012-P0）：判词升格权威信道——响应带 result_ref，
+    # 服务端缓存提取判词层（合拍指数+判词行 verbatim）；伪造/过期
+    # ref 拿空集。矛盾判定：负判词+硬说合适 → contra 命中。
+    _hh = client.post("/api/hehun", json={
+        "a_year": 1996, "a_month": 3, "a_day": 8, "a_hour": 10,
+        "a_gender": "女", "b_year": 1994, "b_month": 9, "b_day": 2,
+        "b_hour": 14, "b_gender": "男", "question": "我们合适吗"})
+    _hd = _hh.json()
+    assert _hd.get("result_ref"), "hehun 响应缺 result_ref"
+    _rv = _svc.chat_result_verdicts(_hd["result_ref"])
+    assert _rv and any("合拍指数" in f or "判词" in f
+                       for f in _rv), _rv[:3]
+    assert _svc.chat_result_verdicts("forged-ref-xxx") == []
+    assert _svc.chat_result_verdicts(None) == []
+    from guji import llm_polish as _lp
+    assert _lp._chat_verdict_contra(
+        "你们很合适，放心在一起", ["卡面判词行：判词直说：偏不合适——日支相冲"]
+    ) == "pos_over_neg"
+    assert _lp._chat_verdict_contra(
+        "这步坎得一起扛", ["卡面判词行：判词直说：偏不合适——日支相冲"]
+    ) is None
+    ok.append("chat.result_verdicts")
     # R3116：copy_bank chat_fallback_* 与 app.js 活池同源钉——
     # R3116 实测 JSON 已漂移（✨变体/4句 vs JS 6句），「同源复制」
     # 注释成空话。钉：JSON 每条文案须在 app.js 源文本中逐字命中。
@@ -3371,6 +3393,26 @@ def _run_inner() -> list[str]:
             _att_bad.append((f"{_nm}:score={_sc}", _bare[:1]))
     assert not _att_bad, ("attunement.floor", _att_bad[:2])
     ok.append("attunement.floor")
+    # R3124a（specs/012-P1）：时间向/泛向提问不再落「不瞎编」——
+    # 「今年怎么样」命中 day_luck 气候层+指路「一生」；scope=life
+    # 时眼下运柱带十神白话进首三行；真识别不了的仍拒答不编。
+    _tp1 = client.post("/api/bazi", json={
+        "year": 2000, "month": 6, "day": 15, "hour": 10,
+        "gender": "女", "question": "今年怎么样"})
+    _r1 = (_tp1.json().get("warm") or {}).get("reply") or []
+    assert _r1 and "不瞎编" not in "".join(_r1), _r1
+    assert any("气氛" in l or "运" in l for l in _r1), _r1
+    _tp2 = client.post("/api/bazi", json={
+        "year": 2000, "month": 6, "day": 15, "hour": 10,
+        "gender": "女", "scope": "life", "question": "帮我看看我的盘"})
+    _r2 = (_tp2.json().get("warm") or {}).get("reply") or []
+    assert any("运" in l and "岁" in l for l in _r2), _r2
+    _tp3 = client.post("/api/bazi", json={
+        "year": 2000, "month": 6, "day": 15, "hour": 10,
+        "gender": "女", "question": "我适合养猫吗"})
+    _r3 = (_tp3.json().get("warm") or {}).get("reply") or []
+    assert any("不瞎编" in l for l in _r3), _r3
+    ok.append("bazi.temporal_route")
     # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
     _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))
@@ -3908,13 +3950,17 @@ def _run_inner() -> list[str]:
                       # 的用户档案靠它落公历日。
                       "birth_solar",
                       # C-003：交叉引用——八字结果页增加星座维度
-                      "cross_ref"},
+                      "cross_ref",
+                      # R3124b：判词升格信道的结果快照 ref
+                      "result_ref"},
         "/api/taohua": {"peach_zhi", "hongluan", "hongluan_pillar", "tianxi",
                         "tianxi_pillar", "strength", "render", "notes",
                         "dayun_hits", "hit_pillars", "warm", "bazi",
                         "year_zhi", "birth_year", "ai_polish",
                         # R220b：交叉引用铺到桃花（星座桃花信号 × 八字强度）
-                        "cross_ref"},
+                        "cross_ref",
+                        # R3124b
+                        "result_ref"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
                        "day_wx_b", "day_wx_sheng",
                        # R230a-7（R13-P0-2）：同五行比和标志
@@ -3929,7 +3975,9 @@ def _run_inner() -> list[str]:
                        # R2349l（R73-P1-1）：合拍指数
                        "match_score",
                        # C-003：交叉引用——合婚结果页增加星座配对维度
-                       "cross_ref"},
+                       "cross_ref",
+                       # R3124b
+                       "result_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",
                         "full_names", "ai_polish",
                         # R233j（R46-P1）：qiming_one_liners 死池接线
@@ -3937,7 +3985,9 @@ def _run_inner() -> list[str]:
                         # R233w（R53-P3-3）：起名 warm 层
                         "warm",
                         # R220b：交叉引用铺到起名（太阳星座气质参考）
-                        "cross_ref"},
+                        "cross_ref",
+                        # R3124b
+                        "result_ref"},
     }
     for _ep, _pl in _shapes.items():
         _got = set(client.post(_ep, json=_pl).json())

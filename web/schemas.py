@@ -359,6 +359,10 @@ class ChatRequest(BaseModel):
     # 前端传浏览器本地日，跨零点 ±TZ 窗口不漂移。
     client_date: str | None = Field(None, max_length=10,
                                     description="浏览器本地日 YYYY-MM-DD，可选")
+    # R3124b（specs/012-P0）：结果快照引用——前端聊某张卡时带上，
+    # 服务端按它从自己的结果缓存里取判词层进权威信道。客户端
+    # 伪造 ref 只能拿到空集（缓存里没有就是没有），伪造内容进不来。
+    result_ref: str | None = Field(None, max_length=40)
 
     def validate_ranges(self) -> None:
         if not self.session_id or len(self.session_id) > 64:

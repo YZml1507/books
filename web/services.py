@@ -290,6 +290,9 @@ def bazi(req) -> dict:
         "lunar_day": req.lunar_day, "lunar_leap": req.lunar_leap,
         "scope": req.scope, "question": req.question,
     }, out)
+    # R3124b（specs/012-P0）：结果快照 ref——前端聊这张卡时带上，
+    # 服务端按 ref 提取判词层进权威信道，小满口径=卡面口径。
+    out["result_ref"] = _stash_result("bazi", out)
     return out
 
 
@@ -345,6 +348,8 @@ def taohua(req) -> dict:
         "year": req.year, "month": req.month, "day": req.day,
         "hour": req.hour, "gender": req.gender,
     }, out, rtype="taohua")
+    # R3124b：判词升格信道用结果 ref
+    out["result_ref"] = _stash_result("taohua", out)
     return out
 
 
@@ -471,6 +476,8 @@ def hehun(req) -> dict:
         "a_name": req.a_name, "b_name": req.b_name,
     }, {**out, "a_name": req.a_name, "b_name": req.b_name},
        rtype="hehun", name=f"{_an} × {_bn}")
+    # R3124b：判词升格信道用结果 ref
+    out["result_ref"] = _stash_result("hehun", out)
     return out
 
 
@@ -520,6 +527,8 @@ def qiming(req) -> dict:
         "day": req.day, "hour": req.hour, "gender": req.gender,
         "seed": req.seed, "style": req.style,
     }, out, rtype="qiming", name=f"起名 · {req.surname}×")
+    # R3124b：判词升格信道用结果 ref
+    out["result_ref"] = _stash_result("qiming", out)
     return out
 
 
@@ -1255,6 +1264,8 @@ def liuyao(req) -> dict:
              "question": req.question},
             out, rtype="liuyao",
             name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
+    # R3124b：判词升格信道用结果 ref
+    out["result_ref"] = _stash_result("liuyao", out)
     return out
 
 
@@ -2887,6 +2898,109 @@ def chat_huangli_facts(message: str, now: datetime | None = None,
 _BIRTHDAY_FACT_RE = re.compile(r"^生日[:：]\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})")
 
 
+# R3124b（specs/012-P0）：判词升格权威信道——结果快照服务端缓存。
+# 客户端 facts 只是「话题参考」（可伪造，降权框），聊天要想跟小满
+# 口径一致，必须让判词走权威道。做法：各测算端点出响应时把整份
+# JSON 按随机 ref 存进内存缓存，前端聊天带上 ref，服务端从自己的
+# 缓存里取真响应提取判词层——小满收到的就是卡面那句原话，伪造
+# ref 只能拿到 404 等价空集，伪造内容进不来。
+import threading as _threading
+import secrets as _secrets
+from collections import OrderedDict as _OrderedDict
+
+_RESULT_LOCK = _threading.Lock()
+_RESULT_CACHE: "_OrderedDict[str, tuple[float, str, dict]]" = _OrderedDict()
+_RESULT_TTL = 7200          # 2h——聊这件事通常紧跟看卡
+_RESULT_MAX = 256
+
+
+def _stash_result(view: str, out: dict) -> str:
+    """结果落缓存，返回 ref。只存引用不改造响应内容。"""
+    ref = _secrets.token_urlsafe(9)
+    now = time.time()
+    with _RESULT_LOCK:
+        _RESULT_CACHE[ref] = (now, view, out)
+        # 过期先清，再按 LRU 逐到上限
+        for _k in [k for k, (t, _v, _j) in _RESULT_CACHE.items()
+                   if now - t > _RESULT_TTL]:
+            _RESULT_CACHE.pop(_k, None)
+        while len(_RESULT_CACHE) > _RESULT_MAX:
+            _RESULT_CACHE.popitem(last=False)
+    return ref
+
+
+def _pop_result(ref: str | None) -> tuple[str, dict] | tuple[None, None]:
+    """ref 查缓存。命中即续期（移到队尾）；miss/过期 → (None,None)。"""
+    if not ref or not isinstance(ref, str) or len(ref) > 40:
+        return None, None
+    with _RESULT_LOCK:
+        ent = _RESULT_CACHE.get(ref)
+        if not ent:
+            return None, None
+        ts, view, j = ent
+        if time.time() - ts > _RESULT_TTL:
+            _RESULT_CACHE.pop(ref, None)
+            return None, None
+        _RESULT_CACHE.move_to_end(ref)
+        return view, j
+
+
+def chat_result_verdicts(ref: str | None) -> list[str]:
+    """从服务端结果快照提取判词层事实——供 chat 权威信道。
+
+    全是自家生成的 warm.reply 原文+键字段，verbatim 可信。
+    输出形如「判词：…」「合拍指数：43/99」≤8 行 ×≤120 字。
+    """
+    view, j = _pop_result(ref)
+    if not view or not isinstance(j, dict):
+        return []
+    out: list[str] = []
+    w = (j.get("warm") or {}).get("reply") or []
+    # 每视图的锚定标量（判词主体之外的定位行）
+    if view == "hehun":
+        _sc = j.get("match_score")
+        if _sc is not None:
+            out.append(f"这张合婚卡的合拍指数：{_sc}/99")
+    elif view == "taohua":
+        if j.get("peach_zhi"):
+            out.append(f"桃花支：{j['peach_zhi']}")
+        if j.get("strength"):
+            out.append(f"桃花强度：{j['strength']}")
+    elif view == "bazi":
+        _pp = ((j.get("paipan") or {}).get("render") or "")
+        _seg = _pp.split("　")
+        if _seg[0]:
+            out.append(f"四柱：{_seg[0]}")
+        _dm = (j.get("paipan") or {}).get("day_master")
+        if _dm:
+            out.append(f"日主：{_dm}")
+    elif view == "liuyao":
+        _bn = (j.get("ben") or {}).get("gua_name") or j.get("ben_name")
+        if _bn:
+            out.append(f"本卦：{_bn}")
+        _bin = (j.get("bian") or {}).get("gua_name") or j.get("bian_name")
+        if _bin:
+            out.append(f"变卦：{_bin}")
+    elif view == "tarot":
+        _cs = [(d.get("name") or "") + ("（正位）" if d.get("upright")
+               else "（逆位）") for d in (j.get("draws") or [])[:5]]
+        if _cs:
+            out.append("抽到的牌：" + "、".join(_cs))
+    elif view == "qiming":
+        _fn = j.get("full_names") or []
+        if _fn and _fn[0].get("full_name"):
+            out.append(f"首选名：{_fn[0]['full_name']}")
+    if j.get("question"):
+        out.append(f"她当时问的是：「{str(j['question'])[:60]}」")
+    # warm.reply 原文逐条收——判词带/剧本/处方/倾向全在里面，
+    # 服务端快照逐字一致，不存在被改的可能
+    for _ln in w:
+        _s = str(_ln).strip()
+        if _s:
+            out.append("卡面判词行：" + _s[:110])
+    return out[:9]
+
+
 def chat_profile_facts(facts: list[str]) -> list[str]:
     """小满聊天档案层：客户端「生日：YYYY-MM-DD」事实确定性展开。
 
@@ -3415,6 +3529,8 @@ def tarot(req) -> dict:
             name=(req.question or
                   ((_spread_name + " · " + str(len(cards)) + " 张")
                    if _spread_name else f"{len(cards)} 张牌阵")))
+    # R3124b：判词升格信道用结果 ref
+    out["result_ref"] = _stash_result("tarot", out)
     return out
 
 

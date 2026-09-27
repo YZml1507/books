@@ -1439,7 +1439,8 @@ function buildChatContext(viewKey) {
       qiming: '这些名字怎么样', xingzuo: '今天运势怎么样',
       daily: '今天运势怎么样'
     };
-    return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [] };
+    return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [],
+             ref: '' };
   }
   if (viewKey === 'tarot') {
     var cards = (j.draws || []).map(function (d) {
@@ -1568,6 +1569,21 @@ function buildChatContext(viewKey) {
       '，帮我详细说说今天';
     facts = (_dseg[0] ? ['四柱：' + _dseg[0]] : [])
       .concat(_dw ? ['一句话：' + _dw] : []);
+    /* R3124（真修）：日签响应没有 warm 块——上面的 one_liner 恒空，
+     * 卡面真正的内容（summary 事实句+宜/忌+贵人）从来没进过
+     * 聊天上下文。用户照着卡面问「今天怎么样」，小满手里只有
+     * 四柱，说不上来卡上写了什么。把 summary 事实句与宜忌列透传。 */
+    var _dsum = _pStr(j.summary);
+    if (_dsum) {
+      _dsum.split('；').forEach(function (seg) {
+        seg = seg.trim();
+        if (seg) facts.push('日签：' + seg.slice(0, 80));
+      });
+    }
+    var _ddo = _pArr(j.do).join('、'), _ddont = _pArr(j.dont).join('、');
+    if (_ddo) facts.push('今日宜：' + _ddo.slice(0, 60));
+    if (_ddont) facts.push('今日忌：' + _ddont.slice(0, 60));
+    if (_pStr(j.noble)) facts.push('今日贵人：' + _pStr(j.noble));
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
     /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
@@ -1577,7 +1593,10 @@ function buildChatContext(viewKey) {
   } else {
     msg = '帮我看看这个结果';
   }
-  return { msg: msg, facts: facts.slice(0, 6) };
+  /* R3124b（specs/012-P0）：result_ref 随上下文出——聊这张卡时
+   * 服务端按 ref 从自己缓存里取判词层进权威信道（小满口径=卡面）。 */
+  return { msg: msg, facts: facts.slice(0, 6),
+           ref: (j && j.result_ref) || '' };
 }
 
 /** R207b：聊天入口全局化——结果容器渲染出 .card 后尾部统一挂入口钮。
@@ -1692,6 +1711,7 @@ function autoSendChatContext() {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
     session_id: _sid0, message: msg, facts: _chatFacts(facts),
+    result_ref: ctx.ref || '',
     client_date: todayIso()
   }, { silent: true }).then(function (j) {
     if (!j.chat_task_id) {
@@ -2262,6 +2282,7 @@ var _SENSITIVE_CHAT_REPLY = '这个话题我真接不了——不是不愿意，
 
 /* R233r（R49-Top5-2）：chatSend 兜底 facts——不走排盘直接开聊时
  * CHAT_LAST_FACTS 恒空；按当前活跃视图从 LAST_RESULT 拼坐标。 */
+var _CHAT_CTX_REF = '';   /* R3124b：与最近解出的上下文配套的结果 ref */
 function _activeViewFacts() {
   var v = document.querySelector('.view.active');
   var vid = v ? v.id : '', key = '';
@@ -2272,6 +2293,7 @@ function _activeViewFacts() {
   if (!key) key = 'daily';   /* 首页无 .view 壳——daily 卡上下文兜底 */
   var c = buildChatContext(key);
   var _f = (c && c.facts) || [];
+  _CHAT_CTX_REF = (c && c.ref) || '';
   /* R3115（specs/011 P1-3）：跨视图连续感——当前视图没测过盘时，
    * 扫描本会话 lastResult:* 里最近一次他类测算，带「她上次测过X」
    * 语境行；换视图/换天再聊，小满手里不至于从零开始。 */
@@ -2289,6 +2311,7 @@ function _activeViewFacts() {
         if (_f2.length) {
           _f = ['她之前在' + _LBL[_vk] + '测过一次，当时的事实：']
             .concat(_f2);
+          _CHAT_CTX_REF = (_c2 && _c2.ref) || '';   /* 跨视图的 ref 也跟随 */
           break;
         }
       }
@@ -2371,6 +2394,9 @@ function chatSend() {
     session_id: _sid0, message: msg,
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
       ? CHAT_LAST_FACTS : _activeViewFacts()),   /* R233r：无排盘按视图兜底 */
+    /* R3124b：判词升格信道——ref 由 _activeViewFacts 解出（facts 走
+     * CHAT_LAST_FACTS 时 ref 是上次解出的配套值，同源不串）。 */
+    result_ref: _CHAT_CTX_REF || '',
     client_date: todayIso()   /* R230l */
   }, { silent: true }).then(function (j) {
     if (!j.chat_task_id) {                     /* DISABLE：入口静默降级 */

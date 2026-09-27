@@ -1710,6 +1710,7 @@ def main() -> int:
                     "  'lastResult:'+k, JSON.stringify(v));"
                     " put('hehun', {json:{match_score:43, a_bazi:{day:'甲子'},"
                     "  b_bazi:{day:'乙丑'}, day_wx_sheng:false, day_wx_same:false,"
+                    "  result_ref:'ref-test-1',"
                     "  warm:{reply:['判词直说：偏不合适——日支相冲']}},"
                     "  question:'', body:{}});"
                     " put('taohua', {json:{peach_zhi:'卯', strength:'weak',"
@@ -1718,17 +1719,20 @@ def main() -> int:
                     " put('liuyao', {json:{ben:{gua_name:'恒', gua_number:32,"
                     "  moving_lines:[2]}, warm:{reply:['x','这一卦照传统口径看："
                     "  主动权在你手里']}}, question:'能成吗', body:{}});"
+                    " _CHAT_CTX_REF='';"
                     " return ["
                     "  buildChatContext('hehun').facts.join('|'),"
                     "  buildChatContext('taohua').facts.join('|'),"
-                    "  buildChatContext('liuyao').facts.join('|')"
+                    "  buildChatContext('liuyao').facts.join('|'),"
+                    "  buildChatContext('hehun').ref || ''"
                     " ];}")
-                ok = (len(cases) == 3
+                ok = (len(cases) == 4
                       and "合拍指数：43/99" in cases[0]
                       and "判词" in cases[0]
                       and "缘分信号偏弱" in cases[1]
                       and "入口" in cases[1]
                       and "照传统口径看" in cases[2]
+                      and cases[3] == "ref-test-1"
                       and not errors)
                 detail = "chatfacts=" + "|".join(
                     "OK" if c else "X" for c in cases)

@@ -98,6 +98,9 @@ def chat(req: ChatRequest) -> dict:
         req.session_id, req.message, facts=facts,
         verdict_facts=services.chat_huangli_facts(
             req.message, now=_now, session_id=req.session_id),
+        # R3124b（specs/012-P0）：卡面判词层升格权威信道——按 ref 从
+        # 服务端结果缓存提取判词原句，与黄历判定同权威级、同持久档。
+        result_verdicts=services.chat_result_verdicts(req.result_ref),
         # R230t（R32-P1-7）：判定锚定日透传——跨日存档判定作废。
         verdict_day=(_now or _now_cn()).date().isoformat())
     # R2355（R111-P2-6）：限流哨兵分流——rate_limited 给前端「歇口气」
