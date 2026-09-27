@@ -1254,6 +1254,34 @@ def _run_inner() -> list[str]:
     assert len(_dzhits) <= 1, ("日支关系双报", _dzhits)
     assert any("酉/卯相冲" in l for l in _hhr), _hhr
     ok.append("hehun.dayzhi_dedup")
+    # R3087（specs/010-P0）：合婚判词引擎钉——最低档判词直说+处方+
+    # 带地图交权；相克盘给五行摩擦剧本而非「磨合期长一点」软话。
+    _hh_b3 = client.post("/api/hehun", json={
+        "a_year": 1995, "a_month": 7, "a_day": 3, "a_hour": 10,
+        "a_gender": "男",
+        "b_year": 2001, "b_month": 11, "b_day": 22, "b_hour": 14,
+        "b_gender": "女"})
+    assert _hh_b3.status_code == 200, _hh_b3.status_code
+    _jb3 = _hh_b3.json()
+    _rb3 = (_jb3.get("warm") or {}).get("reply") or []
+    assert _jb3.get("match_score") == 35 and "偏不合适" in (_rb3[0] or ""), \
+        (_jb3.get("match_score"), _rb3[0])
+    assert any("相冲" in l for l in _rb3), _rb3
+    assert any("处方一条" in l for l in _rb3), _rb3
+    assert any("判决书" in l or "成本" in l for l in _rb3[-1:]), _rb3[-1:]
+    ok.append("hehun.band3_verdict")
+    _hh_b2 = client.post("/api/hehun", json={
+        "a_year": 1995, "a_month": 1, "a_day": 11, "a_hour": 10,
+        "a_gender": "男",
+        "b_year": 1989, "b_month": 2, "b_day": 17, "b_hour": 14,
+        "b_gender": "女"})
+    assert _hh_b2.status_code == 200, _hh_b2.status_code
+    _rb2 = (_hh_b2.json().get("warm") or {}).get("reply") or []
+    assert "磕绊偏多" in (_rb2[0] or ""), _rb2[0]
+    assert any("相克就是相克" in l and "管控与自由" in l
+               for l in _rb2), _rb2
+    assert any("处方一条" in l for l in _rb2), _rb2
+    ok.append("hehun.band2_friction")
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
@@ -1364,8 +1392,10 @@ def _run_inner() -> list[str]:
           "a_year": 1996, "a_month": 3, "a_day": 1, "a_hour": 10,
           "a_gender": "男", "b_year": 1996, "b_month": 3, "b_day": 8,
           "b_hour": 14, "b_gender": "女"}),
-          lambda j: any(("合格证" in l or "一起写出来" in l
-                         or "在你们手里" in l)
+          # R3087：收口改带地图交权口径——「命理给地图，路是你们俩走的」
+          # 或 band3 的「不是判决书」是所有判词档的公共尾。
+          lambda j: any(("路是你们俩走的" in l or "不是判决书" in l
+                         or "命理给地图" in l)
                         for l in (j.get("warm") or {}).get("reply") or []))
     # R150b（D-196b）：hehun 乙侧 b_year/b_month/b_day 三条 400 校验分支
     # standing 覆盖——甲侧先抛 400 时乙侧代码路径从未执行。
@@ -3060,6 +3090,15 @@ def _run_inner() -> list[str]:
     assert _LC._FACT_T2S["開"] == "开" and _LC._FACT_T2S["訴"] == "诉"
     assert _LC._is_crisis("想不開了"), "繁体想不开漏接"
     ok.append("out.evasion.r3069")
+    # R3087（specs/010）：技术词解禁——盘面算出的相克/相冲/相刑允许
+    # 上屏（用户要求直说），宿命组合词仍拦。
+    for _t in ("你们本命五行相克——磨在管控与自由上",
+               "夫妻宫相冲，磕绊多在谁说了算",
+               "两支相刑，书上说这组要下功夫"):
+        assert _LC._sanitize(_t) is not None, ("技术词误杀", _t)
+    for _t in ("你们相克，注定分手", "这对相刑必离", "克夫命，赶紧分"):
+        assert _LC._sanitize(_t) is None, ("宿命组合漏拦", _t)
+    ok.append("out.tech_terms.r3087")
     # R229t：sid 洪泛防护——_CHAT_MAX_SESSIONS 封顶后 GC 逐最旧会话，
     # 海量唯一 session_id 不能撑爆内存。直接灌表测 GC（不走 API，
     # 否则每个会话要真发请求）。危机词短路返回不产生 LLM 调用。
