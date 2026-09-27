@@ -15183,3 +15183,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   扫兜底（与 paipan「探针导入」名扫同款），≤baseline
   孤儿不再祖父化；重跑 smoke PASS 且本轮 thread 正常
   清理。
+
+## R2838 巡检#255——threads 校验族实测
+- kind=bogus→400「内容不在支持的范围里」；claim 空→
+  422「至少 1 字」；evidence.role=bogus→400「证据只能
+  标成支持/反驳/背景」（顶层 role 非 schema 字段被
+  pydantic 忽略非缺陷）；坏 JSON→422 json_invalid 中
+  文。我造的 1 线程已按 FK 序清（四表归零）。
