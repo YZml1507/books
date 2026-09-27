@@ -16525,3 +16525,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   披露（同 R2997 问一嘴洞）。save_async 内统一剥：question
   清空+name 换品类中性标签（无生辰 req 加 _RTYPE_LABEL 兜底
   防丢行）。钉 paipan.sensitive_strip。315 全绿。
+
+## R3019 巡检#436——warm 层敏感问题收口审计（绿）
+- 三例实测（家暴/自杀意念/肿瘤）：warm.reply 首行即合并
+  转介句（12356+找医生/信得过的人+「不该靠它拿主意」），
+  确定性层早已收口——#17a polish 闸补齐最后一个未对齐
+  信道，三层（warm/polish/chat）口径现已一致。
