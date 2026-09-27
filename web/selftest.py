@@ -447,6 +447,16 @@ def _run_inner() -> list[str]:
           lambda j: (len((j.get("paipan") or {}).get("xunkong") or []) == 2
                      and all(b in "子丑寅卯辰巳午未申酉戌亥"
                              for b in (j["paipan"]["xunkong"]))))
+    # R3173：伏神——六亲缺位时本宫纯卦同位爻是藏的星。seed0 姤卦
+    # （乾宫）无妻财，乾纯卦二爻甲寅木为妻财伏于姤二爻下。
+    check("liuyao.fushen", client.post("/api/liuyao", json={"method": "coins",
+          "seed": 0, "question": "我和他要不要分手",
+          "client_date": "2026-09-28"}),
+          lambda j: any(f.get("liuqin") == "妻财" and f.get("position") == 2
+                        and f.get("branch") == "寅"
+                        for f in (j.get("paipan") or {}).get("fushen") or [])
+          and any("伏在" in l for l in
+                  (j.get("warm", {}).get("reply") or [])))
     # R118b（D-164b）：liuyao time（梅花易数时间起卦）与 huangli affair（择日
     # 查找 find_good_days）两条已接线能力路径此前零 standing 断言——实测曾
     # 发现 affair 分支因 timedelta 未导入而 NameError 静默损坏。固定参数确定性

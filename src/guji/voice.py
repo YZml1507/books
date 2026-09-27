@@ -1157,6 +1157,20 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                     _bits.append(
                         f"妻星落在{_YAO_POS_CN.get(_qc[0], '第' + str(_qc[0]))}爻"
                         + ("（动爻，正在动的点上）" if _qc[0] in ml else ""))
+                # R3173：伏神——星没上卦不代表没有，本宫纯卦里它藏在
+                # 某位爻底下。单星缺位也要报伏位（妻财缺 23.5%、
+                # 官鬼缺 12%，缺位是常态不是边角）。
+                for _flq, _fln in (("官鬼", "夫星"), ("妻财", "妻星")):
+                    if _pos_of(_flq):
+                        continue
+                    _fs0 = [f for f in (_pp.get("fushen") or [])
+                            if f.get("liuqin") == _flq]
+                    if _fs0:
+                        _bits.append(
+                            f"{_fln}没露面，伏在"
+                            f"{_YAO_POS_CN.get(_fs0[0].get('position'), '')}爻"
+                            f"（{_fs0[0].get('branch') or ''}）底下"
+                            "——还憋着，透出才算数")
                 if _bits:
                     # R2509（审-P2-14）：括号里的「官鬼/妻财」是把刚翻译完
                     # 的黑话又塞回来——温柔版纪律（六亲白话）已破，删掉。
@@ -1172,8 +1186,17 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                 _seg += (f"。问这类事传统上先看{_ys_note}——"
                          f"落在{_YAO_POS_CN.get(_ys_pos[0], '第' + str(_ys_pos[0]))}爻{_mv}")
             else:
-                _seg += (f"。问这类事传统上先看{_ys_note}——它没直接落在这卦里，"
-                         f"那就看代表你和事情的两端更实在")
+                _fs_l2 = [f for f in (_pp.get("fushen") or [])
+                          if f.get("liuqin") == _ys]
+                if _fs_l2:
+                    _f1 = _fs_l2[0]
+                    _seg += (f"。问这类事传统上先看{_ys_note}——它没露面，"
+                             f"伏在{_YAO_POS_CN.get(_f1.get('position'), '')}爻"
+                             f"（{_f1.get('branch') or ''}）底下，事还憋着，"
+                             "透出才算数")
+                else:
+                    _seg += (f"。问这类事传统上先看{_ys_note}——它没直接落在这卦里，"
+                             f"那就看代表你和事情的两端更实在")
         lines.append(_seg + "。")
         # R3100：倾向行——感情题看应×世（对方那头 vs 你），其余场景
         # 看用神×世。五行生克是已算坐标，如实转述不下吉凶断言。

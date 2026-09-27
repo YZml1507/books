@@ -1214,6 +1214,39 @@ def liuyao(req) -> dict:
                     _gn2 = _g2.get("gua_number")
                     _g2["liuhe_chong"] = ("六合" if _gn2 in _LH else
                                           "六冲" if _gn2 in _LC else "")
+                # R3173：伏神——六亲缺位时查本宫纯卦同位爻（藏在本卦
+                # 爻下的星）。200 卦实测妻财缺位 23.5%、官鬼 12%——
+                # 感情题用神四分之一概率不上卦，缺伏神就只能搪塞。
+                _have_lq = {l.get("liuqin")
+                            for l in (_pp["ben_gua"].get("lines") or [])}
+                _miss_lq = {"父母", "兄弟", "子孙", "妻财", "官鬼"} \
+                    - _have_lq - {""}
+                if _miss_lq:
+                    _GONG_PURE = {"乾": 1, "坤": 2, "震": 51, "巽": 57,
+                                  "坎": 29, "离": 30, "艮": 52, "兑": 58}
+                    _gn0 = _GONG_PURE.get(
+                        (_pp["ben_gua"].get("gong") or ""))
+                    if _gn0:
+                        _tb = liuyao_mod.TRIGRAM_BITS[
+                            _pp["ben_gua"]["gong"]]
+                        _h0 = liuyao_mod.Hexagram(
+                            lines=[liuyao_mod.Yao(
+                                yang=bool((_tb | (_tb << 3)) >> (p - 1) & 1),
+                                moving=False, position=p)
+                                for p in range(1, 7)],
+                            gua_number=_gn0,
+                            gua_name=liuyao_mod.GUA_NAMES_64[_gn0 - 1],
+                            moving_lines=[])
+                        _fp = liuyao_mod.paipan(_h0, _dgz[0] if _dgz else "")
+                        _pp["fushen"] = [
+                            {"liuqin": fl.get("liuqin"),
+                             "position": fl.get("position"),
+                             "stem": fl.get("stem"),
+                             "branch": fl.get("branch"),
+                             "wuxing": fl.get("wuxing")}
+                            for fl in (_fp.get("ben_gua", {})
+                                       .get("lines") or [])
+                            if fl.get("liuqin") in _miss_lq]
             except Exception:
                 pass
     except Exception:

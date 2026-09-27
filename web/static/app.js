@@ -5417,6 +5417,16 @@ function buildLiuyaoResult(j) {
         var _yaoBars = ln.yang ? '<i></i>' : '<i></i><i></i>';
         var _pl = _ppLines[ln.position];
         var _coord = '';
+        /* R3173：伏神注——本宫卦里藏在这爻底下的六亲星，
+         * 用神缺位时这是唯一的落点。 */
+        var _fsAt = (((j.paipan || {}).fushen) || []).filter(
+          function (f) { return f.position === ln.position; });
+        if (_fsAt.length) {
+          _coord += '<span class="yao-coord yao-fu" title="伏神——' +
+            '本宫卦藏在这爻底下的星，透出才算数">伏·' +
+            esc(_fsAt.map(function (f) { return f.liuqin || ''; })
+                  .join('')) + '</span>';
+        }
         if (_pl) {
           /* R2350b（R98-P1-3）：六亲/六神原词裸奔——行尾随行白话让
            * 图上词和正文人话对上号（正文说「事业与忧心」，图上
@@ -5425,7 +5435,8 @@ function buildLiuyaoResult(j) {
           var _sj = _LIUSHEN_PLAIN[_pl.shen];
           var _coordTxt = [_pl.liuqin, _pl.shen].filter(Boolean).join('·');
           var _coordHint = [_lq, _sj].filter(Boolean).join('·');
-          _coord = '<span class="yao-coord"' +
+          /* R3173 连带：上面伏神注先入 _coord，这里必须 += 不能 = */
+          _coord += '<span class="yao-coord"' +
             (_coordHint ? ' title="' + esc(_coordHint) + '"' : '') + '>' +
             esc(_coordTxt) +
             (_coordHint ? '<i class="yao-plain">' + esc(_coordHint) +
