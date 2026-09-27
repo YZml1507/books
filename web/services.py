@@ -3663,7 +3663,7 @@ def tarot_draw(req) -> dict:
     cards = _draw_dicts(draws)
     card = cards[0]
     interpretation = interpreter.interpret_tarot(cards, req.question)
-    return {
+    out = {
         "card": {"name": card["name"], "upright": card["upright"],
                  "upright_kw": card["upright_kw"],
                  "reversed_kw": card["reversed_kw"],
@@ -3671,6 +3671,9 @@ def tarot_draw(req) -> dict:
         "interpretation": interpretation,
         "warm": voice.warm_tarot(cards, interpretation, req.question),
     }
+    # R3150c：首页快速单抽也挂快照——抽一张来聊同样要判词口径一致。
+    out["result_ref"] = _stash_result("tarot", out)
+    return out
 
 
 # ---------------------------------------------------------------------------
