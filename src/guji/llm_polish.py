@@ -985,11 +985,18 @@ def _fact_is_safe(f: str) -> bool:
     if "\n" in f or "\r" in f:
         return False
     _n = _fact_norm(f)
-    if _FACT_BAN_PAT.search(_n) or _n.lstrip().lower().startswith("system"):
+    # R3068（巡#485）：词内插符/拼音规避经 facts 混入——「她叫自.杀
+    # 小队」「昵称zi sha」结构化词表查不到插符形，原文送进 LLM
+    # 上下文块。补压平形态同查 BAN/CRISIS 两表（剥行语义不变，
+    # 只是上下文更干净）。
+    _nf = _norm_cs_flat(f)
+    if _FACT_BAN_PAT.search(_n) or _FACT_BAN_PAT.search(_nf) \
+            or _n.lstrip().lower().startswith("system"):
         return False
     # R61-P1-2：危机/生死词经 facts 混入会绕过 message 位的确定性
     # 转介——剥掉该行（它是「坐标事实」不是求助语境，不触发转介）。
-    if _CRISIS_PAT.search(_n) or _is_sensitive(_n):
+    if _CRISIS_PAT.search(_n) or _CRISIS_PAT.search(_nf) \
+            or _is_sensitive(_n):
         return False
     return True
 
