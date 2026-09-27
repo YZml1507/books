@@ -16802,3 +16802,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   地址；TLS 默认校验恢复（CERT_NONE MITM 洞实录已修）；
   4MB/12s/8条三帽；英文异常只进 stderr 客户端收中文；公开
   RSS 红线+进程内不落库（Source 隔离）+单源降级。
+
+## R3064 巡检#481——evalset 归一空间审计（绿）
+- 三空间（folded_notes/folded_jing/unfolded_notes）各自被实
+  测失效问题逼出——8 题 INVALID 实录；derive/verify 同导一
+  处防库-验漂移（变体表同病）；畸形源括号深度钳 0 降级；
+  标点空间混用致 citation 0/30 伪缺陷实录。
