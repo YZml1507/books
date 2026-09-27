@@ -15816,3 +15816,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   （xzm_a/b 只有 12 短名选项），用户打不出全名——
   400 只挡裸 API 输入且报错语教学词表，设计内。
 - rel=闺蜜/同事 追加语境尾巴在产（恋人不加感情腔）。
+
+## R2928 巡检#345——bazi.semantic bge 语义径实测
+- retrieve_semantic(1990-01-01 午时男, top_k=8)→8 命中
+  含子平真诠×4+星學大成——P2 子平书真召回（CLI
+  scripts/ask_bazi.py 专属径，web 不经过它）。
