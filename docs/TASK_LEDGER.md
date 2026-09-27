@@ -15217,3 +15217,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   天窗扫须齐新月+满月）；未来日 200 且 paipan_history
   total 恒 0（future_nowrite 实锤）；45 天窗 do/dont
   不降级成「—」已在闸。
+
+## R2843 巡检#260——history.removed 面
+- DELETE 不存在 id→404「排盘记录不存在：#99999」人
+  话带 id；list 当前 total=0 干净（R2837 清残后一致）。
