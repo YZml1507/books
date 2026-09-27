@@ -1086,6 +1086,14 @@ def _run_inner() -> list[str]:
         _s2.json()["draws"][9]["position"] == "结果", \
         ("tarot.spread.celtic", _s2.json()["n"])
     ok.append("tarot.spread.celtic")
+    # R3090（specs/010-P2）：牌位判词化钉——凯尔特十字叙事不再只贴
+    # 前 3 张：关键位+收尾位（希望/结果）要开口，阻碍位有「坎」句式。
+    _pc = client.post("/api/tarot", json={"seed": 7, "spread": "celtic",
+                                          "question": "考研二战来得及吗"})
+    _pr = (_pc.json().get("warm") or {}).get("reply") or []
+    assert any("阻碍" in l and "阻碍位" in l for l in _pr), _pr
+    assert any("希望" in l or "结果" in l for l in _pr), _pr
+    ok.append("tarot.position_voice")
     _bad = client.post("/api/tarot", json={"spread": "bogus"})
     assert _bad.status_code == 400 and \
         "没这个牌阵" in str(_bad.json().get("detail")), \

@@ -1084,13 +1084,37 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         lines.append(f"针对你的问题「{q}」，每张牌这样说：")
     else:
         lines.append("每张牌这样说：")
-    # ≥6 张时只展示前 3 张 + 剩余提示 + 收尾
-    shown = cards[:3] if len(cards) > 5 else cards[:5]
+    # ≥6 张时不再只贴前 3 张——按位置权重选 5 张叙事（R3090/specs/010-P2）：
+    # 前 3 个关键位 + 建议/指引/希望/结果 收尾位，凯尔特十字的「希望/结果」
+    # 此前根本没机会开口。
+    if len(cards) > 5:
+        _KEY_POS = {"现在", "现状", "阻碍", "根源", "目标", "未来",
+                    "关键", "助力", "环境", "你", "TA", "这段关系",
+                    "内心", "身体", "灵性"}
+        _TAIL_POS = {"建议", "指引", "希望", "结果"}
+        _key = [c for c in cards if c.get("position") in _KEY_POS]
+        _tl = [c for c in cards if c.get("position") in _TAIL_POS]
+        shown = (_key[:3] + _tl[:2] or _key[:5]) or cards[:3]
+        shown = shown[:5]
+    else:
+        shown = cards[:5]
     # R233u（R53-P0-3 连带）：位置修饰让「过去/现在/未来」真的参与语义；
     # 同阵同 kw0（约 5%）降级为呼应表述，不再同一句话贴两遍。
-    _POS_CLAUSE = {"过去": "（留下的影响）", "现在": "（正在发生）",
-                   "现状": "（正在发生）", "未来": "（接下来要注意）",
-                   "结果": "（走向）"}
+    # R3090：位置域表扩到全部命名阵——同一张牌落「阻碍」位与落「希望」
+    # 位说不同的话（牌位判词化）。
+    _POS_CLAUSE = {
+        "过去": "（留下的影响）", "现在": "（正在发生）",
+        "现状": "（正在发生）", "未来": "（接下来要注意）",
+        "结果": "（按牌面走到的样子）", "阻碍": "（挡你的那个点）",
+        "助力": "（能借的力）", "根源": "（事的根）",
+        "目标": "（想去的方向）", "环境": "（周围的场）",
+        "建议": "（牌给的处方）", "指引": "（牌给的处方）",
+        "希望": "（你盼的方向）", "你": "（你这边的状态）",
+        "TA": "（ta 那边的状态）", "这段关系": "（关系的底色）",
+        "内心": "（心里真正的声音）", "身体": "（身体的提醒）",
+        "灵性": "（往深里走的那层）", "关键": "（整局的关键点）",
+        "选项A": "（选 A 会怎样）", "选项B": "（选 B 会怎样）",
+    }
     _seen_kw: set[str] = set()
     for c in shown:
         cu = bool(c.get("upright"))
@@ -1101,34 +1125,54 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         kw0 = ckw.split('·')[0] if ckw else ''
         # D-002：每张牌一句话直接关联问题，给具体指引
         guidance = _tarot_kw_guidance(kw0, q)
+        # R3090：位置改写句式——阻碍位的 kw 是要跨的坎、建议/指引位的
+        # kw 就是处方、结果位是走向预言；同牌异位不再同句。
+        _pre = f"{pos_label + '：' if pos_label else ''}"
+        if pos == "阻碍":
+            if name in _TAROT_HEAVY or not cu:
+                _tpl = (f"{_pre}{name}说「{kw0}」——落在阻碍位，"
+                        f"这正是要跨的坎：{guidance}")
+            else:
+                _tpl = (f"{_pre}{name}说「{kw0}」——好牌落阻碍位，"
+                        f"障碍不算硬，要留神的是「{kw0}」被用过头："
+                        f"{guidance}")
+        elif pos in ("建议", "指引"):
+            _tpl = f"{_pre}{name}——牌给的处方就是「{kw0}」：{guidance}"
+        elif pos == "希望":
+            _tpl = f"{_pre}{name}说「{kw0}」——你盼的方向长这样：{guidance}"
+        elif pos == "结果":
+            _tpl = f"{_pre}{name}说「{kw0}」——按现在走法，结局大致在这：{guidance}"
+        else:
+            _tpl = ""
         if q:
             if kw0 in _seen_kw:
-                lines.append(f"{pos_label + '：' if pos_label else ''}"
-                             f"{name}也在说「{kw0}」——和前面那张是呼应，"
+                lines.append(f"{_pre}{name}也在说「{kw0}」——和前面那张是呼应，"
                              f"这件事的信号挺明确。")
+            elif _tpl:
+                lines.append(_tpl)
             else:
-                lines.append(f"{pos_label + '：' if pos_label else ''}"
-                             f"{name}说「{kw0}」——{guidance}")
+                lines.append(f"{_pre}{name}说「{kw0}」——{guidance}")
         else:
             # R2349q（R81-P1-9）：无提问路径同 kw0 撞句也降级——
             # 此前圣杯2逆+权杖2逆连出两句一字不差的「失衡·两难·拉扯」。
             if kw0 in _seen_kw:
-                lines.append(f"{pos_label + '：' if pos_label else ''}"
-                             f"{name}（{'正位' if cu else '逆位'}）——"
+                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}）——"
                              f"也在说「{kw0}」，是呼应前面那张。")
+            elif _tpl:
+                lines.append(_tpl)
             else:
                 # R2518：无提问路径此前只露原始 kw 串——指引表就在手边
                 # 却不给（「收尾难·差口气·撑住」alone 对用户是术语），
                 # 挂上指引句，与有提问路径同一深度。
                 _gd = _tarot_kw_guidance(kw0, "")
-                lines.append(f"{pos_label + '：' if pos_label else ''}"
-                             f"{name}（{'正位' if cu else '逆位'}）——{ckw}。"
+                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}）——{ckw}。"
                              + (f"{_gd}。" if _gd else ""))
         _seen_kw.add(kw0)
     # 收尾：给一句具体方向
     tail = []
-    if len(cards) > 5:
-        tail.append(f"还有 {len(cards) - 3} 张牌，每张都在说同一件事的不同面。")
+    if len(cards) > len(shown):
+        tail.append(f"其余 {len(cards) - len(shown)} 张是细节的注脚——"
+                    "主角是上面那几张。")
     if q:
         tail.append(f"综合来看，{_tarot_combined_guidance(shown, q)}")
     else:
