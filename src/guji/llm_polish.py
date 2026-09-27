@@ -2199,6 +2199,7 @@ def facts_liuyao(res: dict, warm: dict | None = None,
         if ("照传统口径" in _ls or "应期参考" in _ls or "判词" in _ls
                 or "最实一步" in _ls or "观察信号" in _ls
                 or "月令" in _ls or "旬空" in _ls or "落空亡" in _ls
+                or "回头生" in _ls or "回头克" in _ls
                 or "先做" in _ls):
             facts.append(("判词：" if not _ls.startswith("判词")
                           else "") + _fact_line(_ls))

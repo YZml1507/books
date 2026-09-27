@@ -1287,6 +1287,38 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         lines.append(f"动的是{pos}（共 {len(ml)} 个）——{_mv_txt}。")
         if len(ml) >= 3:
             lines.append("动爻偏多，说明这件事变数不小，看整体走向比抠单爻实在。")
+        # R3171：回头生/克——动爻化出之爻对本位的五行关系是传统
+        # 断卦的分水岭（动而有援 vs 动而受伤）。变卦纳甲五行已算，
+        # 如实转述不下吉凶断言。
+        try:
+            _bgl = {int(l.get("position", 0)): l
+                    for l in ((_pp.get("bian_gua") or {}).get("lines") or [])}
+            _bgl0 = {int(l.get("position", 0)): l
+                     for l in ((_pp.get("ben_gua") or {}).get("lines") or [])}
+            _hs, _hk = [], []
+            for _mp2 in ml:
+                _a2 = (_bgl0.get(_mp2, {}) or {}).get("wuxing", "")
+                _b2 = (_bgl.get(_mp2, {}) or {}).get("wuxing", "")
+                if not _a2 or not _b2:
+                    continue
+                if ELEMENT_GENERATES.get(_b2) == _a2:
+                    _hs.append(_mp2)
+                elif _WX_KE_LY.get(_b2) == _a2:
+                    _hk.append(_mp2)
+            _hb = []
+            if _hs:
+                _hb.append("、".join(
+                    _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                    for p in _hs) + "动出去有接应（化回头生）")
+            if _hk:
+                _hb.append("、".join(
+                    _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                    for p in _hk) +
+                    "动出去反被打回来（化回头克）——那一步要留个后手")
+            if _hb:
+                lines.append("再细看动的爻——" + "；".join(_hb) + "。")
+        except Exception:
+            pass
     else:
         lines.append("没有动爻（静卦）——当下格局是稳住的，变化的劲不明显。")
 
