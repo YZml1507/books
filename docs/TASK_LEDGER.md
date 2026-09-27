@@ -15221,3 +15221,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2843 巡检#260——history.removed 面
 - DELETE 不存在 id→404「排盘记录不存在：#99999」人
   话带 id；list 当前 total=0 干净（R2837 清残后一致）。
+
+## R2844 巡检#261——qiming rebatch 窗口语义
+- 实测澄清：轮换字段是 full_names+seed（candidates 是
+  恒定五行字池，我首测误当批次字段）；契约口径须带
+  top_n=8（前端显示窗）。seed1∩seed2=∅；seed3 在 20
+  字小池下环绕复现 2 名——D-004「循环一轮后才重复」
+  设计语义，池≥24 三批互斥（闸内李盘 24+ 全绿）；非
+  缺陷。自造 17 行 qiming 已清（total=0）。
