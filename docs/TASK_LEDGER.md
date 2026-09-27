@@ -17238,3 +17238,4 @@ R3153（specs/014-L1+）：跨日卡片记忆——chat:cards 本机足迹（用
 R3154：塔罗/六爻接 AI 解读块（此前只有八字/桃花/合婚/起名四面有 polish）——facts_tarot（牌面坐标+综合口径行升判词权威位）/facts_liuyao（本变卦+动爻+世应纳甲六亲+应期/处方判词行）；_SYSTEM 措辞泛化「八字盘」→「命理结果」；FE 双 build 挂 renderAiPolish+submit 挂 pollAiPolish；contract 登记两端点 ai_task_id 条件键（648 点 PASS）；真机验证 agnes-3.0-flash 实产出稿贴卦名/牌位不瞎编。
 R3155：星座合盘接 AI 解读块（闺蜜互测分享场景要口语段）——facts_xzmatch（象组/分数/lines 判词级行，交权尾不进 facts）；响应契约对齐 ai_polish 恒在+ai_task_id 条件；真机实测贴象组处方出稿。
 R3156（真修47·真实LLM首验）：财务话题出格实测——agnes 实机给「拿一万试水仓」越过「不做买卖建议」线；_CHAT_SYSTEM 补「不给仓位/金额分配方案（先拿一万试水这类也算）」，复测收敛为短长钱框架+顾问转介。附带里程碑：llm_config.json 真实 LLM（agnes-3.0-flash）端点可用，polish/chat 全链路真实出稿验证通过（卦名/牌位/判词口径全对上）。
+R3157（审-拥塞）：AI 任务限速分桶——spawn_ai_task 加 rate_key/rate_limit；分享重放（record=false）走 ai_replay 15/min、合盘 GET 走 ai_social 15/min，爬虫/链接预览器刷爆单面时只挤爆自己的桶，不拖垮全局「ai」60/min 额度；实测 xzmatch 16 连击后自身降级、主桶隔离。

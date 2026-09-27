@@ -1273,9 +1273,12 @@ def liuyao(req) -> dict:
             out, rtype="liuyao",
             name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
     # R3154：六爻接 AI 解读块——卦象坐标+判词行进 facts，与 bazi 同机制
+    # R3157：record=False 是分享重放（爬虫/链接预览可达）——小桶限速
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_liuyao(out, out.get("warm"), req.question),
-        req.question)
+        req.question,
+        rate_key=("ai" if getattr(req, "record", True) else "ai_replay"),
+        rate_limit=(60 if getattr(req, "record", True) else 15))
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     # R3124b：判词升格信道用结果 ref
@@ -1914,7 +1917,10 @@ def xzmatch(sa: str, sb: str, rel: str = "") -> dict:
            # R3155：ai_polish 恒在（同步段永 None），ai_task_id 条件追加
            "ai_polish": None}
     # R3155：合盘接 AI 解读块——闺蜜互测是分享场景，要口语段
-    ai_task_id = llm_polish.spawn_ai_task(llm_polish.facts_xzmatch(out))
+    # R3157：GET 端点爬虫/预览器可达——独立小桶不占全局「ai」额度
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_xzmatch(out), rate_key="ai_social",
+        rate_limit=15)
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     # R3150：合盘此前没进 result_ref 快照——照卡聊「我们配吗」时
@@ -3662,9 +3668,12 @@ def tarot(req) -> dict:
                   ((_spread_name + " · " + str(len(cards)) + " 张")
                    if _spread_name else f"{len(cards)} 张牌阵")))
     # R3154：塔罗接 AI 解读块——牌面坐标+综合口径行进 facts
+    # R3157：record=False 是分享重放——爬虫可达，独立小桶
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_tarot(out, out.get("warm"), req.question),
-        req.question)
+        req.question,
+        rate_key=("ai" if getattr(req, "record", True) else "ai_replay"),
+        rate_limit=(60 if getattr(req, "record", True) else 15))
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     # R3124b：判词升格信道用结果 ref

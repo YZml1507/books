@@ -532,7 +532,9 @@ def _gc_tasks() -> None:
 
 
 def spawn_ai_task(facts: list[str], question: str | None = None,
-                  config: dict | None = None, _transport=None) -> str | None:
+                  config: dict | None = None, _transport=None,
+                  rate_key: str = "ai",
+                  rate_limit: int = 60) -> str | None:
     """后台起一个 polish 任务，立刻返回 task_id；功能关闭返回 None。
 
     返回 None 时调用方不要往响应里放 ai_task_id 键——这样 DISABLE=1 的
@@ -549,7 +551,9 @@ def spawn_ai_task(facts: list[str], question: str | None = None,
         return None
     # R230t（R32-P0-4）：AI 解读限速——同一盘重进页面重调的场景常见，
     # 每键一分钟 60 次足够正常使用，洪泛按降级处理。
-    if not _rate_ok("ai", 60):
+    # R3157（审-拥塞）：分享重放/合盘 GET 这类爬虫可达路径用小桶——
+    # 链接预览器刷爆单面时只挤爆自己的桶，不拖垮全局「ai」额度。
+    if not _rate_ok(rate_key, rate_limit):
         return None
     tid = secrets.token_urlsafe(16)
     with _tasks_lock:
