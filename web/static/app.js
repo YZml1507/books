@@ -4949,7 +4949,7 @@ function buildLiuyaoResult(j) {
    * 在 warm.reply 之前给一句「针对你问的 X」让用户秒级感到被听到。
    * 6 套关键词模板 + 通用兜底。 */
   if (j.question) {
-    html += liuyaoQuestionHook(j.question, ben, bian);
+    html += liuyaoQuestionHook(j.question, ben, bian, j.paipan);
   }
   if (voiceMode() === 'warm' && warm.reply && warm.reply.length) {
     html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
@@ -6108,7 +6108,56 @@ function _liuyaoClassify(question) {
 }
 
 
-function liuyaoQuestionHook(question, ben, bian) {
+/* R3092（specs/010-P3）：paipan 坐标行进 hook——用神/世应/动爻
+ * 六亲此前全在响应里却只说分类通用句（盘点 agent Top-5）。
+ * 用神口径：工作=官鬼、学习考试=父母、财=妻财、身体=官鬼+世、
+ * 感情=世应两位、通用=世爻。 */
+var _LY_YONG = {work: '官鬼', study: '父母', money: '妻财',
+                health: '官鬼'};
+var _LY_POS = {1: '初', 2: '二', 3: '三', 4: '四', 5: '五', 6: '上'};
+function _liuyaoCoordLine(cat, paipan, moving) {
+  var bg = (paipan || {}).ben_gua || {};
+  var ls = bg.lines || [];
+  if (!ls.length) return '';
+  var mv = moving || (paipan || {}).moving_lines || [];
+  var seg = [];
+  if (cat === 'love' || cat === 'general') {
+    /* 世=自己、应=对方/事情——两位坐标直接报，动了哪边说哪边。 */
+    var shi = bg.shi, ying = bg.ying;
+    if (shi && ying) {
+      var s = '世爻在' + (_LY_POS[shi] || shi) + '爻（你这边）、应爻在' +
+              (_LY_POS[ying] || ying) + '爻（对方那边）';
+      if (mv.indexOf(shi) >= 0) s += '——世爻在动，你自己的心思正在变';
+      else if (mv.indexOf(ying) >= 0) s += '——应爻在动，对方那边正在起变化';
+      seg.push(s);
+    }
+  }
+  var yong = _LY_YONG[cat];
+  if (yong) {
+    var hit = ls.filter(function (l) { return l.liuqin === yong; });
+    if (!hit.length) {
+      seg.push('用神「' + yong + '」没上卦——这事的根子不在明面上，别只看表面功夫');
+    } else {
+      var h = hit[0];
+      var ps = (_LY_POS[h.position] || h.position) + '爻';
+      seg.push(mv.indexOf(h.position) >= 0
+        ? '用神「' + yong + '」落在' + ps + '还是动爻——关键点正在动的这一处'
+        : '用神「' + yong + '」落在' + ps + '——关键点按住了没动，稳着来');
+    }
+  }
+  /* 动爻六亲坐标：动的爻落在哪个生活域（六亲）比「有爻在动」具体一档。 */
+  var others = ls.filter(function (l) {
+    return l.moving && l.liuqin !== _LY_YONG[cat];
+  });
+  if (others.length) {
+    var o = others[0];
+    seg.push('动的是' + (_LY_POS[o.position] || o.position) + '爻（' +
+             o.liuqin + '）——变数落在这一处');
+  }
+  return seg.join('；');
+}
+
+function liuyaoQuestionHook(question, ben, bian, paipan) {
   /* R2349q（R81-P0-1）：生死/重病提问不走方向模板——转介文案。 */
   if (feSensitive(question)) {
     return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
@@ -6179,8 +6228,12 @@ function liuyaoQuestionHook(question, ben, bian) {
   };
   var key = moving ? 'moving' : (changed ? 'changed' : 'quiet');
   var line = (lines[cat] && lines[cat][key]) || lines.general[key];
+  var _coord = _liuyaoCoordLine(cat, paipan,
+                              (ben && ben.moving_lines) || []);
   return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
-    esc(String(question).slice(0, 18)) + '」</span><p>' + renderRichText(line) + '</p></div>';
+    esc(String(question).slice(0, 18)) + '」</span><p>' + renderRichText(line) +
+    '</p>' + (_coord ? '<p class="ly-coord">' + esc(_coord) + '</p>' : '') +
+    '</div>';
 }
 
 

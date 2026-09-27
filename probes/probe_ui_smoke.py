@@ -1628,6 +1628,40 @@ def main() -> int:
             results.append({"name": "ui:hl_verdict_twoleg",
                             "ok": ok, "detail": detail})
 
+            # ── R3092 钉扎（specs/010-P3）：六爻 hook 坐标行——
+            #   用神/世应/动爻六亲从 j.paipan 进句。直调
+            #   _liuyaoCoordLine 受控件验证四类口径。
+            errors.clear()
+            try:
+                cases = page.evaluate(
+                    "() => {"
+                    " var pp = {ben_gua:{shi:3, ying:6, lines:["
+                    "  {position:6, liuqin:'父母', moving:false},"
+                    "  {position:2, liuqin:'官鬼', moving:true},"
+                    "  {position:3, liuqin:'妻财', moving:false}]},"
+                    "  moving_lines:[2]};"
+                    " return ["
+                    "  _liuyaoCoordLine('work', pp, [2]),"
+                    "  _liuyaoCoordLine('love', pp, [2]),"
+                    "  _liuyaoCoordLine('money', pp, [2]),"
+                    "  _liuyaoCoordLine('study', {ben_gua:{lines:["
+                    "   {position:4, liuqin:'兄弟', moving:false}]},"
+                    "   moving_lines:[]}, [])"
+                    " ];}")
+                ok = (len(cases) == 4
+                      and "官鬼" in cases[0] and "动爻" in cases[0]
+                      and "世爻" in cases[1] and "应爻" in cases[1]
+                      and "妻财" in cases[2] and "没动" in cases[2]
+                      and "没上卦" in cases[3] and not errors)
+                detail = "coord四例=" + "|".join(
+                    "OK" if c else "X" for c in cases)
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:liuyao_coord",
+                            "ok": ok, "detail": detail})
+
             # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
             #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
             errors.clear()
