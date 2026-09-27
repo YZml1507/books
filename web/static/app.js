@@ -6107,6 +6107,21 @@ function _tarotHasHeavy(draws) {
     return d && _TAROT_HEAVY_FE[d.name];
   });
 }
+/* R3121（R3119 FE 侧同口径）：正位硬牌 kw0 镜像——权杖10「扛太满」
+ * 这类正位即吃力的牌，hook 不能只按 upright 说「顺」（BE voice.
+ * _TAROT_HARD_UP 同源）。判据走 kw0 与后端一致。 */
+var _TAROT_HARD_FE = { '受困': 1, '忧惧': 1, '谷底': 1, '扛太满': 1,
+  '带伤撑着': 1, '倦怠': 1, '失落': 1, '手头紧': 1, '取巧': 1,
+  '冲突': 1, '内耗': 1, '受挫': 1 };
+function _tarotHardCount(draws) {
+  var n = 0;
+  (draws || []).forEach(function (d) {
+    if (!d || !d.upright) return;
+    var kw0 = String(d.upright_kw || '').split('·')[0];
+    if (_TAROT_HARD_FE[kw0]) n++;
+  });
+  return n;
+}
 /* R2349q（R81-P2-10）：牌面盐值确定性挑同义句——同组牌同一处位
  * 每次渲染同句，不同牌/不同位错开。 */
 function _trVar(draws, arr, shift) {
@@ -6164,13 +6179,23 @@ function tarotQuestionHook(question, draws) {
       false: '**牌面有些别扭**——先别急着推进，这几天多观察少动作。'
     }
   };
-  var key = upright ? 'true' : 'false';
+  /* R3121：主位牌本身是正位硬牌时不算「顺」——权杖10 扛太满
+   * 压在主位上，顺字当头是错的（与阻碍位坎句同口径）。 */
+  var _mkw = main && String(main.upright_kw || '').split('·')[0];
+  var key = (upright && !_TAROT_HARD_FE[_mkw]) ? 'true' : 'false';
   var line = (lines[cat] && lines[cat][key]) || lines.general[key];
   /* R2349q（R81-P0-2）：hook 与 warm 收尾同口径——场上有重牌时
    * 主牌正位也改安抚变体，不然同页两句互搏。 */
   if (upright && _tarotHasHeavy(draws)) {
     line = '**牌里有几张在提醒你的位置**——先照顾好自己，' +
       '关于「' + String(question).slice(0, 18) + '」这事可以慢一点推进。';
+  }
+  /* R3121：正位硬牌同口径——≥2 张吃力正位时 hook 不再说「顺」，
+   * 与 BE combined 的吃力分支同一句式（同页不互搏）。 */
+  else if (upright && _tarotHardCount(draws) >= 2) {
+    line = '**这组牌好几张都在使劲**——关于「' +
+      String(question).slice(0, 18) +
+      '」，先看你手上的事哪件能卸一卸。';
   }
   /* R228c：模板里的 **粗体** 要走 renderRichText——paint() 只 innerHTML，
    * 裸拼会把 ** 字面量裸露给用户（与 R227b 聊天路径同类漏网）。 */

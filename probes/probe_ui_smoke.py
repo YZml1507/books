@@ -1666,6 +1666,37 @@ def main() -> int:
             results.append({"name": "ui:liuyao_coord",
                             "ok": ok, "detail": detail})
 
+            # ── R3121 钉扎：tarotQuestionHook 正位硬牌——主位压
+            #   权杖10「扛太满」不得说「顺」；≥2 张硬牌走使劲口径。
+            errors.clear()
+            try:
+                cases = page.evaluate(
+                    "() => {"
+                    " const mk=(n,u,rw)=>{const d={name:n,upright:true,"
+                    "  upright_kw:u,reversed_kw:rw,position:'x'}; return d;};"
+                    " return ["
+                    "  tarotQuestionHook('工作能定下来吗',"
+                    "   [mk('太阳','光明','阴影'),"
+                    "    mk('权杖10','扛太满·责任重·还在撑','该卸货了'),"
+                    "    mk('圣杯9','如愿·小满足','贪更多')]),"
+                    "  tarotQuestionHook('工作能定下来吗',"
+                    "   [mk('权杖10','扛太满·责任重·还在撑','该卸货了'),"
+                    "    mk('权杖9','带伤撑着·不服输','真累了'),"
+                    "    mk('太阳','光明','阴影')])"
+                    " ];}")
+                ok = (len(cases) == 2
+                      and "顺" not in cases[0]
+                      and "使劲" in cases[1]
+                      and not errors)
+                detail = ("hardhook=" + "|".join(
+                    "OK" if c else "X" for c in cases))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:tarot_hardhook",
+                            "ok": ok, "detail": detail})
+
             # ── R3114 钉扎（specs/010）：聊天上下文判词透传——
             #   buildChatContext 三视图须带判词层事实（合拍指数/判词/
             #   入口/倾向行），否则小满与判词层两套话。
