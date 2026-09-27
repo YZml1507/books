@@ -15346,3 +15346,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - async_ai：p95<2.0s / 到达+降级 / DISABLE 逐字节
   不变三判据全成立——三检进程内 TestClient 零外部
   依赖可离线跑。
+
+## R2863 巡检#280——第九段全闸大快照
+- selftest 312 / contract 643(SOFT=50) / standing 3/3 /
+  dup AST 零重复 / baseline_voice 14 逐字节 / ui_smoke
+  PASS(75+) / r2524 安全 34/0 / date_parity 74+43+253+9
+  / chat_e2e 4/4 全绿——第 280 轮巡检零回归。
