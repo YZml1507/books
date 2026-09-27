@@ -14587,3 +14587,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2732 巡检#149——threads limit 双界
 - limit=0/999/-1→400「条数要在 1-500 之间」双界人话；
   limit=5 正常下发。
+
+## R2733 巡检#150——evidence role 校验
+- 合法三值 supports/contradicts/context 全 200；refutes 与
+  evil_role→400「证据只能标成支持/反驳/背景」——CHECK 前置
+  拦截在产；测试线程已删。
