@@ -2732,6 +2732,67 @@ def _run_inner() -> list[str]:
     assert not _LC._is_sensitive("a particular example"), "ICU子串被误拦"
     assert not _LC._is_sensitive("上班摸鱼摸到腰疼"), "摸鱼梗被误拦"
     assert not _LC._is_sensitive("爸爸摸我头表扬"), "亲昵摸头被误拦"
+    # R2994（巡#411）：前端镜像行为级 parity——从 app.js 抽六枚正则
+    # 字面量，Python 侧复刻 feCrisis/feSensitive 判定（含想死+代词
+    # 撒娇豁免），喂同一电池断言双向一致，防镜像再漂移（实测曾缺
+    # 整个生活域 OBJ 行→「这工作没啥意思」前端误发 12356）。
+    _app_src = open(os.path.join(_ROOT, "web", "static", "app.js"),
+                    encoding="utf-8").read()
+    def _fe_re(_name):
+        _m = _re.search(
+            _name + r"\s*=\s*new RegExp\((.*?),\s*'i'\s*\)",
+            _app_src, _re.S)
+        if _m:
+            _pat = "".join(
+                _re.findall(r"'((?:[^'\\]|\\.)*)'", _m.group(1)))
+            _pat = _pat.replace("\\\\", "\\")
+        else:
+            _pat = _re.search(
+                _name + r"\s*=\s*/(.*?)/i;", _app_src, _re.S).group(1)
+        return _re.compile(_pat, _re.IGNORECASE)
+    _fch, _fcs, _fco = (_fe_re(_n) for _n in
+                        ("_CRISIS_FE_HARD", "_CRISIS_FE_SOFT", "_CRISIS_FE_OBJ"))
+    _fsh, _fss, _fse = (_fe_re(_n) for _n in
+                        ("_SENSITIVE_FE_HARD", "_SENSITIVE_FE_SOFT",
+                         "_SENSITIVE_FE_EXC"))
+    _segpat = _re.compile(r"[，。！？；,.!?\n;~～…]+")
+    def _fe_crisis(_s):
+        _seg = _s
+        while True:
+            _h = _fch.search(_seg)
+            if not _h:
+                break
+            _rest = _seg[_h.end():]
+            if not (_h.group(0) == "想死" and _re.match(
+                    r"[你他她](?:了|啦)?|我了|我啦", _rest[:2])):
+                return True
+            _seg = _rest
+        if not _fcs.search(_s):
+            return False
+        return any(_fcs.search(_g) and not _fco.search(_g)
+                   for _g in _segpat.split(_s))
+    def _fe_sens(_s):
+        return bool(_fsh.search(_s)
+                    or (_fss.search(_s) and not _fse.search(_s)))
+    for _m in ("想死", "我想死了", "想跳下去", "站在天台想跳下去",
+               "吃了三十片药", "想从这世界消失", "拿刀对着手腕", "想割自己",
+               "活着没啥意思", "吃了三十个饺子", "割自己家的麦子",
+               "消失的世界纪录片", "跳下舞台谢幕", "蹦极的时候跳下去",
+               "这工作没啥意思", "这游戏没啥意思", "电脑死了算了",
+               "想死你了宝贝", "想死我了", "这日子没啥意思"):
+        assert _fe_crisis(_m) == _LC._is_crisis(_m), ("危机镜像分叉", _m)
+    for _m in ("我会不会死", "癌症晚期怎么办", "男朋友打我怎么办",
+               "我被家暴了", "学校有人霸凌我", "同事性骚扰我",
+               "被人跟踪很害怕", "查出肿瘤了", "查出来白血病",
+               "住进了ICU", "被人强吻", "被继父摸过", "他拿刀威胁我",
+               "被灌醉了", "心梗住院了", "化疗第三期了",
+               "多肉会不会死", "手机还能活多久", "拖延症晚期",
+               "打我电话", "他打我游戏账号", "快递跟踪单号",
+               "看校园霸凌新闻", "肿瘤医院的猫", "刷到肿瘤新闻",
+               "看化疗纪录片哭了", "上班摸鱼摸到腰疼", "爸爸摸我头表扬",
+               "a particular example", "this is so difficult"):
+        assert _fe_sens(_m) == _LC._is_sensitive(_m), ("敏感镜像分叉", _m)
+    ok.append("chat.mirror.parity")
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
     # 8/min 限流，done-task 直接带回转介句，连发也不会被「歇口气」顶掉。
     _tid_s = _LC.spawn_chat_task("st-sens", "得了绝症怎么办", config=_ccfg)
