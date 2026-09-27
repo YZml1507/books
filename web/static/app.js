@@ -1673,9 +1673,13 @@ function attachChatEntry(container) {
    * .birth-card——都不含 .card，入口钮一直挂不上（实测这三面计数=0）。
    * 选择器放宽到已知结果壳。 */
   var card = container.querySelector('.card, .xz-result, .birth-card');
+  /* R3162：裸结果壳兜底——xzmResult 这类直渲 div 的结果没有内层
+   * .card，选择器找不到目标就静默 no-op，入口永远挂不上。退一步
+   * 挂在容器自身（调用方传的都是结果容器）。 */
+  if (!card) card = container;
   /* R230t（R33-P1-1）：判重走 data-chat-entry 而非类名——qmRefreshBtn/
    * nameReviewBtn 也用 .chat-entry 做样式，此前会误判「已有入口」跳过。 */
-  if (!card || card.querySelector('[data-chat-entry]')) return;
+  if (card.querySelector('[data-chat-entry]')) return;
   var btn = document.createElement('button');
   btn.className = 'chat-entry';
   btn.type = 'button';
@@ -9655,6 +9659,9 @@ function initDivination() {
         var _p = downloadPoster(mj, 'xzm');
         if (_p && _p.catch) _p.catch(function () {});
       });
+      /* R3162：合盘卡补聊聊入口——result_ref/卡片记忆早通了，
+       * 卡面上独缺这颗钮，想就着合拍指数问两句得自己翻侧边栏。 */
+      attachChatEntry(box);
       /* R3131：合盘结果入聊天上下文——此前没存 LAST_RESULT，
        * 用户照着卡聊小满走零上下文泛句。 */
       try { rememberResult('xzm', mj, ''); } catch (e) {}
