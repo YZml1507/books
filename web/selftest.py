@@ -2363,6 +2363,11 @@ def _run_inner() -> list[str]:
                      and "日常画风" in j["lines"][1]
                      and j["lines"][2].startswith("处方")
                      and "地图" in j["lines"][-1]))
+    # R3150：合盘接入 result_ref 权威信道——快照 + 提取器认 lines 键
+    # （「合拍指数：88（同象）」「卡面判词行：处方…」进权威块）。
+    check("xzmatch.ref", client.get("/api/xzmatch",
+          params={"a": "天蝎", "b": "双鱼"}),
+          lambda j: bool(j.get("result_ref")))
     _expect_400("xzmatch.bad", client.get("/api/xzmatch",
                 params={"a": "奥特曼", "b": "巨蟹"}))
     check("tarot.collection", client.get("/api/paipan/tarot_collection"),

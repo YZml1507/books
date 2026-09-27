@@ -1894,9 +1894,13 @@ def xzmatch(sa: str, sb: str, rel: str = "") -> dict:
             lines.append(_fix[_pk])
     lines.append("星座合盘看的是相处节奏的底色——具体的人远比星座大，"
                  "这里给的是地图，路是你们走的。")
-    return {"a": sa, "b": sb, "elem_a": ea, "elem_b": eb,
-            "score": score, "label": label, "line": line,
-            "lines": lines}
+    out = {"a": sa, "b": sb, "elem_a": ea, "elem_b": eb,
+           "score": score, "label": label, "line": line,
+           "lines": lines}
+    # R3150：合盘此前没进 result_ref 快照——照卡聊「我们配吗」时
+    # 小满手里没有权威判词，82 分合拍能被说成「不太行」。
+    out["result_ref"] = _stash_result("xzm", out)
+    return out
 
 
 def _festival_for(d: date, term_name: str = "") -> list[str]:
@@ -3054,6 +3058,16 @@ def chat_result_verdicts(ref: str | None) -> list[str]:
         _fn = j.get("full_names") or []
         if _fn and _fn[0].get("full_name"):
             out.append(f"首选名：{_fn[0]['full_name']}")
+    elif view == "xzm":
+        # R3150：合盘判词在 lines 键不在 warm.reply——分数+标签+
+        # lines 逐行全收，权威块照拿「82 分·合拍」原口径。
+        if j.get("score") is not None:
+            out.append(f"这张合盘卡的合拍指数：{j['score']}"
+                       f"（{j.get('label') or ''}）")
+        for _l in (j.get("lines") or [])[:6]:
+            if str(_l).strip():
+                out.append("卡面判词行：" + str(_l)[:110])
+        return out[:9]
     if j.get("question"):
         out.append(f"她当时问的是：「{str(j['question'])[:60]}」")
     # warm.reply 原文逐条收——判词带/剧本/处方/倾向全在里面，
