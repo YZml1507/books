@@ -14520,3 +14520,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 14 模板分支在案；checkin-week 实测：渲染→「📸本周签运」
   浮层开→预览 img=921KB PNG 实图+自动下载+复制文案钮；
   首次探针误读 toBlob 时序（fire-and-forget 晚于 await）自纠。
+
+## R2717 巡检#134——daily 字段树+moon 条件键
+- 默认 16 叶键全下发（level/summary/noble/do/dont/lucky/
+  mercury/festival/cached）；moon.phase 仅朔望日出——
+  11-09/10 新月、11-24 满月、平日无键，条件设计实测对。
