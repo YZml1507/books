@@ -1397,7 +1397,20 @@ def warm_taohua(t: dict) -> dict:
                 _zodiac = ZHI_ZODIAC.get(_pillar[1:2] if _pillar else "", "")
                 _dir = ZHI_DIR.get(_pillar[1:2] if _pillar else "", "")
                 _extra = f"（{_zodiac}·{_dir}）" if _zodiac and _dir else f"（{_zodiac}）" if _zodiac else ""
-                lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽——那阵子多出门走走。")
+                # R3079（巡#496）：|start_age-age|≤5 的近命中里，多数情况
+                # 用户其实正住在这运里（start≤age<end）——过去时
+                # 「那阵子多出门走走」是把当下窗口讲成三年前的事。
+                # 在运中改现在时+换班边界；未到/已过才留年份锚。
+                _sa = float(d0.get("start_age") or 0)
+                _ea = float(d0.get("end_age") or 0)
+                if _ea and _sa <= _user_age < _ea:
+                    _end_year = _user_birth_year + int(round(_ea))
+                    lines.append(
+                        f"你现在正走在{_pillar}{_extra}运里（约到"
+                        f"{_end_year}年才换班）——这几年社交面正宽，"
+                        "多出门走走正是时候。")
+                else:
+                    lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽——那阵子多出门走走。")
             elif dayun:
                 d0 = dayun[0]
                 # F-014：当年份远离用户年龄时，删除具体年份，改为中性描述

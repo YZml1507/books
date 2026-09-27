@@ -989,6 +989,15 @@ def _run_inner() -> list[str]:
                      and any(d.get("pillar") == "己卯"
                              and d.get("year_start") == 2003
                              for d in j.get("dayun_hits", []))))
+    # R3079（巡#496）：大运桃花「在运中」时态——2002 生现年 24 岁，
+    # 命中窗口 21.4–31.4 是正住着的运，回复须现在时（正走在）+
+    # 换班年界，不能再把当下窗口讲成「那阵子」。
+    check("taohua.dayun.in_window", client.post("/api/taohua",
+          json={"year": 2002, "month": 6, "day": 10, "hour": 9,
+                "gender": "女"}),
+          lambda j: any("正走在" in ln and "换班" in ln
+                        for ln in ((j.get("warm") or {})
+                                   .get("reply") or [])))
     # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
     # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王）。
     check("tarot", client.post("/api/tarot", json={"seed": 42, "n": 3}),
