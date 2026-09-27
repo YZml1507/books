@@ -7392,6 +7392,19 @@ var _HL_COMPLEX_DATE = /农历|農曆|阴历|陰曆|旧历|舊曆|闰|閏|正月
 
 /* 「问一嘴」无事项词时的中性提示（当日主推+引导）——提交主路径与
  * resolve_date 兜底复用。 */
+/* R2997（巡#414）：危机/敏感问法的转介出口——与 _hlShowNeutral 同款
+ * 落位（hlVerdict 行），文案即后端 _CHAT_REFUSAL/_SENSITIVE_REPLY。 */
+function _hlShowLine(text) {
+  var v = document.getElementById('hlVerdict');
+  if (v) { v.textContent = text; return; }
+  var askRow = document.querySelector('#hlResult .hl-ask');
+  if (askRow && askRow.parentNode) {
+    var nv = document.createElement('div');
+    nv.className = 'hl-verdict'; nv.id = 'hlVerdict';
+    nv.textContent = text;
+    askRow.parentNode.insertBefore(nv, askRow);
+  }
+}
 function _hlShowNeutral() {
   var _lr = LAST_RESULT['huangli'] && LAST_RESULT['huangli'].json;
   var note = _hlNoSceneNote((_lr && _lr.yi) || [], (_lr && _lr.ji) || [],
@@ -8025,6 +8038,20 @@ async function _doHuangli(offset, reveal, spokenWord) {
         /* R230f续2（R16-P2-4）：placeholder 若已是这段文字则界面纹丝不动，
          * 加一张 toast 让空提交有可感反馈。 */
         showToast('先写一句想问的事再问我哦', 'info');
+        return;
+      }
+      /* R2997（巡#414）：危机/敏感披露在剥词判定前接住，且不落足迹——
+       * 「查出肿瘤了哪天复查好」此前剩词进 affair/中性判定卡，黄历对
+       * 重病/侵害问题给宜忌（或留「X天前你问了…」披露回显）都不该发生，
+       * 与 chat/feCrisis、塔罗 feSensitive 同口径的确定性转介。 */
+      if (feCrisis(q)) {
+        _HL.scene = ''; _HL.findMode = false;
+        _hlShowLine(_CRISIS_FE_REPLY);
+        return;
+      }
+      if (feSensitive(q)) {
+        _HL.scene = ''; _HL.findMode = false;
+        _hlShowLine(_SENSITIVE_CHAT_REPLY);
         return;
       }
       /* R230z（R36-P2-5）：足迹落库——记问题+当前显示日（日期词改写的
