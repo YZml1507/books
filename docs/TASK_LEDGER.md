@@ -14722,3 +14722,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - q=谦→12 证据带引文锚（work@anchor+file+!可疑标记
   穿透到 citation 串）；rule-based 解读+steps 可追溯；
   refused=false 如实。
+
+## R2760 巡检#177——compare/allow_damaged 残损 opt-in
+- 卦47上六实测：默认 KR1a0006 落 flagged「span-over-
+  extended-A」不当见证；allow_damaged=true→回 witnesses
+  末位。answer.py 同族：全命中皆嫌疑→拒答指路参数。
