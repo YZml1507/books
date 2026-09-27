@@ -6151,8 +6151,12 @@ function _liuyaoCoordLine(cat, paipan, moving) {
   });
   if (others.length) {
     var o = others[0];
-    seg.push('动的是' + (_LY_POS[o.position] || o.position) + '爻（' +
-             o.liuqin + '）——变数落在这一处');
+    /* R3110：多动爻时「动的是X爻」单数读法误导（实测 3 动爻只报
+     * 一爻）——报坐标带计数。 */
+    seg.push((others.length > 1
+              ? '另有 ' + others.length + ' 处在动，领头的是' : '动的是') +
+             (_LY_POS[o.position] || o.position) + '爻（' + o.liuqin +
+             '）——变数落在这一处');
   }
   return seg.join('；');
 }
