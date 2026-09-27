@@ -1245,7 +1245,9 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         # kw 就是处方、结果位是走向预言；同牌异位不再同句。
         _pre = f"{pos_label + '：' if pos_label else ''}"
         if pos == "阻碍":
-            if name in _TAROT_HEAVY or not cu:
+            # R3119：正位硬牌同按「要跨的坎」——权杖10/宝剑8 这类
+            # 正位即吃力的牌说「障碍不算硬」是错的（实测领错档）。
+            if name in _TAROT_HEAVY or not cu or kw0 in _TAROT_HARD_UP:
                 _tpl = (f"{_pre}{name}说「{kw0}」——落在阻碍位，"
                         f"这正是要跨的坎：{guidance}")
             else:
@@ -1423,6 +1425,14 @@ _TAROT_HEAVY = {"死神", "高塔", "恶魔", "月亮", "宝剑3", "宝剑9", "�
                 # 真负牌——问健康抽到它们还说「整体是顺的」同样错上加错。
                 "圣杯5", "星币5"}
 
+# R3119：正位但牌面本身在吃力的 kw0——这些牌不在重牌名单（不是
+# 负牌），但落阻碍位说「障碍不算硬」是错的（权杖10「扛太满」实测
+# 领走过「好牌落阻碍位」）。判据走 kw0 不走牌名：共享 rank 词
+# （5=冲突/9系撑型/10系满载吃力）与花色覆写都能接住。
+_TAROT_HARD_UP = {"受困", "忧惧", "谷底", "扛太满", "带伤撑着",
+                  "倦怠", "失落", "手头紧", "取巧", "冲突", "内耗",
+                  "受挫"}
+
 def _tarot_kw_guidance(kw: str, q: str) -> str:
     """D-002：将牌义关键词转化为用户问题的具体指引"""
     # R2518：无提问路径也吃指引表——原回落「提示你关注 X 的能量」
@@ -1439,6 +1449,11 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
     # 同阵重抽（同日同问 seed 恒定）仍同款，跨问题/跨天错开。
     _salt = sum(ord(c) for c in str((cards[0] or {}).get("name", ""))) if cards else 0
     _alt = (_salt % 2) == 1
+    # R3119：正位硬牌计权重——满手「扛太满/受困」的正位牌面
+    # 说「整体是顺的」是错的（判词只描述盘面劲向，不落吉凶断言）。
+    _hard_n = sum(1 for c in cards if c.get("upright")
+                  and (c.get("upright_kw") or "").split("·")[0]
+                  in _TAROT_HARD_UP)
     if not q:
         # C-004：禁用免责套话，改为给具体方向
         # R230a-7（R13-P0-3）：无提问路径同样先看重牌
@@ -1446,6 +1461,10 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
             return ("牌里有几张在提醒你，先把自己照顾好，事情慢一点没关系。"
                     if not _alt else
                     "这组牌有几张沉甸甸的——先顾好自己，别的都可以等等。")
+        if _hard_n >= 2:
+            return ("这组牌好几张都在使劲——先把手上的担子卸一卸再赶路。"
+                    if not _alt else
+                    "牌不凶但挺累——先看哪件事可以先分出去、放一放。")
         return ("牌面整体是顺的，可以试着往前走一小步。"
                 if not _alt else
                 "这组牌气色不错——心里那件事，可以往前试半步。")
@@ -1455,6 +1474,11 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
         return (f"牌里有几张在提醒你的位置——关于「{q}」，先照顾好自己，事情可以慢一点推进。"
                 if not _alt else
                 f"关于「{q}」——牌里有几张分量重的，先把自己安顿好，事不急这一天。")
+    # R3119：q 路径同口径——≥2 张正位硬牌先答「累」再谈顺逆。
+    if _hard_n >= 2:
+        return (f"这组牌好几张都在使劲——关于「{q}」，先看你手上的事哪件能卸一卸。"
+                if not _alt else
+                f"关于「{q}」——牌不凶但担子重，先把能分出去的分出去。")
     # 根据牌的正逆位比例给综合判断
     upright_count = sum(1 for c in cards if c.get("upright"))
     total = len(cards)

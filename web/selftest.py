@@ -1163,6 +1163,19 @@ def _run_inner() -> list[str]:
     assert any("阻碍" in l and "阻碍位" in l for l in _pr), _pr
     assert any("希望" in l or "结果" in l for l in _pr), _pr
     ok.append("tarot.position_voice")
+    # R3119：正位硬牌判词钉——权杖10「扛太满」/宝剑8「受困」正位
+    # 落阻碍位不得领「好牌落阻碍位」档（实测病灶）；两张以上
+    # 正位硬牌收尾不得说「整体是顺的」。
+    _ht = client.post("/api/tarot", json={
+        "seed": 22, "spread": "celtic",
+        "question": "这段感情还有救吗"})
+    _hr = " ".join((_ht.json().get("warm") or {}).get("reply") or [])
+    assert "扛太满" not in _hr or "要跨的坎" in _hr, \
+        ("tarot.hard_upright", _hr[:200])
+    assert "好牌落阻碍位" not in \
+        " ".join(l for l in (_ht.json().get("warm") or {})
+                 .get("reply") or [] if "扛太满" in l), _hr[:200]
+    ok.append("tarot.hard_upright")
     _bad = client.post("/api/tarot", json={"spread": "bogus"})
     assert _bad.status_code == 400 and \
         "没这个牌阵" in str(_bad.json().get("detail")), \
