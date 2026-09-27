@@ -15393,3 +15393,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 余下 hehun a_name/b_name 回落「我×TA/甲×乙」
   是显示侧优雅降级（响应不回显输入名）。
   SOFT 全量设计内，零新漂移。
+
+## R2869 巡检#286——access_gate 门闸面核对
+- 闸内已钉四层：next/?key= 开放跳转白名单（CRLF/
+  javascript:/反斜杠/外域全回落 /）+ ?key= GET 直通
+  同口径 + 错口令才计桶（对口令不罚，R2506 口径）
+  + XFF 首元素伪造不换桶（链尾真身 IP）；
+- 中间件真身在 web/app.py：cookie books_key 比对、
+  /_gate POST 限速 10/60s→429、bucket 2000 帽——
+  全在 312 绿内。
