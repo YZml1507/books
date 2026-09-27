@@ -17240,3 +17240,5 @@ R3155：星座合盘接 AI 解读块（闺蜜互测分享场景要口语段）�
 R3156（真修47·真实LLM首验）：财务话题出格实测——agnes 实机给「拿一万试水仓」越过「不做买卖建议」线；_CHAT_SYSTEM 补「不给仓位/金额分配方案（先拿一万试水这类也算）」，复测收敛为短长钱框架+顾问转介。附带里程碑：llm_config.json 真实 LLM（agnes-3.0-flash）端点可用，polish/chat 全链路真实出稿验证通过（卦名/牌位/判词口径全对上）。
 R3157（审-拥塞）：AI 任务限速分桶——spawn_ai_task 加 rate_key/rate_limit；分享重放（record=false）走 ai_replay 15/min、合盘 GET 走 ai_social 15/min，爬虫/链接预览器刷爆单面时只挤爆自己的桶，不拖垮全局「ai」60/min 额度；实测 xzmatch 16 连击后自身降级、主桶隔离。
 R3159（specs/014-L3 收口）：「今年逐月」chip 条上屏——calc.yearly 服务端一直在算但前端零消费，温柔版补 12 格横滑条（月+干支·十神，当月高亮），pro 走 renderCalc 原样；真机截图验证在屏。
+R3160：TA 档案免测入口——合婚表单加「先存下 TA 的生日（不测）」副按钮，纯 localStorage 落 me:partner+昵称（不发请求）；出厂示例值拒写并提示，受邀模式 A/B 侧自动翻转；smoke savepartner 用例收编 on() 覆盖闸。69d5e73
+R3161：合婚昵称落档+回填——表单昵称框此前形同虚设（提交只存生日不存名），并入 me/me:partner；空昵称跳过（_meSave '' 清键语义会抹旧值）；me:partner 回填补 n 映射；真机验证存「阿哲」后跑合婚昵称保留。fb67fd1
