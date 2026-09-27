@@ -14406,3 +14406,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2692 巡检#109——history/{id} 详情读回
 - 单条完整读回：req 全原字段（含农历/scope/question）+result
   全响应（paipan~cross_ref）；缺失 id→404「排盘记录不存在」。
+
+## R2693 巡检#110——/api/history 遗留域整域 404
+- GET/DELETE/POST × /api/history、/api/history/{id} 全 JSON 404——
+  R219b 移除裁决在产，旧 history.db 零暴露面。
