@@ -1316,21 +1316,32 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                              "。先别急着当定局，等它落了地再看。")
             # R3175：暗动——静爻被日辰对冲，传统叫「暗动」：表面
             # 没动、底下在拱。只点用神/世爻（全盘每个爻都报就吵了）。
-            _ad = []
+            _ad, _cs = [], []
             _ad_seen = set()
             for _al, _albl in ((_yz_l, "代表这事的那爻"),
                                (_shi_l, "你自己那爻")):
                 _ab2 = (_al or {}).get("branch") or ""
                 _ap = (_al or {}).get("position") or _ab2
                 if (_ab2 and _rc_b and _ap not in _ad_seen and
-                        _ZHI_CHONG_LY.get(_rc_b) == _ab2 and
-                        not (_al or {}).get("moving")):
+                        _ZHI_CHONG_LY.get(_rc_b) == _ab2):
                     _ad_seen.add(_ap)
-                    _ad.append(_albl + f"（{_ab2}）被日辰{_rc_b}冲着")
+                    if (_al or {}).get("moving"):
+                        # 动爻逢日冲是「冲散」（日破）——劲使出来
+                        # 就散，与静爻暗动分口径报。
+                        _cs.append(_albl + f"（{_ab2}）动是动了，"
+                                           f"可日辰{_rc_b}冲着它——"
+                                           "劲使出来就散")
+                    else:
+                        _ad.append(_albl + f"（{_ab2}）被日辰{_rc_b}冲着")
+            _ad2 = []
             if _ad:
-                lines.append("暗处有动静——" + "；".join(_ad) +
-                             "，面上看着静，底下其实在拱，这事多半"
-                             "不是你一个人在使劲。")
+                _ad2.append("暗处有动静——" + "；".join(_ad) +
+                            "，面上看着静，底下其实在拱")
+            if _cs:
+                _ad2.append("；".join(_cs) +
+                            "——这一步先别使全力")
+            if _ad2:
+                lines.append("；".join(_ad2) + "。")
         except Exception:
             pass
 
@@ -1355,7 +1366,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _bgl0 = {int(l.get("position", 0)): l
                      for l in ((_pp.get("ben_gua") or {}).get("lines") or [])}
             _hs, _hk = [], []
-            _jt = []
+            _jt = {"进": [], "退": [], "伏吟": [], "反吟": []}
             for _mp2 in ml:
                 _al2 = _bgl0.get(_mp2, {}) or {}
                 _bl2 = _bgl.get(_mp2, {}) or {}
@@ -1367,11 +1378,16 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                 elif _WX_KE_LY.get(_b2) == _a2:
                     _hk.append(_mp2)
                 # R3175：化进神/退神——同气地支序进/退，劲的方向。
+                # 同批伏吟（化同支=原地折腾）/反吟（化冲=翻来覆去）。
                 _ab3, _bb3 = _al2.get("branch", ""), _bl2.get("branch", "")
                 if _LY_JIN_SHEN.get(_ab3) == _bb3:
-                    _jt.append((_mp2, "进"))
+                    _jt["进"].append(_mp2)
                 elif _LY_TUI_SHEN.get(_ab3) == _bb3:
-                    _jt.append((_mp2, "退"))
+                    _jt["退"].append(_mp2)
+                elif _ab3 and _bb3 == _ab3:
+                    _jt["伏吟"].append(_mp2)
+                elif _ab3 and _ZHI_CHONG_LY.get(_ab3) == _bb3:
+                    _jt["反吟"].append(_mp2)
             _hb = []
             if _hs:
                 _hb.append("、".join(
@@ -1382,12 +1398,19 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                     _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
                     for p in _hk) +
                     "动出去反被打回来（化回头克）——那一步要留个后手")
-            for _jp, _jd in _jt:
-                _jpos = _YAO_POS_CN.get(_jp, f"第{_jp}爻").split("——")[0]
-                _hb.append(
-                    _jpos + "化" + _jd + "神——那股劲在" +
-                    ("往上走，顺的话会越来越顺" if _jd == "进"
-                     else "往回收，别全押在这一步上"))
+            _JT_COPY = {
+                "进": "化进神——那股劲在往上走，顺的话会越来越顺",
+                "退": "化退神——那股劲在往回收，别全押在这一步上",
+                "伏吟": "动而化伏吟——动了半天还在原地，那股憋屈多半"
+                        "来自自己跟自己较劲",
+                "反吟": "动而化反吟——翻来覆去来回摆，主意一天三变，"
+                        "先按住别急着定",
+            }
+            for _jd in ("进", "退", "伏吟", "反吟"):
+                if _jt[_jd]:
+                    _hb.append("、".join(
+                        _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                        for p in _jt[_jd]) + _JT_COPY[_jd])
             if _hb:
                 lines.append("再细看动的爻——" + "；".join(_hb) + "。")
         except Exception:
