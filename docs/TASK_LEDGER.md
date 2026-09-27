@@ -16105,3 +16105,12 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - term_today：秋分 08:09 CST 精确披露，非交节日
   None 诚实；hl_map.coverage 双向闸（库宜忌词⊆前端
   映射 ∪ 零死键）在 312 绿内。
+
+## R2968 巡检#385——真浏览器 home.ia 复验
+- 10 张 home 卡序与钉一致（tarot/bazi/taohua/hehun/
+  huangli｜xingzuo/history/chat + 抽屉 liuyao/qiming）。
+- DOM 多出 3 张是 view-bazi 内 related-funcs 跨功能
+  跳转（起名/桃花/合婚）——设计内互联非 IA 泄漏，
+  钉的分界口径（view-bazi 前）正确。
+- 抽屉默认合→点开真开；chat 伪视图卡→真开 sidebar；
+  全程零 pageerror。
