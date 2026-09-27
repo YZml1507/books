@@ -1269,6 +1269,12 @@ def liuyao(req) -> dict:
              "question": req.question},
             out, rtype="liuyao",
             name=("六爻 · " + (req.question or ben_out.get("gua_name") or "起卦")))
+    # R3154：六爻接 AI 解读块——卦象坐标+判词行进 facts，与 bazi 同机制
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_liuyao(out, out.get("warm"), req.question),
+        req.question)
+    if ai_task_id:
+        out["ai_task_id"] = ai_task_id
     # R3124b：判词升格信道用结果 ref
     out["result_ref"] = _stash_result("liuyao", out)
     return out
@@ -3644,6 +3650,12 @@ def tarot(req) -> dict:
             name=(req.question or
                   ((_spread_name + " · " + str(len(cards)) + " 张")
                    if _spread_name else f"{len(cards)} 张牌阵")))
+    # R3154：塔罗接 AI 解读块——牌面坐标+综合口径行进 facts
+    ai_task_id = llm_polish.spawn_ai_task(
+        llm_polish.facts_tarot(out, out.get("warm"), req.question),
+        req.question)
+    if ai_task_id:
+        out["ai_task_id"] = ai_task_id
     # R3124b：判词升格信道用结果 ref
     out["result_ref"] = _stash_result("tarot", out)
     return out

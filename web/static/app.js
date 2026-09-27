@@ -5463,6 +5463,8 @@ function buildLiuyaoResult(j) {
       esc(j.cross_ref.message) +
       crossDirBadge(j.cross_ref, 'gua_direction', '卦象') + '</div>';
   }
+  /* R3154：六爻接 AI 解读块——卦象坐标+判词行进 facts，bazi 同机制 */
+  html += renderAiPolish(j);
   html += tailHook('liuyao');
   /* R2512：分享按钮挪进 build——此前 submit 后手工 createElement
    * 挂进 .card，口吻切换重画即消失（build 不含它）。 */
@@ -5682,6 +5684,7 @@ async function doLiuyao() {
     const j = await postJSON('/api/liuyao', body);
     if (_gen !== _LY_GEN) return;   /* R2502：新请求已接管——丢弃旧响应 */
     paint('lyResult', buildLiuyaoResult(j));
+    pollAiPolish('lyResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R198b（US5）+ R2512：分享按钮已挪进 build（重画不丢），
      * 绑定收进 rebind 登记——口吻切换后重放。 */
     var _rbLy = function () {
@@ -6339,6 +6342,8 @@ function buildTarotResult(j) {
       crossDirBadge(j.cross_ref, 'card_direction', '牌面') + '</div>';
   }
   html += renderVoice(j, '📖 牌面解读');
+  /* R3154：塔罗接 AI 解读块——牌面坐标+综合口径行进 facts */
+  html += renderAiPolish(j);
   html += tailHook('tarot');
   /* R2512：分享按钮挪进 build——同 liuyao，post-paint 手工挂的节点
    * 在口吻切换重画后消失。 */
@@ -6821,6 +6826,7 @@ async function doTarot(cards) {
     const j = await postJSON('/api/tarot', body);
     if (_gen !== _TR_GEN) return;   /* R2502 */
     paint('trResult', buildTarotResult(j));
+    pollAiPolish('trResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R230d（R16-P2-2）+ R2512：分享按钮挪进 build（重画不丢），
      * 绑定收进 rebind 登记。 */
     var _rbTr = function () {

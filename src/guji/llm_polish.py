@@ -144,7 +144,8 @@ def load_config() -> dict | None:
 # ---------------------------------------------------------------------------
 
 _SYSTEM = (
-    "你是一个温柔的中文命理助手，为已经排好的八字盘写解读润色。"
+    "你是一个温柔的中文命理助手，为已经算好的命理结果"
+    "（八字盘/卦象/牌面/合盘/起名）写解读润色。"
     "规则：1) 只使用【给定事实】里的信息，绝不发明新的命理断言、绝不出示新的术语；"
     "若事实里有性别/双方性别，称谓与措辞必须与之一致（女性绝不可称先生，反之亦然）；"
     "2) 绝不引用任何书名、页码、原文（引文由系统另行展示）；"
@@ -2129,9 +2130,72 @@ def facts_qiming(q: dict, gender: str | None = None,
     return facts
 
 
-# ---------------------------------------------------------------------------
-# 自测（离线部分：配置缺失降级 / transport 注入 / 净化器）
-# ---------------------------------------------------------------------------
+def facts_tarot(t: dict, warm: dict | None = None,
+                question: str | None = None) -> list[str]:
+    """塔罗卡事实——牌面坐标+判词级行，AI 解读块同口径深加工。
+
+    R3154：塔罗/六爻此前没有 AI 解读块——八字/桃花/合婚/起名都享
+    「判词同口径的深加工段」，倾诉欲最高的抽牌场景反而只有确定性
+    文案一层。
+    """
+    draws = t.get("draws") or []
+    cards = []
+    for d in draws:
+        nm = d.get("name") or ""
+        pos = d.get("position") or ""
+        up = "正位" if d.get("upright") else "逆位"
+        cards.append((str(pos) + "位：" if pos else "") + nm + "·" + up)
+    facts = ["抽到的牌：" + ("、".join(cards) if cards else "（无牌）")]
+    if t.get("spread"):
+        facts.append("牌阵：" + str(t["spread"]))
+    if question:
+        facts.append("她问的是：" + str(question)[:60])
+    # 判词级口径行升格——综合收尾/三段式处方照着卡面说，不自由发挥。
+    for _ln in ((warm or {}).get("reply") or []):
+        _ls = str(_ln)
+        if ("综合来看" in _ls or "这组牌" in _ls or "判词" in _ls
+                or "先做" in _ls or "观察信号" in _ls):
+            facts.append(("判词：" if not _ls.startswith("判词")
+                          else "") + _fact_line(_ls))
+    return facts
+
+
+def facts_liuyao(res: dict, warm: dict | None = None,
+                 question: str | None = None) -> list[str]:
+    """六爻卦事实——卦名/动爻/世应用神坐标+应期处方判词行。"""
+    ben = res.get("ben") or {}
+    bian = res.get("bian") or {}
+    facts = [
+        "本卦：{}".format(ben.get("gua_name") or ""),
+        "变卦：{}".format(bian.get("gua_name") or "无（六爻安静）"),
+    ]
+    mv = ben.get("moving_lines") or []
+    facts.append("动爻：" + ("、".join("第{}爻".format(i) for i in mv)
+                           if mv else "无"))
+    pp = (res.get("paipan") or {}).get("ben_gua") or {}
+    ys = pp.get("lines") or []
+    for y in ys:
+        if y.get("is_shi"):
+            facts.append("世爻（代表问事人）：第{}爻 {}{}·{}·{}".format(
+                y.get("position"), y.get("stem") or "",
+                y.get("branch") or "", y.get("wuxing") or "",
+                y.get("liuqin") or ""))
+        if y.get("is_ying"):
+            facts.append("应爻（代表事情那头）：第{}爻 {}{}·{}·{}".format(
+                y.get("position"), y.get("stem") or "",
+                y.get("branch") or "", y.get("wuxing") or "",
+                y.get("liuqin") or ""))
+    if question:
+        facts.append("她问的是：" + str(question)[:60])
+    # 判词级行升格——梳理行/口径行/应期/三段式处方照卡面说。
+    for _ln in ((warm or {}).get("reply") or []):
+        _ls = str(_ln)
+        if ("照传统口径" in _ls or "应期参考" in _ls or "判词" in _ls
+                or "最实一步" in _ls or "观察信号" in _ls
+                or "先做" in _ls):
+            facts.append(("判词：" if not _ls.startswith("判词")
+                          else "") + _fact_line(_ls))
+    return facts
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
 

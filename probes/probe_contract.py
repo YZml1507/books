@@ -253,6 +253,10 @@ CONDITIONAL_FIELDS = {
                     # R233j（R46-P1）：one_liner 只在 copy_bank 池非空时回；
                     # 前端 `if (j.one_liner)` 是对缺席的探测。
                     "one_liner"},
+    # R3154：塔罗/六爻接同款 AI 解读块——ai_task_id 仅在 LLM 开启时
+    # 返回（缺席=无 AI 段落，与上四面同判据），pollAiPolish 显式守。
+    "/api/liuyao": {"ai_task_id"},
+    "/api/tarot": {"ai_task_id"},
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
     # 响应实测为 {}，见 fixtures 注释）；前端 `if (!j.chat_task_id)` 正是对
     # 缺席的正确探测。
