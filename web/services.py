@@ -749,7 +749,7 @@ def deep_research(q: str, *, max_addresses: int = 3,
     """深度研究：检索→读地址→扩展的多轮循环，返回证据集 + 步骤链 + 差异摘要。"""
     q = _require_q(q)
     if not (1 <= max_addresses <= 6):
-        raise ValidationError("最多选 6 条")
+        raise ValidationError("一次最多读 6 条地址（最少 1 条）——换个数再试")
     with deps.corpus() as c:
         r = research(c, q, max_addresses=max_addresses,
                      allow_damaged=allow_damaged)
