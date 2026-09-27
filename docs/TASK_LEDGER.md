@@ -14727,3 +14727,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 卦47上六实测：默认 KR1a0006 落 flagged「span-over-
   extended-A」不当见证；allow_damaged=true→回 witnesses
   末位。answer.py 同族：全命中皆嫌疑→拒答指路参数。
+
+## R2761 巡检#178——health 端点
+- {ok, engine 描述串, index 存在性} 三键——零路径/版本/
+  内部信息；令牌闸下设时豁免在闸内钉死（托管探活可用）。
