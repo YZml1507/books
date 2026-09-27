@@ -156,7 +156,7 @@ _SYSTEM = (
 )
 
 _TEMPLATE = (
-    "【给定事实】\n{facts}\n\n"
+    "【给定事实】\n{facts}\n\n{verdict_block}"
     "【用户提问】{question}\n\n"
     "请基于给定事实写一段温柔的解读。"
 )
@@ -165,8 +165,18 @@ _TEMPLATE = (
 def _render(facts: list[str], question: str | None) -> str:
     # R230a-6（R12-P3-8）：占位句「请泛泛而谈」像在鼓励泛答——换中性标记。
     q = (question or "").strip() or "（无提问）"
+    # R3132（specs/012-P0 同构）：判词行从 facts 堆里升格成权威块——
+    # 此前判词只是第 N 条参考资料，模型可自由发挥成相反方向
+    # （「偏不合适」的盘被润色成「挺合适的」实锤过）。单独成块+硬约束。
+    _vf = [f for f in facts if f.startswith("判词：")]
+    _vf_block = (
+        "【判词口径·必须一致】\n" + "\n".join(_vf) + "\n"
+        "上面是已经算好的判词——你的解读可以展开、可以细化，"
+        "但方向必须与判词一致，不许说反话（判词说磨合你不能说天作之合）。\n\n"
+        if _vf else "")
     return _TEMPLATE.format(
-        facts="\n".join("- " + _fact_line(f) for f in facts), question=q)
+        facts="\n".join("- " + _fact_line(f) for f in facts),
+        verdict_block=_vf_block, question=q)
 
 
 # ---------------------------------------------------------------------------
@@ -264,8 +274,21 @@ def polish(facts: list[str], question: str | None = None,
         except Exception:
             continue                                  # D-244a 静默降级 + 重试
         out = _sanitize(text)
+        # R3132（specs/012-P0 同构）：polish 出稿过判词方向闸——facts 里
+        # 有判词行时，润色与判词唱反调按失败处理（重试带纠正提示）；
+        # 三次仍犯返回 None 降级——卡面 warm.reply 本来就是判词原句，
+        # 缺省渲染即一致，矛盾稿绝不落屏。
         if out:
-            return out
+            _vfacts = [f for f in facts if str(f).startswith("判词：")]
+            if _vfacts and _chat_verdict_contra(out, _vfacts):
+                payload["messages"] = payload["messages"] + [{
+                    "role": "user",
+                    "content": "（系统提醒：上一次回复与判词方向相反——"
+                               "判词是算好的结论只能顺着说，请按判词口径"
+                               "重答，保持纯文本口语。）"}]
+                out = None
+            if out:
+                return out
         # R230t（R32-P1-6）：输出被拦（禁语/引文/过短）时给重试一句改正线索，
         # 同参盲烧三轮是三倍 quota。
         payload["messages"] = payload["messages"] + [{
