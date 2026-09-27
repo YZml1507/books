@@ -14957,3 +14957,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - @import/@charset 必在普通规则前（位置闸）；var() 引
   用全有定义（含选择器内令牌+JS setProperty 动态令牌
   同口径）零未定义；styles.css 200/145KB 下发正常。
+
+## R2808 巡检#225——body 512KB 帽
+- 513KB POST→413「请求体太大了，精简一下再发」——
+  pydantic 前拦截人话在产。
