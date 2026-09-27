@@ -14300,3 +14300,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   按 label 档分配专属模板（同档换名拼接）；「处女座」3 字输入须
   裸名「处女」（max_length=4 界内但词表只收裸名——前端传参口径
   一致无碍）。
+
+## R2670 巡检#87——share 三分支全绿
+- bazi→derived 查档按 kind 出真标题；tarot/book→share_id 回显限
+  80 字+printable+拒控制字符；evil type→404 人话「这个分享类型
+  不认识」；Surrogate 剥洗在案（R2508）。
