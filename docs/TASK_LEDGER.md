@@ -15289,3 +15289,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   64」；ask 是 POST-only（GET→405 中文）；q 空→422
   至少 1 字、max_addresses 0/999→422「1-6 之间」中文
   pydantic 化；全部人话零英文细节。
+
+## R2855 巡检#272——addr/bookstudy 报错族实测
+- 坏 scheme→400 带可选清单（周易/圣经章节/易林/书
+  章节/剧本/欧几里得/无编址全列出）；zhouyi ref=0/65
+  →400「给个卦号 1-64」；yilin ref=999→正常命中页锚
+  非错误（ref 是页锚语义）；bookstudy 坏 work/缺参→
+  404 中文。
