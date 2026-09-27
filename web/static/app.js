@@ -1948,7 +1948,35 @@ function _chatFallbackLine(message) {
   /* R2349g（R68-P1-4）：种子原来含消息长度——用户连发等长句时步进
    * 永远落同一格（实测等长 10 连发 uniq=1）。改为纯递增×素数。 */
   var idx = (_CHAT_FALLBACK_COUNTER * 7) % pool.length;
-  return pool[idx];
+  var line = pool[idx];
+  /* R3145：降级不空手——手里有新鲜结果卡（30min 内）时把卡面最要紧
+   * 的一句捎上。LLM 挂了用户照拿判词/处方，不是只有「打烊啦」。 */
+  try {
+    var _best = null, _bv = '';
+    for (var _vk in LAST_RESULT) {
+      var _r = LAST_RESULT[_vk];
+      if (_r && _r.ts && (Date.now() - _r.ts) < 1800000 &&
+          (!_best || _r.ts > _best.ts)) { _best = _r; _bv = _vk; }
+    }
+    var _rl = _best && _best.json && _best.json.warm &&
+      _best.json.warm.reply;
+    if (_rl && _rl.length) {
+      var _pick = '';
+      for (var _i = 0; _i < _rl.length; _i++) {
+        var _l = _rl[_i];
+        if (_l.indexOf('判词') !== -1 || _l.indexOf('处方') !== -1 ||
+            _l.indexOf('先做') !== -1 || _l.indexOf('先想') !== -1 ||
+            _l.indexOf('最实一步') !== -1 || _l.indexOf('观察信号') !== -1) {
+          _pick = _l; break;
+        }
+      }
+      if (!_pick) _pick = _rl[0];
+      _pick = String(_pick).slice(0, 60);
+      if (_pick) line += '——你那张卡上有句现成的：「' + _pick +
+        (_pick.length >= 60 ? '…' : '') + '」回头细拆给你听。';
+    }
+  } catch (e) { /* 降级路径不许再抛——静默拿原句 */ }
+  return line;
 }
 
 /** R207b：起名点评轮询——复用 /api/ai/{tid}，done 渲染点评卡。 */
