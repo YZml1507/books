@@ -400,6 +400,14 @@ def _run_inner() -> list[str]:
               and len(_y.get("months") or []) == 12
               and all(m.get("ganzhi") and m.get("gan_rel")
                       for m in _y["months"])
+              # R3165：easy/hard 结构化分档（voice 行与年度海报共用源；
+              # 各截前 6，合计可 <12——断类型/格式/互不重叠，不断总数）
+              and isinstance(_y.get("easy"), list)
+              and isinstance(_y.get("hard"), list)
+              and 0 < len(_y["easy"]) <= 6 and 0 < len(_y["hard"]) <= 6
+              and all("月（" in s and "）" in s for s in
+                      _y["easy"] + _y["hard"])
+              and not set(_y["easy"]) & set(_y["hard"])
               and any(f"今年{_y['year']}是" in _ln for _ln in _r)
               and any("偏顺气的月份" in _ln for _ln in _r))
           )(j.get("calc", {}).get("yearly") or {},
