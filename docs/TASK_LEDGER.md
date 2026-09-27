@@ -16783,3 +16783,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   避头尾（CJK 行首标点不孤）+measureText 缩字号循环+终态
   截断省略；POSTER_LOW 低端降级画布；导出 toBlob+触屏长按
   保存层（a[download] 在 iOS 是错路实录）；字体栈回退。
+
+## R3061 巡检#478——mcp_server 审计（绿）
+- 只重发布既有能力零新造；q 长帽+max_addresses 钳+s2t
+  重试同 web 纪律；G7 拒绝透传 REFUSED+步骤链；record_
+  claim 与 web 同 G8（断言必证据）+无 thread 自动开+拒绝
+  时补偿删防鬼线程；instructions 明示「不要绕过拒绝」。
