@@ -1660,11 +1660,15 @@ def warm_hehun(h: dict) -> dict:
         else:
             _mid = [t for t in _hh_all if t not in _STRONG_CP] or ["细水长流搭子"]
             l0 = _pick(_mid, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
-    # R3087：判词最低档（偏不合适）不再从文案池抽——「欢喜冤家/吵不散」
-    # 对偏不合适盘仍太甜，换诚实档。
+    # R3087：判词低档不抽甜池——band3 偏不合适换诚实档；band2 磕绊
+    # 偏多限「认架」标签（细水长流/平平淡淡对磕绊盘是假话）。
     if _band == 3:
         l0 = _pick(["磕绊偏多的组合", "书上不太看好的一对",
                     "难走但不是死局的一对"],
+                   h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
+    elif _band == 2:
+        l0 = _pick(["欢喜冤家预定", "并肩作战型情侣",
+                    "吵不散的缘分体质"],
                    h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
 
     lines: list[str] = [f"{rel}。"]
