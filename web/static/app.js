@@ -6922,7 +6922,9 @@ async function doHehun() {
       b_gender: val('hh_b_gender') || '女',
       /* R230z（R36-P1-2）：昵称（可空）——后端回显进结果/海报/历史 */
       a_name: (val('hh_a_name') || '').trim() || null,
-      b_name: (val('hh_b_name') || '').trim() || null
+      b_name: (val('hh_b_name') || '').trim() || null,
+      /* R3152：可空问句——服务端判词对着这句给定向行 */
+      question: (val('hh_question') || '').trim() || null
     });
     if (_gen !== _HH_GEN) return;   /* R2502：丢弃旧响应——含 _meSave 副作用 */
     /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
@@ -7050,7 +7052,8 @@ async function doHehun() {
     };
     rememberVoice('hhResult', j, buildHehunResult, _rbHh);   /* R2349s P2-20 */
     _rbHh();
-    rememberResult('hehun', j, '');   /* R219b（P0-2）：双方日柱进第一句 */
+    /* R3152：问句存进结果档——照卡聊时小满知道她问的是哪句。 */
+    rememberResult('hehun', j, (val('hh_question') || '').trim());
     revealResult('hhResult');
     pollAiPolish('hhResult', j.ai_task_id);   // R191b：AI 段落后到（B-014）
   } catch (e) {

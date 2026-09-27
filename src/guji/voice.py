@@ -2169,6 +2169,40 @@ def _hehun_pos_anchor(h: dict) -> str:
     return ""
 
 
+# R3152：合婚带问句——判词后补一行「对着你问的说」。只回词域命中
+# 的五类（长久/吵架/复合/异地/心思），指向卡上已有的确定性段落，
+# 不重复内容；未命中词域不塞行（认了问题但答非所问比不认更伤）。
+def _hehun_q_line(q: str, h: dict) -> str:
+    if _re_lq.search(r"结婚|嫁|娶|长久|未来|走下去|合适|适合|领证|订婚|定下来|走到底", q):
+        dy = [d for d in (h.get("dayun_hits") or [])
+              if int(d.get("start_age_a", 99)) >= 16]
+        if dy:
+            dy.sort(key=lambda d: abs(int(d.get("year_start", 0))
+                                      - _today_cn().year))
+            d0 = dy[0]
+            _rel = d0.get("relation") or ""
+            return (f"你问能不能走得长远——长期看的是两人大运的节奏："
+                    f"{d0.get('year_start')}年前后那段大运是「{_rel}」——"
+                    + ("合，那段时间适合把大事往前定。"
+                       if _rel == "合" else
+                       "冲，那段时间容易顶上，大事慢半拍再定。"))
+        return ("你问能不能走得长远——上面判词档答的是底子，"
+                "下面「大运互动」那段是节奏坐标。")
+    if _re_lq.search(r"吵架|磨合|矛盾|冷战|相处|争执|总吵|闹掰", q):
+        return ("你问的是相处——下面「磨在」那段就是具体剧本，"
+                "引信到当晚都写了；判词答底子，剧本答日子。")
+    if _re_lq.search(r"复合|前任|挽回|和好|重新|回头", q):
+        return ("你问要不要重来——复合看的是上次绊住你们的那几处"
+                "变没变：下面的磨点就是它们，没变的话分数也不会变。")
+    if _re_lq.search(r"异地|距离|见面少|两地", q):
+        return ("你问异地——盘上量的是节奏合不合，不是公里数；"
+                "下面「大运互动」那段是你们适合往一处走的时间窗。")
+    if _re_lq.search(r"喜欢我|爱我|在意我|怎么想|心思|在乎|看.{0,2}我", q):
+        return ("你问 TA 眼里你什么样——往下「互看」那段是照着"
+                "十神互见算的：一段是你看 TA，一段反过来。")
+    return ""
+
+
 def warm_hehun(h: dict) -> dict:
     """合婚人话视图（R3087/specs/010 判词引擎版）。
 
@@ -2271,6 +2305,11 @@ def warm_hehun(h: dict) -> dict:
                    h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
 
     lines: list[str] = [f"{rel}。"]
+    # R3152：带问句时判词下一行就对着问的说——卡面不再无视那句
+    # 「我们能结婚吗」。
+    _ql = _hehun_q_line((h.get("question") or "").strip(), h)
+    if _ql:
+        lines.append(_ql)
     # R3125（specs/012-P2）先验位：先用双方本命五行给一条可当场
     # 自验的性格断言——说中了，下面的判词才有分量。
     _spot_a = _WX_SPOT.get(h.get("day_wx_a", ""), "")

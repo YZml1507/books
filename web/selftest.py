@@ -1414,6 +1414,19 @@ def _run_inner() -> list[str]:
         assert _soft not in _alltxt, ("软话回魂", _soft)
     ok.append("hehun.band2_friction")
     ok.append("hehun.softcopy_purged")
+    # R3152：带问句的合婚——「我们能结婚吗」该领到判词后的定向行
+    # （对着问的说：长远题→大运节奏坐标）。
+    _hh_q = client.post("/api/hehun", json={
+        "a_year": 2000, "a_month": 5, "a_day": 20, "a_hour": 14,
+        "a_gender": "女",
+        "b_year": 1999, "b_month": 11, "b_day": 8, "b_hour": 9,
+        "b_gender": "男", "question": "我们能结婚吗"})
+    assert _hh_q.status_code == 200, _hh_q.status_code
+    _jq = _hh_q.json()
+    _rq = (_jq.get("warm") or {}).get("reply") or []
+    assert _jq.get("question") == "我们能结婚吗", _jq.get("question")
+    assert any(l.startswith("你问") and "大运" in l for l in _rq), _rq
+    ok.append("hehun.question_line")
     # R230a-7（R13-P0-2）：同日柱 = 日主同五行 → 比和而非相克（回归钉扎）。
     check("hehun.same_wx_bihe", client.post("/api/hehun", json={
           "a_year": 1990, "a_month": 6, "a_day": 15, "a_hour": 12,
@@ -4059,6 +4072,8 @@ def _run_inner() -> list[str]:
                        "match_score",
                        # C-003：交叉引用——合婚结果页增加星座配对维度
                        "cross_ref",
+                       # R3152：可空问句 echo 进响应（判词定向行依据）
+                       "question",
                        # R3124b
                        "result_ref"},
         "/api/qiming": {"surname", "five_elements", "candidates", "bazi", "summary",

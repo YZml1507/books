@@ -485,6 +485,9 @@ class HehunRequest(BaseModel):
     # 全部以「小鱼 × 阿哲」呈现，不再是冷冰冰的甲/乙。
     a_name: str | None = Field(None, max_length=16, description="甲昵称，可空")
     b_name: str | None = Field(None, max_length=16, description="乙昵称，可空")
+    # R3152：可空问句——「能结婚吗/为什么老吵架」让判词对着问的说，
+    # 而不是只给通稿判词。与 liuyao/tarot 的 question 同纪律。
+    question: str | None = Field(None, max_length=200, description="最想问的事，可空")
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
@@ -497,6 +500,8 @@ class HehunRequest(BaseModel):
             raise ValidationError("乙方性别需为 男 或 女")
         self.a_name = strip_zw((self.a_name or "").strip() or None)
         self.b_name = strip_zw((self.b_name or "").strip() or None)
+        # question 同 strip_zw 纪律（R230k：零宽不当非空）
+        self.question = strip_zw((self.question or "").strip() or None)
 
 
 # R178b（D-229b）：原 `DailyRequest` 已删除——`/api/daily` 的 `date` 改为

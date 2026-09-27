@@ -436,6 +436,8 @@ def hehun(req) -> dict:
         # 基准 55，日支/年支冲合按权重加减，相生/比和/相克逐级，
         # 桃花同支、日干五合、十神互见小幅加分；钳 35–99。
         "match_score": _hehun_score(h),
+        # R3152：问句进卡——warm 层对着用户问的那句给定向行。
+        "question": req.question,
     }
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
     # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
