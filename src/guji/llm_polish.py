@@ -168,7 +168,9 @@ def _render(facts: list[str], question: str | None) -> str:
     # R3132（specs/012-P0 同构）：判词行从 facts 堆里升格成权威块——
     # 此前判词只是第 N 条参考资料，模型可自由发挥成相反方向
     # （「偏不合适」的盘被润色成「挺合适的」实锤过）。单独成块+硬约束。
-    _vf = [f for f in facts if f.startswith("判词：")]
+    # R3142（真修46）：桃花推进的是「判词直说：…」——startswith(判词)
+    # 宽匹配接住 判词：/判词直说：/判词偏硬 各形态。
+    _vf = [f for f in facts if str(f).startswith("判词")]
     _vf_block = (
         "【判词口径·必须一致】\n" + "\n".join(_vf) + "\n"
         "上面是已经算好的判词——你的解读可以展开、可以细化，"
@@ -279,7 +281,7 @@ def polish(facts: list[str], question: str | None = None,
         # 三次仍犯返回 None 降级——卡面 warm.reply 本来就是判词原句，
         # 缺省渲染即一致，矛盾稿绝不落屏。
         if out:
-            _vfacts = [f for f in facts if str(f).startswith("判词：")]
+            _vfacts = [f for f in facts if str(f).startswith("判词")]
             if _vfacts and _chat_verdict_contra(out, _vfacts):
                 payload["messages"] = payload["messages"] + [{
                     "role": "user",
