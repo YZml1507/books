@@ -14601,3 +14601,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2735 巡检#152——ai 端点面 404/405
 - /api/ai、/api/ai/、深层路径全 JSON 404；真实 tid 形→任务
   404 截断回显；POST 任务端→405 人话。
+
+## R2736 巡检#153——write_guard 公网写总闸
+- BOOKS_WRITE_DISABLE=1 即时读：prefs/favorites/threads 6 写端
+  全 400「公开演示站——只能看不能改」；env 现未设（写开）。
