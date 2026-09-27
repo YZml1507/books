@@ -14915,3 +14915,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2799 巡检#216——tarot 关键词↔指引覆盖
 - 78 牌正逆首关键词 100 个↔指引词表 100 条全等（零缺
   零死词）；指引语温暖可执行（离开→「转身不是逃…」）。
+
+## R2800 巡检#217——第 300 轮里程碑·第七段大快照
+- selftest 312 / contract 643 / standing 3/3 / dup / voice 14
+  / parity 74+43+253+9 / chat_e2e 4/4 全 PASS。
+- 本批 R2767–R2799：share/widget/works/stats/bookstudy/
+  concept/research/compare/ask 数据面扫完+黄历 affair
+  生态（词族/否决簇/截断/过去日）+八字口径三披露
+  （双派/节气桶/并列旺/性别取象/补缺/语料锚/语义层）。
