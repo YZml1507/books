@@ -1520,6 +1520,14 @@ function buildChatContext(viewKey) {
              l.indexOf('合拍') !== -1 || l.indexOf('上等') !== -1;
     })[0];
     if (_hw) facts.push('判词：' + _hw.slice(0, 80));
+    /* R3135：剧本/处方行同进 facts——小满被问「我们哪里磨、怎么处」
+     * 时手里有卡面那套 48h 剧本和三段式处方，不是只有判词干条。 */
+    ((j.warm || {}).reply || []).forEach(function (l) {
+      if (/摩擦点|吵在|处方|先做|观察信号|48|晚上可能|第二天/.test(l) &&
+          facts.length < 6) {
+        facts.push('卡面说：' + l.slice(0, 90));
+      }
+    });
   } else if (viewKey === 'huangli') {
     var yi = (j.yi || []).slice(0, 3).join('、');
     var ji = (j.ji || []).slice(0, 3).join('、');
