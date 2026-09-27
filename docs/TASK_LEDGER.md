@@ -16481,3 +16481,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   内存面+全部生辰表单字段及 data 标记（防回填复活）；
   wipeAt 墓碑跨 tab 自清+BroadcastChannel dirty 刷新。
   「忘掉我的数据」真忘干净。
+
+## R3013 巡检#430——研究面 compare 深度审计（绿）
+- compare_works 实产：双书各自 n_hits+层分布+truncated 标+
+  逐字原文+**非连续引文显式披露**（「区间内另有 51 字未包
+  含（正文层过滤）」）+shared_addresses——研究级引文完整
+  性，检索/比对面达标。
