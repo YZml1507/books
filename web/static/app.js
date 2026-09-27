@@ -7051,14 +7051,21 @@ async function doHehun() {
       try { _oldP = _meGet('me:partner'); } catch (eOP) {}
       /* R2500（R142-P1-3）：受邀侧字段照样守未动不写——B 侧邀请
        * 预填值 ≠ 出厂 defaultValue，手填/邀请值都会如实落档。 */
+      /* R3161：昵称随档案落档（空不覆旧值——_meSave 语义里 '' 会清键）。 */
+      var _recMe = { y: num('hh_b_year'), m: num('hh_b_month'),
+        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
+        n: val('hh_b_name') };
+      if (!_recMe.n) delete _recMe.n;
       if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
-      _meSave('me', { y: num('hh_b_year'), m: num('hh_b_month'),
-        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+      _meSave('me', _recMe);
+      var _recPa = { y: num('hh_a_year'), m: num('hh_a_month'),
+        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
+        n: val('hh_a_name') };
+      if (!_recPa.n) delete _recPa.n;
       if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
-      _meSave('me:partner', { y: num('hh_a_year'), m: num('hh_a_month'),
-        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+      _meSave('me:partner', _recPa);
       if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
                     String(_oldP.m) !== String(num('hh_a_month')) ||
                     String(_oldP.d) !== String(num('hh_a_day')))) {
@@ -7067,14 +7074,20 @@ async function doHehun() {
         } catch (eTP) {}
       }
     } else {
+      var _recMeA = { y: num('hh_a_year'), m: num('hh_a_month'),
+        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
+        n: val('hh_a_name') };
+      if (!_recMeA.n) delete _recMeA.n;
       if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
-      _meSave('me', { y: num('hh_a_year'), m: num('hh_a_month'),
-        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女' });
+      _meSave('me', _recMeA);
+      var _recPaB = { y: num('hh_b_year'), m: num('hh_b_month'),
+        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
+        n: val('hh_b_name') };
+      if (!_recPaB.n) delete _recPaB.n;
       if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
-      _meSave('me:partner', { y: num('hh_b_year'), m: num('hh_b_month'),
-        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女' });
+      _meSave('me:partner', _recPaB);
     }
     _meFillAll();
     /* R2350f（R102-P1-5）：双侧生日都回显——邀请态下 A 侧是 TA。 */
@@ -9560,10 +9573,12 @@ function initDivination() {
       showToast('先填一下 TA 的真实生日再存——现在还是示例值', 'warn');
       return;
     }
-    _meSave('me:partner', {
+    var _rec = {
       y: num(_p+'year'), m: num(_p+'month'), d: num(_p+'day'),
       h: num(_p+'hour'), g: val(_p+'gender') || '女', n: val(_p+'name')
-    });
+    };
+    if (!_rec.n) delete _rec.n;   /* 空昵称不覆旧值 */
+    _meSave('me:partner', _rec);
     showToast('TA 的生日存好啦——只留在这台设备上。之后聊感情，小满能对上 TA 的盘', 'ok');
   });
   /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
@@ -11710,7 +11725,8 @@ function _meFillAll() {
     _meFill('me', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
   } else {
     _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
-    _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+    /* R3161：昵称随档案回填——R3160 存的 TA 昵称再测合婚不丢。 */
+    _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender', n: 'hh_b_name' });
   }
   try { _renderMeStrip(); } catch (e) {}
 }
