@@ -15748,3 +15748,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   KR1a0001 周易正文+page_anchor tls_020-2a+彖象全
   文；gua_number/text 卦号卦画互证一致。
 - 无动爻时 bian==ben 如实呈现，不强造变卦。
+
+## R2918 巡检#335——liuyao interpretation 分层实测
+- 四段 lines 结构：卦象坐标（坤2→豫16）/动爻位置
+  释义/走向+「卦义以經文原文为准」让位原文。
+- 认识论边界显式：「系统只给卦象坐标与經文原文，
+  不代为断事」G7 无证据不推测——interpretation 给
+  坐标证据、warm 给白话导览，分工不越界。
