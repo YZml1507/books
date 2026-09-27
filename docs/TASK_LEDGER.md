@@ -14575,3 +14575,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2729 巡检#146——bcv 圣经章节定位
 - Proverbs 12:12→Douay-Rheims 2 命中原文下发；NoSuchBook→
   400「地址名库里没有」——多语料域可达+报错人话。
+
+## R2730 巡检#147——threads 状态机 PATCH
+- open/parked/closed 三迁全 200、bogus→400 中文标签；status 是
+  query 参数（探针两次误打 body/中文枚举自纠）。
