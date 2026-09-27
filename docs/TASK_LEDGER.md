@@ -15376,3 +15376,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 修：baseline 记 favorites max_id + 清理块水位以上
   DELETE；重跑清理单出现 favorite#1，五表归零。
 - 验证：ui_smoke PASS + selftest 312 全绿。
+
+## R2867 巡检#284——用户数据面全表审计
+- daily_cache 47 行是确定性日签缓存（可再生非污染，
+  daily.future_nowrite 闸保证未来日不入库）；
+- user_prefs 仅 theme+recent_modules 两条真值；
+- kb_meta 只 created_at；五表（derived/turn/thread/
+  evidence/favorites）R2864/66 修复后全零残留。
