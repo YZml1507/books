@@ -1666,6 +1666,48 @@ def main() -> int:
             results.append({"name": "ui:liuyao_coord",
                             "ok": ok, "detail": detail})
 
+            # ── R3114 钉扎（specs/010）：聊天上下文判词透传——
+            #   buildChatContext 三视图须带判词层事实（合拍指数/判词/
+            #   入口/倾向行），否则小满与判词层两套话。
+            errors.clear()
+            try:
+                cases = page.evaluate(
+                    "() => {"
+                    " Object.keys(LAST_RESULT).forEach("
+                    "  k=>delete LAST_RESULT[k]);"
+                    " const put=(k,v)=>sessionStorage.setItem("
+                    "  'lastResult:'+k, JSON.stringify(v));"
+                    " put('hehun', {json:{match_score:43, a_bazi:{day:'甲子'},"
+                    "  b_bazi:{day:'乙丑'}, day_wx_sheng:false, day_wx_same:false,"
+                    "  warm:{reply:['判词直说：偏不合适——日支相冲']}},"
+                    "  question:'', body:{}});"
+                    " put('taohua', {json:{peach_zhi:'卯', strength:'weak',"
+                    "  warm:{reply:['判词直说：缘分信号偏弱','入口预判：熟人局']}},"
+                    "  question:'', body:{}});"
+                    " put('liuyao', {json:{ben:{gua_name:'恒', gua_number:32,"
+                    "  moving_lines:[2]}, warm:{reply:['x','这一卦照传统口径看："
+                    "  主动权在你手里']}}, question:'能成吗', body:{}});"
+                    " return ["
+                    "  buildChatContext('hehun').facts.join('|'),"
+                    "  buildChatContext('taohua').facts.join('|'),"
+                    "  buildChatContext('liuyao').facts.join('|')"
+                    " ];}")
+                ok = (len(cases) == 3
+                      and "合拍指数：43/99" in cases[0]
+                      and "判词" in cases[0]
+                      and "缘分信号偏弱" in cases[1]
+                      and "入口" in cases[1]
+                      and "照传统口径看" in cases[2]
+                      and not errors)
+                detail = "chatfacts=" + "|".join(
+                    "OK" if c else "X" for c in cases)
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:chat_facts_verdict",
+                            "ok": ok, "detail": detail})
+
             # ── R231e 钉扎（R39 批）：本周宜忌条 7 格 + 点击翻页；
             #   明天预告/昨天接续/小档案条（localStorage 预置后 reload 测）。
             errors.clear()

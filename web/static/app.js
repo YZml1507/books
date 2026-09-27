@@ -1474,6 +1474,12 @@ function buildChatContext(viewKey) {
     facts = ['桃花支：' + (j.peach_zhi || '—'),
              '桃花强度：' + (STR[j.strength] || j.strength || '—')];
     if (j.hongluan) facts.push('红鸾：' + j.hongluan);
+    /* R3114（facts_taohua 同口径）：判词带+入口预判进上下文。 */
+    ((j.warm || {}).reply || []).forEach(function (l) {
+      if (l.indexOf('判词') !== -1 || l.indexOf('入口') !== -1) {
+        facts.push(l.slice(0, 80));
+      }
+    });
   } else if (viewKey === 'hehun') {
     var a = j.a_bazi || {}, b = j.b_bazi || {};
     /* R229z续23（R11-#10）：A/B → 甲/乙，与表单/422 口径统一 */
@@ -1486,6 +1492,16 @@ function buildChatContext(viewKey) {
       facts.push('日主五行：' + (j.day_wx_sheng ? '相生' :
                                  (j.day_wx_same ? '比和' : '相克')));
     }
+    /* R3114（facts_hehun 同口径）：判词+指数进聊天上下文——此前
+     * 只给日柱五行，小满不知道判词层说了什么会另起口径。 */
+    if (j.match_score != null) {
+      facts.push('合拍指数：' + j.match_score + '/99');
+    }
+    var _hw = ((j.warm || {}).reply || []).filter(function (l) {
+      return l.indexOf('磨合') !== -1 || l.indexOf('不合适') !== -1 ||
+             l.indexOf('合拍') !== -1 || l.indexOf('上等') !== -1;
+    })[0];
+    if (_hw) facts.push('判词：' + _hw.slice(0, 80));
   } else if (viewKey === 'huangli') {
     var yi = (j.yi || []).slice(0, 3).join('、');
     var ji = (j.ji || []).slice(0, 3).join('、');
@@ -1517,6 +1533,14 @@ function buildChatContext(viewKey) {
       (q ? '，问的是「' + q + '」' : '') + '，这卦怎么看';
     facts = ['本卦：' + (ben.gua_name || '—')];
     if (moving) facts.push('动爻：' + moving);
+    /* R3114：用神坐标+倾向行进上下文——此前小满手里只有卦名动爻，
+     * 问「能成吗」没有判词层手里的生克口径。 */
+    ((j.warm || {}).reply || []).forEach(function (l) {
+      if (l.indexOf('照传统口径看') !== -1 ||
+          l.indexOf('传统上先看') !== -1) {
+        facts.push(l.slice(0, 90));
+      }
+    });
   } else if (viewKey === 'daily') {
     /* R233r（R49-Top5-4）：日签卡链路——展开过「完整解读」后聊天有
      * 上下文可聊（此前首页聊小满手里空空，纯放飞）。 */
