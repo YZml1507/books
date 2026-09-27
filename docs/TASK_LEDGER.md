@@ -15190,3 +15190,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   标成支持/反驳/背景」（顶层 role 非 schema 字段被
   pydantic 忽略非缺陷）；坏 JSON→422 json_invalid 中
   文。我造的 1 线程已按 FK 序清（四表归零）。
+
+## R2839 巡检#256——paipan 禁写面
+- BOOKS_PAIPAN_HISTORY_DISABLE 三套解析（strip().lower
+  () 对齐其余开关，R2349w 修 "TRUE"/" 1" 不关）；禁用下
+  list→{total:0,items:[]} 空表优雅不报错，get/export/
+  delete→404；KEEP_MAX=500 滚动 + 写槽 32 洪峰丢弃 +
+  _WIPE_GEN 作废 wipe 前入队写。
