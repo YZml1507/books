@@ -2713,6 +2713,25 @@ def _run_inner() -> list[str]:
     assert _LC._is_sensitive("肿瘤指标偏高"), "肿瘤指标未接"
     assert not _LC._is_sensitive("肿瘤医院的猫"), "肿瘤猫被误拦"
     assert not _LC._is_sensitive("刷到肿瘤新闻"), "肿瘤新闻被误拦"
+    # R2992（巡#409）：自伤/重病/侵害三族变体补位——量词服药形、
+    # 消失换序、持刀对体、割自己入软层吃物件豁免；重病全族与
+    # 摸体/施害角色复合形、被人X 受害形接入敏感转介。
+    assert _LC._is_crisis("吃了三十片药"), "量词服药未接"
+    assert _LC._is_crisis("想从这世界消失"), "消失换序未接"
+    assert _LC._is_crisis("拿刀对着手腕"), "持刀对体未接"
+    assert _LC._is_crisis("想割自己"), "割自己未接"
+    assert not _LC._is_crisis("吃了三十个饺子"), "饺子被误拦"
+    assert not _LC._is_crisis("割自己家的麦子"), "农务割被误拦"
+    assert not _LC._is_crisis("消失的世界纪录片"), "纪录片被误拦"
+    assert _LC._is_sensitive("查出来白血病"), "白血病未接"
+    assert _LC._is_sensitive("住进了ICU"), "ICU未接"
+    assert _LC._is_sensitive("被人强吻"), "被人X未接"
+    assert _LC._is_sensitive("被继父摸过"), "施害角色未接"
+    assert _LC._is_sensitive("他拿刀威胁我"), "威胁我未接"
+    assert not _LC._is_sensitive("看化疗纪录片哭了"), "影视被误拦"
+    assert not _LC._is_sensitive("a particular example"), "ICU子串被误拦"
+    assert not _LC._is_sensitive("上班摸鱼摸到腰疼"), "摸鱼梗被误拦"
+    assert not _LC._is_sensitive("爸爸摸我头表扬"), "亲昵摸头被误拦"
     # R2359（R114-P4-1）：敏感非危机消息与危机同走免配额直返——不占
     # 8/min 限流，done-task 直接带回转介句，连发也不会被「歇口气」顶掉。
     _tid_s = _LC.spawn_chat_task("st-sens", "得了绝症怎么办", config=_ccfg)
