@@ -14318,3 +14318,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2673 巡检#90——warm.citations 引文复用实锤
 - 12 条 warm 引文与 evidence 逐字同源（李虛中命書/三命通会 KR
   编号+原文附），非编造——reuse 判据在产。
+
+## R2674 巡检#91——bazi scope 三档递进
+- day→日级运算层；life→+起运 3.1 岁+dayun 柱列（比肩/正印十神
+  标注+年界）；evil→400 人话「范围只能是 day/range/life」。
