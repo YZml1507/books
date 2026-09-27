@@ -16728,3 +16728,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - answer：G7 拒答纪律——证据即逐字引文带锚（绝不转写，转
   写即失可验性），三拒地 no-hit/address-empty/damaged-only
   （烂文本有 hit 也不可当证据上），附真实错字例证。
+
+## R3052 巡检#469——第二十一段全闸快照（绿）
+- selftest 315｜contract 643｜dup 零｜chat_e2e 4/4——
+  16 轮审计（含 #19 星座伪日历真修）+ 全量古典表核对段
+  零回归。
