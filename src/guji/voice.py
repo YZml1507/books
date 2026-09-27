@@ -1349,8 +1349,36 @@ def warm_taohua(t: dict) -> dict:
         l0 = _pick(_pool, t.get("year_zhi"), _today, "ol")
         _band = ("强" if "偏快" in strength
                  else "弱" if "慢热" in strength else "中")
-        lines: list[str] = [_pick((_tb.get("replies") or {}).get(_band) or [],
-                                  t.get("year_zhi"), _today, _band)]
+        # R3089（specs/010-P1）：判词带——锚 strength/hit_pillars，
+        # 落柱翻成「缘分入口在哪条圈」的具体预言，替代 replies 池软句。
+        _hit_keys = [p for p in (t.get("hit_pillars") or [])]
+        _hits = [_PILLAR_WARM.get(p, p) for p in _hit_keys]
+        if _band == "强":
+            _v = (f"判词直说：缘分信号偏强——桃花落在"
+                  f"{'、'.join(_hits)}，书上管这叫自带缘分场，"
+                  "出门就有人注意到你")
+        elif _band == "中":
+            _v = (f"判词直说：有信号不算旺——桃花落在{_hits[0]}，"
+                  "一面之缘主要走这根柱")
+        else:
+            _v = ("判词直说：缘分信号偏弱——四柱都没临桃花：不是没有，"
+                  "是入口不在自己身上")
+        lines: list[str] = [_v]
+        # 入口预判：落柱→具体圈层（年=老同学同乡、月=同事同龄、
+        # 日=身边近圈、时=晚熟/线上）；无落柱→介绍人渠道。
+        _PILLAR_SCENE = {
+            "year": "老同学、同乡、发小这条线最容易出缘分",
+            "month": "工作圈、同学局、同龄社群里信号最强",
+            "day": "缘分大概率从身边近距离的人来——天天见的那圈",
+            "hour": "信号偏晚熟，也可能从比你小的人或线上场景来",
+        }
+        if _hit_keys:
+            lines.append("入口预判：" + "；".join(
+                _PILLAR_SCENE.get(p, "") for p in _hit_keys
+                if p in _PILLAR_SCENE) + "。")
+        else:
+            lines.append("入口预判：缘分入口在介绍人和熟人局——可做的"
+                         "事：每月至少两次熟人局露脸，让朋友知道你在看。")
         peach = t.get("peach_zhi") or ""
         yz = t.get("year_zhi") or ""
         if peach:
@@ -1363,16 +1391,7 @@ def warm_taohua(t: dict) -> dict:
                          f"方位不背锅，行动才管用。")
         # R230a-7（R13-P2-4）：copy_bank 分支此前丢了坐标事实行
         # （落柱/红鸾/天喜）——与 fallback 分支对齐，保住可核验性。
-        _hits = [_PILLAR_WARM.get(p, p)
-                 for p in (t.get("hit_pillars") or [])]
-        if _hits:
-            lines.append(f"桃花就落在你自己的盘里（{'、'.join(_hits)}）——"
-                         f"自带吸引力的类型。")
-        else:
-            # R2349s（R84-P1-7）：弱盘此前全篇没解释「弱在哪」——与
-            # fallback 分支对齐补盘理行。
-            lines.append("四柱都没直接临桃花——缘分走的是细水长流路线，"
-                         "熟人圈比陌生场合更容易遇到。")
+        # R3089：落柱/无落柱已由判词行+入口预判承担，此段并入不再复述。
         _hl = "、".join(_PILLAR_WARM.get(p, p)
                        for p in (t.get("hongluan_pillar") or []))
         _tx = "、".join(_PILLAR_WARM.get(p, p)
@@ -1427,11 +1446,14 @@ def warm_taohua(t: dict) -> dict:
                     # 单人盘改「桃花运当班」口径。
                     lines.append(f"从{d0.get('year_start')}年起桃花运当班——节奏上的参考，不是日程表。")
         # D-003：禁用免责套话「感情这事你的感受最重要」
-        # 改为一句具体可操作的小建议（根据强度分支已在前面给过建议，这里不再重复）
+        # R3089：收口改带地图交权——信号强弱和入口已指明，决定权如实归还。
+        lines.append("命理报的是信号强弱和入口方向——缘分的门在哪指出来"
+                     "了；敲不敲门、跟谁走，是你的选择。")
+        _body, _close = lines[:-1][:6], lines[-1:]
         return _wrap(
             l0,
             None,
-            lines[:5],
+            _body + _close,
             _render_details(t.get("render", "")),
             [],
         )
@@ -1440,20 +1462,38 @@ def warm_taohua(t: dict) -> dict:
     # → NameError。按强度给固定一句。
     l0 = ("缘分信号满格" if "偏快" in strength
           else "慢热蓄力中" if "慢热" in strength else "稳步升温中")
-    lines: list[str] = []
+    # R3089：fallback 分支同构判词带+入口预判（与 copy_bank 路径同口径）。
+    _hit_keys = [p for p in (t.get("hit_pillars") or [])]
+    hits = [_PILLAR_WARM.get(p, p) for p in _hit_keys]
+    if "偏快" in strength:
+        _v = (f"判词直说：缘分信号偏强——桃花落在{'、'.join(hits)}，"
+              "自带缘分场，出门就有人注意到你")
+    elif "慢热" in strength:
+        _v = ("判词直说：缘分信号偏弱——四柱都没临桃花：不是没有，"
+              "是入口不在自己身上")
+    else:
+        _v = (f"判词直说：有信号不算旺——桃花落在{hits[0]}，"
+              "一面之缘主要走这根柱")
+    lines: list[str] = [_v]
+    _PILLAR_SCENE = {
+        "year": "老同学、同乡、发小这条线最容易出缘分",
+        "month": "工作圈、同学局、同龄社群里信号最强",
+        "day": "缘分大概率从身边近距离的人来——天天见的那圈",
+        "hour": "信号偏晚熟，也可能从比你小的人或线上场景来",
+    }
+    if _hit_keys:
+        lines.append("入口预判：" + "；".join(
+            _PILLAR_SCENE.get(p, "") for p in _hit_keys
+            if p in _PILLAR_SCENE) + "。")
+    else:
+        lines.append("入口预判：缘分入口在介绍人和熟人局——可做的"
+                     "事：每月至少两次熟人局露脸，让朋友知道你在看。")
     peach = t.get("peach_zhi") or ""
     yz = t.get("year_zhi") or ""
     if peach:
         # R2509（审-P2-13）：「年支」译成属相——用户对自己的属相有概念。
         lines.append(f"你的属相是{yz}，传统上对应的桃花位在「{peach}」——"
                      f"这是你的魅力方位，不是倒计时。")
-    hits = [_PILLAR_WARM.get(p, p) for p in (t.get("hit_pillars") or [])]
-    if hits:
-        lines.append(f"桃花就落在你自己的盘里（{'、'.join(hits)}）——"
-                     f"自带吸引力的类型，不用刻意表现。")
-    else:
-        lines.append("四柱都没直接临桃花——缘分走的是细水长流路线，"
-                     "熟人圈比陌生场合更容易遇到。")
     hl_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("hongluan_pillar") or []))
     tx_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("tianxi_pillar") or []))
     if hl_p != "未临柱" and hl_p:
@@ -1465,11 +1505,15 @@ def warm_taohua(t: dict) -> dict:
         d0 = dayun[0]
         lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
                      f"桃花运当班——那段时间社交面会明显变宽。")
-    # D-003：禁用免责套话「感情这事你的感受最重要」——已在上方给出具体建议
+    # D-003：禁用免责套话「感情这事你的感受最重要」
+    # R3089：fallback 收口同构带地图交权。
+    lines.append("命理报的是信号强弱和入口方向——缘分的门在哪指出来"
+                 "了；敲不敲门、跟谁走，是你的选择。")
+    _body, _close = lines[:-1][:6], lines[-1:]
     return _wrap(
         l0,
         None,
-        lines[:5],
+        _body + _close,
         _render_details(t.get("render", "")),
         [],
     )

@@ -1025,6 +1025,22 @@ def _run_inner() -> list[str]:
           lambda j: any("正走在" in ln and "换班" in ln
                         for ln in ((j.get("warm") or {})
                                    .get("reply") or [])))
+    # R3089（specs/010-P1）：桃花判词带钉——弱盘直说偏弱+入口预判+
+    # 带地图交权收口；不再用 replies 池软句。
+    _tweak = client.post("/api/taohua", json={
+        "year": 1998, "month": 3, "day": 2, "hour": 10, "gender": "女"})
+    assert _tweak.status_code == 200, _tweak.status_code
+    _tj = _tweak.json()
+    _tr = (_tj.get("warm") or {}).get("reply") or []
+    assert _tj.get("strength") == "weak", _tj.get("strength")
+    assert "缘分信号偏弱" in (_tr[0] or ""), _tr[0]
+    assert any("入口预判" in l for l in _tr), _tr
+    assert any("是你的选择" in l for l in _tr[-1:]), _tr[-1:]
+    _tstrong = client.post("/api/taohua", json={
+        "year": 2000, "month": 6, "day": 8, "hour": 10, "gender": "女"})
+    _tr2 = (_tstrong.json().get("warm") or {}).get("reply") or []
+    assert "缘分信号偏强" in (_tr2[0] or ""), _tr2[0]
+    ok.append("taohua.verdict_band")
     # R112b（D-158b）：塔罗牌 seed 确定性 standing 覆盖——固定 seed → 固定
     # 牌面（实测 seed=42 抽 3 张含 节制/皇后/权杖国王）。
     check("tarot", client.post("/api/tarot", json={"seed": 42, "n": 3}),
