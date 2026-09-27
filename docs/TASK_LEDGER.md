@@ -14481,3 +14481,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   地址（最少 1 条）——换个数再试」覆盖上下界；钉扎只断言
   400 不断言文案安全改；重启 uvicorn 实测 0/7 同口径生效；
   selftest 312 全绿。
+
+## R2709 巡检#126——ask max_addresses 双界
+- pydantic Field(ge=1,le=6)→max=0 422「不能小于 1」/
+  max=99 422「不能大于 6」——双方向本就规范，R2708 修的
+  是 research 独有问题。
