@@ -3283,6 +3283,21 @@ def _run_inner() -> list[str]:
     _pf3 = _svc.chat_profile_facts([])
     assert _pf3 == [], _pf3
     ok.append("chat.profile_facts")
+    # R3116：copy_bank chat_fallback_* 与 app.js 活池同源钉——
+    # R3116 实测 JSON 已漂移（✨变体/4句 vs JS 6句），「同源复制」
+    # 注释成空话。钉：JSON 每条文案须在 app.js 源文本中逐字命中。
+    import json as _json
+    from pathlib import Path as _Path
+    _cb = _json.loads((_Path(__file__).resolve().parent.parent
+                       / "src/guji/copy_bank.json").read_text("utf-8"))
+    _appjs = (_Path(__file__).resolve().parent
+              / "static/app.js").read_text("utf-8")
+    _miss = [ln for ln in (_cb.get("chat_fallback_openers") or [])
+             if ln not in _appjs]
+    for _pool in (_cb.get("chat_fallback_by_keyword") or {}).values():
+        _miss += [ln for ln in _pool if ln not in _appjs]
+    assert not _miss, ("copybank.fallback_drift", _miss[:2])
+    ok.append("copybank.fallback_drift")
     # R228r/s（chat-flow 审查轨）：词表扩展 + 相对日 + 消歧钉针。
     # ① 下周X：周六问「下周五」→ 判 9/25 而非今天（2026-09-19 是周六）。
     _hf4 = _svc.chat_huangli_facts("下周五签约可以吗", now=_dt(2026, 9, 19))
