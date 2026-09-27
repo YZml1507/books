@@ -2537,7 +2537,8 @@ def _run_inner() -> list[str]:
                         name="考研二战来得及吗")
         _phx.save_async({"year": 1996, "month": 8, "day": 16,
                          "question": "我不想活了"},
-                        {"probe": "st-sens-3"}, rtype="bazi")
+                        {"probe": "st-sens-3",
+                         "question": "我不想活了"}, rtype="bazi")
         _phx.save_async({"year": 1996, "month": 8, "day": 16,
                          "question": "工作怎么样"},
                         {"probe": "st-sens-4"}, rtype="bazi")
@@ -2545,6 +2546,14 @@ def _run_inner() -> list[str]:
         _latest = _phx.list_records(limit=50)["items"]
         _pairs = sorted(((r["name"], r.get("question") or "")
                          for r in _latest), key=lambda p: (p[0], p[1]))
+        # result 顶层 question 回显键同剥（导出备份不带走披露）；
+        # 良性行原样保留。
+        import json as _jsn
+        _exp_all = {_jsn.dumps(r, ensure_ascii=False, sort_keys=True)
+                    for r in _phx.export_all()}
+        assert not any("被父母打了" in s or "不想活了" in s
+                       for s in _exp_all), ("export leak", _exp_all)
+        assert any("考研二战来得及吗" in s for s in _exp_all), _exp_all
     finally:
         _phx.DB_PATH = _saved_db
         if _saved_dis is not None:

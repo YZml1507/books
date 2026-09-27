@@ -263,6 +263,7 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
             # 拼进 name（六爻「六爻 · <问题>」/塔罗裸问题）时整串含
             # 敏感词——换 None 让 _name_summary 回落生辰摘要。
             _rq = dict(req_dict)
+            _res = result_dict
             _nm = name
             try:
                 from guji.llm_polish import _is_crisis, _is_sensitive
@@ -273,10 +274,16 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                     if isinstance(_nm, str) and \
                             (_is_crisis(_nm) or _is_sensitive(_nm)):
                         _nm = None
+                    # result 顶层 question 是纯回显冗余键（前端钩子用），
+                    # 剥掉防导出备份带走披露；解释节「针对」标题属回放
+                    # 工件本身，不剥（剥了存档失真）。
+                    if isinstance(_res, dict) and "question" in _res:
+                        _res = {k: v for k, v in _res.items()
+                                if k != "question"}
             except Exception:
                 pass   # 安全判定缺席不挡台账主路
             row_req = json.dumps(_rq, ensure_ascii=False)
-            row_res = json.dumps(result_dict, ensure_ascii=False)
+            row_res = json.dumps(_res, ensure_ascii=False)
             row_name = _nm
             if not row_name:
                 try:

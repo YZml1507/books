@@ -16544,3 +16544,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   app.js 全局 feCrisis/feSensitive 镜像判定，敏感不上副题。
   node 原生 4/4（家暴/自杀 STRIP、考研/感情 ECHO）。SW 壳
   已 bump。315 全绿。
+
+## R3022 巡检#439——真修#17b 追加：result.question 回显剥除
+- 足迹面终查发现 result_json 顶层 question 回显键仍带原文
+  （export_all 备份带走披露）。同口径剥除；解释节「针对」
+  标题属回放工件不剥（剥了存档失真）。钉扩：export_all
+  敏感词零残留断言。315 全绿。
