@@ -14533,3 +14533,7 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R2719 巡检#136——daily mercury 水逆双态
 - 平时 {on:false,next,days_to 倒数}；逆期（11-01 在 10-24~
   11-13 窗内）{on:true,day_no:9,until}——形状随态切换正确。
+
+## R2720 巡检#137——daily noble/liuhe 逐日跟干支
+- 6 连测：丑未+酉 / 子申+申 / 酉亥+未 / 酉亥+午 / 丑未+巳 /
+  子申+辰——贵人双支与六合各按日干日支推导，level 亦变。
