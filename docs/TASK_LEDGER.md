@@ -16588,3 +16588,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 ## R3029 巡检#446——月相/资产二段审计（绿）
 - moon 相位按农历日推导（初一新月/十五满月±1），非天文
   伪算、明示边界；满月文案带反思钩——确定性达标。
+
+## R3030 巡检#447——me 档案链审计（绿）
+- _meGet/_meSave：localStorage 安全解析+合并写（nick 不丢）+
+  写时净化+失败 toast+即时刷新条；_fieldsUntouched 出厂默认
+  值不写档；data-touched/data-me 双标——手改字段永不覆盖、
+  邀请字段免疫；storage 事件跨 Tab 标陈旧；literal 字段表防
+  init 序崩（注释实录缺陷）；ui_smoke 已钉 strip 渲染+代入。
