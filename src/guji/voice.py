@@ -853,6 +853,11 @@ _WX_KE_LY = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木
 _ZHI_CHONG_LY = {"子": "午", "午": "子", "丑": "未", "未": "丑",
                  "寅": "申", "申": "寅", "卯": "酉", "酉": "卯",
                  "辰": "戌", "戌": "辰", "巳": "亥", "亥": "巳"}
+# R3175：化进神/化退神——动爻化出同五行、地支序进/退一位，传统
+# 断法叫「进」「退」（进者劲往上走，退者劲在收）。四正行序无
+# 争议；土的进退神（丑辰未戌连环）各书口径不一，不收。
+_LY_JIN_SHEN = {"亥": "子", "寅": "卯", "巳": "午", "申": "酉"}
+_LY_TUI_SHEN = {v: k for k, v in _LY_JIN_SHEN.items()}
 
 
 def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
@@ -1264,7 +1269,13 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _rc_wx = ZHI_ELEMENT.get(_rc_b, "")
             _yj_txt = ""
             if _yj_b and _yj_wx and _ys_wx2:
-                if _yj_wx == _ys_wx2:
+                # R3175：月破——用神支与月建对冲，是月令压制里最狠的
+                # 一档（「破」比「克」更伤根基），优先于普通生克报。
+                if _zb and _ZHI_CHONG_LY.get(_yj_b) == _zb:
+                    _yj_txt = (f"月令{_yj_b}正冲着你问的事（{_zb}）"
+                               "——传统上这叫「月破」，这个月事头被"
+                               "冲得立不稳，缓一缓比硬推强")
+                elif _yj_wx == _ys_wx2:
                     _yj_txt = (f"月令{_yj_b}和你问的事同气——正当令，"
                                "这段日子事头底气足")
                 elif ELEMENT_GENERATES.get(_yj_wx) == _ys_wx2:
@@ -1303,6 +1314,23 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             if _xk_bits:
                 lines.append("还有一点——" + "；".join(_xk_bits) +
                              "。先别急着当定局，等它落了地再看。")
+            # R3175：暗动——静爻被日辰对冲，传统叫「暗动」：表面
+            # 没动、底下在拱。只点用神/世爻（全盘每个爻都报就吵了）。
+            _ad = []
+            _ad_seen = set()
+            for _al, _albl in ((_yz_l, "代表这事的那爻"),
+                               (_shi_l, "你自己那爻")):
+                _ab2 = (_al or {}).get("branch") or ""
+                _ap = (_al or {}).get("position") or _ab2
+                if (_ab2 and _rc_b and _ap not in _ad_seen and
+                        _ZHI_CHONG_LY.get(_rc_b) == _ab2 and
+                        not (_al or {}).get("moving")):
+                    _ad_seen.add(_ap)
+                    _ad.append(_albl + f"（{_ab2}）被日辰{_rc_b}冲着")
+            if _ad:
+                lines.append("暗处有动静——" + "；".join(_ad) +
+                             "，面上看着静，底下其实在拱，这事多半"
+                             "不是你一个人在使劲。")
         except Exception:
             pass
 
@@ -1327,15 +1355,23 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _bgl0 = {int(l.get("position", 0)): l
                      for l in ((_pp.get("ben_gua") or {}).get("lines") or [])}
             _hs, _hk = [], []
+            _jt = []
             for _mp2 in ml:
-                _a2 = (_bgl0.get(_mp2, {}) or {}).get("wuxing", "")
-                _b2 = (_bgl.get(_mp2, {}) or {}).get("wuxing", "")
+                _al2 = _bgl0.get(_mp2, {}) or {}
+                _bl2 = _bgl.get(_mp2, {}) or {}
+                _a2, _b2 = _al2.get("wuxing", ""), _bl2.get("wuxing", "")
                 if not _a2 or not _b2:
                     continue
                 if ELEMENT_GENERATES.get(_b2) == _a2:
                     _hs.append(_mp2)
                 elif _WX_KE_LY.get(_b2) == _a2:
                     _hk.append(_mp2)
+                # R3175：化进神/退神——同气地支序进/退，劲的方向。
+                _ab3, _bb3 = _al2.get("branch", ""), _bl2.get("branch", "")
+                if _LY_JIN_SHEN.get(_ab3) == _bb3:
+                    _jt.append((_mp2, "进"))
+                elif _LY_TUI_SHEN.get(_ab3) == _bb3:
+                    _jt.append((_mp2, "退"))
             _hb = []
             if _hs:
                 _hb.append("、".join(
@@ -1346,6 +1382,12 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                     _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
                     for p in _hk) +
                     "动出去反被打回来（化回头克）——那一步要留个后手")
+            for _jp, _jd in _jt:
+                _jpos = _YAO_POS_CN.get(_jp, f"第{_jp}爻").split("——")[0]
+                _hb.append(
+                    _jpos + "化" + _jd + "神——那股劲在" +
+                    ("往上走，顺的话会越来越顺" if _jd == "进"
+                     else "往回收，别全押在这一步上"))
             if _hb:
                 lines.append("再细看动的爻——" + "；".join(_hb) + "。")
         except Exception:
@@ -1427,7 +1469,8 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # R3172：六合冲格局行再占一行（seed42 实测连顶两次：cap 11/12
     # 都把它挤掉）——最坏行序 13：卦名/节奏/坐标/倾向/应期/月令/
     # 空亡/动爻/多动/回头/变卦/格局 + 处方尾行。
-    _CAP = 13
+    # R3175：暗动行再占一行——最坏 14。
+    _CAP = 14
     if len(lines) <= _CAP:
         return lines
     _tail = [l for l in lines if "卦辞爻辞" in l]

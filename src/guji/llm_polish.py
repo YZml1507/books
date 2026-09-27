@@ -2200,6 +2200,7 @@ def facts_liuyao(res: dict, warm: dict | None = None,
                 or "最实一步" in _ls or "观察信号" in _ls
                 or "月令" in _ls or "旬空" in _ls or "落空亡" in _ls
                 or "回头生" in _ls or "回头克" in _ls
+                or "化进神" in _ls or "化退神" in _ls or "暗处有动静" in _ls
                 or "六合" in _ls or "六冲" in _ls or "卦象格局" in _ls
                 or "先做" in _ls):
             facts.append(("判词：" if not _ls.startswith("判词")
