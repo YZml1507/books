@@ -16080,3 +16080,14 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   白话贴士/festival 与黄历同源——非事件日全诚实空。
 - personal：日主癸×日甲→伤官「创造力日」白话因果
   链+可执行建议+流年正财行；noble/do/dont 全具体。
+
+## R2965 巡检#382——tarot 重牌/xzmatch.hard/图鉴实测
+- heavy.no_顺：seed4 死神在场→「先照顾好自己，
+  慢一点推进」覆写乐观兜底，牌义诚实重构（翻篇
+  不是坏事）；heavy.minor：宝剑10 黑名单生效+
+  满载/顶点共享词不串。
+- xzmatch.hard：白羊×巨蟹=61 磨合硬钉；
+  collection：78 整编+collected 实记 19 张
+  （历次抽牌真实收集面）。
+- guidance.coverage/topic.parity 代码级双等闸
+  刚在 312 绿内，两侧关键词表不漂移。
