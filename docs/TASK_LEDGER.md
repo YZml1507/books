@@ -15383,3 +15383,13 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - user_prefs 仅 theme+recent_modules 两条真值；
 - kb_meta 只 created_at；五表（derived/turn/thread/
   evidence/favorites）R2864/66 修复后全零残留。
+
+## R2868 巡检#285——contract SOFT=50 全审计
+- 三类判据：HARD 卡闸 / TYPE 卡闸 / SOFT 入 backlog；
+- 50 条 SOFT 逐条审：~46 条是 ⚠条件存在字段
+  （chat_task_id/ai_task_id/hour_known/year_note/
+  conflict/term_today/good_days——只在降级或条件
+  分支下发，前端 || 兜底读，设计内非漂移）；
+- 余下 hehun a_name/b_name 回落「我×TA/甲×乙」
+  是显示侧优雅降级（响应不回显输入名）。
+  SOFT 全量设计内，零新漂移。
