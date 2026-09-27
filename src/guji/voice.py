@@ -878,6 +878,9 @@ def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
 # 不等于答不了方向。
 _TEMPORAL_Q = _re_lq.compile(
     r"今年|明年|后年|去年|这几年|近两年|两三年|最近|近期|"
+    # R3140：月/周尺度问法接住——「下个月怎么样」此前落不瞎编，
+    # 流月锚本就能算。
+    r"这个月|下个月|本月|下月|这周|本周|下周|"
     r"这段|这阵|眼下|目前|现在|接下来|未来|今后|往后|运势|运气|"
     r"流年|大运|前景|走向|走势|发展|帮我看看|帮我分析|解读一下|"
     r"看看我|说说我的|我怎么样|我的命|命怎么样|整体|总体|全面|"
@@ -958,20 +961,29 @@ def _reply_temporal(question: str, calc: dict,
                 + "——年度主线参考，不是日程表。")
     # R3126（specs/013-P3）：流月锚——「这个月」尺度的确定性坐标，
     # 本月干支（节气换月口径，与排盘一致）对日主十神。
+    # R3140：「下个月/下月」取下月中段日（15 号必落该月节气窗内）。
     if day_master:
         try:
             from .bazi import compute as _bz_compute
             from .bazi_calc import ten_god as _tg2
             _now_dt = _today_cn()
-            _mgz = _bz_compute(_now_dt.year, _now_dt.month,
-                               _now_dt.day, 12).month
+            _want_next = bool(_re_lq.search(r"下个月|下月", q))
+            _ty, _tm = _now_dt.year, _now_dt.month
+            if _want_next:
+                _tm += 1
+                if _tm > 12:
+                    _tm, _ty = 1, _ty + 1
+            _mgz = _bz_compute(_ty, _tm,
+                               15 if _want_next else _now_dt.day,
+                               12).month
             _mgod = _tg2(day_master, _mgz[0])
             _gm = TEN_GOD_WARM.get(_mgod or "")
             if _mgod:
-                lines.append(f"这个月是{_mgz}月——{_mgz[0]}对你是"
-                             f"「{_mgod}」"
-                             + (f"（{_gm[0]}）：{_gm[1]}" if _gm else "")
-                             + "——当月基调参考。")
+                lines.append(
+                    f"{'下个月' if _want_next else '这个月'}是{_mgz}月"
+                    f"——{_mgz[0]}对你是「{_mgod}」"
+                    + (f"（{_gm[0]}）：{_gm[1]}" if _gm else "")
+                    + "——当月基调参考。")
         except Exception:
             pass
     # 2) 流日气候（day_luck）——「最近」最实的抓手
