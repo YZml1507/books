@@ -16754,3 +16754,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   innerHTML；_YAO_RE 单点正则共 doAddr/doCompare（实录双份
   反写缺陷收敛）；钳位给提示不静默；stub→注入→真身接管
   机制清晰，共享函数留主包防双份。
+
+## R3056 巡检#473——copy_bank 文案库审计（绿）
+- 197 条零重复零「都会好的/看开点/顺其自然」式空话；45%
+  带动作动词微行动；分层结构（fallback 关键词族/daily 级
+  别/taohua 强弱档/gan 十干人格）差异化；_meta 记调研出处。
