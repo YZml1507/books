@@ -15874,3 +15874,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - disabled_none：DISABLE=1 时 polish()→None 不抛，
   环境恢复式测试不污染闸门；additive：顶层键=LLM前
   形状+ai_polish 一键，specs/006 只附加不改写承诺。
+
+## R2937 巡检#354——ai 异步任务往返实测
+- spawn→pending×4→done 真链通；结果字段 text（非
+  polish）+closed/fresh/queued 三旗+boot 失效标。
+- 真 LLM 输出质量抽评：「金气很旺，遇事干脆利落…
+  边界划得太清」—庚金日主判得准，暖白话不玄学。
