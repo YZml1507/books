@@ -16060,3 +16060,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   dict/裸串→widget 仍 200 recent=[]（TypeError→500
   的历史缺口封死）；合法 list 精确 recent_used；
   None 清键后 prefs 零 diff。
+
+## R2962 巡检#379——中段核心闸复核（R2954–R2961 批）
+- selftest 312 全绿｜contract 643 钉扎（SOFT=50）｜
+  dup_keys AST 全扫零重复。
+- 本批 8 轮纯审计绿：tarot 全链/liuyao 双法/huangli
+  affair 语义族/share/widget 面收官，零真缺陷。
