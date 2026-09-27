@@ -14305,3 +14305,8 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - bazi→derived 查档按 kind 出真标题；tarot/book→share_id 回显限
   80 字+printable+拒控制字符；evil type→404 人话「这个分享类型
   不认识」；Surrogate 剥洗在案（R2508）。
+
+## R2671 巡检#88——taohua 应期文案深验（质量优）
+- 「魅力四射」判词+方位「午（马·南）」诚实 hedge（「方位不背锅，
+  行动才管用」）+命中柱披露+**2030 前后走甲午运**具体应期+红鸾
+  天喜柱位结构化下发。
