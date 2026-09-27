@@ -15210,3 +15210,10 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - 坏 JSON daily_cache 行→读返 None 且自愈删（实测行数
   归 0——坏行不吊死后续读）；favorites 500 帽超插被裁；
   turn/线程 500 帽同裁——持久层三处「宁裁不炸」在产。
+
+## R2842 巡检#259——daily 族钉扎复核
+- 今日响应 15 键：noble=丑/未、noble_liuhe 在六合表、
+  moon={}为正确（月相只在农历初一/十五下发，闸内 30
+  天窗扫须齐新月+满月）；未来日 200 且 paipan_history
+  total 恒 0（future_nowrite 实锤）；45 天窗 do/dont
+  不降级成「—」已在闸。
