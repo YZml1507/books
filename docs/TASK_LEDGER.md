@@ -14623,3 +14623,9 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   「收藏类型未知」；删缺失 404 人话（R2516 口径）；prefs
   读回全字段；cap 裁尾+UNIQUE 兜并发；R2700 测试残留
   （编码生辰的 ref_id）连带清偿——隐私纪律。
+
+## R2740 巡检#157——external/news 外呼降级
+- 实抓：BBC 中文源挂→ok:false+「这个源暂时拉不到」（零
+  堆栈泄漏），Solidot 8 条实时条目（title/link/published/
+  summary）正常——单源失败降级在产；禁开关+异常兜底双
+  层在代码面核过。
