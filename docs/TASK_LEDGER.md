@@ -17242,3 +17242,6 @@ R3157（审-拥塞）：AI 任务限速分桶——spawn_ai_task 加 rate_key/ra
 R3159（specs/014-L3 收口）：「今年逐月」chip 条上屏——calc.yearly 服务端一直在算但前端零消费，温柔版补 12 格横滑条（月+干支·十神，当月高亮），pro 走 renderCalc 原样；真机截图验证在屏。
 R3160：TA 档案免测入口——合婚表单加「先存下 TA 的生日（不测）」副按钮，纯 localStorage 落 me:partner+昵称（不发请求）；出厂示例值拒写并提示，受邀模式 A/B 侧自动翻转；smoke savepartner 用例收编 on() 覆盖闸。69d5e73
 R3161：合婚昵称落档+回填——表单昵称框此前形同虚设（提交只存生日不存名），并入 me/me:partner；空昵称跳过（_meSave '' 清键语义会抹旧值）；me:partner 回填补 n 映射；真机验证存「阿哲」后跑合婚昵称保留。fb67fd1
+R3162：合盘卡补聊聊入口——attachChatEntry 选择器兜底退回容器自身（xzmResult 直渲裸 div 无内层 .card，入口静默挂不上）；result_ref/卡片记忆链路早通，卡面钮齐。159df28
+R3163：备份白名单补 chat:topics/chat:cards——跨天画像+卡片记忆 wipe 已收编但备份漏带，换机恢复后小满失忆；导出 _EXACT 与导入正则同步。d8dcc00
+R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id 但 birthResult 从未挂 render/poll；真机验证 agnes 实产出稿贴丙午年食神锚。

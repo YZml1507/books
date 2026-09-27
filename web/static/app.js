@@ -13190,6 +13190,9 @@ function baziPersonaCard(j) {
       html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
       html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + '</span></div>';
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
+      /* R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id，
+       * 此前没挂 render/poll，受众高频钩子卡少了口语段。 */
+      html += renderAiPolish(j);
       html += '<button class="ghost fav-btn" type="button" id="shareBirth" ' +
         'title="生成分享图">📸 分享图</button>';
       html += '<div class="birth-note">以上由排盘引擎按你输入的生日实时计算，同生日同时辰的人解读也会不同。仅供娱乐，不构成决策依据 ✨</div></div>';
@@ -13199,6 +13202,7 @@ function baziPersonaCard(j) {
       out.classList.remove('is-working');
       out.innerHTML = html;
       attachChatEntry(out);   /* R230k（R23-P2-1）：本命盘卡挂聊天入口 */
+      pollAiPolish('birthResult', j.ai_task_id);   /* R3164 */
       /* R231d（R37-F14）：本命盘挂分享钮——「你是X座」天生海报素材 */
       var _sbb = out.querySelector('#shareBirth');
       if (_sbb) _sbb.addEventListener('click', function () {
