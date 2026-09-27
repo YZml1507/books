@@ -15961,3 +15961,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
 - BOOKS_PAIPAN_DISABLE=1：GET /history→200{total:0,
   items:[]} 优雅空表（功能整体隐藏不报错）；detail/
   export/delete→404——读面存活写面全堵设计。
+
+## R2948b 巡检#365 修正——禁写面真复验+残留清
+- 上轮 env 名打错（PAIPAN_DISABLE→HISTORY_DISABLE）
+  看到的实为启用态——真禁写语义复验：list→200
+  {total:0,items:[],disabled:true} 带显式标记；detail/
+  export/delete→404 三向同钉。
+- 顺带清 14 条探针残留（selftest 套件在禁写态跑不
+  留行，残留来自我直调端点）。
