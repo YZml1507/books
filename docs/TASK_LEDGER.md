@@ -16740,3 +16740,11 @@ R134 报告 30 条盲区全收：①静态闸扩面——`frontend.no_object_obj
   S2T_RETRY 保守单义表（一对多宁不命中）；render_citation
   单源共享（Hit/bazi_lookup 同格式）+披露标记 !/?嵌出处；
   实测 3 hits 逐字原文。
+
+## R3054 巡检#471——variants 折叠表审计（绿）
+- 全表 ~90 对全带计量出处（共存计数/独见变体/跨源反转/
+  金集阻断/机器诊断人工审）；拒收集 NOT_VARIANTS 记全理由
+  （極拯频率否决/悔晦源误印/已己巳三字各义——「频率不能
+  决定」实录）；import 期 _conflicts 断言防两表漂移；
+  於→于折记明KNOWN COST；segment_cjk 解 unicode61 短询
+  静默空档。
