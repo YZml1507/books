@@ -11806,6 +11806,11 @@ function _meSave(key, rec) {
   /* R2343（R59-gap4）：同页写入不触发 storage 事件——昵称存完立刻
    * 刷新空态招呼/档案条，改完不用刷新就看到名字。 */
   try { _chatChipsPersonalize(); _renderMeStrip(); } catch (e2) {}
+  /* R3185：存档即回填——此前只在 init 跑一次 _meFillAll，
+   * 同会话里「合婚存了生日→开星座本命盘」仍是出厂 2000/6/15，
+   * 得重填一遍（用户眼里就是「你根本没记住我」）。data-touched
+   * 字段不动，只填没动过/此前由档案填的格。 */
+  try { _meFillAll(); } catch (e4) {}
 }
 /* ids = {y:'th_year', m:'th_month', d:'th_day', h:'th_hour', g:'th_gender'} *
  * 字段表用字面量不用模块级 var——init() 的调用点在本块之前，var 赋值
