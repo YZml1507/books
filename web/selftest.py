@@ -1385,6 +1385,19 @@ def _run_inner() -> list[str]:
     assert _yi_map <= _uni and _ji_map <= _uni, \
         ("hl_map.dead_keys", sorted((_yi_map | _ji_map) - _uni))
     ok.append("hl_map.coverage")
+    # R3203：前端 _TEN_GOD_ACT ↔ voice.TEN_GOD_ACTION 首句逐字钉——
+    # 双侧同口径镜像表，单侧漂移（改后端忘改前端）会让年运条悬停
+    # 与 warm 正文口径分叉。
+    _act_fe = dict(_re_hm.findall(
+        r"(\w+):\s*'([^']+)'",
+        _appjs.split("var _TEN_GOD_ACT = {")[1].split("};")[0]))
+    from guji.voice import TEN_GOD_ACTION as _TGA
+    _act_be = {k: v[0] for k, v in _TGA.items()}
+    assert _act_fe == _act_be, ("tengod.act.parity",
+                                {k: (_act_fe.get(k), _act_be.get(k))
+                                 for k in set(_act_fe) | set(_act_be)
+                                 if _act_fe.get(k) != _act_be.get(k)})
+    ok.append("tengod.act.parity")
 
     check("hehun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
           "a_day": 15, "a_hour": 10, "a_gender": "男",

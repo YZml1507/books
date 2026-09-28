@@ -5196,6 +5196,19 @@ function buildBaziResult(j) {
  * TEN_GOD_WARM 的标签语义同源——模块级一份，不抄两份）。 */
 var _TEN_GOD_TAG = {比肩:'同伴',劫财:'同侪',食神:'表达',伤官:'点子',偏财:'活水财',
                     正财:'稳定财',七杀:'压力',正官:'规矩',偏印:'直觉',正印:'底气'};
+/* R3203：逐月悬停加「这个月适合做什么」——与后端 voice.TEN_GOD_ACTION
+ * 首句逐字同（tengod.act.parity 钉死，改了后端忘记同步这里会直接红）。 */
+var _TEN_GOD_ACT = {
+  比肩:'找个搭子一起做——这类事同行比单干顺',
+  劫财:'聚会、AA、清闲置都挺合适',
+  食神:'把想法写出来、做出来，慢一点没关系',
+  伤官:'提新方案、改旧稿子、试试不一样的做法',
+  偏财:'谈谈钱、盘盘手头的进项渠道',
+  正财:'记账、复盘收支、把长期计划往前推一格',
+  七杀:'挑最难的那件事先啃，限时做完',
+  正官:'走流程、办手续、把该见的面见了',
+  偏印:'自己琢磨、查资料、随手记灵感',
+  正印:'请教信得过的人、复习旧知识、整理资料'};
 
 function _yearlyStrip(calc) {
   try {
@@ -5209,9 +5222,10 @@ function _yearlyStrip(calc) {
        * 天书，「正印（底气）」加 title 才读得懂。 */
       var _rel = m.gan_rel || '';
       var _tag = _TEN_GOD_TAG[_rel] || '';
+      var _act = _TEN_GOD_ACT[_rel] || '';
       return '<span class="yearly-cell' + (on ? ' on' : '') + '"' +
         (_rel ? ' title="' + esc(_rel) + (_tag ? '——' + esc(_tag) + '月' : '') +
-          '"' : '') + '>' +
+          (_act ? '：' + esc(_act) : '') + '"' : '') + '>' +
         '<b>' + esc(String(m.month)) + '月</b>' +
         '<i>' + esc(m.ganzhi || '') + '·' + esc(_tag || _rel) + '</i>' +
         '</span>';
