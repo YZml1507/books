@@ -320,10 +320,25 @@ class QimingRequest(BaseModel):
     top_n: int = Field(20, ge=1, le=50)
     seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
     style: str = Field("all", description="v3（P3）风格档：classics=诗经类 / chuci=楚辞类 / fresh=柔美 / all=全部")
+    # R3206：农历生日起名——与 BaziRequest 同构。
+    calendar_type: str = "solar"
+    lunar_year: int | None = None
+    lunar_month: int | None = None
+    lunar_day: int | None = None
+    lunar_leap: bool = False
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):
             raise ValidationError(f"年份需在 {YEAR_LO}-{YEAR_HI}，收到 {self.year}")
+        if self.calendar_type not in CALENDARS:
+            raise ValidationError("历法需为 solar/lunar")
+        if self.calendar_type == "lunar":
+            if not (self.lunar_year and self.lunar_month and self.lunar_day):
+                raise ValidationError("选了农历的话，农历年月日都要填")
+            if not (1 <= self.lunar_month <= 12):
+                raise ValidationError(f"农历月需在 1-12，收到 {self.lunar_month}")
+            if not (1 <= self.lunar_day <= 30):
+                raise ValidationError(f"农历日需在 1-30，收到 {self.lunar_day}")
         # R2349s（R84-P2-15）：复姓（欧阳/司马…）此前被「单字」拒掉，
         # 而 " " 空格却恰好过 len==1 校验产出名带前导空格。先 strip 再
         # 放 1-2 字。
@@ -500,10 +515,37 @@ class HehunRequest(BaseModel):
     # R3152：可空问句——「能结婚吗/为什么老吵架」让判词对着问的说，
     # 而不是只给通稿判词。与 liuyao/tarot 的 question 同纪律。
     question: str | None = Field(None, max_length=200, description="最想问的事，可空")
+    # R3206：只记得农历生日的人（尤其长辈报生日）此前合婚门都进不了。
+    # 与 BaziRequest 同构——双侧各带历法组。
+    a_calendar: str = "solar"
+    a_lunar_year: int | None = None
+    a_lunar_month: int | None = None
+    a_lunar_day: int | None = None
+    a_lunar_leap: bool = False
+    b_calendar: str = "solar"
+    b_lunar_year: int | None = None
+    b_lunar_month: int | None = None
+    b_lunar_day: int | None = None
+    b_lunar_leap: bool = False
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
         _check_ymdh("乙", self.b_year, self.b_month, self.b_day, self.b_hour)
+        for _who, _cal, _ly, _lm, _ld in (
+            ("甲", self.a_calendar, self.a_lunar_year,
+             self.a_lunar_month, self.a_lunar_day),
+            ("乙", self.b_calendar, self.b_lunar_year,
+             self.b_lunar_month, self.b_lunar_day),
+        ):
+            if _cal not in CALENDARS:
+                raise ValidationError(f"{_who}方历法需为 solar/lunar")
+            if _cal == "lunar":
+                if not (_ly and _lm and _ld):
+                    raise ValidationError(f"{_who}方选了农历，农历年月日都要填")
+                if not (1 <= _lm <= 12):
+                    raise ValidationError(f"{_who}方农历月需在 1-12")
+                if not (1 <= _ld <= 30):
+                    raise ValidationError(f"{_who}方农历日需在 1-30")
         # R228i：gender 此前零校验——非法值落进 dayun_dir 的 else 分支
         # 按「逆」静默排大运（bazi.py:324），输出错误结果还打了 200。
         if self.a_gender not in GENDERS:

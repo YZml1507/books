@@ -745,6 +745,47 @@ def _run_inner() -> list[str]:
     _qf = " ".join(_lpq.facts_qiming(_qm5, "女", _qm5.get("warm")))
     assert "偏弱金、木" in _qf, ("qiming.facts_weak", _qf[:200])
     ok.append("qiming.facts_weak")
+    # R3206：农历等价钉——农历 2000 五月初六 = 公历 2000-06-07，
+    # 起名/合婚两路换算后盘面必须与公历输入逐字节一致；
+    # warm 头行须明示「按农历换算」。
+    _qm_sol = client.post("/api/qiming", json={"surname": "林",
+        "gender": "女", "year": 2000, "month": 6, "day": 7,
+        "hour": 10, "top_n": 8, "seed": 7}).json()
+    _qm_lun = client.post("/api/qiming", json={"surname": "林",
+        "gender": "女", "year": 2001, "month": 1, "day": 1,   # 诱饵值
+        "hour": 10, "top_n": 8, "seed": 7,
+        "calendar_type": "lunar", "lunar_year": 2000,
+        "lunar_month": 5, "lunar_day": 6, "lunar_leap": False}).json()
+    assert _qm_lun["bazi"]["render"] == _qm_sol["bazi"]["render"], \
+        ("qiming.lunar_equiv", _qm_lun["bazi"].get("render"))
+    assert "农历" in _qm_lun["warm"]["reply"][0]
+    ok.append("qiming.lunar_equiv")
+    _hh_sol = client.post("/api/hehun", json={
+        "a_year": 2000, "a_month": 6, "a_day": 7, "a_hour": 10,
+        "a_gender": "女", "b_year": 1998, "b_month": 3, "b_day": 12,
+        "b_hour": 14, "b_gender": "男"}).json()
+    _hh_lun = client.post("/api/hehun", json={
+        "a_year": 2001, "a_month": 1, "a_day": 1, "a_hour": 10,
+        "a_gender": "女", "b_year": 1998, "b_month": 3, "b_day": 12,
+        "b_hour": 14, "b_gender": "男",
+        "a_calendar": "lunar", "a_lunar_year": 2000,
+        "a_lunar_month": 5, "a_lunar_day": 6, "a_lunar_leap": False}).json()
+    assert (_hh_lun["a_bazi"]["render"] == _hh_sol["a_bazi"]["render"]
+            and _hh_lun["match_score"] == _hh_sol["match_score"]), \
+        ("hehun.lunar_equiv", _hh_lun["a_bazi"].get("render"))
+    assert "农历" in _hh_lun["warm"]["reply"][0]
+    ok.append("hehun.lunar_equiv")
+    # 农历非法值归 400（月>12 / 日>30 / 缺农历字段）。
+    for _lb in ({"calendar_type": "lunar", "lunar_year": 2000,
+                 "lunar_month": 13, "lunar_day": 6},
+                {"calendar_type": "lunar", "lunar_year": 2000,
+                 "lunar_month": 5, "lunar_day": 31},
+                {"calendar_type": "lunar"}):
+        _r400 = client.post("/api/qiming", json=dict(
+            {"surname": "林", "gender": "女", "year": 2000, "month": 6,
+             "day": 7, "hour": 10}, **_lb))
+        assert _r400.status_code == 400, ("qiming.lunar_bad", _r400.status_code)
+    ok.append("qiming.lunar_bad")
     # R230a-16：qiming five_elements 的 weak 键钉扎（R13 五行俱全时前端
     # 吃 missing 变空卡的 bug 修字段）——键必须在、类型必须是 list。
     _fe2 = _rc2.json().get("five_elements") or {}

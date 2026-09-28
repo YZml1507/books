@@ -2205,10 +2205,18 @@ function chatOpen() {
   var tgl = el('recentToggle');
   if (tgl) tgl.setAttribute('aria-expanded', 'true');
   var flow = el('chatFlow');
+  /* R3204：键盘态残留复位——上次 vv 收缩留下的 sb.style.bottom
+   * 不随开栏自动清。 */
+  sb.style.bottom = '';
   if (flow) setTimeout(function () {
     flow.scrollTop = flow.scrollHeight;
     var inp = el('chatInput');
-    if (inp && window.innerWidth > 767) inp.focus();
+    /* R3204：平板/触屏不自动 focus——820px 宽平板过 767 闸，
+     * 开栏即弹键盘把刚拉开的侧栏又顶上去（用户实测痛点）。
+     * 触屏设备输入由用户主动点输入框唤起。 */
+    var _coarse = window.matchMedia &&
+      window.matchMedia('(pointer: coarse)').matches;
+    if (inp && window.innerWidth > 767 && !_coarse) inp.focus();
   }, 300);
 }
 
@@ -6046,6 +6054,18 @@ function _qmBadgeHtml(score, rank) {
     score + '</span>' + badge;
 }
 
+/* R3206：农历组打包——选了农历就把 ymd 搬进 keys 指定的 lunar_* 键
+ *（bazi/taohua/qiming/birth 用 calendar_type+lunar_*；hehun 双侧
+ * 用 a_/b_ 前缀键名）。 */
+function _lunarPack(isLunar, keys, y, m, d, leap, body) {
+  if (!isLunar) return;
+  body[keys.cal] = 'lunar';
+  body[keys.ly] = y; body[keys.lm] = m; body[keys.ld] = d;
+  body[keys.leap] = leap;
+}
+var _LUNAR_KEYS_STD = { cal: 'calendar_type', ly: 'lunar_year',
+                        lm: 'lunar_month', ld: 'lunar_day', leap: 'lunar_leap' };
+
 async function doQiming() {
   if (_qmBusy) return;                        /* R230j */
   /* R233k（R45-§3）：预检前置——空字段/非法日此前要等一轮 422。 */
@@ -6056,11 +6076,17 @@ async function doQiming() {
       'qmResult', '年月日先填上再算哦');
     return;
   }
-  var _qb = _badYmdField('qm_year', 'qm_month', 'qm_day');
+  var _qmLunar = val('qm_cal') === 'lunar';
+  /* R3206：农历日没有公历「某月没这天」问题（农历每月 29/30 天）——
+   * 公历日检跳过，改查农历日 1-30 界；换算合法性归后端 lunar_to_solar。 */
+  var _qb = _qmLunar ? null : _badYmdField('qm_year', 'qm_month', 'qm_day');
   if (_qb) {
     _failField(_qb, 'qmResult',
       '这一天不存在——' + num('qm_month') + ' 月没有 ' + num('qm_day') + ' 号');
     return;
+  }
+  if (_qmLunar && _badRange('qm_day', 1, 30)) {
+    _failField('qm_day', 'qmResult', '农历的日填 1–30'); return;
   }
   /* R2350e（R101-P2-1/2-2）：年份/时辰同界前端先拦，免一轮 422。 */
   if (_badRange('qm_year', 1900, 2100)) {
@@ -6075,7 +6101,7 @@ async function doQiming() {
     /* R2349s（R84-P1-12）：时辰留空 = 不详——补 12 并置标志位，
      * 后端回提示句；不再静默按预填值排。 */
     var _qmHour = val('qm_hour');
-    const j = await postJSON('/api/qiming', {
+    const _qmBody = {
       surname: val('qm_surname'),
       year: num('qm_year'),
       month: num('qm_month'),
@@ -6093,7 +6119,10 @@ async function doQiming() {
       top_n: 8,
       seed: _qmSeed || null,
       style: _QM_STYLE || 'all'    /* v3（P3）：风格档后端过滤 */
-    });
+    };
+    _lunarPack(_qmLunar, _LUNAR_KEYS_STD, num('qm_year'), num('qm_month'),
+               num('qm_day'), checked('qm_leap'), _qmBody);
+    const j = await postJSON('/api/qiming', _qmBody);
     /* R2350f（R102-P1-5）：结果回显用了哪个生日（示例值外溢防错盘传播）。 */
     _LAST_BIRTH.qiming = num('qm_year') + '-' + num('qm_month') +
       '-' + num('qm_day');
@@ -6186,11 +6215,15 @@ async function doTaohua() {
       'thResult', '年月日先填上再算哦');
     return;
   }
-  var _tb = _badYmdField('th_year', 'th_month', 'th_day');
+  var _thLunar = val('th_cal') === 'lunar';
+  var _tb = _thLunar ? null : _badYmdField('th_year', 'th_month', 'th_day');
   if (_tb) {
     _failField(_tb, 'thResult',
       '这一天不存在——' + num('th_month') + ' 月没有 ' + num('th_day') + ' 号');
     return;
+  }
+  if (_thLunar && _badRange('th_day', 1, 30)) {
+    _failField('th_day', 'thResult', '农历的日填 1–30'); return;
   }
   /* R2350e（R101-P2-1/2-2）：同界预检。 */
   if (_badRange('th_year', 1900, 2100)) {
@@ -6203,22 +6236,28 @@ async function doTaohua() {
   try {
     /* R2349s（R84-P1-12）：时辰留空 = 不详。 */
     var _thHour = val('th_hour');
-    const j = await postJSON('/api/taohua', {
+    var _thBody = {
       year: num('th_year'),
       month: num('th_month'),
       day: num('th_day'),
       hour: (_thHour === '') ? 12 : num('th_hour'),
       hour_known: _thHour !== '',
       gender: val('th_gender') || '女'
-    });
+    };
+    _lunarPack(_thLunar, _LUNAR_KEYS_STD, num('th_year'), num('th_month'),
+               num('th_day'), checked('th_leap'), _thBody);
+    const j = await postJSON('/api/taohua', _thBody);
     if (_gen !== _TH_GEN) return;   /* R2502 */
-    if (!_fieldsUntouched(['th_year','th_month','th_day','th_hour',
+    /* R3206：农历入档跳过——me 档案是公历坐标系，把农历数存成公历
+     * 会污染跨表单回填（下次打开直接是错的生日）。 */
+    if (!_thLunar &&
+        !_fieldsUntouched(['th_year','th_month','th_day','th_hour',
                            'th_gender']))
     _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
       h: (_thHour === '') ? null : num('th_hour'), g: val('th_gender') || '女' });
     _meFillAll();   /* R230y */
     _LAST_BIRTH.taohua = num('th_year') + '-' + num('th_month') +
-      '-' + num('th_day');   /* R2350f（R102-P1-5） */
+      '-' + num('th_day') + (_thLunar ? '（农历）' : '');
     paint('thResult', buildTaohuaResult(j));
     var _rbTh = function () {
       on('shareTaohua', function () { return downloadPoster(j, 'taohua'); });
@@ -7228,10 +7267,10 @@ async function doHehun() {
   /* R233k（R45-§3）：双侧预检——空字段/非法日前端先拦。
    * R2349（R65-P1-5）：邀请态下 A 侧=TA、B 侧=我——措辞随视角翻转。 */
   var _hs = window.__hhInviteMode
-    ? [['hh_a_year','hh_a_month','hh_a_day','TA 的'],
-       ['hh_b_year','hh_b_month','hh_b_day','你的']]
-    : [['hh_a_year','hh_a_month','hh_a_day','你的'],
-       ['hh_b_year','hh_b_month','hh_b_day','TA 的']];
+    ? [['hh_a_year','hh_a_month','hh_a_day','TA 的','hh_a_cal'],
+       ['hh_b_year','hh_b_month','hh_b_day','你的','hh_b_cal']]
+    : [['hh_a_year','hh_a_month','hh_a_day','你的','hh_a_cal'],
+       ['hh_b_year','hh_b_month','hh_b_day','TA 的','hh_b_cal']];
   for (var _hi = 0; _hi < _hs.length; _hi++) {
     var _hp = _hs[_hi];
     if (num(_hp[0]) == null || num(_hp[1]) == null || num(_hp[2]) == null) {
@@ -7240,10 +7279,16 @@ async function doHehun() {
         'hhResult', _hp[3] + '年月日先填上哦');
       return;
     }
-    var _hb = _badYmdField(_hp[0], _hp[1], _hp[2]);
+    /* R3206：农历侧跳过公历日检（农历月 29/30 天），改界 1-30。 */
+    var _hLun = val(_hp[4]) === 'lunar';
+    var _hb = _hLun ? null : _badYmdField(_hp[0], _hp[1], _hp[2]);
     if (_hb) {
       _failField(_hb, 'hhResult',
         _hp[3] + '日期不存在——' + num(_hp[1]) + ' 月没有 ' + num(_hp[2]) + ' 号');
+      return;
+    }
+    if (_hLun && _badRange(_hp[2], 1, 30)) {
+      _failField(_hp[2], 'hhResult', _hp[3] + '农历的日填 1–30');
       return;
     }
     /* R2350e（R101-P2-1/2-2）：年份/时辰同界预检（双侧）。 */
@@ -7262,7 +7307,7 @@ async function doHehun() {
   try {
     /* R2349s（R84-P1-12）：时辰留空 = 不详——补 12 并置标志位。 */
     var _hhAH = val('hh_a_hour'), _hhBH = val('hh_b_hour');
-    const j = await postJSON('/api/hehun', {
+    var _hhBody = {
       a_year: num('hh_a_year'),
       a_month: num('hh_a_month'),
       a_day: num('hh_a_day'),
@@ -7280,7 +7325,19 @@ async function doHehun() {
       b_name: (val('hh_b_name') || '').trim() || null,
       /* R3152：可空问句——服务端判词对着这句给定向行 */
       question: (val('hh_question') || '').trim() || null
-    });
+    };
+    /* R3206：双侧农历打包（hehun 键名是 a_/b_ 前缀组） */
+    _lunarPack(val('hh_a_cal') === 'lunar',
+      { cal: 'a_calendar', ly: 'a_lunar_year', lm: 'a_lunar_month',
+        ld: 'a_lunar_day', leap: 'a_lunar_leap' },
+      num('hh_a_year'), num('hh_a_month'), num('hh_a_day'),
+      checked('hh_a_leap'), _hhBody);
+    _lunarPack(val('hh_b_cal') === 'lunar',
+      { cal: 'b_calendar', ly: 'b_lunar_year', lm: 'b_lunar_month',
+        ld: 'b_lunar_day', leap: 'b_lunar_leap' },
+      num('hh_b_year'), num('hh_b_month'), num('hh_b_day'),
+      checked('hh_b_leap'), _hhBody);
+    const j = await postJSON('/api/hehun', _hhBody);
     if (_gen !== _HH_GEN) return;   /* R2502：丢弃旧响应——含 _meSave 副作用 */
     /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
     j.a_name = (val('hh_a_name') || '').trim() || null;
@@ -7296,18 +7353,21 @@ async function doHehun() {
       /* R2500（R142-P1-3）：受邀侧字段照样守未动不写——B 侧邀请
        * 预填值 ≠ 出厂 defaultValue，手填/邀请值都会如实落档。 */
       /* R3161：昵称随档案落档（空不覆旧值——_meSave 语义里 '' 会清键）。 */
+      /* R3206：农历侧不落 me 档案（公历坐标系，农历数存进去会污染回填） */
       var _recMe = { y: num('hh_b_year'), m: num('hh_b_month'),
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
         n: val('hh_b_name') };
       if (!_recMe.n) delete _recMe.n;
-      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+      if (val('hh_b_cal') !== 'lunar' &&
+          !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
       _meSave('me', _recMe);
       var _recPa = { y: num('hh_a_year'), m: num('hh_a_month'),
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
         n: val('hh_a_name') };
       if (!_recPa.n) delete _recPa.n;
-      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+      if (val('hh_a_cal') !== 'lunar' &&
+          !_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
       _meSave('me:partner', _recPa);
       if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
@@ -7322,14 +7382,16 @@ async function doHehun() {
         d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
         n: val('hh_a_name') };
       if (!_recMeA.n) delete _recMeA.n;
-      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+      if (val('hh_a_cal') !== 'lunar' &&
+          !_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
       _meSave('me', _recMeA);
       var _recPaB = { y: num('hh_b_year'), m: num('hh_b_month'),
         d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
         n: val('hh_b_name') };
       if (!_recPaB.n) delete _recPaB.n;
-      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+      if (val('hh_b_cal') !== 'lunar' &&
+          !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
       _meSave('me:partner', _recPaB);
     }
@@ -9405,6 +9467,7 @@ function initViews() {
   function _setRecent(open) {
     if (!sb) return;
     sb.classList.toggle('open', open);
+    if (!open) sb.style.bottom = '';   /* R3204：关栏清键盘态残留 */
     sb.inert = !open;
     sbFocusable(sb, open);
     sb.setAttribute('aria-hidden', open ? 'false' : 'true');
@@ -9534,12 +9597,18 @@ function initBazi() {
     window.visualViewport.addEventListener('resize', function () {
       var inp = el('chatInput');
       var sb = document.querySelector('.recent-sidebar');
-      if (!inp || document.activeElement !== inp || !sb ||
-          !sb.classList.contains('open')) return;
+      if (!sb || !sb.classList.contains('open')) return;
       var vv = window.visualViewport;
       var eaten = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      /* 键盘弹出：侧栏底抬高到键盘上沿；收起：回落 0。 */
-      sb.style.bottom = eaten > 60 ? eaten + 'px' : '';
+      /* R3204：键盘收起（eaten 回落）必须无条件复位——此前要求
+       * activeElement===inp，但平板键盘「收起钮」收起时会先丢焦点，
+       * 复位分支根本走不到，bottom 恒卡在键盘高度（用户实测：
+       * 收键盘后侧栏不展开）。 */
+      if (eaten <= 60) { sb.style.bottom = ''; return; }
+      /* 键盘弹出：侧栏底抬高到键盘上沿。焦点不在输入框（如选中
+       * 了别的控件但键盘仍在）不动布局。 */
+      if (!inp || document.activeElement !== inp) return;
+      sb.style.bottom = eaten + 'px';
       setTimeout(function () {
         inp.scrollIntoView({ block: 'end', inline: 'nearest' });
       }, 250);
@@ -9759,6 +9828,16 @@ function initDivination() {
   on('hlSubmit', doHuangli);
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
+  /* R3206：农历历法切换→闰月字段显隐（五处表单共用一套 id 对）。 */
+  [['th_cal', 'f_th_leap'], ['qm_cal', 'f_qm_leap'],
+   ['hh_a_cal', 'f_hh_a_leap'], ['hh_b_cal', 'f_hh_b_leap'],
+   ['b_cal', 'f_b_leap']].forEach(function (pr) {
+    var s = el(pr[0]);
+    if (s) s.addEventListener('change', function () {
+      var f = el(pr[1]);
+      if (f) f.hidden = s.value !== 'lunar';
+    });
+  });
   /* R2502：包一层隔断 click 事件实参——doTarot 的 cards 形参不应
    * 收到 MouseEvent（靠 Array.isArray 收编只是兜底）。 */
   on('trSubmit', function () { return doTarot(); });
@@ -13491,11 +13570,15 @@ function baziPersonaCard(j) {
         'birthResult', '日期看起来不太对，检查一下年月日再试～');
       return;
     }
-    var _brb = _badYmdField('b_year', 'b_month', 'b_day');
+    var _bLunar = val('b_cal') === 'lunar';
+    var _brb = _bLunar ? null : _badYmdField('b_year', 'b_month', 'b_day');
     if (_brb) {
       _failField(_brb, 'birthResult',
         '这一天不存在——' + m + ' 月没有 ' + d + ' 号');
       return;
+    }
+    if (_bLunar && (d < 1 || d > 30)) {
+      _failField('b_day', 'birthResult', '农历的日填 1–30'); return;
     }
     busy('birthResult', '正在排你的本命盘…');
     try {
@@ -13503,9 +13586,13 @@ function baziPersonaCard(j) {
        * 边缘与日签/黄历错位；与 dailyDetail 同款 client 日。 */
       var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g,
         ask_date: todayIso() };
+      _lunarPack(_bLunar, _LUNAR_KEYS_STD, y, m, d,
+                 checked('b_leap'), body);
       /* R2500（R142-P1-3）：示例生日原样提交不落档——同日但 nick 想
-       * 单存的走星座页显式存。 */
-      if (!_fieldsUntouched(['b_year','b_month','b_day','b_hour','b_gender']))
+       * 单存的走星座页显式存。
+       * R3206：农历入档跳过（me 档案是公历坐标系）。 */
+      if (!_bLunar &&
+          !_fieldsUntouched(['b_year','b_month','b_day','b_hour','b_gender']))
       _meSave('me', { y: y, m: m, d: d, h: (hv === '' ? null : Number(hv)), g: g,
         n: (document.getElementById('b_nick') || {}).value || '' });
       _meFillAll();   /* R230y */

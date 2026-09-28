@@ -398,13 +398,28 @@ def hehun(req) -> dict:
             == (req.b_year, req.b_month, req.b_day, req.b_hour,
                 req.b_gender)):
         raise ValidationError("两边填的是同一个人呀——换上 TA 的生辰再测～")
+    # R3206：双侧农历——换算失败是用户输错日期不是排盘故障，
+    # 归 ValidationError（resolve_birth 认 req.calendar_type 命名，
+    # hehun 双侧各一组 a_/b_ 前缀，这里手动换算）。
+    _ay, _am, _ad = req.a_year, req.a_month, req.a_day
+    _by, _bm, _bd = req.b_year, req.b_month, req.b_day
     try:
-        ba = bazi_compute(req.a_year, req.a_month, req.a_day, req.a_hour,
-                          req.a_gender)
-        bb = bazi_compute(req.b_year, req.b_month, req.b_day, req.b_hour,
-                          req.b_gender)
+        if req.a_calendar == "lunar":
+            _da = lunar.lunar_to_solar(req.a_lunar_year, req.a_lunar_month,
+                                     req.a_lunar_day, req.a_lunar_leap)
+            _ay, _am, _ad = _da.year, _da.month, _da.day
+        if req.b_calendar == "lunar":
+            _db = lunar.lunar_to_solar(req.b_lunar_year, req.b_lunar_month,
+                                     req.b_lunar_day, req.b_lunar_leap)
+            _by, _bm, _bd = _db.year, _db.month, _db.day
+    except ValueError:
+        raise ValidationError(
+            "农历日期没换算成——可能是月日对不上，换个日子试试") from None
+    try:
+        ba = bazi_compute(_ay, _am, _ad, req.a_hour, req.a_gender)
+        bb = bazi_compute(_by, _bm, _bd, req.b_hour, req.b_gender)
         h = hehun_mod.compute(ba, bb)
-        dayun = hehun_mod.dayun_relation(ba, req.a_year, bb, req.b_year)
+        dayun = hehun_mod.dayun_relation(ba, _ay, bb, _by)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     h_dict = {
@@ -448,6 +463,14 @@ def hehun(req) -> dict:
     _unk = [("我" if req.a_hour_known is False else None),
             ("TA" if req.b_hour_known is False else None)]
     _unk = [s for s in _unk if s]
+    # R3206：农历换算明示——生日按农历换算成公历排的盘。
+    _lun = [("我" if req.a_calendar == "lunar" else None),
+            ("TA" if req.b_calendar == "lunar" else None)]
+    _lun = [s for s in _lun if s]
+    if _lun:
+        warm["reply"] = [f"{'和'.join(_lun)}的生日按农历换算的——"
+                         "换成公历排的盘，结果不受影响。"] + list(
+                             warm.get("reply") or [])
     if _unk:
         warm["reply"] = [f"{'和'.join(_unk)}的时辰没填——"
                          "那边按中午 12 点排的，主线不受影响。"
@@ -494,10 +517,12 @@ def qiming(req) -> dict:
     if not classical_names._CLASSICAL_DB:
         raise ComputeError("起名的典故库没装进来，"
                            "重新下载完整版本试试")
+    # R3206：农历生日——与 bazi 同走 resolve_birth 换算。
+    _qy, _qm, _qd = resolve_birth(req)
     try:
         out = classical_names.generate_classical_names(
-            surname=req.surname, year=req.year, month=req.month,
-            day=req.day, hour=req.hour, gender=req.gender,
+            surname=req.surname, year=_qy, month=_qm,
+            day=_qd, hour=req.hour, gender=req.gender,
             top_n=min(max(req.top_n, 1), 100),
             seed=req.seed, style=getattr(req, "style", "all"))
     except Exception as exc:
@@ -517,6 +542,9 @@ def qiming(req) -> dict:
         out["warm"]["reply"] = ["没填时辰——按中午 12 点排的盘，"
                                 "五行分布按年/月/日三柱看，名字照挑。"] + list(
                                     out["warm"].get("reply") or [])
+    if req.calendar_type == "lunar":   # R3206：农历换算明示
+        out["warm"]["reply"] = ["填的是农历生日——已换算成公历排的盘。"] + list(
+            out["warm"].get("reply") or [])
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_qiming(out, req.gender, warm=out["warm"]))
     out["ai_polish"] = ai_polish

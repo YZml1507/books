@@ -346,6 +346,21 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 }
 .daily-cover img{width:200px; height:auto; filter:drop-shadow(0 8px 20px rgba(184,134,11,.22));
   animation:giftBob 2.4s ease-in-out infinite;}
+/* R3205（用户实测）：≤600px 手机封面被 max-height:54vh 裁——
+ * 熊脚+两行 CTA 全掉到卡外（375×667 实测卡高 360 < 内容 ~410）。
+ * 窄屏档收图到 150px、顶距 9vh/56px、gap 8px——熊+「点开看看」
+ * +副文案整组收进封面上缘内。 */
+@media (max-width:600px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover{
+    padding-top:min(9vh, 56px); gap:8px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{
+    width:150px;}
+}
+/* R3205 续：超矮视口（568px 级老机/横屏）再收一档——卡帽 ~306px。 */
+@media (max-width:600px) and (max-height:600px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{
+    width:132px;}
+}
 .daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
   letter-spacing:.04em; padding:0 24px; text-align:center;}
 .daily-cover-sub{font-size:12px; color:var(--muted); letter-spacing:.06em;
@@ -367,7 +382,11 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* R230x：礼盒进 flex 流后无需再垫右；label 不许折行，
  * 日期保留等宽数字但给 CJK 兜底（纯 monospace 无中文字形）。 */
 .daily-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-.daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600; white-space:nowrap;}
+/* R3205（用户实测）：label nowrap 不缩 → 日期+礼盒被顶出卡右缘裁掉
+ * （375px 下礼盒超出卡边 ~63px）。label 允许截断，礼盒 flex-basis
+ * 保尺寸——空间不够先委屈字，不裁图。 */
+.daily-label{font-size:14px; color:var(--secondary); letter-spacing:.1em; font-weight:600; white-space:nowrap;
+  min-width:0; overflow:hidden; text-overflow:ellipsis;}
 .daily-date{font-size:14px; color:var(--muted); font-family:ui-monospace,var(--font-wenkai),monospace; flex-shrink:0; min-width:90px; text-align:right;}
 .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
 .daily-level{
