@@ -946,11 +946,7 @@ button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translate
  * 收藏钮；四枚分享钮回落 right:24，≤375px 不再压住卡标题。 */
 .fav-btn{position:absolute; top:24px; right:24px; margin:0;}
 .fav-btn + .fav-btn{right:84px;}
-/* R3217：分享钮横排容器——取代「+84px」猜测式偏移，宽度自适应按钮
- * 实际文案，几枚都不互叠（实测「分享图+年度运势图」互叠点不到）。 */
-.share-row{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
-.share-row .fav-btn{position:static; right:auto;}
-.share-row .fav-btn + .fav-btn{right:auto;}
+/* R3217：分享钮横排容器规则并入上方 .hh-btns 组合选择器。 */
 /* R231b（R35-P1-6）：分享图提为一级动作——玫瑰渐变与主 CTA 同族，
  * 其余 fav-btn（如「存这对」）保持 ghost 次要级。 */
 button.fav-btn[id^="share"], .fav-btn.share-cta{
@@ -2182,10 +2178,11 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
   background:linear-gradient(135deg,#F0F7EC,#FBF6E8);
   border:1px solid #D8E4C8; color:#5C7340; font-size:13px; line-height:1.7;
 }
-/* 合婚卡右上三钮：原 .fav-btn 绝对定位右偏移只算两枚，三枚互叠 */
-.hh-btns{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
-.hh-btns .fav-btn{position:static;}
-.hh-btns .fav-btn + .fav-btn{right:auto;}
+/* 卡右上钮组：原 .fav-btn 绝对定位右偏移按单钮宽算，多钮互叠
+ * （合婚三钮、bazi 双分享钮同坑）——统一容器横排，按钮 static。 */
+.hh-btns, .share-row{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
+.hh-btns .fav-btn, .share-row .fav-btn{position:static; right:auto;}
+.hh-btns .fav-btn + .fav-btn, .share-row .fav-btn + .fav-btn{right:auto;}
 /* R233o：h2 副标题统一类（原 9 处内联 style 重复） */
 h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:keep-all;}  /* R2341（R57-P2-11）：按词断行 */
 /* 签册：打卡卡尾迷你签墙 */
