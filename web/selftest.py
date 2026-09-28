@@ -1439,6 +1439,16 @@ def _run_inner() -> list[str]:
                                  for k in set(_act_fe) | set(_act_be)
                                  if _act_fe.get(k) != _act_be.get(k)})
     ok.append("tengod.act.parity")
+    # R3218：前端 _WX_TAG ↔ voice.WX_TAG 逐字钉（本命卡五行落点）。
+    _wx_fe = dict(_re_hm.findall(
+        r"'(\w+)':\s*'([^']+)'",
+        _appjs.split("var _WX_TAG = {")[1].split("};")[0]))
+    from guji.voice import WX_TAG as _WXT
+    assert _wx_fe == _WXT, ("wx.tag.parity",
+                            {k: (_wx_fe.get(k), _WXT.get(k))
+                             for k in set(_wx_fe) | set(_WXT)
+                             if _wx_fe.get(k) != _WXT.get(k)})
+    ok.append("wx.tag.parity")
 
     check("hehun", client.post("/api/hehun", json={"a_year": 1990, "a_month": 5,
           "a_day": 15, "a_hour": 10, "a_gender": "男",

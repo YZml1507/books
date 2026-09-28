@@ -13745,6 +13745,20 @@ function baziPersonaCard(j) {
       var fe = ((j.calc || {}).five_elements || {}).counts || {};
       var wxLine = Object.keys(fe).map(function (k) { return k + ' ' + fe[k]; }).join(' · ');
       var missing = ((j.calc || {}).five_elements || {}).missing || [];
+      /* R3218：五行分布补人话落点——最旺/最弱各一词，镜像 voice.WX_TAG
+       * （selftest wx.tag.parity 钉防双侧漂移）。 */
+      var _WX_TAG = {'木':'向上长、有主心骨','火':'热、快、要回应',
+        '土':'稳、认死理、能托底','金':'利落、有边界感','水':'活、会转弯、能沉住'};
+      var _feVals = Object.keys(fe).filter(function(k){return fe[k] != null;});
+      var wxNote = '';
+      if (_feVals.length >= 3) {
+        var _hi = _feVals.reduce(function(a,b){return fe[a]>=fe[b]?a:b;});
+        var _lo = _feVals.reduce(function(a,b){return fe[a]<=fe[b]?a:b;});
+        if (_hi !== _lo)
+          wxNote = '　<span class="wx-note">' + esc(_hi) + '最旺（' +
+            esc(_WX_TAG[_hi] || '') + '），' + esc(_lo) +
+            '偏弱一点</span>';
+      }
       var pp = ((j.paipan || {}).render || '').split('　')[0] || '';
       var warm1 = (((j.warm || {}).reply || [])[0]) || '';
       var html = '<div class="birth-card">';
@@ -13754,7 +13768,7 @@ function baziPersonaCard(j) {
         '<div><div class="birth-sign">你是' + esc(sign) + '座</div>' +
         '<div class="birth-sub">' + esc(SIGN_TXT[sign] || '') + '</div></div></div>';
       html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
-      html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + '</span></div>';
+      html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + wxNote + '</span></div>';
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
       /* R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id，
        * 此前没挂 render/poll，受众高频钩子卡少了口语段。 */
