@@ -12028,7 +12028,8 @@ function _chatChipsPersonalize() {
     qiming: '这几个名字你最推哪个',
     xzm: '我们俩相处要注意什么',
     daily: '今天要留意什么',
-    huangli: '今天做什么最顺'
+    huangli: '今天做什么最顺',
+    dream: '这个梦是在提醒我什么'
   };
   var _fk = null, _fts = 0;
   for (var _kv in LAST_RESULT) {
@@ -12041,6 +12042,14 @@ function _chatChipsPersonalize() {
   if (_fk && _FOLLOWUP[_fk] && chips[0]) {
     chips[0].textContent = _FOLLOWUP[_fk];
     chips[0].setAttribute('data-ask', _FOLLOWUP[_fk]);
+  }
+  /* R3190：深夜/清晨做（噩）梦醒来的典型时刻——首 chip 还停在
+   * 出厂「今天运势怎么样」就太不解风情；没被 hl 续聊/结果追问
+   * 占用时换成梦的入口。 */
+  if (chips[0] && (_hh2 >= 22 || _hh2 < 9) &&
+      chips[0].textContent === '今天运势怎么样') {
+    chips[0].textContent = '做了个梦，讲给你听 🌙';
+    chips[0].setAttribute('data-ask', '我刚做了个梦，想讲给你听');
   }
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
