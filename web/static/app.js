@@ -5747,10 +5747,28 @@ async function doLiuyao() {
   const q = val('ly_question');
   if (q) body.question = q;
   body.client_date = todayIso();   /* R230m：今日值宫锚本地日 */
+  /* R3177：一事不二占——同日同问题重复摇卦，两卦不同只会让她
+   * 对着纠结。检出后贴一条软提示，不拦（想看看就再看）。 */
+  var _lyQ = (q || '').trim();
+  var _sameQ = false;
+  try {
+    var _lpq = JSON.parse(sessionStorage.getItem('ly:lastq') || 'null');
+    if (_lpq && _lpq.q === _lyQ && _lyQ && _lpq.d === todayIso()) {
+      _sameQ = true;
+    }
+  } catch (eLQ) {}
   try {
     const j = await postJSON('/api/liuyao', body);
     if (_gen !== _LY_GEN) return;   /* R2502：新请求已接管——丢弃旧响应 */
-    paint('lyResult', buildLiuyaoResult(j));
+    try {
+      sessionStorage.setItem('ly:lastq',
+        JSON.stringify({ d: todayIso(), q: _lyQ }));
+    } catch (eLQ2) {}
+    paint('lyResult',
+      (_sameQ
+        ? '<p class="hit-cite">同一问今天第二卦了——老话讲' +
+          '「一事不二占」，这卦就当补充参考看，别拿两卦对着纠结。</p>'
+        : '') + buildLiuyaoResult(j));
     pollAiPolish('lyResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R198b（US5）+ R2512：分享按钮已挪进 build（重画不丢），
      * 绑定收进 rebind 登记——口吻切换后重放。 */
