@@ -17282,3 +17282,4 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **R3193**：星座日运接 AI 解读 —— 全域最后一面无 polish 的卡。`facts_xingzuo` 喂值宫+当班宫三运实锚+「轻娱乐别上纲」口径绳；服务层 spawn（ai_social 小桶）；前端 xzResult 轮询上屏。真机出稿贴「宜独处/稳守/存钱」实锚。
 - **R3194**：facts 覆盖差集审计收口 —— 全卡面 facts 与 payload 键值逐面比对；桃花/合婚/六爻已深（柱位域/夫妻宫/十神互见/应期全喂），真漏仅 qiming.bazi.render（四柱日主串）一处，已补；selftest 位置钉改内容断言。
 - **R3195**：聊天路标可点化 —— 「帮我抽张牌/算个卦」类意图此前只给纯文字指路；现 /api/chat 附 action={view,label}，回复气泡尾挂可点 chip（accent 描边），点击收抽屉+跳真功能页；打烊兜底态也挂。真机实测 chip「🃏 去塔罗抽一把」→ view-tarot 落地。八字裸词仍要求动作词防误伤。
+- **R3196**：IME 合成期 Enter 防误发 —— chatInput + 全部 Enter 提交输入框（rq/rq2/cq/cwq/tq/起名搜索等 13 键）此前零 isComposing 守卫，中文输入法选词 Enter 会把半句直接提交；isComposing+keyCode229 双口径拦截（老 WebView 只给后者）。

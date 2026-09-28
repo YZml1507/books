@@ -9448,7 +9448,11 @@ function initBazi() {
   });
   if (ci) ci.addEventListener('keydown', function (e) {
     /* R230q：与 chatSendBtn 的 on() 点击同锁——连按 Enter 不再并发发消息 */
-    if (e.key === 'Enter') guardedCall('chatSendBtn', chatSend, e);
+    /* R3196：IME 合成期 Enter 是选词确认不是发送——受众全员中文
+     * 输入法，不拦会把半句心事直接发出。isComposing||keyCode 229
+     * 双口径（老 Android WebView 只给后者）。 */
+    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229)
+      guardedCall('chatSendBtn', chatSend, e);
   });
   /* R228q：移动键盘弹出会把侧栏输入框顶出可视区（visualViewport 收缩，
    * 但侧栏是 fixed 布局不跟随）——键盘开合时把输入框滚回视口内。
@@ -9519,7 +9523,8 @@ function initReading() {
     const node = el(pair[0]);
     if (node) {
       node.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
+        /* R3196：IME 选词 Enter 不触发提交（同 chatInput 口径）。 */
+        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
           e.preventDefault();
           guardedCall(pair[1], pair[2], e);
         }
