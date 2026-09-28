@@ -12384,8 +12384,17 @@ function _chatChipsPersonalize() {
     }
   }
   if (_fk && _FOLLOWUP[_fk] && chips[0]) {
-    chips[0].textContent = _FOLLOWUP[_fk];
-    chips[0].setAttribute('data-ask', _FOLLOWUP[_fk]);
+    var _fq = _FOLLOWUP[_fk];
+    /* R3214：解梦追问带真实象征名——「这个梦是在提醒我什么」泛，
+     * 「梦里那个『被追赶』和我最近什么关系」接得住。 */
+    if (_fk === 'dream') {
+      var _ds = ((((LAST_RESULT.dream || {}).json) || {}).symbols) || [];
+      if (_ds.length && _ds[0].name) {
+        _fq = '梦里那个「' + _ds[0].name + '」和我最近的事有关系吗';
+      }
+    }
+    chips[0].textContent = _fq;
+    chips[0].setAttribute('data-ask', _fq);
   }
   /* R3190：深夜/清晨做（噩）梦醒来的典型时刻——首 chip 还停在
    * 出厂「今天运势怎么样」就太不解风情；没被 hl 续聊/结果追问
