@@ -295,6 +295,12 @@ try {
     <div class="func-card func-entry" data-view="dream" role="button" tabindex="0" aria-label="解梦">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="dream" src="/static/shared/icon-set-moon-cat.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">解梦</div><div class="func-desc">说说昨晚的梦 · 帮你翻翻</div>
     </div>
+    <!-- R3210（用户决策项）：起名上提主格——受众给 CP/游戏角色/圈名
+         起名是高频玩法，抽屉埋太深；六爻留进阶抽屉（术语门槛高、
+         问事低频，与塔罗入口重叠）。 -->
+    <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">给 TA/圈名起个好名字</div>
+    </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
@@ -312,15 +318,13 @@ try {
   <details class="pro-drawer" id="proDrawer">
     <!-- R228e：原文案「古籍溯源」宣称有古籍入口——书库阅读渠道已按
          R208b 用户裁决移除，抽屉里只有六爻和起名两张卡，改实话实说。 -->
-    <summary><span aria-hidden="true">🔍</span> 进阶玩法（六爻 · 五行起名）</summary>
+    <summary><span aria-hidden="true">🔍</span> 进阶玩法（六爻占卜）</summary>
     <div class="func-grid pro-grid">
       <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
-           （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。 -->
+           （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。
+           R3210：起名卡上提主格后，抽屉只剩六爻（术语门槛的问事向功能）。 -->
       <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
         <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
-      </div>
-      <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
-        <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
       </div>
     </div>
   </details>
