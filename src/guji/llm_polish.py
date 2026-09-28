@@ -2245,10 +2245,27 @@ def facts_huangli(h: dict) -> list[str]:
     if h.get("ji"):
         facts.append("今日忌：" + "、".join(str(x) for x in h["ji"][:8]))
     if h.get("zhishen"):
-        facts.append("值神：{}（{}）".format(
-            h["zhishen"], h.get("zhishen_ji") or ""))
+        _zj = h.get("zhishen_ji")
+        facts.append("值神：{}{}".format(
+            h["zhishen"],
+            "（吉）" if _zj is True else ("（凶）" if _zj is False else "")))
     if h.get("jianchu"):
         facts.append("建除十二神：" + str(h["jianchu"]))
+    if h.get("xiu"):
+        facts.append("值宿：" + str(h["xiu"]))
+    _ln = h.get("lunar") or {}
+    if _ln.get("month_cn") or _ln.get("day_cn"):
+        facts.append("农历：{}{}{}".format(
+            _ln.get("ganzhi_year_cn") or "",
+            _ln.get("month_cn") or "", _ln.get("day_cn") or ""))
+    _pz = h.get("pengzu") or {}
+    if _pz.get("gan_text") or _pz.get("zhi_text"):
+        facts.append("彭祖百忌：{}；{}".format(
+            _pz.get("gan_text") or "", _pz.get("zhi_text") or ""))
+    _hs = [x.get("branch") for x in (h.get("hours") or [])
+           if isinstance(x, dict) and x.get("ji") and x.get("branch")]
+    if _hs:
+        facts.append("今日吉时：" + "、".join(str(b) + "时" for b in _hs))
     _cs = h.get("chongsha") or {}
     if _cs.get("chong_animal"):
         facts.append("冲煞：冲{}（煞{}方）".format(
