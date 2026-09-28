@@ -2350,7 +2350,11 @@ html[data-theme="dark"] .cite-block{background:#2A302B;}
 html[data-theme="dark"] .ai-polish{background:#2E2831; border-color:#453C48;}
 /* R3214：解梦卡深色补丁——白渐变在深底上是亮岛且压不住浅字。 */
 html[data-theme="dark"] .dm-sym{background:#2E282C;}
-html[data-theme="dark"] .dm-act{background:#2E282C;}
+html[data-theme="dark"] .dm-sym-trad{background:#241F26;}
+html[data-theme="dark"] .dm-sym-worry{background:#3A2F35;}
+html[data-theme="dark"] .dm-intro{background:#2E2831;}
+html[data-theme="dark"] .dm-act{background:#26332B;border-color:#3a5040;}
+html[data-theme="dark"] .dm-act-tag{color:#8fd0a4;}
 html[data-theme="dark"] .dm-sym-var{background:#241F26;}
 html[data-theme="dark"] .daily-detail{background:#2E282C;}
 html[data-theme="dark"] details>summary{color:var(--secondary);}
@@ -2681,27 +2685,44 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
   vertical-align:1px;}
 
 /* R3178：解梦象征小卡 */
-.dm-syms{display:flex;flex-direction:column;gap:8px;margin:10px 0 12px;}
-.dm-sym{border:1px solid var(--border);border-radius:14px;padding:10px 12px;
-  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,246,248,.5));}
+/* R3222：解梦卡视觉重做——夜梦主题渐变头 + 彩带象征卡 + 分层小节。 */
+.dream-card{overflow:hidden;}
+.dream-card>h2{background:linear-gradient(120deg,#6b5b95 0%,#a0455c 60%,#d47a8a 100%);
+  color:#fff;margin:-14px -14px 12px;padding:14px 16px;border-radius:0;
+  font-size:16px;letter-spacing:.5px;}
+.dm-syms{display:flex;flex-direction:column;gap:10px;margin:10px 0 12px;}
+.dm-sym{border:1px solid var(--border);border-left-width:4px;border-radius:14px;
+  padding:12px 14px;background:#fff;
+  box-shadow:0 1px 4px rgba(120,70,90,.06);}
+.dm-sym-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.dm-sym-dot{width:9px;height:9px;border-radius:50%;flex:none;}
 /* R3214：标题文字用 accent-ink（accent 令牌只是装饰色，2.12:1 不达 AA）。 */
-.dm-sym-name{font-weight:600;color:var(--accent-ink,#a0455c);margin-bottom:4px;}
-.dm-sym-trad{font-size:13px;color:var(--muted,#8a7f85);margin-bottom:4px;}
-.dm-sym-echo{font-size:14px;line-height:1.6;}
+.dm-sym-name{font-weight:700;font-size:15px;color:var(--primary-ink,#5b3b45);}
+.dm-sym-trad{font-size:12px;color:var(--muted,#8a7f85);margin-bottom:6px;
+  background:var(--bg);border-radius:8px;padding:4px 9px;display:inline-block;}
+.dm-sym-echo{font-size:14px;line-height:1.7;color:var(--text);}
 /* R3214：解梦卡新块——回显引文/隐忧直答/想想最近/细节分叉/小动作锚。 */
-.dm-quote{font-size:13px;color:var(--secondary);margin:6px 0 10px;
-  border-left:3px solid var(--border);padding-left:10px;line-height:1.6;}
-.dm-sym-worry{font-size:14px;color:var(--primary-ink);line-height:1.6;
-  margin-bottom:4px;}
-.dm-sym-ask{font-size:13px;color:var(--secondary);margin-top:6px;
-  border-top:1px dashed var(--border);padding-top:6px;line-height:1.6;}
+.dm-quote{font-size:13px;color:var(--secondary);margin:8px 0 12px;
+  border-left:3px solid #d9a7b5;padding-left:10px;line-height:1.6;font-style:italic;}
+.dm-intro{background:linear-gradient(135deg,rgba(255,214,224,.5),rgba(240,230,255,.45));
+  border-radius:12px;padding:10px 13px;margin:6px 0 12px;}
+.dm-intro p{font-size:14px;line-height:1.7;color:var(--primary-ink);margin:0 0 4px;}
+.dm-intro p:last-child{margin-bottom:0;}
+.dm-sym-worry{font-size:14px;color:var(--primary-ink);line-height:1.7;
+  margin:6px 0;background:rgba(255,232,238,.5);border-radius:10px;padding:8px 10px;}
+.dm-sym-tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;
+  background:var(--accent-ink,#a0455c);border-radius:6px;padding:1px 7px;
+  margin-right:6px;vertical-align:1px;}
+.dm-sym-ask{font-size:13px;color:var(--secondary);margin-top:8px;
+  border-top:1px dashed var(--border);padding-top:8px;line-height:1.7;}
 .dm-sym-var{font-size:13px;color:var(--text);margin-top:6px;
   background:var(--bg);border-radius:8px;padding:6px 10px;line-height:1.6;}
-.dm-act{margin-top:10px;padding:10px 12px;border-radius:12px;
-  background:var(--bg);border:1px solid var(--border);
-  font-size:14px;line-height:1.7;}
-.dm-act-tag{display:inline-block;font-size:12px;font-weight:600;
-  color:var(--accent-ink);margin-right:8px;}
+.dm-act{margin-top:12px;padding:12px 14px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(214,245,228,.7),rgba(232,244,214,.5));
+  border:1px solid rgba(140,190,150,.35);
+  font-size:14px;line-height:1.7;color:var(--primary-ink);}
+.dm-act-tag{display:inline-block;font-size:12px;font-weight:700;
+  color:#3d7a52;margin-right:8px;}
 .dm-tail{margin-top:10px;}
 .dm-tail p{font-size:12px;color:var(--muted);}
 /* R3214：输入区——字数条右对齐 + 高频梦 chips 横排可换行。 */

@@ -6056,22 +6056,29 @@ function buildDreamResult(j) {
     return (j.disclaimer && ln === j.disclaimer) ||
            ln.indexOf('另外多嘴一句') === 0;
   });
+  /* R3222：解梦卡视觉重做——安抚行给浅底 banner 先接住情绪；
+   * 象征卡按序上彩带+分节标签（册子注/先放心/想想最近/细节），
+   * 不再是密文字墙。 */
   if (_intro.length) {
-    html += '<div class="warm-reply">' +
+    html += '<div class="dm-intro">' +
       _intro.map(function (ln) { return '<p>' + esc(ln) + '</p>'; }).join('') +
       '</div>';
   }
   if (syms.length) {
     html += '<div class="dm-syms">';
-    syms.forEach(function (s) {
-      html += '<div class="dm-sym"><div class="dm-sym-name">「' +
-        esc(s.name) + '」</div><div class="dm-sym-trad">' +
+    syms.forEach(function (s, _si) {
+      var _c = colorAt(_si);
+      html += '<div class="dm-sym" style="border-left:4px solid ' + _c + '">' +
+        '<div class="dm-sym-head"><span class="dm-sym-dot" style="background:' +
+        _c + '"></span><span class="dm-sym-name">「' + esc(s.name) +
+        '」</span></div><div class="dm-sym-trad">📖 ' +
         esc(s.trad) + '</div>' +
-        (s.worry ? '<div class="dm-sym-worry">' + esc(s.worry) + '</div>' : '') +
+        (s.worry ? '<div class="dm-sym-worry"><span class="dm-sym-tag">先放心</span>' +
+          esc(s.worry) + '</div>' : '') +
         '<div class="dm-sym-echo">' + esc(s.echo) + '</div>' +
-        (s.ask ? '<div class="dm-sym-ask">' + esc(s.ask) + '</div>' : '') +
+        (s.ask ? '<div class="dm-sym-ask">💭 ' + esc(s.ask) + '</div>' : '') +
         (s.varlines || []).map(function (vl) {
-          return '<div class="dm-sym-var">' + esc(vl) + '</div>';
+          return '<div class="dm-sym-var">✎ ' + esc(vl) + '</div>';
         }).join('') +
         '</div>';
     });
@@ -6090,8 +6097,11 @@ function buildDreamResult(j) {
   html += renderAiPolish(j);   /* R3214：AI 段嵌卡内（此前落在卡外断节） */
   /* 分享图——梦境海报（主动分享才出图，文本本就她写的）
    * R3214：fav-btn 类补上——台账复看的隐藏规则只认这个类。 */
+  /* R3222：fav-btn 默认 absolute 贴右上——压在渐变头上又挤又丑，
+   * 解梦卡让它回文流落卡尾。台账复看的隐藏规则靠 fav-btn 类识别，
+   * 类名不能丢。 */
   html += '<button type="button" class="ghost fav-btn" id="shareDream" ' +
-    'style="margin-top:10px;">📷 生成梦卡图</button>';
+    'style="position:static;margin-top:10px;">📷 生成梦卡图</button>';
   html += tailHook('dream');
   html += '</div>';
   return html;

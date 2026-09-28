@@ -1571,6 +1571,16 @@ def chat(session_id: str, user_msg: str,
         return text
 
 
+def _llm_log(msg: str) -> None:
+    """LLM 失败归因一行日志——R3222：此前三次重试全静默，
+    「走神了」无从区分超时/4xx/截断。只记状态码与异常类型，
+    绝不记 key/payload/正文。"""
+    try:
+        print('[llm]', msg, file=sys.stderr)
+    except Exception:
+        pass
+
+
 def _chat_call(payload_msgs: list[dict], cfg: dict,
                _transport=None, keep_citations: bool = False,
                deadline: float | None = None,
@@ -1619,11 +1629,13 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                 if resp.status_code != 200:
                     # R230t（R32-P0-1）：4xx 全是确定性失败——鉴权/参数类重试
                     # 纯白烧；429 同理立刻停。
+                    _llm_log(f"HTTP {resp.status_code} try={_i}")
                     if resp.status_code == 429 or 400 <= resp.status_code < 500:
                         break
                     continue
                 # R2524（审-LLM-P2-4）：同 polish——解析前字节帽。
                 if len(resp.content) > 2_000_000:
+                    _llm_log(f"resp>2MB try={_i}")
                     continue
                 data = resp.json()
             raw = (data["choices"][0]["message"]["content"] or "").strip()
@@ -1635,9 +1647,14 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
             if (data["choices"][0].get("finish_reason") or "") == "length":
                 if not raw and not _doubled:
                     _doubled = True
+                    _llm_log(f"finish=length 空泡 try={_i}→预算加倍重试")
                     continue
+                _llm_log(f"finish=length 截断 try={_i}（正文烧穿 max_tokens）")
                 break
-        except Exception:
+            if not raw:
+                _llm_log(f"content 空 try={_i}")
+        except Exception as _cexc:
+            _llm_log(f"exc {type(_cexc).__name__} try={_i}")
             continue
         # R230a-7：记录「回了但被禁语拦」与「没回/挂了」的区别。
         # R2524：扫归一形态——「注**定**」式绕闸原文也要计入 banned_seen，
@@ -1927,8 +1944,9 @@ def spawn_chat_task(session_id: str, user_msg: str,
                         result_verdicts=result_verdicts,
                         _task_started=_mark_started)
             status = "done" if text else "failed"
-        except BaseException:            # R2511：同 polish 径防 pending 泄漏
+        except BaseException as _wexc:    # R2511：同 polish 径防 pending 泄漏
             status, text = "failed", None
+            _llm_log(f"chat task 未捕获 {type(_wexc).__name__}")
         with _tasks_lock:
             rec = _tasks.get(tid)
             if rec is not None:
