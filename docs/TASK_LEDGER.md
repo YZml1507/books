@@ -17307,3 +17307,5 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - 深研步注后端改中文；书目来源裸 URL→`_srcLabel`；知识卡 scheme→`_SCHEME_CN`；卷文件名节标 `_secLabel`→「第N卷」
 - 字号底线 10-11px→12px（宜忌/塔罗释义/时辰注等）
 - 闸门：selftest 372 ✅ / contract 694 ✅ / dup ✅ / smoke ✅；真机三处视图零泄漏
+- **R3215补**：概念研究 shared_addresses 裸书号→书名（census 建 id→title 映射）；书目卡保留 w.id（其他表单靠它查书，功能标识）
+- **R3216**：六爻动爻行双重标签 bug——R3209 把 YAO_WARM 分隔符「——」改成「：」但 split("——") 还在，3 动爻卦输出标签重复两遍；改 split("：") 兼容 ——。实测「第二爻在动：刚上手…」清爽。另修时辰快查表在窄 field 里 .hour-pick nowrap 顶破栅格导致整页横滚（minmax(0,1fr)+可换行）
