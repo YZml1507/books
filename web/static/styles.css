@@ -1215,20 +1215,6 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
  * 视觉纪律：warm 文案、古籍引文、推导依据三类内容必须可辨（spec US2.5，
  * 承接 003 US6）。用「底色 + 左边框 + 字体」三重区分，不靠颜色单一维度
  * （色盲用户也能分）。点击目标 ≥44px、对比度走 AA（003 判据 1-3）。 */
-.mode-switch{ display:flex; gap:8px; margin:20px 0 4px; flex-wrap:wrap; }
-.mode-btn{
-  margin:0; min-height:44px; padding:10px 20px; font-size:14px;
-  border-radius:999px; cursor:pointer; font-weight:600;
-  background:var(--card); color:var(--secondary);
-  border:2px solid var(--border); box-shadow:none;
-  transition:background .2s, color .2s, border-color .2s;
-}
-.mode-btn:hover{ border-color:var(--primary-ink); color:var(--primary-ink); transform:none; }
-.mode-btn.active{
-  /* #6B4A1F on #FFF8E7 约 7.4:1，超过 AA 的 4.5:1 */
-  background:#FFF8E7; color:#6B4A1F; border-color:var(--primary-ink);
-}
-.mode-btn:focus-visible{ outline:3px solid var(--text); outline-offset:2px; }
 
 .warm-wrap{ margin-top:12px; }
 /* R216b（U-002/003）：温柔模式专业区统一折叠的视觉——弱化为「可选附录」，
@@ -1442,6 +1428,13 @@ details.warm-pro-fold > summary{
   min-height:32px; font-size:13px; border-color:var(--accent);
   color:var(--accent); background:transparent; }
 .chat-act-chip:hover{ background:var(--accent); color:var(--card); }
+/* R3213：失败重发 chip——挂在失败气泡尾，inline 小号（不占整行，
+ * 不抢正文视线但一眼可点）。 */
+.chat-retry-chip{ display:inline-block; margin:6px 0 0 8px; padding:4px 14px;
+  min-height:30px; font-size:12px; border-color:var(--accent);
+  color:var(--accent); background:transparent; }
+.chat-retry-chip:hover{ background:var(--accent); color:var(--card); }
+.chat-retry-chip:disabled{ opacity:.5; cursor:default; }
 
 /* R220b（P1-1）：星座日期条——箭头 + 年月日三 select + 今天/明天快捷。
    替代原生 type="date"（移动端要唤起系统日历，翻一天也得开弹层）。
@@ -2421,8 +2414,7 @@ html[data-theme="dark"] .poster-modal-tip{color:var(--secondary); background:tra
 /* P1-1 三处 chip 选中态在深色下整组掉色（深浅特异性反转）——
  * 与 hl-chip.active 同口径的专属覆盖。 */
 html[data-theme="dark"] .checkin-opt.picked,
-html[data-theme="dark"] .qm-style-chip.active,
-html[data-theme="dark"] .mode-btn.active{
+html[data-theme="dark"] .qm-style-chip.active{
   background:#3A3040; color:var(--accent-ink);
   border-color:var(--accent-ink); box-shadow:none;
 }
@@ -2449,7 +2441,7 @@ html[data-theme="dark"] .recent-backdrop.open{background:rgba(0,0,0,.45);}
 html[data-theme="dark"] .poster-modal-body{background:#2B2529;}
 /* P2-21 按钮基类玫瑰投影漏到 chip/ghost——非 CTA 类去投影 */
 button.ghost, .hl-chip, .hl-scene, .hl-daychip, .checkin-opt,
-.qm-style-chip, .mode-btn, .xz-chip, .xz-nav, .chat-chip,
+.qm-style-chip, .xz-chip, .xz-nav, .chat-chip,
 .fav-chip, .rtab, .pill{box-shadow:none;}
 /* P2-23 「忘掉我的数据」是破坏性操作——红描边与次级按钮分型 */
 #historyWipe.ghost{border-color:var(--rose-soft); color:var(--rose);}
@@ -2695,7 +2687,13 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 .hour-cheat summary::after{content:'▾';margin-left:4px;color:var(--muted);}
 .hour-cheat[open] summary::after{content:'▴';}
 .hour-cheat-grid{display:grid;grid-template-columns:repeat(3,1fr);
-  gap:2px 10px;margin-top:6px;padding:8px 10px;border-radius:10px;
+  gap:4px 6px;margin-top:6px;padding:8px 10px;border-radius:10px;
   background:var(--bg);border:1px solid var(--border);}
-.hour-cheat-grid span{font-size:12px;color:var(--secondary);white-space:nowrap;}
-.hour-cheat-grid b{color:var(--primary-ink);margin-right:2px;}
+/* R3213：时辰格子升级为可点按钮——点选即填，不用手敲数字换算。 */
+.hour-cheat-grid .hour-pick{font-size:12px;color:var(--secondary);
+  white-space:nowrap;background:transparent;border:1px solid transparent;
+  border-radius:8px;padding:4px 2px;cursor:pointer;min-height:30px;
+  text-align:left;box-shadow:none;}
+.hour-cheat-grid .hour-pick:hover{background:var(--card);
+  border-color:var(--border);color:var(--primary-ink);}
+.hour-cheat-grid .hour-pick b{color:var(--primary-ink);margin-right:2px;}

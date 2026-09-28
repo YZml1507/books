@@ -479,16 +479,19 @@ function buildHehunResult(j) {
   /* R2349s（R84-P2-20）：三域补口吻开关——此前只有 bazi/liuyao/tarot
    * 能切专业视角。 */
   html += _festivalBand();
-  html += renderModeSwitch();
-  if (voiceMode() === 'pro') {
-    html += '<div class="pro-notice">📐 专业视角：原值直出，不译人话。</div>' +
-      '<div class="pill-row">' +
-      (j.a_bazi && j.a_bazi.render ? '<span class="pill sm">A 四柱 ' + esc(j.a_bazi.render) + '</span>' : '') +
-      (j.b_bazi && j.b_bazi.render ? '<span class="pill sm">B 四柱 ' + esc(j.b_bazi.render) + '</span>' : '') +
-      (j.day_zhi_rel ? '<span class="pill sm">日支关系 ' + esc(j.day_zhi_rel) + '</span>' : '') +
-      (j.nayin_rel ? '<span class="pill sm">纳音 ' + esc(j.nayin_rel) + '</span>' : '') +
-      (j.god_a_sees_b ? '<span class="pill sm">十神 ' + esc(j.god_a_sees_b) + '↔' + esc(j.god_b_sees_a || '') + '</span>' : '') +
-      '</div>';
+  /* R3212：合婚坐标原值（四柱/日支关系/纳音/十神互见）收进折叠——
+   * 数据零删减，想看的一眼展开；此前只在 pro 开关下可见。 */
+  {
+    var _hhpills =
+      (j.a_bazi && j.a_bazi.render ? '<span class="pill">A 四柱：' + esc(j.a_bazi.render) + '</span>' : '') +
+      (j.b_bazi && j.b_bazi.render ? '<span class="pill">B 四柱：' + esc(j.b_bazi.render) + '</span>' : '') +
+      (j.day_zhi_rel ? '<span class="pill">日支关系：' + esc(j.day_zhi_rel) + '</span>' : '') +
+      (j.nayin_rel ? '<span class="pill">纳音：' + esc(j.nayin_rel) + '</span>' : '') +
+      (j.god_a_sees_b ? '<span class="pill">十神互见：' + esc(j.god_a_sees_b) + ' ↔ ' + esc(j.god_b_sees_a || '') + '</span>' : '');
+    if (_hhpills) {
+      html += '<details class="warm-basis warm-pro-fold"><summary>📐 合婚坐标（干支原值）</summary>' +
+        '<div class="pill-row">' + _hhpills + '</div></details>';
+    }
   }
   html += '<div class="hh-btns">';
   html += '<button class="ghost fav-btn" type="button" id="shareHehun" ' +
@@ -584,15 +587,11 @@ function buildHehunResult(j) {
   }
   html += '</div>';
   /* R2350b（R98-P1-6）：j.render 是干支摘要串（「甲：1990年 庚午 ·
-   * 大运：逆　…」），温柔模式直贴屏全是黑话——收进折叠，专业模式
-   * 保持平铺。 */
+   * 大运：逆　…」），直贴屏全是黑话——收进折叠。
+   * R3212：pro 开关下线后两态同一渲染。 */
   if (j.render) {
-    if (voiceMode() === 'pro') {
-      html += '<div class="calc-summary">' + esc(j.render) + '</div>';
-    } else {
-      html += '<details class="paipan-fold"><summary>看看技术细节</summary>' +
-        '<div class="calc-summary">' + esc(j.render) + '</div></details>';
-    }
+    html += '<details class="paipan-fold"><summary>看看技术细节</summary>' +
+      '<div class="calc-summary">' + esc(j.render) + '</div></details>';
   }
   if (j.dayun_hits && j.dayun_hits.length) {
     /* R216b 续5（UX 队列 U-004）：warm 模式下 8 行干支大运表信息过载，
@@ -617,12 +616,9 @@ function buildHehunResult(j) {
         '<td class="num">' + esc(_ages) + '</td></tr>';
     });
     _table += '</tbody></table></div>';
-    if (voiceMode() === 'warm') {
-      html += '<details class="warm-basis"><summary>📅 十年一轮的合拍表（' +
-        j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
-    } else {
-      html += '<h3 style="margin-top:16px;">十年一轮的节奏表</h3>' + _table;
-    }
+    /* R3212：单版化——大运表恒走折叠（事实零删减）。 */
+    html += '<details class="warm-basis"><summary>📅 十年一轮的合拍表（' +
+      j.dayun_hits.length + ' 行，展开看）</summary>' + _table + '</details>';
   }
   if (j.notes && j.notes.length) {
     html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
@@ -655,16 +651,8 @@ function buildTaohuaResult(j) {
     'title="生成分享图">📸 分享图</button>';
   /* R2349s（R84-P2-20）：口吻开关——pro 直出原枚举值。 */
   html += _festivalBand();
-  html += renderModeSwitch();
-  if (voiceMode() === 'pro') {
-    html += '<div class="pro-notice">📐 专业视角：坐标原值不翻译。</div>' +
-      '<div class="pill-row">' +
-      (j.strength ? '<span class="pill sm">strength=' + esc(j.strength) + '</span>' : '') +
-      ((j.hit_pillars || []).length ? '<span class="pill sm">hit_pillars=' +
-        esc((j.hit_pillars || []).join(',')) + '</span>' : '') +
-      (j.peach_zhi ? '<span class="pill sm">peach_zhi=' + esc(j.peach_zhi) + '</span>' : '') +
-      '</div>';
-  }
+  /* R3212：原 pro 开关下的 strength=/hit_pillars= 英文枚举键值行删除——
+   * 同一组数据在下方「想看桃花坐标」里已有中文映射版，重复且无信息增量。 */
   const bz = j.bazi || {};
   // R187b：人话视图置顶（specs/005 US4——先说人话，再看坐标）
   if (j.warm) {
@@ -743,13 +731,10 @@ function buildTaohuaResult(j) {
     });
     _thTbl += '</tbody></table></div>';
     /* R2509（审-P1-2）：合婚大运表早就折进 warm-basis——桃花这张
-     * 是默认路径上唯一裸奔的干支柱表，同纪律折叠；专业版照旧裸出。 */
-    if (voiceMode() === 'warm') {
-      html += '<details class="warm-basis"><summary>📅 桃花节奏表（' +
-        j.dayun_hits.length + ' 行，展开看）</summary>' + _thTbl + '</details>';
-    } else {
-      html += '<h3 style="margin-top:16px;">桃花什么时候旺</h3>' + _thTbl;
-    }
+     * 是默认路径上唯一裸奔的干支柱表，同纪律折叠。
+     * R3212：单版化后恒走折叠。 */
+    html += '<details class="warm-basis"><summary>📅 桃花节奏表（' +
+      j.dayun_hits.length + ' 行，展开看）</summary>' + _thTbl + '</details>';
   }
   if (j.notes && j.notes.length) {
     html += '<div class="interp-disclaimer">📝 ' + esc(j.notes.join('　')) + '</div>';
@@ -791,32 +776,21 @@ function buildQimingResult(j) {
   html += '</div>';
   html += '<div class="qm-style-hint" id="qmStyleHint">' +
     esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') + '</div>';
-  /* R2349s（R84-P2-20）：口吻开关——pro 展开候选池原表。 */
-  html += renderModeSwitch();
   const bz = j.bazi || {};
-  /* R2500（R144-P2-2）：温柔版裸贴干支行（「庚午年…日主：庚 大运：逆」）
-   * 是术语噪声——收进专业版（五行卖点已由下方 nayin 行承载）。 */
-  if (bz.render && voiceMode() === 'pro')
-    html += '<p class="paipan-line">' + esc(bz.render) + '</p>';
   const fe = j.five_elements || {};
-  if (voiceMode() === 'pro') {
-    var _qpt = '<div class="pro-notice">📐 专业视角：候选池原表 + 五行计数。</div>';
-    var _qfe = fe.counts || {};
-    _qpt += '<div class="pill-row">' +
-      Object.keys(_qfe).map(function (k) {
-        return '<span class="pill sm">' + esc(k) + '=' +
-          esc(String(_qfe[k])) + '</span>';
-      }).join('') + '</div>';
-    var _qc = _pArr(j.candidates);
-    if (_qc.length) {
-      _qpt += '<div class="table-scroll"><table class="works"><thead><tr><th>字</th><th>五行</th><th>出处</th><th>释义</th></tr></thead><tbody>';
-      _qc.slice(0, 60).forEach(function (c) {
-        _qpt += '<tr><td>' + esc(_pStr(c.char)) + '</td><td>' + esc(_pStr(c.element)) +
-          '</td><td>' + esc(_pStr(c.radical)) + '</td><td>' + esc(_pStr(c.meaning)) + '</td></tr>';
-      });
-      _qpt += '</tbody></table></div>';
-    }
-    html += _qpt;
+  /* R3212：干支原串+候选池原表（字/五行/出处/释义 60 行）收进一个
+   * 折叠块——pro 开关下线，数据零删减，想看的一展开就有。 */
+  var _qc = _pArr(j.candidates);
+  if (_qc.length) {
+    html += '<details class="warm-basis warm-pro-fold"><summary>📐 候选池原表（' +
+      Math.min(_qc.length, 60) + ' 字，展开看五行与出处）</summary>' +
+      (bz.render ? '<p class="paipan-line">' + esc(bz.render) + '</p>' : '') +
+      '<div class="table-scroll"><table class="works"><thead><tr><th>字</th><th>五行</th><th>出处</th><th>释义</th></tr></thead><tbody>';
+    _qc.slice(0, 60).forEach(function (c) {
+      html += '<tr><td>' + esc(_pStr(c.char)) + '</td><td>' + esc(_pStr(c.element)) +
+        '</td><td>' + esc(_pStr(c.radical)) + '</td><td>' + esc(_pStr(c.meaning)) + '</td></tr>';
+    });
+    html += '</tbody></table></div></details>';
   }
   /* R230a-7（R13-P1-6）：俱全时写「偏弱」不写「缺」 */
   html += '<p class="nayin">五行分布：' + esc(fmtScalar(fe.counts)) +
@@ -1828,12 +1802,15 @@ function _chatEmptyRebuild() {
 }
 
 /* R3207：时辰对照表——知道「子时/亥时」不知道是几点的用户此前
- * 只能切出去查。共享一张表，按需挂到每个时辰输入框的 .field 尾巴。 */
+ * 只能切出去查。共享一张表，按需挂到每个时辰输入框的 .field 尾巴。
+ * R3213（用户实测）：纯查表仍要用户自己换算成数字再敲——改成
+ * 「点选即填」：每格是按钮，点了把该时辰的代表整点（时段起点）
+ * 直接填进输入框；查表与填写一步到位。 */
 var _HOUR_CHEAT = [
-  ['子', '23:00–00:59'], ['丑', '01:00–02:59'], ['寅', '03:00–04:59'],
-  ['卯', '05:00–06:59'], ['辰', '07:00–08:59'], ['巳', '09:00–10:59'],
-  ['午', '11:00–12:59'], ['未', '13:00–14:59'], ['申', '15:00–16:59'],
-  ['酉', '17:00–18:59'], ['戌', '19:00–20:59'], ['亥', '21:00–22:59']];
+  ['子', '23:00–00:59', 23], ['丑', '01:00–02:59', 1], ['寅', '03:00–04:59', 3],
+  ['卯', '05:00–06:59', 5], ['辰', '07:00–08:59', 7], ['巳', '09:00–10:59', 9],
+  ['午', '11:00–12:59', 11], ['未', '13:00–14:59', 13], ['申', '15:00–16:59', 15],
+  ['酉', '17:00–18:59', 17], ['戌', '19:00–20:59', 19], ['亥', '21:00–22:59', 21]];
 function _hourCheatAttach(inputId) {
   var inp = el(inputId);
   if (!inp || !inp.parentNode ||
@@ -1842,11 +1819,21 @@ function _hourCheatAttach(inputId) {
   d.className = 'hour-cheat';
   var rows = '';
   for (var i = 0; i < _HOUR_CHEAT.length; i++) {
-    rows += '<span><b>' + _HOUR_CHEAT[i][0] + '时</b> ' +
-            _HOUR_CHEAT[i][1] + '</span>';
+    rows += '<button type="button" class="hour-pick" data-h="' +
+            _HOUR_CHEAT[i][2] + '"><b>' + _HOUR_CHEAT[i][0] + '时</b> ' +
+            _HOUR_CHEAT[i][1] + '</button>';
   }
-  d.innerHTML = '<summary>时辰对照（子时是几点？）</summary>' +
+  d.innerHTML = '<summary>时辰对照（知道时辰名，点一下直接填）</summary>' +
     '<div class="hour-cheat-grid">' + rows + '</div>';
+  d.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest
+      ? ev.target.closest('.hour-pick') : null;
+    if (!b) return;
+    inp.value = b.getAttribute('data-h');
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    try { inp.focus(); } catch (e) {}
+  });
   inp.parentNode.appendChild(d);
 }
 
@@ -1930,7 +1917,7 @@ function autoSendChatContext() {
      * R2343：复用发送时已插的 typing 节点。 */
     var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action);   /* R233r：共用轮询体（含排队预算） */
+    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action, msg);   /* R233r+R3213：msg 供失败重发：共用轮询体（含排队预算） */
   }).catch(function () {
     if (_ty0) { _ty0.remove(); _ty0 = null; }
     chatBubble('ai', '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）', { nosave: true });
@@ -1970,18 +1957,63 @@ function _chatActChip(bubble, action) {
   bubble.appendChild(b);
 }
 
-function _pollChatReply(tid, ty, sid0, action) {
+/* R3213（用户反馈）：「没接住」此前一句通用文案，用户不知道发生了什么、
+ * 也不知道怎么办。按成因分文案（生成失败/任务过期/排队/断网），且就地
+ * 挂「再发一次」钮——点击原样重发同一句，不需要用户重打一遍。 */
+function _chatFailInto(ty, kind, msg, sid0) {
+  if (!ty) return;
+  var _txt = {
+    fail: '（小满刚才走神了，这句没接住。别重打，点下面再来一次～）',
+    gone: '（刚才那句在路上丢了，服务歇了一下。点下面让小满再听一遍～）',
+    busy: '（小满这会儿有点忙，稍等点下面再发一次～）',
+    net: '（网络飘了一下，刚才那句没送到。点下面重发一次～）'
+  }[kind] || '（刚才没接住，再发一次试试？）';
+  ty.textContent = _txt;
+  if (msg && sid0 === chatSid()) {
+    var rb = document.createElement('button');
+    rb.type = 'button';
+    rb.className = 'chat-chip chat-retry-chip';
+    rb.textContent = '再发一次';
+    rb.addEventListener('click', function () {
+      if (rb.disabled || sid0 !== chatSid()) return;
+      rb.disabled = true;
+      _chatRetrySend(msg, ty, sid0);
+    });
+    ty.appendChild(rb);
+  }
+}
+/* 重发：原句再投一次 /api/chat，命中新任务直接在本气泡上续轮询。
+ * 不计入 _CHAT_SEND_COUNT（同一条消息的补投不是新发）。 */
+function _chatRetrySend(msg, ty, sid0) {
+  if (!msg || sid0 !== chatSid()) return;
+  ty.innerHTML = '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>';
+  postJSON('/api/chat', {
+    session_id: sid0, message: msg,
+    facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
+      ? CHAT_LAST_FACTS : _activeViewFacts()),
+    result_ref: _CHAT_CTX_REF || '',
+    client_date: todayIso()
+  }, { silent: true }).then(function (j) {
+    if (sid0 !== chatSid()) return;
+    if (j && j.chat_task_id) {
+      _pollChatReply(j.chat_task_id, ty, sid0, j.action, msg);
+    } else {
+      _chatFailInto(ty, 'busy', msg, sid0);
+    }
+  }).catch(function () {
+    _chatFailInto(ty, 'net', msg, sid0);
+  });
+}
+
+function _pollChatReply(tid, ty, sid0, action, msg) {
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;
   var _queueCap = performance.now() + 90000;
   var _wait = AI_POLL_INTERVAL_MS;
-  var _failTxt = function () {
-    return '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）';
-  };
   var tick = function () {
     if (sid0 !== chatSid()) return;   /* 换过 sid 的旧任务落地即弃 */
     if (_aiPollGate()) {              /* 后台/断网暂停取数，预算照走 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
-      else if (ty) { ty.textContent = _failTxt(); }
+      else _chatFailInto(ty, 'net', msg, sid0);
       return;
     }
     api('/api/ai/' + encodeURIComponent(tid), { silent: true }).then(function (st) {
@@ -1996,26 +2028,26 @@ function _pollChatReply(tid, ty, sid0, action) {
         return;
       }
       if (st && st.status === 'failed') {
-        ty.innerHTML = renderRichText('（小满这次没接住，再说一遍试试？）');
+        _chatFailInto(ty, 'fail', msg, sid0);
         return;
       }
       if (st && st.status === 'pending' && st.queued) {
         /* 服务端排队中——生成预算从起动起算。 */
         if (performance.now() < _queueCap) {
           setTimeout(tick, _wait); _wait = _aiBackoff(_wait);
-        } else { ty.textContent = '（小满有点忙，再发一次试试？）'; }
+        } else { _chatFailInto(ty, 'busy', msg, sid0); }
         return;
       }
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-      else { ty.textContent = _failTxt(); }
+      else _chatFailInto(ty, 'net', msg, sid0);
     }).catch(function (e) {
       /* 404 = 任务已不在（重启/过期）——早退不轮满预算。 */
       if (e && e.status === 404) {
-        if (ty) { ty.textContent = '（这次没接住，再发一次试试？）'; }
+        _chatFailInto(ty, 'gone', msg, sid0);
         return;
       }
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-      else if (ty) { ty.textContent = _failTxt(); }
+      else _chatFailInto(ty, 'net', msg, sid0);
     });
   };
   setTimeout(tick, AI_POLL_INTERVAL_MS);
@@ -2861,7 +2893,7 @@ function chatSend() {
      * R2343：发送时已插 typing，直接复用不落二次。 */
     var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action);   /* R233r：共用轮询体（含排队预算） */
+    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action, msg);   /* R233r+R3213：msg 供失败重发：共用轮询体（含排队预算） */
   }).catch(function (e) {
     if (_ty0) { _ty0.remove(); _ty0 = null; }
     /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），
@@ -3344,31 +3376,15 @@ function revealResult(containerId) {
  * 选择存 localStorage，下次打开保持（US3.4）。 */
 var VOICE_KEY = 'voiceMode';
 
-function voiceMode() {
-  try {
-    var v = localStorage.getItem(VOICE_KEY);
-    return v === 'pro' ? 'pro' : 'warm';
-  } catch (e) {
-    return 'warm';       // 隐私模式下 localStorage 可能抛异常
-  }
-}
+/* R3212（用户提议，已落地）：温柔版/专业版合并为单版——
+ * 双开关是「拿不准」的历史遗留：专业版只是把英文枚举键值
+ *（strength=mid、hit_pillars=hour）原样铺屏，受众读不懂、
+ * 开发者也没多拿到什么。现在卡面只有一版：人话常显，
+ * 原专业内容（排盘原串/推导链/古籍全文/候选池）统一收进
+ * 「📐 专业坐标」折叠块，数据零删减、可展开核验。 */
+function voiceMode() { return 'warm'; }
 
-function setVoiceMode(mode) {
-  try {
-    localStorage.setItem(VOICE_KEY, mode === 'pro' ? 'pro' : 'warm');
-  } catch (e) { /* 存不了就只在本次会话生效 */ }
-}
-
-/** 模式切换控件。44×44 起（003 判据 1），两态都有可见焦点环。 */
-function renderModeSwitch() {
-  var m = voiceMode();
-  return '<div class="mode-switch" role="group" aria-label="解读口吻">' +
-    '<button type="button" class="mode-btn' + (m === 'warm' ? ' active' : '') +
-    '" data-voice="warm" aria-pressed="' + (m === 'warm') + '">🌸 温柔版</button>' +
-    '<button type="button" class="mode-btn' + (m === 'pro' ? ' active' : '') +
-    '" data-voice="pro" aria-pressed="' + (m === 'pro') + '">📐 专业版</button>' +
-    '</div>';
-}
+function setVoiceMode() { /* R3212：开关已下线，保留签名防旧调用炸 */ }
 
 /* ── 视觉主题（003 US5 / 判据 12：审美方向可一键回滚）───────────
  * aa     = R183b 的无障碍配色（默认；31 处对比度不足已归零）
@@ -3587,7 +3603,7 @@ function renderWarm(warm, interp, evidence, scope) {
    * 「上半截闺蜜、下半截论文」。改为整组收进单个折叠「📜 想看专业依据？」
    * ——事实零删减（DOM 里仍在，判据 4b/6/7 的折叠可核验口径不变），
    * 只是默认不展开。专业模式路径不经此分支，零改动。 */
-  if (voiceMode() === 'warm' && (warm.details || []).length) {
+  if ((warm.details || []).length) {   /* R3212：单版化恒走 */
     html += '<details class="warm-basis warm-pro-fold"><summary>📜 想看专业依据？（' +
       warm.details.length + ' 项，展开慢慢看）</summary>';
     (warm.details || []).forEach(function (d) {
@@ -4090,21 +4106,21 @@ var LAST_RESPONSE = {};
  *  evidence，六爻是 ben_jing/bian_jing）。warm 分支用它们喂 renderCiteTree，
  *  以满足 005 判据 8（展开原文与 API 逐字节一致）。 */
 function renderVoice(j, proTitle, evidenceKeys) {
-  var html = renderModeSwitch();
-  if (voiceMode() === 'warm' && j && j.warm) {
+  /* R3212：双版合并——人话层常驻，推导链收进「专业视角」折叠。 */
+  var html = '';
+  if (j && j.warm) {
     var ev = [];
     (evidenceKeys || ['evidence']).forEach(function (k) {
       if (j[k] && j[k].length) ev = ev.concat(j[k]);
     });
     html += renderWarm(j.warm, j.interpretation, ev,
                        j.calc && j.calc.scope);
+    if (j.interpretation) {
+      html += '<details class="warm-basis warm-pro-fold"><summary>📐 专业视角：' +
+        '完整推导链（展开看）</summary>' +
+        renderInterpretation(j.interpretation, null) + '</details>';
+    }
   } else {
-    /* R216b 续（UX 队列 U-015）：voiceMode 是 localStorage 持久态，普通
-     * 用户点过一次「专业版」后所有功能永久变成开发者视图且找不到退路。
-     * 在 pro 结果卡头部加一条常显的返回提示条（点击即回温柔版并重画）。
-     * 只加提示、不改任何 pro 渲染内容——判据 9 的逐字节口径零风险。 */
-    html += '<div class="pro-notice">📐 当前是专业视角（坐标与推导链原样展示）。' +
-      '<button type="button" class="pro-back-btn" data-voice="warm">🌸 回到温柔版</button></div>';
     html += renderInterpretation(j ? j.interpretation : null, proTitle);
   }
   html += renderAiPolish(j);
@@ -4981,15 +4997,9 @@ async function loadDailyDetail() {
     });
     let html = '<div class="card"><h2>🔍 今日完整解读</h2>';
     html += '<p class="paipan-line">' + esc((j.paipan || {}).render || '') + '</p>';
-    // R183b（同 R124a-01）：内部键名转储只在专业模式出现。
-    // 本卡片没有自己的模式切换控件（它是首页运势的展开），跟随全局 voiceMode。
-    if (voiceMode() === 'pro') {
-      html += renderCalc(j.calc);
-      html += renderInterpretation(j.interpretation, '📖 今日解读');
-    } else {
-      /* v4（用户裁决）：默认只给「一句话 + 前 3 条要点」的轻摘要，
-       * 完整版（能量卡/专业依据/古籍原文）收进二级折叠，不再全量铺开。
-       * 摘要只取后端既有字段原句，不自造事实；pro 模式保持全量直出。 */
+    // R3212：单版化——坐标原表不再直出，统一收进下方折叠（原 pro 分支内容）。
+    {
+      /* R3212：单版化——轻摘要常显，坐标原表+完整解读收进折叠。 */
       var _w = j.warm || {};
       var _pts = (Array.isArray(_w.reply) && _w.reply.length) ? _w.reply.slice(0, 3) : [];
       if (!_pts.length && (_w.details || []).length) {
@@ -5007,7 +5017,10 @@ async function loadDailyDetail() {
       }
       html += '</div>';
       html += '<details class="daily-full pro-drawer"><summary>展开完整解读 ▾</summary>' +
-        '<div class="daily-full-body">' + renderWarm(j.warm, j.interpretation) + '</div>' +
+        '<div class="daily-full-body">' + renderWarm(j.warm, j.interpretation) +
+        /* R3212：单版化后坐标原表也进这级折叠（原 pro 直出版）。 */
+        '<details class="warm-basis" style="margin-top:8px;"><summary>📐 排盘坐标原表</summary>' +
+        renderCalc(j.calc) + '</details></div>' +
         '</details>';
     }
     html += '</div>';
@@ -5028,7 +5041,7 @@ async function loadDailyDetail() {
     });
     try { target.scrollIntoView({ behavior: _rmBehavior(), block: 'start' }); } catch (e) {}
     /* R2349o（R78-P1-1）：首载成功后同步 aria-expanded/文案——原来只在
-     * 二次切换路径调，首开后读屏仍被告知「已收起」。 */
+     * 二次切换路径调，首开后读屏仍被告知「」。 */
     _syncBtn();
     attachChatEntry(target);   /* R230k（R23-P2-1）：直写 innerHTML 不走 paint——手动挂 */
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
@@ -5168,20 +5181,8 @@ function buildBaziResult(j) {
     html += '<button class="ghost fav-btn" type="button" id="shareBaziYear" ' +
       'title="生成今年运势图">📅 年度运势图</button>';
   }
-  if (voiceMode() === 'pro') {
-    /* R215b：专业模式保留原排盘标签（判据 9 口径不动）。 */
-    html += '<div class="pill-row">';
-    String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
-      if (p.length >= 2) {
-        html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
-          esc(p) + '</span>';
-      }
-    });
-    html += '</div>';
-    if (paipan.nayin && paipan.nayin.length) {
-      html += '<p class="nayin">纳音：' + esc(paipan.nayin.join(' · ')) + '</p>';
-    }
-  } else {
+  {
+    /* R215b：四柱/纳音收进折叠「看看你的生辰小卡」（R3212 单版化后恒走）。 */
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
      * 首屏只有一句人话生日线。事实零改动，只是呈现位置后移。 */
     html += '<p class="bazi-birthday">' + esc(baziBirthdayLine(paipan)) + '</p>';
@@ -5239,27 +5240,26 @@ function buildBaziResult(j) {
   // 大白话之前 = 用户要滚 71,094px 才看到那句 11 字的人话（005 §1）。
   // 古籍不再单独渲染于此——它由 renderWarm 经 renderCiteTree 渲染**一次**
   // （判据 5，清偿 R128a-01 的重复渲染）。
-  if (voiceMode() === 'pro') {
-    html += renderCalc(j.calc);
-    if (j.evidence) {
-      html += '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>';
-      /* R228r：空数组此前整块不渲染——用户分不清「没检索」和「检索没中」；
-       * 渲染空态文案说明。 */
-      html += j.evidence.length
+  /* R3212：单版合并——排盘坐标原表 + 古籍全文改常驻折叠，
+   * 不再分温柔/专业两版。事实零删减。 */
+  html += '<details class="warm-basis warm-pro-fold">' +
+    '<summary>📐 排盘坐标与古籍原文（专业视角，展开看）</summary>' +
+    renderCalc(j.calc) +
+    (j.evidence ?
+      '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>' +
+      (j.evidence.length
         ? renderHits(j.evidence, { empty: '这条没有古籍引文' }) +
-          /* R2400（R125-P2）：pro 引文缺「去翻翻」入口——与白话版
-           * 引文树同权，顺藤摸瓜的最小闭环补平。 */
           '<div class="cite-readmore"><button type="button" ' +
           'class="thread-view cite-toread">📚 这些书都在书库里，去翻翻 →</button></div>'
-        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文，不影响解读，往下看～</p>';
-    }
-  }
+        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文，不影响解读，往下看～</p>')
+      : '') +
+    '</details>';
   // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
   html += renderVoice(j, '📖 小满的解读', ['evidence']);
   /* R3159（specs/014-L3 收口）：今年逐月条——calc.yearly 服务端
    * 一直在算但前端从没渲过（warm 只出三行概括）。12 个月chip 横排，
-   * 当月高亮。pro 模式 renderCalc 原样dump已含，只在温柔版补。 */
-  if (voiceMode() !== 'pro') html += _yearlyStrip(j.calc);
+   * 当月高亮。 */
+  html += _yearlyStrip(j.calc);
   html += tailHook('bazi');
   html += '</div>';
   return html;
@@ -5555,7 +5555,7 @@ function buildLiuyaoResult(j) {
   if (j.question) {
     html += liuyaoQuestionHook(j.question, ben, bian, j.paipan);
   }
-  if (voiceMode() === 'warm' && warm.reply && warm.reply.length) {
+  if (warm.reply && warm.reply.length) {   /* R3212：单版化 */
     html += '<div class="warm-wrap"><div class="warm-l0" style="font-size:17px;">' +
       esc(warm.one_liner || '') + '</div><div class="warm-reply">';
     /* R2349q（R81-P1-15）：reply 截断 3→6——后端产出上限即 6 行，
@@ -5677,35 +5677,18 @@ function buildLiuyaoResult(j) {
     html += '<p style="margin-top:8px;color:var(--secondary);">变卦：' +
       esc(bian.gua_name) + '（第 ' + esc(bian.gua_number) + ' 卦）</p>';
   }
-  // 同 buildBaziResult：經文全文只在专业模式平铺；warm 模式由 renderWarm
-  // 经 renderCiteTree 折叠渲染一次（005 判据 2/3/5）。
-  if (voiceMode() === 'pro') {
-    if (j.ben_jing && j.ben_jing.length) {
-      html += '<h3 style="margin-top:16px;color:var(--c-book);">本卦經文</h3>' +
-        renderHits(j.ben_jing, { empty: '' });
-    }
-    if (j.bian_jing && j.bian_jing.length) {
-      html += '<h3 style="margin-top:16px;color:var(--c-book);">变卦經文</h3>' +
-        renderHits(j.bian_jing, { empty: '' });
-    }
-  }
-  /* R216b 续4（U-022）：warm 模式下解读已在头部常显，页尾不再经
-   * renderWarm 二次渲染同一批 reply 与 badge；pro 模式走原路径
-   * （卦象转述 + 古籍平铺），判据 9 口径零改动。
-   * 注意：warm 跳过时古籍折叠树也不渲染（renderCiteTree 由 renderWarm
-   * 驱动）——但头部块已含 badge，坐标事实完整，无信息丢失。 */
-  if (voiceMode() === 'warm') {
-    /* U-022 配套：warm 跳过 renderWarm 后，經文原文改由独立折叠承载
-     * （事实零删减：展开可核验；不经 renderCiteTree 是因为它会连带
-     * 渲染 reply）。 */
+  /* R3212：单版化——卦象推导（interpretation）与本/变卦经文收进
+   * 一个折叠块，数据零删减。 */
+  {
     const evAll = [].concat(j.ben_jing || [], j.bian_jing || []);
-    if (evAll.length) {
-      html += '<details class="warm-basis"><summary>📜 卦爻辞原文（' +
-        evAll.length + ' 段，展开对照）</summary>' +
-        renderHits(evAll, { empty: '' }) + '</details>';
+    var _lyPro = renderInterpretation(j.interpretation, '📖 卦象解读');
+    if (evAll.length || _lyPro) {
+      html += '<details class="warm-basis warm-pro-fold">' +
+        '<summary>📐 卦象推导与经文（' + evAll.length + ' 段经文，展开看）</summary>' +
+        (_lyPro || '') +
+        (evAll.length ? renderHits(evAll, { empty: '' }) : '') +
+        '</details>';
     }
-  } else {
-    html += renderVoice(j, '📖 卦象解读', ['ben_jing', 'bian_jing']);
   }
   /* R221b：交叉引用收口 7/7——六爻不收生日，引今天值宫 × 动爻多寡。
    * 放在 if/else 之外：温柔版与专业版都该看到这段。 */
@@ -9658,28 +9641,51 @@ function initBazi() {
    * 只在聊天输入聚焦状态下生效；不支持 visualViewport 的环境静默跳过。
    * R2349m（R76-P0-2）：iOS 键盘只缩 visualViewport，fixed 侧栏锚在
    * 不变的 layout viewport——scrollIntoView 对 fixed 元素按构造无效。
-   * 改为直接换算侧栏 bottom = 被键盘吃掉的高度。 */
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', function () {
-      var inp = el('chatInput');
-      var sb = document.querySelector('.recent-sidebar');
-      if (!sb || !sb.classList.contains('open')) return;
-      var vv = window.visualViewport;
-      var eaten = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      /* R3204：键盘收起（eaten 回落）必须无条件复位——此前要求
-       * activeElement===inp，但平板键盘「收起钮」收起时会先丢焦点，
-       * 复位分支根本走不到，bottom 恒卡在键盘高度（用户实测：
-       * 收键盘后侧栏不展开）。 */
-      if (eaten <= 60) { sb.style.bottom = ''; return; }
-      /* 键盘弹出：侧栏底抬高到键盘上沿。焦点不在输入框（如选中
-       * 了别的控件但键盘仍在）不动布局。 */
-      if (!inp || document.activeElement !== inp) return;
-      sb.style.bottom = eaten + 'px';
-      setTimeout(function () {
+   * 改为直接换算侧栏 bottom = 被键盘吃掉的高度。
+   * R3211（用户平板实测仍卡）：多信号同步——(a) iPad Safari 不支持
+   *   interactive-widget，键盘「收起钮」收键盘时 resize 先到、offsetTop
+   *   后归零，eaten 残留 >60 → 底栏恒悬空：加 300ms 延时复算（一个
+   *   宏任务内双采样）。(b) vv.scroll/window.resize/focusout 全部挂
+   *   同一同步函数，哪条信号先到都能复位。 */
+  var _vvSyncT = 0;
+  function _vvSync() {
+    var inp = el('chatInput');
+    var sb = document.querySelector('.recent-sidebar');
+    if (!sb) return;
+    if (!sb.classList.contains('open')) { sb.style.bottom = ''; return; }
+    var vv = window.visualViewport;
+    var eaten = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    if (eaten <= 60) { sb.style.bottom = ''; return; }
+    /* 键盘弹出：侧栏底抬高到键盘上沿。焦点不在输入框（如选中
+     * 了别的控件但键盘仍在）不动布局。 */
+    if (!inp || document.activeElement !== inp) return;
+    sb.style.bottom = eaten + 'px';
+    setTimeout(function () {
+      if (document.activeElement === inp)
         inp.scrollIntoView({ block: 'end', inline: 'nearest' });
-      }, 250);
-    });
+    }, 250);
   }
+  function _vvSyncTwice() {   /* 收键盘竞态：立即一遍 + 等 offsetTop 落定再来一遍 */
+    _vvSync();
+    clearTimeout(_vvSyncT);
+    _vvSyncT = setTimeout(_vvSync, 320);
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', _vvSyncTwice);
+    window.visualViewport.addEventListener('scroll', _vvSyncTwice);
+  }
+  window.addEventListener('resize', _vvSyncTwice);
+  /* R3211：焦点离开输入框（用户点了键盘收起钮/侧栏其他位置）→ 延时复位，
+   * 键盘收起动画期间 vv 还在半路，320ms 窗口正好兜住。 */
+  var _ci = el('chatInput');
+  if (_ci) _ci.addEventListener('focusout', function () {
+    setTimeout(_vvSync, 300);
+  });
+  /* R3213：键盘已在弹起态（焦点先在别的输入框）再点聊天框时 vv 不再
+   * 发 resize——focusin 主动补一次同步，否则侧栏底被键盘盖住。 */
+  if (_ci) _ci.addEventListener('focusin', function () {
+    _vvSyncTwice();
+  });
 }
 
 function initReading() {
@@ -9749,15 +9755,7 @@ function initReading() {
       activateBssec(bstab.dataset.rsec2);
       return;
     }
-    // 口吻切换（US3）：只重渲染当前结果区，不重发请求——重发会让
-    // /api/bazi 再往 history.db 写一行（用户数据不该被切换动作污染，
-    // US3.3「已有数据不受影响」）。用 LAST_RESPONSE 缓存重画。
-    const vbtn = e.target.closest('[data-voice]');
-    if (vbtn) {
-      setVoiceMode(vbtn.dataset.voice);
-      rerenderVoice();
-      return;
-    }
+    /* R3212：口吻开关下线——data-voice 元素已全部移除，委托分支删。 */
     // 古籍引文树的三级折叠（005 US2）。事件委托——折叠件是动态生成的，
     // 且切换口吻会整块重画（rerenderVoice），逐个绑定处理器会漏。
     const cbtn = e.target.closest('[data-cite-toggle]');
@@ -10539,7 +10537,8 @@ function init() {
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
   /* R3207：时辰对照表——「知道子时不知道几点」的用户此前要切出去查；
    * 每个出生时辰输入框尾巴挂一张可展开的 12 时辰表。 */
-  ['hour', 'th_hour', 'qm_hour', 'hh_a_hour', 'hh_b_hour', 'b_hour']
+  ['hour', 'th_hour', 'qm_hour', 'hh_a_hour', 'hh_b_hour', 'b_hour',
+   'ly_hour', 'ask_hour', 'range_hour']
     .forEach(_hourCheatAttach);
   _chatChipsPersonalize();   /* R231g（R39-P2-3）：聊天空态 chips 个性化 */
   _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
@@ -11490,7 +11489,7 @@ function _festivalBand() {
     var host = e.target.closest(
       'button, .btn, .func-card, #dailyCover, .work-card, .chat-entry,' +
       '.hl-chip, .hl-scene, .hl-daychip, .hl-week-cell, .checkin-opt,' +
-      '.rtab, .chat-chip, .xz-chip, .qm-style-chip, .mode-btn, .fav-chip,' +
+      '.rtab, .chat-chip, .xz-chip, .qm-style-chip, .fav-chip,' +
       '.chat-sug, .ph-open, .ph-del, .thread-view, .daily-me-edit,' +
       '.recent-toggle, .view-back, a[href], [role="button"], summary');
     if (!host) return;
