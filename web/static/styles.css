@@ -2344,6 +2344,10 @@ html[data-theme="dark"] .warm-l0{
 html[data-theme="dark"] .warm-basis{background:#2E282C;}
 html[data-theme="dark"] .cite-block{background:#2A302B;}
 html[data-theme="dark"] .ai-polish{background:#2E2831; border-color:#453C48;}
+/* R3214：解梦卡深色补丁——白渐变在深底上是亮岛且压不住浅字。 */
+html[data-theme="dark"] .dm-sym{background:#2E282C;}
+html[data-theme="dark"] .dm-act{background:#2E282C;}
+html[data-theme="dark"] .dm-sym-var{background:#241F26;}
 html[data-theme="dark"] .daily-detail{background:#2E282C;}
 html[data-theme="dark"] details>summary{color:var(--secondary);}
 html[data-theme="dark"] .table-scroll table{background:transparent;}
@@ -2676,9 +2680,31 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 .dm-syms{display:flex;flex-direction:column;gap:8px;margin:10px 0 12px;}
 .dm-sym{border:1px solid var(--border);border-radius:14px;padding:10px 12px;
   background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,246,248,.5));}
-.dm-sym-name{font-weight:600;color:var(--accent,#ff8fab);margin-bottom:4px;}
+/* R3214：标题文字用 accent-ink（accent 令牌只是装饰色，2.12:1 不达 AA）。 */
+.dm-sym-name{font-weight:600;color:var(--accent-ink,#a0455c);margin-bottom:4px;}
 .dm-sym-trad{font-size:13px;color:var(--muted,#8a7f85);margin-bottom:4px;}
 .dm-sym-echo{font-size:14px;line-height:1.6;}
+/* R3214：解梦卡新块——回显引文/隐忧直答/想想最近/细节分叉/小动作锚。 */
+.dm-quote{font-size:13px;color:var(--secondary);margin:6px 0 10px;
+  border-left:3px solid var(--border);padding-left:10px;line-height:1.6;}
+.dm-sym-worry{font-size:14px;color:var(--primary-ink);line-height:1.6;
+  margin-bottom:4px;}
+.dm-sym-ask{font-size:13px;color:var(--secondary);margin-top:6px;
+  border-top:1px dashed var(--border);padding-top:6px;line-height:1.6;}
+.dm-sym-var{font-size:13px;color:var(--text);margin-top:6px;
+  background:var(--bg);border-radius:8px;padding:6px 10px;line-height:1.6;}
+.dm-act{margin-top:10px;padding:10px 12px;border-radius:12px;
+  background:var(--bg);border:1px solid var(--border);
+  font-size:14px;line-height:1.7;}
+.dm-act-tag{display:inline-block;font-size:12px;font-weight:600;
+  color:var(--accent-ink);margin-right:8px;}
+.dm-tail{margin-top:10px;}
+.dm-tail p{font-size:12px;color:var(--muted);}
+/* R3214：输入区——字数条右对齐 + 高频梦 chips 横排可换行。 */
+.dm-meta{display:flex;justify-content:flex-end;margin-top:2px;}
+.dm-count{font-size:11px;color:var(--muted);}
+.dm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.dm-chip{min-height:32px;padding:4px 12px;font-size:12px;}
 
 /* R3207：时辰对照表——出生时辰输入框下的可展开快查 */
 .hour-cheat{margin-top:6px;font-size:12px;}

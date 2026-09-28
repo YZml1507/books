@@ -1769,6 +1769,12 @@ _T2S = {
     # R3186：解梦/路标域繁体——「夢見/惡夢/發夢（粤）/塔羅/幫我」
     # 四字均无非歧义（發髮同转发，口语域可接受）。
     "夢": "梦", "惡": "恶", "發": "发", "羅": "罗", "幫": "帮",
+    # R3214：解梦词库对应繁体（車禍/掉頭髮/廁所/飛/蟲/鏡子/月經/開車/
+    # 遲到/趕不上/懷孕/生產/結婚照婚已簡繁同形）。
+    "車": "车", "電": "电", "廁": "厕", "飛": "飞", "蟲": "虫",
+    "鐘": "钟", "鏡": "镜", "經": "经", "開": "开", "遲": "迟",
+    "趕": "赶", "懷": "怀", "寶": "宝", "產": "产", "線": "线",
+    "訊": "讯", "碼": "码",
 }
 
 
@@ -3165,7 +3171,9 @@ def chat_dream_facts(message: str) -> list[str]:
     # （夢見/惡夢/發夢）已被表转成简体等价，不用再备两份。
     if not any(k in _n for k in ("梦见", "梦到", "做梦", "梦里",
                                  "昨晚梦", "晚上梦", "有个梦",
-                                 "我的梦", "梦过", "噩梦", "发梦")):
+                                 "我的梦", "梦过", "噩梦", "发梦",
+                                 "做了个梦", "了个梦", "做了梦",
+                                 "睡梦", "梦境")):
         return []
     r = dream_mod.interpret_dream(_n)
     if not r.get("matched"):
@@ -3925,21 +3933,34 @@ def dream(req) -> dict:
     ai_task_id 轮询解读块。梦境文本按 question 同纪律进台账摘要
     （截断在 paipan_history 侧兜底）。"""
     req.validate_ranges()
-    r = dream_mod.interpret_dream(req.text)
+    # R3214：表单路径此前不做繁体归一（聊天路径 chat_dream_facts 有
+    # _t2s）——「夢見掉頭髮」漏键。拉齐。
+    r = dream_mod.interpret_dream(_t2s(req.text))
     out = {
         "symbols": r["symbols"],
         "matched": r["matched"],
         "warm": {"reply": r["reply"]},
         "disclaimer": r["disclaimer"],
+        # R3214：微行动提为独立字段——卡面单挂「小动作」锚点，
+        # 不再埋在 reply 平文行里。
+        "action": r.get("action") or "",
+        # R3214：卡面回显她的梦（截 120 字，长描述提交后她能对上号）
+        "echo": req.text[:120],
         # 各面同契约：同步段恒 None，解读走 ai_task_id 轮询
         "ai_polish": None,
     }
     # req_dict 走 question 键（非 text）——敏感词剥名/列清逻辑在
     # paipan_history 侧只认这个键，换键等于绕过危机足迹保护。
+    # R3214：列表名不再回显梦原文（私密文本不该出现在列表行）——
+    # 命中用象征名，未命中用「一个梦」。
+    _dname = ("解梦 · " + r["symbols"][0]["name"]) if r["symbols"] else "解梦 · 一个梦"
     paipan_history.save_async(
         {"question": req.text[:200]},
         out, rtype="dream",
-        name="解梦 · " + (req.text[:24] or "一个梦"))
+        name=_dname)
+    ai_task_id = llm_polish.spawn_ai_task(
+        dream_mod.facts_dream(out), req.text,
+        rate_key="ai", rate_limit=60)
     ai_task_id = llm_polish.spawn_ai_task(
         dream_mod.facts_dream(out), req.text,
         rate_key="ai", rate_limit=60)

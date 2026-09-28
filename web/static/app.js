@@ -207,7 +207,8 @@ var _PAINT_LABEL = { result: '排盘', thResult: '桃花', hhResult: '合婚',
   researchResult: '研究', searchResult: '搜索', addrResult: '定位',
   compareResult: '对照', conceptResult: '概念分布', cwResult: '两书对照',
   worksResult: '书目', threadResult: '研究线程', bsStructure: '结构',
-  bsChapter: '章节', bsSummary: '知识卡', nameReviewOut: '名字点评' };
+  bsChapter: '章节', bsSummary: '知识卡', nameReviewOut: '名字点评',
+  dmResult: '解梦' };   /* R3214：解梦结果此前漏登记，读屏只报「新内容」 */
 var _paintSilent = false;
 function _srSay(t) {
   var n = el('srLive');
@@ -5953,41 +5954,80 @@ async function doLiuyao() {
   }
 }
 
-/* R3178：解梦——自由文本进、写死词库三件套出。卡面极简：
- * 命中象征做成小卡（老话/回声分列），reply 行照渲，入口挂
- * 「聊聊这个梦」。 */
+/* R3178：解梦——自由文本进、写死词库三件套出。
+ * R3214 重构（审计+调研）：安抚/引入行先渲（吓醒的人先看到抱抱，
+ * 不是先看到「鬼」卡）；象征卡五件套（老话/隐忧直答/回声/想想最近/
+ * 细节分叉）；微行动独立锚块；AI 段嵌卡内；回显她的梦原文。 */
 var _DM_GEN = 0;
 function buildDreamResult(j) {
-  var html = '<div class="card dream-card"><h3>🌙 梦翻翻</h3>';
+  var html = '<div class="card dream-card"><h2>🌙 梦翻翻</h2>';
   var syms = j.symbols || [];
+  /* 回显她的梦（截 80 字）——长描述提交后能看见「我说的是这句」。 */
+  var _qt = (j.echo || '').trim();
+  if (_qt) {
+    html += '<p class="dm-quote">你说：「' + esc(_qt.slice(0, 80)) +
+      (_qt.length > 80 ? '…' : '') + '」</p>';
+  }
+  var rp = (j.warm && j.warm.reply) || [];
+  /* reply 行三分：引导行（抱抱/翻了翻/反复梦）先渲；象征行/微行动/
+   * 细节分叉已由卡块承载；免责与危机行放卡尾。 */
+  var _symHead = {};
+  syms.forEach(function (s) { _symHead['「' + s.name + '」'] = 1; });
+  var _isSymLn = function (ln) {
+    for (var _h in _symHead) { if (ln.indexOf(_h) === 0) return true; }
+    return false;
+  };
+  var _actLn = j.action ? j.action + '。' : '';
+  var _varSet = {};
+  syms.forEach(function (s) {
+    (s.varlines || []).forEach(function (v) { _varSet[v + '。'] = 1; });
+  });
+  var _isTail = function (ln) {
+    return ln === _actLn || _varSet[ln] ||
+      (j.disclaimer && ln === j.disclaimer) ||
+      ln.indexOf('想想最近') === 0 ||
+      ln.indexOf('另外多嘴一句') === 0;
+  };
+  var _intro = rp.filter(function (ln) { return !_isSymLn(ln) && !_isTail(ln); });
+  var _tail = rp.filter(function (ln) {
+    return (j.disclaimer && ln === j.disclaimer) ||
+           ln.indexOf('另外多嘴一句') === 0;
+  });
+  if (_intro.length) {
+    html += '<div class="warm-reply">' +
+      _intro.map(function (ln) { return '<p>' + esc(ln) + '</p>'; }).join('') +
+      '</div>';
+  }
   if (syms.length) {
     html += '<div class="dm-syms">';
     syms.forEach(function (s) {
       html += '<div class="dm-sym"><div class="dm-sym-name">「' +
         esc(s.name) + '」</div><div class="dm-sym-trad">' +
-        esc(s.trad) + '</div><div class="dm-sym-echo">' +
-        esc(s.echo) + '</div></div>';
+        esc(s.trad) + '</div>' +
+        (s.worry ? '<div class="dm-sym-worry">' + esc(s.worry) + '</div>' : '') +
+        '<div class="dm-sym-echo">' + esc(s.echo) + '</div>' +
+        (s.ask ? '<div class="dm-sym-ask">' + esc(s.ask) + '</div>' : '') +
+        (s.varlines || []).map(function (vl) {
+          return '<div class="dm-sym-var">' + esc(vl) + '</div>';
+        }).join('') +
+        '</div>';
     });
     html += '</div>';
   }
-  var rp = (j.warm && j.warm.reply) || [];
-  /* 象征小卡已承载「老话+回声」——reply 里逐象征的那几行是同一
-   * 段文字（留着喂 chat/polish 信道），屏上不再复读一遍。 */
-  var _symHead = {};
-  syms.forEach(function (s) { _symHead['「' + s.name + '」'] = 1; });
-  if (rp.length) {
-    html += '<div class="warm-reply">';
-    rp.forEach(function (ln) {
-      var _dup = false;
-      for (var _h in _symHead) {
-        if (ln.indexOf(_h) === 0) { _dup = true; break; }
-      }
-      if (!_dup) html += '<p>' + esc(ln) + '</p>';
-    });
-    html += '</div>';
+  /* R3214：微行动独立锚块——唯一的可执行建议此前埋在 reply 平文里。 */
+  if (j.action) {
+    html += '<div class="dm-act"><span class="dm-act-tag">🌱 小动作</span>' +
+      esc(j.action) + '</div>';
   }
-  /* 分享图——梦境海报（主动分享才出图，文本本就她写的） */
-  html += '<button type="button" class="ghost" id="shareDream" ' +
+  if (_tail.length) {
+    html += '<div class="warm-reply dm-tail">' +
+      _tail.map(function (ln) { return '<p>' + esc(ln) + '</p>'; }).join('') +
+      '</div>';
+  }
+  html += renderAiPolish(j);   /* R3214：AI 段嵌卡内（此前落在卡外断节） */
+  /* 分享图——梦境海报（主动分享才出图，文本本就她写的）
+   * R3214：fav-btn 类补上——台账复看的隐藏规则只认这个类。 */
+  html += '<button type="button" class="ghost fav-btn" id="shareDream" ' +
     'style="margin-top:10px;">📷 生成梦卡图</button>';
   html += tailHook('dream');
   html += '</div>';
@@ -6369,6 +6409,7 @@ var _SHARE_TEXT = {
   'checkin-week': '我这周的签运攒成图了，你的呢 →',
   'checkin-month': '我这个月的签运战报出炉了，你的呢 →',
   birth: '我的本命盘出来了，看看你的 →',
+  dream: '我刚翻了个梦，册子说的挺准 →',
   xzm: '我们星座合拍指数出来了，你们的呢 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
@@ -9889,6 +9930,24 @@ function initDivination() {
   }
   on('lySubmit', doLiuyao);
   on('dmSubmit', doDream);   /* R3178：解梦 */
+  /* R3214：解梦输入区——高频梦 chip 点选即填 + 字数条（400 上限
+   * 此前静默截尾，用户不知道被砍）。 */
+  var _dmTa = el('dm_text');
+  if (_dmTa) {
+    _dmTa.addEventListener('input', function () {
+      var c = el('dmCount');
+      if (c) c.textContent = _dmTa.value.length + '/400';
+    });
+    var _dmView = document.getElementById('view-dream');
+    if (_dmView) _dmView.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest
+        ? ev.target.closest('.dm-chip') : null;
+      if (!b) return;
+      _dmTa.value = b.getAttribute('data-dm') || '';
+      _dmTa.dispatchEvent(new Event('input', { bubbles: true }));
+      try { _dmTa.focus(); } catch (e) {}
+    });
+  }
   on('hlSubmit', doHuangli);
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);

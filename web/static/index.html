@@ -742,7 +742,19 @@ try {
       <div class="row">
         <div class="field" style="flex:1;min-width:100%;"><label for="dm_text">梦里记得的画面</label>
           <textarea id="dm_text" rows="3" maxlength="400"
-            placeholder="比如：梦见牙齿掉了 / 被人追着跑 / 回到考场卷子不会写…"></textarea></div>
+            placeholder="比如：梦见牙齿掉了 / 被人追着跑 / 回到考场卷子不会写…"></textarea>
+          <!-- R3214：字数条——400 上限此前静默截尾；高频梦 chip 点选即填 -->
+          <div class="dm-meta"><span id="dmCount" class="dm-count">0/400</span></div>
+          <div class="dm-chips" role="group" aria-label="常做的梦">
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见被人追着跑，跑不动">被追</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见牙齿掉了">掉牙</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见回到考场，卷子不会写">考试</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见前任来找我复合">前任</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见他出轨了">出轨</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见蛇缠着我">蛇</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见发大水">大水</button>
+            <button type="button" class="chat-chip dm-chip" data-dm="梦见鬼压床，动不了喊不出">鬼压床</button>
+          </div></div>
       </div>
       <button id="dmSubmit" type="button">帮我解一解</button>
       <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书：说说看？</div></div>

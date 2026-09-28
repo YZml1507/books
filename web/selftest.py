@@ -2584,6 +2584,45 @@ def _run_inner() -> list[str]:
     _df = _dream_mod.facts_dream(_dream_mod.interpret_dream("梦见掉牙"))
     assert _df and "掉牙" in _df[0], _df
     ok.append("dream.facts")
+    # R3214：词库深度与防误伤钉批。
+    # (a) worry/ask 全表非空（先答隐忧 + 想想最近 是「不泛泛」的核心字段）
+    for _s in _dream_mod._DREAM_SYMS:
+        assert _s.get("worry") and _s.get("ask"), _s["name"]
+    # (b) 「我死了」命中自己出事而非去世的人（对象错配曾真出事故）
+    _r = _dream_mod.interpret_dream("梦见我死了")
+    assert _r["symbols"][0]["name"] == "自己出事/死了", _r["symbols"]
+    assert "去世的人" not in [x["name"] for x in _r["symbols"]]
+    # (c) 「妈妈死了」命中在世者出事而非通用家人卡
+    _r2 = _dream_mod.interpret_dream("梦见妈妈死了")
+    assert [x["name"] for x in _r2["symbols"]] == ["在世的亲人出事"], \
+        _r2["symbols"]
+    # (d) ex 词边界——text/example 不误伤，"ex 复合"真命中
+    assert not _dream_mod.interpret_dream("梦见text example")["matched"]
+    assert _dream_mod.interpret_dream("梦见ex找我复合")["symbols"][0][
+        "name"] == "前任/旧人"
+    # (e) 命中按文本位置排序（狗在被追之前出现在句子里）
+    _r5 = _dream_mod.interpret_dream("梦见被狗追着跑")
+    assert _r5["symbols"][0]["name"] == "狗", _r5["symbols"]
+    # (f) 反复梦带 IRT 改写句；未命中 facts 为空（不派 AI 任务）
+    assert "改写" in "".join(
+        _dream_mod.interpret_dream("老是梦到被追")["reply"])
+    assert _dream_mod.facts_dream(
+        _dream_mod.interpret_dream("qwvzk")) == []
+    # (g) 危机软兜底：梦到自杀→卡照出+12356 软行
+    _r7 = _dream_mod.interpret_dream("梦到自杀")
+    assert "12356" in _r7["reply"][-1]
+    # (h) 词库完整性自检：keys 非空、表内无重名
+    _seen_nm = set()
+    for _s in _dream_mod._DREAM_SYMS:
+        assert _s["keys"] and _s["name"] not in _seen_nm, _s["name"]
+        _seen_nm.add(_s["name"])
+    ok.append("dream.syms_integrity")
+    # (i) 服务端繁体归一 + 台账名脱敏（不回显梦原文）
+    check("dream.t2s", client.post("/api/dream",
+          json={"text": "夢見掉頭髮"}),
+          lambda j: j.get("matched") and
+                    j["symbols"][0]["name"] == "掉头发/秃了")
+    ok.append("dream.t2s_ok")
     # R3178：聊天意图闸——说「梦见/梦到」→ 册子口径进 chat facts；
     # 册子没对上 → 给一条「别当判词念」口径绳；不沾梦 → 零扰动。
     from web import services as _svc_dm
