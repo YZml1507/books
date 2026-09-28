@@ -3875,7 +3875,8 @@ def _run_inner() -> list[str]:
     # medium 映射、a_bazi None 不炸
     _fq = _LC.facts_qiming({"surname": None,
                             "five_elements": {"counts": {"木": 2.6}}})
-    assert "木2.6" in _fq[2] and "None" not in " ".join(_fq)
+    # R3194：facts 前头新增「排盘：」行——按内容断言不再钉位置。
+    assert any("木2.6" in f for f in _fq) and "None" not in " ".join(_fq)
     _ft = _LC.facts_taohua({"strength": "medium", "year_zhi": "子",
                             "peach_zhi": "卯"}, gender="女")
     assert any("平" in f for f in _ft if "节奏" in f)

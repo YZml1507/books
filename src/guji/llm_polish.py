@@ -2116,6 +2116,9 @@ def facts_qiming(q: dict, gender: str | None = None,
     # 「林先生」（入参 gender=女）。称谓是事实，不是模型可选项。
     facts = [
         "姓氏：{}".format(q.get("surname") or ""),
+        # R3194：四柱渲染串此前漏喂——模型看不到日主坐标只能空谈
+        # 「补五行」。render 是「甲申年 庚午月 … 日主：乙」一行。
+        "排盘：{}".format((q.get("bazi") or {}).get("render") or "未算"),
         "性别：{}".format("女" if gender == "女" else
                           ("男" if gender == "男" else "未填写")),
         # R2400（R135-P1-2）：dict repr（{'木': 2.6}）直接喂模型是内部
