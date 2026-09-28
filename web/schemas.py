@@ -444,6 +444,18 @@ class TarotDrawRequest(BaseModel):
         self.question = strip_zw(self.question)
 
 
+class DreamRequest(BaseModel):
+    """R3178：解梦——自由文本进、写死词库出（象征三件套：
+    老话口径/情绪回声/微行动）。不判吉凶、不预言。"""
+    text: str = Field(..., min_length=1, max_length=400,
+                      description="梦境描述，一两句话即可")
+
+    def validate_ranges(self) -> None:
+        self.text = (strip_zw(self.text) or "").strip()
+        if not self.text:
+            raise ValidationError("跟我说说梦里最清楚的画面——一句话也行")
+
+
 class PaipanImportRequest(BaseModel):
     """R231a（R36-P3-3）：备份文件导入——records 上限与台账 KEEP_MAX 对齐，
     逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。

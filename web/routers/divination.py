@@ -14,7 +14,8 @@ _CN_TZ = _tz(_td(hours=8))
 from fastapi import APIRouter, Query
 
 from .. import services
-from ..schemas import LiuyaoRequest, TarotDrawRequest, TarotRequest
+from ..schemas import (DreamRequest, LiuyaoRequest, TarotDrawRequest,
+                       TarotRequest)
 
 router = APIRouter(tags=["divination"])
 
@@ -68,3 +69,9 @@ def tarot(req: TarotRequest) -> dict:
 def tarot_draw(req: TarotDrawRequest) -> dict:
     """快速抽牌（首页入口）：单张牌 + 关键词转述。"""
     return services.tarot_draw(req)
+
+
+@router.post("/api/dream")
+def dream(req: DreamRequest) -> dict:
+    """解梦：写死象征词库三件套（老话/回声/微行动）——不判吉凶。"""
+    return services.dream(req)

@@ -2203,12 +2203,13 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 10, ("home.ia.count", len(_cards), _cards)  # 8 直达+2 抽屉（D-005 星座；history；R2362 chat 伪视图卡）
+    assert len(_cards) == 11, ("home.ia.count", len(_cards), _cards)  # 9 直达+2 抽屉（D-005 星座；history；R2362 chat 伪视图卡；R3178 dream）
     # R208b：read 卡移除（用户裁决不提供读书渠道）→ 抽屉剩 liuyao/qiming
     assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
         ("home.ia.order", _cards)
     # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前
-    assert _cards[5:] == ["xingzuo", "history", "chat", "liuyao", "qiming"], \
+    assert _cards[5:] == ["xingzuo", "dream", "history", "chat",
+                          "liuyao", "qiming"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）
     _visible = _home_seg.split('id="proDrawer"')[0]
@@ -2511,6 +2512,25 @@ def _run_inner() -> list[str]:
     assert isinstance(_td["interpretation"], dict), type(_td["interpretation"])
     assert isinstance(_td["warm"], dict), type(_td["warm"])
     ok.append("tarot.draw.keys")
+    # R3178：解梦端点——词库命中/未命中/安抚分支/输入校验四面钉。
+    check("dream", client.post("/api/dream",
+          json={"text": "梦见牙齿掉了，还被人追着跑"}),
+          lambda j: (j.get("matched") and len(j.get("symbols") or []) == 2
+                     and isinstance(j.get("warm", {}).get("reply"), list)
+                     and j.get("result_ref")))
+    check("dream.unmatched", client.post("/api/dream",
+          json={"text": "qwvzk 不识别的内容"}),
+          lambda j: j.get("matched") is False and not j.get("symbols"))
+    check("dream.scare", client.post("/api/dream",
+          json={"text": "做了个噩梦被吓醒了"}),
+          lambda j: "先抱抱你" in (j.get("warm", {}).get("reply") or [""])[0])
+    # facts 信道钉（进程内直调——不经 HTTP 层）。
+    from guji import dream as _dream_mod
+    _df = _dream_mod.facts_dream(_dream_mod.interpret_dream("梦见掉牙"))
+    assert _df and "掉牙" in _df[0], _df
+    ok.append("dream.facts")
+    _expect_400("err.dream.empty",
+                client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
     # 重构前 date 声明为 GET 的请求体模型，`?date=…` 被完全忽略（永远返回
     # 今天）——那是 bug。改为查询参数后补两条断言：指定日期须被回显（否则

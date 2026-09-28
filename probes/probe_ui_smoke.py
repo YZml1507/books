@@ -128,6 +128,8 @@ BUTTON_CASES = [
     ("qiming",         "qiming",  None,            "#qmSubmit",      "#qmResult"),
     ("taohua",         "taohua",  None,            "#thSubmit",      "#thResult"),
     ("tarot",          "tarot",   None,            "#trSubmit",      "#trResult"),
+    # R3178：解梦——词库面，填文本即出。
+    ("dream",          "dream",   None,            "#dmSubmit",      "#dmResult"),
     ("hehun",          "hehun",   None,            "#hhSubmit",      "#hhResult"),
     # R230z（R36-P1-2）：存这对钮只有 hehun 出卡后才存在——用例必须排
     # 在 hehun 之后；点击后 #hhFavRow 浮出「测过的 CP」chips 为断言。
@@ -159,6 +161,8 @@ FILL = {
     "bookstudy.structure": {"#bswork": "KR1a0001"},
     "bookstudy.chapter":   {"#bswork": "KR1a0001", "#bsaddr1": "1"},
     "bookstudy.summary":   {"#bswork": "KR1a0001"},
+    # R3178：解梦文本——dmSubmit 前的唯一输入。
+    "dream":          {"#dm_text": "梦见牙齿掉了，还被人追着跑"},
 }
 
 # 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见。

@@ -292,6 +292,9 @@ try {
     <div class="func-card func-entry" data-view="xingzuo" role="button" tabindex="0" aria-label="星座">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
     </div>
+    <div class="func-card func-entry" data-view="dream" role="button" tabindex="0" aria-label="解梦">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="dream" src="/static/shared/icon-set-moon-cat.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">解梦</div><div class="func-desc">说说昨晚的梦 · 帮你翻翻</div>
+    </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
@@ -715,6 +718,20 @@ try {
       </div>
       <button id="thSubmit" type="button">测测桃花</button>
       <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「测测桃花」也能看，换成你的更准～</div></div>
+    </div>
+  </div>
+
+  <!-- 解梦（R3178）：写死象征词库——老话/回声/微行动，不判吉凶 -->
+  <div class="view" id="view-dream">
+    <div class="card">
+      <h2><span aria-hidden="true">🌙</span> 解梦 <span class="card-sub">说说昨晚的梦 · 帮你翻翻</span></h2>
+      <div class="row">
+        <div class="field" style="flex:1;min-width:100%;"><label for="dm_text">梦里记得的画面</label>
+          <textarea id="dm_text" rows="3" maxlength="400"
+            placeholder="比如：梦见牙齿掉了 / 被人追着跑 / 回到考场卷子不会写…"></textarea></div>
+      </div>
+      <button id="dmSubmit" type="button">帮我解一解</button>
+      <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书——说说看？</div></div>
     </div>
   </div>
 

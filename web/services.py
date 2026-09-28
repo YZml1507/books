@@ -59,6 +59,7 @@ from guji import liuyao as liuyao_mod
 from guji import llm_polish
 from guji import lunar
 from guji import paipan_history
+from guji import dream as dream_mod
 from guji import taohua as taohua_mod
 from guji.search import s2t_retry
 from guji import tarot as tarot_mod
@@ -3177,6 +3178,12 @@ def chat_result_verdicts(ref: str | None) -> list[str]:
             out.append(f"今日值宫：{j['today_sign']}座")
         if j.get("today_note"):
             out.append("卡面判词行：" + str(j["today_note"])[:110])
+    elif view == "dream":
+        # R3178：解梦卡——象征名+老话口径行进权威信道，照梦聊时
+        # 小满手里有册子原文（warm.reply 逐行也会进，不重复截）。
+        _syms = [(s.get("name") or "") for s in (j.get("symbols") or [])]
+        if _syms:
+            out.append("梦里对上的画面：" + "、".join(_syms[:3]))
         _ts = next((s for s in (j.get("signs") or [])
                     if s.get("is_today")), None) or {}
         for _f in ("note", "sign_note"):
@@ -3772,6 +3779,38 @@ def tarot_draw(req) -> dict:
     }
     # R3150c：首页快速单抽也挂快照——抽一张来聊同样要判词口径一致。
     out["result_ref"] = _stash_result("tarot", out)
+    return out
+
+
+def dream(req) -> dict:
+    """解梦（R3178）：写死象征词库三件套（老话/回声/微行动）——
+    不判吉凶不预言。命中给解读，未命中老实说没收录并邀她讲画面。
+
+    契约与其他占卜面同形：warm.reply 逐行渲染 + result_ref 快照 +
+    ai_task_id 轮询解读块。梦境文本按 question 同纪律进台账摘要
+    （截断在 paipan_history 侧兜底）。"""
+    req.validate_ranges()
+    r = dream_mod.interpret_dream(req.text)
+    out = {
+        "symbols": r["symbols"],
+        "matched": r["matched"],
+        "warm": {"reply": r["reply"]},
+        "disclaimer": r["disclaimer"],
+        # 各面同契约：同步段恒 None，解读走 ai_task_id 轮询
+        "ai_polish": None,
+    }
+    # req_dict 走 question 键（非 text）——敏感词剥名/列清逻辑在
+    # paipan_history 侧只认这个键，换键等于绕过危机足迹保护。
+    paipan_history.save_async(
+        {"question": req.text[:200]},
+        out, rtype="dream",
+        name="解梦 · " + (req.text[:24] or "一个梦"))
+    ai_task_id = llm_polish.spawn_ai_task(
+        dream_mod.facts_dream(out), req.text,
+        rate_key="ai", rate_limit=60)
+    if ai_task_id:
+        out["ai_task_id"] = ai_task_id
+    out["result_ref"] = _stash_result("dream", out)
     return out
 
 

@@ -1409,7 +1409,7 @@ function rememberResult(viewKey, json, question, body) {
    * 不记。同日同面重测覆盖旧条——画像记的是最新状态。 */
   try {
     var _CVIEWS = { bazi: 1, taohua: 1, hehun: 1, tarot: 1,
-                    liuyao: 1, qiming: 1, xzm: 1 };
+                    liuyao: 1, qiming: 1, xzm: 1, dream: 1 };
     if (_CVIEWS[viewKey]) {
       var _cd = JSON.parse(localStorage.getItem('chat:cards') || '[]');
       if (!Array.isArray(_cd)) _cd = [];
@@ -1458,7 +1458,8 @@ function buildChatContext(viewKey) {
       bazi: '帮我看这个盘', taohua: '桃花怎么样', tarot: '牌面说什么',
       liuyao: '卦象怎么看', hehun: '这两人配吗', huangli: '今天能做什么',
       qiming: '这些名字怎么样', xingzuo: '今天运势怎么样',
-      daily: '今天运势怎么样', xzm: '这两个星座配吗'
+      daily: '今天运势怎么样', xzm: '这两个星座配吗',
+      dream: '帮我解个梦'
     };
     return { msg: GENERIC[viewKey] || '帮我看看这个结果', facts: [],
              ref: '' };
@@ -1656,6 +1657,16 @@ function buildChatContext(viewKey) {
     msg = '今天是' + (j.date || '') + '，'
       + ((today && today.sign) || '—') + '座当班，我今天运势怎么样';
     facts = ['今天轮到' + ((today && today.sign) || '—') + '座当班'];
+  } else if (viewKey === 'dream') {
+    /* R3178：解梦卡——象征名+梦文本进上下文，照梦聊时小满手里
+     * 有册子口径（服务端 verdicts 会再补「梦里对上的画面」）。 */
+    var _syms = (j.symbols || []).map(function (s) { return s.name; });
+    msg = '我做了个梦：「' + (q || '记不清细节了') + '」' +
+      (_syms.length ? '，册子对上了「' + _syms.join('、') + '」' : '') +
+      '，陪我聊聊';
+    facts = _syms.slice(0, 3).map(function (s) { return '梦见：' + s; });
+    var _dr = ((j.warm || {}).reply || [])[1];
+    if (_dr) facts.push('解读口径：' + String(_dr).slice(0, 90));
   } else {
     msg = '帮我看看这个结果';
   }
@@ -1759,7 +1770,7 @@ function autoSendChatContext() {
   var viewId = view ? view.id : '';
   var viewKey = '';
   ['taohua', 'tarot', 'liuyao', 'hehun', 'huangli', 'qiming', 'xingzuo',
-   'bazi'].forEach(function (k) {
+   'bazi', 'dream'].forEach(function (k) {
     if (!viewKey && viewId.indexOf(k) !== -1) viewKey = k;
   });
   /* R3131：星座页内嵌速配抽屉——同页两套结果，聊天下手挑更新的
@@ -2392,7 +2403,7 @@ function _activeViewFacts() {
   var v = document.querySelector('.view.active');
   var vid = v ? v.id : '', key = '';
   ['taohua', 'tarot', 'liuyao', 'hehun', 'huangli', 'qiming', 'xingzuo',
-   'bazi'].forEach(function (k) {
+   'bazi', 'dream'].forEach(function (k) {
     if (!key && vid.indexOf(k) !== -1) key = k;
   });
   if (!key) key = 'daily';   /* 首页无 .view 壳——daily 卡上下文兜底 */
@@ -2405,7 +2416,8 @@ function _activeViewFacts() {
   if (!_f.length) {
     try {
       var _LBL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
-                   tarot: '塔罗', liuyao: '六爻', qiming: '起名' };
+                   tarot: '塔罗', liuyao: '六爻', qiming: '起名',
+                   dream: '解梦' };
       for (var i = 0; i < sessionStorage.length; i++) {
         var _k = sessionStorage.key(i);
         if (!_k || _k.indexOf('lastResult:') !== 0) continue;
@@ -2514,7 +2526,7 @@ function _chatWeekProfileFact() {
     var _VLBL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
                   tarot: '塔罗', liuyao: '六爻', qiming: '起名',
                   xingzuo: '星座', xzm: '合盘', daily: '日签',
-                  huangli: '黄历' };
+                  huangli: '黄历', dream: '解梦' };
     var _vc = {};
     arr.forEach(function (x) {
       if (x && x.d >= cutoff && x.t === top && x.v && _VLBL[x.v]) {
@@ -2567,7 +2579,7 @@ function _chatCardsFact() {
     var cut = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
     var _VL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
                 tarot: '塔罗', liuyao: '六爻', qiming: '起名',
-                xzm: '合盘' };
+                xzm: '合盘', dream: '解梦' };
     var out = [];
     arr.forEach(function (x) {
       if (out.length >= 3) return;
@@ -5786,6 +5798,68 @@ async function doLiuyao() {
   }
 }
 
+/* R3178：解梦——自由文本进、写死词库三件套出。卡面极简：
+ * 命中象征做成小卡（老话/回声分列），reply 行照渲，入口挂
+ * 「聊聊这个梦」。 */
+var _DM_GEN = 0;
+function buildDreamResult(j) {
+  var html = '<div class="card dream-card"><h3>🌙 梦翻翻</h3>';
+  var syms = j.symbols || [];
+  if (syms.length) {
+    html += '<div class="dm-syms">';
+    syms.forEach(function (s) {
+      html += '<div class="dm-sym"><div class="dm-sym-name">「' +
+        esc(s.name) + '」</div><div class="dm-sym-trad">' +
+        esc(s.trad) + '</div><div class="dm-sym-echo">' +
+        esc(s.echo) + '</div></div>';
+    });
+    html += '</div>';
+  }
+  var rp = (j.warm && j.warm.reply) || [];
+  /* 象征小卡已承载「老话+回声」——reply 里逐象征的那几行是同一
+   * 段文字（留着喂 chat/polish 信道），屏上不再复读一遍。 */
+  var _symHead = {};
+  syms.forEach(function (s) { _symHead['「' + s.name + '」'] = 1; });
+  if (rp.length) {
+    html += '<div class="warm-reply">';
+    rp.forEach(function (ln) {
+      var _dup = false;
+      for (var _h in _symHead) {
+        if (ln.indexOf(_h) === 0) { _dup = true; break; }
+      }
+      if (!_dup) html += '<p>' + esc(ln) + '</p>';
+    });
+    html += '</div>';
+  }
+  html += tailHook('dream');
+  html += '</div>';
+  return html;
+}
+
+async function doDream() {
+  var _gen = ++_DM_GEN;
+  var text = (val('dm_text') || '').trim();
+  if (!text) {
+    _failField('dm_text', 'dmResult',
+      '跟我说说梦里最清楚的画面——一句话也行');
+    return;
+  }
+  busy('dmResult', '翻梦册中…');
+  try {
+    var j = await postJSON('/api/dream', { text: text });
+    if (_gen !== _DM_GEN) return;
+    paint('dmResult', buildDreamResult(j));
+    pollAiPolish('dmResult', j.ai_task_id);
+    rememberVoice('dmResult', j, buildDreamResult, function () {});
+    rememberResult('dream', j, text);
+    revealResult('dmResult');
+  } catch (e) {
+    if (_gen !== _DM_GEN) return;
+    failWithRetry('dmResult', '解梦没翻成：' + e.message,
+                  function () { doDream(); });
+  }
+}
+
 var _QM_STYLE = 'classics';
 var _QM_STYLES = {
   'classics': { label: '诗经草木', hint: '草木·鸟兽·日月' },
@@ -6257,7 +6331,13 @@ var _TAIL_HOOK = {
             '🌙 明天的运势包裹已经在路上，记得来拆',
             '🌙 星象天天转，明天来听新的',
             '🌙 今天星语先听完，明天还有新的',
-            '🌙 十二宫明天再排班，记得来']
+            '🌙 十二宫明天再排班，记得来'],
+  dream: ['🌙 今晚睡个好觉，明晚的梦换个新的',
+          '🌙 梦翻到这，睡饱比啥都强',
+          '🌙 记住这个梦的话，明天再来看看',
+          '🌙 今晚的床头，留给一个好梦',
+          '🌙 梦说完了，安心睡吧',
+          '🌙 新梦在路上，明天再来翻']
 };
 function tailHook(view) {
   var _p = _TAIL_HOOK[view];
@@ -9555,6 +9635,7 @@ function initDivination() {
     _lyTimeSync();
   }
   on('lySubmit', doLiuyao);
+  on('dmSubmit', doDream);   /* R3178：解梦 */
   on('hlSubmit', doHuangli);
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);

@@ -2640,3 +2640,11 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 .xz-mine-tag{font-style:normal;display:inline-block;margin-left:5px;padding:0 6px;
   border-radius:8px;background:var(--accent,#ff8fab);color:#fff;font-size:11px;
   vertical-align:1px;}
+
+/* R3178：解梦象征小卡 */
+.dm-syms{display:flex;flex-direction:column;gap:8px;margin:10px 0 12px;}
+.dm-sym{border:1px solid var(--border);border-radius:14px;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,246,248,.5));}
+.dm-sym-name{font-weight:600;color:var(--accent,#ff8fab);margin-bottom:4px;}
+.dm-sym-trad{font-size:13px;color:var(--muted,#8a7f85);margin-bottom:4px;}
+.dm-sym-echo{font-size:14px;line-height:1.6;}

@@ -203,7 +203,8 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
 
 # R3018（#17b）：敏感问题剥名后的中性回落标签——不含披露文本。
 _RTYPE_LABEL = {"bazi": "八字排盘", "taohua": "桃花运势", "hehun": "合婚",
-                "tarot": "塔罗抽牌", "liuyao": "六爻起卦", "qiming": "五行起名"}
+                "tarot": "塔罗抽牌", "liuyao": "六爻起卦", "qiming": "五行起名",
+                "dream": "解梦"}
 
 
 def _name_summary(req: dict) -> str:

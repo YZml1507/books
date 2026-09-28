@@ -147,6 +147,9 @@ FIXTURES: dict[str, dict] = {
         "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
         "b_hour": 14, "b_gender": "女"}},
     "POST /api/tarot/draw":    {"method": "POST", "json": {"seed": 42, "n": 1}},
+    # R3178：解梦——词库命中态固定可复验。
+    "POST /api/dream":    {"method": "POST",
+                           "json": {"text": "梦见掉牙还被追着跑"}},
     "/api/xingzuo":           {"method": "GET", "params": {"date": "2026-08-20"}},
     # 前端只发 {topic}（实测 422）。契约 probe 用**合法请求体**取真实成功响应，
     # 前端请求体本身的不匹配由 probe_ui_smoke.py 点击后现形，两者分工不重叠。
@@ -257,6 +260,7 @@ CONDITIONAL_FIELDS = {
     # 返回（缺席=无 AI 段落，与上四面同判据），pollAiPolish 显式守。
     "/api/liuyao": {"ai_task_id"},
     "/api/tarot": {"ai_task_id"},
+    "/api/dream": {"ai_task_id"},
     # R3155：星座合盘同款——LLM 开启时才返回。
     "/api/xzmatch": {"ai_task_id"},
     # R228g：chat/qiming.review 的 *_task_id 只在 LLM 开启时返回（DISABLE 下
