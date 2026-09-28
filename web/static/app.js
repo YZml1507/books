@@ -1175,10 +1175,15 @@ function _chatBootNote(st, ty) {
     var prev = s.getItem('chatBootId');
     if (prev && prev !== st.boot && ty.parentNode) {
       var d = document.createElement('div');
-      d.className = 'chat-bubble chat-ai';
+      d.className = 'chat-bubble chat-ai chat-divider';
       d.style.opacity = '.72';
       d.style.fontSize = '.9em';
-      d.textContent = '（小满刚换了新脑子，前面聊的细节可能记不全啦）';
+      /* R3208：如实说明 + 给两条出路——屏幕上的记录还在（下一句
+       * 会照尾巴捡回大概），或者干脆开新话题翻篇。 */
+      d.textContent = '（小满刚重启过脑子，细节可能记不全——' +
+        '你屏幕上的记录还在，下一句会照着捡回大概）';
+      _CHAT_NEED_RECAP = true;
+      d.appendChild(_chatResetBtn('🌱 记不全？开个新话题'));
       ty.parentNode.insertBefore(d, ty);
     }
     s.setItem('chatBootId', st.boot);
@@ -1192,12 +1197,37 @@ function _chatFreshNote(st, ty) {
   var n = 0, p = ty.previousSibling;
   while (p) { if (p.classList && p.classList.contains('chat-bubble')) n++; p = p.previousSibling; }
   if (n < 2) return;   /* 首条自动发/无历史不分隔 */
+  /* R3208：boot 分隔刚插过（同一次失忆两条注脚叠着太吵）——跳过。 */
+  var _pv = ty.previousSibling;
+  if (_pv && _pv.classList && _pv.classList.contains('chat-divider')) return;
   var d = document.createElement('div');
-  d.className = 'chat-bubble chat-ai';
+  d.className = 'chat-bubble chat-ai chat-divider';
   d.style.opacity = '.72';
   d.style.fontSize = '.9em';
-  d.textContent = '（隔得有点久，前面聊的细节小满可能记不全啦）';
+  /* R3208：如实说明 + 回收语境——下一条消息会把 transcript
+   * 尾巴当「前文回放」喂回去，大概能接上；也可一键翻篇。 */
+  d.textContent = '（隔得有点久，细节小满可能记不全——' +
+    '你屏幕上的记录还在，下一句会照着捡回大概）';
+  _CHAT_NEED_RECAP = true;
+  d.appendChild(_chatResetBtn('🌱 记不全？开个新话题'));
   ty.parentNode.insertBefore(d, ty);
+}
+
+/* R3208：断档回放旗标——fresh/boot 失忆被检测后置位，
+ * 下一条消息经 _chatFacts 注入 transcript 尾巴，一次性消费。 */
+var _CHAT_NEED_RECAP = false;
+function _chatRecapFact() {
+  var ts = _chatTsRead();
+  if (ts.length < 2) return '';   /* 只剩刚发的这条就没得回 */
+  var tail = ts.slice(-5, -1);    /* 倒序 4 条，排除刚发出去的当前句 */
+  var bits = [];
+  for (var i = 0; i < tail.length; i++) {
+    var t = String(tail[i].t || '').replace(/\s+/g, ' ').slice(0, 40);
+    if (t) bits.push((tail[i].r === 'me' ? '她' : '你') + ':「' + t + '」');
+  }
+  if (!bits.length) return '';
+  return '（断档续聊）你们刚才聊到这儿——' + bits.join(' ') +
+         '。顺着接着聊，别当第一次见。';
 }
 
 /** 把 AI 块插进已渲染的结果区末尾；容器不存在/已插过返回 false。 */
@@ -1728,18 +1758,17 @@ function attachChatEntry(container) {
 /* R230d（R16-P2-7）：轮数封顶后此前只复读收尾文案，用户没有任何
  * 出路提示。后端 rec.closed=True 时在气泡尾部挂「开新话题」引导钮——
  * 点了换新 sid（旧会话仍在内存，只是不再继续聊）。 */
-function _chatClosedHint(bubble) {
-  if (!bubble || bubble.querySelector('.chat-reset')) return;
-  /* R2400（R123-P2-4）：closed 态持久化——F5 后 transcript 恢复气泡
-   * 但钮丢了（服务端仍收尾态）。存旗标，恢复时挂回。 */
-  try { (_chatStore() || _MEM_STORE).setItem('chatClosed', '1'); } catch (e) {}
+/* R3208：「开个新话题」钮抽成可复用件——收尾提示与失忆分隔共用
+ *（断档提示也要给用户「翻篇」的主动权）。 */
+function _chatResetBtn(label) {
   var row = document.createElement('div');
   row.className = 'chat-reset';
   row.style.marginTop = '8px';
   var b = document.createElement('button');
   b.type = 'button'; b.className = 'chat-chip';
   b.setAttribute('aria-label', '清空本轮聊天，开个新话题');
-  b.textContent = '🌱 聊够啦？开个新话题';
+  b.textContent = label || '🌱 聊够啦？开个新话题';
+  var _orig = b.textContent;
   b.addEventListener('click', function () {
     /* R230t（R33-P2-4）：清 transcript+换 sid 此前一点即执行——
      * 两点确认与排盘删除同款（3s 内再点才真清）。 */
@@ -1747,7 +1776,7 @@ function _chatClosedHint(bubble) {
       b.dataset.armed = '1';
       b.textContent = '这轮聊天记录会清空，再点一次确认';
       setTimeout(function () {
-        if (b.isConnected) { b.dataset.armed = '0'; b.textContent = '🌱 聊够啦？开个新话题'; }
+        if (b.isConnected) { b.dataset.armed = '0'; b.textContent = _orig; }
       }, 3000);
       return;
     }
@@ -1764,7 +1793,14 @@ function _chatClosedHint(bubble) {
     row.remove();
   });
   row.appendChild(b);
-  bubble.appendChild(row);
+  return row;
+}
+function _chatClosedHint(bubble) {
+  if (!bubble || bubble.querySelector('.chat-reset')) return;
+  /* R2400（R123-P2-4）：closed 态持久化——F5 后 transcript 恢复气泡
+   * 但钮丢了（服务端仍收尾态）。存旗标，恢复时挂回。 */
+  try { (_chatStore() || _MEM_STORE).setItem('chatClosed', '1'); } catch (e) {}
+  bubble.appendChild(_chatResetBtn());
 }
 
 /* R3202：「开新话题」后补回空态块——静态 #chatEmpty 在首个气泡落地
@@ -2714,6 +2750,13 @@ function _chatFacts(facts) {
       _f.unshift('她上次来聊过：「' + CHAT_RESUME_FACT.slice(0, 60) +
                  '」——如果和现在的话题相关就自然接上，不相关不用硬提');
       CHAT_RESUME_FACT = '';
+    }
+    /* R3208：服务端失忆（重启/TTL 回收）后——transcript 尾巴当
+     * 「前文回放」喂回去，小满能捡回大概（一次性消费）。 */
+    if (_CHAT_NEED_RECAP) {
+      _CHAT_NEED_RECAP = false;
+      var _rc = _chatRecapFact();
+      if (_rc) _f.unshift(_rc);
     }
   } catch (e) {}
   try {
