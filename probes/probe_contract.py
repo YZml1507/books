@@ -296,6 +296,8 @@ CONDITIONAL_FIELDS = {
     # 开启时返回——探针跑非禁用态所以响应里本就没有；前端
     # `if (j.disabled)` 正是对缺席的探测。
     "/api/paipan/history": {"disabled"},
+    # R3193：星座日运接 AI 解读块——ai_task_id 只在 LLM 开启时返回。
+    "/api/xingzuo": {"ai_task_id"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

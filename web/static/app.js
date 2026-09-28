@@ -7550,6 +7550,7 @@ async function doXingzuo(force) {
     _xzRenderedOn = todayIso();   /* R2349k（R72-B2） */
     rememberResult('xingzuo', j, '');   /* R219b（P0-2）：今日值宫进第一句 */
     revealResult('xzResult');
+    pollAiPolish('xzResult', j.ai_task_id);   /* R3193：AI 段落后到 */
     /* R230d（R16-P2-2）：星座分享按钮（其他五个测算页都有，独缺这里）。 */
     var xzCard2 = el('xzResult');
     if (xzCard2 && !document.getElementById('shareXingzuo')) {

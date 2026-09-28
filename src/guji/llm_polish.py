@@ -2280,6 +2280,34 @@ def facts_huangli(h: dict) -> list[str]:
     return facts
 
 
+def facts_xingzuo(z: dict) -> list[str]:
+    """星座日运卡事实（R3193）：十二宫日运此前是唯一没有 AI 段的
+    卡面——当班宫+三运（爱情/事业/财运）全是写死文案坐标，polish
+    的活是把当班宫的三行串成一段口语天气，不替星座编运势。"""
+    facts: list[str] = []
+    if z.get("date"):
+        facts.append("日期：{}（{}）".format(
+            z["date"], z.get("day_ganzhi") or ""))
+    if z.get("today_sign"):
+        facts.append("今日值宫：{}座——{}".format(
+            z["today_sign"], z.get("today_note") or ""))
+    for _s in (z.get("signs") or []):
+        if not isinstance(_s, dict) or not _s.get("is_today"):
+            continue
+        if _s.get("sign_note"):
+            facts.append("当班总运：{}".format(_s["sign_note"]))
+        if _s.get("love"):
+            facts.append("爱情运：{}".format(_s["love"]))
+        if _s.get("career"):
+            facts.append("事业运：{}".format(_s["career"]))
+        if _s.get("wealth"):
+            facts.append("财运：{}".format(_s["wealth"]))
+        break
+    facts.append("口径：星座日运是轻娱乐——把当班宫的三运串成口语"
+                 "天气，别上纲成人生指导，更别编其他宫的运势")
+    return facts
+
+
 def facts_xzmatch(m: dict) -> list[str]:
     """星座合盘卡事实——象组/分数/lines 判词级行进 polish。
 

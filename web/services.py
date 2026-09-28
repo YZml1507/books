@@ -563,6 +563,14 @@ def xingzuo(date_str: str | None = None) -> dict:
     # R3150b：值宫卡接入 result_ref 快照——照「今天 XX 座当班」聊时
     # 小满手里有同一张卡的坐标+文案，不是泛泛的星运腔。
     out["result_ref"] = _stash_result("xingzuo", out)
+    # R3193：星座日运接 AI 解读块——此前是唯一无 polish 的卡面。
+    # GET 端点爬虫/预览器可达——独立小桶不占全局「ai」额度（照
+    # xzmatch 同型先例 R3157）。
+    _xz_tid = llm_polish.spawn_ai_task(
+        llm_polish.facts_xingzuo(out), "今天星座日运",
+        rate_key="ai_social", rate_limit=15)
+    if _xz_tid:
+        out["ai_task_id"] = _xz_tid
     return out
 
 
