@@ -5831,6 +5831,9 @@ function buildDreamResult(j) {
     });
     html += '</div>';
   }
+  /* 分享图——梦境海报（主动分享才出图，文本本就她写的） */
+  html += '<button type="button" class="ghost" id="shareDream" ' +
+    'style="margin-top:10px;">📷 生成梦卡图</button>';
   html += tailHook('dream');
   html += '</div>';
   return html;
@@ -5850,7 +5853,11 @@ async function doDream() {
     if (_gen !== _DM_GEN) return;
     paint('dmResult', buildDreamResult(j));
     pollAiPolish('dmResult', j.ai_task_id);
-    rememberVoice('dmResult', j, buildDreamResult, function () {});
+    var _rbDm = function () {
+      on('shareDream', function () { return downloadPoster(j, 'dream'); });
+    };
+    rememberVoice('dmResult', j, buildDreamResult, _rbDm);
+    _rbDm();
     rememberResult('dream', j, text);
     revealResult('dmResult');
   } catch (e) {
@@ -6153,13 +6160,13 @@ var _POSTER_TITLES = {
   qiming: '五行起名', taohua: '桃花运势', hehun: '八字合婚',
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
-  xzm: '星座速配', 'bazi-yearly': '年度运势'
+  xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦'
 };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
-  daily: 'mint', huangli: 'mint', liuyao: 'celadon' };
+  daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream' };
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
 var _SHARE_TEXT = {

@@ -394,6 +394,8 @@ def main() -> int:
         "shareLiuyao": "同上",
         "shareTarot": "同上",
         "shareDaily": "同上",
+        # R3178：解梦海报模态——同族豁免（生成链路一致）。
+        "shareDream": "同上",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
         "xzPrev": "ui:xznav.roundtrip 已覆盖", "xzToday": "同上",

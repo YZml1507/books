@@ -1014,6 +1014,25 @@ function buildShareData(view, j) {
       }
       return sy;
     }
+    case 'dream': {
+      /* R3178：解梦海报——象征名上主位（「掉牙」比长句有记忆点），
+       * 老话口径进明细行；免责句压尾防被当预言转发。 */
+      var sd = base('解梦', '');
+      var _dsyms = _pArr(j && j.symbols);
+      var _dn = _dsyms.length ? _pStr(_dsyms[0].name) : '';
+      sd.big = _dn ? ('梦见「' + _dn + '」') : (l0 || '梦是情绪的回声');
+      sd.lines = [];
+      _dsyms.slice(0, 2).forEach(function (s) {
+        sd.lines.push({ k: _pStr(s.name) || '画面',
+                        v: _clauseCut(_pStr(s.trad), 20) });
+        sd.lines.push({ k: '回声', v: _clauseCut(_pStr(s.echo), 20) });
+      });
+      if (!_dsyms.length) {
+        sd.lines.push({ k: '这梦', v: '不在常用册子里——是心事' });
+      }
+      sd.lines.push({ k: '口径', v: '梦是回声，不是预言' });
+      return sd;
+    }
     case 'taohua': {
       var st = base('桃花运势', '');
       st.big = l0 || '桃花今日份';
