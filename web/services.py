@@ -1929,7 +1929,14 @@ def xzmatch(sa: str, sb: str, rel: str = "") -> dict:
     四象兼容是通行口径（娱乐向，不涉命理断言）。未知星座名 → {}。
     rel=闺蜜/同事 追加语境尾巴（R73-P2-11）。
     """
-    ea, eb = _SIGN_ELEM.get(sa or ""), _SIGN_ELEM.get(sb or "")
+    # 归一入参：裸名是表键（狮子/双鱼），用户手写/API 直调最自然的
+    # 形态是「狮子座」——此前带「座」一律 400「没认出星座名」。
+    # 输出文案用归一后的名字（「都是{sa}座」不吃「狮子座座」）。
+    sa = (sa or "").strip()
+    sb = (sb or "").strip()
+    sa = sa[:-1] if sa.endswith("座") else sa
+    sb = sb[:-1] if sb.endswith("座") else sb
+    ea, eb = _SIGN_ELEM.get(sa), _SIGN_ELEM.get(sb)
     if not (ea and eb):
         return {}
     pair = frozenset({ea, eb})

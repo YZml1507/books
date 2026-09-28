@@ -2502,6 +2502,12 @@ def _run_inner() -> list[str]:
           lambda j: bool(j.get("result_ref")))
     _expect_400("xzmatch.bad", client.get("/api/xzmatch",
                 params={"a": "奥特曼", "b": "巨蟹"}))
+    # R3229：「狮子座」是用户/API 直调最自然的写法——归一后与裸名
+    # 同分同标，响应 a/b 回落裸名（前端 +「座」渲染不叠字）。
+    check("xzmatch.suffix", client.get("/api/xzmatch",
+          params={"a": "白羊座", "b": "双子座"}),
+          lambda j: (j.get("score") == 82 and j.get("label") == "互补"
+                     and j.get("a") == "白羊" and j.get("b") == "双子"))
     check("tarot.collection", client.get("/api/paipan/tarot_collection"),
           lambda j: (j.get("total") == 78
                      and isinstance(j.get("deck"), list)
