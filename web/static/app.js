@@ -1760,11 +1760,35 @@ function _chatClosedHint(bubble) {
     var _flow = el('chatFlow');
     if (_flow) _flow.innerHTML = '';
     _CHAT_SEND_COUNT = 0;
-    chatBubble('ai', '新话题开张～想聊什么？');
+    _chatEmptyRebuild();   /* R3202：空态块（chips/昵称招呼）重建回来 */
     row.remove();
   });
   row.appendChild(b);
   bubble.appendChild(row);
+}
+
+/* R3202：「开新话题」后补回空态块——静态 #chatEmpty 在首个气泡落地
+ * 时被 chatBubble 全清（.chat-empty 全删），清零重来用户面对的只剩
+ * 一句光秃秃「新话题开张」，chips/昵称招呼全丢。重建同款结构再走
+ * _chatChipsPersonalize（时段招呼/深夜梦入口都跟着回来）。 */
+function _chatEmptyRebuild() {
+  var flow = el('chatFlow');
+  if (!flow || !flow.parentNode) return;
+  if (document.querySelector('.chat-empty')) return;
+  var d = document.createElement('div');
+  d.className = 'chat-empty'; d.id = 'chatEmpty';
+  d.innerHTML =
+    '<img class="chat-empty-avatar" loading="lazy" decoding="async" ' +
+    'src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56">' +
+    '<p class="chat-empty-hi">我是小满 ✨</p>' +
+    '<p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>' +
+    '<div class="chat-empty-chips">' +
+    '<button type="button" class="chat-chip" data-ask="今天运势怎么样？">今天运势怎么样</button>' +
+    '<button type="button" class="chat-chip" data-ask="我最近的感情会有进展吗？">最近感情有进展吗</button>' +
+    '<button type="button" class="chat-chip" data-ask="帮我看看我的八字">帮我看看我的八字</button>' +
+    '</div>';
+  flow.parentNode.insertBefore(d, flow);
+  try { _chatChipsPersonalize(); } catch (e) {}
 }
 
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
@@ -9461,8 +9485,11 @@ function initBazi() {
   });
   on('chatSendBtn', chatSend);
   /* R223b（E-304 P1）：空态话题 chip——点一下把问题填进输入框并直接发送。
-   * 用事件委托绑在容器上（chatEmpty 会被 chatBubble 整块 remove）。 */
-  var _emptyBox = document.getElementById('chatEmpty');
+   * R3202 修复：委托此前绑在 #chatEmpty 节点本体上——它会被 chatBubble
+   * 整块 remove、R3202 重建后是新节点，老监听跟尸体一起没了。挪到
+   * 稳定祖先 recentSidebar 上（data-ask 守卫天然跳过 act-chip 等无 ask
+   * 属性的 chip）。 */
+  var _emptyBox = document.getElementById('recentSidebar');
   if (_emptyBox) _emptyBox.addEventListener('click', function (ev) {
     var chip = ev.target.closest && ev.target.closest('.chat-chip');
     if (!chip || !chip.dataset || !chip.dataset.ask) return;

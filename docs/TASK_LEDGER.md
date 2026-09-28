@@ -17288,3 +17288,4 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **R3199**：年运逐月条十神上人话 —— 「己丑·正印」对受众是天书；单元格改渲日常语标签（底气/同伴/稳定财…）+悬停「正印——底气月」释义；`_GP` 提炼模块级 `_TEN_GOD_TAG` 与合盘互看共用一份（防两表漂移）。
 - **R3200**：排盘历史类型筛选 —— 历史页记录一多只能滚；列表上方加 chip 行（全部+各类带计数，复用 _PH_TYPE_LABEL），纯前端 display 过滤零请求；云端/本地镜像两路渲染都补 data-type；空历史自动隐藏；chips 真 button+role=group+aria-pressed 同步（键盘 Enter/Space 原生可用）。真机：解梦筛→1条、回全部→2条、320px 零溢出、键盘链路通。
 - **R3201**：路标 chip 随 transcript 回放 —— 刷新前挂的「去抽牌」chip 此前只活当次渲染，恢复的气泡丢入口；`_chatTsSave` 第三参存 `a:{view,label}`，`_chatTsRestore` 重挂，view 过 `_CHAT_ACT_VIEWS` 白名单（localStorage 脏值顶多挂死钮——再收一层）。真机：回放 chip→点→view-tarot，坏 view 数据不挂。
+- **R3202**：开新话题空态重建+委托修复 —— 「聊够啦？开个新话题」清零后此前只剩光秃秃「新话题开张」泡，静态 #chatEmpty 早已被 chatBubble 移除、chips/昵称招呼全丢；新增 _chatEmptyRebuild 重建同款结构+_chatChipsPersonalize 重跑（桃桃招呼/深夜梦入口回来）。连带修真 bug：空态 chip 委托绑在被销毁的原节点上——挪稳定祖先 recentSidebar，重建块点击发送实测通。

@@ -407,6 +407,11 @@ def main() -> int:
         "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
         "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
                      "发送链路已由 crisis_fe/drawer 用例覆盖",
+        # R3202：空态委托从 #chatEmpty 本体挪到稳定祖先
+        # recentSidebar（本体被 chatBubble 整块 remove 后重建，
+        # 老监听随尸体丢失）。同 data-ask 委托链路，豁免理由同上。
+        "recentSidebar": "同 chatEmpty——data-ask chip 委托的挂点"
+                          "挪到稳定祖先，发送链路同上",
         # R2349l（R73）：本批新增的动态/抽屉内控件
         "dailyPersonalCta": "日卡 meta 行动态生成按钮（档案缺失时才有），"
                             "点击=showView('xingzuo')+开 birthDrawer——"
