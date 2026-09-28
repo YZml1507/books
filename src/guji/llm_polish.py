@@ -517,16 +517,20 @@ def _gc_tasks() -> None:
     now = time.monotonic()
     # R230a-6（R12-P3-1）：pending 任务不在 TTL 回收范围——同 sid 串行
     # 排队时在途可 >TTL，回收会让线程跑完无处写、前端轮询 404「没接住」。
+    # R3228（R3225 同型补防）：任务行缺 created/status 键此前 KeyError——
+    # GC 在每次 spawn 首部跑，一条脏行=全 AI 层停摆。缺 created 按超龄
+    # 逐出；缺 status 不当 pending 保（畸形行没有可交付的读者）。
     stale = [tid for tid, t in _tasks.items()
-             if now - t["created"] > _TASK_TTL_S and t["status"] != "pending"]
+             if now - t.get("created", 0) > _TASK_TTL_S
+             and t.get("status") != "pending"]
     # R2511（审-SV-P2）：pending 豁免泄漏源——Thread.start() 抛错/
     # BaseException/_session_lock 卡死都会留永久 pending 行，攒满
     # _MAX_PENDING=12 后所有 spawn 静默 None、AI 层停摆且零日志。
     # pending 的「不死」只保轮询预算内的正常排队；2×TTL 后照收
     # （线程真还在跑也只是写不回——比整层关停好）。
     stale += [tid for tid, t in _tasks.items()
-              if t["status"] == "pending"
-              and now - t["created"] > _TASK_TTL_S * 2]
+              if t.get("status") == "pending"
+              and now - t.get("created", 0) > _TASK_TTL_S * 2]
     for tid in stale:
         _tasks.pop(tid, None)
 

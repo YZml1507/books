@@ -17320,3 +17320,4 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **R3225**（真修47）：chat GC 畸形会话击杀链——_chat_sessions 条目缺 "updated" 键时 _gc_chat_sessions 抛 KeyError，而 GC 跑在每条 chat 首部+任务线程把异常吞成 failed——一条脏会话=全站聊天永久停摆（进程重启才解）。get("updated",0) 缺键按超龄逐出；selftest st-closed 桩改注入完整会话形（此前依赖 GC 崩在脏行上保住 closed 标）。自测噪音 [llm] chat task 未捕获 KeyError 清零；selftest 373。
 - **R3226**：合婚上等盘不抽摩擦签——hehun_one_liners 池里「欢喜冤家预定/并肩作战型情侣/磨合型但有韧劲的一对/磨合着磨合着就顺了」对 band0（判词「上等合拍」）是口径打架，此前会落到顺盘卡面上；band0 剔摩擦桶，band1 中上磨合照抽。钉 hehun.band0_no_friction_label（全支盐扫两条抽签路）；顺带揭出 warm_hehun 的「非相生非比和必相克」分档语义（带 wx 字段无 sheng → band1，摩擦签合法位）。selftest 374、dup/contract 绿。
 - **R3227**（真修48×2）：(a) 判词矛盾纠偏重试改投出稿链节——兜底节出的稿回主链纠，撞上主链已挂白烧预算，现锚 _used_cfg 重试；(b) sess["messages"] 同型 KeyError 补防——脏会话带 updated 无 messages 时该 sid 聊天永久 failed，setdefault 补全。selftest 374 绿。
+- **R3228**（R3225 同型补防）：_gc_tasks 的 t["created"]/t["status"] 硬取值同款 KeyError 面补齐——任务行缺键按超龄逐出、缺 status 不当 pending 保。审计复核：_RESULT_CACHE/_CHAT_CTX/_CHAT_FACTS_CACHE 写入方均为内部定形行，无此面。
