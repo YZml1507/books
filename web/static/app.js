@@ -10215,10 +10215,12 @@ var _PH_BUILDERS = {
   hehun: function (j) { return buildHehunResult(j); },
   tarot: function (j) { return buildTarotResult(j); },
   liuyao: function (j) { return buildLiuyaoResult(j); },
-  qiming: function (j) { return buildQimingResult(j); }
+  qiming: function (j) { return buildQimingResult(j); },
+  dream: function (j) { return buildDreamResult(j); }
 };
 var _PH_TYPE_LABEL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
-                       tarot: '塔罗', liuyao: '六爻', qiming: '起名' };
+                       tarot: '塔罗', liuyao: '六爻', qiming: '起名',
+                       dream: '解梦' };
 
 function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
