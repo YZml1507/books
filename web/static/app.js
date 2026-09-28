@@ -4823,9 +4823,12 @@ async function loadDaily() {
     }
     if (_tmrEl) {
       if (tm && (tm.level || tm.do)) {
+        /* R3220：do 两态——「宜：x、y」或裸「x、y」，此前恒加「宜 」
+         * 前缀态渲成「宜 宜：」叠词。剥掉后端自带前缀再拼。 */
+        var _tdo = String(tm.do || '平常心').replace(/^宜[:：]?\s*/, '');
         _tmrEl.textContent = '🌙 明天「' +
           (tm.level === '凶' ? '缓' : (tm.level || '平')) + '」· 宜 ' +
-          (tm.do || '平常心') + '' +
+          _tdo + '' +
           /* R2349g（R68-P1-1）：明天预告导引 3→6。 */
           _dayPick(['点我看明天', '记得来拆明天的礼物', '明天再来找我玩',
                     '明天的运先睹为快', '明天也请多关照', '提前看看明天'], 'tmr') + ' →';
