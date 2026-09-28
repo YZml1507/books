@@ -2134,6 +2134,25 @@ def facts_qiming(q: dict, gender: str | None = None,
     ]
     if names:
         facts.append("推荐完整名：" + "、".join(names))
+    # R3191：候选名的真实出处/释义进事实——此前模型看不到 origin，
+    # 只能编造「出自《XX》」的幻觉来源（实抓出「林苹秩出自」悬空句）。
+    # 有典的给典，无典的明说「无文献出处」堵死编造空间。
+    _og_n = 0
+    for _n in (q.get("full_names") or [])[:3]:
+        if not isinstance(_n, dict):
+            continue
+        _fn = _n.get("full_name") or ""
+        _og = (_n.get("origin") or "").strip()
+        _st = (_n.get("story") or "").strip()
+        if _fn and _og:
+            _og_n += 1
+            facts.append("「{}」真实出处：{}{}".format(
+                _fn, _og, "；释义：" + _st[:60] if _st else ""))
+        elif _fn:
+            facts.append("「{}」：词库生成，无文献出处——不要编造来源".format(_fn))
+    _fed = min(len(q.get("full_names") or []), 3)
+    if _og_n and _og_n < _fed:
+        facts.append("候选名中只有 {} 个带典籍出处——不要说「都取自经典」".format(_og_n))
     # R233w：warm 层文案进事实——模型点评照着确定性口径说，不自由发挥。
     for _ln in ((warm or {}).get("reply") or []):
         facts.append("参考口吻：" + _ln)
