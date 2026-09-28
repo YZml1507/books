@@ -625,12 +625,19 @@ async function doConcept() {
     if (!(j.census || []).length && j.hint) {
       html += '<p class="hit-cite">' + esc(j.hint) + '</p>';
     }
+    var _titleById = {};
+    (j.census || []).forEach(function (row) {
+      if (row.work_id) _titleById[row.work_id] = row.title || row.work_id;
+    });
     const shared = j.shared_addresses || [];
     if (shared.length) {
       html += '<h3 style="margin-top:16px;">同一位置的多种说法</h3>';
       shared.forEach(function (s) {
+        var wnames = (s.works || []).map(function (wid) {
+          return _titleById[wid] || wid;
+        });
         html += '<div class="finding">' + esc(s.addr || '') + '　' +
-          esc(fmtScalar(s.works)) + '</div>';
+          esc(wnames.join('、')) + '</div>';
       });
       /* R232d：共享址超 30 条被截断——如实披露总数（shared_total 一直在回）。 */
       if (j.shared_truncated && j.shared_total) {
