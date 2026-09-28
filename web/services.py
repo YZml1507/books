@@ -3105,6 +3105,31 @@ def _pop_result(ref: str | None) -> tuple[str, dict] | tuple[None, None]:
         return view, j
 
 
+def chat_dream_facts(message: str) -> list[str]:
+    """小满聊天的解梦册子供给（R3178）：消息里出现「梦见/梦到/
+    做梦/昨晚梦」类词时，把写死词库的象征口径注成参考事实——
+    不进 verdict 权威信道（梦册是参考不是判定），语义上更像
+    「我查了册子」而不是「我算了命」。
+    """
+    _n = (message or "")
+    if not any(k in _n for k in ("梦见", "梦到", "做梦", "梦里",
+                                 "昨晚梦", "晚上梦", "有个梦",
+                                 "我的梦", "梦过")):
+        return []
+    r = dream_mod.interpret_dream(_n)
+    if not r.get("matched"):
+        # 册子没对上也不空跑——给小满一条口径绳，防她自由发挥成预言。
+        return ["她在讲一个梦，册子没对上——先听她说最清楚的画面，"
+                "梦是情绪回声不是预言，别当判词念"]
+    facts = []
+    for s in (r.get("symbols") or [])[:2]:
+        facts.append("解梦册子·{}：老话口径「{}」；回声读法「{}」".format(
+            s.get("name"), s.get("trad"), s.get("echo")))
+    facts.append("解梦口径：梦是情绪的回声不是预言——陪她聊心事，"
+                 "别当判词念，更别吓人")
+    return facts
+
+
 def chat_result_verdicts(ref: str | None) -> list[str]:
     """从服务端结果快照提取判词层事实——供 chat 权威信道。
 

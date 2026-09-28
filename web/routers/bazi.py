@@ -83,6 +83,11 @@ def chat(req: ChatRequest) -> dict:
     # R3115（specs/011 P1-1）：me 档案生日确定性展开——「生日：YYYY-MM-DD」
     # 进日主/太阳星座，小满知道「她是谁」而不是只知道「她生日」。
     facts = services.chat_profile_facts(facts)
+    # R3178：梦见类消息→解梦册子口径进参考事实（非权威信道）。
+    try:
+        facts += services.chat_dream_facts(req.message)
+    except Exception:
+        pass
     # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是
     # 话题参考，按子串升格会让伪造判定混入权威位。
     # R230l（R24-P2-3）：客户端基准日透传——跨零点 ±TZ 窗口里服务器

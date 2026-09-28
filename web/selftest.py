@@ -2529,6 +2529,15 @@ def _run_inner() -> list[str]:
     _df = _dream_mod.facts_dream(_dream_mod.interpret_dream("梦见掉牙"))
     assert _df and "掉牙" in _df[0], _df
     ok.append("dream.facts")
+    # R3178：聊天意图闸——说「梦见/梦到」→ 册子口径进 chat facts；
+    # 册子没对上 → 给一条「别当判词念」口径绳；不沾梦 → 零扰动。
+    from web import services as _svc_dm
+    _cf = _svc_dm.chat_dream_facts("昨晚梦见掉牙了好可怕")
+    assert any("解梦册子·掉牙" in x for x in _cf), _cf
+    _cf2 = _svc_dm.chat_dream_facts("我做梦又梦到他了")
+    assert _cf2 and "册子没对上" in _cf2[0], _cf2
+    assert _svc_dm.chat_dream_facts("今天天气不错") == []
+    ok.append("dream.chatfacts")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
