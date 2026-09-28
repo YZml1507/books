@@ -3114,7 +3114,7 @@ def chat_dream_facts(message: str) -> list[str]:
     _n = (message or "")
     if not any(k in _n for k in ("梦见", "梦到", "做梦", "梦里",
                                  "昨晚梦", "晚上梦", "有个梦",
-                                 "我的梦", "梦过")):
+                                 "我的梦", "梦过", "噩梦")):
         return []
     r = dream_mod.interpret_dream(_n)
     if not r.get("matched"):
