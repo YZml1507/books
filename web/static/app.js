@@ -9296,7 +9296,9 @@ function _phRenderMirrorList(listEl, m) {
       var _t = (it.ts || '').replace('T', ' ');
       var _tL = _PH_TYPE_LABEL[it.type] || '记录';
       var _r = (it.result_summary && it.result_summary.paipan_render) || '';
-      return '<div class="ph-item" data-id="' + esc(String(it.id)) + '">' +
+      /* R3200：类型筛选——镜像行同带 data-type。 */
+      return '<div class="ph-item" data-id="' + esc(String(it.id)) + '"' +
+        ' data-type="' + esc(it.type || 'bazi') + '">' +
         '<div class="ph-head"><span class="ph-type ph-t-' +
         esc(it.type || 'bazi') + '">' + esc(_tL) + '</span>' +
         '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
@@ -10274,6 +10276,38 @@ var _PH_BUILDERS = {
 var _PH_TYPE_LABEL = { bazi: '命盘', taohua: '桃花', hehun: '合婚',
                        tarot: '塔罗', liuyao: '六爻', qiming: '起名',
                        dream: '解梦' };
+
+/* R3200：历史类型筛选——按品类 chip 过滤 .ph-item[data-type]。
+ * 只筛当前页（limit=50 内），不碰服务端。 */
+var _phTypeFilter = '';
+function _phRenderFilter(rows) {
+  var box = el('historyFilter');
+  if (!box) return;
+  var types = {};
+  (rows || []).forEach(function (r) {
+    var t = r.type || 'bazi';
+    types[t] = (types[t] || 0) + 1;
+  });
+  var ks = Object.keys(types);
+  if (!ks.length) { box.hidden = true; box.innerHTML = ''; return; }
+  var html = '<button type="button" class="ph-fchip' +
+    (_phTypeFilter ? '' : ' on') + '" data-t="" aria-pressed="' +
+    (!_phTypeFilter) + '">全部</button>';
+  ks.sort().forEach(function (t) {
+    html += '<button type="button" class="ph-fchip' +
+      (_phTypeFilter === t ? ' on' : '') + '" data-t="' + esc(t) +
+      '" aria-pressed="' + (_phTypeFilter === t) + '">' +
+      esc(_PH_TYPE_LABEL[t] || t) + ' ' + types[t] + '</button>';
+  });
+  box.innerHTML = html;
+  box.hidden = false;
+}
+function _phApplyFilter() {
+  document.querySelectorAll('#historyList .ph-item').forEach(function (it) {
+    it.style.display = (!_phTypeFilter ||
+      it.getAttribute('data-type') === _phTypeFilter) ? '' : 'none';
+  });
+}
 
 function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
@@ -12590,7 +12624,9 @@ function baziPersonaCard(j) {
         const render = (it.result_summary && it.result_summary.paipan_render) || '';
         /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
          * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
-        return '<div class="ph-item" data-id="' + esc(String(it.id)) + '">' +
+        return '<div class="ph-item" data-id="' + esc(String(it.id)) + '"' +
+          /* R3200：类型筛选——行元素带 type 供 chip 隐藏过滤 */
+          ' data-type="' + esc(it.type || 'bazi') + '">' +
           '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
           esc(tLabel) + '</span>' +
           '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
@@ -12611,6 +12647,7 @@ function baziPersonaCard(j) {
         detailEl.hidden = true; detailEl.innerHTML = '';
         delete detailEl.dataset.rid;
       }
+      _phRenderFilter(_rows);   /* R3200：类型筛选 chip 行 */
     } catch (e) {
       /* R2400（R127-P1-3）：镜像只补「够不到」不补「不让看」——
        * 断网/5xx 时回退本机留档（与详情、收藏同口径）；401/403
@@ -12798,6 +12835,19 @@ function baziPersonaCard(j) {
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
     /* R230t（R33-P3-5/6）：刷新/导出无锁——双击各弹一遍。 */
     var _phLast = { rf: 0, ex: 0 };
+    /* R3200：类型筛选 chip——委托在容器上（渲染会重建内部）。 */
+    var _hf = document.getElementById('historyFilter');
+    if (_hf) _hf.addEventListener('click', function (ev) {
+      var c = ev.target.closest && ev.target.closest('.ph-fchip');
+      if (!c) return;
+      _phTypeFilter = c.getAttribute('data-t') || '';
+      _hf.querySelectorAll('.ph-fchip').forEach(function (x) {
+        var _on = (x.getAttribute('data-t') || '') === _phTypeFilter;
+        x.classList.toggle('on', _on);
+        x.setAttribute('aria-pressed', _on ? 'true' : 'false');
+      });
+      _phApplyFilter();
+    });
     const rf = document.getElementById('historyRefresh');
     if (rf) rf.addEventListener('click', function () {
       if (performance.now() - _phLast.rf < 800) return;

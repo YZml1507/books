@@ -429,6 +429,11 @@ def main() -> int:
         "importPasteGo": "触屏/微信专属粘贴导入弹层钮——桌面端"
                           "_exportShowOnly()=False 弹层不产生，"
                           "导入主路径 ui:history.import 已覆盖",
+        # R3200：历史类型筛选——容器委托监听 .ph-fchip 本地过滤
+        # （display none/'' 切换），零请求零副作用；真实过滤已
+        # Playwright 手验（解梦筛→1条/回全部→2条）。
+        "historyFilter": "类型筛选容器委托——.ph-fchip 本地 display "
+                         "过滤，零请求；真机已验",
         # R2506（审-U1）：日签失败态动态生成的重试钮——点击=loadDaily
         # 重拉，主链路（日卡渲染/深链/跨零点重载）已由 daily/deep 用例覆盖；
         # 冒烟强造 daily 5xx 成本高（需 mock 注入失败），豁免。

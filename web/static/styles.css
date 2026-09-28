@@ -1725,6 +1725,14 @@ button:active{transform:scale(.96);}
  * 可视区——允许换行。 */
 .ph-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px;}
 .ph-list{display:flex;flex-direction:column;gap:10px;}
+/* R3200：类型筛选 chip 行 */
+.ph-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.ph-fchip{padding:4px 12px;font-size:12px;border:1px solid var(--border);
+  border-radius:999px;background:var(--card);color:var(--secondary);
+  cursor:pointer;transition:all .15s ease;}
+.ph-fchip.on{border-color:var(--accent);color:var(--accent-ink);
+  background:var(--accent-soft,rgba(255,143,171,.12));}
+.ph-fchip:hover{background:var(--bg);}
 /* R228d：ph-item 卡身点不动（点击行为只在 .ph-open 钮上）——去掉假 affordance 的
  * cursor:pointer，挪到真按钮上。 */
 .ph-item{border:1px solid var(--border);border-radius:16px;padding:12px 14px;background:var(--card);box-shadow:0 2px 8px rgba(74,58,64,.06);transition:box-shadow .15s ease,transform .15s ease;}
