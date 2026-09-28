@@ -360,7 +360,7 @@ try {
              并附 not_hour_known 提示语义；契约零改动）。 -->
         <div class="row">
           <div class="field"><label for="hour">出生时辰（可留空）</label>
-            <input id="hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
+            <input id="hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19；子时填23"></div>
           <!-- R230f（R18-P1-1）：节气当小时内出生会被整点截到节前一侧——
                可选分钟字段只在需要时填（不填按 :00）。 -->
           <div class="field"><label for="minute">分钟（可选）</label>
@@ -689,7 +689,7 @@ try {
         <div class="field"><label for="qm_day">日</label>
           <input id="qm_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="qm_hour">时辰</label>
-          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
+          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
         <div class="field"><label for="qm_gender">性别</label>
             <select id="qm_gender"><option>女</option><option>男</option></select></div>
         <!-- R3206：农历生日——只记得农历的人也能起名 -->
@@ -717,7 +717,7 @@ try {
         <div class="field"><label for="th_day">日</label>
           <input id="th_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="th_hour">时辰</label>
-          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
+          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
         <div class="field"><label for="th_gender">性别</label>
             <select id="th_gender"><option>女</option><option>男</option></select></div>
         <!-- R3206：农历生日 -->
@@ -810,7 +810,7 @@ try {
         <div class="field"><label for="hh_a_day">我的出生日</label>
           <input id="hh_a_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
         <div class="field"><label for="hh_a_hour">我的时辰</label>
-          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
+          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
         <div class="field"><label for="hh_a_gender">我的性别</label>
             <!-- R231d（R37-F12）：甲侧=我，默认女——与主受众一致 -->
             <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
@@ -831,7 +831,7 @@ try {
         <div class="field"><label for="hh_b_day">TA 的出生日</label>
           <input id="hh_b_day" type="number" inputmode="numeric" min="1" max="31" value="20"></div>
         <div class="field"><label for="hh_b_hour">TA 的时辰</label>
-          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空"></div>
+          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
         <div class="field"><label for="hh_b_gender">TA 的性别</label>
           <!-- R231d（R37-F12）：乙侧=TA，默认男 -->
           <select id="hh_b_gender"><option>男</option><option>女</option></select></div>
@@ -875,7 +875,7 @@ try {
           <div class="field"><label for="b_day">日</label>
             <input id="b_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
           <div class="field"><label for="b_hour">时辰（可留空）</label>
-            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="不知道就留空（默认按中午算）"></div>
+            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19；留空按中午算"></div>
           <div class="field"><label for="b_gender">性别</label>
             <select id="b_gender"><option>女</option><option>男</option></select></div>
           <div class="field"><label for="b_nick">怎么称呼你（选填）</label>

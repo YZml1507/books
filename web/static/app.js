@@ -1791,6 +1791,29 @@ function _chatEmptyRebuild() {
   try { _chatChipsPersonalize(); } catch (e) {}
 }
 
+/* R3207：时辰对照表——知道「子时/亥时」不知道是几点的用户此前
+ * 只能切出去查。共享一张表，按需挂到每个时辰输入框的 .field 尾巴。 */
+var _HOUR_CHEAT = [
+  ['子', '23:00–00:59'], ['丑', '01:00–02:59'], ['寅', '03:00–04:59'],
+  ['卯', '05:00–06:59'], ['辰', '07:00–08:59'], ['巳', '09:00–10:59'],
+  ['午', '11:00–12:59'], ['未', '13:00–14:59'], ['申', '15:00–16:59'],
+  ['酉', '17:00–18:59'], ['戌', '19:00–20:59'], ['亥', '21:00–22:59']];
+function _hourCheatAttach(inputId) {
+  var inp = el(inputId);
+  if (!inp || !inp.parentNode ||
+      inp.parentNode.querySelector('.hour-cheat')) return;
+  var d = document.createElement('details');
+  d.className = 'hour-cheat';
+  var rows = '';
+  for (var i = 0; i < _HOUR_CHEAT.length; i++) {
+    rows += '<span><b>' + _HOUR_CHEAT[i][0] + '时</b> ' +
+            _HOUR_CHEAT[i][1] + '</span>';
+  }
+  d.innerHTML = '<summary>时辰对照（子时是几点？）</summary>' +
+    '<div class="hour-cheat-grid">' + rows + '</div>';
+  inp.parentNode.appendChild(d);
+}
+
 /* R217a：点击「聊聊这件事」自动发送当前排盘上下文，无需用户手动输入 */
 var _autoSendBusy = false;
 function autoSendChatContext() {
@@ -10471,6 +10494,10 @@ function init() {
   initReading();
   initDivination();
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
+  /* R3207：时辰对照表——「知道子时不知道几点」的用户此前要切出去查；
+   * 每个出生时辰输入框尾巴挂一张可展开的 12 时辰表。 */
+  ['hour', 'th_hour', 'qm_hour', 'hh_a_hour', 'hh_b_hour', 'b_hour']
+    .forEach(_hourCheatAttach);
   _chatChipsPersonalize();   /* R231g（R39-P2-3）：聊天空态 chips 个性化 */
   _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
   _qmFavsRender();   /* R230z：心水名单行 */

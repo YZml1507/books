@@ -2687,3 +2687,15 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 .dm-sym-name{font-weight:600;color:var(--accent,#ff8fab);margin-bottom:4px;}
 .dm-sym-trad{font-size:13px;color:var(--muted,#8a7f85);margin-bottom:4px;}
 .dm-sym-echo{font-size:14px;line-height:1.6;}
+
+/* R3207：时辰对照表——出生时辰输入框下的可展开快查 */
+.hour-cheat{margin-top:6px;font-size:12px;}
+.hour-cheat summary{cursor:pointer;color:var(--secondary);list-style:none;}
+.hour-cheat summary::before{content:'⏰ ';font-size:11px;}
+.hour-cheat summary::after{content:'▾';margin-left:4px;color:var(--muted);}
+.hour-cheat[open] summary::after{content:'▴';}
+.hour-cheat-grid{display:grid;grid-template-columns:repeat(3,1fr);
+  gap:2px 10px;margin-top:6px;padding:8px 10px;border-radius:10px;
+  background:var(--bg);border:1px solid var(--border);}
+.hour-cheat-grid span{font-size:12px;color:var(--secondary);white-space:nowrap;}
+.hour-cheat-grid b{color:var(--primary-ink);margin-right:2px;}
