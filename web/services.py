@@ -1744,6 +1744,34 @@ def _wd_idx(ch: str) -> int:
     i = _WEEKDAY.find(ch)
     return 6 if i > 6 else i
 
+
+_CN_DIGIT = {"零": 0, "一": 1, "二": 2, "两": 2, "兩": 2, "三": 3,
+             "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _cn_num(s: str) -> int:
+    """中文小数字→int：一/两/十/十一/二十/二十五（≤99）。解析不出 → 0。"""
+    s = (s or "").strip()
+    if not s:
+        return 0
+    if s.isdigit():
+        return int(s)
+    if s == "十":
+        return 10
+    if "十" in s:
+        a, _, b = s.partition("十")
+        return (_CN_DIGIT.get(a, 0) or 1) * 10 + _CN_DIGIT.get(b, 0)
+    return _CN_DIGIT.get(s, 0)
+
+
+def _add_months(dt: datetime, n: int) -> datetime:
+    """按月份平移（日数钳到目标月月末）——「三个月后」用。"""
+    import calendar as _cal
+    y = dt.year + (dt.month - 1 + n) // 12
+    m = (dt.month - 1 + n) % 12 + 1
+    d = min(dt.day, _cal.monthrange(y, m)[1])
+    return dt.replace(year=y, month=m, day=d)
+
 # R229d：繁中问句归一——「明天適合簽約嗎」此前 _CHAT_SCENE_TERMS 全简体
 # 打不中（事实行缺席 → LLM 自由发挥）。只映射问句域常见字，与前端
 # app.js _T2S 同表；未映射字原样通过（宁缺毋滥不错转）。
@@ -2931,6 +2959,45 @@ def _hl_day_part(msg: str, now: datetime) -> tuple[datetime, str]:
     if m:
         wd = _wd_idx(m.group(2))
         return now + timedelta(days=(wd - now.weekday()) % 7), m.group(0)
+    # R3230：数字相对日「三天后/一周后/三个月前/半个月后」——此前静默
+    # 按今天判（R228r 同类伤：用户拿今天的判词安排将来的事）。
+    # 月单位必须带「个」——「十月后」是「十月以后」不是十个月后；
+    # 半月按 15 天折算；放「最近/近期」兜底之前，上文各特则优先。
+    _dr = re.search(
+        r"(?:过|過)?(半|[0-9]{1,3}|[一二两三四五六七八九兩]?十"
+        r"[一二三四五六七八九]?|[一二两三四五六七八九兩]+)"
+        r"[个個]?(天|日|周|週|星期|礼拜|禮拜)(后|後|前)|"
+        r"(?:过|過)?(半|[0-9]{1,2}|[一二两三四五六七八九兩]?十"
+        r"[一二三四五六七八九]?|[一二两三四五六七八九兩]+)"
+        r"[个個](月)(后|後|前)", msg)
+    if _dr:
+        _num_s = _dr.group(1) or _dr.group(4)
+        _unit = _dr.group(2) or _dr.group(5)
+        _d2 = _dr.group(3) or _dr.group(6)
+        _sgn = -1 if _d2 == "前" else 1
+        if _unit == "月":
+            _mo_n = _cn_num(_num_s) if _num_s != "半" else 0
+            if _mo_n:
+                return _add_months(now, _sgn * _mo_n), _dr.group(0)
+            _days = 15 * _sgn                # 半个月 ≈ 15 天
+        elif _num_s == "半":
+            _days = 0                        # 半天后 → 同日
+        else:
+            _days = _cn_num(_num_s) * _sgn
+            if _unit not in ("天", "日"):
+                _days *= 7
+        return now + timedelta(days=_days), _dr.group(0)
+    # 「过N天/过N周」无方向字同义——过两天已在上面特则，这里兜长尾。
+    _dr2 = re.search(
+        r"(?:过|過)([0-9]{1,3}|[一二两三四五六七八九兩]?十"
+        r"[一二三四五六七八九]?|[一二两三四五六七八九兩]+)"
+        r"[个個]?(天|日|周|週|星期|礼拜|禮拜)", msg)
+    if _dr2:
+        _nu2 = _cn_num(_dr2.group(1))
+        if _nu2:
+            if _dr2.group(2) not in ("天", "日"):
+                _nu2 *= 7
+            return now + timedelta(days=_nu2), _dr2.group(0)
     # R233r（R49-Top5-5）：「最近/近期/这几天」此前落默认——spoken 被
     # 写成「今天」，模型不知道用户说的是一段日子。以今天为代表日并把
     # 原词写进事实行。
