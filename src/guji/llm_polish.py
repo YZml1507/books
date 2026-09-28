@@ -1338,6 +1338,9 @@ def chat(session_id: str, user_msg: str,
         with _chat_lock:
             sess = _chat_sessions.setdefault(
                 session_id, {"messages": [], "updated": time.monotonic()})
+            # R3227（R3225 同型）：脏会话有 updated 无 messages 时
+            # sess["messages"] KeyError——该 sid 聊天永久 failed。
+            sess.setdefault("messages", [])
             # R230a-6（R12-P1-2）：危机红线必须排在轮数收尾之前——此前满
             # 6 轮后发「我不想活了」会被收尾文案截胡，安全转介失效。
             if _is_crisis(msg):
@@ -1515,6 +1518,7 @@ def chat(session_id: str, user_msg: str,
         _banned_seen: list[bool] = []
         text = _chat_call(payload_msgs, cfg, _transport, deadline=_dl,
                           banned_seen=_banned_seen)
+        _used_cfg = cfg
         if not text:
             # R213b→R3223：备选大脑升级为兜底链——主模型失败按配置顺序
             # 逐节切换（同一 payload_msgs：system/facts/历史注入随链透传，
@@ -1529,6 +1533,7 @@ def chat(session_id: str, user_msg: str,
                 text = _chat_call(payload_msgs, _fcfg, _transport,
                                   deadline=_dl, banned_seen=_banned_seen)
                 if text:
+                    _used_cfg = _fcfg
                     break
             if not text:
                 # R230a-7：模型回了但全文被禁语拦下（_sanitize→None）与网络挂
@@ -1558,7 +1563,9 @@ def chat(session_id: str, user_msg: str,
                     "content": ("你上一版回复跟这张卡的判词层结论方向矛盾。"
                                 "判词是权威结论：按它的口径重说一遍，"
                                 "温柔但照实，不软化不加码。")}]
-                _t2 = _chat_call(_fix_msgs, cfg, _transport,
+                # R3227：纠偏重试投给出稿的那条链节——兜底节出的稿
+                # 回主链纠会撞上主链已挂的事实（白烧预算拿锚句）。
+                _t2 = _chat_call(_fix_msgs, _used_cfg, _transport,
                                  deadline=_dl, banned_seen=_banned_seen)
                 if _t2 and not _chat_verdict_contra(_t2, _rverdicts) \
                         and not _CHAT_BANNED_PAT.search(_scan_flat(_t2)):
