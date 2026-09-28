@@ -1514,12 +1514,20 @@ def chat(session_id: str, user_msg: str,
         text = _chat_call(payload_msgs, cfg, _transport, deadline=_dl,
                           banned_seen=_banned_seen)
         if not text:
-            # R213b：主 LLM 失败时 dots 作备选大脑（同 system + facts 语境）。
-            # dots 也失败才真正降级 None——提高聊天可用性而非改变口吻判据。
-            dcfg = load_dots_config()
-            if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
-                text = _chat_call(payload_msgs, dcfg, _transport,
+            # R213b→R3223：备选大脑升级为兜底链——主模型失败按配置顺序
+            # 逐节切换（同一 payload_msgs：system/facts/历史注入随链透传，
+            # 换模型不丢上下文）；全链失败才真正降级 None。
+            _seen_bases = {cfg.get("base_url")}
+            for _fcfg in load_fallback_configs():
+                if _fcfg.get("base_url") in _seen_bases:
+                    continue
+                _seen_bases.add(_fcfg.get("base_url"))
+                _llm_log(f"chat 兜底切 {(_fcfg.get('base_url') or '')[:40]}"
+                         f"/{_fcfg.get('model') or '?'}")
+                text = _chat_call(payload_msgs, _fcfg, _transport,
                                   deadline=_dl, banned_seen=_banned_seen)
+                if text:
+                    break
             if not text:
                 # R230a-7：模型回了但全文被禁语拦下（_sanitize→None）与网络挂
                 # 要区分——前者给安全固定句，后者才返回 None 走前端降级文案。
@@ -1745,6 +1753,76 @@ def load_dots_config() -> dict | None:
     return d
 
 
+# R3223：兜底链——llm_config.json 的 "fallbacks" 数组（按数组顺序依次
+# 切换，一个 key 出问题立即切下一个）+ 旧版 "dots" 段殿后（向后兼容，
+# 已配置 dots 的部署形态不丢兜底）。主配置不变，仍在顶层段。
+
+def load_fallback_configs() -> list[dict]:
+    """读兜底链配置，返回按序排列的合法 provider 配置列表。
+
+    None 不返回（用空表 []）——调用方 for 循环天然零兜底不做事。
+    BOOKS_LLM_DISABLE 总开关同样生效。"""
+    _dis = os.getenv(_ENV_DISABLE)
+    if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
+        return []
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(os.path.dirname(here))
+    _candidates = [os.path.join(root, "web", "llm_config.json")]
+    if getattr(sys, "frozen", False):
+        _candidates.append(
+            os.path.join(os.path.dirname(sys.executable), "llm_config.json"))
+        _candidates.append(
+            os.path.join(os.path.dirname(sys.executable), "web",
+                         "llm_config.json"))
+    raw_list: list = []
+    for path in _candidates:
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw_list = (json.load(f) or {}).get("fallbacks") or []
+            break
+        except Exception:
+            pass
+    if not isinstance(raw_list, list):
+        raw_list = []
+    out: list[dict] = []
+    for _i, _d0 in enumerate(raw_list):
+        if not isinstance(_d0, dict):
+            continue
+        d = dict(_d0)
+        # 与 load_dots_config 同款校验纪律：字符串 enabled 按语义解析、
+        # timeout_s/max_tokens coerce、坏条目跳过不误伤其余链节。
+        _en = d.get("enabled", True)
+        if isinstance(_en, str):
+            _en_l = _en.strip().lower()
+            if _en_l in ("0", "false", "off", "no"):
+                continue
+            d["enabled"] = _en_l in ("1", "true", "on", "yes")
+        if not d.get("enabled", True):
+            continue
+        for _k, _dv in (("timeout_s", 30), ("max_tokens", 1000)):
+            try:
+                d[_k] = int(d.get(_k, _dv))
+                if d[_k] <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                print(f"[llm_polish] fallbacks[{_i}] 配置项 {_k}="
+                      f"{d.get(_k)!r} 非法，回退默认 {_dv}", file=sys.stderr)
+                d[_k] = _dv
+        if (not isinstance(d.get("base_url"), str)
+                or not d["base_url"].startswith("http")):
+            print(f"[llm_polish] fallbacks[{_i}] base_url="
+                  f"{d.get('base_url')!r} 不是合法 URL，跳过此链节",
+                  file=sys.stderr)
+            continue
+        if not isinstance(d.get("api_key"), str) or not d["api_key"]:
+            continue
+        out.append(d)
+    dcfg = load_dots_config()
+    if dcfg is not None:
+        out.append(dcfg)
+    return out
+
+
 # R230t（R32-P2-21）：xhs_copy（小红书文案）连同 _XHS_COPY_SYSTEM 删除——
 # 无路由无前端调用的死代码持有 dots 端点配置路径，需要时从 git 史拿回。
 
@@ -1790,11 +1868,16 @@ def review_names(names: list[str], facts: list[str] | None = None,
     _dl = time.monotonic() + _POLL_BUDGET_S
     text = _chat_call(msgs, cfg, _transport, keep_citations=True, deadline=_dl)
     if not text:
-        # R217a：主 LLM 失败时 dots 作备选大脑（同 chat 兜底模式）
-        dcfg = load_dots_config()
-        if dcfg is not None and dcfg.get("base_url") != cfg.get("base_url"):
-            text = _chat_call(msgs, dcfg, _transport, keep_citations=True,
+        # R217a→R3223：主 LLM 失败走兜底链（同 chat 模式，全链失败才降级）
+        _seen_bases = {cfg.get("base_url")}
+        for _fcfg in load_fallback_configs():
+            if _fcfg.get("base_url") in _seen_bases:
+                continue
+            _seen_bases.add(_fcfg.get("base_url"))
+            text = _chat_call(msgs, _fcfg, _transport, keep_citations=True,
                               deadline=_dl)
+            if text:
+                break
         if not text:
             return None
     return text
