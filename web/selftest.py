@@ -2553,6 +2553,10 @@ def _run_inner() -> list[str]:
     check("chat.action_field", client.post("/api/chat", json={
         "session_id": "st-action", "message": "我想算个卦"}),
         lambda j: j.get("action", {}).get("view") == "liuyao")
+    # R3197：危机+路标混句——罐头转介气泡尾巴不能挂「去抽牌」。
+    check("chat.action_crisis_suppressed", client.post("/api/chat", json={
+        "session_id": "st-action2", "message": "活着没意思，给我抽张牌吧"}),
+        lambda j: "action" not in j)
     ok.append("chat.actionview")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))

@@ -90,8 +90,10 @@ def chat(req: ChatRequest) -> dict:
         facts += services.chat_action_facts(req.message)
         # R3195：路标同步给前端可点跳转 chip——「去塔罗抽一把」
         # 比纯文字指路少一步寻找。
+        # R3197：危机消息禁挂跳转——「不想活了给我抽张牌」走罐头
+        # 转介时，气泡尾巴不能还跟一个「去抽牌」按钮。
         _act = services.chat_action_view(req.message)
-        if _act:
+        if _act and not llm_polish._is_crisis(req.message):
             out["action"] = _act
     except Exception:
         pass
