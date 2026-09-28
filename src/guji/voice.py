@@ -1346,12 +1346,18 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             pass
 
     if ml:
-        pos = "、".join(YAO_WARM.get(i, f"第{i}爻").split("——")[0] for i in ml)
+        def _yw_lbl(s):
+            return s.split("：")[0].split("——")[0]
+
+        def _yw_mean(s):
+            return s.split("：", 1)[-1] if "：" in s else s.split("——")[-1]
+
+        pos = "、".join(_yw_lbl(YAO_WARM.get(i, f"第{i}爻")) for i in ml)
         # R2349q（R81-P1-16）：多动爻此前只解释第一爻（3 动爻共用初爻
         # 语义）——每爻各自取白话，逗号隔开。
         _mv_mean = [
-            (YAO_WARM.get(i, f"第{i}爻").split("——")[0],
-             YAO_WARM.get(i, "").split("——")[-1])
+            (_yw_lbl(YAO_WARM.get(i, f"第{i}爻")),
+             _yw_mean(YAO_WARM.get(i, "")))
             for i in ml]
         _mv_txt = "；".join(f"{p}在动：{m}" for p, m in _mv_mean)
         lines.append(f"动的是{pos}（共 {len(ml)} 个），{_mv_txt}。")
