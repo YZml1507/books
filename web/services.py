@@ -3153,6 +3153,9 @@ def chat_action_facts(message: str) -> list[str]:
                              "改名字")):
         return ["她想起名——铺子里有真入口：首页「起名」卡能出"
                 "候选名单，挑完回来接着聊"]
+    if any(k in _n for k in ("解梦", "周公")):
+        return ["她想解梦——铺子里有真入口：首页「解梦」卡把梦讲给"
+                "册子听，对完回来接着聊"]
     if "八字" in _n and any(k in _n for k in ("算", "看", "排", "测")):
         return ["她想排八字——铺子里有真入口：首页「八字」卡输生日"
                 "出真盘，看完回来接着聊"]
