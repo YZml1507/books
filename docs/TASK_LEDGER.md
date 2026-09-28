@@ -17284,3 +17284,4 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **R3195**：聊天路标可点化 —— 「帮我抽张牌/算个卦」类意图此前只给纯文字指路；现 /api/chat 附 action={view,label}，回复气泡尾挂可点 chip（accent 描边），点击收抽屉+跳真功能页；打烊兜底态也挂。真机实测 chip「🃏 去塔罗抽一把」→ view-tarot 落地。八字裸词仍要求动作词防误伤。
 - **R3196**：IME 合成期 Enter 防误发 —— chatInput + 全部 Enter 提交输入框（rq/rq2/cq/cwq/tq/起名搜索等 13 键）此前零 isComposing 守卫，中文输入法选词 Enter 会把半句直接提交；isComposing+keyCode229 双口径拦截（老 WebView 只给后者）。
 - **R3197**：危机消息禁挂路标 chip —— 「活着没意思给我抽张牌」此前响应带 action，危机罐头转介气泡尾巴会跟「🃏去抽牌」按钮；`_is_crisis` 同判定压掉 action（闸后于 facts 构建但在下发前）。
+- **R3198**：暗黑态 action chip accent 修复 —— `chat-chip` 深底规则吃掉 accent-ink 描边/文字，路标变普通灰钮丢「可点」信号；补暗黑态 --accent 亮粉描边+hover 反色。真机 computed 验证。

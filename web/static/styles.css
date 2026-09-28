@@ -2403,6 +2403,12 @@ html[data-theme="dark"] .mode-btn.active{
 html[data-theme="dark"] .xz-card-img{filter:brightness(.82) saturate(.9);}
 /* P2-1 AI 气泡奶油描边在深底下发亮 */
 html[data-theme="dark"] .chat-ai{border-color:#453C42;}
+/* R3195-续：路标 chip 在深底下 accent 被 .chat-chip 规则吃掉——
+ * 恢复 accent-ink 描边+文字保住「可点」信号（底仍随 .chat-chip）。 */
+html[data-theme="dark"] .chat-act-chip{border-color:var(--accent);
+  color:var(--accent); background:transparent;}
+html[data-theme="dark"] .chat-act-chip:hover{background:var(--accent);
+  color:#1E191C;}
 /* P2-2 内联粉彩胶囊（合婚 pill sm）不深降 → 压亮 */
 html[data-theme="dark"] .pill.sm{filter:brightness(.85) saturate(.8);}
 /* P2-3 装饰白碟在深渐变上发灰斑 */
