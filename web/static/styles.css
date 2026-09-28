@@ -1191,7 +1191,7 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
   display:flex; align-items:center; justify-content:center;
 }
 .tarot-card-front .tname{font-size:16px; font-weight:700; margin-bottom:0;}
-.tarot-card-front .tmeaning{font-size:11px; color:#815934; line-height:1.45;}
+.tarot-card-front .tmeaning{font-size:12px; color:#815934; line-height:1.45;}
 .tarot-grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:16px 0;}
 .tarot-cell{text-align:center;}
 .tarot-pos{font-size:13px; color:var(--secondary); margin-top:8px;}
@@ -1988,10 +1988,11 @@ html.welcomed .welcome-bar{display:none;}
 .hl-week-wd{font-size:11px;color:var(--secondary);}
 .hl-week-date{font-size:12px;font-weight:700;color:var(--primary-ink);}
 /* R2349o（R78-P1-3）：#6B8E23/#B5573F 在奶油底 ~3.3/3.6:1——加深一轮。 */
-.hl-week-yi{font-size:11px;color:#4E7020;line-height:1.2;text-align:center;}
-.hl-week-ji{font-size:11px;color:#8E3F2B;line-height:1.2;text-align:center;}
+.hl-week-yi{font-size:12px;color:#4E7020;line-height:1.2;text-align:center;}
+.hl-week-ji{font-size:12px;color:#8E3F2B;line-height:1.2;text-align:center;}
 @media (max-width:400px){
-  .hl-week-yi,.hl-week-ji{font-size:10px;}
+  /* R3215：宜/忌词是格子里唯一的实质内容——不再往 10px 降，
+   * 靠 cell padding 收缩腾位置。 */
   .hl-week-cell{padding:6px 1px;}
 }
 
@@ -2103,7 +2104,7 @@ html{-webkit-text-size-adjust:100%;}
   border:1px solid rgba(122,107,168,.22);vertical-align:1px;}
 /* R233c：时辰估算提示小标 */
 .hour-note{display:inline-block;margin:8px 0 0;padding:2px 10px;border-radius:999px;
-  font-size:11px;color:var(--secondary);background:rgba(184,134,11,.08);
+  font-size:12px;color:var(--secondary);background:rgba(184,134,11,.08);
   border:1px dashed rgba(184,134,11,.3);}
 
 /* ── R233f（R43-P2/P3 a11y 批） ── */
@@ -2607,7 +2608,7 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
 /* R2349o（R78-P1-3）：--accent 蜜桃粉是装饰色（~1.68:1），文字用 -ink 变体。 */
 .xz-more{font-size:11px;color:var(--accent-ink);margin-top:2px;display:inline-block;}
 .xz-tri{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);
-  font-size:11px;color:var(--secondary);line-height:1.7;}
+  font-size:12px;color:var(--secondary);line-height:1.7;}
 
 /* ── R2349t（R88-12）：连签里程碑卡分档——档徽描边/底色差异化 ── */
 .celeb-card[data-tier="3"]{border:2px solid #A8C686;}

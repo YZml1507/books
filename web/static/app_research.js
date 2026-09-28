@@ -16,6 +16,54 @@
  * （(初|二|…)(九|六) 把位序搞反），修一处漏一处——收敛成单点。 */
 var _YAO_RE = /^(初[九六]|[九六][二三四五]|上[九六]|用[九六])$/;
 var _YAO_HINT = '爻位写法不对——填「初九」「九二」…「上六」，或乾坤专属的「用九/用六」';
+/* R3215：校勘差异行 humanize——Finding.line() 是日志格式
+ *（@偏移 kind work_id='字'），直出像接口日志。译成：
+ * 「第12字：底本作「枯」，焦氏易林作「稊」（异文）」。 */
+var _CMP_KIND_CN = {
+  'preserved-variant': '存异（两本各自的写法，非抄错）',
+  'divergent': '异文',
+  'orthographic': '字形写法不同',
+  'omission': '缺文',
+  'addition': '多出的字',
+  'same': '相同'
+};
+function _cmpBookName(wid, citations) {
+  var c = (citations || {})[wid];
+  if (c) {
+    var h = (typeof humanCite === 'function') ? humanCite(c) : c;
+    return (h || wid).split(' ')[0].split('[')[0] || wid;
+  }
+  return wid;
+}
+function _cmpFindingLine(f, citations) {
+  var kind = _CMP_KIND_CN[f.kind] || f.kind || '差异';
+  var base = f.base ? '底本作「' + f.base + '」' : '';
+  var others = [];
+  var ks = Object.keys(f.others || {}).sort();
+  for (var i = 0; i < ks.length; i++) {
+    others.push(_cmpBookName(ks[i], citations) + '作「' +
+      String(f.others[ks[i]]).replace(/^'|'$/g, '') + '」');
+  }
+  var seg = ['第' + (f.at + 1) + '字', base, others.join('，')]
+    .filter(function (x) { return x; }).join('：');
+  var note = (f.note || '').replace(/KR\w+/g, function (wid) {
+    return _cmpBookName(wid, citations);
+  }).replace('长度启发式', '按长度推断').replace('无对应', '对不上');
+  return seg + '（' + kind + '）' + (note ? '，' + note : '');
+}
+/* P1-1：书目「来源」是裸 URL 时只显示库名，不把 codeload 链接
+ * 当文案贴出来。 */
+function _srcLabel(src) {
+  var s = String(src || '');
+  if (!/^https?:\/\//.test(s)) return s;
+  if (/kanripo/i.test(s)) return 'Kanripo 公开古籍库';
+  try { return new URL(s).hostname; } catch (e) { return '线上古籍库'; }
+}
+/* 节标签有时是卷文件名（KR1a0001_001），翻成「第1卷」。 */
+function _secLabel(l) {
+  return String(l == null ? '' : l).replace(/KR\w+?_0*(\d+)/g, '第$1卷');
+}
+
 
 async function doSearch() {
   busy('searchResult', '检索中…');
@@ -85,8 +133,12 @@ async function doResearch() {
       j.comparisons.forEach(function (cmp) {
         html += '<div class="finding">' + esc(cmp.addr || '') + '：' +
           esc((cmp.findings || []).length) + ' 处差异</div>';
+        var _fseen = {};
         (cmp.findings || []).slice(0, 5).forEach(function (f) {
-          html += '<div class="finding">' + esc(_rmMarks(f.line || f.note || '')) + '</div>';
+          var line = _cmpFindingLine(f, cmp.citations);
+          if (_fseen[line]) return;
+          _fseen[line] = 1;
+          html += '<div class="finding">' + esc(line) + '</div>';
         });
       });
     }
@@ -176,7 +228,7 @@ async function doCompare() {
       return;
     }
     let html = '<h3>' + esc(j.addr || '') +
-      (j.reference ? '　以《' + esc(j.reference) + '》为底本' : '') + '　' +
+      (j.reference ? '　以《' + esc(_cmpBookName(j.reference, j.citations)) + '》为底本' : '') + '　' +
       (j.agree ? '几种版本说法一致' : '几种版本说法不一样') + '</h3>';
     const witnesses = j.witnesses || {};
     const citations = j.citations || {};
@@ -184,7 +236,7 @@ async function doCompare() {
     if (ids.length) {
       html += '<div class="cmp-grid">';
       ids.forEach(function (wid) {
-        html += '<div class="cmp-wit"><h3>' + esc(citations[wid] || wid) + '</h3>' +
+        html += '<div class="cmp-wit"><h3>' + esc(humanCite(citations[wid] || '') || wid) + '</h3>' +
           '<p>' + esc(witnesses[wid]) + '</p></div>';
       });
       html += '</div>';
@@ -192,9 +244,13 @@ async function doCompare() {
     // 实测字段：findings[].line（已格式化的一行）+ kind/at/base/others/note。
     if (j.findings && j.findings.length) {
       html += '<h3 style="margin-top:16px;">差异明细</h3>';
+      var _seen = {};
       j.findings.forEach(function (f, i) {
+        var line = _cmpFindingLine(f, j.citations);
+        if (_seen[line]) return;
+        _seen[line] = 1;
         html += '<div class="finding" style="border-left-color:' + colorAt(i) + ';">' +
-          esc(_rmMarks(f.line || (f.kind + ' @' + f.at + ' ' + f.base))) + '</div>';
+          esc(line) + '</div>';
       });
     } else {
       html += '<div class="no-evidence">🔍 无差异发现，换个卦爻试试？</div>';
@@ -229,7 +285,7 @@ async function doWorks() {
         '<h3 style="color:' + c + ';font-size:14px;">' + esc(w.title || w.id) + '</h3>' +
         '<p style="font-size:12px;color:var(--secondary);">' + esc(w.id) +
         (w.genre ? ' · ' + esc(w.genre) : '') +
-        ' · ' + esc(w.source || '') + '</p>' +
+        ' · ' + esc(_srcLabel(w.source)) + '</p>' +
         '<p style="font-size:18px;color:' + c + ';font-weight:600;">' +
         esc(w.units == null ? '?' : w.units) + '</p>' +
         '<p style="font-size:11px;color:var(--secondary);">段落 · 已编址 ' +
@@ -615,7 +671,7 @@ async function doBookStructure() {
     html += '<div class="table-scroll"><table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
-      html += '<tr><td>' + esc(s.label || '') + '</td>' +
+      html += '<tr><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +
         '<td class="num">' + esc(s.n_units) + '</td>' +
         '<td class="num">' + esc(s.chars) + '</td>' +
         '<td>' + esc(fmtScalar(s.layers)) + '</td>' +
@@ -679,12 +735,23 @@ async function doBookSummary() {
     let html = '<h3>《' + esc(j.title || j.work_id) + '》知识卡</h3><div class="calc-grid">';
     /* R233y（R54-P1-19）：知识卡字段名半行话化翻一遍。 */
     [
-      ['体裁', j.genre], ['编址方式', j.scheme], ['章节数', j.n_sections],
+      ['体裁', j.genre], ['编址方式', _SCHEME_CN[j.scheme] || j.scheme], ['章节数', j.n_sections],
       ['段落数', j.n_units], ['总字数', j.total_chars],
-      ['各层命中', fmtScalar(j.layers)], ['未编址段落', j.unaddressed_units],
+      ['各层命中', (j.layers && typeof j.layers === 'object' &&
+        !Array.isArray(j.layers))
+        ? Object.keys(j.layers).map(function (lk) {
+            var lv = j.layers[lk] || {};
+            return lk + '：' + (lv.units || '?') + '节·' +
+                   (lv.chars || '?') + '字';
+          }).join('，')
+        : fmtScalar(j.layers)], ['未编址段落', j.unaddressed_units],
       ['存疑段落', j.suspect_units], ['缺字段落', j.skipped_chars_units],
-      ['最长一节', fmtScalar(j.largest_section)],
-      ['最短一节', fmtScalar(j.smallest_section)]
+      ['最长一节', j.largest_section && j.largest_section.label
+        ? _secLabel(j.largest_section.label) + '（' + j.largest_section.chars + '字）'
+        : fmtScalar(j.largest_section)],
+      ['最短一节', j.smallest_section && j.smallest_section.label
+        ? _secLabel(j.smallest_section.label) + '（' + j.smallest_section.chars + '字）'
+        : fmtScalar(j.smallest_section)]
     ].forEach(function (pair, i) {
       if (pair[1] == null) return;
       html += '<div class="calc-block" style="border-left:3px solid ' + colorAt(i) +

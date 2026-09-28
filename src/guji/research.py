@@ -184,7 +184,7 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
     # --- round 1: phrase search over the whole corpus -------------------------------
     hits = corpus.search(question, limit=12)
     s1 = Step("search", question, len(hits), 0,
-              "folded FTS phrase match（異體字折叠，整词相邻匹配）")
+              "整句按词组检索（异体字折叠归一，相邻匹配）")
     if not hits:
         # A natural-language question is not a corpus phrase. Retry with up to three
         # POSITION-DISJOINT hitting sub-phrases as seeds: the first-hitting longest
@@ -217,7 +217,7 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
             s1 = Step("search-fallback", "；".join(s for s, _ in seeds),
                       sum(len(f) for _, f in seeds), 0,
                       f"整句「{question}」无命中，改用 {len(seeds)} 个互不重叠的"
-                      f"命中子短语作种子（可见可复现）")
+                      f"命中子短语作种子")
     keep(hits, s1)
     if not hits:
         res.refused = True
@@ -252,13 +252,13 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
                 res.comparisons.append({
                     "addr": cmp.addr, "reference": cmp.reference,
                     "agree": cmp.agree,
-                    "findings": [{"kind": f.kind, "base_id": f.base_id,
+                    "findings": [{"kind": f.kind, "at": f.at, "base_id": f.base_id,
                                   "base": f.base, "others": f.others,
                                   "note": f.note, "line": f.line()} for f in ev],
                     "citations": cmp.citations,
                 })
                 res.steps.append(Step("compare", label, len(ev), len(ev),
-                                      "差异摘要：校勘级分歧（preserved-variant 不折叠）"))
+                                      "差异摘要：校勘级分歧（有意存异的不折叠）"))
 
     # --- round 3: follow source-printed cross-references from 焦氏易林 hits ----------
     for h in hits:
@@ -272,8 +272,8 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
             continue
         dst = corpus.units_by_id([r["dst_unit"] for r in rows])
         notes = "；".join(r["note"] for r in rows)
-        keep(dst, Step("link-hop", f"{h.work_id} 卦{h.gua}·{h.yao}", len(rows), 0,
-                       f"原文印出的互见（{notes}），非推断边（D-023）"))
+        keep(dst, Step("link-hop", f"{h.title or h.work_id} 卦{h.gua}·{h.yao}", len(rows), 0,
+                       f"原文印出的互见（{notes}），不是推断"))
 
     # --- G7 discipline: clean evidence or refusal -----------------------------------
     if not res.evidence:
