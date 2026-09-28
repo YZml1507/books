@@ -3236,19 +3236,11 @@ def chat_result_verdicts(ref: str | None) -> list[str]:
         if j.get("today_note"):
             out.append("卡面判词行：" + str(j["today_note"])[:110])
     elif view == "dream":
-        # R3178：解梦卡——象征名+老话口径行进权威信道，照梦聊时
-        # 小满手里有册子原文（warm.reply 逐行也会进，不重复截）。
+        # R3178：解梦卡——象征名行进权威信道；warm.reply 由尾部
+        # 公共循环照收（老话/回声/微行动/免责全在里头）。
         _syms = [(s.get("name") or "") for s in (j.get("symbols") or [])]
         if _syms:
             out.append("梦里对上的画面：" + "、".join(_syms[:3]))
-        _ts = next((s for s in (j.get("signs") or [])
-                    if s.get("is_today")), None) or {}
-        for _f in ("note", "sign_note"):
-            _v = _ts.get(_f)
-            # today_note 与值宫 note 常同文——重复行不进权威块。
-            if _v and ("卡面判词行：" + str(_v)[:110]) not in out:
-                out.append("卡面判词行：" + str(_v)[:110])
-        return out[:9]
     if j.get("question"):
         out.append(f"她当时问的是：「{str(j['question'])[:60]}」")
     # warm.reply 原文逐条收——判词带/剧本/处方/倾向全在里面，
