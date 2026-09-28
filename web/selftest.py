@@ -1512,6 +1512,25 @@ def _run_inner() -> list[str]:
         assert _soft not in _alltxt, ("软话回魂", _soft)
     ok.append("hehun.band2_friction")
     ok.append("hehun.softcopy_purged")
+    # R3226：上等合拍盘（band0）不抽摩擦向标签——判词「底子顺」配
+    # 「磨合型」签是口径打架；全支盐扫两条抽签路（相生强桶/中性桶）。
+    from guji import voice as _vc
+    _FRIC = {"欢喜冤家预定", "并肩作战型情侣",
+             "磨合型但有韧劲的一对", "磨合着磨合着就顺了"}
+    _ZHIS = "子丑寅卯辰巳午未申酉戌亥"
+    # 两条抽签路各扫全支盐：相生强桶（day_wx_sheng）与中性桶
+    # （无五行字段——带 wx 又非相生会被判相克落 band1，那不是 band0）。
+    for _za in _ZHIS:
+        for _zb in _ZHIS:
+            for _h0 in ({"match_score": 88, "day_wx_sheng": True,
+                         "day_wx_a": "木", "day_wx_b": "火"},
+                        {"match_score": 88}):
+                _w0 = _vc.warm_hehun(dict(
+                    _h0, day_zhi_a=_za, day_zhi_b=_zb))
+                _l0 = _w0.get("one_liner") or ""
+                assert _l0 not in _FRIC, \
+                    ("band0 抽出摩擦签", _za, _zb, _h0, _l0)
+    ok.append("hehun.band0_no_friction_label")
     # R3152：带问句的合婚——「我们能结婚吗」该领到判词后的定向行
     # （对着问的说：长远题→大运节奏坐标）。
     _hh_q = client.post("/api/hehun", json={

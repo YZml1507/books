@@ -2498,11 +2498,19 @@ def warm_hehun(h: dict) -> dict:
                       "双向奔赴型选手", "久处不厌预备役"}
         # R2349s（R84-P1-10）：强桶门槛此前只看年支 clash——日支冲
         # （夫妻宫顶牛）的相生盘照样抽「锁死这对了」，日支冲一并禁强桶。
+        # R3226：摩擦向标签对 band0 上等合拍盘是口径打架（判词说底子
+        # 顺、标签说要磨）——band0 剔出摩擦桶；band1 中上磨合照抽。
+        _FRICTION_CP = {"欢喜冤家预定", "并肩作战型情侣",
+                        "磨合型但有韧劲的一对", "磨合着磨合着就顺了"}
+        _pool = (_hh_all if _band != 0 else
+                 [t for t in _hh_all if t not in _FRICTION_CP])
+        if not _pool:
+            _pool = ["细水长流搭子"]
         if h.get("day_wx_sheng") and not h.get("clash") \
                 and _dz0 != "冲":
-            l0 = _pick(_hh_all, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
+            l0 = _pick(_pool, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
         else:
-            _mid = [t for t in _hh_all if t not in _STRONG_CP] or ["细水长流搭子"]
+            _mid = [t for t in _pool if t not in _STRONG_CP] or ["细水长流搭子"]
             l0 = _pick(_mid, h.get("day_zhi_a"), h.get("day_zhi_b"), "hh")
     # R3087：判词低档不抽甜池——band3 偏不合适换诚实档；band2 磕绊
     # 偏多限「认架」标签（细水长流/平平淡淡对磕绊盘是假话）。
