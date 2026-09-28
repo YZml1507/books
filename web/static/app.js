@@ -1814,7 +1814,8 @@ function autoSendChatContext() {
       if (_ty0) { _ty0.remove(); _ty0 = null; }
       /* R218a-02：U-008 修复后仍复用同一句话「打烊中」复读——扩展为
        * 4-6 句确定性轮换，并按上下文（自动发送：必属「看盘」类）做轻回应。 */
-      chatBubble('ai', _chatFallbackLine('看盘'), { nosave: true });
+      var _fb = chatBubble('ai', _chatFallbackLine('看盘'), { nosave: true });
+      _chatActChip(_fb, j && j.action);   /* R3195：打烊时路标更要给真入口 */
       /* R230t（R32-P2-16）：与 chatSend 同一禁用规则。 */
       var _inA = el('chatInput'), _sbA = document.getElementById('chatSendBtn');
       if (_CHAT_SEND_COUNT >= 2) {
@@ -1833,7 +1834,7 @@ function autoSendChatContext() {
      * R2343：复用发送时已插的 typing 节点。 */
     var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
+    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function () {
     if (_ty0) { _ty0.remove(); _ty0 = null; }
     chatBubble('ai', '（' + _dayPick(['网络不太好，再发一次试试？','信号飘了，一会儿再戳我','刚才没接到，再发一次吧～'],'net') + '）', { nosave: true });
@@ -1844,7 +1845,33 @@ function autoSendChatContext() {
  * autoSendChatContext 此前逐字各持一份 ~75 行（且 autoSend 版漏声明
  * _queueCap，排队态引用未定义变量会炸掉整个 tick）。
  * 约定：tid=任务id；ty=typing气泡节点；sid0=发送时sid。 */
-function _pollChatReply(tid, ty, sid0) {
+/* R3195：路标 chip——后端 action={view,label} 时，回复气泡尾挂一个
+ * 可点按钮直达真功能页，并收拢聊天抽屉。比纯文字指路少一步找。 */
+function _chatActChip(bubble, action) {
+  if (!bubble || !action || !action.view || !action.label) return;
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'chat-chip chat-act-chip';
+  b.textContent = action.label;
+  b.addEventListener('click', function () {
+    /* 关抽屉：与 _setRecent(false) 同口径（局部函数够不着，照抄复位）。 */
+    var sb = el('recentSidebar');
+    if (sb) {
+      sb.classList.remove('open'); sb.inert = true;
+      sb.setAttribute('aria-hidden', 'true');
+      try { sbFocusable(sb, false); } catch (e1) {}
+    }
+    var bd = el('recentBackdrop');
+    if (bd) bd.classList.remove('open');
+    var tg = el('recentToggle');
+    if (tg) tg.setAttribute('aria-expanded', 'false');
+    try { _mainInert(false); } catch (e2) {}
+    try { showView(action.view); } catch (e3) {}
+  });
+  bubble.appendChild(b);
+}
+
+function _pollChatReply(tid, ty, sid0, action) {
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;
   var _queueCap = performance.now() + 90000;
   var _wait = AI_POLL_INTERVAL_MS;
@@ -1864,6 +1891,7 @@ function _pollChatReply(tid, ty, sid0) {
         _chatBootNote(st, ty);       /* 重启失忆插分隔 */
         _chatFreshNote(st, ty);      /* TTL 回收分隔 */
         ty.innerHTML = renderRichText(st.text);
+        _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
         _chatTsSave('ai', st.text);
         if (st.closed) _chatClosedHint(ty);
         return;
@@ -2701,7 +2729,8 @@ function chatSend() {
        * 替代引导；DISABLE 态输入框置灰防连发连拒。
        * R218a-02：扩为 4-6 句确定性轮换 + 关键词到 openeer 的最轻分支
        * （累/事业/感情/学业/钱/看盘 6 套）。 */
-      chatBubble('ai', _chatFallbackLine(msg), { nosave: true });
+      var _fb2 = chatBubble('ai', _chatFallbackLine(msg), { nosave: true });
+      _chatActChip(_fb2, j && j.action);   /* R3195：打烊态也给出真入口 */
       var sendBtn2 = document.getElementById('chatSendBtn');
       /* D-006：第一条自动发后允许追问 1 次，累计发送 ≥2 次后才锁 */
       if (_CHAT_SEND_COUNT >= 2) {
@@ -2718,7 +2747,7 @@ function chatSend() {
      * R2343：发送时已插 typing，直接复用不落二次。 */
     var _ty = _ty0 || chatBubble('ai',
       '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
-    _pollChatReply(j.chat_task_id, _ty, _sid0);   /* R233r：共用轮询体（含排队预算） */
+    _pollChatReply(j.chat_task_id, _ty, _sid0, j.action);   /* R233r：共用轮询体（含排队预算） */
   }).catch(function (e) {
     if (_ty0) { _ty0.remove(); _ty0 = null; }
     /* R230t（R32-P2-19）：4xx 是内容被拦（消息超长/facts 超限等），

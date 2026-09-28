@@ -270,7 +270,10 @@ CONDITIONAL_FIELDS = {
                   # R2355（R111-P2-6）：rate_limited 只在每 sid 每分钟
                   # 超限那次返回——前端 `if (j.rate_limited)` 是对缺席
                   # 的探测（限流≠关停分流用）。
-                  "rate_limited"},
+                  "rate_limited",
+                  # R3195：action 只在命中功能路标意图时返回——前端
+                  # `if (j.action)` 探测缺席，不读时零成本。
+                  "action", "action.view", "action.label"},
     "/api/qiming/review": {"review_task_id"},
     # R228x：/api/huangli 双形态——单日返回 yi/ji/…，带 affair+days 返回
     # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；

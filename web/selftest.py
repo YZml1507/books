@@ -2544,6 +2544,16 @@ def _run_inner() -> list[str]:
     assert _svc_dm.chat_action_facts("我想起个卦") != [], "起个卦漏接"
     assert _svc_dm.chat_action_facts("今天吃什么") == []
     ok.append("chat.actionfacts")
+    # R3195：路标可点化——action={view,label} 随响应下发；
+    # 自尊类「配不上」不路标化（R3180d 同型钉）。
+    _av = _svc_dm.chat_action_view("帮我抽张塔罗牌")
+    assert _av == {"view": "tarot", "label": "🃏 去塔罗抽一把"}, _av
+    assert _svc_dm.chat_action_view("帮我解个梦")["view"] == "dream"
+    assert _svc_dm.chat_action_view("我配不上他") is None
+    check("chat.action_field", client.post("/api/chat", json={
+        "session_id": "st-action", "message": "我想算个卦"}),
+        lambda j: j.get("action", {}).get("view") == "liuyao")
+    ok.append("chat.actionview")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。

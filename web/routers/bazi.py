@@ -88,6 +88,11 @@ def chat(req: ChatRequest) -> dict:
         facts += services.chat_dream_facts(req.message)
         # R3180c：抽牌/起卦类请求→功能路标（别让她在聊里假抽）。
         facts += services.chat_action_facts(req.message)
+        # R3195：路标同步给前端可点跳转 chip——「去塔罗抽一把」
+        # 比纯文字指路少一步寻找。
+        _act = services.chat_action_view(req.message)
+        if _act:
+            out["action"] = _act
     except Exception:
         pass
     # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是

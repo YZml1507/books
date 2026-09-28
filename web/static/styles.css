@@ -1417,6 +1417,12 @@ details.warm-pro-fold > summary{
   background:var(--card); color:var(--primary-ink); cursor:pointer;
   transition:all .15s ease; }   /* R129-P2-19：只过渡 background 时 border 跳变 */
 .chat-chip:hover{ background:var(--bg); }
+/* R3195：路标 chip——挂在回复气泡尾的可点跳转入口（accent 描边
+ * 与空态 chip 区分，一眼看出「这是可点的」）。 */
+.chat-act-chip{ display:inline-block; margin-top:8px; padding:6px 14px;
+  min-height:32px; font-size:13px; border-color:var(--accent);
+  color:var(--accent); background:transparent; }
+.chat-act-chip:hover{ background:var(--accent); color:var(--card); }
 
 /* R220b（P1-1）：星座日期条——箭头 + 年月日三 select + 今天/明天快捷。
    替代原生 type="date"（移动端要唤起系统日历，翻一天也得开弹层）。
