@@ -3905,7 +3905,10 @@ def _run_inner() -> list[str]:
         assert not _LC._is_sensitive(_m), _m
     # 收尾态独立限流 chatx:×4（R134-2.4）：closed 会话不吃 chat: 桶，
     # 第 33 次返回哨兵。
-    _LC._chat_sessions["st-closed"] = {"closed": True}
+    # R3225：GC 缺 "updated" 键不再 KeyError——裸 {"closed":True} 会被
+    # 当超龄逐出，closed 信号在 spawn 前丢掉。注入完整会话形。
+    _LC._chat_sessions["st-closed"] = {"closed": True, "messages": [],
+                                       "updated": _time.monotonic()}
     _rsx = [_LC.spawn_chat_task("st-closed", "好", config=_ccfg)
             for _ in range(9)]
     assert all(t != "__rate_limited__" for t in _rsx) and \

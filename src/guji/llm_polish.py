@@ -1264,8 +1264,10 @@ def _held_session_lock(session_id: str):
 
 def _gc_chat_sessions() -> None:
     now = time.monotonic()
+    # R3225：session 缺 "updated" 此前 KeyError——GC 跑在每条 chat 首部，
+    # 一条畸形会话=永久全站聊天停摆（进程重启才解）。缺键按超龄逐出。
     stale = [sid for sid, s in _chat_sessions.items()
-             if now - s["updated"] > _CHAT_SESSION_TTL_S]
+             if now - s.get("updated", 0) > _CHAT_SESSION_TTL_S]
     for sid in stale:
         _chat_sessions.pop(sid, None)
         lk = _chat_call_locks.get(sid)
@@ -1277,7 +1279,7 @@ def _gc_chat_sessions() -> None:
         # 有在跑任务；把它逐了，回复交付但历史静默蒸发。多出的超额量
         # 下一次 GC 再收（locked 会话终究会解锁）。
         _victims = [sid for sid in sorted(
-            _chat_sessions, key=lambda s: _chat_sessions[s]["updated"])
+            _chat_sessions, key=lambda s: _chat_sessions[s].get("updated", 0))
             if not (_chat_call_locks.get(sid) and
                     _chat_call_locks[sid].locked())][:_over]
         for sid in _victims:
