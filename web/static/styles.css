@@ -946,6 +946,11 @@ button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translate
  * 收藏钮；四枚分享钮回落 right:24，≤375px 不再压住卡标题。 */
 .fav-btn{position:absolute; top:24px; right:24px; margin:0;}
 .fav-btn + .fav-btn{right:84px;}
+/* R3217：分享钮横排容器——取代「+84px」猜测式偏移，宽度自适应按钮
+ * 实际文案，几枚都不互叠（实测「分享图+年度运势图」互叠点不到）。 */
+.share-row{position:absolute; top:24px; right:24px; display:flex; gap:8px;}
+.share-row .fav-btn{position:static; right:auto;}
+.share-row .fav-btn + .fav-btn{right:auto;}
 /* R231b（R35-P1-6）：分享图提为一级动作——玫瑰渐变与主 CTA 同族，
  * 其余 fav-btn（如「存这对」）保持 ghost 次要级。 */
 button.fav-btn[id^="share"], .fav-btn.share-cta{

@@ -5174,7 +5174,11 @@ function buildBaziResult(j) {
   html += renderDecoration('bazi');
   /* R208b：❤️ 收藏钮随「我的收藏」区块一并移除（用户裁决）。 */
   // 004 M3 T3.1：分享海报按钮（原生 Canvas，零依赖，D-151a）
-  html += '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
+  // R3217：两枚分享钮原都吃 .fav-btn absolute 同点位，第二枚只右移
+  // 60px 根本不够（「年度运势图」~110px 宽）——实测互叠点不到。
+  // 套 .share-row 横排容器，内部按钮改 static 不再算 right 偏移。
+  html += '<div class="share-row">' +
+    '<button class="ghost fav-btn" type="button" id="shareBazi" ' +
     'title="生成分享图">📸 分享图</button>';
   /* R3165：年度运势图——年底/生日季晒图格式（年度干支+顺劲/使劲月
    * 榜），calc.yearly 在才出钮（兜底防空卡）。 */
@@ -5182,6 +5186,7 @@ function buildBaziResult(j) {
     html += '<button class="ghost fav-btn" type="button" id="shareBaziYear" ' +
       'title="生成今年运势图">📅 年度运势图</button>';
   }
+  html += '</div>';
   {
     /* R215b：四柱/纳音收进折叠「看看你的生辰小卡」（R3212 单版化后恒走）。 */
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
