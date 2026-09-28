@@ -55,13 +55,47 @@ function _cmpFindingLine(f, citations) {
  * 当文案贴出来。 */
 function _srcLabel(src) {
   var s = String(src || '');
+  /* R3221：非 URL 的内部来源代号（bible-douay/gutenberg/内置）也翻中文。 */
+  var _SRC_CN = { 'bible-douay': '杜埃圣经译本', 'gutenberg': '古腾堡文库',
+    'builtin': '内置资料', '内置': '内置资料', 'kanripo': 'Kanripo 公开古籍库',
+    'ctext': '中哲文库', 'tls': '通行本', 'sbck': '四部丛刊',
+    'w': '四库本', 'j': '通行本', 'chant': '汉达古籍', 'wyg': '文渊阁四库' };
+  /* 「kanripo/tls」这类复合代号拆开逐段翻，翻不了的段丢弃（不外露）。 */
+  if (!/^https?:\/\//.test(s) && s.indexOf('/') >= 0) {
+    var parts = s.split('/').map(function (p) {
+      return _SRC_CN[p.trim().toLowerCase()] || '';
+    }).filter(Boolean);
+    if (parts.length) return parts.join('·');
+  }
+  if (_SRC_CN[s.toLowerCase()]) return _SRC_CN[s.toLowerCase()];
   if (!/^https?:\/\//.test(s)) return s;
   if (/kanripo/i.test(s)) return 'Kanripo 公开古籍库';
+  if (/gutenberg/i.test(s)) return '古腾堡文库';
   try { return new URL(s).hostname; } catch (e) { return '线上古籍库'; }
 }
-/* 节标签有时是卷文件名（KR1a0001_001），翻成「第1卷」。 */
+/* 节标签有时是卷文件名（KR1a0001_001 / wuxing-dayi.txt），翻成人话。 */
 function _secLabel(l) {
-  return String(l == null ? '' : l).replace(/KR\w+?_0*(\d+)/g, '第$1卷');
+  var s = String(l == null ? '' : l).replace(/\.(txt|md|org)$/i, '');
+  if (!s) return '';
+  if (/^KR\w+?_0*(\d+)$/.test(s)) return '第' + s.replace(/^KR\w+?_0*/, '') + '卷';
+  var m = /_0*(\d+)$/.exec(s);
+  if (m) return '第' + m[1] + '节';
+  /* R3221：纯文件名残留（bible-douay/wuxing-dayi）不上屏——它们只是
+   * 内部存储名，读者认不得，归「原文」。 */
+  if (!/[\u4e00-\u9fff]/.test(s)) return '原文';
+  return s;
+}
+/* _fmtWhen 用 app.js 的全局版（本文件后加载，同名不重复定义）。 */
+
+/* 剧本单元尾标「ACT IV SCENE XI」→ 第4幕·第11场。 */
+function _addr2Cn(a) {
+  var s = String(a || '');
+  var m = /^ACT\s+(\w+)\s+SCENE\s+(\w+)/i.exec(s);
+  if (!m) return s;
+  var _ROM = {I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10,
+    XI:11,XII:12,XIII:13,XIV:14,XV:15,XVI:16,XVII:17,XVIII:18,XIX:19,XX:20};
+  var _r = function (w) { return _ROM[String(w).toUpperCase()] || w; };
+  return '第' + _r(m[1]) + '幕·第' + _r(m[2]) + '场';
 }
 
 
@@ -261,11 +295,19 @@ async function doCompare() {
   }
 }
 
+/* R3221：书号→书名缓存（书目/概念两条路都喂），章节标题用它替掉
+ * 裸 work_id。 */
+var _BS_TITLE = {};
+function _bsTitle(wid) {
+  return _BS_TITLE[wid] || '';
+}
+
 async function doWorks() {
   busy('worksResult', '加载中…');
   try {
     const j = await api('/api/works');
     const works = j.works || [];
+    works.forEach(function (w) { if (w.id) _BS_TITLE[w.id] = w.title || w.id; });
     if (!works.length) {
       fail('worksResult', '书目还没翻出来——点「列出」试试');
       return;
@@ -281,16 +323,16 @@ async function doWorks() {
       /* R228d：整卡可点但纯 div 时键盘不可达——补 role/tabindex，
        * Enter/Space 触发在 initReading 的全局 keydown 委托里。 */
       html += '<div class="calc-block work-card" role="button" tabindex="0" data-work="' + esc(w.id) +
-        '" style="border-left:3px solid ' + c + ';">' +
+        '" title="书目编号 ' + esc(w.id) + '" style="border-left:3px solid ' + c + ';">' +
         '<h3 style="color:' + c + ';font-size:14px;">' + esc(w.title || w.id) + '</h3>' +
-        '<p style="font-size:12px;color:var(--secondary);">' + esc(w.id) +
-        (w.genre ? ' · ' + esc(w.genre) : '') +
-        ' · ' + esc(_srcLabel(w.source)) + '</p>' +
+        '<p style="font-size:12px;color:var(--secondary);">' +
+        (w.genre ? esc(w.genre) + ' · ' : '') +
+        esc(_srcLabel(w.source)) + '</p>' +
         '<p style="font-size:18px;color:' + c + ';font-weight:600;">' +
         esc(w.units == null ? '?' : w.units) + '</p>' +
-        '<p style="font-size:11px;color:var(--secondary);">段落 · 已编址 ' +
+        '<p style="font-size:11px;color:var(--secondary);">段落 · 可定位 ' +
         esc(rate == null ? '?' : rate + '%') +
-        (anchoredRate == null ? '' : '（锚定 ' + anchoredRate + '%）') + '</p></div>';
+        (anchoredRate == null ? '' : '（细到节 ' + anchoredRate + '%）') + '</p></div>';
     });
     html += '</div>';
     paint('worksResult', html);
@@ -407,7 +449,7 @@ async function _threadListHtml() {
   (list.threads || []).forEach(function (t) {
     /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
      * 一眼可辨新旧（updated_at 只记最近动静）。 */
-    var _opened = t.opened_at ? (' · 开题 ' + esc(t.opened_at)) : '';
+    var _opened = t.opened_at ? (' · 开题 ' + esc(_fmtWhen(t.opened_at))) : '';
     html += '<div class="thread-item"><div class="thread-topic">' +
       esc(t.topic || '') + '</div>' +
       '<div class="thread-meta">#' + esc(t.id) + ' · ' +
@@ -498,13 +540,15 @@ async function showThread(tid) {
         '</span>' + esc(c.claim || '') +
         '<span class="claim-conf">' +
         esc(_CONF_CN[c.confidence] || c.confidence || '') +
-        /* R232d：method/created_at 此前零读——补上让论断可追溯 */
-        (c.method ? ' · ' + esc(c.method) : '') +
-        (c.created_at ? ' · ' + esc(c.created_at) : '') + '</span>';
+        /* R3221：method（web-new-thread 类内部通道名）不上屏；
+         * created_at ISO 串转人话时间。可追溯性靠证据行兜。 */
+        (c.created_at ? ' · ' + esc(_fmtWhen(c.created_at)) : '') + '</span>';
       (c.evidence || []).forEach(function (ev) {
         html += '<div class="claim-ev">' +
-          esc(_ROLE_CN[ev.role] || ev.role) + ' · ' + esc(ev.work_id) +
-          ' @' + esc(ev.page_anchor || '') + '：' + esc(ev.quote || '') + '</div>';
+          esc(_ROLE_CN[ev.role] || ev.role) + ' · ' +
+          esc(_bsTitle(ev.work_id) || ev.work_id || '') +
+          (ev.page_anchor ? ' @' + esc(String(ev.page_anchor).replace(/^KR\w+?_/, '')) : '') +
+          '：' + esc(ev.quote || '') + '</div>';
       });
       html += '</div>';
     });
@@ -549,10 +593,11 @@ async function showThread(tid) {
 
 async function doCompareWorks() {
   busy('cwResult', '对照中…');
+  /* R3221：空框时内部兜一组示例书（老子/莊子），输入框不用预填裸书号。 */
   const params = new URLSearchParams({
-    work_a: val('cwa'),
-    work_b: val('cwb'),
-    q: val('cwq')
+    work_a: val('cwa') || 'KR5c0057',
+    work_b: val('cwb') || 'KR5c0126',
+    q: val('cwq') || '無爲'
   });
   try {
     const j = await api('/api/compare_works?' + params.toString());
@@ -613,9 +658,10 @@ async function doConcept() {
       '</tr></thead><tbody>';
     (j.census || []).forEach(function (row) {
       html += '<tr><td>《' + esc(row.title || row.work_id) + '》' +
-        /* R232d：底本归属（kanripo/tls/…）一直在回——同名书区分版本 */
+        /* R232d：底本归属一直在回——同名书区分版本；
+         * R3221：kanripo/tls 这类代号过 humanCite 同口径中文化。 */
         (row.attribution ? '<div style="font-size:11px;color:var(--muted);">' +
-          esc(row.attribution) + '</div>' : '') + '</td>' +
+          esc(_srcLabel(row.attribution)) + '</div>' : '') + '</td>' +
         '<td class="num">' + esc(row.n_hits) + '</td>' +
         '<td>' + esc(fmtScalar(row.layers)) + '</td></tr>';
     });
@@ -661,7 +707,7 @@ async function doConcept() {
 async function doBookStructure() {
   const workId = val('bswork');
   if (!workId) {
-    fail('bsStructure', '先填书号（比如 KR1a0001），书目页能找到');
+    fail('bsStructure', '先挑一本书——「书目」页点一本就自动填好了');
     return;
   }
   busy('bsStructure', '加载结构…');
@@ -672,13 +718,20 @@ async function doBookStructure() {
       fail('bsStructure', j.error);
       return;
     }
-    let html = '<h3>《' + esc(j.title || j.work_id) + '》 · 编址：' +
-      esc(_SCHEME_CN[j.scheme] || j.scheme) +
+    let html = '<h3>《' + esc(j.title || _bsTitle(j.work_id) || '这本书') + '》 · 编址：' +
+      esc(_SCHEME_CN[j.scheme] || '按文件') +
       ' · ' + esc(j.n_sections) + ' 节 / ' + esc(j.n_units) + ' 单元</h3>';
+    /* R3221：file/无编址书的节行可点——点了把内部文件名填进「文件名」框
+     * 并跳章节页，读者不用照抄 KR…_001.txt（scheme 回 null 也算按文件）。 */
+    var _isFile = (j.scheme === 'file' || !j.scheme);
+    if (_isFile)
+      html += '<p class="hit-cite">点任意一节，直接跳到章节页读它～</p>';
     html += '<div class="table-scroll"><table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
-      html += '<tr><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +
+      html += '<tr' + (_isFile && s.label
+          ? ' class="sec-pick" data-secfile="' + esc(s.label) + '" title="读这一节"'
+          : '') + '><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +
         '<td class="num">' + esc(s.n_units) + '</td>' +
         '<td class="num">' + esc(s.chars) + '</td>' +
         '<td>' + esc(fmtScalar(s.layers)) + '</td>' +
@@ -695,7 +748,7 @@ async function doBookChapter() {
   const workId = val('bswork');
   const scheme = val('bsscheme');
   if (!workId) {
-    fail('bsChapter', '先填书号（比如 KR1a0001），书目页能找到');
+    fail('bsChapter', '先挑一本书——「书目」页点一本就自动填好了');
     return;
   }
   if (!scheme) {
@@ -704,18 +757,30 @@ async function doBookChapter() {
   }
   busy('bsChapter', '加载章节…');
   const params = new URLSearchParams({ work_id: workId, scheme: scheme });
-  if (val('bsaddr1')) params.set('addr1', val('bsaddr1'));
+  // R3221：bcv 章号卷内计必须带 addr_name；file 书要带文件名。
+  // 按 scheme 门控——隐藏框的残留值不外发（切过编址方式后旧值还在）。
+  if (scheme !== 'file' && val('bsaddr1')) params.set('addr1', val('bsaddr1'));
+  if (scheme === 'bcv' && val('bsname')) params.set('addr_name', val('bsname'));
+  if (scheme === 'file' && val('bsfile')) params.set('file', val('bsfile'));
   try {
     const j = await api('/api/bookstudy/chapter?' + params.toString());
     if (j.error) {
-      fail('bsChapter', j.error);
+      /* 后端报错里带参数名（file/addr_name），换成动作指引。 */
+      fail('bsChapter', String(j.error)
+        .replace(/请给 file 参数.*/, '这类书要按文件挑节——「结构」页里复制文件名填到「文件名」')
+        .replace(/请同时给 addr_name.*/, '圣经的章号按卷内算——把卷名（如 Genesis）填到「卷名」'));
       return;
     }
-    let html = '<h3>' + esc(j.work_id) + ' · ' + esc(_SCHEME_CN[j.scheme] || j.scheme) + ' 第 ' +
-      esc(j.section) + ' 节 · ' + esc(j.n_units) + ' 段</h3>';
+    let html = '<h3>' + esc(_bsTitle(j.work_id) ||
+      String(j.work_id || '').replace(/_\w+$/, '') || '这本书') + ' · ' +
+      esc(_SCHEME_CN[j.scheme] || j.scheme || '按文件') +
+      (j.scheme === 'file'
+        ? ' · ' + esc(_secLabel(j.section))
+        : ' 第 ' + esc(j.section) + ' 节') +
+      ' · ' + esc(j.n_units) + ' 段</h3>';
     (j.units || []).forEach(function (u) {
       html += '<div class="ev-item"><div class="ev-meta">' + esc(humanCite(u.citation || '')) +
-        (u.addr2 ? ' · ' + esc(u.addr2) : '') + (u.layer ? ' · ' + esc(u.layer) : '') +
+        (u.addr2 ? ' · ' + esc(_addr2Cn(u.addr2)) : '') + (u.layer ? ' · ' + esc(u.layer) : '') +
         (u.suspect ? ' ⚠ 存疑' : '') + '</div>' +
         '<div class="ev-text">' + esc(_rmMarks(u.text || '')) + '</div></div>';
     });
@@ -728,7 +793,7 @@ async function doBookChapter() {
 async function doBookSummary() {
   const workId = val('bswork');
   if (!workId) {
-    fail('bsSummary', '先填书号（比如 KR1a0001），书目页能找到');
+    fail('bsSummary', '先挑一本书——「书目」页点一本就自动填好了');
     return;
   }
   busy('bsSummary', '加载摘要…');
@@ -739,10 +804,10 @@ async function doBookSummary() {
       fail('bsSummary', j.error);
       return;
     }
-    let html = '<h3>《' + esc(j.title || j.work_id) + '》知识卡</h3><div class="calc-grid">';
+    let html = '<h3>《' + esc(j.title || _bsTitle(j.work_id) || '这本书') + '》知识卡</h3><div class="calc-grid">';
     /* R233y（R54-P1-19）：知识卡字段名半行话化翻一遍。 */
     [
-      ['体裁', j.genre], ['编址方式', _SCHEME_CN[j.scheme] || j.scheme], ['章节数', j.n_sections],
+      ['体裁', j.genre], ['编址方式', _SCHEME_CN[j.scheme] || '按文件'], ['章节数', j.n_sections],
       ['段落数', j.n_units], ['总字数', j.total_chars],
       ['各层命中', (j.layers && typeof j.layers === 'object' &&
         !Array.isArray(j.layers))

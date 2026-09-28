@@ -4247,7 +4247,7 @@ function renderCalc(calc) {
     const c = colorAt(i);
     i += 1;
     html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
-      '<h3 style="color:' + c + ';">' + esc(k) + '</h3>';
+      '<h3 style="color:' + c + ';">' + esc(_calcKeyCn(k)) + '</h3>';
     if (Array.isArray(v)) {
       html += '<ul>';
       v.forEach(function (item) {
@@ -4255,7 +4255,9 @@ function renderCalc(calc) {
           const parts = [];
           Object.keys(item).forEach(function (ik) {
             if (ik === 'basis') return;
-            parts.push('<strong>' + esc(ik) + '</strong>：' + esc(fmtScalar(item[ik])));
+            var _ikc = _calcFieldCn(ik);
+            parts.push((_ikc ? '<strong>' + esc(_ikc) + '</strong>：' : '') +
+              esc(fmtScalar(item[ik])));
           });
           html += '<li>' + parts.join('　') +
             (item.basis ? '<span class="basis"> [' + esc(item.basis) + ']</span>' : '') +
@@ -4268,7 +4270,9 @@ function renderCalc(calc) {
     } else if (v && typeof v === 'object') {
       html += '<ul>';
       Object.keys(v).forEach(function (ik) {
-        html += '<li><strong>' + esc(ik) + '</strong>：' + esc(fmtScalar(v[ik])) + '</li>';
+        var _ikc2 = _calcFieldCn(ik);
+        html += '<li>' + (_ikc2 ? '<strong>' + esc(_ikc2) + '</strong>：' : '') +
+          esc(fmtScalar(v[ik])) + '</li>';
       });
       html += '</ul>';
     } else {
@@ -4284,18 +4288,38 @@ function renderCalc(calc) {
 }
 
 /** 标量/小结构 → 展示串。数组与对象在此压平，避免出现 "[object Object]"。 */
+/* R3221：ISO 时间戳 → 人话——今天 HH:MM / M月D日 HH:MM / 跨年带年。
+ * app_research.js 复用此全局（它懒加载在后）。 */
+function _fmtWhen(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(s || ''));
+  if (!m) return String(s || '').replace('T', ' ').replace(/\+.*/, '').slice(0, 16);
+  var now = new Date();
+  var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') +
+    '-' + String(now.getDate()).padStart(2, '0');
+  var dstr = m[1] + '-' + m[2] + '-' + m[3];
+  var hm = m[4] + ':' + m[5];
+  if (dstr === today) return '今天 ' + hm;
+  if (m[1] === String(now.getFullYear()))
+    return parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日 ' + hm;
+  return m[1] + '年' + parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日';
+}
+
 function fmtScalar(v) {
   if (v == null) return '—';
   if (Array.isArray(v)) {
     return v.map(function (x) {
       return (x && typeof x === 'object')
-        ? Object.keys(x).map(function (k) { return k + ':' + fmtScalar(x[k]); }).join(' ')
+        ? Object.keys(x).map(function (k) {
+            var _kc = _calcFieldCn(k);
+            return (_kc ? _kc + ':' : '') + fmtScalar(x[k]);
+          }).join(' ')
         : fmtScalar(x);
     }).join('、') || '—';
   }
   if (typeof v === 'object') {
     return Object.keys(v).map(function (k) {
-      return k + ' ' + fmtScalar(v[k]);
+      var _kc2 = _calcFieldCn(k);
+      return (_kc2 ? _kc2 + ' ' : '') + fmtScalar(v[k]);
     }).join('、') || '—';
   }
   if (typeof v === 'boolean') return v ? '是' : '否';
@@ -4327,8 +4351,39 @@ var _BASIS_ROOT_CN = {
   scope: '范围', render: '排盘', nayin: '纳音', draw: '抽牌',
   keywords: '关键词', basis: '依据', title: '题名', units: '条目数',
   method: '方式', claim: '结论', line: '条目', findings: '发现',
-  duration: '时长', score: '分', level: '等级', date: '日期'
+  duration: '时长', score: '分', level: '等级', date: '日期',
+  /* R3221：renderCalc 嵌套键补齐——排盘坐标展开不再露英文键名。 */
+  pos: '位次', gan: '天干', zhi: '地支', wx: '五行', wuxing: '五行',
+  rels: '关系', rel: '关系', gua_number: '卦号', gong: '宫',
+  gong_wuxing: '宫五行', gong_position: '宫位数', moving: '动爻',
+  shi: '世爻', ying: '应爻', is_shi: '世', is_ying: '应',
+  shen: '六神', liuqin: '六亲', stem: '天干', branch: '地支',
+  heavenly_stem: '天干', earthly_branch: '地支', yang: '阴阳',
+  hour_branch_rels: '时支关系',
+  strong_tied: '并列偏旺', qi_yun_age: '起运岁数', months: '月份',
+  easy: '顺劲月', hard: '留神月', ganzhi: '干支', verdict: '判词',
+  peach_zhi: '桃花支', hit_pillars: '命中柱', strength: '强弱',
+  bands: '档位', band: '档位', friction: '磨合点', sparks: '来电点',
+  total: '总数', count: '条数', chars: '字数', units_cnt: '条目',
+  hit: '命中', window: '窗口', start_year: '起年', pillar_gz: '柱干支'
 };
+/* 顶层 calc.* 键 → 中文块名（探不到的落「明细」）。 */
+var _CALC_KEY_CN = {
+  ten_gods: '十神格局', five_elements: '五行分布', relations: '地支关系',
+  day_luck: '流日', days: '逐日干支', dayun: '大运', yearly: '年运',
+  qi_yun_age: '起运岁数', cross_ref: '交叉印证', sun_sign: '太阳星座',
+  hour_branch_rels: '时支关系', day_ganzhi: '日干支', nayin: '纳音',
+  pillar_wx: '四柱五行', life: '命局总述', semantic: '取象',
+  question: '所问', verdict: '判词', pillar: '四柱'
+};
+function _calcKeyCn(k) {
+  return _CALC_KEY_CN[k] || _BASIS_KEY_CN['calc.' + k] ||
+         _BASIS_ROOT_CN[k] || '明细';
+}
+function _calcFieldCn(k) {
+  /* 嵌套键：命中映射用中文；纯英文未命中不再露键名（只出值）。 */
+  return _BASIS_ROOT_CN[k] || _CALC_KEY_CN[k] || '';
+}
 function _basisCn(b) {
   var s = _pStr(b);
   if (!s) return '';
@@ -9508,7 +9563,7 @@ function _phRenderMirrorList(listEl, m) {
     '☁️ 云端记录被服务重启清掉了，下面是你设备上留下的本机备份' +
     '（未打开过的只有摘要行）</div>' +
     _localItems.map(function (it) {
-      var _t = (it.ts || '').replace('T', ' ');
+      var _t = _fmtWhen(it.ts);
       var _tL = _PH_TYPE_LABEL[it.type] || '记录';
       var _r = (it.result_summary && it.result_summary.paipan_render) || '';
       /* R3200：类型筛选——镜像行同带 data-type。 */
@@ -9764,6 +9819,22 @@ function initReading() {
     _syncAddrFields();
   }
 
+  /* R3221：读书「章节」页编址方式→字段显隐——bcv 要卷名（章号卷内计）、
+   * file 书要文件名。此前这两类书在此页发不出必填参数必然报错。 */
+  var _bssch = el('bsscheme');
+  if (_bssch) {
+    var _bsSyncFields = function () {
+      var v = _bssch.value;
+      var fN = el('f_bsname'), fF = el('f_bsfile'), a1 = el('bsaddr1');
+      var a1box = a1 && a1.closest('.field');
+      if (fN) fN.hidden = v !== 'bcv';
+      if (fF) fF.hidden = v !== 'file';
+      if (a1box) a1box.hidden = (v === 'file');
+    };
+    _bssch.addEventListener('change', _bsSyncFields);
+    _bsSyncFields();
+  }
+
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
   /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
    * 此前按 Enter 无反应，只能伸手去点按钮。
@@ -9821,6 +9892,18 @@ function initReading() {
     const workCard = e.target.closest('.work-card[data-work]');
     if (workCard) {
       searchByWork(workCard.dataset.work);
+      return;
+    }
+    /* R3221：结构页 file 书的节行——点了把内部文件名回填进
+     * 「文件名」框并跳章节页（不让人抄 KR…_001.txt）。 */
+    var secPick = e.target.closest && e.target.closest('.sec-pick[data-secfile]');
+    if (secPick) {
+      var bf = el('bsfile');
+      if (bf) bf.value = secPick.dataset.secfile;
+      var bs = el('bsscheme');
+      if (bs) { bs.value = 'file'; bs.dispatchEvent(new Event('change')); }
+      /* activateBssec 自带加载——点了节行直接出正文。 */
+      activateBssec('bs-chapter');
       return;
     }
     /* R230q（R28-P1-1b）：线程删除入口——先于 data-thread 判（删按钮
@@ -12898,7 +12981,7 @@ function baziPersonaCard(j) {
         });
       }
       listEl.innerHTML = _rows.map(function (it) {
-        const ts = (it.ts || '').replace('T', ' ');
+        const ts = _fmtWhen(it.ts);
         const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
         /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘 */
         /* R2349j（R71-P2）：未知 type 不原值上屏（技术字段名出戏）。 */
@@ -13856,13 +13939,14 @@ function humanCite(citation) {
   s = s.replace(/\s*@(\?|[^\s·]{0,})/g, '');             /* 去 @ADDR / @?（v4：@ 后非空白非·的尾巴一并清） */
   s = s.replace(/\s*\([^)]*\.txt\)/gi, '');               /* 去 (file.txt) */
   /* R2349v（R92-P1-3）：[tls]/[wyg] 这类内部版本标签直出没人看得懂，
-   * 折成中文版本名。 */
+   * 折成中文版本名。
+   * R3221：全称翻译成藏书口径（SBCK=四部丛刊、tls=通行本…），
+   * 未识别的直接归「通行本」，不再露字母代号。 */
+  var _ED_CN = { sbck: '四部丛刊', tls: '通行', chant: '汉达古籍',
+    wyg: '文渊阁四库', kanripo: 'Kanripo 古籍', gutenberg: '古腾堡文库',
+    ctext: '中哲文库', w: '四库', j: '通行', douay: '杜埃' };
   s = s.replace(/\s*\[([A-Za-z0-9]+)\]/g, function (m, t) {
-    return ' · ' + ({ tls: 'TLS', chant: 'CHANT', wyg: '文渊阁',
-      kanripo: 'Kanripo', gutenberg: 'Gutenberg', ctext: 'CTP',
-      /* R2349z（R96-P2-3）：' 本' 的空格让「文渊阁 本」突兀——
-       * 「TLS 本」无碍是因为 TLS 是字母；统一去掉。 */
-      w: 'W', j: 'J' }[t.toLowerCase()] || t) + '本';
+    return ' · ' + (_ED_CN[t.toLowerCase()] || '通行') + '本';
   });
   /* R2350b（R98-P2-14）：引注尾巴残留的分段标记「 ! 」清掉
    * （实测「卦45（萃） ! · 經」直贴屏）。 */

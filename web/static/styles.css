@@ -2729,3 +2729,8 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 .hour-cheat-grid .hour-pick:hover{background:var(--card);
   border-color:var(--border);color:var(--primary-ink);}
 .hour-cheat-grid .hour-pick b{color:var(--primary-ink);margin-right:2px;}
+
+/* R3221：结构页可点节行（file 书点行读正文） */
+.sec-pick{cursor:pointer}
+.sec-pick:hover{background:rgba(255,255,255,.04)}
+.sec-pick:hover td:first-child{color:var(--accent)}

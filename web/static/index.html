@@ -465,8 +465,8 @@ try {
                  必 400（傳/疏/箋/緒/衍/演/評/纂/misc 库里根本没有），
                  占 80% 的「正文」反而没得选。 -->
             <select id="rlayer"><option value="">全部</option><option value="正文">正文</option><option value="注">注</option><option value="經">經</option><option value="林辭">林辭</option><option value="十翼">十翼</option><option value="圖">圖</option><option value="標題">標題</option></select></div>
-          <div class="field"><label for="rwork">书过滤</label>
-            <input id="rwork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
+          <div class="field"><label for="rwork">限定某本书</label>
+            <input id="rwork" type="text" maxlength="32" placeholder="可不填：书目页点一本自动填"></div>
         </div>
         <button id="searchBtn" type="button">搜一下</button>
         <div id="searchResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个词，比如「无为」，搜全库古籍～</div></div>
@@ -492,7 +492,7 @@ try {
           <div class="field"><label for="ascheme">编址方式</label>
             <select id="ascheme">
               <option value="zhouyi">周易（卦·爻）</option>
-              <option value="bcv">BCV（圣经章节）</option>
+              <option value="bcv">圣经章节</option>
               <option value="yilin">易林（卦序）</option>
               <option value="booksec">书章节</option>
               <option value="play">剧本（场·幕）</option>
@@ -503,7 +503,7 @@ try {
           <div class="field"><label for="ayao">爻位（周易用）</label>
             <input id="ayao" type="text" maxlength="16" placeholder="如：初九"></div>
           <div class="field"><label for="aname">卷名（圣经用）</label>
-            <input id="aname" type="text" maxlength="64" placeholder="如：Proverbs"></div>
+            <input id="aname" type="text" maxlength="64" placeholder="如：创世记（Genesis）"></div>
           <div class="field"><label for="aaddr1">第一级编号</label>
             <input id="aaddr1" type="number" inputmode="numeric" placeholder="如：12"></div>
           <div class="field"><label for="aaddr2">第二级编号</label>
@@ -548,8 +548,8 @@ try {
       <section class="rsec" id="rsec-bookstudy">
         <h3>读书（结构/章节/摘要）</h3>
         <div class="row">
-          <div class="field"><label for="bswork">书 ID</label>
-            <input id="bswork" type="text" maxlength="32" placeholder="如：KR1a0001"></div>
+          <div class="field"><label for="bswork">哪本书</label>
+            <input id="bswork" type="text" maxlength="32" placeholder="「书目」页点一本自动填"></div>
           <div class="field"><label for="bsscheme">编址方式</label>
             <select id="bsscheme">
               <option value="zhouyi">周易（卦·爻）</option>
@@ -558,9 +558,16 @@ try {
               <option value="booksec">书章节</option>
               <option value="play">剧本（场·幕）</option>
               <option value="euclid">欧几里得</option>
+              <option value="file">按文件（无编址的书）</option>
             </select></div>
           <div class="field"><label for="bsaddr1">第一级编号</label>
             <input id="bsaddr1" type="number" inputmode="numeric" placeholder="如：1"></div>
+          <!-- R3221：bcv 必须配卷名、file 书要文件名——按 scheme 显隐，
+               否则这两类书在这页必然报错（实测死路）。 -->
+          <div class="field" id="f_bsname" hidden><label for="bsname">卷名</label>
+            <input id="bsname" type="text" maxlength="64" placeholder="如：创世记（Genesis）"></div>
+          <div class="field" id="f_bsfile" hidden><label for="bsfile">文件名</label>
+            <input id="bsfile" type="text" maxlength="64" placeholder="结构页点一节自动填"></div>
         </div>
         <!-- data-rsec2 的值保持 bs-structure/bs-chapter/bs-summary 不变：
              审查轨 probes/probe_ui_smoke.py:103 用这三个字符串做选择器
@@ -575,9 +582,9 @@ try {
         </div>
         <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
              且三个子标签完全没有事件绑定 —— R000a-03）。 -->
-        <div class="bssec active" id="bsStructure" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填个书号，看看这本书的目录～</div></div>
-        <div class="bssec" id="bsChapter" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填书号和章节号，读那一节原文～</div></div>
-        <div class="bssec" id="bsSummary" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填个书号，听小满讲讲这本书～</div></div>
+        <div class="bssec active" id="bsStructure" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>从「书目」页点一本书，看它的目录～</div></div>
+        <div class="bssec" id="bsChapter" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>在结构页点一节，读它的原文～</div></div>
+        <div class="bssec" id="bsSummary" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>从「书目」页点一本书，听小满讲讲它～</div></div>
       </section>
 
       <!-- 两书对照 -->
@@ -585,9 +592,9 @@ try {
         <h3>两书对照</h3>
         <div class="row">
           <div class="field"><label for="cwa">书 A</label>
-            <input id="cwa" type="text" maxlength="32" value="KR5c0057" placeholder="如：KR5c0057"></div>
+            <input id="cwa" type="text" maxlength="32" placeholder="书目页点一本自动填"></div>
           <div class="field"><label for="cwb">书 B</label>
-            <input id="cwb" type="text" maxlength="32" value="KR5c0126" placeholder="如：KR5c0126"></div>
+            <input id="cwb" type="text" maxlength="32" placeholder="书目页点一本自动填"></div>
           <div class="field"><label for="cwq">查询词</label>
             <input id="cwq" type="text" maxlength="200" value="無爲" placeholder="如：無爲"></div>
         </div>
