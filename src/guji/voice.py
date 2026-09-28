@@ -1772,6 +1772,34 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         _seen_kw.add(kw0)
     # 收尾：给一句具体方向
     tail = []
+    # R3188（specs/012-P0）：二选一阵的核心问题「选哪个」此前只逐牌
+    # 念不给倾向——选项A/选项B 两位的牌面轻重对比就是这局要交的答案。
+    _cA = next((c for c in cards if c.get("position") == "选项A"), None)
+    _cB = next((c for c in cards if c.get("position") == "选项B"), None)
+    if _cA and _cB:
+        def _opt_w(c):
+            cu = bool(c.get("upright"))
+            kw0 = (((c.get("upright_kw") if cu else c.get("reversed_kw"))
+                    or "").split("·")[0])
+            bad = ((not cu) or c.get("name") in _TAROT_HEAVY
+                   or kw0 in _TAROT_HARD_UP)
+            return (not bad), kw0
+        _ga, _kwa = _opt_w(_cA)
+        _gb, _kwb = _opt_w(_cB)
+        if _ga and not _gb:
+            tail.append(f"两边摆一块看：A 的「{_kwa}」是顺牌，"
+                        f"B 的「{_kwb}」偏沉——牌面略偏 A；"
+                        "但牌是参考，你心里那杆秤才是主票。")
+        elif _gb and not _ga:
+            tail.append(f"两边摆一块看：B 的「{_kwb}」是顺牌，"
+                        f"A 的「{_kwa}」偏沉——牌面略偏 B；"
+                        "但牌是参考，你心里那杆秤才是主票。")
+        elif not _ga and not _gb:
+            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都偏沉——"
+                        "牌面说怎么选都不轻松，先想清楚哪个亏你更吃得起。")
+        else:
+            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都是顺牌——"
+                        "牌面没拦你，哪边更像你想要的就走哪边。")
     if len(cards) > len(shown):
         tail.append(f"其余 {len(cards) - len(shown)} 张是细节的注脚——"
                     "主角是上面那几张。")
