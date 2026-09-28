@@ -3130,6 +3130,24 @@ def chat_dream_facts(message: str) -> list[str]:
     return facts
 
 
+def chat_action_facts(message: str) -> list[str]:
+    """小满聊天的功能路标供给（R3180c）：「帮我抽张牌/起个卦」类
+    请求——模型不知道产品里有真入口，会干说「我抽不了」。
+    给她一条路标：真入口在哪、抽完可以回来接着聊。
+    """
+    _n = (message or "")
+    if any(k in _n for k in ("塔罗", "抽张牌", "抽一张", "抽个牌",
+                             "帮我抽", "翻张牌")):
+        return ["她想抽塔罗——铺子里有真入口：首页「塔罗」卡能真抽，"
+                "让她去那儿抽，抽完回来接着聊；别在聊里替她假抽"]
+    if any(k in _n for k in ("起卦", "起个卦", "摇卦", "摇个卦",
+                             "算一卦", "算个卦", "打个卦",
+                             "六爻", "掷硬币算")):
+        return ["她想摇卦——铺子里有真入口：首页「六爻」卡能真摇，"
+                "让她去那儿摇，出卦回来接着聊；别在聊里替她假断"]
+    return []
+
+
 def chat_result_verdicts(ref: str | None) -> list[str]:
     """从服务端结果快照提取判词层事实——供 chat 权威信道。
 

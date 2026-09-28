@@ -86,6 +86,8 @@ def chat(req: ChatRequest) -> dict:
     # R3178：梦见类消息→解梦册子口径进参考事实（非权威信道）。
     try:
         facts += services.chat_dream_facts(req.message)
+        # R3180c：抽牌/起卦类请求→功能路标（别让她在聊里假抽）。
+        facts += services.chat_action_facts(req.message)
     except Exception:
         pass
     # R230a-6（R12-P2-2）：黄历判定走独立权威信道——客户端 facts 只是

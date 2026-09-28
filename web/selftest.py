@@ -2538,6 +2538,12 @@ def _run_inner() -> list[str]:
     assert _cf2 and "册子没对上" in _cf2[0], _cf2
     assert _svc_dm.chat_dream_facts("今天天气不错") == []
     ok.append("dream.chatfacts")
+    # R3180c：抽牌/起卦路标——别让模型干说「我抽不了」。
+    _af = _svc_dm.chat_action_facts("帮我抽张塔罗牌")
+    assert _af and "塔罗" in _af[0] and "首页" in _af[0], _af
+    assert _svc_dm.chat_action_facts("我想起个卦") != [], "起个卦漏接"
+    assert _svc_dm.chat_action_facts("今天吃什么") == []
+    ok.append("chat.actionfacts")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
