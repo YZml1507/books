@@ -1451,7 +1451,7 @@ def huangli(date_str: str | None = None, affair: str | None = None,
                     f"排盘按立春换年（{_bz_year}年）——都正常，看哪个口径")
         except Exception:
             pass
-    return {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
+    _out = {"date": q["date"], "yi": q["yi"], "ji": q["ji"],
             "jianchu": q.get("jianchu"), "xiu": q.get("xiu"),
             "pengzu": q.get("pengzu"), "shensha": q.get("shensha"),
             **({"conflict": q["conflict"]} if q.get("conflict") else {}),
@@ -1473,6 +1473,16 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             "festival": _festival_for(
                 dt.date(),
                 (q.get("term_today") or {}).get("name", ""))}
+    # R3189：黄历卡接 AI 解读块——宜忌/值神/冲煞坐标进 facts，
+    # polish 串成「今天天气预报」式人话；与各面同契约 ai_task_id。
+    _out["ai_polish"] = None
+    _hl_tid = llm_polish.spawn_ai_task(
+        llm_polish.facts_huangli(_out),
+        "看看这天的黄历",
+        rate_key="ai", rate_limit=60)
+    if _hl_tid:
+        _out["ai_task_id"] = _hl_tid
+    return _out
 
 
 # ---------------------------------------------------------------------------

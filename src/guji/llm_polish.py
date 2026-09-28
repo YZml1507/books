@@ -2213,6 +2213,37 @@ def facts_liuyao(res: dict, warm: dict | None = None,
     return facts
 
 
+def facts_huangli(h: dict) -> list[str]:
+    """黄历卡事实（R3189）：黄历是唯一没 AI 段的卡——宜忌/值神/
+    冲煞/建除全是确定性坐标，polish 的活是把它串成「今天的天气
+    预报」式人话，不替黄历编新宜忌。"""
+    facts: list[str] = []
+    if h.get("date"):
+        facts.append("日期：{}（{}）".format(
+            h["date"], h.get("ganzhi_day_cn") or ""))
+    if h.get("yi"):
+        facts.append("今日宜：" + "、".join(str(x) for x in h["yi"][:8]))
+    if h.get("ji"):
+        facts.append("今日忌：" + "、".join(str(x) for x in h["ji"][:8]))
+    if h.get("zhishen"):
+        facts.append("值神：{}（{}）".format(
+            h["zhishen"], h.get("zhishen_ji") or ""))
+    if h.get("jianchu"):
+        facts.append("建除十二神：" + str(h["jianchu"]))
+    _cs = h.get("chongsha") or {}
+    if _cs.get("chong_animal"):
+        facts.append("冲煞：冲{}（煞{}方）".format(
+            _cs["chong_animal"], _cs.get("sha_fang") or ""))
+    if h.get("term_today"):
+        _tt = h["term_today"]
+        facts.append("今日交节：" + str(_tt.get("name") or ""))
+    if h.get("festival"):
+        facts.append("今天是：" + str(h["festival"]))
+    facts.append("口径：黄历是老黄历的民俗说法——把宜忌翻成人话陪她"
+                 "看日子，别念成吉凶判决书，更别劝她做重大决定")
+    return facts
+
+
 def facts_xzmatch(m: dict) -> list[str]:
     """星座合盘卡事实——象组/分数/lines 判词级行进 polish。
 

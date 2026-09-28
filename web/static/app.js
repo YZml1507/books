@@ -8551,6 +8551,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
         esc(j.cross_ref.zodiac_sign) + '座' + esc(_dayWord) +
         '的运势 →</button></div>';
     }
+    /* R3189：黄历卡补 AI 解读段——宜忌/值神/冲煞坐标进 facts
+     * 后由 polish 串成人话；与各面同契约（无 task 时零占位）。 */
+    html += renderAiPolish(j);
     html += tailHook('huangli');
     html += '<div style="font-size:12px;color:var(--muted);margin-top:12px;">黄历按传统历法规则计算，仅供娱乐，不构成决策依据——大事还是相信自己的判断 ✨</div>';
     /* R230d（R16-P2-6）：黄历卡没有 .card 容器，paint 的自动挂钮
@@ -8558,6 +8561,7 @@ async function _doHuangli(offset, reveal, spokenWord) {
     html += '<button class="chat-entry" type="button" data-chat-entry ' +
       'aria-label="打开小满聊天，聊聊这件事">💬 聊聊这件事</button>';
     paint('hlResult', html);
+    pollAiPolish('hlResult', j.ai_task_id);   /* R3189 */
     /* R228x：判词落地「挑吉日」——场景已选时异步查近期宜它的日子
      * （后端 affair+days 区间查，含口语词归一），chip 点击直接翻
      * 到那一天。silent：查不到不打扰，宜日缺席时整个提示块不渲染。 */
