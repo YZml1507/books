@@ -3961,9 +3961,6 @@ def dream(req) -> dict:
     ai_task_id = llm_polish.spawn_ai_task(
         dream_mod.facts_dream(out), req.text,
         rate_key="ai", rate_limit=60)
-    ai_task_id = llm_polish.spawn_ai_task(
-        dream_mod.facts_dream(out), req.text,
-        rate_key="ai", rate_limit=60)
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     out["result_ref"] = _stash_result("dream", out)

@@ -2496,8 +2496,10 @@ if __name__ == "__main__":
                       gender="女")
     assert any("林锦瑶" in f for f in fq)
     assert "性别：女" in fq, fq                      # R191b（B-016）：性别必须喂给模型
-    assert facts_qiming({"surname": "林", "five_elements": {},
-                         "full_names": []})[1] == "性别：未填写"
+    # R3146 补「排盘：未算」行后性别不再是 [1]——钉改成员判定，
+    # 与上行「性别：女」同款（钉意图是喂没喂，不是固定槽位）。
+    assert "性别：未填写" in facts_qiming(
+        {"surname": "林", "five_elements": {}, "full_names": []})
     print("PASS facts 组装器 ×4（含 B-016 性别事实）")
 
     print("\n全部自测通过。在线联调命令见 specs/006-llm-polish/spec.md 判据 1。")

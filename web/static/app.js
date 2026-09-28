@@ -520,7 +520,7 @@ function buildHehunResult(j) {
     } else if (_msN < 45) {
       /* R3087（specs/010）：低分此前裸数零解读——判词层说偏不合适
        * 时卡面也不能装看不见。与 warm 判词档同口径。 */
-      html += '<p class="hh-tier hh-tier-low">⚖️ 判词偏硬，书上对这组不客气，下面把成本摆出来</p>';
+      html += '<p class="hh-tier hh-tier-low">⚖️ 判词偏硬，这组判定不客气，下面把成本摆出来</p>';
     } else if (_msN < 60) {
       html += '<p class="hh-tier hh-tier-mid">🌗 磕绊偏多，要花力气磨合，下面直说磨在哪</p>';
     }
@@ -1539,11 +1539,10 @@ function buildChatContext(viewKey) {
              '桃花强度：' + (STR[j.strength] || j.strength || '—')];
     if (j.hongluan) facts.push('红鸾：' + j.hongluan);
     /* R3114（facts_taohua 同口径）：判词带+入口预判进上下文。
-     * R3136：先验位+入口动作行同进——「说中了才算数」和「先出现在
-     * 哪」是桃花卡最实的两行。 */
+     * R3136：入口动作行同进——「先出现在哪」是桃花卡最实的一行。 */
     ((j.warm || {}).reply || []).forEach(function (l) {
       if (l.indexOf('判词') !== -1 || l.indexOf('入口') !== -1 ||
-          l.indexOf('先验') !== -1 || l.indexOf('出现在') !== -1 ||
+          l.indexOf('出现在') !== -1 ||
           l.indexOf('运里') !== -1) {
         facts.push(l.slice(0, 80));
       }
