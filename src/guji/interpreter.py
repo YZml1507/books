@@ -35,10 +35,10 @@ from datetime import datetime, timedelta, timezone
 # R3070（巡#487）：危机自伤问法——「我不想活了」crisis=True 而
 # sensitive=False，此前落空吐「没找到对应位置」黑话；与 voice 三处
 # 暖层同口径补危机转介行（含 12356 热线——比敏感行多一层）。
-_CRISIS_LINE = ("这个话题盘面真接不了，也不该靠它拿主意——"
+_CRISIS_LINE = ("这个话题盘面真接不了，也不该靠它拿主意。"
                 "真的很难受，全国心理援助热线 12356（24 小时，免费）"
                 "随时能打通，找信得过的人聊聊才是正路。")
-_SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意——"
+_SENSITIVE_LINE = ("这个话题盘面真答不了，也不该靠它拿主意。"
                    "身体或心里难受的话，找医生、找信得过的人聊聊才是正路，"
                    "小满陪你说点别的也行。")
 
@@ -151,18 +151,18 @@ def interpret_bazi(paipan: dict, calc: dict,
         lines = ["分布：" + "、".join(f"{k}{_fmt_num(v)}" for k, v in counts.items())]
         if strong:
             for s in strong:
-                lines.append(f"{s}偏旺——{ELEMENT_PLAIN.get(s, '')}的一面比较突出，"
+                lines.append(f"{s}偏旺，{ELEMENT_PLAIN.get(s, '')}的一面比较突出，"
                              f"用力过头时容易失衡")
         _tied = fe.get("strong_tied") or []
         if not strong and _tied:
-            lines.append(f"{'、'.join(_tied)}并列最高——几股劲相当，没有一行独大")
+            lines.append(f"{'、'.join(_tied)}并列最高：几股劲相当，没有一行独大")
         if missing:
             for m in missing:
                 # R230a-7（R13-P0-1）：补缺走「生我」方向（缺木→补水，水生木），
                 # 此前用 ELEMENT_GENERATES（我生，即泄耗方向）恰好说反。
                 helper = {v: k for k, v in ELEMENT_GENERATES.items()}.get(m)
                 tip = f"，可从{helper}的方向补" if helper else ""
-                lines.append(f"缺{m}——{ELEMENT_PLAIN.get(m, '')}的一面偏弱{tip}")
+                lines.append(f"缺{m}，{ELEMENT_PLAIN.get(m, '')}的一面偏弱{tip}")
         if not strong and not _tied and not missing:
             lines.append("五行齐全且无一行独旺，整体偏均衡")
         sections.append({"title": "五行强弱", "lines": lines})
@@ -209,7 +209,7 @@ def interpret_bazi(paipan: dict, calc: dict,
             if dom:
                 seg += f"，{dom}"
             if plain:
-                seg += f"——{plain}"
+                seg += f"，{plain}"
             lines.append(seg)
         sections.append({"title": "地支关系", "lines": lines})
         basis.append("calc.relations[].type/note")
@@ -225,9 +225,9 @@ def interpret_bazi(paipan: dict, calc: dict,
             seg = f"{r.get('pos', '')} {r.get('type', '')}（{r.get('note', '')}）"
             pos_dom = _POS_DOMAIN.get((r.get("pos") or "")[:1], "")
             if pos_dom:
-                seg += f"——今天碰到的这一宫管{pos_dom}"
+                seg += f"，今天碰到的这一宫管{pos_dom}"
             if plain:
-                seg += f"——{plain}"
+                seg += f"，{plain}"
             lines.append(seg)
         if dl.get("hour_ganzhi"):
             lines.append(f"流时 {dl['hour_ganzhi']}：{dl.get('hour_master_rel', '')}")
@@ -235,7 +235,7 @@ def interpret_bazi(paipan: dict, calc: dict,
             plain = RELATION_PLAIN.get(r.get("type") or "", "")
             seg = f"时 {r.get('pos', '')} {r.get('type', '')}（{r.get('note', '')}）"
             if plain:
-                seg += f"——{plain}"
+                seg += f"，{plain}"
             lines.append(seg)
         if not (dl.get("day_branch_rels") or dl.get("hour_branch_rels")):
             lines.append("与四柱地支无冲合刑害，这一天偏平稳")
@@ -277,7 +277,7 @@ def interpret_bazi(paipan: dict, calc: dict,
              and d["year_start"] <= _now_y < d["year_start"] + 10),
             None)
         if _cur_idx is not None:
-            lines.append("大运是十年的气候——你眼下走的那一步在下面标了"
+            lines.append("大运是十年的气候，你眼下走的那一步在下面标了"
                          "「←眼下」，每年的流年在这个底色上做加减")
         for d in dayun:
             god = d.get("gan_rel") or ""
@@ -286,7 +286,7 @@ def interpret_bazi(paipan: dict, calc: dict,
                    f"（{_fmt_num(d.get('start_age', 0))}~{_fmt_num(d.get('end_age', 0))} 岁，"
                    f"约 {d.get('year_start', '')} 年起）：{god}")
             if plain:
-                seg += f"——{plain}"
+                seg += f"，{plain}"
             if d.get("index") == _cur_idx:
                 seg += "　←眼下"
             lines.append(seg)
@@ -473,7 +473,7 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
                         "；".join(filter(None, [
                             ("偏旺 " + "、".join(strong)) if strong else "",
                             ("偏弱/缺 " + "、".join(missing)) if missing else "",
-                        ])) + "——失衡处就是要留意的地方"]   # R219b（P1-4）：去套话
+                        ])) + "，失衡处就是要留意的地方"]   # R219b（P1-4）：去套话
             return [f"{label}相关：五行分布无明显偏旺或缺行"]
         hit = [t for t in tg if t.get("god") in targets]
         if hit:
@@ -486,15 +486,15 @@ def _focus_lines(q: str, calc: dict) -> list[str]:
             # R2545（spec/008 P1）：「盘里有着落点」被 spec 列为生硬
             # 残留反例——换更日常的转述，事实（现于盘中）不丢。
             return [f"{label}出现在：" + "、".join(_hit_seg(t) for t in hit)
-                    + f"——{label}现于你盘中，这件事在盘上有实实在在的呼应"]
+                    + f"，{label}现于你盘中，这件事在盘上有实实在在的呼应"]
         # R2529：括号列的是「想看谁」targets 不是「盘里有谁」gods——
         # life scope 无 ten_gods 时 gods 全空渲染成裸「（）」。
         _tg = "、".join(str(g) for g in targets if g)
         return [f"{label}未现于四柱天干" + (f"（想看的是{_tg}）" if _tg else "")
-                + "——本盘这一维线索偏少，不作推测"]
+                + "，本盘这一维线索偏少，不作推测"]
     # R2544：只说类别不够——给一句真实问法示例，用户才知道口语
     # 问法也接得住（「我和男朋友吵架」级）。
-    return ["这个问题盘面没有对应的维度——感情、工作、学习、财运、"
+    return ["这个问题盘面没有对应的维度，感情、工作、学习、财运、"
             "身体节奏这些能聊，比如「我和男朋友吵架了」「实习转正"
             "顺不顺」这样问也行，要不换个问法试试？"]
 
@@ -561,7 +561,7 @@ def interpret_liuyao(ben: dict, bian: dict, moving_lines: list,
         named = [pos_names[i - 1] if isinstance(i, int) and 1 <= i <= 6 else str(i)
                  for i in ml]
         lines = [f"动爻：{('、'.join(named))}爻（共 {len(ml)} 个）",
-                 "动爻是变化发生的位置——本卦为当下，变卦为动爻变化后的去向"]
+                 "动爻是变化发生的位置：本卦为当下，变卦为动爻变化后的去向"]
         if len(ml) >= 3:
             lines.append("动爻较多，所问之事变数偏大，宜看整体趋向而非单爻")
     else:
@@ -574,14 +574,14 @@ def interpret_liuyao(ben: dict, bian: dict, moving_lines: list,
             sections.append({"title": "走向", "lines": ["本卦与变卦相同，方向不改"]})
         else:
             sections.append({"title": "走向", "lines": [
-                f"由 {ben['gua_name']} 转向 {bian['gua_name']}——"
+                f"由 {ben['gua_name']} 转向 {bian['gua_name']}。"
                 f"这是卦象给出的变化方向，卦义请以下方經文原文为准"]})
         basis.append("ben.gua_name vs bian.gua_name")
 
     q = (question or "").strip()
     if q:
         sections.append({"title": f"针对「{q}」", "lines": [
-            "系统只给卦象坐标与經文原文，不代为断事——"
+            "系统只给卦象坐标与經文原文，不代为断事。"
             "请据下方卦爻辞原文对照所问（G7：无证据不推测）"]})
 
     citations = _citations(jing or [])
@@ -664,7 +664,7 @@ def interpret_research(question: str, evidence: list[dict],
             "kind": "rule-based",
             "engine": "guji.interpreter/1.0（确定性规则，无 LLM）",
             "sections": [{"title": "证据不足", "lines": [
-                f"「{question}」在当前语料没检索到能对上的原文——"
+                f"「{question}」在当前语料没检索到能对上的原文。"
                 "不作推测"]}],
             "citations": [],
             "text": f"## 证据不足\n- 「{question}」在当前语料没检索到能对上的原文，"

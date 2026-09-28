@@ -443,7 +443,7 @@ class KnowledgeBase:
     def _del_derived(self, did: int, claim: str) -> None:
         """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能
         直接 DELETE（sqlite 报 'cannot DELETE from contentless fts5
-        table'）——schema 注释约定的 'delete' 命令重写。R2350a 修：
+        table'），schema 注释约定的 'delete' 命令重写。R2350a 修：
         _gc_threads/_gc_derived 此前用裸 DELETE，超帽触发时必抛
         OperationalError。"""
         self.db.execute("DELETE FROM evidence WHERE derived_id=?", (did,))

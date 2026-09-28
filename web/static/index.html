@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="小满的解忧铺——黄历择日、八字排盘、塔罗占卜，古籍佐证，温柔解读。">
+<meta name="description" content="小满的解忧铺，黄历择日、八字排盘、塔罗占卜，古籍佐证，温柔解读。">
 <meta property="og:title" content="小满的解忧铺">
-<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">
+<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">
 <meta property="og:type" content="website">
 <!-- R229d：链接分享卡——此前 og 无图，微信/iMessage/Twitter 展开只有文字。 -->
 <meta property="og:image" content="/static/shared/og-card.jpg">
@@ -14,7 +14,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="小满的解忧铺">
-<meta name="twitter:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">
+<meta name="twitter:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">
 <meta name="twitter:image" content="/static/shared/og-card.jpg">
 <!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
 <meta name="theme-color" content="#FFF8E7">
@@ -22,7 +22,7 @@
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
 <script>try{var _w=window.localStorage.getItem('welcomed');
-if(!_w){/* R2350c（R97-P1-1）：welcomed 只在点 × 时写——老用户
+if(!_w){/* R2350c（R97-P1-1）：welcomed 只在点 × 时写，老用户
 （访次>1/有打卡键）补写，避免天天见新人条+ret_tip 永锁 */
 var _v=String(localStorage.getItem('visits')||'').split(',').filter(Boolean).length>1;
 if(!_v){for(var _i=0;_i<localStorage.length;_i++){var _k=localStorage.key(_i);if(_k&&_k.indexOf('checkin:')===0){_v=true;break}}}
@@ -63,10 +63,10 @@ if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'——
+    /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'。
        改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
        R2349u（R91-P0-3）：084b5bf 时代注册过 /static/sw.js（scope=/static/，
-       固定桶名 books-shell-v1）——老用户浏览器里它还活着，按最长前缀
+       固定桶名 books-shell-v1），老用户浏览器里它还活着，按最长前缀
        匹配抢走 /static/* 喂旧代码，且 scope 内无导航几乎不再检查更新。
        注册成功后注销一切非根 scope，一次性清掉存量。 */
     navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
@@ -92,7 +92,7 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', function () {
         if (_toasted || !_hadCtl) return;
         _toasted = true;
-        /* R2400（R139-P2-4）：新 SW 接管后懒加载 chunk 会新旧混注——
+        /* R2400（R139-P2-4）：新 SW 接管后懒加载 chunk 会新旧混注。
            页在后台时直接静默刷新到全新版（用户看不见不打断）；
            前台保留 toast 引导手动刷。 */
         if (document.hidden) {
@@ -112,7 +112,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-/* R2349u（R90-P0-3）：日签不再等 594KB 的 app.js eval 完才发请求——
+/* R2349u（R90-P0-3）：日签不再等 594KB 的 app.js eval 完才发请求。
    head 内联裸 fetch 预取（读 localStorage me 拼同一 URL），loadDaily
    命中即用、null 回退 api() 走完整错误链。15s race 防悬挂。 */
 try {
@@ -138,7 +138,7 @@ try {
     };
   })();
 } catch (eDP) {}
-/* R2353（R110-P1-3）：字体分片让路——daily JSON 落地（或 4s 兜底）后
+/* R2353（R110-P1-3）：字体分片让路，daily JSON 落地（或 4s 兜底）后
    才翻 media='all' 放行 woff2 分片下载；预取缺席时 1.5s 后放行。 */
 try {
   (function () {
@@ -166,7 +166,7 @@ try {
 <!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
 <a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
   <div id="welcomeBar" class="welcome-bar" role="note">
-    <span class="welcome-txt">第一次来？点一张卡就能测——塔罗 · 桃花 · 合婚 · 黄历都有 ✨</span>
+    <span class="welcome-txt">第一次来？点一张卡就能测，塔罗 · 桃花 · 合婚 · 黄历都有 ✨</span>
     <button type="button" class="welcome-close" aria-label="知道了">×</button>
   </div>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
@@ -175,7 +175,7 @@ try {
 <!-- R233f（R43-P2-7）：<main> 地标——读屏 landmarks 此前无主内容区 -->
 <main id="main">
   <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
-  <h1 class="visually-hidden">小满的解忧铺——黄历、八字、塔罗、起名</h1>
+  <h1 class="visually-hidden">小满的解忧铺，黄历、八字、塔罗、起名</h1>
   <!-- R233h（R43-#14）：读屏播报专用区——结果落盘时只播一句短提示，
        不再把整个结果容器标 aria-live（长结果整篇重读是灾难）。 -->
   <div id="srLive" class="visually-hidden" aria-live="polite" role="status"></div>
@@ -235,7 +235,7 @@ try {
       <!-- R2363（R117-P0-3）：贵人+合拍并一粒，高共鸣钩子位置前移。 -->
       <!-- R2349g（R68-P0-2）：天乙贵人按日干只有 ~5 组值，叠日支六合
            「合拍生肖」做第二层，日签天天有新鲜组合。 -->
-      <div class="daily-meta-item" title="天乙贵人——传统里最帮你的方位/时段 · 今天最合得来的属相">🍀 今日贵人 <strong id="dailyNoble">—</strong> · 💞 合拍 <strong id="dailyPal">—</strong></div>
+      <div class="daily-meta-item" title="天乙贵人，传统里最帮你的方位/时段 · 今天最合得来的属相">🍀 今日贵人 <strong id="dailyNoble">—</strong> · 💞 合拍 <strong id="dailyPal">—</strong></div>
       <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
            老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
            打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
@@ -375,7 +375,7 @@ try {
               <select id="calendar_type"><option value="solar">公历（阳历）</option><option value="lunar">农历（阴历）</option></select></div>
             <div class="field" id="f_scope"><label for="scope">推算范围</label>
               <select id="scope"><option value="day">单日</option><option value="range">一段日期</option><option value="life">一生</option></select></div>
-            <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap" title="农历有些年份会多一个月——这年出生选它">闰月（那年多了一个月才选）</label>
+            <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap" title="农历有些年份会多一个月，这年出生选它">闰月（那年多了一个月才选）</label>
               <input id="lunar_leap" type="checkbox"></div>
           </div>
           <div class="row" style="margin-top:6px;" id="ask_row">
@@ -402,9 +402,9 @@ try {
              #result + toast）——删掉；字段级错误提示仍走统一 fail 路径。 -->
       </form>
 
-      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「看看我的盘」也能看，换成你的更准～</div></div>
+      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「看看我的盘」也能看，换成你的更准～</div></div>
       <!-- R229z续23（R11-#24）：法条式长注 → 人话版 -->
-      <p class="footnote">盘面按命理规则计算、引文标出处、解读是写死的规则转述——不是算命先生在替你拿主意，仅供娱乐。</p>
+      <p class="footnote">盘面按命理规则计算、引文标出处、解读是写死的规则转述，不是算命先生在替你拿主意，仅供娱乐。</p>
 
       <!-- R200b（US3 方案①）：八字系「相关功能」——起名/桃花/合婚与排盘
            同源四柱，收在排盘视图底部作二级入口；首页不再平铺。 -->
@@ -437,7 +437,7 @@ try {
       <!-- R2400（R125-P2）：常驻语境说明——这块是给查证用的工具，
            原文多为繁体，免得误入的朋友一脸懵。 -->
       <p style="font-size:12px;color:var(--secondary);margin:4px 0 10px;">
-        这里放的是原文查证工具——古籍多为繁体，找句子、对版本、看引用用。</p>
+        这里放的是原文查证工具，古籍多为繁体，找句子、对版本、看引用用。</p>
       <div class="rtabs">
         <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
         <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
@@ -537,7 +537,7 @@ try {
             <input id="tq" type="text" maxlength="64" placeholder="如：无为思想研究"></div>
         </div>
         <button id="threadBtn" type="button">开一条</button>
-        <div id="threadResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>还没有研究线程——写个主题开一条～</div></div>
+        <div id="threadResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>还没有研究线程，写个主题开一条～</div></div>
       </section>
 
       <!-- 读书 -->
@@ -701,7 +701,7 @@ try {
       <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
       <div id="qmFavRow" class="fav-row" hidden></div>
       <button id="qmSubmit" type="button">起一个名</button>
-      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「起一个名」也能看，换成你的更准～</div></div>
+      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「起一个名」也能看，换成你的更准～</div></div>
     </div>
   </div>
 
@@ -727,7 +727,7 @@ try {
           <input id="th_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
       </div>
       <button id="thSubmit" type="button">测测桃花</button>
-      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「测测桃花」也能看，换成你的更准～</div></div>
+      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「测测桃花」也能看，换成你的更准～</div></div>
     </div>
   </div>
 
@@ -741,7 +741,7 @@ try {
             placeholder="比如：梦见牙齿掉了 / 被人追着跑 / 回到考场卷子不会写…"></textarea></div>
       </div>
       <button id="dmSubmit" type="button">帮我解一解</button>
-      <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书——说说看？</div></div>
+      <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书：说说看？</div></div>
     </div>
   </div>
 
@@ -785,7 +785,7 @@ try {
       <button id="trPickBtn" type="button" class="ghost" style="margin-top:8px;">🃏 自己抽一把</button>
       <div id="trPickPanel" style="display:none;margin-top:10px;">
         <div class="tr-pick-hint" id="trPickHint"></div>
-        <div class="tr-fan" id="trPickFan" role="group" aria-label="牌背——点选出你要的牌"></div>
+        <div class="tr-fan" id="trPickFan" role="group" aria-label="牌背，点选出你要的牌"></div>
         <button id="trPickGo" type="button" disabled>就开这几张</button>
       </div>
       <!-- R2349l（R73-P1-12）：我的牌册——抽过的牌进收集图鉴，
@@ -853,7 +853,7 @@ try {
            me:partner，小满聊天就能对上 TA 的盘。 -->
       <button id="hhSavePartner" type="button" class="ghost" style="margin-top:8px;"
         title="只存在这台设备上，不提交、不测">先存下 TA 的生日（不测）</button>
-      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日——直接点「合一下」也能看，换成你们俩的更准～</div></div>
+      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「合一下」也能看，换成你们俩的更准～</div></div>
     </div>
   </div>
 
@@ -945,7 +945,7 @@ try {
         <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
              全量口径。 -->
         <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
-          备份/清空覆盖排盘台账、研究笔记与本机偏好——本机留档（只存在这台设备上的备份）也会一起清。
+          备份/清空覆盖排盘台账、研究笔记与本机偏好，本机留档（只存在这台设备上的备份）也会一起清。
         </div>
       </div>
       <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->

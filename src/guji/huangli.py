@@ -507,7 +507,7 @@ for _clu in _TERM_VETO_CLUSTERS:
 
 
 def _veto_terms(term: str) -> frozenset[str]:
-    """该事项词的否决词集——同簇词命中忌侧即不上榜；孤儿词只否决自己。"""
+    """该事项词的否决词集：同簇词命中忌侧即不上榜；孤儿词只否决自己。"""
     return _WORD_VETO.get(term, frozenset((term,)))
 
 

@@ -389,7 +389,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             "given": given,
             "elements": [elem],
             "origin": entry.get("出处", ""),
-            "story": f"「{entry.get('句', '')}」 —— {entry.get('出处', '')}。{entry.get('意象', '')}",
+            "story": f"「{entry.get('句', '')}」 ， {entry.get('出处', '')}。{entry.get('意象', '')}",
             "form": "single",
         })
 
@@ -445,7 +445,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     "given": given,
                     "elements": [elem, gender_comp],
                     "origin": e1.get("出处", "") + " + " + e2.get("出处", ""),
-                    "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
+                    "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」， 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
                     "form": "double",
                 })
                 if len(_doubles) >= _double_quota * 3:   # 池子留余量供风格过滤
@@ -494,7 +494,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                         "given": given,
                         "elements": [elem, gender_comp],
                         "origin": e1.get("出处", "") + " + " + e2.get("出处", ""),
-                        "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」—— 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
+                        "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」， 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
                         "form": "double",
                     })
                     if len(full_names) >= top_n:
@@ -521,11 +521,11 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         _hot = [c for c in _g if c in _HOT]
         _rare = [c for c in _g if c in _RARE]
         if _rare:
-            n["name_note"] = (f"「{'、'.join(_rare)}」偏生僻——"
+            n["name_note"] = (f"「{'、'.join(_rare)}」偏生僻。"
                               "娃以后写名办证可能要多解释两句")
         elif _hot:
             n["name_note"] = (f"「{'、'.join(_hot)}」是近年热字，"
-                              "重名率偏高——想要独特感可以换一换")
+                              "重名率偏高，想要独特感可以换一换")
 
     # R221b-fix（审查轨 R221a 目视发现）：`candidates` 自 R217a 建模块起就
     # 写死空列表，前端却一直渲染「单字候选池（0 字）」折叠区 → 一个永远空的

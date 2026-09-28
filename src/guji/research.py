@@ -241,7 +241,7 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
         wit = corpus.at_address(gua, yao, limit=per_address)
         keep(wit, Step("witnesses", label, len(wit), 0,
                        "该地址全部见证（各版本/各层）"
-                       + ("——用户点名的地址"
+                       + ("，用户点名的地址"
                           if (gua, yao) in intent_addrs else "")))
         works = {h.work_id for h in wit if h.scheme == "zhouyi"}
         if len(works) >= 2 and yao:
@@ -353,7 +353,7 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
             "scan_limit": scan_limit, "truncated": truncated,
             "hint": (None if census else
                      f"「{concept}」在全部 {len(works)} 部书中都没命中"
-                     "——换个写法（或繁体）试试"),
+                     "，换个写法（或繁体）试试"),
             "shared_total": len(cross),
             "shared_truncated": len(cross) > 30,
             "census": census, "shared_addresses": cross[:30]}
@@ -414,7 +414,7 @@ def compare_works(corpus: Corpus, work_a: str, work_b: str, concept: str,
     sb = _side(work_b)
     if sa is None or sb is None:
         _miss = work_a if sa is None else work_b
-        return {"error": f"这本书没找到（{_miss}）——先去书目页翻翻"}
+        return {"error": f"这本书没找到（{_miss}），先去书目页翻翻"}
     if sa["n_hits"] == 0 and sb["n_hits"] == 0:
         return {"error": f"「{concept}」在两书均无命中"}
     # shared zhouyi addresses where BOTH works meet the concept

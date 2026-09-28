@@ -40,7 +40,7 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"这本书没找到（{work_id}）——先去书目页翻翻"}
+        return {"error": f"这本书没找到（{work_id}），先去书目页翻翻"}
     rows = corpus.db.execute(
         "SELECT scheme, addr_name, addr1, addr2, layer, text, file, page_anchor, "
         "suspect, skipped_chars FROM unit WHERE work_id = ? ORDER BY raw_start",
@@ -116,7 +116,7 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         # NULL-scheme works (老子/莊子注…) group by FILE in structure() and
         # their units carry scheme=NULL — the section filter must be u.file.
         if file is None:
-            return {"error": f"这类书要按文件挑节——请给 file 参数（{work_id}）"}
+            return {"error": f"这类书要按文件挑节，请给 file 参数（{work_id}）"}
         where = "u.work_id = ? AND u.file = ?"
         params: list = [work_id, file]
     else:
@@ -124,14 +124,14 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         params = [work_id, scheme]
         if scheme == "zhouyi":
             if addr1 is None:
-                return {"error": f"周易要按卦号挑节——请给 addr1（1–64，{work_id}）"}
+                return {"error": f"周易要按卦号挑节，请给 addr1（1–64，{work_id}）"}
             where += " AND u.addr1 = ?"
             params.append(addr1)
         else:
             # R230r（R30-#2）：bcv 的章号在每卷内重新计——只给 addr1=1 会把
             # Genesis/Exodus/Leviticus 的 ch1 揉成一节还谎称 60 单元。
             if scheme == "bcv" and addr1 is not None and addr_name is None:
-                return {"error": "bcv 的章号按卷内计——请同时给 addr_name"
+                return {"error": "bcv 的章号按卷内计，请同时给 addr_name"
                                  "（卷名，如 Genesis），否则会把多卷的同章号"
                                  "揉成一节"}
             if addr_name is not None:
@@ -176,7 +176,7 @@ def book_summary(corpus: Corpus, work_id: str) -> dict:
         "SELECT id, title, attribution, edition, genre FROM work WHERE id = ?",
         (work_id,)).fetchone()
     if w is None:
-        return {"error": f"这本书没找到（{work_id}）——先去书目页翻翻"}
+        return {"error": f"这本书没找到（{work_id}），先去书目页翻翻"}
     rows = corpus.db.execute(
         "SELECT scheme, layer, text, suspect, skipped_chars FROM unit "
         "WHERE work_id = ?", (work_id,)).fetchall()

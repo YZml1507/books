@@ -90,7 +90,7 @@ TEN_GOD_WARM: dict[str, tuple[str, str]] = {
 # 深度解读的骨架是「适合+注意」：每格给一件今天就能做的小事、一个容易踩的
 # 坑，不说「看开点」「都会好的」这类正确废话。
 TEN_GOD_ACTION: dict[str, tuple[str, str]] = {
-    "比肩": ("找个搭子一起做——这类事同行比单干顺", "别为面子跟人比，按自己的节奏来"),
+    "比肩": ("找个搭子一起做，这类事同行比单干顺", "别为面子跟人比，按自己的节奏来"),
     "劫财": ("聚会、AA、清闲置都挺合适", "钱先说好再动，口头容易扯皮"),
     "食神": ("把想法写出来、做出来，慢一点没关系", "光想不动会把这股劲白白耗掉"),
     "伤官": ("提新方案、改旧稿子、试试不一样的做法", "话到嘴边留半句，别跟权威硬顶"),
@@ -107,59 +107,59 @@ TEN_GOD_ACTION: dict[str, tuple[str, str]] = {
 # 分手问逐字节复读（可互换性测试不通过的实测病灶）。
 TEN_GOD_WARM_TOPIC: dict[str, dict[str, tuple[str, str]]] = {
     "感情": {
-        "正官": ("夫星位", "女盘里的另一半之星——正式、有名分、奔长久去的那种缘分"),
-        "七杀": ("夫星位·烈", "感情里强势的那股劲——来得猛、推进快，也带压迫感"),
-        "正财": ("妻星位", "男盘里的另一半之星——稳定、踏实、奔着过日子去"),
-        "偏财": ("妻星位·散", "男盘里的另一半之星——缘分不少，心思却容易散"),
+        "正官": ("夫星位", "女盘里的另一半之星：正式、有名分、奔长久去的那种缘分"),
+        "七杀": ("夫星位·烈", "感情里强势的那股劲：来得猛、推进快，也带压迫感"),
+        "正财": ("妻星位", "男盘里的另一半之星：稳定、踏实、奔着过日子去"),
+        "偏财": ("妻星位·散", "男盘里的另一半之星：缘分不少，心思却容易散"),
     },
     "事业": {
-        "伤官": ("破格力", "点子多、不按框架走——事业里是创新劲，也是顶撞劲"),
+        "伤官": ("破格力", "点子多、不按框架走，事业里是创新劲，也是顶撞劲"),
     },
 }
 
 TEN_GOD_ACTION_TOPIC: dict[str, dict[str, tuple[str, str]]] = {
     "感情": {
-        "正官": ("把关系摆上台面试试——名分、见家长、未来规划这类「正式」话题聊不聊得开",
-                 "只讲合适不讲温度也不行——条件匹配不等于心里想要"),
-        "七杀": ("分清这股压迫感是推力还是消耗——让你变好的可以接，只让你累的要退",
+        "正官": ("把关系摆上台面试试，名分、见家长、未来规划这类「正式」话题聊不聊得开",
+                 "只讲合适不讲温度也不行，条件匹配不等于心里想要"),
+        "七杀": ("分清这股压迫感是推力还是消耗，让你变好的可以接，只让你累的要退",
                  "来势猛的关系别急着全押"),
-        "正财": ("落到实处的相处——一起做点日常小事比情话更能看清人",
+        "正财": ("落到实处的相处，一起做点日常小事比情话更能看清人",
                  "别把「稳定」处成「没话聊」"),
-        "偏财": ("先想清楚自己要哪一种——心还散着的时候别做承诺",
+        "偏财": ("先想清楚自己要哪一种，心还散着的时候别做承诺",
                  "选项多的时候更要给自己划条线"),
-        "比肩": ("感情位站着同辈的劲——闺蜜意见、暧昧对象都算「第三个人」，边界先划清",
+        "比肩": ("感情位站着同辈的劲，闺蜜意见、暧昧对象都算「第三个人」，边界先划清",
                  "别拿自己的关系跟别人家比"),
-        "劫财": ("同辈能量占感情位——朋友介入多或竞争者出现，先听自己怎么想",
+        "劫财": ("同辈能量占感情位，朋友介入多或竞争者出现，先听自己怎么想",
                  "为别人的意见把关系搞砸不划算"),
-        "伤官": ("想说清楚就直说，但语气留三分——伤官占感情位，话是双刃剑",
+        "伤官": ("想说清楚就直说，但语气留三分，伤官占感情位，话是双刃剑",
                  "分手气话出口就收不回"),
-        "食神": ("用软一点的方式表达——写信、一起待着，比讲道理管用",
+        "食神": ("用软一点的方式表达：写信、一起待着，比讲道理管用",
                  "委屈别闷着攒成爆发"),
     },
     "事业": {
-        "伤官": ("把新点子写成方案再提——让创新劲落地成看得见的成果",
+        "伤官": ("把新点子写成方案再提，让创新劲落地成看得见的成果",
                  "顶撞之前先想清楚：这是立场问题还是情绪问题"),
-        "食神": ("稳定输出比爆发重要——把手头的活做出口碑",
+        "食神": ("稳定输出比爆发重要，把手头的活做出口碑",
                  "慢工可以，别慢到错过节点"),
-        "偏印": ("适合自己钻研一条路——考证、副业、新技能都顺",
+        "偏印": ("适合自己钻研一条路：考证、副业、新技能都顺",
                  "闷头单干容易走偏，定期对齐大方向"),
     },
     "财运": {
         "比肩": ("合伙账先算清再谈合作",
                  "面子钱、人情钱最容易漏"),
-        "劫财": ("大额支出缓一缓——劫财占财位，钱出去容易回来难",
+        "劫财": ("大额支出缓一缓：劫财占财位，钱出去容易回来难",
                  "担保、垫付这两件事尽量别碰"),
-        "伤官": ("靠手艺、点子挣钱是这条路——副业思路可以试",
+        "伤官": ("靠手艺、点子挣钱是这条路：副业思路可以试",
                  "来钱快的路子多留个心眼"),
     },
     "学业": {
-        "伤官": ("换个学法——死记不行就讲给别人听、画成图",
+        "伤官": ("换个学法，死记不行就讲给别人听、画成图",
                  "别跟标准答案较劲，考试先认规则"),
-        "正印": ("死磕教材和真题——庇护位在，基础功最值钱",
+        "正印": ("死磕教材和真题：庇护位在，基础功最值钱",
                  "资料贪多嚼不烂"),
     },
     "人际": {
-        "伤官": ("话到嘴边留半句——你无心的话对方可能往心里去",
+        "伤官": ("话到嘴边留半句，你无心的话对方可能往心里去",
                  "直率是优点，别拿它当借口伤人"),
         "劫财": ("涉及钱、涉及站队的事先想清楚",
                  "别被卷进别人的矛盾里"),
@@ -168,7 +168,7 @@ TEN_GOD_ACTION_TOPIC: dict[str, dict[str, tuple[str, str]]] = {
 
 
 def _god_warm(label: str, god: str) -> tuple[str, str]:
-    """题类优先的十神释义——有题类覆盖用覆盖，否则回通用表。"""
+    """题类优先的十神释义，有题类覆盖用覆盖，否则回通用表。"""
     return ((TEN_GOD_WARM_TOPIC.get(label) or {}).get(god)
             or TEN_GOD_WARM.get(god, (god, "")))
 
@@ -181,13 +181,13 @@ def _god_action(label: str, god: str) -> tuple[str, str] | None:
 # 话题落点为空时的落地提示——盘里没接住也不让用户空着手走，
 # 给的是生活层面的通用一步（不冒充盘面结论）。
 TOPIC_HINT: dict[str, str] = {
-    "感情": "盘外能做的最实在一步——把想说的话先跟信得过的人顺一遍。",
+    "感情": "盘外能做的最实在一步，把想说的话先跟信得过的人顺一遍。",
     "事业": "最值的一步：挑手头最能出结果的那件事，先做到看得见。",
     "财运": "先把固定支出盘一遍，能看见的数才好做决定。",
     "学业": "把大目标拆成这周能完成的三件小事，先干第一件。",
-    "状态": "状态题先调作息——三天规律睡眠比什么化解都管用。",
+    "状态": "状态题先调作息，三天规律睡眠比什么化解都管用。",
     "人际": "人际题的一个通用锚点：先想清楚你想要的是什么结果，再决定怎么开口。",
-    "子女": "孩子这种事，身体和心态都准备好了再谈——急不来也不用急。",
+    "子女": "孩子这种事，身体和心态都准备好了再谈，急不来也不用急。",
 }
 
 # 五行 → (日常语, 意象)
@@ -521,7 +521,7 @@ def one_liner(day_master: str, calc: dict, question: str | None,
             # R230a-7（R13-P3-2）：日主元素=偏旺元素时叠词太怪
             # （「生长底子，生长偏多」）→ 换说法。
             if _strong_label == warm:
-                s = f"{warm}底子，还偏多一层——就是容易厚过头"
+                s = f"{warm}底子，还偏多一层，就是容易厚过头"
             else:
                 s = f"{warm}底子，{_strong_label}偏多"
         elif missing:
@@ -549,7 +549,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     # 「不瞎编」路径也是语气失当，确定性转介。
     from guji import llm_polish as _lp
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
-        return ["这个话题盘里真接不了，也不该靠它拿主意——"
+        return ["这个话题盘里真接不了，也不该靠它拿主意。"
                 "身体或心里难受的话，找医生、找信得过的人聊聊才是正路；"
                 "真的很难受，全国心理援助热线 12356（24 小时，免费）"
                 "随时能打通。小满陪你说点别的也行。"]
@@ -573,7 +573,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         _q = _q.replace("\n", " ").replace("\r", " ").strip()
         return [
             # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
-            f"你问的是「{_q}」——这个问题盘里没有对应的位置，小满不瞎编～",
+            f"你问的是「{_q}」，这个问题盘里没有对应的位置，小满不瞎编～",
             # R2516：空盘面不再出「力量是：。」悬空冒号。
             (f"盘里现有的力量是：{_forces}。" if _forces
              else "这盘里能借力的地方比较薄。"),
@@ -591,7 +591,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
     if not gods:                                     # 健康/状态类：看五行均衡
         fe = calc.get("five_elements") or {}
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
-        lines.append(f"你问{quoted}——这属于{label}，主要看五行匀不匀。")
+        lines.append(f"你问{quoted}，这属于{label}，主要看五行匀不匀。")
         if strong:
             # R230a-7（R13-P1-1）：并列偏旺全说（火土两旺→都说）
             for e in strong[:3]:
@@ -618,7 +618,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if _warm:
             _act = TEN_GOD_ACTION.get(_god)
             _tail = f"今天适合：{_act[0]}。" if _act else "顺着来。"
-            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
+            lines.append(f"今天的气氛偏「{_warm[0]}」，{_warm[1]}。{_tail}")
         lines.append("具体怎么对应，盘面只是参照，你的感受同样重要。")
         return lines
 
@@ -630,13 +630,13 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
                           f"（{_god_warm(label, t.get('god', ''))[0]}）"
                           for t in hit[:3])
         # R230a-7（R13-P3-1）：spots 只列前 3 个，数与量不符——补「等」。
-        lines.append(f"你问{quoted}——这属于{label}，"
+        lines.append(f"你问{quoted}，这属于{label}，"
                      f"盘里对应的位置有 {len(hit)} 处：{spots}"
                      f"{'等' if len(hit) > 3 else ''}。")
         first = hit[0].get("god", "")
         _gw = _god_warm(label, first)
         if _gw[1]:
-            lines.append(f"其中最靠前的那个是{_gw[0]}（{first}）——{_gw[1]}。")
+            lines.append(f"其中最靠前的那个是{_gw[0]}（{first}），{_gw[1]}。")
         # R2516（用户反馈「讲解太浅」）：收口从免责套话换行动锚——
         # 「具体怎么走看你自己的选择」是正确废话；用户要的是今天能做
         # 什么。取最靠前落点的「适合+留意」二联（题类优先）。
@@ -646,15 +646,15 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         else:
             lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
                                 "具体怎么走，还要看你自己的选择。",
-                                "盘里给这事留了位置——往哪走，看你心意。",
+                                "盘里给这事留了位置，往哪走，看你心意。",
                                 "这题盘里能接住，方向有了，步子你来定。"],
                                "bazi-hit", q, _today_cn().isoformat()))
     else:
-        lines.append(f"你问{quoted}——这属于{label}，"
+        lines.append(f"你问{quoted}，这属于{label}，"
                      f"但这块在你盘里没有直接对应的落点。")
         # R229z续23（R11-#17/#18）：去内部腔——「本项目的规矩」「通盘坐标」
-        lines.append(_pick(["小满不瞎编——没有的东西不硬凑。",
-                            "盘上没有的我不硬说——这是小满的规矩。",
+        lines.append(_pick(["小满不瞎编：没有的东西不硬凑。",
+                            "盘上没有的我不硬说，这是小满的规矩。",
                             "这一维盘面没给线索，不猜。"],
                            "bazi-miss", q, _today_cn().isoformat()))
         # R2516：盘没接住也不让用户空手走——给话题级的通用一步
@@ -669,7 +669,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if warm:
             # R2509（审-P2-9）：默认路径不裸说「四柱」。
             lines.append(f"另外你盘里有个「{r.get('type')}」的关系"
-                         f"（{r.get('a', '')}×{r.get('b', '')}）——{warm}。")
+                         f"（{r.get('a', '')}×{r.get('b', '')}），{warm}。")
     # R230a-7（R13-P1-9）：今日十神进正文，破跨日复读。
     _dl = calc.get("day_luck") or {}
     _rel = str(_dl.get("day_master_rel") or "")
@@ -679,7 +679,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         # R2516：同行内挂「今天适合」——独立成行会被 lines[:5] 截掉。
         _act = TEN_GOD_ACTION.get(_god)
         _tail = f"今天适合：{_act[0]}。" if _act else ""
-        lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
+        lines.append(f"今天的气氛偏「{_warm[0]}」，{_warm[1]}。{_tail}")
     return lines[:5]
 
 
@@ -697,14 +697,14 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         # R230a-7（R13-P1-1）：并列偏旺全说
         for _s in strong[:3]:
             _w = ELEMENT_WARM.get(_s, ("", ""))
-            lines.append(f"你自带「{_w[0]}」的底色——{_w[1]}。")
+            lines.append(f"你自带「{_w[0]}」的底色：{_w[1]}。")
     _tied = fe.get("strong_tied") or []
     if not strong and _tied:
-        lines.append(f"{'、'.join(_tied)}几股劲相当——没有一行独大。")
+        lines.append(f"{'、'.join(_tied)}几股劲相当：没有一行独大。")
     if missing:
         # F-008：术语人话化——缺行也用日常语标签
         _missing_labels = [ELEMENT_WARM.get(m, ('', ''))[0] for m in missing]
-        lines.append(f"缺{'、'.join(_missing_labels)}——不是缺陷，是偏向。")
+        lines.append(f"缺{'、'.join(_missing_labels)}：不是缺陷，是偏向。")
     dl = calc.get("day_luck") or {}
     if dl.get("day_master_rel"):
         # R214b：裸术语（「庚为日主甲之七杀」）翻译成人话——取末段十神名
@@ -716,7 +716,7 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
         if _warm:
             _act = TEN_GOD_ACTION.get(_god)
             _tail = f"今天适合：{_act[0]}。" if _act else ""
-            lines.append(f"今天的气氛偏「{_warm[0]}」——{_warm[1]}。{_tail}")
+            lines.append(f"今天的气氛偏「{_warm[0]}」，{_warm[1]}。{_tail}")
     # R233c（R40-W7）：流日流时里的日支关系（冲合刑害）pro 卡早算好，
     # 温柔端只吃了十神没吃关系——补一条白话，碰到合/冲说清「和谁、
     # 什么感觉」。
@@ -730,7 +730,7 @@ def _reply_no_question(day_master: str, calc: dict) -> list[str]:
                        "月支": "成长位", "时支": "归宿位"}.get(
                 _r0.get("pos") or "", _r0.get("pos") or "某个位置")
             lines.append(f"今天的日子碰到你的{_pos_cn}"
-                         f"（{_r0.get('type')}）——{_w}。")
+                         f"（{_r0.get('type')}），{_w}。")
     lines.append("想问具体的事，在上面填一句就行。")
     return lines[:5]
 
@@ -804,12 +804,12 @@ GUA_WARM: dict[int, str] = {
 
 # 六爻爻位白话（1=初 … 6=上）
 YAO_WARM: dict[int, str] = {
-    1: "最底下那一爻——事情刚起头的位置",
-    2: "第二爻——刚上手、还在摸的位置",
-    3: "第三爻——半中间，最容易反复的位置",
-    4: "第四爻——快出头但还没稳的位置",
-    5: "第五爻——最当位、话最管用的位置",
-    6: "最上面那一爻——事情到顶、该收的位置",
+    1: "最底下那一爻：事情刚起头的位置",
+    2: "第二爻：刚上手、还在摸的位置",
+    3: "第三爻：半中间，最容易反复的位置",
+    4: "第四爻：快出头但还没稳的位置",
+    5: "第五爻：最当位、话最管用的位置",
+    6: "最上面那一爻：事情到顶、该收的位置",
 }
 
 
@@ -865,19 +865,19 @@ def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
     if not user_wx or not other_wx:
         return ""
     if other_wx == user_wx:
-        return (f"这一卦照传统口径看：{other_label}跟你同气——"
+        return (f"这一卦照传统口径看：{other_label}跟你同气。"
                 "不急不缓，按自己的节奏来就是。")
     if ELEMENT_GENERATES.get(other_wx) == user_wx:
-        return (f"这一卦照传统口径看：{other_label}是朝你这边来的——"
+        return (f"这一卦照传统口径看：{other_label}是朝你这边来的。"
                 "顺势接住比使劲推更划算。")
     if ELEMENT_GENERATES.get(user_wx) == other_wx:
-        return (f"这一卦照传统口径看：这事要你持续供着劲——"
+        return (f"这一卦照传统口径看：这事要你持续供着劲。"
                 "先有付出才有回响，掂量好值不值。")
     if _WX_KE_LY.get(other_wx) == user_wx:
-        return (f"这一卦照传统口径看：{other_label}压着你走——"
+        return (f"这一卦照传统口径看：{other_label}压着你走。"
                 "先想清楚接不接得住，别硬扛。")
     if _WX_KE_LY.get(user_wx) == other_wx:
-        return (f"这一卦照传统口径看：主动权在你手里——"
+        return (f"这一卦照传统口径看：主动权在你手里。"
                 "成不成看你抓不抓，卦不管怂。")
     return ""
 
@@ -917,7 +917,7 @@ def _reply_temporal(question: str, calc: dict,
     dy = calc.get("dayun") or []
     dl = calc.get("day_luck") or {}
     _qq = q.replace("「", "").replace("」", "").replace("\n", " ").strip()
-    lines.append(f"你问的是「{_qq}」——这类看方向的问题，"
+    lines.append(f"你问的是「{_qq}」，这类看方向的问题，"
                  "盘里最实的两样是眼下走什么运、日子的气候往哪吹。")
     # 1) 眼下大运（scope=life 才有 dayun）——十年主基调
     _now_y = _today_cn().year
@@ -934,13 +934,13 @@ def _reply_temporal(question: str, calc: dict,
         lines.append(
             f"眼下走在第{_cur.get('index')}运「{_cur.get('pillar')}」"
             f"（{_cur.get('start_age')}~{_cur.get('end_age')}岁）" +
-            (f"——这十年的主基调偏「{_gw[0]}」：{_gw[1]}。"
+            (f"，这十年的主基调偏「{_gw[0]}」：{_gw[1]}。"
              if _gw[0] else "。"))
         if _nxt:
             lines.append(
                 f"下一运 {_nxt.get('year_start')} 年前后换班"
                 f"（约 {_nxt.get('start_age')} 岁起）"
-                "——大方向的拐点记在那个时间窗。")
+                "，大方向的拐点记在那个时间窗。")
     # R3125（specs/012-P3）：流年锚——问「今年/明年」时把该年干支
     # 对日主十神的确定性对应摆出来（立春换年口径，年内节气前仍属
     # 上年的只在「今年」做边界说明，明年/后年直取目标年干支）。
@@ -966,10 +966,10 @@ def _reply_temporal(question: str, calc: dict,
                 except Exception:
                     pass
             lines.append(
-                f"{_ym.group(0)}{_ly_y}年是{_ly_gz}年{_note}——"
+                f"{_ym.group(0)}{_ly_y}年是{_ly_gz}年{_note}。"
                 f"{_ly_gz[0]}对你日主{day_master}来说是「{_god}」"
                 + (f"（{_gw2[0]}）：{_gw2[1]}" if _gw2 else "")
-                + "——年度主线参考，不是日程表。")
+                + "，年度主线参考，不是日程表。")
     # R3126（specs/013-P3）：流月锚——「这个月」尺度的确定性坐标，
     # 本月干支（节气换月口径，与排盘一致）对日主十神。
     # R3140：「下个月/下月」取下月中段日（15 号必落该月节气窗内）。
@@ -992,9 +992,9 @@ def _reply_temporal(question: str, calc: dict,
             if _mgod:
                 lines.append(
                     f"{'下个月' if _want_next else '这个月'}是{_mgz}月"
-                    f"——{_mgz[0]}对你是「{_mgod}」"
+                    f"，{_mgz[0]}对你是「{_mgod}」"
                     + (f"（{_gm[0]}）：{_gm[1]}" if _gm else "")
-                    + "——当月基调参考。")
+                    + "，当月基调参考。")
         except Exception:
             pass
     # 2) 流日气候（day_luck）——「最近」最实的抓手
@@ -1003,7 +1003,7 @@ def _reply_temporal(question: str, calc: dict,
     _w = TEN_GOD_WARM.get(_god)
     if _w:
         _act = TEN_GOD_ACTION.get(_god)
-        lines.append(f"今天的气氛偏「{_w[0]}」——{_w[1]}。" +
+        lines.append(f"今天的气氛偏「{_w[0]}」，{_w[1]}。" +
                      (f"顺势的做法：{_act[0]}；要留的坑：{_act[1]}。"
                       if _act else ""))
     _dbr = dl.get("day_branch_rels") or []
@@ -1015,18 +1015,18 @@ def _reply_temporal(question: str, calc: dict,
                        "月支": "成长位", "时支": "归宿位"}.get(
                 _r0.get("pos") or "", _r0.get("pos") or "某个位置")
             lines.append(f"今天的地支碰到你的{_pos_cn}"
-                         f"（{_r0.get('type')}）——{_rw}。")
+                         f"（{_r0.get('type')}），{_rw}。")
     # 3) 底色一句（五行强弱）
     strong = fe.get("strong") or []
     if strong:
         _lbl = "、".join(ELEMENT_WARM.get(s, (s, ""))[0] or s
                         for s in strong[:2])
-        lines.append(f"底色上你「{_lbl}」偏多——这股劲往哪个方向使，"
+        lines.append(f"底色上你「{_lbl}」偏多，这股劲往哪个方向使，"
                      "比旺不旺更要紧。")
     # 4) 收口：问的是跨年尺度但只有单日盘 → 指路「一生」；否则引到
     #    具体事项
     if _TEMPORAL_YEAR.search(q) and not dy:
-        lines.append("你问的是跨年的大方向——排盘时范围选「一生」，"
+        lines.append("你问的是跨年的大方向，排盘时范围选「一生」，"
                      "我把大运逐年展开给你看。")
     else:
         lines.append("想问具体的事（感情、事业、学业、财运、人际），"
@@ -1041,25 +1041,25 @@ def _reply_temporal(question: str, calc: dict,
 _LIUYAO_CAT_STEP: dict[str, str] = {
     "career": "能做的最实一步：把眼下最想推进的那件事拆成三步，今天先走第一步。"
               "观察信号：走完第一步的两三天里，事情是变顺还是更卡。"
-              "要是更卡，先别硬推第二步——回去看第一步是不是方向错了。",
+              "要是更卡，先别硬推第二步，回去看第一步是不是方向错了。",
     "love": "比猜对方心思更实的：先想清楚你想从这段关系里要什么，写下来三条。"
             "观察信号：对着这三条看眼下这段关系满足了几条。"
-            "要是一条都没满足，先别急着修复关系——先回答「我还要不要」。",
-    "money": "先把这笔进出写成数字摆出来——能看清的账才好做决定。"
+            "要是一条都没满足，先别急着修复关系，先回答「我还要不要」。",
+    "money": "先把这笔进出写成数字摆出来，能看清的账才好做决定。"
              "观察信号：数字摆出来后，你是松了口气还是更紧了。"
-             "要是更紧，说明问题不在算账在收入结构——先去看进项那条线。",
+             "要是更紧，说明问题不在算账在收入结构，先去看进项那条线。",
     "study": "文书题最忌拖：今天就把要准备的东西列个清单。"
              "观察信号：清单列完的第一项，能不能在两小时内动起手。"
-             "要是动不了，不是懒是目标太大——把第一项再对半拆。",
-    "health": "身体的事卦面只当参考——不舒服别硬扛，该看就看。"
+             "要是动不了，不是懒是目标太大：把第一项再对半拆。",
+    "health": "身体的事卦面只当参考：不舒服别硬扛，该看就看。"
               "观察信号：按医生或常识调整一周后，症状是缓是平是重。"
-              "要是平了或重了，换一家再看——卦面不替诊断。",
+              "要是平了或重了，换一家再看，卦面不替诊断。",
     "child": "这类事急不来，先把日常节奏理顺最划算。"
              "观察信号：节奏顺了之后，你自己松不松。"
-             "要是还是绷着，卡点不在节奏在心态——先给自己放两天假。",
+             "要是还是绷着，卡点不在节奏在心态：先给自己放两天假。",
     "peer": "跟人打交道的事：先想清楚你的底线在哪，写下来。"
             "观察信号：底线亮出来之后，对方是收敛还是变本加厉。"
-            "要是变本加厉，这关系该降级就降级——底线不是谈判筹码。",
+            "要是变本加厉，这关系该降级就降级，底线不是谈判筹码。",
 }
 
 
@@ -1097,7 +1097,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # 语气严重失当；与聊天层 _CRISIS_PAT 同一口径转介。
     from guji import llm_polish as _lp
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
-        return ["这个话题卦面真答不了，也不该靠它拿主意——"
+        return ["这个话题卦面真答不了，也不该靠它拿主意。"
                 "身体或心里难受的话，找医生、找信得过的人聊聊才是正路；"
                 "真的很难受，全国心理援助热线 12356（24 小时，免费）"
                 "随时能打通。小满陪你说点别的也行。"]
@@ -1114,10 +1114,10 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     _th_line = ""
     if q:
         _th_line = _lp._chat_theme(q)
-        _th_line = f"——这事归「{_th_line}」这条线" if _th_line else ""
+        _th_line = f"，这事归「{_th_line}」这条线" if _th_line else ""
     head = (f"你问的是「{q}」{_th_line}。" if q
             else "这一卦起出来是这样：")
-    lines.append(head + f"起到的是{bname}卦——{GUA_WARM.get(bn, '')}。")
+    lines.append(head + f"起到的是{bname}卦，{GUA_WARM.get(bn, '')}。")
 
     # R233u（R53-P0-4）：用神/世应坐标——让用户知道「这卦里先看哪一爻」。
     # 坐标如实转述（六亲落位、是否动爻），不断吉凶。
@@ -1175,32 +1175,32 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                             f"{_fln}没露面，伏在"
                             f"{_YAO_POS_CN.get(_fs0[0].get('position'), '')}爻"
                             f"（{_fs0[0].get('branch') or ''}）底下"
-                            "——还憋着，透出才算数")
+                            "，还憋着，透出才算数")
                 if _bits:
                     # R2509（审-P2-14）：括号里的「官鬼/妻财」是把刚翻译完
                     # 的黑话又塞回来——温柔版纪律（六亲白话）已破，删掉。
                     _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
-                             "——这卦里" + "、".join(_bits))
+                             "，这卦里" + "、".join(_bits))
                 else:
                     _seg += ("。感情的事传统上女看「夫星」、男看「妻星」"
-                             "——两星都没直接落位，那就看代表你和事情的"
+                             "，两星都没直接落位，那就看代表你和事情的"
                              "两端更实在")
             elif _ys_pos:
-                _mv = "且是动爻——你问的事正在动的点上" \
+                _mv = "且是动爻：你问的事正在动的点上" \
                     if _ys_pos[0] in ml else ""
-                _seg += (f"。问这类事传统上先看{_ys_note}——"
+                _seg += (f"。问这类事传统上先看{_ys_note}。"
                          f"落在{_YAO_POS_CN.get(_ys_pos[0], '第' + str(_ys_pos[0]))}爻{_mv}")
             else:
                 _fs_l2 = [f for f in (_pp.get("fushen") or [])
                           if f.get("liuqin") == _ys]
                 if _fs_l2:
                     _f1 = _fs_l2[0]
-                    _seg += (f"。问这类事传统上先看{_ys_note}——它没露面，"
+                    _seg += (f"。问这类事传统上先看{_ys_note}，它没露面，"
                              f"伏在{_YAO_POS_CN.get(_f1.get('position'), '')}爻"
                              f"（{_f1.get('branch') or ''}）底下，事还憋着，"
                              "透出才算数")
                 else:
-                    _seg += (f"。问这类事传统上先看{_ys_note}——它没直接落在这卦里，"
+                    _seg += (f"。问这类事传统上先看{_ys_note}，它没直接落在这卦里，"
                              f"那就看代表你和事情的两端更实在")
         lines.append(_seg + "。")
         # R3100：倾向行——感情题看应×世（对方那头 vs 你），其余场景
@@ -1250,7 +1250,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                         break
                 if _d_val and _d_chg:
                     lines.append(
-                        f"应期参考（传统口径）：代表这事的那爻带{_zb}——"
+                        f"应期参考（传统口径）：代表这事的那爻带{_zb}。"
                         f"{_d_val.month}月{_d_val.day}日逢值、"
                         f"{_d_chg.month}月{_d_chg.day}日逢冲，"
                         "事情容易在这两个日子前后有动静"
@@ -1273,46 +1273,46 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                 # 一档（「破」比「克」更伤根基），优先于普通生克报。
                 if _zb and _ZHI_CHONG_LY.get(_yj_b) == _zb:
                     _yj_txt = (f"月令{_yj_b}正冲着你问的事（{_zb}）"
-                               "——传统上这叫「月破」，这个月事头被"
+                               "，传统上这叫「月破」，这个月事头被"
                                "冲得立不稳，缓一缓比硬推强")
                 elif _yj_wx == _ys_wx2:
-                    _yj_txt = (f"月令{_yj_b}和你问的事同气——正当令，"
+                    _yj_txt = (f"月令{_yj_b}和你问的事同气，正当令，"
                                "这段日子事头底气足")
                 elif ELEMENT_GENERATES.get(_yj_wx) == _ys_wx2:
                     _yj_txt = (f"月令{_yj_b}（{_yj_wx}）生着你问的事"
-                               f"（{_ys_wx2}）——这个月它有外援托着，底气偏足")
+                               f"（{_ys_wx2}），这个月它有外援托着，底气偏足")
                 elif _WX_KE_LY.get(_yj_wx) == _ys_wx2:
                     _yj_txt = (f"月令{_yj_b}（{_yj_wx}）压着你问的事"
-                               f"（{_ys_wx2}）——这段事头偏弱，更得照着"
+                               f"（{_ys_wx2}），这段事头偏弱，更得照着"
                                "处方那句来")
                 elif ELEMENT_GENERATES.get(_ys_wx2) == _yj_wx:
                     _yj_txt = (f"月令{_yj_b}（{_yj_wx}）泄着你问的事"
-                               f"（{_ys_wx2}）——劲容易被分走，推进省着点用")
+                               f"（{_ys_wx2}），劲容易被分走，推进省着点用")
                 elif _WX_KE_LY.get(_ys_wx2) == _yj_wx:
                     _yj_txt = (f"月令{_yj_b}（{_yj_wx}）耗着你问的事"
-                               f"（{_ys_wx2}）——能推动但费劲，别指望它"
+                               f"（{_ys_wx2}），能推动但费劲，别指望它"
                                "自己滚起来")
             if _yj_txt:
                 # 日辰帮衬只在和月令同向时点名——对冲细节留给专业层。
                 if _rc_wx and _rc_wx == _ys_wx2:
                     _yj_txt += f"；日辰{_rc_b}也同气帮衬"
-                lines.append("顺带一提，这卦摇的时间坐标里——" +
+                lines.append("顺带一提，这卦摇的时间坐标里。" +
                              _yj_txt + "。")
             # R3170：旬空——用神支落空亡是「事还没坐实」的经典信号。
             # 如实转述成「飘着没定」，不吓人不断言凶。
             _xk = _pp.get("xunkong") or []
             _xk_bits = []
             if _zb and _zb in _xk:
-                _xk_bits.append(f"代表这事的那爻（{_zb}）正落空亡——"
+                _xk_bits.append(f"代表这事的那爻（{_zb}）正落空亡。"
                                 "眼下这事还飘在半空没坐实")
             # 世爻（你自己这头）落空是另一重信号：心还没定。用神与世
             # 同支时只报一次。
             _sh_b = (_shi_l or {}).get("branch") or ""
             if _sh_b and _sh_b in _xk and _sh_b != _zb:
-                _xk_bits.append(f"你自己那爻（{_sh_b}）也空着——"
+                _xk_bits.append(f"你自己那爻（{_sh_b}）也空着。"
                                 "心里可能还没真拿定主意")
             if _xk_bits:
-                lines.append("还有一点——" + "；".join(_xk_bits) +
+                lines.append("还有一点。" + "；".join(_xk_bits) +
                              "。先别急着当定局，等它落了地再看。")
             # R3175：暗动——静爻被日辰对冲，传统叫「暗动」：表面
             # 没动、底下在拱。只点用神/世爻（全盘每个爻都报就吵了）。
@@ -1329,17 +1329,17 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                         # 动爻逢日冲是「冲散」（日破）——劲使出来
                         # 就散，与静爻暗动分口径报。
                         _cs.append(_albl + f"（{_ab2}）动是动了，"
-                                           f"可日辰{_rc_b}冲着它——"
+                                           f"可日辰{_rc_b}冲着它。"
                                            "劲使出来就散")
                     else:
                         _ad.append(_albl + f"（{_ab2}）被日辰{_rc_b}冲着")
             _ad2 = []
             if _ad:
-                _ad2.append("暗处有动静——" + "；".join(_ad) +
+                _ad2.append("暗处有动静。" + "；".join(_ad) +
                             "，面上看着静，底下其实在拱")
             if _cs:
                 _ad2.append("；".join(_cs) +
-                            "——这一步先别使全力")
+                            "，这一步先别使全力")
             if _ad2:
                 lines.append("；".join(_ad2) + "。")
         except Exception:
@@ -1354,7 +1354,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
              YAO_WARM.get(i, "").split("——")[-1])
             for i in ml]
         _mv_txt = "；".join(f"{p}在动：{m}" for p, m in _mv_mean)
-        lines.append(f"动的是{pos}（共 {len(ml)} 个）——{_mv_txt}。")
+        lines.append(f"动的是{pos}（共 {len(ml)} 个），{_mv_txt}。")
         if len(ml) >= 3:
             lines.append("动爻偏多，说明这件事变数不小，看整体走向比抠单爻实在。")
         # R3171：回头生/克——动爻化出之爻对本位的五行关系是传统
@@ -1397,13 +1397,13 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                 _hb.append("、".join(
                     _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
                     for p in _hk) +
-                    "动出去反被打回来（化回头克）——那一步要留个后手")
+                    "动出去反被打回来（化回头克），那一步要留个后手")
             _JT_COPY = {
-                "进": "化进神——那股劲在往上走，顺的话会越来越顺",
-                "退": "化退神——那股劲在往回收，别全押在这一步上",
-                "伏吟": "动而化伏吟——动了半天还在原地，那股憋屈多半"
+                "进": "化进神：那股劲在往上走，顺的话会越来越顺",
+                "退": "化退神：那股劲在往回收，别全押在这一步上",
+                "伏吟": "动而化伏吟：动了半天还在原地，那股憋屈多半"
                         "来自自己跟自己较劲",
-                "反吟": "动而化反吟——翻来覆去来回摆，主意一天三变，"
+                "反吟": "动而化反吟：翻来覆去来回摆，主意一天三变，"
                         "先按住别急着定",
             }
             for _jd in ("进", "退", "伏吟", "反吟"):
@@ -1412,14 +1412,14 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
                         _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
                         for p in _jt[_jd]) + _JT_COPY[_jd])
             if _hb:
-                lines.append("再细看动的爻——" + "；".join(_hb) + "。")
+                lines.append("再细看动的爻。" + "；".join(_hb) + "。")
         except Exception:
             pass
     else:
-        lines.append("没有动爻（静卦）——当下格局是稳住的，变化的劲不明显。")
+        lines.append("没有动爻（静卦），当下格局是稳住的，变化的劲不明显。")
 
     if vname and vname != bname:
-        lines.append(f"往{vname}卦的方向变——{GUA_WARM.get(vn, '')}。")
+        lines.append(f"往{vname}卦的方向变，{GUA_WARM.get(vn, '')}。")
     elif vname:
         lines.append("变卦与本卦相同，方向不改。")
 
@@ -1431,20 +1431,20 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
         _lh_v = ((_pp.get("bian_gua") or {}).get("liuhe_chong") or "")
         if _lh_b and _lh_v and _lh_b != _lh_v:
             lines.append(
-                f"卦象格局上，这卦{_lh_b}变{_lh_v}——传统口径里这是"
+                f"卦象格局上，这卦{_lh_b}变{_lh_v}，传统口径里这是"
                 f"「先{'合着' if _lh_b == '六合' else '散着'}后"
                 f"{'散' if _lh_v == '六冲' else '合'}」的走向，"
                 "眼下与长远不是一回事，别拿当下一刻当结局。")
         elif _lh_b:
             lines.append(
-                f"卦象格局上，这卦是{_lh_b}卦——传统口径里"
+                f"卦象格局上，这卦是{_lh_b}卦，传统口径里"
                 + ("合主缠、主聚：这事黏糊，不会一拍两散，"
                    "宜慢解不宜快刀。" if _lh_b == "六合" else
                    "冲主散、主快：这事容易一阵风就过，"
                    "拖泥带水反而更耗。"))
         elif _lh_v and vname and vname != bname:
             lines.append(
-                f"卦象格局上，变卦落{_lh_v}——往长远看这股劲是"
+                f"卦象格局上，变卦落{_lh_v}：往长远看这股劲是"
                 + ("「合上、黏住」的，急不得。" if _lh_v == "六合" else
                    "「散开」的，别抱长久指望。"))
     except Exception:
@@ -1457,20 +1457,20 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     # 恒定）连摇不再复读同一句；按本卦卦号确定性二选一。
     _alt = (bn % 2) == 1
     if not ml:
-        trend = ("整体偏稳——眼下更适合守着现状，不必急着动。" if not _alt
-                 else "卦面是静的——格局稳着，安心做手上的事。")
+        trend = ("整体偏稳，眼下更适合守着现状，不必急着动。" if not _alt
+                 else "卦面是静的：格局稳着，安心做手上的事。")
     elif n == 1:
-        trend = ("整体偏稳、局部有变化——大方向不变，中间有一个点要留意。"
+        trend = ("整体偏稳、局部有变化：大方向不变，中间有一个点要留意。"
                  if not _alt else
-                 "主线是稳的，就一个地方在动——盯住那一点就够。")
+                 "主线是稳的，就一个地方在动，盯住那一点就够。")
     elif n == 2:
-        trend = ("整体有起伏——事情在推进中，节奏会有两次小调整。"
+        trend = ("整体有起伏：事情在推进中，节奏会有两次小调整。"
                  if not _alt else
-                 "两处都在动——事情会拐两个小弯，跟着节奏走。")
+                 "两处都在动，事情会拐两个小弯，跟着节奏走。")
     else:
-        trend = ("整体变数偏多——先别求一步到位，分几步走更稳。"
+        trend = ("整体变数偏多，先别求一步到位，分几步走更稳。"
                  if not _alt else
-                 "动的点多——这事先抓大方向，细节边走边调。")
+                 "动的点多，这事先抓大方向，细节边走边调。")
     # R230a-7（R13-P1-4）：阳长之势 = 十二消息卦阳长段（复24/临19/泰11/
     # 大壮34/夬43/乾1）——此前的 (14,55) 是误植（大有/丰不在消息卦阳长段）。
     if vname and vname != bname and vn in (1, 11, 19, 24, 34, 43):
@@ -1484,7 +1484,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
     if _step:
         lines.append(_step + "卦辞爻辞的原文在下面，慢慢对照，不急。")
     else:
-        lines.append("卦辞爻辞的原文在下面——怎么对应你问的事，"
+        lines.append("卦辞爻辞的原文在下面：怎么对应你问的事，"
                      "慢慢体会，不急。")
     # R233u~R3168 同型四咬：每加一行处方（末位承重行）就被 [:N] 顶出去。
     # R3170 结构性修——不再逐次调 cap：含「卦辞爻辞」（处方/经文引导
@@ -1553,7 +1553,7 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
     persona = next((p for p in (COPY_BANK.get("gan_persona") or [])
                     if p.get("gan") == day_master), None)
     if persona and not (question or "").strip():
-        reply = [f"你是「{persona['nick']}」——{persona['desc']}。",
+        reply = [f"你是「{persona['nick']}」，{persona['desc']}。",
                  f"高光时刻：{persona['hi']}。"] + reply
     # 有提问时不插人设行：提问优先（判据 1），且避免推高结果区高度
     # （判据 2 门柱）。人设卡只在无提问的首屏场景出现。
@@ -1587,7 +1587,7 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
             if not any("眼下走在第" in _ln for _ln in reply):
                 reply = reply + ["大运（十年一轮的大方向）节奏：" +
                                  "；".join(seg) +
-                                 "——方向感参考，不是日程表。"]
+                                 "，方向感参考，不是日程表。"]
     # R3141（specs/014-L3）：年度追踪行——本年干支十神 +
     # 十二流月按「顺气/使劲」分档点名（大师应期轴的年内尺度）。
     # R3151：挪出 scope==life 闸——单日卡也带 yearly 块（R3151 起
@@ -1602,10 +1602,10 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
     _g0 = TEN_GOD_WARM.get(_yr.get("gan_rel") or "")
     if _yr.get("ganzhi") and _yr.get("gan_rel"):
         reply.append(
-            f"今年{_yr['year']}是{_yr['ganzhi']}年——{_yr['ganzhi'][0]}"
+            f"今年{_yr['year']}是{_yr['ganzhi']}年，{_yr['ganzhi'][0]}"
             f"对你日主{day_master}是「{_yr['gan_rel']}」"
             + (f"（{_g0[0]}）：{_g0[1]}" if _g0 else "")
-            + "——年度主基调，不是日程表。")
+            + "，年度主基调，不是日程表。")
     _mos = _yr.get("months") or []
     # R3151：月份分档明细只在生平档全量给——单日卡已有流日/日支
     # 关系行，再塞 12 月分档太满；单日卡只带年度锚行。
@@ -1615,10 +1615,10 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
         _hd2 = _yr.get("hard") or []
         if _ez:
             reply.append("今年偏顺气的月份：" + "、".join(_ez[:6]) +
-                         "——基调轻的窗口，适合推进要在意的事。")
+                         "，基调轻的窗口，适合推进要在意的事。")
         if _hd2:
             reply.append("今年要使劲的月份：" + "、".join(_hd2[:6]) +
-                         "——不是坏，是这几个月基调偏重，别在那时"
+                         "，不是坏，是这几个月基调偏重，别在那时"
                          "硬扛大决定。")
     if _cta:
         reply.append(_cta)
@@ -1640,7 +1640,7 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
     name = (ben or {}).get("gua_name") or ""
     _ly = COPY_BANK.get("liuyao_openers") or []
     opener = (_pick(_ly, bn, name, _d3_today()) if _ly else "")
-    l0 = f"{opener}——{name}卦" if opener else \
+    l0 = f"{opener}：{name}卦" if opener else \
          f"{name}卦：{GUA_WARM.get(bn, '').split('，')[0]}"
     return _wrap(
         l0 if len(l0) <= _L0_MAX else l0[:_L0_MAX],
@@ -1670,7 +1670,7 @@ def warm_tarot(cards: list[dict], interpretation: dict,
     # R2518：与 reply_liuyao 同补——危机自伤词也转介，不照常解牌。
     if _lp._is_sensitive(q) or _lp._is_crisis(q):
         return _wrap(l0, None,
-                     ["这个话题牌面真接不了——不是不愿意，是它不该靠占卜来定。",
+                     ["这个话题牌面真接不了，不是不愿意，是它不该靠占卜来定。",
                       "身体或心里难受的话，医生和信得过的人才是最该找的；"
                       "真的很难受，全国心理援助热线 12356（24 小时，免费）"
                       "随时能打通。",
@@ -1680,7 +1680,7 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         # R3126（specs/013-P6）：梳理位——先归到一条线再逐张说牌。
         _th = _lp._chat_theme(q)
         lines.append(f"针对你的问题「{q}」"
-                     + (f"——这事归「{_th}」这条线，" if _th else "，")
+                     + (f"，这事归「{_th}」这条线，" if _th else "，")
                      + "每张牌这样说：")
     else:
         lines.append("每张牌这样说：")
@@ -1732,33 +1732,33 @@ def warm_tarot(cards: list[dict], interpretation: dict,
             # R3119：正位硬牌同按「要跨的坎」——权杖10/宝剑8 这类
             # 正位即吃力的牌说「障碍不算硬」是错的（实测领错档）。
             if name in _TAROT_HEAVY or not cu or kw0 in _TAROT_HARD_UP:
-                _tpl = (f"{_pre}{name}说「{kw0}」——落在阻碍位，"
+                _tpl = (f"{_pre}{name}说「{kw0}」，落在阻碍位，"
                         f"这正是要跨的坎：{guidance}")
             else:
-                _tpl = (f"{_pre}{name}说「{kw0}」——好牌落阻碍位，"
+                _tpl = (f"{_pre}{name}说「{kw0}」，好牌落阻碍位，"
                         f"障碍不算硬，要留神的是「{kw0}」被用过头："
                         f"{guidance}")
         elif pos in ("建议", "指引"):
-            _tpl = f"{_pre}{name}——牌给的处方就是「{kw0}」：{guidance}"
+            _tpl = f"{_pre}{name}，牌给的处方就是「{kw0}」：{guidance}"
         elif pos == "希望":
-            _tpl = f"{_pre}{name}说「{kw0}」——你盼的方向长这样：{guidance}"
+            _tpl = f"{_pre}{name}说「{kw0}」，你盼的方向长这样：{guidance}"
         elif pos == "结果":
-            _tpl = f"{_pre}{name}说「{kw0}」——按现在走法，结局大致在这：{guidance}"
+            _tpl = f"{_pre}{name}说「{kw0}」，按现在走法，结局大致在这：{guidance}"
         else:
             _tpl = ""
         if q:
             if kw0 in _seen_kw:
-                lines.append(f"{_pre}{name}也在说「{kw0}」——和前面那张是呼应，"
+                lines.append(f"{_pre}{name}也在说「{kw0}」，和前面那张是呼应，"
                              f"这件事的信号挺明确。")
             elif _tpl:
                 lines.append(_tpl)
             else:
-                lines.append(f"{_pre}{name}说「{kw0}」——{guidance}")
+                lines.append(f"{_pre}{name}说「{kw0}」，{guidance}")
         else:
             # R2349q（R81-P1-9）：无提问路径同 kw0 撞句也降级——
             # 此前圣杯2逆+权杖2逆连出两句一字不差的「失衡·两难·拉扯」。
             if kw0 in _seen_kw:
-                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}）——"
+                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}）"
                              f"也在说「{kw0}」，是呼应前面那张。")
             elif _tpl:
                 lines.append(_tpl)
@@ -1767,7 +1767,7 @@ def warm_tarot(cards: list[dict], interpretation: dict,
                 # 却不给（「收尾难·差口气·撑住」alone 对用户是术语），
                 # 挂上指引句，与有提问路径同一深度。
                 _gd = _tarot_kw_guidance(kw0, "")
-                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}）——{ckw}。"
+                lines.append(f"{_pre}{name}（{'正位' if cu else '逆位'}），{ckw}。"
                              + (f"{_gd}。" if _gd else ""))
         _seen_kw.add(kw0)
     # 收尾：给一句具体方向
@@ -1788,20 +1788,20 @@ def warm_tarot(cards: list[dict], interpretation: dict,
         _gb, _kwb = _opt_w(_cB)
         if _ga and not _gb:
             tail.append(f"两边摆一块看：A 的「{_kwa}」是顺牌，"
-                        f"B 的「{_kwb}」偏沉——牌面略偏 A；"
+                        f"B 的「{_kwb}」偏沉，牌面略偏 A；"
                         "但牌是参考，你心里那杆秤才是主票。")
         elif _gb and not _ga:
             tail.append(f"两边摆一块看：B 的「{_kwb}」是顺牌，"
-                        f"A 的「{_kwa}」偏沉——牌面略偏 B；"
+                        f"A 的「{_kwa}」偏沉，牌面略偏 B；"
                         "但牌是参考，你心里那杆秤才是主票。")
         elif not _ga and not _gb:
-            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都偏沉——"
+            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都偏沉。"
                         "牌面说怎么选都不轻松，先想清楚哪个亏你更吃得起。")
         else:
-            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都是顺牌——"
+            tail.append(f"A 的「{_kwa}」和 B 的「{_kwb}」都是顺牌。"
                         "牌面没拦你，哪边更像你想要的就走哪边。")
     if len(cards) > len(shown):
-        tail.append(f"其余 {len(cards) - len(shown)} 张是细节的注脚——"
+        tail.append(f"其余 {len(cards) - len(shown)} 张是细节的注脚。"
                     "主角是上面那几张。")
     if q:
         tail.append(f"综合来看，{_tarot_combined_guidance(shown, q)}")
@@ -1830,7 +1830,7 @@ _TAROT_KW_GUIDANCE = {
     "冲突": "有摩擦不怕，说开了反而更近",
     "阴影": "看不清的地方先照个亮，别急着否定自己的直觉",
     # R230a-7（R13-P0-3）：重牌软化指引——吓人字眼必须带安抚。
-    "结束": "一个阶段翻篇了，不是坏事——腾出来的位置才有新的开始",
+    "结束": "一个阶段翻篇了，不是坏事：腾出来的位置才有新的开始",
     "突变": "事情可能有变化，提前有准备就不慌",
     "束缚": "有些缠着你的东西，可以慢慢松开它",
     "幻象": "现在看不太清就先别急着定论，等等再决定",
@@ -1894,40 +1894,40 @@ _TAROT_KW_GUIDANCE = {
     "过度": "再好的东西过量了也是负担",
     "专断": "一言堂省事，但容易漏掉关键声音",
     "忧惧": "脑子里那个小剧场先关一关，事情没它演的那么糟",
-    "谷底": "最坏的一段到了——往后只有回升，先照顾好自己",
-    "缓过来": "没那么糟，你在慢慢回血——别急着复盘",
+    "谷底": "最坏的一段到了，往后只有回升，先照顾好自己",
+    "缓过来": "没那么糟，你在慢慢回血：别急着复盘",
     "触底回升": "最坏的已经过去了，往后每一步都是往上",
     # R2349q（R81-P1-6）：宝剑3/8 覆写后的新 kw0 指引（重牌口吻带安抚）。
-    "心痛": "疼是真的，但看清了就不白疼——先把自己照顾好",
-    "愈合": "伤口在收口——别急着回去揭，让它自己长好",
-    "受困": "绳子没你感觉的那么紧——先解最近的一个结",
-    "松绑": "困住你的在松——往外挪一步试试",
+    "心痛": "疼是真的，但看清了就不白疼，先把自己照顾好",
+    "愈合": "伤口在收口，别急着回去揭，让它自己长好",
+    "受困": "绳子没你感觉的那么紧：先解最近的一个结",
+    "松绑": "困住你的在松：往外挪一步试试",
     # R2555：14 张花色×rank 覆写的新 kw0 指引（tarot.py 同批）。
-    "倦怠": "电量见底了先充电——不是懒，是该歇",
+    "倦怠": "电量见底了先充电，不是懒，是该歇",
     "失落": "疼是真的，但别只盯着打翻的那几只",
     "怀念": "旧回忆可以待一会儿，别住下来",
-    "选择多": "选项多不等于都要——先挑最想走的那条",
+    "选择多": "选项多不等于都要，先挑最想走的那条",
     "离开": "转身不是逃，是去找更对的位置",
     "如愿": "这段的甜是应得的，好好收下",
     "被看见": "你的努力有人在看，值得开心一下",
     "带伤撑着": "扛到这儿已经很厉害了，最后一段别硬顶",
-    "扛太满": "担子可以分出去——全扛不是本事",
+    "扛太满": "担子可以分出去，全扛不是本事",
     "过渡": "在慢慢撤出难局，方向没错，别急",
     "取巧": "捷径可以走，但别留下要自己还的账",
-    "手头紧": "难是阶段性的，门没关死——先顾好基本盘",
+    "手头紧": "难是阶段性的，门没关死：先顾好基本盘",
     "打磨": "笨功夫在这个阶段最值钱，继续做",
     "自足": "你自己挣的底气最稳，享受它",
-    "回神": "缓过来了——好意就在眼前，伸手接一下",
+    "回神": "缓过来了，好意就在眼前，伸手接一下",
     "困在过去": "滤镜该摘了，回头看一眼就走",
     "挑花眼": "先落地一个，别的幻想先放放",
     "舍不得走": "走不动就先停一停，但别骗自己还想要",
     "贪更多": "杯子已经满了，再多就洒了",
-    "风头受挫": "掌声没来不代表没赢——先认自己的分",
+    "风头受挫": "掌声没来不代表没赢：先认自己的分",
     "真累了": "可以歇，带伤硬撑不值得",
     "该卸货了": "分出去不丢人，是你一个人的太多了",
-    "耍滑反噬": "小聪明翻车了——补洞比躲账省力",
+    "耍滑反噬": "小聪明翻车了，补洞比躲账省力",
     "练不动": "手感断了就停一停，偷工不如歇",
-    "虚撑": "底气要真的——撑场面不如先补内功",
+    "虚撑": "底气要真的，撑场面不如先补内功",
 }
 
 # R230a-7（R13-P0-3）：重牌黑名单——抽到这些牌时综合判定不说
@@ -1972,25 +1972,25 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
         if any(c.get("name") in _TAROT_HEAVY for c in cards):
             return ("牌里有几张在提醒你，先把自己照顾好，事情慢一点没关系。"
                     if not _alt else
-                    "这组牌有几张沉甸甸的——先顾好自己，别的都可以等等。")
+                    "这组牌有几张沉甸甸的：先顾好自己，别的都可以等等。")
         if _hard_n >= 2:
-            return ("这组牌好几张都在使劲——先把手上的担子卸一卸再赶路。"
+            return ("这组牌好几张都在使劲，先把手上的担子卸一卸再赶路。"
                     if not _alt else
-                    "牌不凶但挺累——先看哪件事可以先分出去、放一放。")
+                    "牌不凶但挺累：先看哪件事可以先分出去、放一放。")
         return ("牌面整体是顺的，可以试着往前走一小步。"
                 if not _alt else
-                "这组牌气色不错——心里那件事，可以往前试半步。")
+                "这组牌气色不错：心里那件事，可以往前试半步。")
     # R230a-7（R13-P0-3）：有重牌在场时不论正逆位都不说「整体是顺的」——
     # 先安抚再看走向。
     if any(c.get("name") in _TAROT_HEAVY for c in cards):
-        return (f"牌里有几张在提醒你的位置——关于「{q}」，先照顾好自己，事情可以慢一点推进。"
+        return (f"牌里有几张在提醒你的位置，关于「{q}」，先照顾好自己，事情可以慢一点推进。"
                 if not _alt else
-                f"关于「{q}」——牌里有几张分量重的，先把自己安顿好，事不急这一天。")
+                f"关于「{q}」，牌里有几张分量重的，先把自己安顿好，事不急这一天。")
     # R3119：q 路径同口径——≥2 张正位硬牌先答「累」再谈顺逆。
     if _hard_n >= 2:
-        return (f"这组牌好几张都在使劲——关于「{q}」，先看你手上的事哪件能卸一卸。"
+        return (f"这组牌好几张都在使劲，关于「{q}」，先看你手上的事哪件能卸一卸。"
                 if not _alt else
-                f"关于「{q}」——牌不凶但担子重，先把能分出去的分出去。")
+                f"关于「{q}」，牌不凶但担子重，先把能分出去的分出去。")
     # 根据牌的正逆位比例给综合判断
     # R3129（specs/012-P4 同构）：三档收尾补「观察信号+复判时点」——
     # 方向句之后给可验的行动锚，不停在「多观察几天」。
@@ -1998,26 +1998,26 @@ def _tarot_combined_guidance(cards: list[dict], q: str) -> str:
     total = len(cards)
     if upright_count > total * 0.6:
         return (f"牌面整体是顺的，你问的「{q}」可以试着往前走一小步。"
-                "先看第一步走出去的两三天里事情是变顺还是更卡——"
+                "先看第一步走出去的两三天里事情是变顺还是更卡。"
                 "更卡就停一停回来复盘，顺就接着走。"
                 if not _alt else
-                f"顺位的牌占了上风——「{q}」这事，可以先迈半步试试水。"
+                f"顺位的牌占了上风，「{q}」这事，可以先迈半步试试水。"
                 "落脚的两三天看动静：顺就继续，卡了就退一步看哪不对。")
     elif upright_count < total * 0.4:
         return (f"牌面有些别扭，关于「{q}」先别急着推进，多观察几天。"
                 "观察的信号很简单：让你犯别扭的那个点接下来会不会自己"
-                "化开——一周内没化开，这事就值得重新想想而不是硬推。"
+                "化开：一周内没化开，这事就值得重新想想而不是硬推。"
                 if not _alt else
-                f"逆位偏多——「{q}」这事先放一放，看清了再动不迟。"
-                "放一放的期间盯住一件事：别扭的根源露头没有——"
+                f"逆位偏多，「{q}」这事先放一放，看清了再动不迟。"
+                "放一放的期间盯住一件事：别扭的根源露头没有。"
                 "露头了再决定要不要动。")
     else:
         return (f"牌面有顺有逆，关于「{q}」保持现状，等时机更明朗再动。"
                 "等的期间别干等：把手边能准备的那部分先备着，"
                 "信号一明你就能抢半步。"
                 if not _alt else
-                f"顺逆各半——「{q}」眼下不动比乱动强，再等等信号。"
-                "等的空档先备着能备的——信号一明直接动，不浪费等待。")
+                f"顺逆各半，「{q}」眼下不动比乱动强，再等等信号。"
+                "等的空档先备着能备的，信号一明直接动，不浪费等待。")
 
 
 # ---------------------------------------------------------------------------
@@ -2062,28 +2062,28 @@ def warm_taohua(t: dict) -> dict:
         _hit_keys = [p for p in (t.get("hit_pillars") or [])]
         _hits = [_PILLAR_WARM.get(p, p) for p in _hit_keys]
         if _band == "强":
-            _v = (f"判词直说：缘分信号偏强——桃花落在"
+            _v = (f"判词直说：缘分信号偏强，桃花落在"
                   f"{'、'.join(_hits)}，书上管这叫自带缘分场，"
                   "出门就有人注意到你")
         elif _band == "中":
-            _v = (f"判词直说：有信号不算旺——桃花落在{_hits[0]}，"
+            _v = (f"判词直说：有信号不算旺，桃花落在{_hits[0]}，"
                   "一面之缘主要走这根柱")
         else:
-            _v = ("判词直说：缘分信号偏弱——四柱都没临桃花：不是没有，"
+            _v = ("判词直说：缘分信号偏弱，四柱都没临桃花：不是没有，"
                   "是入口不在自己身上")
         lines: list[str] = [_v]
         # R3125（specs/012-P2）先验位：年支生肖的天性断言——说中了，
         # 下面的判词才算数。
         _spot = _ZHI_SPOT.get(t.get("year_zhi") or "", "")
         if _spot:
-            lines.append(f"先验一嘴：按年支看你多半{_spot}——这条要是"
+            lines.append(f"先验一嘴：按年支看你多半{_spot}，这条要是"
                          "说中了，下面的判词才算数。")
         # 入口预判：落柱→具体圈层（年=老同学同乡、月=同事同龄、
         # 日=身边近圈、时=晚熟/线上）；无落柱→介绍人渠道。
         _PILLAR_SCENE = {
             "year": "老同学、同乡、发小这条线最容易出缘分",
             "month": "工作圈、同学局、同龄社群里信号最强",
-            "day": "缘分大概率从身边近距离的人来——天天见的那圈",
+            "day": "缘分大概率从身边近距离的人来，天天见的那圈",
             "hour": "信号偏晚熟，也可能从比你小的人或线上场景来",
         }
         if _hit_keys:
@@ -2091,7 +2091,7 @@ def warm_taohua(t: dict) -> dict:
                 _PILLAR_SCENE.get(p, "") for p in _hit_keys
                 if p in _PILLAR_SCENE) + "。")
         else:
-            lines.append("入口预判：缘分入口在介绍人和熟人局——可做的"
+            lines.append("入口预判：缘分入口在介绍人和熟人局，可做的"
                          "事：每月至少两次熟人局露脸，让朋友知道你在看。")
         peach = t.get("peach_zhi") or ""
         yz = t.get("year_zhi") or ""
@@ -2101,7 +2101,7 @@ def warm_taohua(t: dict) -> dict:
             _pz = ZHI_ZODIAC.get(peach, "")
             _pd = ZHI_DIR.get(peach, "")
             _pt = f"{peach}（{_pz}·{_pd}）" if _pz and _pd else peach
-            lines.append(f"你的魅力方位在「{_pt}」——传统说法图个开心，"
+            lines.append(f"你的魅力方位在「{_pt}」，传统说法图个开心，"
                          f"方位不背锅，行动才管用。")
         # R230a-7（R13-P2-4）：copy_bank 分支此前丢了坐标事实行
         # （落柱/红鸾/天喜）——与 fallback 分支对齐，保住可核验性。
@@ -2113,9 +2113,9 @@ def warm_taohua(t: dict) -> dict:
         # R2350b（R98-P1-7）：天喜/红鸾首提随行翻译——裸词贴屏时
         # 用户不知道这两个词指什么。
         if _hl and _hl != "未临柱":
-            lines.append(f"红鸾（婚恋信号）落在{_hl}——婚恋缘分的信号在你自己盘里。")
+            lines.append(f"红鸾（婚恋信号）落在{_hl}，婚恋缘分的信号在你自己盘里。")
         if _tx and _tx != "未临柱":
-            lines.append(f"天喜（喜庆信号）落在{_tx}——喜庆缘分的信号也有。")
+            lines.append(f"天喜（喜庆信号）落在{_tx}：喜庆缘分的信号也有。")
         dayun = t.get("dayun_hits") or []
         if dayun:
             # F-005：应期年份动态计算用户年龄（±5 岁内有参考价值）
@@ -2140,10 +2140,10 @@ def warm_taohua(t: dict) -> dict:
                     _end_year = _user_birth_year + int(round(_ea))
                     lines.append(
                         f"你现在正走在{_pillar}{_extra}运里（约到"
-                        f"{_end_year}年才换班）——这几年社交面正宽，"
+                        f"{_end_year}年才换班），这几年社交面正宽，"
                         "多出门走走正是时候。")
                 else:
-                    lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽——那阵子多出门走走。")
+                    lines.append(f"{d0.get('year_start')}年前后走{_pillar}{_extra}运，社交面会明显变宽，那阵子多出门走走。")
             elif dayun:
                 d0 = dayun[0]
                 # F-014：当年份远离用户年龄时，删除具体年份，改为中性描述
@@ -2154,21 +2154,21 @@ def warm_taohua(t: dict) -> dict:
                     # 等于没说（实测 1998 年生应期落在 69+ 岁）。给「慢炖型」
                     # 定心丸话术，比含糊更准确也更治愈。
                     # R2350b（R98-P1-7）：「应期」翻成「来得偏晚」。
-                    lines.append("你的缘分信号（天喜/红鸾）来得偏晚——缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
+                    lines.append("你的缘分信号（天喜/红鸾）来得偏晚，缘分是慢炖型的，先把日子过出自己的节奏，该来的会踩点到。")
                 else:
                     # R2349s（R84-P1-8）：「互动期」是合婚术语串场——
                     # 单人盘改「桃花运当班」口径。
-                    lines.append(f"从{d0.get('year_start')}年起桃花运当班——节奏上的参考，不是日程表。")
+                    lines.append(f"从{d0.get('year_start')}年起桃花运当班，节奏上的参考，不是日程表。")
         # D-003：禁用免责套话「感情这事你的感受最重要」
         # R3089：收口改带地图交权——信号强弱和入口已指明，决定权如实归还。
         # R3125（specs/012-P5）：弱档收口带脱罪位——信号弱是盘上
         # 没临柱，不是人的问题。
         if _band == "弱":
             lines.append("说句公道话：四柱没临桃花是盘的事，不是你不够"
-                         "好——命理报的是信号强弱和入口方向；门在哪指"
+                         "好，命理报的是信号强弱和入口方向；门在哪指"
                          "出来了，敲不敲门、跟谁走，是你的选择。")
         else:
-            lines.append("命理报的是信号强弱和入口方向——缘分的门在哪指出来"
+            lines.append("命理报的是信号强弱和入口方向，缘分的门在哪指出来"
                          "了；敲不敲门、跟谁走，是你的选择。")
         _body, _close = lines[:-1][:6], lines[-1:]
         return _wrap(
@@ -2187,23 +2187,23 @@ def warm_taohua(t: dict) -> dict:
     _hit_keys = [p for p in (t.get("hit_pillars") or [])]
     hits = [_PILLAR_WARM.get(p, p) for p in _hit_keys]
     if "偏快" in strength:
-        _v = (f"判词直说：缘分信号偏强——桃花落在{'、'.join(hits)}，"
+        _v = (f"判词直说：缘分信号偏强，桃花落在{'、'.join(hits)}，"
               "自带缘分场，出门就有人注意到你")
     elif "慢热" in strength:
-        _v = ("判词直说：缘分信号偏弱——四柱都没临桃花：不是没有，"
+        _v = ("判词直说：缘分信号偏弱，四柱都没临桃花：不是没有，"
               "是入口不在自己身上")
     else:
-        _v = (f"判词直说：有信号不算旺——桃花落在{hits[0]}，"
+        _v = (f"判词直说：有信号不算旺，桃花落在{hits[0]}，"
               "一面之缘主要走这根柱")
     lines: list[str] = [_v]
     _spot = _ZHI_SPOT.get(t.get("year_zhi") or "", "")
     if _spot:
-        lines.append(f"先验一嘴：按年支看你多半{_spot}——这条要是"
+        lines.append(f"先验一嘴：按年支看你多半{_spot}，这条要是"
                      "说中了，下面的判词才算数。")
     _PILLAR_SCENE = {
         "year": "老同学、同乡、发小这条线最容易出缘分",
         "month": "工作圈、同学局、同龄社群里信号最强",
-        "day": "缘分大概率从身边近距离的人来——天天见的那圈",
+        "day": "缘分大概率从身边近距离的人来，天天见的那圈",
         "hour": "信号偏晚熟，也可能从比你小的人或线上场景来",
     }
     if _hit_keys:
@@ -2211,34 +2211,34 @@ def warm_taohua(t: dict) -> dict:
             _PILLAR_SCENE.get(p, "") for p in _hit_keys
             if p in _PILLAR_SCENE) + "。")
     else:
-        lines.append("入口预判：缘分入口在介绍人和熟人局——可做的"
+        lines.append("入口预判：缘分入口在介绍人和熟人局，可做的"
                      "事：每月至少两次熟人局露脸，让朋友知道你在看。")
     peach = t.get("peach_zhi") or ""
     yz = t.get("year_zhi") or ""
     if peach:
         # R2509（审-P2-13）：「年支」译成属相——用户对自己的属相有概念。
-        lines.append(f"你的属相是{yz}，传统上对应的桃花位在「{peach}」——"
+        lines.append(f"你的属相是{yz}，传统上对应的桃花位在「{peach}」"
                      f"这是你的魅力方位，不是倒计时。")
     hl_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("hongluan_pillar") or []))
     tx_p = "、".join(_PILLAR_WARM.get(p, p) for p in (t.get("tianxi_pillar") or []))
     if hl_p != "未临柱" and hl_p:
-        lines.append(f"红鸾落在{hl_p}——传统上主婚恋缘分的信息在你自己盘里。")
+        lines.append(f"红鸾落在{hl_p}，传统上主婚恋缘分的信息在你自己盘里。")
     if tx_p and tx_p != "未临柱":
-        lines.append(f"天喜落在{tx_p}——喜庆缘分的信息也是有的。")
+        lines.append(f"天喜落在{tx_p}：喜庆缘分的信息也是有的。")
     dayun = t.get("dayun_hits") or []
     if dayun:
         d0 = dayun[0]
         lines.append(f"{d0.get('year_start')}年前后走{d0.get('pillar')}运，"
-                     f"桃花运当班——那段时间社交面会明显变宽。")
+                     f"桃花运当班，那段时间社交面会明显变宽。")
     # D-003：禁用免责套话「感情这事你的感受最重要」
     # R3089：fallback 收口同构带地图交权。
     # R3125（specs/012-P5）：弱档带脱罪位，与主路径同口径。
     if "慢热" in strength:
         lines.append("说句公道话：四柱没临桃花是盘的事，不是你不够"
-                     "好——命理报的是信号强弱和入口方向；门在哪指"
+                     "好，命理报的是信号强弱和入口方向；门在哪指"
                      "出来了，敲不敲门、跟谁走，是你的选择。")
     else:
-        lines.append("命理报的是信号强弱和入口方向——缘分的门在哪指出来"
+        lines.append("命理报的是信号强弱和入口方向，缘分的门在哪指出来"
                  "了；敲不敲门、跟谁走，是你的选择。")
     _body, _close = lines[:-1][:6], lines[-1:]
     return _wrap(
@@ -2264,37 +2264,37 @@ _WX_KE_FRICTION: dict[frozenset, tuple[str, str, str]] = {
         "批评与自由",
         "属金的那方习惯挑毛病、立规矩，属木的那方觉得怎么做都被否定。"
         "戏路基本是：TA随口一句「这个你又没弄好」，你当时没吭声，"
-        "心里那根刺一晚上没拔；第二天TA早忘了，你还闷在情绪里——"
+        "心里那根刺一晚上没拔；第二天TA早忘了，你还闷在情绪里。"
         "一个要快刀斩乱麻，一个要慢慢长。吵的点大多在「你管太多」。",
-        "处方三段：先做——属金那方每天只挑一件非说不可的事说出口，"
-        "剩下的咽回去；看信号——一周内对方回嘴变少、主动说话变多，"
+        "处方三段：先做，属金那方每天只挑一件非说不可的事说出口，"
+        "剩下的咽回去；看信号，一周内对方回嘴变少、主动说话变多，"
         "就是走对了；要是越管越僵，改成每周固定一顿饭时间才提意见。"),
     frozenset(("木", "土")): (
         "进取与安稳",
         "属木的那方嫌对方不上进、太保守，属土的那方安全感被反复打破。"
         "戏路基本是：你兴冲冲说想换工作/想搬出去，TA第一反应是"
-        "「现在这样不是挺好吗」，你觉得被泼了冷水，TA觉得你总折腾——"
+        "「现在这样不是挺好吗」，你觉得被泼了冷水，TA觉得你总折腾。"
         "接下来几天各说各话。吵的点大多在「变不变、怎么变」。",
-        "处方三段：先做——换工作、搬家、大额开销这类事提前一个月"
-        "打招呼；看信号——对方从「又来」变成问细节，缓冲就起作用了；"
+        "处方三段：先做，换工作、搬家、大额开销这类事提前一个月"
+        "打招呼；看信号，对方从「又来」变成问细节，缓冲就起作用了；"
         "要是还是顶回去，把变动拆小步：先说想干嘛，过两周再谈怎么干。"),
     frozenset(("土", "水")): (
         "管控与自由",
         "属土的那方爱安排、设限、查岗，属水的那方灵活爱变化、被管到"
         "窒息。戏路基本是：晚上没及时回消息，TA连发几条「在哪」"
         "「和谁」，你回得越简短TA问得越勤；挂电话那一刻两个人都"
-        "委屈——一个要落地，一个要流动。吵的点大多在「你别管我」。",
-        "处方三段：先做——出门前主动发一句「今晚和谁在哪」；看信号"
-        "——对方追问次数降下来、语气松了，报备就到位了；要是还在"
+        "委屈：一个要落地，一个要流动。吵的点大多在「你别管我」。",
+        "处方三段：先做，出门前主动发一句「今晚和谁在哪」；看信号"
+        "，对方追问次数降下来、语气松了，报备就到位了；要是还在"
         "连环问，约定一个固定的睡前通话时间，把不确定感填平。"),
     frozenset(("水", "火")): (
         "冷热错频",
         "属火的那方热情外放要回应，属水的那方冷静理性爱泼冷水。"
         "戏路基本是：你这边委屈得快要哭出来，TA在电话那头开始"
-        "冷静分析「这事其实不怪谁」——你要的是抱住，TA给的是道理；"
+        "冷静分析「这事其实不怪谁」，你要的是抱住，TA给的是道理；"
         "越分析你越崩。吵的点大多在「你根本不在乎我」。",
-        "处方三段：先做——热的那方开口前先说要哪种回应（要抱抱还是"
-        "要建议）；看信号——下次情绪上头时对方没再讲道理而是先接住，"
+        "处方三段：先做，热的那方开口前先说要哪种回应（要抱抱还是"
+        "要建议）；看信号，下次情绪上头时对方没再讲道理而是先接住，"
         "就对频了；要是对方还是讲道理，直接把那句「我现在不需要"
         "分析」说出口。"),
     frozenset(("火", "金")): (
@@ -2302,10 +2302,10 @@ _WX_KE_FRICTION: dict[frozenset, tuple[str, str, str]] = {
         "属火的那方凭热情行事、花钱凭感觉，冲垮属金那方的规则和计划。"
         "戏路基本是：你一时兴起买了个东西/临时改了个计划，TA的脸"
         "当场就沉下来「说好先商量的呢」；你觉得多大的事至于吗，"
-        "TA觉得说好的规则你又破了——一个先干了再说，一个先想清楚"
+        "TA觉得说好的规则你又破了，一个先干了再说，一个先想清楚"
         "再动。吵的点大多在「你怎么又乱来」。",
-        "处方三段：先做——定一个数（比如单笔超过两人说好的额度），"
-        "超过就各有一票否决权；看信号——冲动消费引发的争执归零，"
+        "处方三段：先做，定一个数（比如单笔超过两人说好的额度），"
+        "超过就各有一票否决权；看信号，冲动消费引发的争执归零，"
         "闸就设对了；要是对方觉得被管，把否决权换成「冷静24小时"
         "再下单」的软闸。"),
 }
@@ -2323,31 +2323,31 @@ def _dz_clash_flavor(dza: str, dzb: str) -> tuple[str, str, str]:
                 "三两句就呛起来，「你什么意思」「你又什么意思」翻屏半小时；"
                 "消气也快，就是每次都要说点狠话。爆点多是回复速度、"
                 "语气、面子这类小事。",
-                "处方三段：先做——吵上头时各自离屏十分钟，回来先复述"
-                "对方那句再说自己的；看信号——争吵从翻屏半小时缩到"
+                "处方三段：先做，吵上头时各自离屏十分钟，回来先复述"
+                "对方那句再说自己的；看信号，争吵从翻屏半小时缩到"
                 "十分钟内收尾，就是拆对了；要是还是收不住，把「先挂"
                 "电话冷静」写成两人的暗号。")
     if pair == frozenset(("土", "土")):
         return ("两土斗气",
                 "冷战较劲型：谁都不先低头、翻旧账。典型戏路：为家务谁干"
                 "或一句话绊了嘴，当晚谁也不说话各刷各的手机；第二天"
-                "还在僵，第三天变成「你还好意思不理我」——耗的是日常"
+                "还在僵，第三天变成「你还好意思不理我」，耗的是日常"
                 "不是大事，但一次能拖好几天。",
-                "处方三段：先做——约好冷战最多两小时，到点先问饿不饿；"
-                "看信号——僵局从拖好几天缩到当天解开，就顺了；要是连"
+                "处方三段：先做，约好冷战最多两小时，到点先问饿不饿；"
+                "看信号，僵局从拖好几天缩到当天解开，就顺了；要是连"
                 "暗号都拉不下脸用，写下来发消息也算数。")
     if pair == frozenset(("木", "金")):
         return ("金木相战",
                 "硬碰硬型：原则和面子之争，吵起来升级快、容易把话"
                 "说绝。典型戏路：本来是「这事怎么办」，三句就变成"
-                "「到底听谁的」，再两句变成「你凭什么管我」——谁退"
+                "「到底听谁的」，再两句变成「你凭什么管我」，谁退"
                 "一步都像认输。爆点多在「这事到底听谁的」。",
-                "处方三段：先做——原则之争改问「这事谁更难受听谁的」，"
-                "面子局换成感受局；看信号——争执不再往「听谁的」上滑，"
+                "处方三段：先做，原则之争改问「这事谁更难受听谁的」，"
+                "面子局换成感受局；看信号，争执不再往「听谁的」上滑，"
                 "就解套了；要是还在抢赢，各写三条最在意的底线对表。")
     return ("相冲", "相处里有磕绊，把话说开比憋着强。",
-            "处方三段：先做——别扭别过夜，睡前各自说一句今天哪里不"
-            "舒服；看信号——小账日清，不再翻上周的旧账；要是连说都"
+            "处方三段：先做，别扭别过夜，睡前各自说一句今天哪里不"
+            "舒服；看信号，小账日清，不再翻上周的旧账；要是连说都"
             "说不出口，先发文字再当面聊。")
 
 
@@ -2414,24 +2414,24 @@ def _hehun_q_line(q: str, h: dict) -> str:
                                       - _today_cn().year))
             d0 = dy[0]
             _rel = d0.get("relation") or ""
-            return (f"你问能不能走得长远——长期看的是两人大运的节奏："
-                    f"{d0.get('year_start')}年前后那段大运是「{_rel}」——"
+            return (f"你问能不能走得长远，长期看的是两人大运的节奏："
+                    f"{d0.get('year_start')}年前后那段大运是「{_rel}」"
                     + ("合，那段时间适合把大事往前定。"
                        if _rel == "合" else
                        "冲，那段时间容易顶上，大事慢半拍再定。"))
-        return ("你问能不能走得长远——上面判词档答的是底子，"
+        return ("你问能不能走得长远，上面判词档答的是底子，"
                 "下面「大运互动」那段是节奏坐标。")
     if _re_lq.search(r"吵架|磨合|矛盾|冷战|相处|争执|总吵|闹掰", q):
-        return ("你问的是相处——下面「磨在」那段就是具体剧本，"
+        return ("你问的是相处，下面「磨在」那段就是具体剧本，"
                 "引信到当晚都写了；判词答底子，剧本答日子。")
     if _re_lq.search(r"复合|前任|挽回|和好|重新|回头", q):
-        return ("你问要不要重来——复合看的是上次绊住你们的那几处"
+        return ("你问要不要重来，复合看的是上次绊住你们的那几处"
                 "变没变：下面的磨点就是它们，没变的话分数也不会变。")
     if _re_lq.search(r"异地|距离|见面少|两地", q):
-        return ("你问异地——盘上量的是节奏合不合，不是公里数；"
+        return ("你问异地，盘上量的是节奏合不合，不是公里数；"
                 "下面「大运互动」那段是你们适合往一处走的时间窗。")
     if _re_lq.search(r"喜欢我|爱我|在意我|怎么想|心思|在乎|看.{0,2}我", q):
-        return ("你问 TA 眼里你什么样——往下「互看」那段是照着"
+        return ("你问 TA 眼里你什么样，往下「互看」那段是照着"
                 "十神互见算的：一段是你看 TA，一段反过来。")
     return ""
 
@@ -2478,27 +2478,27 @@ def warm_hehun(h: dict) -> dict:
         _band = 1
     _neg = "、".join(_hard[:2])
     if _band == 3:
-        rel = (f"判词直说：偏不合适——{_neg or '盘面负信号重叠'}，"
+        rel = (f"判词直说：偏不合适，{_neg or '盘面负信号重叠'}，"
                "书上对这类组合的判词是最不客气的那种。"
                "硬走也不是不能走，但下面几条成本先看完再定")
     elif _band == 2:
-        rel = (f"判词直说：磕绊偏多——{_neg or '盘面助力薄'}，"
+        rel = (f"判词直说：磕绊偏多，{_neg or '盘面助力薄'}，"
                "这组要花的力气比一般组合多。值不值，看完下面"
                "的具体问题再算")
     elif _band == 0:
         _pa = _hehun_pos_anchor(h)
-        rel = (f"判词直说：上等合拍——{_pa}，书上管这种叫底子顺的组合"
+        rel = (f"判词直说：上等合拍，{_pa}，书上管这种叫底子顺的组合"
                if _pa else
-               "判词直说：上等合拍——盘面正信号叠得多，底子是顺的")
+               "判词直说：上等合拍，盘面正信号叠得多，底子是顺的")
     else:
         _pa = _hehun_pos_anchor(h)
         if _hard:
-            rel = (f"中上磨合——{_pa or '底子能处'}，"
+            rel = (f"中上磨合，{_pa or '底子能处'}，"
                    f"但{_neg}这类磕绊书上有名，下面直说磨在哪")
         elif _pa:
-            rel = f"中上磨合——{_pa}，底子合得来，日子怎么过看怎么走法"
+            rel = f"中上磨合：{_pa}，底子合得来，日子怎么过看怎么走法"
         else:
-            rel = ("中上磨合——盘面没大冲也没大合，书上说平淡局："
+            rel = ("中上磨合：盘面没大冲也没大合，书上说平淡局："
                    "说不上天定好也不算坏，路怎么走全看怎么处")
     l0 = ("磨合型组合" if h.get("clash")
           else "相合型组合" if h.get("combine")
@@ -2549,71 +2549,71 @@ def warm_hehun(h: dict) -> dict:
     _spot_b = _WX_SPOT.get(h.get("day_wx_b", ""), "")
     if _spot_a and _spot_b:
         lines.append(f"先验一嘴：你{_spot_a}，TA{_spot_b}"
-                     f"——这条要是说中了，下面的判词才算数。")
+                     f"，这条要是说中了，下面的判词才算数。")
     # 证据行按吕才婚配的证据层级排：夫妻宫 > 日主五行 > 年支 > 纳音。
     # 每条负信号都落「会为哪个生活面吵」，不写虚词（R3087/specs/010）。
     if _dz0 == "冲":
-        lines.append(f"夫妻宫这组冲属{_dz_flavor}——{_dz_script}")
+        lines.append(f"夫妻宫这组冲属{_dz_flavor}，{_dz_script}")
     elif _dz0 == "合":
         lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
-                     f"{h.get('day_zhi_b','')}六合——传统合婚最看重的一支"
+                     f"{h.get('day_zhi_b','')}六合：传统合婚最看重的一支"
                      f"对上了，底色是合的。")
     elif _dz0 == "半合":
         lines.append(f"日支（你们俩的夫妻宫）{h.get('day_zhi_a','')}/"
-                     f"{h.get('day_zhi_b','')}半合——相处里有天然的合拍。")
+                     f"{h.get('day_zhi_b','')}半合：相处里有天然的合拍。")
     # R2509（审-P1-4）：默认受众不认「日主五行/纳音/大运」行话——
     # 首提一律译成「本命五行/五行小名/十年一轮的大方向」。
     if h.get("day_wx_sheng"):
         lines.append(f"两人本命五行相生（{h.get('day_wx_a', '')}与"
-                     f"{h.get('day_wx_b', '')}）——能量是顺着走的，"
+                     f"{h.get('day_wx_b', '')}），能量是顺着走的，"
                      f"一方天然愿意托着另一方。")
     elif h.get("day_wx_same"):
         # R230a-7（R13-P0-2）：同五行是比和——此前被归入「相克」口径。
-        lines.append(f"两人本命五行同是{h.get('day_wx_a', '')}——同气相属，"
+        lines.append(f"两人本命五行同是{h.get('day_wx_a', '')}：同气相属，"
                      f"合拍来得快，顶起来也镜像，各留半步就顺。")
     elif _wx_ke:
         lines.append(f"两人本命五行相克（{h.get('day_wx_a', '')}与"
-                     f"{h.get('day_wx_b', '')}）——相克就是相克，书上不"
-                     f"绕弯：这组磨在「{_wx_ke[0]}」上——{_wx_ke[1]}")
+                     f"{h.get('day_wx_b', '')}），相克就是相克，书上不"
+                     f"绕弯：这组磨在「{_wx_ke[0]}」上，{_wx_ke[1]}")
     if h.get("clash"):
-        lines.append("年支六冲——书上管这种叫根基相冲：矛盾容易长在"
+        lines.append("年支六冲·书上管这种叫根基相冲：矛盾容易长在"
                      "两个家庭的衔接处，双方父母、买房养老、孩子教育、"
                      "回谁家过年，是这组盘最常爆的点。")
     elif h.get("combine"):
-        lines.append("年支六合——传统上主两家的根基合得来，"
+        lines.append("年支六合：传统上主两家的根基合得来，"
                      "见家长和扯皮琐事上少一道坎。")
     elif h.get("year_zhi_rel") == "半合":
-        lines.append("年支半合——根基层有三分顺意，不是最强的那种合，"
+        lines.append("年支半合：根基层有三分顺意，不是最强的那种合，"
                      "但过日子够用。")
     # R3087：处方紧跟主证（日支冲型 > 相克型 > 年冲家庭线），
     # 被截断时先丢的是纳音/互看/大运这些低权重尾行。
     _rx = _dz_rx or (
         _wx_ke[2] if _wx_ke else
-        ("处方三段：先做——两家的事提前立规矩，回谁家过年、买房谁出"
-         "钱、父母介入多深都说死；看信号——逢年过节不再为这些事红脸；"
+        ("处方三段：先做，两家的事提前立规矩，回谁家过年、买房谁出"
+         "钱、父母介入多深都说死；看信号，逢年过节不再为这些事红脸；"
          "要是规矩还被冲破，下次谁越界谁负责去和对方家里解释。"
          if h.get("clash") else ""))
     if _rx:
         lines.append(_rx)
     if h.get("nayin_rel") == "比和":
         lines.append(f"年命纳音（五行的传统小名）同是"
-                     f"{h.get('nayin_a','')}——命底相近，"
+                     f"{h.get('nayin_a','')}：命底相近，"
                      f"很多事不用解释就懂。")
     elif h.get("nayin_rel") == "相生":
         lines.append(f"年命纳音相生（{h.get('nayin_a','')}与"
-                     f"{h.get('nayin_b','')}）——传统上主互相滋养，"
+                     f"{h.get('nayin_b','')}），传统上主互相滋养，"
                      f"在一起越久越顺。")
     elif h.get("nayin_rel") == "相克":
         lines.append(f"年命纳音相克（{h.get('nayin_a','')}与"
-                     f"{h.get('nayin_b','')}）——命底小名也对冲，"
+                     f"{h.get('nayin_b','')}），命底小名也对冲，"
                      f"这一项书上权重轻，记个底色提示就行。")
     if h.get("peach_same"):
-        lines.append(f"两人桃花位相同（都是{h.get('peach_a', '')}）——"
+        lines.append(f"两人桃花位相同（都是{h.get('peach_a', '')}）"
                      f"对感情的期待容易同频。")
     # R204b（D-257b）：天干五合 + 十神互见的人话层（yinyuan skill 融入，
     # 日常语复用 TEN_GOD_WARM，无吉凶断言）
     if h.get("gan_he"):
-        lines.append("你们俩的本命天干五合——传统上把这看作"
+        lines.append("你们俩的本命天干五合：传统上把这看作"
                      "「天生对味」的组合，"
                      "相处时那种不用解释的默契是有来处的。")
     god_ab, god_ba = h.get("god_a_sees_b") or "", h.get("god_b_sees_a") or ""
@@ -2629,7 +2629,7 @@ def warm_hehun(h: dict) -> dict:
         la = _GOD_REL.get(god_ab, god_ab)
         lb = _GOD_REL.get(god_ba, god_ba)
         lines.append(f"互看：你眼里的 ta 带「{la}」，ta 眼里的你带「{lb}」"
-                     f"——两种力量互相成全，也偶尔较劲。")
+                     f"，两种力量互相成全，也偶尔较劲。")
     dayun = h.get("dayun_hits") or []
     # R216b 续（UX 队列 U-017）：原实现无条件取 dayun_hits[0]（最早的大运
     # =童年期），产出「1997年前后…适合一起做决定」而两人当时 7 岁/5 岁的
@@ -2646,20 +2646,20 @@ def warm_hehun(h: dict) -> dict:
         # F-015：当年份距今>10年时，降级为"远期参考"
         if abs(int(d0.get("year_start", 0)) - _now.year) > 10:
             lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
-                         f"（{d0.get('relation', '')}）——远期参考，不是日程表。")
+                         f"（{d0.get('relation', '')}），远期参考，不是日程表。")
         elif str(d0.get("relation", "")) == "冲":
             # R233u（R53-P1-2）：冲运主摩擦动荡——劝「一起做决定」与
             # 冲的语义直接矛盾，改中性缓冲口径。
             lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
-                         f"（冲）——那段时间容易顶上，重要的事留点缓冲、"
+                         f"（冲），那段时间容易顶上，重要的事留点缓冲、"
                          f"慢半拍再定。")
         else:
             lines.append(f"{d0.get('year_start')}年前后两人的大运（十年一轮的大方向）有互动"
-                         f"（{d0.get('relation', '')}）——那段时间适合一起做决定。")
+                         f"（{d0.get('relation', '')}），那段时间适合一起做决定。")
     elif dayun:
         d0 = dayun[0]
         lines.append(f"从{d0.get('year_start')}年起你们进入大运（十年一轮）互动期"
-                     f"（{d0.get('relation', '')}）——节奏上的参考，不是日程表。")
+                     f"（{d0.get('relation', '')}），节奏上的参考，不是日程表。")
     # R3087：收口从「靠你们自己写」升级成带地图的交权——先摆成本，
     # 再给判断条件，最后才归还决定权（调研 B 交权三段式）。
     # R3125（specs/012-P5）脱罪位并进收口：负向判词把磨归因给盘
@@ -2668,7 +2668,7 @@ def warm_hehun(h: dict) -> dict:
     if _band == 3:
         lines.append(
             f"先把话说明：这些磨是盘上{_neg or '多处摩擦'}带来的，"
-            "不是你俩谁有毛病。走下去这组盘明标的成本就是这些——"
+            "不是你俩谁有毛病。走下去这组盘明标的成本就是这些。"
             "不是吓你，是书上有判词的地方都给你指出来了。"
             "值不值这个成本只有你们俩知道：命理给的是会被反复考验的"
             "点，不是判决书，看清楚了还愿意牵手的，是你们自己的本事。")
@@ -2676,19 +2676,19 @@ def warm_hehun(h: dict) -> dict:
         lines.append(
             "先说一句：这些磕绊是盘上的事，不是你俩谁的问题。"
             "能不能走，看一件实事：上面说到的那个摩擦点，你们俩之前"
-            "撞见时是越吵越亲还是越处越累——前者这组盘啃得动，后者"
+            "撞见时是越吵越亲还是越处越累，前者这组盘啃得动，后者"
             "要想清楚再上车。命理给地图，路是你们俩走的。")
     elif _band == 0:
         # R3133：顺风盘同给功课——「顺」的具体成本是懒出来的惯性：
         # 合拍到不吵架的伴侣，最容易一起温水煮到没话聊。
         lines.append(
-            "底子顺别浪费——书上说上等婚也要人事配，顺不是躺赢的"
+            "底子顺别浪费，书上说上等婚也要人事配，顺不是躺赢的"
             "许可。顺风局的具体功课：每隔一阵主动做一件你们俩没做过"
-            "的小事——合拍的关系最怕处成惯性，甜味要自己续。"
+            "的小事：合拍的关系最怕处成惯性，甜味要自己续。"
             "这张表是地图，路是你们俩走的。")
     elif _hard:
         lines.append(
-            "有磕绊不等于不能处——上面点名的那处磨，是这组盘要啃的"
+            "有磕绊不等于不能处，上面点名的那处磨，是这组盘要啃的"
             "骨头；处理好了是独一份的默契，啃不动再谈去留。"
             "命理给地图，路是你们俩走的。")
     else:
@@ -2728,17 +2728,17 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
     # R2509（审-P3-29）：空姓走「这位家小姑娘」语法不通；names 空时
     # 「挑了 0 个名字——都从古籍里来」自相矛盾，各设分支。
     if not names:
-        lines = ["这回没挑到合适的名字——换个条件再试试？"]
+        lines = ["这回没挑到合适的名字，换个条件再试试？"]
     elif sn:
-        lines = [f"给{sn}家{kid}挑了 {len(names)} 个名字——都从古籍里来，"
+        lines = [f"给{sn}家{kid}挑了 {len(names)} 个名字：都从古籍里来，"
                  f"不是凭空造的。"]
     else:
-        lines = [f"给{kid}挑了 {len(names)} 个名字——都从古籍里来，"
+        lines = [f"给{kid}挑了 {len(names)} 个名字：都从古籍里来，"
                  f"不是凭空造的。"]
     if miss:
         # R2349s（R84-P2-13）：量词随个数变——两行说「这一行」语法别扭。
         _mq = "这一行" if len(miss) == 1 else "这几行"
-        lines.append(f"五行里 {'、'.join(miss)} {_mq}比较薄——"
+        lines.append(f"五行里 {'、'.join(miss)} {_mq}比较薄。"
                      f"名字里给它补一补，图个心里踏实。")
     elif weak:
         _wq = "这一行" if len(weak) == 1 else "这两行" if len(weak) == 2 else "这几行"
@@ -2754,10 +2754,10 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
             _wtail = (f"{len(names)} 个候选里有 {_wn} 个带着"
                       f"{'或'.join(weak)}的字，往这个方向偏的")
         else:
-            _wtail = f"这批候选还没接住{_wq}——点「换一批」再试试"
-        lines.append(f"五行没缺，{'、'.join(weak)} {_wq}偏弱——{_wtail}。")
+            _wtail = f"这批候选还没接住{_wq}，点「换一批」再试试"
+        lines.append(f"五行没缺，{'、'.join(weak)} {_wq}偏弱，{_wtail}。")
     else:
-        lines.append("五行挺匀的——挑名就只管好听、有出处。")
+        lines.append("五行挺匀的：挑名就只管好听、有出处。")
     # R2349s（R84-P2-17）：names[0] 是后端乱序首位，而前端按 _qmScore
     # 重排——点名的可能不是屏上「⭐首选」。后端没有 score 字段，对齐
     # 前端评分主维度：命中的缺行/弱行数 + 双字加成 + 出处字数。
@@ -2778,20 +2778,20 @@ def warm_qiming(out: dict, surname: str = "", gender: str = "") -> dict:
                 for i in range(min(len(_given), len(_els)))
                 if _els[i] in _want]
         if _fit:
-            lines.append(f"私心喜欢「{_top['full_name']}」——"
+            lines.append(f"私心喜欢「{_top['full_name']}」"
                          f"{'、'.join(_fit)}，正好接住弱的那几行；"
                          f"出自{_src}。")
         else:
-            lines.append(f"私心喜欢「{_top['full_name']}」——出自{_src}，"
+            lines.append(f"私心喜欢「{_top['full_name']}」，出自{_src}，"
                          f"念起来也顺口。")
     # R2519（深度收尾）：定名前的两件实在事——比「随缘吧」有用的收口。
     if names:
         lines.append("定之前两步：把候选名连着姓大声念三遍听顺不顺；"
                      "再搜搜有没有谐音歧义。")
     lines.append(_pick(
-        ["名字是参考，不是定数——家里人念着顺口最重要。",
-         "好名字是祝福，不是枷锁——挑你们全家都喜欢的那个。",
-         "这些名字只是个开头——最后叫哪个，听你们全家的心意。"],
+        ["名字是参考，不是定数：家里人念着顺口最重要。",
+         "好名字是祝福，不是枷锁：挑你们全家都喜欢的那个。",
+         "这些名字只是个开头：最后叫哪个，听你们全家的心意。"],
         "qm-close", sn, str(len(names))))
     return _wrap(
         (out.get("one_liner") or "古书里挑的名字")[:_L0_MAX],
