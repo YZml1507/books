@@ -2029,6 +2029,15 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
         return;
       }
       if (st && st.status === 'failed') {
+        /* R3222：agnes 推理模型延迟抖动大（实测 ReadTimeout 占大头），
+         * 首次失败先静默原句重投一次（typing 不打断），二次仍败才出文案。
+         * ty.dataset 记重试数，防连环重投。 */
+        var _rt = +(ty.dataset.chatRetry || 0);
+        if (msg && sid0 === chatSid() && _rt < 1) {
+          ty.dataset.chatRetry = '1';
+          _chatRetrySend(msg, ty, sid0);
+          return;
+        }
         _chatFailInto(ty, 'fail', msg, sid0);
         return;
       }
