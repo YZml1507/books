@@ -347,6 +347,13 @@ async function doWorks() {
 function searchByWork(workId) {
   var wf = el('bswork');
   if (wf) wf.value = workId;
+  /* R3221：框里回填的是内部代号——挂一行「已选《书名》」让读者认得出。 */
+  var hint = el('bswork_hint');
+  if (hint) {
+    var t = _BS_TITLE[workId];
+    hint.hidden = !t;
+    hint.textContent = t ? '已选：《' + t + '》' : '';
+  }
   activateRsec('rsec-bookstudy');
   activateBssec('bs-structure');
   showToast('翻开了这本书的结构——点章节看正文', 'info');

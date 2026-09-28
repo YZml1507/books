@@ -9834,6 +9834,17 @@ function initReading() {
     _bssch.addEventListener('change', _bsSyncFields);
     _bsSyncFields();
   }
+  /* 手改书号 → 「已选《书名》」提示同步（命中缓存显示书名，否则收起）。 */
+  var _bsw = el('bswork');
+  if (_bsw) {
+    _bsw.addEventListener('input', function () {
+      var hint = el('bswork_hint');
+      if (!hint) return;
+      var t = (typeof _BS_TITLE !== 'undefined' && _BS_TITLE[_bsw.value.trim()]) || '';
+      hint.hidden = !t;
+      hint.textContent = t ? '已选：《' + t + '》' : '';
+    });
+  }
 
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
   /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
