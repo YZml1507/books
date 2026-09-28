@@ -1334,10 +1334,18 @@ function _chatTsRead() {
     return Array.isArray(arr) ? arr : [];
   } catch (e) { return []; }
 }
-function _chatTsSave(role, text) {
+function _chatTsSave(role, text, action) {
   try {
     var arr = _chatTsRead();
-    arr.push({ r: role === 'me' ? 'me' : 'ai', t: String(text || '').slice(0, 2000) });
+    var _m = { r: role === 'me' ? 'me' : 'ai',
+               t: String(text || '').slice(0, 2000) };
+    /* R3201：路标 chip 随 transcript 回放——刷新后「去抽牌」入口
+     * 不该凭空消失（指向的是稳定真入口，无副作用）。 */
+    if (action && typeof action.view === 'string' &&
+        typeof action.label === 'string' && action.view && action.label)
+      _m.a = { view: action.view.slice(0, 24),
+               label: action.label.slice(0, 40) };
+    arr.push(_m);
     if (arr.length > 50) arr = arr.slice(-50);
     (_chatTsStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(arr));
   } catch (e) {}
@@ -1350,8 +1358,14 @@ function _chatTsRestore() {
    * noscroll：逐泡滚会每条强排一次同步回流（审-P2-1），滚一次即可。 */
   var _last = null;
   _chatTsRead().forEach(function (m) {
-    _last = chatBubble(m.r === 'me' ? 'me' : 'ai', m.t,
-                       { nosave: true, noscroll: true });
+    var _bb = chatBubble(m.r === 'me' ? 'me' : 'ai', m.t,
+                         { nosave: true, noscroll: true });
+    /* R3201：存了 action 的 ai 泡重挂路标 chip；view 走白名单
+     * （localStorage 可被改——脏值顶多挂个死钮，白名单再收一层）。 */
+    if (_bb && m.a && typeof m.a === 'object' &&
+        _CHAT_ACT_VIEWS[m.a.view] && typeof m.a.label === 'string')
+      _chatActChip(_bb, m.a);
+    _last = _bb || _last;
   });
   var _flow = el('chatFlow');
   if (_flow && _last) _flow.scrollTop = _flow.scrollHeight;
@@ -1846,6 +1860,9 @@ function autoSendChatContext() {
  * 约定：tid=任务id；ty=typing气泡节点；sid0=发送时sid。 */
 /* R3195：路标 chip——后端 action={view,label} 时，回复气泡尾挂一个
  * 可点按钮直达真功能页，并收拢聊天抽屉。比纯文字指路少一步找。 */
+/* R3201：可回放的路标视图白名单——与服务端 _CHAT_ACTIONS 同集。 */
+var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
+                        home: 1, dream: 1, bazi: 1 };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
   var b = document.createElement('button');
@@ -1891,7 +1908,7 @@ function _pollChatReply(tid, ty, sid0, action) {
         _chatFreshNote(st, ty);      /* TTL 回收分隔 */
         ty.innerHTML = renderRichText(st.text);
         _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
-        _chatTsSave('ai', st.text);
+        _chatTsSave('ai', st.text, action);   /* R3201：action 随泡入档 */
         if (st.closed) _chatClosedHint(ty);
         return;
       }
