@@ -17285,3 +17285,4 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **R3196**：IME 合成期 Enter 防误发 —— chatInput + 全部 Enter 提交输入框（rq/rq2/cq/cwq/tq/起名搜索等 13 键）此前零 isComposing 守卫，中文输入法选词 Enter 会把半句直接提交；isComposing+keyCode229 双口径拦截（老 WebView 只给后者）。
 - **R3197**：危机消息禁挂路标 chip —— 「活着没意思给我抽张牌」此前响应带 action，危机罐头转介气泡尾巴会跟「🃏去抽牌」按钮；`_is_crisis` 同判定压掉 action（闸后于 facts 构建但在下发前）。
 - **R3198**：暗黑态 action chip accent 修复 —— `chat-chip` 深底规则吃掉 accent-ink 描边/文字，路标变普通灰钮丢「可点」信号；补暗黑态 --accent 亮粉描边+hover 反色。真机 computed 验证。
+- **R3199**：年运逐月条十神上人话 —— 「己丑·正印」对受众是天书；单元格改渲日常语标签（底气/同伴/稳定财…）+悬停「正印——底气月」释义；`_GP` 提炼模块级 `_TEN_GOD_TAG` 与合盘互看共用一份（防两表漂移）。

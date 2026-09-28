@@ -575,13 +575,12 @@ function buildHehunResult(j) {
   if (j.god_a_sees_b && j.god_b_sees_a) {
     /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。
      * R2350b（R98-P2-8）：这张表与 voice.py:1324 的性格词表语义不同
-     * （这里=对方盘里的角色，那里=性格气质），不合并但需同步维护。 */
-    var _GP = {比肩:'同类',劫财:'对手',食神:'玩伴',伤官:'点子王',偏财:'惊喜',
-               正财:'稳定',七杀:'压力',正官:'靠山',偏印:'直觉',正印:'底气'};
+     * （这里=对方盘里的角色，那里=性格气质），不合并但需同步维护。
+     * R3199：提成模块级 _TEN_GOD_TAG——年运条/合盘互看共用同一份。 */
     html += '<span class="pill sm" style="background:var(--secondary);" ' +
       'title="十神互见：互相在对方盘里的角色">互看：你眼里TA是「' +
-      esc(_GP[j.god_a_sees_b] || j.god_a_sees_b) + '」· TA眼里你是「' +
-      esc(_GP[j.god_b_sees_a] || j.god_b_sees_a) + '」</span>';
+      esc(_TEN_GOD_TAG[j.god_a_sees_b] || j.god_a_sees_b) + '」· TA眼里你是「' +
+      esc(_TEN_GOD_TAG[j.god_b_sees_a] || j.god_b_sees_a) + '」</span>';
   }
   html += '</div>';
   /* R2350b（R98-P1-6）：j.render 是干支摘要串（「甲：1990年 庚午 ·
@@ -5152,6 +5151,11 @@ function buildBaziResult(j) {
 }
 
 /* R3159：今年逐月 chip 条——每格「M月 干支·十神」，当月高亮。 */
+/* R3199：十神 → 日常语标签（合盘互看/年运条共用，与 voice.py
+ * TEN_GOD_WARM 的标签语义同源——模块级一份，不抄两份）。 */
+var _TEN_GOD_TAG = {比肩:'同伴',劫财:'同侪',食神:'表达',伤官:'点子',偏财:'活水财',
+                    正财:'稳定财',七杀:'压力',正官:'规矩',偏印:'直觉',正印:'底气'};
+
 function _yearlyStrip(calc) {
   try {
     var y = calc && calc.yearly;
@@ -5160,9 +5164,15 @@ function _yearlyStrip(calc) {
     var curM = (y.year === now.getFullYear()) ? now.getMonth() + 1 : -1;
     var cells = y.months.map(function (m) {
       var on = m.month === curM;
-      return '<span class="yearly-cell' + (on ? ' on' : '') + '">' +
+      /* R3199：十神黑话上人话标签+悬停释义——「己丑·正印」对受众是
+       * 天书，「正印（底气）」加 title 才读得懂。 */
+      var _rel = m.gan_rel || '';
+      var _tag = _TEN_GOD_TAG[_rel] || '';
+      return '<span class="yearly-cell' + (on ? ' on' : '') + '"' +
+        (_rel ? ' title="' + esc(_rel) + (_tag ? '——' + esc(_tag) + '月' : '') +
+          '"' : '') + '>' +
         '<b>' + esc(String(m.month)) + '月</b>' +
-        '<i>' + esc(m.ganzhi || '') + '·' + esc(m.gan_rel || '') + '</i>' +
+        '<i>' + esc(m.ganzhi || '') + '·' + esc(_tag || _rel) + '</i>' +
         '</span>';
     }).join('');
     return '<div class="yearly-strip-wrap"><div class="yearly-strip-head">' +
