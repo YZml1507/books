@@ -602,6 +602,51 @@ def main() -> int:
             if errors:
                 results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
+            # R3235（循环优化-4 钉扎）：缎带态（2访+）未拆礼物且无档
+            # ——表单须挪出缎带成卡内独立块（曾挤竖排破版），提交链路照通。
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => { localStorage.removeItem("
+                    " 'dailyRevealed:'+new Date().toISOString().slice(0,10));"
+                    " const _y=new Date(); _y.setDate(_y.getDate()-1);"
+                    " localStorage.setItem('visits', JSON.stringify("
+                    " [_y.toISOString().slice(0,10)])); }")
+                page.reload(wait_until="load")
+                page.wait_for_timeout(1800)
+                st = page.evaluate(
+                    "() => { const cov=document.getElementById('dailyCover');"
+                    " const ask=document.getElementById('dailyAsk');"
+                    " return {mini: !!(cov&&cov.classList.contains('mini')),"
+                    "   loose: !!(ask&&ask.classList.contains('is-loose')),"
+                    "   out: !!(cov&&ask&&!cov.contains(ask))}; }")
+                _sub = False
+                if st["loose"]:
+                    for _k, _v in (("y", "1991"), ("m", "4"), ("d", "4"),
+                                   ("h", "8")):
+                        page.fill(f"#dailyAsk [data-k='{_k}']", _v)
+                    page.click("#dailyAsk .da-btn")
+                    page.wait_for_timeout(2500)
+                    _sub = bool(page.evaluate(
+                        "localStorage.getItem('me')"))
+                ok = (st["mini"] and st["loose"] and st["out"] and _sub
+                      and not errors)
+                results.append({"name": "ui:daily_ask_mini", "ok": ok,
+                                "detail": ("缎带=%s 挪出=%s 离封面=%s 提交落档=%s"
+                                           % (st["mini"], st["loose"],
+                                              st["out"], _sub))})
+            except Exception as exc:
+                results.append({"name": "ui:daily_ask_mini", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("localStorage.removeItem('me');"
+                                  "localStorage.removeItem('visits')")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
             # R2340：深浅色切换——点 #themeToggle 后 html[data-theme=dark]
             # 且 localStorage 落盘；刷新仍在 dark。
             try:
