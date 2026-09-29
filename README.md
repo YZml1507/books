@@ -54,15 +54,63 @@
 
 ## 快速开始
 
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-runtime.txt -r requirements-ci.txt playwright==1.63.0
-.venv/bin/python -m playwright install chromium
+环境要求：Python 3.11+。不需要装数据库，SQLite 是自带的。
 
-# 语料索引（首次 ~10s，产物 gitignored）
+```bash
+# 1. 装依赖
+python3 -m venv .venv && .venv/bin/pip install -r requirements-runtime.txt
+
+# 2. 建语料索引（首次约 10 秒，产物在 data/index/，不进仓库）
 .venv/bin/python scripts/check_quality.py && .venv/bin/python scripts/build_index.py
 
-# knowledge.db 种子（selftest 依赖，幂等——只需跑一次）
+# 3. 起服务
+.venv/bin/python -m uvicorn web.app:app --port 8123 --no-access-log
+```
+
+打开 http://127.0.0.1:8123 —— 首页填个生日就能拆今天的礼物。
+
+前端改了 `web/static/` 直接生效。注意这是 PWA：Service Worker 会
+缓存旧壳，改完硬刷一次（Ctrl/Cmd+Shift+R），或点页面弹出的
+「有更新」提示。
+
+## 启用小满聊天（可选）
+
+不配 key，所有确定性功能照常能用。要 AI 层（小满聊天、起名典故
+点评、判词润色）：
+
+**本地**——建 `web/llm_config.json`（gitignored），OpenAI 兼容格式：
+
+```json
+{
+  "api_key": "sk-…",
+  "base_url": "https://…/v1",
+  "model": "模型名",
+  "timeout_s": 24,
+  "max_tokens": 1600,
+  "fallbacks": [
+    {"api_key": "…", "base_url": "…", "model": "…"}
+  ]
+}
+```
+
+`fallbacks` 里可以再挂多家提供方——所有节点并发竞速，谁先出稿
+用谁；全挂时功能降级到确定性底稿，不会空白。
+
+**部署**——Render/HF 等没有配置文件的地方，把上面整份 JSON 原样
+粘到环境变量 `BOOKS_LLM_CONFIG_JSON`。离散 `BOOKS_LLM_API_KEY`
+系列只够配单节点，而且会覆盖 JSON 里主节点的 key——两者选一个，
+建议只用 JSON。
+
+完整环境变量表、Render 步骤、调优经验：[docs/DEPLOY.md](docs/DEPLOY.md)。
+
+## 跑测试
+
+```bash
+# 测试依赖（playwright + 探针要用的包）
+.venv/bin/pip install -r requirements-ci.txt playwright==1.63.0
+.venv/bin/python -m playwright install chromium
+
+# selftest 需要一个非空的 knowledge.db——幂等种子，跑一次即可
 .venv/bin/python - <<'PY'
 import sys; sys.path.insert(0, '.'); sys.path.insert(0, 'src')
 from guji.knowledge import KnowledgeBase, Evidence
@@ -82,46 +130,30 @@ if kb.db.execute("SELECT count(*) c FROM derived").fetchone()["c"] == 0:
 kb.close()
 PY
 
-.venv/bin/python -m uvicorn web.app:app --port 8123 --no-access-log
-# 打开 http://127.0.0.1:8123
+# 三道主闸门
+BOOKS_LLM_DISABLE=1 .venv/bin/python web/selftest.py            # 375 项自检
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_ui_smoke.py   # 91 例真浏览器冒烟
+BOOKS_LLM_DISABLE=1 .venv/bin/python probes/probe_contract.py   # 726 个契约读点
 ```
 
-> `data/external/bge-small-zh-v1.5` 的模型权重在 Git LFS 里——跑语义检索
-> 相关闸门前先 `git lfs pull`（web 主路径不依赖它，没拉也能正常用）。
+`probes/` 下还有字节冻结基线、日期词前后端同构、`$` 误用等专项
+探针，完整清单见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
-## 启用小满聊天（可选）
-
-不配 key 时全部确定性功能照常可用。要 AI 层：建 `web/llm_config.json`
-（gitignored，OpenAI 兼容格式，支持 `fallbacks` 兜底链）。部署到
-Render/HF 等无文件形态时，把整份 JSON 塞进环境变量
-`BOOKS_LLM_CONFIG_JSON`——离散 `BOOKS_LLM_API_KEY` 系列只能配
-单节点。完整格式与调优经验见 [docs/DEPLOY.md](docs/DEPLOY.md)。
-
-## 工程闸门
-
-- **375 项自检**（`web/selftest.py`）：算法正确性、降级路径、安全闸
-- **726 个契约读点**（`probes/probe_contract.py`）：前端读的每个
-  API 字段都真实存在
-- **91 例浏览器冒烟**（`probes/probe_ui_smoke.py`）：真 Chromium 走
-  用户路径
-- 另有多道专项闸：字节冻结基线 / 日期词前后端同构 / `$` 误用探针 /
-  dict 重复键 / 首屏成本 / chat 全链 mock 回归
-
-完整命令与 CI 闸集见 [docs/DEPLOY.md](docs/DEPLOY.md)。
+`data/external/bge-small-zh-v1.5` 的语义模型权重在 Git LFS 里——跑
+检索类闸门前先 `git lfs pull`；web 主路径不依赖它，没拉也能正常用。
 
 ## 结构速览
 
-```
-src/guji/      语料解析与命理计算核心（无任何 web 依赖）
-web/           FastAPI：routers/ 薄路由 → services.py → src/guji/
-web/static/    单页前端 + PWA（原生 JS，无框架）
-probes/        回归探针（archive/ 是已完成使命的一次性探针）
-data/          原始语料；data/index/*.db 为可重建产物（gitignored）
-scripts/       索引构建与数据闸门 · docs/ 架构 / 决策 / 运维手册
-```
+| 目录 | 职责 |
+|---|---|
+| `src/guji/` | 语料解析 + 命理计算核心（零 web 依赖，可脱离服务单测） |
+| `web/` | FastAPI：`routers/` 薄路由 → `services.py` 编排 → guji 内核 |
+| `web/static/` | 单页前端 + PWA（原生 JS，无框架） |
+| `probes/` | 回归探针（`archive/` 是已完成使命的一次性探针） |
+| `data/` | 原始语料；`data/index/*.db` 为可重建产物（gitignored） |
+| `scripts/` `docs/` | 索引构建与数据闸门 · 架构 / 决策 / 运维文档 |
 
 ## 说明
 
-- 本项目仅作文化与技术探索：所有解读均为固定规则产出或 AI 转述，
-  不构成人生建议。
-- 部署 / 环境变量 / 运维细节：见 [docs/DEPLOY.md](docs/DEPLOY.md)
+本项目仅作文化与技术探索：所有解读均为固定规则产出或 AI 转述，
+不构成人生建议。部署与运维细节见 [docs/DEPLOY.md](docs/DEPLOY.md)。
