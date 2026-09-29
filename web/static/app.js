@@ -4669,7 +4669,11 @@ async function loadDaily() {
       levelEl.className = 'daily-level ' +
         (_dispLv === '吉' ? 'good' : _dispLv === '小吉' ? 'sml' :
          _dispLv === '凶' ? 'bad soft' : 'mid') +
-        (_badge.length > 2 ? ' xsm' : '');
+        /* R3248 续：个人判词（mine/十神标签）统一字号档——不再随
+         * 吉凶档各自缩字号；通判档位维持原 sized 类。 */
+        ((_hMine || _hTag)
+          ? (_badge.length > 2 ? ' pv3' : ' pv')
+          : '');
       /* R216b 续3（U-009）：凶日不吓人——通判凶标签仍柔化；个人层
        * 的 tooltip 写清判词归属（你的 vs 通版）。 */
       levelEl.title = _hMine
@@ -4703,7 +4707,12 @@ async function loadDaily() {
               _dispLv === '凶' ? '（今日能量偏低 · 宜稳宜慢）' :
               '（三星 · 平稳）'));
     }
-    setText('dailySummary', j.summary || '');
+    /* R3248（用户实测「summary 永远是同一句」）：存了生日的日签大
+     * 字区讲「你的」——summary 吃 personal.line（你的日主×今天的
+     * 十神日白话）；通版五行天气挪进 meta 胶囊（dailyDayWx），
+     * 没存档的用户照旧看通版。 */
+    var _pLine = (j.personal && j.personal.line) ? j.personal.line : '';
+    setText('dailySummary', _pLine || (j.summary || ''));
     /* R216b 续3（U-009）：凶日安抚层——summary 下紧跟一句人话安抚。 */
     var sooth = document.getElementById('dailySoothe');
     if (!sooth) {
@@ -4890,18 +4899,29 @@ async function loadDaily() {
       /* R3245（用户实测「填什么都是小吉」）：个人冲合判词当头——
        * 通判 level 是大家同款，「对你」这层才是你的盘与今天的对位。 */
       var _mine = j.personal.mine;
-      _dailyMetaItem('dailyPersonal',
-        (_mine
-          ? '<span class="daily-mine ' + esc(_mine.tone || 'flat') + '">' +
-            '🧭 对你：' + esc(_mine.verdict || '') + '</span> ' +
-            esc(_mine.line || '') + '<br>' : '') +
-        '🪞 ' + esc(j.personal.line) +
-        (j.personal.year_line
-          ? '<br><span style="font-size:12px;opacity:.85;">' +
-            '📅 ' + esc(j.personal.year_line) + '</span>' : '') +
-        (_bdayTxt
-          ? '<br><span class="daily-bday">你的生辰 · ' +
-            esc(_bdayTxt) + '</span>' : ''));
+      /* R3248 续：🪞 日主行已升到大字 summary 位，胶囊里不再复述，
+       * 改挂通版天气粒（通判语义保留可见）；各行 join 拼装——
+       * 前置段缺省时不留孤悬 <br>。 */
+      var _pc2 = [];
+      if (_mine) {
+        _pc2.push('<span class="daily-mine ' +
+          esc(_mine.tone || 'flat') + '">' +
+          '🧭 对你：' + esc(_mine.verdict || '') + '</span> ' +
+          esc(_mine.line || ''));
+      }
+      if (j.summary) {
+        _pc2.push('<span style="font-size:12px;opacity:.85;">' +
+          '☁️ 今日通版：' + esc(j.summary) + '</span>');
+      }
+      if (j.personal.year_line) {
+        _pc2.push('<span style="font-size:12px;opacity:.85;">' +
+          '📅 ' + esc(j.personal.year_line) + '</span>');
+      }
+      if (_bdayTxt) {
+        _pc2.push('<span class="daily-bday">你的生辰 · ' +
+          esc(_bdayTxt) + '</span>');
+      }
+      _dailyMetaItem('dailyPersonal', _pc2.join('<br>'));
     } else {
       /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3）
        * R3243（用户实测）：补上「通版」标注——手误点开不再被当

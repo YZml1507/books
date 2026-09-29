@@ -319,22 +319,22 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover{
     padding-top:min(9vh, 76px);}
   .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{width:150px;}
-  /* R3247（用户实测·平板）：hero 150px 钳高把熊拦腰裁（头脚都缺）。
-   * home-main 上限 680px → 整图横条自然高只有 ~181px，比钳高
-   * 时代担心的 284px 还矮——直接恢复整图零裁切，宫格沉底风险
-   * 不复存在。矮屏档（下行 media）仍保 100px 横幅+面部锚点。
-   * .home-main 前缀提权——本文件 1800 行附近的基础规则
-   * .ink-hero img 同优先级、位置更靠后会盖掉媒体档。 */
-  .home-main .ink-hero img{height:auto; aspect-ratio:1440/384;
-    object-position:bottom;}
 }
 @media (min-width:768px) and (max-height:800px){
-  /* R2349p 续：720p 级矮视口再收一档——日签卡 42vh、hero 100px。
-   * R3247：锚点改 12%——熊脸占原图上缘 8–58%，此前 22%/bottom
-   * 在矮屏只露躯干断头。 */
+  /* R2349p 续：720p 级矮视口再收一档——日签卡 42vh。
+   * R3248：hero 横幅仍 110px 但换 contain+左锚——熊整只缩进横幅
+   * （不再 cover 裁切）；图右侧本就空奶油底，contain 两侧留白与
+   * 图底同色（#FEFCFD≈白），视觉无缝。 */
   .daily-card:has(> .daily-cover:not(.open):not(.mini)){max-height:min(42vh, 400px);}
-  .home-main .ink-hero img{height:100px; aspect-ratio:auto;
-    object-position:0 12%;}
+  .ink-hero img{height:110px; aspect-ratio:auto;
+    object-fit:contain; object-position:left center;
+    background:#FEFCFD;}
+}
+/* R3248：手机横屏（568px 级矮屏）同思路——contain 左锚矮横幅。 */
+@media (max-width:600px) and (max-height:600px){
+  .ink-hero img{height:88px; aspect-ratio:auto;
+    object-fit:contain; object-position:left center;
+    background:#FEFCFD;}
 }
 .daily-cover{
   position:absolute; inset:0; z-index:3; border-radius:var(--radius);
@@ -447,9 +447,12 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-level.bad{background-color:#F8E1E5; background-image:linear-gradient(135deg,#FAE7EA,#F4D8DE);color:#A43B4E;border:2px solid #EBB9C3;box-shadow:0 6px 24px rgba(180,90,110,.18);}
 /* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
 .daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:var(--rose-deep);font-size:.92em;}
-/* R3248：个人判词/十神标签 3 字词（压力位/庇护力）进 80px 圆盘——
- * 36px 三字必溢出，缩到 .58em（≈21px）仍保 ≥3:1 对比度。 */
-.daily-level.xsm{font-size:.58em; letter-spacing:.02em;}
+/* R3248（用户实测「判词字体不一样」）：个人判词圆盘字号统一——
+ * 此前岁吟走 mid(36px)、岁合走 sml(.82em)、小凶走 bad.soft(.92em)，
+ * 同盘不同号字像 bug。个人判词一律 .pv 定字号（颜色仍随吉凶档），
+ * 3 字十神标签（压力位/庇护力）再降 .pv3。位置须在各档之后。 */
+.daily-level.pv{font-size:.8em; letter-spacing:.02em;}
+.daily-level.pv3{font-size:.56em; letter-spacing:.02em;}
 .stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
 /* R230z（R36）：品类徽标 + 收藏 chips + 心水 ♡ */
 .ph-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
@@ -1803,8 +1806,12 @@ button:active{transform:scale(.96);}
 
 /* ── 水墨命理改版组件（2026-08-28）：logo/hero/图标/历史视图 ── */
 .ink-hero{margin:0 0 14px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);}
-/* R2345（R62-P2）：移动端上缘裁脸——锚定底缘，熊脸保在框内。 */
-.ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:cover;object-position:bottom;}
+/* R3248（用户实测「电脑/平板熊仍显示不全」）：cover 裁切方案整
+ * 体废弃——熊占满图全高，任何纵向 crop 都断头/断脚。改 contain：
+ * 全端零裁切（aspect-ratio 只为 CLS 占位，图加载前后同尺寸）。
+ * 矮屏横幅档见下（contain+左锚：熊缩到横幅高、右侧空奶油底自然
+ * 延伸，永不裁内容）。 */
+.ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:contain;}
 /* R129-P2-5 裁决：深底下 .ink-hero 调光 .88 后仍是首页最亮区块——
  * 它是吉祥物主视觉，有意保留亮度（见 R129 报告 P2-5 记录为有意）。 */
 .ink-hero.is-missing{display:none;}
