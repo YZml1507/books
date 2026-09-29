@@ -1870,6 +1870,14 @@ var _HOUR_CHEAT = [
   ['卯', '05:00–06:59', 5], ['辰', '07:00–08:59', 7], ['巳', '09:00–10:59', 9],
   ['午', '11:00–12:59', 11], ['未', '13:00–14:59', 13], ['申', '15:00–16:59', 15],
   ['酉', '17:00–18:59', 17], ['戌', '19:00–20:59', 19], ['亥', '21:00–22:59', 21]];
+/* R3241：数字点→时辰名（_HOUR_CHEAT 反查）——生辰回显/判词语境
+ * 说「亥时」比「21时」贴命理话。23/0→子，1-2→丑 … 21-22→亥。 */
+function _hourZhi(h) {
+  h = Number(h);
+  if (!Number.isFinite(h) || h < 0 || h > 23) return '';
+  return '子丑寅卯辰巳午未申酉戌亥'.slice(
+    Math.floor(((h + 1) % 24) / 2), Math.floor(((h + 1) % 24) / 2) + 1) + '时';
+}
 function _hourCheatAttach(inputId) {
   var inp = el(inputId);
   if (!inp || !inp.parentNode ||
@@ -4766,7 +4774,8 @@ async function loadDaily() {
         _bdayTxt = (_meP.lunar ? _meP.lunar
                   : (_meP.y + '年' + _meP.m + '月' + _meP.d + '日')) +
           ' · ' + ((_meP.h != null && _meP.h !== '')
-                   ? (_meP.h + '时生') : '时辰未知');
+                   ? (_hourZhi(_meP.h) + '（' + _meP.h + '点）')
+                   : '时辰未知');
       }
       _dailyMetaItem('dailyPersonal',
         '🪞 ' + esc(j.personal.line) +
