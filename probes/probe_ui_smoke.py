@@ -985,6 +985,74 @@ def main() -> int:
                 except Exception:
                     pass
 
+            # R3239（循环优化-9 钉扎）：本命抽屉农历提交——统一落档器
+            # 换算公历坐标 + me.lunar 原值标注；再切回公历提交，
+            # 旧农历标注必须清掉（合并写语义下不传键会残留贴错）。
+            try:
+                errors.clear()
+                page.evaluate("""() => {
+                    localStorage.removeItem('me');
+                    showView('xingzuo');
+                    document.getElementById('birthDrawer').open = true;
+                }""")
+                page.select_option('#b_cal', 'lunar')
+                page.fill('#b_year', '2000')
+                page.fill('#b_month', '1')
+                page.fill('#b_day', '1')
+                page.click('#birthSubmit')
+                page.wait_for_function(
+                    """() => {
+                        const me = JSON.parse(localStorage.getItem('me') || 'null');
+                        return me && me.y === 2000 && me.m === 2;
+                    }""", timeout=20000)
+                _lm = json.loads(page.evaluate("localStorage.getItem('me')"))
+                _lunar_ok = (_lm.get('y') == 2000 and _lm.get('m') == 2
+                             and _lm.get('d') == 5
+                             and _lm.get('lunar') == '农历2000年1月1日')
+                page.select_option('#b_cal', 'solar')
+                page.fill('#b_year', '1995')
+                page.fill('#b_month', '5')
+                page.fill('#b_day', '20')
+                page.click('#birthSubmit')
+                page.wait_for_function(
+                    """() => {
+                        const me = JSON.parse(localStorage.getItem('me') || 'null');
+                        return me && me.y === 1995;
+                    }""", timeout=20000)
+                _sm = json.loads(page.evaluate("localStorage.getItem('me')"))
+                _solar_ok = (_sm.get('y') == 1995 and _sm.get('m') == 5
+                             and _sm.get('d') == 20
+                             and _sm.get('lunar') is None)
+                results.append({
+                    "name": "ui:profile.birth_lunar_save",
+                    "ok": (_lunar_ok and _solar_ok and not errors),
+                    "detail": (f"农历档={_lm!r}；公历改档={_sm!r}；"
+                               f"errors={errors[:2]}")})
+            except Exception as exc:
+                results.append({
+                    "name": "ui:profile.birth_lunar_save",
+                    "ok": False,
+                    "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("""() => {
+                        localStorage.removeItem('me');
+                        ['b_year','b_month','b_day','b_hour','b_gender',
+                         'b_cal','b_nick'].forEach(id => {
+                            const node = document.getElementById(id);
+                            if (!node) return;
+                            node.value = node.defaultValue;
+                            node.selectedIndex = 0;
+                            delete node.dataset.touched;
+                            delete node.dataset.me;
+                            delete node.dataset.invite;
+                        });
+                        showView('home');
+                    }""")
+                    page.wait_for_timeout(200)
+                except Exception:
+                    pass
+
             # 打卡真点击：.checkin-opt → localStorage 落键 + picked 态
             # （daily-cover 会 inert 卡内元素——先点封面拆掉）
             try:

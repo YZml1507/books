@@ -10843,8 +10843,11 @@ function init() {
         _ask.addEventListener('keydown', function (e) {
           e.stopPropagation();
           /* R3233：表单不在 <form> 里，输入框内 Enter 不会提交——
-           * 键盘党补一条：Enter 直接当点了「包好我的礼物」。 */
-          if (e.key === 'Enter') {
+           * 键盘党补一条：Enter 直接当点了「包好我的礼物」。
+           * R3240：只拦 INPUT——select/checkbox 上 Enter 是控件
+           * 自身语义（展开选项/勾选），不能抢。 */
+          if (e.key === 'Enter' &&
+              e.target && e.target.tagName === 'INPUT') {
             e.preventDefault();
             _dailyAskGo(_ask);
           }
