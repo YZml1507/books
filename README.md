@@ -92,9 +92,10 @@ PY
 ## 启用小满聊天（可选）
 
 不配 key 时全部确定性功能照常可用。要 AI 层：建 `web/llm_config.json`
-（gitignored，OpenAI 兼容格式，支持 `fallbacks` 兜底链）或设
-`BOOKS_LLM_API_KEY` 等环境变量——完整格式与调优经验见
-[docs/DEPLOY.md](docs/DEPLOY.md)。
+（gitignored，OpenAI 兼容格式，支持 `fallbacks` 兜底链）。部署到
+Render/HF 等无文件形态时，把整份 JSON 塞进环境变量
+`BOOKS_LLM_CONFIG_JSON`——离散 `BOOKS_LLM_API_KEY` 系列只能配
+单节点。完整格式与调优经验见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
 ## 工程闸门
 

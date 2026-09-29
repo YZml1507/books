@@ -447,6 +447,9 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-level.bad{background-color:#F8E1E5; background-image:linear-gradient(135deg,#FAE7EA,#F4D8DE);color:#A43B4E;border:2px solid #EBB9C3;box-shadow:0 6px 24px rgba(180,90,110,.18);}
 /* R216b 续3（U-009）：凶日柔化——柔档用更浅一度的樱粉。 */
 .daily-level.bad.soft{background-color:#FBEDEF; background-image:linear-gradient(135deg,#FCF1F3,#F7E3E7);color:var(--rose-deep);font-size:.92em;}
+/* R3248：个人判词/十神标签 3 字词（压力位/庇护力）进 80px 圆盘——
+ * 36px 三字必溢出，缩到 .58em（≈21px）仍保 ≥3:1 对比度。 */
+.daily-level.xsm{font-size:.58em; letter-spacing:.02em;}
 .stars-legend{font-size:12px; color:var(--secondary); margin-left:8px;}
 /* R230z（R36）：品类徽标 + 收藏 chips + 心水 ♡ */
 .ph-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;

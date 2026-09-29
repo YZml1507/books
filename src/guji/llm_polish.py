@@ -36,6 +36,13 @@ _ENV_MODEL = "BOOKS_LLM_MODEL"
 # 用途：闸门/probe 环境需要确定性延迟（ui_smoke 的 25s 单用例预算装不下
 # 13–30s 的 LLM 往返），以及用户想一键关闭。优先级高于配置文件。
 _ENV_DISABLE = "BOOKS_LLM_DISABLE"
+# R3248（用户实测「线上 AI 点评一直失败」）：整份配置走环境变量——
+# llm_config.json 是 gitignored 文件不上部署，Render/HF 形态此前只能
+# 配 BOOKS_LLM_API_KEY/BASE/MODEL 单个节点，fallbacks 竞速链永远缺
+# 席（线上点评=单节点裸奔，提供方一挤就整链死）。设
+# BOOKS_LLM_CONFIG_JSON=整份 llm_config.json 内容即可把主节点+
+# fallbacks+dots 全带上。优先级：文件 > 此变量 > 离散 env 覆盖。
+_ENV_JSON = "BOOKS_LLM_CONFIG_JSON"
 
 _DEFAULTS = {
     "enabled": True,
@@ -48,23 +55,15 @@ _DEFAULTS = {
 }
 
 
-def load_config() -> dict | None:
-    """读配置。返回 None = 功能关闭（调用方直接跳过，不得报错）。"""
-    # 总开关（D-245a）：环境变量显式禁用优先于一切配置。
-    # R2349w（R93-P2-2 勘正）：DISABLE=1/on/true/yes → 禁用；其余取值
-    #（含 0/false）不覆盖文件配置、按配置文件走——此前 docstring 宣称
-    # "=0 强制启用" 与实现不符。
-    _dis = os.getenv(_ENV_DISABLE)
-    if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
-        return None
-    cfg = dict(_DEFAULTS)
-    # 本文件在 <root>/src/guji/llm_polish.py；here 取到 .../src/guji 目录，
-    # 再上两级即仓库根（web/ 的父目录）
+def _read_llm_json() -> dict | None:
+    """读整份 LLM 配置 dict（文件 > BOOKS_LLM_CONFIG_JSON env）。
+
+    返回 None = 没有任何配置来源。三个 loader（主/dots/fallbacks）
+    共用，保证无文件部署形态下各段配置口径一致。"""
     here = os.path.dirname(os.path.abspath(__file__))     # .../src/guji
     root = os.path.dirname(os.path.dirname(here))         # .../books
-    # R229x（R7 #13）：frozen/PyInstaller 形态下 __file__ 在 _MEIPASS（Temp
-    # 解包目录），上两级找不到用户放在 exe 旁的 llm_config.json——补查
-    # sys.executable 同目录（exe 旁才是用户实际放文件的位置）。
+    # frozen/PyInstaller 形态补 sys.executable 旁路径（与 load_config
+    # 原候选表一致——exe 旁才是用户实际放文件的位置）。
     _candidates = [os.path.join(root, "web", "llm_config.json")]
     if getattr(sys, "frozen", False):
         _candidates.append(
@@ -75,16 +74,42 @@ def load_config() -> dict | None:
     for path in _candidates:
         try:
             with open(path, encoding="utf-8") as f:
-                cfg.update(json.load(f))
-            break
+                _d = json.load(f)
+            return _d if isinstance(_d, dict) else {}
         except Exception as _cfg_exc:
-            # R230l（R24-P3-3）：文件存在但损坏/BOM/是目录此前静默吞掉——
-            # 运维无法区分「没配」与「配坏了」。存在性失败静默（常态），
-            # 解析性失败打一行 stderr 告警（不含内容）。
+            # 存在性失败静默（常态）；解析性失败打一行 stderr 告警
+            #（不含内容）——运维要能区分「没配」与「配坏了」。
             if os.path.exists(path):
                 print(f"[llm_polish] 配置文件 {path} 读取失败"
                       f"（{type(_cfg_exc).__name__}），按未配置降级",
                       file=sys.stderr)
+    _env = os.getenv(_ENV_JSON, "")
+    if _env.strip():
+        try:
+            _d = json.loads(_env)
+            if isinstance(_d, dict):
+                return _d
+            print("[llm_polish] BOOKS_LLM_CONFIG_JSON 不是 JSON 对象，"
+                  "按未配置降级", file=sys.stderr)
+        except Exception:
+            print("[llm_polish] BOOKS_LLM_CONFIG_JSON 解析失败"
+                  "（不回显内容），按未配置降级", file=sys.stderr)
+    return None
+
+
+def load_config() -> dict | None:
+    """读配置。返回 None = 功能关闭（调用方直接跳过，不得报错）。"""
+    # 总开关（D-245a）：环境变量显式禁用优先于一切配置。
+    # R2349w（R93-P2-2 勘正）：DISABLE=1/on/true/yes → 禁用；其余取值
+    #（含 0/false）不覆盖文件配置、按配置文件走——此前 docstring 宣称
+    # "=0 强制启用" 与实现不符。
+    _dis = os.getenv(_ENV_DISABLE)
+    if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
+        return None
+    cfg = dict(_DEFAULTS)
+    # R3248：整份配置来源收敛到 _read_llm_json（文件 > env JSON）——
+    # 原候选表/告警纪律原样搬进 helper。
+    cfg.update(_read_llm_json() or {})
     # 环境变量覆盖（部署形态用；key 不落盘的场景）
     if os.getenv(_ENV_KEY):
         cfg["api_key"] = os.environ[_ENV_KEY]
@@ -1791,25 +1816,11 @@ def load_dots_config() -> dict | None:
     _dis = os.getenv(_ENV_DISABLE)
     if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
         return None
-    here = os.path.dirname(os.path.abspath(__file__))
-    root = os.path.dirname(os.path.dirname(here))
-    # R230a-6（R12-P3-5）：frozen/PyInstaller 形态补 sys.executable 旁路径
-    # （与 load_config 同款候选表）——否则 exe 形态下 dots 静默缺席。
-    _candidates = [os.path.join(root, "web", "llm_config.json")]
-    if getattr(sys, "frozen", False):
-        _candidates.append(
-            os.path.join(os.path.dirname(sys.executable), "llm_config.json"))
-        _candidates.append(
-            os.path.join(os.path.dirname(sys.executable), "web",
-                         "llm_config.json"))
-    d: dict = {}
-    for path in _candidates:
-        try:
-            with open(path, encoding="utf-8") as f:
-                d = (json.load(f) or {}).get("dots") or {}
-            break
-        except Exception:
-            pass
+    # R3248：dots 段同吃 _read_llm_json——env JSON 部署形态 dots 不再
+    # 静默缺席。
+    d: dict = (_read_llm_json() or {}).get("dots") or {}
+    if not isinstance(d, dict):
+        d = {}
     if not d:
         return None
     d.setdefault("base_url", "https://note3-prev-api.askdiandian.com/v1")
@@ -1859,23 +1870,10 @@ def load_fallback_configs() -> list[dict]:
     _dis = os.getenv(_ENV_DISABLE)
     if _dis is not None and _dis.strip().lower() in ("1", "on", "true", "yes"):
         return []
-    here = os.path.dirname(os.path.abspath(__file__))
-    root = os.path.dirname(os.path.dirname(here))
-    _candidates = [os.path.join(root, "web", "llm_config.json")]
-    if getattr(sys, "frozen", False):
-        _candidates.append(
-            os.path.join(os.path.dirname(sys.executable), "llm_config.json"))
-        _candidates.append(
-            os.path.join(os.path.dirname(sys.executable), "web",
-                         "llm_config.json"))
-    raw_list: list = []
-    for path in _candidates:
-        try:
-            with open(path, encoding="utf-8") as f:
-                raw_list = (json.load(f) or {}).get("fallbacks") or []
-            break
-        except Exception:
-            pass
+    # R3248：fallbacks 段同吃 _read_llm_json——此前无文件部署形态
+    #（Render 只有离散 env）兜底链恒为空，竞速只剩主节点裸奔，
+    # 提供方一挤整条点评链死（用户实测病灶）。
+    raw_list: list = (_read_llm_json() or {}).get("fallbacks") or []
     if not isinstance(raw_list, list):
         raw_list = []
     out: list[dict] = []

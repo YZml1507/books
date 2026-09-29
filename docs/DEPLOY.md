@@ -67,7 +67,8 @@ BOOKS_LLM_DISABLE=1              # 没配 LLM 凭据/不想给访客烧额度时
 
 | 变量 | 取值 | 语义 | 默认 |
 |---|---|---|---|
-| `BOOKS_LLM_API_KEY` | key 字符串 | LLM key（替代配置文件） | 读 `web/llm_config.json` |
+| `BOOKS_LLM_CONFIG_JSON` | 整份 llm_config.json 内容 | 无文件部署形态的整份配置（含 `fallbacks` 竞速链与 `dots` 段）——**公网部署想跑多家兜底必须用这个**，离散 env 只能配单节点 | 读 `web/llm_config.json` |
+| `BOOKS_LLM_API_KEY` | key 字符串 | LLM key（替代/覆盖主节点配置） | 配置文件/env JSON |
 | `BOOKS_LLM_BASE_URL` | `https://…/v1` | LLM 端点 | 配置文件/内置默认 |
 | `BOOKS_LLM_MODEL` | 模型名 | LLM 模型 | `agnes-2.5-flash` |
 | `BOOKS_LLM_TIMEOUT_S` | 秒数 | LLM 超时 | `30` |

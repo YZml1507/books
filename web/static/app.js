@@ -4639,25 +4639,53 @@ async function loadDaily() {
     if (dateEl) dateEl.textContent =
       (j.date || '今天') + (j.date ? ' ' + _weekdayCn(j.date) : '');
     const level = j.level || '平';
+    /* R3248（用户实测「填什么生日都是小吉」）：存了生日的日签大判词
+     * 换成「你的」判词——通判 level 是同日同款黄历通胜，差异化在个
+     * 人层：
+     *   · mine 有真判词（冲合刑害伏吟）→ 圆盘 = mine.verdict，
+     *     星级/配色跟个人吉凶走；
+     *   · mine=无冲无合 → 圆盘 = 你的十神日标签（压力位/庇护力…），
+     *     不同日主开出不同词，星级仍走通判；
+     *   · 通判降为星级旁的「通版」标注，不消失。 */
+    var _mineH = (j.personal && j.personal.mine) || null;
+    var _hMine = !!(_mineH && _mineH.verdict &&
+                    _mineH.verdict !== '无冲无合');
+    var _hTag = (!_hMine && j.personal && j.personal.label)
+                ? String(j.personal.label) : '';
+    var _dispLv = level;
+    if (_hMine) {
+      _dispLv = _mineH.tone === 'up'
+        ? (_mineH.verdict === '合缘' ? '吉' : '小吉')
+        : (_mineH.tone === 'down'
+           ? ((_mineH.verdict === '小凶' || _mineH.verdict === '小挫')
+              ? '凶' : '平')
+           : '平');
+    }
     const levelEl = el('dailyLevel');
     if (levelEl) {
-      /* R216b 续3（UX 队列 U-009）：凶日不吓人——标签柔化（「稍缓」），
-       * 紧跟一句安抚话术；吉/平保持原样。 */
-      levelEl.textContent = (level === '凶') ? '缓' : level;
-      /* R230y（R36-P2-7）：小吉档 → 四星蜜桃色盘 */
+      var _badge = _hMine ? _mineH.verdict
+                 : (_hTag || ((level === '凶') ? '缓' : level));
+      levelEl.textContent = _badge;
       levelEl.className = 'daily-level ' +
-        (level === '吉' ? 'good' : level === '小吉' ? 'sml' :
-         level === '凶' ? 'bad soft' : 'mid');
-      /* R233g（R44-P2）：tooltip 把吓人的「凶」塞回悬停——改为白话 */
-      levelEl.title = level === '凶' ? '今天能量偏低，宜稳宜慢' : '';
+        (_dispLv === '吉' ? 'good' : _dispLv === '小吉' ? 'sml' :
+         _dispLv === '凶' ? 'bad soft' : 'mid') +
+        (_badge.length > 2 ? ' xsm' : '');
+      /* R216b 续3（U-009）：凶日不吓人——通判凶标签仍柔化；个人层
+       * 的 tooltip 写清判词归属（你的 vs 通版）。 */
+      levelEl.title = _hMine
+        ? '对你：' + _badge + ' · 今日通版' + level
+        : (_hTag
+           ? '你的十神日「' + _badge + '」· 今日通版' + level
+           : (_dispLv === '凶' ? '今天能量偏低，宜稳宜慢' : ''));
     }
     const starsEl = el('dailyStars');
     if (starsEl) {
-      starsEl.innerHTML = renderStars(level);
+      starsEl.innerHTML = renderStars(_dispLv);
       /* R229z续23（R10-#16）：读屏播报「吉·五星」而非逐个星符 */
-      starsEl.setAttribute('aria-label', '今日运势：' +
-        (level === '吉' ? '吉，五星' : level === '小吉' ? '小吉，四星' :
-         level === '凶' ? '缓，一星' : '平，三星'));
+      starsEl.setAttribute('aria-label', '今日运势' +
+        (_hMine ? '（对你）' : '') + '：' +
+        (_dispLv === '吉' ? '吉，五星' : _dispLv === '小吉' ? '小吉，四星' :
+         _dispLv === '凶' ? '缓，一星' : '平，三星'));
       /* U-009 附带：星级加图例，一星不再语义不明。 */
       var legend = document.getElementById('dailyStarsLegend');
       if (!legend && starsEl.parentElement) {
@@ -4666,10 +4694,14 @@ async function loadDaily() {
         legend.className = 'stars-legend';
         starsEl.parentElement.appendChild(legend);
       }
-      if (legend) legend.textContent =
-        level === '吉' ? '（五星 · 顺）' :
-        level === '小吉' ? '（四星 · 小顺）' :
-        level === '凶' ? '（今日能量偏低 · 宜稳宜慢）' : '（三星 · 平稳）';
+      if (legend) legend.textContent = _hMine
+        ? '（对你：' + _badge + ' · 通版' + level + '）'
+        : (_hTag
+           ? '（你的' + _hTag + '日 · 通版' + level + '）'
+           : (_dispLv === '吉' ? '（五星 · 顺）' :
+              _dispLv === '小吉' ? '（四星 · 小顺）' :
+              _dispLv === '凶' ? '（今日能量偏低 · 宜稳宜慢）' :
+              '（三星 · 平稳）'));
     }
     setText('dailySummary', j.summary || '');
     /* R216b 续3（U-009）：凶日安抚层——summary 下紧跟一句人话安抚。 */
@@ -4682,7 +4714,7 @@ async function loadDaily() {
       if (sm2 && sm2.parentElement) sm2.parentElement.insertBefore(sooth, sm2.nextSibling);
     }
     if (sooth) {
-      sooth.textContent = (level === '凶') ?
+      sooth.textContent = (_dispLv === '凶') ?
         /* R2349g（R68-P1-1）：凶日安抚句 3→8——凶是 4 档里最能被记住的
          * 日子，原池 60 天单句能出现 8 次。 */
         _dayPick(['「缓」不是坏日子：只是提醒你今天别硬冲，稳稳的也很好。',
@@ -4693,7 +4725,7 @@ async function loadDaily() {
                   '阴天就宅，点个外卖刷刷剧，明天再战。',
                   '今天的你不需要很厉害，安稳度过就是满分。',
                   '能量低的日子适合充电，早睡一小时比啥都管用。'], 'xiong') : '' ;
-      sooth.hidden = (level !== '凶');
+      sooth.hidden = (_dispLv !== '凶');
     }
     /* R2341（R57-P2-6）：贵人地支转生肖——与海报同口径 */
     setText('dailyNoble', j.noble ? _zhiToAnimal(j.noble) : '—');
@@ -4758,7 +4790,7 @@ async function loadDaily() {
       _sooth0.parentElement.insertBefore(_cheer, _sooth0.nextSibling);
     }
     if (_cheer) {
-      if (level === '吉') {
+      if (_dispLv === '吉') {
         _cheer.hidden = false;
         _cheer.textContent = _dayPick([
           '五星日：今天尽管冲，运气站你这边。',
@@ -4771,7 +4803,7 @@ async function loadDaily() {
     }
     /* 吉签星爆：复用点击特效的星星迸发。reduced-motion 下
      * __fxBurstAt 不存在（IIFE 整段跳过），天然合规。 */
-    if (level === '吉' && typeof window.__fxBurstAt === 'function') {
+    if (_dispLv === '吉' && typeof window.__fxBurstAt === 'function') {
       var _dcEl = el('dailyCard');
       if (_dcEl) {
         var _dcr = _dcEl.getBoundingClientRect();
@@ -11069,8 +11101,12 @@ function init() {
      * · 年月日填全 → 当点了「包好我的礼物」（存档→专属→自拆）；
      * · 填了一半 → 不拆，提示补完并聚焦首个空格（手误点开不再
      *   直接糊一个通版结果）；
-     * · 全空 → 正常拆通版（没填生日本来也能看今日运势）。 */
+     * R3248（用户实测）：全空也不拆了——礼物必须照着你的盘包，
+     * 年月日填全才开（时辰可空）。每人拆出来的签才真正不一样。 */
     var _tryReveal = function () {
+      /* 已存完整档案 → 直接拆（表单显隐只是陈旧 DOM，不拦主人）。 */
+      var _meR = _meGet('me');
+      if (_meR && _meR.y && _meR.m && _meR.d) { _reveal(); return; }
       var _af = el('dailyAsk');
       if (_af && !_af.hidden) {
         var _need = ['y', 'm', 'd'], _filled = 0;
@@ -11081,21 +11117,21 @@ function init() {
         var _hF = _af.querySelector('[data-k="h"]');
         var _hHas = !!(_hF && String(_hF.value).trim());
         if (_filled === 3) { _dailyAskGo(_af); return; }
-        if (_filled > 0 || _hHas) {
-          showToast('生日填了一半呢，补完再拆更准哦', 'info');
-          var _fe = _need.map(function (k) {
-            return _af.querySelector('[data-k="' + k + '"]');
-          }).filter(function (f) {
-            return f && !String(f.value).trim();
-          })[0];
-          if (_fe) {
-            try {
-              _fe.scrollIntoView({ block: 'center', behavior: 'smooth' });
-              _fe.focus();
-            } catch (eFc) {}
-          }
-          return;
+        showToast((_filled > 0 || _hHas)
+          ? '生日填了一半呢，补完再拆更准哦'
+          : '先填好你的生辰，小满才能把礼物包成你的 🎁', 'info');
+        var _fe = _need.map(function (k) {
+          return _af.querySelector('[data-k="' + k + '"]');
+        }).filter(function (f) {
+          return f && !String(f.value).trim();
+        })[0];
+        if (_fe) {
+          try {
+            _fe.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            _fe.focus();
+          } catch (eFc) {}
         }
+        return;
       }
       _reveal();
     };
