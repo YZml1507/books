@@ -6423,6 +6423,10 @@ async function doQiming() {
     /* R2350f（R102-P1-5）：结果回显用了哪个生日（示例值外溢防错盘传播）。 */
     _LAST_BIRTH.qiming = num('qm_year') + '-' + num('qm_month') +
       '-' + num('qm_day');
+    /* R3242d（实测链路缺口）：点评在途时换一批/换风格——paint 重建
+     * nameReviewOut 后在途轮询把**上一批**的点评写进新名单容器
+     * （旧点评挂新名）。落新批次前 bump 代际，在途轮询就地弃。 */
+    _NR_GEN++;
     paint('qmResult', buildQimingResult(j));
     /* R2512：点评/分享/换一批三个直绑收进 rebind——口吻切换重画后
      * 重放；.qm-style-chip 是持久根委托不受影响。 */
