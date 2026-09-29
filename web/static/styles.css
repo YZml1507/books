@@ -535,6 +535,12 @@ body.dark .daily-mine.down{background:rgba(216,120,102,.18); color:#e29a8d;}
 body.dark .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
+/* R3248b：个人判词独立块——多行自然换行，不再被胶囊行裁切。 */
+.daily-mine-block{display:block; margin:10px 0 0; padding:10px 14px;
+  background:var(--accent-soft); border:1px solid var(--accent);
+  border-radius:12px; font-size:13px; line-height:1.75;
+  color:var(--primary-ink); white-space:normal;}
+.daily-mine-block[hidden]{display:none;}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;
   font:inherit;color:var(--accent-ink);cursor:pointer;text-decoration:underline;   /* R2514 */

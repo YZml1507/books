@@ -4875,8 +4875,17 @@ async function loadDaily() {
       var n = el(id);
       if (!n) {
         n = document.createElement('div');
-        n.id = id; n.className = 'daily-meta-item';
-        if (_metaRow) _metaRow.appendChild(n);
+        n.id = id;
+        /* R3248b（用户实测「对你那条显示不全」）：personal 粒是多行
+         * 文本块——住进 nowrap 横滚胶囊行会被 76vw 截断+ellipsis，
+         * 挪出胶囊行、挂在 meta 行之后自立一块（不进 +N 计数）。 */
+        n.className = id === 'dailyPersonal' ? 'daily-mine-block'
+                                             : 'daily-meta-item';
+        if (id === 'dailyPersonal' && _metaRow && _metaRow.parentNode) {
+          _metaRow.parentNode.insertBefore(n, _metaRow.nextSibling);
+        } else if (_metaRow) {
+          _metaRow.appendChild(n);
+        }
       }
       if (html) { n.innerHTML = html; n.hidden = false; }  // esc-reviewed（各调用点 esc() 字段，文本键原样）
       else { n.hidden = true; n.innerHTML = ''; }
