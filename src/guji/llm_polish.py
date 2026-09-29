@@ -2060,12 +2060,22 @@ def spawn_chat_task(session_id: str, user_msg: str,
 # ---------------------------------------------------------------------------
 
 def facts_bazi(paipan: dict, warm: dict, question: str | None,
-               gender: str | None = None) -> list[str]:
+               gender: str | None = None,
+               hour_known: bool = True) -> list[str]:
     b = paipan or {}
     w = warm or {}
     card = w.get("energy_card") or {}
+    # R3233（循环优化）：时辰未知的盘 render 里第 4 柱是默认午时——
+    # 直接喂模型会诱导 AI 把默认当真时辰讲（前端卡面已换「时辰未知」，
+    # facts 侧同源处理）。只改喂模型的串，排盘事实不动。
+    _render = b.get("render") or ""
+    if hour_known is False:
+        _t = _render.split()
+        if len(_t) >= 4 and _t[3].endswith("时"):
+            _t[3] = "时辰未知"
+        _render = " ".join(_t)
     facts = [
-        f"四柱：{b.get('render') or ''}",
+        f"四柱：{_render}",
         # R2400（R135-P1-2）：None 值字面量会写成「一句话结论：None」
         # 喂给模型——or "" 兜住。
         f"一句话结论：{w.get('one_liner') or ''}",

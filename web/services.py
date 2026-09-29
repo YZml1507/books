@@ -250,7 +250,8 @@ def bazi(req) -> dict:
     ai_polish = None
     ai_task_id = llm_polish.spawn_ai_task(
         llm_polish.facts_bazi(paipan_out, warm, req.question,
-                              gender=req.gender),
+                              gender=req.gender,
+                              hour_known=(req.hour_known is not False)),
         req.question)
 
     # R219b（P0-4 用户裁决）：不再把排盘写入 history.db——「我的解读」历史

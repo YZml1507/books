@@ -552,6 +552,46 @@ def main() -> int:
                 results.append({"name": "ui:welcome_bar", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R3232/R3233（用户实测轮）：首页礼物生日表单制度化——
+            # 无档案时 #dailyAsk 在封套内；填生日→「包好我的礼物」→
+            # me 落档+礼物自开（dailyRevealed 落盘）+日卡出专属判词。
+            # 必须跑在 daily_retention_hooks（会写 me）之前。
+            errors.clear()
+            try:
+                _ask0 = page.evaluate(
+                    "() => !!document.getElementById('dailyAsk')")
+                if not _ask0:
+                    raise RuntimeError("dailyAsk 未挂载（me 档案或封面状态异常）")
+                for _k, _v in (("y", "1990"), ("m", "5"), ("d", "15"),
+                               ("h", "19")):
+                    page.fill(f"#dailyAsk [data-k='{_k}']", _v)
+                page.click("#dailyAsk .da-btn")
+                page.wait_for_timeout(2500)
+                st = page.evaluate(
+                    "() => { const me = localStorage.getItem('me');"
+                    " const dk = 'dailyRevealed:' + new Date().toISOString().slice(0,10);"
+                    " const per = (document.getElementById('dailyCard')||{innerText:''}).innerText;"
+                    " return { me: me, rev: !!localStorage.getItem(dk),"
+                    "        per: per.includes('你的日主') }; }")
+                _meok = bool(st["me"] and '"h":19' in st["me"])
+                ok = _meok and st["rev"] and st["per"] and not errors
+                results.append({"name": "ui:daily_ask_gift", "ok": ok,
+                                "detail": ("表单=%s me落档=%s 礼物自开=%s 专属判词=%s"
+                                           % (_ask0, _meok, st["rev"], st["per"]))})
+            except Exception as exc:
+                results.append({"name": "ui:daily_ask_gift", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                # 清理现场：profile.bazi_save_boundary 断言默认盘提交后
+                # me 仍为空——本用例的落档必须回滚（dailyRevealed 保留，
+                # 封面揭开是用户真实终态）。
+                try:
+                    page.evaluate("localStorage.removeItem('me')")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
             # R2340：深浅色切换——点 #themeToggle 后 html[data-theme=dark]
             # 且 localStorage 落盘；刷新仍在 dark。
             try:
