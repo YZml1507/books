@@ -10798,6 +10798,33 @@ function init() {
           '回来啦：攒了几天的运气，都在这包里'], 'revisit-gap');
       }
     }
+    /* R3232（用户实测）：礼物旁输入框——me 档案没有生日时显示表单，
+     * 点「包好我的礼物」→ 存档案 → 日卡换专属判词 → 礼物自己打开。
+     * 有档直接整块移除（封套文案保持原样可点开）。
+     * 表单点击/按键全部 stopPropagation——输入也算「点封面」。 */
+    var _ask = _cov.querySelector('.daily-ask');
+    if (_ask) {
+      var _meA = _meGet('me');
+      if (_meA && _meA.y && _meA.m && _meA.d) {
+        _ask.remove();
+      } else {
+        _ask.addEventListener('click', function (e) { e.stopPropagation(); });
+        _ask.addEventListener('keydown', function (e) { e.stopPropagation(); });
+        var _calEl = _ask.querySelector('.da-cal');
+        var _leapW = _ask.querySelector('.da-leapw');
+        if (_calEl && _leapW) {
+          _calEl.addEventListener('change', function () {
+            _leapW.hidden = _calEl.value !== 'lunar';
+          });
+        }
+        var _askBtn = _ask.querySelector('.da-btn');
+        if (_askBtn) {
+          _askBtn.addEventListener('click', function () {
+            _dailyAskGo(_ask);
+          });
+        }
+      }
+    }
     /* R231f（R38-P1-2）+ R232c（R41-P1-1 修）：封面遮罩只挡鼠标不挡
      * 键盘——给卡内封面以外的直接子元素打 inert（容器级，innerHTML
      * 重灌仍生效），并挂 MutationObserver 补打异步注入的节点
@@ -10849,6 +10876,87 @@ function init() {
     _cov.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _reveal(); }
     });
+  }
+  /* R3232：礼物表单提交——校验 →（农历先换公历）→ 存 me →
+   * 日卡带 bday 重拉（专属判词行）→ 礼物自己打开。
+   * 失败保留封套与表单，用户可改可再试。 */
+  var _askBusy = false;
+  async function _dailyAskGo(node) {
+    if (_askBusy || !node) return;
+    function _daVal(k) {
+      var f = node.querySelector('[data-k="' + k + '"]');
+      /* 全角数字归一（与 num() 同口径）——中文输入法常产全角。 */
+      var s = f ? String(f.value == null ? '' : f.value) : '';
+      return s.replace(/[０-９]/g, function (c) {
+        return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+      }).trim();
+    }
+    function _bad(k, tip) {
+      var f = node.querySelector('[data-k="' + k + '"]');
+      if (f) {
+        f.setAttribute('aria-invalid', 'true');
+        var clr = function () {
+          f.removeAttribute('aria-invalid');
+          f.removeEventListener('input', clr);
+        };
+        f.addEventListener('input', clr);
+      }
+      showToast(tip, 'warn');
+    }
+    var y = Number(_daVal('y')), m = Number(_daVal('m')), d = Number(_daVal('d'));
+    var hraw = _daVal('h'), h = (hraw === '' ? null : Number(hraw));
+    var calEl = node.querySelector('.da-cal');
+    var cal = calEl ? calEl.value : 'solar';
+    var leapEl = node.querySelector('.da-leap');
+    var leap = !!(leapEl && leapEl.checked);
+    if (!y || y < 1900 || y > 2100 || !/^\d+$/.test(_daVal('y'))) {
+      _bad('y', '出生年填 1900–2100 的整数'); return;
+    }
+    if (!m || m < 1 || m > 12 || !/^\d+$/.test(_daVal('m'))) {
+      _bad('m', '月份填 1–12'); return;
+    }
+    var _dmax = (cal === 'lunar') ? 30 : 31;
+    if (!d || d < 1 || d > _dmax || !/^\d+$/.test(_daVal('d'))) {
+      _bad('d', cal === 'lunar' ? '农历的日填 1–30' : '日填 1–31'); return;
+    }
+    if (h !== null && (!(h >= 0 && h <= 23) || !/^\d+$/.test(hraw))) {
+      _bad('h', '时辰填 0–23，不知道就留空'); return;
+    }
+    /* 公历存在性校验——2/31、4/31 这类「范围合法但不存在」的日
+     * 此前直接落档，me 存进不存在的生日。Date 往返比对分量。 */
+    if (cal !== 'lunar') {
+      var _dt = new Date(y, m - 1, d);
+      if (_dt.getFullYear() !== y || _dt.getMonth() !== m - 1 ||
+          _dt.getDate() !== d) {
+        _bad('d', '这个日子不存在——再看看哪天'); return;
+      }
+    }
+    _askBusy = true;
+    var _btn = node.querySelector('.da-btn');
+    var _bt0 = _btn ? _btn.textContent : '';
+    if (_btn) _btn.textContent = '正在包礼物…';
+    try {
+      var sy = y, sm = m, sd = d;
+      if (cal === 'lunar') {
+        var _cj = await api('/api/lunar/convert?y=' + y + '&m=' + m +
+                            '&d=' + d + '&leap=' + (leap ? 1 : 0));
+        if (!_cj || !_cj.solar) throw new Error('农历没换算成');
+        sy = _cj.year; sm = _cj.month; sd = _cj.day;
+      }
+      _meSave('me', { y: sy, m: sm, d: sd, h: h });
+      /* 日卡重拉带 bday → personal 专属判词行；落地后再拆礼物，
+       * 揭开的就是「你的」卡。 */
+      await loadDaily();
+      var _covNow = el('dailyCover');
+      if (_covNow) { _covNow.click(); }
+      showToast('礼物照着你的盘包好啦 🎁', 'info');
+    } catch (err) {
+      showToast(_humanizeErr((err && err.message) ||
+                '生日没存上，再试一次看看'), 'warn');
+      if (_btn) _btn.textContent = _bt0;
+    } finally {
+      _askBusy = false;
+    }
   }
   function _mountDailyCover() {
     var _card = el('dailyCard');
@@ -13850,6 +13958,9 @@ function baziPersonaCard(j) {
       /* R233x（R56-P1）：本命盘流日此前锚服务器日——跨零点/时区
        * 边缘与日签/黄历错位；与 dailyDetail 同款 client 日。 */
       var body = { year: y, month: m, day: d, hour: (hv === '' ? 12 : Number(hv)), gender: g,
+        /* R3232：时辰留空此前静默按午时排（主表单的 hour_known
+         * 闸这个抽屉漏接）——补上，后端「没填时辰」明示才生效。 */
+        hour_known: (hv !== ''),
         ask_date: todayIso() };
       _lunarPack(_bLunar, _LUNAR_KEYS_STD, y, m, d,
                  checked('b_leap'), body);
@@ -13892,6 +14003,17 @@ function baziPersonaCard(j) {
         '<div class="birth-sub">' + esc(SIGN_TXT[sign] || '') + '</div></div></div>';
       html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
       html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + wxNote + '</span></div>';
+      /* R3232（用户实测）：填了生辰几时，解读里此前一个字不提——
+       * 后端 warm.reply 的时柱行（R3232 新增）在这格里上卡，
+       * 「填了跟没填一样」的观感消掉。 */
+      if (hv !== '') {
+        var _hourLine = (((j.warm || {}).reply || []).filter(function (l) {
+          return l.indexOf('时柱「') === 0; }))[0];
+        if (_hourLine) {
+          html += '<div class="birth-block"><span class="birth-label">出生时辰</span>' +
+            '<span class="birth-val">' + esc(_hourLine) + '</span></div>';
+        }
+      }
       if (warm1) html += '<div class="birth-block"><span class="birth-label">小满悄悄说</span><span class="birth-val">' + esc(warm1) + '</span></div>';
       /* R3164：本命盘卡补 AI 解读块——走 /api/bazi 响应带 ai_task_id，
        * 此前没挂 render/poll，受众高频钩子卡少了口语段。 */

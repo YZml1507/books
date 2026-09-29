@@ -1541,8 +1541,12 @@ def _wrap(l0: str, card: dict | None, reply: list[str],
 
 def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
               question: str | None = None,
-              gender: str | None = None) -> dict:
-    """八字 warm 视图。citations 逐字节复用 interpreter 输出（判据 15）。"""
+              gender: str | None = None,
+              hour_known: bool = True) -> dict:
+    """八字 warm 视图。citations 逐字节复用 interpreter 输出（判据 15）。
+
+    hour_known=False 时不出时柱行——用户没填时辰按午时排是默认盘，
+    不能把默认当时辰来讲（服务层另有「没填时辰」明示行）。"""
     calc = calc or {}
     day_master = ""
     for t in calc.get("ten_gods") or []:
@@ -1626,6 +1630,24 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
             reply.append("今年要使劲的月份：" + "、".join(_hd2[:6]) +
                          "，不是坏，是这几个月基调偏重，别在那时"
                          "硬扛大决定。")
+    # R3232（用户实测）：填了生辰几时，解读此前一个字不提——时柱
+    # 只进了四柱渲染，判词层零融合。补一条白话行：时辰名+时段 +
+    # 时干十神的白话标签（原词放括号，判据 3 括号外计词不破）。
+    # 时柱在传统口径看后劲/晚段，不新增吉凶断言。
+    if hour_known:
+        _pl = ((paipan or {}).get("render") or "").split("　")[0].split()
+        _hp = _pl[3].rstrip("时") if len(_pl) >= 4 else ""
+        _hz = _hp[1:2] if len(_hp) >= 2 else ""
+        _hgod = next((t.get("god") for t in (calc.get("ten_gods") or [])
+                      if t.get("pos") == "时干"), "")
+        _hw = TEN_GOD_WARM.get(_hgod or "")
+        if _hp and _hz:
+            _seg = (f"时柱「{_hp}」：你生在{_hz}时"
+                    f"（{ZHI_HOURS.get(_hz, '')}）")
+            if _hw:
+                _seg += f"，这一柱带的是「{_hw[0]}」（{_hgod}），{_hw[1]}"
+            _seg += "。传统口径里时柱看后劲和晚段，越往后越显。"
+            reply.append(_seg)
     if _cta:
         reply.append(_cta)
     return _wrap(

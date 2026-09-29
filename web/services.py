@@ -229,8 +229,11 @@ def bazi(req) -> dict:
     # R182b（004 M1）：warm 视图 **additive** 附加——不动 interpretation 一个
     # 字节。判据 9 要求专业模式逐字节等于基线，由 web/baseline_voice.py 把关。
     # R230a-7（R13-P2-1）：gender 透传——感情类落点按性别分星。
+    # R3232：hour_known 透传——时柱白话行只在用户真填了时辰才说，
+    # 默认午时不当时辰讲。
     warm = voice.warm_bazi(paipan_out, calc_out, interpretation,
-                           req.question, gender=req.gender)
+                           req.question, gender=req.gender,
+                           hour_known=(req.hour_known is not False))
 
     # R230a-7（R13-P1-3）：时辰留空 → warm reply 首部明示时柱是默认午时，
     # 响应带 hour_known 供前端卡面标注。此前静默按午时排。
@@ -4459,6 +4462,22 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
                 "term": {}}
+
+
+def lunar_convert(y: int, m: int, d: int, leap: bool = False) -> dict:
+    """农历 → 公历换算（首页礼物生日输入等轻量入口用）。
+
+    R3232：前端 me 档案/判词链全是公历坐标系——农历生日先在这里
+    换成公历再落档，档案不做农历记忆。越界/不存在的农历日抛
+    ValidationError → 400 中文人话（lunar_to_solar 的 ValueError
+    原文已是中文且自带纠正信息，如「该年闰月是X月」）。
+    """
+    try:
+        s = lunar.lunar_to_solar(y, m, d, bool(leap))
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+    return {"solar": s.isoformat(), "year": s.year,
+            "month": s.month, "day": s.day}
 
 
 MODULES = (

@@ -26,6 +26,18 @@ def daily(date: str | None = Query(None, max_length=10),
     return services.daily(date, bday or None)
 
 
+@router.get("/api/lunar/convert")
+def lunar_convert(y: int = Query(..., ge=1900, le=2100),
+                  m: int = Query(..., ge=1, le=12),
+                  d: int = Query(..., ge=1, le=30),
+                  leap: int = Query(0, ge=0, le=1)) -> dict:
+    """农历 → 公历换算（R3232：首页礼物生日输入框等轻量入口）。
+
+    农历日上限 30（表界把守），非法农历日由 services 抛 400 中文人话。
+    """
+    return services.lunar_convert(y, m, d, bool(leap))
+
+
 # R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
 # ——widget 是嵌入部件预留面、share 是分享卡数据面（JS 侧走本地海报渲染）、
 # fortune 是外部资讯预留。selftest 断言钉着契约，不是僵尸端点。

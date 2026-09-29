@@ -365,6 +365,47 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   letter-spacing:.04em; padding:0 24px; text-align:center;}
 .daily-cover-sub{font-size:12px; color:var(--muted); letter-spacing:.06em;
   margin-top:-6px; text-align:center;}
+/* R3232（用户实测）：礼物旁输入框——封套内的生日表单。
+ * 块在 .daily-cover 里随封面 remount 一起回 DOM；JS 判档后显隐。 */
+.daily-ask{margin-top:2px; padding:10px 14px; border-radius:14px;
+  background:var(--card,#FFFDFB); border:1px dashed var(--border);
+  box-shadow:0 4px 14px rgba(184,134,11,.10); max-width:min(92%, 460px);
+  cursor:default;}
+/* 封套带表单时压上段留白+熊尺寸——卡高帽（54vh/44vh）下按钮整颗
+ * 露出来，实测 390×844 / 1280×900 两档卡缘都曾裁掉按钮。 */
+.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
+  padding-top:min(3.5vh, 30px); gap:8px;}
+.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
+  width:112px;}
+@media (max-width:600px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
+    width:104px;}
+}
+.da-title{font-size:13px; color:var(--secondary); font-weight:600;
+  text-align:center; margin-bottom:8px;}
+.da-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+  align-items:center;}
+/* input.da-in（元素+类）与全局 input[type=number] 同权重、靠后赢，
+ * 不砸 !important——iOS <16px 聚焦缩放风险由 14px→16px 桌面无碍，
+ * 窄屏档保持 16px。 */
+input.da-in{width:auto; flex:0 1 62px; min-width:52px;
+  padding:8px 6px; min-height:40px; text-align:center;}
+input.da-in[data-k="h"]{flex-basis:86px;}
+select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
+@media (max-width:600px){
+  .daily-ask{max-width:94%; padding:8px 10px;}
+  .da-title{font-size:12px;}
+  input.da-in, select.da-cal{font-size:16px;}
+}
+.da-leapw{display:inline-flex; align-items:center; gap:4px; font-size:13px;
+  color:var(--secondary); margin:0; min-height:40px; cursor:pointer;}
+.da-leapw input{width:auto; min-height:0; margin:0;}
+/* 只收尺寸——配色沿用全局 CTA 玫瑰渐变，与「拆开」动作同族。 */
+.da-btn{margin:8px auto 0; display:block; min-height:40px;
+  padding:8px 18px; font-size:14px;}
+/* 缎带（mini 回访）态：封面内嵌块横排紧凑 */
+.daily-cover.mini .daily-ask{margin:0;}
+
 .daily-cover.open{opacity:0; pointer-events:none;}
 /* R2349p（R80-P1-4）：封面 .45s 淡出期间文字残影叠在日签上——
  * 子元素先 0.2s 收掉，只剩斜纹底完成淡出。 */
@@ -884,6 +925,14 @@ body{
 label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; font-weight:500;}
 .row{display:flex; gap:12px; flex-wrap:wrap;}
 .field{flex:1; min-width:96px;}
+/* R3232（用户实测）：混排行参差——label 有长有短折行高度不一，
+ * 输入框上下对不齐。label 统一预留两行行高（1 行的也按 2 行占位），
+ * 输入框起点齐平；字段改列向 flex 让下方细节（时辰对照表）不顶同行。 */
+.field{display:flex; flex-direction:column;}
+.row .field > label{min-height:2.6em; display:flex; align-items:flex-end;}
+/* R3232：自由文本字段（称呼/昵称/提问）比数字格更需要宽度——
+ * 与「月/日」同宽时 placeholder 截断、整排最挤的就是它。 */
+.field:has(> input[type=text]), .field:has(> textarea){flex-grow:2; min-width:150px;}
 input[type=number], input[type=text], input[type=date], select{
   /* R211b（US10）：输入控件圆角+柔底，消工具感断层 */
   border-radius:12px; background:#FFFDF8;

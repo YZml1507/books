@@ -115,6 +115,10 @@ FIXTURES: dict[str, dict] = {
     # R231a：备份导出端点——空库也返回 version/exported_at/records 三键，
     # 读点可判定（前端只读 j.exported_at / j.records）。
     "/api/paipan/history/export_json": {"method": "GET"},
+    # R3232：农历→公历换算（首页礼物生日框）——前端读 solar/year/
+    # month/day 四键，固定 2000 正月初一 → 2000-02-05 可复验。
+    "/api/lunar/convert":     {"method": "GET", "params": {
+        "y": 2000, "m": 1, "d": 1, "leap": 0}},
     # R2353（R110-P1-1）：触屏/微信下 CSV 走 fetch→text() 展示式
     # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
     # 不钉字段（前端用 r.text() 不读 JSON 键）。
