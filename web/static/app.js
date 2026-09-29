@@ -5124,6 +5124,11 @@ async function loadDaily() {
         box.hidden = false;
       }
     } catch (e2) { /* 十二宫不可用不阻塞今日运势 */ }
+    /* R3244（用户实测「不是任何页面都能聊」）：首页日签卡此前没有
+     * 「聊聊这件事」入口——天天看的卡反而聊不了。挂进卡尾（封面
+     * 未拆时盖在封套下，拆开自然露出；rememberResult('daily') 已
+     * 备好上下文）。 */
+    try { attachChatEntry(el('dailyCard')); } catch (eCE) {}
   } catch (e) {
     if (_gen !== DAILY_GEN) return;   /* 旧请求失败也不得污染新结果 */
     /* R228c：失败态补全——dailyDate 别停在「加载中…」，分享钮也给提示
@@ -11096,6 +11101,29 @@ function init() {
     if (_hasMe) return;
     if (_ask.dataset.bound) return;         /* 幂等——重复调用只刷显隐 */
     _ask.dataset.bound = '1';
+    /* R3244：档案残档（只存了年之类）回显已存值——别让人重填
+     * 一遍；用户手改过的字段不受 _meFill 覆盖，此处是首绑时
+     * 一次性代入。 */
+    try {
+      if (_meA) {
+        ['y', 'm', 'd', 'h'].forEach(function (k) {
+          if (_meA[k] != null && _meA[k] !== '') {
+            var f = _ask.querySelector('[data-k="' + k + '"]');
+            if (f && !f.value) f.value = _meA[k];
+          }
+        });
+        var _gE = _ask.querySelector('[data-k="g"]');
+        if (_gE && _meA.g) _gE.value = _meA.g;
+        var _calE0 = _ask.querySelector('.da-cal');
+        if (_calE0 && _meA.lunar) {
+          _calE0.value = 'lunar';
+          var _lw0 = _ask.querySelector('.da-leapw');
+          if (_lw0) _lw0.hidden = false;
+          var _leap0 = _ask.querySelector('.da-leap');
+          if (_leap0 && _meA.lunar.leap) _leap0.checked = true;
+        }
+      }
+    } catch (eP) {}
     var _calEl = _ask.querySelector('.da-cal');
     var _leapW = _ask.querySelector('.da-leapw');
     if (_calEl && _leapW) {

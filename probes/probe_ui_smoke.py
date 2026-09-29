@@ -381,7 +381,6 @@ def main() -> int:
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
                        "冒烟只到按钮可见",
         "nameReviewBtn": "AI 点评轮询入口——LLM 任务在冒烟环境不产生",
-        "qmRefreshBtn": "改名候选重生按钮——同 qiming 链路",
         "shareBazi": "分享海报模态（Canvas）——冒烟不测文件生成",
         # R3165：年度运势图——同 shareBazi 海报模态豁免（生成链路
         # 一致，只是 spec 分支不同；存在性由 bazi 卡断言覆盖）。
