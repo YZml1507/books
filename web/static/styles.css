@@ -825,11 +825,8 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .qm-badge.qm-top1{background:var(--cta-grad);}
 .qm-badge.qm-top2{background:linear-gradient(135deg,#B07850,#9A5E3E);}
 .qm-badge.qm-top3{background:linear-gradient(135deg,#8A7358,#6E5942);}
-.qm-refresh-row{
-  display:flex; align-items:center; gap:10px; margin-top:14px;
-  flex-wrap:wrap;
-}
-.qm-refresh-hint{font-size:12px; color:var(--secondary);}
+/* R3244：.qm-hint-em——风格 chip 自带换批的提示强调。 */
+.qm-hint-em{color:var(--primary); font-weight:600;}
 
 /* ── R218a-03：八字温柔版首屏人设卡（视觉锚点） ─────────────── */
 .bazi-persona{
@@ -2804,6 +2801,27 @@ button.nr-retry{min-height:30px; margin:0 0 0 6px; padding:3px 12px;
   box-shadow:none; letter-spacing:0; font-weight:600;}
 button.nr-retry:hover{transform:none; box-shadow:none;
   border-color:var(--primary); color:var(--primary);}
+
+/* R3244：点评确定性「典故先读」卡——AI 未到时名单也有真解读。 */
+.nr-card{margin:10px 0 4px; padding:12px 14px; border-radius:14px;
+  background:var(--card,#FFFDFB); border:1px solid var(--border);
+  box-shadow:0 4px 14px rgba(184,134,11,.08);}
+.nr-card h4{margin:0 0 10px; font-size:14px; color:var(--primary-ink);}
+.nr-line{padding:9px 0; border-top:1px dashed var(--border);}
+.nr-line:first-of-type{border-top:none; padding-top:2px;}
+.nr-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.nr-head b{font-size:15px; color:var(--primary-ink);}
+.nr-wx{font-size:11px; padding:1px 8px; border-radius:999px;
+  background:rgba(184,134,11,.12); color:var(--secondary);
+  border:1px solid rgba(184,134,11,.22); letter-spacing:.04em;}
+.nr-fit{margin-left:auto; font-size:12px; color:var(--secondary);}
+.nr-src{margin-top:4px; font-size:12px; color:var(--secondary); font-weight:600;}
+.nr-story{margin-top:3px; font-size:13px; line-height:1.75; color:var(--text);
+  opacity:.92;}
+.nr-ai{margin-top:10px;}
+html[data-theme="dark"] .nr-card{background:#2E282C; border-color:#4E4348;}
+html[data-theme="dark"] .nr-wx{background:rgba(212,168,110,.14);
+  color:#D4A86E; border-color:rgba(212,168,110,.3);}
 
 /* R3243（用户实测）：解梦输入区「梦境面板」——裸 textarea 观感
  * 简陋；底图沿用解梦海报水彩云（本地模板资产 poster-bg-dream），

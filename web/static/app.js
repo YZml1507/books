@@ -779,8 +779,11 @@ function buildQimingResult(j) {
       esc(s.label) + '</button>';
   });
   html += '</div>';
+  /* R3244：风格 chip 自带换批——提示行点明「再点换新名字」，不再
+   * 依赖已删除的「换一批」按钮。 */
   html += '<div class="qm-style-hint" id="qmStyleHint">' +
-    esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') + '</div>';
+    esc((_QM_STYLES[_QM_STYLE] || {}).hint || '') +
+    ' · <span class="qm-hint-em">再点一下换新名字</span></div>';
   const bz = j.bazi || {};
   const fe = j.five_elements || {};
   /* R3212：干支原串+候选池原表（字/五行/出处/释义 60 行）收进一个
@@ -882,17 +885,10 @@ function buildQimingResult(j) {
       html += '</div>';
     });
     html += '</div>';
-    /* R3241（用户实测「选项跟换一批不联动」）：按钮文案原来写
-     * 的是**下一个轮换风格**（点进去其实还是当前风格的下一批，
-     * 标签撒谎）——风格由上面四枚 chip 单选表达，换一批应该
-     * 明示「在当前风格里换」。 */
-    var _cur = (_QM_STYLES[_QM_STYLE] || {}).label || '综合';
-    html += '<div class="qm-refresh-row">' +
-      '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
-      'title="按当前「' + esc(_cur) + '」风格再来 8 个">' +
-      '🔄 换一批（' + esc(_cur) + '）</button>' +
-      '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
-      '</div>';
+    /* R3244（用户实测·砍功能）：「换一批」整个删除——用户两次
+     * 实测反馈联动不可感（本地验证虽通，端上仍不达预期）。改为
+     * 风格 chip 自带换批语义：点任意风格=该风格新一批，再点当前
+     * 风格也出新名单（_qmSwitchStyle 内 _qmSeed++）。 */
   }
   /* R207b：AI 点评入口——引经据典推荐语（DISABLE 时按钮隐藏语义） */
   /* R216b 续5（U-019）：DISABLE/降级态（响应无 ai_task_id）按钮置灰+
@@ -2304,6 +2300,28 @@ var _NR_GEN = 0;   /* R230v（R34-#2）：点评任务代际——旧任务落�
 var _NR_WAIT_NOTES = ['AI 正在翻书找典故…', '在《诗经》里找合适的句子…',
   '翻到《楚辞》这一页了…', '在掂量哪个名字最亮眼…',
   '快写好了，在挑措词…', '小满在比对五行和出处…'];
+/* R3244（用户实测·保底）：点评不再全靠 AI——点击立刻用候选名
+ * 自带的 origin/story/elements 渲「典故先读」确定性卡；AI 故事版
+ * 写好追加在下面，全链挂了典故卡仍在（功能永不为空）。 */
+function _nrDeterministic(j) {
+  var fe = j.five_elements || {};
+  var _miss = fe.missing || [], _weak = fe.weak || [];
+  var _rows = (j.full_names || []).slice(0, 6).map(function (n) {
+    var _els = n.elements || [];
+    var _hitM = _els.filter(function (e) { return _miss.indexOf(e) >= 0; });
+    var _hitW = _els.filter(function (e) { return _weak.indexOf(e) >= 0; });
+    var _fit = _hitM.length ? '补「' + _hitM.join('') + '」缺口'
+             : (_hitW.length ? '扶「' + _hitW.join('') + '」偏弱' : '五行中性点缀');
+    return '<div class="nr-line"><div class="nr-head"><b>' + esc(n.full_name) + '</b>' +
+      (_els.length ? '<span class="nr-wx">' + esc(_els.join('')) + '</span>' : '') +
+      '<span class="nr-fit">' + esc(_fit) + '</span></div>' +
+      (n.origin ? '<div class="nr-src">📖 ' + esc(n.origin) + '</div>' : '') +
+      (n.story ? '<div class="nr-story">' + esc(n.story) + '</div>' : '') +
+      '</div>';
+  }).join('');
+  if (!_rows) return '';
+  return '<div class="nr-card"><h4>📜 典故先读</h4>' + _rows + '</div>';
+}
 /* R3243（用户实测）：点评失败/超时此前是死胡同文案——「再试一次？」
  * 连个按钮都没有。统一挂行内重试键，点了等于再按一次点评钮。 */
 function _nrRetryable(out, msg) {
@@ -2324,25 +2342,31 @@ function pollNameReview(taskId) {
   var _nri = 0;
   var tick = function () {
     if (_gen !== _NR_GEN) { _nameReviewDone(); return; }   /* 新点评接管 */
-    var _nrw = el('nameReviewOut');
+    /* R3244：AI 段落写进 #nrAiOut——点击时已先渲确定性「典故先读」
+     * 卡，AI 成功在下面追加故事版、挂了留底卡+重试钮。nrAiOut 缺失
+     * （旧路径/重画）时退回 nameReviewOut 本身。 */
+    var _nrTgt = function () {
+      return el('nrAiOut') || el('nameReviewOut');
+    };
+    var _nrw = _nrTgt();
     if (_nrw && _nrw.querySelector('.no-evidence')) {
       _nrw.querySelector('.no-evidence').textContent =
         _NR_WAIT_NOTES[(++_nri) % _NR_WAIT_NOTES.length];
     }
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
-      else { _nrRetryable(el('nameReviewOut'), '等太久啦，这趟没等到'); _nameReviewDone(); }
+      else { _nrRetryable(_nrTgt(), '等太久啦，这趟没等到'); _nameReviewDone(); }
       return;
     }
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
-      const out = el('nameReviewOut');
+      const out = _nrTgt();
       if (!out || _gen !== _NR_GEN) { _nameReviewDone(); return; }
-      /* R2512：口吻切换重画后 #nameReviewOut 是新的 hidden 节点——
-       * 结果写进去也永远看不见。写入前显式翻开。 */
-      out.hidden = false;
+      /* R2512：口吻切换重画后容器可能是新节点——写入前显式翻开。 */
+      var _outP = el('nameReviewOut'); if (_outP) _outP.hidden = false;
       if (st && st.status === 'done' && st.text) {
-        /* R3241：点评同样逐字蹦——先纯文本打字，终态换富文本。 */
-        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4>' +
+        /* R3241：点评同样逐字蹦——先纯文本打字，终态换富文本。
+         * R3244：写进 nrAiOut，典故先读卡之下追加故事版。 */
+        out.innerHTML = '<div class="tarot-deep"><h4>✨ AI 故事版</h4>' +
           '<p style="white-space:pre-wrap;" class="nr-text"></p></div>';
         var _nrp = out.querySelector('.nr-text');
         typewriteInto(_nrp, st.text, function () {
@@ -2352,7 +2376,7 @@ function pollNameReview(taskId) {
         return;
       }
       if (st && st.status === 'failed') {
-        _nrRetryable(out, '这次没点评出来');
+        _nrRetryable(out, '故事版这次没写出来');
         _nameReviewDone();
         return;
       }
@@ -2360,9 +2384,9 @@ function pollNameReview(taskId) {
       else { _nrRetryable(out, '等太久啦，这趟没等到'); _nameReviewDone(); }
     }).catch(function (e) {
       /* R228c：同上——瞬时抖动不该杀死轮询。R8 P2-9：404 早退。 */
-      var out2 = el('nameReviewOut');
+      var out2 = _nrTgt();
       if (e && e.status === 404) {
-        _nrRetryable(out2, '这次没点评出来');
+        _nrRetryable(out2, '故事版这次没写出来');
         _nameReviewDone();
         return;
       }
@@ -6313,9 +6337,17 @@ var _qmBusy = false;
  * selftest 的 qiming.rebatch.distinct 也因此才真覆盖首屏场景。 */
 var _qmSeed = 1;
 /* D-004：用给定的名字数组重绘起名列表（不重新请求后端） */
+var _qmPendStyle = null;   /* R3244：在途期记下最后点击的风格，落地补跑 */
 function _qmSwitchStyle(style) {
-  if (!_QM_STYLES[style] || _qmBusy) return;   /* R230j：chip 连点在途锁 */
+  if (!_QM_STYLES[style]) return;
+  /* R230j：chip 连点在途锁——但静默吞掉正是用户实测「不联动」
+   * 的体感来源（点了没反应）。记最后一次意图，doQiming 落地后
+   * 在 finally 里补跑（与 _ON_QUEUE 同模式）。 */
+  if (_qmBusy) { _qmPendStyle = style; return; }
   _QM_STYLE = style;
+  /* R3244（用户实测·砍换一批）：每次点击（含重选当前风格）都
+   * 推进种子出新批——chip 即「换一批」，名单永远响应点击。 */
+  _qmSeed = (_qmSeed || 0) + 1;
   /* R228d：不等 doQiming 重渲就先把 chip 态同步——点击与读屏反馈即时 */
   var root = el('qmResult');
   if (root) root.querySelectorAll('.qm-style-chip').forEach(function (c) {
@@ -6463,16 +6495,25 @@ async function doQiming() {
         facts: ['五行缺' + ((j.five_elements && j.five_elements.missing || []).join('、') || '无') +
           (((j.five_elements || {}).weak || []).length ? '，偏弱：' + j.five_elements.weak.join('、') : '')]
       }).then(function (rj) {
+        /* R3244（用户实测·保底）：先渲确定性「典故先读」卡——名单
+         * 自带出处/引文/五行补缺，无 AI 也有真东西看；AI 故事版到
+         * 了追加在 #nrAiOut。 */
+        var _det = _nrDeterministic(j);
         if (!rj.review_task_id) {
           /* R216b 续5（U-019）：降级文案带人设+替代引导；按钮保持置灰。 */
-          paint('nameReviewOut', '<div class="no-evidence">小满点评今天休息～' +
-            '名字的寓意卡片里都有说明，先看着，回头来听故事版 ✨</div>');
+          paint('nameReviewOut', _det +
+            '<div class="no-evidence">故事版今天休息～上面的典故卡先看着，' +
+            '回头来听 AI 讲 ✨</div>');
           const o = el('nameReviewOut'); if (o) o.hidden = false;
           if (btn) btn.disabled = false;
           return;
         }
         const out = el('nameReviewOut');
-        if (out) { out.hidden = false; out.innerHTML = '<div class="no-evidence">AI 正在翻书找典故…</div>'; }
+        if (out) {
+          out.hidden = false;
+          out.innerHTML = _det + '<div class="nr-ai" id="nrAiOut">' +
+            '<div class="no-evidence">AI 正在翻书找典故…</div></div>';
+        }
         pollNameReview(rj.review_task_id);
       }).catch(function () {
         /* R2400（R124-P2-4）：起典请求本身失败此前只解禁按钮、
@@ -6480,18 +6521,17 @@ async function doQiming() {
          * R3243：换成可点的重试键。 */
         const o0 = el('nameReviewOut');
         if (o0) {
-          _nrRetryable(o0, '点评这趟没跑起来～');
+          /* R3244：先铺典故底卡，重试键进 nrAiOut 槽（点了重渲整块）。 */
+          o0.innerHTML = _nrDeterministic(j) +
+            '<div class="nr-ai" id="nrAiOut"></div>';
+          _nrRetryable(el('nrAiOut'), '点评这趟没跑起来～');
         }
         if (btn) btn.disabled = false;
         });
       });
       on('shareQiming', function () { return downloadPoster(j, 'qiming'); });   /* R198b 通用模板 */
-      on('qmRefreshBtn', function () {
-        /* D-004-fix：换一批 = 新种子 + 重新请求后端 */
-        /* R224b：同上——初值已是 1，直接 +1 */
-        _qmSeed = (_qmSeed || 0) + 1;
-        doQiming();
-      });
+      /* R3244：qmRefreshBtn 已删——换批语义并入风格 chip
+       * （_qmSwitchStyle 每次点击 _qmSeed++）。 */
     };
     rememberVoice('qmResult', j, buildQimingResult, _rbQm);   /* R2349s P2-20 */
     _rbQm();
@@ -6519,13 +6559,14 @@ async function doQiming() {
     failWithRetry('qmResult', '起名失败：' + e.message, function () { doQiming(); });
   } finally {
     _qmBusy = false;                          /* R230j */
+    /* R3244：在途期被暂存的最后一次风格点击——落地补跑，点击
+     * 永远有响应（不再静默吞=用户不再感觉「不联动」）。 */
+    if (_qmPendStyle) {
+      var _ps = _qmPendStyle; _qmPendStyle = null;
+      _qmSwitchStyle(_ps);
+    }
   }
 }
-
-
-
-
-var _TH_GEN = 0;   /* R2502：桃花在途代际（同 _LY_GEN） */
 async function doTaohua() {
   var _gen = ++_TH_GEN;
   /* R233k（R45-§3）：同批预检——空字段/非法日前端先拦。 */
@@ -9880,14 +9921,16 @@ function initBazi() {
      * 委托判定改走 data-chat-entry，误伤才停止（实测点「换一批」
      * 会拉开聊天侧栏还自动发一条上下文消息）。 */
     if (e.target.closest && e.target.closest('[data-chat-entry]')) {
-      /* R230v（R34-#11）：委托路径过同一把 chatSendBtn 锁——双击
-       * 「聊聊这件事」不再双发气泡+双任务（_autoSendBusy 管函数体，
-       * guardedCall 管与手发互斥）。 */
+      /* R3244（用户实测「聊聊想点开时点不开」）：此前整段包在
+       * chatSendBtn 锁里——AI 回复在途（最长 ~60s）期间点任何
+       * 「聊聊这件事」都被静默吞掉，侧栏都不开。拆开：开栏永远
+       * 立即执行，仅「自动发上下文」走锁且 queueLatest 补跑最后
+       * 一次意图（发完手头这条自动接上下一条）。 */
+      chatOpen();
       guardedCall('chatSendBtn', function () {
-        chatOpen();
         autoSendChatContext();
         return Promise.resolve();
-      }, e);
+      }, e, true);
     }
   });
   on('chatSendBtn', chatSend);
@@ -9902,7 +9945,9 @@ function initBazi() {
     if (!chip || !chip.dataset || !chip.dataset.ask) return;
     var input2 = el('chatInput');
     if (input2) input2.value = chip.dataset.ask;
-    guardedCall('chatSendBtn', chatSend, ev);   /* R230v（R34-#11） */
+    /* R3244：在途期点 chip 此前被静默吞——queueLatest 补跑最后
+     * 一次意图（发完手头这条自动接发点选话题）。 */
+    guardedCall('chatSendBtn', chatSend, ev, true);   /* R230v（R34-#11） */
   });
   var ci = el('chatInput');
   /* R233r（R49-P3-1）：空发后提示语粘住——用户一开始打字就复位。 */
