@@ -6434,13 +6434,13 @@ async function doTaohua() {
                num('th_day'), checked('th_leap'), _thBody);
     const j = await postJSON('/api/taohua', _thBody);
     if (_gen !== _TH_GEN) return;   /* R2502 */
-    /* R3206：农历入档跳过——me 档案是公历坐标系，把农历数存成公历
-     * 会污染跨表单回填（下次打开直接是错的生日）。 */
-    if (!_thLunar &&
-        !_fieldsUntouched(['th_year','th_month','th_day','th_hour',
+    /* R3239：桃花表单同走统一落档器——农历换算入档、公历清旧标注。 */
+    if (!_fieldsUntouched(['th_year','th_month','th_day','th_hour',
                            'th_gender']))
-    _meSave('me', { y: num('th_year'), m: num('th_month'), d: num('th_day'),
-      h: (_thHour === '') ? null : num('th_hour'), g: val('th_gender') || '女' });
+      await _meSaveFromBirth('me', {
+        lunar: _thLunar, y: num('th_year'), m: num('th_month'),
+        d: num('th_day'), h: (_thHour === '') ? null : num('th_hour'),
+        g: val('th_gender') || '女', leap: checked('th_leap') });
     _meFillAll();   /* R230y */
     _LAST_BIRTH.taohua = num('th_year') + '-' + num('th_month') +
       '-' + num('th_day') + (_thLunar ? '（农历）' : '');
@@ -7540,23 +7540,24 @@ async function doHehun() {
       /* R2500（R142-P1-3）：受邀侧字段照样守未动不写——B 侧邀请
        * 预填值 ≠ 出厂 defaultValue，手填/邀请值都会如实落档。 */
       /* R3161：昵称随档案落档（空不覆旧值——_meSave 语义里 '' 会清键）。 */
-      /* R3206：农历侧不落 me 档案（公历坐标系，农历数存进去会污染回填） */
-      var _recMe = { y: num('hh_b_year'), m: num('hh_b_month'),
-        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
-        n: val('hh_b_name') };
-      if (!_recMe.n) delete _recMe.n;
-      if (val('hh_b_cal') !== 'lunar' &&
-          !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+      /* R3239：合婚落档同走统一器——农历换算入档、公历清旧标注；
+       * 昵称非空才动键（原 delete _recMe.n 语义保留）。 */
+      var _optsMe = { lunar: val('hh_b_cal') === 'lunar',
+        y: num('hh_b_year'), m: num('hh_b_month'), d: num('hh_b_day'),
+        h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
+        leap: checked('hh_b_leap') };
+      if (val('hh_b_name')) _optsMe.n = val('hh_b_name');
+      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
-      _meSave('me', _recMe);
-      var _recPa = { y: num('hh_a_year'), m: num('hh_a_month'),
-        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
-        n: val('hh_a_name') };
-      if (!_recPa.n) delete _recPa.n;
-      if (val('hh_a_cal') !== 'lunar' &&
-          !_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+        await _meSaveFromBirth('me', _optsMe);
+      var _optsPa = { lunar: val('hh_a_cal') === 'lunar',
+        y: num('hh_a_year'), m: num('hh_a_month'), d: num('hh_a_day'),
+        h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
+        leap: checked('hh_a_leap') };
+      if (val('hh_a_name')) _optsPa.n = val('hh_a_name');
+      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
-      _meSave('me:partner', _recPa);
+        await _meSaveFromBirth('me:partner', _optsPa);
       if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
                     String(_oldP.m) !== String(num('hh_a_month')) ||
                     String(_oldP.d) !== String(num('hh_a_day')))) {
@@ -7565,22 +7566,22 @@ async function doHehun() {
         } catch (eTP) {}
       }
     } else {
-      var _recMeA = { y: num('hh_a_year'), m: num('hh_a_month'),
-        d: num('hh_a_day'), h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
-        n: val('hh_a_name') };
-      if (!_recMeA.n) delete _recMeA.n;
-      if (val('hh_a_cal') !== 'lunar' &&
-          !_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+      var _optsMeA = { lunar: val('hh_a_cal') === 'lunar',
+        y: num('hh_a_year'), m: num('hh_a_month'), d: num('hh_a_day'),
+        h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
+        leap: checked('hh_a_leap') };
+      if (val('hh_a_name')) _optsMeA.n = val('hh_a_name');
+      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
-      _meSave('me', _recMeA);
-      var _recPaB = { y: num('hh_b_year'), m: num('hh_b_month'),
-        d: num('hh_b_day'), h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
-        n: val('hh_b_name') };
-      if (!_recPaB.n) delete _recPaB.n;
-      if (val('hh_b_cal') !== 'lunar' &&
-          !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+        await _meSaveFromBirth('me', _optsMeA);
+      var _optsPaB = { lunar: val('hh_b_cal') === 'lunar',
+        y: num('hh_b_year'), m: num('hh_b_month'), d: num('hh_b_day'),
+        h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
+        leap: checked('hh_b_leap') };
+      if (val('hh_b_name')) _optsPaB.n = val('hh_b_name');
+      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
-      _meSave('me:partner', _recPaB);
+        await _meSaveFromBirth('me:partner', _optsPaB);
     }
     _meFillAll();
     /* R2350f（R102-P1-5）：双侧生日都回显——邀请态下 A 侧是 TA。 */
@@ -12397,7 +12398,16 @@ function _hlAgoWord(dstr) {
 function _meGet(key) {
   try {
     var j = JSON.parse(window.localStorage.getItem(key) || 'null');
-    return (j && typeof j === 'object') ? j : null;
+    if (!j || typeof j !== 'object') return null;
+    /* R3239：手工写坏的脏档兜底——y/m/d/h 必须是有限数（字符串
+     * 数字归一），脏值删键；g/n/lunar 是字符串域不动。否则
+     * "abc" 年份会被回填进所有表单、档案条渲染出乱码。 */
+    ['y', 'm', 'd', 'h'].forEach(function (k) {
+      if (j[k] == null || j[k] === '') return;
+      var n = Number(j[k]);
+      if (Number.isFinite(n)) j[k] = n; else delete j[k];
+    });
+    return j;
   } catch (e) { return null; }
 }
 /* R2501（R142-P1-3 收尾）：出厂示例生日（1990-5-15 等）原样提交就静默
@@ -12444,6 +12454,29 @@ function _meSave(key, rec) {
    * 得重填一遍（用户眼里就是「你根本没记住我」）。data-touched
    * 字段不动，只填没动过/此前由档案填的格。 */
   try { _meFillAll(); } catch (e4) {}
+}
+/* R3239：档案落档统一器——此前各表单「农历不落档」（R3206 防农历数
+ * 进公历坐标系）遍地开花；换算端点上线后统一成：农历→换算公历坐标+
+ * 农历原值标注（与礼物表单/主排盘同口径）；公历显式传 lunar:null 清
+ * 旧标注（_meSave 是合并写，不传键会把旧农历贴到新生日上）。
+ * opts.n 传了才动昵称键（'' 按 _meSave 语义清昵称）；换算失败不落档
+ * 也不挡解读（静默——解读已拿到，档案弱保存可下轮补）。 */
+async function _meSaveFromBirth(key, opts) {
+  try {
+    var rec = { h: opts.h, g: opts.g, lunar: null };
+    if ('n' in opts) rec.n = opts.n;
+    if (opts.lunar) {
+      var cj = await api('/api/lunar/convert?y=' + opts.y + '&m=' +
+        opts.m + '&d=' + opts.d + '&leap=' + (opts.leap ? 1 : 0));
+      if (!cj || !cj.solar) return;
+      rec.y = cj.year; rec.m = cj.month; rec.d = cj.day;
+      rec.lunar = '农历' + opts.y + '年' + opts.m + '月' + opts.d + '日' +
+        (opts.leap ? '（闰）' : '');
+    } else {
+      rec.y = opts.y; rec.m = opts.m; rec.d = opts.d;
+    }
+    _meSave(key, rec);
+  } catch (e) {}
 }
 /* ids = {y:'th_year', m:'th_month', d:'th_day', h:'th_hour', g:'th_gender'} *
  * 字段表用字面量不用模块级 var——init() 的调用点在本块之前，var 赋值
@@ -14016,10 +14049,20 @@ function baziPersonaCard(j) {
       /* R2500（R142-P1-3）：示例生日原样提交不落档——同日但 nick 想
        * 单存的走星座页显式存。
        * R3206：农历入档跳过（me 档案是公历坐标系）。 */
-      if (!_bLunar &&
-          !_fieldsUntouched(['b_year','b_month','b_day','b_hour','b_gender']))
-      _meSave('me', { y: y, m: m, d: d, h: (hv === '' ? null : Number(hv)), g: g,
-        n: (document.getElementById('b_nick') || {}).value || '' });
+      /* R3239：农历抽屉提交曾整体跳过落档——统一走 _meSaveFromBirth
+       * （换算成公历坐标+农历原值标注）。改完生日再 loadDaily 一次：
+       * 此前判词锚旧档案，档案条说「测算时自动代入」但眼前的卡没换
+       * （次日才生效）。 */
+      var _meDirty = !_fieldsUntouched(
+        ['b_year','b_month','b_day','b_hour','b_gender']);
+      if (_meDirty) {
+        await _meSaveFromBirth('me', {
+          lunar: _bLunar, y: y, m: m, d: d,
+          h: (hv === '' ? null : Number(hv)), g: g,
+          n: (document.getElementById('b_nick') || {}).value || '',
+          leap: checked('b_leap') });
+        try { await loadDaily(); } catch (eD) {}
+      }
       _meFillAll();   /* R230y */
       /* R228k：raw fetch → postJSON——白拿 20s 超时、非2xx toast 与
        * 422 中文人话化（原来手写的 r.ok 分支与 api() 重复且漏超时）。 */
