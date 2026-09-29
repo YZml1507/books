@@ -2283,12 +2283,23 @@ function _nameReviewDone() {
 }
 var _NR_GEN = 0;   /* R230v（R34-#2）：点评任务代际——旧任务落地不得
  * 写进新一批名字的点评容器（nameReviewOut 是同 id 复用的）。 */
+/* R3242：点评等待轮换池——推理模型首包 ~20-40s，一句静态文案
+ * 看两遍就又是干等；轮询 tick 换一句（同 _WAIT_NOTES 机制）。 */
+var _NR_WAIT_NOTES = ['AI 正在翻书找典故…', '在《诗经》里找合适的句子…',
+  '翻到《楚辞》这一页了…', '在掂量哪个名字最亮眼…',
+  '快写好了，在挑措词…', '小满在比对五行和出处…'];
 function pollNameReview(taskId) {
   var _gen = _NR_GEN;
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
+  var _nri = 0;
   var tick = function () {
     if (_gen !== _NR_GEN) { _nameReviewDone(); return; }   /* 新点评接管 */
+    var _nrw = el('nameReviewOut');
+    if (_nrw && _nrw.querySelector('.no-evidence')) {
+      _nrw.querySelector('.no-evidence').textContent =
+        _NR_WAIT_NOTES[(++_nri) % _NR_WAIT_NOTES.length];
+    }
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
       else { var o0 = el('nameReviewOut'); if (o0) o0.innerHTML =
