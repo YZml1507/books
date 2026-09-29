@@ -1944,7 +1944,7 @@ function autoSendChatContext() {
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
 /* R230v（R34-#3）：同 chatSend——捕获 sid 防跨话题幻影写回。 */
   var _sid0 = chatSid();
-  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});   /* R2343 */
+  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>', {raw: true});   /* R2343 */
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
@@ -1983,7 +1983,7 @@ function autoSendChatContext() {
      * flow.lastChild（竞态下会覆盖/删掉用户自己刚发的消息）。
      * R2343：复用发送时已插的 typing 节点。 */
     var _ty = _ty0 || chatBubble('ai',
-      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
+      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>', {raw: true});
     _pollChatReply(j.chat_task_id, _ty, _sid0, j.action, msg);   /* R233r+R3213：msg 供失败重发：共用轮询体（含排队预算） */
   }).catch(function () {
     if (_ty0) { _ty0.remove(); _ty0 = null; }
@@ -2055,7 +2055,7 @@ function _chatFailInto(ty, kind, msg, sid0) {
 function _chatRetrySend(msg, ty, sid0) {
   if (!msg || sid0 !== chatSid()) return;
   if (ty._twCancel) { try { ty._twCancel(); } catch (eT) {} }   /* R3241 */
-  ty.innerHTML = '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>';
+  ty.innerHTML = '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>';
   postJSON('/api/chat', {
     session_id: sid0, message: msg,
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
@@ -2936,7 +2936,7 @@ function chatSend() {
   var _sid0 = chatSid();
   /* R2343（R58-P2-2）：发送即有 typing 三点——此前要等 chat_task_id
    * 回来才出现，慢服务下静默 20 秒像没发出去。 */
-  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
+  var _ty0 = chatBubble('ai', '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>', {raw: true});
   postJSON('/api/chat', {
     session_id: _sid0, message: msg,
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
@@ -2979,7 +2979,7 @@ function chatSend() {
     /* R228c：同 autoSendChatContext——节点引用写回 + catch 续排。
      * R2343：发送时已插 typing，直接复用不落二次。 */
     var _ty = _ty0 || chatBubble('ai',
-      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>', {raw: true});
+      '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>', {raw: true});
     _pollChatReply(j.chat_task_id, _ty, _sid0, j.action, msg);   /* R233r+R3213：msg 供失败重发：共用轮询体（含排队预算） */
   }).catch(function (e) {
     if (_ty0) { _ty0.remove(); _ty0 = null; }

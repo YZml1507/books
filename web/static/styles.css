@@ -449,7 +449,7 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-btn{
     padding:4px 10px; font-size:13px;}
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
-    margin-top:0; padding:4px 8px;}
+    margin-top:0; margin-bottom:4px; padding:4px 8px;}
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-row{
     gap:4px;}
 }
@@ -823,6 +823,9 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 @media (prefers-reduced-motion: reduce){
   .tw-typing::after{content:none; animation:none;}
 }
+/* R3241：等待期抚慰文案——推理模型首包 ~40s，三点之外给一句
+ * 「正在翻书」，空等不再像卡死。 */
+.chat-wait-note{font-size:12px; opacity:.62; margin-left:8px;}
 .chat-typing{display:inline-flex; gap:5px; align-items:center;}
 .chat-typing i{
   width:7px; height:7px; border-radius:50%;
