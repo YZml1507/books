@@ -562,8 +562,14 @@ def main() -> int:
                     "() => !!document.getElementById('dailyAsk')")
                 if not _ask0:
                     raise RuntimeError("dailyAsk 未挂载（me 档案或封面状态异常）")
-                for _k, _v in (("y", "1990"), ("m", "5"), ("d", "15"),
-                               ("h", "19")):
+                # 走农历路径——一次用例同时钉：历法切换→闰月复选显隐→
+                # /api/lunar/convert 换算→me.lunar 标注，涵括公历路径。
+                page.select_option("#dailyAsk .da-cal", "lunar")
+                page.wait_for_timeout(200)
+                _leapv = page.evaluate(
+                    "() => { const w=document.querySelector('#dailyAsk .da-leapw');"
+                    " return !!(w && !w.hidden); }")
+                for _k, _v in (("y", "2000"), ("m", "1"), ("d", "1")):
                     page.fill(f"#dailyAsk [data-k='{_k}']", _v)
                 page.click("#dailyAsk .da-btn")
                 page.wait_for_timeout(2500)
@@ -573,11 +579,15 @@ def main() -> int:
                     " const per = (document.getElementById('dailyCard')||{innerText:''}).innerText;"
                     " return { me: me, rev: !!localStorage.getItem(dk),"
                     "        per: per.includes('你的日主') }; }")
-                _meok = bool(st["me"] and '"h":19' in st["me"])
-                ok = _meok and st["rev"] and st["per"] and not errors
+                _meok = bool(st["me"] and '"m":2' in st["me"]
+                             and '"d":5' in st["me"] and "农历2000年1月1日" in st["me"])
+                ok = (_meok and _leapv and st["rev"] and st["per"]
+                      and not errors)
                 results.append({"name": "ui:daily_ask_gift", "ok": ok,
-                                "detail": ("表单=%s me落档=%s 礼物自开=%s 专属判词=%s"
-                                           % (_ask0, _meok, st["rev"], st["per"]))})
+                                "detail": ("表单=%s 闰月显=%s 农历换算落档=%s "
+                                           "礼物自开=%s 专属判词=%s"
+                                           % (_ask0, _leapv, _meok,
+                                              st["rev"], st["per"]))})
             except Exception as exc:
                 results.append({"name": "ui:daily_ask_gift", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})

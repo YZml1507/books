@@ -416,8 +416,8 @@ select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
 /* 只收尺寸——配色沿用全局 CTA 玫瑰渐变，与「拆开」动作同族。 */
 .da-btn{margin:8px auto 0; display:block; min-height:40px;
   padding:8px 18px; font-size:14px;}
-/* 缎带（mini 回访）态：封面内嵌块横排紧凑 */
-.daily-cover.mini .daily-ask{margin:0;}
+/* 缎带（mini 回访）态：R3235 表单挪出缎带成卡内独立块。 */
+.daily-ask.is-loose{margin:12px auto 6px;}
 
 .daily-cover.open{opacity:0; pointer-events:none;}
 /* R2349p（R80-P1-4）：封面 .45s 淡出期间文字残影叠在日签上——

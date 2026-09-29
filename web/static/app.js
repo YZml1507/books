@@ -10824,6 +10824,20 @@ function init() {
       if (_meA && _meA.y && _meA.m && _meA.d) {
         _ask.remove();
       } else {
+        /* R3235（循环优化-4）：缎带态表单嵌在 26px 缎带里被挤竖排
+         * （回访无档用户实测）——挪出封面成为卡内独立块，宽度/排布
+         * 恢复全档；提交成功由 _dailyAskGo 统一 node.remove()。 */
+        if (_mini) {
+          var _cardA = _cov.closest('.daily-card');
+          if (_cardA) {
+            /* 封面按 outerHTML 快照重挂——上轮回访挪出的 is-loose
+             * 表单还挂在卡上，先去重防双份。 */
+            var _olds = _cardA.querySelectorAll('.daily-ask.is-loose');
+            for (var _oi = 0; _oi < _olds.length; _oi++) _olds[_oi].remove();
+            _ask.classList.add('is-loose');
+            _cardA.insertBefore(_ask, _cov.nextSibling);
+          }
+        }
         _ask.addEventListener('click', function (e) { e.stopPropagation(); });
         _ask.addEventListener('keydown', function (e) {
           e.stopPropagation();
@@ -10979,6 +10993,9 @@ function init() {
       await loadDaily();
       var _covNow = el('dailyCover');
       if (_covNow) { _covNow.click(); }
+      /* R3235：缎带态表单是挪出封面的独立块——封面拆掉后表单
+         会成孤儿留在卡上，统一摘（封面内嵌时 remove 也无碍）。 */
+      try { node.remove(); } catch (e0) {}
       showToast('礼物照着你的盘包好啦 🎁', 'info');
     } catch (err) {
       showToast(_humanizeErr((err && err.message) ||
