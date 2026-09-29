@@ -513,6 +513,15 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
  * 「你的日主×今天」带蜜桃浅衬+强调描边，扫读时先看到「这是给你的」。 */
 /* R3241：生辰回显行——判词粒尾注，比普通副行再淡一档 */
 .daily-bday{font-size:12px; opacity:.72;}
+/* R3245：个人冲合判词章——通判同款之外的「对你」层 */
+.daily-mine{display:inline-block; padding:2px 10px; margin-right:8px;
+  border-radius:999px; font-weight:600; font-size:12.5px;
+  background:rgba(122,86,56,.10); color:var(--primary);}
+.daily-mine.down{background:rgba(192,74,58,.12); color:#a8423a;}
+.daily-mine.up{background:rgba(84,140,96,.14); color:#3f7a4e;}
+body.dark .daily-mine{background:rgba(255,255,255,.10); color:#e8ddd0;}
+body.dark .daily-mine.down{background:rgba(216,120,102,.18); color:#e29a8d;}
+body.dark .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */

@@ -71,6 +71,8 @@ from guji.bazi_calc import LIU_HE
 from guji.bazi_calc import GAN_ELEM
 from guji.bazi_calc import calc as bazi_calc
 from guji.bazi_calc import ten_god
+# R3245：daily 个人修正层复用命局关系判函数（单源，不重复维护支表）。
+from guji.bazi_calc import _rel_pair, _san_he
 from guji.bazi_calc import calc_life, calc_range
 from guji.bazi_lookup import retrieve_fast
 from guji.compare import compare_address
@@ -4282,6 +4284,72 @@ def daily(date_str: str | None = None,
                 f"{_yy} 是你的"
                 f"「{_ylb or _ygod}」年（流年 {_yg}）"
                 if _ug else "")
+            # R3245（用户实测「填什么生日都是小吉」）：个人冲合修正层。
+            # 通判 level/summary 算的是「今天这一天」的盘（全日通胜口径），
+            # 跟你生日无关——对你个人的顺逆另判：今日支 × 你的日支（权重
+            # 最高，日支是自身/配偶宫）→ 落空再看年支（外围层）。
+            _u_db = (_ub.day or "")[1:2]         # 你的日支
+            _u_yb = (_ub.year or "")[1:2]        # 你的年支
+            _mrel = None
+            for _zb, _kk in ((_u_db, "日支"), (_u_yb, "年支")):
+                if _zb and _dzz:
+                    _rp = _rel_pair(_dzz, _zb)
+                    if _rp:
+                        _mrel = (_rp[0], _kk, _zb)
+                        break
+                    if _san_he([_dzz, _zb]):
+                        _mrel = ("半合", _kk, _zb)
+                        break
+                    if _zb == _dzz:
+                        # 同支值日＝伏吟（辰午酉亥亦称自刑）——旧事重提、
+                        # 原地打转的象，权重低于对冲但强于无关系。
+                        _mrel = ("伏吟", _kk, _zb)
+                        break
+            if _mrel:
+                _mty, _mk, _mz = _mrel
+                _mverdict = {
+                    "六冲": "小凶" if _mk == "日支" else "轻冲",
+                    "相刑": "小挫" if _mk == "日支" else "小绊",
+                    "相害": "小绊" if _mk == "日支" else "小绊",
+                    "六合": "合缘" if _mk == "日支" else "岁合",
+                    "半合": "半合",
+                    "伏吟": "伏吟" if _mk == "日支" else "岁吟",
+                }.get(_mty, "")
+                if _mty == "六冲":
+                    _ml = (f"今天{_dzz}冲你的{_mk}{_mz}——对你来说气性偏大，"
+                           "重要决定缓一缓更稳" if _mk == "日支" else
+                           f"今天{_dzz}冲你的{_mk}{_mz}——外围有点小波动，"
+                           "出门多留神就好")
+                elif _mty == "相刑":
+                    _ml = (f"今天{_dzz}和你的{_mk}{_mz}相刑——容易跟自己较劲，"
+                           "别苛责自己" if _mk == "日支" else
+                           f"今天{_dzz}和你的{_mk}{_mz}相刑——小拧巴，不碍大事")
+                elif _mty == "相害":
+                    _ml = (f"今天{_dzz}和你的{_mk}{_mz}相害——小磕绊多一点，"
+                           "慢一点就没事" if _mk == "日支" else
+                           f"今天{_dzz}和你的{_mk}{_mz}相害——外围小磕绊，"
+                           "不必放心上")
+                elif _mty == "六合":
+                    _ml = (f"今天{_dzz}合你的{_mk}{_mz}——人缘顺、有人搭手，"
+                           "开口求人正合适" if _mk == "日支" else
+                           f"今天{_dzz}合你的{_mk}{_mz}——大环境跟你合拍")
+                elif _mty == "伏吟":
+                    _ml = (f"今天{_dzz}和你的{_mk}{_mz}伏吟——旧事容易重提，"
+                           "适合收尾不适合开新局" if _mk == "日支" else
+                           f"今天{_dzz}和你的{_mk}{_mz}伏吟——老主题回来绕一圈，"
+                           "平常心接住就好")
+                else:  # 半合
+                    _ml = (f"今天{_dzz}和你的{_mk}{_mz}半合——暗中有顺劲，"
+                           "顺势推一把")
+                _personal["mine"] = {
+                    "verdict": _mverdict, "line": _ml,
+                    "tone": "down" if _mty in ("六冲", "相刑", "相害")
+                            else ("up" if _mty in ("六合", "半合") else "flat")}
+            elif _dzz:
+                _personal["mine"] = {
+                    "verdict": "无冲无合",
+                    "line": f"今天{_dzz}日跟你的盘不冲不合，通判照样走",
+                    "tone": "flat"}
         except ComputeError:
             _personal = None
         except Exception:

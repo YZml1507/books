@@ -401,6 +401,9 @@ _BANNED_QUOTE_PAT = re.compile(
 # 常见——34s 只装得下 1.5 个节点，兜底救不回。50s 让主节点帽
 # (timeout_s+2≈26s) 后仍给快节点留 ~20s+ 真实窗口。
 _POLL_BUDGET_S = 50.0
+# R3245：起名点评链专用预算——三节点满载 68s，共用 50s 帽时末节
+# 拿不到窗口；点评有确定性底卡托底，值得让链跑完。
+_REVIEW_BUDGET_S = 78.0
 
 
 def _is_loopback(url: str) -> bool:
@@ -1929,27 +1932,36 @@ def review_names(names: list[str], facts: list[str] | None = None,
     msgs.append({"role": "user", "content": user})
     # R230a-6（R12-P1-3）：点评 prompt 明令引《诗经》篇名——净化需放行
     # 书名号段，否则输出被自家 _LEAK_PAT 剥成断头句。
-    # R230t（R32-P0-3）：主/dots 共享同一轮询预算——此前各自新开 34s
-    # （最坏 ~68s），超过前端 40s 帽的「慢成功」无人读，纯烧 quota。
-    _dl = time.monotonic() + _POLL_BUDGET_S
-    # R3242：主节点预算帽（同 polish/chat 口径）。
-    _dl0 = min(_dl, time.monotonic() + float(
-        cfg.get("timeout_s") or _DEFAULTS["timeout_s"]) + 2)
-    text = _chat_call(msgs, cfg, _transport, keep_citations=True,
-                      deadline=_dl0)
-    if not text:
-        # R217a→R3223：主 LLM 失败走兜底链（同 chat 模式，全链失败才降级）
-        _seen_bases = {cfg.get("base_url")}
-        for _fcfg in load_fallback_configs():
-            if _fcfg.get("base_url") in _seen_bases:
-                continue
-            _seen_bases.add(_fcfg.get("base_url"))
-            text = _chat_call(msgs, _fcfg, _transport, keep_citations=True,
-                              deadline=_dl)
-            if text:
+    # R3245（用户实测反复「故事版没写出来」）：串行链理论满载
+    # 26+20+22=68s>旧预算，拥挤期逐节 ReadTimeout 全挂——改三节点
+    # 并发竞速：先出稿者获胜（任一 provider 健康即可成稿，等待时间
+    # ≈最快节点而非串行之和）。输家线程随各自 timeout_s 自然收尾；
+    # msgs 在 _chat_call 内有副本，跨线程共享安全。
+    _rdead = time.monotonic() + _REVIEW_BUDGET_S
+    _seen_bases = {cfg.get("base_url")}
+    _nodes = [cfg]
+    for _fcfg in load_fallback_configs():
+        if _fcfg.get("base_url") in _seen_bases:
+            continue
+        _seen_bases.add(_fcfg.get("base_url"))
+        _nodes.append(_fcfg)
+    import concurrent.futures as _cf
+    text = None
+    _ex = _cf.ThreadPoolExecutor(max_workers=len(_nodes),
+                                 thread_name_prefix="nrace")
+    try:
+        _futs = [_ex.submit(_chat_call, msgs, _n, _transport, True, _rdead)
+                 for _n in _nodes]
+        for _f in _cf.as_completed(_futs):
+            try:
+                _t = _f.result()
+            except Exception:
+                _t = None
+            if _t:
+                text = _t
                 break
-        if not text:
-            return None
+    finally:
+        _ex.shutdown(wait=False)     # 不等输家线程——任务即可交卷
     return text
 
 

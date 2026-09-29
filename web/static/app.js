@@ -1127,6 +1127,7 @@ function postJSON(path, payload, opts) {
 var RESULT_GEN = {};
 var AI_POLL_INTERVAL_MS = 500;
 var AI_POLL_CAP_S = 62;            // 与后端 _POLL_BUDGET_S(50s)+余量对齐
+var NR_POLL_CAP_S = 88;            // 点评链 78s 预算+余量（底卡先行可等）
                                    // R3243：推理模型拥挤期生成 15-30s/次，
                                    // 40s 帽会在兜底即将成功时提前放弃
 
@@ -2337,7 +2338,7 @@ function _nrRetryable(out, msg) {
 }
 function pollNameReview(taskId) {
   var _gen = _NR_GEN;
-  var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
+  var deadline = performance.now() + NR_POLL_CAP_S * 1000;   /* R3245：点评独立预算 78s——通用 62s 帽会在链跑完前判死 */
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var _nri = 0;
   var tick = function () {
@@ -3680,7 +3681,11 @@ function annotatePowers(text) {
   });
   return t;
 }
-function renderWarm(warm, interp, evidence, scope) {
+/* R3245（用户实测「两个专业入口内容一样」）：skipDetailsFold——
+ * renderVoice 外层的「📐 专业视角：完整推导链」已含同一份
+ * sections（+引文+依据+免责），内层「📜 想看专业依据」是同源重复，
+ * 该路径传 true 跳过；dailyDetail 无外折叠，仍要这层。 */
+function renderWarm(warm, interp, evidence, scope, skipDetailsFold) {
   if (!warm) return renderInterpretation(interp, '📖 小满的解读');
   var html = '<div class="warm-wrap">';
   /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
@@ -3772,7 +3777,7 @@ function renderWarm(warm, interp, evidence, scope) {
    * 「上半截闺蜜、下半截论文」。改为整组收进单个折叠「📜 想看专业依据？」
    * ——事实零删减（DOM 里仍在，判据 4b/6/7 的折叠可核验口径不变），
    * 只是默认不展开。专业模式路径不经此分支，零改动。 */
-  if ((warm.details || []).length) {   /* R3212：单版化恒走 */
+  if ((warm.details || []).length && !skipDetailsFold) {   /* R3212：单版化恒走 */
     html += '<details class="warm-basis warm-pro-fold"><summary>📜 想看专业依据？（' +
       warm.details.length + ' 项，展开慢慢看）</summary>';
     (warm.details || []).forEach(function (d) {
@@ -4282,8 +4287,10 @@ function renderVoice(j, proTitle, evidenceKeys) {
     (evidenceKeys || ['evidence']).forEach(function (k) {
       if (j[k] && j[k].length) ev = ev.concat(j[k]);
     });
+    /* R3245：skipDetailsFold=true——内层「想看专业依据」与下面的
+     * 「专业视角：完整推导链」同源于 interpretation.sections，留外层一个。 */
     html += renderWarm(j.warm, j.interpretation, ev,
-                       j.calc && j.calc.scope);
+                       j.calc && j.calc.scope, true);
     if (j.interpretation) {
       html += '<details class="warm-basis warm-pro-fold"><summary>📐 专业视角：' +
         '完整推导链（展开看）</summary>' +
@@ -4848,7 +4855,14 @@ async function loadDaily() {
                    ? (_hourZhi(_meP.h) + '（' + _meP.h + '点）')
                    : '时辰未知');
       }
+      /* R3245（用户实测「填什么都是小吉」）：个人冲合判词当头——
+       * 通判 level 是大家同款，「对你」这层才是你的盘与今天的对位。 */
+      var _mine = j.personal.mine;
       _dailyMetaItem('dailyPersonal',
+        (_mine
+          ? '<span class="daily-mine ' + esc(_mine.tone || 'flat') + '">' +
+            '🧭 对你：' + esc(_mine.verdict || '') + '</span> ' +
+            esc(_mine.line || '') + '<br>' : '') +
         '🪞 ' + esc(j.personal.line) +
         (j.personal.year_line
           ? '<br><span style="font-size:12px;opacity:.85;">' +
@@ -5293,7 +5307,10 @@ async function loadDailyDetail() {
     /* R2349o（R78-P1-1）：首载成功后同步 aria-expanded/文案——原来只在
      * 二次切换路径调，首开后读屏仍被告知「」。 */
     _syncBtn();
-    attachChatEntry(target);   /* R230k（R23-P2-1）：直写 innerHTML 不走 paint——手动挂 */
+    /* R3245（用户实测「两个聊聊这件事发一样的消息」）：detail 在
+     * dailyCard 内部末尾，R3244 起卡尾常驻入口视觉上就贴在展开
+     * 正文下方——此处再挂一颗 = 双钮同源同文。留卡级那颗（未展开
+     * 时也有入口），这颗摘掉。 */
     pollAiPolish('dailyDetail', j.ai_task_id);   // R217a：完整解读也轮询 AI 润色
   } catch (e) {
     /* R2506（审-U3）：失败时详情块已展开但按钮还停在
