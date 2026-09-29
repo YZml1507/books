@@ -2286,13 +2286,15 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 11, ("home.ia.count", len(_cards), _cards)  # 10 直达+1 抽屉（D-005 星座；history；R2362 chat 伪视图卡；R3178 dream；R3210 qiming 上提主格）
+    assert len(_cards) == 12, ("home.ia.count", len(_cards), _cards)  # 11 直达+1 抽屉（R3249i renge 五行人格轻测试首位；D-005 星座；history；R2362 chat 伪视图卡；R3178 dream；R3210 qiming 上提主格）
     # R208b：read 卡移除（用户裁决不提供读书渠道）
-    assert _cards[:5] == ["tarot", "bazi", "taohua", "hehun", "huangli"], \
+    # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
+    assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
+                          "huangli"], \
         ("home.ia.order", _cards)
     # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前；
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
-    assert _cards[5:] == ["xingzuo", "dream", "qiming", "history",
+    assert _cards[6:] == ["xingzuo", "dream", "qiming", "history",
                           "chat", "liuyao"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉 summary 文字除外——它本身是入口名）

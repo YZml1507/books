@@ -116,6 +116,12 @@ function _hashPick(pool, str) {
   for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
   return pool[h % pool.length];
 }
+/* R3249d：数字版 _hashPick——同一字符串永远出同一个数（维度分抖动用）。 */
+function _hashNum(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
 function _dayPick(pool, salt) {
   return _hashPick(pool, String(salt || '') + '|' + todayIso());
 }
@@ -4584,6 +4590,22 @@ function _basisCn(b) {
 
 var DAILY_GEN = 0;
 
+/* R3249a（UX-AUDIT A1 · 用户实测「判词看不懂」）：术语→人话注表——
+ * 判词/十神标签永远不裸奔，后跟一句零门槛白话。 */
+const _VERDICT_GLOSS = {
+  '合缘': '人缘顺、有人搭手', '岁合': '大环境跟你合拍',
+  '半合': '暗中有顺劲', '伏吟': '旧事容易重提，宜收尾',
+  '岁吟': '老主题回来绕一圈', '无冲无合': '平平常常也是好日子',
+  '轻冲': '外围有点小波动', '小凶': '气性偏大，缓一点',
+  '小挫': '容易跟自己较劲', '小绊': '小磕绊多一点',
+  '同伴力': '做事有人同行', '分享力': '热闹、花销也快',
+  '表达力': '适合说出来做出来', '创造力': '点子多、宜尝新',
+  '流动财': '进项机会多', '稳定财': '适合慢慢攒',
+  '压力位': '被推着走的一天', '规矩位': '宜走流程办正事',
+  '直觉力': '适合自己琢磨', '庇护力': '有人托底、稳步累积',
+  '吉': '顺', '小吉': '小顺', '平': '平稳',
+  '凶': '能量偏低，宜稳宜慢', '缓': '宜稳宜慢'
+};
 async function loadDaily() {
   const _gen = ++DAILY_GEN;
   try {
@@ -4699,13 +4721,81 @@ async function loadDaily() {
         starsEl.parentElement.appendChild(legend);
       }
       if (legend) legend.textContent = _hMine
-        ? '（对你：' + _badge + ' · 通版' + level + '）'
+        ? '（对你：' + _badge +
+          (_VERDICT_GLOSS[_badge] ? ' · ' + _VERDICT_GLOSS[_badge] : '') +
+          ' · 通版' + level + '）'
         : (_hTag
-           ? '（你的' + _hTag + '日 · 通版' + level + '）'
+           ? '（你的「' + _hTag + '」日' +
+             (_VERDICT_GLOSS[_hTag] ? '——' + _VERDICT_GLOSS[_hTag] : '') +
+             ' · 通版' + level + '）'
            : (_dispLv === '吉' ? '（五星 · 顺）' :
               _dispLv === '小吉' ? '（四星 · 小顺）' :
               _dispLv === '凶' ? '（今日能量偏低 · 宜稳宜慢）' :
               '（三星 · 平稳）'));
+    }
+    /* R3249a（UX-AUDIT A1 · 用户实测「点开没有分数，不直观」）：
+     * 「今日能量」数字读数——判词对非命理用户是零信息量词，分数是
+     * 不需要任何前置知识的通用语言。确定性：同日+同生日=同分
+     * （与 _hashPick 同纪律，不落缓存不落库）。 */
+    var _lvR = _dispLv === '吉' ? [82, 95] : _dispLv === '小吉' ? [68, 81] :
+               _dispLv === '凶' ? [30, 50] : [55, 72];
+    var _sdStr = String(j.date || _today) + '|' +
+      ((_me0 && _me0.y) ? (_me0.y + '-' + _me0.m + '-' + _me0.d) : 'anon');
+    var _sdH = 0;
+    for (var _sdi = 0; _sdi < _sdStr.length; _sdi++) {
+      _sdH = (_sdH * 31 + _sdStr.charCodeAt(_sdi)) >>> 0;
+    }
+    var _energy = _lvR[0] + _sdH % (_lvR[1] - _lvR[0] + 1);
+    var _scEl = el('dailyScore');
+    if (!_scEl && starsEl && starsEl.parentElement) {
+      _scEl = document.createElement('div');
+      _scEl.id = 'dailyScore';
+      _scEl.className = 'daily-score';
+      starsEl.parentElement.insertBefore(_scEl, starsEl);
+    }
+    if (_scEl) {
+      _scEl.innerHTML = '⚡ 今日能量 <strong>' + _energy + '</strong>';
+    }
+    /* R3249d（UX-AUDIT B2 · 用户实测「测测一点开就有几个分」）：
+     * 三维度小分——💗感情/💼做事/💰钱袋。不是拍脑袋随机数：以
+     * 能量分为底，按你的十神日×冲合关系做命理映射修正
+     * （正财偏财补钱袋、官杀补做事、日支六合补感情、六冲刑害减感情），
+     * 同日同盘同分、确定性可复现。 */
+    var _dimGod = (j.personal && j.personal.god) || '';
+    var _dimTone = (_mineH && _mineH.tone) || 'flat';
+    var _dimMap = {
+      '感情': {'正财':6,'偏财':4,'正官':5,'七杀':3,'伤官':-4,
+              '劫财':-6,'比肩':-2,'食神':3,'正印':0,'偏印':-1},
+      '做事': {'正官':6,'七杀':4,'正印':5,'偏印':4,'食神':3,
+              '伤官':2,'正财':1,'偏财':0,'比肩':-2,'劫财':-3},
+      '钱袋': {'正财':7,'偏财':5,'食神':4,'伤官':3,'比肩':-1,
+              '劫财':-8,'正官':0,'七杀':-2,'正印':-1,'偏印':-2}
+    };
+    var _dims = '';
+    ['感情','做事','钱袋'].forEach(function (dm) {
+      var _d = _dimMap[dm] ? (_dimMap[dm][_dimGod] || 0) : 0;
+      if (dm === '感情' && _dimTone === 'up') _d += 4;
+      if (dm === '感情' && _dimTone === 'down') _d -= 6;
+      if (dm === '做事' && _dimTone === 'up') _d += 2;
+      var _dh = _hashNum(_sdStr + '|' + dm);
+      var _dv = Math.max(25, Math.min(97,
+        _energy + _d - 4 + _dh % 9));
+      var _ic = dm === '感情' ? '💗' : dm === '做事' ? '💼' : '💰';
+      _dims += '<span class="dim">' + _ic + ' ' + dm + ' <b>' +
+        _dv + '</b></span>';
+    });
+    var _dimEl = el('dailyDims');
+    if (!_dimEl && _scEl && _scEl.parentElement) {
+      _dimEl = document.createElement('div');
+      _dimEl.id = 'dailyDims';
+      _dimEl.className = 'daily-dims';
+      _scEl.parentNode.insertBefore(_dimEl, _scEl.nextSibling);
+    }
+    if (_dimEl) {
+      _dimEl.innerHTML = _dims;
+      _dimEl.title = _dimGod
+        ? '按你的十神日「' + _dimGod + '」× 今日冲合算的三项小分'
+        : '按今天的天时算的三项小分（填生日后按你的盘出）';
     }
     /* R3248（用户实测「summary 永远是同一句」）：存了生日的日签大
      * 字区讲「你的」——summary 吃 personal.line（你的日主×今天的
@@ -4736,6 +4826,37 @@ async function loadDaily() {
                   '能量低的日子适合充电，早睡一小时比啥都管用。'], 'xiong') : '' ;
       sooth.hidden = (_dispLv !== '凶');
     }
+    /* R3249b（UX-AUDIT B3 · 用户实测「累了/沮丧的时候才会打开」）：
+     * 情绪接应行——「和小满聊聊」此前埋在第九张功能卡里，用户最
+     * 需要它的时刻（看签当下）反而够不着。在日签卡里放一条软入口，
+     * 文案随时段换，点了直接替她说出那句开场白。 */
+    var _mood = el('dailyMood');
+    if (!_mood) {
+      _mood = document.createElement('button');
+      _mood.type = 'button';
+      _mood.id = 'dailyMood';
+      _mood.className = 'daily-mood';
+      var _mr3 = document.querySelector('#dailyCard .daily-meta');
+      if (_mr3 && _mr3.parentNode) {
+        _mr3.parentNode.insertBefore(_mood, _mr3.nextSibling);
+      }
+      _mood.addEventListener('click', function () {
+        var _h3 = new Date().getHours();
+        var _msg = (_h3 >= 22 || _h3 < 6) ? '有点睡不着，陪我聊两句' :
+                   (_h3 < 11 ? '早上好呀，今天有点提不起劲' :
+                    '今天有点累，陪我说说话');
+        chatOpen();
+        var _inp = el('chatInput');
+        if (_inp) {
+          _inp.value = _msg;
+          guardedCall('chatSendBtn', chatSend);
+        }
+      });
+    }
+    var _h2 = new Date().getHours();
+    _mood.textContent = (_h2 >= 22 || _h2 < 6)
+      ? '💗 睡不着的话，小满在 →'
+      : '💗 今天有点累？和小满说两句 →';
     /* R2341（R57-P2-6）：贵人地支转生肖——与海报同口径 */
     setText('dailyNoble', j.noble ? _zhiToAnimal(j.noble) : '—');
     /* R2349g（R68-P0-2）：合拍生肖第二层 */
@@ -7957,8 +8078,12 @@ function xzSetDate(y, m, d) {
   if (!(ys && ms && ds)) return;
   var now = new Date();
   if (!ys.options.length) {
-    /* v2 修复：年份范围扩为 1900-2100（原只有今年±1，用户没法查自己生日的星座） */
-    for (var yy = 1900; yy <= 2100; yy++) {
+    /* R3249f（UX-AUDIT C·星座 · 用户实测「年份列表翻不到头」）：
+     * 这是日运导航器不是生日查询器——本命盘抽屉有独立的年份输入框，
+     * 1900-2100 共 201 项的下拉在移动端是纯折磨。缩到今年 ±20
+     * （覆盖所有日常翻阅+青少年本命年生日），更远的日期用‹ ›逐日翻。 */
+    var _yLo = now.getFullYear() - 20, _yHi = now.getFullYear() + 20;
+    for (var yy = _yLo; yy <= _yHi; yy++) {
       ys.add(new Option(yy + ' 年', String(yy)));
     }
   }
@@ -7986,18 +8111,23 @@ function xzShiftDay(step) {
   var parts = xzDateStr().split('-');
   var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   d.setDate(d.getDate() + step);
-  /* R2349k（R72-B8）：历法表界 1900–2100——越界此前给 select 塞进
-   * 不存在的选项、xzDateStr 读空回落今天（看着像「跳回今天」）。
-   * 钳在边界日并告诉用户。 */
-  var _lo = new Date(1900, 0, 1), _hi = new Date(2100, 11, 31);
+  /* R2349k（R72-B8）：历法表界钳在选项窗口内——越界给 select 塞
+   * 不存在的选项会让 xzDateStr 读空回落今天（看着像「跳回今天」）。
+   * R3249f：窗口缩到 ±20 年后边界跟着 options 实际首尾走。 */
+  var _ys2 = el('xz_year');
+  var _loY = (_ys2 && _ys2.options.length)
+    ? Number(_ys2.options[0].value) : 1900;
+  var _hiY = (_ys2 && _ys2.options.length)
+    ? Number(_ys2.options[_ys2.options.length - 1].value) : 2100;
+  var _lo = new Date(_loY, 0, 1), _hi = new Date(_hiY, 11, 31);
   if (d < _lo) {
-    xzSetDate(1900, 1, 1);
-    showToast('黄历表最早到 1900 年，再往前翻不到啦', 'info');
+    xzSetDate(_loY, 1, 1);
+    showToast('最早翻到 ' + _loY + ' 年，再往前翻不到啦', 'info');
     return doXingzuo(true);
   }
   if (d > _hi) {
-    xzSetDate(2100, 12, 31);
-    showToast('黄历表最远到 2100 年，再往后翻不到啦', 'info');
+    xzSetDate(_hiY, 12, 31);
+    showToast('最远翻到 ' + _hiY + ' 年，再往后翻不到啦', 'info');
     return doXingzuo(true);
   }
   xzSetDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
@@ -9882,6 +10012,69 @@ function _phRenderMirrorList(listEl, m) {
   return true;
 }
 
+/* R3249i（UX-AUDIT D·轻测试前门）：五行人格——只填年月日，出
+ * 「你是哪一型」人设小卡。走 /api/bazi 同引擎，只渲染 warm 人话层；
+ * 「看完整命盘」把生日回填进排盘表单再跳转，不重复发请求。 */
+async function doRenge() {
+  var box = el('rgResult');
+  if (!box) return;
+  var y = num('rg_year'), m = num('rg_month'), d = num('rg_day');
+  if (y == null || m == null || d == null) {
+    showToast('年月日都填上才能看型哦', 'warn');
+    return;
+  }
+  busy('rgResult', '小满正在看你是哪一型…');
+  try {
+    var j = await postJSON('/api/bazi', {
+      year: y, month: m, day: d, hour: 12, gender: '女', scope: 'day',
+      ask_date: todayIso()
+    });
+    var w = j.warm || {};
+    var pts = Array.isArray(w.reply) ? w.reply : [];
+    var html = '<div class="card renge-card">';
+    var _nick = '';
+    for (var _ri = 0; _ri < Math.min(pts.length, 5); _ri++) {
+      var _mm = String(pts[_ri]).match(/「(.{2,8}?)」/);
+      if (_mm) { _nick = _mm[1]; break; }
+    }
+    if (_nick) {
+      html += '<div class="renge-nick">' + esc(_nick) + '</div>';
+    }
+    if (w.one_liner) html += '<p class="renge-l0">' + esc(w.one_liner) + '</p>';
+    pts.slice(0, 3).forEach(function (ln) {
+      html += '<p class="renge-line">' + esc(ln) + '</p>';
+    });
+    html += '<div class="renge-actions">' +
+      '<button type="button" class="ghost" id="rgPoster">📸 分享图</button>' +
+      '<button type="button" class="ghost" id="rgFull">看完整命盘 →</button>' +
+      '</div></div>';
+    box.classList.remove('is-working');
+    box.innerHTML = html;
+    rememberResult('bazi', j, '我是哪一型');
+    var _pp = el('rgPoster');
+    if (_pp) _pp.addEventListener('click', function () {
+      var _p = downloadPoster(j, 'bazi');
+      if (_p && _p.catch) _p.catch(function () {});
+    });
+    var _ff = el('rgFull');
+    if (_ff) _ff.addEventListener('click', function () {
+      /* 回填进排盘表单再切视图——省一次请求，还顺手留了档案。 */
+      var _fy = el('year'), _fm = el('month'), _fd = el('day');
+      if (_fy) _fy.value = String(y);
+      if (_fm) _fm.value = String(m);
+      if (_fd) _fd.value = String(d);
+      showView('bazi');
+      /* 排盘走 form submit 路径（submitBazi）——submit 钮做在途锁键。 */
+      guardedCall('submit', submitBazi);
+    });
+    try { attachChatEntry(box); } catch (eCE) {}
+  } catch (e) {
+    box.classList.remove('is-working');
+    box.innerHTML = '<div class="ph-empty">没算出来：' +
+      esc(_humanizeErr(e.message)) + '</div>';
+  }
+}
+
 /* ── 初始化 ────────────────────────────────────────────────── */
 
 function initViews() {
@@ -9905,6 +10098,23 @@ function initViews() {
   /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
   var back = el('viewBack');
   if (back) back.addEventListener('click', function () { showView('home'); });
+  /* R3249g（UX-AUDIT B4）：场景快捷条——「心里有事」开聊天并替
+   * 她写好第一句；其余直达对应功能视图。 */
+  document.querySelectorAll('.scene-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var sc = chip.dataset.scene;
+      if (sc === 'chat') {
+        chatOpen();
+        var inp = el('chatInput');
+        if (inp) {
+          inp.value = '心里有点事，想说给你听';
+          guardedCall('chatSendBtn', chatSend);
+        }
+        return;
+      }
+      try { showView(sc); } catch (e) {}
+    });
+  });
   /* R205b（用户反馈①）：最近解读侧边栏 开/收 */
   var sb = el('recentSidebar');
   var tgl = el('recentToggle');
@@ -10370,7 +10580,26 @@ function initDivination() {
   });
   /* R2502：包一层隔断 click 事件实参——doTarot 的 cards 形参不应
    * 收到 MouseEvent（靠 Array.isArray 收编只是兜底）。 */
+  /* R3249i：五行人格轻测试入口 */
+  on('rgSubmit', function () { return doRenge(); });
   on('trSubmit', function () { return doTarot(); });
+  /* R3249e（UX-AUDIT C·塔罗）：三档快捷钮——抽一张/三张/自己抽，
+   * 新客不碰牌阵下拉。按钮仍走 doTarot/_trPickOpen 原有路径。 */
+  on('trQ1', function () {
+    var s = el('tr_spread'), n = el('tr_n');
+    if (s) s.value = '';
+    if (n) n.value = '1';
+    _trSpreadSync();
+    return doTarot();
+  });
+  on('trQ3', function () {
+    var s = el('tr_spread'), n = el('tr_n');
+    if (s) s.value = 'time';
+    if (n) n.value = '3';
+    _trSpreadSync();
+    return doTarot();
+  });
+  on('trQPick', function () { return _trPickOpen(); });
   /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
   on('trPickBtn', _trPickOpen);
   on('trPickGo', _trPickGo);
@@ -12236,6 +12465,22 @@ const CHECKIN_FEEDBACK = {
   /* 兜底：存档里的旧签名轮换出池后仍可读回执 */
   '_default': ['这个签收好了，今天的运归你管～', '好运已领取，今天的能量满格！', '签已到手，今天的日子你做主～']
 };
+/* R3249c（UX-AUDIT A3 · 用户实测「四个运不知道是干嘛的」）：
+ * 签名全是圈内黑话（上岸=考公圈、摸鱼=职场梗、水逆=占星圈），
+ * 且没有一句「点了会怎样」的说明。内部键不变（存量打卡记录兼容），
+ * 按钮显示名+用途副标全部人话化：每张签都回答「它是干嘛的、
+ * 什么时候点」。 */
+const CHECKIN_LABEL = {
+  '开运蛋': ['🥚 攒好运', '给今天存一点好运气'],
+  '吃瓜运': ['🍉 吃个瓜', '蹲蹲今天的热闹事'],
+  '摸鱼运': ['🐟 求喘息', '累了就歇会儿，理直气壮'],
+  '破水逆运': ['🌊 转个运', '给最近的倒霉翻个篇'],
+  '暴富签': ['💰 求财运', '摸摸今天的钱袋子'],
+  '甜甜运': ['🍬 来点甜', '给今天加一点糖'],
+  '上岸运': ['📚 求顺利', '考试面试答辩求过'],
+  '顺顺签': ['🍀 求顺遂', '今天一路绿灯'],
+  '生日签': ['🎂 生日签', '今天你是主角，愿望随便许']
+};
 /* R230y（R36-P1-3）：打卡沉淀——checkin:* 键保留最近 90 天，
  * 渲染连续天数 + 近 7 天点阵 + 「昨天你选了X」召回。 */
 function _checkinAll() {
@@ -12303,9 +12548,15 @@ function renderCheckin(dateKey) {
   const opts = _todays.map(function (o) {
     /* R2349t（R87-P1-1）：saved 是 localStorage 原始串——词表外脏值
      * 会被 unshift 进来直拼 HTML（属性逃逸即存储型 XSS）。两处全 esc。 */
+    /* R3249c：按钮显示「人话名+用途副标」，data-opt 仍存原键 */
+    var _lb = CHECKIN_LABEL[o];
     return '<button type="button" class="checkin-opt' +
       (saved === o ? ' picked' : '') + '" data-opt="' + esc(o) + '" ' +
-      'aria-pressed="' + (saved === o) + '">' + esc(o) + '</button>';
+      'aria-pressed="' + (saved === o) + '"' +
+      (_lb ? ' aria-label="' + esc(_lb[0]) + '，' + esc(_lb[1]) + '"' : '') +
+      '>' + (_lb
+        ? '<b>' + esc(_lb[0]) + '</b><i>' + esc(_lb[1]) + '</i>'
+        : esc(o)) + '</button>';
   }).join('');
   /* R229z续23（R10-#17）：选项组补 role=group + 问题文本锚点，
    * 反馈区 aria-live——选完有朗读回执。 */
@@ -12352,10 +12603,32 @@ function renderCheckin(dateKey) {
       (_bk + ' 天先存个档，今天重新开张也算数 🌱') :
       '歇了几天也没关系，今天重新开张就算数 🌱';
   }
+  /* R3249j（UX-AUDIT 留存闭环）：打卡攒星——每打一天攒一颗小星星，
+   * 攒满 7 颗解锁一句「小满的话」。签册/点阵/连签此前是互不通气
+   * 的零件，这一行把「攒」显形出来，回访有目标感。 */
+  var _stars = 0;
+  try {
+    Object.keys(_ckAll).forEach(function (k) { if (_ckAll[k]) _stars++; });
+  } catch (eS) {}
+  if (_stars > 0) {
+    var _cycle = _stars % 7;
+    if (_cycle === 0) {
+      _meta += ' ⭐ 攒了 ' + _stars + ' 颗小星星｜' +
+        esc(_dayPick(['小满的话：你来这么多天，我都记住啦',
+                      '小满的话：坚持拆开每一天的人，运气不会太差',
+                      '小满的话：你在认真过日子，星星都看得见'],
+                     'xmword'));
+    } else {
+      _meta += ' ⭐ 已攒 ' + _stars + ' 颗 · 再攒 ' + (7 - _cycle) +
+               ' 颗有小满的话';
+    }
+  }
   box.innerHTML = '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
-    esc(_dayPick(['挑一个今天的好运搭子：', '今天的运，你挑哪款：',
-                  '选一个接住今天的好运：', '今天想要哪张签：',
+    esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
+                  /* R3249c（A3）：问句从「哪张签」改成「想要什么」——
+                   * 选项已是「攒好运/求顺利」心愿语义，问句对齐。 */
+                  '许个愿，挑张签带走：', '今天想求点什么：',
                   /* R2500（R142-P2-3）：四签全亮是「选」不是「抽」——
                    * 文案对齐机制，新客不再误以为点了是随机。 */
                   '挑一个陪你过今天：', '今天的幸运签是哪一个：'], 'ckq')) + ' ' +

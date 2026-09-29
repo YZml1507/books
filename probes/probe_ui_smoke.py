@@ -375,7 +375,12 @@ def main() -> int:
                  # R2350k：自点牌扇——ui:tarot.pick 用例覆盖（fan 委托
                  # 也由用例里的 .tr-back 点选走到）
                  "trPickBtn", "trPickGo", "trPickFan",
-                 "tr_spread"}
+                 "tr_spread",
+                 # R3249（UX-AUDIT 批）：内联用例覆盖——
+                 # dailyMood:ui:daily_mood；trQ1/trQ3/trQPick:
+                 # ui:tarot.quick；rgSubmit/rgFull:ui:renge。
+                 "dailyMood", "trQ1", "trQ3", "trQPick",
+                 "rgSubmit", "rgFull"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -395,6 +400,8 @@ def main() -> int:
         "shareDaily": "同上",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。
         "shareDream": "同上",
+        "rgPoster": "五行人格分享图——downloadPoster('bazi') 海报模态，"
+                     "同 shareBazi 族豁免",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
         "xzPrev": "ui:xznav.roundtrip 已覆盖", "xzToday": "同上",
@@ -574,7 +581,10 @@ def main() -> int:
                 page.wait_for_timeout(2500)
                 st = page.evaluate(
                     "() => { const me = localStorage.getItem('me');"
-                    " const dk = 'dailyRevealed:' + new Date().toISOString().slice(0,10);"
+                    " const _t=new Date();"
+                    " const dk = 'dailyRevealed:' + _t.getFullYear() + '-' +"
+                    "  String(_t.getMonth()+1).padStart(2,'0') + '-' +"
+                    "  String(_t.getDate()).padStart(2,'0');"
                     " const per = (document.getElementById('dailyCard')||{innerText:''}).innerText;"
                     " return { me: me, rev: !!localStorage.getItem(dk),"
                     "        per: per.includes('你的日主') }; }")
@@ -607,11 +617,13 @@ def main() -> int:
             errors.clear()
             try:
                 page.evaluate(
-                    "() => { localStorage.removeItem("
-                    " 'dailyRevealed:'+new Date().toISOString().slice(0,10));"
+                    "() => { const _iso=function(d){return d.getFullYear()+'-'+"
+                    "  String(d.getMonth()+1).padStart(2,'0')+'-'+"
+                    "  String(d.getDate()).padStart(2,'0')};"
+                    " localStorage.removeItem('dailyRevealed:'+_iso(new Date()));"
                     " const _y=new Date(); _y.setDate(_y.getDate()-1);"
                     " localStorage.setItem('visits', JSON.stringify("
-                    " [_y.toISOString().slice(0,10)])); }")
+                    " [_iso(_y)])); }")
                 page.reload(wait_until="load")
                 page.wait_for_timeout(1800)
                 st = page.evaluate(
@@ -642,6 +654,44 @@ def main() -> int:
                 try:
                     page.evaluate("localStorage.removeItem('me');"
                                   "localStorage.removeItem('visits')")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3249b（UX-AUDIT B3）：日卡情绪接应行——点「和小满说两句」
+            # → chatOpen 拉侧栏 + 开场白预填进输入框。chatSend 桩掉
+            # （发送链路走 e2e/危机词用例），只钉「点了会接应」的接线。
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => { window.__origCS = window.chatSend;"
+                    " window.chatSend = function(){}; }")
+                page.wait_for_selector('#dailyMood', timeout=8000)
+                page.click('#dailyMood')
+                page.wait_for_timeout(600)
+                st = page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " const inp = document.getElementById('chatInput');"
+                    " return { open: !!(sb && sb.classList.contains('open')),"
+                    "   msg: !!(inp && inp.value && inp.value.length >= 4) }; }")
+                ok = st["open"] and st["msg"] and not errors
+                results.append({"name": "ui:daily_mood", "ok": ok,
+                                "detail": ("侧栏开=%s 开场白预填=%s"
+                                           % (st["open"], st["msg"]))})
+            except Exception as exc:
+                results.append({"name": "ui:daily_mood", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate(
+                        "() => { if (window.__origCS)"
+                        " window.chatSend = window.__origCS; }")
+                    # 关栏必须走 recentClose——chatOpen 给主区打过
+                    # _mainInert(true)，手动摘 open 类不复位 inert，
+                    # 后续一切主区点击全部超时（曾因此级联挂 13 例）。
+                    page.click('#recentClose', timeout=3000)
+                    page.wait_for_timeout(300)
                 except Exception:
                     pass
             if errors:
@@ -1111,6 +1161,101 @@ def main() -> int:
                     "() => { const sb = document.getElementById('recentSidebar');"
                     " if (sb) sb.classList.remove('collapsed'); }")
                 page.wait_for_timeout(200)
+
+            # R3249e（UX-AUDIT C·塔罗）：三档快捷钮——抽一张/抽三张走
+            # doTarot 真抽，自己抽开牌扇。新客不碰牌阵下拉的路径钉住。
+            errors.clear()
+            try:
+                goto_view('tarot')
+                page.click('#trQ1')
+                page.wait_for_timeout(1800)
+                _q1 = page.evaluate(
+                    "(document.getElementById('trResult').innerText||'')"
+                    ".length")
+                page.click('#trQ3')
+                page.wait_for_timeout(1800)
+                _q3 = page.evaluate(
+                    "(document.getElementById('trResult').innerText||'')"
+                    ".length")
+                page.evaluate(
+                    "() => { const p = document.getElementById('trPickPanel');"
+                    " if (p) p.style.display = 'none'; }")
+                page.click('#trQPick')
+                page.wait_for_timeout(600)
+                _fan = page.evaluate(
+                    "() => { const p = document.getElementById('trPickPanel');"
+                    " return { open: !!(p && p.style.display === 'block'),"
+                    "   backs: document.querySelectorAll("
+                    "    '#trPickFan .tr-back').length }; }")
+                ok = (_q1 > 60 and _q3 > 60
+                      and _fan["open"] and _fan["backs"] == 22
+                      and not errors)
+                results.append({
+                    "name": "ui:tarot.quick",
+                    "ok": ok,
+                    "detail": ("一张=%d字 三张=%d字 扇开=%s 背=%d"
+                               % (_q1, _q3, _fan["open"],
+                                  _fan["backs"]))})
+            except Exception as exc:
+                results.append({"name": "ui:tarot.quick", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                # 同 tarot.pick：goto_view 会把侧栏收成 collapsed——
+                # 摘不归还的话后续 recentToggle 点不到（open+collapsed
+                # 叠加态：遮罩拉开、抽屉本体却在视口外）。
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3249i（UX-AUDIT D·轻测试前门）：五行人格——填年月日
+            # → rgSubmit 出人设卡 → rgFull 回填跳完整排盘。
+            # rgPoster 走 downloadPoster 海报模态（同 share* 族豁免）。
+            errors.clear()
+            try:
+                goto_view('renge')
+                for _k, _v in (("rg_year", "1998"), ("rg_month", "8"),
+                               ("rg_day", "12")):
+                    page.fill(f"#{_k}", _v)
+                page.click('#rgSubmit')
+                page.wait_for_selector('#rgResult .renge-card',
+                                       timeout=15000)
+                _nick = page.evaluate(
+                    "!!document.querySelector('#rgResult .renge-nick')")
+                page.click('#rgFull')
+                page.wait_for_selector('#view-bazi.active', timeout=8000)
+                page.wait_for_timeout(1800)
+                _bz = page.evaluate(
+                    "(document.getElementById('result').innerText||'')"
+                    ".length")
+                ok = _nick and _bz > 60 and not errors
+                results.append({
+                    "name": "ui:renge",
+                    "ok": ok,
+                    "detail": ("人设卡昵称=%s 跳排盘结果=%d字"
+                               % (_nick, _bz))})
+            except Exception as exc:
+                results.append({"name": "ui:renge", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
             # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
             try:
