@@ -2074,12 +2074,20 @@ function _chatRetrySend(msg, ty, sid0) {
   });
 }
 
+/* R3241：等待文案轮换池——推理模型首包 ~40s，一句静态文案
+ * 看两遍就又是干等；每个轮询 tick 换一句。 */
+var _WAIT_NOTES = ['小满正在翻书…', '把你的盘摊开再看看…',
+  '在想怎么回你最贴心…', '快了快了，在挑词儿…',
+  '小满在掐指算着呢…', '再翻一页就有答案了…'];
 function _pollChatReply(tid, ty, sid0, action, msg) {
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;
   var _queueCap = performance.now() + 90000;
   var _wait = AI_POLL_INTERVAL_MS;
+  var _wnI = 0;
   var tick = function () {
     if (sid0 !== chatSid()) return;   /* 换过 sid 的旧任务落地即弃 */
+    var _wn = ty && ty.querySelector && ty.querySelector('.chat-wait-note');
+    if (_wn) _wn.textContent = _WAIT_NOTES[(++_wnI) % _WAIT_NOTES.length];
     if (_aiPollGate()) {              /* 后台/断网暂停取数，预算照走 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
       else _chatFailInto(ty, 'net', msg, sid0);
@@ -6257,8 +6265,6 @@ var _QM_STYLES = {
   'all':      { label: '综合',     hint: '全部候选池' }
 };
 /* D-004：换一批不重复——候选池 + 已显示集合，循环一轮后才重复 */
-/* D-004：批次偏移——每次换一批 +8，循环一轮后才重复 */
-var _qmBatchOffset = 0;
 /* R230j（R22-P1-1）：chip 点击路径不在 on() 在途锁内，连点会发并发
  * POST /api/qiming——补一把同式在途锁。 */
 var _qmBusy = false;
@@ -6274,7 +6280,6 @@ var _qmSeed = 1;
 function _qmSwitchStyle(style) {
   if (!_QM_STYLES[style] || _qmBusy) return;   /* R230j：chip 连点在途锁 */
   _QM_STYLE = style;
-  _qmBatchOffset = 0;
   /* R228d：不等 doQiming 重渲就先把 chip 态同步——点击与读屏反馈即时 */
   var root = el('qmResult');
   if (root) root.querySelectorAll('.qm-style-chip').forEach(function (c) {
