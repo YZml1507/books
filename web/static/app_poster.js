@@ -74,7 +74,9 @@ function _paintPoster(j, W, H) {
   ctx.fillText('🔮 今日命盘', 540, 130);
 
   // 四柱 pills
-  var pillars = String(paipan.render || '').split(/\s+/).filter(function (p) { return p.length >= 2; });
+  /* R3235：时辰未知盘第 4 柱是默认午时——海报同卡面换「时辰未知」，
+   * _pillarsHonest 在 app.js（本 chunk 懒加载在其后）。 */
+  var pillars = String(_pillarsHonest(paipan.render, j && j.hour_known) || '').split(/\s+/).filter(function (p) { return p.length >= 2; });
   ctx.font = '500 44px "LXGW WenKai","Noto Serif TC",serif';
   pillars.slice(0, 4).forEach(function (p, i) {
     var pw = 220, gap = 24;
@@ -852,7 +854,7 @@ function buildShareData(view, j) {
        * 且印明文生日本就是隐私面倒退，直接收成日期兜底。 */
       var _birSub = _cnDateSub(todayIso());
       var _bir = base('我的本命盘', _birSub);
-      var _bp = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
+      var _bp = String(_pillarsHonest(((j && j.paipan) || {}).render, (j || {}).hour_known) || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
       var _bec = (w && w.energy_card) || {};
       _bir.big = _bsign ? ('你是 ' + _bsign + '座') : (l0 || '本命已就位');
       _bir.lines = [];
@@ -970,7 +972,7 @@ function buildShareData(view, j) {
     }
     case 'bazi': {
       var sb = base('今日命盘', '');
-      var pillars = String(((j && j.paipan) || {}).render || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
+      var pillars = String(_pillarsHonest(((j && j.paipan) || {}).render, (j || {}).hour_known) || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
       var ec = (w && w.energy_card) || {};
       sb.big = l0 || '本命已就位';
       sb.lines = [];
@@ -1225,7 +1227,8 @@ function _posterTextCollect(s) {
       /* 旧版式（无 j.share）走 bazi 专属模板：四柱 pills + one_liner +
        * 能量卡行——巳/壬/酉这些支干字最容易踩豆腐块。 */
       var _w = s.warm || {}, _pp = s.paipan || {}, _e = _w.energy_card || {};
-      t += _pStr(_pp.render) + _pStr(_w.one_liner);
+      /* R3235：字体预载文案与画面同源——时辰未知不预载默认午时的支干字。 */
+      t += _pStr(_pillarsHonest(_pp.render, (s._src || s).hour_known)) + _pStr(_w.one_liner);
       t += _pStr(_e.element) + _pStr(_e.element_warm);
       ['lucky_colors', 'lucky_numbers', 'lucky_hours', 'basis'].forEach(function (f) {
         (_pArr(_e[f])).forEach(function (x) { t += _pStr(x); });
