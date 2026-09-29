@@ -1485,6 +1485,15 @@ function rememberResult(viewKey, json, question, body) {
   } catch (e) {}
   /* R233r（R49-P3-2）：新结果落地顺带刷新空态 chips 语境。 */
   try { _chatChipsPersonalize(); } catch (e) {}
+  /* R3242e（实测缺口）：台账 dirty 广播此前只在 bazi 提交路径发——
+   * 桃花/合婚/塔罗/六爻/起名/解梦出新结果，别页历史视图拿不到
+   * 即时失效（留死入口）。品类即 _PH_BUILDERS 键集的统一收口。 */
+  try {
+    if (_PH_BUILDERS[viewKey] && window.BroadcastChannel) {
+      var _bcp = new BroadcastChannel('paipan_history');
+      _bcp.postMessage('dirty'); _bcp.close();
+    }
+  } catch (eBC) {}
   /* R3153（specs/014-L1+）：跨日卡片记忆——用户主动去测的卡留一
    * 条「哪天·哪面·问什么·判词短句」在本机，隔日回来聊小满能对上
    * 「你前天测的那盘」。daily/xingzuo 是自动拉取不算「她去测」，
@@ -5635,13 +5644,8 @@ async function submitBazi(event) {
     rememberVoice('result', j, buildBaziResult, _rbBazi);
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
-    /* R230n续（R23-P3-6）：排盘成功广播脏标——其他 tab 的历史列表即时失效。 */
-    try {
-      if (window.BroadcastChannel) {
-        var _bc = new BroadcastChannel('paipan_history');
-        _bc.postMessage('dirty'); _bc.close();
-      }
-    } catch (e) {}
+    /* R230n续（R23-P3-6）→ R3242e：dirty 广播收口进 rememberResult
+     * 按 _PH_BUILDERS 品类统一发——七类结果全品类即时失效。 */
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     _rbBazi();   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
