@@ -1253,12 +1253,16 @@ function typewriteInto(node, text, onDone) {
   } catch (e) {}
   var finish = function () {
     node.classList.remove('tw-typing');
+    node.removeAttribute('aria-busy');   /* R3242c：终态放行朗读 */
     if (onDone) onDone();
   };
   if (rm || full.length < 8) { finish(); return function () {}; }
   if (node._twCancel) { try { node._twCancel(); } catch (eC) {} }
   var i = 0, stopped = false;
   node.classList.add('tw-typing');
+  /* R3242c：chatFlow 是 aria-live=log 区——逐字 textContent 更新
+   * 会让读屏逐字轰炸。打字期挂 aria-busy，终态一次性朗读。 */
+  node.setAttribute('aria-busy', 'true');
   /* 长文封顶 ~5s：30ms/字起步，超长自适应加速（中文 200 字约 4s）。 */
   var step = Math.max(10, Math.min(30, Math.round(5000 / full.length)));
   var flow = el('chatFlow');
@@ -1275,6 +1279,7 @@ function typewriteInto(node, text, onDone) {
   var cancel = function () {
     stopped = true;
     node.classList.remove('tw-typing');
+    node.removeAttribute('aria-busy');
   };
   node._twCancel = cancel;
   setTimeout(tick, step);
