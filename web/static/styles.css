@@ -397,6 +397,19 @@ select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
   .da-title{font-size:12px;}
   input.da-in, select.da-cal{font-size:16px;}
 }
+/* R3233（循环优化-2）：320 窄屏/矮视口补偿——表单折两行后 54vh 卡帽
+ * 把按钮裁掉（320×700 实测出卡 18px；390×568 短机同理）。带表单的
+ * 封套帽放宽到 66vh、熊/顶距/表单内边距再收一档；不带表单不受影响。 */
+@media (max-width:600px) and (max-height:700px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask){
+    max-height:min(66vh, 560px);}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
+    padding-top:min(5vh, 30px); gap:6px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
+    width:88px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
+    padding:8px 10px;}
+}
 .da-leapw{display:inline-flex; align-items:center; gap:4px; font-size:13px;
   color:var(--secondary); margin:0; min-height:40px; cursor:pointer;}
 .da-leapw input{width:auto; min-height:0; margin:0;}

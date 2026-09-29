@@ -484,8 +484,9 @@ function buildHehunResult(j) {
    * 数据零删减，想看的一眼展开；此前只在 pro 开关下可见。 */
   {
     var _hhpills =
-      (j.a_bazi && j.a_bazi.render ? '<span class="pill">A 四柱：' + esc(j.a_bazi.render) + '</span>' : '') +
-      (j.b_bazi && j.b_bazi.render ? '<span class="pill">B 四柱：' + esc(j.b_bazi.render) + '</span>' : '') +
+      /* R3233：时辰留空侧第 4 柱显示「时辰未知」不显示默认午时。 */
+      (j.a_bazi && j.a_bazi.render ? '<span class="pill">A 四柱：' + esc(_pillarsHonest(j.a_bazi.render, val('hh_a_hour') !== '')) + '</span>' : '') +
+      (j.b_bazi && j.b_bazi.render ? '<span class="pill">B 四柱：' + esc(_pillarsHonest(j.b_bazi.render, val('hh_b_hour') !== '')) + '</span>' : '') +
       (j.day_zhi_rel ? '<span class="pill">日支关系：' + esc(j.day_zhi_rel) + '</span>' : '') +
       (j.nayin_rel ? '<span class="pill">纳音：' + esc(j.nayin_rel) + '</span>' : '') +
       (j.god_a_sees_b ? '<span class="pill">十神互见：' + esc(j.god_a_sees_b) + ' ↔ ' + esc(j.god_b_sees_a || '') + '</span>' : '');
@@ -691,8 +692,11 @@ function buildTaohuaResult(j) {
   html += '<div class="pill-row">';
   ['year', 'month', 'day', 'hour'].forEach(function (k, i) {
     if (bz[k]) {
+      /* R3233：时辰留空时第 4 柱是默认午时——pill 上诚实标
+       * 「时辰未知」，不拿默认当用户的时辰看。 */
+      var _pl = (k === 'hour' && val('th_hour') === '') ? '时辰未知' : bz[k];
       html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
-        esc(bz[k]) + '</span>';
+        esc(_pl) + '</span>';
     }
   });
   html += '</div>';
@@ -785,7 +789,7 @@ function buildQimingResult(j) {
   if (_qc.length) {
     html += '<details class="warm-basis warm-pro-fold"><summary>📐 候选池原表（' +
       Math.min(_qc.length, 60) + ' 字，展开看五行与出处）</summary>' +
-      (bz.render ? '<p class="paipan-line">' + esc(bz.render) + '</p>' : '') +
+      (bz.render ? '<p class="paipan-line">' + esc(_pillarsHonest(bz.render, val('qm_hour') !== '')) + '</p>' : '') +
       '<div class="table-scroll"><table class="works"><thead><tr><th>字</th><th>五行</th><th>出处</th><th>释义</th></tr></thead><tbody>';
     _qc.slice(0, 60).forEach(function (c) {
       html += '<tr><td>' + esc(_pStr(c.char)) + '</td><td>' + esc(_pStr(c.element)) +
@@ -2992,6 +2996,17 @@ const MODULE_COLORS = ['var(--c-bazi)', 'var(--c-book)', 'var(--c-tarot)',
 
 function colorAt(i) {
   return MODULE_COLORS[i % MODULE_COLORS.length];
+}
+
+/* R3233（循环优化-2）：时辰未知的盘，四柱渲染仍画「x午时」——默认午时
+ * 长得跟真时辰一模一样，用户会当成自己的时辰。渲染层统一把第 4 柱
+ * 换成「时辰未知」，事实层（后端排盘/十神）不动；hourKnown 只认
+ * false 才换（undefined/true 一律原样，默认不缺显示）。 */
+function _pillarsHonest(render, hourKnown) {
+  if (hourKnown !== false) return render || '';
+  var _t = String(render || '').split(/\s+/);
+  if (_t.length >= 4 && /时$/.test(_t[3])) _t[3] = '时辰未知';
+  return _t.join(' ');
 }
 
 /* ── 视图切换 ──────────────────────────────────────────────── */
@@ -5269,7 +5284,8 @@ function buildBaziResult(j) {
     }
     html += '<details class="paipan-fold"><summary>看看你的生辰小卡</summary>' +
       '<div class="pill-row">';
-    String(paipan.render || '').split(/\s+/).forEach(function (p, i) {
+    /* R3233：时辰未知盘第 4 柱画「时辰未知」pill，不画默认午时。 */
+    String(_pillarsHonest(paipan.render, j.hour_known)).split(/\s+/).forEach(function (p, i) {
       if (p.length >= 2) {
         html += '<span class="pill" style="background:' + colorAt(i) + ';">' +
           esc(p) + '</span>';
@@ -10809,7 +10825,15 @@ function init() {
         _ask.remove();
       } else {
         _ask.addEventListener('click', function (e) { e.stopPropagation(); });
-        _ask.addEventListener('keydown', function (e) { e.stopPropagation(); });
+        _ask.addEventListener('keydown', function (e) {
+          e.stopPropagation();
+          /* R3233：表单不在 <form> 里，输入框内 Enter 不会提交——
+           * 键盘党补一条：Enter 直接当点了「包好我的礼物」。 */
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            _dailyAskGo(_ask);
+          }
+        });
         var _calEl = _ask.querySelector('.da-cal');
         var _leapW = _ask.querySelector('.da-leapw');
         if (_calEl && _leapW) {
@@ -10943,7 +10967,13 @@ function init() {
         if (!_cj || !_cj.solar) throw new Error('农历没换算成');
         sy = _cj.year; sm = _cj.month; sd = _cj.day;
       }
-      _meSave('me', { y: sy, m: sm, d: sd, h: h });
+      _meSave('me', { y: sy, m: sm, d: sd, h: h,
+        /* R3233：与主表单同口径——档案记公历坐标+农历原值标注，
+         * 小档案条「（农历x年x月x日）」才有据。 */
+        lunar: (cal === 'lunar')
+          ? ('农历' + y + '年' + m + '月' + d + '日' +
+             (leap ? '（闰）' : ''))
+          : null });
       /* 日卡重拉带 bday → personal 专属判词行；落地后再拆礼物，
        * 揭开的就是「你的」卡。 */
       await loadDaily();
@@ -14001,7 +14031,7 @@ function baziPersonaCard(j) {
         '.jpg" alt="" onerror="this.classList.add(\'is-missing\')">' +
         '<div><div class="birth-sign">你是' + esc(sign) + '座</div>' +
         '<div class="birth-sub">' + esc(SIGN_TXT[sign] || '') + '</div></div></div>';
-      html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(pp) + '</span></div>';
+      html += '<div class="birth-block"><span class="birth-label">你的四柱</span><span class="birth-val">' + esc(_pillarsHonest(pp, j.hour_known)) + '</span></div>';
       html += '<div class="birth-block"><span class="birth-label">五行分布</span><span class="birth-val">' + esc(wxLine || '—') + (missing.length ? '　<strong>缺 ' + esc(missing.join('')) + '</strong>' : '　五行不缺') + wxNote + '</span></div>';
       /* R3232（用户实测）：填了生辰几时，解读里此前一个字不提——
        * 后端 warm.reply 的时柱行（R3232 新增）在这格里上卡，
