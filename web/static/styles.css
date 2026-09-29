@@ -375,8 +375,20 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 露出来，实测 390×844 / 1280×900 两档卡缘都曾裁掉按钮。 */
 .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
   padding-top:min(3.5vh, 30px); gap:8px;}
+@media (min-width:768px){
+  /* R3237：桌面档带表单时 44vh 帽不够（1024×768 实测按钮出卡）——
+   * 50vh 仍保宫格露头信号。 */
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask){
+    max-height:min(52vh, 470px);}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
+    padding:8px 8px;}
+}
+/* R3237：性别下拉入列后表单折两行——熊再收一档把按钮留回卡内
+ * （1280×900 实测出卡 14px）。 */
 .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-  width:112px;}
+  width:96px;}
+.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
+  margin-bottom:6px;}
 @media (max-width:600px){
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
     width:104px;}
@@ -391,11 +403,11 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 input.da-in{width:auto; flex:0 1 62px; min-width:52px;
   padding:8px 6px; min-height:40px; text-align:center;}
 input.da-in[data-k="h"]{flex-basis:96px;}
-select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
+select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
 @media (max-width:600px){
   .daily-ask{max-width:94%; padding:8px 10px;}
   .da-title{font-size:12px;}
-  input.da-in, select.da-cal{font-size:16px;}
+  input.da-in, select.da-cal, select.da-gender{font-size:16px;}
 }
 /* R3233（循环优化-2）：320 窄屏/矮视口补偿——表单折两行后 54vh 卡帽
  * 把按钮裁掉（320×700 实测出卡 18px；390×568 短机同理）。带表单的

@@ -10981,7 +10981,9 @@ function init() {
         if (!_cj || !_cj.solar) throw new Error('农历没换算成');
         sy = _cj.year; sm = _cj.month; sd = _cj.day;
       }
+      var _gEl = node.querySelector('.da-gender');
       _meSave('me', { y: sy, m: sm, d: sd, h: h,
+        g: (_gEl && _gEl.value === '男') ? '男' : '女',
         /* R3233：与主表单同口径——档案记公历坐标+农历原值标注，
          * 小档案条「（农历x年x月x日）」才有据。 */
         lunar: (cal === 'lunar')

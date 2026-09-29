@@ -279,6 +279,11 @@ try {
           <input class="da-in" data-k="h" type="number" inputmode="numeric"
                  min="0" max="23" placeholder="时辰·可空" aria-label="出生时辰（可留空）"
                  title="出生时辰，不知道可留空">
+          <!-- R3237：性别随档案落档——感情类解读/合婚回填都用得到，
+               不缺省一次。类名单独立（.da-cal 是历法定位锚）。 -->
+          <select class="da-gender" data-k="g" aria-label="性别">
+            <option value="女">女</option><option value="男">男</option>
+          </select>
           <select class="da-cal" aria-label="历法">
             <option value="solar">公历</option><option value="lunar">农历</option>
           </select>
