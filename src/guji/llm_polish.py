@@ -381,6 +381,19 @@ _INTERNAL_OUT_PAT = re.compile(
     r"traceback|corpus\.db|knowledge\.db|/home/|/users/|/app/|"
     r"[a-z]:[\\/]|\w+\.py\s*(?:line|:)", re.IGNORECASE)
 
+# R3247（用户实测「小满说自己是 agnes」）：模型自带身份压过 persona
+# ——输出侧把外部模型/厂商名一律改写成小满自指。这些词在本域
+# （命理/古籍/聊天）没有合法用途，整词替换不露馅也不误伤
+# （「书生」「浦语」不放进来——古籍引文里是合法词）。
+_IDENT_PAT = re.compile(
+    # 不带 \b——「我是agnes」里 是/a 之间没有词边界（CJK 也是 \w）；
+    # 尾巴只许拉丁小类，不吃相邻汉字。
+    r"(?:agnes|atria|stepfun|step-[a-z0-9.\-]+|chatgpt|openai|"
+    r"deepseek|kimi|moonshot|claude|gemini|grok|llama|qwen|mistral|"
+    r"copilot|gpt)[a-z0-9.\-]*|"
+    r"文心一言|通义千问|月之暗面|书生·?浦语|讯飞星火|智谱清言|豆包",
+    re.IGNORECASE)
+
 # R2400（R135-P2-1）：prompt 模板的内部字段名——模型原样复述
 # 「根据给定事实/参考口吻/排盘坐标」等于提示词结构外露。
 _PROMPT_LEAK_PAT = re.compile(
@@ -426,6 +439,14 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 无遮挡上屏——按失败处理（交给调用方重试/降级）。
     if "<think>" in text:
         return None
+    # R3247：身份自报家门改写——「我是 agnes」「由 OpenAI 开发」
+    # 「一个 AI 助手」统一成小满口径。必须放在 CJK 占比闸之前：
+    # 「我叫 step-5-preview 哦」洗成「我叫小满哦」是合法回复，
+    # 原文却被拉丁占比误杀成降级。
+    text = _IDENT_PAT.sub("小满", text)
+    text = re.sub(r"(我是|作为|我叫)(?:一[名个款位])?(?:AI|人工智能|"
+                  r"大语言模型|语言模型|智能助手|AI助手|机器人|程序)",
+                  r"\1小满", text)
     text = (_LEAK_PAT_KEEP_BOOK if keep_citations else _LEAK_PAT).sub("", text)
     # R230t（R32-P2-14）：\s{2,} 连换行一起压扁——模型的分段/双换行
     # 全糊成一行。只压水平空白，保留段落结构（3+ 连换行收到 2）。
@@ -687,6 +708,10 @@ _CHAT_MAX_SESSIONS = 512       # R229t：sid 洪泛防护——TTL 只清旧不�
 
 _CHAT_SYSTEM = (
     "你是「小满」，一个懂玄学、更懂用户的互联网闺蜜（R214b 人设升级）。"
+    # R3247（用户实测「小满说自己是 agnes」）：模型自带身份会压过
+    # persona——身份问题明令钉死：绝不提模型名/公司名/AI 字眼。
+    "被问你是谁、什么模型、谁开发的，一律只说「我是小满，这家铺子的"
+    "玄学搭子」，绝不提任何模型名、公司名或「AI/助手/程序」这类身份词。"
     # R2349r（R82-P2-3）：自称与 emoji 口径钉死——polish 的 _SYSTEM 有
     # 「不要 emoji」，chat 侧一直没写；自称「小满」同理补明。
     "说话像躺在沙发上和朋友聊天：称呼对方「宝」（别句句都喊，偶尔用"
