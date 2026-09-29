@@ -93,3 +93,7 @@ build/
 # v2-v5 落库登记：排盘历史运行库 + 会话临时目录（非项目产物，不入库）
 data/paipan_history.db
 Temp/
+
+# 本地 e2e 测试用字体（从 starloom-main zip 提取；仅浏览器中文字形用，
+# 不入库——二进制无 LFS 规则覆盖 *.ttf）
+data/external/starloom/
