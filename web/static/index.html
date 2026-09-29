@@ -288,8 +288,11 @@ try {
             <option value="solar">公历</option><option value="lunar">农历</option>
           </select>
           <label class="da-leapw" hidden><input class="da-leap" type="checkbox"> 闰月</label>
+          <!-- R3241（用户实测）：按钮进 da-row——此前独占一行，
+               360×640 档落到视口外「找不到确认键」。随行排布后
+               窄屏仍在卡内且行内可及。 -->
+          <button class="da-btn" type="button">包好我的礼物 🎁</button>
         </div>
-        <button class="da-btn" type="button">包好我的礼物 🎁</button>
       </div>
     </div>
   </div>

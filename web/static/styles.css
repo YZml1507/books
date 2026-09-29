@@ -400,9 +400,11 @@ button, input, select, textarea{ font-family:var(--font-sans); }
 /* input.da-in（元素+类）与全局 input[type=number] 同权重、靠后赢，
  * 不砸 !important——iOS <16px 聚焦缩放风险由 14px→16px 桌面无碍，
  * 窄屏档保持 16px。 */
-input.da-in{width:auto; flex:0 1 62px; min-width:52px;
+input.da-in{width:auto; flex:0 1 56px; min-width:48px;
   padding:8px 6px; min-height:40px; text-align:center;}
-input.da-in[data-k="h"]{flex-basis:96px;}
+/* R3241：时辰框「时辰·可空」5 字 @16px ≈ 92px——basis 96 收缩后
+ * 实测截掉「空」字，提 basis+min-width 双保险。 */
+input.da-in[data-k="h"]{flex-basis:104px; min-width:100px;}
 select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
 @media (max-width:600px){
   .daily-ask{max-width:94%; padding:8px 10px;}
@@ -416,18 +418,48 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask){
     max-height:min(66vh, 560px);}
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
-    padding-top:min(5vh, 30px); gap:6px;}
+    padding-top:min(4vh, 24px); gap:4px;}
+  /* R3241（用户实测「没有确认按钮」）：360×640 档按钮沉在视口外
+   * ——熊再缩一档、装饰副文案让位，CTA 回到首屏。 */
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-    width:88px;}
+    width:64px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover-sub{
+    display:none;}
   .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
-    padding:8px 10px;}
+    padding:6px 8px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
+    margin-bottom:4px;}
+}
+/* R3241：超矮档（320×568 实测 CTA 仍差 56px）——熊收 48px、顶距再
+ * 压、控件行高 36px，确认键必须回首屏。 */
+@media (max-width:380px) and (max-height:600px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
+    padding-top:min(2vh, 12px); gap:2px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
+    width:48px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover-txt{
+    font-size:13px; margin:2px 0;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
+    font-size:11px; margin-bottom:2px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) input.da-in,
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) select.da-cal,
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) select.da-gender,
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-btn{
+    min-height:36px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-btn{
+    padding:4px 10px; font-size:13px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
+    margin-top:0; padding:4px 8px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-row{
+    gap:4px;}
 }
 .da-leapw{display:inline-flex; align-items:center; gap:4px; font-size:13px;
   color:var(--secondary); margin:0; min-height:40px; cursor:pointer;}
 .da-leapw input{width:auto; min-height:0; margin:0;}
-/* 只收尺寸——配色沿用全局 CTA 玫瑰渐变，与「拆开」动作同族。 */
-.da-btn{margin:8px auto 0; display:block; min-height:40px;
-  padding:8px 18px; font-size:14px;}
+/* 只收尺寸——配色沿用全局 CTA 玫瑰渐变，与「拆开」动作同族。
+ * R3241：按钮进 da-row——行内弹性生长吃满剩余位（窄屏自动折成
+ * 整行 CTA，仍高可见），不再独占一行把表单撑出视口。 */
+.da-btn{flex:1 1 120px; min-height:40px; padding:8px 14px; font-size:14px;}
 /* 缎带（mini 回访）态：R3235 表单挪出缎带成卡内独立块。 */
 .daily-ask.is-loose{margin:12px auto 6px;}
 
@@ -540,6 +572,8 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
 /* R3234（循环优化-3）：个性判词粒与通用信息粒同底同边一眼分不出——
  * 「你的日主×今天」带蜜桃浅衬+强调描边，扫读时先看到「这是给你的」。 */
+/* R3241：生辰回显行——判词粒尾注，比普通副行再淡一档 */
+.daily-bday{font-size:12px; opacity:.72;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
@@ -779,6 +813,16 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
  * 空定义仅防旧引用报错，DOM 中已无该段。 */
 
 /* AI 回复等待动效：三点跳动 */
+/* R3241：逐字输出光标——打字中的节点尾挂闪烁竖线，
+ * 「小满正在说」的可见心跳；reduced-motion 下不出现（直接终态）。 */
+.tw-typing::after{
+  content:'▍'; display:inline-block; margin-left:2px;
+  color:var(--primary-ink); font-size:.9em;
+  animation:tw-caret .9s steps(1) infinite;}
+@keyframes tw-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  .tw-typing::after{content:none; animation:none;}
+}
 .chat-typing{display:inline-flex; gap:5px; align-items:center;}
 .chat-typing i{
   width:7px; height:7px; border-radius:50%;

@@ -882,13 +882,15 @@ function buildQimingResult(j) {
       html += '</div>';
     });
     html += '</div>';
-    /* R218a-04：「换一批」总入口——按当前风格顺位 +1 重新选 8 个 */
-    var _next = ({'classics': 'chuci', 'chuci': 'fresh',
-                  'fresh': 'classics', 'all': 'classics'})[_QM_STYLE] || 'classics';
+    /* R3241（用户实测「选项跟换一批不联动」）：按钮文案原来写
+     * 的是**下一个轮换风格**（点进去其实还是当前风格的下一批，
+     * 标签撒谎）——风格由上面四枚 chip 单选表达，换一批应该
+     * 明示「在当前风格里换」。 */
+    var _cur = (_QM_STYLES[_QM_STYLE] || {}).label || '综合';
     html += '<div class="qm-refresh-row">' +
       '<button class="chat-entry" type="button" id="qmRefreshBtn" ' +
-      'title="按 ' + esc(_QM_STYLES[_next].label) + ' 风格再来 8 个">' +
-      '🔄 换一批（' + esc(_QM_STYLES[_next].label) + '）</button>' +
+      'title="按当前「' + esc(_cur) + '」风格再来 8 个">' +
+      '🔄 换一批（' + esc(_cur) + '）</button>' +
       '<span class="qm-refresh-hint" id="qmRefreshHint"></span>' +
       '</div>';
   }
@@ -1222,8 +1224,61 @@ function insertAiPolish(containerId, text) {
    * 凭空多一块——入场动画 + 轻 toast 提示。 */
   block.classList.add('ai-arrive');
   node.appendChild(block);
+  /* R3241（用户实测）：AI 正文逐字蹦——打字中只出纯文本，
+   * 打完换回富文本终态（防 markdown 半截标签）。 */
+  var _pt = block.querySelector('.ai-polish-text');
+  if (_pt) {
+    var _plain = String(text || '');
+    _pt.textContent = '';
+    typewriteInto(_pt, _plain, function () {
+      _pt.innerHTML = renderRichText(_plain);
+    });
+  }
   showToast('小满又补了一句 ✦', 'info');
   return true;
+}
+
+/* R3241（用户实测「一次性给全像卡住」）：AI 文本逐字 reveal——
+ * HTTP 是一次性回包，打字机是放映层：逐字上屏 + 闪烁光标，
+ * 用户在等待也有盼头。打完才上富文本终态（防 ** 标记裸奔）。
+ * prefers-reduced-motion 与超短文本直接终态。
+ * 返回 cancel——新写回（重试/新一轮）先调它止旧打字。 */
+function typewriteInto(node, text, onDone) {
+  if (!node) return function () {};
+  var full = String(text || '');
+  var rm = false;
+  try {
+    rm = !!(window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) {}
+  var finish = function () {
+    node.classList.remove('tw-typing');
+    if (onDone) onDone();
+  };
+  if (rm || full.length < 8) { finish(); return function () {}; }
+  if (node._twCancel) { try { node._twCancel(); } catch (eC) {} }
+  var i = 0, stopped = false;
+  node.classList.add('tw-typing');
+  /* 长文封顶 ~5s：30ms/字起步，超长自适应加速（中文 200 字约 4s）。 */
+  var step = Math.max(10, Math.min(30, Math.round(5000 / full.length)));
+  var flow = el('chatFlow');
+  var tick = function () {
+    if (stopped) return;
+    i++;
+    node.textContent = full.slice(0, i);
+    if (flow && node.closest('#chatFlow')) {
+      flow.scrollTop = flow.scrollHeight;   /* 边打边跟滚 */
+    }
+    if (i < full.length) { setTimeout(tick, step); return; }
+    finish();
+  };
+  var cancel = function () {
+    stopped = true;
+    node.classList.remove('tw-typing');
+  };
+  node._twCancel = cancel;
+  setTimeout(tick, step);
+  return cancel;
 }
 
 /** 轮询 AI 任务直到终态/超时；任何错误静默停止（D-244a：失败不可见）。 */
@@ -1966,6 +2021,7 @@ function _chatActChip(bubble, action) {
  * 挂「再发一次」钮——点击原样重发同一句，不需要用户重打一遍。 */
 function _chatFailInto(ty, kind, msg, sid0) {
   if (!ty) return;
+  if (ty._twCancel) { try { ty._twCancel(); } catch (eT) {} }   /* R3241：止旧打字防覆盖 */
   var _txt = {
     fail: '（小满刚才走神了，这句没接住。别重打，点下面再来一次～）',
     gone: '（刚才那句在路上丢了，服务歇了一下。点下面让小满再听一遍～）',
@@ -1990,6 +2046,7 @@ function _chatFailInto(ty, kind, msg, sid0) {
  * 不计入 _CHAT_SEND_COUNT（同一条消息的补投不是新发）。 */
 function _chatRetrySend(msg, ty, sid0) {
   if (!msg || sid0 !== chatSid()) return;
+  if (ty._twCancel) { try { ty._twCancel(); } catch (eT) {} }   /* R3241 */
   ty.innerHTML = '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span>';
   postJSON('/api/chat', {
     session_id: sid0, message: msg,
@@ -2025,10 +2082,14 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
       if (st && st.status === 'done' && st.text) {
         _chatBootNote(st, ty);       /* 重启失忆插分隔 */
         _chatFreshNote(st, ty);      /* TTL 回收分隔 */
-        ty.innerHTML = renderRichText(st.text);
-        _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
+        /* R3241：回复逐字蹦——打完再换富文本终态+路标 chip。
+         * transcript 立即存全量（存档不受放映影响）。 */
+        typewriteInto(ty, st.text, function () {
+          ty.innerHTML = renderRichText(st.text);
+          _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
+          if (st.closed) _chatClosedHint(ty);
+        });
         _chatTsSave('ai', st.text, action);   /* R3201：action 随泡入档 */
-        if (st.closed) _chatClosedHint(ty);
         return;
       }
       if (st && st.status === 'failed') {
@@ -2225,8 +2286,13 @@ function pollNameReview(taskId) {
        * 结果写进去也永远看不见。写入前显式翻开。 */
       out.hidden = false;
       if (st && st.status === 'done' && st.text) {
-        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4><p style="white-space:pre-wrap;">' +
-          renderRichText(st.text) + '</p></div>';   /* R227b：esc 会让 ** 原样露出 */
+        /* R3241：点评同样逐字蹦——先纯文本打字，终态换富文本。 */
+        out.innerHTML = '<div class="tarot-deep"><h4>📜 AI 点评</h4>' +
+          '<p style="white-space:pre-wrap;" class="nr-text"></p></div>';
+        var _nrp = out.querySelector('.nr-text');
+        typewriteInto(_nrp, st.text, function () {
+          if (_nrp) _nrp.innerHTML = renderRichText(st.text);
+        });
         _nameReviewDone();
         return;
       }
@@ -4690,11 +4756,26 @@ async function loadDaily() {
       _dailyMetaCap();
     }
     if (j.personal && j.personal.line) {
+      /* R3241（用户实测）：判词粒里把「包的底」显出来——此前只有
+       * 日主×今天，农历用户看不到自己填的生日（档案存的是换算后
+       * 的公历坐标），以为判词认错人。按本地档案原样回显：农历
+       * 原值优先、时辰未知直说。 */
+      var _meP = _meGet('me');
+      var _bdayTxt = '';
+      if (_meP && _meP.y && _meP.m && _meP.d) {
+        _bdayTxt = (_meP.lunar ? _meP.lunar
+                  : (_meP.y + '年' + _meP.m + '月' + _meP.d + '日')) +
+          ' · ' + ((_meP.h != null && _meP.h !== '')
+                   ? (_meP.h + '时生') : '时辰未知');
+      }
       _dailyMetaItem('dailyPersonal',
         '🪞 ' + esc(j.personal.line) +
         (j.personal.year_line
           ? '<br><span style="font-size:12px;opacity:.85;">' +
-            '📅 ' + esc(j.personal.year_line) + '</span>' : ''));
+            '📅 ' + esc(j.personal.year_line) + '</span>' : '') +
+        (_bdayTxt
+          ? '<br><span class="daily-bday">你的生辰 · ' +
+            esc(_bdayTxt) + '</span>' : ''));
     } else {
       /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3） */
       _dailyMetaItem('dailyPersonal',
