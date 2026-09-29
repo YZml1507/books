@@ -12684,9 +12684,13 @@ function _meFillAll() {
   /* R2348（R66-P2）：邀请链落地时受邀者=B 侧=本人——档案源要翻成 me
    * （原写死 me:partner，受邀者存的伴侣档多半就是发起人自己→两侧同盘）。 */
   if (window.__hhInviteMode) {
-    _meFill('me', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender' });
+    /* R3242f：受邀者=B 侧=本人——昵称也该随 me.n 回填（原只填了
+     * 生辰，受邀者每次还得手打自己名字）。 */
+    _meFill('me', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender', n: 'hh_b_name' });
   } else {
-    _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender' });
+    /* R3242f：常态 A 侧=「我」——me.n 回填 hh_a_name（提交侧
+     * a_name 本来就写 me.n，回填不同步会造成「存了却不带」。 */
+    _meFill('me', { y: 'hh_a_year', m: 'hh_a_month', d: 'hh_a_day', h: 'hh_a_hour', g: 'hh_a_gender', n: 'hh_a_name' });
     /* R3161：昵称随档案回填——R3160 存的 TA 昵称再测合婚不丢。 */
     _meFill('me:partner', { y: 'hh_b_year', m: 'hh_b_month', d: 'hh_b_day', h: 'hh_b_hour', g: 'hh_b_gender', n: 'hh_b_name' });
   }
