@@ -602,8 +602,9 @@ def main() -> int:
             if errors:
                 results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
-            # R3235（循环优化-4 钉扎）：缎带态（2访+）未拆礼物且无档
-            # ——表单须挪出缎带成卡内独立块（曾挤竖排破版），提交链路照通。
+            # R3243（用户实测·重构）：缎带态（2访+）未拆礼物且无档
+            # ——表单已是日卡下方独立副卡（不再嵌封套/缎带），判档
+            # 显隐 + 提交链路照通。
             errors.clear()
             try:
                 page.evaluate(
@@ -618,10 +619,10 @@ def main() -> int:
                     "() => { const cov=document.getElementById('dailyCover');"
                     " const ask=document.getElementById('dailyAsk');"
                     " return {mini: !!(cov&&cov.classList.contains('mini')),"
-                    "   loose: !!(ask&&ask.classList.contains('is-loose')),"
+                    "   vis: !!(ask&&!ask.hidden),"
                     "   out: !!(cov&&ask&&!cov.contains(ask))}; }")
                 _sub = False
-                if st["loose"]:
+                if st["out"] and st["vis"]:
                     for _k, _v in (("y", "1991"), ("m", "4"), ("d", "4"),
                                    ("h", "8")):
                         page.fill(f"#dailyAsk [data-k='{_k}']", _v)
@@ -629,11 +630,11 @@ def main() -> int:
                     page.wait_for_timeout(2500)
                     _sub = bool(page.evaluate(
                         "localStorage.getItem('me')"))
-                ok = (st["mini"] and st["loose"] and st["out"] and _sub
+                ok = (st["mini"] and st["out"] and st["vis"] and _sub
                       and not errors)
                 results.append({"name": "ui:daily_ask_mini", "ok": ok,
-                                "detail": ("缎带=%s 挪出=%s 离封面=%s 提交落档=%s"
-                                           % (st["mini"], st["loose"],
+                                "detail": ("缎带=%s 副卡=%s 离封面=%s 提交落档=%s"
+                                           % (st["mini"], st["vis"],
                                               st["out"], _sub))})
             except Exception as exc:
                 results.append({"name": "ui:daily_ask_mini", "ok": False,

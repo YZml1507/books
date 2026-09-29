@@ -1130,7 +1130,9 @@ function postJSON(path, payload, opts) {
  * 会令旧轮询自动作废，防止慢任务回来后污染新一轮结果。 */
 var RESULT_GEN = {};
 var AI_POLL_INTERVAL_MS = 500;
-var AI_POLL_CAP_S = 40;            // 与后端 _POLL_CAP_S 对齐
+var AI_POLL_CAP_S = 62;            // 与后端 _POLL_BUDGET_S(50s)+余量对齐
+                                   // R3243：推理模型拥挤期生成 15-30s/次，
+                                   // 40s 帽会在兜底即将成功时提前放弃
 
 /* R230q（R28-P3-8）：后台标签页/断网下轮询空转——每 500ms 白打一个
  * 注定失败的请求（恢复瞬间还会连发）。门控：hidden/offline 时不取数。 */
@@ -2302,6 +2304,19 @@ var _NR_GEN = 0;   /* R230v（R34-#2）：点评任务代际——旧任务落�
 var _NR_WAIT_NOTES = ['AI 正在翻书找典故…', '在《诗经》里找合适的句子…',
   '翻到《楚辞》这一页了…', '在掂量哪个名字最亮眼…',
   '快写好了，在挑措词…', '小满在比对五行和出处…'];
+/* R3243（用户实测）：点评失败/超时此前是死胡同文案——「再试一次？」
+ * 连个按钮都没有。统一挂行内重试键，点了等于再按一次点评钮。 */
+function _nrRetryable(out, msg) {
+  if (!out) return;
+  out.hidden = false;
+  out.innerHTML = '<div class="no-evidence">' + esc(msg) +
+    ' <button type="button" class="nr-retry">再试一次</button></div>';
+  var _rb = out.querySelector('.nr-retry');
+  if (_rb) _rb.addEventListener('click', function () {
+    var _b = el('nameReviewBtn');
+    if (_b && !_b.disabled) _b.click();
+  });
+}
 function pollNameReview(taskId) {
   var _gen = _NR_GEN;
   var deadline = performance.now() + AI_POLL_CAP_S * 1000;   /* R230t（R31-P2-9）：轮询预算用单调钟——系统时钟回拨不再冻死轮询 */
@@ -2316,8 +2331,7 @@ function pollNameReview(taskId) {
     }
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
-      else { var o0 = el('nameReviewOut'); if (o0) o0.innerHTML =
-        '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
+      else { _nrRetryable(el('nameReviewOut'), '等太久啦，这趟没等到'); _nameReviewDone(); }
       return;
     }
     api('/api/ai/' + encodeURIComponent(taskId), { silent: true }).then(function (st) {
@@ -2338,22 +2352,22 @@ function pollNameReview(taskId) {
         return;
       }
       if (st && st.status === 'failed') {
-        out.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        _nrRetryable(out, '这次没点评出来');
         _nameReviewDone();
         return;
       }
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-      else { out.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
+      else { _nrRetryable(out, '等太久啦，这趟没等到'); _nameReviewDone(); }
     }).catch(function (e) {
       /* R228c：同上——瞬时抖动不该杀死轮询。R8 P2-9：404 早退。 */
       var out2 = el('nameReviewOut');
       if (e && e.status === 404) {
-        if (out2) out2.innerHTML = '<div class="no-evidence">这次没点评出来，稍后再试</div>';
+        _nrRetryable(out2, '这次没点评出来');
         _nameReviewDone();
         return;
       }
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
-      else { if (out2) out2.innerHTML = '<div class="no-evidence">超时了，再试一次？</div>'; _nameReviewDone(); }
+      else { _nrRetryable(out2, '等太久啦，这趟没等到'); _nameReviewDone(); }
     });
   };
   setTimeout(tick, AI_POLL_INTERVAL_MS);
@@ -4819,10 +4833,12 @@ async function loadDaily() {
           ? '<br><span class="daily-bday">你的生辰 · ' +
             esc(_bdayTxt) + '</span>' : ''));
     } else {
-      /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3） */
+      /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3）
+       * R3243（用户实测）：补上「通版」标注——手误点开不再被当
+       * 成个人判词，写明点熊拆的是大家同款。 */
       _dailyMetaItem('dailyPersonal',
         '<button type="button" class="daily-personal-cta" id="dailyPersonalCta">' +
-        '🪞 存个生日，这条运势就是你的了</button>');
+        '🪞 现在是通版日签 · 存个生日就变成你的了</button>');
       var _pc = el('dailyPersonalCta');
       if (_pc && !_pc.dataset.bound) {
         _pc.dataset.bound = '1';
@@ -6460,12 +6476,11 @@ async function doQiming() {
         pollNameReview(rj.review_task_id);
       }).catch(function () {
         /* R2400（R124-P2-4）：起典请求本身失败此前只解禁按钮、
-         * 结果区零文案——补行内交代，不然像没点到。 */
+         * 结果区零文案——补行内交代，不然像没点到。
+         * R3243：换成可点的重试键。 */
         const o0 = el('nameReviewOut');
         if (o0) {
-          o0.hidden = false;
-          o0.innerHTML = '<div class="no-evidence">点评这趟没跑起来，' +
-            '再点一次试试～</div>';
+          _nrRetryable(o0, '点评这趟没跑起来～');
         }
         if (btn) btn.disabled = false;
         });
@@ -10934,58 +10949,8 @@ function init() {
           '回来啦：攒了几天的运气，都在这包里'], 'revisit-gap');
       }
     }
-    /* R3232（用户实测）：礼物旁输入框——me 档案没有生日时显示表单，
-     * 点「包好我的礼物」→ 存档案 → 日卡换专属判词 → 礼物自己打开。
-     * 有档直接整块移除（封套文案保持原样可点开）。
-     * 表单点击/按键全部 stopPropagation——输入也算「点封面」。 */
-    var _ask = _cov.querySelector('.daily-ask');
-    if (_ask) {
-      var _meA = _meGet('me');
-      if (_meA && _meA.y && _meA.m && _meA.d) {
-        _ask.remove();
-      } else {
-        /* R3235（循环优化-4）：缎带态表单嵌在 26px 缎带里被挤竖排
-         * （回访无档用户实测）——挪出封面成为卡内独立块，宽度/排布
-         * 恢复全档；提交成功由 _dailyAskGo 统一 node.remove()。 */
-        if (_mini) {
-          var _cardA = _cov.closest('.daily-card');
-          if (_cardA) {
-            /* 封面按 outerHTML 快照重挂——上轮回访挪出的 is-loose
-             * 表单还挂在卡上，先去重防双份。 */
-            var _olds = _cardA.querySelectorAll('.daily-ask.is-loose');
-            for (var _oi = 0; _oi < _olds.length; _oi++) _olds[_oi].remove();
-            _ask.classList.add('is-loose');
-            _cardA.insertBefore(_ask, _cov.nextSibling);
-          }
-        }
-        _ask.addEventListener('click', function (e) { e.stopPropagation(); });
-        _ask.addEventListener('keydown', function (e) {
-          e.stopPropagation();
-          /* R3233：表单不在 <form> 里，输入框内 Enter 不会提交——
-           * 键盘党补一条：Enter 直接当点了「包好我的礼物」。
-           * R3240：只拦 INPUT——select/checkbox 上 Enter 是控件
-           * 自身语义（展开选项/勾选），不能抢。 */
-          if (e.key === 'Enter' &&
-              e.target && e.target.tagName === 'INPUT') {
-            e.preventDefault();
-            _dailyAskGo(_ask);
-          }
-        });
-        var _calEl = _ask.querySelector('.da-cal');
-        var _leapW = _ask.querySelector('.da-leapw');
-        if (_calEl && _leapW) {
-          _calEl.addEventListener('change', function () {
-            _leapW.hidden = _calEl.value !== 'lunar';
-          });
-        }
-        var _askBtn = _ask.querySelector('.da-btn');
-        if (_askBtn) {
-          _askBtn.addEventListener('click', function () {
-            _dailyAskGo(_ask);
-          });
-        }
-      }
-    }
+    /* R3243（用户实测·重构）：表单挪出封套成独立副卡——绑定移到
+     * _bindDailyAsk（判档显隐+提交+历法联动），封面只管拆开。 */
     /* R231f（R38-P1-2）+ R232c（R41-P1-1 修）：封面遮罩只挡鼠标不挡
      * 键盘——给卡内封面以外的直接子元素打 inert（容器级，innerHTML
      * 重灌仍生效），并挂 MutationObserver 补打异步注入的节点
@@ -11033,9 +10998,77 @@ function init() {
         if (_dm && _dm.focus) { try { _dm.focus(); } catch (e) {} }
       }, 500);
     };
-    _cov.addEventListener('click', _reveal);
+    /* R3243（用户实测）：封套点开前的表单门——
+     * · 年月日填全 → 当点了「包好我的礼物」（存档→专属→自拆）；
+     * · 填了一半 → 不拆，提示补完并聚焦首个空格（手误点开不再
+     *   直接糊一个通版结果）；
+     * · 全空 → 正常拆通版（没填生日本来也能看今日运势）。 */
+    var _tryReveal = function () {
+      var _af = el('dailyAsk');
+      if (_af && !_af.hidden) {
+        var _need = ['y', 'm', 'd'], _filled = 0;
+        _need.forEach(function (k) {
+          var f = _af.querySelector('[data-k="' + k + '"]');
+          if (f && String(f.value).trim()) _filled++;
+        });
+        var _hF = _af.querySelector('[data-k="h"]');
+        var _hHas = !!(_hF && String(_hF.value).trim());
+        if (_filled === 3) { _dailyAskGo(_af); return; }
+        if (_filled > 0 || _hHas) {
+          showToast('生日填了一半呢，补完再拆更准哦', 'info');
+          var _fe = _need.map(function (k) {
+            return _af.querySelector('[data-k="' + k + '"]');
+          }).filter(function (f) {
+            return f && !String(f.value).trim();
+          })[0];
+          if (_fe) {
+            try {
+              _fe.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              _fe.focus();
+            } catch (eFc) {}
+          }
+          return;
+        }
+      }
+      _reveal();
+    };
+    _cov.addEventListener('click', _tryReveal);
     _cov.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _reveal(); }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); _tryReveal();
+      }
+    });
+  }
+  /* R3243：独立副卡绑定——判档显隐（me 有完整生日才藏）、历法
+   * 联动闰月、按钮/Enter 提交。表单不在封套里，任何视口都完整
+   * 可见，不再有「按钮被帽裁掉」问题。 */
+  function _bindDailyAsk() {
+    var _ask = el('dailyAsk');
+    if (!_ask) return;
+    var _meA = _meGet('me');
+    var _hasMe = !!(_meA && _meA.y && _meA.m && _meA.d);
+    _ask.hidden = _hasMe;
+    if (_hasMe) return;
+    if (_ask.dataset.bound) return;         /* 幂等——重复调用只刷显隐 */
+    _ask.dataset.bound = '1';
+    var _calEl = _ask.querySelector('.da-cal');
+    var _leapW = _ask.querySelector('.da-leapw');
+    if (_calEl && _leapW) {
+      _calEl.addEventListener('change', function () {
+        _leapW.hidden = _calEl.value !== 'lunar';
+      });
+    }
+    var _askBtn = _ask.querySelector('.da-btn');
+    if (_askBtn) {
+      _askBtn.addEventListener('click', function () { _dailyAskGo(_ask); });
+    }
+    _ask.addEventListener('keydown', function (e) {
+      /* R3233：不在 <form> 里，输入框 Enter 补提交；R3240：只拦
+       * INPUT——select/checkbox 的 Enter 是控件自身语义。 */
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        _dailyAskGo(_ask);
+      }
     });
   }
   /* R3232：礼物表单提交——校验 →（农历先换公历）→ 存 me →
@@ -11114,13 +11147,14 @@ function init() {
              (leap ? '（闰）' : ''))
           : null });
       /* 日卡重拉带 bday → personal 专属判词行；落地后再拆礼物，
-       * 揭开的就是「你的」卡。 */
+       * 揭开的就是「你的」卡。
+       * R3243：先藏表单再点封面——封面点击会过 _tryReveal 表单门，
+       * 表单还露着且字段齐全会被当「包好礼物」回环调用（busy 挡
+       * 掉后封面永远不拆）。 */
+      node.hidden = true;
       await loadDaily();
       var _covNow = el('dailyCover');
       if (_covNow) { _covNow.click(); }
-      /* R3235：缎带态表单是挪出封面的独立块——封面拆掉后表单
-         会成孤儿留在卡上，统一摘（封面内嵌时 remove 也无碍）。 */
-      try { node.remove(); } catch (e0) {}
       showToast('礼物照着你的盘包好啦 🎁', 'info');
     } catch (err) {
       showToast(_humanizeErr((err && err.message) ||
@@ -11152,6 +11186,7 @@ function init() {
     } catch (e) {}
     _bindDailyCover(_cov);
   })();
+  _bindDailyAsk();
   window.__mountDailyCover = _mountDailyCover;
   loadDaily();
   /* R2349（R65-P1-4）：iOS 不发 beforeinstallprompt——第二次来访
@@ -12571,6 +12606,10 @@ function _meSave(key, rec) {
   /* R2343（R59-gap4）：同页写入不触发 storage 事件——昵称存完立刻
    * 刷新空态招呼/档案条，改完不用刷新就看到名字。 */
   try { _chatChipsPersonalize(); _renderMeStrip(); } catch (e2) {}
+  /* R3243：档案写全后独立副卡就地藏（_bindDailyAsk 在主页模块
+   * 闭包里够不着——此处行内 hidden 即可，刷新由 loadDaily 后
+   * 的 _bindDailyAsk 幂等兜底）。 */
+  try { var _dA = el('dailyAsk'); if (_dA) _dA.hidden = true; } catch (eDA) {}
   /* R3185：存档即回填——此前只在 init 跑一次 _meFillAll，
    * 同会话里「合婚存了生日→开星座本命盘」仍是出厂 2000/6/15，
    * 得重填一遍（用户眼里就是「你根本没记住我」）。data-touched

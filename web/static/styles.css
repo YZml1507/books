@@ -367,102 +367,41 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   margin-top:-6px; text-align:center;}
 /* R3232（用户实测）：礼物旁输入框——封套内的生日表单。
  * 块在 .daily-cover 里随封面 remount 一起回 DOM；JS 判档后显隐。 */
-.daily-ask{margin-top:2px; padding:10px 14px; border-radius:14px;
+/* R3243（用户实测·重构）：表单挪出封套成日卡下方独立副卡——
+ * 此前封套内表单一直跟各档视口高度搏斗（按钮沉卡外/排版挤
+ * 不开，用户实测手机平板都看不到确认键）。独立卡后再无高度帽，
+ * 任何设备完整可见；判档显隐由 _bindDailyAsk。 */
+.daily-ask{margin:10px auto 2px; padding:14px 16px 12px; border-radius:16px;
   background:var(--card,#FFFDFB); border:1px dashed var(--border);
-  box-shadow:0 4px 14px rgba(184,134,11,.10); max-width:min(92%, 460px);
+  box-shadow:0 4px 14px rgba(184,134,11,.10); max-width:min(94%, 520px);
   cursor:default;}
-/* 封套带表单时压上段留白+熊尺寸——卡高帽（54vh/44vh）下按钮整颗
- * 露出来，实测 390×844 / 1280×900 两档卡缘都曾裁掉按钮。 */
-.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
-  padding-top:min(3.5vh, 30px); gap:8px;}
-@media (min-width:768px){
-  /* R3237：桌面档带表单时 44vh 帽不够（1024×768 实测按钮出卡）——
-   * 50vh 仍保宫格露头信号。 */
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask){
-    max-height:min(52vh, 470px);}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
-    padding:8px 8px;}
-}
-/* R3237：性别下拉入列后表单折两行——熊再收一档把按钮留回卡内
- * （1280×900 实测出卡 14px）。 */
-.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-  width:96px;}
-.daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
-  margin-bottom:6px;}
-@media (max-width:600px){
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-    width:104px;}
-}
 .da-title{font-size:13px; color:var(--secondary); font-weight:600;
-  text-align:center; margin-bottom:8px;}
+  text-align:center; margin-bottom:10px;}
 .da-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
   align-items:center;}
 /* input.da-in（元素+类）与全局 input[type=number] 同权重、靠后赢，
  * 不砸 !important——iOS <16px 聚焦缩放风险由 14px→16px 桌面无碍，
  * 窄屏档保持 16px。 */
-input.da-in{width:auto; flex:0 1 56px; min-width:48px;
+input.da-in{width:auto; flex:0 1 58px; min-width:48px;
   padding:8px 6px; min-height:40px; text-align:center;}
 /* R3241：时辰框「时辰·可空」5 字 @16px ≈ 92px——basis 96 收缩后
  * 实测截掉「空」字，提 basis+min-width 双保险。 */
 input.da-in[data-k="h"]{flex-basis:104px; min-width:100px;}
 select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
-@media (max-width:600px){
-  .daily-ask{max-width:94%; padding:8px 10px;}
-  .da-title{font-size:12px;}
-  input.da-in, select.da-cal, select.da-gender{font-size:16px;}
-}
-/* R3233（循环优化-2）：320 窄屏/矮视口补偿——表单折两行后 54vh 卡帽
- * 把按钮裁掉（320×700 实测出卡 18px；390×568 短机同理）。带表单的
- * 封套帽放宽到 66vh、熊/顶距/表单内边距再收一档；不带表单不受影响。 */
-@media (max-width:600px) and (max-height:700px){
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask){
-    max-height:min(66vh, 560px);}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
-    padding-top:min(4vh, 24px); gap:4px;}
-  /* R3241（用户实测「没有确认按钮」）：360×640 档按钮沉在视口外
-   * ——熊再缩一档、装饰副文案让位，CTA 回到首屏。 */
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-    width:64px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover-sub{
-    display:none;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
-    padding:6px 8px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
-    margin-bottom:4px;}
-}
-/* R3241：超矮档（320×568 实测 CTA 仍差 56px）——熊收 48px、顶距再
- * 压、控件行高 36px，确认键必须回首屏。 */
-@media (max-width:380px) and (max-height:600px){
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover{
-    padding-top:min(2vh, 12px); gap:2px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover img{
-    width:48px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-cover-txt{
-    font-size:13px; margin:2px 0;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-title{
-    font-size:11px; margin-bottom:2px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) input.da-in,
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) select.da-cal,
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) select.da-gender,
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-btn{
-    min-height:36px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-btn{
-    padding:4px 10px; font-size:13px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .daily-ask{
-    margin-top:0; margin-bottom:4px; padding:4px 8px;}
-  .daily-card:has(> .daily-cover:not(.open):not(.mini) .daily-ask) .da-row{
-    gap:4px;}
-}
 .da-leapw{display:inline-flex; align-items:center; gap:4px; font-size:13px;
   color:var(--secondary); margin:0; min-height:40px; cursor:pointer;}
 .da-leapw input{width:auto; min-height:0; margin:0;}
 /* 只收尺寸——配色沿用全局 CTA 玫瑰渐变，与「拆开」动作同族。
- * R3241：按钮进 da-row——行内弹性生长吃满剩余位（窄屏自动折成
- * 整行 CTA，仍高可见），不再独占一行把表单撑出视口。 */
-.da-btn{flex:1 1 120px; min-height:40px; padding:8px 14px; font-size:14px;}
-/* 缎带（mini 回访）态：R3235 表单挪出缎带成卡内独立块。 */
-.daily-ask.is-loose{margin:12px auto 6px;}
-
+ * 行内弹性生长吃满剩余位（窄屏自动折成整行 CTA，仍高可见）。 */
+.da-btn{flex:1 1 140px; min-height:40px; padding:8px 14px; font-size:14px;}
+.da-note{margin-top:8px; text-align:center; font-size:11.5px;
+  color:var(--muted); letter-spacing:.02em;}
+@media (max-width:600px){
+  .daily-ask{max-width:96%; padding:12px 10px 10px;}
+  .da-title{font-size:12px;}
+  input.da-in, select.da-cal, select.da-gender{font-size:16px;}
+  .da-btn{flex-basis:100%;}
+}
 .daily-cover.open{opacity:0; pointer-events:none;}
 /* R2349p（R80-P1-4）：封面 .45s 淡出期间文字残影叠在日签上——
  * 子元素先 0.2s 收掉，只剩斜纹底完成淡出。 */
@@ -2857,6 +2796,66 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
  * chat-input-row 补 position:relative 让它的 absolute 锚定行而非侧栏。 */
 .dm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .dm-chip{min-height:32px;padding:4px 12px;font-size:12px;}
+/* R3243：点评失败行内重试键——覆盖全局 button 的大药丸，收成小 chip。 */
+button.nr-retry{min-height:30px; margin:0 0 0 6px; padding:3px 12px;
+  font-size:12px; width:auto; border-radius:999px;
+  background-image:none; background:var(--card,#FFFDFB);
+  color:var(--primary-ink,#5b3b45); border:1px solid var(--border);
+  box-shadow:none; letter-spacing:0; font-weight:600;}
+button.nr-retry:hover{transform:none; box-shadow:none;
+  border-color:var(--primary); color:var(--primary);}
+
+/* R3243（用户实测）：解梦输入区「梦境面板」——裸 textarea 观感
+ * 简陋；底图沿用解梦海报水彩云（本地模板资产 poster-bg-dream），
+ * 月亮猫角标陪伴；提交钮收进面板整行。 */
+.dm-panel{position:relative; margin-top:8px; padding:18px 18px 16px;
+  border-radius:18px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,252,246,.25), rgba(255,252,246,.58)),
+    url(/static/shared/poster-bg-dream.jpg) center/cover no-repeat;
+  border:1px solid rgba(139,124,168,.30);
+  box-shadow:0 10px 28px rgba(120,100,140,.20);}
+.dm-cat{position:absolute; top:10px; right:12px; width:72px; height:72px;
+  object-fit:cover; border-radius:50%;
+  border:3px solid rgba(255,255,255,.78);
+  box-shadow:0 6px 18px rgba(90,70,110,.30); pointer-events:none;}
+.dm-panel-head{display:block; margin-bottom:12px; padding-right:82px;
+  color:#4A3F5E; cursor:text;}
+.dm-panel-head b{display:block; font-size:15.5px; letter-spacing:.02em;}
+.dm-panel-head small{display:block; margin-top:3px; font-size:12px;
+  color:#6B5E7E; font-weight:400; line-height:1.5;}
+textarea.dm-text{width:100%; box-sizing:border-box; min-height:108px;
+  padding:11px 13px; font-size:15px; line-height:1.7; resize:vertical;
+  color:#3F3552; background:rgba(255,253,250,.88);
+  border:1px solid rgba(139,124,168,.38); border-radius:13px;
+  box-shadow:inset 0 2px 6px rgba(120,100,140,.10);}
+textarea.dm-text:focus{outline:none; border-color:#9D84C0;
+  box-shadow:0 0 0 3px rgba(157,132,192,.22),
+    inset 0 2px 6px rgba(120,100,140,.10);}
+.dm-panel .dm-meta{margin-top:4px;}
+.dm-panel .dm-count{color:#7A6C8E;}
+.dm-panel .dm-chips{margin-top:10px;}
+.dm-panel .dm-chip{background:rgba(255,255,255,.55);
+  border:1px solid rgba(139,124,168,.35); color:#54496B;}
+.dm-panel .dm-chip:hover{background:rgba(255,255,255,.82);}
+.dm-panel #dmSubmit{margin-top:14px; width:100%;}
+@media (max-width:480px){
+  .dm-panel{padding:14px 12px 12px;}
+  .dm-cat{width:58px; height:58px;}
+  .dm-panel-head{padding-right:66px;}
+  textarea.dm-text{font-size:16px;}   /* iOS 聚焦不缩放 */
+}
+html[data-theme="dark"] .dm-panel{
+  background:linear-gradient(180deg, rgba(26,21,36,.55), rgba(26,21,36,.74)),
+    url(/static/shared/poster-bg-dream.jpg) center/cover no-repeat;
+  border-color:#4E4358;}
+html[data-theme="dark"] .dm-panel-head{color:#EAE2F4;}
+html[data-theme="dark"] .dm-panel-head small{color:#B9ABCA;}
+html[data-theme="dark"] textarea.dm-text{background:rgba(30,25,40,.78);
+  color:#EDE6F5; border-color:#4E4358;}
+html[data-theme="dark"] .dm-panel .dm-chip{background:rgba(46,38,58,.55);
+  border-color:#574A66; color:#D9CDEA;}
+html[data-theme="dark"] .dm-panel .dm-chip:hover{background:rgba(60,50,75,.7);}
+html[data-theme="dark"] .dm-panel .dm-count{color:#A99DBD;}
 
 /* R3207：时辰对照表——出生时辰输入框下的可展开快查 */
 .hour-cheat{margin-top:6px;font-size:12px;}
