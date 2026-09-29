@@ -390,7 +390,7 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 窄屏档保持 16px。 */
 input.da-in{width:auto; flex:0 1 62px; min-width:52px;
   padding:8px 6px; min-height:40px; text-align:center;}
-input.da-in[data-k="h"]{flex-basis:86px;}
+input.da-in[data-k="h"]{flex-basis:96px;}
 select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
 @media (max-width:600px){
   .daily-ask{max-width:94%; padding:8px 10px;}
@@ -526,6 +526,10 @@ select.da-cal{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
 .daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
 .daily-meta-more{cursor:pointer; font:inherit; color:var(--accent-ink);}   /* R2514：装饰色2.12:1→文字色4.87:1 */
 .daily-meta-item strong{color:var(--primary-ink); font-weight:600;}
+/* R3234（循环优化-3）：个性判词粒与通用信息粒同底同边一眼分不出——
+ * 「你的日主×今天」带蜜桃浅衬+强调描边，扫读时先看到「这是给你的」。 */
+#dailyPersonal.daily-meta-item{background:var(--accent-soft);
+  border-color:var(--accent); color:var(--primary-ink);}
 /* R2349l（R73）：个性行 CTA 与开运意象词 */
 .daily-personal-cta{background:none;border:none;padding:0;margin:0;
   font:inherit;color:var(--accent-ink);cursor:pointer;text-decoration:underline;   /* R2514 */
