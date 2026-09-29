@@ -213,6 +213,41 @@ def polish(facts: list[str], question: str | None = None,
     if not facts:
         return None
 
+    # R3242：polish 此前是链上唯一没接兜底的路径——chat/review 早按
+    # R3223 逐节切换，排盘/起名/解梦等全部结果卡的 AI 块却主超时即死。
+    # 与 chat 同构：按 fallbacks 顺序去重成链，共享同一 34s 轮询预算，
+    # 节点超时即弃（_polish_node 内），让预算流到能活的链节。
+    _dl = time.monotonic() + _POLL_BUDGET_S
+    _seen_bases = {cfg.get("base_url")}
+    _chain = [cfg]
+    for _fcfg in load_fallback_configs():
+        if _fcfg.get("base_url") in _seen_bases:
+            continue
+        _seen_bases.add(_fcfg.get("base_url"))
+        _chain.append(_fcfg)
+    for _ni, _node in enumerate(_chain):
+        _ndl = _dl
+        if _ni == 0:
+            # R3242：主节点预算帽——推理模型「finish=length 加倍重试 +
+            # 超时」二连可把 34s 吃干，兜底 0 余额。封顶 timeout_s+2s
+            # （一次完整尝试+余量），剩余预算留给链上快节点。
+            _ndl = min(_dl, time.monotonic() + float(
+                _node.get("timeout_s") or _DEFAULTS["timeout_s"]) + 2)
+        out = _polish_node(facts, question, _node, _transport=_transport,
+                           _attempts=_attempts, deadline=_ndl)
+        if out:
+            return out
+        if time.monotonic() >= _dl:
+            break
+    return None
+
+
+def _polish_node(facts: list[str], question: str | None, cfg: dict,
+                 _transport=None, _attempts: int = 3,
+                 deadline: float | None = None) -> str | None:
+    """单个 provider 节点上的 polish 尝试（payload 构建+重试循环）。
+
+    R3242 从 polish() 抽出——兜底链按节点复用同一段尝试逻辑。"""
     payload = {
         "model": cfg.get("model") or _DEFAULTS["model"],
         "messages": [
@@ -228,7 +263,9 @@ def polish(facts: list[str], question: str | None = None,
     headers = {"Authorization": "Bearer " + cfg["api_key"],
                "Content-Type": "application/json"}
     timeout = float(cfg.get("timeout_s") or _DEFAULTS["timeout_s"])
-    _deadline = time.monotonic() + _POLL_BUDGET_S     # R12-P2-4
+    # R12-P2-4：预算由调用方传入——链上各节点共享同一终点。
+    _deadline = (deadline if deadline is not None
+                 else time.monotonic() + _POLL_BUDGET_S)
 
     for i in range(max(1, _attempts)):
         _to = min(timeout, max(0.5, _deadline - time.monotonic()))
@@ -274,7 +311,11 @@ def polish(facts: list[str], question: str | None = None,
             # 空判当次即弃，半截按失败降级（此前半截原文直接上屏）。
             if (data["choices"][0].get("finish_reason") or "") == "length":
                 break
-        except Exception:
+        except Exception as _pexc:
+            # R3242：与 _chat_call 同口径——超时即弃节点让位下一链节，
+            # 其余异常（断连/空回/解析错）保留原重试语义。
+            if "Timeout" in type(_pexc).__name__:
+                break
             continue                                  # D-244a 静默降级 + 重试
         out = _sanitize(text)
         # R3132（specs/012-P0 同构）：polish 出稿过判词方向闸——facts 里
@@ -1520,7 +1561,11 @@ def chat(session_id: str, user_msg: str,
         # 会超出前端 40s 上限，慢成功白烧。
         _dl = time.monotonic() + _POLL_BUDGET_S
         _banned_seen: list[bool] = []
-        text = _chat_call(payload_msgs, cfg, _transport, deadline=_dl,
+        # R3242：主节点预算帽（同 polish）——超时/空泡重试二连会把全链
+        # 预算烧干，封顶 timeout_s+2s 让兜底节有真实窗口。
+        _dl0 = min(_dl, time.monotonic() + float(
+            cfg.get("timeout_s") or _DEFAULTS["timeout_s"]) + 2)
+        text = _chat_call(payload_msgs, cfg, _transport, deadline=_dl0,
                           banned_seen=_banned_seen)
         _used_cfg = cfg
         if not text:
@@ -1676,6 +1721,11 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                 _llm_log(f"content 空 try={_i}")
         except Exception as _cexc:
             _llm_log(f"exc {type(_cexc).__name__} try={_i}")
+            # R3242：超时=节点饱和——主/兜底链共享 34s 预算，同节点重试
+            # 会把兜底链挤出局（主 2×20s 超时后全链 0 余额）。弃本节点
+            # 让位下一链节；非超时异常（断连/解析错）仍按原语义重试。
+            if "Timeout" in type(_cexc).__name__:
+                break
             continue
         # R230a-7：记录「回了但被禁语拦」与「没回/挂了」的区别。
         # R2524：扫归一形态——「注**定**」式绕闸原文也要计入 banned_seen，
@@ -1879,7 +1929,11 @@ def review_names(names: list[str], facts: list[str] | None = None,
     # R230t（R32-P0-3）：主/dots 共享同一轮询预算——此前各自新开 34s
     # （最坏 ~68s），超过前端 40s 帽的「慢成功」无人读，纯烧 quota。
     _dl = time.monotonic() + _POLL_BUDGET_S
-    text = _chat_call(msgs, cfg, _transport, keep_citations=True, deadline=_dl)
+    # R3242：主节点预算帽（同 polish/chat 口径）。
+    _dl0 = min(_dl, time.monotonic() + float(
+        cfg.get("timeout_s") or _DEFAULTS["timeout_s"]) + 2)
+    text = _chat_call(msgs, cfg, _transport, keep_citations=True,
+                      deadline=_dl0)
     if not text:
         # R217a→R3223：主 LLM 失败走兜底链（同 chat 模式，全链失败才降级）
         _seen_bases = {cfg.get("base_url")}
