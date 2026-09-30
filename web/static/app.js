@@ -4923,9 +4923,14 @@ async function loadDaily() {
       });
     }
     var _h2 = new Date().getHours();
-    _mood.textContent = (_h2 >= 22 || _h2 < 6)
-      ? '💗 睡不着的话，小满在 →'
-      : '💗 今天有点累？和小满说两句 →';
+    /* R3253：软入口补小满头像——「有人接你」的画面感比一行
+     * 引导文案更能留人；资产复用 avatar-xiaoman-cream.jpg。 */
+    _mood.innerHTML = '<img class="dm-ava" src="/static/cream/' +
+      'avatar-xiaoman-cream.jpg" alt="" loading="lazy" decoding="async" ' +
+      'onerror="this.remove()"><span>' +
+      ((_h2 >= 22 || _h2 < 6)
+        ? '睡不着的话，小满在 →'
+        : '今天有点累？和小满说两句 →') + '</span>';
     /* R2341（R57-P2-6）：贵人地支转生肖——与海报同口径 */
     setText('dailyNoble', j.noble ? _zhiToAnimal(j.noble) : '—');
     /* R2349g（R68-P0-2）：合拍生肖第二层 */
@@ -6477,6 +6482,22 @@ async function doLiuyao() {
  * 不是先看到「鬼」卡）；象征卡五件套（老话/隐忧直答/回声/想想最近/
  * 细节分叉）；微行动独立锚块；AI 段嵌卡内；回显她的梦原文。 */
 var _DM_GEN = 0;
+/* R3253：梦境符号缩略图——每个象征卡头配一张同 IP 小熊图，
+ * 「掉牙/被追/坠落」从抽象词变成一眼能认的画面；词表外或
+ * 未覆盖的符号回落 dream-bear 月熊兜底，覆盖率仍是 100%。 */
+var DREAM_ART = {
+  '掉牙': 'dream-teeth', '被追赶': 'dream-chase', '坠落': 'dream-fall',
+  '飞翔': 'dream-fly', '考试迟到/不会': 'dream-exam',
+  '前任/旧人': 'dream-ex', '心动的人': 'dream-crush',
+  '蛇': 'dream-snake', '水/大海/下雨': 'dream-water',
+  '迷路/找不到路': 'dream-lost', '结婚/婚礼': 'dream-wedding',
+  '猫': 'dream-cat'
+};
+function _dreamArt(name) {
+  var f = DREAM_ART[name] || 'dream-bear';
+  return '<img class="dm-sym-art" src="/static/cream/' + f +
+    '.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">';
+}
 function buildDreamResult(j) {
   var html = '<div class="card dream-card"><h2>🌙 梦翻翻</h2>';
   var syms = j.symbols || [];
@@ -6524,7 +6545,8 @@ function buildDreamResult(j) {
     syms.forEach(function (s, _si) {
       var _c = colorAt(_si);
       html += '<div class="dm-sym" style="border-left:4px solid ' + _c + '">' +
-        '<div class="dm-sym-head"><span class="dm-sym-dot" style="background:' +
+        '<div class="dm-sym-head">' + _dreamArt(s.name) +
+        '<span class="dm-sym-dot" style="background:' +
         _c + '"></span><span class="dm-sym-name">「' + esc(s.name) +
         '」</span></div><div class="dm-sym-trad">📖 ' +
         esc(s.trad) + '</div>' +
@@ -9206,6 +9228,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
      * R230q（R28-P3-12）：打印时整块隐藏——原先只藏 chip 按钮，
      * 「我打算：」「点一个场景…」两段说明成孤儿文字悬在纸上。 */
     var SCENES = ['搬家', '开业', '约会', '面试', '出行', '签约'];
+    /* R3253：场景 chip 配小图——「我打算」从文字选项变成
+     * 一眼能认的场景卡（小红书心智：看图选比读字快）。 */
+    var HL_SCENE_ART = { '搬家': 'scene-move', '开业': 'scene-open',
+      '约会': 'scene-date', '面试': 'scene-interview',
+      '出行': 'scene-travel', '签约': 'scene-sign' };
     html += '<div class="hl-interactive" style="margin-top:14px;"><div style="font-size:13px;color:var(--secondary);margin-bottom:6px;">我打算：</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="hlScenes">';
     html += SCENES.map(function (s) {
       /* R2349n（R77-P0-4）：chip ✓ 与判词同口径——别名命中宜侧、
@@ -9234,10 +9261,15 @@ async function _doHuangli(offset, reveal, spokenWord) {
        * 场景；判定文案同时并进 aria-label（title 悬停键盘/读屏不可达，#21） */
       var _on = _HL.scene === s;
       var _hint = ok ? _dayWord + '适合' : _dayWord + '不宜';
+      var _ic = HL_SCENE_ART[s]
+        ? '<img class="hl-scene-ic" src="/static/cream/' + HL_SCENE_ART[s] +
+          '.jpg" alt="" loading="lazy" decoding="async" ' +
+          'onerror="this.remove()">'
+        : '';
       return '<button type="button" class="hl-scene' + (_on ? ' active' : '') +
         '" data-scene="' + esc(s) + '" aria-pressed="' + _on +
         '" aria-label="' + esc(s + '，' + _hint) + '" title="' + _hint + '">' +
-        esc(s) + (ok ? ' ✓' : '') + '</button>';
+        _ic + esc(s) + (ok ? ' ✓' : '') + '</button>';
     }).join('');
     html += '</div>';
     /* v4：显式结论——点选场景后卡内直接给一句人话答案，不再只靠 ✓ 自己猜 */
@@ -13671,9 +13703,16 @@ function _renderCheckinAlbum(dateKey) {
       _hit++;
       /* R2349h（R69-P1-4）：role=listitem 会把原生 button 语义吃掉——
        * SR 只报「列表项」不报可激活。格仍由父级 role=list 承载语义。 */
+      /* R3253：签册图鉴化——有签日挂签面熊缩略图，攒签从
+       * 「攒一串字」变成「集一册图」（集卡心是留存硬钩）。 */
+      var _a = CHECKIN_ART[opt]
+        ? '<img class="ck-alb-art" src="/static/cream/' + CHECKIN_ART[opt] +
+          '.jpg" alt="" loading="lazy" decoding="async" ' +
+          'onerror="this.remove()">'
+        : '';
       html += '<button type="button" class="ck-album-cell" ' +
         'data-fb="' + esc(fb) + '" title="' + esc(dk) + '　' + esc(fb) + '">' +
-        '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' +
+        '<i>' + esc(pp[1] || '') + '/' + esc(pp[2] || '') + '</i>' + _a +
         '<b>' + esc(opt) + '</b></button>';
     } else {
       html += '<span class="ck-album-cell ck-album-miss" ' +

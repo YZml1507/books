@@ -41,6 +41,27 @@ JOBS = {
     "sign-birthday":  f"{STYLE}, the bear wears a party crown and holds a small birthday cake with one candle, confetti",
     # 合婚结果顶部插画——双熊同框
     "hehun-bear":     f"{STYLE}, two cute plush bears holding hands side by side, small heart above them, sweet couple, warm pink accents",
+    # R3253 梦境符号缩略图（解梦卡的象征头像，可爱化不吓人）
+    "dream-teeth":    f"{STYLE}, the bear holds up a tiny white tooth looking surprised, small sparkles, dream mood",
+    "dream-chase":    f"{STYLE}, the bear runs playfully looking back at a small puff cloud chasing it, cartoon motion lines, not scary",
+    "dream-fall":     f"{STYLE}, the bear gently floats down holding a big green leaf like a parachute, soft clouds around",
+    "dream-fly":      f"{STYLE}, the bear flies happily with two tiny wings over soft cream clouds, stars, dreamy",
+    "dream-exam":     f"{STYLE}, the bear sits at a small desk writing a test paper with a pencil, tiny sweat drop, cute anxious",
+    "dream-ex":       f"{STYLE}, the bear holds a small old photo letter with a soft nostalgic smile, tiny heart, bittersweet cute",
+    "dream-crush":    f"{STYLE}, the bear with small heart eyes holds a folded love note and a tiny flower, shy blushing",
+    "dream-snake":    f"{STYLE}, the bear curiously looks at a tiny cute friendly snake, both smiling, not scary",
+    "dream-water":    f"{STYLE}, the bear sits in a tiny paper boat on soft pastel blue waves, small raindrops, calm dreamy",
+    "dream-lost":     f"{STYLE}, the bear holds a small map looking puzzled at a cute wooden signpost with two arrows, forest path",
+    "dream-wedding":  f"{STYLE}, the bear wears a tiny white veil and holds a small flower bouquet, wedding bell sparkle, sweet",
+    "dream-cat":      f"{STYLE}, the bear cuddles a small cream kitten in its arms, both content, cozy",
+    "dream-bear":     f"{STYLE}, the bear sleeps peacefully curled on a big soft crescent moon among tiny stars, dreamy night, generic dream icon",
+    # R3253 黄历「我打算」场景小图
+    "scene-move":     f"{STYLE}, the bear carries a small cardboard moving box, tiny house behind, moving day",
+    "scene-open":     f"{STYLE}, the bear cuts a red ribbon in front of a tiny cute shop, small flags, grand opening",
+    "scene-date":     f"{STYLE}, the bear holds a small bouquet of flowers wearing a tiny bow, sweet date, hearts",
+    "scene-interview":f"{STYLE}, the bear in a tiny necktie holds a small resume paper, sitting straight, interview",
+    "scene-travel":   f"{STYLE}, the bear pulls a tiny rolling suitcase holding a folded map, small plane in sky, travel",
+    "scene-sign":     f"{STYLE}, the bear stamps a small red seal on a document with a fountain pen, contract signing",
 }
 
 

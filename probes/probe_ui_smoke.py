@@ -1967,6 +1967,53 @@ def main() -> int:
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
 
+            # ── R3253：语义小图三连——dream 符号头、hl 场景 chip、
+            # 签册格都在前文用例产出的 DOM 上断言（dream/huangli 结果
+            # 常驻视图容器；签册 details 程序化点开再数）。
+            try:
+                _v = page.evaluate("""(() => {
+                    const dm = document.querySelectorAll(
+                        '#dmResult .dm-sym-art').length;
+                    const sc = document.querySelectorAll(
+                        '#hlResult .hl-scene-ic, .hl-scene .hl-scene-ic'
+                        ).length;
+                    /* 签册格子直接调渲染函数断言（懒渲事件链是探针
+                     * 环境噪声源——details 监听绑定时机不值得钉成
+                     * 契约）。dateKey 与 todayIso() 同口径。
+                     * 中游「忘掉我的数据」用例会正确清掉 checkin:*——
+                     * 断言所需键在本用例内自种子，不依赖上游残留。 */
+                    const d0 = new Date();
+                    const iso = d0.getFullYear() + '-' +
+                        String(d0.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(d0.getDate()).padStart(2, '0');
+                    localStorage.setItem('checkin:' + iso, '开运蛋');
+                    try { _renderCheckinAlbum(iso); } catch (e) {}
+                    const alb = document.querySelectorAll(
+                        '.ck-alb-art').length;
+                    const cells = document.querySelectorAll(
+                        '.ck-album-cell').length;
+                    const mood = !!document.querySelector(
+                        '.daily-mood .dm-ava');
+                    const host = !!document.getElementById(
+                        'checkinAlbum');
+                    const ckN = Object.keys(localStorage)
+                        .filter(k => k.startsWith('checkin:')).length;
+                    return {dm, sc, alb, cells, mood, host, ckN};
+                })()""")
+                ok = (_v and _v.get("dm", 0) >= 1 and
+                      _v.get("sc", 0) >= 6 and _v.get("alb", 0) >= 1 and
+                      _v.get("cells", 0) >= 1 and _v.get("mood"))
+                results.append({
+                    "name": "ui:visual.r3253",
+                    "ok": ok,
+                    "detail": (f"梦符图={_v.get('dm')} 场景图={_v.get('sc')}"
+                               f" 签册格={_v.get('cells')} 签册图={_v.get('alb')}"
+                               f" 情绪头像={_v.get('mood')}"
+                               f" host={_v.get('host')} ckN={_v.get('ckN')}")})
+            except Exception as exc:
+                results.append({"name": "ui:visual.r3253", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # ── R3252b：合婚表盘——hehun 表单用例跑完后结果卡仍在
             # DOM，合拍指数应是 SVG 弧盘 + 双熊插画，不是一行裸数字。
             # （hehun 用例本论挂的话这里同步报缺，不放大问题。）
