@@ -9851,6 +9851,15 @@ async function _doHuangli(offset, reveal, spokenWord) {
     if (_HL.scene) {
       html += _hlVerdictHtml(_HL.scene, yi, ji, YI_MAP, JI_MAP, _dayWord,
                              _conflict, j.day_flags || []);
+      /* R3261（R14）：问的是未来的事→「到时候小满问问我」——写进
+       * chat:events（R7 同管线），隔天空态跟进「怎么样了」。
+       * 本地件不推送；过去日不展示（问了就过了）。 */
+      var _fd = j.date || dateStr || '';
+      if (_fd > todayIso()) {
+        html += '<button type="button" id="hlFollowBtn" ' +
+          'class="hl-follow-btn" data-sc="' + esc(_HL.scene) +
+          '" data-d="' + esc(_fd) + '">🔔 到时候小满问问我</button>';
+      }
     }
     /* R227b-fix：问一嘴带日期词但没事项词（「明天怎么样」）——翻完那一天
      * 后把主推+引导兜底按目标日写回，不再把「今天」的宜忌安到明天头上。 */
@@ -10358,6 +10367,29 @@ async function _doHuangli(offset, reveal, spokenWord) {
       }
     });
     if (scenes) scenes.addEventListener('click', function (ev) {
+      /* R3261（R14）：「到时候小满问问我」——把问的未来事写进
+       * chat:events，隔天空态跟进管线（R7）自动接上。 */
+      var _fb = ev.target.closest('#hlFollowBtn');
+      if (_fb) {
+        try {
+          var _ek = (_fb.dataset.d || '') + '·' + (_fb.dataset.sc || '');
+          var _ea = JSON.parse(localStorage.getItem('chat:events') || '[]');
+          if (!Array.isArray(_ea)) _ea = [];
+          var _dup = _ea.some(function (x) {
+            return x && x.k === _ek &&
+              (Date.now() - (x.ts || 0)) < 7 * 864e5;
+          });
+          if (!_dup) {
+            _ea.unshift({ k: _ek, ts: Date.now(), d: todayIso(),
+                          asked: 0, closed: 0 });
+            localStorage.setItem('chat:events',
+                                 JSON.stringify(_ea.slice(0, 10)));
+          }
+          _fb.textContent = '✅ 记下啦，到时候小满问你';
+          _fb.disabled = true;
+        } catch (eFB) {}
+        return;
+      }
       var s = ev.target.closest('.hl-scene');
       if (!s) return;
       /* R230v（R34-#6）：场景翻转+取最新排队——旧响应落地即被新查询
