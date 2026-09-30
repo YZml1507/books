@@ -1899,6 +1899,17 @@ button:active{transform:scale(.96);}
 .rg-fe .rg-fe-f.f-et{background:linear-gradient(180deg,#D9B98C,#C9A26B);}
 .rg-fe .rg-fe-f.f-mt{background:linear-gradient(180deg,#EAD9A0,#D9C069);}
 .rg-fe .rg-fe-f.f-wt{background:linear-gradient(180deg,#A9C8E0,#8BB2D4);}
+/* R3254：塔罗三快钮夜间修复——背景曾硬编码 #fff，夜里白块刺眼；
+ * 改用暗色卡面 token（同 .func-card/.checkin-opt 体系）。 */
+html[data-theme="dark"] .tr-quick-btn{
+  background:#352E33; border-color:#453C42;
+}
+html[data-theme="dark"] .tr-quick-btn:hover{
+  border-color:var(--muted); transform:translateY(-1px);
+}
+html[data-theme="dark"] .tr-quick-btn:focus-visible{
+  outline:2px solid var(--rose); outline-offset:2px;
+}
 html[data-theme="dark"] .checkin-opt.ck-back{
   background:linear-gradient(135deg,#3d3236,#453a40);
   border-color:rgba(220,190,160,.35);}
@@ -3148,3 +3159,104 @@ html[data-theme="dark"] .dm-panel .dm-count{color:#A99DBD;}
 .sec-pick{cursor:pointer}
 .sec-pick:hover{background:rgba(255,255,255,.04)}
 .sec-pick:hover td:first-child{color:var(--accent)}
+
+/* R3254：命盘可视化——四柱格+五行雷达+地支关系色块。
+ * 奶油卡面基底，五行五色仅用在字符/节点/色块上，标签保持中性。 */
+.bazi-plate{margin:12px 0;padding:14px 12px;border-radius:16px;
+  background:var(--card);border:1px solid var(--border);}
+.bp-title{font-size:14px;font-weight:700;color:var(--text);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;}
+.bp-title em{font-style:normal;font-size:10.5px;font-weight:400;
+  color:var(--muted);}
+.bp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+  margin-top:10px;}
+.bp-cell{background:var(--bg);border:1px solid var(--border);
+  border-radius:12px;padding:8px 4px;text-align:center;}
+.bp-cell.bp-day{background:#FDF3EE;border-color:var(--rose);
+  box-shadow:0 0 0 1px var(--rose) inset;}
+.bp-cell > i{display:block;font-style:normal;font-size:10px;
+  color:var(--muted);letter-spacing:.08em;}
+.bp-chars{display:flex;justify-content:center;gap:6px;margin:6px 0 4px;}
+.bp-chars b{font-size:22px;font-weight:800;line-height:1.1;
+  font-family:var(--font-serif);}
+.bp-chars .wx-木{color:#5F9E6E}.bp-chars .wx-火{color:#D96A4E}
+.bp-chars .wx-土{color:#B98A3E}.bp-chars .wx-金{color:#A0893F}
+.bp-chars .wx-水{color:#5E86A8}
+.bp-gods{display:flex;flex-direction:column;gap:2px;min-height:30px;
+  justify-content:flex-start;}
+.bp-gods span{font-size:10px;color:var(--secondary);
+  background:rgba(140,110,90,.09);border-radius:6px;padding:1px 4px;}
+.bp-day .bp-gods span:first-child{background:var(--rose);
+  color:#fff;font-weight:600;}
+/* 五行雷达行 */
+.bp-wxrow{display:flex;align-items:center;gap:12px;margin-top:12px;
+  padding-top:10px;border-top:1px dashed var(--border);}
+.bp-radar{flex:0 0 128px;width:128px;height:120px;}
+.bp-ring{fill:none;stroke:var(--border);stroke-width:.8;}
+.bp-val{fill:rgba(217,106,78,.16);stroke:var(--rose);stroke-width:1.4;
+  stroke-linejoin:round;}
+.bp-el{font-size:10px;font-weight:700;}
+.bp-wxnote{display:flex;flex-wrap:wrap;gap:5px;align-content:center;}
+.bp-wxnote b{width:100%;font-size:12.5px;color:var(--text);}
+.bp-badge{font-size:10.5px;border-radius:999px;padding:2px 8px;
+  background:rgba(140,110,90,.1);color:var(--secondary);}
+.bp-badge.bp-strong{background:rgba(217,106,78,.14);color:#B4552F;}
+.bp-badge.bp-miss{background:rgba(94,134,168,.14);color:#4A6E8C;}
+.bp-wxsub{width:100%;font-size:10.5px;color:var(--muted);}
+/* 地支关系色块 */
+.bp-rels{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;
+  padding-top:10px;border-top:1px dashed var(--border);
+  align-items:center;}
+.bp-rels-cap{font-size:11px;font-weight:600;color:var(--secondary);
+  margin-right:2px;}
+.bp-rel{font-size:11px;border-radius:8px;padding:3px 8px;
+  border:1px solid;}
+.bp-rel i{font-style:normal;font-weight:700;margin-right:4px;
+  font-size:10px;}
+.bp-rel-he{background:rgba(95,158,110,.1);border-color:#8FBF9B;color:#3F7350;}
+.bp-rel-chong{background:rgba(217,106,78,.1);border-color:#E08A70;color:#B4552F;}
+.bp-rel-xing{background:rgba(201,141,63,.12);border-color:#D4A95C;color:#8F6A28;}
+.bp-rel-hai{background:rgba(126,110,158,.1);border-color:#A695C9;color:#6B5B8C;}
+.bp-rel-po{background:rgba(150,120,90,.12);border-color:#C4A882;color:#7A5F45;}
+.bp-rel-other{background:var(--bg);border-color:var(--border);
+  color:var(--secondary);}
+.bp-rel-legend{width:100%;font-size:10px;color:var(--muted);}
+/* 统一专业折叠内分节小标题 */
+.pv-sub{margin:16px 0 8px;font-size:13px;color:var(--c-book);
+  border-bottom:1px dashed var(--border);padding-bottom:4px;}
+.pv-sub:first-of-type{margin-top:8px;}
+@media (max-width:360px){
+  .bp-chars b{font-size:19px;}
+  .bp-radar{flex-basis:110px;width:110px;height:104px;}
+}
+html[data-theme="dark"] .bazi-plate{background:#2B2529;border-color:#453C42;}
+html[data-theme="dark"] .bp-cell{background:#352E33;border-color:#453C42;}
+html[data-theme="dark"] .bp-cell.bp-day{background:#3A2E2C;
+  border-color:#B4552F;box-shadow:0 0 0 1px #B4552F inset;}
+html[data-theme="dark"] .bp-gods span{background:rgba(255,255,255,.07);
+  color:var(--secondary);}
+html[data-theme="dark"] .bp-day .bp-gods span:first-child{
+  background:#B4552F;color:#F7EDE2;}
+html[data-theme="dark"] .bp-chars .wx-木{color:#7FBC8E}
+html[data-theme="dark"] .bp-chars .wx-火{color:#EE9379}
+html[data-theme="dark"] .bp-chars .wx-土{color:#D4A95C}
+html[data-theme="dark"] .bp-chars .wx-金{color:#C0A85C}
+html[data-theme="dark"] .bp-chars .wx-水{color:#84A9C9}
+html[data-theme="dark"] .bp-ring{stroke:#453C42;}
+html[data-theme="dark"] .bp-badge{background:rgba(255,255,255,.08);
+  color:var(--secondary);}
+html[data-theme="dark"] .bp-badge.bp-strong{background:rgba(217,106,78,.2);
+  color:#EEA487;}
+html[data-theme="dark"] .bp-badge.bp-miss{background:rgba(94,134,168,.22);
+  color:#9FC0DA;}
+html[data-theme="dark"] .bp-rel-he{background:rgba(95,158,110,.14);
+  border-color:#4E7A5C;color:#8FBF9B;}
+html[data-theme="dark"] .bp-rel-chong{background:rgba(217,106,78,.14);
+  border-color:#8C4E3C;color:#EEA487;}
+html[data-theme="dark"] .bp-rel-xing{background:rgba(201,141,63,.14);
+  border-color:#7A6234;color:#D4B878;}
+html[data-theme="dark"] .bp-rel-hai{background:rgba(126,110,158,.16);
+  border-color:#5C5170;color:#B9ABD4;}
+html[data-theme="dark"] .bp-rel-po{background:rgba(150,120,90,.14);
+  border-color:#6E5D47;color:#C4B090;}
+html[data-theme="dark"] .pv-sub{color:#C9A96A;border-color:#453C42;}

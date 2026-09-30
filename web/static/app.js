@@ -4305,7 +4305,7 @@ var LAST_RESPONSE = {};
  *  evidenceKeys：本响应里存放**全文**引文的键名（各功能不同：排盘是
  *  evidence，六爻是 ben_jing/bian_jing）。warm 分支用它们喂 renderCiteTree，
  *  以满足 005 判据 8（展开原文与 API 逐字节一致）。 */
-function renderVoice(j, proTitle, evidenceKeys) {
+function renderVoice(j, proTitle, evidenceKeys, skipProFold) {
   /* R3212：双版合并——人话层常驻，推导链收进「专业视角」折叠。 */
   var html = '';
   if (j && j.warm) {
@@ -4317,7 +4317,10 @@ function renderVoice(j, proTitle, evidenceKeys) {
      * 「专业视角：完整推导链」同源于 interpretation.sections，留外层一个。 */
     html += renderWarm(j.warm, j.interpretation, ev,
                        j.calc && j.calc.scope, true);
-    if (j.interpretation) {
+    /* R3254（用户实测「两个三角都叫专业视角」）：skipProFold 时
+     * 推导链不单独出三角——由调用方并进大一统专业折叠（目前仅
+     * 八字排盘走这条，塔罗等照旧独立三角）。 */
+    if (j.interpretation && !skipProFold) {
       html += '<details class="warm-basis warm-pro-fold"><summary>📐 专业视角：' +
         '完整推导链（展开看）</summary>' +
         renderInterpretation(j.interpretation, null) + '</details>';
@@ -5742,6 +5745,9 @@ function buildBaziResult(j) {
       '日主=出生那天的天干（你的本命五行）；大运=十年一轮的大方向，' +
       '「逆排」就是从月柱往前数；纳音是五行的传统叫法，当个小标签看就好</p>';
     html += '</details>';
+    /* R3254：命盘可视化（四柱格+五行雷达+地支关系）——用户点名
+     * 的「能不能做成图」落在结果页可视区，不进折叠。 */
+    html += _baziPlate(j);
   }
   if (paipan.warn && paipan.warn.length) {
     html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
@@ -5769,22 +5775,30 @@ function buildBaziResult(j) {
   // 大白话之前 = 用户要滚 71,094px 才看到那句 11 字的人话（005 §1）。
   // 古籍不再单独渲染于此——它由 renderWarm 经 renderCiteTree 渲染**一次**
   // （判据 5，清偿 R128a-01 的重复渲染）。
-  /* R3212：单版合并——排盘坐标原表 + 古籍全文改常驻折叠，
-   * 不再分温柔/专业两版。事实零删减。 */
+  // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
+  /* R3254（用户实测「两个可点三角都是专业视角」）：先出人话层，
+   * 专业内容三件（排盘坐标/推导链/古籍原文）收进同一个折叠、
+   * 分节小标题区分——不再两个「专业视角」三角并列打架，且整折
+   * 沉到人话层之后。 */
+  html += renderVoice(j, '📖 小满的解读', ['evidence'], true);
   html += '<details class="warm-basis warm-pro-fold">' +
-    '<summary>📐 排盘坐标与古籍原文（专业视角，展开看）</summary>' +
-    renderCalc(j.calc) +
-    (j.evidence ?
-      '<h3 style="margin-top:20px;color:var(--c-book);">📜 古籍依据</h3>' +
+    '<summary>📐 专业视角：排盘坐标 · 推导链 · 古籍原文（展开看）</summary>';
+  if (j.calc) html += '<h4 class="pv-sub">排盘坐标</h4>' + renderCalc(j.calc);
+  /* warm 缺时 interpretation 已在 renderVoice 专业分支明铺，
+   * 折叠里不再重复一份。 */
+  if (j.warm && j.interpretation) {
+    html += '<h4 class="pv-sub">推导链：每句话怎么推出来的</h4>' +
+      renderInterpretation(j.interpretation, null);
+  }
+  if (j.evidence) {
+    html += '<h4 class="pv-sub">📜 古籍原文</h4>' +
       (j.evidence.length
         ? renderHits(j.evidence, { empty: '这条没有古籍引文' }) +
           '<div class="cite-readmore"><button type="button" ' +
           'class="thread-view cite-toread">📚 这些书都在书库里，去翻翻 →</button></div>'
-        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文，不影响解读，往下看～</p>')
-      : '') +
-    '</details>';
-  // R000a-04：原读 j.llm_out（后端从来没这个键）→ 现读 interpretation。
-  html += renderVoice(j, '📖 小满的解读', ['evidence']);
+        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文，不影响解读，往下看～</p>');
+  }
+  html += '</details>';
   /* R3159（specs/014-L3 收口）：今年逐月条——calc.yearly 服务端
    * 一直在算但前端从没渲过（warm 只出三行概括）。12 个月chip 横排，
    * 当月高亮。 */
@@ -5837,6 +5851,140 @@ function _yearlyStrip(calc) {
       '📅 ' + esc(String(y.year)) + '年逐月 · ' + esc(y.ganzhi || '') +
       '年·' + esc(y.gan_rel || '') + '基调</div>' +
       '<div class="yearly-strip">' + cells + '</div></div>';
+  } catch (e) { return ''; }
+}
+
+/* R3254（用户要求「五行强弱/十神格局/地支关系能不能可视化」）：
+ * 命盘可视化块——四柱格（干支配十神标签）+ 五行雷达 + 地支关系
+ * 色块。竞品调研共识（测测/问真/元亨利贞）：四柱网格是命盘签名
+ * 视觉，五行用量化图（雷达/条），十神贴柱标注，刑冲合害分组色标。
+ * 数据全部来自 paipan.render / calc.ten_gods / calc.five_elements /
+ * calc.relations，确定性直渲；任一角缺失整块自动塌下不崩。 */
+var _WX_GAN = {甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',
+               庚:'金',辛:'金',壬:'水',癸:'水'};
+var _WX_ZHI = {寅:'木',卯:'木',巳:'火',午:'火',辰:'土',戌:'土',
+               丑:'土',未:'土',申:'金',酉:'金',亥:'水',子:'水'};
+var _WX_HEX = {木:'#5F9E6E',火:'#D96A4E',土:'#B98A3E',金:'#A0893F',水:'#5E86A8'};
+
+function _baziPlate(j) {
+  try {
+    var paipan = j.paipan || {};
+    var calc = j.calc || {};
+    /* ── 四柱解析：render 形如「戊寅年 丁巳月 丁卯日 丙午时」，
+     * 时辰未知时第 4 柱已被 _pillarsHonest 换成「时辰未知」。 */
+    var pillars = [];
+    String(_pillarsHonest(paipan.render, j.hour_known) || '')
+      .split(/\s+/).forEach(function (t) {
+        var m = t.match(/^(.{1,2})([年月日时])$/);
+        if (m && /^[甲乙丙丁戊己庚辛壬癸]/.test(m[1])) pillars.push(m[1]);
+      });
+    if (pillars.length < 3) return '';
+    var hourMiss = pillars.length < 4;
+    if (hourMiss) pillars.push('？');
+    /* ── 十神按位取用：pos=「年干/月支藏干…」，日干恒标「日主」。 */
+    var gods = {};
+    (calc.ten_gods || []).forEach(function (t) {
+      if (t && t.pos && gods[t.pos] === undefined) gods[t.pos] = t.god;
+    });
+    var POS = ['年', '月', '日', '时'];
+    var cells = pillars.map(function (p, i) {
+      var gan = p[0], zhi = p[1] || '';
+      var gGod = (i === 2) ? '日主' : (gods[POS[i] + '干'] || '');
+      var zGod = gods[POS[i] + '支藏干'] || '';
+      return '<div class="bp-cell' + (i === 2 ? ' bp-day' : '') + '">' +
+        '<i>' + POS[i] + '柱</i>' +
+        '<div class="bp-chars">' +
+          '<b class="wx-' + esc(_WX_GAN[gan] || '') + '">' + esc(gan) + '</b>' +
+          '<b class="wx-' + esc(_WX_ZHI[zhi] || '') + '">' + esc(zhi || '？') + '</b>' +
+        '</div>' +
+        '<div class="bp-gods">' +
+          (gGod ? '<span title="天干十神">' + esc(gGod) + '</span>' : '') +
+          (zGod ? '<span title="地支藏干十神">' + esc(zGod) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
+    var plate = '<div class="bazi-plate">' +
+      '<div class="bp-title">🀄 你的四柱盘' +
+        '<em>天干地支各管一半，颜色=五行（木绿·火红·土黄·金褐·水蓝）</em></div>' +
+      '<div class="bp-grid">' + cells + '</div>';
+    /* ── 五行雷达：counts 量化分布，旺/缺徽标直标。 */
+    var fe = calc.five_elements || {};
+    var counts = fe.counts || {};
+    var els = ['木', '火', '土', '金', '水'];
+    var max = Math.max.apply(null, els.map(function (e) { return counts[e] || 0; }));
+    if (max > 0) {
+      var cx = 66, cy = 62, R = 40;
+      var ptx = function (i, r) {
+        var a = (-90 + i * 72) * Math.PI / 180;
+        return (cx + r * Math.cos(a)).toFixed(1) + ',' +
+               (cy + r * Math.sin(a)).toFixed(1);
+      };
+      var rings = [1, 0.66, 0.33].map(function (k) {
+        return '<polygon points="' +
+          els.map(function (e, i) { return ptx(i, R * k); }).join(' ') +
+          '" class="bp-ring"/>';
+      }).join('');
+      var valPoly = '<polygon points="' +
+        els.map(function (e, i) {
+          return ptx(i, Math.max(2, R * (counts[e] || 0) / max));
+        }).join(' ') + '" class="bp-val"/>';
+      var labels = els.map(function (e, i) {
+        var a = (-90 + i * 72) * Math.PI / 180;
+        var lx = cx + (R + 13) * Math.cos(a), ly = cy + (R + 13) * Math.sin(a);
+        var anc = Math.abs(lx - cx) < 6 ? 'middle' : (lx > cx ? 'start' : 'end');
+        return '<text x="' + lx.toFixed(1) + '" y="' + (ly + 3).toFixed(1) +
+          '" text-anchor="' + anc + '" class="bp-el" fill="' + _WX_HEX[e] +
+          '">' + e + '</text>';
+      }).join('');
+      var dots = els.map(function (e, i) {
+        var a = (-90 + i * 72) * Math.PI / 180;
+        var r = Math.max(2, R * (counts[e] || 0) / max);
+        return '<circle cx="' + (cx + r * Math.cos(a)).toFixed(1) +
+          '" cy="' + (cy + r * Math.sin(a)).toFixed(1) + '" r="2.6" fill="' +
+          _WX_HEX[e] + '"/>';
+      }).join('');
+      var badges = '';
+      (fe.strong || []).concat(fe.strong_tied || []).forEach(function (e) {
+        badges += '<span class="bp-badge bp-strong">🔥 ' + esc(e) + '偏旺</span>';
+      });
+      (fe.missing || []).forEach(function (e) {
+        badges += '<span class="bp-badge bp-miss">· ' + esc(e) + '暂缺</span>';
+      });
+      if (!badges) badges = '<span class="bp-badge">⚖️ 五行挺匀</span>';
+      var srSum = els.map(function (e) {
+        return e + (counts[e] || 0);
+      }).join('，');
+      plate += '<div class="bp-wxrow">' +
+        '<svg class="bp-radar" viewBox="0 0 132 124" role="img" ' +
+          'aria-label="五行配比：' + esc(srSum) + '">' +
+          rings + valPoly + dots + labels + '</svg>' +
+        '<div class="bp-wxnote"><b>五行配比</b>' + badges +
+          '<span class="bp-wxsub">面积越大越旺；缺的那角也画出来，不藏</span></div>' +
+        '</div>';
+    }
+    /* ── 地支关系：刑冲合害分组色块（合绿/冲红/刑橙/害灰/破褐）。 */
+    var rels = calc.relations || [];
+    if (rels.length) {
+      var seen = {};
+      var chips = rels.map(function (r) {
+        var t = r.type || '';
+        var k = /合|会/.test(t) ? 'he' : /冲/.test(t) ? 'chong' :
+                /刑/.test(t) ? 'xing' : /害/.test(t) ? 'hai' :
+                /破/.test(t) ? 'po' : 'other';
+        var txt = r.note || (r.a + '·' + r.b);
+        if (seen[txt]) return '';
+        seen[txt] = 1;
+        /* note 自带类型名时不再前置（「午午自刑」≠「自刑：午午自刑」）。 */
+        var dup = t && txt.indexOf(t.replace('相', '')) >= 0;
+        return '<span class="bp-rel bp-rel-' + k + '">' +
+          (dup ? '' : '<i>' + esc(t) + '</i>') + esc(txt) + '</span>';
+      }).filter(Boolean).join('');
+      if (chips) {
+        plate += '<div class="bp-rels"><span class="bp-rels-cap">地支关系</span>' +
+          chips +
+          '<span class="bp-rel-legend">合=互助 · 冲=波动 · 刑=磕绊 · 害/破=暗耗</span></div>';
+      }
+    }
+    return plate + '</div>';
   } catch (e) { return ''; }
 }
 

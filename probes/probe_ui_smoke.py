@@ -1262,15 +1262,28 @@ def main() -> int:
                     " return { open: !!(p && p.style.display === 'block'),"
                     "   backs: document.querySelectorAll("
                     "    '#trPickFan .tr-back').length }; }")
+                # R3254：夜间白块回归钉——切 dark 后三快钮背景不许再是
+                # 近白（旧实现 background:#fff 硬编码，夜里刺眼）。
+                _dk = page.evaluate(
+                    "() => { const h=document.documentElement;"
+                    " h.setAttribute('data-theme','dark');"
+                    " const s=getComputedStyle("
+                    "  document.getElementById('trQ1'));"
+                    " const r={bg:s.backgroundColor,color:s.color};"
+                    " h.removeAttribute('data-theme'); return r; }")
+                _dk_bad = _dk["bg"] in ("rgb(255, 255, 255)",
+                                        "rgba(255, 255, 255, 1)")
                 ok = (_q1 > 60 and _q3 > 60
                       and _fan["open"] and _fan["backs"] == 22
-                      and not errors)
+                      and not _dk_bad and not errors)
                 results.append({
                     "name": "ui:tarot.quick",
                     "ok": ok,
                     "detail": ("一张=%d字 三张=%d字 扇开=%s 背=%d"
+                               " 暗色bg=%s字色=%s"
                                % (_q1, _q3, _fan["open"],
-                                  _fan["backs"]))})
+                                  _fan["backs"], _dk["bg"],
+                                  _dk["color"]))})
             except Exception as exc:
                 results.append({"name": "ui:tarot.quick", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
@@ -2032,6 +2045,63 @@ def main() -> int:
                     "detail": f"{_hg}"})
             except Exception as exc:
                 results.append({"name": "ui:hehun.gauge", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # ── R3254：八字命盘可视化 + 专业三角收口——
+            #   (a) .warm-pro-fold 只剩一个（用户实测两个三角都叫
+            #       「专业视角」，合并为 排盘坐标·推导链·古籍 三折一）；
+            #   (b) .bazi-plate 可见：四柱格 4 柱、日柱标「日主」、
+            #       五行雷达 svg、地支关系色块。
+            # bazi 用例的 #result 驻留DOM 直接断言；空则补提交一次。
+            try:
+                _bp = page.evaluate("""(() => {
+                    const r = document.getElementById('result');
+                    const has = r && r.querySelector('.bazi-plate');
+                    if (!has) return {resubmit: true};
+                    const folds = [...r.querySelectorAll(
+                        'details.warm-pro-fold summary')]
+                        .map(s => s.innerText);
+                    return {
+                        proFolds: folds,
+                        cells: r.querySelectorAll('.bp-cell').length,
+                        dayGod: (r.querySelector(
+                            '.bp-day .bp-gods span') || {}).innerText,
+                        radar: !!r.querySelector('.bp-radar'),
+                        badges: r.querySelectorAll('.bp-badge').length,
+                        rels: r.querySelectorAll('.bp-rel').length,
+                    };
+                })()""")
+                if _bp.get("resubmit"):
+                    goto_view('bazi')
+                    page.click('#submit')
+                    page.wait_for_function(
+                        "() => { const r = document.getElementById('result');"
+                        " return r && r.querySelector('.bazi-plate'); }",
+                        timeout=20000)
+                    _bp = page.evaluate("""(() => {
+                        const r = document.getElementById('result');
+                        return {
+                            proFolds: [...r.querySelectorAll(
+                                'details.warm-pro-fold summary')]
+                                .map(s => s.innerText),
+                            cells: r.querySelectorAll('.bp-cell').length,
+                            dayGod: (r.querySelector(
+                                '.bp-day .bp-gods span') || {}).innerText,
+                            radar: !!r.querySelector('.bp-radar'),
+                            badges: r.querySelectorAll('.bp-badge').length,
+                            rels: r.querySelectorAll('.bp-rel').length,
+                        };
+                    })()""")
+                ok = (_bp and len(_bp.get("proFolds") or []) == 1 and
+                      _bp.get("cells") == 4 and
+                      _bp.get("dayGod") == "日主" and
+                      _bp.get("radar") and _bp.get("badges", 0) >= 1)
+                results.append({
+                    "name": "ui:bazi.plate",
+                    "ok": bool(ok),
+                    "detail": f"{_bp}"})
+            except Exception as exc:
+                results.append({"name": "ui:bazi.plate", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
             # ── R228x：黄历「挑吉日」chip 链路——点场景出判词后应异步长出
