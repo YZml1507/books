@@ -1375,6 +1375,53 @@ def main() -> int:
                 results.append({"name": "ui:chat.drawer", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R3258（用户实测「和小满聊聊点不开/点空白不收回」）：
+            # 生产环境 beforeinstallprompt 弹出的 install-tip 与 FAB
+            # 同位叠压（z180>z60）+ 压在遮罩（z65）上。断言：
+            #  a) 注入 installTip 后 FAB 中心点仍命中 FAB 自身；
+            #  b) 侧栏开着时点右侧空白（遮罩在 tip 之下的情形也
+            #     由 document 捕获段兜底）能收栏。
+            try:
+                _tip = page.evaluate("""(() => {
+                    const old = document.getElementById('installTip');
+                    if (old) old.remove();
+                    const d = document.createElement('div');
+                    d.className = 'install-tip'; d.id = 'installTip';
+                    d.innerHTML = '<span>🏠 把小满放进桌面</span>' +
+                        '<button class="install-tip-go">装好</button>';
+                    document.body.appendChild(d);
+                    const r = document.getElementById('recentToggle')
+                        .getBoundingClientRect();
+                    const hit = document.elementFromPoint(
+                        r.x + r.width / 2, r.y + r.height / 2);
+                    return { hit: hit ? !!(hit.closest &&
+                             hit.closest('#recentToggle')) : false,
+                            tip: !!document.getElementById('installTip') };
+                })()""")
+                page.click('#recentToggle')
+                page.wait_for_timeout(400)
+                _open = page.evaluate(
+                    "document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                # 点右中空白（遮罩区）——capture 兜底应收栏
+                page.mouse.click(900, 400)
+                page.wait_for_timeout(400)
+                _closed = page.evaluate(
+                    "!document.getElementById('recentSidebar')"
+                    ".classList.contains('open')")
+                hit_fab = bool(_tip.get('hit'))
+                results.append({
+                    "name": "ui:chat.overlay_proof",
+                    "ok": hit_fab and bool(_open) and bool(_closed),
+                    "detail": f"tip下FAB命中={_tip.get('hit')} "
+                              f"开={_open} 空白收={_closed}"})
+                page.evaluate(
+                    "const d=document.getElementById('installTip');"
+                    " if(d) d.remove()")
+            except Exception as exc:
+                results.append({"name": "ui:chat.overlay_proof", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             # 危机词前端镜像：发「我不想活了」→ 气泡含 12356 且不走轮询
             try:
                 page.click('#recentToggle')
@@ -2069,6 +2116,11 @@ def main() -> int:
                         radar: !!r.querySelector('.bp-radar'),
                         badges: r.querySelectorAll('.bp-badge').length,
                         rels: r.querySelectorAll('.bp-rel').length,
+                        /* R3258：地支关系弧线图（有端点关系画弧）
+                         * + 十神力量条 5 组行。 */
+                        relmap: !!r.querySelector('.bp-relmap'),
+                        edges: r.querySelectorAll('.bp-relmap path').length,
+                        gbRows: r.querySelectorAll('.bp-gbar-row').length,
                         /* 时辰未知（表单只填年月日）→ 第4柱「？？」
                          * 不许挂按默认午时算的十神（R3254f）。 */
                         missGods: r.querySelectorAll(
@@ -2094,6 +2146,11 @@ def main() -> int:
                             radar: !!r.querySelector('.bp-radar'),
                             badges: r.querySelectorAll('.bp-badge').length,
                             rels: r.querySelectorAll('.bp-rel').length,
+                            relmap: !!r.querySelector('.bp-relmap'),
+                            edges: r.querySelectorAll(
+                                '.bp-relmap path').length,
+                            gbRows: r.querySelectorAll(
+                                '.bp-gbar-row').length,
                             missGods: r.querySelectorAll(
                                 '.bp-cell:nth-child(4) .bp-gods span')
                                 .length,
@@ -2103,6 +2160,8 @@ def main() -> int:
                       _bp.get("cells") == 4 and
                       _bp.get("dayGod") == "日主" and
                       _bp.get("radar") and _bp.get("badges", 0) >= 1 and
+                      (_bp.get("relmap") or _bp.get("rels", 0) >= 1) and
+                      _bp.get("gbRows") == 5 and
                       _bp.get("missGods", 1) == 0)
                 results.append({
                     "name": "ui:bazi.plate",

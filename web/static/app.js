@@ -1809,8 +1809,11 @@ function attachChatEntry(container) {
    * 挂在容器自身（调用方传的都是结果容器）。 */
   if (!card) card = container;
   /* R230t（R33-P1-1）：判重走 data-chat-entry 而非类名——qmRefreshBtn/
-   * nameReviewBtn 也用 .chat-entry 做样式，此前会误判「已有入口」跳过。 */
-  if (card.querySelector('[data-chat-entry]')) return;
+   * nameReviewBtn 也用 .chat-entry 做样式，此前会误判「已有入口」跳过。
+   * R3258 修：判重改到 container 全域——此前只查首个 .card 子孙，
+   * dailyDetail 展开后容器里新增 .card，再跑 attachChatEntry 就把
+   * 第二颗「聊聊这件事」挂进内层卡（老钮还留在卡尾）。 */
+  if (container.querySelector('[data-chat-entry]')) return;
   var btn = document.createElement('button');
   btn.className = 'chat-entry';
   btn.type = 'button';
@@ -3808,10 +3811,18 @@ function renderWarm(warm, interp, evidence, scope, skipDetailsFold) {
    * 「上半截闺蜜、下半截论文」。改为整组收进单个折叠「📜 想看专业依据？」
    * ——事实零删减（DOM 里仍在，判据 4b/6/7 的折叠可核验口径不变），
    * 只是默认不展开。专业模式路径不经此分支，零改动。 */
-  if ((warm.details || []).length && !skipDetailsFold) {   /* R3212：单版化恒走 */
+  /* R3258（用户实测重复）：「排盘坐标」「运算摘要」两节是原样坐标/
+   * 摘要——排盘坐标与生辰小卡/命盘/paipan-line 三头碰，运算摘要
+   * 逐字等于 calc.summary（字段原表里还有一份）。从人话流剥出，
+   * 统一收进调用方的 _proFold 原表折叠；其余小节照常散铺。 */
+  var _dets = (warm.details || []).filter(function (d) {
+    var t = (d && d.title) || '';
+    return t !== '排盘坐标' && t.indexOf('运算摘要') !== 0;
+  });
+  if (_dets.length && !skipDetailsFold) {   /* R3212：单版化恒走 */
     html += '<details class="warm-basis warm-pro-fold"><summary>📜 想看专业依据？（' +
-      warm.details.length + ' 项，展开慢慢看）</summary>';
-    (warm.details || []).forEach(function (d) {
+      _dets.length + ' 项，展开慢慢看）</summary>';
+    _dets.forEach(function (d) {
       html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
       (d.lines || []).forEach(function (ln) {
         html += '<li>' + esc(annotatePowers(ln)) + '</li>';
@@ -3828,7 +3839,7 @@ function renderWarm(warm, interp, evidence, scope, skipDetailsFold) {
       html += '</div>';
     });
     html += '</details>';
-  } else (warm.details || []).forEach(function (d) {
+  } else _dets.forEach(function (d) {
     html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
     (d.lines || []).forEach(function (ln) {
       html += '<li>' + esc(ln) + '</li>';
@@ -4310,6 +4321,36 @@ var LAST_RESPONSE = {};
  *  evidenceKeys：本响应里存放**全文**引文的键名（各功能不同：排盘是
  *  evidence，六爻是 ben_jing/bian_jing）。warm 分支用它们喂 renderCiteTree，
  *  以满足 005 判据 8（展开原文与 API 逐字节一致）。 */
+/* R3258：从 warm.details 剥出的「原样」小节（排盘坐标/运算摘要），
+ * 人话流不再铺——与 calc 字段原表一起进唯一的专业折叠。 */
+function _warmRawDetails(warm) {
+  return ((warm && warm.details) || []).filter(function (d) {
+    var t = (d && d.title) || '';
+    return t === '排盘坐标' || t.indexOf('运算摘要') === 0;
+  });
+}
+/* R3258：全站唯一的专业折叠——排盘坐标原文 + 运算摘要 + calc 字段原表。
+ * 推导链=上方散铺小节（同源不再折第二遍），古籍=renderWarm 引文树
+ * （同源不再渲第二份）。bazi 结果页与首页完整解读共用此块。 */
+function _proFold(j) {
+  if (!j) return '';
+  var inner = '';
+  _warmRawDetails(j.warm).forEach(function (d) {
+    inner += '<h4 class="pv-sub">' + esc(d.title || '') +
+      '</h4><ul class="pv-lines">';
+    (d.lines || []).forEach(function (ln) {
+      inner += '<li>' + esc(ln) + '</li>';
+    });
+    inner += '</ul>';
+  });
+  if (j.calc) {
+    inner += '<h4 class="pv-sub">字段原表</h4>' + renderCalc(j.calc);
+  }
+  if (!inner) return '';
+  return '<details class="warm-basis warm-pro-fold">' +
+    '<summary>📐 排盘坐标与字段原表（展开看）</summary>' + inner + '</details>';
+}
+
 function renderVoice(j, proTitle, evidenceKeys, skipProFold) {
   /* R3212：双版合并——人话层常驻，推导链收进「专业视角」折叠。 */
   var html = '';
@@ -4322,10 +4363,11 @@ function renderVoice(j, proTitle, evidenceKeys, skipProFold) {
      * 「专业视角：完整推导链」同源于 interpretation.sections，留外层一个。 */
     html += renderWarm(j.warm, j.interpretation, ev,
                        j.calc && j.calc.scope, true);
-    /* R3254（用户实测「两个三角都叫专业视角」）：skipProFold 时
-     * 推导链不单独出三角——由调用方并进大一统专业折叠（目前仅
-     * 八字排盘走这条，塔罗等照旧独立三角）。 */
-    if (j.interpretation && !skipProFold) {
+    /* R3258（用户实测「很多地方重复」）：warm.details 与
+     * interpretation.sections 逐字节同源——上方解读层已把同一批小节
+     * 散铺出来，这里再折一份「推导链」=同文第二遍。仅当 details 缺失
+     * （解读层没东西可铺）时回落渲染，信息不丢。 */
+    if (j.interpretation && !(j.warm.details || []).length) {
       html += '<details class="warm-basis warm-pro-fold"><summary>📐 专业视角：' +
         '完整推导链（展开看）</summary>' +
         renderInterpretation(j.interpretation, null) + '</details>';
@@ -5533,7 +5575,12 @@ async function loadDailyDetail() {
       var _w = j.warm || {};
       var _pts = (Array.isArray(_w.reply) && _w.reply.length) ? _w.reply.slice(0, 3) : [];
       if (!_pts.length && (_w.details || []).length) {
-        _w.details.slice(0, 3).forEach(function (d) {
+        /* R3258：排盘坐标/运算摘要属「原样」小节——坐标行就在上面
+         * paipan-line，摘要进 _proFold，简报不再复读。 */
+        _w.details.filter(function (d) {
+          var t = (d && d.title) || '';
+          return t !== '排盘坐标' && t.indexOf('运算摘要') !== 0;
+        }).slice(0, 3).forEach(function (d) {
           var ln0 = (d.lines || [])[0];
           if (ln0) _pts.push((d.title ? '【' + d.title + '】' : '') + ln0);
         });
@@ -5546,11 +5593,13 @@ async function loadDailyDetail() {
           '</ul>';
       }
       html += '</div>';
+      /* R3258：与八字页同构——renderVoice 出人话层+散铺小节+引文树，
+       * _proFold 出唯一原表折叠；原「想看专业依据？」与「排盘坐标原表」
+       * 两个三角实为同源三段重复（用户实测），收口为一。 */
       html += '<details class="daily-full pro-drawer"><summary>展开完整解读 ▾</summary>' +
-        '<div class="daily-full-body">' + renderWarm(j.warm, j.interpretation) +
-        /* R3212：单版化后坐标原表也进这级折叠（原 pro 直出版）。 */
-        '<details class="warm-basis" style="margin-top:8px;"><summary>📐 排盘坐标原表</summary>' +
-        renderCalc(j.calc) + '</details></div>' +
+        '<div class="daily-full-body">' +
+        renderVoice(j, '📖 小满的解读', ['evidence'], true) +
+        _proFold(j) + '</div>' +
         '</details>';
     }
     html += '</div>';
@@ -5788,24 +5837,10 @@ function buildBaziResult(j) {
    * 分节小标题区分——不再两个「专业视角」三角并列打架，且整折
    * 沉到人话层之后。 */
   html += renderVoice(j, '📖 小满的解读', ['evidence'], true);
-  html += '<details class="warm-basis warm-pro-fold">' +
-    '<summary>📐 专业视角：排盘坐标 · 推导链 · 古籍原文（展开看）</summary>';
-  if (j.calc) html += '<h4 class="pv-sub">排盘坐标</h4>' + renderCalc(j.calc);
-  /* warm 缺时 interpretation 已在 renderVoice 专业分支明铺，
-   * 折叠里不再重复一份。 */
-  if (j.warm && j.interpretation) {
-    html += '<h4 class="pv-sub">推导链：每句话怎么推出来的</h4>' +
-      renderInterpretation(j.interpretation, null);
-  }
-  if (j.evidence) {
-    html += '<h4 class="pv-sub">📜 古籍原文</h4>' +
-      (j.evidence.length
-        ? renderHits(j.evidence, { empty: '这条没有古籍引文' }) +
-          '<div class="cite-readmore"><button type="button" ' +
-          'class="thread-view cite-toread">📚 这些书都在书库里，去翻翻 →</button></div>'
-        : '<p style="color:var(--secondary);font-size:13px;">这次没翻到能引用的古籍原文，不影响解读，往下看～</p>');
-  }
-  html += '</details>';
+  /* R3258：原三合一大折叠收敛为唯一原表折叠——推导链=上方散铺
+   * 小节本体（逐字节同源），古籍=renderWarm 引文树（同源第二份），
+   * 都摘掉；只留别处看不到的：排盘坐标原句 + 运算摘要 + 字段原表。 */
+  html += _proFold(j);
   /* R3159（specs/014-L3 收口）：今年逐月条——calc.yearly 服务端
    * 一直在算但前端从没渲过（warm 只出三行概括）。12 个月chip 横排，
    * 当月高亮。 */
@@ -5981,28 +6016,115 @@ function _baziPlate(j) {
           '<span class="bp-wxsub">面积越大越旺；缺的那一角也如实画出来</span></div>' +
         '</div>';
     }
-    /* ── 地支关系：刑冲合害分组色块（合绿/冲红/刑橙/害灰/破褐）。 */
+    /* ── 地支关系（R3258 用户点名「要能看懂的关系图」）：
+     * 四柱地支画成 4 节点弧线图——每对刑冲合害是一条跨柱的彩色弧，
+     * 弧中点落类型小标；端点解析不出的（自刑/三合局等整盘关系）
+     * 回落色块。配色沿用色块口径：合绿/冲红/刑橙/害紫/破褐。 */
     var rels = calc.relations || [];
     if (rels.length) {
-      var seen = {};
-      var chips = rels.map(function (r) {
+      var RELPOS = {年:0, 月:1, 日:2, 时:3};
+      var relEnd = function (v) {
+        var m = String(v || '').match(/([年月日时])支([子丑寅卯辰巳午未申酉戌亥])/);
+        return m ? { i: RELPOS[m[1]], z: m[2] } : null;
+      };
+      var RELC = { he:'#5F9E6E', chong:'#C65B4E', xing:'#D98A3E',
+                   hai:'#8E7BA8', po:'#9C7B5C', other:'#B9A48E' };
+      var RELN = { he:'合', chong:'冲', xing:'刑', hai:'害', po:'破', other:'' };
+      var zhiOf = pillars.map(function (p) { return p[1] || ''; });
+      var seen = {}, edges = [], chipsArr = [];
+      rels.forEach(function (r) {
         var t = r.type || '';
         var k = /合|会/.test(t) ? 'he' : /冲/.test(t) ? 'chong' :
                 /刑/.test(t) ? 'xing' : /害/.test(t) ? 'hai' :
                 /破/.test(t) ? 'po' : 'other';
         var txt = r.note || (r.a + '·' + r.b);
-        if (seen[txt]) return '';
+        if (seen[txt]) return;
         seen[txt] = 1;
-        /* note 自带类型名时不再前置（「午午自刑」≠「自刑：午午自刑」）。 */
-        var dup = t && txt.indexOf(t.replace('相', '')) >= 0;
-        return '<span class="bp-rel bp-rel-' + k + '">' +
-          (dup ? '' : '<i>' + esc(t) + '</i>') + esc(txt) + '</span>';
-      }).filter(Boolean).join('');
-      if (chips) {
+        var ea = relEnd(r.a), eb = relEnd(r.b);
+        if (ea && eb && ea.i !== eb.i) {
+          edges.push({ a: ea.i, b: eb.i, k: k, t: t, txt: txt });
+        } else {
+          var dup = t && txt.indexOf(t.replace('相', '')) >= 0;
+          chipsArr.push('<span class="bp-rel bp-rel-' + k + '">' +
+            (dup ? '' : '<i>' + esc(t) + '</i>') + esc(txt) + '</span>');
+        }
+      });
+      if (edges.length) {
+        /* 节点间距 66：4 柱中心 36/102/168/234，r15 末柱收在
+         * 249 < viewBox 258 内不裁边。 */
+        var NX = function (i) { return 36 + i * 66; }, NY = 58;
+        var esvg = '', esr = [];
+        /* 同距弧线共面会叠——同跨度第二条再多抬一层。 */
+        var spanSeen = {};
+        edges.forEach(function (ed) {
+          var x1 = NX(ed.a), x2 = NX(ed.b), span = ed.b - ed.a;
+          var lift = 18 + (span - 1) * 9 + (spanSeen[span] || 0) * 8;
+          spanSeen[span] = (spanSeen[span] || 0) + 1;
+          var mx = (x1 + x2) / 2, cy2 = NY - lift;
+          esvg += '<path d="M' + x1 + ' ' + NY + ' Q' + mx + ' ' + cy2 +
+            ' ' + x2 + ' ' + NY + '" fill="none" stroke="' + RELC[ed.k] +
+            '" stroke-width="2.4" stroke-linecap="round" opacity=".88"/>';
+          esvg += '<text x="' + mx + '" y="' + (cy2 + 3) +
+            '" text-anchor="middle" class="bp-rel-lb" fill="' + RELC[ed.k] +
+            '">' + esc(RELN[ed.k] || ed.t.slice(0, 1)) + '</text>';
+          esr.push(RELN[ed.k] + '：' + ed.txt);
+        });
+        var nsvg = pillars.map(function (p, i) {
+          var z = zhiOf[i] || '？';
+          var col = _WX_HEX[_WX_ZHI[z]] || '#B9A48E';
+          return '<g>' +
+            '<circle cx="' + NX(i) + '" cy="' + NY + '" r="15" fill="' + col +
+              '" fill-opacity=".18" stroke="' + col + '" stroke-width="1.6"/>' +
+            '<text x="' + NX(i) + '" y="' + (NY + 4) + '" text-anchor="middle" ' +
+              'class="bp-rel-z" fill="' + col + '">' + esc(z) + '</text>' +
+            '<text x="' + NX(i) + '" y="' + (NY + 24) + '" text-anchor="middle" ' +
+              'class="bp-rel-pos">' + POS[i] + '</text>' +
+            '</g>';
+        }).join('');
+        plate += '<div class="bp-rels bp-rels-map">' +
+          '<span class="bp-rels-cap">地支关系</span>' +
+          '<svg class="bp-relmap" viewBox="0 0 258 84" role="img" ' +
+            'aria-label="地支关系图：' + esc(esr.join('；')) + '">' +
+            esvg + nsvg + '</svg>' +
+          (chipsArr.length ? '<div class="bp-rel-rest">' +
+            chipsArr.join('') + '</div>' : '') +
+          '<span class="bp-rel-legend">合=互助 · 冲=波动 · 刑=磕绊 · 害/破=暗耗</span></div>';
+      } else if (chipsArr.length) {
         plate += '<div class="bp-rels"><span class="bp-rels-cap">地支关系</span>' +
-          chips +
+          chipsArr.join('') +
           '<span class="bp-rel-legend">合=互助 · 冲=波动 · 刑=磕绊 · 害/破=暗耗</span></div>';
       }
+    }
+    /* ── 十神格局（R3258 F2）：十神归五组人话力量，计数条形。
+     * 组名延续 _TEN_GOD_TAG 口径（同伴/表达/财/担当/底气），
+     * 日干那枚也计入（比肩=同伴力在场）；数据零虚构，数的就是
+     * calc.ten_gods 条目。 */
+    var GGROUP = {比肩:'同伴力', 劫财:'同伴力', 食神:'表达力', 伤官:'表达力',
+                  偏财:'财力气', 正财:'财力气', 七杀:'担当力', 正官:'担当力',
+                  偏印:'底气力', 正印:'底气力'};
+    var GCOL = {同伴力:'#B98A3E', 表达力:'#D96A4E', 财力气:'#5F9E6E',
+                担当力:'#5E86A8', 底气力:'#8E7BA8'};
+    var gcnt = {同伴力:0, 表达力:0, 财力气:0, 担当力:0, 底气力:0};
+    (calc.ten_gods || []).forEach(function (t) {
+      var g = t && GGROUP[t.god];
+      if (g) gcnt[g] += 1;
+    });
+    var gmax = Math.max.apply(null, Object.keys(gcnt).map(function (k) {
+      return gcnt[k];
+    }));
+    if (gmax > 0) {
+      var rows = Object.keys(gcnt).map(function (g) {
+        var w = Math.round(gcnt[g] / gmax * 100);
+        return '<div class="bp-gbar-row">' +
+          '<span class="bp-gbar-k">' + g + '</span>' +
+          '<span class="bp-gbar-track"><span class="bp-gbar-fill" style="width:' +
+            Math.max(gcnt[g] ? 8 : 2, w) + '%;background:' + GCOL[g] + '">' +
+            '</span></span>' +
+          '<span class="bp-gbar-n">' + (gcnt[g] || '·') + '</span></div>';
+      }).join('');
+      plate += '<div class="bp-gbars"><span class="bp-rels-cap">十神力量</span>' +
+        rows +
+        '<span class="bp-rel-legend">数的是你盘里这类神出现的次数</span></div>';
     }
     return plate + '</div>';
   } catch (e) { return ''; }
@@ -10528,6 +10650,33 @@ function initChatSidebar() {
   });
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
   if (bd) bd.addEventListener('click', function () { _setRecent(false); });
+  /* R3258（用户实测「点空白不收回」）：遮罩点击此前是唯一关栏路径，
+   * 任何 z>65 的层（装到桌面提示 z180/海报层 z200/连签 z290）压在
+   * 遮罩上时点击到不了它。补 document 捕获段：按下落在侧栏与悬浮钮
+   * 之外就收栏——事件在 document 捕获期先到，叠层挡不住。
+   * 例外：「聊聊这件事」入口按钮交给委托链处理（开栏/发上下文），
+   * 这里不误收。 */
+  var _swallowPt = null;
+  document.addEventListener('pointerdown', function (e) {
+    if (!sb || !sb.classList.contains('open')) return;
+    var t = e.target;
+    if (!t || t.nodeType !== 1) return;
+    if (sb.contains(t) || (tgl && tgl.contains(t))) return;
+    if (t.closest && t.closest('[data-chat-entry]')) return;
+    _setRecent(false);
+    /* 收栏后同一次点击不许点穿到下层元素（遮罩吃点击的原有
+     * 语义）——记下坐标，随后的 click 捕获段吞掉。 */
+    _swallowPt = { x: e.clientX, y: e.clientY, ts: Date.now() };
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (!_swallowPt) return;
+    var p = _swallowPt;
+    _swallowPt = null;
+    if (Date.now() - p.ts > 700 ||
+        Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 40) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }, true);
   /* R219b（P0-4）：侧栏「我的解读」折叠段与计数刷新随历史记录功能删除。 */
 }
 

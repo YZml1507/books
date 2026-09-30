@@ -731,7 +731,9 @@ body.dark .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
   .recent-toggle-txt{font-size:10px;}
 }
 .recent-sidebar{
-  position:fixed; top:0; left:0; bottom:0; z-index:70;
+  /* R3258：z 70→185——install-tip(180)此前浮在开的侧栏上盖住
+   * 输入区；仍低于 poster-modal(200)/celeb(290)/toast(300)。 */
+  position:fixed; top:0; left:0; bottom:0; z-index:185;
   overscroll-behavior:contain;
   /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
   width:min(320px, 82vw);
@@ -748,7 +750,9 @@ body.dark .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
 .recent-sidebar.open{transform:translateX(0); visibility:visible;}
 /* R218a-01：点侧栏外的区域关闭抽屉——半透遮罩，不抢主区颜色信息 */
 .recent-backdrop{
-  position:fixed; top:0; right:0; bottom:0; left:0; inset:0; z-index:65; background:rgba(0,0,0,0);
+  /* R3258：z 65→182——与侧栏(185)同档提位，install-tip(180)随之
+   * 落到遮罩下不再抢点击；toast/poster/celeb 仍在更上层。 */
+  position:fixed; top:0; right:0; bottom:0; left:0; inset:0; z-index:182; background:rgba(0,0,0,0);
   pointer-events:none; transition:background .2s ease;
 }
 .recent-backdrop.open{background:rgba(0,0,0,.18); pointer-events:auto;
@@ -1748,6 +1752,13 @@ button:active{transform:scale(.96);}
 .checkin-dots i.on{background:var(--accent-ink);}
 .checkin-dots i.today{box-shadow:0 0 0 2px rgba(184,74,111,.18);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
+/* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一
+ * 行竖排拉 570px+——改 2×2 网格，翻面/锁定/徽标态全保留，
+ * 视口窄于 300px 自然回落一列。仅圈日签卡内的牌阵，许愿瓶等
+ * 复用 .checkin-opt 的横排组不受影响。 */
+.daily-checkin .checkin-opts{display:grid;
+  grid-template-columns:1fr 1fr;}
+.daily-checkin .checkin-opt{width:auto;}
 .checkin-opt{
   min-height:var(--tap);   /* R228d：35→44 */
   padding:7px 14px; border-radius:16px; border:1.5px solid var(--border);
@@ -2382,11 +2393,14 @@ html{-webkit-text-size-adjust:100%;}
 .daily-me-edit:hover{border-color:var(--primary-ink); color:var(--primary-ink);}
 .install-tip{
   /* R2349m（R76-P1-5）：压 home 条 → env()；
-   * R76-P3：z-index 280>poster-modal 200 会叠在模态上 → 降到 180 */
+   * R76-P3：z-index 280>poster-modal 200 会叠在模态上 → 降到 180
+   * R3258（用户实测「和小满聊聊任何场景点不开」）：原 bottom:14 与
+   * FAB（left:16/bottom:20/52px）同位完全叠压，且 z180>z60 直接吃掉
+   * 点击——抬到 FAB 上方浮着，不再碰入口。 */
   position:fixed; left:14px;
-  bottom:14px;
+  bottom:82px;
   /* R2353（R110-P2-10）：同上——安装提示掉文档尾 */
-  bottom:max(14px, env(safe-area-inset-bottom, 14px)); z-index:180;
+  bottom:max(82px, calc(env(safe-area-inset-bottom, 0px) + 82px)); z-index:180;
   display:flex; align-items:center; gap:8px;
   background:#fff; border:1px solid var(--border); border-radius:16px;
   padding:10px 12px; font-size:13px; color:var(--text);
@@ -3240,6 +3254,25 @@ html[data-theme="dark"] .dm-panel .dm-count{color:#A99DBD;}
 .bp-rel-other{background:var(--bg);border-color:var(--border);
   color:var(--secondary);}
 .bp-rel-legend{width:100%;font-size:10px;color:var(--muted);}
+/* R3258：地支关系弧线图（4 节点 + 彩色弧）与十神力量条 */
+.bp-rels-map{flex-direction:column;align-items:stretch;}
+.bp-relmap{width:100%;max-width:330px;height:auto;display:block;
+  margin:2px auto 4px;}
+.bp-rel-lb{font-size:10px;font-weight:700;}
+.bp-rel-z{font-size:12px;font-weight:700;}
+.bp-rel-pos{font-size:9px;fill:var(--muted);}
+.bp-rel-rest{display:flex;flex-wrap:wrap;gap:6px;}
+.bp-gbars{display:flex;flex-direction:column;gap:5px;margin-top:10px;
+  padding-top:10px;border-top:1px dashed var(--border);}
+.bp-gbar-row{display:flex;align-items:center;gap:8px;}
+.bp-gbar-k{width:44px;font-size:11px;color:var(--secondary);
+  font-weight:600;flex-shrink:0;}
+.bp-gbar-track{flex:1;height:9px;border-radius:99px;
+  background:var(--bg);border:1px solid var(--border);overflow:hidden;}
+.bp-gbar-fill{display:block;height:100%;border-radius:99px;
+  min-width:3px;transition:width .4s ease;}
+.bp-gbar-n{width:22px;font-size:11px;font-weight:700;
+  color:var(--secondary);text-align:right;flex-shrink:0;}
 /* 统一专业折叠内分节小标题 */
 .pv-sub{margin:16px 0 8px;font-size:13px;color:var(--c-book);
   border-bottom:1px dashed var(--border);padding-bottom:4px;}
