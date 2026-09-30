@@ -4722,7 +4722,9 @@ async function loadDaily() {
        * 底下文字兜底仍在，离线不断档。 */
       var _lvImg = {'吉':'good','小吉':'sml','平':'mid','凶':'bad'}[_dispLv] || 'mid';
       levelEl.innerHTML = '<span class="lv-t">' + esc(_badge) + '</span>' +
-        '<img class="lv-b" src="/static/cream/bear-day-' + _lvImg +
+        /* R3257：圆盘贴熊头→横幅场景图——晴山坡/暖灯茶/灰窗/雨毯，
+         * 图本身就是判词，环境即档位。 */
+        '<img class="lv-b" src="/static/cream/bear-scene-' + _lvImg +
         '.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">';
       levelEl.setAttribute('role', 'img');
       levelEl.setAttribute('aria-label',
@@ -7485,6 +7487,21 @@ function buildTarotResult(j) {
    * 直接回答，再下钻逐牌解读。j.question 是用户输入关键词。 */
   if (j.question) {
     html += tarotQuestionHook(j.question, j.draws || []);
+  }
+  /* R3257（牌阵阅读线）：位置此前只写在每张牌脚下——牌阵的
+   * 「从左读到右/按位序读」这件事没有形。≥2 位时在网格上缘
+   * 画一条带序号的阅读带，读牌顺序本身变成可视信息。 */
+  var _trDraws = j.draws || [];
+  var _trPosOk = _trDraws.length >= 2 &&
+    _trDraws.every(function (d) { return !!(d && (d.position || '')); });
+  if (_trPosOk) {
+    html += '<div class="tr-flow" role="list" aria-label="牌阵阅读顺序">';
+    _trDraws.forEach(function (d, i) {
+      html += '<span class="tr-flow-chip" role="listitem"><b>' + (i + 1) +
+        '</b>' + esc(d.position) + '</span>' +
+        (i < _trDraws.length - 1 ? '<i class="tr-flow-sep">→</i>' : '');
+    });
+    html += '</div>';
   }
   html += '<div class="tarot-grid">';
   (j.draws || []).forEach(function (d, i) {

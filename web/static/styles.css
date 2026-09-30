@@ -432,7 +432,7 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-date{font-size:14px; color:var(--muted); font-family:ui-monospace,var(--font-wenkai),monospace; flex-shrink:0; min-width:90px; text-align:right;}
 .daily-main{display:flex; align-items:center; gap:24px; margin-top:18px; flex-wrap:wrap;}
 .daily-level{
-  width:80px; height:80px; border-radius:50%;
+  width:160px; height:108px; border-radius:22px;
   display:flex; align-items:center; justify-content:center;
   font-size:36px;
   color:#fff; line-height:1; flex-shrink:0;
@@ -1350,6 +1350,20 @@ html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
 .tarot-card-front .tname{font-size:16px; font-weight:700; margin-bottom:0;}
 .tarot-card-front .tmeaning{font-size:12px; color:#815934; line-height:1.45;}
 .tarot-grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:16px 0;}
+/* R3257：牌阵阅读线——序号+位名连成一条读法带 */
+.tr-flow{display:flex; flex-wrap:wrap; align-items:center;
+  justify-content:center; gap:4px 6px; margin:10px 0 2px;
+  padding:8px 12px; border:1px dashed var(--border);
+  border-radius:14px; background:rgba(150,110,80,.05);}
+.tr-flow-chip{display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; color:var(--primary-ink); font-weight:600;}
+.tr-flow-chip b{display:inline-flex; align-items:center;
+  justify-content:center; width:18px; height:18px; border-radius:50%;
+  font-size:11px; color:#fff; background:var(--primary-ink);
+  font-weight:700;}
+.tr-flow-sep{font-style:normal; color:var(--muted); font-size:12px;}
+html[data-theme="dark"] .tr-flow{background:rgba(255,255,255,.04);}
+html[data-theme="dark"] .tr-flow-chip{color:var(--primary-ink);}
 .tarot-cell{text-align:center;}
 .tarot-pos{font-size:13px; color:var(--secondary); margin-top:8px;}
 
@@ -1660,12 +1674,9 @@ details.warm-pro-fold > summary{
   from{opacity:0; transform:translateY(10px);}
   to{opacity:1; transform:none;}
 }
-.daily-level{animation:badgeFloat 3s ease-in-out infinite;}
-@keyframes badgeFloat{
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-5px);}
-}
-.daily-level:hover{animation-play-state:paused; transform:scale(1.12) rotate(-4deg);}
+/* R3257：场景横幅不再做圆徽的呼吸浮动/旋转——整块图在晃显得廉价，
+ * 保留 hover 轻微放大做「能看」的信号。 */
+.daily-level:hover{transform:scale(1.04);}
 button:active{transform:scale(.96);}
 .recent-toggle:hover{animation:togglePulse 1s ease-in-out infinite;}
 @keyframes togglePulse{
@@ -1868,7 +1879,7 @@ button:active{transform:scale(.96);}
  * 图加载失败摘掉自身即回落文字态，离线不断档。 */
 .daily-level{position:relative; overflow:hidden;}
 .daily-level .lv-b{position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; border-radius:50%;}
+  object-fit:cover; border-radius:inherit;}
 .daily-level .lv-t{display:flex; align-items:center; justify-content:center;
   width:100%; height:100%;}
 
