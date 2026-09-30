@@ -4687,7 +4687,18 @@ async function loadDaily() {
     if (levelEl) {
       var _badge = _hMine ? _mineH.verdict
                  : (_hTag || ((level === '凶') ? '缓' : level));
-      levelEl.textContent = _badge;
+      /* R3251（用户实测「圆框的小凶小吉多余，可以用卡通图替代」）：
+       * 圆盘不再糊字——按档位贴心情小熊（吉=向阳熊/小吉=茶杯熊/
+       * 平=静坐熊/凶=裹毯撑伞熊），判词移进 aria-label 与星级图例。
+       * <img> 挂在 .lv-t 文字上层：图挂掉时 onerror 摘掉自己，
+       * 底下文字兜底仍在，离线不断档。 */
+      var _lvImg = {'吉':'good','小吉':'sml','平':'mid','凶':'bad'}[_dispLv] || 'mid';
+      levelEl.innerHTML = '<span class="lv-t">' + esc(_badge) + '</span>' +
+        '<img class="lv-b" src="/static/cream/bear-day-' + _lvImg +
+        '.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">';
+      levelEl.setAttribute('role', 'img');
+      levelEl.setAttribute('aria-label',
+        '今日运势' + (_hMine ? '（对你）' : '') + '：' + _badge);
       levelEl.className = 'daily-level ' +
         (_dispLv === '吉' ? 'good' : _dispLv === '小吉' ? 'sml' :
          _dispLv === '凶' ? 'bad soft' : 'mid') +
@@ -10070,7 +10081,31 @@ async function doRenge() {
     });
     var w = j.warm || {};
     var pts = Array.isArray(w.reply) ? w.reply : [];
+    /* R3251（用户实测「五行人格要形象一点，展示出一个大树或者
+     * 拟人化的大树卡通」）：日主五行 → 拟人形象卡——木=抱树苗熊/
+     * 火=小太阳熊/土=山丘熊/金=星钻熊/水=水滴熊。结果先看图再看字，
+     * 图本身就是人格隐喻，不再是纯文字讲解。 */
+    var _rgGan = '';
+    try {
+      (j.calc.ten_gods || []).forEach(function (t) {
+        if (t && t.pos === '日干') _rgGan = String(t.gan || '');
+      });
+    } catch (eG) {}
+    var _rgEl = {'甲':'wood','乙':'wood','丙':'fire','丁':'fire',
+      '戊':'earth','己':'earth','庚':'metal','辛':'metal',
+      '壬':'water','癸':'water'}[_rgGan] || '';
+    var _rgElCn = {'wood':'木','fire':'火','earth':'土',
+      'metal':'金','water':'水'}[_rgEl] || '';
     var html = '<div class="card renge-card">';
+    if (_rgEl) {
+      html += '<div class="rg-hero">' +
+        '<img class="rg-persona" src="/static/cream/persona-' + _rgEl +
+        '.jpg" alt="你的' + esc(_rgElCn) +
+        '型人格形象" loading="lazy" decoding="async" ' +
+        'onerror="this.parentNode.remove()">' +
+        '<span class="rg-el-tag">' + esc(_rgElCn) + '型' +
+        (_rgGan ? ' · 日主' + esc(_rgGan) : '') + '</span></div>';
+    }
     var _nick = '';
     for (var _ri = 0; _ri < Math.min(pts.length, 5); _ri++) {
       var _mm = String(pts[_ri]).match(/「(.{2,8}?)」/);
@@ -10079,6 +10114,28 @@ async function doRenge() {
     if (_nick) {
       html += '<div class="renge-nick">' + esc(_nick) + '</div>';
     }
+    /* R3251 续：五行配比小彩条——calc.five_elements.counts 是确定
+     * 性权重（日主计分口径），五根条同场正好落在「多数字才上彩条」
+     * 的约定内。图讲「你是谁」，条讲「你是什么料」。 */
+    try {
+      var _fe = (j.calc.five_elements || {}).counts || {};
+      var _feOrder = [['木','wd'], ['火','fr'], ['土','et'],
+                      ['金','mt'], ['水','wt']];
+      var _feMax = 0.01;
+      _feOrder.forEach(function (kv) {
+        var _v = parseFloat(_fe[kv[0]]) || 0;
+        if (_v > _feMax) _feMax = _v;
+      });
+      var _bars = '';
+      _feOrder.forEach(function (kv) {
+        var _v = parseFloat(_fe[kv[0]]) || 0;
+        var _pc = Math.round(_v / _feMax * 100);
+        _bars += '<span class="rg-fe"><i class="rg-fe-n">' + kv[0] +
+          '</i><b class="rg-fe-t"><b class="rg-fe-f f-' + kv[1] +
+          '" style="height:' + _pc + '%"></b></b></span>';
+      });
+      html += '<div class="rg-fes" aria-label="五行配比">' + _bars + '</div>';
+    } catch (eFE) {}
     if (w.one_liner) html += '<p class="renge-l0">' + esc(w.one_liner) + '</p>';
     pts.slice(0, 3).forEach(function (ln) {
       html += '<p class="renge-line">' + esc(ln) + '</p>';
@@ -12571,6 +12628,17 @@ function renderCheckin(dateKey) {
   if (_isMyBirthday() && _todays.indexOf('生日签') < 0) {
     _todays.unshift('生日签');
   }
+  /* R3251（用户实测「四张牌顺序每次打开应该都不一样」）：
+   * 未打卡的扣牌态按 Math.random 现场洗牌——签池今日是哪些
+   * 仍由 _dayPickN 定死（确定性），但四张扣牌的摆放顺序每次
+   * 开页都不同，「抽」的随机感成立。已打卡亮面态不打乱
+   * （picked 位置漂移会让回访者找不到自己那张）。 */
+  if (!saved) {
+    for (var _sf = _todays.length - 1; _sf > 0; _sf--) {
+      var _sj = Math.floor(Math.random() * (_sf + 1));
+      var _st = _todays[_sf]; _todays[_sf] = _todays[_sj]; _todays[_sj] = _st;
+    }
+  }
   /* R2350f（R102-P2-8 消费侧）：开了「明天提醒我」且今天还没打——
    * 每天首渲提醒一次（标记当天已提醒，防同天复读）。 */
   if (!saved) {
@@ -12609,10 +12677,16 @@ function renderCheckin(dateKey) {
     /* R3249c：按钮显示「人话名+用途副标」，data-opt 仍存原键 */
     var _lb = CHECKIN_LABEL[o];
     var _isP = (saved === o);
+    /* R3251（用户实测「翻牌后就不可以再更换了」）：抽中即锁——
+     * 其余签 disabled 不再可点（也不再走 handler 覆写 saved），
+     * 视觉上压暗标明「今天的缘分已定格」。 */
+    var _lock = (saved && !_isP);
     return '<button type="button" class="checkin-opt' +
       (_isP ? ' picked' : '') +
       (!saved ? ' ck-back' : '') +
+      (_lock ? ' ck-lock' : '') +
       (_just === o ? ' just-picked' : '') + '" data-opt="' + esc(o) + '" ' +
+      (_lock ? 'disabled ' : '') +
       'aria-pressed="' + _isP + '"' +
       (_lb ? ' aria-label="' + (!saved ? '抽一张签——' : '') +
         esc(_lb[0]) + '，' + esc(_lb[1]) + '"' : '') +
@@ -12886,7 +12960,7 @@ function renderCheckin(dateKey) {
       /* R2350j：收编到打卡选项组内——许愿瓶等复用 .checkin-opt
        * 皮相的按钮（无 data-opt）不能被当成打卡签重渲。 */
       const btn = e.target.closest('.checkin-opts .checkin-opt');
-      if (!btn || !dateKey || !btn.dataset.opt) return;
+      if (!btn || !dateKey || !btn.dataset.opt || btn.disabled) return;
       /* R230n（R25-P2-1）：dateKey 是渲染时刻闭包——挂过零点的陈旧 tab
        * 绑定着昨天，点击会把「昨天」写进去、清理循环再把「今天」误删。
        * 点击时重算今天：变了就先整卡重渲成今天，再接着写今日键。
@@ -12900,6 +12974,12 @@ function renderCheckin(dateKey) {
         dateKey = _today;
         renderCheckin(_today);
       }
+      /* R3251：落盘前再读一次今日键——已抽过（陈旧 DOM/双击/
+       * 他页签先打）就只重渲不覆写。抽过的签今日不可更换。 */
+      var _ex = null;
+      try { _ex = window.localStorage.getItem('checkin:' + dateKey); }
+      catch (eX) {}
+      if (_ex) { renderCheckin(dateKey); return; }
       /* R230q（R28-P3-7）：先落盘再标 picked——原先 catch 后仍无条件
        * 打勾，写失败也显示「已打卡」静默丢数据（隐私模式/quota）。 */
       try {

@@ -1809,6 +1809,48 @@ button:active{transform:scale(.96);}
   font-size:10px; font-weight:700; color:#fff;
   background:rgba(255,255,255,.24); border-radius:99px;
   padding:1px 7px; margin-top:5px;}
+/* R3251（用户实测「翻牌后不可以再更换」）：抽中即锁——
+ * 未选中的签 disabled+压暗，今天的缘分定格。 */
+.checkin-opt.ck-lock{opacity:.45; filter:saturate(.6);
+  cursor:not-allowed; transform:none;}
+.checkin-opt.ck-lock:hover{transform:none; border-color:var(--line,#E8D5CC);}
+
+/* R3251（用户实测「圆框文字多余，用卡通图替代」）：
+ * 判词圆盘改心情小熊——.lv-b 盖在 .lv-t 文字上，
+ * 图加载失败摘掉自身即回落文字态，离线不断档。 */
+.daily-level{position:relative; overflow:hidden;}
+.daily-level .lv-b{position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; border-radius:50%;}
+.daily-level .lv-t{display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%;}
+
+/* R3251（用户实测「五行人格要形象一点」）：拟人形象卡——
+ * 结果顶部先看图再看字，图本身是人格隐喻。 */
+.rg-hero{position:relative; width:170px; margin:2px auto 10px;}
+.rg-persona{width:170px; height:170px; object-fit:cover;
+  border-radius:24px; display:block;
+  box-shadow:0 8px 28px rgba(150,100,70,.18);
+  border:2px solid rgba(255,255,255,.9);}
+.rg-el-tag{position:absolute; right:-6px; bottom:-6px;
+  font-size:11px; font-weight:700; color:#fff;
+  background:var(--cta-grad); border-radius:99px; padding:3px 10px;
+  box-shadow:0 2px 8px rgba(232,106,138,.35);}
+/* 五行配比彩条——传统五色降饱和贴奶油底 */
+.rg-fes{display:flex; gap:6px; justify-content:center;
+  margin:10px auto 4px; max-width:320px;}
+.rg-fe{display:flex; flex-direction:column; align-items:center;
+  gap:3px; flex:1;}
+.rg-fe-n{font-style:normal; font-size:11px; color:var(--secondary);}
+.rg-fe-t{display:block; width:100%; height:34px; border-radius:8px;
+  background:rgba(160,120,80,.10); position:relative; overflow:hidden;}
+.rg-fe-f{position:absolute; left:0; bottom:0; width:100%;
+  border-radius:8px; transition:height .4s ease;}
+@media (prefers-reduced-motion:reduce){.rg-fe-f{transition:none;}}
+.rg-fe .rg-fe-f.f-wd{background:linear-gradient(180deg,#9CC98F,#7FB573);}
+.rg-fe .rg-fe-f.f-fr{background:linear-gradient(180deg,#F0A97E,#E78B5C);}
+.rg-fe .rg-fe-f.f-et{background:linear-gradient(180deg,#D9B98C,#C9A26B);}
+.rg-fe .rg-fe-f.f-mt{background:linear-gradient(180deg,#EAD9A0,#D9C069);}
+.rg-fe .rg-fe-f.f-wt{background:linear-gradient(180deg,#A9C8E0,#8BB2D4);}
 html[data-theme="dark"] .checkin-opt.ck-back{
   background:linear-gradient(135deg,#3d3236,#453a40);
   border-color:rgba(220,190,160,.35);}

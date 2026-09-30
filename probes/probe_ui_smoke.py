@@ -1118,11 +1118,70 @@ def main() -> int:
                     "!!document.querySelector('.checkin-opt.picked')")
                 _ckkeys = page.evaluate(
                     "Object.keys(localStorage).filter(k=>k.startsWith('checkin:'))")
+                # R3251a：抽中即锁——其余签 disabled 不可再换；
+                # 判词圆盘应是心情熊图（不是文字圆框）
+                _locked = page.evaluate(
+                    "document.querySelectorAll('.checkin-opt[disabled]')"
+                    ".length >= 3")
+                _bear = page.evaluate(
+                    "!!document.querySelector('#dailyLevel img.lv-b')")
+                ok = _picked and len(_ckkeys) >= 1 and _locked and _bear
                 results.append({
-                    "name": "ui:checkin.click", "ok": _picked and len(_ckkeys) >= 1,
-                    "detail": f"picked={_picked} 落键={_ckkeys}"})
+                    "name": "ui:checkin.click", "ok": ok,
+                    "detail": (f"picked={_picked} 落键={_ckkeys} "
+                               f"锁死={_locked} 心情熊={_bear}")})
             except Exception as exc:
                 results.append({"name": "ui:checkin.click", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R3251b：扣牌洗牌——用未来日期键渲染未打卡态，重渲至
+            # 顺序变化为止（同日签池确定性不变，仅摆放序随开页洗牌）。
+            # 24 种排列，最多 6 次仍同序才判假（P≈4%⁶）。
+            try:
+                _sh = page.evaluate("""(() => {
+                    const cap = () => [...document.querySelectorAll(
+                        '.checkin-opt')].map(b => b.dataset.opt).join(',');
+                    renderCheckin('2099-06-15');
+                    const first = cap();
+                    for (let i = 0; i < 6; i++) {
+                        renderCheckin('2099-06-15');
+                        if (cap() !== first)
+                            return {diff: true, tries: i + 2};
+                    }
+                    return {diff: false, order: first};
+                })()""")
+                page.evaluate(
+                    "try { renderCheckin((function(){const d=new Date();"
+                    "return d.getFullYear()+'-'+String(d.getMonth()+1)"
+                    ".padStart(2,'0')+'-'+String(d.getDate())"
+                    ".padStart(2,'0');})()); } catch(e) {}")
+                results.append({
+                    "name": "ui:checkin.shuffle", "ok": bool(_sh.get("diff")),
+                    "detail": f"{_sh}"})
+            except Exception as exc:
+                results.append({"name": "ui:checkin.shuffle", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R3251c：锁死持久化——刷新后 picked 保留 + 其余仍 disabled
+            try:
+                page.reload(wait_until="domcontentloaded")
+                page.wait_for_selector('.checkin-opt', timeout=15000)
+                try:
+                    if page.is_visible('#dailyCover'):
+                        page.click('#dailyCover'); page.wait_for_timeout(600)
+                except Exception:
+                    pass
+                _pk2 = page.evaluate(
+                    "!!document.querySelector('.checkin-opt.picked')")
+                _lk2 = page.evaluate(
+                    "document.querySelectorAll('.checkin-opt[disabled]')"
+                    ".length >= 3")
+                results.append({
+                    "name": "ui:checkin.persist",
+                    "ok": bool(_pk2 and _lk2),
+                    "detail": f"刷后picked={_pk2} 锁死={_lk2}"})
+            except Exception as exc:
+                results.append({"name": "ui:checkin.persist", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
             # R2350k：自点牌扇——开扇 22 背 → 点 3 张 → 成局 → 结果卡出字
@@ -1229,18 +1288,29 @@ def main() -> int:
                                        timeout=15000)
                 _nick = page.evaluate(
                     "!!document.querySelector('#rgResult .renge-nick')")
+                # R3251d：拟人形象 + 五行配比条——结果不能只有文字
+                _pers = page.evaluate(
+                    "(() => { const i = document.querySelector("
+                    "'#rgResult .rg-persona'); return i && "
+                    "/persona-(wood|fire|earth|metal|water)/.test(i.src)"
+                    " ? i.src.split('/').pop() : null; })()")
+                _fe = page.evaluate(
+                    "document.querySelectorAll('#rgResult .rg-fe')"
+                    ".length")
                 page.click('#rgFull')
                 page.wait_for_selector('#view-bazi.active', timeout=8000)
                 page.wait_for_timeout(1800)
                 _bz = page.evaluate(
                     "(document.getElementById('result').innerText||'')"
                     ".length")
-                ok = _nick and _bz > 60 and not errors
+                ok = (_nick and _bz > 60 and _pers and _fe == 5
+                      and not errors)
                 results.append({
                     "name": "ui:renge",
                     "ok": ok,
-                    "detail": ("人设卡昵称=%s 跳排盘结果=%d字"
-                               % (_nick, _bz))})
+                    "detail": ("人设卡昵称=%s 形象=%s 配比条=%d "
+                               "跳排盘结果=%d字"
+                               % (_nick, _pers, _fe, _bz))})
             except Exception as exc:
                 results.append({"name": "ui:renge", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
