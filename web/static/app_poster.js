@@ -462,9 +462,21 @@ function _paintSharePoster(s, W, H) {
       var iy = cy;
       if (c.img) {
         try {
+          /* R3260：drawImage 硬拉伸→contain 适配——RWS 竖牌被
+           * 226×270 横向拉胖 ~47%、日签横幅会被拉变形。保比例居中
+           * 铺满上限，米白衬底让留白不突兀。 */
+          var _tw = cw - 24, _th = ch - 130;
+          var _iw = c.img.naturalWidth || c.img.width || 1;
+          var _ih = c.img.naturalHeight || c.img.height || 1;
+          var _sc = Math.min(_tw / _iw, _th / _ih);
+          var _dw = Math.round(_iw * _sc), _dh = Math.round(_ih * _sc);
           ctx.save();
-          _roundRectPath(ctx, cx + 12, cy + 12, cw - 24, ch - 130, 14); ctx.clip();
-          ctx.drawImage(c.img, cx + 12, cy + 12, cw - 24, ch - 130);
+          _roundRectPath(ctx, cx + 12, cy + 12, _tw, _th, 14); ctx.clip();
+          ctx.fillStyle = '#F6EFE2';
+          ctx.fillRect(cx + 12, cy + 12, _tw, _th);
+          ctx.drawImage(c.img,
+            cx + 12 + Math.round((_tw - _dw) / 2),
+            cy + 12 + Math.round((_th - _dh) / 2), _dw, _dh);
           ctx.restore();
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
         iy = cy + ch - 118;
@@ -718,6 +730,16 @@ function buildShareData(view, j) {
                       '七夕': '💘', '元宵': '🏮', '端午': '🐉' }[_dfest] ||
           (j.term && j.term.name === _dfest ? '🌾' : '🎐');
       }
+      /* R3260（N5 晒图升级）：判词档位场景横幅上海报——日签卡里
+       * 已加载的 bear-scene-* 同源 <img> 直绘成卡座（与塔罗牌面/
+       * 签面插画同管线）。图没加载到时静默缺省，海报照常出。 */
+      try {
+        var _lvArt = document.querySelector('#dailyLevel img.lv-b');
+        if (_lvArt && _lvArt.complete && _lvArt.naturalWidth > 0) {
+          _ds.cards = [{ img: _lvArt, name: '今日小天气',
+            sub: '小满的解忧铺' }];
+        }
+      } catch (eLA) {}
       return _ds;
     }
     case 'tarot': {

@@ -501,6 +501,13 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   background:var(--accent-soft); border:1px solid var(--border);
   border-radius:8px; padding:1px 8px; margin-bottom:2px;}
 .xm-say .daily-summary{margin-top:2px;}
+/* R3260（N5）：判词金句样式——「」引号让通版签诗一眼可截图 */
+.daily-summary.is-quote{font-size:17px; line-height:1.9;
+  letter-spacing:.01em; color:var(--text);}
+.daily-summary.is-quote::before{content:'「'; color:var(--accent);
+  font-weight:600; margin-right:1px;}
+.daily-summary.is-quote::after{content:'」'; color:var(--accent);
+  font-weight:600; margin-left:1px;}
 
 /* R3259（N3）：心情回路——打卡行+小满回一句+心情历色点 */
 .mood-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
@@ -518,6 +525,9 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   margin-top:6px;}
 .mood-cal-tag{font-size:11px; color:var(--muted); margin-right:3px;}
 .mood-dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
+/* R3260：心情历周复盘行——色点带下的小满回头看 */
+.mood-week{flex-basis:100%; font-size:12px; color:var(--secondary);
+  line-height:1.6; margin-top:4px;}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
   overflow-x:auto; scrollbar-width:none;

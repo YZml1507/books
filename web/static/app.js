@@ -4949,6 +4949,11 @@ async function loadDaily() {
      * 没存档的用户照旧看通版。 */
     var _pLine = (j.personal && j.personal.line) ? j.personal.line : '';
     setText('dailySummary', _pLine || (j.summary || ''));
+    /* R3260（N5 金句化收尾）：通版判词是签诗池里的可截图句——
+     * 上「」金句样式拉开与普通说明文的层级；个人行是事实句
+     * （你的日主×今天），保持朴素不抢戏。 */
+    var _dsEl = el('dailySummary');
+    if (_dsEl) _dsEl.classList.toggle('is-quote', !_pLine);
     /* R216b 续3（U-009）：凶日安抚层——summary 下紧跟一句人话安抚。 */
     var sooth = document.getElementById('dailySoothe');
     if (!sooth) {
@@ -13168,6 +13173,10 @@ function _renderMoodRow(lv) {
   var today = todayIso();
   if (lv === 'g' || lv === 'l') {
     try { localStorage.setItem('mood:lv', lv); } catch (eLV) {}
+    /* R3260（周复盘）：mood:lv 只存「最新一天」档位，次日即被覆盖
+     * ——心情历想做「哪天累×那天签面顺不顺」交叉回访需要逐日档位，
+     * 顺手按日落一份（旧天数缺的就缺，不编造）。 */
+    try { localStorage.setItem('moodlv:' + today, lv); } catch (eLV3) {}
   } else {
     try { lv = localStorage.getItem('mood:lv') || 'l'; } catch (eLV2) { lv = 'l'; }
   }
@@ -13185,22 +13194,61 @@ function _renderMoodRow(lv) {
   row.innerHTML = html;
   /* 心情历：近 14 天由远到近色点 */
   var cal = '', has = false;
+  var _wk = [0, 0, 0, 0], _wkN = 0, _wkTiredLowLv = 0;
   for (var i2 = 13; i2 >= 0; i2--) {
     var dd = new Date(); dd.setDate(dd.getDate() - i2);
-    var k = 'mood:' + dd.getFullYear() + '-' +
+    var _dk = dd.getFullYear() + '-' +
       String(dd.getMonth() + 1).padStart(2, '0') + '-' +
       String(dd.getDate()).padStart(2, '0');
+    var k = 'mood:' + _dk;
     var v = null;
     try { v = localStorage.getItem(k); } catch (eV) {}
-    if (v !== null && v !== undefined && v !== '') has = true;
+    if (v !== null && v !== undefined && v !== '') {
+      has = true;
+      if (i2 < 7) {
+        _wkN++; _wk[+v]++;
+        /* R3260：心情×签面交叉——累的日子签面是不是也偏缓，
+         * 用逐日存的 moodlv 对得上才算数（缺档的日子不硬凑）。 */
+        if (+v === 0) {
+          try {
+            if (localStorage.getItem('moodlv:' + _dk) === 'l')
+              _wkTiredLowLv++;
+          } catch (eML) {}
+        }
+      }
+    }
     cal += '<i class="mood-dot" style="background:' +
       (v !== null && v !== '' ? _MOOD_META[+v].c : 'var(--border)') +
       '" title="' + (dd.getMonth() + 1) + '/' + dd.getDate() +
       (v !== null && v !== '' ? ' ' + _MOOD_META[+v].t : ' 未打卡') + '"></i>';
   }
   var mc = el('moodCal');
-  if (mc) mc.innerHTML = has
-    ? '<span class="mood-cal-tag">心情历</span>' + cal : '';
+  if (mc) {
+    var _calHtml = has
+      ? '<span class="mood-cal-tag">心情历</span>' + cal : '';
+    /* R3260（N3 尾巴）：心情历周复盘——近 7 天打卡 ≥2 天就给一句
+     * 「小满回头看」：统计心情分布，累日子撞上缓签就点破
+     * 「不怪你」。全本地数据，隐私口径不破。 */
+    if (_wkN >= 2) {
+      var _wtxt;
+      var _tired = _wk[0], _ok = _wk[2] + _wk[3];
+      if (_tired >= 2 && _wkTiredLowLv >= 1) {
+        _wtxt = '这周累了 ' + _tired + ' 天，赶上签面也偏缓——' +
+          '不怪你，是日子本来就硬，这周先把自己照顾好。';
+      } else if (_tired >= _wkN - _tired) {
+        _wtxt = '这周疲惫的日子偏多——事缓一缓不丢人，' +
+          '小满建议你少排一件、多睡一点。';
+      } else if (_ok >= _wkN - _ok) {
+        _wtxt = '这周状态不错——好天气要趁热用，' +
+          '惦记的事可以往前排一排。';
+      } else {
+        _wtxt = '这周心情有起有落——很正常，' +
+          '哪天觉得沉就回来找小满。';
+      }
+      _calHtml += '<span class="mood-week">📒 ' + esc(_wtxt) + '</span>';
+    }
+    mc.innerHTML = _calHtml;
+  }
   if (picked !== '') _moodShowAnswer(+picked, lv);
   if (!row.dataset.bound) {
     row.dataset.bound = '1';
