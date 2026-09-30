@@ -5967,7 +5967,7 @@ function _baziPlate(j) {
           'aria-label="五行配比：' + esc(srSum) + '">' +
           rings + valPoly + dots + labels + '</svg>' +
         '<div class="bp-wxnote"><b>五行配比</b>' + badges +
-          '<span class="bp-wxsub">面积越大越旺；缺的那角也画出来，不藏</span></div>' +
+          '<span class="bp-wxsub">面积越大越旺；缺的那一角也如实画出来</span></div>' +
         '</div>';
     }
     /* ── 地支关系：刑冲合害分组色块（合绿/冲红/刑橙/害灰/破褐）。 */

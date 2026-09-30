@@ -463,8 +463,15 @@ function _paintSharePoster(s, W, H) {
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
         iy = cy + ch - 118;
       }
-      ctx.fillStyle = '#3E3428'; ctx.font = '600 38px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-      ctx.fillText(_gSlice(c.name, 6), cx + cw / 2, iy + 44);
+      /* R3254h（用户实测「鬼/可怕的东西」末字消失）：两重修正——
+       * ①此前 textAlign 残留为 left，cx+cw/2 起点右偏、长名冲出
+       *   卡缘；②_gSlice 硬切 6 字把「西」劈掉。改：绘制前显式
+       *   center + 长名缩字号到 30px、截断放宽到 9 字。 */
+      var _nm = _pStr(c.name);
+      var _nmFs = _nm.length > 6 ? 30 : 38;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#3E3428'; ctx.font = '600 ' + _nmFs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillText(_gSlice(_nm, 9), cx + cw / 2, iy + 44);
       ctx.fillStyle = '#815934'; ctx.font = '400 28px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       ctx.fillText(_gSlice(c.sub, 8), cx + cw / 2, iy + 88);
     });
