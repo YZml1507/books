@@ -1766,6 +1766,11 @@ function buildChatContext(viewKey) {
     if (_ddo) facts.push('今日宜：' + _ddo.slice(0, 60));
     if (_ddont) facts.push('今日忌：' + _ddont.slice(0, 60));
     if (_pStr(j.noble)) facts.push('今日贵人：' + _pStr(j.noble));
+    /* R3261（R15）：财神方位进 facts——聊搞钱/财的事时小满手里
+     * 有同一个确定性坐标，不会瞎编方位。 */
+    if (_pStr(j.money_dir)) {
+      facts.push('今日财神方位：' + _pStr(j.money_dir));
+    }
   } else if (viewKey === 'xzm') {
     /* R3131：合盘卡上下文——判词/场景/处方行进 facts，小满聊这张
      * 卡手里有同一套口径（与 result_ref 权威块互补：xzm 无判词卡
@@ -15635,7 +15640,10 @@ function baziPersonaCard(j) {
           var _sr = [];
           for (var j2 = 0; j2 < sessionStorage.length; j2++) {
             var sk = sessionStorage.key(j2);
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone)$/
+            /* R3261（R15）：ly:lastq/ly:lastcast 存的是六爻问句原文
+             * ——「忘掉我的数据」后问题幸存=隐私破洞，收进清单；
+             * chatBootId 一并清（重启失忆一致性）。 */
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast)$/
                 .test(sk) || sk.indexOf('shareBy:') === 0 ||
                 sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
