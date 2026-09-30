@@ -1513,6 +1513,12 @@ function rememberResult(viewKey, json, question, body) {
     var _js = JSON.stringify(LAST_RESULT[viewKey]);
     if (_js.length < 200000) sessionStorage.setItem('lastResult:' + viewKey, _js);
   } catch (e) {}
+  /* R3260（UX-PLAN-R6 R10）：档案龄——各品类最近一次出结果的日期
+   * 落 localStorage（rlast:<view>=YYYY-MM-DD，只记日期不记内容）。
+   * 供空态回访「你的盘上次看是 X 天前」。 */
+  try {
+    localStorage.setItem('rlast:' + viewKey, todayIso());
+  } catch (eRL) {}
   /* R233r（R49-P3-2）：新结果落地顺带刷新空态 chips 语境。 */
   try { _chatChipsPersonalize(); } catch (e) {}
   /* R3242e（实测缺口）：台账 dirty 广播此前只在 bazi 提交路径发——
@@ -14600,6 +14606,34 @@ function _chatChipsPersonalize() {
       window.__chatPendingEvt = _pick;
     } else if (_fol) { _fol.remove(); window.__chatPendingEvt = null; }
   } catch (eFL) {}
+  /* R3260（UX-PLAN-R6 R10）：档案回访——命盘类结果 ≥14 天没再
+   * 看时提醒一句（电子玄学复购调研：报告要「后续连接」，免费版
+   * 对应「定期轻更新」的回访理由）。只挑档案感强的品类，
+   * 日抛型（日签/塔罗/六爻）不算档案。 */
+  try {
+    var _arch = box.querySelector('.chat-empty-arch');
+    var _ARCH = { bazi: '命盘', birth: '本命盘', hehun: '合盘' };
+    var _ak = null, _ad = '', _adays = 0;
+    Object.keys(_ARCH).forEach(function (vk) {
+      var d0 = null;
+      try { d0 = localStorage.getItem('rlast:' + vk); } catch (e0) {}
+      if (!d0 || !/^\d{4}-\d{2}-\d{2}$/.test(d0)) return;
+      var g = Math.floor(
+        (new Date(todayIso() + 'T00:00:00') -
+         new Date(d0 + 'T00:00:00')) / 864e5);
+      if (g >= 14 && g > _adays) { _ak = vk; _ad = d0; _adays = g; }
+    });
+    if (_ak) {
+      if (!_arch) {
+        _arch = document.createElement('p');
+        _arch.className = 'chat-empty-arch';
+        box.appendChild(_arch);
+      }
+      _arch.textContent = '📋 你的' + _ARCH[_ak] + '上次看是 ' +
+        _ad.slice(5).replace('-', '月') + '日（' + _adays +
+        ' 天前）——换季了，想重新看看就点上面的卡';
+    } else if (_arch) { _arch.remove(); }
+  } catch (eAR) {}
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
  * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */
@@ -15375,7 +15409,7 @@ function baziPersonaCard(j) {
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
-                     'mood:', 'moodlv:'];   /* R3260：心情历补进备份 */
+                     'mood:', 'moodlv:', 'rlast:', 'usage:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -15532,7 +15566,8 @@ function baziPersonaCard(j) {
                  * 「忘掉我的数据」后幸存=隐私破洞。 */
                 k.indexOf('mood:') === 0 ||
                 k.indexOf('moodlv:') === 0 ||
-                k.indexOf('usage:') === 0)) _rm.push(k);
+                k.indexOf('usage:') === 0 ||
+                k.indexOf('rlast:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*

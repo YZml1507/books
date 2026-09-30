@@ -1657,6 +1657,9 @@ details.warm-pro-fold > summary{
   background:transparent; color:var(--secondary); cursor:pointer;
   line-height:1.6; max-width:300px; min-height:var(--tap); }
 .chat-empty-follow:active{ background:var(--card); }
+/* R3260 R10：档案回访行——纯提示，不可点 */
+.chat-empty-arch{ margin:10px 0 0; font-size:11.5px; color:var(--muted);
+  line-height:1.6; max-width:300px; }
 @media (prefers-reduced-motion:no-preference){
   .chat-empty-note{ animation:noteIn .35s ease; }
   @keyframes noteIn{ from{opacity:0; transform:rotate(-.8deg) translateY(4px);}
