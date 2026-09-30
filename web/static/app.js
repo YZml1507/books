@@ -6745,11 +6745,35 @@ async function doLiuyao() {
       sessionStorage.setItem('ly:lastq',
         JSON.stringify({ d: todayIso(), q: _lyQ }));
     } catch (eLQ2) {}
-    paint('lyResult',
-      (_sameQ
-        ? '<p class="hit-cite">同一问今天第二卦了，老话讲' +
-          '「一事不二占」，这卦就当补充参考看，别拿两卦对着纠结。</p>'
-        : '') + buildLiuyaoResult(j));
+    /* R3259（用户实测 bug）：「不论输入什么都是同样的回复」——时间起卦
+     * 同一时辰（2 小时窗）内必出同一卦，连摇几次卡面一模一样，看起来
+     * 像坏了。会话内比对本卦+变卦+动爻签名，完全相同就在卡首说破：
+     * 不是卡住，是起卦法的确定性，并给出换卦面的两条路。 */
+    var _guaSig = (j.method || '') + '|' +
+      ((j.ben || {}).gua_name || '') + '|' +
+      ((j.bian || {}).gua_name || '') + '|' +
+      (((j.ben || {}).moving_lines) || []).join(',');
+    var _sameCast = false, _prevSig = '';
+    try {
+      _prevSig = sessionStorage.getItem('ly:lastcast') || '';
+      _sameCast = !!_prevSig && _prevSig === _guaSig;
+      sessionStorage.setItem('ly:lastcast', _guaSig);
+    } catch (eLC) {}
+    var _lyPre = '';
+    if (_sameCast) {
+      _lyPre = '<p class="hit-cite">这一卦和你上次摇的<b>完全一样</b>——' +
+        '不是卡住：' +
+        (j.method === 'time'
+          ? '时间起卦跟着日时走，同一个时辰（约两小时）里摇多少次' +
+            '都是这一卦。想换个卦面：换「铜钱起卦」每次都不一样，' +
+            '或过个时辰再来。'
+          : '铜钱起卦填了固定编号，同编号必出同卦——' +
+            '把编号清空再摇就是随机卦面。') + '</p>';
+    } else if (_sameQ) {
+      _lyPre = '<p class="hit-cite">同一问今天第二卦了，老话讲' +
+        '「一事不二占」，这卦就当补充参考看，别拿两卦对着纠结。</p>';
+    }
+    paint('lyResult', _lyPre + buildLiuyaoResult(j));
     pollAiPolish('lyResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R198b（US5）+ R2512：分享按钮已挪进 build（重画不丢），
      * 绑定收进 rebind 登记——口吻切换后重放。 */

@@ -1369,8 +1369,9 @@ def liuyao(req) -> dict:
     if req.method == "time":
         _wr = out["warm"].get("reply")
         if isinstance(_wr, list):
-            _wr.append("小提示：时间起卦的卦面跟着日时走，同一个时辰再摇"
-                       "容易是同族的卦：想要更随机的卦面，试试铜钱摇卦。")
+            _wr.append("小提示：时间起卦的卦面跟着日时走，同一个时辰里"
+                       "摇多少次都是同一卦：想要每次不同的卦面，"
+                       "试试铜钱摇卦。")
     # R230z（R36-P1-1）：六爻进台账；摘要用问题或本卦名
     # R2350g（R104-P1-3）：record=false 的分享重放不进接收方台账。
     if getattr(req, "record", True):
