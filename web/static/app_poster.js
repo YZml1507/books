@@ -346,22 +346,38 @@ function _paintSharePoster(s, W, H) {
      * 被白卡盖住，「还有·共N张」永远不可见。 */
     var _linesTop = (s.cards || []).length ? 860 : 1260;
     var lh = Math.min(150, Math.max(64, (_linesTop - cardY) / lines.length));
-    var _slack = _linesTop - (cardY - 60) - (lines.length * lh + 40);
+    /* R3260（实拍抓到的溢出）：每行是「小标签+大值」双行排版，
+     * 末行值基线 = cardY+(n-1)·lh+62，框底旧口径 +40 只到
+     * cardY+n·lh-20——lh 贴 64 下限时末行戳出框 18px。
+     * 底 padding 40→76，框底 = 末行基线 +14 下沉量，不再溢出。 */
+    var _LH_PAD = 76;
+    var _slack = _linesTop - (cardY - 60) - (lines.length * lh + _LH_PAD);
     if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
     /* R2504（A-1 兜底）：lh 贴 64 下限仍超硬顶时整块上提，
      * 保证行块底缘不越 _linesTop。 */
-    if (cardY - 60 + lines.length * lh + 40 > _linesTop) {
-      cardY -= (cardY - 60 + lines.length * lh + 40) - _linesTop;
+    if (cardY - 60 + lines.length * lh + _LH_PAD > _linesTop) {
+      cardY -= (cardY - 60 + lines.length * lh + _LH_PAD) - _linesTop;
     }
     ctx.fillStyle = '#FFFFFF';
-    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.fill();
+    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + _LH_PAD, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
-    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + 40, 28); ctx.stroke();
+    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + _LH_PAD, 28); ctx.stroke();
     ctx.textAlign = 'left';
+    /* R3260：行高 <95 时双行排版（标签上值下，62px 内距）会和下一行
+     * 标签挤叠（daily 5 行 + 卡座时 lh=72 实测叠加）。行高不够就
+     * 切单行「标签：值」——行高 ≥56 即呼吸充足。 */
+    var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
       var y = cardY + i * lh + 10;
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-      ctx.fillText(r.k, 150, y);
+      var _kx = 150;
+      if (_rowInline) {
+        y = cardY + i * lh + Math.round(lh / 2) + 14;
+        ctx.fillText(r.k + '：', 150, y);
+        _kx = 150 + ctx.measureText(r.k + '：').width + 8;
+      } else {
+        ctx.fillText(r.k, 150, y);
+      }
       ctx.fillStyle = '#3E3428'; ctx.font = '500 40px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var v = _pStr(r.v);
       /* R233t（R51-P1-4）：截断 15→22——四柱「戊寅·己未·辛酉·甲…」
@@ -379,13 +395,13 @@ function _paintSharePoster(s, W, H) {
       }
       /* R2351（R109-P1-2）：按字数截断不测宽——22 字 × 40px ≈ 880px
        * 会冲出卡右缘。逐 2px 缩字号到放得下（最低 30px 再截）。 */
-      var _vMax = 990 - 150 - 20;
+      var _vMax = 990 - _kx - 20;
       for (var _fz = 40; _fz > 30 &&
            ctx.measureText(_vv).width > _vMax; _fz -= 2) {
         ctx.font = '500 ' + _fz +
           'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       }
-      ctx.fillText(_vv, 150, y + 52);
+      ctx.fillText(_vv, _kx, _rowInline ? y : y + 52);
       /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
        * share 模板只印字。文字照画，色块排在值右侧。 */
       if (r.k === '幸运色') {
@@ -393,14 +409,15 @@ function _paintSharePoster(s, W, H) {
           棕: '#8D6E63', 黑: '#2C3E50', 蓝: '#2874A6', 青: '#148F77',
           绿: '#27AE60', 白: '#F2F3F4', 金: '#B7950B', 粉: '#FF8FAB',
           橙: '#E67E22', 灰: '#95A5A6' };
-        var _scx = 150 + ctx.measureText(_vv).width + 40;
+        var _scx = _kx + ctx.measureText(_vv).width + 40;
+        var _scy = _rowInline ? y - 14 : y + 40;
         String(v).split(/\s*·\s*|\s*、\s*/).forEach(function (cn) {
           var hex = _cmap[cn.trim().charAt(0)];
           if (hex && _scx < 940) {
             ctx.fillStyle = hex;
-            ctx.beginPath(); ctx.arc(_scx, y + 40, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(_scx, _scy, 18, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = 'rgba(62,52,40,.25)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(_scx, y + 40, 18, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(_scx, _scy, 18, 0, Math.PI * 2); ctx.stroke();
             _scx += 50;
           }
         });
