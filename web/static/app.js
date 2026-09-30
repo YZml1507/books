@@ -1898,8 +1898,10 @@ function _chatEmptyRebuild() {
     'src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56">' +
     '<p class="chat-empty-hi">我是小满 ✨</p>' +
     '<p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>' +
+    '<p class="chat-empty-shop" id="chatShopLine"></p>' +
     '<div class="chat-empty-chips">' +
     '<button type="button" class="chat-chip" data-ask="今天运势怎么样？">今天运势怎么样</button>' +
+    '<button type="button" class="chat-chip" data-ask="我最近工作和财运怎么样？">工作财运怎么样</button>' +
     '<button type="button" class="chat-chip" data-ask="我最近的感情会有进展吗？">最近感情有进展吗</button>' +
     '<button type="button" class="chat-chip" data-ask="帮我看看我的八字">帮我看看我的八字</button>' +
     '</div>';
@@ -1983,6 +1985,29 @@ function autoSendChatContext() {
   if (!viewKey) viewKey = 'daily';
   var ctx = buildChatContext(viewKey);
   var msg = ctx.msg;
+  /* R3259（UX-STRATEGY-NEXT N4）：小满记忆——把她问过的事归到
+   * 五个事由桶（工作/钱/感情/身体/家里）存在本机；回访时空态
+   * 多一行「上次你问起X的事——还想再看看吗」，陌生人→熟人。 */
+  try {
+    var _BKT = {
+      '工作': '工作|上班|老板|同事|加班|辞职|跳槽|面试|升职|事业|项目|考核',
+      '钱': '钱|财|工资|投资|副业|生意|债|借|赚|开销|房租|股票|基金',
+      '感情': '感情|对象|男朋友|女朋友|老公|老婆|喜欢|暗恋|分手|复合|桃花|婚姻|相亲|crush',
+      '身体': '身体|健康|病|失眠|睡不着|累|焦虑|压力|心情',
+      '家里': '家里|父母|孩子|妈妈|爸爸|家人|家庭'};
+    var _th = '';
+    for (var _bk in _BKT) {
+      if (new RegExp(_BKT[_bk]).test(msg)) { _th = _bk; break; }
+    }
+    if (_th) {
+      var _tp = {};
+      try { _tp = JSON.parse(localStorage.getItem('chat:topics') || '{}') || {}; }
+      catch (eTP0) {}
+      _tp[_th] = todayIso();
+      try { localStorage.setItem('chat:topics', JSON.stringify(_tp)); }
+      catch (eTP1) {}
+    }
+  } catch (eTP) {}
   /* facts 优先用本视图的结构化坐标；为空时回落到排盘时存的 CHAT_LAST_FACTS */
   var facts = (ctx.facts && ctx.facts.length) ? ctx.facts : CHAT_LAST_FACTS;
   chatBubble('me', msg);
@@ -5364,6 +5389,10 @@ async function loadDaily() {
       _tbar.hidden = false;
     } else if (_tbar) { _tbar.hidden = true; }
     renderCheckin(j.date);   // R214b：今日玄学搭子打卡互动
+    /* R3259（UX-STRATEGY-NEXT N3）：心情回路——打完卡顺手记个心情。 */
+    try {
+      _renderMoodRow((_dispLv === '吉' || _dispLv === '小吉') ? 'g' : 'l');
+    } catch (eMR) {}
     /* R39-P0-1：卡尾「明天预告」一行。 */
     var _tmrEl = el('dailyTomorrow');
     if (!_tmrEl) {
@@ -10730,11 +10759,16 @@ function initViews() {
   document.querySelectorAll('.scene-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
       var sc = chip.dataset.scene;
-      if (sc === 'chat') {
+      if (sc === 'chat' || sc === 'money') {
+        /* R3259（UX-STRATEGY-NEXT N2）：搞钱大女主是人群第一诉求
+         * （事业 76.5%>财 74.9%>爱 49.6%）——全站此前没有一个
+         * 事业/财运向入口，直达小满并代写好第一句。 */
         chatOpen();
         var inp = el('chatInput');
         if (inp) {
-          inp.value = '心里有点事，想说给你听';
+          inp.value = sc === 'money'
+            ? '我最近事业和钱方面的运势怎么样？'
+            : '心里有点事，想说给你听';
           guardedCall('chatSendBtn', chatSend);
         }
         return;
@@ -13085,6 +13119,97 @@ function _checkinStreak(set, dateKey) {
   while (set[cur]) { n++; cur = _isoShift(cur, -1); }
   return n;
 }
+/* R3259（UX-STRATEGY-NEXT N3）：心情回路——74% 用户为缓解焦虑而来，
+ * 「止痛药」人群的留存靠被接住的感觉可预期（Finch 式轻回路）：
+ * 1-tap 心情打卡 → 小满回一句（心情×判词档确定性文案池）→
+ * 心情历近 14 天色点。全 localStorage，零后端零账号。 */
+var _MOOD_META = [
+  { e: '😮‍💨', t: '有点累', c: '#C78C9E' },
+  { e: '😐', t: '一般般', c: '#B9AE9C' },
+  { e: '🙂', t: '还不错', c: '#D9B36A' },
+  { e: '🥳', t: '状态满分', c: '#8FA86F' }];
+var _MOOD_REPLY = {
+  '0g': '累就别硬撑——今天盘面有暗劲帮你，事可以缓一缓，人先歇口气。',
+  '0l': '累的时候更要对自己松一点——盘面不硬的日子，少排一件事、早点收工就是赚。',
+  '1g': '平平的心配平顺的签——不用刻意做什么，顺着走就到了。',
+  '1l': '心稳就是赢——盘面不硬的日子，不动气就已经是赚了，剩下的交给明天。',
+  '2g': '心情好+签也顺：那件想做很久没动的事，今天就适合开个头。',
+  '2l': '心情好是你自带的小太阳——盘面一般的日子，状态就是你的底牌。',
+  '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
+  '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
+
+function _moodShowAnswer(m, lv) {
+  var ans = el('moodAns');
+  if (!ans) return;
+  var band = (lv === 'g') ? 'g' : 'l';
+  ans.textContent = _MOOD_REPLY[String(m) + band] || '';
+  ans.hidden = false;
+}
+
+function _renderMoodRow(lv) {
+  var anchor = el('dailyCheckin');
+  if (!anchor || !anchor.parentNode) return;
+  var row = el('moodRow');
+  if (!row) {
+    row = document.createElement('div');
+    row.id = 'moodRow'; row.className = 'mood-row';
+    anchor.parentNode.insertBefore(row, anchor.nextSibling);
+  }
+  var today = todayIso();
+  if (lv === 'g' || lv === 'l') {
+    try { localStorage.setItem('mood:lv', lv); } catch (eLV) {}
+  } else {
+    try { lv = localStorage.getItem('mood:lv') || 'l'; } catch (eLV2) { lv = 'l'; }
+  }
+  var picked = '';
+  try { picked = localStorage.getItem('mood:' + today) || ''; } catch (ePK) {}
+  var html = '<span class="mood-q">今天心里怎么样？</span>';
+  _MOOD_META.forEach(function (mm, i) {
+    html += '<button type="button" class="mood-b' +
+      (picked === String(i) ? ' on' : '') + '" data-m="' + i +
+      '" aria-label="' + mm.t + '" title="' + mm.t + '">' + mm.e + '</button>';
+  });
+  html += '<span class="mood-ans" id="moodAns"' +
+    (picked === '' ? ' hidden' : '') + '></span>';
+  html += '<span class="mood-cal" id="moodCal"></span>';
+  row.innerHTML = html;
+  /* 心情历：近 14 天由远到近色点 */
+  var cal = '', has = false;
+  for (var i2 = 13; i2 >= 0; i2--) {
+    var dd = new Date(); dd.setDate(dd.getDate() - i2);
+    var k = 'mood:' + dd.getFullYear() + '-' +
+      String(dd.getMonth() + 1).padStart(2, '0') + '-' +
+      String(dd.getDate()).padStart(2, '0');
+    var v = null;
+    try { v = localStorage.getItem(k); } catch (eV) {}
+    if (v !== null && v !== undefined && v !== '') has = true;
+    cal += '<i class="mood-dot" style="background:' +
+      (v !== null && v !== '' ? _MOOD_META[+v].c : 'var(--border)') +
+      '" title="' + (dd.getMonth() + 1) + '/' + dd.getDate() +
+      (v !== null && v !== '' ? ' ' + _MOOD_META[+v].t : ' 未打卡') + '"></i>';
+  }
+  var mc = el('moodCal');
+  if (mc) mc.innerHTML = has
+    ? '<span class="mood-cal-tag">心情历</span>' + cal : '';
+  if (picked !== '') _moodShowAnswer(+picked, lv);
+  if (!row.dataset.bound) {
+    row.dataset.bound = '1';
+    row.addEventListener('click', function (ev) {
+      var b = ev.target.closest('.mood-b');
+      if (!b) return;
+      var m = b.dataset.m;
+      try { localStorage.setItem('mood:' + todayIso(), m); } catch (eS) {}
+      row.querySelectorAll('.mood-b').forEach(function (x) {
+        x.classList.toggle('on', x === b);
+      });
+      var lvNow = 'l';
+      try { lvNow = localStorage.getItem('mood:lv') || 'l'; } catch (eL) {}
+      _moodShowAnswer(+m, lvNow);
+      _renderMoodRow(lvNow);   /* 心情历跟着刷 */
+    });
+  }
+}
+
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
   if (!box) return;
@@ -13319,8 +13444,8 @@ function renderCheckin(dateKey) {
      * 否则新客不知道有这条收集线在等她。 */
     '<details class="ck-album"><summary>📒 ' +
       (Object.keys(_ckAll).length
-        ? '看看我的签册（' + Object.keys(_ckAll).length + '）'
-        : '我的签册：打一次卡开第一张') +
+        ? '小满替你收着的签册（' + Object.keys(_ckAll).length + '）'
+        : '小满的签册：打一次卡开第一张') +
       '</summary>' +
       '<div class="ck-album-body" id="checkinAlbum"></div></details>' +
       /* R2350j（R107-Top5-4）：许愿瓶 lite——写个愿望丢进去，
@@ -13923,6 +14048,17 @@ function _chatChipsPersonalize() {
     _hiTxt = '第 ' + _visitCount() + ' 次来坐～今天想看点什么 ✨';
   }
   if (_hi && _hiTxt) _hi.textContent = _hiTxt;
+  /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
+   * 不是等你点开才活的按钮。确定性按时段切文案。 */
+  var _shop = box.querySelector('.chat-empty-shop');
+  if (_shop) {
+    _shop.textContent =
+      (_hh2 >= 23 || _hh2 < 5) ? '🏮 小满还醒着，灯给你留着' :
+      _hh2 < 10 ? '🍵 小满刚开门，在擦柜台' :
+      _hh2 < 14 ? '📜 小满在理今天的签' :
+      _hh2 < 18 ? '🫖 小满在店里翻书煮茶' :
+      _hh2 < 22 ? '🕯️ 小满在灯下理签' : '🏮 小满还醒着，灯给你留着';
+  }
   if (_sub) {
     if (_bday) {
       _sub.textContent = '生日这天的签，是一年一次的限定款';
@@ -13992,6 +14128,38 @@ function _chatChipsPersonalize() {
     chips[0].textContent = '做了个梦，讲给你听 🌙';
     chips[0].setAttribute('data-ask', '我刚做了个梦，想讲给你听');
   }
+  /* R3259（UX-STRATEGY-NEXT N4）：小满记忆——上次聊过的事由桶
+   * （chatSend 里存的 chat:topics），隔 ≥2 天再开聊时空态底部
+   * 多一行「上次你问起X的事——想再看看就说一声」。
+   * 测测体验报告原话：跨会话记忆是「陌生人→电子闺蜜」的分水岭。 */
+  try {
+    var _memo = box.querySelector('.chat-empty-memo');
+    var _tp2 = {};
+    try { _tp2 = JSON.parse(localStorage.getItem('chat:topics') || '{}') || {}; }
+    catch (eTM) {}
+    var _best = null, _bestD = '';
+    for (var _tk in _tp2) {
+      var _iso = _tp2[_tk];
+      if (typeof _iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(_iso)) continue;
+      var _gap = Math.floor(
+        (new Date(todayIso() + 'T00:00:00') - new Date(_iso + 'T00:00:00')) /
+        86400000);
+      if (_gap >= 2 && (!_best || _iso > _bestD)) { _best = _tk; _bestD = _iso; }
+    }
+    if (_best) {
+      if (!_memo) {
+        _memo = document.createElement('p');
+        _memo.className = 'chat-empty-memo';
+        var _cbox = box.querySelector('.chat-empty-chips');
+        if (_cbox && _cbox.parentNode) {
+          _cbox.parentNode.insertBefore(_memo, _cbox.nextSibling);
+        } else { box.appendChild(_memo); }
+      }
+      var _mm = _bestD.slice(5).replace('-', '月') + '日';
+      _memo.textContent = '📌 上次你聊起' + _best + '的事（' + _mm +
+        '）——想再看看就跟我说';
+    } else if (_memo) { _memo.remove(); }
+  } catch (eTP2) {}
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
  * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */

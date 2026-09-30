@@ -194,7 +194,13 @@ function _paintPoster(j, W, H) {
   ctx.fillText('知命知趣知自己 · 为了更好地活', 540, 1440 - 104);
   ctx.fillStyle = '#B7A98A';
   ctx.font = '400 32px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('知命 · 仅供娱乐', 540, 1440 - 50);
+  /* R3259（N5）：有引文的判词在分享图底标带上「可核验」——
+   * 全网唯一性卖点跟着每张流出的图走。 */
+  var _vc0 = false;
+  try { _vc0 = !!(j && j.interpretation &&
+    (j.interpretation.citations || []).length); } catch (eVC0) {}
+  ctx.fillText(_vc0 ? '判词引自古籍 可核验 · 仅供娱乐'
+                    : '知命 · 仅供娱乐', 540, 1440 - 50);
 
   return cv;
 }
@@ -492,7 +498,13 @@ function _paintSharePoster(s, W, H) {
   _roundRectPath(ctx, 540 - 340, 1298, 680, 42, 21); ctx.fill();
   ctx.fillStyle = '#8A7A56'; ctx.font = '400 26px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
   /* R229z续23（R11-#3）：分享图会离站传播，免责必须跟着走 */
-  ctx.fillText('· 知命知趣知自己 · 仅供娱乐 ·', 540, 1324);
+  /* R3259（N5）：有引文时底标换成「可核验」口径——分享图是最大
+   * 离站传播面，信任标签该跟着图走。 */
+  var _vc1 = false, _src1 = s && (s._src || s);
+  try { _vc1 = !!(_src1 && _src1.interpretation &&
+    (_src1.interpretation.citations || []).length); } catch (eVC1) {}
+  ctx.fillText(_vc1 ? '· 判词引自古籍 可核验 · 仅供娱乐 ·'
+                    : '· 知命知趣知自己 · 仅供娱乐 ·', 540, 1324);
   /* 金句 hook（按 view 动态 + 数据驱动） */
   /* R218a-巡3 修复（N-02+N-04 同根因）：原 `j` 是父函数 _paintPoster 的形参，
    * 本函数 _paintSharePoster(s, W, H) 形参只有 s；j 在 share 分支闭包不可见，

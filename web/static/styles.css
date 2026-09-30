@@ -492,6 +492,32 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-stars .star-mid{color:#999184;}
 .daily-stars .star-bad{color:var(--rose-deep);}
 .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
+/* R3259（N1）：小满留言——判词配署名+头像，系统播报→有人惦念 */
+.xm-say{display:flex; gap:10px; align-items:flex-start; margin-top:12px;}
+.xm-say-ava{width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  border:2px solid var(--border); object-fit:cover;}
+.xm-say-b{min-width:0;}
+.xm-say-tag{display:inline-block; font-size:11px; color:var(--secondary);
+  background:var(--accent-soft); border:1px solid var(--border);
+  border-radius:8px; padding:1px 8px; margin-bottom:2px;}
+.xm-say .daily-summary{margin-top:2px;}
+
+/* R3259（N3）：心情回路——打卡行+小满回一句+心情历色点 */
+.mood-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);}
+.mood-q{font-size:12px; color:var(--secondary); margin-right:2px;}
+.mood-b{width:34px; height:34px; border-radius:50%; border:1.5px solid var(--border);
+  background:var(--card); font-size:17px; line-height:1; cursor:pointer;
+  transition:transform .15s ease, border-color .15s ease; padding:0;}
+.mood-b:hover{transform:scale(1.12);}
+.mood-b.on{border-color:var(--accent); transform:scale(1.15);
+  box-shadow:0 0 0 3px rgba(201,145,74,.18);}
+.mood-ans{flex-basis:100%; font-size:13px; color:var(--text);
+  line-height:1.7; margin-top:4px;}
+.mood-cal{flex-basis:100%; display:flex; align-items:center; gap:4px;
+  margin-top:6px;}
+.mood-cal-tag{font-size:11px; color:var(--muted); margin-right:3px;}
+.mood-dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
   overflow-x:auto; scrollbar-width:none;
@@ -1590,6 +1616,10 @@ details.warm-pro-fold > summary{
   color:var(--primary-ink); }
 .chat-empty-sub{ margin:0 0 14px; font-size:13px; color:var(--secondary);
   line-height:1.6; }
+.chat-empty-shop{ margin:-8px 0 12px; font-size:11.5px; color:var(--muted);
+  line-height:1.5; }   /* R3259 N1：小满在店状态行——她有自己的日子 */
+.chat-empty-memo{ margin:12px 0 0; font-size:12px; color:var(--secondary);
+  line-height:1.6; }   /* R3259 N4：小满记忆回访行 */
 .chat-empty-chips{ display:flex; flex-direction:column; gap:8px;
   width:100%; max-width:240px; }
 .chat-chip{ padding:9px 14px; font-size:13px; text-align:center; min-height:var(--tap);   /* R228d */

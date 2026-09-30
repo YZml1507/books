@@ -224,7 +224,10 @@ try {
       <div>
         <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
         <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
-        <div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div>
+        <!-- R3259（UX-STRATEGY-NEXT N1）：判词=「小满今天给你留的话」——
+             同一数据换叙述者，系统播报变成有人惦念（Finch 式在场感）。 -->
+        <div class="xm-say"><img class="xm-say-ava" src="/static/cream/avatar-xiaoman-cream.jpg"
+          alt="" width="30" height="30" loading="lazy" decoding="async" onerror="this.remove()"><div class="xm-say-b"><span class="xm-say-tag">小满留言</span><div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div></div></div>
       </div>
     </div>
     <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
@@ -310,6 +313,8 @@ try {
     <div class="scene-bar" role="group" aria-label="按你现在想的直达">
       <button type="button" class="scene-chip" data-scene="chat">
         <b>💭 心里有事</b><i>和小满说说</i></button>
+      <button type="button" class="scene-chip" data-scene="money">
+        <b>💰 搞钱顺不顺</b><i>事业财运</i></button>
       <button type="button" class="scene-chip" data-scene="dream">
         <b>🌙 昨晚做梦</b><i>帮你翻翻</i></button>
       <button type="button" class="scene-chip" data-scene="hehun">
@@ -1128,8 +1133,10 @@ try {
           alt="" width="56" height="56">
         <p class="chat-empty-hi">我是小满 ✨</p>
         <p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>
+        <p class="chat-empty-shop" id="chatShopLine"></p>
         <div class="chat-empty-chips">
           <button type="button" class="chat-chip" data-ask="今天运势怎么样？">今天运势怎么样</button>
+          <button type="button" class="chat-chip" data-ask="我最近工作和财运怎么样？">工作财运怎么样</button>
           <button type="button" class="chat-chip" data-ask="我最近的感情会有进展吗？">最近感情有进展吗</button>
           <button type="button" class="chat-chip" data-ask="帮我看看我的八字">帮我看看我的八字</button>
         </div>

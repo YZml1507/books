@@ -450,6 +450,11 @@ def main() -> int:
         # 冒烟强造 daily 5xx 成本高（需 mock 注入失败），豁免。
         "dailyRetry": "日签失败态动态重试钮——loadDaily 主链路已由 "
                       "daily/deep 用例覆盖，失败注入非冒烟面",
+        # R3259（N3）：心情打卡容器委托——.mood-b 本地切 on 态 +
+        # localStorage 写读 + 文案池回复，零请求；与 historyFilter
+        # 同型豁免。真实链路已 Playwright 手验（点选→回复→14 色点）。
+        "moodRow": "心情打卡容器委托——.mood-b 本地 on 态+localStorage"
+                   "+文案池回复，零请求；手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
