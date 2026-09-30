@@ -891,8 +891,11 @@ function buildQimingResult(j) {
         '<button type="button" class="qm-fav" data-fav-name="' +
         esc(n.full_name || '') + '" title="收进心水名单" ' +
         'aria-label="收藏 ' + esc(n.full_name || '') + '">♡</button></h3>' +
-        '<p style="font-size:13px;color:var(--secondary);">五行：' +
-        esc((n.elements || []).join('·')) +
+        '<p class="qm-el-line">' +
+        (n.elements || []).map(function (e) {
+          /* R3254g：五行字→彩色元素 chip（与命盘同套五色）。 */
+          return '<span class="wx-chip wx-' + esc(e) + '">' + esc(e) + '</span>';
+        }).join('') +
         (n.form === 'single' ? '　单字名' : '　双字名') + '</p>' +
         '<div class="qm-parts">' + chips + '</div>' +
         /* R2349s（R84-P2-14）：热字/生僻字提醒 chip——后端
@@ -935,8 +938,10 @@ function buildQimingResult(j) {
     html += '<div class="calc-block" style="border-left:3px solid ' + c + ';">' +
       '<h3 style="color:' + c + ';font-family:var(--font-serif);font-size:22px;">' +
       esc(n.char || '') + '</h3>' +
-      '<p style="font-size:13px;color:var(--secondary);">五行：' +
-      esc(n.element || '') + '　出处：' + esc(n.radical || '') + '</p>' +
+      '<p class="qm-el-line">' +
+      (n.element ? '<span class="wx-chip wx-' + esc(n.element) + '">' +
+        esc(n.element) + '</span> ' : '') +
+      '出处：' + esc(n.radical || '') + '</p>' +
       '<p style="font-size:13px;">' + esc(n.meaning || '') + '</p></div>';
   });
   html += '</div></details>';
@@ -5889,8 +5894,12 @@ function _baziPlate(j) {
     var POS = ['年', '月', '日', '时'];
     var cells = pillars.map(function (p, i) {
       var gan = p[0], zhi = p[1] || '';
-      var gGod = (i === 2) ? '日主' : (gods[POS[i] + '干'] || '');
-      var zGod = gods[POS[i] + '支藏干'] || '';
+      /* 时辰未知的第 4 柱只画「？？」——十神是按默认午时算的，
+       * 字都是未知还挂神煞是误导，一起压掉。 */
+      var missCell = (i === 3 && hourMiss);
+      var gGod = missCell ? '' :
+        ((i === 2) ? '日主' : (gods[POS[i] + '干'] || ''));
+      var zGod = missCell ? '' : (gods[POS[i] + '支藏干'] || '');
       return '<div class="bp-cell' + (i === 2 ? ' bp-day' : '') + '">' +
         '<i>' + POS[i] + '柱</i>' +
         '<div class="bp-chars">' +
@@ -6747,7 +6756,16 @@ async function doDream() {
     paint('dmResult', buildDreamResult(j));
     pollAiPolish('dmResult', j.ai_task_id);
     var _rbDm = function () {
-      on('shareDream', function () { return downloadPoster(j, 'dream'); });
+      on('shareDream', function () {
+        /* R3254g：解梦分享图嵌梦符熊——首个符号有自己的插画
+         * 就预载直绘（离线/挂图回落 dream-bear 兜底）。 */
+        var _sym0 = ((j.symbols || [])[0] || {}).name;
+        var _key = DREAM_ART[_sym0] || 'dream-bear';
+        var _im = new Image();
+        _im.onload = function () { j._art = _im; j._artCap = _sym0 || '梦是回声'; downloadPoster(j, 'dream'); };
+        _im.onerror = function () { downloadPoster(j, 'dream'); };
+        _im.src = '/static/cream/' + _key + '.jpg';
+      });
     };
     rememberVoice('dmResult', j, buildDreamResult, _rbDm);
     _rbDm();

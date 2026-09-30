@@ -3260,3 +3260,17 @@ html[data-theme="dark"] .bp-rel-hai{background:rgba(126,110,158,.16);
 html[data-theme="dark"] .bp-rel-po{background:rgba(150,120,90,.14);
   border-color:#6E5D47;color:#C4B090;}
 html[data-theme="dark"] .pv-sub{color:#C9A96A;border-color:#453C42;}
+
+/* R3254g：五行元素 chip——起名卡/候选池与命盘同套五色。 */
+.wx-chip{display:inline-block;min-width:18px;text-align:center;
+  font-size:10.5px;font-weight:700;line-height:1.5;border-radius:6px;
+  padding:0 5px;margin-right:4px;color:#fff;}
+.wx-chip.wx-木{background:#5F9E6E}.wx-chip.wx-火{background:#D96A4E}
+.wx-chip.wx-土{background:#B98A3E}.wx-chip.wx-金{background:#A0893F}
+.wx-chip.wx-水{background:#5E86A8}
+.qm-el-line{font-size:13px;color:var(--secondary);}
+html[data-theme="dark"] .wx-chip.wx-木{background:#4E7A5C}
+html[data-theme="dark"] .wx-chip.wx-火{background:#8C4E3C}
+html[data-theme="dark"] .wx-chip.wx-土{background:#7A6234}
+html[data-theme="dark"] .wx-chip.wx-金{background:#6E5F33}
+html[data-theme="dark"] .wx-chip.wx-水{background:#46637E}

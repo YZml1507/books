@@ -1050,6 +1050,14 @@ function buildShareData(view, j) {
         sd.lines.push({ k: '这梦', v: '不在常用册子里——是心事' });
       }
       sd.lines.push({ k: '口径', v: '梦是回声，不是预言' });
+      /* R3254g：梦符熊直绘卡座（同 bazi 人格熊/checkin 签面模式）。 */
+      if (j && j._art) {
+        sd.cards = [{ img: j._art, name: _pStr(j._artCap) || '梦是回声',
+          sub: '梦不是预言' }];
+        /* 有图时明细留 1 组象征足够——版位让给卡座。 */
+        sd.lines = sd.lines.slice(0, 2);
+        sd.lines.push({ k: '口径', v: '梦是回声，不是预言' });
+      }
       return sd;
     }
     case 'taohua': {

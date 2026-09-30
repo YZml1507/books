@@ -2069,6 +2069,10 @@ def main() -> int:
                         radar: !!r.querySelector('.bp-radar'),
                         badges: r.querySelectorAll('.bp-badge').length,
                         rels: r.querySelectorAll('.bp-rel').length,
+                        /* 时辰未知（表单只填年月日）→ 第4柱「？？」
+                         * 不许挂按默认午时算的十神（R3254f）。 */
+                        missGods: r.querySelectorAll(
+                            '.bp-cell:nth-child(4) .bp-gods span').length,
                     };
                 })()""")
                 if _bp.get("resubmit"):
@@ -2090,12 +2094,16 @@ def main() -> int:
                             radar: !!r.querySelector('.bp-radar'),
                             badges: r.querySelectorAll('.bp-badge').length,
                             rels: r.querySelectorAll('.bp-rel').length,
+                            missGods: r.querySelectorAll(
+                                '.bp-cell:nth-child(4) .bp-gods span')
+                                .length,
                         };
                     })()""")
                 ok = (_bp and len(_bp.get("proFolds") or []) == 1 and
                       _bp.get("cells") == 4 and
                       _bp.get("dayGod") == "日主" and
-                      _bp.get("radar") and _bp.get("badges", 0) >= 1)
+                      _bp.get("radar") and _bp.get("badges", 0) >= 1 and
+                      _bp.get("missGods", 1) == 0)
                 results.append({
                     "name": "ui:bazi.plate",
                     "ok": bool(ok),
