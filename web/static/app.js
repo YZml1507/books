@@ -7064,6 +7064,14 @@ function buildDreamResult(j) {
    * 类名不能丢。 */
   html += '<button type="button" class="ghost fav-btn" id="shareDream" ' +
     'style="position:static;margin-top:10px;">📷 生成梦卡图</button>';
+  /* R3260（R9 延伸）：深夜解梦（多是噩梦/放不下的梦）卡尾多一颗
+   * 创可贴钮——与聊天空态同源 bandaid 分享类型。 */
+  var _hhDm = new Date().getHours();
+  if (_hhDm >= 23 || _hhDm < 5) {
+    html += '<button type="button" class="ghost fav-btn" ' +
+      'id="dmBandaid" style="position:static;margin-top:6px;">' +
+      '🌙 带张创可贴走</button>';
+  }
   html += tailHook('dream');
   html += '</div>';
   return html;
@@ -7120,6 +7128,16 @@ async function doDream() {
         _im.onload = function () { j._art = _im; j._artCap = _sym0 || '梦是回声'; downloadPoster(j, 'dream'); };
         _im.onerror = function () { downloadPoster(j, 'dream'); };
         _im.src = '/static/cream/' + _key + '.jpg';
+      });
+      /* R3260 R11：深夜创可贴钮绑定（重画幂等，on() 自带判重） */
+      on('dmBandaid', function () {
+        var _im2 = new Image();
+        _im2.src = '/static/cream/bear-scene-bad.jpg';
+        _im2.onload = function () {
+          downloadPoster({ _art: _im2, _artCap: '今夜小夜灯' },
+            'bandaid');
+        };
+        _im2.onerror = function () { downloadPoster({}, 'bandaid'); };
       });
     };
     rememberVoice('dmResult', j, buildDreamResult, _rbDm);

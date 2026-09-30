@@ -466,6 +466,11 @@ def main() -> int:
         # 真实链路已 Playwright 手验（点选→回复→首页色点同步）。
         "dmMoodRow": "解梦卡心情行委托——本地 mood 写读+首页色点同步，"
                      "零请求；手验已覆盖",
+        # R3260（R11）：解梦卡深夜创可贴钮——只在 23-05 点出现在
+        # DOM，冒烟时段不确定；海报生成链路与 shareDream/bandaid
+        # 同族。真实链路已 Playwright 手验（点击→海报模态出图）。
+        "dmBandaid": "深夜限定钮（23-05 点才在 DOM）+ 海报模态链路"
+                     "同 shareBazi 族；手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
