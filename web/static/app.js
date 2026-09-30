@@ -3304,6 +3304,7 @@ function showView(viewId) {
     document.title = (_vn ? (_vn + ' · ') : '') + '小满的解忧铺 · 知命';
   } catch (eT) {}
   window.__inView = !isHome;
+  try { _usageTrack(viewId); } catch (eUT) {}   /* R3260：足迹埋点 */
   /* R230q（R28-P2-2）：切走即 bump 世代号会把在跑的 AI 轮询作废，
    * 回来后那段「小满想了想」永远不来。回到视图时对本视图内仍
    * pending 的容器重新武装轮询（任务在后端还活着，可继续取）。 */
@@ -3351,6 +3352,23 @@ function showView(viewId) {
   if (!isHome) { try { _idlePrefetch(); } catch (eP) {} }
   /* R216b 续（U-007）：时间起卦默认当天（原 HTML 写死 1990/5/15）。 */
   if (viewId === 'liuyao') syncLiuyaoToday();
+  /* R3260（N6 收口）：五行人格回流礼遇——存过生日的老客进页
+   * 免重填：预填表单 + 结果还是空态时自动开测一次（每会话一次，
+     * 刷历史时不扰）。「1-tap 测试」对回头人该真是 0-tap。 */
+  if (viewId === 'renge') _rgEnter();
+  /* R3260（N1 延伸）：解梦是深夜高频入口——空态尾巴挂上小满的
+   * 店况行（深夜=留灯，白天=翻书），「有人接」的体感先于提问。 */
+  if (viewId === 'dream') {
+    var _dmPh = document.querySelector('#dmResult .ph-empty');
+    if (_dmPh && !_dmPh.dataset.shop) {
+      _dmPh.dataset.shop = '1';
+      var _dmSp = document.createElement('div');
+      _dmSp.className = 'ph-shop';
+      _dmPh.appendChild(_dmSp);
+    }
+    var _dmLine = document.querySelector('#dmResult .ph-shop');
+    if (_dmLine) _dmLine.textContent = _xmShopLine();
+  }
   /* R2350f（R102-P2-7）：塔罗落地先亮「今日牌」——日卡/打卡/黄历/
    * 星座首屏都有自动内容，唯独塔罗是空表单；一张免费牌先接住她。 */
   if (viewId === 'tarot') _tarotLandingCard();
@@ -5236,6 +5254,15 @@ async function loadDaily() {
         '💫 水逆中 · 第' + j.mercury.day_no + '天（到 ' +
         esc(String(j.mercury.until || '').slice(5).replace('-', '月')) + '日），心放宽，事多检查');
     } else { _dailyMetaItem('dailyMercury', ''); }
+    /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
+     * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
+    var _uDays = _usageDays();
+    if (_uDays >= 2) {
+      var _uTop = _usageTop();
+      _dailyMetaItem('dailyDays', '🏮 你来铺子 <strong>第 ' +
+        _uDays + ' 天</strong> 啦' +
+        (_uTop ? ' · 最常翻「' + esc(_uTop) + '」' : ''));
+    } else { _dailyMetaItem('dailyDays', ''); }
     /* R2349l（R73-P1-2）：每日一牌——日期哈希做 seed 的确定性单抽
      * （同一天同一张），点击展开牌意；失败静默不打扰日卡。 */
     (function () {
@@ -10532,6 +10559,25 @@ function _phRenderMirrorList(listEl, m) {
 /* R3249i（UX-AUDIT D·轻测试前门）：五行人格——只填年月日，出
  * 「你是哪一型」人设小卡。走 /api/bazi 同引擎，只渲染 warm 人话层；
  * 「看完整命盘」把生日回填进排盘表单再跳转，不重复发请求。 */
+/* R3260（N6 收口）：回流礼遇——存过生日的老客进五行人格页免重填：
+ * 表单预填档案值；结果还是空态时自动开测一次（每会话仅一次，
+ * 之后手改不自动跑，尊重她「帮别人测」的场景）。 */
+var _rgAutoDone = false;
+function _rgEnter() {
+  var me = null;
+  try { me = _meGet('me'); } catch (eM) {}
+  if (!me || me.y == null || me.m == null || me.d == null) return;
+  var fy = el('rg_year'), fm = el('rg_month'), fd = el('rg_day');
+  if (fy) fy.value = String(me.y);
+  if (fm) fm.value = String(me.m);
+  if (fd) fd.value = String(me.d);
+  var _res = el('rgResult');
+  if (!_rgAutoDone && _res && _res.querySelector('.ph-empty')) {
+    _rgAutoDone = true;
+    guardedCall('rgSubmit', doRenge);
+  }
+}
+
 async function doRenge() {
   var box = el('rgResult');
   if (!box) return;
@@ -10610,6 +10656,9 @@ async function doRenge() {
     html += '<div class="renge-actions">' +
       '<button type="button" class="ghost" id="rgPoster">📸 分享图</button>' +
       '<button type="button" class="ghost" id="rgFull">看完整命盘 →</button>' +
+      /* R3260（N6 社交回路）：「帮TA也测一型」——人格测试天然是
+       * 接力素材，一键把表单还给 TA 的生日。 */
+      '<button type="button" class="ghost" id="rgAgain">帮 TA 也测一型</button>' +
       '</div></div>';
     box.classList.remove('is-working');
     box.innerHTML = html;
@@ -10625,6 +10674,19 @@ async function doRenge() {
         : j;
       var _p = downloadPoster(_j2, 'bazi');
       if (_p && _p.catch) _p.catch(function () {});
+    });
+    var _ga = el('rgAgain');
+    if (_ga) _ga.addEventListener('click', function () {
+      /* 帮TA测：表单还回出厂值（不回填我的档案——那是我的型），
+       * 结果区清回空态，焦点落回年份格。 */
+      var _fy2 = el('rg_year'), _fm2 = el('rg_month'), _fd2 = el('rg_day');
+      if (_fy2) _fy2.value = '2000';
+      if (_fm2) _fm2.value = '6';
+      if (_fd2) _fd2.value = '15';
+      box.innerHTML = '<div class="ph-empty">换 TA 的生日——看看 TA 是哪一型～</div>';
+      if (_fy2) { _fy2.focus(); try { _fy2.select(); } catch (eS) {} }
+      try { box.scrollIntoView({ block: 'nearest' }); } catch (eV) {}
+      showToast('生日换成 TA 的，点「看我是哪型」', 'info');
     });
     var _ff = el('rgFull');
     if (_ff) _ff.addEventListener('click', function () {
@@ -13153,6 +13215,54 @@ var _MOOD_REPLY = {
   '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
   '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
 
+/* R3260（UX-STRATEGY-NEXT §五·诚实缺口）：本机使用足迹——纯
+ * localStorage，零上传零画像外泄。一鱼两吃：①我们第一次知道
+ * 哪个功能真有人翻（诊断面）；②「你在小满这儿第N天」本身是
+ * Finch 式关系锚（在一起的日数比 streak 温柔，断了不扣）。 */
+var _USAGE_LABEL = { home: '日签', bazi: '排盘', liuyao: '六爻',
+  tarot: '塔罗', hehun: '合婚', qiming: '起名', taohua: '桃花',
+  xingzuo: '星座', huangli: '黄历', dream: '解梦', renge: '五行人格',
+  book: '书库', read: '古籍', study: '研学' };
+function _usageTrack(view) {
+  try {
+    if (!localStorage.getItem('usage:first'))
+      localStorage.setItem('usage:first', todayIso());
+    localStorage.setItem('usage:last', todayIso());
+    var k = 'usage:v:' + view;
+    localStorage.setItem(k, String((+localStorage.getItem(k) || 0) + 1));
+  } catch (eU) {}
+}
+function _usageDays() {
+  try {
+    var f = localStorage.getItem('usage:first');
+    if (!f) return 1;
+    var d = Math.round((Date.parse(todayIso()) - Date.parse(f)) / 86400000) + 1;
+    return isNaN(d) || d < 1 ? 1 : d;
+  } catch (eD) { return 1; }
+}
+function _usageTop() {
+  try {
+    var best = '', bn = 1;
+    Object.keys(_USAGE_LABEL).forEach(function (v) {
+      if (v === 'home') return;
+      var n = +localStorage.getItem('usage:v:' + v) || 0;
+      if (n > bn) { bn = n; best = _USAGE_LABEL[v]; }
+    });
+    return best;
+  } catch (eT) { return ''; }
+}
+
+/* R3260：「小满在店」状态句抽公共——chat 空态与解梦深夜档共用
+ * 同一盏灯。确定性按时段切文案，零数据零随机。 */
+function _xmShopLine() {
+  var h = new Date().getHours();
+  return (h >= 23 || h < 5) ? '🏮 小满还醒着，灯给你留着' :
+    h < 10 ? '🍵 小满刚开门，在擦柜台' :
+    h < 14 ? '📜 小满在理今天的签' :
+    h < 18 ? '🫖 小满在店里翻书煮茶' :
+    h < 22 ? '🕯️ 小满在灯下理签' : '🏮 小满还醒着，灯给你留着';
+}
+
 function _moodShowAnswer(m, lv) {
   var ans = el('moodAns');
   if (!ans) return;
@@ -14109,14 +14219,7 @@ function _chatChipsPersonalize() {
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
-  if (_shop) {
-    _shop.textContent =
-      (_hh2 >= 23 || _hh2 < 5) ? '🏮 小满还醒着，灯给你留着' :
-      _hh2 < 10 ? '🍵 小满刚开门，在擦柜台' :
-      _hh2 < 14 ? '📜 小满在理今天的签' :
-      _hh2 < 18 ? '🫖 小满在店里翻书煮茶' :
-      _hh2 < 22 ? '🕯️ 小满在灯下理签' : '🏮 小满还醒着，灯给你留着';
-  }
+  if (_shop) _shop.textContent = _xmShopLine();
   if (_sub) {
     if (_bday) {
       _sub.textContent = '生日这天的签，是一年一次的限定款';

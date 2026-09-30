@@ -1628,6 +1628,9 @@ details.warm-pro-fold > summary{
   line-height:1.6; }
 .chat-empty-shop{ margin:-8px 0 12px; font-size:11.5px; color:var(--muted);
   line-height:1.5; }   /* R3259 N1：小满在店状态行——她有自己的日子 */
+/* R3260：解梦空态同款店况行 */
+.ph-shop{ margin-top:8px; font-size:11.5px; color:var(--muted);
+  line-height:1.5; }
 .chat-empty-memo{ margin:12px 0 0; font-size:12px; color:var(--secondary);
   line-height:1.6; }   /* R3259 N4：小满记忆回访行 */
 .chat-empty-chips{ display:flex; flex-direction:column; gap:8px;

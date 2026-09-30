@@ -455,6 +455,12 @@ def main() -> int:
         # 同型豁免。真实链路已 Playwright 手验（点选→回复→14 色点）。
         "moodRow": "心情打卡容器委托——.mood-b 本地 on 态+localStorage"
                    "+文案池回复，零请求；手验已覆盖",
+        # R3260（N6）：五行人格结果内「帮TA也测一型」——结果区动态
+        # 生成的纯前端钮（表单还出厂值+焦点回落），零请求；与
+        # dailyRetry 同型豁免。真实链路已 Playwright 手验
+        # （点击→表单回默认+空态复原）。
+        "rgAgain": "五行人格结果内动态重置钮——纯前端表单复位零请求；"
+                   "手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
