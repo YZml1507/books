@@ -1989,24 +1989,11 @@ function autoSendChatContext() {
    * 五个事由桶（工作/钱/感情/身体/家里）存在本机；回访时空态
    * 多一行「上次你问起X的事——还想再看看吗」，陌生人→熟人。 */
   try {
-    var _BKT = {
-      '工作': '工作|上班|老板|同事|加班|辞职|跳槽|面试|升职|事业|项目|考核',
-      '钱': '钱|财|工资|投资|副业|生意|债|借|赚|开销|房租|股票|基金',
-      '感情': '感情|对象|男朋友|女朋友|老公|老婆|喜欢|暗恋|分手|复合|桃花|婚姻|相亲|crush',
-      '身体': '身体|健康|病|失眠|睡不着|累|焦虑|压力|心情',
-      '家里': '家里|父母|孩子|妈妈|爸爸|家人|家庭'};
-    var _th = '';
-    for (var _bk in _BKT) {
-      if (new RegExp(_BKT[_bk]).test(msg)) { _th = _bk; break; }
-    }
-    if (_th) {
-      var _tp = {};
-      try { _tp = JSON.parse(localStorage.getItem('chat:topics') || '{}') || {}; }
-      catch (eTP0) {}
-      _tp[_th] = todayIso();
-      try { localStorage.setItem('chat:topics', JSON.stringify(_tp)); }
-      catch (eTP1) {}
-    }
+    /* R3260：事由足迹收口——旧 _BKT 块写的是 {主题:日期} 对象，
+     * 与 _chatTopicLog 的 [{d,t,v}] 数组互相摧毁（互相读不懂、
+     * 互相覆盖丢数据）。统一走 _chatTopicLog（同写端、同主题表、
+     * 顺带记面板 v）。 */
+    try { _chatTopicLog(msg); } catch (eTP2) {}
   } catch (eTP) {}
   /* facts 优先用本视图的结构化坐标；为空时回落到排盘时存的 CHAT_LAST_FACTS */
   var facts = (ctx.facts && ctx.facts.length) ? ctx.facts : CHAT_LAST_FACTS;
@@ -2869,6 +2856,26 @@ function _chatThemeFE(msg) {
  * v=发消息时手里正看着的结果卡面板（30min 内）——画像能说出
  * 「在合盘那边聊感情」而不只是「聊过感情」。危机/敏感消息不写
  * 足迹（在闸之后才调）。 */
+/* R3260（实测挖出的旧账）：chat:topics 历史上存在两套 schema——
+ * 旧写端存 {主题:日期} 对象，新写端 _chatTopicLog 存 [{d,t,v}]
+ * 数组；两写端互相读不懂：对象写端往数组上设命名属性被
+ * stringify 丢掉（静默丢记录），数组写端遇对象直接重置清空。
+ * 归一读取器兼容两式，全部读写点收口到它。 */
+function _chatTopicsArr() {
+  try {
+    var v = JSON.parse(localStorage.getItem('chat:topics') || '[]');
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === 'object') {
+      var out = [];
+      Object.keys(v).forEach(function (k) {
+        if (typeof v[k] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v[k]))
+          out.push({ d: v[k], t: k });
+      });
+      return out;
+    }
+  } catch (eA) {}
+  return [];
+}
 function _chatTopicLog(msg) {
   var t = _chatThemeFE(msg);
   if (!t) return;
@@ -2880,8 +2887,7 @@ function _chatTopicLog(msg) {
       if (_r0 && _r0.ts && (Date.now() - _r0.ts) < 1800000 &&
           _r0.ts > _bt) { _bt = _r0.ts; _vk0 = _k; }
     }
-    var arr = JSON.parse(localStorage.getItem('chat:topics') || '[]');
-    if (!Array.isArray(arr)) arr = [];
+    var arr = _chatTopicsArr();
     var today = todayIso();
     /* 同日同主题同面板不重复记——一天问感情五次仍是一条 */
     if (arr.length && arr[0].d === today && arr[0].t === t &&
@@ -2900,8 +2906,8 @@ function _chatWeekProfileFact() {
   try {
     if (sessionStorage.getItem('chatTopicFactDone')) return '';
     sessionStorage.setItem('chatTopicFactDone', '1');
-    var arr = JSON.parse(localStorage.getItem('chat:topics') || '[]');
-    if (!Array.isArray(arr) || !arr.length) return '';
+    var arr = _chatTopicsArr();
+    if (!arr.length) return '';
     var cutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
     var cnt = {};
     arr.forEach(function (x) {
@@ -6978,6 +6984,24 @@ function buildDreamResult(j) {
       '</div>';
   }
   html += renderAiPolish(j);   /* R3214：AI 段嵌卡内（此前落在卡外断节） */
+  /* R3260（N3 延伸）：解梦×心情闭环——深夜解梦的多半心里有事，
+   * 看完顺手一记（写回同一个 mood:<date>，与首页心情历同源）；
+   * 今天已打过的显示已选态不重复问。 */
+  {
+    var _dmPk = '';
+    try { _dmPk = localStorage.getItem('mood:' + todayIso()) || ''; }
+    catch (eMP) {}
+    var _dmBtns = _MOOD_META.map(function (mm, i) {
+      return '<button type="button" class="mood-b dm-mood-b' +
+        (_dmPk === String(i) ? ' on' : '') + '" data-m="' + i +
+        '" aria-label="' + mm.t + '" title="' + mm.t + '">' +
+        mm.e + '</button>';
+    }).join('');
+    html += '<div class="dm-mood" id="dmMoodRow">' +
+      '<span class="mood-q">看完这个梦，心里松点了吗？</span>' +
+      _dmBtns +
+      '<span class="mood-ans" id="dmMoodAns" hidden></span></div>';
+  }
   /* 分享图——梦境海报（主动分享才出图，文本本就她写的）
    * R3214：fav-btn 类补上——台账复看的隐藏规则只认这个类。 */
   /* R3222：fav-btn 默认 absolute 贴右上——压在渐变头上又挤又丑，
@@ -7005,6 +7029,33 @@ async function doDream() {
     paint('dmResult', buildDreamResult(j));
     pollAiPolish('dmResult', j.ai_task_id);
     var _rbDm = function () {
+      /* R3260：心情行绑定——rememberVoice 重画后 _rbDm 重放，
+       * 行是 build 产的、绑定挂这里跟着重建。 */
+      var _dmRow = document.getElementById('dmMoodRow');
+      if (_dmRow && !_dmRow.dataset.bound) {
+        _dmRow.dataset.bound = '1';
+        _dmRow.addEventListener('click', function (ev) {
+          var mb = ev.target.closest('.dm-mood-b');
+          if (!mb) return;
+          var mv = mb.dataset.m;
+          try {
+            localStorage.setItem('mood:' + todayIso(), mv);
+          } catch (eMS) {}
+          _dmRow.querySelectorAll('.mood-b').forEach(function (x) {
+            x.classList.toggle('on', x === mb);
+          });
+          var _ans = el('dmMoodAns');
+          if (_ans) {
+            _ans.textContent = ['记下了——累了就早点关灯，梦会替你收尾。',
+              '记下了——平平淡淡也是安睡的理由。',
+              '记下了——松了点就好，梦替你消化掉了。',
+              '记下了——今晚带着它睡个好觉吧 🌙'][+mv] || '记下了。';
+            _ans.hidden = false;
+          }
+          /* 心情历那边色点跟着亮（首页在 DOM 里，静默刷） */
+          try { _renderMoodRow(); } catch (eMR) {}
+        });
+      }
       on('shareDream', function () {
         /* R3254g：解梦分享图嵌梦符熊——首个符号有自己的插画
          * 就预载直绘（离线/挂图回落 dream-bear 兜底）。 */
@@ -14295,18 +14346,21 @@ function _chatChipsPersonalize() {
    * 测测体验报告原话：跨会话记忆是「陌生人→电子闺蜜」的分水岭。 */
   try {
     var _memo = box.querySelector('.chat-empty-memo');
-    var _tp2 = {};
-    try { _tp2 = JSON.parse(localStorage.getItem('chat:topics') || '{}') || {}; }
-    catch (eTM) {}
+    /* R3260（实测抓到的死代码）：写入端 _chatTopicLog 存的是数组
+     * [{d,t,v}]，这里却按 {主题:日期} 对象读——for-in 在数组上拿
+     * 到的是下标、值是对象，全部跳闸，记忆行从未亮过。读回真实
+     * 结构；顺道把「事由×今日签面」交叉尾巴补上（N4 原案）。 */
+    var _tp2 = _chatTopicsArr();
     var _best = null, _bestD = '';
-    for (var _tk in _tp2) {
-      var _iso = _tp2[_tk];
-      if (typeof _iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(_iso)) continue;
+    _tp2.forEach(function (x) {
+      if (!x || typeof x.t !== 'string' || !x.t ||
+          typeof x.d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(x.d))
+        return;
       var _gap = Math.floor(
-        (new Date(todayIso() + 'T00:00:00') - new Date(_iso + 'T00:00:00')) /
+        (new Date(todayIso() + 'T00:00:00') - new Date(x.d + 'T00:00:00')) /
         86400000);
-      if (_gap >= 2 && (!_best || _iso > _bestD)) { _best = _tk; _bestD = _iso; }
-    }
+      if (_gap >= 2 && x.d > _bestD) { _best = x.t; _bestD = x.d; }
+    });
     if (_best) {
       if (!_memo) {
         _memo = document.createElement('p');
@@ -14317,8 +14371,15 @@ function _chatChipsPersonalize() {
         } else { box.appendChild(_memo); }
       }
       var _mm = _bestD.slice(5).replace('-', '月') + '日';
+      /* 事由×今日签面：顺日鼓励再聊，缓日先递杯热的——都实话实说。 */
+      var _dlv = (window.__lastDaily && window.__lastDaily.level) || '';
+      var _mtail = (_dlv === '吉' || _dlv === '小吉')
+        ? '——今天签面偏顺，正好再聊聊'
+        : (_dlv === '凶'
+           ? '——今天签面偏缓，先喝杯热的再说'
+           : '——想再看看就跟我说');
       _memo.textContent = '📌 上次你聊起' + _best + '的事（' + _mm +
-        '）——想再看看就跟我说';
+        '）' + _mtail;
     } else if (_memo) { _memo.remove(); }
   } catch (eTP2) {}
 }

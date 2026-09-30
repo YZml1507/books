@@ -461,6 +461,11 @@ def main() -> int:
         # （点击→表单回默认+空态复原）。
         "rgAgain": "五行人格结果内动态重置钮——纯前端表单复位零请求；"
                    "手验已覆盖",
+        # R3260（N3 延伸）：解梦卡内心情行——.dm-mood-b 委托切 on
+        # 态 + mood:<date> 本地写读，零请求；与 moodRow 同型豁免。
+        # 真实链路已 Playwright 手验（点选→回复→首页色点同步）。
+        "dmMoodRow": "解梦卡心情行委托——本地 mood 写读+首页色点同步，"
+                     "零请求；手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
