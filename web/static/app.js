@@ -11474,6 +11474,10 @@ function initDivination() {
                           ? '&rel=' + encodeURIComponent(_rel.value) : ''));
       /* R3130：lines 面在时逐行渲（场景+处方+交权），旧响应回退单行。 */
       var _xlines = (mj.lines && mj.lines.length) ? mj.lines : [mj.line];
+      /* R3260（同 R2350d 病灶）：busy() 的 is-working 在半透+子元素
+       * 禁点——绕过 paint() 直写 innerHTML 必须手动摘，否则合盘卡
+       * 出结果后永远灰着（上面那颗「继续聊」按钮点了没反应）。 */
+      box.classList.remove('is-working');
       box.innerHTML = '<div class="hh-score" style="margin-top:0;">' +
         esc(mj.a) + '座 × ' + esc(mj.b) + '座 · 合拍指数 <strong>' +
         esc(String(mj.score)) + '</strong>/99 ' +
@@ -11502,6 +11506,7 @@ function initDivination() {
        * 用户照着卡聊小满走零上下文泛句。 */
       try { rememberResult('xzm', mj, ''); } catch (e) {}
     } catch (e) {
+      box.classList.remove('is-working');   /* 同成功路：失败态也要摘 */
       box.innerHTML = '<div class="ph-empty" style="padding:12px;">' +
         esc((e && e.message) || '速配没跑出来，再点一次试试') + '</div>';
     }
