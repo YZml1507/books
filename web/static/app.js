@@ -1626,7 +1626,7 @@ function buildChatContext(viewKey) {
         });
         if (cur) facts.push('眼下大运：' + cur);
       } else if (t.indexOf('针对') === 0 && ls[0]) {
-        facts.push('盘面落点：' + ls[0]);
+        facts.push('盘面位置：' + ls[0]);
       } else if (t === '五行强弱' && ls[0]) {
         facts.push('五行分布：' + ls[0]);
       }
@@ -5907,8 +5907,17 @@ function _baziPlate(j) {
           '<b class="wx-' + esc(_WX_ZHI[zhi] || '') + '">' + esc(zhi || '？') + '</b>' +
         '</div>' +
         '<div class="bp-gods">' +
-          (gGod ? '<span title="天干十神">' + esc(gGod) + '</span>' : '') +
-          (zGod ? '<span title="地支藏干十神">' + esc(zGod) + '</span>' : '') +
+          /* R3255：十神 chip 双行化——神名在上、白话标签在下，
+           * 「比肩 · 同伴」比光秃秃「比肩」少一次猜。日主不叠标签
+           * （日主=你自己，再说「日主·日主」是废话）。 */
+          (gGod ? '<span title="天干十神"><b>' + esc(gGod) + '</b>' +
+            (_TEN_GOD_TAG[gGod] && gGod !== '日主'
+              ? '<i>' + esc(_TEN_GOD_TAG[gGod]) + '</i>' : '') +
+            '</span>' : '') +
+          (zGod ? '<span title="地支藏干十神"><b>' + esc(zGod) + '</b>' +
+            (_TEN_GOD_TAG[zGod] ? '<i>' + esc(_TEN_GOD_TAG[zGod]) + '</i>'
+                                : '') +
+            '</span>' : '') +
         '</div></div>';
     }).join('');
     var plate = '<div class="bazi-plate">' +
@@ -6648,7 +6657,33 @@ var DREAM_ART = {
   '前任/旧人': 'dream-ex', '心动的人': 'dream-crush',
   '蛇': 'dream-snake', '水/大海/下雨': 'dream-water',
   '迷路/找不到路': 'dream-lost', '结婚/婚礼': 'dream-wedding',
-  '猫': 'dream-cat'
+  '猫': 'dream-cat',
+  /* R3255 第一批：噩梦/情绪向——可爱化不吓人（鬼压床走
+   * dream-frozen 被窝压影；去世的人走 dream-gone 望星）。 */
+  '鬼/可怕的东西': 'dream-ghost', '动不了/喊不出': 'dream-frozen',
+  '去世的人': 'dream-gone', '大哭/哭醒': 'dream-cry',
+  '掉头发/秃了': 'dream-hair', '分手/被丢下': 'dream-breakup',
+  '吵架/争执': 'dream-fight', '他出轨/被背叛': 'dream-cheat',
+  '赶不上车/误点': 'dream-late', '被困/出不去': 'dream-trapped',
+  '上班/被领导骂': 'dream-work', '手机丢了/联系不上': 'dream-phone',
+  '已读不回/被拉黑': 'dream-ghosted', '捡钱/发财': 'dream-money',
+  '着火/火灾': 'dream-fire',
+  /* R3256 第二批：52 符全量专图覆盖；敏感题材一律可爱化
+   * （血→创可贴熊、丧尸→抱枕城堡、亲人出事→抱全家福）。 */
+  '在世的亲人出事': 'dream-family-scare',
+  '自己出事/死了': 'dream-self', '家人朋友（在世的）': 'dream-family',
+  '没穿衣服/出糗': 'dream-naked',
+  '电梯/上不去下不来': 'dream-elevator',
+  '怀孕/生孩子': 'dream-baby', '血/受伤': 'dream-blood',
+  '狗': 'dream-dog', '老家/小时候的房子': 'dream-home',
+  '同学/回到学校': 'dream-school', '吃东西/聚餐': 'dream-food',
+  '镜子/照镜子': 'dream-mirror', '虫子/虫爬': 'dream-bugs',
+  '找厕所/尿急': 'dream-toilet', '亲密/亲嘴': 'dream-kiss',
+  '来月经/生理期': 'dream-period', '偶像/明星': 'dream-idol',
+  '开车刹不住': 'dream-car', '剪头发/换发型': 'dream-haircut',
+  '被偷/丢东西': 'dream-theft', '鱼/钓鱼': 'dream-fishing',
+  '被孤立/被排挤': 'dream-alone', '丧尸/世界末日': 'dream-zombie',
+  '梦中梦': 'dream-indream', '变丑/长痘/胖了': 'dream-looks'
 };
 function _dreamArt(name) {
   var f = DREAM_ART[name] || 'dream-bear';
@@ -7828,6 +7863,18 @@ function tarotDeepRead(draws, question) {
       draws.length + ' 张，展开慢慢看）</summary><ul>' + _items + '</ul></details>';
   } else {
     html += '<ul>' + _items + '</ul>';
+  }
+  /* R3255（文案骨架·串写）：2–5 张牌时补一段「连起来看」叙事——
+   * 牌位串成一条线（过去→现在→往后），逐牌碎片收成一句故事。 */
+  if (draws.length >= 2 && draws.length <= 5) {
+    var _flow = draws.map(function (d) {
+      var pos = d.position || '';
+      var kw = ((d.upright ? d.upright_kw : d.reversed_kw) || '')
+        .split('·')[0];
+      return '「' + pos + '」的' + d.name + '说' + kw;
+    }).join('，');
+    html += '<p>一路看下来：' + esc(_flow) +
+      '——事情有它自己的节奏，你照着节奏来就行。</p>';
   }
   // 第三段：行动建议（按主牌正/逆位给方向感，不给断言）
   var main = draws[Math.min(1, draws.length - 1)] || draws[0];

@@ -3185,9 +3185,17 @@ html[data-theme="dark"] .dm-panel .dm-count{color:#A99DBD;}
 .bp-gods{display:flex;flex-direction:column;gap:2px;min-height:30px;
   justify-content:flex-start;}
 .bp-gods span{font-size:10px;color:var(--secondary);
-  background:rgba(140,110,90,.09);border-radius:6px;padding:1px 4px;}
+  background:rgba(140,110,90,.09);border-radius:6px;padding:1px 4px;
+  line-height:1.3;}
+/* R3255：十神双行——<b>神名（原字号）+<i>白话标签（更小更淡），
+ * i 仅写屏不复制进 title/文案断言。 */
+.bp-gods span b{display:block;font-style:normal;font-weight:600;
+  color:inherit;}
+.bp-gods span i{display:block;font-style:normal;font-size:9px;
+  opacity:.72;}
 .bp-day .bp-gods span:first-child{background:var(--rose);
   color:#fff;font-weight:600;}
+.bp-day .bp-gods span:first-child i{opacity:.85;}
 /* 五行雷达行 */
 .bp-wxrow{display:flex;align-items:center;gap:12px;margin-top:12px;
   padding-top:10px;border-top:1px dashed var(--border);}

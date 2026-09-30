@@ -199,6 +199,14 @@ ELEMENT_WARM: dict[str, tuple[str, str]] = {
     "水": ("柔软", "能绕、会找路，适应力强"),
 }
 
+# R3255（文案骨架）：问题里出现这些词时首行先接住情绪——
+# 来问这些的多半心里正沉。纯话题词不含（「感情」本身不算信号）。
+_EMO_CUES = (
+    "放不下", "分手", "挽回", "难过", "想哭", "委屈", "焦虑", "失眠",
+    "害怕", "迷茫", "孤单", "好累", "好累", "心烦", "崩溃", "抑郁",
+    "出轨", "冷战", "暗恋", "催婚", "被甩", "压力", "撑不住", "想不开",
+)
+
 # 地支 → 生肖 + 方位（F-006：干支改生肖+方位注释）
 ZHI_ZODIAC: dict[str, str] = {
     "子": "鼠", "丑": "牛", "寅": "虎", "卯": "兔",
@@ -469,7 +477,7 @@ def _topic_of(question: str) -> tuple[tuple[str, ...], str] | None:
 
 def _topic_gender(topic: tuple[tuple[str, ...], str],
                   gender: str | None) -> tuple[tuple[str, ...], str]:
-    """R230a-7（R13-P2-1）：感情类落点按性别分——女命以官杀为夫星，
+    """R230a-7（R13-P2-1）：感情类位置按性别分——女命以官杀为夫星，
     男命以财星为妻星；不分性别时把财星也算进女方感情位是口径错位。
     性别未知 → 维持合并集（向后兼容）。"""
     gods, label = topic
@@ -497,7 +505,8 @@ def one_liner(day_master: str, calc: dict, question: str | None,
             # R2545（spec/008 P1）：「有着落点」spec 列为生硬残留反例。
             s = f"{label}这块，盘里有实实在在的对应"
         elif gods:
-            s = f"{label}这块，盘里信息偏少"
+            # R3255：「信息偏少」冷拒感——盘上说得少≠你没路。
+            s = f"{label}这块盘上说得少，但你有的是办法"
         else:
             fe = calc.get("five_elements") or {}
             _strong_labels = [ELEMENT_WARM.get(s, ("", ""))[0] for s in (fe.get("strong") or [])]
@@ -572,26 +581,34 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         _q = (q or "").replace("「", "").replace("」", "")
         _q = _q.replace("\n", " ").replace("\r", " ").strip()
         return [
-            # R216b 续5（U-016）：拒答话术系统腔 → 小满人设人话。
-            f"你问的是「{_q}」，这个问题盘里没有对应的位置，小满不瞎编～",
+            # R3255：拒答也不冷——先接住问的动作本身，再说清盘接不住哪。
+            (f"你问的是「{_q}」——这个方向上盘上写得少，小满不瞎编；"
+             f"但盘接得住的，照样给你指个路。"),
             # R2516：空盘面不再出「力量是：。」悬空冒号。
-            (f"盘里现有的力量是：{_forces}。" if _forces
-             else "这盘里能借力的地方比较薄。"),
+            (f"盘里现有的力量是：{_forces}——这些是你的底盘，"
+             f"问别的方向时它们照样作数。" if _forces
+             else "这盘里能借力的地方比较薄——盘上说得少，"
+                  "不代表现实里没有。"),
             # R2516：未识别话题也指路——告诉用户盘能接住什么。
             # R2544：附真实问法示例——口语问法也接得住这事得说出来。
             "下面把盘面明细都列了；感情、事业、学业、财运、人际这些，"
-            "比如「我和室友闹掰了」「考研能不能上岸」这样问也行。",
+            "换个问法盘里都能接住——比如「我和室友闹掰了」"
+            "「考研能不能上岸」这样问也行。",
         ]
 
     gods, label = _topic_gender(topic, gender)
     # 回声用户原话（判据 1）：只说分类标签（"学业"）会让用户觉得没被听见
     # ——他问的是"考研能上吗"。原话入引号，标签作为归类跟在后面。
     quoted = f"「{q}」" if len(q) <= 18 else f"「{q[:18]}…」"
+    # R3255（文案骨架·慰藉感）：问题带情绪词时首行先接住人再说事——
+    # 「先抱抱你」前缀并进首行，保住判据 1（首行须含话题词）。
+    _emo = any(w in q for w in _EMO_CUES)
+    _lead = "先抱抱你——" if _emo else ""
     lines: list[str] = []
     if not gods:                                     # 健康/状态类：看五行均衡
         fe = calc.get("five_elements") or {}
         strong, missing = fe.get("strong") or [], fe.get("missing") or []
-        lines.append(f"你问{quoted}，这属于{label}，主要看五行匀不匀。")
+        lines.append(f"{_lead}你问{quoted}，这属于{label}，主要看五行匀不匀。")
         if strong:
             # R230a-7（R13-P1-1）：并列偏旺全说（火土两旺→都说）
             for e in strong[:3]:
@@ -630,7 +647,7 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
                           f"（{_god_warm(label, t.get('god', ''))[0]}）"
                           for t in hit[:3])
         # R230a-7（R13-P3-1）：spots 只列前 3 个，数与量不符——补「等」。
-        lines.append(f"你问{quoted}，这属于{label}，"
+        lines.append(f"{_lead}你问{quoted}，这属于{label}，"
                      f"盘里对应的位置有 {len(hit)} 处：{spots}"
                      f"{'等' if len(hit) > 3 else ''}。")
         first = hit[0].get("god", "")
@@ -644,18 +661,28 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         if _act:
             lines.append(f"顺着这个位置走：{_act[0]}；{_act[1]}。")
         else:
-            lines.append(_pick(["意思是这件事在你盘里有落点，不是空的；"
+            lines.append(_pick(["意思是这件事在你盘里有着落，不是空的；"
                                 "具体怎么走，还要看你自己的选择。",
                                 "盘里给这事留了位置，往哪走，看你心意。",
                                 "这题盘里能接住，方向有了，步子你来定。"],
                                "bazi-hit", q, _today_cn().isoformat()))
+        # R3255（文案骨架·收口）：碎片行收拢成一句「所以怎么看」——
+        # hit 路径才敢说「有落点」，miss 路径没有这句。
+        lines.append(_pick(
+            ["串起来说：这件事在你盘里有着落，眼下也有风——"
+             "照着风走，剩下的你自己定。",
+             "收个尾：位置在、时机也亮着灯，怎么走是你的事，"
+             "小满把底递给你了。"],
+            "bazi-close", q, _today_cn().isoformat()))
     else:
-        lines.append(f"你问{quoted}，这属于{label}，"
-                     f"但这块在你盘里没有直接对应的落点。")
-        # R229z续23（R11-#17/#18）：去内部腔——「本项目的规矩」「通盘坐标」
-        lines.append(_pick(["小满不瞎编：没有的东西不硬凑。",
-                            "盘上没有的我不硬说，这是小满的规矩。",
-                            "这一维盘面没给线索，不猜。"],
+        lines.append(f"{_lead}你问{quoted}，这属于{label}，"
+                     f"但这块在你盘里着墨不多——盘上写得少，"
+                     f"不代表现实里没有。")
+        # R3255：「不硬凑」内部腔改坦白口吻的温柔版——
+        # 但「不瞎编/不硬说」的诚实锚每个变体都得留（探针钉着）。
+        lines.append(_pick(["盘上没有的，小满不瞎编——说实话比说好话要紧。",
+                            "盘上没有的我不硬说——真话比好听话有用。",
+                            "这一维盘面没给线索，小满不瞎编。"],
                            "bazi-miss", q, _today_cn().isoformat()))
         # R2516：盘没接住也不让用户空手走——给话题级的通用一步
         # （明说不是盘面结论）。
@@ -680,7 +707,9 @@ def reply_bazi(day_master: str, calc: dict, question: str | None,
         _act = TEN_GOD_ACTION.get(_god)
         _tail = f"今天适合：{_act[0]}。" if _act else ""
         lines.append(f"今天的气氛偏「{_warm[0]}」，{_warm[1]}。{_tail}")
-    return lines[:5]
+    # R3255：上限 5→7——用户实测「讲得太短不解压」；丰盈不等于
+    # 啰嗦，每行仍是一句完整的人话，上限只是把截断放宽。
+    return lines[:7]
 
 
 def _reply_no_question(day_master: str, calc: dict) -> list[str]:
@@ -768,7 +797,7 @@ def details_from_sections(sections: list[dict]) -> list[dict]:
 # 64 卦一句话白话：描述"这个卦讲的是什么处境"，不断吉凶。
 # 卦名以 liuyao.GUA_NAMES_64 为准（索引 = 卦号 - 1）。
 GUA_WARM: dict[int, str] = {
-    1: "全阳当头，劲很足，适合起头的时候", 2: "全阴承载，厚厚地托着，讲的是承受",
+    1: "全阳当头，劲很足，适合起头的时候", 2: "全阴打底，厚厚地托着，讲的是承受",
     3: "刚开始积聚，还没成形，需要点耐心", 4: "像雾里走路，看不清就先别急着定",
     5: "等的时候到了，等本身就是要做的事", 6: "有争执要摆开讲，回避不掉",
     7: "要有章法地推进，讲的是组织", 8: "亲近与靠拢，讲的是找对人",
@@ -2824,7 +2853,7 @@ if __name__ == "__main__":
     assert w["mode"] == "warm", w
     assert w["one_liner"] and len(w["one_liner"]) <= 20, w["one_liner"]
     assert "仅供娱乐" in w["badge"], w["badge"]
-    assert w["reply"] and len(w["reply"]) <= 5, w["reply"]
+    assert w["reply"] and len(w["reply"]) <= 7, w["reply"]
     assert w["energy_card"]["lucky_numbers"], w["energy_card"]
     # 判据 15：citations 逐字节复用 interpreter
     assert w["citations"] == (interp.get("citations") or []), "citations 必须原样复用"
@@ -2885,7 +2914,7 @@ if __name__ == "__main__":
     wth = warm_taohua(t_dict)
     assert wth["one_liner"] and len(wth["one_liner"]) <= 20, wth["one_liner"]
     assert wth["badge"] and "仅供娱乐" in wth["badge"]
-    assert wth["reply"] and 1 <= len(wth["reply"]) <= 5
+    assert wth["reply"] and 1 <= len(wth["reply"]) <= 7
     assert not any(w in "".join(wth["reply"]) for w in ("注定", "孤独", "没戏"))
     assert warm_taohua(t_dict) == wth, "warm_taohua 必须确定性"
 

@@ -52,7 +52,10 @@ ck("hit.action_line",
 ck("hit.no_disclaimer_pool",
    not any(("看你自己的选择" in l) or ("看你心意" in l) or ("步子你来定" in l)
            for l in _hit))
-_act = voice.TEN_GOD_ACTION["正印"]
+# R3256：R3094 起 _god_action 按话题出专属句——学业题问出的是
+# 「学业·正印」动作对而非基础 TEN_GOD_ACTION；断言跟对齐到
+# 同一个解析函数，不钉基础表（话题表有意覆盖）。
+_act = voice._god_action("学业", "正印") or voice.TEN_GOD_ACTION["正印"]
 ck("hit.action_content",
    any(_act[0] in l and _act[1] in l for l in _hit))
 

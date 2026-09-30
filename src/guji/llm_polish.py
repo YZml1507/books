@@ -2205,7 +2205,7 @@ def facts_bazi(paipan: dict, warm: dict, question: str | None,
             if _cur:
                 facts.append("眼下大运：" + _fact_line(_cur))
         elif title.startswith("针对") and lines:
-            facts.append("盘面落点：" + _fact_line(lines[0]))
+            facts.append("盘面位置：" + _fact_line(lines[0]))
     # R3148：时间问坐标行进 facts——用户带「今年/最近/下个月」提问时
     # warm.reply 里已算好的流年/流月/顺劲月锚此前不进解读块上下文，
     # 成稿只能泛写「运势起伏」。把这些确定性锚喂给模型。
@@ -2591,7 +2591,7 @@ if __name__ == "__main__":
     print("PASS 空事实降级")
 
     # 6. facts 组装器：输入字段全覆盖、无异常
-    fb = facts_bazi({"render": "戊寅年 己未月"}, {"one_liner": "感情这块，盘里有着落点",
+    fb = facts_bazi({"render": "戊寅年 己未月"}, {"one_liner": "感情这块，盘里有着落",
                     "energy_card": {"element": "土", "lucky_colors": ["红"],
                                     "lucky_numbers": [2, 7]},
                     "reply": ["你问「感情运怎么样？」"]}, "感情运怎么样？")
