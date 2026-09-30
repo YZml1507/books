@@ -4754,7 +4754,21 @@ async function loadDaily() {
       starsEl.parentElement.insertBefore(_scEl, starsEl);
     }
     if (_scEl) {
-      _scEl.innerHTML = '⚡ 今日能量 <strong>' + _energy + '</strong>';
+      /* R3250a（用户实测「一个数字不够吸引」）：数字下面给
+       * 能量条——读数到读感的落差，正是测测首屏的拉开点。
+       * 幸运色同款 swatch 跟在行尾（后端 lucky 本就确定性派生，
+       * 一直没显形，是闲置资产）。 */
+      var _LC_HEX = { '青绿色': '#7fb8a4', '石榴红': '#d96a5f',
+                      '鹅黄色': '#f0c95c', '珍珠白': '#efe9dc',
+                      '雾蓝色': '#8fa8c8' };
+      var _lc = (j.lucky && j.lucky.color) || '';
+      var _ln = (j.lucky && j.lucky.num) || 0;
+      _scEl.innerHTML = '⚡ 今日能量 <strong>' + _energy + '</strong>' +
+        '<span class="energy-track" aria-hidden="true"><i style="width:' +
+          _energy + '%"></i></span>' +
+        (_lc ? '<span class="lucky-chip"><i class="lc-dot" style="background:' +
+          (_LC_HEX[_lc] || '#d9c9a8') + '"></i>' + esc(_lc) +
+          (_ln ? ' · ' + _ln : '') + '</span>' : '');
     }
     /* R3249d（UX-AUDIT B2 · 用户实测「测测一点开就有几个分」）：
      * 三维度小分——💗感情/💼做事/💰钱袋。不是拍脑袋随机数：以
@@ -4772,6 +4786,19 @@ async function loadDaily() {
               '劫财':-8,'正官':0,'七杀':-2,'正印':-1,'偏印':-2}
     };
     var _dims = '';
+    /* R3250b：翻牌签抽中的小加持——彩条上以「+n」角标显形，
+     * 底分仍是确定性内核给的，角标只标增量不混账。 */
+    var _buff = null;
+    try {
+      var _bf = JSON.parse(
+        localStorage.getItem('checkinBuff:' + (j.date || _today)) || 'null');
+      /* n 是 localStorage 脏值——钳成 1-9 整数再进 HTML，
+       * 不 coerce 的话脏串直拼是存储型 XSS。 */
+      var _bfn = parseInt(_bf && _bf.n, 10) || 0;
+      if (_bf && _bf.d && _bfn >= 1 && _bfn <= 9) {
+        _buff = {d: _bf.d, n: _bfn};
+      }
+    } catch (eBf) {}
     ['感情','做事','钱袋'].forEach(function (dm) {
       var _d = _dimMap[dm] ? (_dimMap[dm][_dimGod] || 0) : 0;
       if (dm === '感情' && _dimTone === 'up') _d += 4;
@@ -4781,8 +4808,19 @@ async function loadDaily() {
       var _dv = Math.max(25, Math.min(97,
         _energy + _d - 4 + _dh % 9));
       var _ic = dm === '感情' ? '💗' : dm === '做事' ? '💼' : '💰';
-      _dims += '<span class="dim">' + _ic + ' ' + dm + ' <b>' +
-        _dv + '</b></span>';
+      /* R3250a：多数字同排→彩色条（用户原话）——单个数字留纯数字，
+       * 三个并列才给图，符合「只在一组数字同场时才可视化」的约定。 */
+      var _dcls = dm === '感情' ? 'd-love' : dm === '做事' ? 'd-work'
+                  : 'd-money';
+      _dims += '<span class="dim-bar ' + _dcls + '">' +
+        '<span class="dim-ic">' + _ic + '</span>' +
+        '<span class="dim-name">' + dm + '</span>' +
+        '<span class="dim-track"><i style="width:' + _dv + '%"></i></span>' +
+        '<b class="dim-num">' + _dv + '</b>' +
+        (_buff && _buff.d === dm
+          ? '<i class="dim-buff" title="翻牌签加持">+' +
+            String(_buff.n) + '</i>' : '') +
+        '</span>';
     });
     var _dimEl = el('dailyDims');
     if (!_dimEl && _scEl && _scEl.parentElement) {
@@ -6771,6 +6809,7 @@ async function doQiming() {
     }
   }
 }
+var _TH_GEN = 0;   /* R2502：桃花在途代际（同 _LY_GEN） */
 async function doTaohua() {
   var _gen = ++_TH_GEN;
   /* R233k（R45-§3）：同批预检——空字段/非法日前端先拦。 */
@@ -12545,18 +12584,45 @@ function renderCheckin(dateKey) {
       }
     } catch (eRM) {}
   }
+  /* R3250c（用户实测「四签可以翻过去做个抽牌提示」）：
+   * 未打卡时四签全扣成牌背——小红书玄学号的「默念问题选牌」
+   * 互动实测是流量密码；扣着抽比摊开选多一层仪式感。
+   * 抽到即写 buff（感情/做事/钱袋之一 +1~3，同日同签同值）。
+   * 已打卡则照旧亮面，picked 上加翻回动画。 */
+  var _just = null;
+  try { _just = window.__ckJustPicked || null; } catch (eJ) {}
+  var _buffNow = null;
+  try {
+    var _bfj = JSON.parse(
+      localStorage.getItem('checkinBuff:' + (dateKey || '')) || 'null');
+    var _bfn2 = parseInt(_bfj && _bfj.n, 10) || 0;
+    if (_bfj && _bfj.d && _bfn2 >= 1 && _bfn2 <= 9) {
+      _buffNow = {d: _bfj.d, n: _bfn2};
+    }
+  } catch (eBf) {}
+  var _buffIc = _buffNow
+    ? (_buffNow.d === '感情' ? '💗' : _buffNow.d === '做事' ? '💼' : '💰')
+    : '';
   const opts = _todays.map(function (o) {
     /* R2349t（R87-P1-1）：saved 是 localStorage 原始串——词表外脏值
      * 会被 unshift 进来直拼 HTML（属性逃逸即存储型 XSS）。两处全 esc。 */
     /* R3249c：按钮显示「人话名+用途副标」，data-opt 仍存原键 */
     var _lb = CHECKIN_LABEL[o];
+    var _isP = (saved === o);
     return '<button type="button" class="checkin-opt' +
-      (saved === o ? ' picked' : '') + '" data-opt="' + esc(o) + '" ' +
-      'aria-pressed="' + (saved === o) + '"' +
-      (_lb ? ' aria-label="' + esc(_lb[0]) + '，' + esc(_lb[1]) + '"' : '') +
+      (_isP ? ' picked' : '') +
+      (!saved ? ' ck-back' : '') +
+      (_just === o ? ' just-picked' : '') + '" data-opt="' + esc(o) + '" ' +
+      'aria-pressed="' + _isP + '"' +
+      (_lb ? ' aria-label="' + (!saved ? '抽一张签——' : '') +
+        esc(_lb[0]) + '，' + esc(_lb[1]) + '"' : '') +
       '>' + (_lb
         ? '<b>' + esc(_lb[0]) + '</b><i>' + esc(_lb[1]) + '</i>'
-        : esc(o)) + '</button>';
+        : esc(o)) +
+      (_isP && _buffNow
+        ? '<i class="ck-buff">签力 +' + String(_buffNow.n) + ' ' +
+          _buffIc + '</i>'
+        : '') + '</button>';
   }).join('');
   /* R229z续23（R10-#17）：选项组补 role=group + 问题文本锚点，
    * 反馈区 aria-live——选完有朗读回执。 */
@@ -12634,6 +12700,10 @@ function renderCheckin(dateKey) {
                   '挑一个陪你过今天：', '今天的幸运签是哪一个：'], 'ckq')) + ' ' +
     '<span class="checkin-dots" aria-hidden="true">' + _dots + '</span>' +
     (_meta ? '<span class="checkin-meta">' + _meta + '</span>' : '') + '</div>' +
+    /* R3250c：扣牌态给一句操作提示——「抽一张」是互动钩子，
+     * 亮面态（打过卡）不需要。 */
+    (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
+              '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
     /* R231d（R37-F15）：连签 ≥3 天给「晒连签」出口——里程碑文案不外溢
      * 就没拉新价值。 */
@@ -12834,11 +12904,31 @@ function renderCheckin(dateKey) {
        * 打勾，写失败也显示「已打卡」静默丢数据（隐私模式/quota）。 */
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
+        /* R3250c：翻牌签力——按签面语义给三维度之一 +1~3 加持
+         * （同日同签同值，确定性可复验）。写入后 renderCheckin 与
+         * 维度彩条同步显形。 */
+        try {
+          var _bdMap = {'吃瓜运':'感情','摸鱼运':'感情','甜甜运':'感情',
+            '上岸运':'做事','顺顺签':'做事','破水逆运':'做事',
+            '暴富签':'钱袋'};
+          var _bd = _bdMap[opt] ||
+            ['感情','做事','钱袋'][_hashNum(dateKey + '|' + opt) % 3];
+          var _bn = 1 + _hashNum(dateKey + '|buff|' + opt) % 3;
+          window.localStorage.setItem('checkinBuff:' + dateKey,
+            JSON.stringify({d: _bd, n: _bn}));
+          window.__ckJustPicked = opt;
+          /* 旗标要活过两次渲染（本函数一次 + loadDaily 重拉一次），
+           * 不能在 renderCheckin 里即读即清——1.5s 后自清兜底。 */
+          setTimeout(function () {
+            try { window.__ckJustPicked = null; } catch (eJP) {}
+          }, 1500);
+        } catch (eB) {}
         /* R230j（R22-P3-2）：checkin:* 清理收口。
          * R230y（R36-P1-3）：连签是留客钩子——不再写今日删昨日，
          * 改为保留最近 90 天，超过才清。 */
         var _cutoff = 'checkin:' + _isoShift(dateKey, -150);
         var _cutoff2 = 'dailyRevealed:' + _isoShift(dateKey, -150);
+        var _cutoff3 = 'checkinBuff:' + _isoShift(dateKey, -150);
         for (var _ci = window.localStorage.length - 1; _ci >= 0; _ci--) {
           var _ck = window.localStorage.key(_ci);
           /* R39-P3-1：dailyRevealed:* 此前无 GC，每年 365 个废键——
@@ -12848,6 +12938,7 @@ function renderCheckin(dateKey) {
             ? 'checkinCeleb:' + _ck.slice(_ck.lastIndexOf(':') + 1) : null;
           if (_ck && ((_ck.indexOf('checkin:') === 0 && _ck < _cutoff) ||
               (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2) ||
+              (_ck.indexOf('checkinBuff:') === 0 && _ck < _cutoff3) ||
               (_ckd && _ckd < 'checkinCeleb:' +
                 _isoShift(dateKey, -90)))) {
             window.localStorage.removeItem(_ck);
@@ -12860,6 +12951,10 @@ function renderCheckin(dateKey) {
       /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
        * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
       renderCheckin(dateKey);
+      /* R3250c：签力加持写在维度彩条上——维度区是 loadDaily 里渲染
+       * 的，不重拉的话 +n 角标要等下次进页才显形。/api/daily 有缓存，
+       * 重拉成本只是一次本地往返。 */
+      try { loadDaily(); } catch (eLD) {}
       /* R233f（R43-P2-3）：整卡重渲销毁了聚焦钮，焦点丢 BODY 从头爬
        * ——落回新渲出的 picked 钮。 */
       var _pk = box.querySelector('.checkin-opt.picked');

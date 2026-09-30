@@ -1810,6 +1810,11 @@ def main() -> int:
                                 f"子标签只发现 {len(subtabs)} 个，取不到第 {idx} 个"
                                 f"（{subtabs}）")
                         target_sel = f".rtab[data-rsec2='{subtabs[idx]}']"
+                    # R3249j：点击前的 .ph-empty 初始占位必须被替掉——
+                    # handler 在 busy() 之前抛错（_TH_GEN 未定义实测）时
+                    # 容器留着占位文案，旧判据「非空+非…中」会蒙混过关。
+                    _pre_empty = bool(page.query_selector(
+                        f"{res} .ph-empty"))
                     page.click(target_sel)
                     # 等结果容器出现"非占位"内容。
                     # 早退判据（否则每个坏按钮都要白等满预算，整轮跑不完）：
@@ -1824,6 +1829,8 @@ def main() -> int:
                             break
                         if waited >= 2.5 and not api_calls and errors:
                             break
+                    _post_empty = bool(page.query_selector(
+                        f"{res} .ph-empty"))
                     # 失败文案只认 .no-evidence 元素内的文字（见 FAILURE_RE 注释）
                     no_ev = " ".join(
                         page.eval_on_selector_all(
@@ -1836,6 +1843,7 @@ def main() -> int:
                     raw_keys = ([k for k in INTERNAL_KEYS if k in (text or "")]
                                 if voice_mode == "warm" else [])
                     ok = (bool(text) and not PLACEHOLDER_RE.match(text or "")
+                          and not (_pre_empty and _post_empty)
                           and not fail_hit and not obj_literal and not raw_keys
                           and not errors)
                     detail = f"容器 {len(text)} 字符: {text[:110]!r}"
@@ -1843,6 +1851,9 @@ def main() -> int:
                         detail = ("结果容器点击后仍为空"
                                   + ("；且点击后零 /api 请求（handler 在 fetch "
                                      "之前就抛了）" if not api_calls else ""))
+                    elif _pre_empty and _post_empty:
+                        detail = ("点击后 .ph-empty 占位未被替换（handler "
+                                  f"未跑到渲染分支）: {text[:60]!r}")
                     elif PLACEHOLDER_RE.match(text):
                         detail = (f"{CASE_BUDGET_S:.0f}s 后仍停在占位文案: "
                                   f"{text[:60]!r}")
