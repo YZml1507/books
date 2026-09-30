@@ -6159,11 +6159,14 @@ function _baziPlate(j) {
   } catch (e) { return ''; }
 }
 
-var _submitBaziBusy = false;   /* R8 P2-2：form submit 不经 on()，自加在途锁 */
+var _submitBaziBusy = 0;   /* R8 P2-2：form submit 不经 on()，自加在途锁（时间戳租约） */
 var _submitBaziLast = { key: '', ts: 0 };   /* R230q（R28-P3-14）同参防抖 */
 async function submitBazi(event) {
   if (event) event.preventDefault();
-  if (_submitBaziBusy) return;   // 连点/回车连击 → 只发一次，防并发覆盖
+  /* R3259（同 _birthBusy 案例）：布尔在途锁里若有 await 楔死，
+   * 锁永真+按钮永灰=「卡死」。改时间戳租约——超 26s 视为僵死可重夺。 */
+  if (_submitBaziBusy && Date.now() - _submitBaziBusy < 26000) return;
+  // 连点/回车连击 → 只发一次，防并发覆盖
   /* R230t（R33-P1-2）：同参防抖判定提到 busy() 之前——原先 busy 先清屏
    * 再 paint 提示，把刚渲染的结果卡整段顶掉（「上面那张」已不存在）。
    * 现在命中防抖只弹 toast，结果卡原样保留。 */
@@ -6173,7 +6176,8 @@ async function submitBazi(event) {
     showToast('这盘刚算过，结果就是上面那张～', 'info');
     return;
   }
-  _submitBaziBusy = true;
+  var _sbLease = Date.now();
+  _submitBaziBusy = _sbLease;
   /* R233k（R45-Top5-2）：form submit 不经 on()——提交钮手动补忙态。 */
   var _bb = el('submit');
   if (_bb) { _bb.disabled = true; _bb.classList.add('is-working');
@@ -6290,7 +6294,8 @@ async function submitBazi(event) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
     failWithRetry('result', '计算失败：' + e.message, function () { submitBazi(); });
   } finally {
-    _submitBaziBusy = false;
+    /* R3259：只清自己这轮的租约，旧楔死请求的晚到复位不得抹新轮。 */
+    if (_submitBaziBusy === _sbLease) _submitBaziBusy = 0;
     var _bb2 = el('submit');
     if (_bb2) { _bb2.disabled = false; _bb2.classList.remove('is-working');
       _bb2.removeAttribute('aria-busy'); }
@@ -11142,6 +11147,11 @@ function initDivination() {
         var f = el(id);
         if (f && f.closest('.field')) f.closest('.field').style.display = hide ? 'none' : '';
       });
+      /* R3259（用户实测「固定编号没用」）：时间起卦按日时推算，
+       * seed 压根不入参——抽屉却可填，填了被静默丢弃。对称收起：
+       * 哪种方式不吃的输入就不让它露头。 */
+      var _sd = el('lySeedDrawer');
+      if (_sd) _sd.style.display = hide ? '' : 'none';
     };
     _lym.addEventListener('change', _lyTimeSync);
     _lyTimeSync();
@@ -15580,11 +15590,24 @@ function baziPersonaCard(j) {
       out.innerHTML = '<div class="ph-empty">网络开小差了：' + esc(_humanizeErr(err.message)) + '，稍后再试～</div>';
     }
   }
-  var _birthBusy = false;   /* R8 P2-2：裸 click 不经 on()，自加在途锁 */
+  var _birthBusy = 0;   /* R8 P2-2：裸 click 不经 on()，自加在途锁。
+   * R3259（用户实测「点多次后卡住了」）：锁内串了 meSave→loadDaily→
+   * postJSON 三个 await——任何一环的 promise 楔死（弱网/旧壳/服务端
+   * 挂起）都会让布尔锁永真、按钮点击被静默吞掉=全站观感「卡死」。
+   * 改时间戳租约：>26s 的在途视为僵死，新点击强夺重跑；忙态再点
+   * 给 toast 反馈而不是静默吞。 */
   async function _birthGuard(ev) {
-    if (_birthBusy) return;
-    _birthBusy = true;
-    try { await doBirthReading(ev); } finally { _birthBusy = false; }
+    if (_birthBusy && Date.now() - _birthBusy < 26000) {
+      try { showToast('还在排盘中，稍等一下下～', 'info'); } catch (eT) {}
+      return;
+    }
+    var _lease = Date.now();
+    _birthBusy = _lease;
+    /* 只清自己这轮的租约——楔死的旧请求若晚到复位，不得把
+     * 新一轮在途的时间戳抹掉（否则并发双击白防）。 */
+    try { await doBirthReading(ev); } finally {
+      if (_birthBusy === _lease) _birthBusy = 0;
+    }
   }
   function bind() {
     var btn = document.getElementById('birthSubmit');
