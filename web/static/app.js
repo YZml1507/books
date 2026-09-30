@@ -2900,6 +2900,28 @@ function _chatTopicLog(msg) {
     localStorage.setItem('chat:topics', JSON.stringify(arr));
   } catch (e) {}
 }
+/* R3260（UX-PLAN-R6→R7）：未闭合事件——「明天要面试」「周五谈薪」
+ * 这类带时间落点的话头存本机（chat:events，cap 10），
+ * 隔天开聊时空态问「怎么样了」。调研规则：>24h 才跟进、
+ * 一天至多一次、同一事最多 2 次、用户回应或两次不接即停。
+ * 全 localStorage，不出本机。 */
+function _chatEventLog(msg) {
+  try {
+    var m = String(msg || '').match(
+      /(明天|后天|今晚|下午|周[一二三四五六日天末]|星期[一二三四五六日天]|下周[一二三四五六日天末]?|月底|年底|周末)(?:要|得|去|有|是|要?去)?([^，。！？!?,.、；;]{0,10}?)(面试|汇报|谈薪|谈话|考试|答辩|体检|搬家|出差|约会|表白|离职|入职|签约|复诊|看牙|开庭|看房|相亲|见家长|交稿|提案|述职|复查|手术|比赛|演出|开张|订婚|领证|出结果)/);
+    if (!m) return;
+    var key = (m[1] + (m[2] || '') + m[3]).slice(0, 16);
+    var arr = JSON.parse(localStorage.getItem('chat:events') || '[]');
+    if (!Array.isArray(arr)) arr = [];
+    var dup = arr.some(function (x) {
+      return x && x.k === key && (Date.now() - (x.ts || 0)) < 7 * 864e5;
+    });
+    if (dup) return;
+    arr.unshift({ k: key, ts: Date.now(), d: todayIso(), asked: 0,
+                  closed: 0 });
+    localStorage.setItem('chat:events', JSON.stringify(arr.slice(0, 10)));
+  } catch (e) {}
+}
 /* 画像行：近 7 天各主题计数，主打主题 ≥2 天才有「一直卡在这」
  * 的观测价值。一次会话只注入一回（sessionStorage 旗标）。 */
 function _chatWeekProfileFact() {
@@ -3066,6 +3088,20 @@ function chatSend() {
   /* R3139（specs/014-L1）：主题足迹落本地——危机/敏感闸之后才记，
    * 那两类消息不进画像。同日同主题去重。 */
   try { _chatTopicLog(msg); } catch (eTL) {}
+  try { _chatEventLog(msg); } catch (eEL) {}
+  /* R3260（R7）：空态挂着的「怎么样了」跟进行——用户回了任何
+   * 消息都算接住过，标记闭合不再追问。 */
+  try {
+    if (window.__chatPendingEvt != null) {
+      var _pe = JSON.parse(
+        localStorage.getItem('chat:events') || '[]');
+      if (Array.isArray(_pe) && _pe[window.__chatPendingEvt]) {
+        _pe[window.__chatPendingEvt].closed = 1;
+        localStorage.setItem('chat:events', JSON.stringify(_pe));
+      }
+      window.__chatPendingEvt = null;
+    }
+  } catch (ePC) {}
   /* D-006：追踪发送次数，第一条自动发后允许追问 1 次，第 2 次回复后才锁 */
   _CHAT_SEND_COUNT = (_CHAT_SEND_COUNT || 0) + 1;
   /* R230v（R34-#3）：捕获发送时 sid——在途回复遇上「开个新话题」换 sid
@@ -14477,6 +14513,46 @@ function _chatChipsPersonalize() {
         '）' + _mtail;
     } else if (_memo) { _memo.remove(); }
   } catch (eTP2) {}
+  /* R3260（UX-PLAN-R6→R7）：未闭合事件跟进——「明天面试」这类话头
+   * 隔天再问「怎么样了」。跟进行可以点：点了预填输入框，她只需
+   * 补结局。出现在便签/记忆行之后，一条就够，不多嘴。 */
+  try {
+    var _evts = JSON.parse(localStorage.getItem('chat:events') || '[]');
+    if (!Array.isArray(_evts)) _evts = [];
+    var _fol = box.querySelector('.chat-empty-follow');
+    var _pick = -1;
+    for (var _ei = 0; _ei < _evts.length; _ei++) {
+      var _ev = _evts[_ei];
+      if (!_ev || _ev.closed || (_ev.asked || 0) >= 2) continue;
+      if (Date.now() - (_ev.ts || 0) < 864e5) continue;
+      if (_ev.lastAsk === todayIso()) continue;
+      _pick = _ei; break;
+    }
+    if (_pick >= 0) {
+      if (!_fol) {
+        _fol = document.createElement('button');
+        _fol.type = 'button';
+        _fol.className = 'chat-empty-follow';
+        var _cbox2 = box.querySelector('.chat-empty-chips');
+        if (_cbox2 && _cbox2.parentNode) {
+          _cbox2.parentNode.insertBefore(_fol, _cbox2);
+        } else { box.appendChild(_fol); }
+      }
+      var _ek = _evts[_pick].k;
+      _fol.textContent = '🔔 上次你说「' + _ek + '」——后来怎么样了';
+      _fol.onclick = function () {
+        var _in = el('chatInput');
+        if (_in) {
+          _in.value = '上次说「' + _ek + '」这事，';
+          _in.focus();
+        }
+      };
+      _evts[_pick].asked = (_evts[_pick].asked || 0) + 1;
+      _evts[_pick].lastAsk = todayIso();
+      localStorage.setItem('chat:events', JSON.stringify(_evts));
+      window.__chatPendingEvt = _pick;
+    } else if (_fol) { _fol.remove(); window.__chatPendingEvt = null; }
+  } catch (eFL) {}
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
  * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */
@@ -15251,7 +15327,8 @@ function baziPersonaCard(j) {
          * 进备份——换机后庆典不重弹、提示不重见。 */
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
-        var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:'];
+        var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
+                     'mood:', 'moodlv:'];   /* R3260：心情历补进备份 */
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -15259,7 +15336,8 @@ function baziPersonaCard(j) {
          * 备份带齐才对称。 */
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
                       'installTipDismissed', 'ret_tip', 'wishbottle',
-                      'chat:topics', 'chat:cards', 'remind:1'];
+                      'chat:topics', 'chat:cards', 'remind:1',
+                      'chat:events', 'mood:lv'];   /* R3260：R6/R7 新键 */
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -15397,11 +15475,17 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
-                k.indexOf('checkinCeleb:') === 0)) _rm.push(k);
+                k.indexOf('checkinCeleb:') === 0 ||
+                /* R3260：R1-R7 新增键——心情历（mood:<date>/moodlv:<date>）
+                 * 与使用足迹（usage:*）此前游离在清除清单外，
+                 * 「忘掉我的数据」后幸存=隐私破洞。 */
+                k.indexOf('mood:') === 0 ||
+                k.indexOf('moodlv:') === 0 ||
+                k.indexOf('usage:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*

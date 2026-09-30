@@ -1648,6 +1648,12 @@ details.warm-pro-fold > summary{
   letter-spacing:.5px; margin-bottom:3px; }
 .chat-empty-note-txt{ display:block; font-size:12.5px; line-height:1.7;
   color:var(--primary-ink); }
+/* R3260 R7：未闭合事件跟进行——可点，点了预填输入框 */
+.chat-empty-follow{ margin:0 0 10px; padding:8px 14px; font-size:12.5px;
+  border:1px dashed var(--border); border-radius:999px;
+  background:transparent; color:var(--secondary); cursor:pointer;
+  line-height:1.6; max-width:300px; min-height:var(--tap); }
+.chat-empty-follow:active{ background:var(--card); }
 @media (prefers-reduced-motion:no-preference){
   .chat-empty-note{ animation:noteIn .35s ease; }
   @keyframes noteIn{ from{opacity:0; transform:rotate(-.8deg) translateY(4px);}
