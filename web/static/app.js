@@ -7469,13 +7469,14 @@ var _POSTER_TITLES = {
   qiming: '五行起名', taohua: '桃花运势', hehun: '八字合婚',
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
-  xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦'
-};
+  xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
+  bandaid: '深夜创可贴' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
-  daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream' };
+  daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
+  bandaid: 'dream' };   /* R3260 R9：夜灯紫夜系 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
 var _SHARE_TEXT = {
@@ -7493,7 +7494,8 @@ var _SHARE_TEXT = {
   'checkin-month': '我这个月的签运战报出炉了，你的呢 →',
   birth: '我的本命盘出来了，看看你的 →',
   dream: '我刚翻了个梦，册子说的挺准 →',
-  xzm: '我们星座合拍指数出来了，你们的呢 →'};
+  xzm: '我们星座合拍指数出来了，你们的呢 →',
+  bandaid: '睡不着的话，这张创可贴送你 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
 }
@@ -14378,12 +14380,36 @@ function _chatChipsPersonalize() {
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
   if (_shop) _shop.textContent = _xmShopLine();
+  /* R3260（UX-PLAN-R6 R9）：深夜创可贴入口——23-05 点空态多一颗
+   * 「带张创可贴走」钮，点出海报模态（一句能存图带走的话 +
+   * 夜灯场景卡）。深夜用户要的不是功能是件小物。 */
+  var _band = box.querySelector('.chat-empty-bandaid');
+  if (_hh2 >= 23 || _hh2 < 5) {
+    if (!_band) {
+      _band = document.createElement('button');
+      _band.type = 'button';
+      _band.className = 'chat-chip chat-empty-bandaid';
+      _band.textContent = '🌙 带张创可贴走';
+      var _cbox3 = box.querySelector('.chat-empty-chips');
+      if (_cbox3 && _cbox3.parentNode) {
+        _cbox3.parentNode.insertBefore(_band, _cbox3.nextSibling);
+      } else { box.appendChild(_band); }
+      _band.addEventListener('click', function () {
+        var _im = new Image();
+        _im.src = '/static/cream/bear-scene-bad.jpg';
+        _im.onload = function () {
+          downloadPoster({ _art: _im, _artCap: '今夜小夜灯' },
+            'bandaid');
+        };
+        _im.onerror = function () { downloadPoster({}, 'bandaid'); };
+      });
+    }
+  } else if (_band) { _band.remove(); }
   /* R3260（UX-PLAN-R6）：小满便签——久未归（≥3 天没来）时，
    * 空态最上方多一张她留的字条。AI 陪伴产品的共识：主动关怀
    * 的正确形态是「写进会话的消息」而不是推送——这张便签只在她
    * 打开侧栏时在场，不弹窗不通知。久归 > 话题（那条事由记忆行
-   * 在更下面管 ≥2 天回访）；深夜时段让位给 hi 行的夜语，
-   * 便签不叠加。 */
+   * 在更下面管 ≥2 天回访）。 */
   var _note = box.querySelector('.chat-empty-note');
   var _noteTxt = null;
   /* 深夜不禁便签——「好久没来了」管的是缺席，夜语管的是时刻，
