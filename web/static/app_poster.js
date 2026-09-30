@@ -1240,6 +1240,11 @@ function buildShareData(view, j) {
      * 没有分享图，只能手截一张无品牌小卡。 */
     case 'xzm': {
       var _xm = base('星座速配', _cnDateSub(todayIso()));
+      /* R3260：闺蜜/同事视角进副标——「巨蟹座×天蝎座」晒到群里
+       * 时一句话说清测的是什么关系；恋人默认不加（感情腔即默认）。 */
+      if (j && (j._rel === '闺蜜' || j._rel === '同事')) {
+        _xm.subtitle += ' · ' + j._rel + '视角';
+      }
       _xm.big = _pStr(j && j.a) + '座 × ' + _pStr(j && j.b) + '座';
       _xm.lines = [
         { k: '合拍指数', v: _pStr(j && j.score) + '/99' },

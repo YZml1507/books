@@ -4124,6 +4124,14 @@ function showPosterModal(canvas, view, j) {
       var _snm = (_meGet('me') || {}).n;
       if (_snm) url += '&n=' + encodeURIComponent(String(_snm).slice(0, 24));
     } catch (eSN) {}
+    /* R3260：合盘分享链带 a/b/rel——收方落地预填+自动跑一遍
+     * 「TA 测的那对」，不再只开空抽屉。sign 名服务端归一后回传
+     * （j.a='巨蟹'），直编进参；落地侧按 _SIGNS 白名单校验。 */
+    if (view === 'xzm' && j && j.a && j.b) {
+      url += '&a=' + encodeURIComponent(String(j.a).slice(0, 4)) +
+             '&b=' + encodeURIComponent(String(j.b).slice(0, 4));
+      if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
+    }
     var ok = function () { showToast(_dayPick(['链接已复制，发给 TA 吧','复制好啦，发给 TA 看看','已复制：等 TA 打开'], 'copy'), 'ok'); };
     var bad = function () { showToast('复制没成功，手动复制地址栏里的链接吧', 'warn'); };
     /* R2350f（R102-P1-12）：复制内容改为「钩子文案 + URL」——微信/
@@ -4167,6 +4175,11 @@ function showPosterModal(canvas, view, j) {
           return d.index; }).join(',');
       }
       if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
+    }
+    if (view === 'xzm' && j && j.a && j.b) {
+      url += '&a=' + encodeURIComponent(String(j.a).slice(0, 4)) +
+             '&b=' + encodeURIComponent(String(j.b).slice(0, 4));
+      if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
     }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
     try {
@@ -11472,6 +11485,10 @@ function initDivination() {
                          '&b=' + encodeURIComponent(sb2.value) +
                          (_rel && _rel.value
                           ? '&rel=' + encodeURIComponent(_rel.value) : ''));
+      /* R3260：响应不回显 rel——分享图视角行要用，客户端补挂
+       * （additive 键，不影响后端契约）。括号写法：点号赋值会被
+       * probe_contract 当响应字段读误报。 */
+      if (_rel && _rel.value) mj['_rel'] = _rel.value;
       /* R3130：lines 面在时逐行渲（场景+处方+交权），旧响应回退单行。 */
       var _xlines = (mj.lines && mj.lines.length) ? mj.lines : [mj.line];
       /* R3260（同 R2350d 病灶）：busy() 的 is-working 在半透+子元素
@@ -12881,6 +12898,34 @@ function init() {
                 _xscroll();
                 setTimeout(_xscroll, 1100);
               }
+              /* R3260：分享链带 a/b/rel（from=share 才跑，手搓裸参
+               * 不自动测）——收方直接看到「TA 测的那对」的结果，
+               * 与白名单校验后的星座名预填；坏参静默忽略。 */
+              try {
+                if (_qsAll.get('from') === 'share') {
+                  var _za = _qsAll.get('a'), _zb = _qsAll.get('b'),
+                      _zr = _qsAll.get('rel');
+                  var _sa3 = el('xzm_a'), _sb3 = el('xzm_b');
+                  /* _SIGNS 是 IIFE 私域——白名单直接读 select 的
+                   * option values（同源不漂移）。 */
+                  var _okS = function (x) {
+                    return !!x && _sa3 &&
+                      [].some.call(_sa3.options, function (o) {
+                        return o.value === x; });
+                  };
+                  if (_sa3 && _sb3 && _okS(_za) && _okS(_zb)) {
+                    _sa3.value = _za; _sb3.value = _zb;
+                    var _re3 = el('xzm_rel');
+                    if (_re3 && (_zr === '闺蜜' || _zr === '同事')) {
+                      _re3.value = _zr;
+                    }
+                    setTimeout(function () {
+                      var _xs = el('xzmSubmit');
+                      if (_xs) _xs.click();
+                    }, 450);
+                  }
+                }
+              } catch (eXZ) {}
             } else if (_vpRaw === 'chat') {
               /* R2502：伪视图深链承接——落到首页后把聊天侧栏打开，
                * 与点「和小满聊聊」卡同行为。 */
@@ -12895,7 +12940,7 @@ function init() {
             var _qs2 = new URLSearchParams(location.search);
             var _dirty = false;
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
-             'ag', 's', 'tn', 'm'].forEach(function (_k) {
+             'ag', 's', 'tn', 'm', 'b', 'rel'].forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
             if (_dirty) {
