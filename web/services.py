@@ -4387,7 +4387,13 @@ def daily(date_str: str | None = None,
                       # 之前落库的旧缓存行没有它们，现算随包回。
                       "lucky": _c.get("lucky") or _lucky_for(_d0),
                       "mercury": (_c.get("mercury")
-                                  or _mercury_state(_d0))}
+                                  or _mercury_state(_d0)),
+                      # R3261：财神方位同为 per-date 派生键——旧缓存行
+                      # 现算随包回，不抬 cv 代次。
+                      "money_dir": (_c.get("money_dir")
+                                    or huangli_mod.caishen_fang(
+                                        datetime(_d0.year, _d0.month,
+                                                 _d0.day, 12)))}
                 if _personal:
                     _r["personal"] = _personal
                 else:
@@ -4494,6 +4500,10 @@ def daily(date_str: str | None = None,
             # R2349l（R73-P1-4/P2-9）：开运三件套+水逆态——全是当日
             # 干支/历表的确定性派生，随缓存同口径存取。
             "lucky": _lucky_for(d),
+            # R3261（R12）：财神方位——日干查表确定性坐标，给「搞钱」
+            # 人群一个每日可看的落点（调研：财运诉求 74.9%）。
+            "money_dir": huangli_mod.caishen_fang(
+                datetime(d.year, d.month, d.day, 12)),
             "mercury": _mercury_state(d),
             "moon": _moon_for(d),
             "term": _term_banner(d),

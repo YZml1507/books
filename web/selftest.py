@@ -2544,6 +2544,10 @@ def _run_inner() -> list[str]:
                 return f"{_ds} 降级空卡 level={_j.get('level')}"
             if _j.get("noble_liuhe") not in _LH:
                 return f"{_ds} noble_liuhe={_j.get('noble_liuhe')!r}"
+            # R3261：财神方位（日干查表）必在八方集合。
+            if _j.get("money_dir") not in ("正北","东北","正东","东南",
+                                          "正南","西南","正西","西北"):
+                return f"{_ds} money_dir={_j.get('money_dir')!r}"
         return True
     _dfd = _daily_fields_ok()
     assert _dfd is True, ("daily.fields.no_degrade", _dfd)

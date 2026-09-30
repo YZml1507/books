@@ -5310,6 +5310,13 @@ async function loadDaily() {
         (j.lucky.color_word
           ? '<span class="daily-lucky-word">' + esc(j.lucky.color_word) + '</span>' : ''));
     } else { _dailyMetaItem('dailyLucky', ''); }
+    /* R3261（R12）：财神方位——日干查表的确定性坐标（与黄历页同源），
+     * 给「搞钱」人群一个每日小落点。无数据静默缺席。 */
+    if (_pStr(j.money_dir)) {
+      _dailyMetaItem('dailyCai',
+        '🧭 财神方位 <strong>' + esc(j.money_dir) + '</strong>' +
+        '<span class="daily-lucky-word">朝那边坐坐</span>');
+    } else { _dailyMetaItem('dailyCai', ''); }
     if (j.mercury && j.mercury.on) {
       _dailyMetaItem('dailyMercury',
         '💫 水逆中 · 第' + j.mercury.day_no + '天（到 ' +

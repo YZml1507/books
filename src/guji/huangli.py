@@ -354,6 +354,24 @@ def guiren(dt: datetime) -> list[str]:
     return list(GUIREN[gan])
 
 
+# 财神方位（日干→方位）：《协纪辨方书》/通行口诀
+# 「甲乙东北是财神，丙丁向在西南寻，戊己正北坐方位，
+#   庚辛正东去安身，壬癸原来正南坐」。
+CAISHEN_FANG = {
+    "甲": "东北", "乙": "东北",
+    "丙": "西南", "丁": "西南",
+    "戊": "正北", "己": "正北",
+    "庚": "正东", "辛": "正东",
+    "壬": "正南", "癸": "正南",
+}
+
+
+def caishen_fang(dt: datetime) -> str:
+    """财神方位（日干→方位），纯坐标计算。"""
+    gan, _ = day_ganzhi(dt)
+    return CAISHEN_FANG.get(gan, "")
+
+
 def shensha(dt: datetime) -> dict:
     """dt 这天所有神煞的 dict（纯坐标计算）。"""
     gan, zhi = day_ganzhi(dt)
