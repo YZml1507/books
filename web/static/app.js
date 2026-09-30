@@ -13494,6 +13494,27 @@ function _renderMoodRow(lv) {
       }
       _calHtml += '<span class="mood-week">📒 ' + esc(_wtxt) + '</span>';
     }
+    /* R3260（UX-PLAN-R6 R8）：心情旅程累计——Finch Journeys 口径：
+     * 断掉的天数也计入累计，不讲「连续」讲「收下了多少」，
+     * 不制造 guilt。攒满 5 个色点才出；里程碑日（7/14/21/30/50/
+     * 100）换庆典文案，只亮那一天。 */
+    var _mt = 0;
+    try {
+      for (var _mi = 0; _mi < localStorage.length; _mi++) {
+        var _mk = localStorage.key(_mi);
+        if (_mk && /^mood:\d{4}-\d{2}-\d{2}$/.test(_mk) &&
+            localStorage.getItem(_mk) !== '' &&
+            localStorage.getItem(_mk) !== null) _mt++;
+      }
+    } catch (eMT) {}
+    if (_mt >= 5) {
+      var _MILE = { 7: 1, 14: 1, 21: 1, 30: 1, 50: 1, 100: 1 };
+      var _mtxt = _MILE[_mt]
+        ? '第 ' + _mt + ' 个心情点进罐——你把自己照顾得比想象的好'
+        : '心情罐子里攒了 ' + _mt + ' 个色点';
+      _calHtml += '<span class="mood-journey">🏺 ' +
+        esc(_mtxt) + '</span>';
+    }
     mc.innerHTML = _calHtml;
   }
   if (picked !== '') _moodShowAnswer(+picked, lv);
