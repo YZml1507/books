@@ -727,6 +727,9 @@ function buildShareData(view, j) {
                 /* R233t（R51-P2-14）：地支原文「丑/未」上天书——转生肖。 */
                 { k: '贵人属相', v: _pStr(j && j.noble) ?
                   _zhiToAnimal(j.noble) : '—' },
+                /* R3261（R13）：财神方位上明细行——搞钱人群
+                 * 晒图时自带的每日落点。 */
+                { k: '财神方位', v: _pStr(j && j.money_dir) || '—' },
                 { k: '宜试试', v: _clauseCut(_pStr(j && j.do) || '—', 20) },
                 /* R2349p（R79-P2-3）：忌行与子句口径一致——顿号清单
                  * 在子句边界截，不拦腰断词。 */

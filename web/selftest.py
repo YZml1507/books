@@ -614,13 +614,21 @@ def _run_inner() -> list[str]:
     ok.append("huangli.scene.twoleg")
     # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
     # 不静默回落显示日/就近换日。
+    # R3261：「下下个月31号」的预期按月历动态判——该月有 31 号时
+    # 必须真解（如 10 月跑此测→下下个月=12 月有 31 号）。
+    import calendar as _cal
+    from datetime import date as _dt0
+    _t0 = _dt0.today()
+    _nnm = ((_t0.month + 1) % 12) + 1   # 下下个月（1-12）
+    _nny = _t0.year + ((_t0.month + 1) // 12)
+    _nn31 = _cal.monthrange(_nny, _nnm)[1] >= 31
     for _q, _want_date, _want_invalid in (
             ("2027-02-29搬家", False, True),      # 非闰年 ISO 不存在
             ("2101年3月1号开业", False, True),    # 越界年号（表界 2100）
             ("星期八出行", False, True),           # 曜日表外
             ("32号开业", False, True),             # 超月界
             ("农历13月初一领证", False, True),     # 农历只有十二月
-            ("下下个月31号签约", False, True),     # 词命中但该月没这天
+            ("下下个月31号签约", _nn31, not _nn31),  # 词命中但月历有/无这天
             ("下下个月15号出差", True, False),     # 下下个真解
             ("2026年10月1日搬家", True, False)):   # 显式年锚定
         _r = client.get("/api/huangli/resolve_date",
