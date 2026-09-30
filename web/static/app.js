@@ -14321,6 +14321,50 @@ function _chatChipsPersonalize() {
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
   if (_shop) _shop.textContent = _xmShopLine();
+  /* R3260（UX-PLAN-R6）：小满便签——久未归（≥3 天没来）时，
+   * 空态最上方多一张她留的字条。AI 陪伴产品的共识：主动关怀
+   * 的正确形态是「写进会话的消息」而不是推送——这张便签只在她
+   * 打开侧栏时在场，不弹窗不通知。久归 > 话题（那条事由记忆行
+   * 在更下面管 ≥2 天回访）；深夜时段让位给 hi 行的夜语，
+   * 便签不叠加。 */
+  var _note = box.querySelector('.chat-empty-note');
+  var _noteTxt = null;
+  /* 深夜不禁便签——「好久没来了」管的是缺席，夜语管的是时刻，
+   * 两件事不冲突；只让位给生日（那天有更重要的招呼）。 */
+  if (_gap2 >= 3 && !_bday) {
+    try {
+      var _tpn = _chatTopicsArr(), _tlast = null, _tlastD = '';
+      _tpn.forEach(function (x) {
+        if (x && x.d > _tlastD && typeof x.t === 'string') {
+          _tlast = x.t; _tlastD = x.d;
+        }
+      });
+      _noteTxt = _dayPick([
+        '你有一阵没来了。不催你——签每天都替你收着，想看看就说一声',
+        '好几天没见。铺子照开，你的位置一直留着',
+        '这几天过得怎么样？路过就来坐坐，不用挑日子'
+      ], 'note-gap');
+      if (_tlast) {
+        _noteTxt += '。上次你问起「' + _gSlice(_tlast, 6) +
+          '」的事——后来顺不顺，想聊随时在';
+        /* 便签已提了这事——下面 memo 行再说一遍就重复了 */
+        box.dataset.noteTopic = _tlast;
+      } else { delete box.dataset.noteTopic; }
+    } catch (eNT) {}
+  }
+  if (_noteTxt) {
+    if (!_note) {
+      _note = document.createElement('div');
+      _note.className = 'chat-empty-note';
+      var _hiP = box.querySelector('.chat-empty-hi');
+      if (_hiP && _hiP.parentNode) {
+        _hiP.parentNode.insertBefore(_note, _hiP);
+      } else { box.insertBefore(_note, box.firstChild); }
+    }
+    _note.innerHTML =
+      '<span class="chat-empty-note-who">小满留的便签</span>' +
+      '<span class="chat-empty-note-txt">' + esc(_noteTxt) + '</span>';
+  } else if (_note) { _note.remove(); }
   if (_sub) {
     if (_bday) {
       _sub.textContent = '生日这天的签，是一年一次的限定款';
@@ -14409,7 +14453,8 @@ function _chatChipsPersonalize() {
       var _gap = Math.floor(
         (new Date(todayIso() + 'T00:00:00') - new Date(x.d + 'T00:00:00')) /
         86400000);
-      if (_gap >= 2 && x.d > _bestD) { _best = x.t; _bestD = x.d; }
+      if (_gap >= 2 && x.d > _bestD &&
+          box.dataset.noteTopic !== x.t) { _best = x.t; _bestD = x.d; }
     });
     if (_best) {
       if (!_memo) {
