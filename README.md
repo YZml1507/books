@@ -9,14 +9,8 @@
 **事实层零幻觉，AI 层挂了产品照常可用。**
 
 <p align="center">
-  <img src="docs/images/shot-home-cover.png" width="215" alt="每日礼物封面">
-  <img src="docs/images/shot-daily.png" width="215" alt="今日运势·个人判词">
-  <img src="docs/images/shot-qiming.png" width="215" alt="五行起名">
-  <img src="docs/images/shot-dream.png" width="215" alt="解梦面板">
-</p>
-<p align="center">
-  <img src="docs/images/shot-desk-cover.png" width="430" alt="桌面端首页">
-  <img src="docs/images/shot-desk-bazi.png" width="430" alt="桌面端排盘结果·四柱盘">
+  <img src="docs/images/shot-desk-cover.png" width="430" alt="首页·每日礼物">
+  <img src="docs/images/shot-desk-bazi.png" width="430" alt="排盘结果·四柱盘">
 </p>
 
 线上实例：https://books-ctsw.onrender.com （私有部署，需口令进入）

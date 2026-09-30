@@ -351,6 +351,11 @@ try {
     <div class="func-card func-entry" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">给 TA/圈名起个好名字</div>
     </div>
+    <!-- R3255（用户裁决）：六爻从「进阶玩法」抽屉提上主格——
+         进阶栏整体撤除，它和其他功能平级，不该藏深一层。 -->
+    <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
+    </div>
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
@@ -363,21 +368,8 @@ try {
     </nav>
   </div>
 
-  <!-- R206b US2：高级入口——研究型功能（六爻/古籍读书/起名）收进这里，
-       默认折叠、视觉刻意低调。所有被收功能零删除，路由照旧。 -->
-  <details class="pro-drawer" id="proDrawer">
-    <!-- R228e：原文案「古籍溯源」宣称有古籍入口——书库阅读渠道已按
-         R208b 用户裁决移除，抽屉里只有六爻和起名两张卡，改实话实说。 -->
-    <summary><span aria-hidden="true">🔍</span> 进阶玩法（六爻占卜）</summary>
-    <div class="func-grid pro-grid">
-      <!-- R208b：古籍读书卡按用户裁决移除——书库吃进去揉碎喂给用户
-           （证据直接呈现），不提供阅读渠道。view-read 视图与 API 全保留。
-           R3210：起名卡上提主格后，抽屉只剩六爻（术语门槛的问事向功能）。 -->
-      <div class="func-card func-entry" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
-        <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
-      </div>
-    </div>
-  </details>
+  <!-- R3255（用户裁决）：「进阶玩法」抽屉整体撤除——六爻上提主格，
+       研究类关键词在首页首屏的暴露规约不变（判据 a 照旧生效）。 -->
   </div><!-- /home-main -->
 
   <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->

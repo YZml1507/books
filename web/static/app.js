@@ -10398,45 +10398,12 @@ async function doRenge() {
 
 /* ── 初始化 ────────────────────────────────────────────────── */
 
-function initViews() {
-  document.querySelectorAll('.func-card').forEach(function (card) {
-    card.addEventListener('click', function () {
-      window.__lastFuncCard = card;   /* R228d：回首页时焦点归还这里 */
-      /* R2362（用户直报）：data-view="chat" 伪视图——开聊天侧栏不切视图。 */
-      if (card.dataset.view === 'chat') { chatOpen(); return; }
-      showView(card.dataset.view);
-    });
-    // 卡片是可点区域，给键盘用户同等入口
-    card.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        window.__lastFuncCard = card;
-        if (card.dataset.view === 'chat') { chatOpen(); return; }
-        showView(card.dataset.view);
-      }
-    });
-  });
-  /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
-  var back = el('viewBack');
-  if (back) back.addEventListener('click', function () { showView('home'); });
-  /* R3249g（UX-AUDIT B4）：场景快捷条——「心里有事」开聊天并替
-   * 她写好第一句；其余直达对应功能视图。 */
-  document.querySelectorAll('.scene-chip').forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      var sc = chip.dataset.scene;
-      if (sc === 'chat') {
-        chatOpen();
-        var inp = el('chatInput');
-        if (inp) {
-          inp.value = '心里有点事，想说给你听';
-          guardedCall('chatSendBtn', chatSend);
-        }
-        return;
-      }
-      try { showView(sc); } catch (e) {}
-    });
-  });
-  /* R205b（用户反馈①）：最近解读侧边栏 开/收 */
+/* R3255（用户实测「和小满聊聊又不能随时随地打开了」）：
+ * 聊天侧栏绑定此前住在 initViews 中段——前面任何一段绑定抛错
+ * （func-card/scene-chip 委托链），FAB 整条监听就永远挂不上，
+ * 聊天入口死透。抽成独立 init 放最前执行，并整体 try 包住：
+ * 聊天是慰藉型产品的命根子，它不许被别的功能连坐。 */
+function initChatSidebar() {
   var sb = el('recentSidebar');
   var tgl = el('recentToggle');
   var cls = el('recentClose');
@@ -10498,6 +10465,48 @@ function initViews() {
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
   if (bd) bd.addEventListener('click', function () { _setRecent(false); });
   /* R219b（P0-4）：侧栏「我的解读」折叠段与计数刷新随历史记录功能删除。 */
+}
+
+function initViews() {
+  document.querySelectorAll('.func-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      window.__lastFuncCard = card;   /* R228d：回首页时焦点归还这里 */
+      /* R2362（用户直报）：data-view="chat" 伪视图——开聊天侧栏不切视图。 */
+      if (card.dataset.view === 'chat') { chatOpen(); return; }
+      showView(card.dataset.view);
+    });
+    // 卡片是可点区域，给键盘用户同等入口
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        window.__lastFuncCard = card;
+        if (card.dataset.view === 'chat') { chatOpen(); return; }
+        showView(card.dataset.view);
+      }
+    });
+  });
+  /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
+  var back = el('viewBack');
+  if (back) back.addEventListener('click', function () { showView('home'); });
+  /* R3249g（UX-AUDIT B4）：场景快捷条——「心里有事」开聊天并替
+   * 她写好第一句；其余直达对应功能视图。 */
+  document.querySelectorAll('.scene-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var sc = chip.dataset.scene;
+      if (sc === 'chat') {
+        chatOpen();
+        var inp = el('chatInput');
+        if (inp) {
+          inp.value = '心里有点事，想说给你听';
+          guardedCall('chatSendBtn', chatSend);
+        }
+        return;
+      }
+      try { showView(sc); } catch (e) {}
+    });
+  });
+  /* R3255：侧栏绑定搬去 initChatSidebar()（initViews 之前独立执行）；
+   * 「我的解读」折叠段与计数刷新随历史记录功能删除。 */
 }
 
 function initBazi() {
@@ -11546,10 +11555,14 @@ function init() {
   };
   _applySeason();
   _applyDaypart();
-  initViews();
-  initBazi();
-  initReading();
-  initDivination();
+  /* R3255：聊天侧栏绑定提到最前并独立 try——「和小满聊聊」是
+   * 情绪兜底入口，不能被后续任何初始化异常连坐挂掉。 */
+  try { initChatSidebar(); } catch (eCS) { console.warn('[init] chatSidebar', eCS); }
+  /* R3255：初始化互相隔离——一个模块抛错不再把后面的入口全拖死。 */
+  try { initViews(); } catch (eV) { console.warn('[init] views', eV); }
+  try { initBazi(); } catch (eB) { console.warn('[init] bazi', eB); }
+  try { initReading(); } catch (eR) { console.warn('[init] reading', eR); }
+  try { initDivination(); } catch (eD) { console.warn('[init] divination', eD); }
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
   /* R3207：时辰对照表——「知道子时不知道几点」的用户此前要切出去查；
    * 每个出生时辰输入框尾巴挂一张可展开的 12 时辰表。 */
