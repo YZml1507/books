@@ -873,6 +873,12 @@ function buildShareData(view, j) {
       var _bol = _pStr(w && w.one_liner);
       if (_bol) _bir.lines.push({ k: '小满短评', v: _clauseCut(_bol, 20) });
       if (!_bir.lines.length) _bir.lines = [{ k: '结论', v: '知己知命' }];
+      /* R3252：五行人格分享图——doRenge 传入已加载的拟人熊
+       * <img>，直绘成卡座；晒出去的「我是哪一型」是形象不是字。 */
+      if (j && j._art) {
+        _bir.cards = [{ img: j._art, name: '我的五行人格',
+          sub: _pStr(j._artCap) || '日主定盘' }];
+      }
       return _bir;
     }
     case 'checkin': {
@@ -899,6 +905,17 @@ function buildShareData(view, j) {
             '运气在排队，别急', '你比签上写的还好一点',
             '今天也是值得收藏的一天', '慢慢来，好戏在后头',
             '先把今天过好，明天有新签', '心里有光，日子就亮'], 'ckslogan') }];
+      /* R3252：签面插画上海报——app.js 预载的奶油熊签面图直绘成
+       * 卡座（与塔罗牌面同管线），抽到的那张签晒出去是「图」不是
+       * 「字」。有插画卡时「今日签面」行与卡名重复，摘掉。 */
+      if (j && j.art) {
+        _ck.cards = [{ img: j.art,
+          name: '「' + (_pStr(j && j.pick) || '好运签') + '」',
+          sub: '今日签面' }];
+        _ck.lines = _ck.lines.filter(function (r) {
+          return r.k !== '今日签面';
+        });
+      }
       return _ck;
     }
     /* R233q：周报海报——近 7 天每行 M/D·周X·签面，big 挂打卡率。 */

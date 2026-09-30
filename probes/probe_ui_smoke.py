@@ -1184,6 +1184,22 @@ def main() -> int:
                 results.append({"name": "ui:checkin.persist", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R3252a：签面插画——抽中后 picked 卡顶有 .ck-art 小图
+            try:
+                _art = page.evaluate(
+                    "(() => { const i = document.querySelector("
+                    "'.checkin-opt.picked .ck-art'); return i && "
+                    "/sign-[a-z]+\\.jpg/.test(i.src)"
+                    " ? i.src.split('/').pop() : null; })()")
+                results.append({
+                    "name": "ui:checkin.art", "ok": bool(_art),
+                    "detail": f"签面图={_art}"})
+            except Exception as exc:
+                results.append({"name": "ui:checkin.art", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+
+
             # R2350k：自点牌扇——开扇 22 背 → 点 3 张 → 成局 → 结果卡出字
             try:
                 goto_view('tarot')
@@ -1950,6 +1966,26 @@ def main() -> int:
                     page.screenshot(path=os.path.join(LOGDIR, f"FAIL_{name}.png"),
                                     full_page=False)
                 results.append({"name": f"btn:{name}", "ok": ok, "detail": detail})
+
+            # ── R3252b：合婚表盘——hehun 表单用例跑完后结果卡仍在
+            # DOM，合拍指数应是 SVG 弧盘 + 双熊插画，不是一行裸数字。
+            # （hehun 用例本论挂的话这里同步报缺，不放大问题。）
+            try:
+                _hg = page.evaluate(
+                    "(() => { const g = document.querySelector("
+                    "'#hhResult .hh-gauge svg'); const b = "
+                    "document.querySelector('#hhResult .hh-bear'); "
+                    "const n = document.querySelector("
+                    "'#hhResult .hh-g-num strong'); return {gauge: !!g, "
+                    "bear: !!b, num: n ? n.textContent : null}; })()")
+                ok = bool(_hg and _hg.get("gauge") and _hg.get("num"))
+                results.append({
+                    "name": "ui:hehun.gauge",
+                    "ok": ok,
+                    "detail": f"{_hg}"})
+            except Exception as exc:
+                results.append({"name": "ui:hehun.gauge", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
 
             # ── R228x：黄历「挑吉日」chip 链路——点场景出判词后应异步长出
             # 「近期宜X」chip 行；点 chip 翻到那天（hlResult 头部日期变化）。

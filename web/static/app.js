@@ -515,8 +515,28 @@ function buildHehunResult(j) {
   /* R2349l（R73-P1-6）：合拍指数——小红书传播形态是数字，
    * 定性标签没法晒；分数是大字素材。 */
   if (j.match_score != null) {
-    html += '<div class="hh-score">合拍指数 <strong>' +
-      esc(String(j.match_score)) + '</strong><span class="hh-score-sub">/99</span></div>';
+    /* R3252（用户实测「可以加一些表盘」）：合拍指数上仪表盘——
+     * 半圆弧形 SVG 表盘，分数坐在盘心，档位色随分数走。
+     * 双熊同框插画置顶，结果先看图再看数。 */
+    var _msN0 = Number(j.match_score);
+    var _msP = Math.min(Math.max(isNaN(_msN0) ? 0 : _msN0, 0), 99);
+    var _arcL = (Math.PI * 55).toFixed(1);
+    var _arcOff = (Math.PI * 55 * (1 - _msP / 99)).toFixed(1);
+    var _gt = _msN0 >= 85 ? ' hi' : _msN0 >= 60 ? ' mid' : ' low';
+    html += '<div class="hh-hero">' +
+      '<img class="hh-bear" src="/static/cream/hehun-bear.jpg" ' +
+      'alt="合拍指数插画" loading="lazy" decoding="async" ' +
+      'onerror="this.remove()">' +
+      '<div class="hh-gauge' + _gt + '" role="img" aria-label="合拍指数 ' +
+      esc(String(j.match_score)) + ' 分（满分 99）">' +
+      '<svg viewBox="0 0 120 72" aria-hidden="true">' +
+      '<path class="hh-g-tr" d="M10 66 A55 55 0 0 1 110 66"/>' +
+      '<path class="hh-g-fl" d="M10 66 A55 55 0 0 1 110 66" ' +
+      'stroke-dasharray="' + _arcL + '" stroke-dashoffset="' + _arcOff +
+      '"/></svg>' +
+      '<div class="hh-g-num"><strong>' + esc(String(j.match_score)) +
+      '</strong><span class="hh-g-sub">/99</span></div>' +
+      '<div class="hh-g-cap">合拍指数</div></div></div>';
     /* R2349t（R88-6）：高分稀有度——85+ 和 60 分不该同一张脸，
      * 多一个截图动机。 */
     var _msN = Number(j.match_score);
@@ -10149,7 +10169,14 @@ async function doRenge() {
     rememberResult('bazi', j, '我是哪一型');
     var _pp = el('rgPoster');
     if (_pp) _pp.addEventListener('click', function () {
-      var _p = downloadPoster(j, 'bazi');
+      /* R3252：人格分享图带拟人熊——结果卡里已加载的 <img>
+       * 直接传进海报 spec.cards（同源直绘），晒出去是形象卡
+       * 不是一张字海报。 */
+      var _im2 = box.querySelector('.rg-persona');
+      var _j2 = (_im2 && _im2.complete && _im2.naturalWidth)
+        ? Object.assign({}, j, { _art: _im2, _artCap: _nick })
+        : j;
+      var _p = downloadPoster(_j2, 'bazi');
       if (_p && _p.catch) _p.catch(function () {});
     });
     var _ff = el('rgFull');
@@ -12577,6 +12604,14 @@ const CHECKIN_LABEL = {
   '顺顺签': ['🍀 求顺遂', '今天一路绿灯'],
   '生日签': ['🎂 生日签', '今天你是主角，愿望随便许']
 };
+/* R3252：签面小插画文件键——翻过来的签不再是纯文字，
+ * 每张签一张同 IP 奶油熊小图；文件名与 CHECKIN_LABEL 对齐。 */
+const CHECKIN_ART = {
+  '开运蛋': 'sign-egg', '吃瓜运': 'sign-melon', '摸鱼运': 'sign-fish',
+  '破水逆运': 'sign-wave', '暴富签': 'sign-rich', '甜甜运': 'sign-candy',
+  '上岸运': 'sign-ashore', '顺顺签': 'sign-lucky',
+  '生日签': 'sign-birthday'
+};
 /* R230y（R36-P1-3）：打卡沉淀——checkin:* 键保留最近 90 天，
  * 渲染连续天数 + 近 7 天点阵 + 「昨天你选了X」召回。 */
 function _checkinAll() {
@@ -12681,6 +12716,13 @@ function renderCheckin(dateKey) {
      * 其余签 disabled 不再可点（也不再走 handler 覆写 saved），
      * 视觉上压暗标明「今天的缘分已定格」。 */
     var _lock = (saved && !_isP);
+    /* R3252：翻过来的签带小插画——亮面态每张签顶一张签面熊，
+     * 扣牌态不渲染（背面 🐻 已是悬念）。 */
+    var _art = (saved && CHECKIN_ART[o])
+      ? '<img class="ck-art" src="/static/cream/' + CHECKIN_ART[o] +
+        '.jpg" alt="" loading="lazy" decoding="async" ' +
+        'onerror="this.remove()">'
+      : '';
     return '<button type="button" class="checkin-opt' +
       (_isP ? ' picked' : '') +
       (!saved ? ' ck-back' : '') +
@@ -12690,7 +12732,7 @@ function renderCheckin(dateKey) {
       'aria-pressed="' + _isP + '"' +
       (_lb ? ' aria-label="' + (!saved ? '抽一张签——' : '') +
         esc(_lb[0]) + '，' + esc(_lb[1]) + '"' : '') +
-      '>' + (_lb
+      '>' + _art + (_lb
         ? '<b>' + esc(_lb[0]) + '</b><i>' + esc(_lb[1]) + '</i>'
         : esc(o)) +
       (_isP && _buffNow
@@ -12863,8 +12905,20 @@ function renderCheckin(dateKey) {
   }
   var _cks = box.querySelector('#checkinShare');
   if (_cks) _cks.addEventListener('click', function () {
-    var _p = downloadPoster({ streak: _streak, pick: saved }, 'checkin');
-    if (_p && _p.catch) _p.catch(function () {});
+    /* R3252：分享图带签面插画——预载完成后把 <img> 传进海报
+     * spec（cards[].img 直绘），图挂掉回落纯文字版不断链。 */
+    var _go = function (img) {
+      var _p = downloadPoster(
+        { streak: _streak, pick: saved, art: img }, 'checkin');
+      if (_p && _p.catch) _p.catch(function () {});
+    };
+    var _ak = saved && CHECKIN_ART[saved];
+    if (_ak) {
+      var _im = new Image();
+      _im.onload = function () { _go(_im); };
+      _im.onerror = function () { _go(null); };
+      _im.src = '/static/cream/' + _ak + '.jpg';
+    } else { _go(null); }
   });
   var _ckw = box.querySelector('#checkinWeek');
   if (_ckw) _ckw.addEventListener('click', function () {

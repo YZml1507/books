@@ -29,6 +29,18 @@ JOBS = {
     "persona-water":  f"{STYLE}, the bear rides a cute round blue water droplet wave, soft misty blue accents, flowing gentle",
     # renge 功能卡图标（与 cream-icon-* 系列同构图：单个主体居中图标感）
     "icon-renge":     "cute minimal flat icon, a small smiling five-petal flower with five soft pastel petals (pink orange yellow mint blue), warm cream background #FBF3E8, centered, children's book style, no text, square icon composition",
+    # R3252 签面小插画（打卡翻面后的卡面——与 CHECKIN_LABEL 同语义）
+    "sign-egg":       f"{STYLE}, the bear is happily hatching out of a big cream egg shell, small sparkles, lucky egg",
+    "sign-melon":     f"{STYLE}, the bear is eating a big slice of red watermelon, juice drop, relaxed snack time",
+    "sign-fish":      f"{STYLE}, the bear is lazily napping hugging a small blue fish pillow, tiny 'z z' mood, cozy break",
+    "sign-wave":      f"{STYLE}, the bear waves a tiny wand blowing away a small grey rain cloud, rainbow peeking, turn luck around",
+    "sign-rich":      f"{STYLE}, the bear holds a big red envelope and a shiny gold coin, small coins sparkling, lucky money",
+    "sign-candy":     f"{STYLE}, the bear hugs a big swirl lollipop candy, tiny sweets around, sweet day",
+    "sign-ashore":    f"{STYLE}, the bear proudly climbs onto a grassy shore holding a graduation flag, success landing",
+    "sign-lucky":     f"{STYLE}, the bear slides down a small soft rainbow holding a four-leaf clover, smooth green light",
+    "sign-birthday":  f"{STYLE}, the bear wears a party crown and holds a small birthday cake with one candle, confetti",
+    # 合婚结果顶部插画——双熊同框
+    "hehun-bear":     f"{STYLE}, two cute plush bears holding hands side by side, small heart above them, sweet couple, warm pink accents",
 }
 
 

@@ -1814,6 +1814,37 @@ button:active{transform:scale(.96);}
 .checkin-opt.ck-lock{opacity:.45; filter:saturate(.6);
   cursor:not-allowed; transform:none;}
 .checkin-opt.ck-lock:hover{transform:none; border-color:var(--line,#E8D5CC);}
+/* R3252：签面小插画——亮面态卡顶的奶油熊小图，翻过来是图不是字 */
+.checkin-opt .ck-art{display:block; width:52px; height:52px;
+  object-fit:cover; border-radius:12px; margin:0 auto 4px;
+  box-shadow:0 2px 8px rgba(150,100,70,.15);
+  border:1.5px solid rgba(255,255,255,.9);}
+.checkin-opt.picked .ck-art{border-color:rgba(255,255,255,.95);}
+.checkin-opt.ck-lock .ck-art{filter:saturate(.5) opacity(.8);}
+
+/* R3252（用户实测「加一些表盘」）：合拍指数仪表盘——
+ * 半圆 SVG 弧 + 盘心分数，档位色随分数走；双熊插画置顶。 */
+.hh-hero{position:relative; margin:10px auto 4px; width:280px; max-width:100%;}
+.hh-bear{display:block; width:220px; height:220px; object-fit:cover;
+  border-radius:26px; margin:0 auto; border:2px solid rgba(255,255,255,.9);
+  box-shadow:0 10px 32px rgba(160,90,110,.20);}
+.hh-gauge{position:relative; width:190px; margin:-34px auto 0;}
+.hh-gauge svg{display:block; width:190px; height:114px;}
+.hh-g-tr{stroke:#F3E4D8; stroke-width:11; fill:none;
+  stroke-linecap:round;}
+.hh-g-fl{stroke:#E86A8A; stroke-width:11; fill:none;
+  stroke-linecap:round; transition:stroke-dashoffset .7s ease;}
+.hh-gauge.hi .hh-g-fl{stroke:#E85D8F;}
+.hh-gauge.mid .hh-g-fl{stroke:#E8A25C;}
+.hh-gauge.low .hh-g-fl{stroke:#B7A08C;}
+.hh-g-num{position:absolute; left:0; right:0; bottom:24px;
+  text-align:center; line-height:1;}
+.hh-g-num strong{font-size:44px; font-weight:800;
+  color:var(--primary-ink); letter-spacing:.01em;}
+.hh-g-sub{font-size:16px; color:var(--secondary); margin-left:2px;}
+.hh-g-cap{text-align:center; font-size:12px; color:var(--secondary);
+  margin-top:2px; letter-spacing:.08em;}
+@media (prefers-reduced-motion:reduce){.hh-g-fl{transition:none;}}
 
 /* R3251（用户实测「圆框文字多余，用卡通图替代」）：
  * 判词圆盘改心情小熊——.lv-b 盖在 .lv-t 文字上，
