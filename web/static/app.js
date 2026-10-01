@@ -5343,6 +5343,9 @@ async function loadDaily() {
         _uDays + ' 天</strong> 啦' +
         (_uTop ? ' · 最常翻「' + esc(_uTop) + '」' : ''));
     } else { _dailyMetaItem('dailyDays', ''); }
+    /* R3262（R17）：心情罐子入口——有解锁时在日常 meta 行展示，
+     * 没有则静默不占位。 */
+    _dailyMetaItem('dailyMoodJar', _moodJarHtml());
     /* R2349l（R73-P1-2）：每日一牌——日期哈希做 seed 的确定性单抽
      * （同一天同一张），点击展开牌意；失败静默不打扰日卡。 */
     (function () {
@@ -13419,6 +13422,13 @@ var _MOOD_META = [
   { e: '😐', t: '一般般', c: '#B9AE9C' },
   { e: '🙂', t: '还不错', c: '#D9B36A' },
   { e: '🥳', t: '状态满分', c: '#8FA86F' }];
+/* R3262（R17）：心情罐子——每攒满 7 个色点解锁一张小满场景图，
+ * 不惩罚断签，只讲「收下了多少」。4 张封顶，缺图时静默不展示。 */
+var _MOOD_JAR_SCENES = [
+  { k: '窗边茶', url: '/static/cream/bear-scene-good.jpg' },
+  { k: '雨毯堡', url: '/static/cream/bear-scene-mid.jpg' },
+  { k: '小夜灯', url: '/static/cream/bear-scene-sml.jpg' },
+  { k: '坏天气', url: '/static/cream/bear-scene-bad.jpg' }];
 var _MOOD_REPLY = {
   '0g': '累就别硬撑——今天盘面有暗劲帮你，事可以缓一缓，人先歇口气。',
   '0l': '累的时候更要对自己松一点——盘面不硬的日子，少排一件事、早点收工就是赚。',
@@ -13592,6 +13602,8 @@ function _renderMoodRow(lv) {
             localStorage.getItem(_mk) !== null) _mt++;
       }
     } catch (eMT) {}
+    /* R3262（R17）：统计同步心情罐子——每 7 点解锁场景图。 */
+    _moodJarSync(_mt);
     if (_mt >= 5) {
       var _MILE = { 7: 1, 14: 1, 21: 1, 30: 1, 50: 1, 100: 1 };
       var _mtxt = _MILE[_mt]
@@ -13621,6 +13633,38 @@ function _renderMoodRow(lv) {
   }
 }
 
+/* R3262（R17）：心情罐子同步——统计 mood:<date> 总数，每满 7 个
+ * 解锁一张场景图；首次解锁时 toast 告知，断签不扣回已解锁数。 */
+function _moodJarSync(total) {
+  try {
+    var unlocked = Math.min(4, Math.floor((total || 0) / 7));
+    var oldU = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
+    var oldT = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+    localStorage.setItem('moodjar:total', String(total || 0));
+    localStorage.setItem('moodjar:unlocked', String(unlocked));
+    if (unlocked > oldU && total > oldT) {
+      showToast('🏺 心情罐子里收了 ' + (unlocked * 7) +
+        ' 个色点，小满送你第 ' + unlocked + ' 张场景图', 'info');
+    }
+  } catch (eMJ) {}
+}
+function _moodJarHtml() {
+  try {
+    var unlocked = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
+    if (unlocked <= 0) return '';
+    var html = '<details class="mood-jar-fold"><summary>' +
+      '🏺 心情罐子 · 已解锁 <strong>' + unlocked + '</strong>/4 张' +
+      '</summary><div class="mood-jar-grid">';
+    for (var i = 0; i < unlocked && i < _MOOD_JAR_SCENES.length; i++) {
+      var sc = _MOOD_JAR_SCENES[i];
+      html += '<div class="mood-jar-item"><img src="' + sc.url +
+        '" alt="" loading="lazy" onerror="this.parentNode.remove()"><span>' +
+        esc(sc.k) + '</span></div>';
+    }
+    html += '</div></details>';
+    return html;
+  } catch (eMJH) { return ''; }
+}
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
   if (!box) return;
@@ -15498,7 +15542,9 @@ function baziPersonaCard(j) {
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
-                     'mood:', 'moodlv:', 'rlast:', 'usage:'];
+                     'mood:', 'moodlv:', 'rlast:', 'usage:',
+                     /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
+                     'moodjar:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -15655,6 +15701,8 @@ function baziPersonaCard(j) {
                  * 「忘掉我的数据」后幸存=隐私破洞。 */
                 k.indexOf('mood:') === 0 ||
                 k.indexOf('moodlv:') === 0 ||
+                /* R3262（R17）：心情罐子解锁表也是个人化数据，一起清。 */
+                k.indexOf('moodjar:') === 0 ||
                 k.indexOf('usage:') === 0 ||
                 k.indexOf('rlast:') === 0)) _rm.push(k);
           }
