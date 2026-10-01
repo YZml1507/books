@@ -1702,6 +1702,9 @@ details.warm-pro-fold > summary{
 /* R3264（R45）：主动 check-in 文案——小满的想你问候 */
 .chat-empty-checkin{ margin:-4px 0 12px; font-size:11.5px;
   color:var(--muted); line-height:1.5; max-width:280px;}
+/* R3264（R51）：心情→下一步推荐 */
+.chat-empty-suggest{ margin:-4px 0 12px; font-size:11.5px;
+  color:var(--accent-ink); line-height:1.5; max-width:280px;}
 /* R3264（R31）：记忆事实板——聊天空态折叠块 */
 .chat-facts{ margin:-4px 0 12px; font-size:11.5px; color:var(--muted);
   max-width:280px; border:1px solid var(--border); border-radius:10px;

@@ -14978,6 +14978,31 @@ function _chatChipsPersonalize() {
       } else if (_ckEl) { _ckEl.remove(); }
     } else if (_ckEl) { _ckEl.remove(); }
   } catch (eC) {}
+  /* R3264（R51）：心情→下一步推荐——按最近心情给轻推荐，
+   * 把情绪日志和功能联动起来。 */
+  try {
+    var _moodNow = '';
+    try { _moodNow = localStorage.getItem('mood:lv') || ''; } catch (eM) {}
+    var _msEl = box.querySelector('.chat-empty-suggest');
+    var _suggest = {
+      '0': '今天累的话，去解个梦缓缓 🌙',
+      '1': '心平平的，抽张塔罗问问今天想躲什么 🃏',
+      '2': '状态不错，翻翻日签把好运接住 ✨',
+      '3': '今天心情亮，去黄历挑个好时辰开工 📅'
+    };
+    var _msTxt = _suggest[_moodNow] || '';
+    if (_msTxt) {
+      if (!_msEl) {
+        _msEl = document.createElement('p');
+        _msEl.className = 'chat-empty-suggest';
+        var _cbox6 = box.querySelector('.chat-empty-chips');
+        if (_cbox6 && _cbox6.parentNode) {
+          _cbox6.parentNode.insertBefore(_msEl, _cbox6);
+        } else { box.appendChild(_msEl); }
+      }
+      _msEl.textContent = _msTxt;
+    } else if (_msEl) { _msEl.remove(); }
+  } catch (eS) {}
   /* R3264（R31）：记忆事实板——让用户看见小满记住了什么。
    * 折叠块内列档案、最近事由、近 7 天心情、最常问的功能。 */
   try {
