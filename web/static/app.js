@@ -14304,6 +14304,19 @@ function renderCheckin(dateKey) {
       if (act) _wishAction(act.dataset.wish, act.dataset.arg || '', dateKey);
     });
   }
+  /* R3264（R49）：周目标达成庆祝——本周目标达成时飘一颗 ✨ 星星
+   * 并 toast，只做一次（按当天 key）。 */
+  if (_goalGap <= 0) {
+    var _gck = 'checkin:goal-celebrated:' + dateKey;
+    var _gcd = false;
+    try { _gcd = window.localStorage.getItem(_gck) === '1'; } catch (eG) {}
+    if (!_gcd) {
+      try { window.localStorage.setItem(_gck, '1'); } catch (eS) {}
+      var _gBtn = box.querySelector('.ck-goal-opt.active');
+      _microCelebrate(_gBtn);
+      showToast('本周目标达成啦——给自己放个假也是分 🌱', 'ok');
+    }
+  }
   var _cks = box.querySelector('#checkinShare');
   if (_cks) _cks.addEventListener('click', function () {
     /* R3252：分享图带签面插画——预载完成后把 <img> 传进海报
