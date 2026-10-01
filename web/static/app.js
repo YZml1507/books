@@ -13607,9 +13607,27 @@ function _usageTrack(view) {
     if (!localStorage.getItem('usage:first'))
       localStorage.setItem('usage:first', todayIso());
     localStorage.setItem('usage:last', todayIso());
+    /* R3264（R30）：7 天轻见面记录——每天留一个脚印，多次访问同一天只记 1。 */
+    localStorage.setItem('usage:d:' + todayIso(), '1');
     var k = 'usage:v:' + view;
     localStorage.setItem(k, String((+localStorage.getItem(k) || 0) + 1));
   } catch (eU) {}
+}
+function _weekVisits() {
+  try {
+    var cnt = 0;
+    var today = new Date(todayIso() + 'T00:00:00');
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf('usage:d:') !== 0) continue;
+      var d = k.slice(8);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      var dd = new Date(d + 'T00:00:00');
+      var diff = Math.round((today - dd) / 86400000);
+      if (diff >= 0 && diff < 7) cnt++;
+    }
+    return cnt;
+  } catch (eW) { return 0; }
 }
 function _usageDays() {
   try {
@@ -14691,6 +14709,22 @@ function _chatChipsPersonalize() {
       });
     } else if (_memEl) { _memEl.remove(); }
   } catch (eM3) {}
+  /* R3264（R30）：7 天轻见面记录——只计数、不催促、不断裂惩罚。 */
+  try {
+    var _wv = _weekVisits();
+    var _wvEl = box.querySelector('.chat-empty-week');
+    if (_wv > 0) {
+      if (!_wvEl) {
+        _wvEl = document.createElement('p');
+        _wvEl.className = 'chat-empty-week';
+        var _cbox5 = box.querySelector('.chat-empty-chips');
+        if (_cbox5 && _cbox5.parentNode) {
+          _cbox5.parentNode.insertBefore(_wvEl, _cbox5);
+        } else { box.appendChild(_wvEl); }
+      }
+      _wvEl.textContent = '🌾 这周小满看见你 ' + _wv + ' 次';
+    } else if (_wvEl) { _wvEl.remove(); }
+  } catch (eW2) {}
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
