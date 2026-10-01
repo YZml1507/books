@@ -14889,6 +14889,30 @@ function _chatChipsPersonalize() {
       });
     } else if (_wvEl) { _wvEl.remove(); }
   } catch (eW2) {}
+  /* R3264（R45）：主动 check-in 文案——根据上次打开距今天数，
+   * 在聊天空态给小满一句「想你」问候。 */
+  try {
+    var _last = localStorage.getItem('usage:last') || '';
+    var _ckEl = box.querySelector('.chat-empty-checkin');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(_last)) {
+      var _diff = Math.round(
+        (Date.parse(todayIso() + 'T00:00:00') - Date.parse(_last + 'T00:00:00')) / 86400000);
+      if (_diff >= 1) {
+        if (!_ckEl) {
+          _ckEl = document.createElement('p');
+          _ckEl.className = 'chat-empty-checkin';
+          var _cbox5 = box.querySelector('.chat-empty-chips');
+          if (_cbox5 && _cbox5.parentNode) {
+            _cbox5.parentNode.insertBefore(_ckEl, _cbox5);
+          } else { box.appendChild(_ckEl); }
+        }
+        var _ckTxt = _diff === 1 ? '🌾 昨天没见你，小满今天也在'
+                    : _diff === 2 ? '🌾 两天没见你，小满这盏灯还亮着'
+                    : '🌾 你不在的日子小满也在，今天想测什么？';
+        _ckEl.textContent = _ckTxt;
+      } else if (_ckEl) { _ckEl.remove(); }
+    } else if (_ckEl) { _ckEl.remove(); }
+  } catch (eC) {}
   /* R3264（R31）：记忆事实板——让用户看见小满记住了什么。
    * 折叠块内列档案、最近事由、近 7 天心情、最常问的功能。 */
   try {
