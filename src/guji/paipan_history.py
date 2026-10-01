@@ -124,6 +124,12 @@ def _conn() -> sqlite3.Connection:
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
             conn.execute("PRAGMA busy_timeout=5000")  # R228b：写锁等待而非秒抛
+            # R3262：删档后的空闲页自动回收，防止 .db 文件假性膨胀
+            # （实测 0 行曾占 23 MB）。auto_vacuum 在 VACUUM 后生效。
+            try:
+                conn.execute("PRAGMA auto_vacuum = FULL")
+            except sqlite3.DatabaseError:
+                pass
             # R230t（R31-P2-7）：WAL——排盘页与历史页并发读写不再互斥；
             # 与 knowledge.db 同纪律。只读文件上写 PRAGMA 会抛——降级继续。
             try:
