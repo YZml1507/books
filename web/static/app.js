@@ -16173,7 +16173,9 @@ function baziPersonaCard(j) {
                      'mood:', 'moodlv:', 'rlast:', 'usage:', 'ritual:',
                      'journal:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
-                     'moodjar:'];
+                     'moodjar:',
+                     /* R3264（R52）：古籍阅读进度记忆 */
+                     'read:scroll:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -16337,6 +16339,8 @@ function baziPersonaCard(j) {
                 k.indexOf('ritual:') === 0 ||
                 /* R3264（R33）：今日小确幸也是个人足迹，一起清。 */
                 k.indexOf('journal:') === 0 ||
+                /* R3264（R52）：古籍阅读进度记忆 */
+                k.indexOf('read:scroll:') === 0 ||
                 k.indexOf('usage:') === 0 ||
                 k.indexOf('rlast:') === 0)) _rm.push(k);
           }

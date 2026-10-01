@@ -10,6 +10,26 @@
  *    本文件按全局名直接引用（经典脚本共享 window 级变量）。
  *  - 不写模块级 DOM 副作用——本文件在用户已进页后才解析。 */
 
+/* R3264（R52）：古籍阅读进度记忆——切页/关页时自动保存当前节的
+ * 滚动位置，下次打开同节回到原位。 */
+try {
+  if (!window.__readScrollBound) {
+    window.__readScrollBound = '1';
+    var _saveReadScroll = function () {
+      if (window.__lastReadPos && window.__lastReadPos.work != null &&
+          window.__lastReadPos.section != null) {
+        try {
+          localStorage.setItem('read:scroll:' + window.__lastReadPos.work + ':' +
+            window.__lastReadPos.section, String(window.scrollY || 0));
+        } catch (eS) {}
+      }
+    };
+    window.addEventListener('beforeunload', _saveReadScroll);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') _saveReadScroll();
+    });
+  }
+} catch (eB) {}
 /* R2507：爻名真值表共享正则——真实爻名 2–5 爻「性先位后」
  * （九二/六三/…），初/上「位先性后」（初九/上六），乾坤专属
  * 用九/用六。此前 doAddr/doCompare 各持一份反写的拷贝
@@ -763,6 +783,15 @@ async function doBookChapter() {
     return;
   }
   busy('bsChapter', '加载章节…');
+  /* R3264（R52）：古籍阅读进度记忆——切到新书/新节之前，
+   * 先把当前节的滚动位置存下来。 */
+  if (window.__lastReadPos && window.__lastReadPos.work != null &&
+      window.__lastReadPos.section != null) {
+    try {
+      localStorage.setItem('read:scroll:' + window.__lastReadPos.work + ':' +
+        window.__lastReadPos.section, String(window.scrollY || 0));
+    } catch (eS) {}
+  }
   const params = new URLSearchParams({ work_id: workId, scheme: scheme });
   // R3221：bcv 章号卷内计必须带 addr_name；file 书要带文件名。
   // 按 scheme 门控——隐藏框的残留值不外发（切过编址方式后旧值还在）。
@@ -819,6 +848,14 @@ async function doBookChapter() {
         });
       }
     } catch (eA) {}
+    /* R3264（R52）：记住本次章节坐标，并恢复之前存过的滚动位置。 */
+    window.__lastReadPos = { work: j.work_id, section: j.section };
+    try {
+      var _sv = parseInt(localStorage.getItem('read:scroll:' + j.work_id + ':' + j.section) || '0', 10);
+      if (_sv > 0) {
+        setTimeout(function () { window.scrollTo(0, _sv); }, 0);
+      }
+    } catch (eR) {}
   } catch (e) {
     failWithRetry('bsChapter', '加载失败：' + e.message, function () { doBookChapter(); });
   }
