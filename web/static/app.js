@@ -13661,7 +13661,7 @@ function _moodJarHtml() {
         '" alt="" loading="lazy" onerror="this.parentNode.remove()"><span>' +
         esc(sc.k) + '</span></div>';
     }
-    html += '</div></details>';
+    html += '</div><p class="mood-jar-care">小满替你收着</p></details>';
     return html;
   } catch (eMJH) { return ''; }
 }
@@ -14507,6 +14507,27 @@ function _chatChipsPersonalize() {
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
   if (_shop) _shop.textContent = _xmShopLine();
+  /* R3262（R18）：久归便签——你攒的色点小满替你收着。
+   * 只在大于 3 天没来时挂一行，不打扰日常。 */
+  try {
+    var _mjTotal = 0;
+    try {
+      _mjTotal = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+    } catch (eMJT) {}
+    var _mjNote = box.querySelector('.chat-empty-moodjar');
+    if (_gap2 > 3 && _mjTotal > 0) {
+      if (!_mjNote) {
+        _mjNote = document.createElement('p');
+        _mjNote.className = 'chat-empty-moodjar';
+        var _cbox3 = box.querySelector('.chat-empty-chips');
+        if (_cbox3 && _cbox3.parentNode) {
+          _cbox3.parentNode.insertBefore(_mjNote, _cbox3);
+        } else { box.appendChild(_mjNote); }
+      }
+      _mjNote.textContent = '你攒的 ' + _mjTotal +
+        ' 个色点都在罐子里，小满替你收着';
+    } else if (_mjNote) { _mjNote.remove(); }
+  } catch (eMJ2) {}
   /* R3260（UX-PLAN-R6 R9）：深夜创可贴入口——23-05 点空态多一颗
    * 「带张创可贴走」钮，点出海报模态（一句能存图带走的话 +
    * 夜灯场景卡）。深夜用户要的不是功能是件小物。 */

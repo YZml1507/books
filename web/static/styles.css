@@ -543,6 +543,8 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   aspect-ratio:226/270; object-fit:cover; background:var(--border);}
 .mood-jar-item span{font-size:11px; color:var(--muted); margin-top:3px;
   display:block;}
+.mood-jar-care{ font-size:11.5px; color:var(--muted); margin-top:8px;
+  text-align:center; }
 /* R3260：解梦卡内的心情行——与首页 mood-row 同款件，浅上缘分隔 */
 .dm-mood{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   margin-top:14px; padding-top:12px;
@@ -1647,6 +1649,11 @@ details.warm-pro-fold > summary{
   line-height:1.6; }
 .chat-empty-shop{ margin:-8px 0 12px; font-size:11.5px; color:var(--muted);
   line-height:1.5; }   /* R3259 N1：小满在店状态行——她有自己的日子 */
+/* R3262（R18）：久归便签——你攒的色点小满替你收着 */
+.chat-empty-moodjar{ margin:-8px 0 12px; padding:8px 12px 7px;
+  background:linear-gradient(160deg,#FFF8E7,#FBF1DC);
+  border:1px solid #E8D9BC; border-radius:4px 14px 4px 14px;
+  font-size:12px; color:var(--text); line-height:1.5; max-width:280px;}
 /* R3260：解梦空态同款店况行 */
 .ph-shop{ margin-top:8px; font-size:11.5px; color:var(--muted);
   line-height:1.5; }
