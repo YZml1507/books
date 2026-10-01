@@ -11809,6 +11809,14 @@ function initDivination() {
     } catch (eT) {}
     if (_text) _speak(_text);
   });
+  /* R3264（R28）：显式 PWA 安装按钮——触发浏览器安装提示。 */
+  on('installPwa', function () {
+    if (_deferredInstall && _deferredInstall.prompt) {
+      _deferredInstall.prompt();
+      return;
+    }
+    showToast('当前环境暂不支持一键安装，可用浏览器「添加到主屏幕」', 'info');
+  });
   /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
   on('copyXhs', function () {
     if (!window.__lastDaily) {
@@ -14965,6 +14973,12 @@ var _deferredInstall = null;
 window.addEventListener('beforeinstallprompt', function (e) {
   e.preventDefault();
   _deferredInstall = e;
+  /* R3264（R28）：显式「加到桌面」按钮——在首页露出来，
+   * 用户可主动安装，不再只等 8s 后的横幅。 */
+  try {
+    var _ipw = el('installPwaWrap');
+    if (_ipw) _ipw.hidden = false;
+  } catch (e3) {}
   /* R2350d（R100-P1-3）：beforeinstallprompt 在首屏早期就发——
    * 左下角横幅会盖住刚渲染的日卡（主视觉位）。延迟到 8s 后、且
    * 只在首访兴趣建立后（留在 home）才出。 */

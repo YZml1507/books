@@ -576,6 +576,9 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .daily-meta-item[data-capped="1"]{display:none;}
 .daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
 .daily-meta-more{cursor:pointer; font:inherit; color:var(--accent-ink);}   /* R2514：装饰色2.12:1→文字色4.87:1 */
+/* R3264（R28）：显式 PWA 安装按钮 */
+.install-pwa-row{margin:12px 0 0; text-align:center;}
+.install-pwa-row .ghost{font-size:12px; padding:6px 14px;}
 /* R3263（R23）：水逆急救包——折叠块内嵌 meta 胶囊 */
 .merc-kit .merc-kit-body{padding:6px 2px 2px;}
 .merc-kit .merc-dont{font-size:12px; color:var(--text); margin:0 0 6px;}
