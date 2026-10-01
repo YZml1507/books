@@ -4869,6 +4869,9 @@ async function loadDaily() {
     ]);
     if (_gen !== DAILY_GEN) return;   /* 旧请求不得覆盖新结果 */
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
+    /* R3264（R29）：今日护身符按钮可用 */
+    var _slk = el('shareLucky');
+    if (_slk) _slk.disabled = false;
     /* R2400（R117-P2 时段问候）：顶行标签随时刻换——早/午/晚/夜安，
      * 每天四次见面都说不一样的招呼。 */
     var _greet = el('dailyGreet');
@@ -7588,13 +7591,13 @@ var _POSTER_TITLES = {
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
-  bandaid: '深夜创可贴' };
+  bandaid: '深夜创可贴', lucky: '今日护身符' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
-  bandaid: 'dream' };   /* R3260 R9：夜灯紫夜系 */
+  bandaid: 'dream', lucky: 'warm' };   /* R3260 R9：夜灯紫夜系 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
 var _SHARE_TEXT = {
@@ -7613,7 +7616,8 @@ var _SHARE_TEXT = {
   birth: '我的本命盘出来了，看看你的 →',
   dream: '我刚翻了个梦，册子说的挺准 →',
   xzm: '我们星座合拍指数出来了，你们的呢 →',
-  bandaid: '睡不着的话，这张创可贴送你 →'};
+  bandaid: '睡不着的话，这张创可贴送你 →',
+  lucky: '今日护身符领好了，接住这份运气 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
 }
@@ -11838,6 +11842,12 @@ function initDivination() {
           function () { showToast('复制失败，可手动长按复制', 'warn'); });
       } else { throw new Error('no clipboard'); }
     } catch (eC) { showToast('长按结果手动复制', 'info'); }
+  });
+  /* R3264（R29）：今日护身符——基于日签响应生成 lucky 海报。 */
+  on('shareLucky', function () {
+    if (window.__lastDaily) return downloadPoster(window.__lastDaily, 'lucky');
+    showToast('今日运势还没出来，等它算好再生成护身符～', 'warn');
+    return null;
   });
 }
 

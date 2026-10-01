@@ -1284,6 +1284,26 @@ function buildShareData(view, j) {
       }
       return _xm;
     }
+    case 'lucky': {
+      /* R3264（R29）：今日护身符——开运色/幸运数/财神/贵人属相。 */
+      var _lu = base('今日护身符', _cnDateSub(todayIso()));
+      _lu.big = _pStr(j && j.summary)
+        ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
+        : '今日份小确幸';
+      _lu.lines = [
+        { k: '开运色', v: _pStr((j && j.lucky && j.lucky.color) || '—') },
+        { k: '幸运数', v: _pStr((j && j.lucky && j.lucky.num) || '—') },
+        { k: '财神方位', v: _pStr(j && j.money_dir) || '—' },
+        { k: '贵人属相', v: _pStr(j && j.noble) ? _zhiToAnimal(j.noble) : '—' }];
+      try {
+        var _lvArt2 = document.querySelector('#dailyLevel img.lv-b');
+        if (_lvArt2 && _lvArt2.complete && _lvArt2.naturalWidth > 0) {
+          _lu.cards = [{ img: _lvArt2, name: '今日小天气',
+            sub: '小满的解忧铺' }];
+        }
+      } catch (eL) {}
+      return _lu;
+    }
     default:
       return null;
   }

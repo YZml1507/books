@@ -398,6 +398,8 @@ def main() -> int:
         "shareLiuyao": "同上",
         "shareTarot": "同上",
         "shareDaily": "同上",
+        "shareLucky": "今日护身符分享图——downloadPoster('lucky') 海报模态，"
+                      "同 shareDaily 族豁免",
         "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
                       "零请求；真实链路已 Playwright 手验（按钮存在）",
         "installPwa": "PWA 安装按钮——依赖浏览器 beforeinstallprompt，"
