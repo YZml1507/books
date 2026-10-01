@@ -10952,7 +10952,7 @@ async function doRenge() {
       var _txt = '✨ 我的五行人格是「' + esc(_nick || _rgElCn + '型') + '」\n' +
         esc(_line) + '\n\n' +
         '在小满的解忧铺测的，你也来测测你的同款型👇\n' +
-        (window.location.origin || '') + '/?view=renge';
+        (window.location.origin || '') + '/?view=renge&from=share';
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(_txt).then(
@@ -11845,7 +11845,7 @@ function initDivination() {
       '宜：' + esc(_j.do || '—') + '\n' +
       '忌：' + esc(_j.dont || '—') + '\n\n' +
       '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
-      (window.location.origin || '') + '/?view=daily';
+      (window.location.origin || '') + '/?view=daily&from=share';
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(_txt).then(
