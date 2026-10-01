@@ -1654,6 +1654,9 @@ details.warm-pro-fold > summary{
   background:linear-gradient(160deg,#FFF8E7,#FBF1DC);
   border:1px solid #E8D9BC; border-radius:4px 14px 4px 14px;
   font-size:12px; color:var(--text); line-height:1.5; max-width:280px;}
+/* R3263（R21）：记忆显化——聊天空态顶部的事由清单 */
+.chat-empty-memory{ margin:-4px 0 12px; font-size:11.5px;
+  color:var(--muted); line-height:1.5; max-width:280px;}
 /* R3260：解梦空态同款店况行 */
 .ph-shop{ margin-top:8px; font-size:11.5px; color:var(--muted);
   line-height:1.5; }

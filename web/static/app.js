@@ -14521,6 +14521,26 @@ function _chatChipsPersonalize() {
     _hiTxt = '第 ' + _visitCount() + ' 次来坐～今天想看点什么 ✨';
   }
   if (_hi && _hiTxt) _hi.textContent = _hiTxt;
+  /* R3263（R21）：记忆显化——聊天空态顶部列出最近 3 条事由，
+   * 让用户直接感知「小满记得」。只显示有记录时。 */
+  try {
+    var _mems = _chatTopicsArr().slice(-3).reverse();
+    var _memEl = box.querySelector('.chat-empty-memory');
+    if (_mems.length) {
+      if (!_memEl) {
+        _memEl = document.createElement('p');
+        _memEl.className = 'chat-empty-memory';
+        var _cbox4 = box.querySelector('.chat-empty-chips');
+        if (_cbox4 && _cbox4.parentNode) {
+          _cbox4.parentNode.insertBefore(_memEl, _cbox4);
+        } else { box.appendChild(_memEl); }
+      }
+      _memEl.textContent = '📌 小满记得你提过：' +
+        _mems.map(function (x) {
+          return x.t + '（' + x.d.slice(5).replace('-', '月') + '日）';
+        }).join('、');
+    } else if (_memEl) { _memEl.remove(); }
+  } catch (eM3) {}
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
