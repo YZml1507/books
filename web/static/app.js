@@ -11867,6 +11867,7 @@ function initDivination() {
     } catch (eR) {}
     var _dr2 = el('dailyRitual');
     if (_dr2) { _dr2.textContent = '✅ 已做完'; _dr2.disabled = true; }
+    _microCelebrate(_dr2);
     showToast('小满记下了，今天你做了一件小事～', 'ok');
   });
 }
@@ -13614,6 +13615,21 @@ var _MOOD_REPLY = {
   '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
   '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
 
+/* R3264（R36）：微庆祝——仪式/日记完成后飘一颗 ✨ 星星，
+ * 持续 0.8s 不打扰，给多巴胺小高峰。 */
+function _microCelebrate(target) {
+  if (!target) return;
+  try {
+    var r = target.getBoundingClientRect();
+    var s = document.createElement('span');
+    s.textContent = '✨';
+    s.className = 'micro-star';
+    s.style.left = (r.left + r.width / 2 - 10) + 'px';
+    s.style.top = (r.top + r.height / 2 - 10) + 'px';
+    document.body.appendChild(s);
+    setTimeout(function () { s.remove(); }, 900);
+  } catch (eM) {}
+}
 /* R3260（UX-STRATEGY-NEXT §五·诚实缺口）：本机使用足迹——纯
  * localStorage，零上传零画像外泄。一鱼两吃：①我们第一次知道
  * 哪个功能真有人翻（诊断面）；②「你在小满这儿第N天」本身是
@@ -14808,6 +14824,7 @@ function _chatChipsPersonalize() {
           _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
             '<div class="chat-journal-body">' +
             '<p class="chat-journal-done">今天的：' + esc(String(v)) + '</p></div>';
+          _microCelebrate(_jsBtn);
           showToast('小满替你收好今天的一件小事～', 'ok');
         });
       }
