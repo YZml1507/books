@@ -11788,6 +11788,28 @@ function initDivination() {
     } catch (eT) {}
     if (_text) _speak(_text);
   });
+  /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
+  on('copyXhs', function () {
+    if (!window.__lastDaily) {
+      showToast('今日运势还没出来，等它算好再复制～', 'warn');
+      return;
+    }
+    var _j = window.__lastDaily;
+    var _summ = String(_j.summary || '今日份小确幸').split(/[；;]/)[0] || '今日份小确幸';
+    var _txt = '🌟 ' + (_j.date || '今天') + ' 今日签\n' +
+      esc(_summ) + '\n' +
+      '宜：' + esc(_j.do || '—') + '\n' +
+      '忌：' + esc(_j.dont || '—') + '\n\n' +
+      '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
+      (window.location.origin || '') + '/?view=daily';
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(_txt).then(
+          function () { showToast('今日签文案已复制', 'ok'); },
+          function () { showToast('复制失败，可手动长按复制', 'warn'); });
+      } else { throw new Error('no clipboard'); }
+    } catch (eC) { showToast('长按结果手动复制', 'info'); }
+  });
 }
 
 /* ── R230z（R36）：favorites 窄面接线 + 历史全品类 + 问一嘴足迹 ─────────

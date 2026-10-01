@@ -406,6 +406,8 @@ def main() -> int:
                      "同 shareBazi 族豁免",
         "rgXhs": "五行人格小红书文案复制钮——纯本地 clipboard 写入，"
                  "零请求；真实链路已 Playwright 手验（点击→toast）",
+        "copyXhs": "日签小红书文案复制钮——纯本地 clipboard 写入，"
+                   "零请求；真实链路已 Playwright 手验",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
         "xzPrev": "ui:xznav.roundtrip 已覆盖", "xzToday": "同上",
