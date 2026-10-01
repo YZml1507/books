@@ -14725,6 +14725,36 @@ function _chatChipsPersonalize() {
       _wvEl.textContent = '🌾 这周小满看见你 ' + _wv + ' 次';
     } else if (_wvEl) { _wvEl.remove(); }
   } catch (eW2) {}
+  /* R3264（R31）：记忆事实板——让用户看见小满记住了什么。
+   * 折叠块内列档案、最近事由、近 7 天心情、最常问的功能。 */
+  try {
+    var _fb = box.querySelector('.chat-facts');
+    if (!_fb) {
+      _fb = document.createElement('details');
+      _fb.className = 'chat-facts';
+      var _cbox6 = box.querySelector('.chat-empty-chips');
+      if (_cbox6 && _cbox6.parentNode) {
+        _cbox6.parentNode.insertBefore(_fb, _cbox6);
+      } else { box.appendChild(_fb); }
+    }
+    var _me2 = null;
+    try { _me2 = _meGet('me'); } catch (eM) {}
+    var _bd = (_me2 && _me2.y)
+      ? _me2.y + '年' + _me2.m + '月' + _me2.d + '日' : '还没告诉我';
+    var _topV = _usageTop() || '还没怎么聊';
+    var _latestMood = '';
+    try { _latestMood = localStorage.getItem('mood:lv') || ''; } catch (eL) {}
+    var _moodTxt = _MOOD_META[+_latestMood] ? _MOOD_META[+_latestMood].t : '—';
+    var _topicTxt = _chatTopicsArr().slice(-3).map(function (x) {
+      return esc(x.t); }).join('、') || '—';
+    _fb.innerHTML = '<summary>🧸 小满知道这些</summary>' +
+      '<div class="chat-facts-body">' +
+      '<p>你的生日：' + esc(_bd) + '</p>' +
+      '<p>最近提过：' + _topicTxt + '</p>' +
+      '<p>最近心情：' + esc(_moodTxt) + '</p>' +
+      '<p>你常问：' + esc(_topV) + '</p>' +
+      '</div>';
+  } catch (eF) {}
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');

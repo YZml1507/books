@@ -1670,6 +1670,13 @@ details.warm-pro-fold > summary{
 /* R3264（R30）：7 天轻见面记录——只计数、不催促 */
 .chat-empty-week{ margin:-4px 0 12px; font-size:11.5px;
   color:var(--muted); line-height:1.5; max-width:280px;}
+/* R3264（R31）：记忆事实板——聊天空态折叠块 */
+.chat-facts{ margin:-4px 0 12px; font-size:11.5px; color:var(--muted);
+  max-width:280px; border:1px solid var(--border); border-radius:10px;
+  padding:6px 10px; background:var(--card);}
+.chat-facts summary{cursor:pointer; color:var(--accent-ink); outline:none;}
+.chat-facts-body{margin-top:6px; line-height:1.5;}
+.chat-facts-body p{margin:2px 0;}
 /* R3264（R26）：记忆芯片可点击——点一下预填聊天框 */
 .chat-empty-chip{font:inherit; font-size:11px; color:var(--accent-ink);
   background:transparent; border:none; padding:0; margin:0;
