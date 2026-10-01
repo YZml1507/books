@@ -791,7 +791,34 @@ async function doBookChapter() {
         (u.suspect ? ' ⚠ 存疑' : '') + '</div>' +
         '<div class="ev-text">' + esc(_rmMarks(u.text || '')) + '</div></div>';
     });
+    /* R3264（R50）：古籍问一嘴——章节页尾加按钮，自动预填上下文。 */
+    html += '<div class="bs-ask-wrap"><button type="button" class="bs-ask" ' +
+      'data-work="' + esc(j.work_id) + '" ' +
+      'data-section="' + esc(j.section) + '" ' +
+      'data-scheme="' + esc(j.scheme) + '">🙋 问小满一句</button></div>';
     paint('bsChapter', html);
+    try {
+      var _bsCh = document.getElementById('bsChapter');
+      if (_bsCh && !_bsCh.dataset.askBound) {
+        _bsCh.dataset.askBound = '1';
+        _bsCh.addEventListener('click', function (e) {
+          var _ab = e.target.closest('.bs-ask');
+          if (!_ab) return;
+          var _title = (typeof _bsTitle === 'function' ? _bsTitle(_ab.dataset.work) : '')
+            || _ab.dataset.work;
+          var _sec = _ab.dataset.section;
+          var _scheme = _ab.dataset.scheme;
+          var _secText = (_scheme === 'file')
+            ? (typeof _secLabel === 'function' ? _secLabel(_sec) : _sec)
+            : '第 ' + _sec + ' 节';
+          var _q = '我在读《' + String(_title || '这本书').replace(/[《》]/g, '') + '》' +
+            '的 ' + String(_secText || '') + '，想问问：';
+          var _inp = document.getElementById('chatInput');
+          if (_inp) { _inp.value = _q; _inp.focus(); }
+          if (typeof chatOpen === 'function') chatOpen();
+        });
+      }
+    } catch (eA) {}
   } catch (e) {
     failWithRetry('bsChapter', '加载失败：' + e.message, function () { doBookChapter(); });
   }

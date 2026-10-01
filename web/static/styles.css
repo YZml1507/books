@@ -1327,6 +1327,12 @@ html[data-theme="dark"] .ev-meta{background:#2E2830;}
 .rtab.active{background:var(--primary-bg); color:#fff; font-weight:500;}
 .rsec{display:none;}
 .rsec.active{display:block;}
+/* R3264（R50）：古籍问一嘴按钮 */
+.bs-ask-wrap{margin-top:18px; text-align:center;}
+.bs-ask{font-size:13px; padding:8px 18px; border-radius:999px;
+  border:1px solid var(--border); background:var(--card);
+  color:var(--accent-ink); cursor:pointer;}
+.bs-ask:hover{border-color:var(--hover-line);}
 .bssec{display:none;}
 .bssec.active{display:block;}
 
