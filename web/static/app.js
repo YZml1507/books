@@ -12902,7 +12902,7 @@ function init() {
        * birth→星座页的本命盘抽屉。 */
       var _vpRaw = _vp;
       var _alias = { daily: 'home', checkin: 'home', 'checkin-week': 'home',
-                     'checkin-month': 'home',
+                     'checkin-month': 'home', weekly: 'home',
                      birth: 'xingzuo',
                      /* R2349v（R92-P0-2）：古籍域视图 id 是 read，但任务书/
                      * 直觉都写 research——别名收编，免得深链查无此页。 */
@@ -13417,6 +13417,7 @@ if (document.readyState === 'loading') {
         checkin: '朋友在攒连签，打卡一下，今天的签就归你 ✍️',
         'checkin-week': '朋友在晒她的一周签运：你的也攒一个 🗓️',
         'checkin-month': '朋友在晒她的一月签运：你的也攒一个 🗓️',
+        weekly: '朋友在晒她的一周小满周报，点「📊 生成本周小报」也来一份 📊',
         birth: '朋友翻了她的本命盘，你的底色也翻一张 🌙',
         hehun: '朋友约你合婚，点「八字合婚」测你俩的合拍度 💕',
       };
