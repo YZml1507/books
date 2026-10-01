@@ -14775,6 +14775,44 @@ function _chatChipsPersonalize() {
       '<p>你常问：' + esc(_topV) + '</p>' +
       '</div>';
   } catch (eF) {}
+  /* R3264（R33）：今日小确幸——只问一句话，本地保存 journal:<date>。 */
+  try {
+    var _jb = box.querySelector('.chat-journal');
+    if (!_jb) {
+      _jb = document.createElement('details');
+      _jb.className = 'chat-journal';
+      var _cbox7 = box.querySelector('.chat-empty-chips');
+      if (_cbox7 && _cbox7.parentNode) {
+        _cbox7.parentNode.insertBefore(_jb, _cbox7);
+      } else { box.appendChild(_jb); }
+    }
+    var _jval = '';
+    try { _jval = localStorage.getItem('journal:' + todayIso()) || ''; } catch (eJ) {}
+    if (_jval) {
+      _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
+        '<div class="chat-journal-body">' +
+        '<p class="chat-journal-done">今天的：' + esc(_jval) + '</p></div>';
+    } else {
+      _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
+        '<div class="chat-journal-body">' +
+        '<input id="journalInput" type="text" maxlength="40" ' +
+        'placeholder="比如「喝到了一杯好喝的茶」">' +
+        '<button id="journalSave" type="button">记下</button></div>';
+      var _jsBtn = el('journalSave');
+      var _jsInp = el('journalInput');
+      if (_jsBtn && _jsInp) {
+        _jsBtn.addEventListener('click', function () {
+          var v = _jsInp.value.trim();
+          if (!v) return;
+          try { localStorage.setItem('journal:' + todayIso(), v); } catch (eS) {}
+          _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
+            '<div class="chat-journal-body">' +
+            '<p class="chat-journal-done">今天的：' + esc(String(v)) + '</p></div>';
+          showToast('小满替你收好今天的一件小事～', 'ok');
+        });
+      }
+    }
+  } catch (eJ2) {}
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
    * 不是等你点开才活的按钮。确定性按时段切文案。 */
   var _shop = box.querySelector('.chat-empty-shop');
@@ -15842,6 +15880,7 @@ function baziPersonaCard(j) {
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
                      'mood:', 'moodlv:', 'rlast:', 'usage:', 'ritual:',
+                     'journal:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
@@ -16004,6 +16043,8 @@ function baziPersonaCard(j) {
                 k.indexOf('moodjar:') === 0 ||
                 /* R3264（R32）：今日仪式记录也是个人足迹，一起清。 */
                 k.indexOf('ritual:') === 0 ||
+                /* R3264（R33）：今日小确幸也是个人足迹，一起清。 */
+                k.indexOf('journal:') === 0 ||
                 k.indexOf('usage:') === 0 ||
                 k.indexOf('rlast:') === 0)) _rm.push(k);
           }

@@ -404,6 +404,8 @@ def main() -> int:
                       "零请求；真实链路已 Playwright 手验（按钮存在）",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"
                        "零请求；真实链路已 Playwright 手验",
+        "journalSave": "聊天空态今日小确幸保存钮——本地 journal:<date> 写入，"
+                       "零请求；真实链路已 Playwright 手验",
         "installPwa": "PWA 安装按钮——依赖浏览器 beforeinstallprompt，"
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。

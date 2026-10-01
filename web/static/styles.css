@@ -1682,6 +1682,18 @@ details.warm-pro-fold > summary{
 .chat-facts summary{cursor:pointer; color:var(--accent-ink); outline:none;}
 .chat-facts-body{margin-top:6px; line-height:1.5;}
 .chat-facts-body p{margin:2px 0;}
+/* R3264（R33）：今日小确幸——一句话日记 */
+.chat-journal{ margin:-4px 0 12px; font-size:11.5px; color:var(--muted);
+  max-width:280px; border:1px solid var(--border); border-radius:10px;
+  padding:6px 10px; background:var(--card);}
+.chat-journal summary{cursor:pointer; color:var(--accent-ink); outline:none;}
+.chat-journal-body{margin-top:6px; display:flex; gap:6px; align-items:center;}
+#journalInput{flex:1; font:inherit; font-size:12px; padding:4px 8px;
+  border:1px solid var(--border); border-radius:6px; background:#fff;}
+#journalSave{font:inherit; font-size:12px; padding:4px 10px;
+  border-radius:6px; border:1px solid var(--border); cursor:pointer;
+  background:var(--card); color:var(--accent-ink);}
+.chat-journal-done{margin:0; font-size:12px; color:var(--text);}
 /* R3264（R26）：记忆芯片可点击——点一下预填聊天框 */
 .chat-empty-chip{font:inherit; font-size:11px; color:var(--accent-ink);
   background:transparent; border:none; padding:0; margin:0;
