@@ -7602,13 +7602,13 @@ var _POSTER_TITLES = {
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
-  bandaid: '深夜创可贴', lucky: '今日护身符' };
+  bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
-  bandaid: 'dream', lucky: 'warm' };   /* R3260 R9：夜灯紫夜系 */
+  bandaid: 'dream', lucky: 'warm', weekly: 'lilac' };   /* R3260 R9：夜灯紫夜系 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
 var _SHARE_TEXT = {
@@ -7628,7 +7628,8 @@ var _SHARE_TEXT = {
   dream: '我刚翻了个梦，册子说的挺准 →',
   xzm: '我们星座合拍指数出来了，你们的呢 →',
   bandaid: '睡不着的话，这张创可贴送你 →',
-  lucky: '今日护身符领好了，接住这份运气 →'};
+  lucky: '今日护身符领好了，接住这份运气 →',
+  weekly: '我的一周小满周报出炉了，看看你的 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
 }
@@ -13693,6 +13694,37 @@ function _weekVisits() {
     return cnt;
   } catch (eW) { return 0; }
 }
+function _weekRituals() {
+  try {
+    var cnt = 0;
+    var today = new Date(todayIso() + 'T00:00:00');
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf('ritual:') !== 0) continue;
+      var d = k.slice(7);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      var dd = new Date(d + 'T00:00:00');
+      var diff = Math.round((today - dd) / 86400000);
+      if (diff >= 0 && diff < 7) cnt++;
+    }
+    return cnt;
+  } catch (eR) { return 0; }
+}
+function _shareWeekly() {
+  /* R3264（R39）：生成小满周报分享图——聚合近 7 天数据。 */
+  var _vm = _weekVisits();
+  var _rm = _weekRituals();
+  var _latestMood = '';
+  try { _latestMood = localStorage.getItem('mood:lv') || ''; } catch (eL) {}
+  var _moodTxt = _MOOD_META[+_latestMood] ? _MOOD_META[+_latestMood].t : '—';
+  var _topV = _usageTop() || '还没怎么聊';
+  return downloadPoster({
+    visitDays: _vm,
+    moodMain: _moodTxt,
+    topView: _topV,
+    ritualCount: _rm
+  }, 'weekly');
+}
 function _usageDays() {
   try {
     var f = localStorage.getItem('usage:first');
@@ -14786,7 +14818,12 @@ function _chatChipsPersonalize() {
           _cbox5.parentNode.insertBefore(_wvEl, _cbox5);
         } else { box.appendChild(_wvEl); }
       }
-      _wvEl.textContent = '🌾 这周小满看见你 ' + _wv + ' 次';
+      _wvEl.innerHTML = '🌾 这周小满看见你 ' + _wv + ' 次 ' +
+        '<button type="button" id="shareWeekly" class="chat-empty-chip">📊 生成本周小报</button>';
+      var _sw = el('shareWeekly');
+      if (_sw) _sw.addEventListener('click', function () {
+        _shareWeekly();
+      });
     } else if (_wvEl) { _wvEl.remove(); }
   } catch (eW2) {}
   /* R3264（R31）：记忆事实板——让用户看见小满记住了什么。

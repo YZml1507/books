@@ -408,6 +408,8 @@ def main() -> int:
                        "零请求；真实链路已 Playwright 手验",
         "notifySoftAsk": "通知软提示按钮——请求浏览器 Notification 权限，"
                          "非 PWA 功能主路径；真实链路已手验",
+        "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
+                       "同 shareDaily 族豁免",
         "installPwa": "PWA 安装按钮——依赖浏览器 beforeinstallprompt，"
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。

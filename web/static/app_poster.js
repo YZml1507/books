@@ -1304,6 +1304,16 @@ function buildShareData(view, j) {
       } catch (eL) {}
       return _lu;
     }
+    case 'weekly': {
+      /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */
+      var _wk = base('小满周报', _cnDateSub(todayIso()));
+      _wk.big = '这周见了 ' + (_pStr(j && j.visitDays) || '0') + ' 次';
+      _wk.lines = [
+        { k: '主心情', v: _pStr(j && j.moodMain) || '—' },
+        { k: '常问', v: _pStr(j && j.topView) || '—' },
+        { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' }];
+      return _wk;
+    }
     default:
       return null;
   }
