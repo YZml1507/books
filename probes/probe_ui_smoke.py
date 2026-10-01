@@ -410,6 +410,10 @@ def main() -> int:
                          "非 PWA 功能主路径；真实链路已手验",
         "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
                        "同 shareDaily 族豁免",
+        "returnChat": "久归横幅「和小满聊聊」——开聊天侧栏，真实链路已手验",
+        "returnDismiss": "久归横幅关闭钮——隐藏横幅并存 dismissed 日期",
+        "returnBanner": "久归横幅容器 div——非可点击元素，无 on() 注册；"
+                        "探针误报豁免",
         "installPwa": "PWA 安装按钮——依赖浏览器 beforeinstallprompt，"
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。

@@ -11833,6 +11833,15 @@ function initDivination() {
     }
     showToast('当前环境暂不支持一键安装，可用浏览器「添加到主屏幕」', 'info');
   });
+  /* R3264（R40）：久归深拥——关闭横幅 / 开聊天。 */
+  on('returnChat', function () {
+    try { chatOpen(); } catch (eC) {}
+  });
+  on('returnDismiss', function () {
+    var _rb2 = el('returnBanner');
+    if (_rb2) _rb2.hidden = true;
+    try { localStorage.setItem('returnBannerDismissed', todayIso()); } catch (eS) {}
+  });
   /* R3264（R38）：通知软提示——先解释价值，再请求浏览器权限。
    * 本地 reminders 需要后端/VAPID 才真推，这里只做权限软询问。 */
   on('notifySoftAsk', function () {
@@ -12312,6 +12321,20 @@ function init() {
    'ly_hour', 'ask_hour', 'range_hour']
     .forEach(_hourCheatAttach);
   _chatChipsPersonalize();   /* R231g（R39-P2-3）：聊天空态 chips 个性化 */
+  /* R3264（R40）：久归深拥——≥3 天没来时首页给温暖横幅。 */
+  try {
+    var _last = localStorage.getItem('usage:last') || '';
+    var _dismissed = '';
+    try { _dismissed = localStorage.getItem('returnBannerDismissed') || ''; } catch (eD) {}
+    if (_last && /^\d{4}-\d{2}-\d{2}$/.test(_last) && _dismissed !== todayIso()) {
+      var _diff = Math.round(
+        (Date.parse(todayIso() + 'T00:00:00') - Date.parse(_last + 'T00:00:00')) / 86400000);
+      if (_diff >= 3) {
+        var _rb = el('returnBanner');
+        if (_rb) _rb.hidden = false;
+      }
+    }
+  } catch (eR) {}
   _hhFavsRender();   /* R230z：测过的 CP chips（静默——离线不弹） */
   _qmFavsRender();   /* R230z：心水名单行 */
   /* R231a（R35-P2-10）：滚动中 FAB 缩小半透明——只动 transform/opacity，
@@ -16005,7 +16028,8 @@ function baziPersonaCard(j) {
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
                       'installTipDismissed', 'ret_tip', 'wishbottle',
                       'chat:topics', 'chat:cards', 'remind:1',
-                      'chat:events', 'mood:lv', 'notify:time'];
+                      'chat:events', 'mood:lv', 'notify:time',
+                      'returnBannerDismissed'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -16143,7 +16167,7 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||

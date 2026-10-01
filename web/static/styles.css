@@ -579,6 +579,12 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 /* R3264（R28）：显式 PWA 安装按钮 */
 .install-pwa-row{margin:12px 0 0; text-align:center;}
 .install-pwa-row .ghost{font-size:12px; padding:6px 14px;}
+/* R3264（R40）：久归深拥横幅 */
+.return-banner{display:flex; align-items:center; justify-content:center;
+  gap:10px; padding:10px 16px; background:var(--card); color:var(--text);
+  font-size:13px; border-bottom:1px solid var(--border);}
+.return-banner span{flex:1; text-align:center;}
+.return-banner .ghost{font-size:12px; padding:4px 12px;}
 /* R3264（R38）：通知软提示 */
 .notify-soft-row{margin:12px 0 0; text-align:center; color:var(--muted);
   font-size:11px;}
