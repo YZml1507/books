@@ -10835,6 +10835,7 @@ async function doRenge() {
     });
     html += '<div class="renge-actions">' +
       '<button type="button" class="ghost" id="rgPoster">📸 分享图</button>' +
+      '<button type="button" class="ghost" id="rgXhs">📕 复制小红书文案</button>' +
       '<button type="button" class="ghost" id="rgFull">看完整命盘 →</button>' +
       /* R3260（N6 社交回路）：「帮TA也测一型」——人格测试天然是
        * 接力素材，一键把表单还给 TA 的生日。 */
@@ -10854,6 +10855,23 @@ async function doRenge() {
         : j;
       var _p = downloadPoster(_j2, 'bazi');
       if (_p && _p.catch) _p.catch(function () {});
+    });
+    var _px = el('rgXhs');
+    if (_px) _px.addEventListener('click', function () {
+      /* R3263（R19）：五行人格小红书钩子——一键复制晒图文案，
+       * 人格测试天然适合「@闺蜜测同款」裂变。 */
+      var _line = w.one_liner || '测测你的五行人格';
+      var _txt = '✨ 我的五行人格是「' + esc(_nick || _rgElCn + '型') + '」\n' +
+        esc(_line) + '\n\n' +
+        '在小满的解忧铺测的，你也来测测你的同款型👇\n' +
+        (window.location.origin || '') + '/?view=renge';
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(_txt).then(
+            function () { showToast('小红书文案已复制，去发吧～', 'ok'); },
+            function () { showToast('复制失败，可手动长按复制', 'warn'); });
+        } else { throw new Error('no clipboard'); }
+      } catch (eC) { showToast('长按结果手动复制', 'info'); }
     });
     var _ga = el('rgAgain');
     if (_ga) _ga.addEventListener('click', function () {
