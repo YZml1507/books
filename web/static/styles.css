@@ -2663,8 +2663,17 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 .birth-card .birth-head{padding-right:110px;}
 /* R2500（R144-P1-1）：110px 固定让位在 ~270px 抽屉里把文字列压到
  * 26px 逐字竖排——窄屏减到 64px，fav-btn 仍不压字。 */
-@media (max-width:480px){ .birth-card .birth-head{padding-right:64px;} }
+/* R3262：命牌卡分享钮在移动端（≤480px）改静态满宽——右上
+ * absolute 会压住/盖住「你是X座」和下面的字。 */
+@media (max-width:480px){
+  .birth-card .birth-head{padding-right:0;}
+  .birth-card .fav-btn{position:static; width:100%; box-sizing:border-box; margin:10px 0 0 !important;}
+}
 #xzResult{position:relative;}
+/* R3262：#xzResult 内没有 positioned ancestor，.fav-btn 的 absolute
+ * 基态会让按钮浮到页面最顶（非卡顶），盖住内容。星座分享图统一走
+ * 静态流、满宽落在内容下方，移动端/桌面端一致。 */
+#xzResult .fav-btn{position:static; width:100%; box-sizing:border-box; margin:10px 0 0 !important;}
 /* P1：合婚三钮窄屏改静态流（原 absolute 压 h2/判词首行，
  * 360px 挤成竖排圆球）。R2345（R62-P1-5）：星座分享钮同款处理——
  * 390px 下 absolute 浮在「今日当班」卡上压标题。 */
@@ -2672,7 +2681,10 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
   .hh-btns{position:static;justify-content:flex-end;margin:2px 0 8px;flex-wrap:wrap;}
   /* R2345（R62-P2）：合婚三钮 wrap 后 2+1 不齐——主 CTA（分享图）独占一行。 */
   .hh-btns .fav-btn:first-child{flex-basis:100%;}
-  #xzResult .fav-btn{position:static; width:100%; margin:10px 0 0 !important;}
+  /* R3262：命盘卡「分享图」「年度运势图」两枚 absolute 在移动端
+   * 常盖住标题/正文。.share-row 容器回落静态流，钮横排自动换行。 */
+  .share-row{position:static; justify-content:flex-end; margin:8px 0; flex-wrap:wrap;}
+  .share-row .fav-btn{flex:1 1 auto; min-width:100px; white-space:nowrap; margin:0;}
 }
 /* P1：结果卡 fav-btn 骑 h2 盖副标尾字——右上角让位。 */
 .view .card h2{padding-right:92px;}

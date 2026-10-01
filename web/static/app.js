@@ -5326,7 +5326,14 @@ async function loadDaily() {
       _dailyMetaItem('dailyMercury',
         '💫 水逆中 · 第' + j.mercury.day_no + '天（到 ' +
         esc(String(j.mercury.until || '').slice(5).replace('-', '月')) + '日），心放宽，事多检查');
-    } else { _dailyMetaItem('dailyMercury', ''); }
+      /* R3261（R16）：水逆关怀副行——54% 的人在长期水逆时求助，
+       * 这是产品最该接住人的时刻；多一句不催的。 */
+      _dailyMetaItem('dailyMercCare',
+        '🫖 小满多嘴：这几天慢一点没关系，签都替你留着');
+    } else {
+      _dailyMetaItem('dailyMercury', '');
+      _dailyMetaItem('dailyMercCare', '');
+    }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
     var _uDays = _usageDays();
@@ -13463,6 +13470,14 @@ function _usageTop() {
  * 同一盏灯。确定性按时段切文案，零数据零随机。 */
 function _xmShopLine() {
   var h = new Date().getHours();
+  /* R3261（R16）：水逆期店况换口径——玄学求助最高峰的日子里，
+   * 小满把店看得更细。 */
+  try {
+    if (window.__lastDaily && window.__lastDaily.mercury &&
+        window.__lastDaily.mercury.on) {
+      return '💫 水逆这些天，小满把店里的每件小事都多看了一遍';
+    }
+  } catch (eM) {}
   return (h >= 23 || h < 5) ? '🏮 小满还醒着，灯给你留着' :
     h < 10 ? '🍵 小满刚开门，在擦柜台' :
     h < 14 ? '📜 小满在理今天的签' :
@@ -14452,26 +14467,38 @@ function _chatChipsPersonalize() {
    * 「带张创可贴走」钮，点出海报模态（一句能存图带走的话 +
    * 夜灯场景卡）。深夜用户要的不是功能是件小物。 */
   var _band = box.querySelector('.chat-empty-bandaid');
-  if (_hh2 >= 23 || _hh2 < 5) {
+  /* R3261（R16）：水逆期创可贴全天供应——求助高峰不只在深夜。 */
+  var _mercOn = false;
+  try {
+    _mercOn = !!(window.__lastDaily && window.__lastDaily.mercury &&
+                 window.__lastDaily.mercury.on);
+  } catch (eMC) {}
+  if (_hh2 >= 23 || _hh2 < 5 || _mercOn) {
     if (!_band) {
       _band = document.createElement('button');
       _band.type = 'button';
       _band.className = 'chat-chip chat-empty-bandaid';
-      _band.textContent = '🌙 带张创可贴走';
       var _cbox3 = box.querySelector('.chat-empty-chips');
       if (_cbox3 && _cbox3.parentNode) {
         _cbox3.parentNode.insertBefore(_band, _cbox3.nextSibling);
       } else { box.appendChild(_band); }
       _band.addEventListener('click', function () {
+        /* R3261：水逆白天档用日间场景，深夜档用夜灯场景。 */
+        var _nh = new Date().getHours();
+        var _night = (_nh >= 23 || _nh < 5);
         var _im = new Image();
-        _im.src = '/static/cream/bear-scene-bad.jpg';
+        _im.src = _night ? '/static/cream/bear-scene-bad.jpg'
+                         : '/static/cream/bear-scene-mid.jpg';
         _im.onload = function () {
-          downloadPoster({ _art: _im, _artCap: '今夜小夜灯' },
+          downloadPoster({ _art: _im,
+            _artCap: _night ? '今夜小夜灯' : '慢慢来的日子' },
             'bandaid');
         };
         _im.onerror = function () { downloadPoster({}, 'bandaid'); };
       });
     }
+    _band.textContent = (_hh2 >= 23 || _hh2 < 5)
+      ? '🌙 带张创可贴走' : '🩹 带张创可贴走';
   } else if (_band) { _band.remove(); }
   /* R3260（UX-PLAN-R6）：小满便签——久未归（≥3 天没来）时，
    * 空态最上方多一张她留的字条。AI 陪伴产品的共识：主动关怀
