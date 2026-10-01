@@ -7145,7 +7145,9 @@ function buildDreamResult(j) {
    * 解梦卡让它回文流落卡尾。台账复看的隐藏规则靠 fav-btn 类识别，
    * 类名不能丢。 */
   html += '<button type="button" class="ghost fav-btn" id="shareDream" ' +
-    'style="position:static;margin-top:10px;">📷 生成梦卡图</button>';
+    'style="position:static;margin-top:10px;">📷 生成梦卡图</button>' +
+    '<button type="button" class="ghost fav-btn" id="dmSpeak" ' +
+    'style="position:static;margin-top:6px;">🔊 读给小满听</button>';
   /* R3260（R9 延伸）：深夜解梦（多是噩梦/放不下的梦）卡尾多一颗
    * 创可贴钮——与聊天空态同源 bandaid 分享类型。 */
   var _hhDm = new Date().getHours();
@@ -7199,6 +7201,16 @@ async function doDream() {
           }
           /* 心情历那边色点跟着亮（首页在 DOM 里，静默刷） */
           try { _renderMoodRow(); } catch (eMR) {}
+        });
+      }
+      var _spDm = el('dmSpeak');
+      if (_spDm && !_spDm.dataset.bound) {
+        _spDm.dataset.bound = '1';
+        _spDm.addEventListener('click', function () {
+          /* R3264（R27）：语音扩展——解梦结果朗读（引导 + 微行动）。 */
+          var _rp = ((j && j.warm && j.warm.reply) || []).slice(0, 3);
+          var _txt = _rp.join(' ') + (j.action ? ' 小动作：' + j.action : '');
+          if (_txt.trim()) _speak(_txt.trim());
         });
       }
       on('shareDream', function () {
@@ -10896,6 +10908,7 @@ async function doRenge() {
     html += '<div class="renge-actions">' +
       '<button type="button" class="ghost" id="rgPoster">📸 分享图</button>' +
       '<button type="button" class="ghost" id="rgXhs">📕 复制小红书文案</button>' +
+      '<button type="button" class="ghost" id="rgSpeak">🔊 读我是哪型</button>' +
       '<button type="button" class="ghost" id="rgFull">看完整命盘 →</button>' +
       /* R3260（N6 社交回路）：「帮TA也测一型」——人格测试天然是
        * 接力素材，一键把表单还给 TA 的生日。 */
@@ -10932,6 +10945,14 @@ async function doRenge() {
             function () { showToast('复制失败，可手动长按复制', 'warn'); });
         } else { throw new Error('no clipboard'); }
       } catch (eC) { showToast('长按结果手动复制', 'info'); }
+    });
+    var _ps = el('rgSpeak');
+    if (_ps) _ps.addEventListener('click', function () {
+      /* R3264（R27）：语音扩展到五行人格——读判词/首句。 */
+      var _txt = (_nick || (_rgElCn + '型')) + '。' +
+        (w.one_liner || '') + ' ' +
+        pts.slice(0, 2).join(' ');
+      if (_txt.trim()) _speak(_txt.trim());
     });
     var _ga = el('rgAgain');
     if (_ga) _ga.addEventListener('click', function () {
