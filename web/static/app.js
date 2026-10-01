@@ -14783,13 +14783,45 @@ function _chatChipsPersonalize() {
     var _moodTxt = _MOOD_META[+_latestMood] ? _MOOD_META[+_latestMood].t : '—';
     var _topicTxt = _chatTopicsArr().slice(-3).map(function (x) {
       return esc(x.t); }).join('、') || '—';
-    _fb.innerHTML = '<summary>🧸 小满知道这些</summary>' +
-      '<div class="chat-facts-body">' +
-      '<p>你的生日：' + esc(_bd) + '</p>' +
-      '<p>最近提过：' + _topicTxt + '</p>' +
-      '<p>最近心情：' + esc(_moodTxt) + '</p>' +
-      '<p>你常问：' + esc(_topV) + '</p>' +
-      '</div>';
+    /* R3264（R37）：记忆可忘——每个事实带「× 忘」按钮，
+     * 用户可一键清掉单条记忆（生日/事由/心情），与小满隐私优先
+     * 人设一致。 */
+    var _rows = [
+      { fk: 'birthday', label: '你的生日', value: esc(_bd) },
+      { fk: 'topics', label: '最近提过', value: _topicTxt },
+      { fk: 'mood', label: '最近心情', value: esc(_moodTxt) },
+      { fk: 'usage', label: '你常问', value: esc(_topV) }];
+    var _fbHtml = '<summary>🧸 小满知道这些</summary>' +
+      '<div class="chat-facts-body">';
+    _rows.forEach(function (r) {
+      _fbHtml += '<div class="chat-fact-row"><span>' + esc(r.label) +
+        '：' + r.value + '</span>' +
+        (r.fk !== 'usage' ? '<button type="button" ' +
+          'class="chat-fact-forget" data-fk="' + r.fk + '">× 忘</button>' : '') +
+        '</div>';
+    });
+    _fbHtml += '</div>';
+    _fb.innerHTML = _fbHtml;
+    if (!_fb.dataset.bound) {
+      _fb.dataset.bound = '1';
+      _fb.addEventListener('click', function (ev) {
+        var b = ev.target.closest('.chat-fact-forget');
+        if (!b) return;
+        var fk = b.dataset.fk;
+        try {
+          if (fk === 'birthday') localStorage.removeItem('me');
+          else if (fk === 'topics') localStorage.removeItem('chat:topics');
+          else if (fk === 'mood') {
+            localStorage.removeItem('mood:lv');
+            localStorage.removeItem('mood:' + todayIso());
+            localStorage.removeItem('moodlv:' + todayIso());
+          }
+        } catch (eC) {}
+        showToast('小满记住了，这件事以后不提了', 'ok');
+        _microCelebrate(b);
+        _chatChipsPersonalize();
+      });
+    }
   } catch (eF) {}
   /* R3264（R33）：今日小确幸——只问一句话，本地保存 journal:<date>。 */
   try {
