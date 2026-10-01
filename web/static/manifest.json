@@ -7,6 +7,10 @@
   "display": "standalone",
   "background_color": "#FFF8E7",
   "theme_color": "#FFF8E7",
+  "categories": ["lifestyle", "entertainment", "utilities"],
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/static/cream/icon-192.png",

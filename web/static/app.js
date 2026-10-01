@@ -4153,12 +4153,12 @@ function showPosterModal(canvas, view, j) {
       '<div class="poster-modal-tip">💡 ' +
         ((typeof navigator === 'undefined' ||
           !(navigator.maxTouchPoints > 0 || 'ontouchstart' in window))
-          ? '已自动下载到下载文件夹 · 也可右键另存 · 发给闺蜜一起测～'
+          ? '已自动下载到下载文件夹 · 也可右键另存 · 保存后可设为锁屏/壁纸，小满每天陪你睁眼 · 发给闺蜜一起测～'
           /* R2353（R110-P2-3）：小红书 webview 长按菜单由 app 侧实现，
            * 对 data-URI 图不一定有「保存图片」——改截图口径。 */
           : (/xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent || '')
-             ? '截图保存，或点下方「复制文案+链接」发给闺蜜～'
-             : '长按图片可保存到相册 · 发给闺蜜一起测～')) +
+             ? '截图保存，或点下方「复制文案+链接」发给闺蜜～ · 保存后可设为锁屏/壁纸，小满每天陪你睁眼'
+             : '长按图片可保存到相册 · 保存后可设为锁屏/壁纸，小满每天陪你睁眼 · 发给闺蜜一起测～')) +
         '</div>' +
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
        * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
