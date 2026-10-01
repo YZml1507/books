@@ -14183,6 +14183,28 @@ function renderCheckin(dateKey) {
                ' 颗有小满的话';
     }
   }
+  /* R3264（R48）：周目标可视化——可选 3/5/7 天，显示还差/已达。 */
+  var _weekGoal = 5;
+  try { _weekGoal = parseInt(localStorage.getItem('checkin:goal') || '5', 10); } catch (eG) {}
+  if (isNaN(_weekGoal) || [3, 5, 7].indexOf(_weekGoal) < 0) _weekGoal = 5;
+  var _weekHits = 0;
+  try {
+    for (var _wi = -6; _wi <= 0; _wi++) {
+      var _wk = _isoShift(dateKey, _wi);
+      if (_ckAll[_wk]) _weekHits++;
+    }
+  } catch (eW) {}
+  var _goalGap = _weekGoal - _weekHits;
+  var _goalTxt = _goalGap <= 0
+    ? '本周目标 ' + _weekGoal + ' 天已达成，给自己放个假 🌱'
+    : '本周目标 ' + _weekGoal + ' 天 · 已完成 ' + _weekHits + ' · 还差 ' + _goalGap;
+  var _goalHtml = '<div class="ck-goal" role="group" aria-label="本周打卡目标">' +
+    '<span>目标</span>' +
+    [3, 5, 7].map(function (g) {
+      return '<button type="button" class="ck-goal-opt' +
+        (g === _weekGoal ? ' active' : '') + '" data-g="' + g + '">' + g + '天</button>';
+    }).join('') +
+    '<span class="ck-goal-txt">' + esc(_goalTxt) + '</span></div>';
   box.innerHTML = '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
@@ -14199,6 +14221,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
+    _goalHtml +
     /* R231d（R37-F15）：连签 ≥3 天给「晒连签」出口——里程碑文案不外溢
      * 就没拉新价值。 */
     /* R233n（R47-Top5-2）：打卡签首日即可晒——原来要等连签 ≥3 天，
@@ -14389,6 +14412,13 @@ function renderCheckin(dateKey) {
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
     box.addEventListener('click', function (e) {
+      /* R3264（R48）：周目标设置——点 3/5/7 直接存 goal 并重渲。 */
+      var _goalBtn = e.target.closest('.ck-goal-opt');
+      if (_goalBtn && _goalBtn.dataset.g) {
+        try { localStorage.setItem('checkin:goal', _goalBtn.dataset.g); } catch (eG) {}
+        renderCheckin(dateKey);
+        return;
+      }
       /* R2350j：收编到打卡选项组内——许愿瓶等复用 .checkin-opt
        * 皮相的按钮（无 data-opt）不能被当成打卡签重渲。 */
       const btn = e.target.closest('.checkin-opts .checkin-opt');

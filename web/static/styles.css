@@ -1916,6 +1916,15 @@ button:active{transform:scale(.96);}
 .checkin-dots i{width:7px;height:7px;border-radius:50%;background:var(--border);}
 .checkin-dots i.on{background:var(--accent-ink);}
 .checkin-dots i.today{box-shadow:0 0 0 2px rgba(184,74,111,.18);}
+/* R3264（R48）：周目标选择条 */
+.ck-goal{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:10px 0; font-size:12px; color:var(--muted);}
+.ck-goal span{white-space:nowrap;}
+.ck-goal-opt{font-size:12px; padding:3px 10px; border-radius:999px;
+  border:1px solid var(--border); background:transparent; color:var(--muted);
+  cursor:pointer;}
+.ck-goal-opt.active{background:var(--accent-ink); color:#fff; border-color:var(--accent-ink);}
+.ck-goal-txt{flex:1; min-width:120px;}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 /* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一
  * 行竖排拉 570px+——改 2×2 网格，翻面/锁定/徽标态全保留，
