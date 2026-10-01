@@ -398,6 +398,8 @@ def main() -> int:
         "shareLiuyao": "同上",
         "shareTarot": "同上",
         "shareDaily": "同上",
+        "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
+                      "零请求；真实链路已 Playwright 手验（按钮存在）",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。
         "shareDream": "同上",
         "rgPoster": "五行人格分享图——downloadPoster('bazi') 海报模态，"

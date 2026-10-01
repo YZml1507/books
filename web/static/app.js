@@ -1139,6 +1139,33 @@ function showToast(msg, kind) {
   t.addEventListener('focusin', function () { clearTimeout(_tmr); });
 }
 
+/* R3263（R22）：小满说给你听——用 Web Speech Synthesis 朗读
+ * warm reply/判词。无网络、无服务器成本，睡前/眼睛累场景适用。 */
+var _SPEECH_CANCEL = null;
+function _speak(text) {
+  try {
+    if (!window.speechSynthesis) { showToast('当前设备不支持朗读', 'warn'); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    var voices = window.speechSynthesis.getVoices();
+    var _v = voices.find(function (v) {
+      return v.lang && (v.lang.indexOf('zh') === 0 || v.lang.indexOf('cmn') === 0);
+    });
+    if (!_v) _v = voices.find(function (v) { return v.lang && v.lang.indexOf('zh') !== -1; });
+    if (_v) u.voice = _v;
+    u.rate = 1; u.pitch = 1; u.volume = 1;
+    u.onend = function () { _SPEECH_CANCEL = null; };
+    u.onerror = function () { _SPEECH_CANCEL = null; };
+    _SPEECH_CANCEL = u;
+    window.speechSynthesis.speak(u);
+  } catch (eS) { showToast('朗读没开成，稍后再试', 'warn'); }
+}
+function _stopSpeak() {
+  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+  _SPEECH_CANCEL = null;
+}
+
 function postJSON(path, payload, opts) {
   /* R2400（R123-P2-3）：opts 透传给 api——聊天发送走 silent，
    * 4xx 由 catch 气泡单一承载，不再 toast+气泡双重提示。 */
@@ -11711,6 +11738,22 @@ function initDivination() {
     if (window.__lastDaily) return downloadPoster(window.__lastDaily, 'daily');
     showToast('今日运势还没出来，等它算好再分享～', 'warn');
     return null;
+  });
+  /* R3263（R22）：小满说给你听——朗读今日判词/个人层判词。 */
+  on('speakDaily', function () {
+    if (!window.__lastDaily) {
+      showToast('今日运势还没出来，等它算好再朗读～', 'warn');
+      return;
+    }
+    var _text = '';
+    try {
+      var _j = window.__lastDaily;
+      _text = (_j.personal && _j.personal.mine && _j.personal.mine.verdict)
+        ? _j.personal.mine.verdict
+        : (((_j.warm || {}).reply || []).join('。'));
+      if (!_text) _text = _j.summary || '今日签已出，打开看看';
+    } catch (eT) {}
+    if (_text) _speak(_text);
   });
 }
 
