@@ -145,9 +145,17 @@ self.addEventListener('fetch', function (e) {
             'content="width=device-width,initial-scale=1"><body ' +
             'style="font-family:sans-serif;display:flex;min-height:100vh;' +
             'align-items:center;justify-content:center;text-align:center;' +
-            'background:#FFF8E7;color:#4A3F35"><div>🌾 网没连上，' +
-            '缓存也刚好空了——联网后刷新一下，小满在这儿等你。</div>' +
-            '</body>',
+            'background:#FFF8E7;color:#4A3F35;margin:0;padding:16px">' +
+            '<div style="max-width:320px;background:#fff;border-radius:18px;' +
+            'padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.08)"> ' +
+            '<div style="font-size:42px;margin-bottom:12px">🌾</div>' +
+            '<h1 style="margin:0 0 10px;font-size:20px">小满 offline 卡</h1>' +
+            '<p style="margin:0 0 18px;line-height:1.6;font-size:15px">' +
+            '网没连上，缓存也刚好空了。<br>联网后按下面刷新，小满在这儿等你。' +
+            '</p><button onclick="location.reload()" ' +
+            'style="font-size:15px;padding:10px 22px;border-radius:999px;' +
+            'border:0;background:#4A3F35;color:#FFF8E7;cursor:pointer">' +
+            '刷新试试</button></div></body>',
             { status: 503,
               headers: { 'Content-Type': 'text/html; charset=utf-8' } });
         });
