@@ -3735,23 +3735,30 @@ function setVoiceMode() { /* R3212：开关已下线，保留签名防旧调用�
 /* ── 视觉主题（003 US5 / 判据 12：审美方向可一键回滚）───────────
  * aa     = R183b 的无障碍配色（默认；31 处对比度不足已归零）
  * legacy = R183b 之前的原配色（对照用；**不满足判据 3**，那正是它的意义）
+ * system = 跟随系统深浅色（R44）
  * 只切 <html data-theme>，CSS 侧只覆盖令牌不碰规则集——所以回滚路径
  * 不需要反向修改任何组件样式，不可能漏。 */
 var THEME_KEY = 'uiTheme';
 
+function _effectiveTheme(theme) {
+  if (theme === 'legacy') return 'legacy';
+  if (theme === 'dark') return 'dark';
+  if (theme === 'system' && window.matchMedia &&
+      matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+  return 'aa';
+}
+
 function uiTheme() {
   try {
     var v = localStorage.getItem(THEME_KEY);
-    if (v === 'legacy' || v === 'dark') return v;
-    /* R2340：没存过就跟系统深浅色走（睡前场景占大头） */
-    if (v == null && window.matchMedia &&
-        matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    if (v === 'legacy' || v === 'dark' || v === 'system') return v;
   } catch (e) {}
   return 'aa';
 }
 
 function applyTheme(theme) {
-  var t = (theme === 'legacy' || theme === 'dark') ? theme : 'aa';
+  var requested = theme || uiTheme() || 'aa';
+  var t = _effectiveTheme(requested);
   /* R2340：theme-color meta 跟着换——浏览器地址栏/PWA 顶栏同色。 */
   var _meta = document.querySelector('meta[name="theme-color"]');
   if (t === 'aa') {
@@ -3768,7 +3775,7 @@ function applyTheme(theme) {
   var _cs = document.querySelector('meta[name="color-scheme"]');
   if (_cs) _cs.setAttribute('content', t === 'dark' ? 'dark' : 'light');
   try {
-    localStorage.setItem(THEME_KEY, t);
+    localStorage.setItem(THEME_KEY, requested);
   } catch (e) { /* 存不了就只在本次会话生效 */ }
 }
 
@@ -11156,23 +11163,29 @@ function initBazi() {
   });
   syncBaziForm();
   on('dailyMore', loadDailyDetail);
-  /* R2340：深浅色切换——aa↔dark↔legacy 轮转（legacy 是回滚主题）。 */
+  /* R3264（R44）：深浅色切换——aa↔dark↔system 轮转，新增跟随系统。 */
   var _tt = el('themeToggle');
   if (_tt) {
     var _ttIcon = function () {
-      var _dk = uiTheme() === 'dark';
-      _tt.textContent = _dk ? '☀️' : '🌙';
-      _tt.setAttribute('aria-label',
-        _dk ? '切回浅色模式' : '切换深色模式');
-      /* R2349h（R69-P3-12）：状态进可访问树。 */
-      _tt.setAttribute('aria-pressed', String(_dk));
+      var _ut = uiTheme();
+      var _map = { aa: ['🌙', '切换深色模式', 'false'],
+                   dark: ['☀️', '切回浅色模式', 'true'],
+                   system: ['🌓', '跟随系统', 'false'] };
+      var _st = _map[_ut] || _map.aa;
+      _tt.textContent = _st[0];
+      _tt.setAttribute('aria-label', _st[1]);
+      _tt.setAttribute('aria-pressed', _st[2]);
     };
     _ttIcon();
     _tt.addEventListener('click', function () {
-      applyTheme(uiTheme() === 'dark' ? 'aa' : 'dark');
+      var _next = { aa: 'dark', dark: 'system', system: 'aa' };
+      var _t = _next[uiTheme()] || 'dark';
+      applyTheme(_t);
       _ttIcon();
-      showToast(uiTheme() === 'dark' ? '夜间模式开啦～看着不累眼睛' :
-                '回到奶油白啦', 'info');
+      var _msg = { aa: '回到奶油白啦',
+                   dark: '夜间模式开啦～看着不累眼睛',
+                   system: '以后跟着系统走啦' };
+      showToast(_msg[_t] || '主题已切换', 'info');
     });
   }
   /* R206b（US1）：聊天抽屉绑定。chatEntry 是动态按钮（结果区重绘），
@@ -12299,6 +12312,15 @@ function init() {
   };
   _applySeason();
   _applyDaypart();
+  /* R3264（R44）：系统主题变化监听——当前主题为 system 时自动切换。 */
+  try {
+    var _mql = matchMedia('(prefers-color-scheme: dark)');
+    if (_mql && _mql.addEventListener) {
+      _mql.addEventListener('change', function () {
+        if (uiTheme() === 'system') applyTheme('system');
+      });
+    }
+  } catch (eM) {}
   /* R3255：聊天侧栏绑定提到最前并独立 try——「和小满聊聊」是
    * 情绪兜底入口，不能被后续任何初始化异常连坐挂掉。 */
   try { initChatSidebar(); } catch (eCS) { console.warn('[init] chatSidebar', eCS); }
