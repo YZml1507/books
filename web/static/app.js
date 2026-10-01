@@ -11912,7 +11912,7 @@ function initDivination() {
     var _dr2 = el('dailyRitual');
     if (_dr2) { _dr2.textContent = '✅ 已做完'; _dr2.disabled = true; }
     _microCelebrate(_dr2);
-    showToast('小满记下了，今天你做了一件小事～', 'ok');
+    showToast('小满记下了，今天你做了一件小事～' + '\n' + _identityPhrase(), 'ok');
   });
 }
 
@@ -13720,6 +13720,24 @@ function _microCelebrate(target) {
     setTimeout(function () { s.remove(); }, 900);
   } catch (eM) {}
 }
+/* R3264（R46）：身份反馈句——根据用户最常问功能给一句身份式
+ * 总结，不做 streak，只把行为变成「正在成为」的温柔镜。 */
+function _identityPhrase() {
+  var _top = _usageTop();
+  var _map = {
+    '日签': '你正在成为会给自己留一口气的人',
+    '塔罗': '你正在成为愿意向未知问一句的人',
+    '六爻': '你正在成为把犹豫变成卦象的人',
+    '解梦': '你正在成为会倾听夜晚的人',
+    '八字合婚': '你正在成为愿意看关系底色的人',
+    '八字排盘': '你正在成为读自己说明书的人',
+    '黄历': '你正在成为顺着日子走的人',
+    '星座': '你正在成为借星光看自己底牌的人',
+    '桃花': '你正在成为敢问感情的人',
+    '五行人格': '你正在成为认识自己底色的人'
+  };
+  return '小满的话：' + (_map[_top] || '你正在成为会照顾自己的人');
+}
 /* R3260（UX-STRATEGY-NEXT §五·诚实缺口）：本机使用足迹——纯
  * localStorage，零上传零画像外泄。一鱼两吃：①我们第一次知道
  * 哪个功能真有人翻（诊断面）；②「你在小满这儿第N天」本身是
@@ -14449,6 +14467,8 @@ function renderCheckin(dateKey) {
        * 的，不重拉的话 +n 角标要等下次进页才显形。/api/daily 有缓存，
        * 重拉成本只是一次本地往返。 */
       try { loadDaily(); } catch (eLD) {}
+      /* R3264（R46）：签到身份反馈——抽完卡给一句「正在成为」。 */
+      try { showToast(_identityPhrase(), 'ok'); } catch (eI) {}
       /* R233f（R43-P2-3）：整卡重渲销毁了聚焦钮，焦点丢 BODY 从头爬
        * ——落回新渲出的 picked 钮。 */
       var _pk = box.querySelector('.checkin-opt.picked');
@@ -15009,7 +15029,7 @@ function _chatChipsPersonalize() {
             '<div class="chat-journal-body">' +
             '<p class="chat-journal-done">今天的：' + esc(String(v)) + '</p></div>';
           _microCelebrate(_jsBtn);
-          showToast('小满替你收好今天的一件小事～', 'ok');
+          showToast('小满替你收好今天的一件小事～' + '\n' + _identityPhrase(), 'ok');
         });
       }
     }
