@@ -5152,6 +5152,17 @@ async function loadDaily() {
     setText('dailyPal', j.noble_liuhe ? _zhiToAnimal(j.noble_liuhe) : '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
+    /* R3264（R32）：今日仪式——宜试试变成可点「做完了」微仪式。 */
+    var _dr = el('dailyRitual');
+    if (_dr) {
+      if (j.do) {
+        var _rdone = '';
+        try { _rdone = localStorage.getItem('ritual:' + todayIso()) || ''; } catch (eR) {}
+        _dr.hidden = false;
+        _dr.textContent = _rdone ? '✅ 已做完' : '✅ 做完了';
+        _dr.disabled = !!_rdone;
+      } else { _dr.hidden = true; }
+    }
     /* R233q：签号上卡——「今日第 N 签」的求签感是小红书日签标配 */
     var _sg = el('dailySignNo');
     if (!_sg) {
@@ -11849,6 +11860,15 @@ function initDivination() {
     showToast('今日运势还没出来，等它算好再生成护身符～', 'warn');
     return null;
   });
+  /* R3264（R32）：今日仪式——点击即本地记录，不打卡不断签。 */
+  on('dailyRitual', function () {
+    try {
+      localStorage.setItem('ritual:' + todayIso(), '1');
+    } catch (eR) {}
+    var _dr2 = el('dailyRitual');
+    if (_dr2) { _dr2.textContent = '✅ 已做完'; _dr2.disabled = true; }
+    showToast('小满记下了，今天你做了一件小事～', 'ok');
+  });
 }
 
 /* ── R230z（R36）：favorites 窄面接线 + 历史全品类 + 问一嘴足迹 ─────────
@@ -15821,7 +15841,7 @@ function baziPersonaCard(j) {
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
-                     'mood:', 'moodlv:', 'rlast:', 'usage:',
+                     'mood:', 'moodlv:', 'rlast:', 'usage:', 'ritual:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
@@ -15982,6 +16002,8 @@ function baziPersonaCard(j) {
                 k.indexOf('moodlv:') === 0 ||
                 /* R3262（R17）：心情罐子解锁表也是个人化数据，一起清。 */
                 k.indexOf('moodjar:') === 0 ||
+                /* R3264（R32）：今日仪式记录也是个人足迹，一起清。 */
+                k.indexOf('ritual:') === 0 ||
                 k.indexOf('usage:') === 0 ||
                 k.indexOf('rlast:') === 0)) _rm.push(k);
           }
