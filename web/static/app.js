@@ -1166,6 +1166,25 @@ function _stopSpeak() {
   _SPEECH_CANCEL = null;
 }
 
+/* R3263（R23）：水逆急救包——「慢三秒」呼吸按钮 */
+function _mercBreathe() {
+  var btn = el('mercBreathe');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  var _steps = [
+    { t: '吸气 4 秒', ms: 0 },
+    { t: '屏息 4 秒', ms: 4000 },
+    { t: '呼气 6 秒', ms: 8000 },
+    { t: '慢三秒', ms: 14000 }
+  ];
+  _steps.forEach(function (s) {
+    setTimeout(function () {
+      btn.textContent = s.t;
+      if (s.ms === 14000) btn.disabled = false;
+    }, s.ms);
+  });
+}
+
 function postJSON(path, payload, opts) {
   /* R2400（R123-P2-3）：opts 透传给 api——聊天发送走 silent，
    * 4xx 由 catch 气泡单一承载，不再 toast+气泡双重提示。 */
@@ -5357,9 +5376,23 @@ async function loadDaily() {
        * 这是产品最该接住人的时刻；多一句不催的。 */
       _dailyMetaItem('dailyMercCare',
         '🫖 小满多嘴：这几天慢一点没关系，签都替你留着');
+      /* R3263（R23）：水逆急救包——可执行小仪式 + 忌冲动提醒。 */
+      _dailyMetaItem('dailyMercKit',
+        '<details class="merc-kit"><summary>🆘 水逆急救包</summary>' +
+        '<div class="merc-kit-body">' +
+        '<p class="merc-dont">今日忌冲动：' + esc(j.dont || '—') + '</p>' +
+        '<button type="button" id="mercBreathe" class="merc-breathe">' +
+        '慢三秒</button>' +
+        '<p class="merc-hint">小满替你数着，慢慢就好。</p></div></details>');
+      var _mb = el('mercBreathe');
+      if (_mb && !_mb.dataset.bound) {
+        _mb.dataset.bound = '1';
+        _mb.addEventListener('click', _mercBreathe);
+      }
     } else {
       _dailyMetaItem('dailyMercury', '');
       _dailyMetaItem('dailyMercCare', '');
+      _dailyMetaItem('dailyMercKit', '');
     }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */

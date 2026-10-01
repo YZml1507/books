@@ -475,6 +475,8 @@ def main() -> int:
         # 同族。真实链路已 Playwright 手验（点击→海报模态出图）。
         "dmBandaid": "深夜限定钮（23-05 点才在 DOM）+ 海报模态链路"
                      "同 shareBazi 族；手验已覆盖",
+        "mercBreathe": "水逆急救包「慢三秒」呼吸钮——纯本地 setTimeout"
+                       "动画，零请求；仅在 mercury.on 时生成",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
