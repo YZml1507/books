@@ -14402,6 +14402,8 @@ function renderCheckin(dateKey) {
         showToast('这次打卡没存上（存储不可用）', 'warn');
         return;
       }
+      /* R3264（R41）：签到微庆祝——抽中签时也飘一颗 ✨ 星星。 */
+      _microCelebrate(btn);
       /* R230y：整卡重渲——picked 态、连签天数、点阵、反馈一次同步
        * （原手改 class/textContent 会让新打卡的连签数滞后到下次渲染） */
       renderCheckin(dateKey);
