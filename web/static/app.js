@@ -13443,6 +13443,21 @@ if (document.readyState === 'loading') {
         history: '这里是排盘历史：看过的盘都收在这里 🗂',
       };
       if (_plainBar[_sv2]) _txtEl.textContent = _plainBar[_sv2];
+    } else if (_txtEl) {
+      /* R3264（R42）：时段感知问候——按当前小时给不同文案，
+       * 让首页第一句话像小满亲口说的。 */
+      var _h = new Date().getHours();
+      var _dp = (_h < 6) ? 'night' : (_h < 10) ? 'dawn'
+                : (_h < 12) ? 'morning' : (_h < 18) ? 'noon'
+                : (_h < 22) ? 'dusk' : 'night';
+      var _greet = {
+        dawn: '天刚亮——先抽张日签看看今天的气场 🌅',
+        morning: '上午好——有事想算，没事小满也在 🌤',
+        noon: '中午了——抽个签再决定吃什么 🍜',
+        dusk: '傍晚好——今天最想问什么？🌆',
+        night: '晚上好——小满的夜灯开着，慢慢聊 🌙'
+      };
+      _txtEl.textContent = _greet[_dp] || _greet.morning;
     }
     bar.querySelector('.welcome-close').addEventListener('click', function () {
       /* R2349h（R69-P2-7）：自毁钮先把焦点还到页内落点，
