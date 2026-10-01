@@ -14621,6 +14621,8 @@ function _chatChipsPersonalize() {
   if (_hi && _hiTxt) _hi.textContent = _hiTxt;
   /* R3263（R21）：记忆显化——聊天空态顶部列出最近 3 条事由，
    * 让用户直接感知「小满记得」。只显示有记录时。 */
+  /* R3264（R26）：记忆芯片可点击——点击事由预填输入框，
+   * 用户可以直接续聊该话题。 */
   try {
     var _mems = _chatTopicsArr().slice(-3).reverse();
     var _memEl = box.querySelector('.chat-empty-memory');
@@ -14633,10 +14635,21 @@ function _chatChipsPersonalize() {
           _cbox4.parentNode.insertBefore(_memEl, _cbox4);
         } else { box.appendChild(_memEl); }
       }
-      _memEl.textContent = '📌 小满记得你提过：' +
+      _memEl.innerHTML = '📌 小满记得你提过：' +
         _mems.map(function (x) {
-          return x.t + '（' + x.d.slice(5).replace('-', '月') + '日）';
+          return '<button type="button" class="chat-empty-chip" ' +
+            'data-topic="' + esc(x.t) + '">' + esc(x.t) +
+            '（' + x.d.slice(5).replace('-', '月') +
+            '日）</button>';
         }).join('、');
+      _memEl.querySelectorAll('.chat-empty-chip').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var _inp = el('chatInput');
+          if (!_inp) return;
+          _inp.value = '小满，我还想聊聊' + this.dataset.topic + '的事';
+          try { _inp.focus(); _inp.setSelectionRange(_inp.value.length, _inp.value.length); } catch (eF) {}
+        });
+      });
     } else if (_memEl) { _memEl.remove(); }
   } catch (eM3) {}
   /* R3259（UX-STRATEGY-NEXT N1）：小满在店状态行——她有她自己的日子，
