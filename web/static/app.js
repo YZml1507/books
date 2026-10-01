@@ -11832,6 +11832,27 @@ function initDivination() {
     }
     showToast('当前环境暂不支持一键安装，可用浏览器「添加到主屏幕」', 'info');
   });
+  /* R3264（R38）：通知软提示——先解释价值，再请求浏览器权限。
+   * 本地 reminders 需要后端/VAPID 才真推，这里只做权限软询问。 */
+  on('notifySoftAsk', function () {
+    if (!('Notification' in window)) {
+      showToast('你的浏览器不支持通知，小满叫不了你', 'warn');
+      return;
+    }
+    showToast('小满只会在晚上 21:00 轻轻敲一下提醒你领签，不吵你', 'info');
+    setTimeout(function () {
+      Notification.requestPermission().then(function (p) {
+        if (p === 'granted') {
+          try { localStorage.setItem('notify:time', '21:00'); } catch (eT) {}
+          showToast('好啦，小满会轻轻叫你～', 'ok');
+        } else if (p === 'denied') {
+          showToast('没关系，你想来时小满都在', 'info');
+        }
+        var _nr2 = el('notifySoftRow');
+        if (_nr2) _nr2.hidden = true;
+      });
+    }, 1200);
+  });
   /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
   on('copyXhs', function () {
     if (!window.__lastDaily) {
@@ -12277,6 +12298,13 @@ function init() {
   try { initReading(); } catch (eR) { console.warn('[init] reading', eR); }
   try { initDivination(); } catch (eD) { console.warn('[init] divination', eD); }
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
+  /* R3264（R38）：通知软提示——仅浏览器未决定权限时露出按钮。 */
+  try {
+    var _nr = el('notifySoftRow');
+    if (_nr && 'Notification' in window && Notification.permission === 'default') {
+      _nr.hidden = false;
+    }
+  } catch (eN) {}
   /* R3207：时辰对照表——「知道子时不知道几点」的用户此前要切出去查；
    * 每个出生时辰输入框尾巴挂一张可展开的 12 时辰表。 */
   ['hour', 'th_hour', 'qm_hour', 'hh_a_hour', 'hh_b_hour', 'b_hour',
@@ -15940,7 +15968,7 @@ function baziPersonaCard(j) {
         var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
                       'installTipDismissed', 'ret_tip', 'wishbottle',
                       'chat:topics', 'chat:cards', 'remind:1',
-                      'chat:events', 'mood:lv'];   /* R3260：R6/R7 新键 */
+                      'chat:events', 'mood:lv', 'notify:time'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -16078,7 +16106,7 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 k.indexOf('checkin:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||

@@ -579,6 +579,11 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 /* R3264（R28）：显式 PWA 安装按钮 */
 .install-pwa-row{margin:12px 0 0; text-align:center;}
 .install-pwa-row .ghost{font-size:12px; padding:6px 14px;}
+/* R3264（R38）：通知软提示 */
+.notify-soft-row{margin:12px 0 0; text-align:center; color:var(--muted);
+  font-size:11px;}
+.notify-soft-row .ghost{font-size:12px; padding:6px 14px;}
+.notify-soft-row p{margin:4px 0 0;}
 /* R3264（R32）：今日仪式——宜试试后面的「做完了」按钮 */
 .daily-ritual{display:block; margin:8px auto 0; font-size:12px;
   padding:5px 14px; border-radius:999px; border:1px solid var(--border);
