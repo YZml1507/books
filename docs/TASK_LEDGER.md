@@ -17512,3 +17512,11 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
   收 wallpapers/*。
 - 闸门：probe_daily_wap.py 真机冒烟（填生日礼物流→点钮→断言
   懒载/浮层 PNG/零 pageerror）PASS；ui_smoke 101/101 收编。
+
+## R3317-B — 吉日稀有度（调研-B P1）
+
+- /api/huangli affair 响应：≤45 天窗口按命中月各补一次月窗扫描，
+  每个 good_days 项带 month_rank（本月第N个）+ month_total（本月共M个）。
+- 前端挑吉日榜：chip 悬停注加「X月第N个吉日」；榜同月且月内
+  ≤8 个时榜尾出稀缺注「N月共 M 个吉日」。
+- selftest 新增 huangli.affair.month_rank 值域断言。
