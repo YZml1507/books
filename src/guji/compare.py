@@ -43,6 +43,7 @@ Two normalisation notes, both learned by breaking them (L-18):
 from __future__ import annotations
 
 import difflib
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
 
 from .evalset import in_space
@@ -126,8 +127,10 @@ EDITION_PAIRS = (
 # same adjacent-block collapse — via a suffix automaton at O(len) per branch.
 # Small pairs stay on the stdlib implementation; SAM build cost is also bounded by a
 # per-pair budget that hands the remaining queue back to difflib if ever exceeded.
-_FAST_DIFF_MIN = 4_000_000   # len(ref)*len(other) product above which difflib is slow enough to matter
-_SAM_BUDGET = 12             # Σ SAM-built branch lengths may not exceed budget × (len(a)+len(b))
+_FAST_DIFF_MIN = 1_000_000   # len(ref)*len(other) product above which difflib is slow enough to matter
+_SAM_BRANCH_MIN = 100_000    # fallback mode: a-branch×b-branch product below which difflib is trivial
+_SAM_BUDGET = 12             # fallback mode: Σ SAM-built branch lengths cap at budget × (len(a)+len(b))
+_ENDPOS_CAP = 400_000        # Σ endpos entries above which single-SAM mode falls back to per-branch SAM
 
 
 def _sam_build(s: str):
@@ -170,6 +173,45 @@ def _sam_build(s: str):
     return nxt, link, mlen, minpos
 
 
+def _sam_build_full(s: str):
+    """_sam_build + `lasts` — the state each prefix ends in (for endpos sets)."""
+    nxt: list[dict[str, int]] = [{}]
+    link = [-1]
+    mlen = [0]
+    minpos = [0]
+    lasts: list[int] = []
+    last = 0
+    for i, c in enumerate(s):
+        cur = len(mlen)
+        nxt.append({})
+        link.append(0)
+        mlen.append(i + 1)
+        minpos.append(i)
+        p = last
+        while p != -1 and c not in nxt[p]:
+            nxt[p][c] = cur
+            p = link[p]
+        if p == -1:
+            link[cur] = 0
+        else:
+            q = nxt[p][c]
+            if mlen[p] + 1 == mlen[q]:
+                link[cur] = q
+            else:
+                clone = len(mlen)
+                nxt.append(dict(nxt[q]))
+                link.append(link[q])
+                mlen.append(mlen[p] + 1)
+                minpos.append(minpos[q])
+                while p != -1 and nxt[p].get(c) == q:
+                    nxt[p][c] = clone
+                    p = link[p]
+                link[q] = link[cur] = clone
+        last = cur
+        lasts.append(cur)
+    return nxt, link, mlen, minpos, lasts
+
+
 def _lcs_match(a: str, alo: int, ahi: int, b: str, blo: int, bhi: int,
                autom) -> tuple[int, int, int]:
     """find_longest_match(a, alo, ahi, b, blo, bhi) with autojunk=False — the automaton
@@ -203,22 +245,103 @@ def _lcs_match(a: str, alo: int, ahi: int, b: str, blo: int, bhi: int,
     return besti, bestj, bestsize
 
 
+def _lcs_match_range(a: str, alo: int, ahi: int, b: str, blo: int, bhi: int,
+                     nxt, link, mlen, endpos) -> tuple[int, int, int]:
+    """find_longest_match over the branch (alo,ahi,blo,bhi) using ONE automaton
+    built on the whole b plus per-state sorted endpos lists — so occurrences can
+    be filtered to [blo, bhi) instead of rebuilding the automaton per branch.
+
+    For each position i the automaton walk gives (l, v): the longest substring
+    of b ending at a[i].  If its earliest occurrence lies outside the branch we
+    climb suffix links: state w's band (link[w].maxlen, w.maxlen] shares
+    endpos[w], so the longest in-range match at i is the largest l' ≤ l with an
+    endpos E in [blo+l'-1, bhi-1] — found per band via the largest E ≤ bhi-1.
+    Tie-break identical to difflib: strict improvement while i ascends, then the
+    smallest in-range end index."""
+    besti, bestj, bestsize = alo, blo, 0
+    v = l = 0
+    bl = bisect_left
+    br = bisect_right
+    for i in range(alo, ahi):
+        c = a[i]
+        while v and c not in nxt[v]:
+            v = link[v]
+            l = mlen[v]
+        u = nxt[v].get(c)
+        if u is None:
+            v = l = 0
+            continue
+        v = u
+        l += 1
+        if l <= bestsize:
+            continue                    # cannot improve — skip the climb
+        w = v
+        li = 0
+        j = 0
+        while w:
+            ep = endpos[w]
+            idx = br(ep, bhi - 1) - 1   # largest occurrence end ≤ bhi-1
+            if idx >= 0:
+                lp = ep[idx] - blo + 1  # max l' this end can start at ≥ blo
+                if lp > l:
+                    lp = l
+                if lp > mlen[w]:
+                    lp = mlen[w]
+                if lp > mlen[link[w]]:
+                    li = lp             # feasible in this band
+                    j = ep[bl(ep, blo + lp - 1)] - lp + 1
+                    break
+            w = link[w]
+        if li > bestsize:
+            besti, bestj, bestsize = i - li + 1, j, li
+    # Non-junk equal-char extension — identical to difflib (autojunk=False).
+    while besti > alo and bestj > blo and a[besti - 1] == b[bestj - 1]:
+        besti, bestj, bestsize = besti - 1, bestj - 1, bestsize + 1
+    while besti + bestsize < ahi and bestj + bestsize < bhi \
+            and a[besti + bestsize] == b[bestj + bestsize]:
+        bestsize += 1
+    return besti, bestj, bestsize
+
+
 def _opcodes_long(a: str, b: str) -> list[tuple[str, int, int, int, int]]:
     """get_opcodes() of SequenceMatcher(a, b, autojunk=False), byte-identical,
     replacing the per-branch b2j scan with suffix-automaton longest matches."""
     la, lb = len(a), len(b)
-    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    nxt, link, mlen, _minpos, lasts = _sam_build_full(b)
+    # endpos[v] = sorted end indices of every occurrence of v's substrings —
+    # position i belongs to all ancestors of lasts[i] in the suffix-link tree.
+    # Lists stay sorted because i is appended in ascending order.
+    endpos: list[list[int]] = [[] for _ in range(len(mlen))]
+    total = 0
+    single = True
+    for i, st in enumerate(lasts):
+        while st:
+            endpos[st].append(i)
+            st = link[st]
+            total += 1
+            if total > _ENDPOS_CAP:
+                single = False
+                break
+        if not single:
+            break
+
+    sm = None                   # lazy: only built if a difflib branch is ever needed
     budget = _SAM_BUDGET * (la + lb)
     spent = 0
     queue = [(0, la, 0, lb)]
     matching_blocks: list[tuple[int, int, int]] = []
     while queue:
         alo, ahi, blo, bhi = queue.pop()
-        if spent <= budget and (ahi - alo) * (bhi - blo) >= _FAST_DIFF_MIN:
+        if single:
+            i, j, k = _lcs_match_range(a, alo, ahi, b, blo, bhi,
+                                       nxt, link, mlen, endpos)
+        elif spent <= budget and (ahi - alo) * (bhi - blo) >= _SAM_BRANCH_MIN:
             spent += bhi - blo
             i, j, k = _lcs_match(a, alo, ahi, b, blo, bhi,
                                  _sam_build(b[blo:bhi]))
         else:
+            if sm is None:
+                sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
             i, j, k = sm.find_longest_match(alo, ahi, blo, bhi)
         if k:
             matching_blocks.append((i, j, k))
