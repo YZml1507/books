@@ -15459,6 +15459,11 @@ function _checkinCelebrate(streak, opt) {
     '，记得明天也来</div>' +
     '<div class="celeb-row">' +
     '<button type="button" class="celeb-share">📸 晒一下</button>' +
+    /* R3319（规划C）：7 天起送连签限定壁纸——里程碑奖励落实物，
+     * 同日出图、纪念标落款，可直接晒。 */
+    (streak >= 7
+      ? '<button type="button" class="celeb-wap">🎁 领限定壁纸</button>'
+      : '') +
     '<button type="button" class="celeb-x">收下好运</button>' +
     '</div></div>';
   /* R233f（R43-P1-1）：celeb 此前是假模态——焦点不进、Esc 不关、
@@ -15495,6 +15500,18 @@ function _checkinCelebrate(streak, opt) {
   if (sh) sh.addEventListener('click', function () {
     var p = downloadPoster({ streak: streak, pick: opt }, 'checkin');
     if (p && p.catch) p.catch(function () {});
+    _close();
+  });
+  /* R3319（规划C）：连签限定壁纸——种子/落款/文件名带纪念标；
+   * 壁纸 chunk 惰性加载，downloadWallpaper 存根已代理参数。 */
+  var wp = bd.querySelector('.celeb-wap');
+  if (wp) wp.addEventListener('click', function () {
+    var _j = window.__lastDaily;
+    if (!_j) { showToast('今日运势还没出来，等它算好再领～', 'warn'); return; }
+    downloadWallpaper(_j, {
+      tag: '连签 ' + streak + ' 天纪念 · 小满的解忧铺',
+      fname: '连签' + streak + '天'
+    });
     _close();
   });
   /* R2349h（R69-P2-10）：先挂节点再 inert 并把 bd 传入 except——

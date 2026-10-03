@@ -52,7 +52,7 @@ function _wapWrap(ctx, text, maxW, maxLines) {
   return lines;
 }
 
-function _wapComposite(j, bg) {
+function _wapComposite(j, bg, variant) {
   var cv = document.createElement('canvas');
   cv.width = 720; cv.height = 1280;
   var ctx = cv.getContext('2d');
@@ -141,20 +141,25 @@ function _wapComposite(j, bg) {
   _sl.forEach(function (ln, i) { ctx.fillText(ln, 360, 1120 + i * 52); });
   ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.72)';
-  ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1242);
+  /* R3319（规划C）：连签里程碑限定壁纸——落款带纪念标，
+   * 仪式感奖励物可直发晒图。 */
+  ctx.fillText((variant && variant.tag) ||
+               '@小满的解忧铺 · 知命·仅供娱乐', 360, 1242);
   return cv;
 }
 
-function downloadWallpaper(j) {
+function downloadWallpaper(j, variant) {
   if (!j || !j.date) {
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
     return null;
   }
-  var _n = _wapSeed(j.date);
+  /* R3319（规划C）：里程碑变体——种子混入 tag 拿异图、
+   * 落款/文件名带纪念标。 */
+  var _n = _wapSeed(j.date + ((variant && variant.tag) || ''));
   var _nm = 'wap-' + ('0' + _n).slice(-2);
   return _wapImg('/static/wallpapers/' + _nm + '.jpg')
     .then(function (bg) {
-      var cv = _wapComposite(j, bg);
+      var cv = _wapComposite(j, bg, variant);
       /* 落盘（与海报同款 a.download；移动端走浮层长按） */
       try {
         cv.toBlob(function (blob) {
@@ -162,7 +167,8 @@ function downloadWallpaper(j) {
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           var _ymd = String(j.date || '').replace(/-/g, '');
-          a.download = '小满-开运壁纸-' + _ymd + '.png';
+          a.download = '小满-开运壁纸-' + _ymd +
+            ((variant && variant.fname) ? '-' + variant.fname : '') + '.png';
           document.body.appendChild(a);
           try { a.click(); } finally {
             setTimeout(function () {
