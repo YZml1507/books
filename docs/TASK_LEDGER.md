@@ -17578,3 +17578,16 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - 月初首个到访日给「上月小信」卡：本地聚合上月打卡天数/心情天数+主心情/小记篇数/最长连签，月一句节令收尾
 - 门槛：打卡≥3 或记心情≥4 或小记≥2 才下信（纯浏览不打扰）；monthlyLetter:YYYY-MM 键落档每月一封
 - 信卡收下钮 dataset.bound 委托、storage 监听、双通道 GC 族清单、淡紫色系 .ml-letter 均补齐
+
+## R3320 移动表单审计清零（2026-10-03）
+- P1-1 备份导入单次 POST 撞 512KB 体界（~11 条即 413「读不懂」）：records 按 ~280KB 分批顺发（端点幂等去重），threads 随首批；解析失败与传输失败分说——「读不懂」只留给 JSON 解析失败；「刷新后生效」虚惊文案去除。
+- P1-2 未来年生辰统一收口进 `_meSave`：合并写后生辰在未来即整写拒收+温和 toast——所有直写路径（bazi 表单/dailyAsk/合婚/邀请链）一并拦住，解读照跑不污染回填矩阵。
+- P2 renge：`_ENTER_SUBMIT` 补 `'view-renge':'rgSubmit'`（此前 Enter 死键）；`rg_*` 补 `_badYmdField`+`_badRange` 本地校验（此前 32 号/13 月直达后端 422）。
+- P2 触控字号：`#journalInput`、`.export-modal-ta` 12px→16px（iOS 自动放大不再触发）。
+- P2 dailyAsk 占位符「年/月/日」→ 实例值「1995/3/8/19·可空」。
+- P3 读屏视图 Enter 死角：rmax→doSearch、cgua/cyao→doCompare、bsaddr1/bsname/bsfile→doBookChapter 六框补绑。
+- P3 hl-week 窄屏（≤400px）改横向滑列+右缘渐隐（minmax(46px,1fr)+mask-image）。
+- P3 hl_* 非法日期按出错格点名（年→界提示/日月→「N 月没有 N 号」），不再一律「再看看日期」。
+- P3 dailyAsk `_bad` 补 `f.focus()`（红框不聚焦=软键盘收起后看不见错）。
+- P3 `fail`/`failWithRetry` is-working 分支撤 toast——fail-line 贴卡内后同文案不再双出（与 `_failField` 口径并轨）。
+- 闸门：selftest 386 / contract 716 / ui_smoke 101 / poster 9 视图 / ruff / daily_wap / first_screen 全绿。

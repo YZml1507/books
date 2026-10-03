@@ -335,7 +335,8 @@ function failWithRetry(id, text, retryFn) {
     node.prepend(_e2);
     var _b2 = _e2.querySelector('[data-retry]');
     if (_b2) _b2.addEventListener('click', retryFn);
-    showToast(_humanizeErr(text), 'warn');
+    /* R3320-P3：双通道复读——fail-line 已贴卡内，toast 同文案不再双出
+     * （与 _failField 的既有口径一致；读屏另有 _srSay）。 */
     _srSay('有点小状况：看看页面提示');
     return;
   }
@@ -365,7 +366,7 @@ function fail(id, text) {
     _e.className = 'fail-line';
     _e.textContent = _humanizeErr(text);
     _n.prepend(_e);
-    showToast(_humanizeErr(text), 'warn');
+    /* R3320-P3：同上——卡内已有错误行，toast 不双出。 */
     _srSay('有点小状况：看看页面提示');
     return;
   }
@@ -10104,7 +10105,11 @@ async function _doHuangli(offset, reveal, spokenWord) {
     var _badF = _badRange('hl_year', 1900, 2100) ? 'hl_year'
       : (_badYmdField('hl_year', 'hl_month', 'hl_day') || null);
     if (_badF) {
-      _failField(_badF, null, '这天查不了，再看看日期？');
+      /* R3320-P3：错误按出错格点名——不分日月年都一句「再看看日期」。 */
+      _failField(_badF, null,
+        _badF === 'hl_year' ? '年份要在 1900–2100 之间'
+          : '这一天不存在——' + num('hl_month') + ' 月没有 ' +
+            num('hl_day') + ' 号');
       return;
     }
   }
@@ -11349,7 +11354,23 @@ async function doRenge() {
   if (!box) return;
   var y = num('rg_year'), m = num('rg_month'), d = num('rg_day');
   if (y == null || m == null || d == null) {
-    showToast('年月日都填上才能看型哦', 'warn');
+    /* R3320-P2：人格此前空字段只 toast——与兄弟视图同口径
+     * 改就地红框+聚焦+就地区提示。 */
+    _failField(y == null ? 'rg_year'
+      : (m == null ? 'rg_month' : 'rg_day'),
+      'rgResult', '年月日都填上才能看型哦');
+    return;
+  }
+  /* R3320-P2：rg_* 无任何本地日期校验——32 号/13 月直达后端
+   * 422。与 bazi 同口径前端先拦。 */
+  var _rb = _badYmdField('rg_year', 'rg_month', 'rg_day');
+  if (_rb) {
+    _failField(_rb, 'rgResult',
+      '这一天不存在。' + m + ' 月没有 ' + d + ' 号');
+    return;
+  }
+  if (_badRange('rg_year', 1900, 2100)) {
+    _failField('rg_year', 'rgResult', '年份要在 1900–2100 之间');
     return;
   }
   busy('rgResult', '小满正在看你是哪一型…');
@@ -11868,7 +11889,14 @@ function initReading() {
    ['tq', 'threadBtn', doThread],
    ['bswork', 'bswork', doBookStructure], ['aguan', 'addrBtn', doAddr],
    ['ayao', 'addrBtn', doAddr],
-   ['aname', 'addrBtn', doAddr], ['aaddr1', 'addrBtn', doAddr]
+   ['aname', 'addrBtn', doAddr], ['aaddr1', 'addrBtn', doAddr],
+   /* R3320-P3：同视图内 Enter 死角补全——rmax/cgua/cyao/bs* 六框
+    * 此前按回车无响应（bs 三框喂 doBookChapter 的 addr 参数）。 */
+   ['rmax', 'searchBtn', doSearch],
+   ['cgua', 'compareBtn', doCompare], ['cyao', 'compareBtn', doCompare],
+   ['bsaddr1', 'bschapter', doBookChapter],
+   ['bsname', 'bschapter', doBookChapter],
+   ['bsfile', 'bschapter', doBookChapter]
   ].forEach(function (pair) {
     const node = el(pair[0]);
     if (node) {
@@ -12206,7 +12234,9 @@ function initDivination() {
     'view-huangli': 'hlSubmit',
     /* R230t（R33-P3-15）：b_* 其实在 view-xingzuo 的 <details> 里、
      * 不在任何 <form> 中——此前回车是死键。xz_* 是 select 不吃此委托。 */
-    'view-xingzuo': 'birthSubmit'
+    'view-xingzuo': 'birthSubmit',
+    /* R3320-P2：人格视图漏网——Enter 是死键（移动键盘「前往」无效）。 */
+    'view-renge': 'rgSubmit'
     /* view-bazi 是真 <form>，Enter 原生已提交。 */
   };
   document.addEventListener('keydown', function (e) {
@@ -13196,6 +13226,8 @@ function init() {
           f.removeEventListener('input', clr);
         };
         f.addEventListener('input', clr);
+        /* R3320-P3：红框但不聚焦——软键盘收起后用户看不见错在哪。 */
+        try { f.focus(); } catch (eFoc) {}
       }
       showToast(tip, 'warn');
     }
@@ -15740,6 +15772,17 @@ function _meSave(key, rec) {
    * localStorage 绕过本函数的极端路径另有 _chatFacts 处兜底。 */
   if ('n' in rec) rec = Object.assign({}, rec, {n: _meNickClean(rec.n)});
   var _merged = Object.assign(old, rec);
+  /* R3320-P1-2：未来年生辰统一收口——所有直写 _meSave 的路径
+   * （bazi 表单/dailyAsk/昵称单改等）合并后生辰在未来即整写
+   * 拒收。解读照跑不落档，手滑不污染回填矩阵。 */
+  try {
+    var _fyT = new Date(+_merged.y, +_merged.m - 1, +_merged.d);
+    var _fyN = new Date(); _fyN.setHours(23, 59, 59, 0);
+    if (+_merged.y && _fyT > _fyN) {
+      showToast('这个生日还没到哦——帮你排了盘，但不写进档案', 'info');
+      return;
+    }
+  } catch (eFY0) {}
   /* R3306-P2：在途写无免疫——lunar 换算/异步链回包时另一 tab 刚
    * wipe 完，旧生辰落盘=复活。写前重读墓碑，变了即弃写。 */
   try {
@@ -15812,6 +15855,8 @@ async function _meSaveFromBirth(key, opts) {
         }
       } catch (eN) {}
     }
+    /* R3320-P1-2：未来年由 _meSave 统一收口（含农历换算后的
+     * 公历坐标）——此处不再重复判，直接落。 */
     _meSave(key, rec);
   } catch (e) {}
 }
@@ -17573,16 +17618,23 @@ function baziPersonaCard(j) {
   /* R2500（R143-P2-8）：备份导入主路径抽成文本入口——文件读入与
    * 粘贴弹层共用。 */
   async function _importBackupText(_txt) {
+        var bundle = null;
+        try { bundle = JSON.parse(_txt); } catch (ePJ) {}
+        if (bundle && bundle.kind === 'backup' && bundle.version === 1) {
+          /* ok */ } else if (bundle && bundle.kind === 'backup') {
+          showToast('这版备份格式不认识：用小满最新版导出的再试', 'warn');
+          return;
+        } else if (bundle) {
+          showToast('这不是小满的备份文件', 'error');
+          return;
+        } else {
+          /* R3320-P1-1②：解析失败与传输失败分说——JSON 都读不出来
+           * 才说「读不懂」，网络断不能背这个锅。 */
+          showToast('这段不是完整的备份文本：从头「{」到尾「}」整段贴',
+            'error');
+          return;
+        }
         try {
-          var bundle = JSON.parse(_txt);
-          if (!bundle || bundle.kind !== 'backup') {
-            showToast('这不是小满的备份文件', 'error');
-            return;
-          }
-          if (bundle.version !== 1) {
-            showToast('这版备份格式不认识：用小满最新版导出的再试', 'warn');
-            return;
-          }
           var local = bundle.browser || {};
           Object.keys(local).forEach(function (k) {
             /* 只收认识的键——备份文件是用户可控输入，不写任意键 */
@@ -17699,17 +17751,37 @@ function baziPersonaCard(j) {
           var _thr = (bundle.threads || []).filter(function (t) {
             return t && typeof t === 'object' && !Array.isArray(t);
           });
-          if (_thr.length) _impBody.threads = _thr.slice(0, 50);
           if (_recs.length || _thr.length) {
-            const rj = await postJSON('/api/paipan/history/import', _impBody);
-            n = (rj.imported || 0);
-            _nThr = (rj.threads_imported || 0);
+            /* R3320-P1-1①：单次 POST 撞服务端 512KB 体界——
+             * ~11 条排盘记录即 413「读不懂」。按 ~280KB 分批顺发，
+             * 端点幂等去重可安全分片；threads 随首批走。 */
+            var _CHUNK = 280 * 1024;
+            var _batches = [], _cur = [], _curSize = 0;
+            _recs.slice(0, 500).forEach(function (r) {
+              var _rs = JSON.stringify(r).length + 1;
+              if (_cur.length && _curSize + _rs > _CHUNK) {
+                _batches.push(_cur); _cur = []; _curSize = 0;
+              }
+              _cur.push(r); _curSize += _rs;
+            });
+            if (_cur.length) _batches.push(_cur);
+            if (!_batches.length && _thr.length) _batches.push([]);
+            var _newRecs = [];
+            for (var _bi = 0; _bi < _batches.length; _bi++) {
+              var _impBody = { records: _batches[_bi] };
+              if (_bi === 0 && _thr.length) _impBody.threads = _thr.slice(0, 50);
+              const rj = await postJSON('/api/paipan/history/import', _impBody);
+              n += (rj.imported || 0);
+              if (_bi === 0) _nThr = (rj.threads_imported || 0);
+              if (Array.isArray(rj.new_records)) {
+                _newRecs = _newRecs.concat(rj.new_records);
+              }
+            }
             /* R2400（R127-P2-5）：导入回灌详情——后端返回新行
              * {id,ts,name,type}，按去重键（与后端同口径截断）匹配
              * 本地 bundle 行，把完整 req/result 写进镜像详情——
              * Render 清盘后点开留档依旧有完整排盘。 */
-            if (n && Array.isArray(rj.new_records) &&
-                rj.new_records.length) {
+            if (n && _newRecs.length) {
               var _mmI = _phMirrorLoad();
               var _byKey = {};
               _recs.forEach(function (r) {
@@ -17721,7 +17793,7 @@ function baziPersonaCard(j) {
                           String(r.type || '');
                 if (!_byKey[_bk]) _byKey[_bk] = r;
               });
-              rj.new_records.forEach(function (nr) {
+              _newRecs.forEach(function (nr) {
                 var _row = _byKey[String(nr.ts || '') + '|' +
                                   String(nr.name || '') + '|' +
                                   String(nr.type || '')];
@@ -17759,7 +17831,9 @@ function baziPersonaCard(j) {
           var _msg = '导入好了：多了 ' + n + ' 条记录' +
             (_nThr ? ' + ' + _nThr + ' 个研究线程' : '') +
             (_fvN ? ' + ' + _fvN + ' 条收藏' : '') +
-            '，偏好也回来了（刷新后生效）' +
+            /* R3320-P1-1③：视图其实已就地刷新——「刷新后生效」
+             * 是虚惊文案，去掉括号。 */
+            '，偏好也回来了' +
             (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
           showToast(_msg, 'info');
           /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的
@@ -17771,7 +17845,10 @@ function baziPersonaCard(j) {
           } catch (eBC2) {}
           loadPaipanHistory();
         } catch (e) {
-          showToast('导入失败：这份备份文件读不懂，确认贴的是完整那段 JSON 再试', 'error');
+          /* R3320-P1-1②：能走到这只剩传输失败——本地偏好与已传
+           * 分批都落了，文案说真话不甩「读不懂」。 */
+          showToast('偏好已恢复，记录导到一半断了：联网后再点一次导入',
+            'error');
         }
   }
   /* R2500（R143-P2-8）：粘贴导入弹层——与导出文本弹层对称

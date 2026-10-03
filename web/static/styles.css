@@ -1765,7 +1765,7 @@ details.warm-pro-fold > summary{
   padding:6px 10px; background:var(--card);}
 .chat-journal summary{cursor:pointer; color:var(--accent-ink); outline:none;}
 .chat-journal-body{margin-top:6px; display:flex; gap:6px; align-items:center;}
-#journalInput{flex:1; font:inherit; font-size:12px; padding:4px 8px;
+#journalInput{flex:1; font:inherit; font-size:16px; padding:4px 8px;
   border:1px solid var(--border); border-radius:6px; background:#fff;}
 #journalSave{font:inherit; font-size:12px; padding:4px 10px;
   border-radius:6px; border:1px solid var(--border); cursor:pointer;
@@ -2225,7 +2225,7 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 .export-modal-ta{
   width:100%; height:100%; min-height:38vh; max-height:60vh;
   resize:none; border:1px solid var(--border); border-radius:12px;
-  padding:10px; font-size:12px; line-height:1.6;
+  padding:10px; font-size:16px; line-height:1.6;
   background:var(--card); color:var(--text);
   font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
   -webkit-user-select:text; user-select:text;
@@ -2584,6 +2584,16 @@ body[data-view]:not([data-view="home"]) .return-banner{display:none;}
   /* R3215：宜/忌词是格子里唯一的实质内容——不再往 10px 降，
    * 靠 cell padding 收缩腾位置。 */
   .hl-week-cell{padding:6px 1px;}
+  /* R3320-P3：7 格挤进 320–400px 已贴边——窄机改横向滑列，
+   * 右缘渐隐暗示还能滑（-webkit-mask 对 grid 列同样生效）。 */
+  .hl-week-row{
+    grid-template-columns:repeat(7,minmax(46px,1fr));
+    overflow-x:auto;
+    -webkit-mask-image:linear-gradient(to right,#000 88%,transparent);
+    mask-image:linear-gradient(to right,#000 88%,transparent);
+    scrollbar-width:none;
+  }
+  .hl-week-row::-webkit-scrollbar{display:none;}
 }
 
 /* ── R231d（R39 批）：留存钩子 ── */
