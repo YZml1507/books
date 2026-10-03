@@ -295,6 +295,17 @@ async function doCompare() {
       });
       html += '</div>';
     }
+    /* R3305（审-P1-3）：质量闸门扣下的见证此前只在 API 层披露、UI 吞掉
+     * ——用户不知道「其实还有一本被扣下」。如实披露出来。 */
+    if (j.flagged && Object.keys(j.flagged).length) {
+      var _fl = j.flagged;   // {work_id: suspect 标记}
+      html += '<div class="no-evidence" style="margin-top:10px;">⚠ 另有 ' +
+        Object.keys(_fl).length + ' 本见证被质量闸门扣下、未参与比对：' +
+        Object.keys(_fl).map(function (wid) {
+          var _nm = humanCite((j.citations || {})[wid] || '') || wid;
+          return esc(_nm) + '（' + esc(_fl[wid]) + '）';
+        }).join('、') + '</div>';
+    }
     // 实测字段：findings[].line（已格式化的一行）+ kind/at/base/others/note。
     if (j.findings && j.findings.length) {
       html += '<h3 style="margin-top:16px;">差异明细</h3>';
@@ -757,7 +768,9 @@ async function doBookStructure() {
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
       html += '<tr' + (_isFile && s.label
-          ? ' class="sec-pick" data-secfile="' + esc(s.label) + '" title="读这一节"'
+          ? ' class="sec-pick" data-secfile="' + esc(s.label) +
+            '" title="读这一节" tabindex="0" role="button" aria-label="读这一节 ' +
+            esc(_secLabel(s.label) || s.label || '') + '"'
           : '') + '><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +
         '<td class="num">' + esc(s.n_units) + '</td>' +
         '<td class="num">' + esc(s.chars) + '</td>' +

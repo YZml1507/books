@@ -317,7 +317,7 @@ function _paintSharePoster(s, W, H) {
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
   var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
-                   taohua: 5, hehun: 6,
+                   taohua: 5, hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -369,6 +369,15 @@ function _paintSharePoster(s, W, H) {
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
       var y = cardY + i * lh + 10;
+      /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
+       * 上得了图；点在标签左侧固定位。 */
+      var _dotY = cardY + i * lh + Math.round(lh / 2);
+      if (r.dot) {
+        ctx.fillStyle = r.dot;
+        ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(62,52,40,.25)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.stroke();
+      }
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
       if (_rowInline) {
@@ -404,7 +413,9 @@ function _paintSharePoster(s, W, H) {
       ctx.fillText(_vv, _kx, _rowInline ? y : y + 52);
       /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
        * share 模板只印字。文字照画，色块排在值右侧。 */
-      if (r.k === '幸运色') {
+      /* R3314（R3312-P2-6）：护身符海报行键是「开运色」——原只认
+       * 「幸运色」，色点永不画。放宽两键。 */
+      if (r.k === '幸运色' || r.k === '开运色') {
         var _cmap = { 红: '#C0392B', 紫: '#8E44AD', 黄: '#D4AC0D',
           棕: '#8D6E63', 黑: '#2C3E50', 蓝: '#2874A6', 青: '#148F77',
           绿: '#27AE60', 白: '#F2F3F4', 金: '#B7950B', 粉: '#FF8FAB',
@@ -481,8 +492,11 @@ function _paintSharePoster(s, W, H) {
         try {
           /* R3260：drawImage 硬拉伸→contain 适配——RWS 竖牌被
            * 226×270 横向拉胖 ~47%、日签横幅会被拉变形。保比例居中
-           * 铺满上限，米白衬底让留白不突兀。 */
-          var _tw = cw - 24, _th = ch - 130;
+           * 铺满上限，米白衬底让留白不突兀。
+           * R3316（审-P1）：图区缩到 ch-160、文字区整体上抬——
+           * 原 sub 基线 1250 的 28px 字形下沿叠进页脚品牌行
+           * （36px 上沿 ~1240），五张海报底区糊字。 */
+          var _tw = cw - 24, _th = ch - 160;
           var _iw = c.img.naturalWidth || c.img.width || 1;
           var _ih = c.img.naturalHeight || c.img.height || 1;
           var _sc = Math.min(_tw / _iw, _th / _ih);
@@ -496,7 +510,7 @@ function _paintSharePoster(s, W, H) {
             cy + 12 + Math.round((_th - _dh) / 2), _dw, _dh);
           ctx.restore();
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
-        iy = cy + ch - 118;
+        iy = cy + ch - 148;
       }
       /* R3254h（用户实测「鬼/可怕的东西」末字消失）：两重修正——
        * ①此前 textAlign 残留为 left，cx+cw/2 起点右偏、长名冲出
@@ -519,8 +533,10 @@ function _paintSharePoster(s, W, H) {
   /* 水印行 */
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
   /* R2350d（R100-P2-5）：底部 CTA 区距画布底缘 6px 贴边——整张带
-   * 上移 32px，底缘留白 ~50px，长图在相册里不顶脚。 */
-  ctx.fillText('@小满的解忧铺', 540, 1288);
+   * 上移 32px，底缘留白 ~50px，长图在相册里不顶脚。
+   * R3304（审-P3）：品牌行基线 1288 vs 免责 pill 顶 1298 只差 10px，
+   * 字形下沿压在 pill 上——品牌行上移 12px 拉开。 */
+  ctx.fillText('@小满的解忧铺', 540, 1276);
   /* R230r（R29-#11）：免责声明是合规件——花纹底图上浅棕字几乎不可读，
    * 给文字垫一条半透明米白衬底，任何背景下都可读。 */
   ctx.fillStyle = 'rgba(253,248,240,0.78)';
@@ -585,6 +601,32 @@ function _paintSharePoster(s, W, H) {
   ctx.fillText(_host ? ('→ ' + _host + ' 测你的同款 ✨')
                      : '搜「小满的解忧铺」· 测你的同款 ✨',
                540, hook ? 1414 : 1382);
+  /* R3317-F：回流二维码——真实域名时画进 CTA pill 左端，
+   * 扫码即回站（window.qrcode 由 app.js 懒加载，缺席静默跳过）。 */
+  if (_host && typeof qrcode === 'function') {
+    try {
+      /* QR 边长顶到 pill 内高的上限——转发压缩后仍可扫
+       * （WeChat 长按识别对 <60px 的码失败率明显升）。 */
+      var _qh = hook ? 72 : 52;
+      var _qy = 1346 + ((hook ? 84 : 62) - _qh) / 2;
+      var _qu = (location.origin || '') + '/?from=poster';
+      var _qr = qrcode(0, 'M'); _qr.addData(_qu); _qr.make();
+      var _qn = _qr.getModuleCount();
+      var _qc = Math.floor(_qh / (_qn + 6));
+      var _qo = Math.floor((_qh - _qc * _qn) / 2);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      _roundRectPath(ctx, 84, _qy - 6, _qh + 12, _qh + 12, 10); ctx.fill();
+      ctx.fillStyle = '#4A3620';
+      for (var _rr = 0; _rr < _qn; _rr++) {
+        for (var _cc = 0; _cc < _qn; _cc++) {
+          if (_qr.isDark(_rr, _cc)) {
+            ctx.fillRect(90 + _qo + _cc * _qc,
+                         _qy + _qo + _rr * _qc, _qc, _qc);
+          }
+        }
+      }
+    } catch (eQR) { /* 画不出码就当没这功能 */ }
+  }
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
@@ -621,8 +663,8 @@ function _posterHookForView(view, j) {
   if (view === 'qiming' && _fn[0] && _fn[0].full_name) {
     var top = _fn[0];
     var _fe1 = j.five_elements || {};
-    var _ts = _qmScore(top, (_fe1.missing && _fe1.missing.length) ? _fe1.missing : (_fe1.weak || []));
-    return '首选「' + _pStr(top.full_name) + '」· 参考分 ' + (_ts.total || 0) + ' / 100';
+    /* R3319-P3：「参考分」工具腔出戏——海报钩子只说挑了哪个。 */
+    return '古籍给你挑了「' + _pStr(top.full_name) + '」';
   }
   /* taohua: 用桃花支 + 强度 */
   if (view === 'taohua' && j) {
@@ -642,6 +684,40 @@ function _posterHookForView(view, j) {
     return '你们是「' + _ha + ' 遇 ' + _hb + '」的路子 · ' +
       (j.day_wx_sheng ? '越处越热' : (j.day_wx_same ? '同气相属' : '互补也甜'));
   }
+  /* R3319-P2：7 个此前落万能胶水的视图补数据驱动钩子。 */
+  if (view === 'xzm' && j) {
+    var _xa = _pStr(j.a), _xb = _pStr(j.b), _xsc2 = _pStr(j.score);
+    if (_xa && _xb) {
+      return (_xa + '座 × ' + _xb + '座') +
+        (_xsc2 ? ' 的合拍指数在这' : ' 搭不搭？测出来了');
+    }
+  }
+  if (view === 'bazi-yearly' && j) {
+    var _yr2 = (j.calc && j.calc.yearly) || {};
+    if (_yr2.ganzhi) return _pStr(_yr2.ganzhi) + '年的节奏替你排好了';
+  }
+  if (view === 'dream' && j) {
+    var _ds2 = _pArr(j.symbols);
+    if (_ds2.length && _ds2[0].name) {
+      return '梦见「' + _pStr(_ds2[0].name) + '」——册子有话说';
+    }
+  }
+  if (view === 'bandaid') return '睡不着的时候，这张贴管用';
+  if (view === 'lucky' && j) {
+    var _lc3 = _pStr(j.lucky && j.lucky.color);
+    if (_lc3) return '今日开运色是「' + _lc3 + '」';
+  }
+  if (view === 'weekly' && j) {
+    var _vd = _pStr(j.visitDays);
+    if (_vd && _vd !== '0') return '这周小满陪了你 ' + _vd + ' 天';
+  }
+  if (view === 'renge' && j) {
+    var _rn2 = _pStr(j._nick), _re2 = _pStr(j._elCn);
+    if (_re2) {
+      return (_rn2 ? '「' + _rn2 + '」是' : '测出来了——你是') +
+        _re2 + '型人格';
+    }
+  }
   /* 默认文案版（R218a-11 原版）；
    * R233t（R51-P2-17）：5 个 view 共用同一句万能胶水——每 view 一句
    * 贴语境的。 */
@@ -653,7 +729,12 @@ function _posterHookForView(view, j) {
     'checkin': '新的一天，小满还在等你',
     'checkin-week': '一周七天，天天有签', 'checkin-month': '一个月的好运战报',
     'huangli': null,  /* R2350a（R94-P1-3）：写死「今天」是错话——下方按日词给 */
-    'birth':  '这张小卡是你的底色'
+    'birth':  '这张小卡是你的底色',
+    /* R3318（审-P3-1）：开运壁纸此前落通用兜底——给一句壁纸语境钩。 */
+    'daily-wap': '今日开运壁纸，换上就有好心情',
+    /* R3327-P1-2：hook 与 _os.big 同句→底 pill 与 y300 大字双印。
+     * 换差异钩。 */
+    'daily-outfit': '跟着五行穿，顺到不像话 →'
   };
   if (view === 'huangli' && hooks[view] == null) {
     /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */
@@ -756,11 +837,44 @@ function buildShareData(view, j) {
       try {
         var _lvArt = document.querySelector('#dailyLevel img.lv-b');
         if (_lvArt && _lvArt.complete && _lvArt.naturalWidth > 0) {
+          /* R3316（审-P1）：卡内再写一遍店名=与页脚品牌行双落款，
+           * 换成暖句（店名页脚已有）。 */
           _ds.cards = [{ img: _lvArt, name: '今日小天气',
-            sub: '小满的解忧铺' }];
+            sub: '把好天气装进口袋' }];
         }
       } catch (eLA) {}
+      /* R3319-G：今日牌缩略也上海报——与卡面同一张烘图；
+       * 位向与塔罗海报同口径写进 sub（缩略图不旋转，与
+       * 塔罗牌阵海报「逆位」只标注不翻图的先例一致）。 */
+      try {
+        var _dcEl2 = document.querySelector('#dailyTarot img.dc-thumb');
+        if (_dcEl2 && _dcEl2.complete && _dcEl2.naturalWidth > 0 &&
+            j.daily_card && j.daily_card.name) {
+          _ds.cards.push({ img: _dcEl2,
+            name: '今日牌 ' + _pStr(j.daily_card.name),
+            sub: j.daily_card.upright ? '正位' : '逆位' });
+        }
+      } catch (eDC) {}
       return _ds;
+    }
+    case 'daily-outfit': {
+      /* R3325：五行穿搭五档——色圆点用 lines 的 v 内联不了图，
+       * tier 色落成「tag：colors」行，大吉行加 ★。 */
+      var _of = (j && j.outfit) || {};
+      var _oTiers = _pArr(_of.tiers);
+      var _os = base('今日穿搭',
+        _cnDateSub(_pStr(j && j.date)) +
+          (_of.wx ? ' · ' + _of.wx + '日' : ''));
+      _os.big = '穿对颜色，今天顺一半';
+      _os.lines = _oTiers.map(function (t, i) {
+        return { k: _pStr(t.tag) + (i === 0 ? ' ★' : ''),
+                 dot: _pStr(t.hex) || null,
+                 v: _pStr(t.colors) + ' · ' + _pStr(t.tip) };
+      });
+      if (!_os.lines.length) {
+        _os.lines = [{ k: '大吉', v: '穿件亮色，提提气' }];
+      }
+      return _os;
     }
     case 'tarot': {
       var draws = _pArr(j && j.draws);
@@ -818,7 +932,13 @@ function buildShareData(view, j) {
       if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: _gSlice(_xzTd.love, 24) });
       if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: _gSlice(_xzTd.career, 24) });
       if (_xzTd && _xzTd.wealth) _xzl.push({ k: '财运', v: _gSlice(_xzTd.wealth, 24) });
-      sxz.lines = _xzl.slice(0, 3);
+      /* R3304（审-P3）：白卡稀疏补丁——星座日运补一条「今日方向」
+       * 次级行（sign_direction 确定性派生，非凑数字段）。 */
+      var _xzDir = (_xzTd && _xzTd.direction) || '';
+      var _xzDirTxt = { forward: '宜主动一点', hold: '宜稳住节奏',
+                        observe: '宜先看看风向' }[_xzDir];
+      if (_xzDirTxt) _xzl.push({ k: '今日方向', v: _xzDirTxt });
+      sxz.lines = _xzl.slice(0, 4);
       return sxz;
     }
     case 'liuyao': {
@@ -884,13 +1004,19 @@ function buildShareData(view, j) {
       var _qfeLine = _qmiss.length ? ('缺 ' + _qmiss.join('、') + ' · 专补它')
         : (_qweak.length ? ('五行偏弱，宜补：' + _qweak.join('、'))
            : '五行俱全');
+      /* R3304（审-P3）：备选连出两个同名标签 + 白卡稀——备选①②
+       * 编号 + 首选补「出处」次级行（origin 字段确定性派生）。 */
+      var _qAlt = ['', '①', '②'];
+      var _qOrigin = _pStr((_pArr(j && j.full_names)[0] || {}).origin);
       return { title: '五行起名',
         subtitle: '按五行补缺 · ' + _cnDateSub(todayIso()),
         big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
         lines: [{ k: '五行', v: _qfeLine }].concat(
           _pArr(j && j.full_names).slice(0, 3).map(function (n, i) {
             /* R2349s（R86-P2-6）：「推荐 N」编号腔——首选/备选。 */
-            return { k: (i === 0 ? '首选' : '备选'), v: _pStr(n && n.full_name) }; })),
+            return { k: (i === 0 ? '首选' : ('备选' + (_qAlt[i] || ''))),
+                     v: _pStr(n && n.full_name) }; })).concat(
+          _qOrigin ? [{ k: '名字出处', v: _gSlice(_qOrigin, 16) }] : []),
         cards: [], view: view };
     /* R218a-巡2（N-04）：补 3 case——之前 buildShareData 没有 bazi/taohua/hehun，
      * 直接走 default 返回 null，downloadPoster 拿不到 j.share，回落旧 bazi 专属
@@ -1062,6 +1188,31 @@ function buildShareData(view, j) {
       if (!sb.lines.length) sb.lines = [{ k: '结论', v: _gSlice(l0, 15) || '知己知命' }];
       return sb;
     }
+    /* R3304（审-P2）：五行人格海报此前套 'bazi' 模板——大标题
+     * 「今日命盘」与人格物口径脱节。人格名当主标，五行+判词当明细。 */
+    case 'renge': {
+      var _rgs = base('五行人格', '');
+      var _rn = _pStr(j && j._nick);
+      var _re = _pStr(j && j._elCn);
+      _rgs.big = _rn ? ('「' + _rn + '」') : (l0 || '测测你的五行人格');
+      _rgs.lines = [];
+      if (_re) _rgs.lines.push({ k: '五行人格', v: _re + '型' });
+      var _rgF = (((j || {}).calc || {}).five_elements || {}).counts || {};
+      var _rgTop = Object.keys(_rgF).sort(function (a, b) {
+        return (parseFloat(_rgF[b]) || 0) - (parseFloat(_rgF[a]) || 0);
+      }).slice(0, 2).join(' · ');
+      if (_rgTop) _rgs.lines.push({ k: '料比较足的是', v: _rgTop });
+      if (l0) _rgs.lines.push({ k: '一句话', v: _gSlice(l0, 18) });
+      if (!_rgs.lines.length) {
+        _rgs.lines = [{ k: '结论', v: '你是你这一型' }];
+      }
+      /* 人格形象卡同源直绘（与 birth/dream 同管线）。 */
+      if (j && j._art) {
+        _rgs.cards = [{ img: j._art, name: '我的五行人格',
+          sub: _pStr(j._artCap) || _rn || '日主定盘' }];
+      }
+      return _rgs;
+    }
     /* R3165：年度运势图——年底/生日季晒图格式（年度干支十神+顺劲/
      * 使劲月榜），数据源 calc.yearly.easy/hard（与 warm 行同口径）。
      * 月份只放「X月」——十神明细在卡面逐月条上，海报要一眼扫完。 */
@@ -1081,7 +1232,10 @@ function buildShareData(view, j) {
         : (l0 || '一年有一年的节奏');
       sy.lines = [];
       if (_yr.ganzhi && _yrRel) {
-        sy.lines.push({ k: '本年干支', v: _pStr(_yr.ganzhi) + ' · ' + _yrRel });
+        /* R3319-P2：十神原文（「丙午 · 正财」）同人话译名（「稳定财」）
+         * 并挂——明细行也过 _TGL，不然一图两语。 */
+        sy.lines.push({ k: '本年干支', v: _pStr(_yr.ganzhi) + ' · ' +
+          (_TGL[_yrRel] || _yrRel) });
       }
       var _ezM = _pArr(_yr.easy).map(function (s) {
         return _pStr(s).split('（')[0]; }).filter(Boolean);
@@ -1141,6 +1295,13 @@ function buildShareData(view, j) {
       var _stg = _pStr(j && j.strength);
       if (_stg) st.lines.push({ k: '桃花信号', v:
         ({ strong: '最近正旺', mid: '在慢慢升温', weak: '还在酝酿' })[_stg] || _stg });
+      /* R3304（审-P3）：白卡稀疏补丁——大运应期（dayun_hits 确定性
+       * 派生）补一条「旺期预告」。 */
+      var _dyh = _pArr(j && j.dayun_hits);
+      if (_dyh.length && _dyh[0].pillar) {
+        st.lines.push({ k: '旺期预告', v: _pStr(_dyh[0].pillar) + '运' +
+          (_dyh[0].year_start ? '（' + _dyh[0].year_start + ' 起）' : '') });
+      }
       if (!st.lines.length) st.lines = [{ k: '结论', v: _gSlice(l0, 15) || '桃花待时而动' }];
       return st;
     }
@@ -1257,7 +1418,7 @@ function buildShareData(view, j) {
         { k: '今晚试试', v: '把手机扣过去，喝口温水，先躺下' }];
       if (j && j._art) {
         _bd.cards = [{ img: j._art, name: '今夜小夜灯',
-          sub: '小满的解忧铺' }];
+          sub: '今晚也要好好睡' }];
       }
       return _bd;
     }
@@ -1299,7 +1460,7 @@ function buildShareData(view, j) {
         var _lvArt2 = document.querySelector('#dailyLevel img.lv-b');
         if (_lvArt2 && _lvArt2.complete && _lvArt2.naturalWidth > 0) {
           _lu.cards = [{ img: _lvArt2, name: '今日小天气',
-            sub: '小满的解忧铺' }];
+            sub: '把好天气装进口袋' }];
         }
       } catch (eL) {}
       return _lu;
@@ -1307,10 +1468,14 @@ function buildShareData(view, j) {
     case 'weekly': {
       /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */
       var _wk = base('小满周报', _cnDateSub(todayIso()));
-      _wk.big = '这周见了 ' + (_pStr(j && j.visitDays) || '0') + ' 次';
+      /* R3314：usage:d:* 按天计数，海报同口径改「天」。 */
+      _wk.big = '这周小满陪了你 ' + (_pStr(j && j.visitDays) || '0') + ' 天';
+      /* R3304（审-P3）：「—」裸破折号挂白卡太冷——换兜底文案。 */
       _wk.lines = [
-        { k: '主心情', v: _pStr(j && j.moodMain) || '—' },
-        { k: '常问', v: _pStr(j && j.topView) || '—' },
+        { k: '主心情', v: _pStr(j && j.moodMain) || '这周心情还没记' },
+        { k: '常问', v: _pStr(j && j.topView) || '还没怎么聊' },
+        /* R3314（R3314-journal）：小记篇数上卡——写下的事该被看见。 */
+        { k: '写小记', v: (_pStr(j && j.journalCount) || '0') + ' 篇' },
         { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' }];
       return _wk;
     }
@@ -1545,6 +1710,11 @@ function wrapText3(ctx, text, maxWidth) {
       /* R2349s（R86-P1-3）：「——」是成对破折号，折行不许劈开——
        * 「说—/—贲卦」的断法视觉上是两根孤杠。 */
       if (ch === '—' && cur.slice(-1) === '—') { cur += ch; return; }
+      /* R3316（审-P2）：避头尾——「，。：；、！？）》」等禁做行首，
+       * 宁可本行微溢也不让标点悬头（六爻「慢慢看 / ：艮卦」事故）。 */
+      if ('，。：；、！？）》」』%‰'.indexOf(ch) !== -1) {
+        cur += ch; return;
+      }
       if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch; }
       else cur += ch;
     });

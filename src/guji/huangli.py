@@ -262,6 +262,31 @@ _YANGGONG: frozenset = frozenset({
     (7, 29), (8, 27), (9, 25), (10, 23), (11, 21), (12, 19),
 })
 
+# R2365（R3301-P0）：受死日查表——节气月支→日支（协纪辨方书/通行
+# 黄历同表：寅月戌、卯月辰、辰月亥、巳月巳、午月子、未月午、
+# 申月丑、酉月未、戌月寅、亥月申、子月卯、丑月酉）。
+_SOUSHI: dict[str, str] = {
+    "寅": "戌", "卯": "辰", "辰": "亥", "巳": "巳", "午": "子",
+    "未": "午", "申": "丑", "酉": "未", "戌": "寅", "亥": "申",
+    "子": "卯", "丑": "酉",
+}
+# R2365（R3301-P0 续）：硬凶集——落这些标的日子按「大事勿用」口径
+# 裁词（不只是打标）。岁破/受死本轮新补计算。
+_HARD_FLAGS = frozenset({"月破", "四离", "四绝", "杨公忌", "岁破", "受死"})
+# 大事级事项词——硬凶日从宜侧移到忌侧；红白事/开市/移居/出行/
+# 功名/求医全收，沐浴理发扫舍类日常小事词不动。
+_MAJOR_TERMS = frozenset({
+    "嫁娶", "纳采", "订盟", "求嗣", "进人口", "冠笄",
+    "安葬", "行丧", "破土", "启攒", "修坟", "立碑", "入殓",
+    "除服", "成服", "移柩",
+    "开市", "开业", "立券", "交易", "纳财", "开仓", "置产",
+    "动土", "修造", "上梁", "竖柱", "破屋坏垣", "平整",
+    "塞穴", "筑堤", "安门",
+    "移徙", "入宅", "出行", "远行", "归家", "乘船", "登山",
+    "上任", "出官", "谒贵", "入学", "求名",
+    "求医", "治病", "求医疗病", "祈福", "祭祀",
+})
+
 # 神煞对宜忌的影响（写死可核验）
 _TIAND_YIJI: tuple[list[str], list[str]] = (
     ["祭祀", "祈福", "嫁娶"], ["诉讼"])
@@ -545,6 +570,19 @@ def family_conflicts(yi: list[str], ji: list[str]) -> list[str]:
     return sorted(out)
 
 
+def _veto_conflicts(yi: list[str], ji: list[str]) -> list[str]:
+    """簇粒度「同义不同字」对冲——与日卡裁决、挑吉日否决同口径
+    （R2365：族级裁决连带误删求嗣/纳财等 39 词次/年，改簇后
+    「宜求嗣+忌嫁娶」这类合法共存不再被裁决也不再标※）。"""
+    yi_s, ji_s = set(yi), set(ji)
+    out: set[str] = set()
+    for w in yi_s | ji_s:
+        clu = _WORD_VETO.get(w)
+        if clu and (clu & yi_s) and (clu & ji_s):
+            out |= (clu & (yi_s | ji_s))
+    return sorted(out)
+
+
 def day_query(dt: datetime) -> dict:
     """查 dt 这天的黄历坐标（纯计算，无解读）。
 
@@ -583,15 +621,17 @@ def day_query(dt: datetime) -> dict:
     _layers_yi = (set(ZHIRI_YIJI[jc]["yi"]), set(XIUXIU_YIJI[xx]["yi"]), set(_sy))
     _layers_ji = (set(ZHIRI_YIJI[jc]["ji"]), set(XIUXIU_YIJI[xx]["ji"]), set(_sj))
     for _w in sorted(set(yi) & set(ji)):
-        _fam = term_family(_w)
+        _fam = _veto_terms(_w)
         _vy = sum(1 for _L in _layers_yi if _L & _fam)
         _vj = sum(1 for _L in _layers_ji if _L & _fam)
         if _vy > _vj:
             ji = [x for x in ji if x not in _fam]
         else:
             yi = [x for x in yi if x not in _fam]
-    # 换字同义对冲同例裁决（宜修造忌动土这类不同词同族对冲）。
-    for _fam in {term_family(_w) for _w in family_conflicts(yi, ji)}:
+    # 换字同义对冲同例裁决（宜修造忌动土这类不同词同簇对冲）。
+    # R2365（R3301-P1）：整族→簇粒度——婚育族连坐误杀求嗣 17 天/年
+    # 类问题根治，与挑吉日否决口径合一。
+    for _fam in {_veto_terms(_w) for _w in _veto_conflicts(yi, ji)}:
         _vy = sum(1 for _L in _layers_yi if _L & _fam)
         _vj = sum(1 for _L in _layers_ji if _L & _fam)
         if _vy > _vj:
@@ -632,6 +672,29 @@ def day_query(dt: datetime) -> dict:
         pass
     if _lunar and (_lunar.get("month"), _lunar.get("day")) in _YANGGONG:
         _flags.append("杨公忌")
+    # R2365（R3301-P1-3）：岁破（日支冲太岁）与受死（节气月支×日支
+    # 查表）——外部黄历标「岁破/受死 大事勿用」的日子此前无标。
+    # R3308（审-低3）：太岁按节气年（立春换年）不是农历正月初一换年——
+    # 春节~立春窗口此前按下一干支年冲岁破，错标十来天。与 bazi.compute
+    # 的立春界同口径重算。
+    try:
+        _lichun = term_time(dt.year, "立春") + timedelta(hours=8)
+        _ty = dt.year - 1 if dt < _lichun else dt.year
+        _yz = ZHI[(_ty - 4) % 12]
+        if ZHI[(_zhi_idx + 6) % 12] == _yz:
+            _flags.append("岁破")
+    except Exception:
+        pass
+    if _gz_zhi == _SOUSHI.get(ZHI[_month_zhi_index(dt)]):
+        _flags.append("受死")
+    # R2365（R3301-P0）：硬凶日「大事勿用」从标到词——大事级事项
+    # 从宜侧移到忌侧（协纪「吉不足胜凶则从忌」），杨公忌日卡面
+    # 不再赫然「宜嫁娶」。
+    if set(_flags) & _HARD_FLAGS:
+        _mv = {w for w in yi if w in _MAJOR_TERMS}
+        if _mv:
+            yi = [w for w in yi if w not in _mv]
+            ji = sorted(set(ji) | _mv)
     # R233w（R52-P3-9）：交节时刻 ±15min 精度对日粒度的残余风险——
     # 与其藏着，把「今日交节 + CST 时刻」透明化回吐；用户看到
     # 「交在 23:5X」自然明白日粒度边界，这也是黄历卡本该有的信息。
@@ -660,7 +723,7 @@ def day_query(dt: datetime) -> dict:
         # 交集单独开键透出，卡面标※、聊天事实行改走「宜忌都有」口径。
         "conflict": sorted(set(yi) & set(ji)),
         # R77（R2349n）：换字同义的对冲词也透出——卡面同样标※
-        "conflict_family": family_conflicts(yi, ji),
+        "conflict_family": _veto_conflicts(yi, ji),
         "shensha": shensha(dt),
         # R2351（R108-§四.3-1）：1900-01-01~30 在宣称域内但农历表
         # 起点是 1900-01-31（该日=庚子年正月初一）——此前 lunar
@@ -674,6 +737,13 @@ def day_query(dt: datetime) -> dict:
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
         "day_flags": _flags,
+        # R3308（审-低4）：硬凶日口径注记——本表只挪大事级词进忌
+        # （小事级宜保留），与通书「余事勿取」同口径但偏严；卡面
+        # 不注明会被读成「这日啥都不能做」。wnl.cc 同款句式透出。
+        **({"hard_note": "日值" + "·".join(
+                sorted(set(_flags) & _HARD_FLAGS)) +
+            "，大事勿用（小事可为）"}
+           if set(_flags) & _HARD_FLAGS else {}),
         # R2350a（R94-P1-4）：日值神 + 时辰吉凶——「黄道/黑道日」与
         # 十二时辰宜忌是传统黄历卡标配字段。
         "zhishen": zhishen_day(dt),
@@ -784,8 +854,72 @@ def find_good_days(start: datetime, end: datetime,
         _fam_terms: set[str] = set()
         for _t in terms:
             _fam_terms |= set(_veto_terms(_t))
+        # R2365（R3301-P0）：硬凶日大事级事项硬过滤——杨公忌/月破/
+        # 岁破类日子不再只 ⚠ 降权照常上红白事吉日榜。
+        # R3330（审-中1）：硬凶旗过滤对所有事项生效——原闸只对
+        # 大事级词生效，杨公忌/月破/岁破日照样会上「理发吉日」榜。
+        # 上榜语义是「推荐」，有大事勿用标的日子本就不该进推荐单。
         if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
-                and not any(_hit(t, q["ji"]) for t in _fam_terms)):
+                and not any(_hit(t, q["ji"]) for t in _fam_terms)
+                and not (set(q.get("day_flags") or ()) & _HARD_FLAGS)):
             good.append(q)
         cur += timedelta(days=1)
     return good
+
+
+def find_calm_days(start: datetime, end: datetime,
+                   affair: str | list[str]) -> list[dict]:
+    """R3330（审-中2）：ji_only 词的「相对清净日」副榜。
+
+    破土/诉讼这类只忌不宜的词，避让榜之外的正确补充是「没点你名
+    的干净日子」：term 不落忌栏 + 无硬凶旗 + 族内也无对冲忌词。
+    隐性放行（整个区间除了忌日都算好）此前把整体凶日也隐性推上
+    「可以的日子」，现在干净日是显式核过的。
+    """
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])
+    end = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
+
+    def _hit(tt, words):
+        return any(tt in w or w in tt for w in words)
+
+    _fam_terms: set[str] = set()
+    for _t in terms:
+        _fam_terms |= set(_veto_terms(_t))
+
+    calm: list[dict] = []
+    cur = start
+    while cur <= end:
+        q = day_query(cur)
+        if (not any(_hit(t, q["ji"]) for t in _fam_terms)
+                and not (set(q.get("day_flags") or ()) & _HARD_FLAGS)):
+            calm.append(q)
+        cur += timedelta(days=1)
+    return calm
+
+
+def find_bad_days(start: datetime, end: datetime,
+                  affair: str | list[str]) -> list[dict]:
+    """在 [start, end] 内找「忌侧写了这事」的日子（避让名单）。
+
+    R3323-P0：破土/诉讼/求名/乘船/登山/开仓/出官/行丧/田猎 这批词在历表
+    里只有忌没有宜——「打官司哪天好」的正确答案不是吉日榜（恒空死路）
+    而是避开忌日。affair 归一与 find_good_days 同口径。
+    """
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])
+    end = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
+
+    def _hit(tt, words):
+        return any(tt in w or w in tt for w in words)
+
+    bad: list[dict] = []
+    cur = start
+    while cur <= end:
+        q = day_query(cur)
+        if any(_hit(t, q["ji"]) for t in terms):
+            bad.append(q)
+        cur += timedelta(days=1)
+    return bad

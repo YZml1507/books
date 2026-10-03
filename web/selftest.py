@@ -129,7 +129,10 @@ def _run_inner() -> list[str]:
         ("addr.bcv", {"scheme": "bcv", "addr_name": "Proverbs", "addr1": 12,
                       "addr2": "12"}),
         ("addr.yilin", {"scheme": "yilin", "addr1": 61}),
-        ("addr.booksec", {"scheme": "booksec", "addr1": 10}),
+        # R3305（审-P1-2）：booksec 卷号书内计——缺 work 参数会揉多书
+        # 同号卷，现如实 400；带上 work 仍能命中。
+        ("addr.booksec", {"scheme": "booksec", "addr1": 10,
+                          "work": "homer-iliad-but"}),
         ("addr.play", {"scheme": "play", "addr_name": "THE SONNETS", "addr1": 1}),
         ("addr.euclid", {"scheme": "euclid", "addr_name": "Book 1", "addr1": 1}),
     ):
@@ -155,6 +158,29 @@ def _run_inner() -> list[str]:
     _ay = client.get("/api/addr", params={"scheme": "yilin", "addr1": 65})
     assert _ay.status_code == 400, ("err.addr.yilin_range", _ay.status_code)
     ok.append("err.addr.yilin_range")
+    # R3305（审-P1-2）：bcv 缺卷名给章号/booksec 缺 work 给卷号——
+    # 多本同号段会揉一页，现如实 400。
+    _ay = client.get("/api/addr", params={"scheme": "bcv", "addr1": 12})
+    assert _ay.status_code == 400, ("err.addr.bcv_needs_name", _ay.status_code)
+    ok.append("err.addr.bcv_needs_name")
+    _ay = client.get("/api/addr", params={"scheme": "booksec", "addr1": 10})
+    assert _ay.status_code == 400, ("err.addr.booksec_needs_work", _ay.status_code)
+    ok.append("err.addr.booksec_needs_work")
+    # R3305（审-P3）：compare 的 yao typo 门——「abc」原 200 no_witness
+    # 自相矛盾，现与 /api/addr 同判 400。
+    _ay = client.get("/api/compare", params={"gua": 1, "yao": "abc"})
+    assert _ay.status_code == 400, ("err.compare.yao_typo", _ay.status_code)
+    ok.append("err.compare.yao_typo")
+    # R3305（审-P1-1）：歧义字披露——q 含一对多简繁字（云）且有命中时
+    # hint 提醒换繁体再查（不再让用户以为这就是全集）。
+    check("search.ambig_hint", client.get("/api/search",
+          params={"q": "云"}),
+          lambda j: "繁体" in (j.get("hint") or ""))
+    # R3305（审-P2-4）：search 零命中回 hint（语料范围+出路），
+    # 与 concept.empty_hint 同口径。
+    check("search.zero_hit_hint", client.get("/api/search",
+          params={"q": "非存古意词乁乁"}),
+          lambda j: bool(j.get("hint")))
     # R230a-48（R14-P0-1 钉扎）：受损 unit（卦47·上六 KR1a0006
     # span-overextended）不上桌当见证——进 flagged 披露位；
     # allow_damaged=1 才放回（显式看受损料）。
@@ -470,6 +496,14 @@ def _run_inner() -> list[str]:
     check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
           "date": "2026-08-17", "days": 30}),
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
+    # R3317-B：月内稀有度——≤45 天窗口补 month_rank/month_total；
+    # 排名值域 1..month_total。
+    check("huangli.affair.month_rank", client.get("/api/huangli",
+          params={"affair": "婚嫁", "date": "2026-08-17", "days": 30}),
+          lambda j: all(1 <= g.get("month_rank", 0) <=
+                        g.get("month_total", 0)
+                        for g in j.get("good_days", []))
+                    and bool(j.get("good_days")))
     # R228x：口语事项归一——「理发」不在宜忌词表，不归一则 good_days 恒空；
     # 归一后落到冠笄（实测 2026-09-19 起 45 天内 4 天）。terms 回显供前端
     # 与用户确认「理发按冠笄查的」。
@@ -481,7 +515,9 @@ def _run_inner() -> list[str]:
     # 恒缺席；同簇否决（忌求嗣/忌祭祀）仍应生效。
     check("huangli.affair.veto_cluster", client.get("/api/huangli",
           params={"affair": "许愿", "date": "2026-01-01", "days": 3}),
-          lambda j: "2026-01-01" in [g["date"] for g in
+          # R2365：01-01 实测岁破（乙巳年亥日冲太岁）被硬凶过滤正确
+          # 剔除；01-03 同构型（宜求嗣忌嫁娶）承接本 pin。
+          lambda j: "2026-01-03" in [g["date"] for g in
                     j.get("good_days", [])])
     # R2400（R141-P2-3）：affair 非精确键走子串最长命中——签订合同
     # 此前 terms=[原词] 恒空；未识别词要有标记不是静默返空。
@@ -609,9 +645,96 @@ def _run_inner() -> list[str]:
         "打耳洞": {"求医", "治病", "求医疗病"},
     }
     for _k, _want in _LEGS.items():
-        assert (set(_CST[_k]) == _want,
-                ("huangli.scene.twoleg", _k, _CST.get(_k)))
+        assert set(_CST[_k]) == _want, \
+            ("huangli.scene.twoleg", _k, _CST.get(_k))
     ok.append("huangli.scene.twoleg")
+    # ── R3323 黄历域复扫钉（17 项报告修复验收） ──
+    # P0-1：ji-only 事项（诉讼/破土…历表只有忌）——吉日恒空是死路，
+    # 后端反吐避让榜（ji_only+bad_days+bad_count）。
+    check("huangli.affair.ji_only",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "诉讼", "days": "45"}),
+          lambda j: j.get("ji_only") is True
+                    and len(j.get("bad_days") or []) > 0
+                    and (j.get("bad_count") or 0)
+                        >= len(j.get("bad_days") or [])
+                    and (j.get("good_days") or []) == [])
+    check("huangli.affair.ji_only.spoken",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "打官司", "days": "45"}),
+          lambda j: j.get("ji_only") is True)
+    check("huangli.affair.ji_only.not_on_yi",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "搬家", "days": "45"}),
+          lambda j: not j.get("ji_only")
+                    and len(j.get("good_days") or []) > 0)
+    # P2-4：子串命中有榜就不再带「没收录」标——「土」字此前一边返
+    # 2 天吉日一边自报 unrecognized。
+    check("huangli.affair.unrecognized.hit_not_flagged",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "土", "days": "45"}),
+          lambda j: not j.get("unrecognized"))
+    # P3-5/P3-6：子串只认尾词——「家长会」不许再偷换「家长」嫁娶组；
+    # 「签订合同」尾贴「合同」仍归一 立券。
+    check("huangli.affair.substr.suffix_only",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "家长会", "days": "45"}),
+          lambda j: j.get("terms") == ["家长会"])
+    check("huangli.affair.substr.suffix_keeps",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "签订合同", "days": "45"}),
+          lambda j: j.get("terms") == ["立券"])
+    # P0-2/P1-3：双关节气（大寒/小寒/大雪/小雪/小满）语境裁——
+    # 「那天/节气」贴身按节气解；裸用明说解不出（invalid），
+    # 不许再静默判「显示日」。
+    check("huangli.resolve_date.ambi_ctx",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "大寒那天适合开业吗",
+                             "base": "2026-01-10"}),
+          lambda j: j.get("date") == "2026-01-20")
+    check("huangli.resolve_date.ambi_bare",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "大寒开业吗", "base": "2026-01-10"}),
+          lambda j: not j.get("date") and bool(j.get("invalid")))
+    check("huangli.resolve_date.ambi_mascot",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "小满开业吗", "base": "2026-05-01"}),
+          lambda j: not j.get("date") and bool(j.get("invalid")))
+    check("huangli.resolve_date.ambi_mascot_ctx",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "小满那天开业好吗",
+                             "base": "2026-05-01"}),
+          lambda j: j.get("date") == "2026-05-21")
+    # P2-5：神煞历锚点值钉死（防算法改型后值漂移）+ 十二时辰
+    # ji 旗与值神吉凶表同构。
+    from guji.huangli import zhishen_day as _zs9, hour_zhishen as _hz9
+    _ZH_YI = {"青龙", "明堂", "金匮", "天德", "玉堂", "司命"}
+    for _d9, _e9 in (("2026-01-19", "玉堂"), ("2026-08-17", "勾陈"),
+                     ("2027-02-04", "天刑")):
+        _dt9 = _dt6(*map(int, _d9.split("-")))
+        assert _zs9(_dt9) == _e9, f"{_d9} zhishen {_zs9(_dt9)} != {_e9}"
+        _hh9 = _hz9(_dt9)
+        assert len(_hh9) == 12 and all(
+            h["ji"] == (h["shen"] in _ZH_YI) for h in _hh9), \
+            f"{_d9} hours ji flag broken"
+    ok.append("huangli.zhishen.anchors")
+    # P1-2：农历日「二十N/三十N」解析（此前 腊月二十七 解不出）。
+    from web.services import _lunar_md as _lmd9
+    assert _lmd9("腊", "二十三") == (12, 23)
+    assert _lmd9("正", "二十七") == (1, 27)
+    assert _lmd9("腊", "廿一") == (12, 21)
+    assert _lmd9("腊", "初十") == (12, 10)
+    ok.append("huangli.lunar_md.twenty_30")
+    # P0-1 侧面：找日问法事实行——ji-only 词给「没有宜日只有忌日」
+    # 口径事实，不拼空吉日清单。
+    from web import services as _svr9
+    _jf9 = _svr9._chat_facts_inner("打官司哪天好", _dt6(2026, 1, 10))
+    assert any("忌日" in f or "避" in f for f in _jf9), _jf9
+    ok.append("huangli.facts.ji_only_badlist")
+    # P1-3：双关节气裸问给确认事实（节气还是天气），不按今天判。
+    _af9 = _svr9._chat_facts_inner("大寒开业吗", _dt6(2026, 1, 10))
+    assert any("节气" in f and "大寒" in f for f in _af9), _af9
+    ok.append("huangli.facts.ambi_clarify")
     # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
     # 不静默回落显示日/就近换日。
     # R3261：「下下个月31号」的预期按月历动态判——该月有 31 号时
@@ -783,6 +906,25 @@ def _run_inner() -> list[str]:
         ("hehun.lunar_equiv", _hh_lun["a_bazi"].get("render"))
     assert "农历" in _hh_lun["warm"]["reply"][0]
     ok.append("hehun.lunar_equiv")
+    # R3330（审-高）：同人门禁迁到历法换算之后——甲公历生日填乙农历
+    # 同日此前漏网（原门禁只比原始字段）。
+    _hh_same = client.post("/api/hehun", json={
+        "a_year": 2000, "a_month": 6, "a_day": 7, "a_hour": 10,
+        "a_gender": "女", "b_year": 2001, "b_month": 1, "b_day": 1,
+        "b_hour": 10, "b_gender": "女",
+        "b_calendar": "lunar", "b_lunar_year": 2000,
+        "b_lunar_month": 5, "b_lunar_day": 6, "b_lunar_leap": False})
+    assert _hh_same.status_code == 400 and \
+        "同一个人" in _hh_same.json().get("detail", ""), \
+        ("hehun.sameperson_lunar", _hh_same.status_code)
+    ok.append("hehun.sameperson_lunar")
+    # R3330：害/刑/破次级判据进 render+score——有真关系才出现。
+    from guji import hehun as _hehun_mod
+    from guji.bazi import compute as _bzc
+    _hz = _hehun_mod.compute(_bzc(1996, 2, 19, 10, "女"),
+                             _bzc(1991, 9, 8, 14, "男"))
+    assert "年支次级：相害" in _hz.render(), _hz.render()
+    ok.append("hehun.subrelations")
     # 农历非法值归 400（月>12 / 日>30 / 缺农历字段）。
     for _lb in ({"calendar_type": "lunar", "lunar_year": 2000,
                  "lunar_month": 13, "lunar_day": 6},
@@ -974,6 +1116,30 @@ def _run_inner() -> list[str]:
     print(f"  taohua.cross_ref.strength PASS（覆盖 {sorted(_seen_strength)}，"
           f"分档文案与 strength 对应）")
     ok.append("taohua.cross_ref.strength")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R3330（审-中）：hour_known=False 剔时柱——填「不知道时辰」
+    # 的盘不再把时支桃花算进去，也不在判词里假装算了。
+    _t_known = client.post("/api/taohua", json={
+        "year": 1985, "month": 6, "day": 24, "hour": 2,
+        "gender": "女"}).json()
+    _t_unk = client.post("/api/taohua", json={
+        "year": 1985, "month": 6, "day": 24, "hour": 12,
+        "gender": "女", "hour_known": False}).json()
+    assert _t_unk.get("hour_known") is False and \
+        "warn" in _t_unk, ("taohua.hour_known.keys", sorted(_t_unk))
+    assert len(_t_unk.get("hit_pillars") or []) <= \
+        len(_t_known.get("hit_pillars") or []), \
+        ("taohua.hour_known.hits",
+         _t_unk.get("hit_pillars"), _t_known.get("hit_pillars"))
+    ok.append("taohua.hour_known")
+    # R3330：find_calm_days——只忌不宜事给避让榜。
+    from guji.huangli import find_calm_days as _fcd
+    from datetime import datetime as _dtm, timezone as _tz, timedelta as _td
+    _cn = _tz(_td(hours=8))
+    _cd = _fcd(_dtm(2026, 1, 1, tzinfo=_cn), _dtm(2026, 1, 15, tzinfo=_cn),
+               "打官司")
+    assert isinstance(_cd, list) and all(
+        isinstance(x, dict) and x.get("date") for x in _cd), _cd[:2]
+    ok.append("gooddays.calm")
     # 黄历是 GET
     _rh2 = client.get("/api/huangli?date=2026-08-28")
     assert _rh2.status_code == 200, ("cross_ref.http", "/api/huangli")
@@ -1509,7 +1675,9 @@ def _run_inner() -> list[str]:
         "b_gender": "女"})
     assert _hh_b2.status_code == 200, _hh_b2.status_code
     _rb2 = (_hh_b2.json().get("warm") or {}).get("reply") or []
-    assert "磕绊偏多" in (_rb2[0] or ""), _rb2[0]
+    # R3330：本对日支寅/申冲+相刑——相刑此前不算硬伤，判词停在
+    # 「磕绊偏多」；计入硬负担后正确升级「偏不合适」档。
+    assert "偏不合适" in (_rb2[0] or ""), _rb2[0]
     assert any("相克就是相克" in l and "管控与自由" in l
                for l in _rb2), _rb2
     assert any("处方三段" in l and "看信号" in l for l in _rb2), _rb2
@@ -2467,6 +2635,20 @@ def _run_inner() -> list[str]:
         _p = _pb.get("personal") or {}
         return bool(_p.get("god") and _p.get("line"))
     check("daily.r73keys", client.get("/api/daily"), _daily_r73_ok)
+    # R3307（隐-P1-3）：bday 走 POST 体不进 URL——契约面钉住，
+    # 回 GET 也兼容（老链）。POST 返回须与 GET 同构。
+    _dp = client.post("/api/daily",
+                      json={"date": "2026-10-01", "bday": "1995-08-20"})
+    assert _dp.status_code == 200 and (
+        _dp.json().get("personal") or {}).get("god"), (
+        "daily.post", _dp.status_code, _dp.text[:200])
+    ok.append("daily.post")
+    # R3307（隐-P1-4）：农历换算 POST 体版（农历生日也是隐私坐标）。
+    _lc = client.post("/api/lunar/convert",
+                      json={"y": 1990, "m": 5, "d": 15, "leap": False})
+    assert _lc.status_code == 200 and "solar" in _lc.json(), (
+        "lunar.convert.post", _lc.status_code, _lc.text[:200])
+    ok.append("lunar.convert.post")
     # 新月/满月：农历初一/十五出 phase——找个确定日（2026-10-10 是
     # 农历九月初一？不猜历表，改为扫窗验证：30 天内至少 1 初一1 十五）。
     def _moon_scan():
@@ -2479,6 +2661,24 @@ def _run_inner() -> list[str]:
         return _ph == {"新月", "满月"}
     assert _moon_scan(), "moon phases missing in 30d window"
     ok.append("daily.moon.phase")
+    # R3317-G：今日牌——同日出同牌、词非空、位向布尔；两日不同 seed
+    # 不强制异牌（%22 会撞），只钉字段形状与确定性。
+    def _dcard_ok():
+        a = client.get("/api/daily", params={"date": "2026-10-03"}).json()
+        b = client.get("/api/daily", params={"date": "2026-10-03"}).json()
+        ca, cb = a.get("daily_card") or {}, b.get("daily_card") or {}
+        return (ca == cb and isinstance(ca.get("name"), str) and
+                ca["name"] and isinstance(ca.get("upright"), bool) and
+                isinstance(ca.get("keywords"), str) and "·" in ca["keywords"])
+    assert _dcard_ok(), "daily_card not deterministic or malformed"
+    ok.append("daily.daily_card")
+    # R3318（审-P1-2）：lunar 串不得出现「月月」重字——month_cn 自带月。
+    _dlx = client.get("/api/daily",
+                      params={"date": "2026-10-03"}).json()
+    _lun = _dlx.get("lunar") or ""
+    assert _lun.startswith("农历") and "月月" not in _lun, (
+        "daily.lunar.dup", _lun)
+    ok.append("daily.lunar.nodup")
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴端点。
     check("xzmatch", client.get("/api/xzmatch",
           params={"a": "白羊", "b": "射手"}),
@@ -2564,8 +2764,12 @@ def _run_inner() -> list[str]:
     # 宜忌白话（宜：/忌：前缀），不再是池子句；summary 有盘面事实
     # 时事实句在前。
     _dly = client.get("/api/daily").json()
-    assert (_dly.get("do") or "").startswith("宜："), _dly.get("do")
-    assert (_dly.get("dont") or "").startswith("忌："), _dly.get("dont")
+    # R3304：标签归展示层——API 值不再预制「宜：/忌：」前缀（海报/
+    # 卡面自挂签，双前缀根因消除）。do/dont 仍须是当日真词非空值。
+    assert _dly.get("do") and not str(_dly["do"]).startswith("宜："), \
+        _dly.get("do")
+    assert _dly.get("dont") and not str(_dly["dont"]).startswith("忌："), \
+        _dly.get("dont")
     ok.append("daily.fact_wired")
     # R229z续4：宜/忌两条建议不许同项撞签（实测"空腹喝冰美式、空腹喝
     # 冰美式"——同池两签会撞）。连测 30 天。
@@ -2662,6 +2866,39 @@ def _run_inner() -> list[str]:
     for _s in _dream_mod._DREAM_SYMS:
         assert _s["keys"] and _s["name"] not in _seen_nm, _s["name"]
         _seen_nm.add(_s["name"])
+    # (i-R3265) 否定护栏：「没有/并非」前缀的命中不算
+    assert _dream_mod.interpret_dream("梦见我没有掉牙")["matched"] == 0
+    assert _dream_mod.interpret_dream(
+        "梦见他说他不会出轨")["matched"] == 0
+    # (j-R3265) emoji 映射 + 英文键
+    assert _dream_mod.interpret_dream("梦见🐍")["symbols"][0][
+        "name"].startswith("蛇"), _dream_mod.interpret_dream("梦见🐍")[
+        "symbols"][0]["name"]
+    assert _dream_mod.interpret_dream(
+        "dreamed about teeth")["symbols"][0]["name"].startswith("掉牙")
+    # (k-R3265) 相关卡重叠压制：被追赶+跑不动→单卡+varline
+    _r8 = _dream_mod.interpret_dream("梦见被人追跑不动")
+    assert len(_r8["symbols"]) == 1
+    assert _r8["symbols"][0]["name"].startswith("被追赶")
+    assert "跑不动" in "".join(_r8["reply"])
+    # (l-R3265) 亲人出事/去世双卡压制
+    _r9 = _dream_mod.interpret_dream("梦见妈妈出车祸")
+    _n9 = [s["name"] for s in _r9["symbols"]]
+    assert "在世的亲人出事" in _n9, _n9
+    assert "家人朋友（在世的）" not in _n9, _n9
+    # (m-R3265) 吓人象征软开场（仅 scare 触发时）
+    _r10 = _dream_mod.interpret_dream("梦见蛇缠着我")
+    _open10 = [l for l in _r10["reply"] if "安" in l or "劲儿" in l]
+    assert _open10, _r10["reply"]
+    # (n-R3268) 高频梦补位：雪/神佛/星月/动手/登高/新衣 + 彩票归捡钱
+    _cov = {"梦见下雪": "下雪/雪", "梦见菩萨": "龙/神仙/佛菩萨",
+            "梦见月亮好圆": "月亮/星星", "梦见我杀了人": "打人/动了手",
+            "梦见爬山": "爬山/登高", "梦见买新衣服": "新衣服/打扮",
+            "梦见中彩票": "捡钱/发财"}
+    for _qc, _want in _cov.items():
+        _rc = _dream_mod.interpret_dream(_qc)
+        assert any(s["name"] == _want for s in _rc["symbols"]), (
+            _qc, [s["name"] for s in _rc["symbols"]])
     ok.append("dream.syms_integrity")
     # (i) 服务端繁体归一 + 台账名脱敏（不回显梦原文）
     check("dream.t2s", client.post("/api/dream",
@@ -2698,6 +2935,22 @@ def _run_inner() -> list[str]:
         "session_id": "st-action2", "message": "活着没意思，给我抽张牌吧"}),
         lambda j: "action" not in j)
     ok.append("chat.actionview")
+    # R3331：壁纸路标 + 当日派生事实注入（水逆/穿搭/咒语）。
+    _afw = _svc_dm.chat_action_facts("有没有开运壁纸")
+    assert _afw and "开运壁纸" in _afw[0] and "首页" in _afw[0], _afw
+    assert _svc_dm.chat_action_view("我想换壁纸")["view"] == "home"
+    _dfm = _svc_dm.chat_daily_facts("最近水逆了吗")
+    assert _dfm and "水逆" in _dfm[0], _dfm
+    _dfc = _svc_dm.chat_daily_facts("今天穿什么颜色好")
+    assert _dfc and "开运色" in _dfc[0], _dfc
+    _dfs = _svc_dm.chat_daily_facts("给我一句今日咒语")
+    assert _dfs and "今日咒语" in _dfs[0], _dfs
+    assert _svc_dm.chat_daily_facts("我睡不着") == []
+    # 咒语与服务端镜像池同哈希：两遍一致 + 属于池中成员。
+    from datetime import date as _dt_for_mantra
+    _iso = _dt_for_mantra.today().isoformat()
+    assert _svc_dm._day_mantra(_iso) in _svc_dm._MANTRA_POOL
+    ok.append("chat.dailyfacts")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
@@ -2753,46 +3006,12 @@ def _run_inner() -> list[str]:
     _pd = client.delete("/api/paipan/history/1")
     assert _pd.status_code == 404, ("paipan.disabled.delete", _pd.status_code)
     ok.append("paipan.disabled.read")
-    # R2509：钉死 /1 依赖旧 fixture 行——derived 表被 wipe 探针清空后
-    # kb.get(1) 永久 404（本轮实测）。自建 note 得真实 id 再分享，
-    # 全链清回（threads.note 同构），不依赖库里有什么。
-    _sb = client.post("/api/threads", json={
-        "kind": "note", "claim": "selftest 分享卡夹具", "method": "selftest"})
-    assert _sb.status_code == 200, ("share.bazi.fixture", _sb.status_code)
-    _sbj = _sb.json()
-    _sb_tid, _sb_did = _sbj.get("thread_id"), _sbj.get("derived_id")
-    try:
-        check("share.bazi",
-              client.get(f"/api/share/bazi/{_sb_did}"),
-              lambda j: (j.get("title") and j.get("content")
-                         and j.get("image_color")))
-    finally:
-        try:
-            from web import deps as _depss
-            with _depss.knowledge() as _kbs:
-                if _sb_did is not None:
-                    _row = _kbs.db.execute(
-                        "SELECT claim FROM derived WHERE id=?",
-                        (_sb_did,)).fetchone()
-                    if _row:
-                        from guji.variants import fold as _folds, \
-                            segment_cjk as _segcs
-                        _kbs.db.execute(
-                            "INSERT INTO derived_fts(derived_fts, rowid, seg) "
-                            "VALUES('delete', ?, ?)",
-                            (_sb_did, _segcs(_folds(_row["claim"]))))
-                    _kbs.db.execute("DELETE FROM evidence WHERE derived_id=?",
-                                    (_sb_did,))
-                    _kbs.db.execute("DELETE FROM derived WHERE id=?",
-                                    (_sb_did,))
-                if _sb_tid is not None:
-                    _kbs.db.execute("DELETE FROM turn WHERE thread_id=?",
-                                    (_sb_tid,))
-                    _kbs.db.execute("DELETE FROM thread WHERE id=?",
-                                    (_sb_tid,))
-                _kbs.db.commit()
-        except Exception:  # noqa: BLE001 — 清理失败不吞掉断言本体
-            pass
+    # R3307（审-低9）：share/bazi 按数字 id 直读 derived——可枚举
+    # 个人数据面已删，一律 404。tarot/book 无数据回显不受影响。
+    _sb404 = client.get("/api/share/bazi/1")
+    assert _sb404.status_code == 404, ("share.bazi.404",
+                                     _sb404.status_code)
+    ok.append("share.bazi.404")
     check("user.prefs", client.get("/api/user/prefs"),
           lambda j: (j.get("theme") and isinstance(j.get("favorites"), list)))
     # R2342（R60-P1-9/10）：prefs 写路径护栏 + share 三类型/超长 id。
@@ -3246,6 +3465,21 @@ def _run_inner() -> list[str]:
     _c2 = _LC.chat("st-crisis2", "感觉活着好累，吃了安眠药", config=_ccfg)
     assert _c2 and "12356" in _c2, _c2
     ok.append("chat.crisis.refusal.extended")
+    # R2365（R3302-中）：危机余波——罐头转介后撞轮数收口，换说法的
+    # 低强度倾诉给温和承接而非欢快收尾。
+    _sid_tail = "st-crisis-tail"
+    _LC._chat_sessions[_sid_tail] = {
+        "messages": [{"role": "user", "content": "x"}]
+        * (_LC._CHAT_MAX_TURNS * 2), "updated": _time.monotonic()}
+    _cr0 = _LC.chat(_sid_tail, "不想活了", config=_ccfg)
+    assert "12356" in _cr0, _cr0
+    _tail = _LC.chat(_sid_tail, "就是那种消失几天，手机关机"
+                                "谁也别找我的消失", config=_ccfg)
+    assert _tail == _LC._CRISIS_TAIL, _tail
+    _tail2 = _LC.chat(_sid_tail, "想静静", config=_ccfg)
+    assert _tail2 == _LC._CRISIS_TAIL, _tail2
+    _LC._chat_sessions.pop(_sid_tail, None)
+    ok.append("chat.crisis.tail")
     # R233r（R49-Top5-3）：敏感词三层——宠物/物件/梗语境不误触转介。
     assert _LC._is_sensitive("我会不会死") and _LC._is_sensitive("癌症晚期怎么办")
     assert not _LC._is_sensitive("多肉会不会死"), "多肉被误拦"
@@ -3627,9 +3861,23 @@ def _run_inner() -> list[str]:
     assert _lp._chat_verdict_contra(
         "你们很合适，放心在一起", ["卡面判词行：判词直说：偏不合适，日支相冲"]
     ) == "pos_over_neg"
+    # R3265（R3248-高危钉）：真实信道形状——判词块固定首行
+    # 「这张合婚卡的合拍指数：N/99」会让裸「合拍」词毒化方向判定；
+    # 「不宜」里的单字宜同理。闸必须在毒化输入下仍命中。
+    assert _lp._chat_verdict_contra(
+        "你们很合适，放心在一起",
+        ["这张合婚卡的合拍指数：35/99",
+         "卡面判词行：判词直说：偏不合适，日支相冲",
+         "卡面判词行：不宜硬扛这段关系"]
+    ) == "pos_over_neg", "真实信道毒化：合拍指数行+不宜词"
     assert _lp._chat_verdict_contra(
         "这步坎得一起扛", ["卡面判词行：判词直说：偏不合适，日支相冲"]
     ) is None
+    # 反向：正判词卡（上上签）遇硬说负也要拦
+    assert _lp._chat_verdict_contra(
+        "你们不合适，趁早放手",
+        ["卡面判词行：上上签，天作之合", "这张合婚卡的合拍指数：92/99"]
+    ) == "neg_over_pos", "正判词遇硬负判定失效"
     # R3132：polish 判词升格钉——「判词：」行必须渲成「判词口径·必须
     # 一致」权威块，不能只是 facts 堆里的普通一条。
     _pr = _lp._render(["双方性别：女 / 男",
@@ -4315,6 +4563,8 @@ def _run_inner() -> list[str]:
                         "year_zhi", "birth_year", "ai_polish",
                         # R220b：交叉引用铺到桃花（星座桃花信号 × 八字强度）
                         "cross_ref",
+                        # R3333：时辰不详剔除标志 + bazi.warn 透传
+                        "hour_known", "warn",
                         # R3124b
                         "result_ref"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
@@ -4325,6 +4575,9 @@ def _run_inner() -> list[str]:
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
                        "gan_he", "god_a_sees_b", "god_b_sees_a",
+                       # R3333：害/刑/破次级判据旗（年/日两级）
+                       "year_harm", "year_xing", "year_break",
+                       "day_harm", "day_xing", "day_break",
                        # R233u（R53-P1-3）：日支夫妻宫 + 纳音 + 年支半合
                        "day_zhi_a", "day_zhi_b", "day_zhi_rel",
                        "nayin_a", "nayin_b", "nayin_rel", "year_zhi_rel",
@@ -4427,9 +4680,13 @@ def _run_inner() -> list[str]:
     import glob as _gl5
     for _g in ("tarot/*", "cream/zodiac-*.jpg", "shared/poster-bg-*.jpg",
                "cream/poster-mascot.png", "cream/icon-512-maskable.png",
+               # R3317：开运壁纸底图同口径
+               "wallpapers/*.jpg",
                "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
                # R2349u（R91-P2-5）：og 分享卡纳入哈希同口径
-               "shared/og-card.jpg"):
+               "shared/og-card.jpg",
+               # R3317-F：vendored 懒加载库同口径
+               "libs/*.js"):
         for _ep in sorted(_gl5.glob(_os.path.join(
                 _os.path.dirname(__file__), "static", _g))):
             _h.update(_os.path.basename(_ep).encode())

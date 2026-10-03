@@ -33,10 +33,12 @@ def search(q: str = "", layer: str | None = None, work: str | None = None,
 def addr(scheme: str = "zhouyi", gua: int | None = None,
          yao: str | None = None, layer: str | None = None,
          addr_name: str | None = None, addr1: int | None = None,
-         addr2: str | None = None, limit: int = 20) -> dict:
+         addr2: str | None = None, limit: int = 20,
+         work: str | None = None) -> dict:
     """地址定位。zhouyi 用 gua/yao；其余 scheme 用 addr_name/addr1/addr2。"""
     return services.addr(scheme, gua=gua, yao=yao, layer=layer,
                          addr_name=addr_name, addr1=addr1, addr2=addr2,
+                         work=work,
                          limit=limit)
 
 

@@ -119,6 +119,14 @@ FIXTURES: dict[str, dict] = {
     # month/day 四键，固定 2000 正月初一 → 2000-02-05 可复验。
     "/api/lunar/convert":     {"method": "GET", "params": {
         "y": 2000, "m": 1, "d": 1, "leap": 0}},
+    # R3307（隐-P1-4）：农历生日走 POST 体不进 URL（生日=隐私坐标）。
+    "POST /api/lunar/convert": {"method": "POST",
+                                "json": {"y": 2000, "m": 1, "d": 1,
+                                         "leap": False}},
+    # R3307（隐-P1-3）：bday 走 POST 体——响应与 GET 同构。
+    "POST /api/daily":        {"method": "POST",
+                               "json": {"date": "2026-08-20",
+                                        "bday": "1995-08-20"}},
     # R2353（R110-P1-1）：触屏/微信下 CSV 走 fetch→text() 展示式
     # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
     # 不钉字段（前端用 r.text() 不读 JSON 键）。
@@ -218,8 +226,9 @@ FIXTURES: dict[str, dict] = {
     "/api/stats":             {"method": "GET"},
     "/api/widget":            {"method": "GET"},
     # /api/share/{type}/{id}：无列表端点可解 id——spec.url 显式钉一个
-    # selftest 同款真实请求（bazi/1）。
-    "/api/share/":            {"method": "GET", "url": "/api/share/bazi/1"},
+    # selftest 同款真实请求。R3307 起 bazi 分支删除（可枚举数据面），
+    # 探针改钉 tarot 回显分支。
+    "/api/share/":            {"method": "GET", "url": "/api/share/tarot/abc123"},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
@@ -283,6 +292,10 @@ CONDITIONAL_FIELDS = {
     # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；
     # 前端对 good_days 有 Array.isArray 守卫 → 条件存在字段，不算漂移。
     "/api/huangli": {"good_days", "good_days.date", "good_days.yi",
+                     # R3308（审-低4）：hard_note 只在硬凶日（月破/四离/
+                     # 四绝/杨公忌/岁破/受死）返回——前端 `j.hard_note ?`
+                     # 正是对缺席的探测。
+                     "hard_note",
                      "good_days.ji", "count", "terms", "affair", "start",
                      "days",
                      # R229z续21（R9 审计修复）：conflict（宜忌相冲词）只在

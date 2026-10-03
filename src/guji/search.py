@@ -42,8 +42,30 @@ S2T_RETRY = {p[0]: p[1] for p in (  # noqa: E501 — 数据表，逐对显式
     "婵嬋 婶嬸 媪媼 嫒嬡 嫔嬪 嫘嫘 嫠嫠 嫣嫣 嫦嫦 嫩嫩 嬉嬉 嬷嬤 孀孀 孪孿 "
     "宁寧 宝寶 实實 宠寵 审審 宪憲 宫宮 宽寬 宾賓 寝寢 对對 导導 将將 尔爾 "
     "尘塵 尝嘗 尧堯 尴尷 层層 屉屜 届屆 属屬 屡屢 屿嶼 岂豈 岖嶇 岘峴 岚嵐 "
-    "岛島 岭嶺 岳嶽 峡峽 峣嶢 峤嶠 峥崢 峦巒 崭嶄 嵘嶸 嶔嶔 巅巔 巋巋 巍巍").split()
+    "岛島 岭嶺 岳嶽 峡峽 峣嶢 峤嶠 峥崢 峦巒 崭嶄 嵘嶸 嶔嶔 巅巔 巋巋 巍巍 "
+    # R3305（审-P1-1）：名句原文在库却报「命中 1/0 条」——伪完整度。补一批
+    # 古籍语境单义映射（每字仍只收一对一者；云/后/余/几/干等一对多不收）。
+    "载載 积積 遥遙 刍芻 鲲鯤 纪紀 鸡雞 机機 华華 边邊 过過 这這 还還 "
+    "谁誰 难難 虽雖 间間 关關 点點 灭滅 灯燈 旧舊 树樹 泪淚 红紅 绿綠 "
+    "丝絲 细細 终終 绝絕 线線 结結 绕繞 给給 统統 继繼 缘緣 绳繩 网網 "
+    "罗羅 罚罰 罢罷 鸣鳴 鸦鴉 鸭鴨 鹅鵝 鹏鵬 鹊鵲 鹤鶴 鹰鷹 麦麥 黄黃 "
+    "齐齊 齿齒 龄齡 认認 让讓 讨討 训訓 议議 讯訊 讲講 讳諱 讶訝 许許 "
+    "论論 讼訟 讽諷 设設 访訪 诀訣 评評 识識 诉訴 诊診 词詞 译譯 试試 "
+    "诗詩 诚誠 话話 诞誕 询詢 该該 详詳 误誤 诱誘 诲誨 请請 诸諸 读讀 "
+    "课課 调調 谅諒 谈談 谊誼 谋謀 谍諜 谎謊 谐諧 谕諭 谓謂 谚諺 谜謎 "
+    "谢謝 谣謠 谨謹 谬謬 俭儉 侠俠 侣侶 侥僥 侦偵 侧側 "
+    "侨僑 侩儈 侪儕 侬儂 俣俁 俦儔 俨儼 俩倆 俪儷 债債 倾傾 偬傯 偻僂 "
+    "偾僨 偿償 傥儻 傧儐 储儲 傩儺 呛嗆 呜嗚 咏詠 咙嚨 咛嚀 咝噝 "
+    "响響 哑啞 哒噠 哓嘵 哔嗶 哕噦 哗嘩 哙噲 哜嚌 哝噥 哟喲 唛嘜 唝嗊 "
+    "唠嘮 唡啢 唢嗩 啧嘖 啬嗇 啭囀 啮齧 啴囅 啸嘯 喷噴 喽嘍 喾嚳 "
+    "嗫囁 嗳噯 嘘噓 嘤嚶 嘱囑 噜嚕 嚣囂 严嚴 囵圇 囹圉").split()
     if len(p) == 2 and p[0] != p[1]}  # len 守卫：手滑拼出三字词即静默丢弃
+
+# R3305（审-P1-1）：一对多/简繁同字——上表有意不收的字。query 含它们时
+# 简体侧可能漏命中而 q2==q 不触发重试，服务层据此披露「换繁体再查」。
+AMBIG_S2T_CHARS = frozenset(
+    "云后余只干几征系台面松咸曲谷卜丑于舍历困蒙涂辟向须御折钟朱致脏伙签"
+    "复范胡姜借冲亨克累获蔑藩苹盖苏虫蜡准丧发么岳")
 
 
 def s2t_retry(q: str) -> str:
@@ -269,24 +291,39 @@ class Corpus:
     _HAS_VALUE_COLS = frozenset({"layer", "scheme", "addr_name",
                                  "addr1", "addr2"})
 
-    def has_value(self, col: str, value) -> bool:
+    def has_value(self, col: str, value, scheme: str | None = None) -> bool:
         """列值存在性（typo 门）。== `SELECT 1 ... WHERE col=? LIMIT 1`
-        的真值，无覆盖索引的列从全索引扫 5.6ms 降到缓存命中 ~µs。"""
+        的真值，无覆盖索引的列从全索引扫 5.6ms 降到缓存命中 ~µs。
+
+        R3305（审-P2-1）：可传 scheme 做分桶存在性——全局 DISTINCT 会
+        跨 scheme 污染（bcv 的节号让 zhouyi 的爻校验误放行）。scheme
+        传 'none' 表示无编址作品（IS NULL），None = 全局不滤。
+        """
         if col not in self._HAS_VALUE_COLS:
             raise ValueError(f"has_value 未授权列名: {col!r}")
+        _sc = None if scheme in (None, "none") else scheme
+        _sc_null = (scheme == "none")
         try:
             _st = os.stat(self._db_path)
             _key = (os.path.abspath(self._db_path),
-                    _st.st_mtime_ns, _st.st_size, col)
+                    _st.st_mtime_ns, _st.st_size, col + "|" + str(scheme))
         except OSError:
             _key = None
         if _key is None or _key not in _DISTINCT_CACHE:
-            vals = {r[0] for r in self.db.execute(
-                f"SELECT DISTINCT {col} FROM unit") if r[0] is not None}
+            _sql = f"SELECT DISTINCT {col} FROM unit"
+            _args: list = []
+            if _sc_null:
+                _sql += " WHERE scheme IS NULL"
+            elif _sc is not None:
+                _sql += " WHERE scheme = ?"
+                _args.append(_sc)
+            vals = {r[0] for r in self.db.execute(_sql, _args)
+                    if r[0] is not None}
             if _key is not None:
                 _DISTINCT_CACHE[_key] = vals
                 for _k in [k for k in _DISTINCT_CACHE
-                           if k[0] == _key[0] and k[3] == col and k != _key]:
+                           if k[0] == _key[0] and k[3] == _key[3]
+                           and k != _key]:
                     del _DISTINCT_CACHE[_k]
         return value in _DISTINCT_CACHE[_key]
 
@@ -384,7 +421,8 @@ class Corpus:
 
     def at_scheme(self, scheme: str | None, addr_name: str | None = None,
                   addr1: int | None = None, addr2: str | None = None,
-                  layer: str | None = None, limit: int = 50) -> list[Hit]:
+                  layer: str | None = None, limit: int = 50,
+                  work_id: str | None = None) -> list[Hit]:
         """Generic address lookup for ANY scheme — 卦/爻 for zhouyi, 卷:章 for bcv,
         幕:場 for play, BOOK:proposition for euclid, etc. `at_address` stays the
         zhouyi-only convenience (D-005: Psalms 99 == 卦99 collision); this is the
@@ -407,7 +445,8 @@ class Corpus:
             sql = _sel + " WHERE u.scheme = ?"
             args = [scheme]
         for col, val in (("u.addr_name", addr_name), ("u.addr1", addr1),
-                         ("u.addr2", addr2), ("u.layer", layer)):
+                         ("u.addr2", addr2), ("u.layer", layer),
+                         ("u.work_id", work_id)):
             if val is not None:
                 sql += f" AND {col} = ?"
                 args.append(val)

@@ -400,6 +400,24 @@ def main() -> int:
         "shareDaily": "同上",
         "shareLucky": "今日护身符分享图——downloadPoster('lucky') 海报模态，"
                       "同 shareDaily 族豁免",
+        # R3317：开运壁纸——canvas 合成 + showPosterModal 预览，同族豁免。
+        "dailyWap": "开运壁纸生成——canvas 合成+海报模态预览，"
+                    "同 shareDaily 族豁免",
+        # R3325-B：开运头像——同一下载链路的 square 变体，豁免同族。
+        "dailyAva": "开运头像 1:1——downloadWallpaper square 变体，"
+                    "canvas 合成+海报模态，同 dailyWap 族豁免",
+        # R3325：.ics 日历提醒——Blob 下载微交互，零请求；系统日历接管。
+        "dailyIcs": "日历提醒 .ics 下载——纯本地 Blob+click，零请求",
+        # R3325：穿搭卡分享海报——downloadPoster('daily-outfit') 同族豁免。
+        "outfitShare": "今日穿搭分享图——downloadPoster 海报模态，同族豁免",
+        # R3325-D：写给未来的信——写信弹层关闭/寄出钮。
+        "flClose": "未来信弹层关闭钮——本地 remove 零请求",
+        "flSend": "未来信寄出钮——localStorage futureLetters 写入零请求",
+        # R3325-C：大众占卜分享钮——动态生成、clipboard 微交互。
+        "pileShare": "大众占卜「分享我这堆」——动态生成+clipboard 零请求",
+        # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
+        # 零请求；_dayPick 确定性已由单测级逻辑保证。
+        "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",
         "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
                       "零请求；真实链路已 Playwright 手验（按钮存在）",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"
@@ -418,6 +436,9 @@ def main() -> int:
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。
         "shareDream": "同上",
+        # R3332-低：受邀者回传钩——点击转调 shareHehun，同分享图链路。
+        "hhSendBack": "受邀者「发回给TA」钩——点击转调 shareHehun，"
+                      "downloadPoster 同族豁免",
         "rgPoster": "五行人格分享图——downloadPoster('bazi') 海报模态，"
                      "同 shareBazi 族豁免",
         "rgXhs": "五行人格小红书文案复制钮——纯本地 clipboard 写入，"
@@ -499,6 +520,13 @@ def main() -> int:
                      "同 shareBazi 族；手验已覆盖",
         "mercBreathe": "水逆急救包「慢三秒」呼吸钮——纯本地 setTimeout"
                        "动画，零请求；仅在 mercury.on 时生成",
+        # R3314（R3311-低）：月相行许愿瓶钩——dailyMoon 粒是动态
+        # 生成+仅农历初一/十五窗口有按钮的容器委托（.daily-moon-go
+        # 子钮做 .ck-wish open + scrollIntoView），零请求；与
+        # mercBreathe 同型豁免。
+        "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
+                     "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
+                     "与 mercBreathe 同型豁免",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
@@ -2444,7 +2472,9 @@ def main() -> int:
                     "  day_wx_sheng:false, warm:{reply:['判词直说：偏不合适']}},"
                     "  question:'', body:{}}));"
                     " return ["
-                    "  _chatFacts([]).join('|'),"
+                    # R3313（审-P2-5）：TA 生辰按话题门控——感情语境带，
+                    # 无关话题不带（隐私半径收紧）；本 case 用合婚问句。
+                    "  _chatFacts([], '我们合婚怎么样').join('|'),"
                     "  (()=>{document.querySelectorAll('.view.active')"
                     "   .forEach(v=>v.classList.remove('active'));"
                     "   return _activeViewFacts().join('|')})(),"
@@ -2476,9 +2506,11 @@ def main() -> int:
                     "   {d:_t0,v:'hehun',s:'判词直说：今天的卡',q:''},"
                     "   {d:_t1,v:'hehun',s:'判词直说：偏不合适',q:'我们能结婚吗'},"
                     "   {d:'2020-01-01',v:'tarot',s:'老卡不该出现',q:''}]));"
-                    "  return _chatFacts([]).join('|')})()"
+                    "  return _chatFacts([]).join('|')})(),"
+                    # R3313：反例钉——无关话题 TA 生日不出 facts。
+                    "  _chatFacts([], '我事业运怎么样').join('|')"
                     " ];}")
-                ok = (len(cases) == 5
+                ok = (len(cases) == 6
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       # R3126（specs/013-P2）：partner 档案行钉——
@@ -2498,6 +2530,8 @@ def main() -> int:
                       and "我们能结婚吗" in cases[4]
                       and "今天的卡" not in cases[4]
                       and "老卡不该出现" not in cases[4]
+                      # R3313（审-P2-5）：无关话题不发 TA 生辰给 LLM
+                      and "TA的生日" not in cases[5]
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
                           + " xview=" + ("OK" if cases[1] else "X")

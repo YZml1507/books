@@ -61,11 +61,19 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
         k = _row_key(r)
         if k not in sections:
             if not r["scheme"]:
-                label = r["file"]
+                # R3305（审-P2-2）：未编址标题行此前裸显示文件名，
+                # 前端再按序号译成「第N卷」——其实是卷首/附录。
+                label = f"卷首/附录（{r['file']}）"
             elif r["scheme"] == "zhouyi":
                 gua = r["addr1"]
                 label = f"卦{gua}" + (f"（{names.get(gua, '')}）"
                                       if names.get(gua) else "")
+            elif r["scheme"] == "bcv":
+                # R3305（审-P2-2）：bcv 的 addr_name=书名、addr1=章号，
+                # 此前只标书名，整卷下几十章同标——带上章号。
+                _nm = r["addr_name"] or "?"
+                label = (f"{_nm} · 第{r['addr1']}章"
+                         if r["addr1"] is not None else _nm)
             else:
                 label = str(r["addr_name"] or r["addr1"])
             sections[k] = {"label": label, "scheme": r["scheme"],

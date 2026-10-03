@@ -123,16 +123,35 @@ try {
     var u = '/api/daily?date=' + iso;
     var me = null;
     try { me = JSON.parse(localStorage.getItem('me') || 'null'); } catch (eM) {}
+    var _post = null;
     if (me && me.y && me.m && me.d) {
-      u += '&bday=' + me.y + '-' + String(me.m).padStart(2, '0') +
-           '-' + String(me.d).padStart(2, '0');
+      /* R3307（审-中6）：bday=生日坐标属半隐私——有档案时改走
+         POST body，不进 URL/边缘日志。无档案照旧 GET。 */
+      _post = { date: iso,
+        bday: me.y + '-' + String(me.m).padStart(2, '0') +
+              '-' + String(me.d).padStart(2, '0') };
     }
     var _to = new Promise(function (_, rej) {
-      setTimeout(function () { rej(new Error('prefetch timeout')); }, 15000);
+      setTimeout(function () { rej(new Error('prefetch timeout')); }, 10000);
     });
+    /* R3303-P2：预取与回退共享一条 20s 总预算——此前预取耗 15s
+       后回退 api() 又从 0 起算，弱网串行死等 ~35s。app.js 侧把
+       ctl.signal 传进 api()（其内部 AbortSignal.any 合并不超 20s）。 */
+    var _ctl = (typeof AbortController !== 'undefined')
+      ? new AbortController() : null;
+    if (_ctl) { setTimeout(function () { _ctl.abort(); }, 20000); }
+    var _fp = _post
+      ? fetch('/api/daily', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(_post),
+          signal: _ctl ? _ctl.signal : undefined })
+      : fetch(u, {credentials: 'same-origin',
+          signal: _ctl ? _ctl.signal : undefined});
     window.__dailyPref = {
-      url: u,
-      p: Promise.race([fetch(u, {credentials: 'same-origin'})
+      url: _post ? ('post:' + JSON.stringify(_post)) : u,
+      ctl: _ctl,
+      p: Promise.race([_fp
         .then(function (r) { return r.ok ? r.json() : null; }), _to])
         .catch(function () { return null; })
     };
@@ -234,12 +253,36 @@ try {
     <!-- R3264（R29）：今日护身符——晒今日开运色/幸运数/财神方位 -->
     <button class="ghost" type="button" id="shareLucky"
             title="生成今日护身符" aria-label="生成今日护身符分享图"
-            style="margin:6px 14px 0; flex-shrink:0;" disabled>🧿 护身符</button>
+            style="margin:6px 14px 0; flex-shrink:0;">🧿 护身符</button>
+    <!-- R3317（调研-A）：每日开运壁纸——底图按日轮换+判词/开运色叠字，
+         可直接存成锁屏（小红书 29 元/张的需求面，我们免费每天发）。 -->
+    <!-- R3322-P3：去掉静态 disabled——弱网首帧灰钮看着像坏了；
+         handler 自带「运势还没出来」toast 引导，点了有回应。 -->
+    <button class="ghost" type="button" id="dailyWap"
+            title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
+            style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
+    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
+    <button class="ghost" type="button" id="dailyAva"
+            title="生成今日开运头像" aria-label="生成今日开运头像"
+            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
+    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
+         Render 免费档无推送通道的零基建留存替代。 -->
+    <button class="ghost" type="button" id="dailyIcs"
+            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
+            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
     <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
          打卡块移到判词下面。 -->
     <div class="daily-main">
       <div class="daily-level" id="dailyLevel">—</div>
       <div>
+        <!-- R3334（CLS）：能量/咒语/今日牌三个槽位预占位——此前数据
+             到了才插 DOM，整卡拔高顶下方内容（桌面首载 CLS≈0.1）。
+             空壳 CSS :empty 给 min-height 预占位，填充后自然高。 -->
+        <div class="daily-score" id="dailyScore"></div>
+        <div class="daily-dims" id="dailyDims"></div>
+        <div class="daily-mantra" id="dailyMantra" role="button" tabindex="0"
+          title="点一下复制这句咒语"></div>
+        <div class="daily-card-line" id="dailyTarot"></div>
         <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
         <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
         <!-- R3259（UX-STRATEGY-NEXT N1）：判词=「小满今天给你留的话」——
@@ -297,13 +340,13 @@ try {
     <div class="da-title">🎁 填个生日，拆开照着你的盘包的专属礼物</div>
     <div class="da-row">
       <input class="da-in" data-k="y" type="number" inputmode="numeric"
-             min="1900" max="2100" placeholder="年" aria-label="出生年">
+             min="1900" max="2100" placeholder="1995" aria-label="出生年">
       <input class="da-in" data-k="m" type="number" inputmode="numeric"
-             min="1" max="12" placeholder="月" aria-label="出生月">
+             min="1" max="12" placeholder="3" aria-label="出生月">
       <input class="da-in" data-k="d" type="number" inputmode="numeric"
-             min="1" max="31" placeholder="日" aria-label="出生日">
+             min="1" max="31" placeholder="8" aria-label="出生日">
       <input class="da-in" data-k="h" type="number" inputmode="numeric"
-             min="0" max="23" placeholder="时辰·可空" aria-label="出生时辰（可留空）"
+             min="0" max="23" placeholder="19·可空" aria-label="出生时辰（可留空）"
              title="出生时辰，不知道可留空">
       <!-- R3237：性别随档案落档——感情类解读/合婚回填都用得到，
            不缺省一次。类名单独立（.da-cal 是历法定位锚）。 -->
@@ -870,6 +913,27 @@ try {
       <!-- R3249e（UX-AUDIT C·塔罗）：8 种牌阵+张数+编号对新客是
            控制台。先给三档零思考入口（各带一句「什么时候用它」），
            牌阵/张数/编号全部收进「懂牌阵」折叠——老用户路径不变。 -->
+      <!-- R3325：大众占卜——凭直觉选一堆（事业/感情/财运），
+           同日同堆同牌可晒同款。每张牌 seed=日期+主题+堆位，确定性。 -->
+      <details class="pile-block" id="pileBlock">
+        <summary>🔮 大众占卜 · 凭直觉选一堆<span class="pile-sub">事业 · 感情 · 财运</span></summary>
+        <div class="pile-topics" role="group" aria-label="选一个主题">
+          <button type="button" class="pile-topic" data-ptopic="career">💼 事业</button>
+          <button type="button" class="pile-topic" data-ptopic="love">💗 感情</button>
+          <button type="button" class="pile-topic" data-ptopic="money">🧧 财运</button>
+        </div>
+        <div class="pile-row" id="pileRow" hidden>
+          <button type="button" class="pile-card" data-pile="0" aria-label="第一堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>A</i></button>
+          <button type="button" class="pile-card" data-pile="1" aria-label="第二堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>B</i></button>
+          <button type="button" class="pile-card" data-pile="2" aria-label="第三堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>C</i></button>
+        </div>
+        <p class="pile-hint" id="pileHint" hidden>凭直觉点一堆，点完就定——同主题每天只能选一堆</p>
+        <div class="pile-result" id="pileResult" hidden></div>
+      </details>
+
       <div class="tr-quick" role="group" aria-label="快速抽牌">
         <button type="button" class="tr-quick-btn" id="trQ1">
           <b>🃏 抽一张</b><i>今日一句指引</i></button>

@@ -8,6 +8,7 @@ check_poster / check_plain_first 需浏览器，归 ui_smoke 不收。
 
 用法即纪律：这些脚本判据漂移=真回归，不许靠改脚本过闸。
 """
+import os
 import subprocess
 import sys
 
@@ -17,11 +18,17 @@ CHECKS = [
     ("check_async_ai", "web/check_async_ai.py", 150),
 ]
 
+# 与 CI 同口径：常驻检查器一律在 BOOKS_LLM_DISABLE=1 下跑——
+# 缺旗时 LLM 路径会拉起语义栈，torch 在解释器拆除时段错误，
+# 检查本身其实 PASS 也会被判成 FAIL（假阴性）。
+_ENV = {**os.environ, "BOOKS_LLM_DISABLE": "1"}
+
 fails = []
 for name, script, tmo in CHECKS:
     try:
         r = subprocess.run([sys.executable, script],
-                           capture_output=True, text=True, timeout=tmo)
+                           capture_output=True, text=True, timeout=tmo,
+                           env=_ENV)
         tail = ((r.stdout or "") + (r.stderr or "")).strip().splitlines()
         ok = r.returncode == 0 and "PASS" in (r.stdout or "")
         print(("PASS " if ok else "FAIL ") + name

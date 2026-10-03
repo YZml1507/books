@@ -383,9 +383,48 @@ def compute(year: int, month: int, day: int, hour: int,
             if -1800 <= _d <= _right:
                 near = f"{t:%Y-%m-%d %H:%M} {name}"
     if near:
-        warns.append(f"出生时刻邻近节气（{near}），月柱/年柱边界需人工核对")
+        # R3308（审-低6）：term_time 走 Meeus 低精度式约 ±15min——warn
+        # 里把「交节时刻本身有十来分钟不确定」也写明，边界出生的人工
+        # 核对范围用户心里有数。
+        warns.append(f"出生时刻邻近节气（{near}，交节时刻本身约±15分钟精度），"
+                     "月柱/年柱边界需人工核对")
+    # R3308（审-中2）：1986-1991 中国实行夏令时——期间时钟拨快 1 小时，
+    # 户口本/记忆里的「10 点」实为标准时 9 点，时柱可能差一个时辰。
+    # 命中窗口即告警：对照柱不同才点名（同柱则夏令时无影响）。
+    _DST_WINDOWS = {
+        1986: ((5, 4), (9, 14)), 1987: ((4, 12), (9, 13)),
+        1988: ((4, 10), (9, 11)), 1989: ((4, 16), (9, 17)),
+        1990: ((4, 15), (9, 16)), 1991: ((4, 14), (9, 15)),
+    }
+    if year in _DST_WINDOWS:
+        (_dsm, _dsd), (_dem, _ded) = _DST_WINDOWS[year]
+        if (_dsm, _dsd) <= (dt.month, dt.day) <= (_dem, _ded):
+            # R3330（审-低）：过渡日时点豁免——起止当天 02:00 切换，
+            # 开始日 0-1 点（尚标准时）与结束日 2 点后（已回标准时）
+            # 出生不受影响，不误告警。
+            _dst_active = True
+            if (dt.month, dt.day) == (_dsm, _dsd) and hour < 2:
+                _dst_active = False
+            if (dt.month, dt.day) == (_dem, _ded) and hour >= 2:
+                _dst_active = False
+            _alt_hp = hour_ganzhi(day_pillar[0], (hour - 1) % 24)
+            if _dst_active and _alt_hp != hour_pillar:
+                warns.append(
+                    f"{year}年这段实行过夏令时（时钟拨快1小时）：如果填的是"
+                    f"当时钟面时间，时柱也可能是 {_alt_hp}——拿不准就两个都看看")
     if hour == 23:
         warns.append("23点后属夜子时：本盘按当日排日柱（另一派会归入次日）")
+    if hour == 0:
+        # R3330（审-低）：0 点跨日边界——记忆里的「0 点」若其实是
+        # 前一晚 24 点，日柱就差一天。明示前一日柱候选供人工核对。
+        try:
+            _pd, _pi = day_ganzhi(dt - timedelta(days=1))
+            if _pd != day_pillar:
+                warns.append(
+                    f"0 点整在跨日边界：如果实际是前一晚 24 点，"
+                    f"日柱应取 {_pd}（本盘按 {day_pillar}）")
+        except Exception:
+            pass
     # R228p续3：年柱双口径提示——立春前但已过正月初一（正月出生）的盘，
     # 「正月初一换年」派与本项目的立春换年派会给出不同年柱，warn 明示。
     try:

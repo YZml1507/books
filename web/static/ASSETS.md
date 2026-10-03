@@ -12,8 +12,6 @@
 - 生成时间：2026-08 前后（见 .hermes 台账记录）
 - 口径：AI 生成图无第三方版权负担；页内展示均带「仅供娱乐」语境。
 - R3251 批次（scripts/gen_r3250_assets.py，agnes-image-2.1-flash）：
-  - `bear-day-{good,sml,mid,bad}.jpg` 判词心情熊——吉=向阳熊/
-    小吉=茶杯熊/平=静坐熊/凶=裹毯撑伞熊，替代日签判词文字圆盘；
   - `persona-{wood,fire,earth,metal,water}.jpg` 五行人格拟人熊——
     木=抱树苗/火=举星火/土=坐山丘/金=托星钻/水=乘水滴；
   - `icon-renge.jpg` 五花图标——五行人格功能卡图标
