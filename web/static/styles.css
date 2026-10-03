@@ -3633,6 +3633,10 @@ html[data-theme="dark"] .hl-daychip.has-flag{opacity:.85;}
 html[data-theme="dark"] .qm-part{color:var(--primary-ink);}
 html[data-theme="dark"] .warm-badge{color:var(--secondary);}
 
+/* R3326（审-P1）：details 展开态解除胶囊 nowrap/76vw/overflow——
+ * 展开行右缘被硬裁，tip 读不全。 */
+details.daily-meta-item[open]{white-space:normal; max-width:none;
+  overflow:visible; border-radius:14px;}
 /* ── R3325：今日穿搭五档（details 展开式 meta 粒） ───────────── */
 .outfit-kit{font-size:12.5px;}
 .outfit-kit summary{cursor:pointer; list-style:none;}

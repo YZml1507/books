@@ -4832,6 +4832,10 @@ def daily(date_str: str | None = None,
                       # R3317-G：旧缓存行无 daily_card——同口径现算随包回
                       "daily_card": (_c.get("daily_card")
                                      or _daily_card_for(_d0)),
+                      # R3326（审-P0）：cv=7 存量行（R3304→R3325 间写入）
+                      # 无 outfit——命中即永无穿搭包。同口径现算回填。
+                      "outfit": (_c.get("outfit")
+                                 or _outfit_for(_d0)),
                       # R3318：cv<6 时代存的行没有 lunar 锚——同口径现算
                       "lunar": (_c.get("lunar")
                                 or _daily_lunar_str(_d0))}

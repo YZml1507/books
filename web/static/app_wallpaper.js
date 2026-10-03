@@ -116,6 +116,14 @@ function _wapComposite(j, bg, variant) {
                360, A.date);
 
   /* 判词大字 */
+  /* R3326（审-P1）：方图裁切后判词行压在熊脸深色块上——
+   * 方形版先铺一条半透明暗衬带保可读。 */
+  if (_sq) {
+    ctx.fillStyle = 'rgba(38,30,22,0.38)';
+    ctx.beginPath();
+    ctx.ellipse(360, A.verdict - 34, 175, 82, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.font = '600 ' + (_sq ? 96 : 108) +
     'px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = _tint;
@@ -181,8 +189,17 @@ function downloadWallpaper(j, variant) {
   return _wapImg('/static/wallpapers/' + _nm + '.jpg')
     .then(function (bg) {
       var cv = _wapComposite(j, bg, variant);
-      /* 落盘（与海报同款 a.download；移动端走浮层长按） */
+      /* 落盘（与海报同款 a.download；移动端走浮层长按）
+       * R3326（审-P2）：触屏与海报统一——静默 a[download] 在 iOS/
+       * 微信里多半落空，只留浮层长按；桌面照常落盘。 */
+      var _touch = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
       try {
+        if (_touch &&
+            !/MicroMessenger/i.test(navigator.userAgent || '')) {
+          showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j);
+          return;
+        }
         cv.toBlob(function (blob) {
           if (!blob) return;
           var a = document.createElement('a');

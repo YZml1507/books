@@ -7969,7 +7969,8 @@ var _POSTER_TITLES = {
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
-  renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像' };
+  renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
+  'daily-outfit': '今日穿搭' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
@@ -8010,6 +8011,7 @@ var _SHARE_TEXT = {
   /* R3319-P2：开运壁纸分享不再落通用兜底。 */
   'daily-wap': '今日开运壁纸换好了，接住这份运气 →',
   'daily-ava': '今日开运头像换上了，接住这份运气 →',
+  'daily-outfit': '今天的五行穿搭色抄作业，看看你的是什么 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
@@ -12414,7 +12416,13 @@ function initDivination() {
           var _rl = '';
           try {
             var _rp = (tj.warm && tj.warm.reply) || [];
-            _rl = (Array.isArray(_rp) ? _rp : [_rp]).filter(Boolean)[0] || '';
+            /* R3326（审-P1）：reply[0] 是模板头「针对你的问题…每张牌
+             * 这样说：」——取第一条非模板句，拿不到再退首行。 */
+            var _lines = (Array.isArray(_rp) ? _rp : [_rp])
+              .filter(Boolean);
+            _rl = _lines.filter(function (l) {
+              return String(l).indexOf('每张牌这样说') === -1;
+            })[0] || _lines[0] || '';
           } catch (eR2) {}
           _pileSet(_pileTopic, { i: idx, d: d, r: _rl });
           _pileRender(_pileTopic);
@@ -12781,7 +12789,10 @@ function initDivination() {
   var _wapLast = 0;
   on('dailyWap', function () {
     var _nw = Date.now();
-    if (_nw - _wapLast < 2000) return null;
+    /* R3326（审-P2）：节流命中零反馈像死按钮——给句提示。 */
+    if (_nw - _wapLast < 2000) {
+      showToast('慢一点，图还在出～', 'info'); return null;
+    }
     _wapLast = _nw;
     if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
@@ -12791,7 +12802,9 @@ function initDivination() {
    * 与壁纸同节流（共用 _wapLast 即可，两钮互斥连点）。 */
   on('dailyAva', function () {
     var _nw2 = Date.now();
-    if (_nw2 - _wapLast < 2000) return null;
+    if (_nw2 - _wapLast < 2000) {
+      showToast('慢一点，图还在出～', 'info'); return null;
+    }
     _wapLast = _nw2;
     if (window.__lastDaily) {
       return downloadWallpaper(window.__lastDaily, { square: true });
