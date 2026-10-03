@@ -544,6 +544,9 @@ class HehunRequest(BaseModel):
     b_lunar_month: int | None = None
     b_lunar_day: int | None = None
     b_lunar_leap: bool = False
+    # R3313（审-P1-5）：邀请态下读者是乙侧（受邀者）——判词里「我」的
+    # 指称要贴乙侧；缺省 False 兼容旧前端与台账回放。
+    reader_is_b: bool = False
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)

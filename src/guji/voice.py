@@ -2488,7 +2488,7 @@ def _hehun_q_line(q: str, h: dict) -> str:
     return ""
 
 
-def warm_hehun(h: dict) -> dict:
+def warm_hehun(h: dict, viewer: str = "a") -> dict:
     """合婚人话视图（R3087/specs/010 判词引擎版）。
 
     判词直说（不适合就说不合适）+ 生活面矛盾预言 + 条件化解 +
@@ -2670,6 +2670,10 @@ def warm_hehun(h: dict) -> dict:
                      "「天生对味」的组合，"
                      "相处时那种不用解释的默契是有来处的。")
     god_ab, god_ba = h.get("god_a_sees_b") or "", h.get("god_b_sees_a") or ""
+    if viewer == "b":
+        # R3313（审-P1-5）：读者是乙侧（受邀者）——「你」是乙，「ta」是甲，
+        # 互看视角整体换向。
+        god_ab, god_ba = god_ba, god_ab
     if god_ab and god_ba:
         # R2349s（R84-P2-19）：互看语境不复用 TEN_GOD_WARM 的资源词——
         # 「你眼里的 ta 带『稳定财』」把伴侣读成钱袋，物化观感差。

@@ -478,15 +478,19 @@ def hehun(req) -> dict:
     }
     # R187b：人话视图 + AI 润色，均 additive（specs/005 US4 / specs/006）
     # R191b（B-014）：AI 段落改后台任务（D-251b），同 bazi。
-    warm = voice.warm_hehun(h_dict)
+    # R3313（审-P1-5）：邀请态下提交/读盘的是乙侧（受邀者）——
+    # 「我/TA」的指称整体换向，服务端判词不再贴反身份。
+    _rb = bool(getattr(req, "reader_is_b", False))
+    _alab, _blab = ("TA", "我") if _rb else ("我", "TA")
+    warm = voice.warm_hehun(h_dict, viewer=("b" if _rb else "a"))
     # R2349s（R84-P1-12）：时辰不详侧明示——此前前端静默预填 10 点，
     # 「TA 的时辰」常被默认值冒充。
-    _unk = [("我" if req.a_hour_known is False else None),
-            ("TA" if req.b_hour_known is False else None)]
+    _unk = [(_alab if req.a_hour_known is False else None),
+            (_blab if req.b_hour_known is False else None)]
     _unk = [s for s in _unk if s]
     # R3206：农历换算明示——生日按农历换算成公历排的盘。
-    _lun = [("我" if req.a_calendar == "lunar" else None),
-            ("TA" if req.b_calendar == "lunar" else None)]
+    _lun = [(_alab if req.a_calendar == "lunar" else None),
+            (_blab if req.b_calendar == "lunar" else None)]
     _lun = [s for s in _lun if s]
     if _lun:
         warm["reply"] = [f"{'和'.join(_lun)}的生日按农历换算的。"

@@ -2451,7 +2451,9 @@ def main() -> int:
                     "  day_wx_sheng:false, warm:{reply:['判词直说：偏不合适']}},"
                     "  question:'', body:{}}));"
                     " return ["
-                    "  _chatFacts([]).join('|'),"
+                    # R3313（审-P2-5）：TA 生辰按话题门控——感情语境带，
+                    # 无关话题不带（隐私半径收紧）；本 case 用合婚问句。
+                    "  _chatFacts([], '我们合婚怎么样').join('|'),"
                     "  (()=>{document.querySelectorAll('.view.active')"
                     "   .forEach(v=>v.classList.remove('active'));"
                     "   return _activeViewFacts().join('|')})(),"
@@ -2483,9 +2485,11 @@ def main() -> int:
                     "   {d:_t0,v:'hehun',s:'判词直说：今天的卡',q:''},"
                     "   {d:_t1,v:'hehun',s:'判词直说：偏不合适',q:'我们能结婚吗'},"
                     "   {d:'2020-01-01',v:'tarot',s:'老卡不该出现',q:''}]));"
-                    "  return _chatFacts([]).join('|')})()"
+                    "  return _chatFacts([]).join('|')})(),"
+                    # R3313：反例钉——无关话题 TA 生日不出 facts。
+                    "  _chatFacts([], '我事业运怎么样').join('|')"
                     " ];}")
-                ok = (len(cases) == 5
+                ok = (len(cases) == 6
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       # R3126（specs/013-P2）：partner 档案行钉——
@@ -2505,6 +2509,8 @@ def main() -> int:
                       and "我们能结婚吗" in cases[4]
                       and "今天的卡" not in cases[4]
                       and "老卡不该出现" not in cases[4]
+                      # R3313（审-P2-5）：无关话题不发 TA 生辰给 LLM
+                      and "TA的生日" not in cases[5]
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
                           + " xview=" + ("OK" if cases[1] else "X")

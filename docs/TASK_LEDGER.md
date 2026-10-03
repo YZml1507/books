@@ -17448,3 +17448,15 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 ## R3314b — 心情罐场景深度扩展（R3310-P2 清偿）
 - _MOOD_JAR_SCENES 4→6 张：新增「暖被窝」「雨灯路」两张同风格场景图（生成+压缩至 28/36KB），4 张封顶后色点续涨无下站的长期失钩补上；解锁数改跟表长走，显示 /N 动态。
 - 顺带审计台账：CP chips × 删除钮复核已存在（R2503 落地），R127-P2-7 积压核销。
+
+## R3313 —「替TA问」链路深审清零（P0×1 + P1×4 + P2×3 落地 / P2×2 有意不跟）
+- P0 CP chip 方向归一：chip 语义固定「我侧|TA侧」——邀请态存时互换两组（受邀者=B 在前），_hhFavFill 邀请态下我侧落 B/TA 侧落 A 并置 dataset.invite。根治病案：受邀者存的 chip 常态回放把发起人塞进 A，一提交自己 me 档案被整体覆盖成对方。
+- P1-2 门页丢 hash：_GATE_PAGE 表单 onsubmit 把 location.hash 拼回 next——BOOKS_ACCESS_TOKEN 形态下受邀者首跳不再死链（邀请生辰全在 #hash）。
+- P1-3 hhSavePartner 历法绕过：改走 _meSaveFromBirth 统一器（农历→公历坐标+标注），TA 农历生日不再静默当公历落档。
+- P1-4 历法位丢失：邀请链/CP chip 双通道补 ac/al（cal+leap）——hash 白名单/_invFull 校验/sessionStorage 回灌/ref 尾段 16 段（旧 12 段向后兼容按公历）全链同构，落地切农历档+闰月行。
+- P1-5 聊天上下文身份反挂：HehunRequest+reader_is_b；services 我/TA 标签 (_alab/_blab) 与 voice.warm_hehun(viewer) 互看句换向；前端 buildChatContext hehun 分支 _meSide/_taSide 换向。邀请态下受邀者问小满不再把发起人当「我」。
+- P2-1 换 TA 旧昵称残留：_meSaveFromBirth 内 y/m/d 变且未给新名 → rec.n='' 清键。
+- P2-5 TA 生辰 LLM 过曝：_taFactRelevant 话题闸（感情/合婚语境或邀请态才带 TA 生日进 facts），探针正反双例钉死。
+- P2-4 倒计时方向：随 P0 归一自愈（chip 恒 me|TA，b 组恒为 TA）。
+- 有意不跟：P2-2 旧 query 邀请格式（落地即 replaceState 剥参已是现行口径——点击时的日志明文不可避免且旧链仍要兼容）；P2-3 sessionStorage.hhInvite（navigate 型落地已 removeItem，reload 回灌是设计语义）；P2-5 台账 partner 名截首字（本地 SQLite 台账半径=用户自己设备，非泄漏面）。
+- 闸门钉：ui_smoke ui:chat_profile_facts 正反双例（合婚问句带 TA/事业问句不带），len 5→6。

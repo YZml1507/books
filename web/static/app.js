@@ -1736,11 +1736,18 @@ function buildChatContext(viewKey) {
     });
   } else if (viewKey === 'hehun') {
     var a = j.a_bazi || {}, b = j.b_bazi || {};
-    /* R229z续23（R11-#10）：A/B → 甲/乙，与表单/422 口径统一 */
-    msg = '我的日柱' + (a.day || '—') + '（日主' + (a.day_master || '—') +
-      '），TA 的日柱' + (b.day || '—') + '（日主' + (b.day_master || '—') +
+    /* R229z续23（R11-#10）：A/B → 甲/乙，与表单/422 口径统一
+     * R3313（审-P1-5）：邀请态下读者是 B 侧——「我」标签贴 b，
+     * 否则受邀者问小满时「我」就成了发起人（替 TA 问的前提反转）。 */
+    var _rb = !!window.__hhInviteMode;
+    var _meSide = _rb ? b : a, _taSide = _rb ? a : b;
+    msg = '我的日柱' + (_meSide.day || '—') + '（日主' +
+      (_meSide.day_master || '—') +
+      '），TA 的日柱' + (_taSide.day || '—') + '（日主' +
+      (_taSide.day_master || '—') +
       '），我俩配吗';
-    facts = ['我的日柱：' + (a.day || '—'), 'TA 的日柱：' + (b.day || '—')];
+    facts = ['我的日柱：' + (_meSide.day || '—'),
+             'TA 的日柱：' + (_taSide.day || '—')];
     if (j.day_wx_sheng !== undefined) {
       /* R230a-7（R13-P0-2）：同五行是比和，不是相克 */
       facts.push('日主五行：' + (j.day_wx_sheng ? '相生' :
@@ -2102,7 +2109,7 @@ function autoSendChatContext() {
   postJSON('/api/chat', {
     /* R230l（R24-P2-3）：黄历事实的「今天」锚浏览器本地日——服务器
      * UTC vs 浏览器 CST 跨零点窗口整天错位。 */
-    session_id: _sid0, message: msg, facts: _chatFacts(facts),
+    session_id: _sid0, message: msg, facts: _chatFacts(facts, msg),
     result_ref: ctx.ref || '',
     client_date: todayIso()
   }, { silent: true }).then(function (j) {
@@ -3111,7 +3118,12 @@ function _chatCardsFact() {
   } catch (e) { return ''; }
 }
 
-function _chatFacts(facts) {
+/* R3313（审-P2-5）：TA 生辰注入闸——感情语境或受邀态才放行。 */
+function _taFactRelevant(msg) {
+  if (window.__hhInviteMode) return true;
+  return /对象|男朋|女朋|男朋友|女朋友|感情|桃花|恋爱|暧昧|crush|CRUSH|老公|老婆|前任|现任|相亲|约会|结婚|离婚|分手|复合|喜欢|心动|合婚|配吗|缘分|伴侣|夫妻|另一半|我俩|我们俩|我们\b|TA|ta|他\b|她\b/i.test(String(msg || ''));
+}
+function _chatFacts(facts, msg) {
   var _f = (facts || []).slice();
   try {
     var _wp = _chatWeekProfileFact();
@@ -3152,8 +3164,11 @@ function _chatFacts(facts) {
     /* R3126（specs/013-P2）：partner 档案进上下文——合婚留下的
      * me:partner 此前只有合婚页自己用；聊「他/TA」时小满手里得有
      * TA 的坐标。服务端把生日确定性展开成 TA 的日主/星座。 */
+    /* R3313（审-P2-5）：TA 生辰只在该有的话题里给——问事业也把
+     * TA 生日+昵称发给第三方 LLM 网关属于过曝。话题沾感情/合婚
+     * 语境（或邀请态本身就是来看俩人的）才带 TA 坐标。 */
     var _p = _meGet('me:partner');
-    if (_p && _p.y && _p.m && _p.d) {
+    if (_p && _p.y && _p.m && _p.d && _taFactRelevant(msg)) {
       var _pm = ('0' + _p.m).slice(-2), _pd = ('0' + _p.d).slice(-2);
       _f.push('TA的生日：' + _p.y + '-' + _pm + '-' + _pd +
               (_p.n ? '（' + _meNickClean(_p.n) + '）' : ''));
@@ -3215,7 +3230,7 @@ function chatSend() {
   postJSON('/api/chat', {
     session_id: _sid0, message: msg,
     facts: _chatFacts((CHAT_LAST_FACTS && CHAT_LAST_FACTS.length)
-      ? CHAT_LAST_FACTS : _activeViewFacts()),   /* R233r：无排盘按视图兜底 */
+      ? CHAT_LAST_FACTS : _activeViewFacts(), msg),   /* R233r：无排盘按视图兜底 */
     /* R3124b：判词升格信道——ref 由 _activeViewFacts 解出（facts 走
      * CHAT_LAST_FACTS 时 ref 是上次解出的配套值，同源不串）。 */
     result_ref: _CHAT_CTX_REF || '',
@@ -8817,7 +8832,10 @@ async function doHehun() {
       a_name: (val('hh_a_name') || '').trim() || null,
       b_name: (val('hh_b_name') || '').trim() || null,
       /* R3152：可空问句——服务端判词对着这句给定向行 */
-      question: (val('hh_question') || '').trim() || null
+      question: (val('hh_question') || '').trim() || null,
+      /* R3313（审-P1-5）：邀请态下读盘的是 B 侧（受邀者）——
+       * 服务端判词「我/TA」指称整体换向。 */
+      reader_is_b: !!window.__hhInviteMode
     };
     /* R3206：双侧农历打包（hehun 键名是 a_/b_ 前缀组） */
     _lunarPack(val('hh_a_cal') === 'lunar',
@@ -8922,7 +8940,13 @@ async function doHehun() {
           '&ad=' + encodeURIComponent(val('hh_' + _side + '_day') || '') +
           '&ah=' + encodeURIComponent(val('hh_' + _side + '_hour') || '') +
           '&ag=' + encodeURIComponent(val('hh_' + _side + '_gender') || '') +
-          '&an=' + encodeURIComponent(val('hh_' + _side + '_name') || '');
+          '&an=' + encodeURIComponent(val('hh_' + _side + '_name') || '') +
+          /* R3313（审-P1-4）：历法位同走邀请链——发起人按农历填的
+           * 原始数字此前受邀者落进公历字段，差出整个月令。 */
+          '&ac=' + encodeURIComponent(
+            val('hh_' + _side + '_cal') === 'lunar' ? 'lunar' : '') +
+          '&al=' + encodeURIComponent(
+            checked('hh_' + _side + '_leap') ? '1' : '');
         /* R3304（审-P2）：邀请此前只发裸链接——收方点开前看不到
          * 发起人/玩法钩子。带上名字+对盘邀请语（与小红书文案同口径）。 */
         var _invName = val('hh_' + _side + '_name') || '我';
@@ -8968,15 +8992,28 @@ async function doHehun() {
        * 编码名前先剥分隔符/空白，展示名（title）保留原样。 */
       var _anE = _an.replace(/[|%]/g, '').slice(0, 8);
       var _bnE = _bn.replace(/[|%]/g, '').slice(0, 8);
-      var ref = [num('hh_a_year'), num('hh_a_month'), num('hh_a_day'),
-        num('hh_a_hour'), val('hh_a_gender') || '女',
-        num('hh_b_year'), num('hh_b_month'), num('hh_b_day'),
-        num('hh_b_hour'), val('hh_b_gender') || '女',
-        _anE, _bnE].join('|');
+      /* R3313（审-P0）：chip 语义固定为「我侧 | TA侧」——邀请态下
+       * 受邀者自己=B、发起人=A，存时要互换两组顺序，否则常态
+       * 回放把发起人塞进 A（我侧），一提交就把自己档案毁成对方。
+       * 尾段四位 = 两侧历法/闰月（R3313 审-P1-4，旧 12 段 chip
+       * 无尾段照常按公历解）。 */
+      var _sA = [num('hh_a_year'), num('hh_a_month'), num('hh_a_day'),
+                 num('hh_a_hour'), val('hh_a_gender') || '女'];
+      var _sB = [num('hh_b_year'), num('hh_b_month'), num('hh_b_day'),
+                 num('hh_b_hour'), val('hh_b_gender') || '女'];
+      var _tA = [val('hh_a_cal') === 'lunar' ? 'l' : '',
+                 checked('hh_a_leap') ? '1' : ''];
+      var _tB = [val('hh_b_cal') === 'lunar' ? 'l' : '',
+                 checked('hh_b_leap') ? '1' : ''];
+      var _inv = !!window.__hhInviteMode;
+      var ref = (_inv ? _sB : _sA).concat(_inv ? _sA : _sB,
+        [_inv ? _bnE : _anE, _inv ? _anE : _bnE],
+        _inv ? _tB.concat(_tA) : _tA.concat(_tB)).join('|');
       try {
         await postJSON('/api/favorites', {
           type: 'hehun', ref_id: ref.slice(0, 64),
-          title: (_an || '我') + ' × ' + (_bn || 'TA')
+          title: (_inv ? (_bn || '我') : (_an || '我')) + ' × ' +
+                 (_inv ? (_an || 'TA') : (_bn || 'TA'))
         });
         showToast('已存下这对～下次点上面的标签就能直接填', 'info');
         _hhFavsRender();
@@ -11901,18 +11938,23 @@ function initDivination() {
    * 先跑一遍合婚：生日+昵称直接落 me:partner（纯 localStorage，
    * 不发请求）。字段还停在出厂示例值就不写——假生日喂给聊天比
    * 没有更糟。受邀模式下 TA=A 侧（发起人）。 */
-  on('hhSavePartner', function () {
+  on('hhSavePartner', async function () {
     var _p = window.__hhInviteMode ? 'hh_a_' : 'hh_b_';
     if (_fieldsUntouched([_p+'year', _p+'month', _p+'day', _p+'hour', _p+'gender'])) {
       showToast('先填一下 TA 的真实生日再存，现在还是示例值', 'warn');
       return;
     }
-    var _rec = {
+    /* R3313（审-P1-3）：原 _meSave 直存 y/m/d——TA 选「农历」的原始
+     * 数字被当公历落档，此后聊天 TA 日主/星座/生日倒计时全按错盘跑。
+     * 改走统一器：农历先换算成公历坐标+农历原值标注。 */
+    var _opts = {
+      lunar: val(_p+'cal') === 'lunar',
       y: num(_p+'year'), m: num(_p+'month'), d: num(_p+'day'),
-      h: num(_p+'hour'), g: val(_p+'gender') || '女', n: val(_p+'name')
+      h: num(_p+'hour'), g: val(_p+'gender') || '女',
+      leap: checked(_p+'leap')
     };
-    if (!_rec.n) delete _rec.n;   /* 空昵称不覆旧值 */
-    _meSave('me:partner', _rec);
+    if (val(_p+'name')) _opts.n = val(_p+'name');
+    await _meSaveFromBirth('me:partner', _opts);
     showToast('TA 的生日存好啦：只留在这台设备上。之后聊感情，小满能对上 TA 的盘', 'ok');
   });
   /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
@@ -12282,17 +12324,44 @@ async function _hhFavsRender() {
 function _hhFavFill(ref) {
   var p = String(ref || '').split('|');
   if (p.length < 10) return;
-  var ids = ['hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_hour', 'hh_a_gender',
-             'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour', 'hh_b_gender'];
-  ids.forEach(function (id, i) {
-    var e = el(id);
-    if (!e || p[i] === '' || p[i] == null) return;
-    e.value = p[i];
-    delete e.dataset.me;   /* chip 回填=用户主动行为，不算 profile 预填 */
+  /* R3313（审-P0）：chip 语义是「我侧 | TA侧」——邀请态下受邀者
+   * 自己是 B 侧，我侧落 B 组、TA 侧落 A 组；不互换就会把发起人
+   * 塞进 A（我侧）让提交毁掉自己的档案。 */
+  var _inv = !!window.__hhInviteMode;
+  var _idsA = ['hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_hour',
+               'hh_a_gender'];
+  var _idsB = ['hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
+               'hh_b_gender'];
+  var _g1 = _inv ? _idsB : _idsA, _g2 = _inv ? _idsA : _idsB;
+  [_g1, _g2].forEach(function (_ids, gi) {
+    _ids.forEach(function (id, i) {
+      var e = el(id);
+      if (!e || p[gi * 5 + i] === '' || p[gi * 5 + i] == null) return;
+      e.value = p[gi * 5 + i];
+      delete e.dataset.me;   /* chip 回填=用户主动行为，不算 profile 预填 */
+      /* 邀请态下落 A 组的是对方数据——同邀请链同口径免疫档案回填 */
+      if (_inv && gi === 1) e.dataset.invite = '1';
+    });
   });
   var an = el('hh_a_name'), bn = el('hh_b_name');
-  if (an && p[10]) an.value = p[10];
-  if (bn && p[11]) bn.value = p[11];
+  var _n1 = p[10], _n2 = p[11];
+  if (an && (_inv ? _n2 : _n1)) an.value = _inv ? _n2 : _n1;
+  if (bn && (_inv ? _n1 : _n2)) bn.value = _inv ? _n1 : _n2;
+  /* R3313（审-P1-4）：尾段历法/闰月——旧 12 段 chip 无尾段按公历，
+   * 有尾段恢复历法档与闰月行显隐。 */
+  if (p.length >= 16) {
+    [[_g1, p[12], p[13]], [_g2, p[14], p[15]]].forEach(function (t) {
+      var _calId = t[0][0].replace('_year', '_cal');
+      var _leapId = t[0][0].replace('_year', '_leap');
+      var _ce = el(_calId);
+      if (_ce && t[1] === 'l') {
+        _ce.value = 'lunar';
+        try { _ce.dispatchEvent(new Event('change')); } catch (eC) {}
+        var _le = el(_leapId);
+        if (_le) _le.checked = (t[2] === '1');
+      }
+    });
+  }
   /* R233k（R45-P1-5）：原裸调 doHehun() 绕开 _ON_BUSY——连点不同 CP
    * chip 并发请求后到者盖先到者。走同一把锁，在途时记最新一对，
    * 响应落地后自动补跑。 */
@@ -13336,7 +13405,9 @@ function init() {
             (_qsAll.get('from') === 'invite' || _qsAll.get('invite') === '1')) {
           try {
             var _hq = new URLSearchParams(location.hash.slice(1));
-            ['ay', 'am', 'ad', 'ah', 'ag', 'an'].forEach(function (_hk) {
+            ['ay', 'am', 'ad', 'ah', 'ag', 'an',
+             /* R3313（审-P1-4）：历法/闰月同白名单 */
+             'ac', 'al'].forEach(function (_hk) {
               var _hv = _hq.get(_hk);
               if (_hv != null) _qsAll.set(_hk, _hv);
             });
@@ -13378,7 +13449,12 @@ function init() {
           (_qsAll.get('ag') == null || _qsAll.get('ag') === '' ||
            _qsAll.get('ag') === '男' || _qsAll.get('ag') === '女') &&
           (_qsAll.get('ah') == null || _qsAll.get('ah') === '' ||
-           (/^\d{1,2}$/.test(_qsAll.get('ah')) && +_qsAll.get('ah') <= 23));
+           (/^\d{1,2}$/.test(_qsAll.get('ah')) && +_qsAll.get('ah') <= 23)) &&
+          /* R3313：ac 只收 lunar/solar/空，al 只收 1/空 */
+          (_qsAll.get('ac') == null || _qsAll.get('ac') === '' ||
+           _qsAll.get('ac') === 'lunar' || _qsAll.get('ac') === 'solar') &&
+          (_qsAll.get('al') == null || _qsAll.get('al') === '' ||
+           _qsAll.get('al') === '1');
         if (_vp === 'hehun' && _invFull) {
           /* R2400（R130-P1-1）：进邀请态先把 A 侧清零——init 早段的
            * _meFillAll 已按默认映射把受邀者自己的生日填过这些格子，
@@ -13411,6 +13487,19 @@ function init() {
               elx.value = v;
               /* R2343：邀请值免疫档案回填（meFill 现在会盖默认值） */
               elx.dataset.invite = '1';
+              /* R3313（审-P1-4）：历法位落地——发起人按农历填的
+               * 生日受邀者端要切到农历档+闰月行，不然原始数字
+               * 静默当公历合，差出整个月令。 */
+              if (_qsAll.get('ac') === 'lunar') {
+                var _acs = document.getElementById('hh_a_cal');
+                if (_acs) {
+                  _acs.value = 'lunar';
+                  _acs.dataset.invite = '1';
+                  try { _acs.dispatchEvent(new Event('change')); } catch (eC) {}
+                }
+                var _alp = document.getElementById('hh_a_leap');
+                if (_alp && _qsAll.get('al') === '1') _alp.checked = true;
+              }
             }
           });
           /* 受邀者填的是 B 侧=自己——提交时 me/partner 归属要翻转，
@@ -13469,7 +13558,10 @@ function init() {
               '&ad=' + encodeURIComponent(_qsAll.get('ad') || '') +
               '&ah=' + encodeURIComponent(_qsAll.get('ah') || '') +
               '&ag=' + encodeURIComponent(_qsAll.get('ag') || '') +
-              '&an=' + encodeURIComponent(_qsAll.get('an') || ''));
+              '&an=' + encodeURIComponent(_qsAll.get('an') || '') +
+              /* R3313：历法位同进 F5 回灌 */
+              '&ac=' + encodeURIComponent(_qsAll.get('ac') || '') +
+              '&al=' + encodeURIComponent(_qsAll.get('al') || ''));
           } catch (eSS2) {}
           /* R2349p（R80-P1-2）：from=invite 被剥参后欢迎条分支永远读不到——
            * 剥前先存一份，_mk() 优先读它。 */
@@ -15217,6 +15309,19 @@ async function _meSaveFromBirth(key, opts) {
         (opts.leap ? '（闰）' : '');
     } else {
       rec.y = opts.y; rec.m = opts.m; rec.d = opts.d;
+    }
+    /* R3313（审-P2-1）：换人不留旧名——y/m/d 任一变了而本次没给
+     * 新名，旧昵称挂到新档案上（新 TA 被叫成旧 TA）。清键让
+     * _meSave 合并写把 n 覆盖成 ''。 */
+    if (!('n' in rec)) {
+      try {
+        var _old = _meGet(key);
+        if (_old && (Number(_old.y) !== Number(rec.y) ||
+                     Number(_old.m) !== Number(rec.m) ||
+                     Number(_old.d) !== Number(rec.d))) {
+          rec.n = '';
+        }
+      } catch (eN) {}
     }
     _meSave(key, rec);
   } catch (e) {}

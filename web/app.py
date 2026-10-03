@@ -135,7 +135,13 @@ def create_app() -> FastAPI:
         "display:flex;align-items:center;justify-content:center;"
         "background:#f7efe6;font-family:ui-rounded,PingFang SC,"
         "Microsoft YaHei,sans-serif'>"
-        "<form method=post action='/_gate' style='background:#fff;"
+        # R3313（审-P1-2）：门页 POST 前把 location.hash 拼回 next——
+        # 邀请链生辰全在 #hash（不进服务器），闸页只吃到了 path+query，
+        # 解锁后受邀者的邀请参被闸吃掉成死链。同 origin 脚本零依赖。
+        "<form method=post action='/_gate' "
+        "onsubmit=\"var n=this.querySelector('[name=next]');"
+        "if(n&&location.hash)n.value+=location.hash\" "
+        "style='background:#fff;"
         "padding:32px 28px;border-radius:18px;box-shadow:0 8px 30px "
         "rgba(120,80,40,.12);text-align:center;max-width:320px'>"
         "<div style='font-size:34px'>🌾</div>"
