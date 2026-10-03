@@ -61,7 +61,7 @@ from guji import lunar
 from guji import paipan_history
 from guji import dream as dream_mod
 from guji import taohua as taohua_mod
-from guji.search import s2t_retry
+from guji.search import s2t_retry, AMBIG_S2T_CHARS
 from guji import tarot as tarot_mod
 from guji import voice
 from guji import xingzuo as xingzuo_mod
@@ -683,6 +683,15 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
                     if len(extra) > shown_extra:
                         hint += (f"（另有 {len(extra) - shown_extra} 条"
                                  f"因上限没展示，想全看请直接搜「{q2}」）")
+        # R3305（审-P1-1/P2-4）：两个披露缺口——
+        # ① q 含一对多歧义字（刻意不收映射表）时简体侧可能漏命中，
+        #    有命中也如实提醒「换繁体再查一次会更全」；
+        # ② 零命中此前裸回，没有「语料范围+下一步出路」的引导
+        #    （concept 已这么做，search 口径对齐）。
+        _amb = [ch for ch in q if ch in AMBIG_S2T_CHARS]
+        if hint is None and _amb:
+            hint = (f"「{_amb[0]}」这类字简繁写法不止一种，本库以繁体为主"
+                    f"——想查全可换繁体写法再搜一次")
         # total = 展示数 + 各形未展示的余量（两形的并集无法精确计数——
         # 窗口外的交集不可知，按各形总数直加，配合 hint 的分形口径）。
         shown_q = len(hits) - shown_extra
@@ -690,6 +699,9 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
             + max(0, c.search_count(q, **kw) - shown_q) \
             + (max(0, c.search_count(q2, **kw) - shown_extra)
                if q2 != q else 0)
+        if total == 0 and hint is None:
+            hint = ("这库主要是周易、术数一类古籍——换个写法（或繁体）、"
+                    "缩短词组再试试，也可以去「定位」按章回翻")
         return {"query": q, "count": len(hits), "total": total,
                 "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
@@ -698,7 +710,8 @@ def search(q: str, *, layer: str | None = None, work: str | None = None,
 def addr(scheme: str = "zhouyi", *, gua: int | None = None,
          yao: str | None = None, layer: str | None = None,
          addr_name: str | None = None, addr1: int | None = None,
-         addr2: str | None = None, limit: int = 20) -> dict:
+         addr2: str | None = None, limit: int = 20,
+         work: str | None = None) -> dict:
     """地址定位。scheme 显式声明，杜绝 Psalms-99 == 卦99 类跨体系碰撞（D-005）。"""
     if scheme not in deps.SCHEME_LABELS:
         raise ValidationError(
@@ -709,7 +722,8 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
     # R230s（R30-#14）：与所选 scheme 不相干的参数如实披露，不静默吞。
     if scheme == "zhouyi":
         _ignored = [n for n, v in (("addr_name", addr_name),
-                                   ("addr1", addr1), ("addr2", addr2))
+                                   ("addr1", addr1), ("addr2", addr2),
+                                   ("work", work))
                     if v is not None]
     else:
         _ignored = [n for n, v in (("gua", gua), ("yao", yao))
@@ -722,12 +736,22 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
         # 全局存在性（typo 检测）；合法组合为空仍回 200 空集。
         # R3241：addr2/addr_name 单列无覆盖索引，原 LIMIT 1 是整索引扫
         # 5.6ms——has_value 用按库指纹缓存的 distinct 集等价判定。
+        # R3305（审-P2-1）：typo 门此前用全局 DISTINCT——bcv 的节号
+        # 会让 zhouyi 的爻校验误放行（跨 scheme 污染）。按 scheme 分桶。
+        # work 参数存在性（typo 门同纪律——拼错书名静默零命中像「没这本书」）。
+        if work is not None and not c.db.execute(
+                "SELECT 1 FROM work WHERE id=? LIMIT 1",
+                (work,)).fetchone():
+            raise ValidationError(f"这本书库里没有（{work}），先去书目页翻翻")
         for _col, _v, _lbl in (
                 ("layer", layer, "这个分类"),
                 ("addr_name", addr_name, "这个地址名"),
                 ("addr2", addr2 if scheme != "zhouyi" else yao,
                  "这个爻/小节")):
-            if _v is not None and not c.has_value(_col, _v):
+            if _v is not None and not c.has_value(
+                    _col, _v,
+                    scheme=None if _col == "layer" else
+                    (scheme if scheme != "none" else "none")):
                 raise ValidationError(
                     f"{_lbl}库里没有（{_v}），换一个试试")
         if scheme == "zhouyi":
@@ -754,14 +778,30 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             if scheme == "yilin" and addr1 is not None \
                     and not (1 <= addr1 <= 64):
                 raise ValidationError("候数填 1 到 64")
+            # R3305（审-P1-2）：bcv 的 addr1 是书内章号，缺 addr_name
+            # 会把几十卷同号章揉成一页；booksec 各书卷号互撞（addr_name
+            # 恒 NULL，区分靠 work_id）——如实拒绝，与 bookstudy.chapter
+            # 同口径。
+            if scheme == "bcv" and addr1 is not None \
+                    and addr_name is None:
+                raise ValidationError(
+                    "章号是按每卷算的，得再给卷名（比如 Genesis）——"
+                    "不然几十卷的同号章会揉到一页")
+            if scheme == "booksec" and addr1 is not None \
+                    and work is None:
+                raise ValidationError(
+                    "卷号是按每本书算的，得再给书名（work 参数，"
+                    "比如 herodotus）——不然几本书的同号卷会揉到一页")
             hits = c.at_scheme(None if scheme == "none" else scheme,
                                addr_name=addr_name, addr1=addr1,
-                               addr2=addr2, layer=layer, limit=limit)
+                               addr2=addr2, layer=layer, limit=limit,
+                               work_id=work)
             _sn = None if scheme == "none" else scheme
             _w = "scheme IS NULL" if _sn is None else "scheme = ?"
             _p = [] if _sn is None else [_sn]
             for col, val in (("addr_name", addr_name), ("addr1", addr1),
-                             ("addr2", addr2), ("layer", layer)):
+                             ("addr2", addr2), ("layer", layer),
+                             ("work_id", work)):
                 if val is not None:
                     _w += f" AND {col} = ?"; _p.append(val)
             total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
@@ -777,6 +817,12 @@ def compare(gua: int, yao: str = "九三", layer: str = "經",
     if not (1 <= gua <= 64):
         raise ValidationError("卦号填 1 到 64")
     with deps.corpus() as c:
+        # R3305（审-P3）：compare 的 yao 此前无 typo 门——「二九」「abc」
+        # 200 no_witness（合法但无比对材料）而不是 400 报错，与 /api/addr
+        # 口径不一。同闸复用。
+        if yao and not c.has_value("addr2", yao, scheme="zhouyi"):
+            raise ValidationError(
+                "爻名库里没有（{}）——写法是 初九/九二/上九 这类".format(yao))
         cmp = compare_address(c, gua, yao, layer=layer,
                               allow_damaged=allow_damaged)
         return {

@@ -129,7 +129,10 @@ def _run_inner() -> list[str]:
         ("addr.bcv", {"scheme": "bcv", "addr_name": "Proverbs", "addr1": 12,
                       "addr2": "12"}),
         ("addr.yilin", {"scheme": "yilin", "addr1": 61}),
-        ("addr.booksec", {"scheme": "booksec", "addr1": 10}),
+        # R3305（审-P1-2）：booksec 卷号书内计——缺 work 参数会揉多书
+        # 同号卷，现如实 400；带上 work 仍能命中。
+        ("addr.booksec", {"scheme": "booksec", "addr1": 10,
+                          "work": "homer-iliad-but"}),
         ("addr.play", {"scheme": "play", "addr_name": "THE SONNETS", "addr1": 1}),
         ("addr.euclid", {"scheme": "euclid", "addr_name": "Book 1", "addr1": 1}),
     ):

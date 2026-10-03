@@ -17375,3 +17375,13 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
   - P2：同名键并发写互丢——_phMirrorSave/_favMirrorSave 写前重读并集合并（del 墓碑按同代 ts 摘尸）；chat:cards/topics/events/hlask 走新 _lsUnionWrite 身份并集；_favMirrorDrop 记本会话删号防收尸。
   - P3：盲区键——storage 监听补 mood:/moodlv:/moodjar:/checkinBuff: 分发；journal:/ritual:/usage: 等低频统计件注明有意不跟；checkinBuff: 收进 wipe 前缀。
   - P3：断网回落本机留档不再谎称「云端清盘」——navigator.onLine 判离线改「离线中，先看你本机留档」。
+
+## R2368 — R3305 古籍检索质量深审清零（P1+P2 主干）
+- P1-1：S2T_RETRY 补 ~200 个古籍语境单义映射（载/积/遥/纪/鸡/机/华/边/过/这/还/谁/难/虽/间/关/认/让/诗/诚/请/诸/读/红/绿/丝/线/结/绕/给/统/继/缘/绳/网/罗/鸣/鹅/鹤/麦/黄/齐/齿…）——名句原文在库却报「命中 1/0 条」的伪完整度收敛。
+- P1-1：新增 AMBIG_S2T_CHARS（云/后/余/干/几/钟/历…一对多歧义字）——q 含这类字且有命中也披露「换繁体再查更全」，不再让用户以为这就是全集。
+- P1-2：bcv 缺 addr_name 给章号 → 400（几十卷同号章揉一页）；booksec 缺 work → 400（addr_name 恒 NULL、多书卷号互撞），/api/addr 新增 work 参数通到 at_scheme；work 拼错走 typo 门 400。
+- P1-3：doCompare 渲染 flagged——质量闸门扣下的见证此前只进 API、UI 吞掉，现如实披露「另有 N 本被扣下+原因」。
+- P2-1：typo 门 scheme 分桶——has_value 加 scheme 参数，bcv 节号不再让 zhouyi 爻校验误放行（跨 scheme 污染修复）。
+- P2-2：bookstudy.structure 未编址标题行标「卷首/附录（文件名）」不再冒充「第N卷」；bcv section 标「Genesis · 第3章」带章号不再整卷同标。
+- P2-4：search 零命中回 hint（语料范围+换写法+指向定位页），与 concept 同口径。
+- P3：compare 的 yao 加 typo 门（「abc」原 200 no_witness 自相矛盾，现 400 同 /api/addr 口径）。
