@@ -500,6 +500,11 @@ function buildHehunResult(j) {
   let html = '<div class="card"><h2>💕 八字合婚</h2>' +
     (_hn ? '<p class="hh-pair">' + esc(_hn) + '</p>' : '');
   html += _birthEcho('hehun');
+  /* R3340（审-P2）：节气边界/夏令时/0点跨日警示——服务端 warn
+   * 已透传（「A 盘：…」「B 盘：…」带侧标），前端此前不渲染。 */
+  if (j.warn && j.warn.length) {
+    html += '<p class="warn">' + esc(j.warn.join('；')) + '</p>';
+  }
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
   /* R233n：三枚 fav-btn 全按 right:24/84px 绝对定位会互叠——本卡
    * 三钮改用 .hh-btns flex 行（静态流，gap 间隔）。 */
@@ -803,6 +808,10 @@ function buildTaohuaResult(j) {
       esc(j.cross_ref.message) + '</div>';
   }
   html += renderAiPolish(j);
+  /* R3340（审-P2）：桃花 warn 渲染——服务端已透但前端此前丢。 */
+  if (j.warn && j.warn.length) {
+    html += '<p class="warn">' + esc(j.warn.join('；')) + '</p>';
+  }
   html += tailHook('taohua');
   html += '</div>';
   return html;
@@ -978,6 +987,10 @@ function buildQimingResult(j) {
       esc(j.cross_ref.message) + '</div>';
   }
   html += renderAiPolish(j);
+  /* R3340（审-P2）：起名 warn 渲染——服务端已透但前端此前丢。 */
+  if (j.warn && j.warn.length) {
+    html += '<p class="warn">' + esc(j.warn.join('；')) + '</p>';
+  }
   html += tailHook('qiming');
   /* R229z续23（R11-#4）：起名卡此前全程无免责徽标 */
   html += '<div style="font-size:12px;color:var(--muted);margin-top:10px;">名字综合古籍意象与五行给的参考，仅供娱乐，孩子的名字还是家里人说了算 ✨</div>';
@@ -1085,6 +1098,11 @@ async function api(path, options) {
     var status = resp.status;
     var isClient = status >= 400 && status < 500;
     err.status = status;   /* R8 P2-9：让轮询方对 404 早退（任务不存在） */
+    /* R3341（审-低）：闸 cookie 过期 → API 全 401——裸「需要钥匙
+     * 才能进来哦」用户不知道下一步。点名刷新重新进门。 */
+    if (status === 401) {
+      err.message = '门好像又关上了——刷新页面重新输口令进门';
+    }
     if (!options.silent) {
       showToast(typeof err.message === 'string' ? err.message
                 : '刚才那下没成功，再试一次？',
@@ -7825,6 +7843,8 @@ async function doQiming() {
        * 扩池到 40+/元素后可再上调，见台账未修清单。 */
       top_n: 8,
       seed: _qmSeed || null,
+      /* R3340（审-P3）：排除字通道——表单「不想用的字」直通后端过滤。 */
+      avoid_chars: val('qm_avoid') || '',
       style: _QM_STYLE || 'all'    /* v3（P3）：风格档后端过滤 */
     };
     _lunarPack(_qmLunar, _LUNAR_KEYS_STD, num('qm_year'), num('qm_month'),

@@ -439,14 +439,6 @@ def hehun(req) -> dict:
 
     def _age(y, m, d):
         return _now_d.year - y - ((_now_d.month, _now_d.day) < (m, d))
-    if _age(req.a_year, req.a_month, req.a_day) < 18 or \
-            _age(req.b_year, req.b_month, req.b_day) < 18:
-        raise ValidationError(
-            "合婚是给成年人测的：有一方还没满 18 岁，把生日改对或长大点再来呀～")
-    # R3333（审-高2）：同人闸挪到农历换算之后——原闸比的是请求
-    # 原始字段，甲公历+乙农历同一天（前端农历模式把农历数写进
-    # b_y/m/d）能绕过，两盘逐字相同仍出「上等合拍」。换算后比
-    # 真坐标（含时辰/性别）才能真闸住。
     # R3206：双侧农历——换算失败是用户输错日期不是排盘故障，
     # 归 ValidationError（resolve_birth 认 req.calendar_type 命名，
     # hehun 双侧各一组 a_/b_ 前缀，这里手动换算）。
@@ -464,9 +456,18 @@ def hehun(req) -> dict:
     except ValueError:
         raise ValidationError(
             "农历日期没换算成，可能是月日对不上，换个日子试试") from None
+    # R3340（审-P3）：<18 闸挪到农历换算之后——此前用请求原值，
+    # 农历生日边界月差会误拦/误放。
+    if _age(_ay, _am, _ad) < 18 or _age(_by, _bm, _bd) < 18:
+        raise ValidationError(
+            "合婚是给成年人测的：有一方还没满 18 岁，把生日改对或长大点再来呀～")
     # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
-    if ((_ay, _am, _ad, req.a_hour, req.a_gender)
-            == (_by, _bm, _bd, req.b_hour, req.b_gender)):
+    # R3340（审-P3）：时辰未知侧不带进比较——两侧都留空同填默认午时，
+    # 不同人同一天生会被误判「同一个人」。任一侧未知即不比时辰。
+    _ah_cmp = req.a_hour if req.a_hour_known is not False else None
+    _bh_cmp = req.b_hour if req.b_hour_known is not False else None
+    if ((_ay, _am, _ad, _ah_cmp, req.a_gender)
+            == (_by, _bm, _bd, _bh_cmp, req.b_gender)):
         raise ValidationError("两边填的是同一个人呀：换上 TA 的生辰再测～")
     try:
         ba = bazi_compute(_ay, _am, _ad, req.a_hour, req.a_gender)
@@ -483,6 +484,10 @@ def hehun(req) -> dict:
                    "render": ba.render()},
         "b_bazi": {"year": bb.year, "day": bb.day, "day_master": bb.day_master,
                    "render": bb.render()},
+        # R3340（审-P2）：A/B 两盘的节气边界/夏令时/0点跨日警示
+        # 此前在合婚响应整体丢掉——静默拿可能错的盘出判词。
+        "warn": [f"A 盘：{w}" for w in (ba.warn or [])] +
+                [f"B 盘：{w}" for w in (bb.warn or [])],
         # R233u（R53-P1-1）：one_liner 盐键接线——此前 day_zhi_* 恒 None，
         # 同桶所有 CP 抽到同一句判词。
         "day_zhi_a": h.day_zhi_a, "day_zhi_b": h.day_zhi_b,
@@ -549,10 +554,12 @@ def hehun(req) -> dict:
         # 前端本地注入；存进台账的 result 副本带昵称供复看。
         # C-003：交叉引用——合婚结果页增加星座配对维度
         # R220b：按双方出生月日取真实太阳星座（原来用日支，配对结论是假的）
+        # R3340（审-P1）：判座用换算后的公历坐标——农历输入下
+        # req.a_*/b_* 是农历值，直接判座错座且配对判词整体翻转。
         "cross_ref": _cross_ref_hehun(ba, bb,
-                                     (req.a_year, req.a_month, req.a_day,
+                                     (_ay, _am, _ad,
                                       getattr(req, "a_hour", None)),
-                                     (req.b_year, req.b_month, req.b_day,
+                                     (_by, _bm, _bd,
                                       getattr(req, "b_hour", None))),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
@@ -588,7 +595,8 @@ def qiming(req) -> dict:
             surname=req.surname, year=_qy, month=_qm,
             day=_qd, hour=req.hour, gender=req.gender,
             top_n=min(max(req.top_n, 1), 100),
-            seed=req.seed, style=getattr(req, "style", "all"))
+            seed=req.seed, style=getattr(req, "style", "all"),
+            avoid_chars=getattr(req, "avoid_chars", "") or "")
     except Exception as exc:
         raise ValidationError(f"起名计算失败：{_friendly_calc_err(exc)}") from exc
     ai_polish = None
@@ -613,7 +621,10 @@ def qiming(req) -> dict:
         llm_polish.facts_qiming(out, req.gender, warm=out["warm"]))
     out["ai_polish"] = ai_polish
     # R220b：交叉引用铺到起名——太阳星座气质给挑名字一个参考角度
-    out["cross_ref"] = _cross_ref_qiming(req.month, req.day)
+    # R3340（审-P1）：判座用换算后公历坐标+年+时辰走节气精判——
+    # 此前拿 req.month/day 原值（农历输入下是农历月日）且函数只
+    # 吃 (m,d) 走民用粗表，与同响应 bazi 精判口径一页两分叉。
+    out["cross_ref"] = _cross_ref_qiming(_qm, _qd, year=_qy, hour=req.hour)
     if ai_task_id:
         out["ai_task_id"] = ai_task_id
     # R230z（R36-P1-1）：起名进台账（原来只有 bazi 落库）
@@ -5697,11 +5708,14 @@ def _cross_ref_liuyao(moving_lines: list | tuple,
         return {}
 
 
-def _cross_ref_qiming(month: int, day: int) -> dict:
-    """起名结果页 → 太阳星座气质，给挑名字的参考角度。"""
+def _cross_ref_qiming(month: int, day: int,
+                      year: int | None = None,
+                      hour: int | None = None) -> dict:
+    """起名结果页 → 太阳星座气质，给挑名字的参考角度。
+    R3340（审-P1）：year/hour 透传节气精判（与 bazi/taohua 同口径）。"""
     from guji.xingzuo import sun_sign_profile
     try:
-        prof = sun_sign_profile(month, day)
+        prof = sun_sign_profile(month, day, year=year, hour=hour)
         if not prof:
             return {}
         sign = prof["sign"]

@@ -841,6 +841,9 @@ try {
           <select id="qm_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
         <div class="field" id="f_qm_leap" hidden><label for="qm_leap">闰月</label>
           <input id="qm_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+        <!-- R3340（审-P3）：排除字输入——家里钦定不要的字直接不进候选 -->
+        <div class="field"><label for="qm_avoid">不想用的字</label>
+          <input id="qm_avoid" type="text" maxlength="20" placeholder="选填：避开的字，如 春草"></div>
       </div>
       <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
       <div id="qmFavRow" class="fav-row" hidden></div>

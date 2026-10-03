@@ -409,9 +409,14 @@ def compute(year: int, month: int, day: int, hour: int,
                 _dst_active = False
             _alt_hp = hour_ganzhi(day_pillar[0], (hour - 1) % 24)
             if _dst_active and _alt_hp != hour_pillar:
-                warns.append(
+                _dst_msg = (
                     f"{year}年这段实行过夏令时（时钟拨快1小时）：如果填的是"
-                    f"当时钟面时间，时柱也可能是 {_alt_hp}——拿不准就两个都看看")
+                    f"当时钟面时间，时柱也可能是 {_alt_hp}")
+                # R3340（审-P2）：0 点特例——窗口期钟面 0 点 = 标准时
+                # 前一日 23 点，不只差时柱，日柱也可能差一天。
+                if hour == 0:
+                    _dst_msg += "，而且日柱也可能是前一天"
+                warns.append(_dst_msg + "——拿不准就两个都看看")
     if hour == 23:
         warns.append("23点后属夜子时：本盘按当日排日柱（另一派会归入次日）")
     if hour == 0:

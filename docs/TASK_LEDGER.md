@@ -17928,3 +17928,36 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   - 跳过项：低13 futureLetters:corrupt 写读分离实为救援备份设计
     （备份前缀同族导出覆盖）；低16 paipan_mirror 空壳系重渲再擦
     的刻意残留；低20 ref_id 口径实测已对齐 64/64 无差
+
+## R3340+R3341 双审清零（术数判词对账 + 部署态/离线PWA）
+
+- **R3340 P1×4**：① `_rel_pair` 补相破判定（表建 6 对但判定链不查=死代码，
+  本命盘永不报破而合婚 is_break 判——两域口径矛盾；寅亥/巳申仍合优先）；
+  ② `_cross_ref_qiming` 拿 req.month/day 原值判座（农历输入错座+粗表）→
+  改换算后公历坐标+年+时辰走节气精判；③ `_cross_ref_hehun` 同病（双侧
+  农历错座、配对判词整体翻转）→ 传换算后 (_ay,_am,_ad)；④ classical_names
+  兜底块零过滤+range(3)同参数死循环 → 补 _AVOID/性别倾向/_story_ok/
+  _entry_match_style 全闸，pick 盐带 seed+序号
+- **R3340 P2×3**：hehun/qiming 响应补 warn 透传（A/B 分标「A 盘：/B 盘：」），
+  前端 hehun/taohua/qiming 三渲染点补 j.warn 行；voice 「平偏多」病句分句
+  修；DST 0 点特例补「日柱也可能是前一天」
+- **R3340 P3**：<18 闸挪到农历换算后（原用请求原值）；同人闸时辰未知侧
+  不比较（两不同人同日生+都留空不再误判同人）；生肖忌用字表（相冲生肖
+  本字不进名）+avoid_chars 通道（schema≤20字+表单「不想用的字」+过滤合桶）
+- **R3341 中×3**：SHELL 补 renge/oracle/moon-cat 三首屏卡图（RT 60帽下
+  逐出离线破图）；/static/* 全放行（manifest→图标→sw.js 装机链闸下死，
+  仓本公开无敏感）；口令强度启动自检（<12/纯数字/常见词告警）
+- **R3341 低**：waitUntil 收编 skipWaiting/clients.claim；HSTS(https)+
+  Permissions-Policy 头；app.js ETag+304+no-cache；jsmin try 缩窄（读盘
+  错才404，minify炸回落原文）；cookie 改 ts.HMAC 滚动签发（泄漏cookie
+  30天寿命+超7天滚动续期）；EXTRA_GLOBS 补 cream 懒载图族 6 glob
+  （换图不 bump 老客看旧图）；Dockerfile HEALTHCHECK（/api/health 免闸）；
+  401 toast「刷新重新输口令进门」
+- **自测钉同步**：static 放行口径（_g3 改 manifest/app.js 200）、cookie
+  ts.HMAC 种子生成、hehun/qiming 响应键集+warn、selftest 内联 EXTRA 清单
+  补 6 glob、voice_baseline 重冻（相破信号入判词）
+- **跳过**：qrcode.min.js 保懒加载（海报二维码缺席静默跳过）；
+  RT revalidate TTL（CACHE 名版本化已兜）；台账 raw 农历消费（回放
+  往返本就是原值口径）；_adult B 侧（hehun 双侧闸已齐）
+- 闸门：selftest 406 / ui_smoke 103 / contract 735 / parity 74+52+253+9 /
+  baseline_voice 重冻+self-check / ruff E9,F 全绿；bump_sw→books-shell-4301a300b7df

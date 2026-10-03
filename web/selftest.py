@@ -3125,8 +3125,13 @@ def _run_inner() -> list[str]:
         assert _g1.status_code == 401, _g1.status_code
         _g2 = client.get("/api/health")
         assert _g2.status_code == 200, _g2.status_code
-        _g3 = client.get("/static/app.js", follow_redirects=False)
-        assert _g3.status_code == 403 and "开门" in _g3.text, _g3.status_code
+        # R3341（审-中）：/static/* 放行——PWA 装机链 manifest→图标→
+        # sw.js 全靠静态件，闸下装机死；仓本公开无敏感。「/」与 /api
+        # 仍走闸（上一行 _g1 钉 /api 401）。
+        _g3 = client.get("/static/manifest.json", follow_redirects=False)
+        assert _g3.status_code == 200, _g3.status_code
+        _g3b = client.get("/static/app.js", follow_redirects=False)
+        assert _g3b.status_code == 200, _g3b.status_code
         _g4 = client.get("/?key=wrong", follow_redirects=False)
         assert _g4.status_code == 403 and "开门" in _g4.text, _g4.status_code
         _g5 = client.get("/?key=testkey123", follow_redirects=False)
@@ -3143,8 +3148,13 @@ def _run_inner() -> list[str]:
         # R2400（R137-P2-2）：cookie 值 = 口令 HMAC 派生指纹，种 cookie
         # 需同口径生成（明文口令不再等于 cookie 值）。
         import hmac as _hm
-        _ckv = _hm.new(b"testkey123", b"books-gate-cookie",
-                       "sha256").hexdigest()
+        # R3341（审-低）：cookie 改 ts.HMAC 滚动签发——种 cookie 同口径
+        # 生成（旧裸指纹形态已作废，吃 403 重新解锁）。
+        import time as _tm
+        _cts = int(_tm.time())
+        _ckv = (f"{_cts}." + _hm.new(
+            b"testkey123", f"books-gate-cookie:{_cts}".encode(),
+            "sha256").hexdigest())
         client.cookies.set("books_key", _ckv)
         _g8 = client.get("/api/health")
         assert _g8.status_code == 200, _g8.status_code
@@ -4644,6 +4654,8 @@ def _run_inner() -> list[str]:
                        # R233u（R53-P1-3）：日支夫妻宫 + 纳音 + 年支半合
                        "day_zhi_a", "day_zhi_b", "day_zhi_rel",
                        "nayin_a", "nayin_b", "nayin_rel", "year_zhi_rel",
+                       # R3340：A/B 双盘 warn 透传（节气边界/夏令时）
+                       "warn",
                        # R2349l（R73-P1-1）：合拍指数
                        "match_score",
                        # C-003：交叉引用——合婚结果页增加星座配对维度
@@ -4660,6 +4672,8 @@ def _run_inner() -> list[str]:
                         "warm",
                         # R220b：交叉引用铺到起名（太阳星座气质参考）
                         "cross_ref",
+                        # R3340：盘 warn 透传
+                        "warn",
                         # R3124b
                         "result_ref"},
     }
@@ -4749,7 +4763,11 @@ def _run_inner() -> list[str]:
                # R2349u（R91-P2-5）：og 分享卡纳入哈希同口径
                "shared/og-card.jpg",
                # R3317-F：vendored 懒加载库同口径
-               "libs/*.js"):
+               "libs/*.js",
+               # R3341：cream 运行时懒载图族同口径（与 bump_sw 一致）
+               "cream/dream-*.jpg", "cream/sign-*.jpg",
+               "cream/scene-*.jpg", "cream/bear-scene-*.jpg",
+               "cream/persona-*.jpg", "cream/hehun-bear.jpg"):
         for _ep in sorted(_gl5.glob(_os.path.join(
                 _os.path.dirname(__file__), "static", _g))):
             _h.update(_os.path.basename(_ep).encode())

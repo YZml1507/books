@@ -520,8 +520,14 @@ def one_liner(day_master: str, calc: dict, question: str | None,
         else:
             fe = calc.get("five_elements") or {}
             _strong_labels = [ELEMENT_WARM.get(s, ("", ""))[0] for s in (fe.get("strong") or [])]
-            s = (f"{label}看五行：{'、'.join(_strong_labels) or '平'}偏多"
-                 if (fe.get("strong") or fe.get("missing")) else f"{label}整体平和")
+            # R3340（审-P2）：strong 空而 missing 非空时原句拼出
+            # 「看五行：平偏多」病句——分两句说，别塞一个词硬凑。
+            if fe.get("strong"):
+                s = f"{label}看五行：{'、'.join(_strong_labels)}偏多"
+            elif fe.get("missing"):
+                s = f"{label}看五行：{''.join(fe['missing'])}偏弱，补一补更顺"
+            else:
+                s = f"{label}整体平和"
     else:
         fe = calc.get("five_elements") or {}
         strong = fe.get("strong") or []

@@ -37,6 +37,14 @@ EXTRA_GLOBS = (
     "shared/og-card.jpg",
     # R3317-F：vendored 库（qrcode 等懒加载件，libs 躲开 .gitignore vendor/ 排除）更新也要换 CACHE 名。
     "libs/*.js",
+    # R3341（审-低）：运行时懒加载的 cream 图族此前不进哈希——
+    # 换图不 bump，已装用户 RT 桶无限期看旧图。
+    "cream/dream-*.jpg",
+    "cream/sign-*.jpg",
+    "cream/scene-*.jpg",
+    "cream/bear-scene-*.jpg",
+    "cream/persona-*.jpg",
+    "cream/hehun-bear.jpg",
 )
 
 

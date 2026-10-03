@@ -33,4 +33,8 @@ EXPOSE 7860
 # 默认 7860 = HF Spaces app_port 缺省值；Railway/Render/Fly 注入 PORT 即用其值。
 # R2400（R137-P2-3）：sh -c 下 dash 不 exec → uvicorn 是子进程收不到
 # SIGTERM，容器停机等 kill 超时。exec 让 uvicorn 顶 PID1 优雅停机。
+# R3341（审-低）：容器级健康检查——/api/health 免闸。平台自配探活
+# 的会覆盖本条；本地 docker run 也能 docker ps 看 healthy 态。
+HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
+  CMD ["sh", "-c", "exec python -c \"import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','7860')+'/api/health',timeout=4)\""]
 CMD ["sh", "-c", "exec uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips '*' --no-access-log --workers 1"]

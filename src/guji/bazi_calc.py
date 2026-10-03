@@ -166,6 +166,12 @@ def _rel_pair(z1: str, z2: str) -> tuple[str, str] | None:
         return "相刑", f"{z1}{z2}刑"
     if XIANG_HAI.get(z1) == z2:
         return "相害", f"{z1}{z2}害"
+    # R3340（审-P1）：相破是死代码——表建了 6 对但判定链不查，本命盘
+    # 永不报破而合婚 is_break 又判，两域口径自相矛盾。排在害后；
+    # 寅亥/巳申 同时为六合，合先报（合中带破的粗糙但可接受口径，
+    # 与六冲优先于刑/害同序逻辑一致）。
+    if XIANG_PO.get(z1) == z2:
+        return "相破", f"{z1}{z2}破"
     return None
 
 

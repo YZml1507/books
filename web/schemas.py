@@ -326,6 +326,10 @@ class QimingRequest(BaseModel):
     lunar_month: int | None = None
     lunar_day: int | None = None
     lunar_leap: bool = False
+    # R3340（审-P3）：用户排除字通道——家里钦定不要的字（避讳/不喜）
+    # 直接不进候选。免校验字表长度（≤20 字）。
+    avoid_chars: str = Field("", max_length=20,
+                             description="用户明确不要出现在名字里的字")
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):

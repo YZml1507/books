@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-3602264026d1';   // shell-hash: 3602264026d1
+var CACHE = 'books-shell-4301a300b7df';   // shell-hash: 4301a300b7df
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -35,12 +35,17 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
              '/static/cream/cream-icon-taohua.jpg',
              '/static/cream/cream-icon-xingzuo.jpg',
              '/static/cream/cream-icon-history.jpg',
+             /* R3341（审-中）：renge/oracle/moon-cat 三张功能卡图在首屏
+              * 宫格上屏，此前漏收——RT 60 条桶被热图挤占后离线破图。
+              * （R3338 曾把 moon-cat 挪去 RT，审复核它其实是首屏卡图，
+              * 收回 SHELL。empty-xiaoman 有 onerror 自移除兕底，留 RT。） */
+             '/static/cream/icon-renge.jpg',
+             '/static/cream/cream-icon-oracle.jpg',
+             '/static/shared/icon-set-moon-cat.jpg',
              /* R233d（R42-#5）：首屏图 + 礼盒 + 吉凶字字体补进 SHELL——
               * 装完即断网不再破图/回落字体（gift 另有 onerror 双保险）。 */
              '/static/cream/cream-hero-v2.jpg',
              '/static/cream/avatar-xiaoman-cream.jpg',
-             /* R3338（审-中）：empty-xiaoman 与 moon-cat 不是首屏壳件——
-              * 预缓存白白拖慢 activate，挪去运行时缓存（首次用到再写）。 */
              '/static/cream/icon-180.png',
              /* R2510（审-SW-P2）：manifest maskable 图标此前不在 SHELL——
               * 装完即离线时启动图标破图。 */
@@ -83,8 +88,11 @@ self.addEventListener('install', function (e) {
         throw new Error('shell core missing: ' + coreMiss.join(','));
       }
     });
+  })).then(function () {
+    /* R3341（审-低）：skipWaiting 收进 waitUntil——写在事件外，
+     * SW 可能在收编前被回收，新壳装了不接管。 */
+    return self.skipWaiting();
   }));
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', function (e) {
@@ -93,8 +101,10 @@ self.addEventListener('activate', function (e) {
      * CACHE+'-rt' 也清了（无害但白删一轮）。 */
     return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== RT; })
       .map(function (k) { return caches.delete(k); }));
+  })).then(function () {
+    /* R3341（审-低）：claim 收进 waitUntil——同上。 */
+    return self.clients.claim();
   }));
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function (e) {

@@ -221,7 +221,8 @@ def _story_ok(entry: dict) -> bool:
 def generate_classical_names(surname: str, year: int, month: int, day: int,
                               hour: int, gender: str = "女",
                               top_n: int = 8, seed: int | None = None,
-                              style: str = "all") -> dict:
+                              style: str = "all",
+                              avoid_chars: str = "") -> dict:
     """古籍典故取名主函数。
 
     流程：
@@ -528,9 +529,16 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                 comp_entries = _CLASSICAL_DB.get(gender_comp, [])
                 if not comp_entries:
                     continue
-                for _ in range(3):
-                    e1 = _pick(classical_entries, surname, year, month, elem)
-                    e2 = _pick(comp_entries, surname, year, month, gender_comp)
+                # R3340（审-P1）：兜底块此前三宗罪——①range(3) 三次
+                # _pick 同参数恒同结果（死循环每对只产 1 名）；
+                # ②零过滤（_AVOID/性别倾向/_story_ok/风格全旁路，
+                # 实测漏出「鹜」名）。与主双字路径同闸补齐，pick 盐
+                # 带 seed+序号拆开。
+                for _fi in range(6):
+                    e1 = _pick(classical_entries, surname, year, month, elem,
+                               seed if seed is not None else "v3", _fi)
+                    e2 = _pick(comp_entries, surname, year, month, gender_comp,
+                               seed if seed is not None else "v3", _fi)
                     if not e1 or not e2:
                         continue
                     c1 = e1.get("字", "")
@@ -538,6 +546,19 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     if not c1 or not c2 or c1 == c2:
                         continue
                     if c1 in surname or c2 in surname:
+                        continue
+                    if c1 in _AVOID or c2 in _AVOID:
+                        continue
+                    if gender == "女" and (c1 in _AVOID_FEM or c2 in _AVOID_FEM):
+                        continue
+                    if gender == "男" and (c1 in _FEM_LEAN or c2 in _FEM_LEAN):
+                        continue
+                    if gender == "女" and (c1 in _MASC_LEAN or c2 in _MASC_LEAN):
+                        continue
+                    if not _story_ok(e1) or not _story_ok(e2):
+                        continue
+                    if (not _entry_match_style(e1, style)
+                            or not _entry_match_style(e2, style)):
                         continue
                     given = c1 + c2
                     name = surname + given
@@ -556,13 +577,32 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             if len(full_names) >= top_n:
                 break
 
+    # R3340（审-P3）：生肖忌用字——按生年年支取相冲生肖，该生肖的
+    # 本字/常见字根不进名（传统「属鼠忌马字」口径）。只拦生肖本字，
+    # 不扩字根表，面控在可辩护范围。
+    _ZHI_ANIMAL = {"子": "鼠", "丑": "牛", "寅": "虎", "卯": "兔",
+                   "辰": "龙", "巳": "蛇", "午": "马", "未": "羊",
+                   "申": "猴", "酉": "鸡", "戌": "狗", "亥": "猪"}
+    _ZHI_CHONG = {"子": "午", "午": "子", "丑": "未", "未": "丑",
+                  "寅": "申", "申": "寅", "卯": "酉", "酉": "卯",
+                  "辰": "戌", "戌": "辰", "巳": "亥", "亥": "巳"}
+    _yzhi = getattr(b, "year", ("", ""))[1] if getattr(b, "year", None) else ""
+    _zodiac_avoid = {_ZHI_ANIMAL[_ZHI_CHONG[_yzhi]]} \
+        if _yzhi in _ZHI_CHONG else set()
+    # R3340（审-P3）：用户排除字与生肖忌字合桶——用户说不喜欢的字
+    # 和冲生肖的字一样不进名。
+    _zodiac_avoid |= {c for c in (avoid_chars or "") if c.strip()}
+
     # 去重
     seen = set()
     unique = []
     for n in full_names:
-        if n["full_name"] not in seen:
-            seen.add(n["full_name"])
-            unique.append(n)
+        if n["full_name"] in seen:
+            continue
+        if _zodiac_avoid and any(c in _zodiac_avoid for c in n["given"]):
+            continue
+        seen.add(n["full_name"])
+        unique.append(n)
 
     # R2349s（R84-P2-14）：重名热字 / 生僻字提醒——只对库内实际会出现
     # 的字建表（149 字全量核对）：热字=近年新生儿高频（梓/瑶/彤/桐/
@@ -608,6 +648,9 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         "full_names": unique[:top_n],
         "candidates": _cand,
         "bazi": {"render": b.render()},
+        # R3340（审-P2）：起名响应此前无 warn 键——节气边界/夏令时/
+        # 0点跨日警示只有 /api/bazi 端到端透，此处静默拿可能错的盘。
+        "warn": list(b.warn or []),
         # R230a-7（R13-P1-6）：五行俱全走兜底时写「偏弱」不写「缺」。
         "summary": f"姓氏：{surname}；八字：{b.year} {b.month} {b.day} {b.hour}（日主{b.day_master}）；五行分布：{'、'.join(f'{e}{v:g}' for e, v in counts.items())}；"
                    + (f"缺{''.join(missing)}" if not weak
