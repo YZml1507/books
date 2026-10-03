@@ -5213,6 +5213,15 @@ async function loadDaily() {
         _mtEl.id = 'dailyMantra';
         _mtEl.className = 'daily-mantra';
         _mtEl.title = '点一下复制这句咒语';
+        /* R3318（审-P3-2）：裸 div+click 键盘/读屏不可达——
+         * role/tabindex + Enter/Space 同链路。 */
+        _mtEl.setAttribute('role', 'button');
+        _mtEl.setAttribute('tabindex', '0');
+        _mtEl.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault(); _mtEl.click();
+          }
+        });
         _scEl.parentElement.insertBefore(_mtEl, _scEl.nextSibling);
         _mtEl.addEventListener('click', function () {
           var _m = String(_mtEl.dataset.m || '');
@@ -12369,16 +12378,19 @@ function initDivination() {
     }
     var _j = window.__lastDaily;
     var _summ = String(_j.summary || '今日份小确幸').split(/[；;]/)[0] || '今日份小确幸';
+    /* R3318（审-P3-3）：剪贴板是纯文本不是 HTML——esc() 会把字段里
+     * 的 &<>"' 编成实体串晒出去。纯文本拼接用 String() 原值。 */
+    var _dcn = String(((_j.daily_card || {}).name) || '');
     var _txt = '🌟 ' + (_j.date || '今天') + ' 今日签\n' +
-      esc(_summ) + '\n' +
-      '宜：' + esc(_j.do || '—') + '\n' +
-      '忌：' + esc(_j.dont || '—') + '\n' +
+      String(_summ) + '\n' +
+      '宜：' + String(_j.do || '—') + '\n' +
+      '忌：' + String(_j.dont || '—') + '\n' +
       /* R3317-D：咒语进晒图文案——晒图自带口号感 */
       '✨ 今日咒语：' +
-      esc(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n' +
+      String(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n' +
       /* R3317-G 续：今日牌也进晒图——塔罗党认这个 */
-      (((_j.daily_card || {}).name)
-        ? '🃏 今日牌：' + esc(_j.daily_card.name) +
+      (_dcn
+        ? '🃏 今日牌：' + _dcn +
           '（' + (_j.daily_card.upright ? '正位' : '逆位') + '）\n'
         : '') + '\n' +
       '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
@@ -13281,9 +13293,20 @@ function init() {
        * 里程碑标记虽轻但白攒；按尾段日期同一 90 天口径收。 */
       var _gkd = _gk && _gk.indexOf('checkinCeleb:') === 0
         ? _gk.slice(_gk.lastIndexOf(':') + 1) : null;
+      /* R3318（审-P3-1）：日期后缀族此前只在打卡点击路径 GC——
+       * 从不打卡的浏览型用户 mood:/journal:/ritual:/usage:d:/rlast:/
+       * mood:dream:/weeklyLetter: 永不回收（mood ~365键/年）。
+       * 兜底并入同一族清单（与 15271 打卡段 _fam 同口径）。 */
+      var _gkf = _gk && _gk.match(
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:)/);
+      var _gks = null;
+      if (_gkf) {
+        _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(_gks)) _gks = null;
+      }
       if (_gk && ((_gk.indexOf('checkin:') === 0 && _gk.slice(8) < _gc0) ||
           (_gk.indexOf('dailyRevealed:') === 0 && _gk.slice(14) < _gc0) ||
-          (_gkd && _gkd < _gc0))) {
+          (_gkd && _gkd < _gc0) || (_gks && _gks < _gc0))) {
         window.localStorage.removeItem(_gk);
       }
     }
@@ -13353,6 +13376,12 @@ function init() {
     }
     if (e.key.indexOf('checkin:') === 0) {
       renderCheckin(todayIso());
+      return;
+    }
+    /* R3318（审-P3-5）：A tab 收下信卡 B tab 的信卡仍挂——
+     * weeklyLetter:* 键变化同样触发打卡卡重渲。 */
+    if (e.key.indexOf('weeklyLetter:') === 0) {
+      try { renderCheckin(todayIso()); } catch (eWL2) {}
       return;
     }
     /* R3306-P3：心情历/心情罐跨 tab——A 记了心情 B 的行原地亮。
@@ -15015,7 +15044,12 @@ function renderCheckin(dateKey) {
           '<div class="wl-head">💌 小满的上周小记' +
           '<button type="button" class="wl-x" id="wlDismiss" ' +
           'aria-label="收下了，不再显示">×</button></div>' +
-          '<div class="wl-body">上周你打卡 ' + _lckN + ' 天' +
+          '<div class="wl-body">' +
+          /* R3318（审-P3-4）：0 打卡纯心情路径——「打卡 0 天」开头
+           * 语气硬，改述成「来记下心情」。 */
+          (_lckN === 0
+            ? '上周你来记下 ' + _lmdN + ' 天心情'
+            : '上周你打卡 ' + _lckN + ' 天') +
           esc(_moodTxt) + '。' + esc(_wlLine) + '</div></div>';
       }
     }

@@ -17559,3 +17559,12 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **P3-2**：`#dailyWap` 2s 软闸防连击多下载。
 - **P3-3**：封套未拆按钮已解禁——判「语义超前但无害」，有意不跟。
 - 闸：selftest 386（新增 daily.daily_card + daily.lunar.nodup）/ ui_smoke / contract 724 / daily_wap / poster 9 视图 / ruff 绿。
+
+## R3318-B — 咒语/信卡/稀有度回归扫清零
+- **P3-1**：启动兜底 GC 并入日期后缀族（mood:/moodlv:/journal:/ritual:/usage:d:/rlast:/mood:dream:/weeklyLetter:）——不打卡用户这些键原永不回收（mood ~365键/年）。正则尾段取 YYYY-MM-DD 非日期键跳过不误伤。
+- **P3-2**：.daily-mantra 裸 div → role=button+tabindex+Enter/Space keydown 链路（键盘/读屏可达）。
+- **P3-3**：copyXhs 文案去 esc()——剪贴板是纯文本，esc 会把 &<>"' 编成实体串；改 String() 原值拼接。
+- **P3-4**：weekly letter 0 打卡路径「打卡 0 天」冷口 → 「上周你来记下 N 天心情」。
+- **P3-5**：storage 监听补 weeklyLetter:* → renderCheckin——A tab 收信 B tab 信卡就地消失。
+- INFO×3 有意不跟（封面态咒语曝光/月内日历序口径/跨月稀缺注——规格自洽）。
+- 闸：selftest 386 / ui_smoke 101 / 全绿。
