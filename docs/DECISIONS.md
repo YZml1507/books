@@ -5919,3 +5919,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) 加索引提速聚合：全表 GROUP BY 无 WHERE，索引帮不上，弃。
 
 **裁决**：A。works() 71→2.5ms。坑位：manifest 读不是瓶颈（0.44ms）——先 profile 再动手又一次验证「量出来再猜」。三调用方（web/CLI/verify）同口径提速。
+## D-269b R3239 决策：stats() 语料派生统计按库指纹缓存
+
+**问题**：stats() 21.6ms/p50——c.stats() 对 62K 行 unit 做三次全表 COUNT + layers GROUP BY，全是语料派生、重建前不变的量。
+
+**候选**：
+- A) (mtime_ns,size) 键控模块级缓存（选中）：同 R3238 模式；index_stale 语义不同（raw/ 比对，已有 60s TTL）留在缓存外逐次求值。
+- B) 给 addr1/addr2 加部分索引让 COUNT WHERE 走索引：三次扫描变三次索引扫，最多省一半，不解决根本，弃。
+- C) build_meta 记预聚合：侵入索引构建产物边界，弃。
+
+**裁决**：A。21.6→0.10ms。注意点：缓存的是组装前 base dict，每次返回新顶层 dict（schemes/stale 逐次注入），调用方拿不到共享可变引用。

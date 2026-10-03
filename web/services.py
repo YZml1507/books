@@ -934,18 +934,36 @@ def _corpus_index_stale() -> bool | None:
     return _stale_cache["v"]
 
 
+# R3239：stats 的语料派生三件套（c.stats 三次全扫 + layers GROUP BY +
+# build_meta ≈ 18ms/请求）只在语料重建时变——按 (mtime_ns,size) 键控，
+# 与 _stale_cache/_COVERAGE_CACHE 同模式；index_stale 另有 60s 窗。
+_STATS_CACHE: dict = {"key": None, "v": None}
+
+
 def stats() -> dict:
-    with deps.corpus() as c:
-        return {
-            "stats": c.stats(),
-            "layers": [dict(r) for r in c.db.execute(
-                "SELECT layer, count(*) n FROM unit GROUP BY layer "
-                "ORDER BY n DESC")],
-            "meta": [dict(r) for r in c.db.execute(
-                "SELECT key, value FROM build_meta")],
+    try:
+        _st = os.stat(deps.CORPUS_DB)
+        _key = (_st.st_mtime_ns, _st.st_size)
+    except OSError:
+        _key = None
+    if _key is not None and _STATS_CACHE["key"] == _key:
+        base = _STATS_CACHE["v"]
+    else:
+        with deps.corpus() as c:
+            base = {
+                "stats": c.stats(),
+                "layers": [dict(r) for r in c.db.execute(
+                    "SELECT layer, count(*) n FROM unit GROUP BY layer "
+                    "ORDER BY n DESC")],
+                "meta": [dict(r) for r in c.db.execute(
+                    "SELECT key, value FROM build_meta")],
+            }
+        if _key is not None:
+            _STATS_CACHE["key"] = _key
+            _STATS_CACHE["v"] = base
+    return {**base,
             "schemes": deps.SCHEME_LABELS,
-            "index_stale": _corpus_index_stale(),
-        }
+            "index_stale": _corpus_index_stale()}
 
 
 def threads(status: str = "open", limit: int = 50) -> dict:
