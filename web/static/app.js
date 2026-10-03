@@ -3574,6 +3574,10 @@ function showView(viewId) {
   if (viewId === 'read') {
     try { _loadResearchJs().catch(function () {}); } catch (eR) {}
   }
+  /* 心情周记：进视图按最新 mood:<date> 重渲（跨 tab 改过也跟新）。 */
+  if (viewId === 'moodweek') {
+    try { _renderMoodWeek(); } catch (eMW) {}
+  }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
     c.style.borderColor = isActive ? 'var(--primary)' : '';
@@ -3630,7 +3634,7 @@ function showView(viewId) {
       ((document.querySelector('.func-card[data-view="' + viewId + '"] .func-name') || {}).textContent ||
         /* R2349v（R92-P2-5）：无入口卡的视图（read/history）此前兜底
          * 直泄英文 id 上标题栏——视图名小表兜底。 */
-        ({read:'古籍',history:'排盘台账'})[viewId] || viewId);
+        ({read:'古籍',history:'排盘台账',moodweek:'这周的你'})[viewId] || viewId);
     document.title = (_vn ? (_vn + ' · ') : '') + '小满的解忧铺 · 知命';
   } catch (eT) {}
   window.__inView = !isHome;
@@ -8045,7 +8049,7 @@ var _POSTER_TITLES = {
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
   renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
-  'daily-outfit': '今日穿搭' };
+  'daily-outfit': '今日穿搭', moodweek: '心情周记' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
@@ -8053,6 +8057,7 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
   'daily-outfit': 'mint',
   bandaid: 'dream', lucky: 'warm', weekly: 'lilac',
+  moodweek: 'dream',   /* 心情周记归紫云梦底——夜灯系贴「一周心事」 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
@@ -12061,6 +12066,9 @@ function initViews() {
       try { showView(sc); } catch (e) {}
     });
   });
+  /* 心情周记卡生成钮——view-moodweek 内静态按钮，guardedCall 忙态
+   * 覆盖海报懒加载全程。 */
+  on('moodWeekShare', function () { return _shareMoodWeek(); });
   /* R3255：侧栏绑定搬去 initChatSidebar()（initViews 之前独立执行）；
    * 「我的解读」折叠段与计数刷新随历史记录功能删除。 */
 }
@@ -14164,6 +14172,8 @@ function init() {
      * 有意不跟——下次自然渲染时读到新值。 */
     if (e.key.indexOf('mood:') === 0 || e.key.indexOf('moodlv:') === 0) {
       try { _renderMoodRow(); } catch (eM3) {}
+      /* 心情周记视图开着就就地重渲（函数内判 active，零成本）。 */
+      try { _renderMoodWeek(); } catch (eM6) {}
       return;
     }
     if (e.key.indexOf('moodjar:') === 0) {
@@ -14792,6 +14802,45 @@ var _MOOD_REPLY = {
   '2l': '心情好是你自带的小太阳——盘面一般的日子，状态就是你的底牌。',
   '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
   '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
+/* 心情周记判词池——init() 调用点之前声明（R3304 同款：深链
+ * ?view=moodweek 的 init 同步链读它）。按主情绪分桶，每桶 ≥6 句、
+ * 周序取模定句——累的那周配「辛苦了」向文案，不评判、不临床
+ * （禁「情绪不稳定」式用语）。 */
+var _MOOD_WEEK_LINES = {
+  /* 判词按主情绪分桶，每桶 ≥6 句、周序取模定句——累的那周配「辛苦了」
+   * 向文案，不评判、不临床（禁「情绪不稳定」式用语）。 */
+  tired: [
+    '这周辛苦了——能记下来的日子，都是你在照顾自己的证据。',
+    '累攒了一周，小满先给你倒杯热茶：歇够了再往前走。',
+    '连着几天喊累不是矫情，是日子真的沉——先把自己照顾好。',
+    '这周的疲惫小满都看见了，把事往外推一推不丢人。',
+    '累了这么多天还肯记一笔，说明你心里一直给自己留着位置。',
+    '这周电量见底不怪你——硬的日子，少排一件就是赚。',
+    '辛苦了一整周，今晚允许自己什么都不干，这也算数。'],
+  meh: [
+    '平平的一周也算数——不用每天都过得有声响。',
+    '不咸不淡的日子，其实是生活在给你留力气。',
+    '这周像温吞的茶——没什么大事，就是好日子。',
+    '一般般也是一种过法，小满陪你把下周过出点小滋味。',
+    '心里平平稳稳，就已经赢过兵荒马乱。',
+    '不急不躁的一周，攒下的安稳会算进以后。',
+    '平淡不是白过——稳稳的一周也值得记下。'],
+  good: [
+    '这周发光的日子偏多——好状态要趁热用，惦记的事往前排。',
+    '状态满分的一周，小满替你收好这份心气。',
+    '好天气要晒出来——这周的你值得一个夸夸。',
+    '开心攒了一周，这是你自己挣来的。',
+    '这周的你自带太阳——把这份顺劲分一点给下周。',
+    '心情好的时候做什么都顺，这周好好用掉它。',
+    '亮晶晶的一周，记得告诉以后的自己：你能这么开心。'],
+  none: [
+    '这周还没怎么记心情——想记的时候，点一下首页心情行就好。',
+    '空白的一周也没什么，哪天想起小满，色点就开始攒。',
+    '这周格子是空的——不催你，心情罐永远在这儿。',
+    '还没攒下心情点？从今天这颗开始，下周就有得翻。',
+    '一周没记不代表没过——下周想晒的时候随时来。',
+    '小满这周的罐子替你留着，想往里丢点心情随时都行。']
+};
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -15441,7 +15490,7 @@ function _identityPhrase() {
 var _USAGE_LABEL = { home: '日签', bazi: '排盘', liuyao: '六爻',
   tarot: '塔罗', hehun: '合婚', qiming: '起名', taohua: '桃花',
   xingzuo: '星座', huangli: '黄历', dream: '解梦', renge: '五行人格',
-  book: '书库', read: '古籍', study: '研学' };
+  book: '书库', read: '古籍', study: '研学', moodweek: '周记' };
 function _usageTrack(view) {
   try {
     if (!localStorage.getItem('usage:first'))
@@ -15519,6 +15568,143 @@ function _weekMoodMain() {
     }
   } catch (eW) {}
   return best < 0 ? '' : String(best);
+}
+
+/* 心情周记（view-moodweek）：把心情罐的一周数据聚成「这周的你」小卡。
+ * 数据全本机 mood:<YYYY-MM-DD>（0-3 索引，真源口径同 _weekMoodMain），
+ * 零新键零上传；窗口取「最近 7 天」滚动窗，上周 = 再往前 7 天。
+ * （文案池 _MOOD_WEEK_LINES 在 init() 调用点上方，与 _MOOD_META 同区——
+ *   深链 ?view=moodweek 的 init→showView→_renderMoodWeek 同步链会读它，
+ *   放下面 var 只提升声明不提升赋值，R3304 同款坑。） */
+
+function _moodDayGet(dateKey) {
+  /* mood:<date> → 0-3 或 null（脏值/缺记一律 null，不硬凑）。 */
+  try {
+    var v = localStorage.getItem('mood:' + dateKey);
+    return (v !== null && v !== '' && _MOOD_META[+v]) ? +v : null;
+  } catch (eMG) { return null; }
+}
+function _moodWeekSlice(shiftBack) {
+  /* shiftBack=0 最近 7 天（含今天，由远到近）；1=再往前 7 天。 */
+  var days = [];
+  for (var i = 6 + shiftBack * 7; i >= shiftBack * 7; i--) {
+    var dk = _isoShift(todayIso(), -i);
+    days.push({ date: dk, m: _moodDayGet(dk) });
+  }
+  return days;
+}
+function _moodWeekData() {
+  var days = _moodWeekSlice(0), prev = _moodWeekSlice(1);
+  var cnt = [0, 0, 0, 0], recorded = 0, main = -1, mainN = 0;
+  days.forEach(function (d) {
+    if (d.m !== null) {
+      recorded++;
+      cnt[d.m]++;
+      if (cnt[d.m] > mainN) { mainN = cnt[d.m]; main = d.m; }
+    }
+  });
+  var prevN = 0, prevCnt = [0, 0, 0, 0], prevMain = -1, prevMainN = 0;
+  prev.forEach(function (d) {
+    if (d.m !== null) {
+      prevN++;
+      prevCnt[d.m]++;
+      if (prevCnt[d.m] > prevMainN) { prevMainN = prevCnt[d.m]; prevMain = d.m; }
+    }
+  });
+  /* 连续记录：今天没记就从昨天往前数（同 _checkinStreak 口径，
+   * 不把「今天还没记」算成断签）。 */
+  var streak = 0;
+  try {
+    var cur = todayIso();
+    if (_moodDayGet(cur) === null) cur = _isoShift(cur, -1);
+    while (_moodDayGet(cur) !== null) { streak++; cur = _isoShift(cur, -1); }
+  } catch (eS) {}
+  /* 判词桶：主情绪 0 累 / 1 平 / 2-3 好；记录 <2 天或没有走 none。 */
+  var bucket = recorded < 2 || main < 0 ? 'none'
+    : (main === 0 ? 'tired' : (main === 1 ? 'meh' : 'good'));
+  /* 周序种子：同一周（同一 ISO 周窗）翻到的判词不变，跨周才换。 */
+  var pool = _MOOD_WEEK_LINES[bucket];
+  var wkSeed = Math.floor(Date.parse(todayIso() + 'T00:00:00') / 864e5 / 7);
+  var verdict = pool[((wkSeed % pool.length) + pool.length) % pool.length];
+  /* 与上周同口径对比——上周零记录就不出这行，不编造。 */
+  var prevText = '';
+  if (prevN > 0) {
+    prevText = '上周记了 ' + prevN + ' 天' +
+      (prevMain >= 0 ? '，多是「' + _MOOD_META[prevMain].t + '」' : '') +
+      ' · 这周 ' + recorded + ' 天' +
+      (recorded > prevN ? '，越记越顺手' :
+       (recorded < prevN ? '，想记就记小满不催' : ''));
+  }
+  var jarTotal = 0;
+  try { jarTotal = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0; }
+  catch (eJT) {}
+  return { days: days, recorded: recorded, main: main,
+    streak: streak, verdict: verdict, prevN: prevN, prevMain: prevMain,
+    prevText: prevText, jarTotal: jarTotal,
+    rangeStart: days[0].date, rangeEnd: days[6].date };
+}
+function _renderMoodWeek() {
+  /* 只在周记视图在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
+  var vw = el('view-moodweek');
+  if (!vw || !vw.classList.contains('active')) return;
+  var body = el('moodWeekBody');
+  if (!body) return;
+  var w = _moodWeekData();
+  var html = '<div class="mw-dots" role="list" aria-label="最近七天心情点阵">';
+  w.days.forEach(function (d, i) {
+    var wd = _weekdayCn(d.date);
+    var md = String(+d.date.slice(5, 7)) + '/' + String(+d.date.slice(8, 10));
+    html += '<div class="mw-day' + (i === 6 ? ' today' : '') +
+      '" role="listitem">' +
+      '<span class="mw-wd">' + esc(wd) + '</span>' +
+      (d.m !== null
+        ? '<span class="mw-dot" style="background:' + _MOOD_META[d.m].c +
+          '" title="' + esc(_MOOD_META[d.m].t) + '"></span>' +
+          '<span class="mw-e">' + _MOOD_META[d.m].e + '</span>'
+        : '<span class="mw-dot empty" title="未记"></span>' +
+          '<span class="mw-e">·</span>') +
+      '<span class="mw-dt">' + esc(md) + '</span></div>';
+  });
+  html += '</div>';
+  if (w.recorded > 0 && w.main >= 0) {
+    html += '<div class="mw-main"><span class="mw-main-e">' +
+      _MOOD_META[w.main].e + '</span><div class="mw-main-t">' +
+      '<p class="mw-main-line">这周多是「' + esc(_MOOD_META[w.main].t) +
+      '」</p><p class="mw-verdict">' + esc(w.verdict) + '</p></div></div>';
+  } else {
+    html += '<div class="mw-main"><span class="mw-main-e">🫙</span>' +
+      '<div class="mw-main-t"><p class="mw-main-line">这周还没攒下心情点</p>' +
+      '<p class="mw-verdict">' + esc(w.verdict) + '</p></div></div>';
+  }
+  html += '<div class="mw-stats">';
+  html += '<span class="mw-stat">📅 这周记下 ' + w.recorded + '/7 天</span>';
+  if (w.streak > 0)
+    html += '<span class="mw-stat">🔥 连续记录 ' + w.streak + ' 天</span>';
+  if (w.jarTotal > 0)
+    html += '<span class="mw-stat">🏺 心情罐已攒 ' + w.jarTotal + ' 个色点</span>';
+  if (w.prevText)
+    html += '<span class="mw-stat mw-prev">📊 ' + esc(w.prevText) + '</span>';
+  html += '</div>';
+  html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
+  body.innerHTML = html;
+}
+function _shareMoodWeek() {
+  /* 生成周记卡——走 downloadPoster 懒链；小满插画按主情绪挑罐子
+   * 同款场景图，拉不到也照出卡（右下角吉祥物贴纸兜底）。 */
+  var data = _moodWeekData();
+  var _artMap = { 0: 'bear-scene-cozy.jpg', 1: 'bear-scene-mid.jpg',
+    2: 'bear-scene-good.jpg', 3: 'bear-scene-lantern.jpg' };
+  if (data.main >= 0) {
+    var _im = new Image();
+    _im.onload = function () {
+      data._art = _im;
+      downloadPoster(data, 'moodweek');
+    };
+    _im.onerror = function () { downloadPoster(data, 'moodweek'); };
+    _im.src = '/static/cream/' + _artMap[data.main];
+  } else {
+    downloadPoster(data, 'moodweek');
+  }
 }
 function _shareWeekly() {
   /* R3264（R39）：生成小满周报分享图——聚合近 7 天数据。 */
@@ -15819,12 +16005,20 @@ function _renderMoodRow(lv) {
       _calHtml += '<span class="mood-journey">🏺 ' +
         esc(_mtxt) + '</span>';
     }
+    /* 心情周记入口——打卡区小链，点进出「这周的你」周记卡视图。
+     * 独占一行右对齐——塞在心情历行尾会被挤成竖条还戳出卡缘。 */
+    _calHtml += '<span class="mood-week-link-wrap">' +
+      '<button type="button" class="mood-week-link">' +
+      '📒 看看这周的你 →</button></span>';
     mc.innerHTML = _calHtml;
   }
   if (picked !== '') _moodShowAnswer(+picked, lv);
   if (!row.dataset.bound) {
     row.dataset.bound = '1';
     row.addEventListener('click', function (ev) {
+      /* 周记小链与心情按钮同挂一条委托——innerHTML 重渲不掉绑定。 */
+      var _wl = ev.target.closest && ev.target.closest('.mood-week-link');
+      if (_wl) { try { showView('moodweek'); } catch (eWL) {} return; }
       var b = ev.target.closest('.mood-b');
       if (!b) return;
       var m = b.dataset.m;

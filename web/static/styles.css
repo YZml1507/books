@@ -551,6 +551,40 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
   display:block;}
 .mood-jar-care{ font-size:11.5px; color:var(--muted); margin-top:8px;
   text-align:center; }
+/* 心情周记入口——心情历末尾独占一行的小链，低调不抢戏 */
+.mood-week-link-wrap{flex-basis:100%; text-align:right; margin-top:4px;}
+.mood-week-link{font-size:11.5px; color:var(--secondary);
+  background:transparent; border:none; padding:2px 4px; cursor:pointer;
+  text-decoration:none; border-radius:6px;}
+.mood-week-link:hover{color:var(--accent); background:rgba(201,145,74,.10);}
+/* 心情周记卡（view-moodweek）——点阵+判词+统计，暖而不评判 */
+.mw-body{display:flex; flex-direction:column; gap:14px;}
+.mw-dots{display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;}
+.mw-day{display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:8px 2px 7px; border-radius:12px; background:var(--bg);}
+.mw-day.today{box-shadow:inset 0 0 0 1.5px var(--accent);}
+.mw-wd{font-size:11px; color:var(--muted); line-height:1;}
+.mw-dot{width:22px; height:22px; border-radius:50%; display:inline-block;
+  box-shadow:0 1px 3px rgba(62,52,40,.18);}
+.mw-dot.empty{background:transparent;
+  box-shadow:inset 0 0 0 1.5px var(--muted);}
+.mw-e{font-size:14px; line-height:1; min-height:14px; color:var(--muted);}
+.mw-dt{font-size:10.5px; color:var(--muted); line-height:1;}
+.mw-main{display:flex; align-items:center; gap:12px;}
+.mw-main-e{font-size:40px; line-height:1; flex:none;}
+.mw-main-t{min-width:0;}
+.mw-main-line{font-size:16px; font-weight:600; color:var(--text);
+  line-height:1.4;}
+.mw-verdict{font-size:13px; color:var(--secondary); line-height:1.7;
+  margin-top:4px;}
+.mw-stats{display:flex; flex-wrap:wrap; gap:6px;}
+.mw-stat{font-size:11.5px; color:var(--secondary); background:var(--bg);
+  border:1px solid var(--border); border-radius:999px; padding:4px 10px;
+  line-height:1.5;}
+.mw-prev{color:var(--muted);}
+.mw-note{font-size:11px; color:var(--muted); line-height:1.6;
+  margin-top:2px; text-align:center;}
+.mw-actions{display:flex; justify-content:center; margin-top:14px;}
 /* R3260：解梦卡内的心情行——与首页 mood-row 同款件，浅上缘分隔 */
 .dm-mood{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   margin-top:14px; padding-top:12px;
