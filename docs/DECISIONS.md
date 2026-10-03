@@ -5874,3 +5874,16 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 **决定**：C。复验：fuzz 20,010 例（随机 CJK/小字母表平局重灾区/共享段/变异对/空串边界）SAM 路径逐 opcode 与 difflib 完全一致；真实巨型对 7 对全 identical（3,153ms→1,130ms）；services.ask 4 问题全字段一致（result_ref 随机除外），重对问题 p50 3,066→1,135ms / 3,331→1,037ms（~3×）。
 
 **坑位记录**：(1) fuzz 首轮阈值未置 0，20k 例实际全走 difflib 分支假绿——验证 SAM 必须强制 _FAST_DIFF_MIN=0；(2) minpos 的语义是「状态 endpos 集最小下标」，克隆态继承 q 的 minpos——写成 i 会错。(3) 备选但未做：_pair_findings 结果缓存（同问重ask可白赚），增加状态面换边际收益，暂缓。
+
+## D-265b R3235 决策：concept_census 全库普查 47-94 查 → 2-3 查（窗口函数）
+
+**背景**：子代理审计列出剩余最大活扇出——concept_census 对 47 部作品各跑一次 corpus.search（每形至多 94 execute）。/api/concept 是活端点。
+
+**候选**：
+- A) 窗口函数合并（选中）：ROW_NUMBER() OVER (PARTITION BY work_id ORDER BY score, rowid)，rn<=scan_limit+1——与 R3232 同构的三层嵌套；score 并列序用显式 rowid（原查询隐含序=FTS5 稳定排序下的 rowid 序，实测 4 概念逐字节一致验证等价）。
+- B) MATCH OR 合并全部 work_id 后 Python 分组（弃）：OR 长链改变 MATCH 计划、且 per-work LIMIT 语义仍需窗口。
+- C) 并行 ThreadPool 发查询（弃）：多连接复杂度换的是扇出本身没消。
+
+**决定**：A。复验：4 概念（含无为/無為双形去重分支）输出逐字节一致；无为 202→13ms、天命 98→5ms（~15-20×）。闸门双绿。
+
+**坑位记录**：score 并列时原 ORDER BY score 的次序依赖 SQLite 稳定排序+FTS5 rowid 序扫描——窗口版显式 ORDER BY score, rowid 是等价复刻而非新增语义，实测确认。若未来某版 SQLite 改了隐含序，此处的显式序反而是更稳的锚。

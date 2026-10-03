@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass, field
 
 from .compare import compare_address
-from .search import Corpus, Hit, s2t_retry
+from .search import Corpus, Hit, fts_phrase, s2t_retry
 
 
 @dataclass
@@ -299,21 +299,54 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
     """
     works = [dict(r) for r in corpus.db.execute(
         "SELECT id, title, attribution FROM work ORDER BY id")]
+
+    def _scan(term: str) -> dict[str, list[Hit]]:
+        """Every work's top-(scan_limit+1) hits in ONE window query — the same rows
+        and per-work order that corpus.search(term, work_id=w) produced per work,
+        collapsed from 47 executes to 1 (R3235). bm25 materialises a level below
+        the window (SQLite refuses bm25() inside OVER), and rowid is the explicit
+        score tie-break so the order matches the old per-work query's."""
+        rows = corpus.db.execute("""
+            SELECT * FROM (
+                SELECT s.*, ROW_NUMBER() OVER (
+                        PARTITION BY s.work_id
+                        ORDER BY s.score, s.rowid) AS rn
+                FROM (
+                    SELECT u.work_id, u.id AS rowid, w.title, w.attribution,
+                           w.edition, u.page_anchor, u.scheme, u.addr_name,
+                           u.addr1 AS gua, u.addr2 AS yao, u.layer, u.text,
+                           u.file, u.skipped_chars, u.suspect,
+                           bm25(unit_fts) AS score
+                    FROM unit_fts
+                    JOIN unit u ON u.id = unit_fts.rowid
+                    JOIN work w ON w.id = u.work_id
+                    WHERE unit_fts MATCH ?
+                ) s
+            ) WHERE rn <= ?
+            ORDER BY work_id, rn""",
+            (fts_phrase(term), scan_limit + 1)).fetchall()
+        by: dict[str, list[Hit]] = {}
+        for r in rows:
+            by.setdefault(r["work_id"], []).append(corpus._hit(r))
+        return by
+
+    hits_by = _scan(concept)
+    two_forms = bool(concept2 and concept2 != concept)
+    hits2_by = _scan(concept2) if two_forms else {}
+
     census: list[dict] = []
     shared: dict[tuple[int, str | None], list[str]] = {}
     for w in works:
         # R126-P2-8：多取一条探边界——==scan_limit 不再一律标 truncated
         # （恰好满额不代表还有剩），两形合并后 n_hits 可合法超过
         # scan_limit，截断按「形」各自如实报。
-        hits = corpus.search(concept, limit=scan_limit + 1,
-                             work_id=w["id"])
+        hits = hits_by.get(w["id"], [])
         _trunc = len(hits) > scan_limit
         hits = hits[:scan_limit]
-        if concept2 and concept2 != concept:
+        if two_forms:
             # R2400（R125-P1-2）：简体概念有部分命中时繁体形静默缺席
             # （「无为」4 部 vs「無為」21 部）——两形并查去重。
-            hits2 = corpus.search(concept2, limit=scan_limit + 1,
-                                  work_id=w["id"])
+            hits2 = hits2_by.get(w["id"], [])
             _trunc = _trunc or len(hits2) > scan_limit
             hits2 = hits2[:scan_limit]
             seen = {(h.work_id, h.text) for h in hits}
