@@ -164,8 +164,15 @@ FROM unit u JOIN work w ON w.id = u.work_id
 """
 
 
+# R3238：coverage() 是 unit 全表聚合（~70ms/次），语料重建前结果不变——
+# 按 (路径, mtime_ns, size) 键控缓存，重建/换库自动失效；Row 是快照与
+# 连接无关，跨 Corpus 实例共享安全（与 knowledge._SCHEMA_OK 同模式）。
+_COVERAGE_CACHE: dict[tuple[str, int, int], list] = {}
+
+
 class Corpus:
     def __init__(self, db_path: str):
+        self._db_path = db_path
         # R230c（R17-P2-3/P2-6/P2-9）：sqlite3.connect 对缺失路径会顺手建
         # 0B 残库，让后续所有 `os.path.exists` 入口失效——先挡存在性/非空/
         # schema 再开，缺索引的入口得到的是一句人话不是 traceback。
@@ -222,13 +229,28 @@ class Corpus:
         return {"works": r["w"], "units": r["u"], "with_gua": r["g"], "with_yao": r["y"]}
 
     def coverage(self) -> list[sqlite3.Row]:
-        return self.db.execute("""
+        try:
+            _st = os.stat(self._db_path)
+            _key = (os.path.abspath(self._db_path),
+                    _st.st_mtime_ns, _st.st_size)
+        except OSError:
+            _key = None
+        if _key is not None and _key in _COVERAGE_CACHE:
+            return _COVERAGE_CACHE[_key]
+        rows = self.db.execute("""
             SELECT w.id, w.title, w.genre, count(u.id) units,
                    sum(u.addr1 IS NOT NULL) addressed,
                    sum(u.addr2 IS NOT NULL) yao_addressed,
                    sum(u.page_anchor IS NOT NULL) anchored
             FROM work w LEFT JOIN unit u ON u.work_id = w.id
             GROUP BY w.id ORDER BY w.genre, w.id""").fetchall()
+        if _key is not None:
+            # 同路径只留最新键——重建一次换一条，不让旧 (mtime,size) 滞留
+            _COVERAGE_CACHE[_key] = rows
+            for _k in [k for k in _COVERAGE_CACHE
+                       if k[0] == _key[0] and k != _key]:
+                del _COVERAGE_CACHE[_k]
+        return rows
 
     def _search_where(self, query: str, gua, yao, layer, work_id, genre,
                       scheme, addr_name, addr1, addr2

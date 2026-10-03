@@ -5909,3 +5909,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) 连接池：同 B，工程量大收益同源。
 
 **裁决**：A。净省 ~0.8ms/连接（16%）×15 调用点。剩余 4ms 是 connect/close/makedirs/FK/WAL 的真实每连接成本——要再省须走 B 的连接复用，已立项 R3238 候选（thread-local 持久连接）。双闸门 375+716 全绿。
+## D-268b R3238 决策：coverage() 书目聚合按库指纹缓存
+
+**问题**：works() 71ms/请求，几乎全部烧在 coverage() 的 unit 全表聚会上——书目统计只有语料重建才变。
+
+**候选**：
+- A) (abspath, mtime_ns, size) 键控结果缓存（选中）：失效语义自动、零维护；沿用本仓 _stale_cache/_SCHEMA_OK 门控惯例。同路径旧键清理防膨胀。
+- B) stats 物化表：需动 build_index 产物与 schema，侵入了「索引重建即可信」的边界，过重。
+- C) 加索引提速聚合：全表 GROUP BY 无 WHERE，索引帮不上，弃。
+
+**裁决**：A。works() 71→2.5ms。坑位：manifest 读不是瓶颈（0.44ms）——先 profile 再动手又一次验证「量出来再猜」。三调用方（web/CLI/verify）同口径提速。
