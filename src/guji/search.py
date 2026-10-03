@@ -298,6 +298,14 @@ class Corpus:
                      work_id=None, genre=None, scheme=None, addr_name=None,
                      addr1=None, addr2=None) -> int:
         """命中总数（R230a-30：count 原是截断后条数，UI 无法说「共 Y 条」）。"""
+        # R3240：无 unit/work 列过滤时 count 不需要 join——纯 FTS doclist
+        # 计数实测 1.6ms vs 带 join 10ms（join 无损已证：fts→unit、unit→work
+        # 双向零孤儿）。过滤都在 unit/work 列上，任一出现即回 join 路径。
+        if all(v is None for v in (gua, yao, layer, work_id, genre,
+                                   scheme, addr_name, addr1, addr2)):
+            return self.db.execute(
+                "SELECT count(*) FROM unit_fts WHERE unit_fts MATCH ?",
+                [fts_phrase(query)]).fetchone()[0]
         where, args = self._search_where(query, gua, yao, layer, work_id,
                                          genre, scheme, addr_name, addr1, addr2)
         return self.db.execute("SELECT count(*) " + where, args).fetchone()[0]

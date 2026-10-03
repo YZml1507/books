@@ -5929,3 +5929,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) build_meta 记预聚合：侵入索引构建产物边界，弃。
 
 **裁决**：A。21.6→0.10ms。注意点：缓存的是组装前 base dict，每次返回新顶层 dict（schemes/stale 逐次注入），调用方拿不到共享可变引用。
+## D-270b R3240 决策：search_count 无过滤时跳 join 纯 FTS 计数
+
+**问题**：services.search 每请求 search+search_count 两次 MATCH 全扫，高频短语下 count 的 join 占 ~10ms。
+
+**候选**：
+- A) `count(*) OVER ()` 融合 search+count 单扫（先试后弃）：窗口在 LIMIT 前强制物化全部命中行——20→55ms，比省下的 count 还贵，**已实测否决**。
+- B) 无过滤时 count 跳 join 纯 FTS doclist（选中）：过滤全在 unit/work 列上；join 无损性实测证（fts→unit、unit→work 双向零孤儿），count 语义等价。任一过滤出现回 join 原路径。
+- C) ORDER BY rank 替代 ORDER BY score：君子 10→5.5ms 快但無為/君子之德反而变慢（rank 固定开销），混合收益弃。
+
+**裁决**：B。search 君子 20→16ms、双形 12.75ms。坑位：count(*) OVER () 在本查询形态是负优化——窗口物化 > 独立 count 的成本，留档防重试。
