@@ -2529,6 +2529,17 @@ def _run_inner() -> list[str]:
         return _ph == {"新月", "满月"}
     assert _moon_scan(), "moon phases missing in 30d window"
     ok.append("daily.moon.phase")
+    # R3317-G：今日牌——同日出同牌、词非空、位向布尔；两日不同 seed
+    # 不强制异牌（%22 会撞），只钉字段形状与确定性。
+    def _dcard_ok():
+        a = client.get("/api/daily", params={"date": "2026-10-03"}).json()
+        b = client.get("/api/daily", params={"date": "2026-10-03"}).json()
+        ca, cb = a.get("daily_card") or {}, b.get("daily_card") or {}
+        return (ca == cb and isinstance(ca.get("name"), str) and
+                ca["name"] and isinstance(ca.get("upright"), bool) and
+                isinstance(ca.get("keywords"), str) and "·" in ca["keywords"])
+    assert _dcard_ok(), "daily_card not deterministic or malformed"
+    ok.append("daily.daily_card")
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴端点。
     check("xzmatch", client.get("/api/xzmatch",
           params={"a": "白羊", "b": "射手"}),

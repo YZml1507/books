@@ -5230,6 +5230,42 @@ async function loadDaily() {
         'mantra|' + String(j.date || _today));
       _mtEl.dataset.m = _mt;
       _mtEl.innerHTML = '✨ 今日咒语 <b>' + esc(_mt) + '</b>';
+      /* R3317-G：今日牌——同日全站同一张大阿卡纳（后端 daily_card
+       * 字段，确定性 seed=日期）；小缩略图 + 名 + 位向 + 关键词。 */
+      var _dcEl = el('dailyTarot');
+      if (!_dcEl) {
+        _dcEl = document.createElement('div');
+        _dcEl.id = 'dailyTarot';
+        _dcEl.className = 'daily-card-line';
+        _mtEl.parentElement.insertBefore(_dcEl, _mtEl.nextSibling);
+        /* 委托在父节点——innerHTML 每次渲染重建按钮，绑死节点会丢。 */
+        _dcEl.addEventListener('click', function (ev) {
+          if (!ev.target || ev.target.id !== 'dailyCardDraw') return;
+          showView('tarot');
+          var s = el('tr_spread'), n = el('tr_n');
+          if (s) s.value = 'time';
+          if (n) n.value = '3';
+          _trSpreadSync();
+          doTarot();
+        });
+      }
+      var _dc = j.daily_card || {};
+      if (_dc.name) {
+        var _dcImg = tarotImg(_dc.name);
+        _dcEl.innerHTML = '🃏 今日牌 ' +
+          (_dcImg
+            ? '<img class="dc-thumb' + (_dc.upright ? '' : ' is-reversed') +
+              '" src="' + _dcImg + '" alt="">'
+            : '') +
+          '<b>' + esc(_dc.name) + '</b> · ' +
+          (_dc.upright ? '正位' : '逆位') +
+          ' <i>' + esc(_dc.keywords || '') + '</i>' +
+          '<button type="button" class="dc-more" id="dailyCardDraw" ' +
+          'title="抽一组今天的三张牌">抽三张</button>';
+        _dcEl.hidden = false;
+      } else {
+        _dcEl.hidden = true;
+      }
     }
     /* R3249d（UX-AUDIT B2 · 用户实测「测测一点开就有几个分」）：
      * 三维度小分——💗感情/💼做事/💰钱袋。不是拍脑袋随机数：以

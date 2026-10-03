@@ -2427,6 +2427,21 @@ def _lucky_for(d: date) -> dict:
     return out
 
 
+def _daily_card_for(d: date) -> dict:
+    """R3317-G：今日牌——同日全站同一张大阿卡纳（含正/逆位）。
+    确定性：seed=YYYYMMDD，牌位=seed%22、位向=seed//22 奇偶，
+    与幸运三件套同口径（同日出同牌，不靠 LLM）。"""
+    try:
+        seed = d.year * 10000 + d.month * 100 + d.day
+        n = len(tarot_mod.MAJOR_ARCANA)
+        name, up_kw, rev_kw, _desc = tarot_mod.MAJOR_ARCANA[seed % n]
+        upright = ((seed // n) % 2) == 0
+        return {"name": name, "upright": upright,
+                "keywords": up_kw if upright else rev_kw}
+    except Exception:
+        return {}
+
+
 def _term_name_for(d: date) -> str:
     """公历日 d 当天交节的节气名（无 → ''）。term_time 有 lru_cache，
     单日调用近零成本。"""
@@ -4635,7 +4650,10 @@ def daily(date_str: str | None = None,
                       "money_dir": (_c.get("money_dir")
                                     or huangli_mod.caishen_fang(
                                         datetime(_d0.year, _d0.month,
-                                                 _d0.day, 12)))}
+                                                 _d0.day, 12))),
+                      # R3317-G：旧缓存行无 daily_card——同口径现算随包回
+                      "daily_card": (_c.get("daily_card")
+                                     or _daily_card_for(_d0))}
                 if _personal:
                     _r["personal"] = _personal
                 else:
@@ -4767,6 +4785,8 @@ def daily(date_str: str | None = None,
                 datetime(d.year, d.month, d.day, 12)),
             "mercury": _mercury_state(d),
             "moon": _moon_for(d),
+            # R3317-G：今日牌——同日全站同一张大阿卡纳
+            "daily_card": _daily_card_for(d),
             "term": _term_banner(d),
             **({"personal": _personal} if _personal else {}),
         }
@@ -4803,6 +4823,7 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "lunar": "",
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
+                "daily_card": {},
                 "term": {}}
 
 

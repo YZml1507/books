@@ -17544,3 +17544,9 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - app_poster.js：真实域名部署时 CTA pill 左端画 64px 回流码
   （origin/?from=poster），本地/内网无 host 不画。
 - bump_sw.py + selftest.py 双 EXTRA_GLOBS 表补 vendor/*.js 同口径。
+
+## R3317-G — 今日牌（每日塔罗行）
+- **背景**：调研列的留存功能——同一张大阿卡纳给全站当日定调（社区「对上号」效应，与今日咒语同口径）。
+- **后端** `web/services.py` `_daily_card_for`：`seed=YYYYMMDD` → `MAJOR_ARCANA[seed%22]` + `upright=(seed//22)%2==0`，响应加 `daily_card{name,upright,keywords}`；缓存命中路径 `_c.get("daily_card") or 现算`、降级路径同构 `{}`。
+- **前端** `app.js`（咒语行后动态插 `#dailyTarot.daily-card-line`）：小缩略图（`tarotImg`，逆位旋180°）+ 牌名 + 正/逆位 + 关键词 + 「抽三张」委托钮（父节点绑 listener，innerHTML 重建不丢）；`styles.css` `.daily-card-line/.dc-thumb/.dc-more`。
+- **闸**：`web/selftest.py` `daily.daily_card`（同日出同牌+字段形状）。selftest 385 / ui_smoke / contract 724 绿。

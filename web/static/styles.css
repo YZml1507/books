@@ -694,6 +694,21 @@ html[data-theme="dark"] .weekly-letter{
   border-color:rgba(214,169,110,.25);}
 html[data-theme="dark"] .daily-mantra b{
   background:linear-gradient(135deg, rgba(214,137,90,.18), rgba(214,169,110,.14));}
+/* R3317-G：今日牌行——小缩略牌 + 名 + 位向 + 关键词 */
+.daily-card-line{display:flex; align-items:center; gap:7px;
+  margin:2px 0 4px; font-size:13px; color:var(--secondary);}
+.daily-card-line .dc-thumb{width:22px; height:36px; object-fit:cover;
+  border-radius:4px; border:1px solid var(--border); flex:none;
+  box-shadow:0 1px 3px rgba(90,60,30,.18);}
+.daily-card-line .dc-thumb.is-reversed{transform:rotate(180deg);}
+.daily-card-line b{color:var(--primary-ink); font-weight:600;}
+.daily-card-line i{font-style:normal; opacity:.85;}
+.daily-card-line .dc-more{margin-left:auto; flex:none; cursor:pointer;
+  font-size:11px; color:var(--primary-ink); font-weight:600;
+  background:linear-gradient(135deg, rgba(214,137,90,.12), rgba(214,169,110,.16));
+  border:1px dashed rgba(166,117,74,.4); border-radius:999px;
+  padding:2px 9px; line-height:1.4;}
+.daily-card-line .dc-more:active{transform:scale(.96);}
 .daily-dims .dim-bar{display:inline-flex; align-items:center; gap:5px;
   font-size:12px; color:var(--secondary); background:#fff;
   border:1px solid var(--border); border-radius:12px; padding:4px 9px;}
