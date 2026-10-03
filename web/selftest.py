@@ -158,6 +158,29 @@ def _run_inner() -> list[str]:
     _ay = client.get("/api/addr", params={"scheme": "yilin", "addr1": 65})
     assert _ay.status_code == 400, ("err.addr.yilin_range", _ay.status_code)
     ok.append("err.addr.yilin_range")
+    # R3305（审-P1-2）：bcv 缺卷名给章号/booksec 缺 work 给卷号——
+    # 多本同号段会揉一页，现如实 400。
+    _ay = client.get("/api/addr", params={"scheme": "bcv", "addr1": 12})
+    assert _ay.status_code == 400, ("err.addr.bcv_needs_name", _ay.status_code)
+    ok.append("err.addr.bcv_needs_name")
+    _ay = client.get("/api/addr", params={"scheme": "booksec", "addr1": 10})
+    assert _ay.status_code == 400, ("err.addr.booksec_needs_work", _ay.status_code)
+    ok.append("err.addr.booksec_needs_work")
+    # R3305（审-P3）：compare 的 yao typo 门——「abc」原 200 no_witness
+    # 自相矛盾，现与 /api/addr 同判 400。
+    _ay = client.get("/api/compare", params={"gua": 1, "yao": "abc"})
+    assert _ay.status_code == 400, ("err.compare.yao_typo", _ay.status_code)
+    ok.append("err.compare.yao_typo")
+    # R3305（审-P1-1）：歧义字披露——q 含一对多简繁字（云）且有命中时
+    # hint 提醒换繁体再查（不再让用户以为这就是全集）。
+    check("search.ambig_hint", client.get("/api/search",
+          params={"q": "云"}),
+          lambda j: "繁体" in (j.get("hint") or ""))
+    # R3305（审-P2-4）：search 零命中回 hint（语料范围+出路），
+    # 与 concept.empty_hint 同口径。
+    check("search.zero_hit_hint", client.get("/api/search",
+          params={"q": "非存古意词乁乁"}),
+          lambda j: bool(j.get("hint")))
     # R230a-48（R14-P0-1 钉扎）：受损 unit（卦47·上六 KR1a0006
     # span-overextended）不上桌当见证——进 flagged 披露位；
     # allow_damaged=1 才放回（显式看受损料）。
