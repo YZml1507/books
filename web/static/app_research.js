@@ -768,7 +768,9 @@ async function doBookStructure() {
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
       html += '<tr' + (_isFile && s.label
-          ? ' class="sec-pick" data-secfile="' + esc(s.label) + '" title="读这一节"'
+          ? ' class="sec-pick" data-secfile="' + esc(s.label) +
+            '" title="读这一节" tabindex="0" role="button" aria-label="读这一节 ' +
+            esc(_secLabel(s.label) || s.label || '') + '"'
           : '') + '><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +
         '<td class="num">' + esc(s.n_units) + '</td>' +
         '<td class="num">' + esc(s.chars) + '</td>' +

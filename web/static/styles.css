@@ -1948,7 +1948,8 @@ button:active{transform:scale(.96);}
   to{opacity:1; transform:none;}
 }
 @media (prefers-reduced-motion: reduce){
-  .fx-ripple,.fx-spark,.fx-trail{display:none;}
+  /* R3321-P3：micro-star 0.8s 飘星此前漏进停用清单。 */
+  .fx-ripple,.fx-spark,.fx-trail,.micro-star{display:none;}
   .card.fx-watch:not(.fx-in){opacity:1; transform:none;}
   .card.fx-in{animation:none;}
 }

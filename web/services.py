@@ -2454,8 +2454,12 @@ def _daily_card_for(d: date) -> dict:
         # 位向不能再用 seed//22 奇偶——44 天才翻一次，半个月全是正位。
         # seed*31//22 的非整周期翻页，逐日近似随机交替且确定性。
         upright = ((seed * 31 // n) % 2) == 0
+        # R3321-P1：meaning 一并下发——前端「牌意」展开不再另发
+        # /api/tarot/draw（旧路径与 daily_card 不同 seed 会抽成另一张
+        # 牌，且按同 id 覆写把「抽三张」入口抹掉）。
         return {"name": name, "upright": upright,
-                "keywords": up_kw if upright else rev_kw}
+                "keywords": up_kw if upright else rev_kw,
+                "meaning": _desc}
     except Exception:
         return {}
 

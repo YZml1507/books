@@ -17591,3 +17591,14 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P3 dailyAsk `_bad` 补 `f.focus()`（红框不聚焦=软键盘收起后看不见错）。
 - P3 `fail`/`failWithRetry` is-working 分支撤 toast——fail-line 贴卡内后同文案不再双出（与 `_failField` 口径并轨）。
 - 闸门：selftest 386 / contract 716 / ui_smoke 101 / poster 9 视图 / ruff / daily_wap / first_screen 全绿。
+
+## R3321 a11y/键盘读屏复扫清零（2026-10-03）
+- P1 `#dailyTarot` id 双写竞态根治：旧 meta 异步路径（/api/tarot/draw 异 seed）按同 id 整段覆写新渲染器——「抽三张」入口每次加载被抹、且两路可能抽成不同牌。旧路径整段退役；`_daily_card_for` 补 `meaning`（MAJOR_ARCANA 第4元素 symbol_desc）下发，「牌意」展开收进新行自产。
+- P1 `.sec-pick`（研究台 file 书节行）tr 补 tabindex=0+role=button+aria-label + document keydown Enter/Space 走 click 委托同链。
+- P2 `.mood-b`/`.dm-mood-b`/`.ck-goal-opt` 选中态补 aria-pressed（渲染+点击双路）；`#moodAns`/`#dmMoodAns` 回执挂 aria-live=polite。
+- P3 wl-x/mlDismiss 收下后焦点归还打卡区可点件（原丢 body）。
+- P3 `_checkinCelebrate` 焦点归还补可聚焦判定——_trig 是 body/非交互元素时回落 picked/dailyCard。
+- P3 `.micro-star` 补进 prefers-reduced-motion 停用清单。
+- P3 `dailyMetaMore` 补 aria-expanded 同步。
+- P3 `#journalInput`/`#wishText` 补 aria-label（原仅 placeholder 作名）。
+- 闸门：selftest 386 / ui_smoke 101 全绿。

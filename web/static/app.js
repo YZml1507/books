@@ -5268,6 +5268,8 @@ async function loadDaily() {
       var _dc = j.daily_card || {};
       if (_dc.name) {
         var _dcImg = tarotImg(_dc.name);
+        /* R3321-P1：牌意展开收进本行——旧 meta 路径（同 id 覆写 +
+         * 异 seed 抽牌）已删，本行是「今日牌」唯一来源。 */
         _dcEl.innerHTML = '🃏 今日牌 ' +
           (_dcImg
             ? '<img class="dc-thumb' + (_dc.upright ? '' : ' is-reversed') +
@@ -5276,11 +5278,46 @@ async function loadDaily() {
           '<b>' + esc(_dc.name) + '</b> · ' +
           (_dc.upright ? '正位' : '逆位') +
           ' <i>' + esc(_dc.keywords || '') + '</i>' +
+          (_dc.meaning
+            ? '<button type="button" class="sign-peek" id="tarotPeekBtn"' +
+              ' aria-expanded="false" aria-controls="tarotCard">牌意</button>'
+            : '') +
           '<button type="button" class="dc-more" id="dailyCardDraw" ' +
           'title="抽一组今天的三张牌">抽三张</button>';
         _dcEl.hidden = false;
+        /* 牌意展开卡——数据来自同一份 daily_card（meaning 后端下发）。 */
+        var _tc = el('tarotCard');
+        if (!_tc) {
+          _tc = document.createElement('div');
+          _tc.id = 'tarotCard'; _tc.className = 'sign-card'; _tc.hidden = true;
+          var _mr3 = document.querySelector('#dailyCard .daily-meta');
+          if (_mr3 && _mr3.parentNode) {
+            _mr3.parentNode.insertBefore(_tc, _mr3.nextSibling);
+          }
+        }
+        if (_tc) {
+          _tc.hidden = true;
+          _tc.innerHTML = _dc.meaning
+            ? '<strong>' + esc(_dc.name) +
+              ' · ' + (_dc.upright ? '正位' : '逆位') + '</strong>' +
+              '<span>' + esc(_dc.meaning) + '</span>'
+            : '';
+        }
+        var _tb = el('tarotPeekBtn');
+        if (_tb && !_tb.dataset.bound) {
+          _tb.dataset.bound = '1';
+          _tb.addEventListener('click', function () {
+            var c2 = el('tarotCard');
+            if (c2) {
+              c2.hidden = !c2.hidden;
+              _tb.textContent = c2.hidden ? '牌意' : '收起';
+              _tb.setAttribute('aria-expanded', c2.hidden ? 'false' : 'true');
+            }
+          });
+        }
       } else {
         _dcEl.hidden = true;
+        var _tc0 = el('tarotCard'); if (_tc0) { _tc0.hidden = true; }
       }
     }
     /* R3249d（UX-AUDIT B2 · 用户实测「测测一点开就有几个分」）：
@@ -5567,6 +5604,8 @@ async function loadDaily() {
       }
       _more.hidden = false;
       _more.textContent = _open ? '收起' : '+' + (_vis.length - 5) + ' 条';
+      /* R3321-P3：展开/收起态补 aria-expanded。 */
+      _more.setAttribute('aria-expanded', _open ? 'true' : 'false');
     }
     function _dailyMetaItem(id, html) {
       var n = el(id);
@@ -5708,58 +5747,10 @@ async function loadDaily() {
     /* R3262（R17）：心情罐子入口——有解锁时在日常 meta 行展示，
      * 没有则静默不占位。 */
     _dailyMetaItem('dailyMoodJar', _moodJarHtml());
-    /* R2349l（R73-P1-2）：每日一牌——日期哈希做 seed 的确定性单抽
-     * （同一天同一张），点击展开牌意；失败静默不打扰日卡。 */
-    (function () {
-      var _seed = 0, _src = 'tarot|' + _today;
-      for (var i = 0; i < _src.length; i++) {
-        _seed = (_seed * 31 + _src.charCodeAt(i)) >>> 0;
-      }
-      /* 走 /api/tarot/draw（单抽、不写台账）——/api/tarot 每次调用都
-       * save_async，日卡自动抽会把排盘历史灌满日更牌。 */
-      postJSON('/api/tarot/draw', { seed: _seed, n: 1 })
-        .then(function (tj) {
-          if (_gen !== DAILY_GEN) return;   /* 旧 daily 不得覆盖新牌面 */
-          var d = (tj && tj.card) || null;
-          if (!d || !d.name) return;
-          _dailyMetaItem('dailyTarot',
-            '🃏 今日牌：<strong>' + esc(d.name) + '</strong>' +
-            ' · ' + (d.upright ? '正位' : '逆位') +
-            '<button type="button" class="sign-peek" id="tarotPeekBtn"' +
-            ' aria-expanded="false" aria-controls="tarotCard">牌意</button>');
-          var _tc = el('tarotCard');
-          if (!_tc) {
-            _tc = document.createElement('div');
-            _tc.id = 'tarotCard'; _tc.className = 'sign-card'; _tc.hidden = true;
-            var _mr3 = document.querySelector('#dailyCard .daily-meta');
-            if (_mr3 && _mr3.parentNode) {
-              _mr3.parentNode.insertBefore(_tc, _mr3.nextSibling);
-            }
-          }
-          if (_tc) {
-            _tc.innerHTML = '<strong>' + esc(d.name) +
-              ' · ' + (d.upright ? '正位' : '逆位') + '</strong>' +
-              '<span>' + esc(d.upright ? (d.upright_kw || '') :
-                                       (d.reversed_kw || '')) +
-              (d.meaning ? ' ： ' + esc(d.meaning) : '') + '</span>';
-          }
-          var _tb = el('tarotPeekBtn');
-          if (_tb && !_tb.dataset.bound) {
-            _tb.dataset.bound = '1';
-            _tb.addEventListener('click', function () {
-              var c2 = el('tarotCard');
-              if (c2) {
-                c2.hidden = !c2.hidden;
-                _tb.textContent = c2.hidden ? '牌意' : '收起';
-                _tb.setAttribute('aria-expanded', c2.hidden ? 'false' : 'true');
-              }
-            });
-          }
-        })
-        .catch(function () {
-          if (_gen === DAILY_GEN) _dailyMetaItem('dailyTarot', '');
-        });
-    })();
+    /* R3321-P1：旧「每日一牌」异步路径整段退役——它与 daily_card
+     * 不同 seed（可能抽成另一张牌），且 _dailyMetaItem('dailyTarot')
+     * 与新渲染器同 id 覆写，把「抽三张」入口整段抹掉。牌意展开已
+     * 收进新行（meaning 由后端 daily_card 一并下发）。 */
     /* R2349l（R73-P1-8）：新月许愿/满月复盘——农历初一十五窗口的
      * 仪式行（后端 daily 的 moon 派生键）。 */
     if (j.moon && j.moon.label) {
@@ -7456,15 +7447,17 @@ function buildDreamResult(j) {
     try { _dmPk = localStorage.getItem('mood:dream:' + todayIso()) || ''; }
     catch (eMP) {}
     var _dmBtns = _MOOD_META.map(function (mm, i) {
+      /* R3321-P2：选中态/回执补 aria-pressed + aria-live（同打卡卡）。 */
       return '<button type="button" class="mood-b dm-mood-b' +
         (_dmPk === String(i) ? ' on' : '') + '" data-m="' + i +
+        '" aria-pressed="' + (_dmPk === String(i)) +
         '" aria-label="' + mm.t + '" title="' + mm.t + '">' +
         mm.e + '</button>';
     }).join('');
     html += '<div class="dm-mood" id="dmMoodRow">' +
       '<span class="mood-q">看完这个梦，心里松点了吗？</span>' +
       _dmBtns +
-      '<span class="mood-ans" id="dmMoodAns" hidden></span></div>';
+      '<span class="mood-ans" id="dmMoodAns" aria-live="polite" hidden></span></div>';
   }
   /* 分享图——梦境海报（主动分享才出图，文本本就她写的）
    * R3214：fav-btn 类补上——台账复看的隐藏规则只认这个类。 */
@@ -7532,6 +7525,7 @@ async function doDream() {
           } catch (eMS) {}
           _dmRow.querySelectorAll('.mood-b').forEach(function (x) {
             x.classList.toggle('on', x === mb);
+            x.setAttribute('aria-pressed', x === mb ? 'true' : 'false');
           });
           var _ans = el('dmMoodAns');
           if (_ans) {
@@ -12049,6 +12043,20 @@ function initReading() {
     e.preventDefault();
     searchByWork(wc.dataset.work);
   });
+  /* R3321-P1：file 书节行 .sec-pick 同入口——tr 已挂 tabindex/role，
+   * Enter/Space 走与 click 委托同一条链。 */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var sp = e.target && e.target.closest &&
+      e.target.closest('.sec-pick[data-secfile]');
+    if (!sp) return;
+    e.preventDefault();
+    var bf2 = el('bsfile');
+    if (bf2) bf2.value = sp.dataset.secfile;
+    var bs2 = el('bsscheme');
+    if (bs2) { bs2.value = 'file'; bs2.dispatchEvent(new Event('change')); }
+    activateBssec('bs-chapter');
+  });
 }
 
 function initDivination() {
@@ -14766,11 +14774,15 @@ function _renderMoodRow(lv) {
   try { picked = localStorage.getItem('mood:' + today) || ''; } catch (ePK) {}
   var html = '<span class="mood-q">今天心里怎么样？</span>';
   _MOOD_META.forEach(function (mm, i) {
+    /* R3321-P2：选中态只切 .on 不进无障碍树——补 aria-pressed
+     * （同 checkin-opt/rtab 既有口径）。 */
     html += '<button type="button" class="mood-b' +
       (picked === String(i) ? ' on' : '') + '" data-m="' + i +
+      '" aria-pressed="' + (picked === String(i)) +
       '" aria-label="' + mm.t + '" title="' + mm.t + '">' + mm.e + '</button>';
   });
-  html += '<span class="mood-ans" id="moodAns"' +
+  /* R3321-P2：回执 span 挂 aria-live——「记下了」读得出。 */
+  html += '<span class="mood-ans" id="moodAns" aria-live="polite"' +
     (picked === '' ? ' hidden' : '') + '></span>';
   html += '<span class="mood-cal" id="moodCal"></span>';
   row.innerHTML = html;
@@ -14864,6 +14876,7 @@ function _renderMoodRow(lv) {
       try { localStorage.setItem('mood:' + todayIso(), m); } catch (eS) {}
       row.querySelectorAll('.mood-b').forEach(function (x) {
         x.classList.toggle('on', x === b);
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
       });
       var lvNow = 'l';
       try { lvNow = localStorage.getItem('mood:lv') || 'l'; } catch (eL) {}
@@ -15099,8 +15112,10 @@ function renderCheckin(dateKey) {
   var _goalHtml = '<div class="ck-goal" role="group" aria-label="本周打卡目标">' +
     '<span>目标</span>' +
     [3, 5, 7].map(function (g) {
+      /* R3321-P2：周目标选中态补 aria-pressed。 */
       return '<button type="button" class="ck-goal-opt' +
-        (g === _weekGoal ? ' active' : '') + '" data-g="' + g + '">' + g + '天</button>';
+        (g === _weekGoal ? ' active' : '') + '" data-g="' + g +
+        '" aria-pressed="' + (g === _weekGoal) + '">' + g + '天</button>';
     }).join('') +
     '<span class="ck-goal-txt">' + esc(_goalTxt) + '</span></div>';
   /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
@@ -15312,6 +15327,12 @@ function renderCheckin(dateKey) {
       } catch (eWX) {}
       var _lw2 = el('weeklyLetter');
       if (_lw2) _lw2.remove();
+      /* R3321-P3：收下后焦点丢回 body——归还打卡区首个可点件。 */
+      try {
+        var _fw = document.querySelector(
+          '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
+        if (_fw && _fw.focus) _fw.focus();
+      } catch (eFW) {}
     });
   }
   /* R3319-F：月信收下——写上月档键，重渲即消失。 */
@@ -15327,6 +15348,12 @@ function renderCheckin(dateKey) {
       } catch (eMX) {}
       var _lm3 = el('monthlyLetter');
       if (_lm3) _lm3.remove();
+      /* R3321-P3：同上——焦点归还不丢 body。 */
+      try {
+        var _fm = document.querySelector(
+          '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
+        if (_fm && _fm.focus) _fm.focus();
+      } catch (eFM) {}
     });
   }
   var _alb = box.querySelector('.ck-album');
@@ -15476,6 +15503,10 @@ function renderCheckin(dateKey) {
       var _goalBtn = e.target.closest('.ck-goal-opt');
       if (_goalBtn && _goalBtn.dataset.g) {
         try { localStorage.setItem('checkin:goal', _goalBtn.dataset.g); } catch (eG) {}
+        /* R3321-P2：重渲前就地翻 aria-pressed（重渲后新钮已带对态）。 */
+        box.querySelectorAll('.ck-goal-opt').forEach(function (x) {
+          x.setAttribute('aria-pressed', x === _goalBtn ? 'true' : 'false');
+        });
         renderCheckin(dateKey);
         return;
       }
@@ -15664,7 +15695,12 @@ function _checkinCelebrate(streak, opt) {
     _mainInert(false);
     if (bd.parentNode) bd.remove();
     /* 焦点归还：触发钮已被打卡重渲销毁 → 落回新打的 picked 钮 */
-    var back = (_trig && _trig.isConnected) ? _trig :
+    /* R3321-P3：_trig 可能是 body/非交互元素（控制台直调）——
+     * 归还前再查一遍「可聚焦」，否则一样丢回 body。 */
+    var _trigOk = _trig && _trig.isConnected &&
+      (_trig.matches('button,a,[tabindex]:not([tabindex="-1"]),input,' +
+       'select,textarea') || _trig.tabIndex >= 0);
+    var back = _trigOk ? _trig :
       (document.querySelector('.checkin-opt.picked') || el('dailyCard'));
     if (back && back.focus) { try { back.focus(); } catch (ef) {} }
   };
@@ -16226,6 +16262,8 @@ function _chatChipsPersonalize() {
       _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
         '<div class="chat-journal-body">' +
         '<input id="journalInput" type="text" maxlength="40" ' +
+        /* R3321-P3：仅 placeholder 作名——补 aria-label。 */
+        'aria-label="写一件今天的小事" ' +
         'placeholder="比如「喝到了一杯好喝的茶」">' +
         '<button id="journalSave" type="button">记下</button></div>';
       var _jsBtn = el('journalSave');
@@ -16758,6 +16796,8 @@ function _renderWishBottle(edit) {
   host.innerHTML =
     '<div class="ck-wish-card">' +
       '<textarea id="wishText" class="ck-wish-input" maxlength="60" rows="2" ' +
+        /* R3321-P3：仅 placeholder 作名——输入后名丢，补 aria-label。 */
+        'aria-label="写一个愿望" ' +
         'placeholder="比如：希望下个月面试顺利…">' +
         esc(w ? w.t : '') + '</textarea>' +
       /* R2514（审-P2）：分类 chips 此前只有 picked class——选中态
