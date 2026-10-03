@@ -17385,3 +17385,19 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P2-2：bookstudy.structure 未编址标题行标「卷首/附录（文件名）」不再冒充「第N卷」；bcv section 标「Genesis · 第3章」带章号不再整卷同标。
 - P2-4：search 零命中回 hint（语料范围+换写法+指向定位页），与 concept 同口径。
 - P3：compare 的 yao 加 typo 门（「abc」原 200 no_witness 自相矛盾，现 400 同 /api/addr 口径）。
+
+## R2368b — R3304 分享物料/海报真机视觉评审清零（全 14 项）
+- 高1：深链落地（?view=X）关海报被甩回首页——landing 非别名分支把 replaceState 从「_dirty 才写」改无条件写 {view:_vp}，posterModal 的 history.back() 落回正确视图。
+- 高2：lucky/bandaid/bazi-yearly 三条分享死链——别名表补映射（lucky/bandaid→home+日卡滚动锚、bazi-yearly→bazi）；_SHARE_TEXT 补 bazi-yearly/renge 专属钩子。
+- 中1：rgXhs clipboard 路径剥 esc()——昵称/判词含 &<>'" 不再以 HTML 实体原文贴出去。
+- 中2：API do/dont 不再预制「宜：/忌：」前缀（标签归展示层），海报「宜：宜：」双前缀根因消除；daily_cache cv 升 7 清旧口径行。
+- 中3：_MOOD_* 三表挪到 init() 调用点之前——TDZ 吞错导致聊天空态「小满知道这些」永久空的根因消除。
+- 低1：toast-stack 不降 z（模态内复制反馈要可见），改为开 posterModal 即清未散 toast。
+- 低2：「啃」U+557C 不在 LXGW 子集——全站文案换「攻/磨」（voice/xingzuo/dream/app 6 处）。
+- 低3：合婚邀请链补钩子文案（💌 名字+合拍指数邀请），不再发裸 URL。
+- 低4：合婚卡标题昵称对拆独立 .hh-pair 行——「阿哲」孤行消除。
+- 低5：renge 海报专属 spec——大标题改人格名（原套 bazi 模板出「今日命盘」），明细=五行人格+占比前二+判词，人格熊卡照常直绘；_POSTER_TITLES/_POSTER_BG_BY_VIEW/_SHARE_TEXT 三表补 renge。
+- 低6：白卡密度补丁——星座补「今日方向」（API 新增 sign direction 字段）、起名补「出处」行+备选①②去重标签、桃花补「旺期预告」（dayun_hits 应期）。
+- 低7：周报「主心情/常问」空值「—」换兜底文案。
+- 低8：分享模板品牌行 1288→1276——字形下沿不再压免责 pill。
+- 低9：checkin-month 月初门槛给「月报还差 N 天」禁用态占位——1-4 号不再零反馈。

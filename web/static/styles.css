@@ -2032,6 +2032,9 @@ button:active{transform:scale(.96);}
 
 /* R3252（用户实测「加一些表盘」）：合拍指数仪表盘——
  * 半圆 SVG 弧 + 盘心分数，档位色随分数走；双熊插画置顶。 */
+/* R3304（审-P3）：合婚昵称对独立行——自 h2<small> 孤行拆出 */
+.hh-pair{margin:-4px 0 8px; font-size:15px; font-weight:600;
+  color:var(--primary-ink); letter-spacing:.5px;}
 .hh-hero{position:relative; margin:10px auto 4px; width:280px; max-width:100%;}
 .hh-bear{display:block; width:220px; height:220px; object-fit:cover;
   border-radius:26px; margin:0 auto; border:2px solid rgba(255,255,255,.9);

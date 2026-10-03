@@ -482,9 +482,10 @@ function buildHehunResult(j) {
   /* R230z（R36-P1-2）：昵称对——有昵称就用「小鱼 × 阿哲」当头 */
   var _hn = (j.a_name || j.b_name || '') ?
     ((j.a_name || '我') + ' × ' + (j.b_name || 'TA')) : '';
-  let html = '<div class="card"><h2>💕 八字合婚' +
-    (_hn ? ' <small style="font-size:15px;color:var(--primary-ink);">' +
-    esc(_hn) + '</small>' : '') + '</h2>';
+  /* R3304（审-P3）：昵称对嵌 h2<small> 会孤行——「八字合婚」独占
+   * 一行后名字孤零零吊在第二行视觉断节。拆成独立配对行。 */
+  let html = '<div class="card"><h2>💕 八字合婚</h2>' +
+    (_hn ? '<p class="hh-pair">' + esc(_hn) + '</p>' : '');
   html += _birthEcho('hehun');
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
   /* R233n：三枚 fav-btn 全按 right:24/84px 绝对定位会互叠——本卡
@@ -4204,6 +4205,13 @@ function showPosterModal(canvas, view, j) {
       '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  /* R3304（审-P3）：开奖瞬间未散的 toast 叠在模态上缘（toast-stack
+   * z300 > modal z200）——开模态即清场，模态内新 toast 照常出现
+   * （复制成功反馈仍要看得见，所以不能降 z）。 */
+  try {
+    var _ts0 = document.querySelector('.toast-stack');
+    if (_ts0) _ts0.innerHTML = '';
+  } catch (eTS) {}
   /* R2353（R110-P2-1）：弹层入栈——弹层开着按返回键/手势先关弹层
    * 而不是退回上一视图（微信/XHS webview 左滑返回场景实测踩坑）。
    * 同视图 push（URL 不变，state 多 modal 标记），popstate 侧按
@@ -4416,6 +4424,13 @@ function _showTextExportModal(title, text, tipText) {
       '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  /* R3304（审-P3）：开奖瞬间未散的 toast 叠在模态上缘（toast-stack
+   * z300 > modal z200）——开模态即清场，模态内新 toast 照常出现
+   * （复制成功反馈仍要看得见，所以不能降 z）。 */
+  try {
+    var _ts0 = document.querySelector('.toast-stack');
+    if (_ts0) _ts0.innerHTML = '';
+  } catch (eTS) {}
   /* R2353（R110-P2-1）：弹层入栈——弹层开着按返回键/手势先关弹层
    * 而不是退回上一视图（微信/XHS webview 左滑返回场景实测踩坑）。
    * 同视图 push（URL 不变，state 多 modal 标记），popstate 侧按
@@ -6090,7 +6105,7 @@ var _TEN_GOD_ACT = {
   伤官:'提新方案、改旧稿子、试试不一样的做法',
   偏财:'谈谈钱、盘盘手头的进项渠道',
   正财:'记账、复盘收支、把长期计划往前推一格',
-  七杀:'挑最难的那件事先啃，限时做完',
+  七杀:'挑最难的那件事先攻，限时做完',
   正官:'走流程、办手续、把该见的面见了',
   偏印:'自己琢磨、查资料、随手记灵感',
   正印:'请教信得过的人、复习旧知识、整理资料'};
@@ -7605,13 +7620,15 @@ var _POSTER_TITLES = {
   daily: '今日签', huangli: '今日宜忌', xingzuo: '星座日运',
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
-  bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报' };
+  bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
+  renge: '五行人格' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
-  bandaid: 'dream', lucky: 'warm', weekly: 'lilac' };   /* R3260 R9：夜灯紫夜系 */
+  bandaid: 'dream', lucky: 'warm', weekly: 'lilac',
+  renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
 var _SHARE_TEXT = {
@@ -7632,7 +7649,10 @@ var _SHARE_TEXT = {
   xzm: '我们星座合拍指数出来了，你们的呢 →',
   bandaid: '睡不着的话，这张创可贴送你 →',
   lucky: '今日护身符领好了，接住这份运气 →',
-  weekly: '我的一周小满周报出炉了，看看你的 →'};
+  weekly: '我的一周小满周报出炉了，看看你的 →',
+  /* R3304（审-P1）：年度运势分享链带专属钩子——此前走通用兜底。 */
+  'bazi-yearly': '我的年度运势出炉了，看看你的 →',
+  renge: '测出我的五行人格了，你是哪型 →'};
 function _shareText(view) {
   return (_SHARE_TEXT[view] || '来测测你的 →') + ' 小满的解忧铺 ';
 }
@@ -8765,13 +8785,19 @@ async function doHehun() {
           '&ah=' + encodeURIComponent(val('hh_' + _side + '_hour') || '') +
           '&ag=' + encodeURIComponent(val('hh_' + _side + '_gender') || '') +
           '&an=' + encodeURIComponent(val('hh_' + _side + '_name') || '');
+        /* R3304（审-P2）：邀请此前只发裸链接——收方点开前看不到
+         * 发起人/玩法钩子。带上名字+对盘邀请语（与小红书文案同口径）。 */
+        var _invName = val('hh_' + _side + '_name') || '我';
+        var _msg = '💌 ' + _invName +
+          ' 喊你合个盘——看看你们俩的合拍指数\n' +
+          '在小满的解忧铺，点这里就能对上：\n' + _u;
         var _ok = function () {
           showToast(_dayPick(['邀请链接复制好了（里面有你的生辰，发给信任的人哦）',
             '链接已备好，TA 打开就能接着测（链接含你的生辰信息）',
             '复制成功：记得链接里带着你的生日，发给熟人就好'], 'hhinv'));
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(_u).then(_ok, function () {
+          navigator.clipboard.writeText(_msg).then(_ok, function () {
             _legacy();
           });
         } else { _legacy(); }
@@ -8781,7 +8807,7 @@ async function doHehun() {
           var _ok0 = true;
           try {
             var _ta = document.createElement('textarea');
-            _ta.value = _u; _ta.style.cssText = 'position:fixed;opacity:0';
+            _ta.value = _msg; _ta.style.cssText = 'position:fixed;opacity:0';
             document.body.appendChild(_ta); _ta.select();
             _ok0 = !!document.execCommand('copy');
             _ta.remove();
@@ -10992,10 +11018,12 @@ async function doRenge() {
        * 直接传进海报 spec.cards（同源直绘），晒出去是形象卡
        * 不是一张字海报。 */
       var _im2 = box.querySelector('.rg-persona');
+      /* R3304：renge spec 吃 _nick/_elCn——人格名当海报主标。 */
       var _j2 = (_im2 && _im2.complete && _im2.naturalWidth)
-        ? Object.assign({}, j, { _art: _im2, _artCap: _nick })
-        : j;
-      var _p = downloadPoster(_j2, 'bazi');
+        ? Object.assign({}, j, { _art: _im2, _artCap: _nick,
+                                _nick: _nick, _elCn: _rgElCn })
+        : Object.assign({}, j, { _nick: _nick, _elCn: _rgElCn });
+      var _p = downloadPoster(_j2, 'renge');
       if (_p && _p.catch) _p.catch(function () {});
     });
     var _px = el('rgXhs');
@@ -11003,8 +11031,10 @@ async function doRenge() {
       /* R3263（R19）：五行人格小红书钩子——一键复制晒图文案，
        * 人格测试天然适合「@闺蜜测同款」裂变。 */
       var _line = w.one_liner || '测测你的五行人格';
-      var _txt = '✨ 我的五行人格是「' + esc(_nick || _rgElCn + '型') + '」\n' +
-        esc(_line) + '\n\n' +
+      /* R3304（审-P1）：clipboard 是纯文本——esc() 会把昵称/判词里的
+       * & < > 翻成 HTML 实体原文贴出去。copy 路径用原始值。 */
+      var _txt = '✨ 我的五行人格是「' + (_nick || _rgElCn + '型') + '」\n' +
+        _line + '\n\n' +
         '在小满的解忧铺测的，你也来测测你的同款型👇\n' +
         (window.location.origin || '') + '/?view=renge&from=share';
       try {
@@ -13028,7 +13058,12 @@ function init() {
                      chat: 'home',
                      /* R2364（R120-P1-2）：速配分享链写 view=xzm，速配卡
                       * 住在星座视图里——别名收编，不再弹「入口不存在」。 */
-                     xzm: 'xingzuo' };
+                     xzm: 'xingzuo',
+                     /* R3304（审-P0）：lucky/bandaid/bazi-yearly 海报
+                      * 分享链全是死链——护身符/创可贴住首页日签卡一带，
+                      * 年度运势就是 bazi 视图的产物。别名收编+滚动承接。 */
+                     lucky: 'home', bandaid: 'home',
+                     'bazi-yearly': 'bazi' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
@@ -13341,7 +13376,8 @@ function init() {
             /* R2349（R65-P2-6）：checkin-week 别名此前落首页顶部无
              * 承接——和 daily/checkin 一样滚到日签卡（签运图在那）。 */
             if (_vpRaw === 'daily' || _vpRaw === 'checkin' ||
-                _vpRaw === 'checkin-week' || _vpRaw === 'checkin-month') {
+                _vpRaw === 'checkin-week' || _vpRaw === 'checkin-month' ||
+                _vpRaw === 'lucky' || _vpRaw === 'bandaid') {
               var _dc = document.getElementById('dailyCard');
               if (_dc) _dc.scrollIntoView({ behavior: _rmBehavior(), block: 'start' });
             } else if (_vpRaw === 'birth') {
@@ -13407,11 +13443,12 @@ function init() {
              'ag', 's', 'tn', 'm', 'b', 'rel'].forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
-            if (_dirty) {
-              var _q2 = _qs2.toString();
-              history.replaceState({ view: _vp }, '',
-                location.pathname + (_q2 ? '?' + _q2 : ''));
-            }
+            /* R3304（审-P0）：裸 ?view=X 落地（无分享参）此前不回写
+             * state——底条目停在脚本首行的 {view:'home'}，海报模态
+             * history.back() 直接甩回首页。恒回写真落地视图。 */
+            var _q2 = _qs2.toString();
+            history.replaceState({ view: _vp }, '',
+              location.pathname + (_q2 ? '?' + _q2 : ''));
           } catch (eSP) {}
         }
       } else if (_vp !== 'home' || _badPath) {
@@ -13426,6 +13463,35 @@ function init() {
     }
   } catch (e) {}
 }
+
+/* R3259（UX-STRATEGY-NEXT N3）：心情回路——74% 用户为缓解焦虑而来，
+ * 「止痛药」人群的留存靠被接住的感觉可预期（Finch 式轻回路）：
+ * 1-tap 心情打卡 → 小满回一句（心情×判词档确定性文案池）→
+ * 心情历近 14 天色点。全 localStorage，零后端零账号。
+ * R3304（审-P1）：声明必须在 init() 调用点之前——init 同步链
+ * （_chatChipsPersonalize → 记忆事实板）会读 _MOOD_META，放后面
+ * var 只提升声明不提升赋值，TypeError 被 try 吞掉=事实板永久空。 */
+var _MOOD_META = [
+  { e: '😮‍💨', t: '有点累', c: '#C78C9E' },
+  { e: '😐', t: '一般般', c: '#B9AE9C' },
+  { e: '🙂', t: '还不错', c: '#D9B36A' },
+  { e: '🥳', t: '状态满分', c: '#8FA86F' }];
+/* R3262（R17）：心情罐子——每攒满 7 个色点解锁一张小满场景图，
+ * 不惩罚断签，只讲「收下了多少」。4 张封顶，缺图时静默不展示。 */
+var _MOOD_JAR_SCENES = [
+  { k: '窗边茶', url: '/static/cream/bear-scene-good.jpg' },
+  { k: '雨毯堡', url: '/static/cream/bear-scene-mid.jpg' },
+  { k: '小夜灯', url: '/static/cream/bear-scene-sml.jpg' },
+  { k: '坏天气', url: '/static/cream/bear-scene-bad.jpg' }];
+var _MOOD_REPLY = {
+  '0g': '累就别硬撑——今天盘面有暗劲帮你，事可以缓一缓，人先歇口气。',
+  '0l': '累的时候更要对自己松一点——盘面不硬的日子，少排一件事、早点收工就是赚。',
+  '1g': '平平的心配平顺的签——不用刻意做什么，顺着走就到了。',
+  '1l': '心稳就是赢——盘面不硬的日子，不动气就已经是赚了，剩下的交给明天。',
+  '2g': '心情好+签也顺：那件想做很久没动的事，今天就适合开个头。',
+  '2l': '心情好是你自带的小太阳——盘面一般的日子，状态就是你的底牌。',
+  '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
+  '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -13793,33 +13859,7 @@ function _checkinStreak(set, dateKey) {
   while (set[cur]) { n++; cur = _isoShift(cur, -1); }
   return n;
 }
-/* R3259（UX-STRATEGY-NEXT N3）：心情回路——74% 用户为缓解焦虑而来，
- * 「止痛药」人群的留存靠被接住的感觉可预期（Finch 式轻回路）：
- * 1-tap 心情打卡 → 小满回一句（心情×判词档确定性文案池）→
- * 心情历近 14 天色点。全 localStorage，零后端零账号。 */
-var _MOOD_META = [
-  { e: '😮‍💨', t: '有点累', c: '#C78C9E' },
-  { e: '😐', t: '一般般', c: '#B9AE9C' },
-  { e: '🙂', t: '还不错', c: '#D9B36A' },
-  { e: '🥳', t: '状态满分', c: '#8FA86F' }];
-/* R3262（R17）：心情罐子——每攒满 7 个色点解锁一张小满场景图，
- * 不惩罚断签，只讲「收下了多少」。4 张封顶，缺图时静默不展示。 */
-var _MOOD_JAR_SCENES = [
-  { k: '窗边茶', url: '/static/cream/bear-scene-good.jpg' },
-  { k: '雨毯堡', url: '/static/cream/bear-scene-mid.jpg' },
-  { k: '小夜灯', url: '/static/cream/bear-scene-sml.jpg' },
-  { k: '坏天气', url: '/static/cream/bear-scene-bad.jpg' }];
-var _MOOD_REPLY = {
-  '0g': '累就别硬撑——今天盘面有暗劲帮你，事可以缓一缓，人先歇口气。',
-  '0l': '累的时候更要对自己松一点——盘面不硬的日子，少排一件事、早点收工就是赚。',
-  '1g': '平平的心配平顺的签——不用刻意做什么，顺着走就到了。',
-  '1l': '心稳就是赢——盘面不硬的日子，不动气就已经是赚了，剩下的交给明天。',
-  '2g': '心情好+签也顺：那件想做很久没动的事，今天就适合开个头。',
-  '2l': '心情好是你自带的小太阳——盘面一般的日子，状态就是你的底牌。',
-  '3g': '状态满分+好签加持，今天适合把好消息攒下来，回头跟小满报喜。',
-  '3l': '状态这么棒，盘面挡不住你——该干嘛干嘛，小满给你记一功。'};
-
-/* R3264（R36）：微庆祝——仪式/日记完成后飘一颗 ✨ 星星，
+/* R3264（R36）：微庆祝——仪式/日记完成后飘一颗 ✨ 星星,
  * 持续 0.8s 不打扰，给多巴胺小高峰。 */
 function _microCelebrate(target) {
   if (!target) return;
@@ -14363,9 +14403,14 @@ function renderCheckin(dateKey) {
          * 两侧同按 truthy 值口径。 */
         if (k.slice(0, 7) === _mm && k <= dateKey && _ckAll[k]) _m++;
       });
+      /* R3304（审-P3）：月初 1-4 号按钮整月消失——零反馈死区。
+       * 未满 5 天给「还差 N 天」占位提示（按钮禁用态）。 */
       return (_m >= 5 ?
         '<button type="button" class="checkin-share" id="checkinMonth" ' +
-        'title="生成本月签运图">🗓️ 本月签运</button>' : '');
+        'title="生成本月签运图">🗓️ 本月签运</button>' :
+        '<button type="button" class="checkin-share" disabled ' +
+        'title="本月再打卡 ' + (5 - _m) + ' 天就能出月报">' +
+        '🗓️ 月报还差 ' + (5 - _m) + ' 天</button>');
     })() +
     /* R2350f（R102-P2-8/P2-13）：两枚留存/拉新小动作——「明天提醒我」
      * 走本地 Notification（无推送基建，次日开屏 toast 口径如实说清），

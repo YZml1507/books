@@ -2592,8 +2592,12 @@ def _run_inner() -> list[str]:
     # 宜忌白话（宜：/忌：前缀），不再是池子句；summary 有盘面事实
     # 时事实句在前。
     _dly = client.get("/api/daily").json()
-    assert (_dly.get("do") or "").startswith("宜："), _dly.get("do")
-    assert (_dly.get("dont") or "").startswith("忌："), _dly.get("dont")
+    # R3304：标签归展示层——API 值不再预制「宜：/忌：」前缀（海报/
+    # 卡面自挂签，双前缀根因消除）。do/dont 仍须是当日真词非空值。
+    assert _dly.get("do") and not str(_dly["do"]).startswith("宜："), \
+        _dly.get("do")
+    assert _dly.get("dont") and not str(_dly["dont"]).startswith("忌："), \
+        _dly.get("dont")
     ok.append("daily.fact_wired")
     # R229z续4：宜/忌两条建议不许同项撞签（实测"空腹喝冰美式、空腹喝
     # 冰美式"——同池两签会撞）。连测 30 天。

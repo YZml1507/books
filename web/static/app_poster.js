@@ -519,8 +519,10 @@ function _paintSharePoster(s, W, H) {
   /* 水印行 */
   ctx.fillStyle = '#7A5C2E'; ctx.font = '600 36px "LXGW WenKai","Noto Serif TC",serif';
   /* R2350d（R100-P2-5）：底部 CTA 区距画布底缘 6px 贴边——整张带
-   * 上移 32px，底缘留白 ~50px，长图在相册里不顶脚。 */
-  ctx.fillText('@小满的解忧铺', 540, 1288);
+   * 上移 32px，底缘留白 ~50px，长图在相册里不顶脚。
+   * R3304（审-P3）：品牌行基线 1288 vs 免责 pill 顶 1298 只差 10px，
+   * 字形下沿压在 pill 上——品牌行上移 12px 拉开。 */
+  ctx.fillText('@小满的解忧铺', 540, 1276);
   /* R230r（R29-#11）：免责声明是合规件——花纹底图上浅棕字几乎不可读，
    * 给文字垫一条半透明米白衬底，任何背景下都可读。 */
   ctx.fillStyle = 'rgba(253,248,240,0.78)';
@@ -818,7 +820,13 @@ function buildShareData(view, j) {
       if (_xzTd && _xzTd.love) _xzl.push({ k: '爱情', v: _gSlice(_xzTd.love, 24) });
       if (_xzTd && _xzTd.career) _xzl.push({ k: '事业', v: _gSlice(_xzTd.career, 24) });
       if (_xzTd && _xzTd.wealth) _xzl.push({ k: '财运', v: _gSlice(_xzTd.wealth, 24) });
-      sxz.lines = _xzl.slice(0, 3);
+      /* R3304（审-P3）：白卡稀疏补丁——星座日运补一条「今日方向」
+       * 次级行（sign_direction 确定性派生，非凑数字段）。 */
+      var _xzDir = (_xzTd && _xzTd.direction) || '';
+      var _xzDirTxt = { forward: '宜主动一点', hold: '宜稳住节奏',
+                        observe: '宜先看看风向' }[_xzDir];
+      if (_xzDirTxt) _xzl.push({ k: '今日方向', v: _xzDirTxt });
+      sxz.lines = _xzl.slice(0, 4);
       return sxz;
     }
     case 'liuyao': {
@@ -884,13 +892,19 @@ function buildShareData(view, j) {
       var _qfeLine = _qmiss.length ? ('缺 ' + _qmiss.join('、') + ' · 专补它')
         : (_qweak.length ? ('五行偏弱，宜补：' + _qweak.join('、'))
            : '五行俱全');
+      /* R3304（审-P3）：备选连出两个同名标签 + 白卡稀——备选①②
+       * 编号 + 首选补「出处」次级行（origin 字段确定性派生）。 */
+      var _qAlt = ['', '①', '②'];
+      var _qOrigin = _pStr((_pArr(j && j.full_names)[0] || {}).origin);
       return { title: '五行起名',
         subtitle: '按五行补缺 · ' + _cnDateSub(todayIso()),
         big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
         lines: [{ k: '五行', v: _qfeLine }].concat(
           _pArr(j && j.full_names).slice(0, 3).map(function (n, i) {
             /* R2349s（R86-P2-6）：「推荐 N」编号腔——首选/备选。 */
-            return { k: (i === 0 ? '首选' : '备选'), v: _pStr(n && n.full_name) }; })),
+            return { k: (i === 0 ? '首选' : ('备选' + (_qAlt[i] || ''))),
+                     v: _pStr(n && n.full_name) }; })).concat(
+          _qOrigin ? [{ k: '名字出处', v: _gSlice(_qOrigin, 16) }] : []),
         cards: [], view: view };
     /* R218a-巡2（N-04）：补 3 case——之前 buildShareData 没有 bazi/taohua/hehun，
      * 直接走 default 返回 null，downloadPoster 拿不到 j.share，回落旧 bazi 专属
@@ -1062,6 +1076,31 @@ function buildShareData(view, j) {
       if (!sb.lines.length) sb.lines = [{ k: '结论', v: _gSlice(l0, 15) || '知己知命' }];
       return sb;
     }
+    /* R3304（审-P2）：五行人格海报此前套 'bazi' 模板——大标题
+     * 「今日命盘」与人格物口径脱节。人格名当主标，五行+判词当明细。 */
+    case 'renge': {
+      var _rgs = base('五行人格', '');
+      var _rn = _pStr(j && j._nick);
+      var _re = _pStr(j && j._elCn);
+      _rgs.big = _rn ? ('「' + _rn + '」') : (l0 || '测测你的五行人格');
+      _rgs.lines = [];
+      if (_re) _rgs.lines.push({ k: '五行人格', v: _re + '型' });
+      var _rgF = (((j || {}).calc || {}).five_elements || {}).counts || {};
+      var _rgTop = Object.keys(_rgF).sort(function (a, b) {
+        return (parseFloat(_rgF[b]) || 0) - (parseFloat(_rgF[a]) || 0);
+      }).slice(0, 2).join(' · ');
+      if (_rgTop) _rgs.lines.push({ k: '料比较足的是', v: _rgTop });
+      if (l0) _rgs.lines.push({ k: '一句话', v: _gSlice(l0, 18) });
+      if (!_rgs.lines.length) {
+        _rgs.lines = [{ k: '结论', v: '你是你这一型' }];
+      }
+      /* 人格形象卡同源直绘（与 birth/dream 同管线）。 */
+      if (j && j._art) {
+        _rgs.cards = [{ img: j._art, name: '我的五行人格',
+          sub: _pStr(j._artCap) || _rn || '日主定盘' }];
+      }
+      return _rgs;
+    }
     /* R3165：年度运势图——年底/生日季晒图格式（年度干支十神+顺劲/
      * 使劲月榜），数据源 calc.yearly.easy/hard（与 warm 行同口径）。
      * 月份只放「X月」——十神明细在卡面逐月条上，海报要一眼扫完。 */
@@ -1141,6 +1180,13 @@ function buildShareData(view, j) {
       var _stg = _pStr(j && j.strength);
       if (_stg) st.lines.push({ k: '桃花信号', v:
         ({ strong: '最近正旺', mid: '在慢慢升温', weak: '还在酝酿' })[_stg] || _stg });
+      /* R3304（审-P3）：白卡稀疏补丁——大运应期（dayun_hits 确定性
+       * 派生）补一条「旺期预告」。 */
+      var _dyh = _pArr(j && j.dayun_hits);
+      if (_dyh.length && _dyh[0].pillar) {
+        st.lines.push({ k: '旺期预告', v: _pStr(_dyh[0].pillar) + '运' +
+          (_dyh[0].year_start ? '（' + _dyh[0].year_start + ' 起）' : '') });
+      }
       if (!st.lines.length) st.lines = [{ k: '结论', v: _gSlice(l0, 15) || '桃花待时而动' }];
       return st;
     }
@@ -1308,9 +1354,10 @@ function buildShareData(view, j) {
       /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */
       var _wk = base('小满周报', _cnDateSub(todayIso()));
       _wk.big = '这周见了 ' + (_pStr(j && j.visitDays) || '0') + ' 次';
+      /* R3304（审-P3）：「—」裸破折号挂白卡太冷——换兜底文案。 */
       _wk.lines = [
-        { k: '主心情', v: _pStr(j && j.moodMain) || '—' },
-        { k: '常问', v: _pStr(j && j.topView) || '—' },
+        { k: '主心情', v: _pStr(j && j.moodMain) || '这周心情还没记' },
+        { k: '常问', v: _pStr(j && j.topView) || '还没怎么聊' },
         { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' }];
       return _wk;
     }

@@ -248,7 +248,7 @@ _CAREER_BEATS = (
     "今天宜守不宜攻，稳住就是赢。",
     "适合谈合作：你的方案今天更好卖。",
     "宜学点新东西，十分钟的那种也算。",
-    "宜先啃硬骨头，最难的那件趁上午拿下。",
+    "宜先攻硬骨头，最难的那件趁上午拿下。",
     "今天别开会脑暴，独立产出效率更高。",
     "宜把功劳说清楚，默默做完不说等于没做。",
     "适合做减法，砍掉两个待办比加三个更值。",
@@ -323,6 +323,8 @@ def daily_horoscope(day_ganzhi: str) -> dict:
                 "sign_love": SIGNS[name].get("love", ""),
                 "sign_career": SIGNS[name].get("career", ""),
                 "sign_wealth": SIGNS[name].get("wealth", ""),
+                # R3304（审-P3）：方向倾向给海报次级行（白卡密度补丁）
+                "direction": sign_direction(name),
                 "is_today": name == today,
             }
             for name in _SIGN_ORDER

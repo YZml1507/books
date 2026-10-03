@@ -4420,7 +4420,8 @@ def daily(date_str: str | None = None,
             # R2349t（R87-P0-1）：cv=5——cv≤4 的行可能含 personal
             # 脏字段（请求方生辰派生），抬代次让存量脏行一律重算覆盖。
             # R3091：cv=6——summary 事实句/do/dont 黄历真词口径。
-            if _c.get("cv") == 6 and (not _want or _c.get("noble") == _want):
+            # R3304：cv=7——cv=6 行 do/dont 含「宜：/忌：」内嵌前缀。
+            if _c.get("cv") == 7 and (not _want or _c.get("noble") == _want):
                 # R2349k（R72-A2）：festival 是派生字段不入缓存语义——
                 # 现算随包回（旧缓存行也能拿到节日行）。
                 _r = {"date": date_str, **_c, "cached": True,
@@ -4494,9 +4495,12 @@ def daily(date_str: str | None = None,
             _dq = huangli_mod.day_query(datetime(d.year, d.month, d.day, 12))
             _dyi, _dji = _dq.get("yi") or [], _dq.get("ji") or []
             if _dyi:
-                do_str = "宜：" + _hl_spoken(_dyi)
+                # R3304（审-P1）：标签归展示层、值归数据层——API 不再
+                # 预制「宜：/忌：」前缀（海报行签「宜试试」+「宜：宜：」
+                # 双前缀事故根因）。各消费方自己挂签。
+                do_str = _hl_spoken(_dyi)
             if _dji:
-                dont_str = "忌：" + _hl_spoken(_dji)
+                dont_str = _hl_spoken(_dji)
         except Exception:
             pass
         # R3091：summary 事实句优先——有盘面关系/失衡就说事实，
@@ -4532,7 +4536,7 @@ def daily(date_str: str | None = None,
             noble_lh = ""
         result = {
             "date": date_str,
-            "cv": 6,                     # 缓存口径版本（R3091：summary/do/dont 接事实）
+            "cv": 7,                     # R3304：do/dont 不再预制宜忌前缀
             "level": level,
             "summary": summary,
             "noble": noble_str,
