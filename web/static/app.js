@@ -577,7 +577,7 @@ function buildHehunResult(j) {
   /* R2350b（R98-P2-13）：甲乙块此前只露年柱+日柱两截，完整四柱
    * 躺在 a_bazi.render 里没用上；「日主」一词随行翻译成本命五行。 */
   html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
-    '<h3 style="color:var(--c-bazi);">' + esc(j.a_name || '甲') + '</h3>' +
+    '<h3 style="color:var(--c-bazi-ink);">' + esc(j.a_name || '甲') + '</h3>' +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (a.render ? ' title="四柱：' + esc(a.render) + '"' : '') + '>' +
     esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
@@ -585,7 +585,7 @@ function buildHehunResult(j) {
     'title="日主=出生那天的天干，代表本命五行">本命（日主）：' +
     esc(a.day_master || '') + '（' + esc(j.day_wx_a || '') + '）</p></div>';
   html += '<div class="calc-block" style="border-left:3px solid var(--c-hehun);">' +
-    '<h3 style="color:var(--c-hehun);">' + esc(j.b_name || '乙') + '</h3>' +
+    '<h3 style="color:var(--c-hehun-ink);">' + esc(j.b_name || '乙') + '</h3>' +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (b.render ? ' title="四柱：' + esc(b.render) + '"' : '') + '>' +
     esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
@@ -594,7 +594,7 @@ function buildHehunResult(j) {
     esc(b.day_master || '') + '（' + esc(j.day_wx_b || '') + '）</p></div>';
   html += '</div><div class="pill-row">';
   const relLabel = j.clash ? '六冲' : j.combine ? '六合' : '无冲合';
-  const relColor = j.clash ? 'var(--c-bazi)' : j.combine ? 'var(--c-good)' : 'var(--secondary)';
+  const relColor = j.clash ? 'var(--c-bazi-ink)' : j.combine ? 'var(--c-good-ink)' : 'var(--secondary)';
   /* R2509（审-P1-5）：年支 pill 加「属相」注解——默认受众对属相比
    * 年支有概念；「非相生」在相克盘上弱化事实（同屏 warm 行说相克），
    * 改如实显「相克」。 */
@@ -603,15 +603,15 @@ function buildHehunResult(j) {
     esc(relLabel) + '</span>';
   /* R230a-7（R13-P0-2）：同五行显示「比和」而非「非相生」 */
   html += '<span class="pill sm" style="background:' +
-    ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good)' : 'var(--c-bazi)') + ';"' +
+    ((j.day_wx_sheng || j.day_wx_same) ? 'var(--c-good-ink)' : 'var(--c-bazi-ink)') + ';"' +
     ' title="两人的日主五行关系">五行底子：' +
     esc(j.day_wx_sheng ? '相生' : (j.day_wx_same ? '比和' : '相克')) + '</span>';
-  html += '<span class="pill sm" style="background:var(--c-taohua);">桃花（' +
+  html += '<span class="pill sm" style="background:var(--c-hehun-ink);">桃花（' +
     esc(j.peach_a || '') + '/' + esc(j.peach_b || '') + '）：' +
     esc(j.peach_same ? '重叠' : '不同') + '</span>';
   // R204b（D-257b）：天干五合 + 十神互见 pill（yinyuan skill 融入）
   if (j.gan_he) {
-    html += '<span class="pill sm" style="background:var(--c-good);">日干五合：天生对味</span>';
+    html += '<span class="pill sm" style="background:var(--c-good-ink);">日干五合：天生对味</span>';
   }
   if (j.god_a_sees_b && j.god_b_sees_a) {
     /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。
@@ -14932,10 +14932,12 @@ function _renderMoodRow(lv) {
         }
       }
     }
-    cal += '<i class="mood-dot" style="background:' +
-      (v !== null && v !== '' ? _MOOD_META[+v].c : 'var(--border)') +
-      '" title="' + (dd.getMonth() + 1) + '/' + dd.getDate() +
-      (v !== null && v !== '' ? ' ' + _MOOD_META[+v].t : ' 未打卡') + '"></i>';
+    cal += v !== null && v !== ''
+      ? '<i class="mood-dot" style="background:' + _MOOD_META[+v].c +
+        '" title="' + (dd.getMonth() + 1) + '/' + dd.getDate() +
+        ' ' + _MOOD_META[+v].t + '"></i>'
+      : '<i class="mood-dot mood-dot-empty" title="' +
+        (dd.getMonth() + 1) + '/' + dd.getDate() + ' 未打卡"></i>';
   }
   var mc = el('moodCal');
   if (mc) {

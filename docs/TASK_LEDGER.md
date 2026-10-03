@@ -17626,3 +17626,14 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P3 壁纸/护身符钮静态 disabled 去除——弱网首帧灰钮改可点，handler 自带「运势还没出来」toast 引导。
 - OBS 咒语卡无浮层（点击即复制+toast）：功能全过，「点击即复制」比浮层顺手——有意不跟（spec 描述过期）。
 - 有意不跟合计：仅 OBS 一条。闸门：selftest 400 / ui_smoke / dollar_misuse / first_screen / contract 721 全绿。
+
+## R3324 深色模式+对比度全场景评审清零（2026-10-03，60 张双主题截图+抽样量化）
+- P0-1 `body.dark .daily-mine*` 死选择器（主题实挂 html[data-theme]）——深色下判词章 1.7-1.9:1 不可读，换选择器即生效。
+- P0-2 `.warm-basis .pill` 合婚干支展开区深底黑糊（1.31:1）→ dark 定点 `color:var(--text)`。
+- P0-3 `.chat-empty-moodjar` 奶油底硬编码+深底浅字（1.2:1）→ dark 深渐变补丁。
+- P1 `.tr-flow-chip b` 序号白字落浅薰衣草底（1.56:1）→ 底换 `--primary-bg`（两主题 ≥4.5）。
+- P2 「文字令牌当填充用」同族簇收口：ck-goal-opt.active/dm-sym-tag/ph-type/ph-t-taohua/ph-t-hehun/ph-del-armed 深档统一换深底（#8C3A54 / --primary-bg）；xz-mine-tag 双主题都欠 → 实色 #C24A66。
+- P2 心情历未打卡点≈1.2-1.4 → 改空心环（`mood-dot-empty`，inset 环浅档 --muted / 深档 --secondary），缺席=空心语义更准；JS 未打卡不再内联 var(--border)。
+- P2 浅色侧连带批：hl-hour-ji 文字 --primary→--primary-ink；hl-pill/hl-pill-ji 字深至 ≥4.5；合婚 h3 干支与 pill 底新增 `--c-bazi-ink/--c-hehun-ink/--c-good-ink` 文字级令牌（装饰色再不当字用）；qm-hint-em/qm-part/tr-flow-chip/cross-dir/warm-badge/checkin-share 逐一压深。
+- P3：daily-level.bad.soft 深档定点回深玫瑰；celeb tier 3/7/14/30 补深色档边；hl-daychip.has-flag 深档 opacity .85；ck-buff 底换 rgba(0,0,0,.35)。
+- 实测通过项确认无回归：深色令牌块、日卡全态、信卡/庆典卡/壁纸浮层/侧栏/toast 全部可读。
