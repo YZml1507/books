@@ -630,6 +630,10 @@ function buildHehunResult(j) {
   if (j.gan_he) {
     html += '<span class="pill sm" style="background:var(--c-good-ink);">日干五合：天生对味</span>';
   }
+  // R3340b：日干相冲对偶 pill——与 backend notes/score 同口径
+  if (j.gan_chong) {
+    html += '<span class="pill sm" style="background:var(--c-bazi-ink);color:var(--surface);" title="日干相冲：传统上主处久了容易顶牛">日干相冲：容易顶牛</span>';
+  }
   if (j.god_a_sees_b && j.god_b_sees_a) {
     /* R233g（R44-P1）：pill 里裸神煞名 → 随行白话（你眼里的TA/TA眼里的你）。
      * R2350b（R98-P2-8）：这张表与 voice.py:1324 的性格词表语义不同

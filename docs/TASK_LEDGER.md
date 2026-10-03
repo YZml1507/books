@@ -17961,3 +17961,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   往返本就是原值口径）；_adult B 侧（hehun 双侧闸已齐）
 - 闸门：selftest 406 / ui_smoke 103 / contract 735 / parity 74+52+253+9 /
   baseline_voice 重冻+self-check / ruff E9,F 全绿；bump_sw→books-shell-4301a300b7df
+
+## R3340b：天干相冲对偶判定（R3340 P3 残项清账）
+
+- hehun 只查日干五合不查五冲——甲庚/乙辛/丙壬/丁癸四对（戊己居中无冲）
+  传统判据零报。补 GAN_CHONG 表 + gan_chong 旗：notes「处久了容易顶牛」
+  （权重轻口径）、render「日干相冲」、合拍分 -7、硬伤 _neg 纳入、前端
+  「日干相冲：容易顶牛」pill（与 notes/score 同屏同口径）。
+- selftest 键集钉 +gan_chong；实测甲戌×庚午 盘 gan_chong=True score=67。
+- 闸门：selftest 406 / ruff E9,F 全绿；bump_sw→books-shell-7515a9092797

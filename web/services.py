@@ -409,6 +409,8 @@ def _hehun_score(h) -> int:
         sc += 7
     if h.gan_he:
         sc += 9
+    if getattr(h, "gan_chong", False):
+        sc -= 7
     sc += 4 if h.god_a_sees_b else 0
     sc += 4 if h.god_b_sees_a else 0
     # R3333（审-中8）：99 天花板堆积——原先稍有助力就顶满，
@@ -422,6 +424,7 @@ def _hehun_score(h) -> int:
     _neg = any([
         h.day_zhi_rel == "冲", h.clash, h.nayin_rel == "相克",
         (not h.day_wx_sheng and not h.day_wx_same),
+        getattr(h, "gan_chong", False),
         getattr(h, "day_xing", False), getattr(h, "day_harm", False),
         getattr(h, "day_break", False), getattr(h, "year_xing", False),
         getattr(h, "year_harm", False), getattr(h, "year_break", False)])
@@ -506,7 +509,7 @@ def hehun(req) -> dict:
         "day_wx_same": h.day_wx_same,   # R230a-7（R13-P0-2）：同五行比和
         "peach_a": h.peach_a, "peach_b": h.peach_b, "peach_same": h.peach_same,
         # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
-        "gan_he": h.gan_he,
+        "gan_he": h.gan_he, "gan_chong": h.gan_chong,
         "god_a_sees_b": h.god_a_sees_b, "god_b_sees_a": h.god_b_sees_a,
         "dayun_hits": dayun,
         "notes": h.notes,

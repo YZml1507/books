@@ -95,6 +95,11 @@ GAN_HE: dict[str, str] = {
 # R219b（P1-4）：全局清掉「仅坐标事实，不作断言」免责套话——改成轻松口吻的
 # 传统说法标注（用户明确禁用免责声明；娱乐定位由 voice.BADGE 统一承担）。
 _GAN_HE_NOTE = "日干五合：传统说法里这叫天生合得来，互相吸引"
+GAN_CHONG: dict[str, str] = {
+    "甲": "庚", "庚": "甲", "乙": "辛", "辛": "乙",
+    "丙": "壬", "壬": "丙", "丁": "癸", "癸": "丁",
+}
+_GAN_CHONG_NOTE = "日干相冲：传统说法里叫天生气场互顶，处久了容易顶牛，权重轻"
 _GOD_NOTE = "互看：{}眼里的{}带「{}」的能量，{}眼里的{}带「{}」的能量"
 
 # 写死说明文字（非生成，照 huangli YIJI 先例）
@@ -126,6 +131,7 @@ class Hehun:
     peach_b: str                     # 女桃花支
     peach_same: bool                 # 桃花支重叠
     gan_he: bool = False             # 日干五合（R204b）
+    gan_chong: bool = False          # 日干相冲（戊己居中无冲）
     god_a_sees_b: str = ""           # 甲日干见乙日干十神（R204b）
     god_b_sees_a: str = ""           # 乙日干见甲日干十神（R204b）
     gender_a: str = ""               # 甲性别（F-004 动态标签）
@@ -177,6 +183,8 @@ class Hehun:
                                    else ("比和" if self.day_wx_same else "相克")))
         if self.gan_he:
             parts.append("日干五合")
+        if self.gan_chong:
+            parts.append("日干相冲")
         if self.god_a_sees_b:
             parts.append(f"十神互见 {self.god_a_sees_b}/{self.god_b_sees_a}")
         parts.append(f"桃花支 {self.peach_a}/{self.peach_b}：" + ("重叠" if self.peach_same else "不同"))
@@ -215,6 +223,7 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     peach_same = pa == pb
     # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
     gan_he = GAN_HE.get(b_a.day[0]) == b_b.day[0]
+    gan_chong = GAN_CHONG.get(b_a.day[0]) == b_b.day[0]
     god_ab = ten_god(b_a.day[0], b_b.day[0])
     god_ba = ten_god(b_b.day[0], b_a.day[0])
 
@@ -260,6 +269,8 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
                  else (_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH))
     if gan_he:
         notes.append(_GAN_HE_NOTE)
+    if gan_chong:
+        notes.append(_GAN_CHONG_NOTE)
     if god_ab and god_ba:
         notes.append(_GOD_NOTE.format(
             b_a.day[0], b_b.day[0], god_ab, b_b.day[0], b_a.day[0], god_ba))
@@ -279,7 +290,8 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         year_zhi_rel="半合" if half else "",
         year_harm=_y_harm, year_xing=_y_xing, year_break=_y_break,
         day_harm=_d_harm, day_xing=_d_xing, day_break=_d_break,
-        gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
+        gan_he=gan_he, gan_chong=gan_chong,
+        god_a_sees_b=god_ab, god_b_sees_a=god_ba,
         gender_a=getattr(b_a, "gender", ""), gender_b=getattr(b_b, "gender", ""),
         notes=notes,
     )

@@ -4648,6 +4648,8 @@ def _run_inner() -> list[str]:
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
                        "gan_he", "god_a_sees_b", "god_b_sees_a",
+                       # R3340b：日干相冲对偶旗
+                       "gan_chong",
                        # R3333：害/刑/破次级判据旗（年/日两级）
                        "year_harm", "year_xing", "year_break",
                        "day_harm", "day_xing", "day_break",
