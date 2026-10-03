@@ -3352,6 +3352,17 @@ function showView(viewId) {
   Object.keys(RESULT_GEN).forEach(function (k) { RESULT_GEN[k]++; });
   var _sy = window.scrollY;
   var isHome = (viewId === 'home');
+  /* R3303-P3：跨视图收尾——非错误 toast 是上一视图的回声，跟过去
+   * 在键盘态会真挡表单；welcomeBar/returnBanner 同理（CSS 按
+   * body[data-view] 只让它们在首页渲染）。 */
+  try {
+    document.body.dataset.view = viewId;
+    var _st = document.getElementById('toastStack');
+    if (_st) {
+      _st.querySelectorAll('.toast-item:not(.toast-error)').forEach(
+        function (t2) { t2.remove(); });
+    }
+  } catch (eV) {}
   document.querySelectorAll('.view').forEach(function (v) {
     v.classList.remove('active');
   });
@@ -4249,7 +4260,12 @@ function showPosterModal(canvas, view, j) {
       if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
     }
     var ok = function () { showToast(_dayPick(['链接已复制，发给 TA 吧','复制好啦，发给 TA 看看','已复制：等 TA 打开'], 'copy'), 'ok'); };
-    var bad = function () { showToast('复制没成功，手动复制地址栏里的链接吧', 'warn'); };
+    /* R3303-P1：微信内嵌没有地址栏——「手动复制地址栏」是伪指引
+     * 死路。复制被拒直接弹可选中文本域，长按全选就有活路。 */
+    var bad = function () {
+      try { _showTextExportModal('复制链接', _clipPayload, '长按下面文本全选复制，发给 TA 吧'); }
+      catch (eM) { showToast('复制没成功，可截图这个链接发给 TA', 'warn'); }
+    };
     /* R2350f（R102-P1-12）：复制内容改为「钩子文案 + URL」——微信/
      * 评论区场景贴一串裸链接，接收方零语境不知道点了会看到什么。 */
     var _clipPayload = _shareText(view).trim() + ' ' + url;
@@ -4820,6 +4836,14 @@ const _VERDICT_GLOSS = {
 };
 async function loadDaily() {
   const _gen = ++DAILY_GEN;
+  /* R3303-P2：弱网死等——预取+回退串行最多 35s 无任何提示。
+   * >8s 先给一句可操作的招呼（刷新），不等黑盒转圈。 */
+  var _slowT = setTimeout(function () {
+    if (_gen === DAILY_GEN) {
+      showToast('有点慢呢，不行就刷新一下试试', 'info');
+    }
+  }, 8000);
+  var _slowDone = function () { clearTimeout(_slowT); };
   try {
     /* R228k：/api/xingzuo 缺省即算今天——不再等 daily 回包再串行发，
      * 首屏 23ms 变并行。silent+catch=null 保持原有的失败静默降级。 */
@@ -4846,7 +4870,10 @@ async function loadDaily() {
           var _pj = await _dp.p;
           if (_pj) return _pj;
         }
-        return api(_durl);
+        /* R3303-P2：预取已耗掉的时间计入总预算——共享同一个
+         * AbortController 的 20s deadline，回退不再从 0 起算。 */
+        return api(_durl,
+          (_dp && _dp.ctl && _dp.ctl.signal) ? { signal: _dp.ctl.signal } : {});
       })(),
       api('/api/xingzuo?date=' + _today, { silent: true }).catch(function () { return null; }),
       /* R39-P0-1：明天预告——每日回访的最短钩子，走 daily_cache 幂等
@@ -5656,7 +5683,9 @@ async function loadDaily() {
      * 未拆时盖在封套下，拆开自然露出；rememberResult('daily') 已
      * 备好上下文）。 */
     try { attachChatEntry(el('dailyCard')); } catch (eCE) {}
+    _slowDone();
   } catch (e) {
+    _slowDone();
     if (_gen !== DAILY_GEN) return;   /* 旧请求失败也不得污染新结果 */
     /* R228c：失败态补全——dailyDate 别停在「加载中…」，分享钮也给提示
      * 而不是静默无操作。 */
@@ -8742,15 +8771,19 @@ async function doHehun() {
         /* R233t（R51-P2-18a）：clipboard API 缺失/被拒时此前直接弹
          * 「复制好了」但实际没复制——受邀人收到空气。走 execCommand。 */
         function _legacy() {
+          var _ok0 = true;
           try {
             var _ta = document.createElement('textarea');
             _ta.value = _u; _ta.style.cssText = 'position:fixed;opacity:0';
             document.body.appendChild(_ta); _ta.select();
-            document.execCommand('copy') ? _ok() :
-              showToast('复制没成功：手动复制地址栏链接也行', 'warn');
+            _ok0 = !!document.execCommand('copy');
             _ta.remove();
-          } catch (e2) {
-            showToast('复制没成功：手动复制地址栏链接也行', 'warn');
+          } catch (e2) { _ok0 = false; }
+          if (_ok0) { _ok(); }
+          else {
+            /* R3303-P1：内嵌浏览器无地址栏——弹可选中文本域兜底。 */
+            try { _showTextExportModal('邀请链接', _u, '长按下面文本全选复制，发给 TA 吧'); }
+            catch (eM2) { showToast('复制没成功，可截图链接发给 TA', 'warn'); }
           }
         }
       } catch (e) { showToast('邀请链接没生成成功，再试一次？', 'warn'); }
@@ -10919,9 +10952,15 @@ async function doRenge() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(_txt).then(
             function () { showToast('小红书文案已复制，去发吧～', 'ok'); },
-            function () { showToast('复制失败，可手动长按复制', 'warn'); });
+            function () {
+              try { _showTextExportModal('小红书文案', _txt, '长按下面文本全选复制'); }
+              catch (eM) { showToast('复制失败，可手动长按复制', 'warn'); }
+            });
         } else { throw new Error('no clipboard'); }
-      } catch (eC) { showToast('长按结果手动复制', 'info'); }
+      } catch (eC) {
+        try { _showTextExportModal('小红书文案', _txt, '长按下面文本全选复制'); }
+        catch (eM2) { showToast('长按结果手动复制', 'info'); }
+      }
     });
     var _ps = el('rgSpeak');
     if (_ps) _ps.addEventListener('click', function () {
@@ -11058,6 +11097,17 @@ function initChatSidebar() {
     e.stopImmediatePropagation();
     e.preventDefault();
   }, true);
+  /* R3303-P3：键盘弹起压输入框——原生 visualViewport 滚动在部分
+   * 内嵌内核不触发，输入拿到焦点时主动归中；桌面/大屏下
+   * scrollIntoView 对已可见元素是近似无操作，零成本。 */
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.matches) return;
+    if (!t.matches('input, textarea, select')) return;
+    try {
+      t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } catch (eF) {}
+  });
   /* R219b（P0-4）：侧栏「我的解读」折叠段与计数刷新随历史记录功能删除。 */
 }
 
@@ -14610,7 +14660,18 @@ function _hlAgoWord(dstr) {
 }
 function _meGet(key) {
   try {
-    var j = JSON.parse(window.localStorage.getItem(key) || 'null');
+    var j = null;
+    try {
+      j = JSON.parse(window.localStorage.getItem(key) || 'null');
+    } catch (eLS) { j = null; }
+    /* R3303-P3：隐私模式拒写 localStorage——档案落不了盘就退回
+     * 会话内存档，封面门/判词个性化本会话内照样工作（不跨会话）。 */
+    if (!j || typeof j !== 'object') {
+      try {
+        var _sj = (window.__meSessionMap && window.__meSessionMap[key]) || null;
+        if (_sj && typeof _sj === 'object') j = _sj;
+      } catch (eSM) {}
+    }
     if (!j || typeof j !== 'object') return null;
     /* R3239：手工写坏的脏档兜底——y/m/d/h 必须是有限数（字符串
      * 数字归一），脏值删键；g/n/lunar 是字符串域不动。否则
@@ -14651,14 +14712,17 @@ function _meSave(key, rec) {
   /* R2345（R61-P1-4）：写库时就净化昵称——脏值不落地，直写
    * localStorage 绕过本函数的极端路径另有 _chatFacts 处兜底。 */
   if ('n' in rec) rec = Object.assign({}, rec, {n: _meNickClean(rec.n)});
+  var _merged = Object.assign(old, rec);
   try {
-    window.localStorage.setItem(key, JSON.stringify(
-      Object.assign(old, rec)));
+    window.localStorage.setItem(key, JSON.stringify(_merged));
   } catch (e) {
     /* R2345（R63-P2-4）：checkin 写坏有 toast——me 是同原则更重的
      * 字段（生辰），写失败不能再静默。 */
     try { showToast('档案没存上：再试一次看看', 'warn'); } catch (e3) {}
   }
+  try {
+    (window.__meSessionMap = window.__meSessionMap || {})[key] = _merged;
+  } catch (eSM) {}
   /* R2343（R59-gap4）：同页写入不触发 storage 事件——昵称存完立刻
    * 刷新空态招呼/档案条，改完不用刷新就看到名字。 */
   try { _chatChipsPersonalize(); _renderMeStrip(); } catch (e2) {}

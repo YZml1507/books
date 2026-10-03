@@ -128,11 +128,19 @@ try {
            '-' + String(me.d).padStart(2, '0');
     }
     var _to = new Promise(function (_, rej) {
-      setTimeout(function () { rej(new Error('prefetch timeout')); }, 15000);
+      setTimeout(function () { rej(new Error('prefetch timeout')); }, 10000);
     });
+    /* R3303-P2：预取与回退共享一条 20s 总预算——此前预取耗 15s
+       后回退 api() 又从 0 起算，弱网串行死等 ~35s。app.js 侧把
+       ctl.signal 传进 api()（其内部 AbortSignal.any 合并不超 20s）。 */
+    var _ctl = (typeof AbortController !== 'undefined')
+      ? new AbortController() : null;
+    if (_ctl) { setTimeout(function () { _ctl.abort(); }, 20000); }
     window.__dailyPref = {
       url: u,
-      p: Promise.race([fetch(u, {credentials: 'same-origin'})
+      ctl: _ctl,
+      p: Promise.race([fetch(u, {credentials: 'same-origin',
+          signal: _ctl ? _ctl.signal : undefined})
         .then(function (r) { return r.ok ? r.json() : null; }), _to])
         .catch(function () { return null; })
     };

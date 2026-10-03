@@ -2473,6 +2473,10 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 /* R2348（R67-P1）：welcomed 类由 head 内联脚本在首帧前打上——老用户
  * 的 bar 从未渲染（display:none 不参与布局），CLS=0。 */
 html.welcomed .welcome-bar{display:none;}
+/* R3303-P3：迎新条/久归横幅是首页语境——跟在功能视图里既挤又
+ * 指错路。showView 写 body[data-view]，非首页一律隐藏。 */
+body[data-view]:not([data-view="home"]) .welcome-bar,
+body[data-view]:not([data-view="home"]) .return-banner{display:none;}
 .welcome-close{
   border:none; background:transparent; font-size:18px; line-height:1;
   color:var(--secondary); cursor:pointer; padding:2px 6px;
