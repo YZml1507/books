@@ -3724,6 +3724,9 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .fl-done-meta{font-size:11px; color:var(--muted); margin-bottom:2px;}
 .fl-done-text{font-size:12.5px; color:var(--text); line-height:1.6;
   white-space:pre-wrap;}
+/* R3329（审-P3）：浮出的到日信正文同样保换行——无 pre-wrap 时
+ * 用户写的换行全塌陷成一行。 */
+.fl-letter .wl-body{white-space:pre-wrap; word-break:break-word;}
 .pile-sharetxt{width:100%; margin-top:6px; font-size:12px;
   border:1px dashed var(--line); border-radius:8px; padding:6px 8px;
   color:var(--text); background:transparent; box-sizing:border-box;}

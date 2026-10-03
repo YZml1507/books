@@ -5216,7 +5216,9 @@ async function loadDaily() {
           _energy + '%"></i></span>' +
         (_lc ? '<span class="lucky-chip"><i class="lc-dot" style="background:' +
           (_LC_HEX[_lc] || '#d9c9a8') + '"></i>' + esc(_lc) +
-          (_ln ? ' · ' + _ln : '') + '</span>' : '');
+          /* R3329（审-P2）：_ln（j.lucky.num）原始拼 innerHTML——
+           * 同字段下方幸运数是 esc 的，双口径补上。 */
+          (_ln ? ' · ' + esc(_ln) : '') + '</span>' : '');
       /* R3317-D：今日咒语——同日全站同句（晒出去能对上号的社群感），
        * 短促上口的小红书体祈愿句，点一下复制。 */
       var _mtEl = el('dailyMantra');
@@ -5723,7 +5725,11 @@ async function loadDaily() {
     if (j.outfit && j.outfit.tiers && j.outfit.tiers.length) {
       var _ofRows = j.outfit.tiers.map(function (t) {
         return '<div class="outfit-row">' +
-          '<i class="outfit-dot" style="background:' + esc(t.hex) + '"></i>' +
+          /* R3329（审-P2）：hex 直拼 style——esc 不挡 ;/() 这类
+           * CSS 注入面，非合法 hex 一律回退。 */
+          '<i class="outfit-dot" style="background:' +
+          (/^#[0-9a-fA-F]{3,8}$/.test(t.hex) ? esc(t.hex) : '#C9A227') +
+          '"></i>' +
           '<b class="outfit-tag">' + esc(t.tag) + '</b>' +
           '<span class="outfit-colors">' + esc(t.colors) + '</span>' +
           '<span class="outfit-tip">' + esc(t.tip) + '</span></div>';
@@ -12326,6 +12332,11 @@ function initDivination() {
     if (row) row.hidden = false;
     if (hint) hint.hidden = false;
     var got = _pileGet(topic);
+    /* R3329（审-P3）：脏存档 / 伪造键会让 'ABC'[got.i] 出 undefined
+     * 堆名、topic 出 undefined——校验不过按未选处理。 */
+    if (!_PILE_TOPICS[topic]) topic = 'career';
+    if (got && !(got.i >= 0 && got.i <= 2 && got.d &&
+                 typeof got.d === 'object')) got = null;
     document.querySelectorAll('.pile-card').forEach(function (c) {
       var idx = +c.dataset.pile;
       c.classList.toggle('picked', !!(got && got.i === idx));
@@ -12367,7 +12378,10 @@ function initDivination() {
               'ABC'[got.i] + ' 堆，翻出「' + (got.d.name || '') + '」' +
               (got.d.upright ? '正位' : '逆位') + '：' +
               (got.d.upright ? got.d.upright_kw : got.d.reversed_kw) +
-              '。你选哪堆？来小满的解忧铺对一对 #塔罗 #大众占卜';
+              '。你选哪堆？来小满的解忧铺对一对 #塔罗 #大众占卜' +
+              /* R3329（审-P3）：回流链接——origin 拼上，贴到小红书
+               * 也能点回来。 */
+              ' ' + location.origin + '/?view=tarot&from=share';
             var _showTxt = function () {
               /* R3327-P1-5：clipboard 失败把文案渲进可选 textarea，
                * 「长按复制」不再无处下手。 */
@@ -12819,7 +12833,10 @@ function initDivination() {
     var hm = '21:00';
     try {
       var _nt = localStorage.getItem('notify:time');
-      if (_nt && /^\d{2}:\d{2}$/.test(_nt)) hm = _nt;
+      /* R3329（审-P3）：99:99 形状过得去→setHours 翻滚误点——
+       * 形状+范围双闸。 */
+      if (_nt && /^\d{2}:\d{2}$/.test(_nt) && +_nt.slice(0, 2) <= 23 &&
+          +_nt.slice(3) <= 59) hm = _nt;
     } catch (eNT) {}
     var _st = new Date();
     _st.setDate(_st.getDate() + 1);
@@ -14929,7 +14946,9 @@ function _flWriteOpen() {
       var mm = ('0' + pj.m).slice(-2) + '-' + ('0' + pj.d).slice(-2);
       var cand = ny.getFullYear() + '-' + mm;
       if (cand <= todayIso()) cand = (ny.getFullYear() + 1) + '-' + mm;
-      bday = cand;
+      /* R3329（审-P2）：me.m=13 这类脏档案能造出 2026-13-01——
+       * 非真日期的候选不进选项（假日期永远送不到）。 */
+      if (!isNaN(new Date(cand + 'T00:00:00').getTime())) bday = cand;
     }
   } catch (ePB) {}
   bd.innerHTML = '<div class="poster-modal fl-modal" role="dialog" ' +
@@ -14958,15 +14977,38 @@ function _flWriteOpen() {
   el('flSend').addEventListener('click', function () {
     var txt = (el('flText').value || '').trim();
     if (!txt) { showToast('信里写点什么再封吧', 'warn'); return; }
-    var lt = { id: 'fl' + Date.now(), text: txt,
+    /* R3329（审-P3）：剥控制字+同毫秒碰撞加随机尾+数组 50 封顶；
+     * 坏 JSON 挪 corrupt 备份重建；setItem 失败说真话不再假寄。 */
+    txt = txt.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+    var lt = { id: 'fl' + Date.now() + '_' +
+                   Math.random().toString(36).slice(2, 7),
+               text: txt.slice(0, 500),
                deliver: el('flWhen').value, created: todayIso(),
                opened: false };
     try {
-      var lst = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+      var _raw = localStorage.getItem('futureLetters');
+      var lst;
+      try { lst = JSON.parse(_raw || '[]'); }
+      catch (ePJ2) {
+        /* 坏值备份后重建——不吞掉用户已有信。 */
+        try { localStorage.setItem('futureLetters:corrupt', _raw); }
+        catch (eBK) {}
+        lst = [];
+      }
       if (!Array.isArray(lst)) lst = [];
       lst.push(lt);
+      /* 50 封封顶——挤最旧的已收信；未到信永不挤。 */
+      while (lst.length > 50) {
+        var _oi = lst.findIndex(function (l) { return l && l.opened; });
+        if (_oi < 0) break;
+        lst.splice(_oi, 1);
+      }
       localStorage.setItem('futureLetters', JSON.stringify(lst));
-    } catch (eFS) {}
+    } catch (eFS) {
+      close();
+      showToast('信没存上：这台设备的存信空间满了', 'error');
+      return;
+    }
     close();
     /* R3327-P3-12：toast 与 select 选项同口径（一个月后/下个生日/
      * 一年后），不再贴 ISO 日期。 */
@@ -15674,12 +15716,22 @@ function renderCheckin(dateKey) {
   /* R3325-D：写给未来的信——本地留存（futureLetters JSON 数组，
    * 清盘不丢）；到日信卡浮出，与周/月信同版式。 */
   var _flHtml = '';
+  /* R3329（审-P2）：坏 JSON 让整段 catch——写信入口是唯一入口
+   * 必须在 try 外保底渲染。 */
+  var _flEntryHtml = '<div class="fl-entry">' +
+    '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
+    '<span class="fl-pend" id="flPend"></span></div>';
   try {
     var _flList = JSON.parse(localStorage.getItem('futureLetters') || '[]');
     if (!Array.isArray(_flList)) _flList = [];
     _flList.forEach(function (lt) {
-      if (lt && !lt.opened && lt.deliver && lt.deliver <= dateKey) {
-        lt._due = true;
+      /* R3329（审-P2）：脏 deliver（2026-13-01）串比较恒 false →
+       * 信永远 pending。非真日期视作今日送达浮出。 */
+      if (lt && !lt.opened) {
+        var _dv = String(lt.deliver || '');
+        var _real = /^\d{4}-\d{2}-\d{2}$/.test(_dv) &&
+          !isNaN(new Date(_dv + 'T00:00:00').getTime());
+        if (!_real || _dv <= dateKey) lt._due = true;
       }
     });
     var _flDue = _flList.filter(function (lt) { return lt._due; });
@@ -15709,13 +15761,13 @@ function renderCheckin(dateKey) {
         '<div class="fl-meta">' + esc(_span) +
         ' · 今天送达</div></div></div>';
     });
-    _flHtml += '<div class="fl-entry">' +
-      '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
-      (_flPend.length
-        ? '<span class="fl-pend">' + _flPend.length + ' 封在路上的信 · ' +
-          '最近 ' + esc(_flPend.map(function (l) { return l.deliver; })
-            .sort()[0] || '') + ' 到</span>'
-        : '') + '</div>';
+    /* R3329：pend 徽标填进 try 外的保底入口骨架。 */
+    if (_flPend.length) {
+      _flEntryHtml = _flEntryHtml.replace('</span></div>',
+        _flPend.length + ' 封在路上的信 · 最近 ' +
+        esc(_flPend.map(function (l) { return l.deliver; })
+          .sort()[0] || '') + ' 到</span></div>');
+    }
     /* R3327-P1-7b：已收的信不再即焚——收下后收进「已收的信」折叠，
      * 可重读。 */
     if (_flDone.length) {
@@ -15730,7 +15782,8 @@ function renderCheckin(dateKey) {
       _flHtml += '</details>';
     }
   } catch (eFL) {}
-  box.innerHTML = _wlHtml + _mlHtml + _flHtml + '<div class="checkin-q" id="checkinQ">' +
+  box.innerHTML = _wlHtml + _mlHtml + _flHtml + _flEntryHtml +
+    '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
                   /* R3249c（A3）：问句从「哪张签」改成「想要什么」——
@@ -15869,8 +15922,12 @@ function renderCheckin(dateKey) {
         });
         localStorage.setItem('futureLetters', JSON.stringify(lst));
       } catch (eFO) {}
-      var card = box.querySelector('.fl-letter[data-flid="' +
-        btn.dataset.flid + '"]');
+      /* R3329（审-P3）：data-flid 直拼选择器——id 含 " 类字符
+       * 直接 SyntaxError（且抛在 opened 落库后=假收信）。遍历比对。 */
+      var card = null;
+      box.querySelectorAll('.fl-letter[data-flid]').forEach(function (el2) {
+        if (el2.getAttribute('data-flid') === btn.dataset.flid) card = el2;
+      });
       if (card) card.remove();
       showToast('信替你收好，过去的你很欣慰', 'ok');
     });
@@ -17889,6 +17946,8 @@ function baziPersonaCard(j) {
                      'journal:',
                      /* R3325：大众占卜每日选堆 */
                      'pilePick:',
+                     /* R3329：周/月信已弹标随备份走 */
+                     'weeklyLetter:', 'monthlyLetter:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:',
                      /* R3264（R52）：古籍阅读进度记忆 */
@@ -17985,7 +18044,9 @@ function baziPersonaCard(j) {
           _showTextExportModal('我的数据备份',
             JSON.stringify(bundle, null, 2),
             '点「复制全部」，存到备忘录或发给文件传输助手，换新设备时贴回导入' +
-            '（含生辰昵称与心情愿望记录，存哪儿自己留心）');
+            /* R3329（审-P3）：点名未来信——信在备份里，不点名用户
+             * 可能不知道带到了。 */
+            '（含生辰昵称、心情愿望与未来信，存哪儿自己留心）');
           return;
         }
         var blob = new Blob([JSON.stringify(bundle, null, 2)],
@@ -18003,7 +18064,7 @@ function baziPersonaCard(j) {
         showToast((_noLedger && !_recsOut.length
           ? '台账没开，只备份了本机偏好'
           : '备份已下载：' + _recsOut.length + ' 条记录 + 本机偏好') +
-          '（含生辰昵称与心情愿望记录，存哪儿自己留心）', 'info');
+          '（含生辰昵称、心情愿望与未来信，存哪儿自己留心）', 'info');
       } catch (e) {
         showToast('备份失败：' + _humanizeErr(e.message), 'error');
       }
@@ -18064,7 +18125,11 @@ function baziPersonaCard(j) {
                 k.indexOf('rlast:') === 0 ||
                 /* R3325：未来信+每日选堆也是个人足迹 */
                 k === 'futureLetters' ||
-                k.indexOf('pilePick:') === 0)) _rm.push(k);
+                k.indexOf('pilePick:') === 0 ||
+                /* R3329（审-P3）：周/月信已弹标不收 wipe——「忘掉」
+                 * 后信卡复弹。 */
+                k.indexOf('weeklyLetter:') === 0 ||
+                k.indexOf('monthlyLetter:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
@@ -18218,7 +18283,10 @@ function baziPersonaCard(j) {
              * ritual/usage/read:scroll/rlast/chat:events/notify:time/
              * returnBannerDismissed 全被静默丢弃=换机丢档。补齐并逐族
              * 做形状校验（备份文件是用户可控输入，校验口径与导出对齐）。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$)/
+            /* R3329（审-P1）：futureLetters/pilePick:/weeklyLetter:/
+             * monthlyLetter: 导得出导不回——换机丢信丢选堆。补齐
+             * 白名单并逐族做形状校验（用户可控输入）。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters$|pilePick:|weeklyLetter:|monthlyLetter:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -18247,7 +18315,52 @@ function baziPersonaCard(j) {
             if (k.indexOf('rlast:') === 0 &&
                 !/^\d{4}-\d{2}-\d{2}$/.test(_v)) return;
             if (k.indexOf('read:scroll:') === 0 && !/^\d+$/.test(_v)) return;
-            if (k === 'notify:time' && !/^\d{2}:\d{2}$/.test(_v)) return;
+            /* R3329（审-P3）：HH:MM 形状过了 99:99 也过——补范围闸
+             *（写处同闸）。 */
+            if (k === 'notify:time' &&
+                (!/^\d{2}:\d{2}$/.test(_v) || +_v.slice(0, 2) > 23 ||
+                 +_v.slice(3) > 59)) return;
+            /* R3329：新族形状校验——信：数组+id≤32/text≤1024/双日期
+             * ISO/opened bool；堆：键尾日期+{i∈0-2,d.name≤64,r≤500}；
+             * 周/月信已弹标：键尾 YYYY-MM 或 YYYY-MM(-DD)+值 '1'。 */
+            if (k === 'futureLetters') {
+              try {
+                var _fa = JSON.parse(_v);
+                if (!Array.isArray(_fa) || _fa.length > 50) return;
+                var _fok = _fa.every(function (lt) {
+                  return lt && typeof lt === 'object' &&
+                    typeof lt.id === 'string' && lt.id.length <= 32 &&
+                    typeof lt.text === 'string' && lt.text.length <= 1024 &&
+                    /^\d{4}-\d{2}-\d{2}$/.test(lt.deliver || '') &&
+                    /^\d{4}-\d{2}-\d{2}$/.test(lt.created || '') &&
+                    (lt.opened === true || lt.opened === false);
+                });
+                if (!_fok) return;
+              } catch (eFA) { return; }
+            }
+            if (k.indexOf('pilePick:') === 0) {
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(k.slice(9))) return;
+              try {
+                var _po = JSON.parse(_v);
+                if (!_po || typeof _po !== 'object') return;
+                var _pok = Object.keys(_po).every(function (tpc) {
+                  var e2 = _po[tpc];
+                  return e2 && typeof e2 === 'object' &&
+                    (e2.i === 0 || e2.i === 1 || e2.i === 2) &&
+                    e2.d && typeof e2.d.name === 'string' &&
+                    e2.d.name.length <= 64 &&
+                    (!e2.r || (typeof e2.r === 'string' &&
+                     e2.r.length <= 500));
+                });
+                if (!_pok) return;
+              } catch (ePA) { return; }
+            }
+            if ((k.indexOf('weeklyLetter:') === 0 ||
+                 k.indexOf('monthlyLetter:') === 0) && _v !== '1') return;
+            if (k.indexOf('weeklyLetter:') === 0 &&
+                !/^\d{4}-\d{2}-\d{2}$/.test(k.slice(13))) return;
+            if (k.indexOf('monthlyLetter:') === 0 &&
+                !/^\d{4}-\d{2}$/.test(k.slice(14))) return;
             if (k === 'returnBannerDismissed' &&
                 !/^\d{4}-\d{2}-\d{2}$/.test(_v)) return;
             if (k === 'chat:events') {

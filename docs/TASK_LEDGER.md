@@ -17688,3 +17688,20 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - P2 桌面首载 CLS≈0.109（既有 cover 异步舞蹈、非本批回归）→ 备忘暂记，不入修单。
 
 闸门：自测 400 / 契约 723 / UI 101 / ruff 全绿。
+
+## R3329（2026-10-03）：新功能输入/隐私面复扫——15 项清零
+- P1：备份导入白名单漏未来信/选堆/周月信——「导得出导不回」复发（R3314 同类病）。补 futureLetters$/pilePick:/weeklyLetter:/monthlyLetter: 进白名单+逐族形状校验（信≤50+id≤32+text≤1024+双 ISO+opened bool；堆键尾日期+{i∈0-2,d.name≤64,r≤500}；周/月信键尾日期+值'1'）；导出 _PREF 同步补周/月信。
+- P1：flSend 坏 JSON/超配额 catch 吞掉 toast 仍说「寄出啦」——坏值挪 futureLetters:corrupt 备份重建、失败改 error toast。
+- P2：坏 JSON → _flHtml='' → 写信唯一入口整体消失——入口骨架挪 try 外保底，pend 徽标后填。
+- P2：j.lucky.num 幸运数未 esc（同字段下方 esc 双口径）→ esc(_ln)。
+- P2：穿搭 t.hex 直拼 style——esc 不挡 ;/() CSS 注入 → hex 正则校验非法回退 #C9A227。
+- P2：脏 deliver（me.m=13 造 2026-13-01）串比较恒 false 信永 pending——due 判定前 ISO+真日期校验，非法视作今日送达；写信侧 bday 候选同样真日期闸。
+- P3：notify:time 99:99 形状过得去 setHours 翻滚——读/导双侧 h≤23/m≤59 范围闸。
+- P3：'ABC'[got.i]/topic 越界出「undefined 堆」——i∈0-2+d 对象+topic∈词表校验不过按未选。
+- P3：data-flid 直拼 querySelector，id 含" → SyntaxError 抛在 opened 落库后（假收信）→ 遍历比对。
+- P3：futureLetters 无封顶——50 封挤最旧已收（未到信不挤）；id 加随机尾防同毫秒碰撞；控制字入库剥除。
+- P3：wipe 漏 weeklyLetter:/monthlyLetter:——「忘掉」后周/月信卡复弹，补前缀。
+- P3：fl 信体换行塌陷——.fl-letter .wl-body pre-wrap。
+- P3：pileShare 补回流链接 location.origin+'/?view=tarot&from=share'；备份提示点名未来信。
+- 决策（自主）：方形头像 personal.mine.verdict 保留——判词模糊（大吉/伏吟类）不泄生辰，与开运壁纸同口径，去个性化反而砍卖点。
+- 闸门：selftest 400 / contract 723 / ui_smoke 101 / ruff / parity 9族 / 其余 14 道全绿。
