@@ -163,6 +163,13 @@ SELECT u.work_id, w.title, w.attribution, w.edition, u.page_anchor,
 FROM unit u JOIN work w ON w.id = u.work_id
 """
 
+# R3246：layer 过滤把 planner 骗上 idx_unit_layer（經层≈半库）——地址查询
+# 绑了 addr1/addr2 时 (scheme,addr1,addr2) 恒为最优，INDEXED BY 定死计划
+# （layer=經 + 卦1：4.6ms→0.5ms）。仅 addr_name 的查询仍走 idx_unit_name
+# 不加提示。索引名由 build_index 统一产出，改名会同时更新此处。
+_SELECT_AIDX = _SELECT.replace(
+    "FROM unit u JOIN", "FROM unit u INDEXED BY idx_unit_addr JOIN")
+
 
 # R3238：coverage() 是 unit 全表聚合（~70ms/次），语料重建前结果不变——
 # 按 (路径, mtime_ns, size) 键控缓存，重建/换库自动失效；Row 是快照与
@@ -354,7 +361,7 @@ class Corpus:
         real, not hypothetical: measured after Douay was ingested with
         scheme='bcv', addr1=chapter.
         """
-        sql = _SELECT + " WHERE u.addr1 = ? AND u.scheme = 'zhouyi'"
+        sql = _SELECT_AIDX + " WHERE u.addr1 = ? AND u.scheme = 'zhouyi'"
         args: list = [gua]
         if yao:
             sql += " AND u.addr2 = ?"
@@ -387,11 +394,17 @@ class Corpus:
         scheme=None / 'none' 表示无编址（页锚点）作品——R230a-33 前 SCHEME_LABELS
         靠字面键 'None' 防呆，传字符串 'None' 会变成查 scheme='None' 恒零命中。
         """
+        # R3246：绑了 addr1/addr2 时用 _SELECT_AIDX 定死计划防 layer 骗到
+        # idx_unit_layer；只按 addr_name 时 idx_unit_name 更优，不加提示。
+        _sel = (_SELECT_AIDX if scheme is not None
+                and str(scheme).lower() != "none"
+                and (addr1 is not None or addr2 is not None)
+                else _SELECT)
         if scheme is None or str(scheme).lower() == "none":
-            sql = _SELECT + " WHERE u.scheme IS NULL"
+            sql = _sel + " WHERE u.scheme IS NULL"
             args: list = []
         else:
-            sql = _SELECT + " WHERE u.scheme = ?"
+            sql = _sel + " WHERE u.scheme = ?"
             args = [scheme]
         for col, val in (("u.addr_name", addr_name), ("u.addr1", addr1),
                          ("u.addr2", addr2), ("u.layer", layer)):

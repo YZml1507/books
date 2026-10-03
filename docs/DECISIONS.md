@@ -5995,3 +5995,15 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) FTS 种子结果缓存（term 级）：term 空间=用户输入切片，键空间无界且命中率低，弃。
 
 **边界**：question 自由输入 → 64 题上限；max_addresses/per_address/allow_damaged 全进键防参数错位；Research 共享依赖「调用方只读」——已在代码注释标明约束。
+
+## D-276b R3246 决策：误选计划的修法——INDEXED BY vs ANALYZE vs 加索引
+
+**问题**：`WHERE addr1=? AND scheme='zhouyi' AND layer='經'` 被 planner 分配到 idx_unit_layer（低选择性全扫）而非 idx_unit_addr（高选择性前缀），4.6ms/次。
+
+**候选**：
+- A) INDEXED BY idx_unit_addr（选中）：只影响本查询，计划确定、可 EXPLAIN 复验；不改 DB 产物。
+- B) `ANALYZE` 补统计：修的是病根但改动 build_index 产出的 DB 文件，影响面=全库所有查询（可能连带改其它计划），验证成本高；且 mtime 变化触发全部指纹失效。留作候选，若日后再现误选再评。
+- C) 复合索引 (scheme,addr1,layer)：为最频组合新建索引——DB 体积+重建成本，收益同 A 但更重，弃。
+- D) `+u.layer=?` 去资格化：民间技巧但可读性差，INDEXED BY 更显式，同效弃。
+
+**边界**：hint 写在 _SELECT_AIDX 变体而非改 _SELECT——units_by_id（PK 查询）等其它路径不受影响；索引改名需同步更新（build_index 单一出处，已注释）。
