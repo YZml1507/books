@@ -2448,8 +2448,12 @@ def _daily_card_for(d: date) -> dict:
     try:
         seed = d.year * 10000 + d.month * 100 + d.day
         n = len(tarot_mod.MAJOR_ARCANA)
-        name, up_kw, rev_kw, _desc = tarot_mod.MAJOR_ARCANA[seed % n]
-        upright = ((seed // n) % 2) == 0
+        # seed+1→牌+1 是明晃晃的转盘序（今天恶魔明天必高塔）。
+        # *7 跳步：gcd(7,22)=1 仍 22 天全覆盖，体感打散。
+        name, up_kw, rev_kw, _desc = tarot_mod.MAJOR_ARCANA[(seed * 7) % n]
+        # 位向不能再用 seed//22 奇偶——44 天才翻一次，半个月全是正位。
+        # seed*31//22 的非整周期翻页，逐日近似随机交替且确定性。
+        upright = ((seed * 31 // n) % 2) == 0
         return {"name": name, "upright": upright,
                 "keywords": up_kw if upright else rev_kw}
     except Exception:
