@@ -2872,6 +2872,44 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 }
 .ck-shred-done{font-size:15px;color:var(--primary-ink);line-height:1.7;
   padding:4px 0;}
+/* R3336：替你决定——掷筊面板与筊杯 */
+.or-panel{position:relative;}
+.or-icon{position:absolute;top:-6px;right:6px;width:56px;height:56px;
+  border-radius:14px;object-fit:cover;}
+.or-panel-head{display:block;font-size:14px;color:var(--primary-ink);
+  margin:2px 70px 10px 0;}
+.or-panel-head small{display:block;font-size:12px;color:var(--muted);
+  margin-top:3px;font-weight:400;}
+.or-text{width:100%;box-sizing:border-box;min-height:60px;resize:vertical;
+  border:1px solid var(--border);border-radius:12px;padding:9px 11px;
+  font-size:16px;font-family:inherit;background:var(--card);color:var(--text);}
+.or-text:focus{outline:none;border-color:var(--hover-line);}
+.or-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.or-stage{display:flex;justify-content:center;gap:40px;padding:26px 0 10px;}
+.jiao{width:58px;height:30px;box-sizing:border-box;}
+.jiao.yang{border-radius:56px 56px 10px 10px/52px 52px 10px 10px;
+  background:linear-gradient(160deg,#F2A98C,#DE7B54);
+  box-shadow:inset 0 -4px 8px rgba(120,50,20,.28),0 3px 6px rgba(0,0,0,.12);}
+.jiao.yin{border-radius:50%;height:26px;margin-top:4px;
+  border:3px solid #DE7B54;
+  background:radial-gradient(ellipse at 50% 42%,#FCF0E3,#F5D6C2);
+  box-shadow:inset 0 2px 5px rgba(120,50,20,.18),0 3px 6px rgba(0,0,0,.08);}
+.jiao.tumble{animation:jiaoTumble .8s cubic-bezier(.3,.6,.4,1) both;}
+.jiao.tumble.d2{animation-delay:.12s;}
+@keyframes jiaoTumble{
+  0%{transform:translateY(-36px) rotate(46deg);opacity:0;}
+  55%{transform:translateY(2px) rotate(-8deg);opacity:1;}
+  75%{transform:translateY(-6px) rotate(3deg);}
+  100%{transform:translateY(0) rotate(0);}
+}
+@media (prefers-reduced-motion:reduce){.jiao.tumble{animation-duration:.01s;}}
+.or-verdict{text-align:center;padding:6px 4px 2px;}
+.or-name{font-size:13px;color:var(--muted);letter-spacing:.24em;}
+.or-v{font-size:26px;color:var(--primary-ink);font-weight:700;margin:4px 0 8px;}
+.or-line{font-size:15px;color:var(--text);line-height:1.8;margin:0 0 6px;}
+.or-q{font-size:12px;color:var(--muted);margin:0 0 6px;
+  word-break:break-all;}
+.or-note{font-size:11.5px;color:var(--muted);line-height:1.6;margin:0;}
 .ck-album-miss b{color:var(--muted);font-weight:400;}
 .ck-album-prog{font-size:11px;color:var(--muted);margin-top:6px;}
 .ck-album-empty{font-size:12px;color:var(--secondary);padding:6px 0;}

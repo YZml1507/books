@@ -140,6 +140,8 @@ BUTTON_CASES = [
     # R3160：TA 档案免测钮——B 侧已被 hehun 用例填过（touched），
     # 点击 → me:partner 落档 + ok toast；须在 hehun 之后。
     ("hehun.savepartner", "hehun", None,            "#hhSavePartner", ".toast-item"),
+    # R3336：替你决定——掷筊三态，纯前端确定性（seed=问题+当天）。
+    ("oracle",          "oracle",  None,            "#orSubmit",      "#orResult"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）
@@ -163,6 +165,8 @@ FILL = {
     "bookstudy.summary":   {"#bswork": "KR1a0001"},
     # R3178：解梦文本——dmSubmit 前的唯一输入。
     "dream":          {"#dm_text": "梦见牙齿掉了，还被人追着跑"},
+    # R3336：掷筊问题文本。
+    "oracle":         {"#orText": "要不要这周提离职"},
 }
 
 # 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见。
@@ -380,7 +384,10 @@ def main() -> int:
                  # dailyMood:ui:daily_mood；trQ1/trQ3/trQPick:
                  # ui:tarot.quick；rgSubmit/rgFull:ui:renge。
                  "dailyMood", "trQ1", "trQ3", "trQPick",
-                 "rgSubmit", "rgFull"}
+                 "rgSubmit", "rgFull",
+                 # R3336：orAgain 是掷筊出签后才存在的重掷钮——
+                 # ui:oracle.again 用例覆盖。
+                 "orAgain"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -1419,6 +1426,45 @@ def main() -> int:
                                % (_nick, _pers, _fe, _bz))})
             except Exception as exc:
                 results.append({"name": "ui:renge", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3336：替你决定——填问句掷筊出签，「再想一件」清场重问。
+            errors.clear()
+            try:
+                goto_view('oracle')
+                page.fill('#orText', '要不要这周提离职')
+                page.click('#orSubmit')
+                page.wait_for_timeout(1400)
+                _jiao = page.evaluate(
+                    "document.querySelectorAll('#orResult .jiao').length")
+                _v1 = page.evaluate(
+                    "(document.querySelector('#orResult .or-v')"
+                    "||{}).innerText||''")
+                page.click('#orAgain')
+                page.wait_for_timeout(400)
+                _cleared = page.evaluate(
+                    "document.getElementById('orText').value === ''")
+                ok = (_jiao == 2 and len(_v1) > 1 and _cleared
+                      and not errors)
+                results.append({
+                    "name": "ui:oracle.again",
+                    "ok": ok,
+                    "detail": ("筊=%d 判词=%s 清空=%s"
+                               % (_jiao, _v1[:12], _cleared))})
+            except Exception as exc:
+                results.append({"name": "ui:oracle.again", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
             finally:
                 try:

@@ -17773,3 +17773,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 新增文件：docs/PLAN_R3335_PLUS.md（全网调研+后几轮方案：烦恼粉碎机→决策神谕→愿望回音→肯定语册→摇一摇）。
 - 实测：Playwright 移动视口端到端——textarea→切片 7 片→done 卡→count 累进→summary「今天碎了 N 件」→wish 直达开瓶，PASS。
 - 闸门：selftest 405 / contract 725 / ui_smoke 101 / llm_polish / parity / dollar_misuse(变量名 base→paperEl 消歧)/ regress / ruff 全绿；bump_sw→books-shell-cca029311057。
+
+## R3336（2026-10-03）：决策神谕「替你决定」掷筊——情绪仪式层第二件
+- 调研证据：CyberLuck「掷筊」三态（圣筊/笑筊/阴筊）是问事向民俗轻仪式；与 shredder 同构「给情绪一个仪式出口」。
+- 功能：home 功能格新卡「替你决定」（history 后 chat 前）→ view-oracle——一句话说纠结的事（60 字）→两枚筊杯翻转落定→三态判词+安抚句池（各 6 条 seed 轮换）+「同一件事今天再掷也是这个筊」注记+「再想一件」清场重问。
+- 确定性即记忆：seed=问题+当天 → 同天同问同筊，零落盘（不进 wipe/GC/备份）；传统概率 圣筊1/2·笑筊1/4·阴筊1/4（%2/%4 分票）。
+- 视觉：筊杯 CSS 自绘（凸面=dome 渐变、凹面=椭圆环）+ tumble 落弹 0.8s、reduced-motion 豁免；cream-icon-oracle.jpg 新图。
+- 路标：_CHAT_ACTIONS 加纠结词族（帮我决定/要不要去/纠结/怎么选等 11 词）→ oracle「✋ 去掷筊」；_CHAT_ACT_VIEWS 补 oracle。
+- 闸门：selftest 405（home.ia.count 12→13 钉序）/ ui_smoke 103（btn:oracle + ui:oracle.again 重掷清场，on_coverage 豁免表补 orAgain）/ contract 725 / parity / dollar_misuse / ruff 全绿；E2E Playwright 掷筊确定性+chip 回填实测 PASS。
+- bump_sw→books-shell-666acbee48e8。

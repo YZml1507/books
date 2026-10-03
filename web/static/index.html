@@ -426,6 +426,11 @@ try {
     <div class="func-card func-entry" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
     </div>
+    <!-- R3336（调研定调·决策神谕）：CyberLuck 验证的轻仪式——
+         要不要/去不去的纠结掷筊出圣筊/笑筊/阴筊三态，同事同日同筊。 -->
+    <div class="func-card func-entry" data-view="oracle" role="button" tabindex="0" aria-label="替你决定">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="oracle" src="/static/cream/cream-icon-oracle.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">替你决定</div><div class="func-desc">掷筊问事 · 一念之间</div>
+    </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
@@ -900,6 +905,34 @@ try {
         <button id="dmSubmit" type="button">帮我解一解 🌙</button>
       </div>
       <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书：说说看？</div></div>
+    </div>
+  </div>
+
+  <!-- R3336：替你决定——掷筊。两片筊杯出圣筊（一凸一凹）/笑筊（两凸）/
+       阴筊（两凹）三态，种子=问题+当天，同事同日同筊。 -->
+  <div class="view" id="view-oracle">
+    <div class="card">
+      <h2><span aria-hidden="true">✋</span> 替你决定 <span class="card-sub">掷筊 · 一件事一天只问一次</span></h2>
+      <div class="or-panel">
+        <img class="or-icon" src="/static/cream/cream-icon-oracle.jpg" alt=""
+             width="72" height="72" loading="lazy" decoding="async"
+             onerror="this.remove()">
+        <label class="or-panel-head" for="orText">
+          <b>纠结的事一句话说给我</b>
+          <small>要不要、去不去、说不说——问完了照着做</small>
+        </label>
+        <textarea id="orText" class="or-text" rows="3" maxlength="60"
+          aria-label="写下纠结的事"
+          placeholder="比如：要不要这周提离职 / 要不要主动找他 / 要不要报这个班…"></textarea>
+        <div class="or-chips" role="group" aria-label="常纠结的事">
+          <button type="button" class="chat-chip or-chip" data-or="要不要主动找他">主动找他</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要提离职">提离职</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要报这个课">报课</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要搬家">搬家</button>
+        </div>
+        <button id="orSubmit" type="button">掷筊问一问 ✋</button>
+      </div>
+      <div id="orResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>心里其实有偏向的——筊杯只是帮你承认它。</div></div>
     </div>
   </div>
 

@@ -2218,7 +2218,7 @@ function autoSendChatContext() {
  * 可点按钮直达真功能页，并收拢聊天抽屉。比纯文字指路少一步找。 */
 /* R3201：可回放的路标视图白名单——与服务端 _CHAT_ACTIONS 同集。 */
 var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
-                        home: 1, dream: 1, bazi: 1 };
+                        home: 1, dream: 1, bazi: 1, oracle: 1 };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
   var b = document.createElement('button');
@@ -11553,6 +11553,75 @@ function _rgEnter() {
   }
 }
 
+/* R3336（调研定调·决策神谕）：替你决定——掷筊。传统筊杯三态：
+ * 圣筊（一凸一凹，神明点头=放手做）/笑筊（两平面，笑而不答=缓一缓）
+ * /阴筊（两凸面，神明摇头=先放下）。概率按传统 1/2·1/4·1/4。
+ * 种子=问题+当天——同事同日同筊，确定性即记忆，不落存储。 */
+var _JIAO = [
+  { key: 'sheng', name: '圣筊', faces: ['yang', 'yin'], verdict: '放手去做',
+    lines: [
+      '筊杯都点头了——你心里那个答案就是它。',
+      '一阴一阳，稳了。这事你早想好，只是要个人推你一把。',
+      '去吧，这天替你担着。做完了来打个卡。',
+      '筊杯说行。纠结到这儿为止，后面是行动的事。',
+      '神明没拦你——那你自己也别拦自己了。',
+      '放手做。就算磕绊，也是往对的方向磕。'
+    ] },
+  { key: 'xiao', name: '笑筊', faces: ['yin', 'yin'], verdict: '缓一缓再说',
+    lines: [
+      '筊杯笑了——不是不行，是现在火候没到。',
+      '两个平面：事没说死，先放着，明天再称称。',
+      '笑而不答。可能是你问得太急，先睡一觉再说。',
+      '筊杯打太极——这事还有没想清的角落，再盘盘。',
+      '不催你。今天先收集信息，答案自己会浮出来。',
+      '神明在笑你——问的不是真问题？换个问法明天再来。'
+    ] },
+  { key: 'yin', name: '阴筊', faces: ['yang', 'yang'], verdict: '先放下',
+    lines: [
+      '筊杯摇头——这条路今天别走。省下力气给别的事。',
+      '两凸相对：硬做只会内耗。放下不是认输，是绕道。',
+      '神明摆手。恭喜你，它替你挡了一刀。',
+      '这事不对。你心里其实也知道，对不对？',
+      '先放一放。真的重要的事，过两天还会回来找你。',
+      '筊杯说别去。听话，今天的好运在别的事上。'
+    ] }
+];
+function doOracle() {
+  var ta = el('orText');
+  var q = ta ? String(ta.value || '').trim().slice(0, 60) : '';
+  var box = el('orResult');
+  if (!box) return;
+  if (!q) {
+    showToast('先把纠结的事写一句话，筊杯才知道问什么', 'warn');
+    if (ta) ta.focus();
+    return;
+  }
+  var seed = q + '|' + todayIso();
+  var ji = _JIAO[_hashNum(seed) % 2 === 0 ? 0 : (_hashNum(seed) % 4 === 1 ? 1 : 2)];
+  var line = _hashPick(ji.lines, seed + '|' + ji.key);
+  box.innerHTML =
+    '<div class="or-stage" aria-hidden="true">' +
+      '<div class="jiao ' + ji.faces[0] + ' tumble"></div>' +
+      '<div class="jiao ' + ji.faces[1] + ' tumble d2"></div></div>' +
+    '<div class="or-verdict" id="orVerdict" hidden>' +
+      '<div class="or-name">' + ji.name + '</div>' +
+      '<div class="or-v">' + ji.verdict + '</div>' +
+      '<p class="or-line">' + esc(line) + '</p>' +
+      '<p class="or-q">问的是：「' + esc(q) + '」</p>' +
+      '<p class="or-note">同一件事今天再掷也是这个筊——照着做，别回头问第二遍。</p>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" id="orAgain">再想一件</button>' +
+      '</div></div>';
+  setTimeout(function () {
+    var v = el('orVerdict');
+    if (v) v.hidden = false;
+    var ag = el('orAgain');
+    if (ag) ag.addEventListener('click', function () {
+      if (ta) { ta.value = ''; try { ta.focus(); } catch (e2) {} }
+    });
+  }, 950);
+}
+
 async function doRenge() {
   var box = el('rgResult');
   if (!box) return;
@@ -12310,6 +12379,18 @@ function initDivination() {
     });
   }
   on('hlSubmit', doHuangli);
+  /* R3336：替你决定——掷筊三态 + 纠结事 chip 点选即填。 */
+  on('orSubmit', function () { return doOracle(); });
+  var _orView = document.getElementById('view-oracle');
+  if (_orView) _orView.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest
+      ? ev.target.closest('.or-chip') : null;
+    if (!b) return;
+    var ta2 = el('orText');
+    if (!ta2) return;
+    ta2.value = b.getAttribute('data-or') || '';
+    try { ta2.focus(); } catch (e) {}
+  });
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
   /* R3206：农历历法切换→闰月字段显隐（五处表单共用一套 id 对）。 */
