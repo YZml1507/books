@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 from contextlib import contextmanager
 
 
@@ -74,26 +75,63 @@ SCHEME_NAMES = {
 }
 
 
+# R3242：deps 句柄 thread-local 常驻——每请求 connect+init+close 的
+# ~2.3ms（corpus）/~4-5ms（knowledge）摊销到线程生命周期。每线程独立
+# 连接天然避开 sqlite3 跨线程问题（check_same_thread 不动）；借出时按
+# (mtime_ns,size) 校验库文件指纹，重建/换库自动重连；stat 失败（缺库）
+# 不复用，让 Corpus.__init__ 的 FileNotFoundError 语义原样上抛。
+# 例外：写路径出错回滚代替关闭——连接存续，脏事务不外泄。
+_LOCAL = threading.local()
+
+
+def _db_fresh_key(path: str):
+    try:
+        _st = os.stat(path)
+        return (_st.st_mtime_ns, _st.st_size)
+    except OSError:
+        return None
+
+
 @contextmanager
 def corpus():
-    """语料库句柄（只读检索），退出必关。"""
+    """语料库句柄（只读检索）。R3242 起 thread-local 常驻，退出不关。"""
     from guji.search import Corpus
-    c = Corpus(CORPUS_DB)
-    try:
-        yield c
-    finally:
-        c.close()
+    _key = _db_fresh_key(CORPUS_DB)
+    c = getattr(_LOCAL, "corpus", None)
+    if _key is None or c is None \
+            or getattr(_LOCAL, "corpus_key", None) != _key:
+        if c is not None:
+            try:
+                c.close()
+            except Exception:
+                pass
+        _LOCAL.corpus = None   # 构造抛错不留已关连接的坏引用
+        c = Corpus(CORPUS_DB)
+        _LOCAL.corpus = c
+        _LOCAL.corpus_key = _key
+    c.db.rollback()   # 清上一位借用者留下的未决事务，对齐全新连接语义
+    yield c
 
 
 @contextmanager
 def knowledge():
-    """知识库句柄（研究线程 / 偏好 / 收藏），退出必关。"""
+    """知识库句柄（研究线程 / 偏好 / 收藏）。R3242 起常驻，退出不关。"""
     from guji.knowledge import KnowledgeBase
-    kb = KnowledgeBase(KNOWLEDGE_DB)
-    try:
-        yield kb
-    finally:
-        kb.close()
+    _key = _db_fresh_key(KNOWLEDGE_DB)
+    kb = getattr(_LOCAL, "knowledge", None)
+    if _key is None or kb is None \
+            or getattr(_LOCAL, "knowledge_key", None) != _key:
+        if kb is not None:
+            try:
+                kb.close()
+            except Exception:
+                pass
+        _LOCAL.knowledge = None   # 同上，坏构造不留引用
+        kb = KnowledgeBase(KNOWLEDGE_DB)
+        _LOCAL.knowledge = kb
+        _LOCAL.knowledge_key = _key
+    kb.db.rollback()   # 同上：借出前清未决事务
+    yield kb
 
 
 def public_writes_open() -> bool:

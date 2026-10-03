@@ -5949,3 +5949,15 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) LIMIT 1 加 INDEXED BY 提示：扫描类型不变，无用。
 
 **裁决**：A。addr 9.2→2.6ms。坑位：bcv 的 addr2 是纯数字节号（'1','10',...），别拿 zhouyi 爻名想当然。
+
+## D-272b R3242 决策：deps 句柄池化——thread-local 常驻 vs 全局池 vs 保持每请求新建
+
+**问题**：每请求 `sqlite3.connect`+init+close 在 corpus 端 ~2.3ms、knowledge 端 ~4-5ms，45+ 调用点全端点付费，属纯开销（连接本身即抛）。
+
+**候选**：
+- A) threading.local 每线程常驻（选中）：零共享天然无锁、无跨线程问题；FastAPI sync 端点跑 anyio 线程池，连接数 ≤ worker 数（~40）有界；借出时 (mtime,size) 指纹校验自愈换库。
+- B) 全局连接池（queue.Queue）：连接可跨线程迁移，sqlite3 check_same_thread 需关闭才安全，且引入借还协议复杂度，收益相同风险更高。
+- C) 全局单连接+锁：读查询串行化，高并发下互斥成新瓶颈，弃。
+- 备选 `PRAGMA data_version` 作 knowledge 失效键：data_version 只标记内容变更不标记文件替换（新 inode 旧句柄照读），且自写也会触发——比 (mtime,size) 语义更弱，弃。
+
+**代价**：写后 next-borrow 多一次重连（mtime 变化）——写端点本来就稀有，摊销可接受；线程退出时连接随线程回收（句柄泄漏有界 ≤40）。
