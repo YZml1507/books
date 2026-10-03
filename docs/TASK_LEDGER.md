@@ -17539,7 +17539,7 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 
 ## R3317-F — 海报回流二维码（积压 R130-P3-4 解锁）
 
-- vendored qrcode-generator 1.4.4（MIT 头补全）→ web/static/vendor/
+- vendored qrcode-generator 1.4.4（MIT 头补全）→ web/static/libs/
   qrcode.min.js，app.js _loadQrJs 懒加载进 downloadPoster 链（失败降级）。
 - app_poster.js：真实域名部署时 CTA pill 左端画 64px 回流码
   （origin/?from=poster），本地/内网无 host 不画。
