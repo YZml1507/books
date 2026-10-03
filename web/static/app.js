@@ -12375,7 +12375,12 @@ function initDivination() {
       '忌：' + esc(_j.dont || '—') + '\n' +
       /* R3317-D：咒语进晒图文案——晒图自带口号感 */
       '✨ 今日咒语：' +
-      esc(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n\n' +
+      esc(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n' +
+      /* R3317-G 续：今日牌也进晒图——塔罗党认这个 */
+      (((_j.daily_card || {}).name)
+        ? '🃏 今日牌：' + esc(_j.daily_card.name) +
+          '（' + (_j.daily_card.upright ? '正位' : '逆位') + '）\n'
+        : '') + '\n' +
       '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
       (window.location.origin || '') + '/?view=daily&from=share';
     try {
