@@ -15,11 +15,18 @@
 # （注意：Docker 不允许指令行尾挂 # 注释——行内注释只认行首）
 FROM python:3.10-slim
 WORKDIR /app
-ENV PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
-    PIP_EXTRA_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple https://mirrors.aliyun.com/pypi/simple https://mirrors.bfsu.edu.cn/pypi/web/simple" \
-    PIP_FIND_LINKS=https://mirrors.aliyun.com/pytorch-wheels/cpu/
+# R3316（审-P2）：PyPI 源按构建区切换——海外平台（Render/HF/GH runner）
+# 拉国内镜像超时（CI 490444b 同款教训），缺省走官方源；境内本机
+# build 想提速再 `--build-arg PIP_CN_MIRROR=1`。torch find-links
+# 一并去——requirements-runtime 根本没有 torch 依赖，死配置。
+ARG PIP_CN_MIRROR=0
+ENV PIP_INDEX_URL=https://pypi.org/simple
 COPY requirements-runtime.txt .
-RUN pip install --no-cache-dir -r requirements-runtime.txt
+RUN if [ "$PIP_CN_MIRROR" = "1" ]; then \
+      export PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
+        PIP_EXTRA_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple https://mirrors.aliyun.com/pypi/simple"; \
+    fi && \
+    pip install --no-cache-dir -r requirements-runtime.txt
 COPY . .
 RUN python scripts/check_quality.py && python scripts/build_index.py
 EXPOSE 7860

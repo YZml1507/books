@@ -483,8 +483,11 @@ function _paintSharePoster(s, W, H) {
         try {
           /* R3260：drawImage 硬拉伸→contain 适配——RWS 竖牌被
            * 226×270 横向拉胖 ~47%、日签横幅会被拉变形。保比例居中
-           * 铺满上限，米白衬底让留白不突兀。 */
-          var _tw = cw - 24, _th = ch - 130;
+           * 铺满上限，米白衬底让留白不突兀。
+           * R3316（审-P1）：图区缩到 ch-160、文字区整体上抬——
+           * 原 sub 基线 1250 的 28px 字形下沿叠进页脚品牌行
+           * （36px 上沿 ~1240），五张海报底区糊字。 */
+          var _tw = cw - 24, _th = ch - 160;
           var _iw = c.img.naturalWidth || c.img.width || 1;
           var _ih = c.img.naturalHeight || c.img.height || 1;
           var _sc = Math.min(_tw / _iw, _th / _ih);
@@ -498,7 +501,7 @@ function _paintSharePoster(s, W, H) {
             cy + 12 + Math.round((_th - _dh) / 2), _dw, _dh);
           ctx.restore();
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
-        iy = cy + ch - 118;
+        iy = cy + ch - 148;
       }
       /* R3254h（用户实测「鬼/可怕的东西」末字消失）：两重修正——
        * ①此前 textAlign 残留为 left，cx+cw/2 起点右偏、长名冲出
@@ -760,8 +763,10 @@ function buildShareData(view, j) {
       try {
         var _lvArt = document.querySelector('#dailyLevel img.lv-b');
         if (_lvArt && _lvArt.complete && _lvArt.naturalWidth > 0) {
+          /* R3316（审-P1）：卡内再写一遍店名=与页脚品牌行双落款，
+           * 换成暖句（店名页脚已有）。 */
           _ds.cards = [{ img: _lvArt, name: '今日小天气',
-            sub: '小满的解忧铺' }];
+            sub: '把好天气装进口袋' }];
         }
       } catch (eLA) {}
       return _ds;
@@ -1305,7 +1310,7 @@ function buildShareData(view, j) {
         { k: '今晚试试', v: '把手机扣过去，喝口温水，先躺下' }];
       if (j && j._art) {
         _bd.cards = [{ img: j._art, name: '今夜小夜灯',
-          sub: '小满的解忧铺' }];
+          sub: '今晚也要好好睡' }];
       }
       return _bd;
     }
@@ -1347,7 +1352,7 @@ function buildShareData(view, j) {
         var _lvArt2 = document.querySelector('#dailyLevel img.lv-b');
         if (_lvArt2 && _lvArt2.complete && _lvArt2.naturalWidth > 0) {
           _lu.cards = [{ img: _lvArt2, name: '今日小天气',
-            sub: '小满的解忧铺' }];
+            sub: '把好天气装进口袋' }];
         }
       } catch (eL) {}
       return _lu;
@@ -1597,6 +1602,11 @@ function wrapText3(ctx, text, maxWidth) {
       /* R2349s（R86-P1-3）：「——」是成对破折号，折行不许劈开——
        * 「说—/—贲卦」的断法视觉上是两根孤杠。 */
       if (ch === '—' && cur.slice(-1) === '—') { cur += ch; return; }
+      /* R3316（审-P2）：避头尾——「，。：；、！？）》」等禁做行首，
+       * 宁可本行微溢也不让标点悬头（六爻「慢慢看 / ：艮卦」事故）。 */
+      if ('，。：；、！？）》」』%‰'.indexOf(ch) !== -1) {
+        cur += ch; return;
+      }
       if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch; }
       else cur += ch;
     });

@@ -1585,6 +1585,28 @@ function rememberResult(viewKey, json, question, body) {
   try {
     localStorage.setItem('rlast:' + viewKey, todayIso());
   } catch (eRL) {}
+  /* R3316（审-P2）：新建排盘记录即时镜像——此前镜像只在水化于
+   * 「打开过历史页/点开过详情」，从没进过历史页的用户每日清盘后
+   * 一无所有。落 loc: 占位行+详情；云端行到达时 _phMirrorList
+   * 同 type+ts 邻位归并顶替，不占双行。 */
+  try {
+    if (viewKey && _PH_BUILDERS[viewKey]) {
+      var _pm = _phMirrorLoad();
+      var _lts = _phTsNow();
+      var _lid = 'loc:' + viewKey + ':' + _lts;
+      var _lrec = {
+        id: _lid, ts: _lts, type: viewKey,
+        name: (_PH_TYPE_LABEL[viewKey] || '记录'),
+        question: '',
+        result: json,
+        result_summary: { paipan_render:
+          ((json && json.paipan && json.paipan.render) || '') }
+      };
+      _phMirrorList(_pm, [_lrec]);
+      _phMirrorDetail(_pm, _lrec);
+      _phMirrorSave(_pm);
+    }
+  } catch (ePM) {}
   /* R233r（R49-P3-2）：新结果落地顺带刷新空态 chips 语境。 */
   try { _chatChipsPersonalize(); } catch (e) {}
   /* R3242e（实测缺口）：台账 dirty 广播此前只在 bazi 提交路径发——
@@ -10822,6 +10844,12 @@ var _PH_OPEN_GEN = 0;   /* R233k：历史复看代际号 */
 /* R2363（R116-P0-1）：部署态容器盘每次睡醒清零——排盘台账顺手镜像
  * localStorage（本机=用户设备，云清不丢）。云端正常时云端为准、
  * 顺手把新记录推进镜像；云端空了改读本机留档并标明出处。 */
+/* R3316（审-P2）：排盘镜像的北京时间戳——与服务端台账 ts
+ * （+08:00 ISO 秒）同格式，混排排序/_fmtWhen/归并窗口才一致。 */
+function _phTsNow() {
+  var n = new Date(Date.now() + 8 * 3600e3);
+  return n.toISOString().slice(0, 19) + '+08:00';
+}
 var _PH_MIRROR_KEY = 'paipan_mirror_v1';
 /* R2400（R127-P1-1）：墓碑独立小键——镜像整体写不下/被禁写时
  * 「本机已删」仍记得住，不然清盘后删掉的记录借镜像复活。
@@ -10973,7 +11001,36 @@ function _phMirrorList(m, items) {
         localStorage.setItem(_PH_MIRROR_DEL_KEY, JSON.stringify(_dd));
       } catch (eD) {}
     }
-    /* R2400（R138-P1-2）：复合键 id|ts——同 id 不同 ts 并存不互顶。 */
+    /* R2400（R138-P1-2）：复合键 id|ts——同 id 不同 ts 并存不互顶。
+     * R3316（审-P2）：loc: 占位行归并——rememberResult 新建记录先落
+     * `loc:<type>:<ts>` 本机档；云端行到达时同 type + ts 邻位（150s）
+     * 即同条：摘占位行、详情重键到云端 id|ts，列表不再双显。 */
+    var _cts = Date.parse(String(it.ts || ''));
+    if (!isNaN(_cts)) {
+      Object.keys(m.items).forEach(function (lk) {
+        var _lo = m.items[lk];
+        if (!_lo || String(_lo.id || '').indexOf('loc:') !== 0) return;
+        if ((_lo.type || 'bazi') !== (it.type || 'bazi')) return;
+        var _lts = Date.parse(String(_lo.ts || ''));
+        if (isNaN(_lts) || Math.abs(_lts - _cts) > 150000) return;
+        delete m.items[lk];
+        /* 摘碑抑尸：_phMirrorSave 落盘前会从盘上副本做并集——
+         * 不压同代墓碑，loc 行刚摘又被合并回来。 */
+        m.del = m.del || {};
+        m.del[String(_lo.id)] = String(_lo.ts || '');
+        var _dkOld = String(_lo.id) + '|' + String(_lo.ts || '');
+        if (m.details && m.details[_dkOld]) {
+          var _mig = Object.assign({}, m.details[_dkOld],
+                                   { id: it.id, ts: it.ts });
+          delete m.details[_dkOld];
+          m.details[String(it.id) + '|' + String(it.ts || '')] = _mig;
+          m.dorder = (m.dorder || []).map(function (k) {
+            return k === _dkOld
+              ? String(it.id) + '|' + String(it.ts || '') : k;
+          });
+        }
+      });
+    }
     m.items[String(it.id) + '|' + String(it.ts || '')] = it;
   });
   /* 只留最近 60 条列表摘要 */
@@ -16671,11 +16728,17 @@ function baziPersonaCard(j) {
           if (rec.name) _meta.push(esc(rec.name));
           if (rec.ts) _meta.push(esc(String(rec.ts).slice(0, 16)));
           if (rec.question) _meta.push('问「' + esc(rec.question) + '」');
+          /* R3316（审-P2）：降级留档不上分享钮——只剩摘要行的
+           * 记录 rec.result={}，点下去出半空白海报。 */
+          var _hasRes = !!(rec.result &&
+                           Object.keys(rec.result).length);
           detailEl.insertAdjacentHTML('afterbegin',
             (_meta.length
               ? '<div class="ph-meta">' + _meta.join(' · ') + '</div>' : '') +
-            '<button class="ghost fav-btn ph-share" type="button" ' +
-            'id="phShareBtn" title="生成分享图">📸 分享这张图</button>');
+            (_hasRes
+              ? '<button class="ghost fav-btn ph-share" type="button" ' +
+                'id="phShareBtn" title="生成分享图">📸 分享这张图</button>'
+              : ''));
           var _psb = detailEl.querySelector('#phShareBtn');
           if (_psb) _psb.addEventListener('click', function () {
             try {

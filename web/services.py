@@ -4399,12 +4399,12 @@ def fortune_summary(calc_out: dict, day: "datetime | None" = None) -> str:
     good = [r for r in rels if r.get("type") in _GOOD_RELS]
     # R3314：关系事实段先行——逐日变化度高于五行行。
     if bad:
-        parts.append(f"有{len(bad)}处别扭的小关系"
-                     f"（{'/'.join(r['type'] for r in bad[:2])}）"
-                     f"容易自己跟自己较劲，稳一点就好")
+        # R3316（审-P2）：术语括号（相害/自刑）是内部盘语——summary
+        # 是上海报 headline 的最大传播面，受众读不懂。人话段保留，
+        # 术语明细留在 relmap 专业层。
+        parts.append(f"有{len(bad)}处小别扭，容易自己跟自己较劲，稳一点就好")
     if good:
-        parts.append(f"有{len(good)}处顺劲"
-                     f"（{'/'.join(r['type'] for r in good[:2])}），有人搭把手，事情好推")
+        parts.append(f"有{len(good)}处顺劲，有人搭把手，事情好推")
     strong = (calc_out.get("five_elements") or {}).get("strong") or []
     if strong:
         _pick = ((day.toordinal() if day else 0)

@@ -17478,3 +17478,19 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P2-9 facts 缺口：日签卡 月相/节日/农历行进 facts（冷问月相不再答「没有数据」）；黄历卡宜忌 top3→全量；消息本体 ISO 日期 → _cnDateSub 人话。
 
 **有意不跟**：P2-4 追问澄清（判定拒答需启发式多轮，误伤面大）。
+
+## R3316 — 部署态×分享物料复扫清零（2026-10-03）
+
+门禁态真机 41 项链路全绿（邀请链 hash 回拼端到端生效）+ 17 张海报逐张评审。P1×1 + P2×8。
+
+**P1 修复**
+- 海报底区叠字：img 卡 sub 基线 1250 的 28px 字形下沿压进页脚品牌行上沿 1240——图区缩到 ch-160、文字区抬到 iy=cy+ch-148（sub 基线→1220）；daily/lucky/绷带卡内「小满的解忧铺」重复落款换暖句（页脚品牌行已带店名）。
+
+**P2 修复**
+- 门页分享指路：`next` 带 from=/invite/view=/#a 特征时多渲「这是朋友给你分享的铺子——钥匙找分享给你的 ta 要哦」。
+- 海报命理黑话：daily/lucky headline 来源 summary 的「（相害/自刑）」术语括号源头剥除（术语明细留 relmap 专业层）；wrapText3 避头尾——标点禁做行首（六爻「：艮卦」悬头事故）。
+- HEAD 405：/api/health + /sw.js 改 api_route GET+HEAD（平台探活误报风险归零）。
+- 排盘镜像写穿：rememberResult 新建记录即落 loc: 占位行+详情（从没进过历史页的用户清盘后不再一无所有）；_phMirrorList 同 type+ts 邻位(150s) 归并顶替防双显，摘碑抑尸防并集复活；北京时戳 _phTsNow 与服务端同格式。
+- 降级留档不上分享钮：rec.result 空时不渲 📸（原会出半空白海报）。
+- Dockerfile：PIP_INDEX_URL 换官方源缺省 + PIP_CN_MIRROR=1 build-arg（与 CI 官方源口径对齐，海外构建不再撞国内镜像超时）；死配置 torch find-links 清。
+- recent_modules/theme 残留面：披露已如实，cosmetic 级——有意不跟。

@@ -13,7 +13,9 @@ from ..schemas import (DailyRequest, FavoriteAddRequest,
 router = APIRouter(tags=["product"])
 
 
-@router.get("/api/health")
+# R3316（审-P2）：HEAD 一并放行——平台/监控的 HEAD 探活此前吃
+# 405，GET 正常 → 误报不健康。
+@router.api_route("/api/health", methods=["GET", "HEAD"])
 def health() -> dict:
     """健康检查：解读引擎标识 + 索引是否就位。"""
     return services.health()

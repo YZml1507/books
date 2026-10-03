@@ -162,6 +162,18 @@ def create_app() -> FastAPI:
     _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
                   "钥匙不对——再想想？</p>")
 
+    def _gate_hint(next_url: str, wrong: bool) -> str:
+        """门页提示组装：钥匙错给错提示；next 带分享/邀请特征时
+        指路「找分享你的人要钥匙」——收方链此前只有干巴巴的口令框，
+        不知道该去哪找钥匙（R3316 审-P2）。"""
+        base = _GATE_HINT if wrong else ""
+        _n = next_url or ""
+        if any(m in _n for m in ("from=", "invite", "view=", "#a")):
+            base += ("<p style='color:#a08050;font-size:13px;"
+                     "margin:8px 0 0'>这是朋友给你分享的铺子——"
+                     "钥匙找分享给你的 ta 要哦</p>")
+        return base
+
     @application.middleware("http")
     async def _access_gate(request, call_next):
         import hmac as _hmac
@@ -272,7 +284,7 @@ def create_app() -> FastAPI:
             # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
             # 浏览器照常渲染 HTML 体，用户看到同样的门。
             return PlainTextResponse(
-                _GATE_PAGE.format(hint=_GATE_HINT,
+                _GATE_PAGE.format(hint=_gate_hint(_nxt, True),
                                   next=_html.escape(_nxt, quote=True)),
                 media_type="text/html", status_code=403)
         if good:
@@ -312,7 +324,8 @@ def create_app() -> FastAPI:
         _orig = request.url.path + (
             "?" + request.url.query if request.url.query else "")
         return PlainTextResponse(
-            _GATE_PAGE.format(hint="", next=_html.escape(_orig, quote=True)),
+            _GATE_PAGE.format(hint=_gate_hint(_orig, False),
+                              next=_html.escape(_orig, quote=True)),
             media_type="text/html", status_code=403)
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
@@ -544,7 +557,10 @@ def create_app() -> FastAPI:
                 return FileResponse(p, media_type="image/png")
         raise HTTPException(404)
 
-    @application.get("/sw.js", include_in_schema=False)
+    # R3316（审-P2）：HEAD 一并放行——与 health 同口径（探活类端点
+    # HEAD 405 会让平台误判）。SW 更新检查用 GET，不受影响。
+    @application.api_route("/sw.js", methods=["GET", "HEAD"],
+                           include_in_schema=False)
     def service_worker():
         sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
         if not os.path.exists(sw_path):
