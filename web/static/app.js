@@ -1772,9 +1772,12 @@ function buildChatContext(viewKey) {
       }
     });
   } else if (viewKey === 'huangli') {
-    var yi = (j.yi || []).slice(0, 3).join('、');
-    var ji = (j.ji || []).slice(0, 3).join('、');
-    msg = '今天是' + (j.date || '今天') + '，宜' + (yi || '—') + '，忌' +
+    /* R3315（审-P2-9）：机器 ISO 日期不拼进消息本体——人话月日+星期。 */
+    var _hdd = j.date ? _cnDateSub(j.date) : '今天';
+    /* R3315（审-P2-9）：宜忌截到 3 项会少念——全量下发（条数本就个位）。 */
+    var yi = (j.yi || []).join('、');
+    var ji = (j.ji || []).join('、');
+    msg = '今天是' + _hdd + '，宜' + (yi || '—') + '，忌' +
       (ji || '—') + '，我今天适合做什么';
     facts = ['宜：' + yi, '忌：' + ji];
   } else if (viewKey === 'qiming') {
@@ -1862,6 +1865,16 @@ function buildChatContext(viewKey) {
       facts.push('今日开运色：' + _pStr(j.lucky.color) +
         (_pStr(j.lucky.num) ? '，幸运数 ' + _pStr(j.lucky.num) : ''));
     }
+    /* R3315（审-P2-9）：月相/节日/农历行进 facts——冷问「月相」
+     * 小满此前只能答「没有数据」，其实卡面有。同源下发。 */
+    if (j.moon && _pStr(j.moon.phase)) {
+      facts.push('今日月相：' + _pStr(j.moon.phase) +
+        (_pStr(j.moon.line) ? '（' + _pStr(j.moon.line) + '）' : ''));
+    }
+    if (j.festival && (j.festival || []).length) {
+      facts.push('今日节日：' + (j.festival || []).join('、'));
+    }
+    if (_pStr(j.lunar)) facts.push('今日农历：' + _pStr(j.lunar));
   } else if (viewKey === 'xzm') {
     /* R3131：合盘卡上下文——判词/场景/处方行进 facts，小满聊这张
      * 卡手里有同一套口径（与 result_ref 权威块互补：xzm 无判词卡
@@ -1875,8 +1888,9 @@ function buildChatContext(viewKey) {
     });
   } else if (viewKey === 'xingzuo') {
     var today = (j.signs || []).filter(function (s) { return s.is_today; })[0];
-    /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语 */
-    msg = '今天是' + (j.date || '') + '，'
+    /* R229z续23（R11-#23/#36）：「今天是 2026-…」双空格＋「值宫」术语
+     * R3315（审-P2-9）：同上——ISO 日期换人话口径。 */
+    msg = '今天是' + (j.date ? _cnDateSub(j.date) : '') + '，'
       + ((today && today.sign) || '—') + '座当班，我今天运势怎么样';
     facts = ['今天轮到' + ((today && today.sign) || '—') + '座当班'];
   } else if (viewKey === 'dream') {

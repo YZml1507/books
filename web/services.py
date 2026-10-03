@@ -3203,12 +3203,22 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
 
 def _hl_next_yi_days(dt: datetime, terms: list[str],
                    span: int = 45, limit: int = 4) -> list[str]:
-    """[dt, dt+span) 内宜任一规范词的日子（并集），返回 "M/D" 列表。"""
+    """[dt, dt+span) 内宜任一规范词的日子（并集），返回 "M/D（周X）" 列表。
+
+    R3315（审-P1-1）：原只给 "10/13"——模型复述时会自创「这周六/本周四」
+    贴错周归属（实测 10/13 周二被念成「这周六」）。星期注记随事实下发，
+    模型照念即对，system 侧另钉「不许自补周归属」。"""
+    _WD = "一二三四五六日"
+    out = []
     # R229z续8：走 find_good_days（单日循环一次判定全部词，R8 P1-1；
     # 含宜∩忌双标日剔除 R228m）。
-    out = [f"{int(q['date'][5:7])}/{int(q['date'][8:10])}"
-           for q in huangli_mod.find_good_days(dt, dt + timedelta(days=span - 1),
-                                               terms)]
+    for q in huangli_mod.find_good_days(dt, dt + timedelta(days=span - 1),
+                                        terms):
+        try:
+            _dd = datetime.strptime(str(q["date"]), "%Y-%m-%d")
+            out.append(f"{_dd.month}/{_dd.day}（周{_WD[_dd.weekday()]}）")
+        except (ValueError, TypeError, KeyError):
+            out.append(str(q.get("date", "?")))
     return out[:limit]
 
 
@@ -3831,8 +3841,19 @@ def _chat_facts_inner(message: str, now: datetime,
     # R229o：「这周五」按本周已过日判（9/19 说这话指向 9/18）——事实行
     # 提醒这天已经过去，免得模型照着宜忌去「建议」一个回不去的日子。
     past_note = "（这天已经过去了）" if dt.date() < now.date() else ""
+    # R3315（审-P2-1）：远日注记——「国庆」锚到明年 10/1 时，不点年份
+    # 模型把它念得像刚过的那个。超 45 天的解析日在事实行里点明年份。
+    _far_note = ""
+    try:
+        _dout = (dt.date() - now.date()).days
+        if _dout > 45:
+            _far_note = (f"（这天在{_dout}天后、已是{dt.year}年——"
+                         "念日期时把年份或「明年」说清，"
+                         "别让她以为在问近期）")
+    except (TypeError, AttributeError):
+        _far_note = ""
     facts = [f"{spoken}（{date_cn}）的黄历：宜【{yi_str}】；忌【{ji_str}】。"
-             + _cfl_note + past_note]
+             + _cfl_note + past_note + _far_note]
 
     # R2349（R64-P1-4）：「生日」——日期在用户本地档案，接口拿不到；
     # 明说解不动请她补日期，别拿今天替她判（实测静默按今天判成 P1）。

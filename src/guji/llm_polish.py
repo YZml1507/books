@@ -291,6 +291,7 @@ def _polish_node(facts: list[str], question: str | None, cfg: dict,
     # R12-P2-4：预算由调用方传入——链上各节点共享同一终点。
     _deadline = (deadline if deadline is not None
                  else time.monotonic() + _POLL_BUDGET_S)
+    _retried_429 = False   # R3315：429 延时重试只许一次
 
     for i in range(max(1, _attempts)):
         _to = min(timeout, max(0.5, _deadline - time.monotonic()))
@@ -320,9 +321,19 @@ def _polish_node(facts: list[str], question: str | None, cfg: dict,
                 if resp.status_code != 200:
                     # R230t（R32-P0-1）：401/403/422 的「免重试」此前是死代码——
                     # continue 跳过标志位检查点，鉴权错照样打满 3 次。
-                    # 4xx 全是确定性失败（鉴权/参数/找不到/实体过大），连同
-                    # 429 配额耗尽一律一次即停，不再白烧往返。
-                    if resp.status_code == 429 or 400 <= resp.status_code < 500:
+                    # 4xx 全是确定性失败（鉴权/参数/找不到/实体过大）——
+                    # 一次即停不再白烧往返。
+                    # R3315（审-P2-3）：429 是瞬时限流不是配额耗尽——实测
+                    # 近半首轮撞线，延时 10s 补一次大多救回。预算内睡 10s
+                    # 只重试一次（任务线程内阻塞可接受），仍败才按失败停。
+                    if resp.status_code == 429:
+                        if (not _retried_429 and
+                                time.monotonic() + 11 < _deadline):
+                            _retried_429 = True
+                            time.sleep(10)
+                            continue
+                        break
+                    if 400 <= resp.status_code < 500:
                         break
                     continue                          # 可重试：网关类错误
                 # R2524（审-LLM-P2-4）：.json() 前字节帽——异常上游
@@ -469,6 +480,15 @@ def _sanitize(text: str | None, keep_citations: bool = False) -> str | None:
     # 「我叫 step-5-preview 哦」洗成「我叫小满哦」是合法回复，
     # 原文却被拉丁占比误杀成降级。
     text = _IDENT_PAT.sub("小满", text)
+    # R3315（审-P1-3）：逐词 sub 的残句会自相矛盾——原句「跟 agnes
+    # 没关系哦」洗完成「跟 小满 没关系哦」自我否定。否定小句整体
+    # 换口径，不靠逐词替换。
+    text = re.sub(r"跟\s*小满\s*没(?:有)?关系[^，。！？,.!?]*",
+                  "跟那些技术名词没关系", text)
+    text = re.sub(r"不是小满(?:开发的|做的|家的)?",
+                  "跟那些技术名词没关系", text)
+    # R3315（审-P2-6）：偶发口误「宜也忌」→「宜或忌」。
+    text = text.replace("宜也忌", "宜或忌")
     text = re.sub(r"(我是|作为|我叫)(?:一[名个款位])?(?:AI|人工智能|"
                   r"大语言模型|语言模型|智能助手|AI助手|机器人|程序)",
                   r"\1小满", text)
@@ -795,6 +815,13 @@ _CHAT_SYSTEM = (
     # R228w：实测模型会把「下周三」换算成错误日期/虚构宜日——钉死：
     # 日期一律以事实为准，事实没有的日子不许提。
     "所有日期、星期、宜忌日子严格以事实文本为准，事实里没有的日子一个都不许提。"
+    # R3315（审-P1-1）：判词清单日期带「（周X）」注记就照念，没带的
+    # 绝不许自己补星期/本周/下周归属——实测模型把周二念成「这周六」。
+    "念清单里的日期只念「月日（周X）」原样，不许自己加「这周六」"
+    "「本周四」「下周」这类周归属；事实里没带星期的日子不许自己换算。"
+    # R3315（审-P2-8）：无凭据枚举色禁——事实里没给开运色/幸运色时
+    # 说「挑顺眼的穿」即可，不许自点颜色名。
+    "事实里没给开运色/幸运色时不许自点颜色名，说「挑顺眼的穿」即可。"
     # R227b（同批）：输出纯文本口语——渲染层支持白名单 markdown，但闲聊
     # 人设不需要加粗/列表/标题。
     # R3127：三句上限在有判词/盘面可聊时是深度天花板——闲聊仍两三句，
@@ -807,6 +834,11 @@ _CHAT_SYSTEM = (
     "高成本现实决定（辞职/离婚/手术/大额投资）判词照给，但绝不追加"
     "「说不定是个信号」「宇宙在暗示」这类天意解读——对真在扛事的人"
     "那就是背书。"
+    # R3315（审-P1-2）：上轮钉了还是被绕——措辞清单化，背书语义全堵。
+    "高成本决定话题连「背书/信号/可以考虑的日子/算是有个凭据在/正好"
+    "对应这事」这类话都不许说；只能给日子参考，决定权永远在她手里。"
+    # R3315（审-P2-5）：「宝」开场 tic——可作偶用软化，不作开场头禅。
+    "「宝」只在真需要软化的一句里偶用，别拿它当开场口头禅连着喊。"
     "收尾句式别复读：「要不要试试」「写下来」「睡前」「喝热水」同一段"
     "对话里每样最多用一次，动作换着来（散步/听歌/晒太阳/找人聊一句/"
     "深呼吸/整理桌面/早睡/吃顿顺口的）。"
@@ -1769,6 +1801,7 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
     # 的原列表（主/dots 共享调用方 payload_msgs，不能把提示注进下一轮）。
     msgs = list(payload_msgs)
     _doubled = False   # R2359：finish=length 空回复时预算加倍救一次的标记
+    _retried_429 = False   # R3315：429 延时重试只许一次
 
     for _i in range(3):
         _to = min(timeout, max(0.5, deadline - time.monotonic()))
@@ -1799,7 +1832,16 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
                     # R230t（R32-P0-1）：4xx 全是确定性失败——鉴权/参数类重试
                     # 纯白烧；429 同理立刻停。
                     _llm_log(f"HTTP {resp.status_code} try={_i}")
-                    if resp.status_code == 429 or 400 <= resp.status_code < 500:
+                    # R3315（审-P2-3）：429 瞬时限流——延时 10s 补一次，
+                    # 与 polish 节点同口径。
+                    if resp.status_code == 429:
+                        if (not _retried_429 and
+                                time.monotonic() + 11 < deadline):
+                            _retried_429 = True
+                            time.sleep(10)
+                            continue
+                        break
+                    if 400 <= resp.status_code < 500:
                         break
                     continue
                 # R2524（审-LLM-P2-4）：同 polish——解析前字节帽。
