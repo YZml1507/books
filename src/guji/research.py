@@ -23,6 +23,7 @@ corruption as research evidence is the failure X-11 exists to prevent.
 """
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 
@@ -287,6 +288,14 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
     return res
 
 
+# R3244：concept_census 的 _scan 结果缓存——窗口查询对高频概念（仁/道等）
+# 物化整个 doclist ~11ms，而概念词天然被反复研究。按 (term,scan_limit)
+# 进程级缓存 by-works dict（Hit 为纯数据可安全共享），库指纹
+# (mtime_ns,size) 变化整表清空，上限 64 词防用户自由输入撑爆。
+_SCAN_CACHE: dict[tuple, dict] = {}
+_SCAN_FP: tuple | None = None
+
+
 def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
                    scan_limit: int = 200,
                    concept2: str | None = None) -> dict:
@@ -300,12 +309,27 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
     works = [dict(r) for r in corpus.db.execute(
         "SELECT id, title, attribution FROM work ORDER BY id")]
 
+    global _SCAN_FP
+    try:
+        _st = os.stat(corpus._db_path)
+        _fp = (_st.st_mtime_ns, _st.st_size)
+    except OSError:
+        _fp = None
+    if _SCAN_FP != _fp:
+        _SCAN_CACHE.clear()
+        _SCAN_FP = _fp
+
     def _scan(term: str) -> dict[str, list[Hit]]:
         """Every work's top-(scan_limit+1) hits in ONE window query — the same rows
         and per-work order that corpus.search(term, work_id=w) produced per work,
         collapsed from 47 executes to 1 (R3235). bm25 materialises a level below
         the window (SQLite refuses bm25() inside OVER), and rowid is the explicit
-        score tie-break so the order matches the old per-work query's."""
+        score tie-break so the order matches the old per-work query's.
+        R3244: 结果按 (term,scan_limit) 缓存，库指纹失效见上。"""
+        _ck = (term, scan_limit)
+        _cached = _SCAN_CACHE.get(_ck)
+        if _cached is not None:
+            return _cached
         rows = corpus.db.execute("""
             SELECT * FROM (
                 SELECT s.*, ROW_NUMBER() OVER (
@@ -328,6 +352,9 @@ def concept_census(corpus: Corpus, concept: str, per_work: int = 3,
         by: dict[str, list[Hit]] = {}
         for r in rows:
             by.setdefault(r["work_id"], []).append(corpus._hit(r))
+        if len(_SCAN_CACHE) >= 64:
+            _SCAN_CACHE.pop(next(iter(_SCAN_CACHE)))
+        _SCAN_CACHE[_ck] = by
         return by
 
     hits_by = _scan(concept)

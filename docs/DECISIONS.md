@@ -5973,3 +5973,14 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - 未决的 rank-vs-bm25 换序：大集快小集慢且排序边界风险，不动。
 
 **代价**：每请求一次 os.stat（~0.1ms）；缓存行 dict 化内存有界（512×≤36 行 ≈ 万级 dict）。
+
+## D-274b R3244 决策：concept _scan 缓存粒度——by-works dict vs rows vs 终产物
+
+**问题**：_scan 一趟窗口查询 ~11ms（高频概念全 doclist 物化+窗口编号），两形两趟 22ms。
+
+**候选**：
+- A) 缓存 _scan 产物 by-works dict（选中）：Hit 为纯数据 dataclass，跨调用共享无连接引用；缓存命中连 _hit 构造也省（~0.4ms×6760/10次）；census/shared 拼装逻辑仍每调用实跑（works 元数据变化仍即时反映）。
+- B) 缓存概念终产物 census dict：works 列表/title/attribution 变也不刷新，且 per_work 参数参与产出——键复杂度高收益相同，弃。
+- C) 缓存裸 rows：省 execute+fetchall 但每次仍 _hit 6760 次，多付 ~0.4ms/次，不如 A。
+
+**边界**：键含 scan_limit（默认 200）防参数错位；64 词上限 ≈ 内存 MB 级有界。
