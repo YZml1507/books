@@ -422,6 +422,8 @@ def main() -> int:
         "flSend": "未来信寄出钮——localStorage futureLetters 写入零请求",
         # R3325-C：大众占卜分享钮——动态生成、clipboard 微交互。
         "pileShare": "大众占卜「分享我这堆」——动态生成+clipboard 零请求",
+        # R3337：大众占卜海报钮——downloadPoster('tarot') 同族豁免。
+        "pilePoster": "大众占卜「存图带走」——downloadPoster 海报模态，同族豁免",
         # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
         # 零请求；_dayPick 确定性已由单测级逻辑保证。
         "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",

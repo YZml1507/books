@@ -395,12 +395,33 @@ function _paintSharePoster(s, W, H) {
        * 截成「等 3…」——遇到「等N项」收尾时保住尾巴完整。 */
       var _vv = v;
       if (Array.from(v).length > 22) {
-        /* R2349p（R79-P1-3）：黄历忌行产「等 3 件」——正则只认「项」
-         * 把「件」拦腰截掉；量词放宽。 */
+        /* R3337（审-中）：顿号/中点清单从词中截断（「动土」劈成
+         * 「动」）像渲染出错——先词边截断凑整项，不足 1 项再退回
+         * 原硬切。「等N项」尾巴照旧保留。 */
         var _mEq = v.match(/等\s*\d+\s*[项件条]?$/);
         var _keep = _mEq ? _mEq[0] : '';
-        _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
-          '…' + _keep;
+        var _hasSep = v.indexOf('、') !== -1 || v.indexOf('·') !== -1;
+        if (_hasSep) {
+          var _items = v.split(/、|·/);
+          var _cut = 21 - Array.from(_keep).length - 4;
+          var _acc = '', _nLeft = 0;
+          for (var _ii = 0; _ii < _items.length; _ii++) {
+            var _cand = _acc + (_acc ? '、' : '') + _items[_ii];
+            if (Array.from(_cand).length > _cut) {
+              _nLeft = _items.length - _ii; break;
+            }
+            _acc = _cand;
+          }
+          if (_acc && _nLeft > 0) {
+            _vv = _acc + '…等' + _nLeft + '项' + _keep;
+          } else {
+            _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
+              '…' + _keep;
+          }
+        } else {
+          _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
+            '…' + _keep;
+        }
       }
       /* R2351（R109-P1-2）：按字数截断不测宽——22 字 × 40px ≈ 880px
        * 会冲出卡右缘。逐 2px 缩字号到放得下（最低 30px 再截）。 */
@@ -477,9 +498,12 @@ function _paintSharePoster(s, W, H) {
     /* R2504（A-1b）：ch 420→400——有明细行时卡座 880 起、底缘
      * 1300 会盖住品牌水印行（y≈1288）；收到 400 后底缘 1280，
      * 与水印留 8px 缝。 */
-    var cw = 250, ch = 400, gap = (1080 - cards.length * cw) / (cards.length + 1);
+    var cw = 250, gap = (1080 - cards.length * cw) / (cards.length + 1);
     /* R2341（R57-P1-3）：无明细行时 cards 上提到 560——
-     * 原来固定 880，大字(≤440)到卡片之间留 ~500px 空洞。 */
+     * 原来固定 880，大字(≤440)到卡片之间留 ~500px 空洞。
+     * R3337（审-中）：有明细行时卡座底 1280 压进品牌水印行（基线
+     * 1276、字形上沿 ~1240）——卡高收 40px，底缘退到 1240 以上。 */
+    var ch = lines.length ? 360 : 400;
     var cy = lines.length ? 880 : 560;
     cards.forEach(function (c, i) {
       var cx = gap + i * (cw + gap);
@@ -778,10 +802,15 @@ function buildShareData(view, j) {
       /* R233n（R47-Top5-3）：日签副题 = 周X·农历·第N签——小红书
        * 「每日一签」形态，签号按日确定性哈希（同一天同一张签）。 */
       var _dd = _pStr(j && j.date);
+      /* R3337（审-低）：j.lunar 有两路 schema——daily 响应里是
+       * 「八月初八」字符串，黄历端点是 {month_cn,day_cn} 对象。
+       * 原一律按对象取，字符串路径农历行静默丢失。 */
       var _dl = (j && j.lunar) || {};
-      var _dsub = _weekdayCn(_dd) +
-        ((_dl.month_cn || _dl.day_cn) ?
-          ' · 农历' + (_dl.month_cn || '') + (_dl.day_cn || '') : '') +
+      var _lunarSub = (typeof _dl === 'string' && _dl)
+        ? ' · ' + _dl
+        : ((_dl.month_cn || _dl.day_cn)
+          ? ' · 农历' + (_dl.month_cn || '') + (_dl.day_cn || '') : '');
+      var _dsub = _weekdayCn(_dd) + _lunarSub +
         ' · 第' + _signNo(_dd) + '签';
       /* R2349g（R68-P2）：签诗池 10→20——60 天首撞日从第 11 天推到第
        * 21 天后；「每日一签」感的关键在诗文不重复。 */
@@ -880,7 +909,10 @@ function buildShareData(view, j) {
       var draws = _pArr(j && j.draws);
       /* R233t（R51-P1-7）：卡图不再按 DOM 顺序抓——复看/重渲后 DOM
        * 序与 draws 可能错位；改用 draws[].img/src 数据键（若有）。 */
-      var imgs = document.querySelectorAll('.tarot-card-front img');
+      /* R3337（审-中）：大众占卜分享图——牌面图是晒点核心，
+       * j._cardImgs 显式供图优先（堆卡 DOM 选择器与主阵不同源）。 */
+      var imgs = (j && j._cardImgs) ||
+        document.querySelectorAll('.tarot-card-front img');
       /* R3021（真修#18）：问题文本烤进可分享图=披露足迹外泄——危机/
        * 敏感问句不上副题（复用 app.js 全局镜像判定，同源口径）。 */
       var _tq = _pStr(j && j.question);
@@ -1430,9 +1462,14 @@ function buildShareData(view, j) {
         _xm.subtitle += ' · ' + j._rel + '视角';
       }
       _xm.big = _pStr(j && j.a) + '座 × ' + _pStr(j && j.b) + '座';
+      /* R3337（审-低）：判词「同款/同象/互补/相磨」是圈内速记——
+       * 晒出去的卡加一句白话注释，外人一眼懂。 */
+      var _xLb = _pStr(j && j.label);
+      var _xGloss = { '同款': '同一个模子', '同象': '同象一家人',
+                      '互补': '互补型组合', '相磨': '要多花心思' }[_xLb];
       _xm.lines = [
         { k: '合拍指数', v: _pStr(j && j.score) + '/99' },
-        { k: '判词', v: _pStr(j && j.label) },
+        { k: '判词', v: _xLb + (_xGloss ? '（' + _xGloss + '）' : '') },
         { k: '小满说', v: _clauseCut(_pStr(j && j.line), 20) }];
       /* R3138：lines 面在场时分享图补一行「画风」摘要——晒出去
        * 的卡带场景句比单行判词更有记忆点。 */

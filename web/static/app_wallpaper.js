@@ -68,11 +68,14 @@ function _wapComposite(j, bg, variant) {
   var A = _sq ? { shop: 64, date: 116, dateFs: 26, verdict: 330,
                   lucky: 430, luckyFs: 26, sign: 560, signGap: 46,
                   brand: 640, signW: 520,
-                  scrimT: 300, scrimB0: 470, scrimB1: 720 }
+                  scrimT: 300, scrimB0: 440, scrimB1: 720 }
               : { shop: 96, date: 158, dateFs: 34, verdict: 300,
                   lucky: 380, luckyFs: 32, sign: 1120, signGap: 52,
                   brand: 1242, signW: 560,
-                  scrimT: 470, scrimB0: 1000, scrimB1: 1280 };
+                  /* R3337（审-中）：竖版底 scrim 起点 1000、签句区
+                   * 1120-1172 只吃 ~0.3 暗——熊脚底图签句实测压字。
+                   * 起点抬到 940、终值 0.68→0.74。 */
+                  scrimT: 470, scrimB0: 940, scrimB1: 1280 };
   /* 上下暗角——叠字可读的 scrim（烘焙图上半本来就留净空，这里
    * 只是再压一层保证任何图的日期锚都可读）。 */
   /* R3318（审-P1-3）：渐隐原止于 y=430，开运色签行（y≈368-380）
@@ -84,7 +87,8 @@ function _wapComposite(j, bg, variant) {
   ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, A.scrimT);
   var g2 = ctx.createLinearGradient(0, A.scrimB0, 0, A.scrimB1);
   g2.addColorStop(0, 'rgba(38,30,22,0)');
-  g2.addColorStop(1, 'rgba(38,30,22,0.68)');
+  g2.addColorStop(1, _sq ? 'rgba(38,30,22,0.68)'
+                         : 'rgba(38,30,22,0.74)');
   ctx.fillStyle = g2;
   ctx.fillRect(0, A.scrimB0, 720, A.scrimB1 - A.scrimB0);
 
@@ -133,10 +137,18 @@ function _wapComposite(j, bg, variant) {
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
   /* 开运色签：色圆点 + 色名 + 意象词 + 幸运数 */
+  /* R3337（审-中）：方图 lucky 行 y=430 落在顶 scrim 尾外、底 scrim
+   * 头前——正中熊脸区压字。方图在行后垫椭圆暗衬（同判词做法）。 */
   var _lc = (j.lucky && j.lucky.color) || '';
   var _lcw = (j.lucky && j.lucky.color_word) || '';
   var _lnum = (j.lucky && j.lucky.num) || '';
   if (_lc) {
+    if (_sq) {
+      ctx.fillStyle = 'rgba(38,30,22,0.34)';
+      ctx.beginPath();
+      ctx.ellipse(360, A.lucky - 26, 260, 58, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     var _hex = _WAP_LC_HEX[_lc] || '#d9c9a8';
     ctx.font = '400 ' + A.luckyFs +
       'px "LXGW WenKai","PingFang SC",sans-serif';

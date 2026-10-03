@@ -2708,8 +2708,21 @@ function chatBubble(role, text, opts) {
   var flow = el('chatFlow');
   if (!flow) return null;
   /* R228c：清掉所有空态块（静态 #chatEmpty + JS 注入的 .chat-empty）——
-   * 原来只删 getElementById 第一个，注入那份会残留夹在气泡之间。 */
-  document.querySelectorAll('.chat-empty').forEach(function (n) { n.remove(); });
+   * 原来只删 getElementById 第一个，注入那份会残留夹在气泡之间。
+   * R3336（审-中）：空态里的工具块（小确幸/事实板/创可贴钮）聊过天
+   * 被连带删=聊完即不可达——移栽进输入区上方的持久工具位。 */
+  document.querySelectorAll('.chat-empty').forEach(function (n) {
+    var _sc = document.querySelector('.side-chat');
+    var _ir = _sc && _sc.querySelector('.chat-input-row');
+    if (_sc && _ir) {
+      ['.chat-journal', '.chat-facts', '.chat-empty-bandaid']
+        .forEach(function (sel) {
+          var _tn = n.querySelector(sel);
+          if (_tn) _sc.insertBefore(_tn, _ir);
+        });
+    }
+    n.remove();
+  });
   var div = document.createElement('div');
   div.className = 'chat-bubble chat-' + role;
   /* R228c：raw 只能由内部调用点显式声明（打字动效）。原写法嗅探文本里
@@ -5610,63 +5623,9 @@ async function loadDaily() {
     }
     /* R2349l（R73-P1-3/P1-4/P2-9）：个性行 + 开运三件套 + 水逆态——
      * 三条 meta 行同一个惰性挂载点。 */
-    var _metaRow = document.querySelector('#dailyCard .daily-meta');
     /* R2363（R117-P0-2）：胶囊行硬上限——可见 >5 粒折进「+N 条」
      * 收纳钮（横滚 1798px 实测爆炸）；点开完整展示，不收内容只收视线。 */
-    function _dailyMetaCap() {
-      if (!_metaRow) return;
-      var _kids = Array.prototype.slice.call(_metaRow.children)
-        .filter(function (n) {
-          return n.classList.contains('daily-meta-item') &&
-            n.id !== 'dailyMetaMore';
-        });
-      var _vis = _kids.filter(function (n) { return !n.hidden; });
-      _kids.forEach(function (n) { n.dataset.capped = ''; });
-      var _more = el('dailyMetaMore');
-      if (_vis.length <= 5) {
-        if (_more) _more.hidden = true;
-        return;
-      }
-      var _open = _metaRow.dataset.expanded === '1';
-      if (!_open) {
-        _vis.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
-      }
-      if (!_more) {
-        _more = document.createElement('button');
-        _more.id = 'dailyMetaMore'; _more.type = 'button';
-        _more.className = 'daily-meta-item daily-meta-more';
-        _metaRow.appendChild(_more);
-        _more.addEventListener('click', function () {
-          _metaRow.dataset.expanded =
-            _metaRow.dataset.expanded === '1' ? '' : '1';
-          _dailyMetaCap();
-        });
-      }
-      _more.hidden = false;
-      _more.textContent = _open ? '收起' : '+' + (_vis.length - 5) + ' 条';
-      /* R3321-P3：展开/收起态补 aria-expanded。 */
-      _more.setAttribute('aria-expanded', _open ? 'true' : 'false');
-    }
-    function _dailyMetaItem(id, html) {
-      var n = el(id);
-      if (!n) {
-        n = document.createElement('div');
-        n.id = id;
-        /* R3248b（用户实测「对你那条显示不全」）：personal 粒是多行
-         * 文本块——住进 nowrap 横滚胶囊行会被 76vw 截断+ellipsis，
-         * 挪出胶囊行、挂在 meta 行之后自立一块（不进 +N 计数）。 */
-        n.className = id === 'dailyPersonal' ? 'daily-mine-block'
-                                             : 'daily-meta-item';
-        if (id === 'dailyPersonal' && _metaRow && _metaRow.parentNode) {
-          _metaRow.parentNode.insertBefore(n, _metaRow.nextSibling);
-        } else if (_metaRow) {
-          _metaRow.appendChild(n);
-        }
-      }
-      if (html) { n.innerHTML = html; n.hidden = false; }  // esc-reviewed（各调用点 esc() 字段，文本键原样）
-      else { n.hidden = true; n.innerHTML = ''; }
-      _dailyMetaCap();
-    }
+    var _metaRow = document.querySelector('#dailyCard .daily-meta');
     if (j.personal && j.personal.line) {
       /* R3241（用户实测）：判词粒里把「包的底」显出来——此前只有
        * 日主×今天，农历用户看不到自己填的生日（档案存的是换算后
@@ -12498,7 +12457,11 @@ function initDivination() {
           '</span></div>' +
           (got.r ? '<p class="pile-read">' + esc(got.r) + '</p>' : '') +
           '<button type="button" class="ghost pile-share" id="pileShare">' +
-          '📤 分享我这堆</button>';
+          '📤 分享我这堆</button>' +
+          /* R3337（审-中）：pick-a-pile 最大晒点是牌面本身——
+           * 补一张带牌面的海报入口（复用塔罗海报管线）。 */
+          '<button type="button" class="ghost pile-share" id="pilePoster">' +
+          '🖼 存图带走</button>';
         var ps = el('pileShare');
         if (ps && !ps.dataset.bound) {
           ps.dataset.bound = '1';
@@ -12534,6 +12497,22 @@ function initDivination() {
               _showTxt();
               showToast('文案在下面，长按拷走', 'info');
             }
+          });
+        }
+        /* R3337：堆牌海报——选中的堆图喂进塔罗海报（_cardImgs 显式供图）。 */
+        var pp = el('pilePoster');
+        if (pp && !pp.dataset.bound) {
+          pp.dataset.bound = '1';
+          pp.addEventListener('click', function () {
+            var _imgEl = document.querySelector(
+              '.pile-card.revealed img');
+            downloadPoster({
+              spread: '大众占卜 · ' + _PILE_TOPICS[topic],
+              question: '',
+              draws: [{ name: d.name,
+                position: '你选的 ' + 'ABC'[got.i] + ' 堆',
+                upright: d.upright }],
+              _cardImgs: _imgEl ? [_imgEl] : [] }, 'tarot');
           });
         }
       } else { res.hidden = true; res.innerHTML = ''; }
@@ -14807,6 +14786,31 @@ if (document.readyState === 'loading') {
         });
         bar.insertBefore(_wcta, bar.querySelector('.welcome-close'));
       }
+      /* R3336（审-中）：bandaid 受邀链白天落地=纯画饼——创可贴钮只在
+       * 23-05/水逆聊天空态，欢迎条指「领一张」却没得点。直挂真按钮
+       * 出海报模态（按时段挑场景，同空态钮口径）。 */
+      if (_sv2 === 'bandaid' && !bar.querySelector('.welcome-cta')) {
+        var _wcta2 = document.createElement('button');
+        _wcta2.type = 'button';
+        _wcta2.className = 'welcome-cta';
+        _wcta2.textContent = '🩹 领这张创可贴';
+        _wcta2.addEventListener('click', function () {
+          try {
+            var _nh = new Date().getHours();
+            var _night = (_nh >= 23 || _nh < 5);
+            var _im = new Image();
+            _im.src = _night ? '/static/cream/bear-scene-bad.jpg'
+                             : '/static/cream/bear-scene-mid.jpg';
+            _im.onload = function () {
+              downloadPoster({ _art: _im,
+                _artCap: _night ? '今夜小夜灯' : '慢慢来的日子' },
+                'bandaid');
+            };
+            _im.onerror = function () { downloadPoster({}, 'bandaid'); };
+          } catch (eBD) {}
+        });
+        bar.insertBefore(_wcta2, bar.querySelector('.welcome-close'));
+      }
     } else if (_txtEl && _from === 'invite') {
       _txtEl.textContent = (window.__hhInviteBy || 'TA') +
         ' 约你来合婚，填好你的生日就能对上盘 💕';
@@ -15147,6 +15151,8 @@ function _flWriteOpen() {
   el('flSend').addEventListener('click', function () {
     var txt = (el('flText').value || '').trim();
     if (!txt) { showToast('信里写点什么再封吧', 'warn'); return; }
+    /* R3336（审-中）：未来信正文过危机闸（同 journal/许愿瓶）。 */
+    if (feCrisis(txt)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
     /* R3329（审-P3）：剥控制字+同毫秒碰撞加随机尾+数组 50 封顶；
      * 坏 JSON 挪 corrupt 备份重建；setItem 失败说真话不再假寄。 */
     txt = txt.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
@@ -15537,14 +15543,75 @@ function _renderMoodRow(lv) {
   }
 }
 
+/* R3336（审-P1）：_dailyMetaItem/_dailyMetaCap 提模块级——此前定义
+ * 在 loadDaily 内部，_moodJarSync/storage 监听等模块级调用点抛
+ * ReferenceError 被 catch 吞（解锁当帧入口永不渲染=死代码）。
+ * _metaRow 改每次现查（节点生命周期随 #dailyCard 内联结构）。 */
+function _dailyMetaCap() {
+  var _metaRow = document.querySelector('#dailyCard .daily-meta');
+  if (!_metaRow) return;
+  var _kids = Array.prototype.slice.call(_metaRow.children)
+    .filter(function (n) {
+      return n.classList.contains('daily-meta-item') &&
+        n.id !== 'dailyMetaMore';
+    });
+  var _vis = _kids.filter(function (n) { return !n.hidden; });
+  _kids.forEach(function (n) { n.dataset.capped = ''; });
+  var _more = el('dailyMetaMore');
+  if (_vis.length <= 5) {
+    if (_more) _more.hidden = true;
+    return;
+  }
+  var _open = _metaRow.dataset.expanded === '1';
+  if (!_open) {
+    _vis.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
+  }
+  if (!_more) {
+    _more = document.createElement('button');
+    _more.id = 'dailyMetaMore'; _more.type = 'button';
+    _more.className = 'daily-meta-item daily-meta-more';
+    _metaRow.appendChild(_more);
+    _more.addEventListener('click', function () {
+      _metaRow.dataset.expanded =
+        _metaRow.dataset.expanded === '1' ? '' : '1';
+      _dailyMetaCap();
+    });
+  }
+  _more.hidden = false;
+  _more.textContent = _open ? '收起' : '+' + (_vis.length - 5) + ' 条';
+  _more.setAttribute('aria-expanded', _open ? 'true' : 'false');
+}
+function _dailyMetaItem(id, html) {
+  var _metaRow = document.querySelector('#dailyCard .daily-meta');
+  var n = el(id);
+  if (!n) {
+    n = document.createElement('div');
+    n.id = id;
+    /* R3248b：personal 粒是多行文本块——挪出胶囊行自立一块（不进 +N）。 */
+    n.className = id === 'dailyPersonal' ? 'daily-mine-block'
+                                         : 'daily-meta-item';
+    if (id === 'dailyPersonal' && _metaRow && _metaRow.parentNode) {
+      _metaRow.parentNode.insertBefore(n, _metaRow.nextSibling);
+    } else if (_metaRow) {
+      _metaRow.appendChild(n);
+    }
+  }
+  if (html) { n.innerHTML = html; n.hidden = false; }  // esc-reviewed
+  else { n.hidden = true; n.innerHTML = ''; }
+  _dailyMetaCap();
+}
+
 /* R3262（R17）：心情罐子同步——统计 mood:<date> 总数，每满 7 个
  * 解锁一张场景图；首次解锁时 toast 告知，断签不扣回已解锁数。 */
 function _moodJarSync(total) {
   try {
     /* R3315：场景扩到 6 张，封顶跟着表走（scene 数即上限）。 */
-    var unlocked = Math.min(_MOOD_JAR_SCENES.length,
-                            Math.floor((total || 0) / 7));
     var oldU = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
+    /* R3336（审-中）：unlocked 无条件覆写会被 GC 收键/导入更少键
+     * 反向回落——已解锁图静默消失，与「断签不扣回」注释矛盾。
+     * 取 max（旧值，算值） 单调递增。 */
+    var unlocked = Math.max(oldU, Math.min(_MOOD_JAR_SCENES.length,
+                            Math.floor((total || 0) / 7)));
     var oldT = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
     localStorage.setItem('moodjar:total', String(total || 0));
     localStorage.setItem('moodjar:unlocked', String(unlocked));
@@ -15560,7 +15627,15 @@ function _moodJarSync(total) {
 function _moodJarHtml() {
   try {
     var unlocked = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
-    if (unlocked <= 0) return '';
+    /* R3336（审-低）：未解锁时整口不渲=攒满前隐形。进度预告让
+     * 「攒 7 换图」钩子在首周就存在。 */
+    if (unlocked <= 0) {
+      var _tot = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+      if (_tot <= 0) return '';
+      return '<div class="mood-jar-teaser">🏺 心情罐子：再攒 ' +
+        (7 - _tot % 7) + ' 个色点，换第一张场景图（已有 ' + _tot +
+        '）</div>';
+    }
     var html = '<details class="mood-jar-fold"><summary>' +
       '🏺 心情罐子 · 已解锁 <strong>' + unlocked + '</strong>/' +
       _MOOD_JAR_SCENES.length + ' 张' +
@@ -16961,15 +17036,16 @@ function _chatChipsPersonalize() {
   /* R3264（R31）：记忆事实板——让用户看见小满记住了什么。
    * 折叠块内列档案、最近事由、近 7 天心情、最常问的功能。 */
   try {
-    var _fb = box.querySelector('.chat-facts');
+    /* R3336：聊过天后节点住在工具位——回到空态时归位重建。 */
+    var _fb = document.querySelector('.chat-facts');
     if (!_fb) {
       _fb = document.createElement('details');
       _fb.className = 'chat-facts';
-      var _cbox6 = box.querySelector('.chat-empty-chips');
-      if (_cbox6 && _cbox6.parentNode) {
-        _cbox6.parentNode.insertBefore(_fb, _cbox6);
-      } else { box.appendChild(_fb); }
     }
+    var _cbox6 = box.querySelector('.chat-empty-chips');
+    if (_cbox6 && _cbox6.parentNode) {
+      _cbox6.parentNode.insertBefore(_fb, _cbox6);
+    } else { box.appendChild(_fb); }
     var _me2 = null;
     try { _me2 = _meGet('me'); } catch (eM) {}
     var _bd = (_me2 && _me2.y)
@@ -17021,21 +17097,44 @@ function _chatChipsPersonalize() {
   } catch (eF) {}
   /* R3264（R33）：今日小确幸——只问一句话，本地保存 journal:<date>。 */
   try {
-    var _jb = box.querySelector('.chat-journal');
+    /* R3336：同上——持久工具位与空态之间归位。 */
+    var _jb = document.querySelector('.chat-journal');
     if (!_jb) {
       _jb = document.createElement('details');
       _jb.className = 'chat-journal';
-      var _cbox7 = box.querySelector('.chat-empty-chips');
-      if (_cbox7 && _cbox7.parentNode) {
-        _cbox7.parentNode.insertBefore(_jb, _cbox7);
-      } else { box.appendChild(_jb); }
     }
+    var _cbox7 = box.querySelector('.chat-empty-chips');
+    if (_cbox7 && _cbox7.parentNode) {
+      _cbox7.parentNode.insertBefore(_jb, _cbox7);
+    } else { box.appendChild(_jb); }
     var _jval = '';
     try { _jval = localStorage.getItem('journal:' + todayIso()) || ''; } catch (eJ) {}
+    /* R3336（审-中）：小确幸只进不出——30 个键零回看。加「收过的小事」
+     * 最近 10 条回看条（今天之下，写态/读态都挂）。 */
+    var _jPast = [];
+    try {
+      for (var _ji = window.localStorage.length - 1; _ji >= 0; _ji--) {
+        var _jk = window.localStorage.key(_ji);
+        if (_jk && _jk.indexOf('journal:') === 0 &&
+            _jk.slice(8) < todayIso()) {
+          var _jv = window.localStorage.getItem(_jk);
+          if (_jv) _jPast.push([_jk.slice(8), _jv]);
+        }
+      }
+      _jPast.sort(function (a, b) { return a[0] < b[0] ? 1 : -1; });
+    } catch (eJP) {}
+    var _jPastHtml = _jPast.length
+      ? '<div class="chat-journal-past">收过的小事：' +
+        _jPast.slice(0, 10).map(function (e2) {
+          return '<div class="chat-journal-item"><i>' +
+            esc(e2[0].slice(5)) + '</i>' + esc(e2[1]) + '</div>';
+        }).join('') + '</div>'
+      : '';
     if (_jval) {
       _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
         '<div class="chat-journal-body">' +
-        '<p class="chat-journal-done">今天的：' + esc(_jval) + '</p></div>';
+        '<p class="chat-journal-done">今天的：' + esc(_jval) + '</p>' +
+        _jPastHtml + '</div>';
     } else {
       _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
         '<div class="chat-journal-body">' +
@@ -17043,13 +17142,17 @@ function _chatChipsPersonalize() {
         /* R3321-P3：仅 placeholder 作名——补 aria-label。 */
         'aria-label="写一件今天的小事" ' +
         'placeholder="比如「喝到了一杯好喝的茶」">' +
-        '<button id="journalSave" type="button">记下</button></div>';
+        '<button id="journalSave" type="button">记下</button>' +
+        _jPastHtml + '</div>';
       var _jsBtn = el('journalSave');
       var _jsInp = el('journalInput');
       if (_jsBtn && _jsInp) {
         _jsBtn.addEventListener('click', function () {
           var v = _jsInp.value.trim();
           if (!v) return;
+          /* R3336（审-中）：情绪自由文本过危机闸——「活着没意思」
+           * 原样落键零承接是破口。命中不存、给承接句。 */
+          if (feCrisis(v)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
           try { localStorage.setItem('journal:' + todayIso(), v); } catch (eS) {}
           _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
             '<div class="chat-journal-body">' +
@@ -17088,7 +17191,8 @@ function _chatChipsPersonalize() {
   /* R3260（UX-PLAN-R6 R9）：深夜创可贴入口——23-05 点空态多一颗
    * 「带张创可贴走」钮，点出海报模态（一句能存图带走的话 +
    * 夜灯场景卡）。深夜用户要的不是功能是件小物。 */
-  var _band = box.querySelector('.chat-empty-bandaid');
+  /* R3336：创可贴钮同被移栽——document 级找回归位，幂等判重照走。 */
+  var _band = document.querySelector('.chat-empty-bandaid');
   /* R3261（R16）：水逆期创可贴全天供应——求助高峰不只在深夜。 */
   var _mercOn = false;
   try {
@@ -17100,10 +17204,6 @@ function _chatChipsPersonalize() {
       _band = document.createElement('button');
       _band.type = 'button';
       _band.className = 'chat-chip chat-empty-bandaid';
-      var _cbox3 = box.querySelector('.chat-empty-chips');
-      if (_cbox3 && _cbox3.parentNode) {
-        _cbox3.parentNode.insertBefore(_band, _cbox3.nextSibling);
-      } else { box.appendChild(_band); }
       _band.addEventListener('click', function () {
         /* R3261：水逆白天档用日间场景，深夜档用夜灯场景。 */
         var _nh = new Date().getHours();
@@ -17119,9 +17219,14 @@ function _chatChipsPersonalize() {
         _im.onerror = function () { downloadPoster({}, 'bandaid'); };
       });
     }
+    /* R3336：归位——节点可能在工具位也可能在空态，幂等插回 chips 后。 */
+    var _cbox3 = box.querySelector('.chat-empty-chips');
+    if (_cbox3 && _cbox3.parentNode) {
+      _cbox3.parentNode.insertBefore(_band, _cbox3.nextSibling);
+    } else { box.appendChild(_band); }
     _band.textContent = (_hh2 >= 23 || _hh2 < 5)
       ? '🌙 带张创可贴走' : '🩹 带张创可贴走';
-  } else if (_band) { _band.remove(); }
+  } else if (_band && _band.parentNode === box) { _band.remove(); }
   /* R3260（UX-PLAN-R6）：小满便签——久未归（≥3 天没来）时，
    * 空态最上方多一张她留的字条。AI 陪伴产品的共识：主动关怀
    * 的正确形态是「写进会话的消息」而不是推送——这张便签只在她
@@ -17672,6 +17777,8 @@ function _wishAction(act, arg, dateKey) {
     var ta = document.getElementById('wishText');
     var t = ta ? ta.value.trim() : '';
     if (!t) { showToast('先写点什么再丢进去～', 'warn'); return; }
+    /* R3336（审-中）：许愿瓶自由文本过危机闸。 */
+    if (feCrisis(t)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
     var cat = '';
     var host2 = document.getElementById('wishBottleBody');
     var sel = host2 ? host2.querySelector('.ck-wish-cats .checkin-opt.picked') : null;
@@ -18323,7 +18430,9 @@ function baziPersonaCard(j) {
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:',
                      /* R3264（R52）：古籍阅读进度记忆 */
-                     'read:scroll:'];
+                     'read:scroll:',
+                     /* R3336（审-中）：corrupt 救援备份同族导出 */
+                     'futureLetters:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -18498,7 +18607,9 @@ function baziPersonaCard(j) {
                 k.indexOf('usage:') === 0 ||
                 k.indexOf('rlast:') === 0 ||
                 /* R3325：未来信+每日选堆也是个人足迹 */
-                k === 'futureLetters' ||
+                /* R3336（审-中）：futureLetters:corrupt 救援备份键
+                 * 同族收掉——「忘掉」后信件原文不得残留。 */
+                k.indexOf('futureLetters') === 0 ||
                 k.indexOf('pilePick:') === 0 ||
                 /* R3329（审-P3）：周/月信已弹标不收 wipe——「忘掉」
                  * 后信卡复弹。 */
@@ -18673,7 +18784,10 @@ function baziPersonaCard(j) {
             /* R3329（审-P1）：futureLetters/pilePick:/weeklyLetter:/
              * monthlyLetter: 导得出导不回——换机丢信丢选堆。补齐
              * 白名单并逐族做形状校验（用户可控输入）。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters$|pilePick:|weeklyLetter:|monthlyLetter:)/
+            /* R3336（审-中）：checkinBuff: 导得出导不回（静默丢 buff）
+             * + wishfulfilled（成真集）+ futureLetters:corrupt 收编，
+             * 逐族形状校验。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -18755,6 +18869,30 @@ function baziPersonaCard(j) {
                 });
                 if (!_pok) return;
               } catch (ePA) { return; }
+            }
+            /* R3336（审-中）：checkinBuff:<date>={d,n}、wishfulfilled=
+             * 成真集数组、futureLetters:corrupt=裸串只限长。 */
+            if (k.indexOf('checkinBuff:') === 0) {
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(k.slice(12))) return;
+              try {
+                var _bo = JSON.parse(_v);
+                if (!_bo || typeof _bo !== 'object' ||
+                    typeof _bo.d !== 'string' || _bo.d.length > 8 ||
+                    !(parseInt(_bo.n, 10) >= 1 && parseInt(_bo.n, 10) <= 9))
+                  return;
+              } catch (eBO) { return; }
+            }
+            if (k === 'wishfulfilled') {
+              try {
+                var _wa = JSON.parse(_v);
+                if (!Array.isArray(_wa) || _wa.length > 30) return;
+                var _wok = _wa.every(function (_we) {
+                  return _we && typeof _we === 'object' &&
+                    typeof _we.t === 'string' && _we.t.length <= 60 &&
+                    (!_we.c || (typeof _we.c === 'string' && _we.c.length <= 8));
+                });
+                if (!_wok) return;
+              } catch (eWA) { return; }
             }
             if ((k.indexOf('weeklyLetter:') === 0 ||
                  k.indexOf('monthlyLetter:') === 0) && _v !== '1') return;

@@ -17788,3 +17788,30 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 许愿瓶卡底挂「✨ 成真集」条——列最近 5 个成了的愿望（有愿/写愿两态都挂）；summary 变「还愿 ×N」（无愿时有集也显示，有愿时追加尾段）。
 - 实测：Playwright 端到端——写愿→成真啦→wishfulfilled 落档+瓶清空+章+集条+summary「还愿 ×1」→再许一个回表单，PASS。
 - 闸门：selftest 405 / contract 725 / dollar_misuse(399) / banned / dup_keys / ruff 全绿；bump_sw→books-shell-cb9ca1a859ee。
+
+## R3336+R3337 情绪链路深审 + 海报物料复审清零
+- R3336（情绪功能全链路深审）清零：
+  - 模块级 bug：`_dailyMetaCap/_dailyMetaItem` 原嵌套在 loadDaily 内——
+    `_moodJarSync`、storage 监听器等模块级调用点全 ReferenceError
+    （被 catch 吞，心情罐解锁永不落屏）；上提模块级+调用点新查 DOM
+  - `moodjar:unlocked` 单调化 max(old, computed)——GC/导入/降级重算
+    不再倒退吞已解锁场景
+  - `_moodJarHtml` 未解锁期加进度预告行（再攒 N 个色点换场景图）
+  - 危机闸补三条情感自由文本保存路径（journalSave/flSend/wish 保存）——
+    此前绕过 feCrisis（chat/dream/ask 都有）
+  - futureLetters:corrupt 救援备份键纳入 wipe 前缀/导出 _PREF/导入白名单
+  - 导入白名单补 checkinBuff:/wishfulfilled$/futureLetters(:|$)，
+    shape 校验（checkinBuff 日键 {d≤8,n:1-9}、wishfulfilled ≤30 {t≤60,c≤8}）
+  - 聊天工具块（小确幸/事实板/创可贴钮）聊过天被连带删——
+    移栽进输入区上方持久工具位；回到空态归位
+  - 小确幸「只进不出」加最近 10 条回看条
+  - bandaid 受邀链白天落地指死路——欢迎条挂「领这张创可贴」真按钮
+- R3337（海报物料视觉复审）中低项清零：
+  - 卡座底 1280 压品牌水印行（基线 1276）——有明细行时卡高 400→360
+  - 忌行顿号清单改词边截断凑整项（不再「动土」劈成「动」）
+  - 开运头像 lucky 行垫椭圆暗衬；开运壁纸底 scrim 起点 1000→940、
+    终值 0.68→0.74（签句不再压熊脚）
+  - pileShare 补「存图带走」海报钮（_cardImgs 显式供图给 tarot 海报族）
+  - daily 副题 j.lunar 字符串 schema 兼容（农历行不再静默丢）
+  - xzm 判词加白话注释（同款=同一个模子等）
+- 闸门：selftest 405 / contract 725 / ui_smoke 103 / 其余全绿

@@ -3822,3 +3822,11 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .ck-wish-echo-item b{color:#DE7B54;font-size:10px;margin-left:6px;
   border:1px solid currentColor;border-radius:6px;padding:0 4px;}
 @media (prefers-reduced-motion:reduce){.ck-wish-stamp{transform:rotate(0deg);}}
+
+/* R3336 情绪功能修复：小确幸回看 + 心情罐进度预告 */
+.chat-journal-past{margin-top:8px;padding-top:6px;
+  border-top:1px dashed var(--line);font-size:11px;color:var(--muted);}
+.chat-journal-item{margin-top:3px;color:var(--primary-ink);font-size:12px;}
+.chat-journal-item i{font-style:normal;color:var(--muted);
+  font-size:10px;margin-right:6px;}
+.mood-jar-teaser{font-size:11px;color:var(--muted);}
