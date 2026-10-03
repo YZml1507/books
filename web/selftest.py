@@ -2686,6 +2686,15 @@ def _run_inner() -> list[str]:
     _r10 = _dream_mod.interpret_dream("梦见蛇缠着我")
     _open10 = [l for l in _r10["reply"] if "安" in l or "劲儿" in l]
     assert _open10, _r10["reply"]
+    # (n-R3268) 高频梦补位：雪/神佛/星月/动手/登高/新衣 + 彩票归捡钱
+    _cov = {"梦见下雪": "下雪/雪", "梦见菩萨": "龙/神仙/佛菩萨",
+            "梦见月亮好圆": "月亮/星星", "梦见我杀了人": "打人/动了手",
+            "梦见爬山": "爬山/登高", "梦见买新衣服": "新衣服/打扮",
+            "梦见中彩票": "捡钱/发财"}
+    for _qc, _want in _cov.items():
+        _rc = _dream_mod.interpret_dream(_qc)
+        assert any(s["name"] == _want for s in _rc["symbols"]), (
+            _qc, [s["name"] for s in _rc["symbols"]])
     ok.append("dream.syms_integrity")
     # (i) 服务端繁体归一 + 台账名脱敏（不回显梦原文）
     check("dream.t2s", client.post("/api/dream",
