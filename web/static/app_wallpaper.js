@@ -63,11 +63,15 @@ function _wapComposite(j, bg, variant) {
   if (_sq) ctx.drawImage(bg, 0, 280, 720, 720, 0, 0, 720, 720);
   else ctx.drawImage(bg, 0, 0, 720, 1280);
   /* 方形版重定描点 */
-  var A = _sq ? { shop: 64, date: 116, verdict: 330, lucky: 430,
-                  sign: 560, signGap: 46, brand: 692,
+  /* R3327-P0-3：圆裁实测裁掉两端文字——方形版按 ~560px 安全宽
+   * 重排版：日期/开运色行缩字号、品牌短落款上移。 */
+  var A = _sq ? { shop: 64, date: 116, dateFs: 26, verdict: 330,
+                  lucky: 430, luckyFs: 26, sign: 560, signGap: 46,
+                  brand: 640, signW: 520,
                   scrimT: 300, scrimB0: 470, scrimB1: 720 }
-              : { shop: 96, date: 158, verdict: 300, lucky: 380,
-                  sign: 1120, signGap: 52, brand: 1242,
+              : { shop: 96, date: 158, dateFs: 34, verdict: 300,
+                  lucky: 380, luckyFs: 32, sign: 1120, signGap: 52,
+                  brand: 1242, signW: 560,
                   scrimT: 470, scrimB0: 1000, scrimB1: 1280 };
   /* 上下暗角——叠字可读的 scrim（烘焙图上半本来就留净空，这里
    * 只是再压一层保证任何图的日期锚都可读）。 */
@@ -105,7 +109,8 @@ function _wapComposite(j, bg, variant) {
     }
   } catch (eD) {}
   _ln2 = (j && j.lunar) || '';
-  ctx.font = '400 34px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.font = '400 ' + A.dateFs +
+    'px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.95)';
   ctx.fillText((_wd || String(j.date || '')) + (_ln2 ? ' · ' + _ln2 : ''),
                360, A.date);
@@ -125,13 +130,14 @@ function _wapComposite(j, bg, variant) {
   var _lnum = (j.lucky && j.lucky.num) || '';
   if (_lc) {
     var _hex = _WAP_LC_HEX[_lc] || '#d9c9a8';
-    ctx.font = '400 32px "LXGW WenKai","PingFang SC",sans-serif';
+    ctx.font = '400 ' + A.luckyFs +
+      'px "LXGW WenKai","PingFang SC",sans-serif';
     var _lcTxt = '今日开运色 · ' + _lc +
       (_lcw ? '（' + _lcw + '）' : '') + (_lnum ? ' · ' + _lnum : '');
     var _tw = ctx.measureText(_lcTxt).width;
     var _cx = 360 - _tw / 2 - 26;
     ctx.beginPath();
-    ctx.arc(_cx, A.lucky - 22, 16, 0, Math.PI * 2);
+    ctx.arc(_cx, A.lucky - Math.round(A.luckyFs * 0.7), 16, 0, Math.PI * 2);
     ctx.fillStyle = _hex;
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
@@ -150,7 +156,7 @@ function _wapComposite(j, bg, variant) {
   } catch (eS) {}
   ctx.font = '400 36px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.96)';
-  var _sl = _wapWrap(ctx, _sign, 560, 2);
+  var _sl = _wapWrap(ctx, _sign, A.signW, 2);
   _sl.forEach(function (ln, i) {
     ctx.fillText(ln, 360, A.sign + i * A.signGap); });
   ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
@@ -158,7 +164,8 @@ function _wapComposite(j, bg, variant) {
   /* R3319（规划C）：连签里程碑限定壁纸——落款带纪念标，
    * 仪式感奖励物可直发晒图。 */
   ctx.fillText((variant && variant.tag) ||
-               '@小满的解忧铺 · 知命·仅供娱乐', 360, A.brand);
+               (_sq ? '@小满的解忧铺'
+                    : '@小满的解忧铺 · 知命·仅供娱乐'), 360, A.brand);
   return cv;
 }
 
@@ -192,7 +199,7 @@ function downloadWallpaper(j, variant) {
           }
         }, 'image/png');
       } catch (eB) {}
-      showPosterModal(cv, 'daily-wap', j);
+      showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j);
     })
     .catch(function (e) {
       showToast((e && e.message) || '壁纸没做好，网好了再点一次', 'warn');

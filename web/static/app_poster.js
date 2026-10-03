@@ -317,7 +317,7 @@ function _paintSharePoster(s, W, H) {
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
   var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
-                   taohua: 5, hehun: 6,
+                   taohua: 5, hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -369,6 +369,15 @@ function _paintSharePoster(s, W, H) {
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
       var y = cardY + i * lh + 10;
+      /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
+       * 上得了图；点在标签左侧固定位。 */
+      var _dotY = cardY + i * lh + Math.round(lh / 2);
+      if (r.dot) {
+        ctx.fillStyle = r.dot;
+        ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(62,52,40,.25)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.stroke();
+      }
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
       if (_rowInline) {
@@ -723,7 +732,9 @@ function _posterHookForView(view, j) {
     'birth':  '这张小卡是你的底色',
     /* R3318（审-P3-1）：开运壁纸此前落通用兜底——给一句壁纸语境钩。 */
     'daily-wap': '今日开运壁纸，换上就有好心情',
-    'daily-outfit': '穿对颜色，今天顺一半'
+    /* R3327-P1-2：hook 与 _os.big 同句→底 pill 与 y300 大字双印。
+     * 换差异钩。 */
+    'daily-outfit': '跟着五行穿，顺到不像话 →'
   };
   if (view === 'huangli' && hooks[view] == null) {
     /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */
@@ -857,6 +868,7 @@ function buildShareData(view, j) {
       _os.big = '穿对颜色，今天顺一半';
       _os.lines = _oTiers.map(function (t, i) {
         return { k: _pStr(t.tag) + (i === 0 ? ' ★' : ''),
+                 dot: _pStr(t.hex) || null,
                  v: _pStr(t.colors) + ' · ' + _pStr(t.tip) };
       });
       if (!_os.lines.length) {

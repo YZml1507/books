@@ -17659,3 +17659,17 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **r1d 写给未来的信**：`futureLetters` localStorage 数组——写信弹层（一个月后/下个生日有档案才有/一年后），到日打卡区浮信卡同周/月信版式；收下标 opened，进备份 _EXACT 与清空清单。
 - **r1e 日历提醒 .ics**：「🔔 日历提醒」下 Blob .ics（RRULE DAILY×30，钟点沿用 notify:time）——Render 免费档无推送通道的零基建留存替代，系统日历接管。
 - **闸门**：selftest 400 / ui_smoke 101（on_coverage 豁免表 +6：dailyAva/dailyIcs/outfitShare/flClose/flSend/pileShare；pile 变量改名 pc 避探针 c.addEventListener 误配）/ contract 723 / 其余全绿。
+
+## R3327 — 分享物料复扫清零（子审计修复批）
+
+R3327（分享物料真机复扫）13 项全清：
+
+- P0 穿搭海报「忌」行被 _lineCap 默认 4 截掉 → 'daily-outfit':5；行尾 hex 色点上线（r.dot 行前点）。
+- P0 分享钩子与卡面大字同句双印 → 钩改「跟着五行穿，顺到不像话 →」。
+- P0 开运头像圆裁切字：方形版按 ~560px 安全宽重排（日期/开运色行字号 26、签句宽 520、品牌短落款上移 y=640），色点纵向随字号。
+- P1 挑堆分享文案带堆位（我选了 B 堆）+ 回流 CTA + #塔罗 #大众占卜；clipboard 失败渲可选 textarea 兜底。
+- P1 .ics：UID 固定（重复导入去重）、DTSTAMP 取此刻 UTC、VALARM 补 RFC 必需 DESCRIPTION。
+- P1 未来信 meta 量化跨度（写于 N 天前/个月前/年前）；已收的信不再即焚——「已收的信」折叠可重读。
+- P2 _cnDateSub 日去零（10月3日）；头像预览标题「开运头像」+ 专属分享文案；寄信 toast 与选项同口径（一个月后/下个生日/一年后）。
+
+闸门：自测 400 / 契约 723 / UI 101 / 日期对齐 74+52+9族 / ruff / 全套专项 全绿。

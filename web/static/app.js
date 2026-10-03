@@ -152,6 +152,8 @@ function _cnDateSub(dateStr) {
   var d = _pStr(dateStr) || todayIso();
   var md = d.slice(5).replace('-', '月');
   if (md.charAt(0) === '0') md = md.slice(1);
+  /* R3327-P2-8：日也同法去零——「10月03日」与卡面「10月3日」不一致。 */
+  md = md.replace(/月0/, '月');
   return md + '日 · ' + _weekdayCn(d);
 }
 function _signNo(dateStr) {
@@ -7967,7 +7969,7 @@ var _POSTER_TITLES = {
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
-  renge: '五行人格', 'daily-wap': '开运壁纸' };
+  renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
@@ -8007,6 +8009,7 @@ var _SHARE_TEXT = {
   'bazi-yearly': '我的年度运势出炉了，看看你的 →',
   /* R3319-P2：开运壁纸分享不再落通用兜底。 */
   'daily-wap': '今日开运壁纸换好了，接住这份运气 →',
+  'daily-ava': '今日开运头像换上了，接住这份运气 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
@@ -12356,15 +12359,34 @@ function initDivination() {
         if (ps && !ps.dataset.bound) {
           ps.dataset.bound = '1';
           ps.addEventListener('click', function () {
-            var t = '今日' + _PILE_TOPICS[topic] + ' · 我抽中「' +
-              (got.d.name || '') + '」' + (got.d.upright ? '正位' : '逆位') +
-              '：' + (got.d.upright ? got.d.upright_kw : got.d.reversed_kw) +
-              ' —— 小满的解忧铺';
+            /* R3327-P1-4：堆位入文案（pick-a-pile 晒点=「你选哪堆」）+
+             * 回流 CTA + 话题标签。 */
+            var t = '今日' + _PILE_TOPICS[topic] + ' · 我选了 ' +
+              'ABC'[got.i] + ' 堆，翻出「' + (got.d.name || '') + '」' +
+              (got.d.upright ? '正位' : '逆位') + '：' +
+              (got.d.upright ? got.d.upright_kw : got.d.reversed_kw) +
+              '。你选哪堆？来小满的解忧铺对一对 #塔罗 #大众占卜';
+            var _showTxt = function () {
+              /* R3327-P1-5：clipboard 失败把文案渲进可选 textarea，
+               * 「长按复制」不再无处下手。 */
+              var res2 = el('pileResult');
+              if (!res2 || res2.querySelector('.pile-sharetxt')) return;
+              var ta = document.createElement('textarea');
+              ta.className = 'pile-sharetxt';
+              ta.readOnly = true; ta.rows = 3; ta.value = t;
+              res2.appendChild(ta);
+            };
             try {
               navigator.clipboard.writeText(t).then(function () {
                 showToast('牌面文案已复制，发出去喊朋友也来选一堆', 'ok');
-              }, function () { showToast('复制失败，长按手动复制', 'warn'); });
-            } catch (eC2) { showToast('长按手动复制', 'info'); }
+              }, function () {
+                _showTxt();
+                showToast('复制没成功——文案在下面，长按拷走', 'info');
+              });
+            } catch (eC2) {
+              _showTxt();
+              showToast('文案在下面，长按拷走', 'info');
+            }
           });
         }
       } else { res.hidden = true; res.innerHTML = ''; }
@@ -12794,16 +12816,23 @@ function initDivination() {
     var _dt = _st.getFullYear() + _pd(_st.getMonth() + 1) +
       _pd(_st.getDate()) + 'T' + _pd(_st.getHours()) +
       _pd(_st.getMinutes()) + '00';
+    /* R3327-P1-6：UID 固定（重复导入去重，不再一天多一份闹钟）；
+     * DTSTAMP 取此刻 UTC；VALARM 补 RFC 必需的 DESCRIPTION。 */
+    var _nw3 = new Date();
+    var _ds = _nw3.getUTCFullYear() + _pd(_nw3.getUTCMonth() + 1) +
+      _pd(_nw3.getUTCDate()) + 'T' + _pd(_nw3.getUTCHours()) +
+      _pd(_nw3.getUTCMinutes()) + _pd(_nw3.getUTCSeconds()) + 'Z';
     var _ics = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//xiaoman//books//CN',
       'BEGIN:VEVENT',
-      'UID:xiaoman-daily-' + _dt + '@books',
-      'DTSTAMP:' + _dt,
+      'UID:xiaoman-daily-remind@books',
+      'DTSTAMP:' + _ds,
       'DTSTART:' + _dt,
       'RRULE:FREQ=DAILY;COUNT=30',
       'SUMMARY:小满喊你来领今日签',
       'DESCRIPTION:今天的运势和开运色更新啦，来看看小满给你留了什么话～',
-      'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY', 'END:VALARM',
+      'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY',
+      'DESCRIPTION:小满喊你来领今日签', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     try {
       var _bb = new Blob([_ics], { type: 'text/calendar;charset=utf-8' });
@@ -14926,7 +14955,13 @@ function _flWriteOpen() {
       localStorage.setItem('futureLetters', JSON.stringify(lst));
     } catch (eFS) {}
     close();
-    showToast('信寄出啦，' + lt.deliver + ' 那天会送回来', 'ok');
+    /* R3327-P3-12：toast 与 select 选项同口径（一个月后/下个生日/
+     * 一年后），不再贴 ISO 日期。 */
+    var _sel = el('flWhen');
+    var _lbl = (_sel && _sel.options && _sel.options[_sel.selectedIndex])
+      ? _sel.options[_sel.selectedIndex].textContent.split('（')[0]
+      : lt.deliver;
+    showToast('信寄出啦，' + _lbl + ' 那天会送回来', 'ok');
     renderCheckin(todayIso());
   });
   var t = el('flText');
@@ -15637,14 +15672,29 @@ function renderCheckin(dateKey) {
     var _flDue = _flList.filter(function (lt) { return lt._due; });
     var _flPend = _flList.filter(function (lt) {
       return lt && !lt.opened && !lt._due; });
-    _flDue.forEach(function (lt, _fi) {
+    var _flDone = _flList.filter(function (lt) { return lt && lt.opened; });
+    _flDue.forEach(function (lt) {
+      /* R3327-P1-7：meta 量化时间跨度（写于 N 天前），
+       * 比 ISO 日期有泪点。 */
+      var _days = 0;
+      try {
+        _days = Math.max(0, Math.round(
+          (new Date(dateKey + 'T00:00:00') -
+           new Date(String(lt.created || dateKey) + 'T00:00:00')) /
+          86400000));
+      } catch (eFD) {}
+      var _span = _days >= 365
+        ? '写于 ' + Math.floor(_days / 365) + ' 年前'
+        : _days >= 30
+        ? '写于 ' + Math.floor(_days / 30) + ' 个月前'
+        : _days >= 1 ? '写于 ' + _days + ' 天前' : '今天写下';
       _flHtml += '<div class="weekly-letter fl-letter" data-flid="' +
         esc(lt.id) + '"><div class="wl-head">✉️ 过去的你写来的信' +
         '<button type="button" class="wl-x fl-open" data-flid="' +
         esc(lt.id) + '" aria-label="收下了">×</button></div>' +
         '<div class="wl-body">' + esc(lt.text) +
-        '<div class="fl-meta">' + esc(lt.created || '') +
-        ' 写下的 · 今天送达</div></div></div>';
+        '<div class="fl-meta">' + esc(_span) +
+        ' · 今天送达</div></div></div>';
     });
     _flHtml += '<div class="fl-entry">' +
       '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
@@ -15653,6 +15703,19 @@ function renderCheckin(dateKey) {
           '最近 ' + esc(_flPend.map(function (l) { return l.deliver; })
             .sort()[0] || '') + ' 到</span>'
         : '') + '</div>';
+    /* R3327-P1-7b：已收的信不再即焚——收下后收进「已收的信」折叠，
+     * 可重读。 */
+    if (_flDone.length) {
+      _flHtml += '<details class="fl-done"><summary>📬 已收的信（' +
+        _flDone.length + '）</summary>';
+      _flDone.slice().reverse().forEach(function (lt) {
+        _flHtml += '<div class="fl-done-item">' +
+          '<div class="fl-done-meta">' + esc(lt.created || '') +
+          ' 写 · ' + esc(lt.deliver || '') + ' 到</div>' +
+          '<div class="fl-done-text">' + esc(lt.text) + '</div></div>';
+      });
+      _flHtml += '</details>';
+    }
   } catch (eFL) {}
   box.innerHTML = _wlHtml + _mlHtml + _flHtml + '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
