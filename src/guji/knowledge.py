@@ -458,6 +458,59 @@ class KnowledgeBase:
     # 个新键可以无限写行且 wipe 不清，唯一无总帽的用户表。按
     # updated_at LRU 逐出（合法键个位数，256 远超正常使用）。
     _CAP_PREFS = 256
+    # R3343：合拍打卡帽——每 member 留最近 400 天（>1 年足量）；
+    # 全局 100 万行兜底（伪造 pair_id 灌表的最坏情形被收在 ~30MB）。
+    _CAP_COUPLE_MEMBER_DAYS = 400
+    _CAP_COUPLE_ROWS = 1_000_000
+
+    def couple_sync(self, pair_id: str, member: int,
+                    days: list[str]) -> dict:
+        """写入本 member 的打卡日集合并返回两人交集（新→旧）。
+
+        行只含 (pair_id, member, day)——不存生日/姓名。days 由 services
+        层校验过格式与真实日期。返回值不含对方未交集的日子（只回交集，
+        少回一面数据面）。"""
+        # _SCHEMA_OK 快路径（R3237）会跳过 schema.sql——老库升级后此表
+        # 可能缺席；每调用一次 sqlite_master 探针兜底补建（幂等）。
+        _has = self.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='couple_days'").fetchone()
+        if not _has:
+            self.db.execute(
+                "CREATE TABLE IF NOT EXISTS couple_days ("
+                "pair_id TEXT NOT NULL, member INTEGER NOT NULL, "
+                "day TEXT NOT NULL, "
+                "PRIMARY KEY (pair_id, member, day))")
+            self.db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_couple_days_pair "
+                "ON couple_days(pair_id)")
+        if days:
+            self.db.executemany(
+                "INSERT OR IGNORE INTO couple_days (pair_id, member, day) "
+                "VALUES (?,?,?)",
+                [(pair_id, member, d) for d in days])
+        self.db.execute(
+            "DELETE FROM couple_days WHERE pair_id=? AND member=? "
+            "AND day NOT IN (SELECT day FROM couple_days "
+            " WHERE pair_id=? AND member=? ORDER BY day DESC LIMIT ?)",
+            (pair_id, member, pair_id, member,
+             self._CAP_COUPLE_MEMBER_DAYS))
+        # 全局帽：总数超限按最早 day 清最旧行（best-effort）。
+        _total = self.db.execute(
+            "SELECT COUNT(*) FROM couple_days").fetchone()[0]
+        if _total > self._CAP_COUPLE_ROWS:
+            self.db.execute(
+                "DELETE FROM couple_days WHERE rowid IN "
+                "(SELECT rowid FROM couple_days ORDER BY day ASC LIMIT ?)",
+                (_total - self._CAP_COUPLE_ROWS,))
+        self.db.commit()
+        rows = self.db.execute(
+            "SELECT member, day FROM couple_days WHERE pair_id=?",
+            (pair_id,)).fetchall()
+        a = {r["day"] for r in rows if r["member"] == 0}
+        b = {r["day"] for r in rows if r["member"] == 1}
+        shared = sorted(a & b, reverse=True)
+        return {"shared": shared[:120], "shared_total": len(shared)}
 
     def _del_derived(self, did: int, claim: str) -> None:
         """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能

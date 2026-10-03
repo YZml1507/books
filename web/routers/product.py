@@ -7,8 +7,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from .. import deps, services
-from ..schemas import (DailyRequest, FavoriteAddRequest,
-                       LunarConvertRequest, PrefsRequest)
+from ..schemas import (CoupleCheckinRequest, DailyRequest,
+                       FavoriteAddRequest, LunarConvertRequest,
+                       PrefsRequest)
 
 router = APIRouter(tags=["product"])
 
@@ -105,6 +106,13 @@ def clear_favorites() -> dict:
     """R2349（R65-P1-2）：清空全部收藏——「忘掉我的数据」调用面。"""
     deps.write_guard()   # R2357
     return services.clear_favorites()
+
+
+@router.post("/api/couple/checkin")
+def couple_checkin(req: CoupleCheckinRequest) -> dict:
+    """合拍打卡（R3343）：本方打卡日集合并入，回两人交集。"""
+    deps.write_guard()   # R2357：公网演示模式禁写共享库
+    return services.couple_checkin(req)
 
 
 @router.get("/api/external/news")

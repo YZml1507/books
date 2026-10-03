@@ -14108,6 +14108,9 @@ function init() {
         try { _renderMeStrip(); } catch (eMS) {}
         try { renderCheckin(todayIso()); } catch (eRC) {}
       } else { _meFillAll(); }
+      /* R3343：档案变了——合拍对可能换了人，强行再对一次
+       * （pair_id 重算，ck 不符的旧交集自动不顶包）。 */
+      try { _coupleSync(true); } catch (eCPx) {}
     }
   });
 
@@ -15399,6 +15402,67 @@ function _usageDays() {
     return isNaN(d) || d < 1 ? 1 : d;
   } catch (eD) { return 1; }
 }
+/* R3343：和TA一起打卡——双方各自把打卡日集合推到服务端，服务端
+ * 只回交集。pair_id = SHA-256(规范生日串|字典序拼接)，服务端只见
+ * 哈希不见生日；member 由字典序定（双方算法一致，各自算出自己的侧）。 */
+var _coupleInflight = false;
+function _coupleCanon(p) {
+  /* 双方可复现的规范串：只含生日+性别（昵称两台设备不同，不入串）。 */
+  if (!p || !p.y || !p.m || !p.d) return '';
+  return [p.y, p.m, p.d, (p.h == null ? 'x' : p.h), (p.g || 'x')].join('-');
+}
+function _coupleKey(me, pa) {
+  var a = _coupleCanon(me), b = _coupleCanon(pa);
+  if (!a || !b || a === b) return '';
+  return a < b ? a + '|' + b : b + '|' + a;
+}
+function _coupleSync(force) {
+  try {
+    if (_coupleInflight) return;
+    var me = _meGet('me'), pa = _meGet('n');
+    var ckey = _coupleKey(me, pa);
+    if (!ckey || !window.crypto || !crypto.subtle) return;
+    var last = +(localStorage.getItem('couple:syncts') || 0);
+    if (!force && Date.now() - last < 6 * 3600e3) return;
+    try { localStorage.setItem('couple:syncts', String(Date.now())); }
+    catch (eTS) {}
+    _coupleInflight = true;
+    var member = _coupleCanon(me) < _coupleCanon(pa) ? 0 : 1;
+    var days = Object.keys(_checkinAll()).filter(function (k) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(k);
+    }).sort().slice(-400);
+    crypto.subtle.digest('SHA-256',
+        new TextEncoder().encode('books-couple:' + ckey))
+      .then(function (buf) {
+        var hex = Array.prototype.map.call(new Uint8Array(buf),
+          function (b) { return ('0' + b.toString(16)).slice(-2); }
+        ).join('');
+        /* 走 api() 同款契约：超时+静默+JSON——裸 fetch 无超时还会
+         * 让契约探针把 r.ok/r.json 当字段读点误报。 */
+        return api('/api/couple/checkin', {
+          method: 'POST', silent: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pair_id: hex, member: member, days: days })
+        }).catch(function () { return null; });
+      })
+      .then(function (j) {
+        if (j && typeof j.shared_total === 'number') {
+          try {
+            localStorage.setItem('couple:shared', JSON.stringify({
+              ck: ckey, shared: j.shared || [],
+              total: j.shared_total }));
+          } catch (eSV) {}
+          /* 打卡卡在屏上就重渲 meta 行（焦点不在选项上时才动）。 */
+          var box = document.getElementById('dailyCheckin');
+          if (box && !box.contains(document.activeElement)) {
+            try { renderCheckin(todayIso()); } catch (eRC) {}
+          }
+        }
+      })
+      .catch(function () {})
+      .finally(function () { _coupleInflight = false; });
+  } catch (eS) { _coupleInflight = false; }
+}
 function _yearStats(dateKey) {
   /* R3342：年度小满报告聚合——全年本机足迹，零上传零画像。
    * dateKey=「今天」（或回看锚日）；只计当年、截至锚日的足迹。 */
@@ -15901,6 +15965,20 @@ function renderCheckin(dateKey) {
                ' 颗有小满的话';
     }
   }
+  /* R3343：和TA合拍——CP 档齐且服务端回过交集时挂一行。
+   * couple:shared={ck, shared, total} 由 _coupleSync 写入；ck 变了
+   * （换过伴侣档）旧交集不顶包。 */
+  try {
+    var _csp = JSON.parse(localStorage.getItem('couple:shared') || 'null');
+    if (_csp && _csp.total > 0 &&
+        _csp.ck === _coupleKey(_meGet('me'), _meGet('n'))) {
+      var _cSet = {};
+      (_csp.shared || []).forEach(function (d) { _cSet[d] = 1; });
+      var _cStreak = _checkinStreak(_cSet, dateKey);
+      _meta += ' 💞 和TA合拍 ' + _csp.total + ' 天' +
+        (_cStreak >= 2 ? ' · 连击 ' + _cStreak : '');
+    }
+  } catch (eCS) {}
   /* R3264（R48）：周目标可视化——可选 3/5/7 天，显示还差/已达。 */
   var _weekGoal = 5;
   try { _weekGoal = parseInt(localStorage.getItem('checkin:goal') || '5', 10); } catch (eG) {}
@@ -16555,6 +16633,9 @@ function renderCheckin(dateKey) {
        * 的，不重拉的话 +n 角标要等下次进页才显形。/api/daily 有缓存，
        * 重拉成本只是一次本地往返。 */
       try { loadDaily(); } catch (eLD) {}
+      /* R3343：打完卡立刻同步合拍集合（force 破 6h 节流）——
+       * 对方今天若也打了，下一秒就能看见合拍+1。 */
+      try { _coupleSync(true); } catch (eCP) {}
       /* R3264（R46）：签到身份反馈——抽完卡给一句「正在成为」。 */
       try { showToast(_identityPhrase(), 'ok'); } catch (eI) {}
       /* R233f（R43-P2-3）：整卡重渲销毁了聚焦钮，焦点丢 BODY 从头爬
@@ -16586,6 +16667,9 @@ function renderCheckin(dateKey) {
       } catch (e3) {}
     });
   }
+  /* R3343：渲染间隙顺手对一次合拍（6h 节流，CP 档不齐/无
+   * crypto.subtle 内部自己跳）。打卡成功路径是 force 直调。 */
+  try { _coupleSync(false); } catch (eCP2) {}
 }
 /* R231h：连签里程碑卡——轻量模态，标题+一句+分享图按钮。 */
 function _checkinCelebrate(streak, opt) {
@@ -18715,7 +18799,10 @@ function baziPersonaCard(j) {
                 k.indexOf('weeklyLetter:') === 0 ||
                 k.indexOf('monthlyLetter:') === 0 ||
                 /* R3335：碎念件数也是足迹 */
-                k.indexOf('shred:') === 0)) _rm.push(k);
+                k.indexOf('shred:') === 0 ||
+                /* R3343：couple:shared 内嵌规范生日串（PII）+ 同步
+                 * 时间戳——「忘掉我的数据」必须收。 */
+                k.indexOf('couple:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*

@@ -369,6 +369,13 @@ def main(self_check: bool = False) -> int:
                     return orig.call(this, t, ...a);
                 };
             }""")
+            # R3343a：drawPoster 住在懒加载 chunk app_poster.js——warmPoster
+            # 的 requestIdleCallback 预热在 CI 共享机上会与下面的 evaluate
+            # 赛跑（实测 drawPoster is not defined 崩整条判据）。这里是
+            # 测试准备不是断言：显式把 chunk 拉完再测，与真机「点了才拉」
+            # 语义同构。
+            page.evaluate("() => _loadPosterJs().then(() => "
+                          "_loadQrJs ? _loadQrJs() : 0)")
             res = page.evaluate("(j) => {"
                                " let __r = null; let __min = 1e9;"
                                # R230a-45：CI 共享机时序抖动实测 55ms（本地 13ms），

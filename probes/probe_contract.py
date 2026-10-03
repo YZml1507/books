@@ -198,6 +198,13 @@ FIXTURES: dict[str, dict] = {
     "/api/bookstudy/summary": {"method": "GET", "params": {
         "work_id": "KR1a0001"}},
     "POST /api/tarot":    {"method": "POST", "json": {"seed": 42, "n": 3}},
+    # R3343：合拍打卡——前端读 j.shared（elem 读点要求非空），单方 fixture
+    # 只能回空交集 → 假 SKIP。preseed_couple 先落双方重叠日再 POST。
+    # 前端走裸 fetch(method:'POST') 不挂 POST 前缀——键名按无前缀登记。
+    "/api/couple/checkin": {"method": "POST", "json": {
+        "pair_id": "c0" * 32, "member": 0,
+        "days": ["2026-09-30", "2026-10-01"]},
+        "preseed_couple": True},
     # R228a：排盘历史台账端点（phFetch 包装器原来不在抽取正则会漏判，
     # j.items 被误记到 /api/bazi 头上报假 HARD——先把端点接进来）
     "/api/paipan/history":    {"method": "GET", "params": {"limit": 50}},
@@ -710,6 +717,7 @@ def main() -> int:
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     created_derived: list[int] = []
     created_threads: list[int] = []   # R228s续6：fixture 自动开的线程也要回收
+    couple_pids: list[str] = []       # R3343：preseed 落库的哨兵 pair_id
     fav_id = None
     seed_bazi = client.post("/api/bazi", json=FIXTURES["POST /api/bazi"]["json"])
     assert seed_bazi.status_code == 200, seed_bazi.text[:200]
@@ -804,6 +812,14 @@ def main() -> int:
             r = client.get(url_real, params=fx.get("params"))
         else:
             _payload = fx.get("json")
+            if fx.get("preseed_couple"):
+                # R3343：交集响应要求双方行——复用服务端 couple_sync
+                # 预落 member 0/1 的重叠日（自带建表幂等），再 POST。
+                _cp = (_payload or {}).get("pair_id") or ""
+                with kb_mod.KnowledgeBase(kb_path) as _kbc:
+                    _kbc.couple_sync(_cp, 0, ["2026-09-30", "2026-10-01"])
+                    _kbc.couple_sync(_cp, 1, ["2026-10-01", "2026-10-02"])
+                couple_pids.append(_cp)
             if fx.get("gen_records"):
                 # R2400（R127-P2-5）：import 需非空 new_records 才可判——
                 # 每轮生成唯一 ts 的记录（毫秒戳），避开 (ts,name,type)
@@ -847,7 +863,7 @@ def main() -> int:
     finally:
         cleaned, hist_after = cleanup(history_db, kb_mod, kb_path,
                                      hist_baseline, created_derived, fav_id,
-                                     created_threads)
+                                     created_threads, couple_pids)
         # R228a：paipan_history.db 增量清理（独立轻量库，同纪律）
         _ph_after = _ph_baseline
         try:
@@ -909,7 +925,7 @@ def main() -> int:
 
 
 def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived,
-            fav_id, created_threads=()):
+            fav_id, created_threads=(), couple_pids=()):
     """删除本轮写入的行并返回 (清理清单, 清理后 history 行数)。
 
     必须可在异常路径上调用（见 main 的 try/finally）。本身不抛异常——
@@ -944,6 +960,16 @@ def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived,
                 kb.db.execute("DELETE FROM turn WHERE thread_id=?", (t,))
                 kb.db.execute("DELETE FROM thread WHERE id=?", (t,))
                 cleaned.append(f"thread#{t}")
+            for _cp in couple_pids:            # R3343：preseed 哨兵对
+                # 表在 fixture 未跑的库里可能不存在——照 couple_sync 同
+                # 款 sqlite_master 探针，缺表就跳过不炸后续清理。
+                _has_ct = kb.db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='couple_days'").fetchone()
+                if _has_ct:
+                    kb.db.execute(
+                        "DELETE FROM couple_days WHERE pair_id=?", (_cp,))
+                    cleaned.append(f"couple:{_cp[:8]}…")
             kb.db.commit()
     except Exception as exc:                      # noqa: BLE001
         cleaned.append(f"⚠ 清理未完成：{type(exc).__name__}: {exc}")

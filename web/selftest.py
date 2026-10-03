@@ -3029,6 +3029,54 @@ def _run_inner() -> list[str]:
         if _theme0:
             client.post("/api/user/prefs", json={"theme": _theme0})
     ok.append("prefs.guardrails")
+    # R3343：合拍打卡——双人写入求交集、输入校验、单方无交集。
+    _pid = "ab" * 32
+    try:
+        _c0 = client.post("/api/couple/checkin",
+                          json={"pair_id": _pid, "member": 0,
+                                "days": ["2026-10-01", "2026-10-02",
+                                         "2026-10-03"]})
+        assert _c0.status_code == 200, ("couple.m0", _c0.status_code)
+        _c1 = client.post("/api/couple/checkin",
+                          json={"pair_id": _pid, "member": 1,
+                                "days": ["2026-10-02", "2026-10-03",
+                                         "2026-10-04"]})
+        assert _c1.status_code == 200, ("couple.m1", _c1.status_code)
+        _c1j = _c1.json()
+        assert _c1j.get("shared_total") == 2 and \
+            _c1j.get("shared") == ["2026-10-03", "2026-10-02"], \
+            ("couple.shared", _c1j)
+        # 无交集 member 回 0；只回交集不回单方集合
+        _c2 = client.post("/api/couple/checkin",
+                          json={"pair_id": "cd" * 32, "member": 0,
+                                "days": ["2026-10-01"]})
+        assert _c2.json().get("shared_total") == 0, ("couple.solo", _c2.json())
+        # 校验面：非 hex/短 id/member 越界/天数超帽 → 400/422
+        for _bad in (
+                {"pair_id": "zz", "member": 0, "days": []},
+                {"pair_id": _pid, "member": 2, "days": []},
+                {"pair_id": _pid, "member": 0,
+                 "days": ["2026-10-0%d" % (i % 10) for i in range(405)]}):
+            _cr = client.post("/api/couple/checkin", json=_bad)
+            assert _cr.status_code in (400, 422), \
+                ("couple.valid", _bad.get("member"), _cr.status_code)
+        # 非法日期串被剥掉不炸（脏 day 静默剔除）
+        _c3 = client.post("/api/couple/checkin",
+                          json={"pair_id": "ef" * 32, "member": 0,
+                                "days": ["2026-13-40", "x", "2026-10-05"]})
+        assert _c3.status_code == 200, ("couple.dirty", _c3.status_code)
+    finally:
+        # 清测试数据——合拍表留在 knowledge.db，不打进备份面
+        try:
+            from web import deps as _depsc
+            with _depsc.knowledge() as _kb:
+                _kb.db.execute(
+                    "DELETE FROM couple_days WHERE pair_id IN (?,?,?)",
+                    (_pid, "cd" * 32, "ef" * 32))
+                _kb.db.commit()
+        except Exception:
+            pass
+    ok.append("couple.checkin")
     # R2357（R113-P1-7）：BOOKS_WRITE_DISABLE 公网写入总闸——env 即时读，
     # 开则所有共享库写端点 400 中文，关则恢复。
     import os as _osw
@@ -3041,6 +3089,9 @@ def _run_inner() -> list[str]:
                 ("delete", "/api/favorites/1", {}),
                 ("delete", "/api/threads/1", {}),
                 ("patch", "/api/threads/1?status=closed", {}),
+                ("post", "/api/couple/checkin",
+                 {"json": {"pair_id": "ab" * 32, "member": 0,
+                           "days": ["2026-10-01"]}}),
                 ("post", "/api/threads",
                  {"json": {"kind": "answer", "claim": "x",
                            "method": "manual"}})):

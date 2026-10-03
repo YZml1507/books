@@ -5291,6 +5291,15 @@ def clear_favorites() -> dict:
     return {"ok": True}
 
 
+def couple_checkin(req) -> dict:
+    """合拍打卡（R3343）：双方各自把打卡日集合推上来，服务端只回交集。
+
+    输入校验全在 CoupleCheckinRequest（pair_id 64hex、member 0|1、
+    days≤400 且逐项真实日期）——到这里的都是干净值。"""
+    with deps.knowledge() as kb:
+        return kb.couple_sync(req.pair_id, req.member, req.days)
+
+
 def external_news() -> dict:
     """外部资讯通道：抓预置 RSS/Atom 源。不落库、不写 history。"最新消息"
     是即时信息，与古籍语料 Source 层严格隔离。单源失败自动降级。"""

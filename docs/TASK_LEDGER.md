@@ -17850,3 +17850,41 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   llm_polish / first_screen / date_parity 74+52+253+9 / banned / standing /
   corpus / importable / dup_keys / dollar_misuse(400) / baseline_voice 重冻结 /
   ruff 全绿；bump_sw→books-shell-a209e8640729
+
+## R3342-R3343（r1 年度小满报告 + R3343 和TA一起打卡 + CI 竞态修）
+- R3342（年度小满报告 year-wrap，commit 035b94b）：_yearStats(dateKey)
+  聚合全年 localStorage 足迹（打卡/连打峰值/主心情mode/最常翻标签/
+  小记/仪式/愿望成真/来访天）→ year-wrap 海报视图（_lineCap=6 +
+  hooks 文案 + case 分支 6 行卡面）；打卡卡挂「📖 小满年报」钮
+  （年打卡≥8出报，12/15-1/31窗降3，未达钮禁显「还差N天」占位语）；
+  probe_ui_smoke 豁免登记 checkinYear；app.js 构建标记 R218a-01 改
+  字符串字面量（serve 时 jsmin 剥注释导致 verify_r218a missing 的修复）
+- R3343（和TA一起打卡，couple streak）：
+  - 后端：couple_days(pair_id,member,day) 表（PK 三元组）；schema.sql
+    落表+索引——但 _SCHEMA_OK 快路径对旧库不跑 schema.sql，故
+    couple_sync 内自带 sqlite_master 探针+CREATE IF NOT EXISTS 幂等；
+    CAP：member 400 天/全表 1M 行；POST /api/couple/checkin
+    （write_guard 接入）；CoupleCheckinRequest 校验（pair_id 64位hex
+    正则/member∈{0,1}/days≤400 且逐条真日期过滤，脏项剥弃不炸）；
+    返回 {shared 交集倒序≤120, shared_total}——只回交集不回单方集合
+  - 隐私设计：线上不过生日——pair_id=SHA256('books-couple:'+排序后
+    规范串 'y-m-d-h|g' 拼接)，member=规范串字典序索引，双方同序算
+    同号，服务端只存 (hash,member,day) 无任何生辰
+  - 前端：_coupleCanon/_coupleKey/_coupleSync（6h 节流 couple:syncts；
+    crypto.subtle 缺失/CP档不齐静默跳）；打卡成功 force sync；
+    renderCheckin 尾部闲同步；me/me:partner 变化（含 B tab 删除）
+    force 重对；meta 行拼 💞 和TA合拍 N 天·连击 n（ck 校验不顶包）；
+    couple:* 键进「忘掉我的数据」清除清单
+  - 闸门：selftest couple.checkin（双人交集/单方零交/校验面/脏日期）
+    + write_guard.public 增打本端点；contract fixture preseed_couple
+    （elem 读点要求交集非空，双方预落重叠日）+ couple_pids 清理列
+    + sqlite_master 探针保护；前端改走 api() 契约（裸 fetch 无超时
+    还会被探针把 r.ok/r.json 当读点误报 HARD=2）
+- CI 竞态修复（check_poster 判据 12）：drawPoster 住懒 chunk
+  app_poster.js——R3338 warmPoster 挪 requestIdleCallback 后 CI 共享
+  机与 evaluate 赛跑（drawPoster is not defined 崩判据）；测试准备
+  段显式 _loadPosterJs()+_loadQrJs() 再测（与真机点了才拉同构，
+  未弱化断言）
+- 闸门：selftest 406 / contract 728 / ui_smoke 103 / check_poster /
+  dollar_misuse(404) / dup_keys / baseline_voice / ruff 全绿；
+  bump_sw→books-shell-7bbb2c95d4f5

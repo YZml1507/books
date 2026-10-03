@@ -609,3 +609,37 @@ class FavoriteAddRequest(BaseModel):
             return v
         return _ZW_RE.sub(
             "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()
+
+
+class CoupleCheckinRequest(BaseModel):
+    """合拍打卡同步（R3343）：写入本方打卡日集合，返回两人交集。
+
+    pair_id = 客户端 SHA-256（两份规范生日串按字典序拼接）——服务端
+    只见哈希不见生日；member ∈ {0,1} 由字典序定。days 上限 400
+    （与 KB 层 _CAP_COUPLE_MEMBER_DAYS 同口径），逐日必须是真实日期。
+    """
+    pair_id: str = Field(..., min_length=64, max_length=64)
+    member: int = Field(..., ge=0, le=1)
+    days: list[str] = Field(default_factory=list, max_length=400)
+
+    @field_validator("pair_id")
+    @classmethod
+    def _pid_hex(cls, v: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{64}", v):
+            raise ValidationError("这组对数对不上，重新分享一下再试")
+        return v
+
+    @field_validator("days")
+    @classmethod
+    def _days_real(cls, v: list[str]) -> list[str]:
+        out = []
+        for d in v:
+            if not isinstance(d, str) or \
+                    not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+                continue
+            try:
+                date.fromisoformat(d)
+            except ValueError:
+                continue
+            out.append(d)
+        return out
