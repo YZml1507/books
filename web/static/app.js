@@ -13645,12 +13645,17 @@ var _MOOD_META = [
   { e: '🙂', t: '还不错', c: '#D9B36A' },
   { e: '🥳', t: '状态满分', c: '#8FA86F' }];
 /* R3262（R17）：心情罐子——每攒满 7 个色点解锁一张小满场景图，
- * 不惩罚断签，只讲「收下了多少」。4 张封顶，缺图时静默不展示。 */
+ * 不惩罚断签，只讲「收下了多少」。场景表长即封顶（现 6 张），
+ * 缺图时静默不展示。 */
 var _MOOD_JAR_SCENES = [
   { k: '窗边茶', url: '/static/cream/bear-scene-good.jpg' },
   { k: '雨毯堡', url: '/static/cream/bear-scene-mid.jpg' },
   { k: '小夜灯', url: '/static/cream/bear-scene-sml.jpg' },
-  { k: '坏天气', url: '/static/cream/bear-scene-bad.jpg' }];
+  { k: '坏天气', url: '/static/cream/bear-scene-bad.jpg' },
+  /* R3315（R3310-P2）：场景深度扩到 6——4 张封顶后色点还在涨
+   * 却没有下一站，长期用户失钩。两张新图同风格补齐。 */
+  { k: '暖被窝', url: '/static/cream/bear-scene-cozy.jpg' },
+  { k: '雨灯路', url: '/static/cream/bear-scene-lantern.jpg' }];
 var _MOOD_REPLY = {
   '0g': '累就别硬撑——今天盘面有暗劲帮你，事可以缓一缓，人先歇口气。',
   '0l': '累的时候更要对自己松一点——盘面不硬的日子，少排一件事、早点收工就是赚。',
@@ -14417,7 +14422,9 @@ function _renderMoodRow(lv) {
  * 解锁一张场景图；首次解锁时 toast 告知，断签不扣回已解锁数。 */
 function _moodJarSync(total) {
   try {
-    var unlocked = Math.min(4, Math.floor((total || 0) / 7));
+    /* R3315：场景扩到 6 张，封顶跟着表走（scene 数即上限）。 */
+    var unlocked = Math.min(_MOOD_JAR_SCENES.length,
+                            Math.floor((total || 0) / 7));
     var oldU = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
     var oldT = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
     localStorage.setItem('moodjar:total', String(total || 0));
@@ -14433,7 +14440,8 @@ function _moodJarHtml() {
     var unlocked = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
     if (unlocked <= 0) return '';
     var html = '<details class="mood-jar-fold"><summary>' +
-      '🏺 心情罐子 · 已解锁 <strong>' + unlocked + '</strong>/4 张' +
+      '🏺 心情罐子 · 已解锁 <strong>' + unlocked + '</strong>/' +
+      _MOOD_JAR_SCENES.length + ' 张' +
       '</summary><div class="mood-jar-grid">';
     for (var i = 0; i < unlocked && i < _MOOD_JAR_SCENES.length; i++) {
       var sc = _MOOD_JAR_SCENES[i];
