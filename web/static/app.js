@@ -15269,7 +15269,7 @@ function renderCheckin(dateKey) {
           var _fam = null;
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
-             'rlast:', 'mood:dream:'].forEach(function (_p) {
+             'rlast:', 'mood:dream:', 'weeklyLetter:'].forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
