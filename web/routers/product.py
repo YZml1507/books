@@ -87,6 +87,13 @@ def set_user_prefs(req: PrefsRequest) -> dict:
     return services.set_user_prefs(req.to_dict())
 
 
+@router.delete("/api/user/prefs")
+def clear_user_prefs() -> dict:
+    """R3339（审-低）：「忘掉」清偏好表（theme 保留）。"""
+    deps.write_guard()
+    return services.clear_user_prefs()
+
+
 @router.post("/api/favorites")
 def add_favorite(req: FavoriteAddRequest) -> dict:
     """收藏一条结果。"""

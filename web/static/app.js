@@ -1505,6 +1505,7 @@ var _CHAT_SEND_COUNT = 0;   /* D-006：追踪聊天发送次数，第一条自�
  * 新消息会悄悄接进用户看不见的上一轮上下文。把气泡 transcript 与 sid
  * 同介质存储，刷新后原样重渲（上限 50 条与 chatBubble 裁剪一致）。 */
 var CHAT_TS_KEY = 'chatTranscript';
+var CHAT_TS_LASTSID_KEY = 'chatTranscript:lastsid';
 function _chatTsStore() {
   /* R3118（specs/011 P3）：transcript 升 localStorage——原来跟
    * sessionStorage 走，关页即失忆；跨天再开，小满看着像从没
@@ -1512,16 +1513,51 @@ function _chatTsStore() {
    * 只有对话内容跨会话续存。 */
   try { return window.localStorage; } catch (e) { return null; }
 }
-function _chatTsRead() {
+/* R3339（审-中）：transcript 单键两 tab 共享+RMW 丢泡——两会话气泡
+ * 交织进同一 transcript。键带 sid 命名空间（sid 走 sessionStorage
+ * per-tab）；'chatTranscript:lastsid' 记最新 sid，新会话开场
+ * 仍能续上上一会话的语境。 */
+function _chatSid() {
   try {
-    var s = (_chatTsStore() || _MEM_STORE).getItem(CHAT_TS_KEY);
-    var arr = s ? JSON.parse(s) : [];
-    return Array.isArray(arr) ? arr : [];
+    return (_chatStore() || _MEM_STORE).getItem(CHAT_SID_KEY) || '';
+  } catch (e) { return ''; }
+}
+function _chatTsKey(sid) {
+  return sid ? CHAT_TS_KEY + ':' + sid : CHAT_TS_KEY;
+}
+function _chatTsRead(sidOpt) {
+  try {
+    var st = (_chatTsStore() || _MEM_STORE);
+    /* 优先读当前 sid 的桶；当前桶空且未显式指定 sid 时，回读上一
+     * 会话桶（跨天续聊语境）；再回裸键（旧版单键的存量）。 */
+    var keys = [];
+    if (sidOpt != null) keys.push(_chatTsKey(sidOpt));
+    else {
+      var _cs = _chatSid();
+      if (_cs) keys.push(_chatTsKey(_cs));
+      var _ls = st.getItem(CHAT_TS_LASTSID_KEY) || '';
+      if (_ls && _ls !== _cs) keys.push(_chatTsKey(_ls));
+      keys.push(CHAT_TS_KEY);
+    }
+    for (var _ki = 0; _ki < keys.length; _ki++) {
+      var s = st.getItem(keys[_ki]);
+      if (!s) continue;
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr) && arr.length) return arr;
+    }
+    return [];
   } catch (e) { return []; }
 }
 function _chatTsSave(role, text, action) {
   try {
-    var arr = _chatTsRead();
+    var st = (_chatTsStore() || _MEM_STORE);
+    /* get-or-create：首条消息就要落本 sid 桶，不能等开场才建。 */
+    var sid = chatSid();
+    /* 读本 sid 桶续写——不回读旧会话桶，避免把上一会话的气泡
+     * 复制进新桶（语义是新会话只接开场注入，不接气泡）。 */
+    var s0 = st.getItem(_chatTsKey(sid));
+    var arr = s0 ? JSON.parse(s0) : [];
+    if (!Array.isArray(arr)) arr = [];
     var _m = { r: role === 'me' ? 'me' : 'ai',
                t: String(text || '').slice(0, 2000) };
     /* R3201：路标 chip 随 transcript 回放——刷新后「去抽牌」入口
@@ -1532,11 +1568,27 @@ function _chatTsSave(role, text, action) {
                label: action.label.slice(0, 40) };
     arr.push(_m);
     if (arr.length > 50) arr = arr.slice(-50);
-    (_chatTsStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(arr));
+    st.setItem(_chatTsKey(sid), JSON.stringify(arr));
+    /* lastsid 指针 + 旧桶 GC：只保留当前桶与上一会话桶，
+     * 会话堆积不留无界 transcript:<sid> 残骸。 */
+    if (sid) {
+      var _prev = st.getItem(CHAT_TS_LASTSID_KEY) || '';
+      st.setItem(CHAT_TS_LASTSID_KEY, sid);
+      for (var _gi = st.length - 1; _gi >= 0; _gi--) {
+        var _gk = st.key(_gi);
+        if (_gk && _gk.indexOf(CHAT_TS_KEY + ':') === 0 &&
+            _gk !== CHAT_TS_LASTSID_KEY &&
+            _gk !== _chatTsKey(sid) &&
+            (!_prev || _gk !== _chatTsKey(_prev))) {
+          try { st.removeItem(_gk); } catch (eG) {}
+        }
+      }
+    }
   } catch (e) {}
 }
 function _chatTsClear() {
-  try { (_chatTsStore() || _MEM_STORE).removeItem(CHAT_TS_KEY); } catch (e) {}
+  try { (_chatTsStore() || _MEM_STORE).removeItem(_chatTsKey(_chatSid())); }
+  catch (e) {}
 }
 function _chatTsRestore() {
   /* 刷新后把存下的气泡重渲回来；nosave 防止重渲又双写 transcript。
@@ -3362,11 +3414,17 @@ function chatSend() {
     if (input && !input.disabled) input.value = msg;
     /* 已贴出的 me 气泡同时从 transcript 与 DOM 回收——重试不再双发同句 */
     try {
-      var _arr = _chatTsRead();
+      /* R3339（审-中）：撤回只读本 sid 桶——回读上一会话桶会把
+       * 旧桶内容误复制进新桶。 */
+      var _curSid = _chatSid() || chatSid();
+      var _arr = _chatTsRead(_curSid);
       if (_arr.length && _arr[_arr.length - 1].r === 'me' &&
           _arr[_arr.length - 1].t === msg) {
         _arr.pop();
-        (_chatTsStore() || _MEM_STORE).setItem(CHAT_TS_KEY, JSON.stringify(_arr));
+        /* R3339（审-中）：撤回写回也要落本 sid 桶——写裸键会造出
+         * 幽灵副本（与 transcript 命名空间同口径）。 */
+        (_chatTsStore() || _MEM_STORE).setItem(
+          _chatTsKey(_curSid), JSON.stringify(_arr));
         var _bbs = document.querySelectorAll('#chatFlow .chat-me');
         if (_bbs.length && _bbs[_bbs.length - 1].textContent === msg) {
           _bbs[_bbs.length - 1].remove();
@@ -11189,6 +11247,59 @@ function _phTsNow() {
   var n = new Date(Date.now() + 8 * 3600e3);
   return n.toISOString().slice(0, 19) + '+08:00';
 }
+/* R3339（审-中）：研究线程本机留档——Render 清盘后列表空壳连
+ * 「开过哪些题」都不剩。镜像只存题头（topic/状态/轮数，无
+ * turns/claims 原文，字节预算小）；gone 墓碑防删除后复尸。 */
+var _THR_MIRROR_KEY = 'threads_mirror_v1';
+function _thrMirrorLoad() {
+  try {
+    var m = JSON.parse(localStorage.getItem(_THR_MIRROR_KEY) || '{}');
+    if (m && Array.isArray(m.items)) return m;
+  } catch (e) {}
+  return { items: [], gone: [] };
+}
+function _thrMirrorSave(list) {
+  try {
+    var m = _thrMirrorLoad();
+    var have = {}, gone = {};
+    (m.gone || []).forEach(function (id) { gone[String(id)] = 1; });
+    var out = [];
+    (list || []).forEach(function (t) {
+      if (t && t.id != null && !gone[String(t.id)]) {
+        have[String(t.id)] = 1;
+        out.push({ id: t.id, topic: String(t.topic || '').slice(0, 120),
+                   status: t.status || 'open',
+                   turns: +t.turns || 0, claims: +t.claims || 0,
+                   opened_at: t.opened_at || null,
+                   updated_at: t.updated_at || null });
+      }
+    });
+    /* 并集：本次过滤状态没列到的旧题保住（open 列表不带 parked/closed）。 */
+    (m.items || []).forEach(function (x) {
+      if (x && x.id != null && !have[String(x.id)] && !gone[String(x.id)]) {
+        out.push(x);
+      }
+    });
+    out.sort(function (a, b) {
+      return String(b.updated_at || '').localeCompare(
+        String(a.updated_at || ''));
+    });
+    if (out.length > 15) out = out.slice(0, 15);
+    var g = (m.gone || []).slice(-50);
+    localStorage.setItem(_THR_MIRROR_KEY,
+      JSON.stringify({ items: out, gone: g }));
+  } catch (e) {}
+}
+function _thrMirrorDrop(id) {
+  try {
+    var m = _thrMirrorLoad();
+    m.items = (m.items || []).filter(function (x) {
+      return !(x && String(x.id) === String(id));
+    });
+    m.gone = (m.gone || []).concat([id]).slice(-50);
+    localStorage.setItem(_THR_MIRROR_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
 var _PH_MIRROR_KEY = 'paipan_mirror_v1';
 /* R2400（R127-P1-1）：墓碑独立小键——镜像整体写不下/被禁写时
  * 「本机已删」仍记得住，不然清盘后删掉的记录借镜像复活。
@@ -13919,15 +14030,27 @@ function init() {
       if (_gkm && /^\d{4}-\d{2}$/.test(_gkm)) {
         _gks = _gkm + '-28';
       }
-      if (_gk && ((_gk.indexOf('checkin:') === 0 && _gk.slice(8) < _gc0) ||
+      /* R3339（审-低）：checkin:goal-celebrated:<date> 在 checkin:
+       * 前缀下但 slice(8) 非日期——通用比较永不命中，尾段日期单算。 */
+      var _gkc = _gk && _gk.indexOf('checkin:goal-celebrated:') === 0
+        ? _gk.slice(24) : null;
+      if (_gkc && !/^\d{4}-\d{2}-\d{2}$/.test(_gkc)) _gkc = null;
+      if (_gk && ((_gk.indexOf('checkin:') === 0 &&
+          _gk.indexOf('checkin:goal-celebrated:') !== 0 &&
+          _gk.slice(8) < _gc0) ||
           (_gk.indexOf('dailyRevealed:') === 0 && _gk.slice(14) < _gc0) ||
+          (_gkc && _gkc < _gc0) ||
           (_gkd && _gkd < _gc0) || (_gks && _gks < _gc0))) {
         window.localStorage.removeItem(_gk);
       }
     }
     /* R2345（R63-P2-5）：c26bdce 时代 chat sid/记录放 localStorage，
-     * R230n 迁到 sessionStorage 后旧键无人清——启动兜底一并收掉。 */
-    ['chatSessionId', 'chatTranscript'].forEach(function (k) {
+     * R230n 迁到 sessionStorage 后旧键无人清——启动兜底一并收掉。
+     * R3339（审-中）：chatTranscript 不能再删——R3118 已把 transcript
+     * 升回 localStorage 当现役键，开机删它等于每次启动先把跨天
+     * 续聊气泡清了（feature 实际从未活过）。chatSessionId 仍是
+     * 真 legacy（sid 现走 sessionStorage），继续清。 */
+    ['chatSessionId'].forEach(function (k) {
       try { window.localStorage.removeItem(k); } catch (e4) {}
     });
     /* R2345（R63-P2-7）：申请持久化存储——浏览器在存储压力下可
@@ -15214,7 +15337,9 @@ function _flWriteOpen() {
         if (_oi < 0) break;
         lst.splice(_oi, 1);
       }
-      localStorage.setItem('futureLetters', JSON.stringify(lst));
+      /* R3339（审-中）：写前并集——另一 tab 同时存的信不再被整表压掉。 */
+      _lsUnionWrite('futureLetters', lst,
+        function (l) { return l && l.id; }, 50);
     } catch (eFS) {
       close();
       showToast('信没存上：这台设备的存信空间满了', 'error');
@@ -16342,7 +16467,8 @@ function renderCheckin(dateKey) {
         lst.forEach(function (lt) {
           if (lt && String(lt.id) === btn.dataset.flid) lt.opened = true;
         });
-        localStorage.setItem('futureLetters', JSON.stringify(lst));
+        _lsUnionWrite('futureLetters', lst,
+          function (l) { return l && l.id; }, 50);
       } catch (eFO) {}
       /* R3329（审-P3）：data-flid 直拼选择器——id 含 " 类字符
        * 直接 SyntaxError（且抛在 opened 落库后=假收信）。遍历比对。 */
@@ -16966,6 +17092,11 @@ function _visitCount() {
       .filter(Boolean);
     var t = todayIso();
     if (v.indexOf(t) < 0) {
+      /* R3339（审-中）：visits 日期集——写前重读并集，另一 tab
+       * 同日先写的轨迹不再被整表压掉（集语义去重）。 */
+      var cur = String(localStorage.getItem('visits') || '').split(',')
+        .filter(Boolean);
+      cur.forEach(function (d) { if (v.indexOf(d) < 0) v.push(d); });
       v.push(t);
       if (v.length > 400) v = v.slice(-400);
       localStorage.setItem('visits', v.join(','));
@@ -17264,7 +17395,12 @@ function _chatChipsPersonalize() {
         if (!b) return;
         var fk = b.dataset.fk;
         try {
-          if (fk === 'birthday') localStorage.removeItem('me');
+          if (fk === 'birthday') {
+            localStorage.removeItem('me');
+            /* R3339（审-高）：×忘生日同病——内存档不清档案条照样
+             * 渲染，直到刷新才真忘。 */
+            try { delete (window.__meSessionMap || {}).me; } catch (eMM) {}
+          }
           else if (fk === 'topics') localStorage.removeItem('chat:topics');
           else if (fk === 'mood') {
             localStorage.removeItem('mood:lv');
@@ -17601,7 +17737,9 @@ function _chatChipsPersonalize() {
       };
       _evts[_pick].asked = (_evts[_pick].asked || 0) + 1;
       _evts[_pick].lastAsk = todayIso();
-      localStorage.setItem('chat:events', JSON.stringify(_evts));
+      /* R3339（审-中）：整表压写丢另一 tab 的事件——写前并集。 */
+      _lsUnionWrite('chat:events', _evts,
+        function (e) { return e && e.k; }, 10);
       window.__chatPendingEvt = _pick;
     } else if (_fol) { _fol.remove(); window.__chatPendingEvt = null; }
   } catch (eFL) {}
@@ -17851,8 +17989,10 @@ function _wishEchoAdd(w) {
   try {
     var a = _wishEchoGet();
     a.unshift({ t: w.t, c: w.c, ts: w.ts, fu: Date.now() });
-    if (a.length > 30) a = a.slice(0, 30);
-    localStorage.setItem('wishfulfilled', JSON.stringify(a));
+    /* R3339（审-中）：写前并集——unshift 新头型 head-cap 保新。 */
+    _lsUnionWrite('wishfulfilled', a,
+      function (x) { return x && (String(x.ts) + '|' + String(x.fu)); },
+      30);
   } catch (e) {}
 }
 function _wishEchoStrip() {
@@ -18679,6 +18819,17 @@ function baziPersonaCard(j) {
             } catch (eTd) {}
           }
         } catch (eTl) {}
+        /* R3339（审-中）：云端空/拉不到时线程也拿本机留档顶——
+         * 题头能带走（turns/claims 云端已清带不走）。 */
+        if (!_threads.length) {
+          try {
+            _threads = (_thrMirrorLoad().items || []).map(function (x) {
+              return { id: x.id, topic: x.topic, status: x.status,
+                       opened_at: x.opened_at, updated_at: x.updated_at,
+                       turns: [], claims: [] };
+            });
+          } catch (eTM) {}
+        }
         var _recsOut = j.records || [];
         if (!_recsOut.length) {
           var _mmB = _phMirrorLoad();
@@ -18768,8 +18919,13 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          /* R3339（审-低）：installTipDismissed/ret_tip/voiceMode（死键
+           * 可被旧备份导回）此前游离在清除清单外——实测 wipe 后残留。 */
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|chatSessionId|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1|threads_mirror_v1|installTipDismissed|ret_tip|voiceMode)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
+                /* R3339（审-中）：transcript 改 sid 命名空间后裸名匹配
+                 * 漏收 chatTranscript:<sid>/:lastsid——前缀全覆盖。 */
+                k.indexOf('chatTranscript') === 0 ||
                 k.indexOf('checkin:') === 0 ||
                 k.indexOf('checkinBuff:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
@@ -18816,7 +18972,9 @@ function baziPersonaCard(j) {
             /* R3261（R15）：ly:lastq/ly:lastcast 存的是六爻问句原文
              * ——「忘掉我的数据」后问题幸存=隐私破洞，收进清单；
              * chatBootId 一并清（重启失忆一致性）。 */
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast)$/
+            /* R3339（审-低）：chatClosed 独漏——同类键全收了它不收，
+             * 「开新话题」残留跨「忘掉」幸存。 */
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$/
                 .test(sk) || sk.indexOf('shareBy:') === 0 ||
                 sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
@@ -18832,6 +18990,18 @@ function baziPersonaCard(j) {
         try { window.__shareBy = ''; } catch (eSB) {}
         try { window.__hhInviteBy = ''; } catch (eHI) {}
         try { window.__lastDaily = null; } catch (eLD) {}
+        /* R3339（审-高）：__meSessionMap 是会话内存档（隐私模式回落面）
+         * ——wipe 不清它，_meGet 立刻把已删生辰返给档案条/_chatFacts，
+         * 「忘掉一切」同会话内形同虚设（实测 hidden=false 复活）。 */
+        try { window.__meSessionMap = {}; } catch (eMSM) {}
+        /* R3339（审-中）：已擦问句会在下一条聊天以「她上次来聊过」
+         * 注入——wipe 不落这股内存态，旧问句跨「忘掉」进 LLM 请求。 */
+        try { CHAT_RESUME_FACT = ''; } catch (eRF) {}
+        /* R3339（审-中）：邀请/话题内存态越「忘掉」仍生效——
+         * hehun 受邀位判定与待办话题一并置空。 */
+        try { window.__shareFromView = null; } catch (eFV) {}
+        try { window.__hhInviteMode = null; } catch (eIM) {}
+        try { window.__chatPendingEvt = null; } catch (ePE) {}
         /* R2349t（R87-P1-2）：wipe 复活封堵——只清存储键不够：
          * ① 各表单里已回填的生辰还在，任一点击就把档案写回；
          * ② LAST_RESULT/CHAT_LAST_FACTS 内存态还带已删上下文；
@@ -18902,10 +19072,15 @@ function baziPersonaCard(j) {
        * 「忘掉」语义必须覆盖整表。 */
       var _threadsDel = api('/api/threads', { method: 'DELETE', silent: true })
         .catch(function () {});
+      /* R3339（审-低）：user_prefs 表（recent/死写端点攒的键）也在
+       * 「忘掉」面里——theme 后端刻意保留。 */
+      var _prefsDel = api('/api/user/prefs', { method: 'DELETE', silent: true })
+        .catch(function () {});
       Promise.all([
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' }),
-        _threadsDel
+        _threadsDel,
+        _prefsDel
       ]).then(function () { _phMirrorClear(); _favMirrorClear(); _favListInvalidate(); _done(true); })
         /* R2400（R127-P2-1）：云端没连上时本机镜像也一并清（_done
          * 里的键扫描已收镜像键）——不然「本机档案清了」是假的。 */
@@ -18973,7 +19148,9 @@ function baziPersonaCard(j) {
             /* R3336（审-中）：checkinBuff: 导得出导不回（静默丢 buff）
              * + wishfulfilled（成真集）+ futureLetters:corrupt 收编，
              * 逐族形状校验。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|installTipDismissed$|ret_tip$|voiceMode$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
+            /* R3339（审-低）：voiceMode 是下线死键——白名单收它等于
+             * 旧备份往本机种死数据，剔除。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -19092,6 +19269,13 @@ function baziPersonaCard(j) {
               try { if (!Array.isArray(JSON.parse(_v))) return; }
               catch (eCE) { return; }
             }
+            /* R3339（审-中）：chat:topics/chat:cards 同族裸数组键零
+             * 校验——'garbage-not-json' 实测原样落库还随导出再打包。
+             * 照 chat:events 同款 JSON+Array 门禁。 */
+            if (k === 'chat:topics' || k === 'chat:cards') {
+              try { if (!Array.isArray(JSON.parse(_v))) return; }
+              catch (eTC) { return; }
+            }
             /* R2349y（R95-P3-1）：日期后缀键不做形状校验会收进
              * 「checkin:hello-world」这种脏格（伪造未来日永不进 GC）。
              * 三类日期键的尾段必须是合法 YYYY-MM-DD。 */
@@ -19178,16 +19362,39 @@ function baziPersonaCard(j) {
               _cur.push(r); _curSize += _rs;
             });
             if (_cur.length) _batches.push(_cur);
-            if (!_batches.length && _thr.length) _batches.push([]);
             var _newRecs = [];
             for (var _bi = 0; _bi < _batches.length; _bi++) {
               var _impBody = { records: _batches[_bi] };
-              if (_bi === 0 && _thr.length) _impBody.threads = _thr.slice(0, 50);
               const rj = await postJSON('/api/paipan/history/import', _impBody);
               n += (rj.imported || 0);
-              if (_bi === 0) _nThr = (rj.threads_imported || 0);
               if (Array.isArray(rj.new_records)) {
                 _newRecs = _newRecs.concat(rj.new_records);
+              }
+            }
+            /* R3339（审-中）：threads 独立分批——此前挂首个 records
+             * 批裸发，肥线程包破 512KB → 首个 POST 413 连坐全丢
+             * （实测台账恒 0）；且 .slice(0,50) 让 51+ 线程静默丢尾。
+             * 同 _CHUNK 字节预算 + schema 50 条/批双闸，批失败计数
+             * 不连坐 records。单线程超预算计 skipped 不硬发。 */
+            var _thrSkipped = 0;
+            if (_thr.length) {
+              var _tb = [], _tCur = [], _tSize = 0;
+              _thr.forEach(function (t) {
+                var _ts = JSON.stringify(t).length + 1;
+                if (_ts > _CHUNK) { _thrSkipped++; return; }
+                if (_tCur.length &&
+                    (_tCur.length >= 50 || _tSize + _ts > _CHUNK)) {
+                  _tb.push(_tCur); _tCur = []; _tSize = 0;
+                }
+                _tCur.push(t); _tSize += _ts;
+              });
+              if (_tCur.length) _tb.push(_tCur);
+              for (var _ti2 = 0; _ti2 < _tb.length; _ti2++) {
+                try {
+                  const rtj = await postJSON('/api/paipan/history/import',
+                    { records: [], threads: _tb[_ti2] });
+                  _nThr += (rtj.threads_imported || 0);
+                } catch (eTI) { _thrSkipped += _tb[_ti2].length; }
               }
             }
             /* R2400（R127-P2-5）：导入回灌详情——后端返回新行
@@ -19248,6 +19455,9 @@ function baziPersonaCard(j) {
             /* R3320-P1-1③：视图其实已就地刷新——「刷新后生效」
              * 是虚惊文案，去掉括号。 */
             '，偏好也回来了' +
+            /* R3339（审-中）：线程批丢/超重如实报——「导到一半断了」
+             * 不点名的静默丢尾违背披露纪律。 */
+            (_thrSkipped ? '；' + _thrSkipped + ' 个研究线程太大没导进去' : '') +
             (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
           showToast(_msg, 'info');
           /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的

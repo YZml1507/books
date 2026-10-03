@@ -3025,6 +3025,17 @@ def _run_inner() -> list[str]:
         _rp2 = client.post("/api/user/prefs", json={"theme": "aa"})
         assert _rp2.status_code == 200, ("prefs.write", _rp2.status_code)
         assert client.get("/api/user/prefs").json().get("theme") == "aa"
+        # R3339（审-低）：DELETE /api/user/prefs——「忘掉」面清偏好表，
+        # theme 刻意保留（wipe 口径：偏好保留、个人数据清掉）。
+        client.post("/api/user/prefs", json={"z9x_sentinel": "1"})
+        _pd = client.delete("/api/user/prefs")
+        assert _pd.status_code == 200, ("prefs.delete", _pd.status_code)
+        from web import deps as _depsp
+        with _depsp.knowledge() as _kbp:
+            _keys = {r["key"] for r in
+                     _kbp.db.execute("SELECT key FROM user_prefs").fetchall()}
+        assert "z9x_sentinel" not in _keys and "theme" in _keys, (
+            "prefs.delete_scope", sorted(_keys))
     finally:
         if _theme0:
             client.post("/api/user/prefs", json={"theme": _theme0})
@@ -3084,6 +3095,7 @@ def _run_inner() -> list[str]:
     try:
         for _m, _u, _kw in (
                 ("post", "/api/user/prefs", {"json": {"theme": "aa"}}),
+                ("delete", "/api/user/prefs", {}),
                 ("post", "/api/favorites",
                  {"json": {"type": "bazi", "ref_id": "r1", "title": "t"}}),
                 ("delete", "/api/favorites/1", {}),

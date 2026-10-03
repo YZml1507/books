@@ -480,10 +480,29 @@ async function _threadListHtml() {
       : {open: '还没有进行中的研究线程——搜个词顺手开一个？',
          parked: '没有先收起的线程。',
          closed: '还没有聊完的线程。'}[_threadStatus];
+    /* R3339（审-中）：本机留档题头接上——清盘后至少还看得见
+     * 「开过哪些题」（只题头，原文已随云端清盘）。 */
+    var _mir = [];
+    try { _mir = (_thrMirrorLoad().items || []); } catch (eM) {}
+    var _mirHtml = '';
+    if (_seenT && _mir.length) {
+      _mirHtml = '<div class="thread-meta" style="margin:10px 0 4px;">' +
+        '本机留档（题头）：</div>';
+      _mir.forEach(function (x) {
+        _mirHtml += '<div class="thread-item thread-item-mir">' +
+          '<div class="thread-topic">' + esc(x.topic || '') + '</div>' +
+          '<div class="thread-meta">本机留档 · ' +
+          esc({open:'进行中', closed:'已结束', parked:'先收起'}[x.status] ||
+             x.status || '') +
+          ' · ' + esc(x.updated_at || '') + '</div></div>';
+      });
+    }
     return html + '<div class="ph-empty" style="margin-top:10px;">' +
-      _emptyTxt + '</div>';
+      _emptyTxt + '</div>' + _mirHtml;
   }
   try { localStorage.setItem('threads_seen_v1', '1'); } catch (eT) {}
+  /* R3339（审-中）：非空列表顺手写镜像——题头级本机留档。 */
+  try { _thrMirrorSave(list.threads || []); } catch (eMS) {}
   (list.threads || []).forEach(function (t) {
     /* R232d（R40-A12）：opened_at 一直在回——补上「开题日期」让老线程
      * 一眼可辨新旧（updated_at 只记最近动静）。 */
@@ -540,6 +559,8 @@ async function deleteThread(tid, btn) {
   var _g = ++_TR_VIEW_GEN;   /* R2502：删除本身也是一次视图操作 */
   try {
     await api('/api/threads/' + encodeURIComponent(tid), { method: 'DELETE' });
+    /* R3339（审-中）：镜像墓碑——删过的题头不随下次列表并集复尸。 */
+    try { _thrMirrorDrop(tid); } catch (eMD) {}
     showToast(_dayPick(['线程已删除','这条研究记录清掉了','已删除，列表干净了'], 'del'), 'success');
     if (btn) btn.dataset.inflight = '';   /* 成功路径按钮随列表重画摘除，
      * 复位兜底防御。 */

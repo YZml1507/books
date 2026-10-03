@@ -809,6 +809,19 @@ class KnowledgeBase:
         self._gc_prefs()
         self.db.commit()
 
+    def clear_prefs_except(self, keep: tuple[str, ...] = ("theme",)) -> int:
+        """R3339（审-低）：「忘掉」面此前够不到 user_prefs——死写端点
+        攒下的键、recent 等残留永存。主题刻意保留（wipe 口径：
+        偏好保留、个人数据清掉）。"""
+        q = "DELETE FROM user_prefs"
+        params: tuple = ()
+        if keep:
+            q += " WHERE key NOT IN (" + ",".join("?" * len(keep)) + ")"
+            params = keep
+        cur = self.db.execute(q, params)
+        self.db.commit()
+        return cur.rowcount
+
     def get_daily_cache(self, date: str) -> dict | None:
         r = self.db.execute("SELECT * FROM daily_cache WHERE date=?", (date,)).fetchone()
         if not r:
@@ -886,7 +899,7 @@ class KnowledgeBase:
         # R233x：插后裁——先裁再插恒超帽一行。
         self.db.execute(
             "DELETE FROM favorites WHERE id NOT IN "
-            "(SELECT id FROM favorites ORDER BY created_at DESC LIMIT ?)",
+            "(SELECT id FROM favorites ORDER BY created_at DESC, id DESC LIMIT ?)",
             (self._CAP_FAVORITES,))
         self.db.commit()
         if cur.lastrowid:
@@ -899,10 +912,13 @@ class KnowledgeBase:
     def list_favorites(self, ftype: str | None = None) -> list[sqlite3.Row]:
         if ftype:
             return self.db.execute(
-                "SELECT * FROM favorites WHERE type=? ORDER BY created_at DESC",
+                "SELECT * FROM favorites WHERE type=? "
+                "ORDER BY created_at DESC, id DESC",
                 (ftype,)).fetchall()
+        # R3339（审-低）：同秒 created_at 并列时 SQLite 次序不定——
+        # 备份导出与列表顺序不稳定，加 id 副排序钉死。
         return self.db.execute(
-            "SELECT * FROM favorites ORDER BY created_at DESC").fetchall()
+            "SELECT * FROM favorites ORDER BY created_at DESC, id DESC").fetchall()
 
     def remove_favorite(self, fid: int) -> bool:
         # R2516（审-P2-1）：如实删除——不存在返回 False 让上层 404，

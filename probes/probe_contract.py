@@ -591,6 +591,9 @@ UNPINNED_ROUTES = {
     ("POST", "/api/ask"):        "R228l 裁决为有意保留僵尸端点（UI 接线已撤，"
                                  "删除待用户）——不造 fixture 假装覆盖",
     ("POST", "/api/user/prefs"): "同上：死写端点（R228l 台账）",
+    ("DELETE", "/api/user/prefs"): "R3339（审-低）：「忘掉我的数据」偏好表"
+                                 "全清端点（theme 保留）——真机路径由 wipe 钮"
+                                 "两段式覆盖，selftest prefs.delete_scope 钉",
     ("POST", "/api/favorites"):  "写端点——R230z 起由起名♡/合婚存这对接线，"
                                  "探针只读纪律不造写请求（ui_smoke "
                                  "btn:hehun.savepair 已真点验证）",

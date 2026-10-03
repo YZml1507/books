@@ -17888,3 +17888,43 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 闸门：selftest 406 / contract 728 / ui_smoke 103 / check_poster /
   dollar_misuse(404) / dup_keys / baseline_voice / ruff 全绿；
   bump_sw→books-shell-7bbb2c95d4f5
+
+- R3339（数据面终扫清零，app_research.js/app.js/knowledge.py）：
+  - 高1：__meSessionMap 会话内存档（隐私模式回落面）此前不被
+    「忘掉」/×忘路径清——wipe 清键段、×忘生辰 handler 一并置空
+    （实测 wipe 后档案条仍渲回，僵尸档案复活根治）
+  - 中2/中3：备份导入 threads 独立分批——此前裸挂首个 records
+    批次，肥线程包破 512KB → 首 POST 413 连坐全部台账零导入
+    （实测恒 0）；且 .slice(0,50) 静默丢 51+ 线程尾。改独立
+    280KB 字节+50条双闸分批，批失败/超重计数进 toast 点名
+  - 中4：chat:topics/chat:cards 导入白名单补 JSON+Array 形态校验
+  - 中5+潜伏bug：chatTranscript 改 sid 命名空间（chatTranscript:<sid>
+    + :lastsid 指针续跨天语境，两 tab 气泡不再交织；桶 GC 只留
+    当前+上一会话）；撤回路径读写在同 sid 桶；顺带根治——R2345
+    启动兜底仍在删 chatTranscript（R3118 已升回 localStorage 现役键
+    未更新清理表，跨天续聊每次开机即清=从未活过）
+  - 中6：裸 setItem RMW 键并入 _lsUnionWrite 并集面（futureLetters×2
+    /wishfulfilled/chat:events asked 计数；visits 手写 CSV 并集）——
+    两 tab 各读改写同键后写压前写丢档根治；wishbottle 单槽键
+    本就后写赢语义不修
+  - 中7/中9：CHAT_RESUME_FACT、__shareFromView/__hhInviteMode/
+    __chatPendingEvt 进 wipe 内存面清零
+  - 中8：threads_mirror_v1 本机留档（题头级 id/topic/状态/轮数，
+    gone 墓碑防复尸，15 顶帽）——Render 清盘后线程列表接「本机
+    留档」题头行而非空壳；删除同步落墓碑；备份导出云端空时
+    拿镜像题头顶包（turns/claims 云端已清带不走）
+  - 低10-12/15/19/21：chatClosed 独漏补 wipe；installTipDismissed/
+    ret_tip/voiceMode 补 wipe+voiceMode 移出导入白名单；
+    checkin:goal-celebrated:<date> 尾段日期并入启动 GC（前缀下
+    slice(8) 非日期原永不命中）；favorites ORDER BY 补 id DESC
+    同秒决胜钉序；新增 DELETE /api/user/prefs（theme 保留）+
+    wipe Promise.all 接入——user_prefs 表此前够不到「忘掉」面
+    （死写端点攒的键/recent 永存）；storage 监听器键表缺口
+    记档（轴2 评估为刻意不同步项，低端不补）
+  - 闸门：selftest 406（新增 prefs.delete_scope 钉 DELETE 范围
+    + write_guard.public 增打 DELETE /api/user/prefs）；
+    contract UNPINNED_ROUTES 登记新端点理由；ui_smoke 103 /
+    check_poster / date_parity 等全绿；bump_sw→books-shell-3602264026d1
+  - 跳过项：低13 futureLetters:corrupt 写读分离实为救援备份设计
+    （备份前缀同族导出覆盖）；低16 paipan_mirror 空壳系重渲再擦
+    的刻意残留；低20 ref_id 口径实测已对齐 64/64 无差

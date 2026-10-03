@@ -5246,6 +5246,13 @@ def user_prefs() -> dict:
                 "favorites": [dict(r) for r in kb.list_favorites()]}
 
 
+def clear_user_prefs() -> dict:
+    """R3339（审-低）：「忘掉」面此前够不到 user_prefs 表——死写端点
+    攒下的键、recent 列表永存。theme 刻意保留（wipe 口径：偏好保留）。"""
+    with deps.knowledge() as kb:
+        return {"deleted": kb.clear_prefs_except(("theme",))}
+
+
 def set_user_prefs(payload: dict) -> dict:
     # R228j：自由键值≠无界——键数/键长/值长不设限就是 sqlite 无限写入面。
     payload = payload or {}
