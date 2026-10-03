@@ -18007,3 +18007,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   （R2364 已有提示钉）。
 - 闸门：selftest 406 / contract 736 / ruff E9,F 全绿；
   bump_sw→books-shell-2b841529ddef
+
+## 心情周记「这周的你」（子 agent 实现，devin/moodweek-child 并入）
+- view-moodweek 新视图：7 色点阵（未记空心环/今天描边）+主情绪众数
+  +4 桶判词池（周序种子、全负也「辛苦了」零评判）+连续天数+上周
+  同口径对比（无数据不显示）+canvas 周记卡（日期区间+点阵+场景图
+  +「小满的解忧铺」底标+仅供娱乐）。全本机数据，mood: storage
+  监听跨 tab；入口=打卡区「📒 看看这周的你 →」。
+- 闸门：selftest 406 / ui_smoke 103 / ruff / bump_sw→a670c6209ff7
