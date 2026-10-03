@@ -13761,12 +13761,21 @@ function init() {
        * 从不打卡的浏览型用户 mood:/journal:/ritual:/usage:d:/rlast:/
        * mood:dream:/weeklyLetter: 永不回收（mood ~365键/年）。
        * 兜底并入同一族清单（与 15271 打卡段 _fam 同口径）。 */
+      /* R3328（审-低）：checkinBuff:* 此前只在打卡路径 GC——
+       * 不打卡浏览型用户永不回收，并入启动兜底族清单。
+       * R3328（审-中）：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD
+       * 两条 GC 路径都永不回收——按 YYYY-MM 尾段比。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|monthlyLetter:|pilePick:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(_gks)) _gks = null;
+      }
+      var _gkm = _gk && _gk.indexOf('monthlyLetter:') === 0
+        ? _gk.slice(14) : null;
+      if (_gkm && /^\d{4}-\d{2}$/.test(_gkm)) {
+        _gks = _gkm + '-28';
       }
       if (_gk && ((_gk.indexOf('checkin:') === 0 && _gk.slice(8) < _gc0) ||
           (_gk.indexOf('dailyRevealed:') === 0 && _gk.slice(14) < _gc0) ||
@@ -14947,7 +14956,11 @@ function _flWriteOpen() {
       var cand = ny.getFullYear() + '-' + mm;
       if (cand <= todayIso()) cand = (ny.getFullYear() + 1) + '-' + mm;
       /* R3329（审-P2）：me.m=13 这类脏档案能造出 2026-13-01——
-       * 非真日期的候选不进选项（假日期永远送不到）。 */
+       * 非真日期的候选不进选项（假日期永远送不到）。
+       * R3328（审-低）：2/29 生日在非闰年落 2/28——合法则原期，
+       * 非法顺延到当月最后一天（3/1 偏离生日语义）。 */
+      if (isNaN(new Date(cand + 'T00:00:00').getTime()) &&
+          mm === '02-29') cand = cand.slice(0, 7) + '-28';
       if (!isNaN(new Date(cand + 'T00:00:00').getTime())) bday = cand;
     }
   } catch (ePB) {}
@@ -15009,13 +15022,13 @@ function _flWriteOpen() {
       showToast('信没存上：这台设备的存信空间满了', 'error');
       return;
     }
-    close();
-    /* R3327-P3-12：toast 与 select 选项同口径（一个月后/下个生日/
-     * 一年后），不再贴 ISO 日期。 */
+    /* R3328（审-低）：close() 先移除节点再读 _sel 恒 null →
+     * 回退到 ISO 日期。先取文案再关弹层。 */
     var _sel = el('flWhen');
     var _lbl = (_sel && _sel.options && _sel.options[_sel.selectedIndex])
       ? _sel.options[_sel.selectedIndex].textContent.split('（')[0]
       : lt.deliver;
+    close();
     showToast('信寄出啦，' + _lbl + ' 那天会送回来', 'ok');
     renderCheckin(todayIso());
   });
@@ -16162,13 +16175,21 @@ function renderCheckin(dateKey) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
+          /* R3328（审-中/低）：monthlyLetter:YYYY-MM 尾段按
+           * YYYY-MM 比（非 YYYY-MM-DD）；checkinCeleb 与启动段
+           * 统一 150 天口径（此前打卡路径 90/启动 150 双口径）。 */
+          var _famCut = _fam === 'monthlyLetter:'
+            ? _isoShift(dateKey, -150).slice(0, 7)
+            : _isoShift(dateKey, -150);
+          var _famTailOk = _fam === 'monthlyLetter:'
+            ? /^\d{4}-\d{2}$/.test(_ck.slice(_fam.length))
+            : /^\d{4}-\d{2}-\d{2}$/.test(_ck.slice(_fam.length));
           if (_ck && ((_ck.indexOf('checkin:') === 0 && _ck < _cutoff) ||
               (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2) ||
               (_ck.indexOf('checkinBuff:') === 0 && _ck < _cutoff3) ||
-              (_fam && _ck < _fam + _isoShift(dateKey, -150) &&
-               /^\d{4}-\d{2}-\d{2}$/.test(_ck.slice(_fam.length))) ||
+              (_fam && _famTailOk && _ck < _fam + _famCut) ||
               (_ckd && _ckd < 'checkinCeleb:' +
-                _isoShift(dateKey, -90)))) {
+                _isoShift(dateKey, -150)))) {
             window.localStorage.removeItem(_ck);
           }
         }
@@ -17948,6 +17969,8 @@ function baziPersonaCard(j) {
                      'pilePick:',
                      /* R3329：周/月信已弹标随备份走 */
                      'weeklyLetter:', 'monthlyLetter:',
+                     /* R3328：打卡 buff 足迹也随备份走 */
+                     'checkinBuff:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:',
                      /* R3264（R52）：古籍阅读进度记忆 */
@@ -18195,7 +18218,18 @@ function baziPersonaCard(j) {
         try { sessionStorage.removeItem('chatBootId'); } catch (e2e) {}
         try { renderCheckin(todayIso()); } catch (e2f) {}
         try { _renderMeStrip(); } catch (e2) {}
-        try { loadPaipanHistory(); } catch (e3) {}
+        /* R3328（审-低）：loadPaipanHistory 重渲会顺手重建
+         * paipan_mirror_v1 空镜像——「忘掉」后连镜像壳也不留，
+         * 重渲落定后再擦一遍镜像键。 */
+        try {
+          var _pr = loadPaipanHistory();
+          if (_pr && _pr.then) _pr.then(function () {
+            ['paipan_mirror_v1', 'paipan_mirror_del_v1']
+              .forEach(function (mk) {
+                try { localStorage.removeItem(mk); } catch (e) {}
+              });
+          }, function () {});
+        } catch (e3) {}
         /* R2349y（R95-P1-3/P3-9）：写完才落 wipeAt 墓碑（先写会被
          * 上面的清扫误删）——其他 tab 收到事件自清表单/会话态；
          * 台账 dirty 广播让其他 tab 的历史列表就地刷新。 */
@@ -18298,8 +18332,22 @@ function baziPersonaCard(j) {
              * =日期；read:scroll:*=非负整数；notify:time=HH:MM；
              * chat:events=JSON 数组。 */
             var _v = local[k];
+            /* R3328（审-低）：mood:dream:* 是自由文本梦境随记——
+             * 被 mood: 值校验 ^[0-3]$ 误杀，排除本检查。 */
             if (k.indexOf('mood:') === 0 && k !== 'mood:lv' &&
+                k.indexOf('mood:dream:') !== 0 &&
                 !/^[0-3]$/.test(_v)) return;
+            /* R3328（审-低）：mood:dream 值只限长——形状已由
+             * 键尾日期校验担。 */
+            if (k.indexOf('mood:dream:') === 0 && _v.length > 500) return;
+            /* R3328（审-中）：checkin:goal（周目标数）与
+             * checkin:goal-celebrated:<date>（里程碑已弹标）在导出
+             * 白名单里却被日期尾段+词表校验误杀——单独形态放行。 */
+            if (k === 'checkin:goal' &&
+                !(/^\d{1,2}$/.test(_v) && +_v >= 1 && +_v <= 30)) return;
+            if (k.indexOf('checkin:goal-celebrated:') === 0 &&
+                (!/^\d{4}-\d{2}-\d{2}$/.test(k.slice(24)) ||
+                 _v !== '1')) return;
             if ((k === 'mood:lv' || k.indexOf('moodlv:') === 0) &&
                 !/^[gl]$/.test(_v)) return;
             if (k.indexOf('moodjar:') === 0 && !/^\d+$/.test(_v)) return;
@@ -18370,7 +18418,10 @@ function baziPersonaCard(j) {
             /* R2349y（R95-P3-1）：日期后缀键不做形状校验会收进
              * 「checkin:hello-world」这种脏格（伪造未来日永不进 GC）。
              * 三类日期键的尾段必须是合法 YYYY-MM-DD。 */
-            var _dsfx = k.indexOf('checkin:') === 0 ? k.slice(8)
+            var _dsfx = (k.indexOf('checkin:') === 0 &&
+                         k !== 'checkin:goal' &&
+                         k.indexOf('checkin:goal-celebrated:') !== 0)
+              ? k.slice(8)
               : k.indexOf('dailyRevealed:') === 0 ? k.slice(14)
               : k.indexOf('checkinCeleb:') === 0
                 ? k.slice(k.lastIndexOf(':') + 1)
@@ -18381,6 +18432,8 @@ function baziPersonaCard(j) {
               : null;
             if (_dsfx !== null && !/^\d{4}-\d{2}-\d{2}$/.test(_dsfx)) return;
             if (k.indexOf('checkin:') === 0 &&
+                k !== 'checkin:goal' &&
+                k.indexOf('checkin:goal-celebrated:') !== 0 &&
                 CHECKIN_OPT_POOL.indexOf(local[k]) < 0 &&
                 !CHECKIN_FEEDBACK[local[k]]) {
               return;

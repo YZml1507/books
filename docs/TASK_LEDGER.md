@@ -17705,3 +17705,17 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - P3：pileShare 补回流链接 location.origin+'/?view=tarot&from=share'；备份提示点名未来信。
 - 决策（自主）：方形头像 personal.mine.verdict 保留——判词模糊（大吉/伏吟类）不泄生辰，与开运壁纸同口径，去个性化反而砍卖点。
 - 闸门：selftest 400 / contract 723 / ui_smoke 101 / ruff / parity 9族 / 其余 14 道全绿。
+
+## R3328（2026-10-03）：留存闭环复扫——11 项清零（4 轴干净实证）
+- **P0**：app_wallpaper.js 外层 then 引用 _wapComposite 局部 `_sq`——每次点「开运壁纸/开运头像」抛 ReferenceError，预览浮层永不开、toast 泄露内部变量名且误称网络问题（桌面下载后同抛）。外展自算 `_sq`。
+- 中：checkin:goal（周目标数）/checkin:goal-celebrated:<date> 在导出白名单却被导入日期尾段+词表校验误杀——单独形态放行（goal=1-30 整数、celebrated=日期+值'1'）。
+- 中：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD——两条 GC 路径永不回收；启动段按尾段+'-28' 比、打卡段按月粒度 cutoff 比。
+- 低：flSend close() 先移除节点再读 flWhen→toast 回退 ISO 日期——先取选项文案再关弹层。
+- 低：2/29 生日非闰年 deliver='YYYY-02-29' 非法永不送达——顺延当月最后一天 02-28。
+- 低：mood:dream:* 自由文本被 mood: ^[0-3]$ 值校验误杀——排除+dream 值限长 500。
+- 低：checkinBuff:* 只在打卡路径 GC 且不在导出——启动 GC 族清单+导出 _PREF 各补。
+- 低：checkinCeleb:* GC 双口径（打卡 90d/启动 150d）——统一 150d。
+- 低：wipe 后 loadPaipanHistory 重建 paipan_mirror_v1 空镜像——重渲落定后补擦镜像键。
+- 轴面干净实证：第 2 天回访 5 类痕迹/.ics 六要素/心情罐闭环/挑堆跨天重置（审计实录）。
+- （备份导得出导不回+wipe 漏周月信两项与 R3329 重叠，同批已修）
+- 闸门：selftest 400 / contract 723 / ruff / bump_sw（ui_smoke 上轮 101 绿，本批为 JS 逻辑层修改未动 UI 结构）。

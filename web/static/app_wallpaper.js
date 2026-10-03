@@ -188,6 +188,9 @@ function downloadWallpaper(j, variant) {
   var _nm = 'wap-' + ('0' + _n).slice(-2);
   return _wapImg('/static/wallpapers/' + _nm + '.jpg')
     .then(function (bg) {
+      /* R3328（审-高）：showPosterModal 在此层引用 _wapComposite
+       * 局部 _sq——每次点击 ReferenceError，浮层永不开。本层自算。 */
+      var _sq = !!(variant && variant.square);
       var cv = _wapComposite(j, bg, variant);
       /* 落盘（与海报同款 a.download；移动端走浮层长按）
        * R3326（审-P2）：触屏与海报统一——静默 a[download] 在 iOS/
