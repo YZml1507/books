@@ -93,6 +93,10 @@ jobs:
         run: python probes/probe_chat_e2e.py
       - name: dict 重复键闸 probe_dup_keys（AST 静态，R2574 类隐患防回归）
         run: python probes/probe_dup_keys.py
+      - name: 常驻检查器收编闸 probe_standing（探针自注入 DISABLE 旗）
+        run: python probes/probe_standing.py
+      - name: 用户可见文案禁词闸 probe_banned_copy
+        run: python probes/probe_banned_copy.py
       - name: $ 误用静态探针
         run: python probes/probe_dollar_misuse.py
       - name: lint 闸（ruff E9+F：语法错/未定义名/未用导入）
