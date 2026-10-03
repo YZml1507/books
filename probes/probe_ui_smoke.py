@@ -387,7 +387,11 @@ def main() -> int:
                  "rgSubmit", "rgFull",
                  # R3336：orAgain 是掷筊出签后才存在的重掷钮——
                  # ui:oracle.again 用例覆盖。
-                 "orAgain"}
+                 "orAgain",
+                 # R3350：咒语册——mantraFav/mantraBookGo/mantraBookBody
+                 # 均由 ui:mantra_fav 用例覆盖（收藏→已收态→meta 小链
+                 # 进册页→格内删除回空态）。
+                 "mantraFav", "mantraBookGo", "mantraBookBody"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -1290,6 +1294,101 @@ def main() -> int:
             except Exception as exc:
                 results.append({"name": "ui:checkin.art", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R3350：咒语册——日卡咒语行尾 ❤️ 收藏 → mantraFav 落盘 +
+            # 「已收」态；复点幂等不翻倍；meta 小链进 view-mantra 格页；
+            # 「请出册子」删回空态 + 行尾钮翻回可收（全本机零请求）。
+            errors.clear()
+            try:
+                page.evaluate("localStorage.removeItem('mantraFav')")
+                try:
+                    if page.is_visible('#dailyCover'):
+                        page.click('#dailyCover')
+                        page.wait_for_timeout(600)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { try { showView('home'); } catch(e) {} }")
+                page.wait_for_selector('#mantraFav', state='visible',
+                                       timeout=8000)
+                page.click('#mantraFav')
+                page.wait_for_timeout(400)
+                _fav = page.evaluate("""(() => {
+                    const b = document.getElementById('mantraFav');
+                    let arr = [];
+                    try {
+                        arr = JSON.parse(
+                            localStorage.getItem('mantraFav') || '[]');
+                    } catch (e) {}
+                    return { got: !!(b && b.classList.contains('got')),
+                             txt: b ? b.textContent : '',
+                             n: arr.length,
+                             t: arr[0] ? arr[0].t : '',
+                             d: arr[0] ? arr[0].d : '',
+                             link: !!document.getElementById(
+                                 'mantraBookGo') };
+                })()""")
+                # 复点=幂等（已收态只 toast，不再 unshift 一条）
+                page.click('#mantraFav')
+                page.wait_for_timeout(300)
+                _n2 = page.evaluate(
+                    "JSON.parse(localStorage.getItem('mantraFav')"
+                    "||'[]').length")
+                # meta 小链在 +N 折叠里的话先展开再点（真实路径同）
+                _gvisible = page.evaluate(
+                    "(() => { const g = document.getElementById("
+                    "'mantraBookGo'); return !!(g && g.offsetParent"
+                    " !== null); })()")
+                if not _gvisible:
+                    try:
+                        page.click('#dailyMetaMore', timeout=3000)
+                        page.wait_for_timeout(200)
+                    except Exception:
+                        pass
+                page.click('#mantraBookGo')
+                page.wait_for_selector('#view-mantra.active',
+                                       timeout=5000)
+                _cell = page.evaluate(
+                    "document.querySelectorAll("
+                    "'#mantraBookBody .mb-cell').length")
+                page.click('#mantraBookBody [data-mb="del"] >> nth=0')
+                page.wait_for_timeout(300)
+                _after = page.evaluate("""(() => {
+                    let arr = [];
+                    try {
+                        arr = JSON.parse(
+                            localStorage.getItem('mantraFav') || '[]');
+                    } catch (e) {}
+                    const b = document.getElementById('mantraFav');
+                    return { n: arr.length,
+                             empty: !!document.querySelector(
+                                 '#mantraBookBody .ph-empty'),
+                             got: !!(b && b.classList.contains('got')) };
+                })()""")
+                page.evaluate(
+                    "() => { try { showView('home'); } catch(e) {} }")
+                ok = (_fav["got"] and _fav["n"] == 1 and _fav["t"] and
+                      _fav["d"] and _fav["link"] and _n2 == 1 and
+                      _cell == 1 and _after["n"] == 0 and
+                      _after["empty"] and not _after["got"] and
+                      not errors)
+                results.append({
+                    "name": "ui:mantra_fav", "ok": ok,
+                    "detail": (f"收后态={_fav['txt'].strip()} "
+                               f"落盘={_fav['n']} 复点={_n2} "
+                               f"册格={_cell} 删后={_after}")})
+            except Exception as exc:
+                results.append({"name": "ui:mantra_fav", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate(
+                        "localStorage.removeItem('mantraFav');"
+                        "try { showView('home'); } catch(e) {}")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
 
 

@@ -3578,6 +3578,10 @@ function showView(viewId) {
   if (viewId === 'moodweek') {
     try { _renderMoodWeek(); } catch (eMW) {}
   }
+  /* R3350：咒语册——进视图按最新 mantraFav 重渲（跨 tab 收/删跟新）。 */
+  if (viewId === 'mantra') {
+    try { _renderMantraBook(); } catch (eMBV) {}
+  }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
     c.style.borderColor = isActive ? 'var(--primary)' : '';
@@ -3634,7 +3638,8 @@ function showView(viewId) {
       ((document.querySelector('.func-card[data-view="' + viewId + '"] .func-name') || {}).textContent ||
         /* R2349v（R92-P2-5）：无入口卡的视图（read/history）此前兜底
          * 直泄英文 id 上标题栏——视图名小表兜底。 */
-        ({read:'古籍',history:'排盘台账',moodweek:'这周的你'})[viewId] || viewId);
+        ({read:'古籍',history:'排盘台账',moodweek:'这周的你',
+          mantra:'咒语册'})[viewId] || viewId);
     document.title = (_vn ? (_vn + ' · ') : '') + '小满的解忧铺 · 知命';
   } catch (eT) {}
   window.__inView = !isHome;
@@ -5372,7 +5377,38 @@ async function loadDaily() {
       var _mt = _dayPick(_MANTRA_POOL,
         'mantra|' + String(j.date || _today));
       _mtEl.dataset.m = _mt;
+      _mtEl.dataset.d = String(j.date || _today);
       _mtEl.innerHTML = '✨ 今日咒语 <b>' + esc(_mt) + '</b>';
+      /* R3350：咒语册——行尾 ❤️ 收这句进 mantraFav（本机册）。
+       * sibling 钮不嵌咒语行：咒语行是 role=button 点按复制，
+       * 嵌套会冒泡双触发。已收显「已收」态（同句同日去重）。 */
+      var _mfBtn = el('mantraFav');
+      if (_mfBtn && !_mfBtn.dataset.bound) {
+        _mfBtn.dataset.bound = '1';
+        _mfBtn.addEventListener('click', function () {
+          var _mm = String(_mtEl.dataset.m || '');
+          var _dd = String(_mtEl.dataset.d || todayIso());
+          if (!_mm) return;
+          if (_mantraFavHas(_mm, _dd)) {
+            showToast('这句已经在册子里躺着啦', 'info');
+            return;
+          }
+          var _was = _mantraFavAll().length;
+          _mantraFavAdd(_mm, _dd);
+          var _now = _mantraFavAll().length;
+          _mantraFavSync(_mm, _dd);
+          _mantraBookMeta();
+          if (_was < 7 && _now >= 7) {
+            showToast('咒语册攒到 7 句啦——一天一句刚好念一礼拜', 'ok');
+          } else {
+            showToast(_dayPick(_MANTRA_FAV_TOAST,
+              'mfav|' + _dd + '|' + _now), 'ok');
+          }
+        });
+      }
+      try { _mantraFavSync(_mt, String(j.date || _today)); } catch (eMF) {}
+      /* R3350：册入口同步——攒了才现身 meta 行。 */
+      try { _mantraBookMeta(); } catch (eMB) {}
       /* R3317-G：今日牌——同日全站同一张大阿卡纳（后端 daily_card
        * 字段，确定性 seed=日期）；小缩略图 + 名 + 位向 + 关键词。 */
       var _dcEl = el('dailyTarot');
@@ -5871,6 +5907,8 @@ async function loadDaily() {
     /* R3262（R17）：心情罐子入口——有解锁时在日常 meta 行展示，
      * 没有则静默不占位。 */
     _dailyMetaItem('dailyMoodJar', _moodJarHtml());
+    /* R3350：咒语册入口——攒了才现身 meta 行（空册不占地）。 */
+    try { _mantraBookMeta(); } catch (eMBM) {}
     /* R3321-P1：旧「每日一牌」异步路径整段退役——它与 daily_card
      * 不同 seed（可能抽成另一张牌），且 _dailyMetaItem('dailyTarot')
      * 与新渲染器同 id 覆写，把「抽三张」入口整段抹掉。牌意展开已
@@ -14151,6 +14189,18 @@ function init() {
       try { _wishRefreshSummary(); } catch (eW1) {}
       return;
     }
+    /* R3350：咒语册跨 tab——A tab 收/删，B tab 的册页/入口/行尾
+     * 已收态就地跟上（removeItem newValue=null 与新写同链路）。 */
+    if (e.key === 'mantraFav') {
+      try { _mantraBookMeta(); } catch (eMV1) {}
+      try { _renderMantraBook(); } catch (eMV2) {}
+      try {
+        var _mte = el('dailyMantra');
+        _mantraFavSync(String((_mte && _mte.dataset.m) || ''),
+                       String((_mte && _mte.dataset.d) || todayIso()));
+      } catch (eMV3) {}
+      return;
+    }
     if (e.key.indexOf('shred:') === 0) {
       try { _shredRefreshSummary(); } catch (eSh) {}
       return;
@@ -15490,7 +15540,8 @@ function _identityPhrase() {
 var _USAGE_LABEL = { home: '日签', bazi: '排盘', liuyao: '六爻',
   tarot: '塔罗', hehun: '合婚', qiming: '起名', taohua: '桃花',
   xingzuo: '星座', huangli: '黄历', dream: '解梦', renge: '五行人格',
-  book: '书库', read: '古籍', study: '研学', moodweek: '周记' };
+  book: '书库', read: '古籍', study: '研学', moodweek: '周记',
+  mantra: '咒语册' };
 function _usageTrack(view) {
   try {
     if (!localStorage.getItem('usage:first'))
@@ -18362,6 +18413,140 @@ function _wishAction(act, arg, dateKey) {
   }
 }
 
+/* R3350：肯定语收集册——今日咒语行尾 ❤️ 收进「我的咒语册」。
+ * mantraFav=[{t:咒语原文,d:收藏日ISO,ts}] cap 40，去重键 t|d
+ * （同句跨天算新一条——每天那句是那一页）。结构照抄 wishfulfilled：
+ * 备份 _EXACT、wipe 清单、导入白名单+形状校验、跨 tab storage
+ * 监听；全本机零 API 零台账。 */
+var _MANTRA_FAV_TOAST = [
+  '收好啦，这句以后归你',
+  '存进咒语册了，想它随时翻',
+  '这句话今天跟你走',
+  '好句配好日子，收下了',
+  '收进册子啦，攒着攒着就是一本小书'
+];
+function _mantraFavAll() {
+  try {
+    var a = JSON.parse(localStorage.getItem('mantraFav') || '[]');
+    return Array.isArray(a) ? a : [];
+  } catch (e) { return []; }
+}
+function _mantraFavHas(t, d) {
+  return _mantraFavAll().some(function (x) {
+    return x && x.t === t && x.d === d; });
+}
+function _mantraFavAdd(t, d) {
+  try {
+    var a = _mantraFavAll();
+    a.unshift({ t: t, d: d, ts: Date.now() });
+    /* 写前并集同 wishfulfilled——unshift 新头型 head-cap 保新，
+     * 满 40 最旧的让位出册。 */
+    _lsUnionWrite('mantraFav', a,
+      function (x) { return x && (String(x.t) + '|' + String(x.d)); },
+      40);
+  } catch (e) {}
+}
+function _mantraFavDel(ts) {
+  try {
+    var a = _mantraFavAll().filter(function (x) {
+      return x && String(x.ts) !== String(ts); });
+    localStorage.setItem('mantraFav', JSON.stringify(a));
+  } catch (e) {}
+}
+function _mantraFavSync(t, d) {
+  /* 今日咒语行尾钮——同句今日已收显「已收」实心态。 */
+  var b = el('mantraFav');
+  if (!b) return;
+  if (!t) { b.hidden = true; return; }
+  var got = _mantraFavHas(t, d);
+  b.hidden = false;
+  b.textContent = got ? '❤️ 已收' : '🤍';
+  b.classList.toggle('got', got);
+  b.setAttribute('aria-pressed', got ? 'true' : 'false');
+  b.title = got ? '这句已经在咒语册里啦' : '把这句收进咒语册';
+  b.setAttribute('aria-label', got ? '今日咒语已收藏' : '收藏今日咒语');
+}
+function _mantraBookMeta() {
+  /* 册入口——日卡 meta 行小链，攒了才现身（空册不占地）。 */
+  var n = _mantraFavAll().length;
+  _dailyMetaItem('dailyMantraBook', n
+    ? '<button type="button" class="mantra-book-link" id="mantraBookGo">' +
+      '📖 咒语册 · 已攒 ' + n + ' 句</button>'
+    : '');
+  var g = el('mantraBookGo');
+  if (g && !g.dataset.bound) {
+    g.dataset.bound = '1';
+    g.addEventListener('click', function () {
+      try { showView('mantra'); } catch (eG) {}
+    });
+  }
+}
+function _renderMantraBook() {
+  /* 只在册页在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
+  var vw = el('view-mantra');
+  if (!vw || !vw.classList.contains('active')) return;
+  var body = el('mantraBookBody');
+  if (!body) return;
+  var a = _mantraFavAll();
+  if (!a.length) {
+    body.innerHTML = '<div class="ph-empty">册子还空着呢——' +
+      '看到喜欢的那句，点旁边的小心心 🤍 就收进来啦</div>';
+  } else {
+    body.innerHTML = '<div class="mb-count">攒了 <strong>' + a.length +
+      '</strong> 句 · 满 40 最旧的先出册</div>' +
+      '<div class="mb-grid">' +
+      a.map(function (x) {
+        return '<div class="mb-cell">' +
+          '<div class="mb-t">「' + esc(x.t) + '」</div>' +
+          '<div class="mb-d">' + esc(x.d || '') + ' 收的</div>' +
+          '<div class="mb-acts">' +
+            '<button type="button" class="mb-act" data-mb="copy" data-ts="' +
+              esc(String(x.ts)) + '" title="复制这句">再念一遍</button>' +
+            '<button type="button" class="mb-act mb-del" data-mb="del" ' +
+              'data-ts="' + esc(String(x.ts)) +
+              '" title="从咒语册删掉" aria-label="删除这条咒语">请出册子</button>' +
+          '</div></div>';
+      }).join('') + '</div>';
+  }
+  /* 委托绑在容器上（innerHTML 重渲不掉绑定）——copy/del 同链路。 */
+  if (!body.dataset.bound) {
+    body.dataset.bound = '1';
+    body.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest
+        ? ev.target.closest('[data-mb]') : null;
+      if (!b) return;
+      var act = b.dataset.mb, ts = b.dataset.ts;
+      if (act === 'copy') {
+        var _hit = _mantraFavAll().filter(function (x) {
+          return x && String(x.ts) === String(ts); })[0];
+        if (!_hit) return;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(String(_hit.t)).then(
+              function () { showToast('咒语复制好啦，去贴上吧', 'ok'); },
+              function () { showToast('长按那句手动复制', 'warn'); });
+          } else { throw new Error('no clipboard'); }
+        } catch (eMC2) { showToast('长按那句手动复制', 'info'); }
+        return;
+      }
+      if (act === 'del') {
+        _mantraFavDel(ts);
+        _renderMantraBook();
+        _mantraBookMeta();
+        /* 删的若是今天这句，行尾钮翻回可收态。 */
+        try {
+          var _mt2 = el('dailyMantra');
+          if (_mt2) {
+            _mantraFavSync(String(_mt2.dataset.m || ''),
+                           String(_mt2.dataset.d || todayIso()));
+          }
+        } catch (eMS) {}
+        showToast('这句先请出册子啦', 'info');
+      }
+    });
+  }
+}
+
 /* R3335：烦恼粉碎机——写下来的烦心事当场粉碎，原文永不落盘
  * （隐私即卖点：碎掉就是真没了），只累计当天件数 shred:<date>。
  * 件数是纯计数不迁移：不进备份（换机不带这种一次性痕迹），
@@ -19002,7 +19187,9 @@ function baziPersonaCard(j) {
                       'chat:events', 'mood:lv', 'notify:time',
                       'returnBannerDismissed', 'futureLetters',
                       /* R3337：成真集是亲笔愿望文本的延续——备份带上 */
-                      'wishfulfilled'];
+                      'wishfulfilled',
+                      /* R3350：咒语册同族——收来的句子也是亲笔痕迹 */
+                      'mantraFav'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -19161,7 +19348,9 @@ function baziPersonaCard(j) {
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
           /* R3339（审-低）：installTipDismissed/ret_tip/voiceMode（死键
            * 可被旧备份导回）此前游离在清除清单外——实测 wipe 后残留。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|chatSessionId|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1|threads_mirror_v1|installTipDismissed|ret_tip|voiceMode)$/
+          /* R3350：mantraFav（咒语册句子）也是个人化数据，「忘掉我的
+           * 数据」一起收——与 wishfulfilled 同族口径。 */
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|mantraFav|chatSessionId|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1|threads_mirror_v1|installTipDismissed|ret_tip|voiceMode)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 /* R3339（审-中）：transcript 改 sid 命名空间后裸名匹配
                  * 漏收 chatTranscript:<sid>/:lastsid——前缀全覆盖。 */
@@ -19390,7 +19579,8 @@ function baziPersonaCard(j) {
              * 逐族形状校验。 */
             /* R3339（审-低）：voiceMode 是下线死键——白名单收它等于
              * 旧备份往本机种死数据，剔除。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
+            /* R3350：mantraFav（咒语册）同族收编——导得出也要导得回。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -19496,6 +19686,21 @@ function baziPersonaCard(j) {
                 });
                 if (!_wok) return;
               } catch (eWA) { return; }
+            }
+            /* R3350：mantraFav=咒语册数组——[{t≤40, d:YYYY-MM-DD,
+             * ts:number}]，同 wishfulfilled 族逐字段校验。 */
+            if (k === 'mantraFav') {
+              try {
+                var _ma = JSON.parse(_v);
+                if (!Array.isArray(_ma) || _ma.length > 40) return;
+                var _mok = _ma.every(function (_me) {
+                  return _me && typeof _me === 'object' &&
+                    typeof _me.t === 'string' && _me.t.length <= 40 &&
+                    /^\d{4}-\d{2}-\d{2}$/.test(_me.d || '') &&
+                    typeof _me.ts === 'number';
+                });
+                if (!_mok) return;
+              } catch (eMA) { return; }
             }
             if ((k.indexOf('weeklyLetter:') === 0 ||
                  k.indexOf('monthlyLetter:') === 0) && _v !== '1') return;
