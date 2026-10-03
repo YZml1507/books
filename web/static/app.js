@@ -13816,7 +13816,7 @@ function init() {
        * R3328（审-中）：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD
        * 两条 GC 路径都永不回收——按 YYYY-MM 尾段比。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -13895,6 +13895,10 @@ function init() {
     if (e.key === 'wishbottle') {
       try { _renderWishBottle(); } catch (eW0) {}
       try { _wishRefreshSummary(); } catch (eW1) {}
+      return;
+    }
+    if (e.key.indexOf('shred:') === 0) {
+      try { _shredRefreshSummary(); } catch (eSh) {}
       return;
     }
     if (e.key.indexOf('checkin:') === 0) {
@@ -15953,7 +15957,12 @@ function renderCheckin(dateKey) {
        * 懒渲染卡，零后端依赖。 */
       '<details class="ck-album ck-wish"><summary>🫙 许愿瓶' +
       _wishSummary() + '</summary>' +
-      '<div class="ck-album-body" id="wishBottleBody"></div></details>';
+      '<div class="ck-album-body" id="wishBottleBody"></div></details>' +
+      /* R3335：烦恼粉碎机——把压着的烦心事写下来当场碎掉。
+       * 仪式意义=不留档：原文永不落盘，只记当天件数。 */
+      '<details class="ck-album ck-shred"><summary>🗑️ 烦恼粉碎机' +
+      '<span id="shredSum"></span></summary>' +
+      '<div class="ck-album-body" id="shredBody"></div></details>';
   /* R3317-E：信卡收下——写本周档键，重渲即消失（不再打扰）。 */
   var _wlx = box.querySelector('#wlDismiss');
   if (_wlx && !_wlx.dataset.bound) {
@@ -16042,6 +16051,17 @@ function renderCheckin(dateKey) {
     _wish.addEventListener('click', function (e) {
       var act = e.target.closest('[data-wish]');
       if (act) _wishAction(act.dataset.wish, act.dataset.arg || '', dateKey);
+    });
+  }
+  var _shred = box.querySelector('.ck-shred');
+  if (_shred && !_shred.dataset.bound) {
+    _shred.dataset.bound = '1';
+    _shred.addEventListener('toggle', function () {
+      if (_shred.open) _renderShredder();
+    });
+    _shred.addEventListener('click', function (e) {
+      var act = e.target.closest('[data-shred]');
+      if (act) _shredAction(act.dataset.shred, dateKey);
     });
   }
   /* R3264（R49）：周目标达成庆祝——本周目标达成时飘一颗 ✨ 星星
@@ -17541,6 +17561,121 @@ function _wishAction(act, arg, dateKey) {
   }
 }
 
+/* R3335：烦恼粉碎机——写下来的烦心事当场粉碎，原文永不落盘
+ * （隐私即卖点：碎掉就是真没了），只累计当天件数 shred:<date>。
+ * 件数是纯计数不迁移：不进备份（换机不带这种一次性痕迹），
+ * 进 wipe 清单与 150 天 GC。 */
+var _SHRED_SOOTHE = [
+  '碎啦——这事从今天起不归你管了',
+  '纸都碎了，它压不住你了',
+  '扔出去的东西不用捡回来',
+  '行了，翻篇。今天剩下的是你的',
+  '碎干净了。喝口水，这页不翻了',
+  '它配不上你的好心情——已粉碎',
+  '到此为止，这件事从你的清单上划掉了',
+  '碎完了。烦人的事不值得过夜',
+  '帮你处理掉了，别回头捡',
+  '纸屑都吹走了，你也往前走走'
+];
+function _shredCount(dateKey) {
+  try {
+    return parseInt(localStorage.getItem('shred:' + dateKey) || '0', 10) || 0;
+  } catch (e) { return 0; }
+}
+function _shredRefreshSummary(dateKey) {
+  var s = document.getElementById('shredSum');
+  if (!s) return;
+  var n = _shredCount(dateKey || todayIso());
+  s.textContent = n ? '，今天碎了 ' + n + ' 件' : '';
+}
+function _renderShredder(stage) {
+  var host = document.getElementById('shredBody');
+  if (!host) return;
+  var dk = todayIso();
+  var n = _shredCount(dk);
+  if (stage === 'done') {
+    host.innerHTML =
+      '<div class="ck-wish-card">' +
+        '<div class="ck-shred-done">🗑️ ' +
+          esc(_dayPick(_SHRED_SOOTHE, 'shred|' + dk + '|' + n)) + '</div>' +
+        '<div class="ck-wish-meta">' +
+          (n > 1 ? '今天一共碎了 ' + n + ' 件，手挺快' :
+                  '原文没存任何地方——碎了就真没了') + '</div>' +
+        '<div class="ck-wish-actions">' +
+          '<button type="button" class="checkin-opt" data-shred="again">再碎一件</button>' +
+          '<button type="button" class="checkin-opt" data-shred="wish">顺手丢个愿望 🫙</button>' +
+        '</div></div>';
+    return;
+  }
+  host.innerHTML =
+    '<div class="ck-wish-card">' +
+      '<textarea id="shredText" class="ck-wish-input" maxlength="120" rows="3" ' +
+        'aria-label="写下压着的事" ' +
+        'placeholder="压着你的事写下来——写完就碎，小满不留档"></textarea>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" data-shred="go">碎掉它 🗑️</button>' +
+      '</div>' +
+      (n ? '<div class="ck-wish-meta">今天已经碎了 ' + n + ' 件</div>' :
+           '<div class="ck-wish-meta">写完的内容不会存任何地方</div>') +
+    '</div>';
+  var ta = document.getElementById('shredText');
+  if (ta) ta.focus();
+}
+function _shredAction(act, dateKey) {
+  var host = document.getElementById('shredBody');
+  if (!host) return;
+  if (act === 'again') { _renderShredder(); return; }
+  if (act === 'wish') {
+    var w = document.querySelector('#dailyCheckin .ck-wish');
+    if (w) {
+      w.open = true;
+      _renderWishBottle();
+      var wt = document.getElementById('wishText');
+      if (wt) { wt.focus(); }
+      w.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    return;
+  }
+  if (act !== 'go') return;
+  var ta = document.getElementById('shredText');
+  var t = ta ? ta.value.trim() : '';
+  if (!t) { showToast('先写点什么，才有得碎', 'warn'); return; }
+  /* 粉碎动画：纸条裁成 7 条百叶窗切片，各自错落飘落。
+   * 切片渲染完计一次件——动画期间防连点。 */
+  var paper = document.createElement('div');
+  paper.className = 'ck-shred-stage';
+  var paperEl = document.createElement('div');
+  paperEl.className = 'ck-shred-paper';
+  paperEl.textContent = t;
+  paper.appendChild(paperEl);
+  host.innerHTML = '';
+  host.appendChild(paper);
+  var H = Math.max(48, paperEl.offsetHeight || 64);
+  var SL = 7, sh = Math.ceil(H / SL), i;
+  paper.style.height = H + 'px';
+  paperEl.style.display = 'none';
+  for (i = 0; i < SL; i++) {
+    var sl = document.createElement('div');
+    sl.className = 'ck-shred-slice';
+    sl.style.top = (i * sh) + 'px';
+    sl.style.height = Math.min(sh, H - i * sh) + 'px';
+    var sliceIn = document.createElement('div');
+    sliceIn.className = 'ck-shred-slice-in';
+    sliceIn.textContent = t;
+    sliceIn.style.top = (-i * sh) + 'px';
+    sl.appendChild(sliceIn);
+    sl.style.animationDelay = (i * 0.055) + 's';
+    sl.style.setProperty('--rot', ((i % 2 ? 1 : -1) * (8 + i * 5)) + 'deg');
+    paper.appendChild(sl);
+  }
+  try {
+    localStorage.setItem('shred:' + dateKey,
+      String(_shredCount(dateKey) + 1));
+  } catch (eS) {}
+  _shredRefreshSummary(dateKey);
+  setTimeout(function () { _renderShredder('done'); }, 1050);
+}
+
 /* R2341（R57-P2-6）：地支→生肖映射提模块级——海报与卡面同口径 */
 var _ZHI_ANIMAL = {'子':'鼠','丑':'牛','寅':'虎','卯':'兔','辰':'龙','巳':'蛇',
                    '午':'马','未':'羊','申':'猴','酉':'鸡','戌':'狗','亥':'猪'};
@@ -18226,7 +18361,9 @@ function baziPersonaCard(j) {
                 /* R3329（审-P3）：周/月信已弹标不收 wipe——「忘掉」
                  * 后信卡复弹。 */
                 k.indexOf('weeklyLetter:') === 0 ||
-                k.indexOf('monthlyLetter:') === 0)) _rm.push(k);
+                k.indexOf('monthlyLetter:') === 0 ||
+                /* R3335：碎念件数也是足迹 */
+                k.indexOf('shred:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*

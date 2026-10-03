@@ -17764,3 +17764,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 低：hehun 受邀者结果页「把合拍指数发回给 XX 看看」是纯文本无按钮（实际靠旁边分享图）——cite 改 `<button.hit-cite-btn>` 直调 shareHehun，下划虚线传达可点性。
 - 干净实证（审计实录）：邀请链端到端/档案隔离/伪造参数/XSS/微信降级/口令门回传/深链消化/新客死点。
 - 闸门：ui_smoke 101（on_coverage 豁免表补 hhSendBack）/ bump_sw→books-shell-43a6a2cb3257。
+
+## R3335（2026-10-03）：烦恼粉碎机——情绪仪式层首个功能（全网调研定调）
+- 调研证据：CyberLuck「压力粉碎机」+测测 AI 心情小镇情绪向功能被验证为留存命脉；XHS 许愿+200%/年、接好运文化。
+- 功能：日签卡打卡区新增 details「🗑️ 烦恼粉碎机」（许愿瓶同构懒渲染卡）——写烦心事→7 片百叶窗切片错落飘落动画→小满安抚句池（10 条 seed 轮换）→「再碎一件」+「顺手丢个愿望」直达许愿瓶。
+- 隐私即卖点：原文永不落盘，仅 `shred:<date>` 件数键；进 wipe 清单+150 天 GC 族+跨 tab storage 同步（不进备份——一次性释放痕迹不值得迁移）。
+- 路标：_CHAT_ACTIONS 加倒苦水词族（烦恼/焦虑/emo/内耗/好烦等 11 词）→ home「🗑️ 去碎掉它」。
+- 新增文件：docs/PLAN_R3335_PLUS.md（全网调研+后几轮方案：烦恼粉碎机→决策神谕→愿望回音→肯定语册→摇一摇）。
+- 实测：Playwright 移动视口端到端——textarea→切片 7 片→done 卡→count 累进→summary「今天碎了 N 件」→wish 直达开瓶，PASS。
+- 闸门：selftest 405 / contract 725 / ui_smoke 101 / llm_polish / parity / dollar_misuse(变量名 base→paperEl 消歧)/ regress / ruff 全绿；bump_sw→books-shell-cca029311057。
