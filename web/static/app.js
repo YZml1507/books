@@ -5188,6 +5188,31 @@ async function loadDaily() {
         (_lc ? '<span class="lucky-chip"><i class="lc-dot" style="background:' +
           (_LC_HEX[_lc] || '#d9c9a8') + '"></i>' + esc(_lc) +
           (_ln ? ' · ' + _ln : '') + '</span>' : '');
+      /* R3317-D：今日咒语——同日全站同句（晒出去能对上号的社群感），
+       * 短促上口的小红书体祈愿句，点一下复制。 */
+      var _mtEl = el('dailyMantra');
+      if (!_mtEl) {
+        _mtEl = document.createElement('div');
+        _mtEl.id = 'dailyMantra';
+        _mtEl.className = 'daily-mantra';
+        _mtEl.title = '点一下复制这句咒语';
+        _scEl.parentElement.insertBefore(_mtEl, _scEl.nextSibling);
+        _mtEl.addEventListener('click', function () {
+          var _m = String(_mtEl.dataset.m || '');
+          if (!_m) return;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(_m).then(
+                function () { showToast('咒语复制好啦，去贴上吧', 'ok'); },
+                function () { showToast('长按那句手动复制', 'warn'); });
+            } else { throw new Error('no clipboard'); }
+          } catch (eMC) { showToast('长按那句手动复制', 'info'); }
+        });
+      }
+      var _mt = _dayPick(_MANTRA_POOL,
+        'mantra|' + String(j.date || _today));
+      _mtEl.dataset.m = _mt;
+      _mtEl.innerHTML = '✨ 今日咒语 <b>' + esc(_mt) + '</b>';
     }
     /* R3249d（UX-AUDIT B2 · 用户实测「测测一点开就有几个分」）：
      * 三维度小分——💗感情/💼做事/💰钱袋。不是拍脑袋随机数：以
@@ -12294,7 +12319,10 @@ function initDivination() {
     var _txt = '🌟 ' + (_j.date || '今天') + ' 今日签\n' +
       esc(_summ) + '\n' +
       '宜：' + esc(_j.do || '—') + '\n' +
-      '忌：' + esc(_j.dont || '—') + '\n\n' +
+      '忌：' + esc(_j.dont || '—') + '\n' +
+      /* R3317-D：咒语进晒图文案——晒图自带口号感 */
+      '✨ 今日咒语：' +
+      esc(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n\n' +
       '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
       (window.location.origin || '') + '/?view=daily&from=share';
     try {
@@ -14236,6 +14264,21 @@ function _festivalBand() {
  * （saved 命中已轮换走的项时在首位补显）。 */
 const CHECKIN_OPT_POOL = ['开运蛋', '吃瓜运', '摸鱼运', '破水逆运',
   '暴富签', '甜甜运', '上岸运', '顺顺签'];
+/* R3317-D：今日咒语池——同日全站同句（晒出去能对上号的社群感）。
+ * 小红书体祈愿句：短、上口、可截图，不含算命/预测类违规词。 */
+var _MANTRA_POOL = [
+  '水逆退散，钱包回暖', '霉运清零，好事常来', '烦恼退退退',
+  '好运充值成功', '今天也是被幸运点名的人', '诸事顺利，心想事成',
+  '今日好运已到账', '难事先放一放，先吃饭', '小确幸浓度拉满',
+  '今天走路都带风', '好运气从这里开始', '所求皆所愿，所行皆坦途',
+  '今日份快乐已签收', '好事正在派送中', '今天不谈烦心事',
+  '运气这回事，我信', '顺顺当当过今天', '小满即圆满',
+  '今天的好事不止一件', '心宽的人运气不会差', '福气正在路上',
+  '今天适合好好待自己', '困难退散，快乐翻倍', '愿望清单推进中',
+  '今天的我是限量版', '好运会迟到但不会缺席', '日子一天天，越来越甜',
+  '今天也为小目标蓄力', '好运与好心态双向奔赴', '不急不慌，好事不慌',
+  '今天的快乐额度无限', '所愿皆成，所遇皆暖', '把烦恼调成静音',
+  '今天是个好日子', '好心态是最好的好运', '小满未满，一切都刚好'];
 /* R233j（R46-P1）：与 copy_bank.json checkin.feedback 对齐。
  * R2349g（R68-P2）：此前「对齐」注释在说谎——json 缺 4 签+default，
  * 已补齐（options/feedback 全 9 池）。前端这份仍是唯一消费方。 */

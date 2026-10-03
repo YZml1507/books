@@ -403,6 +403,9 @@ def main() -> int:
         # R3317：开运壁纸——canvas 合成 + showPosterModal 预览，同族豁免。
         "dailyWap": "开运壁纸生成——canvas 合成+海报模态预览，"
                     "同 shareDaily 族豁免",
+        # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
+        # 零请求；_dayPick 确定性已由单测级逻辑保证。
+        "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",
         "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
                       "零请求；真实链路已 Playwright 手验（按钮存在）",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"
