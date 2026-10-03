@@ -1400,7 +1400,22 @@ function pollAiPolish(containerId, taskId) {
         _done();
         return;                                      // 终态：停止轮询
       }
-      if (st && st.status === 'failed') { _done(); return; }  // 拿不到 → 整块不渲染
+      if (st && st.status === 'failed') {
+        /* R2365（R3302-中）：上游 failed 整块消失=「发了没回音」——
+         * 留一行真话，不装死也不打扰（卡面主体不受影响）。 */
+        try {
+          var _pfc = document.getElementById(containerId);
+          if (_pfc && !_pfc.querySelector('.ai-polish-fail')) {
+            var _pfn = document.createElement('div');
+            _pfn.className = 'ai-polish-fail';
+            _pfn.style.cssText =
+              'font-size:12px;color:var(--muted);margin-top:6px;';
+            _pfn.textContent = '小满这句没接上，不耽误看结果～';
+            _pfc.appendChild(_pfn);
+          }
+        } catch (ePF) {}
+        _done(); return;
+      }
       if (performance.now() < deadline) { setTimeout(tick, _wait); _wait = _aiBackoff(_wait); }
       else _done();
     }).catch(function (e) {
@@ -9833,6 +9848,16 @@ async function _doHuangli(offset, reveal, spokenWord) {
           (_g2 ? '<small class="hl-pill-sub">' + esc(_g2) + '</small>' : '') + '</span>';
       }).join('') + '</div>' : '<div class="ph-empty">没有特别要避开的</div>';
     html += '</div></div>';
+    /* R2365（R3301-P2）：红白同框观感——「宜嫁娶」旁列「忌安葬」
+     * 传统历书各事各论本属正常，但对受众像打架；附一行注脚化解。 */
+    var _HL_RED = ['嫁娶', '求嗣', '冠笄', '纳采', '订盟', '进人口'];
+    var _HL_WHT = ['安葬', '行丧', '破土', '启攒', '修坟', '立碑',
+                   '入殓', '除服', '成服', '移柩'];
+    if (yi.some(function (w) { return _HL_RED.indexOf(w) !== -1; }) &&
+        ji.some(function (w) { return _HL_WHT.indexOf(w) !== -1; })) {
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">' +
+        '宜忌各事各论：喜事丧事各看各的，挑跟你有关的那一行就行</div>';
+    }
     if (_conflict.length) {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:6px;">※ ' +
         esc(_conflict.join('、')) + ' 在宜忌两边打架：黄历自己都矛盾的日子，' +

@@ -3762,7 +3762,7 @@ def _chat_facts_inner(message: str, now: datetime,
     if hit_yi:
         _fam = set()
         for _t in terms:
-            _fam |= set(huangli_mod.term_family(_t))
+            _fam |= set(huangli_mod._veto_terms(_t))
         hit_ji = sorted(set(hit_ji) | {t for t in _fam
                         if any(t in w or w in t for w in ji)})
     # R229z续2：已过去的日子不给「近45天宜X」——从过去日起扫的全是过去日，
