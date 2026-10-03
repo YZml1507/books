@@ -17815,3 +17815,38 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   - daily 副题 j.lunar 字符串 schema 兼容（农历行不再静默丢）
   - xzm 判词加白话注释（同款=同一个模子等）
 - 闸门：selftest 405 / contract 725 / ui_smoke 103 / 其余全绿
+
+## R3335+R3338 解梦塔罗内容审 + 性能预算终扫清零
+- R3335（解梦/塔罗内容质量真机审）高+中清零：
+  - voice.py lines[:5] 把引导语算进名额——第 5 张叙事牌静默裁掉
+    （celtic shown=5 只渲 4 张，「其余5张」对不上账）；改全收 lines+tail
+  - dream.py「在世的亲人出事」键表零覆盖祖辈/手足/配偶/孩子——
+    「梦见爷爷死了」只能蹭「梦见爷爷」被当成去世的人卡（把活人当亡者）；
+    补 60+ 键（爷奶哥姐弟妹老婆孩子儿女×死/出事/车祸/被撞/受伤/生病/住院）
+    + 开车刹不住卡与出事卡互斥（车祸场景不再叠错位卡）
+  - 「会不会+安危词」（出事/有灾/意外/生病/死）判词分流——
+    塔罗不再回「往前走一小步」式行动判词，改「牌不预告灾祸」口径
+  - 键表插字容差：找不到回家的路/找不着路、手机还丢/又丢/找不见、
+    钱丢/丢了钱/掉钱、淹死/溺死/掉河里
+  - 16 张宫廷牌花色差异化（_COURT_OVERRIDE 32 组 kw+meaning+31 条指引；
+    原 4 花色共享 4 组话术）+ 旧共享 kw0 指引死键清理（selftest 覆盖闸）
+  - 「顺位」→「正位」、act 叠句点「？。」修复、显示名取斜杠首段、
+    「先安你最怕」统一为「先安最怕」、ask 域他→ta
+  - 低项遗留（backlog）：自点牌判词首行呼应、无提问路径模板对齐、
+    llm_polish verdict 复读（mock 面无法验证，留真机回归）
+- R3338（性能预算终扫）高+中清零：
+  - lxgw 字体瀑布（1.42MB/26 分片）：放行闸 daily JSON→window load+800ms
+    （8s 兜底）——弱网 DCL 32.5s 根因，字体不再与 app.js 争带
+  - CLS 回归 0.010→0.108：槽位预占按实测真高上调（能量 28→35 /
+    三维 28→30 / 今日牌 40→64 / 星星 45 / 留言桌面 65·移动 194 / 打卡 96）
+  - app.js 未压缩 788KB：服务时 jsmin 按 (mtime,size) 缓存压缩（544KB），
+    URL 不变零感知；jsmin 缺失自动回落原文（新依赖 requirements 两侧）
+  - warmPoster 启动即拉→requestIdleCallback/3.5s 空闲窗，省流量慢网弃预热
+  - SW SHELL 减重：empty-xiaoman/moon-cat 挪运行时缓存
+  - 图过采样：moon-cat 768²→224²(34KB→4.8KB)、empty-xiaoman 256²→128²(66KB→20.5KB)
+  - _favList 在途合并补 3s TTL 短缓存（冷启三处渲染不再连发 GET），
+    写路径（存/删/清空/导入）全部 _favListInvalidate
+- 闸门：selftest 405 / contract 725 / ui_smoke 103 / regress(408→405) /
+  llm_polish / first_screen / date_parity 74+52+253+9 / banned / standing /
+  corpus / importable / dup_keys / dollar_misuse(400) / baseline_voice 重冻结 /
+  ruff 全绿；bump_sw→books-shell-a209e8640729

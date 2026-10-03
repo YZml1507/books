@@ -157,8 +157,11 @@ try {
     };
   })();
 } catch (eDP) {}
-/* R2353（R110-P1-3）：字体分片让路，daily JSON 落地（或 4s 兜底）后
-   才翻 media='all' 放行 woff2 分片下载；预取缺席时 1.5s 后放行。 */
+/* R2353（R110-P1-3）：字体分片让路，daily JSON 落地后才翻 media='all'。
+   R3338（审-高）：daily 落地即翻仍太早——26 个 woff2 分片（~1.4MB）与
+   app.js（~1MB）争带，弱网实测 DCL 被拖到 32.5s。改为等 window load
+   事件（首屏全部关键资源到位）后再延迟放行；8s 绝对兜底防 load 挂起。
+   font-display:swap 让系统字体兜首屏，LXGW 到齐自然换上。 */
 try {
   (function () {
     var _done = false;
@@ -168,10 +171,12 @@ try {
       if (l) l.media = 'all';
     };
     try {
-      if (window.__dailyPref && window.__dailyPref.p) {
-        window.__dailyPref.p.then(_go, _go);
-        setTimeout(_go, 4000);
-      } else { setTimeout(_go, 1500); }
+      if (document.readyState === 'complete') {
+        setTimeout(_go, 800);
+      } else {
+        window.addEventListener('load', function () { setTimeout(_go, 800); });
+      }
+      setTimeout(_go, 8000);
     } catch (eF) { _go(); }
   })();
 } catch (eFF) {}

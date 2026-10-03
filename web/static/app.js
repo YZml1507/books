@@ -9252,6 +9252,7 @@ async function doHehun() {
           title: (_inv ? (_bn || '我') : (_an || '我')) + ' × ' +
                  (_inv ? (_an || 'TA') : (_bn || 'TA'))
         });
+        _favListInvalidate();
         showToast('已存下这对～下次点上面的标签就能直接填', 'info');
         _hhFavsRender();
       } catch (e) {
@@ -13052,10 +13053,16 @@ function _favMirrorDrop(id) {
 function _favMirrorClear() {
   try { localStorage.removeItem(_FAV_MIRROR_KEY); } catch (e) {}
 }
+/* R3338（审-低）：在途合并在 resolve 后即刻失效——同一屏冷启的
+ * hehun/qiming/history 三处渲染串行续在 await 后，仍然各发一条 GET。
+ * 加 3s TTL 短缓存共享（收藏会增删，不能长 memoize；写路径手动失效）。 */
+var _favListAt = 0, _favListCache = null;
+function _favListInvalidate() { _favListCache = null; _favListAt = 0; }
 async function _favList() {
   /* R2348（R67-P2）：合婚/起名两个 favorites 渲染各调一次——冷启瀑布
    * 实测同秒两条重复 GET。合并在途请求（不是 memoize：收藏会增删，
    * 每次渲染要新读；但同一 tick 的并发调用共享一份）。 */
+  if (_favListCache && (Date.now() - _favListAt) < 3000) return _favListCache;
   if (_favListInflight) return _favListInflight;
   _favListInflight = (async function () {
     try {
@@ -13087,9 +13094,11 @@ async function _favList() {
           } catch (eR) {}
         }
         _favMirrorSave(_sv);
+        _favListCache = _sv; _favListAt = Date.now();
         return _sv;
       }
       /* 云端空 + 本机有 = 睡醒清盘——用本机留档续，不吞镜像。 */
+      _favListCache = _loc; _favListAt = Date.now();
       return _loc;
     } catch (e) {
       /* R2400（R127-P1-5）：镜像只补「够不到」，不补「不让看」——
@@ -13302,6 +13311,7 @@ document.addEventListener('click', function (ev) {
     postJSON('/api/favorites', { type: 'qiming', ref_id: nm.slice(0, 64), title: nm })
       .then(function () {
         qf.textContent = '♥'; qf.classList.add('on');
+        _favListInvalidate();
         showToast(_dayPick(['收进心水名单啦','放进心水夹了～','这个名字归你了'], 'fav'), 'info');
         _qmFavsRender();
       })
@@ -13319,7 +13329,7 @@ document.addEventListener('click', function (ev) {
     qd.dataset.inflight = '1';
     api('/api/favorites/' + encodeURIComponent(qd.dataset.qmFavDel),
         { method: 'DELETE', silent: true })
-      .then(function () { _favMirrorDrop(qd.dataset.qmFavDel); _qmFavsRender(); })
+      .then(function () { _favListInvalidate(); _favMirrorDrop(qd.dataset.qmFavDel); _qmFavsRender(); })
       .catch(function (e) {
         /* R2363：404 = 云端已清——视同摘成功，镜像摘掉再渲。 */
         if (/(404|不存在)/.test(e && e.message || '')) {
@@ -13342,10 +13352,10 @@ document.addEventListener('click', function (ev) {
     hd.dataset.inflight = '1';
     api('/api/favorites/' + encodeURIComponent(hd.dataset.hhFavDel),
         { method: 'DELETE', silent: true })
-      .then(function () { _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender(); })
+      .then(function () { _favListInvalidate(); _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender(); })
       .catch(function (e) {
         if (/(404|不存在)/.test(e && e.message || '')) {
-          _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender();
+          _favListInvalidate(); _favMirrorDrop(hd.dataset.hhFavDel); _hhFavsRender();
         } else { showToast('摘失败，稍后再试', 'warn'); }
       })
       /* R2353（R110-P2-7）：同 P2-7——.finally 换双分支复位。 */
@@ -13846,7 +13856,26 @@ function init() {
   /* R219b（P0-4）：loadRecent 随历史记录功能删除（不再有 /api/history）。 */
   loadFavorites();
   /* R208b：loadNews 随「今日关注」面板移除 */
-  warmPoster();   /* R193b：空闲预热海报管线，消除首点冷启动长任务 */
+  /* R3338（审-中）：warmPoster 启动即拉 app_poster.js（~100KB）与
+   * 首屏关键资源争带——挪进 requestIdleCallback/setTimeout 空闲窗，
+   * 省流量/慢网（saveData、effectiveType≤3g）直接放弃预热（真点画布
+   * 时再拉，代价只是那一次点击多等一会儿）。 */
+  try {
+    var _conn = navigator.connection || navigator.mozConnection ||
+                navigator.webkitConnection;
+    var _netOk = !(_conn && (_conn.saveData ||
+                 /(^|-)2g/.test(_conn.effectiveType || '')));
+    var _warm = function () {
+      try { warmPoster(); } catch (eWP) {}
+    };
+    if (_netOk) {
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(_warm, { timeout: 6000 });
+      } else {
+        setTimeout(_warm, 3500);
+      }
+    }
+  } catch (eWC) {}
 
   /* R230n（R25-1.2/1.3/2.1）：回访三件套——
    * 1) 跨零点自刷新：回前台或每 60s 检查浏览器日；变了则重跑
@@ -18720,7 +18749,7 @@ function baziPersonaCard(j) {
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' }),
         _threadsDel
-      ]).then(function () { _phMirrorClear(); _favMirrorClear(); _done(true); })
+      ]).then(function () { _phMirrorClear(); _favMirrorClear(); _favListInvalidate(); _done(true); })
         /* R2400（R127-P2-1）：云端没连上时本机镜像也一并清（_done
          * 里的键扫描已收镜像键）——不然「本机档案清了」是假的。 */
         .catch(function () { _phMirrorClear(); _favMirrorClear(); _done(false); });
@@ -19055,6 +19084,7 @@ function baziPersonaCard(j) {
           /* R2349y（R95-P2-8/P3-8）：收藏失败条数点名，不再并进
            * 「记录」计数混口径。 */
           /* R2500（R143-P3-11）：线程不并进「记录」计数——口径分说。 */
+          _favListInvalidate();
           var _msg = '导入好了：多了 ' + n + ' 条记录' +
             (_nThr ? ' + ' + _nThr + ' 个研究线程' : '') +
             (_fvN ? ' + ' + _fvN + ' 条收藏' : '') +

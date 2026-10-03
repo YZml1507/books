@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-2b8394b4ee28';   // shell-hash: 2b8394b4ee28
+var CACHE = 'books-shell-a209e8640729';   // shell-hash: a209e8640729
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -39,14 +39,14 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
               * 装完即断网不再破图/回落字体（gift 另有 onerror 双保险）。 */
              '/static/cream/cream-hero-v2.jpg',
              '/static/cream/avatar-xiaoman-cream.jpg',
-             '/static/cream/empty-xiaoman.png',
+             /* R3338（审-中）：empty-xiaoman 与 moon-cat 不是首屏壳件——
+              * 预缓存白白拖慢 activate，挪去运行时缓存（首次用到再写）。 */
              '/static/cream/icon-180.png',
              /* R2510（审-SW-P2）：manifest maskable 图标此前不在 SHELL——
               * 装完即离线时启动图标破图。 */
              '/static/cream/icon-512-maskable.png',
              '/static/shared/daily-box-gift.png',
              '/static/cream/daily-gift-bear.png',
-             '/static/shared/icon-set-moon-cat.jpg',
              '/static/fonts/smiley-sans-subset.woff2'];
 
 self.addEventListener('install', function (e) {

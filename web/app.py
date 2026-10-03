@@ -115,6 +115,42 @@ def create_app() -> FastAPI:
                                                 "PATCH"],
                                  allow_headers=["Content-Type"])
 
+    # R3338（审-高）：app.js 未压缩 ~788KB（注释/空行占 ~40%）——服务时
+    # 按 (mtime,size) 缓存 jsmin 产物（实测 464KB），源文件保持可读；
+    # minify 异常回落原文（降级为旧行为）。路由注册在 mount 前遮蔽生效，
+    # URL 不变 → index.html/SW/探针（读盘文件）全部无感。
+    try:
+        import jsmin as _jsmin_mod  # noqa: F401
+    except Exception:
+        _jsmin_mod = None
+    _appjs_min_cache: dict = {"key": None, "body": None}
+
+    def _appjs_minified() -> bytes | None:
+        try:
+            p = os.path.join(deps.STATIC_DIR, "app.js")
+            st = os.stat(p)
+            key = (st.st_mtime_ns, st.st_size)
+            if _appjs_min_cache["key"] == key:
+                return _appjs_min_cache["body"]
+            src = open(p, "r", encoding="utf-8").read()
+            out = _jsmin_mod.jsmin(src) if _jsmin_mod else src
+            # 异常产物护栏：小于源 40% 或空输出不发出，回落原文。
+            if not out.strip() or len(out) < len(src) * 0.4:
+                out = src
+            body = out.encode("utf-8")
+            _appjs_min_cache["key"] = key
+            _appjs_min_cache["body"] = body
+            return body
+        except Exception:
+            return None
+
+    @application.get("/static/app.js", include_in_schema=False)
+    async def _appjs_served():
+        b = _appjs_minified()
+        if b is None:
+            return PlainTextResponse("app.js missing", status_code=404)
+        return Response(b, media_type="application/javascript")
+
     # 静态资源：/static 指向 index.html 所在目录（开发期 ROOT/web/static，
     # frozen 期 _MEIPASS/web/static，与 INDEX 同源）。
     if os.path.isdir(deps.STATIC_DIR):
