@@ -4196,6 +4196,22 @@ def _chat_facts_inner(message: str, now: datetime,
         # 模型上下文塞着「宜嫁娶忌安葬」回共情，口径违和。倾诉求安慰零供给。
         if _MOOD_VENT_PAT.search(msg_n):
             return []
+        # R3346（审-P1）：裸月日生问星座——「3月23日生的，是什么星座」
+        # 原被日期词拖进择日通道，注入来年那天的宜忌（文不对题）。
+        # 出生月日判座不需年份：直接给确定性星座事实行，不进宜忌通道。
+        if "星座" in msg_n or re.search(r"出生|生[的了]", msg_n):
+            _m_zd = re.search(r"(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]", msg)
+            if _m_zd:
+                try:
+                    from guji.xingzuo import sun_sign as _ss
+                    _sign = _ss(int(_m_zd.group(1)), int(_m_zd.group(2)))
+                    if _sign:
+                        return [
+                            f"按公历{_m_zd.group(1)}月{_m_zd.group(2)}日出生，"
+                            f"太阳星座是{_sign}（太阳星座看出生月日不看年份）；"
+                            "按这个口径直接答，别引黄历宜忌。"]
+                except Exception:
+                    pass
         if spoken != "今天" or any(
                 w in msg for w in ("今天", "今日", "今晚", "今夜")):
             generic = True

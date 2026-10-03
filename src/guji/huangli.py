@@ -594,6 +594,11 @@ def day_query(dt: datetime) -> dict:
       yi: 宜（合并建除+二十八宿）
       ji: 忌（合并建除+二十八宿）
     """
+    # R3346（审-P1）：aware dt 与 naive term_time 比较抛 TypeError
+    # 被 except 吞——岁破/受死等下游标记静默丢失（挑吉日无 date 路径
+    # 走 aware dt，岁破日照上吉日榜）。入口统一归 naive。
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
     jc = jianchu_value(dt)
     xx = xiu_value(dt)
     pz = pengzu_baiji(dt)

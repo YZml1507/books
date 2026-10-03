@@ -2444,14 +2444,14 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
  * 选句策略：同 session 内消息序号 = 轮换种子（同用户复读也变），关键词匹配
  * 命中后取对应池的第 (counter % pool_size) 句。零 API 契约变更、零后端改动。 */
 var _CHAT_FALLBACK_DEFAULT = [
-  "今天小满提前打烊啦～先把上面的牌面看着，想聊的时候随时来，我一直在这。",
+  "今天小满提前打烊啦～心事先发给我，想聊的时候随时来，我一直在这。",
   "解忧铺这会儿休整中，发的心事我记下了，随时回来听我细说。",
   "小满现在不上班，门口的牌子写着『歇业中』，你先歇会儿，想聊再来。",
   "这会儿小满调休中～把心事先写下来，我一回来就翻你的牌。",
   "打烊了哦～这条消息我存着，下回开门接着说。",
   "解忧铺的灯这会儿关了，你的心事没丢，开门第一单给你留着。",
   "我先歇一会儿，存好你的话，回来带着力气一起拆。",
-  "小满今晚关店早，你先看看上面那张牌的提示，回来找我深聊。",
+  "小满今晚关店早，你先把心事写下来，回来找我深聊。",
   "门牌已经翻到『休息中』，你的消息我存着，先睡个好觉。",
   "解忧铺的茶这会儿凉了，重新烧上了，你写下来的我都会读。"
 ];
@@ -2497,7 +2497,7 @@ var _CHAT_FALLBACK_BY_KW = {
     "钱包君也需要假期，先吃顿好的（预算内），回头再算。"
   ],
   'default': [
-    "今天小满提前打烊啦～先把上面的牌面看着，我一直在这。",
+    "今天小满提前打烊啦～你的消息我存着，我一直在这。",
     "解忧铺这会儿休整中，你的心事我存着，随时来听。",
     "门牌已经翻到『休息中』，回头找我深聊。",
     "解忧铺的茶凉了，重新烧上了，你写下来的我都会读。",
@@ -2954,7 +2954,10 @@ function feCrisis(s) {
   }
   return false;
 }
-var _CRISIS_FE_REPLY = '这个话题有点重，我不太敢乱说。如果心里真的很难受，' +
+/* R3346（审-P2）：与后端 _CHAT_REFUSAL 逐字同源——前端罐头此前少
+ * 「先抱抱你」开头，比后端冷一档。改后端文案要同步这里。 */
+var _CRISIS_FE_REPLY = '听到这些先抱抱你——这个话题有点重，我不太敢乱说。' +
+  '如果心里真的很难受，' +
   '全国心理援助热线 12356（24 小时，免费）随时能打通，跟信任的朋友聊聊' +
   '也会好一些，我一直都在，陪你聊聊别的也行。';
 
@@ -2965,7 +2968,7 @@ var _CRISIS_FE_REPLY = '这个话题有点重，我不太敢乱说。如果心�
  * 同步过。ICU 在 FE 用 (^|[^a-z]) 锚代 lookbehind（老 Safari 对含
  * lookbehind 的正则字面量整文件 SyntaxError）。 */
 var _SENSITIVE_FE_HARD = new RegExp(
-  '绝症|癌症|病危|临终|会不会去世|会去世|存活率|要死了|病死|' +
+  '绝症|癌症|病危|临终|会不会去世|会去世|存活率|病死|' +
   '癌.{0,4}晚期|晚期.{0,4}癌|' +
   '家暴|家庭暴力|殴打|虐待我|校园暴力|性骚扰|动手打我|猥亵我|' +
   '被.{0,2}(虐待|强奸|性侵|猥亵|侵犯|强吻|迷奸|下药|胁迫|勒索|恐吓|威胁)|' +
@@ -2973,7 +2976,7 @@ var _SENSITIVE_FE_HARD = new RegExp(
   /* R2996：被下了药插字形 + 囚禁/裸照族。 */
   '被.{0,2}下.{0,2}药|囚禁|非法拘禁|裸照|私密(照|视频|录像)|艳照', 'i');
 var _SENSITIVE_FE_SOFT = new RegExp(
-  '还能活|活多久|会不会死|会死吗|晚期|治得好吗|寿命|肿瘤|打我|霸凌|跟踪|' +
+  '还能活|活多久|会不会死|会死吗|要死了|晚期|治得好吗|寿命|肿瘤|打我|霸凌|跟踪|' +
   '白血病|尿毒症|心梗|脑梗|中风|脑溢血|化疗|透析|洗肾|' +
   '(^|[^a-z])ICU([^a-z]|$)|' +
   '重症监护|急救室|病危通知书|器官移植|骨髓移植|截肢|' +
@@ -9234,9 +9237,13 @@ async function doHehun() {
     /* R2512：分享/邀请/存这对三个直绑收进 rebind——口吻重画后重放。 */
     var _rbHh = function () {
       on('shareHehun', function () { return downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04） */
-      /* R3332-低：受邀者结果页「发回给 TA」cite 按钮→同一分享图链路。 */
+      /* R3332-低：受邀者结果页「发回给 TA」cite 按钮。
+       * R3345（审-中）：原走分享图链路——回传实体只有海报图，
+       * 发起人打开回链只见自己表单、受邀者的盘到不了手。改走
+       * hhInvite 链路：受邀态下 _side='b' 编码受邀者自己的生辰，
+       * 发起人点开即见对方填好的盘——一来一回真闭环。 */
       on('hhSendBack', function () {
-        var _sb = el('shareHehun');
+        var _sb = el('hhInvite');
         if (_sb) _sb.click();
       });
       /* R233n（R47-Top5-1）：邀请链——把 A 侧生辰编进 ?view=hehun 参数，
@@ -15918,10 +15925,16 @@ function _moodJarSync(total) {
 function _moodJarHtml() {
   try {
     var unlocked = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
-    /* R3336（审-低）：未解锁时整口不渲=攒满前隐形。进度预告让
-     * 「攒 7 换图」钩子在首周就存在。 */
+    /* R3345（审-低）：total 改现场数 mood: 键——meta 行渲染早于
+     * 本次 _moodJarSync 写值时不再滞后一帧（跨 tab/导入后同步）。 */
+    var _liveTot = 0;
+    for (var _li = 0; _li < localStorage.length; _li++) {
+      var _lk = localStorage.key(_li);
+      if (_lk && /^mood:\d{4}-\d{2}-\d{2}$/.test(_lk) &&
+          localStorage.getItem(_lk)) _liveTot++;
+    }
     if (unlocked <= 0) {
-      var _tot = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+      var _tot = _liveTot;
       if (_tot <= 0) return '';
       return '<div class="mood-jar-teaser">🏺 心情罐子：再攒 ' +
         (7 - _tot % 7) + ' 个色点，换第一张场景图（已有 ' + _tot +
@@ -18779,7 +18792,11 @@ function baziPersonaCard(j) {
                      /* R3264（R52）：古籍阅读进度记忆 */
                      'read:scroll:',
                      /* R3336（审-中）：corrupt 救援备份同族导出 */
-                     'futureLetters:'];
+                     'futureLetters:',
+                     /* R3345（审-中）：聊天记录换机——wipe 已收
+                      * chatTranscript 前缀、备份却不带，口径不一致
+                      * 且换机全丢无提示。sid 桶+lastsid 同族导出。 */
+                     'chatTranscript:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -18902,9 +18919,14 @@ function baziPersonaCard(j) {
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
         /* R2349y（R95-P2-4）：备份含明文生辰/昵称/提问——
          * toast 明说让用户存的时候留心。 */
+        /* R3345（审-低）：favorites/threads 实际入包却不点名——
+         * 用户不知道带走了什么。各段计数明示。 */
         showToast((_noLedger && !_recsOut.length
           ? '台账没开，只备份了本机偏好'
-          : '备份已下载：' + _recsOut.length + ' 条记录 + 本机偏好') +
+          : '备份已下载：' + _recsOut.length + ' 条记录' +
+            (_favs.length ? ' + ' + _favs.length + ' 对合婚' : '') +
+            (_threads.length ? ' + ' + _threads.length + ' 条线程' : '') +
+            ' + 本机偏好') +
           '（含生辰昵称、心情愿望与未来信，存哪儿自己留心）', 'info');
       } catch (e) {
         showToast('备份失败：' + _humanizeErr(e.message), 'error');
