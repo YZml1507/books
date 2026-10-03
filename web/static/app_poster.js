@@ -318,7 +318,8 @@ function _paintSharePoster(s, W, H) {
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
   var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
                    taohua: 5, hehun: 6, 'daily-outfit': 5,
-                   huangli: 6, birth: 5, bazi: 5 }[s.view] || 4;
+                   huangli: 6, birth: 5, bazi: 5,
+                   'year-wrap': 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
   var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
@@ -758,7 +759,9 @@ function _posterHookForView(view, j) {
     'daily-wap': '今日开运壁纸，换上就有好心情',
     /* R3327-P1-2：hook 与 _os.big 同句→底 pill 与 y300 大字双印。
      * 换差异钩。 */
-    'daily-outfit': '跟着五行穿，顺到不像话 →'
+    'daily-outfit': '跟着五行穿，顺到不像话 →',
+    /* R3342：年报钩——晒语境（「打包带走」=下载语义双关）。 */
+    'year-wrap': '这一年攒下的，都在这张卡里'
   };
   if (view === 'huangli' && hooks[view] == null) {
     /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */
@@ -1501,6 +1504,23 @@ function buildShareData(view, j) {
         }
       } catch (eL) {}
       return _lu;
+    }
+    case 'year-wrap': {
+      /* R3342：年度小满报告——Wrapped 式全年足迹回顾。 */
+      var _yr = base('小满年报',
+        _pStr(j && j.year) + ' 年 · 小满陪你过的一年');
+      _yr.big = '这一年小满陪了你 ' +
+        (_pStr(j && j.visitDays) || '0') + ' 天';
+      _yr.chip = '最长连打 ' +
+        (_pStr(j && j.streakBest) || '0') + ' 天';
+      _yr.lines = [
+        { k: '打卡', v: (_pStr(j && j.checkinDays) || '0') + ' 天' },
+        { k: '主心情', v: _pStr(j && j.moodMain) || '还没记过心情' },
+        { k: '最常翻', v: _pStr(j && j.topView) || '还没怎么聊' },
+        { k: '写小记', v: (_pStr(j && j.journalCount) || '0') + ' 篇' },
+        { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' },
+        { k: '愿望成真', v: (_pStr(j && j.fulfilledCount) || '0') + ' 个' }];
+      return _yr;
     }
     case 'weekly': {
       /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */

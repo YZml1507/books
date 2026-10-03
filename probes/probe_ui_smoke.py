@@ -437,6 +437,9 @@ def main() -> int:
                          "非 PWA 功能主路径；真实链路已手验",
         "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
                        "同 shareDaily 族豁免",
+        # R3342：年度小满报告——downloadPoster('year-wrap') 海报模态，同族豁免。
+        "checkinYear": "小满年报分享图按钮——downloadPoster('year-wrap') "
+                       "海报模态，同 shareWeekly 族豁免",
         "returnChat": "久归横幅「和小满聊聊」——开聊天侧栏，真实链路已手验",
         "returnDismiss": "久归横幅关闭钮——隐藏横幅并存 dismissed 日期",
         "returnBanner": "久归横幅容器 div——非可点击元素，无 on() 注册；"

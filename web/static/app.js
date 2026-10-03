@@ -26,6 +26,9 @@
  * REPAIR 阶段不加美化与动效，只让功能可用。
  */
 'use strict';
+/* R218a-01 构建标记——注释会被服务时 minify 剥掉，verify_r218a 查的
+ * 是「服务端 app.js 含此标记」，改放字符串字面量保证压缩后仍在。 */
+var _APP_BUILD_MARK = 'R218a-01';
 
 /* ── DOM 工具：只有这一套，杜绝 $ 函数/对象混用 ────────────────── */
 
@@ -15396,6 +15399,52 @@ function _usageDays() {
     return isNaN(d) || d < 1 ? 1 : d;
   } catch (eD) { return 1; }
 }
+function _yearStats(dateKey) {
+  /* R3342：年度小满报告聚合——全年本机足迹，零上传零画像。
+   * dateKey=「今天」（或回看锚日）；只计当年、截至锚日的足迹。 */
+  var yy = String(dateKey).slice(0, 4);
+  var out = { year: yy, checkinDays: 0, streakBest: 0, visitDays: 0,
+    moodMain: '', topView: '', journalCount: 0, ritualCount: 0,
+    fulfilledCount: 0 };
+  try {
+    var set = _checkinAll(), run = 0, prev = '';
+    Object.keys(set).sort().forEach(function (k) {
+      if (k.slice(0, 4) !== yy || k > dateKey || !set[k]) return;
+      out.checkinDays++;
+      run = (prev && _isoShift(prev, 1) === k) ? run + 1 : 1;
+      if (run > out.streakBest) out.streakBest = run;
+      prev = k;
+    });
+  } catch (eC) {}
+  try {
+    var mc = [0, 0, 0, 0], mb = -1, mn = 0;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k) continue;
+      var v = localStorage.getItem(k);
+      if (k.indexOf('usage:d:' + yy + '-') === 0 && v) out.visitDays++;
+      else if (k.indexOf('journal:' + yy + '-') === 0 && v)
+        out.journalCount++;
+      else if (k.indexOf('ritual:' + yy + '-') === 0 && v)
+        out.ritualCount++;
+      else if (k.indexOf('mood:' + yy + '-') === 0 &&
+               _MOOD_META[+v]) {
+        mc[+v]++;
+        if (mc[+v] > mn) { mn = mc[+v]; mb = +v; }
+      }
+    }
+    if (mb >= 0) out.moodMain = _MOOD_META[mb].t;
+  } catch (eK) {}
+  try {
+    _wishEchoGet().forEach(function (w) {
+      var fu = w && w.fu;
+      if (fu && new Date(fu).getFullYear() === +yy)
+        out.fulfilledCount++;
+    });
+  } catch (eF) {}
+  out.topView = _usageTop();
+  return out;
+}
 function _usageTop() {
   try {
     var best = '', bn = 1;
@@ -16116,6 +16165,22 @@ function renderCheckin(dateKey) {
         'title="本月再打卡 ' + (5 - _m) + ' 天就能出月报">' +
         '🗓️ 月报还差 ' + (5 - _m) + ' 天</button>');
     })() +
+    /* R3342：年度小满报告——Wrapped 式回顾。全年打卡 ≥8 天出报；
+     * 12/15–1/31 跨年档降到 ≥3 天（晒感最强窗）。未满给占位提示。 */
+    (function () {
+      var _yy = dateKey.slice(0, 4), _yn = 0;
+      Object.keys(_ckAll).forEach(function (k) {
+        if (k.slice(0, 4) === _yy && k <= dateKey && _ckAll[k]) _yn++;
+      });
+      var _md = +dateKey.slice(5, 7) * 100 + +dateKey.slice(8, 10);
+      var _min = (_md >= 1215 || _md <= 131) ? 3 : 8;
+      return (_yn >= _min ?
+        '<button type="button" class="checkin-share" id="checkinYear" ' +
+        'title="生成年度小满报告">📖 小满年报</button>' :
+        '<button type="button" class="checkin-share" disabled ' +
+        'title="今年再打卡 ' + (_min - _yn) + ' 天就能出年报">' +
+        '📖 年报还差 ' + (_min - _yn) + ' 天</button>');
+    })() +
     /* R2350f（R102-P2-8/P2-13）：两枚留存/拉新小动作——「明天提醒我」
      * 走本地 Notification（无推送基建，次日开屏 toast 口径如实说清），
      * 「安利铺子」产出 文案+链 一键复制给闺蜜。 */
@@ -16301,6 +16366,11 @@ function renderCheckin(dateKey) {
     var _p3 = downloadPoster({ days: _days, streak: _streak },
       'checkin-month');
     if (_p3 && _p3.catch) _p3.catch(function () {});
+  });
+  var _cky = box.querySelector('#checkinYear');
+  if (_cky) _cky.addEventListener('click', function () {
+    var _py = downloadPoster(_yearStats(dateKey), 'year-wrap');
+    if (_py && _py.catch) _py.catch(function () {});
   });
   /* R2350f（R102-P2-8）：「明天提醒我」——无推送基建下的诚实实现：
    * 拿 Notification 权限 + 本地打标，次日开屏 toast 提醒。权限被拒
