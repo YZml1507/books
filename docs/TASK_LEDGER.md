@@ -18015,3 +18015,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   +「小满的解忧铺」底标+仅供娱乐）。全本机数据，mood: storage
   监听跨 tab；入口=打卡区「📒 看看这周的你 →」。
 - 闸门：selftest 406 / ui_smoke 103 / ruff / bump_sw→a670c6209ff7
+
+## R3349：R3335 遗留低项清账（自点牌呼应）
+- warm_tarot 加 picked 形参——自点牌背首行改「你自己挑的牌
+  这样说：」（有问句亦同）；record=false 分享重放不生效
+  （看牌人≠挑牌人）。钉 selftest tarot.picked_voice（双侧）。
+- 另两项维持遗留：无提问路径模板对齐（低）、llm_polish
+  verdict 复读（mock 面不可验，真机回归面）。
+- 闸门：selftest 407 全绿

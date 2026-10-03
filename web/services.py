@@ -4525,7 +4525,10 @@ def tarot(req) -> dict:
         "spread_key": req.spread if _positions else "",
         "picked": bool(req.cards),
         "interpretation": interpretation,
-        "warm": voice.warm_tarot(cards, interpretation, req.question),
+        # R3349（R3335-低）：picked 入 warm——自点牌首行「你自己挑的牌」
+        "warm": voice.warm_tarot(cards, interpretation, req.question,
+                                 picked=bool(req.cards) and
+                                 getattr(req, "record", True)),
         # R218a-巡2（N-01）：echo question 让前端 tarotQuestionHook 真生效
         "question": req.question,
         # R221b：交叉引用收口 7/7——塔罗不收生日，只引"今天"的值宫

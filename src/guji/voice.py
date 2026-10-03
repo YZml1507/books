@@ -1731,9 +1731,11 @@ def warm_liuyao(ben: dict, bian: dict, moving_lines: list,
 
 
 def warm_tarot(cards: list[dict], interpretation: dict,
-               question: str | None = None) -> dict:
+               question: str | None = None,
+               picked: bool = False) -> dict:
     """塔罗 warm 视图：每张牌直接关联用户问题，给具体指引。
-    D-002：不再给牌义辞典式转述，而是针对问题给方向性指引。"""
+    D-002：不再给牌义辞典式转述，而是针对问题给方向性指引。
+    R3349：picked=用户自点牌背——首行呼应「你自己挑的」。"""
     cards = cards or []
     interp = interpretation or {}
     first = cards[0] if cards else {}
@@ -1754,14 +1756,16 @@ def warm_tarot(cards: list[dict], interpretation: dict,
                       "随时能打通。",
                       "想聊点别的，小满都在。"],
                      [], [])
+    _lead = "你自己挑的牌" if picked else "每张牌"
     if q:
         # R3126（specs/013-P6）：梳理位——先归到一条线再逐张说牌。
         _th = _lp._chat_theme(q)
         lines.append(f"针对你的问题「{q}」"
                      + (f"，这事归「{_th}」这条线，" if _th else "，")
-                     + "每张牌这样说：")
+                     + (f"{_lead}这样说：" if picked
+                        else "每张牌这样说："))
     else:
-        lines.append("每张牌这样说：")
+        lines.append(_lead + ("这样说：" if picked else "这样说："))
     # ≥6 张时不再只贴前 3 张——按位置权重选 5 张叙事（R3090/specs/010-P2）：
     # 前 3 个关键位 + 建议/指引/希望/结果 收尾位，凯尔特十字的「希望/结果」
     # 此前根本没机会开口。

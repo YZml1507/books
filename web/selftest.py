@@ -1424,6 +1424,20 @@ def _run_inner() -> list[str]:
         _s2.json()["draws"][9]["position"] == "结果", \
         ("tarot.spread.celtic", _s2.json()["n"])
     ok.append("tarot.spread.celtic")
+    # R3349（R3335-低）：自点牌 warm 首行呼应「你自己挑的牌」；
+    # record=false 分享重放沿用 seed 口径（看牌人≠挑牌人）。
+    _pk = client.post("/api/tarot", json={"seed": 5, "cards": [3, 7, 11],
+                                          "question": "要不要换工作？"})
+    _pkr = (_pk.json().get("warm") or {}).get("reply") or []
+    assert any("你自己挑的牌" in l for l in _pkr), \
+        ("tarot.picked_voice", _pkr[:2])
+    _pk2 = client.post("/api/tarot", json={
+        "seed": 5, "cards": [3, 7, 11], "record": False,
+        "question": "要不要换工作？"})
+    _pk2r = (_pk2.json().get("warm") or {}).get("reply") or []
+    assert not any("你自己挑的牌" in l for l in _pk2r), \
+        ("tarot.picked_voice.replay", _pk2r[:2])
+    ok.append("tarot.picked_voice")
     # R3090（specs/010-P2）：牌位判词化钉——凯尔特十字叙事不再只贴
     # 前 3 张：关键位+收尾位（希望/结果）要开口，阻碍位有「坎」句式。
     _pc = client.post("/api/tarot", json={"seed": 7, "spread": "celtic",
