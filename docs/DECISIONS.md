@@ -5984,3 +5984,14 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) 缓存裸 rows：省 execute+fetchall 但每次仍 _hit 6760 次，多付 ~0.4ms/次，不如 A。
 
 **边界**：键含 scan_limit（默认 200）防参数错位；64 词上限 ≈ 内存 MB 级有界。
+
+## D-275b R3245 决策：research() 整果缓存 vs 仅种子/卦名局部缓存
+
+**问题**：ask 的 research() 每请求 ~16ms：10 次种子 FTS + 卦名 DISTINCT 扫。
+
+**候选**：
+- A) research() 整果按参数键缓存（选中）：Research 纯数据、调用方只读——共享安全；热门问法复用率高；命中时零 SQL 零 Python 装配。
+- B) 仅缓存 _gua_numbers + 各种子 search 结果：种子空间无界、per-question 组合爆炸，缓存命中面窄；只能省 ~8ms。
+- C) FTS 种子结果缓存（term 级）：term 空间=用户输入切片，键空间无界且命中率低，弃。
+
+**边界**：question 自由输入 → 64 题上限；max_addresses/per_address/allow_damaged 全进键防参数错位；Research 共享依赖「调用方只读」——已在代码注释标明约束。

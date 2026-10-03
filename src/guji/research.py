@@ -70,7 +70,23 @@ _ADDR_INTENT_RE = re.compile(
 _INTENT_SCORE = 1e9   # 点名的地址永远排在检索命中的地址前面
 
 
+# R3245：_gua_numbers 结果缓存——DISTINCT 全扫 zhouyi 子集 7.7ms/次，而
+# 卦名→卦号映射是语料派生常量（64 卦+别名），随库指纹失效。_SCAN_FP 同款
+# 指纹口径，共用一次 stat。
+_GUA_NUMBERS_CACHE: dict | None = None
+_GUA_NUMBERS_FP: tuple | None = None
+
+
 def _gua_numbers(corpus: Corpus) -> dict[str, int]:
+    global _GUA_NUMBERS_CACHE, _GUA_NUMBERS_FP
+    try:
+        _st = os.stat(corpus._db_path)
+        _fp = (_st.st_mtime_ns, _st.st_size)
+    except OSError:
+        _fp = None
+    if _fp is not None and _GUA_NUMBERS_FP == _fp \
+            and _GUA_NUMBERS_CACHE is not None:
+        return _GUA_NUMBERS_CACHE
     rows = corpus.db.execute(
         "SELECT DISTINCT addr_name, addr1 FROM unit"
         " WHERE scheme='zhouyi' AND addr_name IS NOT NULL").fetchall()
@@ -78,6 +94,8 @@ def _gua_numbers(corpus: Corpus) -> dict[str, int]:
     for nm, g in rows:
         if nm:
             out.setdefault(nm, g)
+    _GUA_NUMBERS_CACHE = out
+    _GUA_NUMBERS_FP = _fp
     return out
 
 
@@ -154,6 +172,14 @@ def _subphrases(q: str, max_tries: int = 150) -> list[tuple[str, int]]:
     return out
 
 
+# R3245：research() 结果缓存——同一提问的种子检索循环（~10×FTS ~16ms）
+# 与卦名校验全是语料派生；问题自由输入但热门问法重复率高。Research 内
+# 嵌 Hit 纯数据，调用方（services.ask/deep_research）只读不改，可安全共享。
+# 库指纹失效同 _GUA_NUMBERS；上限 64 题防无界。
+_RESEARCH_CACHE: dict[tuple, object] = {}
+_RESEARCH_FP: tuple | None = None
+
+
 def research(corpus: Corpus, question: str, max_addresses: int = 3,
              per_address: int = 50, allow_damaged: bool = False) -> Research:
     """Run the retrieve → read → expand loop for one question.
@@ -161,6 +187,30 @@ def research(corpus: Corpus, question: str, max_addresses: int = 3,
     `max_addresses` caps round 2: the loop must stop somewhere, and the addresses are
     ranked by round-1 hit score so the cap drops the least relevant witnesses first.
     """
+    global _RESEARCH_FP
+    try:
+        _st = os.stat(corpus._db_path)
+        _fp = (_st.st_mtime_ns, _st.st_size)
+    except OSError:
+        _fp = None
+    if _RESEARCH_FP != _fp:
+        _RESEARCH_CACHE.clear()
+        _RESEARCH_FP = _fp
+    _ck = (question, max_addresses, per_address, allow_damaged)
+    _hit = _RESEARCH_CACHE.get(_ck)
+    if _hit is not None:
+        return _hit
+    res = _research_impl(corpus, question, max_addresses,
+                         per_address, allow_damaged)
+    if len(_RESEARCH_CACHE) >= 64:
+        _RESEARCH_CACHE.pop(next(iter(_RESEARCH_CACHE)))
+    _RESEARCH_CACHE[_ck] = res
+    return res
+
+
+def _research_impl(corpus: Corpus, question: str, max_addresses: int = 3,
+                   per_address: int = 50, allow_damaged: bool = False) -> Research:
+    """research() 的未缓存本体（R3245 缓存壳之下，逻辑一字未动）。"""
     res = Research(question=question)
     seen: set = set()
 
