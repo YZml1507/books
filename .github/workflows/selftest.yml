@@ -22,13 +22,13 @@ jobs:
           python-version: "3.10"
           cache: pip
           cache-dependency-path: requirements-ci.txt
+      # R3309：官方源换回——GH 托管 runner 在美区，国内镜像跨洋拉
+      # torch 196MB 实测 29min 超 job 30min 闸被取消；download.pytorch.org
+      # + 默认 PyPI 在美区几十秒装完。（607c8ae 的镜像化是为本机/国内
+      # 环境服务的，CI 不该跟。）
       - name: 依赖
-        env:
-          PIP_INDEX_URL: https://mirrors.cloud.tencent.com/pypi/simple
-          PIP_EXTRA_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple https://mirrors.aliyun.com/pypi/simple https://mirrors.bfsu.edu.cn/pypi/web/simple
-          PIP_FIND_LINKS: https://mirrors.aliyun.com/pytorch-wheels/cpu/
         run: |
-          pip install "torch==2.14.0+cpu"
+          pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-ci.txt
       - name: 构建语料索引（data/index/corpus.db，gitignored）
         run: |
@@ -142,12 +142,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-ci.txt
       - name: 依赖（含 playwright + chromium）
-        env:
-          PIP_INDEX_URL: https://mirrors.cloud.tencent.com/pypi/simple
-          PIP_EXTRA_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple https://mirrors.aliyun.com/pypi/simple https://mirrors.bfsu.edu.cn/pypi/web/simple
-          PIP_FIND_LINKS: https://mirrors.aliyun.com/pytorch-wheels/cpu/
         run: |
-          pip install "torch==2.14.0+cpu"
+          pip install "torch==2.14.0+cpu" --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-ci.txt playwright==1.63.0
           python -m playwright install --with-deps chromium
       - name: 构建语料索引 + knowledge 种子（与 selftest job 同步骤）
