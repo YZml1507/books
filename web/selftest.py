@@ -906,6 +906,25 @@ def _run_inner() -> list[str]:
         ("hehun.lunar_equiv", _hh_lun["a_bazi"].get("render"))
     assert "农历" in _hh_lun["warm"]["reply"][0]
     ok.append("hehun.lunar_equiv")
+    # R3330（审-高）：同人门禁迁到历法换算之后——甲公历生日填乙农历
+    # 同日此前漏网（原门禁只比原始字段）。
+    _hh_same = client.post("/api/hehun", json={
+        "a_year": 2000, "a_month": 6, "a_day": 7, "a_hour": 10,
+        "a_gender": "女", "b_year": 2001, "b_month": 1, "b_day": 1,
+        "b_hour": 10, "b_gender": "女",
+        "b_calendar": "lunar", "b_lunar_year": 2000,
+        "b_lunar_month": 5, "b_lunar_day": 6, "b_lunar_leap": False})
+    assert _hh_same.status_code == 400 and \
+        "同一个人" in _hh_same.json().get("detail", ""), \
+        ("hehun.sameperson_lunar", _hh_same.status_code)
+    ok.append("hehun.sameperson_lunar")
+    # R3330：害/刑/破次级判据进 render+score——有真关系才出现。
+    from guji import hehun as _hehun_mod
+    from guji.bazi import compute as _bzc
+    _hz = _hehun_mod.compute(_bzc(1996, 2, 19, 10, "女"),
+                             _bzc(1991, 9, 8, 14, "男"))
+    assert "年支次级：相害" in _hz.render(), _hz.render()
+    ok.append("hehun.subrelations")
     # 农历非法值归 400（月>12 / 日>30 / 缺农历字段）。
     for _lb in ({"calendar_type": "lunar", "lunar_year": 2000,
                  "lunar_month": 13, "lunar_day": 6},
@@ -1097,6 +1116,30 @@ def _run_inner() -> list[str]:
     print(f"  taohua.cross_ref.strength PASS（覆盖 {sorted(_seen_strength)}，"
           f"分档文案与 strength 对应）")
     ok.append("taohua.cross_ref.strength")   # R228f：print-PASS 也进 ok[]（regress 闸门认这个表）
+    # R3330（审-中）：hour_known=False 剔时柱——填「不知道时辰」
+    # 的盘不再把时支桃花算进去，也不在判词里假装算了。
+    _t_known = client.post("/api/taohua", json={
+        "year": 1985, "month": 6, "day": 24, "hour": 2,
+        "gender": "女"}).json()
+    _t_unk = client.post("/api/taohua", json={
+        "year": 1985, "month": 6, "day": 24, "hour": 12,
+        "gender": "女", "hour_known": False}).json()
+    assert _t_unk.get("hour_known") is False and \
+        "warn" in _t_unk, ("taohua.hour_known.keys", sorted(_t_unk))
+    assert len(_t_unk.get("hit_pillars") or []) <= \
+        len(_t_known.get("hit_pillars") or []), \
+        ("taohua.hour_known.hits",
+         _t_unk.get("hit_pillars"), _t_known.get("hit_pillars"))
+    ok.append("taohua.hour_known")
+    # R3330：find_calm_days——只忌不宜事给避让榜。
+    from guji.huangli import find_calm_days as _fcd
+    from datetime import datetime as _dtm, timezone as _tz, timedelta as _td
+    _cn = _tz(_td(hours=8))
+    _cd = _fcd(_dtm(2026, 1, 1, tzinfo=_cn), _dtm(2026, 1, 15, tzinfo=_cn),
+               "打官司")
+    assert isinstance(_cd, list) and all(
+        isinstance(x, dict) and x.get("date") for x in _cd), _cd[:2]
+    ok.append("gooddays.calm")
     # 黄历是 GET
     _rh2 = client.get("/api/huangli?date=2026-08-28")
     assert _rh2.status_code == 200, ("cross_ref.http", "/api/huangli")
@@ -1632,7 +1675,9 @@ def _run_inner() -> list[str]:
         "b_gender": "女"})
     assert _hh_b2.status_code == 200, _hh_b2.status_code
     _rb2 = (_hh_b2.json().get("warm") or {}).get("reply") or []
-    assert "磕绊偏多" in (_rb2[0] or ""), _rb2[0]
+    # R3330：本对日支寅/申冲+相刑——相刑此前不算硬伤，判词停在
+    # 「磕绊偏多」；计入硬负担后正确升级「偏不合适」档。
+    assert "偏不合适" in (_rb2[0] or ""), _rb2[0]
     assert any("相克就是相克" in l and "管控与自由" in l
                for l in _rb2), _rb2
     assert any("处方三段" in l and "看信号" in l for l in _rb2), _rb2
@@ -2890,6 +2935,22 @@ def _run_inner() -> list[str]:
         "session_id": "st-action2", "message": "活着没意思，给我抽张牌吧"}),
         lambda j: "action" not in j)
     ok.append("chat.actionview")
+    # R3331：壁纸路标 + 当日派生事实注入（水逆/穿搭/咒语）。
+    _afw = _svc_dm.chat_action_facts("有没有开运壁纸")
+    assert _afw and "开运壁纸" in _afw[0] and "首页" in _afw[0], _afw
+    assert _svc_dm.chat_action_view("我想换壁纸")["view"] == "home"
+    _dfm = _svc_dm.chat_daily_facts("最近水逆了吗")
+    assert _dfm and "水逆" in _dfm[0], _dfm
+    _dfc = _svc_dm.chat_daily_facts("今天穿什么颜色好")
+    assert _dfc and "开运色" in _dfc[0], _dfc
+    _dfs = _svc_dm.chat_daily_facts("给我一句今日咒语")
+    assert _dfs and "今日咒语" in _dfs[0], _dfs
+    assert _svc_dm.chat_daily_facts("我睡不着") == []
+    # 咒语与服务端镜像池同哈希：两遍一致 + 属于池中成员。
+    from datetime import date as _dt_for_mantra
+    _iso = _dt_for_mantra.today().isoformat()
+    assert _svc_dm._day_mantra(_iso) in _svc_dm._MANTRA_POOL
+    ok.append("chat.dailyfacts")
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
@@ -4502,6 +4563,8 @@ def _run_inner() -> list[str]:
                         "year_zhi", "birth_year", "ai_polish",
                         # R220b：交叉引用铺到桃花（星座桃花信号 × 八字强度）
                         "cross_ref",
+                        # R3333：时辰不详剔除标志 + bazi.warn 透传
+                        "hour_known", "warn",
                         # R3124b
                         "result_ref"},
         "/api/hehun": {"clash", "combine", "render", "notes", "day_wx_a",
@@ -4512,6 +4575,9 @@ def _run_inner() -> list[str]:
                        "year_zhi_a", "year_zhi_b", "ai_polish",
                        # R204b（D-257b）：天干五合 + 十神互见
                        "gan_he", "god_a_sees_b", "god_b_sees_a",
+                       # R3333：害/刑/破次级判据旗（年/日两级）
+                       "year_harm", "year_xing", "year_break",
+                       "day_harm", "day_xing", "day_break",
                        # R233u（R53-P1-3）：日支夫妻宫 + 纳音 + 年支半合
                        "day_zhi_a", "day_zhi_b", "day_zhi_rel",
                        "nayin_a", "nayin_b", "nayin_rel", "year_zhi_rel",

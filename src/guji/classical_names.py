@@ -141,6 +141,23 @@ def _wx_pair_word(e1: str, e2: str) -> str:
     return "意象相生"
 
 
+def _comp_order(elem: str, counts: dict) -> list[str]:
+    """双字名伴行偏好序（R3333，审-中6）。
+
+    原实现按固定序 ["木","火","土","金","水"] 取第一个非缺行——
+    缺火盘会把最旺行（水）之字塞进名里充「相济」。改成：
+    先与缺行相生（生我/我生都行）的行，再其余行；各组内按
+    counts 值升序——弱行先补，不拿最旺行充数。
+    """
+    _sheng = [e for e in counts
+              if e != elem and (_WX_SHENG.get(e) == elem
+                                or _WX_SHENG.get(elem) == e)]
+    _rest = [e for e in counts if e != elem and e not in _sheng]
+    _sheng.sort(key=lambda e: counts.get(e, 0))
+    _rest.sort(key=lambda e: counts.get(e, 0))
+    return _sheng + _rest
+
+
 def _style_match(name_entry: dict, style: str) -> bool:
     """v3（P3）：风格过滤——按 origin 书名判断名字归属风格档。
 
@@ -360,27 +377,57 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
         _fit, _neutral = [], []
 
     _step = max(int(top_n), 1)
+
+    def _interleave(base: list, shuffle_key=None) -> list:
+        """R3333（审-中5）：按五行分组各洗各序再逐行轮转合并——
+        缺两行时第二行此前整批零出现（排序只看性别/风格分）。
+        轮转保证每个缺行都出镜、行间均匀穿插。"""
+        _groups: dict[str, list] = {}
+        for _p in base:
+            _groups.setdefault(_p[0], []).append(_p)
+        if shuffle_key is not None:
+            import random as _r
+            for _gi, _g in enumerate(_groups.values()):
+                _r.Random(shuffle_key * 31 + _gi).shuffle(_g)
+        _order = [e for e in missing if e in _groups] + [
+            e for e in _groups if e not in missing]
+        _merged: list = []
+        _i = 0
+        while len(_merged) < len(base):
+            _advanced = False
+            for _e in _order:
+                _g = _groups[_e]
+                if _i < len(_g):
+                    _merged.append(_g[_i])
+                    _advanced = True
+            if not _advanced:
+                break
+            _i += 1
+        return _merged
+
     if seed is not None and pool:
         import random as _random
         # 契合层够一批就只在契合层内轮转；不够则契合层打头、中性层补齐
         _base = _fit if len(_fit) >= _step else (_fit + _neutral)
+        # 契合层全堆在一个缺行时并入中性层——否则 missing[1] 仍零出镜
+        if len({p[0] for p in _base}) < min(len(missing), 2):
+            _base = _fit + _neutral
         _segs = max(len(_base) // _step, 1)
         # R2349s（R83 残余）：seed=0 与 seed=1 撞段（max(0,1)=1）——
         # 0 语义改成「来一炉随机新签」，不再是 1 号的别名。
         _eff = int(seed)
-        _shuffled = _base[:]
         if _eff == 0:
-            _random.Random().shuffle(_shuffled)
+            _shuffled = _interleave(_base, _random.Random().randrange(1 << 30))
             _seg = 0
         else:
             _round = (max(_eff, 1) - 1) // _segs
             _seg = (max(_eff, 1) - 1) % _segs
-            _random.Random(_round).shuffle(_shuffled)  # 每轮一个新顺序
+            _shuffled = _interleave(_base, _round)  # 每轮一个新顺序
         _start = _seg * _step
         selected_pairs = _shuffled[_start:_start + _step] or _shuffled[:_step]
     else:
-        selected_pairs = sorted(
-            pool, key=lambda p: _eff_score(p[1]), reverse=True)[:_step]
+        selected_pairs = _interleave(sorted(
+            pool, key=lambda p: _eff_score(p[1]), reverse=True))[:_step]
 
     for elem, entry in selected_pairs:
         given = entry.get("字", "")
@@ -400,11 +447,17 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
     # 保证「换一批/换风格」时也有变化。 ──
     _double_quota = max(2, int(top_n) // 3)
     _doubles: list[dict] = []
+    # R3333（审-中5/6）：每缺行保底份额 + 伴行偏好序——原实现第一
+    # 缺行填满 quota*3 就 break，missing[1] 零出现；comp 固定序
+    # 「木火土金水」永远先抓木，缺火盘会拿最旺行字充数。
+    _per_elem = max(1, (_double_quota * 3 + len(missing) - 1) //
+                    max(len(missing), 1))
     for elem in missing:
         classical_entries = _CLASSICAL_DB.get(elem, [])
         if len(classical_entries) < 2:
             continue
-        for gender_comp in ["木", "火", "土", "金", "水"]:
+        _elem_got = 0
+        for gender_comp in _comp_order(elem, counts):
             if gender_comp == elem:
                 continue
             comp_entries = _CLASSICAL_DB.get(gender_comp, [])
@@ -448,12 +501,13 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
                     "story": f"「{e1.get('句', '')}」「{e2.get('句', '')}」， 前者取{c1}，后者取{c2}，{_wx_pair_word(elem, gender_comp)}。",
                     "form": "double",
                 })
-                if len(_doubles) >= _double_quota * 3:   # 池子留余量供风格过滤
+                _elem_got += 1
+                if (len(_doubles) >= _double_quota * 3
+                        or _elem_got >= _per_elem):   # 池子留余量供风格过滤
                     break
-            if len(_doubles) >= _double_quota * 3:
+            if (len(_doubles) >= _double_quota * 3
+                    or _elem_got >= _per_elem):
                 break
-        if len(_doubles) >= _double_quota * 3:
-            break
     # 双字去重后按配额插入：第 2、5、8 位放双字（均匀分布，视觉不扎堆）
     _dseen = set()
     _duniq = [d for d in _doubles if not (d["full_name"] in _dseen or _dseen.add(d["full_name"]))]
@@ -468,7 +522,7 @@ def generate_classical_names(surname: str, year: int, month: int, day: int,
             classical_entries = _CLASSICAL_DB.get(elem, [])
             if len(classical_entries) < 2:
                 continue
-            for gender_comp in ["木", "火", "土", "金", "水"]:
+            for gender_comp in _comp_order(elem, counts):
                 if gender_comp == elem:
                     continue
                 comp_entries = _CLASSICAL_DB.get(gender_comp, [])

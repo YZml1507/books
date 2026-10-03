@@ -321,16 +321,22 @@ def taohua(req) -> dict:
     """八字桃花运：咸池/红鸾/天喜 纯坐标计算（固定生日 → 固定输出）。"""
     req.validate_ranges()
     by, bm, bd = resolve_birth(req)
+    _hk = getattr(req, "hour_known", True) is not False
     try:
         b = bazi_compute(by, bm, bd, req.hour, req.gender,
                              minute=(req.minute or 0))
-        t = taohua_mod.compute(b)
+        # R3333（审-高4）：时辰不详 → 假午时柱不进命中/强度/落宫。
+        t = taohua_mod.compute(b, hour_known=_hk)
         dayun = taohua_mod.dayun_hits(b, by)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
     t_dict = {
         "bazi": {"year": b.year, "month": b.month, "day": b.day,
                  "hour": b.hour, "day_master": b.day_master},
+        # R3333（审-中7）：bazi.warn 透传——节气边界/晚子时警示此前
+        # 在桃花响应整体丢掉。
+        "warn": list(b.warn),
+        "hour_known": _hk,
         "year_zhi": t.year_zhi,
         "peach_zhi": t.peach_zhi,
         "hit_pillars": list(t.hit_pillars),
@@ -381,9 +387,17 @@ def _hehun_score(h) -> int:
     基准 55；日支关系是主轴（±18 档），年支减半；纳音/日主五行/桃花/
     天干五合/十神互见逐档加；钳 35–99（不给满分也不给零分——留余地
     本身就是娱乐向口径）。"""
-    _rel = {"合": 18, "半合": 10, "冲": -16, "刑": -8, "害": -8}
+    _rel = {"合": 18, "半合": 10, "冲": -16, "刑": -8, "害": -8, "破": -5}
     sc = 55.0
     sc += _rel.get(h.day_zhi_rel, 0)
+    # R3333（审-高3）：害/刑/破此前只进 notes 零权重——次级扣分折进
+    # 分数（日支档重于年支档），硬伤清单在 voice 层同口径收录。
+    if getattr(h, "day_xing", False): sc += _rel["刑"]
+    if getattr(h, "day_harm", False): sc += _rel["害"]
+    if getattr(h, "day_break", False): sc += _rel["破"]
+    if getattr(h, "year_xing", False): sc += _rel["刑"] * 0.5
+    if getattr(h, "year_harm", False): sc += _rel["害"] * 0.5
+    if getattr(h, "year_break", False): sc += _rel["破"] * 0.5
     # R2504（B-1）：year_zhi_rel 值域只有 '半合'——年支六冲/六合落在独立
     # bool（clash/combine）上，原读法让「年支减半」权项对两类关系恒为 0，
     # 同屏 notes 说冲、分数却装没看见。
@@ -397,7 +411,22 @@ def _hehun_score(h) -> int:
         sc += 9
     sc += 4 if h.god_a_sees_b else 0
     sc += 4 if h.god_b_sees_a else 0
-    return int(max(35, min(99, round(sc))))
+    # R3333（审-中8）：99 天花板堆积——原先稍有助力就顶满，
+    # 满大街 99 分显得像假的。日常顶 92；真满分档留给
+    # 无硬伤且正信号叠厚的组合（≥6 个正信号且零负信号）。
+    _pos = sum([
+        h.day_zhi_rel in ("合", "半合"), bool(h.combine),
+        h.nayin_rel == "相生", bool(h.day_wx_sheng),
+        bool(h.day_wx_same), bool(h.peach_same), bool(h.gan_he),
+        bool(h.god_a_sees_b), bool(h.god_b_sees_a)])
+    _neg = any([
+        h.day_zhi_rel == "冲", h.clash, h.nayin_rel == "相克",
+        (not h.day_wx_sheng and not h.day_wx_same),
+        getattr(h, "day_xing", False), getattr(h, "day_harm", False),
+        getattr(h, "day_break", False), getattr(h, "year_xing", False),
+        getattr(h, "year_harm", False), getattr(h, "year_break", False)])
+    _cap = 99 if (_pos >= 6 and not _neg) else 92
+    return int(max(35, min(_cap, round(sc))))
 
 
 def hehun(req) -> dict:
@@ -414,11 +443,10 @@ def hehun(req) -> dict:
             _age(req.b_year, req.b_month, req.b_day) < 18:
         raise ValidationError(
             "合婚是给成年人测的：有一方还没满 18 岁，把生日改对或长大点再来呀～")
-    # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
-    if ((req.a_year, req.a_month, req.a_day, req.a_hour, req.a_gender)
-            == (req.b_year, req.b_month, req.b_day, req.b_hour,
-                req.b_gender)):
-        raise ValidationError("两边填的是同一个人呀：换上 TA 的生辰再测～")
+    # R3333（审-高2）：同人闸挪到农历换算之后——原闸比的是请求
+    # 原始字段，甲公历+乙农历同一天（前端农历模式把农历数写进
+    # b_y/m/d）能绕过，两盘逐字相同仍出「上等合拍」。换算后比
+    # 真坐标（含时辰/性别）才能真闸住。
     # R3206：双侧农历——换算失败是用户输错日期不是排盘故障，
     # 归 ValidationError（resolve_birth 认 req.calendar_type 命名，
     # hehun 双侧各一组 a_/b_ 前缀，这里手动换算）。
@@ -436,6 +464,10 @@ def hehun(req) -> dict:
     except ValueError:
         raise ValidationError(
             "农历日期没换算成，可能是月日对不上，换个日子试试") from None
+    # R2349s（R84-P1-5）：同一盘填两遍出「并肩作战型情侣」——先提示。
+    if ((_ay, _am, _ad, req.a_hour, req.a_gender)
+            == (_by, _bm, _bd, req.b_hour, req.b_gender)):
+        raise ValidationError("两边填的是同一个人呀：换上 TA 的生辰再测～")
     try:
         ba = bazi_compute(_ay, _am, _ad, req.a_hour, req.a_gender)
         bb = bazi_compute(_by, _bm, _bd, req.b_hour, req.b_gender)
@@ -455,6 +487,11 @@ def hehun(req) -> dict:
         # 同桶所有 CP 抽到同一句判词。
         "day_zhi_a": h.day_zhi_a, "day_zhi_b": h.day_zhi_b,
         "day_zhi_rel": h.day_zhi_rel,
+        # R3333（审-高3）：害/刑/破旗进 h_dict——voice 硬伤与分数同口径。
+        "year_harm": h.year_harm, "year_xing": h.year_xing,
+        "year_break": h.year_break,
+        "day_harm": h.day_harm, "day_xing": h.day_xing,
+        "day_break": h.day_break,
         "nayin_a": h.nayin_a, "nayin_b": h.nayin_b, "nayin_rel": h.nayin_rel,
         "year_zhi_rel": h.year_zhi_rel,
         "year_zhi_a": h.year_zhi_a, "year_zhi_b": h.year_zhi_b,
@@ -1580,6 +1617,14 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             out["bad_days"] = [{"date": _q["date"], "ji": _q["ji"]}
                                for _q in _bd[:14]]
             out["bad_count"] = len(_bd)
+            # R3330（审-中2）：避让榜之外补「相对清净日」副榜——
+            # 只忌不宜的词，忌日之外等于隐性放行池，凶日也被隐性
+            # 推成「可以的日子」。显式核过的干净日一起透出。
+            _cd = huangli_mod.find_calm_days(dt, _end_eff, terms)
+            out["calm_days"] = [{"date": _q["date"]} for _q in _cd[:14]]
+            out["calm_count"] = len(_cd)
+            if len(_bd) > 14 or len(_cd) > 14:
+                out["list_truncated"] = True
         # R3323-P2-1：簇否决过而族口径冲突的「小有顾忌」日透出——
         # 榜说宜签约而卡判宜忌都有的分裂（92 天 48 日）得有标记者。
         if good:
@@ -2956,9 +3001,13 @@ def _abs_or_holiday(msg: str, now: datetime,
         # R3323-P0-2：双关节气词要带语境才作日期解——「大雪纷飞」
         # 不翻页，「大雪那天/大雪节气/节气大雪」翻。
         if w in _SOLAR_TERMS_AMBI:
-            _after = msg_n[idx:idx + 3]
+            # R3330（审-中3）：问日句式补白——「大雪是哪天/什么时候/
+            # 几日/几号」此前被双关闸整句静默（after 不是节气语境词）。
+            _after = msg_n[idx:idx + 4]
             if not (_after.startswith(("节气", "那天", "当日", "这天",
-                                       "那一天", "前后"))
+                                       "那一天", "前后", "是哪天",
+                                       "是几号", "什么时候", "几日",
+                                       "几号", "何时", "是哪一天"))
                     or msg_n[:widx].endswith("节气")):
                 continue
         if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
@@ -3626,6 +3675,21 @@ _CHAT_ACTIONS = [
      "她问今日运势，铺子里有真入口：首页日签卡每天"
      "更新，看完回来接着聊",
      "home", "☀️ 看今日日签"),
+    # R3331（审-高）：壁纸路标——模型此前答「我这儿没有开运壁纸，
+    # 去小红书找」把自家人导外流。首页日签卡下「开运壁纸」按钮
+    # 每天出一张带幸运色+日签的图。
+    (("开运壁纸", "壁纸", "换壁纸", "幸运壁纸", "每日壁纸", "开运图"),
+     "她想换开运壁纸，铺子里有真入口：首页日签卡下面有"
+     "「开运壁纸」按钮，每天一张带幸运色和日签的图，"
+     "让她去那儿点，做好回来接着聊；别把她导去别处找",
+     "home", "🖼️ 去换开运壁纸"),
+    # R3331（审-低）：愿望路标——她想许愿时给真入口：日签卡
+    # 许愿瓶（新月还有提醒），别让模型干回「去树下许愿吧」。
+    (("许愿", "心愿", "愿望瓶", "丢个愿望", "写愿望", "许下心愿"),
+     "她想许愿，铺子里有真入口：首页日签卡上有许愿瓶，"
+     "把愿望丢进去会帮她存着；逢新月还会提醒她许，"
+     "让她去那儿写，写完回来接着聊",
+     "home", "🫙 去丢个愿望"),
     (("解梦", "解个梦", "解一梦", "周公"),
      "她想解梦，铺子里有真入口：首页「解梦」卡把梦讲给"
      "册子听，对完回来接着聊",
@@ -3665,6 +3729,80 @@ def chat_action_view(message: str) -> dict | None:
     """R3195：路标的可点跳转面，前端渲染「去 XX」chip。"""
     _a = _chat_action(message)
     return {"view": _a[1], "label": _a[2]} if _a else None
+
+
+# R3317-D 同款咒语池——服务端镜像（web/static/app.js _MANTRA_POOL
+# 逐字同序）。同日同句是社群契约，改池子两边一起改。
+_MANTRA_POOL = [
+    '水逆退散，钱包回暖', '霉运清零，好事常来', '烦恼退退退',
+    '好运充值成功', '今天也是被幸运点名的人', '诸事顺利，心想事成',
+    '今日好运已到账', '难事先放一放，先吃饭', '小确幸浓度拉满',
+    '今天走路都带风', '好运气从这里开始', '所求皆所愿，所行皆坦途',
+    '今日份快乐已签收', '好事正在派送中', '今天不谈烦心事',
+    '运气这回事，我信', '顺顺当当过今天', '小满即圆满',
+    '今天的好事不止一件', '心宽的人运气不会差', '福气正在路上',
+    '今天适合好好待自己', '困难退散，快乐翻倍', '愿望清单推进中',
+    '今天的我是限量版', '好运会迟到但不会缺席', '日子一天天，越来越甜',
+    '今天也为小目标蓄力', '好运与好心态双向奔赴', '不急不慌，好事不慌',
+    '今天的快乐额度无限', '所愿皆成，所遇皆暖', '把烦恼调成静音',
+    '今天是个好日子', '好心态是最好的好运', '小满未满，一切都刚好']
+
+
+def _day_mantra(date_str: str) -> str:
+    """今日咒语——与前端 _dayPick(_MANTRA_POOL,'mantra|'+date) 同哈希。
+
+    JS 版：str = 'mantra|<j.date>|<todayIso>'，h=(h*31+code)>>>0，
+    pool[h%len]。j.date/todayIso 在常规用法里都=当天，故键为
+    'mantra|<d>|<d>'；任一日期盐都是 ASCII，charCode=字节值。
+    """
+    s = f"mantra|{date_str}|{date_str}"
+    h = 0
+    for ch in s:
+        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+    return _MANTRA_POOL[h % len(_MANTRA_POOL)]
+
+
+def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
+    """R3331（审-中2/3/4）：当日派生事实按问句主题注入——
+    水逆/穿搭色/咒语问句此前零供给，小满自由发挥出口径分裂
+    （答「今天没有水逆」当日正值水逆第 3 天；咒语每次现编
+    与卡面不同句）。"""
+    _n = _t2s((message or ""))
+    if not _n.strip():
+        return []
+    _d = (now or _now_cn()).date()
+    out: list[str] = []
+    try:
+        if any(k in _n for k in ("水逆", "水星逆行")):
+            _m = _mercury_state(_d)
+            if _m.get("on"):
+                out.append(
+                    f"今日水逆态：正在水逆，第{_m['day_no']}天，"
+                    f"一直到{_m['until']}（日粒度历表）")
+            elif _m.get("next"):
+                out.append(
+                    f"今日水逆态：今天不在水逆期，下一次"
+                    f"{_m['next']}起（还有{_m['days_to']}天）")
+            else:
+                out.append("今日水逆态：今天不在水逆期")
+        if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
+                                 "幸运颜色", "开运色", "什么颜色", "配色")):
+            _lk = _lucky_for(_d)
+            _of = _outfit_for(_d)
+            if _lk.get("color"):
+                out.append(f"今日开运色：{_lk['color']}"
+                           f"（{_lk.get('color_word', '')}）")
+            _t0 = (_of.get("tiers") or [{}])[0]
+            if _t0.get("colors"):
+                out.append(f"今日穿搭大吉档：{_t0['colors']}"
+                           f"（{_t0.get('tip', '')}）")
+        if any(k in _n for k in ("咒语", "好运语", "转运语", "今日一句",
+                                 "口号", "许愿语")):
+            out.append(f"今日咒语：{_day_mantra(_d.isoformat())}"
+                       "（与日签卡同句，可直接念）")
+    except Exception:
+        pass
+    return out
 
 
 def chat_result_verdicts(ref: str | None) -> list[str]:

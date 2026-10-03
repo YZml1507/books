@@ -856,13 +856,47 @@ def find_good_days(start: datetime, end: datetime,
             _fam_terms |= set(_veto_terms(_t))
         # R2365（R3301-P0）：硬凶日大事级事项硬过滤——杨公忌/月破/
         # 岁破类日子不再只 ⚠ 降权照常上红白事吉日榜。
+        # R3330（审-中1）：硬凶旗过滤对所有事项生效——原闸只对
+        # 大事级词生效，杨公忌/月破/岁破日照样会上「理发吉日」榜。
+        # 上榜语义是「推荐」，有大事勿用标的日子本就不该进推荐单。
         if (any(_hit(t, q["yi"]) and not _hit(t, q["ji"]) for t in terms)
                 and not any(_hit(t, q["ji"]) for t in _fam_terms)
-                and not (set(q.get("day_flags") or ()) & _HARD_FLAGS
-                         and _fam_terms & _MAJOR_TERMS)):
+                and not (set(q.get("day_flags") or ()) & _HARD_FLAGS)):
             good.append(q)
         cur += timedelta(days=1)
     return good
+
+
+def find_calm_days(start: datetime, end: datetime,
+                   affair: str | list[str]) -> list[dict]:
+    """R3330（审-中2）：ji_only 词的「相对清净日」副榜。
+
+    破土/诉讼这类只忌不宜的词，避让榜之外的正确补充是「没点你名
+    的干净日子」：term 不落忌栏 + 无硬凶旗 + 族内也无对冲忌词。
+    隐性放行（整个区间除了忌日都算好）此前把整体凶日也隐性推上
+    「可以的日子」，现在干净日是显式核过的。
+    """
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])
+    end = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
+
+    def _hit(tt, words):
+        return any(tt in w or w in tt for w in words)
+
+    _fam_terms: set[str] = set()
+    for _t in terms:
+        _fam_terms |= set(_veto_terms(_t))
+
+    calm: list[dict] = []
+    cur = start
+    while cur <= end:
+        q = day_query(cur)
+        if (not any(_hit(t, q["ji"]) for t in _fam_terms)
+                and not (set(q.get("day_flags") or ()) & _HARD_FLAGS)):
+            calm.append(q)
+        cur += timedelta(days=1)
+    return calm
 
 
 def find_bad_days(start: datetime, end: datetime,

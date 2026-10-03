@@ -10595,8 +10595,12 @@ async function _doHuangli(offset, reveal, spokenWord) {
         var _badDays = gj.bad_days || [];
         if ((gj.ji_only || 0) && _badDays.length) {
           var _bc = gj.bad_count || _badDays.length;
+          /* R3330（审-低3）：截断如实写进文案——榜只列前 14 天而
+           * 真实忌日更多时，「有 N 天」不再看起来像全量。 */
           box.innerHTML = esc('「' + _gsc + '」这种事老黄历只讲避不讲宜——' +
-            '近 45 天里忌它的日子有 ' + _bc + ' 天，绕开就好～');
+            '近 45 天里忌它的日子有 ' + _bc + ' 天' +
+            ((gj.list_truncated || 0) ? '（下面只列前 14 天）' : '') +
+            '，绕开就好～');
           var _bChips = _badDays.slice(0, 6).map(function (gd) {
             var pp = String(gd.date || '').split('-');
             var lab = (+pp[1]) + '/' + (+pp[2]);
@@ -10607,13 +10611,26 @@ async function _doHuangli(offset, reveal, spokenWord) {
               (_btt ? ' title="' + esc(_btt) + '"' : '') + '>' +
               esc(lab) + '</button>';
           }).join('');
+          /* R3330（审-中2）：避让榜之外补「相对清净的日子」——
+           * 后端显式核过的干净日（term 不落忌+无硬凶），给只忌不宜
+           * 的事一个可去的方向，不再只有黑名单没有白名单。 */
+          var _calmDays = gj.calm_days || [];
+          var _cChips = _calmDays.slice(0, 6).map(function (gd) {
+            var pp2 = String(gd.date || '').split('-');
+            var lab2 = (+pp2[1]) + '/' + (+pp2[2]);
+            return '<button type="button" class="hl-daychip"' +
+              ' data-hldate="' + esc(String(gd.date || '')) + '">' +
+              esc(lab2) + '</button>';
+          }).join('');
           var _oldGdB = box.parentNode &&
             box.parentNode.querySelector('.hl-gooddays');
           if (_oldGdB) _oldGdB.remove();
           var tipB = document.createElement('div');
           tipB.className = 'hl-gooddays';
           tipB.innerHTML = '<span class="hl-gooddays-label">要避开的日子：'
-            + '</span>' + _bChips;
+            + '</span>' + _bChips +
+            (_cChips ? '<br><span class="hl-gooddays-label">相对清净的日子：'
+            + '</span>' + _cChips : '');
           if (box.nextSibling) box.parentNode.insertBefore(tipB, box.nextSibling);
           else box.parentNode.appendChild(tipB);
           tipB.querySelectorAll('[data-hldate]').forEach(function (b) {
@@ -10735,6 +10752,12 @@ async function _doHuangli(offset, reveal, spokenWord) {
           esc(_gsc) + '：</span>' + chips +
           (_rare ? '<span class="hl-gooddays-note">（' + _rare +
             '）</span>' : '') +
+          /* R3330（审-低）：稀疏榜明示——整窗就翻到 1-2 个吉日时
+           * 榜单看起来像没查完，补一句「本来就少」消掉
+           * 「是不是坏了」的疑惑。 */
+          (!_rare && _days.length <= 2
+            ? '<span class="hl-gooddays-note">（这类吉日本来就少，' +
+              '碰上就别错过）</span>' : '') +
           (_sunk ? '<span class="hl-gooddays-note">（另 ' + _sunk +
             ' 天逢凶日未列出）</span>' : '');
         if (box.nextSibling) box.parentNode.insertBefore(tip, box.nextSibling);

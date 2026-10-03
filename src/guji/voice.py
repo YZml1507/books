@@ -2509,6 +2509,20 @@ def warm_hehun(h: dict, viewer: str = "a") -> dict:
         _hard.append(f"日支{_dzc}相冲" if _dzc else "日支相冲")
     if h.get("clash"):
         _hard.append("年支六冲")
+    # R3333（审-高3）：害/刑/破进硬伤——此前只写 notes，「相刑」盘
+    # 照样出「上等合拍、没有硬伤」同屏打架。次级信号只名不评。
+    if h.get("day_xing"):
+        _hard.append("日支相刑")
+    if h.get("day_harm"):
+        _hard.append("日支相害")
+    if h.get("day_break"):
+        _hard.append("日支相破")
+    if h.get("year_xing"):
+        _hard.append("年支相刑")
+    if h.get("year_harm"):
+        _hard.append("年支相害")
+    if h.get("year_break"):
+        _hard.append("年支相破")
     _wx_ke = None
     if not h.get("day_wx_sheng") and not h.get("day_wx_same") \
             and h.get("day_wx_a") and h.get("day_wx_b"):
