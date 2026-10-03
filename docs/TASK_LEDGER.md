@@ -17756,3 +17756,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 实测：同 Playwright 脚本 CLS 0.0526→0.010；残余 0.0097 为 summary 文本行高微差，可接受。
 - 顺带核实积压 R127-P2-7（CP chips 删除钮）已在 R2503 落地，从积压清单划掉。
 - 闸门：selftest 405 / ui_smoke 101 / contract 725 / ruff / bump_sw→books-shell-da7c4a4a866d。
+
+## R3332（2026-10-03）：受邀者回流真机复扫清零——中1+低3（其余五轴干净实证）
+- **中**：`?view=weekly&from=share` 欢迎条指路「点📊生成本周小报」——该钮只活在聊天空态且要 _weekVisits>0，新受邀者永不可达=指路指死路。改承接句+欢迎条直挂 `.welcome-cta` 真按钮调 `_shareWeekly`（0 天也出稀疏周报卡）。
+- 低：`?view=huangli&date=非法值` 的 warn toast「链接日子打不开」被 showView 跨视图非错误 toast 清扫摘掉→受邀者不知链坏。延 600ms 到切视图落定后弹。
+- 低：接力回赠 toast「顺手替 X 讨彩头」在 xzm 分享链自动点提交（受邀者被动看盘）也弹——把「来访」记成「去测」。`__autoReplaySubmit='xzm'` 按视图名一次性豁免，受邀者首个主动测仍能收到。
+- 低：hehun 受邀者结果页「把合拍指数发回给 XX 看看」是纯文本无按钮（实际靠旁边分享图）——cite 改 `<button.hit-cite-btn>` 直调 shareHehun，下划虚线传达可点性。
+- 干净实证（审计实录）：邀请链端到端/档案隔离/伪造参数/XSS/微信降级/口令门回传/深链消化/新客死点。
+- 闸门：ui_smoke 101（on_coverage 豁免表补 hhSendBack）/ bump_sw→books-shell-43a6a2cb3257。

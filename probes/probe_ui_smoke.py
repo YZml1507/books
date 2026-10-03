@@ -436,6 +436,9 @@ def main() -> int:
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。
         "shareDream": "同上",
+        # R3332-低：受邀者回传钩——点击转调 shareHehun，同分享图链路。
+        "hhSendBack": "受邀者「发回给TA」钩——点击转调 shareHehun，"
+                      "downloadPoster 同族豁免",
         "rgPoster": "五行人格分享图——downloadPoster('bazi') 海报模态，"
                      "同 shareBazi 族豁免",
         "rgXhs": "五行人格小红书文案复制钮——纯本地 clipboard 写入，"

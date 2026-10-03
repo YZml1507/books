@@ -680,8 +680,11 @@ function buildHehunResult(j) {
   /* R2349t（R88-14）：受邀者测完——提示把结果发回给约她的人，
    * 邀请链一来一回才闭环。 */
   if (window.__hhInviteMode && window.__hhInviteBy) {
-    html += '<p class="hit-cite">测完啦，把这张合拍指数发回给 ' +
-      esc(window.__hhInviteBy) + ' 看看 💌</p>';
+    /* R3332-低：纯文本「发回给 TA」裂变闭环断在最后一步——改可点
+     * 按钮直调分享图（走 _rbHh 里 hhSendBack 的 on() 绑定）。 */
+    html += '<button type="button" class="hit-cite hit-cite-btn" ' +
+      'id="hhSendBack">测完啦，点我把这张合拍指数发回给 ' +
+      esc(window.__hhInviteBy) + ' 看看 💌</button>';
   }
   return html;
 }
@@ -1667,10 +1670,15 @@ function rememberResult(viewKey, json, question, body) {
   } catch (e) {}
   /* R2349t（R88-13d）：接力回赠——share 链进来的首个非日签结果
    * 弹一句「顺手替 XX 讨个彩头」。daily 是自动拉取不算「她去测」，
-   * 一次性闸防每次提交都弹。 */
+   * 一次性闸防每次提交都弹。
+   * R3332-低：xzm 分享链自动点提交=受邀者被动看 TA 的盘，不算
+   * 「她去测」——__autoReplaySubmit 按视图名一次性豁免，受邀者
+   * 第一次主动测时仍能收到这句。 */
   try {
     var _sby = _shareByName();
-    if (_sby && viewKey && viewKey !== 'daily' &&
+    var _arpV = window.__autoReplaySubmit;
+    if (_arpV === viewKey) window.__autoReplaySubmit = null;
+    if (_sby && viewKey && viewKey !== 'daily' && _arpV !== viewKey &&
         !sessionStorage.getItem('shareBy:done')) {
       sessionStorage.setItem('shareBy:done', '1');
       setTimeout(function () {
@@ -9182,6 +9190,11 @@ async function doHehun() {
     /* R2512：分享/邀请/存这对三个直绑收进 rebind——口吻重画后重放。 */
     var _rbHh = function () {
       on('shareHehun', function () { return downloadPoster(j, 'hehun'); });   /* R218a-巡2（N-04） */
+      /* R3332-低：受邀者结果页「发回给 TA」cite 按钮→同一分享图链路。 */
+      on('hhSendBack', function () {
+        var _sb = el('shareHehun');
+        if (_sb) _sb.click();
+      });
       /* R233n（R47-Top5-1）：邀请链——把 A 侧生辰编进 ?view=hehun 参数，
        * 对方打开即预填+提示「轮到你了」。 */
       on('hhInvite', function () {
@@ -14078,10 +14091,14 @@ function init() {
               window.__hlDeepDate = _hld;
             } else {
               /* R2350b（R99-P0 附带）：链接里的日期不合法（2/30、
-               * 超量程）——静默落今天但给接收方一句交代。 */
-              try {
-                showToast('那条链接里的日子打不开，先看今天的吧', 'warn');
-              } catch (eT) {}
+               * 超量程）——静默落今天但给接收方一句交代。
+               * R3332-低：warn 级 toast 被 showView 的跨视图清扫摘掉
+               *（只留 error）——延到切视图落定后再弹。 */
+              setTimeout(function () {
+                try {
+                  showToast('那条链接里的日子打不开，先看今天的吧', 'warn');
+                } catch (eT) {}
+              }, 600);
             }
           }
         } catch (eHD) {}
@@ -14439,6 +14456,9 @@ function init() {
                       _re3.value = _zr;
                     }
                     setTimeout(function () {
+                      /* R3332-低：自动重放标记——rememberResult 的回赠
+                       * toast 按视图豁免这次被动提交。 */
+                      window.__autoReplaySubmit = 'xzm';
                       var _xs = el('xzmSubmit');
                       if (_xs) _xs.click();
                     }, 450);
@@ -14656,7 +14676,10 @@ if (document.readyState === 'loading') {
         checkin: '朋友在攒连签，打卡一下，今天的签就归你 ✍️',
         'checkin-week': '朋友在晒她的一周签运：你的也攒一个 🗓️',
         'checkin-month': '朋友在晒她的一月签运：你的也攒一个 🗓️',
-        weekly: '朋友在晒她的一周小满周报，点「📊 生成本周小报」也来一份 📊',
+        /* R3332-中：原句指路的「📊 生成本周小报」钮只活在聊天空态且
+         * 要 _weekVisits>0——新受邀者永远到不了，指路指死路。改成欢迎条
+         * 直挂真按钮（_shareWeekly 0 天也出稀疏周报卡，不报错）。 */
+        weekly: '朋友在晒她的一周小满周报——你的也出一份 📊',
         birth: '朋友翻了她的本命盘，你的底色也翻一张 🌙',
         hehun: '朋友约你合婚：填好你的生日就能对上盘 💕',
         /* R3319-P2：承接表补遗——此前 11 个视图落通用句指错路。 */
@@ -14687,6 +14710,18 @@ if (document.readyState === 'loading') {
          * 指错路——收回到不带错误指向的兜底。 */
         '朋友在晒她的运势，来测测你的 ✨')
         .replace(/^朋友/, _who2 || '朋友'));
+      /* R3332-中：weekly 深链的「生成小报」原指路聊天空态 chip——
+       * 受邀新客 _weekVisits=0 永不可达。欢迎条直接挂可点 CTA。 */
+      if (_sv2 === 'weekly' && !bar.querySelector('.welcome-cta')) {
+        var _wcta = document.createElement('button');
+        _wcta.type = 'button';
+        _wcta.className = 'welcome-cta';
+        _wcta.textContent = '📊 生成我的本周小报';
+        _wcta.addEventListener('click', function () {
+          try { _shareWeekly(); } catch (eSW) {}
+        });
+        bar.insertBefore(_wcta, bar.querySelector('.welcome-close'));
+      }
     } else if (_txtEl && _from === 'invite') {
       _txtEl.textContent = (window.__hhInviteBy || 'TA') +
         ' 约你来合婚，填好你的生日就能对上盘 💕';
