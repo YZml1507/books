@@ -863,3 +863,29 @@ def find_good_days(start: datetime, end: datetime,
             good.append(q)
         cur += timedelta(days=1)
     return good
+
+
+def find_bad_days(start: datetime, end: datetime,
+                  affair: str | list[str]) -> list[dict]:
+    """在 [start, end] 内找「忌侧写了这事」的日子（避让名单）。
+
+    R3323-P0：破土/诉讼/求名/乘船/登山/开仓/出官/行丧/田猎 这批词在历表
+    里只有忌没有宜——「打官司哪天好」的正确答案不是吉日榜（恒空死路）
+    而是避开忌日。affair 归一与 find_good_days 同口径。
+    """
+    terms = ([AFFAIR_ALIASES.get(t, t) for t in affair]
+             if isinstance(affair, list)
+             else [AFFAIR_ALIASES.get(affair, affair)])
+    end = min(end, datetime(2100, 12, 31, tzinfo=end.tzinfo))
+
+    def _hit(tt, words):
+        return any(tt in w or w in tt for w in words)
+
+    bad: list[dict] = []
+    cur = start
+    while cur <= end:
+        q = day_query(cur)
+        if any(_hit(t, q["ji"]) for t in terms):
+            bad.append(q)
+        cur += timedelta(days=1)
+    return bad

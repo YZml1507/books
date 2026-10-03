@@ -2758,7 +2758,12 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
 .fav-chip-x{min-width:44px}
 .qm-fav{min-width:44px}
 .hl-week{overflow-x:auto; overscroll-behavior-x:contain;}
+/* R3323-P3-7：这条无条件规则后写胜出会把 ≤400px 媒体块里的
+ * 46px 滑列底宽打死（实测 375px 列宽 44）——收成宽屏限定，窄屏
+ * 走上面的滑列+渐隐规则。 */
+@media (min-width:401px){
 .hl-week-row{grid-template-columns:repeat(7,minmax(44px,1fr))}
+}
 .ai-arrive{animation:fadeIn .45s ease}
 .chat-input-row{position:relative}
 .char-count{position:absolute;top:-16px;right:4px;font-size:11px;color:var(--secondary);background:var(--card);padding:0 6px;border-radius:12px;box-shadow:0 1px 3px rgba(90,60,40,.12)}

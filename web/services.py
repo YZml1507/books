@@ -1527,7 +1527,15 @@ def huangli(date_str: str | None = None, affair: str | None = None,
         if terms is None:
             # R2400（R141-P2-3）：精确键未中时与聊天同走「子串最长命中」——
             # affair=签订合同/签合同此前 terms=[原词] 恒空。
-            _sub = [k for k in _CHAT_SCENE_TERMS if k in affair]
+            # R3323-P3-6：子串命中限「键贴尾/后跟日子缀」——家长会→家长
+            # （谒贵+嫁娶）、约会所→约会这类前缀误配此前静默上榜。
+            # 「搬家吉日」「领证好日子」这类日子缀仍放行。
+            _sub = [k for k in _CHAT_SCENE_TERMS
+                    if k in affair and (
+                        affair.endswith(k)
+                        or affair[affair.index(k) + len(k):] in (
+                            "黄道吉日", "吉日", "日子", "好日子",
+                            "的日子"))]
             terms = _CHAT_SCENE_TERMS[max(_sub, key=len)] if _sub else [affair]
         # R229z续8（R8 P1-1）：原实现对 terms 逐词跑 find_good_days（5 词×92
         # 天=460 次 day_query）——find_good_days 现直接收词列表，单日循环
@@ -1560,8 +1568,29 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             out["truncated"] = True
         if _end_eff.date() < _now_cn().date():
             out["past"] = True
-        if _unrec:
+        # R3323-P2-4：unrecognized 只在真零命中时置位——「土」这类
+        # 子串命中词 count>0 还带 unrecognized 是自相矛盾的旗。
+        if _unrec and not good:
             out["unrecognized"] = True
+        # R3323-P0-1：ji-only 词（破土/诉讼/求名/乘船/登山/开仓/出官/
+        # 行丧/田猎——黄历只讲避不讲宜）恒空榜是死路，反向出避让榜。
+        if not good and all(t in _HUANGLI_JI_VOCAB for t in terms):
+            out["ji_only"] = True
+            _bd = huangli_mod.find_bad_days(dt, _end_eff, terms)
+            out["bad_days"] = [{"date": _q["date"], "ji": _q["ji"]}
+                               for _q in _bd[:14]]
+            out["bad_count"] = len(_bd)
+        # R3323-P2-1：簇否决过而族口径冲突的「小有顾忌」日透出——
+        # 榜说宜签约而卡判宜忌都有的分裂（92 天 48 日）得有标记者。
+        if good:
+            _fam_t: set[str] = set()
+            for _t in terms:
+                _fam_t |= set(huangli_mod.term_family(_t))
+            for g in good:
+                _sw = sorted({w for w in g["ji"]
+                              if any(t in w or w in t for t in _fam_t)})
+                if _sw:
+                    g["soft_conflict"] = _sw
         # R3317-B：吉日稀有度——「本月第 N 个吉日（共 M 个）」的晒图句。
         # 需要月内完整排名，故按命中日所在月各跑一次月窗；只在小窗
         # （≤45 天，≤2 个月）补这笔账，大窗不动（成本封顶 ~60 次
@@ -1854,6 +1883,16 @@ _HUANGLI_VOCAB: frozenset = frozenset(
 # 「长词优先、同长字典序」的 tuple，同一消息在不同进程必选同一事项词。
 _HUANGLI_VOCAB_ORD: tuple = tuple(
     sorted(_HUANGLI_VOCAB, key=lambda t: (-len(t), t)))
+# R3323-P0-1：忌侧词全集（建除/宿值/神煞三层的 ji 词并集）——
+# 破土/诉讼/求名/乘船/登山/开仓/出官/行丧/田猎 这类「只有忌没有宜」
+# 的词靠它识别：affair 全词落进这张表时反向出避让榜而不是恒空。
+_HUANGLI_JI_VOCAB: frozenset = frozenset(
+    [w for d in (*huangli_mod.ZHIRI_YIJI.values(),
+                 *huangli_mod.XIUXIU_YIJI.values()) for w in d["ji"]] +
+    [w for t in (huangli_mod._TIANSHA_YIJI, huangli_mod._TIAND_YIJI,
+                 huangli_mod._YUEDE_YIJI, huangli_mod._JIESHA_YIJI,
+                 huangli_mod._ZAISHA_YIJI, huangli_mod._YUESHA_YIJI,
+                 huangli_mod._YUEYAN_YIJI) for w in t[1]])
 
 
 _WEEKDAY = "一二三四五六日天"
@@ -1981,6 +2020,16 @@ def _lunar_md(mtxt: str, dtxt: str):
         d = 20
     elif dtxt == "三十":
         d = 30
+    elif dtxt.startswith("二十"):
+        # R3323-P1-2：「腊月二十三/正月二十九」——「二十N/三十N」是
+        # 农历日常写法，此前只有廿N 能解，同一天换个写法就「黄历里没有」。
+        if len(dtxt) != 3 or dtxt[2:] not in _CN_DIGIT:
+            return None
+        d = 20 + _CN_DIGIT[dtxt[2:]]
+    elif dtxt.startswith("三十"):
+        if len(dtxt) != 3 or dtxt[2:] not in _CN_DIGIT:
+            return None
+        d = 30 + _CN_DIGIT[dtxt[2:]]
     elif dtxt.startswith("十"):                    # 十一..十九
         d = 10 + _CN_DIGIT.get(dtxt[1:], 0) if len(dtxt) > 1 else 10
     else:
@@ -2022,6 +2071,11 @@ _SOLAR_TERMS = {
     "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "冬至",
     "大暑", "小暑",
 }
+# R3323-P0-2：语义双关节气——小满（吉祥物名）/大雪/小雪/大寒/小寒
+# （天气语境歧义）不进 _SOLAR_TERMS 免误解；但带「那天/节气」语境时
+# 该按节气解：「大寒那天开业吗」此前连 resolve 都不被调，静默拿
+# 显示日替人判宜忌。
+_SOLAR_TERMS_AMBI = {"大寒", "小寒", "大雪", "小雪", "小满"}
 
 
 # R2349k（R72-A2）：反向查「这天是什么节」——黄历卡/今日卡的节日行。
@@ -2663,7 +2717,7 @@ def _holiday_candidates(name: str, now: datetime,
             except Exception:
                 pass
         return out
-    if name in _SOLAR_TERMS:
+    if name in _SOLAR_TERMS or name in _SOLAR_TERMS_AMBI:
         from guji import bazi as bazi_mod
         yrs = range(now.year - 1, now.year + 2) if yoff is None \
             else [now.year + yoff]
@@ -2849,6 +2903,7 @@ def _abs_or_holiday(msg: str, now: datetime,
 
     for name in sorted(set(_HOLIDAY_SOLAR) | set(_HOLIDAY_LUNAR)
                        | set(_HOLIDAY_NTH) | _SOLAR_TERMS
+                       | _SOLAR_TERMS_AMBI
                        | {"除夕", "清明", "清明節", "大年三十", "大年夜",
                           "年三十", "寒食节", "入伏", "三伏", "数九"},
                        key=len, reverse=True):
@@ -2860,6 +2915,14 @@ def _abs_or_holiday(msg: str, now: datetime,
         if widx > 0 and msg_n[widx - 1] in "双十廿一二两三四五六七八九":
             continue
         idx = widx + len(w)
+        # R3323-P0-2：双关节气词要带语境才作日期解——「大雪纷飞」
+        # 不翻页，「大雪那天/大雪节气/节气大雪」翻。
+        if w in _SOLAR_TERMS_AMBI:
+            _after = msg_n[idx:idx + 3]
+            if not (_after.startswith(("节气", "那天", "当日", "这天",
+                                       "那一天", "前后"))
+                    or msg_n[:widx].endswith("节气")):
+                continue
         if idx < len(msg_n) and msg_n[idx] in "月日号天個个年":
             # R233v：「三伏天/数九天」的「天」是词的一部分，不是计量字
             if not (w in ("三伏", "入伏", "数九") and msg_n[idx] == "天"):
@@ -3257,6 +3320,9 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
                 # 别静默按今天判。
                 r"放假|假期|收假|调班|节后|年后|过年前|"
                 r"正月|腊月|冬月|数九|入伏|三伏|梅雨季|"
+                # R3323-P0-2：双关节气无语境解不出时同样如实说，
+                # 不许静默拿显示日判（「大寒开业吗」→ invalid）。
+                r"大寒|小寒|大雪|小雪|小满|"
                 r"[0-9]{1,2}\s*[号日]", q):
             return {"date": None, "spoken": "",
                     "invalid": "这个日子黄历里没有哦。"
@@ -3279,6 +3345,21 @@ def _hl_next_yi_days(dt: datetime, terms: list[str],
     # 含宜∩忌双标日剔除 R228m）。
     for q in huangli_mod.find_good_days(dt, dt + timedelta(days=span - 1),
                                         terms):
+        try:
+            _dd = datetime.strptime(str(q["date"]), "%Y-%m-%d")
+            out.append(f"{_dd.month}/{_dd.day}（周{_WD[_dd.weekday()]}）")
+        except (ValueError, TypeError, KeyError):
+            out.append(str(q.get("date", "?")))
+    return out[:limit]
+
+
+def _hl_bad_days(dt: datetime, terms: list[str],
+                 span: int = 45, limit: int = 6) -> list[str]:
+    """[dt, dt+span) 内「忌侧写了这事」的日子——ji-only 事项避让榜。"""
+    _WD = "一二三四五六日"
+    out = []
+    for q in huangli_mod.find_bad_days(dt, dt + timedelta(days=span - 1),
+                                     terms):
         try:
             _dd = datetime.strptime(str(q["date"]), "%Y-%m-%d")
             out.append(f"{_dd.month}/{_dd.day}（周{_WD[_dd.weekday()]}）")
@@ -3857,6 +3938,29 @@ def _chat_facts_inner(message: str, now: datetime,
             and _ALREADY_HAPPENED_PAT.search(msg_n)
             and not _find_intent):
         return []
+    # R3323-P0-2/P1-3：双关节气无语境——「大寒开业吗」的「大寒」可能
+    # 是节气也可能是冷天。它明明存在，不能说「没这天」；让模型温和
+    # 确认「是问节气那天吗」（顺带把那天是几号递过去），不按今天判。
+    if _orig_spoken == "今天" and not any(
+            w in msg for w in ("今天", "今日", "今晚", "今夜")):
+        _ambi = re.search(r"大寒|小寒|大雪|小雪", msg_n)
+        if _ambi:
+            _ad = ""
+            try:
+                _cd = [d for d in _holiday_candidates(_ambi.group(0),
+                                                      now, None)
+                       if d >= now.date()]
+                if _cd:
+                    _x = min(_cd)
+                    _ad = f"{_x.month}月{_x.day}日"
+            except Exception:
+                pass
+            if ctx_out is not None:
+                ctx_out["qk"] = "badday"
+            return [f"用户说的「{_ambi.group(0)}」可能是节气也可能是天气"
+                    f"——温和问一句她是不是指节气那天"
+                    f"{('（' + _ad + '）') if _ad else ''}，"
+                    "没确认前别拿今天替她判宜忌。"]
     # R2355（R111-P2-3）：显式但解不出的日期词（星期八/32号/农历13月/
     # 越界年号）——_hl_day_part 回落「今天」且带这些标记 = 用户真在
     # 问一个不存在的日子。给「日子不存在」事实行，而不是拿今天的
@@ -3867,6 +3971,9 @@ def _chat_facts_inner(message: str, now: datetime,
                       r"星期[八九]|礼拜[八九]|禮拜[八九]|周[八九]|"
                       r"(3[2-9]|[4-9]\d)\s*[号日]|"
                       r"(下下|下|上|这|這|本)个?月\s*[0-9]{1,2}\s*[号日]|"
+                      # R3323-P1-3：裸农历月名（腊月/冬月/正月不带「农历」
+                      # 前缀）同样盖——「腊月祭灶好吗」月词无日落今天。
+                      r"正月|冬月|腊月|臘月|"
                       r"\d{4}\s*年|\d{4}\s*[/\-.]", msg_n):
         # R2400（R128-P1-3）：不存在日不更新锚态——标 badday 让 commit
         # 跳过写锚（此前锚被覆成 {今天,场景}，下一问照样错判今天）。
@@ -3943,8 +4050,19 @@ def _chat_facts_inner(message: str, now: datetime,
                          f"的日子：{'、'.join(_gd)}。直接给日子清单，"
                          "别按今天答宜忌。")
         else:
-            facts.append(f"用户在问「哪天{scene}好」，近45天没有宜"
-                         f"「{scene}」的日子；给最近的次优安排口径。")
+            # R3323-P0-1：ji-only 事项（诉讼/破土…历表只有忌没有宜）——
+            # 「次优安排」是空话死路，历表的正确答案是避让榜。
+            if all(t in _HUANGLI_JI_VOCAB for t in terms):
+                _bd = _hl_bad_days(dt, terms)
+                facts.append(
+                    f"用户在问「哪天{scene}好」——黄历对「{scene}」"
+                    "只有忌没有宜，不存在吉日榜；正确口径是避开忌它的"
+                    f"日子：近45天里忌「{scene}」的日子有"
+                    f"{('、'.join(_bd) + ' 等' if _bd else '零天')}。"
+                    "温和说明这类事历表只讲避不讲宜，绕开就好。")
+            else:
+                facts.append(f"用户在问「哪天{scene}好」，近45天没有宜"
+                             f"「{scene}」的日子；给最近的次优安排口径。")
         if ctx_out is not None:
             ctx_out["qk"] = "findday"
         return facts

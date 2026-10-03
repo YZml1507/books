@@ -648,6 +648,93 @@ def _run_inner() -> list[str]:
         assert set(_CST[_k]) == _want, \
             ("huangli.scene.twoleg", _k, _CST.get(_k))
     ok.append("huangli.scene.twoleg")
+    # ── R3323 黄历域复扫钉（17 项报告修复验收） ──
+    # P0-1：ji-only 事项（诉讼/破土…历表只有忌）——吉日恒空是死路，
+    # 后端反吐避让榜（ji_only+bad_days+bad_count）。
+    check("huangli.affair.ji_only",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "诉讼", "days": "45"}),
+          lambda j: j.get("ji_only") is True
+                    and len(j.get("bad_days") or []) > 0
+                    and (j.get("bad_count") or 0)
+                        >= len(j.get("bad_days") or [])
+                    and (j.get("good_days") or []) == [])
+    check("huangli.affair.ji_only.spoken",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "打官司", "days": "45"}),
+          lambda j: j.get("ji_only") is True)
+    check("huangli.affair.ji_only.not_on_yi",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "搬家", "days": "45"}),
+          lambda j: not j.get("ji_only")
+                    and len(j.get("good_days") or []) > 0)
+    # P2-4：子串命中有榜就不再带「没收录」标——「土」字此前一边返
+    # 2 天吉日一边自报 unrecognized。
+    check("huangli.affair.unrecognized.hit_not_flagged",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "土", "days": "45"}),
+          lambda j: not j.get("unrecognized"))
+    # P3-5/P3-6：子串只认尾词——「家长会」不许再偷换「家长」嫁娶组；
+    # 「签订合同」尾贴「合同」仍归一 立券。
+    check("huangli.affair.substr.suffix_only",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "家长会", "days": "45"}),
+          lambda j: j.get("terms") == ["家长会"])
+    check("huangli.affair.substr.suffix_keeps",
+          client.get("/api/huangli", params={"date": "2026-01-19",
+                                             "affair": "签订合同", "days": "45"}),
+          lambda j: j.get("terms") == ["立券"])
+    # P0-2/P1-3：双关节气（大寒/小寒/大雪/小雪/小满）语境裁——
+    # 「那天/节气」贴身按节气解；裸用明说解不出（invalid），
+    # 不许再静默判「显示日」。
+    check("huangli.resolve_date.ambi_ctx",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "大寒那天适合开业吗",
+                             "base": "2026-01-10"}),
+          lambda j: j.get("date") == "2026-01-20")
+    check("huangli.resolve_date.ambi_bare",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "大寒开业吗", "base": "2026-01-10"}),
+          lambda j: not j.get("date") and bool(j.get("invalid")))
+    check("huangli.resolve_date.ambi_mascot",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "小满开业吗", "base": "2026-05-01"}),
+          lambda j: not j.get("date") and bool(j.get("invalid")))
+    check("huangli.resolve_date.ambi_mascot_ctx",
+          client.get("/api/huangli/resolve_date",
+                     params={"q": "小满那天开业好吗",
+                             "base": "2026-05-01"}),
+          lambda j: j.get("date") == "2026-05-21")
+    # P2-5：神煞历锚点值钉死（防算法改型后值漂移）+ 十二时辰
+    # ji 旗与值神吉凶表同构。
+    from guji.huangli import zhishen_day as _zs9, hour_zhishen as _hz9
+    _ZH_YI = {"青龙", "明堂", "金匮", "天德", "玉堂", "司命"}
+    for _d9, _e9 in (("2026-01-19", "玉堂"), ("2026-08-17", "勾陈"),
+                     ("2027-02-04", "天刑")):
+        _dt9 = _dt6(*map(int, _d9.split("-")))
+        assert _zs9(_dt9) == _e9, f"{_d9} zhishen {_zs9(_dt9)} != {_e9}"
+        _hh9 = _hz9(_dt9)
+        assert len(_hh9) == 12 and all(
+            h["ji"] == (h["shen"] in _ZH_YI) for h in _hh9), \
+            f"{_d9} hours ji flag broken"
+    ok.append("huangli.zhishen.anchors")
+    # P1-2：农历日「二十N/三十N」解析（此前 腊月二十七 解不出）。
+    from web.services import _lunar_md as _lmd9
+    assert _lmd9("腊", "二十三") == (12, 23)
+    assert _lmd9("正", "二十七") == (1, 27)
+    assert _lmd9("腊", "廿一") == (12, 21)
+    assert _lmd9("腊", "初十") == (12, 10)
+    ok.append("huangli.lunar_md.twenty_30")
+    # P0-1 侧面：找日问法事实行——ji-only 词给「没有宜日只有忌日」
+    # 口径事实，不拼空吉日清单。
+    from web import services as _svr9
+    _jf9 = _svr9._chat_facts_inner("打官司哪天好", _dt6(2026, 1, 10))
+    assert any("忌日" in f or "避" in f for f in _jf9), _jf9
+    ok.append("huangli.facts.ji_only_badlist")
+    # P1-3：双关节气裸问给确认事实（节气还是天气），不按今天判。
+    _af9 = _svr9._chat_facts_inner("大寒开业吗", _dt6(2026, 1, 10))
+    assert any("节气" in f and "大寒" in f for f in _af9), _af9
+    ok.append("huangli.facts.ambi_clarify")
     # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
     # 不静默回落显示日/就近换日。
     # R3261：「下下个月31号」的预期按月历动态判——该月有 31 号时

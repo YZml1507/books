@@ -17602,3 +17602,18 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P3 `dailyMetaMore` 补 aria-expanded 同步。
 - P3 `#journalInput`/`#wishText` 补 aria-label（原仅 placeholder 作名）。
 - 闸门：selftest 386 / ui_smoke 101 全绿。
+
+## R3323 黄历域复扫清零（2026-10-03，17 项报告）
+- P0-1 **ji-only 事项死路根治**：破土/诉讼/求名/乘船/登山/开仓/出官/行丧/田猎——历表只有忌没有宜，「打官司哪天好」此前吉日榜恒空。后端 `find_bad_days`（忌侧逆扫）+ `ji_only/bad_days/bad_count` 三字段；前端改渲染「要避开的日子」避让榜；聊天事实行改「只有忌没有宜，避开忌日」口径（`_hl_bad_days`）。
+- P0-2 **双关节气静默日根治**：大寒/小寒/大雪/小雪/小满入 `_SOLAR_TERMS_AMBI`——带「那天/节气/当日/前后」语境按节气解（_holiday_candidates 解出），裸用走 invalid 明说解不出；聊天侧补「是节气还是天气」温和确认事实行（含解出的日期）。
+- P1-1 findMode 空头支票：45 天扫不出宜日时判词改说「没翻到」真话（原「已列在下面」对空榜）。
+- P1-2 `_lunar_md` 补「二十N/三十N」解析（腊月二十七/正月二十七此前解不出）。
+- P1-3 chat facts 无效日守卫补裸农历月名（正月/冬月/腊月不带「农历」前缀同样盖）。
+- P2-1/P2-2 簇过族冲「小有顾忌」日：payload 带 `soft_conflict`，chip 标 ※ + 悬停忌词冲突项提首。
+- P2-3 场景 chip 中性日 aria 文案「不宜」→「可看」（与判词「可照常安排」不再自相矛盾）。
+- P2-4 unrecognized 语义收口：子串命中出榜即不再带没收录标（affair=土 此前返 2 天吉日还说没收录）。
+- P3-3 足迹 `_hlAskLog` 改解析后落库——日期词改写分支问句与目标日错位根治。
+- P3-4 invalid/中性判词落地清旧吉日条+旧场景态（不再同屏矛盾）。
+- P3-5/P3-6 affair 子串命中收紧：键须贴尾或后跟日子缀——家长会→家长（嫁娶组）、约会所→约会误配根治；签订合同→立券 保留。
+- P3-7 `.hl-week-row` minmax 冲突修复：宽屏 44px 规则收成 ≥401px 限定，窄屏滑列 46px 生效。
+- 自测 +14 钉：ji_only×3/unrecognized×1/substr×2/ambi×4/zhishen 锚点×3 日/lunar_md×1/facts×2。闸门：selftest 400 / contract 721 / ui_smoke 101 / poster 9 视图 / dollar_misuse / banned_copy / first_screen / date_parity / llm_polish / baseline_voice / xingzuo / warm_voice / async_ai / ruff 全绿。
