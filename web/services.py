@@ -720,14 +720,14 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
         # R2517（审-P2-3）：与 search 同纪律——过滤参数拼错/不存在如实
         # 400，此前静默零命中像「库里没有这条地址」。只查输入侧参数的
         # 全局存在性（typo 检测）；合法组合为空仍回 200 空集。
+        # R3241：addr2/addr_name 单列无覆盖索引，原 LIMIT 1 是整索引扫
+        # 5.6ms——has_value 用按库指纹缓存的 distinct 集等价判定。
         for _col, _v, _lbl in (
                 ("layer", layer, "这个分类"),
                 ("addr_name", addr_name, "这个地址名"),
                 ("addr2", addr2 if scheme != "zhouyi" else yao,
                  "这个爻/小节")):
-            if _v is not None and not c.db.execute(
-                    f"SELECT 1 FROM unit WHERE {_col}=? LIMIT 1",
-                    (_v,)).fetchone():
+            if _v is not None and not c.has_value(_col, _v):
                 raise ValidationError(
                     f"{_lbl}库里没有（{_v}），换一个试试")
         if scheme == "zhouyi":

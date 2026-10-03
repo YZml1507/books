@@ -5939,3 +5939,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) ORDER BY rank 替代 ORDER BY score：君子 10→5.5ms 快但無為/君子之德反而变慢（rank 固定开销），混合收益弃。
 
 **裁决**：B。search 君子 20→16ms、双形 12.75ms。坑位：count(*) OVER () 在本查询形态是负优化——窗口物化 > 独立 count 的成本，留档防重试。
+## D-271b R3241 决策：存在性校验 distinct 集缓存替代 LIMIT 1 全扫
+
+**问题**：addr typo 门对 addr2/addr_name 做 `WHERE col=? LIMIT 1`——两列都无覆盖索引（(scheme,addr1,addr2) 前缀不含 addr2），每次整索引扫 5.6ms。
+
+**候选**：
+- A) (path,mtime,size,col) 键控 distinct 集缓存（选中）：值域集一次性 DISTINCT 扫描摊销，存在性语义等价，重建自动失效；白名单列名防 f-string 注入。
+- B) 给 addr2/addr_name 单列建索引：改索引构建产物边界（schema 是 build_index 的版本化产物），为一个 5ms 校验动 schema 过重——若以后真需要应走 build_index 统一加。
+- C) LIMIT 1 加 INDEXED BY 提示：扫描类型不变，无用。
+
+**裁决**：A。addr 9.2→2.6ms。坑位：bcv 的 addr2 是纯数字节号（'1','10',...），别拿 zhouyi 爻名想当然。

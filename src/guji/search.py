@@ -169,6 +169,12 @@ FROM unit u JOIN work w ON w.id = u.work_id
 # 连接无关，跨 Corpus 实例共享安全（与 knowledge._SCHEMA_OK 同模式）。
 _COVERAGE_CACHE: dict[tuple[str, int, int], list] = {}
 
+# R3241：addr2/addr_name 的存在性校验（typo 门）单列无覆盖索引——
+# SELECT 1 ... WHERE col=? LIMIT 1 是整索引扫 5.6ms/次。值域集合按
+# (路径, mtime_ns, size, 列) 键控缓存：存在性 == 集合成员判定，
+# 一次性 DISTINCT 扫描摊销到进程生命周期。
+_DISTINCT_CACHE: dict[tuple[str, int, int, str], set] = {}
+
 
 class Corpus:
     def __init__(self, db_path: str):
@@ -251,6 +257,31 @@ class Corpus:
                        if k[0] == _key[0] and k != _key]:
                 del _COVERAGE_CACHE[_k]
         return rows
+
+    # has_value 的服务列白名单——f-string 进 SQL 只认这几个自有常量列名。
+    _HAS_VALUE_COLS = frozenset({"layer", "scheme", "addr_name",
+                                 "addr1", "addr2"})
+
+    def has_value(self, col: str, value) -> bool:
+        """列值存在性（typo 门）。== `SELECT 1 ... WHERE col=? LIMIT 1`
+        的真值，无覆盖索引的列从全索引扫 5.6ms 降到缓存命中 ~µs。"""
+        if col not in self._HAS_VALUE_COLS:
+            raise ValueError(f"has_value 未授权列名: {col!r}")
+        try:
+            _st = os.stat(self._db_path)
+            _key = (os.path.abspath(self._db_path),
+                    _st.st_mtime_ns, _st.st_size, col)
+        except OSError:
+            _key = None
+        if _key is None or _key not in _DISTINCT_CACHE:
+            vals = {r[0] for r in self.db.execute(
+                f"SELECT DISTINCT {col} FROM unit") if r[0] is not None}
+            if _key is not None:
+                _DISTINCT_CACHE[_key] = vals
+                for _k in [k for k in _DISTINCT_CACHE
+                           if k[0] == _key[0] and k[3] == col and k != _key]:
+                    del _DISTINCT_CACHE[_k]
+        return value in _DISTINCT_CACHE[_key]
 
     def _search_where(self, query: str, gua, yao, layer, work_id, genre,
                       scheme, addr_name, addr1, addr2
