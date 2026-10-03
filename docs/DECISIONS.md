@@ -5839,3 +5839,16 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 
 **大改三步前置**：量尺=spec §7 判据 a–c；退路=git revert 单提交点；
 动基线声明=ui_smoke 新增 ui.font.zcool_applied 用例（只增不减）。
+
+## D-262b R3232 决策：/api/bazi FTS 检索 90 查/请求 → 5 查（窗口函数单查询）
+
+**背景**：cProfile 10 连击 /api/bazi：sqlite execute 900 次、占 1.775s/2.12s（84%）。瓶颈在 bazi_lookup.retrieve_fast 双层循环：每个坐标词（5+）× 每部命理书（18）各一条 WHERE u.work_id=? AND MATCH ?。
+
+**候选**（惯例列 N 案）：
+- A) 窗口函数单查询（选中）：ROW_NUMBER() OVER (PARTITION BY work_id ORDER BY bm25) ≤ per_query，与旧 per-work LIMIT 语义等价；5 词 × 1 查。
+- B) 跨请求 LRU 缓存（phrase→hits）：坐标词空间有限可命中，但需以 corpus.db mtime 为键防陈旧；收益依赖重复词。留作后续。
+- C) MATCH OR 合并全部词：丢 per-phrase 归因（query/why 字段），破坏输出结构，否决。
+
+**裁决**：A。实测 p50 193→59.7ms、p95 244→166ms；5 组坐标 retrieve_fast 输出逐字节一致（含 question 主题词分支）；services.bazi 全字段一致（result_ref 为随机 stash 引用除外）。闸门 selftest 375 / contract 716 全绿。
+
+**坑位记录**：bm25() 不能在窗口 ORDER BY 内直接求值（OperationalError: unable to use function bm25 in the requested context）——需三层嵌套：内层算 bm25 → 中层窗口排 → 外层 rn<=per_query。

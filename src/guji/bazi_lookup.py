@@ -196,14 +196,32 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
         for q, why in qs:
             if len(q) < 2:
                 continue  # 单字不参与 FTS（噪音）
+            # 单条窗口查询取回全部命理书各自 top-per_query 命中（原实现是
+            # per work 一条 execute——top_queries 5 × MINGLI_WORKS 18 = 90 次
+            # 查询，cProfile 实测占 /api/bazi 端到端耗时 ~84%）。ROW_NUMBER
+            # PARTITION BY 与旧 per-work LIMIT 语义一致；下方仍按
+            # MINGLI_WORKS 顺序走 seen/per_work，输出逐字节不变。
+            rows = conn.execute(
+                "SELECT work_id, title, layer, page_anchor, file, text, "
+                "raw_start, score FROM ("
+                "SELECT *, ROW_NUMBER() OVER (PARTITION BY work_id "
+                "                            ORDER BY score) AS rn FROM ("
+                "SELECT u.work_id AS work_id, w.title AS title, "
+                "u.layer AS layer, u.page_anchor AS page_anchor, "
+                "u.file AS file, u.text AS text, u.raw_start AS raw_start, "
+                "bm25(unit_fts) AS score "
+                "FROM unit_fts "
+                "JOIN unit u ON u.id = unit_fts.rowid "
+                "JOIN work w ON w.id = u.work_id "
+                "WHERE u.work_id IN (%s) AND unit_fts MATCH ?)) "
+                "WHERE rn <= ? ORDER BY score"
+                % ",".join("?" * len(MINGLI_WORKS)),
+                (*MINGLI_WORKS, _fts_phrase(q), per_query)).fetchall()
+            by_work: dict[str, list] = {wid: [] for wid in MINGLI_WORKS}
+            for r in rows:
+                by_work[r["work_id"]].append(r)
             for wid in MINGLI_WORKS:
-                hits = conn.execute(
-                    "SELECT u.work_id, w.title, u.layer, u.page_anchor, u.file, u.text, "
-                    "u.raw_start, bm25(unit_fts) AS score "
-                    "FROM unit_fts JOIN unit u ON u.id = unit_fts.rowid "
-                    "JOIN work w ON w.id = u.work_id "
-                    "WHERE u.work_id = ? AND unit_fts MATCH ? "
-                    "ORDER BY score LIMIT ?", (wid, _fts_phrase(q), per_query)).fetchall()
+                hits = by_work[wid]
                 for h in hits:
                     key = (h["work_id"], h["raw_start"])
                     if key in seen:
