@@ -224,8 +224,14 @@ def bazi(req) -> dict:
                                              question=req.question))
     # R232a（R40-B1）：day_master 正名——前端此前靠正则从 render 文本里
     # 抠日主（格式一改静默丢事实）。显式给字段消掉这个脆弱点。
+    # R3308（审-中3）：sun_sign 也显式透出——前端自己的固定日期表判座
+    # 在边界日错座（双鱼↔白羊 3/20 这类），让前端改用后端节气精判值。
     paipan_out = {"render": b.render(), "nayin": b.nayin, "warn": b.warn,
-                  "day_master": b.day[0]}
+                  "day_master": b.day[0],
+                  "sun_sign": xingzuo_mod.sun_sign(
+                      bm, bd, year=by,
+                      hour=(req.hour if req.hour_known is not False
+                            else None))}
     interpretation = interpreter.interpret_bazi(paipan_out, calc_out,
                                                evidence, req.question)
     # R182b（004 M1）：warm 视图 **additive** 附加——不动 interpretation 一个
@@ -279,7 +285,8 @@ def bazi(req) -> dict:
         # 是农历值，直接拿去查黄道边界会算错座。
         # R230m：cross_ref 的「今天」锚起问日（前端已传 todayIso()）。
         "cross_ref": _cross_ref_bazi(b, req.gender, bm, bd,
-                                     today_iso=req.ask_date),
+                                     today_iso=req.ask_date,
+                                     year=by, hour=req.hour),
         # R2350g（R106-F3）：回显换算后的公历生日——农历输入时前端拿着
         # 它才能落「我的生日」档案（banner/倒计时全走公历比对）。
         "birth_solar": {"y": by, "m": bm, "d": bd},
@@ -347,7 +354,8 @@ def taohua(req) -> dict:
         "warm": warm,
         "ai_polish": ai_polish,
         # R220b：交叉引用铺到桃花——星座桃花信号 × 八字强度叠加
-        "cross_ref": _cross_ref_taohua(bm, bd, t.strength),
+        "cross_ref": _cross_ref_taohua(bm, bd, t.strength,
+                                       year=by, hour=req.hour),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
     # R230z（R36-P1-1）：桃花也进排盘历史台账（原来只有 bazi 落库）
@@ -494,8 +502,10 @@ def hehun(req) -> dict:
         # C-003：交叉引用——合婚结果页增加星座配对维度
         # R220b：按双方出生月日取真实太阳星座（原来用日支，配对结论是假的）
         "cross_ref": _cross_ref_hehun(ba, bb,
-                                     (req.a_month, req.a_day),
-                                     (req.b_month, req.b_day)),
+                                     (req.a_year, req.a_month, req.a_day,
+                                      getattr(req, "a_hour", None)),
+                                     (req.b_year, req.b_month, req.b_day,
+                                      getattr(req, "b_hour", None))),
         **({"ai_task_id": ai_task_id} if ai_task_id else {}),
     }
     # R230z（R36-P1-1）：合婚进台账；name 用昵称对（缺省 我 × TA）
@@ -3493,7 +3503,8 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
             dm = gz[0]
             wx = GAN_ELEM.get(dm, "")
             from guji.xingzuo import sun_sign
-            sign = sun_sign(mo, d) or ""
+            # R3308：年已知走节气精判（边界日不再错座）
+            sign = sun_sign(mo, d, year=y) or ""
             _who = "TA" if mp else "她"
             out.append(f"{_who}的日主：{dm}"
                        + (f"（五行属{wx}）" if wx else ""))
@@ -4657,25 +4668,11 @@ SHARE_COLORS = {"bazi": "#B8860B", "tarot": "#9D4EDD",
 def share(share_type: str, share_id: str) -> dict:
     """分享卡片数据：可截图分享的结果摘要。"""
     today = _today_cn().isoformat()
+    # R3307（审-低9）：bazi 分支按数字 id 直读 derived 表——/1..500
+    # 挨个试即拖走全部研究笔记原文（可枚举个人数据面），前端从未
+    # 调用它。删面比加签名更省：bazi 一律 404。
     if share_type == "bazi":
-        with deps.knowledge() as kb:
-            try:
-                d = kb.get(int(share_id))
-            except (TypeError, ValueError):
-                d = None
-            if not d:
-                raise NotFoundError("这条没找到，可能被清掉了，刷新看看")
-            # R228r：derived 表存的是研究线程记录（kind 不定为 bazi）——标题
-            # 按实际 kind 出，别一律误标「八字排盘结果」。
-            # R233y（R54-P1-44）：六种笔记名收敛成三个口径。
-            kind_title = {"thread": "研究笔记", "summary": "研究笔记",
-                          "note": "研究笔记",
-                          "answer": "研究笔记", "link": "研究笔记",
-                          "diff": "比对笔记", "refusal": "存疑记录"}
-            title = kind_title.get(getattr(d, "kind", ""), "八字排盘结果")
-            return {"title": title, "subtitle": d.claim[:60],
-                    "content": d.claim, "image_color": SHARE_COLORS["bazi"],
-                    "created_at": d.created_at}
+        raise NotFoundError("这条没找到，可能被清掉了，刷新看看")
     if share_type in ("tarot", "book"):
         # R228r：这两个分享面无后端存档，share_id 原样回显——限长+拒控制字符
         # 守住上限，任意长串/HTML 片段不该被当分享标题直接回显。
@@ -4809,15 +4806,18 @@ def _today_horoscope(iso_day: str | None = None) -> dict:
 
 
 def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
-                    today_iso: str | None = None) -> dict:
+                    today_iso: str | None = None,
+                    year: int | None = None,
+                    hour: int | None = None) -> dict:
     """八字结果页 → 你的太阳星座 + 今天的运势侧重。
 
     month/day 是**出生**月日（太阳星座的唯一依据）。缺省 0 时降级为只给
-    今日值宫，不再瞎猜本命星座。
+    今日值宫，不再瞎猜本命星座。R3308：year/hour 透传节气精判。
     """
     from guji.xingzuo import sun_sign_profile
     try:
-        prof = sun_sign_profile(month, day) if month and day else {}
+        prof = sun_sign_profile(month, day, year=year, hour=hour) \
+            if month and day else {}
         today = _today_horoscope(today_iso)
         sign = prof.get("sign", "")
         today_sign = today.get("today_sign", "")
@@ -4849,11 +4849,21 @@ def _cross_ref_bazi(b, gender: str, month: int = 0, day: int = 0,
 
 
 def _cross_ref_hehun(ba, bb, a_md: tuple = (), b_md: tuple = ()) -> dict:
-    """合婚结果页 → 双方太阳星座配对。a_md/b_md = (出生月, 出生日)。"""
+    """合婚结果页 → 双方太阳星座配对。
+
+    a_md/b_md = (出生月, 出生日) 或 R3308 后的 (年, 月, 日[, 时辰])。"""
     from guji.xingzuo import sun_sign
     try:
-        sa = sun_sign(*a_md) if len(a_md) == 2 else ""
-        sb = sun_sign(*b_md) if len(b_md) == 2 else ""
+        # R3308：3/4 元组带年（+时辰）走节气精判；2 元组旧调用保持粗判。
+        def _sg(md: tuple) -> str:
+            if len(md) >= 3:
+                h = md[3] if len(md) > 3 else None
+                return sun_sign(md[1], md[2], year=md[0], hour=h)
+            if len(md) == 2:
+                return sun_sign(*md)
+            return ""
+        sa = _sg(a_md)
+        sb = _sg(b_md)
         if not (sa and sb):
             return {}
         # R2349s（R84-P1-11）：全宇宙 66 对异座组合只有 2 个模板——按
@@ -4966,11 +4976,14 @@ def _cross_ref_huangli(date_str: str, today_str: str | None = None) -> dict:
         return {}
 
 
-def _cross_ref_taohua(month: int, day: int, strength: str = "") -> dict:
-    """桃花结果页 → 星座桃花信号，与八字强度叠加判断。"""
+def _cross_ref_taohua(month: int, day: int, strength: str = "",
+                      year: int | None = None,
+                      hour: int | None = None) -> dict:
+    """桃花结果页 → 星座桃花信号，与八字强度叠加判断。
+    R3308：year/hour 透传节气精判。"""
     from guji.xingzuo import sun_sign_profile
     try:
-        prof = sun_sign_profile(month, day)
+        prof = sun_sign_profile(month, day, year=year, hour=hour)
         if not prof:
             return {}
         sign, love = prof["sign"], prof.get("love", "")

@@ -27,6 +27,9 @@
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+from functools import lru_cache
+
 # ---------------------------------------------------------------------------
 # 今名 → (古籍宫名, 宫星名, 引文锚点, 温柔文案)
 # 锚点 = (work_id, page_anchor, needle)：needle 必须能在该页文本中逐字命中
@@ -349,10 +352,56 @@ _SUN_SIGN_BOUNDS: tuple[tuple[int, int, str], ...] = (
 )
 
 
-def sun_sign(month: int, day: int) -> str:
+# R3308（审-中1）：星座分界本来就是太阳黄经节气（中气）——白羊=春分
+# 0°、金牛=谷雨 30° ……双鱼=雨水 330°、摩羯=冬至 270°、水瓶=大寒 300°。
+# 固定月日切每年有 ±1-2 天偏移（如春分 3/20 或 3/21）；给了年份就走
+# bazi.term_time 的真实节气时刻判，误差降到分钟级。
+_SIGN_TERMS: tuple[tuple[str, str], ...] = (
+    ("大寒", "水瓶"), ("雨水", "双鱼"), ("春分", "白羊"), ("谷雨", "金牛"),
+    ("小满", "双子"), ("夏至", "巨蟹"), ("大暑", "狮子"), ("处暑", "处女"),
+    ("秋分", "天秤"), ("霜降", "天蝎"), ("小雪", "射手"), ("冬至", "摩羯"),
+)
+
+
+@lru_cache(maxsize=128)
+def _sign_bounds(year: int) -> tuple[tuple[datetime, str], ...]:
+    """该年 + 上一年全部星座分界节气时刻（UTC，升序）。
+
+    1 月上旬生日的上一道界是上一年冬至——带上 year-1 才能判对摩羯。
+    """
+    from . import bazi as _bazi_mod
+    pts: list[tuple[datetime, str]] = []
+    for y in (year - 1, year):
+        for tname, sname in _SIGN_TERMS:
+            try:
+                pts.append((_bazi_mod.term_time(y, tname), sname))
+            except Exception:
+                continue
+    pts.sort(key=lambda p: p[0])
+    return tuple(pts)
+
+
+def _sun_sign_precise(year: int, month: int, day: int,
+                      hour: int | None = None) -> str:
+    """年/hour 已知时的节气精判。出生时刻按东八区换算 UTC 比较。"""
+    h = hour if (isinstance(hour, int) and 0 <= hour <= 23) else 12
+    bdt_utc = datetime(year, month, day, h) - timedelta(hours=8)
+    cur = "摩羯"   # 早于全部当年界（1 月上旬）= 上一年冬至之后
+    for bt, sname in _sign_bounds(year):
+        if bdt_utc >= bt:
+            cur = sname
+        else:
+            break
+    return cur
+
+
+def sun_sign(month: int, day: int, year: int | None = None,
+             hour: int | None = None) -> str:
     """出生月日 → 太阳星座今名。1/1-1/19 与 12/22 之后同属摩羯。
 
     纯函数：固定输入必得固定输出。越界月日返回空串。
+    R3308：给了合法 year 就走节气时刻精判（边界日不再 ±1-2 天错座）；
+    year 缺席/异常回落固定日粗判（调用方拿不到出生年时保持原口径）。
     """
     try:
         m, d = int(month), int(day)
@@ -362,6 +411,14 @@ def sun_sign(month: int, day: int) -> str:
         _date(2000, m, d)
     except (TypeError, ValueError):
         return ""
+    if year:
+        try:
+            y = int(year)
+            if 1900 <= y <= 2100:
+                _date(y, m, d)   # 生日本身也得是真日期（闰 2/29）
+                return _sun_sign_precise(y, m, d, hour)
+        except (TypeError, ValueError, OverflowError):
+            pass
     # 从后往前找第一个"起始日 <= 生日"的宫；都不满足 = 1 月上旬 → 摩羯
     for bm, bd, name in reversed(_SUN_SIGN_BOUNDS):
         if (m, d) >= (bm, bd):
@@ -404,9 +461,11 @@ def sign_direction(sign: str) -> str:
     return SIGN_DIRECTION.get(sign or "", "")
 
 
-def sun_sign_profile(month: int, day: int) -> dict:
-    """太阳星座 + 该宫的分维度文案（爱情/事业/财运）。未知月日返回 {}。"""
-    name = sun_sign(month, day)
+def sun_sign_profile(month: int, day: int, year: int | None = None,
+                     hour: int | None = None) -> dict:
+    """太阳星座 + 该宫的分维度文案（爱情/事业/财运）。未知月日返回 {}。
+    R3308：year/hour 透传 sun_sign 节气精判。"""
+    name = sun_sign(month, day, year=year, hour=hour)
     if not name:
         return {}
     s = SIGNS[name]

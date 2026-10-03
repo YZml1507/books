@@ -314,8 +314,14 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
             # 这类非敏感词的吓人/私密梦也不该躺历史列表的 question 列。
             # dream 型统一不落原文（列表行有 解梦·象征名 可读；危机/敏感
             # 判定在上面已先读过 _qv，不丢足迹保护）。
+            # R3307（审-高1）：result_json.echo 同型回显——非敏感梦
+            # 原文前 120 字此前照常落库→详情/导出/镜像全带走；dream
+            # 型连 echo 也一律剥（与 req.question 同纪律）。
             if rtype == "dream":
                 _rq["question"] = None
+                if isinstance(_res, dict) and "echo" in _res:
+                    _res = {k: v for k, v in _res.items()
+                            if k != "echo"}
             row_req = json.dumps(_rq, ensure_ascii=False)
             row_res = json.dumps(_res, ensure_ascii=False)
             row_name = _nm
@@ -491,7 +497,10 @@ def export_rows() -> list[tuple]:
 # 复看回放）+ 导入落库。导入走独立函数而非 save_async：批量、同步返回
 # 计数、跳过禁用闸（用户显式恢复动作——与 export 在禁用下仍可读的
 # 既有口径一致）。
-_VALID_TYPES = {"bazi", "taohua", "hehun", "tarot", "liuyao", "qiming"}
+# R3307（审-低）：dream 缺失导致备份导入静默丢解梦记录——入白名单；
+# 落库路径 echo/question 已在写入端剥净，回灌安全。
+_VALID_TYPES = {"bazi", "taohua", "hehun", "tarot", "liuyao", "qiming",
+                "dream"}
 
 
 def export_all() -> list[dict]:

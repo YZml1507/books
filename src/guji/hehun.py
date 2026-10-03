@@ -43,6 +43,41 @@ def half_combine(za, zb):
     return any(za in g and zb in g and za != zb for g in _HALF_GROUPS)
 
 
+# R3308（审-低5）：相害/相刑/相破——合婚传统三面此前全缺，
+# 「年支无冲无合」的盘子其实可能带害/刑/破而不报。权重均低于
+# 冲/合（传统判词里它们是次级因素），只进 notes 不进布尔旗。
+_SIX_HARM = (("子", "未"), ("丑", "午"), ("寅", "巳"),
+             ("卯", "辰"), ("申", "亥"), ("酉", "戌"))
+_XING_PAIRS = (("子", "卯"),)                       # 无礼之刑（互刑对）
+_XING_TRIPLES = (("寅", "巳", "申"), ("丑", "戌", "未"))   # 三刑组内任两支成刑
+_XING_SELF = ("辰", "午", "酉", "亥")               # 自刑：同支相逢
+_SIX_BREAK = (("子", "酉"), ("丑", "辰"), ("寅", "亥"),
+              ("卯", "午"), ("巳", "申"), ("未", "戌"))
+
+
+def _in_pairs(pair_set, za, zb) -> bool:
+    return (za, zb) in pair_set or (zb, za) in pair_set
+
+
+def is_harm(za, zb) -> bool:
+    """六害：互害 6 对。"""
+    return _in_pairs(_SIX_HARM, za, zb)
+
+
+def is_xing(za, zb) -> bool:
+    """相刑：子卯互刑 / 寅巳申·丑戌未三刑组内任两支 / 辰午酉亥自刑。"""
+    if _in_pairs(_XING_PAIRS, za, zb):
+        return True
+    if any(za in g and zb in g and za != zb for g in _XING_TRIPLES):
+        return True
+    return za == zb and za in _XING_SELF
+
+
+def is_break(za, zb) -> bool:
+    """六破：互破 6 对。"""
+    return _in_pairs(_SIX_BREAK, za, zb)
+
+
 # 天干五行
 GAN_ELEMENT: dict[str, str] = {
     "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
@@ -172,12 +207,27 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         notes.append(_NOTE_COMBINE)
     if half:
         notes.append("年支半合：三分合意，不是最强的合")
+    # R3308（审-低5）：年支害/刑/破次级因素补报（与冲/合不互斥——
+    # 卯辰既相害又可能同宫半合，传统判词两头都算）。
+    if is_harm(za, zb):
+        notes.append("年支相害：传统上属根基小磕绊，权重轻于冲")
+    if is_xing(za, zb):
+        notes.append("年支相刑：传统上属根基摩擦，权重轻于冲")
+    if is_break(za, zb):
+        notes.append("年支相破：传统上属根基小磨损，权重轻于冲")
     if dz_rel == "冲":
         notes.append("日支相冲：夫妻宫相顶，传统合婚权重最高的一支扣分项")
     elif dz_rel == "合":
         notes.append("日支六合：夫妻宫相合，传统上最看重的一支对上了")
     elif dz_rel == "半合":
         notes.append("日支半合：夫妻宫有合意，相处里有天然的合拍")
+    # 夫妻宫次级因素同口径补报
+    if is_harm(dza, dzb):
+        notes.append("日支相害：夫妻宫小磕绊，传统上属次级扣分")
+    if is_xing(dza, dzb):
+        notes.append("日支相刑：夫妻宫有摩擦位，传统上属次级扣分")
+    if is_break(dza, dzb):
+        notes.append("日支相破：夫妻宫小磨损，传统上属次级扣分")
     if nayin_rel == "比和":
         notes.append("年命纳音同命：同气相属，底色相近")
     elif nayin_rel == "相生":

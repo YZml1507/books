@@ -674,10 +674,17 @@ def day_query(dt: datetime) -> dict:
         _flags.append("杨公忌")
     # R2365（R3301-P1-3）：岁破（日支冲太岁）与受死（节气月支×日支
     # 查表）——外部黄历标「岁破/受死 大事勿用」的日子此前无标。
-    if _lunar and _lunar.get("ganzhi_year_cn"):
-        _yz = _lunar["ganzhi_year_cn"].rstrip("年")[-1:]
-        if _yz in ZHI and ZHI[(_zhi_idx + 6) % 12] == _yz:
+    # R3308（审-低3）：太岁按节气年（立春换年）不是农历正月初一换年——
+    # 春节~立春窗口此前按下一干支年冲岁破，错标十来天。与 bazi.compute
+    # 的立春界同口径重算。
+    try:
+        _lichun = term_time(dt.year, "立春") + timedelta(hours=8)
+        _ty = dt.year - 1 if dt < _lichun else dt.year
+        _yz = ZHI[(_ty - 4) % 12]
+        if ZHI[(_zhi_idx + 6) % 12] == _yz:
             _flags.append("岁破")
+    except Exception:
+        pass
     if _gz_zhi == _SOUSHI.get(ZHI[_month_zhi_index(dt)]):
         _flags.append("受死")
     # R2365（R3301-P0）：硬凶日「大事勿用」从标到词——大事级事项
@@ -730,6 +737,13 @@ def day_query(dt: datetime) -> dict:
                      "chong_animal": _cs_animal.get(_chong, ""),
                      "sha_fang": _SHA_FANG.get(_zhi_idx, "")},
         "day_flags": _flags,
+        # R3308（审-低4）：硬凶日口径注记——本表只挪大事级词进忌
+        # （小事级宜保留），与通书「余事勿取」同口径但偏严；卡面
+        # 不注明会被读成「这日啥都不能做」。wnl.cc 同款句式透出。
+        **({"hard_note": "日值" + "·".join(
+                sorted(set(_flags) & _HARD_FLAGS)) +
+            "，大事勿用（小事可为）"}
+           if set(_flags) & _HARD_FLAGS else {}),
         # R2350a（R94-P1-4）：日值神 + 时辰吉凶——「黄道/黑道日」与
         # 十二时辰宜忌是传统黄历卡标配字段。
         "zhishen": zhishen_day(dt),

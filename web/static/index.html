@@ -123,9 +123,13 @@ try {
     var u = '/api/daily?date=' + iso;
     var me = null;
     try { me = JSON.parse(localStorage.getItem('me') || 'null'); } catch (eM) {}
+    var _post = null;
     if (me && me.y && me.m && me.d) {
-      u += '&bday=' + me.y + '-' + String(me.m).padStart(2, '0') +
-           '-' + String(me.d).padStart(2, '0');
+      /* R3307（审-中6）：bday=生日坐标属半隐私——有档案时改走
+         POST body，不进 URL/边缘日志。无档案照旧 GET。 */
+      _post = { date: iso,
+        bday: me.y + '-' + String(me.m).padStart(2, '0') +
+              '-' + String(me.d).padStart(2, '0') };
     }
     var _to = new Promise(function (_, rej) {
       setTimeout(function () { rej(new Error('prefetch timeout')); }, 10000);
@@ -136,11 +140,18 @@ try {
     var _ctl = (typeof AbortController !== 'undefined')
       ? new AbortController() : null;
     if (_ctl) { setTimeout(function () { _ctl.abort(); }, 20000); }
+    var _fp = _post
+      ? fetch('/api/daily', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(_post),
+          signal: _ctl ? _ctl.signal : undefined })
+      : fetch(u, {credentials: 'same-origin',
+          signal: _ctl ? _ctl.signal : undefined});
     window.__dailyPref = {
-      url: u,
+      url: _post ? ('post:' + JSON.stringify(_post)) : u,
       ctl: _ctl,
-      p: Promise.race([fetch(u, {credentials: 'same-origin',
-          signal: _ctl ? _ctl.signal : undefined})
+      p: Promise.race([_fp
         .then(function (r) { return r.ok ? r.json() : null; }), _to])
         .catch(function () { return null; })
     };

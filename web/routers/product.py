@@ -7,7 +7,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from .. import deps, services
-from ..schemas import FavoriteAddRequest, PrefsRequest
+from ..schemas import (DailyRequest, FavoriteAddRequest,
+                       LunarConvertRequest, PrefsRequest)
 
 router = APIRouter(tags=["product"])
 
@@ -26,6 +27,15 @@ def daily(date: str | None = Query(None, max_length=10),
     return services.daily(date, bday or None)
 
 
+# R3307（审-中6）：POST 变体——bday 是生日坐标属半隐私，此前 GET query
+# 会留在边缘/CDN 日志与抓包里；带 bday 的调用一律走 body。GET 保留
+# 给无 bday 的低敏预取与旧客户端。
+@router.post("/api/daily")
+def daily_post(req: DailyRequest) -> dict:
+    """POST 版日签——body {date, bday}，敏感生日不进 URL。"""
+    return services.daily(req.date, req.bday or None)
+
+
 @router.get("/api/lunar/convert")
 def lunar_convert(y: int = Query(..., ge=1900, le=2100),
                   m: int = Query(..., ge=1, le=12),
@@ -36,6 +46,12 @@ def lunar_convert(y: int = Query(..., ge=1900, le=2100),
     农历日上限 30（表界把守），非法农历日由 services 抛 400 中文人话。
     """
     return services.lunar_convert(y, m, d, bool(leap))
+
+
+@router.post("/api/lunar/convert")
+def lunar_convert_post(req: LunarConvertRequest) -> dict:
+    """R3307（审-中6）：POST 版农历换算——生日坐标走 body 不进 URL。"""
+    return services.lunar_convert(req.y, req.m, req.d, bool(req.leap))
 
 
 # R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用

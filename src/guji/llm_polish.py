@@ -714,7 +714,9 @@ def ai_task_status(tid: str) -> dict | None:
 # 形态：chat() 同步函数复用 polish 的传输/重试/_sanitize 全套；
 #   spawn_chat_task() 复用同一个 _tasks dict、锁、GC 与 /api/ai/{tid} 轮询
 #   端点——零新轮询端点、零新 GC。会话历史**只在内存**（_CHAT_SESSIONS，
-#   同 TTL GC），绝不入库；发给 LLM 的上下文不含生日等 PII。
+#   同 TTL GC），绝不入库。R3307（审-提示11）更正：自画像语境层接入起，
+#   /api/chat 与 /api/chat/facts 会把生日坐标/昵称/心情足迹摘要发给
+#   LLM——「小满记得你」的代价，部署披露见 docs/DEPLOY.md「PII 出站」。
 #
 # 安全红线（specs/009 US1 判据 b/c）：
 #   * 输入侧 _CRISIS_PAT 命中自伤/危机关键词 → 不调 LLM，直接给固定转介话术

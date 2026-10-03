@@ -17401,3 +17401,27 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - 低7：周报「主心情/常问」空值「—」换兜底文案。
 - 低8：分享模板品牌行 1288→1276——字形下沿不再压免责 pill。
 - 低9：checkin-month 月初门槛给「月报还差 N 天」禁用态占位——1-4 号不再零反馈。
+
+## R2369 — R3307 隐私/数据面终扫清零（全 13 项）
+- 高1：解梦台账泄漏面——paipan_history 存 rtype=dream 时无条件剥 question/echo（此前仅 dream 有影子豁免但 echo 仍落库）；_VALID_TYPES 补 "dream" 让解梦记录能进台账（此前被默认类型过滤静默丢）。
+- 高2：/api/share/bazi/{id} 分支整体删除→404（可枚举遍历拖全库八字记录，前端零调用的死面）；selftest 断言改 share.bazi.404、探针 spec.url 改钉 tarot 回显分支、selftest_baseline.json 记改名。
+- 中1：rememberResult 的 _cq（台账标题回显问句）按 feCrisis/feSensitive 剥壳——「分手了怎么办」这类敏感问句不再进台账标题；dream 恒空。
+- 中2：合婚邀请链参数从 ?query 挪 #hash（hash 不进服务端日志/referer/预览爬虫）；landing 白名单合并进 _qsAll，from=invite/invite=1 时生效；sessionStorage hhInvite 后填保证 F5 重放。
+- 中3：param-strip 补 sym/sp/c 三键（邀请/分享回流参不落地址栏）。
+- 中4：_chatEventLog 正则删「复查/手术/开庭」——医疗类问句不再进本地事件日志标题。
+- 中5：doDream 接 feCrisis/feSensitive 前置闸——危机问句回 _CRISIS_FE_REPLY、敏感问句回 _SENSITIVE_CHAT_REPLY，不再正常跑解梦解析。
+- 低1：/api/daily 的 bday 改 POST 体（DailyRequest schema+POST 路由；GET 保留给无 bday 调用）；index.html 预取与 loadDaily 共用 'post:'+JSON.stringify(body) 签名防预取作废。
+- 低2：/api/lunar/convert 农历生日同理改 POST 体（LunarConvertRequest）。
+- 低3：备份 toast/弹层文案补「心情愿望记录」键名（心情类记录此前没说会进导出包）。
+- 低4：DEPLOY.md 补 ?key= 链接卫生 + 二进制门无用户隔离 + PII 出境三段披露。
+- 低5：llm_polish 陈旧注释修正（chat/facts 实际发生辰/昵称/心情语境给 LLM，注释此前否认）。
+- 闸门钉：selftest +daily.post +lunar.convert.post（383 checks）；probe_contract FIXTURES 补 POST /api/daily、POST /api/lunar/convert。
+
+## R2369b — R3308 术数对账批（5/6 项落地，1 项复核为审计描述失准）
+- 中1：星座判座精判——xingzuo.py 新增 _SIGN_TERMS（12 中气定界，Meeus 复用 bazi.term_time）+ _sign_bounds(year) lru_cache + _sun_sign_precise（CST→UTC-8h 比时刻）；sun_sign(m,d,year,hour) 年已知走精判、缺省回落固定日期表；sun_sign_profile 透传。2024-03-20→白羊（春分03:04UTC）、2024-01-20→摩羯（大寒14:06UTC，午间出生未过交节）实测正确。
+- 中2：1986-1991 夏令时——bazi._DST_WINDOWS 六年窗口，命中且对照时柱不同才 warn「当年时钟拨快一小时，时柱可能差一个时辰」（不自动改，口径两说）。
+- 中3：本命盘星座改后端精判——paipan_out.sun_sign 透出，前端弃本地固定日期表（交界日错座根除），后端缺键回落本地表。
+- 中4：岁破按立春年——huangli 岁破判定从公历年改 lichun 年（term_time("立春")+8h 分界），正月前岁破天不再误判。
+- 低4：硬凶日口径注记——输出新增 hard_note「日值X，大事勿用（小事可为）」（仅硬凶日返回，conditional 契约钉）；前端同日值行带出。审计描述「全表 yi→ji」复核为失准：现有实现本就只挪 _MAJOR_TERMS（大事勿取口径），故只补披露不动语义。
+- 低5：合婚补相害(6对)/相刑(子卯+寅巳申+丑戌未+辰午酉亥自刑)/相破(6对)——年支+日支两柱各判，notes 次级扣分口径，不进布尔旗。
+- 低6：节气边界 warn 补「交节时刻本身约±15分钟精度」（Meeus 低精度式固有误差，人工核对范围明示）。

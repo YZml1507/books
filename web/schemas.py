@@ -471,6 +471,23 @@ class DreamRequest(BaseModel):
             raise ValidationError("跟我说说梦里最清楚的画面——一句话也行")
 
 
+class DailyRequest(BaseModel):
+    """R3307（审-中6）：日签 POST 变体——bday=用户生日此前走 GET query，
+    边缘/CDN 日志与 F12 抓包都可见；改 body 后敏感参数不进 URL。
+    GET 端点保留（无 bday 的低敏调用与旧客户端兼容）。"""
+    date: str | None = Field(None, max_length=10)
+    bday: str = Field("", max_length=10)
+
+
+class LunarConvertRequest(BaseModel):
+    """R3307（审-中6）：农历换算 POST 变体——y/m/d/leap 是生日坐标，
+    同 bday 理由不进 URL。"""
+    y: int = Field(..., ge=1900, le=2100)
+    m: int = Field(..., ge=1, le=12)
+    d: int = Field(..., ge=1, le=30)
+    leap: int = Field(0, ge=0, le=1)
+
+
 class PaipanImportRequest(BaseModel):
     """R231a（R36-P3-3）：备份文件导入——records 上限与台账 KEEP_MAX 对齐，
     逐行字段的形状/长度在 paipan_history.import_rows 里二次收敛。

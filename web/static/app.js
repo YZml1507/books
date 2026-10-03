@@ -1610,8 +1610,18 @@ function rememberResult(viewKey, json, question, body) {
       _cd = _cd.filter(function (x) {
         return !(x && x.d === _td && x.v === viewKey);
       });
+      /* R3307（审-高2）：chat:cards[].q 此前无敏感闸——dream 问句=
+       * 梦原文前 30 字，进备份 JSON + 进发给 LLM 的 facts。
+       * dream 一律不落原文（与服务端台账同纪律）；其余视图过
+       * feCrisis/feSensitive 闸，命中即空。 */
+      var _cq = '';
+      try {
+        _cq = (viewKey === 'dream') ? ''
+          : ((question || '').slice(0, 30));
+        if (_cq && (feCrisis(_cq) || feSensitive(_cq))) _cq = '';
+      } catch (eQ) { _cq = ''; }
       _cd.unshift({ d: _td, v: viewKey, s: _cardVerdictShort(viewKey, json),
-                    q: (question || '').slice(0, 30) });
+                    q: _cq });
       var _cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
       _cd = _cd.filter(function (x) { return x && x.d >= _cut; }).slice(0, 12);
       /* R3306-P2：并集写——两 tab 同日各出一画像卡不互丢。 */
@@ -2989,7 +2999,9 @@ function _chatTopicLog(msg) {
 function _chatEventLog(msg) {
   try {
     var m = String(msg || '').match(
-      /(明天|后天|今晚|下午|周[一二三四五六日天末]|星期[一二三四五六日天]|下周[一二三四五六日天末]?|月底|年底|周末)(?:要|得|去|有|是|要?去)?([^，。！？!?,.、；;]{0,10}?)(面试|汇报|谈薪|谈话|考试|答辩|体检|搬家|出差|约会|表白|离职|入职|签约|复诊|看牙|开庭|看房|相亲|见家长|交稿|提案|述职|复查|手术|比赛|演出|开张|订婚|领证|出结果)/);
+      /* R3307（审-低）：复查/手术/开庭属医疗法律高敏——跟进问候
+       * 「那台手术怎么样了」本身就在复述隐私。移出捕获集。 */
+      /(明天|后天|今晚|下午|周[一二三四五六日天末]|星期[一二三四五六日天]|下周[一二三四五六日天末]?|月底|年底|周末)(?:要|得|去|有|是|要?去)?([^，。！？!?,.、；;]{0,10}?)(面试|汇报|谈薪|谈话|考试|答辩|体检|搬家|出差|约会|表白|离职|入职|签约|复诊|看牙|看房|相亲|见家长|交稿|提案|述职|比赛|演出|开张|订婚|领证|出结果)/);
     if (!m) return;
     var key = (m[1] + (m[2] || '') + m[3]).slice(0, 16);
     var arr = JSON.parse(localStorage.getItem('chat:events') || '[]');
@@ -4873,14 +4885,17 @@ async function loadDaily() {
     /* R2349l（R73-P1-3）：档案里有生日 → 带 bday 让日卡出
      * 「你的日主×今天」个性行；没有就省略（nil 键不进缓存）。 */
     var _me0 = _meGet('me');
-    var _bday0 = (_me0 && _me0.y && _me0.m && _me0.d)
-      ? ('&bday=' + _me0.y + '-' + String(_me0.m).padStart(2, '0') +
-         '-' + String(_me0.d).padStart(2, '0')) : '';
+    var _bdayPost = (_me0 && _me0.y && _me0.m && _me0.d)
+      ? { date: _today,
+          bday: _me0.y + '-' + String(_me0.m).padStart(2, '0') +
+                '-' + String(_me0.d).padStart(2, '0') } : null;
     /* R2349u（R90-P0-3）：head 内联预取——此前日签请求要等
      * app.js 594KB eval 完才发（slow4G 实测 6.45s 才出手）。
-     * URL 逐字一致才吃预取结果；预取失败（null）回退 api() 完整
-     * 错误链。跨零点重跑时 date 已变，天然不吃。 */
-    var _durl = '/api/daily?date=' + _today + _bday0;
+     * URL/签名逐字一致才吃预取结果；预取失败（null）回退 api()
+     * 完整错误链。跨零点重跑时 date 已变，天然不吃。
+     * R3307（审-中6）：带档案生日改 POST——签名 'post:'+JSON。 */
+    var _durl = _bdayPost ? ('post:' + JSON.stringify(_bdayPost))
+                          : ('/api/daily?date=' + _today);
     var _dp = null;
     try { _dp = window.__dailyPref; window.__dailyPref = null; }
     catch (eDP) {}
@@ -4894,8 +4909,11 @@ async function loadDaily() {
         }
         /* R3303-P2：预取已耗掉的时间计入总预算——共享同一个
          * AbortController 的 20s deadline，回退不再从 0 起算。 */
-        return api(_durl,
-          (_dp && _dp.ctl && _dp.ctl.signal) ? { signal: _dp.ctl.signal } : {});
+        var _dopt = (_dp && _dp.ctl && _dp.ctl.signal)
+          ? { signal: _dp.ctl.signal } : {};
+        return _bdayPost
+          ? postJSON('/api/daily', _bdayPost, _dopt)
+          : api('/api/daily?date=' + _today, _dopt);
       })(),
       api('/api/xingzuo?date=' + _today, { silent: true }).catch(function () { return null; }),
       /* R39-P0-1：明天预告——每日回访的最短钩子，走 daily_cache 幂等
@@ -7204,6 +7222,21 @@ async function doDream() {
       '跟我说说梦里最清楚的画面，一句话也行');
     return;
   }
+  /* R3307（审-提示12）：危机/敏感词与聊天同口径本地先接住——
+   * 「梦见我自杀了」不该出一张正常解梦卡。不重排台账/不加
+   * rememberResult 足迹。 */
+  if (feCrisis(text)) {
+    paint('dmResult', '<div class="result-card"><div class="rc-body">' +
+      esc(_CRISIS_FE_REPLY) + '</div></div>');
+    revealResult('dmResult');
+    return;
+  }
+  if (feSensitive(text)) {
+    paint('dmResult', '<div class="result-card"><div class="rc-body">' +
+      esc(_SENSITIVE_CHAT_REPLY) + '</div></div>');
+    revealResult('dmResult');
+    return;
+  }
   busy('dmResult', '翻梦册中…');
   try {
     var j = await postJSON('/api/dream', { text: text });
@@ -8778,8 +8811,11 @@ async function doHehun() {
           showToast('先填好你的出生年，再喊 TA 来对盘哦', 'warn');
           return;
         }
+        /* R3307（审-中3）：生辰参数改挂 #hash——query 会进接收方浏览器
+         * 历史/平台链接预览爬虫/Referer，hash 不出本机不上服务器。
+         * 落地端从 location.hash 读同一组键（白名单合入 _qsAll）。 */
         var _u = location.origin + location.pathname + '?view=hehun&from=invite' +
-          '&ay=' + encodeURIComponent(val('hh_' + _side + '_year') || '') +
+          '#ay=' + encodeURIComponent(val('hh_' + _side + '_year') || '') +
           '&am=' + encodeURIComponent(val('hh_' + _side + '_month') || '') +
           '&ad=' + encodeURIComponent(val('hh_' + _side + '_day') || '') +
           '&ah=' + encodeURIComponent(val('hh_' + _side + '_hour') || '') +
@@ -9857,11 +9893,15 @@ async function _doHuangli(offset, reveal, spokenWord) {
         return f === '月破' ? '月破日：大事缓一缓就好'
           : f === '四离' ? '四离日：节气前一天，宜收不宜开'
           : f === '四绝' ? '四绝日：立季前一天，大事留到后天'
+          : f === '岁破' ? '岁破日：日支冲太岁，大事留到改天'
+          : f === '受死' ? '受死日：老通书标的大凶日，大事勿用'
           : f === '杨公忌' ? '杨公忌日：老传统提醒稳着点，小事照常' : f;
       }).join('、');
-      /* R2349k（R72-C1）：「今天逢」写死——翻过去/未来日照样顶「今天」，
-       * 跟 _dayWord 走。 */
-      html += '<div class="hl-flag">🌙 ' + esc(_dayWord) + '逢' + esc(_flTxt) + '</div>';
+      /* R3308（审-低4）：hard_note 口径注记同行带出——「大事勿用
+       * （小事可为）」，免得整卡被读成今天什么都不能做。 */
+      var _hn = j.hard_note ? ('·' + j.hard_note.replace(/^日值/, '')) : '';
+      html += '<div class="hl-flag">🌙 ' + esc(_dayWord) + '逢' +
+        esc(_flTxt + _hn) + '</div>';
     }
     if (cs && cs.message) html += '<div class="hl-csmsg">✨ ' + esc(cs.message) + '</div>';
     /* R2349k（R72-A2）：节日行——中秋节/立秋/母亲节这天值得说出来。 */
@@ -12746,8 +12786,9 @@ function init() {
     try {
       var sy = y, sm = m, sd = d;
       if (cal === 'lunar') {
-        var _cj = await api('/api/lunar/convert?y=' + y + '&m=' + m +
-                            '&d=' + d + '&leap=' + (leap ? 1 : 0));
+        /* R3307（审-中6）：生日坐标走 body 不进 URL。 */
+        var _cj = await postJSON('/api/lunar/convert',
+          { y: y, m: m, d: d, leap: (leap ? 1 : 0) });
         if (!_cj || !_cj.solar) throw new Error('农历没换算成');
         sy = _cj.year; sm = _cj.month; sd = _cj.day;
       }
@@ -13177,6 +13218,19 @@ function init() {
             });
           } catch (eCP) {}
         }
+        /* R3307（审-中3）：hash 段生辰白名单合入——R3307 起邀请链把
+         * ay/am/ad/ah/ag/an 放 #（不出本机），落地端统一回灌 _qsAll。
+         * 只在 from=invite / invite=1 语境下吃 hash，普通锚点不误吃。 */
+        if (location.hash &&
+            (_qsAll.get('from') === 'invite' || _qsAll.get('invite') === '1')) {
+          try {
+            var _hq = new URLSearchParams(location.hash.slice(1));
+            ['ay', 'am', 'ad', 'ah', 'ag', 'an'].forEach(function (_hk) {
+              var _hv = _hq.get(_hk);
+              if (_hv != null) _qsAll.set(_hk, _hv);
+            });
+          } catch (eHQ) {}
+        }
         var _invA = _qsAll.get('ay');
         /* R2350b（R99-P2）：同 tab 残留串台——受邀过的 tab 再开
          * from=share 普通分享链时，sessionStorage 里的旧邀请参会复活
@@ -13439,8 +13493,11 @@ function init() {
           try {
             var _qs2 = new URLSearchParams(location.search);
             var _dirty = false;
+            /* R3307（审-低）：补 sym/sp/c——sym 是梦象征名属半隐私，
+             * 留在地址栏会被截图/转抄带走。 */
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
-             'ag', 's', 'tn', 'm', 'b', 'rel'].forEach(function (_k) {
+             'ag', 's', 'tn', 'm', 'b', 'rel', 'sym', 'sp', 'c']
+             .forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
             /* R3304（审-P0）：裸 ?view=X 落地（无分享参）此前不回写
@@ -14898,8 +14955,9 @@ async function _meSaveFromBirth(key, opts) {
     var rec = { h: opts.h, g: opts.g, lunar: null };
     if ('n' in opts) rec.n = opts.n;
     if (opts.lunar) {
-      var cj = await api('/api/lunar/convert?y=' + opts.y + '&m=' +
-        opts.m + '&d=' + opts.d + '&leap=' + (opts.leap ? 1 : 0));
+      var cj = await postJSON('/api/lunar/convert',
+        { y: opts.y, m: opts.m, d: opts.d,
+          leap: (opts.leap ? 1 : 0) });
       if (!cj || !cj.solar) return;
       try {
         if (localStorage.getItem('wipeAt') !== _w0) return;
@@ -16460,7 +16518,7 @@ function baziPersonaCard(j) {
           _showTextExportModal('我的数据备份',
             JSON.stringify(bundle, null, 2),
             '点「复制全部」，存到备忘录或发给文件传输助手，换新设备时贴回导入' +
-            '（含生辰昵称，存哪儿自己留心）');
+            '（含生辰昵称与心情愿望记录，存哪儿自己留心）');
           return;
         }
         var blob = new Blob([JSON.stringify(bundle, null, 2)],
@@ -16478,7 +16536,7 @@ function baziPersonaCard(j) {
         showToast((_noLedger && !_recsOut.length
           ? '台账没开，只备份了本机偏好'
           : '备份已下载：' + _recsOut.length + ' 条记录 + 本机偏好') +
-          '（含生辰昵称，存哪儿自己留心）', 'info');
+          '（含生辰昵称与心情愿望记录，存哪儿自己留心）', 'info');
       } catch (e) {
         showToast('备份失败：' + e.message, 'error');
       }
@@ -16967,7 +17025,10 @@ function baziPersonaCard(j) {
       /* R228k：raw fetch → postJSON——白拿 20s 超时、非2xx toast 与
        * 422 中文人话化（原来手写的 r.ok 分支与 api() 重复且漏超时）。 */
       var j = await postJSON('/api/bazi', body);
-      var sign = sunSign(m, d);
+      /* R3308（审-中3）：星座判座改后端节气精判（paipan.sun_sign
+       * 键）——本地固定日期表在交界日（3/20、1/20 这类 ±1 天漂移年）
+       * 会错座。后端缺键/判不出时退回本地表兜底。 */
+      var sign = ((j.paipan || {}).sun_sign) || sunSign(m, d);
       var fe = ((j.calc || {}).five_elements || {}).counts || {};
       var wxLine = Object.keys(fe).map(function (k) { return k + ' ' + fe[k]; }).join(' · ');
       var missing = ((j.calc || {}).five_elements || {}).missing || [];
