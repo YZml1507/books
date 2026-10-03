@@ -4213,6 +4213,12 @@ function showPosterModal(canvas, view, j) {
       }
       if (view === 'liuyao' && j.method === 'coins') url += '&m=coins';
     }
+    /* R3266（R3247-P2-8）：解梦分享链带象征名（非原文）——收方落地
+     * 能喊出「TA 对上了『被追赶』」，隐私线不破。 */
+    if (view === 'dream' && j && (j.symbols || [])[0]) {
+      url += '&sym=' + encodeURIComponent(
+        String(j.symbols[0].name).split('/')[0].slice(0, 12));
+    }
     /* R2349t（R88-13a）：分享链带昵称——接力页能喊出「谁晒的」。
      * 昵称与生辰不同级：纯显名，不进任何请求体（邀请链已有先例）。 */
     try {
@@ -4275,6 +4281,11 @@ function showPosterModal(canvas, view, j) {
       url += '&a=' + encodeURIComponent(String(j.a).slice(0, 4)) +
              '&b=' + encodeURIComponent(String(j.b).slice(0, 4));
       if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
+    }
+    /* R3266：系统分享链同带 dream sym。 */
+    if (view === 'dream' && j && (j.symbols || [])[0]) {
+      url += '&sym=' + encodeURIComponent(
+        String(j.symbols[0].name).split('/')[0].slice(0, 12));
     }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
     try {
@@ -12929,6 +12940,11 @@ function init() {
         try {
           if (_qsAll.get('from') === 'share') {
             window.__shareFromView = _vpRaw;
+            /* R3266：dream 的 sym 随视图存——剥参前留底。 */
+            if (_vpRaw === 'dream' && _qsAll.get('sym')) {
+              window.__shareSym =
+                String(_qsAll.get('sym')).slice(0, 12);
+            }
             /* R2349t（R88-13b）：分享者昵称随链——剥参前先存，
              * sessionStorage 备份让刷新后也能喊出名字。 */
             var _sby0 = _qsAll.get('n');
@@ -13312,6 +13328,14 @@ if (document.readyState === 'loading') {
           taohua: '朋友在晒桃花信号，你的桃花今天啥情况 🌺',
           liuyao: '朋友摇了一卦，心里有件事也来摇一爻 🎲',
         };
+        if (_sv === 'dream') {
+          var _symT = (window.__shareSym ||
+            new URLSearchParams(location.search).get('sym') || '');
+          _relay.dream = _symT
+            ? ('朋友对上了「' + String(_symT).slice(0, 12) +
+               '」，你的梦呢？🌙')
+            : '朋友在晒她的梦，你的梦也来翻一翻 🌙';
+        }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
         var _who = _shareByName();
@@ -13360,6 +13384,14 @@ if (document.readyState === 'loading') {
         birth: '朋友翻了她的本命盘，你的底色也翻一张 🌙',
         hehun: '朋友约你合婚，点「八字合婚」测你俩的合拍度 💕',
       };
+      if (_sv2 === 'dream') {
+        var _symW = (window.__shareSym ||
+          new URLSearchParams(location.search).get('sym') || '');
+        _relayBar.dream = _symW
+          ? ('朋友对上了「' + String(_symW).slice(0, 12) +
+             '」，点「梦翻翻」说说你的梦 🌙')
+          : '朋友在晒她的梦，点「梦翻翻」说你的 🌙';
+      }
       var _who2 = _shareByName();
       _txtEl.textContent = ((_relayBar[_sv2] ||
         '朋友在晒她的运势，来测测你的：点一张卡就能开始 ✨')
