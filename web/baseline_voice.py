@@ -16,7 +16,6 @@ fixture，任何一次改动碰出字节漂移，本脚本立即退出码 1。
     <py> web\\baseline_voice.py --freeze       # 冻结基线（M0 一次性）
     <py> web\\baseline_voice.py                # 比对，漂移则退出码 1
     <py> web\\baseline_voice.py --self-check   # 阳性对照：篡改一字须被抓到
-    <py> web\\baseline_voice.py --freeze-dom   # 冻结前端专业分支渲染快照
 其中 <py> = .venv\\Scripts\\python.exe
 
 闸门纪律（PHASE.md）：失败退出 1、成功退出 0，且带阳性对照——
@@ -38,7 +37,6 @@ if os.path.join(_ROOT, "src") not in sys.path:
 
 BASELINE_DIR = os.path.join(_ROOT, "web", "baselines")
 BASELINE = os.path.join(BASELINE_DIR, "voice_baseline.json")
-DOM_BASELINE = os.path.join(BASELINE_DIR, "pro_render_baseline.json")
 
 
 # ---------------------------------------------------------------------------
@@ -265,123 +263,9 @@ def self_check() -> int:
     return 0 if hit else 1
 
 
-def freeze_dom() -> int:
-    """T0.3：前端专业分支渲染快照（判据 9 的「渲染层未变」辅证）。
-
-    只抓结构指纹（节点计数 + 关键文本），不抓像素——像素受字体/DPI 影响，
-    不是可复现断言。真浏览器点击行为由审查轨 probe_ui_smoke 负责，本函数
-    只留一份 warm 上线前的专业渲染形态，供 M1 之后比对「pro 分支没被改」。
-    """
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        print("freeze-dom SKIP-ENV: playwright 未安装", file=sys.stderr)
-        return 2
-    import socket
-    import subprocess
-    import time
-
-    port = 8207          # 避开 8123（用户查看）与 8199（审查轨 probe）
-    env = dict(os.environ)
-    # R2508：子进程服务同样隔离排盘写面。
-    env["BOOKS_PAIPAN_HISTORY_DISABLE"] = "1"
-    env["PYTHONPATH"] = os.pathsep.join([_ROOT, os.path.join(_ROOT, "src")])
-    env["PYTHONIOENCODING"] = "utf-8"
-    srv = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "web.app:app", "--host", "127.0.0.1",
-         "--port", str(port), "--log-level", "warning"],
-        cwd=_ROOT, env=env,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    try:
-        for _ in range(90):
-            with socket.socket() as s:
-                if s.connect_ex(("127.0.0.1", port)) == 0:
-                    break
-            time.sleep(1)
-        else:
-            print("freeze-dom SKIP-ENV: 服务未就绪", file=sys.stderr)
-            return 2
-        snap: dict = {}
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page(viewport={"width": 1280, "height": 900})
-            page.goto(f"http://127.0.0.1:{port}/?view=bazi", wait_until="load")
-            page.wait_for_timeout(2500)
-            # 排盘（专业分支的主战场）
-            # R2563：view 化 IA 后表单在 view-bazi 内——深链直达，
-            # 此前裸 goto('/') 时 #year 不可见、fill 超时失败。
-            page.fill("#year", str(BAZI_BASE["year"]))
-            page.fill("#month", str(BAZI_BASE["month"]))
-            page.fill("#day", str(BAZI_BASE["day"]))
-            page.fill("#hour", str(BAZI_BASE["hour"]))
-            page.select_option("#gender", BAZI_BASE["gender"])
-            page.fill("#question", "感情运怎么样？")
-            page.click("#submit")
-            page.wait_for_function(
-                "() => { const n = document.getElementById('result');"
-                " return n && n.textContent.length > 500; }", timeout=90000)
-            snap["bazi.result"] = _dom_fingerprint(page, "#result")
-            for view, btn, out in (("liuyao", "#lySubmit", "#lyResult"),
-                                   ("tarot", "#trSubmit", "#trResult")):
-                # R2563：func-card 入口可能折叠（liuyao 在「进阶玩法」
-                # details 里）——深链直达比点开抽屉稳。
-                page.goto(f"http://127.0.0.1:{port}/?view={view}",
-                          wait_until="load")
-                page.wait_for_timeout(400)
-                page.click(btn)
-                page.wait_for_function(
-                    "id => { const n = document.querySelector(id);"
-                    " return n && n.textContent.length > 200; }",
-                    arg=out, timeout=60000)
-                snap[f"{view}.result"] = _dom_fingerprint(page, out)
-            browser.close()
-        os.makedirs(BASELINE_DIR, exist_ok=True)
-        with open(DOM_BASELINE, "w", encoding="utf-8", newline="\n") as f:
-            json.dump({"_note": "专业模式渲染结构指纹（判据 9 辅证）；"
-                                "由 --freeze-dom 生成",
-                       "views": snap}, f, ensure_ascii=False,
-                      indent=1, sort_keys=True)
-            f.write("\n")
-        print(f"frozen {len(snap)} views -> "
-              f"{os.path.relpath(DOM_BASELINE, _ROOT)}")
-        for k, v in sorted(snap.items()):
-            print(f"  {k}: {v['chars']} chars, {v['nodes']} nodes, "
-                  f"strong_depth={v['strong_depth']}")
-        return 0
-    finally:
-        srv.terminate()
-        try:
-            srv.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            srv.kill()
-
-
-def _dom_fingerprint(page, selector: str) -> dict:
-    return page.evaluate(
-        """sel => {
-             const n = document.querySelector(sel);
-             if (!n) return null;
-             const depth = el => el.querySelectorAll('strong strong strong').length ? 3
-                              : el.querySelectorAll('strong strong').length ? 2
-                              : el.querySelectorAll('strong').length ? 1 : 0;
-             const txt = n.textContent.trim();
-             return {
-               chars: txt.length,
-               nodes: n.querySelectorAll('*').length,
-               strong_depth: depth(n),
-               comments: (function c(e){let k=0;e.childNodes.forEach(x=>{
-                 if(x.nodeType===8)k++; if(x.childNodes)k+=c(x);});return k;})(n),
-               h3: Array.from(n.querySelectorAll('h3')).map(x=>x.textContent.trim()),
-               head: txt.slice(0, 160)
-             };
-           }""", selector)
-
-
 def main() -> int:
     ap = argparse.ArgumentParser(prog="baseline_voice", description=__doc__)
     ap.add_argument("--freeze", action="store_true", help="冻结基线（M0 一次性）")
-    ap.add_argument("--freeze-dom", action="store_true",
-                    help="冻结前端专业渲染快照（T0.3）")
     ap.add_argument("--self-check", action="store_true",
                     help="阳性对照：篡改一字须被抓到")
     opts = ap.parse_args()
@@ -392,8 +276,6 @@ def main() -> int:
 
     if opts.freeze:
         return freeze()
-    if opts.freeze_dom:
-        return freeze_dom()
     if opts.self_check:
         return self_check()
 

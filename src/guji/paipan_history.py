@@ -287,6 +287,12 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                     if isinstance(_res, dict) and "question" in _res:
                         _res = {k: v for k, v in _res.items()
                                 if k != "question"}
+                    # R3265（R3247-P1-2）：dream 结果的 echo 是同型回显
+                    # 冗余键（=req.text[:120] 原文）——只剥 question 时它
+                    # 照样进台账+导出备份带走敏感梦原文；同列剥除。
+                    if isinstance(_res, dict) and "echo" in _res:
+                        _res = {k: v for k, v in _res.items()
+                                if k != "echo"}
                     # R3070（巡#487）：「针对「<q>」」节标题同样嵌原问题——
                     # 落库存档+导出备份照样带走披露（实测 export 仍含
                     # 「被父母打了」）。敏感问句的标题文本换中性代词，
@@ -304,6 +310,12 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                             _res = {**_res, "interpretation": _it}
             except Exception:
                 pass   # 安全判定缺席不挡台账主路
+            # R3265（R3247-P2）：梦文本私密级天然最高——「梦见我死了」
+            # 这类非敏感词的吓人/私密梦也不该躺历史列表的 question 列。
+            # dream 型统一不落原文（列表行有 解梦·象征名 可读；危机/敏感
+            # 判定在上面已先读过 _qv，不丢足迹保护）。
+            if rtype == "dream":
+                _rq["question"] = None
             row_req = json.dumps(_rq, ensure_ascii=False)
             row_res = json.dumps(_res, ensure_ascii=False)
             row_name = _nm

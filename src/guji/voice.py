@@ -900,13 +900,13 @@ def _ly_lean_line(user_wx: str, other_wx: str, other_label: str) -> str:
         return (f"这一卦照传统口径看：{other_label}是朝你这边来的。"
                 "顺势接住比使劲推更划算。")
     if ELEMENT_GENERATES.get(user_wx) == other_wx:
-        return (f"这一卦照传统口径看：这事要你持续供着劲。"
+        return ("这一卦照传统口径看：这事要你持续供着劲。"
                 "先有付出才有回响，掂量好值不值。")
     if _WX_KE_LY.get(other_wx) == user_wx:
         return (f"这一卦照传统口径看：{other_label}压着你走。"
                 "先想清楚接不接得住，别硬扛。")
     if _WX_KE_LY.get(user_wx) == other_wx:
-        return (f"这一卦照传统口径看：主动权在你手里。"
+        return ("这一卦照传统口径看：主动权在你手里。"
                 "成不成看你抓不抓，卦不管怂。")
     return ""
 
@@ -1426,11 +1426,11 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             _hb = []
             if _hs:
                 _hb.append("、".join(
-                    _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                    _YAO_POS_CN.get(p, f"第{p}爻")
                     for p in _hs) + "动出去有接应（化回头生）")
             if _hk:
                 _hb.append("、".join(
-                    _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                    _YAO_POS_CN.get(p, f"第{p}爻")
                     for p in _hk) +
                     "动出去反被打回来（化回头克），那一步要留个后手")
             _JT_COPY = {
@@ -1444,7 +1444,7 @@ def reply_liuyao(ben: dict, bian: dict, moving_lines: list,
             for _jd in ("进", "退", "伏吟", "反吟"):
                 if _jt[_jd]:
                     _hb.append("、".join(
-                        _YAO_POS_CN.get(p, f"第{p}爻").split("——")[0]
+                        _YAO_POS_CN.get(p, f"第{p}爻")
                         for p in _jt[_jd]) + _JT_COPY[_jd])
             if _hb:
                 lines.append("再细看动的爻。" + "；".join(_hb) + "。")
@@ -1639,7 +1639,10 @@ def warm_bazi(paipan: dict, calc: dict, interpretation: dict,
             break
     _yr = calc.get("yearly") or {}
     _g0 = TEN_GOD_WARM.get(_yr.get("gan_rel") or "")
-    if _yr.get("ganzhi") and _yr.get("gan_rel"):
+    # R3265（R3248-低）：reply 里 _reply_temporal 已落过「今年N年是
+    # X年」流年锚时，年度主基调行不再重复铺同一坐标。
+    if (_yr.get("ganzhi") and _yr.get("gan_rel")
+            and not any(f"今年{_yr['year']}" in _ln for _ln in reply)):
         reply.append(
             f"今年{_yr['year']}是{_yr['ganzhi']}年，{_yr['ganzhi'][0]}"
             f"对你日主{day_master}是「{_yr['gan_rel']}」"
@@ -2438,16 +2441,24 @@ def _hehun_q_line(q: str, h: dict) -> str:
     if _re_lq.search(r"结婚|嫁|娶|长久|未来|走下去|合适|适合|领证|订婚|定下来|走到底", q):
         dy = [d for d in (h.get("dayun_hits") or [])
               if int(d.get("start_age_a", 99)) >= 16]
+        # R3265（R3248-低）：nearest-hit 抓到的远端应期（30 年后那种）
+        # 对「能结婚吗」这类近事问不答远——近十年没叠冲合就说平稳期，
+        # 不拿 2064 年的冲合窗当答案卖。
+        dy = [d for d in dy
+              if abs(int(d.get("year_start", 0)) - _today_cn().year) <= 10]
         if dy:
             dy.sort(key=lambda d: abs(int(d.get("year_start", 0))
                                       - _today_cn().year))
             d0 = dy[0]
             _rel = d0.get("relation") or ""
             return (f"你问能不能走得长远，长期看的是两人大运的节奏："
-                    f"{d0.get('year_start')}年前后那段大运是「{_rel}」"
-                    + ("合，那段时间适合把大事往前定。"
+                    f"{d0.get('year_start')}年前后那段大运走的是「{_rel}」"
+                    + ("——那段时间适合把大事往前定。"
                        if _rel == "合" else
-                       "冲，那段时间容易顶上，大事慢半拍再定。"))
+                       "——那段时间容易顶上，大事慢半拍再定。"))
+        if h.get("dayun_hits"):
+            return ("你问能不能走得长远，近十年两人大运没叠冲合，"
+                    "走的是平稳期，下面「大运互动」那段是更远的节奏坐标。")
         return ("你问能不能走得长远，上面判词档答的是底子，"
                 "下面「大运互动」那段是节奏坐标。")
     if _re_lq.search(r"吵架|磨合|矛盾|冷战|相处|争执|总吵|闹掰", q):

@@ -609,8 +609,8 @@ def _run_inner() -> list[str]:
         "打耳洞": {"求医", "治病", "求医疗病"},
     }
     for _k, _want in _LEGS.items():
-        assert (set(_CST[_k]) == _want,
-                ("huangli.scene.twoleg", _k, _CST.get(_k)))
+        assert set(_CST[_k]) == _want, \
+            ("huangli.scene.twoleg", _k, _CST.get(_k))
     ok.append("huangli.scene.twoleg")
     # R2355（R111）：说了但不存在的日期——resolve_date 给 invalid 明说，
     # 不静默回落显示日/就近换日。
@@ -3627,9 +3627,23 @@ def _run_inner() -> list[str]:
     assert _lp._chat_verdict_contra(
         "你们很合适，放心在一起", ["卡面判词行：判词直说：偏不合适，日支相冲"]
     ) == "pos_over_neg"
+    # R3265（R3248-高危钉）：真实信道形状——判词块固定首行
+    # 「这张合婚卡的合拍指数：N/99」会让裸「合拍」词毒化方向判定；
+    # 「不宜」里的单字宜同理。闸必须在毒化输入下仍命中。
+    assert _lp._chat_verdict_contra(
+        "你们很合适，放心在一起",
+        ["这张合婚卡的合拍指数：35/99",
+         "卡面判词行：判词直说：偏不合适，日支相冲",
+         "卡面判词行：不宜硬扛这段关系"]
+    ) == "pos_over_neg", "真实信道毒化：合拍指数行+不宜词"
     assert _lp._chat_verdict_contra(
         "这步坎得一起扛", ["卡面判词行：判词直说：偏不合适，日支相冲"]
     ) is None
+    # 反向：正判词卡（上上签）遇硬说负也要拦
+    assert _lp._chat_verdict_contra(
+        "你们不合适，趁早放手",
+        ["卡面判词行：上上签，天作之合", "这张合婚卡的合拍指数：92/99"]
+    ) == "neg_over_pos", "正判词遇硬负判定失效"
     # R3132：polish 判词升格钉——「判词：」行必须渲成「判词口径·必须
     # 一致」权威块，不能只是 facts 堆里的普通一条。
     _pr = _lp._render(["双方性别：女 / 男",

@@ -1526,20 +1526,6 @@ details.warm-pro-fold > summary{
   margin-left:3px; }
 .yao-legend{ font-size:11px; color:var(--muted); line-height:1.7;
   margin-top:8px; padding-top:6px; border-top:1px dashed var(--line,rgba(0,0,0,.08)); }
-/* R216b 续（U-015）：专业模式返回提示条——常显、可点回温柔版。 */
-.pro-notice{
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  flex-wrap:wrap; font-size:13px; color:var(--secondary);
-  padding:8px 12px; margin-bottom:10px;
-  border-left:3px solid var(--c-book); background:#F4FBFA;
-  border-radius:var(--radius-sm);
-}
-.pro-back-btn{
-  cursor:pointer; white-space:nowrap;
-  padding:6px 14px; min-height:var(--tap); border-radius:999px;   /* R228d：32→44 */
-  border:1px solid var(--c-bazi); background:#fff0f0; color:var(--text);
-  font-size:13px;
-}
 
 /* L0 一句话：首屏第一眼，字大、无术语（判据 1/2/3） */
 /* R206b（US4）：共情行样式合并进上方 .chat-entry 区块（一处定义） */
@@ -3046,8 +3032,6 @@ html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
 /* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
 /* P0-9 skip-link / P0-10 专业盘返回钮 */
 html[data-theme="dark"] .skip-link{background:var(--cta-grad);}
-html[data-theme="dark"] .pro-back-btn{background:var(--card);color:var(--text);
-  border-color:var(--c-bazi);}
 /* P1-11 侧栏抽屉 */
 html[data-theme="dark"] .side-chat{background:#251F23;}
 html[data-theme="dark"] .recent-side-head{background:#2B2529;
@@ -3081,7 +3065,6 @@ html[data-theme="dark"] .tarot-hook-tag{background:#332C33;
 html[data-theme="dark"] .yao-row.moving{background:rgba(167,199,231,.10);}
 html[data-theme="dark"] .cross-dir{color:#B9A8E0;
   background:rgba(122,107,168,.14);}
-html[data-theme="dark"] .pro-notice{background:#2E3332;color:var(--secondary);}
 /* P1-22 改资料钮 / P1-24 海报 chrome（部分 R2349h 已补，补漏） /
    P1-25 聊天输入禁用态 */
 html[data-theme="dark"] .daily-me-edit{background:var(--card);
