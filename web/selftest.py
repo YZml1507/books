@@ -2662,6 +2662,30 @@ def _run_inner() -> list[str]:
     for _s in _dream_mod._DREAM_SYMS:
         assert _s["keys"] and _s["name"] not in _seen_nm, _s["name"]
         _seen_nm.add(_s["name"])
+    # (i-R3265) 否定护栏：「没有/并非」前缀的命中不算
+    assert _dream_mod.interpret_dream("梦见我没有掉牙")["matched"] == 0
+    assert _dream_mod.interpret_dream(
+        "梦见他说他不会出轨")["matched"] == 0
+    # (j-R3265) emoji 映射 + 英文键
+    assert _dream_mod.interpret_dream("梦见🐍")["symbols"][0][
+        "name"].startswith("蛇"), _dream_mod.interpret_dream("梦见🐍")[
+        "symbols"][0]["name"]
+    assert _dream_mod.interpret_dream(
+        "dreamed about teeth")["symbols"][0]["name"].startswith("掉牙")
+    # (k-R3265) 相关卡重叠压制：被追赶+跑不动→单卡+varline
+    _r8 = _dream_mod.interpret_dream("梦见被人追跑不动")
+    assert len(_r8["symbols"]) == 1
+    assert _r8["symbols"][0]["name"].startswith("被追赶")
+    assert "跑不动" in "".join(_r8["reply"])
+    # (l-R3265) 亲人出事/去世双卡压制
+    _r9 = _dream_mod.interpret_dream("梦见妈妈出车祸")
+    _n9 = [s["name"] for s in _r9["symbols"]]
+    assert "在世的亲人出事" in _n9, _n9
+    assert "家人朋友（在世的）" not in _n9, _n9
+    # (m-R3265) 吓人象征软开场（仅 scare 触发时）
+    _r10 = _dream_mod.interpret_dream("梦见蛇缠着我")
+    _open10 = [l for l in _r10["reply"] if "安" in l or "劲儿" in l]
+    assert _open10, _r10["reply"]
     ok.append("dream.syms_integrity")
     # (i) 服务端繁体归一 + 台账名脱敏（不回显梦原文）
     check("dream.t2s", client.post("/api/dream",
