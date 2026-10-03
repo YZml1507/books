@@ -17748,3 +17748,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   - 中：classical_names.json 10 条伪托引文改回真出处（木松/木桢/木柯/木条/木棣/木萋/木莞/金扬/土苞/火炽）。
   - 中：起名候选 _interleave 轮转合并——缺两行时第二行此前整批零出现；_comp_order 补缺优先（弱行前强行后）；per-elem 双名配额。
 - 闸门：selftest 405 / contract 725 / ui_smoke 101 / llm_polish / regress / parity / ruff / 其余全绿；bump_sw→books-shell-68ccad2d33aa。
+
+## R3334（2026-10-03）：桌面首载 CLS 实测修复——0.0526 → 0.010（API 延时 800ms 注入实测）
+- 根因：dailyScore/dailyDims/dailyMantra/dailyTarot 四槽此前数据到齐才 createElement 插入，整卡拔高把下方 meta/免责/XZ 区整块顶下（单块位移 0.0523，历史实测桌面首载 ≈0.109）。
+- 修法：index.html 预渲染四个空壳槽（顺序与实际插入序一致：score→dims→mantra→tarot→stars），CSS `:empty` min-height 按各槽典型高预占（28/28/26/40），数据到只换文字不顶高。
+- 连带必修：dailyMantra 的 keydown/click 与 dailyTarot 的委托 click 原在 `if(!el)` 创建守卫内——预渲染壳在 DOM 时守卫不触发=永无监听；改 data.bound 幂等绑（同 tarotPeekBtn 既有模式）。
+- 实测：同 Playwright 脚本 CLS 0.0526→0.010；残余 0.0097 为 summary 文本行高微差，可接受。
+- 顺带核实积压 R127-P2-7（CP chips 删除钮）已在 R2503 落地，从积压清单划掉。
+- 闸门：selftest 405 / ui_smoke 101 / contract 725 / ruff / bump_sw→books-shell-da7c4a4a866d。

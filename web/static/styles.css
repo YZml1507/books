@@ -722,6 +722,14 @@ html[data-theme="dark"] .daily-mantra b{
   border:1px dashed rgba(166,117,74,.4); border-radius:999px;
   padding:2px 9px; line-height:1.4;}
 .daily-card-line .dc-more:active{transform:scale(.96);}
+/* R3334（CLS）：四个异步槽空态预占高——数据到前这些位置已撑开，
+ * 填充只换文字不顶高卡面（配合 index.html 预渲染空壳）。
+ * 高度取各槽典型渲染值：能量行≈28 / 三维 chips≈28 /
+ * 咒语行≈26 / 今日牌行≈40（缩略图 36）。 */
+#dailyScore:empty{min-height:28px;}
+#dailyDims:empty{min-height:28px;}
+#dailyMantra:empty{min-height:26px;}
+#dailyTarot:empty{min-height:40px;}
 .daily-dims .dim-bar{display:inline-flex; align-items:center; gap:5px;
   font-size:12px; color:var(--secondary); background:#fff;
   border:1px solid var(--border); border-radius:12px; padding:4px 9px;}

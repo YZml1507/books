@@ -5235,12 +5235,17 @@ async function loadDaily() {
          * role/tabindex + Enter/Space 同链路。 */
         _mtEl.setAttribute('role', 'button');
         _mtEl.setAttribute('tabindex', '0');
+        _scEl.parentElement.insertBefore(_mtEl, _scEl.nextSibling);
+      }
+      /* R3334（CLS）：槽位已预渲染在 DOM——监听器离开创建守卫，
+       * data.bound 幂等绑，否则预渲染壳永远没有点击/键盘。 */
+      if (_mtEl && !_mtEl.dataset.bound) {
+        _mtEl.dataset.bound = '1';
         _mtEl.addEventListener('keydown', function (ev) {
           if (ev.key === 'Enter' || ev.key === ' ') {
             ev.preventDefault(); _mtEl.click();
           }
         });
-        _scEl.parentElement.insertBefore(_mtEl, _scEl.nextSibling);
         _mtEl.addEventListener('click', function () {
           var _m = String(_mtEl.dataset.m || '');
           if (!_m) return;
@@ -5265,6 +5270,11 @@ async function loadDaily() {
         _dcEl.id = 'dailyTarot';
         _dcEl.className = 'daily-card-line';
         _mtEl.parentElement.insertBefore(_dcEl, _mtEl.nextSibling);
+      }
+      /* R3334（CLS）：预渲染壳在 DOM 时创建守卫不触发——委托点击
+       * 离开守卫改 data.bound 幂等绑。 */
+      if (_dcEl && !_dcEl.dataset.bound) {
+        _dcEl.dataset.bound = '1';
         /* 委托在父节点——innerHTML 每次渲染重建按钮，绑死节点会丢。 */
         _dcEl.addEventListener('click', function (ev) {
           if (!ev.target || ev.target.id !== 'dailyCardDraw') return;

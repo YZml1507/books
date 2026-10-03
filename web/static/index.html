@@ -275,6 +275,14 @@ try {
     <div class="daily-main">
       <div class="daily-level" id="dailyLevel">—</div>
       <div>
+        <!-- R3334（CLS）：能量/咒语/今日牌三个槽位预占位——此前数据
+             到了才插 DOM，整卡拔高顶下方内容（桌面首载 CLS≈0.1）。
+             空壳 CSS :empty 给 min-height 预占位，填充后自然高。 -->
+        <div class="daily-score" id="dailyScore"></div>
+        <div class="daily-dims" id="dailyDims"></div>
+        <div class="daily-mantra" id="dailyMantra" role="button" tabindex="0"
+          title="点一下复制这句咒语"></div>
+        <div class="daily-card-line" id="dailyTarot"></div>
         <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
         <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
         <!-- R3259（UX-STRATEGY-NEXT N1）：判词=「小满今天给你留的话」——
