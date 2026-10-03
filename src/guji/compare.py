@@ -116,6 +116,150 @@ EDITION_PAIRS = (
     ("KR1a0006", "KR1a0007"),   # 王弼注, and the 註疏 that embeds it near-verbatim
 )
 
+# R3234 — long-witness diff accelerator.
+#
+# difflib.SequenceMatcher prices each recursion branch at O(len(a) × occurrences) — on
+# merged 經 witnesses of 6–25k chars (editions whose units span a whole 卦) that was ~1s
+# per pair and ~3.2s for one address, nearly the whole /api/ask cost.  The path below
+# reproduces SequenceMatcher(autojunk=False) opcodes EXACTLY — same longest-match
+# tie-break (earliest i-end, then earliest j-end), same non-junk equal-char extension,
+# same adjacent-block collapse — via a suffix automaton at O(len) per branch.
+# Small pairs stay on the stdlib implementation; SAM build cost is also bounded by a
+# per-pair budget that hands the remaining queue back to difflib if ever exceeded.
+_FAST_DIFF_MIN = 4_000_000   # len(ref)*len(other) product above which difflib is slow enough to matter
+_SAM_BUDGET = 12             # Σ SAM-built branch lengths may not exceed budget × (len(a)+len(b))
+
+
+def _sam_build(s: str):
+    """Suffix automaton over s.  Returns (next, link, maxlen, minpos) where
+    minpos[v] is the smallest index at which any of state v's substrings ends —
+    all strings in one state share its endpos set, so this is their earliest
+    occurrence too."""
+    nxt: list[dict[str, int]] = [{}]
+    link = [-1]
+    mlen = [0]
+    minpos = [0]
+    last = 0
+    for i, c in enumerate(s):
+        cur = len(mlen)
+        nxt.append({})
+        link.append(0)
+        mlen.append(i + 1)
+        minpos.append(i)
+        p = last
+        while p != -1 and c not in nxt[p]:
+            nxt[p][c] = cur
+            p = link[p]
+        if p == -1:
+            link[cur] = 0
+        else:
+            q = nxt[p][c]
+            if mlen[p] + 1 == mlen[q]:
+                link[cur] = q
+            else:
+                clone = len(mlen)
+                nxt.append(dict(nxt[q]))
+                link.append(link[q])
+                mlen.append(mlen[p] + 1)
+                minpos.append(minpos[q])
+                while p != -1 and nxt[p].get(c) == q:
+                    nxt[p][c] = clone
+                    p = link[p]
+                link[q] = link[cur] = clone
+        last = cur
+    return nxt, link, mlen, minpos
+
+
+def _lcs_match(a: str, alo: int, ahi: int, b: str, blo: int, bhi: int,
+               autom) -> tuple[int, int, int]:
+    """find_longest_match(a, alo, ahi, b, blo, bhi) with autojunk=False — the automaton
+    was built on b[blo:bhi] so every occurrence it reports is inside the branch.
+    Same (i, j, size) as difflib: longest match, earliest a-end, then earliest b-end."""
+    nxt, link, mlen, minpos = autom
+    besti, bestj, bestsize = alo, blo, 0
+    v = l = 0
+    for i in range(alo, ahi):
+        c = a[i]
+        while v and c not in nxt[v]:
+            v = link[v]
+            l = mlen[v]
+        u = nxt[v].get(c)
+        if u is None:
+            v = l = 0
+            continue
+        v = u
+        l += 1
+        if l > bestsize:
+            besti = i - l + 1
+            bestj = blo + minpos[v] - l + 1
+            bestsize = l
+    # Non-junk equal-char extension, both directions — identical to difflib when
+    # the junk set is empty (autojunk=False makes every isbjunk() call False).
+    while besti > alo and bestj > blo and a[besti - 1] == b[bestj - 1]:
+        besti, bestj, bestsize = besti - 1, bestj - 1, bestsize + 1
+    while besti + bestsize < ahi and bestj + bestsize < bhi \
+            and a[besti + bestsize] == b[bestj + bestsize]:
+        bestsize += 1
+    return besti, bestj, bestsize
+
+
+def _opcodes_long(a: str, b: str) -> list[tuple[str, int, int, int, int]]:
+    """get_opcodes() of SequenceMatcher(a, b, autojunk=False), byte-identical,
+    replacing the per-branch b2j scan with suffix-automaton longest matches."""
+    la, lb = len(a), len(b)
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    budget = _SAM_BUDGET * (la + lb)
+    spent = 0
+    queue = [(0, la, 0, lb)]
+    matching_blocks: list[tuple[int, int, int]] = []
+    while queue:
+        alo, ahi, blo, bhi = queue.pop()
+        if spent <= budget and (ahi - alo) * (bhi - blo) >= _FAST_DIFF_MIN:
+            spent += bhi - blo
+            i, j, k = _lcs_match(a, alo, ahi, b, blo, bhi,
+                                 _sam_build(b[blo:bhi]))
+        else:
+            i, j, k = sm.find_longest_match(alo, ahi, blo, bhi)
+        if k:
+            matching_blocks.append((i, j, k))
+            if alo < i and blo < j:
+                queue.append((alo, i, blo, j))
+            if i + k < ahi and j + k < bhi:
+                queue.append((i + k, ahi, j + k, bhi))
+    matching_blocks.sort()
+
+    # Adjacent-block collapse + sentinel — identical to difflib.get_matching_blocks.
+    i1 = j1 = k1 = 0
+    non_adjacent = []
+    for i2, j2, k2 in matching_blocks:
+        if i1 + k1 == i2 and j1 + k1 == j2:
+            k1 += k2
+        else:
+            if k1:
+                non_adjacent.append((i1, j1, k1))
+            i1, j1, k1 = i2, j2, k2
+    if k1:
+        non_adjacent.append((i1, j1, k1))
+    non_adjacent.append((la, lb, 0))
+
+    # Opcode derivation — identical to difflib.get_opcodes.
+    i = j = 0
+    answer = []
+    for ai, bj, size in non_adjacent:
+        tag = ''
+        if i < ai and j < bj:
+            tag = 'replace'
+        elif i < ai:
+            tag = 'delete'
+        elif j < bj:
+            tag = 'insert'
+        if tag:
+            answer.append((tag, i, ai, j, bj))
+        i, j = ai + size, bj + size
+        if size:
+            answer.append(('equal', ai, i, bj, j))
+    return answer
+
 
 @dataclass
 class Finding:
@@ -191,8 +335,14 @@ def _pair_findings(ref: str, other: str, other_id: str
     """Findings of one witness against the reference, plus its commentary volume."""
     out: list[Finding] = []
     vol = 0
-    sm = difflib.SequenceMatcher(None, ref, other, autojunk=False)
-    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+    if ref == other:
+        return out, vol
+    if len(ref) * len(other) >= _FAST_DIFF_MIN:
+        opcodes = _opcodes_long(ref, other)
+    else:
+        opcodes = difflib.SequenceMatcher(None, ref, other,
+                                          autojunk=False).get_opcodes()
+    for tag, i1, i2, j1, j2 in opcodes:
         if tag == "equal":
             continue
         a, b = ref[i1:i2], other[j1:j2]

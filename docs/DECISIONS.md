@@ -5862,3 +5862,15 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - C) 写死累计数组常量：行数表与逻辑代码脱节，违本项目「单一数据源」原则，否决。
 
 **裁决**：A。边界守卫补一条（offset 超出 2100 年时同语义 ValueError——线性扫原会消耗掉「年外」，二分不会，需显式判）。实测全表穷举 73,383 天 0.52s 跑完。
+## D-264b R3234 决策：/api/ask 校勘 diff 巨型对加速（后缀自动机复刻 difflib）
+
+**背景**：ask 链路 cProfile 9.7s 中 ~8s 烧在 difflib.SequenceMatcher.find_longest_match——卦64·上九一个地址的 merged 經 witness 6.6K-24.5K 字（KR1a0007 单 witness 24,493 字，单位粒度跨整卦），每对 ~300-900ms、单地址 3.2s。
+
+**候选**：
+- A) 前缀/后缀公共段裁剪后进 diff（放弃）：difflib 源码注释自带反例（'ab' vs 'acab' 裁剪后最长块从 'ab' 退化为 'a'）——对齐结果会变，校勘证据语义不同，不可行。
+- B) cdifflib C 扩展（放弃）：同算法天然同 opcode 是理想解，但无 Windows 预编译 wheel、本机无 MSVC 工具链编译失败；部署目标同步存疑。
+- C) 后缀自动机复刻 SequenceMatcher(autojunk=False)（选中）：SAM 建一次 O(len)，每分支最长公共子串 O(len)；平局序与 difflib 逐位对齐——最大长度 → 最小 a-end → 最小 b-end（状态 minpos=最早 endpos 正好对应）；等值前后扩展与相邻块合并原样复刻。小对（len积<4M）仍走 difflib 本体，SAM 建支总长 ≤12×(la+lb) 超限回退。
+
+**决定**：C。复验：fuzz 20,010 例（随机 CJK/小字母表平局重灾区/共享段/变异对/空串边界）SAM 路径逐 opcode 与 difflib 完全一致；真实巨型对 7 对全 identical（3,153ms→1,130ms）；services.ask 4 问题全字段一致（result_ref 随机除外），重对问题 p50 3,066→1,135ms / 3,331→1,037ms（~3×）。
+
+**坑位记录**：(1) fuzz 首轮阈值未置 0，20k 例实际全走 difflib 分支假绿——验证 SAM 必须强制 _FAST_DIFF_MIN=0；(2) minpos 的语义是「状态 endpos 集最小下标」，克隆态继承 q 的 minpos——写成 i 会错。(3) 备选但未做：_pair_findings 结果缓存（同问重ask可白赚），增加状态面换边际收益，暂缓。
