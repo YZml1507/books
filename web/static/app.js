@@ -10424,6 +10424,13 @@ async function _doHuangli(offset, reveal, spokenWord) {
               '，能换就换一天';
             lab += '⚠';
           }
+          /* R3317-B：月内稀有度——「本月第N个吉日」的晒图级钩子
+           * 进悬停注，让挑吉日的人知道这天的稀缺度。 */
+          var _mR = gd.month_rank || 0, _mT = gd.month_total || 0;
+          if (_mR && _mT) {
+            _tt = (_tt ? _tt + '　' : '') +
+              (+pp[1]) + '月第' + _mR + '个吉日（共' + _mT + '个）';
+          }
           return '<button type="button" class="hl-daychip' +
             (_fl.length ? ' has-flag' : '') + '" data-hldate="' +
             esc(String(gd.date || '')) + '"' +
@@ -10441,8 +10448,24 @@ async function _doHuangli(offset, reveal, spokenWord) {
         var tip = document.createElement('div');
         tip.className = 'hl-gooddays';
         /* R2349（R64-P2）：「近期宜分手」直译刺耳——换「适合」口径。 */
+        /* R3317-B：榜上日子同月且月内吉日数 ≤8 时给稀缺注——
+         * 「10月只剩 4 个」是小红书体的紧迫感素材。 */
+        var _rare = '', _rTot = 0, _rKey = '';
+        for (var _ri = 0; _ri < Math.min(_days.length, 6); _ri++) {
+          var _gR = _days[_ri], _gMk = String(_gR.date || '').slice(0, 7);
+          if (!_rKey) _rKey = _gMk;
+          if (_gMk !== _rKey || !(_gR.month_total || 0)) {
+            _rTot = 0; break;
+          }
+          _rTot = _gR.month_total;
+        }
+        if (_rTot && _rTot <= 8) {
+          _rare = (+_rKey.slice(5, 7)) + '月共 ' + _rTot + ' 个吉日';
+        }
         tip.innerHTML = '<span class="hl-gooddays-label">近期适合' +
           esc(_gsc) + '：</span>' + chips +
+          (_rare ? '<span class="hl-gooddays-note">（' + _rare +
+            '）</span>' : '') +
           (_sunk ? '<span class="hl-gooddays-note">（另 ' + _sunk +
             ' 天逢凶日未列出）</span>' : '');
         if (box.nextSibling) box.parentNode.insertBefore(tip, box.nextSibling);

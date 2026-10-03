@@ -1539,6 +1539,8 @@ def huangli(date_str: str | None = None, affair: str | None = None,
                 # R8 P2-6：前端只读 date/yi/ji/flags——pengzu/shensha/lunar/
                 # chongsha 不随列表回吐（92天×12.9KB→~2KB）。
                 for _q in huangli_mod.find_good_days(dt, end, terms)]
+        # R3317-B：月内稀有度补扫要用映射前的词表（与主扫同口径）。
+        _terms_scan = list(terms)
         # R2349n（R77-P2-3）：回显归一后的 terms——affair=婚嫁实际按
         # 嫁娶查，回显原词会让 API 消费者拿 terms 对 yi 误判。
         terms = [huangli_mod.AFFAIR_ALIASES.get(t, t) for t in terms]
@@ -1560,6 +1562,32 @@ def huangli(date_str: str | None = None, affair: str | None = None,
             out["past"] = True
         if _unrec:
             out["unrecognized"] = True
+        # R3317-B：吉日稀有度——「本月第 N 个吉日（共 M 个）」的晒图句。
+        # 需要月内完整排名，故按命中日所在月各跑一次月窗；只在小窗
+        # （≤45 天，≤2 个月）补这笔账，大窗不动（成本封顶 ~60 次
+        # day_query，与主扫同量级内）。扫失败月份静默不标。
+        if good and _scanned <= 45:
+            _mrank, _mtotal = {}, {}
+            for _ym in {g["date"][:7] for g in good}:
+                try:
+                    _y0, _m0 = int(_ym[:4]), int(_ym[5:7])
+                    _ms = datetime(_y0, _m0, 1,
+                                   tzinfo=dt.tzinfo)
+                    _me = (datetime(
+                        _y0 + (1 if _m0 == 12 else 0),
+                        1 if _m0 == 12 else _m0 + 1, 1,
+                        tzinfo=dt.tzinfo) - timedelta(days=1))
+                    _mg = huangli_mod.find_good_days(_ms, _me, _terms_scan)
+                    _mrank[_ym] = {q["date"]: i + 1
+                                   for i, q in enumerate(_mg)}
+                    _mtotal[_ym] = len(_mg)
+                except Exception:
+                    pass
+            for g in good:
+                _tbl = _mrank.get(g["date"][:7]) or {}
+                if g["date"] in _tbl:
+                    g["month_rank"] = _tbl[g["date"]]
+                    g["month_total"] = _mtotal[g["date"][:7]]
         return out
 
     q = huangli_mod.day_query(dt)

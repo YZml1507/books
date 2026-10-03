@@ -496,6 +496,14 @@ def _run_inner() -> list[str]:
     check("huangli.affair", client.get("/api/huangli", params={"affair": "婚嫁",
           "date": "2026-08-17", "days": 30}),
           lambda j: j.get("count", 0) > 0 and bool(j.get("good_days")))
+    # R3317-B：月内稀有度——≤45 天窗口补 month_rank/month_total；
+    # 排名值域 1..month_total。
+    check("huangli.affair.month_rank", client.get("/api/huangli",
+          params={"affair": "婚嫁", "date": "2026-08-17", "days": 30}),
+          lambda j: all(1 <= g.get("month_rank", 0) <=
+                        g.get("month_total", 0)
+                        for g in j.get("good_days", []))
+                    and bool(j.get("good_days")))
     # R228x：口语事项归一——「理发」不在宜忌词表，不归一则 good_days 恒空；
     # 归一后落到冠笄（实测 2026-09-19 起 45 天内 4 天）。terms 回显供前端
     # 与用户确认「理发按冠笄查的」。
