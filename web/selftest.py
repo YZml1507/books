@@ -2540,6 +2540,13 @@ def _run_inner() -> list[str]:
                 isinstance(ca.get("keywords"), str) and "·" in ca["keywords"])
     assert _dcard_ok(), "daily_card not deterministic or malformed"
     ok.append("daily.daily_card")
+    # R3318（审-P1-2）：lunar 串不得出现「月月」重字——month_cn 自带月。
+    _dlx = client.get("/api/daily",
+                      params={"date": "2026-10-03"}).json()
+    _lun = _dlx.get("lunar") or ""
+    assert _lun.startswith("农历") and "月月" not in _lun, (
+        "daily.lunar.dup", _lun)
+    ok.append("daily.lunar.nodup")
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴端点。
     check("xzmatch", client.get("/api/xzmatch",
           params={"a": "白羊", "b": "射手"}),

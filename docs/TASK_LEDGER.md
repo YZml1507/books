@@ -17550,3 +17550,12 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **后端** `web/services.py` `_daily_card_for`：`seed=YYYYMMDD` → `MAJOR_ARCANA[seed%22]` + `upright=(seed//22)%2==0`，响应加 `daily_card{name,upright,keywords}`；缓存命中路径 `_c.get("daily_card") or 现算`、降级路径同构 `{}`。
 - **前端** `app.js`（咒语行后动态插 `#dailyTarot.daily-card-line`）：小缩略图（`tarotImg`，逆位旋180°）+ 牌名 + 正/逆位 + 关键词 + 「抽三张」委托钮（父节点绑 listener，innerHTML 重建不丢）；`styles.css` `.daily-card-line/.dc-thumb/.dc-more`。
 - **闸**：`web/selftest.py` `daily.daily_card`（同日出同牌+字段形状）。selftest 385 / ui_smoke / contract 724 绿。
+
+## R3318 — 壁纸审计清零（R3318-A 报告全清）
+- **P1-1**：`?view=daily-wap` 分享深链死链 → `_alias` 补 `'daily-wap':'home'`（app.js ~13496）。
+- **P1-2**：「农历八月月廿三」重字 → `_daily_lunar_str` 统一拼装（month_cn 已含闰+月），缓存命中路径补 `lunar or 现算` 兜底（旧 cv 缓存行无此键会裸缺字段）。
+- **P1-3**：壁纸对比度——`_WAP_LV_TINT` 补全 9 个 personal verdict 判值（合缘/岁合/半合=暖金、轻冲/小绊/岁吟=雾蓝、小凶/小挫/伏吟=灰褐橘）；scrim g1 强掩延至 y=400（0.78 位 42%）缓出 470，开运色签行 y≈368 不再洗白。
+- **P3-1**：`daily-wap` 专属分享钩「今日开运壁纸，换上就有好心情」（_posterHookForView hooks）。
+- **P3-2**：`#dailyWap` 2s 软闸防连击多下载。
+- **P3-3**：封套未拆按钮已解禁——判「语义超前但无害」，有意不跟。
+- 闸：selftest 386（新增 daily.daily_card + daily.lunar.nodup）/ ui_smoke / contract 724 / daily_wap / poster 9 视图 / ruff 绿。

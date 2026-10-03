@@ -686,7 +686,9 @@ function _posterHookForView(view, j) {
     'checkin': '新的一天，小满还在等你',
     'checkin-week': '一周七天，天天有签', 'checkin-month': '一个月的好运战报',
     'huangli': null,  /* R2350a（R94-P1-3）：写死「今天」是错话——下方按日词给 */
-    'birth':  '这张小卡是你的底色'
+    'birth':  '这张小卡是你的底色',
+    /* R3318（审-P3-1）：开运壁纸此前落通用兜底——给一句壁纸语境钩。 */
+    'daily-wap': '今日开运壁纸，换上就有好心情'
   };
   if (view === 'huangli' && hooks[view] == null) {
     /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */

@@ -2427,6 +2427,20 @@ def _lucky_for(d: date) -> dict:
     return out
 
 
+def _daily_lunar_str(d: date) -> str:
+    """日卡农历锚行「农历八月廿三 · 庚戌日」。
+    R3318（审-P1-2）：month_cn 已含「闰」前缀和「月」后缀——
+    再拼一次是「八月月廿三」重字（日卡/壁纸/分享物全带）。"""
+    try:
+        _l2 = lunar.solar_to_lunar(d.year, d.month, d.day)
+        _gz2, _i2 = _bazi_day_ganzhi(
+            datetime(d.year, d.month, d.day, 12))
+        return (f"农历{_l2.get('month_cn','')}{_l2.get('day_cn','')}"
+                f" · {_gz2}日")
+    except Exception:
+        return ""
+
+
 def _daily_card_for(d: date) -> dict:
     """R3317-G：今日牌——同日全站同一张大阿卡纳（含正/逆位）。
     确定性：seed=YYYYMMDD，牌位=seed%22、位向=seed//22 奇偶，
@@ -4653,7 +4667,10 @@ def daily(date_str: str | None = None,
                                                  _d0.day, 12))),
                       # R3317-G：旧缓存行无 daily_card——同口径现算随包回
                       "daily_card": (_c.get("daily_card")
-                                     or _daily_card_for(_d0))}
+                                     or _daily_card_for(_d0)),
+                      # R3318：cv<6 时代存的行没有 lunar 锚——同口径现算
+                      "lunar": (_c.get("lunar")
+                                or _daily_lunar_str(_d0))}
                 if _personal:
                     _r["personal"] = _personal
                 else:
@@ -4752,17 +4769,7 @@ def daily(date_str: str | None = None,
         # R3314（R3311-中2）：日卡补农历日期+日干支锚——月相按
         # 初一十五跑、七夕/中元全是农历节，卡面却只有公历，「今天
         # 新月」得靠用户自己悟=初一。派生字段确定性可查。
-        _lunar_str = ""
-        try:
-            from guji import lunar as _lunar_mod2
-            _l2 = _lunar_mod2.solar_to_lunar(d.year, d.month, d.day)
-            _gz2, _i2 = _bazi_day_ganzhi(
-                datetime(d.year, d.month, d.day, 12))
-            _lunar_str = (
-                f"农历{('闰' if _l2.get('is_leap') else '')}"
-                f"{_l2.get('month_cn','')}月{_l2.get('day_cn','')} · {_gz2}日")
-        except Exception:
-            pass
+        _lunar_str = _daily_lunar_str(d)
         result = {
             "date": date_str,
             "cv": 7,                     # R3304：do/dont 不再预制宜忌前缀

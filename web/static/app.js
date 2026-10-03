@@ -12392,8 +12392,14 @@ function initDivination() {
     showToast('今日运势还没出来，等它算好再生成护身符～', 'warn');
     return null;
   });
-  /* R3317：今日开运壁纸——烘底图按日轮换 + 判词/开运色叠字。 */
+  /* R3317：今日开运壁纸——烘底图按日轮换 + 判词/开运色叠字。
+   * R3318（审-P3-2）：连点原无节流——合成+落盘一轮 ~1s，连击会
+   * 连续弹浮层/多次下载。2s 软闸（不 disable 按钮，免闪烁）。 */
+  var _wapLast = 0;
   on('dailyWap', function () {
+    var _nw = Date.now();
+    if (_nw - _wapLast < 2000) return null;
+    _wapLast = _nw;
     if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
     return null;
@@ -13492,7 +13498,10 @@ function init() {
                       * 分享链全是死链——护身符/创可贴住首页日签卡一带，
                       * 年度运势就是 bazi 视图的产物。别名收编+滚动承接。 */
                      lucky: 'home', bandaid: 'home',
-                     'bazi-yearly': 'bazi' };
+                     'bazi-yearly': 'bazi',
+                     /* R3318（审-P1-1）：开运壁纸分享链 ?view=daily-wap
+                      * 死链——壁纸入口在首页日卡，归一到 home。 */
+                     'daily-wap': 'home' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链

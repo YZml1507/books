@@ -10,9 +10,14 @@ var _WAP_LC_HEX = { '青绿色': '#7fb8a4', '石榴红': '#d96a5f',
                     '鹅黄色': '#f0c95c', '珍珠白': '#efe9dc',
                     '雾蓝色': '#8fa8c8' };
 /* 判词星级色：吉=暖金、小吉=蜜桃、平=雾蓝、凶=暖灰（治愈向不用冷色） */
-var _WAP_LV_TINT = { '吉': '#F5C06A', '小吉': '#F5A88C',
-                     '平': '#9DB8D8', '凶': '#C9B8A8',
-                     '大吉': '#F5C06A', '注意': '#C9B8A8' };
+/* R3318（审-P1-3）：personal.mine.verdict 九个判值原全部落到米白
+ * fallback——浅底图上判词低对比。按「合=暖金 / 轻绊=雾蓝 / 凶挫=灰褐」
+ * 三档补全，与日卡 _verdictTone 同语义。 */
+var _WAP_LV_TINT = { '吉': '#F5C06A', '小吉': '#F5A88C', '大吉': '#F5C06A',
+                     '平': '#9DB8D8', '凶': '#C9B8A8', '注意': '#C9B8A8',
+                     '合缘': '#F5C06A', '岁合': '#F5C06A', '半合': '#F5C06A',
+                     '轻冲': '#9DB8D8', '小绊': '#9DB8D8', '岁吟': '#9DB8D8',
+                     '小凶': '#E8A08A', '小挫': '#E8A08A', '伏吟': '#C9B8A8' };
 
 function _wapSeed(dstr) {
   /* 同日全站同图（确定性）：日期串散列取模。 */
@@ -55,10 +60,13 @@ function _wapComposite(j, bg) {
   ctx.drawImage(bg, 0, 0, 720, 1280);
   /* 上下暗角——叠字可读的 scrim（烘焙图上半本来就留净空，这里
    * 只是再压一层保证任何图的日期锚都可读）。 */
-  var g1 = ctx.createLinearGradient(0, 0, 0, 430);
+  /* R3318（审-P1-3）：渐隐原止于 y=430，开运色签行（y≈368-380）
+   * 正落在尾巴上——浅底图洗到近不可读。强掩到 400 再缓出到 470。 */
+  var g1 = ctx.createLinearGradient(0, 0, 0, 470);
   g1.addColorStop(0, 'rgba(38,30,22,0.62)');
+  g1.addColorStop(0.78, 'rgba(38,30,22,0.42)');
   g1.addColorStop(1, 'rgba(38,30,22,0)');
-  ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, 430);
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, 470);
   var g2 = ctx.createLinearGradient(0, 1000, 0, 1280);
   g2.addColorStop(0, 'rgba(38,30,22,0)');
   g2.addColorStop(1, 'rgba(38,30,22,0.68)');
