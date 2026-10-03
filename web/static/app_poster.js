@@ -596,9 +596,10 @@ function _paintSharePoster(s, W, H) {
    * 扫码即回站（window.qrcode 由 app.js 懒加载，缺席静默跳过）。 */
   if (_host && typeof qrcode === 'function') {
     try {
-      var _qy = (hook ? 1346 : 1346) + (hook ? 10 : -1) - 0;
-      var _qh = hook ? 64 : 56;
-      _qy = (hook ? 1346 : 1346) + ((hook ? 84 : 62) - _qh) / 2;
+      /* QR 边长顶到 pill 内高的上限——转发压缩后仍可扫
+       * （WeChat 长按识别对 <60px 的码失败率明显升）。 */
+      var _qh = hook ? 72 : 52;
+      var _qy = 1346 + ((hook ? 84 : 62) - _qh) / 2;
       var _qu = (location.origin || '') + '/?from=poster';
       var _qr = qrcode(0, 'M'); _qr.addData(_qu); _qr.make();
       var _qn = _qr.getModuleCount();
