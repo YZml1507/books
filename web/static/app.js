@@ -4236,6 +4236,31 @@ function downloadPoster() {
     showToast((e && e.message) || '海报组件没加载上：网好了再点一次', 'warn');
   });
 }
+/* R3317：开运壁纸同款懒加载——app_wallpaper.js 按需拉取。 */
+var _wapJsLoad = null;
+function _loadWapJs() {
+  if (!_wapJsLoad) {
+    _wapJsLoad = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = '/static/app_wallpaper.js' + _assetSuffix();
+      s.onload = function () { res(); };
+      s.onerror = function () {
+        _wapJsLoad = null;
+        rej(new Error('壁纸组件没加载上：网好了再点一次'));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  return _wapJsLoad;
+}
+function downloadWallpaper() {
+  var _a = arguments;
+  return _loadWapJs().then(function () {
+    return downloadWallpaper.apply(null, _a);
+  }).catch(function (e) {
+    showToast((e && e.message) || '壁纸组件没加载上：网好了再点一次', 'warn');
+  });
+}
 /* R218a-巡2（N-02）：海报浮层——背景遮罩 + 中央海报图 + 关闭按钮 +
  * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
 function showPosterModal(canvas, view, j) {
@@ -5019,6 +5044,8 @@ async function loadDaily() {
     /* R3264（R29）：今日护身符按钮可用 */
     var _slk = el('shareLucky');
     if (_slk) _slk.disabled = false;
+    var _dwp = el('dailyWap');   /* R3317：日签就绪=壁纸可出 */
+    if (_dwp) _dwp.disabled = false;
     /* R2400（R117-P2 时段问候）：顶行标签随时刻换——早/午/晚/夜安，
      * 每天四次见面都说不一样的招呼。 */
     var _greet = el('dailyGreet');
@@ -7807,7 +7834,7 @@ var _POSTER_TITLES = {
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
-  renge: '五行人格' };
+  renge: '五行人格', 'daily-wap': '开运壁纸' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
@@ -12259,6 +12286,12 @@ function initDivination() {
   on('shareLucky', function () {
     if (window.__lastDaily) return downloadPoster(window.__lastDaily, 'lucky');
     showToast('今日运势还没出来，等它算好再生成护身符～', 'warn');
+    return null;
+  });
+  /* R3317：今日开运壁纸——烘底图按日轮换 + 判词/开运色叠字。 */
+  on('dailyWap', function () {
+    if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
+    showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
     return null;
   });
   /* R3264（R32）：今日仪式——点击即本地记录，不打卡不断签。 */

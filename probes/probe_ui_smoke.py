@@ -400,6 +400,9 @@ def main() -> int:
         "shareDaily": "同上",
         "shareLucky": "今日护身符分享图——downloadPoster('lucky') 海报模态，"
                       "同 shareDaily 族豁免",
+        # R3317：开运壁纸——canvas 合成 + showPosterModal 预览，同族豁免。
+        "dailyWap": "开运壁纸生成——canvas 合成+海报模态预览，"
+                    "同 shareDaily 族豁免",
         "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
                       "零请求；真实链路已 Playwright 手验（按钮存在）",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"

@@ -4501,6 +4501,8 @@ def _run_inner() -> list[str]:
     import glob as _gl5
     for _g in ("tarot/*", "cream/zodiac-*.jpg", "shared/poster-bg-*.jpg",
                "cream/poster-mascot.png", "cream/icon-512-maskable.png",
+               # R3317：开运壁纸底图同口径
+               "wallpapers/*.jpg",
                "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
                # R2349u（R91-P2-5）：og 分享卡纳入哈希同口径
                "shared/og-card.jpg"):

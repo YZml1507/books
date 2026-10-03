@@ -29,6 +29,8 @@ EXTRA_GLOBS = (
     "shared/poster-bg-*.jpg",
     "cream/poster-mascot.png",
     "cream/icon-512-maskable.png",
+    # R3317：开运壁纸底图（二线资产）内容变更同样要换 CACHE 名。
+    "wallpapers/*.jpg",
     "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
     # R2349u（R91-P2-5）：og 分享卡此前漏出哈希——换图不 bump，
     # 已装用户/分享爬虫无限期看旧卡。

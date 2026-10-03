@@ -17494,3 +17494,21 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - 降级留档不上分享钮：rec.result 空时不渲 📸（原会出半空白海报）。
 - Dockerfile：PIP_INDEX_URL 换官方源缺省 + PIP_CN_MIRROR=1 build-arg（与 CI 官方源口径对齐，海外构建不再撞国内镜像超时）；死配置 torch find-links 清。
 - recent_modules/theme 残留面：披露已如实，cosmetic 级——有意不跟。
+
+## R3317 — 每日开运壁纸（调研-A P0，2026-10-03）
+
+全网调研结论落地：开运壁纸是小红书真付费需求面（~29元/张），
+产品形态=每天一张「底图+判词+开运色」锁屏壁纸一键保存晒图。
+
+- 烘底图：scripts/gen_wallpapers.py 走 Agnes 生图离线烘 10 张竖幅
+  720×1280 入库（web/static/wallpapers/wap-00..09.jpg，~630KB），
+  按日确定性轮换（日期串散列取模，同日全站同图）。
+- 合成：app_wallpaper.js 懒 chunk（app_poster 同款 stub 接管）——
+  canvas 叠店招/日期锚(月日周+农历)/判词大字(档位色)/开运色签
+  (色点+色名+意象+幸运数)/日签句/品牌行，上下 scrim 保可读。
+- 接线：dailyCard 加「🖼 开运壁纸」钮（日签就绪才启用）；下载走
+  a.download + showPosterModal 预览复用；_POSTER_TITLES 收
+  daily-wap；SW SHELL 收 chunk、EXTRA_GLOBS+selftest 哈希同口径
+  收 wallpapers/*。
+- 闸门：probe_daily_wap.py 真机冒烟（填生日礼物流→点钮→断言
+  懒载/浮层 PNG/零 pageerror）PASS；ui_smoke 101/101 收编。
