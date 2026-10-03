@@ -3372,8 +3372,11 @@ function guardedCall(key, handler, ev, queueLatest) {
     console.warn('[on] handler error', e);
   }).then(function () {
     _ON_BUSY[key] = false;
+    /* R3322-P2：handler 主动要求终态禁用（如「已做完」仪式钮）——
+     * data-stay-disabled=1 时保留 disabled、只撤忙态外观，否则已
+     * 完成的仪式反复可点。 */
     if (_btn && _btn.tagName === 'BUTTON') {
-      _btn.disabled = false;
+      if (_btn.dataset.stayDisabled !== '1') _btn.disabled = false;
       _btn.classList.remove('is-working');
       _btn.removeAttribute('aria-busy');
     }
@@ -5267,6 +5270,14 @@ async function loadDaily() {
       }
       var _dc = j.daily_card || {};
       if (_dc.name) {
+        /* R3322-P1：首访 manifest 未到时最多等 1.2s——图迟一点
+         * 总比恒缺强（此后命中 Promise 缓存零等待）。 */
+        if (!TAROT_MANIFEST) {
+          await Promise.race([
+            _ensureTarotManifest(),
+            new Promise(function (r) { setTimeout(r, 1200); })
+          ]);
+        }
         var _dcImg = tarotImg(_dc.name);
         /* R3321-P1：牌意展开收进本行——旧 meta 路径（同 id 覆写 +
          * 异 seed 抽牌）已删，本行是「今日牌」唯一来源。 */
@@ -5470,6 +5481,9 @@ async function loadDaily() {
         _dr.hidden = false;
         _dr.textContent = _rdone ? '✅ 已做完' : '✅ 做完了';
         _dr.disabled = !!_rdone;
+        /* R3322-P2：跨日重渲时清 stay 标——新的一天仪式重新可做。 */
+        if (!_rdone) delete _dr.dataset.stayDisabled;
+        else _dr.dataset.stayDisabled = '1';
       } else { _dr.hidden = true; }
     }
     /* R233q：签号上卡——「今日第 N 签」的求签感是小红书日签标配 */
@@ -8195,6 +8209,22 @@ function _posterBgFor(view) {
 }
 var TAROT_MANIFEST = null;      /* 惰性拉取，见 tarotImg() */
 
+/* R3322-P1：manifest 单飞——此前只在首次进功能视图才拉，首页「今日牌」
+ * 缩略图与「抽三张」首跳恒落空（牌面 0 图全 emoji 兑底）。收幂等
+ * ensure，日卡渲染与抽牌路径各自可等它。 */
+var _tarotMfP = null;
+function _ensureTarotManifest() {
+  if (TAROT_MANIFEST) return Promise.resolve(TAROT_MANIFEST);
+  if (_tarotMfP) return _tarotMfP;
+  var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
+    ? { signal: AbortSignal.timeout(API_TIMEOUT_MS) } : {};
+  _tarotMfP = fetch('/static/tarot/manifest.json', _preOpt)
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { TAROT_MANIFEST = j || {}; return TAROT_MANIFEST; })
+    .catch(function () { TAROT_MANIFEST = {}; return TAROT_MANIFEST; });
+  return _tarotMfP;
+}
+
 /* R228k：原来顶层立刻拉三张图（~95KB）——海报背景只在点「存成图」才用，
  * manifest 只在塔罗视图才用。挪进 requestIdleCallback（无此 API 则
  * load 后 2s），首屏瀑布不再为低频路径买单。 */
@@ -8217,10 +8247,7 @@ function _idlePrefetch() {
    * 占住浏览器并发位。 */
   var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
     ? { signal: AbortSignal.timeout(API_TIMEOUT_MS) } : {};
-  fetch('/static/tarot/manifest.json', _preOpt)
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (j) { TAROT_MANIFEST = j || {}; })
-    .catch(function () { TAROT_MANIFEST = {}; });
+  _ensureTarotManifest();
 }
 /* 触发点挪进 showView：进任一功能视图（塔罗/排盘/起名都产海报）才拉。 */
 
@@ -8761,6 +8788,12 @@ var _TR_GEN = 0;   /* R2502：塔罗在途代际（同 _LY_GEN）——trSubmit 
 /* R2350k：cards 给了走「自己抽」——选定下标成牌；不给照旧。 */
 async function doTarot(cards) {
   var _gen = ++_TR_GEN;
+  /* R3322-P1：抽牌等 manifest——「抽三张」首跳此前牌面全 emoji
+   * （manifest 未拉）。有界 1.5s，弱网不等死。 */
+  await Promise.race([
+    _ensureTarotManifest(),
+    new Promise(function (r) { setTimeout(r, 1500); })
+  ]);
   /* R2502：on() 的 handler 会吃到 click 事件实参——此前靠「MouseEvent
    * 恰好没有 .length」侥幸正确，带 length 的对象进来会把非数组灌进
    * body.cards 或让 .slice 抛 TypeError 卡死 loading。收编数组形。 */
@@ -12586,7 +12619,11 @@ function initDivination() {
       localStorage.setItem('ritual:' + todayIso(), '1');
     } catch (eR) {}
     var _dr2 = el('dailyRitual');
-    if (_dr2) { _dr2.textContent = '✅ 已做完'; _dr2.disabled = true; }
+    if (_dr2) {
+      _dr2.textContent = '✅ 已做完'; _dr2.disabled = true;
+      /* R3322-P2：终态禁用——guardedCall 收尾不许复位（重复点重复弹）。 */
+      _dr2.dataset.stayDisabled = '1';
+    }
     _microCelebrate(_dr2);
     showToast('小满记下了，今天你做了一件小事～' + '\n' + _identityPhrase(), 'ok');
   });
@@ -14984,6 +15021,9 @@ function _moodJarSync(total) {
     if (unlocked > oldU && total > oldT) {
       showToast('🏺 心情罐子里收了 ' + (unlocked * 7) +
         ' 个色点，小满送你第 ' + unlocked + ' 张场景图', 'info');
+      /* R3322-P2：解锁当帧刷新罐入口——meta 行在本函数上游渲染，
+       * toast 说送图而入口还空着是自相矛盾。 */
+      try { _dailyMetaItem('dailyMoodJar', _moodJarHtml()); } catch (eM5) {}
     }
   } catch (eMJ) {}
 }

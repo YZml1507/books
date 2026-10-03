@@ -877,7 +877,7 @@ html[data-theme="dark"] .daily-mantra b{
 }
 .recent-sidebar{
   /* R3258：z 70→185——install-tip(180)此前浮在开的侧栏上盖住
-   * 输入区；仍低于 poster-modal(200)/celeb(290)/toast(300)。 */
+   * 输入区；仍低于 poster-modal(200)/toast(300)/celeb(310)。 */
   position:fixed; top:0; left:0; bottom:0; z-index:185;
   overscroll-behavior:contain;
   /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
@@ -2678,7 +2678,9 @@ html{-webkit-text-size-adjust:100%;}
 
 /* ── R231h（R39-P3-3）：连签里程碑卡 ── */
 .celeb-backdrop{
-  position:fixed; inset:0; z-index:290; display:flex;
+  /* R3322-P3：290→310——连签瞬间的 toast 堆（z300）此前压在
+   * 庆典卡上。庆典是此刻的主角，抬过 toast。 */
+  position:fixed; inset:0; z-index:310; display:flex;
   align-items:center; justify-content:center;
   background:rgba(0,0,0,.35); animation:tipIn .25s ease;
 }

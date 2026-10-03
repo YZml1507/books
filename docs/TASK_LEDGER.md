@@ -17617,3 +17617,12 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P3-5/P3-6 affair 子串命中收紧：键须贴尾或后跟日子缀——家长会→家长（嫁娶组）、约会所→约会误配根治；签订合同→立券 保留。
 - P3-7 `.hl-week-row` minmax 冲突修复：宽屏 44px 规则收成 ≥401px 限定，窄屏滑列 46px 生效。
 - 自测 +14 钉：ji_only×3/unrecognized×1/substr×2/ambi×4/zhishen 锚点×3 日/lunar_md×1/facts×2。闸门：selftest 400 / contract 721 / ui_smoke 101 / poster 9 视图 / dollar_misuse / banned_copy / first_screen / date_parity / llm_polish / baseline_voice / xingzuo / warm_voice / async_ai / ruff 全绿。
+
+## R3322 新功能端到端真机验收清零（2026-10-03，77 项检查 73 过 4 FAIL 2 NOTE）
+- P1 **tarot manifest 竞态根治**：manifest 原先只在首次进功能视图才拉——首页「今日牌」缩略图首访恒缺、「抽三张」首跳牌面全 emoji。收 `_ensureTarotManifest()` 幂等 Promise；日卡渲染有界等 1.2s、doTarot 有界等 1.5s，此后缓存零等待。
+- P2 心情罐解锁当帧不可见：`_moodJarSync` 解锁即刷新 `dailyMoodJar` meta 行（toast 说送图而入口空着的矛盾消除）。
+- P2 仪式钮「已做完」仍可点：guardedCall 收尾无条件复位 disabled 被绕——`data-stay-disabled=1` 标记保留终态禁用只撤忙态；跨日重渲清标记。
+- P3 toast(z300) 压庆典模态(z290)：celeb 抬 310，庆典不再被 toast 堆盖。
+- P3 壁纸/护身符钮静态 disabled 去除——弱网首帧灰钮改可点，handler 自带「运势还没出来」toast 引导。
+- OBS 咒语卡无浮层（点击即复制+toast）：功能全过，「点击即复制」比浮层顺手——有意不跟（spec 描述过期）。
+- 有意不跟合计：仅 OBS 一条。闸门：selftest 400 / ui_smoke / dollar_misuse / first_screen / contract 721 全绿。
