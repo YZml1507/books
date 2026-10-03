@@ -17437,3 +17437,10 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
   - revealResult._confirm 改为每次重新量结果区顶（原 target 是提交瞬间量的——上方异步重绘会把锚点顶失效）；补 900ms 晚一拍确认；监听回收延到 1200ms。
 - 实测（390×808）：一句话结论相对视口 417px（阈值≤812）、结果区 4 屏（阈值≤4）、古籍占比 0%、引文核验 12/12；check_plain_first 5 例 L0 视口 416-417、高度 2,647-2,936。
 - 顺带：selftest job 在 main 上连挂的 ruff f-prefix 错（voice.py 等 5 处）本批已随前序提交消，本分支 ruff 全绿。
+
+## R3314 — R3309/R3310/R3311/R3312 四审修复批（留存/心情闭环/节庆内容/五行幸运体系）
+- R3309 留存仪式：milestone 庆祝 `_mk` ReferenceError 根治（上线起即死）→ _mspec；checkin:goal/checkinCeleb 配置键污染 checkin: 前缀扫描 → 日期后缀过滤（_checkinAll + welcomed 检查）；回归文案「之前攒了 N 天都替你收着」+周报「小满陪了你 N 天」；disabled 态 CSS。
+- R3310 心情闭环：mood:lv('g'/'l' 签运档)被三处消费方当 0-3 心情索引读 → _latestMoodIdx/_weekMoodMain 改读真源 mood:<date>；解梦心情键拆 mood:dream:<date>（不再污染日心情）；备份导入白名单补全 17+ 心情族键+逐族校验器+_dsfx 日期后缀检查；GC 补齐 mood:/journal:/ritual:/rlast:/mood:dream: 五族同口径。
+- R3311 节庆内容：_FEST_TIP ~35 条节日文案池+dailyFest/hl-festival/_festivalBand 三处挂点；节日词表补女神节/万圣夜/破五/人日/填仓/618/双十二/黑五(NTH+别名表)；时令补寒食(清明-1)/入伏(夏至后3庚)/数九·X九；节气日 festival 行去重(term 横幅已报到)；日卡补 lunar 字段(农历月日·干支日)；判词首句池 5 行×2 变体+关系事实先行；宜忌古词白名单补狩猎/田猎/破屋坏垣/筑堤/行丧/出官/求名/平整；月相句双轮换+新月/满月挂许愿瓶 action 钮；明日预告节日前置钩；3-8 显「妇女节·女神节」并列。
+- R3312 五行幸运：P0 energy_card helper 恒取生我者 → 旺盘改取泄我者(strong 命中时)+helper_role 透出+卡面「顺一顺/补一补」换向+basis 动态；P1 日卡「开运色（今日通版）」vs 命盘「幸运色（本命）」双口径标注、「本命时段（长期参考）」标注、幸运数改河图数(与能量卡同祖,弃 %9 滚动器)；P2 海报色点键放宽开运色、HETU 土=5·10、lucky 进 chat facts、_WX_KE_LY 合并 bazi_calc.KE 单源。P2-5 五处色表收敛→记账有意不跟(表语义各异:粉/灰等海报专有,合并=名不副实)。
+- 闸门钉：probe_ui_smoke NO_CASE +dailyMoon 豁免；selftest 383/契约 722/UI 冒烟 101/海报 9 视图等 15 道全绿；sw.js bump b4660a42f291。

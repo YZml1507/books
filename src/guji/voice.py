@@ -242,7 +242,8 @@ RELATION_WARM: dict[str, str] = {
 # 锚点在 M2 钉死进 web/baselines/xingzuo_fixture.json 并逐条断言命中 corpus。
 # ---------------------------------------------------------------------------
 HETU_NUMBERS: dict[str, tuple[int, int]] = {
-    "水": (1, 6), "火": (2, 7), "木": (3, 8), "金": (4, 9), "土": (5, 0),
+    # R3314（R3312-P2-7）：土=5·10，此前以 0 代 10，卡面裸显「幸运数字 5·0」。
+    "水": (1, 6), "火": (2, 7), "木": (3, 8), "金": (4, 9), "土": (5, 10),
 }
 
 ELEMENT_COLORS: dict[str, tuple[str, ...]] = {
@@ -416,20 +417,26 @@ def energy_card(day_master: str, calc: dict) -> dict:
 
     规则（全部写死，可复验）：
       * 本命元素 = 日主天干的五行
-      * 幸运数字 = 「生日主之行」的河图数（如日主土 → 生土者为火 → 2·7）
-      * 幸运色   = 同一"生我"之行的五行配色
+      * 幸运数字 = 「助益行」的河图数（默认生我者；本命行已旺时换泄我者）
+      * 幸运色   = 同一助益行的五行配色
       * 幸运时段 = 该行对应的地支时辰
     取"生我者"而非"我本身"：这是补益方向，与 interpreter 的缺行提示同源
-    （`ELEMENT_GENERATES`），不是新发明的规则。
+    （`ELEMENT_GENERATES`），不是新发明的规则。R3314：本命行已在
+    strong 时生我=旺上加旺，改取泄我者（`ELEMENT_GENERATES` 正向）。
     """
     mine = _day_element(day_master)
-    helper = ELEMENT_GENERATED_BY.get(mine, mine)   # 生我者
+    fe = calc.get("five_elements") or {}
+    # R3314（R3312-P0）：helper 恒取「生我者」在旺盘反指——本命行已在
+    # strong（土偏旺）时再荐生源（火）是旺上加旺，与同卡「缺水」判词
+    # 互殴。本命旺 → 改取「泄我者」（我生之行，把旺气匀出去）；
+    # 其余仍取「生我者」（补益方向，原口径）。
+    _drained = mine in set(fe.get("strong") or [])
+    helper = (ELEMENT_GENERATES.get(mine, mine) if _drained
+              else ELEMENT_GENERATED_BY.get(mine, mine))
     nums = HETU_NUMBERS.get(helper, ())
     colors = ELEMENT_COLORS.get(helper, ())
     hours = [f"{z}时（{ZHI_HOURS[z]}）"
              for z, e in ZHI_ELEMENT.items() if e == helper]
-
-    fe = calc.get("five_elements") or {}
     keywords: list[str] = []
     for s in (fe.get("strong") or [])[:1]:
         keywords.append(f"{ELEMENT_WARM.get(s, ('', ''))[0]}偏多")
@@ -446,6 +453,8 @@ def energy_card(day_master: str, calc: dict) -> dict:
         "element_warm": ELEMENT_WARM.get(mine, ("", ""))[0],
         "element_note": ELEMENT_WARM.get(mine, ("", ""))[1],
         "helper_element": helper,
+        # R3314：泄/补方向透出——旺盘是「顺一顺」不是「补一补」。
+        "helper_role": "泄" if _drained else "补",
         "lucky_numbers": list(nums),
         "lucky_colors": list(colors),
         "lucky_hours": hours,
@@ -453,7 +462,8 @@ def energy_card(day_master: str, calc: dict) -> dict:
         # 判据 10：规则出处（M2 钉死锚点后由 xingzuo fixture 提供逐字引文）
         "basis": [
             f"本命元素 = 日主{day_master}的五行（calc.ten_gods 日干）",
-            f"幸运数字 = 河图数「{helper}」（生{mine}者）",
+            f"幸运数字 = 河图数「{helper}」"
+            f"（{'泄' if _drained else '生'}{mine}者）",
             f"幸运色 = 五行配色「{helper}」",
         ],
     }
@@ -875,7 +885,9 @@ _SCENE_RE = [(_re_lq.compile(k), v, note, cat)
 # R3100（specs/010 判词层）：用神/应爻×世爻五行生克→传统口径倾向行。
 # 只报「那股劲的方向」不下吉凶断言（G7 红线内）——用户要的是
 # 「照卦面看顺不顺」，不是「磨合一类」的虚词。
-_WX_KE_LY = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+# R3314（R3312-P2-9）：五行相克表与 bazi_calc.KE 同值存两份会漂——
+# 合并单源，bazi_calc 为准。
+from guji.bazi_calc import KE as _WX_KE_LY  # noqa: E402
 
 # R3143（specs/014-L2）：地支六冲——用神支的逢值（同支日）与逢冲
 # （对冲支日）是六爻传统断法里最常用的两条应期口径。

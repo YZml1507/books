@@ -499,6 +499,13 @@ def main() -> int:
                      "同 shareBazi 族；手验已覆盖",
         "mercBreathe": "水逆急救包「慢三秒」呼吸钮——纯本地 setTimeout"
                        "动画，零请求；仅在 mercury.on 时生成",
+        # R3314（R3311-低）：月相行许愿瓶钩——dailyMoon 粒是动态
+        # 生成+仅农历初一/十五窗口有按钮的容器委托（.daily-moon-go
+        # 子钮做 .ck-wish open + scrollIntoView），零请求；与
+        # mercBreathe 同型豁免。
+        "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
+                     "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
+                     "与 mercBreathe 同型豁免",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

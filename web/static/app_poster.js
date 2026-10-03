@@ -404,7 +404,9 @@ function _paintSharePoster(s, W, H) {
       ctx.fillText(_vv, _kx, _rowInline ? y : y + 52);
       /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
        * share 模板只印字。文字照画，色块排在值右侧。 */
-      if (r.k === '幸运色') {
+      /* R3314（R3312-P2-6）：护身符海报行键是「开运色」——原只认
+       * 「幸运色」，色点永不画。放宽两键。 */
+      if (r.k === '幸运色' || r.k === '开运色') {
         var _cmap = { 红: '#C0392B', 紫: '#8E44AD', 黄: '#D4AC0D',
           棕: '#8D6E63', 黑: '#2C3E50', 蓝: '#2874A6', 青: '#148F77',
           绿: '#27AE60', 白: '#F2F3F4', 金: '#B7950B', 粉: '#FF8FAB',
@@ -1353,11 +1355,14 @@ function buildShareData(view, j) {
     case 'weekly': {
       /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */
       var _wk = base('小满周报', _cnDateSub(todayIso()));
-      _wk.big = '这周见了 ' + (_pStr(j && j.visitDays) || '0') + ' 次';
+      /* R3314：usage:d:* 按天计数，海报同口径改「天」。 */
+      _wk.big = '这周小满陪了你 ' + (_pStr(j && j.visitDays) || '0') + ' 天';
       /* R3304（审-P3）：「—」裸破折号挂白卡太冷——换兜底文案。 */
       _wk.lines = [
         { k: '主心情', v: _pStr(j && j.moodMain) || '这周心情还没记' },
         { k: '常问', v: _pStr(j && j.topView) || '还没怎么聊' },
+        /* R3314（R3314-journal）：小记篇数上卡——写下的事该被看见。 */
+        { k: '写小记', v: (_pStr(j && j.journalCount) || '0') + ' 篇' },
         { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' }];
       return _wk;
     }
