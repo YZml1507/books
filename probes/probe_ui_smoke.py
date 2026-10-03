@@ -403,6 +403,18 @@ def main() -> int:
         # R3317：开运壁纸——canvas 合成 + showPosterModal 预览，同族豁免。
         "dailyWap": "开运壁纸生成——canvas 合成+海报模态预览，"
                     "同 shareDaily 族豁免",
+        # R3325-B：开运头像——同一下载链路的 square 变体，豁免同族。
+        "dailyAva": "开运头像 1:1——downloadWallpaper square 变体，"
+                    "canvas 合成+海报模态，同 dailyWap 族豁免",
+        # R3325：.ics 日历提醒——Blob 下载微交互，零请求；系统日历接管。
+        "dailyIcs": "日历提醒 .ics 下载——纯本地 Blob+click，零请求",
+        # R3325：穿搭卡分享海报——downloadPoster('daily-outfit') 同族豁免。
+        "outfitShare": "今日穿搭分享图——downloadPoster 海报模态，同族豁免",
+        # R3325-D：写给未来的信——写信弹层关闭/寄出钮。
+        "flClose": "未来信弹层关闭钮——本地 remove 零请求",
+        "flSend": "未来信寄出钮——localStorage futureLetters 写入零请求",
+        # R3325-C：大众占卜分享钮——动态生成、clipboard 微交互。
+        "pileShare": "大众占卜「分享我这堆」——动态生成+clipboard 零请求",
         # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
         # 零请求；_dayPick 确定性已由单测级逻辑保证。
         "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",

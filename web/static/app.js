@@ -5716,6 +5716,37 @@ async function loadDaily() {
         (j.lucky.color_word
           ? '<span class="daily-lucky-word">' + esc(j.lucky.color_word) + '</span>' : ''));
     } else { _dailyMetaItem('dailyLucky', ''); }
+    /* R3325：今日穿搭——五行穿衣五档（大吉/次吉/平/慎用/忌），
+     * details 展开见五档色签+一句穿法+存图钮；无数据静默缺席。 */
+    if (j.outfit && j.outfit.tiers && j.outfit.tiers.length) {
+      var _ofRows = j.outfit.tiers.map(function (t) {
+        return '<div class="outfit-row">' +
+          '<i class="outfit-dot" style="background:' + esc(t.hex) + '"></i>' +
+          '<b class="outfit-tag">' + esc(t.tag) + '</b>' +
+          '<span class="outfit-colors">' + esc(t.colors) + '</span>' +
+          '<span class="outfit-tip">' + esc(t.tip) + '</span></div>';
+      }).join('');
+      _dailyMetaItem('dailyOutfit',
+        '<details class="outfit-kit"><summary>👗 今日穿搭 · ' +
+        esc(j.outfit.wx || '') + '日 · 大吉 ' +
+        esc(j.outfit.tiers[0].colors) + '</summary>' +
+        '<div class="outfit-body">' + _ofRows +
+        '<button type="button" id="outfitShare" class="outfit-share">' +
+        '📸 存穿搭图</button>' +
+        '<p class="outfit-note">按今天天干五行算，通版参考</p>' +
+        '</div></details>');
+      var _ofs = el('outfitShare');
+      if (_ofs && !_ofs.dataset.bound) {
+        _ofs.dataset.bound = '1';
+        _ofs.addEventListener('click', function () {
+          if (window.__lastDaily) {
+            return downloadPoster(window.__lastDaily, 'daily-outfit');
+          }
+          showToast('今日运势还没出来，等它算好再存图～', 'warn');
+          return null;
+        });
+      }
+    } else { _dailyMetaItem('dailyOutfit', ''); }
     /* R3261（R12）：财神方位——日干查表的确定性坐标（与黄历页同源），
      * 给「搞钱」人群一个每日小落点。无数据静默缺席。 */
     if (_pStr(j.money_dir)) {
@@ -7942,6 +7973,7 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   'checkin-month': 'warm',
   /* R2349d：日签/黄历海报走薄荷山月——高频分享面多一层色系新鲜度。 */
   daily: 'mint', huangli: 'mint', liuyao: 'celadon', dream: 'dream',
+  'daily-outfit': 'mint',
   bandaid: 'dream', lucky: 'warm', weekly: 'lilac',
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -12251,6 +12283,126 @@ function initDivination() {
     return doTarot();
   });
   on('trQPick', function () { return _trPickOpen(); });
+  /* R3325：大众占卜 pick-a-pile——事业/感情/财运三主题，各 3 堆，
+   * seed=日期+主题+堆位（同日同堆同牌，可晒同款）；一堆一天定，
+   * 选完存 localStorage（换主题互不影响）。 */
+  var _PILE_TOPICS = { career: '事业', love: '感情', money: '财运' };
+  var _pileTopic = null;
+  /* pilePick:YYYY-MM-DD = {topic:{i,d,r}}——日期尾缀吃既有
+   * 150 天 GC 与备份前缀管道。 */
+  function _pileKey() { return 'pilePick:' + todayIso(); }
+  function _pileSeed(topic, idx) {
+    var s = 'pile|' + todayIso() + '|' + topic + '|' + idx, h = 0;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function _pileAll() {
+    try {
+      var v = JSON.parse(localStorage.getItem(_pileKey()) || 'null');
+      return (v && typeof v === 'object') ? v : {};
+    } catch (eP) { return {}; }
+  }
+  function _pileGet(topic) {
+    var v = _pileAll()[topic];
+    return (v && typeof v.i === 'number' && v.d) ? v : null;
+  }
+  function _pileSet(topic, val) {
+    try {
+      var v = _pileAll();
+      v[topic] = val;
+      localStorage.setItem(_pileKey(), JSON.stringify(v));
+    } catch (eP2) {}
+  }
+  function _pileRender(topic) {
+    document.querySelectorAll('.pile-topic').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.ptopic === topic);
+    });
+    var row = el('pileRow'), hint = el('pileHint'), res = el('pileResult');
+    if (row) row.hidden = false;
+    if (hint) hint.hidden = false;
+    var got = _pileGet(topic);
+    document.querySelectorAll('.pile-card').forEach(function (c) {
+      var idx = +c.dataset.pile;
+      c.classList.toggle('picked', !!(got && got.i === idx));
+      c.classList.toggle('dimmed', !!(got && got.i !== idx));
+      c.disabled = !!got;
+      var im = c.querySelector('img');
+      if (got && got.i === idx && got.d && got.d.name) {
+        var f = tarotImg(got.d.name);
+        if (im && f) {
+          im.src = f; im.alt = got.d.name;
+          if (!got.d.upright) im.classList.add('is-reversed');
+          c.classList.add('revealed');
+        }
+      } else if (im) {
+        im.src = '/static/tarot/card-back.jpg'; im.alt = '';
+        im.classList.remove('is-reversed');
+        c.classList.remove('revealed');
+      }
+    });
+    if (res) {
+      if (got && got.d) {
+        var d = got.d;
+        res.hidden = false;
+        res.innerHTML = '<div class="pile-cardline"><b>' +
+          '你选了 ' + 'ABC'[got.i] + ' 堆 · ' + esc(d.name) + '</b>' +
+          '<span>' + (d.upright ? '正位' : '逆位') + ' · ' +
+          esc(d.upright ? (d.upright_kw || '') : (d.reversed_kw || '')) +
+          '</span></div>' +
+          (got.r ? '<p class="pile-read">' + esc(got.r) + '</p>' : '') +
+          '<button type="button" class="ghost pile-share" id="pileShare">' +
+          '📤 分享我这堆</button>';
+        var ps = el('pileShare');
+        if (ps && !ps.dataset.bound) {
+          ps.dataset.bound = '1';
+          ps.addEventListener('click', function () {
+            var t = '今日' + _PILE_TOPICS[topic] + ' · 我抽中「' +
+              (got.d.name || '') + '」' + (got.d.upright ? '正位' : '逆位') +
+              '：' + (got.d.upright ? got.d.upright_kw : got.d.reversed_kw) +
+              ' —— 小满的解忧铺';
+            try {
+              navigator.clipboard.writeText(t).then(function () {
+                showToast('牌面文案已复制，发出去喊朋友也来选一堆', 'ok');
+              }, function () { showToast('复制失败，长按手动复制', 'warn'); });
+            } catch (eC2) { showToast('长按手动复制', 'info'); }
+          });
+        }
+      } else { res.hidden = true; res.innerHTML = ''; }
+    }
+  }
+  document.querySelectorAll('.pile-topic').forEach(function (b) {
+    b.addEventListener('click', function () {
+      _pileTopic = b.dataset.ptopic;
+      _pileRender(_pileTopic);
+    });
+  });
+  document.querySelectorAll('.pile-card').forEach(function (pc) {
+    pc.addEventListener('click', function () {
+      if (!_pileTopic || _pileGet(_pileTopic)) return;
+      var idx = +pc.dataset.pile;
+      pc.classList.add('busy');
+      api('/api/tarot/draw', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seed: _pileSeed(_pileTopic, idx), n: 1,
+                               question: _PILE_TOPICS[_pileTopic],
+                               client_date: todayIso() }) })
+        .then(function (tj) {
+          var d = tj && tj.card;
+          if (!d || !d.name) { showToast('这堆没翻开，再点一次', 'warn'); return; }
+          var _rl = '';
+          try {
+            var _rp = (tj.warm && tj.warm.reply) || [];
+            _rl = (Array.isArray(_rp) ? _rp : [_rp]).filter(Boolean)[0] || '';
+          } catch (eR2) {}
+          _pileSet(_pileTopic, { i: idx, d: d, r: _rl });
+          _pileRender(_pileTopic);
+        })
+        .catch(function (eT) {
+          showToast('这堆没翻开：' + (eT && eT.message || '网不稳'), 'warn');
+        })
+        .finally(function () { pc.classList.remove('busy'); });
+    });
+  });
   /* R2350k：自己抽——牌扇开合 + 点选委托 + 成局。 */
   on('trPickBtn', _trPickOpen);
   on('trPickGo', _trPickGo);
@@ -12611,6 +12763,61 @@ function initDivination() {
     _wapLast = _nw;
     if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
+    return null;
+  });
+  /* R3325-B：开运头像——同日同图的 1:1 版（社交头像用），
+   * 与壁纸同节流（共用 _wapLast 即可，两钮互斥连点）。 */
+  on('dailyAva', function () {
+    var _nw2 = Date.now();
+    if (_nw2 - _wapLast < 2000) return null;
+    _wapLast = _nw2;
+    if (window.__lastDaily) {
+      return downloadWallpaper(window.__lastDaily, { square: true });
+    }
+    showToast('今日运势还没出来，等它算好再做头像～', 'warn');
+    return null;
+  });
+  /* R3325：提醒我明天再来——.ics 文件下载（每日准点喊你，30 天，
+   * 钟点沿用 notify:time 里存过的）。系统日历接管提醒，
+   * 不烧 Notification 权限、不靠 SW 活着。 */
+  on('dailyIcs', function () {
+    var hm = '21:00';
+    try {
+      var _nt = localStorage.getItem('notify:time');
+      if (_nt && /^\d{2}:\d{2}$/.test(_nt)) hm = _nt;
+    } catch (eNT) {}
+    var _st = new Date();
+    _st.setDate(_st.getDate() + 1);
+    var _h2 = hm.split(':');
+    _st.setHours(+_h2[0], +_h2[1], 0, 0);
+    var _pd = function (n) { return ('0' + n).slice(-2); };
+    var _dt = _st.getFullYear() + _pd(_st.getMonth() + 1) +
+      _pd(_st.getDate()) + 'T' + _pd(_st.getHours()) +
+      _pd(_st.getMinutes()) + '00';
+    var _ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//xiaoman//books//CN',
+      'BEGIN:VEVENT',
+      'UID:xiaoman-daily-' + _dt + '@books',
+      'DTSTAMP:' + _dt,
+      'DTSTART:' + _dt,
+      'RRULE:FREQ=DAILY;COUNT=30',
+      'SUMMARY:小满喊你来领今日签',
+      'DESCRIPTION:今天的运势和开运色更新啦，来看看小满给你留了什么话～',
+      'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    try {
+      var _bb = new Blob([_ics], { type: 'text/calendar;charset=utf-8' });
+      var _aa = document.createElement('a');
+      _aa.href = URL.createObjectURL(_bb);
+      _aa.download = 'xiaoman-remind.ics';
+      document.body.appendChild(_aa);
+      _aa.click();
+      setTimeout(function () { URL.revokeObjectURL(_aa.href); _aa.remove(); }, 800);
+      showToast('存进日历后，接下来 30 天每天 ' + hm +
+        ' 喊你来领签', 'ok');
+    } catch (eIC) {
+      showToast('这台设备下载不了日历文件', 'warn');
+    }
     return null;
   });
   /* R3264（R32）：今日仪式——点击即本地记录，不打卡不断签。 */
@@ -13496,7 +13703,7 @@ function init() {
        * mood:dream:/weeklyLetter: 永不回收（mood ~365键/年）。
        * 兜底并入同一族清单（与 15271 打卡段 _fam 同口径）。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|monthlyLetter:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|monthlyLetter:|pilePick:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -14665,6 +14872,67 @@ function _checkinAll() {
   } catch (e) {}
   return set;
 }
+/* R3325-D：写给未来的自己——写信弹层。送达日三档：一个月后/
+ * 下个生日（有档案）/一年后；存 futureLetters，到日在打卡区浮出。 */
+function _flWriteOpen() {
+  var old = document.getElementById('flModal');
+  if (old) old.remove();
+  var bd = document.createElement('div');
+  bd.id = 'flModal';
+  bd.className = 'poster-modal-backdrop open';
+  var bday = '', ny = new Date();
+  try {
+    var pj = _meGet('me');
+    if (pj && pj.m && pj.d) {
+      var mm = ('0' + pj.m).slice(-2) + '-' + ('0' + pj.d).slice(-2);
+      var cand = ny.getFullYear() + '-' + mm;
+      if (cand <= todayIso()) cand = (ny.getFullYear() + 1) + '-' + mm;
+      bday = cand;
+    }
+  } catch (ePB) {}
+  bd.innerHTML = '<div class="poster-modal fl-modal" role="dialog" ' +
+    'aria-modal="true" aria-label="写给未来的自己">' +
+    '<div class="poster-modal-head"><span class="poster-modal-title">' +
+    '✉️ 写给未来的自己</span>' +
+    '<button type="button" class="poster-modal-close" id="flClose" ' +
+    'aria-label="关闭">×</button></div>' +
+    '<textarea id="flText" rows="5" maxlength="500" ' +
+    'placeholder="写给以后的你——愿望、叮嘱、现在的心情都行…"></textarea>' +
+    '<div class="fl-row"><label for="flWhen">什么时候送到：</label>' +
+    '<select id="flWhen">' +
+    '<option value="' + _isoShift(todayIso(), 30) + '">一个月后</option>' +
+    (bday ? '<option value="' + bday + '">下个生日（' + bday + '）</option>' : '') +
+    '<option value="' + _isoShift(todayIso(), 365) + '">一年后</option>' +
+    '</select></div>' +
+    '<button type="button" class="btn primary fl-send" id="flSend">' +
+    '封好，寄出去</button>' +
+    '<p class="fl-note">信只存在你这台设备上，小满也偷看不了。</p></div>';
+  document.body.appendChild(bd);
+  var close = function () { bd.remove(); };
+  bd.addEventListener('click', function (e) {
+    if (e.target === bd) close();
+  });
+  el('flClose').addEventListener('click', close);
+  el('flSend').addEventListener('click', function () {
+    var txt = (el('flText').value || '').trim();
+    if (!txt) { showToast('信里写点什么再封吧', 'warn'); return; }
+    var lt = { id: 'fl' + Date.now(), text: txt,
+               deliver: el('flWhen').value, created: todayIso(),
+               opened: false };
+    try {
+      var lst = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+      if (!Array.isArray(lst)) lst = [];
+      lst.push(lt);
+      localStorage.setItem('futureLetters', JSON.stringify(lst));
+    } catch (eFS) {}
+    close();
+    showToast('信寄出啦，' + lt.deliver + ' 那天会送回来', 'ok');
+    renderCheckin(todayIso());
+  });
+  var t = el('flText');
+  if (t) t.focus();
+}
+
 function _isoShift(dateKey, n) {
   var d = new Date(dateKey + 'T00:00:00');
   d.setDate(d.getDate() + n);
@@ -15355,7 +15623,38 @@ function renderCheckin(dateKey) {
       }
     }
   } catch (eML) {}
-  box.innerHTML = _wlHtml + _mlHtml + '<div class="checkin-q" id="checkinQ">' +
+  /* R3325-D：写给未来的信——本地留存（futureLetters JSON 数组，
+   * 清盘不丢）；到日信卡浮出，与周/月信同版式。 */
+  var _flHtml = '';
+  try {
+    var _flList = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+    if (!Array.isArray(_flList)) _flList = [];
+    _flList.forEach(function (lt) {
+      if (lt && !lt.opened && lt.deliver && lt.deliver <= dateKey) {
+        lt._due = true;
+      }
+    });
+    var _flDue = _flList.filter(function (lt) { return lt._due; });
+    var _flPend = _flList.filter(function (lt) {
+      return lt && !lt.opened && !lt._due; });
+    _flDue.forEach(function (lt, _fi) {
+      _flHtml += '<div class="weekly-letter fl-letter" data-flid="' +
+        esc(lt.id) + '"><div class="wl-head">✉️ 过去的你写来的信' +
+        '<button type="button" class="wl-x fl-open" data-flid="' +
+        esc(lt.id) + '" aria-label="收下了">×</button></div>' +
+        '<div class="wl-body">' + esc(lt.text) +
+        '<div class="fl-meta">' + esc(lt.created || '') +
+        ' 写下的 · 今天送达</div></div></div>';
+    });
+    _flHtml += '<div class="fl-entry">' +
+      '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
+      (_flPend.length
+        ? '<span class="fl-pend">' + _flPend.length + ' 封在路上的信 · ' +
+          '最近 ' + esc(_flPend.map(function (l) { return l.deliver; })
+            .sort()[0] || '') + ' 到</span>'
+        : '') + '</div>';
+  } catch (eFL) {}
+  box.innerHTML = _wlHtml + _mlHtml + _flHtml + '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
                   /* R3249c（A3）：问句从「哪张签」改成「想要什么」——
@@ -15481,6 +15780,29 @@ function renderCheckin(dateKey) {
         if (_fm && _fm.focus) _fm.focus();
       } catch (eFM) {}
     });
+  }
+  /* R3325-D：未来信收下——标记 opened 不再浮出；写信入口开弹层。 */
+  box.querySelectorAll('.fl-open').forEach(function (btn) {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', function () {
+      try {
+        var lst = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+        lst.forEach(function (lt) {
+          if (lt && String(lt.id) === btn.dataset.flid) lt.opened = true;
+        });
+        localStorage.setItem('futureLetters', JSON.stringify(lst));
+      } catch (eFO) {}
+      var card = box.querySelector('.fl-letter[data-flid="' +
+        btn.dataset.flid + '"]');
+      if (card) card.remove();
+      showToast('信替你收好，过去的你很欣慰', 'ok');
+    });
+  });
+  var _flw = box.querySelector('#flWrite');
+  if (_flw && !_flw.dataset.bound) {
+    _flw.dataset.bound = '1';
+    _flw.addEventListener('click', _flWriteOpen);
   }
   var _alb = box.querySelector('.ck-album');
   if (_alb && !_alb.dataset.bound) {
@@ -15702,7 +16024,8 @@ function renderCheckin(dateKey) {
           var _fam = null;
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
-             'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:'].forEach(function (_p) {
+             'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:',
+             'pilePick:'].forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
@@ -17488,6 +17811,8 @@ function baziPersonaCard(j) {
         var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
                      'mood:', 'moodlv:', 'rlast:', 'usage:', 'ritual:',
                      'journal:',
+                     /* R3325：大众占卜每日选堆 */
+                     'pilePick:',
                      /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
                      'moodjar:',
                      /* R3264（R52）：古籍阅读进度记忆 */
@@ -17501,7 +17826,7 @@ function baziPersonaCard(j) {
                       'installTipDismissed', 'ret_tip', 'wishbottle',
                       'chat:topics', 'chat:cards', 'remind:1',
                       'chat:events', 'mood:lv', 'notify:time',
-                      'returnBannerDismissed'];
+                      'returnBannerDismissed', 'futureLetters'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -17660,7 +17985,10 @@ function baziPersonaCard(j) {
                 /* R3264（R52）：古籍阅读进度记忆 */
                 k.indexOf('read:scroll:') === 0 ||
                 k.indexOf('usage:') === 0 ||
-                k.indexOf('rlast:') === 0)) _rm.push(k);
+                k.indexOf('rlast:') === 0 ||
+                /* R3325：未来信+每日选堆也是个人足迹 */
+                k === 'futureLetters' ||
+                k.indexOf('pilePick:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*

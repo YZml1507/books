@@ -722,7 +722,8 @@ function _posterHookForView(view, j) {
     'huangli': null,  /* R2350a（R94-P1-3）：写死「今天」是错话——下方按日词给 */
     'birth':  '这张小卡是你的底色',
     /* R3318（审-P3-1）：开运壁纸此前落通用兜底——给一句壁纸语境钩。 */
-    'daily-wap': '今日开运壁纸，换上就有好心情'
+    'daily-wap': '今日开运壁纸，换上就有好心情',
+    'daily-outfit': '穿对颜色，今天顺一半'
   };
   if (view === 'huangli' && hooks[view] == null) {
     /* 黄历页脚跟卡面日：今天→「今天」；其他→日词 */
@@ -844,6 +845,24 @@ function buildShareData(view, j) {
         }
       } catch (eDC) {}
       return _ds;
+    }
+    case 'daily-outfit': {
+      /* R3325：五行穿搭五档——色圆点用 lines 的 v 内联不了图，
+       * tier 色落成「tag：colors」行，大吉行加 ★。 */
+      var _of = (j && j.outfit) || {};
+      var _oTiers = _pArr(_of.tiers);
+      var _os = base('今日穿搭',
+        _cnDateSub(_pStr(j && j.date)) +
+          (_of.wx ? ' · ' + _of.wx + '日' : ''));
+      _os.big = '穿对颜色，今天顺一半';
+      _os.lines = _oTiers.map(function (t, i) {
+        return { k: _pStr(t.tag) + (i === 0 ? ' ★' : ''),
+                 v: _pStr(t.colors) + ' · ' + _pStr(t.tip) };
+      });
+      if (!_os.lines.length) {
+        _os.lines = [{ k: '大吉', v: '穿件亮色，提提气' }];
+      }
+      return _os;
     }
     case 'tarot': {
       var draws = _pArr(j && j.draws);

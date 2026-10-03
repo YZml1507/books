@@ -2481,6 +2481,44 @@ def _lucky_for(d: date) -> dict:
     return out
 
 
+# R3325：今日穿搭——五行穿衣主流行法（以当日天干五行为基准）。
+# 大吉=生我（贵人色）、次吉=同我、平=我克（招财色）、慎用=我生（泄）、
+# 忌=克我。确定性派生，随日卡缓存同口径。
+_WX_SHENG = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
+_WX_GEN_BY = {_v: _k for _k, _v in _WX_SHENG.items()}
+_WX_KE = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+_WX_KE_BY = {_v: _k for _k, _v in _WX_KE.items()}
+_WX_COLORS = {"木": "青·绿·翠", "火": "红·粉·紫", "土": "黄·棕·咖",
+              "金": "白·金·银", "水": "黑·蓝·灰"}
+_WX_HEX = {"木": "#6FAD8A", "火": "#D96A5F", "土": "#D9B36C",
+           "金": "#E8E2D4", "水": "#5E7FA0"}
+
+
+def _outfit_for(d: date) -> dict:
+    """当日五行穿搭五档：大吉贵人/次吉幸运/平招财/慎用消耗/忌。
+    全部确定性派生（同一天同值，可复验）。"""
+    try:
+        _gz, _idx = _bazi_day_ganzhi(datetime(d.year, d.month, d.day, 12))
+        wx = GAN_ELEM.get(_gz[0], "")
+        if not wx:
+            return {}
+        def _tier(tag, el, tip):
+            return {"tag": tag, "wx": el, "colors": _WX_COLORS[el],
+                    "hex": _WX_HEX[el], "tip": tip}
+        return {
+            "wx": wx,
+            "tiers": [
+                _tier("大吉", _WX_GEN_BY[wx], "贵人色：今天的主推，穿上省力"),
+                _tier("次吉", wx, "幸运色：和今天同气，合作顺利"),
+                _tier("平", _WX_KE[wx], "招财色：要主动点才见效"),
+                _tier("慎用", _WX_SHENG[wx], "消耗色：当点缀就好，别主穿"),
+                _tier("忌", _WX_KE_BY[wx], "不利色：今天先收进衣柜"),
+            ],
+        }
+    except Exception:
+        return {}
+
+
 def _daily_lunar_str(d: date) -> str:
     """日卡农历锚行「农历八月廿三 · 庚戌日」。
     R3318（审-P1-2）：month_cn 已含「闰」前缀和「月」后缀——
@@ -4912,6 +4950,8 @@ def daily(date_str: str | None = None,
             # R2349l（R73-P1-4/P2-9）：开运三件套+水逆态——全是当日
             # 干支/历表的确定性派生，随缓存同口径存取。
             "lucky": _lucky_for(d),
+            # R3325：五行穿搭五档——玄学×穿搭交叉垂类（调研证实）
+            "outfit": _outfit_for(d),
             # R3261（R12）：财神方位——日干查表确定性坐标，给「搞钱」
             # 人群一个每日可看的落点（调研：财运诉求 74.9%）。
             "money_dir": huangli_mod.caishen_fang(
@@ -4956,6 +4996,7 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "lunar": "",
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
+                "outfit": {},
                 "daily_card": {},
                 "term": {}}
 

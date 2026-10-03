@@ -53,24 +53,36 @@ function _wapWrap(ctx, text, maxW, maxLines) {
 }
 
 function _wapComposite(j, bg, variant) {
+  /* R3325-B：variant.square → 1:1 开运头像（720×720，底图中裁，
+   * 版心下移适配圆裁展示）。 */
+  var _sq = !!(variant && variant.square);
   var cv = document.createElement('canvas');
-  cv.width = 720; cv.height = 1280;
+  cv.width = 720; cv.height = _sq ? 720 : 1280;
   var ctx = cv.getContext('2d');
-  /* 底图 cover */
-  ctx.drawImage(bg, 0, 0, 720, 1280);
+  /* 底图 cover（方形从 1280 高中裁 720） */
+  if (_sq) ctx.drawImage(bg, 0, 280, 720, 720, 0, 0, 720, 720);
+  else ctx.drawImage(bg, 0, 0, 720, 1280);
+  /* 方形版重定描点 */
+  var A = _sq ? { shop: 64, date: 116, verdict: 330, lucky: 430,
+                  sign: 560, signGap: 46, brand: 692,
+                  scrimT: 300, scrimB0: 470, scrimB1: 720 }
+              : { shop: 96, date: 158, verdict: 300, lucky: 380,
+                  sign: 1120, signGap: 52, brand: 1242,
+                  scrimT: 470, scrimB0: 1000, scrimB1: 1280 };
   /* 上下暗角——叠字可读的 scrim（烘焙图上半本来就留净空，这里
    * 只是再压一层保证任何图的日期锚都可读）。 */
   /* R3318（审-P1-3）：渐隐原止于 y=430，开运色签行（y≈368-380）
    * 正落在尾巴上——浅底图洗到近不可读。强掩到 400 再缓出到 470。 */
-  var g1 = ctx.createLinearGradient(0, 0, 0, 470);
+  var g1 = ctx.createLinearGradient(0, 0, 0, A.scrimT);
   g1.addColorStop(0, 'rgba(38,30,22,0.62)');
   g1.addColorStop(0.78, 'rgba(38,30,22,0.42)');
   g1.addColorStop(1, 'rgba(38,30,22,0)');
-  ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, 470);
-  var g2 = ctx.createLinearGradient(0, 1000, 0, 1280);
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, A.scrimT);
+  var g2 = ctx.createLinearGradient(0, A.scrimB0, 0, A.scrimB1);
   g2.addColorStop(0, 'rgba(38,30,22,0)');
   g2.addColorStop(1, 'rgba(38,30,22,0.68)');
-  ctx.fillStyle = g2; ctx.fillRect(0, 1000, 720, 280);
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, A.scrimB0, 720, A.scrimB1 - A.scrimB0);
 
   var _mine = (j && j.personal && j.personal.mine) || {};
   var _lv = _mine.verdict && _mine.verdict !== '无冲无合'
@@ -82,7 +94,7 @@ function _wapComposite(j, bg, variant) {
   /* 顶区：「小满的解忧铺」店招 + 日期锚（月日周+农历） */
   ctx.fillStyle = 'rgba(255,246,232,0.92)';
   ctx.font = '600 30px "LXGW WenKai","PingFang SC",sans-serif';
-  ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+  ctx.fillText('小 满 的 解 忧 铺', 360, A.shop);
   var _wd = '', _ln2 = '';
   try {
     var _dd = new Date(String(j.date || '') + 'T00:00:00');
@@ -96,14 +108,15 @@ function _wapComposite(j, bg, variant) {
   ctx.font = '400 34px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.95)';
   ctx.fillText((_wd || String(j.date || '')) + (_ln2 ? ' · ' + _ln2 : ''),
-               360, 158);
+               360, A.date);
 
   /* 判词大字 */
-  ctx.font = '600 108px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.font = '600 ' + (_sq ? 96 : 108) +
+    'px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = _tint;
   ctx.shadowColor = 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = 18; ctx.shadowOffsetY = 4;
-  ctx.fillText(String(_lv).slice(0, 6), 360, 300);
+  ctx.fillText(String(_lv).slice(0, 6), 360, A.verdict);
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
   /* 开运色签：色圆点 + 色名 + 意象词 + 幸运数 */
@@ -118,14 +131,14 @@ function _wapComposite(j, bg, variant) {
     var _tw = ctx.measureText(_lcTxt).width;
     var _cx = 360 - _tw / 2 - 26;
     ctx.beginPath();
-    ctx.arc(_cx, 368 - 10, 16, 0, Math.PI * 2);
+    ctx.arc(_cx, A.lucky - 22, 16, 0, Math.PI * 2);
     ctx.fillStyle = _hex;
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.lineWidth = 2; ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,246,232,0.95)';
-    ctx.fillText(_lcTxt, _cx + 26, 380);
+    ctx.fillText(_lcTxt, _cx + 26, A.lucky);
     ctx.textAlign = 'center';
   }
 
@@ -138,13 +151,14 @@ function _wapComposite(j, bg, variant) {
   ctx.font = '400 36px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.96)';
   var _sl = _wapWrap(ctx, _sign, 560, 2);
-  _sl.forEach(function (ln, i) { ctx.fillText(ln, 360, 1120 + i * 52); });
+  _sl.forEach(function (ln, i) {
+    ctx.fillText(ln, 360, A.sign + i * A.signGap); });
   ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.72)';
   /* R3319（规划C）：连签里程碑限定壁纸——落款带纪念标，
    * 仪式感奖励物可直发晒图。 */
   ctx.fillText((variant && variant.tag) ||
-               '@小满的解忧铺 · 知命·仅供娱乐', 360, 1242);
+               '@小满的解忧铺 · 知命·仅供娱乐', 360, A.brand);
   return cv;
 }
 
@@ -167,8 +181,10 @@ function downloadWallpaper(j, variant) {
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           var _ymd = String(j.date || '').replace(/-/g, '');
-          a.download = '小满-开运壁纸-' + _ymd +
-            ((variant && variant.fname) ? '-' + variant.fname : '') + '.png';
+          a.download = (variant && variant.square)
+            ? '小满-开运头像-' + _ymd + '.png'
+            : '小满-开运壁纸-' + _ymd +
+              ((variant && variant.fname) ? '-' + variant.fname : '') + '.png';
           document.body.appendChild(a);
           try { a.click(); } finally {
             setTimeout(function () {

@@ -17637,3 +17637,25 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - P2 浅色侧连带批：hl-hour-ji 文字 --primary→--primary-ink；hl-pill/hl-pill-ji 字深至 ≥4.5；合婚 h3 干支与 pill 底新增 `--c-bazi-ink/--c-hehun-ink/--c-good-ink` 文字级令牌（装饰色再不当字用）；qm-hint-em/qm-part/tr-flow-chip/cross-dir/warm-badge/checkin-share 逐一压深。
 - P3：daily-level.bad.soft 深档定点回深玫瑰；celeb tier 3/7/14/30 补深色档边；hl-daychip.has-flag 深档 opacity .85；ck-buff 底换 rgba(0,0,0,.35)。
 - 实测通过项确认无回归：深色令牌块、日卡全态、信卡/庆典卡/壁纸浮层/侧栏/toast 全部可读。
+
+## 全网深度调研 → 后续规划（2026-10-03 第二轮 5 块前调研）
+调研源：钛媒体《年轻人玄学消费报告》、民俗学网数字灵媒研究、Co-Star 机制拆解、tideris 五行穿衣、wxbaizi 开运头像、B站/XHS pick-a-card 大众占卜、PWA push 现状。
+关键信号：玄学内容小红书 20 亿+浏览、77.5% 女性；关注项事业 76.5%/财运 74.9%/爱情 49.6%；五行穿搭是玄学×穿搭两大垂类的已验证交叉点（竞品已按当日天干推四档色+存图）；「凭直觉选一组」大众占卜在 B站/小红书是顶流互动形态；Co-Star「写给未来的信」是已被验证的留存钩子；真 Web Push 在 Render 免费档做不了（休眠杀调度），.ics 日历订阅是零成本替代。
+### 新 5 块规划（r1 功能批 → r2-r5 审计清）
+- r1a 五行穿搭卡：当日天干→五行→生旺/次吉/平/避雷四档色+一句穿法+保存图片（复用海报管线）
+- r1b 开运头像：壁纸管线扩 1:1 头像档（喜用神主色+元素），与 9:16 壁纸双尺寸输出
+- r1c 大众占卜「凭直觉选一组」：3 牌堆面朝下，当日种子定组（同组同牌可晒同款），事业/感情/财运三问切换
+- r1d 写给未来的信：选节气/生日/一年后投递，本机留存（清盘不丢），到日弹信——复用信卡版式
+- r1e 「每天提醒我看今日运」：生成 .ics RRULE 日历文件（免服务器、免推送权限）
+- r2-r5：新功能端到端验收/分享物料复扫/留存漏斗/口吻真机轮换（按上轮组合换轴）
+
+## R3325 —— 调研规划落地 r1：五功能批（穿搭/选堆/未来信/日历提醒/开运头像）
+
+按「全网深度调研 → 后续规划」块 r1 落地的五件套，全绿提交：
+
+- **r1a 今日穿搭**（五行穿衣主流口径）：`_outfit_for` 按日干五行出大吉/次吉/平/慎用/忌五色档（生我>同我>我克>我生>克我），daily payload 挂 `outfit` 字段（degrade 键同步）。前端 meta 胶囊 `<details>` 五行色签；海报新视图 `daily-outfit`（mint 底 + 五行档位行）「穿对颜色，今天顺一半」。
+- **r1b 开运头像 1:1**：`app_wallpaper.js` `variant.square`——720×720 中裁版式（版心下压适配圆裁），文件名/下载链与壁纸同构；按钮「🧸 开运头像」共用 2s 节流。
+- **r1c 大众占卜 pick-a-pile**：塔罗视图新增折叠块——事业/感情/财运三主题 × A/B/C 三堆背面牌，`seed=pile|日期|主题|堆位` 确定性（同日同堆同牌可晒同款）；一堆一天定，落 `pilePick:YYYY-MM-DD`（日期尾缀吃 150 天 GC + 备份前缀 + 一键清空）；结果卡带「分享我这堆」剪贴板文案。
+- **r1d 写给未来的信**：`futureLetters` localStorage 数组——写信弹层（一个月后/下个生日有档案才有/一年后），到日打卡区浮信卡同周/月信版式；收下标 opened，进备份 _EXACT 与清空清单。
+- **r1e 日历提醒 .ics**：「🔔 日历提醒」下 Blob .ics（RRULE DAILY×30，钟点沿用 notify:time）——Render 免费档无推送通道的零基建留存替代，系统日历接管。
+- **闸门**：selftest 400 / ui_smoke 101（on_coverage 豁免表 +6：dailyAva/dailyIcs/outfitShare/flClose/flSend/pileShare；pile 变量改名 pc 避探针 c.addEventListener 误配）/ contract 723 / 其余全绿。

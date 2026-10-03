@@ -3632,3 +3632,84 @@ html[data-theme="dark"] .hl-daychip.has-flag{opacity:.85;}
 /* P2 簇浅色侧连带：qm-part 文字已压深（:2372），深底回 ink 浅档 */
 html[data-theme="dark"] .qm-part{color:var(--primary-ink);}
 html[data-theme="dark"] .warm-badge{color:var(--secondary);}
+
+/* ── R3325：今日穿搭五档（details 展开式 meta 粒） ───────────── */
+.outfit-kit{font-size:12.5px;}
+.outfit-kit summary{cursor:pointer; list-style:none;}
+.outfit-kit .outfit-body{padding:8px 2px 2px;}
+.outfit-row{display:flex; align-items:center; gap:7px;
+  padding:3px 0; font-size:12.5px; line-height:1.5;}
+.outfit-dot{flex:none; width:14px; height:14px; border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.75); box-shadow:0 1px 3px rgba(0,0,0,.18);}
+.outfit-tag{flex:none; min-width:34px; font-weight:700;
+  color:var(--primary-ink);}
+.outfit-colors{font-weight:600; color:var(--text);}
+.outfit-tip{color:var(--muted); font-size:11.5px; margin-left:auto;
+  text-align:right;}
+.outfit-share{margin-top:8px; font-size:12px; padding:5px 14px;
+  border-radius:999px; border:1px solid var(--line);
+  background:var(--accent-soft); color:var(--primary-ink); cursor:pointer;}
+.outfit-note{font-size:11px; color:var(--muted); margin:6px 0 0;}
+html[data-theme="dark"] .outfit-tip{color:var(--secondary);}
+html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
+  border-color:#4E4348;}
+
+/* ── R3325：大众占卜 pick-a-pile ─────────────────────────────── */
+.pile-block{margin:0 0 12px; border:1px dashed var(--line);
+  border-radius:12px; padding:8px 12px;}
+.pile-block summary{cursor:pointer; font-size:13px;
+  color:var(--primary-ink); font-weight:600; list-style:none;}
+.pile-sub{font-weight:400; color:var(--muted); margin-left:8px;
+  font-size:11.5px;}
+.pile-topics{display:flex; gap:8px; margin:8px 0 4px; flex-wrap:wrap;}
+.pile-topic{font-size:12.5px; padding:5px 14px; border-radius:999px;
+  border:1px solid var(--line); background:transparent;
+  color:var(--secondary); cursor:pointer;}
+.pile-topic.active{background:var(--primary-bg); border-color:var(--primary-bg);
+  color:#fff;}
+.pile-row{display:flex; gap:12px; margin:8px 0 4px;}
+.pile-card{position:relative; width:86px; border:0; background:none;
+  cursor:pointer; padding:0; transition:transform .2s, opacity .2s;}
+.pile-card img{width:100%; border-radius:8px; display:block;
+  box-shadow:0 3px 10px rgba(80,60,40,.22);}
+.pile-card i{position:absolute; inset:0; display:flex;
+  align-items:center; justify-content:center; font-style:normal;
+  font-weight:700; color:#FFF8E8; text-shadow:0 1px 4px rgba(0,0,0,.6);
+  font-size:18px; pointer-events:none;}
+.pile-card.revealed i{display:none;}
+.pile-card.dimmed{opacity:.4;}
+.pile-card:not(.dimmed):hover{transform:translateY(-3px);}
+.pile-card.busy{opacity:.6; pointer-events:none;}
+.pile-card img.is-reversed{transform:rotate(180deg);}
+.pile-hint{font-size:11.5px; color:var(--muted); margin:4px 0 0;}
+.pile-result{margin-top:8px;}
+.pile-cardline{display:flex; flex-direction:column; gap:2px;
+  font-size:13.5px; color:var(--text);}
+.pile-cardline b{color:var(--primary-ink);}
+.pile-cardline span{color:var(--secondary); font-size:12.5px;}
+.pile-read{font-size:12.5px; color:var(--text); line-height:1.65;
+  margin:6px 0 0;}
+.pile-share{margin-top:8px; font-size:12px;}
+
+/* ── R3325-D：写给未来的信 ───────────────────────────────────── */
+.fl-letter{background:linear-gradient(160deg,#FFF9F0,#FFF3EC);}
+.fl-meta{margin-top:8px; font-size:11px; color:var(--muted);}
+.fl-entry{display:flex; align-items:baseline; gap:10px;
+  margin:4px 0 2px; flex-wrap:wrap;}
+.fl-write{background:none; border:0; padding:0; font-size:12.5px;
+  color:var(--primary-ink); cursor:pointer; text-decoration:underline;
+  text-underline-offset:3px;}
+.fl-pend{font-size:11px; color:var(--muted);}
+.fl-modal textarea{width:100%; border:1px solid var(--line);
+  border-radius:10px; padding:10px 12px; font-size:13.5px;
+  font-family:inherit; color:var(--text); background:var(--card, #fff);
+  resize:vertical; box-sizing:border-box;}
+.fl-row{display:flex; align-items:center; gap:8px; margin:10px 0;
+  font-size:12.5px; color:var(--secondary);}
+.fl-row select{font-size:12.5px; padding:4px 8px; border-radius:8px;
+  border:1px solid var(--line); color:var(--text); background:var(--card, #fff);}
+.fl-send{width:100%; margin-top:4px;}
+.fl-note{font-size:11px; color:var(--muted); margin:8px 0 0;
+  text-align:center;}
+html[data-theme="dark"] .fl-letter{background:linear-gradient(160deg,#322A2E,#2E282B);}
+html[data-theme="dark"] .fl-write{color:var(--accent-ink);}

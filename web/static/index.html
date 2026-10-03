@@ -261,6 +261,15 @@ try {
     <button class="ghost" type="button" id="dailyWap"
             title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
             style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
+    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
+    <button class="ghost" type="button" id="dailyAva"
+            title="生成今日开运头像" aria-label="生成今日开运头像"
+            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
+    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
+         Render 免费档无推送通道的零基建留存替代。 -->
+    <button class="ghost" type="button" id="dailyIcs"
+            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
+            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
     <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
          打卡块移到判词下面。 -->
     <div class="daily-main">
@@ -896,6 +905,27 @@ try {
       <!-- R3249e（UX-AUDIT C·塔罗）：8 种牌阵+张数+编号对新客是
            控制台。先给三档零思考入口（各带一句「什么时候用它」），
            牌阵/张数/编号全部收进「懂牌阵」折叠——老用户路径不变。 -->
+      <!-- R3325：大众占卜——凭直觉选一堆（事业/感情/财运），
+           同日同堆同牌可晒同款。每张牌 seed=日期+主题+堆位，确定性。 -->
+      <details class="pile-block" id="pileBlock">
+        <summary>🔮 大众占卜 · 凭直觉选一堆<span class="pile-sub">事业 · 感情 · 财运</span></summary>
+        <div class="pile-topics" role="group" aria-label="选一个主题">
+          <button type="button" class="pile-topic" data-ptopic="career">💼 事业</button>
+          <button type="button" class="pile-topic" data-ptopic="love">💗 感情</button>
+          <button type="button" class="pile-topic" data-ptopic="money">🧧 财运</button>
+        </div>
+        <div class="pile-row" id="pileRow" hidden>
+          <button type="button" class="pile-card" data-pile="0" aria-label="第一堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>A</i></button>
+          <button type="button" class="pile-card" data-pile="1" aria-label="第二堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>B</i></button>
+          <button type="button" class="pile-card" data-pile="2" aria-label="第三堆">
+            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>C</i></button>
+        </div>
+        <p class="pile-hint" id="pileHint" hidden>凭直觉点一堆，点完就定——同主题每天只能选一堆</p>
+        <div class="pile-result" id="pileResult" hidden></div>
+      </details>
+
       <div class="tr-quick" role="group" aria-label="快速抽牌">
         <button type="button" class="tr-quick-btn" id="trQ1">
           <b>🃏 抽一张</b><i>今日一句指引</i></button>
