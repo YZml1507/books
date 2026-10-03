@@ -20,6 +20,7 @@ lunar_python / cnlunar 等库同源）。每年编码为一个整数：
 """
 from __future__ import annotations
 
+from bisect import bisect_right
 from datetime import date, timedelta
 
 LUNAR_INFO = [
@@ -86,6 +87,17 @@ def year_days(y: int) -> int:
     return total + leap_days(y)
 
 
+# 各农历年正月初一距 BASE_SOLAR 的累计天数（R3233：solar_to_lunar 的年份
+# 定位由逐年 while + 年日复算改为二分；原实现每请求数千次 year_days 调用，
+# cProfile 实测 lunar 相关 ~15ms/请求。表由 year_days 派生，语义零变化）。
+_YEAR_OFFSETS: list[int] = []
+_acc = 0
+for _y in range(1900, 2101):
+    _YEAR_OFFSETS.append(_acc)
+    _acc += year_days(_y)
+del _acc, _y
+
+
 def solar_to_lunar(y: int, m: int, d: int) -> dict:
     """公历 y-m-d -> 农历 {year, month, day, is_leap, month_cn, day_cn,
     ganzhi_year, ganzhi_year_cn}。范围外抛 ValueError。"""
@@ -95,12 +107,13 @@ def solar_to_lunar(y: int, m: int, d: int) -> dict:
     if target < BASE_SOLAR:
         raise ValueError(f"{y}-{m:02d}-{d:02d} 早于农历表起点 1900-01-31")
     offset = (target - BASE_SOLAR).days
-    ly = 1900
-    while offset >= year_days(ly):
-        offset -= year_days(ly)
-        ly += 1
-        if ly > 2100:
-            raise ValueError("超出农历表范围")
+    idx = bisect_right(_YEAR_OFFSETS, offset) - 1
+    if idx >= len(LUNAR_INFO):
+        raise ValueError("超出农历表范围")
+    ly = 1900 + idx
+    offset -= _YEAR_OFFSETS[idx]
+    if offset >= year_days(ly):   # 晚于 2100 年末：与旧循环同语义抛错
+        raise ValueError("超出农历表范围")
     # offset 现在是农历年内第几天（0 起）。逐月推进（含闰月插入）。
     leap = leap_month(ly)
     lm, is_leap = 1, False

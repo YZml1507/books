@@ -5852,3 +5852,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 **裁决**：A。实测 p50 193→59.7ms、p95 244→166ms；5 组坐标 retrieve_fast 输出逐字节一致（含 question 主题词分支）；services.bazi 全字段一致（result_ref 为随机 stash 引用除外）。闸门 selftest 375 / contract 716 全绿。
 
 **坑位记录**：bm25() 不能在窗口 ORDER BY 内直接求值（OperationalError: unable to use function bm25 in the requested context）——需三层嵌套：内层算 bm25 → 中层窗口排 → 外层 rn<=per_query。
+## D-263b R3233 决策：solar_to_lunar 年份定位线性扫 → 二分预计表
+
+**背景**：cProfile：year_days/leap_days 合计 6.4 万次调用/10 请求，占 ~15ms/请求（bazi 流程第二瓶颈）。
+
+**候选**：
+- A) 累计天数预计表 + bisect（选中）：模块载入时由 year_days 派生一次 201 项表，年定位 O(log n)；多余内存 ~1.6KB。
+- B) lru_cache(year_days)：仍线性遍历每年两次查表，~180 次字典查询/请求——比 A 慢且有缓存语义问题（函数纯但外部可见性不变，不如 A 干脆）。
+- C) 写死累计数组常量：行数表与逻辑代码脱节，违本项目「单一数据源」原则，否决。
+
+**裁决**：A。边界守卫补一条（offset 超出 2100 年时同语义 ValueError——线性扫原会消耗掉「年外」，二分不会，需显式判）。实测全表穷举 73,383 天 0.52s 跑完。
