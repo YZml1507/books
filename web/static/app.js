@@ -14910,7 +14910,50 @@ function renderCheckin(dateKey) {
         (g === _weekGoal ? ' active' : '') + '" data-g="' + g + '">' + g + '天</button>';
     }).join('') +
     '<span class="ck-goal-txt">' + esc(_goalTxt) + '</span></div>';
-  box.innerHTML = '<div class="checkin-q" id="checkinQ">' +
+  /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
+   * 数据全在本地：上周 7 天的打卡天数 + 心情主色 + 一句本周祝词。
+   * 每周一封信完即收（wlKey 落档不再弹），零打扰零请求。 */
+  var _wlHtml = '';
+  try {
+    var _dow = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
+    var _mon = _isoShift(dateKey, -_dow);          // 本周一
+    var _wlKey = 'weeklyLetter:' + _mon;
+    if (!localStorage.getItem(_wlKey)) {
+      var _lckN = 0, _lmdN = 0, _lmdCnt = {};
+      for (var _lw = 7; _lw >= 1; _lw--) {
+        var _ld = _isoShift(_mon, -_lw);           // 上周一~日
+        if (_ckAll[_ld]) _lckN++;
+        var _lmv = localStorage.getItem('mood:' + _ld);
+        if (_lmv !== null && _lmv !== '') {
+          _lmdN++; _lmdCnt[_lmv] = (_lmdCnt[_lmv] || 0) + 1;
+        }
+      }
+      if (_lckN >= 2 || _lmdN >= 3) {
+        var _dom = -1, _domN = 0;
+        Object.keys(_lmdCnt).forEach(function (k) {
+          if (_lmdCnt[k] > _domN) { _domN = _lmdCnt[k]; _dom = +k; }
+        });
+        var _moodTxt = (_dom >= 0 && _MOOD_META[_dom])
+          ? '，心情多是「' + _MOOD_META[_dom].t + '」' : '';
+        var _wlLine = _dom === 0
+          ? '上周辛苦啦，这周先把觉补够，好运会慢慢回温的。'
+          : _dom === 3
+          ? '状态这么好，这周可以大胆一点，想做的事往前推。'
+          : _lckN >= 5
+          ? '上周你几乎天天都来，我都记着呢——这周继续保持呀。'
+          : _dayPick(['新的一周，日子翻开新的一页，慢慢来就好。',
+                      '这周不求大起大落，平安顺遂就是赢。',
+                      '新周开张，先把小确幸收进口袋。'], 'wl|' + _mon);
+        _wlHtml = '<div class="weekly-letter" id="weeklyLetter">' +
+          '<div class="wl-head">💌 小满的上周小记' +
+          '<button type="button" class="wl-x" id="wlDismiss" ' +
+          'aria-label="收下了，不再显示">×</button></div>' +
+          '<div class="wl-body">上周你打卡 ' + _lckN + ' 天' +
+          esc(_moodTxt) + '。' + esc(_wlLine) + '</div></div>';
+      }
+    }
+  } catch (eWL) {}
+  box.innerHTML = _wlHtml + '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
                   /* R3249c（A3）：问句从「哪张签」改成「想要什么」——
@@ -14930,6 +14973,7 @@ function renderCheckin(dateKey) {
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
+    /* R3317-E：信卡收下钮——本周不再弹。 */
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>' +
     /* R231d（R37-F15）：连签 ≥3 天给「晒连签」出口——里程碑文案不外溢
@@ -14995,6 +15039,20 @@ function renderCheckin(dateKey) {
       '<details class="ck-album ck-wish"><summary>🫙 许愿瓶' +
       _wishSummary() + '</summary>' +
       '<div class="ck-album-body" id="wishBottleBody"></div></details>';
+  /* R3317-E：信卡收下——写本周档键，重渲即消失（不再打扰）。 */
+  var _wlx = box.querySelector('#wlDismiss');
+  if (_wlx && !_wlx.dataset.bound) {
+    _wlx.dataset.bound = '1';
+    _wlx.addEventListener('click', function () {
+      try {
+        var _dow2 = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
+        localStorage.setItem(
+          'weeklyLetter:' + _isoShift(dateKey, -_dow2), '1');
+      } catch (eWX) {}
+      var _lw2 = el('weeklyLetter');
+      if (_lw2) _lw2.remove();
+    });
+  }
   var _alb = box.querySelector('.ck-album');
   if (_alb && !_alb.dataset.bound) {
     _alb.dataset.bound = '1';
