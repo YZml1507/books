@@ -831,6 +831,18 @@ function buildShareData(view, j) {
             sub: '把好天气装进口袋' }];
         }
       } catch (eLA) {}
+      /* R3319-G：今日牌缩略也上海报——与卡面同一张烘图；
+       * 位向与塔罗海报同口径写进 sub（缩略图不旋转，与
+       * 塔罗牌阵海报「逆位」只标注不翻图的先例一致）。 */
+      try {
+        var _dcEl2 = document.querySelector('#dailyTarot img.dc-thumb');
+        if (_dcEl2 && _dcEl2.complete && _dcEl2.naturalWidth > 0 &&
+            j.daily_card && j.daily_card.name) {
+          _ds.cards.push({ img: _dcEl2,
+            name: '今日牌 ' + _pStr(j.daily_card.name),
+            sub: j.daily_card.upright ? '正位' : '逆位' });
+        }
+      } catch (eDC) {}
       return _ds;
     }
     case 'tarot': {
