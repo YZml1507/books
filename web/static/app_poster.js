@@ -654,8 +654,8 @@ function _posterHookForView(view, j) {
   if (view === 'qiming' && _fn[0] && _fn[0].full_name) {
     var top = _fn[0];
     var _fe1 = j.five_elements || {};
-    var _ts = _qmScore(top, (_fe1.missing && _fe1.missing.length) ? _fe1.missing : (_fe1.weak || []));
-    return '首选「' + _pStr(top.full_name) + '」· 参考分 ' + (_ts.total || 0) + ' / 100';
+    /* R3319-P3：「参考分」工具腔出戏——海报钩子只说挑了哪个。 */
+    return '古籍给你挑了「' + _pStr(top.full_name) + '」';
   }
   /* taohua: 用桃花支 + 强度 */
   if (view === 'taohua' && j) {
@@ -674,6 +674,40 @@ function _posterHookForView(view, j) {
   if (view === 'hehun' && _ha && _hb) {
     return '你们是「' + _ha + ' 遇 ' + _hb + '」的路子 · ' +
       (j.day_wx_sheng ? '越处越热' : (j.day_wx_same ? '同气相属' : '互补也甜'));
+  }
+  /* R3319-P2：7 个此前落万能胶水的视图补数据驱动钩子。 */
+  if (view === 'xzm' && j) {
+    var _xa = _pStr(j.a), _xb = _pStr(j.b), _xsc2 = _pStr(j.score);
+    if (_xa && _xb) {
+      return (_xa + '座 × ' + _xb + '座') +
+        (_xsc2 ? ' 的合拍指数在这' : ' 搭不搭？测出来了');
+    }
+  }
+  if (view === 'bazi-yearly' && j) {
+    var _yr2 = (j.calc && j.calc.yearly) || {};
+    if (_yr2.ganzhi) return _pStr(_yr2.ganzhi) + '年的节奏替你排好了';
+  }
+  if (view === 'dream' && j) {
+    var _ds2 = _pArr(j.symbols);
+    if (_ds2.length && _ds2[0].name) {
+      return '梦见「' + _pStr(_ds2[0].name) + '」——册子有话说';
+    }
+  }
+  if (view === 'bandaid') return '睡不着的时候，这张贴管用';
+  if (view === 'lucky' && j) {
+    var _lc3 = _pStr(j.lucky && j.lucky.color);
+    if (_lc3) return '今日开运色是「' + _lc3 + '」';
+  }
+  if (view === 'weekly' && j) {
+    var _vd = _pStr(j.visitDays);
+    if (_vd && _vd !== '0') return '这周小满陪了你 ' + _vd + ' 天';
+  }
+  if (view === 'renge' && j) {
+    var _rn2 = _pStr(j._nick), _re2 = _pStr(j._elCn);
+    if (_re2) {
+      return (_rn2 ? '「' + _rn2 + '」是' : '测出来了——你是') +
+        _re2 + '型人格';
+    }
   }
   /* 默认文案版（R218a-11 原版）；
    * R233t（R51-P2-17）：5 个 view 共用同一句万能胶水——每 view 一句
@@ -1155,7 +1189,10 @@ function buildShareData(view, j) {
         : (l0 || '一年有一年的节奏');
       sy.lines = [];
       if (_yr.ganzhi && _yrRel) {
-        sy.lines.push({ k: '本年干支', v: _pStr(_yr.ganzhi) + ' · ' + _yrRel });
+        /* R3319-P2：十神原文（「丙午 · 正财」）同人话译名（「稳定财」）
+         * 并挂——明细行也过 _TGL，不然一图两语。 */
+        sy.lines.push({ k: '本年干支', v: _pStr(_yr.ganzhi) + ' · ' +
+          (_TGL[_yrRel] || _yrRel) });
       }
       var _ezM = _pArr(_yr.easy).map(function (s) {
         return _pStr(s).split('（')[0]; }).filter(Boolean);

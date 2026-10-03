@@ -17568,3 +17568,8 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
 - **P3-5**：storage 监听补 weeklyLetter:* → renderCheckin——A tab 收信 B tab 信卡就地消失。
 - INFO×3 有意不跟（封面态咒语曝光/月内日历序口径/跨月稀缺注——规格自洽）。
 - 闸：selftest 386 / ui_smoke 101 / 全绿。
+
+## R3319 审计清零（分享文案/回流口吻终审）
+- P1 塔罗分享「三张牌」写死→去张数中性口径（1张/自点/10张阵同享）
+- P2 批：黄历分享文案按卡面日期说日词；daily-wap 分享语补专句；新老客承接表各补 11/7 个缺失视图（通用句「点一张卡」指错路收正）；塔罗/合婚/解梦欢迎条改页内动作口径；海报 hook 表补 xzm/bazi-yearly/dream/bandaid/lucky/weekly/renge 七视图数据驱动钩；bazi-yearly 明细行十神过 _TGL；warm_l0「牌·正：」内部编码两处出屏转顺读；删除/读取/备份/分享图 toast 裸 e.message 过 _humanizeErr
+- P3 批：copyXhs ISO 日期→「10月3日」；塔罗落地卡关键词粘连补「·」；起名分享去「给娃」缩受众；起名海报「参考分」工具腔去掉；星座分享补第一人称钩
