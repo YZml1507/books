@@ -5899,3 +5899,13 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 **裁决**：A。验证：强制单 SAM fuzz 20,013 例零失配；巨型对 7/7 identical 3,477→719ms；ask 4 问 e2e 一致 3.05-3.15s→0.33-0.40s（R3234 基线 ~1.0-1.1s 再降 ~3×）。双闸门 375+716 全绿。
 
 **坑位记录**：(1) 「分支不相交」直觉在嵌套递归下不成立，复杂度论证必须先打点；(2) endpos 构建本身 O(Σ)，病态输入先超 cap 再回退，cap 检查必须放进构建循环内（构建到一半超限立即 break）；(3) 根 state 0 的 endpos 永不填充（while st 到 0 止）——根带为空，无害。
+## D-267b R3237 决策：KnowledgeBase schema 自检进程级门控
+
+**问题**：`deps.knowledge()` 每请求新建 KnowledgeBase，__init__ 每连接跑完整 schema 自检（schema 文件读 + executescript + _ensure_columns×6 table_info + _migrate_note）——15 个调用点、daily() 未命中双开，全是重复功。
+
+**候选**：
+- A) 进程×文件 _SCHEMA_OK 门控 + 每连接一次 sqlite_master 探针（选中）：以 derived 表 SQL 含 `'note'`（R96 最晚结构迁移的 CHECK 标记）为「全迁移完成」证据——_ENSURE_COLS 全部列（R230i，R21）早于 R96，含 note 即含全部更早补列。探针落空除名→完整自愈。实测自愈路径（旧库迁移/残库重建）正常。
+- B) 跨请求共享单连接：消除全部 init 开销，但 sqlite3 连接跨 FastAPI 线程池并发使用需锁/thread-local，且 daily() 写失败容错语义会被共享状态稀释——留作独立轮单独评估。
+- C) 连接池：同 B，工程量大收益同源。
+
+**裁决**：A。净省 ~0.8ms/连接（16%）×15 调用点。剩余 4ms 是 connect/close/makedirs/FK/WAL 的真实每连接成本——要再省须走 B 的连接复用，已立项 R3238 候选（thread-local 持久连接）。双闸门 375+716 全绿。

@@ -101,6 +101,11 @@ class Derived:
 # 迁移幂等廉价仍每连接跑，自愈语义不变。
 _QC_OK: set[str] = set()
 
+# R3237：schema DDL/补列/迁移按进程×文件只跑一次——与 _QC_OK 同模式，
+# 但每连接仍付一次 sqlite_master 探针（库被中途换/删重建时落空重跑，
+# 自愈语义不变）。
+_SCHEMA_OK: set[str] = set()
+
 
 class KnowledgeBase:
     """Derived + Conversation. Opening it never touches corpus.db."""
@@ -131,7 +136,8 @@ class KnowledgeBase:
             # 原来每次 deps.knowledge() 获取都跑一遍（每请求一次
             # integrity scan）。本进程内对同一文件首验后免检；文件被
             # 换/删（makedirs 探针仍在）不算已验。DDL/补列/迁移本就
-            # 幂等且廉价，仍每连接跑保自愈。
+            # 幂等且廉价——R3237 起经 _SCHEMA_OK + 每连接一次
+            # sqlite_master 探针门控，库被中途换/删仍自愈。
             if os.path.abspath(path) not in _QC_OK:
                 _qc = self.db.execute("PRAGMA quick_check(1)").fetchone()
                 if not _qc or _qc[0] != "ok":
@@ -169,35 +175,48 @@ class KnowledgeBase:
             self.db.execute("PRAGMA journal_mode=WAL")
         except sqlite3.DatabaseError:
             pass
-        here = os.path.dirname(os.path.abspath(__file__))
-        try:
-            schema = open(os.path.join(here, "knowledge_schema.sql"),
-                          encoding="utf-8").read()
-        except FileNotFoundError as exc:
-            # R2349w（R93-P0-2）：exe 打包漏带 schema 时裸
-            # FileNotFoundError 穿透成 503+绝对路径。给可定位的人话。
-            raise FileNotFoundError(
-                "知识库的建表脚本没打进包里（knowledge_schema.sql）"
-            ) from exc
-        try:
-            self.db.executescript(schema)
-        except sqlite3.Error:
-            # R230i（R21-P1-3，R230t 订正注释）：executescript 会先隐式
-            # COMMIT 再逐条执行——整体并非事务性原子，中途失败时前面语句
-            # 已落库。老库上 schema 漂移（如索引撞缺列）一处失败仍会让
-            # 全端点 503，所以降级逐条执行，单条失败不连坐（注释行剥掉
-            # 再分号切）。
-            for stmt in schema.split(";"):
-                stmt = "\n".join(l for l in stmt.splitlines()
-                                 if not l.strip().startswith("--")).strip()
-                if not stmt:
-                    continue
-                try:
-                    self.db.execute(stmt)
-                except sqlite3.Error:
-                    pass
-        self._ensure_columns()
-        self._migrate_note()
+        # R3237（外部优化轨）：schema DDL/补列/迁移幂等但每连接要 ~10 次
+        # execute + 一次文件读——同进程同文件首验后记进 _SCHEMA_OK；此后每
+        # 连接只付一次 sqlite_master 探针。库被中途换/删重建时探针落空走
+        # 完整自愈（"'note'" 是最晚的结构性迁移标记——R96 的 derived 重建，
+        # 含它即含全部更早的 _ENSURE_COLS）。
+        abspath = os.path.abspath(path)
+        if abspath in _SCHEMA_OK:
+            _row = self.db.execute(
+                "SELECT sql FROM sqlite_master WHERE name='derived'").fetchone()
+            if _row is None or "'note'" not in (_row[0] or ""):
+                _SCHEMA_OK.discard(abspath)
+        if abspath not in _SCHEMA_OK:
+            here = os.path.dirname(os.path.abspath(__file__))
+            try:
+                schema = open(os.path.join(here, "knowledge_schema.sql"),
+                              encoding="utf-8").read()
+            except FileNotFoundError as exc:
+                # R2349w（R93-P0-2）：exe 打包漏带 schema 时裸
+                # FileNotFoundError 穿透成 503+绝对路径。给可定位的人话。
+                raise FileNotFoundError(
+                    "知识库的建表脚本没打进包里（knowledge_schema.sql）"
+                ) from exc
+            try:
+                self.db.executescript(schema)
+            except sqlite3.Error:
+                # R230i（R21-P1-3，R230t 订正注释）：executescript 会先隐式
+                # COMMIT 再逐条执行——整体并非事务性原子，中途失败时前面语句
+                # 已落库。老库上 schema 漂移（如索引撞缺列）一处失败仍会让
+                # 全端点 503，所以降级逐条执行，单条失败不连坐（注释行剥掉
+                # 再分号切）。
+                for stmt in schema.split(";"):
+                    stmt = "\n".join(l for l in stmt.splitlines()
+                                     if not l.strip().startswith("--")).strip()
+                    if not stmt:
+                        continue
+                    try:
+                        self.db.execute(stmt)
+                    except sqlite3.Error:
+                        pass
+            self._ensure_columns()
+            self._migrate_note()
+            _SCHEMA_OK.add(abspath)
         if first:
             self.db.execute("INSERT OR REPLACE INTO kb_meta VALUES ('created_at', ?)",
                             (time.strftime("%Y-%m-%dT%H:%M:%S"),))
