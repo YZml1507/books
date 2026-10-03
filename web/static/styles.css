@@ -692,6 +692,13 @@ body.dark .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
 html[data-theme="dark"] .weekly-letter{
   background:linear-gradient(160deg, #2A241F, #241F1A);
   border-color:rgba(214,169,110,.25);}
+/* R3319-F：月信淡紫系——与周信暖金错开，一眼是「更长的那封」。 */
+.weekly-letter.ml-letter{
+  background:linear-gradient(160deg, #f7f0f8, #eee2f2);
+  border-color:rgba(150,110,170,.35);}
+html[data-theme="dark"] .weekly-letter.ml-letter{
+  background:linear-gradient(160deg, #282231, #231E2B);
+  border-color:rgba(150,110,170,.3);}
 html[data-theme="dark"] .daily-mantra b{
   background:linear-gradient(135deg, rgba(214,137,90,.18), rgba(214,169,110,.14));}
 /* R3317-G：今日牌行——小缩略牌 + 名 + 位向 + 关键词 */

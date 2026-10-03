@@ -13335,7 +13335,7 @@ function init() {
        * mood:dream:/weeklyLetter: 永不回收（mood ~365键/年）。
        * 兜底并入同一族清单（与 15271 打卡段 _fam 同口径）。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|monthlyLetter:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -13417,7 +13417,8 @@ function init() {
     }
     /* R3318（审-P3-5）：A tab 收下信卡 B tab 的信卡仍挂——
      * weeklyLetter:* 键变化同样触发打卡卡重渲。 */
-    if (e.key.indexOf('weeklyLetter:') === 0) {
+    if (e.key.indexOf('weeklyLetter:') === 0 ||
+        e.key.indexOf('monthlyLetter:') === 0) {
       try { renderCheckin(todayIso()); } catch (eWL2) {}
       return;
     }
@@ -15118,7 +15119,70 @@ function renderCheckin(dateKey) {
       }
     }
   } catch (eWL) {}
-  box.innerHTML = _wlHtml + '<div class="checkin-q" id="checkinQ">' +
+  /* R3319-F：月度小满信——月初首访日给「上月小信」卡，
+   * 与周信同构：本地聚合上月打卡/心情/小记/最长连签，
+   * 每月一封完即收（mlKey 落档不再弹）。 */
+  var _mlHtml = '';
+  try {
+    var _t0m = new Date(dateKey + 'T00:00:00');
+    var _pm = new Date(_t0m.getFullYear(), _t0m.getMonth() - 1, 1);
+    var _pmKey = _pm.getFullYear() + '-' +
+      String(_pm.getMonth() + 1).padStart(2, '0');
+    var _mlKey = 'monthlyLetter:' + _pmKey;
+    if (!localStorage.getItem(_mlKey)) {
+      var _pmDays = new Date(_pm.getFullYear(), _pm.getMonth() + 1, 0).getDate();
+      var _mCk = 0, _mMd = 0, _mJ = 0, _mBest = 0, _cur = 0;
+      var _mMdCnt = {};
+      for (var _md = 1; _md <= _pmDays; _md++) {
+        var _mdk = _pmKey + '-' + String(_md).padStart(2, '0');
+        if (_ckAll[_mdk]) { _mCk++; _cur++; if (_cur > _mBest) _mBest = _cur; }
+        else { _cur = 0; }
+        var _mmv = localStorage.getItem('mood:' + _mdk);
+        if (_mmv !== null && _mmv !== '') {
+          _mMd++; _mMdCnt[_mmv] = (_mMdCnt[_mmv] || 0) + 1;
+        }
+        if (localStorage.getItem('journal:' + _mdk)) _mJ++;
+      }
+      /* 上门槛：上月有点痕迹才值得写信（不打卡纯浏览不下信）。 */
+      if (_mCk >= 3 || _mMd >= 4 || _mJ >= 2) {
+        var _mDom = -1, _mDomN = 0;
+        Object.keys(_mMdCnt).forEach(function (k) {
+          if (_mMdCnt[k] > _mDomN) { _mDomN = _mMdCnt[k]; _mDom = +k; }
+        });
+        var _mParts = [];
+        if (_mCk) _mParts.push('打卡 ' + _mCk + ' 天');
+        if (_mMd) {
+          _mParts.push('记下 ' + _mMd + ' 天心情' +
+            (_mDom >= 0 && _MOOD_META[_mDom]
+              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : ''));
+        }
+        if (_mJ) _mParts.push('写了 ' + _mJ + ' 篇小记');
+        if (_mBest >= 3) _mParts.push('最长连签 ' + _mBest + ' 天');
+        var _MSEASON = [
+          '一月开头，愿这一年待你温柔。',
+          '二月有立春也有花灯，好事成双。',
+          '三月花开，好运跟着一起发芽。',
+          '四月人间，适合把心愿再养一养。',
+          '五月风暖，想做的事趁现在。',
+          '六月过半，上半年的努力都算数。',
+          '七月流火，记得给自己留块阴凉。',
+          '八月有星河，也有属于你的好消息。',
+          '九月开学季，新节奏慢慢来。',
+          '十月金秋，愿你收获比付出多一点。',
+          '十一月转凉，记得添衣也记得添喜。',
+          '十二月收官，这一年的你都辛苦了。'];
+        _mlHtml = '<div class="weekly-letter ml-letter" id="monthlyLetter">' +
+          '<div class="wl-head">📮 ' + (_pm.getMonth() + 1) +
+          ' 月的小满信' +
+          '<button type="button" class="wl-x" id="mlDismiss" ' +
+          'aria-label="收下了，不再显示">×</button></div>' +
+          '<div class="wl-body">上个月你' +
+          esc(_mParts.join('、')) + '，我都替你记着。' +
+          esc(_MSEASON[_pm.getMonth()]) + '</div></div>';
+      }
+    }
+  } catch (eML) {}
+  box.innerHTML = _wlHtml + _mlHtml + '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
                   /* R3249c（A3）：问句从「哪张签」改成「想要什么」——
@@ -15216,6 +15280,21 @@ function renderCheckin(dateKey) {
       } catch (eWX) {}
       var _lw2 = el('weeklyLetter');
       if (_lw2) _lw2.remove();
+    });
+  }
+  /* R3319-F：月信收下——写上月档键，重渲即消失。 */
+  var _mlx = box.querySelector('#mlDismiss');
+  if (_mlx && !_mlx.dataset.bound) {
+    _mlx.dataset.bound = '1';
+    _mlx.addEventListener('click', function () {
+      try {
+        var _t0b = new Date(dateKey + 'T00:00:00');
+        var _pmb = new Date(_t0b.getFullYear(), _t0b.getMonth() - 1, 1);
+        localStorage.setItem('monthlyLetter:' + _pmb.getFullYear() + '-' +
+          String(_pmb.getMonth() + 1).padStart(2, '0'), '1');
+      } catch (eMX) {}
+      var _lm3 = el('monthlyLetter');
+      if (_lm3) _lm3.remove();
     });
   }
   var _alb = box.querySelector('.ck-album');
@@ -15434,7 +15513,7 @@ function renderCheckin(dateKey) {
           var _fam = null;
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
-             'rlast:', 'mood:dream:', 'weeklyLetter:'].forEach(function (_p) {
+             'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:'].forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
