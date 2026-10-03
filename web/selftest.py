@@ -4513,7 +4513,9 @@ def _run_inner() -> list[str]:
                "wallpapers/*.jpg",
                "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
                # R2349u（R91-P2-5）：og 分享卡纳入哈希同口径
-               "shared/og-card.jpg"):
+               "shared/og-card.jpg",
+               # R3317-F：vendored 懒加载库同口径
+               "libs/*.js"):
         for _ep in sorted(_gl5.glob(_os.path.join(
                 _os.path.dirname(__file__), "static", _g))):
             _h.update(_os.path.basename(_ep).encode())

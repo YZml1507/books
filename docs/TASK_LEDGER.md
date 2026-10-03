@@ -17536,3 +17536,11 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
   统计上周 7 天打卡天数+心情主色，一句按主情绪定制的本周祝词。
 - 收下即写 weeklyLetter:<本周一> 档键，本周不再弹；数据全本地零请求。
 - 深色主题适配信纸卡与咒语行。
+
+## R3317-F — 海报回流二维码（积压 R130-P3-4 解锁）
+
+- vendored qrcode-generator 1.4.4（MIT 头补全）→ web/static/vendor/
+  qrcode.min.js，app.js _loadQrJs 懒加载进 downloadPoster 链（失败降级）。
+- app_poster.js：真实域名部署时 CTA pill 左端画 64px 回流码
+  （origin/?from=poster），本地/内网无 host 不画。
+- bump_sw.py + selftest.py 双 EXTRA_GLOBS 表补 vendor/*.js 同口径。

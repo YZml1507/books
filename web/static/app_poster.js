@@ -592,6 +592,31 @@ function _paintSharePoster(s, W, H) {
   ctx.fillText(_host ? ('→ ' + _host + ' 测你的同款 ✨')
                      : '搜「小满的解忧铺」· 测你的同款 ✨',
                540, hook ? 1414 : 1382);
+  /* R3317-F：回流二维码——真实域名时画进 CTA pill 左端，
+   * 扫码即回站（window.qrcode 由 app.js 懒加载，缺席静默跳过）。 */
+  if (_host && typeof qrcode === 'function') {
+    try {
+      var _qy = (hook ? 1346 : 1346) + (hook ? 10 : -1) - 0;
+      var _qh = hook ? 64 : 56;
+      _qy = (hook ? 1346 : 1346) + ((hook ? 84 : 62) - _qh) / 2;
+      var _qu = (location.origin || '') + '/?from=poster';
+      var _qr = qrcode(0, 'M'); _qr.addData(_qu); _qr.make();
+      var _qn = _qr.getModuleCount();
+      var _qc = Math.floor(_qh / (_qn + 6));
+      var _qo = Math.floor((_qh - _qc * _qn) / 2);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      _roundRectPath(ctx, 84, _qy - 6, _qh + 12, _qh + 12, 10); ctx.fill();
+      ctx.fillStyle = '#4A3620';
+      for (var _rr = 0; _rr < _qn; _rr++) {
+        for (var _cc = 0; _cc < _qn; _cc++) {
+          if (_qr.isDark(_rr, _cc)) {
+            ctx.fillRect(90 + _qo + _cc * _qc,
+                         _qy + _qo + _rr * _qc, _qc, _qc);
+          }
+        }
+      }
+    } catch (eQR) { /* 画不出码就当没这功能 */ }
+  }
   /* R230x（P2-8）：右下角小满吉祥物贴纸——圆形裁切+奶油色衬底，
    * 与底图区隔成「贴纸」观感；图未加载则跳过不画。 */
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {

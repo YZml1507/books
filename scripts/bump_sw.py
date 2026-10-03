@@ -35,6 +35,8 @@ EXTRA_GLOBS = (
     # R2349u（R91-P2-5）：og 分享卡此前漏出哈希——换图不 bump，
     # 已装用户/分享爬虫无限期看旧卡。
     "shared/og-card.jpg",
+    # R3317-F：vendored 库（qrcode 等懒加载件）更新也要换 CACHE 名。
+    "libs/*.js",
 )
 
 

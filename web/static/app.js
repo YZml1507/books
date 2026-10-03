@@ -4227,9 +4227,26 @@ function warmPoster() {
    * 预拉失败的 rejection 静默吞——预热不是用户动作，不该炸 pageerror。 */
   try { _loadPosterJs().catch(function () {}); } catch (e) {}
 }
+/* R3317-F：海报回流二维码——vendored qrcode-generator 懒加载，
+ * 加载失败静默降级为无码海报（QR 是增值件不是阻断件）。 */
+var _qrJsLoad = null;
+function _loadQrJs() {
+  if (!_qrJsLoad) {
+    _qrJsLoad = new Promise(function (res) {
+      var s = document.createElement('script');
+      s.src = '/static/libs/qrcode.min.js' + _assetSuffix();
+      s.onload = function () { res(); };
+      s.onerror = function () { res(); };   /* 缺库也能画海报 */
+      document.head.appendChild(s);
+    });
+  }
+  return _qrJsLoad;
+}
 function downloadPoster() {
   var _a = arguments;
   return _loadPosterJs().then(function () {
+    return _loadQrJs();
+  }).then(function () {
     return downloadPoster.apply(null, _a);
   }).catch(function (e) {
     /* chunk 加载失败兜底——不然未处理 rejection 静默吞掉用户的点击。 */
