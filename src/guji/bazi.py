@@ -408,7 +408,9 @@ def compute(year: int, month: int, day: int, hour: int,
             if (dt.month, dt.day) == (_dem, _ded) and hour >= 2:
                 _dst_active = False
             _alt_hp = hour_ganzhi(day_pillar[0], (hour - 1) % 24)
-            if _dst_active and _alt_hp != hour_pillar:
+            # R3344（审-中）：hour==0 时 _alt_hp 同为子时（0/23 同档），
+            # 仅比时柱的闸会把 0 点特例警示整段掐死——放宽放行。
+            if _dst_active and (_alt_hp != hour_pillar or hour == 0):
                 _dst_msg = (
                     f"{year}年这段实行过夏令时（时钟拨快1小时）：如果填的是"
                     f"当时钟面时间，时柱也可能是 {_alt_hp}")

@@ -17970,3 +17970,15 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   「日干相冲：容易顶牛」pill（与 notes/score 同屏同口径）。
 - selftest 键集钉 +gan_chong；实测甲戌×庚午 盘 gan_chong=True score=67。
 - 闸门：selftest 406 / ruff E9,F 全绿；bump_sw→books-shell-7515a9092797
+
+## R3344 真机回归（本批 9/9 PASS）+ 修复
+
+- 全项实测过：ts.HMAC cookie/滚动换发/31天旧cookie拒/错签名拒/static
+  放行/SHELL 三图/ETag-304/相破/hehun warn/农历判座口径/avoid_chars/
+  401 toast/voice 病句。
+- **修·中**：bazi DST 0 点警示死代码——hour==0 时 _alt_hp 恒=hour_pillar
+  （0/23 同属子时）外层闸恒 False；放宽 `_alt_hp != hour_pillar or
+  hour == 0`，实测 1987-06-01 0 点出「日柱也可能是前一天」+过渡日
+  豁免仍守。
+- **跳过·低**：生肖忌字桶实测恒空（_CLASSICAL_DB 无生肖本字）——
+  机构保留，忌字桶实弹走 avoid_chars 通道（链路已验有效）。
