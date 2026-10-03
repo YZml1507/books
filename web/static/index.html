@@ -1225,6 +1225,19 @@ try {
     </div>
   </div>
 
+  <!-- 心情周记：近 7 天心情点阵 + 主情绪 + 连记 + 可保存小卡。
+       数据全本机（mood:<date>），无入口卡——打卡区「看看这周的你」
+       小链/深链 ?view=moodweek 进。 -->
+  <div class="view" id="view-moodweek">
+    <div class="card">
+      <h2><span aria-hidden="true">📒</span> 这周的你 <span class="card-sub">心情周记 · 只存在这台设备上</span></h2>
+      <div id="moodWeekBody" class="mw-body"></div>
+      <div class="mw-actions">
+        <button id="moodWeekShare" type="button" class="ghost">🖼️ 生成周记卡</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 </div><!-- /wrap -->
 

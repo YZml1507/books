@@ -437,6 +437,10 @@ def main() -> int:
                          "非 PWA 功能主路径；真实链路已手验",
         "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
                        "同 shareDaily 族豁免",
+        # 心情周记卡——downloadPoster('moodweek') 海报模态，同族豁免；
+        # 点阵/判词/对比行渲染另由本地脚本 Playwright 手验（非冒烟用例）。
+        "moodWeekShare": "心情周记分享图按钮——downloadPoster('moodweek') "
+                         "海报模态，同 shareWeekly 族豁免",
         # R3342：年度小满报告——downloadPoster('year-wrap') 海报模态，同族豁免。
         "checkinYear": "小满年报分享图按钮——downloadPoster('year-wrap') "
                        "海报模态，同 shareWeekly 族豁免",

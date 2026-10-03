@@ -319,6 +319,7 @@ function _paintSharePoster(s, W, H) {
   var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
                    taohua: 5, hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
+                   moodweek: 5,
                    'year-wrap': 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -346,33 +347,65 @@ function _paintSharePoster(s, W, H) {
      * 原 1260 让 ≥5 张牌阵的补位明细行整片落进卡座（880 起）
      * 被白卡盖住，「还有·共N张」永远不可见。 */
     var _linesTop = (s.cards || []).length ? 860 : 1260;
-    var lh = Math.min(150, Math.max(64, (_linesTop - cardY) / lines.length));
+    /* 心情周记色点阵——7 色点横排收进明细卡首行（与 liuyao 条阵同
+     * 一先例：view 专属元素挤进既有卡区，不另起版式）。点阵占高
+     * _MDOT_H，行块按剩余高度自适应，几何与无点阵视图同口径。 */
+    var _mdL = (s.view === 'moodweek') ? _pArr(s.moodDots) : [];
+    var _MDOT_H = _mdL.length ? 130 : 0;
+    var lh = Math.min(150, Math.max(64,
+      (_linesTop - cardY - _MDOT_H) / lines.length));
     /* R3260（实拍抓到的溢出）：每行是「小标签+大值」双行排版，
      * 末行值基线 = cardY+(n-1)·lh+62，框底旧口径 +40 只到
      * cardY+n·lh-20——lh 贴 64 下限时末行戳出框 18px。
      * 底 padding 40→76，框底 = 末行基线 +14 下沉量，不再溢出。 */
     var _LH_PAD = 76;
-    var _slack = _linesTop - (cardY - 60) - (lines.length * lh + _LH_PAD);
+    var _cardH = lines.length * lh + _LH_PAD + _MDOT_H;
+    var _slack = _linesTop - (cardY - 60) - _cardH;
     if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
     /* R2504（A-1 兜底）：lh 贴 64 下限仍超硬顶时整块上提，
      * 保证行块底缘不越 _linesTop。 */
-    if (cardY - 60 + lines.length * lh + _LH_PAD > _linesTop) {
-      cardY -= (cardY - 60 + lines.length * lh + _LH_PAD) - _linesTop;
+    if (cardY - 60 + _cardH > _linesTop) {
+      cardY -= (cardY - 60 + _cardH) - _linesTop;
     }
     ctx.fillStyle = '#FFFFFF';
-    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + _LH_PAD, 28); ctx.fill();
+    _roundRectPath(ctx, 90, cardY - 60, 900, _cardH, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
-    _roundRectPath(ctx, 90, cardY - 60, 900, lines.length * lh + _LH_PAD, 28); ctx.stroke();
+    _roundRectPath(ctx, 90, cardY - 60, 900, _cardH, 28); ctx.stroke();
     ctx.textAlign = 'left';
+    /* 点阵：周X在上、色点居中、日期在下；未记的日子画空心环
+     * （与页面 .mood-dot-empty 同语义）。 */
+    if (_mdL.length) {
+      var _dTop = cardY - 60 + 26;
+      var _cellW = 900 / _mdL.length;
+      ctx.textAlign = 'center';
+      _mdL.forEach(function (d, i) {
+        var _dx = 90 + _cellW * i + _cellW / 2;
+        ctx.fillStyle = '#B7A98A';
+        ctx.font = '400 22px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+        ctx.fillText(_pStr(d.wd), _dx, _dTop);
+        ctx.beginPath();
+        ctx.arc(_dx, _dTop + 40, 24, 0, Math.PI * 2);
+        if (d.c) {
+          ctx.fillStyle = d.c; ctx.fill();
+          ctx.strokeStyle = 'rgba(62,52,40,.25)'; ctx.lineWidth = 2;
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = '#C9BCA6'; ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        ctx.fillStyle = '#B7A98A';
+        ctx.fillText(_pStr(d.d), _dx, _dTop + 92);
+      });
+      ctx.textAlign = 'left';
+    }
     /* R3260：行高 <95 时双行排版（标签上值下，62px 内距）会和下一行
      * 标签挤叠（daily 5 行 + 卡座时 lh=72 实测叠加）。行高不够就
      * 切单行「标签：值」——行高 ≥56 即呼吸充足。 */
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
-      var y = cardY + i * lh + 10;
+      var y = cardY + _MDOT_H + i * lh + 10;
       /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
        * 上得了图；点在标签左侧固定位。 */
-      var _dotY = cardY + i * lh + Math.round(lh / 2);
+      var _dotY = cardY + _MDOT_H + i * lh + Math.round(lh / 2);
       if (r.dot) {
         ctx.fillStyle = r.dot;
         ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.fill();
@@ -382,7 +415,7 @@ function _paintSharePoster(s, W, H) {
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
       if (_rowInline) {
-        y = cardY + i * lh + Math.round(lh / 2) + 14;
+        y = cardY + _MDOT_H + i * lh + Math.round(lh / 2) + 14;
         ctx.fillText(r.k + '：', 150, y);
         _kx = 150 + ctx.measureText(r.k + '：').width + 8;
       } else {
@@ -735,6 +768,14 @@ function _posterHookForView(view, j) {
   if (view === 'weekly' && j) {
     var _vd = _pStr(j.visitDays);
     if (_vd && _vd !== '0') return '这周小满陪了你 ' + _vd + ' 天';
+  }
+  /* 心情周记钩——记下几天就说几天的话，没记录就说点阵本身。 */
+  if (view === 'moodweek' && j) {
+    var _mwN = _pStr(j.recorded);
+    if (_mwN && _mwN !== '0') {
+      return '这周记下 ' + _mwN + ' 天心情——给自己鼓鼓掌';
+    }
+    return '把一周心情画成点点，翻翻也挺有意思';
   }
   if (view === 'renge' && j) {
     var _rn2 = _pStr(j._nick), _re2 = _pStr(j._elCn);
@@ -1536,6 +1577,46 @@ function buildShareData(view, j) {
         { k: '完成仪式', v: (_pStr(j && j.ritualCount) || '0') + ' 天' }];
       return _wk;
     }
+    case 'moodweek': {
+      /* 心情周记卡——日期区间副题 + 主情绪大字 + 7 色点阵（moodDots
+       * 收进明细卡首行，见 _paintSharePoster）+ 判词/连记/上周对比。
+       * j 来自 _moodWeekData()，全本机数据不上线。 */
+      var _mwD = _pArr(j && j.days);
+      var _mws = base('这周的你',
+        (_mwD[0] ? _cnDateSub(_mwD[0].date).split(' · ')[0] : '') + ' ~ ' +
+        (_mwD[6] ? _cnDateSub(_mwD[6].date).split(' · ')[0] : ''));
+      var _mwMain = (j && j.main >= 0 && typeof _MOOD_META !== 'undefined' &&
+        _MOOD_META[j.main]) ? _MOOD_META[j.main] : null;
+      _mws.big = _mwMain ? ('这周多是「' + _mwMain.t + '」')
+                         : '这周还没攒下心情点';
+      _mws.moodDots = _mwD.map(function (d) {
+        var _mm = (d && d.m !== null && d.m !== undefined &&
+                   _MOOD_META[d.m]) ? _MOOD_META[d.m] : null;
+        return { wd: _weekdayCn(d.date), d: (d.date || '').slice(5).replace('-', '/'),
+                 c: _mm ? _mm.c : '', e: _mm ? _mm.e : '', t: _mm ? _mm.t : '' };
+      });
+      _mws.lines = [];
+      _mws.lines.push({ k: '小满说', v: _gSlice(_pStr(j && j.verdict), 20) });
+      _mws.lines.push({ k: '这周记下', v: _pStr(j && j.recorded) + '/7 天' });
+      if ((j && j.streak) >= 2) {
+        _mws.lines.push({ k: '连续记录', v: _pStr(j.streak) + ' 天' });
+      }
+      if (j && j.prevN > 0) {
+        /* 卡面行 ≤20 字才不撞右缘截断——用紧凑口径，页面长句版
+         * 留在视图 prevText。 */
+        var _pv = '上周 ' + _pStr(j.prevN) + ' 天 · 这周 ' +
+          _pStr(j.recorded) + ' 天';
+        if (j.recorded > j.prevN) _pv += '，越记越顺手';
+        else if (j.recorded < j.prevN) _pv += '，想记就记';
+        _mws.lines.push({ k: '和上周比', v: _pv });
+      }
+      /* 小满插画：主情绪场景图（_shareMoodWeek 预载进 j._art）。 */
+      if (j && j._art) {
+        _mws.cards = [{ img: j._art, name: '小满这周陪你',
+          sub: '慢慢过' }];
+      }
+      return _mws;
+    }
     default:
       return null;
   }
@@ -1585,6 +1666,10 @@ function _posterTextCollect(s) {
         t += _pStr(r && r.k) + _pStr(r && r.v); });
       (s.cards || []).forEach(function (c) {
         t += _pStr(c && c.name) + _pStr(c && c.sub); });
+      /* 心情周记点阵的周X/日期标签——入预载集，不然点阵下小字
+       * 命中未加载子集回落系统字体（同 P1-1 根因）。 */
+      (s.moodDots || []).forEach(function (d) {
+        t += _pStr(d && d.wd) + _pStr(d && d.d) + _pStr(d && d.t); });
       var _h = _posterHookForView(s.view, s._src || s);
       t += _pStr(_h);
       /* 旧版式（无 j.share）走 bazi 专属模板：四柱 pills + one_liner +
@@ -1604,7 +1689,8 @@ function _posterTextCollect(s) {
   /* R2350b（R99-P2）：预热集与现役 CTA 对齐（「铺/的」等字原不在
    * 集里，命中未加载子集时回落系统字体）。 */
   return t + '知命，是为了更好地活@小满的解忧铺·知命知趣知自己' +
-    '仅供娱乐测你的同款→搜「」✨' ;
+    '仅供娱乐测你的同款→搜「」✨' +
+    '小满说这周记下和上周比连续记录天慢慢过陪你';
 }
 
 async function _downloadPoster(j, view) {
