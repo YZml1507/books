@@ -5961,3 +5961,15 @@ D-259b 时代落地的桌面常驻方案。逐项裁决：
 - 备选 `PRAGMA data_version` 作 knowledge 失效键：data_version 只标记内容变更不标记文件替换（新 inode 旧句柄照读），且自写也会触发——比 (mtime,size) 语义更弱，弃。
 
 **代价**：写后 next-borrow 多一次重连（mtime 变化）——写端点本来就稀有，摊销可接受；线程退出时连接随线程回收（句柄泄漏有界 ≤40）。
+
+## D-273b R3243 决策：bazi 坐标词检索——rows 级缓存 vs 跨词合并查询
+
+**问题**：retrieve_fast 每请求 5 条窗口查询 × ~6.5ms = 32ms，占 bazi 端到端 84%。
+
+**候选**：
+- A) (q,per_query) rows 缓存 + 库指纹失效（选中）：坐标词空间有限（干支 60×4 / 纳音 30 / 主题 12），多用户同生日高复用；Python 侧逻辑零改动，一致性由构造保证；~300 键上限 512 足够。
+- B) 5 词合一条 MATCH OR 查询 + PARTITION BY work_id,token：FTS5 无法在结果里区分命中了哪个 token（bm25 无 per-term 分数），per-query 归属丢失→语义变，弃。
+- C) per-work 相关子查询 LIMIT：FTS5 MATCH 不能出现在相关子查询里跨表引用，弃。
+- 未决的 rank-vs-bm25 换序：大集快小集慢且排序边界风险，不动。
+
+**代价**：每请求一次 os.stat（~0.1ms）；缓存行 dict 化内存有界（512×≤36 行 ≈ 万级 dict）。

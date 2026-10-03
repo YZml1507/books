@@ -165,6 +165,15 @@ def _fts_phrase(q: str) -> str:
 # --------------------------------------------------------------------------------------
 # FTS 路径
 # --------------------------------------------------------------------------------------
+# R3243：窗口查询 rows 级缓存——坐标词空间有界（四柱干支 60×4 + 纳音 30 +
+# 主题 ~12 ≈ 三百词），同一八字坐标被不同用户/同日请求反复命中；每词一
+# 条窗口查询 ~6.5ms 由此摊销到一次。按库指纹 (mtime_ns,size) 失效——重建/
+# 换库自动清表；dict 保序 + 上限防无界；行转 dict 存缓存（Row 与连接解耦，
+# 下游按列名取值语义不变）。
+_ROWS_CACHE: dict[tuple, list] = {}
+_ROWS_FP: tuple | None = None
+
+
 def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
                   top_queries: int = 5, question: str | None = None) -> list[dict]:
     """坐标词 FTS 检索命理书，返回带引用的原文证据。
@@ -193,6 +202,17 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
         seen: set[tuple] = set()
         out: list[dict] = []
 
+        # R3243：库指纹校验——变了整表清，不用逐键失效。
+        global _ROWS_FP
+        try:
+            _st = os.stat(DB)
+            _fp = (_st.st_mtime_ns, _st.st_size)
+        except OSError:
+            _fp = None
+        if _ROWS_FP != _fp:
+            _ROWS_CACHE.clear()
+            _ROWS_FP = _fp
+
         for q, why in qs:
             if len(q) < 2:
                 continue  # 单字不参与 FTS（噪音）
@@ -201,22 +221,28 @@ def retrieve_fast(b: Bazi, per_query: int = 2, per_work: int = 1,
             # 查询，cProfile 实测占 /api/bazi 端到端耗时 ~84%）。ROW_NUMBER
             # PARTITION BY 与旧 per-work LIMIT 语义一致；下方仍按
             # MINGLI_WORKS 顺序走 seen/per_work，输出逐字节不变。
-            rows = conn.execute(
-                "SELECT work_id, title, layer, page_anchor, file, text, "
-                "raw_start, score FROM ("
-                "SELECT *, ROW_NUMBER() OVER (PARTITION BY work_id "
-                "                            ORDER BY score) AS rn FROM ("
-                "SELECT u.work_id AS work_id, w.title AS title, "
-                "u.layer AS layer, u.page_anchor AS page_anchor, "
-                "u.file AS file, u.text AS text, u.raw_start AS raw_start, "
-                "bm25(unit_fts) AS score "
-                "FROM unit_fts "
-                "JOIN unit u ON u.id = unit_fts.rowid "
-                "JOIN work w ON w.id = u.work_id "
-                "WHERE u.work_id IN (%s) AND unit_fts MATCH ?)) "
-                "WHERE rn <= ? ORDER BY score"
-                % ",".join("?" * len(MINGLI_WORKS)),
-                (*MINGLI_WORKS, _fts_phrase(q), per_query)).fetchall()
+            _ck = (q, per_query)
+            rows = _ROWS_CACHE.get(_ck)
+            if rows is None:
+                rows = [dict(r) for r in conn.execute(
+                    "SELECT work_id, title, layer, page_anchor, file, text, "
+                    "raw_start, score FROM ("
+                    "SELECT *, ROW_NUMBER() OVER (PARTITION BY work_id "
+                    "                            ORDER BY score) AS rn FROM ("
+                    "SELECT u.work_id AS work_id, w.title AS title, "
+                    "u.layer AS layer, u.page_anchor AS page_anchor, "
+                    "u.file AS file, u.text AS text, u.raw_start AS raw_start, "
+                    "bm25(unit_fts) AS score "
+                    "FROM unit_fts "
+                    "JOIN unit u ON u.id = unit_fts.rowid "
+                    "JOIN work w ON w.id = u.work_id "
+                    "WHERE u.work_id IN (%s) AND unit_fts MATCH ?)) "
+                    "WHERE rn <= ? ORDER BY score"
+                    % ",".join("?" * len(MINGLI_WORKS)),
+                    (*MINGLI_WORKS, _fts_phrase(q), per_query)).fetchall()]
+                if len(_ROWS_CACHE) >= 512:
+                    _ROWS_CACHE.pop(next(iter(_ROWS_CACHE)))
+                _ROWS_CACHE[_ck] = rows
             by_work: dict[str, list] = {wid: [] for wid in MINGLI_WORKS}
             for r in rows:
                 by_work[r["work_id"]].append(r)
