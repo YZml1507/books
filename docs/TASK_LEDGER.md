@@ -17368,3 +17368,10 @@ R3188：二选一牌阵补 A/B 对比判词——选项A/选项B 位牌面轻重
   - P3：浮层纪律——showView 清非错误 toast，welcomeBar/returnBanner 按 body[data-view] 只首页渲染；输入 focusin 主动 scrollIntoView 归中（内嵌内核 visualViewport 不滚）。
   - P3：隐私模式死循环根治——_meGet/_meSave 加 __meSessionMap 会话内存档，档案写不进时本会话内封面门/个性化照常（此前封面点击无限回环、打卡永久不可达）。
   - backlog：视图拆包懒加载（P2 31s 首屏本体）、偶发瞬时白屏（低频可观察）、bundle 瘦身。
+
+- **R2367**（轮2·R3306 多Tab/一致性清零）：
+  - P1：wipe 复活洞——R3303 新增的 __meSessionMap 会话档漏接 wipe 链，「忘掉一切」后被它当场复活档案条。wipe _done 与 wipeAt 跨 tab 监听双清。
+  - P2：wipe 在途写免疫——_meSaveFromBirth 在 await 前取 wipeAt 墓碑、落地前比对；_meSave 本体入口快照+写前重读双保险。
+  - P2：同名键并发写互丢——_phMirrorSave/_favMirrorSave 写前重读并集合并（del 墓碑按同代 ts 摘尸）；chat:cards/topics/events/hlask 走新 _lsUnionWrite 身份并集；_favMirrorDrop 记本会话删号防收尸。
+  - P3：盲区键——storage 监听补 mood:/moodlv:/moodjar:/checkinBuff: 分发；journal:/ritual:/usage: 等低频统计件注明有意不跟；checkinBuff: 收进 wipe 前缀。
+  - P3：断网回落本机留档不再谎称「云端清盘」——navigator.onLine 判离线改「离线中，先看你本机留档」。

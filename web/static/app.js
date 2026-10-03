@@ -1613,7 +1613,9 @@ function rememberResult(viewKey, json, question, body) {
                     q: (question || '').slice(0, 30) });
       var _cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
       _cd = _cd.filter(function (x) { return x && x.d >= _cut; }).slice(0, 12);
-      localStorage.setItem('chat:cards', JSON.stringify(_cd));
+      /* R3306-P2：并集写——两 tab 同日各出一画像卡不互丢。 */
+      _lsUnionWrite('chat:cards', _cd,
+        function (x) { return x && (x.d + '|' + x.v); }, 12);
     }
   } catch (e) {}
   /* R2349t（R88-13d）：接力回赠——share 链进来的首个非日签结果
@@ -2973,7 +2975,9 @@ function _chatTopicLog(msg) {
     arr = arr.filter(function (x) {
       return x && x.d >= cutoff;
     }).slice(0, 60);
-    localStorage.setItem('chat:topics', JSON.stringify(arr));
+    /* R3306-P2：并集写——两 tab 同日各聊主题不互丢。 */
+    _lsUnionWrite('chat:topics', arr,
+      function (x) { return x && (x.d + '|' + x.t + '|' + (x.v || '')); }, 60);
   } catch (e) {}
 }
 /* R3260（UX-PLAN-R6→R7）：未闭合事件——「明天要面试」「周五谈薪」
@@ -2995,7 +2999,8 @@ function _chatEventLog(msg) {
     if (dup) return;
     arr.unshift({ k: key, ts: Date.now(), d: todayIso(), asked: 0,
                   closed: 0 });
-    localStorage.setItem('chat:events', JSON.stringify(arr.slice(0, 10)));
+    /* R3306-P2：并集写——两 tab 各记一条话头不互丢。 */
+    _lsUnionWrite('chat:events', arr, function (x) { return x && x.k; }, 10);
   } catch (e) {}
 }
 /* 画像行：近 7 天各主题计数，主打主题 ≥2 天才有「一直卡在这」
@@ -3173,7 +3178,9 @@ function chatSend() {
         localStorage.getItem('chat:events') || '[]');
       if (Array.isArray(_pe) && _pe[window.__chatPendingEvt]) {
         _pe[window.__chatPendingEvt].closed = 1;
-        localStorage.setItem('chat:events', JSON.stringify(_pe));
+        /* R3306-P2：并集写——闭合标记与另一 tab 的新话头不互丢。 */
+        _lsUnionWrite('chat:events', _pe,
+          function (x) { return x && x.k; }, 10);
       }
       window.__chatPendingEvt = null;
     }
@@ -10479,8 +10486,9 @@ async function _doHuangli(offset, reveal, spokenWord) {
           if (!_dup) {
             _ea.unshift({ k: _ek, ts: Date.now(), d: todayIso(),
                           asked: 0, closed: 0 });
-            localStorage.setItem('chat:events',
-                                 JSON.stringify(_ea.slice(0, 10)));
+            /* R3306-P2：并集写。 */
+            _lsUnionWrite('chat:events', _ea,
+              function (x) { return x && x.k; }, 10);
           }
           _fb.textContent = '✅ 记下啦，到时候小满问你';
           _fb.disabled = true;
@@ -10658,8 +10666,54 @@ function _phMirrorLoad() {
     return _m;
   } catch (e0) { return { items: {}, details: {}, del: _phMirrorDelLoad(), dorder: [] }; }
 }
+/* R3306-P2：同名数组键并发写互丢的通用修法——写前重读存储，
+ * 按 idFn 身份并集收进本批没有的远端条目，再落盘。身份在则
+ * 以本批为准（覆盖/墓碑语义由调用方先 filter 体现）。 */
+function _lsUnionWrite(key, arr, idFn, cap) {
+  try {
+    var _cur = JSON.parse(localStorage.getItem(key) || '[]');
+    if (Array.isArray(_cur)) {
+      var _ids = {};
+      arr.forEach(function (x) { _ids[idFn(x)] = 1; });
+      _cur.forEach(function (x) {
+        var _id = idFn(x);
+        if (!_ids[_id]) { arr.push(x); _ids[_id] = 1; }
+      });
+    }
+  } catch (eU) {}
+  if (cap) arr = arr.slice(0, cap);
+  localStorage.setItem(key, JSON.stringify(arr));
+}
 function _phMirrorSave(m) {
   try {
+    /* R3306-P2：多 tab 并发写互丢——写前重读并集合并：本 tab 没有
+     * 的远端条目收进来（del 墓碑盖着的除外——同号同 ts 已删），
+     * dorder 取并集按我前他后。 */
+    var _cur = _phMirrorLoad();
+    if (_cur && _cur.details) {
+      var _tomb = Object.assign({}, _cur.del || {}, m.del || {});
+      ['items', 'details'].forEach(function (w) {
+        var _dst = m[w] || {};
+        Object.keys(_cur[w] || {}).forEach(function (k) {
+          /* 墓碑是「裸 id → 已删那代的 ts」，只压同代尸首——同号新代
+           * （服务端 id 重排后新记录）照收，与 _phMirrorLoad 摘尸同口径。 */
+          if (!(k in _dst)) {
+            var _ts = _tomb[k.split('|')[0]];
+            if (!(_ts != null &&
+                  String((_cur[w][k] || {}).ts || '') === String(_ts))) {
+              _dst[k] = _cur[w][k];
+            }
+          }
+        });
+        m[w] = _dst;
+      });
+      m.del = _tomb;
+      var _seen = {}, _ord = [];
+      (m.dorder || []).concat(_cur.dorder || []).forEach(function (k) {
+        if (!_seen[k] && m.details[k]) { _seen[k] = 1; _ord.push(k); }
+      });
+      m.dorder = _ord;
+    }
     var _s = JSON.stringify(m);
     /* 同值不写——跨 tab storage 事件会因无变化写入互相唤起打转 */
     if (localStorage.getItem(_PH_MIRROR_KEY) !== _s) {
@@ -10796,9 +10850,14 @@ function _phRenderMirrorList(listEl, m) {
     return String(b.ts || '').localeCompare(String(a.ts || ''));
   });
   if (!_localItems.length) return false;
+  /* R3306-P3：断网回落本机留档时别说「清盘」——把普通断网说成
+   * 服务重启清掉是谎报，用户会误判数据丢了。 */
+  var _phFbTitle = (navigator && navigator.onLine === false)
+    ? '📴 离线中，先看你设备上留下的本机备份（未打开过的只有摘要行）'
+    : '☁️ 云端记录被服务重启清掉了，下面是你设备上留下的本机备份' +
+      '（未打开过的只有摘要行）';
   listEl.innerHTML = '<div class="ph-empty" style="margin-bottom:10px;">' +
-    '☁️ 云端记录被服务重启清掉了，下面是你设备上留下的本机备份' +
-    '（未打开过的只有摘要行）</div>' +
+    _phFbTitle + '</div>' +
     _localItems.map(function (it) {
       var _t = _fmtWhen(it.ts);
       var _tL = _PH_TYPE_LABEL[it.type] || '记录';
@@ -11938,6 +11997,16 @@ function _favMirrorLoad() {
 }
 function _favMirrorSave(list) {
   try {
+    /* R3306-P2：多 tab 并发写互丢——写前重读按 id 并集（本 tab
+     * 会话内明确删过的 id 不收尸，见 __favMirrorDelSet）。 */
+    var _cur = _favMirrorLoad();
+    var _have = {}, _delSet = (window.__favMirrorDelSet =
+      window.__favMirrorDelSet || {});
+    (list || []).forEach(function (f) { _have[String(f && f.id)] = 1; });
+    (_cur || []).forEach(function (f) {
+      var k = String(f && f.id);
+      if (!_have[k] && !_delSet[k]) { (list = list || []).push(f); _have[k] = 1; }
+    });
     var _s = JSON.stringify(list || []);
     /* 同值不写——防跨 tab storage 事件互相唤起打转 */
     if (localStorage.getItem(_FAV_MIRROR_KEY) !== _s) {
@@ -11946,6 +12015,10 @@ function _favMirrorSave(list) {
   } catch (e) { _mirrorWriteWarn(); }
 }
 function _favMirrorDrop(id) {
+  try {
+    (window.__favMirrorDelSet = window.__favMirrorDelSet || {})[
+      String(id)] = 1;
+  } catch (eD) {}
   _favMirrorSave(_favMirrorLoad().filter(function (f) {
     return String(f && f.id) !== String(id);
   }));
@@ -12089,7 +12162,9 @@ function _hlAskLog(q, dateStr, askedOn) {
     if (!Array.isArray(list)) list = [];
     list = list.filter(function (x) { return !(x && x.q === q && x.d === dateStr); });
     list.unshift({ q: q, d: dateStr, a: askedOn || dateStr });
-    window.localStorage.setItem('hlask', JSON.stringify(list.slice(0, 12)));
+    /* R3306-P2：并集写——两 tab 各留问一嘴足迹不互丢。 */
+    _lsUnionWrite('hlask', list,
+      function (x) { return x && (x.q + '|' + x.d); }, 12);
   } catch (e) {}
 }
 
@@ -12810,6 +12885,21 @@ function init() {
       renderCheckin(todayIso());
       return;
     }
+    /* R3306-P3：心情历/心情罐跨 tab——A 记了心情 B 的行原地亮。
+     * journal:/ritual:/usage:/rlast:/read:scroll:/notify:/remind:/
+     * threads_seen_v1/returnBannerDismissed 属低频或纯统计件，
+     * 有意不跟——下次自然渲染时读到新值。 */
+    if (e.key.indexOf('mood:') === 0 || e.key.indexOf('moodlv:') === 0) {
+      try { _renderMoodRow(); } catch (eM3) {}
+      return;
+    }
+    if (e.key.indexOf('moodjar:') === 0) {
+      try { _dailyMetaItem('dailyMoodJar', _moodJarHtml()); } catch (eM4) {}
+      return;
+    }
+    /* R3306-P3：checkinBuff:*（每日打卡 buff 足迹）原漏在监听
+     * 外——无重渲面，只需要别当陌生键走下去。 */
+    if (e.key.indexOf('checkinBuff:') === 0) { return; }
     /* R2400（R127-P2-3）：镜像键跨 tab——A 摘了心水/删了记录，
      * B 的 chips 与「本机留档」列表就地跟新（saver 同值不写，
      * 重渲染收敛不打转）。 */
@@ -14701,6 +14791,10 @@ function _fieldsUntouched(ids) {
   return true;
 }
 function _meSave(key, rec) {
+  /* R3306-P2：wipe 墓碑快照——写前比对（见下），入口先取一份
+   * （调用方 await 完才进本函数的场景靠它挡住陈旧写）。 */
+  try { window.__meSaveWipeAt = localStorage.getItem('wipeAt'); }
+  catch (eW0) {}
   /* R233n：合并写——nick 等补充键只有个别表单维护，其他表单提交时
    * 传全量 y/m/d/h/g 若无 n，直接覆盖会把 nick 抹掉。合并后旧键保留；
    * 显式传 '' 仍可清掉某键（'' 会覆盖旧值）。 */
@@ -14713,6 +14807,14 @@ function _meSave(key, rec) {
    * localStorage 绕过本函数的极端路径另有 _chatFacts 处兜底。 */
   if ('n' in rec) rec = Object.assign({}, rec, {n: _meNickClean(rec.n)});
   var _merged = Object.assign(old, rec);
+  /* R3306-P2：在途写无免疫——lunar 换算/异步链回包时另一 tab 刚
+   * wipe 完，旧生辰落盘=复活。写前重读墓碑，变了即弃写。 */
+  try {
+    var _w0 = localStorage.getItem('wipeAt');
+    if (_w0 !== (window.__meSaveWipeAt || null)) {
+      return;
+    }
+  } catch (eW) {}
   try {
     window.localStorage.setItem(key, JSON.stringify(_merged));
   } catch (e) {
@@ -14743,6 +14845,10 @@ function _meSave(key, rec) {
  * opts.n 传了才动昵称键（'' 按 _meSave 语义清昵称）；换算失败不落档
  * 也不挡解读（静默——解读已拿到，档案弱保存可下轮补）。 */
 async function _meSaveFromBirth(key, opts) {
+  /* R3306-P2：wipe 墓碑必须在 await 前取——换算回包落地时另一
+   * tab 若刚「忘掉一切」，本次生辰不得再落盘（含会话档）。 */
+  var _w0 = null;
+  try { _w0 = localStorage.getItem('wipeAt'); } catch (eW) {}
   try {
     var rec = { h: opts.h, g: opts.g, lunar: null };
     if ('n' in opts) rec.n = opts.n;
@@ -14750,6 +14856,9 @@ async function _meSaveFromBirth(key, opts) {
       var cj = await api('/api/lunar/convert?y=' + opts.y + '&m=' +
         opts.m + '&d=' + opts.d + '&leap=' + (opts.leap ? 1 : 0));
       if (!cj || !cj.solar) return;
+      try {
+        if (localStorage.getItem('wipeAt') !== _w0) return;
+      } catch (eW2) {}
       rec.y = cj.year; rec.m = cj.month; rec.d = cj.day;
       rec.lunar = '农历' + opts.y + '年' + opts.m + '月' + opts.d + '日' +
         (opts.leap ? '（闰）' : '');
@@ -16365,6 +16474,7 @@ function baziPersonaCard(j) {
           if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 k.indexOf('checkin:') === 0 ||
+                k.indexOf('checkinBuff:') === 0 ||
                 k.indexOf('dailyRevealed:') === 0 ||
                 k.indexOf('checkinCeleb:') === 0 ||
                 /* R3260：R1-R7 新增键——心情历（mood:<date>/moodlv:<date>）
