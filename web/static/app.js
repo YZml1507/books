@@ -3744,7 +3744,10 @@ function revealResult(containerId) {
   window.scrollTo({ top: target, behavior: 'auto' });
   /* v5-fix（取证见 .cluster/debug_scroll_v5.py）：Chrome 滚动锚定/饧位会在
    * DOM 变更同帧吞掉程序滚动（scrollTo 后 scrollY 仍为 0）。双 rAF + 260ms
-   * 两次确认补拉；期间用户主动滚动（滚轮/触摸/按键）则不补。 */
+   * 两次确认补拉；期间用户主动滚动（滚轮/触摸/按键）则不补。
+   * R3309（probe_first_screen）：_confirm 每次**重新量**结果区顶——
+   * 提交后上方块还会异步长高（loadDaily 重刷日卡之类），拿提交瞬间
+   * 量的 target 补拉会把结论推到视口外。 */
   var _userMoved = false;
   var _stop = function () { _userMoved = true; };
   window.addEventListener('wheel', _stop, { passive: true, once: true });
@@ -3752,10 +3755,17 @@ function revealResult(containerId) {
   window.addEventListener('keydown', _stop, { passive: true, once: true });
   var _confirm = function () {
     if (_userMoved) return;
-    if (Math.abs(window.scrollY - target) > 4) window.scrollTo({ top: target, behavior: 'auto' });
+    var _now = Math.max(0, node.getBoundingClientRect().top +
+                        window.scrollY - 8);
+    if (Math.abs(window.scrollY - _now) > 4) {
+      window.scrollTo({ top: _now, behavior: 'auto' });
+    }
   };
   requestAnimationFrame(function () { requestAnimationFrame(_confirm); });
   setTimeout(_confirm, 260);
+  /* R3309：晚一拍再确认一次——日卡/预取这种 ~500ms 级的异步重绘
+   * 完成后再锚一次（实测锚定被吞后结论落在视口 1272px）。 */
+  setTimeout(_confirm, 900);
   /* R230j（R22-P2-1）：once 监听在用户无滚轮/触摸/按键时永不自行
    * 回收，每次提交积 3 个（55 次提交实测 +150）。最后一次 _confirm
    * 跑完后三监听使命已尽——主动摘掉。 */
@@ -3763,7 +3773,7 @@ function revealResult(containerId) {
     window.removeEventListener('wheel', _stop);
     window.removeEventListener('touchmove', _stop);
     window.removeEventListener('keydown', _stop);
-  }, 300);
+  }, 1200);
 }
 
 /* R3212（用户提议，已落地）：温柔版/专业版合并为单版——
@@ -3909,19 +3919,26 @@ function annotatePowers(text) {
  * renderVoice 外层的「📐 专业视角：完整推导链」已含同一份
  * sections（+引文+依据+免责），内层「📜 想看专业依据」是同源重复，
  * 该路径传 true 跳过；dailyDetail 无外折叠，仍要这层。 */
-function renderWarm(warm, interp, evidence, scope, skipDetailsFold) {
-  if (!warm) return renderInterpretation(interp, '📖 小满的解读');
-  var html = '<div class="warm-wrap">';
+/* R3309（probe_first_screen）：共情+L0 拆成 _warmLead——bazi 结果卡
+ * 要把它提到卡顶（判据 1），本函数主体用 skipLead 不再渲染。 */
+function _warmLead(warm) {
+  if (!warm) return '';
   /* R206b（specs/009 US4 接住感）：L0 上一句共情——确定性模板族
    * （按提问主题选，无提问走通用款），同输入同输出不违反确定性判据。
    * 写死在前端而非 voice.py：voice 输出被 voice_baseline.json 逐字节
    * 钉住，前端追加层 additive 零基线风险。
    * R207b：聊天入口已由 paint() 全局统一注入（含塔罗/桃花等所有结果卡），
    * 此处不再单独渲染。 */
-  html += '<div class="warm-empathy"><span>' +
-    esc(warmEmpathy(WARM_LAST_QUESTION)) + '</span></div>';
-  // L0 一句话：首屏第一眼就是它（判据 1/3）
-  html += '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
+  return '<div class="warm-empathy"><span>' +
+    esc(warmEmpathy(WARM_LAST_QUESTION)) + '</span></div>' +
+    /* L0 一句话：首屏第一眼就是它（判据 1/3） */
+    '<div class="warm-l0">' + esc(warm.one_liner || '') + '</div>';
+}
+function renderWarm(warm, interp, evidence, scope, skipDetailsFold,
+                    skipLead, foldSecs) {
+  if (!warm) return renderInterpretation(interp, '📖 小满的解读');
+  var html = '<div class="warm-wrap">';
+  html += skipLead ? '' : _warmLead(warm);
   // L1.5 reply：对提问的回应，紧跟 L0
   if (warm.reply && warm.reply.length) {
     html += '<div class="warm-reply">';
@@ -4029,22 +4046,33 @@ function renderWarm(warm, interp, evidence, scope, skipDetailsFold) {
       html += '</div>';
     });
     html += '</details>';
-  } else _dets.forEach(function (d) {
-    html += '<div class="interp-sec"><h4>' + esc(d.title || '') + '</h4><ul>';
-    (d.lines || []).forEach(function (ln) {
-      html += '<li>' + esc(ln) + '</li>';
-    });
-    html += '</ul>';
-    if (d.basis && d.basis.length) {
-      html += '<details class="warm-basis"><summary>推导依据（' +
-        esc(d.basis.length) + ' 条）</summary><ul>';
-      d.basis.forEach(function (b) {
-        html += '<li>' + esc(_basisCn(b)) + '</li>';
+  } else {
+    var _secs = '';
+    _dets.forEach(function (d) {
+      _secs += '<div class="interp-sec"><h4>' + esc(d.title || '') +
+        '</h4><ul>';
+      (d.lines || []).forEach(function (ln) {
+        _secs += '<li>' + esc(ln) + '</li>';
       });
-      html += '</ul></details>';
-    }
-    html += '</div>';
-  });
+      _secs += '</ul>';
+      if (d.basis && d.basis.length) {
+        _secs += '<details class="warm-basis"><summary>推导依据（' +
+          esc(d.basis.length) + ' 条）</summary><ul>';
+        d.basis.forEach(function (b) {
+          _secs += '<li>' + esc(_basisCn(b)) + '</li>';
+        });
+        _secs += '</ul></details>';
+      }
+      _secs += '</div>';
+    });
+    /* R3309（probe_first_screen 判据「结果区 ≤4 屏」）：散铺小节默认
+     * 展开时，单卡 6 屏——foldSecs 的调用方整组收进一个折叠，事实
+     * 零删减（折叠可核验口径不变）。 */
+    html += (foldSecs && _dets.length)
+      ? '<details class="warm-secs-fold"><summary>📖 细看小满的逐条推演（' +
+        _dets.length + ' 节，展开慢慢看）</summary>' + _secs + '</details>'
+      : _secs;
+  }
   // L3 citations：古籍原文进三级折叠树，**warm 模式下这是唯一的古籍渲染点**
   // （005 判据 5，清偿审查轨 R128a-01）。
   //
@@ -4583,7 +4611,7 @@ function _proFold(j) {
     '<summary>📐 排盘坐标与字段原表（展开看）</summary>' + inner + '</details>';
 }
 
-function renderVoice(j, proTitle, evidenceKeys) {
+function renderVoice(j, proTitle, evidenceKeys, skipLead, foldSecs) {
   /* R3212：双版合并——人话层常驻，推导链收进「专业视角」折叠。 */
   var html = '';
   if (j && j.warm) {
@@ -4594,7 +4622,7 @@ function renderVoice(j, proTitle, evidenceKeys) {
     /* R3245：skipDetailsFold=true——内层「想看专业依据」与下面的
      * 「专业视角：完整推导链」同源于 interpretation.sections，留外层一个。 */
     html += renderWarm(j.warm, j.interpretation, ev,
-                       j.calc && j.calc.scope, true);
+                       j.calc && j.calc.scope, true, skipLead, foldSecs);
     /* R3258（用户实测「很多地方重复」）：warm.details 与
      * interpretation.sections 逐字节同源——上方解读层已把同一批小节
      * 散铺出来，这里再折一份「推导链」=同文第二遍。仅当 details 缺失
@@ -6042,6 +6070,10 @@ function buildBaziResult(j) {
       'title="生成今年运势图">📅 年度运势图</button>';
   }
   html += '</div>';
+  /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
+   * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
+   * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
+  html += _warmLead(j.warm);
   {
     /* R215b：四柱/纳音收进折叠「看看你的生辰小卡」（R3212 单版化后恒走）。 */
     /* R215b：温柔模式首屏去工具感——四柱/纳音收进折叠「看看你的生辰小卡」，
@@ -6076,8 +6108,11 @@ function buildBaziResult(j) {
       '「逆排」就是从月柱往前数；纳音是五行的传统叫法，当个小标签看就好</p>';
     html += '</details>';
     /* R3254：命盘可视化（四柱格+五行雷达+地支关系）——用户点名
-     * 的「能不能做成图」落在结果页可视区，不进折叠。 */
-    html += _baziPlate(j);
+     * 的「能不能做成图」落在结果页可视区，不进折叠。
+     * R3309（probe_first_screen 判据「结果区 ≤4 屏」）：展开态单卡
+     * 6 屏，改默认收进折叠——点开即见图，零删减。 */
+    html += '<details class="plate-fold"><summary>🀄 看看你的四柱盘（图）</summary>' +
+      _baziPlate(j) + '</details>';
   }
   if (paipan.warn && paipan.warn.length) {
     html += '<p class="warn">' + esc(paipan.warn.join('；')) + '</p>';
@@ -6095,7 +6130,9 @@ function buildBaziResult(j) {
    * 专业内容三件（排盘坐标/推导链/古籍原文）收进同一个折叠、
    * 分节小标题区分——不再两个「专业视角」三角并列打架，且整折
    * 沉到人话层之后。 */
-  html += renderVoice(j, '📖 小满的解读', ['evidence']);
+  /* R3309：skipLead——共情/L0 已在卡顶渲染过一次；foldSecs——逐条
+   * 推演小节整组收折叠（结果区 ≤4 屏判据）。 */
+  html += renderVoice(j, '📖 小满的解读', ['evidence'], true, true);
   /* R3258：原三合一大折叠收敛为唯一原表折叠——推导链=上方散铺
    * 小节本体（逐字节同源），古籍=renderWarm 引文树（同源第二份），
    * 都摘掉；只留别处看不到的：排盘坐标原句 + 运算摘要 + 字段原表。 */
