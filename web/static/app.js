@@ -16185,9 +16185,11 @@ function renderCheckin(dateKey) {
           var _famCut = _fam === 'monthlyLetter:'
             ? _isoShift(dateKey, -150).slice(0, 7)
             : _isoShift(dateKey, -150);
-          var _famTailOk = _fam === 'monthlyLetter:'
-            ? /^\d{4}-\d{2}$/.test(_ck.slice(_fam.length))
-            : /^\d{4}-\d{2}-\d{2}$/.test(_ck.slice(_fam.length));
+          var _famTailOk = _fam
+            ? (_fam === 'monthlyLetter:'
+              ? /^\d{4}-\d{2}$/.test(_ck.slice(_fam.length))
+              : /^\d{4}-\d{2}-\d{2}$/.test(_ck.slice(_fam.length)))
+            : false;
           if (_ck && ((_ck.indexOf('checkin:') === 0 && _ck < _cutoff) ||
               (_ck.indexOf('dailyRevealed:') === 0 && _ck < _cutoff2) ||
               (_ck.indexOf('checkinBuff:') === 0 && _ck < _cutoff3) ||

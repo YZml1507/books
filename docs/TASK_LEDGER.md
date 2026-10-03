@@ -17722,3 +17722,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## 积压清项（2026-10-03）：_LC_HEX 收敛
 - 幸运色 hex 字面量此前 app.js 局部 + app_wallpaper.js 各存一份——双轨漂移风险。收敛为 app.js 顶层唯一真源（显式挂 window——文件尾 IIFE 段不计入），壁纸懒加载 window.LC_HEX 读同份。
+
+## 修复（2026-10-03）：打卡 GC 段 _famTailOk 空指针——CI ui:checkin.click 挂的真实原因
+- 现象：CI ui:checkin.click FAIL（picked=False、键已写、锁死=False）；本地 playwright 复现确定性失败。
+- 根因：R3328 改月信 GC 口径时把 `_famTailOk` 改成三元式，else 分支在 `_fam=null` 时仍算 `_ck.slice(_fam.length)`→TypeError。打卡 handler 在 try 内抛异常走 catch 提前 return——checkin: 键已写入但 renderCheckin 永不执行，picked/锁死态消失（每次点击必现，非 flake）。
+- 修法：`_famTailOk = _fam ? (月按 YYYY-MM 比 : 日按 YYYY-MM-DD 比) : false` 恢复空值守卫。
+- 教训：同型「加守卫变三元」改动需在 try 内做一次端到端点击验证；探针本就该抓到这个，UTC≥16:00 后服务端 _today_cn 与客户端差一天才暴露（双口径叠加窗口）。
