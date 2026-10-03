@@ -17782,3 +17782,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 路标：_CHAT_ACTIONS 加纠结词族（帮我决定/要不要去/纠结/怎么选等 11 词）→ oracle「✋ 去掷筊」；_CHAT_ACT_VIEWS 补 oracle。
 - 闸门：selftest 405（home.ia.count 12→13 钉序）/ ui_smoke 103（btn:oracle + ui:oracle.again 重掷清场，on_coverage 豁免表补 orAgain）/ contract 725 / parity / dollar_misuse / ruff 全绿；E2E Playwright 掷筊确定性+chip 回填实测 PASS。
 - bump_sw→books-shell-666acbee48e8。
+
+## R3337（2026-10-03）：愿望回音——「成真啦」从删除变还愿（情绪仪式层第三件）
+- 此前点「成真啦 🎉」只 toast 一句后删愿望——许愿的正反馈闭环断在最后一步。改：愿望归档进成真集 `wishfulfilled`（[{t,c,ts,fu}]，cap 30，进备份 _EXACT+wipe 正则+跨 tab 监听）→ 还愿卡（「成了」红章斜盖+愿望原文+谢辞池 5 句 _dayPick）→「再许一个」回写愿表单。
+- 许愿瓶卡底挂「✨ 成真集」条——列最近 5 个成了的愿望（有愿/写愿两态都挂）；summary 变「还愿 ×N」（无愿时有集也显示，有愿时追加尾段）。
+- 实测：Playwright 端到端——写愿→成真啦→wishfulfilled 落档+瓶清空+章+集条+summary「还愿 ×1」→再许一个回表单，PASS。
+- 闸门：selftest 405 / contract 725 / dollar_misuse(399) / banned / dup_keys / ruff 全绿；bump_sw→books-shell-cb9ca1a859ee。

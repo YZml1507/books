@@ -13973,7 +13973,7 @@ function init() {
     /* R2508（审-P2-1 续）：wishbottle 进 wipe/备份白名单后，A tab
      * 的删掉/存新要让 B tab 已展开的瓶卡就地跟上——removeItem 的
      * newValue=null 与新写入都走这条。 */
-    if (e.key === 'wishbottle') {
+    if (e.key === 'wishbottle' || e.key === 'wishfulfilled') {
       try { _renderWishBottle(); } catch (eW0) {}
       try { _wishRefreshSummary(); } catch (eW1) {}
       return;
@@ -17543,11 +17543,50 @@ function _wishDays(w) {
   var ts = (w && +w.ts) || Date.now();
   return Math.max(0, Math.floor((Date.now() - ts) / 86400000));
 }
+/* R3337：愿望回音——「成真啦」不再是删掉愿望，而是收进成真集
+ * wishfulfilled（[{t,c,ts,fu}]，cap 30）：还愿的仪式感是许愿的
+ * 正反馈闭环——愿望有结局，瓶子才敢再丢。 */
+var _ECHO_LINES = [
+  '成了就是成了，这个愿望下班啦',
+  '愿望到货——你等它的这些天没白等',
+  '它兑现了。给自己记一笔',
+  '许愿→成真，这条链你走通了一次',
+  '瓶子没白躺，它帮你存到今天'
+];
+function _wishEchoGet() {
+  try {
+    var a = JSON.parse(localStorage.getItem('wishfulfilled') || '[]');
+    return Array.isArray(a) ? a : [];
+  } catch (e) { return []; }
+}
+function _wishEchoAdd(w) {
+  try {
+    var a = _wishEchoGet();
+    a.unshift({ t: w.t, c: w.c, ts: w.ts, fu: Date.now() });
+    if (a.length > 30) a = a.slice(0, 30);
+    localStorage.setItem('wishfulfilled', JSON.stringify(a));
+  } catch (e) {}
+}
+function _wishEchoStrip() {
+  var a = _wishEchoGet();
+  if (!a.length) return '';
+  var html = '<div class="ck-wish-echolist">✨ 成真集 · ' + a.length +
+    ' 个愿望成了';
+  for (var i = 0; i < Math.min(5, a.length); i++) {
+    html += '<div class="ck-wish-echo-item">「' + esc(a[i].t) +
+      '」<b>成了</b></div>';
+  }
+  return html + '</div>';
+}
 function _wishSummary() {
   var w = _wishGet();
-  if (!w) return '，写个愿望丢进去';
+  var en = _wishEchoGet().length;
+  var tail = en ? '，还愿 ×' + en : '';
+  if (!w) return (en ? '（' : '，写个愿望丢进去') +
+    (en ? '还愿 ×' + en + '）' : '');
   var d = _wishDays(w);
-  return '（' + (d === 0 ? '今天刚丢的' : '愿望躺了 ' + d + ' 天') + '）';
+  return '（' + (d === 0 ? '今天刚丢的' : '愿望躺了 ' + d + ' 天') +
+    tail + '）';
 }
 function _renderWishBottle(edit) {
   var host = document.getElementById('wishBottleBody');
@@ -17568,7 +17607,8 @@ function _renderWishBottle(edit) {
           '<button type="button" class="checkin-opt" data-wish="done">成真啦 🎉</button>' +
           '<button type="button" class="checkin-opt" data-wish="edit">换个愿望</button>' +
           '<button type="button" class="checkin-opt" data-wish="keep">继续躺着</button>' +
-        '</div></div>';
+        '</div></div>' +
+      _wishEchoStrip();
     return;
   }
   host.innerHTML =
@@ -17593,7 +17633,23 @@ function _renderWishBottle(edit) {
         '<button type="button" class="checkin-opt" data-wish="save">丢进瓶子 🫙</button>' +
       '</div>' +
       '<div class="ck-wish-meta">只有你的浏览器记得它，写给自己看的</div>' +
-    '</div>';
+    '</div>' +
+    _wishEchoStrip();
+}
+function _renderWishEcho(w) {
+  /* 还愿卡——愿望被点「成真啦」后的一瞬庆祝画面。 */
+  var host = document.getElementById('wishBottleBody');
+  if (!host) return;
+  host.innerHTML =
+    '<div class="ck-wish-card ck-wish-echo">' +
+      '<div class="ck-wish-stamp">成了</div>' +
+      '<div class="ck-wish-text">「' + esc(w.t) + '」</div>' +
+      '<div class="ck-wish-meta">' + esc(_dayPick(_ECHO_LINES,
+        'echo|' + (w.fu || 0))) + '</div>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" data-wish="new">再许一个 🫙</button>' +
+      '</div></div>' +
+    _wishEchoStrip();
 }
 function _wishRefreshSummary() {
   var s = document.querySelector('#dailyCheckin .ck-wish summary');
@@ -17629,13 +17685,16 @@ function _wishAction(act, arg, dateKey) {
     return;
   }
   if (act === 'done') {
+    var w0 = _wishGet();
+    if (!w0) { _renderWishBottle(); return; }
+    _wishEchoAdd(w0);
     _wishClear();
-    showToast('替你开心 🎉 瓶子空出来等新愿望了', 'info');
-    _renderWishBottle();
+    showToast('替你开心 🎉 已收进成真集', 'info');
+    _renderWishEcho({ t: w0.t, fu: Date.now() });
     _wishRefreshSummary();
     return;
   }
-  if (act === 'edit') { _renderWishBottle(true); return; }
+  if (act === 'edit' || act === 'new') { _renderWishBottle(true); return; }
   if (act === 'keep') {
     showToast(_dayPick(['好，让它再躺会儿', '愿望继续躺着，你也继续',
                        '瓶子盖好了，回头见'], 'wishk'), 'info');
@@ -18274,7 +18333,9 @@ function baziPersonaCard(j) {
                       'installTipDismissed', 'ret_tip', 'wishbottle',
                       'chat:topics', 'chat:cards', 'remind:1',
                       'chat:events', 'mood:lv', 'notify:time',
-                      'returnBannerDismissed', 'futureLetters'];
+                      'returnBannerDismissed', 'futureLetters',
+                      /* R3337：成真集是亲笔愿望文本的延续——备份带上 */
+                      'wishfulfilled'];
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -18415,7 +18476,7 @@ function baziPersonaCard(j) {
            * 游离在清除清单外——一起收。 */
           /* R2508（审-P2-1）：wishbottle（许愿瓶自由文本）此前游离在
            * 清除清单外——「忘掉我的数据」后愿望仍幸存重渲，隐私破洞。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
+          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|chatSessionId|chatTranscript|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 k.indexOf('checkin:') === 0 ||
                 k.indexOf('checkinBuff:') === 0 ||
