@@ -175,6 +175,13 @@ function _signNo(dateStr) {
 
 /* R2349l（R73-P1-1）：签号 1–64 ↔ 周易 64 卦——每日一签从此有真签文。
  * 每项「卦名 · 一句白话签意」（白话是我们写的安抚口径，不冒充卦辞）。 */
+/* R3328+（积压 _LC_HEX 收敛）：幸运色 hex 唯一真源——此前
+ * app.js/app_wallpaper.js 各存一份同款字面量，双轨漂移风险。
+ * 本文件整体裹在 IIFE 里，顶层 var 不出全局——显式挂 window，
+ * 壁纸懒加载经 window.LC_HEX 读同一份。 */
+var LC_HEX = window.LC_HEX = { '青绿色': '#7fb8a4', '石榴红': '#d96a5f',
+               '鹅黄色': '#f0c95c', '珍珠白': '#efe9dc',
+               '雾蓝色': '#8fa8c8' };
 var _SIGN_GUA = ['',
   '乾为天·拿出干劲的日子', '坤为地·顺势承住就好', '水雷屯·开头难别怕',
   '山水蒙·不懂就问', '水天需·等一等也在走', '天水讼·别硬碰硬',
@@ -5206,16 +5213,13 @@ async function loadDaily() {
        * 能量条——读数到读感的落差，正是测测首屏的拉开点。
        * 幸运色同款 swatch 跟在行尾（后端 lucky 本就确定性派生，
        * 一直没显形，是闲置资产）。 */
-      var _LC_HEX = { '青绿色': '#7fb8a4', '石榴红': '#d96a5f',
-                      '鹅黄色': '#f0c95c', '珍珠白': '#efe9dc',
-                      '雾蓝色': '#8fa8c8' };
       var _lc = (j.lucky && j.lucky.color) || '';
       var _ln = (j.lucky && j.lucky.num) || 0;
       _scEl.innerHTML = '⚡ 今日能量 <strong>' + _energy + '</strong>' +
         '<span class="energy-track" aria-hidden="true"><i style="width:' +
           _energy + '%"></i></span>' +
         (_lc ? '<span class="lucky-chip"><i class="lc-dot" style="background:' +
-          (_LC_HEX[_lc] || '#d9c9a8') + '"></i>' + esc(_lc) +
+          (LC_HEX[_lc] || '#d9c9a8') + '"></i>' + esc(_lc) +
           /* R3329（审-P2）：_ln（j.lucky.num）原始拼 innerHTML——
            * 同字段下方幸运数是 esc 的，双口径补上。 */
           (_ln ? ' · ' + esc(_ln) : '') + '</span>' : '');

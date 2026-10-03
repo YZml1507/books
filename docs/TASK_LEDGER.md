@@ -17719,3 +17719,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 轴面干净实证：第 2 天回访 5 类痕迹/.ics 六要素/心情罐闭环/挑堆跨天重置（审计实录）。
 - （备份导得出导不回+wipe 漏周月信两项与 R3329 重叠，同批已修）
 - 闸门：selftest 400 / contract 723 / ruff / bump_sw（ui_smoke 上轮 101 绿，本批为 JS 逻辑层修改未动 UI 结构）。
+
+## 积压清项（2026-10-03）：_LC_HEX 收敛
+- 幸运色 hex 字面量此前 app.js 局部 + app_wallpaper.js 各存一份——双轨漂移风险。收敛为 app.js 顶层唯一真源（显式挂 window——文件尾 IIFE 段不计入），壁纸懒加载 window.LC_HEX 读同份。

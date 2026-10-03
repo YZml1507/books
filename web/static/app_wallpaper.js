@@ -6,9 +6,9 @@
 'use strict';
 
 var _WAP_COUNT = 10;   /* /static/wallpapers/wap-00.jpg .. wap-09.jpg */
-var _WAP_LC_HEX = { '青绿色': '#7fb8a4', '石榴红': '#d96a5f',
-                    '鹅黄色': '#f0c95c', '珍珠白': '#efe9dc',
-                    '雾蓝色': '#8fa8c8' };
+/* R3328+：_LC_HEX 收敛——读 app.js 顶层全局唯一真源；懒加载顺序
+ * 保证到时已定义，异常缺失走调用点 #d9c9a8 兜底。 */
+var _WAP_LC_HEX = window.LC_HEX || {};
 /* 判词星级色：吉=暖金、小吉=蜜桃、平=雾蓝、凶=暖灰（治愈向不用冷色） */
 /* R3318（审-P1-3）：personal.mine.verdict 九个判值原全部落到米白
  * fallback——浅底图上判词低对比。按「合=暖金 / 轻绊=雾蓝 / 凶挫=灰褐」
