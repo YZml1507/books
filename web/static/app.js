@@ -25145,7 +25145,25 @@ function _qianLoveHtml() {
 }
 /* R3622：捣蛋签区——万圣窗口内现身，独立于今日签。 */
 function _qianHwHtml() {
-  if (!_qianHwFest()) return '';
+  if (!_qianHwFest()) {
+    /* R3631：收官行——窗口过了还留个小尾巴：抽到过的给个
+     * 「收官」回顾条（一键复看最近那支），没抽过的不占行。 */
+    var _hhs = (_qianHist() || []).filter(function (x) {
+      return x && x.hw; });
+    if (!_hhs.length) return '';
+    var _lastN = _hhs[0].n;
+    var _lastQ = window.QIAN ? QIAN[_lastN - 1] : null;
+    return '<div class="qian-love" id="qianHw">' +
+      '<div class="qian-love-t">🎃 捣蛋签收官了</div>' +
+      '<div class="qian-love-s">这几天你抽到 ' + _hhs.length +
+      ' 支「宜动」签' +
+      (_lastQ ? '——最新是「' + esc(_lastQ.name) + '」' : '') +
+      '，明年万圣再来</div>' +
+      (_lastQ ? '<button class="ghost" type="button" data-qian="hist" ' +
+        'data-n="' + esc(_lastN) + '" data-d="' +
+        esc(_hhs[0].d || '') + '" data-hw="1">再看看那支签</button>' : '') +
+      '</div>';
+  }
   var hw = _qianHwIdxOf(todayIso());
   if (hw) return _qianSlipHtml(hw, { hw: 1 });
   return '<div class="qian-love" id="qianHw">' +
