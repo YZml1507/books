@@ -6245,7 +6245,7 @@ async function loadDaily() {
         }).join('');
         _pc2.push('<div class="e-week" role="img" aria-label="本周能量走向">' +
           _bars +
-          '<span class="e-week-note">' +
+          '<span class="e-week-note">周' +
           _wd[new Date(_wk[_peakI].d + 'T00:00:00').getDay()] +
           '是你这周电最足的一天</span></div>');
       }
