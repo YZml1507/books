@@ -4677,6 +4677,10 @@ def _run_inner() -> list[str]:
     assert 'data-mc="tpl"' in _appsrc2 and "act === 'tpl'" in _appsrc2, \
         "默契模板引导：tpl 委托链缺一"
     ok.append("frontend.mochi_tpl")
+    # R3446 记忆连续性：空态记忆行函数/样式类/接入点缺一不可。
+    assert "_chatMemoryLine" in _appsrc2 and "chat-memline" in _appsrc2, \
+        "记忆连续性：_chatMemoryLine/chat-memline 缺一"
+    ok.append("frontend.chat_memline")
     # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
     # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
     _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -4770,8 +4774,9 @@ def _run_inner() -> list[str]:
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \
         "_MEM_GROUPS" in _appsrc2 and "_xmMemRender" in _appsrc2 and \
         "_memC.hidden" in _appsrc2 and "mem-del" in _appsrc2 and \
-        "dataset.armed" in _appsrc2, \
-        "小满记得卡：视图/分组/锁态/两段式缺一"
+        "dataset.armed" in _appsrc2 and "_memNote" in _appsrc2 and \
+        "mem-note" in _appsrc2, \
+        "小满记得卡：视图/分组/锁态/两段式/她注意到缺一"
     ok.append("frontend.memory_card")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。

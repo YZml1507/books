@@ -4224,6 +4224,12 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .mc-tpl { font-size: 12.5px; color: var(--muted); margin: 6px 0 2px; }
 .mc-tpl a { display: inline-block; padding: 6px 4px; color: var(--accent);
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* R3446：聊天空态「她记得」一行——对齐 memo 行的轻量口径。 */
+.chat-memline { margin: 12px 0 0; font-size: 12.5px; color: var(--accent); }
+/* R3446：记忆卡顶「她注意到」一行。 */
+.mem-note { font-size: 12.5px; color: var(--accent); margin: 0 0 10px;
+  padding: 8px 10px; background: var(--accent-soft, #fdf1e4);
+  border-radius: 10px; }
 .mc-packtag { display: inline-block; margin-left: 6px; padding: 1px 8px;
   border-radius: 999px; font-size: 11px; font-weight: 600;
   background: var(--accent-soft, #fdf1e4);

@@ -229,6 +229,7 @@
   "err.threads.orphan_free",
   "err.threads.role",
   "focus.crisis_gate",
+  "frontend.chat_memline",
   "frontend.cny_ny_wiring",
   "frontend.hehun_daily_wiring",
   "frontend.hl_ask_dayoffset",

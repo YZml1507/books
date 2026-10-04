@@ -2839,6 +2839,53 @@ function chatEmptyGuide() {
   d.appendChild(t);
   flow.appendChild(d);
 }
+/* R3446：空态「她记得」一行——按贴身度取第一条命中，
+ * 只摆事实不评判；全本机键，零请求零上传。 */
+function _chatMemoryLine() {
+  try {
+    var _dd = new Date();
+    _dd.setDate(_dd.getDate() - 1);
+    var _iso = function (d) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    };
+    var _mv = localStorage.getItem('mood:' + _iso(_dd));
+    if (_mv !== null && _mv !== '' && _MOOD_META[+_mv]) {
+      return '昨天你说心情「' + _MOOD_META[+_mv].t + '」——今天呢？';
+    }
+    var _qh = [];
+    try { _qh = JSON.parse(localStorage.getItem('qian:hist') || '[]'); }
+    catch (eQ) {}
+    if (_qh && _qh[0] && _qh[0].n) {
+      return '上次求到「' + String(_qh[0].n) + '」，那件事有下文了吗？';
+    }
+    var _ms = 0;
+    var _dd2 = new Date();
+    for (var _i = 0; _i < 60; _i++) {
+      if (localStorage.getItem('manifest:' + _iso(_dd2)) === '1') {
+        _ms++; _dd2.setDate(_dd2.getDate() - 1);
+      } else break;
+    }
+    if (_ms >= 2) {
+      return '咒语连着念了 ' + _ms + ' 天——今天那遍还没念哦。';
+    }
+    var _mt = +(localStorage.getItem('muyu:total') || 0);
+    if (_mt >= 20) {
+      return '木鱼都敲了 ' + _mt + ' 下了，今天再来两下静静心？';
+    }
+    var _fl = [];
+    try { _fl = JSON.parse(localStorage.getItem('futureLetters') || '[]'); }
+    catch (eF) {}
+    if (_fl && _fl.length) {
+      return '你写给未来的信还在路上——要不要再添一封？';
+    }
+    if (localStorage.getItem('wishbottle')) {
+      return '你的愿望瓶里还躺着个心愿，要不要再许一个？';
+    }
+  } catch (eML) {}
+  return '';
+}
 function chatBubble(role, text, opts) {
   var flow = el('chatFlow');
   if (!flow) return null;
@@ -19778,6 +19825,29 @@ function _chatChipsPersonalize() {
         ' 天前）——换季了，想重新看看就点上面的卡';
     } else if (_arch) { _arch.remove(); }
   } catch (eAR) {}
+  /* R3446 记忆连续性（调研：「有记忆的陪伴体」第二层=模式回访）——
+   * 便签/事由/跟进/换季四行都没话时，她提一句昨天或近来还在手边的
+   * 事：昨天心情、上次求的签、连念、木鱼、在路上的信、愿望瓶。
+   * 规则不变：一条封顶，没有就不说。 */
+  try {
+    var _mline = box.querySelector('.chat-empty-memline');
+    var _busy = box.querySelector('.chat-empty-note') ||
+      box.querySelector('.chat-empty-memo') ||
+      box.querySelector('.chat-empty-follow') ||
+      box.querySelector('.chat-empty-arch');
+    var _mTxt = _busy ? '' : _chatMemoryLine();
+    if (_mTxt) {
+      if (!_mline) {
+        _mline = document.createElement('p');
+        _mline.className = 'chat-empty-memline chat-memline';
+        var _cbox9 = box.querySelector('.chat-empty-chips');
+        if (_cbox9 && _cbox9.parentNode) {
+          _cbox9.parentNode.insertBefore(_mline, _cbox9);
+        } else { box.appendChild(_mline); }
+      }
+      _mline.textContent = '🧠 ' + _mTxt;
+    } else if (_mline) { _mline.remove(); }
+  } catch (eMLR) {}
 }
 /* R231g（R39-P1-4）：装到桌面提示——beforeinstallprompt 只在可装
  * 环境才触发（iOS Safari 不发此事件，天然不出现）。7 天内关过不再烦。 */
@@ -22206,6 +22276,35 @@ function baziPersonaCard(j) {
     } catch (e) {}
     return ks;
   }
+  /* R3446：卡顶一句「她注意到的规律」——近 7 天心情点亮天数 /
+   * 连念天数 / 木鱼总数，取最亮的一条，一句封顶。 */
+  function _memNote() {
+    try {
+      var _iso = function (d) {
+        return d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');
+      };
+      var lit = 0;
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(); d.setDate(d.getDate() - i);
+        if (_moodDayGet(_iso(d)) !== null) lit++;
+      }
+      if (lit >= 3) {
+        return '这周有 ' + lit + ' 天你点亮了心情小熊。';
+      }
+      var ms = 0, dd = new Date();
+      for (var j = 0; j < 60; j++) {
+        if (localStorage.getItem('manifest:' + _iso(dd)) === '1') {
+          ms++; dd.setDate(dd.getDate() - 1);
+        } else break;
+      }
+      if (ms >= 3) return '咒语你已经连着念了 ' + ms + ' 天。';
+      var mt = +(localStorage.getItem('muyu:total') || 0);
+      if (mt >= 20) return '木鱼你敲了 ' + mt + ' 下，心越来越静啦。';
+    } catch (eN) {}
+    return '';
+  }
   function _xmMemRender() {
     var _memBx = document.getElementById('memBody');
     if (!_memBx) return;
@@ -22226,6 +22325,16 @@ function baziPersonaCard(j) {
     if (!any) {
       html = '<div class="mem-empty">她还没攒下关于你的事——' +
         '去逛逛，用两天再来看看。</div>';
+    } else {
+      /* R3446 记忆二层：清单之上给一句「她注意到的规律」——
+       * 不是数据陈列，是陪伴感的来源（调研：astrological memory
+       * 的差异化=模式识别而非历史罗列）。 */
+      var _note = '';
+      try { _note = _memNote(); } catch (eNT) {}
+      if (_note) {
+        html = '<div class="mem-note">🧠 她注意到：' + esc(_note) +
+          '</div>' + html;
+      }
     }
     _memBx.innerHTML = html;
     _memBx.querySelectorAll('.mem-del').forEach(function (btn) {
