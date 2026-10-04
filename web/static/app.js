@@ -20449,6 +20449,26 @@ function renderCheckin(dateKey) {
       if (_MS[_mi2][0] <= _msSeen) _msTitle = _MS[_mi2][1];
     }
   } catch (eMS) {}
+  /* R3612：相识纪念——visits 首日起第 30/100/365 天一次 toast
+   *（账号周年同构的轻关系锚，每档只贺一次）。 */
+  try {
+    var _vList = String(localStorage.getItem('visits') || '')
+      .split(',').filter(Boolean).sort();
+    if (_vList.length) {
+      var _d0v = new Date(_vList[0] + 'T00:00:00');
+      var _ann = Math.round(
+        (new Date(todayIso() + 'T00:00:00') - _d0v) / 86400000);
+      var _ANN = { 30: 1, 100: 1, 365: 1 };
+      if (_ANN[_ann] &&
+          !localStorage.getItem('anniv:seen:' + _ann)) {
+        localStorage.setItem('anniv:seen:' + _ann, '1');
+        showToast('今天是你认识小满的第 ' + _ann + ' 天——' +
+          (_ann === 365 ? '一整年了，谢谢你一直在 🌾'
+            : _ann === 100 ? '一百天的缘分，难得 🏮'
+            : '一个月了，小店有你真好 🏮'), 'ok');
+      }
+    }
+  } catch (eAN) {}
   if (_streak >= 2) {
     _meta += '已连续 ' + _streak + ' 天打卡' +
       (_msTitle ? '「' + _msTitle + '」' : '') +
@@ -25261,7 +25281,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugout|hugseen|tr:hist)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -25980,7 +26000,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugout$|hugseen$|tr:hist$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26326,6 +26346,8 @@ function baziPersonaCard(j) {
                 k === 'hugseen' ||
                 /* R3606：牌的记性日志同收（足迹件）。 */
                 k === 'tr:hist' ||
+                /* R3612：相识纪念已贺标同收（足迹件）。 */
+                k.indexOf('anniv:seen:') === 0 ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
