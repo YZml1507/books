@@ -4691,7 +4691,8 @@ def _run_inner() -> list[str]:
         "__trLiao" in _postsrc and "__trLiao" in _appsrc2, \
         "聊斋当值签：_LIAO_POOL/_liaoPick/tr-liao-strip/__trLiao 缺一"
     _lz_n = _appsrc2.count("{ c:")
-    assert _lz_n >= 16, "聊斋当值签语料不足 16 位"
+    assert _lz_n >= 16 and _appsrc2.count(", t2:") >= 16, \
+        "聊斋当值签语料不足 16 位或缺海报短判 t2"
     ok.append("frontend.liaozhai")
     # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
     # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。

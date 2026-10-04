@@ -1228,8 +1228,11 @@ function buildShareData(view, j) {
       var _lzP = (typeof window !== 'undefined' && window.__trLiao) || null;
       if (_lzP && _lzP.c) {
         s.lines = s.lines || [];
-        s.lines.push({ k: '🦊 今夜当值',
-          v: _clauseCut(_pStr(_lzP.c) + '：' + _pStr(_lzP.t), 24) });
+        /* R3447：海报专用短判 t2——行值渲染 22 字硬截断且「·」
+         * 触发清单折叠，名号去中点+短句整句放得下。 */
+        var _lzV = _pStr(_lzP.c).replace(/·/g, '') + '：' +
+          _pStr(_lzP.t2 || _lzP.t);
+        s.lines.push({ k: '今夜当值', v: _clauseCut(_lzV, 22) });
       }
       return s;
     }
