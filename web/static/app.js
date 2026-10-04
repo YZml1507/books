@@ -20333,8 +20333,13 @@ function renderCheckin(dateKey) {
       }
       _duelHtml = '<div class="ck-quest ck-duel">' + _dTxt + '</div>';
     } else if (_duList.length > 1) {
-      var _board = _duList.map(function (n) {
-        return { w: 'TA', n: n };
+      /* R3582：榜主认名——duel 链首个值是发起人，链上有
+       * n= 时首行喊名不喊「TA」（链按追加序排，首值恒是
+       * 摆擂的人）。 */
+      var _duBoss = (typeof _shareByName === 'function' &&
+        _shareByName()) || '';
+      var _board = _duList.map(function (n, i) {
+        return { w: (i === 0 && _duBoss ? _duBoss : 'TA'), n: n };
       });
       if (_streak > 0) _board.push({ w: '你', n: _streak });
       _board.sort(function (a, b) { return b.n - a.n; });
