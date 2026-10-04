@@ -25476,8 +25476,12 @@ function _qianHwHtml() {
   if (!_qianHwFest()) {
     /* R3631：收官行——窗口过了还留个小尾巴：抽到过的给个
      * 「收官」回顾条（一键复看最近那支），没抽过的不占行。 */
+    /* R3673：计数限最近一次窗年——跨年史不混进收官行。 */
+    var _hyy = new Date().getFullYear();
+    if (new Date() < new Date(_hyy, 9, 25)) _hyy--;
     var _hhs = (_qianHist() || []).filter(function (x) {
-      return x && x.hw; });
+      return x && x.hw && x.d >= _hyy + '-10-25' &&
+             x.d <= _hyy + '-11-01'; });
     if (!_hhs.length) return '';
     var _lastN = _hhs[0].n;
     var _lastQ = window.QIAN ? QIAN[_lastN - 1] : null;
