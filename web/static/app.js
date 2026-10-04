@@ -2324,7 +2324,9 @@ var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
                         home: 1, dream: 1, bazi: 1, oracle: 1,
                         /* R3352：咒语册/心情周记视图白名单补齐——
                          * 缺了 transcript 重渲丢 chip。 */
-                        mantra: 1, moodweek: 1 };
+                        mantra: 1, moodweek: 1,
+                        /* R3381：默契挑战路标白名单。 */
+                        mochi: 1 };
 /* R3352：路标落点表——view 是「街区」，anchor 是「门牌」。
  * details 类的送到并展开；id 类的滚到门口。 */
 var _CHAT_ACT_ANCHORS = {
@@ -3690,6 +3692,10 @@ function showView(viewId) {
   if (viewId === 'mantra') {
     try { _renderMantraBook(); } catch (eMBV) {}
   }
+  /* R3381：默契挑战——按 location.hash 出 host/guest/result 三态。 */
+  if (viewId === 'mochi') {
+    try { _renderMochi(); } catch (eMCV) {}
+  }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
     c.style.borderColor = isActive ? 'var(--primary)' : '';
@@ -3855,6 +3861,19 @@ window.addEventListener('popstate', function (e) {
   }
   window.__modalPushed = false;
   var _sv = (e.state && e.state.view) ? e.state.view : 'home';
+  /* R3381-P1：默契挑战的 #mc=/#mcr= 载荷是同视图内 hash 导航——
+   * hash 改出的是 e.state=null 的新历史项，原逻辑会误判「回首页」
+   * 把 view-mochi 摘 active（受邀者同标签贴链直接被弹回首页）。
+   * 人还在 mochi 视图时把它认成同视图导航：补回 state 不再切走，
+   * 重渲交给模块自己的 hashchange 监听。 */
+  if (_sv === 'home' && /^#mc[rs]?=/.test(location.hash || '') &&
+      document.querySelector('#view-mochi.active')) {
+    try {
+      history.replaceState({ view: 'mochi' }, '',
+        location.pathname + location.search + location.hash);
+    } catch (eRS2) {}
+    return;
+  }
   var _av = document.querySelector('.view.active');
   var _cv = _av ? _av.id.replace(/^view-/, '') : 'home';
   if (_sv === _cv) return;
@@ -8293,6 +8312,8 @@ var _POSTER_TITLES = {
   soulmate: '正缘画像',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
+  /* R3381：默契挑战海报弹层标题/下载文件名。 */
+  mochi: '默契挑战',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
    * 「命盘海报/分享图」。 */
   'year-wrap': '小满年报' };
@@ -8308,6 +8329,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   soulmate: 'sakura',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
+  /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
+  mochi: 'warm',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -8346,6 +8369,8 @@ var _SHARE_TEXT = {
   /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
+  /* R3381：默契挑战——成绩晒图钩子。 */
+  mochi: '我们的默契分出炉了，敢不敢测你们的 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
@@ -19490,6 +19515,293 @@ function _renderMantraBook() {
   }
 }
 
+/* R3381（调研·裂变引擎）：默契挑战——我答 5 题生成 hash 邀请链，
+ * 朋友打开答题自动对分+可晒图+回敬新链。答案全程走 location.hash
+ * （不进服务器日志/链接预览爬虫），本机只记你的昵称 mochi:nick。 */
+/* init() 在 defer 脚本 eval 中途跑——数据若用 var 赋值则深链落地
+ * 时尚未初始化。改用函数声明，hoist 连函数体一起可用。 */
+function _mcQS() {
+  return [
+    { q: '奶茶点几分糖？', o: ['无糖清口', '三分刚好', '五分甜', '全糖快乐'] },
+    { q: '理想的周末是？', o: ['宅家充电', '出门撒野', '睡到自然醒再说'] },
+    { q: 'TA 迟到 10 分钟，你？', o: ['有点气', '没事我也刚到', '我比 TA 还晚'] },
+    { q: '睡前最后一件事？', o: ['再刷会儿手机', '想明天穿啥', '听点小歌'] },
+    { q: '下雨天最想？', o: ['窝在被窝里', '出门踩水', '来杯热乎的'] }
+  ];
+}
+function _mcTIERS() {
+  return [
+    [5, '灵魂搭子', '五题全中——你们共享一个脑回路'],
+    [4, '很懂彼此', '就一道没对上，已经很会了'],
+    [3, '舒服的朋友', '一半的默契，剩下的慢慢了解'],
+    [2, '还在互相猜', '差异才是聊天的素材'],
+    [0, '平行宇宙', '完全互补型——你们是彼此的另一面']
+  ];
+}
+function _mcEnc(s) {
+  try {
+    return btoa(unescape(encodeURIComponent(String(s))))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) { return ''; }
+}
+function _mcDec(s) {
+  try {
+    s = String(s).replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    return decodeURIComponent(escape(atob(s)));
+  } catch (e) { return ''; }
+}
+function _mcParse() {
+  var h = '';
+  try { h = String(location.hash || ''); } catch (e) {}
+  var m = h.match(/^#(mc|mcr)=([A-Za-z0-9_-]+)/);
+  if (!m) return null;
+  var p = _mcDec(m[2]).split('|');
+  if (m[1] === 'mc' && p[0] === 'v1' && /^[0-4]{5}$/.test(p[2] || '')) {
+    return { mode: 'guest', nick: String(p[1] || '').slice(0, 12),
+             ans: p[2] };
+  }
+  if (m[1] === 'mcr' && p[0] === 'v2' && /^[0-4]{5}$/.test(p[3] || '') &&
+      /^[0-4]{5}$/.test(p[4] || '')) {
+    return { mode: 'result', hn: String(p[1] || '').slice(0, 12),
+             gn: String(p[2] || '').slice(0, 12), ha: p[3], ga: p[4] };
+  }
+  return { mode: 'bad' };
+}
+function _mcScore(ha, ga) {
+  var hits = 0, matched = [], missed = [];
+  for (var i = 0; i < _mcQS().length; i++) {
+    var a = +ha[i], b = +ga[i];
+    if (a === b) { hits++; matched.push(i); } else { missed.push(i); }
+  }
+  var tier = _mcTIERS()[_mcTIERS().length - 1];
+  for (var t = 0; t < _mcTIERS().length; t++) {
+    if (hits >= _mcTIERS()[t][0]) { tier = _mcTIERS()[t]; break; }
+  }
+  return { hits: hits, pct: Math.round(hits / _mcQS().length * 100),
+           tier: tier[1], line: tier[2], matched: matched,
+           missed: missed };
+}
+function _mcCompareHtml(hn, gn, ha, ga) {
+  var s = _mcScore(ha, ga);
+  var rows = _mcQS().map(function (q, i) {
+    var a = q.o[+ha[i]] || '—', b = q.o[+ga[i]] || '—';
+    var ok = (+ha[i] === +ga[i]);
+    return '<div class="mc-row' + (ok ? ' hit' : '') + '">' +
+      '<div class="mc-row-q">' + (ok ? '💞' : '🍃') + ' ' + esc(q.q) +
+      '</div><div class="mc-row-a">' + esc(hn) + '：' + esc(a) +
+      '<br>' + esc(gn) + '：' + esc(b) + '</div></div>';
+  }).join('');
+  return '<div class="mc-score"><b>' + s.pct + '%</b><span>' +
+    esc(hn) + ' × ' + esc(gn) + ' · ' + esc(s.tier) + '</span>' +
+    '<p>' + esc(s.line) + '</p></div>' + rows;
+}
+function _mcQuizHtml(ctx) {
+  var qs = _mcQS().map(function (q, i) {
+    return '<div class="mc-q" id="mochiQ' + i + '">' +
+      '<div class="mc-q-t">' + (i + 1) + '. ' + esc(q.q) + '</div>' +
+      '<div class="mc-opts">' + q.o.map(function (o, j) {
+        return '<button type="button" class="mc-opt" data-mc="opt" ' +
+          'data-q="' + i + '" data-o="' + j + '">' + esc(o) + '</button>';
+      }).join('') + '</div></div>';
+  }).join('');
+  if (!ctx) {
+    var nick = '';
+    try { nick = localStorage.getItem('mochi:nick') || ''; } catch (eN) {}
+    return '<div class="mc-head">挑你会选的答案——答完生成挑战书发给 TA，' +
+      '看 TA 有多懂你</div>' +
+      '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
+      '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
+      'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' + qs +
+      '<div id="mochiBar" class="mc-bar">已答 0/5</div>' +
+      '<button type="button" id="mochiMake" class="mc-go" data-mc="make" ' +
+      'disabled>生成默契挑战书 🥤</button>';
+  }
+  return '<div class="mc-head">「<b>' + esc(ctx.who || 'TA') +
+    '</b>」给你出了一套默契题——凭直觉答，别纠结</div>' + qs +
+    '<div id="mochiBar" class="mc-bar">已答 0/5</div>' +
+    '<button type="button" id="mochiDone" class="mc-go" data-mc="done" ' +
+    'disabled>看我们的默契分</button>';
+}
+function _mcAnsRead(box) {
+  var ans = '     '.split('');
+  box.querySelectorAll('.mc-opt.on').forEach(function (b) {
+    var q = +b.dataset.q;
+    if (q >= 0 && q < 5) ans[q] = b.dataset.o;
+  });
+  return ans.join('');
+}
+function _renderMochi() {
+  var box = el('mochiBox');
+  if (!box) return;
+  var st = _mcParse();
+  if (st && st.mode === 'bad') {
+    box.innerHTML = '<div class="ph-empty">这份挑战书在路上弄丢了——' +
+      '让 TA 重发一份给你吧</div>';
+    return;
+  }
+  if (st && st.mode === 'result') {
+    box.innerHTML = '<div class="mc-head">「<b>' + esc(st.gn || 'TA') +
+      '</b>」答完了「' + esc(st.hn || '你') + '」的默契题</div>' +
+      _mcCompareHtml(st.hn || '出题人', st.gn || '答题人', st.ha, st.ga) +
+      '<div class="mc-acts"><button type="button" id="mochiHost" ' +
+      'class="mc-go" data-mc="host">我也出一套题 🥤</button></div>';
+    return;
+  }
+  box.innerHTML = _mcQuizHtml(st && st.mode === 'guest'
+    ? { who: st.nick, hostAns: st.ans } : null);
+}
+/* 委托绑容器——innerHTML 重渲不掉绑定。 */
+(function () {
+  var box = document.getElementById('mochiBox');
+  if (!box) return;
+  box.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest
+      ? ev.target.closest('[data-mc]') : null;
+    if (!b) return;
+    var act = b.dataset.mc;
+    if (act === 'opt') {
+      var q = b.dataset.q;
+      box.querySelectorAll('#mochiQ' + q + ' .mc-opt').forEach(
+        function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var done = _mcAnsRead(box).replace(/ /g, '').length;
+      var bar = el('mochiBar');
+      if (bar) bar.textContent = '已答 ' + done + '/5';
+      ['mochiMake', 'mochiDone'].forEach(function (id) {
+        var g = el(id);
+        if (g) g.disabled = (done < 5);
+      });
+      return;
+    }
+    var st = _mcParse();
+    if (act === 'make') {
+      var nick = '';
+      try {
+        nick = String((el('mochiNick') || {}).value || '')
+          .trim().slice(0, 12);
+      } catch (eN1) {}
+      if (!nick) {
+        showToast('先写个名字——对方答题时要看到是谁出的', 'warn');
+        return;
+      }
+      var ans = _mcAnsRead(box);
+      if (ans.indexOf(' ') !== -1) return;
+      try { localStorage.setItem('mochi:nick', nick); } catch (eN2) {}
+      var link = location.origin + '/?view=mochi#mc=' +
+        _mcEnc('v1|' + nick + '|' + ans);
+      box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
+        '发给 TA，看 TA 有多懂你</div>' +
+        '<input id="mochiLink" class="mc-link" readonly ' +
+        'value="' + esc(link) + '">' +
+        '<div class="mc-acts">' +
+        '<button type="button" id="mochiCopy" class="mc-go" ' +
+        'data-mc="copy">复制挑战书 🔗</button>' +
+        '<button type="button" id="mochiHost" class="ghost" ' +
+        'data-mc="host">重新出一套</button></div>' +
+        '<p class="mc-note">答案跟着链接走，不上服务器；' +
+        'TA 答完会自动对分</p>';
+      return;
+    }
+    if (act === 'done' && st && st.mode === 'guest') {
+      var ga = _mcAnsRead(box);
+      if (ga.indexOf(' ') !== -1) return;
+      var s = _mcScore(st.ans, ga);
+      var mn = '';
+      try { mn = localStorage.getItem('mochi:nick') || ''; } catch (eM) {}
+      box.innerHTML = '<div class="mc-head">你和「<b>' +
+        esc(st.nick || 'TA') + '</b>」的默契结果出来啦</div>' +
+        _mcCompareHtml(st.nick || 'TA', '你', st.ans, ga) +
+        '<label class="mc-nick-lab" for="mochiMe">你叫什么' +
+        '（发成绩给 TA 时显示）</label>' +
+        '<input id="mochiMe" class="mc-nick" maxlength="12" ' +
+        'placeholder="比如：桃子" value="' + esc(mn) + '">' +
+        '<div class="mc-acts">' +
+        '<button type="button" id="mochiShare" class="mc-go" ' +
+        'data-mc="share">📸 晒默契分</button>' +
+        '<button type="button" id="mochiFlip" class="mc-go" ' +
+        'data-mc="flip">发给 TA 看成绩</button>' +
+        '<button type="button" id="mochiHost2" class="ghost" ' +
+        'data-mc="host">我也出一套给 TA</button></div>';
+      try { box.dataset.ga = ga; box.dataset.ha = st.ans;
+            box.dataset.hn = st.nick || 'TA'; } catch (eD) {}
+      return;
+    }
+    if (act === 'copy') {
+      var lk = el('mochiLink');
+      var v = lk ? lk.value : '';
+      if (!v) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(v).then(function () {
+            showToast('挑战书复制好啦，去发给 TA 吧', 'ok');
+          }, function () { showToast('长按链接手动复制', 'warn'); });
+        } else {
+          if (lk.select) lk.select();
+          showToast('长按链接手动复制', 'info');
+        }
+      } catch (eC) { showToast('长按链接手动复制', 'info'); }
+      return;
+    }
+    if (act === 'share') {
+      var _d = box.dataset || {};
+      var _ga2 = _d.ga || '', _ha2 = _d.ha || '', _hn2 = _d.hn || 'TA';
+      if (!_ga2 || !_ha2) return;
+      var gn2 = String((el('mochiMe') || {}).value || '').trim()
+        .slice(0, 12) || '我';
+      var s2 = _mcScore(_ha2, _ga2);
+      return downloadPoster({
+        _mc: { hn: _hn2, gn: gn2, pct: s2.pct, tier: s2.tier,
+               line: s2.line,
+               matched: s2.matched.map(function (i) {
+                 return _mcQS()[i].q.replace(/[？?]$/, ''); }),
+               missed: s2.missed.map(function (i) {
+                 return _mcQS()[i].q.replace(/[？?]$/, ''); }) },
+        date: todayIso() }, 'mochi');
+    }
+    if (act === 'flip') {
+      var _d2 = box.dataset || {};
+      if (!_d2.ga || !_d2.ha) return;
+      var gn3 = String((el('mochiMe') || {}).value || '').trim()
+        .slice(0, 12);
+      if (!gn3) {
+        showToast('先写你的名字——TA 打开要知道是谁答的', 'warn');
+        return;
+      }
+      try { localStorage.setItem('mochi:nick', gn3); } catch (eN3) {}
+      var rlink = location.origin + '/?view=mochi#mcr=' +
+        _mcEnc('v2|' + (_d2.hn || 'TA') + '|' + gn3 + '|' +
+               _d2.ha + '|' + _d2.ga);
+      var card = '<div class="mc-head">成绩条包好啦——发回去，' +
+        '让 TA 看看你们多默契</div>' +
+        '<input id="mochiLink" class="mc-link" readonly ' +
+        'value="' + esc(rlink) + '">' +
+        '<div class="mc-acts">' +
+        '<button type="button" id="mochiCopy" class="mc-go" ' +
+        'data-mc="copy">复制成绩条 🔗</button>' +
+        '<button type="button" id="mochiHost2" class="ghost" ' +
+        'data-mc="host">我也出一套给 TA</button></div>';
+      box.innerHTML = card;
+      return;
+    }
+    if (act === 'host') {
+      try {
+        if (location.hash) {
+          history.replaceState(null, '', location.pathname +
+            location.search);
+        }
+      } catch (eH) {}
+      _renderMochi();
+      return;
+    }
+  });
+  /* 同视图内 hash 变化（贴了新链）即重渲。 */
+  window.addEventListener('hashchange', function () {
+    var vw = el('view-mochi');
+    if (vw && vw.classList.contains('active')) _renderMochi();
+  });
+})();
+
 /* R3335：烦恼粉碎机——写下来的烦心事当场粉碎，原文永不落盘
  * （隐私即卖点：碎掉就是真没了），只累计当天件数 shred:<date>。
  * 件数是纯计数不迁移：不进备份（换机不带这种一次性痕迹），
@@ -20107,7 +20419,7 @@ function baziPersonaCard(j) {
      * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
      * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
      * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:)/;
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:)/;
     var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
     /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
      * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */

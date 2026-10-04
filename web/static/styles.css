@@ -4057,3 +4057,48 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-note { font-size: 11px; color: var(--secondary); margin: 10px 16px 12px;
   line-height: 1.5; }
 .sm-card .fav-btn { margin: 0 12px 12px; }
+
+/* R3381 默契挑战（view-mochi） */
+.mc-box { display: flex; flex-direction: column; gap: 12px; }
+.mc-head { font-size: 14.5px; line-height: 1.65; color: var(--text); }
+.mc-nick-lab { display: block; font-size: 12px; color: var(--secondary);
+  margin: 2px 0 4px; }
+.mc-nick { width: 100%; box-sizing: border-box; padding: 9px 12px;
+  border-radius: 12px; border: 1px solid var(--line, #e8dccf);
+  background: var(--card, #fffdfa); color: var(--text); font-size: 15px; }
+.mc-link { width: 100%; box-sizing: border-box; padding: 9px 12px;
+  border-radius: 12px; border: 1px dashed var(--line, #d8c6ad);
+  background: var(--accent-soft, #fdf4e7); color: var(--text);
+  font-size: 12.5px; word-break: break-all; }
+.mc-q { display: flex; flex-direction: column; gap: 7px; }
+.mc-q-t { font-size: 14px; font-weight: 600; color: var(--text); }
+.mc-opts { display: flex; flex-wrap: wrap; gap: 7px; }
+.mc-opt { border: 1px solid var(--line, #e0d4c0); border-radius: 999px;
+  padding: 7px 14px; background: var(--card, #fffdfa);
+  color: var(--text); font-size: 13.5px; cursor: pointer;
+  transition: transform .12s ease, background .12s ease; }
+.mc-opt:active { transform: scale(.95); }
+.mc-opt.on { background: var(--primary, #b0764a); color: #fff;
+  border-color: var(--primary, #b0764a); }
+.mc-bar { font-size: 12px; color: var(--secondary); text-align: center; }
+.mc-go { border: none; border-radius: 999px; padding: 11px 18px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  background: var(--primary, #b0764a); color: #fff; }
+.mc-go:disabled { opacity: .45; cursor: not-allowed; }
+.mc-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.mc-note { font-size: 11.5px; color: var(--muted); margin: 0; }
+.mc-score { text-align: center; padding: 14px 8px 10px; }
+.mc-score b { display: block; font-size: 44px; line-height: 1;
+  color: var(--primary-ink, #7a4f2b); font-family: var(--font-display, inherit); }
+.mc-score span { display: block; margin-top: 8px; font-size: 14.5px;
+  font-weight: 600; color: var(--text); }
+.mc-score p { margin: 6px 0 0; font-size: 12.5px;
+  color: var(--secondary); }
+.mc-row { display: flex; flex-direction: column; gap: 3px;
+  padding: 8px 10px; border-radius: 12px;
+  background: var(--card, #fffdfa);
+  border: 1px solid var(--line, #eee2d0); }
+.mc-row.hit { background: var(--accent-soft, #fdf1e4);
+  border-color: rgba(176, 118, 74, .3); }
+.mc-row-q { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.mc-row-a { font-size: 12.5px; color: var(--secondary); line-height: 1.55; }

@@ -502,6 +502,11 @@ try {
     <div class="func-card func-entry" data-view="oracle" role="button" tabindex="0" aria-label="替你决定">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="oracle" src="/static/cream/cream-icon-oracle.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">替你决定</div><div class="func-desc">掷筊问事 · 一念之间</div>
     </div>
+    <!-- R3381（调研·裂变引擎）：默契挑战——我答 5 题出邀请链，
+         朋友答题对分、可晒可回敬。全程走 URL hash，不上服务器。 -->
+    <div class="func-card func-entry" data-view="mochi" role="button" tabindex="0" aria-label="默契挑战">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="mochi" src="/static/cream/cream-icon-mochi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">默契挑战</div><div class="func-desc">答 5 题 · 测你们多懂对方</div>
+    </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
@@ -1357,6 +1362,15 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">📖</span> 我的咒语册 <span class="card-sub">收来的好句子 · 只存在这台设备上</span></h2>
       <div id="mantraBookBody" class="mb-body"></div>
+    </div>
+  </div>
+
+  <!-- R3381：默契挑战——题面/答题/出链/对分全在 mochiBox 内由
+       _renderMochi 画。答案走 location.hash（不进服务器日志）。 -->
+  <div class="view" id="view-mochi">
+    <div class="card">
+      <h2><span aria-hidden="true">🥤</span> 默契挑战 <span class="card-sub">答 5 题 · 看谁最懂你</span></h2>
+      <div id="mochiBox" class="mc-box"></div>
     </div>
   </div>
 

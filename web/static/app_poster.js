@@ -772,6 +772,8 @@ function _posterHookForView(view, j) {
   }
   /* R3379：周记信——「用你真实记录拼的」是卖点本身。 */
   if (view === 'weekletter') return '用你上周真实记录拼的一封信';
+  /* R3381：默契挑战——挑战感是钩子。 */
+  if (view === 'mochi') return '敢不敢测你们有多懂对方';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1467,6 +1469,28 @@ function buildShareData(view, j) {
         _wl.lines = [{ k: '小记', v: '新的一周，慢慢来就好' }];
       }
       return _wl;
+    }
+    case 'mochi': {
+      /* R3381 默契挑战海报：分数是大字，名字对+判词+对上的题
+       * 进 lines（对不上的题反成钩子「去测测你们差在哪」）。 */
+      var _mc = (j && j._mc) || {};
+      var _ms = base('默契挑战',
+        _cnDateSub(_pStr(j && j.date)));
+      _ms.big = '默契 ' + (_pStr(_mc.pct) || '0') + ' 分';
+      _ms.lines = [
+        { k: '选手', v: (_pStr(_mc.hn) || '我') + ' × ' +
+                        (_pStr(_mc.gn) || 'TA') },
+        { k: '判词', v: _pStr(_mc.tier) || '测测才知道' },
+        { k: '判语', v: _clauseCut(_pStr(_mc.line), 24) }
+      ];
+      var _mHit = _pArr(_mc.matched);
+      if (_mHit.length) {
+        _ms.lines.push({ k: '想到一块儿',
+          v: _clauseCut(_mHit.slice(0, 2).join(' · '), 20) });
+      } else {
+        _ms.lines.push({ k: '想到一块儿', v: '0 题——完全不同路' });
+      }
+      return _ms;
     }
     case 'hehun': {
       /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比

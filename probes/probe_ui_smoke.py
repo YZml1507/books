@@ -393,7 +393,10 @@ def main() -> int:
                  # R3350：咒语册——mantraFav/mantraBookGo/mantraBookBody
                  # 均由 ui:mantra_fav 用例覆盖（收藏→已收态→meta 小链
                  # 进册页→格内删除回空态）。
-                 "mantraFav", "mantraBookGo", "mantraBookBody"}
+                 "mantraFav", "mantraBookGo", "mantraBookBody",
+                 # R3381：默契挑战——mochiBox 容器委托由 ui:mochi 用例
+                 # 覆盖（出题→受邀→对分→回传→回敬全链）。
+                 "mochiBox"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -1474,6 +1477,90 @@ def main() -> int:
                     "() => { const sb = document.getElementById('recentSidebar');"
                     " if (sb) sb.classList.remove('collapsed'); }")
                 page.wait_for_timeout(200)
+
+            # R3381：默契挑战全链——出题→受邀答题→对分→回传→再出题。
+            try:
+                page.evaluate("location.hash = ''")
+                goto_view('mochi')
+                page.wait_for_selector('#mochiBox .mc-q', timeout=8000)
+                _qs = page.evaluate(
+                    "document.querySelectorAll('#mochiBox .mc-q').length")
+                _b0 = page.evaluate(
+                    "(document.getElementById('mochiBar')||{}).textContent||''")
+                for _qi in range(5):
+                    page.click(f'#mochiQ{_qi} .mc-opt >> nth=0')
+                    page.wait_for_timeout(80)
+                _b5 = page.evaluate(
+                    "(document.getElementById('mochiBar')||{}).textContent||''")
+                _mk_on = page.evaluate(
+                    "!document.getElementById('mochiMake').disabled")
+                page.fill('#mochiNick', '小测')
+                page.click('#mochiMake')
+                page.wait_for_selector('#mochiLink', timeout=5000)
+                _lnk = page.evaluate(
+                    "(document.getElementById('mochiLink')||{}).value||''")
+                # 受邀端：同链落地——guest 答题卡 + 对分 + 回传链
+                page.goto(_lnk, wait_until='domcontentloaded')
+                page.wait_for_selector('#mochiBox .mc-q', timeout=8000)
+                _ghd = page.evaluate(
+                    "(document.querySelector('#mochiBox .mc-head')||{})"
+                    ".textContent||''")
+                for _qi in range(5):
+                    page.click(f'#mochiQ{_qi} .mc-opt >> nth=1')
+                    page.wait_for_timeout(80)
+                _dn_on = page.evaluate(
+                    "!document.getElementById('mochiDone').disabled")
+                page.click('#mochiDone')
+                page.wait_for_selector('#mochiBox .mc-score', timeout=5000)
+                _sc = page.evaluate("""(() => {
+                    const b = document.querySelector(
+                        '#mochiBox .mc-score b');
+                    const rows = document.querySelectorAll(
+                        '#mochiBox .mc-row').length;
+                    const hit = document.querySelectorAll(
+                        '#mochiBox .mc-row.hit').length;
+                    return { pct: b ? b.textContent : '', rows, hit };
+                })()""")
+                page.fill('#mochiMe', '阿桃')
+                page.click('#mochiFlip')
+                page.wait_for_selector('#mochiLink', timeout=5000)
+                _rlnk = page.evaluate(
+                    "(document.getElementById('mochiLink')||{}).value||''")
+                # 发起人端：成绩回链——只读结果卡 + 回敬入口
+                page.goto(_rlnk, wait_until='domcontentloaded')
+                page.wait_for_selector('#mochiBox .mc-score', timeout=8000)
+                _rhd = page.evaluate(
+                    "(document.querySelector('#mochiBox .mc-head')||{})"
+                    ".textContent||''")
+                page.click('[data-mc="host"]')
+                page.wait_for_selector('#mochiQ0', timeout=5000)
+                _back = page.evaluate(
+                    "document.querySelectorAll('#mochiBox .mc-q').length")
+                ok = (_qs == 5 and '0/5' in _b0 and '5/5' in _b5 and
+                      _mk_on and '#mc=' in _lnk and
+                      '小测' in _ghd and _dn_on and
+                      _sc['pct'] == '0%' and _sc['rows'] == 5 and
+                      _sc['hit'] == 0 and '#mcr=' in _rlnk and
+                      '阿桃' in _rhd and _back == 5 and not errors)
+                results.append({
+                    "name": "ui:mochi", "ok": ok,
+                    "detail": (f"题={_qs} 进度={_b5} 出题钮={_mk_on} "
+                               f"邀链={'#mc=' in _lnk} 受邀头={_ghd[:18]} "
+                               f"分={_sc} 回链={'#mcr=' in _rlnk} "
+                               f"回看={_rhd[:18]} 回敬={_back}")})
+            except Exception as exc:
+                results.append({"name": "ui:mochi", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate(
+                        "localStorage.removeItem('mochi:nick');"
+                        "location.hash = '';"
+                        "try { showView('home'); } catch(e) {}")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
             # R3249e（UX-AUDIT C·塔罗）：三档快捷钮——抽一张/抽三张走
             # doTarot 真抽，自己抽开牌扇。新客不碰牌阵下拉的路径钉住。

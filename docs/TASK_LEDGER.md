@@ -18510,3 +18510,22 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   混版环并注销全部 SW。改用页上 script 标签自带的 ?v=<本页版本>：
   健康 SW 回真字节（>2000 放行），只有旧 SW+新 HTML 才吃到短
   脚本确证环路——误杀归零。
+
+## R3381 默契挑战（调研·裂变引擎落地）
+- 新视图 view-mochi + 宫格卡（oracle 后 chat 前，14 卡）：答 5 道
+  「你有多懂我」小题 → 生成 `#mc=` 挑战书 hash 链；朋友打开凭直觉答
+  → 自动对分（0-100%+档级判词+逐题对照）→ 回传 `#mcr=` 成绩链 →
+  发起人看结果卡可回敬新题。答案全程走 location.hash（不进服务器
+  日志/预览爬虫），本机只记昵称 mochi:nick（入 _DATA_RE 备份白名单）。
+- 三修才通：①defer 脚本 eval 中途跑 init()，`var _MOCHI_QS` 尚未
+  赋值——数据改函数声明（hoist 连体可用）；②`location.hash=` 触发
+  popstate，e.state=null 被误判「回首页」摘 view-mochi active——
+  popstate 监听加 mochi hash 守卫（同视图导航补 state 返回）；
+  ③海报实测出图零错（小满-默契挑战-1004.png）。
+- 聊天路标：_CHAT_ACTIONS 默契/懂不懂我/灵魂搭子词组→mochi 直达；
+  _CHAT_ACT_VIEWS 白名单。mochi 入 _POSTER_TITLES/_POSTER_BG_BY_VIEW
+  (warm)/_SHARE_TEXT/_posterHookForView；case 'mochi' 绘选手×判词×
+  判语×想到一块儿四行。
+- 闸：selftest 422（含新静态断言+home.ia 14 卡位）、ui_smoke 107
+  （ui:mochi 全链 E2E）、gate:on_coverage mochiBox 覆盖登记、
+  contract 790、ruff/banned/voice 全绿。
