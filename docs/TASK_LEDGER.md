@@ -18050,3 +18050,25 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 闸门：selftest 409 / contract 736 / ui_smoke 103 / 全量绿；
   bump_sw→books-shell-bc30208c3efa；bge_mingli 语义缓存随 corpus
   重建刷新（ids 平移，同 a39c3a6 先例入库）。
+
+## 肯定语收集册「我的咒语册」（子 agent 实现，devin/affirm-child 并入）
+- 今日咒语行旁 ❤️ sibling 钮（不嵌套长按，防与复制控件双触发）；
+  mantraFav 本机键 cap 40、按 t+d 去重、已收显「已收」态。
+- view-mantra 独立格页（仿 moodweek 深链可达）：时间倒序咒语 +
+  收藏日 + 再念一遍复制钮 + 删除钮；入口=日卡 meta 行
+  「咒语册 · 已攒 N 句」紧随心情罐，空册不现身；7 条 toast。
+- 生命周期齐：_EXACT/_PREF 备份白名单 + wipe 前缀 + 跨 tab
+  storage 监听 + import 校验；全本机零 API 不进台账。
+- 闸门：ui_smoke +ui:mantra_fav 用例；并入后 selftest 408 /
+  ui_smoke 104 / ruff 全绿；bump_sw→books-shell-02583c358727
+
+## 明星合盘（子 agent 实现，devin/celeb-child 并入）
+- vendored web/static/celeb.json（25 位公开生日华语名人，公开
+  资料口径）+ hehun 视图「✨ 和明星合盘」可搜索选择器 → B 侧
+  自动填 → 原 /api/hehun 链；结果卡「和「杨幂」的合盘」+导语
+  +「公开资料」标注，禁暗示真实恋爱配对。
+- 邀请链编码明星生辰、受邀侧自动识别（抽屉隐藏）；明星昵称
+  置 null 台账记「我 × TA」；me:partner/hhSavePartner/_meFill
+  三处免疫不污染档案，手改任一字段自动摘星回落普通口径。
+- 后端零改动；bump_sw EXTRA_GLOBS 两处补 celeb.json。
+- 闸门：selftest 407（子）→ 并入后 408 / ui_smoke 104 / ruff 全绿
