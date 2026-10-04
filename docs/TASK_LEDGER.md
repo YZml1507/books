@@ -19273,3 +19273,27 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - P2 限定卡 chip 双时区：服务端窗判 CST、页面复判本地日——海外时区跨日错位时 chip 出现点不动。trQH/trQX 点击复判改「本地或 CST 任一在窗」
 - 干净面：v3 坏链/畸形题包全落「弄丢卡」不崩不静默；指纹名单/榜分池在 v3 链同效（custom 榜键独立）；证书/榜海报不意外泄漏本机他名
 - 闸：selftest 447 / 壳 bf48e470→a279765a / Playwright 实链验证 PASS
+
+## R3440（移动端/窄屏终扫三轮 R3432 按单清，2026-10-04）
+- P0 合拍卡「晒今天」死链根治：?view=cpdaily 在 _SHARE_VIEW_ALIAS
+  与落地 _alias 双图同时缺位——受邀者落地弹「入口不存在」。
+  双图归一 cpdaily→hehun，实测落地激活 view-hehun。
+- P1-2 flModal 裸弹层补全套设施：返回键不关层（层悬在已翻走
+  的页上）、无 Esc、Tab 三站逃逸到主区、无 inert。入栈
+  {modal:'fl'}+__flPushed+popstate 认层、Esc/焦点圈/_mainInert
+  全部与 posterModal 同口径。Playwright 实测：Esc 关/返回关/
+  8 次 Tab 焦点不逃逸/底层 inert。
+- P1-3 深色 hh-daily 浅粉渐变压近白字洗白——改暗底令牌，
+  分数/判词落 #e08ba0。
+- P1-4 mochi 系裸 input 缺 type="text" 吃不到全局 16px——
+  补 type 并把 .mc-nick 字号抬 16px，iOS 聚焦缩放根治。
+- P1-5 fl-row __custom 态 label 挤成 38px 竖排——wrap+date
+  独占第二行。
+- P2：dc-thumb-btn 32×52→44×52（透明 padding+负 margin 扩命中
+  视觉不动）；fl-modal textarea 13.5→16px；mc-eo radio 命中带
+  扩（行内 padding 归 label+圈放大 22px）。
+- P3：fl-row 控件字号 12.5→14px；自写题干 placeholder 截断
+  改短句；纯 ?view=X 冷启返回键出 App——_extLand 加「视图存在
+  即垫层」。
+- 闸：selftest 447 / contract 789 / ui_smoke 113 / banned 0 /
+  regress PASS；sw bump books-shell-4a2d6fc2f447。

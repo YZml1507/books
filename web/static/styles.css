@@ -817,8 +817,11 @@ html[data-theme="dark"] .daily-mantra b{
   box-shadow:0 1px 3px rgba(90,60,30,.18); display:block;}
 .daily-card-line .dc-thumb.is-reversed{transform:rotate(180deg);}
 /* R3426：缩略图改可点钮——点开牌意卡看大图；脱壳 img 的 button 壳。 */
-.daily-card-line .dc-thumb-btn{padding:0; border:0; background:none;
-  cursor:pointer; flex:none; line-height:0; border-radius:4px;}
+.daily-card-line .dc-thumb-btn{/* R3432-P2-8（审）：32×52 触摸目标
+   * 不足 44px——透明 padding+负 margin 扩命中，视觉分毫不动。 */
+  padding:0 12px 0 0; margin:0 -12px 0 0; border:0; background:none;
+  cursor:pointer; flex:none; line-height:0; border-radius:4px;
+  min-width:44px; min-height:52px;}
 .daily-card-line .dc-thumb-btn:active{transform:scale(.95);}
 .daily-card-line .dc-thumb-btn:focus-visible{
   outline:2px solid var(--primary); outline-offset:1px;}
@@ -3993,18 +3996,23 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
   text-underline-offset:3px;}
 .fl-pend{font-size:11px; color:var(--muted);}
 .fl-modal textarea{width:100%; border:1px solid var(--line);
-  border-radius:10px; padding:10px 12px; font-size:13.5px;
+  /* R3432-P2-7（审）：textarea 不在全局 16px 名单——13.5px 聚焦
+   * 必触发 iOS 整页缩放，写信主战场不可留。 */
+  border-radius:10px; padding:10px 12px; font-size:16px;
   font-family:inherit; color:var(--text); background:var(--card, #fff);
   resize:vertical; box-sizing:border-box;}
 .fl-row{display:flex; align-items:center; gap:8px; margin:10px 0;
-  font-size:12.5px; color:var(--secondary);}
-.fl-row select{font-size:12.5px; padding:4px 8px; border-radius:8px;
+  /* R3432-P1-5（审）：__custom 态 label+select+date 挤一行把
+   * 「什么时候送到：」压成 38px 竖排——wrap 让 date 独占第二行。 */
+  flex-wrap:wrap; font-size:13px; color:var(--secondary);}
+.fl-row select{font-size:14px; padding:4px 8px; border-radius:8px;
   border:1px solid var(--line); background:var(--card, #fff);
   color:var(--text, #3e3428);}
 /* R3428：自选日期框——跟 select 同款挤进 fl-row。 */
-.fl-row .fl-date{font-size:12.5px; padding:4px 8px; border-radius:8px;
+.fl-row .fl-date{/* R3432-P3-10：字号与全局输入口径拉近。 */
+  font-size:14px; padding:4px 8px; border-radius:8px;
   border:1px solid var(--line); background:var(--card, #fff);
-  color:var(--text, #3e3428); max-width:150px;}
+  color:var(--text, #3e3428); flex:1 1 100%; max-width:none;}
 .fl-send{width:100%; margin-top:4px;}
 .fl-note{font-size:11px; color:var(--muted); margin:8px 0 0;
   text-align:center;}
@@ -4120,7 +4128,9 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   margin: 2px 0 4px; }
 .mc-nick { width: 100%; box-sizing: border-box; padding: 9px 12px;
   border-radius: 12px; border: 1px solid var(--line, #e8dccf);
-  background: var(--card, #fffdfa); color: var(--text); font-size: 15px; }
+  /* R3432-P1-4（审）：裸 input 缺 type 吃不到全局 16px 规则——
+   * 15px 触发 iOS 聚焦整页缩放，直接抬字号根治。 */
+  background: var(--card, #fffdfa); color: var(--text); font-size: 16px; }
 .mc-link { width: 100%; box-sizing: border-box; padding: 9px 12px;
   border-radius: 12px; border: 1px dashed var(--line, #d8c6ad);
   background: var(--accent-soft, #fdf4e7); color: var(--text);
@@ -4213,8 +4223,11 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   background: #fff; color: var(--text, #3e3428); box-sizing: border-box; }
 .mc-eopts { margin-top: 8px; display: flex; flex-direction: column;
   gap: 7px; }
-.mc-eo { display: flex; align-items: center; gap: 8px; }
-.mc-eo input[type="radio"] { flex: 0 0 auto; width: 17px; height: 17px;
+.mc-eo { display: flex; align-items: center; gap: 10px;
+  /* R3432-P2-6（审）：正确答案标记只有 17px 小圈、有效命中带
+   * ~25px——行内留白全归 label（点击转发 radio），圈也放大。 */
+  padding: 4px 10px 4px 4px; border-radius: 10px; }
+.mc-eo input[type="radio"] { flex: 0 0 auto; width: 22px; height: 22px;
   accent-color: var(--primary, #b0764a); }
 .mc-eo-t { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid
   var(--line, #e0d4c0); border-radius: 9px; font-size: 13px;
@@ -4491,6 +4504,13 @@ html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
 .hh-daily-tag { margin-top: 4px; font-size: 12px; color: #c2536b; }
 .hh-daily-share { margin-top: 10px; min-height: 40px; }
 @media (max-width: 420px) { .hh-daily-score { font-size: 38px; } }
+/* R3432-P1-3（审）：深色下浅粉渐变压近白字，标题/判词洗白
+ * 不可读——改暗底令牌，字色沿用 --text/--muted 自动适配。 */
+html[data-theme="dark"] .hh-daily {
+  background: linear-gradient(135deg, rgba(64,46,56,.9), rgba(52,42,44,.9));
+  border-color: rgba(214,140,150,.28); }
+html[data-theme="dark"] .hh-daily-score,
+html[data-theme="dark"] .hh-daily-tag { color: #e08ba0; }
 
 /* ── R3426 深色补丁：答案之书奶白底族件 ──
  * .ansb-* 底色是固定奶油渐变（晒图语境），深主题下 --text 变浅=

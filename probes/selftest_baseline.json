@@ -243,6 +243,7 @@
   "frontend.on_wiring",
   "frontend.oracle_gates",
   "frontend.qian_wiring",
+  "frontend.r3439_sweep",
   "frontend.tone_r3433",
   "frontend.xmas_wiring",
   "gooddays.calm",

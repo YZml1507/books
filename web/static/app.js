@@ -3908,6 +3908,13 @@ window.addEventListener('popstate', function (e) {
   } else {
     window.__modalPushed = false;
   }
+  /* R3432-P1-2（审）：flModal 同口径——返回键先关写信层，
+   * 不再让弹层悬在已翻走的视图上。 */
+  var _flm = document.getElementById('flModal');
+  if (_flm) {
+    window.__flPushed = false;
+    try { if (_flm._flClose) _flm._flClose(); } catch (eFM) {}
+  }
   var _sv = (e.state && e.state.view) ? e.state.view : 'home';
   /* R3381-P1：默契挑战的 #mc=/#mcr= 载荷是同视图内 hash 导航——
    * hash 改出的是 e.state=null 的新历史项，原逻辑会误判「回首页」
@@ -8677,7 +8684,10 @@ var _SHARE_TEXT = {
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
-  'bazi-kline': 'bazi', hlcal: 'huangli' };
+  'bazi-kline': 'bazi', hlcal: 'huangli',
+  /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
+   * 是死链——卡住在合婚页，归一到 hehun。 */
+  cpdaily: 'hehun' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -15612,7 +15622,10 @@ function init() {
                      'daily-outfit': 'home', wishecho: 'home',
                      /* R3422-P3-9（审）：开运头像（方形海报）分享链
                       * ?view=daily-ava 同款死链——归一到 home。 */
-                     'daily-ava': 'home' };
+                     'daily-ava': 'home',
+                     /* R3432-P0（审）：合拍卡分享链 ?view=cpdaily
+                      * 受邀者落地弹「入口不存在」——卡住合婚页。 */
+                     cpdaily: 'hehun' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
@@ -15738,10 +15751,13 @@ function init() {
          * __landingPushed 防同 tab 二次落地重复垫；F5 后 URL 已剥参
          * 标记不在不再垫（默契 hash 保留——重垫只是多一页无害）。 */
         try {
+          /* R3432-P3-12（审）：纯 ?view=X（无 marker）冷启深链
+           * 按返回键直接出 App——视图存在即按外链垫层。 */
           var _extLand = window.__shareFromView ||
             _qsAll.get('from') === 'invite' ||
             _qsAll.get('invite') === '1' || _qsAll.get('ay') ||
-            /^#mc[rs]?=/.test(location.hash || '');
+            /^#mc[rs]?=/.test(location.hash || '') ||
+            !!document.getElementById('view-' + _vp);
           if (_extLand && !window.__landingPushed) {
             window.__landingPushed = true;
             /* R3426-P0（用户实测「默契链到新浏览器只能出题」）：
@@ -16906,7 +16922,47 @@ function _flWriteOpen() {
     /* R3431-P3-5（审）：寄出后不可改期——寄前明示。 */
     '寄出去日子就定啦——挑个想收到的那天再封。</p></div>';
   document.body.appendChild(bd);
-  var close = function () { bd.remove(); };
+  /* R3432-P1-2（审）：flModal 原来是裸弹层——返回键不关层
+   * （层悬在已翻走的页上）、无 Esc、Tab 3 站逃逸到主区、无
+   * inert。补齐 posterModal 同款设施：入栈/Esc/焦点圈/inert。 */
+  try { _mainInert(true, bd); } catch (eMI) {}
+  try {
+    history.pushState({
+      view: (history.state && history.state.view) || 'home',
+      modal: 'fl' }, '');
+    window.__flPushed = true;
+  } catch (eFPS) {}
+  var close = function () {
+    try { _mainInert(false); } catch (eMI2) {}
+    if (bd._flKey) {
+      document.removeEventListener('keydown', bd._flKey);
+      bd._flKey = null;
+    }
+    bd.remove();
+    if (window.__flPushed) {
+      window.__flPushed = false;
+      try { history.back(); } catch (eHB) {}
+    }
+  };
+  bd._flClose = close;
+  bd._flKey = function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) close();
+    if (e.key === 'Tab' || e.keyCode === 9) {
+      var _f = bd.querySelectorAll(
+        'button,[href],input,select,textarea,' +
+        '[tabindex]:not([tabindex="-1"])');
+      if (!_f.length) return;
+      var _first = _f[0], _last = _f[_f.length - 1];
+      if (e.shiftKey && document.activeElement === _first) {
+        e.preventDefault(); _last.focus();
+      } else if (!e.shiftKey && document.activeElement === _last) {
+        e.preventDefault(); _first.focus();
+      } else if (!bd.contains(document.activeElement)) {
+        e.preventDefault(); _first.focus();
+      }
+    }
+  };
+  document.addEventListener('keydown', bd._flKey);
   bd.addEventListener('click', function (e) {
     if (e.target === bd) close();
   });
@@ -20798,7 +20854,7 @@ function _mcQuizHtml(ctx) {
         }
         _edit += '<div class="mc-eq" id="mochiE' + _ei + '">' +
           '<input type="text" class="mc-eq-t" maxlength="20" ' +
-          'placeholder="第 ' + (_ei + 1) + ' 题：写个问题，比如「我火锅必点什么」">' +
+          'placeholder="第 ' + (_ei + 1) + ' 题：写个问题">' +
           '<div class="mc-eopts">' + _eos + '</div></div>';
       }
       /* R3433-P1-2（审）：题干写前零私密引导——题目随链发给 TA
@@ -20807,7 +20863,7 @@ function _mcQuizHtml(ctx) {
         '在你会选的那项前面打勾。题目会跟着链接发给 TA 看，' +
         '太私密的别写哦～</div>' + _packBtns +
         '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
-        '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
+        '<input type="text" id="mochiNick" class="mc-nick" maxlength="12" ' +
         'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' +
         _edit +
         '<button type="button" id="mochiMakeC" class="mc-go" data-mc="makec">' +
@@ -20816,7 +20872,7 @@ function _mcQuizHtml(ctx) {
     return '<div class="mc-head">挑你会选的答案——答完生成挑战书发给 TA，' +
       '看 TA 有多懂你</div>' + _packBtns +
       '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
-      '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
+      '<input type="text" id="mochiNick" class="mc-nick" maxlength="12" ' +
       'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' + qs +
       '<div id="mochiBar" class="mc-bar">已答 0/5</div>' +
       '<button type="button" id="mochiMake" class="mc-go" data-mc="make" ' +
@@ -21119,7 +21175,7 @@ function _renderMochi() {
                    _mcEnc(JSON.stringify(_hq2))));
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +
-        '<input id="mochiLink" class="mc-link" readonly ' +
+        '<input type="text" id="mochiLink" class="mc-link" readonly ' +
         'value="' + esc(link) + '">' +
         '<div class="mc-acts">' +
         '<button type="button" id="mochiCopy" class="mc-go" ' +
@@ -21166,7 +21222,7 @@ function _renderMochi() {
       }
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +
-        '<input id="mochiLink" class="mc-link" readonly ' +
+        '<input type="text" id="mochiLink" class="mc-link" readonly ' +
         'value="' + esc(clink) + '">' +
         '<div class="mc-acts">' +
         '<button type="button" id="mochiCopy" class="mc-go" ' +
@@ -21190,7 +21246,7 @@ function _renderMochi() {
                        st.qs) +
         '<label class="mc-nick-lab" for="mochiMe">你叫什么' +
         '（发成绩给 TA 时显示）</label>' +
-        '<input id="mochiMe" class="mc-nick" maxlength="12" ' +
+        '<input type="text" id="mochiMe" class="mc-nick" maxlength="12" ' +
         'placeholder="比如：桃子" value="' + esc(mn) + '">' +
         '<div class="mc-acts">' +
         '<button type="button" id="mochiShare" class="mc-go" ' +
@@ -21274,7 +21330,7 @@ function _renderMochi() {
                    _d2.ha + '|' + _d2.ga + '|' + (_d2.pack || 'bestie')));
       var card = '<div class="mc-head">成绩条包好啦——发回去，' +
         '让 TA 看看你们多默契</div>' +
-        '<input id="mochiLink" class="mc-link" readonly ' +
+        '<input type="text" id="mochiLink" class="mc-link" readonly ' +
         'value="' + esc(rlink) + '">' +
         '<div class="mc-acts">' +
         '<button type="button" id="mochiCopy" class="mc-go" ' +
