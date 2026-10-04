@@ -6279,9 +6279,13 @@ async function loadDaily() {
           ? ' 明天' + tm.festival[0] +
             (_festTip(tm.festival[0]) ? '·' + _festTip(tm.festival[0]) : '') + '｜'
           : '';
+        /* R3384：幸运色钩——「明天穿什么色」是穿搭场景的最短回访
+         * 理由（玄学穿搭博主验证过的内容型），预告行带上它。 */
+        var _tmc = (tm.lucky && tm.lucky.color)
+          ? ' · 穿' + tm.lucky.color : '';
         _tmrEl.textContent = '🌙 明天「' +
           (tm.level === '凶' ? '缓' : (tm.level || '平')) + '」' + _tmFest +
-          '· 宜 ' + _tdo + '' +
+          _tmc + ' · 宜 ' + _tdo + ' ' +
           /* R2349g（R68-P1-1）：明天预告导引 3→6。 */
           _dayPick(['点我看明天', '记得来拆明天的礼物', '明天再来找我玩',
                     '明天的运先睹为快', '明天也请多关照', '提前看看明天'], 'tmr') + ' →';
