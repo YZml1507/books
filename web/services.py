@@ -551,10 +551,12 @@ def hehun_daily(req) -> dict:
     score = int(max(45, min(98, round(
         0.55 * base + 24 + (_sa + _sb) * 1.5 + _jit))))
     _tag = ""
+    # R3433-P1-1（审）：「日支逢冲/逢合」内码术语裸奔上屏——
+    # 术语翻成感受，与全站随行翻译口径一致。
     if _ta == "冲" or _tb == "冲":
-        _tag = "今天日支逢冲，别翻旧账"
+        _tag = "今天你们容易顶起来，别翻旧账"
     elif _ta == "合" or _tb == "合":
-        _tag = "今天日支逢合，适合把话说开"
+        _tag = "今天你们格外对味，适合把话说开"
     elif _ta == "半合" or _tb == "半合":
         _tag = "今天有点小合意，顺手撒个娇"
     if score >= 85:
@@ -564,7 +566,8 @@ def hehun_daily(req) -> dict:
     elif score >= 55:
         line = "今天平平也挺好，各忙各的、晚上唠两句就够。"
     else:
-        line = "今天有点顶——少讲道理多给台阶，晚点再说正事。"
+        # R3433-P2-5（审）：「有点顶」歧义（顶着/顶撞读不出）。
+        line = "今天容易小顶牛——少讲道理多给台阶，晚点再说正事。"
     return {"date": _today.isoformat(), "ganzhi": _tp,
             "score": score, "line": line, "tag": _tag, "base": base}
 

@@ -1716,12 +1716,20 @@ function buildShareData(view, j) {
         { k: '默契等级', v: _pStr(_mc.tier) || '测测才知道' },
         { k: '判语', v: _clauseCut(_pStr(_mc.line), 24) }
       ];
-      var _mHit = _pArr(_mc.matched);
+      /* R3433-P1-2（审）：自写题干直通晒图——敏感题面（身体/收入/
+       * 前任比较）随成绩海报外流。进 lines 前过闸回落占位，
+       * 与答案之书问句/还愿愿望同口径。 */
+      var _mHit = _pArr(_mc.matched).filter(function (_mq) {
+        return !(typeof feCrisis === 'function' && feCrisis(_mq)) &&
+               !(typeof feSensitive === 'function' && feSensitive(_mq));
+      });
       if (_mHit.length) {
         _ms.lines.push({ k: '想到一块儿',
           v: _clauseCut(_mHit.slice(0, 2).join(' · '), 20) });
+      } else if (_pArr(_mc.matched).length) {
+        _ms.lines.push({ k: '想到一块儿', v: '（心里那题）' });
       } else {
-        _ms.lines.push({ k: '想到一块儿', v: '0 题——完全不同路' });
+        _ms.lines.push({ k: '想到一块儿', v: '一道都没对上——正好处处有得聊' });
       }
       _ms.lines.push({ k: '落款', v: '小满的解忧铺 · 特发此证' });
       return _ms;
@@ -1810,7 +1818,7 @@ function buildShareData(view, j) {
       _cds.lines = [
         { k: '你们', v: _pStr(j && j.title) || '—' },
         { k: '小满说', v: _pStr(j && j.line) || '—' },
-        { k: '提示', v: _pStr(j && j.tag) || '今天随缘处' }
+        { k: '提示', v: _pStr(j && j.tag) || '没什么大信号——平常过就好' }
       ];
       return _cds;
     }

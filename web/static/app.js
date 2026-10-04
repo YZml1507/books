@@ -8581,6 +8581,9 @@ var _POSTER_TITLES = {
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
   renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
+  /* R3433-P1-3（审）：晒合拍卡/木鱼时弹层张冠李戴「命盘海报」、
+   * 文件名回落「分享图」——新视图同口径收进标题表。 */
+  cpdaily: '今日合拍指数', muyu: '敲敲木鱼',
   'daily-outfit': '今日穿搭', moodweek: '心情周记',
   /* R3373：正缘画像海报弹层标题/下载文件名。 */
   soulmate: '正缘画像',
@@ -12600,7 +12603,7 @@ function _orReplyCard(box, line) {
   });
 }
 var _OR_BIGQ_LINE = '这事比掷筊大——筊杯不敢替你做主。' +
-  '大决定别交给签杯：找个你信得过的人当面掂掂，' +
+  '大决定别交给筊杯：找个你信得过的人当面掂掂，' +
   '拿不准的也可以先来跟我说说。';
 function doOracle() {
   var ta = el('orText');
@@ -12631,7 +12634,7 @@ function doOracle() {
       '<div class="or-v">' + ji.verdict + '</div>' +
       '<p class="or-line">' + esc(line) + '</p>' +
       '<p class="or-q">问的是：「' + esc(q) + '」</p>' +
-      '<p class="or-note">同一件事今天再掷也是这个筊——心里有数了，别回头问第二遍。</p>' +
+      '<p class="or-note">同一件事今天再掷也是这个筊——答案记好，换件事才会换筊。</p>' +
       '<div class="ck-wish-actions">' +
         '<button type="button" class="checkin-opt" id="orAgain">再想一件</button>' +
       '</div></div>';
@@ -14080,8 +14083,8 @@ function initDivination() {
     var _wx = /MicroMessenger/i.test(navigator.userAgent);
     var _xhs = /xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent);
     showToast(
-      _wx ? '点右上「···」→「在 Safari 打开」，再点分享→加到主屏幕'
-        : (_xhs ? '点右上「···」→「在浏览器打开」，再点分享→加到主屏幕'
+      _wx ? '点右上「···」→「在 Safari 打开」，再点分享→「添加到主屏幕」'
+        : (_xhs ? '点右上「···」→「在浏览器打开」，再点分享→「添加到主屏幕」'
         : (_ios ? '点底部分享按钮→「添加到主屏幕」'
         : '点浏览器菜单（右上 ⋮ 或 ⋯）→「添加到主屏幕 / 安装应用」')),
       'info');
@@ -14430,6 +14433,9 @@ async function _hhDailyRender(ref) {
     '<div class="hh-daily-text"><div class="hh-daily-line">' +
     esc(j.line) + '</div>' +
     (j.tag ? '<div class="hh-daily-tag">' + esc(j.tag) + '</div>' : '') +
+    /* R3433-P2-6（审）：日更分与合拍指数同称「分」不同标尺——
+     * 每天不一样的摆动若无解释会被读成「我们变不合适了」。 */
+    '<div class="hh-daily-note">日子每天在轮转，分和昨天不一样很正常</div>' +
     '</div></div>' +
     '<button type="button" class="ghost hh-daily-share" data-hhdaily="share">📸 晒今天</button>';
   box.hidden = false;
@@ -16882,7 +16888,7 @@ function _flWriteOpen() {
     '封好，寄出去</button>' +
     '<p class="fl-note">信只存在你这台设备上，小满也偷看不了；' +
     /* R3431-P3-5（审）：寄出后不可改期——寄前明示。 */
-    '寄出就不能改日子啦。</p></div>';
+    '寄出去日子就定啦——挑个想收到的那天再封。</p></div>';
   document.body.appendChild(bd);
   var close = function () { bd.remove(); };
   bd.addEventListener('click', function (e) {
@@ -16955,8 +16961,10 @@ function _flWriteOpen() {
        * toast 还报「寄出啦」——假成功。满员且无可挤直接拒。 */
       if (lst.length >= 50 &&
           !lst.some(function (l) { return l && l.opened; })) {
-        close();
-        showToast('信箱满啦——先等已寄的信送回来，再写新的', 'warn');
+        /* R3433-P1-4（审）：拒寄先关层=刚写的信静毁——层留住，
+         * toast 说清「没寄」，让用户能长按复制原文。 */
+        showToast('信箱满啦——这封信先留着没寄，' +
+          '等已寄的信送到了再来寄它', 'warn');
         return;
       }
       lst.push(lt);
@@ -16977,15 +16985,23 @@ function _flWriteOpen() {
       _lsUnionWrite('futureLetters', lst,
         function (l) { return l && l.id; }, 50, ['opened']);
     } catch (eFS) {
-      close();
-      showToast('信没存上：这台设备的存信空间满了', 'error');
+      /* R3433-P1-4（审）：存不上同样不拆层毁稿。 */
+      showToast('信没存上：这台设备的存信空间满了——' +
+        '先长按复制把信留一份', 'error');
       return;
     }
     /* R3328（审-低）：close() 先移除节点再读 _sel 恒 null →
      * 回退到 ISO 日期。先取文案再关弹层。 */
     var _sel = el('flWhen');
+    /* R3433-P2-15（审）：自选档 toast 露 ISO 冷格式——
+     * 与三档人话（一个月后/下个生日）同温，转 X年X月X日。 */
     var _lbl = (_sel && _sel.value === '__custom')
-      ? lt.deliver
+      ? ((function () {
+          var _dp = String(lt.deliver).split('-');
+          return _dp.length === 3
+            ? (+_dp[0]) + ' 年 ' + (+_dp[1]) + ' 月 ' + (+_dp[2]) + ' 日'
+            : lt.deliver;
+        })())
       : ((_sel && _sel.options && _sel.options[_sel.selectedIndex])
         ? _sel.options[_sel.selectedIndex].textContent.split('（')[0]
         : lt.deliver);
@@ -18127,7 +18143,7 @@ function renderCheckin(dateKey) {
       if (_flRaw0) {
         _flEntryHtml = _flEntryHtml.replace('</span></div>',
           '<button type="button" class="fl-recover" id="flRecover">' +
-          '💌 有封没写完的信，点这找回</button></span></div>');
+          '💌 有封没存上的信，点这找回</button></span></div>');
       }
     } catch (eFR) {}
     /* R3329：pend 徽标填进 try 外的保底入口骨架。 */
@@ -18392,7 +18408,7 @@ function renderCheckin(dateKey) {
       var _raw2 = '';
       try { _raw2 = localStorage.getItem('futureLetters:corrupt') || ''; }
       catch (eRC) {}
-      if (!_raw2) { showToast('备份已经被清掉了', 'info'); return; }
+      if (!_raw2) { showToast('那封丢的信已经清掉啦', 'info'); return; }
       try {
         _showTextExportModal('找回的信',
           '这封信当时没能存进列表，原文在下面——长按复制带走吧。\n\n' +
@@ -19743,8 +19759,8 @@ function _renderInstallTip() {
     var _isSafari = /Safari/i.test(navigator.userAgent) &&
       !/CriOS|FxiOS|EdgiOS|MicroMessenger|QQ/i.test(navigator.userAgent);
     bar.innerHTML = '<span>🏠 ' +
-      (_wx ? '点右上「···」→「在 Safari 打开」，再点分享→加到主屏幕'
-           : _xhs ? '点右上「···」→「在浏览器打开」，再点分享→加到主屏幕'
+      (_wx ? '点右上「···」→「在 Safari 打开」，再点分享→「添加到主屏幕」'
+           : _xhs ? '点右上「···」→「在浏览器打开」，再点分享→「添加到主屏幕」'
            : _isSafari ? '点底部「分享」→「添加到主屏幕」，明天直接来'
            : '复制链接去 Safari 打开，再「添加到主屏幕」') + '</span>' +
       '<button type="button" class="install-tip-go">知道了</button>' +
@@ -19763,6 +19779,12 @@ function _renderInstallTip() {
     bar.remove();
   };
   if (go) go.addEventListener('click', function () {
+    /* R3433-P2-17（审）：「知道了/装好」语义上是 ack 却每次回访
+     * 还来（只有 ✕ 记 dismissed）——点了正向钮同样免打扰。 */
+    try {
+      localStorage.setItem('installTipDismissed',
+        new Date().toISOString());
+    } catch (eD) {}
     if (!_deferredInstall) { _retire(); return; }
     var d = _deferredInstall; _deferredInstall = null;
     try { d.prompt(); } catch (e) {}
@@ -20756,15 +20778,18 @@ function _mcQuizHtml(ctx) {
             '<input type="radio" name="mcE' + _ei + '" value="' + _ej + '">' +
             '<input type="text" class="mc-eo-t" data-eq="' + _ei +
             '" maxlength="12" placeholder="选项 ' + (_ej + 1) +
-            (_ej < 2 ? '（必填）' : '（可不填）') + '"></label>';
+            (_ej < 2 ? '（必填）' : '（不写也行）') + '"></label>';
         }
         _edit += '<div class="mc-eq" id="mochiE' + _ei + '">' +
           '<input type="text" class="mc-eq-t" maxlength="20" ' +
           'placeholder="第 ' + (_ei + 1) + ' 题：写个问题，比如「我火锅必点什么」">' +
           '<div class="mc-eopts">' + _eos + '</div></div>';
       }
+      /* R3433-P1-2（审）：题干写前零私密引导——题目随链发给 TA
+       * 这点此前到链出才说，写时一句不提。 */
       return '<div class="mc-head">自己出题——写 5 道题，每题填至少 2 个选项，' +
-        '在你会选的那项前面打勾</div>' + _packBtns +
+        '在你会选的那项前面打勾。题目会跟着链接发给 TA 看，' +
+        '太私密的别写哦～</div>' + _packBtns +
         '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
         '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
         'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' +
@@ -21121,8 +21146,7 @@ function _renderMochi() {
       /* R3430-P2-5（审）：自写题满配长链 ~2.2K 字符——超 2048 的
        * IM/短链器截断后落地即「弄丢了」，发方无感知。超长预警。 */
       if (clink.length > 1800) {
-        showToast('链有点长（' + clink.length +
-          ' 字符），有的聊天软件会截断——题干写短点更稳', 'warn');
+        showToast('题干太长啦，写短点链更稳——有的聊天软件会截断长链', 'warn');
       }
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +

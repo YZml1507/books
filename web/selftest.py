@@ -4712,6 +4712,19 @@ def _run_inner() -> list[str]:
     assert '"trQX"' in _svcsrc2 and "圣诞心愿限定" in _svcsrc2, \
         "圣诞心愿限定：聊路标词族/锚缺"
     ok.append("frontend.xmas_wiring")
+    # R3433 口吻终审批：合拍卡日支术语白话化/自写题私密引导+海报
+    # 敏感题过闸/晒图标题收编/拒寄留层/toast 暖格式五件套——
+    # 缺一则黑话上屏、私密题干外流、张冠李戴或写好的信静毁。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "今天你们容易顶起来" in _svcsrc2 and \
+        "太私密的别写哦" in _appsrc2 and \
+        "cpdaily: '今日合拍指数'" in _appsrc2 and \
+        "这封信先留着没寄" in _appsrc2 and \
+        "feSensitive(_mq)" in _postsrc, \
+        "口吻终审 R3433：白话/私密引导/标题收编/留层/海报闸缺一"
+    ok.append("frontend.tone_r3433")
     # R3418 P0/P1：掷筊三重闸（feCrisis→feSensitive→BIGQ，先于
     # 种子判词）+ tarot/liuyao 提问钩危机闸 + 粉碎机双闸——
     # 缺一则高危问句拿到确定性吉凶判词。
