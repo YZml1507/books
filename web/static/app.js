@@ -13542,12 +13542,24 @@ function initDivination() {
     var _n0 = new Date(), _m0 = _n0.getMonth() + 1, _d0 = _n0.getDate();
     return (_m0 === 10 && _d0 >= 29) || (_m0 === 11 && _d0 <= 1);
   };
+  /* R3439-P2（审）：聊路标走服务端 CST 窗、页面钮走本地日——
+   * 海外时区跨日错位时 chip 出现但点不动。点击复判改「本地或
+   * CST 任一在窗」（用户主动点了 chip 就是明确意图）。 */
+  var _trFestCn = function () {
+    var _nc = new Date(Date.now() + 8 * 3600e3 +
+      new Date().getTimezoneOffset() * 60e3);
+    return { m: _nc.getMonth() + 1, d: _nc.getDate() };
+  };
+  var _trHFestCn = function () {
+    var _c = _trFestCn();
+    return (_c.m === 10 && _c.d >= 29) || (_c.m === 11 && _c.d <= 1);
+  };
   var _trHBtn = el('trQH');
   if (_trHBtn && _trHFest()) _trHBtn.hidden = false;
   on('trQH', function () {
     /* R3370-P2-4：点击时复判窗口——跨零点页面仍可点但结果
      * 不再冒限定名。 */
-    if (!_trHFest()) {
+    if (!_trHFest() && !_trHFestCn()) {
       if (_trHBtn) _trHBtn.hidden = true;
       return;
     }
@@ -13569,6 +13581,10 @@ function initDivination() {
     return _nx.getMonth() + 1 === 12 && _nx.getDate() >= 20 &&
       _nx.getDate() <= 25;
   };
+  var _trXFestCn = function () {
+    var _c = _trFestCn();
+    return _c.m === 12 && _c.d >= 20 && _c.d <= 25;
+  };
   var _trXBtn = el('trQX');
   if (_trXBtn && _trXFest()) _trXBtn.hidden = false;
   /* R3435：跨零点进出窗口重判——页面过夜到 12/20 钮要现身、
@@ -13578,7 +13594,7 @@ function initDivination() {
     if (_trXBtn) _trXBtn.hidden = !_trXFest();
   };
   on('trQX', function () {
-    if (!_trXFest()) {
+    if (!_trXFest() && !_trXFestCn()) {
       if (_trXBtn) _trXBtn.hidden = true;
       return;
     }
@@ -21286,12 +21302,26 @@ function _renderMochi() {
       return;
     }
     if (act === 'host') {
+      /* R3439-P2（审）：受邀者答完点「我也出一套」——清 hash 后
+       * dataset.pack='custom'/qs 残留把受邀方甩进自写编辑器（她
+       * 期待的是标准出题卡），且旧分数据挂着。带 hash 落地=收到
+       * 别人的链，pack/qs/双名双答全复位；host 自己「重新出一套」
+       * 页本无 hash，reroll 的 hqs 套卷与选题保留。 */
+      var _hadHash = false;
       try {
         if (location.hash) {
+          _hadHash = true;
           history.replaceState(null, '', location.pathname +
             location.search);
         }
       } catch (eH) {}
+      if (_hadHash) {
+        try {
+          delete box.dataset.pack; delete box.dataset.qs;
+          delete box.dataset.ga; delete box.dataset.ha;
+          delete box.dataset.hn; delete box.dataset.gn;
+        } catch (eHH) {}
+      }
       _renderMochi();
       return;
     }

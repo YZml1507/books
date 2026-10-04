@@ -4725,6 +4725,13 @@ def _run_inner() -> list[str]:
         "feSensitive(_mq)" in _postsrc, \
         "口吻终审 R3433：白话/私密引导/标题收编/留层/海报闸缺一"
     ok.append("frontend.tone_r3433")
+    # R3439 裂变链三轮终扫：受邀「我也出一套」清场（pack/qs/双名
+    # 复位）+ 限定卡 chip 双时区复判——缺一则受邀方甩进自写
+    # 编辑器或海外用户点 chip 没反应。
+    assert "_hadHash" in _appsrc2 and "_trFestCn" in _appsrc2 and \
+        "_trHFestCn" in _appsrc2 and "_trXFestCn" in _appsrc2, \
+        "裂变三轮：host 清场/双时区复判缺"
+    ok.append("frontend.r3439_sweep")
     # R3418 P0/P1：掷筊三重闸（feCrisis→feSensitive→BIGQ，先于
     # 种子判词）+ tarot/liuyao 提问钩危机闸 + 粉碎机双闸——
     # 缺一则高危问句拿到确定性吉凶判词。
