@@ -6372,9 +6372,56 @@ async function loadDaily() {
           _pc2.push('<span class="e-week-low">🎃 捣蛋签 ' +
             _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
         } else if (typeof _qianHwFest === 'function' &&
-                   _qianHwFest() && !_qianHwIdxOf(todayIso())) {
-          _pc2.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
-            '——去签页抽今天的宜动签</span>');
+                   _qianHwFest()) {
+          var _hwDk = _qianHwIdxOf(todayIso());
+          if (!_hwDk) {
+            _pc2.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
+              '——去签页抽今天的宜动签</span>');
+          } else {
+            /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
+             * 「连抽 N 天」，给窗期一个小成就钩。 */
+            var _hwN = 0;
+            try {
+              var _hwY = _now2.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.hw && x.d >= _hwY + '-10-25' &&
+                      x.d <= _hwY + '-11-01') _hwN++;
+                });
+            } catch (eHN) {}
+            if (_hwN >= 2) {
+              _pc2.push('<span class="e-week-low">🎃 捣蛋签连抽 ' +
+                _hwN + ' 天了——窗开到 11/1</span>');
+            }
+          }
+        } else if (_ddays <= -8 && _ddays >= -14) {
+          /* R3658：窗后收官 toast——抽过 ≥1 支的人 11/2-11/8
+           * 首访弹一次（单日旗 hwCloseTip），带签名收官。 */
+          try {
+            if (localStorage.getItem('hwCloseTip') !==
+                String(_now2.getFullYear())) {
+              var _hwC = 0, _hwLast = 0;
+              var _hwY2 = _now2.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.hw && x.d >= _hwY2 + '-10-25' &&
+                      x.d <= _hwY2 + '-11-01') {
+                    _hwC++;
+                    if (!_hwLast) _hwLast = x.n;
+                  }
+                });
+              if (_hwC >= 1) {
+                localStorage.setItem('hwCloseTip',
+                                     String(_hwY2));
+                var _hwNm = (typeof QIAN !== 'undefined' &&
+                             QIAN[_hwLast - 1])
+                  ? QIAN[_hwLast - 1].name : '';
+                showToast('🎃 捣蛋签收官了——你抽到 ' + _hwC +
+                  ' 支宜动签' + (_hwNm ? '，最新是「' + _hwNm + '」' : '') +
+                  '，去签页再看看', 'info');
+              }
+            }
+          } catch (eHC) {}
         }
       } catch (eHW2) {}
       if (_mine) {
@@ -25802,7 +25849,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip|hwCloseTip)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -26521,7 +26568,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26873,6 +26920,7 @@ function baziPersonaCard(j) {
                 k.indexOf('dday:') === 0 ||
                 /* R3634/R3635：es: 能量分落键+峰值提醒旗同收（足迹件）。 */
                 k.indexOf('es:') === 0 || k === 'esPeakTip' ||
+                k === 'hwCloseTip' ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
