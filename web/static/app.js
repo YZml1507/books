@@ -24156,7 +24156,8 @@ function _renderShredder(stage) {
         '<div class="ck-wish-actions">' +
           '<button type="button" class="checkin-opt" data-shred="again">再碎一件</button>' +
           '<button type="button" class="checkin-opt" data-shred="wish">顺手丢个愿望 🫙</button>' +
-          (_mDone === null ?
+          /* R3531（自审）：mood 键存 '' 也算没记——空串不该隐身。 */
+          ((_mDone === null || _mDone === '') ?
             '<button type="button" class="checkin-opt" data-shred="mood">记一下现在的感觉</button>'
             : '') +
         '</div></div>';
