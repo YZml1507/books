@@ -19603,9 +19603,9 @@ function baziPersonaCard(j) {
     });
     /* R231a（R36-P3-3）：备份我的数据 = 台账全量 JSON + 浏览器侧键
      * （打卡/me 双档/问一嘴足迹/主题/口吻）。换设备一键带走。 */
-    var _exj = document.getElementById('historyExportJson');
-    if (_exj) _exj.addEventListener('click', async function () {
-      try {
+    /* R3358：bundle 构建抽成共享函数——导出按钮与账号云同步
+     * 共用同一份「我的数据」口径。 */
+    async function _buildBackupBundle() {
         /* R2349y（R95-P2-5）：台账禁用态下 export_json 404——此前整个
          * 备份中止，连本机偏好都带不走。降级 records:[] 并明说。 */
         var j;
@@ -19744,7 +19744,19 @@ function baziPersonaCard(j) {
         var bundle = { app: '小满的解忧铺', kind: 'backup', version: 1,
                        exported_at: j.exported_at || new Date().toISOString(),
                        browser: local, records: _recsOut,
-                       favorites: _favs, threads: _threads };
+                       favorites: _favs, threads: _threads,
+                       _noLedger: _noLedger };
+        return bundle;
+    }
+    var _exj = document.getElementById('historyExportJson');
+    if (_exj) _exj.addEventListener('click', async function () {
+      try {
+        var bundle = await _buildBackupBundle();
+        var _noLedger = !!bundle._noLedger;
+        delete bundle._noLedger;
+        var _recsOut = bundle.records || [];
+        var _favs = bundle.favorites || [];
+        var _threads = bundle.threads || [];
         /* R2353（R110-P1-1）：触屏/微信里 blob a[download] 静默丢弃
          * 还误报「已下载」——改展示式弹层+复制。 */
         if (_exportShowOnly()) {
@@ -19855,7 +19867,9 @@ function baziPersonaCard(j) {
                 k.indexOf('shred:') === 0 ||
                 /* R3343：couple:shared 内嵌规范生日串（PII）+ 同步
                  * 时间戳——「忘掉我的数据」必须收。 */
-                k.indexOf('couple:') === 0)) _rm.push(k);
+                k.indexOf('couple:') === 0 ||
+                /* R3358：轻账号凭据也是个人数据——「忘掉」要登出。 */
+                k.indexOf('xmaccount') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
@@ -19935,6 +19949,8 @@ function baziPersonaCard(j) {
         try { sessionStorage.removeItem('chatBootId'); } catch (e2e) {}
         try { renderCheckin(todayIso()); } catch (e2f) {}
         try { _renderMeStrip(); } catch (e2) {}
+        /* R3358：wipe 已收 xmaccount 凭据——账号卡回到未登录态。 */
+        try { if (window.__acctRender) window.__acctRender(); } catch (eAR) {}
         /* R3328（审-低）：loadPaipanHistory 重渲会顺手重建
          * paipan_mirror_v1 空镜像——「忘掉」后连镜像壳也不留，
          * 重渲落定后再擦一遍镜像键。 */
@@ -19983,6 +19999,172 @@ function baziPersonaCard(j) {
          * 里的键扫描已收镜像键）——不然「本机档案清了」是假的。 */
         .catch(function () { _phMirrorClear(); _favMirrorClear(); _done(false); });
     });
+    /* R3358：轻账号（昵称+口令码）。凭据存 xmaccount={n,p}——口令码
+     * 即登录钥匙，6 位码明文存本机是轻账号的通行口径（不是银行密
+     * 码）；「忘掉我的数据」连它一起清（wipe 正则已收）。 */
+    var _acctCard = document.getElementById('accountCard');
+    if (_acctCard) (function () {
+      var _KEY = 'xmaccount';
+      var _SYNC_KEY = 'xmaccount:lastsync';
+      var _nick = document.getElementById('acctNick');
+      var _pass = document.getElementById('acctPass');
+      var _form = document.getElementById('acctForm');
+      var _logged = document.getElementById('acctLogged');
+      var _status = document.getElementById('acctStatus');
+      var _who = document.getElementById('acctWho');
+      var _lastSync = document.getElementById('acctLastSync');
+      var _backend = '';
+      function _creds() {
+        try {
+          var cj = JSON.parse(localStorage.getItem(_KEY) || 'null');
+          return (cj && cj.n && cj.p) ? cj : null;
+        } catch (e) { return null; }
+      }
+      function _saveCreds(n, p) {
+        try {
+          localStorage.setItem(_KEY, JSON.stringify({ n: n, p: p }));
+        } catch (e) {}
+      }
+      function _acctRender() {
+        var c = _creds();
+        if (c) {
+          _form.hidden = true;
+          _logged.hidden = false;
+          _who.textContent = c.n;
+          var _ls = '';
+          try { _ls = localStorage.getItem(_SYNC_KEY) || ''; } catch (e) {}
+          _lastSync.textContent = _ls ? ('上次同步 ' + _ls) : '还没同步过';
+        } else {
+          _form.hidden = false;
+          _logged.hidden = true;
+        }
+        _status.textContent = _backend === 'libsql'
+          ? '云端已接' : (_backend === 'local'
+            ? '云端没配（存本机库）' : '查一下云端…');
+      }
+      window.__acctRender = _acctRender;
+      var _syncBusy = false;
+      async function _push(showOk) {
+        var c = _creds();
+        if (!c || _syncBusy) return;
+        _syncBusy = true;
+        try {
+          var bundle = await _buildBackupBundle();
+          delete bundle._noLedger;
+          var r = await api('/api/account/backup/push', {
+            method: 'POST', silent: !showOk,
+            body: JSON.stringify({ nickname: c.n, passcode: c.p,
+                                   payload: JSON.stringify(bundle) }) });
+          if (r && r.ok) {
+            try {
+              localStorage.setItem(_SYNC_KEY,
+                new Date().toLocaleString('sv').slice(0, 16));
+            } catch (e) {}
+            _acctRender();
+            if (showOk) {
+              showToast('同步好啦，换台设备登这个名字就能拉回', 'info');
+            }
+          } else if (showOk) {
+            showToast((r && r.msg) || '没同步上，过会儿再试', 'warn');
+          }
+        } catch (e) {
+          if (showOk) {
+            showToast('没同步上：' + _humanizeErr(e.message || e), 'warn');
+          }
+        } finally { _syncBusy = false; }
+      }
+      window.__acctPush = _push;
+      async function _pull() {
+        var c = _creds();
+        if (!c) return;
+        try {
+          var r = await api('/api/account/backup/pull', {
+            method: 'POST',
+            body: JSON.stringify({ nickname: c.n, passcode: c.p }) });
+          if (r && r.ok && r.payload) {
+            await _importBackupText(r.payload);
+          } else {
+            showToast((r && r.msg) || '云端还没有备份', 'warn');
+          }
+        } catch (e) {
+          showToast('拉不回来：' + _humanizeErr(e.message || e), 'error');
+        }
+      }
+      function _readFields() {
+        var n = (_nick.value || '').trim();
+        var p = (_pass.value || '').trim();
+        if (!n) { showToast('先给自己起个名', 'warn'); return null; }
+        if (p.length < 6) {
+          showToast('口令码至少 6 位', 'warn');
+          return null;
+        }
+        return { n: n, p: p };
+      }
+      document.getElementById('acctRegister')
+        .addEventListener('click', async function () {
+          var f = _readFields();
+          if (!f) return;
+          try {
+            var r = await api('/api/account/register', {
+              method: 'POST',
+              body: JSON.stringify({ nickname: f.n, passcode: f.p }) });
+            if (r && r.ok) {
+              _saveCreds(f.n, f.p);
+              _acctRender();
+              showToast('注册好啦，正在给你同步第一份备份', 'info');
+              _push(false);
+            } else {
+              showToast((r && r.msg) || '没注册上，过会儿再试', 'warn');
+            }
+          } catch (e) {
+            showToast('没注册上：' + _humanizeErr(e.message || e), 'error');
+          }
+        });
+      document.getElementById('acctLogin')
+        .addEventListener('click', async function () {
+          var f = _readFields();
+          if (!f) return;
+          try {
+            var r = await api('/api/account/login', {
+              method: 'POST',
+              body: JSON.stringify({ nickname: f.n, passcode: f.p }) });
+            if (r && r.ok) {
+              _saveCreds(f.n, f.p);
+              _acctRender();
+              /* 登录即拉回——这是换设备的主场景；云端没备份时
+               * _pull 会明说「先在原设备同步一次」。 */
+              await _pull();
+            } else {
+              showToast((r && r.msg) || '名字或口令码不对', 'warn');
+            }
+          } catch (e) {
+            showToast('登不上：' + _humanizeErr(e.message || e), 'error');
+          }
+        });
+      document.getElementById('acctSyncNow')
+        .addEventListener('click', function () { _push(true); });
+      document.getElementById('acctPull')
+        .addEventListener('click', function () { _pull(); });
+      document.getElementById('acctLogout')
+        .addEventListener('click', function () {
+          try { localStorage.removeItem(_KEY); } catch (e) {}
+          _acctRender();
+          showToast('已退出——云端备份还在，哪天登回来就能拉回', 'info');
+        });
+      /* 后台/关页时自动推一份——visibilitychange 比 beforeunload
+       * 在移动端靠谱（iOS 不一定给 unload 机会）。 */
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden' && _creds()) {
+          _push(false);
+        }
+      });
+      /* 云端形态探测：libsql=生产态；local=本机兜底（明说）。 */
+      api('/api/account/status', { silent: true }).then(function (r) {
+        _backend = (r && r.backend) || '';
+        _acctRender();
+      }).catch(function () { _acctRender(); });
+      _acctRender();
+    })();
     var _imb = document.getElementById('historyImportBtn');
     var _imf = document.getElementById('historyImportFile');
     if (_imb && _imf) {

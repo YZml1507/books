@@ -238,6 +238,22 @@ FIXTURES: dict[str, dict] = {
     # selftest 同款真实请求。R3307 起 bazi 分支删除（可枚举数据面），
     # 探针改钉 tarot 回显分支。
     "/api/share/":            {"method": "GET", "url": "/api/share/tarot/abc123"},
+    # R3358：轻账号——status 公开读；register 会真建一条 probe 账号
+    # （与 gen_records 写副作用同先例——固定昵称，首轮建号、之后
+    # 走重名拒，两条路的 {ok,msg} 读点都可判定）；login/pull/push
+    # 用不存在的昵称→确定性的 {ok:false,msg} 带内拒答。
+    "/api/account/status":  {"method": "GET"},
+    # api() 绑定的读点 url 是裸路径（与 GET 键同形）——fixture 按裸
+    # 路径键，method 字段里写 POST。
+    "/api/account/register": {"method": "POST",
+        "json": {"nickname": "probe账号", "passcode": "246810"}},
+    "/api/account/login": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    "/api/account/backup/pull": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    "/api/account/backup/push": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810",
+                 "payload": "{}"}},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
@@ -334,6 +350,10 @@ CONDITIONAL_FIELDS = {
     "/api/paipan/history": {"disabled"},
     # R3193：星座日运接 AI 解读块——ai_task_id 只在 LLM 开启时返回。
     "/api/xingzuo": {"ai_task_id"},
+    # R3358：payload 只在拉取成功（ok:true）时返回——拒绝态（probe 的
+    # 不存在昵称 fixture 走的就是这条）只有 ok/msg；前端
+    # `if (r && r.ok && r.payload)` 正是对缺席的探测。
+    "/api/account/backup/pull": {"payload"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。
@@ -616,6 +636,13 @@ UNPINNED_ROUTES = {
                                  "（R230k 起写路径由 ui_smoke btn:history.delete"
                                  " 两段式真删覆盖；此前注释误称已由建删回环"
                                  " 覆盖——selftest 在 DISABLE 态跑根本测不到）",
+    ("GET", "/api/account/status"): "R3358 轻账号——FIXTURES 直钉",
+    ("POST", "/api/account/register"): "R3358 轻账号——FIXTURES 直钉"
+                                 "（probe 固定昵称真建号）",
+    ("POST", "/api/account/login"): "R3358 轻账号——FIXTURES 直钉"
+                                 "（不存在昵称的带内拒答）",
+    ("POST", "/api/account/backup/push"): "R3358 轻账号——FIXTURES 直钉",
+    ("POST", "/api/account/backup/pull"): "R3358 轻账号——FIXTURES 直钉",
 }
 
 

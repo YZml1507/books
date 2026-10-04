@@ -477,7 +477,12 @@ def create_app() -> FastAPI:
                 # R2508（审-P2）：本中间件在 _security_headers 外侧——
                 # 它的 413 拿不到安全头（也拿不到 CORS 头）。就地补齐。
                 headers=_SEC)
-        if cl is not None and cl.isdigit() and int(cl) > 512 * 1024:
+        # R3358：账号备份推送是整包 JSON——备份全量实测可到 ~1.2MB，
+        # 单端点放宽到 1.5MB（pydantic 字段帽 1.2MB + 转义开销），
+        # 其余端点维持 512KB。
+        _limit = (1536 * 1024 if request.url.path ==
+                  "/api/account/backup/push" else 512 * 1024)
+        if cl is not None and cl.isdigit() and int(cl) > _limit:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "请求体太大了，精简一下再发"},

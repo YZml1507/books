@@ -4881,6 +4881,40 @@ def _run_inner() -> list[str]:
     assert _big.status_code == 413 and "太大" in _big.json().get("detail", ""), \
         ("err.body_too_large", _big.status_code, _big.text[:120])
     ok.append("err.body_too_large")
+
+    # R3358：轻账号端点——status/注册/重名拒/错口令拒/推备份/拉备份。
+    # 昵称带 pid 防并发自测撞名；写面落 data/users.db（本地态）。
+    _an = "st账号" + str(_os.getpid() % 100000)
+    check("account.status", client.get("/api/account/status"),
+          lambda j: j.get("backend") in ("local", "libsql"))
+    _r = client.post("/api/account/register",
+                     json={"nickname": _an, "passcode": "246810"})
+    assert _r.status_code == 200 and _r.json().get("ok"), \
+        ("account.register", _r.status_code, _r.text[:200])
+    ok.append("account.register")
+    _r = client.post("/api/account/register",
+                     json={"nickname": _an, "passcode": "246810"})
+    assert _r.status_code == 200 and not _r.json().get("ok"), \
+        ("account.register_dup", _r.status_code, _r.text[:200])
+    ok.append("account.register_dup")
+    _r = client.post("/api/account/login",
+                     json={"nickname": _an, "passcode": "999999"})
+    assert _r.status_code == 200 and not _r.json().get("ok"), \
+        ("account.login_bad", _r.status_code, _r.text[:200])
+    ok.append("account.login_bad")
+    check("account.push", client.post("/api/account/backup/push",
+          json={"nickname": _an, "passcode": "246810",
+                "payload": '{"kind":"backup","version":1,"records":[]}'}),
+          lambda j: j.get("ok") is True)
+    check("account.pull", client.post("/api/account/backup/pull",
+          json={"nickname": _an, "passcode": "246810"}),
+          lambda j: j.get("ok") is True and
+                    '"kind":"backup"' in (j.get("payload") or ""))
+    _r = client.post("/api/account/backup/pull",
+                     json={"nickname": _an + "不存在", "passcode": "246810"})
+    assert _r.status_code == 200 and not _r.json().get("ok"), \
+        ("account.pull_noexist", _r.status_code, _r.text[:200])
+    ok.append("account.pull_noexist")
     return ok
 
 

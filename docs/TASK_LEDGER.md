@@ -18164,3 +18164,33 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   plain_first 5×8 / xingzuo 双判据 / warm_voice 8判据 /
   async_ai 3判据 / baseline_voice 逐字节 / ruff 全绿；
   bump_sw→books-shell-05486cc58db4
+
+## R3358 轻账号体系（昵称+口令码）——无痕/换机拉回数据
+- 背景：用户反馈无痕模式进网站是全新状态；本机 localStorage
+  设计使然，要跨设备就得有账号。裁决：昵称+6位口令码轻账号
+  （不要邮箱/手机，隐私线不破），数据同步到 Turso 免费云库
+  （Render 15 分钟清盘，服务端本地文件存不住账号）。
+- web/userdb.py：双后端——BOOKS_USERDB_URL=libsql://*turso.io
+  +BOOKS_USERDB_TOKEN 走 /v2/pipeline HTTP 协议（urllib 直连
+  零新依赖）；未配回落本地 data/users.db。accounts(nickname,
+  pass_hash=sha256(salt+code), salt)+backups(nickname,payload)。
+- web/routers/account.py：status/register/login/backup push/pull
+  五端点。口令逐请求直传比对散列（无会话态无 token 可劫持）；
+  注册 10/min·登录拉取 20/min·推送 30/min 按 IP+昵称限速
+  （6 位码爆破面收口）。pull 用 POST 不让口令进 URL/日志。
+- 前端：排盘历史页「小满账号」卡——注册/登录/立刻同步/从云端
+  拉回/退出。凭据存 xmaccount={n,p}（6位码明文本机留存是
+  轻账号通行口径）；注册即推首份备份，登录即拉回（
+  _importBackupText 复用），visibilitychange=hidden 自动推。
+  bundle 构建从导出处抽成 _buildBackupBundle() 共用；
+  _noLedger 元数据不入下载包。「忘掉我的数据」收 xmaccount
+  凭据+登出 UI；wipe 正则同步收编。
+- app.py 体积闸：/api/account/backup/push 单端点放宽 1.5MB
+  （全量备份实测可到 ~1.2MB），其余维持 512KB。
+- 闸门：selftest +7 断言（status/register/dup/login_bad/push/
+  pull/pull_noexist → 415）；probe_contract 五端点进 FIXTURES
+  真钉 + pull.payload 进 CONDITIONAL_FIELDS（拒绝态缺席）→
+  757 读点 PASS；_creds 的 j→cj 改名避开探针 j.* 归因误报；
+  css.var_defs 修 --paper→--card；bump_sw→books-shell-bdca75be137b。
+- 待办（用户侧）：turso.tech GitHub 一键注册免费库 →
+  BOOKS_USERDB_URL+BOOKS_USERDB_TOKEN 填 Render 环境变量。

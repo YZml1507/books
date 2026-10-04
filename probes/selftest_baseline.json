@@ -1,6 +1,13 @@
 {
  "checks": [
   "access_gate.token",
+  "account.login_bad",
+  "account.pull",
+  "account.pull_noexist",
+  "account.push",
+  "account.register",
+  "account.register_dup",
+  "account.status",
   "addr",
   "addr.bcv",
   "addr.booksec",

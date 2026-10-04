@@ -652,3 +652,28 @@ class CoupleCheckinRequest(BaseModel):
                 continue
             out.append(d)
         return out
+
+
+# ---------- 小满轻账号（R3358：昵称+口令码，不要邮箱/手机） ----------
+
+class AccountAuthRequest(BaseModel):
+    """注册/登录/拉备份共用。昵称 1-24 字（剥零宽+控制符），
+    口令码 6-64 位——上限放宽留给将来 passphrase 升级。"""
+    nickname: str = Field(..., min_length=1, max_length=24)
+    passcode: str = Field(..., min_length=6, max_length=64)
+
+    @field_validator("nickname")
+    @classmethod
+    def _nick_clean(cls, v: str) -> str:
+        v = _ZW_RE.sub(
+            "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()
+        if not v:
+            raise ValidationError("昵称得写点东西")
+        return v
+
+
+class AccountBackupPushRequest(AccountAuthRequest):
+    """推送备份：负载是导出器整套 bundle JSON 文本——服务端不透明
+    存放不解析，只卡体积（现有全量导出实测 ~500KB，1.2MB 上限留
+    余量）。"""
+    payload: str = Field(..., min_length=2, max_length=1_200_000)

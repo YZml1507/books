@@ -1234,6 +1234,35 @@ try {
           备份/清空覆盖排盘台账、研究笔记与本机偏好，本机留档（只存在这台设备上的备份）也会一起清。
         </div>
       </div>
+      <!-- R3358：轻账号（昵称+口令码，不要邮箱/手机）——注册/登录后
+           备份自动同步到云端，换设备/无痕模式登录同名账号即可拉回。
+           口令码没有找回渠道，忘了就是没了（前端明说）。 -->
+      <div class="acct-card" id="accountCard">
+        <div class="acct-head">
+          <span aria-hidden="true">🔐</span> 小满账号
+          <span class="acct-sub" id="acctStatus">查一下云端…</span>
+        </div>
+        <div class="acct-form" id="acctForm">
+          <input id="acctNick" type="text" maxlength="24" autocomplete="off"
+                 placeholder="给自己起个名（昵称）">
+          <input id="acctPass" type="password" maxlength="64" autocomplete="off"
+                 inputmode="numeric" placeholder="6位口令码（如 123456）">
+          <div class="acct-btns">
+            <button id="acctRegister" type="button" class="ghost">注册</button>
+            <button id="acctLogin" type="button" class="ghost">登录</button>
+          </div>
+          <div class="acct-tip">口令码没有找回渠道，忘了就是没了——记个牢的。注册即同步一份备份到云端。</div>
+        </div>
+        <div class="acct-logged" id="acctLogged" hidden>
+          <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
+          <div class="acct-btns">
+            <button id="acctSyncNow" type="button" class="ghost">立刻同步</button>
+            <button id="acctPull" type="button" class="ghost">从云端拉回</button>
+            <button id="acctLogout" type="button" class="ghost">退出</button>
+          </div>
+          <div class="acct-tip">备份会在这台设备退出页面时自动同步；换新设备登录同名账号点「从云端拉回」。</div>
+        </div>
+      </div>
       <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->
       <div id="historyFilter" class="ph-filter" hidden
            role="group" aria-label="按类型筛选记录"></div>
