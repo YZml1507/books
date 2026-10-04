@@ -19775,8 +19775,26 @@ function renderCheckin(dateKey) {
   /* R229z续23（R10-#17）：选项组补 role=group + 问题文本锚点，
    * 反馈区 aria-live——选完有朗读回执。 */
   var _meta = '';
+  /* R3513：连签里程碑称号——跨档 toast 一次（ckms:seen 记
+   * 已贺过的最高档），称号随 meta 行挂出。断了不收回，
+   * 称号只往上走（Finch 式关系锚同口径）。 */
+  try {
+    var _MS = [[7, '七日缘'], [21, '半月友'], [30, '一月知己'],
+               [66, '知心人'], [100, '百日故人']];
+    var _msHit = null;
+    _MS.forEach(function (m) { if (_streak >= m[0]) _msHit = m; });
+    if (_msHit) {
+      var _msSeen = +(localStorage.getItem('ckms:seen') || 0);
+      if (_msHit[0] > _msSeen) {
+        localStorage.setItem('ckms:seen', String(_msHit[0]));
+        showToast('连签 ' + _msHit[0] + ' 天，你们成了「' +
+                  _msHit[1] + '」', 'ok');
+      }
+    }
+  } catch (eMS) {}
   if (_streak >= 2) {
     _meta += '已连续 ' + _streak + ' 天打卡' +
+      (_msHit ? '「' + _msHit[1] + '」' : '') +
       /* R3420-P2-2：日键 GC 窗口 ~150 天，streak 到顶不再涨——
        * 披露口径防「攒了半年怎么显 150」类误读。 */
       (_streak >= 150 ? '（记数按近 150 天）' : '');
@@ -24218,7 +24236,7 @@ function baziPersonaCard(j) {
         return b.join(' · ') || '还没有';
       } },
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -24926,7 +24944,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
