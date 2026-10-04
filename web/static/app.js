@@ -5616,6 +5616,23 @@ async function loadDaily() {
                  j.personal.energy.score;
       if (_esv) localStorage.setItem('es:' + _today, String(_esv));
     } catch (eES) {}
+    /* R3635：峰值日早间提醒——今天就是本周峰日的话 toast
+     * 一次（esPeakTip 单日旗，跨天不重复弹）。 */
+    try {
+      var _wk2 = j.personal && j.personal.week_energy;
+      if (Array.isArray(_wk2) && _wk2.length === 7 &&
+          _wk2[0].d === _today) {
+        var _pkv = 0;
+        _wk2.forEach(function (w, i) {
+          if (w.s > _wk2[_pkv].s) _pkv = i; });
+        if (_pkv === 0 &&
+            localStorage.getItem('esPeakTip') !== _today) {
+          localStorage.setItem('esPeakTip', _today);
+          showToast('⚡ 今天是你这周电最足的一天（' +
+                    _wk2[0].s + ' 分）——要紧的事往前放', 'info');
+        }
+      }
+    } catch (ePK) {}
     /* R3264（R29）：今日护身符按钮可用 */
     var _slk = el('shareLucky');
     if (_slk) _slk.disabled = false;
@@ -26405,7 +26422,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26755,8 +26772,8 @@ function baziPersonaCard(j) {
                 k.indexOf('anniv:seen:') === 0 ||
                 /* R3618：目标日名/日两键同收（足迹件）。 */
                 k.indexOf('dday:') === 0 ||
-                /* R3634：es: 能量分落键同收（足迹件）。 */
-                k.indexOf('es:') === 0 ||
+                /* R3634/R3635：es: 能量分落键+峰值提醒旗同收（足迹件）。 */
+                k.indexOf('es:') === 0 || k === 'esPeakTip' ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
