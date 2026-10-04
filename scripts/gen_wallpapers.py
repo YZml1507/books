@@ -35,6 +35,22 @@ JOBS = {
     "wap-09": f"{STYLE}, pastel rainbow after rain over rolling hills, the bear jumping joyfully lower third with arms up, bright lucky-celebration mood",
 }
 
+# R3362 主题系列：节日/节气限定底图——前端按当日 j.festival /
+# j.term.name 对表选用，非节点日仍走 10 张日轮换。命名 wap-t-*。
+THEME_JOBS = {
+    "wap-t-halloween": f"{STYLE}, halloween night, soft jack-o-lanterns glowing warm orange, tiny candy corn scattered, the bear in a little wizard hat lower third holding a mini pumpkin, playful not spooky, deep purple dusk sky",
+    "wap-t-xmas": f"{STYLE}, cozy christmas eve, small decorated pine tree with warm fairy lights, wrapped gifts in pastel paper, gentle snow outside window, the bear in a tiny red scarf lower third holding a gift box, warm festive mood",
+    "wap-t-nye": f"{STYLE}, new year eve celebration, soft golden fireworks and sparkles over night sky, pastel confetti falling, the bear lower third holding a small sparkler looking up at sky, hopeful countdown mood",
+    "wap-t-cny": f"{STYLE}, chinese new year, soft red lanterns glowing, golden paper cut decorations, warm festive crimson and gold palette, the bear in a tiny red outfit lower third holding a mini lantern, joyful spring festival mood",
+    "wap-t-valentine": f"{STYLE}, valentine day, soft pink hearts and roses floating, warm blush pink palette, the bear lower third holding a tiny heart-shaped balloon, sweet romantic mood",
+    "wap-t-frost": f"{STYLE}, late autumn frost morning, golden orange maple leaves with white frost edges, misty soft light, the bear lower third in a cozy coat touching a frosted leaf, crisp harvest-end mood",
+    "wap-t-winterstart": f"{STYLE}, early winter day, first cold wind, bare branches with last golden leaves, pale warm sunlight, the bear lower third wrapping a soft scarf around itself, cozy seasonal-turn mood",
+    "wap-t-snow": f"{STYLE}, gentle snowfall day, big soft snowflakes drifting, white and pale blue world, the bear lower third catching snowflakes on its paw with delighted face, pure first-snow joy",
+    "wap-t-solstice": f"{STYLE}, winter solstice longest night, deep blue starry evening, warm glowing window with steaming dumplings on table, the bear lower third holding a warm bowl, family-warmth mood",
+    "wap-t-deepcold": f"{STYLE}, deepest winter cold, frosted window with icy flower patterns, warm candlelight indoors, the bear lower third in fluffy earmuffs sipping hot cocoa, snug against-the-cold mood",
+    "wap-t-spring": f"{STYLE}, early spring awakening, first pale green buds and plum blossoms on branches, soft morning light and gentle drizzle, the bear lower third holding a tiny sprouting leaf, new-beginning hopeful mood",
+}
+
 
 def gen(name, prompt):
     payload = json.dumps({
@@ -68,6 +84,7 @@ if __name__ == "__main__":
     only = sys.argv[1:] or list(JOBS)
     for n in only:
         try:
-            gen(n, JOBS[n])
+            src = JOBS.get(n) or THEME_JOBS[n]
+            gen(n, src)
         except Exception as e:
             print(f"FAIL {n}: {e}", flush=True)

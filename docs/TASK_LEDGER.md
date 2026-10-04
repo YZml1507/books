@@ -18194,3 +18194,21 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   css.var_defs 修 --paper→--card；bump_sw→books-shell-bdca75be137b。
 - 待办（用户侧）：turso.tech GitHub 一键注册免费库 →
   BOOKS_USERDB_URL+BOOKS_USERDB_TOKEN 填 Render 环境变量。
+
+## R3362 壁纸主题系列（节日/节气限定底图）
+- 积压项落地：开运壁纸底图新增 11 张主题烘焙图
+  （wap-t-{halloween,xmas,nye,cny,valentine,frost,
+  winterstart,snow,solstice,deepcold,spring}.jpg，
+  scripts/gen_wallpapers.py THEME_JOBS 同款管线离线烘，
+  奶油熊同 style 词保持风格连续）。
+- app_wallpaper.js：_WAP_THEME_FEST（万圣夜/万圣节、平安夜/
+  圣诞、跨年/元旦、除夕~元宵+小年腊八 7 节、情人节系 5 节）
+  + _WAP_THEME_TERM（霜降/立冬/小雪大雪/冬至/小寒大寒/
+  立春雨水惊蛰）两张对表 + _wapTheme(j)——当日 j.festival
+  逐名对表、j.term.name 补对；节点日换限定底图，平凡日
+  仍走 10 张种子轮换；里程碑 tag 种子机制保留为 fallback。
+- 已对后端 _festival_for/_term_name_for 真输出逐名核验
+  （万圣夜/万圣节/平安夜/圣诞节/跨年夜/元旦/霜降/立冬/
+  小雪/大雪/冬至/小寒/大寒 2026-10~2027-02 全命中）。
+- bump_sw→books-shell-309a4069fae2；壁纸懒加载网络取图不进
+  SW 预缓存，无清单项。esprima PASS、banned_copy PASS。
