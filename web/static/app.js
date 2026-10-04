@@ -6353,7 +6353,9 @@ async function loadDaily() {
                 var _cds = _dw.getFullYear() + '-' +
                   String(_dw.getMonth() + 1).padStart(2, '0') + '-' +
                   String(_dw.getDate()).padStart(2, '0');
-                if (localStorage.getItem('checkin:' + _cds) === '1') _cd++;
+                /* R3455（自审）：checkin 键存的是心情选项值非 '1'，
+                 * === '1' 永远数出 0——按「键存在即打过卡」算。 */
+                if (localStorage.getItem('checkin:' + _cds) !== null) _cd++;
                 _dw.setDate(_dw.getDate() - 1);
               }
               var _wb = 0;
