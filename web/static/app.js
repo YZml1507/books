@@ -18478,6 +18478,12 @@ function _ncCard(j) {
       rows.push({ ic: '📜', k: '功课', g: '',
         v: _ncXp + ' 章 · 缘力 ' + (_ncXp * 10) });
     }
+    /* R3577：攒下的好运上名片——社交足迹与称号/功课并列
+     * （命盘件外的「别人给的」一维）。 */
+    var _ncHug = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
+    if (_ncHug > 0) {
+      rows.push({ ic: '🤗', k: '攒的好运', g: '', v: _ncHug + ' 个' });
+    }
   } catch (eNC) {}
   var _h = '<div class="nc-card sm-card">' +
     '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
