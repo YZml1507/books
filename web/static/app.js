@@ -8914,11 +8914,14 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   guardian: 'bazi', crystal: 'bazi', soulart: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
-  cpdaily: 'hehun' };
+  cpdaily: 'hehun',
+  /* R3479：色谱壁纸模态复制链同口径——?view=soulart-wap 是死链，
+   * 归到 bazi + sa=S 锚。 */
+  'soulart-wap': 'bazi' };
 /* R3475：小惊喜海报分享链携带 sa 锚——受邀者排盘后自动开同款卡
  * （与聊天 sa* 锚/_openSaByKey 同键族）。 */
 var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
-  soulart: 'S' };
+  soulart: 'S', 'soulart-wap': 'S' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -17317,6 +17320,9 @@ function _saCard(j) {
     '<div class="sm-note">色谱按你盘里五行权重画，一人一幅</div>' +
     '<button class="ghost fav-btn" type="button" id="saShare" ' +
       'title="生成灵魂色谱分享图">📸 晒出我的色谱</button>' +
+    /* R3479：星云壁纸——一人一幅的锁屏，比晒图更贴的拥有感。 */
+    '<button class="ghost fav-btn" type="button" id="saWap" ' +
+      'title="下载灵魂色谱锁屏壁纸">📱 做我的锁屏</button>' +
     '</div>';
   return { html: _h, data: _d };
 }
@@ -17328,6 +17334,13 @@ function _saOpen(j) {
   on('saShare', function () {
     var _o = { _saBands: _c.data.bands, _saSeed: _c.data.seed };
     return downloadPoster(Object.assign({}, j, _o), 'soulart');
+  });
+  /* R3479：色谱锁屏——同一组 bands/seed 去壁纸管线，
+   * 与海报底同一幅画（确定性口径）。 */
+  on('saWap', function () {
+    var _wo = { art: { bands: _c.data.bands, seed: _c.data.seed },
+                _saName: '我的五行色谱' };
+    return downloadWallpaper(_wo, { nebula: true });
   });
   _saBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }

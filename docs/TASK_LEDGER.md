@@ -19700,3 +19700,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - _lineCap 补 guardian:6 / crystal:6——两卡全字段齐 5 行，cap4 把「口径」免责行静默切掉（R3474 同款坑第5次犯，台账已记录补帽清单制）。
 - 危机词表前后端逐字对账：_CRISIS_FE_HARD/_CRISIS_FE_SOFT 与后端 _CRISIS_HARD_PAT/_CRISIS_SOFT_PAT 完全一致（改花刀/割手/遗书/离开这个世界等本代际词均已同步）。
 - 自由文本→海报敏感闸全链在位：默契自写题/塔罗问句/还愿愿望均过 feCrisis+feSensitive 双闸。
+
+## R3479 灵魂色谱锁屏壁纸
+- 色谱卡新钮「📱 做我的锁屏」→ `downloadWallpaper({art:{bands,seed}}, {nebula:true})`：720×1280 全幅星云（与海报底同一画家算法同一 seed——一人一图确定性）+ 店招 + 「我的五行色谱」+ 最浓气 + 色带图例。
+- 模态复制链归 `?view=bazi&from=share&sa=S`（_SHARE_VIEW_ALIAS+_SA_SHARE_KEY 双表补 soulart-wap 项）——受邀者排完盘自动开 TA 的色谱卡。
+- 实测：按钮在位、720×1280 下载落盘、星云/图例/文字目检合格；触屏只走浮层长按（与全站壁纸同口径）。

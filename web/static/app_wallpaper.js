@@ -91,6 +91,60 @@ function _wapWrap(ctx, text, maxW, maxLines) {
   return lines;
 }
 
+/* R3479 灵魂色谱壁纸：全幅星云（与 soulart 海报底同一画家算法、
+ * 同一 seed/ bands 口径）+ 色谱名 + 气质行——无日期无烘焙底图，
+ * 720×1280 锁屏比例。 */
+function _wapNebula(j) {
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  var _bands = (j && j.art && Array.isArray(j.art.bands)
+    && j.art.bands.length) ? j.art.bands
+    : [{ c: '#B8A5E8', frac: 0.6, wx: '木' }];
+  var _seed = (+((j && j.art && j.art.seed) || 0)) >>> 0;
+  var g = ctx.createLinearGradient(0, 0, 0, 1280);
+  g.addColorStop(0, '#1A1430'); g.addColorStop(1, '#0E0B1F');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1280);
+  var _rnd = function () {
+    _seed = (_seed * 1664525 + 1013904223) >>> 0;
+    return _seed / 4294967296;
+  };
+  _bands.forEach(function (b) {
+    var _cx = 120 + _rnd() * 480, _cy = 200 + _rnd() * 880;
+    var _r = 170 + b.frac * 380;
+    var _g = ctx.createRadialGradient(_cx, _cy, 0, _cx, _cy, _r);
+    _g.addColorStop(0, b.c + 'CC');
+    _g.addColorStop(0.55, b.c + '55');
+    _g.addColorStop(1, b.c + '00');
+    ctx.fillStyle = _g; ctx.fillRect(0, 0, 720, 1280);
+  });
+  ctx.fillStyle = 'rgba(255,246,232,0.7)';
+  for (var _sp = 0; _sp < 70; _sp++) {
+    var _sx = _rnd() * 720, _sy = _rnd() * 1280,
+        _sr = _rnd() * 1.6 + 0.4;
+    ctx.beginPath(); ctx.arc(_sx, _sy, _sr, 0, 6.3); ctx.fill();
+  }
+  /* 文字区：店招 + 色谱名 + 最浓气 + 色带图例。 */
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,246,232,0.92)';
+  ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+  ctx.fillStyle = '#FFF6E8';
+  ctx.font = '700 54px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText(_pStr(j && j._saName) || '我的五行色谱', 360, 1160);
+  var _top = _bands.slice().sort(function (a, b2) {
+    return b2.frac - a.frac; })[0];
+  ctx.font = '400 26px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.85)';
+  ctx.fillText('你最浓的气是' + (_top ? _top.wx + '气' : ''), 360, 1212);
+  /* 色带图例：小圆点排排。 */
+  var _lw = _bands.length * 34, _lx = 360 - _lw / 2 + 17;
+  _bands.forEach(function (b, i) {
+    ctx.beginPath(); ctx.arc(_lx + i * 34, 1060, 9, 0, 6.3);
+    ctx.fillStyle = b.c; ctx.fill();
+  });
+  return cv;
+}
 function _wapComposite(j, bg, variant) {
   /* R3325-B：variant.square → 1:1 开运头像（720×720，底图中裁，
    * 版心下移适配圆裁展示）。 */
@@ -242,6 +296,34 @@ function _wapComposite(j, bg, variant) {
 }
 
 function downloadWallpaper(j, variant) {
+  /* R3479：灵魂色谱壁纸变体——无日期/无烘焙底图，走独立合成器。 */
+  if (variant && variant.nebula) {
+    try {
+      var _cvN = _wapNebula(j);
+      var _tN = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tN && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(_cvN, 'soulart-wap', j);
+        return Promise.resolve();
+      }
+      _cvN.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-灵魂色谱壁纸.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(_cvN, 'soulart-wap', j);
+      return Promise.resolve();
+    } catch (eNB) {
+      showToast('壁纸没做好，再点一次', 'warn');
+      return null;
+    }
+  }
   if (!j || !j.date) {
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
     return null;
