@@ -19510,6 +19510,23 @@ function _moodJarHtml() {
     return html;
   } catch (eMJH) { return ''; }
 }
+/* R3497/R3500 小功课题池（模块级）：renderCheckin 与打卡海报
+ * 分享同池出题——够得着的日常小事，周一确定轮换。 */
+var _WQ_POOL = [
+  '给一位在意的人发句问候',
+  '把手机放下一小时，专心吃一顿饭',
+  '写三行今天的小记',
+  '出门晒十分钟太阳',
+  '收拾房间的一个小角落',
+  '睡前跟今天说声谢谢',
+  '给家里的绿植浇浇水',
+  '走路时抬头看三次云',
+  '删掉手机里五张没用的截图',
+  '给自己认真做一顿早餐',
+  '对服务人员多说一声谢谢',
+  '找一个让你觉得舒服的角落坐一会儿',
+  '把拖到这周的一件小事办完',
+  '晚上十一点前放下手机'];
 function renderCheckin(dateKey) {
   const box = document.getElementById('dailyCheckin');
   if (!box) return;
@@ -19727,26 +19744,12 @@ function renderCheckin(dateKey) {
   /* R3497 本周小功课（Lunary weekly challenge 同构周更仪式件）：
    * 周更一件够得着的小事——周一换题、凭「做到了」盖戳。
    * wq:<周一ISO>='1' 日期后缀键（周更件不逐日攒，52键/年），
-   * 功课章总数在同 key 族计数；确定性周选（同周一池）。 */
+   * 功课章总数在同 key 族计数；确定性周选（同周一池）。
+   * 池提升为模块级——打卡海报分享（R3500）同池出题。 */
   var _wqHtml = '';
   try {
     var _wqDow = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
     var _wqMon = _isoShift(dateKey, -_wqDow);
-    var _WQ_POOL = [
-      '给一位在意的人发句问候',
-      '把手机放下一小时，专心吃一顿饭',
-      '写三行今天的小记',
-      '出门晒十分钟太阳',
-      '收拾房间的一个小角落',
-      '睡前跟今天说声谢谢',
-      '给家里的绿植浇浇水',
-      '走路时抬头看三次云',
-      '删掉手机里五张没用的截图',
-      '给自己认真做一顿早餐',
-      '对服务人员多说一声谢谢',
-      '找一个让你觉得舒服的角落坐一会儿',
-      '把拖到这周的一件小事办完',
-      '晚上十一点前放下手机'];
     var _wqQ = _dayPick(_WQ_POOL, 'wq|' + _wqMon);
     var _wqDone = 0, _wqN = 0;
     try {
@@ -20633,7 +20636,18 @@ function _checkinCelebrate(streak, opt) {
   });
   var sh = bd.querySelector('.celeb-share');
   if (sh) sh.addEventListener('click', function () {
-    var p = downloadPoster({ streak: streak, pick: opt }, 'checkin');
+    /* R3500：小功课随打卡海报可晒——本周题+盖戳态上墙。 */
+    var _wqJ = {};
+    try {
+      var _d0 = todayIso();
+      var _dow0 = (new Date(_d0 + 'T00:00:00').getDay() + 6) % 7;
+      var _mon0 = _isoShift(_d0, -_dow0);
+      var _q0 = _dayPick(_WQ_POOL, 'wq|' + _mon0);
+      _wqJ = { _wqLine: (localStorage.getItem('wq:' + _mon0)
+        ? '小功课已盖戳：' : '本周小功课：') + _q0 };
+    } catch (eWQsh) {}
+    var p = downloadPoster(Object.assign(
+      { streak: streak, pick: opt }, _wqJ), 'checkin');
     if (p && p.catch) p.catch(function () {});
     _close();
   });
