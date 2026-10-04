@@ -6372,6 +6372,11 @@ async function loadDaily() {
           (j.moon.action === 'wish_review' ? '翻翻瓶子 →' : '丢个愿望 →') +
           '</button>'
         : '';
+      /* R3588：满月群邀——复盘窗内挂「喊 TA 一起许愿」分享钮，
+       * wish= 链落地承接（toast/welcomeBar/CTA 滚到许愿瓶）。 */
+      if (j.moon.action === 'wish_review') {
+        _mBtn += ' <button type="button" class="daily-moon-go moon-share">喊 TA 一起许愿 🤝</button>';
+      }
       /* R3451：八相日行——glyph 随相（后端下发），无 glyph 时按
        * phase 回退老两档。 */
       var _mG = j.moon.glyph ||
@@ -6386,6 +6391,32 @@ async function loadDaily() {
           var _t = ev.target;
           if (!_t || !_t.classList ||
               !_t.classList.contains('daily-moon-go')) return;
+          /* R3588：满月群邀链——wish=1 带 n 署名，受邀落地承接。 */
+          if (_t.classList.contains('moon-share')) {
+            try {
+              var _wl = location.origin + location.pathname +
+                '?view=home&from=share&wish=1';
+              try {
+                var _wnm = (_meGet('me') || {}).n;
+                if (_wnm) _wl += '&n=' + encodeURIComponent(
+                  String(_wnm).slice(0, 24));
+              } catch (eWN) {}
+              var _wPl = '今晚满月，一起来丢个愿望吧——' +
+                '小满记账 🌕 → ' + _wl;
+              var _wOk = function () {
+                showToast('许愿邀请复制好了，发给 TA 吧', 'ok'); };
+              var _wBad = function () {
+                try { _showTextExportModal('复制链接', _wPl,
+                  '长按下面文本全选复制，发给 TA 吧'); }
+                catch (eM) { showToast('复制没成功，可截图链接发给 TA',
+                  'warn'); }
+              };
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(_wPl).then(_wOk, _wBad);
+              } else { _wBad(); }
+            } catch (eWS) {}
+            return;
+          }
           /* R3451：满月复盘先出小结卡——近 15 天打卡天数+瓶里还
            * 躺着的愿望数，一行说清这半月，再带去看瓶子。 */
           if (_t.dataset.moon === 'wish_review') {
@@ -17211,6 +17242,13 @@ if (document.readyState === 'loading') {
         if (_sv === 'home' && _qs.get('hug')) {
           _relay.home = '朋友给你递了个好运：今天也要顺心呀 🍀';
         }
+        /* R3588：满月群邀——wish=1 落地承接（发起方是满月窗
+         * 内点的分享钮，受邀时段可能已非满月，文案不提死
+         * 「今晚」二字）。 */
+        if (_sv === 'home' && _qs.get('wish')) {
+          _relay.home = '朋友趁满月喊你一起丢个愿望：' +
+            '写下来，月亮替你收着 🌕';
+        }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
         var _who = _shareByName();
@@ -17321,6 +17359,11 @@ if (document.readyState === 'loading') {
             _dnCnt2++; if (v > _dnMax2) _dnMax2 = v;
           }
         });
+        /* R3588：满月群邀新客条——与 toast 同口径。 */
+        if (new URLSearchParams(location.search).get('wish')) {
+          _relayBar.home = '朋友趁满月喊你一起丢个愿望：' +
+            '写下来，月亮替你收着 🌕';
+        }
         if (_dnCnt2 > 1) {
           _relayBar.home = '朋友们摆了连签擂：榜上最高 ' +
             _dnMax2 + ' 天，打个卡上牌 ⚔️';
@@ -17381,16 +17424,24 @@ if (document.readyState === 'loading') {
        * 接招」，直挂按钮滚到打卡区（受邀新客少一步）。 */
       if (_sv2 === 'home' && !bar.querySelector('.welcome-cta')) {
         var _q3 = new URLSearchParams(location.search);
-        if (_q3.get('duel') || _q3.get('hug')) {
+        if (_q3.get('duel') || _q3.get('hug') || _q3.get('wish')) {
           var _wcta3 = document.createElement('button');
           _wcta3.type = 'button';
           _wcta3.className = 'welcome-cta';
           _wcta3.textContent = _q3.get('duel') ?
-            '⚔️ 去打卡接招' : '🤗 去打卡收下好运';
+            '⚔️ 去打卡接招' : _q3.get('wish') ?
+            '🌕 去丢个愿望' : '🤗 去打卡收下好运';
           _wcta3.addEventListener('click', function () {
             var _ck = el('checkin');
             if (_ck && _ck.scrollIntoView) {
               _ck.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            /* R3588：wish 邀直达许愿瓶——滚到打卡卡顺手把瓶子
+             * 折叠掀开（与月相行落点同位）。 */
+            if (_q3.get('wish')) {
+              var _wf = _ck && _ck.querySelector
+                ? _ck.querySelector('.ck-wish') : null;
+              if (_wf) _wf.open = true;
             }
           });
           bar.insertBefore(_wcta3, bar.querySelector('.welcome-close'));
