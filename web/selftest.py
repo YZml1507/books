@@ -2952,9 +2952,22 @@ def _run_inner() -> list[str]:
     # R3195：路标可点化——action={view,label} 随响应下发；
     # 自尊类「配不上」不路标化（R3180d 同型钉）。
     _av = _svc_dm.chat_action_view("帮我抽张塔罗牌")
-    assert _av == {"view": "tarot", "label": "🃏 去塔罗抽一把"}, _av
+    assert _av == {"view": "tarot", "label": "🃏 去塔罗抽一把",
+                   "anchor": None}, _av
     assert _svc_dm.chat_action_view("帮我解个梦")["view"] == "dream"
     assert _svc_dm.chat_action_view("我配不上他") is None
+    # R3352：新族钉——此前清单 9 功能只有 3 个有路标。
+    assert _svc_dm.chat_action_view("帮我做个决定")["view"] == "oracle"
+    assert _svc_dm.chat_action_view("我的咒语册在哪")["view"] == "mantra"
+    assert _svc_dm.chat_action_view("这周心情怎么样")["view"] == "moodweek"
+    _cv = _svc_dm.chat_action_view("我和王嘉尔八字合吗")
+    assert _cv["view"] == "hehun" and "王嘉尔" in _cv["label"], _cv
+    assert _svc_dm.chat_action_view("想跟对象一起打卡")["anchor"] == "checkin"
+    assert _svc_dm.chat_action_view("年度报告怎么看")["anchor"] == "annual"
+    assert _svc_dm.chat_action_view("我许的愿成真了")["anchor"] == "wish"
+    assert _svc_dm.chat_action_view("撕纸条那个功能在哪")["view"] == "home"
+    _cf = _svc_dm.chat_action_facts("杨幂生日是哪天")
+    assert _cf and "1986-09-12" in _cf[0] and "明星合盘" in _cf[0], _cf
     check("chat.action_field", client.post("/api/chat", json={
         "session_id": "st-action", "message": "我想算个卦"}),
         lambda j: j.get("action", {}).get("view") == "liuyao")

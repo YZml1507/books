@@ -18072,3 +18072,23 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   三处免疫不污染档案，手改任一字段自动摘星回落普通口径。
 - 后端零改动；bump_sw EXTRA_GLOBS 两处补 celeb.json。
 - 闸门：selftest 407（子）→ 并入后 408 / ui_smoke 104 / ruff 全绿
+
+## R3352 小满功能知晓度+路标审清零（本批）
+- 路标覆盖 3/9→12/12：_CHAT_ACTIONS 升 5 元组（keys,line,view,
+  label,anchor），新族咒语册/心情周记/还愿/打卡邀TA/年报/明星
+  合盘/碎纸发泄；旧族口语弹性词补齐（做个决定/拿不准/帮我选/
+  撕纸/碎纸/出气等）。
+- 明星合盘动态匹配：_celeb_list() 懒读 celeb.json，问句含明星
+  名优先于词族命中 → label「✨ 去和「X」合盘」+ anchor=celeb +
+  facts 带公开生辰（无认知负担直连）。
+- anchor 端到端：action.anchor 下发 → transcript m.a.anchor 存
+  → _CHAT_ACT_ANCHORS 落点表（shred/wish/checkin/annual/celeb）
+  → chip 点击 details.open + scrollIntoView 送门口；
+  _CHAT_ACT_VIEWS 白名单补 mantra/moodweek（回放不再丢 chip）。
+- 心情数据注入 _chatFacts：心情话题带近 7 天 mood:* 实记
+  （_MOOD_META 词），此前小满只有空话可回。
+- _PROMPT_LEAK_PAT +根据算法|算法显示|根据数据（机器腔泄露面）。
+- contract: /api/chat 白名单 +action.anchor；selftest chat.actionview
+  断言更新+新族钉 9 条。
+- 闸门：selftest 408 / ui_smoke 104 / contract 746 / ruff 等 15 道全绿；
+  bump_sw→books-shell-81be9bd3471c

@@ -1606,6 +1606,9 @@ function _chatTsSave(role, text, action) {
         typeof action.label === 'string' && action.view && action.label)
       _m.a = { view: action.view.slice(0, 24),
                label: action.label.slice(0, 40) };
+      /* R3352：anchor 随 chip 存——回放时锚点落位不丢。 */
+      if (typeof action.anchor === 'string' && action.anchor)
+        _m.a.anchor = action.anchor.slice(0, 16);
     arr.push(_m);
     if (arr.length > 50) arr = arr.slice(-50);
     st.setItem(_chatTsKey(sid), JSON.stringify(arr));
@@ -2313,7 +2316,16 @@ function autoSendChatContext() {
  * 可点按钮直达真功能页，并收拢聊天抽屉。比纯文字指路少一步找。 */
 /* R3201：可回放的路标视图白名单——与服务端 _CHAT_ACTIONS 同集。 */
 var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
-                        home: 1, dream: 1, bazi: 1, oracle: 1 };
+                        home: 1, dream: 1, bazi: 1, oracle: 1,
+                        /* R3352：咒语册/心情周记视图白名单补齐——
+                         * 缺了 transcript 重渲丢 chip。 */
+                        mantra: 1, moodweek: 1 };
+/* R3352：路标落点表——view 是「街区」，anchor 是「门牌」。
+ * details 类的送到并展开；id 类的滚到门口。 */
+var _CHAT_ACT_ANCHORS = {
+  shred: '.ck-shred', wish: '.ck-wish',
+  checkin: '#dailyCheckin', annual: '#checkinYear',
+  celeb: '#celebDrawer' };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
   var b = document.createElement('button');
@@ -2334,6 +2346,22 @@ function _chatActChip(bubble, action) {
     if (tg) tg.setAttribute('aria-expanded', 'false');
     try { _mainInert(false); } catch (e2) {}
     try { showView(action.view); } catch (e3) {}
+    /* R3352：锚点落位——路标不再只到页顶：目标 details 展开 +
+     * 滚到门口。年报钮没达标时是 disabled 无 id 变体，回落打卡区。 */
+    try {
+      var _sel = _CHAT_ACT_ANCHORS[action.anchor];
+      var _tgt = _sel ? document.querySelector(_sel) : null;
+      if (!_tgt && action.anchor === 'annual')
+        _tgt = el('dailyCheckin');
+      if (_tgt) {
+        var _det = _tgt.tagName === 'DETAILS'
+          ? _tgt : _tgt.closest('details');
+        if (_det) _det.open = true;
+        setTimeout(function () {
+          _tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 120);
+      }
+    } catch (eA) {}
   });
   bubble.appendChild(b);
 }
@@ -3341,6 +3369,24 @@ function _chatFacts(facts, msg) {
       var _pm = ('0' + _p.m).slice(-2), _pd = ('0' + _p.d).slice(-2);
       _f.push('TA的生日：' + _p.y + '-' + _pm + '-' + _pd +
               (_p.n ? '（' + _meNickClean(_p.n) + '）' : ''));
+    }
+    /* R3352（审-高）：心情话题带近 7 天本机心情记录——此前小满手里
+     * 既没数据也没周记路标，只能回「跟我说说」空话。mood:<date> 值
+     * 0-3 索引（_MOOD_META 同序），只摘实记不编缺档。 */
+    if (msg && /心情|情绪|emo|郁闷|开心|难过|烦躁|烦/.test(msg)) {
+      var _mb = [];
+      for (var _mi = 6; _mi >= 0; _mi--) {
+        var _dd2 = new Date(); _dd2.setDate(_dd2.getDate() - _mi);
+        var _mdk = _dd2.getFullYear() + '-' +
+          String(_dd2.getMonth() + 1).padStart(2, '0') + '-' +
+          String(_dd2.getDate()).padStart(2, '0');
+        var _mv = _moodDayGet(_mdk);
+        if (_mv !== null && _mv !== undefined)
+          _mb.push(_mdk.slice(5) + ' ' + _MOOD_META[_mv].t);
+      }
+      if (_mb.length)
+        _f.push('她近几天自己记的心情：' + _mb.join('、') +
+                '。打卡区「📒 看看这周的你」有 7 天心情汇总小卡');
     }
   } catch (e) {}
   return _f;
