@@ -20223,7 +20223,8 @@ function renderCheckin(dateKey) {
         if (isFinite(n) && n > 0 && n <= 9999 &&
             _duList.indexOf(n) < 0) _duList.push(n);
       });
-    _duList = _duList.slice(0, 8);
+    /* R3553：榜上限 7 名 TA——加你至多 8 行，行宽不炸。 */
+    _duList = _duList.slice(0, 7);
     if (_duList.length === 1) {
       var _duN = _duList[0], _dTxt;
       if (_streak <= 0) {
@@ -20816,11 +20817,11 @@ function renderCheckin(dateKey) {
   /* R3542：喊 TA 比连签——复制钩子文案+对擂链。 */
   var _ckd = box.querySelector('#ckDuel');
   if (_ckd) _ckd.addEventListener('click', function () {
-    /* R3549：群擂续链——受邀方再晒时把自己的天数续进
-     * duel 列表（去重、封顶 8 人），链随转发长成群榜。 */
+    /* R3549/53：群擂续链——受邀方再晒时把自己的天数续进
+     * duel 列表（去重、封顶 7 人），链随转发长成群榜。 */
     var _duChain = _duList.concat([_streak]).filter(function (n, i, a) {
       return a.indexOf(n) === i;
-    }).slice(0, 8);
+    }).slice(0, 7);
     var _du = location.origin + location.pathname +
       '?view=home&from=share&duel=' + _duChain.join(',');
     /* R3546：钩子句理不顺（「跟小满陪我比」双谓语打结）——
