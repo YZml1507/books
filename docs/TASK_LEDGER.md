@@ -18802,3 +18802,13 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - P2-5：lines 归一化剥 dot 字段——daily-outfit 五行色点从未
   画出（:534 r.dot 永假）。归一化保留 dot + hex 白名单，
   脏值落 null。
+- P3 跟进：hlcal 避让图钩按 mode 分叉（「好日子」钩配避让图
+  反着）；days 空态兜底句+占位符；xzm score 缺席占位符；
+  taohua 提帽 6（旺期预告被切）；hehun chip NaN 防御；
+  weekly 心情空值传 '' 让海报兜底生效；未知 view 拒出海报
+  +回音（原回落画近乎空白旧版命盘张冠李戴）；big 三折行上提
+  地板（白卡压大字）；卡名按卡宽实测缩字号防出血；吉祥物
+  贴纸与节日徽章错峰；海报底图/mascot 拼 _assetSuffix 缓存键；
+  _posterTextCollect 补 K线干支/月历星期头/免责句预载集。
+- 登记不修：bazi/birth 海报画四柱可反推生辰——R2349t 已判定
+  的刻意取舍（晒盘即晒信息本体），维持现状。

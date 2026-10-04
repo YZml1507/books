@@ -8820,14 +8820,18 @@ function _idlePrefetch() {
    * 功能视图才触发（showView 调用点），用户没点卡就零开销。 */
   if (_didPrefetch) return;
   _didPrefetch = true;
-  POSTER_BG.warm.src = '/static/shared/poster-bg-peach.jpg';
-  POSTER_BG.sakura.src = '/static/shared/poster-bg-sakura.jpg';
-  POSTER_BG.lilac.src = '/static/shared/poster-bg-lilac.jpg';
+  /* R3398-P3-13：海报底图/mascot 走裸路径——同文件名重部署后
+   * RT 桶可能长期命中旧图。统一拼 _assetSuffix 缓存键（与
+   * app_poster/qrcode 懒载同口径）。 */
+  var _asf = (typeof _assetSuffix === 'function') ? _assetSuffix() : '';
+  POSTER_BG.warm.src = '/static/shared/poster-bg-peach.jpg' + _asf;
+  POSTER_BG.sakura.src = '/static/shared/poster-bg-sakura.jpg' + _asf;
+  POSTER_BG.lilac.src = '/static/shared/poster-bg-lilac.jpg' + _asf;
   /* R231b（R36-P3-1）：起名海报换紫云梦底——与塔罗夜紫错开一层。 */
-  POSTER_BG.dream.src = '/static/shared/poster-bg-dream.jpg';
-  POSTER_BG.mint.src = '/static/shared/poster-bg-mint.jpg';
-  POSTER_BG.celadon.src = '/static/shared/poster-bg-celadon.jpg';
-  POSTER_MASCOT.src = '/static/cream/poster-mascot.png';
+  POSTER_BG.dream.src = '/static/shared/poster-bg-dream.jpg' + _asf;
+  POSTER_BG.mint.src = '/static/shared/poster-bg-mint.jpg' + _asf;
+  POSTER_BG.celadon.src = '/static/shared/poster-bg-celadon.jpg' + _asf;
+  POSTER_MASCOT.src = '/static/cream/poster-mascot.png' + _asf;
   /* R230v（R34-#16）：预拉也带超时——死连接悬挂虽无可见影响，但会
    * 占住浏览器并发位。 */
   var _preOpt = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
@@ -16862,7 +16866,9 @@ function _shareWeekly() {
   var _vm = _weekVisits();
   var _rm = _weekRituals();
   var _moodIdx = _weekMoodMain();
-  var _moodTxt = _moodIdx !== '' ? _MOOD_META[+_moodIdx].t : '—';
+  /* R3398-P3-10：空心情传 '' 让海报端「这周心情还没记」兜底
+   * 生效——字面 '—' 是真值，兜底死代码。 */
+  var _moodTxt = _moodIdx !== '' ? _MOOD_META[+_moodIdx].t : '';
   var _topV = _usageTop() || '还没怎么聊';
   /* R3314：小记篇数上周报卡——写下的事该被看见。 */
   var _jm = (function () {

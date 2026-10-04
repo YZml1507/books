@@ -321,13 +321,16 @@ function _paintSharePoster(s, W, H) {
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
   var _lineCap = { daily: 7, 'checkin-week': 7, 'checkin-month': 6,
-                   taohua: 5, hehun: 6, 'daily-outfit': 5,
+                   hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
                    /* R3398：daily 构建 6-7 行（吉签插签运）cap=5
                     * 把「先缓缓」天天切没——注释口径兑现到 7；
                     * dream/soulmate 的免责尾行、qiming 的出处行
                     * 同理被默认 cap4 静默切，提帽收口。 */
                    dream: 5, soulmate: 6, qiming: 5,
+                   /* R3398-P3-11：taohua 全字段齐 6 行——旺期预告
+                    * 末行被切，提帽 6。 */
+                   taohua: 6,
                    moodweek: 5,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
@@ -384,6 +387,10 @@ function _paintSharePoster(s, W, H) {
     if (cardY - 60 + _cardH > _linesTop) {
       cardY -= (cardY - 60 + _cardH) - _linesTop;
     }
+    /* R3398-P3-16：上提没设下限——big 折 3 行 + 卡座 + ≥4 行明细
+     * 时白卡可顶进大字第三行下沿。地板 = 大字末行基线 + 16。 */
+    var _bigFloor = 300 + (words.length - 1) * bigGap + 60 + 16;
+    if (cardY - 60 < _bigFloor) cardY = _bigFloor + 60;
     ctx.fillStyle = '#FFFFFF';
     _roundRectPath(ctx, 90, cardY - 60, 900, _cardH, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
@@ -715,8 +722,21 @@ function _paintSharePoster(s, W, H) {
       var _nm = _pStr(c.name);
       var _nmFs = _nm.length > 6 ? 30 : 38;
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#3E3428'; ctx.font = '600 ' + _nmFs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
-      ctx.fillText(_gSlice(_nm, 9), cx + cw / 2, iy + 44);
+      /* R3398-P3-17：9 字 ×30px ≈270px > 卡宽 250px 两侧出血——
+       * 按卡宽实测量身缩字号，再截断兜底。 */
+      ctx.font = '600 ' + _nmFs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+      while (_nmFs > 22 && ctx.measureText(_gSlice(_nm, 9)).width > cw - 24) {
+        _nmFs -= 2;
+        ctx.font = '600 ' + _nmFs + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+      }
+      var _nmDraw = _gSlice(_nm, 9);
+      while (_nmDraw.length > 3 &&
+             ctx.measureText(_nmDraw + '…').width > cw - 24) {
+        _nmDraw = _nmDraw.slice(0, -1);
+      }
+      if (_nmDraw.length < _nm.length) _nmDraw += '…';
+      ctx.fillStyle = '#3E3428';
+      ctx.fillText(_nmDraw, cx + cw / 2, iy + 44);
       ctx.fillStyle = '#815934'; ctx.font = '400 28px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       ctx.fillText(_gSlice(c.sub, 8), cx + cw / 2, iy + 88);
     });
@@ -828,8 +848,11 @@ function _paintSharePoster(s, W, H) {
   if (POSTER_MASCOT.complete && POSTER_MASCOT.naturalWidth) {
     try {
       /* R2341（R57-P1-3）：tarot 卡片区 (880-1300) 与右下贴纸
-       * (1216-1340) 重叠压第三张牌——有卡片时挪右上角。 */
+       * (1216-1340) 重叠压第三张牌——有卡片时挪右上角。
+       * R3398-P3-12：右上角又正好盖节日徽章（badge 画在
+       * 1080-56,128）——两枚同位置时贴纸让到左上。 */
       var _mx = 974, _my = cards.length ? 76 : 1238;
+      if (cards.length && s.badge) _mx = 106;
       ctx.save();
       ctx.beginPath(); ctx.arc(_mx, _my, 62, 0, Math.PI * 2); ctx.clip();
       ctx.drawImage(POSTER_MASCOT, _mx - 62, _my - 62, 124, 124);
@@ -915,7 +938,11 @@ function _posterHookForView(view, j) {
   /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
   if (view === 'qian') return '今天你的签是什么？';
   if (view === 'ansb') return '心里有个问题？来翻一页';
-  if (view === 'hlcal') return '你的好日子是哪天？';
+  /* R3398-P3-7：避让日历配「好日子」钩是反着的——按 mode 分叉。 */
+  if (view === 'hlcal') {
+    var _hc2 = (j && j._hlcal) || {};
+    return _hc2.mode === 'ji' ? '这个月哪几天别安排它？' : '你的好日子是哪天？';
+  }
   if (view === 'bazi-kline') return '你的流年走势长什么样？';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
@@ -1707,8 +1734,12 @@ function buildShareData(view, j) {
       _hs.view = 'hlcal';
       _hs.cal = _hc;
       var _hd = _pArr(_hc.days);
-      _hs.big = _hcm + '月共 ' + _hd.length + ' 天' +
-                (_hc.mode === 'ji' ? '要绕开' : '是好日子');
+      /* R3398-P3-8：days 空时「0 天是好日子」+裸「 日」悬残——
+       * 换兜底句/占位符。 */
+      _hs.big = _hd.length
+        ? (_hcm + '月共 ' + _hd.length + ' 天' +
+           (_hc.mode === 'ji' ? '要绕开' : '是好日子'))
+        : (_hcm + '月没有圈出' + (_hc.mode === 'ji' ? '要绕开' : '特别好') + '的日子');
       var _ht1 = _hd.filter(function (_x) { return _x.rank === 1; })[0];
       _hs.lines = [
         { k: '头名', v: _ht1 ? (_hcm + '月' + _ht1.d + '日') : '—' },
@@ -1762,6 +1793,9 @@ function buildShareData(view, j) {
        * 打分（60+15combine+10gan_he…），同一对盘卡面 68/99、海报 70
        * 无分母，转发出去两个数对不上。直接读服务端 match_score。 */
       var _ms = (j && j.match_score != null) ? j.match_score : null;
+      /* R3398-P3-19：_ms!=null 但为 NaN/非数时 chip 出「NaN /99」
+       * ——后端恒发 int，此处只收防御层缝。 */
+      if (_ms != null && !Number.isFinite(+_ms)) _ms = null;
       /* R2350h（R107-合婚海报）：分数上胶囊主位。
        * R2351（R109-P2）：chip 已写一遍「合拍指数 X/99」，明细行
        * 再写同数是双写——有分时删明细行，没分时留占位「—」。 */
@@ -1881,7 +1915,9 @@ function buildShareData(view, j) {
       var _xGloss = { '同款': '同一个模子', '同象': '同象一家人',
                       '互补': '互补型组合', '相磨': '要多花心思' }[_xLb];
       _xm.lines = [
-        { k: '合拍指数', v: _pStr(j && j.score) + '/99' },
+        /* R3398-P3-9：score 缺席时「/99」裸斜杠——占位符回落。 */
+        { k: '合拍指数',
+          v: _pStr(j && j.score) ? (_pStr(j.score) + '/99') : '—' },
         { k: '判词', v: _xLb + (_xGloss ? '（' + _xGloss + '）' : '') },
         { k: '小满说', v: _clauseCut(_pStr(j && j.line), 20) }];
       /* R3138：lines 面在场时分享图补一行「画风」摘要——晒出去
@@ -2056,6 +2092,23 @@ function _posterTextCollect(s) {
       });
       /* 键值行标签常量 */
       t += '今日命盘幸运色数字时段本命';
+      /* R3398-P3-14：K线柱带/月历格带/免责行漏收集——无 CJK 全集
+       * 字体的机器上这些字会画豆腐块。 */
+      var _kl = s.kline;
+      if (_kl && _pArr(_kl.candles).length) {
+        _kl.candles.forEach(function (c) {
+          t += _pStr(c && c.ganzhi) + _pStr(c && c.age);
+        });
+        t += '岁今年本命冲太犯';
+      }
+      var _cl = s.cal;
+      if (_cl && _pArr(_cl.days).length) {
+        t += '一二三四五六日★' + _pStr(_cl.ym) +
+             _pStr(_cl.scene) + (_cl.mode === 'ji' ? '忌' : '宜');
+        _pArr(_cl.days).forEach(function (d) {
+          t += _pStr(d && d.d); });
+      }
+      t += '判词引自古籍可核验';
     }
   } catch (e) {}
   /* 页脚常量 + 旧版式 drawPoster 的固定串 + 各视图兜底文案也要覆盖 */
@@ -2097,7 +2150,14 @@ async function _downloadPoster(j, view) {
       } catch (e0) {}
     }
     var s = buildShareData(view, j);
-    if (s) j = Object.assign({}, j, { share: s });
+    /* R3398-P3-15：未知 view → buildShareData null → 回落画近乎
+     * 空白的旧版命盘——张冠李戴还当正常出图。直接拒出 + 回音。 */
+    if (s) {
+      j = Object.assign({}, j, { share: s });
+    } else {
+      showToast('这张图的版式还没做好，换个分享入口试试', 'warn');
+      return null;
+    }
   }
   /* R230r（R29-#6）：背景图 requestIdleCallback 异步加载——点就画会拿到
    * 渐变底、过会再点拿到真图，同一输入两种产出。绘制前等它加载
