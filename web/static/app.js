@@ -19500,6 +19500,29 @@ function _renderMoodWeek() {
   try {
     html += _wlRow(todayIso());
   } catch (eWL2) {}
+  /* R3610：回看闪回行（Lunary flashback 同构）——上月同一天
+   * 写过小记/记过心情就翻出一段；没有就不吭声，不催。 */
+  try {
+    var _fb = new Date(); _fb.setMonth(_fb.getMonth() - 1);
+    var _fbIso = _fb.getFullYear() + '-' +
+      String(_fb.getMonth() + 1).padStart(2, '0') + '-' +
+      String(_fb.getDate()).padStart(2, '0');
+    var _fbJ = localStorage.getItem('journal:' + _fbIso);
+    var _fbM = localStorage.getItem('mood:' + _fbIso);
+    if ((_fbJ && String(_fbJ).trim()) ||
+        (_fbM !== null && _MOOD_META[+_fbM])) {
+      var _fbT = '🔙 上个月的今天（' + (+_fbIso.slice(5, 7)) + '/' +
+        (+_fbIso.slice(8, 10)) + '）：';
+      if (_fbJ && String(_fbJ).trim()) {
+        var _fs = String(_fbJ).trim();
+        _fbT += '你写过「' + _fs.slice(0, 26) +
+          (_fs.length > 26 ? '…' : '') + '」';
+      } else {
+        _fbT += '你记的是「' + _MOOD_META[+_fbM].t + '」';
+      }
+      html += '<p class="mw-flash">' + esc(_fbT) + '</p>';
+    }
+  } catch (eFB) {}
   html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
   body.innerHTML = html;
   /* R3526：月历格点击回看——委派一次挂上（重渲覆盖不换监听）。 */
