@@ -17793,7 +17793,10 @@ if (document.readyState === 'loading') {
          * R3594：相位分文案。 */
         var _wishV = new URLSearchParams(location.search).get('wish');
         if (_wishV) {
-          _relayBar.home = _wishV === 'n'
+          /* R3664：wish=r 回递态承接（与 toast 同口径）。 */
+          _relayBar.home = _wishV === 'r'
+            ? '朋友回递了一个愿给你：一起许过愿了，愿都灵 🌙'
+            : _wishV === 'n'
             ? '朋友趁新月喊你一起丢个愿望：写下来，月亮替你收着 🌑'
             : '朋友趁满月喊你一起丢个愿望：写下来，月亮替你收着 🌕';
         }
