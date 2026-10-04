@@ -19555,7 +19555,9 @@ function _mcParse() {
   var h = '';
   try { h = String(location.hash || ''); } catch (e) {}
   var m = h.match(/^#(mc|mcr)=([A-Za-z0-9_-]+)/);
-  if (!m) return null;
+  /* #mc=/#mcr= 前缀在而载荷对不上（字符集/截断）——是弄丢的挑战书，
+   * 不该静默回落出题卡让人误以为链是自己发的。 */
+  if (!m) return /^#mc[rs]?=/.test(h) ? { mode: 'bad' } : null;
   var p = _mcDec(m[2]).split('|');
   if (m[1] === 'mc' && p[0] === 'v1' && /^[0-4]{5}$/.test(p[2] || '')) {
     return { mode: 'guest', nick: String(p[1] || '').slice(0, 12),

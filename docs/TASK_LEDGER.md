@@ -18529,3 +18529,13 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 闸：selftest 422（含新静态断言+home.ia 14 卡位）、ui_smoke 107
   （ui:mochi 全链 E2E）、gate:on_coverage mochiBox 覆盖登记、
   contract 790、ruff/banned/voice 全绿。
+
+## R3382 新功能家族边界终扫（自审）
+- 实扫 mochi 六边界：坏字符 hash（#mc=!!!bad 原回落出题卡——受邀者
+  会误以为链是自己发的，修成「弄丢」卡）、截断 hash（已显丢链卡）、
+  窄屏 390 无横溢、深色令牌全跟（uiTheme 键）、浏览器返回键
+  （#mc→回退正确回出题卡+视图存活）、海报实测出图。
+- manifest 连念环抽验 streak=3 正确；soulmate 链由
+  ui:taohua.soulmate 闸常驻覆盖。
+- 白名单口径核对：mochi: 键入备份/导出/跨账号清扫三链（_DATA_RE
+  共享），答案载荷只走 hash 不进服务器。
