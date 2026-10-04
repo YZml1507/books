@@ -21371,7 +21371,10 @@ function _checkinCelebrate(streak, opt) {
       }
       _wqJ = { _wqLine: (localStorage.getItem('wq:' + _mon0)
         ? '小功课已盖戳：' : '本周小功课：') + _q0,
-        _wqXp: _wqN0 * 10 };
+        _wqXp: _wqN0 * 10,
+        /* R3581：攒的好运上晒图——功能广告跟海报走（受邀者
+         * 看到 TA 攒的数也想攒自己的）。 */
+        _hugN: parseInt(localStorage.getItem('hugin') || '0', 10) || 0 };
     } catch (eWQsh) {}
     var p = downloadPoster(Object.assign(
       { streak: streak, pick: opt }, _wqJ), 'checkin');

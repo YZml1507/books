@@ -392,8 +392,9 @@ function _paintSharePoster(s, W, H) {
                    /* R3494：namecard 六件行+口径行=7 行——默认 cap4
                     * 会切掉纹样/角色/口径三行，提帽 7。 */
                    namecard: 7,
-                   /* R3540：加称号/旺运行后满 6 行——提帽 6。 */
-                   checkin: 6,
+                   /* R3540/81：加称号/旺运/好运行后至多 7 行——提帽 7
+                    *（超帽先摘口号行保底数据行，见 R3581 尾）。 */
+                   checkin: 7,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1525,6 +1526,11 @@ function buildShareData(view, j) {
         _ck.lines.push({ k: '功课缘力', v: '累计 ' +
           Number(j._wqXp) + ' 点' });
       }
+      /* R3581：攒的好运行（与名片/记忆卡同口径）。 */
+      if (Number(j && j._hugN) > 0) {
+        _ck.lines.push({ k: '攒的好运', v: '收到 ' +
+          Number(j._hugN) + ' 个' });
+      }
       /* R3521：里程碑称号上墙——max(当前streak,已贺档) 取牌子，
        * 与卡内 meta 同口径（攒过的档断了也算）。 */
       try {
@@ -1552,6 +1558,13 @@ function buildShareData(view, j) {
           _dayPick(_WL_I, 'wli|' + _wlMon) + '·' +
           _dayPick(_WL_F, 'wlf|' + _wlMon), 20) });
       } catch (eWLP) {}
+      /* R3581：行多先摘口号——数据行（功课/缘力/好运/称号/旺运）
+       * 比「小满碎碎念」值钱，超帽时口号让位而不是切尾行。 */
+      if (_ck.lines.length > 7) {
+        _ck.lines = _ck.lines.filter(function (r) {
+          return r.k !== '小满碎碎念';
+        });
+      }
       /* R3252：签面插画上海报——app.js 预载的奶油熊签面图直绘成
        * 卡座（与塔罗牌面同管线），抽到的那张签晒出去是「图」不是
        * 「字」。有插画卡时「今日签面」行与卡名重复，摘掉。 */
