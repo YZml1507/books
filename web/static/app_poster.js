@@ -1111,8 +1111,13 @@ function _posterHookForView(view, j) {
     if (j && j._mcb) return '你来了能排第几？';
     return '敢不敢测你们有多懂对方';
   }
-  /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
-  if (view === 'qian') return '今天你的签是什么？';
+  /* R3388：每日一签——签是求来的，「你也来求一支」是钩。
+   * R3653：捣蛋签窗内点名——「万圣捣蛋签」是话题件。 */
+  if (view === 'qian') {
+    var _qt = (j && j._qian && j._qian.topic) || '';
+    if (_qt === '万圣捣蛋签') return '我抽了支万圣捣蛋签，你的呢？';
+    return '今天你的签是什么？';
+  }
   if (view === 'ansb') return '心里有个问题？来翻一页';
   /* R3417：还愿/跨年启封——一个是正反馈钩，一个是仪式感钩。 */
   if (view === 'wishecho') {
@@ -2318,6 +2323,8 @@ function buildShareData(view, j) {
        * lines——签是「求来的答案」，晒语境足。 */
       var _qn = (j && j._qian) || {};
       var _qs = base('每日一签', _cnDateSub(_pStr(j && j.date)));
+      /* R3654：捣蛋签海报右上🎃徽——晒出去一眼话题件。 */
+      if (_pStr(_qn.topic) === '万圣捣蛋签') _qs.badge = '🎃';
       _qs.big = '第' + (_pStr(_qn.n) || '?') + '签 · ' +
                 (_pStr(_qn.luck) || '');
       var _qpoem = _pArr(_qn.poem);
