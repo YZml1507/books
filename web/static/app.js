@@ -8539,6 +8539,9 @@ var _SHARE_TEXT = {
   /* R3319-P2：开运壁纸分享不再落通用兜底。 */
   'daily-wap': '今日开运壁纸换好了，接住这份运气 →',
   'daily-ava': '今日开运头像换上了，接住这份运气 →',
+  /* R3399：心情周记/年报分享文案（此前走通用兜底）。 */
+  moodweek: '我这七天的心情罐子长这样，你的呢 →',
+  'year-wrap': '我在小满这儿攒了一整年，看看你的 →',
   'daily-outfit': '今天的五行穿搭色抄作业，看看你的是什么 →',
   /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
@@ -15280,7 +15283,10 @@ function init() {
                      'bazi-yearly': 'bazi',
                      /* R3318（审-P1-1）：开运壁纸分享链 ?view=daily-wap
                       * 死链——壁纸入口在首页日卡，归一到 home。 */
-                     'daily-wap': 'home' };
+                     'daily-wap': 'home',
+                     /* R3399：年报海报分享链 ?view=year-wrap 死链——
+                      * 年报钮住在打卡卡（首页），归一到 home。 */
+                     'year-wrap': 'home' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
@@ -15953,6 +15959,9 @@ if (document.readyState === 'loading') {
           mochi: '朋友给你下了默契战书：答 5 题看你们多合拍 🤝',
           qian: '朋友抽了支签给你看：你的今日签也抽一支 🎋',
           ansb: '朋友从答案之书翻了一页：你的问题也翻一页 📖',
+          /* R3399：心情周记/年报是真实可晒件——补上承接。 */
+          moodweek: '朋友在晒她的心情周记：你的七天也攒一份 🫙',
+          'year-wrap': '朋友出炉了她的年度小满年报：你的也翻一翻 🗓️',
         };
         if (_sv === 'dream') {
           var _symT = (window.__shareSym ||
@@ -16036,6 +16045,9 @@ if (document.readyState === 'loading') {
         mochi: '朋友给你下了默契战书：答上面 5 题，看你们多合拍 🤝',
         qian: '朋友抽了支签给你看：点「摇一支今日签」抽你的 🎋',
         ansb: '朋友从答案之书翻了一页：默念问题，点「翻一页」 📖',
+        /* R3399：心情周记/年报补承接。 */
+        moodweek: '朋友在晒她的心情周记——攒满七天你也有一份 🫙',
+        'year-wrap': '朋友出炉了年度小满年报：打卡攒天数，年底你也有一张 🗓️',
       };
       if (_sv2 === 'dream') {
         var _symW = (window.__shareSym ||
@@ -23005,8 +23017,15 @@ function _ansbCardHtml(i, q) {
         '📸 晒这一页</button>' +
     '</div></div>' + _ansbHistHtml();
 }
+/* R3400-P1：高成本决定不给「去吧」——离婚/辞职/借钱/手术这类
+ * 问题翻出行动派句子等于替用户背书（与 chat/feSensitive 同红线）。
+ * 语料前 18 条是行动派（去吧/开口吧/赌一把），后面是稳/缓派——
+ * 重话题只在稳派区间翻页。 */
+var _ANSB_BIGQ = /离婚|辞职|分手|复合|表白|借钱|贷款|投资|买房|卖房|整容|手术|堕胎|休学|退学|远嫁|闪婚|报警|起诉|断绝|私奔|退学/;
 function _ansbFlip(q) {
-  var i = Math.floor(Math.random() * _ANSB.length);
+  var _hi = 0, _lo = _ANSB.length;
+  if (q && _ANSB_BIGQ.test(q)) _hi = 18;
+  var i = _hi + Math.floor(Math.random() * (_lo - _hi));
   try {
     var h = _ansbHist();
     h.unshift({ d: todayIso().slice(5), q: (q || '').slice(0, 12),
