@@ -5731,6 +5731,19 @@ def daily(date_str: str | None = None,
                 datetime(_nd.year, _nd.month, _nd.day, 12))
             _personal["tomorrow_energy"] = _energy_for(
                 _nd.isoformat(), _dg2, _dzz2)
+            # R3626：本周能量曲线——同算式滚未来 6 天（今+明后 7 点），
+            # 前端画迷你走向条；同一次 POST 出，零新请求。Timing
+            # energy-curve 品类同构（我们单维，守诚实口径不拆假维度）。
+            _wk = []
+            _d0 = date.fromisoformat(date_str)
+            for _i in range(7):
+                _dd = _d0 + timedelta(days=_i)
+                _wg, _wz = huangli_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _wk.append({"d": _dd.isoformat(),
+                            "s": _energy_for(
+                                _dd.isoformat(), _wg, _wz)["score"]})
+            _personal["week_energy"] = _wk
             # R3314（R3311-高2）：流年最小确定性卡——
             # ① 年度签：流年干支 + 五行基调（干支元素直读）；
             # ② 犯太岁：流年支 × 用户年支 值/冲/刑/害/破（传统五档）；

@@ -747,6 +747,16 @@ html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#
   border-radius:999px; font-weight:600; font-size:12.5px;
   background:rgba(196,142,42,.14); color:#9a6f1e;}
 html[data-theme="dark"] .daily-energy{background:rgba(228,180,96,.16); color:#e0bb6e;}
+/* R3626：本周能量迷你走向条——7 列柱+峰值标，今天描边。 */
+.e-week{display:flex; align-items:flex-end; gap:5px; margin:8px 0 2px;}
+.e-col{display:flex; flex-direction:column; align-items:center; gap:2px;}
+.e-bar{width:9px; border-radius:3px; background:rgba(196,142,42,.42);}
+.e-today .e-bar{background:#c48e2a; outline:1px solid rgba(196,142,42,.7);}
+.e-lbl{font-size:10px; line-height:1; color:var(--muted);}
+.e-week-note{font-size:11.5px; margin-left:6px; padding-bottom:2px;
+  color:var(--muted);}
+html[data-theme="dark"] .e-bar{background:rgba(228,180,96,.35);}
+html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R3248b：个人判词独立块——多行自然换行，不再被胶囊行裁切。 */

@@ -6223,6 +6223,32 @@ async function loadDaily() {
           ' <span style="font-size:12px;opacity:.75;">' +
           '明天再来看看～</span>');
       }
+      /* R3626：本周能量曲线——7 天迷你走向条，今天描边、
+       * 峰值日标「峰」。Timing 能量曲线品类同构（单维诚实版）。 */
+      var _wk = j.personal.week_energy;
+      if (Array.isArray(_wk) && _wk.length === 7) {
+        var _peakI = 0;
+        _wk.forEach(function (w, i) {
+          if (w.s > _wk[_peakI].s) _peakI = i;
+        });
+        var _wd = ['日', '一', '二', '三', '四', '五', '六'];
+        var _bars = _wk.map(function (w, i) {
+          var _dt = new Date(w.d + 'T00:00:00');
+          var _isToday = (w.d === todayIso());
+          var _h = Math.max(10, Math.round((w.s - 40) * 0.45));
+          var _lbl = i === 0 ? '今' : _wd[_dt.getDay()];
+          return '<div class="e-col' + (_isToday ? ' e-today' : '') + '">' +
+            '<div class="e-bar" style="height:' + _h + 'px"' +
+            ' title="' + _lbl + ' ' + esc(w.s) + ' 分"></div>' +
+            '<div class="e-lbl">' + (i === _peakI ? '峰' : _lbl) + '</div>' +
+            '</div>';
+        }).join('');
+        _pc2.push('<div class="e-week" role="img" aria-label="本周能量走向">' +
+          _bars +
+          '<span class="e-week-note">' +
+          _wd[new Date(_wk[_peakI].d + 'T00:00:00').getDay()] +
+          '是你这周电最足的一天</span></div>');
+      }
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
           esc(_mine.tone || 'flat') + '">' +
