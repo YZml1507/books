@@ -5608,6 +5608,14 @@ async function loadDaily() {
     ]);
     if (_gen !== DAILY_GEN) return;   /* 旧请求不得覆盖新结果 */
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
+    /* R3634：今日能量分落本机 es:<date>——小规律第八维
+     * 「能量分高低×心情」要回看历史分，只能从当天落键攒起。
+     * 服务端可重算的派生数据，脏了重写不心疼。 */
+    try {
+      var _esv = j.personal && j.personal.energy &&
+                 j.personal.energy.score;
+      if (_esv) localStorage.setItem('es:' + _today, String(_esv));
+    } catch (eES) {}
     /* R3264（R29）：今日护身符按钮可用 */
     var _slk = el('shareLucky');
     if (_slk) _slk.disabled = false;
@@ -16319,7 +16327,7 @@ function init() {
        * R3328（审-中）：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD
        * 两条 GC 路径都永不回收——按 YYYY-MM 尾段比。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:|muyu:|wq:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:|muyu:|wq:|es:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -20475,6 +20483,33 @@ function _ckPatternFind(todayKey) {
         }
       });
     } catch (eJK) {}
+    /* 能量分×心情（R3634）：es:<date> 落键的每日个人分——
+     * 高分日（≥70）vs 低分日（≤55）各 ≥3 天才敢说「能量分
+     * 高的日子你的心情常常更亮/玄学对照参考」。 */
+    try {
+      var _eHi = [], _eLo = [];
+      _recs.forEach(function (r) {
+        var _es = NaN;
+        try {
+          _es = parseInt(localStorage.getItem('es:' + r.d) || '', 10);
+        } catch (eEs) {}
+        if (isNaN(_es)) return;
+        if (_es >= 70) _eHi.push(r);
+        else if (_es <= 55) _eLo.push(r);
+      });
+      if (_eHi.length >= 3 && _eLo.length >= 3) {
+        var _ehm = 0, _elm = 0;
+        _eHi.forEach(function (r) { _ehm += r.v; });
+        _eLo.forEach(function (r) { _elm += r.v; });
+        _ehm /= _eHi.length; _elm /= _eLo.length;
+        var _efl = _ehm - _elm;
+        if (Math.abs(_efl) >= 0.6) {
+          _cands.push({ lift: Math.abs(_efl), n: _eHi.length,
+            txt: '能量分高的日子，你的心情好像常常' +
+                 (_efl > 0 ? '更亮一点' : '偏沉一点') });
+        }
+      }
+    } catch (eEF) {}
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
@@ -21887,6 +21922,8 @@ function renderCheckin(dateKey) {
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
              'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:',
+             /* R3634：es:<date> 能量分落键——同族 150 天 GC。 */
+             'es:',
              /* R3396-P2-1：'ansb:' 无日期后缀键，从族表清出（死项）。
               * R3404-P3：'shred:' 也是日期后缀键（shred:<date>
               * 当日碎件数）——只进了启动 _gkf 没进本表，打卡路径
@@ -25649,7 +25686,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -26368,7 +26405,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26718,6 +26755,8 @@ function baziPersonaCard(j) {
                 k.indexOf('anniv:seen:') === 0 ||
                 /* R3618：目标日名/日两键同收（足迹件）。 */
                 k.indexOf('dday:') === 0 ||
+                /* R3634：es: 能量分落键同收（足迹件）。 */
+                k.indexOf('es:') === 0 ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
