@@ -4694,6 +4694,18 @@ def _run_inner() -> list[str]:
     assert _lz_n >= 16 and _appsrc2.count(", t2:") >= 16, \
         "聊斋当值签语料不足 16 位或缺海报短判 t2"
     ok.append("frontend.liaozhai")
+    # R3448+R3449 审修批：记忆卡忘掉链（墓碑/内存档/上行残留）、
+    # 限定旗快照消费、危机静音、锚日挂旗、双窗现身、n1 覆盖位——
+    # 缺一即忘掉假承诺/限定条串台/chip 死链/表单被改写。
+    assert "memwipe:" in _appsrc2 and "__meSessionMap" in _appsrc2 and \
+        "_mwts" in _appsrc2 and "_mwSkipped" in _appsrc2, \
+        "记忆卡族墓碑链：memwipe/__meSessionMap/_mwts/_mwSkipped 缺一"
+    assert "_isHFest" in _appsrc2 and "_festMuted" in _appsrc2 and \
+        "_optN1" in _appsrc2 and "_trFestCn" in _appsrc2, \
+        "限定旗/危机静音/n1 覆盖位：_isHFest/_festMuted/_optN1/_trFestCn 缺一"
+    assert "_manifestStreak" in _appsrc2, \
+        "记忆行连念恒假：_manifestStreak 未接入"
+    ok.append("frontend.r3448_49")
     # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
     # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
     _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),

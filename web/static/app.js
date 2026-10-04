@@ -582,7 +582,9 @@ function buildHehunResult(j) {
     } else if (_msN < 45) {
       /* R3087（specs/010）：低分此前裸数零解读——判词层说偏不合适
        * 时卡面也不能装看不见。与 warm 判词档同口径。 */
-      html += '<p class="hh-tier hh-tier-low">⚖️ 判词偏硬，这组判定不客气，下面把成本摆出来</p>';
+      /* R3448（审-P2）：「判定不客气」「把成本摆出来」工具腔/交易
+       * 腔——谈婚配低分对齐下一档口吻。 */
+      html += '<p class="hh-tier hh-tier-low">⚖️ 这组不算省心，下面直说磨在哪</p>';
     } else if (_msN < 60) {
       html += '<p class="hh-tier hh-tier-mid">🌗 磕绊偏多，要花力气磨合，下面直说磨在哪</p>';
     }
@@ -2843,26 +2845,28 @@ function chatEmptyGuide() {
  * 蒲松龄笔下十六位，按日定值（同一晚全场同签，正是「当值」
  * 的仪式感），判词只走提点口径：不许诺、不指令、不吓人。 */
 var _LIAO_POOL = [
-  { c: '狐仙·婴宁', t: '她笑了一整部书——你笑一下，今晚的事就小一圈', t2: '笑一下，事就小了' },
+  { c: '狐仙·婴宁', t: '她笑了一整部书——笑起来，事就没那么大', t2: '笑起来事就小了' },
   { c: '聂小倩', t: '熬过最难的那段夜路，天亮的人都记得自己', t2: '熬过夜路就亮' },
   { c: '画皮', t: '好看的皮相留不住心，真心也不用皮相撑', t2: '真心不靠皮相' },
   { c: '花妖·葛巾', t: '花开不必一次全开，你这朵按自己的节气来', t2: '花开按你节气' },
   { c: '崂山道士', t: '穿墙的本事学不会，绕着墙走也算本事', t2: '绕墙也算本事' },
-  { c: '促织', t: '小东西也有大动静——你憋着的那件小事，值得说出来', t2: '小事也值得说' },
-  { c: '小谢', t: '没说完的话托梦也要送到——心里那句，今晚就讲', t2: '心里那句今晚讲' },
+  { c: '促织·蛐蛐', t: '小东西也有大动静——你憋着的那件小事，值得说出来', t2: '小事也值得说' },
+  { c: '小谢', t: '没说完的话托梦也想送到——心里那句，会等到能说的那天', t2: '等到能说的那天' },
   { c: '秋容', t: '等人这件事，等的其实是肯为你留灯的那个', t2: '等的是留灯的人' },
   { c: '连城', t: '信得过的人不用多，一个就够挡一城的雨', t2: '一人能挡一城雨' },
   { c: '辛十四娘', t: '心肠软的狐狸才有仙骨——你的心软不是缺点', t2: '心软是仙骨' },
   { c: '阿绣', t: '世上没有两朵一样的花，你也不用像谁', t2: '你不用像谁' },
-  { c: '封三娘', t: '姐妹的缘分比姻缘长——想起谁，今晚就戳戳TA', t2: '想谁就戳戳TA' },
+  { c: '封三娘', t: '姐妹的缘分比姻缘长——想起谁，就是缘分在敲门', t2: '缘分在敲门' },
   { c: '青凤', t: '规矩再多拦不住真心——真的喜欢，别怕承认', t2: '真心不怕认' },
-  { c: '宦娘', t: '琴声最懂人心——听首慢歌，答案在里面', t2: '慢歌里有答案' },
+  { c: '宦娘', t: '琴声最懂人心——心里那首慢歌，放着放着就有答案', t2: '慢歌放着有答案' },
   { c: '翩翩', t: '黄叶剪的衣也暖，凑合的日子也能过出味道', t2: '凑合也出味道' },
-  { c: '娇娜', t: '好大夫先医心——今晚早点睡，就是给自己看病', t2: '早睡给自己看病' }
+  { c: '娇娜', t: '好大夫先医心——睡饱一觉，心事小一号', t2: '睡饱心事小一号' }
 ];
-var _liaoPick = function () {
-  var _h = 0, _ds = '';
-  try { _ds = todayIso(); } catch (eD0) {}
+/* R3449（审-P2）：可选锚日——限定抽按放行窗的日取签（本地窗
+ * 锚 todayIso，CST 窗放行的错位抽锚 CST 日）。 */
+var _liaoPick = function (_ds0) {
+  var _h = 0, _ds = _ds0 || '';
+  try { if (!_ds) _ds = todayIso(); } catch (eD0) {}
   for (var _i0 = 0; _i0 < _ds.length; _i0++) {
     _h = ((_h * 31) + _ds.charCodeAt(_i0)) >>> 0;
   }
@@ -2887,17 +2891,22 @@ function _chatMemoryLine() {
     try { _qh = JSON.parse(localStorage.getItem('qian:hist') || '[]'); }
     catch (eQ) {}
     if (_qh && _qh[0] && _qh[0].n) {
-      return '上次求到「' + String(_qh[0].n) + '」，那件事有下文了吗？';
+      /* R3448（审-P2）：站内通行称呼是「第 N 签」——裸序号像内部
+       * 编号上屏；桃花签（lv:1）也要标。 */
+      return '上次求到「' + (_qh[0].lv ? '桃花签' : '') +
+        '第' + String(_qh[0].n) + '签」……那件事有下文了吗？';
     }
+    /* R3448（审-P1）：原计数从今天起算且 _ms>=2 才显示——能渲染
+     * 必然已含今天，「今天那遍还没念哦」恒为假。改现成
+     * _manifestStreak（今天没念才从昨天回数），今天念没念分说。 */
     var _ms = 0;
-    var _dd2 = new Date();
-    for (var _i = 0; _i < 60; _i++) {
-      if (localStorage.getItem('manifest:' + _iso(_dd2)) === '1') {
-        _ms++; _dd2.setDate(_dd2.getDate() - 1);
-      } else break;
-    }
+    try { _ms = _manifestStreak(); } catch (eMS) {}
     if (_ms >= 2) {
-      return '咒语连着念了 ' + _ms + ' 天——今天那遍还没念哦。';
+      var _mdn = false;
+      try { _mdn = _manifestDone(todayIso()); } catch (eMD) {}
+      return _mdn
+        ? '咒语连着念了 ' + _ms + ' 天啦。'
+        : '咒语连着念了 ' + _ms + ' 天——今天那遍还没念哦。';
     }
     var _mt = +(localStorage.getItem('muyu:total') || 0);
     if (_mt >= 20) {
@@ -9591,8 +9600,17 @@ function _trSpreadSync() {
 var _TR_GEN = 0;   /* R2502：塔罗在途代际（同 _LY_GEN）——trSubmit 的
                     * guardedCall 锁护不住 data-retry 与 trPickGo 第二入口 */
 /* R2350k：cards 给了走「自己抽」——选定下标成牌；不给照旧。 */
-async function doTarot(cards) {
+async function doTarot(cards, _opt) {
   var _gen = ++_TR_GEN;
+  /* R3449（审-P1）：限定旗随抽发起即快照+清旗——原实现在成功
+   * 路径才消费（9668），失败 catch 与代际丢弃都不清，下一抽普通
+   * 卡冒限定条/当值签进海报。 */
+  var _isHFest = window.__trHFest, _isXFest = !!window.__trXFest;
+  window.__trHFest = false;
+  window.__trXFest = false;
+  /* R3449（审-P2）：n1=单张覆盖位——限定抽不改写用户表单，
+   * 抽单张只影响本次 body。 */
+  var _optN1 = !!(_opt && _opt.n1);
   /* R3322-P1：抽牌等 manifest——「抽三张」首跳此前牌面全 emoji
    * （manifest 未拉）。有界 1.5s，弱网不等死。 */
   await Promise.race([
@@ -9635,11 +9653,11 @@ async function doTarot(cards) {
     seed = num('tr_seed');
     _trNoteDay = '';
   }
-  const n = num('tr_n');
+  const n = _optN1 ? 1 : num('tr_n');
   const body = { n: n == null ? 3 : Math.min(Math.max(n, 1), 10) };
   /* R2350k：自点牌背——n 以点选张数为准，跳过张数钳位提示。 */
   var _picked = (cards && cards.length) ? cards.slice(0, 10) : null;
-  var _sp = _trSpread();
+  var _sp = _optN1 ? '' : _trSpread();
   if (_sp) {
     body.spread = _sp;
     body.n = _TR_SPREAD_N[_sp] || body.n;   /* 牌阵定张数 */
@@ -9663,20 +9681,24 @@ async function doTarot(cards) {
     paint('trResult', buildTarotResult(j));
     /* R3447：上一抽的当值签随本抽清场——非限定路径不留残渣。 */
     window.__trLiao = null;
+    /* R3449（审-P1）：危机/敏感问句下节日条不压顶——「我不想活了」
+     * 的转介行上头插🎃🦊是口吻事故；当值行也别进海报。 */
+    var _festMuted = !!(q && (feCrisis(q) || feSensitive(q)));
     /* R3368：万圣夜限定抽的结果头顶插限定条（只认 trQH 路径，
      * 窗口期外入口本就藏着的）。 */
-    if (window.__trHFest) {
-      window.__trHFest = false;
+    if (_isHFest && !_festMuted) {
       var _hf = document.createElement('div');
       _hf.className = 'tr-hfest-strip';
-      _hf.textContent = '🎃 万圣夜限定 · 今晚问的，小满都替你保密';
+      _hf.textContent = '🎃 万圣夜限定 · 小满替你捂着，不示人不贴榜';
       var _box0 = el('trResult');
       if (_box0) _box0.insertBefore(_hf, _box0.firstChild);
       /* R3447：聊斋当值签——限定抽附「今夜当值」一签随结果走，
        * 判词挂 window 旗（j 是响应体不能私挂键——契约闸），
        * 海报读同一旗。 */
       try {
-        var _lz = _liaoPick();
+        /* R3449（审-P2）：锚放行窗的日——旗上带的 iso 是 CST
+         * 窗日就用它，本地窗放行为空串默认 todayIso。 */
+        var _lz = _liaoPick(_isHFest || '');
         window.__trLiao = _lz;
         var _lzEl = document.createElement('div');
         _lzEl.className = 'tr-liao-strip';
@@ -9686,8 +9708,7 @@ async function doTarot(cards) {
     }
     /* R3435：圣诞心愿限定条——同 hfest 插顶口径，窗口外入口本
      * 就藏着。 */
-    if (window.__trXFest) {
-      window.__trXFest = false;
+    if (_isXFest && !_festMuted) {
       var _xf = document.createElement('div');
       _xf.className = 'tr-xfest-strip';
       _xf.textContent = '🎄 圣诞心愿限定 · 愿望已经翻给你看了';
@@ -13647,14 +13668,22 @@ function initDivination() {
   var _trFestCn = function () {
     var _nc = new Date(Date.now() + 8 * 3600e3 +
       new Date().getTimezoneOffset() * 60e3);
-    return { m: _nc.getMonth() + 1, d: _nc.getDate() };
+    /* R3449（审-P2）：当值签按「放行窗」锚日——CST 窗放行的错位
+     * 抽要锚 CST 日，不然 11/2 本地抽出的是 11/2 的签不是窗日签。 */
+    var _iso = _nc.getFullYear() + '-' +
+      String(_nc.getMonth() + 1).padStart(2, '0') + '-' +
+      String(_nc.getDate()).padStart(2, '0');
+    return { m: _nc.getMonth() + 1, d: _nc.getDate(), iso: _iso };
   };
   var _trHFestCn = function () {
     var _c = _trFestCn();
     return (_c.m === 10 && _c.d >= 29) || (_c.m === 11 && _c.d <= 1);
   };
   var _trHBtn = el('trQH');
-  if (_trHBtn && _trHFest()) _trHBtn.hidden = false;
+  /* R3449（审-P1）：钮的现身与点击复判同口径——本地或 CST 任一
+   * 在窗就现身。只查本地日时海外错位区（CST 还在 11/1、本地已
+   * 11/2）服务端发的万圣 chip 落地只滚不现身=死链。 */
+  if (_trHBtn && (_trHFest() || _trHFestCn())) _trHBtn.hidden = false;
   on('trQH', function () {
     /* R3370-P2-4：点击时复判窗口——跨零点页面仍可点但结果
      * 不再冒限定名。 */
@@ -13662,16 +13691,17 @@ function initDivination() {
       if (_trHBtn) _trHBtn.hidden = true;
       return;
     }
-    var s = el('tr_spread'), n = el('tr_n');
-    if (s) s.value = '';
-    if (n) n.value = '1';
-    _trSpreadSync();
+    /* R3449（审-P2）：不再改写用户的牌阵/张数表单——限定抽走
+     * doTarot 的 n1 覆盖位，表单原配置不动。 */
     var _qi = el('tr_question');
     if (_qi && !(_qi.value || '').trim()) {
       _qi.value = '那件我一直不敢问的事';
     }
-    window.__trHFest = true;
-    return doTarot();
+    /* R3449（审-P2）：锚日挂旗——放行窗是哪个就锚哪天的签
+     * （doTarot 顶层够不着 _trHFest 局部函数，走旗值传递）。
+     * 旗恒为真值 iso 串，渲染端直接拿它做 _liaoPick 的锚。 */
+    window.__trHFest = _trHFest() ? todayIso() : _trFestCn().iso;
+    return doTarot(null, { n1: 1 });
   });
   /* R3435：圣诞心愿限定入口——12.20–12.25 窗口内显示；预填心愿
    * 问句抽一张，结果卡带圣诞限定条。窗口判定同 trQH 的复判口径。 */
@@ -13685,28 +13715,25 @@ function initDivination() {
     return _c.m === 12 && _c.d >= 20 && _c.d <= 25;
   };
   var _trXBtn = el('trQX');
-  if (_trXBtn && _trXFest()) _trXBtn.hidden = false;
+  if (_trXBtn && (_trXFest() || _trXFestCn())) _trXBtn.hidden = false;
   /* R3435：跨零点进出窗口重判——页面过夜到 12/20 钮要现身、
-   * 到 12/26 要收起来（init 快照不动）。 */
+   * 到 12/26 要收起来（init 快照不动）。
+   * R3449（审-P1）：现身与点击复判同口径=本地或 CST 任一在窗。 */
   window.__festDayFlip = function () {
-    if (_trHBtn) _trHBtn.hidden = !_trHFest();
-    if (_trXBtn) _trXBtn.hidden = !_trXFest();
+    if (_trHBtn) _trHBtn.hidden = !(_trHFest() || _trHFestCn());
+    if (_trXBtn) _trXBtn.hidden = !(_trXFest() || _trXFestCn());
   };
   on('trQX', function () {
     if (!_trXFest() && !_trXFestCn()) {
       if (_trXBtn) _trXBtn.hidden = true;
       return;
     }
-    var sx = el('tr_spread'), nx = el('tr_n');
-    if (sx) sx.value = '';
-    if (nx) nx.value = '1';
-    _trSpreadSync();
     var _qx = el('tr_question');
     if (_qx && !(_qx.value || '').trim()) {
       _qx.value = '我心里默念的圣诞心愿';
     }
     window.__trXFest = true;
-    return doTarot();
+    return doTarot(null, { n1: 1 });
   });
   /* R3325：大众占卜 pick-a-pile——事业/感情/财运三主题，各 3 堆，
    * seed=日期+主题+堆位（同日同堆同牌，可晒同款）；一堆一天定，
@@ -16711,7 +16738,8 @@ var _SM_ARCH = {
 };
 var _SM_PEACH = { k: 'sm-peach', n: '桃花心动型',
                   traits: ['第一眼就记住', '有故事感', '气场很合'],
-                  tip: '这段缘的信号很强，别错过窗口' };
+                  /* R3448（审-P2）：「别错过窗口」是 FOMO 轻压。 */
+                  tip: '这段缘的信号很强，顺着走就好' };
 
 function _smPick(j) {
   /* 命中咸池≥2 柱 或 桃花正旺 → 浪漫版；否则按日主五行定型。 */
@@ -21190,6 +21218,27 @@ function _renderMochi() {
       return;
     }
     if (act === 'tpl') {
+      /* R3448（审-P2）：好奇点一下模板，已写 3 题整体被盖无提示
+       * ——任一字段非空先两段式确认。 */
+      var _anyFill = false;
+      for (var _ti0 = 0; _ti0 < 5 && !_anyFill; _ti0++) {
+        var _qe0 = el('mochiE' + _ti0);
+        if (!_qe0) continue;
+        _qe0.querySelectorAll('.mc-eq-t,.mc-eo-t').forEach(function (fld) {
+          if ((fld.value || '').trim()) _anyFill = true;
+        });
+      }
+      if (_anyFill && b.dataset.armed !== '1') {
+        b.dataset.armed = '1';
+        var _otpl = b.textContent;
+        b.textContent = '会盖掉现在写的——再点，真照';
+        setTimeout(function () {
+          b.dataset.armed = '';
+          b.textContent = _otpl;
+        }, 3000);
+        return;
+      }
+      b.dataset.armed = '';
       /* R3445：照着改——把所选套卷的题干/选项填进编辑器，
        * 勾选答案不代填（答案必须是用户自己的）。 */
       var _tp = _mcQS(b.dataset.pk || 'bestie') || [];
@@ -22295,7 +22344,10 @@ function baziPersonaCard(j) {
         try {
           for (var i = 0; i < sessionStorage.length; i++) {
             var sk = sessionStorage.key(i);
-            if (sk && sk.indexOf('chatTranscript') === 0) s++;
+            /* R3448（审-P2）：chatTranscript:lastsid 是会话锚指针
+             * 不是一段对话——计数排除。 */
+            if (sk && sk.indexOf('chatTranscript') === 0 &&
+                sk !== 'chatTranscript:lastsid') s++;
           }
         } catch (eSS) {}
         try {
@@ -22367,13 +22419,29 @@ function baziPersonaCard(j) {
       }
       if (ms >= 3) return '咒语你已经连着念了 ' + ms + ' 天。';
       var mt = +(localStorage.getItem('muyu:total') || 0);
-      if (mt >= 20) return '木鱼你敲了 ' + mt + ' 下，心越来越静啦。';
+      /* R3448（审-P2）：「心越来越静」是替用户下内在判断——改回
+       * 只摆事实不评判口径。 */
+      if (mt >= 20) return '木鱼敲了 ' + mt + ' 下啦，静静心的事你一直在做。';
     } catch (eN) {}
     return '';
   }
   function _xmMemRender() {
     var _memBx = document.getElementById('memBody');
     if (!_memBx) return;
+    /* R3448（审-P1）：「都存在这台设备上」对开了账号备份的用户
+     * 不成立（这些键都在备份白名单里云端有份）——登录态换口径。 */
+    try {
+      var _sub = _memBx.parentNode
+        ? _memBx.parentNode.querySelector('.acct-sub') : null;
+      if (_sub) {
+        var _lg = false;
+        try { _lg = !!JSON.parse(localStorage.getItem('xmaccount') || 'null'); }
+        catch (eLG) {}
+        _sub.textContent = _lg
+          ? '本机这份随时能让她忘掉；云端那份下次同步会跟着覆盖'
+          : '都存在这台设备上，随时可以让她忘掉';
+      }
+    } catch (eSub) {}
     var html = '', any = false;
     _MEM_GROUPS.forEach(function (g) {
       var s = '';
@@ -22389,8 +22457,9 @@ function baziPersonaCard(j) {
         '</div>';
     });
     if (!any) {
+      /* R3448（审-P2）：「用两天」歧读——本意是用（app）两天。 */
       html = '<div class="mem-empty">她还没攒下关于你的事——' +
-        '去逛逛，用两天再来看看。</div>';
+        '去逛逛，攒两天心事再来看看。</div>';
     } else {
       /* R3446 记忆二层：清单之上给一句「她注意到的规律」——
        * 不是数据陈列，是陪伴感的来源（调研：astrological memory
@@ -22407,7 +22476,9 @@ function baziPersonaCard(j) {
       btn.addEventListener('click', function () {
         if (btn.dataset.armed !== '1') {
           btn.dataset.armed = '1';
-          btn.textContent = '再点确认';
+          /* R3448（审-P2）：两段式不点明忘掉范围——与全局 wipe
+           * 「再点一次：生辰/昵称/记录全清」口径对齐。 */
+          btn.textContent = '再点，真忘掉';
           setTimeout(function () {
             if (btn.isConnected) {
               btn.dataset.armed = ''; btn.textContent = '忘掉';
@@ -22419,11 +22490,46 @@ function baziPersonaCard(j) {
         var g = null;
         _MEM_GROUPS.forEach(function (gg) { if (gg.id === gid) g = gg; });
         if (!g) return;
+        /* R3448（审-P1）：分组忘掉与全局 wipe 同口径——世代戳+墓碑
+         * 要先落下：不然在途拉回/导入落地把刚忘掉的一族整包复活；
+         * memwipe:<gid> 族墓碑给后续导入做「早于忘掉的备份该族不收」。 */
+        try { window.__wipeEpoch = (window.__wipeEpoch || 0) + 1; }
+        catch (eWE2) {}
+        try { localStorage.setItem('wipeAt', String(Date.now())); }
+        catch (eWA) {}
+        try {
+          localStorage.setItem('memwipe:' + gid, String(Date.now()));
+        } catch (eMW) {}
         _xmKeys().forEach(function (k) {
           if (g.re.test(k)) {
             try { localStorage.removeItem(k); } catch (eRM) {}
           }
         });
+        /* R3448（审-P0）：档案族忘掉只删盘不清 __meSessionMap
+         * 内存档——_meGet 回落复活，卡片重渲又把生辰摆回来。
+         * 与 ×忘生日（19498）/全局 wipe（23281）同口径收。 */
+        if (gid === 'me' || gid === 'rel') {
+          try {
+            if (window.__meSessionMap) {
+              delete window.__meSessionMap.me;
+              delete window.__meSessionMap['me:partner'];
+            }
+          } catch (eMSM2) {}
+          /* 表单里已回填的生辰也要清——任一点击提交即复活落盘
+           * （与 23294-23310 全局 wipe 同清单）。 */
+          try {
+            ['year', 'month', 'day', 'hour', 'gender',
+             'b_year', 'b_month', 'b_day', 'b_hour', 'b_gender', 'b_nick',
+             'th_year', 'th_month', 'th_day', 'th_hour', 'th_gender',
+             'hh_a_year', 'hh_a_month', 'hh_a_day', 'hh_a_hour',
+             'hh_a_gender', 'hh_a_name',
+             'hh_b_year', 'hh_b_month', 'hh_b_day', 'hh_b_hour',
+             'hh_b_gender', 'hh_b_name'].forEach(function (_fid) {
+              var _f = document.getElementById(_fid);
+              if (_f) { try { _f.value = ''; } catch (eFV2) {} }
+            });
+          } catch (eFF) {}
+        }
         /* 聊天组的副本在 sessionStorage——同口径清掉（wipe 清单里
          * chat 族本来就双库收）。 */
         if (gid === 'chat') {
@@ -22449,8 +22555,14 @@ function baziPersonaCard(j) {
                 ['chatSessionId', 'chatClosed'].forEach(function (mk) {
                   try { _MEM_STORE.removeItem(mk); } catch (eMK) {}
                 });
+                /* R3448（审-P1）：隐私模式 transcript 落在 _m 里，
+                 * 扫描碰不到——整面清空。 */
+                try { _MEM_STORE._m = {}; } catch (eMM) {}
               }
             } catch (eMS) {}
+            /* R3448（审-P1）：CHAT_RESUME_FACT 存 transcript 末条
+             * 原话——不清，下一条聊天把「已忘掉」的话注进上行。 */
+            try { CHAT_RESUME_FACT = ''; } catch (eRF2) {}
           } catch (eSS2) {}
         }
         showToast(g.label + '忘掉啦', 'info');
@@ -23239,6 +23351,10 @@ function baziPersonaCard(j) {
                 k.indexOf('ansb:') === 0 ||
                 /* R3424：敲敲木鱼计数/天数足迹属个人数据——wipe 收。 */
                 k.indexOf('muyu:') === 0 ||
+                /* R3448（审-P1）：memwipe:<gid> 族墓碑——全清时一并
+                 * 收走，不然全 wipe 后拉回仍被墓碑拦（墓碑本机键不进
+                 * 备份白名单，天然不跟机走）。 */
+                k.indexOf('memwipe:') === 0 ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
@@ -23913,6 +24029,21 @@ function baziPersonaCard(j) {
             }
           } catch (eW1) {}
           var local = bundle.browser || {};
+          /* R3448（审-P1）：族墓碑——某族在 exported_at 之后被忘掉
+           * 过，这份旧备份里该族的键不落盘（静默复活=忘掉假承诺）。
+           * 墓比包新才拦，包比墓新照旧进（用户后来又攒了新数据）。 */
+          var _mwts = {};
+          try {
+            var _mwe = Date.parse(bundle.exported_at || '') || 0;
+            _MEM_GROUPS.forEach(function (gg) {
+              var _mt = 0;
+              try {
+                _mt = +(localStorage.getItem('memwipe:' + gg.id) || 0);
+              } catch (eMT) {}
+              if (_mt && _mwe && _mt > _mwe) _mwts[gg.id] = gg;
+            });
+          } catch (eMWL) {}
+          var _mwSkipped = 0;
           Object.keys(local).forEach(function (k) {
             /* 只收认识的键——备份文件是用户可控输入，不写任意键 */
             /* R2349t（R87-P1-1）：checkin: 值直拼 innerHTML——值域
@@ -23951,6 +24082,13 @@ function baziPersonaCard(j) {
                 typeof local[k] !== 'string' || local[k].length >= _cap) {
               return;
             }
+            /* R3448（审-P1）：族墓碑过滤——这份旧备份落在某族被
+             * 忘掉之前打的包，该族键一律不落。 */
+            var _mwHit = false;
+            for (var _wg in _mwts) {
+              if (_mwts[_wg].re.test(k)) { _mwHit = true; break; }
+            }
+            if (_mwHit) { _mwSkipped++; return; }
             /* 值域校验（脏值不落库）：
              * mood:<date>=0-3；moodlv:<date> 与 mood:lv=g/l；
              * moodjar:total/unlocked=非负整数；ritual:<date>=1；
@@ -24508,6 +24646,10 @@ function baziPersonaCard(j) {
             /* R3372-低-3：校验丢弃也点名——合法数据被规则误杀
              * 不该静默。 */
             (_dropN ? '；' + _dropN + ' 条没认出来跳过了' : '') +
+            /* R3448（审-P1）：族墓碑拦下的也点名——「忘掉」过的
+             * 族从旧备份回来却不吱声=假复活。 */
+            (_mwSkipped
+              ? '；' + _mwSkipped + ' 条是你之前忘掉过的没拉回来' : '') +
             /* R3372-低-6：聊天会话锚不跟机走——小满记得文字
              * 不记得语境，明说免误解。 */
             '；聊天上下文不跟机走，接着聊就行';
