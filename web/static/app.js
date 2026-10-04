@@ -8972,6 +8972,8 @@ var _POSTER_TITLES = {
   weekletter: '小满的上周小记',
   /* R3596：月度复盘海报弹层标题/下载文件名。 */
   monthrec: '上个月的小满',
+  /* R3603：夸夸海报弹层标题/下载文件名。 */
+  hype: '小满狠狠夸你',
   /* R3592：月相海报弹层标题/下载文件名。 */
   moon: '今晚的月亮',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -9017,6 +9019,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   weekletter: 'warm',
   /* R3596：月复盘同归暖底——月度信件的延续款。 */
   monthrec: 'warm',
+  /* R3603：夸夸我归紫云梦底——玩乐态与同族名片/角色同族。 */
+  hype: 'dream',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
   mochi: 'warm',
   /* R3388：每日一签归青瓷底——庙里签筒的竹青色。 */
@@ -9090,6 +9094,8 @@ var _SHARE_TEXT = {
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3596：月度复盘——「上个月的我」接力晒。 */
   monthrec: '上个月的小满给我记了一笔账，看看你上月的 →',
+  /* R3603：夸夸海报——「TA 的盘夸成这样」勾起来玩。 */
+  hype: '小满把我的命盘夸成这样，你的呢 →',
   /* R3592：月相海报——「今晚的月亮一人一张」接力晒。 */
   moon: '今晚的月亮晒给你，你那儿的月亮什么样 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
@@ -9110,6 +9116,8 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   moon: 'home',
   /* R3596：月复盘海报同口径归 home。 */
   monthrec: 'home',
+  /* R3603：夸夸海报归 bazi——名片是排盘派生件。 */
+  hype: 'bazi',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
   guardian: 'bazi', crystal: 'bazi', soulart: 'bazi', soulicon: 'bazi',
   soulemblem: 'bazi',
@@ -18598,6 +18606,19 @@ function _ncCard(j) {
            (_ncHugO > 0 ? '递 ' + _ncHugO + ' 次' : '') });
     }
   } catch (eNC) {}
+  /* R3603：夸夸版行集——同一份 picks 换「夸」句式，供
+   * 「🎤 夸夸我」海报用（Roast/Hype 玩乐态，句句有据）。 */
+  var _hype = [
+    { k: '开场', v: '盘一摊开，五行没有一行是来凑数的' },
+    { k: '旺方', v: _fd.d.dir + '旺你——往那边去，路都给你让道' },
+    { k: '图腾', v: _gd.b.name + '守你——别人拜锦鲤，你自带灵兽' },
+  ];
+  if (_top) {
+    _hype.push({ k: '色谱',
+      v: _top.wx + '行最浓 ' + _pcts[_topI] + '%——藏都藏不住' });
+  }
+  _hype.push({ k: '角色',
+    v: _ic.f.name + '同款——盘里住的是神话级人物' });
   var _h = '<div class="nc-card sm-card">' +
     '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
   rows.forEach(function (r) {
@@ -18608,8 +18629,11 @@ function _ncCard(j) {
       '点开各卡看细账，名片图个念想</div>' +
     '<button class="ghost fav-btn" type="button" id="ncShare" ' +
       'title="生成灵魂名片分享图">📸 晒出我的名片</button>' +
+    /* R3603：夸夸我——玩乐态夸奖海报（与名片同一份 picks）。 */
+    '<button class="ghost fav-btn" type="button" id="ncHype" ' +
+      'title="让命盘狠狠夸夸你">🎤 夸夸我</button>' +
     '</div>';
-  return { html: _h, rows: rows };
+  return { html: _h, rows: rows, hype: _hype };
 }
 function _ncOpen(j) {
   var _ncBox = el('ncCard');
@@ -18619,6 +18643,10 @@ function _ncOpen(j) {
   on('ncShare', function () {
     var _o = { _ncRows: _c.rows };
     return downloadPoster(Object.assign({}, j, _o), 'namecard');
+  });
+  on('ncHype', function () {
+    var _o = { _hyRows: _c.hype };
+    return downloadPoster(Object.assign({}, j, _o), 'hype');
   });
   _ncBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }

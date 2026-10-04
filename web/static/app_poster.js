@@ -458,6 +458,8 @@ function _paintSharePoster(s, W, H) {
                    /* R3598（审-P1）：monthrec 六数据行+口径=7 行——
                     * cap4 静默切尾（打卡/好运/称号全被吃掉）。 */
                    monthrec: 7,
+                   /* R3603：hype 五夸行+口径=6 行——cap4 会切尾。 */
+                   hype: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -2069,6 +2071,25 @@ function buildShareData(view, j) {
       if (!_nc.lines.length) _nc.lines =
         [{ k: '结论', v: '名片收齐六件' }];
       return _nc;
+    }
+    case 'hype': {
+      /* R3603 夸夸我（Lunary Roast/Hype 同构玩乐态）：命盘数据
+       * 原样换「夸」句式——每行把真派生件夸满。行集由 app.js
+       * 名片钮直传（与 _ncCard 同源 picks），口径守恒。 */
+      var _hy = base('小满狠狠夸你', '');
+      _hy.big = '你这张盘，真有的夸';
+      _hy.lines = [];
+      var _hyrows = (j && j._hyRows) || [];
+      _hyrows.forEach(function (r) {
+        if (r && r.k && r.v) {
+          _hy.lines.push({ k: String(r.k),
+                           v: _clauseCut(String(r.v), 20) });
+        }
+      });
+      _hy.lines.push({ k: '口径', v: '夸的每句都按盘里真五行推' });
+      if (!_hy.lines.length) _hy.lines =
+        [{ k: '结论', v: '你这张盘夸点不少' }];
+      return _hy;
     }
     case 'monthrec': {
       /* R3596 月度复盘海报：上月数据行摆出（Wrapped-lite），
