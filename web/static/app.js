@@ -20000,7 +20000,18 @@ function _qianHist() {
     }).slice(0, 30) : [];
   } catch (e) { return []; }
 }
-function _qianDraw() {
+/* R3391：问事签——抽签前选所问（不求甚解的随缘也可）。话题随签
+ * 进卡面/海报/聊上下文；qian:t:<date> 日期键随 qian: 族进
+ * GC/wipe/备份三链。 */
+var _QIAN_TOPICS = ['随缘', '感情', '事业', '财运', '学业', '健康', '家宅'];
+var _qianPickedTopic = '随缘';
+function _qianTopic(dk) {
+  try {
+    var t = localStorage.getItem('qian:t:' + dk) || '';
+    return _QIAN_TOPICS.indexOf(t) > 0 ? t : '';
+  } catch (e) { return ''; }
+}
+function _qianDraw(topic) {
   var dk = todayIso(), had = _qianIdxOf(dk);
   if (had) return had;  /* 今天的签已抽过——同一支 */
   var pool = [];
@@ -20022,6 +20033,8 @@ function _qianDraw() {
   var n = pool[Math.floor(Math.random() * pool.length)];
   try {
     localStorage.setItem('qian:' + dk, String(n));
+    if (topic && topic !== '随缘')
+      localStorage.setItem('qian:t:' + dk, topic);
     var h = _qianHist();
     h.unshift({ d: dk, n: n });
     localStorage.setItem('qian:hist', JSON.stringify(h.slice(0, 30)));
@@ -20034,10 +20047,12 @@ function _qianDraw() {
 function _qianFactWrite(n) {
   try {
     var q = QIAN[n - 1]; if (!q) return;
+    var tp = _qianTopic(todayIso());
     localStorage.setItem('qian:fact', JSON.stringify({
       d: todayIso(),
-      t: '她今天在小满铺「每日一签」抽到第' + n + '签（' + q.luck +
-         '·' + q.name + '），签诗：「' + q.poem.join('，') +
+      t: '她今天在小满铺「每日一签」' + (tp ? '问' + tp + '事' : '') +
+         '抽到第' + n + '签（' + q.luck + '·' + q.name +
+         '），签诗：「' + q.poem.join('，') +
          '」；她想聊签就照这支的意思说，不懂就带她去签页细看'
     }));
   } catch (e) {}
@@ -20046,11 +20061,13 @@ function _qianSlipHtml(n, opts) {
   var q = QIAN[n - 1]; if (!q) return '';
   var o = opts || {};
   var _luckCls = q.tier === 'top' ? 'q-top' : (q.tier === 'mid' ? 'q-mid' : 'q-low');
+  var _tp = _qianTopic(o.review ? o.review : todayIso());
   var h = '<div class="qian-slip' + (o.review ? ' is-review' : '') + '">';
   if (o.review) {
     h += '<div class="qian-review-tag">📅 ' + esc(o.review) + ' 抽的那支</div>';
   }
   h += '<div class="qian-head"><span class="qian-no">第' + n + '签</span>' +
+       (_tp ? '<span class="qian-topic-tag">问' + esc(_tp) + '</span>' : '') +
        '<span class="qian-luck ' + _luckCls + '">' + esc(q.luck) + '</span></div>' +
        '<div class="qian-name">' + esc(q.name) + ' · ' + esc(q.gong) + '</div>' +
        '<div class="qian-poem">' +
@@ -20100,11 +20117,17 @@ function _renderQian(review) {
       qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianHistHtml();
       return;
     }
+    var _chips = _QIAN_TOPICS.map(function (t) {
+      return '<button type="button" class="qian-tpick' +
+        (t === _qianPickedTopic ? ' is-on' : '') +
+        '" data-qian="topic" data-t="' + esc(t) + '">' + esc(t) + '</button>';
+    }).join('');
     qnBoxEl.innerHTML =
       '<div class="qian-tube" id="qianTube">' +
         '<div class="qian-tube-img" aria-hidden="true">🎋</div>' +
         '<div class="qian-tube-t">心里默念一件想问的事</div>' +
         '<div class="qian-tube-s">观音灵签一百签 · 真签文真典故</div>' +
+        '<div class="qian-topics">' + _chips + '</div>' +
         '<button class="mc-go qian-draw" type="button" data-qian="draw">' +
         '摇一支今日签</button>' +
         '<div class="qian-note">一天一支——今天的签抽了就不会变</div>' +
@@ -20117,13 +20140,18 @@ function _renderQian(review) {
       ? e.target.closest('[data-qian]') : null;
     if (!b) return;
     var act = b.dataset.qian;
-    if (act === 'draw') {
+    if (act === 'topic') {
+      _qianPickedTopic = b.dataset.t || '随缘';
+      b.parentNode.querySelectorAll('.qian-tpick').forEach(function (x) {
+        x.classList.toggle('is-on', x === b);
+      });
+    } else if (act === 'draw') {
       var tube = document.getElementById('qianTube');
       if (tube) tube.classList.add('is-shaking');
       b.disabled = true;
       /* 摇签仪式感：筒晃 ~1.1s 再出签——「等一等才出来」是仪式本体。 */
       setTimeout(function () {
-        _qianDraw();
+        _qianDraw(_qianPickedTopic);
         _renderQian();
       }, 1100);
     } else if (act === 'hist') {
@@ -20137,7 +20165,8 @@ function _renderQian(review) {
       if (!q3) return;
       downloadPoster({ _qian: {
           n: n3, name: q3.name, luck: q3.luck,
-          poem: q3.poem, say: q3.say },
+          poem: q3.poem, say: q3.say,
+          topic: _qianTopic(todayIso()) },
         date: todayIso() }, 'qian');
     }
   });

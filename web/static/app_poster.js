@@ -1528,7 +1528,9 @@ function buildShareData(view, j) {
                 (_pStr(_qn.luck) || '');
       var _qpoem = _pArr(_qn.poem);
       _qs.lines = [
-        { k: '签题', v: _pStr(_qn.name) || '' },
+        { k: '签题',
+          v: (_pStr(_qn.topic) ? '问' + _pStr(_qn.topic) + ' · ' : '') +
+             (_pStr(_qn.name) || '') },
         { k: '签诗', v: _clauseCut(_qpoem.slice(0, 2).join('，'), 20) },
         { k: '小满说', v: _clauseCut(_pStr(_qn.say), 24) }
       ];

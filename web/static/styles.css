@@ -4207,3 +4207,17 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 @media (max-width: 420px) {
   .qian-poem { font-size: 15.5px; }
 }
+.qian-topics { display: flex; flex-wrap: wrap; gap: 7px;
+  justify-content: center; margin: 0 0 14px; }
+.qian-tpick { border: 1.5px solid var(--line, #e0d4c0);
+  background: var(--card, #fffdfa); color: var(--secondary);
+  border-radius: 999px; padding: 5px 13px; font-size: 12.5px;
+  cursor: pointer; min-height: 32px; }
+.qian-tpick.is-on { border-color: var(--primary);
+  background: var(--primary); color: #fff; font-weight: 600; }
+.qian-topic-tag { font-size: 11px; font-weight: 600;
+  color: var(--primary-ink, #7a4f2b);
+  background: var(--accent-soft, #fdf1e4);
+  border: 1px solid var(--line, #e0d4c0);
+  border-radius: 999px; padding: 2px 9px; margin-left: 8px;
+  vertical-align: 2px; }
