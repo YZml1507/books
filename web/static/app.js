@@ -16548,6 +16548,10 @@ function init() {
             }
             /* R2349t（R88-13b）：分享者昵称随链——剥参前先存，
              * sessionStorage 备份让刷新后也能喊出名字。 */
+            /* R3587：dt= 称号同存——剥参前缓存，群榜发起人
+             * 榜位外显用（白名单校验在读取端）。 */
+            var _dt0 = _qsAll.get('dt');
+            if (_dt0) window.__shareT = String(_dt0).slice(0, 12);
             var _sby0 = _qsAll.get('n');
             if (_sby0) {
               window.__shareBy = String(_sby0).slice(0, 24);
@@ -16970,7 +16974,7 @@ function init() {
              * 留在地址栏会被截图/转抄带走。R3353：celeb 同收编。 */
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
              'ag', 's', 'tn', 'm', 'b', 'rel', 'sym', 'sp', 'c',
-             'celeb', 'stext', 'surl', 'stitle']
+             'celeb', 'stext', 'surl', 'stitle', 'dt']
              .forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
@@ -20371,16 +20375,29 @@ function renderCheckin(dateKey) {
        * 摆擂的人）。 */
       var _duBoss = (typeof _shareByName === 'function' &&
         _shareByName()) || '';
+      /* R3587：dt= 称号随链——链首发起人(duel 第 1 值)的
+       * 称号受邀面榜位外显，补 R3560「TA 的称号拿不到」；
+       * 称号只认 _MS 表内词（链上词不可信）。 */
+      var _duT = (function () {
+        try {
+          var _t = window.__shareT ||
+            new URLSearchParams(location.search).get('dt') || '';
+          var _ok = _MS.some(function (m) { return m[1] === _t; });
+          return _ok ? _t : '';
+        } catch (eDT) { return ''; }
+      })();
       var _board = _duList.map(function (n, i) {
-        return { w: (i === 0 && _duBoss ? _duBoss : 'TA'), n: n };
+        return { w: (i === 0 && _duBoss ? _duBoss : 'TA'), n: n,
+          t: (i === 0 ? _duT : '') };
       });
       if (_streak > 0) _board.push({ w: '你', n: _streak });
       _board.sort(function (a, b) { return b.n - a.n; });
       /* R3560：自己的榜位挂称号——成就外显到比拼面（TA 的称号
-       * 本地拿不到，只挂自己的）。 */
+       * 本地拿不到，只挂自己的；R3587 起发起人的由 dt= 带来）。 */
       var _rows = _board.map(function (e, i) {
+        var _tt = e.w === '你' ? _msTitle : (e.t || '');
         return (i + 1) + '.' + e.w + ' ' + e.n + ' 天' +
-          (e.w === '你' && _msTitle ? '·「' + _msTitle + '」' : '');
+          (_tt ? '·「' + _tt + '」' : '');
       });
       var _rk = _streak > 0
         ? _board.findIndex(function (e) { return e.w === '你'; }) + 1
@@ -20966,11 +20983,12 @@ function renderCheckin(dateKey) {
       '?view=home&from=share&duel=' + _duChain.join(',');
     /* R3572：对擂/递好运链补署名 n=——受邀条已认 _shareByName，
      * 没名时维持「朋友…」兜底。与既有分享链同规（显名不入
-     * 请求体）。 */
+     * 请求体）。R3587：dt= 称号随链，受邀榜首行外显。 */
     try {
       var _dnm = (_meGet('me') || {}).n;
       if (_dnm) _du += '&n=' + encodeURIComponent(
         String(_dnm).slice(0, 24));
+      if (_msTitle) _du += '&dt=' + encodeURIComponent(_msTitle);
     } catch (eDN) {}
     /* R3546：钩子句理不顺（「跟小满陪我比」双谓语打结）——
      * 小满放裁判位，比拼主语只留你和我。
