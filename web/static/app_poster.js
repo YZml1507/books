@@ -352,14 +352,18 @@ function _paintSharePoster(s, W, H) {
      * _MDOT_H，行块按剩余高度自适应，几何与无点阵视图同口径。 */
     var _mdL = (s.view === 'moodweek') ? _pArr(s.moodDots) : [];
     var _MDOT_H = _mdL.length ? 130 : 0;
+    /* R3393：流年K线柱带——与心情点阵同款「view 专属元素挤进卡区首行」
+     * 先例。带占高 _KL_H，行块在其下排。 */
+    var _klD = (s.view === 'bazi-kline') ? s.kline : null;
+    var _KL_H = (_klD && _pArr(_klD.candles).length) ? 310 : 0;
     var lh = Math.min(150, Math.max(64,
-      (_linesTop - cardY - _MDOT_H) / lines.length));
+      (_linesTop - cardY - _MDOT_H - _KL_H) / lines.length));
     /* R3260（实拍抓到的溢出）：每行是「小标签+大值」双行排版，
      * 末行值基线 = cardY+(n-1)·lh+62，框底旧口径 +40 只到
      * cardY+n·lh-20——lh 贴 64 下限时末行戳出框 18px。
      * 底 padding 40→76，框底 = 末行基线 +14 下沉量，不再溢出。 */
     var _LH_PAD = 76;
-    var _cardH = lines.length * lh + _LH_PAD + _MDOT_H;
+    var _cardH = lines.length * lh + _LH_PAD + _MDOT_H + _KL_H;
     var _slack = _linesTop - (cardY - 60) - _cardH;
     if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
     /* R2504（A-1 兜底）：lh 贴 64 下限仍超硬顶时整块上提，
@@ -397,15 +401,73 @@ function _paintSharePoster(s, W, H) {
       });
       ctx.textAlign = 'left';
     }
+    /* R3393：流年柱带——卡区顶部 _MDOT 位之下再画 90 柱。 */
+    if (_klD) {
+      var _kcs = _pArr(_klD.candles);
+      var _kx0 = 130, _kw = 820, _ky0 = cardY - 60 + 30;
+      var _kh = _KL_H - 56;
+      var _kmid = _ky0 + _kh * 0.62;
+      var _kstep = _kw / _kcs.length;
+      var _kbw = Math.max(3, Math.floor(_kstep) - 1);
+      _kcs.forEach(function (c, i) {
+        var x = _kx0 + i * _kstep;
+        var hh = (Math.abs(c.score) / 4) * (_kh * 0.56);
+        ctx.fillStyle = c.score > 0 ? '#C4624E'
+          : (c.score < 0 ? '#8FA98A' : '#C9BCA6');
+        ctx.fillRect(x, c.score >= 0 ? _kmid - hh : _kmid,
+                     _kbw, Math.max(3, hh));
+        if (c.age === _klD.this_age) {
+          ctx.strokeStyle = '#7A5C2E'; ctx.lineWidth = 3;
+          ctx.strokeRect(x - 3, _ky0 - 6, _kbw + 6, _kh + 12);
+        }
+        if ((c.flags || []).indexOf('换运') >= 0) {
+          ctx.strokeStyle = '#D9CBAE'; ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, _ky0 - 4); ctx.lineTo(x, _ky0 + _kh + 4);
+          ctx.stroke();
+        }
+        var _kfy = _ky0 + _kh + 26;
+        if ((c.flags || []).indexOf('本命年') >= 0) {
+          ctx.strokeStyle = '#C4624E'; ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(x + _kbw / 2, _kfy, 6, 0, Math.PI * 2); ctx.stroke();
+        } else if ((c.flags || []).indexOf('冲太岁') >= 0 ||
+                   (c.flags || []).indexOf('犯太岁') >= 0) {
+          ctx.fillStyle = '#8A4A3C';
+          ctx.beginPath();
+          ctx.arc(x + _kbw / 2, _kfy, 5, 0, Math.PI * 2); ctx.fill();
+        }
+        if (c.age % 10 === 0) {
+          ctx.fillStyle = '#B7A98A';
+          ctx.font = '400 20px "LXGW WenKai","PingFang SC",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(c.age + '岁', x + _kbw / 2, _ky0 + _kh + 58);
+        }
+      });
+      ctx.strokeStyle = '#E0D4C0'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(_kx0 - 8, _kmid); ctx.lineTo(_kx0 + _kw + 8, _kmid);
+      ctx.stroke();
+      /* 今年标记 */
+      var _kth = _kcs[_klD.this_age];
+      if (_kth) {
+        ctx.fillStyle = '#7A5C2E';
+        ctx.font = '600 24px "LXGW WenKai","PingFang SC",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('今年 ' + _pStr(_kth.ganzhi),
+                     _kx0 + _klD.this_age * _kstep + _kbw / 2, _ky0 - 14);
+      }
+      ctx.textAlign = 'left';
+    }
     /* R3260：行高 <95 时双行排版（标签上值下，62px 内距）会和下一行
      * 标签挤叠（daily 5 行 + 卡座时 lh=72 实测叠加）。行高不够就
      * 切单行「标签：值」——行高 ≥56 即呼吸充足。 */
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
-      var y = cardY + _MDOT_H + i * lh + 10;
+      var y = cardY + _MDOT_H + _KL_H + i * lh + 10;
       /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
        * 上得了图；点在标签左侧固定位。 */
-      var _dotY = cardY + _MDOT_H + i * lh + Math.round(lh / 2);
+      var _dotY = cardY + _MDOT_H + _KL_H + i * lh + Math.round(lh / 2);
       if (r.dot) {
         ctx.fillStyle = r.dot;
         ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.fill();
@@ -415,7 +477,7 @@ function _paintSharePoster(s, W, H) {
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
       if (_rowInline) {
-        y = cardY + _MDOT_H + i * lh + Math.round(lh / 2) + 14;
+        y = cardY + _MDOT_H + _KL_H + i * lh + Math.round(lh / 2) + 14;
         ctx.fillText(r.k + '：', 150, y);
         _kx = 150 + ctx.measureText(r.k + '：').width + 8;
       } else {
@@ -780,6 +842,7 @@ function _posterHookForView(view, j) {
   }
   /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
   if (view === 'qian') return '今天你的签是什么？';
+  if (view === 'bazi-kline') return '你的流年走势长什么样？';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1539,6 +1602,38 @@ function buildShareData(view, j) {
           v: _clauseCut(_qpoem.slice(2, 4).join('，'), 20) });
       }
       return _qs;
+    }
+    case 'bazi-kline': {
+      /* R3393 人生K线海报：走势图是主体（卡内柱带），今年干支
+       * 与顺/缓段进 lines。payload 直接吃 j.calc.kline。 */
+      var _kk = (j && j.calc && j.calc.kline) || {};
+      var _ks = base('人生K线',
+        _pStr(_kk.birth_year) ? (_pStr(_kk.birth_year) + '年生 · 流年走势') : '');
+      _ks.view = 'bazi-kline';
+      _ks.kline = _kk;
+      var _kt = _pArr(_kk.candles)[_kk.this_age];
+      _ks.big = _kt
+        ? (_kt.ganzhi + '年 · ' + (_kt.score > 0 ? '顺' : ( _kt.score < 0 ? '缓' : '平')))
+        : '一年有一年的节奏';
+      _ks.lines = [];
+      if (_kt) {
+        _ks.lines.push({ k: '今年', v: _pStr(_kt.ganzhi) + ' · ' +
+          _pStr(_kt.gan_rel) + (_kt.dayun ? '（大运' + _pStr(_kt.dayun) + '）' : '') });
+      }
+      var _ke = _pArr(_kk.easy_segs).map(function (s) {
+        return s.a + '–' + s.b + '岁'; });
+      var _kh = _pArr(_kk.hard_segs).map(function (s) {
+        return s.a + '–' + s.b + '岁'; });
+      if (_ke.length) _ks.lines.push({ k: '顺段', v: _ke.join('、') });
+      if (_kh.length) _ks.lines.push({ k: '缓段', v: _kh.join('、') });
+      var _kf = _pArr(_kk.candles).filter(function (c) {
+        return c.age >= _kk.this_age &&
+               (c.flags || []).indexOf('冲太岁') >= 0; })[0];
+      if (_kf) {
+        _ks.lines.push({ k: '提个醒',
+          v: _pStr(_kf.year) + '年（' + _kf.age + '岁）冲太岁，宜守' });
+      }
+      return _ks;
     }
     case 'hehun': {
       /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比

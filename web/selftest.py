@@ -304,6 +304,35 @@ def _run_inner() -> list[str]:
     _xline = next((l for l in _xtxt.split("\n") if "缺水" in l), "")
     assert "从金的方向补" in _xline, ("bazi.buque.direction", _xline)
     ok.append("bazi.buque.direction")
+    # R3393：流年K线——90 柱随全 scope 附带；每柱干支/十神/分值/标记
+    # 可核对，今年位置与太岁系判据钉死。
+    _kl = client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
+                                         "hour": 12, "gender": "男"}).json()
+    _kk = (_kl.get("calc") or {}).get("kline") or {}
+    _kcs = _kk.get("candles") or []
+    assert len(_kcs) == 90, ("bazi.kline.len", len(_kcs))
+    assert _kk.get("birth_year") == 1990, ("bazi.kline.by", _kk)
+    import datetime as _kdt
+    assert _kk.get("this_age") == _kdt.date.today().year - 1990, \
+        ("bazi.kline.this_age", _kk.get("this_age"))
+    _FLAG_OK = {"本命年", "冲太岁", "犯太岁", "换运"}
+    for _c in _kcs:
+        assert -4 <= _c["score"] <= 4, ("bazi.kline.score", _c)
+        assert len(_c["ganzhi"]) == 2, ("bazi.kline.gz", _c)
+        assert set(_c["flags"]) <= _FLAG_OK, ("bazi.kline.flags", _c)
+    # 本命年每 12 年一轮且所有本命年柱同支（= 太岁家支）
+    _bn = [c for c in _kcs if "本命年" in c["flags"]]
+    assert len(_bn) >= 7 and len({c["ganzhi"][1] for c in _bn}) == 1, \
+        ("bazi.kline.bennian", _bn[:3])
+    # 冲太岁同理——同一支、每 6 年左右一轮
+    _ct = [c for c in _kcs if "冲太岁" in c["flags"]]
+    assert len(_ct) >= 7 and len({c["ganzhi"][1] for c in _ct}) == 1, \
+        ("bazi.kline.chongts", [(c["age"], c["ganzhi"]) for c in _ct[:3]])
+    # 本命年支与冲太岁支必须互为六冲（口径自洽）
+    from guji.bazi_calc import CHONG as _KCHONG
+    _bz, _cz = _bn[0]["ganzhi"][1], _ct[0]["ganzhi"][1]
+    assert _KCHONG.get(_bz) == _cz, ("bazi.kline.chong_pair", _bz, _cz)
+    ok.append("bazi.kline")
     # R230a-22（R13 钉扎）：并列最高 → 均势口径——1988-01-04 18 时
     # 水金各 2.0 并列，strong_tied=[水,金] 且解读带「均势（无一行独大）」，
     # 此前并列时只会把第一个 max 说成「偏旺」误导。

@@ -76,7 +76,7 @@ from guji.bazi_calc import ten_god
 from guji.bazi_calc import _rel_pair, _san_he
 # R3314（R3311-高2）：犯太岁五档需要 冲/刑/害/破 全表。
 from guji.bazi_calc import CHONG, XING, XIANG_HAI, XIANG_PO
-from guji.bazi_calc import calc_life, calc_range
+from guji.bazi_calc import calc_kline, calc_life, calc_range
 from guji.bazi_lookup import retrieve_fast
 from guji.compare import compare_address
 from guji.research import compare_works as research_compare_works
@@ -242,6 +242,9 @@ def bazi(req) -> dict:
     else:
         calc_out = bazi_calc(b, ask_date=ask_date, ask_hour=req.ask_hour)
         calc_out["scope"] = "day"
+    # R3393：流年K线全 scope 附带——只依赖出生年+命盘坐标，与范围无关。
+    # day/range 用户也能拿到「人生走势」这块可晒件。
+    calc_out["kline"] = calc_kline(b, by)
     if req.location:
         calc_out["location"] = req.location
 

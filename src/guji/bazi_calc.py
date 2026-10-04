@@ -492,6 +492,86 @@ def calc_life(b: Bazi, birth_year: int) -> dict:
     }
 
 
+def calc_kline(b: "Bazi", birth_year: int) -> dict | None:
+    """R3393 流年K线：0~89 岁每年一根蜡烛——大运底色 + 流年十神
+    + 流年支 × 日支冲合刑害 + 太岁/换运标记。纯坐标计算、全确定性。
+
+    分档口径（写死可核对，与 _yearly_block 同一份顺组表）：
+      流年天干十神 ∈ 顺组 {正财,偏财,正官,正印,食神,比肩} → +1，否则 −1
+      所跨大运天干十神 ∈ 顺组 → +1，否则 −1（未起运段不给分）
+      流年支 × 日支：六合 → +1；六冲/相刑/相害/相破 → −1
+      流年支 × 年支（太岁系）：同支 → flag 本命年；六冲 → 冲太岁 −1；
+        刑/害/破 → flag 犯太岁（扣分只走日支链，太岁只标注——
+        犯太岁主「宜守」不是「必凶」）
+      换运：周岁 ≈ 起运后逢十年界 → flag 换运（提示期，不扣分）
+    """
+    try:
+        day_master = b.day_master
+        day_zhi = (b.day or "  ")[1]
+        year_zhi = (b.year or "  ")[1]
+        qi = b.meta.get("qi_yun_age") or 0
+        pillars = b.meta.get("dayun_pillars") or []
+        easy = {"正财", "偏财", "正官", "正印", "食神", "比肩"}
+        candles = []
+        for age in range(0, 90):
+            y = birth_year + age
+            idx = (y - 4) % 60
+            gz = GAN[idx % 10] + ZHI[idx % 12]
+            tg = ten_god(day_master, gz[0])
+            score = 1 if tg in easy else -1
+            dy_pillar = ""
+            dy_off = age - qi
+            if pillars and dy_off >= 0:
+                dk = min(int(dy_off // 10), len(pillars) - 1)
+                dy_pillar = pillars[dk]
+                score += 1 if ten_god(day_master, dy_pillar[0]) in easy else -1
+            rel = _rel_pair(gz[1], day_zhi)
+            if rel:
+                score += 1 if rel[0] == "六合" else -1
+            flags = []
+            if gz[1] == year_zhi:
+                flags.append("本命年")
+            elif CHONG.get(gz[1]) == year_zhi:
+                flags.append("冲太岁")
+                score -= 1
+            elif ((gz[1], year_zhi) in XING or (year_zhi, gz[1]) in XING
+                  or XIANG_HAI.get(gz[1]) == year_zhi
+                  or XIANG_PO.get(gz[1]) == year_zhi):
+                flags.append("犯太岁")
+            b_off = int(round(dy_off))
+            if (pillars and b_off > 0 and b_off % 10 == 0
+                    and b_off // 10 < len(pillars)):
+                flags.append("换运")
+            candles.append({"age": age, "year": y, "ganzhi": gz,
+                            "gan_rel": tg, "dayun": dy_pillar,
+                            "score": score, "flags": flags})
+        from datetime import date as _d
+        this_age = _d.today().year - birth_year
+        # 顺段/难段：连续 ≥5 年同符号段摘成区间榜，读着有节奏
+        segs = []
+        seg_start, seg_sign = 0, None
+        for c in candles:
+            s = 1 if c["score"] > 0 else (-1 if c["score"] < 0 else 0)
+            if s != seg_sign:
+                if seg_sign is not None and seg_start is not None:
+                    segs.append((seg_start, c["age"] - 1, seg_sign))
+                seg_start, seg_sign = c["age"], s
+        if seg_sign is not None:
+            segs.append((seg_start, candles[-1]["age"], seg_sign))
+        easy_segs = [{"a": s0, "b": s1} for s0, s1, sg in segs
+                     if sg > 0 and s1 - s0 >= 4]
+        hard_segs = [{"a": s0, "b": s1} for s0, s1, sg in segs
+                     if sg < 0 and s1 - s0 >= 4]
+        return {"birth_year": birth_year,
+                "qi_yun_age": round(qi, 1) if qi is not None else None,
+                "candles": candles,
+                "this_age": max(0, this_age),
+                "easy_segs": easy_segs[:4],
+                "hard_segs": hard_segs[:4]}
+    except Exception:
+        return None
+
+
 if __name__ == "__main__":
     # 自检：文档 §7.1 已知八字手工核对
     # 找一个庚辰日出生的人：日主庚，年干甲 → 偏财；子午冲案例另造。

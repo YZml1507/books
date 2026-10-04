@@ -6679,6 +6679,11 @@ function buildBaziResult(j) {
     html += '<button class="ghost fav-btn" type="button" id="shareBaziYear" ' +
       'title="生成今年运势图">📅 年度运势图</button>';
   }
+  /* R3393：人生K线分享钮——流年走势图可晒件。 */
+  if (j.calc && j.calc.kline && j.calc.kline.candles) {
+    html += '<button class="ghost fav-btn" type="button" id="shareBaziKline" ' +
+      'title="生成人生K线图">📈 人生K线</button>';
+  }
   html += '</div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
@@ -6751,10 +6756,125 @@ function buildBaziResult(j) {
    * 一直在算但前端从没渲过（warm 只出三行概括）。12 个月chip 横排，
    * 当月高亮。 */
   html += _yearlyStrip(j.calc);
+  html += _klineFold(j.calc);
   html += tailHook('bazi');
   html += '</div>';
   return html;
 }
+
+/* R3393：流年K线折叠卡——服务端 calc.kline 直接画（90 柱 candles
+ * + 太岁/换运标记）。画布在折叠里、点开才画不白耗首屏。 */
+var _lastKline = null;
+function _klineFold(calc) {
+  try {
+    var k = calc && calc.kline;
+    if (!k || !k.candles || !k.candles.length) return '';
+    _lastKline = k;
+    var _seg = function (xs) {
+      return (xs || []).map(function (s) {
+        return s.a + '–' + s.b + '岁'; }).join('、');
+    };
+    var _easy = _seg(k.easy_segs), _hard = _seg(k.hard_segs);
+    var _notes = [];
+    if (_easy) _notes.push('顺段：' + _easy);
+    if (_hard) _notes.push('缓段：' + _hard);
+    return '<details class="kline-fold">' +
+      '<summary>📈 看看你的人生走势（流年K线）</summary>' +
+      '<div class="kline-wrap">' +
+      '<canvas class="kline-canvas" width="680" height="250"></canvas>' +
+      '<div class="kline-legend">' +
+      '<span class="kl-dot kl-up"></span>顺 ' +
+      '<span class="kl-dot kl-dn"></span>缓 ' +
+      '<span class="kl-flag">◎</span>本命年 ' +
+      '<span class="kl-flag">●</span>犯太岁 ' +
+      '<span class="kl-flag">｜</span>换运 ' +
+      '<span class="kl-flag">▣</span>今年' +
+      '</div>' +
+      (_notes.length ? '<p class="kline-note">' +
+        esc(_notes.join('　')) + '</p>' : '') +
+      '<p class="kline-note">大运+流年推的节奏线——看趋势不作断语，' +
+        '低谷年攒劲，顺段年放手。</p>' +
+      '</div></details>';
+  } catch (e) { return ''; }
+}
+function _drawKlineEl(cv, k) {
+  try {
+    if (!cv || !k || !k.candles || cv._klineDone) return;
+    var cs = k.candles;
+    var W = cv.width, H = cv.height, ctx = cv.getContext('2d');
+    if (!ctx) return;
+    var padL = 30, padR = 10, padT = 26, padB = 46;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var maxS = 4, mid = padT + plotH / 2;
+    var bw = Math.max(2, Math.floor(plotW / cs.length) - 1);
+    var step = plotW / cs.length;
+    /* 背景大运分段横带 */
+    for (var i = 0; i < cs.length; i++) {
+      var c = cs[i], x = padL + i * step;
+      var hgt = (Math.abs(c.score) / maxS) * (plotH / 2);
+      var top = c.score >= 0 ? mid - hgt : mid;
+      ctx.fillStyle = c.score > 0 ? '#C4624E'
+        : (c.score < 0 ? '#8FA98A' : '#C9BCA6');
+      ctx.fillRect(x, top, bw, Math.max(2, hgt));
+      /* 今年框 */
+      if (c.age === k.this_age) {
+        ctx.strokeStyle = '#7A5C2E'; ctx.lineWidth = 2;
+        ctx.strokeRect(x - 2, padT - 4, bw + 4, plotH + 8);
+        ctx.fillStyle = '#7A5C2E';
+        ctx.font = '11px "LXGW WenKai",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('今年', x + bw / 2, padT - 10);
+      }
+      /* 换运 tick */
+      if (c.flags && c.flags.indexOf('换运') >= 0) {
+        ctx.strokeStyle = '#B7A98A'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, padT - 4); ctx.lineTo(x, padT + plotH + 4);
+        ctx.stroke();
+      }
+      /* 本命年 ◎ / 犯太岁 ● 标在柱脚 */
+      var fy = padT + plotH + 16;
+      if (c.flags && c.flags.indexOf('本命年') >= 0) {
+        ctx.strokeStyle = '#C4624E'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(x + bw / 2, fy, 3.4, 0, Math.PI * 2); ctx.stroke();
+      } else if (c.flags && (c.flags.indexOf('冲太岁') >= 0 ||
+                             c.flags.indexOf('犯太岁') >= 0)) {
+        ctx.fillStyle = '#8A4A3C';
+        ctx.beginPath();
+        ctx.arc(x + bw / 2, fy, 3, 0, Math.PI * 2); ctx.fill();
+      }
+      /* 年支刻度每 10 岁 */
+      if (c.age % 10 === 0) {
+        ctx.fillStyle = '#B7A98A';
+        ctx.font = '10px "LXGW WenKai",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(c.age + '岁', x + bw / 2, padT + plotH + 30);
+        ctx.fillText(c.year + '', x + bw / 2, padT + plotH + 42);
+      }
+    }
+    /* 中线 */
+    ctx.strokeStyle = '#E0D4C0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL - 6, mid); ctx.lineTo(W - 4, mid);
+    ctx.stroke();
+    cv._klineDone = true;
+  } catch (e) {}
+}
+function _paintKlineNow() {
+  try {
+    document.querySelectorAll('.kline-canvas').forEach(function (cv) {
+      _drawKlineEl(cv, _lastKline);
+    });
+  } catch (e) {}
+}
+/* 折叠点开补画（口吻切换重渲时 DOM 换新、_klineDone 复位） */
+document.addEventListener('toggle', function (e) {
+  if (e.target && e.target.classList &&
+      e.target.classList.contains('kline-fold')) {
+    var cv = e.target.querySelector('.kline-canvas');
+    if (cv) _drawKlineEl(cv, _lastKline);
+  }
+}, true);
 
 /* R3159：今年逐月 chip 条——每格「M月 干支·十神」，当月高亮。 */
 /* R3199：十神 → 日常语标签（合盘互看/年运条共用，与 voice.py
@@ -7158,6 +7278,8 @@ async function submitBazi(event) {
     var _rbBazi = function () {
       on('shareBazi', function () { return downloadPoster(j, 'bazi'); });
       on('shareBaziYear', function () { return downloadPoster(j, 'bazi-yearly'); });
+      on('shareBaziKline', function () {
+        return downloadPoster(j, 'bazi-kline'); });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -7165,6 +7287,8 @@ async function submitBazi(event) {
      * 按 _PH_BUILDERS 品类统一发——七类结果全品类即时失效。 */
     pollAiPolish('result', j.ai_task_id);   // R191b：AI 段落后到（B-014）
     _rbBazi();   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
+    _paintKlineNow();   /* R3393：折叠内画布——buildBaziResult 已把
+                            payload 存进 _lastKline */
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
   } catch (e) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
@@ -8336,6 +8460,8 @@ var _POSTER_TITLES = {
   mochi: '默契挑战',
   /* R3388：每日一签海报弹层标题/下载文件名。 */
   qian: '每日一签',
+  /* R3393：流年K线海报标题/文件名。 */
+  'bazi-kline': '人生K线',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
    * 「命盘海报/分享图」。 */
   'year-wrap': '小满年报' };
@@ -8355,6 +8481,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   mochi: 'warm',
   /* R3388：每日一签归青瓷底——庙里签筒的竹青色。 */
   qian: 'celadon',
+  /* R3393：人生K线归薄荷山月——走势图的清爽冷调。 */
+  'bazi-kline': 'mint',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -8397,10 +8525,13 @@ var _SHARE_TEXT = {
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
   /* R3388：每日一签——「求来的答案」接力晒。 */
   qian: '我今天的签抽到了，看看你的 →',
+  /* R3393：人生K线——「我的走势长这样」接力晒。 */
+  'bazi-kline': '我的人生K线画出来了，看看你的走势 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
-var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home' };
+var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
+  'bazi-kline': 'bazi' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
