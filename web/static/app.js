@@ -1211,32 +1211,8 @@ function showToast(msg, kind) {
   t.addEventListener('focusin', function () { clearTimeout(_tmr); });
 }
 
-/* R3263（R22）：小满说给你听——用 Web Speech Synthesis 朗读
- * warm reply/判词。无网络、无服务器成本，睡前/眼睛累场景适用。 */
-var _SPEECH_CANCEL = null;
-function _speak(text) {
-  try {
-    if (!window.speechSynthesis) { showToast('当前设备不支持朗读', 'warn'); return; }
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-CN';
-    var voices = window.speechSynthesis.getVoices();
-    var _v = voices.find(function (v) {
-      return v.lang && (v.lang.indexOf('zh') === 0 || v.lang.indexOf('cmn') === 0);
-    });
-    if (!_v) _v = voices.find(function (v) { return v.lang && v.lang.indexOf('zh') !== -1; });
-    if (_v) u.voice = _v;
-    u.rate = 1; u.pitch = 1; u.volume = 1;
-    u.onend = function () { _SPEECH_CANCEL = null; };
-    u.onerror = function () { _SPEECH_CANCEL = null; };
-    _SPEECH_CANCEL = u;
-    window.speechSynthesis.speak(u);
-  } catch (eS) { showToast('朗读没开成，稍后再试', 'warn'); }
-}
-function _stopSpeak() {
-  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
-  _SPEECH_CANCEL = null;
-}
+/* R3415（用户裁决）：TTS 朗读全链拆除（speakDaily/dmSpeak/rgSpeak）——
+ * 浏览器 speechSynthesis 对中文长文只读两三字就断，残废功能不如没有。 */
 
 /* R3263（R23）：水逆急救包——「慢三秒」呼吸按钮 */
 function _mercBreathe() {
@@ -8059,9 +8035,7 @@ function buildDreamResult(j) {
    * 解梦卡让它回文流落卡尾。台账复看的隐藏规则靠 fav-btn 类识别，
    * 类名不能丢。 */
   html += '<button type="button" class="ghost fav-btn" id="shareDream" ' +
-    'style="position:static;margin-top:10px;">📷 生成梦卡图</button>' +
-    '<button type="button" class="ghost fav-btn" id="dmSpeak" ' +
-    'style="position:static;margin-top:6px;">🔊 读给小满听</button>';
+    'style="position:static;margin-top:10px;">📷 生成梦卡图</button>';
   /* R3260（R9 延伸）：深夜解梦（多是噩梦/放不下的梦）卡尾多一颗
    * 创可贴钮——与聊天空态同源 bandaid 分享类型。 */
   var _hhDm = new Date().getHours();
@@ -8131,16 +8105,6 @@ async function doDream() {
           }
           /* 心情历那边色点跟着亮（首页在 DOM 里，静默刷） */
           try { _renderMoodRow(); } catch (eMR) {}
-        });
-      }
-      var _spDm = el('dmSpeak');
-      if (_spDm && !_spDm.dataset.bound) {
-        _spDm.dataset.bound = '1';
-        _spDm.addEventListener('click', function () {
-          /* R3264（R27）：语音扩展——解梦结果朗读（引导 + 微行动）。 */
-          var _rp = ((j && j.warm && j.warm.reply) || []).slice(0, 3);
-          var _txt = _rp.join(' ') + (j.action ? ' 小动作：' + j.action : '');
-          if (_txt.trim()) _speak(_txt.trim());
         });
       }
       on('shareDream', function () {
@@ -12633,7 +12597,6 @@ async function doRenge() {
     html += '<div class="renge-actions">' +
       '<button type="button" class="ghost" id="rgPoster">📸 分享图</button>' +
       '<button type="button" class="ghost" id="rgXhs">📕 复制小红书文案</button>' +
-      '<button type="button" class="ghost" id="rgSpeak">🔊 读我是哪型</button>' +
       '<button type="button" class="ghost" id="rgFull">看完整命盘 →</button>' +
       /* R3260（N6 社交回路）：「帮TA也测一型」——人格测试天然是
        * 接力素材，一键把表单还给 TA 的生日。 */
@@ -12680,14 +12643,6 @@ async function doRenge() {
         try { _showTextExportModal('小红书文案', _txt, '长按下面文本全选复制'); }
         catch (eM2) { showToast('长按结果手动复制', 'info'); }
       }
-    });
-    var _ps = el('rgSpeak');
-    if (_ps) _ps.addEventListener('click', function () {
-      /* R3264（R27）：语音扩展到五行人格——读判词/首句。 */
-      var _txt = (_nick || (_rgElCn + '型')) + '。' +
-        (w.one_liner || '') + ' ' +
-        pts.slice(0, 2).join(' ');
-      if (_txt.trim()) _speak(_txt.trim());
     });
     var _ga = el('rgAgain');
     if (_ga) _ga.addEventListener('click', function () {
@@ -13929,30 +13884,36 @@ function initDivination() {
     showToast('今日运势还没出来，等它算好再分享～', 'warn');
     return null;
   });
-  /* R3263（R22）：小满说给你听——朗读今日判词/个人层判词。 */
-  on('speakDaily', function () {
-    if (!window.__lastDaily) {
-      showToast('今日运势还没出来，等它算好再朗读～', 'warn');
-      return;
-    }
-    var _text = '';
-    try {
-      var _j = window.__lastDaily;
-      _text = (_j.personal && _j.personal.mine && _j.personal.mine.verdict)
-        ? _j.personal.mine.verdict
-        : (((_j.warm || {}).reply || []).join('。'));
-      if (!_text) _text = _j.summary || '今日签已出，打开看看';
-    } catch (eT) {}
-    if (_text) _speak(_text);
-  });
-  /* R3264（R28）：显式 PWA 安装按钮——触发浏览器安装提示。 */
+  /* R3415（用户裁决）：speakDaily 朗读链已随按钮一并拆除——
+   * TTS 中文长文断读残废。 */
+  /* R3264（R28）：显式 PWA 安装按钮——触发浏览器安装提示。
+   * R3415（用户裁决）：常驻钮——无 deferred prompt 时给分平台
+   * 手动指引（iOS 走分享菜单，Android 走浏览器菜单）。 */
   on('installPwa', function () {
     if (_deferredInstall && _deferredInstall.prompt) {
       _deferredInstall.prompt();
       return;
     }
-    showToast('当前环境暂不支持一键安装，可用浏览器「添加到主屏幕」', 'info');
+    var _ios = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var _wx = /MicroMessenger/i.test(navigator.userAgent);
+    var _xhs = /xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent);
+    showToast(
+      _wx ? '点右上「···」→「在 Safari 打开」，再点分享→加到主屏幕'
+        : (_xhs ? '点右上「···」→「在浏览器打开」，再点分享→加到主屏幕'
+        : (_ios ? '点底部分享按钮→「添加到主屏幕」'
+        : '点浏览器菜单（右上 ⋮ 或 ⋯）→「添加到主屏幕 / 安装应用」')),
+      'info');
   });
+  /* R3415：已装成 app 就不该再露安装钮——standalone 态藏掉。 */
+  try {
+    if ((window.matchMedia &&
+         window.matchMedia('(display-mode: standalone)').matches) ||
+        navigator.standalone === true) {
+      var _ipw0 = el('installPwaWrap');
+      if (_ipw0) _ipw0.hidden = true;
+    }
+  } catch (eSA) {}
   /* R3264（R40）：久归深拥——关闭横幅 / 开聊天。 */
   on('returnChat', function () {
     try { chatOpen(); } catch (eC) {}
@@ -20866,6 +20827,27 @@ function baziPersonaCard(j) {
       detailEl.hidden = true; detailEl.innerHTML = '';
       delete detailEl.dataset.rid;
     }
+    /* R3414：小锁闸——histLock 有哈希且本标签没解锁时，列表/
+     * 筛选/导出全藏，只露口令面板（防同设备他人借用翻历史）。 */
+    if (_phLocked() && !_phUnlocked()) {
+      _phLockShow('unlock');
+      listEl.innerHTML = '';
+      var _hfL = document.getElementById('historyFilter');
+      if (_hfL) _hfL.hidden = true;
+      if (detailEl) detailEl.hidden = true;
+      /* 导出/导入/刷新会绕开锁拿到数据——锁着时连工具栏一起藏
+       * （留个「加个锁」钮本体所在的工具栏改 CSS 单点隐藏太脆，
+       * 直接藏整条 toolbar，锁钮搬进锁面板行内）。 */
+      var _tb = document.querySelector('#view-history .ph-toolbar');
+      if (_tb) _tb.hidden = true;
+      return;
+    }
+    var _tb2 = document.querySelector('#view-history .ph-toolbar');
+    if (_tb2) _tb2.hidden = false;
+    var _lp = document.getElementById('historyLockPanel');
+    if (_lp && _lp.dataset.mode !== 'set' && _lp.dataset.mode !== 'unset') {
+      _lp.hidden = true;
+    }
     listEl.innerHTML = '<div class="ph-empty">加载中…</div>';
     try {
       const j = await phFetch('/api/paipan/history?limit=50');
@@ -21164,9 +21146,106 @@ function baziPersonaCard(j) {
       };
     }
   } catch (e) {}
+  /* R3414：排盘历史小锁——口令哈希存 localStorage('histLock'，
+   * 'v1:'+sha256('books-histlock:'+pin))；解锁态存 sessionStorage
+   * 仅限本标签。不设锁一切照旧。 */
+  function _phLocked() {
+    try { return !!localStorage.getItem('histLock'); } catch (e) { return false; }
+  }
+  function _phUnlocked() {
+    try { return sessionStorage.getItem('histUnlocked') === '1'; }
+    catch (e) { return false; }
+  }
+  function _phPinHash(pin) {
+    return crypto.subtle.digest('SHA-256',
+      new TextEncoder().encode('books-histlock:' + pin))
+      .then(function (buf) {
+        return 'v1:' + Array.prototype.map.call(new Uint8Array(buf),
+          function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      });
+  }
+  function _phLockShow(mode) {
+    var p = document.getElementById('historyLockPanel');
+    if (!p) return;
+    p.dataset.mode = mode;
+    p.hidden = false;
+    var t = document.getElementById('historyLockTitle');
+    var g = document.getElementById('historyLockGo');
+    var tip = document.getElementById('historyLockTip');
+    var inp = document.getElementById('historyLockInput');
+    if (inp) { inp.value = ''; if (mode === 'set') inp.placeholder = '设个 6 位口令码'; }
+    if (mode === 'unlock') {
+      if (t) t.textContent = '🔒 排盘历史上了锁';
+      if (g) g.textContent = '开锁';
+      if (tip) tip.textContent = '口令码只存在这台设备上，忘了可以「忘掉我的数据」重设。';
+    } else if (mode === 'set') {
+      if (t) t.textContent = '🔒 给排盘历史加个锁';
+      if (g) g.textContent = '定好，上锁';
+      if (tip) tip.textContent = '6 位数字，只挡同一台设备上借手机的人——数据本身不会丢。';
+    } else {
+      if (t) t.textContent = '🔓 撤掉小锁';
+      if (g) g.textContent = '撤锁';
+      if (tip) tip.textContent = '输入原口令码就撤掉，历史照常可看。';
+    }
+    setTimeout(function () { if (inp) inp.focus(); }, 60);
+  }
+  function _phLockHide() {
+    var p = document.getElementById('historyLockPanel');
+    if (p) { p.hidden = true; delete p.dataset.mode; }
+  }
+  async function _phLockGo() {
+    var p = document.getElementById('historyLockPanel');
+    var inp = document.getElementById('historyLockInput');
+    if (!p || !inp) return;
+    var pin = (inp.value || '').trim();
+    if (!/^\d{6}$/.test(pin)) { showToast('口令码是 6 位数字', 'warn'); return; }
+    try {
+      var h = await _phPinHash(pin);
+      var mode = p.dataset.mode || 'unlock';
+      if (mode === 'set') {
+        try { localStorage.setItem('histLock', h); } catch (e) {}
+        try { sessionStorage.setItem('histUnlocked', '1'); } catch (e) {}
+        showToast('小锁挂上了，下次进历史页要口令', 'ok');
+        _phLockHide(); _phLockBtnText();
+        loadPaipanHistory(true);
+      } else if (mode === 'unset') {
+        if (h !== localStorage.getItem('histLock')) {
+          showToast('口令不对', 'error'); return;
+        }
+        try { localStorage.removeItem('histLock'); } catch (e) {}
+        try { sessionStorage.removeItem('histUnlocked'); } catch (e) {}
+        showToast('小锁撤了，历史照常看', 'ok');
+        _phLockHide(); _phLockBtnText();
+        loadPaipanHistory(true);
+      } else {
+        if (h !== localStorage.getItem('histLock')) {
+          showToast('口令不对', 'error'); return;
+        }
+        try { sessionStorage.setItem('histUnlocked', '1'); } catch (e) {}
+        _phLockHide();
+        loadPaipanHistory(true);
+      }
+    } catch (e) { showToast('这台浏览器不支持口令锁（要 https）', 'warn'); }
+  }
+  function _phLockBtnText() {
+    var b = document.getElementById('historyLockBtn');
+    if (b) b.textContent = _phLocked() ? '🔒 锁已挂' : '🔒 加个锁';
+  }
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
+    /* R3414：小锁钮+口令面板绑定 */
+    var _lb = document.getElementById('historyLockBtn');
+    _phLockBtnText();
+    if (_lb) _lb.addEventListener('click', function () {
+      _phLockShow(_phLocked() ? 'unset' : 'set');
+    });
+    var _lg = document.getElementById('historyLockGo');
+    if (_lg) _lg.addEventListener('click', _phLockGo);
+    var _li = document.getElementById('historyLockInput');
+    if (_li) _li.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); _phLockGo(); }
+    });
     /* R230t（R33-P3-5/6）：刷新/导出无锁——双击各弹一遍。 */
     var _phLast = { rf: 0, ex: 0 };
     /* R3200：类型筛选 chip——委托在容器上（渲染会重建内部）。 */
@@ -21220,7 +21299,7 @@ function baziPersonaCard(j) {
      * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
      * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
      * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:)/;
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|histLock$)/;
     var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
     /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
      * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */

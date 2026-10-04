@@ -2489,6 +2489,10 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 /* R231f（R38-P2-2）：320px 下 4 钮 scrollWidth 溢出把「导入备份」推出
  * 可视区——允许换行。 */
 .ph-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px;}
+.ph-lock{margin:14px 0;padding:18px;border:1px dashed var(--line,#d9c8b5);border-radius:14px;text-align:center;background:var(--primary-bg,#fbf6ee);}
+.ph-lock-title{font-weight:600;margin-bottom:12px;}
+.ph-lock input{width:150px;max-width:60%;padding:10px 12px;border-radius:10px;border:1px solid var(--line,#d9c8b5);background:var(--card,#fff);color:var(--text,#3a2e24);text-align:center;letter-spacing:2px;margin-right:8px;}
+.ph-lock-tip{font-size:12px;color:var(--muted,#8a7a68);margin-top:10px;}
 .ph-list{display:flex;flex-direction:column;gap:10px;}
 /* R3200：类型筛选 chip 行 */
 .ph-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}

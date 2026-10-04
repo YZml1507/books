@@ -310,10 +310,8 @@ try {
     <button class="ghost" type="button" id="shareDaily"
             title="生成分享图" aria-label="把今日运势存成分享图"
             style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
-    <!-- R3263（R22）：小满说给你听——睡前/眼睛累时听判词 -->
-    <button class="ghost" type="button" id="speakDaily"
-            title="读给我听" aria-label="朗读今日判词"
-            style="margin:6px 14px 0; flex-shrink:0;">🔊 读给我听</button>
+    <!-- R3415（用户裁决）：朗读钮拆除——浏览器 TTS 对中文长文
+         只读两三个字就断，体验残废不如没有。 -->
     <!-- R3264（R24）：日签小红书文案——一键复制晒图文案 -->
     <button class="ghost" type="button" id="copyXhs"
             title="复制小红书文案" aria-label="复制今日签晒图文案"
@@ -532,9 +530,11 @@ try {
 
   <!-- R3255（用户裁决）：「进阶玩法」抽屉整体撤除——六爻上提主格，
        研究类关键词在首页首屏的暴露规约不变（判据 a 照旧生效）。 -->
-  <!-- R3264（R28）：显式 PWA 安装按钮——浏览器支持时显示 -->
-  <div class="install-pwa-row" id="installPwaWrap" hidden>
-    <button type="button" class="ghost" id="installPwa">📲 加到桌面</button>
+  <!-- R3264（R28）：显式 PWA 安装按钮。R3415（用户裁决）：常驻
+       显示——能弹安装就弹，不能弹（iOS/国产浏览器阉割了 prompt）
+       给手动步骤指引。已装过自动隐藏（standalone 检测在 JS 侧）。 -->
+  <div class="install-pwa-row" id="installPwaWrap">
+    <button type="button" class="ghost" id="installPwa">📲 装到桌面（点开当 app 用）</button>
   </div>
   <!-- R3264（R38）：通知软提示——仅在浏览器未决定权限时显示 -->
   <div class="notify-soft-row" id="notifySoftRow" hidden>
@@ -1311,11 +1311,25 @@ try {
         <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
              两段式确认后清本机键+服务端台账。 -->
         <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
+        <!-- R3414：排盘历史小锁——同设备他人借用时防窥。可选功能：
+             不设锁一切照旧；设了锁进历史页要输口令码才看（口令哈希
+             存本机，本标签页解锁一次即可）。跟账号体系无关——不登录
+             也能锁。 -->
+        <button id="historyLockBtn" type="button" class="ghost">🔒 加个锁</button>
         <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
              全量口径。 -->
         <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
           备份/清空覆盖排盘台账、研究笔记与本机偏好，本机留档（只存在这台设备上的备份）也会一起清。
         </div>
+      </div>
+      <!-- R3414：锁态面板——设锁/开锁/撤锁三态共用（JS 切文案）。
+           锁着时整个历史区只露这个面板。 -->
+      <div id="historyLockPanel" class="ph-lock" hidden>
+        <div class="ph-lock-title" id="historyLockTitle">🔒 排盘历史上了锁</div>
+        <input id="historyLockInput" type="password" inputmode="numeric"
+               maxlength="6" autocomplete="off" placeholder="输入 6 位口令码">
+        <button id="historyLockGo" type="button" class="ghost">开锁</button>
+        <div class="ph-lock-tip" id="historyLockTip">口令码只存在这台设备上，忘了可以「忘掉我的数据」重设。</div>
       </div>
       <!-- R3358：轻账号（昵称+口令码，不要邮箱/手机）——注册/登录后
            备份自动同步到云端，换设备/无痕模式登录同名账号即可拉回。

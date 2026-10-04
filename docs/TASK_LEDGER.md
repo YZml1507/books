@@ -18852,3 +18852,25 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   规格做 fonts.load + fonts.check 复检循环（2.5s 帽），
   海报不再抽到 tofu 字。
 - probe_r2510：_reqV 块与 nonjs_net fetch().catch 钉死。
+
+## R3414 · 排盘历史隐私小锁（用户顾虑「同设备他人可窥历史」裁决 2026-10-04）
+- localStorage histLock='v1:'+sha256('books-histlock:'+pin)（crypto.subtle
+  不可逆散列，存哈希不存明文）；sessionStorage histUnlocked='1' 仅本页签有效。
+- _loadPaipanHistoryInner 前置闸：已锁且未解→面板 unlock 态+清单清空+
+  筛选/详情/.ph-toolbar 全隐，连 DOM 都不留记录。
+- #historyLockPanel 三态（set/unlock/unset）走 dataset.mode 切换；
+  Enter 键与点按同链；错口令 toast「口令不对」+ 不置会话态。
+- _DATA_RE 补 |histLock$——「忘掉一切」连同锁一起抹。
+
+## R3415 · TTS 朗读拆除 + 装桌面团入口常显（用户直提 2026-10-04）
+- 浏览器 TTS 对中文长文只读两三个字就断——用户裁决「残废不如没有」：
+  _speak/_stopSpeak/_SPEECH_CANCEL 引擎+三处按钮（日签读给我听、
+  解梦 dmSpeak、人格 rgSpeak）+绑定+NO_CASE 豁免全清。
+- #installPwaWrap 去 hidden 常显：beforeinstallprompt 有就原生弹，
+  没有按平台给指引 toast（微信→Safari 打开再分享、小红书→浏览器打开、
+  iOS→分享菜单、安卓→浏览器菜单）；standalone 模式自隐。
+- 用户问的「0.6MB 下载的是啥」= PWA 壳包（离线缓存管家+桌面图标），
+  平板装得上手机装不上=浏览器对 beforeinstallprompt 支持差异——
+  常显钮+指引就是解这个落差。
+- probe_ui_smoke：btn:history.lock 新用例（设锁→锁态藏→错拒→解锁→
+  撤锁全链），锁链在途吞并语义要求直调 __loadPaipanHistory(false)。

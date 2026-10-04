@@ -396,7 +396,10 @@ def main() -> int:
                  "mantraFav", "mantraBookGo", "mantraBookBody",
                  # R3381：默契挑战——mochiBox 容器委托由 ui:mochi 用例
                  # 覆盖（出题→受邀→对分→回传→回敬全链）。
-                 "mochiBox"}
+                 "mochiBox",
+                 # R3414：排盘历史小锁——btn:history.lock 用例覆盖
+                 # （设/锁藏/错拒/开/撤全链）。
+                 "historyLockBtn", "historyLockGo"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -447,8 +450,6 @@ def main() -> int:
         # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
         # 零请求；_dayPick 确定性已由单测级逻辑保证。
         "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",
-        "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
-                      "零请求；真实链路已 Playwright 手验（按钮存在）",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"
                        "零请求；真实链路已 Playwright 手验",
         "journalSave": "聊天空态今日小确幸保存钮——本地 journal:<date> 写入，"
@@ -479,11 +480,7 @@ def main() -> int:
                      "同 shareBazi 族豁免",
         "rgXhs": "五行人格小红书文案复制钮——纯本地 clipboard 写入，"
                  "零请求；真实链路已 Playwright 手验（点击→toast）",
-        "rgSpeak": "五行人格 TTS 朗读——纯客户端 speechSynthesis，"
-                   "零请求；真实链路已 Playwright 手验",
         "copyXhs": "日签小红书文案复制钮——纯本地 clipboard 写入，"
-                   "零请求；真实链路已 Playwright 手验",
-        "dmSpeak": "解梦 TTS 朗读——纯客户端 speechSynthesis，"
                    "零请求；真实链路已 Playwright 手验",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
@@ -3166,6 +3163,76 @@ def main() -> int:
             if errors:
                 detail += " | " + "; ".join(errors[:3])
             results.append({"name": "btn:history.delete",
+                            "ok": ok, "detail": detail})
+
+            # ── R3414：排盘历史小锁全链——设锁→（清会话态）进页只见
+            # 口令面板+列表工具栏全藏→错口令拒→对口令解锁→撤锁。
+            # 覆盖 historyLockBtn / historyLockGo 两个 on() 注册。
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => {localStorage.removeItem('histLock');"
+                    "sessionStorage.removeItem('histUnlocked');}")
+                goto_view("history")
+                page.wait_for_timeout(400)
+                page.click("#historyLockBtn")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=5000)
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                page.wait_for_function(
+                    "() => !!localStorage.getItem('histLock')",
+                    timeout=5000)
+                page.evaluate(
+                    "() => sessionStorage.removeItem('histUnlocked')")
+                # 不靠视图切换间接触发——锁态判定在 loadPaipanHistory
+                # 里，直调一次确定性进入锁分支（切视图太快要排队等
+                # 在途重放，4s 帽下会抖动）。
+                page.evaluate(
+                    "() => window.__loadPaipanHistory(false)")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=8000)
+                locked_state = page.evaluate(
+                    "() => ({panel: !!document.getElementById("
+                    "'historyLockPanel') && !document.getElementById("
+                    "'historyLockPanel').hidden,"
+                    "list_empty: !document.getElementById('historyList')"
+                    ".innerHTML.trim(),"
+                    "toolbar_hidden: document.querySelector("
+                    "'#view-history .ph-toolbar').hidden})")
+                page.fill("#historyLockInput", "000000")
+                page.click("#historyLockGo")
+                page.wait_for_timeout(400)
+                wrong_rej = page.evaluate(
+                    "() => sessionStorage.getItem('histUnlocked') === null")
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                # sessionStorage 先于 loadPaipanHistory 异步回显置位——
+                # 直接等工具栏可见再断言/再点（4s 默认帽下裸等不足）。
+                page.wait_for_selector(
+                    "#view-history .ph-toolbar:not([hidden])", timeout=8000)
+                unlocked_state = page.evaluate(
+                    "() => sessionStorage.getItem('histUnlocked') === '1'"
+                    " && !document.querySelector("
+                    "'#view-history .ph-toolbar').hidden")
+                page.click("#historyLockBtn")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=5000)
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                page.wait_for_function(
+                    "() => !localStorage.getItem('histLock')",
+                    timeout=5000)
+                ok = (locked_state["panel"] and locked_state["list_empty"]
+                      and locked_state["toolbar_hidden"] and wrong_rej
+                      and unlocked_state and not errors)
+                detail = (f"锁态藏={locked_state} 错拒={wrong_rej} "
+                          f"解锁工具栏={unlocked_state} 撤锁=OK")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:history.lock",
                             "ok": ok, "detail": detail})
 
             # ── R229c：打卡 chips 可读性钉扎——R5 审计 P1：`.checkin-opt`
