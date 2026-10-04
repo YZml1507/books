@@ -387,6 +387,8 @@ function _paintSharePoster(s, W, H) {
                    soulicon: 6,
                    /* R3491：soulemblem 本命/纹意/小满说/口径行。 */
                    soulemblem: 6,
+                   /* R3492：soulquiz 原型/强项/小满说/合拍/口径行。 */
+                   soulquiz: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1873,6 +1875,33 @@ function buildShareData(view, j) {
       if (!_em.lines.length) _em.lines =
         [{ k: '结论', v: '这款纹样是你的' }];
       return _em;
+    }
+    case 'soulquiz': {
+      /* R3492 灵魂原型海报：原型名上主位大字，轴修饰/强项/
+       * 提醒/合拍行进 lines——无生辰门槛件的分享面。 */
+      var _sq = base('灵魂原型', '');
+      var _sqGl = _pStr(j && j._sqGlyph);
+      var _sqNm = _pStr(j && j._sqName) || '灵魂原型';
+      var _sqAx = _pStr(j && j._sqAx);
+      _sq.big = (_sqGl ? _sqGl + ' ' : '') + _sqNm +
+        (_sqAx ? ' · ' + _sqAx : '');
+      _sq.lines = [];
+      if (_pStr(j && j._sqVibe)) {
+        _sq.lines.push({ k: '气质', v: _clauseCut(_pStr(j._sqVibe), 20) });
+      }
+      if (_pStr(j && j._sqGood)) {
+        _sq.lines.push({ k: '强项', v: _clauseCut(_pStr(j._sqGood), 20) });
+      }
+      if (_pStr(j && j._sqWatch)) {
+        _sq.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._sqWatch), 20) });
+      }
+      if (_pStr(j && j._sqCompat)) {
+        _sq.lines.push({ k: '合拍', v: _clauseCut(_pStr(j._sqCompat), 20) });
+      }
+      _sq.lines.push({ k: '口径', v: '八题投出来的型，图个像不像' });
+      if (!_sq.lines.length) _sq.lines =
+        [{ k: '结论', v: '这款原型是你的' }];
+      return _sq;
     }
     case 'soulart': {
       /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带

@@ -8868,6 +8868,8 @@ var _POSTER_TITLES = {
   /* R3491：灵魂纹样海报/纹样原图模态标题与文件名。 */
   soulemblem: '灵魂纹样',
   'emblem-wap': '灵魂纹样原图',
+  /* R3492：灵魂原型小测海报弹层标题/下载文件名。 */
+  soulquiz: '灵魂原型',
   /* R3479：色谱壁纸模态标题/文件名——回落「命盘海报」张冠李戴。 */
   'soulart-wap': '灵魂色谱壁纸',
   /* R3486：图腾壁纸模态标题/文件名。 */
@@ -8906,6 +8908,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   soulicon: 'dream',
   /* R3491：灵魂纹样同归紫云梦底——徽章印的夜行仪式感。 */
   soulemblem: 'dream',
+  /* R3492：灵魂原型同归紫云梦底——原型卡与纹样/角色同族。 */
+  soulquiz: 'dream',
   /* R3462：灵魂色谱——星云底由画家自画（s.art 分支），
    * 此键只为 _bgKey 兜底。 */
   soulart: 'lilac',
@@ -8973,6 +8977,8 @@ var _SHARE_TEXT = {
   /* R3491：灵魂纹样——「我的纹样长这样」接力晒。 */
   soulemblem: '我盘里长出来的纹样是这款，看看你的 →',
   'emblem-wap': '我的灵魂纹样原图做好了，看看你的纹长什么样 →',
+  /* R3492：灵魂原型——「我是哪种原型」接力晒（无生辰门槛）。 */
+  soulquiz: '我测出的灵魂原型是这个，看看你是哪种 →',
   /* R3479：色谱壁纸——「锁屏同款」接力晒。 */
   'soulart-wap': '我的五行色谱锁屏做好了，你的盘是什么颜色 →',
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
@@ -8998,6 +9004,8 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   /* R3491：纹样原图模态复制链同口径——?view=emblem-wap 是死链，
    * 归到 bazi + sa=E 锚。 */
   'emblem-wap': 'bazi',
+  /* R3492：原型海报复制链归 oracle——soulquiz 是题卡的海报件。 */
+  soulquiz: 'oracle',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun',
@@ -12982,6 +12990,227 @@ function _orReplyCard(box, line) {
 var _OR_BIGQ_LINE = '这事比掷筊大——筊杯不敢替你做主。' +
   '大决定别交给筊杯：找个你信得过的人当面掂掂，' +
   '拿不准的也可以先来跟我说说。';
+/* R3492 灵魂原型小测（调研落地：SoulPrint 式 quiz→原型件——无生辰
+ * 门槛，受邀者点开即玩；分享链带原型键，受邀者测完出原型×原型
+ * 合拍行——五行生克换算的轻合拍，不碰命盘）。8 题 × 3 选，每选项
+ * 记 2 票五行倾向 + 1 票收/放轴；得票最多的行定原型，轴定修饰语。 */
+var _SQ_KEYS = ['木', '火', '土', '金', '水'];
+var _SQ_ARCH = {
+  '木': { key: 'm', name: '森语者', glyph: '🌿',
+    vibe: '你看世界的方式是生长——哪里有空隙往哪长',
+    good: '学东西快、恢复力惊人、自带新鲜空气',
+    watch: '坑开太多的时候，记得挑一两个好好收尾' },
+  '火': { key: 'f', name: '燃灯者', glyph: '🔥',
+    vibe: '你是把场子点亮的人——热闹因你而起',
+    good: '行动快、感染力足、冷场你永远先开口',
+    watch: '烧得旺也要留火种给自己，别只照亮别人' },
+  '土': { key: 'e', name: '大山', glyph: '⛰️',
+    vibe: '你是朋友们的地基——不慌不忙但一直在',
+    good: '靠谱、稳得住、答应的事一定落地',
+    watch: '什么都自己扛的时候，允许别人替你扛一次' },
+  '金': { key: 'g', name: '星刃', glyph: '✨',
+    vibe: '你眼里有尺——该断的断、该亮的亮',
+    good: '判断力准、审美在线、不拖泥带水',
+    watch: '尺子也量自己的时候，下手轻一点' },
+  '水': { key: 'w', name: '潮汐', glyph: '💧',
+    vibe: '你看人看得透——表面平静，底下全是感知',
+    good: '共情深、想得远、最懂别人没说出口的那半句',
+    watch: '接住太多情绪的时候，记得给自己放个假' },
+};
+var _SQ_AX = { '收': '往里长的', '放': '往外开的' };
+/* e=五行票  a=收/放轴票 */
+var _SQ_Q = [
+  { q: '难得一整天空闲，你最想——',
+    o: [{ t: '在家收拾、做点手工或看剧', e: '土', a: '收' },
+        { t: '约人去新开的店/新展',     e: '火', a: '放' },
+        { t: '去公园山里随便走走',     e: '木', a: '收' }] },
+  { q: '好朋友难过找你倾诉，你多半——',
+    o: [{ t: '安静陪着，先递纸巾',     e: '水', a: '收' },
+        { t: '帮 TA 捋清楚该怎么办',   e: '金', a: '放' },
+        { t: '拉着 TA 出门吃顿好的',   e: '火', a: '放' }] },
+  { q: '做一个重要决定之前，你——',
+    o: [{ t: '想很久，宁可慢不可错',   e: '土', a: '收' },
+        { t: '直觉来了先干了再说',     e: '火', a: '放' },
+        { t: '列利弊，求个最优解',     e: '金', a: '收' }] },
+  { q: '你的桌面和房间一般是——',
+    o: [{ t: '整整齐齐各有归位',       e: '金', a: '收' },
+        { t: '看着乱但我心里有数',     e: '水', a: '收' },
+        { t: '隔三差五换个新摆设',     e: '木', a: '放' }] },
+  { q: '碰上不公平的事，你通常——',
+    o: [{ t: '当场就说出来',           e: '火', a: '放' },
+        { t: '先忍下，找个好时机再讲', e: '水', a: '收' },
+        { t: '用规则去掰回来',         e: '金', a: '放' }] },
+  { q: '让你最舒服的工作节奏是——',
+    o: [{ t: '一个领域扎深了慢慢做',   e: '土', a: '收' },
+        { t: '隔三差五开新坑尝鲜',     e: '木', a: '放' },
+        { t: '跟人协作、带动节奏',     e: '火', a: '放' }] },
+  { q: '深夜安静下来的时候，你——',
+    o: [{ t: '想心事，能想到很远',     e: '水', a: '收' },
+        { t: '盘算明天要干的几件事',   e: '土', a: '收' },
+        { t: '灵感乱飞，随手记下来',   e: '木', a: '放' }] },
+  { q: '朋友最常夸你的一点是——',
+    o: [{ t: '靠谱，交给你放心',       e: '土', a: '收' },
+        { t: '有劲儿，跟你在一起不闷', e: '火', a: '放' },
+        { t: '好聊，你最懂我',         e: '水', a: '收' }] },
+];
+var _sqAns = [];
+/* 受邀锚 ?view=oracle&sq=<key> ——解析期先存：启动规整会把
+ * 参数从地址栏剥掉（同 __shareBy 先例）。 */
+var _SQ_PEER_KEY = '';
+try {
+  _SQ_PEER_KEY = (/[?&]sq=([mfegw])/.exec(location.search || '') ||
+    [null, ''])[1] || '';
+} catch (eK) {}
+function _sqPeer() {
+  return _SQ_PEER_KEY;
+}
+function _sqInit() {
+  var p = el('sqPanel');
+  if (!p) return;
+  var _peer = _sqPeer();
+  var _peerNm = '';
+  if (_peer) {
+    for (var _k in _SQ_ARCH) {
+      if (_SQ_ARCH[_k].key === _peer) _peerNm = _SQ_ARCH[_k].name;
+    }
+  }
+  var _h = _peerNm
+    ? '<div class="sq-peer">朋友的原型是「' + esc(_peerNm) +
+      '」——测完你的，看看你俩合不合</div>'
+    : '';
+  _h += '<div class="sq-intro">八道小题，凭第一反应选——' +
+        '测测你的灵魂原型是哪一种</div>';
+  _SQ_Q.forEach(function (qq, i) {
+    _h += '<div class="sq-q"><div class="sq-q-t">' + (i + 1) +
+      '. ' + esc(qq.q) + '</div><div class="sq-opts" role="group">';
+    qq.o.forEach(function (o, oi) {
+      _h += '<button type="button" class="chat-chip sq-opt" ' +
+        'data-sqi="' + i + '" data-sqo="' + oi + '">' +
+        esc(o.t) + '</button>';
+    });
+    _h += '</div></div>';
+  });
+  _h += '<div class="sq-progress" id="sqProg">已答 0/' +
+        _SQ_Q.length + '</div>';
+  p.innerHTML = _h;   // esc-reviewed：题库全静态字面量
+}
+function _sqPick(qi, oi) {
+  var qq = _SQ_Q[qi];
+  if (!qq || !qq.o[oi]) return;
+  _sqAns[qi] = oi;
+  /* 单选态：同题其他选项退亮 */
+  var grp = document.querySelectorAll(
+    '.sq-opt[data-sqi="' + qi + '"]');
+  grp.forEach(function (b) {
+    b.classList.toggle('on', +b.getAttribute('data-sqo') === oi);
+  });
+  var done = _sqAns.filter(function (v) {
+    return v !== undefined; }).length;
+  var pr = el('sqProg');
+  if (pr) pr.textContent = '已答 ' + done + '/' + _SQ_Q.length;
+  if (done >= _SQ_Q.length) _sqDone();
+}
+function _sqDone() {
+  var votes = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 };
+  var ax = { '收': 0, '放': 0 };
+  _sqAns.forEach(function (oi, qi) {
+    var o = _SQ_Q[qi].o[oi];
+    votes[o.e] += 2; ax[o.a] += 1;
+  });
+  var wx = _SQ_KEYS.slice().sort(function (a, b) {
+    return votes[b] - votes[a]; })[0];
+  var arch = _SQ_ARCH[wx];
+  var axw = ax['放'] >= ax['收'] ? '放' : '收';
+  /* 原型×原型合拍：受邀者落地带 sq 锚时出配对判词。 */
+  var peer = _sqPeer();
+  var compat = '';
+  if (peer && peer !== arch.key) {
+    var pw = _SQ_KEYS.filter(function (k2) {
+      return _SQ_ARCH[k2].key === peer; })[0];
+    if (pw) {
+      var rel;
+      if (_WX_SHWO[wx] === pw) rel = 'TA 旺你型：TA 是你的能量补给，处久了你精神头足';
+      else if (_WX_SHWO[pw] === wx) rel = '你旺 TA 型：跟你在一起 TA 状态好，别老是你给';
+      else if (_WX_KEWO[wx] === pw) rel = '磨刀石型：TA 会硌你一下，但处好了最互补';
+      else if (_WX_WOKE[wx] === pw) rel = '你带节奏型：TA 容易被你带着走，温柔点带';
+      else rel = '各有各的节奏：不同步但正好互相补上';
+      compat = '💞 你俩的合拍：' + _SQ_ARCH[pw].name + ' × ' +
+               arch.name + '——' + rel;
+    }
+  } else if (peer) {
+    compat = '💞 你俩同款灵魂：' + arch.name + ' × ' + arch.name +
+             '——不用解释的懂';
+  }
+  var box = el('sqResult');
+  if (!box) return;
+  box.innerHTML =
+    '<div class="sq-card sm-card">' +
+    '<div class="sq-arch">' + esc(arch.glyph) + ' ' + esc(arch.name) +
+      '<small> · ' + esc(_SQ_AX[axw]) + '</small></div>' +
+    '<div class="sm-tip">🧭 ' + esc(arch.vibe) + '</div>' +
+    '<div class="sm-tip">✨ 你的强项：' + esc(arch.good) + '</div>' +
+    '<div class="sm-tip">💡 小满提一句：' + esc(arch.watch) + '</div>' +
+    (compat ? '<div class="sm-tip sq-compat">' + esc(compat) + '</div>' : '') +
+    '<div class="sm-note">五型是按你选的答案投出来的——' +
+      '换批答案会换型，图个像不像</div>' +
+    '<button class="ghost fav-btn" type="button" id="sqShare" ' +
+      'title="生成灵魂原型分享图">📸 晒出我的原型</button>' +
+    '<button class="ghost fav-btn" type="button" id="sqInvite" ' +
+      'title="复制链接喊 TA 也来测">🔗 喊 TA 也来测</button>' +
+    '<button class="ghost fav-btn" type="button" id="sqAgain" ' +
+      'title="重答一遍">🔁 再测一次</button>' +
+    '</div>';
+  on('sqShare', function () {
+    var _o = { _sqName: arch.name, _sqGlyph: arch.glyph,
+               _sqAx: _SQ_AX[axw], _sqVibe: arch.vibe,
+               _sqGood: arch.good, _sqWatch: arch.watch,
+               _sqCompat: compat };
+    return downloadPoster(Object.assign({ view: 'oracle' }, _o),
+                          'soulquiz');
+  });
+  on('sqInvite', function () {
+    var u = location.origin + '/?view=oracle&sq=' + arch.key;
+    var txt = '我测出的灵魂原型是「' + arch.name +
+      '」——来看看你俩合不合：' + u;
+    var _ok = function () {
+      showToast('邀请链接复制好了，发给 TA 来测原型', 'ok');
+    };
+    var _legacy = function () {
+      var _ok0 = true;
+      try {
+        var _ta = document.createElement('textarea');
+        _ta.value = txt;
+        _ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(_ta); _ta.select();
+        _ok0 = !!document.execCommand('copy');
+        _ta.remove();
+      } catch (e2) { _ok0 = false; }
+      if (_ok0) { _ok(); }
+      else {
+        try {
+          _showTextExportModal('邀请链接', u,
+            '长按下面文本全选复制，发给 TA 吧');
+        } catch (eM2) {
+          showToast('复制没成功，可截图链接发给 TA', 'warn');
+        }
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(_ok, _legacy);
+    } else { _legacy(); }
+  });
+  on('sqAgain', function () {
+    _sqAns = [];
+    var res = el('sqResult');
+    if (res) res.innerHTML = '';
+    document.querySelectorAll('.sq-opt.on').forEach(function (b) {
+      b.classList.remove('on'); });
+    var pr2 = el('sqProg');
+    if (pr2) pr2.textContent = '已答 0/' + _SQ_Q.length;
+  });
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function doOracle() {
   var ta = el('orText');
   var q = ta ? String(ta.value || '').trim().slice(0, 60) : '';
@@ -13869,6 +14098,17 @@ function initDivination() {
   on('orSubmit', function () { return doOracle(); });
   var _orView = document.getElementById('view-oracle');
   if (_orView) _orView.addEventListener('click', function (ev) {
+    /* R3492：灵魂原型小测——题卡选项点击走委托（data-sqi/idx）。
+     * 判在 or-chip 之前：原写法 `if(!b)return` 会把 sq-opt
+     * 点击全挡掉。 */
+    var q = ev.target && ev.target.closest
+      ? ev.target.closest('.sq-opt') : null;
+    if (q) {
+      var _qi = +q.getAttribute('data-sqi'),
+          _oi = +q.getAttribute('data-sqo');
+      if (!isNaN(_qi) && !isNaN(_oi)) _sqPick(_qi, _oi);
+      return;
+    }
     var b = ev.target && ev.target.closest
       ? ev.target.closest('.or-chip') : null;
     if (!b) return;
@@ -13877,6 +14117,7 @@ function initDivination() {
     ta2.value = b.getAttribute('data-or') || '';
     try { ta2.focus(); } catch (e) {}
   });
+  _sqInit();
   on('qmSubmit', doQiming);
   on('thSubmit', doTaohua);
   /* R3206：农历历法切换→闰月字段显隐（五处表单共用一套 id 对）。 */

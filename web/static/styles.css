@@ -4195,6 +4195,28 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
  * 深/浅主题同一观感）。 */
 .em-cv { display: block; margin: 14px auto 4px; border-radius: 50%;
   max-width: 240px; width: 60vw; height: auto; }
+/* R3492：灵魂原型小测——题卡/选项/进度/原型卡。 */
+.sq-intro { font-size: 13px; color: var(--muted);
+  margin: 6px 12px 12px; }
+.sq-peer { font-size: 13px; color: var(--accent-ink, #a15c74);
+  background: var(--accent-soft, rgba(255,143,171,.12));
+  border-radius: 10px; padding: 8px 12px; margin: 6px 12px 10px; }
+.sq-q { margin: 0 12px 12px; }
+.sq-q-t { font-size: 14px; font-weight: 600; color: var(--primary-ink);
+  margin-bottom: 6px; }
+.sq-opts { display: flex; flex-direction: column; gap: 6px; }
+.sq-opt { text-align: left; white-space: normal; line-height: 1.4;
+  padding: 9px 12px; }
+.sq-opt.on { border-color: var(--accent); color: var(--accent-ink);
+  background: var(--accent-soft, rgba(255,143,171,.12)); }
+.sq-progress { font-size: 12px; color: var(--muted);
+  text-align: center; margin: 4px 0 2px; }
+.sq-arch { font-size: 20px; font-weight: 700; margin: 12px 8px 4px;
+  text-align: center; color: var(--primary-ink); }
+.sq-arch small { font-size: 13px; font-weight: 400;
+  color: var(--muted); }
+.sq-compat { border-left: 3px solid var(--accent, #ff8fab);
+  padding-left: 8px; }
 /* R3462：灵魂色谱卡——色条即产品（各段 flex 占比=五行权重）。 */
 .sa-strip { display: flex; gap: 3px; height: 46px; margin: 14px 8px 6px;
   border-radius: 12px; overflow: hidden; }

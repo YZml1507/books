@@ -493,6 +493,15 @@ def main() -> int:
                    "同 shareBazi 族豁免",
         "emWap": "灵魂纹样「纹样原图」——canvas 徽章合成+下载，"
                  "同 dailyWap 族豁免",
+        # R3492：原型小测三钮——要先答完 8 题才渲染（单钮用例表
+        # 构不成答题前置），记豁免：sqShare=downloadPoster('soulquiz')
+        # 海报模态族；sqInvite=clipboard toast 族；sqAgain=纯前端重渲染。
+        "sqShare": "灵魂原型「晒出我的原型」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免；且须先答完 8 题才出现",
+        "sqInvite": "灵魂原型「喊 TA 也来测」——clipboard+toast 族，"
+                    "须先答完 8 题才出现",
+        "sqAgain": "灵魂原型「再测一次」——清空选项纯前端重渲染，"
+                   "须先答完 8 题才出现",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"

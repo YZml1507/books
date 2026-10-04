@@ -19781,3 +19781,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - _emblemDraw 放 app.js 全局——卡内小图与 _wapEmblem 大图共用同画家同种子（同盘同纹确定性口径）。
 - 实测：庚日主→星芒纹卡内徽章非空渲染、原图 391KB 落盘+模态、海报弹层「📸 灵魂纹样」、sa=E 深链自动开卡、零 JS 错。
 - 闸：selftest 457 / contract 790 / banned 0 / smoke 125 / plain 5 / regress 全绿。
+
+## R3492 灵魂原型小测（SoulPrint 同构，漏斗顶无盘件）
+- 8 题×3 选 → 五原型（森语者🌿/燃灯者🔥/大山⛰️/星刃✨/潮汐💧）×收/放双轴——不要生辰，受邀者/新客漏斗顶入口。
+- 测完出原型卡：气质/强项/小满说 + 晒海报（'soulquiz' 版式，行帽6）+「发给 TA 测默契」复制 ?view=oracle&sq=<key> 链。
+- 合拍算法：受邀方链里带出题者原型键（parse 时捕获 _SQ_PEER_KEY 防启动规整剥参），测完按五行关系出行——同款/TA旺你/你旺TA/磨刀石/你带节奏。
+- 题卡走 #view-oracle 委托点击（data-sqi/sqo）——修排序坑：or-chip 判空 return 会把 sq-opt 全挡（实测暴露）。
+- 实测：受邀链 sq=f→横幅点名→答8题→燃灯者·往外开的+「同款灵魂」合拍行+海报弹层渲染合格+零 JS 错。
+- 闸：selftest 457 / contract 790 / banned 0 / smoke 125 / plain 5 / regress 全绿。
