@@ -20339,6 +20339,46 @@ function _ckPatternFind(todayKey) {
         }
       }
     } catch (eHG2) {}
+    /* 小记关键词×心情（R3617，Lunary journal themes 同构）：
+     * 固定生活主题词表扫 journal:<d>——某词落在 ≥3 个心情日、
+     * 与其余心情日差出 0.6 才敢说「提到「考试」的日子你常常
+     * 偏沉/更亮」。词表是封闭集，不进用户自由文本。 */
+    try {
+      var _J_THEMES = ['考试', '学习', '工作', '上班', '加班', '面试',
+        '老板', '同事', '朋友', '家人', '妈妈', '爸爸', '喜欢', '恋爱',
+        '失眠', '睡不', '焦虑', '运动', '身体', '钱'];
+      var _kwDays = {};
+      _recs.forEach(function (r) {
+        var _jt = '';
+        try { _jt = String(localStorage.getItem('journal:' + r.d) || ''); }
+        catch (eJ) {}
+        if (!_jt) return;
+        for (var _k = 0; _k < _J_THEMES.length; _k++) {
+          if (_jt.indexOf(_J_THEMES[_k]) >= 0) {
+            (_kwDays[_J_THEMES[_k]] = _kwDays[_J_THEMES[_k]] || [])
+              .push(r);
+          }
+        }
+      });
+      Object.keys(_kwDays).forEach(function (kw) {
+        var _hit = _kwDays[kw];
+        if (_hit.length < 3) return;
+        var _rest = _recs.filter(function (r) {
+          return _hit.indexOf(r) < 0;
+        });
+        if (_rest.length < 3) return;
+        var _hm = 0, _rm = 0;
+        _hit.forEach(function (r) { _hm += r.v; });
+        _rest.forEach(function (r) { _rm += r.v; });
+        _hm /= _hit.length; _rm /= _rest.length;
+        var _jl = _hm - _rm;
+        if (Math.abs(_jl) >= 0.6) {
+          _cands.push({ lift: Math.abs(_jl), n: _hit.length,
+            txt: '小记里提到「' + kw + '」的日子，你好像常常' +
+                 (_jl > 0 ? '更亮一点' : '偏沉一点') });
+        }
+      });
+    } catch (eJK) {}
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
