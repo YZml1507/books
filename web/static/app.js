@@ -17256,7 +17256,10 @@ function _promptText(j, body) {
                  j.calc.five_elements.counts) || {};
   var _bd = '';
   if (body && body.year) {
-    _bd = body.year + '年' + (body.month || '?') + '月' +
+    /* R3465-P1（审子实锤）：农历生日不带历法标注贴出去，外部
+     * AI 会按公历重排——全盘错。标上「农历」，公历不标（默认）。 */
+    _bd = (body.calendar_type === 'lunar' ? '农历 ' : '') +
+      body.year + '年' + (body.month || '?') + '月' +
       (body.day || '?') + '日' +
       (body.hour_known && body.hour != null ? ' ' + body.hour + '时'
         : '（时辰未知）') +
@@ -17284,9 +17287,10 @@ function _promptCopy(j, body) {
     showToast('prompt 已复制——贴给任何 AI 都能帮你算', 'ok'); };
   var bad = function () {
     showToast('复制没成功：再点一下试试', 'warn'); };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(ok, bad);
-  } else {
+  /* R3465-P1（审子实锤）：writeText 被拒（权限策略/非安全上下
+   * 文）原来只弹 bad toast 死路——拒绝时回落 execCommand 再试
+   * 一次，都不行才报。 */
+  var _fallback = function () {
     try {
       var _ta = document.createElement('textarea');
       _ta.value = text; document.body.appendChild(_ta);
@@ -17295,6 +17299,11 @@ function _promptCopy(j, body) {
       _ta.remove();
       _d ? ok() : bad();
     } catch (e) { bad(); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok, _fallback);
+  } else {
+    _fallback();
   }
 }
 

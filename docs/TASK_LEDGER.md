@@ -19657,3 +19657,10 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - localStorage 禁用（隐私模式近似）：深链落地正常渲染零 JS 错。
 - soulart 空 bands→_saArt 判空回落暖底，无白板；copy
   execCommand fallback 在位。
+
+## R3465-P1 审子报告按单清（2 项实锤）
+- 农历生辰错标：prompt「生辰」农历盘原不带历法——外部 AI
+  按公历重排全盘错。农历前缀「农历」，公历不标。
+- clipboard 死循环：writeText 被拒原只弹 toast 死路——拒绝
+  时回落 execCommand 再试，双败才报。
+- （子另报 ?view=soulmate 残链降级正常——无需修。）
