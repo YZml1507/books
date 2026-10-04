@@ -1260,6 +1260,15 @@ function buildShareData(view, j) {
       if (j && j.level === '吉') {
         _ds.lines.splice(1, 0, { k: '签运', v: '上上签' });
       }
+      /* R3621：今日能量分上日签海报——个人分跟晒图走（无档案
+       * 无此行）；插在「今日评分」后，两枚分数并排出。 */
+      var _den = (j && j.personal && j.personal.energy) || null;
+      if (_den && _den.score) {
+        var _ei = _ds.lines.findIndex(function (l) {
+          return l.k === '今日评分'; });
+        _ds.lines.splice(_ei >= 0 ? _ei + 1 : 1, 0,
+          { k: '今日能量', v: String(_den.score) + ' 分' });
+      }
       /* R2349t（R88-2a/15b）：节日/节气上海报副题+右上徽章——
        * 中秋当天发出去的图自带时令由头（字段已在 daily 响应下发）。 */
       var _dfest = _pArr(j && j.festival)[0] ||

@@ -741,6 +741,12 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 html[data-theme="dark"] .daily-mine{background:rgba(255,255,255,.10); color:#e8ddd0;}
 html[data-theme="dark"] .daily-mine.down{background:rgba(216,120,102,.18); color:#e29a8d;}
 html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
+/* R3621：今日能量分芯片——与 .daily-mine 同款胶囊，暖金底
+ * 区分于对位判词的色阶（分是「电量」，不是吉凶）。 */
+.daily-energy{display:inline-block; padding:2px 10px; margin-right:8px;
+  border-radius:999px; font-weight:600; font-size:12.5px;
+  background:rgba(196,142,42,.14); color:#9a6f1e;}
+html[data-theme="dark"] .daily-energy{background:rgba(228,180,96,.16); color:#e0bb6e;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R3248b：个人判词独立块——多行自然换行，不再被胶囊行裁切。 */

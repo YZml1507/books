@@ -6206,6 +6206,14 @@ async function loadDaily() {
        * 改挂通版天气粒（通判语义保留可见）；各行 join 拼装——
        * 前置段缺省时不留孤悬 <br>。 */
       var _pc2 = [];
+      /* R3621：今日能量分置顶——数字先行（电量足不足一眼见），
+       * 依据由下行日主十神/日支对位行承担，不重复解释。 */
+      var _en = j.personal.energy;
+      if (_en && _en.score) {
+        _pc2.push('<span class="daily-energy">' +
+          '⚡ 今日能量 ' + esc(_en.score) + ' 分</span> ' +
+          esc(_en.line || ''));
+      }
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
           esc(_mine.tone || 'flat') + '">' +
