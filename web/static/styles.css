@@ -4127,6 +4127,12 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   font-size: 12.5px; word-break: break-all; }
 .mc-q { display: flex; flex-direction: column; gap: 7px; }
 .mc-q-t { font-size: 14px; font-weight: 600; color: var(--text); }
+/* R3436：出题单题「换一题」小钮——题行尾轻量入口，44px 触摸。 */
+.mc-reroll { float: right; border: none; background: none;
+  font-size: 11px; color: var(--secondary); cursor: pointer;
+  padding: 6px 2px 6px 10px; min-height: 32px;
+  font-family: var(--font-sans); }
+.mc-reroll:active { transform: scale(.94); color: var(--accent); }
 .mc-opts { display: flex; flex-wrap: wrap; gap: 7px; }
 /* R3401：答题选项是整页核心点按件——抬到 36px 触控线（与
  * .mc-pack/.hl-cal-btn 同口径），窄屏不再难点。 */

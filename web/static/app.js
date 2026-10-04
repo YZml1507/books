@@ -20468,6 +20468,31 @@ function _mcQS(pack, custom) {
     { q: '下雨天最想？', o: ['窝在被窝里', '出门踩水', '来杯热乎的'] }
   ];
 }
+/* R3436 出题「换一题」：内置题库扩成换题池——前 5 题仍是默认
+ * 套卷（与 _mcQS 逐字一致），换题只在 host 侧挑，换过题的套卷
+ * 走 v3 载荷带题包，标准套卷仍走 v1 短链。 */
+function _mcPool(pack) {
+  if (pack === 'love') {
+    return _mcQS('love').concat([
+      { q: '纪念日怎么过？', o: ['正式约一顿', '小礼物就行', '吃顿好的', '说声快乐就好'] },
+      { q: 'TA 生气时我最希望？', o: ['抱抱就好', '好好讲道理', '给点空间', '哄到笑为止'] },
+      { q: '最期待一起去哪？', o: ['海边躺平', '城市暴走', '山里放空', '宅家也行'] },
+      { q: '生病时最想 TA？', o: ['陪着照顾', '买药送饭', '远程叮嘱我', '让我睡个好觉'] },
+      { q: '我手机里最多的是？', o: ['TA 的照片', '聊天截图', '搞笑表情包', '自拍臭美'] },
+      { q: '周末理想安排？', o: ['一起出门浪', '各玩各的再聚', '宅一起一整天', '看心情再说'] },
+      { q: '吵架后最想要？', o: ['立刻和好', '先冷静再谈', 'TA 先低头', '吃顿好的翻篇'] }
+    ]);
+  }
+  return _mcQS('bestie').concat([
+    { q: '火锅必点什么？', o: ['毛肚七上八下', '虾滑一整盘', '肥牛卷', '素菜收尾'] },
+    { q: '出去玩谁定路线？', o: ['我做攻略', 'TA 随便带', '走到哪算哪'] },
+    { q: 'KTV 里我是？', o: ['麦霸本霸', '果盘杀手', '角落打 call'] },
+    { q: '半夜饿了会？', o: ['起来煮面', '点份外卖', '忍到天亮', '摸点零食'] },
+    { q: '拍照我属于？', o: ['疯狂摆拍', '专业帮拍', '能躲就躲'] },
+    { q: '收到消息一般？', o: ['秒回本秒', '已读随缘回', '攒一波再回'] },
+    { q: '最想收到的惊喜？', o: ['突然出现在门口', '手写的小卡片', '一顿大餐'] }
+  ]);
+}
 function _mcPackOf(p) {
   /* R3430-P1-1（审）：v1/v2 载荷也受理 'custom'——`#mcr=v2|..|
    * custom` 能拼出「自写默契题·100分·零题行」伪造成绩卡落榜，
@@ -20691,9 +20716,16 @@ function _mcBoardHtml() {
 }
 function _mcQuizHtml(ctx) {
   var _pk = (ctx && ctx.pack) || 'bestie';
-  var qs = (_mcQS(_pk, ctx && ctx.qs) || []).map(function (q, i) {
+  /* R3436：host 换过题的套卷从 ctx.hqs 取——受邀侧仍按载荷
+   * 题包（v3 qs）或题库默认渲。 */
+  var _set = (ctx && ctx.hqs) || (_mcQS(_pk, ctx && ctx.qs) || []);
+  var _rr = (!ctx || !ctx.hostAns) && _pk !== 'custom';
+  var qs = _set.map(function (q, i) {
     return '<div class="mc-q" id="mochiQ' + i + '">' +
-      '<div class="mc-q-t">' + (i + 1) + '. ' + esc(q.q) + '</div>' +
+      '<div class="mc-q-t">' + (i + 1) + '. ' + esc(q.q) +
+      (_rr ? '<button type="button" class="mc-reroll" data-mc="reroll" ' +
+        'data-q="' + i + '" title="这题换个新的">换一题</button>' : '') +
+      '</div>' +
       '<div class="mc-opts">' + q.o.map(function (o, j) {
         return '<button type="button" class="mc-opt" data-mc="opt" ' +
           'data-q="' + i + '" data-o="' + j + '">' + esc(o) + '</button>';
@@ -20899,10 +20931,13 @@ function _renderMochi() {
   if (_dr) {
     try { window.__mcDraft = _dr; } catch (eD0) {}
   }
+  var _hq = null;
+  try { _hq = JSON.parse(box.dataset.hqs || 'null'); } catch (eHQ) {}
   box.innerHTML = _mcBoardHtml() +
     _mcQuizHtml(st && st.mode === 'guest'
       ? { who: st.nick, hostAns: st.ans, pack: st.pack, qs: st.qs }
-      : { pack: box.dataset.pack || 'bestie' });
+      : { pack: box.dataset.pack || 'bestie',
+          hqs: Array.isArray(_hq) && _hq.length === 5 ? _hq : null });
   /* R3427：受邀方的自写题包存进 dataset——done/flip/share 都要
    * 用同一套题算分和出链。 */
   try {
@@ -20926,10 +20961,54 @@ function _renderMochi() {
       try {
         box.dataset.nick = (el('mochiNick') || {}).value || '';
         box.dataset.pack = b.dataset.pack || 'bestie';
+        /* R3436：切题库=整套重出——hqs 自定义集随之作废。 */
+        delete box.dataset.hqs;
       } catch (ePK) {}
       _renderMochi();
       var _nk = el('mochiNick');
       if (_nk && box.dataset.nick) _nk.value = box.dataset.nick;
+      return;
+    }
+    if (act === 'reroll') {
+      /* R3436：单题换一题——从换题池补一道没出过的；该题已选的
+       * 答案随换题清掉，昵称与其余题答案原样护住。 */
+      var _ri = +b.dataset.q;
+      try {
+        box.dataset.nick = (el('mochiNick') || {}).value || '';
+        var _hans = _mcAnsRead(box).split('');
+        _hans[_ri] = ' ';
+        box.dataset.hans = _hans.join('');
+        var _pk2 = box.dataset.pack || 'bestie';
+        var _cur = JSON.parse(box.dataset.hqs || 'null') ||
+          _mcQS(_pk2).map(function (x) { return { q: x.q, o: x.o.slice() }; });
+        var _have = _cur.map(function (x) { return x && x.q; });
+        var _cand = _mcPool(_pk2).filter(function (x) {
+          return _have.indexOf(x.q) === -1;
+        });
+        if (!_cand.length) {
+          showToast('这个题库能换的题都上过啦', 'info');
+          return;
+        }
+        _cur[_ri] = _cand[Math.floor(Math.random() * _cand.length)];
+        box.dataset.hqs = JSON.stringify(_cur);
+      } catch (eRR) { return; }
+      _renderMochi();
+      var _nk2 = el('mochiNick');
+      if (_nk2 && box.dataset.nick) _nk2.value = box.dataset.nick;
+      var _ha2 = String(box.dataset.hans || '');
+      for (var _ai = 0; _ai < 5; _ai++) {
+        var _ch = _ha2[_ai];
+        if (_ch && _ch !== ' ') {
+          var _ob = box.querySelector('#mochiQ' + _ai +
+            ' .mc-opt[data-o="' + _ch + '"]');
+          if (_ob) _ob.classList.add('on');
+        }
+      }
+      var _dn = _mcAnsRead(box).replace(/ /g, '').length;
+      var _br = el('mochiBar');
+      if (_br) _br.textContent = '已答 ' + _dn + '/5';
+      var _mg = el('mochiMake');
+      if (_mg) _mg.disabled = (_dn < 5);
       return;
     }
     if (act === 'opt') {
@@ -20977,9 +21056,22 @@ function _renderMochi() {
             JSON.stringify(_hs.slice(-10)));
         }
       } catch (eH2) {}
+      /* R3436：换过题的套卷不是题库默认五题——v1 载荷只带答案
+       * 索引，受邀方会按标准题面出卡（题不对）。改走 v3 自写
+       * 链带题包；仍是标准套卷就保持 v1 短链。 */
+      var _hq2 = null;
+      try { _hq2 = JSON.parse(box.dataset.hqs || 'null'); } catch (eHS) {}
+      var _std = _mcQS(box.dataset.pack || 'bestie');
+      var _isStd = !Array.isArray(_hq2) ||
+        _hq2.every(function (x, i) {
+          return x && _std[i] && x.q === _std[i].q;
+        });
       var link = location.origin + '/?view=mochi#mc=' +
-        _mcEnc('v1|' + nick + '|' + ans + '|' +
-               (box.dataset.pack || 'bestie'));
+        (_isStd
+          ? _mcEnc('v1|' + nick + '|' + ans + '|' +
+                   (box.dataset.pack || 'bestie'))
+          : _mcEnc('v3|' + nick + '|' + ans + '|c|' +
+                   _mcEnc(JSON.stringify(_hq2))));
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +
         '<input id="mochiLink" class="mc-link" readonly ' +

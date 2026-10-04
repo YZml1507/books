@@ -4673,6 +4673,16 @@ def _run_inner() -> list[str]:
         "_mcEditRead" in _appsrc2 and 'data-pack="custom"' in _appsrc2, \
         "默契自写题：v3/_mcQDec/_mcEditRead/custom 包钮缺一"
     ok.append("frontend.mochi_custom")
+    # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
+    # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
+    _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "styles.css"),
+                    encoding="utf-8").read()
+    assert "_mcPool" in _appsrc2 and 'data-mc="reroll"' in _appsrc2 and \
+        "dataset.hqs" in _appsrc2 and "v3|" in _appsrc2 and \
+        "mc-reroll" in _csssrc2, \
+        "默契换一题：池/委托/套卷集/v3 降级/样式缺一"
+    ok.append("frontend.mochi_reroll")
     # R3388 每日一签：懒载器/同签闸/历史/白名单/备份前缀五件套——
     # 缺一则签页空渲、同日变签、跨链断档、聊路死链或清场漏数。
     assert "view-qian" in _idxsrc and "_renderQian" in _appsrc2 and \
@@ -4692,9 +4702,6 @@ def _run_inner() -> list[str]:
     ok.append("frontend.cny_ny_wiring")
     # R3435 圣诞心愿限定：钮/窗函/条/锚/聊路标五件套——缺一则
     # 钮不现身、点死不抽、限定条不冒或聊里死链。
-    _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 "static", "styles.css"),
-                    encoding="utf-8").read()
     assert 'id="trQX"' in _idxsrc and "_trXFest" in _appsrc2 and \
         "__trXFest" in _appsrc2 and "tr-xfest-strip" in _appsrc2 and \
         'trQX:' in _appsrc2 and "tr-xfest-strip" in _csssrc2, \

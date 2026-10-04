@@ -19239,3 +19239,15 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   跨零点进出窗自动现身/收起；selftest 新增 frontend.xmas_wiring。
 - 闸：selftest 444、contract 789、ui_smoke 113、banned_copy 0、
   regress PASS 全绿；sw 缓存 bump books-shell-8839c985d0cb。
+
+## R3436 默契出题「换一题」（2026-10-04）
+- 内置题库扩为换题池（_mcPool：默认 5 题+闺蜜 7/对象 7 替补），
+  题行尾挂「换一题」钮——从池中补一道未出过的题，该题已选
+  答案清掉、其余题答案与昵称原样护住。
+- 换过题的套卷不再走 v1 短链（载荷只带答案索引，受邀方会
+  按标准题面出卡题不对）——自动降级 v3 自写链带题包；
+  仍为标准套卷保持 v1 短链。受邀方/成绩链看到同一套题。
+- Playwright 实测：换题只动该题、已答保留、v3 链受邀方
+  题面完全一致、零 JS 错。selftest 新增 frontend.mochi_reroll。
+- 闸：selftest 445、contract 789、ui_smoke 113、banned_copy 0、
+  regress PASS 全绿；sw bump books-shell-c8f0bca84ee8。
