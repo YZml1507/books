@@ -19857,3 +19857,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3510 深色/新件目检 + R3511 月信联动
 - R3510：金逆行/小规律行/功课章深色对比目检合格（.ck-quest/.daily-meta-item 主题化零漏）。
 - R3511：上月小信尾附一条「小规律」观察（够格才附，阈值同源 _ckPatternFind）。
+
+## R3512 PWA 图标角标=连签天数（Badging API）
+- renderCheckin 算完连签后 navigator.setAppBadge(streak)：装到桌面的图标角标跟着打卡天数走，断签清零；不支持的浏览器静默。实测调用参数=1。

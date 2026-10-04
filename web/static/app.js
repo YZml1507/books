@@ -19670,6 +19670,14 @@ function renderCheckin(dateKey) {
   catch (e0) { saved = null; }
   var _ckAll = _checkinAll();
   var _streak = dateKey ? _checkinStreak(_ckAll, dateKey) : 0;
+  /* R3512：装到桌面后图标角标=连签天数（Badging API，安卓/
+   * ChromeOS 生效；iOS/桌面不支持静默）。断签清零。 */
+  try {
+    if ('setAppBadge' in navigator)
+      navigator.setAppBadge(_streak > 0 ? _streak : 0);
+    else if ('clearAppBadge' in navigator && _streak === 0)
+      navigator.clearAppBadge();
+  } catch (eBD) {}
   /* 昨天选了什么（今天还没打时才提示，打了就没必要复读） */
   var _yKey = dateKey ? _isoShift(dateKey, -1) : '';
   var _yPick = _yKey ? _ckAll[_yKey] : null;
