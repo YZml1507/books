@@ -2839,6 +2839,35 @@ function chatEmptyGuide() {
   d.appendChild(t);
   flow.appendChild(d);
 }
+/* R3447：聊斋当值签——万圣窗内限定抽牌附「今夜当值」一签。
+ * 蒲松龄笔下十六位，按日定值（同一晚全场同签，正是「当值」
+ * 的仪式感），判词只走提点口径：不许诺、不指令、不吓人。 */
+var _LIAO_POOL = [
+  { c: '狐仙·婴宁', t: '她笑了一整部书——你笑一下，今晚的事就小一圈' },
+  { c: '聂小倩', t: '熬过最难的那段夜路，天亮的人都记得自己' },
+  { c: '画皮', t: '好看的皮相留不住心，真心也不用皮相撑' },
+  { c: '花妖·葛巾', t: '花开不必一次全开，你这朵按自己的节气来' },
+  { c: '崂山道士', t: '穿墙的本事学不会，绕着墙走也算本事' },
+  { c: '促织', t: '小东西也有大动静——你憋着的那件小事，值得说出来' },
+  { c: '小谢', t: '没说完的话托梦也要送到——心里那句，今晚就讲' },
+  { c: '秋容', t: '等人这件事，等的其实是肯为你留灯的那个' },
+  { c: '连城', t: '信得过的人不用多，一个就够挡一城的雨' },
+  { c: '辛十四娘', t: '心肠软的狐狸才有仙骨——你的心软不是缺点' },
+  { c: '阿绣', t: '世上没有两朵一样的花，你也不用像谁' },
+  { c: '封三娘', t: '姐妹的缘分比姻缘长——想起谁，今晚就戳戳TA' },
+  { c: '青凤', t: '规矩再多拦不住真心——真的喜欢，别怕承认' },
+  { c: '宦娘', t: '琴声最懂人心——听首慢歌，答案在里面' },
+  { c: '翩翩', t: '黄叶剪的衣也暖，凑合的日子也能过出味道' },
+  { c: '娇娜', t: '好大夫先医心——今晚早点睡，就是给自己看病' }
+];
+var _liaoPick = function () {
+  var _h = 0, _ds = '';
+  try { _ds = todayIso(); } catch (eD0) {}
+  for (var _i0 = 0; _i0 < _ds.length; _i0++) {
+    _h = ((_h * 31) + _ds.charCodeAt(_i0)) >>> 0;
+  }
+  return _LIAO_POOL[_h % _LIAO_POOL.length];
+};
 /* R3446：空态「她记得」一行——按贴身度取第一条命中，
  * 只摆事实不评判；全本机键，零请求零上传。 */
 function _chatMemoryLine() {
@@ -9641,6 +9670,16 @@ async function doTarot(cards) {
       _hf.textContent = '🎃 万圣夜限定 · 今晚问的，小满都替你保密';
       var _box0 = el('trResult');
       if (_box0) _box0.insertBefore(_hf, _box0.firstChild);
+      /* R3447：聊斋当值签——限定抽附「今夜当值」一签随结果走，
+       * 判词进海报数据键，晒图上也有这一行。 */
+      try {
+        var _lz = _liaoPick();
+        j._liao = _lz;
+        var _lzEl = document.createElement('div');
+        _lzEl.className = 'tr-liao-strip';
+        _lzEl.textContent = '🦊 今夜当值 · ' + _lz.c + '：' + _lz.t;
+        if (_box0) _box0.insertBefore(_lzEl, _hf.nextSibling);
+      } catch (eLZ) {}
     }
     /* R3435：圣诞心愿限定条——同 hfest 插顶口径，窗口外入口本
      * 就藏着。 */

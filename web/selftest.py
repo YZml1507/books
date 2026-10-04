@@ -4681,6 +4681,18 @@ def _run_inner() -> list[str]:
     assert "_chatMemoryLine" in _appsrc2 and "chat-memline" in _appsrc2, \
         "记忆连续性：_chatMemoryLine/chat-memline 缺一"
     ok.append("frontend.chat_memline")
+    # R3447 聊斋当值签：语料/按日定值/结果条/海报数据键——缺一
+    # 限定抽就没当值签或晒图丢行。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "_LIAO_POOL" in _appsrc2 and "_liaoPick" in _appsrc2 and \
+        "tr-liao-strip" in _appsrc2 and "今夜当值" in _appsrc2 and \
+        "_liao" in _postsrc, \
+        "聊斋当值签：_LIAO_POOL/_liaoPick/tr-liao-strip/poster._liao 缺一"
+    _lz_n = _appsrc2.count("{ c:")
+    assert _lz_n >= 16, "聊斋当值签语料不足 16 位"
+    ok.append("frontend.liaozhai")
     # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
     # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
     _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),

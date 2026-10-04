@@ -1223,6 +1223,12 @@ function buildShareData(view, j) {
         });
         s.lines.push({ k: '还有', v: '共 ' + draws.length + ' 张牌' });
       }
+      /* R3447：万圣聊斋当值签——限定抽的判词上晒图。 */
+      if (j && j._liao && j._liao.c) {
+        s.lines = s.lines || [];
+        s.lines.push({ k: '🦊 今夜当值',
+          v: _clauseCut(_pStr(j._liao.c) + '：' + _pStr(j._liao.t), 24) });
+      }
       return s;
     }
     /* R230d（R16-P2-2）：星座日运分享图——值宫 + 三维度摘要。 */

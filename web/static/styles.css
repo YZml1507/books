@@ -4552,3 +4552,11 @@ html[data-theme="dark"] .ansb-crisis {
   background: linear-gradient(165deg, rgba(74,53,64,.9),
     rgba(62,45,54,.85)); color: var(--text);
   border-color: var(--line); }
+/* R3447：聊斋当值签条——万圣限定行下一行，暗紫调分得出又不吓人。 */
+.tr-liao-strip{display:inline-block; margin-bottom:10px;
+  padding:6px 14px; border-radius:14px; font-size:12.5px; line-height:1.6;
+  max-width:320px; background:linear-gradient(135deg,#f2ecfa,#e9e0f6);
+  border:1px solid rgba(124,92,180,.35); color:#5a4680;}
+html[data-theme="dark"] .tr-liao-strip{
+  background:linear-gradient(135deg,#2a2438,#332b44);
+  border-color:rgba(160,140,220,.3); color:#c4b4e8;}
