@@ -348,7 +348,9 @@ function _paintSharePoster(s, W, H) {
   var big = _pStr(s.big);
   ctx.fillStyle = _ink.big;
   var bigSize = big.length > 14 ? 62 : (big.length > 9 ? 76 : 92);
-  ctx.font = '600 ' + bigSize + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
+  /* R3462s-3（审）：大字可能含灵兽/晶石 emoji——补彩色表情字
+   * 体回落链，桌面机无 PingFang/YaHei emoji 时不再豆腐。 */
+  ctx.font = '600 ' + bigSize + 'px "LXGW WenKai","PingFang SC","Microsoft YaHei","Noto Sans Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif';
   /* R212：三行上限（原两行导致「宜稳不」截断感），行距随字号自适应 */
   var words = wrapText3(ctx, big, 900);
   var bigGap = Math.round(bigSize * 1.35);

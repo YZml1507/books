@@ -6396,8 +6396,13 @@ async function loadDaily() {
       var _nyD = new Date();
       var _nyM = _nyD.getMonth() + 1, _nyDay = _nyD.getDate();
       var _nyRow = '', _nyBtn = '';
-      if ((_nyM === 12 && _nyDay >= 29) ||
-          (_nyM === 1 && _nyDay <= 2)) {
+      /* R3463（审-时区三轮）：跨年仪式行原来只锚本地日——兄弟
+       * 窗（封愿/福签/桃花）全走 _inBothDates 双锚，海外错位日
+       * 该现身不现身/该收不收。窗口判定并入双锚族；_nyD 留作
+       * 「跨进 N 年」文案取数（展示用，本地语境合适）。 */
+      if (_inBothDates(function (o) {
+            return (o.m === 12 && o.d >= 29) || (o.m === 1 && o.d <= 2);
+          })) {
         if (_nyM === 12) {
           var _nyLeft = 31 - _nyDay;
           _nyRow = _nyLeft > 0
@@ -22355,9 +22360,13 @@ function _qianSlipHtml(n, opts) {
          : (o.love
          ? '<div class="qian-note">' +
            /* R3411-P2-1（终审）：11/11 是窗口末日——「明天还能再抽」
-            * 当天为假承诺；末日换口径。 */
-           ((function () { var _nd = new Date();
-              return _nd.getMonth() + 1 === 11 && _nd.getDate() >= 11; })()
+            * 当天为假承诺；末日换口径。
+            * R3463（审-时区三轮）：末日判定原锚本地日——窗口是
+            * 双锚放行，CST 先行末日时本地未到，「明天还能再抽」
+            * 继续给假承诺。改与放行同口径：任一时区到末日即
+            * 「截止」。 */
+           (_inBothDates(function (o) {
+              return o.m === 11 && o.d >= 11; })
              ? '桃花签到今晚截止——明年双十一再来'
              : '桃花签今天这支——明天还能再抽') + '</div>'
          : (o.review
