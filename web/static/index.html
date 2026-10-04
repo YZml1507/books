@@ -49,7 +49,9 @@ if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
      R2353（R110-P1-3）：media 翻 all 改由下方 __lxgwFlip 控制——
      等 /api/daily 预取 resolve（或 4s 兜底）再放行 ~500KB 字体分片，
      弱网下日卡 JSON 不再被字体抢带宽（FCP 由系统字体兜底，视觉无损）。 -->
-<link id="lxgwCss" rel="stylesheet" href="/static/fonts/lxgw.css" media="print">
+<!-- R3371（审-低-4）：lxgw.css 不再静态挂 link——media=print 的
+     link 浏览器仍在首屏窗口低优下载 64KB。改由下方 flip 到点再
+     注入，字节真正推迟到 load+800ms；SW SHELL 已收，离线照样有。 -->
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
@@ -202,7 +204,16 @@ try {
     var _go = function () {
       if (_done) return; _done = true;
       var l = document.getElementById('lxgwCss');
-      if (l) l.media = 'all';
+      if (!l) {
+        /* R3371（审-低-4）：link 到点再建——首屏窗口零下载。 */
+        l = document.createElement('link');
+        l.id = 'lxgwCss';
+        l.rel = 'stylesheet';
+        l.href = '/static/fonts/lxgw.css';
+        document.head.appendChild(l);
+        return;
+      }
+      l.media = 'all';
     };
     try {
       if (document.readyState === 'complete') {
@@ -375,7 +386,7 @@ try {
       <!-- R2350g（R105-P1-3）：窄屏弱网下这张封套图是真 LCP 元素
            （实测 4.78s）——提优先级 + 去掉 lazy（视口内本来也立刻拉）。 -->
       <img src="/static/cream/daily-gift-bear.png" alt=""
-           fetchpriority="high" decoding="async" onerror="this.parentNode.remove()">
+           fetchpriority="high" onerror="this.parentNode.remove()">
       <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
       <p class="daily-cover-sub">每天的礼物都不一样</p>
     </div>
@@ -1009,11 +1020,11 @@ try {
         </div>
         <div class="pile-row" id="pileRow" hidden>
           <button type="button" class="pile-card" data-pile="0" aria-label="第一堆">
-            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>A</i></button>
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>A</i></button>
           <button type="button" class="pile-card" data-pile="1" aria-label="第二堆">
-            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>B</i></button>
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>B</i></button>
           <button type="button" class="pile-card" data-pile="2" aria-label="第三堆">
-            <img src="/static/tarot/card-back.jpg" alt="" onerror="this.outerHTML='🂠'"><i>C</i></button>
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>C</i></button>
         </div>
         <p class="pile-hint" id="pileHint" hidden>凭直觉点一堆，点完就定——同主题每天只能选一堆</p>
         <div class="pile-result" id="pileResult" hidden></div>

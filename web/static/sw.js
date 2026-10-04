@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-498faf667290';   // shell-hash: 498faf667290
+var CACHE = 'books-shell-26c9ae7741b9';   // shell-hash: 26c9ae7741b9
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -52,7 +52,10 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
              '/static/cream/icon-512-maskable.png',
              '/static/shared/daily-box-gift.png',
              '/static/cream/daily-gift-bear.png',
-             '/static/fonts/smiley-sans-subset.woff2'];
+             '/static/fonts/smiley-sans-subset.woff2',
+             /* R3371（审-低-5）：qrcode 懒库收进 SHELL——否则首次进
+              * 海报页前断网，回流二维码离线失效。21KB。 */
+             '/static/libs/qrcode.min.js'];
 
 self.addEventListener('install', function (e) {
   /* R230v（R34-#9）：addAll 全有或全无 + catch 吞错 = 单文件 404 时
@@ -71,11 +74,18 @@ self.addEventListener('install', function (e) {
         function (v) { return { status: 'fulfilled', value: v }; },
         function (r) { return { status: 'rejected', reason: r }; });
     };
+    /* R3371（审-P1-2）：版本化资产按 ?v=hash 装壳——URL 自带内容
+     * 指纹，页面刚下载过的同 URL 可吃 HTTP 缓存命中，install 不再
+     * 全量重下（首访省 ~0.5MB、每版老客省 ~0.5MB）。裸 URL 仍走
+     * reload 防 3600s 陈旧字节装进新 CACHE（R63-P2-3 语义保留）。 */
+    var _vh = CACHE.slice('books-shell-'.length);
+    var _VMAP = {
+      '/static/app.js': '/static/app.js?v=' + _vh,
+      '/static/styles.css': '/static/styles.css?v=' + _vh };
     return Promise.all(SHELL.map(function (u) {
-      /* R2345（R63-P2-3）：c.add 默认走 HTTP 缓存——js/css 有
-       * max-age=3600，部署后 1h 内安装可能把旧字节装进新 CACHE 名。
-       * reload 模式绕开 HTTP 缓存直取网络。 */
-      return _settle(c.add(new Request(u, {cache: 'reload'})));
+      var _req = _VMAP[u] ? new Request(_VMAP[u])
+                          : new Request(u, {cache: 'reload'});
+      return _settle(c.add(_req));
     })).then(function (rs) {
       var coreMiss = [];
       rs.forEach(function (r, i) {
@@ -233,10 +243,13 @@ self.addEventListener('fetch', function (e) {
             if (resp.ok) {
               /* R230d（R16-P0-1）：运行时缓存回写必须挂 waitUntil。 */
               e.waitUntil(rtc.put(e.request, resp.clone()).then(function () {
-                /* 超帽逐出最老条（keys() 顺序即写入序）。60 条≈几 MB。 */
+                /* 超帽逐出最老条（keys() 顺序即写入序）。
+                 * R3371（审-P2-4）：60→180——tarot 80 图+lxgw 50 分片+
+                 * 壁纸 21≈151 条候选，60 桶会把早期牌面/字体挤出
+                 * 导致离线破图；180 全收仍只 ~5-8MB。 */
                 return rtc.keys().then(function (ks) {
-                  if (ks.length <= 60) return;
-                  return Promise.all(ks.slice(0, ks.length - 60)
+                  if (ks.length <= 180) return;
+                  return Promise.all(ks.slice(0, ks.length - 180)
                     .map(function (k) { return rtc.delete(k); }));
                 });
               }).catch(function () {}));

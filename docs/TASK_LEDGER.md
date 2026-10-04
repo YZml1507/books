@@ -18378,3 +18378,22 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   分享链同带上下文；play/euclid aname 补回 + _ASCHEME_HINT 分域文案。
 - 闸门：selftest 419（新增 threads.orphan_flow/import.merge_fill/
   err.compare.layer）/ contract 782 / ui_smoke 105 / ruff 绿。
+## R3371 性能/启动预算审计清零（检 27；已修 8、缓办 2、不修 3）
+
+- 新口径：现场测得 LCP≈1.35s、FCP≈0.33s、TBT=0——性能整体达标，报告
+  按「微观打磨」处理。
+- P1-2 首访省带宽 ~0.5MB：SW install 对 _VMAP（app.js/styles.css）以
+  `?v=<shell_hash>` 默认缓存模式拉取——与页面自身请求去重；裸 URL 仍走
+  `{cache:'reload'}` 保 R63-P2-3 的 3600s 陈旧防护语义不变。
+- P2-3 card-back.jpg ×3 加 loading=lazy decoding=async。
+- P2-4 RT 桶上限 60→180（tarot80+lxgw50+wap21≈151 候选不再互相挤兑）。
+- P2-1 LCP 熊图去 decoding=async（15KB 小图同步解码，renderTime 归因更准）。
+- 低-4 lxgw.css 去静态 link（media=print 仍在首屏窗口低优下载 64KB），
+  改由 __lxgwFlip 到点再注入。
+- 低-5 qrcode.min.js 收进 SHELL——海报回流二维码离线首访可用。
+- 缓办：P1-1 app.js 压缩/分包（零构建仓引构建链收益不值 110KB 冷载线）；
+  P2-2 内联关键 CSS（同理需构建步骤）。
+- 不修（带理由）：低-1 index.html 是壳哈希输入必须走 SHELL；低-2 manifest
+  icons 是 PWA 安装面所需；低-3 localStorage getItem 微秒级 vs 跨 Tab 陈旧
+  风险不划算。
+- 闸门：selftest 419 / contract 782 / ui_smoke 105 / 其余探针+ruff 全绿。
