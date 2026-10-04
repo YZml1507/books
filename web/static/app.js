@@ -19903,6 +19903,19 @@ function renderCheckin(dateKey) {
           'title="做完了点这里盖戳">做到了</button>') +
       '</div>';
   } catch (eWQ) {}
+  /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
+   * 规律换内容 toast 一次；pattern:seen 记最近一条防止重复弹。 */
+  try {
+    var _pfN = _ckPatternFind(dateKey);
+    if (_pfN) {
+      var _pSeen = localStorage.getItem('pattern:seen');
+      if (_pSeen !== _pfN.txt) {
+        localStorage.setItem('pattern:seen', _pfN.txt);
+        showToast((_pSeen ? '小规律换了新的一条：'
+          : '小满发现了你的小规律：') + _pfN.txt, 'ok');
+      }
+    }
+  } catch (ePS) {}
   /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
    * 数据全在本地：上周 7 天的打卡天数 + 心情主色 + 一句本周祝词。
    * 每周一封信完即收（wlKey 落档不再弹），零打扰零请求。 */
@@ -24156,7 +24169,7 @@ function baziPersonaCard(j) {
         return b.join(' · ') || '还没有';
       } },
     { id: 'mind', icon: '💭', label: '心事',
-      re: /^(mood:|moodlv:|moodjar:|journal:|shred:|wishbottle|wishfulfilled|futureLetters|mantraFav|mood:dream:)/,
+      re: /^(mood:|moodlv:|moodjar:|journal:|shred:|wishbottle|wishfulfilled|futureLetters|mantraFav|mood:dream:|pattern:seen)/,
       sum: function () {
         var n = 0;
         _xmKeys().forEach(function (k) {
@@ -24899,7 +24912,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
