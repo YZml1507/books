@@ -20060,3 +20060,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3583 单人判词认名+注入闸
 - 「阿雪连签 9 天」认名补齐；n 参数进 innerHTML 走 esc——<img onerror> 注入实测转义不外泄。
+
+## R3584 社交链终扫记档
+- 链上参数边界：duel 钳(0,9999]/7名/去重；hug 真值即收；n esc 全链（榜 join 处 esc、单人判词 esc、welcomeBar textContent 天然安全、欢迎 toast textContent）。hugin 签名 cap20 防膨胀。
