@@ -4167,6 +4167,14 @@ function applyTheme(theme) {
    * html[data-theme="dark"]{color-scheme:dark}，meta 双保险。 */
   var _cs = document.querySelector('meta[name="color-scheme"]');
   if (_cs) _cs.setAttribute('content', t === 'dark' ? 'dark' : 'light');
+  /* R3416（自审-深色专项）：K线 canvas 是按旧主题画死的位图——
+   * 换主题后清重画标记让 _paintKlineNow 按新主题色重走一遍。 */
+  try {
+    document.querySelectorAll('.kline-canvas').forEach(function (cv) {
+      cv._klineDone = false;
+    });
+    if (window._paintKlineNow) window._paintKlineNow();
+  } catch (eKL) {}
   try {
     localStorage.setItem(THEME_KEY, requested);
   } catch (e) { /* 存不了就只在本次会话生效 */ }
@@ -6872,6 +6880,11 @@ function _drawKlineEl(cv, k) {
   try {
     if (!cv || !k || !k.candles || cv._klineDone) return;
     var cs = k.candles;
+    /* R3416（自审-深色专项）：canvas 位图不吃 CSS 令牌——深色卡上
+     * 「今年」深棕框与犯太岁深红点亮度太低直接消失，按主题分色。 */
+    var _dk = document.documentElement.getAttribute('data-theme') === 'dark';
+    var _cFrame = _dk ? '#E8C988' : '#7A5C2E';
+    var _cDot = _dk ? '#C9857A' : '#8A4A3C';
     var W = cv.width, H = cv.height, ctx = cv.getContext('2d');
     if (!ctx) return;
     var padL = 30, padR = 10, padT = 26, padB = 46;
@@ -6889,9 +6902,9 @@ function _drawKlineEl(cv, k) {
       ctx.fillRect(x, top, bw, Math.max(2, hgt));
       /* 今年框 */
       if (c.age === k.this_age) {
-        ctx.strokeStyle = '#7A5C2E'; ctx.lineWidth = 2;
+        ctx.strokeStyle = _cFrame; ctx.lineWidth = 2;
         ctx.strokeRect(x - 2, padT - 4, bw + 4, plotH + 8);
-        ctx.fillStyle = '#7A5C2E';
+        ctx.fillStyle = _cFrame;
         ctx.font = '11px "LXGW WenKai",sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('今年', x + bw / 2, padT - 10);
@@ -6911,7 +6924,7 @@ function _drawKlineEl(cv, k) {
         ctx.arc(x + bw / 2, fy, 3.4, 0, Math.PI * 2); ctx.stroke();
       } else if (c.flags && (c.flags.indexOf('冲太岁') >= 0 ||
                              c.flags.indexOf('犯太岁') >= 0)) {
-        ctx.fillStyle = '#8A4A3C';
+        ctx.fillStyle = _cDot;
         ctx.beginPath();
         ctx.arc(x + bw / 2, fy, 3, 0, Math.PI * 2); ctx.fill();
       }
