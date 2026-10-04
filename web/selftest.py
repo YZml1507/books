@@ -4673,6 +4673,10 @@ def _run_inner() -> list[str]:
         "_mcEditRead" in _appsrc2 and 'data-pack="custom"' in _appsrc2, \
         "默契自写题：v3/_mcQDec/_mcEditRead/custom 包钮缺一"
     ok.append("frontend.mochi_custom")
+    # R3445 模板引导：tpl 委托/两条照着写链缺一不可。
+    assert 'data-mc="tpl"' in _appsrc2 and "act === 'tpl'" in _appsrc2, \
+        "默契模板引导：tpl 委托链缺一"
+    ok.append("frontend.mochi_tpl")
     # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
     # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
     _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
