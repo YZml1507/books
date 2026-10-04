@@ -24666,7 +24666,9 @@ function baziPersonaCard(j) {
         return b.join(' · ') || '还没有';
       } },
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen)/,
+      /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
+       * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
