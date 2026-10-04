@@ -19009,3 +19009,33 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   被网暴→敏感卡/赌气不中BIGQ/正常题照常出筊——0 pageerror。
 - 钉扎：selftest 433（+frontend.oracle_gates +11 路标断言），
   llm_polish/banned_copy/ruff 全绿。
+## R3420 提醒/通知/留存链路复扫清零（P0×4 + P1×2 + P2×3）
+- **P0-4（新发现的最大洞）备份导入+云端拉回整链静默断**：
+  R3372 把 `_DATA_RE` 白名单 var 留在 `phBind` 函数体内，但
+  `_importBackupText` 与它同层（IIFE 顶层）——引用即 ReferenceError，
+  外层 catch 抛「导到一半断了」假错。文件导入、云端拉回两条恢复
+  链对一个键都写不进（无痕/换机回数据功能自 R3372 起实际全灭）。
+  三张表（_DATA_RE/_NO_BACKUP_RE/_SDATA_RE）提到 IIFE 层，phBind
+  内用户经闭包照常可见。真机无痕实测：visits/wishbottle 双形态
+  （ny-only/t+ny）全部落键 + 成功 toast，0 pageerror。
+- **P0-1/2/3 跨年封愿 ny 三处写穿剥光**：R3417 加了 ny 读路径，
+  但愿望瓶的 save 分支重建 `{t,c,ts}`、done 分支 `wishClear()`、
+  导入归一化重建 `{t,c,ts}` 且 `!t` 整条拒收（ny-only 瓶是
+  R3417 合法形态）——封愿被三处静默剥掉/拒收。save/done 改为
+  透传 ny 字段；导入归一化加 `_ony` 透传 + `!t` 时优先收 ny。
+- **P1-1 提醒链与 Notification 权限解耦**：整条提醒链是纯站内
+  toast（remind:1 武装标记 + remind:shown 日去重），但武装钮和
+  soft-row 门禁绑在 `Notification.permission` 上——拒过权限的
+  用户（大多数）武装钮点击只回一句「被浏览器拦了」死路一条、
+  soft-row 永不显示。武装钮改纯 localStorage 开关、soft-row 门禁
+  改判 remind:1，文案明示「本机提醒」。
+- **P1-2**：checkinRemind 钮 label/title 改说人话（「每天来都喊你」
+  + title 写明本机机制）。
+- **P2**：notify-soft-row 文案改「每天你打开铺子时喊你领今日签，
+  只本机，可关」；连打 150 天上限口径在打卡/咒语册 meta 明示
+  「（记数按近 150 天）」；wishbottle 导入 ny 形状闸（t≤40/c≤16/
+  ts/year/opened 归一）。
+- 实测：save/done 封愿幸存、拒权限用户武装+soft-row 正常、
+  ny-only 导入落库，0 pageerror。
+- 钉扎：selftest 433 / ui_smoke 112（含 ui:ny_wish_chain、
+  ui:oracle.bigq）/ 契约 789 / banned_copy / regress / ruff 全绿。

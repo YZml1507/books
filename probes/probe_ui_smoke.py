@@ -455,8 +455,9 @@ def main() -> int:
                        "零请求；真实链路已 Playwright 手验",
         "journalSave": "聊天空态今日小确幸保存钮——本地 journal:<date> 写入，"
                        "零请求；真实链路已 Playwright 手验",
-        "notifySoftAsk": "通知软提示按钮——请求浏览器 Notification 权限，"
-                         "非 PWA 功能主路径；真实链路已手验",
+        "notifySoftAsk": "提醒软提示按钮——R3420 后直挂本地 remind:1"
+                         "（in-app toast，不再请求 Notification 权限），"
+                         "零请求；真实链路已手验",
         "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
                        "同 shareDaily 族豁免",
         # 心情周记卡——downloadPoster('moodweek') 海报模态，同族豁免；

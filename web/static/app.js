@@ -14006,30 +14006,16 @@ function initDivination() {
   /* R3264（R38）：通知软提示——先解释价值，再请求浏览器权限。
    * 本地 reminders 需要后端/VAPID 才真推，这里只做权限软询问。 */
   on('notifySoftAsk', function () {
-    if (!('Notification' in window)) {
-      showToast('你的浏览器不支持通知，小满叫不了你', 'warn');
-      return;
-    }
-    /* R3314（R3309-P1）：notify:time 此前是死承诺——写了键全仓无
-     * 消费方、无 SW push，用户授权后什么都不会发生还烧掉一次系统
-     * 权限信任。改为诚实兑现：授权成功即挂上本地 remind:1（次日
-     * 打开时 toast 提醒），文案不再承诺真推送。 */
-    showToast('小满会在你下次来的时候提醒你领签，不吵你', 'info');
-    setTimeout(function () {
-      Notification.requestPermission().then(function (p) {
-        if (p === 'granted') {
-          try {
-            localStorage.setItem('notify:time', '21:00');
-            localStorage.setItem('remind:1', '1');
-          } catch (eT) {}
-          showToast('好啦，明天你打开的时候小满喊你领签～', 'ok');
-        } else if (p === 'denied') {
-          showToast('没关系，你想来时小满都在', 'info');
-        }
-        var _nr2 = el('notifySoftRow');
-        if (_nr2) _nr2.hidden = true;
-      });
-    }, 1200);
+    /* R3314（R3309-P1）→R3420-P1-1：不再请求 Notification 权限——
+     * 提醒是纯 in-app toast，请求权限等于白要一次系统授权。
+     * notify:time 照写（.ics 导出的提醒钟点消费它）。 */
+    try {
+      localStorage.setItem('notify:time', '21:00');
+      localStorage.setItem('remind:1', '1');
+    } catch (eT) {}
+    showToast('好啦，以后你每天打开铺子小满都喊你领签～', 'ok');
+    var _nr2 = el('notifySoftRow');
+    if (_nr2) _nr2.hidden = true;
   });
   /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
   on('copyXhs', function () {
@@ -14642,10 +14628,11 @@ function init() {
   try { initReading(); } catch (eR) { console.warn('[init] reading', eR); }
   try { initDivination(); } catch (eD) { console.warn('[init] divination', eD); }
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
-  /* R3264（R38）：通知软提示——仅浏览器未决定权限时露出按钮。 */
+  /* R3264（R38）→R3420-P1-1：软提示行不再查 Notification 权限——
+   * 功能是 in-app toast，denied 用户也该有入口。已布防不再重复露。 */
   try {
     var _nr = el('notifySoftRow');
-    if (_nr && 'Notification' in window && Notification.permission === 'default') {
+    if (_nr && localStorage.getItem('remind:1') !== '1') {
       _nr.hidden = false;
     }
   } catch (eN) {}
@@ -17565,7 +17552,10 @@ function renderCheckin(dateKey) {
    * 反馈区 aria-live——选完有朗读回执。 */
   var _meta = '';
   if (_streak >= 2) {
-    _meta += '已连续 ' + _streak + ' 天打卡';
+    _meta += '已连续 ' + _streak + ' 天打卡' +
+      /* R3420-P2-2：日键 GC 窗口 ~150 天，streak 到顶不再涨——
+       * 披露口径防「攒了半年怎么显 150」类误读。 */
+      (_streak >= 150 ? '（记数按近 150 天）' : '');
     if (_streak === 3) _meta += ' · 小满贯开头啦';
     else if (_streak === 7) _meta += ' · 整一周，仪式感拿捏';
     else if (_streak >= 100) _meta += ' · 百日传说';
@@ -17942,15 +17932,15 @@ function renderCheckin(dateKey) {
         'title="今年再打卡 ' + (_min - _yn) + ' 天就能出年报">' +
         '📖 年报还差 ' + (_min - _yn) + ' 天</button>');
     })() +
-    /* R2350f（R102-P2-8/P2-13）：两枚留存/拉新小动作——「明天提醒我」
-     * 走本地 Notification（无推送基建，次日开屏 toast 口径如实说清），
-     * 「安利铺子」产出 文案+链 一键复制给闺蜜。 */
+    /* R2350f（R102-P2-8/P2-13）→R3420：「每天开张喊我」纯 in-app
+     * toast（零 Notification 依赖，布防不再过权限）；「安利铺子」
+     * 产出 文案+链 一键复制给闺蜜。 */
     '<button type="button" class="checkin-share" id="checkinRemind" ' +
-      'title="明天回来时提醒你抽新签">🔔 ' +
+      'title="每天你打开铺子时提醒你抽新签">🔔 ' +
       ((function () {
         try { return localStorage.getItem('remind:1') === '1'; }
         catch (e) { return false; }
-      })() ? '明天会来喊你' : '明天提醒我') + '</button>' +
+      })() ? '每天来都喊你' : '每天开张喊我') + '</button>' +
     '<button type="button" class="checkin-share" id="shopShare" ' +
       'title="把这铺子发给闺蜜">📮 安利铺子</button>' +
     /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
@@ -18166,44 +18156,24 @@ function renderCheckin(dateKey) {
     var _py = downloadPoster(_yearStats(dateKey), 'year-wrap');
     if (_py && _py.catch) _py.catch(function () {});
   });
-  /* R2350f（R102-P2-8）：「明天提醒我」——无推送基建下的诚实实现：
-   * 拿 Notification 权限 + 本地打标，次日开屏 toast 提醒。权限被拒
-   * 时按钮如实回退，不假装已开。 */
+  /* R2350f（R102-P2-8）→R3420-P1-1 重裁：提醒是纯 in-app toast
+   * （打开时首渲弹，全仓零 new Notification），跟浏览器通知权限
+   * 毫无关系——原实现把布防绑死在权限上，拒绝过权限的用户永远
+   * 开不了一个不需要权限的功能。改直挂本地标记，文案说人话
+   * （按日弹，不是只喊明天——R3420-P2-1）。 */
   var _ckr = box.querySelector('#checkinRemind');
   if (_ckr) _ckr.addEventListener('click', function () {
     var _on = false;
     try { _on = localStorage.getItem('remind:1') === '1'; } catch (e) {}
     if (_on) {
       try { localStorage.removeItem('remind:1'); } catch (e2) {}
-      _ckr.innerHTML = '🔔 明天提醒我';
-      showToast('好，明天不喊你了', 'info');
+      _ckr.innerHTML = '🔔 每天开张喊我';
+      showToast('好，不喊你了', 'info');
       return;
     }
-    var _grant = function () {
-      try { localStorage.setItem('remind:1', '1'); } catch (e3) {}
-      _ckr.innerHTML = '🔔 明天会来喊你';
-      showToast('好嘞，明天打开铺子就提醒你抽新签', 'ok');
-    };
-    if (typeof Notification !== 'undefined' &&
-        Notification.permission === 'granted') { _grant(); return; }
-    /* R2350g（R104-P1-2）：denied 不能再落进 _grant()——权限已被拒还
-     * 翻牌打标，明天根本喊不了却让用户以为开着。如实回退。 */
-    if (typeof Notification !== 'undefined' &&
-        Notification.permission === 'denied') {
-      showToast('浏览器把通知关掉了，去地址栏旁边改权限，或明天自己回来看看也行', 'info');
-      return;
-    }
-    if (typeof Notification !== 'undefined' && Notification.requestPermission) {
-      Notification.requestPermission().then(function (p) {
-        if (p === 'granted') _grant();
-        else showToast('浏览器不让发通知，没关系，明天自己回来看看也行', 'info');
-      }).catch(function () {
-        showToast('浏览器不让发通知，明天自己回来看看也行', 'info');
-      });
-      return;
-    }
-    /* 无 Notification 环境——仍然存标记，次日开屏 toast 兜底提醒。 */
-    _grant();
+    try { localStorage.setItem('remind:1', '1'); } catch (e3) {}
+    _ckr.innerHTML = '🔔 每天来都喊你';
+    showToast('好嘞，每天你打开铺子小满都喊一声', 'ok');
   });
   /* R2350f（R102-P2-13）：「安利铺子」——应用级分享出口，不挂结果件。
    * 复制 钩子文案+链接；支持系统分享面板的走面板。 */
@@ -19788,7 +19758,12 @@ function _wishAction(act, arg, dateKey) {
     var host2 = document.getElementById('wishBottleBody');
     var sel = host2 ? host2.querySelector('.ck-wish-cats .checkin-opt.picked') : null;
     if (sel) cat = sel.dataset.arg || '';
-    _wishSet({ t: t.slice(0, 60), c: cat || '小秘密', ts: Date.now() });
+    /* R3420-P0-1：save 原收窄回 {t,c,ts} 把同键的 ny 封愿静默吞掉——
+     * 写普愿保住跨年愿（_wishSet 是整键覆写）。 */
+    var _nw = { t: t.slice(0, 60), c: cat || '小秘密', ts: Date.now() };
+    var _nx = _wishNyRaw().ny;
+    if (_nx) _nw.ny = _nx;
+    _wishSet(_nw);
     showToast(_dayPick(['瓶子收好了，等它慢慢发酵',
                        '愿望已封存，过几天再来看看',
                        '装进瓶子啦，今天起算'], 'wishs'), 'info');
@@ -19800,7 +19775,10 @@ function _wishAction(act, arg, dateKey) {
     var w0 = _wishGet();
     if (!w0) { _renderWishBottle(); return; }
     _wishEchoAdd(w0);
-    _wishClear();
+    /* R3420-P0-2：removeItem 连 ny 封愿一起端掉——只结算普愿，
+     * ny 留着跨年启封。 */
+    var _nyk = _wishNyRaw().ny;
+    if (_nyk) _wishSet({ ny: _nyk }); else _wishClear();
     showToast('替你开心 🎉 已收进成真集', 'info');
     _renderWishEcho({ t: w0.t, fu: Date.now() });
     _wishRefreshSummary();
@@ -19972,7 +19950,9 @@ function _mantraBookMeta() {
   _dailyMetaItem('dailyMantraBook', n
     ? '<button type="button" class="mantra-book-link" id="mantraBookGo">' +
       '📖 咒语册 · 已攒 ' + n + ' 句' +
-      (_mst0 ? ' · 连念 ' + _mst0 + ' 天' : '') + '</button>'
+      (_mst0 ? ' · 连念 ' + _mst0 + ' 天' : '') +
+      /* R3420-P2-2：同连签——150 天 GC 顶披露口径。 */
+      (_mst0 >= 150 ? '（按近 150 天）' : '') + '</button>'
     : '');
   var g = el('mantraBookGo');
   if (g && !g.dataset.bound) {
@@ -21649,6 +21629,20 @@ function baziPersonaCard(j) {
     var b = document.getElementById('historyLockBtn');
     if (b) b.textContent = _phLocked() ? '🔒 锁已挂' : '🔒 加个锁';
   }
+  /* R3372-P2-2：本机「个人数据」键白名单收敛成唯一定义——备份
+   * 导出/云备份包/跨账号清扫/拉回 diff/备份导入共用一张表。
+   * uiTheme 本就在备份里（THEME_KEY 同键，随账号走），换主
+   * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
+   * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
+   * 清扫要收但备份与导入不收。
+   * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
+   * _importBackupText 引用即 ReferenceError，备份文件导入与
+   * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|histLock$)/;
+  var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
+  /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
+   * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
+  var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$|^shareBy:|^lastResult:/;
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
@@ -21710,18 +21704,9 @@ function baziPersonaCard(j) {
     /* R231a（R36-P3-3）：备份我的数据 = 台账全量 JSON + 浏览器侧键
      * （打卡/me 双档/问一嘴足迹/主题/口吻）。换设备一键带走。 */
     /* R3358：bundle 构建抽成共享函数——导出按钮与账号云同步
-     * 共用同一份「我的数据」口径。 */
-    /* R3372-P2-2：本机「个人数据」键白名单收敛成唯一定义——备份
-     * 导出/云备份包/跨账号清扫/拉回 diff/备份导入共用一张表。
-     * uiTheme 本就在备份里（THEME_KEY 同键，随账号走），换主
-     * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
-     * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
-     * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|histLock$)/;
-    var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
-    /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
-     * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
-    var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$|^shareBy:|^lastResult:/;
+     * 共用同一份「我的数据」口径。
+     * R3420-P0-4：_DATA_RE/_NO_BACKUP_RE/_SDATA_RE 已提层到 IIFE
+     * 顶部（phBind 之上）——此域只留引用说明。 */
     async function _buildBackupBundle() {
         /* R2349y（R95-P2-5）：台账禁用态下 export_json 404——此前整个
          * 备份中止，连本机偏好都带不走。降级 records:[] 并明说。 */
@@ -22945,10 +22930,25 @@ function baziPersonaCard(j) {
               try {
                 var _wo = JSON.parse(local[k]);
                 if (!_wo || typeof _wo !== 'object') return;
+                /* R3420-P0-3：ny 封愿透传——原重建 {t,c,ts} 把跨年
+                 * 愿望剥掉；ny-only 瓶（只封愿没普愿，R3417 合法
+                 * 形态）被 !t 整条拒收。 */
+                var _ony = (_wo.ny && typeof _wo.ny === 'object' &&
+                  typeof _wo.ny.t === 'string' && _wo.ny.t)
+                  ? { t: String(_wo.ny.t).slice(0, 40),
+                      c: String(_wo.ny.c || '跨年').slice(0, 16),
+                      ts: +_wo.ny.ts || Date.now(),
+                      year: +_wo.ny.year || 0,
+                      opened: _wo.ny.opened ? 1 : 0 }
+                  : null;
                 _wo = { t: String(_wo.t || '').slice(0, 200),
                         c: String(_wo.c || '小秘密').slice(0, 16),
                         ts: +_wo.ts || Date.now() };
-                if (!_wo.t) return;
+                if (_ony) _wo.ny = _ony;
+                if (!_wo.t) {
+                  if (!_ony) return;
+                  delete _wo.t;
+                }
                 local[k] = JSON.stringify(_wo);
               } catch (eW) { return; }
             }
