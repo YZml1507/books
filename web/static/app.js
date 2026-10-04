@@ -6373,7 +6373,11 @@ async function loadDaily() {
             _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
         } else if (typeof _qianHwFest === 'function' &&
                    _qianHwFest()) {
-          var _hwDk = _qianHwIdxOf(todayIso());
+          /* 与 _qianHwDraw 同锚：放行日（CST 先行时按 CST 日）
+           * 查键——本地日会漏查刚抽过的签。 */
+          var _hwDk = _qianHwIdxOf(_winAnchorIso(function (o2) {
+            return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
+          }));
           if (!_hwDk) {
             _pc2.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
               '——去签页抽今天的宜动签</span>');
