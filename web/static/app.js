@@ -19616,9 +19616,14 @@ function _wishEchoStrip() {
   if (!a.length) return '';
   var html = '<div class="ck-wish-echolist">✨ 成真集 · ' + a.length +
     ' 个愿望成了';
+  /* R3417-续：每条挂晒钮——还愿不止「刚点成」那刻能晒，
+   * 隔天回来翻集也能晒（data-arg 带下标取集内条目）。 */
   for (var i = 0; i < Math.min(5, a.length); i++) {
     html += '<div class="ck-wish-echo-item">「' + esc(a[i].t) +
-      '」<b>成了</b></div>';
+      '」<b>成了</b>' +
+      '<button type="button" class="ck-echo-share" ' +
+      'data-wish="echoShareItem" data-arg="' + i + '" ' +
+      'aria-label="晒这条还愿">📸</button></div>';
   }
   return html + '</div>';
 }
@@ -19790,11 +19795,15 @@ function _wishAction(act, arg, dateKey) {
       date: todayIso() }, 'wishecho');
     return;
   }
-  if (act === 'echoShare') {
-    /* R3417：晒还愿——读成真集头一条（刚点「成了」的那条）。 */
+  if (act === 'echoShare' || act === 'echoShareItem') {
+    /* R3417：晒还愿——echoShare 读成真集头一条（刚点「成了」
+     * 的那条）；echoShareItem 按 data-arg 下标取集内条目。 */
     var _we = _wishEchoGet();
-    if (!_we.length) { showToast('这条还愿还没落集', 'warn'); return; }
-    var _w0 = _we[0];
+    var _ei = act === 'echoShareItem' ? (+arg || 0) : 0;
+    if (!_we.length || !_we[_ei]) {
+      showToast('这条还愿还没落集', 'warn'); return;
+    }
+    var _w0 = _we[_ei];
     downloadPoster({ _wishecho: {
         t: _w0.t || '', c: _w0.c || '',
         ts: _w0.ts || 0, fu: _w0.fu || 0,

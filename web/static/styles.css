@@ -3993,6 +3993,10 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   background:var(--accent-soft);font-size:11px;color:var(--muted);
   line-height:1.7;}
 .ck-wish-echo-item{margin-top:4px;color:var(--primary-ink);}
+/* R3417-续：集内逐条晒钮——贴「成了」徽标后的小相机。 */
+.ck-echo-share{background:none;border:none;padding:2px 4px;margin-left:4px;
+  cursor:pointer;font-size:12px;opacity:.75;line-height:1;}
+.ck-echo-share:hover,.ck-echo-share:focus-visible{opacity:1;}
 .ck-wish-echo-item b{color:#DE7B54;font-size:10px;margin-left:6px;
   border:1px solid currentColor;border-radius:6px;padding:0 4px;}
 @media (prefers-reduced-motion:reduce){.ck-wish-stamp{transform:rotate(0deg);}}
