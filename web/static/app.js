@@ -6360,8 +6360,8 @@ async function loadDaily() {
             '别硬扛，小满陪你</div>');
         }
       }
-      /* R3639：捣蛋签开窗倒计时——10/25 开窗前 5 天挂预热
-       * 钩（开了窗这行让位给签页入口，自己退场）。 */
+      /* R3639/R3648：捣蛋签钩——开窗前 1-5 天倒计时；窗内
+       * 今天还没抽就提醒去抽（抽过自动退场）。 */
       try {
         var _now2 = new Date();
         var _hwOpen = new Date(_now2.getFullYear(), 9, 25);
@@ -6371,6 +6371,10 @@ async function loadDaily() {
         if (_ddays >= 1 && _ddays <= 5) {
           _pc2.push('<span class="e-week-low">🎃 捣蛋签 ' +
             _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
+        } else if (typeof _qianHwFest === 'function' &&
+                   _qianHwFest() && !_qianHwIdxOf(todayIso())) {
+          _pc2.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
+            '——去签页抽今天的宜动签</span>');
         }
       } catch (eHW2) {}
       if (_mine) {
