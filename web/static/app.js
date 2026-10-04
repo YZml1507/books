@@ -19093,6 +19093,23 @@ function _renderMoodWeek() {
     html += '<span class="mw-stat">🔥 连续记录 ' + w.streak + ' 天</span>';
   if (w.jarTotal > 0)
     html += '<span class="mw-stat">🏺 心情罐已攒 ' + w.jarTotal + ' 个色点</span>';
+  /* R3519：小规律预热钩——8 条才够出声（_ckPatternFind 阈值），
+   * 未达标先给个小目标；达标了规律本行就在上方/月信里。 */
+  try {
+    var _pTotal = 0;
+    for (var _pk = 0; _pk < localStorage.length; _pk++) {
+      var _pkk = localStorage.key(_pk);
+      if (_pkk && /^mood:\d{4}-\d{2}-\d{2}$/.test(_pkk) &&
+          localStorage.getItem(_pkk) !== null) _pTotal++;
+    }
+    if (w.pattern && w.pattern.txt) {
+      html += '<span class="mw-stat">📊 你的小规律：' +
+        esc(w.pattern.txt) + '</span>';
+    } else if (_pTotal > 0 && _pTotal < 8) {
+      html += '<span class="mw-stat">📊 再记 ' + (8 - _pTotal) +
+        ' 天心情，小满就能告诉你一条小规律</span>';
+    }
+  } catch (ePH) {}
   if (w.prevText)
     html += '<span class="mw-stat mw-prev">📊 ' + esc(w.prevText) + '</span>';
   html += '</div>';

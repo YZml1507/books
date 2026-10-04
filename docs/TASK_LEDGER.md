@@ -19875,3 +19875,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3517 PWA share_target——外部「分享到小满」
 - manifest 注册 share_target(GET stitle/stext/surl)；落地参立 huangli 视图（修 if(_vp||_badPath) 门槛跳块）+轮询预填问一嘴+参剥。实测 /?stext=明天适合面试吗 → 黄历激活+框预填+URL剥净。
+
+## R3519 小规律预热钩+周记视图规律行
+- moodweek 视图：规律行直接挂 stats（w.pattern）；未达 8 条且记过心情→「再记N天，小满就能告诉你一条小规律」目标钩；计数按 ^mood:\d{4}- 日期键口径。实测两态都出。
