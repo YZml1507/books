@@ -389,6 +389,9 @@ function _paintSharePoster(s, W, H) {
                    soulemblem: 6,
                    /* R3492：soulquiz 原型/强项/小满说/合拍/口径行。 */
                    soulquiz: 6,
+                   /* R3494：namecard 六件行+口径行=7 行——默认 cap4
+                    * 会切掉纹样/角色/口径三行，提帽 7。 */
+                   namecard: 7,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1902,6 +1905,25 @@ function buildShareData(view, j) {
       if (!_sq.lines.length) _sq.lines =
         [{ k: '结论', v: '这款原型是你的' }];
       return _sq;
+    }
+    case 'namecard': {
+      /* R3494 灵魂名片海报：六件汇总行进 lines（方位/图腾/晶石/
+       * 色谱/纹样/角色），大字=名片名，口径守恒。行数据由
+       * app.js _ncCard 与卡面同一 rows 直传，不重新推导。 */
+      var _nc = base('灵魂名片', '');
+      _nc.big = '📇 灵魂名片';
+      _nc.lines = [];
+      var _nrows = (j && j._ncRows) || [];
+      _nrows.forEach(function (r) {
+        if (r && r.k && r.v) {
+          _nc.lines.push({ k: String(r.k),
+                           v: _clauseCut(String(r.v), 20) });
+        }
+      });
+      _nc.lines.push({ k: '口径', v: '件件按盘里五行推，图个念想' });
+      if (!_nc.lines.length) _nc.lines =
+        [{ k: '结论', v: '名片收齐六件' }];
+      return _nc;
     }
     case 'soulart': {
       /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带

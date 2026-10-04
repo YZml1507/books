@@ -2361,7 +2361,7 @@ function _chatActChip(bubble, action) {
     try {
       /* R3471：sa* 锚——小惊喜族直达：结果已在屏直开；未出盘存
        * 待启标记，submitBazi 渲染后自动展开（指路同时教会入口）。 */
-      if (/^sa[EFGCPSR]$/.test(action.anchor || '')) {
+      if (/^sa[EFGCPSRN]$/.test(action.anchor || '')) {
         if (!_openSaByKey(action.anchor.slice(2))) {
           window.__saPending = action.anchor.slice(2);
         }
@@ -7039,13 +7039,18 @@ function buildBaziResult(j) {
      * 图案（soul-tattoo 同构件，可当头像/锁屏）。 */
     '<button class="ghost fav-btn" type="button" id="shareEmblem" '
  + '      title="看看你盘里长出来的守护纹样">🧿 灵魂纹样</button>' +
+    /* R3494：灵魂名片——六件派生件汇总一卡（Mirror 360°
+     * blueprint 同构：一图说尽「盘里的我」）。 */
+    '<button class="ghost fav-btn" type="button" id="shareNamecard" '
+ + '      title="一张名片收齐你盘里的六件小惊喜">📇 灵魂名片</button>' +
     '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
     '<div id="crCard"></div>' +
     '<div id="saCard"></div>' +
     '<div id="icCard"></div>' +
-    '<div id="emCard"></div>';
+    '<div id="emCard"></div>' +
+    '<div id="ncCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7655,6 +7660,7 @@ async function submitBazi(event) {
       on('sharePrompt', function () { _promptCopy(j, body); });
       on('shareSoulicon', function () { _icOpen(j); });
       on('shareEmblem', function () { _emOpen(j); });
+      on('shareNamecard', function () { _ncOpen(j); });
       /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
        * 不到刚看过的卡）。
        * R3485-P2-1：展开后钮置 disabled + aria-expanded——否则
@@ -8870,6 +8876,8 @@ var _POSTER_TITLES = {
   'emblem-wap': '灵魂纹样原图',
   /* R3492：灵魂原型小测海报弹层标题/下载文件名。 */
   soulquiz: '灵魂原型',
+  /* R3494：灵魂名片海报弹层标题/下载文件名。 */
+  namecard: '灵魂名片',
   /* R3479：色谱壁纸模态标题/文件名——回落「命盘海报」张冠李戴。 */
   'soulart-wap': '灵魂色谱壁纸',
   /* R3486：图腾壁纸模态标题/文件名。 */
@@ -8910,6 +8918,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   soulemblem: 'dream',
   /* R3492：灵魂原型同归紫云梦底——原型卡与纹样/角色同族。 */
   soulquiz: 'dream',
+  /* R3494：灵魂名片同归紫云梦底——汇总卡与纹样/角色同族。 */
+  namecard: 'dream',
   /* R3462：灵魂色谱——星云底由画家自画（s.art 分支），
    * 此键只为 _bgKey 兜底。 */
   soulart: 'lilac',
@@ -8979,6 +8989,8 @@ var _SHARE_TEXT = {
   'emblem-wap': '我的灵魂纹样原图做好了，看看你的纹长什么样 →',
   /* R3492：灵魂原型——「我是哪种原型」接力晒（无生辰门槛）。 */
   soulquiz: '我测出的灵魂原型是这个，看看你是哪种 →',
+  /* R3494：灵魂名片——「盘里的我一张图」接力晒。 */
+  namecard: '我的灵魂名片出全了，看看你盘里的六件 →',
   /* R3479：色谱壁纸——「锁屏同款」接力晒。 */
   'soulart-wap': '我的五行色谱锁屏做好了，你的盘是什么颜色 →',
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
@@ -9006,6 +9018,8 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'emblem-wap': 'bazi',
   /* R3492：原型海报复制链归 oracle——soulquiz 是题卡的海报件。 */
   soulquiz: 'oracle',
+  /* R3494：名片海报复制链归 bazi + sa=N 锚。 */
+  namecard: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun',
@@ -17095,7 +17109,7 @@ if (document.readyState === 'loading') {
             new URLSearchParams(location.search).get('sa') || '');
           var _saNM = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
             S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色',
-            E: '灵魂纹样' };
+            E: '灵魂纹样', N: '灵魂名片' };
           if (_saNM[_saNk]) {
             _relay.bazi = '朋友在晒 TA 的「' + _saNM[_saNk] +
               '」：排完你的盘，自动给你开同款 ✨';
@@ -17193,7 +17207,7 @@ if (document.readyState === 'loading') {
           new URLSearchParams(location.search).get('sa') || '');
         var _saNM2 = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
           S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色',
-          E: '灵魂纹样' };
+          E: '灵魂纹样', N: '灵魂名片' };
         if (_saNM2[_saK2]) {
           _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
             '」：填生日排完盘，自动给你开同款 ✨';
@@ -18251,9 +18265,55 @@ function _emOpen(j) {
   _emBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+/* R3494 灵魂名片（Mirror 360° blueprint 同构第九件）：六件派生
+ * 件各取一行汇总成名片——各行与单件卡同一 _pick 同源推导，
+ * 口径完全一致；晒海报把六行铺进 lines。 */
+function _ncCard(j) {
+  var _fd = _fdPick(j), _gd = _gdPick(j), _cr = _crPick(j),
+      _sa = _saBands(j), _em = _emPick(j), _ic = _icPick(j);
+  var _pcts = _saPctList(_sa.bands);
+  var _top = null, _topI = -1;
+  _sa.bands.forEach(function (b, i) {
+    if (!_top || b.frac > _top.frac) { _top = b; _topI = i; }
+  });
+  var rows = [
+    { ic: '🧭', k: '旺方',
+      v: _fd.d.dir + (_fd.d.cities ? '·' + _fd.d.cities : '') },
+    { ic: '🐉', k: '图腾', g: _gd.b.glyph, v: _gd.b.name },
+    { ic: '🔮', k: '晶石', g: _cr.g.glyph, v: _cr.g.name },
+    { ic: '🎨', k: '色谱', g: '',
+      v: _top ? _top.wx + '行最浓 ' + _pcts[_topI] + '%' : '五行空白' },
+    { ic: '🧿', k: '纹样', g: _em.e.glyph, v: _em.e.name },
+    { ic: '🎭', k: '角色', g: _ic.f.glyph, v: _ic.f.name },
+  ];
+  var _h = '<div class="nc-card sm-card">' +
+    '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
+  rows.forEach(function (r) {
+    _h += '<div class="sm-tip nc-row">' + r.ic + ' <strong>' + r.k +
+      '</strong> ' + esc((r.g ? r.g + ' ' : '') + r.v) + '</div>';
+  });
+  _h += '<div class="sm-note">六件各按你盘里的五行推——' +
+      '点开各卡看细账，名片图个念想</div>' +
+    '<button class="ghost fav-btn" type="button" id="ncShare" ' +
+      'title="生成灵魂名片分享图">📸 晒出我的名片</button>' +
+    '</div>';
+  return { html: _h, rows: rows };
+}
+function _ncOpen(j) {
+  var _ncBox = el('ncCard');
+  if (!_ncBox || !j) return;
+  var _c = _ncCard(j);
+  _ncBox.innerHTML = _c.html;   // esc-reviewed：_ncCard 内动态字段均过 esc()
+  on('ncShare', function () {
+    var _o = { _ncRows: _c.rows };
+    return downloadPoster(Object.assign({}, j, _o), 'namecard');
+  });
+  _ncBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 /* R3471：小惊喜卡直达键——聊天路标 sa* 锚与 ?view=bazi&sa= 深链
  * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt R=灵魂角色
- * E=灵魂纹样。
+ * E=灵魂纹样 N=灵魂名片。
  * 本 tab 已有排盘结果→直开对应卡（P 复制 prompt），返 true；
  * 未出盘→false，调用方存待启标记，submitBazi 渲染后消费。 */
 function _openSaByKey(k) {
@@ -18262,7 +18322,7 @@ function _openSaByKey(k) {
   /* R3485-P2-3（审子实锤）：键校验前置——非法 sa 键原来先点亮
    * 折叠区才 return false，地址栏参数又已被剥，客人无端多出
    * 一排钮。 */
-  if ('EFGCPSR'.indexOf(k || '') < 0) return false;
+  if ('EFGCPSRN'.indexOf(k || '') < 0) return false;
   var _z = el('saZone');
   if (_z) _z.hidden = false;
   var _tg = el('saZoneToggle');
@@ -18276,6 +18336,7 @@ function _openSaByKey(k) {
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
   else if (k === 'R') _icOpen(j);
   else if (k === 'E') _emOpen(j);
+  else if (k === 'N') _ncOpen(j);
   /* R3484-P1（审子实锤）：无手势环境（深链/待启消费）
    * writeText 必拒——「自动复制好」是空头支票。仍走
    * _promptCopy：手势路径（聊天 chip 点击）照常复制，

@@ -19797,3 +19797,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 判词抽公共：_sqRelTxt（我×TA 视角）+_sqPairTxt（点名视角）；五行关系表自带 _SQ_SHWO/KEWO/WOKE——_WX_* 在文件后部才赋值，_sqInit 在 init 阶段跑时是 undefined（实测 init 抛 TypeError 面板空白，自审抓修）。
 - 实测：sqb=fm→「燃灯者×森语者·森语者旺燃灯者」卡+答8题→大山×森语者磨刀石合拍+sqTell 两链都在+零 JS 错。
 - 闸：selftest 457 / smoke 125 / contract 790 / banned 0 / plain 5 全绿。
+
+## R3494 灵魂名片（Mirror 360° blueprint 同构第九件，汇总收官件）
+- sa 折叠区第八钮「📇 灵魂名片」：方位/图腾/晶石/色谱/纹样/角色六件各取一行汇总成名片——各行与单件卡同一 _pick 同源推导，口径完全一致。
+- 海报 'namecard'：六件行+口径行=7 行（lineCap 提帽 7 防静默切尾行），紫云梦底，大字「📇 灵魂名片」。行值去 emoji 防桌面 canvas 豆腐（卡里保留）。
+- sa 锚族第八键 N：聊天路标 saN 直达（services._CHAT_ACTIONS 收录）；分享链 ?view=bazi&sa=N 受邀者排完自动开同款；欢迎条/toast 点名件。
+- 自审修：🪪（Unicode 14）换 📇 防旧设备豆腐；_ncCard/_ncOpen 落位 _emOpen 后。
+- 实测：庚日主→六行全出（青龙/绿幽灵/金41%/星芒纹/刑天）+海报 7 行全渲+零 JS 错。
+- 闸：selftest 457 / smoke 126 / contract 790 / banned 0 / plain 5 全绿。

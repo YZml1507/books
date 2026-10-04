@@ -123,6 +123,8 @@ BUTTON_CASES = [
     ("bazi.soulicon",   "bazi",   None,            "#shareSoulicon",   "#icCard .ic-card"),
     # R3491：灵魂纹样——bazi 出卡后点 🧿 钮出纹样卡（canvas 画家）。
     ("bazi.soulemblem", "bazi",   None,            "#shareEmblem",     "#emCard .em-card"),
+    # R3494：灵魂名片——bazi 出卡后点 📇 钮出六件汇总卡。
+    ("bazi.namecard",   "bazi",   None,            "#shareNamecard",   "#ncCard .nc-card"),
     # R3464：算命 prompt——点 📋 钮复制（clipboard 成败两路都出 toast）。
     ("bazi.prompt",     "bazi",   None,            "#sharePrompt",     ".toast-item"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
@@ -508,6 +510,10 @@ def main() -> int:
                   "clipboard+toast 族，须受邀链+答完 8 题才出现",
         "sqbCopy": "原型对对碰「复制对对碰链接」——clipboard+toast 族，"
                    "须 sqb 双键链落地才渲染",
+        # R3494：名片分享钮——downloadPoster('namecard') 海报模态，
+        # 同族豁免；shareNamecard 本身有真用例。
+        "ncShare": "灵魂名片「晒出我的名片」——downloadPoster 海报模态，"
+                   "同 icShare/emShare 族豁免",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
