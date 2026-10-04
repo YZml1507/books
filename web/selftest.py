@@ -2550,7 +2550,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 14, ("home.ia.count", len(_cards), _cards)  # R3381 默契挑战卡入格（oracle 后 chat 前）——14 卡全平铺
+    assert len(_cards) == 15, ("home.ia.count", len(_cards), _cards)  # R3388 每日一签卡入格（mochi 后 chat 前）——15 卡全平铺
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2559,7 +2559,7 @@ def _run_inner() -> list[str]:
     # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前；
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
     assert _cards[6:] == ["xingzuo", "dream", "qiming", "liuyao",
-                          "history", "oracle", "mochi", "chat"], \
+                          "history", "oracle", "mochi", "qian", "chat"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉已撤，全 home 段都扫）
     for _kw in ("检索", "比对", "书目", "研究线程", "书 ID", "编址"):
@@ -4594,6 +4594,13 @@ def _run_inner() -> list[str]:
     assert 'data-pack="love"' in _appsrc2 and "_mcPackOf" in _appsrc2 and \
         "心动默契题" in _appsrc2, \
         "默契双题库：love 题库/_mcPackOf/切换钮缺一"
+    # R3388 每日一签：懒载器/同签闸/历史/白名单/备份前缀五件套——
+    # 缺一则签页空渲、同日变签、跨链断档、聊路死链或清场漏数。
+    assert "view-qian" in _idxsrc and "_renderQian" in _appsrc2 and \
+        "_qianDraw" in _appsrc2 and "qian: 1" in _appsrc2 and \
+        "qian:" in _appsrc2 and "qian_data.js" in _appsrc2 and \
+        'data-view="qian"' in _idxsrc, \
+        "每日一签：view/渲染/抽签/白名单/备份前缀/语料懒载缺一"
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

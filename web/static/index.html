@@ -507,6 +507,11 @@ try {
     <div class="func-card func-entry" data-view="mochi" role="button" tabindex="0" aria-label="默契挑战">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="mochi" src="/static/cream/cream-icon-mochi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">默契挑战</div><div class="func-desc">答 5 题 · 闺蜜对象双题库</div>
     </div>
+    <!-- R3388（调研·签小签验证链）：每日一签——观音灵签百签真本，
+         同日同签 + 连下签暖心调节 + 晒签海报 + 近签回顾。 -->
+    <div class="func-card func-entry" data-view="qian" role="button" tabindex="0" aria-label="每日一签">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="qian" src="/static/cream/cream-icon-qian.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">每日一签</div><div class="func-desc">观音灵签 · 今天一支</div>
+    </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
@@ -1371,6 +1376,15 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">🥤</span> 默契挑战 <span class="card-sub">答 5 题 · 看谁最懂你</span></h2>
       <div id="mochiBox" class="mc-box"></div>
+    </div>
+  </div>
+
+  <!-- R3388：每日一签——签筒/签面/历史全在 qianBox 内由
+       _renderQian 画；语料懒载 qian_data.js。 -->
+  <div class="view" id="view-qian">
+    <div class="card">
+      <h2><span aria-hidden="true">🎋</span> 每日一签 <span class="card-sub">观音灵签 · 百签真本</span></h2>
+      <div id="qianBox" class="qian-box"></div>
     </div>
   </div>
 

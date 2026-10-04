@@ -18585,3 +18585,29 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 画布字库不带奖牌 emoji（渲成豆腐块）——改用「第N名」文字位。
 - 实测 6 人榜出图 506KB 全行可见零溢出；banned_copy/contract
   闸全绿。
+
+## R3388 每日一签（观音灵签百签 daily-draw oracle）
+- 调研：签小签类 oracle 验证「真语料+日例+保底+分享」闭环；
+  主流观音灵签版本差异大——采泉州通淮关岳庙百签真本
+  （buyiju.com 全量自采；上签22/中上签4/中签52/中下签5/下签17），
+  浅草寺签本不同源弃用（用户对号会 mismatch）。
+- 语料 web/static/qian_data.js（83KB，懒载注入不进首屏）：
+  {n,name,luck,tier,gong,poem[4],yi,jie,xj,story,say} 100 签，
+  say=手写温暖白话「小满说」；4 签残诗按通行本校对修补
+  （6/15/38/85）；68 签双块文手工重解。
+- 机制：qian:<iso> 存当日签号（同日不变，与掷筊「今天再掷
+  也是这个筊」同口径）；qian:hist 近30条倒序；保底：昨+前天
+  连续两签下签→今日池剔 low tier。
+- 接线全套：功能卡第15位（mochi 后 chat 前）、showView 钩、
+  _DATA_RE 备份前缀、_CHAT_ACT_VIEWS+services.py 14 词路标
+  （求签/抽签/灵签/观音签/摇一签…）、_POSTER_TITLES/BG
+  （celadon）/_SHARE_TEXT、海报 case（签号+签名+签诗+小满说+
+  下联，钩「今天你的签是什么？」）、sw.js SHELL 收 qian_data.js。
+- 界面：摇签筒卡（is-shaking 1.1s 仪式感）→签卡（签号/吉凶
+  pill 三色/签名·宫位/签诗四行大字/小满说/解曰典故 details/
+  分享+回看钮）+ 历史行复看（📅 X 抽的那支）。
+- 修到 2 个闸盲区真坑：.func-card 15 卡断言同更；--ink 非主题
+  令牌（深色签诗不可读→换 --text）；var box 撞名被 on_coverage
+  误扫（改 qnBoxEl）。
+- 实测：卡→筒→抽→签卡→同签闸→详情→历史→回看→海报 780KB
+  出图→深链 ?view=qian→深色/360px 全过零 JS 错。

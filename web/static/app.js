@@ -2326,7 +2326,9 @@ var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
                          * 缺了 transcript 重渲丢 chip。 */
                         mantra: 1, moodweek: 1,
                         /* R3381：默契挑战路标白名单。 */
-                        mochi: 1 };
+                        mochi: 1,
+                        /* R3388：每日一签路标白名单。 */
+                        qian: 1 };
 /* R3352：路标落点表——view 是「街区」，anchor 是「门牌」。
  * details 类的送到并展开；id 类的滚到门口。 */
 var _CHAT_ACT_ANCHORS = {
@@ -3695,6 +3697,10 @@ function showView(viewId) {
   /* R3381：默契挑战——按 location.hash 出 host/guest/result 三态。 */
   if (viewId === 'mochi') {
     try { _renderMochi(); } catch (eMCV) {}
+  }
+  /* R3388：每日一签——懒载语料后出今签/签筒。 */
+  if (viewId === 'qian') {
+    try { _renderQian(); } catch (eQ) {}
   }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
@@ -8318,6 +8324,8 @@ var _POSTER_TITLES = {
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
   mochi: '默契挑战',
+  /* R3388：每日一签海报弹层标题/下载文件名。 */
+  qian: '每日一签',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
    * 「命盘海报/分享图」。 */
   'year-wrap': '小满年报' };
@@ -8335,6 +8343,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   weekletter: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
   mochi: 'warm',
+  /* R3388：每日一签归青瓷底——庙里签筒的竹青色。 */
+  qian: 'celadon',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -8375,6 +8385,8 @@ var _SHARE_TEXT = {
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
+  /* R3388：每日一签——「求来的答案」接力晒。 */
+  qian: '我今天的签抽到了，看看你的 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
@@ -19928,6 +19940,174 @@ function _renderMochi() {
   });
 })();
 
+/* R3388：每日一签——观音灵签百签真本（卜易居籤版系）。
+ * 语料懒载 /static/qian_data.js → window.QIAN（83KB 不堵首屏）。
+ * 同日同签：qian:<iso> 存签号——一天里重抽还是那一支
+ * （与掷筊「同一件事今天再掷也是这个筊」同口径）；
+ * 连下签暖心调节：昨+前连续两支 low，今天池子剔 low——
+ * 观音不忍心看你连着低（签小签同款机制，贴安抚基调）。
+ * 历史：qian:hist JSON [{d,n}] 倒序 30 条，备份/wipe/GC 走 qian: 前缀。 */
+var _qianJsLoad = null;
+function _qianData(cb) {
+  if (window.QIAN) { cb(); return; }
+  if (!_qianJsLoad) {
+    _qianJsLoad = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = '/static/qian_data.js' + _assetSuffix();
+      s.onload = function () { res(); };
+      s.onerror = function () {
+        _qianJsLoad = null;
+        rej(new Error('签文没加载上：网好了再点一次'));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  _qianJsLoad.then(function () { cb(); }).catch(function (e) {
+    toast(e && e.message ? e.message : '签文没加载上');
+  });
+}
+function _qianIdxOf(dk) {
+  try {
+    var v = parseInt(localStorage.getItem('qian:' + dk) || '', 10);
+    return (v >= 1 && v <= 100) ? v : 0;
+  } catch (e) { return 0; }
+}
+function _qianHist() {
+  try {
+    var h = JSON.parse(localStorage.getItem('qian:hist') || '[]');
+    return Array.isArray(h) ? h.filter(function (x) {
+      return x && typeof x.d === 'string' && x.n >= 1 && x.n <= 100;
+    }).slice(0, 30) : [];
+  } catch (e) { return []; }
+}
+function _qianDraw() {
+  var dk = todayIso(), had = _qianIdxOf(dk);
+  if (had) return had;  /* 今天的签已抽过——同一支 */
+  var pool = [];
+  for (var i = 0; i < QIAN.length; i++) pool.push(i + 1);
+  /* 连下签调节：回看昨/前两天的签，连 low 则今天剔 low 池。 */
+  var lows = 0;
+  for (var back = 1; back <= 2; back++) {
+    var d = new Date(); d.setDate(d.getDate() - back);
+    var dk2 = d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+    var idx2 = _qianIdxOf(dk2);
+    if (idx2 && QIAN[idx2 - 1] && QIAN[idx2 - 1].tier === 'low') lows++;
+    else break;
+  }
+  if (lows >= 2) {
+    pool = pool.filter(function (n) { return QIAN[n - 1].tier !== 'low'; });
+  }
+  var n = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    localStorage.setItem('qian:' + dk, String(n));
+    var h = _qianHist();
+    h.unshift({ d: dk, n: n });
+    localStorage.setItem('qian:hist', JSON.stringify(h.slice(0, 30)));
+  } catch (e) {}
+  return n;
+}
+function _qianSlipHtml(n, opts) {
+  var q = QIAN[n - 1]; if (!q) return '';
+  var o = opts || {};
+  var _luckCls = q.tier === 'top' ? 'q-top' : (q.tier === 'mid' ? 'q-mid' : 'q-low');
+  var h = '<div class="qian-slip' + (o.review ? ' is-review' : '') + '">';
+  if (o.review) {
+    h += '<div class="qian-review-tag">📅 ' + esc(o.review) + ' 抽的那支</div>';
+  }
+  h += '<div class="qian-head"><span class="qian-no">第' + n + '签</span>' +
+       '<span class="qian-luck ' + _luckCls + '">' + esc(q.luck) + '</span></div>' +
+       '<div class="qian-name">' + esc(q.name) + ' · ' + esc(q.gong) + '</div>' +
+       '<div class="qian-poem">' +
+       q.poem.map(function (l) { return '<div>' + esc(l) + '</div>'; }).join('') +
+       '</div>' +
+       '<div class="qian-say">💬 ' + esc(q.say) + '</div>' +
+       '<details class="qian-det"><summary>解曰与典故</summary>' +
+       '<div class="qian-det-body">' +
+       '<div class="qian-yi">' + esc(q.yi) + '</div>' +
+       '<div class="qian-jie">' + esc(q.jie) + '</div>' +
+       (q.story ? '<div class="qian-story"><b>典故</b> ' + esc(q.story) + '</div>' : '') +
+       '</div></details>';
+  h += '<div class="qian-acts">' +
+       '<button class="mc-go" type="button" data-qian="share" data-n="' + n + '">' +
+       '📸 晒这支签</button>' +
+       (o.review
+         ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
+         : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>') +
+       '</div></div>';
+  return h;
+}
+function _qianHistHtml() {
+  var h = _qianHist(); if (!h.length) return '';
+  var rows = h.slice(0, 7).map(function (x, i) {
+    var q = window.QIAN ? QIAN[x.n - 1] : null;
+    if (!q) return '';
+    var md = x.d.slice(5).replace('-', '月') + '日';
+    return '<button class="qian-hrow" type="button" data-qian="hist" data-n="' + x.n +
+           '" data-d="' + esc(x.d) + '"><span>' + esc(md) + '</span>' +
+           '<span>第' + x.n + '签 · ' + esc(q.luck) + '</span>' +
+           '<span class="qian-hname">' + esc(q.name) + '</span></button>';
+  }).join('');
+  return '<div class="qian-hist"><div class="qian-htitle">最近抽过的签</div>' +
+         rows + '</div>';
+}
+function _renderQian(review) {
+  var qnBoxEl = document.getElementById('qianBox'); if (!qnBoxEl) return;
+  _qianData(function () {
+    var dk = todayIso(), idx = _qianIdxOf(dk);
+    if (review && review.n) {
+      qnBoxEl.innerHTML = _qianSlipHtml(review.n, { review: review.d }) +
+        _qianHistHtml();
+      return;
+    }
+    if (idx) {
+      qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianHistHtml();
+      return;
+    }
+    qnBoxEl.innerHTML =
+      '<div class="qian-tube" id="qianTube">' +
+        '<div class="qian-tube-img" aria-hidden="true">🎋</div>' +
+        '<div class="qian-tube-t">心里默念一件想问的事</div>' +
+        '<div class="qian-tube-s">观音灵签一百签 · 真签文真典故</div>' +
+        '<button class="mc-go qian-draw" type="button" data-qian="draw">' +
+        '摇一支今日签</button>' +
+        '<div class="qian-note">一天一支——今天的签抽了就不会变</div>' +
+      '</div>' + _qianHistHtml();
+  });
+}
+(function _qianBind() {
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest
+      ? e.target.closest('[data-qian]') : null;
+    if (!b) return;
+    var act = b.dataset.qian;
+    if (act === 'draw') {
+      var tube = document.getElementById('qianTube');
+      if (tube) tube.classList.add('is-shaking');
+      b.disabled = true;
+      /* 摇签仪式感：筒晃 ~1.1s 再出签——「等一等才出来」是仪式本体。 */
+      setTimeout(function () {
+        _qianDraw();
+        _renderQian();
+      }, 1100);
+    } else if (act === 'hist') {
+      var n2 = parseInt(b.dataset.n || '0', 10);
+      if (n2) _renderQian({ n: n2, d: b.dataset.d || '' });
+    } else if (act === 'back') {
+      _renderQian();
+    } else if (act === 'share') {
+      var n3 = parseInt(b.dataset.n || '0', 10);
+      var q3 = window.QIAN && QIAN[n3 - 1];
+      if (!q3) return;
+      downloadPoster({ _qian: {
+          n: n3, name: q3.name, luck: q3.luck,
+          poem: q3.poem, say: q3.say },
+        date: todayIso() }, 'qian');
+    }
+  });
+})();
+
 /* R3335：烦恼粉碎机——写下来的烦心事当场粉碎，原文永不落盘
  * （隐私即卖点：碎掉就是真没了），只累计当天件数 shred:<date>。
  * 件数是纯计数不迁移：不进备份（换机不带这种一次性痕迹），
@@ -20545,7 +20725,7 @@ function baziPersonaCard(j) {
      * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
      * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
      * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:)/;
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:)/;
     var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
     /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
      * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */

@@ -778,6 +778,8 @@ function _posterHookForView(view, j) {
     if (j && j._mcb) return '你来了能排第几？';
     return '敢不敢测你们有多懂对方';
   }
+  /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
+  if (view === 'qian') return '今天你的签是什么？';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1516,6 +1518,25 @@ function buildShareData(view, j) {
         _ms.lines.push({ k: '想到一块儿', v: '0 题——完全不同路' });
       }
       return _ms;
+    }
+    case 'qian': {
+      /* R3388 每日一签海报：签号+吉凶是大字，签诗/小满说进
+       * lines——签是「求来的答案」，晒语境足。 */
+      var _qn = (j && j._qian) || {};
+      var _qs = base('每日一签', _cnDateSub(_pStr(j && j.date)));
+      _qs.big = '第' + (_pStr(_qn.n) || '?') + '签 · ' +
+                (_pStr(_qn.luck) || '');
+      var _qpoem = _pArr(_qn.poem);
+      _qs.lines = [
+        { k: '签题', v: _pStr(_qn.name) || '' },
+        { k: '签诗', v: _clauseCut(_qpoem.slice(0, 2).join('，'), 20) },
+        { k: '小满说', v: _clauseCut(_pStr(_qn.say), 24) }
+      ];
+      if (_qpoem.length > 2) {
+        _qs.lines.push({ k: '下联',
+          v: _clauseCut(_qpoem.slice(2, 4).join('，'), 20) });
+      }
+      return _qs;
     }
     case 'hehun': {
       /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比
