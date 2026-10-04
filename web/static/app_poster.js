@@ -1824,6 +1824,10 @@ function buildShareData(view, j) {
       if (_pStr(j && j._crWear)) {
         _cr.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._crWear), 20) });
       }
+      /* R3498：三珠手串行——卡内同 _crBracelet 同源文本直传。 */
+      if (_pStr(j && j._crBracelet)) {
+        _cr.lines.push({ k: '手串', v: _clauseCut(_pStr(j._crBracelet), 20) });
+      }
       _cr.lines.push({ k: '口径', v: '图个念想，真买先量预算' });
       if (!_cr.lines.length) _cr.lines =
         [{ k: '结论', v: '晶石替你补着' }];

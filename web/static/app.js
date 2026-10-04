@@ -17797,14 +17797,48 @@ function _crPick(j) {
   }
   return { wx: wx, why: why, g: _CR_GEM[wx] };
 }
+function _crBracelet(j) {
+  /* R3498 三珠手串（小红书手串品类）：本命珠=日主本行、喜用珠=
+   * 守护晶同款推导、最浓珠=盘里最浓行——三珠串一条。 */
+  var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+    .charAt(0);
+  var _wxM = _SM_GAN_WX[_gan] || '木';
+  var _wxP = _crPick(j).wx;
+  var _bands = _saBands(j).bands, _wxT = '';
+  var _tb = null;
+  _bands.forEach(function (b) { if (!_tb || b.frac > _tb.frac) _tb = b; });
+  if (_tb) _wxT = _tb.wx;
+  var beads = [];
+  var _push = function (wx, role) {
+    if (!wx || !_CR_GEM[wx]) return;
+    /* 同行合一珠——角色叠加进 role 文案。 */
+    for (var _bi = 0; _bi < beads.length; _bi++) {
+      if (beads[_bi].wx === wx) { beads[_bi].role += '·' + role; return; }
+    }
+    beads.push({ wx: wx, role: role,
+      glyph: _CR_GEM[wx].glyph, name: _CR_GEM[wx].name });
+  };
+  _push(_wxM, '本命');
+  _push(_wxP, '喜用');
+  _push(_wxT, '最浓');
+  var _txt = beads.map(function (b) {
+    return b.glyph + b.name + '（' + b.role + '）';
+  }).join(' + ');
+  var _short = beads.map(function (b) {
+    return b.glyph + b.name; }).join(' + ');
+  return { beads: beads, text: _txt, short: _short };
+}
 function _crCard(j) {
   var _p = _crPick(j);
+  var _br = _crBracelet(j);
   var _h = '<div class="cr-card sm-card">' +
     '<div class="cr-gem">' + _p.g.glyph + ' <strong>' +
       esc(_p.g.name) + '</strong></div>' +
     '<div class="sm-tip">🔮 ' + esc(_p.why) + '</div>' +
     '<div class="sm-tip">✨ ' + esc(_p.g.vibe) + '</div>' +
     '<div class="sm-tip">📿 ' + esc(_p.g.wear) + '</div>' +
+    (_br.beads.length ? '<div class="sm-tip">📿 三珠手串：' +
+      esc(_br.text) + '</div>' : '') +
     '<div class="sm-tip">💡 ' + esc(_p.g.tip) + '</div>' +
     '<div class="sm-note">晶石按你盘里的喜用推，图个念想——' +
       '真想买先量好预算，别冲动消费</div>' +
@@ -17821,7 +17855,8 @@ function _crOpen(j) {
   on('crShare', function () {
     var _o = { _crName: _c.pick.g.name, _crGlyph: _c.pick.g.glyph,
                _crWx: _c.pick.wx, _crWhy: _c.pick.why,
-               _crVibe: _c.pick.g.vibe, _crWear: _c.pick.g.wear };
+               _crVibe: _c.pick.g.vibe, _crWear: _c.pick.g.wear,
+               _crBracelet: _crBracelet(j).short };
     return downloadPoster(Object.assign({}, j, _o), 'crystal');
   });
   _crBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
