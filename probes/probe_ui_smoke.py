@@ -104,6 +104,8 @@ BUTTON_CASES = [
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
     # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
     ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
+    # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。
+    ("bazi.guardian",   "bazi",   None,            "#shareGuardian",   "#gdCard .gd-card"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
     # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
@@ -449,6 +451,10 @@ def main() -> int:
         # R3456：旺方分享钮——downloadPoster('fortune_dir') 海报模态，
         # 同族豁免；shareFortuneDir 本身有真用例。
         "fdShare": "旺你的方位「晒出我的旺方」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3457：守护兽分享钮——downloadPoster('guardian') 海报模态，
+        # 同族豁免；shareGuardian 本身有真用例。
+        "gdShare": "守护图腾「晒出我的守护兽」——downloadPoster 海报模态，"
                    "同 shareBazi 族豁免",
         # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
         # 同族豁免；信卡本身是「本周首访+门槛」条件件，
@@ -2523,6 +2529,24 @@ def main() -> int:
                     # 容器留着占位文案，旧判据「非空+非…中」会蒙混过关。
                     _pre_empty = bool(page.query_selector(
                         f"{res} .ph-empty"))
+                    # R3457：前案卡片 scrollIntoView({behavior:'smooth'})
+                    # 还在播时，本案按钮 bounding box 每帧都在变——
+                    # playwright 判 not-stable 超时（真人点没这毛病）。
+                    # 点击前等 scrollY 连续 3×120ms 不动（静止页即刻返回）。
+                    page.evaluate(
+                        """() => new Promise(res => {
+                            let y = window.scrollY, n = 0;
+                            const t = setInterval(() => {
+                                if (window.scrollY === y) {
+                                    if (++n >= 3) {
+                                        clearInterval(t); res(1);
+                                    }
+                                } else { n = 0; y = window.scrollY; }
+                            }, 120);
+                            setTimeout(() => {
+                                clearInterval(t); res(0);
+                            }, 6000);
+                        })""")
                     page.click(target_sel)
                     # 等结果容器出现"非占位"内容。
                     # 早退判据（否则每个坏按钮都要白等满预算，整轮跑不完）：

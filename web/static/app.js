@@ -6955,10 +6955,15 @@ function buildBaziResult(j) {
    * 全网调研验证的同公式品类）。五行分布在才出钮。 */
   if (j.calc && j.calc.five_elements && j.calc.five_elements.counts) {
     html += '<button class="ghost fav-btn" type="button" id="shareFortuneDir" ' +
-      'title="看看哪个方向旺你">🧭 旺你的方位</button>';
+      'title="看看哪个方向旺你">🧭 旺你的方位</button>' +
+      /* R3457：守护图腾——喜用→灵兽原型可晒件（soul-animal
+       * 同构，海外验证公式）。与方位同门同闸。 */
+      '<button class="ghost fav-btn" type="button" id="shareGuardian" ' +
+      'title="看看哪只灵兽守你">🐉 守护图腾</button>';
   }
   html += '</div>' +
-    '<div id="fdCard"></div>';
+    '<div id="fdCard"></div>' +
+    '<div id="gdCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7562,6 +7567,7 @@ async function submitBazi(event) {
       on('shareBaziKline', function () {
         return downloadPoster(j, 'bazi-kline'); });
       on('shareFortuneDir', function () { _fdOpen(j); });
+      on('shareGuardian', function () { _gdOpen(j); });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -8729,6 +8735,8 @@ var _POSTER_TITLES = {
   soulmate: '正缘画像',
   /* R3456：旺你的方位海报弹层标题/下载文件名。 */
   fortune_dir: '旺你的方位',
+  /* R3457：守护图腾海报弹层标题/下载文件名。 */
+  guardian: '守护图腾',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -8755,6 +8763,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   soulmate: 'sakura',
   /* R3456：旺你的方位归青瓷山水——行路/山水的远方感。 */
   fortune_dir: 'celadon',
+  /* R3457：守护图腾归紫云梦底——灵兽的夜行神秘感。 */
+  guardian: 'dream',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
@@ -8808,6 +8818,8 @@ var _SHARE_TEXT = {
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
   /* R3456：旺你的方位——「哪个方向旺我」接力晒。 */
   fortune_dir: '我的旺方测出来了，看看哪个方向旺你 →',
+  /* R3457：守护图腾——「哪只灵兽守我」接力晒。 */
+  guardian: '我的守护兽测出来了，看看哪只灵兽守你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
@@ -8824,6 +8836,7 @@ var _SHARE_TEXT = {
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
+  guardian: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun' };
@@ -16949,6 +16962,92 @@ function _fdOpen(j) {
   _fdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+/* R3457 守护图腾：soul-animal 同构——日主+五行→灵兽原型+守护语+
+ * 可晒海报。取兽口径与方位同源：缺行→它来补缺；无缺取最弱；
+ * 五行均势取日主本行（本命灵兽）。 */
+var _GD_BEAST = {
+  '木': { glyph: '🐉', name: '青龙',
+    vibe: '生发、向上、春天那股新劲儿',
+    guard: '它守你的成长——该发芽的时候不让你缩着',
+    tip: '养点绿植或往东边走走，青龙吃这一套' },
+  '火': { glyph: '🦅', name: '朱雀',
+    vibe: '明亮、热烈、敢出头的那股焰气',
+    guard: '它守你的光——该亮出来的时候不让你憋着',
+    tip: '晒晒太阳穿点亮色，朱雀喜欢热闹' },
+  '土': { glyph: '🦌', name: '麒麟',
+    vibe: '温厚、稳当、走到哪儿都踏实的那股地气',
+    guard: '它守你的根——累了乱了它把你摁回踏实里',
+    tip: '脚踩踩实地、按时吃饭，麒麟认这个' },
+  '金': { glyph: '🐯', name: '白虎',
+    vibe: '利落、有锋芒、断舍离的那股清气',
+    guard: '它守你的边界——该说不的时候替你撑腰',
+    tip: '收拾一回桌面房间，白虎爱干净利索' },
+  '水': { glyph: '🐢', name: '玄武',
+    vibe: '深沉、能忍、看似慢其实走得远的那股水气',
+    guard: '它守你的心——急的时候教你沉住气',
+    tip: '坐坐水边或泡个热水澡，玄武就回来了' },
+};
+function _gdPick(j) {
+  var fe = (j && j.calc && j.calc.five_elements) || {};
+  var counts = fe.counts || {};
+  var miss = fe.missing || [];
+  var wx = '', why = '';
+  if (miss.length) {
+    wx = miss[0];
+    why = '你八字缺' + wx + '，这只兽专门来替你守这一味';
+  } else {
+    var _ks = ['木', '火', '土', '金', '水'], _min = 99, _sec = 99;
+    _ks.forEach(function (e) {
+      var v = +(counts[e] || 0);
+      if (v < _min) { _sec = _min; _min = v; }
+      else if (v < _sec) { _sec = v; }
+    });
+    var _w0 = '';
+    _ks.forEach(function (e) {
+      if (!_w0 && Math.abs(+(counts[e] || 0) - _min) < 0.001) _w0 = e;
+    });
+    if (_w0 && _sec - _min > 0.001) {
+      wx = _w0;
+      why = '你八字里' + wx + '偏弱，它蹲在你最薄的那一处守着';
+    } else {
+      var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+        .charAt(0);
+      wx = _SM_GAN_WX[_gan] || '木';
+      why = '你五行挺匀，本命' + wx + '的灵兽跟你最亲';
+    }
+  }
+  return { wx: wx, why: why, b: _GD_BEAST[wx] };
+}
+function _gdCard(j) {
+  var _p = _gdPick(j);
+  var _h = '<div class="gd-card sm-card">' +
+    '<div class="gd-beast">' + _p.b.glyph + ' <strong>' +
+      esc(_p.b.name) + '</strong></div>' +
+    '<div class="sm-tip">🛡️ ' + esc(_p.why) + '</div>' +
+    '<div class="sm-tip">✨ ' + esc(_p.b.vibe) + '</div>' +
+    '<div class="sm-tip">💬 ' + esc(_p.b.guard) + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_p.b.tip) + '</div>' +
+    '<div class="sm-note">图腾按你盘里的喜用推，图个念想——' +
+      '真养宠物还得看缘分跟房东</div>' +
+    '<button class="ghost fav-btn" type="button" id="gdShare" ' +
+      'title="生成守护图腾分享图">📸 晒出我的守护兽</button>' +
+    '</div>';
+  return { html: _h, pick: _p };
+}
+function _gdOpen(j) {
+  var _gdBox = el('gdCard');
+  if (!_gdBox || !j) return;
+  var _c = _gdCard(j);
+  _gdBox.innerHTML = _c.html;   // esc-reviewed：_gdCard 内动态字段均过 esc()
+  on('gdShare', function () {
+    var _o = { _gdName: _c.pick.b.name, _gdGlyph: _c.pick.b.glyph,
+               _gdWx: _c.pick.wx, _gdWhy: _c.pick.why,
+               _gdVibe: _c.pick.b.vibe, _gdGuard: _c.pick.b.guard };
+    return downloadPoster(Object.assign({}, j, _o), 'guardian');
+  });
+  _gdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
  * 纪律：全部只动 transform/opacity（check_plain_first 判据 2 门柱安全）；
  * prefers-reduced-motion 下整体停用。 */
@@ -23906,6 +24005,38 @@ function baziPersonaCard(j) {
             }
             if (Array.isArray(bundle.threads) && bundle.threads.length) {
               bundle.threads.pop(); _cut = true;
+            }
+            if (!_cut && bundle.local) {
+              /* R3457-P1（探针实测 413）：records/threads 裁光仍
+               * 超限——重量在 local 大键（paipan_mirror 明细
+               * ~50KB/条、聊天稿）。逐轮裁最重的键：mirror 先
+               * 剥 details 旧明细（壳留下），其余大键整条丢
+               * （本机完好，云只带近期——与裁台账同口径）。 */
+              var _bigK = '', _bigN = 0;
+              for (var _lk in bundle.local) {
+                var _lv = bundle.local[_lk];
+                if (typeof _lv === 'string' && _lv.length > _bigN) {
+                  _bigN = _lv.length; _bigK = _lk;
+                }
+              }
+              if (_bigK) {
+                if (_bigK === 'paipan_mirror_v1') {
+                  try {
+                    var _mrm = JSON.parse(bundle.local[_bigK]);
+                    var _dk = _mrm && _mrm.details &&
+                      Object.keys(_mrm.details);
+                    if (_dk && _dk.length) {
+                      delete _mrm.details[_dk[0]];
+                      bundle.local[_bigK] = JSON.stringify(_mrm);
+                    } else {
+                      delete bundle.local[_bigK];
+                    }
+                  } catch (eMr) { delete bundle.local[_bigK]; }
+                } else {
+                  delete bundle.local[_bigK];
+                }
+                _cut = true;
+              }
             }
             if (!_cut) break;
             _trimmed = true;

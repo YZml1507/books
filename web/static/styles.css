@@ -3158,6 +3158,9 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
    * 常盖住标题/正文。.share-row 容器回落静态流，钮横排自动换行。 */
   .share-row{position:static; justify-content:flex-end; margin:8px 0; flex-wrap:wrap;}
   .share-row .fav-btn{flex:1 1 auto; min-width:100px; white-space:nowrap; margin:0;}
+  /* R3457（判据 2 余量）：5 枚分享/功能钮在 375px 下各占一行吃
+   * ~252px——收紧字号/内边距/最小宽让两钮一行，结果区省 ~110px。 */
+  .share-row .fav-btn{min-width:96px; font-size:12.5px; padding:9px 10px;}
 }
 /* P1：结果卡 fav-btn 骑 h2 盖副标尾字——右上角让位。 */
 .view .card h2{padding-right:92px;}
@@ -4132,8 +4135,15 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-note { font-size: 11px; color: var(--secondary); margin: 10px 16px 12px;
   line-height: 1.5; }
 .sm-card .fav-btn { margin: 0 12px 12px; }
+/* R3457（探针实测）：sm/fd/gd 卡内分享钮吃 .fav-btn 基类的
+ * absolute;top:24px;right:24px——飞出卡外叠在卡上方按钮区
+ * （fdShare 实测盖住 shareGuardian 拦点击）。卡内钮回落静态流。 */
+.sm-card .fav-btn { position: static; }
 /* R3456：旺你的方位卡——复用 sm-card 壳，方位行居中大字。 */
 .fd-dir { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
+/* R3457：守护图腾卡——复用 sm-card 壳，灵兽行居中大字。 */
+.gd-beast { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }
 
 /* R3381 默契挑战（view-mochi） */

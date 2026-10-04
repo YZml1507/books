@@ -4811,6 +4811,14 @@ def _run_inner() -> list[str]:
         "fortune_dir: '旺你的方位'" in _appsrc2, \
         "旺你的方位：按钮/卡片/海报/别名/标题缺一"
     ok.append("frontend.fortunedir_wiring")
+    # R3457 守护图腾：按钮/出卡/灵兽表/海报 case/别名/标题六件套——
+    # 缺一则钮不现、卡空渲、海报死链或归错视图。
+    assert "shareGuardian" in _appsrc2 and "_gdOpen" in _appsrc2 and \
+        "_GD_BEAST" in _appsrc2 and "case 'guardian'" in _postsrc and \
+        "guardian: 'bazi'" in _appsrc2 and \
+        "guardian: '守护图腾'" in _appsrc2, \
+        "守护图腾：按钮/卡片/灵兽表/海报/别名/标题缺一"
+    ok.append("frontend.guardian_wiring")
     # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
     # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \

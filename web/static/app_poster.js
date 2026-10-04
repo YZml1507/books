@@ -1695,6 +1695,31 @@ function buildShareData(view, j) {
         [{ k: '结论', v: '顺着自己的喜用走' }];
       return _fd;
     }
+    case 'guardian': {
+      /* R3457 守护图腾海报：灵兽上主位大字，喜用依据/气质/守护语
+       * 进 lines，小注守恒——「图个念想」免责口径。 */
+      var _gd = base('守护图腾', '');
+      var _gdBig = _pStr(j && j._gdName) || '守护兽';
+      var _gdGl = _pStr(j && j._gdGlyph);
+      _gd.big = (_gdGl ? _gdGl + ' ' : '') + _gdBig;
+      _gd.lines = [];
+      if (_pStr(j && j._gdWx)) {
+        _gd.lines.push({ k: '喜用', v: _pStr(j._gdWx) + ' 的灵兽' });
+      }
+      if (_pStr(j && j._gdWhy)) {
+        _gd.lines.push({ k: '依据', v: _clauseCut(_pStr(j._gdWhy), 20) });
+      }
+      if (_pStr(j && j._gdVibe)) {
+        _gd.lines.push({ k: '气质', v: _clauseCut(_pStr(j._gdVibe), 20) });
+      }
+      if (_pStr(j && j._gdGuard)) {
+        _gd.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._gdGuard), 20) });
+      }
+      _gd.lines.push({ k: '口径', v: '图个念想，真养宠物看缘分' });
+      if (!_gd.lines.length) _gd.lines =
+        [{ k: '结论', v: '灵兽替你守着' }];
+      return _gd;
+    }
     case 'weekletter': {
       /* R3379 周记信海报：小记原文拆句入 lines（每行一条），
        * 周报感靠 hook 顶行。 */
