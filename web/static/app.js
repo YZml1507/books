@@ -25169,9 +25169,10 @@ function _qianSlipHtml(n, opts) {
            esc((q.xj.match(/移徙\s+(\S+)/) || [])[1] || '') +
            '——老话讲，就是宜换个花样动起来</div>'
          : '') +
-       /* R3641：捣蛋签×今日能量交叉——签说宜动，再按
-        * 你今天的电量缀一句更贴心的。 */
-       (o.hw ? (function () {
+       /* R3641/R3643：捣蛋签×今日能量交叉——签说宜动，再按
+        * 你今天的电量缀一句。仅今天的签挂——回看历史签
+        * 时 __lastDaily 是今天分，日期对不上会错口。 */
+       (o.hw && !o.review ? (function () {
          var _es3 = '';
          try {
            _es3 = window.__lastDaily && window.__lastDaily.personal &&

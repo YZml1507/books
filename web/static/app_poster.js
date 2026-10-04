@@ -423,7 +423,8 @@ function _paintSharePoster(s, W, H) {
   /* R3637/40（审-P1）：daily 全字段齐=签诗+签运+评分+能量+
    * 贵人+财神+宜+缓+峰值+TA+双满电=11 行——提帽 11 兜全。 */
   var _lineCap = { daily: 11, 'checkin-week': 7, 'checkin-month': 6,
-                   hehun: 6, 'daily-outfit': 5,
+                   /* R3644：5 档色行+明天电量=6 行——提帽 6。 */
+                   hehun: 6, 'daily-outfit': 6,
                    huangli: 6, birth: 5, bazi: 5,
                    /* R3398：daily 构建 6-7 行（吉签插签运）cap=5
                     * 把「先缓缓」天天切没——注释口径兑现到 7；
@@ -1372,6 +1373,14 @@ function buildShareData(view, j) {
       });
       if (!_os.lines.length) {
         _os.lines = [{ k: '大吉', v: '穿件亮色，提提气' }];
+      }
+      /* R3644：明日穿搭海报带「明天电量」——穿对颜色出门顺
+       * 一半，电量足的另一半也晒上去（仅明日版）。 */
+      var _ote = (j && j.personal && j.personal.tomorrow_energy) ||
+                 null;
+      if (_tmP && _ote && _ote.score) {
+        _os.lines.push({ k: '明天电量',
+          v: String(_ote.score) + ' 分' });
       }
       return _os;
     }
