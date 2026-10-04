@@ -1219,14 +1219,20 @@ function buildShareData(view, j) {
        * tier 色落成「tag：colors」行，大吉行加 ★。 */
       var _of = (j && j.outfit) || {};
       var _oTiers = _pArr(_of.tiers);
-      var _os = base('今日穿搭',
+      /* R3481：_tmPoster 标记=明日预告日更件——标题/判词换日词。 */
+      var _tmP = !!(j && j._tmPoster);
+      var _os = base(_tmP ? '明日穿搭' : '今日穿搭',
         _cnDateSub(_pStr(j && j.date)) +
           (_of.wx ? ' · ' + _of.wx + '日' : ''));
-      _os.big = '穿对颜色，今天顺一半';
+      _os.big = _tmP ? '明天穿对颜色，出门顺一半'
+                     : '穿对颜色，今天顺一半';
       _os.lines = _oTiers.map(function (t, i) {
+        /* R3481：档内贴士后端正固「今天」——明日海报同口径换日词。 */
+        var _tip = _pStr(t.tip);
+        if (_tmP) _tip = _tip.replace(/今天/g, '明天');
         return { k: _pStr(t.tag) + (i === 0 ? ' ★' : ''),
                  dot: _pStr(t.hex) || null,
-                 v: _pStr(t.colors) + ' · ' + _pStr(t.tip) };
+                 v: _pStr(t.colors) + ' · ' + _tip };
       });
       if (!_os.lines.length) {
         _os.lines = [{ k: '大吉', v: '穿件亮色，提提气' }];

@@ -6595,6 +6595,32 @@ async function loadDaily() {
         _tmrEl.hidden = false;
       } else { _tmrEl.hidden = true; }
     }
+    /* R3481（调研）：「明日幸运色」日更件——小红书穿搭玄学号的
+     * 引流节奏是前一晚发「明天穿什么」，预告行挂一颗晒图钮：
+     * 今晚晒出明天的五行穿搭，朋友看到回来查自己的（日更内容
+     * 矩阵钩的晚间档）。无 tm.outfit 静默缺席。 */
+    var _tmsEl = el('dailyTomorrowShare');
+    if (!_tmsEl && _tmrEl) {
+      _tmsEl = document.createElement('button');
+      _tmsEl.type = 'button';
+      _tmsEl.id = 'dailyTomorrowShare';
+      _tmsEl.className = 'daily-tomorrow-share';
+      _tmsEl.textContent = '📸 晒明天的穿搭';
+      _tmsEl.addEventListener('click', function () {
+        var _tmD = _tmsEl._tm;
+        if (_tmD && typeof downloadPoster === 'function') {
+          downloadPoster(Object.assign({}, _tmD, { _tmPoster: true }),
+                         'daily-outfit');
+        }
+      });
+      _tmrEl.parentNode.insertBefore(_tmsEl, _tmrEl.nextSibling);
+    }
+    if (_tmsEl) {
+      var _tmOk = !!(tm && tm.outfit && tm.outfit.tiers &&
+                     tm.outfit.tiers.length);
+      _tmsEl.hidden = !_tmOk;
+      _tmsEl._tm = _tmOk ? tm : null;
+    }
     /* R39-P1-1：昨天问过的事接续条——hlask 足迹出黄历页，上首页。 */
     var _recEl = el('dailyRecall');
     if (!_recEl) {

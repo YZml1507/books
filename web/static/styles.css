@@ -2841,6 +2841,17 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
 .daily-tomorrow:focus-visible{
   outline:3px solid var(--primary-ink); outline-offset:2px;
 }
+/* R3481：预告行下「晒明天的穿搭」小钮——日更件入口低调挂。 */
+.daily-tomorrow-share{
+  display:block; margin:6px 0 0 auto; padding:4px 12px;
+  font-size:12px; min-height:32px; border-radius:10px;
+  border:1px dashed #E3C79A; background:transparent;
+  color:var(--secondary); cursor:pointer; font-family:var(--font-sans);
+}
+.daily-tomorrow-share:hover{color:var(--primary-ink); border-style:solid;}
+.daily-tomorrow-share:focus-visible{
+  outline:3px solid var(--primary-ink); outline-offset:2px;
+}
 /* 昨天问过的事接续条 */
 .daily-recall{margin-top:8px;}
 .daily-recall-btn{
