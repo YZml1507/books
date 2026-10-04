@@ -19077,3 +19077,25 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 钉扎：selftest 438 / ui_smoke 113（+ui:muyu.knock）/ 契约 791 /
   banned_copy / regress / dollar_misuse / no_generated /
   scripts_importable / date_parity / ruff 全绿。
+
+## R3423 古籍域终扫（自审，子 agent 429 转自办）
+- 抽查全健：简/繁检索命中一致、异体字换写法提示、零命中人话
+  hint、错书号（NOPE）/卷名缺失人话报错、注入 ' OR 1=1-- 返
+  0 命中（参数化无拼接）、500 字长查询 400、pydantic 缺字段
+  走 err422 人话化、threads POST kind/claim 校验齐、threads_*
+  mirror 键在备份白名单、?view=/from=share/s=seed/n=昵称/sp/c/
+  sym/date 参数消费链完整。
+- /api/research/read 无路由→404 人话「要找的内容不在了」（该
+  端点自始不存在，非漂移）。零修。
+
+## R3421/R3422 代审（子 agent 挂起 0 ACU 转自办）
+- R3421 备份导入边界实测：脏 JSON/未知 v:99/空包 →
+  {imported:0} 优雅跳过不 500；2MB 包「请求体太大了」人话拒。
+- R3422 海报域对账：17 个调用方 variant 全有 poster case
+  （bandaid/bazi/birth/checkin/daily/dream/hehun/huangli/liuyao/
+  lucky/moodweek/qiming/renge/taohua/tarot/xingzuo/xzm），
+  无死变体、无孤儿 case 未接线（ansb/hlcal/mochi/muyu/qian/
+  soulmate/weekletter/weekly/wishecho 各自由其钮直调）。
+- 零修。下轮建议：把「每用例 finally 摘 collapsed」补进探针
+  模板注释（R3424 已记），及 install-tip 底行族件（tip/bar/
+  banner）统一做「FAB 净空区」CSS 变量收口。
