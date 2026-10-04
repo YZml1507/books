@@ -4620,6 +4620,11 @@ function showPosterModal(canvas, view, j) {
              '&b=' + encodeURIComponent(String(j.b).slice(0, 4));
       if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
     }
+    /* R3353（审-P2）：明星合盘分享链带 celeb=<名>——收方落地
+     * 还原「和 X 合盘」语境。名单名是公开资料级参数，不带生辰。 */
+    if (view === 'hehun' && __hhCeleb && __hhCeleb.n) {
+      url += '&celeb=' + encodeURIComponent(String(__hhCeleb.n).slice(0, 16));
+    }
     var ok = function () { showToast(_dayPick(['链接已复制，发给 TA 吧','复制好啦，发给 TA 看看','已复制：等 TA 打开'], 'copy'), 'ok'); };
     /* R3303-P1：微信内嵌没有地址栏——「手动复制地址栏」是伪指引
      * 死路。复制被拒直接弹可选中文本域，长按全选就有活路。 */
@@ -4673,6 +4678,10 @@ function showPosterModal(canvas, view, j) {
       url += '&a=' + encodeURIComponent(String(j.a).slice(0, 4)) +
              '&b=' + encodeURIComponent(String(j.b).slice(0, 4));
       if (j._rel) url += '&rel=' + encodeURIComponent(j._rel);
+    }
+    /* R3353（审-P2）：系统分享链同带 celeb。 */
+    if (view === 'hehun' && __hhCeleb && __hhCeleb.n) {
+      url += '&celeb=' + encodeURIComponent(String(__hhCeleb.n).slice(0, 16));
     }
     /* R3266：系统分享链同带 dream sym。 */
     if (view === 'dream' && j && (j.symbols || [])[0]) {
@@ -15053,6 +15062,22 @@ function init() {
           window.__shareSeed = null;
           setTimeout(function () { _replaySharedDraw(_ssd); }, 250);
         }
+        /* R3353（审-P2）：明星合盘分享链 celeb=<名>——收方落地
+         * 按名单把 B 侧填好公开生辰（同手点明星），「和 X 合盘」
+         * 语境不丢；名字不在册静默回落普通合婚页。 */
+        if (_vp === 'hehun' && _qsAll.get('from') === 'share' &&
+            _qsAll.get('celeb')) {
+          var _cnm = String(_qsAll.get('celeb') || '').slice(0, 16);
+          try {
+            _celebLoad().then(function () {
+              try {
+                var _cm = (_CELEBS || []).filter(function (c) {
+                  return c.n === _cnm; })[0];
+                if (_cm) _celebPick(_cm);
+              } catch (eCM) {}
+            });
+          } catch (eCL) {}
+        }
         /* R2350b（R99-P2）：微信/小红书容器内落地的分享/邀请链——
          * beforeinstallprompt 不触发、装桌面提示缺席，给一行轻提示
          * 让接收方知道可以「浏览器打开更灵」。 */
@@ -15146,9 +15171,10 @@ function init() {
             var _qs2 = new URLSearchParams(location.search);
             var _dirty = false;
             /* R3307（审-低）：补 sym/sp/c——sym 是梦象征名属半隐私，
-             * 留在地址栏会被截图/转抄带走。 */
+             * 留在地址栏会被截图/转抄带走。R3353：celeb 同收编。 */
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
-             'ag', 's', 'tn', 'm', 'b', 'rel', 'sym', 'sp', 'c']
+             'ag', 's', 'tn', 'm', 'b', 'rel', 'sym', 'sp', 'c',
+             'celeb']
              .forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
@@ -19401,7 +19427,11 @@ function baziPersonaCard(j) {
           var _psb = detailEl.querySelector('#phShareBtn');
           if (_psb) _psb.addEventListener('click', function () {
             try {
-              var _p = downloadPoster(rec.result || {}, _type);
+              /* R3353（审-P3）：台账分享海报副标用记录日——出图
+               * 日期可追溯到这张记录，不是点开生成那天。 */
+              var _rj = Object.assign({}, rec.result || {},
+                { _posterDate: String(rec.ts || '').slice(0, 10) });
+              var _p = downloadPoster(_rj, _type);
               if (_p && _p.catch) _p.catch(function (e) {
                 showToast('分享图生成失败：' +
                   (e && _humanizeErr(e.message) || '稍后再试'), 'warn');

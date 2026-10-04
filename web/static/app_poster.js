@@ -447,7 +447,11 @@ function _paintSharePoster(s, W, H) {
             _acc = _cand;
           }
           if (_acc && _nLeft > 0) {
-            _vv = _acc + '…等' + _nLeft + '项' + _keep;
+            /* R3353（审-P1）：_keep 自带「等N件」尾时再拼「等N项」
+             * 出双计数器乱码（「…等1项等 4 件」）——_keep 非空用它的
+             * 计数，不再自算。 */
+            _vv = _acc + (_keep ? '…' + _keep
+                                : '…等' + _nLeft + '项');
           } else {
             _vv = _gSlice(v, Math.max(6, 21 - Array.from(_keep).length)) +
               '…' + _keep;
@@ -835,7 +839,10 @@ function buildShareData(view, j) {
     /* R233t（R51-P2-15）：裸 ISO 日期「2026-09-20」默认副标
      * 全部视图统一「M月D日 · 周X」。 */
     /* R2349p（R79-P2-2）：默认副标与 _cnDateSub 口径统一（去月前导零）。 */
-    var _defSub = _cnDateSub(todayIso());
+    /* R3353（审-P3）：台账复看分享的海报副标用记录日（j._posterDate），
+     * 不是生成日——出图日期可追溯到那张记录。 */
+    var _pd = _pStr(j && j._posterDate) || todayIso();
+    var _defSub = _cnDateSub(_pd);
     return { title: title, subtitle: subtitle || _defSub, big: l0 || title,
              lines: [], cards: [], view: view };
   }
@@ -963,14 +970,21 @@ function buildShareData(view, j) {
       var _tqSafe = _tq &&
         !(typeof feCrisis === 'function' && feCrisis(_tq)) &&
         !(typeof feSensitive === 'function' && feSensitive(_tq));
-      var s = base('塔罗指引',
-        (_pStr(j && j.spread) ? '「' + _pStr(j.spread) + '」牌阵 · ' : '') +
-        (_tqSafe ? '你问的：「' + _gSlice(_tq, 16) + '」' : ''));
+      /* R3353（审-P2）：问句缺席时副题尾悬「·」——两段拼法
+       * 改 join，不留孤分隔符。 */
+      var _sub = (_pStr(j && j.spread)
+        ? '「' + _pStr(j.spread) + '」牌阵' : '');
+      if (_tqSafe) _sub += (_sub ? ' · ' : '') +
+        '你问的：「' + _gSlice(_tq, 16) + '」';
+      var s = base('塔罗指引', _sub);
       /* R219b（P1-4）：海报兜底句去掉「牌面是象征，不是结论」免责套话 */
       /* R2349s（R86-P2-7）：「节制·正：调和，少硬刚」的「·正：」
        * 是内部编码格式漏到画上——转成顺读「节制（正位）：…」。 */
       var _tb = _pStr(l0).replace(/·\s*([正逆])\s*：/, '（$1位）：');
-      s.big = _tb || '今天这几张牌，值得你看一眼';
+      /* R3353（审-P2）：单张物料说「这几张牌」量词穿帮——
+       * 按实际牌数选量词。 */
+      s.big = _tb || (draws.length <= 1
+        ? '这张牌，值得你看一眼' : '今天这几张牌，值得你看一眼');
       s.cards = draws.slice(0, 3).map(function (d, i) {
         var el = imgs[i] && imgs[i].complete && imgs[i].naturalWidth > 0 ? imgs[i] : null;
         /* R2350h（R107-塔罗海报）：位置名（过去/现在/未来…）此前算出来
@@ -1085,7 +1099,7 @@ function buildShareData(view, j) {
       var _qAlt = ['', '①', '②'];
       var _qOrigin = _pStr((_pArr(j && j.full_names)[0] || {}).origin);
       return { title: '五行起名',
-        subtitle: '按五行补缺 · ' + _cnDateSub(todayIso()),
+        subtitle: '按五行补缺 · ' + _cnDateSub(_pd),
         big: _gSlice((_pArr(j && j.full_names)[0] || {}).full_name || l0, 12),
         lines: [{ k: '五行', v: _qfeLine }].concat(
           _pArr(j && j.full_names).slice(0, 3).map(function (n, i) {
@@ -1115,7 +1129,7 @@ function buildShareData(view, j) {
        * · 9月21日周一」念着像分享当天是生日，日期数据是错的。
        * R2349t（R87-P2-5）：上游从未真传 year/month/day（死分支）——
        * 且印明文生日本就是隐私面倒退，直接收成日期兜底。 */
-      var _birSub = _cnDateSub(todayIso());
+      var _birSub = _cnDateSub(_pd);
       var _bir = base('我的本命盘', _birSub);
       var _bp = String(_pillarsHonest(((j && j.paipan) || {}).render, (j || {}).hour_known) || '').split(/\s+/).filter(function (p) { return p.length >= 2; }).slice(0, 4);
       var _bec = (w && w.energy_card) || {};
@@ -1156,7 +1170,7 @@ function buildShareData(view, j) {
           '🌕 满月款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
           _stk >= 3 ?
           '我连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' : '今天的好运签',
-        _weekdayCn('') + ' · ' + _cnDateSub(todayIso()).split(' · ')[0]);
+        _weekdayCn('') + ' · ' + _cnDateSub(_pd).split(' · ')[0]);
       _ck.big = '今天抽到「' + (_pStr(j && j.pick) || '好运签') + '」';
       /* R233t（R51-P2-12）：「打卡姿势」字段名错位（值是签面文案），
        * 口号恒同一句——连晒 7 天口号全同稀释新鲜感，上轮换池。 */
@@ -1374,9 +1388,24 @@ function buildShareData(view, j) {
       /* R3304（审-P3）：白卡稀疏补丁——大运应期（dayun_hits 确定性
        * 派生）补一条「旺期预告」。 */
       var _dyh = _pArr(j && j.dayun_hits);
-      if (_dyh.length && _dyh[0].pillar) {
-        st.lines.push({ k: '旺期预告', v: _pStr(_dyh[0].pillar) + '运' +
-          (_dyh[0].year_start ? '（' + _dyh[0].year_start + ' 起）' : '') });
+      /* R3353（审-P3）：应期按公历年过滤——已过运（2003 起那种）
+       * 不再当「旺期预告」挂图：先挑眼下在走的运，否则下一个将到的；
+       * 全已过才报「上一回」。每运约十年。 */
+      var _ny = new Date().getFullYear();
+      var _dCur = null, _dNext = null, _dPast = null;
+      _dyh.forEach(function (d) {
+        var _ys = +(d && d.year_start || 0);
+        if (!_ys) return;
+        if (_ys <= _ny && _ny < _ys + 10) { if (!_dCur) _dCur = d; }
+        else if (_ys > _ny) { if (!_dNext) _dNext = d; }
+        else { _dPast = d; }
+      });
+      var _dy0 = _dCur || _dNext || _dPast;
+      if (_dy0 && _dy0.pillar) {
+        var _dyT = _dCur ? '（眼下就在这运里）'
+          : _dNext ? '（' + _dNext.year_start + ' 起）'
+          : '（' + _dPast.year_start + ' 起 · 上一回）';
+        st.lines.push({ k: '旺期预告', v: _pStr(_dy0.pillar) + '运' + _dyT });
       }
       if (!st.lines.length) st.lines = [{ k: '结论', v: _gSlice(l0, 15) || '桃花待时而动' }];
       return st;
@@ -1482,7 +1511,7 @@ function buildShareData(view, j) {
      * 出口卡。调研口径：深夜用户要的不是功能是一件小物——
      * 一句能存图带走的话 + 夜灯场景卡。 */
     case 'bandaid': {
-      var _bd = base('深夜创可贴', _cnDateSub(todayIso()) + ' · 🌙');
+      var _bd = base('深夜创可贴', _cnDateSub(_pd) + ' · 🌙');
       _bd.big = _dayPick([
         '你不是不够好，只是光还在路上找你',
         '今晚先把没处理完的事放一放——它们在原地等你，你先睡',
@@ -1499,7 +1528,7 @@ function buildShareData(view, j) {
       return _bd;
     }
     case 'xzm': {
-      var _xm = base('星座速配', _cnDateSub(todayIso()));
+      var _xm = base('星座速配', _cnDateSub(_pd));
       /* R3260：闺蜜/同事视角进副标——「巨蟹座×天蝎座」晒到群里
        * 时一句话说清测的是什么关系；恋人默认不加（感情腔即默认）。 */
       if (j && (j._rel === '闺蜜' || j._rel === '同事')) {
@@ -1528,7 +1557,7 @@ function buildShareData(view, j) {
     }
     case 'lucky': {
       /* R3264（R29）：今日护身符——开运色/幸运数/财神/贵人属相。 */
-      var _lu = base('今日护身符', _cnDateSub(todayIso()));
+      var _lu = base('今日护身符', _cnDateSub(_pd));
       _lu.big = _pStr(j && j.summary)
         ? (String(j.summary).split(/[；;]/)[0] || '今日份小确幸')
         : '今日份小确幸';
@@ -1550,8 +1579,10 @@ function buildShareData(view, j) {
       /* R3342：年度小满报告——Wrapped 式全年足迹回顾。 */
       var _yr = base('小满年报',
         _pStr(j && j.year) + ' 年 · 小满陪你过的一年');
+      /* R3353（审-P3）：顶部天数与明细「打卡 N 天」同口径——
+       * 两值取大（visit 口径本应 ≥ checkin，镜像清盘后可能倒挂）。 */
       _yr.big = '这一年小满陪了你 ' +
-        (_pStr(j && j.visitDays) || '0') + ' 天';
+        Math.max(+(j && j.visitDays) || 0, +(j && j.checkinDays) || 0) + ' 天';
       _yr.chip = '最长连打 ' +
         (_pStr(j && j.streakBest) || '0') + ' 天';
       _yr.lines = [
@@ -1565,7 +1596,7 @@ function buildShareData(view, j) {
     }
     case 'weekly': {
       /* R3264（R39）：小满周报分享卡——近 7 天心情/常问/仪式数。 */
-      var _wk = base('小满周报', _cnDateSub(todayIso()));
+      var _wk = base('小满周报', _cnDateSub(_pd));
       /* R3314：usage:d:* 按天计数，海报同口径改「天」。 */
       _wk.big = '这周小满陪了你 ' + (_pStr(j && j.visitDays) || '0') + ' 天';
       /* R3304（审-P3）：「—」裸破折号挂白卡太冷——换兜底文案。 */
@@ -1596,7 +1627,9 @@ function buildShareData(view, j) {
                  c: _mm ? _mm.c : '', e: _mm ? _mm.e : '', t: _mm ? _mm.t : '' };
       });
       _mws.lines = [];
-      _mws.lines.push({ k: '小满说', v: _gSlice(_pStr(j && j.verdict), 20) });
+      /* R3353（审-P1）：硬切把判词斩在词中（「…趁热用，惦」）——
+       * 换子句截断带省略号。 */
+      _mws.lines.push({ k: '小满说', v: _clauseCut(_pStr(j && j.verdict), 20) });
       _mws.lines.push({ k: '这周记下', v: _pStr(j && j.recorded) + '/7 天' });
       if ((j && j.streak) >= 2) {
         _mws.lines.push({ k: '连续记录', v: _pStr(j.streak) + ' 天' });
@@ -1913,12 +1946,19 @@ function _clauseCut(v, n) {
     var p = cut.lastIndexOf(sep);
     if (p >= 0) pos = Math.max(pos, p + sep.length);
   });
+  var out;
   if (pos >= 6) {
     /* R2349s（R86-P1-1）：子句边界截完尾巴不许留孤分隔符——
      * 「…喝咖啡·」的悬点比拦腰截还难看。 */
-    return _gSlice(cut, pos).replace(/[·，；、——]+$/u, '');
+    out = _gSlice(cut, pos).replace(/[·，；、——]+$/u, '');
+  } else {
+    out = cut;
   }
-  return cut;
+  /* R3353（审-P1）：被截就要有截的样子——_gSliceB 遇未闭合引号
+   * 回退后只剩半截无截断符（「老话里猫进梦是」悬空），统一补 …。 */
+  if (Array.from(out).length < Array.from(t).length &&
+      !/[…。！？]$/.test(out)) out += '…';
+  return out;
 }
 function _gSliceB(v, n) {
   var t = _gSlice(v, n);

@@ -121,13 +121,15 @@ function _wapComposite(j, bg, variant) {
 
   /* 判词大字 */
   /* R3326（审-P1）：方图裁切后判词行压在熊脸深色块上——
-   * 方形版先铺一条半透明暗衬带保可读。 */
-  if (_sq) {
-    ctx.fillStyle = 'rgba(38,30,22,0.38)';
-    ctx.beginPath();
-    ctx.ellipse(360, A.verdict - 34, 175, 82, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+   * 方形版先铺一条半透明暗衬带保可读。
+   * R3353（审-P1/P2）：两版判词实测均压奶油熊毛弱读——方图
+   * 衬带加深（0.38→0.5、加宽），竖图同补暗衬。 */
+  ctx.fillStyle = _sq ? 'rgba(38,30,22,0.5)'
+                      : 'rgba(38,30,22,0.42)';
+  ctx.beginPath();
+  ctx.ellipse(360, _sq ? A.verdict - 34 : A.verdict - 40,
+              _sq ? 190 : 235, _sq ? 88 : 100, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.font = '600 ' + (_sq ? 96 : 108) +
     'px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = _tint;
@@ -143,18 +145,27 @@ function _wapComposite(j, bg, variant) {
   var _lcw = (j.lucky && j.lucky.color_word) || '';
   var _lnum = (j.lucky && j.lucky.num) || '';
   if (_lc) {
-    if (_sq) {
-      ctx.fillStyle = 'rgba(38,30,22,0.34)';
-      ctx.beginPath();
-      ctx.ellipse(360, A.lucky - 26, 260, 58, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
     var _hex = _WAP_LC_HEX[_lc] || '#d9c9a8';
     ctx.font = '400 ' + A.luckyFs +
       'px "LXGW WenKai","PingFang SC",sans-serif';
     var _lcTxt = '今日开运色 · ' + _lc +
       (_lcw ? '（' + _lcw + '）' : '') + (_lnum ? ' · ' + _lnum : '');
     var _tw = ctx.measureText(_lcTxt).width;
+    if (_sq) {
+      /* R3353（审-P1）：深色椭圆压熊脸像污渍——换奶油色胶囊
+       * +深棕字（卡面同款配色），色点保持彩色。 */
+      ctx.fillStyle = 'rgba(255,246,232,0.88)';
+      ctx.beginPath();
+      ctx.ellipse(360, A.lucky - 26, _tw / 2 + 56, 36,
+                  0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(62,52,40,0.18)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(360, A.lucky - 26, _tw / 2 + 56, 36,
+                  0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     var _cx = 360 - _tw / 2 - 26;
     ctx.beginPath();
     ctx.arc(_cx, A.lucky - Math.round(A.luckyFs * 0.7), 16, 0, Math.PI * 2);
@@ -163,7 +174,7 @@ function _wapComposite(j, bg, variant) {
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.lineWidth = 2; ctx.stroke();
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,246,232,0.95)';
+    ctx.fillStyle = _sq ? '#5A4633' : 'rgba(255,246,232,0.95)';
     ctx.fillText(_lcTxt, _cx + 26, A.lucky);
     ctx.textAlign = 'center';
   }
@@ -183,8 +194,10 @@ function _wapComposite(j, bg, variant) {
   ctx.fillStyle = 'rgba(255,246,232,0.72)';
   /* R3319（规划C）：连签里程碑限定壁纸——落款带纪念标，
    * 仪式感奖励物可直发晒图。 */
+  /* R3353（审-P1）：方图头像缺合规标——可直发物料须与全站
+   * 同口径（变体 tag 是里程碑纪念标，豁免）。 */
   ctx.fillText((variant && variant.tag) ||
-               (_sq ? '@小满的解忧铺'
+               (_sq ? '@小满的解忧铺 · 仅供娱乐'
                     : '@小满的解忧铺 · 知命·仅供娱乐'), 360, A.brand);
   return cv;
 }

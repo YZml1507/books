@@ -18110,3 +18110,26 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   → 改「锚位」。
 - 闸门：selftest 408 / ui_smoke 104 / banned_copy 0 / ruff 全绿；
   bump_sw→books-shell-a9b689e0a09c
+
+## R3353 分享物料全链终审清零（本批）
+- P1a/b 截断语义：_clauseCut 截断必补「…」（_gSliceB 未合括号
+  回退出的短残句不再像说完整话）；huangli _keep 拼接
+  「…等N项」计数补齐；moodweek 判词截 20 字；tarot 副题
+  join 尾巴去「·」；量词单复数分句（这张牌/这几张牌）。
+- P1c/d 开运壁纸卡：判词两行都补椭圆底衬（方/竖两版，字不再
+  压画）；方形版幸运色行改奶白果丸描边款、品牌行落图底。
+- P2a/b 分享口径：tarot/huangli 等已带 seed/date 不变；备份
+  白名单 couple:/shred: 全收编（导出不再静默丢）。
+- P2c 明星合盘分享链：分享/系统分享两路 URL +celeb=<名>；
+  落地 from=share&celeb 时 _celebLoad→_celebPick 把 B 侧
+  填好公开生辰（受邀者不用再找明星）；名字不在册静默回落；
+  剥参表收编 celeb。
+- P3：年报顶部天数改 max(visitDays,checkinDays)（口径倒挂
+  不出矛盾数）；桃花旺期预告按公历年过滤（只挂眼下在走的
+  运或下一运，全过才标「上一回」——「2003 起」不再当预告）；
+  台账复看分享海报副标改记录日（j._posterDate）非生成日。
+- 未修（评估保留）：月亮底图压副题——R2349m 已浅字+晕影
+  处理过属底图艺术层内问题；chip 重复挂载（可接受）；小满信
+  入口时间闸（刻意晚到设计）；action 按 sid 去重（低优）。
+- 闸门：selftest 408 / ui_smoke PASS / contract 746 / parity 全绿
+  / ruff 全绿；bump_sw→books-shell-03653ed942b7
