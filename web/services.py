@@ -455,8 +455,13 @@ def _hehun_score(h) -> int:
     return int(max(35, min(_cap, round(sc))))
 
 
-def hehun(req) -> dict:
-    """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
+def _hehun_plates(req):
+    """合婚共享前置（R3425 抽取）：双侧生辰→农历换算→成年/同人闸
+    →双盘+hehun 坐标+大运应期。hehun() 与 hehun_daily() 共用，
+    闸口径改一处两边同步。
+    抛 ValidationError（农历换算失败/未成年/同一人）/ComputeError。
+    返回 (ba, bb, h, dayun, a_ymd, b_ymd)——后两项是换算后的公历
+    坐标（农历输入下与 req.a_*/b_* 原值不同，判星座须用这组）。"""
     req.validate_ranges()
     # R2349s（R84-P0-1）：未成年边界——1900–2100 只验「是不是日期」，
     # 实测 8 岁盘正常出「并肩作战型情侣」配对文案，敏感失守。
@@ -502,6 +507,68 @@ def hehun(req) -> dict:
         dayun = hehun_mod.dayun_relation(ba, _ay, bb, _by)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
+    return ba, bb, h, dayun, (_ay, _am, _ad), (_by, _bm, _bd)
+
+
+def hehun_daily(req) -> dict:
+    """R3425 今日合拍指数：已存 CP 的「今天你们怎么样」日更留存钩。
+
+    纯坐标确定性输出（同日重测同分）：今日日柱 vs 双方日支的合/冲/
+    半合/害/刑信号 + 底子分（_hehun_score）混成 45–98 的当日分。
+    判词按分档换句，附加日支信号标签（合→适合表态、冲→别翻旧账）。"""
+    ba, bb, h, _dayun, _aymd, _bymd = _hehun_plates(req)
+    base = _hehun_score(h)
+    _today = _today_cn()
+    _tp, _ = _bazi_day_ganzhi(
+        datetime(_today.year, _today.month, _today.day))
+    _tz = _tp[1]
+
+    def _sig(dz):
+        if hehun_mod.SIX_COMBINE.get(_tz) == dz:
+            return 7, "合"
+        if hehun_mod.SIX_CLASH.get(_tz) == dz:
+            return -9, "冲"
+        if hehun_mod.half_combine(_tz, dz):
+            return 3, "半合"
+        if hehun_mod.is_harm(_tz, dz):
+            return -4, "害"
+        if hehun_mod.is_xing(_tz, dz):
+            return -4, "刑"
+        if hehun_mod.is_break(_tz, dz):
+            return -3, "破"
+        return 0, ""
+
+    _sa, _ta = _sig(ba.day[1])
+    _sb, _tb = _sig(bb.day[1])
+    # 抖动盐：日期+双方日柱——同一对每天不同、同一天重测不变，
+    # ±4 不破确定性也不让分数天天撞整数带。
+    _jit = int(hashlib.md5(
+        f"{_today.isoformat()}|{ba.day}{bb.day}".encode()
+    ).hexdigest()[:4], 16) % 9 - 4
+    score = int(max(45, min(98, round(
+        0.55 * base + 24 + (_sa + _sb) * 1.5 + _jit))))
+    _tag = ""
+    if _ta == "冲" or _tb == "冲":
+        _tag = "今天日支逢冲，别翻旧账"
+    elif _ta == "合" or _tb == "合":
+        _tag = "今天日支逢合，适合把话说开"
+    elif _ta == "半合" or _tb == "半合":
+        _tag = "今天有点小合意，顺手撒个娇"
+    if score >= 85:
+        line = "今天你们频道特别对——想腻就腻着，想把话说开也顺。"
+    elif score >= 70:
+        line = "今天合拍在线，日常小事都顺，适合一起做点啥。"
+    elif score >= 55:
+        line = "今天平平也挺好，各忙各的、晚上唠两句就够。"
+    else:
+        line = "今天有点顶——少讲道理多给台阶，晚点再说正事。"
+    return {"date": _today.isoformat(), "ganzhi": _tp,
+            "score": score, "line": line, "tag": _tag, "base": base}
+
+
+def hehun(req) -> dict:
+    """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
+    ba, bb, h, dayun, (_ay, _am, _ad), (_by, _bm, _bd) = _hehun_plates(req)
     h_dict = {
         # R2350b（R98-P2-13）：补 render——pro 模式「A 四柱」pill 读
         # a_bazi.render，此前键缺席恒 undefined（死 pill）；甲乙卡也

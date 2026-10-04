@@ -4408,3 +4408,22 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 @media (max-width: 420px) {
   .muyu-stat-big { font-size: 38px; }
 }
+
+/* ── R3425 今日合拍指数卡（合婚页，已存 CP 日更分）── */
+.hh-daily { margin-top: 12px; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,240,244,.75), rgba(255,248,236,.75));
+  border: 1px solid rgba(214,140,150,.35); border-radius: 16px; }
+.hh-daily-head { display: flex; justify-content: space-between;
+  align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.hh-daily-title { font-size: 14px; font-weight: 600; color: var(--text, #3e3428); }
+.hh-daily-date { font-size: 11.5px; color: var(--muted); }
+.hh-daily-body { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.hh-daily-score { font-size: 44px; font-weight: 700; line-height: 1;
+  color: #c2536b; font-variant-numeric: tabular-nums; }
+.hh-daily-unit { font-size: 13px; color: var(--muted); align-self: flex-end;
+  padding-bottom: 6px; }
+.hh-daily-text { flex: 1; min-width: 0; }
+.hh-daily-line { font-size: 13.5px; line-height: 1.55; color: var(--text, #3e3428); }
+.hh-daily-tag { margin-top: 4px; font-size: 12px; color: #c2536b; }
+.hh-daily-share { margin-top: 10px; min-height: 40px; }
+@media (max-width: 420px) { .hh-daily-score { font-size: 38px; } }

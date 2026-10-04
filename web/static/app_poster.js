@@ -1769,6 +1769,19 @@ function buildShareData(view, j) {
       ];
       return _as;
     }
+    case 'cpdaily': {
+      /* R3425 今日合拍指数海报：当日分是主体——「今天你们 N 分」
+       * 的日更晒件，名字行/日支信号进 lines。 */
+      var _cds = base('今日合拍指数', _pStr(j && j.date) + ' · ' +
+        _pStr(j && j.ganzhi) + '日');
+      _cds.big = (+_pStr(j && j.score) || 0) + ' 分';
+      _cds.lines = [
+        { k: '你们', v: _pStr(j && j.title) || '—' },
+        { k: '小满说', v: _pStr(j && j.line) || '—' },
+        { k: '提示', v: _pStr(j && j.tag) || '今天随缘处' }
+      ];
+      return _cds;
+    }
     case 'muyu': {
       /* R3424 敲敲木鱼海报：攒数是主体——「攒了 N 点心安」晒语境，
        * 今天敲数/连敲进 lines。 */

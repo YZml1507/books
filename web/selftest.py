@@ -5280,6 +5280,44 @@ def _run_inner() -> list[str]:
     assert _r.status_code == 422, \
         ("muyu.knock_zero", _r.status_code, _r.text[:200])
     ok.append("muyu.knock_zero")
+
+    # R3425 今日合拍指数：纯坐标日更分——同日重测同分（确定性），
+    # 响应字段齐（date/ganzhi/score/line/tag/base），同人/未成年闸
+    # 与主合婚同口径（_hehun_plates 共享前置）。
+    _hb = {"a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+           "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
+           "b_hour": 14, "b_gender": "女"}
+    _r = client.post("/api/hehun/daily", json=_hb)
+    assert _r.status_code == 200, \
+        ("hehun.daily", _r.status_code, _r.text[:200])
+    _j = _r.json()
+    assert all(k in _j for k in
+               ("date", "ganzhi", "score", "line", "tag", "base")) and \
+        isinstance(_j["score"], int) and 45 <= _j["score"] <= 98, \
+        ("hehun.daily.fields", _j)
+    ok.append("hehun.daily")
+    _r2 = client.post("/api/hehun/daily", json=_hb)
+    assert _r2.json().get("score") == _j["score"], \
+        ("hehun.daily.deterministic", _r2.text[:200])
+    ok.append("hehun.daily.deterministic")
+    _hs = dict(_hb); _hs.update({"b_year": 1990, "b_month": 5,
+        "b_day": 15, "b_hour": 10, "b_gender": "男"})
+    _r3 = client.post("/api/hehun/daily", json=_hs)
+    assert _r3.status_code == 400, \
+        ("hehun.daily.same_person", _r3.status_code, _r3.text[:200])
+    ok.append("hehun.daily.same_person")
+
+    # R3425 前端接线：daily 卡容器 + ref 解码 + poster case + 晒钮委托。
+    _hsrc = open("web/static/index.html", encoding="utf-8").read()
+    _asrc = open("web/static/app.js", encoding="utf-8").read()
+    _psrc = open("web/static/app_poster.js", encoding="utf-8").read()
+    assert ('id="hhDailyBox"' in _hsrc and
+            "_hhDailyRender" in _asrc and
+            "/api/hehun/daily" in _asrc and
+            "data-hhdaily" in _asrc and
+            "case 'cpdaily'" in _psrc), \
+        "hehun.daily.wiring"
+    ok.append("frontend.hehun_daily_wiring")
     return ok
 
 

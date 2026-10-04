@@ -19099,3 +19099,19 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 零修。下轮建议：把「每用例 finally 摘 collapsed」补进探针
   模板注释（R3424 已记），及 install-tip 底行族件（tip/bar/
   banner）统一做「FAB 净空区」CSS 变量收口。
+
+## R3425 今日合拍指数卡（已存 CP 日更留存钩）
+- services.py：_hehun_plates 共享前置抽取（农历换算/成年/同人
+  闸/双盘+大运，返 a_ymd/b_ymd 换算坐标供星座判座），hehun()
+  走同函数零行为漂移；hehun_daily() 新端点——今日日柱 vs 双
+  方日支合/冲/半合/害/刑/破信号 + 底子分混成 45–98 当日分
+  +md5 抖动盐（同日定+逐日变），分档判词+信号 tag。
+- 路由 POST /api/hehun/daily（routers/bazi.py）；index.html
+  #hhDailyBox 挂 hhFavRow 下；app.js _hhDailyRender(ref) 解
+  chip 编码 POST 渲染卡+晒图，favs 渲染默认首对、chip 点击
+  联动；app_poster.js case 'cpdaily'（分是主体+名字/判词/
+  tag 进 lines）；styles.css .hh-daily* 族。
+- 闸：selftest +4（字段齐/同日定/同人闸 400/前端接线）、
+  contract +1 fixture、ui_smoke 113 全绿。
+- 修中事故：_hehun_plates 初版漏返换算坐标→hehun() cross_ref
+  NameError，补返 a_ymd/b_ymd 双元组修复。

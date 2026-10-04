@@ -14291,6 +14291,56 @@ async function _hhFavsRender() {
         esc(String(f.id)) + '" aria-label="从测过的 CP 移除 ' +
         esc(f.title || '一对') + '">×</button></span>';
     }).join('');
+  /* R3425：今日合拍指数随 CP 列表联动——默认第一对 */
+  _hhDailyRender(favs[0] && favs[0].ref_id || '');
+}
+
+/* R3425：今日合拍指数卡——已存 CP 每天一分（服务端纯坐标日更）。
+ * ref 用 chip 同编码解出双侧生辰 POST /api/hehun/daily；无存对或
+ * 拉不到静默不渲染——卡片是加分件不是阻断件。点 CP chip 联动刷新。 */
+var _hhDailyRef = '';
+async function _hhDailyRender(ref) {
+  var box = el('hhDailyBox');
+  if (!box) return;
+  if (ref === undefined) ref = _hhDailyRef;
+  _hhDailyRef = ref || '';
+  var p = String(ref || '').split('|');
+  if (p.length < 10) { box.hidden = true; box.innerHTML = ''; return; }
+  var body = {
+    a_year: +p[0], a_month: +p[1], a_day: +p[2],
+    a_hour: p[3] === '' ? 12 : +p[3], a_hour_known: p[3] !== '',
+    a_gender: p[4] || '女',
+    b_year: +p[5], b_month: +p[6], b_day: +p[7],
+    b_hour: p[8] === '' ? 12 : +p[8], b_hour_known: p[8] !== '',
+    b_gender: p[9] || '男'
+  };
+  var title = p.slice(10, 12).filter(Boolean).join(' × ') || '你们';
+  var j;
+  try {
+    j = await postJSON('/api/hehun/daily', body, { silent: true });
+  } catch (e) { box.hidden = true; box.innerHTML = ''; return; }
+  if (!j || !j.score) { box.hidden = true; box.innerHTML = ''; return; }
+  window.__hhDaily = { title: title, score: j.score, line: j.line,
+    tag: j.tag, ganzhi: j.ganzhi, date: j.date };
+  box.innerHTML =
+    '<div class="hh-daily-head"><span class="hh-daily-title">💞 今日合拍指数 · ' +
+    esc(title) + '</span><span class="hh-daily-date">' + esc(j.date) +
+    ' · ' + esc(j.ganzhi) + '日</span></div>' +
+    '<div class="hh-daily-body"><span class="hh-daily-score">' +
+    esc(String(j.score)) + '</span><span class="hh-daily-unit">分</span>' +
+    '<div class="hh-daily-text"><div class="hh-daily-line">' +
+    esc(j.line) + '</div>' +
+    (j.tag ? '<div class="hh-daily-tag">' + esc(j.tag) + '</div>' : '') +
+    '</div></div>' +
+    '<button type="button" class="ghost hh-daily-share" data-hhdaily="share">📸 晒今天</button>';
+  box.hidden = false;
+}
+
+function _hhDailyShare() {
+  var d = window.__hhDaily;
+  if (!d) return;
+  downloadPoster({ score: d.score, line: d.line, tag: d.tag,
+    title: d.title, ganzhi: d.ganzhi, date: d.date }, 'cpdaily');
 }
 
 function _hhFavFill(ref) {
@@ -14505,7 +14555,11 @@ document.addEventListener('click', function (ev) {
   }
   /* 测过的 CP chip → 回填表单并直接合婚 */
   var hc = t.closest('[data-hh-fav]');
-  if (hc) { _hhFavFill(hc.dataset.hhFav); return; }
+  if (hc) { _hhFavFill(hc.dataset.hhFav);
+    _hhDailyRender(hc.dataset.hhFav); return; }
+  /* R3425：今日合拍指数晒图（委托点击，同 muyu 家族模式） */
+  var hds = t.closest('[data-hhdaily]');
+  if (hds) { _hhDailyShare(); return; }
   /* R2503（审-P2）：CP chip 的 ×——与 data-qm-fav-del 同构：
    * inflight 防双击、DELETE 后镜像剔除重渲、404 视同摘成功。 */
   var hd = t.closest('[data-hh-fav-del]');

@@ -158,6 +158,11 @@ FIXTURES: dict[str, dict] = {
         "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
         "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
         "b_hour": 14, "b_gender": "女"}},
+    # R3425：今日合拍指数——同 hehun 请求形，纯坐标确定性响应。
+    "POST /api/hehun/daily": {"method": "POST", "json": {
+        "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+        "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
+        "b_hour": 14, "b_gender": "女"}},
     "POST /api/tarot/draw":    {"method": "POST", "json": {"seed": 42, "n": 1}},
     # R3178：解梦——词库命中态固定可复验。
     "POST /api/dream":    {"method": "POST",
