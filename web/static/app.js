@@ -21461,6 +21461,17 @@ function renderCheckin(dateKey) {
         : '🌾 「' + esc(_dn) + '」过去 ' + (-_ddN) +
           ' 天了——那段路你走过来了';
     }
+    var _xmasHtml = '';
+    try {
+      var _xm = dateKey.slice(5);
+      _xmasHtml = (_xm === '12-24' || _xm === '12-25')
+        ? '<div class="ck-quest ck-xmas">' +
+          (_xm === '12-24'
+            ? '🍎 平安夜——丢个愿望进瓶子，圣诞前夜最灵'
+            : '🎄 圣诞快乐——愿望瓶还开着，顺一个进去') +
+          '<button type="button" class="ck-quest-btn ck-xwish">去许愿 →</button></div>'
+        : '';
+    } catch (eXM) {}
     _ddayHtml = '<div class="ck-quest ck-dday">' +
       (_ddLine || '🎯 <span class="dday-hint">' +
         '心里有个要紧的日子吗</span>') +
@@ -21493,7 +21504,7 @@ function renderCheckin(dateKey) {
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
     _duelHtml + _hugHtml + _goalHtml + _wqHtml + _wluHtml +
-    _ckPattern(dateKey) + _ddayHtml +
+    _ckPattern(dateKey) + _ddayHtml + _xmasHtml +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
@@ -21665,6 +21676,19 @@ function renderCheckin(dateKey) {
   }
   /* R3497：本周小功课盖戳——wq:<周一> 落键后整卡重渲换「已盖戳」
    * 态（跨 tab 由 storage 事件监听同步，注册表见 wq: 族）。 */
+  var _xw = box.querySelector('.ck-xwish');
+  if (_xw && !_xw.dataset.bound) {
+    _xw.dataset.bound = '1';
+    _xw.addEventListener('click', function () {
+      try {
+        var _w3 = box.querySelector('.ck-wish');
+        if (_w3) {
+          _w3.open = true;
+          _w3.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (eXW) {}
+    });
+  }
   var _wqd = box.querySelector('#wqDone');
   if (_wqd && !_wqd.dataset.bound) {
     _wqd.dataset.bound = '1';
