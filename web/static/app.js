@@ -20271,8 +20271,11 @@ function renderCheckin(dateKey) {
       });
       if (_streak > 0) _board.push({ w: '你', n: _streak });
       _board.sort(function (a, b) { return b.n - a.n; });
+      /* R3560：自己的榜位挂称号——成就外显到比拼面（TA 的称号
+       * 本地拿不到，只挂自己的）。 */
       var _rows = _board.map(function (e, i) {
-        return (i + 1) + '.' + e.w + ' ' + e.n + ' 天';
+        return (i + 1) + '.' + e.w + ' ' + e.n + ' 天' +
+          (e.w === '你' && _msTitle ? '·「' + _msTitle + '」' : '');
       });
       var _rk = _streak > 0
         ? _board.findIndex(function (e) { return e.w === '你'; }) + 1
