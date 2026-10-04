@@ -19007,9 +19007,12 @@ function _moodWeekData() {
   var jarTotal = 0;
   try { jarTotal = Math.max(0, parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0); }
   catch (eJT) {}
+  /* R3515：小规律上周报——窗口尾的交叉观察随包走（够格才带）。 */
+  var _ptn = null;
+  try { _ptn = _ckPatternFind(days[6].date); } catch (ePP) {}
   return { days: days, recorded: recorded, main: main,
     streak: streak, verdict: verdict, prevN: prevN, prevMain: prevMain,
-    prevText: prevText, jarTotal: jarTotal,
+    prevText: prevText, jarTotal: jarTotal, pattern: _ptn,
     rangeStart: days[0].date, rangeEnd: days[6].date };
 }
 function _renderMoodWeek() {

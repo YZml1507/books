@@ -19866,3 +19866,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3514 云备份 413 根治（探针实测）
 - 裁包阈值只卡字符 1.1M：CJK 三字节下 1.1M 字符 ≈3.3MB 超 body 1.5MB 帽恒 413。改双边界（payload≤1.15M 字符 & body≤1.4MB 字节，Blob.size 计）+ 413→「没同步上」toast 已保底。
+
+## R3515 小规律上周报海报
+- moodweek 海报加「小规律」行（cap=5 有位，_clauseCut 20字内）；_moodWeekData 返回带 pattern 字段（够格才带）。

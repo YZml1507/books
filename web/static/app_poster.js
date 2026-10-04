@@ -2446,6 +2446,11 @@ function buildShareData(view, j) {
         else if (j.recorded < j.prevN) _pv += '，想记就记';
         _mws.lines.push({ k: '和上周比', v: _pv });
       }
+      /* R3515：小规律行——同一条观察上周报海报（cap=5 有位）。 */
+      if (j && j.pattern && j.pattern.txt) {
+        _mws.lines.push({ k: '小规律',
+          v: _clauseCut(_pStr(j.pattern.txt), 20) });
+      }
       /* 小满插画：主情绪场景图（_shareMoodWeek 预载进 j._art）。 */
       if (j && j._art) {
         _mws.cards = [{ img: j._art, name: '小满这周陪你',
