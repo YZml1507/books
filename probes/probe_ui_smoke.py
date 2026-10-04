@@ -102,6 +102,9 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
+    # R3462s：喜用四件收进「盘里小惊喜」折叠区——本案先点展开钮
+    # 放出 saZone（留开态惠及后续四案），result 取区内 chip 存在。
+    ("bazi.pickzone",   "bazi",   None,            "#sharePickZone",   "#saZone .fav-btn"),
     # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
     ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
     # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。

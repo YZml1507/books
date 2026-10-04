@@ -19599,3 +19599,15 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   dot 白名单复用五行色点机制。
 - 真机验证：4 带占比和=100、星云海报出图零报错、深底浅
   墨可读。
+
+## R3462s（2026-10-04）小惊喜折叠区 + 413 字段名根治
+- 喜用四件（方位/图腾/水晶/色谱）收成「✨ 盘里小惊喜」
+  折叠区——7 钮 share-row 小屏吃 4 行 200px 顶穿判据 2
+  （CI c8_noq 余量 163<200）。折叠后 2 行 96px，余量回
+  290-532。sa-zone chip 补 position:static（.fav-btn 基类
+  绝对定位同坑第三发：fdShare→saZone chips）。
+- 备份 413 字段名根治：裁包链第二段找的是 bundle.local，
+  真实键表挂在 bundle.browser——上版落空直接 break 仍超
+  限。改正后 mirror details 逐条剥+大键整条丢实测生效
+  （冒烟 register 复绿）。
+- 冒烟 118/118 绿；check_plain_first PASS（余量 290 起）。

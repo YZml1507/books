@@ -6954,20 +6954,24 @@ function buildBaziResult(j) {
   /* R3456：旺你的方位——喜用→方位可晒件（中式版 astrocartography，
    * 全网调研验证的同公式品类）。五行分布在才出钮。 */
   if (j.calc && j.calc.five_elements && j.calc.five_elements.counts) {
-    html += '<button class="ghost fav-btn" type="button" id="shareFortuneDir" ' +
-      'title="看看哪个方向旺你">🧭 旺你的方位</button>' +
-      /* R3457：守护图腾——喜用→灵兽原型可晒件（soul-animal
-       * 同构，海外验证公式）。与方位同门同闸。 */
-      '<button class="ghost fav-btn" type="button" id="shareGuardian" ' +
-      'title="看看哪只灵兽守你">🐉 守护图腾</button>' +
-      /* R3461：守护水晶——喜用→晶石可晒件，同门同闸第三件。 */
-      '<button class="ghost fav-btn" type="button" id="shareCrystal" ' +
-      'title="看看哪颗晶石旺你">🔮 守护水晶</button>' +
-      /* R3462：灵魂色谱——五行权重→生成式星云可晒件，同门同闸第四件。 */
-      '<button class="ghost fav-btn" type="button" id="shareSoulart" ' +
-      'title="看看你盘里的五行色谱">🎨 灵魂色谱</button>';
+    /* R3462s：喜用四件收成「盘里小惊喜」折叠区——钮数破 7 时
+     * share-row 小屏吃 4 行 200px 顶穿判据 2 余量（c8_noq
+     * 186<200 实测）。一枚展开钮+四枚 compact chip（id 不变，
+     * on() 接线零改）。 */
+    html += '<button class="ghost fav-btn" type="button" id="sharePickZone" ' +
+      'title="盘里还藏着四件小惊喜">✨ 盘里小惊喜</button>';
   }
   html += '</div>' +
+    '<div class="sa-zone" id="saZone" hidden>' +
+    '<button class="ghost fav-btn" type="button" id="shareFortuneDir" ' +
+      'title="看看哪个方向旺你">🧭 旺你的方位</button>' +
+    '<button class="ghost fav-btn" type="button" id="shareGuardian" ' +
+      'title="看看哪只灵兽守你">🐉 守护图腾</button>' +
+    '<button class="ghost fav-btn" type="button" id="shareCrystal" ' +
+      'title="看看哪颗晶石旺你">🔮 守护水晶</button>' +
+    '<button class="ghost fav-btn" type="button" id="shareSoulart" ' +
+      'title="看看你盘里的五行色谱">🎨 灵魂色谱</button>' +
+    '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
     '<div id="crCard"></div>' +
@@ -7578,6 +7582,12 @@ async function submitBazi(event) {
       on('shareGuardian', function () { _gdOpen(j); });
       on('shareCrystal', function () { _crOpen(j); });
       on('shareSoulart', function () { _saOpen(j); });
+      /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
+       * 不到刚看过的卡）。 */
+      on('sharePickZone', function () {
+        var _z = el('saZone');
+        if (_z && _z.hidden) { _z.hidden = false; }
+      });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -24182,15 +24192,17 @@ function baziPersonaCard(j) {
             if (Array.isArray(bundle.threads) && bundle.threads.length) {
               bundle.threads.pop(); _cut = true;
             }
-            if (!_cut && bundle.local) {
+            if (!_cut && bundle.browser) {
               /* R3457-P1（探针实测 413）：records/threads 裁光仍
-               * 超限——重量在 local 大键（paipan_mirror 明细
+               * 超限——重量在 browser 段大键（paipan_mirror 明细
                * ~50KB/条、聊天稿）。逐轮裁最重的键：mirror 先
                * 剥 details 旧明细（壳留下），其余大键整条丢
-               * （本机完好，云只带近期——与裁台账同口径）。 */
+               * （本机完好，云只带近期——与裁台账同口径）。
+               * R3462s-2：字段名修正——键表挂在 bundle.browser
+               * （不是 .local），上版落空直接 break 仍有 413。 */
               var _bigK = '', _bigN = 0;
-              for (var _lk in bundle.local) {
-                var _lv = bundle.local[_lk];
+              for (var _lk in bundle.browser) {
+                var _lv = bundle.browser[_lk];
                 if (typeof _lv === 'string' && _lv.length > _bigN) {
                   _bigN = _lv.length; _bigK = _lk;
                 }
@@ -24198,18 +24210,18 @@ function baziPersonaCard(j) {
               if (_bigK) {
                 if (_bigK === 'paipan_mirror_v1') {
                   try {
-                    var _mrm = JSON.parse(bundle.local[_bigK]);
+                    var _mrm = JSON.parse(bundle.browser[_bigK]);
                     var _dk = _mrm && _mrm.details &&
                       Object.keys(_mrm.details);
                     if (_dk && _dk.length) {
                       delete _mrm.details[_dk[0]];
-                      bundle.local[_bigK] = JSON.stringify(_mrm);
+                      bundle.browser[_bigK] = JSON.stringify(_mrm);
                     } else {
-                      delete bundle.local[_bigK];
+                      delete bundle.browser[_bigK];
                     }
-                  } catch (eMr) { delete bundle.local[_bigK]; }
+                  } catch (eMr) { delete bundle.browser[_bigK]; }
                 } else {
-                  delete bundle.local[_bigK];
+                  delete bundle.browser[_bigK];
                 }
                 _cut = true;
               }

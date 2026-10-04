@@ -4155,6 +4155,11 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sa-strip { display: flex; gap: 3px; height: 46px; margin: 14px 8px 6px;
   border-radius: 12px; overflow: hidden; }
 .sa-seg { display: block; min-width: 18px; }
+/* R3462s：小惊喜折叠区——四枚喜用 chip 两列紧凑排。 */
+.sa-zone { display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: flex-end; margin: 4px 0 2px; }
+.sa-zone .fav-btn { position: static; min-width: 0; font-size: 12px;
+  padding: 8px 10px; white-space: nowrap; margin: 0; }
 
 /* R3381 默契挑战（view-mochi） */
 .mc-box { display: flex; flex-direction: column; gap: 12px; }
