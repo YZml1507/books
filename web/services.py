@@ -2096,10 +2096,30 @@ _HOLIDAY_LUNAR = {
 _CN_DIGIT = {"零": 0, "一": 1, "二": 2, "两": 2, "兩": 2, "三": 3,
              "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 
+# R3366（审-P1）：「下个月十五号」这类中文数字公历日此前全哑——
+# 数字组只接 \d，前后端一起静默按今天判。日号=阿拉伯或
+# 十/十五/二十/三十一（单中文数字日不接——「一号楼」邻接歧义大）。
+_CN_DAY_RE = r"(\d{1,2}|[一二三]?十[一二三四五六七八九]?)"
+
+
+def _cn_day_int(s: str):
+    """日号文本（阿拉伯或中文复合数字）→ int；解不动返回 None。"""
+    if s.isdigit():
+        return int(s)
+    m = re.fullmatch(r"([一二三])?十([一二三四五六七八九])?", s)
+    if m:
+        tens = _CN_DIGIT.get(m.group(1), 1) if m.group(1) else 1
+        return tens * 10 + (_CN_DIGIT.get(m.group(2), 0)
+                            if m.group(2) else 0)
+    return _CN_DIGIT.get(s)
+
 
 def _lunar_md(mtxt: str, dtxt: str):
     """农历月日串（中文或数字）→ (month, day)；解不动返回 None。"""
     m_map = {"正": 1, "冬": 11, "腊": 12, "十一": 11, "十二": 12,
+             # R3366（审-P1）：漏「十」——「农历十月十五」此前被判
+             # "日子不存在"。
+             "十": 10,
              **_CN_DIGIT}
     m = int(mtxt) if mtxt.isdigit() else m_map.get(mtxt)
     if m is None or not (1 <= m <= 12):
@@ -2402,12 +2422,18 @@ def _festival_for(d: date, term_name: str = "") -> list[str]:
                     if _dd == d:
                         out.append("入伏")
                     break
-        _dz = (bazi_mod.term_time(d.year, "冬至")
-               + timedelta(hours=8)).date()
-        for _k in range(0, 9):
-            if d == _dz + timedelta(days=9 * _k):
-                out.append("数九·" + "一二三四五六七八九"[_k] + "九")
-                break
+        # R3366（审-P2）：三九~九九落在次年 1-3 月——它们的冬至
+        # 在上一年。当年冬至的周期没命中时回溯上一年冬至。
+        for _dy in (d.year, d.year - 1):
+            _dz = (bazi_mod.term_time(_dy, "冬至")
+                   + timedelta(hours=8)).date()
+            if not (_dz <= d <= _dz + timedelta(days=80)):
+                continue
+            for _k in range(0, 9):
+                if d == _dz + timedelta(days=9 * _k):
+                    out.append("数九·" + "一二三四五六七八九"[_k] + "九")
+                    break
+            break
     except Exception:
         pass
     return out
@@ -2732,8 +2758,13 @@ def _span_phrase(msg_n: str, now: datetime):
     if _afm:
         _afn = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5}.get(
             _afm.group(1)) or int(_afm.group(1))
-    if re.search(r"(节后|假期后|过完节|收假|收心|假期结束|上班第一天)",
-                 msg_n) or (_afm and named):
+    # R3366（审-P2）：「节后一天」双口径——带上班/收假语标才走假表
+    # 止日+1（「国庆节后第一天上班」）；裸「中秋节后一天」问的是节日
+    # 次日，该交给 _abs_or_holiday 的 X+1 口径（此前一律按假止日判）。
+    _worky = re.search(r"上班|收假|收心|复工|假期|开工|过完节", msg_n)
+    if (_worky and re.search(
+            r"(节后|假期后|过完节|收假|收心|假期结束|上班第一天)",
+            msg_n)) or (_afm and named and _worky):
         nxt = [r for r in pool if r[2] >= td]
         _afw = ["", "一", "二", "三", "四", "五"][_afn]
         if nxt:
@@ -3091,10 +3122,10 @@ def _abs_or_holiday(msg: str, now: datetime,
 
     # R2355（R111-P2-2）：「下下个月」先接——「下下」里的「下个月」
     # 会被下面通配截胡差整一月。基准 = 再下一个月。
-    nnm = re.search(r"下下[个個]?月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])",
-                    msg_n)
+    nnm = re.search(r"下下[个個]?月" + _CN_DAY_RE +
+                    r"[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nnm:
-        d = int(nnm.group(1))
+        d = _cn_day_int(nnm.group(1))
         _mo2 = now.month + 2
         ny, nmth = now.year + (_mo2 - 1) // 12, (_mo2 - 1) % 12 + 1
         try:
@@ -3105,9 +3136,10 @@ def _abs_or_holiday(msg: str, now: datetime,
             # 「下下个月31号」而那个月只有 30 天——词命中但日子不存在；
             # 不许 fallthrough 让 nm 把「下个月31号」截胡成另一月。
             return None
-    nm = re.search(r"下[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
+    nm = re.search(r"下[个個]月" + _CN_DAY_RE +
+                   r"[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if nm:
-        d = int(nm.group(1))
+        d = _cn_day_int(nm.group(1))
         ny, nmth = now.year + (now.month == 12), (now.month % 12) + 1
         try:
             _dl, _ln = _day_suffix(msg_n, nm.end())
@@ -3115,19 +3147,21 @@ def _abs_or_holiday(msg: str, now: datetime,
                     msg_n[nm.start():nm.end() + _ln])
         except ValueError:
             pass
-    tm = re.search(r"这[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
+    tm = re.search(r"这[个個]月" + _CN_DAY_RE +
+                   r"[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if tm:
         try:
             _dl, _ln = _day_suffix(msg_n, tm.end())
-            return (datetime(now.year, now.month, int(tm.group(1)))
+            return (datetime(now.year, now.month, _cn_day_int(tm.group(1)))
                     + timedelta(days=_dl),
                     msg_n[tm.start():tm.end() + _ln])
         except ValueError:
             pass
 
-    pm = re.search(r"上[个個]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])", msg_n)
+    pm = re.search(r"上[个個]月" + _CN_DAY_RE +
+                   r"[号日]?(?![线楼室幢座栋层院门])", msg_n)
     if pm:
-        d = int(pm.group(1))
+        d = _cn_day_int(pm.group(1))
         py_, pmth = (now.year - 1, 12) if now.month == 1 \
             else (now.year, now.month - 1)
         try:
@@ -3213,9 +3247,10 @@ def _abs_or_holiday(msg: str, now: datetime,
                     msg_n[_w0:_w0 + 2 + _ln])
 
     # 裸「D号/D日」：防「3号线/25号楼/8号院」误命中——后接线路/楼栋字跳过。
-    bd = re.search(r"(?<![\d月/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])", msg_n)
+    bd = re.search(r"(?<![\d月/\-一二两三四五六七八九十])" + _CN_DAY_RE +
+                   r"\s*[号日](?![\d日线楼室幢座栋层院门])", msg_n)
     if bd:
-        d = int(bd.group(1))
+        d = _cn_day_int(bd.group(1))
         cands = []
         for dy, dm in ((now.year, now.month),
                        (now.year + (now.month == 12), (now.month % 12) + 1)):
@@ -3436,12 +3471,13 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
     # 静默回落显示日——单独给 invalid 信号让前端说人话提示。
     # R2355（R111-P2-2）：「下下个月31号」的 下下 也要算——原来正则
     # 从第二个「下」起匹配成「下个月」，报错月差一整月。
-    _mm = re.search(r"(下下|下|上|这|本)个?月\s*(\d{1,2})\s*[号日]", _t2s(q))
+    _mm = re.search(r"(下下|下|上|这|本)个?月\s*" + _CN_DAY_RE +
+                    r"\s*[号日]", _t2s(q))
     if _mm and spoken == "今天":
         _mo = {"下下": 2, "下": 1, "上": -1, "这": 0, "本": 0}[_mm.group(1)]
         _yy = now.year + (now.month + _mo - 1) // 12
         _mth = (now.month + _mo - 1) % 12 + 1
-        _dd = int(_mm.group(2))
+        _dd = _cn_day_int(_mm.group(2))
         import calendar as _cal
         if _dd > _cal.monthrange(_yy, _mth)[1]:
             return {"date": None, "spoken": "",
@@ -3469,6 +3505,14 @@ def resolve_huangli_date(q: str, now: datetime | None = None) -> dict:
             return {"date": None, "spoken": "",
                     "invalid": "这个日子黄历里没有哦。"
                                "换个说法或换个日子再试试～"}
+        # R3366（审-低）：无前缀中文「M月D」（八月十五/十月十五）——
+        # 农历阳历都可能，猜哪边都可能答错，如实说拿不准。
+        if re.search(
+                r"[一二两三四五六七八九十]{1,2}月"
+                r"[初廿一二三四五六七八九十]{1,3}[日号]?", q):
+            return {"date": None, "spoken": "",
+                    "invalid": "这个写法我拿不准是农历还是阳历——"
+                               "说「农历八月十五」或「8月15号」我都认"}
         return {"date": None, "spoken": "", "invalid": ""}
     return {"date": dt.date().isoformat(), "spoken": spoken,
             "invalid": ""}
@@ -4175,8 +4219,10 @@ def _chat_facts_inner(message: str, now: datetime,
     # 锚点日期会把 spoken 改写成锚那天，find-day 分支再也够不到
     # （「那搬家哪天好」实测被答成明天的单天判定）。意图词表与下面
     # _find_only 判定同源，提前到这里供沿用闸引用。
+    # R3366（审-P1）：「时间段/时段/哪段」同样是找日问法——「今年
+    # 适合换工作的时间段」此前被压成今天的单日判词。
     _find_intent = bool(re.search(
-        r"哪天|什么时候|啥时候|几时|几号|"
+        r"哪天|什么时候|啥时候|几时|几号|时间段|时段|哪段|"
         r"换[一个点]?(?:日子|日期|时间|天)|改[一个点]?(?:日子|日期)", msg_n))
 
     scene, terms = "", []
@@ -4390,24 +4436,36 @@ def _chat_facts_inner(message: str, now: datetime,
     _find_only = _find_intent and scene and spoken == "今天" \
         and not any(w in msg for w in ("今天", "今日", "今晚", "今夜"))
     if _find_only:
-        _gd = _hl_next_yi_days(dt, terms)
+        # R3366（审-P1）：榜窗随问法前移/拉长——「下个月搬家的日子」
+        # 榜窗从今天起算会把下月后半月腰斩；「今年适合X的时间段」该
+        # 覆盖到年底（上限 92 天）。
+        _fdt, _fspan, _flbl = dt, 45, "近45天"
+        if "下个月" in msg_n or "下個月" in msg_n:
+            _ny = dt.year + (dt.month == 12)
+            _nm = (dt.month % 12) + 1
+            _fdt = dt.replace(year=_ny, month=_nm, day=1)
+            _flbl = "下个月起45天"
+        elif "今年" in msg_n or "今年内" in msg_n:
+            _fspan = min(92, (date(dt.year, 12, 31) - dt.date()).days)
+            _flbl = "今年内"
+        _gd = _hl_next_yi_days(_fdt, terms, span=_fspan)
         if _gd:
-            facts.append(f"用户在问「哪天{scene}好」，近45天里宜「{scene}」"
+            facts.append(f"用户在问「哪天{scene}好」，{_flbl}里宜「{scene}」"
                          f"的日子：{'、'.join(_gd)}。直接给日子清单，"
                          "别按今天答宜忌。")
         else:
             # R3323-P0-1：ji-only 事项（诉讼/破土…历表只有忌没有宜）——
             # 「次优安排」是空话死路，历表的正确答案是避让榜。
             if all(t in _HUANGLI_JI_VOCAB for t in terms):
-                _bd = _hl_bad_days(dt, terms)
+                _bd = _hl_bad_days(_fdt, terms, span=_fspan)
                 facts.append(
                     f"用户在问「哪天{scene}好」——黄历对「{scene}」"
                     "只有忌没有宜，不存在吉日榜；正确口径是避开忌它的"
-                    f"日子：近45天里忌「{scene}」的日子有"
+                    f"日子：{_flbl}里忌「{scene}」的日子有"
                     f"{('、'.join(_bd) + ' 等' if _bd else '零天')}。"
                     "温和说明这类事历表只讲避不讲宜，绕开就好。")
             else:
-                facts.append(f"用户在问「哪天{scene}好」，近45天没有宜"
+                facts.append(f"用户在问「哪天{scene}好」，{_flbl}没有宜"
                              f"「{scene}」的日子；给最近的次优安排口径。")
         if ctx_out is not None:
             ctx_out["qk"] = "findday"

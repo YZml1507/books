@@ -10205,6 +10205,15 @@ function _hlDayOffset(q, base) {
     var t = new Date(y, m, d);
     return t.getDate() === d ? t : null;
   };
+  /* R3366（审-P1）：中文复合数字日「十五/二十/三十一」（与 py
+   * _cn_day_int 同口径——单中文数字不接，邻接歧义大）。 */
+  var _cnDay = function (s) {
+    if (/^\d+$/.test(s)) return +s;
+    var D = {'一':1,'二':2,'两':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+    var m = s.match(/^([一二三])?十([一二三四五六七八九])?$/);
+    if (m) return (m[1] ? D[m[1]] : 1) * 10 + (m[2] ? D[m[2]] : 0);
+    return NaN;
+  };
   var _pick = function (cands) {   /* cands: [Date|null,...] → 偏移 | null */
     var t = base || new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
     var best = null, bestPast = null;
@@ -10237,28 +10246,28 @@ function _hlDayOffset(q, base) {
   };
   /* R2355（R111-P2-2）：「下下个月」先接——「下下」里的「下个月」
    * 会被下面通配截胡差整一月（与 py nnm 同锚）。 */
-  var _nnm = _s0.match(/下下个?月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _nnm = _s0.match(/下下个?月(\d{1,2}|[一二三]?十[一二三四五六七八九]?)[号日]?(?![线楼室幢座栋层院门])/);
   if (_nnm) {
     var bN0 = base || new Date();
-    var _o0 = _pick([_mkd(bN0.getFullYear(), bN0.getMonth() + 2, +_nnm[1])]);
+    var _o0 = _pick([_mkd(bN0.getFullYear(), bN0.getMonth() + 2, _cnDay(_nnm[1]))]);
     return _o0 === null ? null : _o0 + _suf(_nnm.index + _nnm[0].length);
   }
-  var _nxm = _s0.match(/下[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _nxm = _s0.match(/下[个个]月(\d{1,2}|[一二三]?十[一二三四五六七八九]?)[号日]?(?![线楼室幢座栋层院门])/);
   if (_nxm) {
     var bN = base || new Date();
-    var _o1 = _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, +_nxm[1])]);
+    var _o1 = _pick([_mkd(bN.getFullYear(), bN.getMonth() + 1, _cnDay(_nxm[1]))]);
     return _o1 === null ? null : _o1 + _suf(_nxm.index + _nxm[0].length);
   }
-  var _pm = _s0.match(/上[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _pm = _s0.match(/上[个个]月(\d{1,2}|[一二三]?十[一二三四五六七八九]?)[号日]?(?![线楼室幢座栋层院门])/);
   if (_pm) {
     var bP = base || new Date();
-    var _o2 = _pick([_mkd(bP.getFullYear(), bP.getMonth() - 1, +_pm[1])]);
+    var _o2 = _pick([_mkd(bP.getFullYear(), bP.getMonth() - 1, _cnDay(_pm[1]))]);
     return _o2 === null ? null : _o2 + _suf(_pm.index + _pm[0].length);
   }
-  var _tsm = _s0.match(/这[个个]月(\d{1,2})[号日]?(?![线楼室幢座栋层院门])/);
+  var _tsm = _s0.match(/这[个个]月(\d{1,2}|[一二三]?十[一二三四五六七八九]?)[号日]?(?![线楼室幢座栋层院门])/);
   if (_tsm) {
     var bT = base || new Date();
-    var _o3 = _pick([_mkd(bT.getFullYear(), bT.getMonth(), +_tsm[1])]);
+    var _o3 = _pick([_mkd(bT.getFullYear(), bT.getMonth(), _cnDay(_tsm[1]))]);
     return _o3 === null ? null : _o3 + _suf(_tsm.index + _tsm[0].length);
   }
   var _am = _s0.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?![线楼室幢座栋层院门])/) ||
@@ -10290,11 +10299,11 @@ function _hlDayOffset(q, base) {
     return _o6 === null ? null : _o6 + _suf(_ms.index + 2);
   }
   /* 裸「D号」：防「3号线/25号楼/8号院」误命中（与 py 同邻接字表）。 */
-  var _bd = _s0.match(/(^|[^\d月\/\-])(\d{1,2})\s*[号日](?![\d日线楼室幢座栋层院门])/);
+  var _bd = _s0.match(/(^|[^\d月\/\-一二两三四五六七八九十])(\d{1,2}|[一二三]?十[一二三四五六七八九]?)\s*[号日](?![\d日线楼室幢座栋层院门])/);
   if (_bd) {
     var bB = base || new Date();
-    var _o7 = _pick([_mkd(bB.getFullYear(), bB.getMonth(), +_bd[2]),
-                     _mkd(bB.getFullYear(), bB.getMonth() + 1, +_bd[2])]);
+    var _o7 = _pick([_mkd(bB.getFullYear(), bB.getMonth(), _cnDay(_bd[2])),
+                     _mkd(bB.getFullYear(), bB.getMonth() + 1, _cnDay(_bd[2]))]);
     return _o7 === null ? null : _o7 + _suf(_bd.index + _bd[0].length);
   }
   /* R229f：「本周X/这周X」此前无解析静默按今天判（同 R228r 类）。
