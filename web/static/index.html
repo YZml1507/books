@@ -512,6 +512,11 @@ try {
     <div class="func-card func-entry" data-view="qian" role="button" tabindex="0" aria-label="每日一签">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="qian" src="/static/cream/cream-icon-qian.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">每日一签</div><div class="func-desc">观音灵签 · 今天一支</div>
     </div>
+    <!-- R3394（调研·答案之书爆款复刻）：答案之书——默念问题翻一页，
+         一句答案+一句提示+一个小动作，轻仪式感裂变件。 -->
+    <div class="func-card func-entry" data-view="ansb" role="button" tabindex="0" aria-label="答案之书">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="ansb" src="/static/cream/cream-icon-ansb.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">答案之书</div><div class="func-desc">默念问题 · 翻一页</div>
+    </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
@@ -1385,6 +1390,12 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">🎋</span> 每日一签 <span class="card-sub">观音灵签 · 百签真本</span></h2>
       <div id="qianBox" class="qian-box"></div>
+    </div>
+  </div>
+  <div class="view" id="view-ansb">
+    <div class="card">
+      <h2><span aria-hidden="true">📖</span> 答案之书 <span class="card-sub">把犹豫放进这一页</span></h2>
+      <div id="ansbBox" class="ansb-box"></div>
     </div>
   </div>
 

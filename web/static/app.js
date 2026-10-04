@@ -2328,7 +2328,9 @@ var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
                         /* R3381：默契挑战路标白名单。 */
                         mochi: 1,
                         /* R3388：每日一签路标白名单。 */
-                        qian: 1 };
+                        qian: 1,
+                        /* R3394：答案之书路标白名单。 */
+                        ansb: 1 };
 /* R3352：路标落点表——view 是「街区」，anchor 是「门牌」。
  * details 类的送到并展开；id 类的滚到门口。 */
 var _CHAT_ACT_ANCHORS = {
@@ -3425,6 +3427,14 @@ function _chatFacts(facts, msg) {
         if (_qf && _qf.d === todayIso() && _qf.t) _f.push(_qf.t);
       } catch (eQf) {}
     }
+    /* R3394：答案之书话题带今日翻页结果——她聊「书上那句/那句话
+     * 对不对」时小满手里得有她翻到的句子。同日失效不串页。 */
+    if (msg && /答案之书|翻.{0,3}书|书上.{0,2}说|那一页|那句话|帮.{0,2}决定|该不该|要不要/.test(msg)) {
+      try {
+        var _af = JSON.parse(localStorage.getItem('ansb:fact') || 'null');
+        if (_af && _af.d === todayIso() && _af.t) _f.push(_af.t);
+      } catch (eAf) {}
+    }
   } catch (e) {}
   return _f;
 }
@@ -3711,6 +3721,10 @@ function showView(viewId) {
   /* R3388：每日一签——懒载语料后出今签/签筒。 */
   if (viewId === 'qian') {
     try { _renderQian(); } catch (eQ) {}
+  }
+  /* R3394：答案之书——书卡/答案卡两态渲染。 */
+  if (viewId === 'ansb') {
+    try { _renderAnsb(); } catch (eAB) {}
   }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
@@ -8460,6 +8474,7 @@ var _POSTER_TITLES = {
   mochi: '默契挑战',
   /* R3388：每日一签海报弹层标题/下载文件名。 */
   qian: '每日一签',
+  ansb: '答案之书',
   /* R3393：流年K线海报标题/文件名。 */
   'bazi-kline': '人生K线',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
@@ -8481,6 +8496,7 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   mochi: 'warm',
   /* R3388：每日一签归青瓷底——庙里签筒的竹青色。 */
   qian: 'celadon',
+  ansb: 'warm',
   /* R3393：人生K线归薄荷山月——走势图的清爽冷调。 */
   'bazi-kline': 'mint',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
@@ -8525,6 +8541,8 @@ var _SHARE_TEXT = {
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
   /* R3388：每日一签——「求来的答案」接力晒。 */
   qian: '我今天的签抽到了，看看你的 →',
+  /* R3394：答案之书——「翻到的一句话」接力晒。 */
+  ansb: '我刚从答案之书翻到一句话，你也来翻一页 →',
   /* R3393：人生K线——「我的走势长这样」接力晒。 */
   'bazi-kline': '我的人生K线画出来了，看看你的走势 →',
   renge: '测出我的五行人格了，你是哪型 →'};
@@ -15015,6 +15033,10 @@ function init() {
       try { _renderMochi(); } catch (eM1) {}
       return;
     }
+    if (e.key.indexOf('ansb:') === 0) {
+      try { _renderAnsb(); } catch (eAB1) {}
+      return;
+    }
     if (e.key.indexOf('shred:') === 0) {
       try { _shredRefreshSummary(); } catch (eSh) {}
       return;
@@ -18058,7 +18080,7 @@ function renderCheckin(dateKey) {
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
              'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:',
-             'pilePick:', 'qian:', 'manifest:'].forEach(function (_p) {
+             'pilePick:', 'qian:', 'manifest:', 'ansb:'].forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
@@ -20920,7 +20942,7 @@ function baziPersonaCard(j) {
      * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
      * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
      * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:)/;
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:)/;
     var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
     /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
      * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -21209,7 +21231,9 @@ function baziPersonaCard(j) {
                  * ——「忘掉我的数据」后幸存=隐私破洞，收。 */
                 k.indexOf('mochi:') === 0 ||
                 k.indexOf('qian:') === 0 ||
-                k.indexOf('manifest:') === 0)) _rm.push(k);
+                k.indexOf('manifest:') === 0 ||
+                /* R3394：答案之书问句/翻页足迹属个人数据——wipe 收。 */
+                k.indexOf('ansb:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
@@ -22772,4 +22796,166 @@ function humanCite(citation) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _apply);
   } else { _apply(); }
+})();
+
+/* ════ R3394 答案之书（调研爆款复刻：默念→翻页→一句答案+提示+小动作）════
+ * 54 条小满声口答案，顺势/再想想/缓一缓三种风向；问句只进本机历史
+ * 与聊上下文，不进服务器。ansb:hist 进备份/wipe/GC 三链。 */
+var _ANSB = [
+  ['去吧，心在点头的方向','犹豫的背面常常是想要','今天就把第一步迈出去'],
+  ['这事比你以为的顺手','准备其实已经够了','选最近的那个开口先聊'],
+  ['签都替你点过两次头了','直觉这次是对的','三天内给自己一个答复'],
+  ['推开这扇门，风是顺的','阻力多半来自想象','把最难的一句先说出口'],
+  ['去吧，答案藏在行动里','想清楚了七成就能走','今晚写下第一步'],
+  ['时候到了，伸手就行','机会不喜欢等人','给自己定一个开动的点'],
+  ['这条路灯是亮的','你的担心比路本身大','约那个能帮你的人'],
+  ['这次可以赌一把小的','输得起的局都值得试','先投一点点试试水'],
+  ['就它了，别再货比三家','选择太多才是陷阱','删掉备选清单'],
+  ['答案是「可以」','你其实早就知道了','直接答应下来'],
+  ['大胆点，运气在线','今天的气势够用','做那件你一直想做的小事'],
+  ['往前走，别回头','回头只会让你重想一遍','把退路先放一放'],
+  ['值得，去见一面吧','缘分要当面才算数','发出那句约见的话'],
+  ['开口吧，对方在等','沉默不会替你表达','发出去那条草稿'],
+  ['这个决定是温的','心里踏实就是信号','告诉一个人你的决定'],
+  ['去吧，别辜负这股劲','想做的事都该被善待','今晚就动手第一页'],
+  ['稳了，这件事是你的','能力刚好配得上野心','把计划落成日期'],
+  ['试一试，天不会塌','最坏的结果你也接得住','设一个止损线再出发'],
+  ['再想想，答案在路上','现在急的是情绪不是事','睡一觉明天再看'],
+  ['差一点点火候','还有一个变量没落地','把不确定的列出来'],
+  ['问问那个走过的人','别人的坑就是你的灯','发消息请教一位前辈'],
+  ['可以，但换个方式','目标对，路径绕了','把方案 B 写三行'],
+  ['先把手头的收个尾','旧账不清新账难开','今天清一件拖着的事'],
+  ['等一个信号再动','这事急不得也慢不得','定一个「再等等」的期限'],
+  ['一半一半，看你添哪边','结果取决于你下注的力气','写下支持/反对各三条'],
+  ['先照顾好自己再说','状态不对答案就不准','今晚早点睡'],
+  ['问反了，先问想要什么','方向比速度重要','写下你最想要的一个字'],
+  ['条件还差一块拼图','缺的不是运气是信息','去把缺的那个数补上'],
+  ['可以，但别全押','留一手不是不信任','把鸡蛋分两个篮子放'],
+  ['现在开口，话会变味','情绪没过就别谈事','先散个步回来再决定'],
+  ['这题有第三种解法','别困在要么要么里','写下第三条路长什么样'],
+  ['先问自己愿不愿','别人的期待不是你的','把「应该」划掉重写'],
+  ['值得，但值得慢点来','快的东西容易回弹','把日程往后挪一周'],
+  ['先试试小的那步','大决定可以拆小走','做那步最不疼的'],
+  ['有人比你更在意这事','听听对方的版本','约出来聊十五分钟'],
+  ['方向对，步子急了','慢就是快的另一种写法','把计划砍一半再执行'],
+  ['这次算了，有更好的在排队','错过这班还有下一班','把它从清单划掉'],
+  ['缓缓，心里没点头的别去','勉强的事做不出好结果','今天先不答应'],
+  ['先别动，风还没转向','现在出手事倍功半','下周再问一遍'],
+  ['这个坑你看见了就别跳','直觉的劝退要认真听','礼貌地说一次不'],
+  ['不值得为它熬夜','消耗大于收获的事早放手','今晚不带这事上床'],
+  ['这段先放下，手会轻一点','攥太紧的东西留不住','删一条执念'],
+  ['回头路还开着，别硬撑','退出不等于失败','给自己留一个台阶'],
+  ['等等，对方还没准备好','节奏不对再真也难受','这周不主动联系'],
+  ['这个「要不要」本身就是答案','真正想要的不会纠结','放进三个月后的清单'],
+  ['先存钱，这事花钱不值','冲动消费缓三天','加进购物车别结算'],
+  ['别急，水还没烧开','提前揭盖汤会泄气','设个提醒再看'],
+  ['今天不适合硬碰硬','赢了的争吵也是输','换个日子再谈'],
+  ['先照顾好身体这关','累的时候决定都会偏','今天十点前睡'],
+  ['缓缓，答案会自己浮上来','强行想是想不清的','去洗个热水澡'],
+  ['这一步先不迈','看不清的地方不落脚','原地站稳就好'],
+  ['今天适合收，不适合放','能量低的时段守成','把决定推到明天'],
+  ['不用证明给任何人看','你的节奏不需要观众批准','关掉比较频道'],
+  ['这次轮不到你扛','把别人的责任还回去','说一句「这不归我」']
+];
+var _ansbPending = 0;
+function _ansbHist() {
+  try {
+    var h = JSON.parse(localStorage.getItem('ansb:hist') || '[]');
+    return Array.isArray(h) ? h.slice(0, 20) : [];
+  } catch (e) { return []; }
+}
+function _ansbBookHtml() {
+  return '<div class="ansb-book">' +
+    '<div class="ansb-book-emoji" aria-hidden="true">📖</div>' +
+    '<div class="ansb-book-t">心里默念一个问题——</div>' +
+    '<div class="ansb-book-s">工作/感情/那件拿不定的事，都行</div>' +
+    '<input class="ansb-q" id="ansbQ" type="text" maxlength="40" ' +
+      'placeholder="也可以写下来（只存在你手机里）" ' +
+      'aria-label="你心里默念的问题">' +
+    '<button class="mc-go ansb-flip" type="button" data-ansb="flip">' +
+      '🙏 默念三秒，翻一页</button>' +
+    '<div class="ansb-note">答案不负责对错，只负责帮你听见自己</div>' +
+  '</div>' + _ansbHistHtml();
+}
+function _ansbHistHtml() {
+  var h = _ansbHist(); if (!h.length) return '';
+  return '<div class="ansb-hist"><div class="ansb-htitle">最近翻过的页</div>' +
+    h.map(function (x) {
+      return '<div class="ansb-hrow">' +
+        '<span class="ansb-hd">' + esc(x.d || '') + '</span>' +
+        (x.q ? '<span class="ansb-hq">「' + esc(x.q) + '」</span>' : '') +
+        '<span class="ansb-ha">' + esc(x.a || '') + '</span></div>';
+    }).join('') + '</div>';
+}
+function _ansbCardHtml(i, q) {
+  var r = _ANSB[i]; if (!r) return '';
+  return '<div class="ansb-card"' +
+    (q ? ' data-q="' + esc(q) + '"' : '') + '>' +
+    '<div class="ansb-bookmark" aria-hidden="true">— 翻到的这一页 —</div>' +
+    '<div class="ansb-answer">' + esc(r[0]) + '</div>' +
+    '<div class="ansb-rows">' +
+      '<div class="ansb-row"><span class="ansb-rk">书里还说</span>' +
+        '<span>' + esc(r[1]) + '</span></div>' +
+      '<div class="ansb-row"><span class="ansb-rk">可以试</span>' +
+        '<span>' + esc(r[2]) + '</span></div>' +
+    '</div>' +
+    '<div class="ansb-acts">' +
+      '<button class="ghost" type="button" data-ansb="again">📖 换个问法再翻</button>' +
+      '<button class="ghost" type="button" data-ansb="share" data-i="' + i + '">' +
+        '📸 晒这一页</button>' +
+    '</div></div>' + _ansbHistHtml();
+}
+function _ansbFlip(q) {
+  var i = Math.floor(Math.random() * _ANSB.length);
+  try {
+    var h = _ansbHist();
+    h.unshift({ d: todayIso().slice(5), q: (q || '').slice(0, 12),
+                a: _ANSB[i][0] });
+    localStorage.setItem('ansb:hist', JSON.stringify(h.slice(0, 20)));
+    /* 聊上下文事实：当天翻过书页 → 小满知道翻到哪句。 */
+    localStorage.setItem('ansb:fact', JSON.stringify({
+      d: todayIso(),
+      t: '她今天翻了答案之书' + (q ? '（问：「' + q.slice(0, 20) + '」）' : '') +
+         '，翻到的一句是「' + _ANSB[i][0] + '」；她想聊可以顺着这句说'
+    }));
+  } catch (e) {}
+  return i;
+}
+function _renderAnsb() {
+  var bx = document.getElementById('ansbBox');
+  if (!bx) return;
+  bx.innerHTML = _ansbBookHtml();
+}
+(function _ansbBind() {
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest
+      ? e.target.closest('[data-ansb]') : null;
+    if (!b) return;
+    var act = b.dataset.ansb;
+    if (act === 'flip') {
+      if (_ansbPending) return;
+      _ansbPending = 1;
+      var qEl = document.getElementById('ansbQ');
+      var q = qEl ? qEl.value.trim() : '';
+      var bx = document.getElementById('ansbBox');
+      /* 翻书仪式：~1.6s 翻页动画——「书在替你找」的体感是功能本体。 */
+      var bk = bx && bx.querySelector('.ansb-book');
+      if (bk) bk.classList.add('is-flipping');
+      b.disabled = true;
+      setTimeout(function () {
+        var i = _ansbFlip(q);
+        if (bx) bx.innerHTML = _ansbCardHtml(i, q);
+        _ansbPending = 0;
+      }, 1600);
+    } else if (act === 'again') {
+      _renderAnsb();
+    } else if (act === 'share') {
+      var i = parseInt(b.dataset.i || '0', 10);
+      var r = _ANSB[i]; if (!r) return;
+      var _cd = b.closest('.ansb-card');
+      var qq = _cd ? (_cd.dataset.q || '') : '';
+      downloadPoster({ _ansb: { a: r[0], h: r[1], d: r[2], q: qq },
+        date: todayIso() }, 'ansb');
+    }
+  });
 })();

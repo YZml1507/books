@@ -18665,3 +18665,24 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 口径自洽断言：本命年柱同支≥7 轮、冲太岁柱同支≥7 轮
   且两支互为六冲；score∈[-4,4]；this_age=今年-出生年。
 - 实测：1998-06-15 盘出图——海报/折叠/flag 行/今年框全对。
+
+## R3394 答案之书（调研爆款复刻：默念→翻页→一句答案）
+- 功能：首页宫格新卡「答案之书」（qian 后 chat 前，16 卡全平铺）。
+  书卡默念问题（可写下仅本机）→ 1.6s 翻页动画 → 答案卡：
+  大字答案 + 「书里还说」提示 + 「可以试」小动作 + 晒这一页海报。
+- 语料：_ANSB 54 条小满声口三风向（顺势去/再想想/缓一缓），
+  内联 app.js（量小不懒载）；每条 a/h/d 三行结构。
+- 数据链：ansb:hist（问句截 12 字+答案，cap 20）+ ansb:fact
+  （当日聊上下文「她翻到哪句」）；_DATA_RE 备份/wipe/GC 族
+  /storage 监听四链同收——问句只在本机，不进服务器。
+- 接线：view-ansb + showView 钩 + _CHAT_ACT_VIEWS + _CHAT_ACTIONS
+  （答案之书/翻书/翻一页/给句准话族 → 📖 去翻一页）+
+  _POSTER_TITLES/_POSTER_BG_BY_VIEW(warm)/_SHARE_TEXT/
+  _SHARE_VIEW_ALIAS + poster case 'ansb' + hook
+  「心里有个问题？来翻一页」。
+- 细节：翻页防抖 _ansbPending；reduced-motion 免动画；
+  问句随卡 data-q 属性供海报（input 销毁后仍带上文）；
+  cream-icon-ansb.jpg（Agnes 生图→112px JPEG 2.5KB）。
+- selftest home.ia 断言 15→16 卡、drawer 序列收 ansb。
+- 实测（Playwright 390px）：书卡→翻页→答案卡→hist/fact 写入
+  →再翻回书卡→海报下载出图（暖底+大字+三行+钩）全链零报错。

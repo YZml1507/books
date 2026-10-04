@@ -406,6 +406,9 @@ def main() -> int:
         # R3165：年度运势图——同 shareBazi 海报模态豁免（生成链路
         # 一致，只是 spec 分支不同；存在性由 bazi 卡断言覆盖）。
         "shareBaziYear": "同 shareBazi——年度变体海报模态豁免",
+        # R3393：人生K线海报钮——downloadPoster('bazi-kline') 同族豁免；
+        # 存在性由 bazi 卡断言+K线自测钉扎。
+        "shareBaziKline": "同 shareBazi——K线变体海报模态豁免",
         "shareQiming": "同上",
         "shareTaohua": "同上",
         "shareHehun": "同上",

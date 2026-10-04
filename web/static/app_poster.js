@@ -842,6 +842,7 @@ function _posterHookForView(view, j) {
   }
   /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
   if (view === 'qian') return '今天你的签是什么？';
+  if (view === 'ansb') return '心里有个问题？来翻一页';
   if (view === 'bazi-kline') return '你的流年走势长什么样？';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
@@ -1602,6 +1603,19 @@ function buildShareData(view, j) {
           v: _clauseCut(_qpoem.slice(2, 4).join('，'), 20) });
       }
       return _qs;
+    }
+    case 'ansb': {
+      /* R3394 答案之书海报：翻到的那句话是大字，问题/书里还说/
+       * 小动作进 lines——「书替我答了」的晒语境。 */
+      var _ab = (j && j._ansb) || {};
+      var _as = base('答案之书', _cnDateSub(_pStr(j && j.date)));
+      _as.big = _clauseCut(_pStr(_ab.a) || '去吧', 12);
+      _as.lines = [
+        { k: '她问的是', v: _pStr(_ab.q) ? _clauseCut(_ab.q, 14) : '（心里默念的）' },
+        { k: '书里还说', v: _clauseCut(_pStr(_ab.h), 22) },
+        { k: '可以试', v: _clauseCut(_pStr(_ab.d), 20) }
+      ];
+      return _as;
     }
     case 'bazi-kline': {
       /* R3393 人生K线海报：走势图是主体（卡内柱带），今年干支
