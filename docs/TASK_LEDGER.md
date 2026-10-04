@@ -19670,3 +19670,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - **修法**：新增 sa* 锚族——`_openSaByKey(k)`（F/G/C/S/P 五键）已有排盘结果直开卡、未出盘存 `__saPending` 待启标记；submitBazi 渲染后消费 pending 或 `?sa=` URL 参数（replaceState 吞噬一次性参数）。`_CHAT_ACTIONS` 加五族路标（含 DeepSeek算命/prompt算命词）。
 - **实测**：`?view=bazi&sa=G` 落地→提交→saZone 自展+gdCard 填充+参数吞噬 ✓；聊天发问→`{anchor:saG}` chip→点击关侧栏切视图直开 ✓。
 - 自检钉：selftest chat.actionview 断言 ×5（saF/saG/saC/saS/saP）。
+
+## R3470 古籍域四轮终扫（亲审——子 agent 0-ACU 停摆回收）
+- 端点实测：search/compare_works/concept/bookstudy/threads 全健康；检索零命中引导「换个写法/繁体/去定位翻」人话在位；异文/底本术语有内联上下文不过界。
+- R3470-1：`threads_mirror_v1` 的 gone 墓碑补形状闸——合法 JSON 但 gone 非数组时 _thrMirrorSave 抛错吞整次保存、_thrMirrorDrop concat 存成字符串（与 _phMirrorDelLoad R2502 同款洞）。
+- R3470-2：`paipan_mirror_v1` items/details 补形状闸——只验真不验形时 Object.keys(字符串) 产幽灵键污染归档链。
+- R3470-3：`_FIELD_CN` 补 `work_id`/`chapter`——缺参 422 从「这个字段必填」升级为「书号：这个字段必填」。

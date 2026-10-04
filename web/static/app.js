@@ -443,7 +443,10 @@ var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰'
   gua: '卦号', yao: '爻位', scheme: '编址方式', addr1: '节号',
   addr2: '单元号', addr_name: '节名',
   max_addresses: '地址数', per_work: '每书条数',
-  ref_id: '对象', title: '标题', text: '内容', work: '书号' };
+  ref_id: '对象', title: '标题', text: '内容', work: '书号',
+  /* R3470-3：古籍端点真实参数名是 work_id——漏映射时缺参 422
+   * 只显示「这个字段必填」不说哪个字段。 */
+  work_id: '书号', chapter: '章节' };
 function _humanize422(detail) {
   try {
     var first = detail[0] || {};
@@ -12425,7 +12428,14 @@ var _THR_MIRROR_KEY = 'threads_mirror_v1';
 function _thrMirrorLoad() {
   try {
     var m = JSON.parse(localStorage.getItem(_THR_MIRROR_KEY) || '{}');
-    if (m && Array.isArray(m.items)) return m;
+    if (m && Array.isArray(m.items)) {
+      /* R3470-1：gone 墓碑补形状闸——键被写成合法 JSON 但 gone 非
+       * 数组（"x"/{}）时，_thrMirrorSave 里 .forEach 抛错吞掉整次
+       * 保存、_thrMirrorDrop 的 concat 把墓碑存成字符串——与
+       * _phMirrorDelLoad（R2502）同款洞，同法修。 */
+      if (!Array.isArray(m.gone)) m.gone = [];
+      return m;
+    }
   } catch (e) {}
   return { items: [], gone: [] };
 }
@@ -12505,7 +12515,16 @@ function _mirrorWriteWarn() {
 function _phMirrorLoad() {
   try {
     var _m = JSON.parse(localStorage.getItem(_PH_MIRROR_KEY) || 'null');
-    if (!(_m && _m.items && _m.details)) _m = { items: {}, details: {} };
+    /* R3470-2：items/details 只验真不验形——写成 "x"/[1] 这类合法
+     * JSON 也放行，随后 Object.keys(字符串) 产出幽灵键、delete 静默
+     * 无效，镜像污染整条归档链。补形状闸（对象且非数组）。 */
+    if (!(_m && typeof _m === 'object' &&
+          _m.items && typeof _m.items === 'object' &&
+          !Array.isArray(_m.items) &&
+          _m.details && typeof _m.details === 'object' &&
+          !Array.isArray(_m.details))) {
+      _m = { items: {}, details: {} };
+    }
     _m.del = _phMirrorDelLoad();
     if (!Array.isArray(_m.dorder)) _m.dorder = [];
     /* R2400（R138-P1-2）：镜像键去 rowid 化——清盘后服务端 id 从 1
