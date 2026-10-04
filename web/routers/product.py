@@ -36,7 +36,8 @@ def daily(date: str | None = Query(None, max_length=10),
 @router.post("/api/daily")
 def daily_post(req: DailyRequest) -> dict:
     """POST 版日签——body {date, bday}，敏感生日不进 URL。"""
-    return services.daily(req.date, req.bday or None)
+    return services.daily(req.date, req.bday or None,
+                          pbday=req.pbday or None)
 
 
 @router.get("/api/mooncal")

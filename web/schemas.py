@@ -501,6 +501,8 @@ class DailyRequest(BaseModel):
     GET 端点保留（无 bday 的低敏调用与旧客户端兼容）。"""
     date: str | None = Field(None, max_length=10)
     bday: str = Field("", max_length=10)
+    # R3633：pbday=已存另一半生日 → personal.partner_energy 同式出分。
+    pbday: str = Field("", max_length=10)
 
 
 class LunarConvertRequest(BaseModel):

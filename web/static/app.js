@@ -5565,6 +5565,15 @@ async function loadDaily() {
       ? { date: _today,
           bday: _me0.y + '-' + String(_me0.m).padStart(2, '0') +
                 '-' + String(_me0.d).padStart(2, '0') } : null;
+    /* R3633：已存另一半 → pbday 同车带出，personal.partner_energy
+     * 出「TA 今天 N 分」（一次 POST 两个人，零新请求）。 */
+    if (_bdayPost) {
+      var _pa0 = _meGet('me:partner');
+      if (_pa0 && _pa0.y && _pa0.m && _pa0.d) {
+        _bdayPost.pbday = _pa0.y + '-' + String(_pa0.m).padStart(2, '0') +
+                          '-' + String(_pa0.d).padStart(2, '0');
+      }
+    }
     /* R2349u（R90-P0-3）：head 内联预取——此前日签请求要等
      * app.js 594KB eval 完才发（slow4G 实测 6.45s 才出手）。
      * URL/签名逐字一致才吃预取结果；预取失败（null）回退 api()
@@ -6222,6 +6231,17 @@ async function loadDaily() {
           '🌙 明天 ' + esc(_enT.score) + ' 分</span>' +
           ' <span style="font-size:12px;opacity:.75;">' +
           '明天再来看看～</span>');
+      }
+      /* R3633：TA 今天 N 分——已存另一半同式出分，社交向
+       * 「TA 今天怎么样」一眼钩；没存 CP 不出行。 */
+      var _enP = j.personal.partner_energy;
+      if (_enP && _enP.score) {
+        _pc2.push('<span class="daily-energy">' +
+          '💞 TA 今天 ' + esc(_enP.score) + ' 分</span>' +
+          ' <span style="font-size:12px;opacity:.75;">' +
+          (_enP.score >= 70 ? '状态不错，可以拉 TA 一起' :
+           _enP.score < 55 ? '今天低点，多担待 TA 一点' :
+           '普普通通的一天') + '</span>');
       }
       /* R3626：本周能量曲线——7 天迷你走向条，今天描边、
        * 峰值日标「峰」。Timing 能量曲线品类同构（单维诚实版）。 */

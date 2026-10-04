@@ -5558,7 +5558,10 @@ def fortune_summary(calc_out: dict, day: "datetime | None" = None) -> str:
 def daily(date_str: str | None = None,
           # R2349l（R73-P1-3）：bday=YYYY-MM-DD 用户生日——
           # 返回 personal 字段（日主×当日十神），不进缓存。
-          bday: str | None = None) -> dict:
+          bday: str | None = None,
+          # R3633：pbday=另一半生日 → partner_energy（已存 CP 的
+          # 「TA 今天 N 分」；不传不算不耗时）。
+          pbday: str | None = None) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌，命中 daily_cache 表。
 
     R178b（D-229b）：`date` 现在是**查询参数**。重构前它声明为请求体模型
@@ -5680,15 +5683,18 @@ def daily(date_str: str | None = None,
             # 日支对位修正 × 日期|日柱确定性抖动，钳 42–96：分是「你的盘和
             # 那天的对位」，不给满分也不给谷底。收闭包一份算法，今天/明天
             # 同一算式，R3624 晚间预告不再复制逻辑。
-            def _energy_for(_ds: str, _edg: str, _edzz: str) -> dict:
-                _eg = ten_god(_ug, _edg) if _ug else ""
+            # 闭包→显参：R3633 合婚另一半同式算分，不再借外层变量。
+            def _energy_for(_ds: str, _edg: str, _edzz: str,
+                            _eug: str, _eudb: str, _euyb: str,
+                            _euday: str) -> dict:
+                _eg = ten_god(_eug, _edg) if _eug else ""
                 _eb = {
                     "正印": 72, "偏印": 68, "比肩": 66, "劫财": 62,
                     "食神": 70, "伤官": 64, "正财": 62, "偏财": 60,
                     "正官": 58, "七杀": 50,
                 }.get(_eg, 60)
                 _em_verdict = ""
-                for _ezb, _ekk in ((_u_db, "日支"), (_u_yb, "年支")):
+                for _ezb, _ekk in ((_eudb, "日支"), (_euyb, "年支")):
                     if _ezb and _edzz:
                         _erp = _rel_pair(_edzz, _ezb)
                         if _erp:
@@ -5713,12 +5719,13 @@ def daily(date_str: str | None = None,
                     "轻冲": -8, "小绊": -8, "小挫": -10, "小凶": -12,
                 }.get(_em_verdict, 0)
                 _ej = int(hashlib.md5(
-                    f"{_ds}|{_ub.day}".encode()).hexdigest()[:4],
+                    f"{_ds}|{_euday}".encode()).hexdigest()[:4],
                     16) % 7 - 3
                 return {"score": int(max(42, min(96, _eb + _em + _ej))),
                         "god": _eg}
 
-            _e_score = _energy_for(date_str, _dg, _dzz)["score"]
+            _e_score = _energy_for(date_str, _dg, _dzz,
+                                   _ug, _u_db, _u_yb, _ub.day)["score"]
             if _e_score >= 85:
                 _e_line = "今天你的电量很足——想做的事尽管上手"
             elif _e_score >= 70:
@@ -5734,7 +5741,8 @@ def daily(date_str: str | None = None,
             _dg2, _dzz2 = huangli_mod.day_ganzhi(
                 datetime(_nd.year, _nd.month, _nd.day, 12))
             _personal["tomorrow_energy"] = _energy_for(
-                _nd.isoformat(), _dg2, _dzz2)
+                _nd.isoformat(), _dg2, _dzz2,
+                _ug, _u_db, _u_yb, _ub.day)
             # R3626：本周能量曲线——同算式滚未来 6 天（今+明后 7 点），
             # 前端画迷你走向条；同一次 POST 出，零新请求。Timing
             # energy-curve 品类同构（我们单维，守诚实口径不拆假维度）。
@@ -5744,10 +5752,21 @@ def daily(date_str: str | None = None,
                 _dd = _d0 + timedelta(days=_i)
                 _wg, _wz = huangli_mod.day_ganzhi(
                     datetime(_dd.year, _dd.month, _dd.day, 12))
-                _ew = _energy_for(_dd.isoformat(), _wg, _wz)
+                _ew = _energy_for(_dd.isoformat(), _wg, _wz,
+                                  _ug, _u_db, _u_yb, _ub.day)
                 _wk.append({"d": _dd.isoformat(), "s": _ew["score"],
                             "g": _ew["god"]})
             _personal["week_energy"] = _wk
+            # R3633：已存 CP 的「TA 今天 N 分」——另一半生日同式算出；
+            # pbday 不传不耗这次计算（绝大多数请求无此参）。
+            if pbday:
+                _pb = bazi_compute(*_parse_iso_date(pbday).timetuple()[:3],
+                                   12, "女")
+                _pg = (_pb.day or "")[0]
+                _pe = _energy_for(date_str, _dg, _dzz, _pg,
+                                  (_pb.day or "")[1:2],
+                                  (_pb.year or "")[1:2], _pb.day)
+                _personal["partner_energy"] = {"score": _pe["score"]}
             # R3314（R3311-高2）：流年最小确定性卡——
             # ① 年度签：流年干支 + 五行基调（干支元素直读）；
             # ② 犯太岁：流年支 × 用户年支 值/冲/刑/害/破（传统五档）；
