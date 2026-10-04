@@ -20853,9 +20853,12 @@ function renderCheckin(dateKey) {
     var _du = location.origin + location.pathname +
       '?view=home&from=share&duel=' + _duChain.join(',');
     /* R3546：钩子句理不顺（「跟小满陪我比」双谓语打结）——
-     * 小满放裁判位，比拼主语只留你和我。 */
-    var _dPayload = '我连签 ' + _streak +
-      ' 天了——敢跟我比连签吗？小满当裁判 → ' + _du;
+     * 小满放裁判位，比拼主语只留你和我。
+     * R3564：有称号时点名（成就外显进钩子句，受邀者先看
+     * 见你「一月知己」的份量再接招）。 */
+    var _dPayload = '我连签 ' + _streak + ' 天了' +
+      (_msTitle ? '（已是「' + _msTitle + '」）' : '') +
+      '——敢跟我比连签吗？小满当裁判 → ' + _du;
     var _dOk = function () { showToast('对擂链接复制好了，发给 TA 吧', 'ok'); };
     var _dBad = function () {
       try { _showTextExportModal('复制链接', _dPayload,
