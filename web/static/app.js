@@ -17183,6 +17183,15 @@ if (document.readyState === 'loading') {
               '」：排完你的盘，自动给你开同款 ✨';
           }
         }
+        /* R3545：对擂链承接点名——通用「朋友在晒」换成
+         * 「喊你来比」，落地第一眼就知道是擂台不是海报。 */
+        if (_sv === 'home' && _qs.get('duel')) {
+          var _dn = parseInt(_qs.get('duel'), 10);
+          if (isFinite(_dn) && _dn > 0) {
+            _relay.home = '朋友喊你来比连签：她连签 ' + _dn +
+              ' 天了，你的呢？⚔️';
+          }
+        }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
         var _who = _shareByName();
@@ -17279,6 +17288,16 @@ if (document.readyState === 'loading') {
         if (_saNM2[_saK2]) {
           _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
             '」：填生日排完盘，自动给你开同款 ✨';
+        }
+      }
+      /* R3545：对擂链——新客欢迎条同样点名擂台（新受邀者才是
+       * 对擂的主力受众，老客走 toast 分支）。 */
+      if (_sv2 === 'home') {
+        var _dnb = parseInt(
+          new URLSearchParams(location.search).get('duel'), 10);
+        if (isFinite(_dnb) && _dnb > 0) {
+          _relayBar.home = '朋友喊你来比连签：她连签 ' + _dnb +
+            ' 天了，打个卡接招 ⚔️';
         }
       }
       var _who2 = _shareByName();
