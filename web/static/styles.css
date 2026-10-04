@@ -2844,7 +2844,8 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
 /* R3481：预告行下「晒明天的穿搭」小钮——日更件入口低调挂。 */
 .daily-tomorrow-share{
   display:block; margin:6px 0 0 auto; padding:4px 12px;
-  font-size:12px; min-height:32px; border-radius:10px;
+  /* R3482（移动端八审自审）：32px 低于本仓 40px 触控线。 */
+  font-size:12px; min-height:40px; border-radius:10px;
   border:1px dashed #E3C79A; background:transparent;
   color:var(--secondary); cursor:pointer; font-family:var(--font-sans);
 }
@@ -3300,6 +3301,11 @@ html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
   background:#2E282C; border-color:#453C42;
 }
 html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
+/* R3482（移动端八审自审）：预告行晒图钮深色——#E3C79A 金线在
+ * 深底仍可读，透明底保留，仅文色提亮与 recall 同口径。 */
+html[data-theme="dark"] .daily-tomorrow-share{color:#C9BBA9;
+  border-color:rgba(227,199,154,.45);}
+html[data-theme="dark"] .daily-tomorrow-share:hover{color:#EDE1CF;}
 /* R2349j（R70 机制性附注）：真类名 .ck-album-cell，.ck-cell 死补丁修正。 */
 html[data-theme="dark"] .ck-album-cell{background:#2E282C; border-color:#453C42;}
 /* R2345（R62-P2）：深色下凶档星 var(--rose-deep) 在深底上对比弱 → 提亮 */
