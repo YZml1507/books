@@ -4782,6 +4782,50 @@ def _run_inner() -> list[str]:
     _h = _hl5.sha256()
     _sm = _re5.search(r"var SHELL = \[([^\]]*)\]", _swsrc)
     assert _sm, "sw.js 里找不到 SHELL 预缓存清单"
+    # R3364（审-P1-4）：sw.js 全文件语法闸——c67ac631 把
+    # waitUntil 链写串多收一个 ')'，selftest 不解析 JS →
+    # SyntaxError 一路绿灯上线（新 SW 装不上、刷新环自维持）。
+    # 无 JS 引擎时用「串/注释感知括号平衡」兜住这类泄漏；
+    # sw.js 无正则字面量/模板串，词法足够判。
+    def _js_balance(src):
+        _st, _i, _n = [], 0, len(src)
+        _str, _lc, _bc = None, False, False
+        _pair = {')': '(', ']': '[', '}': '{'}
+        while _i < _n:
+            ch = src[_i]
+            if _lc:
+                if ch == '\n':
+                    _lc = False
+            elif _bc:
+                if ch == '*' and _i + 1 < _n and src[_i + 1] == '/':
+                    _i += 1
+                    _bc = False
+            elif _str:
+                if ch == '\\':
+                    _i += 1
+                elif ch == _str:
+                    _str = None
+            elif ch == '/' and _i + 1 < _n and src[_i + 1] == '/':
+                _lc = True
+            elif ch == '/' and _i + 1 < _n and src[_i + 1] == '*':
+                _bc = True
+            elif ch in ('\'', '"'):
+                _str = ch
+            elif ch in '([{':
+                _st.append((ch, _i))
+            elif ch in ')]}':
+                if not _st or _st[-1][0] != _pair[ch]:
+                    return ('mismatch', ch, _i)
+                _st.pop()
+            _i += 1
+        if _str:
+            return ('unterminated-string', _str, None)
+        if _bc:
+            return ('unterminated-comment', '/*', None)
+        return ('unclosed', _st[-1], None) if _st else None
+    assert _js_balance(_swsrc) is None, \
+        ("sw.syntax", "sw.js 语法失衡", _js_balance(_swsrc))
+    ok.append("sw.syntax")
     for _u in _re5.findall(r"'([^']+)'", _sm.group(1)):
         if _u == "/":
             _u = "/static/index.html"

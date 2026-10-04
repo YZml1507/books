@@ -62,6 +62,37 @@ if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
 <!-- R218a-巡4（E-c）：离线兜底——SW 缓存 app shell，断网刷新不再白屏 -->
 <script>
 if ('serviceWorker' in navigator) {
+  /* R3364（审-P0/P1）：保险丝挪 parse 期——?v 混版刷新环里
+   * deferred app.js 先于 load 执行 reload，住 load 回调的计数
+   * 永远计不到（实测环中 load 恒 0）。这里每趟必跑：滚动 15s
+   * 窗（时间戳数组，旧 timer 误杀/NaN 坑一并修）≥4 次进入才
+   * 有环嫌疑，且要求页仍被 SW 控制——再拉一手错版本 app.js
+   * 确证：管版本的 SW 会回限频刷新脚本（短体），真字节=无
+   * SW/非环（手动连刷误杀防），拉不到=断网宕机（离线壳误杀
+   * 防 P1）。确证才全量注销（Promise.all 等落地）+自刷。 */
+  try {
+    var _bk = '__bootflap', _now = Date.now(),
+        _bt = JSON.parse(sessionStorage.getItem(_bk) || '[]')
+          .filter(function (t) { return _now - t < 15000; });
+    _bt.push(_now);
+    sessionStorage.setItem(_bk, JSON.stringify(_bt));
+    if (_bt.length >= 4 && navigator.serviceWorker.controller) {
+      fetch('/static/app.js?v=__bf_probe__', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (tx) {
+          if (tx.length > 2000) return;   /* 真字节：非混版环 */
+          try { sessionStorage.removeItem(_bk); } catch (e) {}
+          return navigator.serviceWorker.getRegistrations()
+            .then(function (rs) {
+              return Promise.all(rs.map(function (r) {
+                return r.unregister();
+              }));
+            })
+            .then(function () { location.reload(); });
+        })
+        .catch(function () {});
+    }
+  } catch (eB) {}
   window.addEventListener('load', function () {
     /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'。
        改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
@@ -69,25 +100,6 @@ if ('serviceWorker' in navigator) {
        固定桶名 books-shell-v1），老用户浏览器里它还活着，按最长前缀
        匹配抢走 /static/* 喂旧代码，且 scope 内无导航几乎不再检查更新。
        注册成功后注销一切非根 scope，一次性清掉存量。 */
-    /* R3365（用户直报「页面一直闪」）：旧 SW 与新部署混版 →
-     * ?v 不符回 location.reload 脚本的刷新环/反复白闪。启动计数
-     * 保险丝：15 秒内连续第 3 次进入判定为刷新环——跳过注册、
-     * 注销全部存量 SW 后自刷一次；无 SW 拦截的纯网络加载必拿
-     * 一致新版，环就此断开，下趟再正常注册。 */
-    try {
-      var _bk = '__bootflap', _bn = +(sessionStorage.getItem(_bk) || 0);
-      if (_bn >= 3) {
-        sessionStorage.removeItem(_bk);
-        navigator.serviceWorker.getRegistrations().then(function (rs) {
-          rs.forEach(function (r) { r.unregister(); });
-        }).then(function () { location.reload(); });
-        return;   /* 本趟只为清场 */
-      }
-      sessionStorage.setItem(_bk, _bn + 1);
-      setTimeout(function () {
-        try { sessionStorage.removeItem(_bk); } catch (e) {}
-      }, 15000);
-    } catch (eB) {}
     navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
       if (!reg) return;
       try {

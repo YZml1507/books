@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-b8cd9e4f5ec3';   // shell-hash: b8cd9e4f5ec3
+var CACHE = 'books-shell-aa4849508fdd';   // shell-hash: aa4849508fdd
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -88,7 +88,7 @@ self.addEventListener('install', function (e) {
         throw new Error('shell core missing: ' + coreMiss.join(','));
       }
     });
-  })).then(function () {
+  }).then(function () {
     /* R3341（审-低）：skipWaiting 收进 waitUntil——写在事件外，
      * SW 可能在收编前被回收，新壳装了不接管。 */
     return self.skipWaiting();
@@ -101,7 +101,7 @@ self.addEventListener('activate', function (e) {
      * CACHE+'-rt' 也清了（无害但白删一轮）。 */
     return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== RT; })
       .map(function (k) { return caches.delete(k); }));
-  })).then(function () {
+  }).then(function () {
     /* R3341（审-低）：claim 收进 waitUntil——同上。 */
     return self.clients.claim();
   }));
@@ -127,12 +127,22 @@ self.addEventListener('fetch', function (e) {
      * 白等一个 CacheStorage 往返才发网络请求。并行起，离线兜底时
      * 再用壳查询结果；catch 兜底防 match 自身 reject 变游离拒绝。 */
     var _hitP = caches.match('/').catch(function () { return undefined; });
+    /* R3364（审-P2）：导航 network-first 无超时——后端挂起时每次
+     * 导航白屏吃满挂起时长（Render 冷启/卡死窗口）。8s 竞速回落
+     * 壳位；5xx 同样回落（裸 502 上屏不如离线壳）。403 门页不在
+     * 此列——必须原样上屏。 */
+    var _navTo = new Promise(function (_r, _rj) {
+      setTimeout(function () { _rj(new Error('nav-timeout')); }, 8000);
+    });
     e.respondWith(
         /* R2400（R130-P2-2）：network-first——旧版「先给缓存壳」让
          * 门页对解锁过的设备永久失效（cookie 过期/换口令都赶不走）。
          * 在线时以服务端响应为准（403 门页照实上屏），缓存壳只留作
          * 离线兜底。 */
-        fetch(e.request).then(function (resp) {
+        Promise.race([fetch(e.request), _navTo]).then(function (resp) {
+          if (resp.status >= 500) {
+            throw new Error('nav-' + resp.status);
+          }
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
           /* R2349u（R91-P1-3）：FastAPI 默认开 /docs /openapi.json，
            * 那些导航的响应此前被写进 '/' 壳位——壳污染后首页变 Swagger。
@@ -225,8 +235,19 @@ self.addEventListener('fetch', function (e) {
            * 刷新脚本：旧页自刷 → 新壳+新 chunk 一致落地；非 JS
            * 资源（css/img）新字节混用无害，仍走网络。 */
           if (url.pathname.slice(-3) === '.js') {
-            return new Response('location.reload();', {
-              headers: { 'Content-Type':
+            /* R3364（审-P0）：刷新脚本自带刹车——30s 窗内最多 5 次
+             * reload，超出即停手。此前裸 location.reload()：一旦
+             * 环成（老 SW+新 HTML），任何年代的 SW 都没有自救
+             * 手段、风暴饿死软更新检查。刹车写进响应体本身，不
+             * 依赖页面新旧。sessionStorage 不可用时退回裸 reload
+             * （无痕下 SW 本不持久）。 */
+            return new Response(
+              'try{var _k="__swrl",_v=(sessionStorage.getItem(_k)' +
+              '||"0:0").split(":"),_t=+_v[0],_c=+_v[1],_n=Date.now();' +
+              'if(_n-_t>30000){_t=_n;_c=0}' +
+              'sessionStorage.setItem(_k,_t+":"+(_c+1));' +
+              'if(_c<5){location.reload()}}catch(x){location.reload()}',
+              { headers: { 'Content-Type':
                 'text/javascript; charset=utf-8' } });
           }
           return _net().catch(function () { return undefined; });

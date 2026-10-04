@@ -18334,3 +18334,26 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - pull 响应 updated_at 下传验证通过；两段确认/dev 戳/ver2
   实测全过。
 - probe_ui_smoke NO_CASE 补 trQH 豁免（窗口期外恒 hidden）。
+
+## R3364 SW/刷新环终扫清零（审计报告按单修）
+- **P0-1 sw.js 全文件 SyntaxError**（c67ac631 引入）：install/
+  activate 两处 `})).then` 各多一个 `)`——waitUntil 链写串，
+  新 SW 永远装不上。改为 `}).then` 让链回到 waitUntil 参数内。
+- **P0-2 刷新环自维持**：老 SW+新 HTML → ?v 不符回裸
+  location.reload() → 38-47 nav/s 风暴、软更新检查饿死。
+  shim 自带刹车：30s 窗内最多 5 次 reload（写进响应体本身，
+  任何年代 SW/任何版本 HTML 的环都有自救）。
+- **P0-3 __bootflap 死代码**：计数住 load 回调、环中 load 恒
+  0。挪 parse 期（deferred app.js 前必跑），改时间戳数组滚
+  动窗（顺带修老 timer 误杀/NaN 坑）。
+- **P1-1 离线误杀**：注销前加确证——须页仍被 SW 控制 + 拉
+  错版本 app.js 回短 shim（<2KB）才杀；真字节=非环、拉不到
+  =断网，都不清场。手动连刷误杀同概率但离线场景根除。
+- **P1-4 门禁盲区**：selftest 新增 sw.syntax——串/注释感知
+  括号平衡器（sw.js 无正则/模板串，词法级足够），本次 P0
+  正是靠它该拦未拦。
+- **P2-9/10 体验**：导航 fetch 8s Promise.race 超时回落壳位；
+  5xx 同样回落（403 门页不在此列照旧上屏）。
+- 未修：/static/index.html 版本盲通道（知情即可）、懒 chunk
+  混版丢态（可接受）、双 tab 全局注销（确证成立后可顺带
+  救 B tab）、preload 老 SW 面（靠修好+保险丝覆盖）。
