@@ -45,6 +45,8 @@ EXTRA_GLOBS = (
     "cream/bear-scene-*.jpg",
     "cream/persona-*.jpg",
     "cream/hehun-bear.jpg",
+    # R3247：明星合盘名单（运行时 fetch /static/celeb.json）同口径。
+    "celeb.json",
 )
 
 
