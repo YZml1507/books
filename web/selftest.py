@@ -4607,6 +4607,9 @@ def _run_inner() -> list[str]:
     assert "manifest:" in _appsrc2 and "_manifestStreak" in _appsrc2 and \
         "data-mb=\"today\"" in _appsrc2, \
         "显化打卡环：manifest: 白名单/连念计数/今日念钮三件套缺一"
+    # R3396-P2-11：各新功能断言独立挂名——此前全折进
+    # frontend.hl_ask_dayoffset，regress 基线抓不到它们被删。
+    ok.append("frontend.manifest_wiring")
     # R3381 默契挑战：视图+hash 载荷+海报 kind+路标四件套。
     _idxsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "static", "index.html"),
@@ -4614,16 +4617,19 @@ def _run_inner() -> list[str]:
     assert "view-mochi" in _idxsrc and "_renderMochi" in _appsrc2 and \
         "#mc=" in _appsrc2 and "mochi: 1" in _appsrc2, \
         "默契挑战：view-mochi/_renderMochi/#mc 链路/聊天白名单缺一"
+    ok.append("frontend.mochi_wiring")
     # R3383 谁最懂你榜：记榜函数/榜键/清榜钮三件套——缺一则受邀
     # 回传分数无处安放，裂变留存环断。
     assert "_mcBoardRecord" in _appsrc2 and "mochi:board" in _appsrc2 and \
         'data-mc="wipe"' in _appsrc2, \
         "默契榜：_mcBoardRecord/mochi:board/清榜钮缺一"
+    ok.append("frontend.mochi_board")
     # R3386 双题库：love 题库/pack 路由/题库切换钮三件套——缺一
     # 则对象题出不了或受邀方对错题。
     assert 'data-pack="love"' in _appsrc2 and "_mcPackOf" in _appsrc2 and \
         "心动默契题" in _appsrc2, \
         "默契双题库：love 题库/_mcPackOf/切换钮缺一"
+    ok.append("frontend.mochi_packs")
     # R3388 每日一签：懒载器/同签闸/历史/白名单/备份前缀五件套——
     # 缺一则签页空渲、同日变签、跨链断档、聊路死链或清场漏数。
     assert "view-qian" in _idxsrc and "_renderQian" in _appsrc2 and \
@@ -4631,6 +4637,7 @@ def _run_inner() -> list[str]:
         "qian:" in _appsrc2 and "qian_data.js" in _appsrc2 and \
         'data-view="qian"' in _idxsrc, \
         "每日一签：view/渲染/抽签/白名单/备份前缀/语料懒载缺一"
+    ok.append("frontend.qian_wiring")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

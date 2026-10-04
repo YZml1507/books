@@ -413,8 +413,9 @@ def _yearly_block(b: "Bazi") -> dict | None:
     计算，不做吉凶分档——分档归 warm 层的口径。单日/生平共用。"""
     day_master = b.day_master
     try:
-        from datetime import date as _d
-        _cy = _d.today().year
+        # R3396-P2-6：裸 date.today() 跟服务器本地时区走——UTC 部署
+        # 下北京跨年 8h「今年」会错一柱，与全站 _now_cn 同口径。
+        _cy = datetime.now(timezone(timedelta(hours=8))).year
         _cidx = (_cy - 4) % 60
         _cgz = GAN[_cidx % 10] + ZHI[_cidx % 12]
         months = []
@@ -545,8 +546,8 @@ def calc_kline(b: "Bazi", birth_year: int) -> dict | None:
             candles.append({"age": age, "year": y, "ganzhi": gz,
                             "gan_rel": tg, "dayun": dy_pillar,
                             "score": score, "flags": flags})
-        from datetime import date as _d
-        this_age = _d.today().year - birth_year
+        # R3396-P2-6：同上——「今年」跟北京时区，不跟服务器本地。
+        this_age = datetime.now(timezone(timedelta(hours=8))).year - birth_year
         # 顺段/难段：连续 ≥5 年同符号段摘成区间榜，读着有节奏
         segs = []
         seg_start, seg_sign = 0, None

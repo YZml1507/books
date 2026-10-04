@@ -356,14 +356,18 @@ function _paintSharePoster(s, W, H) {
      * 先例。带占高 _KL_H，行块在其下排。 */
     var _klD = (s.view === 'bazi-kline') ? s.kline : null;
     var _KL_H = (_klD && _pArr(_klD.candles).length) ? 310 : 0;
+    /* R3397：开运日历格带——与 K线柱带同款先例：月历格收进卡区
+     * 顶部，行块在其下排。 */
+    var _calD = (s.view === 'hlcal') ? s.cal : null;
+    var _CAL_H = (_calD && _pArr(_calD.days).length) ? 380 : 0;
     var lh = Math.min(150, Math.max(64,
-      (_linesTop - cardY - _MDOT_H - _KL_H) / lines.length));
+      (_linesTop - cardY - _MDOT_H - _KL_H - _CAL_H) / lines.length));
     /* R3260（实拍抓到的溢出）：每行是「小标签+大值」双行排版，
      * 末行值基线 = cardY+(n-1)·lh+62，框底旧口径 +40 只到
      * cardY+n·lh-20——lh 贴 64 下限时末行戳出框 18px。
      * 底 padding 40→76，框底 = 末行基线 +14 下沉量，不再溢出。 */
     var _LH_PAD = 76;
-    var _cardH = lines.length * lh + _LH_PAD + _MDOT_H + _KL_H;
+    var _cardH = lines.length * lh + _LH_PAD + _MDOT_H + _KL_H + _CAL_H;
     var _slack = _linesTop - (cardY - 60) - _cardH;
     if (_slack > 0) cardY += Math.min(120, Math.round(_slack / 2));
     /* R2504（A-1 兜底）：lh 贴 64 下限仍超硬顶时整块上提，
@@ -459,15 +463,74 @@ function _paintSharePoster(s, W, H) {
       }
       ctx.textAlign = 'left';
     }
+    /* R3397：开运月历格带——卡区顶部 weekday 头+日期格，
+     * 吉日红圈（TOP3 加星标）、避让日灰叉、今天粗框。 */
+    if (_calD) {
+      var _cym = _pStr(_calD.ym) || '';           /* '2026-10' */
+      var _cyy = +_cym.slice(0, 4), _cmm = +_cym.slice(5, 7);
+      var _cdim = new Date(_cyy, _cmm, 0).getDate();
+      var _cFirst = (new Date(_cyy, _cmm - 1, 1).getDay() + 6) % 7; /* 周一起 */
+      var _cdays = {};
+      _pArr(_calD.days).forEach(function (_c) {
+        _cdays[+_c.d] = _c; });
+      var _cToday = +_pStr(_calD.today_day);
+      var _gx0 = 150, _gw = 780, _gcw = _gw / 7, _gch = 46;
+      var _gy0 = cardY - 60 + 18;
+      var _wds = ['一','二','三','四','五','六','日'];
+      ctx.font = '500 20px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = '#B7A98A'; ctx.textAlign = 'center';
+      _wds.forEach(function (_w, _i) {
+        ctx.fillText(_w, _gx0 + _i * _gcw + _gcw / 2, _gy0 + 24);
+      });
+      var _rows = Math.ceil((_cFirst + _cdim) / 7);
+      for (var _cd = 1; _cd <= _cdim; _cd++) {
+        var _cp = _cFirst + _cd - 1;
+        var _cx = _gx0 + (_cp % 7) * _gcw + _gcw / 2;
+        var _cy = _gy0 + 44 + Math.floor(_cp / 7) * _gch + _gch / 2;
+        var _g = _cdays[_cd];
+        if (_calD.mode === 'ji') {
+          /* 避让图：忌它的日子灰叉+圈底提示。 */
+          if (_g) {
+            ctx.strokeStyle = '#B0A48E'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(_cx - 9, _cy - 2); ctx.lineTo(_cx + 9, _cy + 14);
+            ctx.moveTo(_cx + 9, _cy - 2); ctx.lineTo(_cx - 9, _cy + 14);
+            ctx.stroke();
+          }
+        } else if (_g) {
+          ctx.fillStyle = '#C4624E';
+          ctx.beginPath();
+          ctx.arc(_cx, _cy + 6, 19, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#FFF8EE';
+          ctx.font = '700 22px "LXGW WenKai","PingFang SC",sans-serif';
+          ctx.fillText(String(_cd), _cx, _cy + 14);
+          if (_g.rank && _g.rank <= 3) {
+            ctx.fillStyle = '#7A5C2E';
+            ctx.font = '600 15px "LXGW WenKai","PingFang SC",sans-serif';
+            ctx.fillText('★', _cx + 26, _cy - 6);
+          }
+        } else {
+          ctx.fillStyle = '#9A8B74';
+          ctx.font = '400 21px "LXGW WenKai","PingFang SC",sans-serif';
+          ctx.fillText(String(_cd), _cx, _cy + 13);
+        }
+        if (_cd === _cToday) {
+          ctx.strokeStyle = '#7A5C2E'; ctx.lineWidth = 3;
+          ctx.strokeRect(_cx - _gcw / 2 + 8, _cy - _gch / 2 + 2,
+                       _gcw - 16, _gch - 4);
+        }
+      }
+      ctx.textAlign = 'left';
+    }
     /* R3260：行高 <95 时双行排版（标签上值下，62px 内距）会和下一行
      * 标签挤叠（daily 5 行 + 卡座时 lh=72 实测叠加）。行高不够就
      * 切单行「标签：值」——行高 ≥56 即呼吸充足。 */
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
-      var y = cardY + _MDOT_H + _KL_H + i * lh + 10;
+      var y = cardY + _MDOT_H + _KL_H + _CAL_H + i * lh + 10;
       /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
        * 上得了图；点在标签左侧固定位。 */
-      var _dotY = cardY + _MDOT_H + _KL_H + i * lh + Math.round(lh / 2);
+      var _dotY = cardY + _MDOT_H + _KL_H + _CAL_H + i * lh + Math.round(lh / 2);
       if (r.dot) {
         ctx.fillStyle = r.dot;
         ctx.beginPath(); ctx.arc(118, _dotY, 13, 0, Math.PI * 2); ctx.fill();
@@ -477,7 +540,7 @@ function _paintSharePoster(s, W, H) {
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
       if (_rowInline) {
-        y = cardY + _MDOT_H + _KL_H + i * lh + Math.round(lh / 2) + 14;
+        y = cardY + _MDOT_H + _KL_H + _CAL_H + i * lh + Math.round(lh / 2) + 14;
         ctx.fillText(r.k + '：', 150, y);
         _kx = 150 + ctx.measureText(r.k + '：').width + 8;
       } else {
@@ -843,6 +906,7 @@ function _posterHookForView(view, j) {
   /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
   if (view === 'qian') return '今天你的签是什么？';
   if (view === 'ansb') return '心里有个问题？来翻一页';
+  if (view === 'hlcal') return '你的好日子是哪天？';
   if (view === 'bazi-kline') return '你的流年走势长什么样？';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
@@ -1616,6 +1680,28 @@ function buildShareData(view, j) {
         { k: '可以试', v: _clauseCut(_pStr(_ab.d), 20) }
       ];
       return _as;
+    }
+    case 'hlcal': {
+      /* R3397 开运日历海报：月历格是主体（卡内格带），名次进
+       * lines——「本月宜X的日子我圈好了」的晒语境。 */
+      var _hc = (j && j._hlcal) || {};
+      var _hcm = +_pStr(_hc.ym).slice(5, 7);
+      var _hs = base((_hc.mode === 'ji' ? '避让日历' : '吉日日历'),
+        _hcm ? (_hcm + '月 · ' + (_hc.mode === 'ji' ? '忌' : '宜') +
+                _pStr(_hc.scene)) : '');
+      _hs.view = 'hlcal';
+      _hs.cal = _hc;
+      var _hd = _pArr(_hc.days);
+      _hs.big = _hcm + '月共 ' + _hd.length + ' 天' +
+                (_hc.mode === 'ji' ? '要绕开' : '是好日子');
+      var _ht1 = _hd.filter(function (_x) { return _x.rank === 1; })[0];
+      _hs.lines = [
+        { k: '头名', v: _ht1 ? (_hcm + '月' + _ht1.d + '日') : '—' },
+        { k: '事由', v: _pStr(_hc.scene) || '—' },
+        { k: '圈里', v: _hd.slice(0, 5).map(function (_x) {
+            return _x.d; }).join('、') + ' 日' }
+      ];
+      return _hs;
     }
     case 'bazi-kline': {
       /* R3393 人生K线海报：走势图是主体（卡内柱带），今年干支

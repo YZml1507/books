@@ -2607,6 +2607,8 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 .hl-gooddays{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:13px;color:var(--secondary);}
 .hl-gooddays-label{flex-shrink:0;}
 .hl-gooddays-note{font-size:12px;color:var(--muted);}
+/* R3397：吉日榜尾部「本月图」钮——比 chip 轻一档的行内小钮。 */
+.hl-cal-btn{margin-left:6px;font-size:12px;padding:4px 12px;min-height:36px;}
 .hl-daychip{border:1px solid var(--accent);background:#FFF;color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:var(--tap);min-width:44px;transition:all .15s ease;}
 .hl-daychip:hover{background:linear-gradient(120deg,#FFE4E9,#E4D4FF);font-weight:700;}
 

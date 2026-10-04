@@ -47,6 +47,8 @@ EXTRA_GLOBS = (
     "cream/hehun-bear.jpg",
     # R3247：明星合盘名单（运行时 fetch /static/celeb.json）同口径。
     "celeb.json",
+    # R3396（记账）：soulmate 六张氛围图同病——换图必须换 CACHE 名。
+    "cream/sm-*.jpg",
 )
 
 

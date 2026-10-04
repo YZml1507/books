@@ -18686,3 +18686,59 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - selftest home.ia 断言 15→16 卡、drawer 序列收 ansb。
 - 实测（Playwright 390px）：书卡→翻页→答案卡→hist/fact 写入
   →再翻回书卡→海报下载出图（暖底+大字+三行+钩）全链零报错。
+
+## R3397 · 本月开运日历（2026-10-04）
+- 黄历问答「挑吉日」结果新增「📅 N月吉日图/避让图」钮——把当月
+  吉日榜画成可晒的月历海报（周一首格、红圈吉日、★头三名、
+  今天方框、避让模式灰✗）。月份取吉日数最多的那个月（跨月榜
+  不再死锁查询月）。
+- _lastGd 存 {scene,ym,mode,today_day,days:[{d,rank}]}；ji_only
+  场景出避让榜日历。poster case 'hlcal' + _CAL_H 380px 档带 +
+  hook「你的好日子是哪天？」+ _POSTER_TITLES/BG(mint)/_SHARE_TEXT/
+  ALIAS(hlcal→huangli) 七处齐。
+- 实测：问「搬家」→钮→月历海报渲染零报错（11月、11/12红圈、
+  头名/事由/圈里三行齐）。
+
+## R3395 · 新功能家族边界终扫（审单清零 2026-10-04）
+- P0-1：「看默契分」死钮根治——落地规整 URL 的 replaceState 把
+  #mc[rs]?= hash 剥掉，受邀者答题后点分无反应、成绩页退化成
+  出题卡（真实冷启必中，裂变主链全断）。白名单放行 #mc 族；
+  hehun hash 剥参是 R3307 隐私设计不动。已冷启实测全链：
+  答题→出分→flip→host 开 #mcr 见成绩卡。
+- P1-2：昵称含 | 拼出死链（受邀方见「弄丢了」卡）——两处编码
+  前 .replace(/\|/g,'')。
+- P2-1：qian:t:<date> 尾段 't:YYYY-MM-DD' 在打卡 GC 路径永不
+  回收——尾判定与比较统一改按最后一段（与启动 _gks 同口径）。
+- P2-3：ansb 聊上下文注入词收窄——「该不该/要不要/那句话」
+  太宽无关闲聊也挂 fact，只留载体词（答案之书/翻书/书上/
+  那一页/帮我翻）。
+- P2-4：_mcBoardRecord 同分早退——result 渲染副作用写榜单，
+  变化写会让邻 tab 重渲再写（潜伏回环）。
+- P2-5：_relay/_relayBar 两表补 mochi/qian/ansb 承接行——
+  分享落地不再是通用兜底。
+- 已排干净（审单确认）：存储四链齐收、fact 同日失效+危机
+  先序、视图路由+popstate 护栏、海报链七处、服务侧零接口面、
+  答案本体不出机、同值写无回环。
+
+## R3396 · 收尾终审修复批（2026-10-04）
+- P1-1：mochi/qian/ansb 三枚 cream 图标补进 sw SHELL——离线
+  打开功能卡不出裂图。
+- P2-1：启动 GC _gkf 补 qian:|manifest: 族；_fam 删 'ansb:'
+  （无日期键，死项）。
+- P2-2：历史签晒海报日期/话题被标今天——share 钮带
+  data-d（o.review），海报按签的日期+当日话题出。
+- P2-3：_OG_VIEW 补 mochi/qian/ansb 分享卡预览条目。
+- P2-4：cream-icon-{mochi,oracle}.jpg 缩到 112²（原图过大）。
+- P2-5：ansb 问句 placeholder「只存在你手机里」→「聊起来小满
+  接得住」——原承诺与 fact 上 LLM/备份上云矛盾。
+- P2-6：bazi_calc 两处 datetime.now() 补 UTC+8 时区——服务器
+  UTC 时跨年/跨日边界错位。
+- P2-7：答案卡开着时 storage 事件不再重绘 ansb（用户正看的
+  答案不被邻 tab 顶掉）。
+- P2-8：ui_smoke 新增 ui:qian（抽签/历史/review-tag 回环）+
+  ui:ansb（写问/翻页/hist/fact/再来一页）两例。
+- P2-9：_mcParse 答案位收紧 [0-3]{5}——篡改位 4 不再出空行。
+- P2-10：qian_data 懒载失败时#qianBox 出可重试空态（不再静默
+  白屏）。
+- P2-11：selftest 五个新断言独立命名（regress 闸要求名集不缩）。
+- bump_sw EXTRA_GLOBS 收 cream/sm-*.jpg（正缘画像图进缓存键）。

@@ -1565,6 +1565,82 @@ def main() -> int:
             if errors:
                 results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
+            # R3396-P2-8：每日一签全链——签筒→抽签→签面→同签闸→历史回看。
+            errors.clear()
+            try:
+                goto_view('qian')
+                page.wait_for_selector('#qianBox', timeout=5000)
+                _drawn = page.evaluate(
+                    "document.querySelectorAll('#qianBox .qian-slip').length")
+                if not _drawn:
+                    page.wait_for_selector('#qianTube', timeout=10000)
+                    page.click('[data-qian="draw"]')
+                    page.wait_for_selector('#qianBox .qian-slip',
+                                           timeout=8000)
+                _no = page.evaluate(
+                    "(document.querySelector('#qianBox .qian-no')||{})"
+                    ".textContent||''")
+                _key = page.evaluate("""(() => {
+                    const t = new Date();
+                    const iso = t.getFullYear() + '-' +
+                        String(t.getMonth()+1).padStart(2,'0') + '-' +
+                        String(t.getDate()).padStart(2,'0');
+                    return localStorage.getItem('qian:'+iso);
+                })()""")
+                _hr = page.evaluate(
+                    "document.querySelectorAll('#qianBox .qian-hrow').length")
+                if _hr:
+                    page.click('#qianBox .qian-hrow >> nth=0')
+                    page.wait_for_selector('#qianBox .qian-review-tag',
+                                           timeout=5000)
+                    page.click('[data-qian="back"]')
+                    page.wait_for_selector('#qianBox .qian-slip',
+                                           timeout=5000)
+                ok = (('签' in _no) and _key and _hr >= 1 and not errors)
+                results.append({"name": "ui:qian", "ok": ok,
+                    "detail": f"签面={_no[:12]} 键={_key} 史={_hr} 回看=True"})
+            except Exception as exc:
+                results.append({"name": "ui:qian", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("location.hash='';")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3396-P2-8：答案之书全链——写问题→翻页→答案卡→历史→再翻。
+            errors.clear()
+            try:
+                goto_view('ansb')
+                page.wait_for_selector('#ansbQ', timeout=8000)
+                page.fill('#ansbQ', '要不要辞职')
+                page.click('[data-ansb="flip"]')
+                page.wait_for_selector('#ansbBox .ansb-card',
+                                       timeout=8000)
+                _ans = page.evaluate(
+                    "(document.querySelector('#ansbBox .ansb-answer')||{})"
+                    ".textContent||''")
+                _hist = page.evaluate(
+                    "localStorage.getItem('ansb:hist')||'[]'")
+                _fact = page.evaluate(
+                    "localStorage.getItem('ansb:fact')||'{}'")
+                page.click('[data-ansb="again"]')
+                page.wait_for_selector('#ansbQ', timeout=5000)
+                _hrows = page.evaluate(
+                    "document.querySelectorAll('#ansbBox .ansb-hrow').length")
+                ok = (len(_ans) > 2 and '要不要辞职' in _hist and
+                      '答案之书' in _fact and _hrows >= 1 and not errors)
+                results.append({"name": "ui:ansb", "ok": ok,
+                    "detail": (f"答={_ans[:14]} hist={len(_hist)}字 "
+                               f"fact={'答案之书' in _fact} 史行={_hrows}")})
+            except Exception as exc:
+                results.append({"name": "ui:ansb", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
             # R3249e（UX-AUDIT C·塔罗）：三档快捷钮——抽一张/抽三张走
             # doTarot 真抽，自己抽开牌扇。新客不碰牌阵下拉的路径钉住。
             errors.clear()
