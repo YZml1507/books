@@ -6254,6 +6254,18 @@ async function loadDaily() {
           _wd[new Date(_wk[_peakI].d + 'T00:00:00').getDay()] +
           '最足' + (_pkTag ? '·' + esc(_pkTag) + '日' : '') +
           (_pkAct ? '，' + esc(_pkAct) : '') + '</span></div>');
+        /* R3629：低谷日提醒——周内最低分 ≤55 才补一句，温柔不吓；
+         * 分不低就不多嘴。 */
+        var _lowI = 0;
+        _wk.forEach(function (w, i) {
+          if (w.s < _wk[_lowI].s) _lowI = i;
+        });
+        if (_wk[_lowI].s <= 55 && _lowI !== _peakI) {
+          _pc2.push('<div class="e-week-low">周' +
+            _wd[new Date(_wk[_lowI].d + 'T00:00:00').getDay()] +
+            '偏低（' + esc(_wk[_lowI].s) + ' 分）——那天慢一点、' +
+            '别硬扛，小满陪你</div>');
+        }
       }
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +

@@ -755,6 +755,7 @@ html[data-theme="dark"] .daily-energy{background:rgba(228,180,96,.16); color:#e0
 .e-lbl{font-size:10px; line-height:1; color:var(--muted);}
 .e-week-note{font-size:11.5px; margin-left:6px; padding-bottom:2px;
   color:var(--muted);}
+.e-week-low{font-size:12px; margin-top:4px; color:var(--muted);}
 html[data-theme="dark"] .e-bar{background:rgba(228,180,96,.35);}
 html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);

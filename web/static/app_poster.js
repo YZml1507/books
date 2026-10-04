@@ -1269,6 +1269,18 @@ function buildShareData(view, j) {
         _ds.lines.splice(_ei >= 0 ? _ei + 1 : 1, 0,
           { k: '今日能量', v: String(_den.score) + ' 分' });
       }
+      /* R3629：本周峰值日上海报——同一曲线，晒图带「这周某
+       * 天电最足」的前瞻钩（无档案无此行）。 */
+      var _dwk = (j && j.personal && j.personal.week_energy) || null;
+      if (_dwk && _dwk.length === 7) {
+        var _dpi = 0;
+        _dwk.forEach(function (w, i) {
+          if (w.s > _dwk[_dpi].s) _dpi = i; });
+        var _wd2 = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        _ds.lines.push({ k: '本周峰值',
+          v: _wd2[new Date(_dwk[_dpi].d + 'T00:00:00').getDay()] +
+             ' ' + String(_dwk[_dpi].s) + ' 分' });
+      }
       /* R2349t（R88-2a/15b）：节日/节气上海报副题+右上徽章——
        * 中秋当天发出去的图自带时令由头（字段已在 daily 响应下发）。 */
       var _dfest = _pArr(j && j.festival)[0] ||
