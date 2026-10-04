@@ -833,15 +833,16 @@ function _posterHookForView(view, j) {
 function buildShareData(view, j) {
   var w = (j && j.warm) || {};
   var l0 = w.one_liner || '';
+  /* R3353（审-P3）：海报日期统一取记录日（台账复看分享不标成
+   * 今天）。提到函数顶层——base 外的 qiming/moodweek/信卡等分支
+   * 也用它（原只在 base 内声明，外层引用 ReferenceError）。 */
+  var _pd = _pStr(j && j._posterDate) || todayIso();
   function base(title, subtitle) {
     /* R218a-11：注入 view 字段供 _paintSharePoster 取金句 hook。 */
     /* R230y（R36-P3-2）：subtitle 空兜当天日期——海报带「今天的签」时效感 */
     /* R233t（R51-P2-15）：裸 ISO 日期「2026-09-20」默认副标
      * 全部视图统一「M月D日 · 周X」。 */
     /* R2349p（R79-P2-2）：默认副标与 _cnDateSub 口径统一（去月前导零）。 */
-    /* R3353（审-P3）：台账复看分享的海报副标用记录日（j._posterDate），
-     * 不是生成日——出图日期可追溯到那张记录。 */
-    var _pd = _pStr(j && j._posterDate) || todayIso();
     var _defSub = _cnDateSub(_pd);
     return { title: title, subtitle: subtitle || _defSub, big: l0 || title,
              lines: [], cards: [], view: view };

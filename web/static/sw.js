@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-03653ed942b7';   // shell-hash: 03653ed942b7
+var CACHE = 'books-shell-be73d7034116';   // shell-hash: be73d7034116
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -110,6 +110,11 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;          // POST 全直连
+  /* R3355：blob: 请求（海报预览图/a[download] 对象 URL）会被
+   * SW 接管——url.origin 解析出内层源判定同源，落到 cache-first
+   * 分支后 SW 内 fetch(e.request) 对 blob: 恒失败（预览图裂）。
+   * 不 respondWith 即默认放行，由 blob store 直接应答。 */
+  if (e.request.url.indexOf('blob:') === 0) return;
   if (url.origin !== self.location.origin) return; // 跨源不接管（未来外链保险）
   if (url.pathname.indexOf('/api/') === 0) return; // API 永不缓存
 

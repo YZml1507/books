@@ -955,9 +955,13 @@ html[data-theme="dark"] .daily-mantra b{
 }
 .recent-toggle:hover{transform:scale(1.06); box-shadow:0 6px 20px rgba(0,0,0,.28);}
 /* R231a（R35-P2-10）：首页滚动中 FAB 缩小半透明，不再压 daily-meta 文字 */
-/* R233y（R55-P2）：mini 态 37px 低于 44px 触控下限。 */
-.recent-toggle.is-mini{transform:scale(.85); opacity:.6;}
-.recent-toggle.is-mini:hover{transform:scale(.95); opacity:.9;}
+/* R233y（R55-P2）：mini 态 37px 低于 44px 触控下限。
+   R3355：此前 transform 缩的是整个钮（命中域跟着缩到 37px）——
+   改缩内部文字层，外层命中域保持原尺寸。 */
+.recent-toggle.is-mini{opacity:.6;}
+.recent-toggle.is-mini .recent-toggle-txt{transform:scale(.85);}
+.recent-toggle.is-mini:hover{opacity:.9;}
+.recent-toggle.is-mini:hover .recent-toggle-txt{transform:scale(.95);}
 .recent-toggle:focus-visible{outline:3px solid var(--text); outline-offset:3px;}
 @media (prefers-reduced-motion: reduce){ .recent-toggle{transition:none;} }
 /* R2345（R62-P1-4）：FAB 在窄屏盖住内容左缘（打卡星/历史条目）——
@@ -972,7 +976,7 @@ html[data-theme="dark"] .daily-mantra b{
     bottom:14px;
     /* R2353（R110-P2-10）：max()/env() 不认的老内核整行丢弃——先纯 px 兜底再覆盖。 */
     bottom:max(14px, env(safe-area-inset-bottom, 14px));}
-  .recent-toggle-txt{font-size:10px;}
+  .recent-toggle-txt{font-size:12px;}
 }
 .recent-sidebar{
   /* R3258：z 70→185——install-tip(180)此前浮在开的侧栏上盖住
@@ -1233,6 +1237,11 @@ html[data-theme="dark"] .daily-mantra b{
   min-height:var(--tap); display:flex; align-items:center;
 }
 .pro-drawer summary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
+/* R3355：可点 summary 条触控下限——原 21-40px，竖向 padding 补到
+ * ~44px 且不丢 ::marker（display:flex 会隐掉展开三角）。 */
+.pro-drawer summary, details.warm-pro-fold > summary,
+.mood-jar-fold summary, .fl-done > summary, .ck-album > summary{
+  padding-top:12px; padding-bottom:12px;}
 .pro-grid{margin-top:12px;}
 .pro-grid .func-card{opacity:.85;}
 
@@ -1288,7 +1297,7 @@ label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; 
 /* R3232：自由文本字段（称呼/昵称/提问）比数字格更需要宽度——
  * 与「月/日」同宽时 placeholder 截断、整排最挤的就是它。 */
 .field:has(> input[type=text]), .field:has(> textarea){flex-grow:2; min-width:150px;}
-input[type=number], input[type=text], input[type=date], select{
+input[type=number], input[type=text], input[type=date], input[type=search], select{
   /* R211b（US10）：输入控件圆角+柔底，消工具感断层 */
   border-radius:12px; background:#FFFDF8;
   /* R228d：iOS Safari 对 <16px 输入框聚焦自动缩放整页——移动优先的应用，
@@ -1312,6 +1321,7 @@ input::placeholder, textarea::placeholder{color:var(--muted); opacity:1;}
 /* R231f（R38-P3-3）：summary 焦点环统一——pro-drawer/warm-basis 有显式环，
  * paipan-fold/daily-full/warm-pro-fold 此前只有 UA 默认环，口径不一。 */
 summary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
+
 /* R231f（R38-P2-4）：skip-link——Tab 序首站直达功能区，不用爬完
  * 欢迎条/打卡/封面才到主功能。 */
 .skip-link{
@@ -2292,7 +2302,8 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   opacity:0; transition:opacity .2s ease;
   padding:16px;
 }
-.poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);}
+.poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);
+  touch-action:none;   /* R3355：遮罩上拦滚动穿透 */}
 .poster-modal{
   background:var(--card); border-radius:16px;
   /* R2349m（R76-P2-12）：iOS vh 按最大视口算——换 dvh，不支持自然回落 */
@@ -2796,6 +2807,7 @@ html{-webkit-text-size-adjust:100%;}
   position:fixed; inset:0; z-index:310; display:flex;
   align-items:center; justify-content:center;
   background:rgba(0,0,0,.35); animation:tipIn .25s ease;
+  touch-action:none;   /* R3355：同拦滚动穿透 */
 }
 .celeb-card{
   background:#fff; border-radius:18px; padding:22px 20px 18px;
@@ -2868,7 +2880,7 @@ input[aria-invalid="true"],select[aria-invalid="true"]{border-color:#D4735E !imp
  * 悬停暂停随 item 穿透失效，键盘聚焦暂停（focusin→×）仍在。 */
 .toast-item{pointer-events:none}
 .toast-item .toast-x{pointer-events:auto}
-.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:40px;min-height:40px;cursor:pointer;opacity:.7}
+.toast-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:6px;min-width:44px;min-height:44px;cursor:pointer;opacity:.7}
 .toast-x:hover{opacity:1}
 .fav-chip-x{min-width:44px}
 .qm-fav{min-width:44px}
@@ -3521,7 +3533,7 @@ html[data-theme="dark"] .celeb-card[data-tier="100"]{border:3px solid #E05555;}
 /* R3219：聊天字数条已有动态版（.char-count，app.js:10173）——
  * chat-input-row 补 position:relative 让它的 absolute 锚定行而非侧栏。 */
 .dm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.dm-chip{min-height:32px;padding:4px 12px;font-size:12px;}
+.dm-chip{min-height:var(--tap);padding:4px 12px;font-size:12px;}
 /* R3243：点评失败行内重试键——覆盖全局 button 的大药丸，收成小 chip。 */
 button.nr-retry{min-height:30px; margin:0 0 0 6px; padding:3px 12px;
   font-size:12px; width:auto; border-radius:999px;
@@ -3615,8 +3627,8 @@ html[data-theme="dark"] .dm-panel .dm-count{color:#A99DBD;}
   background:var(--bg);border:1px solid var(--border);}
 /* R3213：时辰格子升级为可点按钮——点选即填，不用手敲数字换算。 */
 .hour-cheat-grid .hour-pick{font-size:12px;color:var(--secondary);
-  background:transparent;border:1px solid transparent;min-width:0;
-  border-radius:8px;padding:4px 2px;cursor:pointer;min-height:30px;
+  background:transparent;border:1px solid transparent;min-width:44px;
+  border-radius:8px;padding:4px 2px;cursor:pointer;min-height:40px;
   text-align:center;box-shadow:none;line-height:1.3;}
 .hour-cheat-grid .hour-pick:hover{background:var(--card);
   border-color:var(--border);color:var(--primary-ink);}

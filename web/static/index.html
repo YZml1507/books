@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="/static/shared/og-card.jpg">
 <!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
 <meta name="theme-color" content="#FFF8E7">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
 <script>try{var _w=window.localStorage.getItem('welcomed');
@@ -357,7 +357,7 @@ try {
       <input class="da-in" data-k="d" type="number" inputmode="numeric"
              min="1" max="31" placeholder="8" aria-label="出生日">
       <input class="da-in" data-k="h" type="number" inputmode="numeric"
-             min="0" max="23" placeholder="19·可空" aria-label="出生时辰（可留空）"
+             min="0" max="23" placeholder="晚7点=19；可空" aria-label="出生时辰（可留空）"
              title="出生时辰，不知道可留空">
       <!-- R3237：性别随档案落档——感情类解读/合婚回填都用得到，
            不缺省一次。类名单独立（.da-cal 是历法定位锚）。 -->
@@ -933,7 +933,7 @@ try {
              onerror="this.remove()">
         <label class="or-panel-head" for="orText">
           <b>纠结的事一句话说给我</b>
-          <small>要不要、去不去、说不说——问完了照着做</small>
+          <small>要不要、去不去、说不说——问完了心里有数</small>
         </label>
         <textarea id="orText" class="or-text" rows="3" maxlength="60"
           aria-label="写下纠结的事"

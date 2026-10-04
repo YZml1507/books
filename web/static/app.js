@@ -2492,13 +2492,13 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
 var _CHAT_FALLBACK_DEFAULT = [
   "今天小满提前打烊啦～心事先发给我，想聊的时候随时来，我一直在这。",
   "解忧铺这会儿休整中，发的心事我记下了，随时回来听我细说。",
-  "小满现在不上班，门口的牌子写着『歇业中』，你先歇会儿，想聊再来。",
+  "小满现在不上班，门口的牌子写着「歇业中」，你先歇会儿，想聊再来。",
   "这会儿小满调休中～把心事先写下来，我一回来就翻你的牌。",
   "打烊了哦～这条消息我存着，下回开门接着说。",
   "解忧铺的灯这会儿关了，你的心事没丢，开门第一单给你留着。",
   "我先歇一会儿，存好你的话，回来带着力气一起拆。",
-  "小满今晚关店早，你先把心事写下来，回来找我深聊。",
-  "门牌已经翻到『休息中』，你的消息我存着，先睡个好觉。",
+  "小满今天关店早，你先把心事写下来，回来找我深聊。",
+  "门牌已经翻到「休息中」，你的消息我存着，先歇口气。",
   "解忧铺的茶这会儿凉了，重新烧上了，你写下来的我都会读。"
 ];
 var _CHAT_FALLBACK_BY_KW = {
@@ -2507,23 +2507,23 @@ var _CHAT_FALLBACK_BY_KW = {
     "听着就累。先把肩膀松下来，回头来找我，咱们一件一件拆。",
     "身体先叫停一下比什么都重要。先睡饱，回头找我。",
     "累的时候做的决定十有八九会后悔，先放放，回头来。",
-    "辛苦了。今晚把待办关掉，明天的你再收拾残局也来得及。",
+    "辛苦了。先把待办关掉，明天的你再收拾残局也来得及。",
     "先给自己续杯热水。你的累我记着了，回来慢慢说。"
   ],
   'work': [
     "工作的坎儿先不急开会，思路睡一觉会清楚很多，回头找我聊细节。",
     "听到工作的苦。回头跟我讲讲你卡在哪一环，咱们一起拆。",
-    "工作的事先放我这儿，你今晚先下班。",
+    "工作的事先放我这儿，你先下班。",
     "职场的弯弯绕绕回来拆给你听。先喝口热的，喘口气。",
     "班先下了，委屈先搁我这儿。回头咱们一条一条过。",
-    "这份活不決定你的价值：先歇，回来慢慢说。"
+    "这份活不决定你的价值：先歇，回来慢慢说。"
   ],
   'love': [
     "感情的事急也急不出答案。先放过自己，回头来跟我讲。",
     "爱里的纠结最难熬。回头来找我，把心意慢慢理顺。",
-    "先不猜他的心思了，回头来听我说说牌面给的信号。",
+    "先不猜他的心思了，回头来听我细说。",
     "心动或心累都先收着，回来我陪你解。",
-    "那个人怎么想先放放，你先照顾好今晚的自己。",
+    "那个人怎么想先放放，你先照顾好自己。",
     "感情里没有标准答案，你讲得开心最要紧。回头细聊。"
   ],
   'study': [
@@ -2545,7 +2545,7 @@ var _CHAT_FALLBACK_BY_KW = {
   'default': [
     "今天小满提前打烊啦～你的消息我存着，我一直在这。",
     "解忧铺这会儿休整中，你的心事我存着，随时来听。",
-    "门牌已经翻到『休息中』，回头找我深聊。",
+    "门牌已经翻到「休息中」，回头找我深聊。",
     "解忧铺的茶凉了，重新烧上了，你写下来的我都会读。",
     "小满去后院浇水了，你的话挂在门口的风铃上，回来就听。",
     "这会儿我在整理书架，你的那一条排第一个。"
@@ -2553,7 +2553,11 @@ var _CHAT_FALLBACK_BY_KW = {
 };
 /* 关键词→分类映射（命中第一个即用） */
 var _CHAT_FALLBACK_KW_MAP = [
-  { cat: 'tired',   kws: ['累', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺'] },
+  /* R3356（审-低）：焦虑/emo/内耗/郁闷/烦——server 烦恼族有、
+   * 兜底词表此前没有，DISABLE 时落 default 打烊池与 shred chip
+   * 不对题。并进 tired 池（心累同根口径）。 */
+  { cat: 'tired',   kws: ['累', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺',
+    '焦虑', 'emo', '内耗', '郁闷', '烦'] },
   { cat: 'work',    kws: ['工作', '职场', '同事', '老板', '上司', '升职', '跳槽', '上班', '加班', '辞职'] },
   { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '对象', '暗恋', '表白', '相亲', '暧昧'] },
   { cat: 'study',   kws: ['学习', '考试', '作业', '考研', '高考', '中考', '成绩', '课程', '论文', '答辩'] },
@@ -4551,6 +4555,22 @@ function showPosterModal(canvas, view, j) {
       '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  /* R3355（审-中）：预览 img 换 blob: URL——data: URI 在 iOS Safari /
+   * 部分 webview 里长按不弹「保存图片」，blob: 是标准可存图 URL。
+   * 编码失败则留 data: 兜底；URL 挂 backdrop 待关闭时回收。 */
+  try {
+    canvas.toBlob(function (b) {
+      if (!b) return;
+      var _ie = backdrop.querySelector('.poster-modal-img');
+      if (!_ie || !backdrop.isConnected) return;
+      var _bu = URL.createObjectURL(b);
+      /* data: 副本留 dataset——CSP connect-src 会挡 fetch(blob:)，
+       * 闸/兜底要量 PNG 字节时读这个，不靠网络再取。 */
+      _ie.dataset.dsrc = _ie.src;
+      _ie.src = _bu;
+      backdrop._posterBlobUrl = _bu;
+    }, 'image/png');
+  } catch (eBL) {}
   /* R3304（审-P3）：开奖瞬间未散的 toast 叠在模态上缘（toast-stack
    * z300 > modal z200）——开模态即清场，模态内新 toast 照常出现
    * （复制成功反馈仍要看得见，所以不能降 z）。 */
@@ -4878,6 +4898,12 @@ function closePosterModal() {
   }
   var m = document.getElementById('posterModal');
   if (!m) return;
+  /* R3355：blob: 预览图 URL 随模态关闭回收。 */
+  try {
+    if (m._posterBlobUrl) {
+      URL.revokeObjectURL(m._posterBlobUrl); m._posterBlobUrl = null;
+    }
+  } catch (eRV) {}
   m.classList.remove('open');
   setTimeout(function () { if (m.parentNode) m.parentNode.removeChild(m); }, 200);
 }
@@ -12008,7 +12034,7 @@ var _JIAO = [
       '神明摆手。恭喜你，它替你挡了一刀。',
       '这事不对。你心里其实也知道，对不对？',
       '先放一放。真的重要的事，过两天还会回来找你。',
-      '筊杯说别去。听话，今天的好运在别的事上。'
+      '筊杯说别去。信它一回，今天的好运在别的事上。'
     ] }
 ];
 function doOracle() {
@@ -12033,7 +12059,7 @@ function doOracle() {
       '<div class="or-v">' + ji.verdict + '</div>' +
       '<p class="or-line">' + esc(line) + '</p>' +
       '<p class="or-q">问的是：「' + esc(q) + '」</p>' +
-      '<p class="or-note">同一件事今天再掷也是这个筊——照着做，别回头问第二遍。</p>' +
+      '<p class="or-note">同一件事今天再掷也是这个筊——心里有数了，别回头问第二遍。</p>' +
       '<div class="ck-wish-actions">' +
         '<button type="button" class="checkin-opt" id="orAgain">再想一件</button>' +
       '</div></div>';
@@ -12483,7 +12509,6 @@ function initBazi() {
    *   同一同步函数，哪条信号先到都能复位。 */
   var _vvSyncT = 0;
   function _vvSync() {
-    var inp = el('chatInput');
     var sb = document.querySelector('.recent-sidebar');
     if (!sb) return;
     if (!sb.classList.contains('open')) { sb.style.bottom = ''; return; }
@@ -12491,12 +12516,18 @@ function initBazi() {
     var eaten = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
     if (eaten <= 60) { sb.style.bottom = ''; return; }
     /* 键盘弹出：侧栏底抬高到键盘上沿。焦点不在输入框（如选中
-     * 了别的控件但键盘仍在）不动布局。 */
-    if (!inp || document.activeElement !== inp) return;
+     * 了别的控件但键盘仍在）不动布局。
+     * R3355（审-低）：原来只认 #chatInput 一个——侧栏里以后再加
+     * 输入控件（备忘、笔记）弹键盘也抬底，改成按归属判断。 */
+    var _ae = document.activeElement;
+    if (!_ae || !sb.contains(_ae) ||
+        !/^(INPUT|TEXTAREA|SELECT)$/.test(_ae.tagName)) return;
     sb.style.bottom = eaten + 'px';
     setTimeout(function () {
-      if (document.activeElement === inp)
-        inp.scrollIntoView({ block: 'end', inline: 'nearest' });
+      var _ae2 = document.activeElement;
+      if (_ae2 && sb.contains(_ae2) &&
+          /^(INPUT|TEXTAREA|SELECT)$/.test(_ae2.tagName))
+        _ae2.scrollIntoView({ block: 'end', inline: 'nearest' });
     }, 250);
   }
   function _vvSyncTwice() {   /* 收键盘竞态：立即一遍 + 等 offsetTop 落定再来一遍 */
@@ -14562,6 +14593,14 @@ function init() {
     /* R3306-P3：checkinBuff:*（每日打卡 buff 足迹）原漏在监听
      * 外——无重渲面，只需要别当陌生键走下去。 */
     if (e.key.indexOf('checkinBuff:') === 0) { return; }
+    /* R3354（审-低）：couple:/futureLetters/pilePick: 跨 tab——A tab
+     * 合拍交集回来/写了未来信/选了堆，B tab 打卡区卡面就地跟上。 */
+    if (e.key.indexOf('couple:') === 0 ||
+        e.key === 'futureLetters' || e.key === 'futureLetters:corrupt' ||
+        e.key.indexOf('pilePick:') === 0) {
+      try { renderCheckin(todayIso()); } catch (eCP) {}
+      return;
+    }
     /* R2400（R127-P2-3）：镜像键跨 tab——A 摘了心水/删了记录，
      * B 的 chips 与「本机留档」列表就地跟新（saver 同值不写，
      * 重渲染收敛不打转）。 */
@@ -16067,7 +16106,7 @@ function _moodWeekData() {
        (recorded < prevN ? '，想记就记小满不催' : ''));
   }
   var jarTotal = 0;
-  try { jarTotal = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0; }
+  try { jarTotal = Math.max(0, parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0); }
   catch (eJT) {}
   return { days: days, recorded: recorded, main: main,
     streak: streak, verdict: verdict, prevN: prevN, prevMain: prevMain,
@@ -16367,7 +16406,12 @@ function _renderMoodRow(lv) {
     var k = 'mood:' + _dk;
     var v = null;
     try { v = localStorage.getItem(k); } catch (eV) {}
-    if (v !== null && v !== undefined && v !== '') {
+    /* R3354（审-P2）：脏值守卫——mood:<date> 塞 '9'/'x' 时
+     * _MOOD_META[+v] 是 undefined，.c/.t 读属性抛 TypeError，
+     * 函数中断后下方 dataset.bound 点击委托永远绑不上——心情钮
+     * 渲染出来却永久死掉。词表外值按空点渲染（不写回、不崩）。 */
+    var _mv = (v !== null && v !== '') ? _MOOD_META[+v] : null;
+    if (_mv) {
       has = true;
       if (i2 < 7) {
         _wkN++; _wk[+v]++;
@@ -16381,10 +16425,10 @@ function _renderMoodRow(lv) {
         }
       }
     }
-    cal += v !== null && v !== ''
-      ? '<i class="mood-dot" style="background:' + _MOOD_META[+v].c +
+    cal += _mv
+      ? '<i class="mood-dot" style="background:' + _mv.c +
         '" title="' + (dd.getMonth() + 1) + '/' + dd.getDate() +
-        ' ' + _MOOD_META[+v].t + '"></i>'
+        ' ' + _mv.t + '"></i>'
       : '<i class="mood-dot mood-dot-empty" title="' +
         (dd.getMonth() + 1) + '/' + dd.getDate() + ' 未打卡"></i>';
   }
@@ -16529,13 +16573,13 @@ function _dailyMetaItem(id, html) {
 function _moodJarSync(total) {
   try {
     /* R3315：场景扩到 6 张，封顶跟着表走（scene 数即上限）。 */
-    var oldU = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
+    var oldU = Math.max(0, parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0);
     /* R3336（审-中）：unlocked 无条件覆写会被 GC 收键/导入更少键
      * 反向回落——已解锁图静默消失，与「断签不扣回」注释矛盾。
      * 取 max（旧值，算值） 单调递增。 */
     var unlocked = Math.max(oldU, Math.min(_MOOD_JAR_SCENES.length,
                             Math.floor((total || 0) / 7)));
-    var oldT = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+    var oldT = Math.max(0, parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0);
     localStorage.setItem('moodjar:total', String(total || 0));
     localStorage.setItem('moodjar:unlocked', String(unlocked));
     if (unlocked > oldU && total > oldT) {
@@ -16549,7 +16593,7 @@ function _moodJarSync(total) {
 }
 function _moodJarHtml() {
   try {
-    var unlocked = parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0;
+    var unlocked = Math.max(0, parseInt(localStorage.getItem('moodjar:unlocked') || '0', 10) || 0);
     /* R3345（审-低）：total 改现场数 mood: 键——meta 行渲染早于
      * 本次 _moodJarSync 写值时不再滞后一帧（跨 tab/导入后同步）。 */
     var _liveTot = 0;
@@ -16913,9 +16957,13 @@ function renderCheckin(dateKey) {
     var _flList = JSON.parse(localStorage.getItem('futureLetters') || '[]');
     if (!Array.isArray(_flList)) _flList = [];
     _flList.forEach(function (lt) {
+      /* R3354（审-P2）：数组混入原始值（'junk'/42）时严格模式下
+       * lt._due= 赋值抛 TypeError——forEach 中断、整段被外层
+       * catch 吞，合法到期信（包括排在垃圾前的）全部不渲染。 */
+      if (!lt || typeof lt !== 'object') return;
       /* R3329（审-P2）：脏 deliver（2026-13-01）串比较恒 false →
        * 信永远 pending。非真日期视作今日送达浮出。 */
-      if (lt && !lt.opened) {
+      if (!lt.opened) {
         var _dv = String(lt.deliver || '');
         var _real = /^\d{4}-\d{2}-\d{2}$/.test(_dv) &&
           !isNaN(new Date(_dv + 'T00:00:00').getTime());
@@ -16949,6 +16997,16 @@ function renderCheckin(dateKey) {
         '<div class="fl-meta">' + esc(_span) +
         ' · 今天送达</div></div></div>';
     });
+    /* R3354（审-低）：futureLetters:corrupt 救援键此前只写不读——
+     * 坏 JSON 就地备份后没有任何取回口。写信入口旁给一条找回链。 */
+    try {
+      var _flRaw0 = localStorage.getItem('futureLetters:corrupt');
+      if (_flRaw0) {
+        _flEntryHtml = _flEntryHtml.replace('</span></div>',
+          '<button type="button" class="fl-recover" id="flRecover">' +
+          '💌 有封没写完的信，点这找回</button></span></div>');
+      }
+    } catch (eFR) {}
     /* R3329：pend 徽标填进 try 外的保底入口骨架。 */
     if (_flPend.length) {
       _flEntryHtml = _flEntryHtml.replace('</span></div>',
@@ -17146,6 +17204,26 @@ function renderCheckin(dateKey) {
   if (_flw && !_flw.dataset.bound) {
     _flw.dataset.bound = '1';
     _flw.addEventListener('click', _flWriteOpen);
+  }
+  /* R3354（审-低）：corrupt 备份信取回——弹可选文本域，原文复制走
+   * 后清掉备份位（不删是防用户没复制就关窗丢信）。 */
+  var _flrc = box.querySelector('#flRecover');
+  if (_flrc && !_flrc.dataset.bound) {
+    _flrc.dataset.bound = '1';
+    _flrc.addEventListener('click', function () {
+      var _raw2 = '';
+      try { _raw2 = localStorage.getItem('futureLetters:corrupt') || ''; }
+      catch (eRC) {}
+      if (!_raw2) { showToast('备份已经被清掉了', 'info'); return; }
+      try {
+        _showTextExportModal('找回的信',
+          '这封信当时没能存进列表，原文在下面——长按复制带走吧。\n\n' +
+          _raw2, '长按下面文本全选复制');
+      } catch (eM2) { showToast(_raw2.slice(0, 200), 'info'); }
+      try { localStorage.removeItem('futureLetters:corrupt'); }
+      catch (eRD) {}
+      _flrc.remove();
+    });
   }
   var _alb = box.querySelector('.ck-album');
   if (_alb && !_alb.dataset.bound) {
@@ -18155,7 +18233,7 @@ function _chatChipsPersonalize() {
   try {
     var _mjTotal = 0;
     try {
-      _mjTotal = parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0;
+      _mjTotal = Math.max(0, parseInt(localStorage.getItem('moodjar:total') || '0', 10) || 0);
     } catch (eMJT) {}
     var _mjNote = box.querySelector('.chat-empty-moodjar');
     if (_gap2 > 3 && _mjTotal > 0) {
@@ -18947,7 +19025,8 @@ var _SHRED_SOOTHE = [
 ];
 function _shredCount(dateKey) {
   try {
-    return parseInt(localStorage.getItem('shred:' + dateKey) || '0', 10) || 0;
+    /* R3354（审-低）：负值计数原样透出「碎了 -5 件」——取 0 下限。 */
+    return Math.max(0, parseInt(localStorage.getItem('shred:' + dateKey) || '0', 10) || 0);
   } catch (e) { return 0; }
 }
 function _shredRefreshSummary(dateKey) {
@@ -19971,7 +20050,9 @@ function baziPersonaCard(j) {
             /* R3350：mantraFav（咒语册）同族收编——导得出也要导得回。 */
             /* R3351（审-P1）：couple:/shred: 同族收编——合拍交集与
              * 碎纸计数换机不再静默丢。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/
+            /* R3354（审-P1）：chatTranscript 族同收编——导得出
+             * 导不回，换机聊天记录静默丢。(:|$) 同时覆盖裸键。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -20118,6 +20199,32 @@ function baziPersonaCard(j) {
             if (k.indexOf('shred:') === 0 &&
                 (!/^\d{4}-\d{2}-\d{2}$/.test(k.slice(6)) ||
                  !/^\d{1,4}$/.test(_v))) return;
+            /* R3354（审-P1）：chatTranscript:<sid>/裸键=消息数组
+             * [{r:'me'|'ai',t≤2000,a?{view≤24,label≤40,anchor≤16}}]
+             * ≤50 条（与 _chatTsSave 写出口径）；:lastsid=≤64 串。 */
+            if (k === 'chatTranscript:lastsid' && _v.length > 64) return;
+            if (k === 'chatTranscript' ||
+                (k.indexOf('chatTranscript:') === 0 &&
+                 k !== 'chatTranscript:lastsid')) {
+              try {
+                var _ta = JSON.parse(_v);
+                if (!Array.isArray(_ta) || _ta.length > 50) return;
+                var _tok = _ta.every(function (_tm) {
+                  return _tm && typeof _tm === 'object' &&
+                    (_tm.r === 'me' || _tm.r === 'ai') &&
+                    typeof _tm.t === 'string' && _tm.t.length <= 2000 &&
+                    (!_tm.a || (typeof _tm.a === 'object' &&
+                      typeof _tm.a.view === 'string' &&
+                      _tm.a.view.length <= 24 &&
+                      typeof _tm.a.label === 'string' &&
+                      _tm.a.label.length <= 40 &&
+                      (!_tm.a.anchor ||
+                        (typeof _tm.a.anchor === 'string' &&
+                         _tm.a.anchor.length <= 16))));
+                });
+                if (!_tok) return;
+              } catch (eTS) { return; }
+            }
             if (k === 'returnBannerDismissed' &&
                 !/^\d{4}-\d{2}-\d{2}$/.test(_v)) return;
             if (k === 'chat:events') {
@@ -20350,7 +20457,7 @@ function baziPersonaCard(j) {
           '<textarea class="export-modal-ta" aria-label="粘贴备份内容" ' +
             'placeholder="把之前在备忘录/文件传输助手里存的备份文本整段贴进来"></textarea>' +
         '</div>' +
-        '<div class="poster-modal-tip">💡 贴的是「我的数据备份」那段 JSON：含生辰昵称，别贴进公开群</div>' +
+        '<div class="poster-modal-tip">💡 贴的是「我的数据备份」那段备份文本：含生辰昵称，别贴进公开群</div>' +
         '<div class="poster-modal-actions">' +
           '<button type="button" class="poster-act" id="importPasteGo">✨ 导入这份备份</button>' +
         '</div>' +

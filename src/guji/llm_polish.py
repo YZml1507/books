@@ -1385,7 +1385,7 @@ def _verdict_anchor_reply(rverdicts: list) -> str:
         _v = str(rverdicts[0])[:80]
     return ("照你那张卡的判词直说。" + (_v or "盘上写得挺清楚") +
             "。这可能跟你想听的不一样，但盘就是这么落的；"
-            "哪里硌、怎么处，咱可以接着聊。")
+            "哪里别扭、怎么处，咱可以接着聊。")
 
 
 def _is_sensitive(msg: str) -> bool:

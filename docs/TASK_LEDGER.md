@@ -18133,3 +18133,34 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   入口时间闸（刻意晚到设计）；action 按 sid 去重（低优）。
 - 闸门：selftest 408 / ui_smoke PASS / contract 746 / parity 全绿
   / ruff 全绿；bump_sw→books-shell-03653ed942b7
+
+## R3354-R3356 三审清零（数据面终扫/移动端专项/口吻终审）
+- R3354 数据面：chatTranscript(:sid|:lastsid) 进备份导入白名单
+  +形状校验（换机丢聊天记录根治）；_renderMoodRow 非法值
+  TypeError 守卫；futureLetters 非对象项守卫+JSON 损坏恢复
+  入口（flRecover→导出原文再清键）；跨 Tab storage 监听器补
+  couple:/futureLetters/futureLetters:corrupt/pilePick: 分支；
+  6 处 parseInt localStorage 负值 Math.max(0,…) 收口。
+- R3355 移动端：滚动穿透（poster/celeb backdrop touch-action:
+  none）；触摸目标 44px 收编（.toast-x/.dm-chip/.hour-pick 等）；
+  iOS 输入字号 16px 防放大；.is-mini 折叠钮只缩字不再压触点；
+  showPosterModal 预览图改 blob: URL（iOS 长按「保存图片」
+  可用，data: 留 dataset.dsrc 兜底）+ closePosterModal 回收；
+  _vvSync 键盘遮挡判定放宽到 INPUT/TEXTAREA/SELECT 任一
+  获焦（原来只认 #chatInput）。
+- R3355 顺手真 bug：sw.js 对 blob: 请求早退——
+  new URL('blob:…').origin 解析成内层 origin 被判同源走
+  cache-first→SW fetch 必挂，所有 SW 控制页 blob: 预览全死。
+- R3356 口吻：文案库—前端镜像批（今天关店早/歇业中/先把待办/
+  你先下班/不决定/回头听我细说/先歇口气/照顾好自己）+『』→「」
+  +決→决+哪里硌→哪里别扭；hehun 名族锚点错门修（明星家族
+  先环判）；oracle 收 要不要/该不该/想辞职…想分手；解梦收
+  梦见/梦到/做梦/做了个梦；问完心里有数；placeholder 化时刻。
+- check_poster 判据14：img probe 兼容 blob:（dataset.dsrc 量
+  字节 + naturalWidth>0 验真渲染，取列表末位防关闭中残影）。
+- 未修（评估保留）：.ink-hero 深色亮度 .88——R129 裁决有意
+  保留有注释；chip 重复挂载去重；swipe-close 手势低优跳过。
+- 闸门：selftest 408 / ui_smoke 104 / contract 746 / parity 全绿 /
+  plain_first 5×8 / xingzuo 双判据 / warm_voice 8判据 /
+  async_ai 3判据 / baseline_voice 逐字节 / ruff 全绿；
+  bump_sw→books-shell-05486cc58db4
