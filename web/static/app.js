@@ -20166,6 +20166,29 @@ function renderCheckin(dateKey) {
   try {
     _wluHtml = _wlRow(dateKey);
   } catch (eWL) {}
+  /* R3542：对擂台落地行——URL 带 ?duel=N 时给对比判词。
+   * duel 参数不进剥离表：它就是给人看的比分。 */
+  var _duelHtml = '';
+  try {
+    var _duN = parseInt(
+      new URLSearchParams(location.search).get('duel'), 10);
+    if (isFinite(_duN) && _duN > 0 && _duN <= 9999) {
+      var _dTxt;
+      if (_streak <= 0) {
+        _dTxt = '⚔️ 朋友连签 ' + _duN +
+          ' 天了——你今天打第一张卡，就开始追她';
+      } else if (_streak < _duN) {
+        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天，你 ' + _streak +
+          ' 天——差 ' + (_duN - _streak) + ' 天追上她';
+      } else if (_streak === _duN) {
+        _dTxt = '⚔️ 你们都是 ' + _duN + ' 天——打平，明天见分晓';
+      } else {
+        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天，你 ' + _streak +
+          ' 天——你赢她 ' + (_streak - _duN) + ' 天';
+      }
+      _duelHtml = '<div class="ck-quest ck-duel">' + _dTxt + '</div>';
+    }
+  } catch (eDU) {}
   /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
    * 规律换内容 toast 一次；pattern:seen 记最近一条防止重复弹。 */
   try {
@@ -20418,7 +20441,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
+    _duelHtml + _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
@@ -20432,6 +20455,10 @@ function renderCheckin(dateKey) {
     ((_streak >= 3 || saved) ? '<button type="button" class="checkin-share" id="checkinShare" ' +
       'title="生成分享图">' + (saved ? '📸 晒这张签' : '📸 晒连签') +
       '</button>' : '') +
+    /* R3542：连签对擂——链上带自己的天数，喊 TA 来比（群排名
+     * 玩法的轻量版：无服务端，受邀方读自己的本机天数对决）。 */
+    (_streak >= 1 ? '<button type="button" class="checkin-share" id="ckDuel" ' +
+      'title="复制链接喊 TA 来比连签">⚔️ 喊 TA 比连签</button>' : '') +
     /* R233q（R47-P2 续）：周报海报——近 7 天打卡 ≥2 天才显示 */
     (function () {
       var _w = 0;
@@ -20710,6 +20737,23 @@ function renderCheckin(dateKey) {
       showToast('本周目标达成啦——给自己放个假也是分 🌱', 'ok');
     }
   }
+  /* R3542：喊 TA 比连签——复制钩子文案+对擂链。 */
+  var _ckd = box.querySelector('#ckDuel');
+  if (_ckd) _ckd.addEventListener('click', function () {
+    var _du = location.origin + location.pathname +
+      '?view=home&from=share&duel=' + _streak;
+    var _dPayload = '我连签 ' + _streak +
+      ' 天了——你敢跟小满陪我比连签吗 → ' + _du;
+    var _dOk = function () { showToast('对擂链接复制好了，发给 TA 吧', 'ok'); };
+    var _dBad = function () {
+      try { _showTextExportModal('复制链接', _dPayload,
+        '长按下面文本全选复制，发给 TA 吧'); }
+      catch (eM) { showToast('复制没成功，可截图链接发给 TA', 'warn'); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(_dPayload).then(_dOk, _dBad);
+    } else { _dBad(); }
+  });
   var _cks = box.querySelector('#checkinShare');
   if (_cks) _cks.addEventListener('click', function () {
     /* R3252：分享图带签面插画——预载完成后把 <img> 传进海报
