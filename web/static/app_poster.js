@@ -246,9 +246,14 @@ function _paintSharePoster(s, W, H) {
    * warmPoster 已预热；未加载完成时回落渐变）。 */
   /* R230w：视图底图——s.view 由 buildShareData 注入；老海报/未加载
    * 完成时先回落 warm 再回落渐变（确定性口径不变）。 */
+  /* R3422-P2-5（审）：墨色系按「意图底图」选、不按「实画底图」
+   * 选——lilac 未加载回落奶油/渐变后，夜紫浅墨 #FFF6E8 印奶底
+   * 隐形（tarot.png 慢网实态可复现）。_bgKey 随实际落底走。 */
+  var _bgKey = _POSTER_BG_BY_VIEW[s && s.view] || 'warm';
   var bgImg = _posterBgFor(s && s.view);
   if (!(bgImg && bgImg.complete && bgImg.naturalWidth)) {
     bgImg = POSTER_BG.warm;
+    _bgKey = 'warm';
   }
   if (bgImg && bgImg.complete && bgImg.naturalWidth) {
     ctx.drawImage(bgImg, 0, 0, 1080, 1440);
@@ -256,12 +261,12 @@ function _paintSharePoster(s, W, H) {
     var bg = ctx.createLinearGradient(0, 0, 0, 1440);
     bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
+    _bgKey = 'warm';
   }
   ctx.textAlign = 'center';
 
   /* R2349m（R75-P1-1/P2-3）：lilac 夜紫底上深色文字整体偏暗、
    * 副题被月亮面冲刷——深底换浅字调色板+深色晕影。 */
-  var _bgKey = _POSTER_BG_BY_VIEW[s && s.view] || 'warm';
   var _ink = (_bgKey === 'lilac')
     ? { title: '#F5E3C0', sub: '#EADFC8', big: '#FFF6E8',
         halo: 'rgba(40,28,60,0.85)' }
@@ -728,6 +733,19 @@ function _paintSharePoster(s, W, H) {
             cy + 12 + Math.round((_th - _dh) / 2), _dw, _dh);
           ctx.restore();
         } catch (e) { /* 图未就绪则跳过，文字兜底 */ }
+        iy = cy + ch - 148;
+      } else {
+        /* R3422-P2-7（审）：牌图/清单未加载时卡座画白底空框——
+         * 米白图区+居中牌背纹，别像加载失败的残图。 */
+        var _tw0 = cw - 24, _th0 = ch - 160;
+        ctx.save();
+        _roundRectPath(ctx, cx + 12, cy + 12, _tw0, _th0, 14); ctx.clip();
+        ctx.fillStyle = '#F6EFE2';
+        ctx.fillRect(cx + 12, cy + 12, _tw0, _th0);
+        ctx.fillStyle = '#C9B283';
+        ctx.font = '400 96px "LXGW WenKai","PingFang SC",sans-serif';
+        ctx.fillText('✦', cx + 12 + _tw0 / 2, cy + 12 + _th0 / 2 + 34);
+        ctx.restore();
         iy = cy + ch - 148;
       }
       /* R3254h（用户实测「鬼/可怕的东西」末字消失）：两重修正——
@@ -1730,11 +1748,20 @@ function buildShareData(view, j) {
       var _we = (j && j._wishecho) || {};
       /* R3417：跨年启封海报（ny=1）——「新年愿望」大字，愿望/
        * 写于去年底/给N年进 lines。 */
+      /* R3422-P2-4（审）：愿望原文是自由输入——不过闸直接烤进
+       * 可晒图，敏感问句（离婚/堕胎/轻生类）会随海报外流。
+       * 与 ansb:1762 同口径：命中危机/敏感闸回落占位。 */
+      var _wt = _pStr(_we.t);
+      var _wtSafe = _wt &&
+        !(typeof feCrisis === 'function' && feCrisis(_wt)) &&
+        !(typeof feSensitive === 'function' && feSensitive(_wt));
+      var _wtShow = _wtSafe ? (_clauseCut(_wt, 18) || '（心里那个）')
+        : '（心里那个）';
       if (_we.ny) {
         var _wy = base('跨年许愿', _cnDateSub(_pStr(j && j.date)));
         _wy.big = '新年愿望';
         _wy.lines = [
-          { k: '写给明年', v: _clauseCut(_pStr(_we.t), 18) || '（心里那个）' },
+          { k: '写给明年', v: _wtShow },
           { k: '封于', v: '去年 12 月' },
           { k: '小满说', v: '启封了——' + (+_we.year || '') + ' 年慢慢让它长' }
         ];
@@ -1743,7 +1770,7 @@ function buildShareData(view, j) {
       var _ws = base('愿望成真', _cnDateSub(_pStr(j && j.date)));
       _ws.big = '愿望成了';
       _ws.lines = [
-        { k: '许的愿', v: _clauseCut(_pStr(_we.t), 18) || '（心里那个）' },
+        { k: '许的愿', v: _wtShow },
         { k: '等了', v: (+_we.days || 0) + ' 天' },
         { k: '小满说', v: _clauseCut(_pStr(_we.echo), 20) ||
           '许愿→成真，这条链走通了' }
@@ -2266,6 +2293,17 @@ async function _downloadPoster(j, view) {
    * 喂给 fonts.load，浏览器按 unicode-range 拉起全部命中子集。 */
   try {
     if (document.fonts && document.fonts.load) {
+      /* R3422-P2-8（审）：lxgw.css 是 window load+800ms 才注入的
+       * 懒链——窗内点分享时 @font-face 根本没注册，fonts.load
+       * 拉无可拉，非 CJK 机出豆腐海报。分享即立刻补注入。 */
+      try {
+        if (!document.getElementById('lxgwCss')) {
+          var _lx = document.createElement('link');
+          _lx.id = 'lxgwCss'; _lx.rel = 'stylesheet';
+          _lx.href = '/static/fonts/lxgw.css';
+          document.head.appendChild(_lx);
+        }
+      } catch (eLX) {}
       var _ptext = _posterTextCollect(j && j.share ?
         Object.assign({}, j.share, { _src: j }) : j);
       /* R3406-P2：原只拉 '400 32px' 一档且不等栅格——unicode-range

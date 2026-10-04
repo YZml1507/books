@@ -19160,3 +19160,31 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   不是日期）。
 - 实测：选项出现→日期框显→2026-12-31 落库→空日期拒寄弹层
   不关。
+
+## R3421+R3422 双审修复批（备份/云同步链 + 海报/分享物料域）
+- R3421-P0-1 push 冲突保护自毁：conflict 分支曾把云端 updated_at
+  记进本机基线，下一推必过校验→双设备自动推永久静默互踩。
+  改为基线只在 push 成功/pull 落地后前移。
+- R3421-P1-1 histLock 三面洞根治：移出备份白名单（PIN 哈希不落
+  盘/不被伪造备份种植）+ wipe 本地清单收编 histLock + session
+  清单/_SDATA_RE 收编 histUnlocked（「忘了可重设」承诺兑现）。
+- R3421-P1-2 在途 pull+wipe 竞态：wipe 打世代戳 __wipeEpoch，
+  pull 发起存戳、落地前比对——变了整包弃，擦掉的键不复活。
+- R3421-P1-3 8192B 外闸误杀合法 chatTranscript（写侧 ~100KB）：
+  transcript 族 120KB 独立上限，dropN 复核同口径。
+- R3421-P2-4/5/6：导入后渲染错误不再误报「导到一半断了」；
+  pull 等与 push 同款的 _syncBusy 双向等待；伪日期键（9999-99-99）
+  加回环校验拒入库；_PREF/_EXACT 死白名单删。
+- R3422-P1-2/3+P3-9 三条死链收编：?view=daily-outfit/wishecho/
+  daily-ava 归一 home（分享链活）。
+- R3422-P2-4 还愿/跨年启封海报原文补危机敏感闸（命中回落
+  「（心里那个）」，与 ansb 同口径）。
+- R3422-P2-5 墨色系随实际落底走：lilac 未载落奶油底时不再用
+  夜紫浅墨（隐形字根治）。
+- R3422-P2-6 _showTextExportModal _replacing 跨函数引用
+  ReferenceError——弹层不入栈微信返回键直退的坑修。
+- R3422-P2-7 牌图未载时卡座画米白图区+✦ 牌背纹（白空框根治）。
+- R3422-P2-8 分享即补注入 lxgw.css——懒链 800ms 窗内非 CJK
+  机豆腐海报防住。
+- 闸：selftest 443、ui_smoke 113、contract 789 全绿；
+  sw 缓存 bump books-shell-a6f7fc87ccb6。

@@ -4938,6 +4938,10 @@ var _posterTrigger = null;
  * 兜底），用户可存备忘录/发文件传输助手。复用 #posterModal 关闭链。 */
 function _showTextExportModal(title, text, tipText) {
   var existing = document.getElementById('posterModal');
+  /* R3422-P2-6（审）：_replacing 此前引用 showPosterModal 的局部
+   * var——跨函数不可见即 ReferenceError，被下面 try 吞掉后弹层
+   * 永远不入历史栈（微信兜底复制路径按返回键直接退出）。 */
+  var _replacing = !!existing;
   if (existing) { closePosterModal(); if (existing.isConnected) existing.remove(); }
   var backdrop = document.createElement('div');
   backdrop.id = 'posterModal';
@@ -15474,7 +15478,14 @@ function init() {
                      'daily-wap': 'home',
                      /* R3399：年报海报分享链 ?view=year-wrap 死链——
                       * 年报钮住在打卡卡（首页），归一到 home。 */
-                     'year-wrap': 'home' };
+                     'year-wrap': 'home',
+                     /* R3422-P1-2/3（审）：穿搭海报 ?view=daily-outfit
+                      * 与还愿/启封海报 ?view=wishecho 分享链全是死链
+                      * ——两入口都住首页卡，归一到 home。 */
+                     'daily-outfit': 'home', wishecho: 'home',
+                     /* R3422-P3-9（审）：开运头像（方形海报）分享链
+                      * ?view=daily-ava 同款死链——归一到 home。 */
+                     'daily-ava': 'home' };
       if (_alias[_vp]) _vp = _alias[_vp];
       /* R2349v（R92-P0-1）：合法性判据原来是「视图存在 + 有入口卡」——
        * R208b 裁掉古籍域入口卡后，read/history 两个已有视图的深链
@@ -21934,11 +21945,11 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|histLock$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
-  var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$|^shareBy:|^lastResult:/;
+  var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed|histUnlocked)$|^shareBy:|^lastResult:/;
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
@@ -22020,42 +22031,9 @@ function baziPersonaCard(j) {
          * 进备份——换机后庆典不重弹、提示不重见。 */
         /* R2349y（R95-P3-4）：'me' 前缀过宽会把未来任何 me* 键
          * 扫进备份——精确键与前缀键分开：前缀只留给日期后缀键。 */
-        var _PREF = ['checkin:', 'dailyRevealed:', 'checkinCeleb:',
-                     'mood:', 'moodlv:', 'rlast:', 'usage:', 'ritual:',
-                     'journal:',
-                     /* R3325：大众占卜每日选堆 */
-                     'pilePick:',
-                     /* R3329：周/月信已弹标随备份走 */
-                     'weeklyLetter:', 'monthlyLetter:',
-                     /* R3328：打卡 buff 足迹也随备份走 */
-                     'checkinBuff:',
-                     /* R3262（R17）：心情罐子解锁表跟心情历一起备份 */
-                     'moodjar:',
-                     /* R3264（R52）：古籍阅读进度记忆 */
-                     'read:scroll:',
-                     /* R3336（审-中）：corrupt 救援备份同族导出 */
-                     'futureLetters:',
-                     /* R3345（审-中）：聊天记录换机——wipe 已收
-                      * chatTranscript 前缀、备份却不带，口径不一致
-                      * 且换机全丢无提示。sid 桶+lastsid 同族导出。 */
-                     'chatTranscript:',
-                     /* R3351（审-P1）：couple:/shred: wipe 收编但导出
-                      * 漏——修好合拍链后换机会静默丢交集与碎纸计数。 */
-                     'couple:', 'shred:'];
-        /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
-         * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
-        /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
-         * 换机后小满「不记得她」成预期内落差；wipe 已收编这两键，
-         * 备份带齐才对称。 */
-        var _EXACT = ['me', 'me:partner', 'hlask', 'visits', 'welcomed',
-                      'installTipDismissed', 'ret_tip', 'wishbottle',
-                      'chat:topics', 'chat:cards', 'remind:1',
-                      'chat:events', 'mood:lv', 'notify:time',
-                      'returnBannerDismissed', 'futureLetters',
-                      /* R3337：成真集是亲笔愿望文本的延续——备份带上 */
-                      'wishfulfilled',
-                      /* R3350：咒语册同族——收来的句子也是亲笔痕迹 */
-                      'mantraFav'];
+        /* R3421-P3-1（审）：旧 _PREF/_EXACT 白名单死代码删——
+         * 导出口径已由共享 _DATA_RE/_NO_BACKUP_RE 统一担纲，
+         * 两份表留着只会骗后来者修错地方。 */
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
@@ -22230,6 +22208,11 @@ function baziPersonaCard(j) {
       _hw.dataset.inflight = '1';
       var _done = function (serverOk) {
         _hw.dataset.inflight = '';
+        /* R3421-P1-2（审）：在途 pull 撞上 wipe——拉回包落地会
+         * 把刚清掉的键整批复活（快照比对拦不住「wipe 完成才到」）。
+         * 世代戳 +1，在途导入/拉回落地前比对即弃包。 */
+        try { window.__wipeEpoch = (window.__wipeEpoch || 0) + 1; }
+        catch (eWE) {}
         try {
           var _rm = [];
           for (var i = 0; i < localStorage.length; i++) {
@@ -22291,7 +22274,12 @@ function baziPersonaCard(j) {
                 /* R3394：答案之书问句/翻页足迹属个人数据——wipe 收。 */
                 k.indexOf('ansb:') === 0 ||
                 /* R3424：敲敲木鱼计数/天数足迹属个人数据——wipe 收。 */
-                k.indexOf('muyu:') === 0)) _rm.push(k);
+                k.indexOf('muyu:') === 0 ||
+                /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
+                 * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
+                 * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
+                 * 种植）。 */
+                k === 'histLock')) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
@@ -22307,7 +22295,7 @@ function baziPersonaCard(j) {
              * chatBootId 一并清（重启失忆一致性）。 */
             /* R3339（审-低）：chatClosed 独漏——同类键全收了它不收，
              * 「开新话题」残留跨「忘掉」幸存。 */
-            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$/
+            if (sk && (/^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|shareBy:done|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed|histUnlocked)$/
                 .test(sk) || sk.indexOf('shareBy:') === 0 ||
                 sk.indexOf('lastResult:') === 0)) _sr.push(sk);
           }
@@ -22646,13 +22634,11 @@ function baziPersonaCard(j) {
               showToast('同步好啦，换台设备登这个名字就能拉回', 'info');
             }
           } else if (r && r.conflict) {
-            /* R3372-P2-1：并发冲突——云端戳记下，提示先拉回；
-             * 不 showOk 的静默推也照样提示（这是数据安全问题）。 */
-            try {
-              if (r.updated_at) {
-                localStorage.setItem(_CLOUDTS_KEY, r.updated_at);
-              }
-            } catch (eU) {}
+            /* R3372-P2-1：并发冲突——提示先拉回。
+             * R3421-P0-1（审）：冲突时不能把云端 updated_at 记进
+             * 本机基线——记了下一次推校验必过，双设备 visibilitychange
+             * 自动推会永久静默互踩（A 冲突→记 B 戳→A 再推盖掉 B）。
+             * 基线只在 push 成功或 pull 落地后前移。 */
             showToast(r.msg ||
               '另一台设备刚推了新备份——先点「从云端拉回」再同步',
               'warn');
@@ -22676,6 +22662,18 @@ function baziPersonaCard(j) {
           showToast('拉回还在路上，稍等下', 'warn');
           return;
         }
+        /* R3421-P2-5（审）：pull 撞上在途 push 会把云端旧版再写
+         * 一遍——与 push 侧双向等待同口径，等在途推落完再拉。 */
+        if (_syncBusy) {
+          var _wS = Date.now();
+          while (_syncBusy && Date.now() - _wS < 15000) {
+            await new Promise(function (r) { setTimeout(r, 200); });
+          }
+          if (_syncBusy) {
+            showToast('同步还在路上，落完再拉回', 'warn');
+            return;
+          }
+        }
         _pullBusy = true;
         /* R3363-P1-2：拉回发起时给白名单键拍快照——在途窗口里
          * 本机被改的键（刚写的心情/刚打的卡）不该被云端旧值盖掉，
@@ -22684,6 +22682,8 @@ function baziPersonaCard(j) {
         _dataKeys().forEach(function (k) {
           try { _snap[k] = localStorage.getItem(k); } catch (e) {}
         });
+        /* R3421-P1-2：wipe 世代戳随快照一起留——落地比对用。 */
+        var _we = window.__wipeEpoch || 0;
         try {
           var r = await postJSON('/api/account/backup/pull', {
             nickname: c.n, passcode: c.p }, { silent: true });
@@ -22722,6 +22722,13 @@ function baziPersonaCard(j) {
                           '没带齐', 'warn');
               }
             } catch (eCmp) {}
+            /* R3421-P1-2：拉回在途窗口里用户点了「忘掉我的
+             * 数据」——世代戳变了整包不落盘（否则清掉的键立刻
+             * 复活，wipe 形同虚设）。 */
+            if ((window.__wipeEpoch || 0) !== _we) {
+              showToast('你刚清空了数据——这次拉回就不落盘了', 'warn');
+              return;
+            }
             await _importBackupText(r.payload,
               { changed: _snap });
             try {
@@ -22970,9 +22977,14 @@ function baziPersonaCard(j) {
             /* R3372-P2-2：导入白名单同样收敛到共享 _DATA_RE——
              * remind: 前缀、uiTheme 等口径与导出/清扫一致；
              * _NO_BACKUP_RE 拦死键/会话锚不被旧备份复活。 */
+            /* R3421-P1-3（审）：8192B 一刀闸把写侧合法的聊天记录
+             * （50 条×2000 字 ≈ 100KB）整键静默丢——chatTranscript
+             * 族走 120KB 独立上限，其它键仍 8KB 防种大值。 */
+            var _cap = (k.indexOf('chatTranscript') === 0)
+              ? 120000 : 8192;
             if (!_DATA_RE.test(k) || _NO_BACKUP_RE.test(k) ||
                 k.length > 64 ||
-                typeof local[k] !== 'string' || local[k].length >= 8192) {
+                typeof local[k] !== 'string' || local[k].length >= _cap) {
               return;
             }
             /* 值域校验（脏值不落库）：
@@ -23180,7 +23192,15 @@ function baziPersonaCard(j) {
                 ? k.slice(k.lastIndexOf(':') + 1)
               : k.indexOf('shred:') === 0 ? k.slice(6)
               : null;
-            if (_dsfx !== null && !/^\d{4}-\d{2}-\d{2}$/.test(_dsfx)) return;
+            /* R3421-P2-2（审）：格式过了 9999-99-99/02-30 类伪日期
+             * 仍入库且永不进 GC——格式闸后加回环校验，伪日期拒。 */
+            if (_dsfx !== null) {
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(_dsfx)) return;
+              var _dd = new Date(_dsfx + 'T00:00:00Z');
+              var _rt = isFinite(_dd.getTime())
+                ? _dd.toISOString().slice(0, 10) : '';
+              if (_rt !== _dsfx) return;
+            }
             /* R3404-P3：qian 非日期键值形状——hist 必须是数组、
              * fact 必须是 {d,t} 形，防任意串入库再回放。 */
             if (k === 'qian:hist') {
@@ -23287,9 +23307,13 @@ function baziPersonaCard(j) {
            * 进完成提示（visits 是并集合并不算丢，_kept 保键不算丢）。 */
           var _dropN = 0;
           Object.keys(local).forEach(function (k) {
+            /* R3421-P1-3：dropN 复核走同款上限——不再把合法
+             * transcript 算进「没认出来跳过」。 */
+            var _cap2 = (k.indexOf('chatTranscript') === 0)
+              ? 120000 : 8192;
             if (!_DATA_RE.test(k) || _NO_BACKUP_RE.test(k) ||
                 k.length > 64 || typeof local[k] !== 'string' ||
-                local[k].length >= 8192) return;
+                local[k].length >= _cap2) return;
             if (k === 'visits' || _kept.indexOf(k) >= 0) return;
             try {
               if (window.localStorage.getItem(k) !== local[k]) _dropN++;
@@ -23519,7 +23543,9 @@ function baziPersonaCard(j) {
               _bc2.close();
             }
           } catch (eBC2) {}
-          loadPaipanHistory();
+          /* R3421-P2-4（审）：导入后渲染错误落进外层 catch 会误报
+           * 「导到一半断了」（其实导完了）——渲染独立 try 隔离。 */
+          try { loadPaipanHistory(); } catch (eLH) {}
         } catch (e) {
           /* R3320-P1-1②：能走到这只剩传输失败——本地偏好与已传
            * 分批都落了，文案说真话不甩「读不懂」。 */
