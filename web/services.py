@@ -2789,6 +2789,44 @@ def _mars_state(d: date) -> dict:
     return _retro_state(_MARS_RETRO, d)
 
 
+def _week_sky(d: date) -> list:
+    """R3601：未来 7 天天象预告——初一/十五节点、逆行起止、节气日。
+
+    全走确定性历表（lunar 农历日/逆行窗表/节气天文算法），
+    表外年份/异常日静默略过该项。「下周早知道」行数据源。
+    """
+    evs = []
+    try:
+        for i in range(1, 8):
+            dd = d + timedelta(days=i)
+            lab = ("周" + _WEEKDAY[dd.weekday()] + " " + str(dd.month) +
+                   "/" + str(dd.day))
+            try:
+                m = _moon_for(dd)
+                # 只预告初一/十五两个仪式节点（次日不重复列）。
+                if m.get("label") in ("新月许愿", "满月复盘"):
+                    evs.append({"d": lab, "t": m["glyph"] + m["label"]})
+            except Exception:
+                pass
+            try:
+                tn = _term_name_for(dd)
+                if tn:
+                    evs.append({"d": lab, "t": "🍂 " + tn})
+            except Exception:
+                pass
+            for tbl, nm in ((_MERCURY_RETRO, "水逆"),
+                            (_VENUS_RETRO, "金逆"),
+                            (_MARS_RETRO, "火逆")):
+                for s, e in tbl:
+                    if s == dd.isoformat():
+                        evs.append({"d": lab, "t": "↩ " + nm + "起"})
+                    if e == dd.isoformat():
+                        evs.append({"d": lab, "t": "↩ " + nm + "止"})
+    except Exception:
+        pass
+    return evs[:6]
+
+
 # R2349l（R73-P1-4）：开运色/幸运数——当日日干五行为主轴，确定性可复验。
 _LUCKY_COLOR = {"木": "青绿色", "火": "石榴红", "土": "鹅黄色",
               "金": "珍珠白", "水": "雾蓝色"}
@@ -5655,6 +5693,9 @@ def daily(date_str: str | None = None,
                       # 无 outfit——命中即永无穿搭包。同口径现算回填。
                       "outfit": (_c.get("outfit")
                                  or _outfit_for(_d0)),
+                      # R3601：week_sky 同口径 per-date 现算——旧缓存行随包补。
+                      "week_sky": (_c.get("week_sky")
+                                   or _week_sky(_d0)),
                       # R3318：cv<6 时代存的行没有 lunar 锚——同口径现算
                       "lunar": (_c.get("lunar")
                                 or _daily_lunar_str(_d0))}
@@ -5784,6 +5825,8 @@ def daily(date_str: str | None = None,
             "venus": _venus_state(d),
             "mars": _mars_state(d),
             "moon": _moon_for(d),
+            # R3601：未来 7 天天象预告（确定性历表）
+            "week_sky": _week_sky(d),
             # R3317-G：今日牌——同日全站同一张大阿卡纳
             "daily_card": _daily_card_for(d),
             "term": _term_banner(d),
@@ -5822,7 +5865,7 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "lunar": "",
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
-                "venus": {}, "mars": {},
+                "venus": {}, "mars": {}, "week_sky": [],
                 "outfit": {},
                 "daily_card": {},
                 "term": {}}

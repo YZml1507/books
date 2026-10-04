@@ -6343,6 +6343,15 @@ async function loadDaily() {
         esc(String(j.mars.until || '').slice(5).replace('-', '月')) +
         '日），手脚慢半拍的日子，少开新局多收尾');
     } else { _dailyMetaItem('dailyMars', ''); }
+    /* R3601：下周早知道——未来 7 天天象预告（初一十五/节气/逆行
+     * 起止）。调研：Lunary Week Ahead/Timing Assistant 同构，
+     * 「下周有满月」是最轻的前瞻回访钩；全确定性历表，无件不占位。 */
+    if (j.week_sky && j.week_sky.length) {
+      _dailyMetaItem('dailyWeekSky',
+        '🔮 下周早知道：' + j.week_sky.map(function (e) {
+          return esc(e.d + ' ' + e.t);
+        }).join(' · '));
+    } else { _dailyMetaItem('dailyWeekSky', ''); }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
     var _uDays = _usageDays();
