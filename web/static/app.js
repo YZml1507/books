@@ -13265,10 +13265,13 @@ function _sqDone() {
       'title="重答一遍">🔁 再测一次</button>' +
     '</div>';
   on('sqShare', function () {
+    /* 海报「合拍」行只带判词本体——整条带「💞 你俩的合拍：
+     * A×B——」前缀塞进 20 字行帽会把判词尾巴截没。 */
     var _o = { _sqName: arch.name, _sqGlyph: arch.glyph,
                _sqAx: _SQ_AX[axw], _sqVibe: arch.vibe,
                _sqGood: arch.good, _sqWatch: arch.watch,
-               _sqCompat: compat };
+               _sqCompat: compat
+                 .replace(/^💞 你俩的?(?:合拍|同款灵魂)：[^—]*——/, '') };
     return downloadPoster(Object.assign({ view: 'oracle' }, _o),
                           'soulquiz');
   });
