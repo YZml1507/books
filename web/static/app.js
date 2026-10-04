@@ -20249,8 +20249,12 @@ function renderCheckin(dateKey) {
     if (_duList.length === 1) {
       var _duN = _duList[0], _dTxt;
       if (_streak <= 0) {
-        _dTxt = '⚔️ 朋友连签 ' + _duN +
-          ' 天了——你今天打第一张卡，就开始追她';
+        /* R3559：断签老用户别当新客——攒过的档点名接住，
+         * 「打第一张卡」只留给真零记录的人。 */
+        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天了——' +
+          (Object.keys(_ckAll).length
+            ? '你的签断了，今天补一张重新开追'
+            : '你今天打第一张卡，就开始追她');
       } else if (_streak < _duN) {
         _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天，你 ' + _streak +
           ' 天——差 ' + (_duN - _streak) + ' 天追上她';
