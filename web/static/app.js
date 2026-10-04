@@ -24817,11 +24817,17 @@ function baziPersonaCard(j) {
         } catch (eQH) {}
         try { my = parseInt(localStorage.getItem('muyu:total') || '0', 10) || 0; }
         catch (eMY) {}
+        /* R3578：仪式族摘要带攒下的好运数——社交足迹摆出来
+         * 给看给删（同族忘=同族删，hugin/hugseen 已在 re）。 */
+        var hg = 0;
+        try { hg = parseInt(localStorage.getItem('hugin') || '0', 10) || 0; }
+        catch (eHG) {}
         var b = [];
         if (cd) b.push('打卡 ' + cd + ' 天');
         if (qn) b.push('签史 ' + qn + ' 条');
         if (mf) b.push('念咒 ' + mf + ' 天');
         if (my) b.push('木鱼 ' + my + ' 下');
+        if (hg) b.push('收到好运 ' + hg + ' 个');
         return b.join(' · ') || '还没有';
       } },
     { id: 'chat', icon: '💬', label: '聊过的天',
