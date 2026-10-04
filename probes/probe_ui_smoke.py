@@ -1546,7 +1546,8 @@ def main() -> int:
                 ok = (_qs == 5 and '0/5' in _b0 and '5/5' in _b5 and
                       _mk_on and '#mc=' in _lnk and
                       '小测' in _ghd and _dn_on and
-                      _sc['pct'] == '0%' and _sc['rows'] == 5 and
+                      # R3416：分数卡单位 % → 分（分卡口吻对齐）
+                      _sc['pct'] == '0 分' and _sc['rows'] == 5 and
                       _sc['hit'] == 0 and '#mcr=' in _rlnk and
                       '阿桃' in _rhd and _back == 5 and not errors)
                 results.append({
@@ -3318,6 +3319,11 @@ def main() -> int:
                 page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
                 page.wait_for_timeout(1200)
                 goto_view("bazi")
+                # R3415-CI：err422 用例故意打的 422 其 console.error
+                # 由网络栈异步投递，会飘进本用例窗口导致假 FAIL
+                #（CI 实测复现）。断言窗口=提交那一刻起——
+                # 此前 reload/init 期的杂散噪声与本用例无关，排空。
+                errors.clear()
                 try:
                     page.click("#submit")
                     page.wait_for_selector(".ai-polish", timeout=25000)

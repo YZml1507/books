@@ -4313,6 +4313,13 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   display: flex; flex-direction: column; gap: 10px; }
 .ansb-row { display: flex; gap: 10px; font-size: 13.5px;
   line-height: 1.6; }
+/* R3411-P2-14（终审）：危机/敏感转介卡文案此前是裸 <p>——
+ * 别的转介面都带温暖卡片样式，这个更需要暖底。 */
+.ansb-crisis { font-size: 15px; line-height: 1.8; color: var(--text, #3e3428);
+  background: linear-gradient(165deg, rgba(255,240,235,.9),
+    rgba(250,228,214,.85));
+  border: 1px solid var(--line, #eadfd0); border-radius: 14px;
+  padding: 16px 14px; margin: 4px 0 12px; text-align: left; }
 .ansb-rk { flex: 0 0 auto; font-size: 11px; color: var(--primary);
   border: 1px solid currentColor; border-radius: 6px;
   padding: 1px 6px; height: fit-content; margin-top: 2px;

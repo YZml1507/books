@@ -1778,8 +1778,12 @@ function buildShareData(view, j) {
         : '一年有一年的节奏';
       _ks.lines = [];
       if (_kt) {
+        /* R3411-P2-13（终审）：海报「偏财（大运庚寅）」十神裸术语
+         * 上可晒件——走 _TEN_GOD_TAG 白话口径（同伴/活水财/担当）。 */
+        var _tg = (window._TEN_GOD_TAG || {})[_kt.gan_rel] ||
+          _pStr(_kt.gan_rel);
         _ks.lines.push({ k: '今年', v: _pStr(_kt.ganzhi) + ' · ' +
-          _pStr(_kt.gan_rel) + (_kt.dayun ? '（大运' + _pStr(_kt.dayun) + '）' : '') });
+          _tg + (_kt.dayun ? '（大运' + _pStr(_kt.dayun) + '）' : '') });
       }
       var _ke = _pArr(_kk.easy_segs).map(function (s) {
         return s.a + '–' + s.b + '岁'; });

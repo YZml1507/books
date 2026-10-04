@@ -1399,7 +1399,8 @@ def _is_sensitive(msg: str) -> bool:
         return True
     return bool(_SENSITIVE_SOFT_PAT.search(msg_flat)
                 and not _SENSITIVE_EXCLUDE_PAT.search(msg_flat))
-_SENSITIVE_REPLY = ("这个话题我真接不了，不是不愿意，是它不该靠占卜来定。"
+_SENSITIVE_REPLY = ("愿意说出来已经很不容易了——这个话题我不敢乱接，"
+                    "不是不愿意，是它不该靠占卜来定。"
                     "身体或心里难受的话，医生和信得过的人才是最该找的。"
                     "想聊点别的，小满都在。")
 

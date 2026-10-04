@@ -3069,7 +3069,11 @@ var _SENSITIVE_FE_LINE = '这个话题牌面真接不了，不是不愿意，是
  * DISABLE/配置关闭（spawn→None）路径拿的是 _chatFallbackLine 卖萌
  * 兜底（R233r 修过的同一个洞，敏感到复犯）。本地接住+复用后端
  * _SENSITIVE_REPLY 文案，双路径逐字一致。 */
-var _SENSITIVE_CHAT_REPLY = '这个话题我真接不了，不是不愿意，是它不该靠占卜来定。' +
+/* R3411-P1-4（终审）：敏感披露（被打/被摸/查出病）先听到的是
+ * 「接不了」——披露的人比危机者更需先被接住情绪。改安抚打头，
+ * 与后端 llm_polish._SENSITIVE_REPLY 逐字同源（改动两边一起）。 */
+var _SENSITIVE_CHAT_REPLY = '愿意说出来已经很不容易了——这个话题我不敢乱接，' +
+  '不是不愿意，是它不该靠占卜来定。' +
   '身体或心里难受的话，医生和信得过的人才是最该找的。想聊点别的，小满都在。';
 
 /* R233r（R49-Top5-2）：chatSend 兜底 facts——不走排盘直接开聊时
@@ -3397,7 +3401,9 @@ function _chatFacts(facts, msg) {
      * 小满手里得有她抽的那支（此前只能回「告诉我签面」空话）。
      * 只在她真提过签的话题里注（不泛注入「签」单字——日签/打卡
      * 也带签字会过曝）。 */
-    if (msg && /抽.{0,2}签|求.{0,2}签|解签|签诗|灵签|观音签|这支签|那支签|签上说|签面|摇.{0,2}签/.test(msg)) {
+    /* R3411-P2-5（终审）：窗口期她问「我的桃花签准吗」词表不含
+     * 桃花签——小满手里没签面。补进注入词。 */
+    if (msg && /抽.{0,2}签|求.{0,2}签|解签|签诗|灵签|观音签|桃花签|这支签|那支签|签上说|签面|摇.{0,2}签/.test(msg)) {
       try {
         var _qf = JSON.parse(localStorage.getItem('qian:fact') || 'null');
         if (_qf && _qf.d === todayIso() && _qf.t) _f.push(_qf.t);
@@ -5905,8 +5911,10 @@ async function loadDaily() {
       /* R2349l（R73-P1-1）：签号可点——展开这签对应的卦名+白话签意
        * （1–64 映射周易 64 卦，确定性）。签卡挂 .daily-meta 行外——
        * 横滚容器 overflow+mask 会裁剪内部浮卡。 */
-      _sg.innerHTML = '📜 今日签号：<strong>第' +
-        _signNo(j.date) + '签</strong>' +
+      /* R3411-P2-10（终审）：「第N签」两套并存——这里 64 卦系、
+       * 每日一签页百签系，聊「我那签」必然歧义。这边改叫卦签。 */
+      _sg.innerHTML = '📜 今日卦签：<strong>第' +
+        _signNo(j.date) + '卦</strong>' +
         '<button type="button" class="sign-peek" id="signPeekBtn"' +
         ' aria-expanded="false" aria-controls="signCard"' +
         ' title="看看这签说了啥">解签</button>';
@@ -6210,6 +6218,8 @@ async function loadDaily() {
           _nyRow + ' <button type="button" class="daily-moon-go" ' +
           'data-ye="1">' + _nyBtn + '</button>');
         var _yeEl = el('dailyYearEnd');
+        /* R3412-P2-1：限时仪式行免折叠（见 _dailyMetaCap）。 */
+        if (_yeEl) _yeEl.dataset.pin = '1';
         if (_yeEl && !_yeEl.dataset.bound) {
           _yeEl.dataset.bound = '1';
           _yeEl.addEventListener('click', function (ev) {
@@ -6845,7 +6855,9 @@ function _klineFold(calc) {
       '<span class="kl-dot kl-up"></span>顺 ' +
       '<span class="kl-dot kl-dn"></span>缓 ' +
       '<span class="kl-flag">◎</span>本命年 ' +
-      '<span class="kl-flag">●</span>犯太岁 ' +
+      /* R3411-P2-12（终审）：标记实际对「冲太岁+犯太岁」两旗都亮，
+       * 图例只写犯太岁——明示含冲。 */
+      '<span class="kl-flag">●</span>犯太岁（含冲） ' +
       '<span class="kl-flag">｜</span>换运 ' +
       '<span class="kl-flag">▣</span>今年' +
       '</div>' +
@@ -15435,6 +15447,26 @@ function init() {
             }
           }
         } catch (eSF) {}
+        /* R3412-P1（裂变终扫）：外部深链（分享/邀请/默契 hash）落地时
+         * 整条历史只有这一个条目——init 与后续规整全是 replaceState，
+         * 受邀者按返回键直接 about:blank 流失（15/15 链实测复现）。
+         * 垫一张首页条目：先把当前深链条目改写成 '/'，再把原始 URL
+         * push 回顶上；落地规整后续的 replaceState 照旧只清顶上参数。
+         * 返回→首页条目 popstate _sv='home' 自然回首页。
+         * __landingPushed 防同 tab 二次落地重复垫；F5 后 URL 已剥参
+         * 标记不在不再垫（默契 hash 保留——重垫只是多一页无害）。 */
+        try {
+          var _extLand = window.__shareFromView ||
+            _qsAll.get('from') === 'invite' ||
+            _qsAll.get('invite') === '1' || _qsAll.get('ay') ||
+            /^#mc[rs]?=/.test(location.hash || '');
+          if (_extLand && !window.__landingPushed) {
+            window.__landingPushed = true;
+            history.replaceState({ view: 'home' }, '', '/');
+            history.pushState({ view: _vp }, '',
+              location.pathname + location.search + location.hash);
+          }
+        } catch (eLP) {}
         /* R2349u（R89-P1-3）：紧凑邀请格式——投放/手拼短链
          * ?view=hehun&invite=1&a=1998-7-20-女-12&an=小雅
          * 在读 ay 前展开成原生参数，复用同一链路。 */
@@ -16195,7 +16227,9 @@ var _FEST_TIP = [
   ['女神节', '今天是你的节日：把自己放在第一顺位'],
   ['妇女节', '今天是你的节日：把自己放在第一顺位'],
   ['女生节', '今天是你的节日：把自己放在第一顺位'],
-  ['跨年', '今年最后一晚：写一句给明年的自己'],
+  /* R3411-P2-11（终审）：12/31 日签卡的跨年仪式行讲同一句
+   * 「写一句给明年的自己」——同一句话讲两遍。tip 换角度。 */
+  ['跨年', '今年最后一晚：零点前给这一年收个尾'],
   ['元旦', '新年第一天：立个小一点的愿望，容易灵'],
   ['元宵', '花灯如昼：今晚适合和家人朋友聚一聚'],
   ['端午', '吃个粽子讨个平安，湿热天多照顾自己'],
@@ -16213,10 +16247,16 @@ var _FEST_TIP = [
   ['植树', '种点什么吧——阳台一盆也算'],
   ['劳动', '劳动者的节日：今天允许自己躺平'],
   ['青年', '青春正好：去做一件想了很久的事'],
-  ['破五', '初五接财神：今天的求财方位写在下面财神方位行，迎一迎'],
+  /* R3411-P2-2（终审）：原句「今天的求财方位写在下面财神方位行」
+   * 只在日签卡为真——黄历结果页/节日带没有那行，明天预告版还
+   * 「明天破五·今天…」时态打架。改全表面安全口径（指向日签卡，
+   * 不带「今天」时态）。 */
+  ['破五', '初五接财神：求财方位去首页日签卡看，迎一迎'],
   ['人日', '人人生日：今天对自己好一点，也算过生日'],
   ['填仓', '填满谷仓的日子：收拾下钱包和冰箱，讨个有余'],
-  ['数九', '数九寒天里最冷的一段：把自己裹暖和了再出门'],
+  /* R3411-P2-3（终审）：「最冷的一段」只在三九/四九成立——八九
+   * 已近惊蛰还说最冷是错时令。去掉最冷断言。 */
+  ['数九', '数九寒天：把自己裹暖和了再出门'],
   ['寒食', '不动火的日子：点个外卖也算应景，肠胃轻一天'],
   ['入伏', '入伏了：接下来的热是正经的，清淡饮食早点睡'],
   ['腊八', '喝碗热粥暖暖身子，年味从今天开始了'],
@@ -17245,14 +17285,20 @@ function _dailyMetaCap() {
     });
   var _vis = _kids.filter(function (n) { return !n.hidden; });
   _kids.forEach(function (n) { n.dataset.capped = ''; });
+  /* R3412-P2-1（裂变终扫）：跨年仪式行一年只有 5 天有效，恰好
+   * 排最末被「+N 条」折叠藏掉——pin 标目永不进折叠池也不占
+   * 5 粒名额（它是限时位不是常驻粒）。 */
+  var _unpin = _vis.filter(function (n) {
+    return n.dataset.pin !== '1';
+  });
   var _more = el('dailyMetaMore');
-  if (_vis.length <= 5) {
+  if (_unpin.length <= 5) {
     if (_more) _more.hidden = true;
     return;
   }
   var _open = _metaRow.dataset.expanded === '1';
   if (!_open) {
-    _vis.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
+    _unpin.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
   }
   if (!_more) {
     _more = document.createElement('button');
@@ -19864,12 +19910,26 @@ function _mcQS(pack) {
   ];
 }
 function _mcPackOf(p) { return p === 'love' ? 'love' : 'bestie'; }
-function _mcTIERS() {
+/* R3411-P2-7（终审）：对象题判词也喊「朋友」（「舒服的朋友」
+ * 出给恋人出戏）；1/5 命中就落到「平行宇宙」太早——补一档
+ * 让 0 命中独占那句。判词按题库分版。 */
+function _mcTIERS(pack) {
+  if (pack === 'love') {
+    return [
+      [5, '灵魂伴侣', '五题全中——你们共享一个脑回路'],
+      [4, '天生一对', '就一道没对上，已经很会了'],
+      [3, '刚刚好的合拍', '一半的默契，剩下的慢慢靠近'],
+      [2, '还在互相猜', '差异是慢慢懂的开始'],
+      [1, '刚走进彼此', '离得远才有机会慢慢靠近'],
+      [0, '平行宇宙', '完全互补型——你们是彼此的另一面']
+    ];
+  }
   return [
     [5, '灵魂搭子', '五题全中——你们共享一个脑回路'],
     [4, '很懂彼此', '就一道没对上，已经很会了'],
     [3, '舒服的朋友', '一半的默契，剩下的慢慢了解'],
     [2, '还在互相猜', '差异才是聊天的素材'],
+    [1, '刚认识不久', '答案差得远反而聊得开'],
     [0, '平行宇宙', '完全互补型——你们是彼此的另一面']
   ];
 }
@@ -19906,22 +19966,23 @@ function _mcParse() {
   }
   return { mode: 'bad' };
 }
-function _mcScore(ha, ga) {
+function _mcScore(ha, ga, pack) {
+  var _tr = _mcTIERS(pack);
   var hits = 0, matched = [], missed = [];
   for (var i = 0; i < _mcQS().length; i++) {
     var a = +ha[i], b = +ga[i];
     if (a === b) { hits++; matched.push(i); } else { missed.push(i); }
   }
-  var tier = _mcTIERS()[_mcTIERS().length - 1];
-  for (var t = 0; t < _mcTIERS().length; t++) {
-    if (hits >= _mcTIERS()[t][0]) { tier = _mcTIERS()[t]; break; }
+  var tier = _tr[_tr.length - 1];
+  for (var t = 0; t < _tr.length; t++) {
+    if (hits >= _tr[t][0]) { tier = _tr[t]; break; }
   }
   return { hits: hits, pct: Math.round(hits / _mcQS().length * 100),
            tier: tier[1], line: tier[2], matched: matched,
            missed: missed };
 }
 function _mcCompareHtml(hn, gn, ha, ga, pack) {
-  var s = _mcScore(ha, ga);
+  var s = _mcScore(ha, ga, pack);
   var rows = _mcQS(pack).map(function (q, i) {
     var a = q.o[+ha[i]] || '—', b = q.o[+ga[i]] || '—';
     var ok = (+ha[i] === +ga[i]);
@@ -19930,7 +19991,9 @@ function _mcCompareHtml(hn, gn, ha, ga, pack) {
       '</div><div class="mc-row-a">' + esc(hn) + '：' + esc(a) +
       '<br>' + esc(gn) + '：' + esc(b) + '</div></div>';
   }).join('');
-  return '<div class="mc-score"><b>' + s.pct + '%</b><span>' +
+  /* R3411-P2-6（终审）：单位三套混用——结果卡「80%」、榜「80 分」、
+   * 海报「默契 80 分」。统一口径全用「分」。 */
+  return '<div class="mc-score"><b>' + s.pct + ' 分</b><span>' +
     esc(hn) + ' × ' + esc(gn) + ' · ' + esc(s.tier) + '</span>' +
     '<p>' + esc(s.line) + '</p></div>' + rows;
 }
@@ -19951,23 +20014,35 @@ function _mcBoardSave(a) {
   } catch (e) {}
 }
 /* 只有「我是这份挑战的出题人」才记榜——路过的看客打开成绩条
- * 不污染榜。同昵称重答只更新最新分不占新坑。返回名次（0 起）。 */
-function _mcBoardRecord(hn, gn, pct) {
+ * 不污染榜。认定主人身份不只看当前昵称：出题时往 mochi:hosts
+ * 留名，改名后旧成绩链照样收榜（R3412-P2-2 静默丢回流修复）。
+ * 榜键=受邀者名+答卷指纹——同名不同人不再合并成一行
+ * （R3412-P2-3）。返回名次（0 起）。 */
+function _mcBoardRecord(hn, gn, pct, ha) {
   var me = '';
   try { me = localStorage.getItem('mochi:nick') || ''; } catch (e) {}
-  if (!me || me !== hn || !gn) return -1;
+  var hosts = [];
+  try { hosts = JSON.parse(localStorage.getItem('mochi:hosts') || '[]'); }
+  catch (e) {}
+  var isHost = (me && me === hn) ||
+    (Array.isArray(hosts) && hosts.indexOf(hn) >= 0);
+  if (!hn || !isHost || !gn) return -1;
+  var key = gn + '#' + String(ha || '').slice(0, 6);
   var a = _mcBoard(), i;
   for (i = 0; i < a.length; i++) {
+    var k = a[i].k || a[i].n;   /* 旧数据无 k 按名对待 */
     /* R3395-P2-4：result 渲染会调此函数——同分重写属渲染副作用，
      * 同值 setItem 虽不发 storage 事件，但变化写会让邻 tab 重渲
      * 再写（回环）。同分早退，只让真正的新分落键。 */
-    if (a[i].n === gn && a[i].s === pct) return i;
-    if (a[i].n === gn) { a[i].s = pct; a[i].t = Date.now(); break; }
+    if (k === key && a[i].s === pct) return i;
+    if (k === key) { a[i].s = pct; a[i].t = Date.now(); break; }
   }
-  if (i >= a.length) a.push({ n: gn, s: pct, t: Date.now() });
+  if (i >= a.length) a.push({ n: gn, k: key, s: pct, t: Date.now() });
   a.sort(function (x, y) { return (y.s - x.s) || (y.t - x.t); });
   _mcBoardSave(a);
-  for (i = 0; i < a.length; i++) { if (a[i].n === gn) return i; }
+  for (i = 0; i < a.length; i++) {
+    if ((a[i].k || a[i].n) === key) return i;
+  }
   return -1;
 }
 function _mcBoardHtml() {
@@ -20039,13 +20114,15 @@ function _renderMochi() {
     return;
   }
   if (st && st.mode === 'result') {
-    var _sc2 = _mcScore(st.ha, st.ga);
-    var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct);
+    var _sc2 = _mcScore(st.ha, st.ga, st.pack);
+    var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct, st.ha);
     var _rkLine = '';
     if (_rk >= 0) {
       var _bn = _mcBoard().length;
+      /* R3411-P2-8（终审）：受邀者昵称字段在场却写死 TA——用实名。 */
       _rkLine = '<p class="mc-rank">你收到的 ' + _bn +
-        ' 份答卷里，TA 排第 <b>' + (_rk + 1) + '</b></p>';
+        ' 份答卷里，' + esc(st.gn || 'TA') +
+        ' 排第 <b>' + (_rk + 1) + '</b></p>';
     }
     box.innerHTML = '<div class="mc-head">「<b>' + esc(st.gn || 'TA') +
       '</b>」答完了「' + esc(st.hn || '你') + '」的' +
@@ -20120,6 +20197,17 @@ function _renderMochi() {
       var ans = _mcAnsRead(box);
       if (ans.indexOf(' ') !== -1) return;
       try { localStorage.setItem('mochi:nick', nick); } catch (eN2) {}
+      /* R3412-P2-2：改名=旧成绩链静默不落榜——出题时把用过的名
+       * 记进 mochi:hosts，认定「我是出题人」查历史名而非只查当前名。 */
+      try {
+        var _hs = JSON.parse(localStorage.getItem('mochi:hosts') || '[]');
+        if (!Array.isArray(_hs)) _hs = [];
+        if (_hs.indexOf(nick) === -1) {
+          _hs.push(nick);
+          localStorage.setItem('mochi:hosts',
+            JSON.stringify(_hs.slice(-10)));
+        }
+      } catch (eH2) {}
       var link = location.origin + '/?view=mochi#mc=' +
         _mcEnc('v1|' + nick + '|' + ans + '|' +
                (box.dataset.pack || 'bestie'));
@@ -20139,7 +20227,7 @@ function _renderMochi() {
     if (act === 'done' && st && st.mode === 'guest') {
       var ga = _mcAnsRead(box);
       if (ga.indexOf(' ') !== -1) return;
-      var s = _mcScore(st.ans, ga);
+      var s = _mcScore(st.ans, ga, st.pack);
       var mn = '';
       try { mn = localStorage.getItem('mochi:nick') || ''; } catch (eM) {}
       box.innerHTML = '<div class="mc-head">你和「<b>' +
@@ -20183,7 +20271,7 @@ function _renderMochi() {
       if (!_ga2 || !_ha2) return;
       var gn2 = _d.gn || String((el('mochiMe') || {}).value || '').trim()
         .slice(0, 12) || '我';
-      var s2 = _mcScore(_ha2, _ga2);
+      var s2 = _mcScore(_ha2, _ga2, _d.pack);
       return downloadPoster({
         _mc: { hn: _hn2, gn: gn2, pct: s2.pct, tier: s2.tier,
                line: s2.line,
@@ -20409,7 +20497,10 @@ function _qianSlipHtml(n, opts) {
   var q = QIAN[n - 1]; if (!q) return '';
   var o = opts || {};
   var _luckCls = q.tier === 'top' ? 'q-top' : (q.tier === 'mid' ? 'q-mid' : 'q-low');
-  var _tp = _qianTopic(o.review ? o.review : todayIso());
+  /* R3411-P1-1（终审）：桃花签卡面读日签题——日签问「事业」，
+   * 桃花签挂「问事业」自相矛盾（海报侧已正确落「问桃花签」）。
+   * love 时固定题签桃花。 */
+  var _tp = o.love ? '桃花' : _qianTopic(o.review ? o.review : todayIso());
   var h = '<div class="qian-slip' + (o.review ? ' is-review' : '') + '">';
   if (o.review) {
     h += '<div class="qian-review-tag">📅 ' + esc(o.review) + ' 抽的那支</div>';
@@ -20420,11 +20511,21 @@ function _qianSlipHtml(n, opts) {
   h += '<div class="qian-head"><span class="qian-no">第' + n + '签</span>' +
        (_tp ? '<span class="qian-topic-tag">问' + esc(_tp) + '</span>' : '') +
        '<span class="qian-luck ' + _luckCls + '">' + esc(q.luck) + '</span></div>' +
-       '<div class="qian-name">' + esc(q.name) + ' · ' + esc(q.gong) + '</div>' +
+       /* R3411-P1-3（终审）：宫位裸词是卡面唯一没翻译就上屏的
+        * 干支系词——「苏秦不第 · 子宫」对受众是本义直出，判读
+        * 零增量，摘了（数据仍留，详情面与内部逻辑照用）。 */
+       '<div class="qian-name">' + esc(q.name) + '</div>' +
        '<div class="qian-poem">' +
        q.poem.map(function (l) { return '<div>' + esc(l) + '</div>'; }).join('') +
        '</div>' +
        '<div class="qian-say">💬 ' + esc(q.say) + '</div>' +
+       /* R3411-P1-5（终审）：桃花签卖点「婚姻断语为吉」在卡面
+        * 拿不出证据——判词本体在 xj。love 时把仙机·婚姻项抽出
+        * 上屏，让「管感情」有据可晒。 */
+       (o.love && q.xj && /婚姻\s+\S+/.test(q.xj)
+         ? '<div class="qian-say">🌸 仙机·婚姻：' +
+           esc((q.xj.match(/婚姻\s+(\S+)/) || [])[1] || '') + '</div>'
+         : '') +
        '<details class="qian-det"><summary>解曰与典故</summary>' +
        '<div class="qian-det-body">' +
        '<div class="qian-yi">' + esc(q.yi) + '</div>' +
@@ -20439,7 +20540,13 @@ function _qianSlipHtml(n, opts) {
        (o.love ? ' data-love="1"' : '') + '>' +
        '📸 晒这支签</button>' +
        (o.love
-         ? '<div class="qian-note">桃花签今天这支——明天还能再抽</div>'
+         ? '<div class="qian-note">' +
+           /* R3411-P2-1（终审）：11/11 是窗口末日——「明天还能再抽」
+            * 当天为假承诺；末日换口径。 */
+           ((function () { var _nd = new Date();
+              return _nd.getMonth() + 1 === 11 && _nd.getDate() >= 11; })()
+             ? '桃花签到今晚截止——明年双十一再来'
+             : '桃花签今天这支——明天还能再抽') + '</div>'
          : (o.review
            ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
            : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>')) +
@@ -23234,7 +23341,16 @@ var _ANSB = [
   ['这一步先不迈','看不清的地方不落脚','原地站稳就好'],
   ['今天适合收，不适合放','能量低的时段守成','把决定推到明天'],
   ['不用证明给任何人看','你的节奏不需要观众批准','关掉比较频道'],
-  ['这次轮不到你扛','把别人的责任还回去','说一句「这不归我」']
+  ['这次轮不到你扛','把别人的责任还回去','说一句「这不归我」'],
+  /* ── 书尾重话题专区（_ANSB_HEAVY0=54 起，只降温不指向）── */
+  ['这么大的事，值得慢慢想清楚','急出来的答案多半不是答案','先睡一觉再定也不迟'],
+  ['这事不该一个人扛着想','找信得过的人当面聊聊','把想法说给一个人听'],
+  ['先照顾好自己的身体和心','决定之前，人得先站稳','今天先吃点好的睡一觉'],
+  ['不用现在就有答案','人生的大题可以分几天想','把问题写在纸上放一放'],
+  ['心里没点头的就先别动','犹豫本身就是该慢的信号','给自己再放一周假'],
+  ['这比翻到一句话大得多','值得找个真人陪你一起掂','约个你信得过的人出来'],
+  ['先把手头的小事做好','大决定喜欢在安静的时候来','今天只处理眼前这件'],
+  ['你已经很认真地想它了','认真想过的路不会白走','明天再问自己一遍']
 ];
 var _ansbPending = 0;
 function _ansbHist() {
@@ -23251,7 +23367,10 @@ function _ansbBookHtml() {
     '<input class="ansb-q" id="ansbQ" type="text" maxlength="40" ' +
       /* R3396-P2-5：原句「只存在你手机里」是假承诺——写下的问题会
        * 进和小满的聊天上下文（她聊起来接得住），文案按实说。 */
-      'placeholder="也可以写下来，聊起来小满接得住" ' +
+      /* R3411-P2-4（终审）：「聊起来小满接得住」是空承诺——ansb:fact
+       * 只在消息命中书的载体词才注入，她光聊心事小满手里没有这句。
+       * 收窄为「翻完来跟我聊书上那句」。 */
+      'placeholder="也可以写下来，翻完来跟我聊书上那句" ' +
       'aria-label="你心里默念的问题">' +
     '<button class="mc-go ansb-flip" type="button" data-ansb="flip">' +
       '🙏 默念三秒，翻一页</button>' +
@@ -23263,7 +23382,10 @@ function _ansbHistHtml() {
   return '<div class="ansb-hist"><div class="ansb-htitle">最近翻过的页</div>' +
     h.map(function (x) {
       return '<div class="ansb-hrow">' +
-        '<span class="ansb-hd">' + esc(x.d || '') + '</span>' +
+        /* R3411-P2-9（终审）：翻书历史日期 10-04 裸格式——
+         * 与签历史「10月04日」同口径。 */
+        '<span class="ansb-hd">' +
+        esc(String(x.d || '').replace('-', '月') + '日') + '</span>' +
         (x.q ? '<span class="ansb-hq">「' + esc(x.q) + '」</span>' : '') +
         '<span class="ansb-ha">' + esc(x.a || '') + '</span></div>';
     }).join('') + '</div>';
@@ -23295,12 +23417,13 @@ function _ansbCardHtml(i, q) {
  * 离职|裸辞|跳槽|转行|流产|引产|复婚|闪离|分居|网贷|借贷|
  * 欠款|抵押|移民|出家|出柜|购房|分开，买卖借整改宽松形态。 */
 var _ANSB_BIGQ = /離婚|离婚|辞职|离职|裸辞|跳槽|转行|分手|分開|分开|分居|复合|復合|复婚|表白|借.{0,4}钱|借贷|欠款|网贷|抵押|贷款|投资|买.{0,3}房|卖.{0,3}房|购房|整.{0,2}容|手术|堕胎|流产|引产|休学|退学|远嫁|闪婚|闪离|移民|出家|出柜|报警|起诉|断绝|私奔/;
-/* R3404-P2：下界 18 拦不住——子集里 21/28/32/33/35/42 仍是
- * 「可以/值得/退出不等于失败」准行动签。重话题改抽显式
- * 缓派下标池（该 6 条与行动派同区排除）。 */
-var _ANSB_CALM = [18, 19, 20, 22, 23, 24, 25, 26, 27, 29, 30, 31,
-                  34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47,
-                  48, 49, 50, 51, 52, 53];
+/* R3411-P0（口吻终审）：稳派下标池里仍混着指向性/错场判词——
+ * 「这个坑别跳」对离婚题是双向背书、「先存钱」拿钱包衡量手术、
+ * 「这段放下」读起来就是劝分。缓派池再大也筛不净方向。
+ * 重话题改走书尾专区：8 条只降温、不指向任何决定的判词——
+ * 普通抽限定 [0,_ANSB_HEAVY0)，重话题限定 [_ANSB_HEAVY0,末]，
+ * 从根上杜绝「翻书替你拿主意」（下游索引/分享/历史零改动）。 */
+var _ANSB_HEAVY0 = 54;
 function _ansbFlip(q) {
   /* R3404-P1：危机/敏感问句不翻页不写史——ansb 原是全站唯一
    * 没闸的自由文本入口。返回 <0 由调用方给转介卡：
@@ -23309,8 +23432,9 @@ function _ansbFlip(q) {
   if (q && feSensitive(q)) return -1;
   var _qn = _normFEFlat(q || '');
   var i = (_qn && _ANSB_BIGQ.test(_qn))
-    ? _ANSB_CALM[Math.floor(Math.random() * _ANSB_CALM.length)]
-    : Math.floor(Math.random() * _ANSB.length);
+    ? _ANSB_HEAVY0 + Math.floor(
+        Math.random() * (_ANSB.length - _ANSB_HEAVY0))
+    : Math.floor(Math.random() * _ANSB_HEAVY0);
   try {
     var h = _ansbHist();
     h.unshift({ d: todayIso().slice(5), q: (q || '').slice(0, 12),

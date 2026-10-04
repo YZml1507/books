@@ -18874,3 +18874,54 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   常显钮+指引就是解这个落差。
 - probe_ui_smoke：btn:history.lock 新用例（设锁→锁态藏→错拒→解锁→
   撤锁全链），锁链在途吞并语义要求直调 __loadPaipanHistory(false)。
+
+## R3416（本批）：R3411 口吻终审 + R3412 裂变回流终扫清零（P0×1/P1×5/P2×13）
+
+### P0（严重）
+- 答案之书重话题（离婚/堕胎/手术等 BIGQ）不再从全池抽判词——
+  _ANSB 尾部新增 _ANSB_HEAVY0=54 起 8 条「只降温不指向」三连
+  （不做决定/慢一点/先照顾自己），_ansbFlip 对 BIGQ 问题只在
+  [54,len) 池抽，普通问题保持 [0,54)。原 _ANSB_CALM 池会漏进
+  「大胆去做」式指向判词，已整池替换。
+
+### P1
+- R3412-P1 深链返回键 about:blank：外站深链（from=share/invite、
+  invite=1、ay、#mc*）落地时先 replaceState 垫一层 {view:'home'}
+  再 pushState 回原始 URL——返回键有家可回，不再甩出空白页。
+  __landingPushed 防同页重复垫层。
+- 桃花签题签：_qianSlipHtml 接 o.love 分支——桃花签卡出「问桃花事」
+  tag、不挂宫位词；xj 含「婚姻 X」时另出一行「🌸 仙机·婚姻」。
+- 桃花签末日渐进：11/11 起卡脚改「桃花签到今晚截止——明年双十一
+  再来」，制造稀缺不突兀消失。
+- 典故校勘批注清洗：qian_data.js 全库扫「与签诗不合/本作X/单字
+  括注」三类校勘体——19 story+10 jie+3 yi 字段去痕，签3双故事
+  截于「董永卖身」，0 残留。用户不该看见学术批注。
+- 宫位裸词：签名行不再挂「X宫」（签号已够定位，宫位是内行话）。
+- _SENSITIVE_CHAT_REPLY/_SENSITIVE_REPLY 同步改暖：先接住情绪
+  「愿意说出来已经很不容易了」，再解释「不该靠占卜来定」，指路
+  医生/可信任的人，留门「想聊别的，小满都在」。前后端逐字一致。
+
+### P2
+- _mcTIERS love/bestie 加 [1] 档（刚认识不久/刚走进彼此）——
+  0 分专属「平行宇宙」判词不再漏到 1-20 分。
+- 默契分卡单位 % → 分（「85分」不是「85%」）。
+- _mcBoardRecord 四参化：isHost=当前名∈{hn}∪mochi:hosts（改名后
+  旧成绩链仍能落榜）；board key=gn+'#'+ha[:6]（同名不同卷不串榜）；
+  条目 {n,k,s,t} 带指纹键；读取兼容旧 {n,s,t}（a[i].k||a[i].n）。
+- mochi:hosts 写出题时注册（cap 10）——P2-2 配套写侧。
+- 跨年仪式行 data-pin=1：_dailyMetaCap 折叠池豁免+不占 5 粒名额
+  （一年只有 5 天有效的限时位不能被「+N条」藏掉）。
+- 翻书历史日期 10-04 → 10月04日（与签历史同口径）。
+- 「第N签」歧义：daily 64卦系显示改「今日卦签：第N卦」，与每日
+  一签百签系「第N签」彻底分家。
+- 跨年 _FEST_TIP 与日签仪式行撞句——tip 改「零点前给这一年收个尾」。
+- K线图例「犯太岁」→「犯太岁（含冲）」（标记实际对两旗都亮）。
+- K线海报「丙午·偏财」→ _TEN_GOD_TAG 白话（活水财等）上可晒件。
+- .ansb-crisis 补上缺失样式（暖底卡片——敏感转介更需要暖）。
+- 签22 say「只行人稍迟」→「出门的人会晚点到」。
+- ansb placeholder 收口「翻完来跟我聊书上那句」。
+- 破五/数九 _FEST_TIP 两句人话化。
+- probe_ui_smoke：btn:history.lock 改 wait_for_selector 等工具栏
+  异步回显；ai.block.renders_with_ai 的 errors.clear() 挪到
+  page.click("#submit") 紧前——err422 用例的故意 422 console.error
+  异步飘进下一用例断言窗（R3415-CI flake 根治）。
