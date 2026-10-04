@@ -21097,6 +21097,42 @@ function renderCheckin(dateKey) {
       _flHtml += '</details>';
     }
   } catch (eFL) {}
+  /* R3618 目标日倒数——「离「考研」还有 N 天」（考研/面试/
+   * 纪念日上岸倒计时，事业向留存钩）。dday:name+dday:date
+   * 本地两键，行内小表单定/改/抹，无键时一行低调节省钩。 */
+  var _ddayHtml = '';
+  try {
+    var _dn = String(localStorage.getItem('dday:name') || '')
+      .slice(0, 12);
+    var _dd = String(localStorage.getItem('dday:date') || '');
+    var _ddOk = /^\d{4}-\d{2}-\d{2}$/.test(_dd) &&
+      !isNaN(Date.parse(_dd + 'T00:00:00'));
+    var _ddLine = '';
+    if (_dn && _ddOk) {
+      var _ddN = Math.round(
+        (Date.parse(_dd + 'T00:00:00') -
+         Date.parse(dateKey + 'T00:00:00')) / 86400000);
+      _ddLine = _ddN > 0
+        ? '🎯 离「' + esc(_dn) + '」还有 <strong>' + _ddN + '</strong> 天'
+        : _ddN === 0
+        ? '🎉 今天是「' + esc(_dn) + '」的日子——稳稳的，你准备过的'
+        : '🌾 「' + esc(_dn) + '」过去 ' + (-_ddN) +
+          ' 天了——那段路你走过来了';
+    }
+    _ddayHtml = '<div class="ck-quest ck-dday">' +
+      (_ddLine || '🎯 <span class="dday-hint">' +
+        '心里有个要紧的日子吗</span>') +
+      '<button type="button" class="dday-set">' +
+      (_ddLine ? '改' : '定一个 →') + '</button>' +
+      '<span class="dday-form" hidden>' +
+      '<input class="dday-n" maxlength="8" ' +
+      'placeholder="哪个日子？如：考研" value="' + esc(_dn) + '">' +
+      '<input class="dday-d" type="date" value="' +
+      (_ddOk ? esc(_dd) : '') + '">' +
+      '<button type="button" class="dday-save">记下</button>' +
+      (_ddLine ? '<button type="button" class="dday-clear">抹掉</button>'
+               : '') + '</span></div>';
+  } catch (eDD) {}
   box.innerHTML = _wlHtml + _mlHtml + _flHtml + _flEntryHtml +
     '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
@@ -21114,7 +21150,8 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _duelHtml + _hugHtml + _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
+    _duelHtml + _hugHtml + _goalHtml + _wqHtml + _wluHtml +
+    _ckPattern(dateKey) + _ddayHtml +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
@@ -21297,6 +21334,46 @@ function renderCheckin(dateKey) {
         showToast('功课章盖好啦，这周的小功课完成 ✅', 'ok');
       } catch (eWQ2) {}
       try { renderCheckin(todayIso()); } catch (eWQ3) {}
+    });
+  }
+  /* R3618：目标日行内表单——类名委派绑一次（重渲不换监听），
+   * 不进 on() 注册表也不扫 id 覆盖闸。 */
+  if (!box._ddBound) {
+    box._ddBound = true;
+    box.addEventListener('click', function (e) {
+      var _t = e.target && e.target.closest ? e.target : null;
+      var _row = _t ? _t.closest('.ck-dday') : null;
+      if (!_row) return;
+      if (_t.closest('.dday-set')) {
+        var _f = _row.querySelector('.dday-form');
+        if (_f) _f.hidden = !_f.hidden;
+        return;
+      }
+      if (_t.closest('.dday-save')) {
+        var _ni = _row.querySelector('.dday-n');
+        var _di = _row.querySelector('.dday-d');
+        var _nv = _ni ? String(_ni.value || '').trim().slice(0, 12) : '';
+        var _dv = _di ? String(_di.value || '') : '';
+        if (!_nv || !/^\d{4}-\d{2}-\d{2}$/.test(_dv)) {
+          showToast('写个日子名、选个日期再记', 'warn');
+          return;
+        }
+        try {
+          localStorage.setItem('dday:name', _nv);
+          localStorage.setItem('dday:date', _dv);
+          showToast('记下啦——小满每天陪你数', 'ok');
+        } catch (eD2) {}
+        try { renderCheckin(todayIso()); } catch (eD3) {}
+        return;
+      }
+      if (_t.closest('.dday-clear')) {
+        try {
+          localStorage.removeItem('dday:name');
+          localStorage.removeItem('dday:date');
+          showToast('抹掉了', 'info');
+        } catch (eD4) {}
+        try { renderCheckin(todayIso()); } catch (eD5) {}
+      }
     });
   }
   /* R3325-D：未来信收下——标记 opened 不再浮出；写信入口开弹层。 */
@@ -25371,7 +25448,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -26090,7 +26167,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26438,6 +26515,8 @@ function baziPersonaCard(j) {
                 k === 'tr:hist' ||
                 /* R3612：相识纪念已贺标同收（足迹件）。 */
                 k.indexOf('anniv:seen:') === 0 ||
+                /* R3618：目标日名/日两键同收（足迹件）。 */
+                k.indexOf('dday:') === 0 ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
