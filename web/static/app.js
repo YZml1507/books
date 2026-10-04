@@ -19742,6 +19742,31 @@ function _ckPatternFind(todayKey) {
                (_ml > 0 ? '更亮一点' : '偏沉一点') });
       }
     }
+    /* 碎纸日×心情（R3527）：shred:<date> 计数>0 的天 vs 其余——
+     * 「碎过烦心事的日子你常常更沉/更亮」都是诚实观察。 */
+    try {
+      var _sd = [], _nd = [];
+      _recs.forEach(function (r) {
+        var _sc = 0;
+        try {
+          _sc = Math.max(0, parseInt(
+            localStorage.getItem('shred:' + r.d) || '0', 10) || 0);
+        } catch (eSh) {}
+        (_sc > 0 ? _sd : _nd).push(r);
+      });
+      if (_sd.length >= 3 && _nd.length >= 3) {
+        var _sdm = 0, _ndm = 0;
+        _sd.forEach(function (r) { _sdm += r.v; });
+        _nd.forEach(function (r) { _ndm += r.v; });
+        _sdm /= _sd.length; _ndm /= _nd.length;
+        var _sl = _sdm - _ndm;
+        if (Math.abs(_sl) >= 0.6) {
+          _cands.push({ lift: Math.abs(_sl), n: _sd.length,
+            txt: '碎过烦心事的那几天，你的心情好像常常' +
+                 (_sl > 0 ? '更亮一点' : '偏沉一点') });
+        }
+      }
+    } catch (eSD) {}
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
