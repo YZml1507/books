@@ -4220,6 +4220,10 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .mc-pack:active { transform: scale(.95); }
 .mc-pack.on { background: var(--primary, #b0764a); color: #fff;
   border-color: var(--primary, #b0764a); }
+/* R3445：照着写链接行——小号灰字+主题色链，留够触击面。 */
+.mc-tpl { font-size: 12.5px; color: var(--muted); margin: 6px 0 2px; }
+.mc-tpl a { display: inline-block; padding: 6px 4px; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .mc-packtag { display: inline-block; margin-left: 6px; padding: 1px 8px;
   border-radius: 999px; font-size: 11px; font-weight: 600;
   background: var(--accent-soft, #fdf1e4);

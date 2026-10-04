@@ -20862,6 +20862,13 @@ function _mcQuizHtml(ctx) {
       return '<div class="mc-head">自己出题——写 5 道题，每题填至少 2 个选项，' +
         '在你会选的那项前面打勾。题目会跟着链接发给 TA 看，' +
         '太私密的别写哦～</div>' + _packBtns +
+        /* R3445：模板引导（用户直报「能否有模板引导」）——照着
+         * 现成套卷改比自己从零憋题顺，填好后用户只管改字+打勾。 */
+        '<div class="mc-tpl">没思路？照着现成套卷改：' +
+        '<a href="javascript:void(0)" data-mc="tpl" ' +
+        'data-pk="bestie">闺蜜版</a> · ' +
+        '<a href="javascript:void(0)" data-mc="tpl" ' +
+        'data-pk="love">对象版</a></div>' +
         '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
         '<input type="text" id="mochiNick" class="mc-nick" maxlength="12" ' +
         'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' +
@@ -21068,6 +21075,23 @@ function _renderMochi() {
       _renderMochi();
       var _nk = el('mochiNick');
       if (_nk && box.dataset.nick) _nk.value = box.dataset.nick;
+      return;
+    }
+    if (act === 'tpl') {
+      /* R3445：照着改——把所选套卷的题干/选项填进编辑器，
+       * 勾选答案不代填（答案必须是用户自己的）。 */
+      var _tp = _mcQS(b.dataset.pk || 'bestie') || [];
+      for (var _ti = 0; _ti < 5; _ti++) {
+        var _qe2 = el('mochiE' + _ti);
+        var _tq = _qe2 && _qe2.querySelector('.mc-eq-t');
+        if (!_tq || !_tp[_ti]) continue;
+        _tq.value = _tp[_ti].q;
+        var _tos = _qe2.querySelectorAll('.mc-eo-t');
+        for (var _tj = 0; _tj < _tp[_ti].o.length && _tj < _tos.length; _tj++) {
+          _tos[_tj].value = _tp[_ti].o[_tj];
+        }
+      }
+      showToast('照好了——按你的情况改改，记得在你会选的那项前面打勾', 'ok');
       return;
     }
     if (act === 'reroll') {
@@ -22183,8 +22207,8 @@ function baziPersonaCard(j) {
     return ks;
   }
   function _xmMemRender() {
-    var body = document.getElementById('memBody');
-    if (!body) return;
+    var _memBx = document.getElementById('memBody');
+    if (!_memBx) return;
     var html = '', any = false;
     _MEM_GROUPS.forEach(function (g) {
       var s = '';
@@ -22203,8 +22227,8 @@ function baziPersonaCard(j) {
       html = '<div class="mem-empty">她还没攒下关于你的事——' +
         '去逛逛，用两天再来看看。</div>';
     }
-    body.innerHTML = html;
-    body.querySelectorAll('.mem-del').forEach(function (btn) {
+    _memBx.innerHTML = html;
+    _memBx.querySelectorAll('.mem-del').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (btn.dataset.armed !== '1') {
           btn.dataset.armed = '1';
