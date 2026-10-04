@@ -4584,6 +4584,11 @@ def _run_inner() -> list[str]:
     assert "view-mochi" in _idxsrc and "_renderMochi" in _appsrc2 and \
         "#mc=" in _appsrc2 and "mochi: 1" in _appsrc2, \
         "默契挑战：view-mochi/_renderMochi/#mc 链路/聊天白名单缺一"
+    # R3383 谁最懂你榜：记榜函数/榜键/清榜钮三件套——缺一则受邀
+    # 回传分数无处安放，裂变留存环断。
+    assert "_mcBoardRecord" in _appsrc2 and "mochi:board" in _appsrc2 and \
+        'data-mc="wipe"' in _appsrc2, \
+        "默契榜：_mcBoardRecord/mochi:board/清榜钮缺一"
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

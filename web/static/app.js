@@ -19598,6 +19598,52 @@ function _mcCompareHtml(hn, gn, ha, ga) {
     esc(hn) + ' × ' + esc(gn) + ' · ' + esc(s.tier) + '</span>' +
     '<p>' + esc(s.line) + '</p></div>' + rows;
 }
+/* R3383 谁最懂你榜：受邀者回传的成绩条按昵称落本机榜——
+ * 出题人视角看「哪个朋友最懂我」，攒榜=再发新挑战的留存钩。
+ * 走 mochi: 前缀，备份/跨账号清扫同族收编，纯本机不上服务器。 */
+function _mcBoard() {
+  var a = [];
+  try { a = JSON.parse(localStorage.getItem('mochi:board') || '[]'); }
+  catch (e) {}
+  return Array.isArray(a) ? a.filter(function (x) {
+    return x && typeof x.n === 'string' && typeof x.s === 'number';
+  }) : [];
+}
+function _mcBoardSave(a) {
+  try {
+    localStorage.setItem('mochi:board', JSON.stringify(a.slice(0, 20)));
+  } catch (e) {}
+}
+/* 只有「我是这份挑战的出题人」才记榜——路过的看客打开成绩条
+ * 不污染榜。同昵称重答只更新最新分不占新坑。返回名次（0 起）。 */
+function _mcBoardRecord(hn, gn, pct) {
+  var me = '';
+  try { me = localStorage.getItem('mochi:nick') || ''; } catch (e) {}
+  if (!me || me !== hn || !gn) return -1;
+  var a = _mcBoard(), i;
+  for (i = 0; i < a.length; i++) {
+    if (a[i].n === gn) { a[i].s = pct; a[i].t = Date.now(); break; }
+  }
+  if (i >= a.length) a.push({ n: gn, s: pct, t: Date.now() });
+  a.sort(function (x, y) { return (y.s - x.s) || (y.t - x.t); });
+  _mcBoardSave(a);
+  for (i = 0; i < a.length; i++) { if (a[i].n === gn) return i; }
+  return -1;
+}
+function _mcBoardHtml() {
+  var a = _mcBoard();
+  if (!a.length) return '';
+  var medals = ['🥇', '🥈', '🥉'];
+  var rows = a.slice(0, 8).map(function (e, i) {
+    return '<div class="mc-brow"><span class="mc-bmedal">' +
+      (medals[i] || String(i + 1)) + '</span><b>' + esc(e.n) +
+      '</b><span class="mc-bs">' + Math.round(e.s) + ' 分</span></div>';
+  }).join('');
+  return '<div class="mc-board"><div class="mc-btitle">🏆 谁最懂你' +
+    '<span class="mc-bcount">' + a.length + ' 位应战</span>' +
+    '<button type="button" class="mc-bwipe" data-mc="wipe">清空</button>' +
+    '</div>' + rows + '</div>';
+}
 function _mcQuizHtml(ctx) {
   var qs = _mcQS().map(function (q, i) {
     return '<div class="mc-q" id="mochiQ' + i + '">' +
@@ -19643,15 +19689,32 @@ function _renderMochi() {
     return;
   }
   if (st && st.mode === 'result') {
+    var _sc2 = _mcScore(st.ha, st.ga);
+    var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct);
+    var _rkLine = '';
+    if (_rk >= 0) {
+      var _bn = _mcBoard().length;
+      _rkLine = '<p class="mc-rank">你收到的 ' + _bn +
+        ' 份答卷里，TA 排第 <b>' + (_rk + 1) + '</b></p>';
+    }
     box.innerHTML = '<div class="mc-head">「<b>' + esc(st.gn || 'TA') +
       '</b>」答完了「' + esc(st.hn || '你') + '」的默契题</div>' +
       _mcCompareHtml(st.hn || '出题人', st.gn || '答题人', st.ha, st.ga) +
-      '<div class="mc-acts"><button type="button" id="mochiHost" ' +
-      'class="mc-go" data-mc="host">我也出一套题 🥤</button></div>';
+      _rkLine +
+      '<div class="mc-acts">' +
+      '<button type="button" id="mochiShare" class="mc-go" ' +
+      'data-mc="share">📸 晒这张成绩条</button>' +
+      '<button type="button" id="mochiHost" class="ghost" ' +
+      'data-mc="host">我也出一套题</button></div>';
+    try {
+      box.dataset.ga = st.ga; box.dataset.ha = st.ha;
+      box.dataset.hn = st.hn || 'TA'; box.dataset.gn = st.gn || 'TA';
+    } catch (eRD) {}
     return;
   }
-  box.innerHTML = _mcQuizHtml(st && st.mode === 'guest'
-    ? { who: st.nick, hostAns: st.ans } : null);
+  box.innerHTML = _mcBoardHtml() +
+    _mcQuizHtml(st && st.mode === 'guest'
+      ? { who: st.nick, hostAns: st.ans } : null);
 }
 /* 委托绑容器——innerHTML 重渲不掉绑定。 */
 (function () {
@@ -19749,7 +19812,7 @@ function _renderMochi() {
       var _d = box.dataset || {};
       var _ga2 = _d.ga || '', _ha2 = _d.ha || '', _hn2 = _d.hn || 'TA';
       if (!_ga2 || !_ha2) return;
-      var gn2 = String((el('mochiMe') || {}).value || '').trim()
+      var gn2 = _d.gn || String((el('mochiMe') || {}).value || '').trim()
         .slice(0, 12) || '我';
       var s2 = _mcScore(_ha2, _ga2);
       return downloadPoster({
@@ -19784,6 +19847,12 @@ function _renderMochi() {
         '<button type="button" id="mochiHost2" class="ghost" ' +
         'data-mc="host">我也出一套给 TA</button></div>';
       box.innerHTML = card;
+      return;
+    }
+    if (act === 'wipe') {
+      try { localStorage.removeItem('mochi:board'); } catch (eW) {}
+      showToast('榜清空啦', 'ok');
+      _renderMochi();
       return;
     }
     if (act === 'host') {
