@@ -9325,6 +9325,25 @@ var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
    * 表单不自动开同款，钩主件沉底。 */
   namecard: 'N' };
 function _shareText(view) {
+  /* R3652：双满电日签的分享钩——撞峰日是晒出去最硬的
+   * 由头，钩子句点名「双满电」。 */
+  if (view === 'daily') {
+    try {
+      var _pj = window.__lastDaily && window.__lastDaily.personal;
+      var _pw = _pj && _pj.week_energy,
+          _pp2 = _pj && _pj.partner_energy &&
+                 _pj.partner_energy.week_peak;
+      if (_pp2 && _pp2.d && Array.isArray(_pw) && _pw.length === 7) {
+        var _mi = 0;
+        _pw.forEach(function (w, i) {
+          if (w.s > _pw[_mi].s) _mi = i; });
+        if (_pw[_mi].d === _pp2.d) {
+          return '我们撞了个双满电日，看看你们哪天都电满 → ' +
+                 '小满的解忧铺 ';
+        }
+      }
+    } catch (eDP) {}
+  }
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
     try {
