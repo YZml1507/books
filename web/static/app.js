@@ -20315,20 +20315,24 @@ function renderCheckin(dateKey) {
     _duList = _duList.slice(0, 7);
     if (_duList.length === 1) {
       var _duN = _duList[0], _dTxt;
+      /* R3583：单人判词同认名——有 n= 喊名（「阿雪连签 9 天」），
+       * 与群榜 R3582 同口径。 */
+      var _duWho = esc((typeof _shareByName === 'function' &&
+        _shareByName()) || '朋友');
       if (_streak <= 0) {
         /* R3559：断签老用户别当新客——攒过的档点名接住，
          * 「打第一张卡」只留给真零记录的人。 */
-        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天了——' +
+        _dTxt = '⚔️ ' + _duWho + '连签 ' + _duN + ' 天了——' +
           (Object.keys(_ckAll).length
             ? '你的签断了，今天补一张重新开追'
             : '你今天打第一张卡，就开始追她');
       } else if (_streak < _duN) {
-        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天，你 ' + _streak +
+        _dTxt = '⚔️ ' + _duWho + '连签 ' + _duN + ' 天，你 ' + _streak +
           ' 天——差 ' + (_duN - _streak) + ' 天追上她';
       } else if (_streak === _duN) {
         _dTxt = '⚔️ 你们都是 ' + _duN + ' 天——打平，明天见分晓';
       } else {
-        _dTxt = '⚔️ 朋友连签 ' + _duN + ' 天，你 ' + _streak +
+        _dTxt = '⚔️ ' + _duWho + '连签 ' + _duN + ' 天，你 ' + _streak +
           ' 天——你赢她 ' + (_streak - _duN) + ' 天';
       }
       _duelHtml = '<div class="ck-quest ck-duel">' + _dTxt + '</div>';
