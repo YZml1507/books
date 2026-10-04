@@ -20115,6 +20115,33 @@ function renderCheckin(dateKey) {
           'title="做完了点这里盖戳">做到了</button>') +
       '</div>';
   } catch (eWQ) {}
+  /* R3532 本周旺运小物（「玄学+」生活向日更的周更版——小红书
+   * 旺运色/穿搭/食谱赛道同构）：周一换一套（色·随身小物·吃口啥），
+   * 三池各盐同周一确定性，零存储零交互纯仪式行。 */
+  var _wluHtml = '';
+  try {
+    var _wlMon = _isoShift(dateKey,
+      -((new Date(dateKey + 'T00:00:00').getDay() + 6) % 7));
+    var _wlC = _dayPick([
+      '奶油黄', '抹茶绿', '雾霾蓝', '蜜桃粉', '燕麦色',
+      '浅紫', '橘红', '米白', '湖蓝', '樱花粉',
+      '鹅黄', '灰绿', '珊瑚橙', '淡青'
+    ], 'wlc|' + _wlMon);
+    var _wlI = _dayPick([
+      '一颗小太阳挂件', '向日葵发圈', '透明伞', '红绳',
+      '小小的铃铛', '陶瓷小猫', '干花书签', '暖色围巾',
+      '贝壳耳钉', '旧硬币', '手写小卡', '布艺发带',
+      '一小袋桂花', '圆滚滚的石头'
+    ], 'wli|' + _wlMon);
+    var _wlF = _dayPick([
+      '一口热豆浆', '芒果糯米', '红糖年糕', '糖炒栗子',
+      '桂花汤圆', '烤红薯', '蜜桃乌龙', '酒酿圆子',
+      '一碗阳春面', '柠檬蜂蜜水', '芋泥麻薯', '绿豆沙',
+      '热腾腾的玉米', '银耳羹'
+    ], 'wlf|' + _wlMon);
+    _wluHtml = '<div class="ck-quest ck-wl">🍀 本周旺运：' +
+      esc(_wlC) + ' · ' + esc(_wlI) + ' · ' + esc(_wlF) + '</div>';
+  } catch (eWL) {}
   /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
    * 规律换内容 toast 一次；pattern:seen 记最近一条防止重复弹。 */
   try {
@@ -20367,7 +20394,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _goalHtml + _wqHtml + _ckPattern(dateKey) +
+    _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
