@@ -13054,6 +13054,15 @@ var _SQ_Q = [
         { t: '好聊，你最懂我',         e: '水', a: '收' }] },
 ];
 var _sqAns = [];
+/* 五行关系自带一份：_WX_SHWO/KEWO/WOKE 在本文件后部才赋值，
+ * _sqInit 在 init 阶段跑时它们还是 undefined——小测模块不能
+ * 依赖后部的表（实测 init 抛 TypeError 面板空白）。 */
+var _SQ_SHWO = { '木': '水', '火': '木', '土': '火',
+               '金': '土', '水': '金' };   /* 生我者 */
+var _SQ_KEWO = { '木': '金', '火': '水', '土': '木',
+               '金': '火', '水': '土' };   /* 克我者 */
+var _SQ_WOKE = { '木': '土', '火': '金', '土': '水',
+               '金': '木', '水': '火' };   /* 我克者 */
 /* 受邀锚 ?view=oracle&sq=<key> ——解析期先存：启动规整会把
  * 参数从地址栏剥掉（同 __shareBy 先例）。 */
 var _SQ_PEER_KEY = '';
@@ -13061,15 +13070,63 @@ try {
   _SQ_PEER_KEY = (/[?&]sq=([mfegw])/.exec(location.search || '') ||
     [null, ''])[1] || '';
 } catch (eK) {}
+/* R3493 回合制回流：受邀者测完一键回传 ?view=oracle&sqb=<A><B>
+ * （A=链主原型键，B=回传人原型键）。打开者看到两人原型对对碰
+ * 卡，不用生辰也能玩——解析期同样先存防剥参。 */
+var _SQ_PAIR = null;
+try {
+  _SQ_PAIR = /[?&]sqb=([mfegw])([mfegw])/.exec(location.search || '');
+} catch (eP) {}
 function _sqPeer() {
-  return _SQ_PEER_KEY;
+  /* 对对碰链里，合拍对的是 B（最近测出来那位）。 */
+  return _SQ_PAIR ? _SQ_PAIR[2] : _SQ_PEER_KEY;
+}
+/* 「我(meKey)×TA(peerKey)」合拍判词，从我的角度看 TA。 */
+function _sqRelTxt(meKey, peerKey) {
+  var wx = '', pw = '';
+  for (var _k in _SQ_ARCH) {
+    if (_SQ_ARCH[_k].key === meKey) wx = _k;
+    if (_SQ_ARCH[_k].key === peerKey) pw = _k;
+  }
+  if (!wx || !pw) return '';
+  if (wx === pw) return '💞 你俩同款灵魂：' + _SQ_ARCH[wx].name +
+    ' × ' + _SQ_ARCH[pw].name + '——不用解释的懂';
+  var rel;
+  if (_SQ_SHWO[wx] === pw) rel = 'TA 旺你型：TA 是你的能量补给，处久了你精神头足';
+  else if (_SQ_SHWO[pw] === wx) rel = '你旺 TA 型：跟你在一起 TA 状态好，别老是你给';
+  else if (_SQ_KEWO[wx] === pw) rel = '磨刀石型：TA 会硌你一下，但处好了最互补';
+  else if (_SQ_WOKE[wx] === pw) rel = '你带节奏型：TA 容易被你带着走，温柔点带';
+  else rel = '各有各的节奏：不同步但正好互相补上';
+  return '💞 你俩的合拍：' + _SQ_ARCH[pw].name + ' × ' +
+         _SQ_ARCH[wx].name + '——' + rel;
+}
+/* 对对碰卡的点名判词：不预设打开者是谁，用原型名说话。 */
+function _sqPairTxt(kA, kB) {
+  var wA = '', wB = '';
+  for (var _k in _SQ_ARCH) {
+    if (_SQ_ARCH[_k].key === kA) wA = _k;
+    if (_SQ_ARCH[_k].key === kB) wB = _k;
+  }
+  if (!wA || !wB) return '';
+  var nA = _SQ_ARCH[wA].name, nB = _SQ_ARCH[wB].name;
+  if (wA === wB) return '同款灵魂——不用解释的懂';
+  if (_SQ_SHWO[wA] === wB) return nB + ' 旺 ' + nA +
+    '：' + nB + ' 是 ' + nA + ' 的能量补给';
+  if (_SQ_SHWO[wB] === wA) return nA + ' 旺 ' + nB +
+    '：' + nA + ' 一在，' + nB + ' 状态就好';
+  if (_SQ_KEWO[wA] === wB) return '磨刀石组合：' + nB +
+    ' 会硌 ' + nA + ' 一下，处好了最互补';
+  if (_SQ_WOKE[wA] === wB) return nA + ' 带节奏：' + nB +
+    ' 容易被带着走';
+  return '各有各的节奏：不同步但正好互补';
 }
 function _sqInit() {
   var p = el('sqPanel');
   if (!p) return;
   var _peer = _sqPeer();
   var _peerNm = '';
-  if (_peer) {
+  /* 对对碰链用对对碰卡说话，不再叠「朋友的原型是」横幅。 */
+  if (_peer && !_SQ_PAIR) {
     for (var _k in _SQ_ARCH) {
       if (_SQ_ARCH[_k].key === _peer) _peerNm = _SQ_ARCH[_k].name;
     }
@@ -13078,6 +13135,22 @@ function _sqInit() {
     ? '<div class="sq-peer">朋友的原型是「' + esc(_peerNm) +
       '」——测完你的，看看你俩合不合</div>'
     : '';
+  if (_SQ_PAIR) {
+    var _pa = _SQ_PAIR[1], _pb = _SQ_PAIR[2], _aN = '', _bN = '', _aG = '', _bG = '';
+    for (var _k2 in _SQ_ARCH) {
+      if (_SQ_ARCH[_k2].key === _pa) { _aN = _SQ_ARCH[_k2].name; _aG = _SQ_ARCH[_k2].glyph; }
+      if (_SQ_ARCH[_k2].key === _pb) { _bN = _SQ_ARCH[_k2].name; _bG = _SQ_ARCH[_k2].glyph; }
+    }
+    _h += '<div class="sq-pair sm-card">' +
+      '<div class="sq-arch">⚡ ' + esc(_aG) + ' ' + esc(_aN) +
+      ' × ' + esc(_bG) + ' ' + esc(_bN) + '</div>' +
+      '<div class="sm-tip sq-compat">💞 ' +
+      esc(_sqPairTxt(_pa, _pb)) + '</div>' +
+      '<div class="sm-note">这是你们俩的原型对对碰——' +
+      '被喊来的话，下面 8 题测你的</div>' +
+      '<button class="ghost fav-btn" type="button" id="sqbCopy" ' +
+      'title="复制这条对对碰链接">🔗 复制对对碰链接</button></div>';
+  }
   _h += '<div class="sq-intro">八道小题，凭第一反应选——' +
         '测测你的灵魂原型是哪一种</div>';
   _SQ_Q.forEach(function (qq, i) {
@@ -13093,6 +13166,38 @@ function _sqInit() {
   _h += '<div class="sq-progress" id="sqProg">已答 0/' +
         _SQ_Q.length + '</div>';
   p.innerHTML = _h;   // esc-reviewed：题库全静态字面量
+  if (_SQ_PAIR) {
+    on('sqbCopy', function () {
+      var txt = '我俩的灵魂原型对对碰——你也来测一个：' +
+        location.href;
+      var _ok = function () {
+        showToast('对对碰链接复制好了，转给下一位朋友', 'ok');
+      };
+      var _legacy = function () {
+        var _ok0 = true;
+        try {
+          var _ta = document.createElement('textarea');
+          _ta.value = txt;
+          _ta.style.cssText = 'position:fixed;opacity:0';
+          document.body.appendChild(_ta); _ta.select();
+          _ok0 = !!document.execCommand('copy');
+          _ta.remove();
+        } catch (e2) { _ok0 = false; }
+        if (_ok0) { _ok(); }
+        else {
+          try {
+            _showTextExportModal('对对碰链接', location.href,
+              '长按下面文本全选复制，发给朋友吧');
+          } catch (eM2) {
+            showToast('复制没成功，可截图链接发给朋友', 'warn');
+          }
+        }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(_ok, _legacy);
+      } else { _legacy(); }
+    });
+  }
 }
 function _sqPick(qi, oi) {
   var qq = _SQ_Q[qi];
@@ -13123,24 +13228,7 @@ function _sqDone() {
   var axw = ax['放'] >= ax['收'] ? '放' : '收';
   /* 原型×原型合拍：受邀者落地带 sq 锚时出配对判词。 */
   var peer = _sqPeer();
-  var compat = '';
-  if (peer && peer !== arch.key) {
-    var pw = _SQ_KEYS.filter(function (k2) {
-      return _SQ_ARCH[k2].key === peer; })[0];
-    if (pw) {
-      var rel;
-      if (_WX_SHWO[wx] === pw) rel = 'TA 旺你型：TA 是你的能量补给，处久了你精神头足';
-      else if (_WX_SHWO[pw] === wx) rel = '你旺 TA 型：跟你在一起 TA 状态好，别老是你给';
-      else if (_WX_KEWO[wx] === pw) rel = '磨刀石型：TA 会硌你一下，但处好了最互补';
-      else if (_WX_WOKE[wx] === pw) rel = '你带节奏型：TA 容易被你带着走，温柔点带';
-      else rel = '各有各的节奏：不同步但正好互相补上';
-      compat = '💞 你俩的合拍：' + _SQ_ARCH[pw].name + ' × ' +
-               arch.name + '——' + rel;
-    }
-  } else if (peer) {
-    compat = '💞 你俩同款灵魂：' + arch.name + ' × ' + arch.name +
-             '——不用解释的懂';
-  }
+  var compat = peer ? _sqRelTxt(arch.key, peer) : '';
   var box = el('sqResult');
   if (!box) return;
   box.innerHTML =
@@ -13157,6 +13245,8 @@ function _sqDone() {
       'title="生成灵魂原型分享图">📸 晒出我的原型</button>' +
     '<button class="ghost fav-btn" type="button" id="sqInvite" ' +
       'title="复制链接喊 TA 也来测">🔗 喊 TA 也来测</button>' +
+    (peer ? '<button class="ghost fav-btn" type="button" id="sqTell" ' +
+      'title="把你的原型回传给出题人">📣 告诉 TA 我测出来是啥</button>' : '') +
     '<button class="ghost fav-btn" type="button" id="sqAgain" ' +
       'title="重答一遍">🔁 再测一次</button>' +
     '</div>';
@@ -13189,6 +13279,39 @@ function _sqDone() {
       else {
         try {
           _showTextExportModal('邀请链接', u,
+            '长按下面文本全选复制，发给 TA 吧');
+        } catch (eM2) {
+          showToast('复制没成功，可截图链接发给 TA', 'warn');
+        }
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(_ok, _legacy);
+    } else { _legacy(); }
+  });
+  /* R3493：受邀者把自己的原型回传给出题人——sqb=<链主><我>
+   * 双键对对碰链，出题人打开见你俩的原型卡。 */
+  if (peer) on('sqTell', function () {
+    var u = location.origin + '/?view=oracle&sqb=' + peer + arch.key;
+    var txt = '我测出来是「' + arch.name +
+      '」——打开看你俩的原型对对碰：' + u;
+    var _ok = function () {
+      showToast('回传链接复制好了，发给 TA 就能看到你俩的对对碰', 'ok');
+    };
+    var _legacy = function () {
+      var _ok0 = true;
+      try {
+        var _ta = document.createElement('textarea');
+        _ta.value = txt;
+        _ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(_ta); _ta.select();
+        _ok0 = !!document.execCommand('copy');
+        _ta.remove();
+      } catch (e2) { _ok0 = false; }
+      if (_ok0) { _ok(); }
+      else {
+        try {
+          _showTextExportModal('回传链接', u,
             '长按下面文本全选复制，发给 TA 吧');
         } catch (eM2) {
           showToast('复制没成功，可截图链接发给 TA', 'warn');

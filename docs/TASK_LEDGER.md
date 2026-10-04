@@ -19789,3 +19789,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 题卡走 #view-oracle 委托点击（data-sqi/sqo）——修排序坑：or-chip 判空 return 会把 sq-opt 全挡（实测暴露）。
 - 实测：受邀链 sq=f→横幅点名→答8题→燃灯者·往外开的+「同款灵魂」合拍行+海报弹层渲染合格+零 JS 错。
 - 闸：selftest 457 / contract 790 / banned 0 / smoke 125 / plain 5 / regress 全绿。
+
+## R3493 原型回合制回流（裂变环补牙：出题人不再不知道 TA 测出啥）
+- 受邀者测完结果卡多一钮「📣 告诉 TA 我测出来是啥」→ 复制 ?view=oracle&sqb=<链主><我> 双键链。
+- 打开 sqb 链者先看「⚡ 原型对对碰」卡：两原型点名+五行判词（谁旺谁/磨刀石/带节奏/同款）+可复制转发；题卡照常在下，路人也能测。
+- _sqPeer() 在 sqb 链下取 B（最近测出那位）——受邀者再测时合拍对的就是 B。
+- 判词抽公共：_sqRelTxt（我×TA 视角）+_sqPairTxt（点名视角）；五行关系表自带 _SQ_SHWO/KEWO/WOKE——_WX_* 在文件后部才赋值，_sqInit 在 init 阶段跑时是 undefined（实测 init 抛 TypeError 面板空白，自审抓修）。
+- 实测：sqb=fm→「燃灯者×森语者·森语者旺燃灯者」卡+答8题→大山×森语者磨刀石合拍+sqTell 两链都在+零 JS 错。
+- 闸：selftest 457 / smoke 125 / contract 790 / banned 0 / plain 5 全绿。

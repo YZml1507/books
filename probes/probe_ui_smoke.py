@@ -502,6 +502,12 @@ def main() -> int:
                     "须先答完 8 题才出现",
         "sqAgain": "灵魂原型「再测一次」——清空选项纯前端重渲染，"
                    "须先答完 8 题才出现",
+        # R3493：原型回传/对对碰钮——sqTell 须受邀链+答完 8 题；
+        # sqbCopy 须 sqb 双键链落地，clipboard+toast 族。
+        "sqTell": "灵魂原型「告诉 TA 我测出来是啥」——回传 sqb 链 "
+                  "clipboard+toast 族，须受邀链+答完 8 题才出现",
+        "sqbCopy": "原型对对碰「复制对对碰链接」——clipboard+toast 族，"
+                   "须 sqb 双键链落地才渲染",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
