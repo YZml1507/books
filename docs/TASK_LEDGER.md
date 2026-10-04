@@ -19251,3 +19251,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   题面完全一致、零 JS 错。selftest 新增 frontend.mochi_reroll。
 - 闸：selftest 445、contract 789、ui_smoke 113、banned_copy 0、
   regress PASS 全绿；sw bump books-shell-c8f0bca84ee8。
+
+## R3437 默契证书化（2026-10-04）
+- 晒分海报升「默契证书」：题改证书名、选手改持证人、判词改
+  默契等级、补「小满的解忧铺·特发此证」落款；下载文件名/
+  弹层标题分「默契证书」（成绩单）与「默契榜」（晒榜）；
+  两处晒分钮改「📸 领默契证书」。
+- Playwright 实测：受邀方答完→领证→下载 小满-默契证书-*.png
+  515KB 出图零 JS 错。

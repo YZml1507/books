@@ -4636,6 +4636,10 @@ function showPosterModal(canvas, view, j) {
   backdrop.className = 'poster-modal-backdrop';
   /* 视图名 → 人话标题（R231c：与下载文件名共用 _POSTER_TITLES） */
   var viewTitle = _POSTER_TITLES[view] || '命盘海报';
+  /* R3437：默契双海报分名——成绩单弹层=默契证书、榜=默契榜。 */
+  if (view === 'mochi') {
+    viewTitle = (j && j._mcb) ? '默契榜' : '默契证书';
+  }
   /* R2350a（R94-P1-3）：黄历海报标题跟卡面日（「明日宜忌」）。
    * 本函数签名只有 canvas/view——日期从 LAST_RESULT 取。 */
   if (view === 'huangli') {
@@ -20914,7 +20918,7 @@ function _renderMochi() {
       _rkLine +
       '<div class="mc-acts">' +
       '<button type="button" id="mochiShare" class="mc-go" ' +
-      'data-mc="share">📸 晒这张成绩条</button>' +
+      'data-mc="share">📸 领默契证书</button>' +
       '<button type="button" id="mochiHost" class="ghost" ' +
       'data-mc="host">我也出一套题</button></div>';
     try {
@@ -21150,7 +21154,7 @@ function _renderMochi() {
         'placeholder="比如：桃子" value="' + esc(mn) + '">' +
         '<div class="mc-acts">' +
         '<button type="button" id="mochiShare" class="mc-go" ' +
-        'data-mc="share">📸 晒默契分</button>' +
+        'data-mc="share">📸 领默契证书</button>' +
         '<button type="button" id="mochiFlip" class="mc-go" ' +
         'data-mc="flip">发给 TA 看成绩</button>' +
         '<button type="button" id="mochiHost2" class="ghost" ' +

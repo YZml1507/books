@@ -1705,11 +1705,15 @@ function buildShareData(view, j) {
         }
         return _ms;
       }
+      /* R3437 默契证书化：鼻祖小程序的收藏感来自「证书」框——
+       * 题改成默契证书、选手改持证人、补「特发此证」落款，
+       * 晒出去是纪念件不是分数截图。 */
+      _ms = base('默契证书', _cnDateSub(_pStr(j && j.date)));
       _ms.big = '默契 ' + (_pStr(_mc.pct) || '0') + ' 分';
       _ms.lines = [
-        { k: '选手', v: (_pStr(_mc.hn) || '我') + ' × ' +
-                        (_pStr(_mc.gn) || 'TA') },
-        { k: '判词', v: _pStr(_mc.tier) || '测测才知道' },
+        { k: '持证人', v: (_pStr(_mc.hn) || '我') + ' × ' +
+                          (_pStr(_mc.gn) || 'TA') },
+        { k: '默契等级', v: _pStr(_mc.tier) || '测测才知道' },
         { k: '判语', v: _clauseCut(_pStr(_mc.line), 24) }
       ];
       var _mHit = _pArr(_mc.matched);
@@ -1719,6 +1723,7 @@ function buildShareData(view, j) {
       } else {
         _ms.lines.push({ k: '想到一块儿', v: '0 题——完全不同路' });
       }
+      _ms.lines.push({ k: '落款', v: '小满的解忧铺 · 特发此证' });
       return _ms;
     }
     case 'qian': {
@@ -2374,8 +2379,10 @@ async function _downloadPoster(j, view) {
         /* R230y（R36-P3-2）：文件名对齐品牌「小满」
          * R231c：中文文件名「小满-今日命盘-0920」——小红书链路里
          * 辨识度高于 xiaoman-bazi（保存到相册一眼可认）。 */
-        a.download = '小满-' + (_POSTER_TITLES[_vkey] || '分享图') +
-          '-' + _ymd.slice(4) + '.png';
+        var _pt = _POSTER_TITLES[_vkey] || '分享图';
+        /* R3437：默契双海报分名——成绩单=默契证书、榜=默契榜。 */
+        if (_vkey === 'mochi') _pt = (j && j._mcb) ? '默契榜' : '默契证书';
+        a.download = '小满-' + _pt + '-' + _ymd.slice(4) + '.png';
         document.body.appendChild(a);
         /* R2513（审-次）：click() 抛错时 revoke/remove 漏跑——
          * blob URL + DOM 节点双泄漏。包 try/finally。 */
