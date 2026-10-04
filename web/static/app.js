@@ -20019,6 +20019,10 @@ function renderCheckin(dateKey) {
           '十月金秋，愿你收获比付出多一点。',
           '十一月转凉，记得添衣也记得添喜。',
           '十二月收官，这一年的你都辛苦了。'];
+        /* R3511：月信尾带一条「小规律」观察——够格才附（阈值在
+         * _ckPatternFind 里），仍然只是观察不是断语。 */
+        var _mpf = null;
+        try { _mpf = _ckPatternFind(dateKey); } catch (ePF2) {}
         _mlHtml = '<div class="weekly-letter ml-letter" id="monthlyLetter">' +
           '<div class="wl-head">📮 ' + (_pm.getMonth() + 1) +
           ' 月的小满信' +
@@ -20026,7 +20030,9 @@ function renderCheckin(dateKey) {
           'aria-label="收下了，不再显示">×</button></div>' +
           '<div class="wl-body">上个月你' +
           esc(_mParts.join('、')) + '，我都替你记着。' +
-          esc(_MSEASON[_pm.getMonth()]) + '</div></div>';
+          esc(_MSEASON[_pm.getMonth()]) +
+          (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
+          '</div></div>';
       }
     }
   } catch (eML) {}
