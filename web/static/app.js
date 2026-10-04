@@ -9035,7 +9035,10 @@ var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
   /* R3486：图腾壁纸回流锚。 */
   'guardian-wap': 'G',
   /* R3491：纹样原图回流锚。 */
-  'emblem-wap': 'E' };
+  'emblem-wap': 'E',
+  /* R3494a（审修）：名片海报回流锚——漏配时受邀者落 bazi
+   * 表单不自动开同款，钩主件沉底。 */
+  namecard: 'N' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -13108,7 +13111,7 @@ function _sqRelTxt(meKey, peerKey) {
   var rel;
   if (_SQ_SHWO[wx] === pw) rel = 'TA 旺你型：TA 是你的能量补给，处久了你精神头足';
   else if (_SQ_SHWO[pw] === wx) rel = '你旺 TA 型：跟你在一起 TA 状态好，别老是你给';
-  else if (_SQ_KEWO[wx] === pw) rel = '磨刀石型：TA 会硌你一下，但处好了最互补';
+  else if (_SQ_KEWO[wx] === pw) rel = '磨合型：TA 会硌你一下，但处好了最互补';
   else if (_SQ_WOKE[wx] === pw) rel = '你带节奏型：TA 容易被你带着走，温柔点带';
   else rel = '各有各的节奏：不同步但正好互相补上';
   return '💞 你俩的合拍：' + _SQ_ARCH[pw].name + ' × ' +
@@ -13128,7 +13131,7 @@ function _sqPairTxt(kA, kB) {
     '：' + nB + ' 是 ' + nA + ' 的能量补给';
   if (_SQ_SHWO[wB] === wA) return nA + ' 旺 ' + nB +
     '：' + nA + ' 一在，' + nB + ' 状态就好';
-  if (_SQ_KEWO[wA] === wB) return '磨刀石组合：' + nB +
+  if (_SQ_KEWO[wA] === wB) return '磨合型组合：' + nB +
     ' 会硌 ' + nA + ' 一下，处好了最互补';
   if (_SQ_WOKE[wA] === wB) return nA + ' 带节奏：' + nB +
     ' 容易被带着走';

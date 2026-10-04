@@ -19805,3 +19805,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 自审修：🪪（Unicode 14）换 📇 防旧设备豆腐；_ncCard/_ncOpen 落位 _emOpen 后。
 - 实测：庚日主→六行全出（青龙/绿幽灵/金41%/星芒纹/刑天）+海报 7 行全渲+零 JS 错。
 - 闸：selftest 457 / smoke 126 / contract 790 / banned 0 / plain 5 全绿。
+
+## R3495+R3496 双审按单清（亲审，审计子又停摆已终止）
+- R3495 小惊喜八件域全链终扫（docs/AUDIT_R3495）：初始化顺序/同源口径/锚族8键/排队链/海报六件套/健壮性逐项 PASS。
+- 修复：_SA_SHARE_KEY 漏 namecard→N（名片海报回流锚补齐）；soulquiz 海报「合拍」行剥前缀只带判词本体（20字行帽截尾根治）；「磨刀石」→「磨合型」两处口吻微调。
+- R3496 sq 全链终扫（docs/AUDIT_R3496）：sqb 合法性/五行表自洽/委托顺序/NO_CASE/三级复制降级全 PASS。
+- 闸：selftest 457 / smoke 126 / banned 0 全绿。
