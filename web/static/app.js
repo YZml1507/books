@@ -1921,12 +1921,12 @@ function buildChatContext(viewKey) {
           _pf.partner_energy.week_peak.d &&
           Array.isArray(_pf.week_energy) &&
           _pf.week_energy.length === 7) {
-        var _mk = 0;
+        var _mkI = 0;
         _pf.week_energy.forEach(function (w, i) {
-          if (w.s > _pf.week_energy[_mk].s) _mk = i; });
-        if (_pf.week_energy[_mk].d === _pf.partner_energy.week_peak.d) {
-          facts.push('双满电日：' + _pf.week_energy[_mk].d +
-                     '（我 ' + _pf.week_energy[_mk].s + ' · TA ' +
+          if (w.s > _pf.week_energy[_mkI].s) _mkI = i; });
+        if (_pf.week_energy[_mkI].d === _pf.partner_energy.week_peak.d) {
+          facts.push('双满电日：' + _pf.week_energy[_mkI].d +
+                     '（我 ' + _pf.week_energy[_mkI].s + ' · TA ' +
                      _pf.partner_energy.week_peak.s + '）');
         }
       }
