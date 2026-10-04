@@ -19690,3 +19690,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - sa 分享链受邀者落地不再只有空表单：剥参前 `__shareSa` 存件键，新客欢迎条/老客 toast 按件点名——「小雅在晒 TA 的『守护兽』：填生日排完盘，自动给你开同款」。
 - 承接承诺由 R3471（sa 锚自动开卡）+R3475（链接带 sa 参）兑现，闭环：晒→链→承接→排盘→同款卡。
 - 实测：新客欢迎条点名守护兽+喊名；老客 toast 点名灵魂色谱；submit 后 gdCard 自动填充。
+
+## R3477ab 海报二维码：复活+同款落地
+- R3477b-P0：idle 预热（warmPoster）后 app_poster.js 真 downloadPoster 接管入口，app.js stub 的 _loadQrJs 链被绕过——R3317-F 的回流二维码在实际使用中永远不画。真函数内补一次懒载保证（typeof 双守）。
+- R3477a：QR 内容与复制链同口径——`?view=<别名>&from=poster&sa=<锚>`，扫守护兽海报落 `?view=bazi&sa=G` 而非首页。
+- 实测（host-resolver-rules 假域名）：addData 截获 `?view=bazi&from=poster&sa=G`；海报 CTA pill 左端码块目检正常。

@@ -903,7 +903,17 @@ function _paintSharePoster(s, W, H) {
        * （WeChat 长按识别对 <60px 的码失败率明显升）。 */
       var _qh = hook ? 72 : 52;
       var _qy = 1346 + ((hook ? 84 : 62) - _qh) / 2;
-      var _qu = (location.origin || '') + '/?from=poster';
+      /* R3477a：扫码落到同款——QR 与复制链同口径携带 view 别名
+       * 与小惊喜 sa 锚，扫守护兽海报不再只到首页。 */
+      var _sv0 = (s && s.view) || '';
+      var _qu = (location.origin || '') + '/?view=' +
+        encodeURIComponent(
+          (typeof _SHARE_VIEW_ALIAS === 'object' &&
+            _SHARE_VIEW_ALIAS[_sv0]) || _sv0 || 'home') +
+        '&from=poster';
+      var _saQ = (typeof _SA_SHARE_KEY === 'object' &&
+        _SA_SHARE_KEY[_sv0]) || '';
+      if (_saQ) _qu += '&sa=' + _saQ;
       var _qr = qrcode(0, 'M'); _qr.addData(_qu); _qr.make();
       var _qn = _qr.getModuleCount();
       var _qc = Math.floor(_qh / (_qn + 6));
@@ -2321,6 +2331,13 @@ var _POSTER_INFLIGHT = false;   /* R2513（审-P1）：生成管线在途锁—�
 async function downloadPoster(j, view) {
   if (_POSTER_INFLIGHT) return null;
   _POSTER_INFLIGHT = true;
+  /* R3477b-P0：idle 预热后本函数直接接管入口（app.js stub 被
+   * 覆盖），qrcode 懒载链被绕过——QR 在实际使用中永远不画。
+   * 这里补一次懒载保证（已加载则瞬时 resolve）。 */
+  try {
+    if (typeof _loadQrJs === 'function' &&
+        typeof qrcode !== 'function') await _loadQrJs();
+  } catch (eQL) {}
   /* R233k（R45-§2）：按下到浮层弹出要 ~1.5-4s（底图 decode+字体
    * load），原零反馈。触发按钮立即转忙态直到流程结束。 */
   var _pbtn = document.activeElement;
