@@ -97,3 +97,4 @@ Temp/
 # 本地 e2e 测试用字体（从 starloom-main zip 提取；仅浏览器中文字形用，
 # 不入库——二进制无 LFS 规则覆盖 *.ttf）
 data/external/starloom/
+data/users.db
