@@ -16001,6 +16001,10 @@ function init() {
               window.__shareSym =
                 String(_qsAll.get('sym')).slice(0, 12);
             }
+            /* R3476：sa 错随链存——落地承接要点名是哪件。 */
+            if (_qsAll.get('sa')) {
+              window.__shareSa = String(_qsAll.get('sa')).slice(0, 2);
+            }
             /* R2349t（R88-13b）：分享者昵称随链——剥参前先存，
              * sessionStorage 备份让刷新后也能喊出名字。 */
             var _sby0 = _qsAll.get('n');
@@ -16625,6 +16629,18 @@ if (document.readyState === 'loading') {
                '」，你的梦呢？🌙')
             : '朋友在晒她的梦，你的梦也来翻一翻 🌙';
         }
+        /* R3476：sa 分享链承接点名件——「自动给你开同款」由
+         * sa 错链（R3471）+链接 sa 参（R3475）兑现。 */
+        if (_sv === 'bazi') {
+          var _saNk = (window.__shareSa ||
+            new URLSearchParams(location.search).get('sa') || '');
+          var _saNM = { F: '旺你的方位', G: '守护兽', C: '守护水晶',
+            S: '灵魂色谱', P: '算命 prompt' };
+          if (_saNM[_saNk]) {
+            _relay.bazi = '朋友在晒 TA 的「' + _saNM[_saNk] +
+              '」：排完你的盘，自动给你开同款 ✨';
+          }
+        }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
         var _who = _shareByName();
@@ -16710,6 +16726,17 @@ if (document.readyState === 'loading') {
           ? ('朋友对上了「' + String(_symW).slice(0, 12) +
              '」，你的梦也说说 🌙')
           : '朋友在晒她的梦，你的梦也说说 🌙';
+      }
+      /* R3476：sa 分享链——新客欢迎条也点名件+承诺自动开同款。 */
+      if (_sv2 === 'bazi') {
+        var _saK2 = (window.__shareSa ||
+          new URLSearchParams(location.search).get('sa') || '');
+        var _saNM2 = { F: '旺你的方位', G: '守护兽', C: '守护水晶',
+          S: '灵魂色谱', P: '算命 prompt' };
+        if (_saNM2[_saK2]) {
+          _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
+            '」：填生日排完盘，自动给你开同款 ✨';
+        }
       }
       var _who2 = _shareByName();
       _txtEl.textContent = ((_relayBar[_sv2] ||
