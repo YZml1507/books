@@ -17017,6 +17017,16 @@ function init() {
                 }
               } catch (eSB) {}
             }
+            /* R3667：wish=1/n 受邀旗改在这里落——原来挂在老客
+             * toast 块里（_seen 门内），新客受邀根本不到那，
+             * 许完愿永远没有回递钮。wish=r 回传方不立旗。 */
+            var _wv0 = _qsAll.get('wish');
+            if (_wv0 && _wv0 !== 'r') {
+              try {
+                sessionStorage.setItem('wishReplyFrom',
+                  String(_sby0 || 'TA').slice(0, 24));
+              } catch (eWV) {}
+            }
           }
         } catch (eSF) {}
         /* R3412-P1（裂变终扫）：外部深链（分享/邀请/默契 hash）落地时
@@ -17672,12 +17682,8 @@ if (document.readyState === 'loading') {
             : _qs.get('wish') === 'n'
             ? '朋友趁新月喊你一起丢个愿望：写下来，月亮替你收着 🌑'
             : '朋友趁满月喊你一起丢个愿望：写下来，月亮替你收着 🌕';
-          if (_qs.get('wish') !== 'r') {
-            try {
-              sessionStorage.setItem('wishReplyFrom',
-                String(_shareByName() || 'TA').slice(0, 24));
-            } catch (eWRF) {}
-          }
+          /* wishReplyFrom 旗统一在剥参前公共段立（R3667）——
+           * 这里不再立，新客走不到 _seen 块。 */
         }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
