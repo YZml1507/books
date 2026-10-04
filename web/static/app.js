@@ -6321,6 +6321,21 @@ async function loadDaily() {
       _dailyMetaItem('dailyMercCare', '');
       _dailyMetaItem('dailyMercKit', '');
     }
+    /* R3502：金逆/火逆日行——同构状态行，窗口外不占位。
+     * 金逆话题=旧人旧事/审美重置（感情向不点破不吓唬）；
+     * 火逆=行动力慢拍。 */
+    if (j.venus && j.venus.on) {
+      _dailyMetaItem('dailyVenus',
+        '💞 金逆中 · 第' + j.venus.day_no + '天（到 ' +
+        esc(String(j.venus.until || '').slice(5).replace('-', '月')) +
+        '日），旧人旧事翻上来就看一眼，不用回头');
+    } else { _dailyMetaItem('dailyVenus', ''); }
+    if (j.mars && j.mars.on) {
+      _dailyMetaItem('dailyMars',
+        '🔥 火逆中 · 第' + j.mars.day_no + '天（到 ' +
+        esc(String(j.mars.until || '').slice(5).replace('-', '月')) +
+        '日），手脚慢半拍的日子，少开新局多收尾');
+    } else { _dailyMetaItem('dailyMars', ''); }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
     var _uDays = _usageDays();

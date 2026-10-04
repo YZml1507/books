@@ -2603,6 +2603,21 @@ _MERCURY_RETRO: tuple[tuple[str, str], ...] = (
 )
 
 
+# R3502：金星/火星逆行历表（公开天文历 station 到 station 日粒度，
+# UTC；Swiss Ephemeris 计算源多源交叉核验 2025–2029）。金逆周期
+# 约 18 个月一次、火逆约 26 个月一次——表外年份静默无状态。
+_VENUS_RETRO: tuple[tuple[str, str], ...] = (
+    ("2025-03-01", "2025-04-12"),
+    ("2026-10-03", "2026-11-14"),
+    ("2028-05-10", "2028-06-22"),
+)
+_MARS_RETRO: tuple[tuple[str, str], ...] = (
+    ("2024-12-06", "2025-02-23"),
+    ("2027-01-10", "2027-04-01"),
+    ("2029-02-14", "2029-05-05"),
+)
+
+
 # R2349l（R73-P2-10）：节气民俗一句池——交节日的首页仪式感。
 _TERM_FOLK: dict[str, str] = {
     "立春": "打春吃春饼，新一年的开头宜立个小愿望",
@@ -2747,9 +2762,10 @@ def _moon_for(d: date) -> dict:
     return {}
 
 
-def _mercury_state(d: date) -> dict:
-    """d 这天的水逆状态：{on, day_no, until} / {on:False, next, days_to}。"""
-    for s, e in _MERCURY_RETRO:
+def _retro_state(
+        table: tuple[tuple[str, str], ...], d: date) -> dict:
+    """d 这天的逆行状态：{on, day_no, until} / {on:False, next, days_to}。"""
+    for s, e in table:
         ds, de = date.fromisoformat(s), date.fromisoformat(e)
         if ds <= d <= de:
             return {"on": True, "day_no": (d - ds).days + 1,
@@ -2758,6 +2774,19 @@ def _mercury_state(d: date) -> dict:
             return {"on": False, "next": s,
                     "days_to": (ds - d).days}
     return {"on": False, "next": "", "days_to": 0}
+
+
+def _mercury_state(d: date) -> dict:
+    return _retro_state(_MERCURY_RETRO, d)
+
+
+# R3502：金逆（旧情复盘/审美重置话题）与火逆（行动力慢拍）同构状态。
+def _venus_state(d: date) -> dict:
+    return _retro_state(_VENUS_RETRO, d)
+
+
+def _mars_state(d: date) -> dict:
+    return _retro_state(_MARS_RETRO, d)
 
 
 # R2349l（R73-P1-4）：开运色/幸运数——当日日干五行为主轴，确定性可复验。
@@ -4330,6 +4359,31 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     f"{_m['next']}起（还有{_m['days_to']}天）")
             else:
                 out.append("今日水逆态：今天不在水逆期")
+        # R3502：金逆/火逆问句——同构状态行随问随行。
+        if any(k in _n for k in ("金逆", "金星逆行")):
+            _v = _venus_state(_d)
+            if _v.get("on"):
+                out.append(
+                    f"今日金逆态：正在金星逆行，第{_v['day_no']}天，"
+                    f"一直到{_v['until']}（日粒度历表）")
+            elif _v.get("next"):
+                out.append(
+                    f"今日金逆态：今天不在金逆期，下一次"
+                    f"{_v['next']}起（还有{_v['days_to']}天）")
+            else:
+                out.append("今日金逆态：今天不在金逆期")
+        if any(k in _n for k in ("火逆", "火星逆行")):
+            _r = _mars_state(_d)
+            if _r.get("on"):
+                out.append(
+                    f"今日火逆态：正在火星逆行，第{_r['day_no']}天，"
+                    f"一直到{_r['until']}（日粒度历表）")
+            elif _r.get("next"):
+                out.append(
+                    f"今日火逆态：今天不在火逆期，下一次"
+                    f"{_r['next']}起（还有{_r['days_to']}天）")
+            else:
+                out.append("今日火逆态：今天不在火逆期")
         if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
                                  "幸运颜色", "开运色", "什么颜色", "配色")):
             _lk = _lucky_for(_d)
@@ -5539,6 +5593,10 @@ def daily(date_str: str | None = None,
                       "lucky": _c.get("lucky") or _lucky_for(_d0),
                       "mercury": (_c.get("mercury")
                                   or _mercury_state(_d0)),
+                      "venus": (_c.get("venus")
+                                or _venus_state(_d0)),
+                      "mars": (_c.get("mars")
+                               or _mars_state(_d0)),
                       # R3261：财神方位同为 per-date 派生键——旧缓存行
                       # 现算随包回，不抬 cv 代次。
                       "money_dir": (_c.get("money_dir")
@@ -5677,6 +5735,9 @@ def daily(date_str: str | None = None,
             "money_dir": huangli_mod.caishen_fang(
                 datetime(d.year, d.month, d.day, 12)),
             "mercury": _mercury_state(d),
+            # R3502：金逆/火逆同构状态（表外年份静默）
+            "venus": _venus_state(d),
+            "mars": _mars_state(d),
             "moon": _moon_for(d),
             # R3317-G：今日牌——同日全站同一张大阿卡纳
             "daily_card": _daily_card_for(d),
@@ -5716,6 +5777,7 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "lunar": "",
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
+                "venus": {}, "mars": {},
                 "outfit": {},
                 "daily_card": {},
                 "term": {}}
