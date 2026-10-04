@@ -19695,3 +19695,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3477b-P0：idle 预热（warmPoster）后 app_poster.js 真 downloadPoster 接管入口，app.js stub 的 _loadQrJs 链被绕过——R3317-F 的回流二维码在实际使用中永远不画。真函数内补一次懒载保证（typeof 双守）。
 - R3477a：QR 内容与复制链同口径——`?view=<别名>&from=poster&sa=<锚>`，扫守护兽海报落 `?view=bazi&sa=G` 而非首页。
 - 实测（host-resolver-rules 假域名）：addData 截获 `?view=bazi&from=poster&sa=G`；海报 CTA pill 左端码块目检正常。
+
+## R3477c 海报行帽补遗 + 危机闸对账
+- _lineCap 补 guardian:6 / crystal:6——两卡全字段齐 5 行，cap4 把「口径」免责行静默切掉（R3474 同款坑第5次犯，台账已记录补帽清单制）。
+- 危机词表前后端逐字对账：_CRISIS_FE_HARD/_CRISIS_FE_SOFT 与后端 _CRISIS_HARD_PAT/_CRISIS_SOFT_PAT 完全一致（改花刀/割手/遗书/离开这个世界等本代际词均已同步）。
+- 自由文本→海报敏感闸全链在位：默契自写题/塔罗问句/还愿愿望均过 feCrisis+feSensitive 双闸。

@@ -378,6 +378,9 @@ function _paintSharePoster(s, W, H) {
                    /* R3474：fortune_dir 加旺城行后共 6 行——默认 cap4
                     * 会把「小满说/口径」尾两行静默切没，提帽 6。 */
                    fortune_dir: 6,
+                   /* R3477c-P1（亲审）：guardian/crystal 全字段齐 5 行
+                    * ——cap4 把「口径」免责行静默切掉，提帽 6。 */
+                   guardian: 6, crystal: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
