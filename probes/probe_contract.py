@@ -353,7 +353,15 @@ CONDITIONAL_FIELDS = {
     # R3358：payload 只在拉取成功（ok:true）时返回——拒绝态（probe 的
     # 不存在昵称 fixture 走的就是这条）只有 ok/msg；前端
     # `if (r && r.ok && r.payload)` 正是对缺席的探测。
-    "/api/account/backup/pull": {"payload"},
+    "/api/account/backup/pull": {"payload",
+        # R3372：updated_at 只随成功 payload 返回——前端 `if (r.updated_at)`
+        # 是对缺席的探测（拒绝态只有 ok/msg）。
+        "updated_at"},
+    # R3372：push 的 updated_at/conflict 是条件字段——成功态回 updated_at、
+    # 冲突态回 {conflict:true,updated_at}、拒绝态只有 ok/msg；probe fixture
+    # 走不存在昵称拒答支路，前端 `if (r.conflict)`/`if (r.updated_at)`
+    # 均是对缺席的探测。
+    "/api/account/backup/push": {"updated_at", "conflict"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。

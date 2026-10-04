@@ -28,6 +28,13 @@ var _WAP_THEME_TERM = {
 function _wapTheme(j) {
   /* 当日限定主题文件名（无 → null）。节日列表逐名对表取首个命中。 */
   try {
+    /* R3370-低9：万圣主题与 trQH 限定窗（10/29–11/1）对齐——
+     * 靠节日表名只活 10/31–11/1，窗口期前后两天用户抽了限定
+     * 牌却换不到同款壁纸。 */
+    var _nd = new Date(), _nm0 = _nd.getMonth() + 1, _nd0 = _nd.getDate();
+    if ((_nm0 === 10 && _nd0 >= 29) || (_nm0 === 11 && _nd0 <= 1)) {
+      return 'wap-t-halloween';
+    }
     var _f = (j && j.festival) || [];
     for (var i = 0; i < _f.length; i++) {
       var t = _WAP_THEME_FEST[_f[i]];

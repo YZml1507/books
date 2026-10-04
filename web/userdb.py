@@ -167,22 +167,33 @@ def _hash(passcode: str, salt: str) -> str:
 
 # ---------- 账号操作 ----------
 
+def _canon(nickname: str) -> str:
+    """R3372-低-2：昵称大小写归一——'Abc' 与 'abc' 是同一个账号
+    （NFKC 已在 schema 层做过）。新注册的账号行存归一形；
+    老库里大小写账号靠 lower() 兜底仍能登。"""
+    return nickname.casefold()
+
+
 def register(nickname: str, passcode: str) -> tuple[bool, str]:
     """注册。返回 (ok, msg)。昵称即主键，重名拒收。"""
     init()
-    if _exec("SELECT 1 FROM accounts WHERE nickname=?",
+    # R3372-低-2：大小写不敏感查重——'Abc' 存在时 'ABC' 也拒。
+    if _exec("SELECT 1 FROM accounts WHERE lower(nickname)=lower(?)",
              (nickname,)):
-        return False, "这个名字已经有人用了，换一个试试"
+        # R3372-P2-3：文案不再点明「已有人用」——注册面不再泄露
+        # 账号存在性（与登录侧「名字或口令码不对」同口径）。
+        return False, "这个名字不能用，换一个试试"
     salt = base64.b64encode(secrets.token_bytes(9)).decode()
     try:
         _exec(
             "INSERT INTO accounts (nickname, pass_hash, salt,"
             " created_at, updated_at) VALUES (?,?,?,?,?)",
-            (nickname, _hash(passcode, salt), salt, _now(), _now()))
+            (_canon(nickname),
+             _hash(passcode, salt), salt, _now(), _now()))
     except Exception:
         # 并发重名抢注：SELECT 后 INSERT 前另一请求先建了同昵称——
         # sqlite IntegrityError / libsql 约束报错统一归并为重名拒。
-        return False, "这个名字已经有人用了，换一个试试"
+        return False, "这个名字不能用，换一个试试"
     return True, "ok"
 
 
@@ -190,24 +201,54 @@ def verify(nickname: str, passcode: str) -> bool:
     init()
     rows = _exec(
         "SELECT pass_hash, salt FROM accounts WHERE nickname=?",
-        (nickname,))
+        (_canon(nickname),))
+    if not rows and _canon(nickname) != nickname:
+        # 老库里大小写账号——casefold 前注册的 'Abc' 仍按 lower() 兜住。
+        rows = _exec(
+            "SELECT pass_hash, salt FROM accounts"
+            " WHERE lower(nickname)=lower(?)", (nickname,))
     if not rows:
         return False
     return secrets.compare_digest(
         _hash(passcode, rows[0]["salt"]), rows[0]["pass_hash"])
 
 
-def put_backup(nickname: str, payload: str) -> None:
+def _backup_nick(nickname: str) -> str:
+    """backups 表规范昵称：已有行（含老大小写行）按原 case 命中，
+    新行存归一形——避免 'Abc'/'abc' 裂成两条备份。"""
+    rows = _exec("SELECT nickname FROM backups"
+                 " WHERE lower(nickname)=lower(?)", (nickname,))
+    return rows[0]["nickname"] if rows else _canon(nickname)
+
+
+def put_backup(nickname: str, payload: str,
+               base_updated_at: str | None = None) -> str | None:
+    """写入备份。返回 None=成功；返回 str=冲突时云端当前 updated_at。
+    R3372-P2-1：base_updated_at 非 None 且与云端不一致→拒写回当前
+    云端戳（乐观并发：另一台设备先推过，客户端先拉回再推）。
+    SELECT→写之间仍有微竞态——轻账号按建议性并发控制处理，不做
+    分布式锁。"""
     init()
+    nick = _backup_nick(nickname)
+    if base_updated_at is not None:
+        rows = _exec("SELECT updated_at FROM backups WHERE nickname=?",
+                     (nick,))
+        if rows and rows[0]["updated_at"] != base_updated_at:
+            return rows[0]["updated_at"]
     _exec(
         "INSERT INTO backups (nickname, payload, updated_at)"
         " VALUES (?,?,?) ON CONFLICT(nickname) DO UPDATE SET"
         " payload=excluded.payload, updated_at=excluded.updated_at",
-        (nickname, payload, _now()))
+        (nick, payload, _now()))
+    return None
 
 
 def get_backup(nickname: str) -> dict | None:
     init()
     rows = _exec("SELECT payload, updated_at FROM backups WHERE nickname=?",
-                 (nickname,))
+                 (_canon(nickname),))
+    if not rows and _canon(nickname) != nickname:
+        rows = _exec(
+            "SELECT payload, updated_at FROM backups"
+            " WHERE lower(nickname)=lower(?)", (nickname,))
     return dict(rows[0]) if rows else None

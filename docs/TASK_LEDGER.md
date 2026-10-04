@@ -18397,3 +18397,48 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   icons 是 PWA 安装面所需；低-3 localStorage getItem 微秒级 vs 跨 Tab 陈旧
   风险不划算。
 - 闸门：selftest 419 / contract 782 / ui_smoke 105 / 其余探针+ruff 全绿。
+## R3370+R3372 双审清零（口吻/万圣节点 + 账号表单边界多Tab）
+
+### R3370（检 11；已修 11）
+- P1-1 share/invite 落地承接：非 home 视图 welcome-bar 被
+  `body[data-view]:not(home)` 规则盖死——新受邀者零语境。CSS 加
+  `[data-relay]` 放行规则 + `_mk()` 对 share/invite 落标。
+- P1-2 chat 万圣词族（万圣节/万圣夜/trick or treat/不给糖/南瓜灯）
+  挂 `_CHAT_ACTIONS` → {view:tarot, anchor:trQH}，窗口外日期门跳过落
+  回塔罗族；`_CHAT_ACT_ANCHORS` 补 `trQH:'#trQH'` 滚到门口。
+- P1-3 `_festivalBand` `'🎐 今天是'+f+tip` 粘连病句补 `' · '` 分隔
+  （对齐另两处节日行口径）。
+- P2-4 `_trHFest` init 快照→函数复判：跨零点页面点击时重查窗口，
+  窗口外点中自动藏钮不再冒限定名。
+- P2-5 xingzuo.py:176「好感谢意都别藏着」改「谢和喜欢都别藏着」。
+- P2-6 判词「✅ ：」「🚫 ：」「都有 ， 宜」病句符收正。
+- P2-7 求医别名 +医院/住院/诊所/门诊/急诊/出院（前后端同构，
+  date_parity 钉死）。
+- P2-8 占卜→tarot、命盘/看盘/我的盘→bazi 动作词族补位。
+- 低-9 壁纸万圣主题窗与 trQH 对齐 10/29–11/1（原只 10/31–11/1）。
+- 低-10 chat 兜底 love 池补伴侣称呼/吵架词。
+- 低-11（上一轮已修）拉回刷新延时 1200→3500。
+
+### R3372（检 8；已修 8）
+- P0-1 keepalive 推送超 60KiB 曾把 {browser}-only 残壳 upsert 覆盖整份
+  云备份——拒发残壳改置 _PEND_KEY，前台/下页消费补投完整包。
+- P0-2 换主清扫死锁：`logout` 删 _OWNER_KEY 导致 `_sweepForNewOwner`
+  的 _prevOwner 比对永远跑不到；logout 保留 owner 键，清扫面统一走
+  `_DATA_RE`/`_SDATA_RE` 白名单（LS+SS 双仓）+ `_clearAccountKeys`
+  补 mirror/threads_seen 清账。
+- P1-3 注册/登录空凭据守卫 + 退号 toast。
+- P1-4 限流双因子：`_nick_ratelimit` 对 `__all__` 桶只查 per-nick，
+  真实 IP 下 bucket-ip + bucket:ip:nick 双闸（单 IP 撞库不再连坐）。
+- P1-5 昵称大小写折叠：`_canon`=casefold；注册 lower() 去重+存 canon、
+  登录 canon→lower 回退、备份行 lower() 寻址——「Abc」与「abc」
+  不再裂变两份库行。
+- P1-6 乐观并发：push 带 `base_updated_at`，冲突回
+  `{conflict:true,updated_at}` 而非覆盖；前端 _CLOUDTS_KEY 三处写入
+  （pull成功/push成功/conflict）+ 冲突 toast 指路「先拉回再同步」。
+- P2-7 import 白名单与备份同源 `_DATA_RE`，`_NO_BACKUP_RE`
+  (voiceMode/chatSessionId) 只扫不备份；`_dropN` 按真实拦截口径重计。
+- P2-8 合婚邀请模式 me:partner 两段确认（已存在且不同→先提示再
+  二次点击才写）。
+- selftest +3（register_casefold/push_conflict/push_updated_at）；
+  contract 条件字段表补 push.pull 的 updated_at/conflict。
+- 闸门：selftest 422 / contract 790 / ui_smoke 105 / 其余探针+ruff 全绿。

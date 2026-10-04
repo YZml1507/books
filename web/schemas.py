@@ -693,5 +693,7 @@ class AccountAuthRequest(BaseModel):
 class AccountBackupPushRequest(AccountAuthRequest):
     """推送备份：负载是导出器整套 bundle JSON 文本——服务端不透明
     存放不解析，只卡体积（现有全量导出实测 ~500KB，1.2MB 上限留
-    余量）。"""
+    余量）。base_updated_at 是客户端最近一次看到的云端 updated_at，
+    供乐观并发比对；缺省=无条件覆盖（首次推送）。"""
     payload: str = Field(..., min_length=2, max_length=1_200_000)
+    base_updated_at: str | None = Field(default=None, max_length=40)

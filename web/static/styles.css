@@ -2701,6 +2701,10 @@ html.welcomed .welcome-bar{display:none;}
  * 指错路。showView 写 body[data-view]，非首页一律隐藏。 */
 body[data-view]:not([data-view="home"]) .welcome-bar,
 body[data-view]:not([data-view="home"]) .return-banner{display:none;}
+/* R3370-P1-1：share/invite 落地时 welcome-bar 正是承接面——
+ * relay 文案已按「页内动作」口径写，非 home 视图也放行。
+ * （特异性对齐上条再加一重 [data-relay] 才能盖过它。） */
+body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
 .welcome-close{
   border:none; background:transparent; font-size:18px; line-height:1;
   color:var(--secondary); cursor:pointer; padding:2px 6px;

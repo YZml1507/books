@@ -5032,6 +5032,26 @@ def _run_inner() -> list[str]:
     assert _r.status_code == 200 and not _r.json().get("ok"), \
         ("account.pull_noexist", _r.status_code, _r.text[:200])
     ok.append("account.pull_noexist")
+    # R3372-审：大小写折叠去重 + 乐观并发（base_updated_at 冲突 409-语义）。
+    _r = client.post("/api/account/register",
+                     json={"nickname": _an.upper(), "passcode": "112233"})
+    assert _r.status_code == 200 and not _r.json().get("ok"), \
+        ("account.register_casefold", _r.status_code, _r.text[:200])
+    ok.append("account.register_casefold")
+    _r = client.post("/api/account/backup/push",
+                     json={"nickname": _an, "passcode": "246810",
+                           "payload": '{"kind":"backup","version":1,"records":[]}',
+                           "base_updated_at": "1999-01-01T00:00:00+00:00"})
+    assert _r.status_code == 200 and _r.json().get("conflict") is True, \
+        ("account.push_conflict", _r.status_code, _r.text[:200])
+    ok.append("account.push_conflict")
+    _r = client.post("/api/account/backup/push",
+                     json={"nickname": _an, "passcode": "246810",
+                           "payload": '{"kind":"backup","version":1,"records":[]}'})
+    assert (_r.status_code == 200 and _r.json().get("ok") is True
+            and _r.json().get("updated_at")), \
+        ("account.push_updated_at", _r.status_code, _r.text[:200])
+    ok.append("account.push_updated_at")
     return ok
 
 

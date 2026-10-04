@@ -2325,7 +2325,9 @@ var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
 var _CHAT_ACT_ANCHORS = {
   shred: '.ck-shred', wish: '.ck-wish',
   checkin: '#dailyCheckin', annual: '#checkinYear',
-  celeb: '#celebDrawer' };
+  celeb: '#celebDrawer',
+  /* R3370-P1-2：万圣限定卡锚——窗口内 trQH 已现身，滚到门口。 */
+  trQH: '#trQH' };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
   /* R3368（积压-动作chip去重）：重试/打烊/任务落地多条链路
@@ -2568,7 +2570,10 @@ var _CHAT_FALLBACK_KW_MAP = [
   { cat: 'tired',   kws: ['累', '疲惫', '睡', '失眠', '撑', '撑不住', '废', '躺',
     '焦虑', 'emo', '内耗', '郁闷', '烦'] },
   { cat: 'work',    kws: ['工作', '职场', '同事', '老板', '上司', '升职', '跳槽', '上班', '加班', '辞职'] },
-  { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '对象', '暗恋', '表白', '相亲', '暧昧'] },
+  /* R3370-低10：伴侣称呼/吵架词补进 love 池——「和男朋友吵架了」
+   * 此前落 default 池答非所问。 */
+  { cat: 'love',    kws: ['感情', '恋爱', '喜欢', '分手', '前任', '对象', '暗恋', '表白', '相亲', '暧昧',
+    '男朋友', '女朋友', '男友', '女友', '老公', '老婆', '爱人', '吵架'] },
   { cat: 'study',   kws: ['学习', '考试', '作业', '考研', '高考', '中考', '成绩', '课程', '论文', '答辩'] },
   { cat: 'money',   kws: ['钱', '工资', '消费', '理财', '账单', '余额', '省钱', '欠款', '花呗'] },
   /* R2359（R114-P4-2）：裸「看」字太宽——「我去看看医生/看书」都会错
@@ -3879,8 +3884,9 @@ function renderHits(hits, opts) {
        * 留 1 位小数 + title 说明口径。 */
       /* R2349v（R92-P1-3）：BM25 负分直出「相关度 -3.6」对受众无意义
        * ——折成档位词，精确分留 title 悬停。 */
-      (o.score && h.score != null ? '<span class="hit-score" title="相关性评分（BM25，' +
-        esc(Number(h.score).toFixed(1)) + '）">' +
+      /* R3370-低12：tooltip 不再甩 BM25 术语——说人话「越贴合」。 */
+      (o.score && h.score != null ? '<span class="hit-score" title="越贴合你查的那句，分越高。参考分 ' +
+        esc(Number(h.score).toFixed(1)) + '">' +
         (Number(h.score) > -5 ? '更相关' : (Number(h.score) > -15 ? '较相关' : '沾边')) +
         '</span>' : '') +
       '</div>';
@@ -9643,9 +9649,25 @@ async function doHehun() {
         leap: checked('hh_b_leap') };
       if (val('hh_b_name')) _optsPaB.n = val('hh_b_name');
       /* R3247：B 侧是明星公开生日（_celebOn('b')）不落 TA 档案。 */
+      /* R3372-P2-4：受邀态下提交会把受邀者本机的对象档盖成
+       * 发起人——me:partner 已有内容且生日不同先两段式确认，
+       * 一闪而过的 toast 不算知情。 */
       if (!_celebOn('b') && !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
-                             'hh_b_hour','hh_b_gender']))
+                             'hh_b_hour','hh_b_gender'])) {
+        var _pa0 = _meGet('me:partner');
+        var _paDiff = !!(_pa0 &&
+          (+_pa0.y !== +_optsPaB.y || +_pa0.m !== +_optsPaB.m ||
+           +_pa0.d !== +_optsPaB.d));
+        if (window.__hhInviteMode && _paDiff && !window.__hhPartnerArm) {
+          window.__hhPartnerArm = true;
+          showToast('会把你的对象档换成「' +
+                    (_optsPaB.n || '这位') + '」——再点一次提交确认',
+                    'warn');
+          return;
+        }
+        window.__hhPartnerArm = false;
         await _meSaveFromBirth('me:partner', _optsPaB);
+      }
     }
     _meFillAll();
     /* R2350f（R102-P1-5）：双侧生日都回显——邀请态下 A 侧是 TA。 */
@@ -10070,6 +10092,11 @@ var HL_SCENE_ALIAS = {
   '体检': ['求医', '治病', '求医疗病'], '洗牙': ['求医', '治病', '求医疗病'],
   '拔牙': ['求医', '治病', '求医疗病'], '医美': ['求医', '治病', '求医疗病'],
   '整容': ['求医', '治病', '求医疗病'],
+  /* R3370-P2-7：就医场景词——「哪天去医院好」此前净落「没提」，
+   * 就诊机构名全映求医族。 */
+  '医院': ['求医', '治病', '求医疗病'], '住院': ['求医','治病','求医疗病'],
+  '诊所': ['求医','治病','求医疗病'], '门诊': ['求医','治病','求医疗病'],
+  '急诊': ['求医','治病','求医疗病'], '出院': ['求医','治病','求医疗病'],
   '借钱': ['纳财'], '讨债': ['纳财'], '还钱': ['纳财'], '还贷': ['纳财'],
   '辞职': ['解除'], '离职': ['解除'],
   /* R3083（巡#500）：跳槽/换工作双腿——离开+赴任，与后端同构补上任腿；
@@ -10573,21 +10600,22 @@ function _hlVerdictHtml(sc, yi, ji, YI_MAP, JI_MAP, day, conflict, dayFlags) {
   }
   var verdict;
   if (hitYi.length && !hitJi.length) {
-    verdict = day + '适合' + sc + ' ✅ ： 宜项里就有【' + hitYi.join('、') + '】' + why;
+    /* R3370-P2-6：标记+空格+全角冒号是病句符（「✅ ： 宜」）。 */
+    verdict = day + '适合' + sc + ' ✅：宜项里就有【' + hitYi.join('、') + '】' + why;
   } else if (hitJi.length && !hitYi.length) {
     /* R3113（R3102 BE 同口径）：忌判定把硬凶日凭据并进判词——
      * 旗行单独挂一行是「信息」，并进判词才是「凭据」。 */
     var _flv = (dayFlags || []).slice(0, 2);
-    verdict = day + '不宜' + sc + ' 🚫 ： 忌项里写着【' + hitJi.join('、') +
+    verdict = day + '不宜' + sc + ' 🚫：忌项里写着【' + hitJi.join('、') +
       '】' + (_flv.length ? '；这天还逢' + _flv.join('、') +
       '，凭据更实' : '') + why;
   } else if (hitYi.length && hitJi.length) {
     /* R228c：补谓语——「今天搬家宜忌都有」不通，「今天搬家的宜忌都有」
      * 与兄弟分支「今天适合/不宜搬家」同构。 */
-    verdict = day + sc + '的宜忌都有 ， 宜【' + hitYi.join('、') + '】但也忌【' + hitJi.join('、') + '】，想做就把节奏放稳、别赶大动作';
+    verdict = day + sc + '的宜忌都有，宜【' + hitYi.join('、') + '】但也忌【' + hitJi.join('、') + '】，想做就把节奏放稳、别赶大动作';
   } else {
     /* R228c：同句「黄历/老黄历」混用统一为「黄历」（全站功能名口径）。 */
-    verdict = day + '黄历的宜忌里没有直接提到' + sc + ' ： 不是不支持，只是黄历' + day + '没为它背书（' +
+    verdict = day + '黄历的宜忌里没有直接提到' + sc + '：不是不支持，只是黄历' + day + '没为它背书（' +
       (yi.length ? '主推【' + yi.join('、') + '】' : day + '宜项不多') +
       /* R2349（R64-P2）：措辞统一「适合」口径——「宜分手」读感怪。 */
       '）；' + sc + '可照常安排，想要黄历背书可以翻后面几天挑适合' + sc + '的日子';
@@ -13061,13 +13089,21 @@ function initDivination() {
   on('trQPick', function () { return _trPickOpen(); });
   /* R3368：万圣夜限定入口——10.29–11.1 窗口内显示；点了走
    * 抽一张，问句空着给预填，结果卡带限定条。 */
-  var _trHFest = (function () {
+  /* R3370-P2-4：窗口判定改函数——跨零点开着的页面要复判，
+   * init 快照会让 11/2 的页面还挂着限定卡。 */
+  var _trHFest = function () {
     var _n0 = new Date(), _m0 = _n0.getMonth() + 1, _d0 = _n0.getDate();
     return (_m0 === 10 && _d0 >= 29) || (_m0 === 11 && _d0 <= 1);
-  })();
+  };
   var _trHBtn = el('trQH');
-  if (_trHBtn && _trHFest) _trHBtn.hidden = false;
+  if (_trHBtn && _trHFest()) _trHBtn.hidden = false;
   on('trQH', function () {
+    /* R3370-P2-4：点击时复判窗口——跨零点页面仍可点但结果
+     * 不再冒限定名。 */
+    if (!_trHFest()) {
+      if (_trHBtn) _trHBtn.hidden = true;
+      return;
+    }
     var s = el('tr_spread'), n = el('tr_n');
     if (s) s.value = '';
     if (n) n.value = '1';
@@ -13076,7 +13112,7 @@ function initDivination() {
     if (_qi && !(_qi.value || '').trim()) {
       _qi.value = '那件我一直不敢问的事';
     }
-    window.__trHFest = _trHFest;
+    window.__trHFest = true;
     return doTarot();
   });
   /* R3325：大众占卜 pick-a-pile——事业/感情/财运三主题，各 3 堆，
@@ -15655,6 +15691,11 @@ if (document.readyState === 'loading') {
       }
     } catch (e) {}
     var _txtEl = bar.querySelector('.welcome-txt');
+    /* R3370-P1-1：share/invite 落地时欢迎条在非 home 视图被
+     * data-view 规则盖死——新受邀者零承接语境。落标放行。 */
+    if (_from === 'share' || _from === 'invite') {
+      try { document.body.dataset.relay = '1'; } catch (e) {}
+    }
     if (_txtEl && _from === 'share') {
       /* R2349l（R73-P1-13）：新客落地也按接力视图说话。 */
       var _relayBar = {
@@ -15843,8 +15884,10 @@ function _festivalBand() {
     var _f = _pArr(_d.festival)[0] || _pStr(_d.term && _d.term.name);
     if (!_f) return '';
     var _tip = _pStr(_d.term && _d.term.tip) || _festTip(_f);
+    /* R3370-P1-3：节日名与提示缺分隔粘成病句（「今天是万圣夜
+     * 南瓜灯的日子」）——对齐另两处节日行的 ' · ' 口径。 */
     return '<div class="hl-festival">🎐 今天是' + esc(_f) +
-      (_tip ? '' + esc(_tip) : '') + '</div>';
+      (_tip ? ' · ' + esc(_tip) : '') + '</div>';
   } catch (e) { return ''; }
 }
 
@@ -19846,6 +19889,17 @@ function baziPersonaCard(j) {
      * （打卡/me 双档/问一嘴足迹/主题/口吻）。换设备一键带走。 */
     /* R3358：bundle 构建抽成共享函数——导出按钮与账号云同步
      * 共用同一份「我的数据」口径。 */
+    /* R3372-P2-2：本机「个人数据」键白名单收敛成唯一定义——备份
+     * 导出/云备份包/跨账号清扫/拉回 diff/备份导入共用一张表。
+     * uiTheme 本就在备份里（THEME_KEY 同键，随账号走），换主
+     * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
+     * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
+     * 清扫要收但备份与导入不收。 */
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/;
+    var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
+    /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
+     * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
+    var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed)$|^shareBy:|^lastResult:/;
     async function _buildBackupBundle() {
         /* R2349y（R95-P2-5）：台账禁用态下 export_json 404——此前整个
          * 备份中止，连本机偏好都带不走。降级 records:[] 并明说。 */
@@ -19902,8 +19956,10 @@ function baziPersonaCard(j) {
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
           if (!k) continue;
-          var _hit = _EXACT.indexOf(k) >= 0 ||
-            _PREF.some(function (p) { return k.indexOf(p) === 0; });
+          /* R3372-P2-2：收敛到共享 _DATA_RE——修一处全链生效；
+           * _NO_BACKUP_RE 拦死键/会话锚不进备份。顺带补回
+           * chatTranscript 裸键与 remind: 前缀（此前口径漏收）。 */
+          var _hit = _DATA_RE.test(k) && !_NO_BACKUP_RE.test(k);
           if (_hit) {
             try { local[k] = window.localStorage.getItem(k); } catch (e) {}
           }
@@ -20269,9 +20325,13 @@ function baziPersonaCard(j) {
        * 最近传的，能提醒「另一台设备有更新」。 */
       var _DEV_KEY = 'xmaccount:dev';
       var _PEND_KEY = 'xmaccount:pending';
+      /* R3372-P2-1：云端备份的 updated_at 戳——push 带上做乐观
+       * 并发前置，另一台设备先推过就拒写回来提示先拉回。 */
+      var _CLOUDTS_KEY = 'xmaccount:cloudts';
       /* R3363-P1-2/P1-7：备份白名单键族——拉回快照 diff 与
        * 跨账号清扫共用同一张口径表（与导入白名单同族）。 */
-      var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/;
+      /* R3372-P2-2：_DATA_RE 已上移到 phBind 顶（共享唯一定义）——
+       * 本 IIFE 直接引用外层变量，不再另存一份。 */
       function _dataKeys() {
         var _ks = [];
         try {
@@ -20296,7 +20356,7 @@ function baziPersonaCard(j) {
       function _clearAccountKeys() {
         /* R3363-P2-13：threads_seen_v1 已读标记也是跟账号走的——
          * 切号后沿用上任的已读=串味，收进清除面。 */
-        [_SYNC_KEY, _PULL_KEY, _PEND_KEY,
+        [_SYNC_KEY, _PULL_KEY, _PEND_KEY, _CLOUDTS_KEY,
          'paipan_mirror_v1', 'paipan_mirror_del_v1',
          'favorites_mirror_v1', 'threads_mirror_v1',
          'threads_seen_v1'].forEach(function (mk) {
@@ -20306,9 +20366,22 @@ function baziPersonaCard(j) {
       function _sweepForNewOwner() {
         /* R3363-P1-7：换号前的本机清扫——把上一任留下的白名单
          * 私密键与视图键全收，再拉回，不碰新凭据/设备戳/owner。 */
+        /* R3372-P2-2a：sessionStorage 也进清扫面——hhInvite/shareBy*/
+        /* shareBy:* /chatSessionId 等跟「这个人」绑的键此前换主
+         * 后残留（wipe 收、这里漏），B 会看到 A 的邀请态与会话锚。 */
         _dataKeys().forEach(function (k) {
           try { localStorage.removeItem(k); } catch (e) {}
         });
+        try {
+          var _ss = [];
+          for (var _si = 0; _si < sessionStorage.length; _si++) {
+            var _sk = sessionStorage.key(_si);
+            if (_sk && _SDATA_RE.test(_sk)) _ss.push(_sk);
+          }
+          _ss.forEach(function (k) {
+            try { sessionStorage.removeItem(k); } catch (e) {}
+          });
+        } catch (eSS) {}
         _clearAccountKeys();
       }
       var _nick = document.getElementById('acctNick');
@@ -20362,7 +20435,10 @@ function baziPersonaCard(j) {
           var _oc = JSON.parse(oldRaw || 'null');
           var _nc = _creds();
           if (_oc && _oc.n && _nc && _nc.n !== _oc.n) {
-            _clearAccountKeys();
+            /* R3372-P0-2b：多 Tab 换主同口径——只清镜像不够，共享
+             * localStorage 里 A 的私密键会混进 B 的自动推；与
+             * 单 Tab 换主同款，整份清扫（幂等，与发起 tab 互补）。 */
+            _sweepForNewOwner();
           }
         } catch (e) {}
       };
@@ -20405,16 +20481,14 @@ function baziPersonaCard(j) {
           bundle.ver2 = 1;
           var _pl = JSON.stringify(bundle);
           /* R3363-P1-3：keepalive 体上限 64KiB——养肥的备份必
-           * 超限，hide 保命推静默 TypeError。超限只推偏好段
-           * （最容易养肥的恰是手写偏好），置 pending 下次开页
-           * 补全量。 */
+           * 超限，hide 保命推静默 TypeError。 */
+          /* R3372-P0-1：缩水包绝不上云——此前超限只推偏好段，
+           * 服务端无条件覆盖会把云端全量降成 ~370B 空壳，台账
+           * /收藏/线程静默蒸发。超限就放弃本次推（数据在本机
+           * 完好），置 pending 由开页/下次前台推补回全量。 */
           if (keepAlive && _pl.length > 60000) {
-            _pl = JSON.stringify({
-              kind: 'backup', version: 1,
-              exported_at: bundle.exported_at,
-              dev: bundle.dev,
-              browser: bundle.browser || {} });
             try { localStorage.setItem(_PEND_KEY, '1'); } catch (e) {}
+            return;
           }
           var _trimmed = false;
           while (_pl.length > 1100000) {
@@ -20431,8 +20505,14 @@ function baziPersonaCard(j) {
           }
           /* R3362（R3359 审-P0）：必须走 postJSON——裸 api() POST 不
            * 带 Content-Type，浏览器发 text/plain 恒 422。 */
+          /* R3372-P2-1：带上本机记的云端戳——另一台设备先推过
+           * 服务端拒写回 conflict，不再静默 LWW 互踩。 */
+          var _cts = null;
+          try { _cts = localStorage.getItem(_CLOUDTS_KEY) || null; }
+          catch (eC) {}
           var r = await postJSON('/api/account/backup/push', {
-            nickname: c.n, passcode: c.p, payload: _pl },
+            nickname: c.n, passcode: c.p, payload: _pl,
+            base_updated_at: _cts },
             { silent: !showOk, keepalive: !!keepAlive });
           if (r && r.ok && _trimmed && showOk) {
             showToast('数据攒多了——云里只带了近期部分', 'warn');
@@ -20441,6 +20521,9 @@ function baziPersonaCard(j) {
             try {
               localStorage.setItem(_SYNC_KEY,
                 new Date().toLocaleString('sv').slice(0, 16));
+              if (r.updated_at) {
+                localStorage.setItem(_CLOUDTS_KEY, r.updated_at);
+              }
               if (_pl.length <= 60000 || !keepAlive) {
                 localStorage.removeItem(_PEND_KEY);
               }
@@ -20449,6 +20532,17 @@ function baziPersonaCard(j) {
             if (showOk) {
               showToast('同步好啦，换台设备登这个名字就能拉回', 'info');
             }
+          } else if (r && r.conflict) {
+            /* R3372-P2-1：并发冲突——云端戳记下，提示先拉回；
+             * 不 showOk 的静默推也照样提示（这是数据安全问题）。 */
+            try {
+              if (r.updated_at) {
+                localStorage.setItem(_CLOUDTS_KEY, r.updated_at);
+              }
+            } catch (eU) {}
+            showToast(r.msg ||
+              '另一台设备刚推了新备份——先点「从云端拉回」再同步',
+              'warn');
           } else if (showOk) {
             showToast((r && r.msg) || '没同步上，过会儿再试', 'warn');
           }
@@ -20520,13 +20614,20 @@ function baziPersonaCard(j) {
             try {
               localStorage.setItem(_PULL_KEY,
                 new Date().toLocaleString('sv').slice(0, 16));
+              /* R3372-P2-1：拉回后记云端戳——下次 push 以这份为
+               * 基线，刚拉过的版本再推回不会误报冲突。 */
+              if (r.updated_at) {
+                localStorage.setItem(_CLOUDTS_KEY, r.updated_at);
+              }
             } catch (e) {}
             /* R3363-P1-6：拉回后本 tab 各视图（档案条/打卡/心情/
              * 主题/账号卡）全是旧渲染，反而是别的 tab 靠 storage
              * 事件更新了——低频大动作直接重载最一致。 */
+            /* R3370-低-11：1.2s 重载把「导入好了」toast 几乎瞬杀
+             * ——拉到 3.5s 让确认读得完。 */
             setTimeout(function () {
               try { location.reload(); } catch (eRL) {}
-            }, 1200);
+            }, 3500);
           } else {
             showToast((r && r.msg) || '云端还没有备份', 'warn');
           }
@@ -20564,6 +20665,13 @@ function baziPersonaCard(j) {
               }
               _saveCreds(f.n, f.p);
               try { localStorage.setItem(_OWNER_KEY, f.n); } catch (e) {}
+              /* R3372-低-5：localStorage 硬禁（极端隐私模式）时凭据
+               * 落不了盘——注册在服务端建成了但登录态留不住，明说
+               * 不然刷新就变陌生人用户还以为是 bug。 */
+              if (!_creds()) {
+                showToast('这个浏览器存不了登录态（可能是极致隐私模式）' +
+                          '——刷新后要重新登录', 'warn');
+              }
               _acctRender();
               showToast('注册好啦，正在给你同步第一份备份', 'info');
               /* R3363-P1-4：注册首推用 keepalive——注册即关页时
@@ -20599,6 +20707,11 @@ function baziPersonaCard(j) {
               }
               _saveCreds(f.n, f.p);
               try { localStorage.setItem(_OWNER_KEY, f.n); } catch (e) {}
+              /* R3372-低-5：localStorage 硬禁时登录态留不住，明说。 */
+              if (!_creds()) {
+                showToast('这个浏览器存不了登录态（可能是极致隐私模式）' +
+                          '——刷新后要重新登录', 'warn');
+              }
               _acctRender();
               /* 登录即拉回——这是换设备的主场景；云端没备份时
                * _pull 会明说「先在原设备同步一次」。 */
@@ -20621,7 +20734,9 @@ function baziPersonaCard(j) {
             /* R3362（R3359/60 审-P2/P1）：lastsync 与四组镜像键是
              * 跟「这个账号」绑的视图——登出不收，下个账号先看到别人
              * 的同步时间与旧镜像行（跨账号串味）。 */
-            localStorage.removeItem(_OWNER_KEY);
+            /* R3372-P0-2：owner 要留到下一任落地——登出删它会让
+             * 换主清扫永不可达（登录侧 _prevOwner 恒空），A 的私密
+             * 键原样混进 B 的云备份。同号再登不触发清扫，数据留住。 */
             _clearAccountKeys();
           } catch (e) {}
           _acctRender();
@@ -20645,6 +20760,14 @@ function baziPersonaCard(j) {
         _acctRender();
       }).catch(function () { _acctRender(); });
       _acctRender();
+      /* R3372-P0-1b：pending 真消费——上次后台 keepalive 推被
+       * 跳过时留下标记；开页有凭据就补推一份全量，不让云端
+       * 停在旧包（此前 pending 只写不读=死代码，云端永远补不回）。 */
+      try {
+        if (localStorage.getItem(_PEND_KEY) === '1' && _creds()) {
+          _push(false, false);
+        }
+      } catch (eP2) {}
     })();
     var _imb = document.getElementById('historyImportBtn');
     var _imf = document.getElementById('historyImportFile');
@@ -20731,8 +20854,11 @@ function baziPersonaCard(j) {
              * 碎纸计数换机不再静默丢。 */
             /* R3354（审-P1）：chatTranscript 族同收编——导得出
              * 导不回，换机聊天记录静默丢。(:|$) 同时覆盖裸键。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/
-                .test(k) || k.length > 64 ||
+            /* R3372-P2-2：导入白名单同样收敛到共享 _DATA_RE——
+             * remind: 前缀、uiTheme 等口径与导出/清扫一致；
+             * _NO_BACKUP_RE 拦死键/会话锚不被旧备份复活。 */
+            if (!_DATA_RE.test(k) || _NO_BACKUP_RE.test(k) ||
+                k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
             }
@@ -21006,6 +21132,19 @@ function baziPersonaCard(j) {
             }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });
+          /* R3372-低-3：白名单过了但形状校验没过的键此前静默丢
+           * ——合法数据被误杀用户零感知。回读比对数出真实丢弃数
+           * 进完成提示（visits 是并集合并不算丢，_kept 保键不算丢）。 */
+          var _dropN = 0;
+          Object.keys(local).forEach(function (k) {
+            if (!_DATA_RE.test(k) || _NO_BACKUP_RE.test(k) ||
+                k.length > 64 || typeof local[k] !== 'string' ||
+                local[k].length >= 8192) return;
+            if (k === 'visits' || _kept.indexOf(k) >= 0) return;
+            try {
+              if (window.localStorage.getItem(k) !== local[k]) _dropN++;
+            } catch (eDK) {}
+          });
           var n = 0, _nThr = 0;
           /* R2349y（R95-P3-5）：records 含非 dict 元素时后端
            * list[dict] 整体 422——本地键已写入才报失败，口径误导。
@@ -21212,7 +21351,13 @@ function baziPersonaCard(j) {
              * 不点名的静默丢尾违背披露纪律。 */
             (_thrSkipped ? '；' + _thrSkipped + ' 个研究线程太大没导进去' : '') +
             (_nOrph ? ' + ' + _nOrph + ' 条散落笔记' : '') +
-            (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
+            (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '') +
+            /* R3372-低-3：校验丢弃也点名——合法数据被规则误杀
+             * 不该静默。 */
+            (_dropN ? '；' + _dropN + ' 条没认出来跳过了' : '') +
+            /* R3372-低-6：聊天会话锚不跟机走——小满记得文字
+             * 不记得语境，明说免误解。 */
+            '；聊天上下文不跟机走，接着聊就行';
           showToast(_msg, 'info');
           /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的
            * 历史视图就地刷新（原只有单删时发）。
