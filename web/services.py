@@ -2735,7 +2735,11 @@ def _moon_for(d: date) -> dict:
         ]
         for lo, hi, name, gl, lines in _tab:
             if lo <= ld <= hi:
-                return {"phase": name, "label": name,
+                # R3452（审-P2-5）：凸月术语不直出——label 换白话，
+                # phase 留术语给内部判据。
+                _lbl = {"盈凸月": "月亮渐圆",
+                        "亏凸月": "月亮渐收"}.get(name, name)
+                return {"phase": name, "label": _lbl,
                         "glyph": gl, "action": None,
                         "line": lines[_rot % 2]}
     except Exception:

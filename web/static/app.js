@@ -6371,9 +6371,12 @@ async function loadDaily() {
                 _rc.className = 'moon-recap';
                 _mEl.appendChild(_rc);
               }
-              _rc.textContent = '这半月你打了 ' + _cd + ' 天卡' +
-                (_wb ? '，瓶里还躺着 ' + _wb + ' 个愿望' : '') +
-                '——圆月替你记着。';
+              /* R3452（审-P2-1）：零记录句不带查岗感。 */
+              _rc.textContent = (_cd === 0 && !_wb)
+                ? '这半月还没留下记录——圆月在这儿，等你慢慢来。'
+                : ('这半月你打了 ' + _cd + ' 天卡' +
+                   (_wb ? '，瓶里还躺着 ' + _wb + ' 个愿望' : '') +
+                   '——圆月替你记着。');
             } catch (eRC) {}
           }
           var _ck = el('dailyCheckin');
@@ -17070,7 +17073,7 @@ function _flWriteOpen() {
     'max="' + _isoShift(todayIso(), 3650) + '"></div>' +
     '<button type="button" class="btn primary fl-send" id="flSend">' +
     '封好，寄出去</button>' +
-    '<p class="fl-note">信只存在你这台设备上，小满也偷看不了；' +
+    '<p class="fl-note">信只给你一个人看，小满也偷看不了；' +
     /* R3431-P3-5（审）：寄出后不可改期——寄前明示。 */
     '寄出去日子就定啦——挑个想收到的那天再封。</p></div>';
   document.body.appendChild(bd);
@@ -20161,10 +20164,41 @@ function _wishDays(w) {
  * wishbottle 单对象，零新键族（备份/忘掉一切/GC 自动覆盖）。
  * 封口窗 12/25-12/31 写给明年；跨过年（ny.year<=今年）没拆就
  * 一直等启封——比「只在 1/1-5 显示」耐摔，错过窗口不丢愿望。 */
+/* R3452（审-P2-7）：节日窗双锚——本地或 CST 任一在窗即放行
+ * （海外时区窗界日差一天，CST 是产品锚；与万圣 _trFestCn
+ * 同款口径）。 */
+function _cstNow() {
+  var _nc = new Date(Date.now() + 8 * 3600e3 +
+    new Date().getTimezoneOffset() * 60e3);
+  return { y: _nc.getFullYear(), m: _nc.getMonth() + 1,
+           d: _nc.getDate() };
+}
+function _locNow() {
+  var _nl = new Date();
+  return { y: _nl.getFullYear(), m: _nl.getMonth() + 1,
+           d: _nl.getDate() };
+}
+function _inBothDates(fn) {
+  try { if (fn(_locNow())) return true; } catch (eL) {}
+  try { return !!fn(_cstNow()); } catch (eC) { return false; }
+}
+/* 双锚放行时的落键锚日：本地在窗锚今天，只 CST 在窗锚 CST 日
+ * （不然错位日写 today 键，明天本地进窗又抽一支）。 */
+function _winAnchorIso(fn) {
+  try { if (fn(_locNow())) return todayIso(); } catch (eA) {}
+  try {
+    var c = _cstNow();
+    if (fn(c)) {
+      return c.y + '-' + String(c.m).padStart(2, '0') + '-' +
+             String(c.d).padStart(2, '0');
+    }
+  } catch (eB) {}
+  return todayIso();
+}
 function _wishNySealWin() {
-  var md = String(new Date().getMonth() + 1).padStart(2, '0') +
-    '-' + String(new Date().getDate()).padStart(2, '0');
-  return md >= '12-25' && md <= '12-31';
+  return _inBothDates(function (o) {
+    return o.m === 12 && o.d >= 25 && o.d <= 31;
+  });
 }
 function _wishNyRaw() {
   try {
@@ -20337,7 +20371,7 @@ function _renderWishBottle(edit) {
       '<div class="ck-wish-actions">' +
         '<button type="button" class="checkin-opt" data-wish="save">丢进瓶子 🫙</button>' +
       '</div>' +
-      '<div class="ck-wish-meta">只有你的浏览器记得它，写给自己看的</div>' +
+      '<div class="ck-wish-meta">只给你一个人看——写给自己看的</div>' +
     '</div>' +
     _wishNyBlock() +
     _wishEchoStrip();
@@ -20419,6 +20453,9 @@ function _wishAction(act, arg, dateKey) {
     var _nt = document.getElementById('nyWishText');
     var _ntxt = _nt ? String(_nt.value || '').trim().slice(0, 40) : '';
     if (!_ntxt) { showToast('写一句再封——明年等着拆呢', 'warn'); return; }
+    /* R3452（审-P1-1）：封愿自由文本与同卡 save/未来信同口径
+     * 过危机闸——不然危机原文元旦后被 🧨 节庆卡包着回显。 */
+    if (feCrisis(_ntxt)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
     _wishNySet({ t: _ntxt, c: '跨年', ts: Date.now(),
                  year: new Date().getFullYear() + 1, opened: 0 });
     showToast('封好了——元旦零点后回来启封 🧨', 'info');
@@ -20791,6 +20828,18 @@ function _mcTIERS(pack) {
       [3, '刚刚好的合拍', '一半的默契，剩下的慢慢靠近'],
       [2, '还在互相猜', '差异是慢慢懂的开始'],
       [1, '刚走进彼此', '离得远才有机会慢慢靠近'],
+      [0, '平行宇宙', '完全互补型——你们是彼此的另一面']
+    ];
+  }
+  /* R3452（审-P2-4）：自写题可发朋友也可发对象——落 bestie 档
+   * 「舒服的朋友」给恋人出戏。custom 用不指关系的中性判词。 */
+  if (pack === 'custom') {
+    return [
+      [5, '灵魂搭档', '五题全中——你们共享一个脑回路'],
+      [4, '很懂彼此', '就一道没对上，已经很会了'],
+      [3, '刚刚好', '一半的默契，剩下的慢慢靠近'],
+      [2, '还在互相猜', '差异是慢慢懂的开始'],
+      [1, '刚走进彼此', '差得远才有机会慢慢靠近'],
       [0, '平行宇宙', '完全互补型——你们是彼此的另一面']
     ];
   }
@@ -21268,7 +21317,8 @@ function _renderMochi() {
       if (_anyFill && b.dataset.armed !== '1') {
         b.dataset.armed = '1';
         var _otpl = b.textContent;
-        b.textContent = '会盖掉现在写的——再点，真照';
+        /* R3452（审-P2-3）：「真照」过缩读不懂。 */
+        b.textContent = '会盖掉现在写的——再点，真盖掉';
         setTimeout(function () {
           b.dataset.armed = '';
           b.textContent = _otpl;
@@ -21574,6 +21624,19 @@ function _renderMochi() {
         date: todayIso() }, 'mochi');
     }
     if (act === 'wipe') {
+      /* R3452（审-P2-8）：一击抹榜与全站毁灭操作惯例不齐——
+       * 补两段式确认。 */
+      if (b.dataset.armed !== '1') {
+        b.dataset.armed = '1';
+        var _owip = b.textContent;
+        b.textContent = '再点，真清空';
+        setTimeout(function () {
+          if (b.isConnected) {
+            b.dataset.armed = ''; b.textContent = _owip;
+          }
+        }, 3000);
+        return;
+      }
       try { localStorage.removeItem('mochi:board'); } catch (eW) {}
       showToast('榜清空啦', 'ok');
       _renderMochi();
@@ -21673,8 +21736,9 @@ var _QIAN_LOVE_OK = { '成':1, '合':1, '好':1, '和合':1, '成就':1,
   '成合':1, '好合':1, '双配':1, '遂':1, '再合':1, '中吉':1,
   '迟成':1, '迟合':1, '就':1, '有成':1 };
 function _qianLoveFest() {
-  var _nd = new Date(), _m = _nd.getMonth() + 1, _d = _nd.getDate();
-  return _m === 11 && _d >= 6 && _d <= 11;
+  return _inBothDates(function (o) {
+    return o.m === 11 && o.d >= 6 && o.d <= 11;
+  });
 }
 function _qianLovePool() {
   var out = [];
@@ -21697,7 +21761,10 @@ function _qianLoveDraw() {
   /* R3404-P3：窗口守卫只在 _qianLoveHtml——绕开界面直调
    * （控制台/未来的触发点）会出窗期照抽。函数内复核防线。 */
   if (!_qianLoveFest()) return 0;
-  var dk = todayIso(), had = _qianLoveIdxOf(dk);
+  /* R3452（审-P2-7）：落键锚放行日——CST 放行不锚本地错位日。 */
+  var dk = _winAnchorIso(function (o) {
+    return o.m === 11 && o.d >= 6 && o.d <= 11;
+  }), had = _qianLoveIdxOf(dk);
   if (had) return had;
   var pool = _qianLovePool();
   if (!pool.length) return 0;
@@ -21726,19 +21793,22 @@ var _QIAN_CNY_WIN = {
  * 正月初一+4：2027-02-10 / 2028-01-30 / 2029-02-17 / 2030-02-07）。 */
 var _QIAN_CAISHEN = { 2027: 210, 2028: 130, 2029: 217, 2030: 207 };
 function _qianCnyFest() {
-  var nd = new Date(), y = nd.getFullYear(),
-      md = (nd.getMonth() + 1) * 100 + nd.getDate(),
-      r = _QIAN_CNY_WIN[y];
-  return !!(r && md >= r[0] && md <= r[1]);
+  return _inBothDates(function (o) {
+    var r = _QIAN_CNY_WIN[o.y];
+    var md = o.m * 100 + o.d;
+    return !!(r && md >= r[0] && md <= r[1]);
+  });
 }
 function _qianCnyLastDay() {
-  var nd = new Date(), r = _QIAN_CNY_WIN[nd.getFullYear()];
-  return !!(r && (nd.getMonth() + 1) * 100 + nd.getDate() === r[1]);
+  return _inBothDates(function (o) {
+    var r = _QIAN_CNY_WIN[o.y];
+    return !!(r && o.m * 100 + o.d === r[1]);
+  });
 }
 function _qianCaishenDay() {
-  var nd = new Date();
-  return _QIAN_CAISHEN[nd.getFullYear()] ===
-    (nd.getMonth() + 1) * 100 + nd.getDate();
+  return _inBothDates(function (o) {
+    return _QIAN_CAISHEN[o.y] === o.m * 100 + o.d;
+  });
 }
 function _qianCnyPool() {
   var out = [];
@@ -21755,7 +21825,12 @@ function _qianCnyIdxOf(dk) {
 }
 function _qianCnyDraw() {
   if (!_qianCnyFest()) return 0;
-  var dk = todayIso(), had = _qianCnyIdxOf(dk);
+  /* R3452（审-P2-7）：落键锚放行日——CST 放行不锚本地错位日。 */
+  var dk = _winAnchorIso(function (o) {
+    var r = _QIAN_CNY_WIN[o.y];
+    var md = o.m * 100 + o.d;
+    return !!(r && md >= r[0] && md <= r[1]);
+  }), had = _qianCnyIdxOf(dk);
   if (had) return had;
   var pool = _qianCnyPool();
   if (!pool.length) return 0;
@@ -21812,9 +21887,16 @@ function _qianFactWrite(n, loveTp) {
   try {
     var q = QIAN[n - 1]; if (!q) return;
     var tp = loveTp || _qianTopic(todayIso());
+    /* R3452（审-P2-6）：'问'+tp+'事' 拼出「问新春事/问桃花事」
+     * 生硬会被 LLM 复读——题签到自然话映射。 */
+    var _tpSay = { '桃花': '问感情', '新春': '讨个彩头',
+                   '感情': '问感情', '事业': '问事业',
+                   '财运': '问财运', '学业': '问学业',
+                   '健康': '问健康', '家宅': '问家宅' }[tp] ||
+      (tp ? '问' + tp + '的事' : '');
     localStorage.setItem('qian:fact', JSON.stringify({
       d: todayIso(),
-      t: '她今天在小满铺「每日一签」' + (tp ? '问' + tp + '事' : '') +
+      t: '她今天在小满铺「每日一签」' + (_tpSay || '') +
          '抽到第' + n + '签（' + q.luck + '·' + q.name +
          '），签诗：「' + q.poem.join('，') +
          '」；她想聊签就照这支的意思说，不懂就带她去签页细看'
@@ -22335,7 +22417,11 @@ function baziPersonaCard(j) {
         try {
           var _wj = JSON.parse(localStorage.getItem('wishbottle') || 'null');
           if (_wj && typeof _wj === 'object') {
-            wb = Array.isArray(_wj) ? _wj.length : Object.keys(_wj).length;
+            /* R3452（审-P1-3）：wishbottle 单对象 {t,c,ts,ny?}——
+             * Object.keys 把元数据全算成愿望（1 愿显 3）。与满月
+             * 复盘卡同口径：主愿+跨年子愿各一条，数组兑底。 */
+            wb = Array.isArray(_wj) ? _wj.length
+              : ((_wj.t ? 1 : 0) + ((_wj.ny && _wj.ny.t) ? 1 : 0));
           }
         } catch (eWB) {}
         var mf = 0;
@@ -22416,7 +22502,9 @@ function baziPersonaCard(j) {
           }
         });
         if (_last) {
-          b.push('上次来是 ' + _last.slice(5).replace('-', '月') + ' 日');
+          /* R3452（审-P2-2）：日位剥前导零（10月04日→10月4日）。 */
+          var _md2 = _last.slice(5).split('-');
+          b.push('上次来是 ' + (+_md2[0]) + '月' + (+_md2[1]) + ' 日');
         }
         return b.join(' · ') || '还没有';
       } }
