@@ -20427,8 +20427,11 @@ function renderCheckin(dateKey) {
         /* 只记近 20 条签名防无限长。 */
         localStorage.setItem('hugseen', _hSigs.slice(-20).join(','));
       }
-      _hugHtml = '<div class="ck-quest ck-hug">🍀 有朋友今天给你' +
-        '递了个好运' +
+      _hugHtml = '<div class="ck-quest ck-hug">🍀 ' +
+        /* R3599：递好运行同认名（对擂 R3583 同口径，esc 防注入）。 */
+        esc((typeof _shareByName === 'function' &&
+          _shareByName()) || '有朋友') +
+        '今天给你递了个好运' +
         (_hugN > 1 ? '（你攒下的第 ' + _hugN + ' 个）' : '') +
         '——顺着这份心意打个卡吧' +
         /* R3569：回递环——受邀者能顺手回递一个好运（跟 duel
