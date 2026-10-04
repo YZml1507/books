@@ -20263,6 +20263,46 @@ function _qianHist() {
  * GC/wipe/备份三链。 */
 var _QIAN_TOPICS = ['随缘', '感情', '事业', '财运', '学业', '健康', '家宅'];
 var _qianPickedTopic = '随缘';
+/* R3403 双十一·桃花签：11.6–11.11 窗口开「桃花签」——池子是
+ * 百签里「婚姻」断语为吉的签（xj 里「婚姻 成/合/好/遂/双配
+ * /中吉/迟成」等 45 支），真签文没编。与今日签分键（qian:love:
+ * <date>）不吃当日签；判定函数态，跨零点页面重渲即回落。 */
+var _QIAN_LOVE_OK = { '成':1, '合':1, '好':1, '和合':1, '成就':1,
+  '成合':1, '好合':1, '双配':1, '遂':1, '再合':1, '中吉':1,
+  '迟成':1, '迟合':1, '就':1, '有成':1 };
+function _qianLoveFest() {
+  var _nd = new Date(), _m = _nd.getMonth() + 1, _d = _nd.getDate();
+  return _m === 11 && _d >= 6 && _d <= 11;
+}
+function _qianLovePool() {
+  var out = [];
+  for (var i = 0; i < QIAN.length; i++) {
+    var mm = /婚姻\s*([^\s]{1,4})/.exec(QIAN[i].xj || '');
+    if (mm && _QIAN_LOVE_OK[mm[1]]) out.push(i + 1);
+  }
+  return out;
+}
+function _qianLoveIdxOf(dk) {
+  try {
+    var v = parseInt(localStorage.getItem('qian:love:' + dk) || '', 10);
+    return (v >= 1 && v <= 100) ? v : 0;
+  } catch (e) { return 0; }
+}
+function _qianLoveDraw() {
+  var dk = todayIso(), had = _qianLoveIdxOf(dk);
+  if (had) return had;
+  var pool = _qianLovePool();
+  if (!pool.length) return 0;
+  var n = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    localStorage.setItem('qian:love:' + dk, String(n));
+    var h = _qianHist();
+    h.unshift({ d: dk, n: n, lv: 1 });
+    localStorage.setItem('qian:hist', JSON.stringify(h.slice(0, 30)));
+  } catch (e) {}
+  _qianFactWrite(n, '桃花');
+  return n;
+}
 function _qianTopic(dk) {
   try {
     var t = localStorage.getItem('qian:t:' + dk) || '';
@@ -20302,10 +20342,10 @@ function _qianDraw(topic) {
 }
 /* R3390：当日签面事实——聊签话题经 _chatFacts 注入。独立小键
  * 而非现读 QIAN：懒载语料没落页时（今天抽过但没进签页）仍能注。 */
-function _qianFactWrite(n) {
+function _qianFactWrite(n, loveTp) {
   try {
     var q = QIAN[n - 1]; if (!q) return;
-    var tp = _qianTopic(todayIso());
+    var tp = loveTp || _qianTopic(todayIso());
     localStorage.setItem('qian:fact', JSON.stringify({
       d: todayIso(),
       t: '她今天在小满铺「每日一签」' + (tp ? '问' + tp + '事' : '') +
@@ -20323,6 +20363,9 @@ function _qianSlipHtml(n, opts) {
   var h = '<div class="qian-slip' + (o.review ? ' is-review' : '') + '">';
   if (o.review) {
     h += '<div class="qian-review-tag">📅 ' + esc(o.review) + ' 抽的那支</div>';
+  }
+  if (o.love) {
+    h += '<div class="qian-review-tag">🌸 双十一·桃花签</div>';
   }
   h += '<div class="qian-head"><span class="qian-no">第' + n + '签</span>' +
        (_tp ? '<span class="qian-topic-tag">问' + esc(_tp) + '</span>' : '') +
@@ -20342,11 +20385,14 @@ function _qianSlipHtml(n, opts) {
        /* R3396-P2-2：回看签的晒图带被回看日期——海报日期/话题应
         * 取签那天，不取今天。 */
        '<button class="mc-go" type="button" data-qian="share" data-n="' + n + '"' +
-       (o.review ? ' data-d="' + esc(o.review) + '"' : '') + '>' +
+       (o.review ? ' data-d="' + esc(o.review) + '"' : '') +
+       (o.love ? ' data-love="1"' : '') + '>' +
        '📸 晒这支签</button>' +
-       (o.review
-         ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
-         : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>') +
+       (o.love
+         ? '<div class="qian-note">桃花签今天这支——明天还能再抽</div>'
+         : (o.review
+           ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
+           : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>')) +
        '</div></div>';
   return h;
 }
@@ -20358,11 +20404,23 @@ function _qianHistHtml() {
     var md = x.d.slice(5).replace('-', '月') + '日';
     return '<button class="qian-hrow" type="button" data-qian="hist" data-n="' + x.n +
            '" data-d="' + esc(x.d) + '"><span>' + esc(md) + '</span>' +
-           '<span>第' + x.n + '签 · ' + esc(q.luck) + '</span>' +
+           '<span>' + (x.lv ? '🌸 ' : '') + '第' + x.n + '签 · ' +
+           esc(q.luck) + '</span>' +
            '<span class="qian-hname">' + esc(q.name) + '</span></button>';
   }).join('');
   return '<div class="qian-hist"><div class="qian-htitle">最近抽过的签</div>' +
          rows + '</div>';
+}
+/* R3403：桃花签区——窗口内才现身，独立于今日签（另一支）。 */
+function _qianLoveHtml() {
+  if (!_qianLoveFest()) return '';
+  var lv = _qianLoveIdxOf(todayIso());
+  if (lv) return _qianSlipHtml(lv, { love: 1 });
+  return '<div class="qian-love" id="qianLove">' +
+    '<div class="qian-love-t">🌸 双十一·桃花签</div>' +
+    '<div class="qian-love-s">只出「婚姻」断语为吉的签——今天这支管感情</div>' +
+    '<button class="mc-go" type="button" data-qian="love">' +
+    '抽一支桃花签</button></div>';
 }
 function _renderQian(review) {
   var qnBoxEl = document.getElementById('qianBox'); if (!qnBoxEl) return;
@@ -20375,7 +20433,8 @@ function _renderQian(review) {
     }
     if (idx) {
       _qianFactWrite(idx);
-      qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianHistHtml();
+      qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianLoveHtml() +
+        _qianHistHtml();
       return;
     }
     var _chips = _QIAN_TOPICS.map(function (t) {
@@ -20392,7 +20451,7 @@ function _renderQian(review) {
         '<button class="mc-go qian-draw" type="button" data-qian="draw">' +
         '摇一支今日签</button>' +
         '<div class="qian-note">一天一支——今天的签抽了就不会变</div>' +
-      '</div>' + _qianHistHtml();
+      '</div>' + _qianLoveHtml() + _qianHistHtml();
   });
 }
 (function _qianBind() {
@@ -20415,6 +20474,12 @@ function _renderQian(review) {
         _qianDraw(_qianPickedTopic);
         _renderQian();
       }, 1100);
+    } else if (act === 'love') {
+      /* R3403：桃花签也走摇签仪式——同一支筒晃出另一支签。 */
+      var _lvb = document.getElementById('qianLove');
+      if (_lvb) _lvb.classList.add('is-shaking');
+      b.disabled = true;
+      setTimeout(function () { _qianLoveDraw(); _renderQian(); }, 1100);
     } else if (act === 'hist') {
       var n2 = parseInt(b.dataset.n || '0', 10);
       if (n2) _renderQian({ n: n2, d: b.dataset.d || '' });
@@ -20426,10 +20491,12 @@ function _renderQian(review) {
       if (!q3) return;
       var _sd = (b.dataset.d && /^\d{4}-\d{2}-\d{2}$/.test(b.dataset.d))
         ? b.dataset.d : todayIso();
+      /* R3403：桃花签海报——签题落「问桃花签」。 */
+      var _lv3 = b.dataset.love === '1';
       downloadPoster({ _qian: {
           n: n3, name: q3.name, luck: q3.luck,
           poem: q3.poem, say: q3.say,
-          topic: _qianTopic(_sd) },
+          topic: _lv3 ? '桃花签' : _qianTopic(_sd) },
         date: _sd }, 'qian');
     }
   });

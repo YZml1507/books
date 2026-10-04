@@ -50,9 +50,6 @@ EXTRA_GLOBS = (
     # R3396（记账）：soulmate 六张氛围图同病——换图必须换 CACHE 名。
     # R3402 修正：图在 static/soulmate/ 不在 cream/——原 glob 零命中。
     "soulmate/sm-*.jpg",
-    # R3402：壁纸族（wap-*.jpg + 节日限定 wap-t-*.jpg）同病收编——
-    # 换壁纸不换 CACHE 时旧壳会喂错版图。wallpapers/ 目录即本族。
-    "wallpapers/wap-*.jpg",
 )
 
 
@@ -65,7 +62,15 @@ def _extra_paths() -> list[Path]:
         if not hits:
             raise SystemExit(f"EXTRA_GLOBS 零命中（路径写错或文件已删）：{g}")
         out.extend(hits)
-    return out
+    # R3403：去重且保序——重叠 glob 同件两次入哈希会与 selftest
+    # 内嵌表口径分叉；顺序也必须与内嵌表逐组一致（哈希按序拼接）。
+    _seen: set[Path] = set()
+    _dedup: list[Path] = []
+    for _p in out:
+        if _p not in _seen:
+            _seen.add(_p)
+            _dedup.append(_p)
+    return _dedup
 
 
 def _shell_paths(src: str) -> list[Path]:

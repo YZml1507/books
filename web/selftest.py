@@ -5012,9 +5012,16 @@ def _run_inner() -> list[str]:
                "cream/scene-*.jpg", "cream/bear-scene-*.jpg",
                "cream/persona-*.jpg", "cream/hehun-bear.jpg",
                # R3247：明星合盘名单同口径（与 bump_sw 一致）
-               "celeb.json"):
-        for _ep in sorted(_gl5.glob(_os.path.join(
-                _os.path.dirname(__file__), "static", _g))):
+               "celeb.json",
+               # R3403：soulmate 六张氛围图同口径——R3402 发现本表
+               # 与 bump_sw EXTRA_GLOBS 已漂移过一次，务必同改。
+               "soulmate/sm-*.jpg"):
+        _eps = sorted(_gl5.glob(_os.path.join(
+            _os.path.dirname(__file__), "static", _g)))
+        # 零命中即列表漂移（与 bump_sw 护栏同口径）——静默跳过
+        # 会让哈希看似正常实则漏收整族资产。
+        assert _eps, ("sw.shell_hash", "资产 glob 零命中", _g)
+        for _ep in _eps:
             _h.update(_os.path.basename(_ep).encode())
             _h.update(b"\0")
             assert _os.path.exists(_ep), ("sw.shell_hash", "资产缺失", _ep)

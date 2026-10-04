@@ -18761,3 +18761,30 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   ANSB 54 条语料逐条过目——具体+温柔+动作向，无爹味无恐吓；
   mochi/qian/hlcal/soulmate toast 与文案面过检；
   签诗原文（含凶/不合等语）属真实庙签语料，刻意原样保留。
+
+## R3401 · 移动端触控目标专项（2026-10-04）
+- mochi 答题选项 .mc-opt 加 min-height:36px——40px 行高盒上
+  有效热区已达标，36px 保底统一手感（与 .mc-pack 同口径）。
+- qian 问事 chip .qian-tpick 同抬 36px；mochi 清榜微钮
+  .mc-bwipe 抬到 32px——微钮组不低于 32px 口径。
+
+## R3402 · SW 壳哈希口径审计（2026-10-04）
+- P1：bump_sw EXTRA_GLOBS 写错路径「cream/sm-*.jpg」零命中——
+  soulmate 六图换图不换 CACHE 名，已装用户 RT 桶无限期吃旧图。
+  修正为 soulmate/sm-*.jpg，并加零命中护栏（SystemExit）。
+- 连带：selftest 内嵌 glob 表与 bump_sw 是双源——本轮已漂移
+  一次（CI sw.shell_hash 红）。selftest 表补 soulmate 族 +
+  同款零命中断言；bump_sw._extra_paths 改 sorted(set) 去重
+  （重叠 glob 同件两次入哈希的隐性分叉）。
+- 冗余：wallpapers/wap-*.jpg 是 wallpapers/*.jpg 子集，删去。
+
+## R3403 · 双十一·桃花签（季节限定 2026-11-06~11）
+- 新功能：签页窗口期（11.6-11.11，函数态判定跨零点重渲）出
+  「🌸 双十一·桃花签」区——池子是百签里 xj「婚姻」断语为吉的
+  45 支真签（成/合/好/和合/成就/成合/好合/双配/遂/再合/中吉/
+  迟成/迟合/就/有成 白名单），机制真实非编文案。
+- 与今日签分键 qian:love:<date>——不吃当日签；同 key 族进
+  GC/wipe/备份三链免改。摇签同走 1.1s 仪式；hist 行 🌸 标；
+  fact 注入「问桃花事」；海报签题落「问桃花签」。
+- 真机验收（伪日期 2026-11-08）：卡现身→抽签→签卡🌸tag→
+  localStorage/历史/事实/海报钮全链零 JS 错。
