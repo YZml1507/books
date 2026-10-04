@@ -107,6 +107,12 @@ BUTTON_CASES = [
     ("bazi.pickzone",   "bazi",   None,            "#saZoneToggle",    "#saZone .fav-btn"),
     # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
     ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
+    # R3489：方位话题版——点「求财」chip 切到财位元素（.on 当前项
+    # + 卡面出「财」判词）。
+    ("bazi.fortunedir.topic", "bazi", None,        "#fdT_cai",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.shi", "bazi", None,    "#fdT_shi",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.tao", "bazi", None,    "#fdT_tao",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.all", "bazi", None,    "#fdT_all",        "#fdCard .fd-tp.on"),
     # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。
     ("bazi.guardian",   "bazi",   None,            "#shareGuardian",   "#gdCard .gd-card"),
     # R3461：守护水晶——bazi 出卡后点 🔮 钮出晶石卡。

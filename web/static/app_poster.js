@@ -1740,12 +1740,17 @@ function buildShareData(view, j) {
     }
     case 'fortune_dir': {
       /* R3456 旺你的方位海报：方位上主位大字，喜用依据/城市气质/
-       * 贴士进 lines，小注守恒——「图个顺劲儿」免责口径。 */
-      var _fd = base('旺你的方位', '');
+       * 贴士进 lines，小注守恒——「图个顺劲儿」免责口径。
+       * R3489：话题版——_fdTopicN/_fdTopicK 在场时标题与首行
+       * 标签跟所问走（求财/事业/桃花）。 */
+      var _fd = base((_pStr(j && j._fdTopicN) &&
+                     _pStr(j._fdTopicN) !== '综合旺方')
+                     ? _pStr(j._fdTopicN) + '旺方' : '旺你的方位', '');
       _fd.big = _pStr(j && j._fdDir) || '旺方';
       _fd.lines = [];
       if (_pStr(j && j._fdWx)) {
-        _fd.lines.push({ k: '喜用', v: _pStr(j._fdWx) + ' 的方向' });
+        _fd.lines.push({ k: _pStr(j && j._fdTopicK) || '喜用',
+                         v: _pStr(j._fdWx) + ' 的方向' });
       }
       if (_pStr(j && j._fdWhy)) {
         _fd.lines.push({ k: '依据', v: _clauseCut(_pStr(j._fdWhy), 20) });

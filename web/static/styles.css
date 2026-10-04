@@ -4175,6 +4175,13 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 /* R3456：旺你的方位卡——复用 sm-card 壳，方位行居中大字。 */
 .fd-dir { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }
+/* R3489：方位话题 chip 排——卡顶四枚切换（综合/求财/事业/桃花）。 */
+.fd-topics { display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; margin: 14px 12px 0; }
+.fd-topics .fav-btn { position: static; min-width: 0; margin: 0;
+  font-size: 12px; padding: 6px 12px; }
+.fd-tp.on { border-color: var(--accent); color: var(--accent-ink);
+  background: var(--accent-soft, rgba(255,143,171,.12)); }
 /* R3457：守护图腾卡——复用 sm-card 壳，灵兽行居中大字。 */
 .gd-beast { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }

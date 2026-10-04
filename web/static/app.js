@@ -4743,6 +4743,11 @@ function showPosterModal(canvas, view, j) {
   if (view === 'mochi') {
     viewTitle = (j && j._mcb) ? '默契榜' : '默契证书';
   }
+  /* R3489：方位海报弹层标题跟所问话题走（求财旺方/事业旺方/…）。 */
+  if (view === 'fortune_dir' && j && j._fdTopicN &&
+      j._fdTopicN !== '综合旺方') {
+    viewTitle = j._fdTopicN + '旺方';
+  }
   /* R2350a（R94-P1-3）：黄历海报标题跟卡面日（「明日宜忌」）。
    * 本函数签名只有 canvas/view——日期从 LAST_RESULT 取。 */
   if (view === 'huangli') {
@@ -17089,6 +17094,36 @@ var _FD_DIR = {
     cities: '青岛、大连、天津',
     tip: '去水边坐坐，江边海边都算，水气补你最直接' },
 };
+/* R3489 方位话题版：十神口径——我克者为财、克我者为官、生我者
+ * 为印（贵人缘）。求财/事业/桃花各按自己的十神取方位元素，
+ * 不再一律吃喜用。 */
+var _WX_WOKE = { '木':'土', '火':'金', '土':'水', '金':'木', '水':'火' };
+var _WX_KEWO = { '木':'金', '火':'水', '土':'木', '金':'火', '水':'土' };
+var _WX_SHWO = { '木':'水', '火':'木', '土':'火', '金':'土', '水':'金' };
+var _FD_TOPIC = {
+  all: { n: '综合旺方', tip: function (d) { return d.tip; } },
+  cai: { n: '求财', k: '财位',
+    why: function (gw, wx) {
+      return '你日主' + gw + '，你克的' + wx + '是财——钱脉方向在这头';
+    },
+    tip: function (d) {
+      return '谈钱、谈合作、出门谈生意，往' + d.dir + '那头靠';
+    } },
+  shi: { n: '事业', k: '官位',
+    why: function (gw, wx) {
+      return '你日主' + gw + '，管着你的' + wx + '是官——立住脚的方向在这头';
+    },
+    tip: function (d) {
+      return '面试、谈事、定去向，' + d.dir + '那头更压得住阵';
+    } },
+  tao: { n: '桃花人缘', k: '印位',
+    why: function (gw, wx) {
+      return '你日主' + gw + '，生你的' + wx + '是印——人缘贵人在那头聚';
+    },
+    tip: function (d) {
+      return '想遇人、想被疼，' + d.dir + '那头的人气暖';
+    } },
+};
 function _fdPick(j) {
   var fe = (j && j.calc && j.calc.five_elements) || {};
   var counts = fe.counts || {};
@@ -17120,32 +17155,71 @@ function _fdPick(j) {
   }
   return { wx: wx, why: why, d: _FD_DIR[wx] };
 }
-function _fdCard(j) {
-  var _p = _fdPick(j);
+/* R3489：按话题取方位元素——all 吃喜用，cai/shi/tao 按日主十神。 */
+function _fdPickTopic(j, tp) {
+  var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+    .charAt(0);
+  var gw = _SM_GAN_WX[_gan] || '木';
+  var wx, why;
+  var T = _FD_TOPIC[tp] || _FD_TOPIC.all;
+  if (tp === 'cai') wx = _WX_WOKE[gw];
+  else if (tp === 'shi') wx = _WX_KEWO[gw];
+  else if (tp === 'tao') wx = _WX_SHWO[gw];
+  if (!wx || tp === 'all') {
+    var _p0 = _fdPick(j);
+    return { wx: _p0.wx, why: _p0.why, d: _p0.d, tp: 'all',
+             tn: _FD_TOPIC.all.n, tip: _p0.d.tip };
+  }
+  return { wx: wx, why: T.why(gw, wx), d: _FD_DIR[wx], tp: tp,
+           tn: T.n, tk: T.k, tip: T.tip(_FD_DIR[wx]) };
+}
+function _fdCard(j, tp) {
+  var _p = _fdPickTopic(j, tp || 'all');
+  /* 话题切换 chip：当前项带 .on，点击重渲全卡（on() 每轮重绑
+   * 新 DOM，旧监听随节点销毁）。闸口径（on_wiring）：id 字面量。 */
   var _h = '<div class="fd-card sm-card">' +
+    '<div class="fd-topics">' +
+      '<button class="ghost fav-btn fd-tp" type="button" ' +
+        'id="fdT_all" data-tp="all">综合旺方</button>' +
+      '<button class="ghost fav-btn fd-tp" type="button" ' +
+        'id="fdT_cai" data-tp="cai">求财</button>' +
+      '<button class="ghost fav-btn fd-tp" type="button" ' +
+        'id="fdT_shi" data-tp="shi">事业</button>' +
+      '<button class="ghost fav-btn fd-tp" type="button" ' +
+        'id="fdT_tao" data-tp="tao">桃花人缘</button>' +
+    '</div>' +
     '<div class="fd-dir">' + _p.d.glyph + ' <strong>' +
       esc(_p.d.dir) + '</strong></div>' +
     '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
     '<div class="sm-tip">🏙️ ' + esc(_p.d.vibe) +
       (_p.d.cities ? '——像' + esc(_p.d.cities) + '这类' : '') + '</div>' +
-    '<div class="sm-tip">💡 ' + esc(_p.d.tip) + '</div>' +
-    '<div class="sm-note">方位按你盘里的喜用推，图个顺劲儿——' +
+    '<div class="sm-tip">💡 ' + esc(_p.tip) + '</div>' +
+    '<div class="sm-note">方位按你盘里的十神推，图个顺劲儿——' +
       '真搬家还得看工作在哪儿</div>' +
     '<button class="ghost fav-btn" type="button" id="fdShare" ' +
       'title="生成旺方分享图">📸 晒出我的旺方</button>' +
     '</div>';
   return { html: _h, pick: _p };
 }
-function _fdOpen(j) {
+function _fdOpen(j, tp) {
   var _fdBox = el('fdCard');
   if (!_fdBox || !j) return;
-  var _c = _fdCard(j);
+  var _c = _fdCard(j, tp || 'all');
   _fdBox.innerHTML = _c.html;   // esc-reviewed：_fdCard 内动态字段均过 esc()
+  _fdBox.querySelectorAll('.fd-tp').forEach(function (b) {
+    if (_c.pick.tp === b.dataset.tp) b.classList.add('on');
+  });
+  /* on() 字面量绑定：与 id="fdT_*" 一一对应（on_wiring 闸）。 */
+  on('fdT_all', function () { _fdOpen(j, 'all'); });
+  on('fdT_cai', function () { _fdOpen(j, 'cai'); });
+  on('fdT_shi', function () { _fdOpen(j, 'shi'); });
+  on('fdT_tao', function () { _fdOpen(j, 'tao'); });
   on('fdShare', function () {
     var _o = { _fdDir: _c.pick.d.dir, _fdWx: _c.pick.wx,
                _fdWhy: _c.pick.why, _fdVibe: _c.pick.d.vibe,
                _fdCities: _c.pick.d.cities,
-               _fdTip: _c.pick.d.tip };
+               _fdTopicN: _c.pick.tn, _fdTopicK: _c.pick.tk,
+               _fdTip: _c.pick.tip };
     return downloadPoster(Object.assign({}, j, _o), 'fortune_dir');
   });
   _fdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });

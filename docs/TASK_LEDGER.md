@@ -19754,3 +19754,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 冒烟豁免表补三钮：saWap/gdWap（canvas 壁纸族）+ dailyTomorrowShare（daily-outfit 海报族）——修掉 CI gate:on_coverage。
 - 实测：gdWap 点击→720×1280 PNG 下载零 JS 错。
 - 闸：selftest 457 / contract 790 / banned 0 / smoke 119 全绿。
+
+## R3489 方位卡话题版（事业/财运需求面）
+- 调研驱动：小红书玄学消费——事业 76.5%/财运 74.9% > 爱情 49.6%，方位卡加话题开关吃最大需求面。
+- 十神真口径映射（不是喜用换标签）：我克=财(_WX_WOKE)/克我=官(_WX_KEWO)/生我=印(_WX_SHWO)，从日主推话题专属元素→方位/城市池/贴士各出专判词（如土日主：财=水·北方、官=木·东方、印=火·南方）。
+- 卡顶四 chip「综合旺方/求财/事业/桃花人缘」fdT_*，点击整卡重渲、当前项 .on；on()/id 全字面量满足 on_wiring 闸。
+- 海报链：标题随话题（求财旺方/事业旺方/…综合仍「旺你的方位」）、弹层标题同步、首行 k 位标签随话题（财位/官位/印位）、payload 带 _fdTopicN/_fdTopicK。
+- 冒烟补 4 例 topic chip 切换（cai/shi/tao/all）。
+- 实测：土日主四题切换各出正确十神方位、海报弹层标题「求财旺方」、零 JS 错。
+- 闸：selftest 457 / contract 790 / banned 0 / smoke 123 全绿。
