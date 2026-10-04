@@ -19355,6 +19355,40 @@ function _moodWeekSlice(shiftBack) {
   }
   return days;
 }
+/* R3616：周信文本公共件——首访卡与周记「往期小记」同一份判词。
+ * wkStart=要统计的那周周一 ISO，seed=判词种子（保持卡内原种子
+ * 口径 'wl|<展示的周>'）。达阈（打卡≥2 或 心情≥3）回对象，否则 null。 */
+function _wlTextFor(wkStart, seed) {
+  var _cks = _checkinAll();
+  var _lckN = 0, _lmdN = 0, _lmdCnt = {};
+  for (var _o = 0; _o < 7; _o++) {
+    var _ld = _isoShift(wkStart, _o);
+    if (_cks[_ld]) _lckN++;
+    var _lmv = localStorage.getItem('mood:' + _ld);
+    if (_lmv !== null && _lmv !== '') {
+      _lmdN++; _lmdCnt[_lmv] = (_lmdCnt[_lmv] || 0) + 1;
+    }
+  }
+  if (!(_lckN >= 2 || _lmdN >= 3)) return null;
+  var _dom = -1, _domN = 0;
+  Object.keys(_lmdCnt).forEach(function (k) {
+    if (_lmdCnt[k] > _domN) { _domN = _lmdCnt[k]; _dom = +k; }
+  });
+  return {
+    n: _lckN, m: _lmdN,
+    moodTxt: (_dom >= 0 && _MOOD_META[_dom])
+      ? '，心情多是「' + _MOOD_META[_dom].t + '」' : '',
+    line: _dom === 0
+      ? '上周辛苦啦，这周先把觉补够，好运会慢慢回温的。'
+      : _dom === 3
+      ? '状态这么好，这周可以大胆一点，想做的事往前推。'
+      : _lckN >= 5
+      ? '上周你几乎天天都来，我都记着呢——这周继续保持呀。'
+      : _dayPick(['新的一周，日子翻开新的一页，慢慢来就好。',
+                  '这周不求大起大落，平安顺遂就是赢。',
+                  '新周开张，先把小确幸收进口袋。'], seed)
+  };
+}
 function _moodWeekData() {
   var days = _moodWeekSlice(0), prev = _moodWeekSlice(1);
   var cnt = [0, 0, 0, 0], recorded = 0, main = -1, mainN = 0;
@@ -19594,6 +19628,30 @@ function _renderMoodWeek() {
       html += '<p class="mw-flash">' + esc(_fbT) + '</p>';
     }
   } catch (eFB) {}
+  /* R3616：往期小记（Lunary diary of weeks 同构）——最近 8 个
+   * 完整周里达阈的周各给一封回看小记，判词与首访卡同源；
+   * 一封都没有整块缺席，不当催记告示。 */
+  try {
+    var _aMon = _isoShift(_td0,
+      -((new Date(_td0 + 'T00:00:00').getDay() + 6) % 7));
+    var _arch = '';
+    for (var _aw = 1; _aw <= 8; _aw++) {
+      var _wk = _isoShift(_aMon, -7 * _aw);
+      var _wl = _wlTextFor(_wk, 'wl|' + _isoShift(_wk, 7));
+      if (!_wl) continue;
+      var _wEnd = _isoShift(_wk, 6);
+      _arch += '<div class="mw-arch"><p class="mw-arch-t">💌 ' +
+        (+_wk.slice(5, 7)) + '/' + (+_wk.slice(8, 10)) + '–' +
+        (+_wEnd.slice(5, 7)) + '/' + (+_wEnd.slice(8, 10)) +
+        ' 那周</p><p class="mw-arch-b">' + esc(
+          (_wl.n === 0
+            ? '那周你来记下 ' + _wl.m + ' 天心情'
+            : '那周你打卡 ' + _wl.n + ' 天') +
+          _wl.moodTxt + '。' + _wl.line) + '</p></div>';
+    }
+    if (_arch) html += '<div class="mw-archives">' +
+      '<p class="mw-arch-h">往期小记</p>' + _arch + '</div>';
+  } catch (eArch) {}
   html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
   body.innerHTML = html;
   /* R3526：月历格点击回看——委派一次挂上（重渲覆盖不换监听）。 */
@@ -20780,31 +20838,10 @@ function renderCheckin(dateKey) {
     var _mon = _isoShift(dateKey, -_dow);          // 本周一
     var _wlKey = 'weeklyLetter:' + _mon;
     if (!localStorage.getItem(_wlKey)) {
-      var _lckN = 0, _lmdN = 0, _lmdCnt = {};
-      for (var _lw = 7; _lw >= 1; _lw--) {
-        var _ld = _isoShift(_mon, -_lw);           // 上周一~日
-        if (_ckAll[_ld]) _lckN++;
-        var _lmv = localStorage.getItem('mood:' + _ld);
-        if (_lmv !== null && _lmv !== '') {
-          _lmdN++; _lmdCnt[_lmv] = (_lmdCnt[_lmv] || 0) + 1;
-        }
-      }
-      if (_lckN >= 2 || _lmdN >= 3) {
-        var _dom = -1, _domN = 0;
-        Object.keys(_lmdCnt).forEach(function (k) {
-          if (_lmdCnt[k] > _domN) { _domN = _lmdCnt[k]; _dom = +k; }
-        });
-        var _moodTxt = (_dom >= 0 && _MOOD_META[_dom])
-          ? '，心情多是「' + _MOOD_META[_dom].t + '」' : '';
-        var _wlLine = _dom === 0
-          ? '上周辛苦啦，这周先把觉补够，好运会慢慢回温的。'
-          : _dom === 3
-          ? '状态这么好，这周可以大胆一点，想做的事往前推。'
-          : _lckN >= 5
-          ? '上周你几乎天天都来，我都记着呢——这周继续保持呀。'
-          : _dayPick(['新的一周，日子翻开新的一页，慢慢来就好。',
-                      '这周不求大起大落，平安顺遂就是赢。',
-                      '新周开张，先把小确幸收进口袋。'], 'wl|' + _mon);
+      /* R3616：信文本抽公共 _wlTextFor——与周记「往期小记」
+       * 同一份判词；种子口径不变（'wl|<本周一>'）。 */
+      var _lwl = _wlTextFor(_isoShift(_mon, -7), 'wl|' + _mon);
+      if (_lwl) {
         _wlHtml = '<div class="weekly-letter" id="weeklyLetter">' +
           '<div class="wl-head">💌 小满的上周小记' +
           /* R3379：周记信可晒——真实记录拼的小记上分享海报。 */
@@ -20815,10 +20852,10 @@ function renderCheckin(dateKey) {
           '<div class="wl-body">' +
           /* R3318（审-P3-4）：0 打卡纯心情路径——「打卡 0 天」开头
            * 语气硬，改述成「来记下心情」。 */
-          (_lckN === 0
-            ? '上周你来记下 ' + _lmdN + ' 天心情'
-            : '上周你打卡 ' + _lckN + ' 天') +
-          esc(_moodTxt) + '。' + esc(_wlLine) + '</div></div>';
+          (_lwl.n === 0
+            ? '上周你来记下 ' + _lwl.m + ' 天心情'
+            : '上周你打卡 ' + _lwl.n + ' 天') +
+          esc(_lwl.moodTxt) + '。' + esc(_lwl.line) + '</div></div>';
       }
     }
   } catch (eWL) {}

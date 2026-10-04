@@ -594,6 +594,14 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 /* R3610：回看闪回行——副色小行，月历/周记尾的轻怀旧。 */
 .mw-flash{font-size:12px; color:var(--secondary); line-height:1.6;
   margin:2px 0;}
+/* R3616：往期小记归档——历史周信列表，淡卡叠行。 */
+.mw-archives{margin-top:10px; border-top:1px dashed var(--line,rgba(120,100,80,.25));
+  padding-top:8px;}
+.mw-arch-h{font-size:11px; color:var(--muted); margin:0 0 4px;}
+.mw-arch{margin:0 0 8px; padding:8px 10px; border-radius:10px;
+  background:var(--card,#FFFDFB); border:1px solid var(--line,rgba(120,100,80,.18));}
+.mw-arch-t{font-size:11.5px; color:var(--secondary); margin:0 0 2px;}
+.mw-arch-b{font-size:12px; color:var(--secondary); line-height:1.6; margin:0;}
 /* R3607：补记昨天——与周记小链同型的低调链。 */
 .mood-backfill{font-size:11.5px; color:var(--secondary);
   background:transparent; border:none; padding:2px 4px; cursor:pointer;

@@ -20159,3 +20159,7 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3615 月历闸链注册（CI 修复批）
 - CI selftest 挂：/api/mooncal 未进 probe_contract FIXTURES——补钉扎（month=2026-10 参数样例）。
 - 同批：fetch().then(r.json()) 裸调用被 HARD 闸当字段读——改走统一 api() 助手（timeout/人话错误同口径，silent 不双弹 toast）；moonCalOv overlay 容器补 smoke NO_CASE 豁免（var ov = el()+addEventListener 被覆盖闸扫到）。
+
+## R3616 往期小记归档（Lunary diary of weeks 同构）
+- 周信文本抽公共 _wlTextFor(wkStart, seed)：首访卡与归档同一份判词，种子口径不变。
+- 周记新增「往期小记」区：最近 8 个完整周里达阈（打卡≥2 或 心情≥3）的周各给一封回看小记（「M/D–M/D 那周」标题+原文判词）；一封没有整块缺席。实测 5 打卡周+3 心情周各出一封、未达阈周正确缺席。
