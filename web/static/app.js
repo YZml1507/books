@@ -24854,6 +24854,52 @@ function _qianCnyDraw() {
   _qianFactWrite(n, '新春');
   return n;
 }
+/* R3622 万圣·捣蛋签：10.25–11.1 窗口开「捣蛋签」（小红书
+ * 「先疯之夜」同期）——池子是百签里「移徙」断语为宜动/宜变
+ * 的签（吉/大吉/利/宜迁/如意/随意/更新/改/兴/远可/旺/昌盛/安，
+ * 出门捣蛋换个花样，动一动转运气），真签文没编。分键
+ * qian:hw:<date>、同日定、进签历史。机制照抄桃花/福签。 */
+var _QIAN_HW_GO = { '吉':1, '大吉':1, '利':1, '宜迁':1, '如意':1,
+  '随意':1, '更新':1, '改':1, '兴':1, '远可':1, '旺':1,
+  '昌盛':1, '安':1 };
+function _qianHwFest() {
+  return _inBothDates(function (o) {
+    return (o.m === 10 && o.d >= 25) || (o.m === 11 && o.d <= 1);
+  });
+}
+function _qianHwPool() {
+  var out = [];
+  for (var i = 0; i < QIAN.length; i++) {
+    var mm = /移徙\s+([^\s]{1,4})/.exec(QIAN[i].xj || '');
+    if (mm && _QIAN_HW_GO[mm[1]]) out.push(i + 1);
+  }
+  return out;
+}
+function _qianHwIdxOf(dk) {
+  try {
+    var v = parseInt(localStorage.getItem('qian:hw:' + dk) || '', 10);
+    return (v >= 1 && v <= 100) ? v : 0;
+  } catch (e) { return 0; }
+}
+function _qianHwDraw() {
+  if (!_qianHwFest()) return 0;
+  /* 落键锚放行日——CST 放行不锚本地错位日（同 R3452 口径）。 */
+  var dk = _winAnchorIso(function (o) {
+    return (o.m === 10 && o.d >= 25) || (o.m === 11 && o.d <= 1);
+  }), had = _qianHwIdxOf(dk);
+  if (had) return had;
+  var pool = _qianHwPool();
+  if (!pool.length) return 0;
+  var n = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    localStorage.setItem('qian:hw:' + dk, String(n));
+    var h = _qianHist();
+    h.unshift({ d: dk, n: n, hw: 1 });
+    localStorage.setItem('qian:hist', JSON.stringify(h.slice(0, 30)));
+  } catch (e) {}
+  _qianFactWrite(n, '捣蛋');
+  return n;
+}
 function _qianTopic(dk) {
   try {
     var t = localStorage.getItem('qian:t:' + dk) || '';
@@ -24900,6 +24946,7 @@ function _qianFactWrite(n, loveTp) {
     /* R3452（审-P2-6）：'问'+tp+'事' 拼出「问新春事/问桃花事」
      * 生硬会被 LLM 复读——题签到自然话映射。 */
     var _tpSay = { '桃花': '问感情', '新春': '讨个彩头',
+                   '捣蛋': '讨个乐子',
                    '感情': '问感情', '事业': '问事业',
                    '财运': '问财运', '学业': '问学业',
                    '健康': '问健康', '家宅': '问家宅' }[tp] ||
@@ -24922,7 +24969,7 @@ function _qianSlipHtml(n, opts) {
    * love 时固定题签桃花。 */
   /* R3417：福签题签固定「新春」（日签题不串窗）。 */
   var _tp = o.love ? '桃花' : (o.cny ? '新春'
-    : _qianTopic(o.review ? o.review : todayIso()));
+    : (o.hw ? '捣蛋' : _qianTopic(o.review ? o.review : todayIso())));
   var h = '<div class="qian-slip' + (o.review ? ' is-review' : '') + '">';
   if (o.review) {
     h += '<div class="qian-review-tag">📅 ' + esc(o.review) + ' 抽的那支</div>';
@@ -24932,6 +24979,9 @@ function _qianSlipHtml(n, opts) {
   }
   if (o.cny) {
     h += '<div class="qian-review-tag">🧧 新春福签</div>';
+  }
+  if (o.hw) {
+    h += '<div class="qian-review-tag">🎃 万圣·捣蛋签</div>';
   }
   h += '<div class="qian-head"><span class="qian-no">第' + n + '签</span>' +
        (_tp ? '<span class="qian-topic-tag">问' + esc(_tp) + '</span>' : '') +
@@ -24951,6 +25001,13 @@ function _qianSlipHtml(n, opts) {
          ? '<div class="qian-say">🌸 仙机·婚姻：' +
            esc((q.xj.match(/婚姻\s+(\S+)/) || [])[1] || '') + '</div>'
          : '') +
+       /* R3622：捣蛋签卖点「宜动」同理把仙机·移徙项抽出上屏，
+        * 「换个花样动起来」有据可晒。 */
+       (o.hw && q.xj && /移徙\s+\S+/.test(q.xj)
+         ? '<div class="qian-say">🎃 仙机·移徙：' +
+           esc((q.xj.match(/移徙\s+(\S+)/) || [])[1] || '') +
+           '——老话讲，就是宜换个花样动起来</div>'
+         : '') +
        '<details class="qian-det"><summary>解曰与典故</summary>' +
        '<div class="qian-det-body">' +
        /* R3418-P2-7：古本原文含「人口有灾」「投河」类硬描写——
@@ -24967,13 +25024,22 @@ function _qianSlipHtml(n, opts) {
        '<button class="mc-go" type="button" data-qian="share" data-n="' + n + '"' +
        (o.review ? ' data-d="' + esc(o.review) + '"' : '') +
        (o.love ? ' data-love="1"' : '') +
-       (o.cny ? ' data-cny="1"' : '') + '>' +
+       (o.cny ? ' data-cny="1"' : '') +
+       (o.hw ? ' data-hw="1"' : '') + '>' +
        '📸 晒这支签</button>' +
        (o.cny
          ? '<div class="qian-note">' +
            (_qianCnyLastDay()
              ? '福签到今晚元宵截止——明年新春再来'
              : '福签今天这支——明天还能再抽') + '</div>'
+         : (o.hw
+         ? '<div class="qian-note">' +
+           /* R3622：11/1 末日同上口径——「明天还能再抽」当天为
+            * 假承诺，末日换「截止」。 */
+           (_inBothDates(function (o) {
+              return o.m === 11 && o.d >= 1; })
+             ? '捣蛋签到今晚截止——明年万圣再来'
+             : '捣蛋签今天这支——明天还能再抽') + '</div>'
          : (o.love
          ? '<div class="qian-note">' +
            /* R3411-P2-1（终审）：11/11 是窗口末日——「明天还能再抽」
@@ -24988,7 +25054,7 @@ function _qianSlipHtml(n, opts) {
              : '桃花签今天这支——明天还能再抽') + '</div>'
          : (o.review
            ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
-           : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>'))) +
+           : '<div class="qian-note">今天的签不会变——明天再来抽一支</div>')))) +
        '</div></div>';
   return h;
 }
@@ -25004,8 +25070,9 @@ function _qianHistHtml() {
     return '<button class="qian-hrow" type="button" data-qian="hist" data-n="' + x.n +
            '" data-d="' + esc(x.d) + '"' +
            (x.lv ? ' data-lv="1"' : '') +
-           (x.cn ? ' data-cn="1"' : '') + '><span>' + esc(md) + '</span>' +
-           '<span>' + (x.lv ? '🌸 ' : x.cn ? '🧧 ' : '') + '第' + x.n + '签 · ' +
+           (x.cn ? ' data-cn="1"' : '') +
+           (x.hw ? ' data-hw="1"' : '') + '><span>' + esc(md) + '</span>' +
+           '<span>' + (x.lv ? '🌸 ' : x.cn ? '🧧 ' : (x.hw ? '🎃 ' : '')) + '第' + x.n + '签 · ' +
            esc(q.luck) + '</span>' +
            '<span class="qian-hname">' + esc(q.name) + '</span></button>';
   }).join('');
@@ -25022,6 +25089,17 @@ function _qianLoveHtml() {
     '<div class="qian-love-s">只出「婚姻」断语为吉的签——今天这支管感情</div>' +
     '<button class="mc-go" type="button" data-qian="love">' +
     '抽一支桃花签</button></div>';
+}
+/* R3622：捣蛋签区——万圣窗口内现身，独立于今日签。 */
+function _qianHwHtml() {
+  if (!_qianHwFest()) return '';
+  var hw = _qianHwIdxOf(todayIso());
+  if (hw) return _qianSlipHtml(hw, { hw: 1 });
+  return '<div class="qian-love" id="qianHw">' +
+    '<div class="qian-love-t">🎃 万圣·捣蛋签</div>' +
+    '<div class="qian-love-s">只出「宜动」的签——给生活放个小疯，动一动运气好</div>' +
+    '<button class="mc-go" type="button" data-qian="hw">' +
+    '捣蛋一下抽一支</button></div>';
 }
 /* R3417：福签区——除夕到元宵窗口内现身，独立于今日签。 */
 function _qianCnyHtml() {
@@ -25044,7 +25122,7 @@ function _renderQian(review) {
     if (review && review.n) {
       qnBoxEl.innerHTML = _qianSlipHtml(review.n,
         { review: review.d, love: review.lv ? 1 : 0,
-          cny: review.cn ? 1 : 0 }) +
+          cny: review.cn ? 1 : 0, hw: review.hw ? 1 : 0 }) +
         _qianHistHtml();
       return;
     }
@@ -25058,7 +25136,7 @@ function _renderQian(review) {
         if (!_qf || _qf.d !== dk) _qianFactWrite(idx);
       } catch (eQF) { _qianFactWrite(idx); }
       qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianLoveHtml() +
-        _qianCnyHtml() + _qianHistHtml();
+        _qianHwHtml() + _qianCnyHtml() + _qianHistHtml();
       return;
     }
     var _chips = _QIAN_TOPICS.map(function (t) {
@@ -25075,7 +25153,7 @@ function _renderQian(review) {
         '<button class="mc-go qian-draw" type="button" data-qian="draw">' +
         '摇一支今日签</button>' +
         '<div class="qian-note">一天一支——今天的签抽了就不会变</div>' +
-      '</div>' + _qianLoveHtml() + _qianCnyHtml() + _qianHistHtml();
+      '</div>' + _qianLoveHtml() + _qianHwHtml() + _qianCnyHtml() + _qianHistHtml();
   });
 }
 (function _qianBind() {
@@ -25104,6 +25182,12 @@ function _renderQian(review) {
       if (_lvb) _lvb.classList.add('is-shaking');
       b.disabled = true;
       setTimeout(function () { _qianLoveDraw(); _renderQian(); }, 1100);
+    } else if (act === 'hw') {
+      /* R3622：捣蛋签同走摇签仪式。 */
+      var _hwb = document.getElementById('qianHw');
+      if (_hwb) _hwb.classList.add('is-shaking');
+      b.disabled = true;
+      setTimeout(function () { _qianHwDraw(); _renderQian(); }, 1100);
     } else if (act === 'cny') {
       /* R3417：福签同走摇签仪式。 */
       var _cnb = document.getElementById('qianCny');
@@ -25114,7 +25198,8 @@ function _renderQian(review) {
       var n2 = parseInt(b.dataset.n || '0', 10);
       if (n2) _renderQian({ n: n2, d: b.dataset.d || '',
         lv: b.dataset.lv === '1' ? 1 : 0,
-        cn: b.dataset.cn === '1' ? 1 : 0 });
+        cn: b.dataset.cn === '1' ? 1 : 0,
+        hw: b.dataset.hw === '1' ? 1 : 0 });
     } else if (act === 'back') {
       _renderQian();
     } else if (act === 'share') {
@@ -25127,11 +25212,13 @@ function _renderQian(review) {
        * R3417：福签同口径落「新春福签」。 */
       var _lv3 = b.dataset.love === '1';
       var _cn3 = b.dataset.cny === '1';
+      var _hw3 = b.dataset.hw === '1';
       downloadPoster({ _qian: {
           n: n3, name: q3.name, luck: q3.luck,
           poem: q3.poem, say: q3.say,
           topic: _cn3 ? '新春福签'
-               : (_lv3 ? '桃花签' : _qianTopic(_sd)) },
+               : (_hw3 ? '万圣捣蛋签'
+               : (_lv3 ? '桃花签' : _qianTopic(_sd))) },
         date: _sd }, 'qian');
     }
   });
