@@ -121,6 +121,8 @@ BUTTON_CASES = [
     ("bazi.soulart",    "bazi",   None,            "#shareSoulart",    "#saCard .sa-card"),
     # R3490：灵魂角色——bazi 出卡后点 🎭 钮出角色卡。
     ("bazi.soulicon",   "bazi",   None,            "#shareSoulicon",   "#icCard .ic-card"),
+    # R3491：灵魂纹样——bazi 出卡后点 🧿 钮出纹样卡（canvas 画家）。
+    ("bazi.soulemblem", "bazi",   None,            "#shareEmblem",     "#emCard .em-card"),
     # R3464：算命 prompt——点 📋 钮复制（clipboard 成败两路都出 toast）。
     ("bazi.prompt",     "bazi",   None,            "#sharePrompt",     ".toast-item"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
@@ -485,6 +487,12 @@ def main() -> int:
         # 同族豁免；shareSoulicon 本身有真用例。
         "icShare": "灵魂角色「晒出我的角色」——downloadPoster 海报模态，"
                    "同 shareBazi 族豁免",
+        # R3491：纹样卡两钮——downloadPoster('soulemblem') 海报模态 + /
+        # canvas 纹样原图合成下载，同 shareBazi/dailyWap 族豁免。
+        "emShare": "灵魂纹样「晒出我的纹样」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        "emWap": "灵魂纹样「纹样原图」——canvas 徽章合成+下载，"
+                 "同 dailyWap 族豁免",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"

@@ -385,6 +385,8 @@ function _paintSharePoster(s, W, H) {
                    guardian: 6, crystal: 6,
                    /* R3490：soulicon 五字段行+口径行。 */
                    soulicon: 6,
+                   /* R3491：soulemblem 本命/纹意/小满说/口径行。 */
+                   soulemblem: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1846,6 +1848,31 @@ function buildShareData(view, j) {
       if (!_ic.lines.length) _ic.lines =
         [{ k: '结论', v: '这位神祇住你盘里' }];
       return _ic;
+    }
+    case 'soulemblem': {
+      /* R3491 灵魂纹样海报：纹样名上主位大字，本命/纹意/贴士
+       * 进 lines——纹样本体在卡里和「纹样原图」里，海报引路。 */
+      var _em = base('灵魂纹样', '');
+      var _emGl = _pStr(j && j._emGlyph);
+      _em.big = (_emGl ? _emGl + ' ' : '') +
+        (_pStr(j && j._emName) || '灵魂纹样');
+      _em.lines = [];
+      if (_pStr(j && j._emWx)) {
+        _em.lines.push({ k: '本命', v: _pStr(j._emWx) + ' 行的纹样' });
+      }
+      if (_pStr(j && j._emWhy)) {
+        _em.lines.push({ k: '依据', v: _clauseCut(_pStr(j._emWhy), 20) });
+      }
+      if (_pStr(j && j._emVibe)) {
+        _em.lines.push({ k: '纹意', v: _clauseCut(_pStr(j._emVibe), 20) });
+      }
+      if (_pStr(j && j._emTip)) {
+        _em.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._emTip), 20) });
+      }
+      _em.lines.push({ k: '口径', v: '一人一纹，图个念想' });
+      if (!_em.lines.length) _em.lines =
+        [{ k: '结论', v: '这款纹样是你的' }];
+      return _em;
     }
     case 'soulart': {
       /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带

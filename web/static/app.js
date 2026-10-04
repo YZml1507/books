@@ -2361,7 +2361,7 @@ function _chatActChip(bubble, action) {
     try {
       /* R3471：sa* 锚——小惊喜族直达：结果已在屏直开；未出盘存
        * 待启标记，submitBazi 渲染后自动展开（指路同时教会入口）。 */
-      if (/^sa[FGCSPR]$/.test(action.anchor || '')) {
+      if (/^sa[EFGCPSR]$/.test(action.anchor || '')) {
         if (!_openSaByKey(action.anchor.slice(2))) {
           window.__saPending = action.anchor.slice(2);
         }
@@ -7035,12 +7035,17 @@ function buildBaziResult(j) {
      * soul-icon 同构件，与图腾取法不同：看本命不看喜用）。 */
     '<button class="ghost fav-btn" type="button" id="shareSoulicon" '
  + '      title="看看你盘里住着哪位神话角色">🎭 灵魂角色</button>' +
+    /* R3491：灵魂纹样——日主定族+五行当种子的一人一纹生成式
+     * 图案（soul-tattoo 同构件，可当头像/锁屏）。 */
+    '<button class="ghost fav-btn" type="button" id="shareEmblem" '
+ + '      title="看看你盘里长出来的守护纹样">🧿 灵魂纹样</button>' +
     '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
     '<div id="crCard"></div>' +
     '<div id="saCard"></div>' +
-    '<div id="icCard"></div>';
+    '<div id="icCard"></div>' +
+    '<div id="emCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7649,6 +7654,7 @@ async function submitBazi(event) {
       on('shareSoulart', function () { _saOpen(j); });
       on('sharePrompt', function () { _promptCopy(j, body); });
       on('shareSoulicon', function () { _icOpen(j); });
+      on('shareEmblem', function () { _emOpen(j); });
       /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
        * 不到刚看过的卡）。
        * R3485-P2-1：展开后钮置 disabled + aria-expanded——否则
@@ -8859,6 +8865,9 @@ var _POSTER_TITLES = {
   soulart: '灵魂色谱',
   /* R3490：灵魂角色海报弹层标题/下载文件名。 */
   soulicon: '灵魂角色',
+  /* R3491：灵魂纹样海报/纹样原图模态标题与文件名。 */
+  soulemblem: '灵魂纹样',
+  'emblem-wap': '灵魂纹样原图',
   /* R3479：色谱壁纸模态标题/文件名——回落「命盘海报」张冠李戴。 */
   'soulart-wap': '灵魂色谱壁纸',
   /* R3486：图腾壁纸模态标题/文件名。 */
@@ -8895,6 +8904,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   crystal: 'dream',
   /* R3490：灵魂角色归紫云梦底——神话的夜行神秘感（同图腾族）。 */
   soulicon: 'dream',
+  /* R3491：灵魂纹样同归紫云梦底——徽章印的夜行仪式感。 */
+  soulemblem: 'dream',
   /* R3462：灵魂色谱——星云底由画家自画（s.art 分支），
    * 此键只为 _bgKey 兜底。 */
   soulart: 'lilac',
@@ -8959,6 +8970,9 @@ var _SHARE_TEXT = {
   soulart: '我盘里的色谱长这样，你的盘是什么颜色 →',
   /* R3490：灵魂角色——「哪位神祇住我盘里」接力晒。 */
   soulicon: '我盘里的灵魂角色出来了，看看哪位神祇住你盘里 →',
+  /* R3491：灵魂纹样——「我的纹样长这样」接力晒。 */
+  soulemblem: '我盘里长出来的纹样是这款，看看你的 →',
+  'emblem-wap': '我的灵魂纹样原图做好了，看看你的纹长什么样 →',
   /* R3479：色谱壁纸——「锁屏同款」接力晒。 */
   'soulart-wap': '我的五行色谱锁屏做好了，你的盘是什么颜色 →',
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
@@ -8980,6 +8994,10 @@ var _SHARE_TEXT = {
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
   guardian: 'bazi', crystal: 'bazi', soulart: 'bazi', soulicon: 'bazi',
+  soulemblem: 'bazi',
+  /* R3491：纹样原图模态复制链同口径——?view=emblem-wap 是死链，
+   * 归到 bazi + sa=E 锚。 */
+  'emblem-wap': 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun',
@@ -8991,9 +9009,11 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
 /* R3475：小惊喜海报分享链携带 sa 锚——受邀者排盘后自动开同款卡
  * （与聊天 sa* 锚/_openSaByKey 同键族）。 */
 var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
-  soulart: 'S', soulicon: 'R', 'soulart-wap': 'S',
+  soulart: 'S', soulicon: 'R', soulemblem: 'E', 'soulart-wap': 'S',
   /* R3486：图腾壁纸回流锚。 */
-  'guardian-wap': 'G' };
+  'guardian-wap': 'G',
+  /* R3491：纹样原图回流锚。 */
+  'emblem-wap': 'E' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -16710,7 +16730,8 @@ if (document.readyState === 'loading') {
           var _saNk = (window.__shareSa ||
             new URLSearchParams(location.search).get('sa') || '');
           var _saNM = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
-            S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色' };
+            S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色',
+            E: '灵魂纹样' };
           if (_saNM[_saNk]) {
             _relay.bazi = '朋友在晒 TA 的「' + _saNM[_saNk] +
               '」：排完你的盘，自动给你开同款 ✨';
@@ -16807,7 +16828,8 @@ if (document.readyState === 'loading') {
         var _saK2 = (window.__shareSa ||
           new URLSearchParams(location.search).get('sa') || '');
         var _saNM2 = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
-          S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色' };
+          S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色',
+          E: '灵魂纹样' };
         if (_saNM2[_saK2]) {
           _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
             '」：填生日排完盘，自动给你开同款 ✨';
@@ -17645,8 +17667,229 @@ function _icOpen(j) {
   _icBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+/* R3491 灵魂纹样（Astairo soul-tattoo 同构第七件）：日主定纹样
+ * 族 + 五行分布当种子——一人一纹，真·生成式图案（不是贴图）。
+ * 卡内 canvas 直出小图，「纹样原图」走壁纸管线出 720×720 大图
+ * （可当头像也可当锁屏）。 */
+var _EMB = {
+  '木': { glyph: '🌿', name: '年轮印',
+    vibe: '一圈一圈往外长——年轮里冒新芽',
+    tip: '这纹样适合「慢慢来比较快」的你：长得慢但断不了' },
+  '火': { glyph: '🔥', name: '焰心纹',
+    vibe: '焰瓣一圈圈从心里开出来',
+    tip: '这纹样配「自带热量」的你：场子靠你点起来' },
+  '土': { glyph: '⛰️', name: '连山纹',
+    vibe: '山叠山、土托土——「稳」画出来的样子',
+    tip: '这纹样配「压得住阵」的你：别人急的时候你是地' },
+  '金': { glyph: '✨', name: '星芒纹',
+    vibe: '锋芒收进菱心里——利落但不扎人的亮',
+    tip: '这纹样配「眼里有数」的你：该亮的亮、该收的收' },
+  '水': { glyph: '💧', name: '涟漪纹',
+    vibe: '一滴水荡开的圈——影响是慢慢晕开的',
+    tip: '这纹样配「柔里带韧」的你：不争一时，化得开事' },
+};
+/* 纹样画家（全局，壁纸管线 app_wallpaper.js 的 _wapEmblem 也调它）：
+ * seeded PRNG 与灵魂色谱星云同款 LCG——同盘同纹确定性口径。 */
+function _emblemDraw(ctx, cx, cy, r, wx, seed) {
+  var _s = (+seed) >>> 0;
+  var _rnd = function () {
+    _s = (_s * 1664525 + 1013904223) >>> 0;
+    return _s / 4294967296;
+  };
+  var C = _SA_COLOR[wx] || '#C9A24B';
+  var GOLD = '#E8CF9A';
+  var TAU = Math.PI * 2;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU);
+  var _g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  _g.addColorStop(0, '#241E38'); _g.addColorStop(1, '#14101F');
+  ctx.fillStyle = _g; ctx.fill();
+  ctx.clip();
+  /* 外圈双金线（徽章感） */
+  ctx.strokeStyle = 'rgba(232,207,154,0.85)';
+  ctx.lineWidth = Math.max(1.5, r * 0.018);
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.94, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(232,207,154,0.38)';
+  ctx.lineWidth = Math.max(1, r * 0.01);
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.86, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = C; ctx.fillStyle = C;
+  ctx.lineWidth = Math.max(1.6, r * 0.02);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  var rot = _rnd() * TAU;
+  if (wx === '木') {
+    /* 年轮：4-5 个偏心同心环 + 一芽斜出 */
+    var _nr = 4 + Math.floor(_rnd() * 2);
+    for (var _i = 0; _i < _nr; _i++) {
+      var _rr = r * (0.16 + _i * 0.14);
+      var _ox = cx + (_rnd() - 0.5) * r * 0.1;
+      var _oy = cy + (_rnd() - 0.5) * r * 0.1;
+      ctx.globalAlpha = 0.55 + _i * 0.1;
+      ctx.beginPath(); ctx.arc(_ox, _oy, _rr, 0, TAU); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    var _ang = rot;
+    ctx.strokeStyle = GOLD; ctx.lineWidth = Math.max(2, r * 0.024);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.quadraticCurveTo(cx + Math.cos(_ang) * r * 0.3,
+      cy + Math.sin(_ang) * r * 0.3,
+      cx + Math.cos(_ang) * r * 0.6, cy + Math.sin(_ang) * r * 0.6);
+    ctx.stroke();
+    /* 芽尖两小叶 */
+    var _tx = cx + Math.cos(_ang) * r * 0.6,
+        _ty = cy + Math.sin(_ang) * r * 0.6;
+    ctx.fillStyle = GOLD;
+    [-1, 1].forEach(function (sg) {
+      ctx.beginPath();
+      ctx.ellipse(_tx + Math.cos(_ang + sg * 0.9) * r * 0.09,
+        _ty + Math.sin(_ang + sg * 0.9) * r * 0.09,
+        r * 0.07, r * 0.03, _ang + sg * 0.9, 0, TAU);
+      ctx.fill();
+    });
+  } else if (wx === '火') {
+    /* 焰心：5-7 瓣杏仁焰围一圈 + 芯点 */
+    var _np = 5 + Math.floor(_rnd() * 3);
+    for (var _fi = 0; _fi < _np; _fi++) {
+      var _fa = rot + _fi * TAU / _np;
+      var _fl = r * (0.5 + _rnd() * 0.16);
+      var _bx = cx + Math.cos(_fa) * _fl,
+          _by = cy + Math.sin(_fa) * _fl;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.quadraticCurveTo(
+        cx + Math.cos(_fa - 0.4) * _fl * 0.75,
+        cy + Math.sin(_fa - 0.4) * _fl * 0.75, _bx, _by);
+      ctx.quadraticCurveTo(
+        cx + Math.cos(_fa + 0.4) * _fl * 0.75,
+        cy + Math.sin(_fa + 0.4) * _fl * 0.75, cx, cy);
+      ctx.globalAlpha = 0.28; ctx.fill();
+      ctx.globalAlpha = 0.9; ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = GOLD;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.07, 0, TAU); ctx.fill();
+  } else if (wx === '土') {
+    /* 连山：三层锯齿山形 + 地平线 */
+    for (var _ly = 0; _ly < 3; _ly++) {
+      var _yb = cy + r * (0.42 - _ly * 0.26);
+      var _npk = 3 + Math.floor(_rnd() * 3);
+      var _dx = r * 1.2 / _npk;
+      ctx.globalAlpha = 0.5 + _ly * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.6, _yb);
+      for (var _pk = 0; _pk < _npk; _pk++) {
+        var _px = cx - r * 0.6 + _dx * (_pk + 0.5 + _rnd() * 0.2);
+        var _ph = _yb - r * (0.12 + _rnd() * 0.1);
+        ctx.lineTo(_px, _ph);
+        ctx.lineTo(cx - r * 0.6 + _dx * (_pk + 1), _yb);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.strokeStyle = GOLD;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.55, cy + r * 0.58);
+    ctx.lineTo(cx + r * 0.55, cy + r * 0.58); ctx.stroke();
+  } else if (wx === '金') {
+    /* 星芒：8 道放射刻线 + 中心四点菱星 */
+    for (var _ri = 0; _ri < 8; _ri++) {
+      var _ra = rot + _ri * Math.PI / 4;
+      var _len = r * (0.62 + (_ri % 2 ? -0.18 : 0) + _rnd() * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(_ra) * r * 0.18,
+                 cy + Math.sin(_ra) * r * 0.18);
+      ctx.lineTo(cx + Math.cos(_ra) * _len,
+                 cy + Math.sin(_ra) * _len);
+      ctx.stroke();
+    }
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    var _dr = r * 0.2;
+    ctx.moveTo(cx, cy - _dr); ctx.lineTo(cx + _dr * 0.42, cy);
+    ctx.lineTo(cx, cy + _dr); ctx.lineTo(cx - _dr * 0.42, cy);
+    ctx.closePath(); ctx.fill();
+  } else {
+    /* 涟漪（水/兜底）：4 个微波同心圆 + 芯滴 */
+    for (var _wi = 0; _wi < 4; _wi++) {
+      var _wr = r * (0.16 + _wi * 0.17);
+      var _fq = 6 + Math.floor(_rnd() * 4);
+      var _amp = r * (0.02 + _rnd() * 0.02);
+      ctx.globalAlpha = 0.5 + _wi * 0.12;
+      ctx.beginPath();
+      for (var _wa = 0; _wa <= 64; _wa++) {
+        var _aa = _wa / 64 * TAU;
+        var _wrr = _wr + Math.sin(_aa * _fq + rot) * _amp;
+        var _wx2 = cx + Math.cos(_aa) * _wrr,
+            _wy2 = cy + Math.sin(_aa) * _wrr;
+        if (_wa) ctx.lineTo(_wx2, _wy2); else ctx.moveTo(_wx2, _wy2);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = GOLD;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.05, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+function _emPick(j) {
+  var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+    .charAt(0);
+  var wx = _SM_GAN_WX[_gan] || '木';
+  var counts = (j && j.calc && j.calc.five_elements &&
+    j.calc.five_elements.counts) || {};
+  var _s = 'em|' + ['木', '火', '土', '金', '水'].map(function (e) {
+    return counts[e] || 0; }).join(',');
+  var _h = 0;
+  for (var _ci = 0; _ci < _s.length; _ci++) {
+    _h = (_h * 31 + _s.charCodeAt(_ci)) >>> 0;
+  }
+  var why = _gan
+    ? '你日主 ' + _gan + ' 属' + wx + '——纹样是本命印'
+    : '你的五行本命属' + wx + '——纹样是本命印';
+  return { wx: wx, why: why, e: _EMB[wx], seed: _h };
+}
+function _emCard(j) {
+  var _p = _emPick(j);
+  var _h = '<div class="em-card sm-card">' +
+    '<canvas class="em-cv" width="240" height="240" ' +
+      'aria-label="灵魂纹样图"></canvas>' +
+    '<div class="sm-tip">🧿 ' + esc(_p.e.glyph) + ' ' +
+      esc(_p.e.name) + '——' + esc(_p.e.vibe) + '</div>' +
+    '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_p.e.tip) + '</div>' +
+    '<div class="sm-note">纹样按你日主和五行分布生成，一人一纹——' +
+      '图个念想，真纹身还得三思</div>' +
+    '<button class="ghost fav-btn" type="button" id="emShare" ' +
+      'title="生成灵魂纹样分享图">📸 晒出我的纹样</button>' +
+    '<button class="ghost fav-btn" type="button" id="emWap" ' +
+      'title="下载纹样大图（可当头像/锁屏）">💠 纹样原图</button>' +
+    '</div>';
+  return { html: _h, pick: _p };
+}
+function _emOpen(j) {
+  var _emBox = el('emCard');
+  if (!_emBox || !j) return;
+  var _c = _emCard(j);
+  _emBox.innerHTML = _c.html;   // esc-reviewed：_emCard 内动态字段均过 esc()
+  var _cv = _emBox.querySelector('.em-cv');
+  if (_cv && _cv.getContext) {
+    var _cx2 = _cv.getContext('2d');
+    _emblemDraw(_cx2, 120, 120, 104, _c.pick.wx, _c.pick.seed);
+  }
+  on('emShare', function () {
+    var _o = { _emName: _c.pick.e.name, _emGlyph: _c.pick.e.glyph,
+               _emWx: _c.pick.wx, _emWhy: _c.pick.why,
+               _emVibe: _c.pick.e.vibe, _emTip: _c.pick.e.tip };
+    return downloadPoster(Object.assign({}, j, _o), 'soulemblem');
+  });
+  on('emWap', function () {
+    var _wo = { emblem: { wx: _c.pick.wx, seed: _c.pick.seed,
+                name: _c.pick.e.name, vibe: _c.pick.e.vibe } };
+    return downloadWallpaper(_wo, { emblem: true });
+  });
+  _emBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 /* R3471：小惊喜卡直达键——聊天路标 sa* 锚与 ?view=bazi&sa= 深链
- * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt R=灵魂角色。
+ * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt R=灵魂角色
+ * E=灵魂纹样。
  * 本 tab 已有排盘结果→直开对应卡（P 复制 prompt），返 true；
  * 未出盘→false，调用方存待启标记，submitBazi 渲染后消费。 */
 function _openSaByKey(k) {
@@ -17655,7 +17898,7 @@ function _openSaByKey(k) {
   /* R3485-P2-3（审子实锤）：键校验前置——非法 sa 键原来先点亮
    * 折叠区才 return false，地址栏参数又已被剥，客人无端多出
    * 一排钮。 */
-  if ('FGCSPR'.indexOf(k || '') < 0) return false;
+  if ('EFGCPSR'.indexOf(k || '') < 0) return false;
   var _z = el('saZone');
   if (_z) _z.hidden = false;
   var _tg = el('saZoneToggle');
@@ -17668,6 +17911,7 @@ function _openSaByKey(k) {
   if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
   else if (k === 'R') _icOpen(j);
+  else if (k === 'E') _emOpen(j);
   /* R3484-P1（审子实锤）：无手势环境（深链/待启消费）
    * writeText 必拒——「自动复制好」是空头支票。仍走
    * _promptCopy：手势路径（聊天 chip 点击）照常复制，

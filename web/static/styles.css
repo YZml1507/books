@@ -4191,6 +4191,10 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 /* R3490：灵魂角色卡——复用 sm-card 壳，角色行居中大字。 */
 .ic-fig { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }
+/* R3491：灵魂纹样卡——canvas 圆形徽章居中（深色底图自带盘色，
+ * 深/浅主题同一观感）。 */
+.em-cv { display: block; margin: 14px auto 4px; border-radius: 50%;
+  max-width: 240px; width: 60vw; height: auto; }
 /* R3462：灵魂色谱卡——色条即产品（各段 flex 占比=五行权重）。 */
 .sa-strip { display: flex; gap: 3px; height: 46px; margin: 14px 8px 6px;
   border-radius: 12px; overflow: hidden; }

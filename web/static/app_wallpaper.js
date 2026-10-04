@@ -153,6 +153,52 @@ function _wapNebula(j) {
   });
   return cv;
 }
+/* R3491 灵魂纹样原图：720×720 方形（可当头像）+竖放中央，
+ * 夜底 + 大徽章 + 店招 + 纹名 + 纹意 + 落款。纹样本体交给
+ * app.js 全局 _emblemDraw（本文件惰载时它一定在场）。 */
+function _wapEmblem(j) {
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  var _em = (j && j.emblem) || {};
+  var _wx = _pStr(_em.wx) || '木';
+  var _seed = (+_em.seed) >>> 0;
+  var g = ctx.createLinearGradient(0, 0, 0, 1280);
+  g.addColorStop(0, '#1E1834'); g.addColorStop(1, '#0E0B1F');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1280);
+  /* 星点散斑（与星云同款 LCG 种子推进——同纹同点）。 */
+  var _rnds = function () {
+    _seed = (_seed * 1664525 + 1013904223) >>> 0;
+    return _seed / 4294967296;
+  };
+  ctx.fillStyle = 'rgba(255,246,232,0.55)';
+  for (var _sp = 0; _sp < 80; _sp++) {
+    var _sx = _rnds() * 720, _sy = _rnds() * 1280,
+        _sr = _rnds() * 1.6 + 0.4;
+    ctx.beginPath(); ctx.arc(_sx, _sy, _sr, 0, 6.3); ctx.fill();
+  }
+  /* 大徽章居中。种子单独推流：散斑消耗掉一段，徽章吃后段。 */
+  if (typeof _emblemDraw === 'function') {
+    _emblemDraw(ctx, 360, 560, 250, _wx,
+                (+((j && j.emblem && j.emblem.seed) || 0)) >>> 0);
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,246,232,0.92)';
+  ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+  ctx.fillStyle = '#FFF6E8';
+  ctx.font = '700 54px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText(_pStr(_em.name) || '灵魂纹样', 360, 940);
+  ctx.font = '400 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.85)';
+  var _vb = _pStr(_em.vibe);
+  ctx.fillText(_vb ? _vb.slice(0, 20) : '一人一纹，按五行生',
+               360, 996);
+  ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.72)';
+  ctx.fillText('@小满的解忧铺 · 仅供娱乐', 360, 1242);
+  return cv;
+}
 function _wapComposite(j, bg, variant) {
   /* R3325-B：variant.square → 1:1 开运头像（720×720，底图中裁，
    * 版心下移适配圆裁展示）。 */
@@ -361,6 +407,34 @@ function _wapBeast(j) {
 }
 
 function downloadWallpaper(j, variant) {
+  /* R3491：灵魂纹样原图变体——方形大图独立合成器（可当头像）。 */
+  if (variant && variant.emblem) {
+    try {
+      var _cvE = _wapEmblem(j);
+      var _tE = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tE && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(_cvE, 'emblem-wap', j);
+        return Promise.resolve();
+      }
+      _cvE.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-灵魂纹样.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(_cvE, 'emblem-wap', j);
+      return Promise.resolve();
+    } catch (eEM) {
+      showToast('纹样没画好，再点一次', 'warn');
+      return null;
+    }
+  }
   /* R3486：守护图腾壁纸变体——烘焙灵兽底图独立画家。 */
   if (variant && variant.beast) {
     return _wapBeast(j).then(function (cv) {

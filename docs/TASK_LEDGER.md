@@ -19772,3 +19772,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 冒烟补 bazi.soulicon 用例；icShare 进 NO_CASE（海报模态族）。
 - 实测：戊日主→后土，深链 sa=R 自动开卡，海报弹层「灵魂角色」，零 JS 错。
 - 闸：selftest 457 / contract 790 / banned 0 / smoke 124 全绿。
+
+## R3491 灵魂纹样（Astairo soul-tattoo 同构第七件，可晒族凑满）
+- 日主定纹样族（木年轮印/火焰心纹/土连山纹/金星芒纹/水涟漪纹）+五行分布当种子——一人一纹真·生成式图案（canvas 画家非贴图）。
+- 卡内 canvas 直出 240px 徽章；「纹样原图」走壁纸管线出 720×1280 夜底大徽章图（可当头像/锁屏），与 saWap/gdWap 同族。
+- sa 锚族第七键 E：聊天路标 saE 直达；分享链 ?view=bazi&sa=E 受邀者排完自动开同款。
+- 海报 'soulemblem'：紫云梦底文字版式（纹样本体在原图里，海报引路口径）；emblem-wap 模态「灵魂纹样原图」。
+- _emblemDraw 放 app.js 全局——卡内小图与 _wapEmblem 大图共用同画家同种子（同盘同纹确定性口径）。
+- 实测：庚日主→星芒纹卡内徽章非空渲染、原图 391KB 落盘+模态、海报弹层「📸 灵魂纹样」、sa=E 深链自动开卡、零 JS 错。
+- 闸：selftest 457 / contract 790 / banned 0 / smoke 125 / plain 5 / regress 全绿。
