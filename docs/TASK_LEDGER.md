@@ -20125,3 +20125,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3604 窗口审计按单清
 - ncHype 撞覆盖闸隐患排除（NO_CASE 豁免登记，downloadPoster 同族）。week_sky 降级路径空表/缓存回填同口径已验；_jm 建议钮在 .mood-b 缺席时降级为直落键。selftest 457/contract 790 全绿。
+
+## R3605 窗口收口闸
+- selftest 457 / contract 790 / banned 0 / smoke 126 / plain 5 全绿。
