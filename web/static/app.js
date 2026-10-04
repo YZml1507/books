@@ -25169,6 +25169,20 @@ function _qianSlipHtml(n, opts) {
            esc((q.xj.match(/移徙\s+(\S+)/) || [])[1] || '') +
            '——老话讲，就是宜换个花样动起来</div>'
          : '') +
+       /* R3641：捣蛋签×今日能量交叉——签说宜动，再按
+        * 你今天的电量缀一句更贴心的。 */
+       (o.hw ? (function () {
+         var _es3 = '';
+         try {
+           _es3 = window.__lastDaily && window.__lastDaily.personal &&
+                  window.__lastDaily.personal.energy &&
+                  window.__lastDaily.personal.energy.score;
+         } catch (eE3) {}
+         return _es3 ? '<div class="qian-say">⚡ 你今天能量 ' +
+           esc(_es3) + ' 分——' +
+           (_es3 >= 70 ? '签宜动、电也足，真宜动' :
+            '签让动但你电偏低，动一半就好') + '</div>' : '';
+       })() : '') +
        '<details class="qian-det"><summary>解曰与典故</summary>' +
        '<div class="qian-det-body">' +
        /* R3418-P2-7：古本原文含「人口有灾」「投河」类硬描写——
@@ -25737,7 +25751,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
