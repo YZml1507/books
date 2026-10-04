@@ -20202,11 +20202,22 @@ function renderCheckin(dateKey) {
         if (_wk2 && /^wq:\d{4}-\d{2}-\d{2}$/.test(_wk2)) _wqN++;
       }
     } catch (eWQ1) {}
+    /* R3555：全勤连击——从本周（或上周，若本周还没盖）往前数
+     * 连续盖戳周数，≥2 周挂「连满 N 周」小标。 */
+    var _wqRun = 0;
+    try {
+      var _wBase = _wqDone ? _wqMon : _isoShift(_wqMon, -7);
+      while (localStorage.getItem('wq:' + _wBase)) {
+        _wqRun++; _wBase = _isoShift(_wBase, -7);
+      }
+    } catch (eWR) {}
     _wqHtml = '<div class="ck-quest">' +
       (_wqDone
         ? '✅ 本周小功课已盖戳：' + esc(_wqQ) +
           (_wqN > 1 ? '<span class="ck-quest-n">攒了 ' + _wqN +
-                     ' 枚功课章 · XP ' + (_wqN * 10) + '</span>' : '')
+                     ' 枚功课章 · XP ' + (_wqN * 10) +
+                     (_wqRun >= 2 ? ' · 连满 ' + _wqRun + ' 周' : '') +
+                     '</span>' : '')
         : '📜 本周小功课：' + esc(_wqQ) +
           '<button type="button" class="ck-quest-btn" id="wqDone" ' +
           'title="做完了点这里盖戳">做到了</button>' +
