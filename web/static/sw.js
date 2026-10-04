@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-42131a54ce03';   // shell-hash: 42131a54ce03
+var CACHE = 'books-shell-cc75e4980e7c';   // shell-hash: cc75e4980e7c
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -85,9 +85,16 @@ self.addEventListener('install', function (e) {
      * 全量重下（首访省 ~0.5MB、每版老客省 ~0.5MB）。裸 URL 仍走
      * reload 防 3600s 陈旧字节装进新 CACHE（R63-P2-3 语义保留）。 */
     var _vh = CACHE.slice('books-shell-'.length);
+    /* R3405-F6：_VMAP 扩到全部「页面按 ?v= 请」的壳件——
+     * 懒 chunk（poster/research/wallpaper/qian_data）此前走
+     * cache:reload 全量重下 ~335KB，版本化请求可吃 HTTP 命中。 */
     var _VMAP = {
       '/static/app.js': '/static/app.js?v=' + _vh,
-      '/static/styles.css': '/static/styles.css?v=' + _vh };
+      '/static/styles.css': '/static/styles.css?v=' + _vh,
+      '/static/app_poster.js': '/static/app_poster.js?v=' + _vh,
+      '/static/app_research.js': '/static/app_research.js?v=' + _vh,
+      '/static/app_wallpaper.js': '/static/app_wallpaper.js?v=' + _vh,
+      '/static/qian_data.js': '/static/qian_data.js?v=' + _vh };
     return Promise.all(SHELL.map(function (u) {
       var _req = _VMAP[u] ? new Request(_VMAP[u])
                           : new Request(u, {cache: 'reload'});
@@ -150,12 +157,27 @@ self.addEventListener('fetch', function (e) {
     var _navTo = new Promise(function (_r, _rj) {
       setTimeout(function () { _rj(new Error('nav-timeout')); }, 8000);
     });
+    var _navF = fetch(e.request);
+    /* R3405-F10：8s 竞速超时后飞行中的响应被丢弃——Render 慢冷启
+     * 首访拿旧壳还得再刷一次才是新内容。飞行 promise 也挂补写链：
+     * 晚到的成功正壳导航顺手更新 '/' 壳位（竞速胜出的正常路径
+     * 已有 put，此处 clone 会抛——try/catch 吞掉即可，不双写）。 */
+    e.waitUntil(_navF.then(function (resp) {
+      try {
+        if (resp.ok && url.pathname === '/' && !url.search) {
+          return caches.open(CACHE).then(function (c) {
+            return c.put('/', resp.clone()).catch(function () {});
+          });
+        }
+      } catch (xBF) {}
+      return undefined;
+    }).catch(function () {}));
     e.respondWith(
         /* R2400（R130-P2-2）：network-first——旧版「先给缓存壳」让
          * 门页对解锁过的设备永久失效（cookie 过期/换口令都赶不走）。
          * 在线时以服务端响应为准（403 门页照实上屏），缓存壳只留作
          * 离线兜底。 */
-        Promise.race([fetch(e.request), _navTo]).then(function (resp) {
+        Promise.race([_navF, _navTo]).then(function (resp) {
           if (resp.status >= 500) {
             throw new Error('nav-' + resp.status);
           }
@@ -254,8 +276,12 @@ self.addEventListener('fetch', function (e) {
                  * 壁纸 21≈151 条候选，60 桶会把早期牌面/字体挤出
                  * 导致离线破图；180 全收仍只 ~5-8MB。 */
                 return rtc.keys().then(function (ks) {
-                  if (ks.length <= 180) return;
-                  return Promise.all(ks.slice(0, ks.length - 180)
+                  /* R3405-F3：180 帽 < EXTRA_GLOBS 实收 260 件
+                   * （tarot 80+lxgw 分片+壁纸 21+签/合盘/图标等，
+                   * ~8.5MB）——重度用户全触后最早条目被逐出，
+                   * 离线回看早期牌面/字体分片破图。帽提到 300。 */
+                  if (ks.length <= 300) return;
+                  return Promise.all(ks.slice(0, ks.length - 300)
                     .map(function (k) { return rtc.delete(k); }));
                 });
               }).catch(function () {}));

@@ -603,8 +603,11 @@ def create_app() -> FastAPI:
                 html = html.replace(
                     '<meta property="og:title" content="小满的解忧铺">',
                     f'<meta property="og:title" content="{_t} · 小满的解忧铺">')
+                # R3405-F1：针文本与 index.html 实文漂移（「——」vs「，」）
+                # → replace 静默零命中、全部分享链 og:description 走默认。
+                # 钉：针必须与 index.html 第 7 行逐字一致。
                 html = html.replace(
-                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">',
+                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">',
                     f'<meta property="og:description" content="{_d}">')
             v = _shell_hash()
             if v:

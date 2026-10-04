@@ -49,8 +49,8 @@ _nav = re.search(r"e\.request\.mode === 'navigate'(.{0,2400})",
                  SW, re.S)
 check("sw.navigate.parallel",
       _nav and "_hitP = caches.match('/').catch" in _nav.group(1)
-      and "fetch(e.request).then" in _nav.group(1),
-      "match 与 fetch 并行")
+      and "Promise.race([fetch(e.request), _navTo])" in _nav.group(1),
+      "match 与 fetch 并行（R3405-F2：fetch 现行走 Promise.race，针更新）")
 
 # --- 2. ?view= 不回写壳位 ---------------------------------------------------
 check("sw.navigate.query_guard",
@@ -58,14 +58,16 @@ check("sw.navigate.query_guard",
       "空 search 才算正壳")
 
 # --- 3/4. ?v 不符分路由 ----------------------------------------------------
-_vm = re.search(r"if \(!_vOk\) \{(.*?)return _net\(\)\.catch", SW, re.S)
+_vm = re.search(r"if \(_reqV && _reqV !== CACHE\.slice(.{0,1600}?return;\s*\})",
+                 SW, re.S)
 check("sw.v_mismatch.js_reload",
       _vm and "location.reload" in _vm.group(1)
       and ".js" in _vm.group(1),
-      "JS 请求回 location.reload 自刷")
+      "JS 请求回限频 location.reload 自刷（R3405-F2：_vOk→_reqV 针更新）")
 check("sw.v_mismatch.nonjs_net",
-      "return _net().catch(function () { return undefined; });" in SW,
-      "非 JS 仍 _net 兜底")
+      re.search(r"fetch\(e\.request\)\s*\n?\s*\.catch\(function \(\) "
+                r"\{ return undefined; \}\)", SW) is not None,
+      "非 JS 仍网络直通兜底")
 
 # --- 5. maskable 图标入 SHELL ------------------------------------------------
 check("sw.shell.maskable_icon",

@@ -40,6 +40,14 @@
     吉=向阳山坡/小吉=暖灯茶席/平=灰窗静坐/凶=雨窗毯堡可可；
     daily-level 由 80px 圆盘改 160×108 横幅，图本身承载档位。
 
+## 溯源清单（不入壳、不运行时引用）
+
+- `cream/manifest.json`（13KB）——**不是** PWA manifest，是 cream
+  系列 21 张图（12 星座 + 8 功能卡 + hero）的 Agnes 生图溯源表：
+  file/size/bytes/source_url/原始 prompt。运行时零引用、不入
+  SHELL/EXTRA_GLOBS，纯留档（版权/来源回查用，勿删）。R3405-F7
+  登记前是磁盘孤儿。
+
 ## 其它来源
 
 | 目录 | 内容 | 来源/许可 |

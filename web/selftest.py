@@ -2555,6 +2555,19 @@ def _run_inner() -> list[str]:
         assert home.headers.get(_h) == _v, f"missing header {_h}"
     ok.append("home")
     ok.append("sec.headers")
+    # R3405-F1：og:description 针文本曾对 index.html 漂移——replace
+    # 静默零命中、全部 ?view= 分享链 og 文案退回默认。钉：映射内
+    # 视图必须换掉默认描述（title 与 description 双针断言）。
+    _ogt = client.get("/", params={"view": "tarot"})
+    assert _ogt.status_code == 200, ("og.view", _ogt.status_code)
+    assert 'content="塔罗占卜 · 小满的解忧铺"' in _ogt.text, \
+        "og.title view 替换失败"
+    # twitter:description 同文不替换——断言只钉 og:description 整行针
+    assert ('<meta property="og:description" content="黄历择日 · '
+            '八字塔罗 · 每日一签，测测你今天什么签">') not in _ogt.text, \
+        "og.description 仍是默认——替换针又漂移了"
+    assert "抽到的是哪几张" in _ogt.text, "og.description 视图文案缺失"
+    ok.append("og.view")
     # R178b（D-227b）：静态资源挂载 standing 覆盖——前端拆出 app.js/styles.css
     # 后，`/static/*` 是首屏必需资源；若 StaticFiles 挂载点丢失或文件被漏拷，
     # 首页仍返回 200 但页面全白（无样式无交互），selftest 全绿看不见。
@@ -3284,9 +3297,19 @@ def _run_inner() -> list[str]:
         assert _g3.status_code == 200, _g3.status_code
         _g3b = client.get("/static/app.js", follow_redirects=False)
         assert _g3b.status_code == 200, _g3b.status_code
-        # R3373：正缘画像底图——前端写死 6 个路径，少一张就开天窗。
-        for _smn in ("sm-metal", "sm-wood", "sm-water",
-                     "sm-fire", "sm-earth", "sm-peach"):
+        # R3373：正缘画像底图——前端写死 sm-* 键，少一张就开天窗。
+        # R3405-F8：名单改从 app.js 源码正则提取——新增 archetype/
+        # 改名自动罩进，不再有「又一份手抄名单」两处漂移。
+        import re as _re_sm
+        _sm_src = open(_ROOT + "/web/static/app.js",
+                       encoding="utf-8").read()
+        _sm_names = sorted(set(_re_sm.findall(r"'(sm-[a-z]+)'",
+                                            _sm_src)))
+        assert len(_sm_names) >= 6, ("soulmate 图谱收缩", _sm_names)
+        for _smn in _sm_names:
+            assert os.path.exists(os.path.join(
+                _ROOT, "web/static/soulmate", _smn + ".jpg")), \
+                (f"soulmate/{_smn}.jpg 盘上缺失", _smn)
             _gsm = client.get(f"/static/soulmate/{_smn}.jpg",
                               follow_redirects=False)
             assert _gsm.status_code == 200 and \
@@ -4998,6 +5021,10 @@ def _run_inner() -> list[str]:
     # R2345（R63-P2-2）：与 scripts/bump_sw.py 的 EXTRA_GLOBS 同表——
     # 二线资产（运行时缓存件）变了也必须 bump CACHE 名。
     import glob as _gl5
+    # R3405-F11：补 bump_sw._extra_paths 同款保序去重——两条 glob
+    # 哪天重叠（如新增 cream/*.jpg），bump 侧去重、本表双算 → 哈希
+    # 分叉闸红且报错文案指向错误原因。语义必须逐字对称。
+    _seen_ep = set()
     for _g in ("tarot/*", "cream/zodiac-*.jpg", "shared/poster-bg-*.jpg",
                "cream/poster-mascot.png", "cream/icon-512-maskable.png",
                # R3317：开运壁纸底图同口径
@@ -5022,6 +5049,9 @@ def _run_inner() -> list[str]:
         # 会让哈希看似正常实则漏收整族资产。
         assert _eps, ("sw.shell_hash", "资产 glob 零命中", _g)
         for _ep in _eps:
+            if _ep in _seen_ep:
+                continue  # R3405-F11：与 bump_sw 保序去重同口径
+            _seen_ep.add(_ep)
             _h.update(_os.path.basename(_ep).encode())
             _h.update(b"\0")
             assert _os.path.exists(_ep), ("sw.shell_hash", "资产缺失", _ep)
@@ -5081,6 +5111,40 @@ def _run_inner() -> list[str]:
     _undef = sorted(_var_refs - _var_defs)
     assert not _undef, ("css.var_defs", "var() 引用未定义的令牌", _undef)
     ok.append("css.var_defs")
+
+    # R3404-P3-4：每日一签语料行为断言——前端逻辑全是 JS，这里对
+    # 语料本体钉行为：百签齐、字段齐、桃花池镜像重算（同 _qianLovePool
+    # 的 regex+白名单口径）≥40 签且零 low tier，且每支 xj 真有婚姻项。
+    import json as _js_q
+    _qsrc = open(_ROOT + "/web/static/qian_data.js",
+                 encoding="utf-8").read()
+    _qm = _re.search(r"=\s*(\[.*\])\s*;?\s*$", _qsrc, _re.S)
+    assert _qm, "qian.corpus.parse"
+    _Q = _js_q.loads(_qm.group(1))
+    assert len(_Q) == 100, ("qian.corpus.count", len(_Q))
+    for _s in _Q:
+        for _f in ("n", "name", "luck", "tier", "gong", "poem",
+                   "yi", "jie", "xj", "story", "say"):
+            assert _s.get(_f), ("qian.corpus.field", _s.get("n"), _f)
+        assert len(_s["poem"]) == 4, ("qian.corpus.poem4", _s["n"])
+        assert _s["tier"] in ("top", "mid", "low"), \
+            ("qian.corpus.tier", _s["n"], _s["tier"])
+    _LOVE_OK = {'成', '合', '好', '和合', '成就', '成合', '好合',
+                '双配', '遂', '再合', '中吉', '迟成', '迟合', '就',
+                '有成'}
+    _pool = []
+    for _i, _s in enumerate(_Q, 1):
+        _mm = _re.search(r"婚姻\s*[：:]?\s*([^\s：:]{1,4})",
+                       _s["xj"])
+        if _mm and _mm.group(1) in _LOVE_OK:
+            _pool.append((_i, _s))
+    assert len(_pool) >= 40, ("qian.love.pool", len(_pool))
+    assert all(_s["tier"] != "low" for _i, _s in _pool), \
+        "qian.love.pool 混进下签"
+    assert all("婚姻" in _s["xj"] for _i, _s in _pool), \
+        "qian.love.pool 出现无婚姻项"
+    ok.append("qian.corpus")
+    ok.append("qian.love_pool")
 
     # R229r：请求体大小护栏——>512KB 的 POST 须 413 中文拒（不进 pydantic）。
     _big = client.post("/api/bazi", content="x" * (513 * 1024),

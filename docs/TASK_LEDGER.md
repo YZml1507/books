@@ -18819,3 +18819,36 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3408 节日提示补位：破五（接财神指向财神方位行）/人日/
   填仓/数九/寒食/入伏 六条 festTip——此前这些节日名进了
   _FEST_LUNAR 但节日行只有名没有「怎么过」。
+
+## R3404 · 签/答案之书/桃花签语料域边界终扫（审计子报告 2026-10-04）
+- _ANSB_CALM 白名单池（排除 6 条宽容度过高签）+ _ANSB_BIGQ
+  归一化展开；危机/敏感问句翻答之书不再计入 hist/fact，
+  按危级别返转介卡（_CRISIS_FE_REPLY / _SENSITIVE_CHAT_REPLY）。
+- qian:fact 只在抽写——_renderQian 补写降为「当日无事实才
+  补」，渲染不再覆盖同日已抽事实；婚姻判词正则可带冒号；
+  桃花签窗内 _qianLoveDraw 前置闸门；hist 行带 data-lv。
+- 备份导入形状闸 _dsfx：qian: 日键族 + qian:hist 数组 +
+  qian:fact {d,t} + shred: 族全收；_fam 清场族同步补 shred:。
+
+## R3405 · SW/离线壳/shell_hash 链终扫（审计子报告 2026-10-04）
+- bump_sw 与 selftest 的 shell_hash 双源漂移根治：EXTRA_GLOBS
+  + _extra_paths() 保序去重两边同构（sorted(set()) 乱序曾让
+  两次算出的缓存名永不一致）；RT 桶 180→300 盖下全部资源。
+- _VMAP：裸路径→?v= 安装期映射，旧壳不再喂错版静态。
+- bootflap 保险丝：30s 窗 + /sw.js?bf= 探针比对缓存名 vs
+  页内 ?v=，失配注销全部 SW 重载；探不到就停手不误伤。
+- _navF 导航超时回退的响应克隆同样进 waitUntil put 链。
+- og:description 针改含逗号全句，selftest 加 og.view 钉。
+- 登记不修：F9 直开 /static/index.html 极端边角仅观察。
+
+## R3406 · 冷启真机回归批（审计子报告 2026-10-04）
+- P1 浮层栈下溢：showPosterModal replace 路径手工清理
+  （keydown/inert/blob 回收/remove）且不再 pushState；
+  popstate 先落 __modalPushed=false 再关层——真机三场景
+  （连续替换/开关返回/关后返回）验过，about:blank 不再出现。
+- P2a 线卡几何：_bigFloor 压底后超 _linesTop 的线——lh 压
+  52 再 pop 到放得下，浮卡位 cy=880 不再遮末行。
+- P2b 字体预载：_posterTextCollect 全量文本对 6 个字重
+  规格做 fonts.load + fonts.check 复检循环（2.5s 帽），
+  海报不再抽到 tofu 字。
+- probe_r2510：_reqV 块与 nonjs_net fetch().catch 钉死。

@@ -391,6 +391,21 @@ function _paintSharePoster(s, W, H) {
      * 时白卡可顶进大字第三行下沿。地板 = 大字末行基线 + 16。 */
     var _bigFloor = 300 + (words.length - 1) * bigGap + 60 + 16;
     if (cardY - 60 < _bigFloor) cardY = _bigFloor + 60;
+    /* R3406-P2：地板下压可能顶破 _linesTop 硬顶——daily 卡座
+     * 880 起，白卡底 >860 时末行值线（如「先缓缓」）被浮贴卡
+     * 盖住。补救：先把行高压到 52 下限，仍超则从尾丢行到
+     * 放得下为止（丢一行比糊一行强）。 */
+    if (cardY - 60 + _cardH > _linesTop) {
+      lh = Math.max(52, Math.min(lh,
+        (_linesTop - cardY - _MDOT_H - _KL_H - _CAL_H - _LH_PAD) /
+        lines.length));
+      while (lines.length > 1 &&
+             cardY - 60 + lines.length * lh + _LH_PAD + _MDOT_H +
+             _KL_H + _CAL_H > _linesTop) {
+        lines.pop();
+      }
+      _cardH = lines.length * lh + _LH_PAD + _MDOT_H + _KL_H + _CAL_H;
+    }
     ctx.fillStyle = '#FFFFFF';
     _roundRectPath(ctx, 90, cardY - 60, 900, _cardH, 28); ctx.fill();
     ctx.strokeStyle = '#E8D9BC'; ctx.lineWidth = 2;
@@ -2192,9 +2207,28 @@ async function _downloadPoster(j, view) {
     if (document.fonts && document.fonts.load) {
       var _ptext = _posterTextCollect(j && j.share ?
         Object.assign({}, j.share, { _src: j }) : j);
-      await Promise.race([
-        document.fonts.load('400 32px "LXGW WenKai"', _ptext),
-        new Promise(function (res) { setTimeout(res, 2500); })]);
+      /* R3406-P2：原只拉 '400 32px' 一档且不等栅格——unicode-range
+       * 子集 fonts.load resolve 时机早于实际可画，非 CJK 机首画
+       * 仍出豆腐。改成：用到的全部字重×字号规格按 _ptext 拉起 +
+       * fonts.ready + fonts.check 逐字核验，没过就短睡重试，
+       * 外层照旧 2.5s 总帽。 */
+      var _fspecs = ['400 34px "LXGW WenKai"', '500 40px "LXGW WenKai"',
+        '400 28px "LXGW WenKai"', '600 64px "LXGW WenKai"',
+        '400 22px "LXGW WenKai"', '500 30px "LXGW WenKai"'];
+      await Promise.race([(async function () {
+        for (var _ft = 0; _ft < 6; _ft++) {
+          try {
+            await Promise.all(_fspecs.map(function (sp) {
+              return document.fonts.load(sp, _ptext);
+            }));
+            await document.fonts.ready;
+            if (_fspecs.every(function (sp) {
+                  return document.fonts.check(sp, _ptext);
+                })) break;
+          } catch (e2) { break; }
+          await new Promise(function (r2) { setTimeout(r2, 120); });
+        }
+      })(), new Promise(function (res) { setTimeout(res, 2500); })]);
     }
   } catch (e) { /* 字体没加载上也能画——fallback 链兜底 */ }
   var r = drawPoster(j);

@@ -3889,9 +3889,15 @@ window.addEventListener('popstate', function (e) {
    * 弹层开着时按返回先关弹层；回落到的 state.view 与现视图相同时
    * 不再 showView（同视图重渲会重复触发进页钩子，如塔罗落地卡）。 */
   if (document.getElementById('posterModal')) {
+    /* R3406-P1：浏览器已执行回退才进 popstate——此时
+     * __modalPushed 仍真会让 closePosterModal 再 back() 一次，
+     * 一次返回弹穿两层（弹层+底下一层视图，冷启首项直接
+     * about:blank）。先清旗再关层。 */
+    window.__modalPushed = false;
     try { closePosterModal(); } catch (eM) {}
+  } else {
+    window.__modalPushed = false;
   }
-  window.__modalPushed = false;
   var _sv = (e.state && e.state.view) ? e.state.view : 'home';
   /* R3381-P1：默契挑战的 #mc=/#mcr= 载荷是同视图内 hash 导航——
    * hash 改出的是 e.state=null 的新历史项，原逻辑会误判「回首页」
@@ -4583,10 +4589,29 @@ function showPosterModal(canvas, view, j) {
   var existing = document.getElementById('posterModal');
   /* R230j（R22-P3-1）：直接 remove() 会绕过 closePosterModal()——旧
    * backdrop 的 _posterOnKey 引用被覆盖后 keydown 监听永久残留。
-   * 走正经关闭路径（摘监听+焦点归还），再兜底 remove。 */
+   * 走正经关闭路径（摘监听+焦点归还），再兜底 remove。
+   * R3406-P1：但又不能走 closePosterModal() 的 back()——它把现役
+   * modal 栈项弹掉后，新 modal 的 pushState 会让那次排队的 back
+   * 落在「弹层还在」的状态再关一次 → 二次 back 弹穿应用入口到
+   * about:blank（分享钮连点必现）。替换只换内容：摘 DOM/监听/
+   * blob 但不动历史栈（现役栈项本就是 modal:'poster'），下方
+   * pushState 也跳过——__modalPushed 保持 true 由用户返回键/关闭
+   * 路径统一消化。 */
+  var _replacing = !!existing;
   if (existing) {
-    closePosterModal();
-    if (existing.isConnected) existing.remove();
+    if (_posterOnKey) {
+      document.removeEventListener('keydown', _posterOnKey);
+      _posterOnKey = null;
+    }
+    _mainInert(false);
+    try {
+      if (existing._posterBlobUrl) {
+        URL.revokeObjectURL(existing._posterBlobUrl);
+        existing._posterBlobUrl = null;
+      }
+    } catch (eRV0) {}
+    existing.remove();
+    _posterTrigger = null;
   }
   var backdrop = document.createElement('div');
   backdrop.id = 'posterModal';
@@ -4931,12 +4956,16 @@ function _showTextExportModal(title, text, tipText) {
   /* R2353（R110-P2-1）：弹层入栈——弹层开着按返回键/手势先关弹层
    * 而不是退回上一视图（微信/XHS webview 左滑返回场景实测踩坑）。
    * 同视图 push（URL 不变，state 多 modal 标记），popstate 侧按
-   * 「同视图不 showView」兜住。 */
+   * 「同视图不 showView」兜住。
+   * R3406-P1：替换路径（连点/开层再开）不再 push——现役栈项本来
+   * 就是 modal:'poster'，再压一项会让用户返回键关两次。 */
   try {
-    history.pushState({
-      view: (history.state && history.state.view) || 'home',
-      modal: 'poster' }, '');
-    window.__modalPushed = true;
+    if (!_replacing) {
+      history.pushState({
+        view: (history.state && history.state.view) || 'home',
+        modal: 'poster' }, '');
+      window.__modalPushed = true;
+    }
   } catch (ePS) {}
   var _eca = backdrop.querySelector('#exportCopyAll');
   if (_eca) _eca.addEventListener('click', function () {
@@ -18208,8 +18237,12 @@ function renderCheckin(dateKey) {
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
              'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:',
-             /* R3396-P2-1：'ansb:' 无日期后缀键，从族表清出（死项）。 */
-             'pilePick:', 'qian:', 'manifest:'].forEach(function (_p) {
+             /* R3396-P2-1：'ansb:' 无日期后缀键，从族表清出（死项）。
+              * R3404-P3：'shred:' 也是日期后缀键（shred:<date>
+              * 当日碎件数）——只进了启动 _gkf 没进本表，打卡路径
+              * 永不回收。 */
+             'pilePick:', 'qian:', 'manifest:', 'shred:']
+             .forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
@@ -20327,7 +20360,10 @@ function _qianLoveFest() {
 function _qianLovePool() {
   var out = [];
   for (var i = 0; i < QIAN.length; i++) {
-    var mm = /婚姻\s*([^\s]{1,4})/.exec(QIAN[i].xj || '');
+    /* R3404-P3：原文本带全角冒号（「婚姻：成」）时 \s* 不吃、
+     * 整支漏池（方向安全但少签）。冒号容忍仍 fail-closed——
+     * 判词不在白名单照旧不收。 */
+    var mm = /婚姻\s*[：:]?\s*([^\s：:]{1,4})/.exec(QIAN[i].xj || '');
     if (mm && _QIAN_LOVE_OK[mm[1]]) out.push(i + 1);
   }
   return out;
@@ -20339,6 +20375,9 @@ function _qianLoveIdxOf(dk) {
   } catch (e) { return 0; }
 }
 function _qianLoveDraw() {
+  /* R3404-P3：窗口守卫只在 _qianLoveHtml——绕开界面直调
+   * （控制台/未来的触发点）会出窗期照抽。函数内复核防线。 */
+  if (!_qianLoveFest()) return 0;
   var dk = todayIso(), had = _qianLoveIdxOf(dk);
   if (had) return had;
   var pool = _qianLovePool();
@@ -20452,8 +20491,11 @@ function _qianHistHtml() {
     var q = window.QIAN ? QIAN[x.n - 1] : null;
     if (!q) return '';
     var md = x.d.slice(5).replace('-', '月') + '日';
+    /* R3404-P3：回看桃花签要带 lv——否则回看卡/晒图按日签口径
+     * 渲，🌸 身份和「问桃花签」题签全丢。 */
     return '<button class="qian-hrow" type="button" data-qian="hist" data-n="' + x.n +
-           '" data-d="' + esc(x.d) + '"><span>' + esc(md) + '</span>' +
+           '" data-d="' + esc(x.d) + '"' +
+           (x.lv ? ' data-lv="1"' : '') + '><span>' + esc(md) + '</span>' +
            '<span>' + (x.lv ? '🌸 ' : '') + '第' + x.n + '签 · ' +
            esc(q.luck) + '</span>' +
            '<span class="qian-hname">' + esc(q.name) + '</span></button>';
@@ -20477,12 +20519,20 @@ function _renderQian(review) {
   _qianData(function () {
     var dk = todayIso(), idx = _qianIdxOf(dk);
     if (review && review.n) {
-      qnBoxEl.innerHTML = _qianSlipHtml(review.n, { review: review.d }) +
+      qnBoxEl.innerHTML = _qianSlipHtml(review.n,
+        { review: review.d, love: review.lv ? 1 : 0 }) +
         _qianHistHtml();
       return;
     }
     if (idx) {
-      _qianFactWrite(idx);
+      /* R3404-P2：渲染每渲必写 fact 会把同 tick 刚写的桃花签
+       * fact 当场覆盖回日签（日签存在则日签恒赢）。fact 的正经
+       * 写点是抽签动作；渲染只做缺位兜底——今天已有 fact 不覆写。 */
+      try {
+        var _qf = JSON.parse(
+          localStorage.getItem('qian:fact') || 'null');
+        if (!_qf || _qf.d !== dk) _qianFactWrite(idx);
+      } catch (eQF) { _qianFactWrite(idx); }
       qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianLoveHtml() +
         _qianHistHtml();
       return;
@@ -20532,7 +20582,8 @@ function _renderQian(review) {
       setTimeout(function () { _qianLoveDraw(); _renderQian(); }, 1100);
     } else if (act === 'hist') {
       var n2 = parseInt(b.dataset.n || '0', 10);
-      if (n2) _renderQian({ n: n2, d: b.dataset.d || '' });
+      if (n2) _renderQian({ n: n2, d: b.dataset.d || '',
+        lv: b.dataset.lv === '1' ? 1 : 0 });
     } else if (act === 'back') {
       _renderQian();
     } else if (act === 'share') {
@@ -22339,8 +22390,30 @@ function baziPersonaCard(j) {
               : k.indexOf('mood:') === 0 && k !== 'mood:lv' ? k.slice(5)
               : k.indexOf('moodlv:') === 0 ? k.slice(7)
               : k.indexOf('journal:') === 0 ? k.slice(8)
+              /* R3404-P3：qian 族日期键此前不在形状闸——
+               * 「qian:垃圾」导入即永久留底（非日期尾永不进 GC），
+               * 「qian:9999-99-99」伪未来日照样入库。qian:<date>/
+               * qian:t:<date>/qian:love:<date> 都是尾段日期，
+               * 同 checkinCeleb 口径取末段比。 */
+              : k.indexOf('qian:') === 0 &&
+                k !== 'qian:hist' && k !== 'qian:fact'
+                ? k.slice(k.lastIndexOf(':') + 1)
+              : k.indexOf('shred:') === 0 ? k.slice(6)
               : null;
             if (_dsfx !== null && !/^\d{4}-\d{2}-\d{2}$/.test(_dsfx)) return;
+            /* R3404-P3：qian 非日期键值形状——hist 必须是数组、
+             * fact 必须是 {d,t} 形，防任意串入库再回放。 */
+            if (k === 'qian:hist') {
+              try { if (!Array.isArray(JSON.parse(_v))) return; }
+              catch (eQH) { return; }
+            }
+            if (k === 'qian:fact') {
+              try {
+                var _qf = JSON.parse(_v);
+                if (!_qf || typeof _qf.d !== 'string' ||
+                    typeof _qf.t !== 'string') return;
+              } catch (eQF) { return; }
+            }
             if (k.indexOf('checkin:') === 0 &&
                 k !== 'checkin:goal' &&
                 k.indexOf('checkin:goal-celebrated:') !== 0 &&
@@ -23138,11 +23211,27 @@ function _ansbCardHtml(i, q) {
  * 问题翻出行动派句子等于替用户背书（与 chat/feSensitive 同红线）。
  * 语料前 18 条是行动派（去吧/开口吧/赌一把），后面是稳/缓派——
  * 重话题只在稳派区间翻页。 */
-var _ANSB_BIGQ = /离婚|辞职|分手|复合|表白|借钱|贷款|投资|买房|卖房|整容|手术|堕胎|休学|退学|远嫁|闪婚|报警|起诉|断绝|私奔|退学/;
+/* R3404-P1：词表被常见说法绕过——判前先 _normFEFlat 归一化
+ *（拆写「离\u200b婚」/零宽/繁体「離職」一并收）；补词
+ * 离职|裸辞|跳槽|转行|流产|引产|复婚|闪离|分居|网贷|借贷|
+ * 欠款|抵押|移民|出家|出柜|购房|分开，买卖借整改宽松形态。 */
+var _ANSB_BIGQ = /離婚|离婚|辞职|离职|裸辞|跳槽|转行|分手|分開|分开|分居|复合|復合|复婚|表白|借.{0,4}钱|借贷|欠款|网贷|抵押|贷款|投资|买.{0,3}房|卖.{0,3}房|购房|整.{0,2}容|手术|堕胎|流产|引产|休学|退学|远嫁|闪婚|闪离|移民|出家|出柜|报警|起诉|断绝|私奔/;
+/* R3404-P2：下界 18 拦不住——子集里 21/28/32/33/35/42 仍是
+ * 「可以/值得/退出不等于失败」准行动签。重话题改抽显式
+ * 缓派下标池（该 6 条与行动派同区排除）。 */
+var _ANSB_CALM = [18, 19, 20, 22, 23, 24, 25, 26, 27, 29, 30, 31,
+                  34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47,
+                  48, 49, 50, 51, 52, 53];
 function _ansbFlip(q) {
-  var _hi = 0, _lo = _ANSB.length;
-  if (q && _ANSB_BIGQ.test(q)) _hi = 18;
-  var i = _hi + Math.floor(Math.random() * (_lo - _hi));
+  /* R3404-P1：危机/敏感问句不翻页不写史——ansb 原是全站唯一
+   * 没闸的自由文本入口。返回 <0 由调用方给转介卡：
+   * -2 危机、-1 敏感。 */
+  if (q && feCrisis(q)) return -2;
+  if (q && feSensitive(q)) return -1;
+  var _qn = _normFEFlat(q || '');
+  var i = (_qn && _ANSB_BIGQ.test(_qn))
+    ? _ANSB_CALM[Math.floor(Math.random() * _ANSB_CALM.length)]
+    : Math.floor(Math.random() * _ANSB.length);
   try {
     var h = _ansbHist();
     h.unshift({ d: todayIso().slice(5), q: (q || '').slice(0, 12),
@@ -23180,7 +23269,18 @@ function _renderAnsb() {
       b.disabled = true;
       setTimeout(function () {
         var i = _ansbFlip(q);
-        if (bx) bx.innerHTML = _ansbCardHtml(i, q);
+        /* R3404-P1：<0 = 被闸——不翻页不给签换转介卡。
+         * -2 危机（_CRISIS_FE_REPLY）、-1 敏感
+         * （_SENSITIVE_CHAT_REPLY），与 chat/dream 同罐。 */
+        if (bx) {
+          bx.innerHTML = (i < 0)
+            ? '<div class="ansb-card"><p class="ansb-crisis">' +
+              esc(i === -2 ? _CRISIS_FE_REPLY : _SENSITIVE_CHAT_REPLY) +
+              '</p>' +
+              '<button class="ghost" type="button" data-ansb="again">' +
+              '📖 换个问法再翻</button></div>'
+            : _ansbCardHtml(i, q);
+        }
         _ansbPending = 0;
       }, 1600);
     } else if (act === 'again') {
