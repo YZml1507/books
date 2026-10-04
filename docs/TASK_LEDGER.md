@@ -19872,3 +19872,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3516 逆行态上日签海报
 - 金逆/火逆/水逆窗期海报副题点名（…·金逆中）+徽章（节徽优先，逆徽候补）；实测金星逆行期出「金逆中」+💞。
+
+## R3517 PWA share_target——外部「分享到小满」
+- manifest 注册 share_target(GET stitle/stext/surl)；落地参立 huangli 视图（修 if(_vp||_badPath) 门槛跳块）+轮询预填问一嘴+参剥。实测 /?stext=明天适合面试吗 → 黄历激活+框预填+URL剥净。

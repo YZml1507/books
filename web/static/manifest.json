@@ -46,5 +46,10 @@
       "icons": [{ "src": "/static/cream/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "stitle", "text": "stext", "url": "surl" }
+  },
   "id": "/"
 }

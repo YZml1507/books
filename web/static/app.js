@@ -16364,6 +16364,15 @@ function init() {
         if (/^#(mc|mcr)=/i.test(location.hash || '')) _vp = 'mochi';
       } catch (eMH) {}
     }
+    /* R3517：share_target 落地参把 _vp 立起来——/?stext=x 无
+     * view 参时 _vp 空、整个深链块被跳过，预填链死。 */
+    if (!_vp) {
+      try {
+        var _sq0 = new URLSearchParams(location.search);
+        if (_sq0.get('stext') || _sq0.get('surl') || _sq0.get('stitle'))
+          _vp = 'huangli';
+      } catch (eSV) {}
+    }
     /* R2348（R66-P2）：规整——HUANGLI/bazi%20 此前直接当坏链弹提示。 */
     if (_vp) _vp = _vp.trim().toLowerCase();
     if (_vp || _badPath) {
@@ -16448,6 +16457,36 @@ function init() {
             }
           }
         } catch (eHD) {}
+        /* R3517：PWA share_target 落地——外部 App「分享到小满」
+         * 带 stext/surl/stitle 参：预填问一嘴输入框（30字截齐
+         * input maxlength），指去黄历视图；参用完即剥（进下面
+         * 的剥参表）。 */
+        try {
+          var _stx = (_qsAll.get('stext') || '').trim() ||
+                     (_qsAll.get('surl') || '').trim() ||
+                     (_qsAll.get('stitle') || '').trim();
+          if (_stx) {
+            window.__shareInto = _stx.slice(0, 30);
+            if (!_vp || _vp === 'home') _vp = 'huangli';
+            /* 输入框随黄历数据渲染，慢网 800ms 可能还没生——
+             * 轮询 ~4s，见到就填。 */
+            var _siT = 0;
+            var _siTry = function () {
+              try {
+                var _aiS = document.getElementById('hlAskInput');
+                if (_aiS) {
+                  _aiS.value = window.__shareInto || '';
+                  _aiS.focus();
+                  showToast('外面分享来的这条帮你填上了，点「问一嘴」',
+                            'info');
+                  return;
+                }
+                if (++_siT < 10) setTimeout(_siTry, 400);
+              } catch (eSI) {}
+            };
+            setTimeout(_siTry, 400);
+          }
+        } catch (eSH) {}
         /* R3369（审-P1-1）：古籍深链 ?view=read&rq=词&bs=书号 此前
          * 参数整包被剥——落地只剩空页。存内存，showView(read) 侧消费。 */
         try {
@@ -16931,7 +16970,7 @@ function init() {
              * 留在地址栏会被截图/转抄带走。R3353：celeb 同收编。 */
             ['from', 'n', 'invite', 'a', 'an', 'ay', 'am', 'ad', 'ah',
              'ag', 's', 'tn', 'm', 'b', 'rel', 'sym', 'sp', 'c',
-             'celeb']
+             'celeb', 'stext', 'surl', 'stitle']
              .forEach(function (_k) {
               if (_qs2.has(_k)) { _qs2.delete(_k); _dirty = true; }
             });
