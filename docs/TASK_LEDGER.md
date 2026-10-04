@@ -19721,3 +19721,7 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3482 移动端八审自审（新件复扫）
 - P2：.daily-tomorrow-share 触控高 32px 低于本仓 40px 线→补齐；深色模式补文色提亮+边框降透明（与 recall 同口径）。
 - saWap 走 .ghost.fav-btn 既有族（触控/深色同 saShare 在位）。
+
+## R3483 色谱壁纸模态标题/文案收编
+- P2：soulart-wap 缺 _POSTER_TITLES/_shareText 两项——弹层标题回落「命盘海报」、分享文案走通用兜底。补「灵魂色谱壁纸」+ 锁屏接力钩文案。
+- 顺手核：_openSaByKey 在 open 前 _z.hidden=false（sa 锚开卡无折叠区遮蔽 bug）；分享链 sa 参数过 strip 幸存，from=share 全链实测自动开同款真通。
