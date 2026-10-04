@@ -9,7 +9,7 @@ from fastapi import APIRouter, Query
 from .. import deps, services
 from ..schemas import (CoupleCheckinRequest, DailyRequest,
                        FavoriteAddRequest, LunarConvertRequest,
-                       PrefsRequest)
+                       MuyuKnockRequest, PrefsRequest)
 
 router = APIRouter(tags=["product"])
 
@@ -120,6 +120,19 @@ def couple_checkin(req: CoupleCheckinRequest) -> dict:
     """合拍打卡（R3343）：本方打卡日集合并入，回两人交集。"""
     deps.write_guard()   # R2357：公网演示模式禁写共享库
     return services.couple_checkin(req)
+
+
+@router.get("/api/muyu")
+def muyu() -> dict:
+    """敲敲木鱼（R3424）：今天的「全铺子一起敲」共敲数——读面不禁写。"""
+    return services.muyu_state()
+
+
+@router.post("/api/muyu")
+def muyu_post(req: MuyuKnockRequest) -> dict:
+    """上报一批敲击——写共享计数器，演示模式下与 couple_checkin 同闸。"""
+    deps.write_guard()   # R2357 同款：公网演示模式禁写共享库
+    return services.muyu_knock(req.n)
 
 
 @router.get("/api/external/news")

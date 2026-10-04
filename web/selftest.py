@@ -2592,7 +2592,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 16, ("home.ia.count", len(_cards), _cards)  # R3394 答案之书卡入格（qian 后 chat 前）——16 卡全平铺
+    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡全平铺
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2602,7 +2602,7 @@ def _run_inner() -> list[str]:
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
     assert _cards[6:] == ["xingzuo", "dream", "qiming", "liuyao",
                           "history", "oracle", "mochi", "qian", "ansb",
-                          "chat"], \
+                          "muyu", "chat"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉已撤，全 home 段都扫）
     for _kw in ("检索", "比对", "书目", "研究线程", "书 ID", "编址"):
@@ -4702,6 +4702,17 @@ def _run_inner() -> list[str]:
     assert "feCrisis(t)" in _appsrc2[_sh:_sh + 1500], \
         "粉碎机危机闸缺"
     ok.append("frontend.oracle_gates")
+    # R3424 敲敲木鱼：视图/渲染/敲击/备份前缀/路标/共敲端点六件套——
+    # 缺一则木鱼页空渲、计数不落、聊路死链或共敲数断供。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "view-muyu" in _idxsrc and "_renderMuyu" in _appsrc2 and \
+        "_muyuKnock" in _appsrc2 and "muyu: 1" in _appsrc2 and \
+        "muyu:" in _appsrc2 and 'data-view="muyu"' in _idxsrc and \
+        "_muyuFlush" in _appsrc2 and "case 'muyu'" in _postsrc, \
+        "敲敲木鱼：view/渲染/敲击/白名单/备份前缀/上报/海报缺一"
+    ok.append("frontend.muyu_wiring")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
@@ -5247,6 +5258,28 @@ def _run_inner() -> list[str]:
             and _r.json().get("updated_at")), \
         ("account.push_updated_at", _r.status_code, _r.text[:200])
     ok.append("account.push_updated_at")
+
+    # R3424 敲敲木鱼共敲计数器：GET 出今日数，POST 攒批只增——
+    # n 上限 500（schema 闸）、越界 422、回读同日期口径。
+    _r = client.get("/api/muyu")
+    assert _r.status_code == 200 and \
+        isinstance(_r.json().get("today"), int), \
+        ("muyu.get", _r.status_code, _r.text[:200])
+    ok.append("muyu.get")
+    _n0 = _r.json()["today"]
+    _r = client.post("/api/muyu", json={"n": 3})
+    assert _r.status_code == 200 and \
+        _r.json().get("today") == _n0 + 3, \
+        ("muyu.knock", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock")
+    _r = client.post("/api/muyu", json={"n": 501})
+    assert _r.status_code == 422, \
+        ("muyu.knock_over", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock_over")
+    _r = client.post("/api/muyu", json={"n": 0})
+    assert _r.status_code == 422, \
+        ("muyu.knock_zero", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock_zero")
     return ok
 
 

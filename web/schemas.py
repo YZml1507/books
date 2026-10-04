@@ -697,3 +697,11 @@ class AccountBackupPushRequest(AccountAuthRequest):
     供乐观并发比对；缺省=无条件覆盖（首次推送）。"""
     payload: str = Field(..., min_length=2, max_length=1_200_000)
     base_updated_at: str | None = Field(default=None, max_length=40)
+
+
+class MuyuKnockRequest(BaseModel):
+    """敲敲木鱼共敲上报（R3424）：n=这一批敲了几下。
+
+    上限 500——客户端按批上报（攒 N 下才发一次），单批 500 已留足；
+    无身份字段，服务端只累加日期计数。"""
+    n: int = Field(..., ge=1, le=500)

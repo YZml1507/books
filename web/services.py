@@ -3919,6 +3919,16 @@ _CHAT_ACTIONS = [
      "心里默念问题翻一页，出一句答案+一句提示+一个小动作，"
      "页可晒图；让她去那儿翻，翻完回来接着聊那句什么意思",
      "ansb", "📖 去翻一页", None),
+    # R3424：敲敲木鱼——解压敲击词族。功德/木鱼/静不下这类自然
+    # 说法此前全无路标；木鱼是真能敲的入口，别在聊里替她假敲。
+    # 注：「心烦/烦死了」含「烦」子串归前面心情罐族管（先中先得），
+    # 不倒灌进木鱼——想倒情绪进罐子、想敲压进木鱼，分工成立。
+    (("敲木鱼", "敲敲木鱼", "敲一下木鱼", "电子木鱼", "功德",
+      "积功德", "攒功德", "静不下", "静不下来", "心里乱", "解压"),
+     "她心里烦想静一静，铺子里有真入口：首页宫格「敲敲木鱼」卡能"
+     "真敲——点木鱼一下一声，攒「心安」还有全铺子共敲数；"
+     "让她去那儿敲几下，敲完回来接着聊",
+     "muyu", "🪵 去敲敲木鱼", None),
     # R3418-P2-2：星座/星盘路标——该客群最熟的入口之一此前零词。
     # 顺序：必须在「今日运势」族前面——「天蝎座今日运势」带
     # 今日运势子串，后置会被日签族先吃掉。
@@ -5689,6 +5699,22 @@ def couple_checkin(req) -> dict:
     days≤400 且逐项真实日期）——到这里的都是干净值。"""
     with deps.knowledge() as kb:
         return kb.couple_sync(req.pair_id, req.member, req.days)
+
+
+def muyu_state() -> dict:
+    """敲敲木鱼（R3424）：今天的「全铺子一起敲」共敲数。
+
+    匿名计数器——只按日累计数字，不记任何身份/指纹。"""
+    _t = _today_cn().isoformat()
+    with deps.knowledge() as kb:
+        return {"date": _t, "today": kb.counter_get("muyu:" + _t)}
+
+
+def muyu_knock(n: int) -> dict:
+    """敲一下：把 n 记进今天的共敲数并返回新值。n 在 schema 已收 1..500。"""
+    _t = _today_cn().isoformat()
+    with deps.knowledge() as kb:
+        return {"date": _t, "today": kb.counter_add("muyu:" + _t, n)}
 
 
 def external_news() -> dict:

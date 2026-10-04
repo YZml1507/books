@@ -519,6 +519,10 @@ try {
     <div class="func-card func-entry" data-view="ansb" role="button" tabindex="0" aria-label="答案之书">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="ansb" src="/static/cream/cream-icon-ansb.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">答案之书</div><div class="func-desc">默念问题 · 翻一页</div>
     </div>
+    <!-- R3424：敲敲木鱼——解压敲击件（音画即时反馈+攒心安计数）。 -->
+    <div class="func-card func-entry" data-view="muyu" role="button" tabindex="0" aria-label="敲敲木鱼">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="muyu" src="/static/cream/cream-icon-muyu.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">敲敲木鱼</div><div class="func-desc">敲一下 · 烦心事轻一点</div>
+    </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
@@ -1414,6 +1418,15 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">📖</span> 答案之书 <span class="card-sub">把犹豫放进这一页</span></h2>
       <div id="ansbBox" class="ansb-box"></div>
+    </div>
+  </div>
+
+  <!-- R3424：敲敲木鱼——木鱼/计数/共敲数全在 muyuBox 内由
+       _renderMuyu 画；敲击音效走 WebAudio（无音频资产）。 -->
+  <div class="view" id="view-muyu">
+    <div class="card">
+      <h2><span aria-hidden="true">🪵</span> 敲敲木鱼 <span class="card-sub">敲一下 · 烦心事轻一点</span></h2>
+      <div id="muyuBox" class="muyu-box"></div>
     </div>
   </div>
 

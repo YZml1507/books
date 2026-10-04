@@ -19052,3 +19052,28 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   不记身份）② 备份导入链专项终扫（R3420 修的恢复链值得
   独立审一遍边界：脏包/截断包/跨版本包/超大包）③ 海报/分享
   域轮转复扫 ④ 古籍域轮转复扫。
+
+## R3424 敲敲木鱼 + 移动端安装提示遮 FAB 根治（用户直报修复）
+- **新功能「敲敲木鱼」**：首页新卡（ansb 与 chat 之间）→ 独立视图
+  ——连敲即时 WebAudio 木鱼声+震感+浮字「+1」，今日/累计/连敲
+  天数三本账（`muyu:<iso>`/`muyu:total`/`muyu:days`，days 帽 400），
+  里程碑（10/30/60/108/200/300/500/1000）toast，「全铺子姐妹今天
+  一起敲了 N 下」全局计数（服务端 `counters` 懒表匿名计数，
+  GET /api/muyu 读、POST 攒批上报——2.5s 防抖+失败重入队+
+  visibilitychange sendBeacon 兜底），晒心安海报
+  （`downloadPoster(j,'muyu')`），聊关键词路标（敲木鱼/功德/
+  静不下/解压→view muyu）。
+- **P1 install-tip 遮 FAB 根治（用户直报「FAB 时不时点不开」）**：
+  R3258 把桌面端 tip 抬到 bottom:82 清 FAB，但 ≤400px 媒体查询
+  里 tip 仍回落 bottom:8——tip 宽 86vw 横跨全屏底行、z180>z60
+  盖死 FAB 命中域，且 tip 只在可安装+未点过「先不了」时出现
+  =「时不时」。≤400px 同案抬到 bottom:82（env() 双写法兜底）。
+- **探针框架补丁**：新用例须仿 oracle 案在 finally 里摘
+  `recentSidebar.collapsed`（goto_view 会加上防遮）——漏摘则
+  后续用例开栏=open+collapsed 移出屏外，backdrop pointer-events
+  吃死全屏点击（本案 6 连挂根因，ui:muyu.knock 已补摘）。
+- 备份白名单四件套齐备（_DATA_RE/wipe 枚举/_gkf/_fam + storage
+  事件跨 Tab 分支）；probe_contract FIXTURES 钉 GET+POST。
+- 钉扎：selftest 438 / ui_smoke 113（+ui:muyu.knock）/ 契约 791 /
+  banned_copy / regress / dollar_misuse / no_generated /
+  scripts_importable / date_parity / ruff 全绿。

@@ -251,6 +251,10 @@ FIXTURES: dict[str, dict] = {
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
     "POST /api/account/backup/pull": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    # R3424：共敲计数器——GET 纯读；POST 攒批 +n（与 account register
+    # 建行同先例——探针跑的本机/CI 库，+2 攒批不入生产真计数）。
+    "/api/muyu":              {"method": "GET"},
+    "POST /api/muyu":         {"method": "POST", "json": {"n": 2}},
     "POST /api/account/backup/push": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810",
                  "payload": "{}"}},

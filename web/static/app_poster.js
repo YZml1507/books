@@ -1769,6 +1769,19 @@ function buildShareData(view, j) {
       ];
       return _as;
     }
+    case 'muyu': {
+      /* R3424 敲敲木鱼海报：攒数是主体——「攒了 N 点心安」晒语境，
+       * 今天敲数/连敲进 lines。 */
+      var _my = (j && j._muyu) || {};
+      var _mys = base('敲敲木鱼', _cnDateSub(_pStr(j && j.date)));
+      _mys.big = '攒了 ' + (+_my.total || 0) + ' 点心安';
+      _mys.lines = [
+        { k: '今天敲了', v: (+_my.today || 0) + ' 下' },
+        { k: '连敲', v: (+_my.streak || 0) + ' 天' },
+        { k: '小满说', v: '烦心事敲薄一层是一层' }
+      ];
+      return _mys;
+    }
     case 'hlcal': {
       /* R3397 开运日历海报：月历格是主体（卡内格带），名次进
        * lines——「本月宜X的日子我圈好了」的晒语境。 */

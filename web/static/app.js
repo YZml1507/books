@@ -2306,7 +2306,9 @@ var _CHAT_ACT_VIEWS = { tarot: 1, liuyao: 1, hehun: 1, qiming: 1,
                         /* R3388：每日一签路标白名单。 */
                         qian: 1,
                         /* R3394：答案之书路标白名单。 */
-                        ansb: 1 };
+                        ansb: 1,
+                        /* R3424：敲敲木鱼路标白名单。 */
+                        muyu: 1 };
 /* R3352：路标落点表——view 是「街区」，anchor 是「门牌」。
  * details 类的送到并展开；id 类的滚到门口。 */
 var _CHAT_ACT_ANCHORS = {
@@ -3727,6 +3729,10 @@ function showView(viewId) {
   /* R3394：答案之书——书卡/答案卡两态渲染。 */
   if (viewId === 'ansb') {
     try { _renderAnsb(); } catch (eAB) {}
+  }
+  /* R3424：敲敲木鱼——计数/共敲数进视图拉。 */
+  if (viewId === 'muyu') {
+    try { _renderMuyu(); } catch (eMY) {}
   }
   document.querySelectorAll('.func-card').forEach(function (c) {
     const isActive = c.dataset.view === viewId;
@@ -15062,7 +15068,7 @@ function init() {
        * R3328（审-中）：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD
        * 两条 GC 路径都永不回收——按 YYYY-MM 尾段比。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:|muyu:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -15194,6 +15200,13 @@ function init() {
     }
     if (e.key.indexOf('shred:') === 0) {
       try { _shredRefreshSummary(); } catch (eSh) {}
+      return;
+    }
+    /* R3424：muyu: 跨 tab——A tab 敲了，B tab 停在木鱼页时计数跟新。 */
+    if (e.key.indexOf('muyu:') === 0) {
+      try {
+        if (document.querySelector('#view-muyu.active')) _renderMuyu();
+      } catch (eMY1) {}
       return;
     }
     if (e.key.indexOf('checkin:') === 0) {
@@ -18286,7 +18299,10 @@ function renderCheckin(dateKey) {
               * R3404-P3：'shred:' 也是日期后缀键（shred:<date>
               * 当日碎件数）——只进了启动 _gkf 没进本表，打卡路径
               * 永不回收。 */
-             'pilePick:', 'qian:', 'manifest:', 'shred:']
+             'pilePick:', 'qian:', 'manifest:', 'shred:',
+             /* R3424：muyu:<date> 是日期后缀键（今日敲数）——
+              * 收进日期族 GC，不敲的用户不攒废键。 */
+             'muyu:']
              .forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
@@ -21638,7 +21654,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|histLock$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|histLock$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -21993,7 +22009,9 @@ function baziPersonaCard(j) {
                 k.indexOf('qian:') === 0 ||
                 k.indexOf('manifest:') === 0 ||
                 /* R3394：答案之书问句/翻页足迹属个人数据——wipe 收。 */
-                k.indexOf('ansb:') === 0)) _rm.push(k);
+                k.indexOf('ansb:') === 0 ||
+                /* R3424：敲敲木鱼计数/天数足迹属个人数据——wipe 收。 */
+                k.indexOf('muyu:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
@@ -23811,6 +23829,201 @@ function _renderAnsb() {
       var qq = _cd ? (_cd.dataset.q || '') : '';
       downloadPoster({ _ansb: { a: r[0], h: r[1], d: r[2], q: qq },
         date: todayIso() }, 'ansb');
+    }
+  });
+})();
+
+/* R3424 敲敲木鱼：解压敲击件——敲一下音画即时反馈，攒「心安」。
+ * 键族 muyu:total / muyu:<YYYY-MM-DD> / muyu:days（备份白名单、
+ * wipe、150 天日期族 GC、跨 tab 与 manifest: 同口径全套收录）。
+ * 「全铺子一起敲」走 /api/muyu 匿名计数器——不记身份，离线攒批
+ * 不丢，连通后补投。 */
+var _MUYU_MILE = [10, 30, 60, 108, 200, 300, 500, 1000];
+var _MUYU_MILE_LINE = {
+  10: '攒 10 下了——先松一小口气',
+  30: '攒 30 下了——今天这股劲儿有处去',
+  60: '攒 60 下了——烦心事被你敲薄了一层',
+  108: '攒 108 下了——一串念珠的数，圆满一下',
+  200: '攒 200 下了——心里那口气顺多了吧',
+  300: '攒 300 下了——木鱼都快认你了',
+  500: '攒 500 下了——今天是真把心事敲出去了',
+  1000: '攒 1000 下了——够镇住一整个月的烦' };
+var _muyuPend = 0;      /* 待上报共敲计数（防抖攒批/离线回攒） */
+var _muyuFlushT = null;
+var _muyuAC = null;     /* AudioContext 惰性建——首次敲击本身就是手势 */
+function _muyuNum(k) {
+  try { return +localStorage.getItem(k) || 0; } catch (e) { return 0; }
+}
+function _muyuTodayN() { return _muyuNum('muyu:' + todayIso()); }
+function _muyuTotalN() { return _muyuNum('muyu:total'); }
+function _muyuStreak() {
+  /* 与 _manifestStreak 同口径：从今天/昨天往回数连续天数。 */
+  try {
+    var d = JSON.parse(localStorage.getItem('muyu:days') || '[]');
+    if (!Array.isArray(d)) return 0;
+    var set = {};
+    d.forEach(function (x) { if (typeof x === 'string') set[x] = 1; });
+    var cur = set[todayIso()] ? todayIso() : _isoShift(todayIso(), -1);
+    var n = 0;
+    while (set[cur]) { n++; cur = _isoShift(cur, -1); }
+    return n;
+  } catch (e) { return 0; }
+}
+function _muyuKnockSnd() {
+  /* 木鱼声走 WebAudio 合成——无音频资产、无额外请求。短促降频
+   * 正弦 burst 近似木鱼「梆」的敲击感。 */
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!_muyuAC) _muyuAC = new AC();
+    if (_muyuAC.state === 'suspended') _muyuAC.resume();
+    var t = _muyuAC.currentTime;
+    var o = _muyuAC.createOscillator();
+    var g = _muyuAC.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(840, t);
+    o.frequency.exponentialRampToValueAtTime(210, t + 0.07);
+    g.gain.setValueAtTime(0.32, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    o.connect(g); g.connect(_muyuAC.destination);
+    o.start(t); o.stop(t + 0.1);
+  } catch (e) {}
+}
+function _muyuGlobal(n) {
+  var _mg = document.getElementById('muyuGlobal');
+  if (_mg && n > 0) {
+    _mg.textContent = '今天全铺子的姐妹一起敲了 ' + n + ' 下';
+    _mg.hidden = false;
+  }
+}
+function _muyuGlobalFetch() {
+  try {
+    api('/api/muyu', { silent: true })
+      .then(function (j) {
+        if (j && typeof j.today === 'number') _muyuGlobal(j.today);
+      })
+      .catch(function () {});
+  } catch (e) {}
+}
+function _muyuFlush() {
+  _muyuFlushT = null;
+  if (!_muyuPend) return;
+  var n = Math.min(_muyuPend, 500);
+  _muyuPend -= n;
+  try {
+    postJSON('/api/muyu', { n: n }, { silent: true })
+      .then(function (j) {
+        if (j && typeof j.today === 'number') _muyuGlobal(j.today);
+      })
+      .catch(function () { _muyuPend += n; });   /* 失败回攒下批 */
+  } catch (e) { _muyuPend += n; }
+}
+function _muyuStats(box) {
+  var s = box && box.querySelector('#muyuStats');
+  if (!s) return;
+  var n = _muyuTodayN(), t = _muyuTotalN(), st = _muyuStreak();
+  s.innerHTML =
+    '<div class="muyu-stat-big">' + n + '</div>' +
+    '<div class="muyu-stat-sub">今天敲的下数</div>' +
+    '<div class="muyu-stat-row">' +
+      '<span>一共攒了 <b>' + t + '</b> 点心安</span>' +
+      (st > 1 ? '<span>连敲 <b>' + st + '</b> 天</span>' : '') +
+    '</div>';
+}
+function _muyuKnock(box) {
+  var d = todayIso();
+  var tk = 'muyu:' + d;
+  var n = _muyuNum(tk) + 1;
+  try {
+    localStorage.setItem(tk, String(n));
+    localStorage.setItem('muyu:total', String(_muyuTotalN() + 1));
+    var dsys = [];
+    try { dsys = JSON.parse(localStorage.getItem('muyu:days') || '[]'); }
+    catch (e1) {}
+    if (!Array.isArray(dsys)) dsys = [];
+    if (dsys.indexOf(d) < 0) {
+      dsys.unshift(d);
+      localStorage.setItem('muyu:days',
+        JSON.stringify(dsys.slice(0, 400)));
+    }
+  } catch (e) {}
+  _muyuPend++;
+  if (!_muyuFlushT) _muyuFlushT = setTimeout(_muyuFlush, 2500);
+  _muyuKnockSnd();
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e2) {}
+  if (box) {
+    var st = box.querySelector('.muyu-stage');
+    if (st) {
+      var f = document.createElement('span');
+      f.className = 'muyu-float';
+      f.textContent = '+1';
+      /* 浮字起点围着木鱼散开一点，不总叠一处。 */
+      f.style.left = (38 + Math.random() * 24) + '%';
+      st.appendChild(f);
+      setTimeout(function () { f.remove(); }, 950);
+    }
+    var img = box.querySelector('.muyu-fish');
+    if (img) {
+      img.classList.remove('is-hit');
+      void img.offsetWidth;   /* 重放动画 */
+      img.classList.add('is-hit');
+    }
+  }
+  if (_MUYU_MILE.indexOf(n) >= 0) {
+    showToast(_MUYU_MILE_LINE[n] || ('攒 ' + n + ' 下了'), 'info');
+  }
+  _muyuStats(box);
+}
+function _renderMuyu() {
+  var bx = document.getElementById('muyuBox');
+  if (!bx) return;
+  bx.innerHTML =
+    '<div class="muyu-stage">' +
+      '<button class="muyu-fish" type="button" data-muyu="knock" ' +
+        'aria-label="敲一下木鱼">' +
+        '<img src="/static/cream/cream-icon-muyu.jpg" alt="" ' +
+          'width="200" height="200" draggable="false">' +
+      '</button>' +
+      '<div class="muyu-hint">点木鱼敲一下 · 烦心事轻一点</div>' +
+    '</div>' +
+    '<div class="muyu-stats" id="muyuStats"></div>' +
+    '<div class="muyu-global" id="muyuGlobal" hidden></div>' +
+    '<div class="muyu-acts">' +
+      '<button class="ghost" type="button" data-muyu="share">' +
+        '📸 晒一下攒的心安</button>' +
+    '</div>';
+  _muyuStats(bx);
+  _muyuGlobalFetch();
+}
+(function _muyuBind() {
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest
+      ? e.target.closest('[data-muyu]') : null;
+    if (!b) return;
+    var act = b.dataset.muyu;
+    if (act === 'knock') {
+      _muyuKnock(document.getElementById('muyuBox'));
+    } else if (act === 'share') {
+      downloadPoster({ _muyu: { today: _muyuTodayN(),
+        total: _muyuTotalN(), streak: _muyuStreak() },
+        date: todayIso() }, 'muyu');
+    }
+  });
+  /* 离页/切后台把攒着的共敲批先补投——sendBeacon 免被页面
+   * 生命周期掐掉。 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && _muyuPend) {
+      var n = Math.min(_muyuPend, 500);
+      try {
+        if (navigator.sendBeacon &&
+            navigator.sendBeacon('/api/muyu',
+              new Blob([JSON.stringify({ n: n })],
+                       { type: 'application/json' }))) {
+          _muyuPend -= n;
+          return;
+        }
+      } catch (e) {}
+      _muyuFlush();
     }
   });
 })();

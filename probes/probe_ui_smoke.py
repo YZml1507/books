@@ -1824,6 +1824,49 @@ def main() -> int:
             if errors:
                 results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
+            # R3424：敲敲木鱼——连敲 3 下，今日计数/攒数应声走，
+            # 浮字与视图/备份键落地同验。
+            errors.clear()
+            try:
+                goto_view('muyu')
+                page.wait_for_selector('#muyuBox .muyu-fish', timeout=5000)
+                for _i in range(3):
+                    page.click('#muyuBox .muyu-fish')
+                    page.wait_for_timeout(120)
+                _big = page.evaluate(
+                    "(document.querySelector('#muyuStats .muyu-stat-big')"
+                    "||{}).innerText||''")
+                _row = page.evaluate(
+                    "(document.querySelector('#muyuStats .muyu-stat-row')"
+                    "||{}).innerText||''")
+                _k = page.evaluate(
+                    "Object.keys(localStorage).filter("
+                    "k => k.startsWith('muyu:')).length")
+                _share = page.evaluate(
+                    "!!document.querySelector('[data-muyu=\"share\"]')")
+                ok = (_big.strip() == '3' and '攒' in _row and _k >= 3
+                      and _share and not errors)
+                results.append({
+                    "name": "ui:muyu.knock",
+                    "ok": ok,
+                    "detail": ("今日=%s 行=%s 键=%d 晒钮=%s"
+                               % (_big, _row[:16], _k, _share))})
+            except Exception as exc:
+                results.append({"name": "ui:muyu.knock", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
             # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
             try:
                 page.click('#recentToggle')
