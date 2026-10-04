@@ -9490,7 +9490,20 @@ function _moonCalShow() {
       if (e.target === ov || _cls) { ov.hidden = true; return; }
       var _cc = e.target && e.target.closest
         ? e.target.closest('.mcal-cell') : null;
-      if (_cc && _cc.dataset.line) {
+      if (!_cc) return;
+      /* R3614：今天的节点格直接带去做仪式（许愿/复盘开瓶）；
+       * 未来/已过的节点日先只读话，不预支。 */
+      if (_cc.dataset.act && _cc.dataset.day === todayIso()) {
+        ov.hidden = true;
+        var _ck2 = el('dailyCheckin');
+        if (_ck2) {
+          var _w2 = _ck2.querySelector('.ck-wish');
+          if (_w2) _w2.open = true;
+          _ck2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+      if (_cc.dataset.line) {
         showToast(_cc.dataset.line, 'info');
       }
     });
@@ -9512,6 +9525,8 @@ function _moonCalShow() {
         (d.action ? ' node' : '') +
         (d.d === tIso ? ' today' : '') +
         '" data-line="' + esc(d.label ? d.label + '：' + d.line : '') +
+        '" data-day="' + esc(d.d) +
+        '" data-act="' + esc(d.action || '') +
         '" title="' + esc(d.label || '') + '">' +
         '<span class="mcal-g">' + esc(d.glyph) + '</span>' +
         '<span class="mcal-d">' + day + '</span>' +

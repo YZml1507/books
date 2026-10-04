@@ -20152,3 +20152,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3613 自审修：月历 overlay 关不掉
 - .mcal-ov 作者 display:flex 盖 UA [hidden]——「关一下」后 overlay 仍在屏挡整页；补 .mcal-ov[hidden]{display:none}，实测 display flex→none。
+
+## R3614 月历节点格接行动
+- 月历节点格带 data-act/data-day：今天的节点日点格=关 overlay 直开许愿瓶折叠+滚动定位；未来/已过节点日仍只读话不预支。
