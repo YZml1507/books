@@ -6178,6 +6178,44 @@ async function loadDaily() {
         });
       }
     } else { _dailyMetaItem('dailyMoon', ''); }
+    /* R3407：跨年仪式行——12/29–1/2 窗口。年末倒数引导写封
+     * 未来信，比单纯「新年快乐」更像小满该干的事；复用月相
+     * 行的 meta+按钮结构，窗口外不占位。 */
+    try {
+      var _nyD = new Date();
+      var _nyM = _nyD.getMonth() + 1, _nyDay = _nyD.getDate();
+      var _nyRow = '', _nyBtn = '';
+      if ((_nyM === 12 && _nyDay >= 29) ||
+          (_nyM === 1 && _nyDay <= 2)) {
+        if (_nyM === 12) {
+          var _nyLeft = 31 - _nyDay;
+          _nyRow = _nyLeft > 0
+            ? '🎆 还有 <strong>' + _nyLeft +
+              '</strong> 天就跨进 ' + (_nyD.getFullYear() + 1) +
+              ' 了——今年的收尾，值得写几句话留给明年的自己'
+            : '🎆 今晚就跨进 ' + (_nyD.getFullYear() + 1) +
+              '——今年最后一晚，写几句话留给明年的自己';
+          _nyBtn = '写封跨年信 →';
+        } else {
+          _nyRow = '🎊 ' + _nyD.getFullYear() +
+            ' 年的头两天——给今年定个调，写封信寄给未来的你';
+          _nyBtn = '给今年定个调 →';
+        }
+        _dailyMetaItem('dailyYearEnd',
+          _nyRow + ' <button type="button" class="daily-moon-go" ' +
+          'data-ye="1">' + _nyBtn + '</button>');
+        var _yeEl = el('dailyYearEnd');
+        if (_yeEl && !_yeEl.dataset.bound) {
+          _yeEl.dataset.bound = '1';
+          _yeEl.addEventListener('click', function (ev) {
+            var _t = ev.target;
+            if (!_t || !_t.classList ||
+                !_t.classList.contains('daily-moon-go')) return;
+            _flWriteOpen();
+          });
+        }
+      } else { _dailyMetaItem('dailyYearEnd', ''); }
+    } catch (eYE) {}
     /* R2349t（R88-1a）：生日当天日签也认得她——横幅之外的第二层。 */
     _dailyMetaItem('dailyBday', _isMyBirthday()
       ? '🎂 生日签·今天的宜忌为你加一分：宜收下所有好意' : '');
