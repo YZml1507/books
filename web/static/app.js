@@ -19587,6 +19587,29 @@ function _ckPattern(todayKey) {
                (_cl > 0 ? '更亮一点' : '偏沉一点') });
       }
     }
+    /* 月相维（R3507，Lunary 数据×天象交叉同构）：朔望月 29.53
+     * 天锚已知朔日估算月龄±1 天——够「满月前后」级模糊观察用。
+     * 满月窗（月龄 12~18 天）vs 其余时段。 */
+    var _SYN = 29.530588853, _EPOCH = Date.UTC(2000, 0, 6, 18, 14);
+    var _full = [], _rest = [];
+    _recs.forEach(function (r) {
+      var _age = ((Date.parse(r.d + 'T12:00:00Z') - _EPOCH) /
+                  86400000) % _SYN;
+      if (_age < 0) _age += _SYN;
+      (_age >= 12 && _age <= 18 ? _full : _rest).push(r);
+    });
+    if (_full.length >= 3 && _rest.length >= 3) {
+      var _fm = 0, _rm = 0;
+      _full.forEach(function (r) { _fm += r.v; });
+      _rest.forEach(function (r) { _rm += r.v; });
+      _fm /= _full.length; _rm /= _rest.length;
+      var _ml = _fm - _rm;
+      if (Math.abs(_ml) >= 0.6) {
+        _cands.push({ lift: Math.abs(_ml), n: _full.length,
+          txt: '满月前后那几天，你好像常常' +
+               (_ml > 0 ? '更亮一点' : '偏沉一点') });
+      }
+    }
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
