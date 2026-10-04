@@ -20589,6 +20589,9 @@ var _QIAN_CNY_WIN = {
   2029: [212, 227],
   2030: [202, 217]
 };
+/* 正月初五迎财神单日行（对 _QIAN_CNY_WIN 表同源核过——
+ * 正月初一+4：2027-02-10 / 2028-01-30 / 2029-02-17 / 2030-02-07）。 */
+var _QIAN_CAISHEN = { 2027: 210, 2028: 130, 2029: 217, 2030: 207 };
 function _qianCnyFest() {
   var nd = new Date(), y = nd.getFullYear(),
       md = (nd.getMonth() + 1) * 100 + nd.getDate(),
@@ -20598,6 +20601,11 @@ function _qianCnyFest() {
 function _qianCnyLastDay() {
   var nd = new Date(), r = _QIAN_CNY_WIN[nd.getFullYear()];
   return !!(r && (nd.getMonth() + 1) * 100 + nd.getDate() === r[1]);
+}
+function _qianCaishenDay() {
+  var nd = new Date();
+  return _QIAN_CAISHEN[nd.getFullYear()] ===
+    (nd.getMonth() + 1) * 100 + nd.getDate();
 }
 function _qianCnyPool() {
   var out = [];
@@ -20789,9 +20797,12 @@ function _qianCnyHtml() {
   if (cn) return _qianSlipHtml(cn, { cny: 1 });
   return '<div class="qian-love" id="qianCny">' +
     '<div class="qian-love-t">🧧 新春福签</div>' +
-    '<div class="qian-love-s">只出上签——讨个开年彩头，一支管一年</div>' +
+    (_qianCaishenDay()
+      ? '<div class="qian-love-s">正月初五迎财神——今天这支讨个财彩</div>'
+      : '<div class="qian-love-s">只出上签——讨个开年彩头，一支管一年</div>') +
     '<button class="mc-go" type="button" data-qian="cny">' +
-    '抽一支新春福签</button></div>';
+    (_qianCaishenDay() ? '迎财神抽一支' : '抽一支新春福签') +
+    '</button></div>';
 }
 function _renderQian(review) {
   var qnBoxEl = document.getElementById('qianBox'); if (!qnBoxEl) return;
