@@ -20196,10 +20196,12 @@ function renderCheckin(dateKey) {
       (_wqDone
         ? '✅ 本周小功课已盖戳：' + esc(_wqQ) +
           (_wqN > 1 ? '<span class="ck-quest-n">攒了 ' + _wqN +
-                     ' 枚功课章</span>' : '')
+                     ' 枚功课章 · XP ' + (_wqN * 10) + '</span>' : '')
         : '📜 本周小功课：' + esc(_wqQ) +
           '<button type="button" class="ck-quest-btn" id="wqDone" ' +
-          'title="做完了点这里盖戳">做到了</button>') +
+          'title="做完了点这里盖戳">做到了</button>' +
+          (_wqN > 0 ? '<span class="ck-quest-n">XP ' +
+                     (_wqN * 10) + '</span>' : '')) +
       '</div>';
   } catch (eWQ) {}
   /* R3532 本周旺运小物（「玄学+」生活向日更的周更版——小红书
@@ -21203,8 +21205,15 @@ function _checkinCelebrate(streak, opt) {
       var _dow0 = (new Date(_d0 + 'T00:00:00').getDay() + 6) % 7;
       var _mon0 = _isoShift(_d0, -_dow0);
       var _q0 = _dayPick(_WQ_POOL, 'wq|' + _mon0);
+      /* R3552：海报行带 XP 总数（章×10，与卡内同口径）。 */
+      var _wqN0 = 0;
+      for (var _wi0 = 0; _wi0 < localStorage.length; _wi0++) {
+        var _wk0 = localStorage.key(_wi0);
+        if (_wk0 && /^wq:\d{4}-\d{2}-\d{2}$/.test(_wk0)) _wqN0++;
+      }
       _wqJ = { _wqLine: (localStorage.getItem('wq:' + _mon0)
-        ? '小功课已盖戳：' : '本周小功课：') + _q0 };
+        ? '小功课已盖戳：' : '本周小功课：') + _q0,
+        _wqXp: _wqN0 * 10 };
     } catch (eWQsh) {}
     var p = downloadPoster(Object.assign(
       { streak: streak, pick: opt }, _wqJ), 'checkin');
