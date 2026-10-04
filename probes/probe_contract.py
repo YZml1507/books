@@ -273,7 +273,11 @@ CONDITIONAL_FIELDS = {
                   # （时辰留空的盘）；前端 `=== false` 正是对缺席的探测。
                   "hour_known"},
     "/api/taohua": {"ai_task_id"},
-    "/api/hehun": {"ai_task_id"},
+    "/api/hehun": {"ai_task_id",
+                   # R3247：celeb 是前端注入字段（j.celeb = __hhCeleb，
+                   # 与 j.a_name/j.b_name 同先例）——后端从不返回，
+                   # 前端 `(j.celeb ? ...)` 探测明星态。
+                   "celeb"},
     "/api/qiming": {"ai_task_id",
                     # R233j（R46-P1）：one_liner 只在 copy_bank 池非空时回；
                     # 前端 `if (j.one_liner)` 是对缺席的探测。
