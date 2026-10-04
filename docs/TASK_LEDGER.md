@@ -19514,3 +19514,28 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   留术语）；今日下弦月 🌗；八窗 glyph/action 全对。
 - 余项过单：esc 全链、监听器 dataset.bound 幂等、闰月空态隐藏、
   checkin:goal 前缀不撞 iso 键、轮转句 _rot%2 确定性。
+
+## R3456（2026-10-04）「旺你的方位」卡（调研落地：中式 astrocartography）
+- 排盘结果页 share-row 新增 🧭 钮：喜用口径与起名域同源——
+  缺行→补缺方位；无缺取最弱行；五行均势取日主本行（本命向）。
+- _FD_DIR 五方位表：方位+glyph+城市气质+出行贴士，小注守恒
+  「图个顺劲儿，真搬家还看工作在哪」。
+- 海报 case 'fortune_dir'：方位大字+喜用/依据/气质/贴士行+口径
+  小字；青瓷山水底；bazi 别名；「我的旺方测出来了」接力钩子。
+- 真机实测：1995-5-20 盘（土 0.4 最弱）→「中原·家附近」卡
+  三行 vibe/贴士/小注齐出→海报弹层零 console 错。
+- 钉扎：selftest frontend.fortunedir_wiring；冒烟 bazi.fortunedir
+  用例+fdShare 豁免。
+- 调研依据：Astairo 六件套（正缘/图腾/守护兽/幸运城市）同公式
+  月入百万美金级；中式方位=八字喜用神，比行星线更贴本仓用户。
+
+## R3453（2026-10-04）裂变三轮终扫报告按单清（子 agent 审）
+- 报告：103 项真机断言 P0=0/P1=0/P2=1——全量 ?view= 深链非白屏、
+  受邀者载荷不出机、伪造成绩/旁观落榜全过、XSS PASS。
+- P2-1 修复：裸 ?view=<首页别名>/路径式别名（/daily 等 13 条）
+  冷启返回键出 App——_extLand 判据补「带参/带 hash/非根路径
+  一律垫层」。实测 /?view=daily、/daily、/?view=checkin-week
+  返回键均回首页；/?view=bogus 维持不垫（坏链出 App 可接受，
+  与报告口径一致）。
+- gate:on_coverage 修：_fdOpen 内变量名 _box 与别处的
+  addEventListener 绑定正则撞名误记——改独名 _fdBox。

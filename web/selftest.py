@@ -4803,6 +4803,14 @@ def _run_inner() -> list[str]:
         "_muyuFlush" in _appsrc2 and "case 'muyu'" in _postsrc, \
         "敲敲木鱼：view/渲染/敲击/白名单/备份前缀/上报/海报缺一"
     ok.append("frontend.muyu_wiring")
+    # R3456 旺你的方位：按钮/出卡/海报 case/别名/钩子五件套——
+    # 缺一则钮不现、卡空渲、海报死链或归错视图。
+    assert "shareFortuneDir" in _appsrc2 and "_fdOpen" in _appsrc2 and \
+        "_FD_DIR" in _appsrc2 and "case 'fortune_dir'" in _postsrc and \
+        "fortune_dir: 'bazi'" in _appsrc2 and \
+        "fortune_dir: '旺你的方位'" in _appsrc2, \
+        "旺你的方位：按钮/卡片/海报/别名/标题缺一"
+    ok.append("frontend.fortunedir_wiring")
     # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
     # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \

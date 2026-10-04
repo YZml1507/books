@@ -4132,6 +4132,9 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-note { font-size: 11px; color: var(--secondary); margin: 10px 16px 12px;
   line-height: 1.5; }
 .sm-card .fav-btn { margin: 0 12px 12px; }
+/* R3456：旺你的方位卡——复用 sm-card 壳，方位行居中大字。 */
+.fd-dir { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
 
 /* R3381 默契挑战（view-mochi） */
 .mc-box { display: flex; flex-direction: column; gap: 12px; }

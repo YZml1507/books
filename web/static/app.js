@@ -6951,7 +6951,14 @@ function buildBaziResult(j) {
     html += '<button class="ghost fav-btn" type="button" id="shareBaziKline" ' +
       'title="生成人生K线图">📈 人生K线</button>';
   }
-  html += '</div>';
+  /* R3456：旺你的方位——喜用→方位可晒件（中式版 astrocartography，
+   * 全网调研验证的同公式品类）。五行分布在才出钮。 */
+  if (j.calc && j.calc.five_elements && j.calc.five_elements.counts) {
+    html += '<button class="ghost fav-btn" type="button" id="shareFortuneDir" ' +
+      'title="看看哪个方向旺你">🧭 旺你的方位</button>';
+  }
+  html += '</div>' +
+    '<div id="fdCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7554,6 +7561,7 @@ async function submitBazi(event) {
       on('shareBaziYear', function () { return downloadPoster(j, 'bazi-yearly'); });
       on('shareBaziKline', function () {
         return downloadPoster(j, 'bazi-kline'); });
+      on('shareFortuneDir', function () { _fdOpen(j); });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -8719,6 +8727,8 @@ var _POSTER_TITLES = {
   'daily-outfit': '今日穿搭', moodweek: '心情周记',
   /* R3373：正缘画像海报弹层标题/下载文件名。 */
   soulmate: '正缘画像',
+  /* R3456：旺你的方位海报弹层标题/下载文件名。 */
+  fortune_dir: '旺你的方位',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -8743,6 +8753,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   moodweek: 'dream',   /* 心情周记归紫云梦底——夜灯系贴「一周心事」 */
   /* R3373：正缘画像归樱粉——与桃花同色系，是桃花卡的延伸。 */
   soulmate: 'sakura',
+  /* R3456：旺你的方位归青瓷山水——行路/山水的远方感。 */
+  fortune_dir: 'celadon',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
@@ -8794,6 +8806,8 @@ var _SHARE_TEXT = {
   'daily-outfit': '今天的五行穿搭色抄作业，看看你的是什么 →',
   /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
+  /* R3456：旺你的方位——「哪个方向旺我」接力晒。 */
+  fortune_dir: '我的旺方测出来了，看看哪个方向旺你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
@@ -8809,7 +8823,7 @@ var _SHARE_TEXT = {
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
-  'bazi-kline': 'bazi', hlcal: 'huangli',
+  'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun' };
@@ -15913,7 +15927,14 @@ function init() {
             _qsAll.get('from') === 'invite' ||
             _qsAll.get('invite') === '1' || _qsAll.get('ay') ||
             /^#mc[rs]?=/.test(location.hash || '') ||
-            !!document.getElementById('view-' + _vp);
+            !!document.getElementById('view-' + _vp) ||
+            /* R3453-P2-1（审）：裸 ?view=<首页别名>/view=home/坏链/
+             * 路径式别名（/daily 等）冷启返回键出 App——别名归一
+             * home 后无 view- 元素，老判据漏垫。带参/带 hash/
+             * 非根路径的落地一律垫（多垫一页首页无害，出 App
+             * 才真流失）。 */
+            !!(location.search || location.hash ||
+               location.pathname !== '/');
           if (_extLand && !window.__landingPushed) {
             window.__landingPushed = true;
             /* R3426-P0（用户实测「默契链到新浏览器只能出题」）：
@@ -16846,6 +16867,86 @@ function _smOpen(j) {
     _im.onerror = function () { _j2(null); };
   });
   _smBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* R3456 旺你的方位：中式 astrocartography——八字喜用→方位+城市
+ * 气质+出行贴士+可晒海报。喜用口径与起名域同源（缺什么补什么）：
+ * 缺行→补缺；无缺取最弱；五行均势取日主本行（本命向）。 */
+var _FD_DIR = {
+  '木': { dir: '东方 · 东南', glyph: '🌿',
+    vibe: '树多的地方——公园密、绿化好、书院文创气重的城',
+    tip: '周末往城东/东南的绿地走，木气自己会来找你' },
+  '火': { dir: '南方', glyph: '🔥',
+    vibe: '日照足的城——暖和、亮堂、节奏快、夜生活热闹',
+    tip: '往南边走一走，晒太阳本身就是在补气' },
+  '土': { dir: '中原 · 家附近', glyph: '⛰️',
+    vibe: '山跟平原抱着的城——稳、慢、烟火气重',
+    tip: '你旺在熟地方，家附近的踏实感比远方更养你' },
+  '金': { dir: '西方 · 西北', glyph: '✨',
+    vibe: '干爽清朗的城——天高、风利、讲秩序',
+    tip: '往西边的干爽地儿去，利落的空气对你胃口' },
+  '水': { dir: '北方 · 近水', glyph: '🌊',
+    vibe: '江河湖海旁的城——临水、活、走得动',
+    tip: '去水边坐坐，江边海边都算，水气补你最直接' },
+};
+function _fdPick(j) {
+  var fe = (j && j.calc && j.calc.five_elements) || {};
+  var counts = fe.counts || {};
+  var miss = fe.missing || [];
+  var wx = '', why = '';
+  if (miss.length) {
+    wx = miss[0];
+    why = '你八字缺' + wx + '，它对应的方位最补你';
+  } else {
+    var _ks = ['木', '火', '土', '金', '水'], _min = 99, _sec = 99;
+    _ks.forEach(function (e) {
+      var v = +(counts[e] || 0);
+      if (v < _min) { _sec = _min; _min = v; }
+      else if (v < _sec) { _sec = v; }
+    });
+    var _w0 = '';
+    _ks.forEach(function (e) {
+      if (!_w0 && Math.abs(+(counts[e] || 0) - _min) < 0.001) _w0 = e;
+    });
+    if (_w0 && _sec - _min > 0.001) {
+      wx = _w0;
+      why = '你八字里' + wx + '偏弱，往它对应的方位靠一靠';
+    } else {
+      var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+        .charAt(0);
+      wx = _SM_GAN_WX[_gan] || '木';
+      why = '你五行挺匀，本命' + wx + '的方向跟你最亲';
+    }
+  }
+  return { wx: wx, why: why, d: _FD_DIR[wx] };
+}
+function _fdCard(j) {
+  var _p = _fdPick(j);
+  var _h = '<div class="fd-card sm-card">' +
+    '<div class="fd-dir">' + _p.d.glyph + ' <strong>' +
+      esc(_p.d.dir) + '</strong></div>' +
+    '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
+    '<div class="sm-tip">🏙️ ' + esc(_p.d.vibe) + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_p.d.tip) + '</div>' +
+    '<div class="sm-note">方位按你盘里的喜用推，图个顺劲儿——' +
+      '真搬家还得看工作在哪儿</div>' +
+    '<button class="ghost fav-btn" type="button" id="fdShare" ' +
+      'title="生成旺方分享图">📸 晒出我的旺方</button>' +
+    '</div>';
+  return { html: _h, pick: _p };
+}
+function _fdOpen(j) {
+  var _fdBox = el('fdCard');
+  if (!_fdBox || !j) return;
+  var _c = _fdCard(j);
+  _fdBox.innerHTML = _c.html;   // esc-reviewed：_fdCard 内动态字段均过 esc()
+  on('fdShare', function () {
+    var _o = { _fdDir: _c.pick.d.dir, _fdWx: _c.pick.wx,
+               _fdWhy: _c.pick.why, _fdVibe: _c.pick.d.vibe,
+               _fdTip: _c.pick.d.tip };
+    return downloadPoster(Object.assign({}, j, _o), 'fortune_dir');
+  });
+  _fdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──

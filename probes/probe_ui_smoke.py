@@ -102,6 +102,8 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
+    # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
+    ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
     # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
@@ -444,6 +446,10 @@ def main() -> int:
         # 模态，同 shareTaohua 族豁免；shareSoulmate 本身有真用例。
         "smShare": "正缘画像「晒出 TA 的画像」——downloadPoster 海报模态，"
                    "同 shareTaohua 族豁免",
+        # R3456：旺方分享钮——downloadPoster('fortune_dir') 海报模态，
+        # 同族豁免；shareFortuneDir 本身有真用例。
+        "fdShare": "旺你的方位「晒出我的旺方」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
         # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
         # 同族豁免；信卡本身是「本周首访+门槛」条件件，
         # 真机链路在特性批 Playwright 手验（渲染+下载零错）。

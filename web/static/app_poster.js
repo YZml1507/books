@@ -1672,6 +1672,29 @@ function buildShareData(view, j) {
         [{ k: '结论', v: 'TA 在路上' }];
       return _sm;
     }
+    case 'fortune_dir': {
+      /* R3456 旺你的方位海报：方位上主位大字，喜用依据/城市气质/
+       * 贴士进 lines，小注守恒——「图个顺劲儿」免责口径。 */
+      var _fd = base('旺你的方位', '');
+      _fd.big = _pStr(j && j._fdDir) || '旺方';
+      _fd.lines = [];
+      if (_pStr(j && j._fdWx)) {
+        _fd.lines.push({ k: '喜用', v: _pStr(j._fdWx) + ' 的方向' });
+      }
+      if (_pStr(j && j._fdWhy)) {
+        _fd.lines.push({ k: '依据', v: _clauseCut(_pStr(j._fdWhy), 20) });
+      }
+      if (_pStr(j && j._fdVibe)) {
+        _fd.lines.push({ k: '城市气质', v: _clauseCut(_pStr(j._fdVibe), 20) });
+      }
+      if (_pStr(j && j._fdTip)) {
+        _fd.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._fdTip), 20) });
+      }
+      _fd.lines.push({ k: '口径', v: '图个顺劲儿，真搬家还看工作在哪' });
+      if (!_fd.lines.length) _fd.lines =
+        [{ k: '结论', v: '顺着自己的喜用走' }];
+      return _fd;
+    }
     case 'weekletter': {
       /* R3379 周记信海报：小记原文拆句入 lines（每行一条），
        * 周报感靠 hook 顶行。 */
