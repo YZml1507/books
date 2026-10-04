@@ -18823,12 +18823,12 @@ function _renderMantraBook() {
       if (!b) return;
       var act = b.dataset.mb, ts = b.dataset.ts;
       if (act === 'copy') {
-        var _hit = _mantraFavAll().filter(function (x) {
+        var _hitItem = _mantraFavAll().filter(function (x) {
           return x && String(x.ts) === String(ts); })[0];
-        if (!_hit) return;
+        if (!_hitItem) return;
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(String(_hit.t)).then(
+            navigator.clipboard.writeText(String(_hitItem.t)).then(
               function () { showToast('咒语复制好啦，去贴上吧', 'ok'); },
               function () { showToast('长按那句手动复制', 'warn'); });
           } else { throw new Error('no clipboard'); }
