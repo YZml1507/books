@@ -1483,14 +1483,24 @@ function buildShareData(view, j) {
       var _stk = Number(j && j.streak) || 0;
       /* R233q（R47-P2 续）：满月款标记——连签 ≥30 的海报挂限定标，
        * 给「晒出去」再加一层稀缺感。 */
-      var _ck = base(_stk >= 100 ?
+      /* R3547：称号达成庆祝海报——题头从「打卡」换成「达成」，
+       * big 行主打新称号（j.msTitle/msDays 由达成当天按钮传入）。 */
+      var _msCel = _pStr(j && j.msTitle);
+      var _ck = base(_msCel ?
+          '🏆 连签 ' + _pStr(j && j.msDays || j && j.streak) +
+            ' 天 ·「' + _msCel + '」达成' :
+          _stk >= 100 ?
           '🏮 百日传说款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
           _stk >= 30 ?
           '🌕 满月款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
           _stk >= 3 ?
           '我连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' : '今天的好运签',
         _weekdayCn('') + ' · ' + _cnDateSub(_pd).split(' · ')[0]);
-      _ck.big = '今天抽到「' + (_pStr(j && j.pick) || '好运签') + '」';
+      if (_msCel) {
+        _ck.big = '「' + _msCel + '」达成';
+      } else {
+        _ck.big = '今天抽到「' + (_pStr(j && j.pick) || '好运签') + '」';
+      }
       /* R233t（R51-P2-12）：「打卡姿势」字段名错位（值是签面文案），
        * 口号恒同一句——连晒 7 天口号全同稀释新鲜感，上轮换池。 */
       _ck.lines = [

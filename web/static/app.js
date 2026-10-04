@@ -20024,13 +20024,16 @@ function renderCheckin(dateKey) {
    * 「断了不收回」此前言行不一——streak 一断 _msHit=null
    * 称号当场消失；改按 max(当前档, 已贺档) 挂称号，真·只
    * 往上走（Finch 式关系锚同口径）。 */
-  var _msHit = null, _msTitle = '';
+  var _msHit = null, _msTitle = '', _msNew = null;
   try {
     _MS.forEach(function (m) { if (_streak >= m[0]) _msHit = m; });
     var _msSeen = +(localStorage.getItem('ckms:seen') || 0);
     if (_msHit && _msHit[0] > _msSeen) {
       localStorage.setItem('ckms:seen', String(_msHit[0]));
       _msSeen = _msHit[0];
+      /* R3547：新档达成标记——卡内挂庆祝晒图钮（Lunary
+       * milestone social card 同构）。 */
+      _msNew = _msHit;
       showToast('连签 ' + _msHit[0] + ' 天，你们成了「' +
                 _msHit[1] + '」', 'ok');
     }
@@ -20478,6 +20481,11 @@ function renderCheckin(dateKey) {
      * 玩法的轻量版：无服务端，受邀方读自己的本机天数对决）。 */
     (_streak >= 1 ? '<button type="button" class="checkin-share" id="ckDuel" ' +
       'title="复制链接喊 TA 来比连签">⚔️ 喊 TA 比连签</button>' : '') +
+    /* R3547：新称号达成当天挂庆祝晒图钮——海报题头换「达成」
+     * 口径（j.msTitle 传给 app_poster 的 checkin 分支）。 */
+    (_msNew ? '<button type="button" class="checkin-share" id="ckMsShare" ' +
+      'title="生成称号达成海报">🏆 「' + esc(_msNew[1]) +
+      '」达成，晒一下</button>' : '') +
     /* R233q（R47-P2 续）：周报海报——近 7 天打卡 ≥2 天才显示 */
     (function () {
       var _w = 0;
@@ -20774,6 +20782,25 @@ function renderCheckin(dateKey) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(_dPayload).then(_dOk, _dBad);
     } else { _dBad(); }
+  });
+  /* R3547：称号达成庆祝晒图——与晒签同管线，j.msTitle 让
+   * 海报题头换「达成」口径。 */
+  var _ckms = box.querySelector('#ckMsShare');
+  if (_ckms) _ckms.addEventListener('click', function () {
+    var _goM = function (img) {
+      var _pM = downloadPoster(
+        { streak: _streak, pick: saved, art: img,
+          msTitle: (_msNew ? _msNew[1] : ''),
+          msDays: (_msNew ? _msNew[0] : 0) }, 'checkin');
+      if (_pM && _pM.catch) _pM.catch(function () {});
+    };
+    var _akM = saved && CHECKIN_ART[saved];
+    if (_akM) {
+      var _imM = new Image();
+      _imM.onload = function () { _goM(_imM); };
+      _imM.onerror = function () { _goM(null); };
+      _imM.src = '/static/cream/' + _akM + '.jpg';
+    } else { _goM(null); }
   });
   var _cks = box.querySelector('#checkinShare');
   if (_cks) _cks.addEventListener('click', function () {
