@@ -20191,12 +20191,19 @@ function renderCheckin(dateKey) {
   } catch (eWL) {}
   /* R3542：对擂台落地行——URL 带 ?duel=N 时给对比判词。
    * duel 参数不进剥离表：它就是给人看的比分。 */
-  var _duelHtml = '';
+  /* R3549：群擂——duel= 支持逗号多值（受邀方再晒时把自己的
+   * 天数续进链，链越长榜越长）。单人走判词、多人出小排行。 */
+  var _duelHtml = '', _duList = [];
   try {
-    var _duN = parseInt(
-      new URLSearchParams(location.search).get('duel'), 10);
-    if (isFinite(_duN) && _duN > 0 && _duN <= 9999) {
-      var _dTxt;
+    String(new URLSearchParams(location.search).get('duel') || '')
+      .split(',').forEach(function (s) {
+        var n = parseInt(s, 10);
+        if (isFinite(n) && n > 0 && n <= 9999 &&
+            _duList.indexOf(n) < 0) _duList.push(n);
+      });
+    _duList = _duList.slice(0, 8);
+    if (_duList.length === 1) {
+      var _duN = _duList[0], _dTxt;
       if (_streak <= 0) {
         _dTxt = '⚔️ 朋友连签 ' + _duN +
           ' 天了——你今天打第一张卡，就开始追她';
@@ -20210,6 +20217,24 @@ function renderCheckin(dateKey) {
           ' 天——你赢她 ' + (_streak - _duN) + ' 天';
       }
       _duelHtml = '<div class="ck-quest ck-duel">' + _dTxt + '</div>';
+    } else if (_duList.length > 1) {
+      var _board = _duList.map(function (n) {
+        return { w: 'TA', n: n };
+      });
+      if (_streak > 0) _board.push({ w: '你', n: _streak });
+      _board.sort(function (a, b) { return b.n - a.n; });
+      var _rows = _board.map(function (e, i) {
+        return (i + 1) + '.' + e.w + ' ' + e.n + ' 天';
+      });
+      var _rk = _streak > 0
+        ? _board.findIndex(function (e) { return e.w === '你'; }) + 1
+        : 0;
+      _duelHtml = '<div class="ck-quest ck-duel">⚔️ 群擂榜：' +
+        esc(_rows.join(' · ')) +
+        (_streak <= 0 ? '——你今天打第一张卡就上榜' :
+          _rk === 1 ? '——你领跑，守住' :
+          '——你第 ' + _rk + '，差 ' +
+            (_board[0].n - _streak) + ' 天登顶') + '</div>';
     }
   } catch (eDU) {}
   /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
@@ -20768,8 +20793,13 @@ function renderCheckin(dateKey) {
   /* R3542：喊 TA 比连签——复制钩子文案+对擂链。 */
   var _ckd = box.querySelector('#ckDuel');
   if (_ckd) _ckd.addEventListener('click', function () {
+    /* R3549：群擂续链——受邀方再晒时把自己的天数续进
+     * duel 列表（去重、封顶 8 人），链随转发长成群榜。 */
+    var _duChain = _duList.concat([_streak]).filter(function (n, i, a) {
+      return a.indexOf(n) === i;
+    }).slice(0, 8);
     var _du = location.origin + location.pathname +
-      '?view=home&from=share&duel=' + _streak;
+      '?view=home&from=share&duel=' + _duChain.join(',');
     /* R3546：钩子句理不顺（「跟小满陪我比」双谓语打结）——
      * 小满放裁判位，比拼主语只留你和我。 */
     var _dPayload = '我连签 ' + _streak +
