@@ -20246,7 +20246,15 @@ function renderCheckin(dateKey) {
    * duel 参数不进剥离表：它就是给人看的比分。 */
   /* R3549：群擂——duel= 支持逗号多值（受邀方再晒时把自己的
    * 天数续进链，链越长榜越长）。单人走判词、多人出小排行。 */
-  var _duelHtml = '', _duList = [];
+  var _duelHtml = '', _hugHtml = '', _duList = [];
+  /* R3568：递好运落地行——hug=1 落地时卡内挂一句好运
+   * （toast/welcomeBar 一闪即过，卡行陪到当天打完卡）。 */
+  try {
+    if (new URLSearchParams(location.search).get('hug')) {
+      _hugHtml = '<div class="ck-quest ck-hug">🍀 有朋友今天给你' +
+        '递了个好运——顺着这份心意打个卡吧</div>';
+    }
+  } catch (eH) {}
   try {
     String(new URLSearchParams(location.search).get('duel') || '')
       .split(',').forEach(function (s) {
@@ -20554,7 +20562,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _duelHtml + _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
+    _duelHtml + _hugHtml + _goalHtml + _wqHtml + _wluHtml + _ckPattern(dateKey) +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
