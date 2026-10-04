@@ -6267,6 +6267,27 @@ async function loadDaily() {
           (_enP.score >= 70 ? '状态不错，可以拉 TA 一起' :
            _enP.score < 55 ? '今天低点，多担待 TA 一点' :
            '普普通通的一天') + '</span>');
+
+        /* R3638：双满电日——我的峰日=TA 的峰日时挂一行：
+         * 「俩人都足的日子适合约着做点啥」是最实用的 CP 日更理由。 */
+        var _ppk = _enP.week_peak,
+            _wk3 = j.personal.week_energy;
+        if (_ppk && _ppk.d && Array.isArray(_wk3) &&
+            _wk3.length === 7) {
+          var _mpk = 0;
+          _wk3.forEach(function (w, i) {
+            if (w.s > _wk3[_mpk].s) _mpk = i; });
+          if (_wk3[_mpk].d === _ppk.d) {
+            var _dwd3 = ['周日', '周一', '周二', '周三',
+                         '周四', '周五', '周六'];
+            var _pdd = new Date(_ppk.d + 'T00:00:00');
+            _pc2.push('<span class="e-week-low">💞 ' +
+              (_ppk.d === _today ? '今天' :
+               (_dwd3[_pdd.getDay()] || '')) +
+              '你们俩都电满（你 ' + esc(_wk3[_mpk].s) +
+              ' · TA ' + esc(_ppk.s) + '）——适合约着一起做点啥</span>');
+          }
+        }
       }
       /* R3626：本周能量曲线——7 天迷你走向条，今天描边、
        * 峰值日标「峰」。Timing 能量曲线品类同构（单维诚实版）。 */

@@ -420,7 +420,9 @@ function _paintSharePoster(s, W, H) {
   /* R233t（R51-P0-2）：原来一律 slice(0,4)——daily 的「忌」、
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
-  var _lineCap = { daily: 7, 'checkin-week': 7, 'checkin-month': 6,
+  /* R3637（审-P1）：daily 全字段齐=签诗+签运+评分+能量+贵人+
+   * 财神+宜+缓+峰值+TA=9 行——cap7 会静默切尾，提帽 9。 */
+  var _lineCap = { daily: 9, 'checkin-week': 7, 'checkin-month': 6,
                    hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
                    /* R3398：daily 构建 6-7 行（吉签插签运）cap=5
@@ -1280,6 +1282,13 @@ function buildShareData(view, j) {
         _ds.lines.push({ k: '本周峰值',
           v: _wd2[new Date(_dwk[_dpi].d + 'T00:00:00').getDay()] +
              ' ' + String(_dwk[_dpi].s) + ' 分' });
+      }
+      /* R3637：TA 今天分上海报——已存 CP 的日签晒图带
+       * 「TA 今天 N 分」，晒出去一半是给对方看的。 */
+      var _dpe = (j && j.personal && j.personal.partner_energy) || null;
+      if (_dpe && _dpe.score) {
+        _ds.lines.push({ k: 'TA 今天',
+          v: String(_dpe.score) + ' 分' });
       }
       /* R2349t（R88-2a/15b）：节日/节气上海报副题+右上徽章——
        * 中秋当天发出去的图自带时令由头（字段已在 daily 响应下发）。 */

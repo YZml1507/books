@@ -5763,10 +5763,22 @@ def daily(date_str: str | None = None,
                 _pb = bazi_compute(*_parse_iso_date(pbday).timetuple()[:3],
                                    12, "女")
                 _pg = (_pb.day or "")[0]
+                _pdb, _pyb = (_pb.day or "")[1:2], (_pb.year or "")[1:2]
                 _pe = _energy_for(date_str, _dg, _dzz, _pg,
-                                  (_pb.day or "")[1:2],
-                                  (_pb.year or "")[1:2], _pb.day)
-                _personal["partner_energy"] = {"score": _pe["score"]}
+                                  _pdb, _pyb, _pb.day)
+                # R3638：TA 本周峰日——同式滚 7 天只留峰值
+                # （前端与我的曲线对照出「双满电日」）。
+                _p_pk = {"d": "", "s": -1}
+                for _pi in range(7):
+                    _pd = _d0 + timedelta(days=_pi)
+                    _pwg, _pwz = huangli_mod.day_ganzhi(
+                        datetime(_pd.year, _pd.month, _pd.day, 12))
+                    _pws = _energy_for(_pd.isoformat(), _pwg, _pwz,
+                                       _pg, _pdb, _pyb, _pb.day)["score"]
+                    if _pws > _p_pk["s"]:
+                        _p_pk = {"d": _pd.isoformat(), "s": _pws}
+                _personal["partner_energy"] = {
+                    "score": _pe["score"], "week_peak": _p_pk}
             # R3314（R3311-高2）：流年最小确定性卡——
             # ① 年度签：流年干支 + 五行基调（干支元素直读）；
             # ② 犯太岁：流年支 × 用户年支 值/冲/刑/害/破（传统五档）；
