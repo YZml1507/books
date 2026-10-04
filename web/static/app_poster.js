@@ -460,7 +460,10 @@ function _paintSharePoster(s, W, H) {
                    monthrec: 7,
                    /* R3603：hype 五夸行+口径=6 行——cap4 会切尾。 */
                    hype: 6,
-                   'year-wrap': 6, mochi: 6 }[s.view] || 4;
+                   'year-wrap': 6, mochi: 6,
+                   /* R3608：塔罗>3张明细3行+当值+记性至多5行——
+                    * cap4 会切尾。 */
+                   tarot: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
   var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
@@ -1389,6 +1392,24 @@ function buildShareData(view, j) {
           _pStr(_lzP.t2 || _lzP.t);
         s.lines.push({ k: '今夜当值', v: _clauseCut(_lzV, 22) });
       }
+      /* R3608：牌的记性上晒图——复用 app.js _trHist() 同窗口径，
+       * 老熟人牌名行入明细（同名的第 N 次是社交货币）。 */
+      try {
+        var _trH2 = (typeof _trHist === 'function') ? _trHist() : [];
+        var _echoP = [];
+        draws.forEach(function (d) {
+          if (!d || !d.name) return;
+          var _c2 = 0;
+          _trH2.forEach(function (e) { if (e.n === d.name) _c2++; });
+          if (_c2 >= 1) _echoP.push('「' + _pStr(d.name) + '」第 ' +
+            (_c2 + 1) + ' 次来找你');
+        });
+        if (_echoP.length) {
+          s.lines = s.lines || [];
+          s.lines.push({ k: '牌的记性',
+            v: _clauseCut(_echoP.join('，'), 22) });
+        }
+      } catch (eTP) {}
       return s;
     }
     /* R230d（R16-P2-2）：星座日运分享图——值宫 + 三维度摘要。 */

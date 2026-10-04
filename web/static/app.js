@@ -9469,6 +9469,17 @@ function tarotFace(d) {
 }
 
 
+/* R3606：牌的记性公共读法——45 天窗、脏值剔除；卡内回声与
+ * 海报/邀卡共用同一窗。 */
+function _trHist() {
+  var _h = [];
+  try { _h = JSON.parse(localStorage.getItem('tr:hist') || '[]') || []; }
+  catch (eH) { _h = []; }
+  var _cut = new Date(); _cut.setDate(_cut.getDate() - 45);
+  var _cutIso = _cut.toISOString().slice(0, 10);
+  return _h.filter(function (e) { return e && e.n && e.d && e.d >= _cutIso; });
+}
+
 function buildTarotResult(j) {
   let html = '<div class="card"><h2>✨ 塔罗占卜</h2>' + _festivalBand();
   /* R216b 续（U-006）：工程口吻复验说明人话化；seed 编号收进 title 悬停
@@ -9490,13 +9501,7 @@ function buildTarotResult(j) {
    * 同一张牌」同构）。先算回声再落日志：本次抽到的名只和历史
    * 比，不把自己也算进次数。tr:hist 只记牌名+日，不记问题。 */
   try {
-    var _trH = [];
-    try { _trH = JSON.parse(localStorage.getItem('tr:hist') || '[]') || []; }
-    catch (eTH) { _trH = []; }
-    var _cut = new Date(); _cut.setDate(_cut.getDate() - 45);
-    var _cutIso = _cut.toISOString().slice(0, 10);
-    _trH = _trH.filter(function (e) {
-      return e && e.n && e.d && e.d >= _cutIso; });
+    var _trH = _trHist();
     var _echo = [];
     (j.draws || []).forEach(function (d) {
       if (!d || !d.name) return;
