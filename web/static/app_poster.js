@@ -1508,16 +1508,13 @@ function buildShareData(view, j) {
       /* R3521：里程碑称号上墙——max(当前streak,已贺档) 取牌子，
        * 与卡内 meta 同口径（攒过的档断了也算）。 */
       try {
-        var _MSA = [[100, '百日故人'], [66, '知心人'],
-                    [30, '一月知己'], [21, '半月友'], [7, '七日缘']];
         var _msBest = Math.max(_stk,
           +(localStorage.getItem('ckms:seen') || 0));
-        for (var _mi = 0; _mi < _MSA.length; _mi++) {
-          if (_msBest >= _MSA[_mi][0]) {
-            _ck.lines.push({ k: '称号', v: _MSA[_mi][1] });
-            break;
-          }
+        var _msT = '';
+        for (var _mi = 0; _mi < _MS.length; _mi++) {
+          if (_MS[_mi][0] <= _msBest) _msT = _MS[_mi][1];
         }
+        if (_msT) _ck.lines.push({ k: '称号', v: _msT });
       } catch (eMSA) {}
       /* R3540：本周旺运行上海报——与卡内同盐同周一（_WL_* 池在
        * app.js 顶层，本文件直接可用）；本地周一 ISO 手拼不用
