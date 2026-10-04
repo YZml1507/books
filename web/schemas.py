@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import date
 
 import re
+import unicodedata
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -245,6 +246,20 @@ class ThreadRecordRequest(BaseModel):
     thread_id: int | None = None
     # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
     topic: str | None = Field(None, max_length=100)
+    # R3369（审-P1-3）：备份回灌孤儿手记——明确要求不绑线程时
+    # 置 true，跳过自动开线程。
+    orphan: bool = False
+
+    @field_validator("confidence")
+    @classmethod
+    def _conf_enum(cls, v: str | None) -> str | None:
+        # R3369（审-低-8）：confidence 此前任意字符串入库——前端
+        # _CONF_CN 只认识四档，别的值裸贴。白名单收口。
+        if v is None or v == "":
+            return None
+        if v not in ("high", "mid", "low", "open"):
+            raise ValueError("confidence 只能是 high/mid/low/open 之一")
+        return v
 
     @field_validator("claim", "method", "topic", "confidence")
     @classmethod
@@ -270,7 +285,10 @@ class ThreadRecordRequest(BaseModel):
 
 class LiuyaoRequest(BaseModel):
     method: str = "coins"        # coins | time
-    seed: int | None = None      # coins 法：可选 seed（复验用），不传则真随机
+    # R3348（审-低）：seed 三处统一上界——超大 int 此前照收进
+    # random.Random（无意义但合法）；负值也给界外 422。
+    seed: int | None = Field(None, ge=0, le=2 ** 63)
+    # coins 法：可选 seed（复验用），不传则真随机
     # R2350g（R104-P1-3）：分享链 seed 重放只是「给接收方看一眼 TA 摇到
     # 的卦」——不该写进接收方的台账。record=false 走纯算不落库。
     record: bool = True
@@ -318,7 +336,8 @@ class QimingRequest(BaseModel):
     # R228j：top_n 此前无界（文档面只写了建议范围），大值让响应膨胀；
     # style 无枚举校验——拼错的值静默按 all 出结果，用户以为没生效。
     top_n: int = Field(20, ge=1, le=50)
-    seed: int | None = Field(None, description="随机种子（换一批时传入，None=默认确定性输出）")
+    seed: int | None = Field(None, ge=0, le=2 ** 63,
+                             description="随机种子（换一批时传入，None=默认确定性输出）")
     style: str = Field("all", description="v3（P3）风格档：classics=诗经类 / chuci=楚辞类 / fresh=柔美 / all=全部")
     # R3206：农历生日起名——与 BaziRequest 同构。
     calendar_type: str = "solar"
@@ -326,6 +345,10 @@ class QimingRequest(BaseModel):
     lunar_month: int | None = None
     lunar_day: int | None = None
     lunar_leap: bool = False
+    # R3340（审-P3）：用户排除字通道——家里钦定不要的字（避讳/不喜）
+    # 直接不进候选。免校验字表长度（≤20 字）。
+    avoid_chars: str = Field("", max_length=20,
+                             description="用户明确不要出现在名字里的字")
 
     def validate_ranges(self) -> None:
         if not (YEAR_LO <= self.year <= YEAR_HI):
@@ -428,7 +451,8 @@ class NameReviewRequest(BaseModel):
 
 
 class TarotRequest(BaseModel):
-    seed: int | None = Field(None, description="随机种子（固定 seed → 固定牌面，可复验；不传则随机）")
+    seed: int | None = Field(None, ge=0, le=2 ** 63,
+                             description="随机种子（固定 seed → 固定牌面，可复验；不传则随机）")
     # R228j：文档写 1-10 但此前无 Field 界——n=9999 内部钳制改语义，改边界即拒
     n: int = Field(3, ge=1, le=10, description="抽牌张数 1-10，默认 3（过去/现在/未来）")
     question: str | None = Field(None, max_length=200)
@@ -469,6 +493,23 @@ class DreamRequest(BaseModel):
         self.text = (strip_zw(self.text) or "").strip()
         if not self.text:
             raise ValidationError("跟我说说梦里最清楚的画面——一句话也行")
+
+
+class DailyRequest(BaseModel):
+    """R3307（审-中6）：日签 POST 变体——bday=用户生日此前走 GET query，
+    边缘/CDN 日志与 F12 抓包都可见；改 body 后敏感参数不进 URL。
+    GET 端点保留（无 bday 的低敏调用与旧客户端兼容）。"""
+    date: str | None = Field(None, max_length=10)
+    bday: str = Field("", max_length=10)
+
+
+class LunarConvertRequest(BaseModel):
+    """R3307（审-中6）：农历换算 POST 变体——y/m/d/leap 是生日坐标，
+    同 bday 理由不进 URL。"""
+    y: int = Field(..., ge=1900, le=2100)
+    m: int = Field(..., ge=1, le=12)
+    d: int = Field(..., ge=1, le=30)
+    leap: int = Field(0, ge=0, le=1)
 
 
 class PaipanImportRequest(BaseModel):
@@ -527,6 +568,9 @@ class HehunRequest(BaseModel):
     b_lunar_month: int | None = None
     b_lunar_day: int | None = None
     b_lunar_leap: bool = False
+    # R3313（审-P1-5）：邀请态下读者是乙侧（受邀者）——判词里「我」的
+    # 指称要贴乙侧；缺省 False 兼容旧前端与台账回放。
+    reader_is_b: bool = False
 
     def validate_ranges(self) -> None:
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
@@ -589,3 +633,67 @@ class FavoriteAddRequest(BaseModel):
             return v
         return _ZW_RE.sub(
             "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()
+
+
+class CoupleCheckinRequest(BaseModel):
+    """合拍打卡同步（R3343）：写入本方打卡日集合，返回两人交集。
+
+    pair_id = 客户端 SHA-256（两份规范生日串按字典序拼接）——服务端
+    只见哈希不见生日；member ∈ {0,1} 由字典序定。days 上限 400
+    （与 KB 层 _CAP_COUPLE_MEMBER_DAYS 同口径），逐日必须是真实日期。
+    """
+    pair_id: str = Field(..., min_length=64, max_length=64)
+    member: int = Field(..., ge=0, le=1)
+    days: list[str] = Field(default_factory=list, max_length=400)
+
+    @field_validator("pair_id")
+    @classmethod
+    def _pid_hex(cls, v: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{64}", v):
+            raise ValidationError("这组对数对不上，重新分享一下再试")
+        return v
+
+    @field_validator("days")
+    @classmethod
+    def _days_real(cls, v: list[str]) -> list[str]:
+        out = []
+        for d in v:
+            if not isinstance(d, str) or \
+                    not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+                continue
+            try:
+                date.fromisoformat(d)
+            except ValueError:
+                continue
+            out.append(d)
+        return out
+
+
+# ---------- 小满轻账号（R3358：昵称+口令码，不要邮箱/手机） ----------
+
+class AccountAuthRequest(BaseModel):
+    """注册/登录/拉备份共用。昵称 1-24 字（剥零宽+控制符），
+    口令码 6-64 位——上限放宽留给将来 passphrase 升级。"""
+    nickname: str = Field(..., min_length=1, max_length=24)
+    passcode: str = Field(..., min_length=6, max_length=64)
+
+    @field_validator("nickname")
+    @classmethod
+    def _nick_clean(cls, v: str) -> str:
+        v = _ZW_RE.sub(
+            "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()
+        # R3362（R3359 审-低）：NFKC 归一——Alice/ａｌｉｃｅ 不同形
+        # 原来算三个账号，用户自认同名登不上会懵。
+        v = unicodedata.normalize("NFKC", v).strip()
+        if not v:
+            raise ValidationError("昵称得写点东西")
+        return v
+
+
+class AccountBackupPushRequest(AccountAuthRequest):
+    """推送备份：负载是导出器整套 bundle JSON 文本——服务端不透明
+    存放不解析，只卡体积（现有全量导出实测 ~500KB，1.2MB 上限留
+    余量）。base_updated_at 是客户端最近一次看到的云端 updated_at，
+    供乐观并发比对；缺省=无条件覆盖（首次推送）。"""
+    payload: str = Field(..., min_length=2, max_length=1_200_000)
+    base_updated_at: str | None = Field(default=None, max_length=40)

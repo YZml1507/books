@@ -32,6 +32,18 @@ PB_RE = re.compile(r"<pb:([^>]+)>")
 # symbol — a span ending at the next symbol would swallow this heading into the
 # previous 卦's last 爻 (real bug: 卦45·上六 returned 「** 《升第四十六》」).
 _HEADING_RE = re.compile(r"《[一-鿿]{1,4}第([一二三四五六七八九十]{1,4})》")
+
+# 十翼卷首形：行首（可带 　空/* /《》/短前缀如「周易」）+ 十翼名 +
+# 标题收尾字（傳/疏/第/》/¶/空白/注括号）。本義版式 經→彖上傳→象象傳→繫辭，
+# 首见者为准；「彖曰」「序卦云」等正文行进不来（非行首/收尾字不符）。
+# KR1a0001 `** 《繫辭上》`、KR1a0006 `周易繫辭上第七`、KR1a0031 `周易彖上傳`、
+# KR1a0032 `繫辭上傳`、KR1a0007 `繫辭上疏` 皆中。
+_SHIYI_HEAD_RE = re.compile(
+    r"^[ \t　\*]*《?[^《》\n]{0,12}"
+    r"(?:[系繫]辭[上下]|彖[上下]?傳|象[上下]?傳|文言傳|說卦[傳第]?|序卦[傳第]?|雜卦[傳第]?)"
+    r"(?=[傳疏第》¶\s（(]|$)",
+    re.M,
+)
 _NUMERALS = {c: i for i, c in enumerate("一二三四五六七八九十", 1)}
 
 
@@ -189,6 +201,17 @@ def gua_spans(raw: str) -> tuple[list[GuaSpan], list[int]]:
     last_kept = max(keep) if keep else -1
     tail_at = next((p for j, (p, _) in enumerate(marks)
                     if j > last_kept and j not in keep), None)
+
+    # R3347（审-P1-4）：有些本子十翼卷首不带卦符号（「繫辭上」直接
+    # 开头），KR1a0007 实测 126 单元约 7 万字传文全误挂未濟·上九，
+    # 五版合计 241 条。有的版尾部符号存在但落在繫辭卷首之后，光取
+    # 符号尾界照样吞传文——两锚取早者。形限定行首（可带　空/星号/
+    # 《》/「周易」短前缀）且下字必须是傳/疏/第/》等标题收尾——
+    # 正文的「繫辭上云」之类误伤不进来。
+    if keep:
+        _m = _SHIYI_HEAD_RE.search(raw, marks[last_kept][0])
+        if _m is not None and (tail_at is None or _m.start() < tail_at):
+            tail_at = _m.start()
 
     spans = []
     for k, (pos, num) in enumerate(marks):

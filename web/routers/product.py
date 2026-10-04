@@ -7,12 +7,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from .. import deps, services
-from ..schemas import FavoriteAddRequest, PrefsRequest
+from ..schemas import (CoupleCheckinRequest, DailyRequest,
+                       FavoriteAddRequest, LunarConvertRequest,
+                       PrefsRequest)
 
 router = APIRouter(tags=["product"])
 
 
-@router.get("/api/health")
+# R3316（审-P2）：HEAD 一并放行——平台/监控的 HEAD 探活此前吃
+# 405，GET 正常 → 误报不健康。
+@router.api_route("/api/health", methods=["GET", "HEAD"])
 def health() -> dict:
     """健康检查：解读引擎标识 + 索引是否就位。"""
     return services.health()
@@ -26,6 +30,15 @@ def daily(date: str | None = Query(None, max_length=10),
     return services.daily(date, bday or None)
 
 
+# R3307（审-中6）：POST 变体——bday 是生日坐标属半隐私，此前 GET query
+# 会留在边缘/CDN 日志与抓包里；带 bday 的调用一律走 body。GET 保留
+# 给无 bday 的低敏预取与旧客户端。
+@router.post("/api/daily")
+def daily_post(req: DailyRequest) -> dict:
+    """POST 版日签——body {date, bday}，敏感生日不进 URL。"""
+    return services.daily(req.date, req.bday or None)
+
+
 @router.get("/api/lunar/convert")
 def lunar_convert(y: int = Query(..., ge=1900, le=2100),
                   m: int = Query(..., ge=1, le=12),
@@ -36,6 +49,12 @@ def lunar_convert(y: int = Query(..., ge=1900, le=2100),
     农历日上限 30（表界把守），非法农历日由 services 抛 400 中文人话。
     """
     return services.lunar_convert(y, m, d, bool(leap))
+
+
+@router.post("/api/lunar/convert")
+def lunar_convert_post(req: LunarConvertRequest) -> dict:
+    """R3307（审-中6）：POST 版农历换算——生日坐标走 body 不进 URL。"""
+    return services.lunar_convert(req.y, req.m, req.d, bool(req.leap))
 
 
 # R228l 登记：/api/widget、/api/share/*、/api/external/fortune 前端零调用
@@ -68,6 +87,13 @@ def set_user_prefs(req: PrefsRequest) -> dict:
     return services.set_user_prefs(req.to_dict())
 
 
+@router.delete("/api/user/prefs")
+def clear_user_prefs() -> dict:
+    """R3339（审-低）：「忘掉」清偏好表（theme 保留）。"""
+    deps.write_guard()
+    return services.clear_user_prefs()
+
+
 @router.post("/api/favorites")
 def add_favorite(req: FavoriteAddRequest) -> dict:
     """收藏一条结果。"""
@@ -87,6 +113,13 @@ def clear_favorites() -> dict:
     """R2349（R65-P1-2）：清空全部收藏——「忘掉我的数据」调用面。"""
     deps.write_guard()   # R2357
     return services.clear_favorites()
+
+
+@router.post("/api/couple/checkin")
+def couple_checkin(req: CoupleCheckinRequest) -> dict:
+    """合拍打卡（R3343）：本方打卡日集合并入，回两人交集。"""
+    deps.write_guard()   # R2357：公网演示模式禁写共享库
+    return services.couple_checkin(req)
 
 
 @router.get("/api/external/news")

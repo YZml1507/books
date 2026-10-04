@@ -53,6 +53,7 @@ class Taohua:
     tianxi: str                    # 天喜支
     tianxi_pillar: list[str]       # 天喜临四柱中的哪些柱
     strength: str                  # strong / mid / weak
+    hour_known: bool = True        # R3333：时辰不详时 命中/强度 不含时柱
     notes: list[str] = field(default_factory=list)   # 写死说明
 
     def render(self) -> str:
@@ -60,7 +61,8 @@ class Taohua:
         if self.hit_pillars:
             parts.append("命中" + "、".join(_PILLAR_CN[p] for p in self.hit_pillars))
         else:
-            parts.append("四柱地支均未临桃花")
+            parts.append("四柱地支均未临桃花" if self.hour_known
+                         else "年月日三柱地支均未临桃花")
         parts.append(f"红鸾 {self.hongluan}（临 " +
                      ("、".join(_PILLAR_CN[p] for p in self.hongluan_pillar) if self.hongluan_pillar else "无") +
                      f"）· 天喜 {self.tianxi}（临 " +
@@ -76,9 +78,15 @@ def _hongluan_zhi(year_zhi: str) -> str:
     return ZHI[(3 - ZHI.index(year_zhi)) % 12]
 
 
-def compute(b: Bazi) -> Taohua:
-    """主入口：八字四柱 → 桃花运分析（纯坐标计算）。"""
-    pillars = {k: b.__getattribute__(k)[1] for k in _PILLARS}  # 取各柱地支
+def compute(b: Bazi, hour_known: bool = True) -> Taohua:
+    """主入口：八字四柱 → 桃花运分析（纯坐标计算）。
+
+    R3333（审-高4）：hour_known=False 时把假午时柱整柱排除——
+    此前命中统计/强度/落宫把「午时」当真实坐标计入，时辰不详的
+    盘会被假时柱抬成 strong 或凭空多一行「时柱桃花主中年后」。"""
+    _pillars = _PILLARS if hour_known else tuple(
+        p for p in _PILLARS if p != "hour")
+    pillars = {k: b.__getattribute__(k)[1] for k in _pillars}  # 取各柱地支
     year_zhi = pillars["year"]
     day_zhi = pillars["day"]
     peach = XIANCHI[year_zhi]
@@ -86,12 +94,12 @@ def compute(b: Bazi) -> Taohua:
     # 自己永远不可能命中 →「strong」构造性稀缺（实测 50 盘 0 强）。
     # 年/日支两个参考位都认，命中任一并集计。
     peach_d = XIANCHI[day_zhi]
-    hit = [k for k in _PILLARS if pillars[k] == peach or pillars[k] == peach_d]
+    hit = [k for k in _pillars if pillars[k] == peach or pillars[k] == peach_d]
 
     hl = _hongluan_zhi(year_zhi)
-    hl_hit = [k for k in _PILLARS if pillars[k] == hl]
+    hl_hit = [k for k in _pillars if pillars[k] == hl]
     tx = ZHI[(ZHI.index(hl) + 6) % 12]
-    tx_hit = [k for k in _PILLARS if pillars[k] == tx]
+    tx_hit = [k for k in _pillars if pillars[k] == tx]
 
     if len(hit) >= 2:
         strength = "strong"
@@ -101,7 +109,7 @@ def compute(b: Bazi) -> Taohua:
         strength = "weak"
 
     notes: list[str] = []
-    for k in _PILLARS:
+    for k in _pillars:
         if k in hit:
             notes.append(_PILLAR_MEANING[k])
     if hl_hit:
@@ -110,12 +118,14 @@ def compute(b: Bazi) -> Taohua:
         notes.append("天喜临柱，传统上主喜庆缘分信息")
     if not notes:
         # R219b（P1-4）：去掉「仅坐标事实，不作断言」免责套话
-        notes.append("四柱没有桃花/红鸾/天喜临支，这段缘分信号偏安静，适合先把自己过好")
+        notes.append(("四柱" if hour_known else "年月日三柱") +
+                     "没有桃花/红鸾/天喜临支，这段缘分信号偏安静，适合先把自己过好")
 
     return Taohua(
         year_zhi=year_zhi, peach_zhi=peach,
         hit_pillars=hit, hongluan=hl, hongluan_pillar=hl_hit,
-        tianxi=tx, tianxi_pillar=tx_hit, strength=strength, notes=notes,
+        tianxi=tx, tianxi_pillar=tx_hit, strength=strength,
+        hour_known=hour_known, notes=notes,
     )
 
 

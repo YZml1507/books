@@ -12,8 +12,6 @@
 - 生成时间：2026-08 前后（见 .hermes 台账记录）
 - 口径：AI 生成图无第三方版权负担；页内展示均带「仅供娱乐」语境。
 - R3251 批次（scripts/gen_r3250_assets.py，agnes-image-2.1-flash）：
-  - `bear-day-{good,sml,mid,bad}.jpg` 判词心情熊——吉=向阳熊/
-    小吉=茶杯熊/平=静坐熊/凶=裹毯撑伞熊，替代日签判词文字圆盘；
   - `persona-{wood,fire,earth,metal,water}.jpg` 五行人格拟人熊——
     木=抱树苗/火=举星火/土=坐山丘/金=托星钻/水=乘水滴；
   - `icon-renge.jpg` 五花图标——五行人格功能卡图标
@@ -41,6 +39,14 @@
   - `bear-scene-{good,sml,mid,bad}.jpg` 4 张日签场景横幅——
     吉=向阳山坡/小吉=暖灯茶席/平=灰窗静坐/凶=雨窗毯堡可可；
     daily-level 由 80px 圆盘改 160×108 横幅，图本身承载档位。
+
+## 溯源清单（不入壳、不运行时引用）
+
+- `cream/manifest.json`（13KB）——**不是** PWA manifest，是 cream
+  系列 21 张图（12 星座 + 8 功能卡 + hero）的 Agnes 生图溯源表：
+  file/size/bytes/source_url/原始 prompt。运行时零引用、不入
+  SHELL/EXTRA_GLOBS，纯留档（版权/来源回查用，勿删）。R3405-F7
+  登记前是磁盘孤儿。
 
 ## 其它来源
 

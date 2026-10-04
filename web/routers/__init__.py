@@ -15,11 +15,14 @@
     divination  /api/liuyao /api/huangli /api/tarot
     product     /api/daily /api/widget /api/share /api/user/prefs
                 /api/favorites /api/external/* /api/health
+    account     /api/account/*（R3358 轻账号：注册/登录/备份推拉）
 """
 from __future__ import annotations
 
-from . import bazi, divination, product, reading
+from . import account, bazi, divination, product, reading
 
-ROUTERS = (bazi.router, reading.router, divination.router, product.router)
+ROUTERS = (bazi.router, reading.router, divination.router,
+           product.router, account.router)
 
-__all__ = ["ROUTERS", "bazi", "divination", "product", "reading"]
+__all__ = ["ROUTERS", "account", "bazi", "divination", "product",
+           "reading"]

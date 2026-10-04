@@ -29,18 +29,48 @@ EXTRA_GLOBS = (
     "shared/poster-bg-*.jpg",
     "cream/poster-mascot.png",
     "cream/icon-512-maskable.png",
+    # R3317：开运壁纸底图（二线资产）内容变更同样要换 CACHE 名。
+    "wallpapers/*.jpg",
     "fonts/lxgw/lxgwwenkai-regular-subset-*.woff2",
     # R2349u（R91-P2-5）：og 分享卡此前漏出哈希——换图不 bump，
     # 已装用户/分享爬虫无限期看旧卡。
     "shared/og-card.jpg",
+    # R3317-F：vendored 库（qrcode 等懒加载件，libs 躲开 .gitignore vendor/ 排除）更新也要换 CACHE 名。
+    "libs/*.js",
+    # R3341（审-低）：运行时懒加载的 cream 图族此前不进哈希——
+    # 换图不 bump，已装用户 RT 桶无限期看旧图。
+    "cream/dream-*.jpg",
+    "cream/sign-*.jpg",
+    "cream/scene-*.jpg",
+    "cream/bear-scene-*.jpg",
+    "cream/persona-*.jpg",
+    "cream/hehun-bear.jpg",
+    # R3247：明星合盘名单（运行时 fetch /static/celeb.json）同口径。
+    "celeb.json",
+    # R3396（记账）：soulmate 六张氛围图同病——换图必须换 CACHE 名。
+    # R3402 修正：图在 static/soulmate/ 不在 cream/——原 glob 零命中。
+    "soulmate/sm-*.jpg",
 )
 
 
 def _extra_paths() -> list[Path]:
     out: list[Path] = []
     for g in EXTRA_GLOBS:
-        out.extend(sorted(STATIC.glob(g)))
-    return out
+        hits = sorted(STATIC.glob(g))
+        # R3402：零命中 glob 是错路径——cream/sm-*.jpg 曾空挂一年。
+        # 真删图时请同步删条目，而不是让死 glob 留着骗哈希。
+        if not hits:
+            raise SystemExit(f"EXTRA_GLOBS 零命中（路径写错或文件已删）：{g}")
+        out.extend(hits)
+    # R3403：去重且保序——重叠 glob 同件两次入哈希会与 selftest
+    # 内嵌表口径分叉；顺序也必须与内嵌表逐组一致（哈希按序拼接）。
+    _seen: set[Path] = set()
+    _dedup: list[Path] = []
+    for _p in out:
+        if _p not in _seen:
+            _seen.add(_p)
+            _dedup.append(_p)
+    return _dedup
 
 
 def _shell_paths(src: str) -> list[Path]:

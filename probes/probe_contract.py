@@ -119,6 +119,14 @@ FIXTURES: dict[str, dict] = {
     # month/day 四键，固定 2000 正月初一 → 2000-02-05 可复验。
     "/api/lunar/convert":     {"method": "GET", "params": {
         "y": 2000, "m": 1, "d": 1, "leap": 0}},
+    # R3307（隐-P1-4）：农历生日走 POST 体不进 URL（生日=隐私坐标）。
+    "POST /api/lunar/convert": {"method": "POST",
+                                "json": {"y": 2000, "m": 1, "d": 1,
+                                         "leap": False}},
+    # R3307（隐-P1-3）：bday 走 POST 体——响应与 GET 同构。
+    "POST /api/daily":        {"method": "POST",
+                               "json": {"date": "2026-08-20",
+                                        "bday": "1995-08-20"}},
     # R2353（R110-P1-1）：触屏/微信下 CSV 走 fetch→text() 展示式
     # 导出——响应是 text/csv 不是 JSON，probe 只验「端点活着+非空」，
     # 不钉字段（前端用 r.text() 不读 JSON 键）。
@@ -174,6 +182,8 @@ FIXTURES: dict[str, dict] = {
     # api() 绑定的归 "/api/x"。/api/threads 两侧都被前端读（POST 创建回包 +
     # GET 列表项），此前列表读点全被拿到 POST 响应上判成假 HARD。
     "/api/threads":           {"method": "GET"},
+    # R3347：孤儿手记列表端点——claims/n_total/has_more 形状钉扎。
+    "/api/claims":            {"method": "GET"},
 
     # ── R120a 补齐（R178b 新增/前端新接线的端点）──────────────
     # 上一轮这 8 个端点无 fixture → 报 SKIP。SKIP 让 probe 返回退出码 2
@@ -190,6 +200,13 @@ FIXTURES: dict[str, dict] = {
     "/api/bookstudy/summary": {"method": "GET", "params": {
         "work_id": "KR1a0001"}},
     "POST /api/tarot":    {"method": "POST", "json": {"seed": 42, "n": 3}},
+    # R3343：合拍打卡——前端读 j.shared（elem 读点要求非空），单方 fixture
+    # 只能回空交集 → 假 SKIP。preseed_couple 先落双方重叠日再 POST。
+    # 前端走裸 fetch(method:'POST') 不挂 POST 前缀——键名按无前缀登记。
+    "/api/couple/checkin": {"method": "POST", "json": {
+        "pair_id": "c0" * 32, "member": 0,
+        "days": ["2026-09-30", "2026-10-01"]},
+        "preseed_couple": True},
     # R228a：排盘历史台账端点（phFetch 包装器原来不在抽取正则会漏判，
     # j.items 被误记到 /api/bazi 头上报假 HARD——先把端点接进来）
     "/api/paipan/history":    {"method": "GET", "params": {"limit": 50}},
@@ -218,8 +235,25 @@ FIXTURES: dict[str, dict] = {
     "/api/stats":             {"method": "GET"},
     "/api/widget":            {"method": "GET"},
     # /api/share/{type}/{id}：无列表端点可解 id——spec.url 显式钉一个
-    # selftest 同款真实请求（bazi/1）。
-    "/api/share/":            {"method": "GET", "url": "/api/share/bazi/1"},
+    # selftest 同款真实请求。R3307 起 bazi 分支删除（可枚举数据面），
+    # 探针改钉 tarot 回显分支。
+    "/api/share/":            {"method": "GET", "url": "/api/share/tarot/abc123"},
+    # R3358：轻账号——status 公开读；register 会真建一条 probe 账号
+    # （与 gen_records 写副作用同先例——固定昵称，首轮建号、之后
+    # 走重名拒，两条路的 {ok,msg} 读点都可判定）；login/pull/push
+    # 用不存在的昵称→确定性的 {ok:false,msg} 带内拒答。
+    "/api/account/status":  {"method": "GET"},
+    # R3362：前端账号调用全走 postJSON——读点 url 前缀 "POST "，
+    # fixture 键同形（POST /api/x），url_real 自动剥前缀。
+    "POST /api/account/register": {"method": "POST",
+        "json": {"nickname": "probe账号", "passcode": "246810"}},
+    "POST /api/account/login": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    "POST /api/account/backup/pull": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    "POST /api/account/backup/push": {"method": "POST",
+        "json": {"nickname": "probe不存在的账号", "passcode": "246810",
+                 "payload": "{}"}},
 }
 
 # 只在 `if (!resp.ok)` 错误分支读取的字段（FastAPI 错误体固定为 detail）
@@ -255,7 +289,11 @@ CONDITIONAL_FIELDS = {
                   # （时辰留空的盘）；前端 `=== false` 正是对缺席的探测。
                   "hour_known"},
     "/api/taohua": {"ai_task_id"},
-    "/api/hehun": {"ai_task_id"},
+    "/api/hehun": {"ai_task_id",
+                   # R3247：celeb 是前端注入字段（j.celeb = __hhCeleb，
+                   # 与 j.a_name/j.b_name 同先例）——后端从不返回，
+                   # 前端 `(j.celeb ? ...)` 探测明星态。
+                   "celeb"},
     "/api/qiming": {"ai_task_id",
                     # R233j（R46-P1）：one_liner 只在 copy_bank 池非空时回；
                     # 前端 `if (j.one_liner)` 是对缺席的探测。
@@ -277,12 +315,19 @@ CONDITIONAL_FIELDS = {
                   "rate_limited",
                   # R3195：action 只在命中功能路标意图时返回——前端
                   # `if (j.action)` 探测缺席，不读时零成本。
-                  "action", "action.view", "action.label"},
+                  "action", "action.view", "action.label",
+                  # R3352：anchor 页内落点（折叠 details 选择器键），
+                  # 只在有路标时随 action 下发。
+                  "action.anchor"},
     "/api/qiming/review": {"review_task_id"},
     # R228x：/api/huangli 双形态——单日返回 yi/ji/…，带 affair+days 返回
     # good_days 列表。同 URL 同方法两种响应形状，fixture 只能钉单日形态；
     # 前端对 good_days 有 Array.isArray 守卫 → 条件存在字段，不算漂移。
     "/api/huangli": {"good_days", "good_days.date", "good_days.yi",
+                     # R3308（审-低4）：hard_note 只在硬凶日（月破/四离/
+                     # 四绝/杨公忌/岁破/受死）返回——前端 `j.hard_note ?`
+                     # 正是对缺席的探测。
+                     "hard_note",
                      "good_days.ji", "count", "terms", "affair", "start",
                      "days",
                      # R229z续21（R9 审计修复）：conflict（宜忌相冲词）只在
@@ -305,6 +350,18 @@ CONDITIONAL_FIELDS = {
     "/api/paipan/history": {"disabled"},
     # R3193：星座日运接 AI 解读块——ai_task_id 只在 LLM 开启时返回。
     "/api/xingzuo": {"ai_task_id"},
+    # R3358：payload 只在拉取成功（ok:true）时返回——拒绝态（probe 的
+    # 不存在昵称 fixture 走的就是这条）只有 ok/msg；前端
+    # `if (r && r.ok && r.payload)` 正是对缺席的探测。
+    "/api/account/backup/pull": {"payload",
+        # R3372：updated_at 只随成功 payload 返回——前端 `if (r.updated_at)`
+        # 是对缺席的探测（拒绝态只有 ok/msg）。
+        "updated_at"},
+    # R3372：push 的 updated_at/conflict 是条件字段——成功态回 updated_at、
+    # 冲突态回 {conflict:true,updated_at}、拒绝态只有 ok/msg；probe fixture
+    # 走不存在昵称拒答支路，前端 `if (r.conflict)`/`if (r.updated_at)`
+    # 均是对缺席的探测。
+    "/api/account/backup/push": {"updated_at", "conflict"},
 }
 
 # 出处字段：缺失时**即使有 `||''` 兜底也判 HARD**。
@@ -571,6 +628,9 @@ UNPINNED_ROUTES = {
     ("POST", "/api/ask"):        "R228l 裁决为有意保留僵尸端点（UI 接线已撤，"
                                  "删除待用户）——不造 fixture 假装覆盖",
     ("POST", "/api/user/prefs"): "同上：死写端点（R228l 台账）",
+    ("DELETE", "/api/user/prefs"): "R3339（审-低）：「忘掉我的数据」偏好表"
+                                 "全清端点（theme 保留）——真机路径由 wipe 钮"
+                                 "两段式覆盖，selftest prefs.delete_scope 钉",
     ("POST", "/api/favorites"):  "写端点——R230z 起由起名♡/合婚存这对接线，"
                                  "探针只读纪律不造写请求（ui_smoke "
                                  "btn:hehun.savepair 已真点验证）",
@@ -584,6 +644,13 @@ UNPINNED_ROUTES = {
                                  "（R230k 起写路径由 ui_smoke btn:history.delete"
                                  " 两段式真删覆盖；此前注释误称已由建删回环"
                                  " 覆盖——selftest 在 DISABLE 态跑根本测不到）",
+    ("GET", "/api/account/status"): "R3358 轻账号——FIXTURES 直钉",
+    ("POST", "/api/account/register"): "R3358 轻账号——FIXTURES 直钉"
+                                 "（probe 固定昵称真建号）",
+    ("POST", "/api/account/login"): "R3358 轻账号——FIXTURES 直钉"
+                                 "（不存在昵称的带内拒答）",
+    ("POST", "/api/account/backup/push"): "R3358 轻账号——FIXTURES 直钉",
+    ("POST", "/api/account/backup/pull"): "R3358 轻账号——FIXTURES 直钉",
 }
 
 
@@ -697,6 +764,7 @@ def main() -> int:
     kb_path = os.path.join(ROOT, "data", "index", "knowledge.db")
     created_derived: list[int] = []
     created_threads: list[int] = []   # R228s续6：fixture 自动开的线程也要回收
+    couple_pids: list[str] = []       # R3343：preseed 落库的哨兵 pair_id
     fav_id = None
     seed_bazi = client.post("/api/bazi", json=FIXTURES["POST /api/bazi"]["json"])
     assert seed_bazi.status_code == 200, seed_bazi.text[:200]
@@ -791,6 +859,14 @@ def main() -> int:
             r = client.get(url_real, params=fx.get("params"))
         else:
             _payload = fx.get("json")
+            if fx.get("preseed_couple"):
+                # R3343：交集响应要求双方行——复用服务端 couple_sync
+                # 预落 member 0/1 的重叠日（自带建表幂等），再 POST。
+                _cp = (_payload or {}).get("pair_id") or ""
+                with kb_mod.KnowledgeBase(kb_path) as _kbc:
+                    _kbc.couple_sync(_cp, 0, ["2026-09-30", "2026-10-01"])
+                    _kbc.couple_sync(_cp, 1, ["2026-10-01", "2026-10-02"])
+                couple_pids.append(_cp)
             if fx.get("gen_records"):
                 # R2400（R127-P2-5）：import 需非空 new_records 才可判——
                 # 每轮生成唯一 ts 的记录（毫秒戳），避开 (ts,name,type)
@@ -834,7 +910,7 @@ def main() -> int:
     finally:
         cleaned, hist_after = cleanup(history_db, kb_mod, kb_path,
                                      hist_baseline, created_derived, fav_id,
-                                     created_threads)
+                                     created_threads, couple_pids)
         # R228a：paipan_history.db 增量清理（独立轻量库，同纪律）
         _ph_after = _ph_baseline
         try:
@@ -896,7 +972,7 @@ def main() -> int:
 
 
 def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived,
-            fav_id, created_threads=()):
+            fav_id, created_threads=(), couple_pids=()):
     """删除本轮写入的行并返回 (清理清单, 清理后 history 行数)。
 
     必须可在异常路径上调用（见 main 的 try/finally）。本身不抛异常——
@@ -931,6 +1007,16 @@ def cleanup(history_db, kb_mod, kb_path, hist_baseline, created_derived,
                 kb.db.execute("DELETE FROM turn WHERE thread_id=?", (t,))
                 kb.db.execute("DELETE FROM thread WHERE id=?", (t,))
                 cleaned.append(f"thread#{t}")
+            for _cp in couple_pids:            # R3343：preseed 哨兵对
+                # 表在 fixture 未跑的库里可能不存在——照 couple_sync 同
+                # 款 sqlite_master 探针，缺表就跳过不炸后续清理。
+                _has_ct = kb.db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='couple_days'").fetchone()
+                if _has_ct:
+                    kb.db.execute(
+                        "DELETE FROM couple_days WHERE pair_id=?", (_cp,))
+                    cleaned.append(f"couple:{_cp[:8]}…")
             kb.db.commit()
     except Exception as exc:                      # noqa: BLE001
         cleaned.append(f"⚠ 清理未完成：{type(exc).__name__}: {exc}")

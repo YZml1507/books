@@ -253,16 +253,35 @@ def _realpath_check(self_check: bool = False) -> int:
                         rec["err"] = eval_err[:400]
                     page.wait_for_timeout(600)
                     # 抓 modal img 看 PNG 大小
-                    data_url = page.evaluate(
-                        "() => { const img = document.querySelector('.poster-modal-img');"
-                        " return img ? img.src : null; }")
-                    if data_url and data_url.startswith("data:image/png;base64,"):
-                        raw = base64.b64decode(data_url.split(",", 1)[1])
-                        rec["png_bytes"] = len(raw)
-                        rec["modal_ok"] = True
-                    else:
+                    # R3355：预览 img 现为 blob: URL（iOS 长按保存修复），
+                    # data: 副本存 dataset.dsrc（CSP connect-src 挡
+                    # fetch(blob:)，不能靠网络再取）。同时验
+                    # naturalWidth>0——blob 真渲出来了（SW 拦截/过早
+                    # revoke 都会让它是 0）。取列表最后一个 img：
+                    # 上一视图的关闭中 modal 可能还在 DOM 尾部前位。
+                    img_probe = page.evaluate(
+                        "() => { const imgs ="
+                        " document.querySelectorAll('.poster-modal-img');"
+                        " const img = imgs.length ? imgs[imgs.length-1] : null;"
+                        " if (!img) return null;"
+                        " return {src: img.src || '', nw: img.naturalWidth || 0,"
+                        " ds: (img.dataset && img.dataset.dsrc) || ''}; }")
+                    if not img_probe:
                         rec["png_bytes"] = 0
                         rec["modal_ok"] = False
+                    else:
+                        if (img_probe.get("src") or "").startswith("blob:") \
+                                and not img_probe.get("nw"):
+                            rec["err"] = (rec.get("err") or "") + \
+                                "blob 预览图未渲染(naturalWidth=0)"
+                        dsrc = img_probe.get("ds") or img_probe.get("src") or ""
+                        if dsrc.startswith("data:image/png;base64,"):
+                            raw = base64.b64decode(dsrc.split(",", 1)[1])
+                            rec["png_bytes"] = len(raw)
+                            rec["modal_ok"] = True
+                        else:
+                            rec["png_bytes"] = 0
+                            rec["modal_ok"] = False
                     # 关 modal
                     close = page.query_selector('.poster-modal-close')
                     if close:
@@ -369,6 +388,13 @@ def main(self_check: bool = False) -> int:
                     return orig.call(this, t, ...a);
                 };
             }""")
+            # R3343a：drawPoster 住在懒加载 chunk app_poster.js——warmPoster
+            # 的 requestIdleCallback 预热在 CI 共享机上会与下面的 evaluate
+            # 赛跑（实测 drawPoster is not defined 崩整条判据）。这里是
+            # 测试准备不是断言：显式把 chunk 拉完再测，与真机「点了才拉」
+            # 语义同构。
+            page.evaluate("() => _loadPosterJs().then(() => "
+                          "_loadQrJs ? _loadQrJs() : 0)")
             res = page.evaluate("(j) => {"
                                " let __r = null; let __min = 1e9;"
                                # R230a-45：CI 共享机时序抖动实测 55ms（本地 13ms），

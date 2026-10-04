@@ -88,6 +88,9 @@ def chat(req: ChatRequest) -> dict:
         facts += services.chat_dream_facts(req.message)
         # R3180c：抽牌/起卦类请求→功能路标（别让她在聊里假抽）。
         facts += services.chat_action_facts(req.message)
+        # R3331（审-中2/3/4）：水逆/穿搭/咒语问句→当日派生事实，
+        # 防模型自由发挥与卡面口径分裂。
+        facts += services.chat_daily_facts(req.message)
         # R3195：路标同步给前端可点跳转 chip——「去塔罗抽一把」
         # 比纯文字指路少一步寻找。
         # R3197：危机消息禁挂跳转——「不想活了给我抽张牌」走罐头
@@ -252,6 +255,10 @@ def paipan_history_import(req: PaipanImportRequest) -> dict:
     # R2517（审-P3-9）：台账禁用下 records 段被静默丢弃——如实披露。
     if paipan_history.disabled() and req.records:
         out["records_ignored"] = len(req.records)
+    # R3347（审-P2）：import_threads 上限 200——超出的线程如实报数，
+    # 前端 toast 可明示「还有 N 条超上限」而不是让用户以为全导完。
+    if req.threads and len(req.threads) > 200:
+        out["threads_truncated"] = len(req.threads) - 200
     return out
 
 

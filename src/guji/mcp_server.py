@@ -93,10 +93,11 @@ def search(q: str, layer: str | None = None, work: str | None = None,
 @mcp.tool()
 def addr(scheme: str, gua: int | None = None, yao: str | None = None,
          addr_name: str | None = None, addr1: int | None = None,
-         addr2: str | None = None, limit: int = 20) -> str:
+         addr2: str | None = None, limit: int = 20,
+         work_id: str | None = None) -> str:
     """Read every witness at one address. scheme: zhouyi(卦/爻) | bcv(圣经卷章節) |
     yilin(本卦/之卦) | booksec(BOOK·節) | play(幕/場) | euclid(BOOK·命题).
-    zhouyi uses gua/yao; others use addr_name/addr1/addr2."""
+    zhouyi uses gua/yao; others use addr_name/addr1/addr2 (+work_id for booksec)."""
     c = Corpus(CORPUS_DB)
     try:
         if scheme == "zhouyi":
@@ -107,8 +108,15 @@ def addr(scheme: str, gua: int | None = None, yao: str | None = None,
                 return "error: 卦号要在 1–64 之间"
             hits = c.at_address(gua, yao, limit=min(max(limit, 1), 100))
         else:
+            # R3305：与 /api/addr 同口径——书内层号缺书名/卷名会把多本
+            # 同号段揉一页，如实拒绝。
+            if scheme == "bcv" and addr1 is not None and not addr_name:
+                return "error: bcv 章号按卷内计，需 addr_name（如 Genesis）"
+            if scheme == "booksec" and addr1 is not None and not work_id:
+                return "error: booksec 卷号按书内计，需 work_id（如 herodotus）"
             hits = c.at_scheme(scheme, addr_name=addr_name, addr1=addr1,
-                               addr2=addr2, limit=min(max(limit, 1), 100))
+                               addr2=addr2, limit=min(max(limit, 1), 100),
+                               work_id=work_id)
         return _hits_md(hits)
     finally:
         c.close()

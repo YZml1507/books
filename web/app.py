@@ -115,6 +115,57 @@ def create_app() -> FastAPI:
                                                 "PATCH"],
                                  allow_headers=["Content-Type"])
 
+    # R3338（审-高）：app.js 未压缩 ~788KB（注释/空行占 ~40%）——服务时
+    # 按 (mtime,size) 缓存 jsmin 产物（实测 464KB），源文件保持可读；
+    # minify 异常回落原文（降级为旧行为）。路由注册在 mount 前遮蔽生效，
+    # URL 不变 → index.html/SW/探针（读盘文件）全部无感。
+    try:
+        import jsmin as _jsmin_mod  # noqa: F401
+    except Exception:
+        _jsmin_mod = None
+    _appjs_min_cache: dict = {"key": None, "body": None}
+
+    def _appjs_minified() -> tuple[bytes, str] | None:
+        # R3341（审-低）：try 缩窄——读盘/stat 错才返 404；jsmin 炸
+        # 只回落原文（此前整段兜底把 minify 故障和文件缺失混为一谈，
+        # minify 悄悄不生效）。返回 (body, etag)。
+        try:
+            p = os.path.join(deps.STATIC_DIR, "app.js")
+            st = os.stat(p)
+            key = (st.st_mtime_ns, st.st_size)
+            if _appjs_min_cache["key"] == key:
+                return _appjs_min_cache["body"], _appjs_min_cache["etag"]
+            src = open(p, "r", encoding="utf-8").read()
+        except Exception:
+            return None
+        try:
+            out = _jsmin_mod.jsmin(src) if _jsmin_mod else src
+        except Exception:
+            out = src
+        # 异常产物护栏：小于源 40% 或空输出不发出，回落原文。
+        if not out.strip() or len(out) < len(src) * 0.4:
+            out = src
+        body = out.encode("utf-8")
+        etag = f'"{key[0]:x}-{len(body):x}"'
+        _appjs_min_cache["key"] = key
+        _appjs_min_cache["body"] = body
+        _appjs_min_cache["etag"] = etag
+        return body, etag
+
+    @application.get("/static/app.js", include_in_schema=False)
+    async def _appjs_served(request: Request):
+        got = _appjs_minified()
+        if got is None:
+            return PlainTextResponse("app.js missing", status_code=404)
+        b, etag = got
+        # R3341（审-低）：ETag 协商缓存——页面每刷新重拉 464KB 靠
+        # max-age 盲信，SW 之外的老客粘旧版；内容变了 etag 才变。
+        if request.headers.get("if-none-match") == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+        return Response(b, media_type="application/javascript",
+                        headers={"ETag": etag,
+                                 "Cache-Control": "no-cache"})
+
     # 静态资源：/static 指向 index.html 所在目录（开发期 ROOT/web/static，
     # frozen 期 _MEIPASS/web/static，与 INDEX 同源）。
     if os.path.isdir(deps.STATIC_DIR):
@@ -128,6 +179,18 @@ def create_app() -> FastAPI:
     # 进（含页面/静态/全部 API），没钥匙只见到一把「输口令」的门；
     # /api/health 豁免（托管平台健康探测要用）。不设 = 现状全开
     # （本地单用户），自用公网实例强烈建议设。
+    # R3341（审-中）：口令强度启动自检——限速桶只有 10 次/60s，弱口令
+    # （短/全数字/常见词）在公开实例上仍属可爆面。启动时点名提醒，
+    # 不拦启动（本地自用弱口令无害）。
+    _gtok = os.getenv("BOOKS_ACCESS_TOKEN", "")
+    if _gtok and (len(_gtok) < 12 or _gtok.isdigit()
+                  or _gtok.lower() in (
+                      "password", "xiaoman", "books", "123456", "admin",
+                      "xiaoman-books", "books-gate")):
+        import logging as _lg
+        _lg.getLogger("books.gate").warning(
+            "BOOKS_ACCESS_TOKEN 偏弱（长度<12/纯数字/常见词）——公网实例"
+            "建议换 16+ 位混合口令，限速桶挡不住弱口令爆破")
     _GATE_PAGE = (
         "<!doctype html><meta charset=utf-8><meta name=viewport "
         "content='width=device-width,initial-scale=1'>"
@@ -135,7 +198,13 @@ def create_app() -> FastAPI:
         "display:flex;align-items:center;justify-content:center;"
         "background:#f7efe6;font-family:ui-rounded,PingFang SC,"
         "Microsoft YaHei,sans-serif'>"
-        "<form method=post action='/_gate' style='background:#fff;"
+        # R3313（审-P1-2）：门页 POST 前把 location.hash 拼回 next——
+        # 邀请链生辰全在 #hash（不进服务器），闸页只吃到了 path+query，
+        # 解锁后受邀者的邀请参被闸吃掉成死链。同 origin 脚本零依赖。
+        "<form method=post action='/_gate' "
+        "onsubmit=\"var n=this.querySelector('[name=next]');"
+        "if(n&&location.hash)n.value+=location.hash\" "
+        "style='background:#fff;"
         "padding:32px 28px;border-radius:18px;box-shadow:0 8px 30px "
         "rgba(120,80,40,.12);text-align:center;max-width:320px'>"
         "<div style='font-size:34px'>🌾</div>"
@@ -156,6 +225,18 @@ def create_app() -> FastAPI:
     _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
                   "钥匙不对——再想想？</p>")
 
+    def _gate_hint(next_url: str, wrong: bool) -> str:
+        """门页提示组装：钥匙错给错提示；next 带分享/邀请特征时
+        指路「找分享你的人要钥匙」——收方链此前只有干巴巴的口令框，
+        不知道该去哪找钥匙（R3316 审-P2）。"""
+        base = _GATE_HINT if wrong else ""
+        _n = next_url or ""
+        if any(m in _n for m in ("from=", "invite", "view=", "#a")):
+            base += ("<p style='color:#a08050;font-size:13px;"
+                     "margin:8px 0 0'>这是朋友给你分享的铺子——"
+                     "钥匙找分享给你的 ta 要哦</p>")
+        return base
+
     @application.middleware("http")
     async def _access_gate(request, call_next):
         import hmac as _hmac
@@ -174,6 +255,11 @@ def create_app() -> FastAPI:
         # 健康探测永远放行（平台探活用，无敏感内容）。
         if path == "/api/health":
             return await call_next(request)
+        # R3341（审-中）：/static/* 全放行——PWA 装机链 manifest.json →
+        # 图标 → sw.js 全是静态件；闸下 manifest GET 403，装机整体死。
+        # 仓库本为公开，静态件无敏感数据；「/」页面与 /api 仍走闸。
+        if path.startswith("/static/"):
+            return await call_next(request)
         # R2506（审-F5）：CORS 预检放行——本闸注册在 CORSMiddleware
         # 之后 = 位置更靠外，OPTIONS /api/* 此前直撞 401 且响应无
         # ACAO 头，BOOKS_ACCESS_TOKEN + BOOKS_CORS_ORIGINS 的分体部署
@@ -183,9 +269,24 @@ def create_app() -> FastAPI:
             return await call_next(request)
         # R2400（R137-P2-2）：cookie 值改为口令的派生指纹而非明文——
         # 浏览器侧/日志里见到 cookie 不再等于见到钥匙本身。
-        _ck = _hmac.new(_tok.encode(), b"books-gate-cookie",
-                        "sha256").hexdigest()
-        good = _eq(request.cookies.get("books_key", ""), _ck)
+        # R3341（审-低）：cookie 带签发时间戳——固定值 cookie 泄出去
+        # 永久有效；ts.HMAC 形态让泄漏 cookie 也有 30 天寿命（与
+        # max_age 同口径）。签名盖 ts，防改时间戳伪造。
+        def _ck_of(ts: int) -> str:
+            return (f"{ts}." + _hmac.new(
+                _tok.encode(), f"books-gate-cookie:{ts}".encode(),
+                "sha256").hexdigest())
+        _raw_ck = request.cookies.get("books_key", "")
+        _cts_s = _raw_ck.partition(".")[0]
+        try:
+            _cts = int(_cts_s)
+        except ValueError:
+            _cts = 0
+        good = (_cts > 0 and 0 <= (time.time() - _cts) < 30 * 86400
+                and _eq(_raw_ck, _ck_of(_cts)))
+        # 滚动续期：签发超 7 天的合法 cookie 在响应上换发新的——
+        # 用户无感刷新，cookie 不会因 max_age 到期突然失效。
+        _ck_roll = bool(good and (time.time() - _cts) > 7 * 86400)
         # R2503（审-P1）：限速桶/IP 解析从 POST /_gate 块内提出来——
         # ?key= 直通此前不耗桶，302/403 oracle 下 GET 旁路把
         # 10 次/60s/IP 爆破防线整体架空。两个认证原语同桶同口径。
@@ -253,8 +354,8 @@ def create_app() -> FastAPI:
             if _eq(key, _tok):
                 resp = PlainTextResponse("ok", status_code=302,
                                          headers={"Location": _nxt})
-                resp.set_cookie("books_key", _ck, httponly=True,
-                                samesite="lax",
+                resp.set_cookie("books_key", _ck_of(int(time.time())),
+                                httponly=True, samesite="lax",
                                 secure=request.url.scheme == "https",
                                 max_age=30 * 86400)
                 return resp
@@ -266,11 +367,17 @@ def create_app() -> FastAPI:
             # 被 200 吐出去会进 '/' 壳位，cookie 过期后解锁了还见门页。
             # 浏览器照常渲染 HTML 体，用户看到同样的门。
             return PlainTextResponse(
-                _GATE_PAGE.format(hint=_GATE_HINT,
+                _GATE_PAGE.format(hint=_gate_hint(_nxt, True),
                                   next=_html.escape(_nxt, quote=True)),
                 media_type="text/html", status_code=403)
         if good:
-            return await call_next(request)
+            resp = await call_next(request)
+            if _ck_roll:
+                resp.set_cookie("books_key", _ck_of(int(time.time())),
+                                httponly=True, samesite="lax",
+                                secure=request.url.scheme == "https",
+                                max_age=30 * 86400)
+            return resp
         # ?key= 直通：给主人自己用的可分享链接——验完设 Cookie 再跳回
         # 原路径（钥匙不进历史记录）。
         # R2503（审-P1）：?key= 直通此前不耗限速桶——302/403 oracle 下
@@ -294,8 +401,8 @@ def create_app() -> FastAPI:
                 target = "/"
             resp = PlainTextResponse("ok", status_code=302,
                                      headers={"Location": target or "/"})
-            resp.set_cookie("books_key", _ck, httponly=True,
-                            samesite="lax",
+            resp.set_cookie("books_key", _ck_of(int(time.time())),
+                            httponly=True, samesite="lax",
                             secure=request.url.scheme == "https",
                             max_age=30 * 86400)
             return resp
@@ -306,7 +413,8 @@ def create_app() -> FastAPI:
         _orig = request.url.path + (
             "?" + request.url.query if request.url.query else "")
         return PlainTextResponse(
-            _GATE_PAGE.format(hint="", next=_html.escape(_orig, quote=True)),
+            _GATE_PAGE.format(hint=_gate_hint(_orig, False),
+                              next=_html.escape(_orig, quote=True)),
             media_type="text/html", status_code=403)
 
     # R228t：安全响应头——本地单用户应用也经浏览器渲染，nosniff 防 MIME
@@ -333,13 +441,24 @@ def create_app() -> FastAPI:
                 "frame-ancestors 'none'; "
                 "form-action 'self'; "
                 "worker-src 'self'; "
-                "manifest-src 'self'"}
+                "manifest-src 'self'",
+            # R3341（审-低）：相机/麦克风/定位/支付全关——站点用不到，
+            # 一刀切拒掉注入面可申请的所有权限。
+            "Permissions-Policy":
+                "camera=(), microphone=(), geolocation=(), payment=(), "
+                "usb=(), interest-cohort=()"}
 
     @application.middleware("http")
     async def _security_headers(request, call_next):
         resp = await call_next(request)
         for _k, _v in _SEC.items():
             resp.headers.setdefault(_k, _v)
+        # R3341（审-低）：HSTS 只随 https 发——http 本地自用设了浏览器
+        # 会记住「只走 https」反而把自己锁外面。
+        if request.url.scheme == "https":
+            resp.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=15552000; includeSubDomains")
         return resp
 
     # R229r：请求体大小护栏——FastAPI 默认无上限，超大 POST 在 pydantic
@@ -358,7 +477,12 @@ def create_app() -> FastAPI:
                 # R2508（审-P2）：本中间件在 _security_headers 外侧——
                 # 它的 413 拿不到安全头（也拿不到 CORS 头）。就地补齐。
                 headers=_SEC)
-        if cl is not None and cl.isdigit() and int(cl) > 512 * 1024:
+        # R3358：账号备份推送是整包 JSON——备份全量实测可到 ~1.2MB，
+        # 单端点放宽到 1.5MB（pydantic 字段帽 1.2MB + 转义开销），
+        # 其余端点维持 512KB。
+        _limit = (1536 * 1024 if request.url.path ==
+                  "/api/account/backup/push" else 512 * 1024)
+        if cl is not None and cl.isdigit() and int(cl) > _limit:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "请求体太大了，精简一下再发"},
@@ -453,6 +577,20 @@ def create_app() -> FastAPI:
                 "xingzuo": ("今日星座", "十二宫 · 今日运势播报"),
                 "xzm": ("星座速配", "你们俩的星座合拍指数"),
                 "history": ("排盘历史", "翻翻看过的盘 · 可导出"),
+                # R3369（审-低-6）：deep-link 参里可用的这些视图此前
+                # 没有 og 语境——微信预览仍千链一面。
+                "dream": ("解梦", "昨晚那梦什么意思 · 小满帮你读"),
+                "oracle": ("求签", "抽一支签 · 看看签上怎么说"),
+                "read": ("古籍原文", "四十七部古籍全文 · 可检索"),
+                "divine": ("占卜", "塔罗六爻求签 · 想问什么就摇"),
+                "mantra": ("每日肯定语", "今天这句话送给自己"),
+                "moodweek": ("心情周记", "这周心情怎么样 · 攒成罐"),
+                "renge": ("人格小卡", "看看你是哪种性格体质"),
+                # R3396-P2-3：本轮裂变三视图——mochi 挑战书链是拉新
+                # 主链，微信展开要有语境不是裸壳。
+                "mochi": ("默契挑战", "答 5 道题 · 看看 TA 有多懂你"),
+                "qian": ("每日一签", "观音灵签一百签 · 抽一支今日签"),
+                "ansb": ("答案之书", "心里默念问题 · 翻一页给你句准话"),
             }
             _v = (request.query_params.get("view") or "").lower()
             if not _v:
@@ -465,8 +603,11 @@ def create_app() -> FastAPI:
                 html = html.replace(
                     '<meta property="og:title" content="小满的解忧铺">',
                     f'<meta property="og:title" content="{_t} · 小满的解忧铺">')
+                # R3405-F1：针文本与 index.html 实文漂移（「——」vs「，」）
+                # → replace 静默零命中、全部分享链 og:description 走默认。
+                # 钉：针必须与 index.html 第 7 行逐字一致。
                 html = html.replace(
-                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签——测测你今天什么签">',
+                    '<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">',
                     f'<meta property="og:description" content="{_d}">')
             v = _shell_hash()
             if v:
@@ -538,7 +679,10 @@ def create_app() -> FastAPI:
                 return FileResponse(p, media_type="image/png")
         raise HTTPException(404)
 
-    @application.get("/sw.js", include_in_schema=False)
+    # R3316（审-P2）：HEAD 一并放行——与 health 同口径（探活类端点
+    # HEAD 405 会让平台误判）。SW 更新检查用 GET，不受影响。
+    @application.api_route("/sw.js", methods=["GET", "HEAD"],
+                           include_in_schema=False)
     def service_worker():
         sw_path = os.path.join(deps.STATIC_DIR, "sw.js")
         if not os.path.exists(sw_path):

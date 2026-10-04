@@ -43,6 +43,41 @@ def half_combine(za, zb):
     return any(za in g and zb in g and za != zb for g in _HALF_GROUPS)
 
 
+# R3308（审-低5）：相害/相刑/相破——合婚传统三面此前全缺，
+# 「年支无冲无合」的盘子其实可能带害/刑/破而不报。权重均低于
+# 冲/合（传统判词里它们是次级因素），只进 notes 不进布尔旗。
+_SIX_HARM = (("子", "未"), ("丑", "午"), ("寅", "巳"),
+             ("卯", "辰"), ("申", "亥"), ("酉", "戌"))
+_XING_PAIRS = (("子", "卯"),)                       # 无礼之刑（互刑对）
+_XING_TRIPLES = (("寅", "巳", "申"), ("丑", "戌", "未"))   # 三刑组内任两支成刑
+_XING_SELF = ("辰", "午", "酉", "亥")               # 自刑：同支相逢
+_SIX_BREAK = (("子", "酉"), ("丑", "辰"), ("寅", "亥"),
+              ("卯", "午"), ("巳", "申"), ("未", "戌"))
+
+
+def _in_pairs(pair_set, za, zb) -> bool:
+    return (za, zb) in pair_set or (zb, za) in pair_set
+
+
+def is_harm(za, zb) -> bool:
+    """六害：互害 6 对。"""
+    return _in_pairs(_SIX_HARM, za, zb)
+
+
+def is_xing(za, zb) -> bool:
+    """相刑：子卯互刑 / 寅巳申·丑戌未三刑组内任两支 / 辰午酉亥自刑。"""
+    if _in_pairs(_XING_PAIRS, za, zb):
+        return True
+    if any(za in g and zb in g and za != zb for g in _XING_TRIPLES):
+        return True
+    return za == zb and za in _XING_SELF
+
+
+def is_break(za, zb) -> bool:
+    """六破：互破 6 对。"""
+    return _in_pairs(_SIX_BREAK, za, zb)
+
+
 # 天干五行
 GAN_ELEMENT: dict[str, str] = {
     "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
@@ -60,6 +95,11 @@ GAN_HE: dict[str, str] = {
 # R219b（P1-4）：全局清掉「仅坐标事实，不作断言」免责套话——改成轻松口吻的
 # 传统说法标注（用户明确禁用免责声明；娱乐定位由 voice.BADGE 统一承担）。
 _GAN_HE_NOTE = "日干五合：传统说法里这叫天生合得来，互相吸引"
+GAN_CHONG: dict[str, str] = {
+    "甲": "庚", "庚": "甲", "乙": "辛", "辛": "乙",
+    "丙": "壬", "壬": "丙", "丁": "癸", "癸": "丁",
+}
+_GAN_CHONG_NOTE = "日干相冲：传统说法里叫天生气场互顶，处久了容易顶牛，权重轻"
 _GOD_NOTE = "互看：{}眼里的{}带「{}」的能量，{}眼里的{}带「{}」的能量"
 
 # 写死说明文字（非生成，照 huangli YIJI 先例）
@@ -91,6 +131,7 @@ class Hehun:
     peach_b: str                     # 女桃花支
     peach_same: bool                 # 桃花支重叠
     gan_he: bool = False             # 日干五合（R204b）
+    gan_chong: bool = False          # 日干相冲（戊己居中无冲）
     god_a_sees_b: str = ""           # 甲日干见乙日干十神（R204b）
     god_b_sees_a: str = ""           # 乙日干见甲日干十神（R204b）
     gender_a: str = ""               # 甲性别（F-004 动态标签）
@@ -103,6 +144,14 @@ class Hehun:
     nayin_b: str = ""
     nayin_rel: str = ""              # '比和'|'相生'|'相克'|''
     year_zhi_rel: str = ""           # R233u：'半合'（年支半合）
+    # R3333（审-高3）：害/刑/破三面布尔旗——此前只进 notes 文字，
+    # 分数与硬伤清单都够不着，同屏「相刑」与「上等合拍」并存。
+    year_harm: bool = False          # 年支相害
+    year_xing: bool = False          # 年支相刑
+    year_break: bool = False         # 年支相破
+    day_harm: bool = False           # 日支相害（夫妻宫）
+    day_xing: bool = False           # 日支相刑（夫妻宫）
+    day_break: bool = False          # 日支相破（夫妻宫）
     notes: list[str] = field(default_factory=list)
 
     def render(self) -> str:
@@ -117,6 +166,16 @@ class Hehun:
         if self.day_zhi_rel:
             parts.append(f"日支（夫妻宫）{self.day_zhi_a}/{self.day_zhi_b}："
                          f"{self.day_zhi_rel}")
+        # R3333（审-高3）：render 与 notes/分数同口径——害/刑/破
+        # 此前只在 notes 出，坐标行与判词打架。
+        _sub_y = (["相害"] * self.year_harm + ["相刑"] * self.year_xing +
+                  ["相破"] * self.year_break)
+        _sub_d = (["相害"] * self.day_harm + ["相刑"] * self.day_xing +
+                  ["相破"] * self.day_break)
+        if _sub_y:
+            parts.append("年支次级：" + "、".join(_sub_y))
+        if _sub_d:
+            parts.append("日支次级：" + "、".join(_sub_d))
         if self.nayin_rel:
             parts.append(f"年命纳音 {self.nayin_a}/{self.nayin_b}："
                          f"{self.nayin_rel}")
@@ -124,6 +183,8 @@ class Hehun:
                                    else ("比和" if self.day_wx_same else "相克")))
         if self.gan_he:
             parts.append("日干五合")
+        if self.gan_chong:
+            parts.append("日干相冲")
         if self.god_a_sees_b:
             parts.append(f"十神互见 {self.god_a_sees_b}/{self.god_b_sees_a}")
         parts.append(f"桃花支 {self.peach_a}/{self.peach_b}：" + ("重叠" if self.peach_same else "不同"))
@@ -162,6 +223,7 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
     peach_same = pa == pb
     # R204b（D-257b）：天干五合 + 日主十神互见（yinyuan skill 融入）
     gan_he = GAN_HE.get(b_a.day[0]) == b_b.day[0]
+    gan_chong = GAN_CHONG.get(b_a.day[0]) == b_b.day[0]
     god_ab = ten_god(b_a.day[0], b_b.day[0])
     god_ba = ten_god(b_b.day[0], b_a.day[0])
 
@@ -172,12 +234,31 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         notes.append(_NOTE_COMBINE)
     if half:
         notes.append("年支半合：三分合意，不是最强的合")
+    # R3308（审-低5）：年支害/刑/破次级因素补报（与冲/合不互斥——
+    # 卯辰既相害又可能同宫半合，传统判词两头都算）。
+    if is_harm(za, zb):
+        notes.append("年支相害：传统上属根基小磕绊，权重轻于冲")
+    if is_xing(za, zb):
+        notes.append("年支相刑：传统上属根基摩擦，权重轻于冲")
+    if is_break(za, zb):
+        notes.append("年支相破：传统上属根基小磨损，权重轻于冲")
     if dz_rel == "冲":
         notes.append("日支相冲：夫妻宫相顶，传统合婚权重最高的一支扣分项")
     elif dz_rel == "合":
         notes.append("日支六合：夫妻宫相合，传统上最看重的一支对上了")
     elif dz_rel == "半合":
         notes.append("日支半合：夫妻宫有合意，相处里有天然的合拍")
+    # 夫妻宫次级因素同口径补报
+    _d_harm, _d_xing, _d_break = (is_harm(dza, dzb), is_xing(dza, dzb),
+                                is_break(dza, dzb))
+    _y_harm, _y_xing, _y_break = (is_harm(za, zb), is_xing(za, zb),
+                                is_break(za, zb))
+    if _d_harm:
+        notes.append("日支相害：夫妻宫小磕绊，传统上属次级扣分")
+    if _d_xing:
+        notes.append("日支相刑：夫妻宫有摩擦位，传统上属次级扣分")
+    if _d_break:
+        notes.append("日支相破：夫妻宫小磨损，传统上属次级扣分")
     if nayin_rel == "比和":
         notes.append("年命纳音同命：同气相属，底色相近")
     elif nayin_rel == "相生":
@@ -188,6 +269,8 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
                  else (_NOTE_DAY_WX if sheng else _NOTE_DAY_WX_CLASH))
     if gan_he:
         notes.append(_GAN_HE_NOTE)
+    if gan_chong:
+        notes.append(_GAN_CHONG_NOTE)
     if god_ab and god_ba:
         notes.append(_GOD_NOTE.format(
             b_a.day[0], b_b.day[0], god_ab, b_b.day[0], b_a.day[0], god_ba))
@@ -205,7 +288,10 @@ def compute(b_a: Bazi, b_b: Bazi) -> Hehun:
         day_zhi_a=dza, day_zhi_b=dzb, day_zhi_rel=dz_rel,
         nayin_a=na, nayin_b=nb, nayin_rel=nayin_rel,
         year_zhi_rel="半合" if half else "",
-        gan_he=gan_he, god_a_sees_b=god_ab, god_b_sees_a=god_ba,
+        year_harm=_y_harm, year_xing=_y_xing, year_break=_y_break,
+        day_harm=_d_harm, day_xing=_d_xing, day_break=_d_break,
+        gan_he=gan_he, gan_chong=gan_chong,
+        god_a_sees_b=god_ab, god_b_sees_a=god_ba,
         gender_a=getattr(b_a, "gender", ""), gender_b=getattr(b_b, "gender", ""),
         notes=notes,
     )

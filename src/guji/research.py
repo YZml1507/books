@@ -234,6 +234,15 @@ def _research_impl(corpus: Corpus, question: str, max_addresses: int = 3,
 
     # --- round 1: phrase search over the whole corpus -------------------------------
     hits = corpus.search(question, limit=12)
+    # R3347（审-P1-1）：研究/问答此前不做 s2t 并查——简体提问系统性
+    # 漏繁体正典（「无为」10 条全命理书 vs「無為」79 条含老子莊子）。
+    # 与 /api/search 同纪律：两形并查、按 _key 去重合并。
+    _q2 = s2t_retry(question)
+    if _q2 != question:
+        _h2 = corpus.search(_q2, limit=12)
+        if _h2:
+            _seen0 = {_key(h) for h in hits}
+            hits = hits + [h for h in _h2 if _key(h) not in _seen0]
     s1 = Step("search", question, len(hits), 0,
               "整句按词组检索（异体字折叠归一，相邻匹配）")
     if not hits:

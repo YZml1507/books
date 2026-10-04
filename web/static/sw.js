@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-aba9d3318708';   // shell-hash: aba9d3318708
+var CACHE = 'books-shell-cf23cb911845';   // shell-hash: cf23cb911845
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -19,7 +19,8 @@ var RT = CACHE + '-rt';
  * 两张此前离线断图）。lxgw 的 ~15 个 woff2 分片走运行时缓存（P0-1 修复后
  * put 真正落地）。 */
 var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js',
-             '/static/app_research.js',
+             '/static/app_research.js', '/static/app_wallpaper.js',
+             '/static/qian_data.js',
              '/static/styles.css',
              '/static/manifest.json', '/static/cream/icon-192.png',
              '/static/cream/icon-512.png',
@@ -35,19 +36,32 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
              '/static/cream/cream-icon-taohua.jpg',
              '/static/cream/cream-icon-xingzuo.jpg',
              '/static/cream/cream-icon-history.jpg',
+             /* R3341（审-中）：renge/oracle/moon-cat 三张功能卡图在首屏
+              * 宫格上屏，此前漏收——RT 60 条桶被热图挤占后离线破图。
+              * （R3338 曾把 moon-cat 挪去 RT，审复核它其实是首屏卡图，
+              * 收回 SHELL。empty-xiaoman 有 onerror 自移除兕底，留 RT。） */
+             '/static/cream/icon-renge.jpg',
+             '/static/cream/cream-icon-oracle.jpg',
+             /* R3396-P1-1：mochi/qian/ansb 三张新功能卡图同口径收
+              * SHELL——装完即断网不破图，重烘自动换 CACHE 号。 */
+             '/static/cream/cream-icon-mochi.jpg',
+             '/static/cream/cream-icon-qian.jpg',
+             '/static/cream/cream-icon-ansb.jpg',
+             '/static/shared/icon-set-moon-cat.jpg',
              /* R233d（R42-#5）：首屏图 + 礼盒 + 吉凶字字体补进 SHELL——
               * 装完即断网不再破图/回落字体（gift 另有 onerror 双保险）。 */
              '/static/cream/cream-hero-v2.jpg',
              '/static/cream/avatar-xiaoman-cream.jpg',
-             '/static/cream/empty-xiaoman.png',
              '/static/cream/icon-180.png',
              /* R2510（审-SW-P2）：manifest maskable 图标此前不在 SHELL——
               * 装完即离线时启动图标破图。 */
              '/static/cream/icon-512-maskable.png',
              '/static/shared/daily-box-gift.png',
              '/static/cream/daily-gift-bear.png',
-             '/static/shared/icon-set-moon-cat.jpg',
-             '/static/fonts/smiley-sans-subset.woff2'];
+             '/static/fonts/smiley-sans-subset.woff2',
+             /* R3371（审-低-5）：qrcode 懒库收进 SHELL——否则首次进
+              * 海报页前断网，回流二维码离线失效。21KB。 */
+             '/static/libs/qrcode.min.js'];
 
 self.addEventListener('install', function (e) {
   /* R230v（R34-#9）：addAll 全有或全无 + catch 吞错 = 单文件 404 时
@@ -66,11 +80,25 @@ self.addEventListener('install', function (e) {
         function (v) { return { status: 'fulfilled', value: v }; },
         function (r) { return { status: 'rejected', reason: r }; });
     };
+    /* R3371（审-P1-2）：版本化资产按 ?v=hash 装壳——URL 自带内容
+     * 指纹，页面刚下载过的同 URL 可吃 HTTP 缓存命中，install 不再
+     * 全量重下（首访省 ~0.5MB、每版老客省 ~0.5MB）。裸 URL 仍走
+     * reload 防 3600s 陈旧字节装进新 CACHE（R63-P2-3 语义保留）。 */
+    var _vh = CACHE.slice('books-shell-'.length);
+    /* R3405-F6：_VMAP 扩到全部「页面按 ?v= 请」的壳件——
+     * 懒 chunk（poster/research/wallpaper/qian_data）此前走
+     * cache:reload 全量重下 ~335KB，版本化请求可吃 HTTP 命中。 */
+    var _VMAP = {
+      '/static/app.js': '/static/app.js?v=' + _vh,
+      '/static/styles.css': '/static/styles.css?v=' + _vh,
+      '/static/app_poster.js': '/static/app_poster.js?v=' + _vh,
+      '/static/app_research.js': '/static/app_research.js?v=' + _vh,
+      '/static/app_wallpaper.js': '/static/app_wallpaper.js?v=' + _vh,
+      '/static/qian_data.js': '/static/qian_data.js?v=' + _vh };
     return Promise.all(SHELL.map(function (u) {
-      /* R2345（R63-P2-3）：c.add 默认走 HTTP 缓存——js/css 有
-       * max-age=3600，部署后 1h 内安装可能把旧字节装进新 CACHE 名。
-       * reload 模式绕开 HTTP 缓存直取网络。 */
-      return _settle(c.add(new Request(u, {cache: 'reload'})));
+      var _req = _VMAP[u] ? new Request(_VMAP[u])
+                          : new Request(u, {cache: 'reload'});
+      return _settle(c.add(_req));
     })).then(function (rs) {
       var coreMiss = [];
       rs.forEach(function (r, i) {
@@ -83,8 +111,11 @@ self.addEventListener('install', function (e) {
         throw new Error('shell core missing: ' + coreMiss.join(','));
       }
     });
+  }).then(function () {
+    /* R3341（审-低）：skipWaiting 收进 waitUntil——写在事件外，
+     * SW 可能在收编前被回收，新壳装了不接管。 */
+    return self.skipWaiting();
   }));
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', function (e) {
@@ -93,13 +124,20 @@ self.addEventListener('activate', function (e) {
      * CACHE+'-rt' 也清了（无害但白删一轮）。 */
     return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== RT; })
       .map(function (k) { return caches.delete(k); }));
+  }).then(function () {
+    /* R3341（审-低）：claim 收进 waitUntil——同上。 */
+    return self.clients.claim();
   }));
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;          // POST 全直连
+  /* R3355：blob: 请求（海报预览图/a[download] 对象 URL）会被
+   * SW 接管——url.origin 解析出内层源判定同源，落到 cache-first
+   * 分支后 SW 内 fetch(e.request) 对 blob: 恒失败（预览图裂）。
+   * 不 respondWith 即默认放行，由 blob store 直接应答。 */
+  if (e.request.url.indexOf('blob:') === 0) return;
   if (url.origin !== self.location.origin) return; // 跨源不接管（未来外链保险）
   if (url.pathname.indexOf('/api/') === 0) return; // API 永不缓存
 
@@ -112,12 +150,37 @@ self.addEventListener('fetch', function (e) {
      * 白等一个 CacheStorage 往返才发网络请求。并行起，离线兜底时
      * 再用壳查询结果；catch 兜底防 match 自身 reject 变游离拒绝。 */
     var _hitP = caches.match('/').catch(function () { return undefined; });
+    /* R3364（审-P2）：导航 network-first 无超时——后端挂起时每次
+     * 导航白屏吃满挂起时长（Render 冷启/卡死窗口）。8s 竞速回落
+     * 壳位；5xx 同样回落（裸 502 上屏不如离线壳）。403 门页不在
+     * 此列——必须原样上屏。 */
+    var _navTo = new Promise(function (_r, _rj) {
+      setTimeout(function () { _rj(new Error('nav-timeout')); }, 8000);
+    });
+    var _navF = fetch(e.request);
+    /* R3405-F10：8s 竞速超时后飞行中的响应被丢弃——Render 慢冷启
+     * 首访拿旧壳还得再刷一次才是新内容。飞行 promise 也挂补写链：
+     * 晚到的成功正壳导航顺手更新 '/' 壳位（竞速胜出的正常路径
+     * 已有 put，此处 clone 会抛——try/catch 吞掉即可，不双写）。 */
+    e.waitUntil(_navF.then(function (resp) {
+      try {
+        if (resp.ok && url.pathname === '/' && !url.search) {
+          return caches.open(CACHE).then(function (c) {
+            return c.put('/', resp.clone()).catch(function () {});
+          });
+        }
+      } catch (xBF) {}
+      return undefined;
+    }).catch(function () {}));
     e.respondWith(
         /* R2400（R130-P2-2）：network-first——旧版「先给缓存壳」让
          * 门页对解锁过的设备永久失效（cookie 过期/换口令都赶不走）。
          * 在线时以服务端响应为准（403 门页照实上屏），缓存壳只留作
          * 离线兜底。 */
-        fetch(e.request).then(function (resp) {
+        Promise.race([_navF, _navTo]).then(function (resp) {
+          if (resp.status >= 500) {
+            throw new Error('nav-' + resp.status);
+          }
           /* R228k：瞬时 500/断线 HTML 不许当壳缓存——否则坏页会粘住 */
           /* R2349u（R91-P1-3）：FastAPI 默认开 /docs /openapi.json，
            * 那些导航的响应此前被写进 '/' 壳位——壳污染后首页变 Swagger。
@@ -173,6 +236,33 @@ self.addEventListener('fetch', function (e) {
    * （ignoreSearch 让 ?v= 版本化 URL 命中版本钉死的壳件）；
    * precache 命中直接回（桶名即内容哈希，字节不可能变，零 refetch）；
    * RT 命中才后台 revalidate。 */
+  /* R3364（审-低）：?v 检查前置到 RT 查询之前——此前 RT 桶命中
+   * 的请求跳过版本检查，哪天 app.js?v=新 被写进 RT，该 URL 就
+   * 永久免检查（哑弹）。 ?v 不符：JS 回限频刷新脚本，非 JS 网
+   * 络直通（版本化 URL 本就不该占 RT 位）。 */
+  var _reqV = url.searchParams.get('v');
+  if (_reqV && _reqV !== CACHE.slice('books-shell-'.length)) {
+    if (url.pathname.slice(-3) === '.js') {
+      /* R3364（审-P0）：刷新脚本自带刹车——30s 窗内最多 5 次
+       * reload，超出即停手。此前裸 location.reload()：一旦
+       * 环成（老 SW+新 HTML），任何年代的 SW 都没有自救
+       * 手段、风暴饿死软更新检查。刹车写进响应体本身，不
+       * 依赖页面新旧。sessionStorage 不可用时退回裸 reload
+       * （无痕下 SW 本不持久）。 */
+      e.respondWith(new Response(
+        'try{var _k="__swrl",_v=(sessionStorage.getItem(_k)' +
+        '||"0:0").split(":"),_t=+_v[0],_c=+_v[1],_n=Date.now();' +
+        'if(_n-_t>30000){_t=_n;_c=0}' +
+        'sessionStorage.setItem(_k,_t+":"+(_c+1));' +
+        'if(_c<5){location.reload()}}catch(x){location.reload()}',
+        { headers: { 'Content-Type':
+          'text/javascript; charset=utf-8' } }));
+    } else {
+      e.respondWith(fetch(e.request)
+        .catch(function () { return undefined; }));
+    }
+    return;
+  }
   e.respondWith(
     caches.open(RT).then(function (rtc) {
       return rtc.match(e.request).then(function (rtHit) {
@@ -181,10 +271,17 @@ self.addEventListener('fetch', function (e) {
             if (resp.ok) {
               /* R230d（R16-P0-1）：运行时缓存回写必须挂 waitUntil。 */
               e.waitUntil(rtc.put(e.request, resp.clone()).then(function () {
-                /* 超帽逐出最老条（keys() 顺序即写入序）。60 条≈几 MB。 */
+                /* 超帽逐出最老条（keys() 顺序即写入序）。
+                 * R3371（审-P2-4）：60→180——tarot 80 图+lxgw 50 分片+
+                 * 壁纸 21≈151 条候选，60 桶会把早期牌面/字体挤出
+                 * 导致离线破图；180 全收仍只 ~5-8MB。 */
                 return rtc.keys().then(function (ks) {
-                  if (ks.length <= 60) return;
-                  return Promise.all(ks.slice(0, ks.length - 60)
+                  /* R3405-F3：180 帽 < EXTRA_GLOBS 实收 260 件
+                   * （tarot 80+lxgw 分片+壁纸 21+签/合盘/图标等，
+                   * ~8.5MB）——重度用户全触后最早条目被逐出，
+                   * 离线回看早期牌面/字体分片破图。帽提到 300。 */
+                  if (ks.length <= 300) return;
+                  return Promise.all(ks.slice(0, ks.length - 300)
                     .map(function (k) { return rtc.delete(k); }));
                 });
               }).catch(function () {}));
@@ -197,24 +294,6 @@ self.addEventListener('fetch', function (e) {
            * 跨版本更换桶名，自愈只在同版本内需要）。 */
           e.waitUntil(_net().catch(function () {}));
           return rtHit;
-        }
-        /* R2500（R143-SW-P2）：?v= 版本化被 ignoreSearch 打穿——
-         * 「?v=新」请求照样命中旧 precache 的旧字节，新 HTML+旧 JS
-         * 混版。?v 存在且与本 SW hash 不符时跳过 precache 走网络。 */
-        var _reqV = url.searchParams.get('v');
-        var _vOk = !_reqV || _reqV === CACHE.slice('books-shell-'.length);
-        if (!_vOk) {
-          /* R2510（审-SW-P1）：?v 不符 = 前台旧页遇上新 SW——旧
-           * precache 已在 activate 删掉，网络只有新字节，混注进旧
-           * 运行时必炸（此前 _net() 照发新字节）。JS 请求回一段
-           * 刷新脚本：旧页自刷 → 新壳+新 chunk 一致落地；非 JS
-           * 资源（css/img）新字节混用无害，仍走网络。 */
-          if (url.pathname.slice(-3) === '.js') {
-            return new Response('location.reload();', {
-              headers: { 'Content-Type':
-                'text/javascript; charset=utf-8' } });
-          }
-          return _net().catch(function () { return undefined; });
         }
         return caches.match(e.request, { ignoreSearch: true })
           .then(function (hit) {

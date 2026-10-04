@@ -458,6 +458,59 @@ class KnowledgeBase:
     # 个新键可以无限写行且 wipe 不清，唯一无总帽的用户表。按
     # updated_at LRU 逐出（合法键个位数，256 远超正常使用）。
     _CAP_PREFS = 256
+    # R3343：合拍打卡帽——每 member 留最近 400 天（>1 年足量）；
+    # 全局 100 万行兜底（伪造 pair_id 灌表的最坏情形被收在 ~30MB）。
+    _CAP_COUPLE_MEMBER_DAYS = 400
+    _CAP_COUPLE_ROWS = 1_000_000
+
+    def couple_sync(self, pair_id: str, member: int,
+                    days: list[str]) -> dict:
+        """写入本 member 的打卡日集合并返回两人交集（新→旧）。
+
+        行只含 (pair_id, member, day)——不存生日/姓名。days 由 services
+        层校验过格式与真实日期。返回值不含对方未交集的日子（只回交集，
+        少回一面数据面）。"""
+        # _SCHEMA_OK 快路径（R3237）会跳过 schema.sql——老库升级后此表
+        # 可能缺席；每调用一次 sqlite_master 探针兜底补建（幂等）。
+        _has = self.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='couple_days'").fetchone()
+        if not _has:
+            self.db.execute(
+                "CREATE TABLE IF NOT EXISTS couple_days ("
+                "pair_id TEXT NOT NULL, member INTEGER NOT NULL, "
+                "day TEXT NOT NULL, "
+                "PRIMARY KEY (pair_id, member, day))")
+            self.db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_couple_days_pair "
+                "ON couple_days(pair_id)")
+        if days:
+            self.db.executemany(
+                "INSERT OR IGNORE INTO couple_days (pair_id, member, day) "
+                "VALUES (?,?,?)",
+                [(pair_id, member, d) for d in days])
+        self.db.execute(
+            "DELETE FROM couple_days WHERE pair_id=? AND member=? "
+            "AND day NOT IN (SELECT day FROM couple_days "
+            " WHERE pair_id=? AND member=? ORDER BY day DESC LIMIT ?)",
+            (pair_id, member, pair_id, member,
+             self._CAP_COUPLE_MEMBER_DAYS))
+        # 全局帽：总数超限按最早 day 清最旧行（best-effort）。
+        _total = self.db.execute(
+            "SELECT COUNT(*) FROM couple_days").fetchone()[0]
+        if _total > self._CAP_COUPLE_ROWS:
+            self.db.execute(
+                "DELETE FROM couple_days WHERE rowid IN "
+                "(SELECT rowid FROM couple_days ORDER BY day ASC LIMIT ?)",
+                (_total - self._CAP_COUPLE_ROWS,))
+        self.db.commit()
+        rows = self.db.execute(
+            "SELECT member, day FROM couple_days WHERE pair_id=?",
+            (pair_id,)).fetchall()
+        a = {r["day"] for r in rows if r["member"] == 0}
+        b = {r["day"] for r in rows if r["member"] == 1}
+        shared = sorted(a & b, reverse=True)
+        return {"shared": shared[:120], "shared_total": len(shared)}
 
     def _del_derived(self, did: int, claim: str) -> None:
         """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能
@@ -489,10 +542,12 @@ class KnowledgeBase:
         for r in over:
             tid = r["id"]
             self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
-            for d in self.db.execute(
-                    "SELECT id, claim FROM derived WHERE thread_id=?",
-                    (tid,)).fetchall():
-                self._del_derived(d["id"], d["claim"])
+            # R3369（审-P2-4）：GC 驱逐与手动删对齐——derived claims
+            # 解绑保留（thread_id→NULL）而非连座删除；claims 是不
+            # 可再生的研究笔记，驱逐线程不该吃掉笔记。
+            self.db.execute(
+                "UPDATE derived SET thread_id=NULL WHERE thread_id=?",
+                (tid,))
             self.db.execute("DELETE FROM thread WHERE id=?", (tid,))
 
     def _gc_derived(self) -> None:
@@ -556,7 +611,10 @@ class KnowledgeBase:
         返回 (写入线程数, 跳过线程数)。
         """
         written = skipped = 0
-        for it in items[:50]:
+        # R3347（审-P2）：上限 50 曾静默丢弃超量线程——前端按 50 条
+        # 分块喂调用所以走不到，但直连 API 的包会无声丢数据。放宽到
+        # 200（正常用户线程数十级）并在路由层披露截断数。
+        for it in items[:200]:
             if not isinstance(it, dict):
                 skipped += 1
                 continue
@@ -567,10 +625,16 @@ class KnowledgeBase:
                 skipped += 1
                 continue
             dup = self.db.execute(
-                "SELECT 1 FROM thread WHERE topic=? AND opened_at=?",
+                "SELECT id FROM thread WHERE topic=? AND opened_at=?",
                 (topic, opened_at)).fetchone()
             if dup:
-                skipped += 1
+                # R3369（审-P2-3）：镜像壳线程（题头同键但 turns/claims
+                # 空）回灌占位后，带真内容的备份再导会被整体 skip——
+                # 撞键时做「补内容」：缺的轮次/手记并进存量线程。
+                if self._fill_thread(dup["id"], it):
+                    written += 1
+                else:
+                    skipped += 1
                 continue
             status = it.get("status")
             if status not in ("open", "parked", "closed"):
@@ -671,6 +735,100 @@ class KnowledgeBase:
         self.db.commit()
         return written, skipped
 
+    def _fill_thread(self, tid: int, it: dict) -> bool:
+        """R3369（审-P2-3）：去重撞线时的补内容合并——存量线程缺的
+        轮次（按 seq）与手记（同 claim 文本：绑回同名孤儿行，没有才新
+        插）从备份包并进来。返回是否真的有新内容落库。"""
+        changed = False
+        st = it.get("status")
+        if st in ("open", "parked", "closed"):
+            self.db.execute(
+                "UPDATE thread SET status=? WHERE id=?", (st, tid))
+            changed = True
+        ua = str(it.get("updated_at") or "").strip()[:32]
+        if ua:
+            self.db.execute(
+                "UPDATE thread SET updated_at=? WHERE id=? AND "
+                "(updated_at IS NULL OR updated_at<?)", (ua, tid, ua))
+        _turns = it.get("turns")
+        if not isinstance(_turns, list):
+            _turns = []
+        if _turns:
+            have = {r["seq"] for r in self.db.execute(
+                "SELECT seq FROM turn WHERE thread_id=?", (tid,))}
+            seq = 0
+            for tr in _turns[: self._CAP_TURN_PER_THREAD]:
+                if not isinstance(tr, dict):
+                    continue
+                role = tr.get("role")
+                if role not in ("user", "assistant"):
+                    role = "user"
+                text = str(tr.get("text") or "")[:4000]
+                if not text:
+                    continue
+                seq += 1
+                if seq in have:
+                    continue
+                self.db.execute(
+                    "INSERT INTO turn (thread_id, seq, role, text, "
+                    "created_at) VALUES (?,?,?,?,?)",
+                    (tid, seq, role, text,
+                     str(tr.get("created_at") or "").strip()[:32]
+                     or str(it.get("opened_at") or "")[:32] or
+                     datetime.now().isoformat()[:32]))
+                changed = True
+        _claims = it.get("claims")
+        if not isinstance(_claims, list):
+            _claims = []
+        for cl in _claims[:200]:
+            if not isinstance(cl, dict):
+                continue
+            claim_txt = str(cl.get("claim") or "")[:2000]
+            if not claim_txt:
+                continue
+            # 同名孤儿手记先认领（壳回灌把 thread_id 冲成 NULL 的、
+            # 或 GC 解绑的历史手记），没有再查线程内重复。
+            row = self.db.execute(
+                "SELECT id, thread_id FROM derived WHERE claim=? "
+                "ORDER BY id LIMIT 1", (claim_txt,)).fetchone()
+            if row is not None:
+                if row["thread_id"] is None:
+                    self.db.execute(
+                        "UPDATE derived SET thread_id=? WHERE id=?",
+                        (tid, row["id"]))
+                    changed = True
+                continue
+            try:
+                ev = [Evidence(
+                    work_id=str(e.get("work_id") or ""),
+                    file=str(e.get("file") or ""),
+                    raw_start=int(e.get("raw_start") or -1),
+                    raw_end=int(e.get("raw_end") or -1),
+                    quote=str(e.get("quote") or ""),
+                    page_anchor=None if e.get("page_anchor") is None
+                        else str(e.get("page_anchor")),
+                    scheme=None if e.get("scheme") is None
+                        else str(e.get("scheme")),
+                    addr1=None if e.get("addr1") is None
+                        else int(e.get("addr1")),
+                    addr2=None if e.get("addr2") is None
+                        else str(e.get("addr2")),
+                    role=str(e.get("role") or "context"))
+                    for e in (cl.get("evidence") or [])
+                    if isinstance(e, dict)]
+                _conf = cl.get("confidence")
+                self.record(
+                    str(cl.get("kind") or "note"),
+                    claim_txt,
+                    str(cl.get("method") or "backup-import")[:200],
+                    ev, confidence=None if _conf is None else str(_conf),
+                    thread_id=tid)
+                changed = True
+            except (ValueError, TypeError, OverflowError,
+                    sqlite3.Error):
+                continue
+        return changed
+
     def delete_all_threads(self) -> int:
         """R2500（R143-P1-3/P2-4）：「忘掉我的数据」全量清线程——
         前端逐条 DELETE 只够到 resume() LIMIT 50 的前 50 条，且
@@ -756,6 +914,19 @@ class KnowledgeBase:
         self._gc_prefs()
         self.db.commit()
 
+    def clear_prefs_except(self, keep: tuple[str, ...] = ("theme",)) -> int:
+        """R3339（审-低）：「忘掉」面此前够不到 user_prefs——死写端点
+        攒下的键、recent 等残留永存。主题刻意保留（wipe 口径：
+        偏好保留、个人数据清掉）。"""
+        q = "DELETE FROM user_prefs"
+        params: tuple = ()
+        if keep:
+            q += " WHERE key NOT IN (" + ",".join("?" * len(keep)) + ")"
+            params = keep
+        cur = self.db.execute(q, params)
+        self.db.commit()
+        return cur.rowcount
+
     def get_daily_cache(self, date: str) -> dict | None:
         r = self.db.execute("SELECT * FROM daily_cache WHERE date=?", (date,)).fetchone()
         if not r:
@@ -833,7 +1004,7 @@ class KnowledgeBase:
         # R233x：插后裁——先裁再插恒超帽一行。
         self.db.execute(
             "DELETE FROM favorites WHERE id NOT IN "
-            "(SELECT id FROM favorites ORDER BY created_at DESC LIMIT ?)",
+            "(SELECT id FROM favorites ORDER BY created_at DESC, id DESC LIMIT ?)",
             (self._CAP_FAVORITES,))
         self.db.commit()
         if cur.lastrowid:
@@ -846,10 +1017,13 @@ class KnowledgeBase:
     def list_favorites(self, ftype: str | None = None) -> list[sqlite3.Row]:
         if ftype:
             return self.db.execute(
-                "SELECT * FROM favorites WHERE type=? ORDER BY created_at DESC",
+                "SELECT * FROM favorites WHERE type=? "
+                "ORDER BY created_at DESC, id DESC",
                 (ftype,)).fetchall()
+        # R3339（审-低）：同秒 created_at 并列时 SQLite 次序不定——
+        # 备份导出与列表顺序不稳定，加 id 副排序钉死。
         return self.db.execute(
-            "SELECT * FROM favorites ORDER BY created_at DESC").fetchall()
+            "SELECT * FROM favorites ORDER BY created_at DESC, id DESC").fetchall()
 
     def remove_favorite(self, fid: int) -> bool:
         # R2516（审-P2-1）：如实删除——不存在返回 False 让上层 404，

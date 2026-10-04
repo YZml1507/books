@@ -127,6 +127,8 @@ BUTTON_CASES = [
     ("huangli",        "huangli", None,            "#hlSubmit",      "#hlResult"),
     ("qiming",         "qiming",  None,            "#qmSubmit",      "#qmResult"),
     ("taohua",         "taohua",  None,            "#thSubmit",      "#thResult"),
+    # R3373：正缘画像——桃花出卡后点 💘 钮出气质卡。
+    ("taohua.soulmate", "taohua", None,            "#shareSoulmate", "#smCard .sm-card"),
     ("tarot",          "tarot",   None,            "#trSubmit",      "#trResult"),
     # R3178：解梦——词库面，填文本即出。
     ("dream",          "dream",   None,            "#dmSubmit",      "#dmResult"),
@@ -140,6 +142,8 @@ BUTTON_CASES = [
     # R3160：TA 档案免测钮——B 侧已被 hehun 用例填过（touched），
     # 点击 → me:partner 落档 + ok toast；须在 hehun 之后。
     ("hehun.savepartner", "hehun", None,            "#hhSavePartner", ".toast-item"),
+    # R3336：替你决定——掷筊三态，纯前端确定性（seed=问题+当天）。
+    ("oracle",          "oracle",  None,            "#orSubmit",      "#orResult"),
 ]
 
 # 点按钮前需要填的输入（用固定值 → 固定结果，可命令复验）
@@ -163,6 +167,9 @@ FILL = {
     "bookstudy.summary":   {"#bswork": "KR1a0001"},
     # R3178：解梦文本——dmSubmit 前的唯一输入。
     "dream":          {"#dm_text": "梦见牙齿掉了，还被人追着跑"},
+    # R3336：掷筊问题文本。R3418-P0 后重决策题（辞职/离职/婚育/赌）
+    # 会被 _ANSB_BIGQ 闸转成指路卡（不出筊）——用例必须填日常题。
+    "oracle":         {"#orText": "今晚吃面还是吃饭"},
 }
 
 # 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见。
@@ -380,7 +387,20 @@ def main() -> int:
                  # dailyMood:ui:daily_mood；trQ1/trQ3/trQPick:
                  # ui:tarot.quick；rgSubmit/rgFull:ui:renge。
                  "dailyMood", "trQ1", "trQ3", "trQPick",
-                 "rgSubmit", "rgFull"}
+                 "rgSubmit", "rgFull",
+                 # R3336：orAgain 是掷筊出签后才存在的重掷钮——
+                 # ui:oracle.again 用例覆盖。
+                 "orAgain",
+                 # R3350：咒语册——mantraFav/mantraBookGo/mantraBookBody
+                 # 均由 ui:mantra_fav 用例覆盖（收藏→已收态→meta 小链
+                 # 进册页→格内删除回空态）。
+                 "mantraFav", "mantraBookGo", "mantraBookBody",
+                 # R3381：默契挑战——mochiBox 容器委托由 ui:mochi 用例
+                 # 覆盖（出题→受邀→对分→回传→回敬全链）。
+                 "mochiBox",
+                 # R3414：排盘历史小锁——btn:history.lock 用例覆盖
+                 # （设/锁藏/错拒/开/撤全链）。
+                 "historyLockBtn", "historyLockGo"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -390,6 +410,9 @@ def main() -> int:
         # R3165：年度运势图——同 shareBazi 海报模态豁免（生成链路
         # 一致，只是 spec 分支不同；存在性由 bazi 卡断言覆盖）。
         "shareBaziYear": "同 shareBazi——年度变体海报模态豁免",
+        # R3393：人生K线海报钮——downloadPoster('bazi-kline') 同族豁免；
+        # 存在性由 bazi 卡断言+K线自测钉扎。
+        "shareBaziKline": "同 shareBazi——K线变体海报模态豁免",
         "shareQiming": "同上",
         "shareTaohua": "同上",
         "shareHehun": "同上",
@@ -400,16 +423,50 @@ def main() -> int:
         "shareDaily": "同上",
         "shareLucky": "今日护身符分享图——downloadPoster('lucky') 海报模态，"
                       "同 shareDaily 族豁免",
-        "speakDaily": "今日运势 TTS 朗读——纯客户端 speechSynthesis，"
-                      "零请求；真实链路已 Playwright 手验（按钮存在）",
+        # R3317：开运壁纸——canvas 合成 + showPosterModal 预览，同族豁免。
+        "dailyWap": "开运壁纸生成——canvas 合成+海报模态预览，"
+                    "同 shareDaily 族豁免",
+        # R3325-B：开运头像——同一下载链路的 square 变体，豁免同族。
+        "dailyAva": "开运头像 1:1——downloadWallpaper square 变体，"
+                    "canvas 合成+海报模态，同 dailyWap 族豁免",
+        # R3325：.ics 日历提醒——Blob 下载微交互，零请求；系统日历接管。
+        "dailyIcs": "日历提醒 .ics 下载——纯本地 Blob+click，零请求",
+        # R3325：穿搭卡分享海报——downloadPoster('daily-outfit') 同族豁免。
+        "outfitShare": "今日穿搭分享图——downloadPoster 海报模态，同族豁免",
+        # R3325-D：写给未来的信——写信弹层关闭/寄出钮。
+        "flClose": "未来信弹层关闭钮——本地 remove 零请求",
+        "flSend": "未来信寄出钮——localStorage futureLetters 写入零请求",
+        # R3325-C：大众占卜分享钮——动态生成、clipboard 微交互。
+        "pileShare": "大众占卜「分享我这堆」——动态生成+clipboard 零请求",
+        # R3337：大众占卜海报钮——downloadPoster('tarot') 同族豁免。
+        "pilePoster": "大众占卜「存图带走」——downloadPoster 海报模态，同族豁免",
+        # R3373：正缘画像分享钮——downloadPoster('soulmate') 海报
+        # 模态，同 shareTaohua 族豁免；shareSoulmate 本身有真用例。
+        "smShare": "正缘画像「晒出 TA 的画像」——downloadPoster 海报模态，"
+                   "同 shareTaohua 族豁免",
+        # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
+        # 同族豁免；信卡本身是「本周首访+门槛」条件件，
+        # 真机链路在特性批 Playwright 手验（渲染+下载零错）。
+        "wlShare": "周记信「晒成图」——downloadPoster 海报模态，同族豁免",
+        # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
+        # 零请求；_dayPick 确定性已由单测级逻辑保证。
+        "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",
         "dailyRitual": "日签「宜试试」仪式按钮——本地 ritual:<date> 写入，"
                        "零请求；真实链路已 Playwright 手验",
         "journalSave": "聊天空态今日小确幸保存钮——本地 journal:<date> 写入，"
                        "零请求；真实链路已 Playwright 手验",
-        "notifySoftAsk": "通知软提示按钮——请求浏览器 Notification 权限，"
-                         "非 PWA 功能主路径；真实链路已手验",
+        "notifySoftAsk": "提醒软提示按钮——R3420 后直挂本地 remind:1"
+                         "（in-app toast，不再请求 Notification 权限），"
+                         "零请求；真实链路已手验",
         "shareWeekly": "小满周报分享图按钮——downloadPoster('weekly') 海报模态，"
                        "同 shareDaily 族豁免",
+        # 心情周记卡——downloadPoster('moodweek') 海报模态，同族豁免；
+        # 点阵/判词/对比行渲染另由本地脚本 Playwright 手验（非冒烟用例）。
+        "moodWeekShare": "心情周记分享图按钮——downloadPoster('moodweek') "
+                         "海报模态，同 shareWeekly 族豁免",
+        # R3342：年度小满报告——downloadPoster('year-wrap') 海报模态，同族豁免。
+        "checkinYear": "小满年报分享图按钮——downloadPoster('year-wrap') "
+                       "海报模态，同 shareWeekly 族豁免",
         "returnChat": "久归横幅「和小满聊聊」——开聊天侧栏，真实链路已手验",
         "returnDismiss": "久归横幅关闭钮——隐藏横幅并存 dismissed 日期",
         "returnBanner": "久归横幅容器 div——非可点击元素，无 on() 注册；"
@@ -418,15 +475,14 @@ def main() -> int:
                       "冒烟环境不可控；真实链路已手验",
         # R3178：解梦海报模态——同族豁免（生成链路一致）。
         "shareDream": "同上",
+        # R3332-低：受邀者回传钩——点击转调 shareHehun，同分享图链路。
+        "hhSendBack": "受邀者「发回给TA」钩——点击转调 shareHehun，"
+                      "downloadPoster 同族豁免",
         "rgPoster": "五行人格分享图——downloadPoster('bazi') 海报模态，"
                      "同 shareBazi 族豁免",
         "rgXhs": "五行人格小红书文案复制钮——纯本地 clipboard 写入，"
                  "零请求；真实链路已 Playwright 手验（点击→toast）",
-        "rgSpeak": "五行人格 TTS 朗读——纯客户端 speechSynthesis，"
-                   "零请求；真实链路已 Playwright 手验",
         "copyXhs": "日签小红书文案复制钮——纯本地 clipboard 写入，"
-                   "零请求；真实链路已 Playwright 手验",
-        "dmSpeak": "解梦 TTS 朗读——纯客户端 speechSynthesis，"
                    "零请求；真实链路已 Playwright 手验",
         "xzSubmit": "星座卡计算在 selftest 已钉，冒烟面板可后续补",
         "xzNext": "ui:xznav.next 已覆盖", "xzTomorrow": "同 Next 链路",
@@ -499,6 +555,24 @@ def main() -> int:
                      "同 shareBazi 族；手验已覆盖",
         "mercBreathe": "水逆急救包「慢三秒」呼吸钮——纯本地 setTimeout"
                        "动画，零请求；仅在 mercury.on 时生成",
+        # R3314（R3311-低）：月相行许愿瓶钩——dailyMoon 粒是动态
+        # 生成+仅农历初一/十五窗口有按钮的容器委托（.daily-moon-go
+        # 子钮做 .ck-wish open + scrollIntoView），零请求；与
+        # mercBreathe 同型豁免。
+        "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
+                     "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
+                     "与 mercBreathe 同型豁免",
+        # R3368：万圣夜限定抽牌钮——仅 10.29–11.1 窗口显示（其余
+        # 日期 hidden 不可点）；抽牌链路与 trQ1 同构已覆盖。
+        "trQH": "万圣夜限定钮——仅 10.29–11.1 窗口显示，冒烟时段外"
+                "恒 hidden；抽牌链路与 trQ1 同构已覆盖",
+        # R3407：跨年仪式行钩——dailyYearEnd 粒是动态生成+仅
+        # 12/29–1/2 窗口有按钮的容器委托（.daily-moon-go 子钮
+        # 开 flModal 本地弹层，零请求）；与 dailyMoon 同型豁免，
+        # 窗口内行为由手写 playwright 时钟用例覆盖。
+        "dailyYearEnd": "跨年仪式行钩——动态粒内委托（12/29–1/2 "
+                        "窗口才有 .daily-moon-go），纯本地开"
+                        "flModal 弹层零请求；与 dailyMoon 同型豁免",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
@@ -1247,6 +1321,133 @@ def main() -> int:
                 results.append({"name": "ui:checkin.art", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R3350：咒语册——日卡咒语行尾 ❤️ 收藏 → mantraFav 落盘 +
+            # 「已收」态；复点幂等不翻倍；meta 小链进 view-mantra 格页；
+            # 「请出册子」删回空态 + 行尾钮翻回可收（全本机零请求）。
+            errors.clear()
+            try:
+                page.evaluate("localStorage.removeItem('mantraFav')")
+                try:
+                    if page.is_visible('#dailyCover'):
+                        page.click('#dailyCover')
+                        page.wait_for_timeout(600)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { try { showView('home'); } catch(e) {} }")
+                page.wait_for_selector('#mantraFav', state='visible',
+                                       timeout=8000)
+                page.click('#mantraFav')
+                page.wait_for_timeout(400)
+                _fav = page.evaluate("""(() => {
+                    const b = document.getElementById('mantraFav');
+                    let arr = [];
+                    try {
+                        arr = JSON.parse(
+                            localStorage.getItem('mantraFav') || '[]');
+                    } catch (e) {}
+                    return { got: !!(b && b.classList.contains('got')),
+                             txt: b ? b.textContent : '',
+                             n: arr.length,
+                             t: arr[0] ? arr[0].t : '',
+                             d: arr[0] ? arr[0].d : '',
+                             link: !!document.getElementById(
+                                 'mantraBookGo') };
+                })()""")
+                # 复点=幂等（已收态只 toast，不再 unshift 一条）
+                page.click('#mantraFav')
+                page.wait_for_timeout(300)
+                _n2 = page.evaluate(
+                    "JSON.parse(localStorage.getItem('mantraFav')"
+                    "||'[]').length")
+                # meta 小链在 +N 折叠里的话先展开再点（真实路径同）
+                _gvisible = page.evaluate(
+                    "(() => { const g = document.getElementById("
+                    "'mantraBookGo'); return !!(g && g.offsetParent"
+                    " !== null); })()")
+                if not _gvisible:
+                    try:
+                        page.click('#dailyMetaMore', timeout=3000)
+                        page.wait_for_timeout(200)
+                    except Exception:
+                        pass
+                page.click('#mantraBookGo')
+                page.wait_for_selector('#view-mantra.active',
+                                       timeout=5000)
+                _cell = page.evaluate(
+                    "document.querySelectorAll("
+                    "'#mantraBookBody .mb-cell').length")
+                # R3376：显化打卡环——册头「今日念一遍」→ manifest:<今天>=1
+                # + 已念禁用态 + 复点无效 + meta 小链带连念天数。
+                _t0 = page.evaluate("""(() => {
+                    const b = document.querySelector(
+                        '#mantraBookBody [data-mb="today"]');
+                    return { has: !!b, txt: b ? b.textContent.trim() : '' };
+                })()""")
+                page.click('#mantraBookBody [data-mb="today"]')
+                page.wait_for_timeout(300)
+                _t1 = page.evaluate("""(() => {
+                    const t = new Date();
+                    const ds = t.getFullYear() + '-' +
+                        String(t.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(t.getDate()).padStart(2, '0');
+                    const b = document.querySelector(
+                        '#mantraBookBody [data-mb="today"]');
+                    const g = document.getElementById('mantraBookGo');
+                    return { marked: localStorage.getItem(
+                                 'manifest:' + ds) === '1',
+                             got: !!(b && b.classList.contains('got')),
+                             dis: !!(b && b.disabled),
+                             btxt: b ? b.textContent.trim() : '',
+                             meta: g ? g.textContent : '' };
+                })()""")
+                page.click('#mantraBookBody [data-mb="del"] >> nth=0')
+                page.wait_for_timeout(300)
+                _after = page.evaluate("""(() => {
+                    let arr = [];
+                    try {
+                        arr = JSON.parse(
+                            localStorage.getItem('mantraFav') || '[]');
+                    } catch (e) {}
+                    const b = document.getElementById('mantraFav');
+                    return { n: arr.length,
+                             empty: !!document.querySelector(
+                                 '#mantraBookBody .ph-empty'),
+                             got: !!(b && b.classList.contains('got')) };
+                })()""")
+                page.evaluate(
+                    "() => { try { showView('home'); } catch(e) {} }")
+                ok = (_fav["got"] and _fav["n"] == 1 and _fav["t"] and
+                      _fav["d"] and _fav["link"] and _n2 == 1 and
+                      _cell == 1 and _after["n"] == 0 and
+                      _after["empty"] and not _after["got"] and
+                      _t0["has"] and _t1["marked"] and _t1["got"] and
+                      _t1["dis"] and '连念' in _t1["btxt"] and
+                      '连念' in _t1["meta"] and
+                      not errors)
+                results.append({
+                    "name": "ui:mantra_fav", "ok": ok,
+                    "detail": (f"收后态={_fav['txt'].strip()} "
+                               f"落盘={_fav['n']} 复点={_n2} "
+                               f"册格={_cell} 今日念={_t1} "
+                               f"删后={_after}")})
+            except Exception as exc:
+                results.append({"name": "ui:mantra_fav", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate(
+                        "localStorage.removeItem('mantraFav');"
+                        "const _t = new Date(); const _ds = _t.getFullYear()"
+                        "+ '-' + String(_t.getMonth() + 1).padStart(2, '0')"
+                        "+ '-' + String(_t.getDate()).padStart(2, '0');"
+                        "localStorage.removeItem('manifest:' + _ds);"
+                        "try { showView('home'); } catch(e) {}")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
 
 
             # R2350k：自点牌扇——开扇 22 背 → 点 3 张 → 成局 → 结果卡出字
@@ -1285,6 +1486,167 @@ def main() -> int:
                     "() => { const sb = document.getElementById('recentSidebar');"
                     " if (sb) sb.classList.remove('collapsed'); }")
                 page.wait_for_timeout(200)
+
+            # R3381：默契挑战全链——出题→受邀答题→对分→回传→再出题。
+            try:
+                page.evaluate("location.hash = ''")
+                goto_view('mochi')
+                page.wait_for_selector('#mochiBox .mc-q', timeout=8000)
+                _qs = page.evaluate(
+                    "document.querySelectorAll('#mochiBox .mc-q').length")
+                _b0 = page.evaluate(
+                    "(document.getElementById('mochiBar')||{}).textContent||''")
+                for _qi in range(5):
+                    page.click(f'#mochiQ{_qi} .mc-opt >> nth=0')
+                    page.wait_for_timeout(80)
+                _b5 = page.evaluate(
+                    "(document.getElementById('mochiBar')||{}).textContent||''")
+                _mk_on = page.evaluate(
+                    "!document.getElementById('mochiMake').disabled")
+                page.fill('#mochiNick', '小测')
+                page.click('#mochiMake')
+                page.wait_for_selector('#mochiLink', timeout=5000)
+                _lnk = page.evaluate(
+                    "(document.getElementById('mochiLink')||{}).value||''")
+                # 受邀端：同链落地——guest 答题卡 + 对分 + 回传链
+                page.goto(_lnk, wait_until='domcontentloaded')
+                page.wait_for_selector('#mochiBox .mc-q', timeout=8000)
+                _ghd = page.evaluate(
+                    "(document.querySelector('#mochiBox .mc-head')||{})"
+                    ".textContent||''")
+                for _qi in range(5):
+                    page.click(f'#mochiQ{_qi} .mc-opt >> nth=1')
+                    page.wait_for_timeout(80)
+                _dn_on = page.evaluate(
+                    "!document.getElementById('mochiDone').disabled")
+                page.click('#mochiDone')
+                page.wait_for_selector('#mochiBox .mc-score', timeout=5000)
+                _sc = page.evaluate("""(() => {
+                    const b = document.querySelector(
+                        '#mochiBox .mc-score b');
+                    const rows = document.querySelectorAll(
+                        '#mochiBox .mc-row').length;
+                    const hit = document.querySelectorAll(
+                        '#mochiBox .mc-row.hit').length;
+                    return { pct: b ? b.textContent : '', rows, hit };
+                })()""")
+                page.fill('#mochiMe', '阿桃')
+                page.click('#mochiFlip')
+                page.wait_for_selector('#mochiLink', timeout=5000)
+                _rlnk = page.evaluate(
+                    "(document.getElementById('mochiLink')||{}).value||''")
+                # 发起人端：成绩回链——只读结果卡 + 回敬入口
+                page.goto(_rlnk, wait_until='domcontentloaded')
+                page.wait_for_selector('#mochiBox .mc-score', timeout=8000)
+                _rhd = page.evaluate(
+                    "(document.querySelector('#mochiBox .mc-head')||{})"
+                    ".textContent||''")
+                page.click('[data-mc="host"]')
+                page.wait_for_selector('#mochiQ0', timeout=5000)
+                _back = page.evaluate(
+                    "document.querySelectorAll('#mochiBox .mc-q').length")
+                ok = (_qs == 5 and '0/5' in _b0 and '5/5' in _b5 and
+                      _mk_on and '#mc=' in _lnk and
+                      '小测' in _ghd and _dn_on and
+                      # R3416：分数卡单位 % → 分（分卡口吻对齐）
+                      _sc['pct'] == '0 分' and _sc['rows'] == 5 and
+                      _sc['hit'] == 0 and '#mcr=' in _rlnk and
+                      '阿桃' in _rhd and _back == 5 and not errors)
+                results.append({
+                    "name": "ui:mochi", "ok": ok,
+                    "detail": (f"题={_qs} 进度={_b5} 出题钮={_mk_on} "
+                               f"邀链={'#mc=' in _lnk} 受邀头={_ghd[:18]} "
+                               f"分={_sc} 回链={'#mcr=' in _rlnk} "
+                               f"回看={_rhd[:18]} 回敬={_back}")})
+            except Exception as exc:
+                results.append({"name": "ui:mochi", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate(
+                        "localStorage.removeItem('mochi:nick');"
+                        "location.hash = '';"
+                        "try { showView('home'); } catch(e) {}")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3396-P2-8：每日一签全链——签筒→抽签→签面→同签闸→历史回看。
+            errors.clear()
+            try:
+                goto_view('qian')
+                page.wait_for_selector('#qianBox', timeout=5000)
+                _drawn = page.evaluate(
+                    "document.querySelectorAll('#qianBox .qian-slip').length")
+                if not _drawn:
+                    page.wait_for_selector('#qianTube', timeout=10000)
+                    page.click('[data-qian="draw"]')
+                    page.wait_for_selector('#qianBox .qian-slip',
+                                           timeout=8000)
+                _no = page.evaluate(
+                    "(document.querySelector('#qianBox .qian-no')||{})"
+                    ".textContent||''")
+                _key = page.evaluate("""(() => {
+                    const t = new Date();
+                    const iso = t.getFullYear() + '-' +
+                        String(t.getMonth()+1).padStart(2,'0') + '-' +
+                        String(t.getDate()).padStart(2,'0');
+                    return localStorage.getItem('qian:'+iso);
+                })()""")
+                _hr = page.evaluate(
+                    "document.querySelectorAll('#qianBox .qian-hrow').length")
+                if _hr:
+                    page.click('#qianBox .qian-hrow >> nth=0')
+                    page.wait_for_selector('#qianBox .qian-review-tag',
+                                           timeout=5000)
+                    page.click('[data-qian="back"]')
+                    page.wait_for_selector('#qianBox .qian-slip',
+                                           timeout=5000)
+                ok = (('签' in _no) and _key and _hr >= 1 and not errors)
+                results.append({"name": "ui:qian", "ok": ok,
+                    "detail": f"签面={_no[:12]} 键={_key} 史={_hr} 回看=True"})
+            except Exception as exc:
+                results.append({"name": "ui:qian", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.evaluate("location.hash='';")
+                except Exception:
+                    pass
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3396-P2-8：答案之书全链——写问题→翻页→答案卡→历史→再翻。
+            errors.clear()
+            try:
+                goto_view('ansb')
+                page.wait_for_selector('#ansbQ', timeout=8000)
+                page.fill('#ansbQ', '要不要辞职')
+                page.click('[data-ansb="flip"]')
+                page.wait_for_selector('#ansbBox .ansb-card',
+                                       timeout=8000)
+                _ans = page.evaluate(
+                    "(document.querySelector('#ansbBox .ansb-answer')||{})"
+                    ".textContent||''")
+                _hist = page.evaluate(
+                    "localStorage.getItem('ansb:hist')||'[]'")
+                _fact = page.evaluate(
+                    "localStorage.getItem('ansb:fact')||'{}'")
+                page.click('[data-ansb="again"]')
+                page.wait_for_selector('#ansbQ', timeout=5000)
+                _hrows = page.evaluate(
+                    "document.querySelectorAll('#ansbBox .ansb-hrow').length")
+                ok = (len(_ans) > 2 and '要不要辞职' in _hist and
+                      '答案之书' in _fact and _hrows >= 1 and not errors)
+                results.append({"name": "ui:ansb", "ok": ok,
+                    "detail": (f"答={_ans[:14]} hist={len(_hist)}字 "
+                               f"fact={'答案之书' in _fact} 史行={_hrows}")})
+            except Exception as exc:
+                results.append({"name": "ui:ansb", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
             # R3249e（UX-AUDIT C·塔罗）：三档快捷钮——抽一张/抽三张走
             # doTarot 真抽，自己抽开牌扇。新客不碰牌阵下拉的路径钉住。
@@ -1391,6 +1753,63 @@ def main() -> int:
                                % (_nick, _pers, _fe, _bz))})
             except Exception as exc:
                 results.append({"name": "ui:renge", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
+            # R3336：替你决定——填问句掷筊出签，「再想一件」清场重问。
+            errors.clear()
+            try:
+                goto_view('oracle')
+                page.fill('#orText', '今晚吃面还是吃饭')
+                page.click('#orSubmit')
+                page.wait_for_timeout(1400)
+                _jiao = page.evaluate(
+                    "document.querySelectorAll('#orResult .jiao').length")
+                _v1 = page.evaluate(
+                    "(document.querySelector('#orResult .or-v')"
+                    "||{}).innerText||''")
+                page.click('#orAgain')
+                page.wait_for_timeout(400)
+                _cleared = page.evaluate(
+                    "document.getElementById('orText').value === ''")
+                ok = (_jiao == 2 and len(_v1) > 1 and _cleared
+                      and not errors)
+                results.append({
+                    "name": "ui:oracle.again",
+                    "ok": ok,
+                    "detail": ("筊=%d 判词=%s 清空=%s"
+                               % (_jiao, _v1[:12], _cleared))})
+            except Exception as exc:
+                results.append({"name": "ui:oracle.again", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R3418-P0：重决策题走指路卡——不出筊、不出「再想一件」。
+            try:
+                page.fill('#orText', '要不要这周提离职')
+                page.click('#orSubmit')
+                page.wait_for_timeout(600)
+                _bigq = page.evaluate(
+                    "(document.querySelector('#orResult').innerText||'')"
+                    ".includes('筊杯不敢替你做主')")
+                _nojiao = page.evaluate(
+                    "document.querySelectorAll('#orResult .jiao').length")
+                results.append({
+                    "name": "ui:oracle.bigq",
+                    "ok": _bigq and _nojiao == 0,
+                    "detail": f"指路卡={_bigq} 筊={_nojiao}"})
+            except Exception as exc:
+                results.append({"name": "ui:oracle.bigq", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
             finally:
                 try:
@@ -1806,6 +2225,43 @@ def main() -> int:
             except Exception as exc:
                 results.append({"name": "ui:history.import", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
+
+            # ── R3362：账号链路真浏览器路径——R3359 实测 api() POST 不带
+            # Content-Type 时 httpx 侧闸门全绿而 UI 里注册/登录/同步
+            # 全部 422。真人路径：填昵称+口令 → 注册 → 已登卡露面 →
+            # 手动同步出成功 toast（local 后端可用，不依赖云端）。
+            errors.clear()
+            try:
+                goto_view('history')
+                _nick = '探针' + str(int(__import__('time').time()) % 100000)
+                page.wait_for_selector('#acctNick', timeout=8000)
+                page.fill('#acctNick', _nick)
+                page.fill('#acctPass', '246810')
+                page.click('#acctRegister')
+                page.wait_for_selector('#acctLogged:not([hidden])',
+                                       timeout=8000)
+                _who = page.evaluate(
+                    "() => document.getElementById('acctWho').textContent")
+                page.click('#acctSyncNow')
+                # 等的是「同步好啦」这条——注册成功 toast 还在屏上，
+                # 不能按 .toast-item 存在性等（会命中上一条）。
+                page.wait_for_function(
+                    "() => Array.from(document.querySelectorAll("
+                    "'.toast-item')).some(t => t.innerText"
+                    ".indexOf('同步好啦') >= 0)",
+                    timeout=10000)
+                _tmsg = page.evaluate(
+                    "() => Array.from(document.querySelectorAll("
+                    "'.toast-item')).map(t => t.innerText).join('|')")
+                ok = (_who == _nick and '同步好啦' in _tmsg and not errors)
+                detail = (f"注册→已登卡 who={_who} + 同步 toast「{_tmsg[:18]}」"
+                          + ((" | " + "; ".join(errors[:3])) if errors else ""))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+                if errors:
+                    detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:account.register",
+                            "ok": ok, "detail": detail})
 
             # R2400k 云端/本机合渲：镜像里有而云端本页没有的行按 ts
             # 归位标「本机留档」。塞一条假留档行触发重载验证徽标。
@@ -2444,7 +2900,9 @@ def main() -> int:
                     "  day_wx_sheng:false, warm:{reply:['判词直说：偏不合适']}},"
                     "  question:'', body:{}}));"
                     " return ["
-                    "  _chatFacts([]).join('|'),"
+                    # R3313（审-P2-5）：TA 生辰按话题门控——感情语境带，
+                    # 无关话题不带（隐私半径收紧）；本 case 用合婚问句。
+                    "  _chatFacts([], '我们合婚怎么样').join('|'),"
                     "  (()=>{document.querySelectorAll('.view.active')"
                     "   .forEach(v=>v.classList.remove('active'));"
                     "   return _activeViewFacts().join('|')})(),"
@@ -2476,9 +2934,11 @@ def main() -> int:
                     "   {d:_t0,v:'hehun',s:'判词直说：今天的卡',q:''},"
                     "   {d:_t1,v:'hehun',s:'判词直说：偏不合适',q:'我们能结婚吗'},"
                     "   {d:'2020-01-01',v:'tarot',s:'老卡不该出现',q:''}]));"
-                    "  return _chatFacts([]).join('|')})()"
+                    "  return _chatFacts([]).join('|')})(),"
+                    # R3313：反例钉——无关话题 TA 生日不出 facts。
+                    "  _chatFacts([], '我事业运怎么样').join('|')"
                     " ];}")
-                ok = (len(cases) == 5
+                ok = (len(cases) == 6
                       and "性别：女" in cases[0]
                       and "生日：2003-05-15" in cases[0]
                       # R3126（specs/013-P2）：partner 档案行钉——
@@ -2498,6 +2958,8 @@ def main() -> int:
                       and "我们能结婚吗" in cases[4]
                       and "今天的卡" not in cases[4]
                       and "老卡不该出现" not in cases[4]
+                      # R3313（审-P2-5）：无关话题不发 TA 生辰给 LLM
+                      and "TA的生日" not in cases[5]
                       and not errors)
                 detail = ("profile=" + ("OK" if cases[0] else "X")
                           + " xview=" + ("OK" if cases[1] else "X")
@@ -2724,6 +3186,76 @@ def main() -> int:
             results.append({"name": "btn:history.delete",
                             "ok": ok, "detail": detail})
 
+            # ── R3414：排盘历史小锁全链——设锁→（清会话态）进页只见
+            # 口令面板+列表工具栏全藏→错口令拒→对口令解锁→撤锁。
+            # 覆盖 historyLockBtn / historyLockGo 两个 on() 注册。
+            errors.clear()
+            try:
+                page.evaluate(
+                    "() => {localStorage.removeItem('histLock');"
+                    "sessionStorage.removeItem('histUnlocked');}")
+                goto_view("history")
+                page.wait_for_timeout(400)
+                page.click("#historyLockBtn")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=5000)
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                page.wait_for_function(
+                    "() => !!localStorage.getItem('histLock')",
+                    timeout=5000)
+                page.evaluate(
+                    "() => sessionStorage.removeItem('histUnlocked')")
+                # 不靠视图切换间接触发——锁态判定在 loadPaipanHistory
+                # 里，直调一次确定性进入锁分支（切视图太快要排队等
+                # 在途重放，4s 帽下会抖动）。
+                page.evaluate(
+                    "() => window.__loadPaipanHistory(false)")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=8000)
+                locked_state = page.evaluate(
+                    "() => ({panel: !!document.getElementById("
+                    "'historyLockPanel') && !document.getElementById("
+                    "'historyLockPanel').hidden,"
+                    "list_empty: !document.getElementById('historyList')"
+                    ".innerHTML.trim(),"
+                    "toolbar_hidden: document.querySelector("
+                    "'#view-history .ph-toolbar').hidden})")
+                page.fill("#historyLockInput", "000000")
+                page.click("#historyLockGo")
+                page.wait_for_timeout(400)
+                wrong_rej = page.evaluate(
+                    "() => sessionStorage.getItem('histUnlocked') === null")
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                # sessionStorage 先于 loadPaipanHistory 异步回显置位——
+                # 直接等工具栏可见再断言/再点（4s 默认帽下裸等不足）。
+                page.wait_for_selector(
+                    "#view-history .ph-toolbar:not([hidden])", timeout=8000)
+                unlocked_state = page.evaluate(
+                    "() => sessionStorage.getItem('histUnlocked') === '1'"
+                    " && !document.querySelector("
+                    "'#view-history .ph-toolbar').hidden")
+                page.click("#historyLockBtn")
+                page.wait_for_selector(
+                    "#historyLockPanel:not([hidden])", timeout=5000)
+                page.fill("#historyLockInput", "135790")
+                page.click("#historyLockGo")
+                page.wait_for_function(
+                    "() => !localStorage.getItem('histLock')",
+                    timeout=5000)
+                ok = (locked_state["panel"] and locked_state["list_empty"]
+                      and locked_state["toolbar_hidden"] and wrong_rej
+                      and unlocked_state and not errors)
+                detail = (f"锁态藏={locked_state} 错拒={wrong_rej} "
+                          f"解锁工具栏={unlocked_state} 撤锁=OK")
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+            if errors:
+                detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "btn:history.lock",
+                            "ok": ok, "detail": detail})
+
             # ── R229c：打卡 chips 可读性钉扎——R5 审计 P1：`.checkin-opt`
             # 只盖 background 不盖 color，继承全局 button{color:#fff} =
             # 白字白底四个选项全空白。computed style 断言非白字（picked 态
@@ -2807,6 +3339,11 @@ def main() -> int:
                 page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
                 page.wait_for_timeout(1200)
                 goto_view("bazi")
+                # R3415-CI：err422 用例故意打的 422 其 console.error
+                # 由网络栈异步投递，会飘进本用例窗口导致假 FAIL
+                #（CI 实测复现）。断言窗口=提交那一刻起——
+                # 此前 reload/init 期的杂散噪声与本用例无关，排空。
+                errors.clear()
                 try:
                     page.click("#submit")
                     page.wait_for_selector(".ai-polish", timeout=25000)
@@ -3002,6 +3539,52 @@ def main() -> int:
             except Exception as _e:
                 results.append({"name": "deep.pushstate_reload", "ok": False,
                                 "detail": f"?view= 写址/刷新恢复失败：{_e}"})
+            # R3417：跨年愿启封链 + 还愿海报钮——封口存 w.ny、跨年启封
+            # 挂卡、收瓶清 ny 落常规愿、还愿卡挂晒图钮。缺一则静默断。
+            try:
+                _ny = dl.evaluate("""(() => {
+                  const out = {};
+                  /* 启封态：year=今年、!opened → 启封卡+三钮 */
+                  localStorage.setItem('wishbottle', JSON.stringify({
+                    ny: {t:'明年想考上研', c:'跨年', ts:Date.now()-86400000*300,
+                         year:new Date().getFullYear(), opened:0}}));
+                  _renderWishBottle();
+                  out.revealCard = !!document.querySelector('.ck-wish-ny');
+                  out.revealText = (document.querySelector('.ck-wish-ny')||{textContent:''})
+                    .textContent.includes('明年想考上研');
+                  out.btns = !!document.querySelector('[data-wish="nyBottle"]') &&
+                    !!document.querySelector('[data-wish="nyShare"]') &&
+                    !!document.querySelector('[data-wish="nyKeep"]');
+                  /* 收瓶：ny 清空、常规愿望落地（瓶空时） */
+                  _wishAction('nyBottle', '', 'x');
+                  const w = JSON.parse(localStorage.getItem('wishbottle'));
+                  out.nyCleared = !(w && w.ny);
+                  out.wishLanded = w && w.t === '明年想考上研' && w.c === '跨年';
+                  /* 还愿卡：fulfilled 一条 → echo 卡带晒图钮 */
+                  localStorage.setItem('wishfulfilled', JSON.stringify(
+                    [{t:'考试过了', c:'学业', ts:1, fu:Date.now()}]));
+                  _renderWishEcho({t:'考试过了', fu:Date.now()});
+                  out.echoShare = !!document.querySelector('[data-wish="echoShare"]');
+                  /* 封口窗判定今天应为关（10月） */
+                  out.sealWinOff = _wishNySealWin() === false;
+                  /* 福签窗判定今天应为关 */
+                  out.cnyWinOff = (typeof _qianCnyFest === 'function') ?
+                    _qianCnyFest() === false : 'no-fn';
+                  return out;
+                })()""")
+                _ny_ok = all([_ny.get('revealCard'), _ny.get('revealText'),
+                              _ny.get('btns'), _ny.get('nyCleared'),
+                              _ny.get('wishLanded'), _ny.get('echoShare'),
+                              _ny.get('sealWinOff'),
+                              _ny.get('cnyWinOff') is True])
+                results.append({
+                    "name": "ui:ny_wish_chain",
+                    "ok": bool(_ny_ok),
+                    "detail": f"跨年愿/还愿链：{_ny}",
+                })
+            except Exception as _e:
+                results.append({"name": "ui:ny_wish_chain", "ok": False,
+                                "detail": f"跨年愿链求值异常：{_e}"})
             dl.close()
             ctx.close()
             browser.close()

@@ -6,3 +6,4 @@ uvicorn[standard]==0.53.0
 pydantic==2.13.5
 httpx==0.28.1             # 仅 LLM 润色链路懒加载用到（不配 LLM 也可装，~200KB）
 feedparser==6.0.12        # /api/external/* RSS 解析懒加载用到
+jsmin==3.0.1             # R3338：/static/app.js 服务时压缩缓存（缺库自动回落原文）

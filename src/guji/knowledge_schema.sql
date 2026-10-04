@@ -138,3 +138,16 @@ CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type);
 -- 原子，跨实例并发实测落重复行。老库已含重复行时此索引建不成，
 -- _ensure 降级路径吞掉（业务层 SELECT 预检仍挡住绝大多数重复）。
 CREATE UNIQUE INDEX IF NOT EXISTS ux_favorites_type_ref ON favorites(type, ref_id);
+
+-- ── 合拍打卡（R3343）：一对用户的打卡日交集 ──────────────────
+-- pair_id = 客户端 SHA-256（两份规范生日串按字典序拼接），member ∈ {0,1}
+-- 由规范串字典序决定。表只存天数集合——不含生日/姓名等可识别信息；
+-- 伪造 pair_id 最坏只是读写一组无 PII 的日期集合。
+CREATE TABLE IF NOT EXISTS couple_days (
+    pair_id  TEXT NOT NULL,
+    member   INTEGER NOT NULL,      -- 0 | 1（规范串字典序小者为 0）
+    day      TEXT NOT NULL,         -- 'YYYY-MM-DD'
+    PRIMARY KEY (pair_id, member, day)
+);
+
+CREATE INDEX IF NOT EXISTS idx_couple_days_pair ON couple_days(pair_id);
