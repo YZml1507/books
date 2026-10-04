@@ -20364,19 +20364,19 @@ function _ckPatternFind(todayKey) {
         }
       });
       Object.keys(_kwDays).forEach(function (kw) {
-        var _hit = _kwDays[kw];
-        if (_hit.length < 3) return;
+        var _hArr = _kwDays[kw];
+        if (_hArr.length < 3) return;
         var _rest = _recs.filter(function (r) {
-          return _hit.indexOf(r) < 0;
+          return _hArr.indexOf(r) < 0;
         });
         if (_rest.length < 3) return;
         var _hm = 0, _rm = 0;
-        _hit.forEach(function (r) { _hm += r.v; });
+        _hArr.forEach(function (r) { _hm += r.v; });
         _rest.forEach(function (r) { _rm += r.v; });
-        _hm /= _hit.length; _rm /= _rest.length;
+        _hm /= _hArr.length; _rm /= _rest.length;
         var _jl = _hm - _rm;
         if (Math.abs(_jl) >= 0.6) {
-          _cands.push({ lift: Math.abs(_jl), n: _hit.length,
+          _cands.push({ lift: Math.abs(_jl), n: _hArr.length,
             txt: '小记里提到「' + kw + '」的日子，你好像常常' +
                  (_jl > 0 ? '更亮一点' : '偏沉一点') });
         }
