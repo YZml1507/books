@@ -2626,9 +2626,12 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 .hl-ji-t{font-weight:800;color:var(--rose-soft);margin-bottom:6px;}
 .hl-flag{font-size:12px;color:#a3542a;margin-top:6px;}
 /* R2350d（R100-P2-3）：当班金句是全卡唯一「可截封面」的句子却
- * 只有 13px 副行——提为判词级头行（金句体+居中）。 */
+ * 只有 13px 副行——提为判词级头行（金句体+居中）。
+ * R3406-P3→R3461s：csmsg 语料是典籍动态句（可含生僻字），
+ * 原来挂 Smiley Sans 996 字子集——灏/挑等字半路回落异体。
+ * 金句改挂全文楷栈（字形全覆盖，体感仍是金句体）。 */
 .hl-csmsg{font-size:18px;color:var(--primary-ink);margin-top:8px;
-  font-family:var(--font-display);font-weight:600;text-align:center;
+  font-family:var(--font-wenkai);font-weight:600;text-align:center;
   letter-spacing:.3px;line-height:1.6;}
 /* R2349k（R72-A2）：节日行 */
 .hl-festival{font-size:12px;color:#b5732f;margin-top:6px;font-weight:600;}
