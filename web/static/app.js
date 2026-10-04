@@ -20252,7 +20252,11 @@ function renderCheckin(dateKey) {
   try {
     if (new URLSearchParams(location.search).get('hug')) {
       _hugHtml = '<div class="ck-quest ck-hug">🍀 有朋友今天给你' +
-        '递了个好运——顺着这份心意打个卡吧</div>';
+        '递了个好运——顺着这份心意打个卡吧' +
+        /* R3569：回递环——受邀者能顺手回递一个好运（跟 duel
+         * 的续链同构：回传这一牙让链走成环）。 */
+        ' <button type="button" class="ck-hug-back" id="ckHugBack">' +
+        '回递一个 🤗</button></div>';
     }
   } catch (eH) {}
   try {
@@ -20910,6 +20914,23 @@ function renderCheckin(dateKey) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(_hPayload).then(_hOk, _hBad);
     } else { _hBad(); }
+  });
+  /* R3569：回递钮——受邀侧 hug 行内嵌，点=复制同款 hug 链
+   * （回传这一牙闭合递好运环）。 */
+  var _ckhb = box.querySelector('#ckHugBack');
+  if (_ckhb) _ckhb.addEventListener('click', function () {
+    var _hb = location.origin + location.pathname +
+      '?view=home&from=share&hug=1';
+    var _hbPayload = '好运收到，回递一个给你 🤗 → ' + _hb;
+    var _hbOk = function () { showToast('回递链接复制好了，发给 TA 吧', 'ok'); };
+    var _hbBad = function () {
+      try { _showTextExportModal('复制链接', _hbPayload,
+        '长按下面文本全选复制，发给 TA 吧'); }
+      catch (eM) { showToast('复制没成功，可截图链接发给 TA', 'warn'); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(_hbPayload).then(_hbOk, _hbBad);
+    } else { _hbBad(); }
   });
   /* R3547：称号达成庆祝晒图——与晒签同管线，j.msTitle 让
    * 海报题头换「达成」口径。 */
