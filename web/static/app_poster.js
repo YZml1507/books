@@ -953,6 +953,8 @@ function _posterHookForView(view, j) {
   /* R3388：每日一签——签是求来的，「你也来求一支」是钩。 */
   if (view === 'qian') return '今天你的签是什么？';
   if (view === 'ansb') return '心里有个问题？来翻一页';
+  /* R3417：还愿——「许的愿真成了」是正反馈钩，引得人也想试。 */
+  if (view === 'wishecho') return '来许个愿——等它成了回来还愿';
   /* R3398-P3-7：避让日历配「好日子」钩是反着的——按 mode 分叉。 */
   if (view === 'hlcal') {
     var _hc2 = (j && j._hlcal) || {};
@@ -1718,6 +1720,20 @@ function buildShareData(view, j) {
           v: _clauseCut(_qpoem.slice(2, 4).join('，'), 20) });
       }
       return _qs;
+    }
+    case 'wishecho': {
+      /* R3417 还愿海报：「愿望成了」是大字——许的愿/等了几天/
+       * 回音进 lines。还愿笔记是小红书原生爆款文体，晒语境最足。 */
+      var _we = (j && j._wishecho) || {};
+      var _ws = base('愿望成真', _cnDateSub(_pStr(j && j.date)));
+      _ws.big = '愿望成了';
+      _ws.lines = [
+        { k: '许的愿', v: _clauseCut(_pStr(_we.t), 18) || '（心里那个）' },
+        { k: '等了', v: (+_we.days || 0) + ' 天' },
+        { k: '小满说', v: _clauseCut(_pStr(_we.echo), 20) ||
+          '许愿→成真，这条链走通了' }
+      ];
+      return _ws;
     }
     case 'ansb': {
       /* R3394 答案之书海报：翻到的那句话是大字，问题/书里还说/

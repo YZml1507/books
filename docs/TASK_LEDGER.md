@@ -18925,3 +18925,38 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   异步回显；ai.block.renders_with_ai 的 errors.clear() 挪到
   page.click("#submit") 紧前——err422 用例的故意 422 console.error
   异步飘进下一用例断言窗（R3415-CI flake 根治）。
+
+## R3417（本批）：全网调研落地批——新春福签窗 + 还愿可晒 + K线深色分色
+
+### 调研产出→决策
+- XHS 官方 2026 春晚合作玩法=福签+答案之书+年度诗篇（我们已有
+  答案之书+年终海报，福签是唯一缺口）→ 上新春福签窗。
+- 小红书「祈愿笔记」研究：许愿→还愿反馈环是原生爆款文体——
+  还愿卡此前无晒径 → 加还愿海报。
+- Lora（前 Hinge CPO 的 AI 占星，16 万预约）= 手帐风+关系解读——
+  我们的暖纸质感+合婚域已同构，不追。
+- 塔罗GO「先写问题再占卜」——六爻问句早已支持，已同构。
+
+### 落地
+- 新春福签窗（除夕→元宵，_QIAN_CNY_WIN 硬表 2027-2030 显式
+  有界，过期自动关窗）：池=tier=top 26 支全上签（过年讨彩头
+  只出吉签）；分键 qian:cny:<date> 同日定、进签历史（🧧 标）、
+  回看卡+晒图题「新春福签」、卡面末日换「到元宵截止」口径、
+  fact 注入问新春；摇签仪式 1.1s 同桃花签。
+- 还愿海报：成真卡挂「📸 晒这份还愿」→ downloadPoster
+  ('wishecho')——「愿望成了」大字 + 许愿文/等了N天/回音 +
+  「来许个愿——等它成了回来还愿」裂变钩。
+- K线 canvas 深色分色：「今年」深棕框/犯太岁深红点深色下
+  消失——按 data-theme 分色（#E8C988/#C9857A），applyTheme
+  后清 _klineDone 重画。
+- 自审三方对账（子 agent 满员亲自跑）：_DATA_RE 备份白名单
+  vs wipe 枚举 vs 全库 setItem 键——mochi:/qian:/manifest:/
+  ansb: 全齐，零漏（R3389 后防回归）。
+- iOS 输入缩放面复验：input/select 已统一 16px（R228d 防回归）。
+
+### 验证
+- CNY 窗口函数实测：今日关窗→_qianCnyHtml()='' ✓；强开窗
+  _qianCnyFest()=true、_qianCnyLastDay() 末日判正确 ✓。
+- wishecho poster 链：downloadPoster→懒载→poster-modal 打开
+  零 pageerror ✓（check_poster 判据 12/13/14 全绿）。
+- 闸：selftest 431 / contract 789 / check_poster / ruff 全绿。
