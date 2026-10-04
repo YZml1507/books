@@ -22446,12 +22446,11 @@ function baziPersonaCard(j) {
       if (lit >= 3) {
         return '这周有 ' + lit + ' 天你点亮了心情小熊。';
       }
-      var ms = 0, dd = new Date();
-      for (var j = 0; j < 60; j++) {
-        if (localStorage.getItem('manifest:' + _iso(dd)) === '1') {
-          ms++; dd.setDate(dd.getDate() - 1);
-        } else break;
-      }
+      /* R3452（审-P2）：连念口径对齐 _manifestStreak()（今天没
+       * 念就从昨天起数）——自写循环在「昨天念过今天没念」时误
+       * 判 0 天，和册头显示的连念天数打架。 */
+      var ms = 0;
+      try { ms = _manifestStreak(); } catch (eMS) {}
       if (ms >= 3) return '咒语你已经连着念了 ' + ms + ' 天。';
       var mt = +(localStorage.getItem('muyu:total') || 0);
       /* R3448（审-P2）：「心越来越静」是替用户下内在判断——改回
