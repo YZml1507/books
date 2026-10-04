@@ -5674,23 +5674,47 @@ def daily(date_str: str | None = None,
                     "verdict": "无冲无合",
                     "line": f"今天{_dzz}日跟你的盘不冲不合，通判照样走",
                     "tone": "flat"}
-            # R3621：今日能量分（个人版，与合拍分同套合冲表）——
-            # 十神底分 × 日支对位修正 × 日期|日柱确定性抖动，钳
-            # 42–96：分是「你的盘和今天的对位」，不给满分也不给谷底。
-            _e_base = {
-                "正印": 72, "偏印": 68, "比肩": 66, "劫财": 62,
-                "食神": 70, "伤官": 64, "正财": 62, "偏财": 60,
-                "正官": 58, "七杀": 50,
-            }.get(_god, 60)
-            _e_mod = {
-                "合缘": 12, "岁合": 10, "半合": 8, "无冲无合": 4,
-                "伏吟": -4, "岁吟": -2,
-                "轻冲": -8, "小绊": -8, "小挫": -10, "小凶": -12,
-            }.get((_personal.get("mine") or {}).get("verdict", ""), 0)
-            _e_jit = int(hashlib.md5(
-                f"{date_str}|{_ub.day}".encode()).hexdigest()[:4],
-                16) % 7 - 3
-            _e_score = int(max(42, min(96, _e_base + _e_mod + _e_jit)))
+            # R3621/R3624：个人能量分（与合拍分同套合冲表）——十神底分 ×
+            # 日支对位修正 × 日期|日柱确定性抖动，钳 42–96：分是「你的盘和
+            # 那天的对位」，不给满分也不给谷底。收闭包一份算法，今天/明天
+            # 同一算式，R3624 晚间预告不再复制逻辑。
+            def _energy_for(_ds: str, _edg: str, _edzz: str) -> dict:
+                _eb = {
+                    "正印": 72, "偏印": 68, "比肩": 66, "劫财": 62,
+                    "食神": 70, "伤官": 64, "正财": 62, "偏财": 60,
+                    "正官": 58, "七杀": 50,
+                }.get(ten_god(_ug, _edg) if _ug else "", 60)
+                _em_verdict = ""
+                for _ezb, _ekk in ((_u_db, "日支"), (_u_yb, "年支")):
+                    if _ezb and _edzz:
+                        _erp = _rel_pair(_edzz, _ezb)
+                        if _erp:
+                            _em_verdict = {
+                                "六冲": "小凶" if _ekk == "日支" else "轻冲",
+                                "相刑": "小挫" if _ekk == "日支" else "小绊",
+                                "相害": "小绊",
+                                "六合": "合缘" if _ekk == "日支" else "岁合",
+                            }.get(_erp[0], "")
+                            break
+                        if _san_he([_edzz, _ezb]):
+                            _em_verdict = "半合"
+                            break
+                        if _ezb == _edzz:
+                            _em_verdict = "伏吟" if _ekk == "日支" else "岁吟"
+                            break
+                if not _em_verdict and _edzz:
+                    _em_verdict = "无冲无合"
+                _em = {
+                    "合缘": 12, "岁合": 10, "半合": 8, "无冲无合": 4,
+                    "伏吟": -4, "岁吟": -2,
+                    "轻冲": -8, "小绊": -8, "小挫": -10, "小凶": -12,
+                }.get(_em_verdict, 0)
+                _ej = int(hashlib.md5(
+                    f"{_ds}|{_ub.day}".encode()).hexdigest()[:4],
+                    16) % 7 - 3
+                return {"score": int(max(42, min(96, _eb + _em + _ej)))}
+
+            _e_score = _energy_for(date_str, _dg, _dzz)["score"]
             if _e_score >= 85:
                 _e_line = "今天你的电量很足——想做的事尽管上手"
             elif _e_score >= 70:
@@ -5700,6 +5724,13 @@ def daily(date_str: str | None = None,
             else:
                 _e_line = "今天电量偏低，慢一点、多给自己留空"
             _personal["energy"] = {"score": _e_score, "line": _e_line}
+            # R3624：明日能量预告——同算式对明日日干支再算一遍，
+            # 晚间（前端 20 点后）挂「明天 N 分」的回访钩。
+            _nd = date.fromisoformat(date_str) + timedelta(days=1)
+            _dg2, _dzz2 = huangli_mod.day_ganzhi(
+                datetime(_nd.year, _nd.month, _nd.day, 12))
+            _personal["tomorrow_energy"] = _energy_for(
+                _nd.isoformat(), _dg2, _dzz2)
             # R3314（R3311-高2）：流年最小确定性卡——
             # ① 年度签：流年干支 + 五行基调（干支元素直读）；
             # ② 犯太岁：流年支 × 用户年支 值/冲/刑/害/破（传统五档）；

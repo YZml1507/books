@@ -6214,6 +6214,15 @@ async function loadDaily() {
           '⚡ 今日能量 ' + esc(_en.score) + ' 分</span> ' +
           esc(_en.line || ''));
       }
+      /* R3624：晚间预告——20 点后挂「明天 N 分」轻回访钩；
+       * 白天不占位（今天是主角）。 */
+      var _enT = j.personal.tomorrow_energy;
+      if (_enT && _enT.score && new Date().getHours() >= 20) {
+        _pc2.push('<span class="daily-energy daily-energy-tm">' +
+          '🌙 明天 ' + esc(_enT.score) + ' 分</span>' +
+          ' <span style="font-size:12px;opacity:.75;">' +
+          '明天再来看看～</span>');
+      }
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
           esc(_mine.tone || 'flat') + '">' +
