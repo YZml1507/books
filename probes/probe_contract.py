@@ -140,6 +140,9 @@ FIXTURES: dict[str, dict] = {
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴收集端点。
     "/api/xzmatch":          {"method": "GET",
                               "params": {"a": "白羊", "b": "射手"}},
+    # R3611：本月月历——前端读 j.days[].d/label/action/line/glyph。
+    "/api/mooncal":          {"method": "GET",
+                              "params": {"month": "2026-10"}},
     "/api/paipan/tarot_collection": {"method": "GET"},
     "POST /api/bazi":    {"method": "POST", "json": {
         "year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",

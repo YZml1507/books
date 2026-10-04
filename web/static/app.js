@@ -9513,9 +9513,7 @@ function _moonCalShow() {
   ov.innerHTML = '<div class="mcal-panel"><p class="mcal-t">' +
     (+_ym.slice(5, 7)) + ' 月的月亮</p>' +
     '<p class="mcal-sub">小满在翻历书…</p></div>';
-  fetch('/api/mooncal?month=' + _ym).then(function (r) {
-    return r.json();
-  }).then(function (j) {
+  api('/api/mooncal?month=' + _ym, { silent: true }).then(function (j) {
     var tIso = todayIso();
     var h = '<div class="mcal-panel"><p class="mcal-t">' +
       (+_ym.slice(5, 7)) + ' 月的月亮</p><div class="mcal-grid">';

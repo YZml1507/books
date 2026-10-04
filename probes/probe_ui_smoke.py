@@ -517,6 +517,11 @@ def main() -> int:
         # R3603：夸夸我钮——downloadPoster('hype') 海报模态，同族豁免。
         "ncHype": "灵魂名片「夸夸我」——downloadPoster('hype') 海报模态，"
                   "同 ncShare 族豁免",
+        # R3611：本月月历 overlay——createElement 挂委托的非表单
+        # 容器（关→fetch 渲染→格点 toast），真机链路 Playwright
+        # 手验（31 格/4 节点/hidden 显隐）。
+        "moonCalOv": "本月月历 overlay 容器——懒建 DOM+fetch 渲染的"
+                     "条件件，真实链路已 Playwright 手验",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
