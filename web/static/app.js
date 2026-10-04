@@ -19835,25 +19835,30 @@ function renderCheckin(dateKey) {
    * 反馈区 aria-live——选完有朗读回执。 */
   var _meta = '';
   /* R3513：连签里程碑称号——跨档 toast 一次（ckms:seen 记
-   * 已贺过的最高档），称号随 meta 行挂出。断了不收回，
-   * 称号只往上走（Finch 式关系锚同口径）。 */
+   * 已贺过的最高档），称号随 meta 行挂出。R3518（自审）：
+   * 「断了不收回」此前言行不一——streak 一断 _msHit=null
+   * 称号当场消失；改按 max(当前档, 已贺档) 挂称号，真·只
+   * 往上走（Finch 式关系锚同口径）。 */
+  var _msHit = null, _msTitle = '';
   try {
     var _MS = [[7, '七日缘'], [21, '半月友'], [30, '一月知己'],
                [66, '知心人'], [100, '百日故人']];
-    var _msHit = null;
     _MS.forEach(function (m) { if (_streak >= m[0]) _msHit = m; });
-    if (_msHit) {
-      var _msSeen = +(localStorage.getItem('ckms:seen') || 0);
-      if (_msHit[0] > _msSeen) {
-        localStorage.setItem('ckms:seen', String(_msHit[0]));
-        showToast('连签 ' + _msHit[0] + ' 天，你们成了「' +
-                  _msHit[1] + '」', 'ok');
-      }
+    var _msSeen = +(localStorage.getItem('ckms:seen') || 0);
+    if (_msHit && _msHit[0] > _msSeen) {
+      localStorage.setItem('ckms:seen', String(_msHit[0]));
+      _msSeen = _msHit[0];
+      showToast('连签 ' + _msHit[0] + ' 天，你们成了「' +
+                _msHit[1] + '」', 'ok');
+    }
+    /* 称号 = max(当前档, 已贺档)——攒过的档断了也留住。 */
+    for (var _mi2 = 0; _mi2 < _MS.length; _mi2++) {
+      if (_MS[_mi2][0] <= _msSeen) _msTitle = _MS[_mi2][1];
     }
   } catch (eMS) {}
   if (_streak >= 2) {
     _meta += '已连续 ' + _streak + ' 天打卡' +
-      (_msHit ? '「' + _msHit[1] + '」' : '') +
+      (_msTitle ? '「' + _msTitle + '」' : '') +
       /* R3420-P2-2：日键 GC 窗口 ~150 天，streak 到顶不再涨——
        * 披露口径防「攒了半年怎么显 150」类误读。 */
       (_streak >= 150 ? '（记数按近 150 天）' : '');
@@ -19897,7 +19902,9 @@ function renderCheckin(dateKey) {
      * 英文黑话且与星数行「已连续 N 天」自述矛盾；断过的档也照
      * 3-6 天档一样报数（攒过的档点名，看见感>客套）。 */
     _meta += _bk >= 7 ?
-      ('之前攒了 ' + _bk + ' 天，都替你收着，今天回来继续 🌱')
+      ('之前攒了 ' + _bk + ' 天，都替你收着' +
+        (_msTitle ? '，「' + _msTitle + '」的牌子也给你留着' : '') +
+        '，今天回来继续 🌱')
       : _bk >= 3 ?
       (_bk + ' 天先存个档，今天重新开张也算数 🌱')
       : '歇了几天也没关系，今天重新开张就算数 🌱';
