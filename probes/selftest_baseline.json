@@ -234,6 +234,7 @@
   "frontend.hl_ask_dayoffset",
   "frontend.manifest_wiring",
   "frontend.mochi_board",
+  "frontend.mochi_custom",
   "frontend.mochi_packs",
   "frontend.mochi_wiring",
   "frontend.muyu_wiring",

@@ -1740,7 +1740,8 @@ function rememberResult(viewKey, json, question, body) {
       } catch (eQ) { _cq = ''; }
       _cd.unshift({ d: _td, v: viewKey, s: _cardVerdictShort(viewKey, json),
                     q: _cq });
-      var _cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+      /* R3431-P3-7（审）：UTC 日与 x.d 本地日混钟——cutoff 改本地日。 */
+      var _cut = _isoShift(todayIso(), -14);
       _cd = _cd.filter(function (x) { return x && x.d >= _cut; }).slice(0, 12);
       /* R3306-P2：并集写——两 tab 同日各出一画像卡不互丢。 */
       _lsUnionWrite('chat:cards', _cd,
@@ -3219,7 +3220,8 @@ function _chatTopicLog(msg) {
     if (arr.length && arr[0].d === today && arr[0].t === t &&
         (arr[0].v || '') === _vk0) return;
     arr.unshift({ d: today, t: t, v: _vk0 || undefined });
-    var cutoff = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+    /* R3431-P3-7（审）：UTC 日与 x.d 本地日混钟——cutoff 改本地日。 */
+    var cutoff = _isoShift(today, -14);
     arr = arr.filter(function (x) {
       return x && x.d >= cutoff;
     }).slice(0, 60);
@@ -12262,8 +12264,11 @@ function _phMirrorLoad() {
 }
 /* R3306-P2：同名数组键并发写互丢的通用修法——写前重读存储，
  * 按 idFn 身份并集收进本批没有的远端条目，再落盘。身份在则
- * 以本批为准（覆盖/墓碑语义由调用方先 filter 体现）。 */
-function _lsUnionWrite(key, arr, idFn, cap) {
+ * 以本批为准（覆盖/墓碑语义由调用方先 filter 体现）。
+ * R3431-P2-4（审）：orFields 可选项——同 id 条目整行被本批覆盖前，
+ * 把远端行里这些布尔字段 OR 回来（opened 这类单向 false→true
+ * 状态不被另一 tab 的旧快照盖回）。 */
+function _lsUnionWrite(key, arr, idFn, cap, orFields) {
   try {
     var _cur = JSON.parse(localStorage.getItem(key) || '[]');
     if (Array.isArray(_cur)) {
@@ -12272,6 +12277,15 @@ function _lsUnionWrite(key, arr, idFn, cap) {
       _cur.forEach(function (x) {
         var _id = idFn(x);
         if (!_ids[_id]) { arr.push(x); _ids[_id] = 1; }
+        else if (orFields) {
+          for (var _i = 0; _i < arr.length; _i++) {
+            if (idFn(arr[_i]) !== _id) continue;
+            orFields.forEach(function (f) {
+              if (x && x[f]) arr[_i][f] = x[f];
+            });
+            break;
+          }
+        }
       });
     }
   } catch (eU) {}
@@ -13669,6 +13683,14 @@ function initDivination() {
       _pileRender(_pileTopic);
     });
   });
+  /* R3431-P1-3（审）：跨零点 _pileKey 换新天后，DOM 还停在昨天
+   * 的已选/禁用态——隔夜 tab 全堆禁用死锁（刷新才好）。翻页时
+   * 由 init 调这钩子把堆面按新天权重渲。 */
+  window.__pileDayFlip = function () {
+    try {
+      if (el('pileBlock')) _pileRender(_pileTopic);
+    } catch (ePDF) {}
+  };
   document.querySelectorAll('.pile-card').forEach(function (pc) {
     pc.addEventListener('click', function () {
       if (!_pileTopic || _pileGet(_pileTopic)) return;
@@ -14338,7 +14360,11 @@ async function _hhDailyRender(ref) {
     a_gender: p[4] || '女',
     b_year: +p[5], b_month: +p[6], b_day: +p[7],
     b_hour: p[8] === '' ? 12 : +p[8], b_hour_known: p[8] !== '',
-    b_gender: p[9] || '男'
+    b_gender: p[9] || '男',
+    /* R3431-P2（审）：全站唯一没传 client_date 的锚点——海外
+     * 时区用户零点前后看到的指数按服务器 CST 翻篇，与本地
+     * 「今天」错位一天。 */
+    client_date: todayIso()
   };
   var title = p.slice(10, 12).filter(Boolean).join(' × ') || '你们';
   var j;
@@ -15214,6 +15240,22 @@ function init() {
         hv && hv.classList.contains('active')) {
       doHuangli(0, true);
     }
+    /* R3431-P1-3（审）：掷筊堆页隔夜重渲——_pileKey 已换新天，
+     * DOM 还是昨天的禁用死态，刷新前玩不了。 */
+    try { if (window.__pileDayFlip) window.__pileDayFlip(); } catch (ePF) {}
+    /* R3431-P2-1（审）：日锁视图重渲表——开着过夜的次级日锁视图
+     * 按 active 分发刷新。数据层本就 fresh（每次现取 todayIso），
+     * 纯显示层补翻日：签页/塔罗今日牌/心情周记/木鱼/合拍卡/显化册。 */
+    try {
+      var _av2 = document.querySelector('.view.active');
+      var _avId = _av2 ? _av2.id : '';
+      if (_avId === 'view-tarot') _tarotLandingCard();
+      if (_avId === 'view-qian') _renderQian();
+      if (_avId === 'view-muyu') _renderMuyu();
+      if (_avId === 'view-hehun') _hhDailyRender();
+      if (_avId === 'view-moodweek') _renderMoodWeek();
+      if (_avId === 'view-mantra') _renderMantraBook();
+    } catch (eDF) {}
     var xv = el('view-xingzuo');
     if (_xzLastDate === prev && xv && xv.classList.contains('active')) {
       ['xz_year', 'xz_month', 'xz_day'].forEach(function (id) {
@@ -15267,7 +15309,14 @@ function init() {
       return;
     }
     if (e.key.indexOf('mochi:') === 0) {
-      try { _renderMochi(); } catch (eM1) {}
+      /* R3430-P2-2（审）：mochi:nick/hosts 写也触发重渲——本 tab
+       * 受邀答到一半/编辑器写着就归零。只有榜变化（board）才重
+       * 渲，且答题/编辑中跳过（.mc-opt 选项态或编辑器在场）。 */
+      if (e.key === 'mochi:board' &&
+          !document.querySelector('#mochiBox .mc-opt.on') &&
+          !el('mochiE0')) {
+        try { _renderMochi(); } catch (eM1) {}
+      }
       return;
     }
     if (e.key.indexOf('ansb:') === 0) {
@@ -15446,6 +15495,13 @@ function init() {
        * 与 /bogus 提示口径不一致——含 / 的非空路径同样按坏链处理。 */
       if (_seg && _seg.indexOf('/') < 0) _vp = _seg;
       else if (_seg) _badPath = true;
+    }
+    /* R3430-P3-7（审）：/?#mc=…（被剥了 ?view= 的转链）静默落首页，
+     * 默契载荷整段被吞——hash 是 mc 族时视图认 mochi。 */
+    if (!_vp) {
+      try {
+        if (/^#(mc|mcr)=/i.test(location.hash || '')) _vp = 'mochi';
+      } catch (eMH) {}
     }
     /* R2348（R66-P2）：规整——HUANGLI/bazi%20 此前直接当坏链弹提示。 */
     if (_vp) _vp = _vp.trim().toLowerCase();
@@ -16767,22 +16823,34 @@ function _flWriteOpen() {
      * 选了出日期框，限明天~十年后（随手填个真日子即可）。 */
     '<option value="__custom">挑个日子…</option>' +
     '</select>' +
+    /* R3431-P3-2（审）：旧内核 type=date 退化纯文本框——补
+     * 格式引导，拒收提示也拆「格式/范围」两档（下方闸）。 */
     '<input type="date" id="flDate" class="fl-date" hidden ' +
+    'placeholder="YYYY-MM-DD" pattern="\\d{4}-\\d{2}-\\d{2}" ' +
     'min="' + _isoShift(todayIso(), 1) + '" ' +
     'max="' + _isoShift(todayIso(), 3650) + '"></div>' +
     '<button type="button" class="btn primary fl-send" id="flSend">' +
     '封好，寄出去</button>' +
-    '<p class="fl-note">信只存在你这台设备上，小满也偷看不了。</p></div>';
+    '<p class="fl-note">信只存在你这台设备上，小满也偷看不了；' +
+    /* R3431-P3-5（审）：寄出后不可改期——寄前明示。 */
+    '寄出就不能改日子啦。</p></div>';
   document.body.appendChild(bd);
   var close = function () { bd.remove(); };
   bd.addEventListener('click', function (e) {
     if (e.target === bd) close();
   });
   el('flClose').addEventListener('click', close);
-  /* R3428：自选日期档显隐联动。 */
+  /* R3428：自选日期档显隐联动。
+   * R3431-P3-1（审）：弹层跨午夜后 min 停在「昨天的明天」——
+   * 每次展出自选框都按当下重算 min/max。 */
   el('flWhen').addEventListener('change', function () {
     var _fd = el('flDate');
-    if (_fd) _fd.hidden = (el('flWhen').value !== '__custom');
+    if (!_fd) return;
+    _fd.hidden = (el('flWhen').value !== '__custom');
+    if (!_fd.hidden) {
+      _fd.min = _isoShift(todayIso(), 1);
+      _fd.max = _isoShift(todayIso(), 3650);
+    }
   });
   el('flSend').addEventListener('click', function () {
     var txt = (el('flText').value || '').trim();
@@ -16791,9 +16859,23 @@ function _flWriteOpen() {
     var _dv = el('flWhen').value;
     if (_dv === '__custom') {
       _dv = String((el('flDate') || {}).value || '');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(_dv) ||
-          isNaN(new Date(_dv + 'T00:00:00').getTime()) ||
-          _dv <= todayIso() || _dv > _isoShift(todayIso(), 3650)) {
+      /* R3431-P3-2（审）：拒因分两档——格式不对先指格式。
+       * R3431-P3-3（审）：归一化型 Date 老内核 2/30 不 NaN——
+       * 往返格式化比对，假日期不入库。 */
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(_dv)) {
+        showToast('日子写成 YYYY-MM-DD 这样，比如 2027-01-01', 'warn');
+        return;
+      }
+      var _dt = new Date(_dv + 'T00:00:00');
+      var _bk = isNaN(_dt.getTime()) ? '' :
+        _dt.getFullYear() + '-' +
+        ('0' + (_dt.getMonth() + 1)).slice(-2) + '-' +
+        ('0' + _dt.getDate()).slice(-2);
+      if (_bk !== _dv) {
+        showToast('这个日子不存在——翻翻日历再挑', 'warn');
+        return;
+      }
+      if (_dv <= todayIso() || _dv > _isoShift(todayIso(), 3650)) {
         showToast('挑一个明天以后、十年以内的日子', 'warn');
         return;
       }
@@ -16819,6 +16901,15 @@ function _flWriteOpen() {
         lst = [];
       }
       if (!Array.isArray(lst)) lst = [];
+      /* R3431-P1-1（审）：满 50 且全未到、无可挤时照写再被
+       * _lsUnionWrite 的 slice(0,50) 把刚塞进去的新信裁掉，
+       * toast 还报「寄出啦」——假成功。满员且无可挤直接拒。 */
+      if (lst.length >= 50 &&
+          !lst.some(function (l) { return l && l.opened; })) {
+        close();
+        showToast('信箱满啦——先等已寄的信送回来，再写新的', 'warn');
+        return;
+      }
       lst.push(lt);
       /* 50 封封顶——挤最旧的已收信；未到信永不挤。 */
       while (lst.length > 50) {
@@ -16826,9 +16917,16 @@ function _flWriteOpen() {
         if (_oi < 0) break;
         lst.splice(_oi, 1);
       }
-      /* R3339（审-中）：写前并集——另一 tab 同时存的信不再被整表压掉。 */
+      /* slice(0,50) 从尾部掉——把已收信排尾、未到期信（含刚寄
+       * 的新信）排头，跨 tab 并集超帽时掉的仍是已收信。 */
+      lst.sort(function (x, y) {
+        return ((x && x.opened) ? 1 : 0) - ((y && y.opened) ? 1 : 0);
+      });
+      /* R3339（审-中）：写前并集——另一 tab 同时存的信不再被整表压掉。
+       * R3431-P2-4（审）：opened 单向态 OR 回——另一 tab 先收过的信
+       * 不被本 tab 旧快照盖回「没收」。 */
       _lsUnionWrite('futureLetters', lst,
-        function (l) { return l && l.id; }, 50);
+        function (l) { return l && l.id; }, 50, ['opened']);
     } catch (eFS) {
       close();
       showToast('信没存上：这台设备的存信空间满了', 'error');
@@ -17498,7 +17596,9 @@ function _dailyMetaCap() {
     });
   }
   _more.hidden = false;
-  _more.textContent = _open ? '收起' : '+' + (_vis.length - 5) + ' 条';
+  /* R3431-P3-6（审）：隐藏数分母应用未 pin 集——6 常驻+1 pinned
+   * 显示「+2 条」实际只藏 1。 */
+  _more.textContent = _open ? '收起' : '+' + (_unpin.length - 5) + ' 条';
   _more.setAttribute('aria-expanded', _open ? 'true' : 'false');
 }
 function _dailyMetaItem(id, html) {
@@ -17913,7 +18013,18 @@ function renderCheckin(dateKey) {
     '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
     '<span class="fl-pend" id="flPend"></span></div>';
   try {
-    var _flList = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+    /* R3431-P1-2（审）：坏 JSON 直接跳外层 catch——链上空无
+     * 一物且 :corrupt 不写，救援链永不浮出（只有写信路径写）。
+     * 就地备份坏值再按空表渲，找回链照常亮。 */
+    var _flRaw = localStorage.getItem('futureLetters') || '[]';
+    var _flList;
+    try {
+      _flList = JSON.parse(_flRaw);
+    } catch (eFJ) {
+      try { localStorage.setItem('futureLetters:corrupt', _flRaw); }
+      catch (eFB) {}
+      _flList = [];
+    }
     if (!Array.isArray(_flList)) _flList = [];
     _flList.forEach(function (lt) {
       /* R3354（审-P2）：数组混入原始值（'junk'/42）时严格模式下
@@ -17929,10 +18040,14 @@ function renderCheckin(dateKey) {
         if (!_real || _dv <= dateKey) lt._due = true;
       }
     });
-    var _flDue = _flList.filter(function (lt) { return lt._due; });
+    /* R3431-P3-4（审）：原始值垃圾项（'junk'/42）不穿 _due 标记
+     * 却混进 pend 计数与 done 列表——三组过滤同要求对象。 */
+    var _flDue = _flList.filter(function (lt) {
+      return lt && typeof lt === 'object' && lt._due; });
     var _flPend = _flList.filter(function (lt) {
-      return lt && !lt.opened && !lt._due; });
-    var _flDone = _flList.filter(function (lt) { return lt && lt.opened; });
+      return lt && typeof lt === 'object' && !lt.opened && !lt._due; });
+    var _flDone = _flList.filter(function (lt) {
+      return lt && typeof lt === 'object' && lt.opened; });
     _flDue.forEach(function (lt) {
       /* R3327-P1-7：meta 量化时间跨度（写于 N 天前），
        * 比 ISO 日期有泪点。 */
@@ -17979,9 +18094,13 @@ function renderCheckin(dateKey) {
       _flHtml += '<details class="fl-done"><summary>📬 已收的信（' +
         _flDone.length + '）</summary>';
       _flDone.slice().reverse().forEach(function (lt) {
+        /* R3431-P3-5（审）：已收的信给 × 删除——此前收下的信只能
+         * 等 50 封顶挤掉，无撤回口。 */
         _flHtml += '<div class="fl-done-item">' +
           '<div class="fl-done-meta">' + esc(lt.created || '') +
-          ' 写 · ' + esc(lt.deliver || '') + ' 到</div>' +
+          ' 写 · ' + esc(lt.deliver || '') + ' 到' +
+          '<button type="button" class="wl-x fl-del" data-flid="' +
+          esc(lt.id) + '" aria-label="删掉这封信">×</button></div>' +
           '<div class="fl-done-text">' + esc(lt.text) + '</div></div>';
       });
       _flHtml += '</details>';
@@ -18153,13 +18272,26 @@ function renderCheckin(dateKey) {
     if (btn.dataset.bound) return;
     btn.dataset.bound = '1';
     btn.addEventListener('click', function () {
+      /* R3431-P1-2（审）：收信路径坏 JSON 同样静默失败+假收信
+       * toast——就地备份坏值，按实告知。 */
+      var _foRaw = '';
+      try { _foRaw = localStorage.getItem('futureLetters') || '[]'; }
+      catch (eFR0) {}
+      var lst = null;
+      try { lst = JSON.parse(_foRaw); } catch (eFJ2) {}
+      if (!Array.isArray(lst)) {
+        try { localStorage.setItem('futureLetters:corrupt', _foRaw); }
+        catch (eFB2) {}
+        showToast('存信的列表坏了——先点「找回」把信捞回来', 'warn');
+        renderCheckin(todayIso());
+        return;
+      }
       try {
-        var lst = JSON.parse(localStorage.getItem('futureLetters') || '[]');
         lst.forEach(function (lt) {
           if (lt && String(lt.id) === btn.dataset.flid) lt.opened = true;
         });
         _lsUnionWrite('futureLetters', lst,
-          function (l) { return l && l.id; }, 50);
+          function (l) { return l && l.id; }, 50, ['opened']);
       } catch (eFO) {}
       /* R3329（审-P3）：data-flid 直拼选择器——id 含 " 类字符
        * 直接 SyntaxError（且抛在 opened 落库后=假收信）。遍历比对。 */
@@ -18169,6 +18301,32 @@ function renderCheckin(dateKey) {
       });
       if (card) card.remove();
       showToast('信替你收好，过去的你很欣慰', 'ok');
+    });
+  });
+  /* R3431-P3-5（审）：已收的信 × 删除——读-滤-直写（不走 union：
+   * 并集会把刚删的条目当「远端新增」拉回）。 */
+  box.querySelectorAll('.fl-del').forEach(function (btn) {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', function () {
+      var lst2 = [];
+      try { lst2 = JSON.parse(localStorage.getItem('futureLetters') || '[]'); }
+      catch (eDL) { lst2 = []; }
+      if (!Array.isArray(lst2)) lst2 = [];
+      var nid = btn.dataset.flid;
+      lst2 = lst2.filter(function (lt) {
+        return !(lt && String(lt.id) === nid); });
+      try {
+        localStorage.setItem('futureLetters', JSON.stringify(lst2));
+      } catch (eDW) { showToast('没删成，再点一次', 'warn'); return; }
+      var _item = btn.closest('.fl-done-item');
+      if (_item) _item.remove();
+      var _sm = box.querySelector('.fl-done summary');
+      if (_sm) {
+        var _left = box.querySelectorAll('.fl-done-item').length;
+        _sm.textContent = '📬 已收的信（' + _left + '）';
+      }
+      showToast('这封信请出信箱啦', 'info');
     });
   });
   var _flw = box.querySelector('#flWrite');
@@ -19708,6 +19866,10 @@ function _wishNySet(ny) {
 }
 function _wishNyBlock() {
   var y = new Date().getFullYear(), ny = _wishNyGet();
+  /* R3431-P3-9（审）：opened=1 的 ny 在键里躺到下年封窗才清——
+   * 「已拆」即已处置（瓶里也已另收或明示放这），渲染路过顺手
+   * 清场，不占下一封封愿位。 */
+  if (ny && ny.opened) { _wishNySet(null); ny = null; }
   /* 启封态：跨年愿望到了它写的年份还没拆——一直挂着直到用户选去向 */
   if (ny && +ny.year <= y && !ny.opened) {
     return '<div class="ck-wish-card ck-wish-ny">' +
@@ -19790,10 +19952,25 @@ function _wishSummary() {
   var w = _wishGet();
   var en = _wishEchoGet().length;
   var tail = en ? '，还愿 ×' + en : '';
-  if (!w) return (en ? '（' : '，写个愿望丢进去') +
-    (en ? '还愿 ×' + en + '）' : '');
+  /* R3431-P2（审）：跨年愿到年待启封时，折叠态摘要不提——
+   * 不点开来永远不知道里面有张启封卡（被动机制失效）。
+   * 徽标进摘要，最抢眼的一拍放最前。 */
+  var _nyB = '';
+  try {
+    var _ny = _wishNyGet();
+    if (_ny && +_ny.year <= new Date().getFullYear() && !_ny.opened) {
+      _nyB = '🧨 跨年愿望等你启封';
+    }
+  } catch (eN) {}
+  if (!w) {
+    var _pts = [];
+    if (_nyB) _pts.push(_nyB);
+    if (en) _pts.push('还愿 ×' + en);
+    return _pts.length ? '（' + _pts.join(' · ') + '）' : '，写个愿望丢进去';
+  }
   var d = _wishDays(w);
-  return '（' + (d === 0 ? '今天刚丢的' : '愿望躺了 ' + d + ' 天') +
+  return '（' + (_nyB ? _nyB + ' · ' : '') +
+    (d === 0 ? '今天刚丢的' : '愿望躺了 ' + d + ' 天') +
     tail + '）';
 }
 function _renderWishBottle(edit) {
@@ -19960,6 +20137,9 @@ function _wishAction(act, arg, dateKey) {
         t: _ns.t || '', ny: 1, year: _ns.year,
         echo: '去年最后一天写下的，今年让它慢慢长' },
       date: todayIso() }, 'wishecho');
+    /* R3431-P3-10（审）：晒完不处置卡还在，用户易以为没点上——
+     * 补一句指路（不自动标 opened：晒≠处置）。 */
+    showToast('图出好啦——卡还在的话记得给它选个家', 'info');
     return;
   }
   if (act === 'echoShare' || act === 'echoShareItem') {
@@ -20214,10 +20394,14 @@ function _mcQS(pack, custom) {
   if (pack === 'custom') {
     var _cq = [];
     (custom || []).forEach(function (q) {
-      var _os = ((q && q.o) || []).map(function (x) {
-        return String(x || '').slice(0, 14);
-      }).filter(function (x) { return !!x; }).slice(0, 4);
-      var _qt = String((q && q.q) || '').slice(0, 22);
+      /* R3430-P3-3/6（审）：o 非数组（字符串/对象）时 .map 炸
+       * TypeError；纯空白题干/选项（' '）经 truthy 漏进链。 */
+      var _os = (Array.isArray(q && q.o) ? q.o : []).map(function (x) {
+        return String(x || '').trim().slice(0, 14);
+      }).filter(function (x) { return !!x; })
+        .filter(function (x, i, a) { return a.indexOf(x) === i; })
+        .slice(0, 4);
+      var _qt = String((q && q.q) || '').trim().slice(0, 22);
       if (_qt && _os.length >= 2) _cq.push({ q: _qt, o: _os });
     });
     return _cq.length === 5 ? _cq : null;
@@ -20240,7 +20424,11 @@ function _mcQS(pack, custom) {
   ];
 }
 function _mcPackOf(p) {
-  return (p === 'love' || p === 'custom') ? p : 'bestie';
+  /* R3430-P1-1（审）：v1/v2 载荷也受理 'custom'——`#mcr=v2|..|
+   * custom` 能拼出「自写默契题·100分·零题行」伪造成绩卡落榜，
+   * `#mc=v1|..|custom` 出 0 题死卡。custom 只由 v3 链合法产生，
+   * v1/v2 归一 bestie。 */
+  return p === 'love' ? 'love' : 'bestie';
 }
 /* 自写题编解码——题干≤22 字、选项 2~4 个≤14 字、满 5 题才算有效。 */
 function _mcQDec(b64) {
@@ -20290,8 +20478,10 @@ function _mcParse() {
   try { h = String(location.hash || ''); } catch (e) {}
   var m = h.match(/^#(mc|mcr)=([A-Za-z0-9_-]+)/);
   /* #mc=/#mcr= 前缀在而载荷对不上（字符集/截断）——是弄丢的挑战书，
-   * 不该静默回落出题卡让人误以为链是自己发的。 */
-  if (!m) return /^#mc[rs]?=/.test(h) ? { mode: 'bad' } : null;
+   * 不该静默回落出题卡让人误以为链是自己发的。
+   * R3430-P3-2（审）：近形前缀同口径——#MC=/#mcb=/#mc 裸串
+   * 也判弄丢卡，不再静默吃成出题卡。 */
+  if (!m) return /^#mc/i.test(h) ? { mode: 'bad' } : null;
   var p = _mcDec(m[2]).split('|');
   if (m[1] === 'mc' && p[0] === 'v1' && /^[0-3]{5}$/.test(p[2] || '')) {
     return { mode: 'guest', nick: String(p[1] || '').slice(0, 12),
@@ -20330,7 +20520,13 @@ function _mcScore(ha, ga, pack, qs) {
   var hits = 0, matched = [], missed = [];
   for (var i = 0; i < _qn.length; i++) {
     var a = +ha[i], b = +ga[i];
-    if (a === b) { hits++; matched.push(i); } else { missed.push(i); }
+    /* R3430-P2-1（审）：索引超本题选项数（自写包可 2 选项，
+     * ha=ga='33333' 形状合法）——同值越界原先算「答对」伪造
+     * 百分；有效命中必须双侧都在选项界内。 */
+    var _inb = a >= 0 && b >= 0 &&
+      a < (_qn[i].o || []).length && b < (_qn[i].o || []).length;
+    if (_inb && a === b) { hits++; matched.push(i); }
+    else { missed.push(i); }
   }
   var tier = _tr[_tr.length - 1];
   for (var t = 0; t < _tr.length; t++) {
@@ -20344,7 +20540,8 @@ function _mcCompareHtml(hn, gn, ha, ga, pack, qs) {
   var s = _mcScore(ha, ga, pack, qs);
   var rows = (_mcQS(pack, qs) || []).map(function (q, i) {
     var a = q.o[+ha[i]] || '—', b = q.o[+ga[i]] || '—';
-    var ok = (+ha[i] === +ga[i]);
+    /* R3430-P2-1：ok 与 _mcScore 同口径——越界同值不算对上。 */
+    var ok = (+ha[i] === +ga[i]) && a !== '—' && b !== '—';
     return '<div class="mc-row' + (ok ? ' hit' : '') + '">' +
       '<div class="mc-row-q">' + (ok ? '💞' : '🍃') + ' ' + esc(q.q) +
       '</div><div class="mc-row-a">' + esc(hn) + '：' + esc(a) +
@@ -20377,16 +20574,38 @@ function _mcBoardSave(a) {
  * 留名，改名后旧成绩链照样收榜（R3412-P2-2 静默丢回流修复）。
  * 榜键=受邀者名+答卷指纹——同名不同人不再合并成一行
  * （R3412-P2-3）。返回名次（0 起）。 */
-function _mcBoardRecord(hn, gn, pct, ha) {
+function _mcBoardRecord(hn, gn, pct, ha, pack) {
   var me = '';
   try { me = localStorage.getItem('mochi:nick') || ''; } catch (e) {}
   var hosts = [];
   try { hosts = JSON.parse(localStorage.getItem('mochi:hosts') || '[]'); }
   catch (e) {}
-  var isHost = (me && me === hn) ||
-    (Array.isArray(hosts) && hosts.indexOf(hn) >= 0);
-  if (!hn || !isHost || !gn) return -1;
-  var key = gn + '#' + String(ha || '').slice(0, 6);
+  /* R3430-P1-4（审）：hosts 只存昵称时，知道出题人名就能伪造
+   * 成绩链往榜里注任意分。hosts 改存 {n,a} 名+答案指纹——
+   * 成绩链的 ha 必须对得上本机真出过的某套题；旧字符串条目
+   * 无指纹可验，按名放行（旧链兼容，新发链全带指纹）。 */
+  var isHost = false, _ver = false, _fpForHn = false, _strForHn = false;
+  if (me && me === hn) isHost = true;
+  if (Array.isArray(hosts)) {
+    hosts.forEach(function (h) {
+      if (typeof h === 'string') {
+        if (h === hn) { isHost = true; _strForHn = true; }
+      } else if (h && h.n === hn) {
+        isHost = true; _fpForHn = true;
+        if (h.a === String(ha || '')) _ver = true;
+      }
+    });
+  }
+  /* 同名已有指纹条目时，必须指纹对得上（旧字符串条目被新条目
+   * 取代后不再构成后门）；完全没指纹可验时按名放行兜底。 */
+  if (isHost && !_ver && !_fpForHn && (_strForHn || (me && me === hn))) {
+    _ver = true;
+  }
+  if (!hn || !isHost || !gn || !_ver) return -1;
+  /* R3430-P2-3（审）：榜键原先只含受邀者名+出题人答案——同 nick
+   * 同答案跨题包（bestie vs custom）撞键合并丢行。补包身份。 */
+  var key = gn + '#' + String(ha || '').slice(0, 6) +
+    '|' + String(pack || 'bestie');
   var a = _mcBoard(), i;
   for (i = 0; i < a.length; i++) {
     var k = a[i].k || a[i].n;   /* 旧数据无 k 按名对待 */
@@ -20394,7 +20613,13 @@ function _mcBoardRecord(hn, gn, pct, ha) {
      * 同值 setItem 虽不发 storage 事件，但变化写会让邻 tab 重渲
      * 再写（回环）。同分早退，只让真正的新分落键。 */
     if (k === key && a[i].s === pct) return i;
-    if (k === key) { a[i].s = pct; a[i].t = Date.now(); break; }
+    /* R3430-P1-2（审）：同受邀者两本不同分的成绩链分挂两个 tab，
+     * 每次 storage 重渲都把分改回自己这本——写键乒乓永不停。
+     * 「谁最懂你榜」语义取最好成绩：只许升不许降，双向收敛。 */
+    if (k === key) {
+      if (a[i].s >= pct) return i;
+      a[i].s = pct; a[i].t = Date.now(); break;
+    }
   }
   if (i >= a.length) a.push({ n: gn, k: key, s: pct, t: Date.now() });
   a.sort(function (x, y) { return (y.s - x.s) || (y.t - x.t); });
@@ -20517,6 +20742,12 @@ function _mcEditRead(box) {
       showToast('第 ' + (i + 1) + ' 题至少写 2 个选项', 'warn');
       return null;
     }
+    /* R3430-P3-8（审）：重复选项「A,A」可进链——受邀方两个
+     * 一样的钮，ans 索引语义歧义。写题时指出来。 */
+    if (new Set(_opts).size !== _opts.length) {
+      showToast('第 ' + (i + 1) + ' 题有俩选项写重啦，改一个', 'warn');
+      return null;
+    }
     if (_pick < 0) {
       showToast('第 ' + (i + 1) + ' 题在你会选的那项前面打勾', 'warn');
       return null;
@@ -20525,6 +20756,43 @@ function _mcEditRead(box) {
     ans += String(_pick);
   }
   return { qs: qs, ans: ans };
+}
+/* R3430-P1-3（审）：自写题编辑器一切题库/邻 tab storage 重渲
+ * 就丢整份稿——不重渲染能存在哪儿，渲前存草稿渲后回填。
+ * 非校验版读取：原样收文本与勾选位，不弹 toast。 */
+function _mcEditDraft() {
+  if (!el('mochiE0')) return null;
+  var d = [];
+  for (var i = 0; i < 5; i++) {
+    var _qe = el('mochiE' + i);
+    if (!_qe) return null;
+    var _o = [], _r = -1;
+    var _ins = _qe.querySelectorAll('.mc-eo');
+    for (var j = 0; j < _ins.length; j++) {
+      _o.push(String((_ins[j].querySelector('.mc-eo-t') || {}).value || ''));
+      var _rr = _ins[j].querySelector('input[type="radio"]');
+      if (_rr && _rr.checked) _r = j;
+    }
+    d.push({ q: String((_qe.querySelector('.mc-eq-t') || {}).value || ''),
+             o: _o, r: _r });
+  }
+  return d;
+}
+function _mcEditApply(d) {
+  if (!d) return;
+  for (var i = 0; i < 5 && i < d.length; i++) {
+    var _qe = el('mochiE' + i);
+    if (!_qe) break;
+    var _qt = _qe.querySelector('.mc-eq-t');
+    if (_qt) _qt.value = d[i].q || '';
+    var _ins = _qe.querySelectorAll('.mc-eo');
+    for (var j = 0; j < _ins.length; j++) {
+      var _ot = _ins[j].querySelector('.mc-eo-t');
+      if (_ot) _ot.value = (d[i].o && d[i].o[j]) || '';
+      var _rr = _ins[j].querySelector('input[type="radio"]');
+      if (_rr) _rr.checked = (d[i].r === j);
+    }
+  }
 }
 function _mcAnsRead(box) {
   var ans = '     '.split('');
@@ -20539,15 +20807,21 @@ function _renderMochi() {
   if (!box) return;
   var st = _mcParse();
   if (st && st.mode === 'bad') {
+    /* R3430-P2-4（审）：弄丢卡无视图内回退——坏链只能返出本页。
+     * 挂「自己出一套」钮（host 处理器清 hash+重渲出题卡）。 */
     box.innerHTML = '<div class="ph-empty">这份挑战书在路上弄丢了——' +
-      '让 TA 重发一份给你吧</div>';
+      '让 TA 重发一份给你吧</div>' +
+      '<div class="mc-acts"><button type="button" class="ghost" ' +
+      'data-mc="host">我也出一套题给 TA</button></div>';
     return;
   }
   if (st && st.mode === 'result') {
     var _sc2 = _mcScore(st.ha, st.ga, st.pack, st.qs);
-    var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct, st.ha);
+    var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct, st.ha, st.pack);
     var _rkLine = '';
-    if (_rk >= 0) {
+    /* R3430-P3-5（审）：榜 20 条封顶后 _rk 仍报「排第 21+」——
+     * 条目已被裁掉，名次是空的。帽外不显名次行。 */
+    if (_rk >= 0 && _rk < 20) {
       var _bn = _mcBoard().length;
       /* R3411-P2-8（终审）：受邀者昵称字段在场却写死 TA——用实名。 */
       _rkLine = '<p class="mc-rank">你收到的 ' + _bn +
@@ -20574,6 +20848,12 @@ function _renderMochi() {
     } catch (eRD) {}
     return;
   }
+  /* R3430-P1-3：重渲前把在编的草稿存下来（切题库/邻 tab
+   * storage 重渲都过这道），渲完编辑器在场就回填。 */
+  var _dr = _mcEditDraft();
+  if (_dr) {
+    try { window.__mcDraft = _dr; } catch (eD0) {}
+  }
   box.innerHTML = _mcBoardHtml() +
     _mcQuizHtml(st && st.mode === 'guest'
       ? { who: st.nick, hostAns: st.ans, pack: st.pack, qs: st.qs }
@@ -20583,6 +20863,9 @@ function _renderMochi() {
   try {
     box.dataset.qs = (st && st.qs) ? JSON.stringify(st.qs) : '';
   } catch (eQS) {}
+  if (el('mochiE0')) {
+    try { _mcEditApply(window.__mcDraft); } catch (eD1) {}
+  }
 }
 /* 委托绑容器——innerHTML 重渲不掉绑定。 */
 (function () {
@@ -20639,8 +20922,12 @@ function _renderMochi() {
       try {
         var _hs = JSON.parse(localStorage.getItem('mochi:hosts') || '[]');
         if (!Array.isArray(_hs)) _hs = [];
-        if (_hs.indexOf(nick) === -1) {
-          _hs.push(nick);
+        /* R3430-P1-4：{n,a} 指纹条目，去重按名+答案。 */
+        var _hHas = _hs.some(function (h) {
+          return h && h.n === nick && h.a === ans;
+        });
+        if (!_hHas) {
+          _hs.push({ n: nick, a: ans });
           localStorage.setItem('mochi:hosts',
             JSON.stringify(_hs.slice(-10)));
         }
@@ -20678,8 +20965,11 @@ function _renderMochi() {
       try {
         var _hs2 = JSON.parse(localStorage.getItem('mochi:hosts') || '[]');
         if (!Array.isArray(_hs2)) _hs2 = [];
-        if (_hs2.indexOf(nick0) === -1) {
-          _hs2.push(nick0);
+        var _hHas2 = _hs2.some(function (h) {
+          return h && h.n === nick0 && h.a === _ed.ans;
+        });
+        if (!_hHas2) {
+          _hs2.push({ n: nick0, a: _ed.ans });
           localStorage.setItem('mochi:hosts',
             JSON.stringify(_hs2.slice(-10)));
         }
@@ -20687,6 +20977,12 @@ function _renderMochi() {
       var clink = location.origin + '/?view=mochi#mc=' +
         _mcEnc('v3|' + nick0 + '|' + _ed.ans + '|c|' +
                _mcEnc(JSON.stringify(_ed.qs)));
+      /* R3430-P2-5（审）：自写题满配长链 ~2.2K 字符——超 2048 的
+       * IM/短链器截断后落地即「弄丢了」，发方无感知。超长预警。 */
+      if (clink.length > 1800) {
+        showToast('链有点长（' + clink.length +
+          ' 字符），有的聊天软件会截断——题干写短点更稳', 'warn');
+      }
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +
         '<input id="mochiLink" class="mc-link" readonly ' +
@@ -20703,7 +20999,8 @@ function _renderMochi() {
     if (act === 'done' && st && st.mode === 'guest') {
       var ga = _mcAnsRead(box);
       if (ga.indexOf(' ') !== -1) return;
-      var s = _mcScore(st.ans, ga, st.pack, st.qs);
+      /* R3430-P3-1（审）：先前为得分预取过 _mcScore，下游从未
+       * 消费（_mcCompareHtml 内部自算）——删死读点。 */
       var mn = '';
       try { mn = localStorage.getItem('mochi:nick') || ''; } catch (eM) {}
       box.innerHTML = '<div class="mc-head">你和「<b>' +
@@ -20732,16 +21029,28 @@ function _renderMochi() {
       var lk = el('mochiLink');
       var v = lk ? lk.value : '';
       if (!v) return;
+      /* R3430-P2-6（审）：复制兜底落在 readonly input 上——老版
+       * iOS Safari 不给选区手柄，链实际复制不了。兜底时把它换成
+       * 普通可选文本节点（2K 链手抄不可行）。 */
+      var _mcLinkFallback = function () {
+        try {
+          var _dv = document.createElement('div');
+          _dv.className = 'mc-link mc-link-txt';
+          _dv.textContent = v;
+          lk.parentNode.replaceChild(_dv, lk);
+        } catch (eLF) {}
+        showToast('长按链接手动复制', 'warn');
+      };
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(v).then(function () {
             showToast('挑战书复制好啦，去发给 TA 吧', 'ok');
-          }, function () { showToast('长按链接手动复制', 'warn'); });
+          }, _mcLinkFallback);
         } else {
           if (lk.select) lk.select();
-          showToast('长按链接手动复制', 'info');
+          _mcLinkFallback();
         }
-      } catch (eC) { showToast('长按链接手动复制', 'info'); }
+      } catch (eC) { _mcLinkFallback(); }
       return;
     }
     if (act === 'share') {
@@ -23038,12 +23347,21 @@ function baziPersonaCard(j) {
                 var _fa = JSON.parse(_v);
                 if (!Array.isArray(_fa) || _fa.length > 50) return;
                 var _fok = _fa.every(function (lt) {
-                  return lt && typeof lt === 'object' &&
-                    typeof lt.id === 'string' && lt.id.length <= 32 &&
-                    typeof lt.text === 'string' && lt.text.length <= 1024 &&
-                    /^\d{4}-\d{2}-\d{2}$/.test(lt.deliver || '') &&
-                    /^\d{4}-\d{2}-\d{2}$/.test(lt.created || '') &&
-                    (lt.opened === true || lt.opened === false);
+                  if (!lt || typeof lt !== 'object' ||
+                      typeof lt.id !== 'string' || lt.id.length > 32 ||
+                      typeof lt.text !== 'string' ||
+                      lt.text.length > 1024 ||
+                      !/^\d{4}-\d{2}-\d{2}$/.test(lt.deliver || '') ||
+                      !/^\d{4}-\d{2}-\d{2}$/.test(lt.created || '')) {
+                    return false;
+                  }
+                  /* R3431-残余（审）：opened 缺省/0-1 容忍——
+                   * 严格 bool 一条不符整键拒收=静默丢全量信；
+                   * 就地归一化为 true/false。 */
+                  if (lt.opened !== true && lt.opened !== false) {
+                    lt.opened = !!lt.opened;
+                  }
+                  return true;
                 });
                 if (!_fok) return;
               } catch (eFA) { return; }
@@ -23251,12 +23569,18 @@ function baziPersonaCard(j) {
                 /* R3420-P0-3：ny 封愿透传——原重建 {t,c,ts} 把跨年
                  * 愿望剥掉；ny-only 瓶（只封愿没普愿，R3417 合法
                  * 形态）被 !t 整条拒收。 */
+                /* R3431-P3-8（审）：year=0/负/远年透传 → 「0年」恒
+                 * ≤今年被判成立即启封。年份须在[今年,明年]区间，
+                 * 界外的愿整个丢（包括只剩 ny 没正文的瓶）。 */
+                var _nyY = +(_wo.ny && _wo.ny.year) || 0;
+                var _ty = new Date().getFullYear();
                 var _ony = (_wo.ny && typeof _wo.ny === 'object' &&
-                  typeof _wo.ny.t === 'string' && _wo.ny.t)
+                  typeof _wo.ny.t === 'string' && _wo.ny.t &&
+                  _nyY >= _ty && _nyY <= _ty + 1)
                   ? { t: String(_wo.ny.t).slice(0, 40),
                       c: String(_wo.ny.c || '跨年').slice(0, 16),
                       ts: +_wo.ny.ts || Date.now(),
-                      year: +_wo.ny.year || 0,
+                      year: _nyY,
                       opened: _wo.ny.opened ? 1 : 0 }
                   : null;
                 _wo = { t: String(_wo.t || '').slice(0, 200),

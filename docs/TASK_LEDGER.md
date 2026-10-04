@@ -19188,3 +19188,41 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   机豆腐海报防住。
 - 闸：selftest 443、ui_smoke 113、contract 789 全绿；
   sw 缓存 bump books-shell-a6f7fc87ccb6。
+
+## R3426+R3427+R3428 用户直报批 + R3430+R3431 双审修复批 + 侧栏背景断带根治
+- R3426 用户直报三点修：装桌面钮遮聊天入口（视口 y 抬到
+  12+76）、今日牌点开大图、掷筊同日锁答案（design 确认）。
+- R3427 默契自定义出题上线（v3 题包随链格式+模板引导+
+  _mcEditDraft/_mcEditApply 草稿保留），R3428 未来信自选日期档。
+- R3430（裂变链终扫二轮）按单清：_mcPackOf 拒 'custom' 入
+  v1/v2 链（伪造成绩卡/榜注入根治）；榜写改 best-of 只升不降
+  （双 tab 不同分成绩链互刷 ping-pong 根治）；榜键带 pack 分池；
+  mochi:hosts 改 {n,a} 指纹——指纹在则老字符串不再是后门；
+  榜名次帽外不显「排第 21+」；算分/对照表要求双侧索引在选项
+  界内（ha=ga='33333' 伪满分根治）；storage 事件收窄
+  mochi:board+答题态/编辑态免重渲；超长链（>1800）警告+复制
+  兜底改可选文本节点；#MC=/#mcb= 近形前缀判「弄丢」卡；
+  裸 /#mc= 无 ?view= 落 mochi 不再吞载荷；题干/选项空白剔除+
+  重复选项写题时拒；_mcQS custom 非数组 o 不再 TypeError；
+  'done' 死读点删；bad 卡给「自己出一套」回流钮。
+- R3431（留存/日期域复扫）按单清：写信满 50 且无可挤时
+  如实拒寄（slice(0,50) 尾裁假成功根治）；渲染/收信路径坏 JSON
+  也写 futureLetters:corrupt（找回链浮出）；收信删卡+toast 收进
+  try 成功块（假收信根治）；_onDayFlip 日锁视图重渲表
+  （tarot/qian/muyu/hehun/moodweek/mantra+pile 钩隔夜不再死锁）；
+  hehun/daily 走 client_date（非东八区口径对齐）；_wishSummary
+  挂「跨年信等拆」徽标（启封不再纯被动）；_lsUnionWrite 加
+  orFields——opened 单向态不被旧快照盖回；flDate min/max 每次
+  展开重算+placeholder/pattern 引导+假日期往返比对拒+拒因分档；
+  徽标/已收三组过滤要求对象（'undefined 到'根治）；已收信 ×
+  删除+寄前明示不可改期；+N 条分母改未 pin 集；chat:cards/
+  topics cutoff UTC→本地日；ny.year 界外丢弃（0 年立即启封）；
+  opened ny 渲染路过清场；nyShare 晒后指路 toast；导入 opened
+  容忍缺省归一化。
+- 用户直报侧栏背景断带根治：.side-chat flex:1 高度钉视口而
+  内容溢出到 aside 底——渐变上提 .recent-sidebar（滚动容器底
+  涂满滚口），.side-chat 透明；dark 主题同步 aside=#251F23。
+  Playwright 实测空态/气泡/滚动底/深色四态背景连续。
+- 闸：selftest 443（+frontend.mochi_custom）、contract 789、
+  ui_smoke 113、banned_copy 0、regress PASS 全绿；
+  sw 缓存 bump books-shell-4e9b676de688。

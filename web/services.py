@@ -518,7 +518,10 @@ def hehun_daily(req) -> dict:
     判词按分档换句，附加日支信号标签（合→适合表态、冲→别翻旧账）。"""
     ba, bb, h, _dayun, _aymd, _bymd = _hehun_plates(req)
     base = _hehun_score(h)
-    _today = _today_cn()
+    # R3431-P2（审）：锚浏览器本地日——缺省回退服务器 CST（旧端/
+    # 直调兼容），海外用户零点前后不再错位一天。
+    _cd = getattr(req, "client_date", None)
+    _today = date.fromisoformat(_cd) if _cd else _today_cn()
     _tp, _ = _bazi_day_ganzhi(
         datetime(_today.year, _today.month, _today.day))
     _tz = _tp[1]

@@ -1022,7 +1022,12 @@ html[data-theme="dark"] .daily-mantra b{
   overscroll-behavior:contain;
   /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
   width:min(320px, 82vw);
-  background:var(--card); border-left:1px solid var(--border);
+  /* 用户直报：侧栏底背景画在 .side-chat 上——聊天内容超过一屏时
+   * 溢出部分（气泡/输入行）落到 aside 的 var(--card) 浅底，
+   * 滚到下面像「背景断开了」。渐变上提到 aside 本身（滚动容器
+   * 背景永远铺满可视区），.side-chat 变透明——怎么滚都是一整块。 */
+  background:linear-gradient(180deg,#FDF9F2,#FBF3E7);
+  border-left:1px solid var(--border);
   box-shadow:6px 0 24px rgba(0,0,0,.12);
   /* R2349m（R76-P1-4a）：顶部并上刘海安全区（关钮不被状态栏盖） */
   padding:calc(18px + env(safe-area-inset-top, 0px)) 16px 24px;
@@ -1120,7 +1125,7 @@ html[data-theme="dark"] .daily-mantra b{
   /* R2349m（R76-P1-4b）：底 padding 并上 home 条安全区 */
   margin:12px -16px -24px;
   padding:12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-  background:linear-gradient(180deg,#FDF9F2,#FBF3E7);
+  background:transparent;
   border-top:1px solid var(--border);
 }
 .side-chat .chat-flow{flex:1; min-height:120px;}
@@ -3391,8 +3396,9 @@ html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
 /* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
 /* P0-9 skip-link / P0-10 专业盘返回钮 */
 html[data-theme="dark"] .skip-link{background:var(--cta-grad);}
-/* P1-11 侧栏抽屉 */
-html[data-theme="dark"] .side-chat{background:#251F23;}
+/* P1-11 侧栏抽屉（底色链随浅色批同改：渐变上提 aside，侧栏底深） */
+html[data-theme="dark"] .recent-sidebar{background:#251F23;}
+html[data-theme="dark"] .side-chat{background:transparent;}
 html[data-theme="dark"] .recent-side-head{background:#2B2529;
   color:var(--text);}
 /* P1-12 宜忌 pill：白底 pill 在深卡上突兀 */

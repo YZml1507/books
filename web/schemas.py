@@ -571,8 +571,13 @@ class HehunRequest(BaseModel):
     # R3313（审-P1-5）：邀请态下读者是乙侧（受邀者）——判词里「我」的
     # 指称要贴乙侧；缺省 False 兼容旧前端与台账回放。
     reader_is_b: bool = False
+    # R3431-P2（审）：合拍指数卡此前全站唯一不锚浏览器本地日——
+    # 海外时区零点前后按服务器 CST 翻篇，与用户「今天」错位。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
         _check_ymdh("乙", self.b_year, self.b_month, self.b_day, self.b_hour)
         for _who, _cal, _ly, _lm, _ld in (
