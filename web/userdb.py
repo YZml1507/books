@@ -30,6 +30,8 @@ _DB_PATH = os.path.join(
 
 _URL = os.getenv("BOOKS_USERDB_URL", "").strip()
 _TOKEN = os.getenv("BOOKS_USERDB_TOKEN", "").strip()
+_INITED = False
+_INIT_LOCK = threading.Lock()
 
 _DDL = [
     "CREATE TABLE IF NOT EXISTS accounts ("
@@ -114,8 +116,17 @@ def _exec(sql: str, args: tuple = ()) -> list[dict]:
 
 
 def init() -> None:
-    for ddl in _DDL:
-        _exec(ddl)
+    """建表幂等且每进程只跑一次——此前每个账号端点调用都
+    重新跑 2 条 DDL，libsql 后端下每条都是一次 HTTP 往返。"""
+    global _INITED
+    if _INITED:
+        return
+    with _INIT_LOCK:
+        if _INITED:
+            return
+        for ddl in _DDL:
+            _exec(ddl)
+        _INITED = True
 
 
 def _now() -> str:
@@ -135,10 +146,15 @@ def register(nickname: str, passcode: str) -> tuple[bool, str]:
              (nickname,)):
         return False, "这个名字已经有人用了，换一个试试"
     salt = base64.b64encode(secrets.token_bytes(9)).decode()
-    _exec(
-        "INSERT INTO accounts (nickname, pass_hash, salt,"
-        " created_at, updated_at) VALUES (?,?,?,?,?)",
-        (nickname, _hash(passcode, salt), salt, _now(), _now()))
+    try:
+        _exec(
+            "INSERT INTO accounts (nickname, pass_hash, salt,"
+            " created_at, updated_at) VALUES (?,?,?,?,?)",
+            (nickname, _hash(passcode, salt), salt, _now(), _now()))
+    except Exception:
+        # 并发重名抢注：SELECT 后 INSERT 前另一请求先建了同昵称——
+        # sqlite IntegrityError / libsql 约束报错统一归并为重名拒。
+        return False, "这个名字已经有人用了，换一个试试"
     return True, "ok"
 
 
