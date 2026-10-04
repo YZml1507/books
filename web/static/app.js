@@ -19525,6 +19525,69 @@ function _moodJarHtml() {
     return html;
   } catch (eMJH) { return ''; }
 }
+/* R3503 你的小规律（Lunary「patterns that are yours」同构差异化
+ * 件）：本地 mood:<date> 日志×星期/周末交叉出一条真实观察——
+ * 只出一条最显著的，数据不够不说话，措辞「好像常常」不预测。 */
+function _ckPattern(todayKey) {
+  try {
+    var _cut = new Date(todayKey + 'T00:00:00');
+    _cut.setDate(_cut.getDate() - 60);           // 只看近 60 天
+    var _recs = [];
+    for (var _pi = 0; _pi < localStorage.length; _pi++) {
+      var _pk = localStorage.key(_pi);
+      if (!_pk || !/^mood:\d{4}-\d{2}-\d{2}$/.test(_pk)) continue;
+      var _pd = _pk.slice(5);
+      var _pdt = new Date(_pd + 'T00:00:00');
+      if (_pdt < _cut || _pd > todayKey) continue;
+      var _pv = +localStorage.getItem(_pk);
+      if (_pv >= 0 && _pv <= 3) {
+        _recs.push({ d: _pd, v: _pv,
+          dow: (_pdt.getDay() + 6) % 7 });       // 0=周一
+      }
+    }
+    if (_recs.length < 8) return '';
+    var _tot = 0;
+    _recs.forEach(function (r) { _tot += r.v; });
+    var _mean = _tot / _recs.length;
+    /* 候选观察池：{txt, lift, n}——挑提升最高且 n≥3 的一条。 */
+    var _cands = [];
+    var _wn = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    for (var _w = 0; _w < 7; _w++) {
+      var _wb = _recs.filter(function (r) { return r.dow === _w; });
+      if (_wb.length >= 3) {
+        var _wm = 0;
+        _wb.forEach(function (r) { _wm += r.v; });
+        _wm /= _wb.length;
+        var _lift = _wm - _mean;
+        if (Math.abs(_lift) >= 0.7) {
+          _cands.push({ lift: Math.abs(_lift), n: _wb.length,
+            txt: '你的' + _wn[_w] + (_lift > 0
+              ? '好像常常更亮一点' : '好像常常偏沉一点') });
+        }
+      }
+    }
+    /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
+    var _we = _recs.filter(function (r) { return r.dow >= 5; });
+    var _wd = _recs.filter(function (r) { return r.dow < 5; });
+    if (_we.length >= 3 && _wd.length >= 3) {
+      var _wem = 0, _wdm = 0;
+      _we.forEach(function (r) { _wem += r.v; });
+      _wd.forEach(function (r) { _wdm += r.v; });
+      _wem /= _we.length; _wdm /= _wd.length;
+      var _wlift = _wem - _wdm;
+      if (Math.abs(_wlift) >= 0.6) {
+        _cands.push({ lift: Math.abs(_wlift), n: _we.length,
+          txt: '你的周末好像常常比周中' +
+               (_wlift > 0 ? '亮一点' : '沉一点') });
+      }
+    }
+    if (!_cands.length) return '';
+    _cands.sort(function (a, b) { return b.lift - a.lift; });
+    return '<div class="ck-quest ck-pattern">📊 你的小规律：' +
+      esc(_cands[0].txt) + '<span class="ck-quest-n">记了 ' +
+      _recs.length + ' 天心情</span></div>';
+  } catch (ePT) { return ''; }
+}
 /* R3497/R3500 小功课题池（模块级）：renderCheckin 与打卡海报
  * 分享同池出题——够得着的日常小事，周一确定轮换。 */
 var _WQ_POOL = [
@@ -20017,7 +20080,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _goalHtml + _wqHtml +
+    _goalHtml + _wqHtml + _ckPattern(dateKey) +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
