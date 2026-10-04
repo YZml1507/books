@@ -105,7 +105,8 @@ def account_backup_pull(req: AccountAuthRequest,
         return {"ok": False, "msg": "试太多次了，歇口气再来"}
     if not userdb.verify(req.nickname, req.passcode):
         return {"ok": False, "msg": "名字或口令码不对"}
-    payload = userdb.get_backup(req.nickname)
-    if payload is None:
+    row = userdb.get_backup(req.nickname)
+    if row is None:
         return {"ok": False, "msg": "云端还没有备份，先在原设备同步一次"}
-    return {"ok": True, "msg": "ok", "payload": payload}
+    return {"ok": True, "msg": "ok", "payload": row["payload"],
+            "updated_at": row["updated_at"]}

@@ -206,8 +206,8 @@ def put_backup(nickname: str, payload: str) -> None:
         (nickname, payload, _now()))
 
 
-def get_backup(nickname: str) -> str | None:
+def get_backup(nickname: str) -> dict | None:
     init()
-    rows = _exec("SELECT payload FROM backups WHERE nickname=?",
+    rows = _exec("SELECT payload, updated_at FROM backups WHERE nickname=?",
                  (nickname,))
-    return rows[0]["payload"] if rows else None
+    return dict(rows[0]) if rows else None

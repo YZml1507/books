@@ -18275,3 +18275,36 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - **低**：无前缀中文「M月D」（八月十五/十月十五）农历阳历都可能
   ——不再静默按今天判，invalid 明说"拿不准是农历还是阳历"。
 - 闸：selftest 415 / contract 762 / parity 三族全绿（含新问法同锚）。
+
+## R3363 多Tab/账号拉回终扫清零（R3363 审：8P1+6P2+4低）
+- **P1-1 墓碑竞态**：拉回在途时「忘掉我的数据」已擦键借 import
+  复活——导入入口拍 wipeAt，写键前/台账回灌前两道重看。
+- **P1-2 在途盖写**：pull 发起拍白名单快照，落地 diff——在途
+  被改/在途新建的键保本机，toast 点名条数。
+- **P1-3 keepalive 64KB 必败**：keepalive 包超 60K 改推偏好段+
+  置 xmaccount:pending，下次全量推后清除；注册首推走 keepalive
+  （P1-4 注册即关页丢首备份同解）。
+- **P1-5 账号卡跨 tab**：storage 监听补 xmaccount*/lastsync/
+  lastpull 分支→__acctRender；凭据换昵称走登出同款镜像清除
+  （_clearAccountKeys 抽函数，logout/切号/清扫共用），B tab
+  不再能绕过登出直接切号。
+- **P1-6 拉回 tab 视图最旧**：_pull 落地后 1.2s 重载——低频
+  大动作换全视图一致（原先自己 tab 最陈旧、别 tab 反而新）。
+- **P1-7 跨账号串味**：xmaccount:owner 记本机数据归属——登
+  异号先 _sweepForNewOwner 清白名单私密键+视图键再拉回；
+  threads_seen_v1 收进清除面（P2-13）。
+- **P1-8 多设备互盖感知**：备份包带 dev 设备戳+ver2 版本戳，
+  pull 响应带服务端 updated_at；包是别设备最近传的→提示「另
+  一台设备也同步过」，旧版包→「新功能数据可能没带齐」（P2-14）。
+- **P2-9 原生 confirm**：换两段式按钮——云端比上次上传旧 60s+
+  时 8 秒内再点「从云端拉回」才执行。
+- **P2-10 同步戳口径**：「上次同步」改「上次上传」，另记
+  xmaccount:lastpull 分开展示。
+- **P2-11 在途锁**：_pullBusy 罩拉回全程（双点拒绝+按钮提示）；
+  push 检测 pull 在途等 ≤15s 再拍快照，防撕裂 bundle。
+- **P2-12 镜像详情断档**：登出重登同号记录全去重→详情空；
+  拉回后按去重键用 bundle 完整 req/result 补建镜像详情。
+- **P2-15 visits 并集**：导入改集合合并，不再整表覆盖倒退计数。
+- **低-17**：BroadcastChannel 用完即 close。
+- 后端：get_backup 返回 updated_at，pull 响应带出（P1-8 判据）。
+- 闸：selftest 415 / ruff 绿。

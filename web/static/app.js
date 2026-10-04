@@ -14647,6 +14647,17 @@ function init() {
     /* R3265（R3250-P2）：voiceMode 键已无写入方——口吻跨 tab 死
      * 分支摘除；皮肤跨 tab 同步保留。 */
     if (e.key === THEME_KEY) { applyTheme(uiTheme()); }
+    /* R3363-P1-5：A tab 登入/注册/登出/换号后 B tab 账号卡不跟——
+     * 卡片照旧挂登录表单，还能在 B 直接登另一个号绕过登出清除。
+     * 凭据/同步戳变化即重渲；换昵称再补一遍镜像清除。 */
+    if (e.key === 'xmaccount' || e.key === 'xmaccount:lastsync' ||
+        e.key === 'xmaccount:lastpull') {
+      try { window.__acctRender(); } catch (eAR) {}
+      if (e.key === 'xmaccount') {
+        try { window.__acctCredsChanged(e.oldValue); } catch (eAC) {}
+      }
+      return;
+    }
     /* R232a（R40-R2）：生日档案跨 tab 同步——A tab 改了生日，
      * B tab 表单下次进页才跟太迟，就地重填未手改字段。 */
     /* R2349y（R95-P1-3）：wipe 墓碑——A 整库清空后写入 wipeAt，
@@ -20038,6 +20049,58 @@ function baziPersonaCard(j) {
     if (_acctCard) (function () {
       var _KEY = 'xmaccount';
       var _SYNC_KEY = 'xmaccount:lastsync';
+      /* R3363-P2-10：拉回也留个戳——「上次同步」只记上传会让
+       * 刚拉回的用户以为自己没拉上。 */
+      var _PULL_KEY = 'xmaccount:lastpull';
+      /* R3363-P1-7：本机数据的「上一任主人」——登 A 号登 B 号时
+       * 残留私密键会混进 B 的备份推上云，靠它判要不要先清扫。 */
+      var _OWNER_KEY = 'xmaccount:owner';
+      /* R3363-P1-8：设备戳打进备份包——拉回时发现包是别的设备
+       * 最近传的，能提醒「另一台设备有更新」。 */
+      var _DEV_KEY = 'xmaccount:dev';
+      var _PEND_KEY = 'xmaccount:pending';
+      /* R3363-P1-2/P1-7：备份白名单键族——拉回快照 diff 与
+       * 跨账号清扫共用同一张口径表（与导入白名单同族）。 */
+      var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/;
+      function _dataKeys() {
+        var _ks = [];
+        try {
+          for (var _i = 0; _i < localStorage.length; _i++) {
+            var _k = localStorage.key(_i);
+            if (_k && _DATA_RE.test(_k)) _ks.push(_k);
+          }
+        } catch (e) {}
+        return _ks;
+      }
+      function _devId() {
+        var _dv = '';
+        try {
+          _dv = localStorage.getItem(_DEV_KEY) || '';
+          if (!_dv) {
+            _dv = Math.random().toString(36).slice(2, 10);
+            localStorage.setItem(_DEV_KEY, _dv);
+          }
+        } catch (e) {}
+        return _dv;
+      }
+      function _clearAccountKeys() {
+        /* R3363-P2-13：threads_seen_v1 已读标记也是跟账号走的——
+         * 切号后沿用上任的已读=串味，收进清除面。 */
+        [_SYNC_KEY, _PULL_KEY, _PEND_KEY,
+         'paipan_mirror_v1', 'paipan_mirror_del_v1',
+         'favorites_mirror_v1', 'threads_mirror_v1',
+         'threads_seen_v1'].forEach(function (mk) {
+          try { localStorage.removeItem(mk); } catch (e) {}
+        });
+      }
+      function _sweepForNewOwner() {
+        /* R3363-P1-7：换号前的本机清扫——把上一任留下的白名单
+         * 私密键与视图键全收，再拉回，不碰新凭据/设备戳/owner。 */
+        _dataKeys().forEach(function (k) {
+          try { localStorage.removeItem(k); } catch (e) {}
+        });
+        _clearAccountKeys();
+      }
       var _nick = document.getElementById('acctNick');
       var _pass = document.getElementById('acctPass');
       var _form = document.getElementById('acctForm');
@@ -20063,9 +20126,12 @@ function baziPersonaCard(j) {
           _form.hidden = true;
           _logged.hidden = false;
           _who.textContent = c.n;
-          var _ls = '';
+          var _ls = '', _lp = '';
           try { _ls = localStorage.getItem(_SYNC_KEY) || ''; } catch (e) {}
-          _lastSync.textContent = _ls ? ('上次同步 ' + _ls) : '还没同步过';
+          try { _lp = localStorage.getItem(_PULL_KEY) || ''; } catch (e) {}
+          _lastSync.textContent = _ls
+            ? ('上次上传 ' + _ls + (_lp ? ' · 上次拉回 ' + _lp : ''))
+            : (_lp ? ('没传过 · 上次拉回 ' + _lp) : '还没同步过');
         } else {
           _form.hidden = false;
           _logged.hidden = true;
@@ -20078,10 +20144,31 @@ function baziPersonaCard(j) {
               ? '云端没接通——备份留不住，换设备拉不回' : '查一下云端…'));
       }
       window.__acctRender = _acctRender;
-      var _syncBusy = false;
+      /* R3363-P1-5：B tab 的 storage 事件报「凭据换了昵称」——
+       * 免登出切号也要走登出同款的镜像/戳清除，不然新账号看到
+       * 旧账号的视图、还把数据推串号。 */
+      window.__acctCredsChanged = function (oldRaw) {
+        try {
+          var _oc = JSON.parse(oldRaw || 'null');
+          var _nc = _creds();
+          if (_oc && _oc.n && _nc && _nc.n !== _oc.n) {
+            _clearAccountKeys();
+          }
+        } catch (e) {}
+      };
+      var _syncBusy = false, _pullBusy = false;
       async function _push(showOk, keepAlive) {
         var c = _creds();
         if (!c) return;
+        /* R3363-P2-11：拉回在途时 push 会和导入交错产出撕裂
+         * bundle（LS 段与服务端段取自不同时刻）——等拉回落地。 */
+        if (_pullBusy) {
+          var _wP = Date.now();
+          while (_pullBusy && Date.now() - _wP < 15000) {
+            await new Promise(function (r) { setTimeout(r, 200); });
+          }
+          if (_pullBusy) return;
+        }
         /* R3362（冒烟实锤）：手动点「立刻同步」撞上自动推在途——
          * 旧版静默 return，用户点了没反应。手动点等在途落完再推。 */
         if (_syncBusy) {
@@ -20102,7 +20189,23 @@ function baziPersonaCard(j) {
           /* R3362（R3359 审-P2）：payload 服务端帽 1.2MB——台账/线程
            * 养肥后超限恒 422，自动推静默失败用户以为在同步。超限先
            * 裁尾部台账与线程，保住偏好与近期记录。 */
+          /* R3363-P1-8：备份包带设备戳——拉回时发现「这包不是我
+           * 这台最近传的」能点出多设备在同时写。 */
+          bundle.dev = _devId();
+          bundle.ver2 = 1;
           var _pl = JSON.stringify(bundle);
+          /* R3363-P1-3：keepalive 体上限 64KiB——养肥的备份必
+           * 超限，hide 保命推静默 TypeError。超限只推偏好段
+           * （最容易养肥的恰是手写偏好），置 pending 下次开页
+           * 补全量。 */
+          if (keepAlive && _pl.length > 60000) {
+            _pl = JSON.stringify({
+              kind: 'backup', version: 1,
+              exported_at: bundle.exported_at,
+              dev: bundle.dev,
+              browser: bundle.browser || {} });
+            try { localStorage.setItem(_PEND_KEY, '1'); } catch (e) {}
+          }
           var _trimmed = false;
           while (_pl.length > 1100000) {
             var _cut = false;
@@ -20128,6 +20231,9 @@ function baziPersonaCard(j) {
             try {
               localStorage.setItem(_SYNC_KEY,
                 new Date().toLocaleString('sv').slice(0, 16));
+              if (_pl.length <= 60000 || !keepAlive) {
+                localStorage.removeItem(_PEND_KEY);
+              }
             } catch (e) {}
             _acctRender();
             if (showOk) {
@@ -20143,34 +20249,80 @@ function baziPersonaCard(j) {
         } finally { _syncBusy = false; }
       }
       window.__acctPush = _push;
+      var _pullArm = false, _pullArmT = null;
       async function _pull() {
         var c = _creds();
         if (!c) return;
+        /* R3363-P2-11：零在途锁时双点=双份导入（双倍请求+双 toast）；
+         * 与 push 互不感知还会产出撕裂 bundle。 */
+        if (_pullBusy) {
+          showToast('拉回还在路上，稍等下', 'warn');
+          return;
+        }
+        _pullBusy = true;
+        /* R3363-P1-2：拉回发起时给白名单键拍快照——在途窗口里
+         * 本机被改的键（刚写的心情/刚打的卡）不该被云端旧值盖掉，
+         * 落地时 diff 保住本机新值并点名。 */
+        var _snap = {};
+        _dataKeys().forEach(function (k) {
+          try { _snap[k] = localStorage.getItem(k); } catch (e) {}
+        });
         try {
           var r = await postJSON('/api/account/backup/pull', {
             nickname: c.n, passcode: c.p }, { silent: true });
           if (r && r.ok && r.payload) {
-            /* R3362（R3359/R3360 审-P1）：拉回是无确认全量覆盖——
-             * 云端包比本机上次同步还旧时，本机新改的偏好会被旧值
-             * 盖掉，先问一句。 */
             try {
               var _b0 = JSON.parse(r.payload);
               var _ex = Date.parse((_b0 && _b0.exported_at) || '');
               var _ls0 = Date.parse(
                 (localStorage.getItem(_SYNC_KEY) || '')
                 .replace(' ', 'T'));
-              if (_ex && _ls0 && _ex < _ls0 - 60000 &&
-                  !window.confirm(
-                    '云端这份备份比这台设备上次的同步还旧，拉回来会' +
-                    '盖掉本机较新的偏好——还要拉回吗？')) return;
+              /* R3363-P2-9：原生 confirm 换两段式按钮（全站口径）——
+               * 云端比本机上次同步旧 60s+，再点一次才拉回。 */
+              if (_ex && _ls0 && _ex < _ls0 - 60000 && !_pullArm) {
+                _pullArm = true;
+                if (_pullArmT) clearTimeout(_pullArmT);
+                _pullArmT = setTimeout(function () {
+                  _pullArm = false;
+                }, 8000);
+                showToast('云端这份比本机上次传的旧，会盖掉较新的' +
+                          '东西——8 秒内再点一次「从云端拉回」确认',
+                          'warn');
+                return;
+              }
+              _pullArm = false;
+              /* R3363-P1-8：包上设备戳与本机不同且比上次上传
+               * 新——另一台设备刚写过，点一句不拦路。 */
+              if (_b0 && _b0.dev && _b0.dev !== _devId() &&
+                  _ex && _ls0 && _ex > _ls0 + 60000) {
+                showToast('另一台设备最近也同步过——已拉回最新这份',
+                          'info');
+              }
+              /* R3363-P2-14：旧版页面打的包没有 ver2——新功能的
+               * 键可能没带，明说不静默。 */
+              if (_b0 && !_b0.ver2) {
+                showToast('这份备份是旧版本打的，新功能的数据可能' +
+                          '没带齐', 'warn');
+              }
             } catch (eCmp) {}
-            await _importBackupText(r.payload);
+            await _importBackupText(r.payload,
+              { changed: _snap });
+            try {
+              localStorage.setItem(_PULL_KEY,
+                new Date().toLocaleString('sv').slice(0, 16));
+            } catch (e) {}
+            /* R3363-P1-6：拉回后本 tab 各视图（档案条/打卡/心情/
+             * 主题/账号卡）全是旧渲染，反而是别的 tab 靠 storage
+             * 事件更新了——低频大动作直接重载最一致。 */
+            setTimeout(function () {
+              try { location.reload(); } catch (eRL) {}
+            }, 1200);
           } else {
             showToast((r && r.msg) || '云端还没有备份', 'warn');
           }
         } catch (e) {
           showToast('拉不回来：' + _humanizeErr(e.message || e), 'error');
-        }
+        } finally { _pullBusy = false; }
       }
       function _readFields() {
         var n = (_nick.value || '').trim();
@@ -20191,9 +20343,13 @@ function baziPersonaCard(j) {
               nickname: f.n, passcode: f.p }, { silent: true });
             if (r && r.ok) {
               _saveCreds(f.n, f.p);
+              try { localStorage.setItem(_OWNER_KEY, f.n); } catch (e) {}
               _acctRender();
               showToast('注册好啦，正在给你同步第一份备份', 'info');
-              _push(false);
+              /* R3363-P1-4：注册首推用 keepalive——注册即关页时
+               * 普通 fetch 会被掐，首份备份静默丢（此时包小，不
+               * 会撞 64KiB 上限）。 */
+              _push(false, true);
             } else {
               showToast((r && r.msg) || '没注册上，过会儿再试', 'warn');
             }
@@ -20209,7 +20365,20 @@ function baziPersonaCard(j) {
             var r = await postJSON('/api/account/login', {
               nickname: f.n, passcode: f.p }, { silent: true });
             if (r && r.ok) {
+              /* R3363-P1-7：登 A 号再登 B 号——本机残留的 A 私密
+               * 键（心情/日记/聊天）会先清扫再拉回，不然下回自动推
+               * 把 A 的东西打进 B 的云备份。 */
+              var _prevOwner = '';
+              try {
+                _prevOwner = localStorage.getItem(_OWNER_KEY) || '';
+              } catch (e0) {}
+              if (_prevOwner && _prevOwner !== f.n) {
+                _sweepForNewOwner();
+                showToast('这台设备上还有上一个账号的数据，' +
+                          '已经帮你清开', 'info');
+              }
               _saveCreds(f.n, f.p);
+              try { localStorage.setItem(_OWNER_KEY, f.n); } catch (e) {}
               _acctRender();
               /* 登录即拉回——这是换设备的主场景；云端没备份时
                * _pull 会明说「先在原设备同步一次」。 */
@@ -20232,12 +20401,8 @@ function baziPersonaCard(j) {
             /* R3362（R3359/60 审-P2/P1）：lastsync 与四组镜像键是
              * 跟「这个账号」绑的视图——登出不收，下个账号先看到别人
              * 的同步时间与旧镜像行（跨账号串味）。 */
-            localStorage.removeItem(_SYNC_KEY);
-            ['paipan_mirror_v1', 'paipan_mirror_del_v1',
-             'favorites_mirror_v1', 'threads_mirror_v1']
-              .forEach(function (mk) {
-                try { localStorage.removeItem(mk); } catch (e) {}
-              });
+            localStorage.removeItem(_OWNER_KEY);
+            _clearAccountKeys();
           } catch (e) {}
           _acctRender();
           showToast('已退出——云端备份还在，哪天登回来就能拉回', 'info');
@@ -20286,7 +20451,15 @@ function baziPersonaCard(j) {
   }
   /* R2500（R143-P2-8）：备份导入主路径抽成文本入口——文件读入与
    * 粘贴弹层共用。 */
-  async function _importBackupText(_txt) {
+  async function _importBackupText(_txt, _opt) {
+        /* R3363-P1-1：wipe 墓碑——拉回/导入在途时用户点「忘掉
+         * 我的数据」，落地写键前必须重看墓碑，不然已擦键复活。 */
+        var _wipe0 = null;
+        try { _wipe0 = localStorage.getItem('wipeAt'); } catch (eW0) {}
+        /* R3363-P1-2：_opt.changed={键:快照值}——拉回发起时拍的
+         * 本机值；落地发现键在途被改过，保住本机新值不盖。 */
+        var _changed = (_opt && _opt.changed) || null;
+        var _kept = [];
         var bundle = null;
         try { bundle = JSON.parse(_txt); } catch (ePJ) {}
         if (bundle && bundle.kind === 'backup' && bundle.version === 1) {
@@ -20304,6 +20477,14 @@ function baziPersonaCard(j) {
           return;
         }
         try {
+          /* R3363-P1-1：写键前重看墓碑——在途期间本机刚 wipe
+           * 过就不能落，已擦键复活=「忘掉」承诺破洞。 */
+          try {
+            if (localStorage.getItem('wipeAt') !== _wipe0) {
+              showToast('刚「忘掉一切」过，这份导入没落进去', 'warn');
+              return;
+            }
+          } catch (eW1) {}
           var local = bundle.browser || {};
           Object.keys(local).forEach(function (k) {
             /* 只收认识的键——备份文件是用户可控输入，不写任意键 */
@@ -20573,6 +20754,36 @@ function baziPersonaCard(j) {
                 local[k] = JSON.stringify(_wo);
               } catch (eW) { return; }
             }
+            /* R3363-P1-2：拉回在途窗口里本机改过的键保住——
+             * 快照值 ≠ 现值（或快照里没有这条=在途新建的），
+             * 且现值与云端值不同时，留本机不盖。 */
+            if (_changed) {
+              try {
+                var _cur = window.localStorage.getItem(k);
+                var _had = Object.prototype.hasOwnProperty
+                  .call(_changed, k);
+                if ((_had ? _cur !== _changed[k] : _cur !== null) &&
+                    _cur !== local[k]) {
+                  _kept.push(k);
+                  return;
+                }
+              } catch (eD) {}
+            }
+            /* R3363-P2-15：visits 导入做集合并集——整表覆盖会丢
+             * 本机独有的来访日、「第 N 次开铺」计数可倒退。 */
+            if (k === 'visits') {
+              try {
+                var _vs = {};
+                String(window.localStorage.getItem('visits') || '')
+                  .split(',').forEach(function (d) {
+                    if (d) _vs[d] = 1;
+                  });
+                String(local[k]).split(',').forEach(function (d) {
+                  if (d) _vs[d] = 1;
+                });
+                local[k] = Object.keys(_vs).sort().join(',');
+              } catch (eV) {}
+            }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });
           var n = 0, _nThr = 0;
@@ -20588,6 +20799,14 @@ function baziPersonaCard(j) {
           var _thr = (bundle.threads || []).filter(function (t) {
             return t && typeof t === 'object' && !Array.isArray(t);
           });
+          /* R3363-P1-1：服务端台账段同受墓碑约束——拉回在途时
+           * wipe 过的，records/favorites 也不再回灌进库。 */
+          try {
+            if (localStorage.getItem('wipeAt') !== _wipe0) {
+              showToast('刚「忘掉一切」过，这份导入没落进去', 'warn');
+              return;
+            }
+          } catch (eW2) {}
           if (_recs.length || _thr.length) {
             /* R3320-P1-1①：单次 POST 撞服务端 512KB 体界——
              * ~11 条排盘记录即 413「读不懂」。按 ~280KB 分批顺发，
@@ -20690,22 +20909,75 @@ function baziPersonaCard(j) {
            * 「记录」计数混口径。 */
           /* R2500（R143-P3-11）：线程不并进「记录」计数——口径分说。 */
           _favListInvalidate();
+          /* R3363-P2-12：同设备登出→重登同号——记录全被去重
+           * （_newRecs 空）时详情面一条不重建，清盘后留档点「查看」
+           * 是空的。拉回后按去重键把 bundle 的完整 req/result 补回
+           * 镜像详情（_phMirrorDetail 自带 25 条 LRU 帽）。 */
+          if (_recs.length) {
+            try {
+              var _hl = await api('/api/paipan/history?limit=100',
+                { silent: true });
+              var _idByKey = {};
+              ((_hl && _hl.items) || []).forEach(function (it) {
+                var _hk = String(it.ts || '') + '|' +
+                          String(it.name || '') + '|' +
+                          String(it.type || '');
+                if (!_idByKey[_hk]) _idByKey[_hk] = it.id;
+              });
+              if (Object.keys(_idByKey).length) {
+                var _mm2 = _phMirrorLoad();
+                var _seen2 = {};
+                _recs.slice(0, 500).forEach(function (r) {
+                  var _bk2 = String(r.ts || '').slice(0, 32) + '|' +
+                            String(r.name || '').slice(0, 200) + '|' +
+                            String(r.type || '');
+                  /* 同去重键先胜者后跳过（与后端同口径），别让被
+                   * 跳行的内容错装到保留行的 id 上。 */
+                  if (_seen2[_bk2]) return;
+                  _seen2[_bk2] = 1;
+                  var _sid = _idByKey[String(r.ts || '') + '|' +
+                                      String(r.name || '') + '|' +
+                                      String(r.type || '')];
+                  if (_sid != null) {
+                    var _rk = String(_sid) + '|' + String(r.ts || '');
+                    if (!(_mm2.details && _mm2.details[_rk])) {
+                      _phMirrorDetail(_mm2, {
+                        id: _sid, ts: String(r.ts || ''),
+                        name: String(r.name || ''),
+                        question: String(r.question || '')
+                          .slice(0, 200) || null,
+                        type: String(r.type || ''),
+                        req: r.req || {}, result: r.result || {} });
+                    }
+                  }
+                });
+                _phMirrorSave(_mm2);
+              }
+            } catch (eMR) {}
+          }
           var _msg = '导入好了：多了 ' + n + ' 条记录' +
             (_nThr ? ' + ' + _nThr + ' 个研究线程' : '') +
             (_fvN ? ' + ' + _fvN + ' 条收藏' : '') +
             /* R3320-P1-1③：视图其实已就地刷新——「刷新后生效」
              * 是虚惊文案，去掉括号。 */
             '，偏好也回来了' +
+            /* R3363-P1-2：在途被改键保住本机的条数点名——
+             * 静默留本地值用户不知道哪些没跟云端走。 */
+            (_kept.length
+              ? '；' + _kept.length + ' 条本机较新的没盖' : '') +
             /* R3339（审-中）：线程批丢/超重如实报——「导到一半断了」
              * 不点名的静默丢尾违背披露纪律。 */
             (_thrSkipped ? '；' + _thrSkipped + ' 个研究线程太大没导进去' : '') +
             (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
           showToast(_msg, 'info');
           /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的
-           * 历史视图就地刷新（原只有单删时发）。 */
+           * 历史视图就地刷新（原只有单删时发）。
+           * R3363-低-17：channel 用完即关，反复拉回不再漏建。 */
           try {
             if (window.BroadcastChannel) {
-              new BroadcastChannel('paipan_history').postMessage('dirty');
+              var _bc2 = new BroadcastChannel('paipan_history');
+              _bc2.postMessage('dirty');
+              _bc2.close();
             }
           } catch (eBC2) {}
           loadPaipanHistory();
