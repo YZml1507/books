@@ -25595,7 +25595,15 @@ function baziPersonaCard(j) {
             return;
           }
           var _trimmed = false;
-          while (_pl.length > 1100000) {
+          /* R3514（探针 413 实测）：旧阈值只卡字符 1.1M——
+           * CJK 三字节下 1.1M 字符 ≈ 3.3MB 超 body 1.5MB 帽，
+           * 恒被 413 拒。双边界：payload 字段帽 1.2M 字符留头
+           * → 1.15M；body 帽 1.5MB 减信封开销 → 1.4MB 字节。 */
+          var _bkBytes = function () {
+            try { return new Blob([_pl]).size; }
+            catch (eBB) { return _pl.length * 3; }
+          };
+          while (_pl.length > 1150000 || _bkBytes() > 1400000) {
             var _cut = false;
             if (Array.isArray(bundle.records) && bundle.records.length) {
               bundle.records.pop(); _cut = true;
