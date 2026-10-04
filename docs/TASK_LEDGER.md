@@ -20128,3 +20128,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3605 窗口收口闸
 - selftest 457 / contract 790 / banned 0 / smoke 126 / plain 5 全绿。
+
+## R3606 牌的记性（Lunary repeat-card 同构）
+- buildTarotResult 先算回声再落日志：同名名牌 45 天内再来 → 「「高塔」是近 45 天第 3 次来找你——牌有它自己的记性」。tr:hist 只记牌名+日（不记问题），同日同集复渲去重不增；备份∪忘掉∪记忆卡（仪式族）三注册齐。

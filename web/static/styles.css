@@ -2208,6 +2208,9 @@ button:active{transform:scale(.96);}
   border:1px dashed var(--accent-ink); background:transparent;
   color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
 .journal-mood-go:active{background:var(--accent-ink); color:#fff;}
+/* R3606：牌的记性回声行——副色小行，不抢牌阵戏。 */
+.tr-echo{font-size:12px; color:var(--secondary); margin:6px 0 2px;
+  line-height:1.6;}
 .ck-quest-n{margin-left:auto; font-size:11px; color:var(--muted);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 /* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一

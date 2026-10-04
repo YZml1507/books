@@ -9486,6 +9486,50 @@ function buildTarotResult(j) {
   if (j.question) {
     html += tarotQuestionHook(j.question, j.draws || []);
   }
+  /* R3606：牌的记性——同名牌近期再来会点名（Lunary「反复抽到
+   * 同一张牌」同构）。先算回声再落日志：本次抽到的名只和历史
+   * 比，不把自己也算进次数。tr:hist 只记牌名+日，不记问题。 */
+  try {
+    var _trH = [];
+    try { _trH = JSON.parse(localStorage.getItem('tr:hist') || '[]') || []; }
+    catch (eTH) { _trH = []; }
+    var _cut = new Date(); _cut.setDate(_cut.getDate() - 45);
+    var _cutIso = _cut.toISOString().slice(0, 10);
+    _trH = _trH.filter(function (e) {
+      return e && e.n && e.d && e.d >= _cutIso; });
+    var _echo = [];
+    (j.draws || []).forEach(function (d) {
+      if (!d || !d.name) return;
+      var _cnt = 0;
+      _trH.forEach(function (e) { if (e.n === d.name) _cnt++; });
+      if (_cnt >= 1) {
+        _echo.push('「' + d.name + '」是近 45 天第 ' + (_cnt + 1) +
+          ' 次来找你');
+      }
+    });
+    if (_echo.length) {
+      html += '<div class="tr-echo">🃏 ' +
+        esc(_echo.join(' · ')) + '——牌有它自己的记性' +
+        (_echo.length >= 2 ? '（两张都是老熟人）' : '') + '</div>';
+    }
+    var _tIso = todayIso();
+    /* 同日同名同集复渲染不重复落日志（deterministic 抽牌
+     * 会重画同一结果，dupes 会虚增次数）。 */
+    var _tHave = _trH.filter(function (e) { return e.d === _tIso; })
+      .map(function (e) { return e.n; }).sort().join('|');
+    var _tNow = (j.draws || []).filter(function (d) {
+      return d && d.name; }).map(function (d) { return d.name; })
+      .sort().join('|');
+    if (_tNow && _tNow !== _tHave) {
+      (j.draws || []).forEach(function (d) {
+        if (d && d.name) _trH.push({ n: String(d.name), d: _tIso });
+      });
+      try {
+        localStorage.setItem('tr:hist',
+          JSON.stringify(_trH.slice(-80)));
+      } catch (eTH2) {}
+    }
+  } catch (eTE) {}
   /* R3257（牌阵阅读线）：位置此前只写在每张牌脚下——牌阵的
    * 「从左读到右/按位序读」这件事没有形。≥2 位时在网格上缘
    * 画一条带序号的阅读带，读牌顺序本身变成可视信息。 */
@@ -25090,7 +25134,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugout|hugseen)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugout|hugseen|tr:hist)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -25809,7 +25853,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugout$|hugseen$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugout$|hugseen$|tr:hist$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -26153,6 +26197,8 @@ function baziPersonaCard(j) {
                 /* R3576：攒下的好运计数/链签名同收（足迹件）。 */
                 k === 'hugin' || k === 'hugout' ||
                 k === 'hugseen' ||
+                /* R3606：牌的记性日志同收（足迹件）。 */
+                k === 'tr:hist' ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
