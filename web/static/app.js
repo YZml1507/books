@@ -6428,6 +6428,43 @@ async function loadDaily() {
           } catch (eHC) {}
         }
       } catch (eHW2) {}
+      /* R3671：桃花签钩——捣蛋签收官到桃花签开窗中间无缝
+       * 接力：开窗前 1-5 天倒计时（11/1-11/5）；窗内今天
+       * 还没抽提醒 + 连抽计数（lv 标限本窗）。 */
+      try {
+        var _tqNow = new Date();
+        var _tqOpen = new Date(_tqNow.getFullYear(), 10, 6);
+        var _tqDays = Math.round((_tqOpen - new Date(
+          _tqNow.getFullYear(), _tqNow.getMonth(),
+          _tqNow.getDate())) / 86400000);
+        if (_tqDays >= 1 && _tqDays <= 5) {
+          _pc2.push('<span class="e-week-low">🌸 桃花签 ' +
+            _tqDays + ' 天后开张——想心里那个人就来抽一支</span>');
+        } else if (typeof _qianLoveFest === 'function' &&
+                   _qianLoveFest()) {
+          var _tqDk = _qianLoveIdxOf(_winAnchorIso(function (o3) {
+            return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
+          }));
+          if (!_tqDk) {
+            _pc2.push('<span class="e-week-low">🌸 桃花签开着呢' +
+              '——去签页抽今天的桃花签</span>');
+          } else {
+            var _tqN = 0;
+            try {
+              var _tqY = _tqNow.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.lv && x.d >= _tqY + '-11-06' &&
+                      x.d <= _tqY + '-11-11') _tqN++;
+                });
+            } catch (eTN) {}
+            if (_tqN >= 2) {
+              _pc2.push('<span class="e-week-low">🌸 桃花签连抽 ' +
+                _tqN + ' 天了——窗开到 11/11</span>');
+            }
+          }
+        }
+      } catch (eTQ) {}
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
           esc(_mine.tone || 'flat') + '">' +
