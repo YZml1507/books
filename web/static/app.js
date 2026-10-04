@@ -4841,6 +4841,9 @@ function showPosterModal(canvas, view, j) {
      * 否则 ?view=soulmate 是死链静默回首页）。 */
     var url = location.origin + '/?view=' + encodeURIComponent(
       _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
+    /* R3475：小惊喜族回流钩——受邀者落地排完盘自动展开同款卡
+     * （sa* 深链锚），不然链只到八字表单，钩主件沉底。 */
+    if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];
     /* R2350a（R94-P1-2）：黄历分享链带卡面日——对方打开看到的是
      * 同一张那天，不是 TA 自己的今天。 */
     if (view === 'huangli') {
@@ -4932,6 +4935,7 @@ function showPosterModal(canvas, view, j) {
   if (_pss) _pss.addEventListener('click', function () {
     var url = location.origin + '/?view=' + encodeURIComponent(
       _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
+    if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];   /* R3475 */
     if (view === 'huangli') {
       try {
         var _sd1 = (el('hlResult') || {}).dataset || {};
@@ -8911,6 +8915,10 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun' };
+/* R3475：小惊喜海报分享链携带 sa 锚——受邀者排盘后自动开同款卡
+ * （与聊天 sa* 锚/_openSaByKey 同键族）。 */
+var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
+  soulart: 'S' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
