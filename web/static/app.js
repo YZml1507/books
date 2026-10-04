@@ -1909,6 +1909,28 @@ function buildChatContext(viewKey) {
     msg = '今天是' + _hdd + '，宜' + (yi || '—') + '，忌' +
       (ji || '—') + '，我今天适合做什么';
     facts = ['宜：' + yi, '忌：' + ji];
+    /* R3647：能量族事实进聊天上下文——问「我今天几分/TA 呢」
+     * 时小满手里有卡面同口径的分，不现编。 */
+    var _pf = j.personal || {};
+    if (_pf.energy && _pf.energy.score) {
+      facts.push('我今天能量分：' + _pf.energy.score);
+    }
+    if (_pf.partner_energy && _pf.partner_energy.score) {
+      facts.push('TA 今天能量分：' + _pf.partner_energy.score);
+      if (_pf.partner_energy.week_peak &&
+          _pf.partner_energy.week_peak.d &&
+          Array.isArray(_pf.week_energy) &&
+          _pf.week_energy.length === 7) {
+        var _mk = 0;
+        _pf.week_energy.forEach(function (w, i) {
+          if (w.s > _pf.week_energy[_mk].s) _mk = i; });
+        if (_pf.week_energy[_mk].d === _pf.partner_energy.week_peak.d) {
+          facts.push('双满电日：' + _pf.week_energy[_mk].d +
+                     '（我 ' + _pf.week_energy[_mk].s + ' · TA ' +
+                     _pf.partner_energy.week_peak.s + '）');
+        }
+      }
+    }
   } else if (viewKey === 'qiming') {
     var names = (j.full_names || []).slice(0, 5).map(function (n) {
       return n.full_name;
