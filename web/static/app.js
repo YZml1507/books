@@ -6292,7 +6292,7 @@ async function loadDaily() {
           '💞 TA 今天 ' + esc(_enP.score) + ' 分</span>' +
           ' <span style="font-size:12px;opacity:.75;">' +
           (_enP.score >= 70 ? '状态不错，可以拉 TA 一起' :
-           _enP.score < 55 ? '今天低点，多担待 TA 一点' :
+           _enP.score < 55 ? '今天分低点，多担待 TA 一点' :
            '普普通通的一天') + '</span>');
 
         /* R3638：双满电日——我的峰日=TA 的峰日时挂一行：
