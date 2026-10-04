@@ -113,6 +113,13 @@ def thread_detail(tid: int) -> dict:
     return services.thread_detail(tid)
 
 
+@router.get("/api/claims")
+def claims(orphaned: bool | None = None, limit: int = 50) -> dict:
+    """研究手记列表（R3347：删线程后 claims 解绑保留，此前无入口可见）。
+    orphaned=true 只列孤儿手记。"""
+    return services.claims(orphaned=orphaned, limit=limit)
+
+
 @router.delete("/api/threads/{tid}")
 def thread_remove(tid: int) -> dict:
     """删除一条研究线程（R230q：turns 随删，derived claims 解绑保留）。"""

@@ -609,7 +609,10 @@ class KnowledgeBase:
         返回 (写入线程数, 跳过线程数)。
         """
         written = skipped = 0
-        for it in items[:50]:
+        # R3347（审-P2）：上限 50 曾静默丢弃超量线程——前端按 50 条
+        # 分块喂调用所以走不到，但直连 API 的包会无声丢数据。放宽到
+        # 200（正常用户线程数十级）并在路由层披露截断数。
+        for it in items[:200]:
             if not isinstance(it, dict):
                 skipped += 1
                 continue

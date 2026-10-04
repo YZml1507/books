@@ -455,7 +455,9 @@ function _humanize422(detail) {
      * 「最多 400 字」）时正则全落空、精度丢进兜底——中文 msg 且
      * 无字段名裸露时直通显示。 */
     if (/[一-鿿]/.test(msg) && !/[a-zA-Z_.]{2,}\s*(?:is|should|must|required)/.test(msg)) {
-      return msg;
+      /* R3348（审-中-1）：中文 msg 直通把「至少 1 字」裸贴——多字段
+       * 表单里看不出是哪个字段。loc 末位有中文名时补「姓氏：」前缀。 */
+      return cn ? cn + '：' + msg : msg;
     }
     /* R229n（R6-#3）：cn+msg 直通会把 pydantic 英文原文贴上屏
      * （"张数：Input should be less than or equal to 10"）——
@@ -7806,6 +7808,11 @@ async function doQiming() {
   if (_qmBusy) return;                        /* R230j */
   /* R233k（R45-§3）：预检前置——空字段/非法日此前要等一轮 422。 */
   if (!val('qm_surname')) { _failField('qm_surname', 'qmResult', '姓氏先填上哦'); return; }
+  /* R3348（审-低-1）：姓氏字符集预检——「张3」「@王」此前发到后端
+   * 才报错。百家姓范围一二级汉字 1–2 字（诸葛/欧阳等复姓在内）。 */
+  if (!/^[一-鿿]{1,2}$/.test(val('qm_surname'))) {
+    _failField('qm_surname', 'qmResult', '姓氏填一到两个汉字（复姓连着写）'); return;
+  }
   if (num('qm_year') == null || num('qm_month') == null || num('qm_day') == null) {
     _failField(num('qm_year') == null ? 'qm_year'
       : (num('qm_month') == null ? 'qm_month' : 'qm_day'),
@@ -7823,6 +7830,10 @@ async function doQiming() {
   }
   if (_qmLunar && _badRange('qm_day', 1, 30)) {
     _failField('qm_day', 'qmResult', '农历的日填 1–30'); return;
+  }
+  /* R3348（审-中-2）：农历月界同桃花——13 月前端先拦。 */
+  if (_qmLunar && _badRange('qm_month', 1, 12)) {
+    _failField('qm_month', 'qmResult', '农历的月填 1–12'); return;
   }
   /* R2350e（R101-P2-1/2-2）：年份/时辰同界前端先拦，免一轮 422。 */
   if (_badRange('qm_year', 1900, 2100)) {
@@ -7974,6 +7985,11 @@ async function doTaohua() {
   }
   if (_thLunar && _badRange('th_day', 1, 30)) {
     _failField('th_day', 'thResult', '农历的日填 1–30'); return;
+  }
+  /* R3348（审-中-2）：农历月只有 1–12——此前 13 月一路发到后端
+   * 才报，与公历月界前端同口径先拦。 */
+  if (_thLunar && _badRange('th_month', 1, 12)) {
+    _failField('th_month', 'thResult', '农历的月填 1–12'); return;
   }
   /* R2350e（R101-P2-1/2-2）：同界预检。 */
   if (_badRange('th_year', 1900, 2100)) {
@@ -9122,6 +9138,11 @@ async function doHehun() {
     }
     if (_hLun && _badRange(_hp[2], 1, 30)) {
       _failField(_hp[2], 'hhResult', _hp[3] + '农历的日填 1–30');
+      return;
+    }
+    /* R3348（审-中-2）：农历月界双侧同拦（13 月此前漏到后端）。 */
+    if (_hLun && _badRange(_hp[1], 1, 12)) {
+      _failField(_hp[1], 'hhResult', _hp[3] + '农历的月填 1–12');
       return;
     }
     /* R2350e（R101-P2-1/2-2）：年份/时辰同界预检（双侧）。 */
@@ -19634,6 +19655,7 @@ function baziPersonaCard(j) {
                   const rtj = await postJSON('/api/paipan/history/import',
                     { records: [], threads: _tb[_ti2] });
                   _nThr += (rtj.threads_imported || 0);
+                  _thrSkipped += (rtj.threads_truncated || 0);
                 } catch (eTI) { _thrSkipped += _tb[_ti2].length; }
               }
             }

@@ -2290,12 +2290,13 @@ def _run_inner() -> list[str]:
           params={"q": "潛龍勿用", "max_addresses": 2, "allow_damaged": True}),
           lambda j: j.get("refused") is False and bool(j.get("evidence")))
     # R170b（D-217b）：/api/ask q 校验两条分支——q="" → 422（Pydantic
-    # min_length），q="   " → 400 "查询词不能为空"（strip() 后空）。
+    # min_length），q="   " → 400 古籍域统一空查询文案（R3347）。
     _ask_empty = client.post("/api/ask", json={"q": "   ", "max_addresses": 2})
     assert _ask_empty.status_code == 400, ("err.ask.q_empty",
                                            _ask_empty.status_code,
                                            _ask_empty.text[:200])
-    assert _ask_empty.json().get("detail") == "查询词不能为空", \
+    assert _ask_empty.json().get("detail") == \
+        "查询词不能为空，想找某个具体段落请用「定位」页", \
         ("err.ask.q_empty", _ask_empty.text[:200])
     ok.append("err.ask.q_empty")
     _ask_too_short = client.post("/api/ask", json={"q": "", "max_addresses": 2})
@@ -2586,6 +2587,19 @@ def _run_inner() -> list[str]:
     _dr2 = client.delete("/api/threads/99999999")
     assert _dr2.status_code == 404, ("threads.delete", _dr2.status_code)
     ok.append("threads.delete")
+
+    # R3347（审-P2）：/api/claims 孤儿手记列表——上面 _tdel_did 删线程后
+    # 解绑成孤儿，在清理前经端点应该照见；清理后不再出现。
+    _c1 = client.get("/api/claims", params={"orphaned": "true"})
+    assert _c1.status_code == 200, ("claims.orphans", _c1.status_code)
+    _c1j = _c1.json()
+    assert isinstance(_c1j.get("claims"), list) and \
+        "n_total" in _c1j and "has_more" in _c1j, ("claims.orphans", _c1j)
+    _c2 = client.get("/api/claims")
+    assert _c2.status_code == 200 and \
+        all("id" in _cl and "orphaned" in _cl for _cl in _c2.json()["claims"]), \
+        ("claims.list", _c2.text[:200])
+    ok.append("claims.list")
 
     # R230r（R30-#8）：PATCH 状态路径——open→closed 后从 resume 列表消失。
     _tclose = client.post("/api/threads", json={

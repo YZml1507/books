@@ -18023,3 +18023,30 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 另两项维持遗留：无提问路径模板对齐（低）、llm_polish
   verdict 复读（mock 面不可验，真机回归面）。
 - 闸门：selftest 407 全绿
+
+## R3347+R3348 双审清零（古籍域深审 + 表单输入边界复扫）
+
+- **R3347 P0**：周易系 6 部书卦 64·上九 span 吞十翼——gua_spans 尾锚
+  原只看卦符，繫辭/彖傳等开局无卦符的版本让卦 64 一路跑到 EOF，
+  241 条单元错挂未济·上九。新增 _SHIYI_HEAD_RE（行首+书名尾缀
+  约束，防正文「繫辭上云」误中），tail_at 取 min。241→16（16 条
+  全是真单元：KR1a0001/0006/0007 卷首杂项 + 0016/0031/0032）。
+  十翼单元自此 NULL-scheme→按 file 分组章节（KR1a0001 65→133 节）。
+- **R3347 P1**：检索 佑→祐 异文折叠（corpus 56 vs 107，折高频形，
+  「自天佑之」0→31 命中）；研究链路首轮 s2t 并入去重（太极 9+63 /
+  无为 10+100 / 亢龙有悔 0→32）；_import_threads 50→200 上限 +
+  threads_truncated 如实披露（前端计入 _thrSkipped）；孤儿手记
+  （删线程后 thread_id=NULL 的 derived）新增 GET /api/claims
+  可见——orphaned 过滤 + n_total/has_more，自测 claims.list 钉 +
+  contract fixture。
+- **R3347 P2**：chapter() 补 n_total/has_more/truncated（LIMIT 60
+  截断不再静默）；易林候序提示 1-64；_require_q 统一提示
+  「查询词不能为空，想找某个具体段落请用「定位」页」+ 自测 pin
+  同步（契约更新非弱化）。
+- **R3348**：seed 三处加 ge=0/le=2**63 上界（liuyao/qiming/tarot）；
+  _humanize422 中文消息直通不再套英文壳；起名姓氏 ^[一-鿿]{1,2}
+  预检；taohua/qiming/hehun 三处农历月 1-12 边界预检；location
+  maxlength 32→100；app_research data-secfile 存真 file key。
+- 闸门：selftest 409 / contract 736 / ui_smoke 103 / 全量绿；
+  bump_sw→books-shell-bc30208c3efa；bge_mingli 语义缓存随 corpus
+  重建刷新（ids 平移，同 a39c3a6 先例入库）。

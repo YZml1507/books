@@ -255,6 +255,10 @@ def paipan_history_import(req: PaipanImportRequest) -> dict:
     # R2517（审-P3-9）：台账禁用下 records 段被静默丢弃——如实披露。
     if paipan_history.disabled() and req.records:
         out["records_ignored"] = len(req.records)
+    # R3347（审-P2）：import_threads 上限 200——超出的线程如实报数，
+    # 前端 toast 可明示「还有 N 条超上限」而不是让用户以为全导完。
+    if req.threads and len(req.threads) > 200:
+        out["threads_truncated"] = len(req.threads) - 200
     return out
 
 

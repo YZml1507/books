@@ -788,8 +788,12 @@ async function doBookStructure() {
     html += '<div class="table-scroll"><table class="works"><thead><tr><th>节</th><th>单元</th><th>字数</th>' +
       '<th>层</th><th>样例</th></tr></thead><tbody>';
     (j.sections || []).forEach(function (s) {
-      html += '<tr' + (_isFile && s.label
-          ? ' class="sec-pick" data-secfile="' + esc(s.label) +
+      /* R3347（审-P1）：data-secfile 要存文件 key 而非展示 label——
+       * R3305 把 label 改成「卷首/附录（file）」后，label 当 file 传给
+       * chapter 必 404。key=['file', <真文件名>]。 */
+      var _secFile = (s.key && s.key[0] === 'file') ? s.key[1] : '';
+      html += '<tr' + (_isFile && _secFile
+          ? ' class="sec-pick" data-secfile="' + esc(_secFile) +
             '" title="读这一节" tabindex="0" role="button" aria-label="读这一节 ' +
             esc(_secLabel(s.label) || s.label || '') + '"'
           : '') + '><td>' + esc(_secLabel(s.label) || s.label || '') + '</td>' +

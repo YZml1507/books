@@ -123,7 +123,12 @@ def hit_dict(h) -> dict:
     }
 
 
-def _require_q(q: str | None, *, what: str = "查询词不能为空") -> str:
+# R3347（审-P3）：古籍域各端点空查询文案统一成带「定位」页指引的
+# 这句——原来 /api/search 说有指引的话、/api/research 等只说半句。
+_Q_EMPTY_HINT = "查询词不能为空，想找某个具体段落请用「定位」页"
+
+
+def _require_q(q: str | None, *, what: str = _Q_EMPTY_HINT) -> str:
     q = (q or "").strip()
     # R230r（R30-#10）：纯零宽字符（ZWSP 等）strip() 不掉——读路径
     # （fts_phrase）会剥，空判定要先剥再判，不然「%E2%80%8B」走到 200+空表
@@ -849,7 +854,7 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
             # 全局校验——超界仍回空集（不算差异，算没那个地址）。
             if scheme == "yilin" and addr1 is not None \
                     and not (1 <= addr1 <= 64):
-                raise ValidationError("候数填 1 到 64")
+                raise ValidationError("易林候序填 1 到 64（六十四候）")
             # R3305（审-P1-2）：bcv 的 addr1 是书内章号，缺 addr_name
             # 会把几十卷同号章揉成一页；booksec 各书卷号互撞（addr_name
             # 恒 NULL，区分靠 work_id）——如实拒绝，与 bookstudy.chapter
@@ -1184,6 +1189,41 @@ def thread_detail(tid: int) -> dict:
         return {"turns": turns, "claims": claims,
                 # R8 P2-4：verify 从全表 evidence 收敛到本线程 claims
                 "verify": kb.verify(deps.RAW_DIR, derived_ids=_claim_ids)}
+
+
+def claims(orphaned: bool | None = None, limit: int = 50) -> dict:
+    """R3347（审-P2）：研究手记（derived claims）列表端点——删线程时
+    claims 解绑保留（thread_id→NULL）此前无任何列表入口，手记写了就
+    沉库看不见。orphaned=true 只列孤儿（删过线程的遗留），false 只列
+    在册线程的，省略全列。返回 claims + n_total 截断披露。"""
+    if limit < 1 or limit > 200:
+        raise ValidationError("条数填 1 到 200")
+    with deps.knowledge() as kb:
+        where, params = "", []
+        if orphaned is True:
+            where, params = " WHERE d.thread_id IS NULL", []
+        elif orphaned is False:
+            where, params = " WHERE d.thread_id IS NOT NULL", []
+        n_total = kb.db.execute(
+            f"SELECT count(*) c FROM derived d{where}", params
+        ).fetchone()["c"]
+        rows = kb.db.execute(
+            "SELECT d.id, d.kind, d.claim, d.method, d.confidence, "
+            "d.thread_id, d.created_at, "
+            "(SELECT count(*) FROM evidence e WHERE e.derived_id=d.id) ev "
+            f"FROM derived d{where} ORDER BY d.id DESC LIMIT ?",
+            params + [limit]).fetchall()
+        return {
+            "claims": [{
+                "id": r["id"], "kind": r["kind"], "claim": r["claim"],
+                "method": r["method"], "confidence": r["confidence"],
+                "thread_id": r["thread_id"],
+                "orphaned": r["thread_id"] is None,
+                "created_at": r["created_at"],
+                "n_evidence": r["ev"],
+            } for r in rows],
+            "n_total": n_total, "has_more": n_total > len(rows),
+        }
 
 
 def _drop_thread(kb, tid: int) -> None:

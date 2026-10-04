@@ -63,7 +63,9 @@ def structure(corpus: Corpus, work_id: str, sample_chars: int = 60) -> dict:
             if not r["scheme"]:
                 # R3305（审-P2-2）：未编址标题行此前裸显示文件名，
                 # 前端再按序号译成「第N卷」——其实是卷首/附录。
-                label = f"卷首/附录（{r['file']}）"
+                # R3347（审-P3）：「卷首/附录」对非周易 NULL-scheme 是
+                # 语义误导（老子 81 章全是正文）——改中性「章节」。
+                label = f"章节（{r['file']}）"
             elif r["scheme"] == "zhouyi":
                 gua = r["addr1"]
                 label = f"卦{gua}" + (f"（{names.get(gua, '')}）"
@@ -148,6 +150,11 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
             if addr1 is not None:
                 where += " AND u.addr1 = ?"
                 params.append(addr1)
+    # R3347（审-P2）：LIMIT 60 截断此前无据可查——长节（Exodus 60+ 节、
+    # 繫辭卷）悄悄只给前 60 单元。先数总数再取页，has_more 如实披露。
+    n_total = corpus.db.execute(
+        f"SELECT count(*) c FROM unit u WHERE {where}", params
+    ).fetchone()["c"]
     rows = corpus.db.execute(
         "SELECT u.scheme, u.addr_name, u.addr1, u.addr2, u.layer, u.text, "
         "u.file, u.page_anchor, u.suspect, u.skipped_chars FROM unit u "
@@ -169,7 +176,9 @@ def chapter(corpus: Corpus, work_id: str, scheme: str,
         "suspect": r["suspect"],
     } for r in rows]
     return {"work_id": work_id, "scheme": scheme,
-            "section": file or addr_name or addr1, "n_units": len(units), "units": units}
+            "section": file or addr_name or addr1, "n_units": len(units),
+            "n_total": n_total, "has_more": n_total > len(units),
+            "truncated": n_total > len(units), "units": units}
 
 
 def book_summary(corpus: Corpus, work_id: str) -> dict:
@@ -281,7 +290,9 @@ if __name__ == "__main__":
           f"(NULL-scheme file section readable)")
 
     sm = book_summary(c, "KR1a0001")
-    assert "error" not in sm and sm["n_sections"] == 65 and sm["n_units"] > 0
+    # R3347（审-P3）：n_sections 65→133——重编址后十翼单元按文件归入
+    # NULL-scheme 未编址区（64 卦 + 69 文件节），断言改随实测。
+    assert "error" not in sm and sm["n_sections"] == 133 and sm["n_units"] > 0
     assert sm["total_chars"] > 0 and sm["layers"]["經"]["units"] > 0
     assert sm["largest_section"] and sm["smallest_section"]
     assert sm["n_units"] == sum(sv["units"] for sv in sm["layers"].values()) \

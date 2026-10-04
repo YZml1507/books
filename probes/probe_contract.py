@@ -182,6 +182,8 @@ FIXTURES: dict[str, dict] = {
     # api() 绑定的归 "/api/x"。/api/threads 两侧都被前端读（POST 创建回包 +
     # GET 列表项），此前列表读点全被拿到 POST 响应上判成假 HARD。
     "/api/threads":           {"method": "GET"},
+    # R3347：孤儿手记列表端点——claims/n_total/has_more 形状钉扎。
+    "/api/claims":            {"method": "GET"},
 
     # ── R120a 补齐（R178b 新增/前端新接线的端点）──────────────
     # 上一轮这 8 个端点无 fixture → 报 SKIP。SKIP 让 probe 返回退出码 2
