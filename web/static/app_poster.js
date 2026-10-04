@@ -392,6 +392,9 @@ function _paintSharePoster(s, W, H) {
                    /* R3494：namecard 六件行+口径行=7 行——默认 cap4
                     * 会切掉纹样/角色/口径三行，提帽 7。 */
                    namecard: 7,
+                   /* R3521：checkin 加称号行后满 5 行——cap4 会切掉
+                    * 称号/小功课尾行，提帽 5。 */
+                   checkin: 5,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1503,6 +1506,20 @@ function buildShareData(view, j) {
       if (_pStr(j && j._wqLine)) {
         _ck.lines.push({ k: '小功课', v: _clauseCut(_pStr(j._wqLine), 20) });
       }
+      /* R3521：里程碑称号上墙——max(当前streak,已贺档) 取牌子，
+       * 与卡内 meta 同口径（攒过的档断了也算）。 */
+      try {
+        var _MSA = [[100, '百日故人'], [66, '知心人'],
+                    [30, '一月知己'], [21, '半月友'], [7, '七日缘']];
+        var _msBest = Math.max(_stk,
+          +(localStorage.getItem('ckms:seen') || 0));
+        for (var _mi = 0; _mi < _MSA.length; _mi++) {
+          if (_msBest >= _MSA[_mi][0]) {
+            _ck.lines.push({ k: '称号', v: _MSA[_mi][1] });
+            break;
+          }
+        }
+      } catch (eMSA) {}
       /* R3252：签面插画上海报——app.js 预载的奶油熊签面图直绘成
        * 卡座（与塔罗牌面同管线），抽到的那张签晒出去是「图」不是
        * 「字」。有插画卡时「今日签面」行与卡名重复，摘掉。 */
