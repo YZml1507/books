@@ -6243,11 +6243,17 @@ async function loadDaily() {
             '<div class="e-lbl">' + (i === _peakI ? '峰' : _lbl) + '</div>' +
             '</div>';
         }).join('');
+        /* R3628：峰值日建议——峰值日的十神白话标+适合做的事，
+         * 「哪天电足」落到「那天适合干什么」。 */
+        var _pk = _wk[_peakI] || {};
+        var _pkTag = _TEN_GOD_TAG[_pk.g] || '';
+        var _pkAct = _TEN_GOD_ACT[_pk.g] || '';
         _pc2.push('<div class="e-week" role="img" aria-label="本周能量走向">' +
           _bars +
           '<span class="e-week-note">周' +
           _wd[new Date(_wk[_peakI].d + 'T00:00:00').getDay()] +
-          '是你这周电最足的一天</span></div>');
+          '最足' + (_pkTag ? '·' + esc(_pkTag) + '日' : '') +
+          (_pkAct ? '，' + esc(_pkAct) : '') + '</span></div>');
       }
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
