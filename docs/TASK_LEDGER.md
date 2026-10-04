@@ -20063,3 +20063,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3584 社交链终扫记档
 - 链上参数边界：duel 钳(0,9999]/7名/去重；hug 真值即收；n esc 全链（榜 join 处 esc、单人判词 esc、welcomeBar textContent 天然安全、欢迎 toast textContent）。hugin 签名 cap20 防膨胀。
+
+## R3585 收尾闸
+- 自测457/契约790/禁词0 全绿。
