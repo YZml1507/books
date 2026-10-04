@@ -18447,7 +18447,7 @@ function _ncCard(j) {
     }
     if (_ncXp > 0) {
       rows.push({ ic: '📜', k: '功课', g: '',
-        v: _ncXp + ' 章 · XP ' + (_ncXp * 10) });
+        v: _ncXp + ' 章 · 缘力 ' + (_ncXp * 10) });
     }
   } catch (eNC) {}
   var _h = '<div class="nc-card sm-card">' +
@@ -20215,13 +20215,13 @@ function renderCheckin(dateKey) {
       (_wqDone
         ? '✅ 本周小功课已盖戳：' + esc(_wqQ) +
           (_wqN > 1 ? '<span class="ck-quest-n">攒了 ' + _wqN +
-                     ' 枚功课章 · XP ' + (_wqN * 10) +
+                     ' 枚功课章 · 缘力 ' + (_wqN * 10) +
                      (_wqRun >= 2 ? ' · 连满 ' + _wqRun + ' 周' : '') +
                      '</span>' : '')
         : '📜 本周小功课：' + esc(_wqQ) +
           '<button type="button" class="ck-quest-btn" id="wqDone" ' +
           'title="做完了点这里盖戳">做到了</button>' +
-          (_wqN > 0 ? '<span class="ck-quest-n">XP ' +
+          (_wqN > 0 ? '<span class="ck-quest-n">缘力 ' +
                      (_wqN * 10) + '</span>' : '')) +
       '</div>';
   } catch (eWQ) {}

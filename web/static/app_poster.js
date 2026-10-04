@@ -1519,9 +1519,10 @@ function buildShareData(view, j) {
       if (_pStr(j && j._wqLine)) {
         _ck.lines.push({ k: '小功课', v: _clauseCut(_pStr(j._wqLine), 20) });
       }
-      /* R3552：XP 独立行（混在小功课行会被 20 字帽切没）。 */
+      /* R3552/62：缘力独立行（混在小功课行会被 20 字帽切没；
+       * XP 是游戏黑话改「缘力」，与卡内/名片同口径）。 */
       if (Number(j && j._wqXp) > 0) {
-        _ck.lines.push({ k: '功课 XP', v: '累计 ' +
+        _ck.lines.push({ k: '功课缘力', v: '累计 ' +
           Number(j._wqXp) + ' 点' });
       }
       /* R3521：里程碑称号上墙——max(当前streak,已贺档) 取牌子，
