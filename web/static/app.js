@@ -21060,8 +21060,10 @@ function _mcQuizHtml(ctx) {
       '<button type="button" id="mochiMake" class="mc-go" data-mc="make" ' +
       'disabled>生成默契挑战书 🥤</button>';
   }
-  var _tag = _pk === 'love' ? '<span class="mc-packtag">对象题</span>'
-    : (_pk === 'custom' ? '<span class="mc-packtag">自写题</span>' : '');
+  /* R3453（自审-P2）：custom 已在题名前带「自写」——packtag 再
+   * 缀一个「自写题」变「自写默契题自写题」叠词。love 无题面前
+   * 缀，保留徽标。 */
+  var _tag = _pk === 'love' ? '<span class="mc-packtag">对象题</span>' : '';
   return '<div class="mc-head">「<b>' + esc(ctx.who || 'TA') +
     '</b>」给你出了一套' +
     (_pk === 'love' ? '心动' : (_pk === 'custom' ? '自写' : '')) +
