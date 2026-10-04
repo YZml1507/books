@@ -320,7 +320,7 @@ function _paintSharePoster(s, W, H) {
                    taohua: 5, hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
                    moodweek: 5,
-                   'year-wrap': 6 }[s.view] || 4;
+                   'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
   var cardY = (s.cards && s.cards.length ? 500 : 520) + Math.max(0, words.length - 2) * 60;
@@ -773,7 +773,11 @@ function _posterHookForView(view, j) {
   /* R3379：周记信——「用你真实记录拼的」是卖点本身。 */
   if (view === 'weekletter') return '用你上周真实记录拼的一封信';
   /* R3381：默契挑战——挑战感是钩子。 */
-  if (view === 'mochi') return '敢不敢测你们有多懂对方';
+  if (view === 'mochi') {
+    /* R3387 榜海报 vs 成绩条海报分开钩——榜的钩是排名引诱。 */
+    if (j && j._mcb) return '你来了能排第几？';
+    return '敢不敢测你们有多懂对方';
+  }
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1476,6 +1480,27 @@ function buildShareData(view, j) {
       var _mc = (j && j._mc) || {};
       var _ms = base('默契挑战',
         _cnDateSub(_pStr(j && j.date)));
+      /* R3387 默契榜海报：出题人晒「谁最懂我」排行——榜本身是
+       * 邀请函（「你来了能排第几」），朋友扫榜心痒又来应战。 */
+      var _mcb = (j && j._mcb) || null;
+      if (_mcb) {
+        _ms.big = '谁最懂我 · 默契榜';
+        _ms.lines = [
+          { k: '出题人', v: _pStr(_mcb.hn) || '我' },
+          { k: '应战', v: _pStr(_mcb.n) || '0 位' }
+        ];
+        /* 奖牌 emoji 画布字库是豆腐块——用「第N名」文字位；
+         * mochi 行 cap=6：出题人+应战+前三+「还有」恰好满。 */
+        _pArr(_mcb.rows).slice(0, 3).forEach(function (r, i) {
+          _ms.lines.push({ k: '第' + (i + 1) + '名',
+            v: _clauseCut(_pStr(r.n) || 'TA', 8) + ' · ' +
+               _pStr(r.s) + ' 分' });
+        });
+        if ((_mcb.n || 0) > 3) {
+          _ms.lines.push({ k: '还有', v: (_mcb.n - 3) + ' 位' });
+        }
+        return _ms;
+      }
       _ms.big = '默契 ' + (_pStr(_mc.pct) || '0') + ' 分';
       _ms.lines = [
         { k: '选手', v: (_pStr(_mc.hn) || '我') + ' × ' +

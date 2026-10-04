@@ -18577,3 +18577,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   matched/missed 用 st.pack 题库对照。
 - 实测：对象题出题→受邀答→回传→100 分+对题行→海报 542KB；
   旧链冷启 bestie 题正确渲染；hash 互切正常。
+
+## R3387 默契榜海报（裂变飞轮闭环）
+- 榜卡加「📸 晒榜」钮：_mcb 数据进 buildShareData mochi 分支
+  ——出题人/应战数/前三/还有N位六行排版（mochi 行 cap 升 6），
+  钩「你来了能排第几？」（_posterHookForView 按 _mcb 分钩）。
+- 画布字库不带奖牌 emoji（渲成豆腐块）——改用「第N名」文字位。
+- 实测 6 人榜出图 506KB 全行可见零溢出；banned_copy/contract
+  闸全绿。

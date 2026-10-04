@@ -19658,6 +19658,7 @@ function _mcBoardHtml() {
   }).join('');
   return '<div class="mc-board"><div class="mc-btitle">🏆 谁最懂你' +
     '<span class="mc-bcount">' + a.length + ' 位应战</span>' +
+    '<button type="button" class="mc-bwipe" data-mc="bshare">📸 晒榜</button>' +
     '<button type="button" class="mc-bwipe" data-mc="wipe">清空</button>' +
     '</div>' + rows + '</div>';
 }
@@ -19891,6 +19892,17 @@ function _renderMochi() {
         'data-mc="host">我也出一套给 TA</button></div>';
       box.innerHTML = card;
       return;
+    }
+    if (act === 'bshare') {
+      var _ba = _mcBoard();
+      if (!_ba.length) { showToast('榜还空着——先发挑战给 TA 们', 'info'); return; }
+      var _bhn = '';
+      try { _bhn = localStorage.getItem('mochi:nick') || '我'; } catch (eBH) {}
+      return downloadPoster({
+        _mcb: { hn: _bhn, n: _ba.length,
+                rows: _ba.slice(0, 8).map(function (e) {
+                  return { n: e.n, s: Math.round(e.s) }; }) },
+        date: todayIso() }, 'mochi');
     }
     if (act === 'wipe') {
       try { localStorage.removeItem('mochi:board'); } catch (eW) {}
