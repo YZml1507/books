@@ -2323,8 +2323,13 @@ function buildShareData(view, j) {
       var _qpoem = _pArr(_qn.poem);
       _qs.lines = [
         { k: '签题',
-          v: (_pStr(_qn.topic) ? '问' + _pStr(_qn.topic) + ' · ' : '') +
-             (_pStr(_qn.name) || '') },
+          /* R3649：fest 签题（桃花签/新春福签/万圣捣蛋签）本
+           * 身带「签」字——「问万圣捣蛋签」不通，签类话题
+           * 不加「问」前缀。 */
+          v: (_pStr(_qn.topic)
+            ? (_pStr(_qn.topic).slice(-1) === '签' ? '' : '问') +
+              _pStr(_qn.topic) + ' · '
+            : '') + (_pStr(_qn.name) || '') },
         { k: '签诗', v: _clauseCut(_qpoem.slice(0, 2).join('，'), 20) },
         { k: '小满说', v: _clauseCut(_pStr(_qn.say), 24) }
       ];
