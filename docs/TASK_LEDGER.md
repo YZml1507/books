@@ -20155,3 +20155,7 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3614 月历节点格接行动
 - 月历节点格带 data-act/data-day：今天的节点日点格=关 overlay 直开许愿瓶折叠+滚动定位；未来/已过节点日仍只读话不预支。
+
+## R3615 月历闸链注册（CI 修复批）
+- CI selftest 挂：/api/mooncal 未进 probe_contract FIXTURES——补钉扎（month=2026-10 参数样例）。
+- 同批：fetch().then(r.json()) 裸调用被 HARD 闸当字段读——改走统一 api() 助手（timeout/人话错误同口径，silent 不双弹 toast）；moonCalOv overlay 容器补 smoke NO_CASE 豁免（var ov = el()+addEventListener 被覆盖闸扫到）。
