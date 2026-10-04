@@ -19054,6 +19054,17 @@ function _moodWeekData() {
     prevText: prevText, jarTotal: jarTotal, pattern: _ptn,
     rangeStart: days[0].date, rangeEnd: days[6].date };
 }
+/* R3532/35：本周旺运三池——模块级，打卡行与周记行同源。 */
+var _WL_C = ['奶油黄', '抹茶绿', '雾霾蓝', '蜜桃粉', '燕麦色',
+  '浅紫', '橘红', '米白', '湖蓝', '樱花粉', '鹅黄', '灰绿',
+  '珊瑚橙', '淡青'];
+var _WL_I = ['一颗小太阳挂件', '向日葵发圈', '透明伞', '红绳',
+  '小小的铃铛', '陶瓷小猫', '干花书签', '暖色围巾', '贝壳耳钉',
+  '旧硬币', '手写小卡', '布艺发带', '一小袋桂花',
+  '圆滚滚的石头'];
+var _WL_F = ['一口热豆浆', '芒果糯米', '红糖年糕', '糖炒栗子',
+  '桂花汤圆', '烤红薯', '蜜桃乌龙', '酒酿圆子', '一碗阳春面',
+  '柠檬蜂蜜水', '芋泥麻薯', '绿豆沙', '热腾腾的玉米', '银耳羹'];
 var _mwMonthOff = 0;   /* R3530：心情月历翻页偏移（0=当月） */
 function _renderMoodWeek() {
   /* 只在周记视图在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
@@ -19179,6 +19190,16 @@ function _renderMoodWeek() {
   if (w.prevText)
     html += '<span class="mw-stat mw-prev">📊 ' + esc(w.prevText) + '</span>';
   html += '</div>';
+  /* R3535：周记同款旺运行——聊天文案承诺「周记里也能翻到」。 */
+  try {
+    var _wt0 = todayIso();
+    var _wMon = _isoShift(_wt0,
+      -((new Date(_wt0 + 'T00:00:00').getDay() + 6) % 7));
+    html += '<div class="ck-quest ck-wl">🍀 本周旺运：' +
+      esc(_dayPick(_WL_C, 'wlc|' + _wMon)) + ' · ' +
+      esc(_dayPick(_WL_I, 'wli|' + _wMon)) + ' · ' +
+      esc(_dayPick(_WL_F, 'wlf|' + _wMon)) + '</div>';
+  } catch (eWL2) {}
   html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
   body.innerHTML = html;
   /* R3526：月历格点击回看——委派一次挂上（重渲覆盖不换监听）。 */
@@ -20122,25 +20143,10 @@ function renderCheckin(dateKey) {
   try {
     var _wlMon = _isoShift(dateKey,
       -((new Date(dateKey + 'T00:00:00').getDay() + 6) % 7));
-    var _wlC = _dayPick([
-      '奶油黄', '抹茶绿', '雾霾蓝', '蜜桃粉', '燕麦色',
-      '浅紫', '橘红', '米白', '湖蓝', '樱花粉',
-      '鹅黄', '灰绿', '珊瑚橙', '淡青'
-    ], 'wlc|' + _wlMon);
-    var _wlI = _dayPick([
-      '一颗小太阳挂件', '向日葵发圈', '透明伞', '红绳',
-      '小小的铃铛', '陶瓷小猫', '干花书签', '暖色围巾',
-      '贝壳耳钉', '旧硬币', '手写小卡', '布艺发带',
-      '一小袋桂花', '圆滚滚的石头'
-    ], 'wli|' + _wlMon);
-    var _wlF = _dayPick([
-      '一口热豆浆', '芒果糯米', '红糖年糕', '糖炒栗子',
-      '桂花汤圆', '烤红薯', '蜜桃乌龙', '酒酿圆子',
-      '一碗阳春面', '柠檬蜂蜜水', '芋泥麻薯', '绿豆沙',
-      '热腾腾的玉米', '银耳羹'
-    ], 'wlf|' + _wlMon);
     _wluHtml = '<div class="ck-quest ck-wl">🍀 本周旺运：' +
-      esc(_wlC) + ' · ' + esc(_wlI) + ' · ' + esc(_wlF) + '</div>';
+      esc(_dayPick(_WL_C, 'wlc|' + _wlMon)) + ' · ' +
+      esc(_dayPick(_WL_I, 'wli|' + _wlMon)) + ' · ' +
+      esc(_dayPick(_WL_F, 'wlf|' + _wlMon)) + '</div>';
   } catch (eWL) {}
   /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
    * 规律换内容 toast 一次；pattern:seen 记最近一条防止重复弹。 */
