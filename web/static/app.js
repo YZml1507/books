@@ -20282,7 +20282,10 @@ function renderCheckin(dateKey) {
         : 0;
       _duelHtml = '<div class="ck-quest ck-duel">⚔️ 群擂榜：' +
         esc(_rows.join(' · ')) +
-        (_streak <= 0 ? '——你今天打第一张卡就上榜' :
+        (_streak <= 0 ? (Object.keys(_ckAll).length
+            ? '——你的签断了，补一张重新上榜' +
+              (_msTitle ? '，「' + _msTitle + '」给你留着' : '')
+            : '——你今天打第一张卡就上榜') :
           _rk === 1 ? '——你领跑，守住' :
           _streak === _board[0].n ? '——并列领跑，明天分高下' :
           '——你第 ' + _rk + '，差 ' +
