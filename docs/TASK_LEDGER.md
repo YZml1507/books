@@ -19115,3 +19115,22 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   contract +1 fixture、ui_smoke 113 全绿。
 - 修中事故：_hehun_plates 初版漏返换算坐标→hehun() cross_ref
   NameError，补返 a_ymd/b_ymd 双元组修复。
+
+## R3426 用户直报三修（真 bug 批）
+- P0 深链落地垫层毁载荷（app.js 着陆 push 段）：旧代码先
+  replaceState('/') 把地址栏清空、再读 location.* 垫层——读到
+  的全是 '/'，把 ?view=mochi、#mc= 默契答案载荷、#ay= 合婚
+  邀请 hash、分享 ?view= 参数全抹掉。用户实测「默契链新开
+  浏览器只能看到出题卡」。修：先缓存原 URL 再 replaceState/
+  pushState。Playwright 冷启复测：URL 保留 ?view=mochi#mc=、
+  受邀者做题卡（非出题卡）正常渲染。
+- 答案之书深主题不可读（styles.css）：.ansb-* 族固定奶油渐变
+  底 + var(--text) 字色——深档 --text 变浅=浅字浅底全糊。补
+  html[data-theme="dark"] 覆盖块（book/q/card/answer/crisis
+  五件改 --card 深底令牌），实测深底浅字对比恢复。
+- 今日牌缩略图看不清（app.js+styles.css）：22×36px 装饰缩略
+  →改 32×52 可点钮（dcThumbBtn），点开牌意卡带 150px 大图
+  （tc-img）；与「牌意」钮共用一个 toggle，缩略/牌意互相同步
+  aria-expanded。on_coverage 闸豁免表补 dcThumbBtn（同
+  tarotPeekBtn 本地 toggle 模式）。
+- 闸：selftest 442 / ui_smoke 113 / contract 791 全绿。

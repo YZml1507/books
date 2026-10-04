@@ -5723,8 +5723,13 @@ async function loadDaily() {
          * 异 seed 抽牌）已删，本行是「今日牌」唯一来源。 */
         _dcEl.innerHTML =
           (_dcImg
-            ? '<img class="dc-thumb' + (_dc.upright ? '' : ' is-reversed') +
-              '" src="' + _dcImg + '" alt="">'
+            /* R3426（用户实测「今日牌太小看不清」）：缩略图改可点——
+             * 点开牌意卡看大图（与「牌意」钮同链）。 */
+            ? '<button type="button" class="dc-thumb-btn" id="dcThumbBtn"' +
+              ' aria-expanded="false" aria-controls="tarotCard"' +
+              ' title="点开看牌面">' +
+              '<img class="dc-thumb' + (_dc.upright ? '' : ' is-reversed') +
+              '" src="' + _dcImg + '" alt="今日牌「' + esc(_dc.name) + '」"></button>'
             : '') +
           /* R3368（审-P1-1）：文字全包进单个 span——裸文本段各自
            * 成 flex 项，窄屏被挤到 min-content（CJK 一字）逐字
@@ -5751,23 +5756,40 @@ async function loadDaily() {
         }
         if (_tc) {
           _tc.hidden = true;
+          /* R3426：牌意卡带大图——小缩略点开能看到完整牌面。 */
           _tc.innerHTML = _dc.meaning
-            ? '<strong>' + esc(_dc.name) +
+            ? (_dcImg
+                ? '<img class="tc-img' + (_dc.upright ? '' : ' is-reversed') +
+                  '" src="' + _dcImg + '" alt="">'
+                : '') +
+              '<strong>' + esc(_dc.name) +
               ' · ' + (_dc.upright ? '正位' : '逆位') + '</strong>' +
               '<span>' + esc(_dc.meaning) + '</span>'
             : '';
         }
         var _tb = el('tarotPeekBtn');
-        if (_tb && !_tb.dataset.bound) {
-          _tb.dataset.bound = '1';
-          _tb.addEventListener('click', function () {
-            var c2 = el('tarotCard');
-            if (c2) {
-              c2.hidden = !c2.hidden;
+        var _tcToggle = function () {
+          var c2 = el('tarotCard');
+          if (c2) {
+            c2.hidden = !c2.hidden;
+            if (_tb) {
               _tb.textContent = c2.hidden ? '牌意' : '收起';
               _tb.setAttribute('aria-expanded', c2.hidden ? 'false' : 'true');
             }
-          });
+            var _db = el('dcThumbBtn');
+            if (_db) _db.setAttribute('aria-expanded',
+              c2.hidden ? 'false' : 'true');
+          }
+        };
+        if (_tb && !_tb.dataset.bound) {
+          _tb.dataset.bound = '1';
+          _tb.addEventListener('click', _tcToggle);
+        }
+        /* R3426：缩略图同链——点牌=点开牌意卡看大图。 */
+        var _dtb = el('dcThumbBtn');
+        if (_dtb && !_dtb.dataset.bound) {
+          _dtb.dataset.bound = '1';
+          _dtb.addEventListener('click', _tcToggle);
         }
       } else {
         _dcEl.hidden = true;
@@ -15584,9 +15606,16 @@ function init() {
             /^#mc[rs]?=/.test(location.hash || '');
           if (_extLand && !window.__landingPushed) {
             window.__landingPushed = true;
+            /* R3426-P0（用户实测「默契链到新浏览器只能出题」）：
+             * 原写法 replaceState('/') 先改地址栏再 pushState 读
+             * location.*——此时 search/hash 已随 URL 变 '/' 全空，
+             * 推上去的又是 '/'：默契 mc 载荷、hehun 邀请 hash、
+             * 分享 view 参整条深链全灭（受邀者=出题卡/无预填/
+             * 落首页）。先缓存原 URL 再垫层。 */
+            var _origURL = location.pathname + location.search +
+              location.hash;
             history.replaceState({ view: 'home' }, '', '/');
-            history.pushState({ view: _vp }, '',
-              location.pathname + location.search + location.hash);
+            history.pushState({ view: _vp }, '', _origURL);
           }
         } catch (eLP) {}
         /* R2349u（R89-P1-3）：紧凑邀请格式——投放/手拼短链

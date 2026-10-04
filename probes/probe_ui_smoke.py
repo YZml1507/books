@@ -507,6 +507,9 @@ def main() -> int:
         "signPeekBtn": "解签展开钮——生成在日卡 meta 行内，toggle 本地"
                        " signCard hidden，零请求零副作用",
         "tarotPeekBtn": "同上模式：今日牌牌意展开钮",
+        # R3426：今日牌缩略图改可点钮——与 tarotPeekBtn 同链同 toggle，
+        # 点图=点「牌意」，本地开关零请求。
+        "dcThumbBtn": "同上模式：今日牌缩略图点开大图（同 tarotPeekBtn 链）",
         "xzmSubmit": "星座速配——API 层已由 selftest xzmatch/xzmatch.hard/"
                      "xzmatch.bad 三用例钉死，冒烟只到抽屉可见",
         "dailyWeekGo": "周条提示钮——仅周日/周一生成的动态钮，"

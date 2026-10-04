@@ -812,10 +812,21 @@ html[data-theme="dark"] .daily-mantra b{
   /* R3368（审-P1-1）：wrap 让按钮排不下时掉行不压字 */
   flex-wrap:wrap;}
 .daily-card-line .dc-text{flex:1 1 140px; min-width:0;}
-.daily-card-line .dc-thumb{width:22px; height:36px; object-fit:cover;
+.daily-card-line .dc-thumb{width:32px; height:52px; object-fit:cover;
   border-radius:4px; border:1px solid var(--border); flex:none;
-  box-shadow:0 1px 3px rgba(90,60,30,.18);}
+  box-shadow:0 1px 3px rgba(90,60,30,.18); display:block;}
 .daily-card-line .dc-thumb.is-reversed{transform:rotate(180deg);}
+/* R3426：缩略图改可点钮——点开牌意卡看大图；脱壳 img 的 button 壳。 */
+.daily-card-line .dc-thumb-btn{padding:0; border:0; background:none;
+  cursor:pointer; flex:none; line-height:0; border-radius:4px;}
+.daily-card-line .dc-thumb-btn:active{transform:scale(.95);}
+.daily-card-line .dc-thumb-btn:focus-visible{
+  outline:2px solid var(--primary); outline-offset:1px;}
+/* R3426：牌意卡内大图——完整牌面可看清。 */
+.sign-card .tc-img{width:150px; height:auto; border-radius:10px;
+  border:1px solid var(--border); display:block; margin:0 auto 10px;
+  box-shadow:0 4px 14px rgba(90,60,30,.18);}
+.sign-card .tc-img.is-reversed{transform:rotate(180deg);}
 .daily-card-line b{color:var(--primary-ink); font-weight:600;}
 .daily-card-line i{font-style:normal; opacity:.85;}
 .daily-card-line .dc-more{margin-left:auto; flex:none; cursor:pointer;
@@ -4427,3 +4438,22 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .hh-daily-tag { margin-top: 4px; font-size: 12px; color: #c2536b; }
 .hh-daily-share { margin-top: 10px; min-height: 40px; }
 @media (max-width: 420px) { .hh-daily-score { font-size: 38px; } }
+
+/* ── R3426 深色补丁：答案之书奶白底族件 ──
+ * .ansb-* 底色是固定奶油渐变（晒图语境），深主题下 --text 变浅=
+ * 浅字写浅底全糊（用户实测「夜晚看不清」）。深档改 --card 深底
+ * 令牌，字色沿用 --text 自动适配。 */
+html[data-theme="dark"] .ansb-book {
+  background: linear-gradient(160deg, rgba(52,44,50,.92),
+    rgba(43,37,41,.85)); border-color: var(--line); }
+html[data-theme="dark"] .ansb-q { background: #221D20;
+  border-color: var(--line); color: var(--text); }
+html[data-theme="dark"] .ansb-card {
+  background: linear-gradient(165deg, rgba(55,46,52,.95),
+    rgba(45,38,43,.9)); border-color: var(--line); }
+html[data-theme="dark"] .ansb-answer { color: var(--text);
+  border-bottom-color: rgba(216,198,242,.3); }
+html[data-theme="dark"] .ansb-crisis {
+  background: linear-gradient(165deg, rgba(74,53,64,.9),
+    rgba(62,45,54,.85)); color: var(--text);
+  border-color: var(--line); }
