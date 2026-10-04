@@ -2121,6 +2121,20 @@ button:active{transform:scale(.96);}
 /* R3249e（UX-AUDIT C·塔罗）：三档快捷抽牌钮——新客零思考入口，
  * 每个都带「什么时候用它」副标。 */
 .tr-quick{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+/* R3368：万圣夜限定格——四枚时独占一行，南瓜橙点题不刺眼 */
+.tr-quick-btn.tr-hfest{grid-column:1 / -1;
+  border-color:rgba(224,122,58,.45);
+  background:linear-gradient(135deg,#fff4ea,#ffe9d9);}
+html[data-theme="dark"] .tr-quick-btn.tr-hfest{
+  background:linear-gradient(135deg,#3a2a24,#453026);
+  border-color:rgba(224,150,90,.5);}
+.tr-hfest-strip{display:inline-block; margin-bottom:10px;
+  padding:4px 12px; border-radius:999px; font-size:12px;
+  background:linear-gradient(135deg,#fff4ea,#ffe9d9);
+  border:1px solid rgba(224,122,58,.4); color:#8a5428;}
+html[data-theme="dark"] .tr-hfest-strip{
+  background:linear-gradient(135deg,#3a2a24,#453026);
+  border-color:rgba(224,150,90,.45); color:#e8b98a;}
 .tr-quick-btn{padding:12px 6px; border-radius:14px;
   border:1.5px solid var(--border); background:#fff;
   color:var(--text); font-family:var(--font-sans); cursor:pointer;

@@ -9137,6 +9137,16 @@ async function doTarot(cards) {
     const j = await postJSON('/api/tarot', body);
     if (_gen !== _TR_GEN) return;   /* R2502 */
     paint('trResult', buildTarotResult(j));
+    /* R3368：万圣夜限定抽的结果头顶插限定条（只认 trQH 路径，
+     * 窗口期外入口本就藏着的）。 */
+    if (window.__trHFest) {
+      window.__trHFest = false;
+      var _hf = document.createElement('div');
+      _hf.className = 'tr-hfest-strip';
+      _hf.textContent = '🎃 万圣夜限定 · 今晚问的，小满都替你保密';
+      var _box0 = el('trResult');
+      if (_box0) _box0.insertBefore(_hf, _box0.firstChild);
+    }
     pollAiPolish('trResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R230d（R16-P2-2）+ R2512：分享按钮挪进 build（重画不丢），
      * 绑定收进 rebind 登记。 */
@@ -12925,6 +12935,26 @@ function initDivination() {
     return doTarot();
   });
   on('trQPick', function () { return _trPickOpen(); });
+  /* R3368：万圣夜限定入口——10.29–11.1 窗口内显示；点了走
+   * 抽一张，问句空着给预填，结果卡带限定条。 */
+  var _trHFest = (function () {
+    var _n0 = new Date(), _m0 = _n0.getMonth() + 1, _d0 = _n0.getDate();
+    return (_m0 === 10 && _d0 >= 29) || (_m0 === 11 && _d0 <= 1);
+  })();
+  var _trHBtn = el('trQH');
+  if (_trHBtn && _trHFest) _trHBtn.hidden = false;
+  on('trQH', function () {
+    var s = el('tr_spread'), n = el('tr_n');
+    if (s) s.value = '';
+    if (n) n.value = '1';
+    _trSpreadSync();
+    var _qi = el('tr_question');
+    if (_qi && !(_qi.value || '').trim()) {
+      _qi.value = '那件我一直不敢问的事';
+    }
+    window.__trHFest = _trHFest;
+    return doTarot();
+  });
   /* R3325：大众占卜 pick-a-pile——事业/感情/财运三主题，各 3 堆，
    * seed=日期+主题+堆位（同日同堆同牌，可晒同款）；一堆一天定，
    * 选完存 localStorage（换主题互不影响）。 */
