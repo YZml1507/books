@@ -22306,6 +22306,30 @@ function baziPersonaCard(j) {
         if (s) b.push(s + ' 段对话');
         if (t) b.push(t + ' 个话题');
         return b.join(' · ') || '还没有';
+      } },
+    /* R3450（审-P2）：使用足迹族——「来过几次/上次看哪页/提醒
+     * 钟点」这些她用来记你的键，也该摆出来给看给删。账号
+     * 凭据/口令锁/主题/UI 偏好不在此列（非个人足迹，各有
+     * 本家开关）。 */
+    { id: 'trk', icon: '👣', label: '来过的足迹',
+      re: /^(rlast:|usage:|remind:|visits$|welcomed$|notify:time$|returnBannerDismissed$)/,
+      sum: function () {
+        var b = [];
+        var v = 0;
+        try { v = parseInt(localStorage.getItem('visits') || '0', 10) || 0; }
+        catch (eV) {}
+        if (v) b.push('来过 ' + v + ' 次');
+        var _last = '';
+        _xmKeys().forEach(function (k) {
+          if (k.indexOf('rlast:') === 0) {
+            var d = localStorage.getItem(k) || '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > _last) _last = d;
+          }
+        });
+        if (_last) {
+          b.push('上次来是 ' + _last.slice(5).replace('-', '月') + ' 日');
+        }
+        return b.join(' · ') || '还没有';
       } }
   ];
   function _xmKeys() {
@@ -22407,13 +22431,26 @@ function baziPersonaCard(j) {
             var _sr = [];
             for (var i = 0; i < sessionStorage.length; i++) {
               var sk = sessionStorage.key(i);
+              /* R3450（审-P1）：「忘掉聊过的天」原先只收记录/sid——
+               * 问句原文（塔罗/六爻问过什么）、发起者昵称、去重旗
+               * 都是聊天足迹，留着=半忘。与忘掉一切同口径收。 */
               if (sk && (sk.indexOf('chatTranscript') === 0 ||
-                  /^(chatSessionId|chatClosed|chatBootId)$/.test(sk) ||
-                  sk.indexOf('lastResult:') === 0)) _sr.push(sk);
+                  /^(chatSessionId|chatClosed|chatBootId|trAskedToday|hhInvite|chatTopicFactDone|chatCardsFactDone|ly:lastq|ly:lastcast|histUnlocked)$/.test(sk) ||
+                  sk.indexOf('lastResult:') === 0 ||
+                  sk.indexOf('shareBy') === 0)) _sr.push(sk);
             }
             _sr.forEach(function (sk) {
               try { sessionStorage.removeItem(sk); } catch (eSR) {}
             });
+            /* _MEM_STORE 兜底面：sessionStorage 被禁时 sid 落内存——
+             * 同 tab 内不请掉就还能接回旧会话。 */
+            try {
+              if (window._MEM_STORE && _MEM_STORE.removeItem) {
+                ['chatSessionId', 'chatClosed'].forEach(function (mk) {
+                  try { _MEM_STORE.removeItem(mk); } catch (eMK) {}
+                });
+              }
+            } catch (eMS) {}
           } catch (eSS2) {}
         }
         showToast(g.label + '忘掉啦', 'info');

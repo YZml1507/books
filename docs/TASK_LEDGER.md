@@ -19386,3 +19386,20 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 真机（Date 覆盖至 10/30）双验：当值签渲染可见、同日
   再抽同签不变、零 JS 错。
 - 闸：自测 451（+frontend.liaozhai）/banned 0/契约 789 绿。
+
+## R3450 键族四轮对账 + 「来过的足迹」族（2026-10-04）
+- 对账：全量 setItem 键 vs _DATA_RE（备份）/wipe 清单/_SDATA_RE
+  （会话面）三方归属——xmaccount/histLock/mirror 系/mochi/
+  qian/ansb/manifest/muyu 等已在三清单内；uiTheme 留 wipe
+  属 UI 偏好设计（备份口径内）；wipeAt 跨 Tab 协调信号不进
+  组 wipe（收了会掐断别处的忘掉一切广播）。
+- 实修①：聊天组 wipe 漏 sessionStorage 问句原文键
+  （trAskedToday/ly:lastq/ly:lastcast）+ 发起者昵称 shareBy:/
+  hhInvite + 去重旗 + _MEM_STORE 兜底面——「忘掉聊过的天」
+  同 tab 内留半忘残渣，与忘掉一切同口径收齐。
+- 实修②：新增第六族「👣 来过的足迹」（rlast:/usage:/remind:/
+  visits/welcomed/notify:time/returnBannerDismissed）——「来过
+  N 次 · 上次来是 M 月 D 日」摆出即给删；账号凭据/口令锁/
+  主题皮肤不归此列（各有本家开关，卡底提示已写明）。
+- 真机：足迹族渲染+两键忘+聊天组含问句键双验全过。
+- 闸：自测 451/契约 789/banned 0 绿。
