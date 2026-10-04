@@ -17272,7 +17272,11 @@ function _promptText(j, body) {
     '五行分布：' + _fe + '\n' +
     '请从性格底色、感情模式、今年要注意的地方三个角度帮我解读，' +
     '说得温柔一点、别堆术语，最后给我一个这个月能上手做的小建议。\n' +
-    '（这个盘是在小满的解忧铺排的：' + location.origin + '/?view=bazi ）';
+    /* R3465s（亲审）：file:// 等协议下 origin 非 http——尾链
+     * 落成「file:///?view=bazi」坏链。非 http 回落正式站。 */
+    '（这个盘是在小满的解忧铺排的：' +
+    (/^https?:/.test(location.origin) ? location.origin
+      : 'https://books-ctsw.onrender.com') + '/?view=bazi ）';
 }
 function _promptCopy(j, body) {
   var text = _promptText(j, body);

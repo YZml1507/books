@@ -19650,3 +19650,10 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 色谱海报目检抓两修：①带色点行恒单行渲染（原两行排版
   下色点悬空在行纵中）；②soulart 入行帽表 cap=6（原默认
   cap4 把「最浓/口径」尾两行静默切没）。
+
+## R3465s（2026-10-04）分享/裂变四轮终扫（亲审，子 0ACU 停摆）
+- prompt 链：file:// 下 origin 产坏链——非 http 回落正式站。
+- 折叠区 5 chip：200% 缩放下全可见零横溢。
+- localStorage 禁用（隐私模式近似）：深链落地正常渲染零 JS 错。
+- soulart 空 bands→_saArt 判空回落暖底，无白板；copy
+  execCommand fallback 在位。
