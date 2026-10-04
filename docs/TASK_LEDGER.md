@@ -18458,3 +18458,13 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   白名单（换机/无痕拉回后连念不丢）+ storage 跨 tab 监听。
 - 闸门：ui_smoke `ui:mantra_fav` 扩四断言（钮在/落键/禁用/meta 带天数）、
   selftest 静态钉（白名单/计数/钮三件套）；CSS .mb-ritual/.mb-today。
+
+## R3374s 留存/回流链路自审（子 agent 队列故障，主窗口自审）
+- `_DATA_RE` 备份白名单全量对账：全部 localStorage.setItem 键位覆盖；
+  wipeAt/`*_MIRROR*`/_SYNC_KEY/_DEV_KEY 系同步态键正确地不入备份——干净。
+- returnBannerDismissed 按日戳免打扰、remind:shown 每日一次性——链路自洽，零修。
+
+## R3375s 安全/隐私自审（同上自审）
+- 账号链路：`backup/pull` 必须口令码校验（verify 前置）、register/login/
+  push/pull 全挂 `_nick_ratelimit` 按 (ip,action,nick) 桶限速——无匿名拉备份面。
+- 推送并发用 base_updated_at 乐观锁拒写（409 conflict 提示先拉回）——干净。
