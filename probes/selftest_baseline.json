@@ -242,6 +242,7 @@
   "frontend.on_wiring",
   "frontend.oracle_gates",
   "frontend.qian_wiring",
+  "frontend.xmas_wiring",
   "gooddays.calm",
   "health",
   "hehun",

@@ -2198,6 +2198,20 @@ html[data-theme="dark"] .tr-quick-btn.tr-hfest{
 html[data-theme="dark"] .tr-hfest-strip{
   background:linear-gradient(135deg,#3a2a24,#453026);
   border-color:rgba(224,150,90,.45); color:#e8b98a;}
+/* R3435：圣诞心愿限定格/条——圣诞红绿，与 hfest 同构换色 */
+.tr-quick-btn.tr-xfest{grid-column:1 / -1;
+  border-color:rgba(196,60,60,.42);
+  background:linear-gradient(135deg,#fdeeee,#e8f4ec);}
+html[data-theme="dark"] .tr-quick-btn.tr-xfest{
+  background:linear-gradient(135deg,#3a2424,#243328);
+  border-color:rgba(214,120,120,.5);}
+.tr-xfest-strip{display:inline-block; margin-bottom:10px;
+  padding:4px 12px; border-radius:999px; font-size:12px;
+  background:linear-gradient(135deg,#fdeeee,#e8f4ec);
+  border:1px solid rgba(196,60,60,.38); color:#8a3232;}
+html[data-theme="dark"] .tr-xfest-strip{
+  background:linear-gradient(135deg,#3a2424,#243328);
+  border-color:rgba(214,120,120,.45); color:#e8a8a8;}
 .tr-quick-btn{padding:12px 6px; border-radius:14px;
   border:1.5px solid var(--border); background:#fff;
   color:var(--text); font-family:var(--font-sans); cursor:pointer;

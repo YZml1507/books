@@ -3922,6 +3922,14 @@ _CHAT_ACTIONS = [
      "限定」卡，能抽「那件她一直不敢问的事」，让她去那儿抽，"
      "抽完回来接着聊",
      "tarot", "🎃 去抽万圣夜限定", "trQH"),
+    # R3435：圣诞心愿窗（12/20–12/25）词族挂限定入口——「圣诞
+    # 节/平安夜/圣诞树/圣诞愿望」原无路标。窗口外落塔罗族。
+    (("圣诞节", "平安夜", "圣诞快乐", "merry christmas",
+      "圣诞树", "圣诞愿望", "圣诞心愿"),
+     "她在圣诞心愿窗上——铺子里有圣诞心愿限定：塔罗页有「🎄 "
+     "圣诞心愿限定」卡，默念心愿翻一张看它怎么来，让她去那儿"
+     "抽，抽完回来接着聊",
+     "tarot", "🎄 去抽圣诞心愿", "trQX"),
     # R3370-P2-8：「占卜」是塔罗的高频自然说法（「想占卜」
     # 「占卜一下感情」），此前全无路标。
     (("塔罗", "抽牌", "抽张牌", "抽一张", "抽个牌", "帮我抽",
@@ -4151,9 +4159,16 @@ def _chat_action(message: str):
         if anchor == "trQH":
             # R3370-P1-2：万圣限定卡只在 10/29–11/1 现身——窗口外
             # 指路隐藏钮=死 chip，跳过落回塔罗族。
-            _nd = date.today()
+            # R3434（审）：裸 date.today() 是 UTC 日——窗口首日 0-8 点
+            # CN 用户看不到卡、末日 CN 20-24 点多给 8h。改 _today_cn。
+            _nd = _today_cn()
             if not ((_nd.month == 10 and _nd.day >= 29)
                     or (_nd.month == 11 and _nd.day <= 1)):
+                continue
+        if anchor == "trQX":
+            # R3435：圣诞心愿限定卡只在 12/20–12/25 现身。
+            _nd = _today_cn()
+            if not (_nd.month == 12 and 20 <= _nd.day <= 25):
                 continue
         if any(k in _n for k in keys):
             return line, view, label, anchor

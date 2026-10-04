@@ -2318,6 +2318,8 @@ var _CHAT_ACT_ANCHORS = {
   celeb: '#celebDrawer',
   /* R3370-P1-2：万圣限定卡锚——窗口内 trQH 已现身，滚到门口。 */
   trQH: '#trQH',
+  /* R3435：圣诞心愿限定卡锚——12.20–12.25 窗口内 trQX 现身。 */
+  trQX: '#trQX',
   /* R3418-P2-1：人生K线折叠卡锚——details 展开+滚到门口。 */
   kline: '.kline-fold' };
 function _chatActChip(bubble, action) {
@@ -9576,6 +9578,16 @@ async function doTarot(cards) {
       var _box0 = el('trResult');
       if (_box0) _box0.insertBefore(_hf, _box0.firstChild);
     }
+    /* R3435：圣诞心愿限定条——同 hfest 插顶口径，窗口外入口本
+     * 就藏着。 */
+    if (window.__trXFest) {
+      window.__trXFest = false;
+      var _xf = document.createElement('div');
+      _xf.className = 'tr-xfest-strip';
+      _xf.textContent = '🎄 圣诞心愿限定 · 愿望已经翻给你看了';
+      var _boxX = el('trResult');
+      if (_boxX) _boxX.insertBefore(_xf, _boxX.firstChild);
+    }
     pollAiPolish('trResult', j.ai_task_id);   /* R3154：AI 段落后到 */
     /* R230d（R16-P2-2）+ R2512：分享按钮挪进 build（重画不丢），
      * 绑定收进 rebind 登记。 */
@@ -13543,6 +13555,37 @@ function initDivination() {
     window.__trHFest = true;
     return doTarot();
   });
+  /* R3435：圣诞心愿限定入口——12.20–12.25 窗口内显示；预填心愿
+   * 问句抽一张，结果卡带圣诞限定条。窗口判定同 trQH 的复判口径。 */
+  var _trXFest = function () {
+    var _nx = new Date();
+    return _nx.getMonth() + 1 === 12 && _nx.getDate() >= 20 &&
+      _nx.getDate() <= 25;
+  };
+  var _trXBtn = el('trQX');
+  if (_trXBtn && _trXFest()) _trXBtn.hidden = false;
+  /* R3435：跨零点进出窗口重判——页面过夜到 12/20 钮要现身、
+   * 到 12/26 要收起来（init 快照不动）。 */
+  window.__festDayFlip = function () {
+    if (_trHBtn) _trHBtn.hidden = !_trHFest();
+    if (_trXBtn) _trXBtn.hidden = !_trXFest();
+  };
+  on('trQX', function () {
+    if (!_trXFest()) {
+      if (_trXBtn) _trXBtn.hidden = true;
+      return;
+    }
+    var sx = el('tr_spread'), nx = el('tr_n');
+    if (sx) sx.value = '';
+    if (nx) nx.value = '1';
+    _trSpreadSync();
+    var _qx = el('tr_question');
+    if (_qx && !(_qx.value || '').trim()) {
+      _qx.value = '我心里默念的圣诞心愿';
+    }
+    window.__trXFest = true;
+    return doTarot();
+  });
   /* R3325：大众占卜 pick-a-pile——事业/感情/财运三主题，各 3 堆，
    * seed=日期+主题+堆位（同日同堆同牌，可晒同款）；一堆一天定，
    * 选完存 localStorage（换主题互不影响）。 */
@@ -15243,6 +15286,8 @@ function init() {
     /* R3431-P1-3（审）：掷筊堆页隔夜重渲——_pileKey 已换新天，
      * DOM 还是昨天的禁用死态，刷新前玩不了。 */
     try { if (window.__pileDayFlip) window.__pileDayFlip(); } catch (ePF) {}
+    /* R3435：节日限定钮跨零点进出窗重判（万圣/圣诞卡）。 */
+    try { if (window.__festDayFlip) window.__festDayFlip(); } catch (eFX) {}
     /* R3431-P2-1（审）：日锁视图重渲表——开着过夜的次级日锁视图
      * 按 active 分发刷新。数据层本就 fresh（每次现取 todayIso），
      * 纯显示层补翻日：签页/塔罗今日牌/心情周记/木鱼/合拍卡/显化册。 */

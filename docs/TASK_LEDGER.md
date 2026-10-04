@@ -19226,3 +19226,16 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 闸：selftest 443（+frontend.mochi_custom）、contract 789、
   ui_smoke 113、banned_copy 0、regress PASS 全绿；
   sw 缓存 bump books-shell-4e9b676de688。
+
+## R3434/R3435 日期域二轮自审 + 圣诞心愿限定（2026-10-04）
+- R3434（自审替子 agent 429）：日期/时区家族二轮对账——
+  trQH 万圣窗服务端裸 date.today()（UTC）窗口首日 CN 0-8 点
+  看不到卡、末日多给 8h，改 _today_cn()；client_date 家族其余
+  端点全部带参，_onDayFlip 重渲表对账无漏网视图。
+- R3435 圣诞心愿限定：塔罗页 trQX 钮 12/20–12/25 窗口现身——
+  默念心愿抽一张（预填问句+圣诞红绿限定条）；聊词族
+  （圣诞节/平安夜/圣诞树/圣诞愿望）挂「🎄 去抽圣诞心愿」
+  路标，窗口判定 _today_cn；__festDayFlip 钩让万圣/圣诞钮
+  跨零点进出窗自动现身/收起；selftest 新增 frontend.xmas_wiring。
+- 闸：selftest 444、contract 789、ui_smoke 113、banned_copy 0、
+  regress PASS 全绿；sw 缓存 bump books-shell-8839c985d0cb。

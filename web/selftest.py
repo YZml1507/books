@@ -4690,6 +4690,21 @@ def _run_inner() -> list[str]:
         'data-wish="echoShare"' in _appsrc2 and "_QIAN_CAISHEN" in _appsrc2, \
         "福签窗/跨年愿/还愿海报：窗表/分键/徽标/动作缺一"
     ok.append("frontend.cny_ny_wiring")
+    # R3435 圣诞心愿限定：钮/窗函/条/锚/聊路标五件套——缺一则
+    # 钮不现身、点死不抽、限定条不冒或聊里死链。
+    _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "styles.css"),
+                    encoding="utf-8").read()
+    assert 'id="trQX"' in _idxsrc and "_trXFest" in _appsrc2 and \
+        "__trXFest" in _appsrc2 and "tr-xfest-strip" in _appsrc2 and \
+        'trQX:' in _appsrc2 and "tr-xfest-strip" in _csssrc2, \
+        "圣诞心愿限定：钮/窗函/旗标/限定条/锚/样式缺一"
+    _svcsrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "services.py"),
+                    encoding="utf-8").read()
+    assert '"trQX"' in _svcsrc2 and "圣诞心愿限定" in _svcsrc2, \
+        "圣诞心愿限定：聊路标词族/锚缺"
+    ok.append("frontend.xmas_wiring")
     # R3418 P0/P1：掷筊三重闸（feCrisis→feSensitive→BIGQ，先于
     # 种子判词）+ tarot/liuyao 提问钩危机闸 + 粉碎机双闸——
     # 缺一则高危问句拿到确定性吉凶判词。
