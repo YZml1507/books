@@ -22206,6 +22206,41 @@ function _chatChipsPersonalize() {
             '<p class="chat-journal-done">今天的：' + esc(String(v)) + '</p></div>';
           _microCelebrate(_jsBtn);
           showToast('小满替你收好今天的一件小事～' + '\n' + _identityPhrase(), 'ok');
+          /* R3602：小记自动识心情（Lunary auto-mood tagging 同构）
+           * ——今天还没记心情且文本有明确情绪词时，给一颗顺水舟
+           * 建议钮；点了走 .mood-b 真钮的全链（落键+回执+周记）。 */
+          try {
+            var _jm = -1;
+            if (!localStorage.getItem('mood:' + todayIso())) {
+              if (/累|烦|丧|哭|焦虑|失眠|难过|委屈|郁闷|心慌|emo/i.test(v)) _jm = 0;
+              else if (/忙|赶|加班|ddl|考试|复习|开会|报告/i.test(v)) _jm = 1;
+              else if (/平静|安静|放空|散步|晒了|读了|猫/i.test(v)) _jm = 2;
+              else if (/开心|好喝|好玩|好吃|惊喜|顺利|赢|过啦|成了|笑/i.test(v)) _jm = 3;
+            }
+            if (_jm >= 0) {
+              var _jmTxt = _jm === 0 ? '小记里好像有点沉——顺手记一笔心情吗'
+                       : _jm === 1 ? '小记里好像有点赶——顺手记一笔心情吗'
+                       : _jm === 2 ? '小记里有点松——顺手记一笔心情吗'
+                       : '小记里好像有点亮——顺手记一笔心情吗';
+              var _jmB = document.createElement('button');
+              _jmB.type = 'button';
+              _jmB.className = 'journal-mood-go';
+              _jmB.textContent = _jmTxt + ' →';
+              _jmB.addEventListener('click', function () {
+                var _mb = document.querySelector(
+                  '.mood-b[data-m="' + _jm + '"]');
+                if (_mb) { _mb.click(); }
+                else {
+                  try { localStorage.setItem(
+                    'mood:' + todayIso(), String(_jm)); } catch (eM2) {}
+                }
+                _jmB.remove();
+                showToast('心情也替你记上啦', 'ok');
+              });
+              var _jmBody = _jb.querySelector('.chat-journal-body');
+              if (_jmBody) _jmBody.appendChild(_jmB);
+            }
+          } catch (eJM) {}
         });
       }
     }
