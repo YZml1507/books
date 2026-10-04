@@ -17373,6 +17373,25 @@ if (document.readyState === 'loading') {
         });
         bar.insertBefore(_wcta2, bar.querySelector('.welcome-close'));
       }
+      /* R3573：对擂/递好运落地欢迎条挂 CTA——别只口播「打个卡
+       * 接招」，直挂按钮滚到打卡区（受邀新客少一步）。 */
+      if (_sv2 === 'home' && !bar.querySelector('.welcome-cta')) {
+        var _q3 = new URLSearchParams(location.search);
+        if (_q3.get('duel') || _q3.get('hug')) {
+          var _wcta3 = document.createElement('button');
+          _wcta3.type = 'button';
+          _wcta3.className = 'welcome-cta';
+          _wcta3.textContent = _q3.get('duel') ?
+            '⚔️ 去打卡接招' : '🤗 去打卡收下好运';
+          _wcta3.addEventListener('click', function () {
+            var _ck = el('checkin');
+            if (_ck && _ck.scrollIntoView) {
+              _ck.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+          bar.insertBefore(_wcta3, bar.querySelector('.welcome-close'));
+        }
+      }
     } else if (_txtEl && _from === 'invite') {
       _txtEl.textContent = (window.__hhInviteBy || 'TA') +
         ' 约你来合婚，填好你的生日就能对上盘 💕';
