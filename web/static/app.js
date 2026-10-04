@@ -3415,6 +3415,16 @@ function _chatFacts(facts, msg) {
         _f.push('她近几天自己记的心情：' + _mb.join('、') +
                 '。打卡区「📒 看看这周的你」有 7 天心情汇总小卡');
     }
+    /* R3390：签语话题带今日签面——她聊「签上怎么说/这支签」时，
+     * 小满手里得有她抽的那支（此前只能回「告诉我签面」空话）。
+     * 只在她真提过签的话题里注（不泛注入「签」单字——日签/打卡
+     * 也带签字会过曝）。 */
+    if (msg && /抽.{0,2}签|求.{0,2}签|解签|签诗|灵签|观音签|这支签|那支签|签上说|签面|摇.{0,2}签/.test(msg)) {
+      try {
+        var _qf = JSON.parse(localStorage.getItem('qian:fact') || 'null');
+        if (_qf && _qf.d === todayIso() && _qf.t) _f.push(_qf.t);
+      } catch (eQf) {}
+    }
   } catch (e) {}
   return _f;
 }
@@ -14864,6 +14874,16 @@ function init() {
       try { _renderMantraBook(); } catch (eMF2) {}
       return;
     }
+    /* R3389（审-中）：qian:/mochi: 跨 tab——A tab 抽了签/答了题，
+     * B tab 停在对应页时签筒/出题卡不再显陈旧空态。 */
+    if (e.key.indexOf('qian:') === 0) {
+      try { _renderQian(); } catch (eQ1) {}
+      return;
+    }
+    if (e.key.indexOf('mochi:') === 0) {
+      try { _renderMochi(); } catch (eM1) {}
+      return;
+    }
     if (e.key.indexOf('shred:') === 0) {
       try { _shredRefreshSummary(); } catch (eSh) {}
       return;
@@ -17907,7 +17927,7 @@ function renderCheckin(dateKey) {
           if (_ck) {
             ['mood:', 'moodlv:', 'journal:', 'ritual:', 'usage:d:',
              'rlast:', 'mood:dream:', 'weeklyLetter:', 'monthlyLetter:',
-             'pilePick:'].forEach(function (_p) {
+             'pilePick:', 'qian:', 'manifest:'].forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
           }
@@ -20006,7 +20026,21 @@ function _qianDraw() {
     h.unshift({ d: dk, n: n });
     localStorage.setItem('qian:hist', JSON.stringify(h.slice(0, 30)));
   } catch (e) {}
+  _qianFactWrite(n);
   return n;
+}
+/* R3390：当日签面事实——聊签话题经 _chatFacts 注入。独立小键
+ * 而非现读 QIAN：懒载语料没落页时（今天抽过但没进签页）仍能注。 */
+function _qianFactWrite(n) {
+  try {
+    var q = QIAN[n - 1]; if (!q) return;
+    localStorage.setItem('qian:fact', JSON.stringify({
+      d: todayIso(),
+      t: '她今天在小满铺「每日一签」抽到第' + n + '签（' + q.luck +
+         '·' + q.name + '），签诗：「' + q.poem.join('，') +
+         '」；她想聊签就照这支的意思说，不懂就带她去签页细看'
+    }));
+  } catch (e) {}
 }
 function _qianSlipHtml(n, opts) {
   var q = QIAN[n - 1]; if (!q) return '';
@@ -20062,6 +20096,7 @@ function _renderQian(review) {
       return;
     }
     if (idx) {
+      _qianFactWrite(idx);
       qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianHistHtml();
       return;
     }
@@ -21008,7 +21043,13 @@ function baziPersonaCard(j) {
                  * 时间戳——「忘掉我的数据」必须收。 */
                 k.indexOf('couple:') === 0 ||
                 /* R3358：轻账号凭据也是个人数据——「忘掉」要登出。 */
-                k.indexOf('xmaccount') === 0)) _rm.push(k);
+                k.indexOf('xmaccount') === 0 ||
+                /* R3389（审-高）：默契挑战（昵称+答题记录+默契榜）、
+                 * 每日一签、显化打卡三族个人足迹此前漏出 wipe 清单
+                 * ——「忘掉我的数据」后幸存=隐私破洞，收。 */
+                k.indexOf('mochi:') === 0 ||
+                k.indexOf('qian:') === 0 ||
+                k.indexOf('manifest:') === 0)) _rm.push(k);
           }
           _rm.forEach(function (k) { localStorage.removeItem(k); });
           /* R2349q（R82-P1-3）：chatSessionId/chatTranscript/lastResult:*
