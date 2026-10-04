@@ -20149,3 +20149,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3612 相识纪念 toast
 - visits 首日起第 30/100/365 天各一次 toast「今天是你认识小满的第 N 天」（账号周年同构轻锚，anniv:seen:<N> 每档只贺一次，备份∪忘掉∪记忆卡仪式族三注册齐）。
+
+## R3613 自审修：月历 overlay 关不掉
+- .mcal-ov 作者 display:flex 盖 UA [hidden]——「关一下」后 overlay 仍在屏挡整页；补 .mcal-ov[hidden]{display:none}，实测 display flex→none。

@@ -564,6 +564,9 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .mcal-ov{position:fixed; inset:0; background:rgba(30,20,10,.45);
   z-index:90; display:flex; align-items:center; justify-content:center;
   padding:16px;}
+/* R3613（自审-P1）：作者 display:flex 会盖 UA [hidden]——
+ * 关掉后 overlay 仍在屏挡住整页，补显式隐藏规则。 */
+.mcal-ov[hidden]{display:none;}
 .mcal-panel{background:var(--card,#FFFDFB); border-radius:18px;
   padding:18px 16px; max-width:420px; width:100%;
   box-shadow:0 12px 40px rgba(60,30,10,.25);
