@@ -19888,3 +19888,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3522 裂变四轮冷启亲审（零修）+ R3522s 审计子已派
 - 无痕落地 ?view=bazi&from=share&sa=G：欢迎条点名「守护图腾」件 ✓；drawerOpen=false 待用户自排（设计）；零 pageerror。share_target 口吻链审计子 71d8d49c 在跑。
+
+## R3523 小规律/小功课聊天路标
+- _CHAT_ACTIONS 补两条：「小规律/我的规律/心情规律/规律观察/小发现」→moodweek「📒 去周记看小规律」（文案如实说 8 天门槛）；「小功课/本周功课/这周功课/每周功课」→home+checkin「📜 去看本周小功课」。API 实测双条命中。
