@@ -560,6 +560,11 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
   background:transparent; border:none; padding:2px 4px; cursor:pointer;
   text-decoration:none; border-radius:6px;}
 .mood-week-link:hover{color:var(--accent); background:rgba(201,145,74,.10);}
+/* R3607：补记昨天——与周记小链同型的低调链。 */
+.mood-backfill{font-size:11.5px; color:var(--secondary);
+  background:transparent; border:none; padding:2px 4px; cursor:pointer;
+  text-decoration:none; border-radius:6px; min-height:var(--tap);}
+.mood-backfill:hover{color:var(--accent); background:rgba(201,145,74,.10);}
 /* 心情周记卡（view-moodweek）——点阵+判词+统计，暖而不评判 */
 .mw-body{display:flex; flex-direction:column; gap:14px;}
 .mw-dots{display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;}

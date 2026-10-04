@@ -19856,6 +19856,21 @@ function _renderMoodRow(lv) {
     _calHtml += '<span class="mood-week-link-wrap">' +
       '<button type="button" class="mood-week-link">' +
       '📒 看看这周的你 →</button></span>';
+    /* R3607：补记昨天（Lunary backfill 同构）——昨天没记过
+     * 心情才出现；点开就地换昨天档小选盘，不制造追记压力。 */
+    try {
+      var _yd = new Date(); _yd.setDate(_yd.getDate() - 1);
+      var _yIso = _yd.getFullYear() + '-' +
+        String(_yd.getMonth() + 1).padStart(2, '0') + '-' +
+        String(_yd.getDate()).padStart(2, '0');
+      var _yV = null;
+      try { _yV = localStorage.getItem('mood:' + _yIso); } catch (eYV) {}
+      if (_yV === null || _yV === '') {
+        _calHtml += '<span class="mood-week-link-wrap">' +
+          '<button type="button" class="mood-backfill" data-d="' +
+          _yIso + '">补记昨天 →</button></span>';
+      }
+    } catch (eBF) {}
     mc.innerHTML = _calHtml;
   }
   if (picked !== '') _moodShowAnswer(+picked, lv);
@@ -19865,6 +19880,32 @@ function _renderMoodRow(lv) {
       /* 周记小链与心情按钮同挂一条委托——innerHTML 重渲不掉绑定。 */
       var _wl = ev.target.closest && ev.target.closest('.mood-week-link');
       if (_wl) { try { showView('moodweek'); } catch (eWL) {} return; }
+      /* R3607：补记昨天——先展开昨天档小选盘，再选则落
+       * mood:<昨天> 并全行刷新（点阵/周复盘/罐子同刷）。 */
+      var _bf = ev.target.closest && ev.target.closest('.mood-backfill');
+      if (_bf) {
+        var _bw = _bf.closest('.mood-week-link-wrap');
+        if (_bw) {
+          var _bh = '<span class="mood-q">昨天呢？</span>';
+          _MOOD_META.forEach(function (mm, i) {
+            _bh += '<button type="button" class="mood-b mood-bf-b" ' +
+              'data-m="' + i + '" data-d="' + _bf.dataset.d +
+              '" aria-label="' + mm.t + '">' + mm.e + '</button>';
+          });
+          _bw.innerHTML = _bh;
+        }
+        return;
+      }
+      var _bfb = ev.target.closest && ev.target.closest('.mood-bf-b');
+      if (_bfb) {
+        try {
+          localStorage.setItem('mood:' + _bfb.dataset.d,
+            String(_bfb.dataset.m));
+        } catch (eB2) {}
+        showToast('昨天的心情也补上啦', 'ok');
+        _renderMoodRow();
+        return;
+      }
       var b = ev.target.closest('.mood-b');
       if (!b) return;
       var m = b.dataset.m;
