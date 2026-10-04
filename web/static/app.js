@@ -19524,7 +19524,18 @@ function _renderMantraBook() {
  * （不进服务器日志/链接预览爬虫），本机只记你的昵称 mochi:nick。 */
 /* init() 在 defer 脚本 eval 中途跑——数据若用 var 赋值则深链落地
  * 时尚未初始化。改用函数声明，hoist 连函数体一起可用。 */
-function _mcQS() {
+/* R3386 双题库：闺蜜版(bestie) + 对象版(love)。pack 挂在 hash
+ * v1 第 4 字段/v2 第 6 字段——旧链没 pack 自动闺蜜版向后兼容。 */
+function _mcQS(pack) {
+  if (pack === 'love') {
+    return [
+      { q: '约会最想去？', o: ['咖啡馆窝着', '出门爬山', '宅家点外卖', '看展/演出'] },
+      { q: '吵架后谁先低头？', o: ['我先', 'TA 先', '看谁占理', '冷静完自然好'] },
+      { q: '最戳心的礼物？', o: ['手写的信', '实用好物', '贵重心意', '一场旅行'] },
+      { q: '理想的一周见面频率？', o: ['天天见', '两三天一回', '一周一回', '各自忙有空聚'] },
+      { q: '睡前最想听 TA 说？', o: ['晚安我爱你', '今天辛苦了', '明天见', '别玩了快睡'] }
+    ];
+  }
   return [
     { q: '奶茶点几分糖？', o: ['无糖清口', '三分刚好', '五分甜', '全糖快乐'] },
     { q: '理想的周末是？', o: ['宅家充电', '出门撒野', '睡到自然醒再说'] },
@@ -19533,6 +19544,7 @@ function _mcQS() {
     { q: '下雨天最想？', o: ['窝在被窝里', '出门踩水', '来杯热乎的'] }
   ];
 }
+function _mcPackOf(p) { return p === 'love' ? 'love' : 'bestie'; }
 function _mcTIERS() {
   return [
     [5, '灵魂搭子', '五题全中——你们共享一个脑回路'],
@@ -19565,12 +19577,13 @@ function _mcParse() {
   var p = _mcDec(m[2]).split('|');
   if (m[1] === 'mc' && p[0] === 'v1' && /^[0-4]{5}$/.test(p[2] || '')) {
     return { mode: 'guest', nick: String(p[1] || '').slice(0, 12),
-             ans: p[2] };
+             ans: p[2], pack: _mcPackOf(p[3]) };
   }
   if (m[1] === 'mcr' && p[0] === 'v2' && /^[0-4]{5}$/.test(p[3] || '') &&
       /^[0-4]{5}$/.test(p[4] || '')) {
     return { mode: 'result', hn: String(p[1] || '').slice(0, 12),
-             gn: String(p[2] || '').slice(0, 12), ha: p[3], ga: p[4] };
+             gn: String(p[2] || '').slice(0, 12), ha: p[3], ga: p[4],
+             pack: _mcPackOf(p[5]) };
   }
   return { mode: 'bad' };
 }
@@ -19588,9 +19601,9 @@ function _mcScore(ha, ga) {
            tier: tier[1], line: tier[2], matched: matched,
            missed: missed };
 }
-function _mcCompareHtml(hn, gn, ha, ga) {
+function _mcCompareHtml(hn, gn, ha, ga, pack) {
   var s = _mcScore(ha, ga);
-  var rows = _mcQS().map(function (q, i) {
+  var rows = _mcQS(pack).map(function (q, i) {
     var a = q.o[+ha[i]] || '—', b = q.o[+ga[i]] || '—';
     var ok = (+ha[i] === +ga[i]);
     return '<div class="mc-row' + (ok ? ' hit' : '') + '">' +
@@ -19649,7 +19662,8 @@ function _mcBoardHtml() {
     '</div>' + rows + '</div>';
 }
 function _mcQuizHtml(ctx) {
-  var qs = _mcQS().map(function (q, i) {
+  var _pk = (ctx && ctx.pack) || 'bestie';
+  var qs = _mcQS(_pk).map(function (q, i) {
     return '<div class="mc-q" id="mochiQ' + i + '">' +
       '<div class="mc-q-t">' + (i + 1) + '. ' + esc(q.q) + '</div>' +
       '<div class="mc-opts">' + q.o.map(function (o, j) {
@@ -19657,11 +19671,16 @@ function _mcQuizHtml(ctx) {
           'data-q="' + i + '" data-o="' + j + '">' + esc(o) + '</button>';
       }).join('') + '</div></div>';
   }).join('');
-  if (!ctx) {
+  if (!ctx || !ctx.hostAns) {
     var nick = '';
     try { nick = localStorage.getItem('mochi:nick') || ''; } catch (eN) {}
     return '<div class="mc-head">挑你会选的答案——答完生成挑战书发给 TA，' +
       '看 TA 有多懂你</div>' +
+      '<div class="mc-packs">' +
+      '<button type="button" class="mc-pack' + (_pk === 'bestie' ? ' on' : '') +
+      '" data-mc="pack" data-pack="bestie">🧋 出给闺蜜</button>' +
+      '<button type="button" class="mc-pack' + (_pk === 'love' ? ' on' : '') +
+      '" data-mc="pack" data-pack="love">💗 出给对象</button></div>' +
       '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
       '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
       'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' + qs +
@@ -19670,7 +19689,10 @@ function _mcQuizHtml(ctx) {
       'disabled>生成默契挑战书 🥤</button>';
   }
   return '<div class="mc-head">「<b>' + esc(ctx.who || 'TA') +
-    '</b>」给你出了一套默契题——凭直觉答，别纠结</div>' + qs +
+    '</b>」给你出了一套' +
+    (_pk === 'love' ? '心动' : '') + '默契题' +
+    (_pk === 'love' ? '<span class="mc-packtag">对象题</span>' : '') +
+    '——凭直觉答，别纠结</div>' + qs +
     '<div id="mochiBar" class="mc-bar">已答 0/5</div>' +
     '<button type="button" id="mochiDone" class="mc-go" data-mc="done" ' +
     'disabled>看我们的默契分</button>';
@@ -19702,8 +19724,10 @@ function _renderMochi() {
         ' 份答卷里，TA 排第 <b>' + (_rk + 1) + '</b></p>';
     }
     box.innerHTML = '<div class="mc-head">「<b>' + esc(st.gn || 'TA') +
-      '</b>」答完了「' + esc(st.hn || '你') + '」的默契题</div>' +
-      _mcCompareHtml(st.hn || '出题人', st.gn || '答题人', st.ha, st.ga) +
+      '</b>」答完了「' + esc(st.hn || '你') + '」的' +
+      (st.pack === 'love' ? '心动默契题' : '默契题') + '</div>' +
+      _mcCompareHtml(st.hn || '出题人', st.gn || '答题人', st.ha, st.ga,
+                     st.pack) +
       _rkLine +
       '<div class="mc-acts">' +
       '<button type="button" id="mochiShare" class="mc-go" ' +
@@ -19713,12 +19737,14 @@ function _renderMochi() {
     try {
       box.dataset.ga = st.ga; box.dataset.ha = st.ha;
       box.dataset.hn = st.hn || 'TA'; box.dataset.gn = st.gn || 'TA';
+      box.dataset.pack = st.pack || 'bestie';
     } catch (eRD) {}
     return;
   }
   box.innerHTML = _mcBoardHtml() +
     _mcQuizHtml(st && st.mode === 'guest'
-      ? { who: st.nick, hostAns: st.ans } : null);
+      ? { who: st.nick, hostAns: st.ans, pack: st.pack }
+      : { pack: box.dataset.pack || 'bestie' });
 }
 /* 委托绑容器——innerHTML 重渲不掉绑定。 */
 (function () {
@@ -19729,6 +19755,17 @@ function _renderMochi() {
       ? ev.target.closest('[data-mc]') : null;
     if (!b) return;
     var act = b.dataset.mc;
+    if (act === 'pack') {
+      /* 题库不同保留已选答案无意义——切题=重出，只护住昵称输入。 */
+      try {
+        box.dataset.nick = (el('mochiNick') || {}).value || '';
+        box.dataset.pack = b.dataset.pack || 'bestie';
+      } catch (ePK) {}
+      _renderMochi();
+      var _nk = el('mochiNick');
+      if (_nk && box.dataset.nick) _nk.value = box.dataset.nick;
+      return;
+    }
     if (act === 'opt') {
       var q = b.dataset.q;
       box.querySelectorAll('#mochiQ' + q + ' .mc-opt').forEach(
@@ -19758,7 +19795,8 @@ function _renderMochi() {
       if (ans.indexOf(' ') !== -1) return;
       try { localStorage.setItem('mochi:nick', nick); } catch (eN2) {}
       var link = location.origin + '/?view=mochi#mc=' +
-        _mcEnc('v1|' + nick + '|' + ans);
+        _mcEnc('v1|' + nick + '|' + ans + '|' +
+               (box.dataset.pack || 'bestie'));
       box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
         '发给 TA，看 TA 有多懂你</div>' +
         '<input id="mochiLink" class="mc-link" readonly ' +
@@ -19780,7 +19818,7 @@ function _renderMochi() {
       try { mn = localStorage.getItem('mochi:nick') || ''; } catch (eM) {}
       box.innerHTML = '<div class="mc-head">你和「<b>' +
         esc(st.nick || 'TA') + '</b>」的默契结果出来啦</div>' +
-        _mcCompareHtml(st.nick || 'TA', '你', st.ans, ga) +
+        _mcCompareHtml(st.nick || 'TA', '你', st.ans, ga, st.pack) +
         '<label class="mc-nick-lab" for="mochiMe">你叫什么' +
         '（发成绩给 TA 时显示）</label>' +
         '<input id="mochiMe" class="mc-nick" maxlength="12" ' +
@@ -19793,7 +19831,8 @@ function _renderMochi() {
         '<button type="button" id="mochiHost2" class="ghost" ' +
         'data-mc="host">我也出一套给 TA</button></div>';
       try { box.dataset.ga = ga; box.dataset.ha = st.ans;
-            box.dataset.hn = st.nick || 'TA'; } catch (eD) {}
+            box.dataset.hn = st.nick || 'TA';
+            box.dataset.pack = st.pack || 'bestie'; } catch (eD) {}
       return;
     }
     if (act === 'copy') {
@@ -19823,9 +19862,9 @@ function _renderMochi() {
         _mc: { hn: _hn2, gn: gn2, pct: s2.pct, tier: s2.tier,
                line: s2.line,
                matched: s2.matched.map(function (i) {
-                 return _mcQS()[i].q.replace(/[？?]$/, ''); }),
+                 return _mcQS(_d.pack)[i].q.replace(/[？?]$/, ''); }),
                missed: s2.missed.map(function (i) {
-                 return _mcQS()[i].q.replace(/[？?]$/, ''); }) },
+                 return _mcQS(_d.pack)[i].q.replace(/[？?]$/, ''); }) },
         date: todayIso() }, 'mochi');
     }
     if (act === 'flip') {
@@ -19840,7 +19879,7 @@ function _renderMochi() {
       try { localStorage.setItem('mochi:nick', gn3); } catch (eN3) {}
       var rlink = location.origin + '/?view=mochi#mcr=' +
         _mcEnc('v2|' + (_d2.hn || 'TA') + '|' + gn3 + '|' +
-               _d2.ha + '|' + _d2.ga);
+               _d2.ha + '|' + _d2.ga + '|' + (_d2.pack || 'bestie'));
       var card = '<div class="mc-head">成绩条包好啦——发回去，' +
         '让 TA 看看你们多默契</div>' +
         '<input id="mochiLink" class="mc-link" readonly ' +

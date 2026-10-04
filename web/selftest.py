@@ -4589,6 +4589,11 @@ def _run_inner() -> list[str]:
     assert "_mcBoardRecord" in _appsrc2 and "mochi:board" in _appsrc2 and \
         'data-mc="wipe"' in _appsrc2, \
         "默契榜：_mcBoardRecord/mochi:board/清榜钮缺一"
+    # R3386 双题库：love 题库/pack 路由/题库切换钮三件套——缺一
+    # 则对象题出不了或受邀方对错题。
+    assert 'data-pack="love"' in _appsrc2 and "_mcPackOf" in _appsrc2 and \
+        "心动默契题" in _appsrc2, \
+        "默契双题库：love 题库/_mcPackOf/切换钮缺一"
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
