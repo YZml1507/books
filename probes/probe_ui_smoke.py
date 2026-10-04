@@ -567,6 +567,13 @@ def main() -> int:
         # 日期 hidden 不可点）；抽牌链路与 trQ1 同构已覆盖。
         "trQH": "万圣夜限定钮——仅 10.29–11.1 窗口显示，冒烟时段外"
                 "恒 hidden；抽牌链路与 trQ1 同构已覆盖",
+        # R3407：跨年仪式行钩——dailyYearEnd 粒是动态生成+仅
+        # 12/29–1/2 窗口有按钮的容器委托（.daily-moon-go 子钮
+        # 开 flModal 本地弹层，零请求）；与 dailyMoon 同型豁免，
+        # 窗口内行为由手写 playwright 时钟用例覆盖。
+        "dailyYearEnd": "跨年仪式行钩——动态粒内委托（12/29–1/2 "
+                        "窗口才有 .daily-moon-go），纯本地开"
+                        "flModal 弹层零请求；与 dailyMoon 同型豁免",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
