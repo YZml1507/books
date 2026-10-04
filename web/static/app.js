@@ -22061,6 +22061,191 @@ function baziPersonaCard(j) {
     }
     return r.json();
   }
+  /* R3441「小满记得」：本地数据面可视化——localStorage 里的个人
+   * 数据按族摆出来，每组可单独「忘掉」。分族口径与 wipe 清单同
+   * 源（下面对齐 22788-22842 段）；账号凭据/小锁哈希/偏好不在这
+   * 张卡管（归各自面板+「忘掉我的数据」）。 */
+  var _MEM_GROUPS = [
+    { id: 'me', icon: '👤', label: '你的档案',
+      re: /^me$/,
+      sum: function () {
+        var m = _meGet('me');
+        if (!m || (!m.y && !m.n)) return '还没填';
+        var b = [];
+        if (m.n) b.push(m.n);
+        if (m.y && m.m && m.d) {
+          b.push(m.y + ' 年 ' + m.m + ' 月 ' + m.d + ' 日' +
+            (m.lunar ? '（农历）' : ''));
+        }
+        if (m.g) b.push(m.g);
+        if (m.y && (m.h == null || m.h === '')) b.push('时辰不知道');
+        return b.join(' · ');
+      } },
+    { id: 'rel', icon: '💞', label: '在意的人',
+      re: /^(me:partner|couple:|mochi:)/,
+      sum: function () {
+        var b = [];
+        if (_meGet('me:partner')) b.push('存了 TA 的档案');
+        var _mb = 0;
+        try {
+          var _bj = JSON.parse(localStorage.getItem('mochi:board') || '[]');
+          _mb = Array.isArray(_bj) ? _bj.length : 0;
+        } catch (eMB) {}
+        if (_mb) b.push('默契榜 ' + _mb + ' 条');
+        try {
+          if (localStorage.getItem('mochi:hosts')) b.push('出过默契题');
+        } catch (eMH) {}
+        return b.join(' · ') || '还没有';
+      } },
+    { id: 'mind', icon: '💭', label: '心事',
+      re: /^(mood:|moodlv:|moodjar:|journal:|shred:|wishbottle|wishfulfilled|futureLetters|mantraFav|mood:dream:)/,
+      sum: function () {
+        var n = 0;
+        _xmKeys().forEach(function (k) {
+          if (/^mood:\d{4}-\d{2}-\d{2}$/.test(k)) n++;
+        });
+        var fl = 0;
+        try {
+          var _fj = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+          fl = Array.isArray(_fj) ? _fj.length : 0;
+        } catch (eFL) {}
+        var wb = 0;
+        try {
+          var _wj = JSON.parse(localStorage.getItem('wishbottle') || 'null');
+          if (_wj && typeof _wj === 'object') {
+            wb = Array.isArray(_wj) ? _wj.length : Object.keys(_wj).length;
+          }
+        } catch (eWB) {}
+        var mf = 0;
+        try {
+          var _mj = JSON.parse(localStorage.getItem('mantraFav') || '[]');
+          mf = Array.isArray(_mj) ? _mj.length : 0;
+        } catch (eMF) {}
+        var b = [];
+        if (n) b.push('心情 ' + n + ' 天');
+        if (fl) b.push('信 ' + fl + ' 封');
+        if (wb) b.push('愿望 ' + wb + ' 个');
+        if (mf) b.push('咒语 ' + mf + ' 句');
+        return b.join(' · ') || '还没有';
+      } },
+    { id: 'rit', icon: '🔮', label: '打卡与仪式',
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:)/,
+      sum: function () {
+        var cd = 0, qn = 0, mf = 0, my = 0;
+        _xmKeys().forEach(function (k) {
+          if (/^checkin:\d{4}-\d{2}-\d{2}$/.test(k)) cd++;
+          if (/^manifest:\d{4}-\d{2}-\d{2}$/.test(k)) mf++;
+        });
+        try {
+          var _qh = JSON.parse(localStorage.getItem('qian:hist') || '[]');
+          qn = Array.isArray(_qh) ? _qh.length : 0;
+        } catch (eQH) {}
+        try { my = parseInt(localStorage.getItem('muyu:total') || '0', 10) || 0; }
+        catch (eMY) {}
+        var b = [];
+        if (cd) b.push('打卡 ' + cd + ' 天');
+        if (qn) b.push('签史 ' + qn + ' 条');
+        if (mf) b.push('念咒 ' + mf + ' 天');
+        if (my) b.push('木鱼 ' + my + ' 下');
+        return b.join(' · ') || '还没有';
+      } },
+    { id: 'chat', icon: '💬', label: '聊过的天',
+      re: /^(chat:|chatTranscript)/,
+      sum: function () {
+        var s = 0, t = 0;
+        _xmKeys().forEach(function (k) {
+          if (k.indexOf('chatTranscript') === 0) s++;
+        });
+        try {
+          for (var i = 0; i < sessionStorage.length; i++) {
+            var sk = sessionStorage.key(i);
+            if (sk && sk.indexOf('chatTranscript') === 0) s++;
+          }
+        } catch (eSS) {}
+        try {
+          var _tj = JSON.parse(localStorage.getItem('chat:topics') || '{}');
+          t = (_tj && typeof _tj === 'object') ? Object.keys(_tj).length : 0;
+        } catch (eTP) {}
+        var b = [];
+        if (s) b.push(s + ' 段对话');
+        if (t) b.push(t + ' 个话题');
+        return b.join(' · ') || '还没有';
+      } }
+  ];
+  function _xmKeys() {
+    var ks = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k) ks.push(k);
+      }
+    } catch (e) {}
+    return ks;
+  }
+  function _xmMemRender() {
+    var body = document.getElementById('memBody');
+    if (!body) return;
+    var html = '', any = false;
+    _MEM_GROUPS.forEach(function (g) {
+      var s = '';
+      try { s = g.sum(); } catch (eGS) { s = '还没有'; }
+      var has = !(s === '还没有' || s === '还没填');
+      if (has) any = true;
+      html += '<div class="mem-row" data-memgroup="' + g.id + '">' +
+        '<span class="mem-ico" aria-hidden="true">' + g.icon + '</span>' +
+        '<span class="mem-label">' + g.label + '</span>' +
+        '<span class="mem-sum">' + esc(s) + '</span>' +
+        (has ? '<button type="button" class="mem-del" data-g="' + g.id +
+               '">忘掉</button>' : '') +
+        '</div>';
+    });
+    if (!any) {
+      html = '<div class="mem-empty">她还没攒下关于你的事——' +
+        '去逛逛，用两天再来看看。</div>';
+    }
+    body.innerHTML = html;
+    body.querySelectorAll('.mem-del').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.dataset.armed !== '1') {
+          btn.dataset.armed = '1';
+          btn.textContent = '再点确认';
+          setTimeout(function () {
+            if (btn.isConnected) {
+              btn.dataset.armed = ''; btn.textContent = '忘掉';
+            }
+          }, 3000);
+          return;
+        }
+        var gid = btn.dataset.g;
+        var g = null;
+        _MEM_GROUPS.forEach(function (gg) { if (gg.id === gid) g = gg; });
+        if (!g) return;
+        _xmKeys().forEach(function (k) {
+          if (g.re.test(k)) {
+            try { localStorage.removeItem(k); } catch (eRM) {}
+          }
+        });
+        /* 聊天组的副本在 sessionStorage——同口径清掉（wipe 清单里
+         * chat 族本来就双库收）。 */
+        if (gid === 'chat') {
+          try {
+            var _sr = [];
+            for (var i = 0; i < sessionStorage.length; i++) {
+              var sk = sessionStorage.key(i);
+              if (sk && (sk.indexOf('chatTranscript') === 0 ||
+                  /^(chatSessionId|chatClosed|chatBootId)$/.test(sk) ||
+                  sk.indexOf('lastResult:') === 0)) _sr.push(sk);
+            }
+            _sr.forEach(function (sk) {
+              try { sessionStorage.removeItem(sk); } catch (eSR) {}
+            });
+          } catch (eSS2) {}
+        }
+        showToast(g.label + '忘掉啦', 'info');
+        _xmMemRender();
+      });
+    });
+  }
   /* R2502：在途合并 + 详情保留。被动刷新（跨 tab storage 事件、
    * BroadcastChannel 脏标）此前无条件清掉正在读的详情卡；并发调用
    * 也无去重（后到写覆盖先到写）。preserve=true 的路径不动详情，
@@ -22093,8 +22278,11 @@ function baziPersonaCard(j) {
       delete detailEl.dataset.rid;
     }
     /* R3414：小锁闸——histLock 有哈希且本标签没解锁时，列表/
-     * 筛选/导出全藏，只露口令面板（防同设备他人借用翻历史）。 */
+     * 筛选/导出全藏，只露口令面板（防同设备他人借用翻历史）。
+     * R3441：记忆卡也是个人数据——锁态连卡一起藏。 */
+    var _memC = document.getElementById('memoryCard');
     if (_phLocked() && !_phUnlocked()) {
+      if (_memC) _memC.hidden = true;
       _phLockShow('unlock');
       listEl.innerHTML = '';
       var _hfL = document.getElementById('historyFilter');
@@ -22106,6 +22294,10 @@ function baziPersonaCard(j) {
       var _tb = document.querySelector('#view-history .ph-toolbar');
       if (_tb) _tb.hidden = true;
       return;
+    }
+    if (_memC) {
+      _memC.hidden = false;
+      try { _xmMemRender(); } catch (eMM) {}
     }
     var _tb2 = document.querySelector('#view-history .ph-toolbar');
     if (_tb2) _tb2.hidden = false;

@@ -4761,6 +4761,14 @@ def _run_inner() -> list[str]:
         "_muyuFlush" in _appsrc2 and "case 'muyu'" in _postsrc, \
         "敲敲木鱼：view/渲染/敲击/白名单/备份前缀/上报/海报缺一"
     ok.append("frontend.muyu_wiring")
+    # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
+    # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
+    assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \
+        "_MEM_GROUPS" in _appsrc2 and "_xmMemRender" in _appsrc2 and \
+        "_memC.hidden" in _appsrc2 and "mem-del" in _appsrc2 and \
+        "dataset.armed" in _appsrc2, \
+        "小满记得卡：视图/分组/锁态/两段式缺一"
+    ok.append("frontend.memory_card")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

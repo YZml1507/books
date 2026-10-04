@@ -4101,6 +4101,18 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .acct-tip { font-size: 12px; color: var(--secondary); line-height: 1.5; }
 .acct-line { font-size: 13px; margin: 8px 0; }
 
+/* R3441「小满记得」本地数据卡——与 acct-card 同肤 */
+.mem-card { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line, #e8dccf); border-radius: 12px; background: var(--card, #fffdfa); }
+.mem-body { margin-top: 8px; display: flex; flex-direction: column; }
+.mem-row { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1.5; padding: 6px 0; }
+.mem-row + .mem-row { border-top: 1px dashed var(--line, #e8dccf); }
+.mem-label { font-weight: 600; flex: 0 0 auto; }
+.mem-sum { flex: 1; min-width: 0; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-del { flex: 0 0 auto; border: none; background: none; color: var(--secondary); font-size: 12px; cursor: pointer; padding: 4px 8px; border-radius: 8px; min-height: 32px; font-family: var(--font-sans); }
+.mem-del:hover { color: var(--accent); }
+.mem-del[data-armed="1"] { color: #b8452f; font-weight: 600; }
+.mem-empty { font-size: 13px; color: var(--secondary); padding: 6px 0; }
+
 /* R3373 正缘画像卡（桃花结果内） */
 .sm-card { margin: 12px 0; border: 1px solid var(--line, #e8dccf);
   border-radius: 14px; overflow: hidden; background: var(--card, #fffdfa);
