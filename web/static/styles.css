@@ -3011,6 +3011,11 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
 /* R2350j：许愿瓶——与签册同 token，深色经变量自适应。 */
 .ck-wish-card{background:var(--card);border:1px solid var(--border);
   border-radius:var(--radius-sm,12px);padding:12px 14px;}
+/* R3417：跨年许愿卡——红金节庆边框，与普通瓶卡分开。 */
+.ck-wish-ny{border-color:#E8C988;margin-top:10px;
+  background:linear-gradient(135deg,rgba(232,201,136,.10),rgba(0,0,0,0) 55%),var(--card);}
+.ck-ny-seal{margin-left:8px;font-size:10px;color:#B98A2F;
+  border:1px solid #E8C988;border-radius:999px;padding:1px 8px;}
 .ck-wish-text{font-size:14px;color:var(--primary-ink);line-height:1.7;
   margin:6px 0;}
 .ck-wish-meta{font-size:11px;color:var(--muted);line-height:1.6;}

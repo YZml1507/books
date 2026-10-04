@@ -19522,6 +19522,69 @@ function _wishDays(w) {
   var ts = (w && +w.ts) || Date.now();
   return Math.max(0, Math.floor((Date.now() - ts) / 86400000));
 }
+/* R3417-跨年许愿：愿望瓶里挂 w.ny={t,c,ts,year,opened}——复用
+ * wishbottle 单对象，零新键族（备份/忘掉一切/GC 自动覆盖）。
+ * 封口窗 12/25-12/31 写给明年；跨过年（ny.year<=今年）没拆就
+ * 一直等启封——比「只在 1/1-5 显示」耐摔，错过窗口不丢愿望。 */
+function _wishNySealWin() {
+  var md = String(new Date().getMonth() + 1).padStart(2, '0') +
+    '-' + String(new Date().getDate()).padStart(2, '0');
+  return md >= '12-25' && md <= '12-31';
+}
+function _wishNyRaw() {
+  try {
+    return JSON.parse(localStorage.getItem('wishbottle') || 'null') || {};
+  } catch (e) { return {}; }
+}
+function _wishNyGet() {
+  var w = _wishNyRaw(), ny = w && w.ny;
+  return (ny && typeof ny.t === 'string' && ny.t) ? ny : null;
+}
+function _wishNySet(ny) {
+  try {
+    var w = _wishNyRaw();
+    if (ny) w.ny = ny; else delete w.ny;
+    localStorage.setItem('wishbottle', JSON.stringify(w));
+  } catch (e) {}
+}
+function _wishNyBlock() {
+  var y = new Date().getFullYear(), ny = _wishNyGet();
+  /* 启封态：跨年愿望到了它写的年份还没拆——一直挂着直到用户选去向 */
+  if (ny && +ny.year <= y && !ny.opened) {
+    return '<div class="ck-wish-card ck-wish-ny">' +
+      '<div class="ck-wish-meta">🧨 跨年愿望启封 · 写给 ' +
+        esc(String(ny.year)) + ' 年</div>' +
+      '<div class="ck-wish-text">「' + esc(ny.t) + '」</div>' +
+      '<div class="ck-wish-meta">去年最后一天写下的——这一年慢慢让它长</div>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" data-wish="nyBottle">收进许愿瓶 🫙</button>' +
+        '<button type="button" class="checkin-opt" data-wish="nyShare">📸 晒启封</button>' +
+        '<button type="button" class="checkin-opt" data-wish="nyKeep">先放这</button>' +
+      '</div></div>';
+  }
+  if (_wishNySealWin()) {
+    /* 封口窗：旧年份的封愿清理（去年封了没拆又过一年——陈旧，让新的写） */
+    if (ny && +ny.year <= y) _wishNySet(null);
+    else if (ny) {
+      return '<div class="ck-wish-card ck-wish-ny">' +
+        '<div class="ck-wish-meta">🧨 跨年愿望已封口 · 写给 ' +
+          esc(String(ny.year)) + ' 年</div>' +
+        '<div class="ck-wish-text">「__________」<span class="ck-ny-seal">已封</span></div>' +
+        '<div class="ck-wish-meta">封好了——元旦零点之后回来启封</div>' +
+      '</div>';
+    }
+    return '<div class="ck-wish-card ck-wish-ny">' +
+      '<div class="ck-wish-meta">🧨 跨年许愿 · 只在这几天开</div>' +
+      '<div class="ck-wish-text">写一句给明年的话——封口存到元旦，跨完年才启封</div>' +
+      '<textarea id="nyWishText" class="ck-wish-input" maxlength="40" rows="2" ' +
+        'aria-label="写一个跨年愿望" ' +
+        'placeholder="比如：明年想把这本证考下来…"></textarea>' +
+      '<div class="ck-wish-actions">' +
+        '<button type="button" class="checkin-opt" data-wish="nySeal">封进明年 🧨</button>' +
+      '</div></div>';
+  }
+  return '';
+}
 /* R3337：愿望回音——「成真啦」不再是删掉愿望，而是收进成真集
  * wishfulfilled（[{t,c,ts,fu}]，cap 30）：还愿的仪式感是许愿的
  * 正反馈闭环——愿望有结局，瓶子才敢再丢。 */
@@ -19590,6 +19653,7 @@ function _renderWishBottle(edit) {
           '<button type="button" class="checkin-opt" data-wish="edit">换个愿望</button>' +
           '<button type="button" class="checkin-opt" data-wish="keep">继续躺着</button>' +
         '</div></div>' +
+      _wishNyBlock() +
       _wishEchoStrip();
     return;
   }
@@ -19616,6 +19680,7 @@ function _renderWishBottle(edit) {
       '</div>' +
       '<div class="ck-wish-meta">只有你的浏览器记得它，写给自己看的</div>' +
     '</div>' +
+    _wishNyBlock() +
     _wishEchoStrip();
 }
 function _renderWishEcho(w) {
@@ -19682,6 +19747,49 @@ function _wishAction(act, arg, dateKey) {
     return;
   }
   if (act === 'edit' || act === 'new') { _renderWishBottle(true); return; }
+  if (act === 'nySeal') {
+    /* 跨年愿望封口——写给明年（year=明年），元旦后才启封得见。 */
+    var _nt = document.getElementById('nyWishText');
+    var _ntxt = _nt ? String(_nt.value || '').trim().slice(0, 40) : '';
+    if (!_ntxt) { showToast('写一句再封——明年等着拆呢', 'warn'); return; }
+    _wishNySet({ t: _ntxt, c: '跨年', ts: Date.now(),
+                 year: new Date().getFullYear() + 1, opened: 0 });
+    showToast('封好了——元旦零点后回来启封 🧨', 'info');
+    _renderWishBottle();
+    return;
+  }
+  if (act === 'nyBottle') {
+    /* 启封后收进许愿瓶：瓶里没愿望才收（不顶掉在躺的）；
+     * 有愿望就只标已拆，让它留在启封卡。 */
+    var _nb = _wishNyGet();
+    if (!_nb) { _renderWishBottle(); return; }
+    if (!_wishGet()) {
+      _wishSet({ t: _nb.t, c: '跨年', ts: _nb.ts || Date.now() });
+      _wishNySet(null);
+      showToast('收进瓶子了——让它接着躺 🫙', 'info');
+    } else {
+      _nb.opened = 1; _wishNySet(_nb);
+      showToast('记下了——愿望接着躺原瓶', 'info');
+    }
+    _renderWishBottle();
+    return;
+  }
+  if (act === 'nyKeep') {
+    var _nk = _wishNyGet();
+    if (_nk) { _nk.opened = 1; _wishNySet(_nk); }
+    showToast('启封了——愿望今年慢慢长', 'info');
+    _renderWishBottle();
+    return;
+  }
+  if (act === 'nyShare') {
+    var _ns = _wishNyGet();
+    if (!_ns) { showToast('启封卡已经拆了', 'warn'); return; }
+    downloadPoster({ _wishecho: {
+        t: _ns.t || '', ny: 1, year: _ns.year,
+        echo: '去年最后一天写下的，今年让它慢慢长' },
+      date: todayIso() }, 'wishecho');
+    return;
+  }
   if (act === 'echoShare') {
     /* R3417：晒还愿——读成真集头一条（刚点「成了」的那条）。 */
     var _we = _wishEchoGet();
