@@ -6392,6 +6392,8 @@ async function loadDaily() {
       /* R3592：晒今晚的月亮——日更海报件，每天都是另一张
        * （Lunary 主屏件同构的可晒版）。 */
       _mBtn += ' <button type="button" class="daily-moon-go moon-poster">晒今晚 🌙</button>';
+      /* R3611：本月月历——整月逐日格历（Lunary 月历页同构）。 */
+      _mBtn += ' <button type="button" class="daily-moon-go moon-cal">本月月历 →</button>';
       /* R3451：八相日行——glyph 随相（后端下发），无 glyph 时按
        * phase 回退老两档。 */
       var _mG = j.moon.glyph ||
@@ -6406,6 +6408,10 @@ async function loadDaily() {
           var _t = ev.target;
           if (!_t || !_t.classList ||
               !_t.classList.contains('daily-moon-go')) return;
+          /* R3611：本月月历 overlay。 */
+          if (_t.classList.contains('moon-cal')) {
+            _moonCalShow(); return;
+          }
           /* R3588：满月群邀链——wish=1 带 n 署名，受邀落地承接。 */
           if (_t.classList.contains('moon-share')) {
             try {
@@ -9468,6 +9474,58 @@ function tarotFace(d) {
     esc(d.upright ? d.upright_kw : d.reversed_kw) + '</div></div>';
 }
 
+
+/* R3611：本月月历 overlay——/api/mooncal 拉整月格历，节点日
+ *（初一/十五）标圆点+点格看当句；拉不到给软口径不崩。 */
+function _moonCalShow() {
+  var ov = el('moonCalOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'moonCalOv';
+    ov.className = 'mcal-ov';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) {
+      var _cls = e.target && e.target.closest
+        ? e.target.closest('.mcal-close') : null;
+      if (e.target === ov || _cls) { ov.hidden = true; return; }
+      var _cc = e.target && e.target.closest
+        ? e.target.closest('.mcal-cell') : null;
+      if (_cc && _cc.dataset.line) {
+        showToast(_cc.dataset.line, 'info');
+      }
+    });
+  }
+  ov.hidden = false;
+  var _ym = todayIso().slice(0, 7);
+  ov.innerHTML = '<div class="mcal-panel"><p class="mcal-t">' +
+    (+_ym.slice(5, 7)) + ' 月的月亮</p>' +
+    '<p class="mcal-sub">小满在翻历书…</p></div>';
+  fetch('/api/mooncal?month=' + _ym).then(function (r) {
+    return r.json();
+  }).then(function (j) {
+    var tIso = todayIso();
+    var h = '<div class="mcal-panel"><p class="mcal-t">' +
+      (+_ym.slice(5, 7)) + ' 月的月亮</p><div class="mcal-grid">';
+    (j.days || []).forEach(function (d) {
+      var day = +String(d.d).slice(8, 10);
+      h += '<div class="mcal-cell' +
+        (d.action ? ' node' : '') +
+        (d.d === tIso ? ' today' : '') +
+        '" data-line="' + esc(d.label ? d.label + '：' + d.line : '') +
+        '" title="' + esc(d.label || '') + '">' +
+        '<span class="mcal-g">' + esc(d.glyph) + '</span>' +
+        '<span class="mcal-d">' + day + '</span>' +
+        (d.action ? '<i class="mcal-node"></i>' : '') + '</div>';
+    });
+    h += '</div><p class="mcal-sub">点格子看那天的话；' +
+      '带圆点的是许愿/复盘节点日</p>' +
+      '<button type="button" class="mcal-close">关一下</button></div>';
+    ov.innerHTML = h;
+  }).catch(function () {
+    var _sub = ov.querySelector('.mcal-sub');
+    if (_sub) _sub.textContent = '历书这页没翻出来，过会儿再看看';
+  });
+}
 
 /* R3606：牌的记性公共读法——45 天窗、脏值剔除；卡内回声与
  * 海报/邀卡共用同一窗。 */

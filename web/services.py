@@ -2789,6 +2789,31 @@ def _mars_state(d: date) -> dict:
     return _retro_state(_MARS_RETRO, d)
 
 
+def mooncal(month: str | None) -> dict:
+    """R3611 本月月历：整月逐日月相行——glyph/label/action/line
+    全走 _moon_for 同源口径，闰月日缺省不标节点。"""
+    try:
+        y, m = int(month[:4]), int(month[5:7])
+        base = date(y, m, 1)
+    except Exception:
+        base = date.today().replace(day=1)
+    nxt = date(base.year + (1 if base.month == 12 else 0),
+               1 if base.month == 12 else base.month + 1, 1)
+    days = []
+    dd = base
+    while dd < nxt:
+        mo = _moon_for(dd)
+        days.append({
+            "d": dd.isoformat(),
+            "glyph": mo.get("glyph") or "🌙",
+            "label": mo.get("label") or "",
+            "action": mo.get("action") or "",
+            "line": mo.get("line") or "",
+        })
+        dd += timedelta(days=1)
+    return {"month": base.strftime("%Y-%m"), "days": days}
+
+
 def _week_sky(d: date) -> list:
     """R3601：未来 7 天天象预告——初一/十五节点、逆行起止、节气日。
 

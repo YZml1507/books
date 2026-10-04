@@ -39,6 +39,12 @@ def daily_post(req: DailyRequest) -> dict:
     return services.daily(req.date, req.bday or None)
 
 
+@router.get("/api/mooncal")
+def mooncal(month: str = Query("", max_length=7)) -> dict:
+    """R3611 本月月历：month=YYYY-MM → 逐日月相行（glyph/label/action/line）。"""
+    return services.mooncal(month or None)
+
+
 @router.get("/api/lunar/convert")
 def lunar_convert(y: int = Query(..., ge=1900, le=2100),
                   m: int = Query(..., ge=1, le=12),
