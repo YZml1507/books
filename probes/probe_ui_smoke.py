@@ -3519,6 +3519,52 @@ def main() -> int:
             except Exception as _e:
                 results.append({"name": "deep.pushstate_reload", "ok": False,
                                 "detail": f"?view= 写址/刷新恢复失败：{_e}"})
+            # R3417：跨年愿启封链 + 还愿海报钮——封口存 w.ny、跨年启封
+            # 挂卡、收瓶清 ny 落常规愿、还愿卡挂晒图钮。缺一则静默断。
+            try:
+                _ny = dl.evaluate("""(() => {
+                  const out = {};
+                  /* 启封态：year=今年、!opened → 启封卡+三钮 */
+                  localStorage.setItem('wishbottle', JSON.stringify({
+                    ny: {t:'明年想考上研', c:'跨年', ts:Date.now()-86400000*300,
+                         year:new Date().getFullYear(), opened:0}}));
+                  _renderWishBottle();
+                  out.revealCard = !!document.querySelector('.ck-wish-ny');
+                  out.revealText = (document.querySelector('.ck-wish-ny')||{textContent:''})
+                    .textContent.includes('明年想考上研');
+                  out.btns = !!document.querySelector('[data-wish="nyBottle"]') &&
+                    !!document.querySelector('[data-wish="nyShare"]') &&
+                    !!document.querySelector('[data-wish="nyKeep"]');
+                  /* 收瓶：ny 清空、常规愿望落地（瓶空时） */
+                  _wishAction('nyBottle', '', 'x');
+                  const w = JSON.parse(localStorage.getItem('wishbottle'));
+                  out.nyCleared = !(w && w.ny);
+                  out.wishLanded = w && w.t === '明年想考上研' && w.c === '跨年';
+                  /* 还愿卡：fulfilled 一条 → echo 卡带晒图钮 */
+                  localStorage.setItem('wishfulfilled', JSON.stringify(
+                    [{t:'考试过了', c:'学业', ts:1, fu:Date.now()}]));
+                  _renderWishEcho({t:'考试过了', fu:Date.now()});
+                  out.echoShare = !!document.querySelector('[data-wish="echoShare"]');
+                  /* 封口窗判定今天应为关（10月） */
+                  out.sealWinOff = _wishNySealWin() === false;
+                  /* 福签窗判定今天应为关 */
+                  out.cnyWinOff = (typeof _qianCnyFest === 'function') ?
+                    _qianCnyFest() === false : 'no-fn';
+                  return out;
+                })()""")
+                _ny_ok = all([_ny.get('revealCard'), _ny.get('revealText'),
+                              _ny.get('btns'), _ny.get('nyCleared'),
+                              _ny.get('wishLanded'), _ny.get('echoShare'),
+                              _ny.get('sealWinOff'),
+                              _ny.get('cnyWinOff') is True])
+                results.append({
+                    "name": "ui:ny_wish_chain",
+                    "ok": bool(_ny_ok),
+                    "detail": f"跨年愿/还愿链：{_ny}",
+                })
+            except Exception as _e:
+                results.append({"name": "ui:ny_wish_chain", "ok": False,
+                                "detail": f"跨年愿链求值异常：{_e}"})
             dl.close()
             ctx.close()
             browser.close()
