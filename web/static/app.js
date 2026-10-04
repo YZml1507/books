@@ -24113,6 +24113,10 @@ function _renderShredder(stage) {
   var dk = todayIso();
   var n = _shredCount(dk);
   if (stage === 'done') {
+    /* R3529：碎完顺手记心情——今天还没记过时多给一颗钮，滚到
+     * 心情行；闭环「碎掉→记下现在的感觉」而不是碎完就走。 */
+    var _mDone = null;
+    try { _mDone = localStorage.getItem('mood:' + dk); } catch (eMD) {}
     host.innerHTML =
       '<div class="ck-wish-card">' +
         '<div class="ck-shred-done">🗑️ ' +
@@ -24123,6 +24127,9 @@ function _renderShredder(stage) {
         '<div class="ck-wish-actions">' +
           '<button type="button" class="checkin-opt" data-shred="again">再碎一件</button>' +
           '<button type="button" class="checkin-opt" data-shred="wish">顺手丢个愿望 🫙</button>' +
+          (_mDone === null ?
+            '<button type="button" class="checkin-opt" data-shred="mood">记一下现在的感觉</button>'
+            : '') +
         '</div></div>';
     return;
   }
@@ -24144,6 +24151,16 @@ function _shredAction(act, dateKey) {
   var host = document.getElementById('shredBody');
   if (!host) return;
   if (act === 'again') { _renderShredder(); return; }
+  if (act === 'mood') {
+    var _mr = document.getElementById('moodRow');
+    if (_mr) {
+      _mr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      /* 第一颗心情钮点亮焦点，她按一下就记上了。 */
+      var _mb = _mr.querySelector('.mood-b');
+      if (_mb && _mb.focus) { try { _mb.focus(); } catch (eMF) {} }
+    }
+    return;
+  }
   if (act === 'wish') {
     var w = document.querySelector('#dailyCheckin .ck-wish');
     if (w) {

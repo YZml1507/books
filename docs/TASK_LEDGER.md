@@ -19903,3 +19903,7 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3527 小规律·碎纸日维
 - _ckPatternFind 第 5 维：shred:<date>>0 的天 vs 其余交叉——「碎过烦心事的那几天，你的心情好像常常偏沉/更亮一点」，n≥3+|lift|≥0.6 同阈。粉碎机闭环到观察层。
+
+## R3529 碎完顺手记心情 + CI 修复
+- 粉碎 done 态第三钮「记一下现在的感觉」（今日未记才出现）：滚到心情行+聚焦首钮。委派链 _shredAction 天然承接。
+- CI 修复：.hit:active 误用未定义令牌 --chip-bg 触发 css.var_defs 闸——改 --border；漏跑 bump_sw 连锁 sw.shell_hash 已复绿（自测 457 PASS）。

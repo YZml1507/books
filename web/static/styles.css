@@ -598,7 +598,7 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .mw-cal-cell.dim{color:var(--muted);}
 .mw-cal-cell.pad{background:transparent;}
 .mw-cal-cell.hit{cursor:pointer;}
-.mw-cal-cell.hit:active{background:var(--chip-bg, var(--bg));}
+.mw-cal-cell.hit:active{background:var(--border);}
 .mw-cal-cell.today{box-shadow:0 0 0 1.5px var(--accent) inset;}
 .mw-month-s{font-size:11.5px;color:var(--secondary);margin:6px 0 0;}
 .mw-note{font-size:11px; color:var(--muted); line-height:1.6;
