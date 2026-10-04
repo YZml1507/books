@@ -17202,6 +17202,11 @@ if (document.readyState === 'loading') {
               ' 天了，你的呢？⚔️';
           }
         }
+        /* R3567：递好运链（hug=1）——温柔社交件，跟对擂的
+         * 「比」互补：不比赛，纯送一句顺遂。 */
+        if (_sv === 'home' && _qs.get('hug')) {
+          _relay.home = '朋友给你递了个好运：今天也要顺心呀 🍀';
+        }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
         var _who = _shareByName();
@@ -17319,6 +17324,11 @@ if (document.readyState === 'loading') {
           _relayBar.home = '朋友喊你来比连签：她连签 ' + _dnMax2 +
             ' 天了，打个卡接招 ⚔️';
         }
+      }
+      /* R3567：递好运链（新客 welcomeBar 侧，与上 toast 同文案族）。 */
+      if (_sv2 === 'home' &&
+          new URLSearchParams(location.search).get('hug')) {
+        _relayBar.home = '朋友递了个好运给你：今天也要顺心呀 🍀';
       }
       var _who2 = _shareByName();
       _txtEl.textContent = ((_relayBar[_sv2] ||
@@ -20562,6 +20572,10 @@ function renderCheckin(dateKey) {
      * 玩法的轻量版：无服务端，受邀方读自己的本机天数对决）。 */
     (_streak >= 1 ? '<button type="button" class="checkin-share" id="ckDuel" ' +
       'title="复制链接喊 TA 来比连签">⚔️ 喊 TA 比连签</button>' : '') +
+    /* R3567：递好运链——跟对擂的「比」互补的温柔社交件
+     * （不比赛，纯送一句顺遂；受邀方落地收一句好运）。 */
+    '<button type="button" class="checkin-share" id="ckHug" ' +
+      'title="复制链接给 TA 递个好运">🤗 递个好运给 TA</button>' +
     /* R3547：新称号达成当天挂庆祝晒图钮——海报题头换「达成」
      * 口径（j.msTitle 传给 app_poster 的 checkin 分支）。 */
     (_msNew ? '<button type="button" class="checkin-share" id="ckMsShare" ' +
@@ -20871,6 +20885,23 @@ function renderCheckin(dateKey) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(_dPayload).then(_dOk, _dBad);
     } else { _dBad(); }
+  });
+  /* R3567：递好运钮——hug=1 受邀侧收一句好运（同 duel 复制
+   * 管线；hug 参数不进 strip 名单，要留给受邀者）。 */
+  var _ckh = box.querySelector('#ckHug');
+  if (_ckh) _ckh.addEventListener('click', function () {
+    var _hu = location.origin + location.pathname +
+      '?view=home&from=share&hug=1';
+    var _hPayload = '今天份的好运送你——小满替我递的 🤗 → ' + _hu;
+    var _hOk = function () { showToast('好运链接复制好了，发给 TA 吧', 'ok'); };
+    var _hBad = function () {
+      try { _showTextExportModal('复制链接', _hPayload,
+        '长按下面文本全选复制，发给 TA 吧'); }
+      catch (eM) { showToast('复制没成功，可截图链接发给 TA', 'warn'); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(_hPayload).then(_hOk, _hBad);
+    } else { _hBad(); }
   });
   /* R3547：称号达成庆祝晒图——与晒签同管线，j.msTitle 让
    * 海报题头换「达成」口径。 */
