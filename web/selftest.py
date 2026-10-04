@@ -4661,6 +4661,15 @@ def _run_inner() -> list[str]:
         'data-view="qian"' in _idxsrc, \
         "每日一签：view/渲染/抽签/白名单/备份前缀/语料懒载缺一"
     ok.append("frontend.qian_wiring")
+    # R3417 福签窗+跨年愿+还愿海报：窗表/分键/徽标/动作/海报支
+    # 五件套——缺一则窗签不出、同日变签、历史丢标、启封卡死或
+    # 海报渲空。
+    assert "_QIAN_CNY_WIN" in _appsrc2 and "_qianCnyDraw" in _appsrc2 and \
+        "qian:cny:" in _appsrc2 and 'data-cn="1"' in _appsrc2 and \
+        "_wishNyGet" in _appsrc2 and 'data-wish="nySeal"' in _appsrc2 and \
+        'data-wish="echoShare"' in _appsrc2 and "_QIAN_CAISHEN" in _appsrc2, \
+        "福签窗/跨年愿/还愿海报：窗表/分键/徽标/动作缺一"
+    ok.append("frontend.cny_ny_wiring")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
