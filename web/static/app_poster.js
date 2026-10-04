@@ -372,6 +372,9 @@ function _paintSharePoster(s, W, H) {
                     * 末行被切，提帽 6。 */
                    taohua: 6,
                    moodweek: 5,
+                   /* R3469：soulart 四元素行+最浓+口径共 6 行——
+                    * 默认 cap4 把「最浓/口径」尾两行静默切没。 */
+                   soulart: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -598,6 +601,10 @@ function _paintSharePoster(s, W, H) {
      * 切单行「标签：值」——行高 ≥56 即呼吸充足。 */
     var _rowInline = lh < 95;
     lines.forEach(function (r, i) {
+      /* R3469：带色点的行恒走单行——两行排版下点落在行纵中
+       * 心，标签顶置/值底置，点孤零零悬在中间（灵魂色谱海报
+       * 实测）。色点行=图例行，「dot 木：13%」单行才读得顺。 */
+      var _ri = _rowInline || !!r.dot;
       var y = cardY + _MDOT_H + _KL_H + _CAL_H + i * lh + 10;
       /* R3327-P2-9：r.dot（hex）行前色点——穿搭档行的五行色
        * 上得了图；点在标签左侧固定位。 */
@@ -610,7 +617,7 @@ function _paintSharePoster(s, W, H) {
       }
       ctx.fillStyle = '#B7A98A'; ctx.font = '400 34px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       var _kx = 150;
-      if (_rowInline) {
+      if (_ri) {
         y = cardY + _MDOT_H + _KL_H + _CAL_H + i * lh + Math.round(lh / 2) + 14;
         ctx.fillText(r.k + '：', 150, y);
         _kx = 150 + ctx.measureText(r.k + '：').width + 8;
@@ -665,7 +672,7 @@ function _paintSharePoster(s, W, H) {
         ctx.font = '500 ' + _fz +
           'px "LXGW WenKai","PingFang SC","Microsoft YaHei",sans-serif';
       }
-      ctx.fillText(_vv, _kx, _rowInline ? y : y + 52);
+      ctx.fillText(_vv, _kx, _ri ? y : y + 52);
       /* R2349p（R79-P2-5）：幸运色行补色块圆点——legacy 版式有、
        * share 模板只印字。文字照画，色块排在值右侧。 */
       /* R3314（R3312-P2-6）：护身符海报行键是「开运色」——原只认
