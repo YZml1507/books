@@ -20404,6 +20404,16 @@ function baziPersonaCard(j) {
             var r = await postJSON('/api/account/register', {
               nickname: f.n, passcode: f.p }, { silent: true });
             if (r && r.ok) {
+              /* R3363-P1-7b：注册同样要查前任——共用设备上上一任
+               * 没登出，新号注册首推会把 TA 的私密键一起送进
+               * 新账号的云备份，先清扫再推。 */
+              var _prevReg = '';
+              try { _prevReg = localStorage.getItem(_OWNER_KEY) || ''; } catch (e) {}
+              if (_prevReg && _prevReg !== f.n) {
+                _sweepForNewOwner();
+                showToast('本机留着「' + _prevReg +
+                  '」的数据，已替你清干净', 'info');
+              }
               _saveCreds(f.n, f.p);
               try { localStorage.setItem(_OWNER_KEY, f.n); } catch (e) {}
               _acctRender();

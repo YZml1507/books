@@ -547,6 +547,10 @@ def main() -> int:
         "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
                      "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
                      "与 mercBreathe 同型豁免",
+        # R3368：万圣夜限定抽牌钮——仅 10.29–11.1 窗口显示（其余
+        # 日期 hidden 不可点）；抽牌链路与 trQ1 同构已覆盖。
+        "trQH": "万圣夜限定钮——仅 10.29–11.1 窗口显示，冒烟时段外"
+                "恒 hidden；抽牌链路与 trQ1 同构已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
