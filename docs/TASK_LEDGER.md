@@ -19885,3 +19885,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3520 月相/逆行面四审（自审）零修 + R3521 称号上打卡海报
 - R3520：今日 meta 行序全过（金逆第N天+月相行同位正常）；月龄负值/跨年连签/seed假数据/无痕抛错/share_target注入全守住；「幸运数3干脆利落」系 CSS margin 分隔非粘连。
 - R3521：checkin 海报新增「称号」行（max(streak,已贺档) 取牌子与卡内同口径），cap 4→5 防尾行被切。实测五行全渲染。
+
+## R3522 裂变四轮冷启亲审（零修）+ R3522s 审计子已派
+- 无痕落地 ?view=bazi&from=share&sa=G：欢迎条点名「守护图腾」件 ✓；drawerOpen=false 待用户自排（设计）；零 pageerror。share_target 口吻链审计子 71d8d49c 在跑。
