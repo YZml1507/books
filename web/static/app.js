@@ -6252,8 +6252,13 @@ async function loadDaily() {
        * 白天不占位（今天是主角）。 */
       var _enT = j.personal.tomorrow_energy;
       if (_enT && _enT.score && new Date().getHours() >= 20) {
+        /* R3645：预告带十神白话标——「明天 75 分·表达日」
+         * 比分多了「明天适合什么」的提示（标与后端
+         * parity 钉扎表同源）。 */
+        var _tmTag = _TEN_GOD_TAG[_enT.god] || '';
         _pc2.push('<span class="daily-energy daily-energy-tm">' +
-          '🌙 明天 ' + esc(_enT.score) + ' 分</span>' +
+          '🌙 明天 ' + esc(_enT.score) + ' 分' +
+          (_tmTag ? '·' + esc(_tmTag) + '日' : '') + '</span>' +
           ' <span style="font-size:12px;opacity:.75;">' +
           '明天再来看看～</span>');
       }

@@ -20256,3 +20256,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3644 明日穿搭海报带「明天电量」行
 - 明日预告版（_tmPoster）且有 personal.tomorrow_energy 时明细行「明天电量：N 分」；daily-outfit 行帽 5→6。
+
+## R3645 明日预告 chip 带十神标
+- 「🌙 明天 N 分·TAG日」——_TEN_GOD_TAG 同源白话（正财日/表达日…），服务端 tomorrow_energy.god 实测有字段。
