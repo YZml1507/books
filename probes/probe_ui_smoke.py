@@ -113,6 +113,8 @@ BUTTON_CASES = [
     ("bazi.crystal",    "bazi",   None,            "#shareCrystal",    "#crCard .cr-card"),
     # R3462：灵魂色谱——bazi 出卡后点 🎨 钮出色谱卡。
     ("bazi.soulart",    "bazi",   None,            "#shareSoulart",    "#saCard .sa-card"),
+    # R3464：算命 prompt——点 📋 钮复制（clipboard 成败两路都出 toast）。
+    ("bazi.prompt",     "bazi",   None,            "#sharePrompt",     ".toast-item"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
     # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。

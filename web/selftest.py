@@ -4834,6 +4834,11 @@ def _run_inner() -> list[str]:
         "soulart: '灵魂色谱'" in _appsrc2, \
         "灵魂色谱：按钮/卡片/色谱表/海报/画家分支/别名/标题缺一"
     ok.append("frontend.soulart_wiring")
+    # R3464 算命 prompt：生成器/复制器/接线三件套缺一即死钮
+    assert "_promptText" in _appsrc2 and "_promptCopy" in _appsrc2 and \
+        "sharePrompt" in _appsrc2 and "location.origin" in _appsrc2, \
+        "算命 prompt：生成器/复制器/站链缺一"
+    ok.append("frontend.prompt_wiring")
     # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
     # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \

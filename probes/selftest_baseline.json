@@ -249,6 +249,7 @@
   "frontend.no_object_object",
   "frontend.on_wiring",
   "frontend.oracle_gates",
+  "frontend.prompt_wiring",
   "frontend.qian_wiring",
   "frontend.r3439_sweep",
   "frontend.r3448_49",

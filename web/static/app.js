@@ -6976,6 +6976,11 @@ function buildBaziResult(j) {
       'title="看看哪颗晶石旺你">🔮 守护水晶</button>' +
     '<button class="ghost fav-btn" type="button" id="shareSoulart" ' +
       'title="看看你盘里的五行色谱">🎨 灵魂色谱</button>' +
+    /* R3464（调研）：#deepseek算命 5600万浏览——用户爱把盘
+     * 贴给各家 AI 求解读。那干脆把盘写好送他一键复制：
+     * prompt 尾巴带站链，贴到哪都算我们的曝光与回流钩。 */
+    '<button class="ghost fav-btn" type="button" id="sharePrompt" ' +
+      'title="把你的盘写成一段 prompt，贴给任何 AI 都能算">📋 算命 prompt</button>' +
     '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
@@ -7587,6 +7592,7 @@ async function submitBazi(event) {
       on('shareGuardian', function () { _gdOpen(j); });
       on('shareCrystal', function () { _crOpen(j); });
       on('shareSoulart', function () { _saOpen(j); });
+      on('sharePrompt', function () { _promptCopy(j, body); });
       /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
        * 不到刚看过的卡）。 */
       on('sharePickZone', function () {
@@ -17237,6 +17243,55 @@ function _saOpen(j) {
     return downloadPoster(Object.assign({}, j, _o), 'soulart');
   });
   _saBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ── R3464（调研）：算命 prompt 一键复制——把盘摘要写成一段
+ * 可直接贴给任何 AI 的 prompt，尾巴带站链。用户在各家模型间
+ * 比较解读正是当下流行玩法，贴出去一次就是一次曝光+回流钩。 */
+function _promptText(j, body) {
+  var _pillars = (j && j.paipan && j.paipan.render)
+    ? _pillarsHonest(j.paipan.render, !!j.hour_known) : '';
+  var _dm = (j && j.paipan && j.paipan.day_master) || '';
+  var _counts = (j && j.calc && j.calc.five_elements &&
+                 j.calc.five_elements.counts) || {};
+  var _bd = '';
+  if (body && body.year) {
+    _bd = body.year + '年' + (body.month || '?') + '月' +
+      (body.day || '?') + '日' +
+      (body.hour_known && body.hour != null ? ' ' + body.hour + '时'
+        : '（时辰未知）') +
+      (body.gender ? '，' + body.gender : '');
+  }
+  var _fe = ['木', '火', '土', '金', '水'].map(function (e) {
+    return e + (+(_counts[e] || 0)); }).join(' ');
+  return '我排了八字，想请你帮我看看——\n' +
+    (_bd ? '生辰：' + _bd + '\n' : '') +
+    /* render 行自带「日主/大运」尾段，整行作命盘不再单写日主 */
+    (_pillars ? '命盘：' + _pillars + '\n' : '') +
+    (_dm && !_pillars ? '日主：' + _dm + '\n' : '') +
+    '五行分布：' + _fe + '\n' +
+    '请从性格底色、感情模式、今年要注意的地方三个角度帮我解读，' +
+    '说得温柔一点、别堆术语，最后给我一个这个月能上手做的小建议。\n' +
+    '（这个盘是在小满的解忧铺排的：' + location.origin + '/?view=bazi ）';
+}
+function _promptCopy(j, body) {
+  var text = _promptText(j, body);
+  var ok = function () {
+    showToast('prompt 已复制——贴给任何 AI 都能帮你算', 'ok'); };
+  var bad = function () {
+    showToast('复制没成功：再点一下试试', 'warn'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok, bad);
+  } else {
+    try {
+      var _ta = document.createElement('textarea');
+      _ta.value = text; document.body.appendChild(_ta);
+      _ta.select();
+      var _d = document.execCommand('copy');
+      _ta.remove();
+      _d ? ok() : bad();
+    } catch (e) { bad(); }
+  }
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
