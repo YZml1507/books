@@ -4531,6 +4531,32 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     f"{_r['next']}起（还有{_r['days_to']}天）")
             else:
                 out.append("今日火逆态：今天不在火逆期")
+        # R3661：节气问句——当日交节给名+tip，非交节日给下一节气
+        # （此前「立冬吃什么」零供给，小满靠常识答易与卡面 tip 打架）。
+        if ("节气" in _n or "交节" in _n or
+                any(k in _n for k in _SOLAR_TERMS)):
+            _tb = _term_banner(_d)
+            if _tb.get("name"):
+                out.append(f"今日节气：{_tb['name']}"
+                           + (f"（{_tb['time']}交节）" if _tb.get("time")
+                              else "")
+                           + (f"——{_tb['tip']}" if _tb.get("tip") else ""))
+            else:
+                try:
+                    from guji.bazi import TERM_LONGITUDE, term_time
+                    _nx = None
+                    for _tn in TERM_LONGITUDE:
+                        for _yy in (_d.year, _d.year + 1):
+                            _tt = term_time(_yy, _tn) + timedelta(hours=8)
+                            if _tt.date() > _d and (
+                                    _nx is None or _tt.date() < _nx[0]):
+                                _nx = (_tt.date(), _tn)
+                    if _nx:
+                        out.append(f"今日节气：今天不是交节日，"
+                                   f"下一节气{_nx[1]}"
+                                   f"（{_nx[0].month}月{_nx[0].day}日）")
+                except Exception:
+                    pass
         if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
                                  "幸运颜色", "开运色", "什么颜色", "配色")):
             _lk = _lucky_for(_d)
