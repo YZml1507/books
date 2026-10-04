@@ -17186,9 +17186,19 @@ if (document.readyState === 'loading') {
         /* R3545：对擂链承接点名——通用「朋友在晒」换成
          * 「喊你来比」，落地第一眼就知道是擂台不是海报。 */
         if (_sv === 'home' && _qs.get('duel')) {
-          var _dn = parseInt(_qs.get('duel'), 10);
-          if (isFinite(_dn) && _dn > 0) {
-            _relay.home = '朋友喊你来比连签：她连签 ' + _dn +
+          var _dnRaw = String(_qs.get('duel'));
+          var _dnMax = 0, _dnCnt = 0;
+          _dnRaw.split(',').forEach(function (s) {
+            var v = parseInt(s, 10);
+            if (isFinite(v) && v > 0) {
+              _dnCnt++; if (v > _dnMax) _dnMax = v;
+            }
+          });
+          if (_dnCnt > 1) {
+            _relay.home = '朋友们摆了连签擂：榜上最高 ' + _dnMax +
+              ' 天，你来上牌吗？⚔️';
+          } else if (_dnMax > 0) {
+            _relay.home = '朋友喊你来比连签：她连签 ' + _dnMax +
               ' 天了，你的呢？⚔️';
           }
         }
@@ -17293,10 +17303,20 @@ if (document.readyState === 'loading') {
       /* R3545：对擂链——新客欢迎条同样点名擂台（新受邀者才是
        * 对擂的主力受众，老客走 toast 分支）。 */
       if (_sv2 === 'home') {
-        var _dnb = parseInt(
-          new URLSearchParams(location.search).get('duel'), 10);
-        if (isFinite(_dnb) && _dnb > 0) {
-          _relayBar.home = '朋友喊你来比连签：她连签 ' + _dnb +
+        var _dnRaw2 = String(
+          new URLSearchParams(location.search).get('duel') || '');
+        var _dnMax2 = 0, _dnCnt2 = 0;
+        _dnRaw2.split(',').forEach(function (s) {
+          var v = parseInt(s, 10);
+          if (isFinite(v) && v > 0) {
+            _dnCnt2++; if (v > _dnMax2) _dnMax2 = v;
+          }
+        });
+        if (_dnCnt2 > 1) {
+          _relayBar.home = '朋友们摆了连签擂：榜上最高 ' +
+            _dnMax2 + ' 天，打个卡上牌 ⚔️';
+        } else if (_dnMax2 > 0) {
+          _relayBar.home = '朋友喊你来比连签：她连签 ' + _dnMax2 +
             ' 天了，打个卡接招 ⚔️';
         }
       }
@@ -20233,6 +20253,7 @@ function renderCheckin(dateKey) {
         esc(_rows.join(' · ')) +
         (_streak <= 0 ? '——你今天打第一张卡就上榜' :
           _rk === 1 ? '——你领跑，守住' :
+          _streak === _board[0].n ? '——并列领跑，明天分高下' :
           '——你第 ' + _rk + '，差 ' +
             (_board[0].n - _streak) + ' 天登顶') + '</div>';
     }
