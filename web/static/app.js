@@ -17665,9 +17665,19 @@ if (document.readyState === 'loading') {
          * 内点的分享钮，受邀时段可能已非满月，文案不提死
          * 「今晚」二字）。R3594：wish=n 新月邀对称分文案。 */
         if (_sv === 'home' && _qs.get('wish')) {
-          _relay.home = _qs.get('wish') === 'n'
+          /* R3664：wish=r 回递态——受邀者许完愿回传给发起方；
+           * wish=1/n 受邀侧记 session 旗，许完愿卡内挂回递钮。 */
+          _relay.home = _qs.get('wish') === 'r'
+            ? '朋友回递了一个愿给你：一起许过愿了，愿都灵 🌙'
+            : _qs.get('wish') === 'n'
             ? '朋友趁新月喊你一起丢个愿望：写下来，月亮替你收着 🌑'
             : '朋友趁满月喊你一起丢个愿望：写下来，月亮替你收着 🌕';
+          if (_qs.get('wish') !== 'r') {
+            try {
+              sessionStorage.setItem('wishReplyFrom',
+                String(_shareByName() || 'TA').slice(0, 24));
+            } catch (eWRF) {}
+          }
         }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
@@ -23704,6 +23714,51 @@ function _wishAction(act, arg, dateKey) {
                        '装进瓶子啦，今天起算'], 'wishs'), 'info');
     _renderWishBottle();
     _wishRefreshSummary();
+    /* R3664：受邀落地（wish=1/n）→ 许完愿挂「回递一个愿」
+     * 钮，链成环（跟 duel 续链/hug 回递同构）。旗在
+     * sessionStorage——本次会话内有效，不留痕到本地库。 */
+    try {
+      var _wrf = sessionStorage.getItem('wishReplyFrom');
+      if (_wrf) {
+        var _wcard = document.querySelector(
+          '#wishBottleBody .ck-wish-actions');
+        if (_wcard && !document.getElementById('ckWishBack')) {
+          var _wb = document.createElement('button');
+          _wb.type = 'button';
+          _wb.className = 'checkin-opt';
+          _wb.id = 'ckWishBack';
+          _wb.textContent = '回递一个愿 🌙';
+          _wb.addEventListener('click', function () {
+            var _wu = location.origin + location.pathname +
+              '?view=home&from=share&wish=r';
+            try {
+              var _wn2 = (_meGet('me') || {}).n;
+              if (_wn2) _wu += '&n=' + encodeURIComponent(
+                String(_wn2).slice(0, 24));
+            } catch (eWN) {}
+            var _wPl = '一起许过愿了，回递一个给你 🌙 → ' + _wu;
+            var _wOk = function () {
+              showToast('回递链复制好了，发给 ' + _wrf +
+                        ' 让 TA 知道愿都灵 🌙', 'ok'); };
+            var _wBad = function () {
+              try {
+                _showTextExportModal('复制链接', _wPl,
+                  '长按下面文本全选复制，发给 ' + _wrf);
+              } catch (eM) {
+                showToast('复制没成功，可截图链接发给 ' + _wrf,
+                          'warn'); }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(_wPl).then(_wOk, _wBad);
+            } else { _wBad(); }
+            try { sessionStorage.removeItem('wishReplyFrom'); }
+            catch (eWC) {}
+            _wb.remove();
+          });
+          _wcard.appendChild(_wb);
+        }
+      }
+    } catch (eWB) {}
     return;
   }
   if (act === 'done') {
