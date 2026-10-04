@@ -21468,7 +21468,7 @@ function renderCheckin(dateKey) {
         ? '<div class="ck-quest ck-xmas">' +
           (_xm === '12-24'
             ? '🍎 平安夜——丢个愿望进瓶子，圣诞前夜最灵'
-            : '🎄 圣诞快乐——愿望瓶还开着，顺一个进去') +
+            : '🎄 圣诞快乐——愿望瓶还开着，再许一个') +
           '<button type="button" class="ck-quest-btn ck-xwish">去许愿 →</button></div>'
         : '';
     } catch (eXM) {}
