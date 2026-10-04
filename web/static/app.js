@@ -8165,7 +8165,10 @@ var _POSTER_TITLES = {
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
   renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
-  'daily-outfit': '今日穿搭', moodweek: '心情周记' };
+  'daily-outfit': '今日穿搭', moodweek: '心情周记',
+  /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
+   * 「命盘海报/分享图」。 */
+  'year-wrap': '小满年报' };
 var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   taohua: 'sakura', hehun: 'sakura', qiming: 'dream', checkin: 'warm',
   'checkin-month': 'warm',
@@ -8174,6 +8177,7 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   'daily-outfit': 'mint',
   bandaid: 'dream', lucky: 'warm', weekly: 'lilac',
   moodweek: 'dream',   /* 心情周记归紫云梦底——夜灯系贴「一周心事」 */
+  'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
  * 一句带钩子的邀请语（小红书转发口径）。 */
@@ -16162,7 +16166,7 @@ function _coupleKey(me, pa) {
 function _coupleSync(force) {
   try {
     if (_coupleInflight) return;
-    var me = _meGet('me'), pa = _meGet('n');
+    var me = _meGet('me'), pa = _meGet('me:partner');
     var ckey = _coupleKey(me, pa);
     if (!ckey || !window.crypto || !crypto.subtle) return;
     var last = +(localStorage.getItem('couple:syncts') || 0);
@@ -16728,7 +16732,7 @@ function renderCheckin(dateKey) {
   try {
     var _csp = JSON.parse(localStorage.getItem('couple:shared') || 'null');
     if (_csp && _csp.total > 0 &&
-        _csp.ck === _coupleKey(_meGet('me'), _meGet('n'))) {
+        _csp.ck === _coupleKey(_meGet('me'), _meGet('me:partner'))) {
       var _cSet = {};
       (_csp.shared || []).forEach(function (d) { _cSet[d] = 1; });
       var _cStreak = _checkinStreak(_cSet, dateKey);
@@ -19527,7 +19531,10 @@ function baziPersonaCard(j) {
                      /* R3345（审-中）：聊天记录换机——wipe 已收
                       * chatTranscript 前缀、备份却不带，口径不一致
                       * 且换机全丢无提示。sid 桶+lastsid 同族导出。 */
-                     'chatTranscript:'];
+                     'chatTranscript:',
+                     /* R3351（审-P1）：couple:/shred: wipe 收编但导出
+                      * 漏——修好合拍链后换机会静默丢交集与碎纸计数。 */
+                     'couple:', 'shred:'];
         /* R2508（审-P2-1）：wishbottle 是用户亲笔愿望文本——备份
          * 不带它就是「全量带走」漏项（且 wipe 也收不到它，见下）。 */
         /* R3163：chat:topics/chat:cards（跨天画像+卡片记忆）漏出备份——
@@ -19932,7 +19939,9 @@ function baziPersonaCard(j) {
             /* R3339（审-低）：voiceMode 是下线死键——白名单收它等于
              * 旧备份往本机种死数据，剔除。 */
             /* R3350：mantraFav（咒语册）同族收编——导得出也要导得回。 */
-            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:)/
+            /* R3351（审-P1）：couple:/shred: 同族收编——合拍交集与
+             * 碎纸计数换机不再静默丢。 */
+            if (!/^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|chat:topics$|chat:cards$|chat:events$|remind:1$|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/
                 .test(k) || k.length > 64 ||
                 typeof local[k] !== 'string' || local[k].length >= 8192) {
               return;
@@ -20060,6 +20069,25 @@ function baziPersonaCard(j) {
                 !/^\d{4}-\d{2}-\d{2}$/.test(k.slice(13))) return;
             if (k.indexOf('monthlyLetter:') === 0 &&
                 !/^\d{4}-\d{2}$/.test(k.slice(14))) return;
+            /* R3351（审-P1）：couple:shared={ck≤128,shared日期数组
+             * ≤400,total非负整数}；couple:syncts=数字戳；
+             * shred:<date>=非负整数计数。 */
+            if (k === 'couple:shared') {
+              try {
+                var _co = JSON.parse(_v);
+                if (!_co || typeof _co !== 'object' ||
+                    typeof _co.ck !== 'string' || _co.ck.length > 128 ||
+                    !Array.isArray(_co.shared) || _co.shared.length > 400 ||
+                    !_co.shared.every(function (d) {
+                      return /^\d{4}-\d{2}-\d{2}$/.test(d); }) ||
+                    !(Number.isInteger(_co.total) && _co.total >= 0))
+                  return;
+              } catch (eCO) { return; }
+            }
+            if (k === 'couple:syncts' && !/^\d+$/.test(_v)) return;
+            if (k.indexOf('shred:') === 0 &&
+                (!/^\d{4}-\d{2}-\d{2}$/.test(k.slice(6)) ||
+                 !/^\d{1,4}$/.test(_v))) return;
             if (k === 'returnBannerDismissed' &&
                 !/^\d{4}-\d{2}-\d{2}$/.test(_v)) return;
             if (k === 'chat:events') {

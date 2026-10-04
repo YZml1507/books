@@ -18092,3 +18092,21 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   断言更新+新族钉 9 条。
 - 闸门：selftest 408 / ui_smoke 104 / contract 746 / ruff 等 15 道全绿；
   bump_sw→books-shell-81be9bd3471c
+
+## R3351 新功能批真机回归清零（本批）
+- P0 合拍打卡整链死：_coupleSync/_checkinMeta 两处 _meGet('n')
+  读的是从不写入的键 → _coupleKey 恒空、交集永不发。改
+  _meGet('me:partner')，全链打通。
+- P1 备份漏键：couple:/shred: wipe 收编但导出白名单漏 → 换机
+  静默丢。_PREF 补两前缀；导入正则+形状校验（couple:shared
+  {ck≤128,shared≤400日期,total≥0}、couple:syncts 数字戳、
+  shred:<date> 非负整数）。
+- P2 年报海报：_POSTER_TITLES 补 'year-wrap':'小满年报'（弹层
+  标题/下载文件名不再回落命盘海报/分享图）+ BG 表补 warm。
+- P2 许愿路标词表：「许个愿/愿望」自然说法漏接 → 成真族前
+  置（「愿望成真」含裸愿望先判成真向）+ 许愿族收 许个愿/愿望/
+  想个愿。
+- 顺手：chat_action_view docstring「落点」踩 banned_copy 禁词
+  → 改「锚位」。
+- 闸门：selftest 408 / ui_smoke 104 / banned_copy 0 / ruff 全绿；
+  bump_sw→books-shell-a9b689e0a09c
