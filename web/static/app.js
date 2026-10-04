@@ -19077,6 +19077,41 @@ function _renderMoodWeek() {
       '<span class="mw-dt">' + esc(md) + '</span></div>';
   });
   html += '</div>';
+  /* R3524：这个月的心情日历——本地 mood: 键排进当月格子，
+   * 记过的天按心情色染格、今天描边；一格没记时整块缺席，
+   * 不当催记告示。 */
+  try {
+    var _td0 = todayIso();
+    var _yy = +_td0.slice(0, 4), _mm = +_td0.slice(5, 7);
+    var _dim = new Date(_yy, _mm, 0).getDate();
+    var _firstDow = (new Date(_yy, _mm - 1, 1).getDay() + 6) % 7;
+    var _hasAny = false;
+    var _calRows = '';
+    ['一', '二', '三', '四', '五', '六', '日'].forEach(function (_w) {
+      _calRows += '<span class="mw-cal-h">' + _w + '</span>';
+    });
+    for (var _ci = 0; _ci < _firstDow + _dim; _ci++) {
+      var _dayN = _ci - _firstDow + 1;
+      if (_dayN < 1) { _calRows += '<span class="mw-cal-cell pad"></span>'; continue; }
+      var _mk = 'mood:' + _yy + '-' + String(_mm).padStart(2, '0') +
+                '-' + String(_dayN).padStart(2, '0');
+      var _mv = localStorage.getItem(_mk);
+      var _isTd = (_dayN === +_td0.slice(8, 10));
+      if (_mv !== null && _MOOD_META[+_mv]) {
+        _hasAny = true;
+        _calRows += '<span class="mw-cal-cell' + (_isTd ? ' today' : '') +
+          '" title="' + esc(_MOOD_META[+_mv].t) + '"><i style="background:' +
+          _MOOD_META[+_mv].c + '"></i>' + _dayN + '</span>';
+      } else {
+        _calRows += '<span class="mw-cal-cell dim' +
+          (_isTd ? ' today' : '') + '"><i></i>' + _dayN + '</span>';
+      }
+    }
+    if (_hasAny) {
+      html += '<div class="mw-month"><p class="mw-month-t">这个月的心情</p>' +
+        '<div class="mw-cal" role="list">' + _calRows + '</div></div>';
+    }
+  } catch (eCal) {}
   if (w.recorded > 0 && w.main >= 0) {
     html += '<div class="mw-main"><span class="mw-main-e">' +
       _MOOD_META[w.main].e + '</span><div class="mw-main-t">' +
