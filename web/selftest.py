@@ -4826,6 +4826,14 @@ def _run_inner() -> list[str]:
         "crystal: '守护水晶'" in _appsrc2, \
         "守护水晶：按钮/卡片/晶石表/海报/别名/标题缺一"
     ok.append("frontend.crystal_wiring")
+    # R3462 灵魂色谱：按钮/出卡/色谱表/海报 case+s.art 画家分支/
+    # 别名/标题七件套。
+    assert "shareSoulart" in _appsrc2 and "_saOpen" in _appsrc2 and \
+        "_SA_COLOR" in _appsrc2 and "case 'soulart'" in _postsrc and \
+        "_saArt" in _postsrc and "soulart: 'bazi'" in _appsrc2 and \
+        "soulart: '灵魂色谱'" in _appsrc2, \
+        "灵魂色谱：按钮/卡片/色谱表/海报/画家分支/别名/标题缺一"
+    ok.append("frontend.soulart_wiring")
     # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
     # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \

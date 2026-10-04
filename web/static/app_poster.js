@@ -251,13 +251,46 @@ function _paintSharePoster(s, W, H) {
    * 隐形（tarot.png 慢网实态可复现）。_bgKey 随实际落底走。 */
   var _bgKey = _POSTER_BG_BY_VIEW[s && s.view] || 'warm';
   var bgImg = _posterBgFor(s && s.view);
-  if (!(bgImg && bgImg.complete && bgImg.naturalWidth)) {
+  /* R3462 灵魂色谱：s.art 在场时底图不贴图——画家现场生成
+   * 星云。深空渐变底 + 每个色带一团径向光晕（位置由 seed 定
+   * 点、半径与透明度随占比），同盘同画确定性口径。 */
+  var _saArt = (s && s.art && Array.isArray(s.art.bands)
+    && s.art.bands.length) ? s.art : null;
+  if (_saArt) {
+    var _neb = ctx.createLinearGradient(0, 0, 0, 1440);
+    _neb.addColorStop(0, '#1A1430'); _neb.addColorStop(1, '#0E0B1F');
+    ctx.fillStyle = _neb; ctx.fillRect(0, 0, 1080, 1440);
+    var _seed = (+_saArt.seed) >>> 0;
+    var _rnd = function () {
+      _seed = (_seed * 1664525 + 1013904223) >>> 0;
+      return _seed / 4294967296;
+    };
+    _saArt.bands.forEach(function (b) {
+      var _cx = 180 + _rnd() * 720, _cy = 260 + _rnd() * 920;
+      var _r = 240 + b.frac * 560;
+      var _g = ctx.createRadialGradient(_cx, _cy, 0, _cx, _cy, _r);
+      _g.addColorStop(0, b.c + 'CC');
+      _g.addColorStop(0.55, b.c + '55');
+      _g.addColorStop(1, b.c + '00');
+      ctx.fillStyle = _g;
+      ctx.fillRect(0, 0, 1080, 1440);
+    });
+    /* 星点散斑：种子继续推进，与色带数无关的画质点缀。 */
+    ctx.fillStyle = 'rgba(255,246,232,0.7)';
+    for (var _sp = 0; _sp < 90; _sp++) {
+      var _sx = _rnd() * 1080, _sy = _rnd() * 1440,
+          _sr = _rnd() * 1.8 + 0.4;
+      ctx.beginPath(); ctx.arc(_sx, _sy, _sr, 0, 6.3); ctx.fill();
+    }
+    _bgKey = 'lilac';   /* 深底→浅墨盘 */
+    bgImg = null;
+  } else if (!(bgImg && bgImg.complete && bgImg.naturalWidth)) {
     bgImg = POSTER_BG.warm;
     _bgKey = 'warm';
   }
   if (bgImg && bgImg.complete && bgImg.naturalWidth) {
     ctx.drawImage(bgImg, 0, 0, 1080, 1440);
-  } else {
+  } else if (!_saArt) {
     var bg = ctx.createLinearGradient(0, 0, 0, 1440);
     bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
@@ -1744,6 +1777,39 @@ function buildShareData(view, j) {
       if (!_cr.lines.length) _cr.lines =
         [{ k: '结论', v: '晶石替你补着' }];
       return _cr;
+    }
+    case 'soulart': {
+      /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带
+       * bands+seed，与卡内色条同一组数据），大字=色谱名，lines
+       * =各色占比+最浓气+口径行。 */
+      var _sa = base('灵魂色谱', '');
+      _sa.big = '我的五行色谱';
+      _sa.lines = [];
+      var _saBd = (j && Array.isArray(j._saBands)) ? j._saBands : [];
+      _saBd.forEach(function (b) {
+        if (b && _pStr(b.wx) && _pStr(b.c) && +b.frac > 0) {
+          _sa.lines.push({ k: _pStr(b.wx),
+            v: Math.round(+b.frac * 100) + '%', dot: _pStr(b.c) });
+        }
+      });
+      if (_saBd.length) {
+        var _saTop = _saBd.slice().sort(function (a, b2) {
+          return (+b2.frac || 0) - (+a.frac || 0); })[0];
+        _sa.lines.push({ k: '最浓',
+          v: _pStr(_saTop.wx) + '气占最大一片' });
+      }
+      _sa.lines.push({ k: '口径', v: '一人一幅，按五行权重画' });
+      if (!_sa.lines.length) _sa.lines =
+        [{ k: '结论', v: '色谱替你开着' }];
+      /* 画家分支的 payload：seed 防脏值（非数回落 0）。 */
+      _sa.art = { seed: (+_pStr(j && j._saSeed) || 0),
+        bands: _saBd.map(function (b) {
+          return { wx: _pStr(b.wx), c: _pStr(b.c),
+                   frac: +b.frac || 0 };
+        }).filter(function (b) {
+          return b.wx && /^#[0-9a-fA-F]{6}$/.test(b.c) &&
+            b.frac > 0; }) };
+      return _sa;
     }
     case 'weekletter': {
       /* R3379 周记信海报：小记原文拆句入 lines（每行一条），

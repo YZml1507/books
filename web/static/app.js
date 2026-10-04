@@ -6962,12 +6962,16 @@ function buildBaziResult(j) {
       'title="看看哪只灵兽守你">🐉 守护图腾</button>' +
       /* R3461：守护水晶——喜用→晶石可晒件，同门同闸第三件。 */
       '<button class="ghost fav-btn" type="button" id="shareCrystal" ' +
-      'title="看看哪颗晶石旺你">🔮 守护水晶</button>';
+      'title="看看哪颗晶石旺你">🔮 守护水晶</button>' +
+      /* R3462：灵魂色谱——五行权重→生成式星云可晒件，同门同闸第四件。 */
+      '<button class="ghost fav-btn" type="button" id="shareSoulart" ' +
+      'title="看看你盘里的五行色谱">🎨 灵魂色谱</button>';
   }
   html += '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
-    '<div id="crCard"></div>';
+    '<div id="crCard"></div>' +
+    '<div id="saCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7573,6 +7577,7 @@ async function submitBazi(event) {
       on('shareFortuneDir', function () { _fdOpen(j); });
       on('shareGuardian', function () { _gdOpen(j); });
       on('shareCrystal', function () { _crOpen(j); });
+      on('shareSoulart', function () { _saOpen(j); });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -8744,6 +8749,8 @@ var _POSTER_TITLES = {
   guardian: '守护图腾',
   /* R3461：守护水晶海报弹层标题/下载文件名。 */
   crystal: '守护水晶',
+  /* R3462：灵魂色谱海报弹层标题/下载文件名。 */
+  soulart: '灵魂色谱',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -8774,6 +8781,9 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   guardian: 'dream',
   /* R3461：守护水晶归紫云梦底——晶石的通透夜光感。 */
   crystal: 'dream',
+  /* R3462：灵魂色谱——星云底由画家自画（s.art 分支），
+   * 此键只为 _bgKey 兜底。 */
+  soulart: 'lilac',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
@@ -8831,6 +8841,8 @@ var _SHARE_TEXT = {
   guardian: '我的守护兽测出来了，看看哪只灵兽守你 →',
   /* R3461：守护水晶——「哪颗晶石旺我」接力晒。 */
   crystal: '我的守护晶测出来了，看看哪颗晶石旺你 →',
+  /* R3462：灵魂色谱——「我的盘是什么颜色」接力晒。 */
+  soulart: '我盘里的色谱长这样，你的盘是什么颜色 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
@@ -8847,7 +8859,7 @@ var _SHARE_TEXT = {
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
-  guardian: 'bazi', crystal: 'bazi',
+  guardian: 'bazi', crystal: 'bazi', soulart: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun' };
@@ -17143,6 +17155,73 @@ function _crOpen(j) {
     return downloadPoster(Object.assign({}, j, _o), 'crystal');
   });
   _crBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* R3462 灵魂色谱：五行权重→生成式星云艺术可晒件（Astairo
+ * soul-art 同构第四件——一人一色带，天生「我的不一样」钩子）。
+ * 色条卡内联 CSS 即见色谱；海报端 painter 按同款 bands 画星
+ * 云。五色系与 daily-outfit 五行色点同族。 */
+var _SA_COLOR = {
+  '木': '#4E9A6A', '火': '#D96A57', '土': '#C9A24B',
+  '金': '#C8C9CE', '水': '#3E7FA8' };
+var _SA_WX5 = ['木', '火', '土', '金', '水'];
+function _saBands(j) {
+  var counts = (j && j.calc && j.calc.five_elements
+    && j.calc.five_elements.counts) || {};
+  var _tot = 0, _band = [];
+  _SA_WX5.forEach(function (e) { _tot += +(counts[e] || 0); });
+  _SA_WX5.forEach(function (e, i) {
+    var v = +(counts[e] || 0);
+    if (v > 0 && _tot > 0) {
+      _band.push({ wx: e, c: _SA_COLOR[e], n: v,
+                   frac: v / _tot, i: i });
+    }
+  });
+  /* 确定性种子：计数串哈希——同盘同色同画。 */
+  var _s = 'sa|' + _SA_WX5.map(function (e) {
+    return counts[e] || 0; }).join(',');
+  var _h = 0;
+  for (var _ci = 0; _ci < _s.length; _ci++) {
+    _h = (_h * 31 + _s.charCodeAt(_ci)) >>> 0;
+  }
+  return { bands: _band, seed: _h };
+}
+function _saCard(j) {
+  var _d = _saBands(j);
+  var _strip = _d.bands.map(function (b) {
+    return '<span class="sa-seg" style="flex:' + b.frac.toFixed(3) +
+      ';background:' + b.c + '" title="' + esc(b.wx) + ' ×' +
+      b.n + '"></span>';
+  }).join('');
+  var _leg = _d.bands.map(function (b) {
+    return b.wx + ' ' + (Math.round(b.frac * 100)) + '%';
+  }).join(' · ');
+  var _top = _d.bands.length
+    ? _d.bands.slice().sort(function (a, b2) {
+        return b2.frac - a.frac; })[0] : null;
+  var _h = '<div class="sa-card sm-card">' +
+    '<div class="sa-strip">' + _strip + '</div>' +
+    '<div class="sm-tip">🎨 ' + esc(_leg) + '</div>' +
+    (_top
+      ? '<div class="sm-tip">✨ 你盘里最浓的是' + esc(_top.wx) +
+        '气——色谱里它占最大一片</div>'
+      : '') +
+    '<div class="sm-note">色谱按你盘里五行权重画，一人一幅</div>' +
+    '<button class="ghost fav-btn" type="button" id="saShare" ' +
+      'title="生成灵魂色谱分享图">📸 晒出我的色谱</button>' +
+    '</div>';
+  return { html: _h, data: _d };
+}
+function _saOpen(j) {
+  var _saBox = el('saCard');
+  if (!_saBox || !j) return;
+  var _c = _saCard(j);
+  _saBox.innerHTML = _c.html;   // esc-reviewed：_saCard 内动态字段均过 esc()
+  on('saShare', function () {
+    var _o = { _saBands: _c.data.bands, _saSeed: _c.data.seed };
+    return downloadPoster(Object.assign({}, j, _o), 'soulart');
+  });
+  _saBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
