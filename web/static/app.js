@@ -731,7 +731,7 @@ function buildTaohuaResult(j) {
     'title="生成分享图">📸 分享图</button>';
   /* R3373 正缘画像：日主五行定气质型→氛围底图+特征标签+相遇
    * 信号（全网调研验证的爆款机制——可晒的社交货币）。 */
-  html += '<button class="ghost fav-btn" type="button" id="smOpen" ' +
+  html += '<button class="ghost fav-btn" type="button" id="shareSoulmate" ' +
     'title="按你的盘推出 TA 的气质画像">💘 看看 TA 的气质画像</button>' +
     '<div id="smCard"></div>';
   /* R2349s（R84-P2-20）：口吻开关——pro 直出原枚举值。 */
@@ -4635,8 +4635,11 @@ function showPosterModal(canvas, view, j) {
   /* 复制本视图深链——朋友打开直达同一页 */
   var _pcl = backdrop.querySelector('#posterCopyLink');
   if (_pcl) _pcl.addEventListener('click', function () {
-    /* R231d（R39-P2-1）：带 from=share 便于落地页换承接文案 */
-    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
+    /* R231d（R39-P2-1）：带 from=share 便于落地页换承接文案
+     * R3373s：海报视图≠落地视图时经别名表（soulmate→taohua，
+     * 否则 ?view=soulmate 是死链静默回首页）。 */
+    var url = location.origin + '/?view=' + encodeURIComponent(
+      _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
     /* R2350a（R94-P1-2）：黄历分享链带卡面日——对方打开看到的是
      * 同一张那天，不是 TA 自己的今天。 */
     if (view === 'huangli') {
@@ -4726,7 +4729,8 @@ function showPosterModal(canvas, view, j) {
   /* 系统分享面板——优先分享图文件，不支持文件则退文本+链接 */
   var _pss = backdrop.querySelector('#posterSysShare');
   if (_pss) _pss.addEventListener('click', function () {
-    var url = location.origin + '/?view=' + encodeURIComponent(view || 'home') + '&from=share';
+    var url = location.origin + '/?view=' + encodeURIComponent(
+      _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
     if (view === 'huangli') {
       try {
         var _sd1 = (el('hlResult') || {}).dataset || {};
@@ -8245,7 +8249,7 @@ async function doTaohua() {
     paint('thResult', buildTaohuaResult(j));
     var _rbTh = function () {
       on('shareTaohua', function () { return downloadPoster(j, 'taohua'); });
-      on('smOpen', function () { _smOpen(j); });   /* R3373 正缘画像 */
+      on('shareSoulmate', function () { _smOpen(j); });   /* R3373 正缘画像 */
     };
     _rbTh();
     rememberResult('taohua', j, '', { gender: val('th_gender') });   /* v2：补性别 */
@@ -8338,6 +8342,9 @@ var _SHARE_TEXT = {
   /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
   renge: '测出我的五行人格了，你是哪型 →'};
+/* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
+ * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
+var _SHARE_VIEW_ALIAS = { soulmate: 'taohua' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
