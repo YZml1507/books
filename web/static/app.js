@@ -25389,6 +25389,22 @@ function _qianSlipHtml(n, opts) {
            (_es3 >= 70 ? '签宜动、电也足，真宜动' :
             '签让动但你电偏低，动一半就好') + '</div>' : '';
        })() : '') +
+       /* R3674：桃花签×TA 能量交叉——管感情的签捎一句
+        * 心里那位的电量（已存另一半才挂；回看历史签不挂，
+        * 同日口径同捣蛋签）。 */
+       (o.love && !o.review ? (function () {
+         var _pe3 = '';
+         try {
+           _pe3 = window.__lastDaily && window.__lastDaily.personal &&
+                  window.__lastDaily.personal.partner_energy &&
+                  window.__lastDaily.personal.partner_energy.score;
+         } catch (eP3) {}
+         return _pe3 ? '<div class="qian-say">💞 TA 今天电量 ' +
+           esc(_pe3) + ' 分——' +
+           (_pe3 >= 70 ? '签说好，TA 电也足，可以约' :
+            _pe3 < 55 ? '签说好但 TA 今天分低，好事改天也不迟' :
+            '签说好，顺顺的一天') + '</div>' : '';
+       })() : '') +
        '<details class="qian-det"><summary>解曰与典故</summary>' +
        '<div class="qian-det-body">' +
        /* R3418-P2-7：古本原文含「人口有灾」「投河」类硬描写——
