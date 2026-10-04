@@ -16752,7 +16752,13 @@ function _flWriteOpen() {
     '<option value="' + _isoShift(todayIso(), 30) + '">一个月后</option>' +
     (bday ? '<option value="' + bday + '">下个生日（' + bday + '）</option>' : '') +
     '<option value="' + _isoShift(todayIso(), 365) + '">一年后</option>' +
-    '</select></div>' +
+    /* R3428（用户直报「时间固定不能自己设置」）：自选日期档——
+     * 选了出日期框，限明天~十年后（随手填个真日子即可）。 */
+    '<option value="__custom">挑个日子…</option>' +
+    '</select>' +
+    '<input type="date" id="flDate" class="fl-date" hidden ' +
+    'min="' + _isoShift(todayIso(), 1) + '" ' +
+    'max="' + _isoShift(todayIso(), 3650) + '"></div>' +
     '<button type="button" class="btn primary fl-send" id="flSend">' +
     '封好，寄出去</button>' +
     '<p class="fl-note">信只存在你这台设备上，小满也偷看不了。</p></div>';
@@ -16762,9 +16768,25 @@ function _flWriteOpen() {
     if (e.target === bd) close();
   });
   el('flClose').addEventListener('click', close);
+  /* R3428：自选日期档显隐联动。 */
+  el('flWhen').addEventListener('change', function () {
+    var _fd = el('flDate');
+    if (_fd) _fd.hidden = (el('flWhen').value !== '__custom');
+  });
   el('flSend').addEventListener('click', function () {
     var txt = (el('flText').value || '').trim();
     if (!txt) { showToast('信里写点什么再封吧', 'warn'); return; }
+    /* R3428：自选日期值合法性闸——空值/假日期/过去日期都拒。 */
+    var _dv = el('flWhen').value;
+    if (_dv === '__custom') {
+      _dv = String((el('flDate') || {}).value || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(_dv) ||
+          isNaN(new Date(_dv + 'T00:00:00').getTime()) ||
+          _dv <= todayIso() || _dv > _isoShift(todayIso(), 3650)) {
+        showToast('挑一个明天以后、十年以内的日子', 'warn');
+        return;
+      }
+    }
     /* R3336（审-中）：未来信正文过危机闸（同 journal/许愿瓶）。 */
     if (feCrisis(txt)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
     /* R3329（审-P3）：剥控制字+同毫秒碰撞加随机尾+数组 50 封顶；
@@ -16773,7 +16795,7 @@ function _flWriteOpen() {
     var lt = { id: 'fl' + Date.now() + '_' +
                    Math.random().toString(36).slice(2, 7),
                text: txt.slice(0, 500),
-               deliver: el('flWhen').value, created: todayIso(),
+               deliver: _dv, created: todayIso(),
                opened: false };
     try {
       var _raw = localStorage.getItem('futureLetters');
@@ -16804,9 +16826,11 @@ function _flWriteOpen() {
     /* R3328（审-低）：close() 先移除节点再读 _sel 恒 null →
      * 回退到 ISO 日期。先取文案再关弹层。 */
     var _sel = el('flWhen');
-    var _lbl = (_sel && _sel.options && _sel.options[_sel.selectedIndex])
-      ? _sel.options[_sel.selectedIndex].textContent.split('（')[0]
-      : lt.deliver;
+    var _lbl = (_sel && _sel.value === '__custom')
+      ? lt.deliver
+      : ((_sel && _sel.options && _sel.options[_sel.selectedIndex])
+        ? _sel.options[_sel.selectedIndex].textContent.split('（')[0]
+        : lt.deliver);
     close();
     showToast('信寄出啦，' + _lbl + ' 那天会送回来', 'ok');
     renderCheckin(todayIso());
