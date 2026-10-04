@@ -729,6 +729,11 @@ function buildTaohuaResult(j) {
   // R193b：分享海报入口（对齐排盘 shareBazi，T3.1 同款零依赖 Canvas）
   html += '<button class="ghost fav-btn" type="button" id="shareTaohua" ' +
     'title="生成分享图">📸 分享图</button>';
+  /* R3373 正缘画像：日主五行定气质型→氛围底图+特征标签+相遇
+   * 信号（全网调研验证的爆款机制——可晒的社交货币）。 */
+  html += '<button class="ghost fav-btn" type="button" id="smOpen" ' +
+    'title="按你的盘推出 TA 的气质画像">💘 看看 TA 的气质画像</button>' +
+    '<div id="smCard"></div>';
   /* R2349s（R84-P2-20）：口吻开关——pro 直出原枚举值。 */
   html += _festivalBand();
   /* R3212：原 pro 开关下的 strength=/hit_pillars= 英文枚举键值行删除——
@@ -8240,6 +8245,7 @@ async function doTaohua() {
     paint('thResult', buildTaohuaResult(j));
     var _rbTh = function () {
       on('shareTaohua', function () { return downloadPoster(j, 'taohua'); });
+      on('smOpen', function () { _smOpen(j); });   /* R3373 正缘画像 */
     };
     _rbTh();
     rememberResult('taohua', j, '', { gender: val('th_gender') });   /* v2：补性别 */
@@ -8279,6 +8285,8 @@ var _POSTER_TITLES = {
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
   renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
   'daily-outfit': '今日穿搭', moodweek: '心情周记',
+  /* R3373：正缘画像海报弹层标题/下载文件名。 */
+  soulmate: '正缘画像',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
    * 「命盘海报/分享图」。 */
   'year-wrap': '小满年报' };
@@ -8290,6 +8298,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   'daily-outfit': 'mint',
   bandaid: 'dream', lucky: 'warm', weekly: 'lilac',
   moodweek: 'dream',   /* 心情周记归紫云梦底——夜灯系贴「一周心事」 */
+  /* R3373：正缘画像归樱粉——与桃花同色系，是桃花卡的延伸。 */
+  soulmate: 'sakura',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -8325,6 +8335,8 @@ var _SHARE_TEXT = {
   'daily-wap': '今日开运壁纸换好了，接住这份运气 →',
   'daily-ava': '今日开运头像换上了，接住这份运气 →',
   'daily-outfit': '今天的五行穿搭色抄作业，看看你的是什么 →',
+  /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
+  soulmate: '盘里推出来的 TA 长这样，你的呢 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
@@ -15889,6 +15901,100 @@ function _festivalBand() {
     return '<div class="hl-festival">🎐 今天是' + esc(_f) +
       (_tip ? ' · ' + esc(_tip) : '') + '</div>';
   } catch (e) { return ''; }
+}
+
+/* ── R3373 正缘画像（smCard）───────────────────────────────────
+ * 日主天干→五行→气质型（离线烘的 sm-* 底图）；命中桃花星换浪漫版。
+ * 「样子是想象，信号是真的」——画像写气质不写脸。 */
+var _SM_GAN_WX = { '甲': '木', '乙': '木', '丙': '火', '丁': '火',
+                   '戊': '土', '己': '土', '庚': '金', '辛': '金',
+                   '壬': '水', '癸': '水' };
+var _SM_ARCH = {
+  '木': { k: 'sm-wood', n: '青竹少年感型',
+          traits: ['清爽', '有书卷气', '像风一样舒服'],
+          tip: 'TA 吃软不吃硬，温柔比道理管用' },
+  '火': { k: 'sm-fire', n: '暖阳元气型',
+          traits: ['明朗', '行动派', '笑起来很亮'],
+          tip: 'TA 的喜欢写在脸上，别猜，看行动' },
+  '土': { k: 'sm-earth', n: '大地安稳型',
+          traits: ['踏实', '话不多', '记得你的小事'],
+          tip: 'TA 的浪漫藏在日常里，别看表面平淡' },
+  '金': { k: 'sm-metal', n: '清冷白月光型',
+          traits: ['干净', '克制', '慢热但认真'],
+          tip: 'TA 不热络但很长情，给点耐心' },
+  '水': { k: 'sm-water', n: '深海温柔型',
+          traits: ['沉静', '会听人说话', '情绪很细腻'],
+          tip: 'TA 什么都懂但不说破，坦白换真心' },
+};
+var _SM_PEACH = { k: 'sm-peach', n: '桃花心动型',
+                  traits: ['第一眼就记住', '有故事感', '气场很合'],
+                  tip: '这段缘的信号很强，别错过窗口' };
+
+function _smPick(j) {
+  /* 命中咸池≥2 柱 或 桃花正旺 → 浪漫版；否则按日主五行定型。 */
+  if ((j.hit_pillars || []).length >= 2 || j.strength === 'strong') {
+    return _SM_PEACH;
+  }
+  var _gan = String((j.bazi || {}).day_master || '').charAt(0);
+  var _wx = _SM_GAN_WX[_gan];
+  return _SM_ARCH[_wx] || _SM_PEACH;
+}
+
+function _smTiming(j) {
+  /* 相遇信号与海报 dayun 口径同源：眼下在走的运 → 正旺；否则
+   * 最近将到的运年；全无 → 红鸾生肖年提示兜底。 */
+  var _ny = new Date().getFullYear();
+  var _next = null, _cur = null;
+  (j.dayun_hits || []).forEach(function (d) {
+    var ys = +(d && d.year_start || 0);
+    if (!ys) return;
+    if (ys <= _ny && _ny < ys + 10) { if (!_cur) _cur = ys; }
+    else if (ys > _ny && !_next) _next = ys;
+  });
+  if (_cur) return '眼下这步运（至约 ' + (_cur + 10) + ' 年）桃花信号正旺';
+  if (_next) return '约 ' + _next + ' 年起有一波正缘信号靠近';
+  if (j.hongluan) return '红鸾星动时相遇——多在「' + j.hongluan + '」生肖年';
+  return '信号藏在日子的缝隙里——急不得，但也别错过对的眼神';
+}
+
+function _smCard(j) {
+  var _a = _smPick(j);
+  var _h = '<div class="sm-card">' +
+    '<div class="sm-art"><img src="/static/soulmate/' + _a.k +
+      '.jpg" alt="' + esc(_a.n) + '氛围图" loading="lazy"></div>' +
+    '<div class="sm-name">' + esc(_a.n) + '</div>' +
+    '<div class="sm-traits">' +
+    _a.traits.map(function (t) {
+      return '<span class="sm-trait">' + esc(t) + '</span>';
+    }).join('') + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_a.tip) + '</div>' +
+    '<div class="sm-timing">⏳ ' + esc(_smTiming(j)) + '</div>' +
+    '<div class="sm-note">样子是想象，信号是真的——画像按你的盘' +
+      '推出气质型，不是真的脸</div>' +
+    '<button class="ghost fav-btn" type="button" id="smShare" ' +
+      'title="生成正缘画像分享图">📸 晒出 TA 的画像</button>' +
+    '</div>';
+  return { html: _h, arch: _a };
+}
+
+function _smOpen(j) {
+  var _smBox = el('smCard');
+  if (!_smBox || !j) return;
+  var _c = _smCard(j);
+  _smBox.innerHTML = _c.html;   // esc-reviewed：_smCard 内动态字段均过 esc()
+  on('smShare', function () {
+    var _im = new Image();
+    _im.src = '/static/soulmate/' + _c.arch.k + '.jpg';
+    var _j2 = function (im) {
+      var _o = { _artCap: _c.arch.n, _smTraits: _c.arch.traits,
+                 _smTip: _c.arch.tip, _smTiming: _smTiming(j) };
+      if (im) _o._art = im;
+      return downloadPoster(Object.assign({}, j, _o), 'soulmate');
+    };
+    _im.onload = function () { _j2(_im); };
+    _im.onerror = function () { _j2(null); };
+  });
+  _smBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──

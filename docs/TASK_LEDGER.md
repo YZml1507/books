@@ -18442,3 +18442,10 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - selftest +3（register_casefold/push_conflict/push_updated_at）；
   contract 条件字段表补 push.pull 的 updated_at/conflict。
 - 闸门：selftest 422 / contract 790 / ui_smoke 105 / 其余探针+ruff 全绿。
+
+## R3373 正缘画像（soulmate-portrait，全网调研爆款机制落地）
+- 新增「正缘画像」：桃花结果卡挂「💘 看看 TA 的气质画像」——日主天干五行定 6 气质型（青竹少年/暖阳元气/大地安稳/清冷白月光/深海温柔/桃花心动），离线烘的 sm-*.jpg 氛围底图+特征标签+相遇信号（大运/红鸾派生）+「样子是想象，信号是真的」口径
+- 一键海报：downloadPoster('soulmate') 专属规格（底图卡座+traits+相遇信号+免责小字），樱粉底；分享文案/文件名/模态标题/数据钩子全配齐
+- chat 词族：正缘/灵魂伴侣/对的人/命中注定/姻缘/另一半/良人/未来对象等 → taohua 路标「💘 去看正缘画像」（排在八字族前，「八字看正缘」先中画像族）
+- 资源管线：scripts/gen_soulmate.py（Agnes 离线烘焙，同壁纸管线 9:16 720x1280）；sm-metal/wood/water/fire/earth/peach 六图入库 web/static/soulmate/
+- 闸门：selftest +3 断言（词族命中含「八字看正缘」优先级）+ sm-* 底图静态可达性钉；ui_smoke +1 真用例（taohua.soulmate 点卡出卡）+ smShare 豁免钉

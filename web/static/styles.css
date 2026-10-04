@@ -4017,3 +4017,23 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .acct-btns button { min-height: var(--tap); }
 .acct-tip { font-size: 12px; color: var(--secondary); line-height: 1.5; }
 .acct-line { font-size: 13px; margin: 8px 0; }
+
+/* R3373 正缘画像卡（桃花结果内） */
+.sm-card { margin: 12px 0; border: 1px solid var(--line, #e8dccf);
+  border-radius: 14px; overflow: hidden; background: var(--card, #fffdfa);
+  text-align: center; }
+.sm-art { width: 100%; max-height: 300px; overflow: hidden; }
+.sm-art img { display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 30%; }
+.sm-name { font-size: 17px; font-weight: 600; margin: 10px 8px 0;
+  color: var(--c-taohua, #c25a7a); }
+.sm-traits { display: flex; justify-content: center; gap: 6px;
+  flex-wrap: wrap; margin: 8px 12px 0; }
+.sm-trait { font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: var(--accent-soft, #fdeef3); color: var(--c-taohua, #c25a7a);
+  border: 1px solid rgba(194, 90, 122, .18); }
+.sm-tip, .sm-timing { font-size: 13px; color: var(--text);
+  margin: 8px 16px 0; line-height: 1.6; text-align: left; }
+.sm-note { font-size: 11px; color: var(--secondary); margin: 10px 16px 12px;
+  line-height: 1.5; }
+.sm-card .fav-btn { margin: 0 12px 12px; }

@@ -127,6 +127,8 @@ BUTTON_CASES = [
     ("huangli",        "huangli", None,            "#hlSubmit",      "#hlResult"),
     ("qiming",         "qiming",  None,            "#qmSubmit",      "#qmResult"),
     ("taohua",         "taohua",  None,            "#thSubmit",      "#thResult"),
+    # R3373：正缘画像——桃花出卡后点 💘 钮出气质卡。
+    ("taohua.soulmate", "taohua", None,            "#smOpen",        "#smCard .sm-card"),
     ("tarot",          "tarot",   None,            "#trSubmit",      "#trResult"),
     # R3178：解梦——词库面，填文本即出。
     ("dream",          "dream",   None,            "#dmSubmit",      "#dmResult"),
@@ -428,6 +430,10 @@ def main() -> int:
         "pileShare": "大众占卜「分享我这堆」——动态生成+clipboard 零请求",
         # R3337：大众占卜海报钮——downloadPoster('tarot') 同族豁免。
         "pilePoster": "大众占卜「存图带走」——downloadPoster 海报模态，同族豁免",
+        # R3373：正缘画像分享钮——downloadPoster('soulmate') 海报
+        # 模态，同 shareTaohua 族豁免；smOpen 本身有真用例。
+        "smShare": "正缘画像「晒出 TA 的画像」——downloadPoster 海报模态，"
+                   "同 shareTaohua 族豁免",
         # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
         # 零请求；_dayPick 确定性已由单测级逻辑保证。
         "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",

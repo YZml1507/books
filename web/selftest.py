@@ -3038,6 +3038,14 @@ def _run_inner() -> list[str]:
     assert _svc_dm.chat_action_view("想跟对象一起打卡")["anchor"] == "checkin"
     assert _svc_dm.chat_action_view("年度报告怎么看")["anchor"] == "annual"
     assert _svc_dm.chat_action_view("我许的愿成真了")["anchor"] == "wish"
+    # R3373：正缘/灵魂伴侣词族——全网爆款问句落桃花页（画像钮
+    # 在桃花结果卡上）。「八字看正缘」应先中画像族不是八字族。
+    _sm1 = _svc_dm.chat_action_view("我的正缘在哪里")
+    assert _sm1 and _sm1["view"] == "taohua", _sm1
+    _sm2 = _svc_dm.chat_action_view("八字看正缘")
+    assert _sm2 and _sm2["view"] == "taohua", _sm2
+    _sm3 = _svc_dm.chat_action_view("灵魂伴侣长什么样")
+    assert _sm3 and _sm3["view"] == "taohua", _sm3
     assert _svc_dm.chat_action_view("撕纸条那个功能在哪")["view"] == "home"
     _cf = _svc_dm.chat_action_facts("杨幂生日是哪天")
     assert _cf and "1986-09-12" in _cf[0] and "明星合盘" in _cf[0], _cf
@@ -3246,6 +3254,13 @@ def _run_inner() -> list[str]:
         assert _g3.status_code == 200, _g3.status_code
         _g3b = client.get("/static/app.js", follow_redirects=False)
         assert _g3b.status_code == 200, _g3b.status_code
+        # R3373：正缘画像底图——前端写死 6 个路径，少一张就开天窗。
+        for _smn in ("sm-metal", "sm-wood", "sm-water",
+                     "sm-fire", "sm-earth", "sm-peach"):
+            _gsm = client.get(f"/static/soulmate/{_smn}.jpg",
+                              follow_redirects=False)
+            assert _gsm.status_code == 200 and \
+                len(_gsm.content) > 10000, (_smn, _gsm.status_code)
         _g4 = client.get("/?key=wrong", follow_redirects=False)
         assert _g4.status_code == 403 and "开门" in _g4.text, _g4.status_code
         _g5 = client.get("/?key=testkey123", follow_redirects=False)

@@ -764,6 +764,12 @@ function _posterHookForView(view, j) {
       return '梦见「' + _pStr(_ds2[0].name) + '」——册子有话说';
     }
   }
+  /* R3373：正缘画像——数据驱动金句（相遇信号做钩子）。 */
+  if (view === 'soulmate' && j) {
+    var _smt = _pStr(j._smTiming);
+    if (_smt) return 'TA 在路上——' + _smt;
+    return '盘里推出的 TA，气质长这样';
+  }
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1410,6 +1416,34 @@ function buildShareData(view, j) {
       }
       if (!st.lines.length) st.lines = [{ k: '结论', v: _gSlice(l0, 15) || '桃花待时而动' }];
       return st;
+    }
+    case 'soulmate': {
+      /* R3373 正缘画像海报：气质型名上主位，traits 胶囊行入
+       * lines，时机信号压一条，免责小字守恒——「样子是想象，
+       * 信号是真的」。 */
+      var _sm = base('正缘画像', '');
+      _sm.big = _pStr(j && j._artCap) || 'TA 的气质画像';
+      _sm.lines = [];
+      (_pArr(j && j._smTraits)).slice(0, 3).forEach(function (t) {
+        _sm.lines.push({ k: '气质', v: _pStr(t) || '' });
+      });
+      if (_pStr(j && j._smTiming)) {
+        _sm.lines.push({ k: '相遇信号', v: _clauseCut(_pStr(j._smTiming), 20) });
+      }
+      if (_pStr(j && j._smTip)) {
+        _sm.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._smTip), 20) });
+      }
+      _sm.lines.push({ k: '口径', v: '样子是想象，信号是真的' });
+      if (j && j._art) {
+        _sm.cards = [{ img: j._art,
+          name: _pStr(j._artCap) || '正缘画像',
+          sub: '样子是想象，信号是真的' }];
+        /* 有图时明细留白：traits 已在画面里，留相遇信号+口径。 */
+        _sm.lines = _sm.lines.slice(-2);
+      }
+      if (!_sm.lines.length) _sm.lines =
+        [{ k: '结论', v: 'TA 在路上' }];
+      return _sm;
     }
     case 'hehun': {
       /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比
