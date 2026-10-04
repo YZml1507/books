@@ -18357,3 +18357,24 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 未修：/static/index.html 版本盲通道（知情即可）、懒 chunk
   混版丢态（可接受）、双 tab 全局注销（确证成立后可顺带
   救 B tab）、preload 老 SW 面（靠修好+保险丝覆盖）。
+
+## R3368+R3369 双审清零（移动端终扫 + 古籍域复扫）
+
+- R3368 移动端：主题色 meta 双条按 prefers-color-scheme 分流 + applyTheme 全量更新；
+  password/number 输入框入 44px/16px 族；幽灵钮组 .daily-ghost-grid 移动端两列；
+  .daily-card-line 裸文本包 .dc-text 修复挤压；深色面板头小字对比度 +summary/列表
+  触摸面补齐；海报下载 _touchOnly 判据排除触屏笔记本（any-pointer:fine）。
+- R3368 万圣限定：trQH 隐藏卡（10/29-11/1 现身），一键「那件不敢问的事」+
+  结果页万圣条。低-14（侧栏滑开）风险>收益，不修。
+- R3369 古籍域：compare layer 白名单 400（BOGUS 层不再零命中静默）；
+  addr bcv 中文卷名引导英文原名 + addr1 越界上界提示；_require_q 剥引号壳；
+  services._clamp_limit 统一 + limit_note 披露；compare_works/book_structure/
+  book_chapter/concept 限幅如实报；thread_record orphan=true 孤儿手记通道
+  + confidence 枚举校验 + 同名孤儿认领；/api/claims?orphaned=true 落 UI
+  折叠区 + 镜像「移」钮；import 撞 (topic,opened_at) 不再整条 skipped——
+  _fill_thread 按 seq 补轮次、按文本认领孤儿手记；GC 删线程改解绑保留
+  claims（对齐手动删）； fts_phrase NFKC 归一；/api/search 等 GET 披露
+  重复 q 参数（只用最后一个）；read 深链 ?view=read&rq=&bs= 预填+自动跑，
+  分享链同带上下文；play/euclid aname 补回 + _ASCHEME_HINT 分域文案。
+- 闸门：selftest 419（新增 threads.orphan_flow/import.merge_fill/
+  err.compare.layer）/ contract 782 / ui_smoke 105 / ruff 绿。

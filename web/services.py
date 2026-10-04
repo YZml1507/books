@@ -136,11 +136,25 @@ def _require_q(q: str | None, *, what: str = _Q_EMPTY_HINT) -> str:
     # 而不是如实 400。
     q = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u061c\ufeff]",
                "", q).strip()
+    # R3369（审-低-2）：装饰引号统一剥掉——用户带「」『』""'' 搜的
+    # 是内容不是标点，留着只会稀释命中。
+    q = q.strip("「」『』\"'“”‘’〈〉《》").strip()
     if not q:
         raise ValidationError(what)
     if len(q) > 200:
         raise ValidationError("查询词过长（≤200 字符）")
     return q
+
+
+def _clamp_limit(v: int, lo: int, hi: int, label: str) -> tuple[int, str | None]:
+    """R3369（审-P2-2）：四处静默 clamp 统一——钳了必须如实披露，
+    不再「传 200 给回 20 条以为是全量」。"""
+    c = min(max(v, lo), hi)
+    if v > hi:
+        return c, f"{label}最多 {hi}，你要的 {v} 帮你收成 {hi} 了"
+    if v < lo:
+        return c, f"{label}最少 {lo}，帮你收成 {lo} 了"
+    return c, None
 
 
 def _friendly_calc_err(exc: Exception) -> str:
@@ -830,6 +844,12 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
                     _col, _v,
                     scheme=None if _col == "layer" else
                     (scheme if scheme != "none" else "none")):
+                # R3369（审-P1-2）：bcv 卷名是英文原名——填「创世记」
+                # 报「库里没有」不指路等于把答案藏一半，点名用英文。
+                if _col == "addr_name" and scheme == "bcv":
+                    raise ValidationError(
+                        f"这卷库里没有（{_v}）——卷名要用英文原名，"
+                        "比如 Genesis、Exodus")
                 raise ValidationError(
                     f"{_lbl}库里没有（{_v}），换一个试试")
         if scheme == "zhouyi":
@@ -884,6 +904,23 @@ def addr(scheme: str = "zhouyi", *, gua: int | None = None,
                     _w += f" AND {col} = ?"; _p.append(val)
             total = c.db.execute(f"SELECT count(*) n FROM unit u WHERE {_w}",
                                  _p).fetchone()["n"]
+            # R3369（审-低-5）：bcv/booksec 的章/卷号上界随卷而异——
+            # 0 命中时把「这卷只到 N 章」说出来，不再像没那条地址。
+            if not hits and addr1 is not None and scheme in (
+                    "bcv", "booksec", "play", "euclid"):
+                _bw = "scheme=? AND addr1 IS NOT NULL"
+                _bp: list = [scheme]
+                if addr_name is not None:
+                    _bw += " AND addr_name=?"; _bp.append(addr_name)
+                if work is not None:
+                    _bw += " AND work_id=?"; _bp.append(work)
+                _mx = c.db.execute(
+                    f"SELECT max(addr1) m FROM unit WHERE {_bw}",
+                    _bp).fetchone()["m"]
+                if _mx is not None and addr1 > _mx:
+                    _note = (f"这一卷只到 {_mx}，你要的第 {addr1} 章"
+                             "超界了")
+                    hint = (hint + "；" + _note) if hint else _note
         return {"scheme": scheme, "count": len(hits), "total": total,
                 "truncated": total > len(hits), "hint": hint,
                 "hits": [hit_dict(h) for h in hits]}
@@ -901,6 +938,11 @@ def compare(gua: int, yao: str = "九三", layer: str = "經",
         if yao and not c.has_value("addr2", yao, scheme="zhouyi"):
             raise ValidationError(
                 "爻名库里没有（{}）——写法是 初九/九二/上九 这类".format(yao))
+        # R3369（审-P2-1）：compare 漏 layer typo 门——层名写错回
+        # 200 no_witness，把「层名拼错」谎报成「这个地址没材料」。
+        if layer and not c.has_value("layer", layer):
+            raise ValidationError(
+                f"这个分类库里没有（{layer}），换一个试试")
         cmp = compare_address(c, gua, yao, layer=layer,
                               allow_damaged=allow_damaged)
         return {
@@ -975,9 +1017,11 @@ def concept(q: str, per_work: int = 3) -> dict:
     with deps.corpus() as c:
         # R2400（R125-P1-2）：与 /api/search 同纪律——简体概念繁体形
         # 并查（「无为」普查 4 部 →「無為」21 部，此前后者静默缺席）。
-        return concept_census(
-            c, q, per_work=min(max(per_work, 1), 10),
-            concept2=s2t_retry(q))
+        _pw, _note = _clamp_limit(per_work, 1, 10, "每书证据")
+        r = concept_census(c, q, per_work=_pw, concept2=s2t_retry(q))
+        if _note:
+            r["limit_note"] = _note
+        return r
 
 
 def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
@@ -990,10 +1034,14 @@ def compare_works(work_a: str, work_b: str, q: str, per_work: int = 3) -> dict:
         raise ValidationError("对照需要两本不同的书")
     q = _require_q(q)
     with deps.corpus() as c:
-        return research_compare_works(
+        _pw, _note = _clamp_limit(per_work, 1, 10, "每书证据")
+        r = research_compare_works(
             c, work_a, work_b, q,
-            per_work=min(max(per_work, 1), 10),
+            per_work=_pw,
             concept2=s2t_retry(q))
+        if _note:
+            r["limit_note"] = _note
+        return r
 
 
 def works() -> dict:
@@ -1285,7 +1333,9 @@ def thread_record(req) -> dict:
     with deps.knowledge() as kb:
         tid = req.thread_id
         created_tid = None   # R230g（R19-P2-2）：本次调用新开的线程，
-        if tid is None:      # 后续步骤失败时要连带删掉（ENOSPC 实测留空壳）
+        # R3369（审-P1-3）：备份回灌的孤儿手记——orphan=true 时如实
+        # 落 thread_id=NULL，不为它硬开空线程。
+        if tid is None and not req.orphan:      # 后续步骤失败时要连带删掉（ENOSPC 实测留空壳）
             topic = (req.topic or req.claim[:50] or "新线程").strip()[:100]
             try:
                 tid = created_tid = kb.open_thread(topic)
@@ -1296,9 +1346,10 @@ def thread_record(req) -> dict:
                 if created_tid is not None:
                     _drop_thread(kb, created_tid)
                 raise
-        else:
+        elif tid is not None:
             # R230r（R30-#17）：绑到不存在的线程此前拖到 record() 撞 FK
             # →「类型或内容不合规」误导文案。存在性检查后如实 404。
+            # R3369（审-P1-3）：orphan 通道 tid=None 不进存在性检查。
             if not kb.db.execute("SELECT 1 FROM thread WHERE id=?",
                                  (tid,)).fetchone():
                 raise NotFoundError("这条线程没找到，可能还没聊过")
@@ -1309,6 +1360,15 @@ def thread_record(req) -> dict:
                        scheme=e.scheme, addr1=e.addr1, addr2=e.addr2,
                        role=e.role)
               for e in req.evidence]
+        # R3369（审-P1-3）：孤儿回灌去重——同一 claim+method 已落则
+        # 幂等返回既有 id，重灌不翻倍。
+        if tid is None and req.orphan:
+            _dup = kb.db.execute(
+                "SELECT id FROM derived WHERE claim=? AND method=? "
+                "AND thread_id IS NULL LIMIT 1",
+                (req.claim, req.method)).fetchone()
+            if _dup:
+                return {"recorded": _dup["id"], "duplicated": True}
         try:
             did = kb.record(req.kind, req.claim, req.method, ev,
                             confidence=req.confidence, thread_id=tid)
@@ -1341,7 +1401,11 @@ def book_structure(work_id: str, sample_chars: int = 60) -> dict:
     if not work_id:
         raise ValidationError("书号不能为空")
     with deps.corpus() as c:
-        return structure(c, work_id, sample_chars=min(max(sample_chars, 20), 200))
+        _sc, _note = _clamp_limit(sample_chars, 20, 200, "抽样字数")
+        r = structure(c, work_id, sample_chars=_sc)
+        if _note:
+            r["limit_note"] = _note
+        return r
 
 
 def book_summary(work_id: str) -> dict:
@@ -1365,8 +1429,12 @@ def book_chapter(work_id: str, scheme: str, *, addr_name: str | None = None,
     if not scheme:
         raise ValidationError("编址类型不能为空")
     with deps.corpus() as c:
-        return chapter(c, work_id, scheme, addr_name=addr_name, addr1=addr1,
-                       file=file, limit=min(max(limit, 1), 200))
+        _lm, _note = _clamp_limit(limit, 1, 200, "一次读条数")
+        r = chapter(c, work_id, scheme, addr_name=addr_name, addr1=addr1,
+                    file=file, limit=_lm)
+        if _note:
+            r["limit_note"] = _note
+        return r
 
 
 # ---------------------------------------------------------------------------

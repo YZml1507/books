@@ -165,6 +165,11 @@ def install(app: FastAPI) -> None:
         "missing": "这个字段必填",
         "extra_forbidden": "这个参数不认识",
         "literal_error": "这个取值不在允许的范围里",
+        # R3369（审-低-7）：数组传成标量（?x=1 而非 x[]=…）时裸
+        # list_type 英文模板外流。
+        "list_type": "这项要传一组值（数组）",
+        "is_instance_of": "这项的类型不对",
+        "json_type": "这项要传 JSON",
     }
 
     # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显

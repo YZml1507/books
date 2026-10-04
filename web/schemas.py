@@ -246,6 +246,20 @@ class ThreadRecordRequest(BaseModel):
     thread_id: int | None = None
     # R228s：thread_id 缺席时后端自动开新线程，topic 作线程题
     topic: str | None = Field(None, max_length=100)
+    # R3369（审-P1-3）：备份回灌孤儿手记——明确要求不绑线程时
+    # 置 true，跳过自动开线程。
+    orphan: bool = False
+
+    @field_validator("confidence")
+    @classmethod
+    def _conf_enum(cls, v: str | None) -> str | None:
+        # R3369（审-低-8）：confidence 此前任意字符串入库——前端
+        # _CONF_CN 只认识四档，别的值裸贴。白名单收口。
+        if v is None or v == "":
+            return None
+        if v not in ("high", "mid", "low", "open"):
+            raise ValueError("confidence 只能是 high/mid/low/open 之一")
+        return v
 
     @field_validator("claim", "method", "topic", "confidence")
     @classmethod

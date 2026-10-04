@@ -489,12 +489,17 @@ async function _threadListHtml() {
       _mirHtml = '<div class="thread-meta" style="margin:10px 0 4px;">' +
         '本机留档（题头）：</div>';
       _mir.forEach(function (x) {
+        /* R3369（审-低-9）：留档行此前只读——想清一条得连缸端。
+         * 加单条移除钮（data-thread-mir-del 走 _thrMirrorDrop）。 */
         _mirHtml += '<div class="thread-item thread-item-mir">' +
           '<div class="thread-topic">' + esc(x.topic || '') + '</div>' +
           '<div class="thread-meta">本机留档 · ' +
           esc({open:'进行中', closed:'已结束', parked:'先收起'}[x.status] ||
              x.status || '') +
-          ' · ' + esc(x.updated_at || '') + '</div></div>';
+          ' · ' + esc(x.updated_at || '') + '</div>' +
+          '<div class="thread-actions">' +
+          '<button class="thread-del" type="button" data-thread-mir-del="' +
+          esc(x.id) + '" aria-label="移除这条留档">移</button></div></div>';
       });
     }
     return html + '<div class="ph-empty" style="margin-top:10px;">' +
@@ -528,6 +533,26 @@ async function _threadListHtml() {
       esc(list.total) + ' 条），先看最近的 ' + esc(list.limit || 50) +
       ' 条</div>';
   }
+  /* R3369（审-P1-3）：孤儿手记此前零出口——删过线程的手记原文
+   * 沉库不可见。列表尾收进折叠块，打开可见。 */
+  try {
+    var _oc = await api('/api/claims?orphaned=true&limit=200');
+    var _ocArr = (_oc && _oc.claims) || [];
+    if (_ocArr.length) {
+      html += '<details class="claim-orphans" style="margin-top:14px;">' +
+        '<summary style="cursor:pointer;font-size:13px;color:var(--secondary);">' +
+        '散落的研究笔记（' + esc(_ocArr.length) +
+        ' 条——删过的线程里留下来的）</summary>';
+      _ocArr.forEach(function (c) {
+        html += '<div class="claim-box" style="margin-top:6px;">' +
+          '<span class="claim-kind">笔记</span>' + esc(c.claim || '') +
+          '<span class="claim-conf">' +
+          (c.created_at ? esc(_fmtWhen(c.created_at)) : '') +
+          '</span></div>';
+      });
+      html += '</details>';
+    }
+  } catch (eOc) {}
   return html;
 }
 

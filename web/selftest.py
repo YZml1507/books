@@ -141,9 +141,16 @@ def _run_inner() -> list[str]:
     check("compare", client.get("/api/compare", params={"gua": 28, "yao": "九二"}),
           lambda j: "findings" in j)
     # R230r（R30-#7）：无见证第三态钉扎——agree=False 不再是「有差异」。
+    # R3369（审-P1-2）：layer 值不在库 → 400；改「存在但无见证」的层
+    #（圖）保持第三态语义。
     check("compare.no_witness", client.get("/api/compare",
-          params={"gua": 28, "yao": "九二", "layer": "BOGUS"}),
+          params={"gua": 28, "yao": "九二", "layer": "圖"}),
           lambda j: j.get("no_witness") is True and not j.get("witnesses"))
+    _cl_bad = client.get("/api/compare", params={
+        "gua": 28, "yao": "九二", "layer": "BOGUS"})
+    assert _cl_bad.status_code == 400, \
+        ("err.compare.layer", _cl_bad.status_code, _cl_bad.text[:200])
+    ok.append("err.compare.layer")
     # R230r（R30-#6）：/api/addr 披露 total/truncated（前 20 条不代表全部）。
     check("addr.total", client.get("/api/addr",
           params={"scheme": "zhouyi", "gua": 1}),
@@ -2438,6 +2445,72 @@ def _run_inner() -> list[str]:
     assert _td_miss.json().get("detail"), ("threads.detail.missing",
                                            _td_miss.text[:200])
     ok.append("threads.detail.missing")
+    # R3369（审-P1-3）：orphan=true 落 thread_id=NULL + 重灌幂等；
+    # 不存在的 thread_id 仍 404；confidence 非枚举仍 422。
+    _orp = client.post("/api/threads", json={
+        "kind": "note", "claim": "selftest-孤儿手记",
+        "method": "backup-import", "orphan": True})
+    assert _orp.status_code == 200 and \
+        _orp.json().get("thread_id") is None, \
+        ("threads.orphan", _orp.status_code, _orp.text[:200])
+    _orp2 = client.post("/api/threads", json={
+        "kind": "note", "claim": "selftest-孤儿手记",
+        "method": "backup-import", "orphan": True})
+    assert _orp2.json().get("duplicated") is True, \
+        ("threads.orphan.dup", _orp2.text[:200])
+    _orph_list = client.get("/api/claims?orphaned=true&limit=10")
+    assert any(c.get("claim") == "selftest-孤儿手记"
+               for c in _orph_list.json().get("claims", [])), \
+        ("claims.orphaned", _orph_list.text[:200])
+    _badconf = client.post("/api/threads", json={
+        "kind": "note", "claim": "x", "method": "m",
+        "confidence": "bogus", "orphan": True})
+    assert _badconf.status_code == 422, \
+        ("threads.conf.enum", _badconf.status_code, _badconf.text[:200])
+    _miss_t = client.post("/api/threads", json={
+        "kind": "note", "claim": "x", "method": "m",
+        "thread_id": 99999})
+    assert _miss_t.status_code == 404, \
+        ("threads.bind.missing", _miss_t.status_code, _miss_t.text[:200])
+    ok.append("threads.orphan_flow")
+    # R3369（审-P2-3）：镜像壳（同 topic+opened_at、空 turns/claims）
+    # 回灌撞 dedup → _fill_thread 合并补内容而不是整条 skipped。
+    _imp = client.post("/api/paipan/history/import", json={"threads": [
+        {"topic": "selftest-merge", "opened_at": "2020-01-01T00:00:00",
+         "turns": [], "claims": []}]})
+    assert _imp.status_code == 200, ("import.shell", _imp.text[:200])
+    _imp2 = client.post("/api/paipan/history/import", json={"threads": [
+        {"topic": "selftest-merge", "opened_at": "2020-01-01T00:00:00",
+         "turns": [{"seq": 1, "role": "user", "text": "selftest 轮次"}],
+         "claims": [{"kind": "note", "claim": "selftest-合并手记",
+                     "method": "m"}]}]})
+    assert _imp2.json().get("threads_imported") == 1, \
+        ("import.merge", _imp2.text[:200])
+    from guji.knowledge import KnowledgeBase as _KBM
+    _kbm = _KBM(KNOWLEDGE_DB)
+    try:
+        _mt = _kbm.db.execute(
+            "SELECT id FROM thread WHERE topic='selftest-merge'"
+        ).fetchone()
+        assert _mt is not None
+        _mtn = _kbm.db.execute(
+            "SELECT count(*) c FROM turn WHERE thread_id=?",
+            (_mt["id"],)).fetchone()["c"]
+        _mcl = _kbm.db.execute(
+            "SELECT thread_id FROM derived WHERE claim='selftest-合并手记'"
+        ).fetchone()
+        assert _mtn >= 1 and _mcl and _mcl["thread_id"] == _mt["id"], \
+            ("import.merge.rows", _mtn, dict(_mcl) if _mcl else None)
+        # 清场：删线程+孤儿/绑定手记清掉，不污染环境
+        _kbm.db.execute("DELETE FROM turn WHERE thread_id=?",
+                        (_mt["id"],))
+        _kbm.db.execute("DELETE FROM derived WHERE claim LIKE "
+                        "'selftest-%'", ())
+        _kbm.db.execute("DELETE FROM thread WHERE id=?", (_mt["id"],))
+        _kbm.db.commit()
+    finally:
+        _kbm.close()
+    ok.append("import.merge_fill")
     check("health", client.get("/api/health"), lambda j: j.get("ok") is True)
     # 首页 `/`（R61b）：单页前端入口，返回 HTML 非 JSON——单独断言状态码 +
     # content-type + 关键标记。

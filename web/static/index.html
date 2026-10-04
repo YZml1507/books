@@ -17,7 +17,10 @@
 <meta name="twitter:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">
 <meta name="twitter:image" content="/static/shared/og-card.jpg">
 <!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
-<meta name="theme-color" content="#FFF8E7">
+<!-- R3368（审-P2-10）：深色 standalone 启动瞬间顶栏不再奶白——
+     双 meta 按系统深浅分流，applyTheme 同步改写两者。 -->
+<meta name="theme-color" content="#FFF8E7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#221D20" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
      老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
@@ -274,6 +277,9 @@ try {
       <span class="daily-date" id="dailyDate">加载中…</span>
       <div class="daily-card-gift"><img src="/static/shared/daily-box-gift.png" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></div>
     </div>
+    <!-- R3368（审-低-11）：7 枚 ghost 钮收进弹性格——窄屏两列
+         不再堆 380px 高按钮墙。 -->
+    <div class="daily-ghost-grid">
     <!-- R198b（US5）：今日运势分享图入口 -->
     <button class="ghost" type="button" id="shareDaily"
             title="生成分享图" aria-label="把今日运势存成分享图"
@@ -306,6 +312,7 @@ try {
     <button class="ghost" type="button" id="dailyIcs"
             title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
             style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
+    </div>
     <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
          打卡块移到判词下面。 -->
     <div class="daily-main">

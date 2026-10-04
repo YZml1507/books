@@ -12,7 +12,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from .. import deps, services
 from ..schemas import AskRequest, ThreadRecordRequest
@@ -20,13 +20,22 @@ from ..schemas import AskRequest, ThreadRecordRequest
 router = APIRouter(tags=["reading"])
 
 
+def _dup_q_hint(request: Request, r: dict) -> dict:
+    """R3369（审-低-3）：?q=a&q=b 重复参数静默取末位——如实披露。"""
+    qs = request.query_params.getlist("q")
+    if len(qs) > 1:
+        note = f"你传了 {len(qs)} 个 q，只用最后一个（{qs[-1]}）"
+        r["hint"] = (r.get("hint") + "；" + note) if r.get("hint") else note
+    return r
+
+
 @router.get("/api/search")
-def search(q: str = "", layer: str | None = None, work: str | None = None,
-           genre: str | None = None, scheme: str | None = None,
-           limit: int = 10) -> dict:
+def search(request: Request, q: str = "", layer: str | None = None,
+           work: str | None = None, genre: str | None = None,
+           scheme: str | None = None, limit: int = 10) -> dict:
     """全文检索（与 CLI `ask.py search` 同内核 Corpus.search）。"""
-    return services.search(q, layer=layer, work=work, genre=genre,
-                           scheme=scheme, limit=limit)
+    return _dup_q_hint(request, services.search(
+        q, layer=layer, work=work, genre=genre, scheme=scheme, limit=limit))
 
 
 @router.get("/api/addr")

@@ -393,10 +393,12 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 窄屏档保持 16px。 */
 input.da-in{width:auto; flex:0 1 58px; min-width:48px;
   padding:8px 6px; min-height:40px; text-align:center;}
+/* R3368（审-P2-8）：年份框 58px 裁 placeholder 第 4 位 */
+input.da-in[data-k="y"]{flex-basis:76px; min-width:70px;}
 /* R3241：时辰框「时辰·可空」5 字 @16px ≈ 92px——basis 96 收缩后
  * 实测截掉「空」字，提 basis+min-width 双保险。 */
 input.da-in[data-k="h"]{flex-basis:104px; min-width:100px;}
-select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padding:8px 8px;}
+select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padding:8px 8px;}
 .da-leapw{display:inline-flex; align-items:center; gap:4px; font-size:13px;
   color:var(--secondary); margin:0; min-height:40px; cursor:pointer;}
 .da-leapw input{width:auto; min-height:0; margin:0;}
@@ -517,7 +519,8 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:40px; padd
 .mood-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);}
 .mood-q{font-size:12px; color:var(--secondary); margin-right:2px;}
-.mood-b{width:34px; height:34px; border-radius:50%; border:1.5px solid var(--border);
+/* R3368（审-P1-3）：34px 宽破 44 触控下限——补足外框 */
+.mood-b{width:44px; height:44px; border-radius:50%; border:1.5px solid var(--border);
   background:var(--card); font-size:17px; line-height:1; cursor:pointer;
   transition:transform .15s ease, border-color .15s ease; padding:0;}
 .mood-b:hover{transform:scale(1.12);}
@@ -785,7 +788,10 @@ html[data-theme="dark"] .daily-mantra b{
   background:linear-gradient(135deg, rgba(214,137,90,.18), rgba(214,169,110,.14));}
 /* R3317-G：今日牌行——小缩略牌 + 名 + 位向 + 关键词 */
 .daily-card-line{display:flex; align-items:center; gap:7px;
-  margin:2px 0 4px; font-size:13px; color:var(--secondary);}
+  margin:2px 0 4px; font-size:13px; color:var(--secondary);
+  /* R3368（审-P1-1）：wrap 让按钮排不下时掉行不压字 */
+  flex-wrap:wrap;}
+.daily-card-line .dc-text{flex:1 1 140px; min-width:0;}
 .daily-card-line .dc-thumb{width:22px; height:36px; object-fit:cover;
   border-radius:4px; border:1px solid var(--border); flex:none;
   box-shadow:0 1px 3px rgba(90,60,30,.18);}
@@ -1240,8 +1246,12 @@ html[data-theme="dark"] .daily-mantra b{
 /* R3355：可点 summary 条触控下限——原 21-40px，竖向 padding 补到
  * ~44px 且不丢 ::marker（display:flex 会隐掉展开三角）。 */
 .pro-drawer summary, details.warm-pro-fold > summary,
-.mood-jar-fold summary, .fl-done > summary, .ck-album > summary{
-  padding-top:12px; padding-bottom:12px;}
+.mood-jar-fold summary, .fl-done > summary, .ck-album > summary,
+/* R3368（审-P1-4/P2-6）：大众占卜条 21px、时辰对照 38px 漏网 */
+.pile-block summary, .hour-cheat summary{
+  padding-top:12px; padding-bottom:12px;
+  /* R3368（审-P2-7）：签册条内容矮时仍可能 <44 */
+  min-height:var(--tap); box-sizing:border-box;}
 .pro-grid{margin-top:12px;}
 .pro-grid .func-card{opacity:.85;}
 
@@ -1297,7 +1307,9 @@ label{display:block; font-size:14px; color:var(--secondary); margin:12px 0 4px; 
 /* R3232：自由文本字段（称呼/昵称/提问）比数字格更需要宽度——
  * 与「月/日」同宽时 placeholder 截断、整排最挤的就是它。 */
 .field:has(> input[type=text]), .field:has(> textarea){flex-grow:2; min-width:150px;}
-input[type=number], input[type=text], input[type=date], input[type=search], select{
+/* R3368（审-P1-2）：password 漏进输入簇——账号口令框裸奔 22px */
+input[type=number], input[type=text], input[type=date], input[type=search],
+input[type=password], select{
   /* R211b（US10）：输入控件圆角+柔底，消工具感断层 */
   border-radius:12px; background:#FFFDF8;
   /* R228d：iOS Safari 对 <16px 输入框聚焦自动缩放整页——移动优先的应用，
@@ -1353,6 +1365,21 @@ button.ghost{
   color:var(--primary-ink); border:2px solid var(--primary);
 }
 button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translateY(-2px);}
+/* R3368（审-低-11）：ghost 钮弹性格——桌面照旧横排，≤640px
+ * 收成两列消按钮墙；覆盖按钮内联 margin。 */
+.daily-ghost-grid{display:flex; flex-wrap:wrap; gap:2px 6px; margin-top:2px;}
+.daily-ghost-grid > .ghost{margin:4px 0 0 !important; flex:0 0 auto;}
+@media (max-width:640px){
+  .daily-ghost-grid > .ghost{flex:1 1 44%; padding-left:6px; padding-right:6px;}
+}
+/* R3368（审-P2-5）：触控小簇——粗指针下补足 44px 下限 */
+@media (pointer:coarse){
+  .sign-peek, .ck-goal-opt, .daily-ritual, .daily-me-edit, .dm-chip,
+  .mantra-fav{min-width:44px; min-height:44px;
+    display:inline-flex; align-items:center; justify-content:center;}
+  .daily-mantra{min-height:44px;}
+  input.da-in, select.da-cal, select.da-gender, .da-btn{min-height:44px;}
+}
 /* R207b：修复双操作钮重叠——fav-btn 原本 absolute 同点位，
  * ❤️ 收藏与 📸 分享图完全叠在一起（用户报「摄像机和日期排版没弄好」）。
  * 改为卡片头部右侧横排：第一个贴右缘，第二个在其左侧。 */
@@ -3622,7 +3649,8 @@ html[data-theme="dark"] .dm-panel{
     url(/static/shared/poster-bg-dream.jpg) center/cover no-repeat;
   border-color:#4E4358;}
 html[data-theme="dark"] .dm-panel-head{color:#EAE2F4;}
-html[data-theme="dark"] .dm-panel-head small{color:#B9ABCA;}
+/* R3368（审-P2-9）：副文案 #6B5E7E 在水彩底上对比弱，提亮 */
+html[data-theme="dark"] .dm-panel-head small{color:#CFC4DC;}
 html[data-theme="dark"] textarea.dm-text{background:rgba(30,25,40,.78);
   color:#EDE6F5; border-color:#4E4358;}
 html[data-theme="dark"] .dm-panel .dm-chip{background:rgba(46,38,58,.55);

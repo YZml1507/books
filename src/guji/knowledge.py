@@ -542,10 +542,12 @@ class KnowledgeBase:
         for r in over:
             tid = r["id"]
             self.db.execute("DELETE FROM turn WHERE thread_id=?", (tid,))
-            for d in self.db.execute(
-                    "SELECT id, claim FROM derived WHERE thread_id=?",
-                    (tid,)).fetchall():
-                self._del_derived(d["id"], d["claim"])
+            # R3369（审-P2-4）：GC 驱逐与手动删对齐——derived claims
+            # 解绑保留（thread_id→NULL）而非连座删除；claims 是不
+            # 可再生的研究笔记，驱逐线程不该吃掉笔记。
+            self.db.execute(
+                "UPDATE derived SET thread_id=NULL WHERE thread_id=?",
+                (tid,))
             self.db.execute("DELETE FROM thread WHERE id=?", (tid,))
 
     def _gc_derived(self) -> None:
@@ -623,10 +625,16 @@ class KnowledgeBase:
                 skipped += 1
                 continue
             dup = self.db.execute(
-                "SELECT 1 FROM thread WHERE topic=? AND opened_at=?",
+                "SELECT id FROM thread WHERE topic=? AND opened_at=?",
                 (topic, opened_at)).fetchone()
             if dup:
-                skipped += 1
+                # R3369（审-P2-3）：镜像壳线程（题头同键但 turns/claims
+                # 空）回灌占位后，带真内容的备份再导会被整体 skip——
+                # 撞键时做「补内容」：缺的轮次/手记并进存量线程。
+                if self._fill_thread(dup["id"], it):
+                    written += 1
+                else:
+                    skipped += 1
                 continue
             status = it.get("status")
             if status not in ("open", "parked", "closed"):
@@ -726,6 +734,100 @@ class KnowledgeBase:
         self._gc_threads()
         self.db.commit()
         return written, skipped
+
+    def _fill_thread(self, tid: int, it: dict) -> bool:
+        """R3369（审-P2-3）：去重撞线时的补内容合并——存量线程缺的
+        轮次（按 seq）与手记（同 claim 文本：绑回同名孤儿行，没有才新
+        插）从备份包并进来。返回是否真的有新内容落库。"""
+        changed = False
+        st = it.get("status")
+        if st in ("open", "parked", "closed"):
+            self.db.execute(
+                "UPDATE thread SET status=? WHERE id=?", (st, tid))
+            changed = True
+        ua = str(it.get("updated_at") or "").strip()[:32]
+        if ua:
+            self.db.execute(
+                "UPDATE thread SET updated_at=? WHERE id=? AND "
+                "(updated_at IS NULL OR updated_at<?)", (ua, tid, ua))
+        _turns = it.get("turns")
+        if not isinstance(_turns, list):
+            _turns = []
+        if _turns:
+            have = {r["seq"] for r in self.db.execute(
+                "SELECT seq FROM turn WHERE thread_id=?", (tid,))}
+            seq = 0
+            for tr in _turns[: self._CAP_TURN_PER_THREAD]:
+                if not isinstance(tr, dict):
+                    continue
+                role = tr.get("role")
+                if role not in ("user", "assistant"):
+                    role = "user"
+                text = str(tr.get("text") or "")[:4000]
+                if not text:
+                    continue
+                seq += 1
+                if seq in have:
+                    continue
+                self.db.execute(
+                    "INSERT INTO turn (thread_id, seq, role, text, "
+                    "created_at) VALUES (?,?,?,?,?)",
+                    (tid, seq, role, text,
+                     str(tr.get("created_at") or "").strip()[:32]
+                     or str(it.get("opened_at") or "")[:32] or
+                     datetime.now().isoformat()[:32]))
+                changed = True
+        _claims = it.get("claims")
+        if not isinstance(_claims, list):
+            _claims = []
+        for cl in _claims[:200]:
+            if not isinstance(cl, dict):
+                continue
+            claim_txt = str(cl.get("claim") or "")[:2000]
+            if not claim_txt:
+                continue
+            # 同名孤儿手记先认领（壳回灌把 thread_id 冲成 NULL 的、
+            # 或 GC 解绑的历史手记），没有再查线程内重复。
+            row = self.db.execute(
+                "SELECT id, thread_id FROM derived WHERE claim=? "
+                "ORDER BY id LIMIT 1", (claim_txt,)).fetchone()
+            if row is not None:
+                if row["thread_id"] is None:
+                    self.db.execute(
+                        "UPDATE derived SET thread_id=? WHERE id=?",
+                        (tid, row["id"]))
+                    changed = True
+                continue
+            try:
+                ev = [Evidence(
+                    work_id=str(e.get("work_id") or ""),
+                    file=str(e.get("file") or ""),
+                    raw_start=int(e.get("raw_start") or -1),
+                    raw_end=int(e.get("raw_end") or -1),
+                    quote=str(e.get("quote") or ""),
+                    page_anchor=None if e.get("page_anchor") is None
+                        else str(e.get("page_anchor")),
+                    scheme=None if e.get("scheme") is None
+                        else str(e.get("scheme")),
+                    addr1=None if e.get("addr1") is None
+                        else int(e.get("addr1")),
+                    addr2=None if e.get("addr2") is None
+                        else str(e.get("addr2")),
+                    role=str(e.get("role") or "context"))
+                    for e in (cl.get("evidence") or [])
+                    if isinstance(e, dict)]
+                _conf = cl.get("confidence")
+                self.record(
+                    str(cl.get("kind") or "note"),
+                    claim_txt,
+                    str(cl.get("method") or "backup-import")[:200],
+                    ev, confidence=None if _conf is None else str(_conf),
+                    thread_id=tid)
+                changed = True
+            except (ValueError, TypeError, OverflowError,
+                    sqlite3.Error):
+                continue
+        return changed
 
     def delete_all_threads(self) -> int:
         """R2500（R143-P1-3/P2-4）：「忘掉我的数据」全量清线程——

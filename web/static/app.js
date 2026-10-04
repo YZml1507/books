@@ -3650,6 +3650,27 @@ function showView(viewId) {
    * 才拉省一拍；不进这个视图的用户永远不付这 24KB。失败静默。 */
   if (viewId === 'read') {
     try { _loadResearchJs().catch(function () {}); } catch (eR) {}
+    /* R3369（审-P1-1）：read 深链消费——rq 预填自动跑检索，
+     * bs 预填书号自动进结构页（stub 链路自带 chunk 懒加载）。 */
+    try {
+      var _rd = window.__readDeep;
+      if (_rd) {
+        window.__readDeep = null;
+        if (_rd.q) {
+          var _rqEl = el('rq');
+          if (_rqEl) _rqEl.value = _rd.q;
+          guardedCall('searchBtn', doSearch, null, true);
+        }
+        if (_rd.bs) {
+          var _bsEl = el('bswork');
+          if (_bsEl) {
+            _bsEl.value = _rd.bs;
+            _bsEl.dispatchEvent(new Event('change'));
+          }
+          activateBssec('bs-structure');
+        }
+      }
+    } catch (eRD2) {}
   }
   /* 心情周记：进视图按最新 mood:<date> 重渲（跨 tab 改过也跟新）。 */
   if (viewId === 'moodweek') {
@@ -4077,16 +4098,20 @@ function uiTheme() {
 function applyTheme(theme) {
   var requested = theme || uiTheme() || 'aa';
   var t = _effectiveTheme(requested);
-  /* R2340：theme-color meta 跟着换——浏览器地址栏/PWA 顶栏同色。 */
-  var _meta = document.querySelector('meta[name="theme-color"]');
+  /* R2340：theme-color meta 跟着换——浏览器地址栏/PWA 顶栏同色。
+   * R3368（审-P2-10）：双 meta（media 深浅分流）要同步全改，
+   * 只改第一个会被 media 规则顶掉。 */
+  var _metas = document.querySelectorAll('meta[name="theme-color"]');
+  var _mcol = (t === 'aa') ? '#FFF8E7'
+    : (t === 'dark' ? '#221D20' : '#F7F3EA');
   if (t === 'aa') {
     document.documentElement.removeAttribute('data-theme');
-    if (_meta) _meta.setAttribute('content', '#FFF8E7');
   } else {
     document.documentElement.setAttribute('data-theme', t);
-    if (_meta) _meta.setAttribute('content',
-      t === 'dark' ? '#221D20' : '#F7F3EA');
   }
+  _metas.forEach(function (_m) {
+    _m.setAttribute('content', _mcol);
+  });
   /* R2349j（R70-P1-23）：原生控件（select 下拉/日期框/滚动条）随主题——
    * meta color-scheme 写死 light 时深色下控件仍按浅色画。CSS 侧也有
    * html[data-theme="dark"]{color-scheme:dark}，meta 双保险。 */
@@ -4546,8 +4571,7 @@ function showPosterModal(canvas, view, j) {
           esc(viewTitle) + ' 分享图">' +
       '</div>' +
       '<div class="poster-modal-tip">💡 ' +
-        ((typeof navigator === 'undefined' ||
-          !(navigator.maxTouchPoints > 0 || 'ontouchstart' in window))
+        ((typeof navigator === 'undefined' || !_touchOnly())
           ? '已自动下载到下载文件夹 · 也可右键另存 · 保存后可设为锁屏/壁纸，小满每天陪你睁眼 · 发给闺蜜一起测～'
           /* R2353（R110-P2-3）：小红书 webview 长按菜单由 app 侧实现，
            * 对 data-URI 图不一定有「保存图片」——改截图口径。 */
@@ -4635,6 +4659,18 @@ function showPosterModal(canvas, view, j) {
       url += '&sym=' + encodeURIComponent(
         String(j.symbols[0].name).split('/')[0].slice(0, 12));
     }
+    /* R3369（审-P1-1）：古籍分享链带上下文——检索词/书号随链，
+     * 收方落地直接看到同一份结果，不只开空页。 */
+    if (view === 'read') {
+      try {
+        var _rqv = (el('rq') || {}).value || '';
+        if (_rqv.trim()) url += '&rq=' +
+          encodeURIComponent(_rqv.trim().slice(0, 100));
+        var _bwv = (el('bswork') || {}).value || '';
+        if (_bwv.trim()) url += '&bs=' +
+          encodeURIComponent(_bwv.trim().slice(0, 64));
+      } catch (eRV) {}
+    }
     /* R2349t（R88-13a）：分享链带昵称——接力页能喊出「谁晒的」。
      * 昵称与生辰不同级：纯显名，不进任何请求体（邀请链已有先例）。 */
     try {
@@ -4716,6 +4752,17 @@ function showPosterModal(canvas, view, j) {
     if (view === 'dream' && j && (j.symbols || [])[0]) {
       url += '&sym=' + encodeURIComponent(
         String(j.symbols[0].name).split('/')[0].slice(0, 12));
+    }
+    /* R3369（审-P1-1）：系统分享链同带 rq/bs。 */
+    if (view === 'read') {
+      try {
+        var _rqv2 = (el('rq') || {}).value || '';
+        if (_rqv2.trim()) url += '&rq=' +
+          encodeURIComponent(_rqv2.trim().slice(0, 100));
+        var _bwv2 = (el('bswork') || {}).value || '';
+        if (_bwv2.trim()) url += '&bs=' +
+          encodeURIComponent(_bwv2.trim().slice(0, 64));
+      } catch (eRV2) {}
     }
     /* R2349t（R88-13a）：系统分享链同样带昵称。 */
     try {
@@ -4866,9 +4913,20 @@ function _showTextExportModal(title, text, tipText) {
   document.addEventListener('keydown', _posterOnKey);
 }
 /* 触屏/内嵌浏览器判定——导出/下载类操作在这些环境该走展示式。 */
+function _touchOnly() {
+  /* R3369（审-低-11）：触屏笔记本 maxTouchPoints>0 一直被当手机——
+   * 有精密指针（鼠标/触控板）的设备照常走下载，不只看触点。 */
+  try {
+    return (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) &&
+      window.matchMedia('(pointer:coarse)').matches &&
+      !window.matchMedia('(any-pointer:fine)').matches;
+  } catch (e) {
+    return navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  }
+}
 function _exportShowOnly() {
   if (typeof navigator === 'undefined') return false;
-  return (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) ||
+  return _touchOnly() ||
     /MicroMessenger|xhsdiscover|XHSAPP/i.test(navigator.userAgent || '');
 }
 /* R229c：_rmBehavior 提升到模块级——此前嵌套在 closePosterModal 体内，
@@ -5554,14 +5612,17 @@ async function loadDaily() {
         var _dcImg = tarotImg(_dc.name);
         /* R3321-P1：牌意展开收进本行——旧 meta 路径（同 id 覆写 +
          * 异 seed 抽牌）已删，本行是「今日牌」唯一来源。 */
-        _dcEl.innerHTML = '🃏 今日牌 ' +
+        _dcEl.innerHTML =
           (_dcImg
             ? '<img class="dc-thumb' + (_dc.upright ? '' : ' is-reversed') +
               '" src="' + _dcImg + '" alt="">'
             : '') +
-          '<b>' + esc(_dc.name) + '</b> · ' +
-          (_dc.upright ? '正位' : '逆位') +
-          ' <i>' + esc(_dc.keywords || '') + '</i>' +
+          /* R3368（审-P1-1）：文字全包进单个 span——裸文本段各自
+           * 成 flex 项，窄屏被挤到 min-content（CJK 一字）逐字
+           * 竖排不可读。 */
+          '<span class="dc-text">🃏 今日牌 <b>' + esc(_dc.name) +
+          '</b> · ' + (_dc.upright ? '正位' : '逆位') +
+          ' <i>' + esc(_dc.keywords || '') + '</i></span>' +
           (_dc.meaning
             ? '<button type="button" class="sign-peek" id="tarotPeekBtn"' +
               ' aria-expanded="false" aria-controls="tarotCard">牌意</button>'
@@ -7087,8 +7148,10 @@ var _ASCHEME_FIELDS = {
   bcv:     ['aname', 'aaddr1', 'aaddr2'],
   yilin:   ['aguan'],
   booksec: ['aaddr1'],
-  play:    ['aaddr1', 'aaddr2'],
-  euclid:  ['aaddr1', 'aaddr2']
+  /* R3369（审-P1-2）：play/euclid 的 addr_name 是剧名/卷名，
+   * 此前被收起——必填参数藏在 UI 外根本填不进。 */
+  play:    ['aname', 'aaddr1', 'aaddr2'],
+  euclid:  ['aname', 'aaddr1', 'aaddr2']
 };
 /* R230q（R28-P1-1b）：线程状态过滤——initReading 委托（筛选 chip）
  * 与 app_research.js 的 _threadListHtml 共用。 */
@@ -12619,6 +12682,19 @@ function initReading() {
   /* _ASCHEME_FIELDS 已提为模块级（doAddr 复用同一张白名单）。 */
   var _asch = el('ascheme');
   if (_asch) {
+    /* R3369（审-P1-2）：字段 label/placeholder 随 scheme 换——
+     * 「卷名（圣经用）」钉死时选剧本只能瞎猜填什么。 */
+    var _ASCHEME_HINT = {
+      bcv:    { aname: ['卷名（圣经用）', '如：创世记（Genesis）'],
+                aaddr1: ['第几章', '如：12'],
+                aaddr2: ['第几节（可空）', '如：3'] },
+      play:   { aname: ['剧名（英文原名）', '如：HAMLET'],
+                aaddr1: ['第几幕', '如：1'],
+                aaddr2: ['第几场（可空）', '如：2'] },
+      euclid: { aname: ['卷名（英文）', '如：Book 1'],
+                aaddr1: ['第几条定义（可空）', '如：1'],
+                aaddr2: ['命题号（罗马数字）', '如：I'] }
+    };
     var _syncAddrFields = function () {
       var keep = _ASCHEME_FIELDS[_asch.value] || [];
       ['aguan', 'ayao', 'aname', 'aaddr1', 'aaddr2'].forEach(function (id) {
@@ -12626,6 +12702,32 @@ function initReading() {
         var box = f && f.closest('.field');
         if (box) box.style.display = keep.indexOf(id) >= 0 ? '' : 'none';
       });
+      var hint = _ASCHEME_HINT[_asch.value] || {};
+      ['aname', 'aaddr1', 'aaddr2'].forEach(function (id) {
+        var f = el(id);
+        if (!f || !hint[id]) return;
+        var lb = f.closest('.field') && f.closest('.field').querySelector('label');
+        if (lb) lb.textContent = hint[id][0];
+        f.placeholder = hint[id][1];
+      });
+      /* 非 bcv/play/euclid 时把 aname 还原成圣经口径（默认态）。 */
+      if (!hint.aname) {
+        var _an = el('aname');
+        var _anb = _an && _an.closest('.field') &&
+          _an.closest('.field').querySelector('label');
+        if (_anb) _anb.textContent = '卷名（圣经用）';
+        if (_an) _an.placeholder = '如：创世记（Genesis）';
+        var _a1 = el('aaddr1');
+        var _a1b = _a1 && _a1.closest('.field') &&
+          _a1.closest('.field').querySelector('label');
+        if (_a1b) _a1b.textContent = '第一级编号';
+        if (_a1) _a1.placeholder = '如：12';
+        var _a2 = el('aaddr2');
+        var _a2b = _a2 && _a2.closest('.field') &&
+          _a2.closest('.field').querySelector('label');
+        if (_a2b) _a2b.textContent = '第二级编号';
+        if (_a2) _a2.placeholder = '如：12';
+      }
     };
     _asch.addEventListener('change', _syncAddrFields);
     _syncAddrFields();
@@ -12658,6 +12760,15 @@ function initReading() {
     });
   }
 
+  /* R3369（审-低-10）：读书域 Enter 按活跃子页签分发——在章节页
+   * 按回车拉章节，在结构页拉结构，知识卡页拉知识卡。 */
+  function _bsEnterDispatch() {
+    var act = document.querySelector('.bssec.active');
+    var id = act && act.id;
+    if (id === 'bsChapter') return doBookChapter();
+    if (id === 'bsSummary') return doBookSummary();
+    return doBookStructure();
+  }
   // 回车提交：查询类输入框都该支持（原实现只能点按钮）
   /* R230d（R16-P1-4）：补 tq/bswork/aguan/ayao/aname/aaddr1——这几个输入框
    * 此前按 Enter 无反应，只能伸手去点按钮。
@@ -12670,16 +12781,20 @@ function initReading() {
    ['rwork', 'searchBtn', doSearch],
    ['cwa', 'cwBtn', doCompareWorks], ['cwb', 'cwBtn', doCompareWorks],
    ['tq', 'threadBtn', doThread],
-   ['bswork', 'bswork', doBookStructure], ['aguan', 'addrBtn', doAddr],
+   /* R3369（审-低-10）：bs* 四框的 Enter 此前各自钉死 handler——
+    * 在章节页里按 bswork 的回车却跑去拉结构。统一路由：按当前
+    * 活跃子页签分发。 */
+   ['bswork', 'bswork', _bsEnterDispatch],
+   ['aguan', 'addrBtn', doAddr],
    ['ayao', 'addrBtn', doAddr],
    ['aname', 'addrBtn', doAddr], ['aaddr1', 'addrBtn', doAddr],
    /* R3320-P3：同视图内 Enter 死角补全——rmax/cgua/cyao/bs* 六框
     * 此前按回车无响应（bs 三框喂 doBookChapter 的 addr 参数）。 */
    ['rmax', 'searchBtn', doSearch],
    ['cgua', 'compareBtn', doCompare], ['cyao', 'compareBtn', doCompare],
-   ['bsaddr1', 'bschapter', doBookChapter],
-   ['bsname', 'bschapter', doBookChapter],
-   ['bsfile', 'bschapter', doBookChapter]
+   ['bsaddr1', 'bschapter', _bsEnterDispatch],
+   ['bsname', 'bschapter', _bsEnterDispatch],
+   ['bsfile', 'bschapter', _bsEnterDispatch]
   ].forEach(function (pair) {
     const node = el(pair[0]);
     if (node) {
@@ -12734,6 +12849,15 @@ function initReading() {
       if (bs) { bs.value = 'file'; bs.dispatchEvent(new Event('change')); }
       /* activateBssec 自带加载——点了节行直接出正文。 */
       activateBssec('bs-chapter');
+      return;
+    }
+    /* R3369（审-低-9）：留档行单条移除——不进后端，只落本机镜像。 */
+    const threadMirDel = e.target.closest('[data-thread-mir-del]');
+    if (threadMirDel) {
+      try { _thrMirrorDrop(threadMirDel.dataset.threadMirDel); } catch (eD) {}
+      var _mirItem = threadMirDel.closest('.thread-item');
+      if (_mirItem) _mirItem.remove();
+      showToast('这条留档移掉了', 'success');
       return;
     }
     /* R230q（R28-P1-1b）：线程删除入口——先于 data-thread 判（删按钮
@@ -14865,6 +14989,18 @@ function init() {
             }
           }
         } catch (eHD) {}
+        /* R3369（审-P1-1）：古籍深链 ?view=read&rq=词&bs=书号 此前
+         * 参数整包被剥——落地只剩空页。存内存，showView(read) 侧消费。 */
+        try {
+          if (_vp === 'read') {
+            var _rdq = _qsAll.get('rq'), _rdb = _qsAll.get('bs');
+            if (_rdq || _rdb) {
+              window.__readDeep = {
+                q: _rdq ? String(_rdq).slice(0, 100) : null,
+                bs: _rdb ? String(_rdb).slice(0, 64) : null };
+            }
+          }
+        } catch (eRD) {}
         /* R2350f（R102-P1-1 落地侧）：分享链带 seed——?view=tarot&s=N&tn=3
          * 或 ?view=liuyao&m=coins&s=N，落地先重现「TA 抽到的那副」。
          * R2350g（R104-P2）：只认 from=share 的链——手搓裸 s= 不播重放；
@@ -19818,13 +19954,24 @@ function baziPersonaCard(j) {
          * 题头能带走（turns/claims 云端已清带不走）。 */
         if (!_threads.length) {
           try {
+            /* R3369（审-P2-3）：镜像壳题头进包会占 (topic, opened_at)
+             * 去重键把后来带真内容的备份顶掉——服务端虽已做补内容
+             * 合并，壳行仍标 shell:true 明示「没料」。 */
             _threads = (_thrMirrorLoad().items || []).map(function (x) {
               return { id: x.id, topic: x.topic, status: x.status,
                        opened_at: x.opened_at, updated_at: x.updated_at,
-                       turns: [], claims: [] };
+                       turns: [], claims: [], shell: true };
             });
           } catch (eTM) {}
         }
+        /* R3369（审-P1-3）：孤儿手记（删过线程留下的研究笔记）
+         * 此前备份根本不带——清盘永丢。打包带走。 */
+        var _orphans = [];
+        try {
+          var _ocl = await api('/api/claims?orphaned=true&limit=200',
+                               { silent: true });
+          _orphans = (_ocl && _ocl.claims) || [];
+        } catch (eOc) {}
         var _recsOut = j.records || [];
         if (!_recsOut.length) {
           var _mmB = _phMirrorLoad();
@@ -19850,6 +19997,7 @@ function baziPersonaCard(j) {
                        exported_at: j.exported_at || new Date().toISOString(),
                        browser: local, records: _recsOut,
                        favorites: _favs, threads: _threads,
+                       orphan_claims: _orphans,
                        _noLedger: _noLedger };
         return bundle;
     }
@@ -20977,6 +21125,29 @@ function baziPersonaCard(j) {
               } catch (eFI) { _fvBad++; }
             }
           }
+          /* R3369（审-P1-3）：孤儿手记回灌——逐条 POST orphan:true，
+           * 服务端按 claim+method 幂等去重，重灌不翻倍。 */
+          var _nOrph = 0, _orphBad = 0;
+          if (Array.isArray(bundle.orphan_claims) &&
+              bundle.orphan_claims.length) {
+            for (var _oi = 0;
+                 _oi < bundle.orphan_claims.length && _oi < 200; _oi++) {
+              var _oc = bundle.orphan_claims[_oi];
+              if (!_oc || typeof _oc !== 'object' || !_oc.claim) {
+                _orphBad++; continue;
+              }
+              try {
+                await postJSON('/api/threads', {
+                  kind: String(_oc.kind || 'note').slice(0, 32),
+                  claim: String(_oc.claim || '').slice(0, 2000),
+                  method: String(_oc.method || 'backup-import')
+                    .slice(0, 200),
+                  confidence: _oc.confidence || null,
+                  orphan: true });
+                _nOrph++;
+              } catch (eOC) { _orphBad++; }
+            }
+          }
           /* R2349y（R95-P2-8/P3-8）：收藏失败条数点名，不再并进
            * 「记录」计数混口径。 */
           /* R2500（R143-P3-11）：线程不并进「记录」计数——口径分说。 */
@@ -21040,6 +21211,7 @@ function baziPersonaCard(j) {
             /* R3339（审-中）：线程批丢/超重如实报——「导到一半断了」
              * 不点名的静默丢尾违背披露纪律。 */
             (_thrSkipped ? '；' + _thrSkipped + ' 个研究线程太大没导进去' : '') +
+            (_nOrph ? ' + ' + _nOrph + ' 条散落笔记' : '') +
             (_fvBad ? '；' + _fvBad + ' 条收藏类型不认识没导进去' : '');
           showToast(_msg, 'info');
           /* R2349y（R95-P3-9）：批量导入后广播 dirty——其他 tab 的

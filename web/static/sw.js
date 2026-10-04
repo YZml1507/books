@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-aa4849508fdd';   // shell-hash: aa4849508fdd
+var CACHE = 'books-shell-498faf667290';   // shell-hash: 498faf667290
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -198,6 +198,33 @@ self.addEventListener('fetch', function (e) {
    * （ignoreSearch 让 ?v= 版本化 URL 命中版本钉死的壳件）；
    * precache 命中直接回（桶名即内容哈希，字节不可能变，零 refetch）；
    * RT 命中才后台 revalidate。 */
+  /* R3364（审-低）：?v 检查前置到 RT 查询之前——此前 RT 桶命中
+   * 的请求跳过版本检查，哪天 app.js?v=新 被写进 RT，该 URL 就
+   * 永久免检查（哑弹）。 ?v 不符：JS 回限频刷新脚本，非 JS 网
+   * 络直通（版本化 URL 本就不该占 RT 位）。 */
+  var _reqV = url.searchParams.get('v');
+  if (_reqV && _reqV !== CACHE.slice('books-shell-'.length)) {
+    if (url.pathname.slice(-3) === '.js') {
+      /* R3364（审-P0）：刷新脚本自带刹车——30s 窗内最多 5 次
+       * reload，超出即停手。此前裸 location.reload()：一旦
+       * 环成（老 SW+新 HTML），任何年代的 SW 都没有自救
+       * 手段、风暴饿死软更新检查。刹车写进响应体本身，不
+       * 依赖页面新旧。sessionStorage 不可用时退回裸 reload
+       * （无痕下 SW 本不持久）。 */
+      e.respondWith(new Response(
+        'try{var _k="__swrl",_v=(sessionStorage.getItem(_k)' +
+        '||"0:0").split(":"),_t=+_v[0],_c=+_v[1],_n=Date.now();' +
+        'if(_n-_t>30000){_t=_n;_c=0}' +
+        'sessionStorage.setItem(_k,_t+":"+(_c+1));' +
+        'if(_c<5){location.reload()}}catch(x){location.reload()}',
+        { headers: { 'Content-Type':
+          'text/javascript; charset=utf-8' } }));
+    } else {
+      e.respondWith(fetch(e.request)
+        .catch(function () { return undefined; }));
+    }
+    return;
+  }
   e.respondWith(
     caches.open(RT).then(function (rtc) {
       return rtc.match(e.request).then(function (rtHit) {
@@ -222,35 +249,6 @@ self.addEventListener('fetch', function (e) {
            * 跨版本更换桶名，自愈只在同版本内需要）。 */
           e.waitUntil(_net().catch(function () {}));
           return rtHit;
-        }
-        /* R2500（R143-SW-P2）：?v= 版本化被 ignoreSearch 打穿——
-         * 「?v=新」请求照样命中旧 precache 的旧字节，新 HTML+旧 JS
-         * 混版。?v 存在且与本 SW hash 不符时跳过 precache 走网络。 */
-        var _reqV = url.searchParams.get('v');
-        var _vOk = !_reqV || _reqV === CACHE.slice('books-shell-'.length);
-        if (!_vOk) {
-          /* R2510（审-SW-P1）：?v 不符 = 前台旧页遇上新 SW——旧
-           * precache 已在 activate 删掉，网络只有新字节，混注进旧
-           * 运行时必炸（此前 _net() 照发新字节）。JS 请求回一段
-           * 刷新脚本：旧页自刷 → 新壳+新 chunk 一致落地；非 JS
-           * 资源（css/img）新字节混用无害，仍走网络。 */
-          if (url.pathname.slice(-3) === '.js') {
-            /* R3364（审-P0）：刷新脚本自带刹车——30s 窗内最多 5 次
-             * reload，超出即停手。此前裸 location.reload()：一旦
-             * 环成（老 SW+新 HTML），任何年代的 SW 都没有自救
-             * 手段、风暴饿死软更新检查。刹车写进响应体本身，不
-             * 依赖页面新旧。sessionStorage 不可用时退回裸 reload
-             * （无痕下 SW 本不持久）。 */
-            return new Response(
-              'try{var _k="__swrl",_v=(sessionStorage.getItem(_k)' +
-              '||"0:0").split(":"),_t=+_v[0],_c=+_v[1],_n=Date.now();' +
-              'if(_n-_t>30000){_t=_n;_c=0}' +
-              'sessionStorage.setItem(_k,_t+":"+(_c+1));' +
-              'if(_c<5){location.reload()}}catch(x){location.reload()}',
-              { headers: { 'Content-Type':
-                'text/javascript; charset=utf-8' } });
-          }
-          return _net().catch(function () { return undefined; });
         }
         return caches.match(e.request, { ignoreSearch: true })
           .then(function (hit) {

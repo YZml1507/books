@@ -170,7 +170,10 @@ def s2t_retry(q: str) -> str:
 
 def fts_phrase(q: str) -> str:
     """Segmented, folded, and quoted so FTS5 treats it as an adjacent phrase."""
-    seg = segment_cjk(fold(q)).replace('"', '')
+    import unicodedata
+    # R3369（审-低-1）：兼容字符 NFKC 归一——U+F900 相容表意文字、
+    # 全角形、旧字形先折成通行形再走 fold，「廉」不会再漏「廉」。
+    seg = segment_cjk(fold(unicodedata.normalize("NFKC", q))).replace('"', '')
     # R228z续：C0 控制字符剥掉——\x00 会让 FTS5 报 "unterminated string"
     # （内部按 C 串截断），别的控制符也不构成任何检索意义。
     seg = "".join(ch for ch in seg if ord(ch) >= 0x20)
