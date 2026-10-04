@@ -706,8 +706,10 @@ html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#
   vertical-align:middle;}
 .lucky-chip .lc-dot{width:9px; height:9px; border-radius:50%;
   display:inline-block; box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
-/* R3317-D：今日咒语行——可点击复制，海报感的手书体强调 */
-.daily-mantra{margin:6px 0 4px; font-size:13.5px; color:var(--secondary);
+/* R3317-D：今日咒语行——可点击复制，海报感的手书体强调
+ * R3350：inline-block 让行尾 ❤️ 收藏钮贴同一行（块级会把它顶去下一行） */
+.daily-mantra{display:inline-block; vertical-align:middle;
+  margin:6px 0 4px; font-size:13.5px; color:var(--secondary);
   cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
   letter-spacing:.02em;}
 .daily-mantra b{color:var(--primary-ink); font-weight:600;
@@ -715,6 +717,46 @@ html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#
   background:linear-gradient(135deg, rgba(214,137,90,.14), rgba(214,169,110,.18));
   border:1px dashed rgba(166,117,74,.35);}
 .daily-mantra:active b{transform:scale(.97);}
+/* R3350：咒语行尾 ❤️ 收藏钮——空壳心=可收，实心+「已收」=已在册 */
+.mantra-fav{display:inline-block; vertical-align:middle; margin-left:6px;
+  font-size:12px; line-height:1.5; padding:2px 9px; border-radius:99px;
+  color:var(--secondary); background:rgba(214,137,90,.08);
+  border:1px dashed rgba(166,117,74,.30); cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
+.mantra-fav:hover{background:rgba(214,137,90,.18);}
+.mantra-fav:active{transform:scale(.94);}
+.mantra-fav.got{color:var(--primary-ink); border-style:solid;
+  background:linear-gradient(135deg, rgba(214,137,90,.16), rgba(214,169,110,.12));}
+/* R3350：咒语册入口——meta 行小链（攒了才现身） */
+.mantra-book-link{border:none; background:none; padding:0;
+  font-size:12px; color:var(--secondary); cursor:pointer;
+  text-decoration:none;}
+.mantra-book-link:hover{color:var(--accent-ink);
+  text-decoration:underline;}
+/* R3350：咒语册格页（view-mantra）——软格卡+行尾小动作，
+ * 与 tarot-album 的收藏格同族审美 */
+.mb-body{display:flex; flex-direction:column; gap:12px;}
+.mb-count{font-size:12px; color:var(--secondary);}
+.mb-count strong{color:var(--primary-ink);}
+.mb-grid{display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+  gap:10px;}
+.mb-cell{display:flex; flex-direction:column; gap:6px;
+  padding:12px; border:1px solid var(--border); border-radius:14px;
+  background:var(--card);}
+.mb-t{font-size:14px; font-weight:600; color:var(--primary-ink);
+  line-height:1.6; letter-spacing:.02em;}
+.mb-d{font-size:11px; color:var(--muted);}
+.mb-acts{display:flex; gap:6px; margin-top:auto; flex-wrap:wrap;}
+.mb-act{flex:1 0 auto; border:none; border-radius:99px; padding:4px 8px;
+  font-size:11.5px; cursor:pointer; color:var(--primary-ink);
+  white-space:nowrap;
+  background:rgba(214,137,90,.12);
+  -webkit-tap-highlight-color:transparent;}
+.mb-act:hover{background:rgba(214,137,90,.22);}
+.mb-act:active{transform:scale(.95);}
+.mb-act.mb-del{background:rgba(122,86,56,.07); color:var(--muted);}
+.mb-act.mb-del:hover{background:rgba(160,80,60,.14); color:#a0503c;}
 /* R3317-E：上周小记信卡——信纸感淡卡，收下即收 */
 .weekly-letter{margin:0 0 10px; border-radius:16px; overflow:hidden;
   border:1px solid rgba(214,169,110,.4);

@@ -286,7 +286,13 @@ try {
         <div class="daily-score" id="dailyScore"></div>
         <div class="daily-dims" id="dailyDims"></div>
         <div class="daily-mantra" id="dailyMantra" role="button" tabindex="0"
-          title="点一下复制这句咒语"></div>
+          title="点一下复制这句咒语"></div><!--
+        R3350：咒语册——咒语行尾 ❤️ 收藏钮（收进 mantraFav 本机册）。
+        独立 sibling 元素而非嵌进咒语行：咒语行自身是 role=button
+        （点按复制），嵌套互动控件会按键冒泡双触发+读屏嵌套混乱。 -->
+        <button class="mantra-fav" id="mantraFav" type="button" hidden
+          title="收下这句咒语" aria-label="收藏今日咒语"
+          aria-pressed="false">🤍</button>
         <div class="daily-card-line" id="dailyTarot"></div>
         <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
         <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
@@ -1235,6 +1241,16 @@ try {
       <div class="mw-actions">
         <button id="moodWeekShare" type="button" class="ghost">🖼️ 生成周记卡</button>
       </div>
+    </div>
+  </div>
+
+  <!-- R3350：我的咒语册——今日咒语点 ❤️ 收进来的句子格页。
+       数据全本机（mantraFav），无入口卡——日卡 meta「咒语册」小链
+       /深链 ?view=mantra 进，与 view-moodweek 同模式。 -->
+  <div class="view" id="view-mantra">
+    <div class="card">
+      <h2><span aria-hidden="true">📖</span> 我的咒语册 <span class="card-sub">收来的好句子 · 只存在这台设备上</span></h2>
+      <div id="mantraBookBody" class="mb-body"></div>
     </div>
   </div>
 
