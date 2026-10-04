@@ -136,7 +136,10 @@ function _wapNebula(j) {
     return b2.frac - a.frac; })[0];
   ctx.font = '400 26px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.85)';
-  ctx.fillText('你最浓的气是' + (_top ? _top.wx + '气' : ''), 360, 1212);
+  /* 「土气」在目标语境=老土——五行行名直拼会读成自贬，
+   * 用「土行」避开歧义。 */
+  ctx.fillText('你盘里最浓的是' + (_top ? _top.wx + '行' : ''),
+               360, 1212);
   /* 色带图例：小圆点排排。 */
   var _lw = _bands.length * 34, _lx = 360 - _lw / 2 + 17;
   _bands.forEach(function (b, i) {

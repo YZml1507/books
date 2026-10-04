@@ -17315,7 +17315,8 @@ function _saCard(j) {
     '<div class="sm-tip">🎨 ' + esc(_leg) + '</div>' +
     (_top
       ? '<div class="sm-tip">✨ 你盘里最浓的是' + esc(_top.wx) +
-        '气——色谱里它占最大一片</div>'
+        /* R3480：「土气」=老土歧义，行名改「行」。 */
+        '行——色谱里它占最大一片</div>'
       : '') +
     '<div class="sm-note">色谱按你盘里五行权重画，一人一幅</div>' +
     '<button class="ghost fav-btn" type="button" id="saShare" ' +

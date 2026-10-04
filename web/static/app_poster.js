@@ -1825,7 +1825,8 @@ function buildShareData(view, j) {
         var _saTop = _saBd.slice().sort(function (a, b2) {
           return (+b2.frac || 0) - (+a.frac || 0); })[0];
         _sa.lines.push({ k: '最浓',
-          v: _pStr(_saTop.wx) + '气占最大一片' });
+          /* R3480：「土气」=老土歧义，行名改「行」。 */
+          v: _pStr(_saTop.wx) + '行占最大一片' });
       }
       _sa.lines.push({ k: '口径', v: '一人一幅，按五行权重画' });
       if (!_sa.lines.length) _sa.lines =
