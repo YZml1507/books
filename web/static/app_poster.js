@@ -420,9 +420,9 @@ function _paintSharePoster(s, W, H) {
   /* R233t（R51-P0-2）：原来一律 slice(0,4)——daily 的「忌」、
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
-  /* R3637（审-P1）：daily 全字段齐=签诗+签运+评分+能量+贵人+
-   * 财神+宜+缓+峰值+TA=9 行——cap7 会静默切尾，提帽 9。 */
-  var _lineCap = { daily: 9, 'checkin-week': 7, 'checkin-month': 6,
+  /* R3637/40（审-P1）：daily 全字段齐=签诗+签运+评分+能量+
+   * 贵人+财神+宜+缓+峰值+TA+双满电=11 行——提帽 11 兜全。 */
+  var _lineCap = { daily: 11, 'checkin-week': 7, 'checkin-month': 6,
                    hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
                    /* R3398：daily 构建 6-7 行（吉签插签运）cap=5
@@ -1289,6 +1289,18 @@ function buildShareData(view, j) {
       if (_dpe && _dpe.score) {
         _ds.lines.push({ k: 'TA 今天',
           v: String(_dpe.score) + ' 分' });
+        /* R3640：双满电日上海报——俩峰日撞一天是最值得
+         * 晒出去的 CP 同框由头。 */
+        var _dppk = _dpe.week_peak;
+        if (_dppk && _dppk.d && _dwk && _dwk.length === 7 &&
+            _dwk[_dpi].d === _dppk.d) {
+          var _dpdd = new Date(_dppk.d + 'T00:00:00');
+          _ds.lines.push({ k: '双满电',
+            v: (_dppk.d === (j && j.date) ? '今天' :
+                _wd2[_dpdd.getDay()]) +
+               ' 你 ' + String(_dwk[_dpi].s) +
+               ' · TA ' + String(_dppk.s) });
+        }
       }
       /* R2349t（R88-2a/15b）：节日/节气上海报副题+右上徽章——
        * 中秋当天发出去的图自带时令由头（字段已在 daily 响应下发）。 */
