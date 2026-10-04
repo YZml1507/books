@@ -19101,7 +19101,9 @@ function _renderMoodWeek() {
       if (_mv !== null && _MOOD_META[+_mv]) {
         _hasAny = true;
         _mCount++; _mFreq[+_mv] = (_mFreq[+_mv] || 0) + 1;
-        _calRows += '<span class="mw-cal-cell' + (_isTd ? ' today' : '') +
+        /* R3526：记过的格可点——回看那天记的是哪个。 */
+        _calRows += '<span class="mw-cal-cell hit' + (_isTd ? ' today' : '') +
+          '" data-md="' + _mm + '月' + _dayN + '日' + '|' + _mv +
           '" title="' + esc(_MOOD_META[+_mv].t) + '"><i style="background:' +
           _MOOD_META[+_mv].c + '"></i>' + _dayN + '</span>';
       } else {
@@ -19162,6 +19164,23 @@ function _renderMoodWeek() {
   html += '</div>';
   html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
   body.innerHTML = html;
+  /* R3526：月历格点击回看——委派一次挂上（重渲覆盖不换监听）。 */
+  if (!body._mdBound) {
+    body._mdBound = true;
+    body.addEventListener('click', function (e) {
+      var _c = e.target && e.target.closest
+        ? e.target.closest('.mw-cal-cell.hit') : null;
+      if (!_c) return;
+      try {
+        var _seg = String(_c.getAttribute('data-md') || '').split('|');
+        var _mv2 = +_seg[1];
+        if (_seg[0] && _MOOD_META[_mv2]) {
+          showToast(_seg[0] + '你记的是「' + _MOOD_META[_mv2].t + '」',
+                    'info');
+        }
+      } catch (eMD) {}
+    });
+  }
 }
 function _shareMoodWeek() {
   /* 生成周记卡——走 downloadPoster 懒链；小满插画按主情绪挑罐子
