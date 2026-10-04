@@ -20171,7 +20171,22 @@ function _renderMantraBook() {
  * 时尚未初始化。改用函数声明，hoist 连函数体一起可用。 */
 /* R3386 双题库：闺蜜版(bestie) + 对象版(love)。pack 挂在 hash
  * v1 第 4 字段/v2 第 6 字段——旧链没 pack 自动闺蜜版向后兼容。 */
-function _mcQS(pack) {
+/* R3427（用户直报「题目能否自定义」）：第三题库 pack='custom'——
+ * 题目不出在内置包里，随链接载荷走（v3 格式），受邀方/成绩链
+ * 双方看到同一套自写题。custom 参数=题数组，非法时返 null
+ * 让上游走「弄丢」卡而不是悄悄换成内置题。 */
+function _mcQS(pack, custom) {
+  if (pack === 'custom') {
+    var _cq = [];
+    (custom || []).forEach(function (q) {
+      var _os = ((q && q.o) || []).map(function (x) {
+        return String(x || '').slice(0, 14);
+      }).filter(function (x) { return !!x; }).slice(0, 4);
+      var _qt = String((q && q.q) || '').slice(0, 22);
+      if (_qt && _os.length >= 2) _cq.push({ q: _qt, o: _os });
+    });
+    return _cq.length === 5 ? _cq : null;
+  }
   if (pack === 'love') {
     return [
       { q: '约会最想去？', o: ['咖啡馆窝着', '出门爬山', '宅家点外卖', '看展/演出'] },
@@ -20189,7 +20204,16 @@ function _mcQS(pack) {
     { q: '下雨天最想？', o: ['窝在被窝里', '出门踩水', '来杯热乎的'] }
   ];
 }
-function _mcPackOf(p) { return p === 'love' ? 'love' : 'bestie'; }
+function _mcPackOf(p) {
+  return (p === 'love' || p === 'custom') ? p : 'bestie';
+}
+/* 自写题编解码——题干≤22 字、选项 2~4 个≤14 字、满 5 题才算有效。 */
+function _mcQDec(b64) {
+  try {
+    var _j = JSON.parse(_mcDec(String(b64 || '')));
+    return Array.isArray(_j) ? _mcQS('custom', _j) : null;
+  } catch (eQD) { return null; }
+}
 /* R3411-P2-7（终审）：对象题判词也喊「朋友」（「舒服的朋友」
  * 出给恋人出戏）；1/5 命中就落到「平行宇宙」太早——补一档
  * 让 0 命中独占那句。判词按题库分版。 */
@@ -20238,18 +20262,38 @@ function _mcParse() {
     return { mode: 'guest', nick: String(p[1] || '').slice(0, 12),
              ans: p[2], pack: _mcPackOf(p[3]) };
   }
+  /* v3 自写题挑战书：v3|nick|ans|c|<题包b64>——题包自带题目。 */
+  if (m[1] === 'mc' && p[0] === 'v3' && /^[0-3]{5}$/.test(p[2] || '') &&
+      p[3] === 'c') {
+    var _cg = _mcQDec(p[4]);
+    return _cg
+      ? { mode: 'guest', nick: String(p[1] || '').slice(0, 12),
+          ans: p[2], pack: 'custom', qs: _cg }
+      : { mode: 'bad' };
+  }
   if (m[1] === 'mcr' && p[0] === 'v2' && /^[0-3]{5}$/.test(p[3] || '') &&
       /^[0-3]{5}$/.test(p[4] || '')) {
     return { mode: 'result', hn: String(p[1] || '').slice(0, 12),
              gn: String(p[2] || '').slice(0, 12), ha: p[3], ga: p[4],
              pack: _mcPackOf(p[5]) };
   }
+  /* v3 自写题成绩条：v3|hn|gn|ha|ga|c|<题包b64>。 */
+  if (m[1] === 'mcr' && p[0] === 'v3' && /^[0-3]{5}$/.test(p[3] || '') &&
+      /^[0-3]{5}$/.test(p[4] || '') && p[5] === 'c') {
+    var _cr = _mcQDec(p[6]);
+    return _cr
+      ? { mode: 'result', hn: String(p[1] || '').slice(0, 12),
+          gn: String(p[2] || '').slice(0, 12), ha: p[3], ga: p[4],
+          pack: 'custom', qs: _cr }
+      : { mode: 'bad' };
+  }
   return { mode: 'bad' };
 }
-function _mcScore(ha, ga, pack) {
+function _mcScore(ha, ga, pack, qs) {
   var _tr = _mcTIERS(pack);
+  var _qn = _mcQS(pack, qs) || _mcQS('bestie');
   var hits = 0, matched = [], missed = [];
-  for (var i = 0; i < _mcQS().length; i++) {
+  for (var i = 0; i < _qn.length; i++) {
     var a = +ha[i], b = +ga[i];
     if (a === b) { hits++; matched.push(i); } else { missed.push(i); }
   }
@@ -20257,13 +20301,13 @@ function _mcScore(ha, ga, pack) {
   for (var t = 0; t < _tr.length; t++) {
     if (hits >= _tr[t][0]) { tier = _tr[t]; break; }
   }
-  return { hits: hits, pct: Math.round(hits / _mcQS().length * 100),
+  return { hits: hits, pct: Math.round(hits / _qn.length * 100),
            tier: tier[1], line: tier[2], matched: matched,
            missed: missed };
 }
-function _mcCompareHtml(hn, gn, ha, ga, pack) {
-  var s = _mcScore(ha, ga, pack);
-  var rows = _mcQS(pack).map(function (q, i) {
+function _mcCompareHtml(hn, gn, ha, ga, pack, qs) {
+  var s = _mcScore(ha, ga, pack, qs);
+  var rows = (_mcQS(pack, qs) || []).map(function (q, i) {
     var a = q.o[+ha[i]] || '—', b = q.o[+ga[i]] || '—';
     var ok = (+ha[i] === +ga[i]);
     return '<div class="mc-row' + (ok ? ' hit' : '') + '">' +
@@ -20342,7 +20386,7 @@ function _mcBoardHtml() {
 }
 function _mcQuizHtml(ctx) {
   var _pk = (ctx && ctx.pack) || 'bestie';
-  var qs = _mcQS(_pk).map(function (q, i) {
+  var qs = (_mcQS(_pk, ctx && ctx.qs) || []).map(function (q, i) {
     return '<div class="mc-q" id="mochiQ' + i + '">' +
       '<div class="mc-q-t">' + (i + 1) + '. ' + esc(q.q) + '</div>' +
       '<div class="mc-opts">' + q.o.map(function (o, j) {
@@ -20350,16 +20394,45 @@ function _mcQuizHtml(ctx) {
           'data-q="' + i + '" data-o="' + j + '">' + esc(o) + '</button>';
       }).join('') + '</div></div>';
   }).join('');
+  var _packBtns = '<div class="mc-packs">' +
+    '<button type="button" class="mc-pack' + (_pk === 'bestie' ? ' on' : '') +
+    '" data-mc="pack" data-pack="bestie">🧋 出给闺蜜</button>' +
+    '<button type="button" class="mc-pack' + (_pk === 'love' ? ' on' : '') +
+    '" data-mc="pack" data-pack="love">💗 出给对象</button>' +
+    '<button type="button" class="mc-pack' + (_pk === 'custom' ? ' on' : '') +
+    '" data-mc="pack" data-pack="custom">✏️ 自己出题</button></div>';
   if (!ctx || !ctx.hostAns) {
     var nick = '';
     try { nick = localStorage.getItem('mochi:nick') || ''; } catch (eN) {}
+    /* R3427 自写题编辑器：5 题 × （题干 + 2~4 选项 + 单选「我选这个」）
+     * ——打勾的那项就是你的答案，题目随挑战书一起进链接。 */
+    if (_pk === 'custom') {
+      var _edit = '';
+      for (var _ei = 0; _ei < 5; _ei++) {
+        var _eos = '';
+        for (var _ej = 0; _ej < 4; _ej++) {
+          _eos += '<label class="mc-eo">' +
+            '<input type="radio" name="mcE' + _ei + '" value="' + _ej + '">' +
+            '<input type="text" class="mc-eo-t" data-eq="' + _ei +
+            '" maxlength="12" placeholder="选项 ' + (_ej + 1) +
+            (_ej < 2 ? '（必填）' : '（可不填）') + '"></label>';
+        }
+        _edit += '<div class="mc-eq" id="mochiE' + _ei + '">' +
+          '<input type="text" class="mc-eq-t" maxlength="20" ' +
+          'placeholder="第 ' + (_ei + 1) + ' 题：写个问题，比如「我火锅必点什么」">' +
+          '<div class="mc-eopts">' + _eos + '</div></div>';
+      }
+      return '<div class="mc-head">自己出题——写 5 道题，每题填至少 2 个选项，' +
+        '在你会选的那项前面打勾</div>' + _packBtns +
+        '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
+        '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
+        'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' +
+        _edit +
+        '<button type="button" id="mochiMakeC" class="mc-go" data-mc="makec">' +
+        '生成默契挑战书 🥤</button>';
+    }
     return '<div class="mc-head">挑你会选的答案——答完生成挑战书发给 TA，' +
-      '看 TA 有多懂你</div>' +
-      '<div class="mc-packs">' +
-      '<button type="button" class="mc-pack' + (_pk === 'bestie' ? ' on' : '') +
-      '" data-mc="pack" data-pack="bestie">🧋 出给闺蜜</button>' +
-      '<button type="button" class="mc-pack' + (_pk === 'love' ? ' on' : '') +
-      '" data-mc="pack" data-pack="love">💗 出给对象</button></div>' +
+      '看 TA 有多懂你</div>' + _packBtns +
       '<label class="mc-nick-lab" for="mochiNick">你叫什么（对方会看到）</label>' +
       '<input id="mochiNick" class="mc-nick" maxlength="12" ' +
       'placeholder="比如：小满 / 桃子" value="' + esc(nick) + '">' + qs +
@@ -20367,14 +20440,56 @@ function _mcQuizHtml(ctx) {
       '<button type="button" id="mochiMake" class="mc-go" data-mc="make" ' +
       'disabled>生成默契挑战书 🥤</button>';
   }
+  var _tag = _pk === 'love' ? '<span class="mc-packtag">对象题</span>'
+    : (_pk === 'custom' ? '<span class="mc-packtag">自写题</span>' : '');
   return '<div class="mc-head">「<b>' + esc(ctx.who || 'TA') +
     '</b>」给你出了一套' +
-    (_pk === 'love' ? '心动' : '') + '默契题' +
-    (_pk === 'love' ? '<span class="mc-packtag">对象题</span>' : '') +
-    '——凭直觉答，别纠结</div>' + qs +
+    (_pk === 'love' ? '心动' : (_pk === 'custom' ? '自写' : '')) +
+    '默契题' + _tag + '——凭直觉答，别纠结</div>' + qs +
     '<div id="mochiBar" class="mc-bar">已答 0/5</div>' +
     '<button type="button" id="mochiDone" class="mc-go" data-mc="done" ' +
     'disabled>看我们的默契分</button>';
+}
+/* R3427：读自写编辑器——5 题各自题干 + 非空选项≥2 + 唯一勾选项，
+ * 返 {qs, ans} 或 null（哪个不行 toast 指明题号）。 */
+function _mcEditRead(box) {
+  var qs = [], ans = '';
+  for (var i = 0; i < 5; i++) {
+    var _qe = el('mochiE' + i);
+    if (!_qe) return null;
+    var _q = String((_qe.querySelector('.mc-eq-t') || {}).value || '')
+      .replace(/\|/g, '').trim();
+    if (!_q) {
+      showToast('第 ' + (i + 1) + ' 题还没写问题', 'warn');
+      return null;
+    }
+    var _opts = [];
+    var _pick = -1;
+    var _ins = _qe.querySelectorAll('.mc-eo');
+    for (var j = 0; j < _ins.length; j++) {
+      var _t = String((_ins[j].querySelector('.mc-eo-t') || {}).value || '')
+        .replace(/\|/g, '').trim();
+      var _r = _ins[j].querySelector('input[type="radio"]');
+      if (_t) {
+        _opts.push(_t);
+        if (_r && _r.checked) _pick = _opts.length - 1;
+      } else if (_r && _r.checked) {
+        /* 勾了空选项=没选 */
+        _pick = -2;
+      }
+    }
+    if (_opts.length < 2) {
+      showToast('第 ' + (i + 1) + ' 题至少写 2 个选项', 'warn');
+      return null;
+    }
+    if (_pick < 0) {
+      showToast('第 ' + (i + 1) + ' 题在你会选的那项前面打勾', 'warn');
+      return null;
+    }
+    qs.push({ q: _q, o: _opts });
+    ans += String(_pick);
+  }
+  return { qs: qs, ans: ans };
 }
 function _mcAnsRead(box) {
   var ans = '     '.split('');
@@ -20394,7 +20509,7 @@ function _renderMochi() {
     return;
   }
   if (st && st.mode === 'result') {
-    var _sc2 = _mcScore(st.ha, st.ga, st.pack);
+    var _sc2 = _mcScore(st.ha, st.ga, st.pack, st.qs);
     var _rk = _mcBoardRecord(st.hn, st.gn, _sc2.pct, st.ha);
     var _rkLine = '';
     if (_rk >= 0) {
@@ -20406,9 +20521,10 @@ function _renderMochi() {
     }
     box.innerHTML = '<div class="mc-head">「<b>' + esc(st.gn || 'TA') +
       '</b>」答完了「' + esc(st.hn || '你') + '」的' +
-      (st.pack === 'love' ? '心动默契题' : '默契题') + '</div>' +
+      (st.pack === 'love' ? '心动默契题'
+        : (st.pack === 'custom' ? '自写默契题' : '默契题')) + '</div>' +
       _mcCompareHtml(st.hn || '出题人', st.gn || '答题人', st.ha, st.ga,
-                     st.pack) +
+                     st.pack, st.qs) +
       _rkLine +
       '<div class="mc-acts">' +
       '<button type="button" id="mochiShare" class="mc-go" ' +
@@ -20419,13 +20535,19 @@ function _renderMochi() {
       box.dataset.ga = st.ga; box.dataset.ha = st.ha;
       box.dataset.hn = st.hn || 'TA'; box.dataset.gn = st.gn || 'TA';
       box.dataset.pack = st.pack || 'bestie';
+      box.dataset.qs = st.qs ? JSON.stringify(st.qs) : '';
     } catch (eRD) {}
     return;
   }
   box.innerHTML = _mcBoardHtml() +
     _mcQuizHtml(st && st.mode === 'guest'
-      ? { who: st.nick, hostAns: st.ans, pack: st.pack }
+      ? { who: st.nick, hostAns: st.ans, pack: st.pack, qs: st.qs }
       : { pack: box.dataset.pack || 'bestie' });
+  /* R3427：受邀方的自写题包存进 dataset——done/flip/share 都要
+   * 用同一套题算分和出链。 */
+  try {
+    box.dataset.qs = (st && st.qs) ? JSON.stringify(st.qs) : '';
+  } catch (eQS) {}
 }
 /* 委托绑容器——innerHTML 重渲不掉绑定。 */
 (function () {
@@ -20504,15 +20626,55 @@ function _renderMochi() {
         'TA 答完会自动对分</p>';
       return;
     }
+    /* R3427：自写题生成挑战书——v3 载荷带题包。 */
+    if (act === 'makec') {
+      var nick0 = '';
+      try {
+        nick0 = String((el('mochiNick') || {}).value || '')
+          .replace(/\|/g, '').trim().slice(0, 12);
+      } catch (eN0) {}
+      if (!nick0) {
+        showToast('先写个名字——对方答题时要看到是谁出的', 'warn');
+        return;
+      }
+      var _ed = _mcEditRead(box);
+      if (!_ed) return;
+      try { localStorage.setItem('mochi:nick', nick0); } catch (eN4) {}
+      try {
+        var _hs2 = JSON.parse(localStorage.getItem('mochi:hosts') || '[]');
+        if (!Array.isArray(_hs2)) _hs2 = [];
+        if (_hs2.indexOf(nick0) === -1) {
+          _hs2.push(nick0);
+          localStorage.setItem('mochi:hosts',
+            JSON.stringify(_hs2.slice(-10)));
+        }
+      } catch (eH3) {}
+      var clink = location.origin + '/?view=mochi#mc=' +
+        _mcEnc('v3|' + nick0 + '|' + _ed.ans + '|c|' +
+               _mcEnc(JSON.stringify(_ed.qs)));
+      box.innerHTML = '<div class="mc-head">挑战书包好啦——' +
+        '发给 TA，看 TA 有多懂你</div>' +
+        '<input id="mochiLink" class="mc-link" readonly ' +
+        'value="' + esc(clink) + '">' +
+        '<div class="mc-acts">' +
+        '<button type="button" id="mochiCopy" class="mc-go" ' +
+        'data-mc="copy">复制挑战书 🔗</button>' +
+        '<button type="button" id="mochiHost" class="ghost" ' +
+        'data-mc="host">重新出一套</button></div>' +
+        '<p class="mc-note">题目和答案都跟着链接走，不上服务器；' +
+        'TA 答完会自动对分</p>';
+      return;
+    }
     if (act === 'done' && st && st.mode === 'guest') {
       var ga = _mcAnsRead(box);
       if (ga.indexOf(' ') !== -1) return;
-      var s = _mcScore(st.ans, ga, st.pack);
+      var s = _mcScore(st.ans, ga, st.pack, st.qs);
       var mn = '';
       try { mn = localStorage.getItem('mochi:nick') || ''; } catch (eM) {}
       box.innerHTML = '<div class="mc-head">你和「<b>' +
         esc(st.nick || 'TA') + '</b>」的默契结果出来啦</div>' +
-        _mcCompareHtml(st.nick || 'TA', '你', st.ans, ga, st.pack) +
+        _mcCompareHtml(st.nick || 'TA', '你', st.ans, ga, st.pack,
+                       st.qs) +
         '<label class="mc-nick-lab" for="mochiMe">你叫什么' +
         '（发成绩给 TA 时显示）</label>' +
         '<input id="mochiMe" class="mc-nick" maxlength="12" ' +
@@ -20526,7 +20688,9 @@ function _renderMochi() {
         'data-mc="host">我也出一套给 TA</button></div>';
       try { box.dataset.ga = ga; box.dataset.ha = st.ans;
             box.dataset.hn = st.nick || 'TA';
-            box.dataset.pack = st.pack || 'bestie'; } catch (eD) {}
+            box.dataset.pack = st.pack || 'bestie';
+            box.dataset.qs = st.qs ? JSON.stringify(st.qs) : '';
+      } catch (eD) {}
       return;
     }
     if (act === 'copy') {
@@ -20551,14 +20715,17 @@ function _renderMochi() {
       if (!_ga2 || !_ha2) return;
       var gn2 = _d.gn || String((el('mochiMe') || {}).value || '').trim()
         .slice(0, 12) || '我';
-      var s2 = _mcScore(_ha2, _ga2, _d.pack);
+      var _pqs = null;
+      try { _pqs = _d.qs ? JSON.parse(_d.qs) : null; } catch (ePQ) {}
+      var _pqn = _mcQS(_d.pack, _pqs) || _mcQS('bestie');
+      var s2 = _mcScore(_ha2, _ga2, _d.pack, _pqs);
       return downloadPoster({
         _mc: { hn: _hn2, gn: gn2, pct: s2.pct, tier: s2.tier,
                line: s2.line,
                matched: s2.matched.map(function (i) {
-                 return _mcQS(_d.pack)[i].q.replace(/[？?]$/, ''); }),
+                 return _pqn[i].q.replace(/[？?]$/, ''); }),
                missed: s2.missed.map(function (i) {
-                 return _mcQS(_d.pack)[i].q.replace(/[？?]$/, ''); }) },
+                 return _pqn[i].q.replace(/[？?]$/, ''); }) },
         date: todayIso() }, 'mochi');
     }
     if (act === 'flip') {
@@ -20571,9 +20738,15 @@ function _renderMochi() {
         return;
       }
       try { localStorage.setItem('mochi:nick', gn3); } catch (eN3) {}
+      /* R3427：自写题成绩条走 v3（题包随行，出题人打开能对上题）。 */
+      var _rqj = '';
+      try { _rqj = _d2.qs || ''; } catch (eRQ) {}
       var rlink = location.origin + '/?view=mochi#mcr=' +
-        _mcEnc('v2|' + (_d2.hn || 'TA') + '|' + gn3 + '|' +
-               _d2.ha + '|' + _d2.ga + '|' + (_d2.pack || 'bestie'));
+        (_d2.pack === 'custom' && _rqj
+          ? _mcEnc('v3|' + (_d2.hn || 'TA') + '|' + gn3 + '|' +
+                   _d2.ha + '|' + _d2.ga + '|c|' + _mcEnc(_rqj))
+          : _mcEnc('v2|' + (_d2.hn || 'TA') + '|' + gn3 + '|' +
+                   _d2.ha + '|' + _d2.ga + '|' + (_d2.pack || 'bestie')));
       var card = '<div class="mc-head">成绩条包好啦——发回去，' +
         '让 TA 看看你们多默契</div>' +
         '<input id="mochiLink" class="mc-link" readonly ' +

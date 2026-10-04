@@ -4667,6 +4667,12 @@ def _run_inner() -> list[str]:
         "心动默契题" in _appsrc2, \
         "默契双题库：love 题库/_mcPackOf/切换钮缺一"
     ok.append("frontend.mochi_packs")
+    # R3427 自写题：v3 载荷/题包编解码/编辑器/自写链生成四件套——
+    # 缺一则自写挑战书出不了链或受邀方看不到题。
+    assert "v3|" in _appsrc2 and "_mcQDec" in _appsrc2 and \
+        "_mcEditRead" in _appsrc2 and 'data-pack="custom"' in _appsrc2, \
+        "默契自写题：v3/_mcQDec/_mcEditRead/custom 包钮缺一"
+    ok.append("frontend.mochi_custom")
     # R3388 每日一签：懒载器/同签闸/历史/白名单/备份前缀五件套——
     # 缺一则签页空渲、同日变签、跨链断档、聊路死链或清场漏数。
     assert "view-qian" in _idxsrc and "_renderQian" in _appsrc2 and \

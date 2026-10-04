@@ -19134,3 +19134,21 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   aria-expanded。on_coverage 闸豁免表补 dcThumbBtn（同
   tarotPeekBtn 本地 toggle 模式）。
 - 闸：selftest 442 / ui_smoke 113 / contract 791 全绿。
+
+## R3427 默契挑战自写题（用户直报「题目能否自定义」）
+- 第三题库 pack='custom'：出题卡第三个包钮「✏️ 自己出题」→
+  编辑器 5 题×（题干≤20字 + 选项2~4个≤12字 + radio 勾选「我
+  的答案」），_mcEditRead 逐题校验（空题/选项不足/没勾选都
+  toast 指明题号）。
+- v3 载荷链：题包 JSON（嵌套 _mcEnc）随挑战书走——
+  #mc=v3|nick|ans|c|<题包> 受邀方见到同一套自写题+「自写题」
+  tag；#mcr=v3|hn|gn|ha|ga|c|<题包> 成绩条把题包带回出题人
+  对分。题包非法/截断→「弄丢」卡不静默换内置题。
+- _mcQS(pack, custom)/_mcScore/_mcCompareHtml 全链穿 qs 参数；
+  dataset.qs 存受邀方题包供 done/flip/share 复用；自写题用
+  bestie 判词档（内容用户自写不做恋爱假设）。
+- styles.css .mc-eq/.mc-eo 编辑器族（含深主题覆盖）。
+- 全链实测：出题→635 字符链→受邀者见自写题→答题→100分
+  灵魂搭子→v3 成绩链→出题人见「柚子」答卷+原题，零 JS 错。
+- 闸：selftest +frontend.mochi_custom（443 全绿）、旧 v1/v2
+  链向后兼容不受影响。

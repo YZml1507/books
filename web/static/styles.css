@@ -4173,6 +4173,28 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   color: var(--primary-ink, #7a4f2b);
   border: 1px solid rgba(176, 118, 74, .25);
   vertical-align: middle; }
+/* R3427 自写题编辑器：题干行 + 选项行（radio 打勾=我的答案）。 */
+.mc-eq { margin: 12px 0; padding: 10px 12px; border: 1px dashed
+  var(--line, #e0d4c0); border-radius: 14px;
+  background: rgba(255,255,255,.5); }
+.mc-eq-t { width: 100%; padding: 9px 12px; border: 1px solid
+  var(--line, #e0d4c0); border-radius: 10px; font-size: 14px;
+  background: #fff; color: var(--text, #3e3428); box-sizing: border-box; }
+.mc-eopts { margin-top: 8px; display: flex; flex-direction: column;
+  gap: 7px; }
+.mc-eo { display: flex; align-items: center; gap: 8px; }
+.mc-eo input[type="radio"] { flex: 0 0 auto; width: 17px; height: 17px;
+  accent-color: var(--primary, #b0764a); }
+.mc-eo-t { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid
+  var(--line, #e0d4c0); border-radius: 9px; font-size: 13px;
+  background: #fff; color: var(--text, #3e3428); }
+.mc-eq-t:focus, .mc-eo-t:focus { outline: 2px solid
+  var(--primary, #b0764a); outline-offset: 0; border-color:
+  var(--primary, #b0764a); }
+html[data-theme="dark"] .mc-eq { background: rgba(43,37,41,.6);
+  border-color: var(--line); }
+html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
+  background: #221D20; color: var(--text); border-color: var(--line); }
 
 /* ============ R3388 每日一签 ============ */
 .qian-box { display: flex; flex-direction: column; gap: 12px; }
