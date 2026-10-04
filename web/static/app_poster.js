@@ -455,6 +455,9 @@ function _paintSharePoster(s, W, H) {
                    /* R3540/81：加称号/旺运/好运行后至多 7 行——提帽 7
                     *（超帽先摘口号行保底数据行，见 R3581 尾）。 */
                    checkin: 7,
+                   /* R3598（审-P1）：monthrec 六数据行+口径=7 行——
+                    * cap4 静默切尾（打卡/好运/称号全被吃掉）。 */
+                   monthrec: 7,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
