@@ -3514,6 +3514,13 @@ function _chatFacts(facts, msg) {
       if (_mb.length)
         _f.push('她近几天自己记的心情：' + _mb.join('、') +
                 '。打卡区「📒 看看这周的你」有 7 天心情汇总小卡');
+      /* R3508：心情话题带上「小规律」观察——她在聊心情时，
+       * 小满手里有同一条本机交叉观察，不现编。 */
+      try {
+        var _pf = _ckPatternFind(todayIso());
+        if (_pf) _f.push('她的小规律：' + _pf.txt +
+          '（近 60 天实记交叉，只是观察不是断语）');
+      } catch (ePT2) {};
     }
     /* R3390：签语话题带今日签面——她聊「签上怎么说/这支签」时，
      * 小满手里得有她抽的那支（此前只能回「告诉我签面」空话）。
@@ -19528,7 +19535,7 @@ function _moodJarHtml() {
 /* R3503 你的小规律（Lunary「patterns that are yours」同构差异化
  * 件）：本地 mood:<date> 日志×星期/周末交叉出一条真实观察——
  * 只出一条最显著的，数据不够不说话，措辞「好像常常」不预测。 */
-function _ckPattern(todayKey) {
+function _ckPatternFind(todayKey) {
   try {
     var _cut = new Date(todayKey + 'T00:00:00');
     _cut.setDate(_cut.getDate() - 60);           // 只看近 60 天
@@ -19625,12 +19632,17 @@ function _ckPattern(todayKey) {
                (_wlift > 0 ? '亮一点' : '沉一点') });
       }
     }
-    if (!_cands.length) return '';
+    if (!_cands.length) return null;
     _cands.sort(function (a, b) { return b.lift - a.lift; });
-    return '<div class="ck-quest ck-pattern">📊 你的小规律：' +
-      esc(_cands[0].txt) + '<span class="ck-quest-n">记了 ' +
-      _recs.length + ' 天心情</span></div>';
-  } catch (ePT) { return ''; }
+    return { txt: _cands[0].txt, n: _recs.length };
+  } catch (ePT) { return null; }
+}
+function _ckPattern(todayKey) {
+  var _f = _ckPatternFind(todayKey);
+  if (!_f) return '';
+  return '<div class="ck-quest ck-pattern">📊 你的小规律：' +
+    esc(_f.txt) + '<span class="ck-quest-n">记了 ' +
+    _f.n + ' 天心情</span></div>';
 }
 /* R3497/R3500 小功课题池（模块级）：renderCheckin 与打卡海报
  * 分享同池出题——够得着的日常小事，周一确定轮换。 */
