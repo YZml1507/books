@@ -1361,6 +1361,30 @@ def main() -> int:
                 _cell = page.evaluate(
                     "document.querySelectorAll("
                     "'#mantraBookBody .mb-cell').length")
+                # R3376：显化打卡环——册头「今日念一遍」→ manifest:<今天>=1
+                # + 已念禁用态 + 复点无效 + meta 小链带连念天数。
+                _t0 = page.evaluate("""(() => {
+                    const b = document.querySelector(
+                        '#mantraBookBody [data-mb="today"]');
+                    return { has: !!b, txt: b ? b.textContent.trim() : '' };
+                })()""")
+                page.click('#mantraBookBody [data-mb="today"]')
+                page.wait_for_timeout(300)
+                _t1 = page.evaluate("""(() => {
+                    const t = new Date();
+                    const ds = t.getFullYear() + '-' +
+                        String(t.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(t.getDate()).padStart(2, '0');
+                    const b = document.querySelector(
+                        '#mantraBookBody [data-mb="today"]');
+                    const g = document.getElementById('mantraBookGo');
+                    return { marked: localStorage.getItem(
+                                 'manifest:' + ds) === '1',
+                             got: !!(b && b.classList.contains('got')),
+                             dis: !!(b && b.disabled),
+                             btxt: b ? b.textContent.trim() : '',
+                             meta: g ? g.textContent : '' };
+                })()""")
                 page.click('#mantraBookBody [data-mb="del"] >> nth=0')
                 page.wait_for_timeout(300)
                 _after = page.evaluate("""(() => {
@@ -1381,12 +1405,16 @@ def main() -> int:
                       _fav["d"] and _fav["link"] and _n2 == 1 and
                       _cell == 1 and _after["n"] == 0 and
                       _after["empty"] and not _after["got"] and
+                      _t0["has"] and _t1["marked"] and _t1["got"] and
+                      _t1["dis"] and '连念' in _t1["btxt"] and
+                      '连念' in _t1["meta"] and
                       not errors)
                 results.append({
                     "name": "ui:mantra_fav", "ok": ok,
                     "detail": (f"收后态={_fav['txt'].strip()} "
                                f"落盘={_fav['n']} 复点={_n2} "
-                               f"册格={_cell} 删后={_after}")})
+                               f"册格={_cell} 今日念={_t1} "
+                               f"删后={_after}")})
             except Exception as exc:
                 results.append({"name": "ui:mantra_fav", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
@@ -1394,6 +1422,10 @@ def main() -> int:
                 try:
                     page.evaluate(
                         "localStorage.removeItem('mantraFav');"
+                        "const _t = new Date(); const _ds = _t.getFullYear()"
+                        "+ '-' + String(_t.getMonth() + 1).padStart(2, '0')"
+                        "+ '-' + String(_t.getDate()).padStart(2, '0');"
+                        "localStorage.removeItem('manifest:' + _ds);"
                         "try { showView('home'); } catch(e) {}")
                 except Exception:
                     pass

@@ -14811,6 +14811,13 @@ function init() {
       } catch (eMV3) {}
       return;
     }
+    /* R3376：manifest: 跨 tab——A tab 念了，B tab 册头连念
+     * 天数就地更新。 */
+    if (e.key.indexOf('manifest:') === 0) {
+      try { _mantraBookMeta(); } catch (eMF1) {}
+      try { _renderMantraBook(); } catch (eMF2) {}
+      return;
+    }
     if (e.key.indexOf('shred:') === 0) {
       try { _shredRefreshSummary(); } catch (eSh) {}
       return;
@@ -19291,6 +19298,32 @@ function _mantraFavDel(ts) {
     localStorage.setItem('mantraFav', JSON.stringify(a));
   } catch (e) {}
 }
+/* ── R3376 显化打卡环 ──────────────────────────────────────────
+ * 「今日念一遍」记 manifest:<YYYY-MM-DD>=1——每天念咒语的连续
+ * 天数进咒语册头与首页 meta。今天没念时从昨天往回数（断签前
+ * 的连胜仍活着）。 */
+function _manifestDone(d) {
+  try { return localStorage.getItem('manifest:' + d) === '1'; }
+  catch (e) { return false; }
+}
+function _manifestStreak() {
+  var n = 0, t = new Date();
+  if (!_manifestDone(todayIso())) t.setDate(t.getDate() - 1);
+  for (;;) {
+    var ds = t.getFullYear() + '-' +
+      String(t.getMonth() + 1).padStart(2, '0') + '-' +
+      String(t.getDate()).padStart(2, '0');
+    if (!_manifestDone(ds)) break;
+    n++;
+    if (n > 400) break;
+    t.setDate(t.getDate() - 1);
+  }
+  return n;
+}
+function _manifestMark() {
+  try { localStorage.setItem('manifest:' + todayIso(), '1'); }
+  catch (e) {}
+}
 function _mantraFavSync(t, d) {
   /* 今日咒语行尾钮——同句今日已收显「已收」实心态。 */
   var b = el('mantraFav');
@@ -19305,11 +19338,14 @@ function _mantraFavSync(t, d) {
   b.setAttribute('aria-label', got ? '今日咒语已收藏' : '收藏今日咒语');
 }
 function _mantraBookMeta() {
-  /* 册入口——日卡 meta 行小链，攒了才现身（空册不占地）。 */
+  /* 册入口——日卡 meta 行小链，攒了才现身（空册不占地）。
+   * R3376：连念天数并进小链（念环的每日钩）。 */
   var n = _mantraFavAll().length;
+  var _mst0 = n ? _manifestStreak() : 0;
   _dailyMetaItem('dailyMantraBook', n
     ? '<button type="button" class="mantra-book-link" id="mantraBookGo">' +
-      '📖 咒语册 · 已攒 ' + n + ' 句</button>'
+      '📖 咒语册 · 已攒 ' + n + ' 句' +
+      (_mst0 ? ' · 连念 ' + _mst0 + ' 天' : '') + '</button>'
     : '');
   var g = el('mantraBookGo');
   if (g && !g.dataset.bound) {
@@ -19330,8 +19366,19 @@ function _renderMantraBook() {
     body.innerHTML = '<div class="ph-empty">册子还空着呢——' +
       '看到喜欢的那句，点旁边的小心心 🤍 就收进来啦</div>';
   } else {
+    /* R3376 显化打卡环：「今日念一遍」——点过记 manifest:<date>
+     * 并把今日咒语顺手进剪贴板；连念天数进册头。 */
+    var _mst = _manifestStreak(), _mdone = _manifestDone(todayIso());
     body.innerHTML = '<div class="mb-count">攒了 <strong>' + a.length +
       '</strong> 句 · 满 40 最旧的先出册</div>' +
+      '<div class="mb-ritual"><button type="button" class="mb-today' +
+        (_mdone ? ' got' : '') + '" data-mb="today"' +
+        (_mdone ? ' disabled' : '') + '>' +
+        (_mdone ? '✅ 今日已念' : '📿 今日念一遍') +
+        (_mst ? ' · 连念 ' + _mst + ' 天' : '') + '</button>' +
+        (_mdone ? ''
+               : '<span class="mb-rit-tip">点一下，今天的咒语顺手帮你复制</span>') +
+      '</div>' +
       '<div class="mb-grid">' +
       a.map(function (x) {
         return '<div class="mb-cell">' +
@@ -19360,6 +19407,22 @@ function _renderMantraBook() {
         ? ev.target.closest('[data-mb]') : null;
       if (!b) return;
       var act = b.dataset.mb, ts = b.dataset.ts;
+      if (act === 'today') {
+        _manifestMark();
+        try {
+          var _mt3 = el('dailyMantra');
+          var _mtxt = (_mt3 && _mt3.dataset)
+            ? String(_mt3.dataset.m || '') : '';
+          if (_mtxt && navigator.clipboard &&
+              navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(_mtxt).catch(function () {});
+          }
+        } catch (eMT) {}
+        showToast('今日咒语念过一遍啦——明天接着来', 'ok');
+        _renderMantraBook();
+        _mantraBookMeta();
+        return;
+      }
       if (act === 'copy') {
         var _hitItem = _mantraFavAll().filter(function (x) {
           return x && String(x.ts) === String(ts); })[0];
@@ -20008,7 +20071,7 @@ function baziPersonaCard(j) {
      * 清扫收它是对的——B 拉回自己的主题；wipe 留它是刻意的
      * 「忘掉不翻主题」。voiceMode/chatSessionId 是死键/会话锚，
      * 清扫要收但备份与导入不收。 */
-    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:)/;
+    var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:)/;
     var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
     /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
      * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */

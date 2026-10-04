@@ -18449,3 +18449,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - chat 词族：正缘/灵魂伴侣/对的人/命中注定/姻缘/另一半/良人/未来对象等 → taohua 路标「💘 去看正缘画像」（排在八字族前，「八字看正缘」先中画像族）
 - 资源管线：scripts/gen_soulmate.py（Agnes 离线烘焙，同壁纸管线 9:16 720x1280）；sm-metal/wood/water/fire/earth/peach 六图入库 web/static/soulmate/
 - 闸门：selftest +3 断言（词族命中含「八字看正缘」优先级）+ sm-* 底图静态可达性钉；ui_smoke +1 真用例（taohua.soulmate 点卡出卡）+ smShare 豁免钉
+
+## R3376 显化打卡环（P1 backlog 落地）
+- 咒语册册头新增「📿 今日念一遍」仪式行——点击记 `manifest:<YYYY-MM-DD>=1`，
+  顺手把今日咒语复制进剪贴板；念过翻「✅ 今日已念」禁用态。
+- 连念天数（今天没念从昨天往回数的活连胜）进册头与首页 meta 小链
+  「📖 咒语册 · 已攒 N 句 · 连念 M 天」；`manifest:` 入 _DATA_RE 备份
+  白名单（换机/无痕拉回后连念不丢）+ storage 跨 tab 监听。
+- 闸门：ui_smoke `ui:mantra_fav` 扩四断言（钮在/落键/禁用/meta 带天数）、
+  selftest 静态钉（白名单/计数/钮三件套）；CSS .mb-ritual/.mb-today。

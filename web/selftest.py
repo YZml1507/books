@@ -4572,6 +4572,11 @@ def _run_inner() -> list[str]:
     # R230h（R20-F7）：相冲词不作主推凭据——conflict 必须进调用与函数体。
     assert "j.conflict)" in _appsrc2 and "a.indexOf(w)" in _appsrc2, \
         "_hlVerdictHtml 必须收到 conflict 且判定器双向包含（R20-F1/F7）"
+    # R3376 显化打卡环：manifest:<date> 键必须入备份白名单
+    # （_DATA_RE）——漏了则换机/无痕拉回后连念记录静默丢。
+    assert "manifest:" in _appsrc2 and "_manifestStreak" in _appsrc2 and \
+        "data-mb=\"today\"" in _appsrc2, \
+        "显化打卡环：manifest: 白名单/连念计数/今日念钮三件套缺一"
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

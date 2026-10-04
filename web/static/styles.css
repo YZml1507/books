@@ -760,6 +760,20 @@ html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#
 .mb-act:active{transform:scale(.95);}
 .mb-act.mb-del{background:rgba(122,86,56,.07); color:var(--muted);}
 .mb-act.mb-del:hover{background:rgba(160,80,60,.14); color:#a0503c;}
+/* R3376：显化打卡环——册头「今日念一遍」仪式行 */
+.mb-ritual{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:6px 0 2px;}
+.mb-today{border:none; border-radius:99px; padding:7px 16px;
+  font-size:13px; font-weight:600; cursor:pointer; min-height:36px;
+  background:linear-gradient(135deg,#f4b8c9,#e89bb5);
+  color:#fff; box-shadow:0 2px 8px rgba(232,155,181,.35);
+  transition:transform .15s ease, box-shadow .2s ease;}
+.mb-today:hover{transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(232,155,181,.45);}
+.mb-today:active{transform:scale(.96);}
+.mb-today.got{background:var(--card); color:var(--secondary);
+  box-shadow:none; border:1px solid var(--line); cursor:default;}
+.mb-rit-tip{font-size:11px; color:var(--muted);}
 /* R3317-E：上周小记信卡——信纸感淡卡，收下即收 */
 .weekly-letter{margin:0 0 10px; border-radius:16px; overflow:hidden;
   border:1px solid rgba(214,169,110,.4);
