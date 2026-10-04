@@ -19664,3 +19664,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - clipboard 死循环：writeText 被拒原只弹 toast 死路——拒绝
   时回落 execCommand 再试，双败才报。
 - （子另报 ?view=soulmate 残链降级正常——无需修。）
+
+## R3471 小惊喜族可发现性（自审发现真缺口）
+- **问题**：四件小惊喜（方位/图腾/水晶/色谱）+算命 prompt 只藏在排盘结果折叠区——聊天里问「看看我的守护兽」「哪个方向旺我」小满干说、无入口；?view= 深链也无法直达卡。
+- **修法**：新增 sa* 锚族——`_openSaByKey(k)`（F/G/C/S/P 五键）已有排盘结果直开卡、未出盘存 `__saPending` 待启标记；submitBazi 渲染后消费 pending 或 `?sa=` URL 参数（replaceState 吞噬一次性参数）。`_CHAT_ACTIONS` 加五族路标（含 DeepSeek算命/prompt算命词）。
+- **实测**：`?view=bazi&sa=G` 落地→提交→saZone 自展+gdCard 填充+参数吞噬 ✓；聊天发问→`{anchor:saG}` chip→点击关侧栏切视图直开 ✓。
+- 自检钉：selftest chat.actionview 断言 ×5（saF/saG/saC/saS/saP）。

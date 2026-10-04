@@ -2356,6 +2356,14 @@ function _chatActChip(bubble, action) {
     /* R3352：锚点落位——路标不再只到页顶：目标 details 展开 +
      * 滚到门口。年报钮没达标时是 disabled 无 id 变体，回落打卡区。 */
     try {
+      /* R3471：sa* 锚——小惊喜族直达：结果已在屏直开；未出盘存
+       * 待启标记，submitBazi 渲染后自动展开（指路同时教会入口）。 */
+      if (/^sa[FGCSP]$/.test(action.anchor || '')) {
+        if (!_openSaByKey(action.anchor.slice(2))) {
+          window.__saPending = action.anchor.slice(2);
+        }
+        return;
+      }
       var _sel = _CHAT_ACT_ANCHORS[action.anchor];
       var _tgt = _sel ? document.querySelector(_sel) : null;
       if (!_tgt && action.anchor === 'annual')
@@ -7608,6 +7616,22 @@ async function submitBazi(event) {
     _rbBazi();   /* R218a-巡2（N-04）：传 view 让通用模板接管 */
     _paintKlineNow();   /* R3393：折叠内画布——buildBaziResult 已把
                             payload 存进 _lastKline */
+    /* R3471：小惊喜直达——聊天路标 sa* 待启标记，或 ?sa= 深链参数，
+     * 排盘一渲染就直开对应卡（此前四件只能靠用户自己发现折叠区）。 */
+    try {
+      var _saK = window.__saPending || '';
+      window.__saPending = '';
+      if (!_saK) {
+        _saK = new URLSearchParams(location.search).get('sa') || '';
+        if (_saK) history.replaceState(null, '', '/?view=bazi');
+      }
+      if (_saK && _openSaByKey(_saK)) {
+        var _z4 = el('saZone');
+        if (_z4) setTimeout(function () {
+          _z4.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 180);
+      }
+    } catch (eSA) {}
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
   } catch (e) {
     /* R218a-巡4（E-a/E-b）：失败态清成功期说明文字 + 内联重试按钮。 */
@@ -17305,6 +17329,23 @@ function _promptCopy(j, body) {
   } else {
     _fallback();
   }
+}
+
+/* R3471：小惊喜卡直达键——聊天路标 sa* 锚与 ?view=bazi&sa= 深链
+ * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt。
+ * 本 tab 已有排盘结果→直开对应卡（P 复制 prompt），返 true；
+ * 未出盘→false，调用方存待启标记，submitBazi 渲染后消费。 */
+function _openSaByKey(k) {
+  var _r = LAST_RESULT && LAST_RESULT.bazi;
+  if (!_r || !_r.json) return false;
+  var _z = el('saZone');
+  if (_z) _z.hidden = false;
+  var j = _r.json;
+  if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
+  else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
+  else if (k === 'P') _promptCopy(j, _r.body || {});
+  else return false;
+  return true;
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──

@@ -3113,6 +3113,12 @@ def _run_inner() -> list[str]:
     assert _svc_dm.chat_action_view("帮我排盘")["view"] == "bazi"
     assert _svc_dm.chat_action_view("合个盘")["view"] == "hehun"
     assert _svc_dm.chat_action_view("想写封未来信")["anchor"] == "checkin"
+    # R3471：小惊喜族 sa* 锚——四件+prompt 直达排盘折叠区卡。
+    assert _svc_dm.chat_action_view("哪个方向旺我")["anchor"] == "saF"
+    assert _svc_dm.chat_action_view("看看我的守护兽")["anchor"] == "saG"
+    assert _svc_dm.chat_action_view("我戴什么水晶好")["anchor"] == "saC"
+    assert _svc_dm.chat_action_view("灵魂色谱是什么")["anchor"] == "saS"
+    assert _svc_dm.chat_action_view("帮我把盘生成算命prompt")["anchor"] == "saP"
     _cf = _svc_dm.chat_action_facts("杨幂生日是哪天")
     assert _cf and "1986-09-12" in _cf[0] and "明星合盘" in _cf[0], _cf
     check("chat.action_field", client.post("/api/chat", json={
