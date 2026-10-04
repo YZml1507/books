@@ -4188,6 +4188,9 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 /* R3461：守护水晶卡——复用 sm-card 壳，晶石行居中大字。 */
 .cr-gem { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }
+/* R3490：灵魂角色卡——复用 sm-card 壳，角色行居中大字。 */
+.ic-fig { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
 /* R3462：灵魂色谱卡——色条即产品（各段 flex 占比=五行权重）。 */
 .sa-strip { display: flex; gap: 3px; height: 46px; margin: 14px 8px 6px;
   border-radius: 12px; overflow: hidden; }

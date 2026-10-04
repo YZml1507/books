@@ -383,6 +383,8 @@ function _paintSharePoster(s, W, H) {
                    /* R3477c-P1（亲审）：guardian/crystal 全字段齐 5 行
                     * ——cap4 把「口径」免责行静默切掉，提帽 6。 */
                    guardian: 6, crystal: 6,
+                   /* R3490：soulicon 五字段行+口径行。 */
+                   soulicon: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1819,6 +1821,31 @@ function buildShareData(view, j) {
       if (!_cr.lines.length) _cr.lines =
         [{ k: '结论', v: '晶石替你补着' }];
       return _cr;
+    }
+    case 'soulicon': {
+      /* R3490 灵魂角色海报：神话角色上主位大字，本命依据/气质/
+       * 角色判词进 lines，口径守恒——「图个像不像」免责口径。 */
+      var _ic = base('灵魂角色', '');
+      var _icBig = _pStr(j && j._icName) || '灵魂角色';
+      var _icGl = _pStr(j && j._icGlyph);
+      _ic.big = (_icGl ? _icGl + ' ' : '') + _icBig;
+      _ic.lines = [];
+      if (_pStr(j && j._icWx)) {
+        _ic.lines.push({ k: '本命', v: _pStr(j._icWx) + ' 行的角色' });
+      }
+      if (_pStr(j && j._icWhy)) {
+        _ic.lines.push({ k: '依据', v: _clauseCut(_pStr(j._icWhy), 20) });
+      }
+      if (_pStr(j && j._icVibe)) {
+        _ic.lines.push({ k: '气质', v: _clauseCut(_pStr(j._icVibe), 20) });
+      }
+      if (_pStr(j && j._icRole)) {
+        _ic.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._icRole), 20) });
+      }
+      _ic.lines.push({ k: '口径', v: '图个像不像，剧本自己写' });
+      if (!_ic.lines.length) _ic.lines =
+        [{ k: '结论', v: '这位神祇住你盘里' }];
+      return _ic;
     }
     case 'soulart': {
       /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带

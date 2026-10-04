@@ -119,6 +119,8 @@ BUTTON_CASES = [
     ("bazi.crystal",    "bazi",   None,            "#shareCrystal",    "#crCard .cr-card"),
     # R3462：灵魂色谱——bazi 出卡后点 🎨 钮出色谱卡。
     ("bazi.soulart",    "bazi",   None,            "#shareSoulart",    "#saCard .sa-card"),
+    # R3490：灵魂角色——bazi 出卡后点 🎭 钮出角色卡。
+    ("bazi.soulicon",   "bazi",   None,            "#shareSoulicon",   "#icCard .ic-card"),
     # R3464：算命 prompt——点 📋 钮复制（clipboard 成败两路都出 toast）。
     ("bazi.prompt",     "bazi",   None,            "#sharePrompt",     ".toast-item"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
@@ -478,6 +480,10 @@ def main() -> int:
         # R3462：色谱分享钮——downloadPoster('soulart') 海报模态，
         # 同族豁免；shareSoulart 本身有真用例。
         "saShare": "灵魂色谱「晒出我的色谱」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3490：灵魂角色分享钮——downloadPoster('soulicon') 海报模态，
+        # 同族豁免；shareSoulicon 本身有真用例。
+        "icShare": "灵魂角色「晒出我的角色」——downloadPoster 海报模态，"
                    "同 shareBazi 族豁免",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。

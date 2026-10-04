@@ -2361,7 +2361,7 @@ function _chatActChip(bubble, action) {
     try {
       /* R3471：sa* 锚——小惊喜族直达：结果已在屏直开；未出盘存
        * 待启标记，submitBazi 渲染后自动展开（指路同时教会入口）。 */
-      if (/^sa[FGCSP]$/.test(action.anchor || '')) {
+      if (/^sa[FGCSPR]$/.test(action.anchor || '')) {
         if (!_openSaByKey(action.anchor.slice(2))) {
           window.__saPending = action.anchor.slice(2);
         }
@@ -7031,11 +7031,16 @@ function buildBaziResult(j) {
      * prompt 尾巴带站链，贴到哪都算我们的曝光与回流钩。 */
     '<button class="ghost fav-btn" type="button" id="sharePrompt" ' +
       'title="把你的盘写成一段 prompt，贴给任何 AI 都能算">📋 算命 prompt</button>' +
+    /* R3490：灵魂角色——日主本命对应的神话角色（Astairo
+     * soul-icon 同构件，与图腾取法不同：看本命不看喜用）。 */
+    '<button class="ghost fav-btn" type="button" id="shareSoulicon" '
+ + '      title="看看你盘里住着哪位神话角色">🎭 灵魂角色</button>' +
     '</div>' +
     '<div id="fdCard"></div>' +
     '<div id="gdCard"></div>' +
     '<div id="crCard"></div>' +
-    '<div id="saCard"></div>';
+    '<div id="saCard"></div>' +
+    '<div id="icCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7643,6 +7648,7 @@ async function submitBazi(event) {
       on('shareCrystal', function () { _crOpen(j); });
       on('shareSoulart', function () { _saOpen(j); });
       on('sharePrompt', function () { _promptCopy(j, body); });
+      on('shareSoulicon', function () { _icOpen(j); });
       /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
        * 不到刚看过的卡）。
        * R3485-P2-1：展开后钮置 disabled + aria-expanded——否则
@@ -8851,6 +8857,8 @@ var _POSTER_TITLES = {
   crystal: '守护水晶',
   /* R3462：灵魂色谱海报弹层标题/下载文件名。 */
   soulart: '灵魂色谱',
+  /* R3490：灵魂角色海报弹层标题/下载文件名。 */
+  soulicon: '灵魂角色',
   /* R3479：色谱壁纸模态标题/文件名——回落「命盘海报」张冠李戴。 */
   'soulart-wap': '灵魂色谱壁纸',
   /* R3486：图腾壁纸模态标题/文件名。 */
@@ -8885,6 +8893,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   guardian: 'dream',
   /* R3461：守护水晶归紫云梦底——晶石的通透夜光感。 */
   crystal: 'dream',
+  /* R3490：灵魂角色归紫云梦底——神话的夜行神秘感（同图腾族）。 */
+  soulicon: 'dream',
   /* R3462：灵魂色谱——星云底由画家自画（s.art 分支），
    * 此键只为 _bgKey 兜底。 */
   soulart: 'lilac',
@@ -8947,6 +8957,8 @@ var _SHARE_TEXT = {
   crystal: '我的守护晶测出来了，看看哪颗晶石旺你 →',
   /* R3462：灵魂色谱——「我的盘是什么颜色」接力晒。 */
   soulart: '我盘里的色谱长这样，你的盘是什么颜色 →',
+  /* R3490：灵魂角色——「哪位神祇住我盘里」接力晒。 */
+  soulicon: '我盘里的灵魂角色出来了，看看哪位神祇住你盘里 →',
   /* R3479：色谱壁纸——「锁屏同款」接力晒。 */
   'soulart-wap': '我的五行色谱锁屏做好了，你的盘是什么颜色 →',
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
@@ -8967,7 +8979,7 @@ var _SHARE_TEXT = {
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
-  guardian: 'bazi', crystal: 'bazi', soulart: 'bazi',
+  guardian: 'bazi', crystal: 'bazi', soulart: 'bazi', soulicon: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun',
@@ -8979,7 +8991,7 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
 /* R3475：小惊喜海报分享链携带 sa 锚——受邀者排盘后自动开同款卡
  * （与聊天 sa* 锚/_openSaByKey 同键族）。 */
 var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
-  soulart: 'S', 'soulart-wap': 'S',
+  soulart: 'S', soulicon: 'R', 'soulart-wap': 'S',
   /* R3486：图腾壁纸回流锚。 */
   'guardian-wap': 'G' };
 function _shareText(view) {
@@ -16698,7 +16710,7 @@ if (document.readyState === 'loading') {
           var _saNk = (window.__shareSa ||
             new URLSearchParams(location.search).get('sa') || '');
           var _saNM = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
-            S: '灵魂色谱', P: '算命 prompt' };
+            S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色' };
           if (_saNM[_saNk]) {
             _relay.bazi = '朋友在晒 TA 的「' + _saNM[_saNk] +
               '」：排完你的盘，自动给你开同款 ✨';
@@ -16795,7 +16807,7 @@ if (document.readyState === 'loading') {
         var _saK2 = (window.__shareSa ||
           new URLSearchParams(location.search).get('sa') || '');
         var _saNM2 = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
-          S: '灵魂色谱', P: '算命 prompt' };
+          S: '灵魂色谱', P: '算命 prompt', R: '灵魂角色' };
         if (_saNM2[_saK2]) {
           _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
             '」：填生日排完盘，自动给你开同款 ✨';
@@ -17568,8 +17580,73 @@ function _promptCopy(j, body) {
   }
 }
 
+/* R3490 灵魂角色（Astairo soul-icon 同构第六件）：日主五行→
+ * 盘里住着哪位神话角色。与守护图腾取法故意不同：图腾看喜用
+ * （谁来补缺守你），角色看日主本命（你像谁）。全部公有领域
+ * 原型，不碰瓷真人。 */
+var _IC_FIGURE = {
+  '木': { glyph: '🌸', name: '女娲',
+    vibe: '炼石补天、抟土造人——「让万物长出来」的祖神',
+    role: '你盘里住着她：走到哪都自带让事情发芽的气场',
+    tip: '你的角色位是开创者——新东西从你手里冒出来' },
+  '火': { glyph: '🔥', name: '祝融',
+    vibe: '南方火神——光明热烈，一把火烧得堂堂正正',
+    role: '你盘里住着他：场子有你在才亮，天生的主场人物',
+    tip: '你的角色位是点灯人——出头的场合该你上' },
+  '土': { glyph: '🏔️', name: '后土',
+    vibe: '大地之母——厚德载物，托住万物的压舱石',
+    role: '你盘里住着她：团队散不散，看你站不站得住',
+    tip: '你的角色位是兜底人——别嫌戏少，压轴的都是你' },
+  '金': { glyph: '⚔️', name: '刑天',
+    vibe: '无头仍舞干戚——认死理儿的战神，杀伐决断',
+    role: '你盘里住着他：难啃的骨头、要断的事，都归你',
+    tip: '你的角色位是破局者——该砍的别拖，你下得去手' },
+  '水': { glyph: '🌊', name: '洛神',
+    vibe: '翩若惊鸿婉若游龙——灵动柔美的水边女神',
+    role: '你盘里住着她：硬碰硬不是你的戏，柔能克刚',
+    tip: '你的角色位是绕指柔——迂回渗透才是你的招' },
+};
+function _icPick(j) {
+  var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+    .charAt(0);
+  var wx = _SM_GAN_WX[_gan] || '木';
+  var why = _gan
+    ? '你日主 ' + _gan + '，五行属' + wx + '——这个角色跟你一个属性'
+    : '你的五行本命属' + wx + '——这个角色跟你一个属性';
+  return { wx: wx, why: why, f: _IC_FIGURE[wx] };
+}
+function _icCard(j) {
+  var _p = _icPick(j);
+  var _h = '<div class="ic-card sm-card">' +
+    '<div class="ic-fig">' + _p.f.glyph + ' <strong>' +
+      esc(_p.f.name) + '</strong></div>' +
+    '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
+    '<div class="sm-tip">✨ ' + esc(_p.f.vibe) + '</div>' +
+    '<div class="sm-tip">💬 ' + esc(_p.f.role) + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_p.f.tip) + '</div>' +
+    '<div class="sm-note">角色按你日主推，图个像不像——' +
+      '真人生剧本还得自己写</div>' +
+    '<button class="ghost fav-btn" type="button" id="icShare" ' +
+      'title="生成灵魂角色分享图">📸 晒出我的角色</button>' +
+    '</div>';
+  return { html: _h, pick: _p };
+}
+function _icOpen(j) {
+  var _icBox = el('icCard');
+  if (!_icBox || !j) return;
+  var _c = _icCard(j);
+  _icBox.innerHTML = _c.html;   // esc-reviewed：_icCard 内动态字段均过 esc()
+  on('icShare', function () {
+    var _o = { _icName: _c.pick.f.name, _icGlyph: _c.pick.f.glyph,
+               _icWx: _c.pick.wx, _icWhy: _c.pick.why,
+               _icVibe: _c.pick.f.vibe, _icRole: _c.pick.f.role };
+    return downloadPoster(Object.assign({}, j, _o), 'soulicon');
+  });
+  _icBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 /* R3471：小惊喜卡直达键——聊天路标 sa* 锚与 ?view=bazi&sa= 深链
- * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt。
+ * 共用。键：F=方位 G=图腾 C=水晶 S=色谱 P=算命prompt R=灵魂角色。
  * 本 tab 已有排盘结果→直开对应卡（P 复制 prompt），返 true；
  * 未出盘→false，调用方存待启标记，submitBazi 渲染后消费。 */
 function _openSaByKey(k) {
@@ -17578,7 +17655,7 @@ function _openSaByKey(k) {
   /* R3485-P2-3（审子实锤）：键校验前置——非法 sa 键原来先点亮
    * 折叠区才 return false，地址栏参数又已被剥，客人无端多出
    * 一排钮。 */
-  if ('FGCSP'.indexOf(k || '') < 0) return false;
+  if ('FGCSPR'.indexOf(k || '') < 0) return false;
   var _z = el('saZone');
   if (_z) _z.hidden = false;
   var _tg = el('saZoneToggle');
@@ -17590,6 +17667,7 @@ function _openSaByKey(k) {
   var j = _r.json;
   if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
+  else if (k === 'R') _icOpen(j);
   /* R3484-P1（审子实锤）：无手势环境（深链/待启消费）
    * writeText 必拒——「自动复制好」是空头支票。仍走
    * _promptCopy：手势路径（聊天 chip 点击）照常复制，
