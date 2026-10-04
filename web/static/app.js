@@ -19566,6 +19566,27 @@ function _ckPattern(todayKey) {
         }
       }
     }
+    /* 打卡次日提升——「打完卡的第二天你常常更亮」是最有留存
+     * 说服力的观察（R3504）：mood 日前一天有 checkin 键即入组。 */
+    var _pc = [], _nc = [];
+    _recs.forEach(function (r) {
+      var _y = _isoShift(r.d, -1);
+      var _hit = null;
+      try { _hit = localStorage.getItem('checkin:' + _y); } catch (eC) {}
+      (_hit !== null ? _pc : _nc).push(r);
+    });
+    if (_pc.length >= 3 && _nc.length >= 3) {
+      var _pcm = 0, _ncm = 0;
+      _pc.forEach(function (r) { _pcm += r.v; });
+      _nc.forEach(function (r) { _ncm += r.v; });
+      _pcm /= _pc.length; _ncm /= _nc.length;
+      var _cl = _pcm - _ncm;
+      if (Math.abs(_cl) >= 0.6) {
+        _cands.push({ lift: Math.abs(_cl), n: _pc.length,
+          txt: '你打完卡的第二天，心情好像常常' +
+               (_cl > 0 ? '更亮一点' : '偏沉一点') });
+      }
+    }
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
