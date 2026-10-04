@@ -82,7 +82,18 @@ if ('serviceWorker' in navigator) {
     _bt.push(_now);
     sessionStorage.setItem(_bk, JSON.stringify(_bt));
     if (_bt.length >= 4 && navigator.serviceWorker.controller) {
-      fetch('/static/app.js?v=__bf_probe__', { cache: 'no-store' })
+      /* R3380（审-SW-自扫）：探针改用本页 script 标签自带的
+       * ?v=<本页版本>——健康 SW（版本对得上）会回真字节 >2000，
+       * 只有「旧 SW + 新 HTML」混版时才吃到限频短脚本。
+       * 此前用 ?v=__bf_probe__：任何版本都 mismatch 回短脚本，
+       * 用户手动连刷 4 次也会被判成环、误注销全部 SW。 */
+      var _src = '';
+      try {
+        var _sj = document.querySelector('script[src*="/static/app.js"]');
+        if (_sj) _src = _sj.getAttribute('src') || '';
+      } catch (eS) {}
+      fetch(_src || '/static/app.js?v=__bf_probe__',
+            { cache: 'no-store' })
         .then(function (r) { return r.ok ? r.text() : ''; })
         .then(function (tx) {
           if (tx.length > 2000) return;   /* 真字节：非混版环 */

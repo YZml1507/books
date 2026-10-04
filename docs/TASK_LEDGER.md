@@ -18499,3 +18499,14 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   底图 warm、hook「用你上周真实记录拼的一封信」、_SHARE_VIEW_ALIAS
   落 home。真机实测出图零错（Playwright 种上周 checkin/mood→reload→
   信卡→下载）；gate:on_coverage 豁免（条件件）。
+
+## R3380 SW/PWA 终扫（自审，替 R3364 卡死子）+ 保险丝探针修版
+- 复核结论：混版自愈链完整（服务端注 ?v=<shell-hash> → 旧 SW 见
+  异版 ?v 回限频刷新脚本 → 新 SW 接管 → 真字节）；nav network-first
+  +8s 竞速+5xx 落壳、SHELL 全量、RT 180 桶、/sw.js no-cache+
+  Service-Worker-Allowed、旧 scope 清剿——无新问题。
+- 修一处真缺陷：bootflap 保险丝的版本探针用固定 ?v=__bf_probe__
+  ——任何版本 SW 都回限频短脚本，用户手动连刷 4 次也会被误判成
+  混版环并注销全部 SW。改用页上 script 标签自带的 ?v=<本页版本>：
+  健康 SW 回真字节（>2000 放行），只有旧 SW+新 HTML 才吃到短
+  脚本确证环路——误杀归零。
