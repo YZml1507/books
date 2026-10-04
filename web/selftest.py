@@ -2793,17 +2793,26 @@ def _run_inner() -> list[str]:
     assert _lc.status_code == 200 and "solar" in _lc.json(), (
         "lunar.convert.post", _lc.status_code, _lc.text[:200])
     ok.append("lunar.convert.post")
-    # 新月/满月：农历初一/十五出 phase——找个确定日（2026-10-10 是
-    # 农历九月初一？不猜历表，改为扫窗验证：30 天内至少 1 初一1 十五）。
+    # R3451 八相日行：30 天窗口必须天天有相（八相全出）、天天有
+    # glyph、且 action 只挂在新月/满月两日。旧断言只认两窗已升级。
     def _moon_scan():
-        _ph = set()
+        _ph, _acts = set(), set()
+        _missed = 0
         for _i in range(30):
             _ds = f"2026-11-{(_i % 28) + 1:02d}"
             _m = client.get("/api/daily", params={"date": _ds}).json().get("moon") or {}
-            if _m.get("phase"):
-                _ph.add(_m["phase"])
-        return _ph == {"新月", "满月"}
-    assert _moon_scan(), "moon phases missing in 30d window"
+            if not _m.get("phase"):
+                _missed += 1
+                continue
+            _ph.add(_m["phase"])
+            if not _m.get("glyph"):
+                return False
+            if _m.get("action"):
+                _acts.add(_m["action"])
+        return (_missed <= 1 and len(_ph) >= 7 and
+                "新月" in _ph and "满月" in _ph and
+                _acts <= {"wish", "wish_review"})
+    assert _moon_scan(), "moon phases/glyph/action 日行口径不满足"
     ok.append("daily.moon.phase")
     # R3317-G：今日牌——同日出同牌、词非空、位向布尔；两日不同 seed
     # 不强制异牌（%22 会撞），只钉字段形状与确定性。

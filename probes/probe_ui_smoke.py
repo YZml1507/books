@@ -562,8 +562,9 @@ def main() -> int:
         # 生成+仅农历初一/十五窗口有按钮的容器委托（.daily-moon-go
         # 子钮做 .ck-wish open + scrollIntoView），零请求；与
         # mercBreathe 同型豁免。
-        "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
-                     "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
+        "dailyMoon": "月相行许愿瓶钩+满月复盘卡——动态粒内委托"
+                     "（仅新月/满月 action 日有 .daily-moon-go），"
+                     "纯本地 open+scroll+recap 零请求；"
                      "与 mercBreathe 同型豁免",
         # R3368：万圣夜限定抽牌钮——仅 10.29–11.1 窗口显示（其余
         # 日期 hidden 不可点）；抽牌链路与 trQ1 同构已覆盖。

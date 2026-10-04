@@ -4560,3 +4560,6 @@ html[data-theme="dark"] .ansb-crisis {
 html[data-theme="dark"] .tr-liao-strip{
   background:linear-gradient(135deg,#2a2438,#332b44);
   border-color:rgba(160,140,220,.3); color:#c4b4e8;}
+/* R3451 满月复盘小结卡：挂月相行内，衬底弱化。 */
+.moon-recap{margin-top:6px; font-size:12.5px; line-height:1.6;
+  color:var(--secondary); padding-left:2px;}

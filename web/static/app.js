@@ -6330,9 +6330,12 @@ async function loadDaily() {
           (j.moon.action === 'wish_review' ? '翻翻瓶子 →' : '丢个愿望 →') +
           '</button>'
         : '';
+      /* R3451：八相日行——glyph 随相（后端下发），无 glyph 时按
+       * phase 回退老两档。 */
+      var _mG = j.moon.glyph ||
+        (j.moon.phase === '满月' ? '🌕' : '🌑');
       _dailyMetaItem('dailyMoon',
-        (j.moon.phase === '满月' ? '🌕 ' : '🌑 ') +
-        '<strong>' + esc(j.moon.label) + '</strong> ： ' +
+        _mG + ' <strong>' + esc(j.moon.label) + '</strong> ： ' +
         esc(j.moon.line || '') + _mBtn);
       var _mEl = el('dailyMoon');
       if (_mEl && !_mEl.dataset.bound) {
@@ -6341,6 +6344,38 @@ async function loadDaily() {
           var _t = ev.target;
           if (!_t || !_t.classList ||
               !_t.classList.contains('daily-moon-go')) return;
+          /* R3451：满月复盘先出小结卡——近 15 天打卡天数+瓶里还
+           * 躺着的愿望数，一行说清这半月，再带去看瓶子。 */
+          if (_t.dataset.moon === 'wish_review') {
+            try {
+              var _cd = 0, _dw = new Date();
+              for (var _cdi = 0; _cdi < 15; _cdi++) {
+                var _cds = _dw.getFullYear() + '-' +
+                  String(_dw.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(_dw.getDate()).padStart(2, '0');
+                if (localStorage.getItem('checkin:' + _cds) === '1') _cd++;
+                _dw.setDate(_dw.getDate() - 1);
+              }
+              var _wb = 0;
+              try {
+                var _wo = JSON.parse(
+                  localStorage.getItem('wishbottle') || 'null');
+                /* wishbottle 单对象 {t,c,ts,ny?}——主愿+跨年子愿
+                 * 各算一条。 */
+                if (_wo && _wo.t) _wb = 1;
+                if (_wo && _wo.ny && _wo.ny.t) _wb++;
+              } catch (eWB) {}
+              var _rc = _mEl.querySelector('.moon-recap');
+              if (!_rc) {
+                _rc = document.createElement('div');
+                _rc.className = 'moon-recap';
+                _mEl.appendChild(_rc);
+              }
+              _rc.textContent = '这半月你打了 ' + _cd + ' 天卡' +
+                (_wb ? '，瓶里还躺着 ' + _wb + ' 个愿望' : '') +
+                '——圆月替你记着。';
+            } catch (eRC) {}
+          }
           var _ck = el('dailyCheckin');
           if (!_ck) return;
           var _wish = _ck.querySelector('.ck-wish');
