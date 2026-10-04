@@ -8961,6 +8961,8 @@ var _POSTER_TITLES = {
   'guardian-wap': '守护图腾壁纸',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
+  /* R3596：月度复盘海报弹层标题/下载文件名。 */
+  monthrec: '上个月的小满',
   /* R3592：月相海报弹层标题/下载文件名。 */
   moon: '今晚的月亮',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -9004,6 +9006,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   soulart: 'lilac',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
+  /* R3596：月复盘同归暖底——月度信件的延续款。 */
+  monthrec: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
   mochi: 'warm',
   /* R3388：每日一签归青瓷底——庙里签筒的竹青色。 */
@@ -9075,6 +9079,8 @@ var _SHARE_TEXT = {
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
   'guardian-wap': '我的守护灵兽锁屏做好了，看看哪只守你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
+  /* R3596：月度复盘——「上个月的我」接力晒。 */
+  monthrec: '上个月的小满给我记了一笔账，看看你上月的 →',
   /* R3592：月相海报——「今晚的月亮一人一张」接力晒。 */
   moon: '今晚的月亮晒给你，你那儿的月亮什么样 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
@@ -9093,6 +9099,8 @@ var _SHARE_TEXT = {
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   /* R3592：月相海报复制链归 home——view=moon 不是页面。 */
   moon: 'home',
+  /* R3596：月复盘海报同口径归 home。 */
+  monthrec: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
   guardian: 'bazi', crystal: 'bazi', soulart: 'bazi', soulicon: 'bazi',
   soulemblem: 'bazi',
@@ -20635,7 +20643,34 @@ function renderCheckin(dateKey) {
           esc(_mParts.join('、')) + '，我都替你记着。' +
           esc(_MSEASON[_pm.getMonth()]) +
           (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
+          '<div class="wl-foot"><button type="button" class="wl-share" id="mlShare">晒这月 📮</button></div>' +
           '</div></div>';
+        /* R3596：月度复盘海报数据——与信内口径同组数字摆上行
+         * （Wrapped-lite 可晒收线）。 */
+        try {
+          var _mrRows = [];
+          if (_mCk) _mrRows.push({ k: '打卡', v: _mCk + ' 天' });
+          if (_mMd) _mrRows.push({ k: '记心情',
+            v: _mMd + ' 天' + (_mDom >= 0 && _MOOD_META[_mDom]
+              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : '') });
+          if (_mJ) _mrRows.push({ k: '小记', v: _mJ + ' 篇' });
+          if (_mBest >= 3) _mrRows.push({ k: '最长连签',
+            v: _mBest + ' 天' });
+          try {
+            var _mhi = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
+            var _mho = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+            if (_mhi || _mho) {
+              _mrRows.push({ k: '好运',
+                v: (_mhi ? '收 ' + _mhi + ' 个' : '') +
+                   (_mhi && _mho ? ' · ' : '') +
+                   (_mho ? '递 ' + _mho + ' 次' : '') });
+            }
+          } catch (eMH) {}
+          if (_msTitle) _mrRows.push({ k: '称号',
+            v: '「' + _msTitle + '」' });
+          window.__mlShareData = {
+            m: _pm.getMonth() + 1, rows: _mrRows };
+        } catch (eMS) {}
       }
     }
   } catch (eML) {}
@@ -20913,6 +20948,19 @@ function renderCheckin(dateKey) {
           '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
         if (_fm && _fm.focus) _fm.focus();
       } catch (eFM) {}
+    });
+  }
+  /* R3596：晒这月——月度复盘海报（Wrapped-lite）。 */
+  var _mls = box.querySelector('#mlShare');
+  if (_mls && !_mls.dataset.bound) {
+    _mls.dataset.bound = '1';
+    _mls.addEventListener('click', function () {
+      try {
+        var _msd = window.__mlShareData || { m: 0, rows: [] };
+        var _pmo = downloadPoster({ _mrRows: _msd.rows,
+          _mrM: _msd.m }, 'monthrec');
+        if (_pmo && _pmo.catch) _pmo.catch(function () {});
+      } catch (eMS2) {}
     });
   }
   /* R3497：本周小功课盖戳——wq:<周一> 落键后整卡重渲换「已盖戳」

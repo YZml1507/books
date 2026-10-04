@@ -2196,6 +2196,12 @@ button:active{transform:scale(.96);}
   border:1px solid var(--accent-ink); background:transparent;
   color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
 .ck-hug-back:active{background:var(--accent-ink); color:#fff;}
+/* R3596：月信「晒这月」钮——与 ck-hug-back 同族描边小丸。 */
+.wl-foot{margin-top:8px;}
+.wl-share{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.wl-share:active{background:var(--accent-ink); color:#fff;}
 .ck-quest-n{margin-left:auto; font-size:11px; color:var(--muted);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 /* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一

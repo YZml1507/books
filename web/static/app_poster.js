@@ -2067,6 +2067,24 @@ function buildShareData(view, j) {
         [{ k: '结论', v: '名片收齐六件' }];
       return _nc;
     }
+    case 'monthrec': {
+      /* R3596 月度复盘海报：上月数据行摆出（Wrapped-lite），
+       * 行集由前端月信卡同源计算，口径一致不另算。 */
+      var _mr = base('上个月的小满', '');
+      _mr.big = _pStr(j && j._mrM) + ' 月的小记';
+      _mr.lines = [];
+      ((j && j._mrRows) || []).forEach(function (r) {
+        if (r && r.k && r.v) {
+          _mr.lines.push({ k: _pStr(r.k),
+                           v: _clauseCut(_pStr(r.v), 20) });
+        }
+      });
+      _mr.lines.push({ k: '口径',
+        v: '上个月的你，小满都替你记着' });
+      if (_mr.lines.length === 1) _mr.lines =
+        [{ k: '结论', v: '上个月也辛苦啦' }];
+      return _mr;
+    }
     case 'moon': {
       /* R3592 月相海报：画家底=当晚真盈亏（s.art.moon.p），
        * 大字=月相 label（新月许愿/满月复盘/蛾眉等），lines
