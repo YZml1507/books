@@ -6402,7 +6402,7 @@ async function loadDaily() {
                   String(_wnm).slice(0, 24));
               } catch (eWN) {}
               var _wPl = '今晚满月，一起来丢个愿望吧——' +
-                '小满记账 🌕 → ' + _wl;
+                '写下来，小满替你收着 🌕 → ' + _wl;
               var _wOk = function () {
                 showToast('许愿邀请复制好了，发给 TA 吧', 'ok'); };
               var _wBad = function () {
