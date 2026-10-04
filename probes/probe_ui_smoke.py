@@ -514,6 +514,9 @@ def main() -> int:
         # 同族豁免；shareNamecard 本身有真用例。
         "ncShare": "灵魂名片「晒出我的名片」——downloadPoster 海报模态，"
                    "同 icShare/emShare 族豁免",
+        # R3603：夸夸我钮——downloadPoster('hype') 海报模态，同族豁免。
+        "ncHype": "灵魂名片「夸夸我」——downloadPoster('hype') 海报模态，"
+                  "同 ncShare 族豁免",
         # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
         # 同 dailyWap 族豁免（生成链路一致）。
         "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
