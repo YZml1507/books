@@ -601,6 +601,10 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .mw-cal-cell.hit:active{background:var(--border);}
 .mw-cal-cell.today{box-shadow:0 0 0 1.5px var(--accent) inset;}
 .mw-month-s{font-size:11.5px;color:var(--secondary);margin:6px 0 0;}
+.mw-navs{float:right;}
+.mw-nav{background:var(--bg);border:1px solid var(--border);
+  color:var(--secondary);border-radius:8px;min-width:30px;
+  min-height:30px;font-size:14px;cursor:pointer;padding:0 8px;}
 .mw-note{font-size:11px; color:var(--muted); line-height:1.6;
   margin-top:2px; text-align:center;}
 .mw-actions{display:flex; justify-content:center; margin-top:14px;}

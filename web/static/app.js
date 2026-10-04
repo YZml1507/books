@@ -19054,6 +19054,7 @@ function _moodWeekData() {
     prevText: prevText, jarTotal: jarTotal, pattern: _ptn,
     rangeStart: days[0].date, rangeEnd: days[6].date };
 }
+var _mwMonthOff = 0;   /* R3530：心情月历翻页偏移（0=当月） */
 function _renderMoodWeek() {
   /* 只在周记视图在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
   var vw = el('view-moodweek');
@@ -19079,10 +19080,12 @@ function _renderMoodWeek() {
   html += '</div>';
   /* R3524：这个月的心情日历——本地 mood: 键排进当月格子，
    * 记过的天按心情色染格、今天描边；一格没记时整块缺席，
-   * 不当催记告示。 */
+   * 不当催记告示。R3530：←→ 翻上/下月回看。 */
   try {
+    var _off = (typeof _mwMonthOff === 'number' ? _mwMonthOff : 0);
     var _td0 = todayIso();
-    var _yy = +_td0.slice(0, 4), _mm = +_td0.slice(5, 7);
+    var _base = new Date(+_td0.slice(0, 4), +_td0.slice(5, 7) - 1 + _off, 1);
+    var _yy = _base.getFullYear(), _mm = _base.getMonth() + 1;
     var _dim = new Date(_yy, _mm, 0).getDate();
     var _firstDow = (new Date(_yy, _mm - 1, 1).getDay() + 6) % 7;
     var _hasAny = false;
@@ -19097,7 +19100,7 @@ function _renderMoodWeek() {
       var _mk = 'mood:' + _yy + '-' + String(_mm).padStart(2, '0') +
                 '-' + String(_dayN).padStart(2, '0');
       var _mv = localStorage.getItem(_mk);
-      var _isTd = (_dayN === +_td0.slice(8, 10));
+      var _isTd = (_off === 0 && _dayN === +_td0.slice(8, 10));
       if (_mv !== null && _MOOD_META[+_mv]) {
         _hasAny = true;
         _mCount++; _mFreq[+_mv] = (_mFreq[+_mv] || 0) + 1;
@@ -19111,20 +19114,34 @@ function _renderMoodWeek() {
           (_isTd ? ' today' : '') + '"><i></i>' + _dayN + '</span>';
       }
     }
+    /* R3530：标题挂翻页——当月只给 ← 回看（未来月不去）；
+     * 回看月两头都给。任何月没记录也渲染壳子供翻回去。 */
+    var _mtTitle = (_off === 0 ? '这个月的心情'
+                  : _yy + ' 年 ' + _mm + ' 月的心情');
+    var _nav = '<button type="button" class="mw-nav" data-mw="-1" ' +
+      'aria-label="上个月">←</button>' +
+      (_off < 0
+        ? '<button type="button" class="mw-nav" data-mw="1" ' +
+          'aria-label="下个月">→</button>' : '');
+    html += '<div class="mw-month"><p class="mw-month-t">' +
+      _mtTitle + ' <span class="mw-navs">' + _nav + '</span></p>' +
+      (_hasAny
+        ? '<div class="mw-cal" role="list">' + _calRows + '</div>'
+        : '<p class="mw-month-s">这个月还没记过</p>');
     if (_hasAny) {
       var _mTop = -1, _mTopN = 0;
       _mFreq.forEach(function (n, i) {
         if (n > _mTopN) { _mTopN = n; _mTop = i; }
       });
-      html += '<div class="mw-month"><p class="mw-month-t">这个月的心情</p>' +
-        '<div class="mw-cal" role="list">' + _calRows + '</div>' +
+      html +=
         /* R3525：月度小结行——几天有记+主色调；≥8 天才敢说「多是」，
          * 少了只报数（与小规律同口径的诚实阈）。 */
-        '<p class="mw-month-s">这个月记下 ' + _mCount + ' 天' +
+        '<p class="mw-month-s">记下 ' + _mCount + ' 天' +
         (_mCount >= 8 && _mTop >= 0
           ? '，多是「' + esc(_MOOD_META[_mTop].t) + '」' : '') +
-        '</p></div>';
+        '</p>';
     }
+    html += '</div>';
   } catch (eCal) {}
   if (w.recorded > 0 && w.main >= 0) {
     html += '<div class="mw-main"><span class="mw-main-e">' +
@@ -19168,6 +19185,18 @@ function _renderMoodWeek() {
   if (!body._mdBound) {
     body._mdBound = true;
     body.addEventListener('click', function (e) {
+      /* R3530：←→ 翻页回看。 */
+      var _nv = e.target && e.target.closest
+        ? e.target.closest('.mw-nav') : null;
+      if (_nv) {
+        try {
+          _mwMonthOff = (typeof _mwMonthOff === 'number'
+                         ? _mwMonthOff : 0) + (+_nv.dataset.mw || 0);
+          if (_mwMonthOff > 0) _mwMonthOff = 0;
+          _renderMoodWeek();
+        } catch (eNV) {}
+        return;
+      }
       var _c = e.target && e.target.closest
         ? e.target.closest('.mw-cal-cell.hit') : null;
       if (!_c) return;
