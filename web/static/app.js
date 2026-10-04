@@ -16412,6 +16412,9 @@ function init() {
      * weeklyLetter:* 键变化同样触发打卡卡重渲。 */
     if (e.key.indexOf('weeklyLetter:') === 0 ||
         e.key.indexOf('monthlyLetter:') === 0 ||
+        /* R3618（亲审）：dday:* 跨 tab——A tab 定了目标日 B tab
+         * 的倒数行就地跟新。 */
+        e.key.indexOf('dday:') === 0 ||
         e.key.indexOf('wq:') === 0) {
       try { renderCheckin(todayIso()); } catch (eWL2) {}
       return;
