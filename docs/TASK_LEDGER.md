@@ -20317,3 +20317,6 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 
 ## R3665 wish=r 承接收尾
 - 新客 welcomeBar 补回递态文案（与 toast 同口径）；CTA 沿用「去丢个愿望」——回递者顺手许一个也通。
+
+## R3666 捣蛋签窗全链真机验证（时间冻结 4 例全过）
+- playwright context.add_init_script 冻结 Date：10/26 未抽提醒行✓ / 10/26 双签史「连抽 2 天」✓ / 11/2 收官 toast「抽到 1 支宜动签…去签页再看看」+hwCloseTip 年旗✓ / 10/23 倒计时「2 天后开张」✓——窗开当日链路零报错。（page.add_init_script 此版本静默不生效，用 context 级。）
