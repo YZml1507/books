@@ -497,8 +497,16 @@ function buildHehunResult(j) {
     ((j.a_name || '我') + ' × ' + (j.b_name || 'TA')) : '';
   /* R3304（审-P3）：昵称对嵌 h2<small> 会孤行——「八字合婚」独占
    * 一行后名字孤零零吊在第二行视觉断节。拆成独立配对行。 */
-  let html = '<div class="card"><h2>💕 八字合婚</h2>' +
-    (_hn ? '<p class="hh-pair">' + esc(_hn) + '</p>' : '');
+  /* R3247：明星合盘标题换「和「××」的合盘」——一眼可晒的素材位。 */
+  let html = '<div class="card"><h2>' +
+    (j.celeb ? '💕 和「' + esc(j.celeb.n) + '」的合盘' : '💕 八字合婚') +
+    '</h2>' +
+    (_hn ? '<p class="hh-pair">' + esc(_hn) + '</p>' : '') +
+    /* R3247：小满式导语压住「真爱配对」暗示——追星图个乐，
+     * 生日是公开资料，时辰未知，判词别当真。 */
+    (j.celeb ? '<p class="celeb-lead">✨ 追星合盘图个乐：' +
+      esc(j.celeb.n) + ' 的生日来自公开资料（时辰未知按正午排），' +
+      '判词就着热闹看，别当真～</p>' : '');
   html += _birthEcho('hehun');
   /* R3340（审-P2）：节气边界/夏令时/0点跨日警示——服务端 warn
    * 已透传（「A 盘：…」「B 盘：…」带侧标），前端此前不渲染。 */
@@ -595,6 +603,10 @@ function buildHehunResult(j) {
    * 躺在 a_bazi.render 里没用上；「日主」一词随行翻译成本命五行。 */
   html += '<div class="calc-block" style="border-left:3px solid var(--c-bazi);">' +
     '<h3 style="color:var(--c-bazi-ink);">' + esc(j.a_name || '甲') + '</h3>' +
+    /* R3247：受邀链落地时明星在 A 侧——生辰后挂「公开资料」小字。 */
+    (j.celeb && j.celeb.side === 'a'
+      ? '<span class="celeb-src">' + j.celeb.y + '-' + j.celeb.m + '-' +
+        j.celeb.d + ' · 公开资料</span>' : '') +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (a.render ? ' title="四柱：' + esc(a.render) + '"' : '') + '>' +
     esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
@@ -603,6 +615,10 @@ function buildHehunResult(j) {
     esc(a.day_master || '') + '（' + esc(j.day_wx_a || '') + '）</p></div>';
   html += '<div class="calc-block" style="border-left:3px solid var(--c-hehun);">' +
     '<h3 style="color:var(--c-hehun-ink);">' + esc(j.b_name || '乙') + '</h3>' +
+    /* R3247：明星侧生辰后挂「公开资料」小字注明来源。 */
+    (j.celeb && j.celeb.side === 'b'
+      ? '<span class="celeb-src">' + j.celeb.y + '-' + j.celeb.m + '-' +
+        j.celeb.d + ' · 公开资料</span>' : '') +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (b.render ? ' title="四柱：' + esc(b.render) + '"' : '') + '>' +
     esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
@@ -9094,9 +9110,176 @@ function _trPickInvalidate(msg) {
 }
 
 
+/* R3247：明星合盘——/static/celeb.json 内置公开生日库，点选把 TA 侧
+ * 填成明星生辰，提交仍走原有 /api/hehun 链路。隐私/生命周期纪律：
+ * ① 明星生辰不写 me/me:partner 档案、不进台账标题（请求里明星侧
+ *    昵称置 null，台账名回落「我 × TA」）；
+ * ② 用户手改明星侧任一字段（data-touched）或该侧字段被别的回填
+ *    盖掉（值对不上所选）即退出明星态，恢复普通合婚口径——
+ *    「除非用户主动改」之后的字段就是用户自己的数据，照常落档。 */
+var _CELEBS = null;        /* 惰性加载的名单缓存（null=未拉过） */
+var _CELEB_REQ = null;     /* 在途 fetch，防重复拉 */
+var __hhCeleb = null;      /* 当前明星选择 {n,y,m,d,g,tag,note,side:'a'|'b'} */
+var _CELEB_FIELDS = { a: 'hh_a_', b: 'hh_b_' };
+
+function _celebLoad() {
+  if (_CELEBS) return Promise.resolve(_CELEBS);
+  if (_CELEB_REQ) return _CELEB_REQ;
+  _CELEB_REQ = fetch('/static/celeb.json').then(function (r) {
+    if (!r.ok) throw new Error('celeb.json ' + r.status);
+    return r.json();
+  }).then(function (list) {
+    _CELEBS = (list || []).filter(function (c) {
+      return c && c.n && c.y >= 1900 && c.y <= 2100 &&
+             c.m >= 1 && c.m <= 12 && c.d >= 1 && c.d <= 31;
+    });
+    return _CELEBS;
+  }).catch(function () { _CELEB_REQ = null; return []; });
+  return _CELEB_REQ;
+}
+
+/* 明星侧字段是否仍等于所选：程序填充不动 data-touched，
+ * 手改（真实事件置 touched）或值被 chip/档案代入盖掉都会出局。 */
+function _celebOn(side) {
+  var c = __hhCeleb;
+  if (!c || c.side !== side) return false;
+  var s = side === 'a' ? 'a' : 'b';
+  var _fields = ['year', 'month', 'day', 'hour', 'gender', 'name',
+                 'cal', 'leap'];
+  for (var i = 0; i < _fields.length; i++) {
+    var e = el('hh_' + s + '_' + _fields[i]);
+    if (e && e.dataset && e.dataset.touched === '1') return false;
+  }
+  return num('hh_' + s + '_year') === c.y &&
+         num('hh_' + s + '_month') === c.m &&
+         num('hh_' + s + '_day') === c.d &&
+         (val('hh_' + s + '_name') || '').trim() === c.n;
+}
+
+function _celebSync() {
+  /* 明星侧已被动过/盖掉 → 清掉明星态，回落普通合婚口径。 */
+  if (__hhCeleb && !_celebOn(__hhCeleb.side)) _celebClear();
+}
+
+function _celebPickedRender() {
+  var pk = el('celebPicked');
+  if (!pk) return;
+  if (!__hhCeleb) { pk.hidden = true; pk.innerHTML = ''; return; }
+  var c = __hhCeleb;
+  pk.innerHTML = '已填好：<strong>' + esc(c.n) + '</strong>' +
+    (c.tag ? '（' + esc(c.tag) + '）' : '') +
+    ' <span class="cp-src">生日 ' + c.y + '-' + c.m + '-' + c.d +
+    ' · 公开资料</span>' +
+    /* side='a'（受邀链落地）不给 ×——数据是链接带来的，想换就改字段。 */
+    (c.side === 'b'
+      ? '<button type="button" class="cp-x" id="celebUnpick" ' +
+        'aria-label="取消明星选择" title="换回自己的 TA">×</button>' : '');
+  pk.hidden = false;
+}
+
+function _celebClear(restore) {
+  var c = __hhCeleb;
+  if (!c) return;
+  var s = c.side === 'a' ? 'a' : 'b';
+  __hhCeleb = null;
+  ['year', 'month', 'day', 'hour', 'gender', 'name', 'cal', 'leap'
+  ].forEach(function (f) {
+    var e = el('hh_' + s + '_' + f);
+    if (!e || !e.dataset) return;
+    delete e.dataset.celeb;
+    /* 用户点 × 摘星：把明星填过的格子归位出厂态（手改字段
+     * 走 _celebSync 清的，restore=false 不动值）。 */
+    if (restore) {
+      if (e.type === 'checkbox') e.checked = false;
+      else if (e.tagName === 'SELECT') e.selectedIndex = 0;
+      else e.value = e.defaultValue;
+    }
+  });
+  if (restore) {
+    var _fl = el('f_hh_' + s + '_leap');
+    if (_fl) _fl.hidden = true;
+  }
+  var pk = el('celebPicked');
+  if (pk) { pk.hidden = true; pk.innerHTML = ''; }
+  document.querySelectorAll('#celebGrid .celeb-chip.on').forEach(
+    function (x) { x.classList.remove('on'); });
+}
+
+/* 真实输入/改动事件落到明星侧 → 数据不再是公开资料原文，退出明星态
+ * （程序 .value= 不触发事件，摘星/邀请落地预填不会误清）。 */
+function _celebWatch(e) {
+  var c = __hhCeleb;
+  if (!c || !e.target || !e.target.id) return;
+  if (e.target.id.indexOf(_CELEB_FIELDS[c.side]) === 0) _celebClear();
+}
+['input', 'change'].forEach(function (ev) {
+  document.addEventListener(ev, _celebWatch, true);
+});
+
+function _celebRender(q) {
+  var box = el('celebGrid');
+  if (!box) return;
+  var list = _CELEBS || [];
+  var qq = (q || '').trim();
+  if (qq) {
+    list = list.filter(function (c) {
+      return (String(c.n) + ' ' + String(c.tag || '') + ' ' +
+              String(c.note || '')).indexOf(qq) !== -1;
+    });
+  }
+  if (!list.length) {
+    box.innerHTML = '<div class="ph-empty" style="padding:10px;">' +
+      '没搜到，换个名字试试～</div>';
+    return;
+  }
+  box.innerHTML = list.map(function (c) {
+    var on = _celebOn('b') && __hhCeleb && __hhCeleb.n === c.n;
+    return '<button type="button" class="celeb-chip' + (on ? ' on' : '') +
+      '" role="option" aria-selected="' + (!!on) +
+      '" data-celeb-n="' + esc(c.n) + '">' +
+      '<span class="cl-n">' + esc(c.n) + '</span>' +
+      '<span class="cl-t">' + esc(c.tag || '明星') + '</span>' +
+      '<span class="cl-d">' + c.y + '-' + c.m + '-' + c.d + '</span>' +
+      '</button>';
+  }).join('');
+}
+
+function _celebPick(c) {
+  _celebClear();
+  __hhCeleb = { n: String(c.n), y: +c.y, m: +c.m, d: +c.d,
+    g: (c.g === '男' || c.g === '女') ? c.g : '',
+    tag: String(c.tag || ''), note: String(c.note || ''), side: 'b' };
+  /* 程序填充：dataset.celeb 标来源（_meFill 档案回填免疫、
+   * _fieldsUntouched 判「动过」由守卫另查——总之不落 TA 档案）。 */
+  var _set = function (id, v) {
+    var e = el(id);
+    if (!e) return;
+    e.value = v;
+    delete e.dataset.me;
+    delete e.dataset.touched;
+    e.dataset.celeb = '1';
+  };
+  _set('hh_b_year', c.y); _set('hh_b_month', c.m); _set('hh_b_day', c.d);
+  /* 明星时辰不公开——留空=「时辰未知」诚实盘（服务端按正午排并明示）。 */
+  _set('hh_b_hour', '');
+  if (__hhCeleb.g) _set('hh_b_gender', __hhCeleb.g);
+  _set('hh_b_name', __hhCeleb.n);
+  _set('hh_b_cal', 'solar');
+  var _bl = el('hh_b_leap');
+  if (_bl) { _bl.checked = false; _bl.dataset.celeb = '1'; }
+  var _fl = el('f_hh_b_leap');
+  if (_fl) _fl.hidden = true;
+  _celebPickedRender();
+  _celebRender(el('celebSearch') ? el('celebSearch').value : '');
+  showToast('TA 侧已填好 ' + __hhCeleb.n +
+    ' 的公开生日——点「合一下」看看合不合 ✨', 'ok');
+}
+
+
 var _HH_GEN = 0;   /* R2502：合婚在途代际（同 _LY_GEN） */
 async function doHehun() {
   var _gen = ++_HH_GEN;
+  _celebSync();   /* R3247：明星侧被手改/盖掉 → 先回落普通合婚口径 */
   /* R233k（R45-§3）：双侧预检——空字段/非法日前端先拦。
    * R2349（R65-P1-5）：邀请态下 A 侧=TA、B 侧=我——措辞随视角翻转。 */
   var _hs = window.__hhInviteMode
@@ -9153,9 +9336,11 @@ async function doHehun() {
       b_hour: (_hhBH === '') ? 12 : num('hh_b_hour'),
       b_hour_known: _hhBH !== '',
       b_gender: val('hh_b_gender') || '女',
-      /* R230z（R36-P1-2）：昵称（可空）——后端回显进结果/海报/历史 */
-      a_name: (val('hh_a_name') || '').trim() || null,
-      b_name: (val('hh_b_name') || '').trim() || null,
+      /* R230z（R36-P1-2）：昵称（可空）——后端回显进结果/海报/历史
+       * R3247：明星侧昵称置 null——台账标题回落「我 × TA」，
+       * 明星选择不进账本；结果卡/海报仍用 j.*_name 注入显示。 */
+      a_name: _celebOn('a') ? null : ((val('hh_a_name') || '').trim() || null),
+      b_name: _celebOn('b') ? null : ((val('hh_b_name') || '').trim() || null),
       /* R3152：可空问句——服务端判词对着这句给定向行 */
       question: (val('hh_question') || '').trim() || null,
       /* R3313（审-P1-5）：邀请态下读盘的是 B 侧（受邀者）——
@@ -9178,6 +9363,8 @@ async function doHehun() {
     /* R230z（R36-P1-2）：昵称前端注入响应——结果卡/海报共用 j 一处 */
     j.a_name = (val('hh_a_name') || '').trim() || null;
     j.b_name = (val('hh_b_name') || '').trim() || null;
+    /* R3247：命中明星态 → 结果卡导语/公开资料标注/标题 */
+    j.celeb = __hhCeleb;
     /* R230y：A=我，B=TA——两条 profile 分开存
      * R233n续：邀请链落地时视角相反——受邀者填的 B 才是「自己」，
      * A（发起人）落到 me:partner。手改过 A 侧则恢复默认。 */
@@ -9204,7 +9391,8 @@ async function doHehun() {
         h: num('hh_a_hour'), g: val('hh_a_gender') || '女',
         leap: checked('hh_a_leap') };
       if (val('hh_a_name')) _optsPa.n = val('hh_a_name');
-      if (!_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
+      /* R3247：A 侧是明星公开生日（_celebOn('a')）不落 TA 档案。 */
+      if (!_celebOn('a') && !_fieldsUntouched(['hh_a_year','hh_a_month','hh_a_day',
                              'hh_a_hour','hh_a_gender']))
         await _meSaveFromBirth('me:partner', _optsPa);
       if (_oldP && (String(_oldP.y) !== String(num('hh_a_year')) ||
@@ -9228,7 +9416,8 @@ async function doHehun() {
         h: num('hh_b_hour'), g: val('hh_b_gender') || '女',
         leap: checked('hh_b_leap') };
       if (val('hh_b_name')) _optsPaB.n = val('hh_b_name');
-      if (!_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
+      /* R3247：B 侧是明星公开生日（_celebOn('b')）不落 TA 档案。 */
+      if (!_celebOn('b') && !_fieldsUntouched(['hh_b_year','hh_b_month','hh_b_day',
                              'hh_b_hour','hh_b_gender']))
         await _meSaveFromBirth('me:partner', _optsPaB);
     }
@@ -9258,7 +9447,10 @@ async function doHehun() {
         /* R2350b（R99-P1）：邀请态下受邀者=B 侧——再点「喊 TA 来对盘」
          * 应该编码受邀者自己的盘（B 侧），否则把发起人的生辰明文
          * 代发出去，语义也反了。 */
-        var _side = window.__hhInviteMode ? 'b' : 'a';
+        var _side = window.__hhInviteMode ? 'b'
+          /* R3247：明星合盘要编的是 B 侧明星生辰——受邀者落地填自己的，
+           * 进流程即「我和明星的合盘」。 */
+          : (_celebOn('b') ? 'b' : 'a');
         /* R2364（R120-P2）：年都没填就生成邀请——对方收到空 ay 落回
          * 出厂默认生日，还以为填好了。先拦一步。 */
         if (!val('hh_' + _side + '_year')) {
@@ -9284,9 +9476,14 @@ async function doHehun() {
         /* R3304（审-P2）：邀请此前只发裸链接——收方点开前看不到
          * 发起人/玩法钩子。带上名字+对盘邀请语（与小红书文案同口径）。 */
         var _invName = val('hh_' + _side + '_name') || '我';
-        var _msg = '💌 ' + _invName +
-          ' 喊你合个盘——看看你们俩的合拍指数\n' +
-          '在小满的解忧铺，点这里就能对上：\n' + _u;
+        /* R3247：明星邀请链的文案指向「你和明星合不合」——明星生辰
+         * 已编码进链接，受邀者只需填自己的生日。 */
+        var _msg = _celebOn('b')
+          ? '✨ 想测测你和 ' + _invName + ' 合不合？TA 的生日已编进链接\n' +
+            '在小满的解忧铺，点这里填上你的生日就对上了：\n' + _u
+          : '💌 ' + _invName +
+            ' 喊你合个盘——看看你们俩的合拍指数\n' +
+            '在小满的解忧铺，点这里就能对上：\n' + _u;
         var _ok = function () {
           showToast(_dayPick(['邀请链接复制好了（里面有你的生辰，发给信任的人哦）',
             '链接已备好，TA 打开就能接着测（链接含你的生辰信息）',
@@ -12791,6 +12988,13 @@ function initDivination() {
    * 没有更糟。受邀模式下 TA=A 侧（发起人）。 */
   on('hhSavePartner', async function () {
     var _p = window.__hhInviteMode ? 'hh_a_' : 'hh_b_';
+    /* R3247：明星侧不存档案——公开生日玩梗不写 TA 档；用户改过
+     * 明星侧字段（_celebSync 已清标志）按真人数据处理。 */
+    _celebSync();
+    if (_celebOn(_p === 'hh_a_' ? 'a' : 'b')) {
+      showToast('这是明星的公开生日，就不往 TA 档案里存啦～', 'info');
+      return;
+    }
     if (_fieldsUntouched([_p+'year', _p+'month', _p+'day', _p+'hour', _p+'gender'])) {
       showToast('先填一下 TA 的真实生日再存，现在还是示例值', 'warn');
       return;
@@ -12808,6 +13012,49 @@ function initDivination() {
     await _meSaveFromBirth('me:partner', _opts);
     showToast('TA 的生日存好啦：只留在这台设备上。之后聊感情，小满能对上 TA 的盘', 'ok');
   });
+  /* R3247：明星合盘选择器——抽屉首次拉开才拉名单（vendored 小文件，
+   * 本地即发）；搜索框按 名字/tag/note 过滤；点 chip 填 B 侧。 */
+  (function () {
+    var _drw = el('celebDrawer'), _box = el('celebGrid'),
+        _srch = el('celebSearch'), _pkd = el('celebPicked');
+    if (!_drw || !_box) return;
+    _drw.addEventListener('toggle', function () {
+      if (!_drw.open) return;
+      if (_CELEBS) {
+        _celebRender(_srch ? _srch.value : '');
+        return;
+      }
+      _box.innerHTML = '<div class="ph-empty" style="padding:10px;">' +
+        '名单加载中…</div>';
+      _celebLoad().then(function (list) {
+        if (list && list.length) {
+          _celebRender(_srch ? _srch.value : '');
+        } else {
+          _box.innerHTML = '<div class="ph-empty" style="padding:10px;">' +
+            '明星名单没拉下来，刷新再试～</div>';
+        }
+      });
+    });
+    if (_srch) {
+      _srch.addEventListener('input', function () {
+        _celebRender(_srch.value);
+      });
+    }
+    _box.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest
+        ? e.target.closest('.celeb-chip') : null;
+      if (!b) return;
+      var nm = b.getAttribute('data-celeb-n');
+      var c = (_CELEBS || []).filter(function (x) {
+        return x.n === nm; })[0];
+      if (c) _celebPick(c);
+    });
+    if (_pkd) {
+      _pkd.addEventListener('click', function (e) {
+        if (e.target && e.target.id === 'celebUnpick') _celebClear(true);
+      });
+    }
+  })();
   /* R229z续23（R10-#14）：占卜系视图不是 <form>，输入框回车无响应——
    * 视图级委托：任意 input 按 Enter = 点本视图主提交钮（原生 form 语义）。 */
   var _ENTER_SUBMIT = {
@@ -13327,6 +13574,8 @@ function _hhFavFill(ref) {
       }
     });
   }
+  /* R3247：chip 回填盖掉了明星侧 → 摘星，本对按普通合婚走。 */
+  try { _celebSync(); } catch (eCS) {}
   /* R233k（R45-P1-5）：原裸调 doHehun() 绕开 _ON_BUSY——连点不同 CP
    * chip 并发请求后到者盖先到者。走同一把锁，在途时记最新一对，
    * 响应落地后自动补跑。 */
@@ -14612,6 +14861,40 @@ function init() {
           try {
             window.__hhInviteBy = String(_qsAll.get('an') || '').slice(0, 24);
           } catch (eIB) {}
+          /* R3247：明星邀请链——发起人把明星生辰编进了链接，受邀者
+           * 落地 A 侧=明星。按「名字+年月日」对回 celeb.json 名单：
+           * 命中即切明星合盘口径（导语/公开资料标注/TA 档案免疫），
+           * 顺带藏掉选择器抽屉（受邀者自己不需要再挑明星）。 */
+          try { _celebClear(); } catch (eCC) {}
+          try {
+            var _cdr = el('celebDrawer');
+            if (_cdr) _cdr.hidden = true;
+          } catch (eCD) {}
+          _celebLoad().then(function () {
+            try {
+              if (!_CELEBS || !_CELEBS.length) return;
+              var _an0 = (val('hh_a_name') || '').trim();
+              var _mc = _CELEBS.filter(function (c) {
+                return c.n === _an0 &&
+                  num('hh_a_year') === +c.y &&
+                  num('hh_a_month') === +c.m &&
+                  num('hh_a_day') === +c.d;
+              })[0];
+              if (!_mc) return;
+              __hhCeleb = { n: _mc.n, y: +_mc.y, m: +_mc.m, d: +_mc.d,
+                g: (_mc.g === '男' || _mc.g === '女') ? _mc.g : '',
+                tag: String(_mc.tag || ''), note: String(_mc.note || ''),
+                side: 'a' };
+              /* 明星侧标来源：档案回填免疫 + 台账名置 null。 */
+              ['hh_a_year','hh_a_month','hh_a_day','hh_a_hour',
+               'hh_a_gender','hh_a_name','hh_a_cal','hh_a_leap'
+              ].forEach(function (id) {
+                var e = el(id);
+                if (e && e.dataset) e.dataset.celeb = '1';
+              });
+              _celebPickedRender();
+            } catch (eCM) {}
+          });
           try {
             history.replaceState(null, '',
               location.pathname + '?view=hehun');
@@ -17305,8 +17588,10 @@ function _meFill(key, ids) {
      * 表单档案代入从未生效过。值还停在出厂默认即视同未动过可回填；
      * select 无 defaultValue，用「还停在首选项」近似。受邀链回填的
      * 字段带 data-invite，跳过。R2501：data-touched 表示用户本 tab
-     * 实际碰过，即使后来改回默认值/首选项也不能被跨 tab 档案回填覆盖。 */
-    if (e.dataset.invite === '1' || e.dataset.touched === '1') return;
+     * 实际碰过，即使后来改回默认值/首选项也不能被跨 tab 档案回填覆盖。
+     * R3247：data-celeb=明星自动填——档案回填不得盖掉公开生日。 */
+    if (e.dataset.invite === '1' || e.dataset.touched === '1' ||
+        e.dataset.celeb === '1') return;
     var _untouched = (e.tagName === 'SELECT') ? (e.selectedIndex <= 0)
       : (e.value === '' || e.value === e.defaultValue);
     if (_untouched || e.dataset.me === '1') {

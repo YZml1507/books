@@ -4783,7 +4783,9 @@ def _run_inner() -> list[str]:
                # R3341：cream 运行时懒载图族同口径（与 bump_sw 一致）
                "cream/dream-*.jpg", "cream/sign-*.jpg",
                "cream/scene-*.jpg", "cream/bear-scene-*.jpg",
-               "cream/persona-*.jpg", "cream/hehun-bear.jpg"):
+               "cream/persona-*.jpg", "cream/hehun-bear.jpg",
+               # R3247：明星合盘名单同口径（与 bump_sw 一致）
+               "celeb.json"):
         for _ep in sorted(_gl5.glob(_os.path.join(
                 _os.path.dirname(__file__), "static", _g))):
             _h.update(_os.path.basename(_ep).encode())

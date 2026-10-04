@@ -1116,6 +1116,19 @@ try {
            me:partner，小满聊天就能对上 TA 的盘。 -->
       <button id="hhSavePartner" type="button" class="ghost" style="margin-top:8px;"
         title="只存在这台设备上，不提交、不测">先存下 TA 的生日（不测）</button>
+      <!-- R3247：明星合盘——挑个偶像把 TA 侧填成公开生日，走原有「合一下」
+           链路出盘。生日全部来自公开资料（公历），时辰按未知处理。 -->
+      <details class="pro-drawer" id="celebDrawer" style="margin-top:10px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--primary-ink);">✨ 和明星合盘：挑个偶像，看你们的八字合不合</summary>
+        <div style="margin-top:8px;">
+          <input id="celebSearch" type="search" inputmode="search" autocomplete="off"
+            placeholder="搜名字，比如 杨幂 / 周深" aria-label="搜索明星"
+            style="width:100%;box-sizing:border-box;">
+          <div id="celebGrid" class="celeb-grid" role="listbox" aria-label="明星列表"></div>
+          <p class="celeb-src-note">生日都是公开资料里的公历日期，时辰一律按未知算——图个乐就好～</p>
+        </div>
+      </details>
+      <div id="celebPicked" class="celeb-picked" hidden></div>
       <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「合一下」也能看，换成你们俩的更准～</div></div>
     </div>
   </div>
