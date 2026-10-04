@@ -6959,12 +6959,12 @@ function buildBaziResult(j) {
   /* R3456：旺你的方位——喜用→方位可晒件（中式版 astrocartography，
    * 全网调研验证的同公式品类）。五行分布在才出钮。 */
   if (j.calc && j.calc.five_elements && j.calc.five_elements.counts) {
-    /* R3462s：喜用四件收成「盘里小惊喜」折叠区——钮数破 7 时
-     * share-row 小屏吃 4 行 200px 顶穿判据 2 余量（c8_noq
-     * 186<200 实测）。一枚展开钮+四枚 compact chip（id 不变，
-     * on() 接线零改）。 */
+    /* R3462s：喜用四件收成「盘里小惊喜」折叠区（R3464 又进
+     * 算命 prompt 成五件）——钮数破 7 时 share-row 小屏吃 4 行
+     * 200px 顶穿判据 2 余量（c8_noq 186<200 实测）。一枚展开
+     * 钮+五枚 compact chip（id 不变，on() 接线零改）。 */
     html += '<button class="ghost fav-btn" type="button" id="sharePickZone" ' +
-      'title="盘里还藏着四件小惊喜">✨ 盘里小惊喜</button>';
+      'title="盘里还藏着几件小惊喜">✨ 盘里小惊喜</button>';
   }
   html += '</div>' +
     '<div class="sa-zone" id="saZone" hidden>' +
