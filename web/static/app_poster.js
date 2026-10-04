@@ -1489,6 +1489,10 @@ function buildShareData(view, j) {
       var _ck = base(_msCel ?
           '🏆 连签 ' + _pStr(j && j.msDays || j && j.streak) +
             ' 天 ·「' + _msCel + '」达成' :
+          _stk >= 365 ?
+          '📜 岁满典藏款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
+          _stk >= 180 ?
+          '🌾 半岁款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
           _stk >= 100 ?
           '🏮 百日传说款 · 连续 ' + _pStr(j && j.streak) + ' 天来小满打卡' :
           _stk >= 30 ?
