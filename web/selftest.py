@@ -3090,6 +3090,20 @@ def _run_inner() -> list[str]:
     _sm3 = _svc_dm.chat_action_view("灵魂伴侣长什么样")
     assert _sm3 and _sm3["view"] == "taohua", _sm3
     assert _svc_dm.chat_action_view("撕纸条那个功能在哪")["view"] == "home"
+    # R3418：签/卦/筊夹字形态 + 福签/桃花签 + K线/星座/排盘/未来信
+    # 路标（复扫词族修扎——防再漂移回子串死角）。
+    assert _svc_dm.chat_action_view("起了个卦")["view"] == "liuyao"
+    assert _svc_dm.chat_action_view("摇了一卦")["view"] == "liuyao"
+    assert _svc_dm.chat_action_view("抽个签")["view"] == "qian"
+    assert _svc_dm.chat_action_view("我的福签")["view"] == "qian"
+    assert _svc_dm.chat_action_view("桃花签在哪")["view"] == "qian"
+    assert _svc_dm.chat_action_view("掷个筊")["view"] == "oracle"
+    _klv = _svc_dm.chat_action_view("人生K线怎么画")
+    assert _klv and _klv["view"] == "bazi" and _klv["anchor"] == "kline", _klv
+    assert _svc_dm.chat_action_view("天蝎座今日运势")["view"] == "xingzuo"
+    assert _svc_dm.chat_action_view("帮我排盘")["view"] == "bazi"
+    assert _svc_dm.chat_action_view("合个盘")["view"] == "hehun"
+    assert _svc_dm.chat_action_view("想写封未来信")["anchor"] == "checkin"
     _cf = _svc_dm.chat_action_facts("杨幂生日是哪天")
     assert _cf and "1986-09-12" in _cf[0] and "明星合盘" in _cf[0], _cf
     check("chat.action_field", client.post("/api/chat", json={
@@ -4670,6 +4684,24 @@ def _run_inner() -> list[str]:
         'data-wish="echoShare"' in _appsrc2 and "_QIAN_CAISHEN" in _appsrc2, \
         "福签窗/跨年愿/还愿海报：窗表/分键/徽标/动作缺一"
     ok.append("frontend.cny_ny_wiring")
+    # R3418 P0/P1：掷筊三重闸（feCrisis→feSensitive→BIGQ，先于
+    # 种子判词）+ tarot/liuyao 提问钩危机闸 + 粉碎机双闸——
+    # 缺一则高危问句拿到确定性吉凶判词。
+    _orP = _appsrc2.index("function doOracle")
+    _orSeg = _appsrc2[_orP:_orP + 1400]
+    assert "feCrisis(q)" in _orSeg and "feSensitive(q)" in _orSeg and \
+        "_ANSB_BIGQ.test" in _orSeg and "_orReplyCard" in _orSeg, \
+        "掷筊三重闸缺（crisis/sensitive/BIGQ 须在种子前）"
+    _tq = _appsrc2.index("function tarotQuestionHook")
+    assert "feCrisis(question)" in _appsrc2[_tq:_tq + 900], \
+        "tarotQuestionHook 危机闸缺"
+    _ly = _appsrc2.index("function liuyaoQuestionHook")
+    assert "feCrisis(question)" in _appsrc2[_ly:_ly + 900], \
+        "liuyaoQuestionHook 危机闸缺"
+    _sh = _appsrc2.index("function _shredAction")
+    assert "feCrisis(t)" in _appsrc2[_sh:_sh + 1500], \
+        "粉碎机危机闸缺"
+    ok.append("frontend.oracle_gates")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了

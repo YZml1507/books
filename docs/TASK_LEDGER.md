@@ -18986,3 +18986,26 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   挂 📸（data-arg 集内下标，越界守卫 toast）。
 - 钉扎：selftest `frontend.cny_ny_wiring`（432）+ ui_smoke
   `ui:ny_wish_chain`（111：启封卡/收瓶/晒钮/双窗关窗判定）。
+
+## R3418 聊天/口吻域复扫清零（P0×1 + P1×6 + P2×7）
+- **P0-1 掷筊三重闸**：oracle 原是全站唯一无闸自由文本入口——
+  「要不要自杀」实测出圣筊「放手去做」（字面劝死）。照 _ansbFlip
+  同罐：feCrisis→_CRISIS_FE_REPLY 卡、feSensitive→_SENSITIVE 卡、
+  _ANSB_BIGQ→重题专用卡（不出三态判词不播筊动画）。
+- **P1-1**：tarotQuestionHook/liuyaoQuestionHook 补 feCrisis 先于
+  feSensitive——「我想死」类此前照常出方向模板。
+- **P1-2**：粉碎机双闸——「不想活了」不再被碎成「不归你管了」，
+  转介卡渲进 shredBody（复用 ansb-crisis 样式）。
+- **P1-3/4 路标族**：福签/新春签/桃花签进 qian 词表+前端注入正则；
+  「抽个签/起了个卦/摇了一卦/掷个筊」夹字形态全补。
+- **P1-5/6 词表**：危机硬表+改花刀|割手|遗书、折叠+想4/想亖、
+  软表+离开这个世界；敏感硬表+造黄谣/网暴/开盒/挂人、软表+
+  尾随|偷拍|流产|堕胎|打胎——前后端 llm_polish/app.js 同步。
+- **P2**：人生K线（bazi+kline锚）、星座族（序在今日运势族前——
+  「天蝎座今日运势」防被日签吃）、排盘|个盘入盘词集、合个盘入
+  合婚族、未来信→checkin 锚、_ANSB_BIGQ 补生育/婚姻/学业/赌博四族
+  （赌只收复合形防「赌气」误拦）、签 details 古本加缓冲注记。
+- 实测：要不要自杀→转介卡/要不要打胎→敏感卡/想4了→危机卡/
+  被网暴→敏感卡/赌气不中BIGQ/正常题照常出筊——0 pageerror。
+- 钉扎：selftest 433（+frontend.oracle_gates +11 路标断言），
+  llm_polish/banned_copy/ruff 全绿。

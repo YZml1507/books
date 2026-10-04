@@ -2314,7 +2314,9 @@ var _CHAT_ACT_ANCHORS = {
   checkin: '#dailyCheckin', annual: '#checkinYear',
   celeb: '#celebDrawer',
   /* R3370-P1-2：万圣限定卡锚——窗口内 trQH 已现身，滚到门口。 */
-  trQH: '#trQH' };
+  trQH: '#trQH',
+  /* R3418-P2-1：人生K线折叠卡锚——details 展开+滚到门口。 */
+  kline: '.kline-fold' };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
   /* R3368（积压-动作chip去重）：重试/打烊/任务落地多条链路
@@ -2931,7 +2933,9 @@ var _PINYIN_FOLD_FE = [
   [/跳lou(?![a-z])/gi, '跳楼'],
   [/(^|[^a-z])saorao(?![a-z])/gi, '$1性骚扰'],
   [/(^|[^a-z])wexie(?![a-z])/gi, '$1猥亵'],
-  [/(^|[^a-z])qj(?![a-z])/gi, '$1强奸']
+  [/(^|[^a-z])qj(?![a-z])/gi, '$1强奸'],
+  /* R3418-P1-5：本代际黑话——亖/4 是死的主流规避写法。 */
+  [/想[4亖]/g, '想死']
 ];
 function _normFEFlat(s) {
   s = _normFE(s).toLowerCase();
@@ -2946,7 +2950,10 @@ function _normFEFlat(s) {
 var _CRISIS_FE_HARD = new RegExp(
   '不想活|想死|自杀|自残|伤害自己|想不开|轻生|跳楼|抑郁|厌世|' +
   '活不下去|活[着著]好累|想消失|不想在了|烧炭|割腕|跳河|上吊|安眠药|' +
-  'suicide|kill\\s*myself|end\\s*it', 'i');
+  'suicide|kill\\s*myself|end\\s*it|' +
+  /* R3418-P1-5：本代际黑话与后端同表——改花刀=自残切口黑话
+   * （xhs 高频）；割手=割腕变体；遗书近无歧义。 */
+  '改花刀|割手|遗书', 'i');
 /* R2400（R126-P1-5）：与后端 _CRISIS_SOFT/OBJ_PAT + _is_crisis 同构——
  * 软词（死了算了类）按分句判，分句带物件词豁免（「电脑死了算了」）。 */
 /* R2994（巡#411）：与后端 _CRISIS_SOFT/OBJ_PAT 逐字同源——此前漏同
@@ -2961,7 +2968,10 @@ var _CRISIS_FE_SOFT = new RegExp(
   '敌敌畏|百草枯|喝.{0,3}毒药|去.{0,3}(天台|楼顶|桥).{0,4}算了|' +
   '(楼顶|天台|桥).{0,3}边缘|' +
   /* R3066：谐音/黑话形与后端同步（必带语气后缀防壶/局误伤）。 */
-  '想紫砂[了啦吧]|想重开[了啦吧]', 'i');
+  '想紫砂[了啦吧]|想重开[了啦吧]|' +
+  /* R3418-P1-5：软性告別语——「离开这个世界」有歧义但亏接得起，
+   * 与后端同步入软表吃物件豁免。 */
+  '离开这个世界', 'i');
 var _CRISIS_FE_OBJ = new RegExp(
   '电脑|手机|剧|综艺|游戏|网|车|机器|电池|冰箱|代码|程序|软件|文件|' +
   '快递|外卖|爱豆|偶像|交通|航班|火车|课|班|题|作业|考试|' +
@@ -3025,7 +3035,10 @@ var _SENSITIVE_FE_HARD = new RegExp(
   '被.{0,2}(虐待|强奸|性侵|猥亵|侵犯|强吻|迷奸|下药|胁迫|勒索|恐吓|威胁)|' +
   '强吻我|勒索我|恐吓我|威胁我|' +
   /* R2996：被下了药插字形 + 囚禁/裸照族。 */
-  '被.{0,2}下.{0,2}药|囚禁|非法拘禁|裸照|私密(照|视频|录像)|艳照', 'i');
+  '被.{0,2}下.{0,2}药|囚禁|非法拘禁|裸照|私密(照|视频|录像)|艳照|' +
+  /* R3418-P1-6：新世代侵害词族（受众画像内高频）——旧表收
+   * 性骚扰/被qj，网络侵害裸词此前全 miss。 */
+  '造黄谣|被造黄谣|网暴|开盒|被开盒|挂人|被挂', 'i');
 var _SENSITIVE_FE_SOFT = new RegExp(
   '还能活|活多久|会不会死|会死吗|要死了|晚期|治得好吗|寿命|肿瘤|打我|霸凌|跟踪|' +
   '白血病|尿毒症|心梗|脑梗|中风|脑溢血|化疗|透析|洗肾|' +
@@ -3042,6 +3055,9 @@ var _SENSITIVE_FE_SOFT = new RegExp(
   '威胁.{0,4}(照片|视频|录像|曝光|群发|发我|发出去|隐私|图)|' +
   '被.{0,3}(拍|录).{0,4}(照片|视频|录像|隐私|裸|私)|' +
   '掐.{0,2}脖|扇.{0,3}(耳光|巴掌)|被.{0,2}控制|PUA|' +
+  /* R3418-P1-6：尾随/偷拍入软层吃排除词豁免（新闻/剧情类
+   * 讨论语境兜住）；生殖大事披露——与 _ANSB_BIGQ 同级接住。 */
+  '尾随|被.{0,2}尾随|偷拍|被.{0,2}偷拍|流产|堕胎|打胎|' +
   '被.{0,3}(爸|妈|爹|父母|老公|丈夫|男友|男朋友|前夫|老婆|妻子|对象|伴侣|室友|同学|同事|领导|老师|继母|公婆|婆婆|岳母)' +
   '.{0,1}(打(?!call|电话|游戏|卡|球|牌|车|字|折|喷|呼|枪|拳|麻|工|听|赌|扮|扫|算|瞌|蚊|鼓|针|饭|水)|揍|扇|掐|踹|踢|抽|砸)|' +
   '被.{0,3}(爸|妈|爹|父母|老公|丈夫|男友|男朋友|前夫|老婆|妻子|对象|伴侣|室友|同学|同事|领导|老师|继母|公婆|婆婆|岳母)' +
@@ -3403,7 +3419,9 @@ function _chatFacts(facts, msg) {
      * 也带签字会过曝）。 */
     /* R3411-P2-5（终审）：窗口期她问「我的桃花签准吗」词表不含
      * 桃花签——小满手里没签面。补进注入词。 */
-    if (msg && /抽.{0,2}签|求.{0,2}签|解签|签诗|灵签|观音签|桃花签|这支签|那支签|签上说|签面|摇.{0,2}签/.test(msg)) {
+    /* R3418-P1-3：新春福签窗内聊「我的福签」裸词不沾边——
+     * qian:fact（写了 '新春' 题签）注不进来。补福签直词族。 */
+    if (msg && /抽.{0,2}签|求.{0,2}签|解签|签诗|灵签|观音签|福签|新春签|新年签|桃花签|这支签|那支签|签上说|签面|摇.{0,2}签/.test(msg)) {
       try {
         var _qf = JSON.parse(localStorage.getItem('qian:fact') || 'null');
         if (_qf && _qf.d === todayIso() && _qf.t) _f.push(_qf.t);
@@ -9088,6 +9106,13 @@ function _trVar(draws, arr, shift) {
 
 function tarotQuestionHook(question, draws) {
   /* R2349q（R81-P0-1）：生死/重病提问不走方向模板——转介文案。 */
+  /* R3418-P1-1：危机先接——「我想死」此前过 feSensitive 漏网照常
+   * 出方向模板（「整体是顺的」）。与 dream/chat 同罐双闸。 */
+  if (feCrisis(question)) {
+    return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+      esc(String(question).slice(0, 18)) + '」</span><p>' +
+      esc(_CRISIS_FE_REPLY) + '</p></div>';
+  }
   if (feSensitive(question)) {
     return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
       esc(String(question).slice(0, 18)) + '」</span><p>' +
@@ -9233,6 +9258,12 @@ function _liuyaoCoordLine(cat, paipan, moving) {
 
 function liuyaoQuestionHook(question, ben, bian, paipan) {
   /* R2349q（R81-P0-1）：生死/重病提问不走方向模板——转介文案。 */
+  /* R3418-P1-1：危机先接——与 tarot/dream/chat 同罐双闸。 */
+  if (feCrisis(question)) {
+    return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
+      esc(String(question).slice(0, 18)) + '」</span><p>' +
+      esc(_CRISIS_FE_REPLY) + '</p></div>';
+  }
   if (feSensitive(question)) {
     return '<div class="tarot-question-hook"><span class="tarot-hook-tag">针对「' +
       esc(String(question).slice(0, 18)) + '」</span><p>' +
@@ -12492,6 +12523,23 @@ var _JIAO = [
       '筊杯说别去。信它一回，今天的好运在别的事上。'
     ] }
 ];
+/* R3418-P0：闸后回复卡——不出筊动画不掷三态，直接上转介句
+ * （crisis/sensitive 全句已带安抚+指路；BIGQ 用本函数下的专用句）。 */
+function _orReplyCard(box, line) {
+  box.innerHTML = '<div class="or-verdict" id="orVerdict">' +
+    '<p class="or-line">' + esc(line) + '</p>' +
+    '<div class="ck-wish-actions">' +
+      '<button type="button" class="checkin-opt" id="orAgain">再想一件</button>' +
+    '</div></div>';
+  var ag = el('orAgain');
+  if (ag) ag.addEventListener('click', function () {
+    var t = el('orText');
+    if (t) { t.value = ''; try { t.focus(); } catch (e2) {} }
+  });
+}
+var _OR_BIGQ_LINE = '这事比掷筊大——筊杯不敢替你做主。' +
+  '大决定别交给签杯：找个你信得过的人当面掂掂，' +
+  '拿不准的也可以先来跟我说说。';
 function doOracle() {
   var ta = el('orText');
   var q = ta ? String(ta.value || '').trim().slice(0, 60) : '';
@@ -12501,6 +12549,13 @@ function doOracle() {
     showToast('先把纠结的事写一句话，筊杯才知道问什么', 'warn');
     if (ta) ta.focus();
     return;
+  }
+  /* R3418-P0：三重闸与 _ansbFlip 同罐——筊杯原是全站唯一无闸
+   * 自由文本入口，「要不要自杀」曾出圣筊「放手去做」（字面劝死）。 */
+  if (feCrisis(q)) { _orReplyCard(box, _CRISIS_FE_REPLY); return; }
+  if (feSensitive(q)) { _orReplyCard(box, _SENSITIVE_CHAT_REPLY); return; }
+  if (_ANSB_BIGQ.test(_normFEFlat(q))) {
+    _orReplyCard(box, _OR_BIGQ_LINE); return;
   }
   var seed = q + '|' + todayIso();
   var ji = _JIAO[_hashNum(seed) % 2 === 0 ? 0 : (_hashNum(seed) % 4 === 1 ? 1 : 2)];
@@ -20737,6 +20792,10 @@ function _qianSlipHtml(n, opts) {
          : '') +
        '<details class="qian-det"><summary>解曰与典故</summary>' +
        '<div class="qian-det-body">' +
+       /* R3418-P2-7：古本原文含「人口有灾」「投河」类硬描写——
+        * 加缓冲注记（上面卡面 say 已软化，details 是真本卖点）。 */
+       '<p class="qian-note2">古本原文，看个大意就好——' +
+       '说人话在上面那句。</p>' +
        '<div class="qian-yi">' + esc(q.yi) + '</div>' +
        '<div class="qian-jie">' + esc(q.jie) + '</div>' +
        (q.story ? '<div class="qian-story"><b>典故</b> ' + esc(q.story) + '</div>' : '') +
@@ -20993,6 +21052,16 @@ function _shredAction(act, dateKey) {
   var ta = document.getElementById('shredText');
   var t = ta ? ta.value.trim() : '';
   if (!t) { showToast('先写点什么，才有得碎', 'warn'); return; }
+  /* R3418-P1-2：倒苦水入口不收危机披露——「不想活了」此前被碎
+   * 成「不归你管了」「手挺快」。与许愿瓶/答案之书同罐转介。 */
+  if (feCrisis(t)) {
+    host.innerHTML = '<p class="ansb-crisis">' +
+      esc(_CRISIS_FE_REPLY) + '</p>'; return;
+  }
+  if (feSensitive(t)) {
+    host.innerHTML = '<p class="ansb-crisis">' +
+      esc(_SENSITIVE_CHAT_REPLY) + '</p>'; return;
+  }
   /* 粉碎动画：纸条裁成 7 条百叶窗切片，各自错落飘落。
    * 切片渲染完计一次件——动画期间防连点。 */
   var paper = document.createElement('div');
@@ -23658,7 +23727,12 @@ function _ansbCardHtml(i, q) {
  *（拆写「离\u200b婚」/零宽/繁体「離職」一并收）；补词
  * 离职|裸辞|跳槽|转行|流产|引产|复婚|闪离|分居|网贷|借贷|
  * 欠款|抵押|移民|出家|出柜|购房|分开，买卖借整改宽松形态。 */
-var _ANSB_BIGQ = /離婚|离婚|辞职|离职|裸辞|跳槽|转行|分手|分開|分开|分居|复合|復合|复婚|表白|借.{0,4}钱|借贷|欠款|网贷|抵押|贷款|投资|买.{0,3}房|卖.{0,3}房|购房|整.{0,2}容|手术|堕胎|流产|引产|休学|退学|远嫁|闪婚|闪离|移民|出家|出柜|报警|起诉|断绝|私奔/;
+/* R3418-P2-6：重题族补齐——生育（怀孕|备孕|试管…）、普通婚姻
+ * （结婚|领证|彩礼|同居——原表只到闪婚/远嫁）、学业大决定
+ * （考研|考公|复读|转专业|填志愿）、赌博（彩票|赌球|下注——
+ * 行动派池有「赌一把小的」直呼应句，不收赌=替赌博背书）。
+ * 赌字只收复合形——「赌气」是常见词不该进重题。 */
+var _ANSB_BIGQ = /離婚|离婚|辞职|离职|裸辞|跳槽|转行|分手|分開|分开|分居|复合|復合|复婚|表白|借.{0,4}钱|借贷|欠款|网贷|抵押|贷款|投资|买.{0,3}房|卖.{0,3}房|购房|整.{0,2}容|手术|堕胎|流产|引产|休学|退学|远嫁|闪婚|闪离|移民|出家|出柜|报警|起诉|断绝|私奔|怀孕|备孕|生孩子|避孕|试管|结婚|领证|求婚|订婚|彩礼|同居|考研|考公|复读|转专业|填志愿|彩票|赌博|赌球|赌钱|赌一把|下注/;
 /* R3411-P0（口吻终审）：稳派下标池里仍混着指向性/错场判词——
  * 「这个坑别跳」对离婚题是双向背书、「先存钱」拿钱包衡量手术、
  * 「这段放下」读起来就是劝分。缓派池再大也筛不净方向。
