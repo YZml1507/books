@@ -8291,6 +8291,8 @@ var _POSTER_TITLES = {
   'daily-outfit': '今日穿搭', moodweek: '心情周记',
   /* R3373：正缘画像海报弹层标题/下载文件名。 */
   soulmate: '正缘画像',
+  /* R3379：周记信海报弹层标题/下载文件名。 */
+  weekletter: '小满的上周小记',
   /* R3351（审-P2）：年报弹层标题/下载文件名此前回落
    * 「命盘海报/分享图」。 */
   'year-wrap': '小满年报' };
@@ -8304,6 +8306,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   moodweek: 'dream',   /* 心情周记归紫云梦底——夜灯系贴「一周心事」 */
   /* R3373：正缘画像归樱粉——与桃花同色系，是桃花卡的延伸。 */
   soulmate: 'sakura',
+  /* R3379：周记信归暖底——一封信的温度感。 */
+  weekletter: 'warm',
   'year-wrap': 'warm', /* R3351（审-P2）：年报归暖底——一年足迹的总结感 */
   renge: 'sakura' };   /* R3260 R9：夜灯紫夜系；R3304 人格归樱花粉 */
 /* R2349l.8：分享文案按视图定制——通用「测你的同款」太冷，给每视图
@@ -8341,10 +8345,11 @@ var _SHARE_TEXT = {
   'daily-outfit': '今天的五行穿搭色抄作业，看看你的是什么 →',
   /* R3373：正缘画像——爆款钩子（可晒社交货币+接力晒图）。 */
   soulmate: '盘里推出来的 TA 长这样，你的呢 →',
+  weekletter: '小满给我写了封上周小记，你的呢 →',
   renge: '测出我的五行人格了，你是哪型 →'};
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
-var _SHARE_VIEW_ALIAS = { soulmate: 'taohua' };
+var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -17254,6 +17259,9 @@ function renderCheckin(dateKey) {
                       '新周开张，先把小确幸收进口袋。'], 'wl|' + _mon);
         _wlHtml = '<div class="weekly-letter" id="weeklyLetter">' +
           '<div class="wl-head">💌 小满的上周小记' +
+          /* R3379：周记信可晒——真实记录拼的小记上分享海报。 */
+          '<button type="button" class="wl-share" id="wlShare" ' +
+          'title="把这封小记晒成图">📸</button>' +
           '<button type="button" class="wl-x" id="wlDismiss" ' +
           'aria-label="收下了，不再显示">×</button></div>' +
           '<div class="wl-body">' +
@@ -17520,6 +17528,18 @@ function renderCheckin(dateKey) {
       '<details class="ck-album ck-shred"><summary>🗑️ 烦恼粉碎机' +
       '<span id="shredSum"></span></summary>' +
       '<div class="ck-album-body" id="shredBody"></div></details>';
+  /* R3379：周记信晒图——取卡片里真实渲染的小记文本进海报。 */
+  var _wls = box.querySelector('#wlShare');
+  if (_wls && !_wls.dataset.bound) {
+    _wls.dataset.bound = '1';
+    _wls.addEventListener('click', function () {
+      var _wlBody = box.querySelector('#weeklyLetter .wl-body');
+      downloadPoster({
+        _wlBody: _wlBody ? _wlBody.textContent : '',
+        _wlWeek: dateKey
+      }, 'weekletter');
+    });
+  }
   /* R3317-E：信卡收下——写本周档键，重渲即消失（不再打扰）。 */
   var _wlx = box.querySelector('#wlDismiss');
   if (_wlx && !_wlx.dataset.bound) {
@@ -19320,9 +19340,21 @@ function _manifestStreak() {
   }
   return n;
 }
+/* R3378：连念里程碑档（3/7/14/30/60/100）——与连签 _checkinCelebrate
+ * 同档；今天已念过返回 0，否则返回新连胜数让调用方决定文案。 */
+var _MANIFEST_MILES = {
+  3: '三天连成线，咒语开始长在你身上',
+  7: '整一周天天念，愿望在路上',
+  14: '十四天连念，心诚则灵',
+  30: '满月连念，坚持发光',
+  60: '六十天连念，稳定得像月亮',
+  100: '百日连念，你是镇铺之宝'
+};
 function _manifestMark() {
+  var _was = _manifestDone(todayIso());
   try { localStorage.setItem('manifest:' + todayIso(), '1'); }
   catch (e) {}
+  return _was ? 0 : _manifestStreak();
 }
 function _mantraFavSync(t, d) {
   /* 今日咒语行尾钮——同句今日已收显「已收」实心态。 */
@@ -19408,7 +19440,7 @@ function _renderMantraBook() {
       if (!b) return;
       var act = b.dataset.mb, ts = b.dataset.ts;
       if (act === 'today') {
-        _manifestMark();
+        var _stNew = _manifestMark();
         try {
           var _mt3 = el('dailyMantra');
           var _mtxt = (_mt3 && _mt3.dataset)
@@ -19418,7 +19450,11 @@ function _renderMantraBook() {
             navigator.clipboard.writeText(_mtxt).catch(function () {});
           }
         } catch (eMT) {}
-        showToast('今日咒语念过一遍啦——明天接着来', 'ok');
+        showToast(
+          _stNew && _MANIFEST_MILES[_stNew]
+            ? '📿 连念 ' + _stNew + ' 天达成——' +
+              _MANIFEST_MILES[_stNew] + '，明天接着来'
+            : '今日咒语念过一遍啦——明天接着来', 'ok');
         _renderMantraBook();
         _mantraBookMeta();
         return;

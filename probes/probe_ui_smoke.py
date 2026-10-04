@@ -434,6 +434,10 @@ def main() -> int:
         # 模态，同 shareTaohua 族豁免；shareSoulmate 本身有真用例。
         "smShare": "正缘画像「晒出 TA 的画像」——downloadPoster 海报模态，"
                    "同 shareTaohua 族豁免",
+        # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
+        # 同族豁免；信卡本身是「本周首访+门槛」条件件，
+        # 真机链路在特性批 Playwright 手验（渲染+下载零错）。
+        "wlShare": "周记信「晒成图」——downloadPoster 海报模态，同族豁免",
         # R3317-D：今日咒语——纯客户端 clipboard.writeText 复制微交互，
         # 零请求；_dayPick 确定性已由单测级逻辑保证。
         "dailyMantra": "今日咒语点击复制——clipboard 微交互，零请求",

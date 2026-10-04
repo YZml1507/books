@@ -770,6 +770,8 @@ function _posterHookForView(view, j) {
     if (_smt) return 'TA 在路上——' + _smt;
     return '盘里推出的 TA，气质长这样';
   }
+  /* R3379：周记信——「用你真实记录拼的」是卖点本身。 */
+  if (view === 'weekletter') return '用你上周真实记录拼的一封信';
   if (view === 'bandaid') return '睡不着的时候，这张贴管用';
   if (view === 'lucky' && j) {
     var _lc3 = _pStr(j.lucky && j.lucky.color);
@@ -1448,6 +1450,23 @@ function buildShareData(view, j) {
       if (!_sm.lines.length) _sm.lines =
         [{ k: '结论', v: 'TA 在路上' }];
       return _sm;
+    }
+    case 'weekletter': {
+      /* R3379 周记信海报：小记原文拆句入 lines（每行一条），
+       * 周报感靠 hook 顶行。 */
+      var _wl = base('小满的上周小记', '');
+      _wl.big = '上周小记';
+      _wl.lines = [];
+      var _wTxt = _pStr(j && j._wlBody) || '';
+      /* 按句号/换行拆句，最多 4 条，每条约 20 字截断。 */
+      _wTxt.split(/[。\n]/).map(function (x) { return x.trim(); })
+        .filter(Boolean).slice(0, 4).forEach(function (_seg) {
+          _wl.lines.push({ k: '小记', v: _clauseCut(_seg, 22) });
+        });
+      if (!_wl.lines.length) {
+        _wl.lines = [{ k: '小记', v: '新的一周，慢慢来就好' }];
+      }
+      return _wl;
     }
     case 'hehun': {
       /* R230z（R36-P1-2）：海报标题用昵称对——「小鱼 × 阿哲」比

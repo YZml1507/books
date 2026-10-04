@@ -18487,3 +18487,15 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   「排盘工具→复制 prompt→chatbot」断链，我们盘+聊一体是现成答案。
 - 下几轮：R3378 连签/连念里程碑（7/30/90 天达到时庆祝 toast+可晒里程碑卡）、
   R3379 周记信→可晒海报（现有 weeklyLetter 加分享钮）、轮换审计继续。
+
+## R3378 连念里程碑（显化打卡环补全）
+- `_manifestMark` 返回新连胜数，`data-mb="today"` 钮念到 3/7/14/30/60/100
+  档给里程碑 toast「📿 连念 N 天达成——…」——与连签 _checkinCelebrate
+  同档（打卡侧重卡早已在 R231h/R2349t/R3319 落地，本补咒语侧）。
+
+## R3379 周记信→可晒海报
+- 信头加「📸」晒图钮（wl-share），取 .wl-body 真实渲染文本进海报：
+  `case 'weekletter'` 按句号/换行拆句入 lines（≤4 条×22字截断），
+  底图 warm、hook「用你上周真实记录拼的一封信」、_SHARE_VIEW_ALIAS
+  落 home。真机实测出图零错（Playwright 种上周 checkin/mood→reload→
+  信卡→下载）；gate:on_coverage 豁免（条件件）。
