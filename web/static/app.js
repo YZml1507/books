@@ -18389,6 +18389,18 @@ function _ncCard(j) {
     { ic: '🧿', k: '纹样', g: _em.e.glyph, v: _em.e.name },
     { ic: '🎭', k: '角色', g: _ic.f.glyph, v: _ic.f.name },
   ];
+  /* R3536：称号进名片——攒过的最高档（ckms:seen）挂上，
+   * 六件命盘件外多一枚「你们的关系」身份行。 */
+  try {
+    var _ncSeen = +(localStorage.getItem('ckms:seen') || 0);
+    var _ncTitle = '';
+    for (var _ni = 0; _ni < _MS.length; _ni++) {
+      if (_MS[_ni][0] <= _ncSeen) _ncTitle = _MS[_ni][1];
+    }
+    if (_ncTitle) {
+      rows.push({ ic: '🏷️', k: '称号', g: '', v: _ncTitle });
+    }
+  } catch (eNC) {}
   var _h = '<div class="nc-card sm-card">' +
     '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
   rows.forEach(function (r) {
@@ -19054,6 +19066,9 @@ function _moodWeekData() {
     prevText: prevText, jarTotal: jarTotal, pattern: _ptn,
     rangeStart: days[0].date, rangeEnd: days[6].date };
 }
+/* R3513/36：连签里程碑称号表——模块级，打卡称号与名片行同源。 */
+var _MS = [[7, '七日缘'], [21, '半月友'], [30, '一月知己'],
+           [66, '知心人'], [100, '百日故人']];
 /* R3532/35：本周旺运三池——模块级，打卡行与周记行同源。 */
 var _WL_C = ['奶油黄', '抹茶绿', '雾霾蓝', '蜜桃粉', '燕麦色',
   '浅紫', '橘红', '米白', '湖蓝', '樱花粉', '鹅黄', '灰绿',
@@ -19982,8 +19997,6 @@ function renderCheckin(dateKey) {
    * 往上走（Finch 式关系锚同口径）。 */
   var _msHit = null, _msTitle = '';
   try {
-    var _MS = [[7, '七日缘'], [21, '半月友'], [30, '一月知己'],
-               [66, '知心人'], [100, '百日故人']];
     _MS.forEach(function (m) { if (_streak >= m[0]) _msHit = m; });
     var _msSeen = +(localStorage.getItem('ckms:seen') || 0);
     if (_msHit && _msHit[0] > _msSeen) {
