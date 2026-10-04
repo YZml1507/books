@@ -20269,9 +20269,29 @@ function renderCheckin(dateKey) {
   /* R3568：递好运落地行——hug=1 落地时卡内挂一句好运
    * （toast/welcomeBar 一闪即过，卡行陪到当天打完卡）。 */
   try {
+    /* R3576：攒下的好运——hugin 计数（Finch「收到的抱抱」
+     * 同构）。hugseen 存上一条链的签名：同一条链 F5/重开
+     * 不重复计数。 */
+    var _hugN = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
     if (new URLSearchParams(location.search).get('hug')) {
+      /* 签名=发起人+当天：同链 F5/重开不重复计；同一人
+       * 隔天再递算新的一份；同一天两个不同署名各计。 */
+      var _hSig = String(typeof _shareByName === 'function' &&
+          _shareByName() || 'TA').replace(/[,\s|]/g, '') + '|' +
+          todayIso();
+      var _hSigs = (localStorage.getItem('hugseen') || '')
+        .split(',').filter(function (x) { return !!x; });
+      if (_hSigs.indexOf(_hSig) < 0) {
+        _hugN++;
+        localStorage.setItem('hugin', String(_hugN));
+        _hSigs.push(_hSig);
+        /* 只记近 20 条签名防无限长。 */
+        localStorage.setItem('hugseen', _hSigs.slice(-20).join(','));
+      }
       _hugHtml = '<div class="ck-quest ck-hug">🍀 有朋友今天给你' +
-        '递了个好运——顺着这份心意打个卡吧' +
+        '递了个好运' +
+        (_hugN > 1 ? '（你攒下的第 ' + _hugN + ' 个）' : '') +
+        '——顺着这份心意打个卡吧' +
         /* R3569：回递环——受邀者能顺手回递一个好运（跟 duel
          * 的续链同构：回传这一牙让链走成环）。 */
         ' <button type="button" class="ck-hug-back" id="ckHugBack">' +
@@ -24778,7 +24798,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugseen)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -25486,7 +25506,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugseen$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -25827,6 +25847,9 @@ function baziPersonaCard(j) {
                 k.indexOf('wq:') === 0 ||
                 k === 'ckms:seen' ||
                 k === 'pattern:seen' ||
+                /* R3576：攒下的好运计数/链签名同收（足迹件）。 */
+                k === 'hugin' ||
+                k === 'hugseen' ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
