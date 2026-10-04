@@ -19086,6 +19086,7 @@ function _renderMoodWeek() {
     var _dim = new Date(_yy, _mm, 0).getDate();
     var _firstDow = (new Date(_yy, _mm - 1, 1).getDay() + 6) % 7;
     var _hasAny = false;
+    var _mCount = 0, _mFreq = [0, 0, 0, 0];
     var _calRows = '';
     ['一', '二', '三', '四', '五', '六', '日'].forEach(function (_w) {
       _calRows += '<span class="mw-cal-h">' + _w + '</span>';
@@ -19099,6 +19100,7 @@ function _renderMoodWeek() {
       var _isTd = (_dayN === +_td0.slice(8, 10));
       if (_mv !== null && _MOOD_META[+_mv]) {
         _hasAny = true;
+        _mCount++; _mFreq[+_mv] = (_mFreq[+_mv] || 0) + 1;
         _calRows += '<span class="mw-cal-cell' + (_isTd ? ' today' : '') +
           '" title="' + esc(_MOOD_META[+_mv].t) + '"><i style="background:' +
           _MOOD_META[+_mv].c + '"></i>' + _dayN + '</span>';
@@ -19108,8 +19110,18 @@ function _renderMoodWeek() {
       }
     }
     if (_hasAny) {
+      var _mTop = -1, _mTopN = 0;
+      _mFreq.forEach(function (n, i) {
+        if (n > _mTopN) { _mTopN = n; _mTop = i; }
+      });
       html += '<div class="mw-month"><p class="mw-month-t">这个月的心情</p>' +
-        '<div class="mw-cal" role="list">' + _calRows + '</div></div>';
+        '<div class="mw-cal" role="list">' + _calRows + '</div>' +
+        /* R3525：月度小结行——几天有记+主色调；≥8 天才敢说「多是」，
+         * 少了只报数（与小规律同口径的诚实阈）。 */
+        '<p class="mw-month-s">这个月记下 ' + _mCount + ' 天' +
+        (_mCount >= 8 && _mTop >= 0
+          ? '，多是「' + esc(_MOOD_META[_mTop].t) + '」' : '') +
+        '</p></div>';
     }
   } catch (eCal) {}
   if (w.recorded > 0 && w.main >= 0) {
