@@ -392,9 +392,8 @@ function _paintSharePoster(s, W, H) {
                    /* R3494：namecard 六件行+口径行=7 行——默认 cap4
                     * 会切掉纹样/角色/口径三行，提帽 7。 */
                    namecard: 7,
-                   /* R3521：checkin 加称号行后满 5 行——cap4 会切掉
-                    * 称号/小功课尾行，提帽 5。 */
-                   checkin: 5,
+                   /* R3540：加称号/旺运行后满 6 行——提帽 6。 */
+                   checkin: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1520,6 +1519,22 @@ function buildShareData(view, j) {
           }
         }
       } catch (eMSA) {}
+      /* R3540：本周旺运行上海报——与卡内同盐同周一（_WL_* 池在
+       * app.js 顶层，本文件直接可用）；本地周一 ISO 手拼不用
+       * toISOString（UTC 会漂日）。 */
+      try {
+        var _wlBase = new Date(String(_pd).slice(0, 10) + 'T00:00:00');
+        var _wlDow = (_wlBase.getDay() + 6) % 7;
+        var _wlMonD = new Date(_wlBase);
+        _wlMonD.setDate(_wlBase.getDate() - _wlDow);
+        var _wlMon = _wlMonD.getFullYear() + '-' +
+          String(_wlMonD.getMonth() + 1).padStart(2, '0') + '-' +
+          String(_wlMonD.getDate()).padStart(2, '0');
+        _ck.lines.push({ k: '本周旺运', v: _clauseCut(
+          _dayPick(_WL_C, 'wlc|' + _wlMon).n + '·' +
+          _dayPick(_WL_I, 'wli|' + _wlMon) + '·' +
+          _dayPick(_WL_F, 'wlf|' + _wlMon), 20) });
+      } catch (eWLP) {}
       /* R3252：签面插画上海报——app.js 预载的奶油熊签面图直绘成
        * 卡座（与塔罗牌面同管线），抽到的那张签晒出去是「图」不是
        * 「字」。有插画卡时「今日签面」行与卡名重复，摘掉。 */
