@@ -22,16 +22,34 @@ import threading
 import urllib.request
 from datetime import datetime, timezone
 
+from . import deps
+
 _LOCAL = threading.local()
 
-_DB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data", "users.db")
+# R3362（R3360 审-P2）：此前自拼 __file__ 相对路径——PyInstaller
+# frozen 下 __file__ 指进 _MEIPASS 临时解压目录，users.db 每次启动
+# 随解压重建丢失；与 deps.ROOT 口径统一。
+_DB_PATH = os.path.join(deps.ROOT, "data", "users.db")
 
 _URL = os.getenv("BOOKS_USERDB_URL", "").strip()
 _TOKEN = os.getenv("BOOKS_USERDB_TOKEN", "").strip()
 _INITED = False
 _INIT_LOCK = threading.Lock()
+
+
+class UserDBError(Exception):
+    """libsql/本地库的语义级故障（pipeline 报错、响应对不上形）。
+    errors.py 注册成 503——此前 RuntimeError 穿透成英文裸 500。"""
+
+
+def config_issue() -> str:
+    """半配状态检测：只配 URL 不配 token → 全请求 401；URL 不是
+    libsql:// 前缀 → 静默回落 local（部署者以为云端已接）。"""
+    if _URL and not _URL.startswith("libsql://"):
+        return "BOOKS_USERDB_URL 不是 libsql:// 开头——已回落本机库"
+    if _URL and not _TOKEN:
+        return "只配了 URL 没配 BOOKS_USERDB_TOKEN——云端请求会 401"
+    return ""
 
 _DDL = [
     "CREATE TABLE IF NOT EXISTS accounts ("
@@ -73,25 +91,33 @@ def _ls_exec(sql: str, args: list) -> list[dict]:
         _http_host() + "/v2/pipeline", data=body,
         headers={"Authorization": "Bearer " + _TOKEN,
                  "Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=15) as r:
-        out = json.loads(r.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            out = json.loads(r.read().decode())
+    except (json.JSONDecodeError, ValueError) as e:
+        raise UserDBError(str(e)) from e
     res = out.get("results", [])
     if not res or res[0].get("type") != "ok":
         err = (res[0].get("error", {}) if res else {}).get("message",
                                                           "libsql error")
-        raise RuntimeError(err)
-    result = res[0]["response"]["result"]
-    cols = [c.get("name") for c in result.get("cols", [])]
-    rows = []
-    for row in result.get("rows", []):
-        d = {}
-        for c, cell in zip(cols, row):
-            v = cell.get("value")
-            if cell.get("type") == "integer":
-                v = int(v)
-            d[c] = v
-        rows.append(d)
-    return rows
+        # R3362（R3360 审-P1）：RuntimeError 穿透成英文裸 500——
+        # pipeline 语义错（SQL 错/命名空间错）归一到 UserDBError。
+        raise UserDBError(err)
+    try:
+        result = res[0]["response"]["result"]
+        cols = [c.get("name") for c in result.get("cols", [])]
+        rows = []
+        for row in result.get("rows", []):
+            d = {}
+            for c, cell in zip(cols, row):
+                v = cell.get("value")
+                if cell.get("type") == "integer":
+                    v = int(v)
+                d[c] = v
+            rows.append(d)
+        return rows
+    except (KeyError, TypeError, ValueError) as e:
+        raise UserDBError(str(e)) from e
 
 
 # ---------- 本地 sqlite ----------
@@ -100,7 +126,9 @@ def _local_conn() -> sqlite3.Connection:
     c = getattr(_LOCAL, "userdb", None)
     if c is None:
         os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
-        c = sqlite3.connect(_DB_PATH)
+        # R3362（R3360 审-P2）：busy_timeout——双设备同时 push
+        # 两个线程并发写即 SQLITE_BUSY→503，10s 等待把短锁变排队。
+        c = sqlite3.connect(_DB_PATH, timeout=10)
         c.row_factory = sqlite3.Row
         _LOCAL.userdb = c
     return c

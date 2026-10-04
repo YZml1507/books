@@ -243,15 +243,15 @@ FIXTURES: dict[str, dict] = {
     # 走重名拒，两条路的 {ok,msg} 读点都可判定）；login/pull/push
     # 用不存在的昵称→确定性的 {ok:false,msg} 带内拒答。
     "/api/account/status":  {"method": "GET"},
-    # api() 绑定的读点 url 是裸路径（与 GET 键同形）——fixture 按裸
-    # 路径键，method 字段里写 POST。
-    "/api/account/register": {"method": "POST",
+    # R3362：前端账号调用全走 postJSON——读点 url 前缀 "POST "，
+    # fixture 键同形（POST /api/x），url_real 自动剥前缀。
+    "POST /api/account/register": {"method": "POST",
         "json": {"nickname": "probe账号", "passcode": "246810"}},
-    "/api/account/login": {"method": "POST",
+    "POST /api/account/login": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
-    "/api/account/backup/pull": {"method": "POST",
+    "POST /api/account/backup/pull": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
-    "/api/account/backup/push": {"method": "POST",
+    "POST /api/account/backup/push": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810",
                  "payload": "{}"}},
 }

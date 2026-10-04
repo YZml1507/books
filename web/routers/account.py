@@ -10,6 +10,7 @@ token——账号本身无状态，没有会话可劫持。登录/拉取对
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 
@@ -40,17 +41,24 @@ def _rate_ok(key: str, limit: int) -> bool:
 
 
 def _client_ip(req: Request) -> str:
+    # R3362（R3359/60 审-P1）：与 _gate_ip 同口径——XFF 只在
+    # BOOKS_TRUST_XFF=1 时取尾段，否则无条件信会被自填值轮换桶位；
+    # 不信时退化为全局桶（与闸的 __all__ 同语义）。
     xff = (req.headers.get("x-forwarded-for") or "").strip()
-    if xff:
-        return xff.split(",")[-1].strip()
-    return req.client.host if req.client else "?"
+    if xff and os.getenv("BOOKS_TRUST_XFF", "").strip().lower() in (
+            "1", "on", "true", "yes"):
+        return xff.split(",")[-1].strip() or "?"
+    # 不信时连 req.client 都不能用——uvicorn --forwarded-allow-ips
+    # 已把 scope["client"] 用自填 XFF[0] 改写，同闸口径退全局桶。
+    return "__all__"
 
 
 @router.get("/api/account/status")
 def account_status() -> dict:
     """后端形态探测——前端据此决定要不要显示「同步不可用」。
-    libsql=云库已配（生产该有的样子）；local=本地文件兜底。"""
-    return {"backend": userdb.backend()}
+    libsql=云库已配（生产该有的样子）；local=本地文件兜底。
+    issue=半配状态（只配了 URL 或 token 之一等），空串=正常。"""
+    return {"backend": userdb.backend(), "issue": userdb.config_issue()}
 
 
 @router.post("/api/account/register")
@@ -65,7 +73,10 @@ def account_register(req: AccountAuthRequest, request: Request) -> dict:
 @router.post("/api/account/login")
 def account_login(req: AccountAuthRequest, request: Request) -> dict:
     ip = _client_ip(request)
-    if not _rate_ok("login:" + ip + ":" + req.nickname, 20):
+    # R3362（R3359 审-P1）：纯按昵称分桶时同码跨昵称喷洒不耗桶——
+    # 叠一层 IP 全局桶，60/分 ≈ 每秒一个，人用不了那么多。
+    if (not _rate_ok("login-ip:" + ip, 60)
+            or not _rate_ok("login:" + ip + ":" + req.nickname, 20)):
         return {"ok": False, "msg": "试太多次了，歇口气再来"}
     if not userdb.verify(req.nickname, req.passcode):
         return {"ok": False, "msg": "名字或口令码不对"}
@@ -89,7 +100,8 @@ def account_backup_pull(req: AccountAuthRequest,
                         request: Request) -> dict:
     """POST 而非 GET——口令在 body 里不进 URL/日志。"""
     ip = _client_ip(request)
-    if not _rate_ok("pull:" + ip + ":" + req.nickname, 20):
+    if (not _rate_ok("pull-ip:" + ip, 60)
+            or not _rate_ok("pull:" + ip + ":" + req.nickname, 20)):
         return {"ok": False, "msg": "试太多次了，歇口气再来"}
     if not userdb.verify(req.nickname, req.passcode):
         return {"ok": False, "msg": "名字或口令码不对"}

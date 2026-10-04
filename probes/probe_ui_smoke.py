@@ -1989,6 +1989,43 @@ def main() -> int:
                 results.append({"name": "ui:history.import", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # ── R3362：账号链路真浏览器路径——R3359 实测 api() POST 不带
+            # Content-Type 时 httpx 侧闸门全绿而 UI 里注册/登录/同步
+            # 全部 422。真人路径：填昵称+口令 → 注册 → 已登卡露面 →
+            # 手动同步出成功 toast（local 后端可用，不依赖云端）。
+            errors.clear()
+            try:
+                goto_view('history')
+                _nick = '探针' + str(int(__import__('time').time()) % 100000)
+                page.wait_for_selector('#acctNick', timeout=8000)
+                page.fill('#acctNick', _nick)
+                page.fill('#acctPass', '246810')
+                page.click('#acctRegister')
+                page.wait_for_selector('#acctLogged:not([hidden])',
+                                       timeout=8000)
+                _who = page.evaluate(
+                    "() => document.getElementById('acctWho').textContent")
+                page.click('#acctSyncNow')
+                # 等的是「同步好啦」这条——注册成功 toast 还在屏上，
+                # 不能按 .toast-item 存在性等（会命中上一条）。
+                page.wait_for_function(
+                    "() => Array.from(document.querySelectorAll("
+                    "'.toast-item')).some(t => t.innerText"
+                    ".indexOf('同步好啦') >= 0)",
+                    timeout=10000)
+                _tmsg = page.evaluate(
+                    "() => Array.from(document.querySelectorAll("
+                    "'.toast-item')).map(t => t.innerText).join('|')")
+                ok = (_who == _nick and '同步好啦' in _tmsg and not errors)
+                detail = (f"注册→已登卡 who={_who} + 同步 toast「{_tmsg[:18]}」"
+                          + ((" | " + "; ".join(errors[:3])) if errors else ""))
+            except Exception as exc:
+                ok, detail = False, f"{type(exc).__name__}: {exc}"
+                if errors:
+                    detail += " | " + "; ".join(errors[:3])
+            results.append({"name": "ui:account.register",
+                            "ok": ok, "detail": detail})
+
             # R2400k 云端/本机合渲：镜像里有而云端本页没有的行按 ts
             # 归位标「本机留档」。塞一条假留档行触发重载验证徽标。
             try:

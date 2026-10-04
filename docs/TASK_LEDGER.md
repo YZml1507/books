@@ -18223,3 +18223,30 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   内第 3 次进入判定刷新环，跳过注册、getRegistrations 全量
   注销后 location.reload 清场一趟；无 SW 拦截的加载必一致，
   下趟正常注册恢复 PWA。counter 在 tripwire 前重置防假环。
+
+## R3362 账号三审清零（R3359 账号深审 + R3360 部署态 + R3361 文案）
+- **P0 全灭根因**：前端 4 个 api() POST 不带 Content-Type，浏览器发
+  text/plain 恒 422——注册/登录/同步/拉回 UI 里 100% 不可用（httpx
+  侧闸门全绿的盲区）。全部改走 postJSON；ui_smoke 补
+  ui:account.register 真浏览器用例（填表→注册→已登卡→手动同步
+  toast），堵同类回归。
+- **限速两洞**：_client_ip 对齐 _gate 口径（BOOKS_TRUST_XFF opt-in，
+  不信时退 __all__ 全局桶——proxy-headers 改写后 req.client 也
+  不可信）；login/pull 叠 60/分 IP 全局桶，同码跨昵称喷洒实测断流。
+- **泄露面**：422 响应 input 原样回吐口令明文——/api/account/* 整键
+  剥除；libsql pipeline 语义错 RuntimeError→裸 500 改 UserDBError
+  →503 中文；.dockerignore 补 data/users.db + wal/shm（开发库打进
+  镜像层即散列+备份负载分发）。
+- **数据面**：镜像行删除不再发云端 DELETE（旧 id 可能已被回收误删
+  无关行）；登出连带清 lastsync+四组镜像键（跨账号串味）；拉回前
+  比对 exported_at 与 lastsync，云端更旧先 confirm；payload 超
+  1.1MB 先裁尾部台账/线程再发；visibilitychange 推带 keepalive；
+  手动同步撞在途锁改等待落完（冒烟实锤曾静默吞点击）。
+- **文案**：「云端没配（存本机库）」→ 能力边界明说；422 兜底「参数
+  格式不对」→「刚才那下没走通」；status 增 issue 字段点名半配
+  （只配 URL 或 token 之一）；明星生日/咒语册 ISO 日期中文化；
+  「再念一遍」→「存个档」；口令码 placeholder 不再暗示纯数字。
+- **边界**：昵称 NFKC 归一（全半角同形不再算三个号）；本地 sqlite
+  busy_timeout=10；_DB_PATH 走 deps.ROOT（frozen 不再丢库）。
+- 闸：selftest 415 / contract 762 读点 / ui_smoke 105（+1 新例）
+  全绿。

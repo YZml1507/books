@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import date
 
 import re
+import unicodedata
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -667,6 +668,9 @@ class AccountAuthRequest(BaseModel):
     def _nick_clean(cls, v: str) -> str:
         v = _ZW_RE.sub(
             "", "".join(ch for ch in v if ord(ch) >= 0x20)).strip()
+        # R3362（R3359 审-低）：NFKC 归一——Alice/ａｌｉｃｅ 不同形
+        # 原来算三个账号，用户自认同名登不上会懵。
+        v = unicodedata.normalize("NFKC", v).strip()
         if not v:
             raise ValidationError("昵称得写点东西")
         return v

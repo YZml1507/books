@@ -33,3 +33,9 @@ docs/
 # 方（grep 无引用），镜像层纯负重。
 assets_src/
 delivery/
+
+# R3362（R3360 审-P1）：账号本机库——开发用过的库带口令散列与
+# 全量备份负载，打进镜像层随分发即泄露。
+data/users.db
+data/*.db-wal
+data/*.db-shm

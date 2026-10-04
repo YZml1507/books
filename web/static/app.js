@@ -607,8 +607,8 @@ function buildHehunResult(j) {
     '<h3 style="color:var(--c-bazi-ink);">' + esc(j.a_name || '甲') + '</h3>' +
     /* R3247：受邀链落地时明星在 A 侧——生辰后挂「公开资料」小字。 */
     (j.celeb && j.celeb.side === 'a'
-      ? '<span class="celeb-src">' + j.celeb.y + '-' + j.celeb.m + '-' +
-        j.celeb.d + ' · 公开资料</span>' : '') +
+      ? '<span class="celeb-src">' + j.celeb.y + '年' + j.celeb.m + '月' +
+        j.celeb.d + '日 · 公开资料</span>' : '') +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (a.render ? ' title="四柱：' + esc(a.render) + '"' : '') + '>' +
     esc(a.year || '') + ' · ' + esc(a.day || '') + '</p>' +
@@ -619,8 +619,8 @@ function buildHehunResult(j) {
     '<h3 style="color:var(--c-hehun-ink);">' + esc(j.b_name || '乙') + '</h3>' +
     /* R3247：明星侧生辰后挂「公开资料」小字注明来源。 */
     (j.celeb && j.celeb.side === 'b'
-      ? '<span class="celeb-src">' + j.celeb.y + '-' + j.celeb.m + '-' +
-        j.celeb.d + ' · 公开资料</span>' : '') +
+      ? '<span class="celeb-src">' + j.celeb.y + '年' + j.celeb.m + '月' +
+        j.celeb.d + '日 · 公开资料</span>' : '') +
     '<p style="font-family:var(--font-serif);font-size:18px;"' +
     (b.render ? ' title="四柱：' + esc(b.render) + '"' : '') + '>' +
     esc(b.year || '') + ' · ' + esc(b.day || '') + '</p>' +
@@ -9307,8 +9307,8 @@ function _celebPickedRender() {
   var c = __hhCeleb;
   pk.innerHTML = '已填好：<strong>' + esc(c.n) + '</strong>' +
     (c.tag ? '（' + esc(c.tag) + '）' : '') +
-    ' <span class="cp-src">生日 ' + c.y + '-' + c.m + '-' + c.d +
-    ' · 公开资料</span>' +
+    ' <span class="cp-src">生日 ' + c.y + '年' + c.m + '月' + c.d +
+    '日 · 公开资料</span>' +
     /* side='a'（受邀链落地）不给 ×——数据是链接带来的，想换就改字段。 */
     (c.side === 'b'
       ? '<button type="button" class="cp-x" id="celebUnpick" ' +
@@ -16096,6 +16096,9 @@ function _moodWeekData() {
   var pool = _MOOD_WEEK_LINES[bucket];
   var wkSeed = Math.floor(Date.parse(todayIso() + 'T00:00:00') / 864e5 / 7);
   var verdict = pool[((wkSeed % pool.length) + pool.length) % pool.length];
+  /* R3362（R3361 审-低）：记了 1 天时「还没攒下」与主情绪标题
+   * 自相矛盾——单独成句，不与其他 none 混池。 */
+  if (recorded === 1) verdict = '才记了 1 天——多记几天，周记就有模样了';
   /* 与上周同口径对比——上周零记录就不出这行，不编造。 */
   var prevText = '';
   if (prevN > 0) {
@@ -18770,7 +18773,8 @@ function _renderWishBottle(edit) {
           (d === 0 ? '今天丢进来的' : '躺了 ' + d + ' 天') + '</div>' +
         '<div class="ck-wish-text">「' + esc(w.t) + '」</div>' +
         '<div class="ck-wish-meta">' + esc(_dayPick([
-          '它还在这儿，等你哪天来认领', '愿望没说出口就不算数？说了',
+          '它还在这儿，等你哪天来认领',
+          '愿望说出口才算数——你说出来了',
           '躺着躺着，说不定哪天就成真了', '瓶子帮你记着，你只管往前走'],
           'wish|' + (w.ts || 0))) + '</div>' +
         '<div class="ck-wish-actions">' +
@@ -18958,10 +18962,16 @@ function _renderMantraBook() {
       a.map(function (x) {
         return '<div class="mb-cell">' +
           '<div class="mb-t">「' + esc(x.t) + '」</div>' +
-          '<div class="mb-d">' + esc(x.d || '') + ' 收的</div>' +
+          /* R3362（R3361 审-P2）：ISO 日期裸贴与全站「10月4日」
+           * 口径不一；「再念一遍」名不符实（实际是复制）。 */
+          '<div class="mb-d">' + esc(String(x.d || '')
+            .replace(/^(\d{4})-(\d{1,2})-(\d{1,2}).*/,
+              function (_, y, m, d) {
+                return (+m) + '月' + (+d) + '日（' + y + '）';
+              })) + ' 收的</div>' +
           '<div class="mb-acts">' +
             '<button type="button" class="mb-act" data-mb="copy" data-ts="' +
-              esc(String(x.ts)) + '" title="复制这句">再念一遍</button>' +
+              esc(String(x.ts)) + '" title="复制这句">存个档</button>' +
             '<button type="button" class="mb-act mb-del" data-mb="del" ' +
               'data-ts="' + esc(String(x.ts)) +
               '" title="从咒语册删掉" aria-label="删除这条咒语">请出册子</button>' +
@@ -19335,7 +19345,10 @@ function baziPersonaCard(j) {
         const render = (it.result_summary && it.result_summary.paipan_render) || '';
         /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
          * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
+        var _mir = _localIds[String(it.id) + '|' + String(it.ts || '')]
+          ? ' data-mirror="1"' : '';
         return '<div class="ph-item" data-id="' + esc(String(it.id)) + '"' +
+          _mir +
           /* R3200：类型筛选——行元素带 type 供 chip 隐藏过滤 */
           ' data-type="' + esc(it.type || 'bazi') + '">' +
           '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
@@ -19400,6 +19413,16 @@ function baziPersonaCard(j) {
       tg.dataset.armed = '';
       if (tg.dataset.inflight === '1') return;
       tg.dataset.inflight = '1';
+      /* R3362（R3360 审-P1）：镜像行的 id 来自清盘前的旧库——服务端
+       * id 重排后该号可能已派给无关新记录，发 DELETE 即误删云端一条。
+       * 镜像行只本地摘除，不碰云端。 */
+      if (item.dataset.mirror === '1') {
+        var _ml = _phMirrorLoad(); _phMirrorDrop(_ml, id); _phMirrorSave(_ml);
+        if (item.isConnected) item.remove();
+        showToast('本机留档已摘掉', 'info');
+        tg.dataset.inflight = '';
+        return;
+      }
       try {
         await phFetch('/api/paipan/history/' + id, { method: 'DELETE' });
         /* R2363：删成功了顺手把镜像里的也摘掉（两边口径一致）。 */
@@ -20013,7 +20036,7 @@ function baziPersonaCard(j) {
       var _status = document.getElementById('acctStatus');
       var _who = document.getElementById('acctWho');
       var _lastSync = document.getElementById('acctLastSync');
-      var _backend = '';
+      var _backend = '', _issue = '';
       function _creds() {
         try {
           var cj = JSON.parse(localStorage.getItem(_KEY) || 'null');
@@ -20038,23 +20061,60 @@ function baziPersonaCard(j) {
           _form.hidden = false;
           _logged.hidden = true;
         }
-        _status.textContent = _backend === 'libsql'
-          ? '云端已接' : (_backend === 'local'
-            ? '云端没配（存本机库）' : '查一下云端…');
+        /* R3362（R3361 审-P1）：「存本机库」是工程黑话——明说能力
+         * 边界：本地后端上注册登录能用，但服务端一清盘什么都没了。 */
+        _status.textContent = _issue ? _issue
+          : (_backend === 'libsql'
+            ? '云端已接' : (_backend === 'local'
+              ? '云端没接通——备份留不住，换设备拉不回' : '查一下云端…'));
       }
       window.__acctRender = _acctRender;
       var _syncBusy = false;
-      async function _push(showOk) {
+      async function _push(showOk, keepAlive) {
         var c = _creds();
-        if (!c || _syncBusy) return;
+        if (!c) return;
+        /* R3362（冒烟实锤）：手动点「立刻同步」撞上自动推在途——
+         * 旧版静默 return，用户点了没反应。手动点等在途落完再推。 */
+        if (_syncBusy) {
+          if (!showOk) return;
+          var _w0 = Date.now();
+          while (_syncBusy && Date.now() - _w0 < 15000) {
+            await new Promise(function (r) { setTimeout(r, 200); });
+          }
+          if (_syncBusy) {
+            showToast('同步还在路上，稍等下再点', 'warn');
+            return;
+          }
+        }
         _syncBusy = true;
         try {
           var bundle = await _buildBackupBundle();
           delete bundle._noLedger;
-          var r = await api('/api/account/backup/push', {
-            method: 'POST', silent: !showOk,
-            body: JSON.stringify({ nickname: c.n, passcode: c.p,
-                                   payload: JSON.stringify(bundle) }) });
+          /* R3362（R3359 审-P2）：payload 服务端帽 1.2MB——台账/线程
+           * 养肥后超限恒 422，自动推静默失败用户以为在同步。超限先
+           * 裁尾部台账与线程，保住偏好与近期记录。 */
+          var _pl = JSON.stringify(bundle);
+          var _trimmed = false;
+          while (_pl.length > 1100000) {
+            var _cut = false;
+            if (Array.isArray(bundle.records) && bundle.records.length) {
+              bundle.records.pop(); _cut = true;
+            }
+            if (Array.isArray(bundle.threads) && bundle.threads.length) {
+              bundle.threads.pop(); _cut = true;
+            }
+            if (!_cut) break;
+            _trimmed = true;
+            _pl = JSON.stringify(bundle);
+          }
+          /* R3362（R3359 审-P0）：必须走 postJSON——裸 api() POST 不
+           * 带 Content-Type，浏览器发 text/plain 恒 422。 */
+          var r = await postJSON('/api/account/backup/push', {
+            nickname: c.n, passcode: c.p, payload: _pl },
+            { silent: !showOk, keepalive: !!keepAlive });
+          if (r && r.ok && _trimmed && showOk) {
+            showToast('数据攒多了——云里只带了近期部分', 'warn');
+          }
           if (r && r.ok) {
             try {
               localStorage.setItem(_SYNC_KEY,
@@ -20078,10 +20138,23 @@ function baziPersonaCard(j) {
         var c = _creds();
         if (!c) return;
         try {
-          var r = await api('/api/account/backup/pull', {
-            method: 'POST',
-            body: JSON.stringify({ nickname: c.n, passcode: c.p }) });
+          var r = await postJSON('/api/account/backup/pull', {
+            nickname: c.n, passcode: c.p }, { silent: true });
           if (r && r.ok && r.payload) {
+            /* R3362（R3359/R3360 审-P1）：拉回是无确认全量覆盖——
+             * 云端包比本机上次同步还旧时，本机新改的偏好会被旧值
+             * 盖掉，先问一句。 */
+            try {
+              var _b0 = JSON.parse(r.payload);
+              var _ex = Date.parse((_b0 && _b0.exported_at) || '');
+              var _ls0 = Date.parse(
+                (localStorage.getItem(_SYNC_KEY) || '')
+                .replace(' ', 'T'));
+              if (_ex && _ls0 && _ex < _ls0 - 60000 &&
+                  !window.confirm(
+                    '云端这份备份比这台设备上次的同步还旧，拉回来会' +
+                    '盖掉本机较新的偏好——还要拉回吗？')) return;
+            } catch (eCmp) {}
             await _importBackupText(r.payload);
           } else {
             showToast((r && r.msg) || '云端还没有备份', 'warn');
@@ -20105,9 +20178,8 @@ function baziPersonaCard(j) {
           var f = _readFields();
           if (!f) return;
           try {
-            var r = await api('/api/account/register', {
-              method: 'POST',
-              body: JSON.stringify({ nickname: f.n, passcode: f.p }) });
+            var r = await postJSON('/api/account/register', {
+              nickname: f.n, passcode: f.p }, { silent: true });
             if (r && r.ok) {
               _saveCreds(f.n, f.p);
               _acctRender();
@@ -20125,9 +20197,8 @@ function baziPersonaCard(j) {
           var f = _readFields();
           if (!f) return;
           try {
-            var r = await api('/api/account/login', {
-              method: 'POST',
-              body: JSON.stringify({ nickname: f.n, passcode: f.p }) });
+            var r = await postJSON('/api/account/login', {
+              nickname: f.n, passcode: f.p }, { silent: true });
             if (r && r.ok) {
               _saveCreds(f.n, f.p);
               _acctRender();
@@ -20147,20 +20218,36 @@ function baziPersonaCard(j) {
         .addEventListener('click', function () { _pull(); });
       document.getElementById('acctLogout')
         .addEventListener('click', function () {
-          try { localStorage.removeItem(_KEY); } catch (e) {}
+          try {
+            localStorage.removeItem(_KEY);
+            /* R3362（R3359/60 审-P2/P1）：lastsync 与四组镜像键是
+             * 跟「这个账号」绑的视图——登出不收，下个账号先看到别人
+             * 的同步时间与旧镜像行（跨账号串味）。 */
+            localStorage.removeItem(_SYNC_KEY);
+            ['paipan_mirror_v1', 'paipan_mirror_del_v1',
+             'favorites_mirror_v1', 'threads_mirror_v1']
+              .forEach(function (mk) {
+                try { localStorage.removeItem(mk); } catch (e) {}
+              });
+          } catch (e) {}
           _acctRender();
           showToast('已退出——云端备份还在，哪天登回来就能拉回', 'info');
         });
       /* 后台/关页时自动推一份——visibilitychange 比 beforeunload
-       * 在移动端靠谱（iOS 不一定给 unload 机会）。 */
+       * 在移动端靠谱（iOS 不一定给 unload 机会）。
+       * R3362（R3359 审-P2）：普通 fetch 在 hidden/关页时可能被
+       * 浏览器直接掐断——keepalive:true 让请求熬过页面隐藏。 */
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden' && _creds()) {
-          _push(false);
+          _push(false, true);
         }
       });
       /* 云端形态探测：libsql=生产态；local=本机兜底（明说）。 */
       api('/api/account/status', { silent: true }).then(function (r) {
         _backend = (r && r.backend) || '';
+        /* R3362（R3360 审-P2）：半配状态（只配 URL 或 token 之一）
+         * 此前显示「云端已接」而全请求 401——issue 原样上屏点名。 */
+        _issue = (r && r.issue) || '';
         _acctRender();
       }).catch(function () { _acctRender(); });
       _acctRender();
@@ -20181,7 +20268,7 @@ function baziPersonaCard(j) {
         /* R2349y（R95-P2-6）：超大文件全量读入会冻结 tab——20MB 上限；
          * version 不校验则未来结构变更会按 v1 静默半导入。 */
         if (f.size > 20 * 1024 * 1024) {
-          showToast('这个文件太大了，不像备份', 'warn');
+          showToast('备份太大啦，换个小点的试试', 'warn');
           return;
         }
         await _importBackupText(await f.text());
@@ -20203,7 +20290,7 @@ function baziPersonaCard(j) {
         } else {
           /* R3320-P1-1②：解析失败与传输失败分说——JSON 都读不出来
            * 才说「读不懂」，网络断不能背这个锅。 */
-          showToast('这段不是完整的备份文本：从头「{」到尾「}」整段贴',
+          showToast('备份文本没贴全——从开头到结尾原样整段贴进来',
             'error');
           return;
         }

@@ -81,6 +81,16 @@ def install(app: FastAPI) -> None:
                             content={"detail": "存储暂时不可用，请稍后再试"})
     app.add_exception_handler(sqlite3.DatabaseError, _sqlite_handler)
 
+    # R3362（R3360 审-P1）：userdb 的语义级故障（libsql pipeline 报错、
+    # 响应对不上形）此前 RuntimeError 穿透成英文裸 500——与 sqlite
+    # 同口径 503 中文。延迟 import 防循环。
+    async def _userdb_handler(_request: Request,
+                              exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=503,
+                            content={"detail": "存储暂时不可用，请稍后再试"})
+    from .userdb import UserDBError
+    app.add_exception_handler(UserDBError, _userdb_handler)
+
     # R230i（R21-P1-8）：OS 级存储失败（data/ 被普通文件占位的
     # FileExistsError、ENOSPC、EACCES）此前穿透成裸 500 英文上屏——
     # 固定中文，不让 str(exc) 的英文 errno 漏出。FileNotFoundError 是
@@ -160,15 +170,21 @@ def install(app: FastAPI) -> None:
     # R230a-39（R15-P2-1+P3 回显放大）：422 错误体里的 `input` 原样回显
     # 原始输入——孤立代理项（\ud800）让默认序列化炸成 500，超长 input
     # 又造成 ~2x 响应放大。改成 repr 转义 + 200 字截断。
-    async def _validation_handler(_request: Request,
+    async def _validation_handler(request: Request,
                                   exc: RequestValidationError
                                   ) -> JSONResponse:
+        # R3362（R3359 审-P2）：账号端点的 422 input 会原样回吐
+        # 口令明文——整键剥掉，其余端点保留 repr+截断口径。
+        _acct = request.url.path.startswith("/api/account/")
         errs = []
         for e in exc.errors():
             e = dict(e)
             if "input" in e:
-                s = repr(e["input"])
-                e["input"] = s[:200] + ("…" if len(s) > 200 else "")
+                if _acct:
+                    e.pop("input")
+                else:
+                    s = repr(e["input"])
+                    e["input"] = s[:200] + ("…" if len(s) > 200 else "")
             # ctx 里可能塞着嵌套异常对象（value_error 的 ctx.error 是
             # ValidationError 实例）——JSONResponse 序列化会炸成 500。
             if "ctx" in e:
@@ -189,13 +205,14 @@ def install(app: FastAPI) -> None:
                 try:
                     e["msg"] = _422_MSG_CN[_t].format(**_c)
                 except Exception:
-                    e["msg"] = "参数格式不对，检查一下再试"
+                    e["msg"] = "刚才那下没走通，检查一下再试"
             elif _t == "json_invalid":
                 e["msg"] = "请求体不是合法的 JSON"
             elif e.get("msg") and re.search(r"[A-Za-z]{4,}",
                                             str(e["msg"])):
                 # 未覆盖的类型仍含整词英文 → 泛化，不裸透传。
-                e["msg"] = "参数格式不对，检查一下再试"
+                # R3362（R3361 审-P1）：「参数格式」是工程词。
+                e["msg"] = "刚才那下没走通，检查一下再试"
             e.pop("url", None)
             errs.append(e)
         return JSONResponse(status_code=422, content={"detail": errs})
