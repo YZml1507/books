@@ -18468,3 +18468,13 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 账号链路：`backup/pull` 必须口令码校验（verify 前置）、register/login/
   push/pull 全挂 `_nick_ratelimit` 按 (ip,action,nick) 桶限速——无匿名拉备份面。
 - 推送并发用 base_updated_at 乐观锁拒写（409 conflict 提示先拉回）——干净。
+
+## R3377 正缘海报真机验收 + traits 留白修正
+- 实测海报 canvas 出图（下载驱动）：零 JS 错，PNG ~1MB，樱花底+卡位图+
+  品牌脚+CTA 成立；localhost 无真域名按设计落「搜「小满的解忧铺」」文案
+  （真域名下 QR 由 R3317-F 懒加载链画入 pill）。
+- 修：有 `_art` 时 `_sm.lines.slice(-2)` 把 traits 整行切掉——但画是氛围
+  想象图，traits 并不在画面里；改三条并一行「气质：干净 · 克制 · 慢热但认真」
+  前置留存，相遇信号仍由底部 hook 顶行。
+- 积压核销：R127-P2-7 CP chips 删除钮已于 R2503 落地；海报二维码
+  R3317-F 已在位（懒加载+真域名过滤）；万圣窗物料 R3368 全套在线。

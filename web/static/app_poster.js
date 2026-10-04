@@ -1438,8 +1438,12 @@ function buildShareData(view, j) {
         _sm.cards = [{ img: j._art,
           name: _pStr(j._artCap) || '正缘画像',
           sub: '样子是想象，信号是真的' }];
-        /* 有图时明细留白：traits 已在画面里，留相遇信号+口径。 */
-        _sm.lines = _sm.lines.slice(-2);
+        /* 有图时明细留白——但 traits 不在画里（画是氛围想象图），
+         * 三条并一行留住；相遇信号有底部 hook 顶着，不再占行。 */
+        _sm.lines = [{
+          k: '气质',
+          v: _pArr(j && j._smTraits).slice(0, 3).join(' · ')
+        }].concat(_sm.lines.slice(-2));
       }
       if (!_sm.lines.length) _sm.lines =
         [{ k: '结论', v: 'TA 在路上' }];
