@@ -230,7 +230,11 @@ function _paintSharePoster(s, W, H) {
       c.name = _pStr(c.name); c.sub = _pStr(c.sub); return c;
     });
   s.lines = s.lines.map(function (r) {
-    return { k: _pStr(r && r.k), v: _pStr(r && r.v) };
+    /* R3398-P2-5：dot 是 daily-outfit 五行色点——归一化剥字段
+     * 让 :534 的 r.dot 永假。保留并做 hex 白名单，脏值落 null。 */
+    var _dot = _pStr(r && r.dot);
+    return { k: _pStr(r && r.k), v: _pStr(r && r.v),
+             dot: /^#[0-9a-fA-F]{3,8}$/.test(_dot) ? _dot : null };
   });
   var cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -316,9 +320,14 @@ function _paintSharePoster(s, W, H) {
   /* R233t（R51-P0-2）：原来一律 slice(0,4)——daily 的「忌」、
    * checkin-week 的第 5-7 天、taohua 强度等被静默切掉。按 view 给
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
-  var _lineCap = { daily: 5, 'checkin-week': 7, 'checkin-month': 6,
+  var _lineCap = { daily: 7, 'checkin-week': 7, 'checkin-month': 6,
                    taohua: 5, hehun: 6, 'daily-outfit': 5,
                    huangli: 6, birth: 5, bazi: 5,
+                   /* R3398：daily 构建 6-7 行（吉签插签运）cap=5
+                    * 把「先缓缓」天天切没——注释口径兑现到 7；
+                    * dream/soulmate 的免责尾行、qiming 的出处行
+                    * 同理被默认 cap4 静默切，提帽收口。 */
+                   dream: 5, soulmate: 6, qiming: 5,
                    moodweek: 5,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
@@ -1674,8 +1683,14 @@ function buildShareData(view, j) {
       var _ab = (j && j._ansb) || {};
       var _as = base('答案之书', _cnDateSub(_pStr(j && j.date)));
       _as.big = _clauseCut(_pStr(_ab.a) || '去吧', 12);
+      /* R3398-P1：问句原文烤进可晒图前过危机/敏感闸——塔罗
+       * :1114 同口径先例，命中回落默念位（隐私足迹不外泄）。 */
+      var _aq = _pStr(_ab.q);
+      var _aqSafe = _aq &&
+        !(typeof feCrisis === 'function' && feCrisis(_aq)) &&
+        !(typeof feSensitive === 'function' && feSensitive(_aq));
       _as.lines = [
-        { k: '她问的是', v: _pStr(_ab.q) ? _clauseCut(_ab.q, 14) : '（心里默念的）' },
+        { k: '她问的是', v: _aqSafe ? _clauseCut(_aq, 14) : '（心里默念的）' },
         { k: '书里还说', v: _clauseCut(_pStr(_ab.h), 22) },
         { k: '可以试', v: _clauseCut(_pStr(_ab.d), 20) }
       ];
