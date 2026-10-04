@@ -48,14 +48,23 @@ EXTRA_GLOBS = (
     # R3247：明星合盘名单（运行时 fetch /static/celeb.json）同口径。
     "celeb.json",
     # R3396（记账）：soulmate 六张氛围图同病——换图必须换 CACHE 名。
-    "cream/sm-*.jpg",
+    # R3402 修正：图在 static/soulmate/ 不在 cream/——原 glob 零命中。
+    "soulmate/sm-*.jpg",
+    # R3402：壁纸族（wap-*.jpg + 节日限定 wap-t-*.jpg）同病收编——
+    # 换壁纸不换 CACHE 时旧壳会喂错版图。wallpapers/ 目录即本族。
+    "wallpapers/wap-*.jpg",
 )
 
 
 def _extra_paths() -> list[Path]:
     out: list[Path] = []
     for g in EXTRA_GLOBS:
-        out.extend(sorted(STATIC.glob(g)))
+        hits = sorted(STATIC.glob(g))
+        # R3402：零命中 glob 是错路径——cream/sm-*.jpg 曾空挂一年。
+        # 真删图时请同步删条目，而不是让死 glob 留着骗哈希。
+        if not hits:
+            raise SystemExit(f"EXTRA_GLOBS 零命中（路径写错或文件已删）：{g}")
+        out.extend(hits)
     return out
 
 
