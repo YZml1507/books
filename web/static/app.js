@@ -18536,8 +18536,14 @@ function _ncCard(j) {
     /* R3577：攒下的好运上名片——社交足迹与称号/功课并列
      * （命盘件外的「别人给的」一维）。 */
     var _ncHug = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
-    if (_ncHug > 0) {
-      rows.push({ ic: '🤗', k: '攒的好运', g: '', v: _ncHug + ' 个' });
+    /* R3591：递出数入列——「收 N · 递 M」双向都在才像
+     * 互换心意，只在收侧像单向受恩。 */
+    var _ncHugO = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+    if (_ncHug > 0 || _ncHugO > 0) {
+      rows.push({ ic: '🤗', k: '攒的好运', g: '',
+        v: (_ncHug > 0 ? '收 ' + _ncHug + ' 个' : '') +
+           (_ncHug > 0 && _ncHugO > 0 ? ' · ' : '') +
+           (_ncHugO > 0 ? '递 ' + _ncHugO + ' 次' : '') });
     }
   } catch (eNC) {}
   var _h = '<div class="nc-card sm-card">' +
@@ -21070,7 +21076,14 @@ function renderCheckin(dateKey) {
         String(_hnm).slice(0, 24));
     } catch (eHN) {}
     var _hPayload = '今天份的好运送你——小满替我递的 🤗 → ' + _hu;
-    var _hOk = function () { showToast('好运链接复制好了，发给 TA 吧', 'ok'); };
+    var _hOk = function () {
+      /* R3591：递出计数——双向计（收 hugin / 递 hugout），
+       * 名片好运行两端都认。 */
+      try {
+        var _ho = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+        localStorage.setItem('hugout', String(_ho + 1));
+      } catch (eHO) {}
+      showToast('好运链接复制好了，发给 TA 吧', 'ok'); };
     var _hBad = function () {
       try { _showTextExportModal('复制链接', _hPayload,
         '长按下面文本全选复制，发给 TA 吧'); }
@@ -21092,7 +21105,12 @@ function renderCheckin(dateKey) {
         String(_hbn).slice(0, 24));
     } catch (eHB) {}
     var _hbPayload = '好运收到，回递一个给你 🤗 → ' + _hb;
-    var _hbOk = function () { showToast('回递链接复制好了，发给 TA 吧', 'ok'); };
+    var _hbOk = function () {
+      try {
+        var _ho2 = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+        localStorage.setItem('hugout', String(_ho2 + 1));
+      } catch (eHO2) {}
+      showToast('回递链接复制好了，发给 TA 吧', 'ok'); };
     var _hbBad = function () {
       try { _showTextExportModal('复制链接', _hbPayload,
         '长按下面文本全选复制，发给 TA 吧'); }
@@ -24914,7 +24932,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugseen)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|hugin|hugout|hugseen)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -24938,6 +24956,11 @@ function baziPersonaCard(j) {
         if (mf) b.push('念咒 ' + mf + ' 天');
         if (my) b.push('木鱼 ' + my + ' 下');
         if (hg) b.push('收到好运 ' + hg + ' 个');
+        /* R3591：递出数同族（忘掉即双删，摘要两端都报）。 */
+        var hgo = 0;
+        try { hgo = parseInt(localStorage.getItem('hugout') || '0', 10) || 0; }
+        catch (eHO3) {}
+        if (hgo) b.push('递出好运 ' + hgo + ' 次');
         return b.join(' · ') || '还没有';
       } },
     { id: 'chat', icon: '💬', label: '聊过的天',
@@ -25628,7 +25651,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugseen$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|hugin$|hugout$|hugseen$)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -25970,7 +25993,7 @@ function baziPersonaCard(j) {
                 k === 'ckms:seen' ||
                 k === 'pattern:seen' ||
                 /* R3576：攒下的好运计数/链签名同收（足迹件）。 */
-                k === 'hugin' ||
+                k === 'hugin' || k === 'hugout' ||
                 k === 'hugseen' ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
