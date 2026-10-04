@@ -19676,3 +19676,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3470-1：`threads_mirror_v1` 的 gone 墓碑补形状闸——合法 JSON 但 gone 非数组时 _thrMirrorSave 抛错吞整次保存、_thrMirrorDrop concat 存成字符串（与 _phMirrorDelLoad R2502 同款洞）。
 - R3470-2：`paipan_mirror_v1` items/details 补形状闸——只验真不验形时 Object.keys(字符串) 产幽灵键污染归档链。
 - R3470-3：`_FIELD_CN` 补 `work_id`/`chapter`——缺参 422 从「这个字段必填」升级为「书号：这个字段必填」。
+
+## R3474 幸运城市点名（调研落地——Astairo 第六件收口）
+- 方位卡「城市气质」升级为点名真城：`——像兰州、敦煌、乌鲁木齐这类`；每行五行配 3 座示例城（木→杭州/苏州/厦门，火→重庆/长沙/广州，土→西安/洛阳/开封，金→兰州/敦煌/乌鲁木齐，水→青岛/大连/天津）。
+- 海报侧新增「你的旺城」行（`_fdCities` 透传+`_lineCap` fortune_dir 4→6 防尾行静默切没——第 4 次踩这个坑）。
+- 实测：卡内文案 + 海报六行全展示零截断。

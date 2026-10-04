@@ -16975,18 +16975,25 @@ function _smOpen(j) {
 var _FD_DIR = {
   '木': { dir: '东方 · 东南', glyph: '🌿',
     vibe: '树多的地方——公园密、绿化好、书院文创气重的城',
+    /* R3474：幸运城市点名——晒的就是「我的旺城是杭州」，
+     * 比气质描述更有点对点的分享感。 */
+    cities: '杭州、苏州、厦门',
     tip: '周末往城东/东南的绿地走，木气自己会来找你' },
   '火': { dir: '南方', glyph: '🔥',
     vibe: '日照足的城——暖和、亮堂、节奏快、夜生活热闹',
+    cities: '重庆、长沙、广州',
     tip: '往南边走一走，晒太阳本身就是在补气' },
   '土': { dir: '中原 · 家附近', glyph: '⛰️',
     vibe: '山跟平原抱着的城——稳、慢、烟火气重',
+    cities: '西安、洛阳、开封',
     tip: '你旺在熟地方，家附近的踏实感比远方更养你' },
   '金': { dir: '西方 · 西北', glyph: '✨',
     vibe: '干爽清朗的城——天高、风利、讲秩序',
+    cities: '兰州、敦煌、乌鲁木齐',
     tip: '往西边的干爽地儿去，利落的空气对你胃口' },
   '水': { dir: '北方 · 近水', glyph: '🌊',
     vibe: '江河湖海旁的城——临水、活、走得动',
+    cities: '青岛、大连、天津',
     tip: '去水边坐坐，江边海边都算，水气补你最直接' },
 };
 function _fdPick(j) {
@@ -17026,7 +17033,8 @@ function _fdCard(j) {
     '<div class="fd-dir">' + _p.d.glyph + ' <strong>' +
       esc(_p.d.dir) + '</strong></div>' +
     '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
-    '<div class="sm-tip">🏙️ ' + esc(_p.d.vibe) + '</div>' +
+    '<div class="sm-tip">🏙️ ' + esc(_p.d.vibe) +
+      (_p.d.cities ? '——像' + esc(_p.d.cities) + '这类' : '') + '</div>' +
     '<div class="sm-tip">💡 ' + esc(_p.d.tip) + '</div>' +
     '<div class="sm-note">方位按你盘里的喜用推，图个顺劲儿——' +
       '真搬家还得看工作在哪儿</div>' +
@@ -17043,6 +17051,7 @@ function _fdOpen(j) {
   on('fdShare', function () {
     var _o = { _fdDir: _c.pick.d.dir, _fdWx: _c.pick.wx,
                _fdWhy: _c.pick.why, _fdVibe: _c.pick.d.vibe,
+               _fdCities: _c.pick.d.cities,
                _fdTip: _c.pick.d.tip };
     return downloadPoster(Object.assign({}, j, _o), 'fortune_dir');
   });

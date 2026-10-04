@@ -375,6 +375,9 @@ function _paintSharePoster(s, W, H) {
                    /* R3469：soulart 四元素行+最浓+口径共 6 行——
                     * 默认 cap4 把「最浓/口径」尾两行静默切没。 */
                    soulart: 6,
+                   /* R3474：fortune_dir 加旺城行后共 6 行——默认 cap4
+                    * 会把「小满说/口径」尾两行静默切没，提帽 6。 */
+                   fortune_dir: 6,
                    'year-wrap': 6, mochi: 6 }[s.view] || 4;
   var lines = (s.lines || []).slice(0, _lineCap);
   /* R212：随大字行数下移卡片，避免重叠 */
@@ -1728,6 +1731,10 @@ function buildShareData(view, j) {
       }
       if (_pStr(j && j._fdVibe)) {
         _fd.lines.push({ k: '城市气质', v: _clauseCut(_pStr(j._fdVibe), 20) });
+      }
+      /* R3474：幸运城市点名上海报——晒点真城比气质描述更有传播钩。 */
+      if (_pStr(j && j._fdCities)) {
+        _fd.lines.push({ k: '你的旺城', v: _clauseCut(_pStr(j._fdCities), 20) });
       }
       if (_pStr(j && j._fdTip)) {
         _fd.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._fdTip), 20) });
