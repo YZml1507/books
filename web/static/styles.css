@@ -2159,6 +2159,16 @@ button:active{transform:scale(.96);}
   cursor:pointer;}
 .ck-goal-opt.active{background:var(--accent-ink); color:#fff; border-color:var(--accent-ink);}
 .ck-goal-txt{flex:1; min-width:120px;}
+/* R3497：本周小功课行——周更仪式件，盖戳钮+章数。 */
+.ck-quest{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:12px; color:var(--muted); margin:6px 0 2px;
+  padding:6px 10px; border-radius:10px;
+  background:var(--accent-soft); border:1px dashed var(--border);}
+.ck-quest-btn{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.ck-quest-btn:active{background:var(--accent-ink); color:#fff;}
+.ck-quest-n{margin-left:auto; font-size:11px; color:var(--muted);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 /* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一
  * 行竖排拉 570px+——改 2×2 网格，翻面/锁定/徽标态全保留，

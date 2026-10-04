@@ -16010,7 +16010,7 @@ function init() {
        * R3328（审-中）：monthlyLetter:YYYY-MM 尾段非 YYYY-MM-DD
        * 两条 GC 路径都永不回收——按 YYYY-MM 尾段比。 */
       var _gkf = _gk && _gk.match(
-        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:|muyu:)/);
+        /^(mood:|moodlv:|journal:|ritual:|usage:d:|rlast:|mood:dream:|weeklyLetter:|pilePick:|checkinBuff:|shred:|qian:|manifest:|muyu:|wq:)/);
       var _gks = null;
       if (_gkf) {
         _gks = _gk.slice(_gk.lastIndexOf(':') + 1);
@@ -16183,7 +16183,8 @@ function init() {
     /* R3318（审-P3-5）：A tab 收下信卡 B tab 的信卡仍挂——
      * weeklyLetter:* 键变化同样触发打卡卡重渲。 */
     if (e.key.indexOf('weeklyLetter:') === 0 ||
-        e.key.indexOf('monthlyLetter:') === 0) {
+        e.key.indexOf('monthlyLetter:') === 0 ||
+        e.key.indexOf('wq:') === 0) {
       try { renderCheckin(todayIso()); } catch (eWL2) {}
       return;
     }
@@ -19688,6 +19689,48 @@ function renderCheckin(dateKey) {
         '" aria-pressed="' + (g === _weekGoal) + '">' + g + '天</button>';
     }).join('') +
     '<span class="ck-goal-txt">' + esc(_goalTxt) + '</span></div>';
+  /* R3497 本周小功课（Lunary weekly challenge 同构周更仪式件）：
+   * 周更一件够得着的小事——周一换题、凭「做到了」盖戳。
+   * wq:<周一ISO>='1' 日期后缀键（周更件不逐日攒，52键/年），
+   * 功课章总数在同 key 族计数；确定性周选（同周一池）。 */
+  var _wqHtml = '';
+  try {
+    var _wqDow = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
+    var _wqMon = _isoShift(dateKey, -_wqDow);
+    var _WQ_POOL = [
+      '给一位在意的人发句问候',
+      '把手机放下一小时，专心吃一顿饭',
+      '写三行今天的小记',
+      '出门晒十分钟太阳',
+      '收拾房间的一个小角落',
+      '睡前跟今天说声谢谢',
+      '给家里的绿植浇浇水',
+      '走路时抬头看三次云',
+      '删掉手机里五张没用的截图',
+      '给自己认真做一顿早餐',
+      '对服务人员多说一声谢谢',
+      '找一个让你觉得舒服的角落坐一会儿',
+      '把拖到这周的一件小事办完',
+      '晚上十一点前放下手机'];
+    var _wqQ = _dayPick(_WQ_POOL, 'wq|' + _wqMon);
+    var _wqDone = 0, _wqN = 0;
+    try {
+      _wqDone = localStorage.getItem('wq:' + _wqMon) ? 1 : 0;
+      for (var _wi2 = 0; _wi2 < localStorage.length; _wi2++) {
+        var _wk2 = localStorage.key(_wi2);
+        if (_wk2 && /^wq:\d{4}-\d{2}-\d{2}$/.test(_wk2)) _wqN++;
+      }
+    } catch (eWQ1) {}
+    _wqHtml = '<div class="ck-quest">' +
+      (_wqDone
+        ? '✅ 本周小功课已盖戳：' + esc(_wqQ) +
+          (_wqN > 1 ? '<span class="ck-quest-n">攒了 ' + _wqN +
+                     ' 枚功课章</span>' : '')
+        : '📜 本周小功课：' + esc(_wqQ) +
+          '<button type="button" class="ck-quest-btn" id="wqDone" ' +
+          'title="做完了点这里盖戳">做到了</button>') +
+      '</div>';
+  } catch (eWQ) {}
   /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
    * 数据全在本地：上周 7 天的打卡天数 + 心情主色 + 一句本周祝词。
    * 每周一封信完即收（wlKey 落档不再弹），零打扰零请求。 */
@@ -19921,7 +19964,7 @@ function renderCheckin(dateKey) {
     (!saved ? '<div class="ck-hint">🎴 牌背都扣着呢——心里想着' +
               '今天想要的事，抽一张</div>' : '') +
     '<div class="checkin-opts" role="group" aria-labelledby="checkinQ">' + opts + '</div>' +
-    _goalHtml +
+    _goalHtml + _wqHtml +
     /* R3314（R3309-P1）：判词句原排在 5 枚分享钮之后——390×844 视口
      * 实测 y=879 在折线下，最暖的一句定制文案打完卡看不到。提到
      * 分享钮之前。 */
@@ -20063,6 +20106,21 @@ function renderCheckin(dateKey) {
           '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
         if (_fm && _fm.focus) _fm.focus();
       } catch (eFM) {}
+    });
+  }
+  /* R3497：本周小功课盖戳——wq:<周一> 落键后整卡重渲换「已盖戳」
+   * 态（跨 tab 由 storage 事件监听同步，注册表见 wq: 族）。 */
+  var _wqd = box.querySelector('#wqDone');
+  if (_wqd && !_wqd.dataset.bound) {
+    _wqd.dataset.bound = '1';
+    _wqd.addEventListener('click', function () {
+      try {
+        var _dow3 = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
+        localStorage.setItem(
+          'wq:' + _isoShift(dateKey, -_dow3), '1');
+        showToast('功课章盖好啦，这周的小功课完成 ✅', 'ok');
+      } catch (eWQ2) {}
+      try { renderCheckin(todayIso()); } catch (eWQ3) {}
     });
   }
   /* R3325-D：未来信收下——标记 opened 不再浮出；写信入口开弹层。 */
@@ -20376,7 +20434,10 @@ function renderCheckin(dateKey) {
              'pilePick:', 'qian:', 'manifest:', 'shred:',
              /* R3424：muyu:<date> 是日期后缀键（今日敲数）——
               * 收进日期族 GC，不敲的用户不攒废键。 */
-             'muyu:']
+             'muyu:',
+             /* R3497：wq:<周一> 日期后缀键（每周功课盖戳）——
+              * 同族收，上周的旧章不白攒。 */
+             'wq:']
              .forEach(function (_p) {
               if (_ck.indexOf(_p) === 0) _fam = _p;
             });
@@ -23947,7 +24008,7 @@ function baziPersonaCard(j) {
         return b.join(' · ') || '还没有';
       } },
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -24655,7 +24716,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
