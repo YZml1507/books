@@ -18728,6 +18728,18 @@ function _ncCard(j) {
            (_ncHug > 0 && _ncHugO > 0 ? ' · ' : '') +
            (_ncHugO > 0 ? '递 ' + _ncHugO + ' 次' : '') });
     }
+    /* R3620：目标日上名片——定了日子的那份挂念与称号/好运
+     * 并列；已过/当天不挂倒计时（那时数字没意义）。 */
+    var _ncDn = String(localStorage.getItem('dday:name') || '').trim();
+    var _ncDd = String(localStorage.getItem('dday:date') || '');
+    if (_ncDn && /^\d{4}-\d{2}-\d{2}$/.test(_ncDd)) {
+      var _ncN = Math.round((new Date(_ncDd + 'T00:00:00') -
+        new Date(todayIso() + 'T00:00:00')) / 86400000);
+      if (_ncN > 0) {
+        rows.push({ ic: '🎯', k: '目标日', g: '',
+          v: '离「' + _ncDn.slice(0, 12) + '」还有 ' + _ncN + ' 天' });
+      }
+    }
   } catch (eNC) {}
   /* R3603：夸夸版行集——同一份 picks 换「夸」句式，供
    * 「🎤 夸夸我」海报用（Roast/Hype 玩乐态，句句有据）。 */

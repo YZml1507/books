@@ -20173,3 +20173,7 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3619 新件族口吻+边界亲审（审计子队列停用期）
 - 补：dday:* 跨 tab 同步漏收——A tab 定目标日 B tab 倒数行不跟新，入 weeklyLetter 同组重渲族。
 - 过：目标日名 esc（属性+文本双插值）、<strong> 只包数字、封闭 20 词表不进自由文本、三注册齐（备份白名单+忘掉清单+记忆卡仪式族）、月历格 data-line/d 全 esc、tr:hist 名 esc 渲染、mooncal month 非法回退当月、表单 [hidden] 显式兜底规则。
+
+## R3620 目标日上灵魂名片 + 五轮收尾
+- 名片卡新增「🎯 目标日」行：离「X」还有 N 天（当日/已过不挂数字行）；namecard 海报同源 _ncRows 自动带。
+- 收尾闸全绿：自测457/契约810/冒烟PASS/禁词0/plain PASS；dollar_misuse 探针抓 _hit 撞函数名一处已根治。
