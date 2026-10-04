@@ -20881,6 +20881,14 @@ function renderCheckin(dateKey) {
     }).slice(0, 7);
     var _du = location.origin + location.pathname +
       '?view=home&from=share&duel=' + _duChain.join(',');
+    /* R3572：对擂/递好运链补署名 n=——受邀条已认 _shareByName，
+     * 没名时维持「朋友…」兜底。与既有分享链同规（显名不入
+     * 请求体）。 */
+    try {
+      var _dnm = (_meGet('me') || {}).n;
+      if (_dnm) _du += '&n=' + encodeURIComponent(
+        String(_dnm).slice(0, 24));
+    } catch (eDN) {}
     /* R3546：钩子句理不顺（「跟小满陪我比」双谓语打结）——
      * 小满放裁判位，比拼主语只留你和我。
      * R3564：有称号时点名（成就外显进钩子句，受邀者先看
@@ -20904,6 +20912,11 @@ function renderCheckin(dateKey) {
   if (_ckh) _ckh.addEventListener('click', function () {
     var _hu = location.origin + location.pathname +
       '?view=home&from=share&hug=1';
+    try {
+      var _hnm = (_meGet('me') || {}).n;
+      if (_hnm) _hu += '&n=' + encodeURIComponent(
+        String(_hnm).slice(0, 24));
+    } catch (eHN) {}
     var _hPayload = '今天份的好运送你——小满替我递的 🤗 → ' + _hu;
     var _hOk = function () { showToast('好运链接复制好了，发给 TA 吧', 'ok'); };
     var _hBad = function () {
@@ -20921,6 +20934,11 @@ function renderCheckin(dateKey) {
   if (_ckhb) _ckhb.addEventListener('click', function () {
     var _hb = location.origin + location.pathname +
       '?view=home&from=share&hug=1';
+    try {
+      var _hbn = (_meGet('me') || {}).n;
+      if (_hbn) _hb += '&n=' + encodeURIComponent(
+        String(_hbn).slice(0, 24));
+    } catch (eHB) {}
     var _hbPayload = '好运收到，回递一个给你 🤗 → ' + _hb;
     var _hbOk = function () { showToast('回递链接复制好了，发给 TA 吧', 'ok'); };
     var _hbBad = function () {
