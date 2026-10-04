@@ -303,7 +303,89 @@ function _wapComposite(j, bg, variant) {
   return cv;
 }
 
+/* R3486：守护图腾锁屏画家——烘焙灵兽底图（gd-<wx>.jpg）+ 店招 +
+ * 灵兽名 + 守护语。与 _wapNebula 同款独立合成器路径：
+ * 底图是 Agnes 离线烘焙资产，无日期锚（图腾不按日换）。 */
+function _wapBeast(j) {
+  return new Promise(function (res, rej) {
+    var _b = (j && j.beast) || {};
+    var _img = new Image();
+    _img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = 720; cv.height = 1280;
+      var ctx = cv.getContext('2d');
+      /* cover：1536×1024→720×1280 中裁 */
+      var _iw = _img.width, _ih = _img.height;
+      var _sc = Math.max(720 / _iw, 1280 / _ih);
+      var _dw = _iw * _sc, _dh = _ih * _sc;
+      ctx.drawImage(_img, (720 - _dw) / 2, (1280 - _dh) / 2, _dw, _dh);
+      /* 上下暗角保文字可读（与 _wapComposite 同口径 scrim）。 */
+      var g1 = ctx.createLinearGradient(0, 0, 0, 400);
+      g1.addColorStop(0, 'rgba(38,30,22,0.60)');
+      g1.addColorStop(1, 'rgba(38,30,22,0)');
+      ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, 400);
+      var g2 = ctx.createLinearGradient(0, 940, 0, 1280);
+      g2.addColorStop(0, 'rgba(38,30,22,0)');
+      g2.addColorStop(1, 'rgba(38,30,22,0.74)');
+      ctx.fillStyle = g2; ctx.fillRect(0, 940, 720, 340);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,246,232,0.92)';
+      ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+      /* 灵兽名大字（带暗衬椭圆） */
+      ctx.fillStyle = 'rgba(38,30,22,0.42)';
+      ctx.beginPath();
+      ctx.ellipse(360, 1060, 235, 100, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '700 96px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = '#FFF6E8';
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 18; ctx.shadowOffsetY = 4;
+      ctx.fillText(_pStr(_b.name) || '守护图腾', 360, 1088);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      /* 守护语小字 */
+      ctx.font = '400 30px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(255,246,232,0.95)';
+      var _gl = _wapWrap(ctx, _pStr(_b.guard) || '', 560, 2);
+      _gl.forEach(function (ln, i) {
+        ctx.fillText(ln, 360, 1150 + i * 44); });
+      ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(255,246,232,0.72)';
+      ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1242);
+      res(cv);
+    };
+    _img.onerror = function () { rej(new Error('beast img')); };
+    _img.src = _pStr(j && j.beast && j.beast.img) ||
+      '/static/wallpapers/gd-earth.jpg';
+  });
+}
+
 function downloadWallpaper(j, variant) {
+  /* R3486：守护图腾壁纸变体——烘焙灵兽底图独立画家。 */
+  if (variant && variant.beast) {
+    return _wapBeast(j).then(function (cv) {
+      var _tB = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tB && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(cv, 'guardian-wap', j);
+        return;
+      }
+      cv.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-守护图腾壁纸.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(cv, 'guardian-wap', j);
+    }).catch(function () {
+      showToast('壁纸没做好，再点一次', 'warn');
+    });
+  }
   /* R3479：灵魂色谱壁纸变体——无日期/无烘焙底图，走独立合成器。 */
   if (variant && variant.nebula) {
     try {

@@ -104,7 +104,7 @@ BUTTON_CASES = [
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
     # R3462s：喜用四件收进「盘里小惊喜」折叠区——本案先点展开钮
     # 放出 saZone（留开态惠及后续四案），result 取区内 chip 存在。
-    ("bazi.pickzone",   "bazi",   None,            "#sharePickZone",   "#saZone .fav-btn"),
+    ("bazi.pickzone",   "bazi",   None,            "#saZoneToggle",    "#saZone .fav-btn"),
     # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
     ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
     # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。
@@ -473,6 +473,18 @@ def main() -> int:
         # 同族豁免；shareSoulart 本身有真用例。
         "saShare": "灵魂色谱「晒出我的色谱」——downloadPoster 海报模态，"
                    "同 shareBazi 族豁免",
+        # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
+        # 同 dailyWap 族豁免（生成链路一致）。
+        "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
+                 "同 dailyWap 族豁免",
+        # R3486：图腾锁屏壁纸钮——烘焙底图+canvas 合成下载，
+        # 同 dailyWap 族豁免。
+        "gdWap": "守护图腾「做我的锁屏」——烘焙底图+canvas 合成下载，"
+                 "同 dailyWap 族豁免",
+        # R3481：明日穿搭分享钮——downloadPoster('daily-outfit') 海报
+        # 模态（明日 payload 变体），同 outfitShare 族豁免。
+        "dailyTomorrowShare": "明日穿搭「晒明天的穿搭」——downloadPoster "
+                              "('daily-outfit') 海报模态，同 outfitShare 族豁免",
         # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
         # 同族豁免；信卡本身是「本周首访+门槛」条件件，
         # 真机链路在特性批 Playwright 手验（渲染+下载零错）。

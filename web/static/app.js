@@ -7004,7 +7004,11 @@ function buildBaziResult(j) {
      * 算命 prompt 成五件）——钮数破 7 时 share-row 小屏吃 4 行
      * 200px 顶穿判据 2 余量（c8_noq 186<200 实测）。一枚展开
      * 钮+五枚 compact chip（id 不变，on() 接线零改）。 */
-    html += '<button class="ghost fav-btn" type="button" id="sharePickZone" ' +
+    /* R3485-P2-1：id 改 saZoneToggle——share 前缀会撞上
+     * button.fav-btn[id^="share"] 的 CTA 渐变（展开钮长了一张
+     * 「生成海报」脸，与真分享钮同排语义混淆）。 */
+    html += '<button class="ghost fav-btn" type="button" id="saZoneToggle" ' +
+      'aria-expanded="false" aria-controls="saZone" ' +
       'title="盘里还藏着几件小惊喜">✨ 盘里小惊喜</button>';
   }
   html += '</div>' +
@@ -7635,10 +7639,21 @@ async function submitBazi(event) {
       on('shareSoulart', function () { _saOpen(j); });
       on('sharePrompt', function () { _promptCopy(j, body); });
       /* R3462s：小惊喜区展开——展开即留开（藏回反而让人找
-       * 不到刚看过的卡）。 */
-      on('sharePickZone', function () {
+       * 不到刚看过的卡）。
+       * R3485-P2-1：展开后钮置 disabled + aria-expanded——否则
+       * 再点静默无反应像死钮。stay-disabled 让 guardedCall
+       * 收尾不复活它（在途忙态会自动重 enable）。 */
+      on('saZoneToggle', function () {
         var _z = el('saZone');
-        if (_z && _z.hidden) { _z.hidden = false; }
+        if (_z && _z.hidden) {
+          _z.hidden = false;
+          var _t = el('saZoneToggle');
+          if (_t) {
+            _t.setAttribute('aria-expanded', 'true');
+            _t.dataset.stayDisabled = '1';
+            _t.disabled = true;
+          }
+        }
       });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
@@ -7656,14 +7671,16 @@ async function submitBazi(event) {
       window.__saPending = '';
       if (!_saK) {
         _saK = new URLSearchParams(location.search).get('sa') || '';
-        if (_saK) history.replaceState(null, '', '/?view=bazi');
+        /* R3485-P1（审子实锤）：replaceState 原来把 state 抹成
+         * null——海报层 pushState 读不到 view 回填 'home'，一次
+         * 返回弹穿两层。补回 {view} 与其余规范化同口径。 */
+        if (_saK) history.replaceState({ view: 'bazi' }, '', '/?view=bazi');
       }
-      if (_saK && _openSaByKey(_saK)) {
-        var _z4 = el('saZone');
-        if (_z4) setTimeout(function () {
-          _z4.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 180);
-      }
+      /* R3485-P1-2（审子实锤）：原来开卡后 180ms 又把折叠钮区
+       * 滚中——smooth 滚动后到者胜，已开的卡被压出屏外，「自动
+       * 开同款」落地只见一排钮。开卡函数内已各自滚中卡面，
+       * 第二跳删掉。 */
+      if (_saK) _openSaByKey(_saK);
     } catch (eSA) {}
     /* R219b（P0-4）：历史记录不再落库，无「最近解读」列表可刷新。 */
   } catch (e) {
@@ -8831,6 +8848,8 @@ var _POSTER_TITLES = {
   soulart: '灵魂色谱',
   /* R3479：色谱壁纸模态标题/文件名——回落「命盘海报」张冠李戴。 */
   'soulart-wap': '灵魂色谱壁纸',
+  /* R3486：图腾壁纸模态标题/文件名。 */
+  'guardian-wap': '守护图腾壁纸',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -8925,6 +8944,8 @@ var _SHARE_TEXT = {
   soulart: '我盘里的色谱长这样，你的盘是什么颜色 →',
   /* R3479：色谱壁纸——「锁屏同款」接力晒。 */
   'soulart-wap': '我的五行色谱锁屏做好了，你的盘是什么颜色 →',
+  /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
+  'guardian-wap': '我的守护灵兽锁屏做好了，看看哪只守你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
@@ -8947,11 +8968,15 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   cpdaily: 'hehun',
   /* R3479：色谱壁纸模态复制链同口径——?view=soulart-wap 是死链，
    * 归到 bazi + sa=S 锚。 */
-  'soulart-wap': 'bazi' };
+  'soulart-wap': 'bazi',
+  /* R3486：图腾壁纸同口径——sa=G 锚。 */
+  'guardian-wap': 'bazi' };
 /* R3475：小惊喜海报分享链携带 sa 锚——受邀者排盘后自动开同款卡
  * （与聊天 sa* 锚/_openSaByKey 同键族）。 */
 var _SA_SHARE_KEY = { fortune_dir: 'F', guardian: 'G', crystal: 'C',
-  soulart: 'S', 'soulart-wap': 'S' };
+  soulart: 'S', 'soulart-wap': 'S',
+  /* R3486：图腾壁纸回流锚。 */
+  'guardian-wap': 'G' };
 function _shareText(view) {
   /* R3319-P2：黄历按卡面日期说日词（明天/那天），与海报标题同口径。 */
   if (view === 'huangli') {
@@ -17195,6 +17220,9 @@ function _gdCard(j) {
       '真养宠物还得看缘分跟房东</div>' +
     '<button class="ghost fav-btn" type="button" id="gdShare" ' +
       'title="生成守护图腾分享图">📸 晒出我的守护图腾</button>' +
+    /* R3486：守护图腾锁屏——烘焙灵兽底图一人一张的拥有感。 */
+    '<button class="ghost fav-btn" type="button" id="gdWap" ' +
+      'title="下载守护图腾锁屏壁纸">📱 做我的锁屏</button>' +
     '</div>';
   return { html: _h, pick: _p };
 }
@@ -17208,6 +17236,14 @@ function _gdOpen(j) {
                _gdWx: _c.pick.wx, _gdWhy: _c.pick.why,
                _gdVibe: _c.pick.b.vibe, _gdGuard: _c.pick.b.guard };
     return downloadPoster(Object.assign({}, j, _o), 'guardian');
+  });
+  /* R3486：图腾锁屏——wx → 烘焙底图文件名（gd-wood…water）。 */
+  on('gdWap', function () {
+    var _wxEn = { '木': 'wood', '火': 'fire', '土': 'earth',
+                  '金': 'metal', '水': 'water' }[_c.pick.wx] || 'earth';
+    var _wo = { beast: { name: _c.pick.b.name, guard: _c.pick.b.guard,
+                img: '/static/wallpapers/gd-' + _wxEn + '.jpg' } };
+    return downloadWallpaper(_wo, { beast: true });
   });
   _gdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -17465,8 +17501,18 @@ function _promptCopy(j, body) {
 function _openSaByKey(k) {
   var _r = LAST_RESULT && LAST_RESULT.bazi;
   if (!_r || !_r.json) return false;
+  /* R3485-P2-3（审子实锤）：键校验前置——非法 sa 键原来先点亮
+   * 折叠区才 return false，地址栏参数又已被剥，客人无端多出
+   * 一排钮。 */
+  if ('FGCSP'.indexOf(k || '') < 0) return false;
   var _z = el('saZone');
   if (_z) _z.hidden = false;
+  var _tg = el('saZoneToggle');
+  if (_tg) {
+    _tg.setAttribute('aria-expanded', 'true');
+    _tg.dataset.stayDisabled = '1';
+    _tg.disabled = true;
+  }
   var j = _r.json;
   if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);

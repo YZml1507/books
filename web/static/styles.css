@@ -2395,6 +2395,12 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   display:flex; align-items:center; justify-content:center;
   opacity:0; transition:opacity .2s ease;
   padding:16px;
+  /* R3485-P2-2（审子实锤）：全仓贴屏件都走 env 安全区，唯独
+   * 弹层没跟上——刘海机/横屏手势区贴脸。先纯 px 兜底再覆盖。 */
+  padding:calc(16px + env(safe-area-inset-top))
+          calc(16px + env(safe-area-inset-right))
+          calc(16px + env(safe-area-inset-bottom))
+          calc(16px + env(safe-area-inset-left));
 }
 .poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);
   touch-action:none;   /* R3355：遮罩上拦滚动穿透 */}
@@ -2426,7 +2432,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   background:#F5EFE6;
 }
 .poster-modal-img{
-  max-width:100%; max-height:60vh; height:auto; display:block;
+  /* R3485-P2-2：弹层本体早已 90vh/90dvh 双写，img 漏改——
+   * iOS 动态工具栏展开态 dvh<vh，60vh 可超当前可视高。 */
+  max-width:100%; max-height:60vh; max-height:60dvh; height:auto; display:block;
   border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 .poster-modal-tip{
@@ -2723,6 +2731,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
   .celeb-backdrop,   /* R2514：连签庆祝浮层漏进打印隐藏表 */
   .install-tip,
+  /* R3485-P2-4（审子实锤）：.sa-zone 空容器打印时留 ~6px 空盒
+   * 残渣——补进隐藏名单。 */
+  .sa-zone,
   .recent-sidebar, .recent-toggle, .ph-toolbar, .ph-share, .checkin-share,
   .chat-entry, .share-cta, .poster-modal-actions, .xz-grid,
   [class*="deco"], [class*="glow"] {
@@ -2732,7 +2743,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   .wrap { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
   .view { display: none !important; }
   .view.active { display: block !important; }
-  .card, .result-card, .hl-result, .xz-result, .daily-card {
+  /* R3485-P2-4：.sm-card（小惊喜卡）并入防断行名单——
+   * 长卡跨页会被切断。 */
+  .card, .result-card, .hl-result, .xz-result, .daily-card, .sm-card {
     box-shadow: none !important; border: 1px solid #ccc !important;
     break-inside: avoid; page-break-inside: avoid;
   }

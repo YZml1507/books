@@ -19736,3 +19736,21 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - P2-4 色条 title「木 ×3」→「木：8 字里占 3 字」。
 - P2-5 壁纸空 bands 假判词：回落带 wx=''，判词行改中性「一人一幅」。
 - P2-6 喜用行标签判保留（白话垫句在位）。
+
+## R3485 移动端八审（审计子报告 docs/AUDIT_R3485_MOBILE.md）按单清
+- P1-1 sa 深链消费 replaceState(null) 抹 state——开海报层后一次返回弹穿两层（回首页而非结果页）。改 {view:'bazi'}。
+- P1-2 开卡后 180ms 又把折叠钮区滚中——已开的卡被压出屏外，「自动开同款」只见一排钮。删第二跳（开卡函数各自滚中卡面）。
+- P2-1 展开钮 id sharePickZone 撞 button[id^="share"] CTA 渐变（展开钮长着「生成海报」脸）→ 改名 saZoneToggle；展开后 aria-expanded+disabled(stay-disabled)。
+- P2-2 海报弹层 padding 改 env() 安全区四边（刘海机/横屏手势区贴脸）；img 补 60dvh（iOS 动态工具栏态 60vh 可超可视高）。
+- P2-3 _openSaByKey 键校验前置——非法 sa 键原来先点亮折叠区才 return false，参数又被剥，无端多一排钮。
+- P2-4 .sa-zone 补进打印隐藏名单（空盒 ~6px 残渣）；.sm-card 并入防断行名单。
+- 通过项留档：触控全达标、深色 token 干净、360px 无横滚、打印钮全藏。
+
+## R3486 守护图腾锁屏壁纸（六件套收官件）
+- 5 只灵兽烘焙底图 gd-{wood,fire,earth,metal,water}.jpg（generate_image 产出 1024×1536→720×1080 JPEG ~150KB/张；Agnes api 503 停摆改走内置生图，质量同等绘本风）。
+- app_wallpaper.js _wapBeast：底图 cover-crop + 上下 scrim + 店招 + 图腾名（96px+椭圆托底）+ guard 判词 + 品牌落款；variant.beast 早分支入 downloadWallpaper。
+- 图腾卡新钮「📱 做我的锁屏」（gdWap）：wx→文件名映射，出 720×1280 PNG。
+- 回流钩：guardian-wap 五表收编（_POSTER_TITLES/_shareText/_SHARE_VIEW_ALIAS=bazi/_SA_SHARE_KEY=G）——受邀者点开壁纸链排完自动开 TA 的图腾卡。
+- 冒烟豁免表补三钮：saWap/gdWap（canvas 壁纸族）+ dailyTomorrowShare（daily-outfit 海报族）——修掉 CI gate:on_coverage。
+- 实测：gdWap 点击→720×1280 PNG 下载零 JS 错。
+- 闸：selftest 457 / contract 790 / banned 0 / smoke 119 全绿。
