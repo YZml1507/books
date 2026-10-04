@@ -19313,3 +19313,22 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   本机的记忆可视化+可删，隐私立场变成差异化卖点。
 - 闸：selftest 448（frontend.memory_card 新闸）/ contract 789 /
   ui_smoke 113 / banned 0 / regress PASS；壳 706a5a956df0。
+
+## R3442 分享深链矩阵自审（2026-10-04）
+- 全部 22 个 `?view=` 产出点逐一对账：真实 view id 或 _alias
+  表双轨命中——死链类清零（cpdaily 已于 R3440 补双图）。
+- _SHARE_VIEW_ALIAS 在产链时改写（soulmate→taohua 等），
+  落地 _alias 归一非常规名；renge 等直名走真 view。
+- 干净面：零修复。
+
+## R3443 数据面/备份/生命周期三轮·自审（2026-10-04）
+- localStorage 全键普查：_DATA_RE 备份白名单 ∪ 有意不备份
+  （histLock 口令哈希/xmaccount 凭据/wipeAt 墓碑/paipan·fav·
+  threads 镜像=服务端兜底层/uiTheme 偏好保留）∪ wipe 清单
+  三方正好覆盖全部写入键——零漏配。
+- mochi:hosts 指纹备份语义对：{n,a} 指纹随 mochi: 前缀上云，
+  换机拉回后榜记录链不断；不含原文名（指纹形态）。
+- R3430 积压核实：hosts 10-cap 已于 P1-4 落地（slice(-10)）、
+  同名 nick 误伤已由 {n,a} 双因子根治——两项划掉。
+- R117「三签并存」ledger 复查：无实物残留（日签链 R2363 重构）。
+- 干净面：零修复。
