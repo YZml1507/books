@@ -167,8 +167,9 @@ FILL = {
     "bookstudy.summary":   {"#bswork": "KR1a0001"},
     # R3178：解梦文本——dmSubmit 前的唯一输入。
     "dream":          {"#dm_text": "梦见牙齿掉了，还被人追着跑"},
-    # R3336：掷筊问题文本。
-    "oracle":         {"#orText": "要不要这周提离职"},
+    # R3336：掷筊问题文本。R3418-P0 后重决策题（辞职/离职/婚育/赌）
+    # 会被 _ANSB_BIGQ 闸转成指路卡（不出筊）——用例必须填日常题。
+    "oracle":         {"#orText": "今晚吃面还是吃饭"},
 }
 
 # 标签切换用例：点 .rtab[data-rsec=X] 后 #X 必须可见。
@@ -1769,7 +1770,7 @@ def main() -> int:
             errors.clear()
             try:
                 goto_view('oracle')
-                page.fill('#orText', '要不要这周提离职')
+                page.fill('#orText', '今晚吃面还是吃饭')
                 page.click('#orSubmit')
                 page.wait_for_timeout(1400)
                 _jiao = page.evaluate(
@@ -1790,6 +1791,24 @@ def main() -> int:
                                % (_jiao, _v1[:12], _cleared))})
             except Exception as exc:
                 results.append({"name": "ui:oracle.again", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
+            # R3418-P0：重决策题走指路卡——不出筊、不出「再想一件」。
+            try:
+                page.fill('#orText', '要不要这周提离职')
+                page.click('#orSubmit')
+                page.wait_for_timeout(600)
+                _bigq = page.evaluate(
+                    "(document.querySelector('#orResult').innerText||'')"
+                    ".includes('筊杯不敢替你做主')")
+                _nojiao = page.evaluate(
+                    "document.querySelectorAll('#orResult .jiao').length")
+                results.append({
+                    "name": "ui:oracle.bigq",
+                    "ok": _bigq and _nojiao == 0,
+                    "detail": f"指路卡={_bigq} 筊={_nojiao}"})
+            except Exception as exc:
+                results.append({"name": "ui:oracle.bigq", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
             finally:
                 try:
