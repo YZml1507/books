@@ -4688,8 +4688,8 @@ def _run_inner() -> list[str]:
                     encoding="utf-8").read()
     assert "_LIAO_POOL" in _appsrc2 and "_liaoPick" in _appsrc2 and \
         "tr-liao-strip" in _appsrc2 and "今夜当值" in _appsrc2 and \
-        "_liao" in _postsrc, \
-        "聊斋当值签：_LIAO_POOL/_liaoPick/tr-liao-strip/poster._liao 缺一"
+        "__trLiao" in _postsrc and "__trLiao" in _appsrc2, \
+        "聊斋当值签：_LIAO_POOL/_liaoPick/tr-liao-strip/__trLiao 缺一"
     _lz_n = _appsrc2.count("{ c:")
     assert _lz_n >= 16, "聊斋当值签语料不足 16 位"
     ok.append("frontend.liaozhai")

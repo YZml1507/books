@@ -1223,11 +1223,13 @@ function buildShareData(view, j) {
         });
         s.lines.push({ k: '还有', v: '共 ' + draws.length + ' 张牌' });
       }
-      /* R3447：万圣聊斋当值签——限定抽的判词上晒图。 */
-      if (j && j._liao && j._liao.c) {
+      /* R3447：万圣聊斋当值签——限定抽的判词上晒图（读 draw 侧
+       * window 旗，j 是接口响应体不私挂键）。 */
+      var _lzP = (typeof window !== 'undefined' && window.__trLiao) || null;
+      if (_lzP && _lzP.c) {
         s.lines = s.lines || [];
         s.lines.push({ k: '🦊 今夜当值',
-          v: _clauseCut(_pStr(j._liao.c) + '：' + _pStr(j._liao.t), 24) });
+          v: _clauseCut(_pStr(_lzP.c) + '：' + _pStr(_lzP.t), 24) });
       }
       return s;
     }

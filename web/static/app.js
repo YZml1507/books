@@ -9661,6 +9661,8 @@ async function doTarot(cards) {
     const j = await postJSON('/api/tarot', body);
     if (_gen !== _TR_GEN) return;   /* R2502 */
     paint('trResult', buildTarotResult(j));
+    /* R3447：上一抽的当值签随本抽清场——非限定路径不留残渣。 */
+    window.__trLiao = null;
     /* R3368：万圣夜限定抽的结果头顶插限定条（只认 trQH 路径，
      * 窗口期外入口本就藏着的）。 */
     if (window.__trHFest) {
@@ -9671,10 +9673,11 @@ async function doTarot(cards) {
       var _box0 = el('trResult');
       if (_box0) _box0.insertBefore(_hf, _box0.firstChild);
       /* R3447：聊斋当值签——限定抽附「今夜当值」一签随结果走，
-       * 判词进海报数据键，晒图上也有这一行。 */
+       * 判词挂 window 旗（j 是响应体不能私挂键——契约闸），
+       * 海报读同一旗。 */
       try {
         var _lz = _liaoPick();
-        j._liao = _lz;
+        window.__trLiao = _lz;
         var _lzEl = document.createElement('div');
         _lzEl.className = 'tr-liao-strip';
         _lzEl.textContent = '🦊 今夜当值 · ' + _lz.c + '：' + _lz.t;
