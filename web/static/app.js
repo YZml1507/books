@@ -19927,6 +19927,35 @@ function _ckPatternFind(todayKey) {
         }
       }
     } catch (eSD) {}
+    /* 好运日×心情（R3586）：hugseen 签名尾缀的落地日 vs 其余——
+     * 「收到朋友好运的那几天你常常更亮」是社交件留存最有
+     * 说服力的观察。签名集里 `|YYYY-MM-DD` 即好运落地日。 */
+    try {
+      var _hd = {};
+      (localStorage.getItem('hugseen') || '').split(',')
+        .forEach(function (sg) {
+          var _hp = sg.split('|');
+          if (_hp[1] && /^\d{4}-\d{2}-\d{2}$/.test(_hp[1])) {
+            _hd[_hp[1]] = 1;
+          }
+        });
+      var _hh = [], _nh = [];
+      _recs.forEach(function (r) {
+        (_hd[r.d] ? _hh : _nh).push(r);
+      });
+      if (_hh.length >= 3 && _nh.length >= 3) {
+        var _hhm = 0, _nhm = 0;
+        _hh.forEach(function (r) { _hhm += r.v; });
+        _nh.forEach(function (r) { _nhm += r.v; });
+        _hhm /= _hh.length; _nhm /= _nh.length;
+        var _hl = _hhm - _nhm;
+        if (Math.abs(_hl) >= 0.6) {
+          _cands.push({ lift: Math.abs(_hl), n: _hh.length,
+            txt: '收到朋友好运的那几天，你的心情好像常常' +
+                 (_hl > 0 ? '更亮一点' : '偏沉一点') });
+        }
+      }
+    } catch (eHG2) {}
     /* 周末 vs 周中——更粗的桶，样本更足时兜底。 */
     var _we = _recs.filter(function (r) { return r.dow >= 5; });
     var _wd = _recs.filter(function (r) { return r.dow < 5; });
