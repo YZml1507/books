@@ -18212,3 +18212,14 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
   小雪/大雪/冬至/小寒/大寒 2026-10~2027-02 全命中）。
 - bump_sw→books-shell-309a4069fae2；壁纸懒加载网络取图不进
   SW 预缓存，无清单项。esprima PASS、banned_copy PASS。
+
+## R3365 「一直闪」保险丝（用户直报）
+- 症状：Render 换环境变量重启后用户浏览器打开页面反复白闪。
+- 定性：服务端无异常（curl+真机自验 33s 稳）——用户浏览器里
+  的存量 SW 与新部署混版：旧 SW 对 ?v=新 的 JS 请求回
+  location.reload() 脚本（R2510 混版自救逻辑的暗面），装不上
+  新 SW 时形成刷新环。
+- index.html：load 回调头加 __bootflap 启动计数保险丝——15s
+  内第 3 次进入判定刷新环，跳过注册、getRegistrations 全量
+  注销后 location.reload 清场一趟；无 SW 拦截的加载必一致，
+  下趟正常注册恢复 PWA。counter 在 tripwire 前重置防假环。

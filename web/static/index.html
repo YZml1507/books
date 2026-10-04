@@ -69,6 +69,25 @@ if ('serviceWorker' in navigator) {
        固定桶名 books-shell-v1），老用户浏览器里它还活着，按最长前缀
        匹配抢走 /static/* 喂旧代码，且 scope 内无导航几乎不再检查更新。
        注册成功后注销一切非根 scope，一次性清掉存量。 */
+    /* R3365（用户直报「页面一直闪」）：旧 SW 与新部署混版 →
+     * ?v 不符回 location.reload 脚本的刷新环/反复白闪。启动计数
+     * 保险丝：15 秒内连续第 3 次进入判定为刷新环——跳过注册、
+     * 注销全部存量 SW 后自刷一次；无 SW 拦截的纯网络加载必拿
+     * 一致新版，环就此断开，下趟再正常注册。 */
+    try {
+      var _bk = '__bootflap', _bn = +(sessionStorage.getItem(_bk) || 0);
+      if (_bn >= 3) {
+        sessionStorage.removeItem(_bk);
+        navigator.serviceWorker.getRegistrations().then(function (rs) {
+          rs.forEach(function (r) { r.unregister(); });
+        }).then(function () { location.reload(); });
+        return;   /* 本趟只为清场 */
+      }
+      sessionStorage.setItem(_bk, _bn + 1);
+      setTimeout(function () {
+        try { sessionStorage.removeItem(_bk); } catch (e) {}
+      }, 15000);
+    } catch (eB) {}
     navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
       if (!reg) return;
       try {
