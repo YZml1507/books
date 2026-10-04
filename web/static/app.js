@@ -6373,8 +6373,11 @@ async function loadDaily() {
           '</button>'
         : '';
       /* R3588：满月群邀——复盘窗内挂「喊 TA 一起许愿」分享钮，
-       * wish= 链落地承接（toast/welcomeBar/CTA 滚到许愿瓶）。 */
-      if (j.moon.action === 'wish_review') {
+       * wish= 链落地承接（toast/welcomeBar/CTA 滚到许愿瓶）。
+       * R3594：新月窗同款对称——新月本就是许愿日，wish=n
+       * 相位分受邀文案。 */
+      if (j.moon.action === 'wish_review' ||
+          j.moon.action === 'wish') {
         _mBtn += ' <button type="button" class="daily-moon-go moon-share">喊 TA 一起许愿 🤝</button>';
       }
       /* R3592：晒今晚的月亮——日更海报件，每天都是另一张
@@ -6398,14 +6401,17 @@ async function loadDaily() {
           if (_t.classList.contains('moon-share')) {
             try {
               var _wl = location.origin + location.pathname +
-                '?view=home&from=share&wish=1';
+                '?view=home&from=share&wish=' +
+                (j.moon.action === 'wish_review' ? 'f' : 'n');
               try {
                 var _wnm = (_meGet('me') || {}).n;
                 if (_wnm) _wl += '&n=' + encodeURIComponent(
                   String(_wnm).slice(0, 24));
               } catch (eWN) {}
-              var _wPl = '今晚满月，一起来丢个愿望吧——' +
-                '写下来，小满替你收着 🌕 → ' + _wl;
+              var _wPl = (j.moon.action === 'wish_review'
+                  ? '今晚满月，一起来丢个愿望吧——写下来，小满替你收着 🌕 → '
+                  : '今晚新月，一起来丢个愿望吧——写下来，小满替你收着 🌑 → '
+                ) + _wl;
               var _wOk = function () {
                 showToast('许愿邀请复制好了，发给 TA 吧', 'ok'); };
               var _wBad = function () {
@@ -17268,10 +17274,11 @@ if (document.readyState === 'loading') {
         }
         /* R3588：满月群邀——wish=1 落地承接（发起方是满月窗
          * 内点的分享钮，受邀时段可能已非满月，文案不提死
-         * 「今晚」二字）。 */
+         * 「今晚」二字）。R3594：wish=n 新月邀对称分文案。 */
         if (_sv === 'home' && _qs.get('wish')) {
-          _relay.home = '朋友趁满月喊你一起丢个愿望：' +
-            '写下来，月亮替你收着 🌕';
+          _relay.home = _qs.get('wish') === 'n'
+            ? '朋友趁新月喊你一起丢个愿望：写下来，月亮替你收着 🌑'
+            : '朋友趁满月喊你一起丢个愿望：写下来，月亮替你收着 🌕';
         }
         /* R2349t（R88-13c）：链上带昵称时喊名——「陌生人晒的」
          * 变「我朋友喊我的」。 */
@@ -17383,10 +17390,13 @@ if (document.readyState === 'loading') {
             _dnCnt2++; if (v > _dnMax2) _dnMax2 = v;
           }
         });
-        /* R3588：满月群邀新客条——与 toast 同口径。 */
-        if (new URLSearchParams(location.search).get('wish')) {
-          _relayBar.home = '朋友趁满月喊你一起丢个愿望：' +
-            '写下来，月亮替你收着 🌕';
+        /* R3588：满月群邀新客条——与 toast 同口径。
+         * R3594：相位分文案。 */
+        var _wishV = new URLSearchParams(location.search).get('wish');
+        if (_wishV) {
+          _relayBar.home = _wishV === 'n'
+            ? '朋友趁新月喊你一起丢个愿望：写下来，月亮替你收着 🌑'
+            : '朋友趁满月喊你一起丢个愿望：写下来，月亮替你收着 🌕';
         }
         if (_dnCnt2 > 1) {
           _relayBar.home = '朋友们摆了连签擂：榜上最高 ' +
@@ -17453,7 +17463,8 @@ if (document.readyState === 'loading') {
           _wcta3.type = 'button';
           _wcta3.className = 'welcome-cta';
           _wcta3.textContent = _q3.get('duel') ?
-            '⚔️ 去打卡接招' : _q3.get('wish') ?
+            '⚔️ 去打卡接招' : _q3.get('wish') === 'n' ?
+            '🌑 去丢个愿望' : _q3.get('wish') ?
             '🌕 去丢个愿望' : '🤗 去打卡收下好运';
           _wcta3.addEventListener('click', function () {
             var _ck = el('checkin');
